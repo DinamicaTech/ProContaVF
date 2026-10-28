@@ -1,0 +1,1130 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Acceso de operador · ProConta (maqueta)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,600;12..96,700&amp;family=IBM+Plex+Mono:wght@400;500&amp;family=IBM+Plex+Sans:wght@400;500;600&amp;display=swap" rel="stylesheet">
+<style>
+
+body{margin:0;font-family:'IBM Plex Sans',system-ui,sans-serif;color:#16213A;background:#F3F1EC}
+.acc,.acc *{box-sizing:border-box}
+.acc{font-family:'IBM Plex Sans',system-ui,sans-serif;color:#16213A;position:relative;overflow:hidden;background:#F3F1EC;font-size:13px}
+.acc button{font:inherit;color:inherit}
+.acc :focus{outline:none}
+.acc :focus-visible{outline:2px solid #14213A;outline-offset:2px}
+.disp{font-family:'Bricolage Grotesque','IBM Plex Sans',sans-serif}
+.mono{font-family:'IBM Plex Mono',ui-monospace,monospace}
+.tn{font-variant-numeric:tabular-nums}
+.cell{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.muted{color:#646A78}
+
+.mark{width:34px;height:34px;border-radius:10px;background:#14213A;color:#FFFFFF;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;flex-shrink:0;position:relative}
+.mark i{position:absolute;right:5px;bottom:5px;width:6px;height:6px;border-radius:50%}
+.word{font-family:'Bricolage Grotesque',sans-serif;font-weight:700;font-size:18px;letter-spacing:-.01em}
+
+.ttl{margin:0;font-size:26px;font-weight:600;letter-spacing:-.02em;line-height:1.1;color:#14213A}
+.lead{margin:6px 0 0 0;font-size:13.5px;color:#555B69;line-height:1.45}
+.sec{font-size:11px;font-weight:600;color:#646A78;letter-spacing:.08em;text-transform:uppercase;margin:0 0 10px 0;display:flex;align-items:center;gap:10px}
+.sec:after{content:"";flex-grow:1;height:1px;background:#EEEBE3}
+.row2{display:grid;grid-template-columns:minmax(0,1fr);gap:8px 16px}
+.v-dividida .row2.a,.v-integrada .row2.a{grid-template-columns:minmax(0,1.55fr) minmax(0,1fr)}
+.v-dividida .row2.b,.v-integrada .row2.b{grid-template-columns:repeat(2,minmax(0,1fr))}
+.fld{display:flex;flex-direction:column;gap:5px;min-width:0}
+.lbl{font-size:12px;font-weight:500;color:#555B69}
+.help{font-size:11.5px;line-height:16px;min-height:16px;color:#646A78;display:flex;align-items:center;gap:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.help.warn{color:#9A4A12}
+.help.caps{color:#8A4A10;font-weight:500}
+
+.cbw{position:relative}
+.trg{width:100%;height:40px;border:1px solid #E4E1D8;border-radius:10px;background:#FAF9F6;padding:0 10px 0 12px;display:flex;align-items:center;gap:8px;text-align:left;cursor:pointer;font-size:13.5px;color:#16213A}
+.trg:hover{border-color:#D2CCBE}
+.trg:focus-visible,.trg.open{outline:none;background:#FFFFFF;border-color:#14213A;box-shadow:0 0 0 3px rgba(244,162,89,.45)}
+.trg:disabled{background:#F4F2ED;border-color:#EDEAE2;color:#8A8F9B;cursor:default}
+.trg.bad{border-color:#C8562A}
+.trg .tv{flex-grow:1;min-width:0;display:flex;align-items:center;gap:8px}
+.trg .ph{color:#7E8390}
+.trg:disabled .ph{color:#8A8F9B}
+.trg .chev{flex-shrink:0;color:#646A78;transition:transform .12s}
+.trg.open .chev{transform:rotate(180deg)}
+.code{font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:500;padding:2px 6px;border-radius:5px;background:#EEEAE0;color:#14213A;flex-shrink:0}
+.av{width:24px;height:24px;border-radius:7px;background:#E3ECF6;color:#1D5C8C;display:inline-flex;align-items:center;justify-content:center;font-size:10.5px;font-weight:600;flex-shrink:0}
+
+.pop{position:absolute;left:0;right:0;top:calc(100% + 6px);z-index:30;background:#FFFFFF;border:1px solid #E1DCD0;border-radius:12px;box-shadow:0 2px 4px rgba(20,33,58,.06),0 16px 36px rgba(20,33,58,.18);padding:6px;min-width:260px}
+.psw{display:flex;align-items:center;gap:8px;height:38px;padding:0 10px;border-radius:9px;background:#F6F4EF;margin-bottom:6px;color:#646A78}
+.psw:focus-within{box-shadow:0 0 0 2px #14213A inset;background:#FFFFFF}
+.ps{flex-grow:1;min-width:0;border:0;background:transparent;font:inherit;font-size:13px;color:#16213A;outline:none}
+.ps::placeholder{color:#7E8390}
+.acc .ps:focus-visible{outline:none}
+.lb{list-style:none;margin:0;padding:0;max-height:232px;overflow:auto}
+.lb:focus-visible{outline:none}
+.opt{display:flex;align-items:center;gap:10px;min-height:44px;padding:6px 10px;border-radius:8px;cursor:pointer}
+.opt:hover{background:#FAF7F1}
+.opt.act{background:#FFF1E2;box-shadow:inset 0 0 0 1px rgba(244,162,89,.55)}
+.opt .ol{display:flex;flex-direction:column;min-width:0;flex-grow:1;line-height:1.3}
+.opt .on{font-size:13px;font-weight:500}
+.opt .os{font-size:11.5px;color:#646A78}
+.opt .ck{flex-shrink:0;color:#1E6B45}
+.pempty{padding:12px 10px 10px;font-size:12.5px;line-height:1.45;color:#3B4252}
+.pempty b{font-weight:600}
+
+.pww{position:relative}
+.in{height:40px;width:100%;border:1px solid #E4E1D8;border-radius:10px;background:#FAF9F6;padding:0 44px 0 12px;font:inherit;font-size:13.5px;color:#16213A}
+.in:hover{border-color:#D2CCBE}
+.in:focus{outline:none;background:#FFFFFF;border-color:#14213A;box-shadow:0 0 0 3px rgba(244,162,89,.45)}
+.in:disabled{background:#F4F2ED;border-color:#EDEAE2;cursor:default}
+.in::placeholder{color:#7E8390}
+.in:disabled::placeholder{color:#8A8F9B}
+.in.pwv{font-family:'IBM Plex Mono',monospace;font-size:13px;letter-spacing:.02em}
+.eye{position:absolute;right:4px;top:4px;width:32px;height:32px;border:0;border-radius:8px;background:none;color:#555B69;display:flex;align-items:center;justify-content:center;cursor:pointer}
+.eye:hover{background:#F1EEE7;color:#14213A}
+.eye:disabled{color:#B5B1A6;cursor:default;background:none}
+
+.mz{min-height:62px;display:flex;flex-direction:column;justify-content:center}
+.msg{display:flex;gap:10px;align-items:flex-start;padding:10px 12px;border-radius:12px;font-size:12.5px;line-height:1.45}
+.msg .mt{flex-grow:1;min-width:0;display:flex;flex-direction:column;gap:1px}
+.msg .mt b{font-weight:600}
+.msg svg{flex-shrink:0;margin-top:1px}
+.m-err{background:#FBECE7;color:#7E2A16}
+.m-warn{background:#FBF1E4;color:#6E3A0C}
+.m-tech{background:#ECEFF4;color:#253047}
+.m-info{background:#EEF2F8;color:#1D3F66}
+.m-idle{padding:0 2px;color:#646A78;font-size:12.5px;align-items:center;background:none}
+.kbd{font-family:'IBM Plex Mono',monospace;font-size:10.5px;padding:1px 6px;border-radius:5px;border:1px solid #DDD8CC;border-bottom-width:2px;background:#FFFFFF;color:#3B4252}
+
+.actions{display:flex;flex-direction:row-reverse;gap:10px;align-items:center}
+.cta{height:44px;padding:0 22px;border-radius:10px;border:0;color:#14213A;font-weight:600;font-size:14px;display:inline-flex;align-items:center;justify-content:center;gap:9px;cursor:pointer;box-shadow:0 6px 18px rgba(244,162,89,.30)}
+.cta:hover{filter:brightness(1.05)}
+.cta:focus-visible{outline:2px solid #14213A;outline-offset:3px}
+.cta:disabled{cursor:default;box-shadow:none;opacity:.5}
+.cta.busy:disabled{opacity:1}
+.btn{height:44px;padding:0 18px;border-radius:10px;border:1px solid #E1DDD2;background:#FFFFFF;font-size:13.5px;font-weight:500;cursor:pointer;display:inline-flex;align-items:center;gap:8px}
+.btn:hover{background:#FAF9F6}
+.btn.sm{height:32px;padding:0 12px;font-size:12.5px;border-radius:8px;flex-shrink:0;align-self:center}
+.spin{width:16px;height:16px;border-radius:50%;border:2px solid rgba(20,33,58,.25);border-top-color:#14213A;animation:accspin .8s linear infinite;flex-shrink:0}
+.spin.sm{width:14px;height:14px}
+@keyframes accspin{to{transform:rotate(360deg)}}
+.bar{height:4px;border-radius:4px;background:#EEEAE0;overflow:hidden;position:relative}
+.bar span{position:absolute;top:0;bottom:0;width:40%;border-radius:4px;animation:accbar 1.3s ease-in-out infinite}
+@keyframes accbar{0%{left:-40%}100%{left:100%}}
+
+.ctx{display:grid;grid-template-columns:96px minmax(0,1fr);gap:0;border:1px solid #ECE8DE;border-radius:14px;overflow:hidden;background:#FFFFFF}
+.ctx > span{padding:12px 14px;border-bottom:1px solid #F1EEE7;font-size:13px;display:flex;align-items:center;gap:8px;min-width:0}
+.ctx > span.k{font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:#646A78;background:#FBFAF7}
+.ctx > span.last{border-bottom:0}
+.wtitle{margin:0;font-size:28px;font-weight:600;letter-spacing:-.02em;color:#14213A}
+.link{border:0;background:none;padding:0;color:#14213A;font-size:12.5px;cursor:pointer;text-decoration:underline;text-underline-offset:3px}
+.link:hover{color:#C8562A}
+
+.side-ctx{display:flex;flex-direction:column;gap:10px}
+.side-ctx .it{display:flex;flex-direction:column;gap:3px;padding:12px 14px;border-radius:12px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.10)}
+.side-ctx .k{font-size:10.5px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:#AEB8CC}
+.side-ctx .v{font-size:14px;font-weight:500;color:#FFFFFF}
+.side-ctx .v.none{color:#8E9AB3;font-weight:400}
+
+.ov{position:absolute;inset:0;z-index:60;background:rgba(14,23,41,.55);display:flex;align-items:center;justify-content:center;padding:24px}
+.ovc{width:380px;max-width:100%;background:#FFFFFF;border-radius:16px;padding:24px;box-shadow:0 20px 50px rgba(14,23,41,.35);display:flex;flex-direction:column;gap:12px}
+
+.dtab{position:absolute;right:0;top:50%;transform:translateY(-50%);z-index:70;writing-mode:vertical-rl;border:1px dashed #7B5EA7;border-right:0;border-radius:10px 0 0 10px;background:#F4F0FA;color:#4E3478;font-size:11px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;padding:14px 6px;cursor:pointer}
+.dtab:hover{background:#EAE2F6}
+.demo{position:absolute;top:0;right:0;bottom:0;width:318px;z-index:80;background:#FCFBFE;border-left:2px dashed #7B5EA7;box-shadow:-12px 0 32px rgba(14,23,41,.18);display:flex;flex-direction:column;font-size:12px;color:#2A2440}
+.demo .dh{display:flex;align-items:center;gap:8px;padding:12px 12px 10px 14px;border-bottom:1px solid #E9E3F3;background:#F4F0FA}
+.demo .tag{font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:500;padding:2px 6px;border-radius:5px;background:#4E3478;color:#FFFFFF;letter-spacing:.06em}
+.demo .db{flex-grow:1;min-height:0;overflow:auto;padding:12px 14px 16px;display:flex;flex-direction:column;gap:14px}
+.demo h3{margin:0 0 6px 0;font-size:10.5px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:#6B5A8C}
+.demo .sts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px}
+.demo .st{border:1px solid #E1D9EE;background:#FFFFFF;border-radius:7px;padding:5px 7px;text-align:left;font-size:11.5px;cursor:pointer;display:flex;gap:6px;align-items:baseline;line-height:1.25}
+.demo .st:hover{border-color:#7B5EA7;background:#F7F3FC}
+.demo .st b{font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:#6B5A8C;font-weight:500}
+.demo .tg{display:flex;align-items:flex-start;gap:8px;padding:4px 0;font-size:12px;cursor:pointer;line-height:1.35}
+.demo .tg input{margin:1px 0 0 0;accent-color:#4E3478;width:14px;height:14px;flex-shrink:0}
+.demo table{width:100%;border-collapse:collapse;font-size:11.5px}
+.demo td,.demo th{text-align:left;padding:4px 4px;border-bottom:1px solid #EEE8F6;vertical-align:top}
+.demo th{font-size:10px;font-weight:600;color:#6B5A8C;text-transform:uppercase;letter-spacing:.06em}
+.demo .pw{font-family:'IBM Plex Mono',monospace;font-size:11px;background:#F1ECF8;padding:1px 5px;border-radius:4px;white-space:nowrap}
+.demo .note{font-size:11.5px;color:#5C5470;line-height:1.45;margin:0}
+.demo .dbtn{height:28px;padding:0 10px;border:1px solid #CFC3E3;background:#FFFFFF;border-radius:7px;font-size:11.5px;cursor:pointer;color:#2A2440}
+.demo .dbtn:hover{border-color:#7B5EA7}
+.demo .x{width:28px;height:28px;border:0;border-radius:7px;background:none;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#4E3478}
+.demo .x:hover{background:#E6DDF3}
+.demo :focus-visible{outline:2px solid #4E3478;outline-offset:1px}
+
+.v-compacta .stage{position:absolute;inset:0;background:#FFFFFF}
+.v-compacta .card{height:100%;padding:24px 32px 22px;display:flex;flex-direction:column}
+.v-dividida{display:flex}
+.v-dividida .stage{flex-grow:1;min-width:0;background:#FFFFFF;display:flex;align-items:center;justify-content:center;position:relative}
+.v-dividida .card{width:100%;max-width:560px;padding:36px 48px 30px;display:flex;flex-direction:column}
+.v-integrada .stage{position:absolute;left:64px;right:0;top:0;bottom:36px;display:flex;align-items:center;justify-content:center}
+.v-integrada .card{width:620px;background:#FFFFFF;border-radius:18px;box-shadow:0 1px 2px rgba(20,33,58,.06),0 18px 48px rgba(20,33,58,.18);padding:30px 36px 26px;display:flex;flex-direction:column;position:relative}
+.formwrap{display:flex;flex-direction:column;flex-grow:1;min-height:0}
+
+</style>
+<style>
+/* ---- Página de revisión (no forma parte de la pantalla de acceso) ---- */
+html,body{height:100%}
+body{background:#DCD8CF;color:#16213A;font-family:'IBM Plex Sans',system-ui,sans-serif}
+.xtop{position:sticky;top:0;z-index:100;height:60px;display:flex;align-items:center;gap:18px;padding:0 20px;background:#FFFFFF;border-bottom:1px solid #D6D1C4}
+.xtop h1{margin:0;font-family:'Bricolage Grotesque',sans-serif;font-size:17px;font-weight:600;white-space:nowrap}
+.xtop .sub{font-size:12px;color:#646A78;white-space:nowrap}
+.xtabs{display:flex;gap:2px;padding:4px;border-radius:12px;background:#F1EEE7}
+.xtab{height:34px;border:0;border-radius:9px;background:none;padding:0 14px;font:inherit;font-size:13px;font-weight:500;color:#555B69;cursor:pointer;white-space:nowrap}
+.xtab small{font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:#7E8390;margin-left:6px}
+.xtab[aria-selected="true"]{background:#FFFFFF;color:#14213A;box-shadow:0 1px 2px rgba(20,33,58,.1),0 2px 6px rgba(20,33,58,.06)}
+.xtab:focus-visible{outline:2px solid #14213A;outline-offset:1px}
+.xmain{padding:28px 24px 40px;display:flex;flex-direction:column;align-items:center;gap:22px}
+.xmain:has(.demo){padding-right:350px}
+.xwin{box-shadow:0 2px 6px rgba(14,23,41,.10),0 24px 60px rgba(14,23,41,.22);border-radius:8px;overflow:hidden;flex-shrink:0}
+.xpane[hidden]{display:none}
+.xpane{display:flex;flex-direction:column;align-items:center;gap:22px}
+.xnote{max-width:960px;width:100%;background:#FBFAF7;border:1px solid #D6D1C4;border-radius:14px;padding:16px 20px;font-size:13px;line-height:1.55;color:#3B4252}
+.xnote h2{margin:0 0 6px 0;font-family:'Bricolage Grotesque',sans-serif;font-size:15px;font-weight:600;color:#14213A}
+.xnote ul{margin:6px 0 0 0;padding-left:18px}
+.xnote li{margin:2px 0}
+.xnote .lab{font-size:10.5px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:#6B5A8C}
+.exp .demo{position:fixed;top:60px;right:0;bottom:0;box-shadow:-8px 0 24px rgba(14,23,41,.12)}
+.exp .dtab{position:fixed;top:50%}
+</style>
+</head>
+<body>
+<header class="xtop">
+<h1>ProConta · Acceso de operador</h1>
+<span class="sub">Maqueta interactiva · datos ficticios</span>
+<span style="flex-grow:1"></span>
+<div class="xtabs" role="tablist" aria-label="Propuestas">
+<button class="xtab" role="tab" id="t-compacta" aria-controls="p-compacta" aria-selected="true" data-v="compacta">1 · Compacta<small>540×700</small></button>
+<button class="xtab" role="tab" id="t-dividida" aria-controls="p-dividida" aria-selected="false" data-v="dividida" tabindex="-1">2 · Dividida<small>960×640</small></button>
+<button class="xtab" role="tab" id="t-integrada" aria-controls="p-integrada" aria-selected="false" data-v="integrada" tabindex="-1">3 · Integrada<small>1280×800</small></button>
+</div>
+</header>
+<main class="xmain">
+<section class="xpane" id="p-compacta" role="tabpanel" aria-labelledby="t-compacta">
+<div class="xwin exp" id="app-compacta"></div>
+<div class="xnote"><span class="lab">Propuesta 1 · Compacta</span><h2>Una columna, lo mínimo para entrar</h2>
+<ul>
+<li>Ventana pequeña que abre rápido y cabe en cualquier pantalla, incluso a 1366 × 768 con la barra de tareas.</li>
+<li>Recorrido vertical único: el orden de lectura coincide con el orden de Tab.</li>
+<li>La marca y la versión ocupan una sola línea; todo el espacio es para el formulario.</li>
+<li>Es la más barata de implementar en WPF: un StackPanel con controles estándar.</li>
+<li>Limitación: no deja sitio para mostrar el contexto aparte del propio formulario.</li>
+</ul></div>
+</section>
+<section class="xpane" id="p-dividida" role="tabpanel" aria-labelledby="t-dividida" hidden>
+<div class="xwin exp" id="app-dividida"></div>
+<div class="xnote"><span class="lab">Propuesta 2 · Dividida</span><h2>Identidad a un lado, formulario al otro</h2>
+<ul>
+<li>La franja azul da carácter de marca sin fotos ni textos comerciales.</li>
+<li>La franja resume «Vas a trabajar en»: sociedad y ejercicio siguen a la vista al elegir, al comprobar y en la bienvenida.</li>
+<li>Con más ancho, Sociedad y Ejercicio (y Operador y Contraseña) van en pares: el formulario queda más bajo y se lee de un vistazo.</li>
+<li>Limitación: necesita unos 960 px de ancho; en portátiles con escalado alto puede ser justa.</li>
+</ul></div>
+</section>
+<section class="xpane" id="p-integrada" role="tabpanel" aria-labelledby="t-integrada" hidden>
+<div class="xwin exp" id="app-integrada"></div>
+<div class="xnote"><span class="lab">Propuesta 3 · Integrada en la aplicación</span><h2>El acceso ya es la ventana principal</h2>
+<ul>
+<li>Usa el mismo armazón que Facturas y Terceros (carril lateral y cabecera azul), así que el paso a la aplicación no tiene saltos.</li>
+<li>La ventana se abre maximizada una sola vez: tras entrar, el contenido sustituye a la tarjeta sin cambiar de ventana.</li>
+<li>La barra inferior aloja la versión y los atajos (Intro, Esc) sin cargar la tarjeta.</li>
+<li>Limitación: en pantallas pequeñas hay mucho fondo para un formulario corto; la tarjeta debe quedar centrada.</li>
+</ul></div>
+</section>
+</main>
+<script type="text/x-template" id="tpl"><div data-acc="1" class="acc v-{{v}}" style="width: {{W}}px; height: {{H}}px" onKeyDown="{{onRootKey}}" onMouseDown="{{onRootDown}}">
+
+<div style="display: contents">
+<sc-if value="{{isDiv}}" hint-placeholder-val="{{false}}">
+<aside aria-label="ProConta" style="width: 380px; flex-shrink: 0; height: 100%; position: relative; overflow: hidden; background: {{azul}}; color: #FFFFFF; padding: 36px 36px 28px; display: flex; flex-direction: column">
+<svg width="380" height="640" viewBox="0 0 380 640" fill="none" aria-hidden="true" style="position: absolute; left: 0; top: 0">
+<circle cx="380" cy="330" r="90" stroke="rgba(255,255,255,.07)" stroke-width="1"></circle>
+<circle cx="380" cy="330" r="160" stroke="rgba(255,255,255,.05)" stroke-width="1"></circle>
+<circle cx="380" cy="330" r="230" stroke="{{acento}}" stroke-opacity=".22" stroke-width="1"></circle>
+<circle cx="380" cy="330" r="300" stroke="rgba(255,255,255,.04)" stroke-width="1"></circle>
+<path d="M300 330 L380 250 L380 330 Z" fill="{{acento}}" fill-opacity=".14"></path>
+<rect x="262" y="350" width="36" height="36" rx="9" fill="{{acento}}" fill-opacity=".9"></rect>
+</svg>
+<div style="position: relative; display: flex; align-items: center; gap: 12px">
+<div class="mark" style="background: #FFFFFF; color: {{azul}}">pc<i style="background: {{acento}}"></i></div>
+<span class="word" style="color: #FFFFFF">ProConta</span>
+</div>
+<p style="position: relative; margin: 14px 0 0 0; font-size: 13px; color: #AEB8CC; line-height: 1.5">Contabilidad y facturación</p>
+<div style="position: relative; flex-grow: 1"></div>
+<div class="side-ctx" style="position: relative">
+<span class="k" style="font-size: 10.5px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: #AEB8CC">Vas a trabajar en</span>
+<div class="it"><span class="k">Sociedad</span><span class="{{side.socCls}}">{{side.soc}}</span></div>
+<div class="it"><span class="k">Ejercicio</span><span class="{{side.ejeCls}}">{{side.eje}}</span></div>
+</div>
+<div style="position: relative; margin-top: 22px; font-size: 11.5px; color: #8E9AB3" class="tn">{{version}}</div>
+</aside>
+</sc-if>
+</div>
+
+<div style="display: contents">
+<sc-if value="{{isInt}}" hint-placeholder-val="{{false}}">
+<nav aria-label="Módulos" style="position: absolute; left: 0; top: 0; bottom: 0; width: 64px; background: #0E1729; display: flex; flex-direction: column; align-items: center; padding: 16px 0">
+<div class="mark" style="background: #FFFFFF; color: {{azul}}; width: 38px; height: 38px">pc<i style="background: {{acento}}"></i></div>
+</nav>
+<div aria-hidden="true" style="position: absolute; left: 64px; right: 0; top: 0; height: 330px; background: {{azul}}; overflow: hidden">
+<svg width="1216" height="330" viewBox="0 0 1216 330" fill="none" style="position: absolute; left: 0; top: 0">
+<circle cx="1100" cy="-40" r="220" stroke="rgba(255,255,255,.05)" stroke-width="1"></circle>
+<circle cx="1100" cy="-40" r="300" stroke="rgba(255,255,255,.04)" stroke-width="1"></circle>
+<circle cx="1100" cy="-40" r="380" stroke="{{acento}}" stroke-opacity=".16" stroke-width="1"></circle>
+<circle cx="80" cy="380" r="160" stroke="rgba(255,255,255,.04)" stroke-width="1"></circle>
+</svg>
+</div>
+<div style="position: absolute; left: 100px; right: 36px; top: 26px; display: flex; align-items: center; gap: 12px; color: #FFFFFF">
+<span class="word" style="color: #FFFFFF">ProConta</span>
+<span style="font-size: 12.5px; color: #AEB8CC">Contabilidad y facturación</span>
+</div>
+<footer style="position: absolute; left: 64px; right: 0; bottom: 0; height: 36px; border-top: 1px solid #E6E2D8; background: #EFECE5; display: flex; align-items: center; gap: 16px; padding: 0 20px; font-size: 11.5px; color: #646A78">
+<span class="tn">{{version}}</span>
+<span style="flex-grow: 1"></span>
+<span><span class="kbd">Intro</span> entrar</span>
+<span><span class="kbd">Esc</span> salir</span>
+</footer>
+</sc-if>
+</div>
+
+<main class="stage">
+<div class="card">
+
+<div style="display: contents">
+<sc-if value="{{isCmp}}" hint-placeholder-val="{{true}}">
+<div style="display: flex; align-items: center; gap: 10px; margin-bottom: 18px">
+<div class="mark" style="background: {{azul}}">pc<i style="background: {{acento}}"></i></div>
+<span class="word" style="color: #14213A">ProConta</span>
+<span style="flex-grow: 1"></span>
+<span class="tn" style="font-size: 11.5px; color: #7E8390">{{version}}</span>
+</div>
+</sc-if>
+</div>
+
+<div class="formwrap">
+<sc-if value="{{showForm}}" hint-placeholder-val="{{true}}">
+<header style="margin-bottom: 20px">
+<h1 class="ttl disp">Acceso de operador</h1>
+<p class="lead">Elige la sociedad, el ejercicio y tu operador para entrar.</p>
+</header>
+
+<section aria-labelledby="{{ids.s1}}" style="margin-bottom: 14px">
+<h2 class="sec" id="{{ids.s1}}">Dónde quieres trabajar</h2>
+<div class="row2 a">
+
+<div class="fld">
+<label class="lbl" id="{{soc.lblId}}" for="{{soc.trgId}}">Sociedad</label>
+<div class="cbw">
+<button class="{{soc.cls}}" id="{{soc.trgId}}" type="button" data-trg="soc" aria-haspopup="listbox" aria-expanded="{{soc.open}}" aria-describedby="{{soc.helpId}}" disabled="{{soc.dis}}" onClick="{{soc.toggle}}" onKeyDown="{{soc.key}}">
+<span class="tv">
+<sc-if value="{{soc.has}}" hint-placeholder-val="{{false}}"><span class="code">{{soc.code}}</span><span class="cell">{{soc.text}}</span></sc-if>
+<sc-if value="{{soc.none}}" hint-placeholder-val="{{true}}"><span class="ph cell">{{soc.ph}}</span></sc-if>
+</span>
+<svg class="chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"></path></svg>
+</button>
+<div>
+<sc-if value="{{soc.open}}" hint-placeholder-val="{{false}}">
+<div class="pop">
+<div class="psw">
+<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.5-3.5"></path></svg>
+<input class="ps" type="text" data-ps="soc" role="combobox" aria-expanded="true" aria-autocomplete="list" aria-controls="{{soc.lbId}}" aria-activedescendant="{{soc.actId}}" aria-label="Buscar sociedad por código o nombre" placeholder="Código o nombre" value="{{q}}" onChange="{{onQ}}" onKeyDown="{{soc.popKey}}" autocomplete="off" spellcheck="false">
+</div>
+<ul class="lb" role="listbox" id="{{soc.lbId}}" aria-label="Sociedades">
+<sc-for list="{{soc.opts}}" as="o" hint-placeholder-count="3">
+<li class="{{o.cls}}" id="{{o.domId}}" role="option" aria-selected="{{o.sel}}" onMouseDown="{{o.pick}}">
+<span class="code">{{o.code}}</span>
+<span class="ol"><span class="on cell">{{o.label}}</span><span class="os cell">{{o.sub}}</span></span>
+<sc-if value="{{o.sel}}" hint-placeholder-val="{{false}}"><svg class="ck" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"></path></svg></sc-if>
+</li>
+</sc-for>
+</ul>
+<sc-if value="{{soc.empty}}" hint-placeholder-val="{{false}}">
+<div class="pempty" role="status"><b>Ninguna sociedad coincide con «{{q}}».</b><br>Busca por el código (RGE, RIN, ALM) o por parte del nombre.</div>
+</sc-if>
+</div>
+</sc-if>
+</div>
+</div>
+<div class="{{soc.helpCls}}" id="{{soc.helpId}}">{{soc.help}}</div>
+</div>
+
+<div class="fld">
+<label class="lbl" id="{{eje.lblId}}" for="{{eje.trgId}}">Ejercicio</label>
+<div class="cbw">
+<button class="{{eje.cls}}" id="{{eje.trgId}}" type="button" data-trg="eje" aria-haspopup="listbox" aria-expanded="{{eje.open}}" aria-describedby="{{eje.helpId}}" disabled="{{eje.dis}}" onClick="{{eje.toggle}}" onKeyDown="{{eje.key}}">
+<span class="tv">
+<sc-if value="{{eje.loading}}" hint-placeholder-val="{{false}}"><span class="spin sm"></span></sc-if>
+<sc-if value="{{eje.has}}" hint-placeholder-val="{{false}}"><span class="cell tn" style="font-weight: 500">{{eje.text}}</span></sc-if>
+<sc-if value="{{eje.none}}" hint-placeholder-val="{{true}}"><span class="ph cell">{{eje.ph}}</span></sc-if>
+</span>
+<svg class="chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"></path></svg>
+</button>
+<div>
+<sc-if value="{{eje.open}}" hint-placeholder-val="{{false}}">
+<div class="pop">
+<ul class="lb" role="listbox" id="{{eje.lbId}}" tabindex="-1" data-lb="eje" aria-label="Ejercicios disponibles" aria-activedescendant="{{eje.actId}}" onKeyDown="{{eje.popKey}}">
+<sc-for list="{{eje.opts}}" as="o" hint-placeholder-count="2">
+<li class="{{o.cls}}" id="{{o.domId}}" role="option" aria-selected="{{o.sel}}" onMouseDown="{{o.pick}}">
+<span class="ol"><span class="on tn">{{o.label}}</span><span class="os tn">{{o.sub}}</span></span>
+<sc-if value="{{o.sel}}" hint-placeholder-val="{{false}}"><svg class="ck" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"></path></svg></sc-if>
+</li>
+</sc-for>
+</ul>
+</div>
+</sc-if>
+</div>
+</div>
+<div class="{{eje.helpCls}}" id="{{eje.helpId}}">{{eje.help}}</div>
+</div>
+
+</div>
+</section>
+
+<section aria-labelledby="{{ids.s2}}" style="margin-bottom: 6px">
+<h2 class="sec" id="{{ids.s2}}">Identificación</h2>
+<div class="row2 b">
+
+<div class="fld">
+<label class="lbl" id="{{op.lblId}}" for="{{op.trgId}}">Operador</label>
+<div class="cbw">
+<button class="{{op.cls}}" id="{{op.trgId}}" type="button" data-trg="op" aria-haspopup="listbox" aria-expanded="{{op.open}}" aria-describedby="{{op.helpId}}" disabled="{{op.dis}}" onClick="{{op.toggle}}" onKeyDown="{{op.key}}">
+<span class="tv">
+<sc-if value="{{op.loading}}" hint-placeholder-val="{{false}}"><span class="spin sm"></span></sc-if>
+<sc-if value="{{op.has}}" hint-placeholder-val="{{false}}"><span class="av">{{op.ini}}</span><span class="cell">{{op.text}}</span></sc-if>
+<sc-if value="{{op.none}}" hint-placeholder-val="{{true}}"><span class="ph cell">{{op.ph}}</span></sc-if>
+</span>
+<svg class="chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"></path></svg>
+</button>
+<div>
+<sc-if value="{{op.open}}" hint-placeholder-val="{{false}}">
+<div class="pop">
+<div class="psw">
+<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.5-3.5"></path></svg>
+<input class="ps" type="text" data-ps="op" role="combobox" aria-expanded="true" aria-autocomplete="list" aria-controls="{{op.lbId}}" aria-activedescendant="{{op.actId}}" aria-label="Buscar operador por nombre" placeholder="Nombre del operador" value="{{q}}" onChange="{{onQ}}" onKeyDown="{{op.popKey}}" autocomplete="off" spellcheck="false">
+</div>
+<ul class="lb" role="listbox" id="{{op.lbId}}" aria-label="Operadores autorizados">
+<sc-for list="{{op.opts}}" as="o" hint-placeholder-count="3">
+<li class="{{o.cls}}" id="{{o.domId}}" role="option" aria-selected="{{o.sel}}" onMouseDown="{{o.pick}}">
+<span class="av">{{o.ini}}</span>
+<span class="ol"><span class="on cell">{{o.label}}</span><span class="os cell">{{o.sub}}</span></span>
+<sc-if value="{{o.sel}}" hint-placeholder-val="{{false}}"><svg class="ck" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"></path></svg></sc-if>
+</li>
+</sc-for>
+</ul>
+<sc-if value="{{op.empty}}" hint-placeholder-val="{{false}}">
+<div class="pempty" role="status"><b>Ningún operador coincide con «{{q}}».</b><br>Busca por nombre o apellido. Solo aparecen los operadores con acceso a esta sociedad.</div>
+</sc-if>
+</div>
+</sc-if>
+</div>
+</div>
+<div class="{{op.helpCls}}" id="{{op.helpId}}">{{op.help}}</div>
+</div>
+
+<div class="fld">
+<label class="lbl" for="{{pw.id}}">Contraseña</label>
+<div class="pww">
+<input class="{{pw.cls}}" id="{{pw.id}}" data-pw="1" type="{{pw.type}}" value="{{pwd}}" placeholder="{{pw.ph}}" disabled="{{pw.dis}}" aria-describedby="{{pw.helpId}}" onChange="{{onPwd}}" onKeyDown="{{pwKey}}" onKeyUp="{{pwKey}}" autocomplete="off" spellcheck="false">
+<button class="eye" type="button" aria-label="{{pw.eyeLbl}}" title="{{pw.eyeLbl}}" aria-pressed="{{showPwd}}" aria-controls="{{pw.id}}" disabled="{{pw.dis}}" onMouseDown="{{eyeDown}}" onClick="{{toggleEye}}">
+<sc-if value="{{pw.hidden}}" hint-placeholder-val="{{true}}"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"></path><circle cx="12" cy="12" r="3"></circle></svg></sc-if>
+<sc-if value="{{showPwd}}" hint-placeholder-val="{{false}}"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.9 5.2A10.4 10.4 0 0 1 12 5c6.4 0 10 7 10 7a17.6 17.6 0 0 1-2.6 3.6M6.6 6.6C3.9 8.4 2 12 2 12s3.6 7 10 7a10 10 0 0 0 5.4-1.6"></path><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"></path><path d="M3 3l18 18"></path></svg></sc-if>
+</button>
+</div>
+<div class="{{pw.helpCls}}" id="{{pw.helpId}}" aria-live="polite">
+<sc-if value="{{caps}}" hint-placeholder-val="{{false}}"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4l7 8h-4v5H9v-5H5z"></path><path d="M9 20h6"></path></svg><span>Bloq Mayús está activado</span></sc-if>
+</div>
+</div>
+
+</div>
+</section>
+
+<div class="mz" aria-live="polite">
+<div class="{{m.cls}}" role="{{m.role}}">
+<sc-if value="{{m.iErr}}" hint-placeholder-val="{{false}}"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M12 8v5M12 16h.01"></path></svg></sc-if>
+<sc-if value="{{m.iWarn}}" hint-placeholder-val="{{false}}"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 9v4M12 17h.01"></path><path d="M10.3 3.9L1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"></path></svg></sc-if>
+<sc-if value="{{m.iTech}}" hint-placeholder-val="{{false}}"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 7V3M15 7V3M6 7h12v4a6 6 0 0 1-12 0z"></path><path d="M12 17v4"></path><path d="M4 4l16 16"></path></svg></sc-if>
+<sc-if value="{{m.iInfo}}" hint-placeholder-val="{{false}}"><span class="spin" style="margin-top: 1px; border-color: rgba(29,63,102,.25); border-top-color: #1D3F66"></span></sc-if>
+<sc-if value="{{m.iOk}}" hint-placeholder-val="{{false}}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1E6B45" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"></path></svg></sc-if>
+<div class="mt">
+<sc-if value="{{m.title}}" hint-placeholder-val="{{false}}"><b>{{m.title}}</b></sc-if>
+<span>{{m.body}}</span>
+</div>
+<sc-if value="{{m.retry}}" hint-placeholder-val="{{false}}"><button class="btn sm" type="button" data-retry="1" onClick="{{retry}}">Reintentar</button></sc-if>
+</div>
+</div>
+
+<div style="flex-grow: 1; min-height: 8px"></div>
+
+<div class="actions">
+<button class="{{go.cls}}" type="button" data-go="1" style="background: {{acento}}; {{go.style}}" disabled="{{go.dis}}" aria-busy="{{checking}}" onClick="{{submit}}">
+<sc-if value="{{checking}}" hint-placeholder-val="{{false}}"><span class="spin"></span>Entrando…</sc-if>
+<sc-if value="{{go.idle}}" hint-placeholder-val="{{true}}">Entrar</sc-if>
+</button>
+<button class="btn" type="button" data-exit="1" onClick="{{exit}}">Salir</button>
+</div>
+</sc-if>
+
+<sc-if value="{{done}}" hint-placeholder-val="{{false}}">
+<div style="display: flex; flex-direction: column; gap: 18px; flex-grow: 1">
+<div style="display: flex; align-items: center; gap: 12px">
+<span style="width: 40px; height: 40px; border-radius: 12px; background: #E2F0E8; color: #1E6B45; display: flex; align-items: center; justify-content: center; flex-shrink: 0"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"></path></svg></span>
+<h1 class="wtitle disp" tabindex="-1" data-welcome="1">Hola, {{w.first}}</h1>
+</div>
+<p class="lead" style="margin: 0">Has entrado en ProConta. Estamos abriendo tu espacio de trabajo con este contexto:</p>
+<div class="ctx">
+<span class="k">Operador</span><span><span class="av">{{w.ini}}</span><span class="cell">{{w.op}}</span></span>
+<span class="k">Sociedad</span><span><span class="code">{{w.code}}</span><span class="cell">{{w.soc}}</span></span>
+<span class="k last">Ejercicio</span><span class="last tn"><b style="font-weight: 600">{{w.eje}}</b><span class="muted">{{w.ejeSub}}</span></span>
+</div>
+<div style="display: flex; flex-direction: column; gap: 8px">
+<div class="bar"><span style="background: {{acento}}"></span></div>
+<span class="muted" style="font-size: 12px">Abriendo el escritorio de trabajo…</span>
+</div>
+<div style="flex-grow: 1"></div>
+<div><button class="link" type="button" onClick="{{backToLogin}}">Volver a la pantalla de acceso (demostración)</button></div>
+</div>
+</sc-if>
+</div>
+
+</div>
+</main>
+
+<div style="display: contents">
+<sc-if value="{{exiting}}" hint-placeholder-val="{{false}}">
+<div class="ov" role="dialog" aria-modal="true" aria-labelledby="{{ids.ex}}">
+<div class="ovc">
+<div style="display: flex; align-items: center; gap: 10px">
+<span style="width: 36px; height: 36px; border-radius: 10px; background: #F1EEE7; display: flex; align-items: center; justify-content: center; color: #14213A"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><path d="M16 17l5-5-5-5M21 12H9"></path></svg></span>
+<h2 class="disp" id="{{ids.ex}}" style="margin: 0; font-size: 19px; font-weight: 600; color: #14213A">ProConta se cerraría ahora</h2>
+</div>
+<p style="margin: 0; font-size: 13px; line-height: 1.5; color: #3B4252">En la aplicación, «Salir» cierra la ventana sin iniciar sesión{{exitNote}}. En esta maqueta no se cierra nada.</p>
+<div style="display: flex; justify-content: flex-end">
+<button class="btn" type="button" data-back="1" onClick="{{back}}" style="height: 38px">Volver al acceso</button>
+</div>
+</div>
+</div>
+</sc-if>
+</div>
+
+<div style="display: contents">
+<sc-if value="{{demoTab}}" hint-placeholder-val="{{true}}">
+<button class="dtab" type="button" onClick="{{demoShow}}" aria-label="Mostrar el panel de pruebas">Pruebas</button>
+</sc-if>
+<sc-if value="{{demoPanel}}" hint-placeholder-val="{{false}}">
+<aside class="demo" aria-label="Panel de pruebas de la maqueta">
+<div class="dh">
+<span class="tag">MAQUETA</span>
+<strong style="font-size: 12.5px; flex-grow: 1">Panel de pruebas</strong>
+<button class="x" type="button" onClick="{{demoHide}}" aria-label="Ocultar el panel de pruebas" title="Ocultar"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg></button>
+</div>
+<div class="db">
+<p class="note">No forma parte de la pantalla final. Sirve para revisar estados y simular respuestas del servidor.</p>
+<div>
+<h3>Ir a un estado</h3>
+<div class="sts">
+<sc-for list="{{states}}" as="s" hint-placeholder-count="12">
+<button class="st" type="button" onClick="{{s.go}}"><b>{{s.n}}</b><span>{{s.t}}</span></button>
+</sc-for>
+</div>
+</div>
+<div>
+<h3>Simular al comprobar</h3>
+<label class="tg"><input type="checkbox" checked="{{slow}}" onChange="{{flag.slow}}"><span>Comprobación lenta (8 s) para ver «Entrando…»</span></label>
+<label class="tg"><input type="checkbox" checked="{{tech}}" onChange="{{flag.tech}}"><span>Fallo técnico al comprobar el acceso</span></label>
+<label class="tg"><input type="checkbox" checked="{{revokeNext}}" onChange="{{flag.revokeNext}}"><span>Retirar la autorización en el próximo intento (el operador sigue en la lista)</span></label>
+<sc-if value="{{revokedTxt}}" hint-placeholder-val="{{false}}">
+<div style="display: flex; align-items: center; gap: 8px; margin-top: 4px; padding: 6px 8px; border-radius: 7px; background: #F4F0FA"><span style="flex-grow: 1">Retirada: {{revokedTxt}}</span><button class="dbtn" type="button" onClick="{{restore}}">Restaurar</button></div>
+</sc-if>
+</div>
+<div>
+<h3>Simular datos de la sociedad</h3>
+<label class="tg"><input type="checkbox" checked="{{noEje}}" onChange="{{flag.noEje}}"><span>Sin ejercicios disponibles</span></label>
+<label class="tg"><input type="checkbox" checked="{{noOp}}" onChange="{{flag.noOp}}"><span>Sin operadores autorizados</span></label>
+</div>
+<div>
+<h3>Credenciales de prueba</h3>
+<table>
+<thead><tr><th>Operador</th><th>Sociedades</th><th>Contraseña</th></tr></thead>
+<tbody>
+<tr><td>Marta Soler Ibáñez</td><td class="mono">RGE, RIN</td><td><span class="pw">Ribera.2026</span></td></tr>
+<tr><td>Nuria Castell Roig</td><td class="mono">RIN, ALM</td><td><span class="pw">Castell.26</span></td></tr>
+<tr><td>Jordi Pons Vidal</td><td class="mono">ALM</td><td><span class="pw">Pons.2026</span></td></tr>
+<tr><td>Carmen Vidal Ortega</td><td class="mono">RGE</td><td><em>sin contraseña</em></td></tr>
+<tr><td>Andrés Molina Ferrer</td><td class="mono">RGE, ALM</td><td><em>inactivo</em></td></tr>
+</tbody>
+</table>
+</div>
+<div>
+<h3>Ejercicios</h3>
+<table>
+<tbody>
+<tr><td class="mono">RGE</td><td>2026 y 2025 abiertos · 2024 cerrado</td></tr>
+<tr><td class="mono">RIN</td><td>2026 abierto · 2025 cerrado</td></tr>
+<tr><td class="mono">ALM</td><td>2026 y 2025 abiertos</td></tr>
+</tbody>
+</table>
+</div>
+<div><button class="dbtn" type="button" onClick="{{reset}}">Reiniciar la maqueta</button></div>
+</div>
+</aside>
+</sc-if>
+</div>
+
+</div></script>
+<script>
+
+/* Mini motor para ejecutar la maqueta .dc.html fuera del lienzo: interpreta {{huecos}}, <sc-for>, <sc-if> y eventos.
+   Cada llamada a mountDC crea una instancia independiente. */
+(function () {
+  var WHOLE = /^\s*\{\{\s*([^}]+?)\s*\}\}\s*$/;
+  var ANY = /\{\{\s*([^}]+?)\s*\}\}/g;
+  var EV = { onclick: 'click', onkeydown: 'keydown', onkeyup: 'keyup', onchange: 'change', oninput: 'input', onmousedown: 'mousedown', onfocus: 'focusin' };
+  var BOOL = { checked: 1, disabled: 1, selected: 1, readonly: 1, multiple: 1, required: 1 };
+  function get(scope, path) {
+    path = path.trim();
+    if (path === 'true') return true; if (path === 'false') return false; if (path === 'null') return null;
+    if (/^-?\d+(\.\d+)?$/.test(path)) return Number(path);
+    var parts = path.split('.'), v = scope;
+    for (var i = 0; i < parts.length; i++) { if (v == null) return undefined; v = v[parts[i]]; }
+    return v;
+  }
+  function interp(str, scope) { return str.replace(ANY, function (_, p) { var v = get(scope, p); return v == null || v === false ? '' : String(v); }); }
+  function hole(attr) { var m = WHOLE.exec(attr || ''); return m ? m[1] : null; }
+
+  function Mount(Component, props, host, tplText) {
+    var tpl, inst, pending = false;
+    function pathOf(el) { var p = []; while (el && el !== host) { var i = 0, s = el; while ((s = s.previousSibling)) i++; p.unshift(i); el = el.parentNode; } return el === host ? p : null; }
+    function atPath(p) { var el = host; for (var i = 0; i < p.length && el; i++) el = el.childNodes[p[i]]; return el; }
+    function render(node, scope, out) {
+      if (node.nodeType === 3) { out.push(document.createTextNode(interp(node.nodeValue, scope))); return; }
+      if (node.nodeType !== 1) return;
+      var tag = node.localName;
+      if (tag === 'helmet') return;
+      if (tag === 'sc-for') {
+        var list = get(scope, hole(node.getAttribute('list')) || '') || [];
+        var as = node.getAttribute('as') || 'item';
+        for (var i = 0; i < list.length; i++) { var s = Object.create(scope); s[as] = list[i]; s.$index = i; kids(node, s, out); }
+        return;
+      }
+      if (tag === 'sc-if') { if (get(scope, hole(node.getAttribute('value')) || '')) kids(node, scope, out); return; }
+      var svg = node.namespaceURI === 'http://www.w3.org/2000/svg';
+      var el = svg ? document.createElementNS(node.namespaceURI, node.localName) : document.createElement(tag);
+      var post = [];
+      for (var a = 0; a < node.attributes.length; a++) {
+        var name = node.attributes[a].name, val = node.attributes[a].value;
+        if (name.indexOf('hint-') === 0) continue;
+        var h = hole(val);
+        if (EV[name]) {
+          var fn = h ? get(scope, h) : null;
+          if (typeof fn !== 'function') continue;
+          var evn = EV[name];
+          if (evn === 'change' && (tag === 'textarea' || (tag === 'input' && !/checkbox|radio/.test(node.getAttribute('type') || '')))) evn = 'input';
+          el.addEventListener(evn, fn);
+          continue;
+        }
+        var v = h ? get(scope, h) : (val.indexOf('{{') >= 0 ? interp(val, scope) : val);
+        if (name === 'value') { post.push(['value', v]); continue; }
+        if (BOOL[name]) { var on = !!v && v !== 'false'; if (on) el.setAttribute(name, ''); if (name === 'checked') post.push(['checked', on]); continue; }
+        if (typeof v === 'function') continue;
+        if (name.indexOf('aria-') === 0 || name === 'role') { if (v != null && v !== '') el.setAttribute(name, String(v)); continue; }
+        if (v === false || v == null) continue;
+        el.setAttribute(name, v === true ? '' : String(v));
+      }
+      var ch = []; kids(node, scope, ch);
+      for (var c = 0; c < ch.length; c++) el.appendChild(ch[c]);
+      for (var p = 0; p < post.length; p++) { if (post[p][0] === 'value') el.value = post[p][1] == null ? '' : post[p][1]; else el.checked = post[p][1]; }
+      out.push(el);
+    }
+    function kids(node, scope, out) { for (var c = node.firstChild; c; c = c.nextSibling) render(c, scope, out); }
+    function paint() {
+      pending = false;
+      var vals = inst.renderVals();
+      var ae = document.activeElement, fp = ae && host.contains(ae) ? pathOf(ae) : null, sel = null;
+      try { if (fp && ae.selectionStart != null) sel = [ae.selectionStart, ae.selectionEnd]; } catch (e) { }
+      var scrolls = [];
+      host.querySelectorAll('.lb,.db').forEach(function (el) { if (el.scrollTop) scrolls.push([pathOf(el), el.scrollTop]); });
+      var out = []; kids(tpl, vals, out);
+      host.replaceChildren.apply(host, out);
+      scrolls.forEach(function (s) { var el = atPath(s[0]); if (el) el.scrollTop = s[1]; });
+      if (fp) { var n = atPath(fp); if (n && n.focus) { n.focus({ preventScroll: true }); if (sel) try { n.setSelectionRange(sel[0], sel[1]); } catch (e) { } } }
+    }
+    function schedule() { if (!pending) { pending = true; Promise.resolve().then(paint); } }
+    tpl = new DOMParser().parseFromString('<body>' + tplText + '</body>', 'text/html').body;
+    inst = new Component(props);
+    inst.__schedule = schedule;
+    paint();
+    if (inst.componentDidMount) inst.componentDidMount();
+    return inst;
+  }
+
+  window.DCLogic = function (props) { this.props = props || {}; this.state = {}; };
+  window.DCLogic.prototype.setState = function (p, cb) { if (typeof p === 'function') p = p(this.state, this.props); this.state = Object.assign({}, this.state, p); if (this.__schedule) this.__schedule(); if (cb) Promise.resolve().then(cb); };
+  window.DCLogic.prototype.forceUpdate = function () { if (this.__schedule) this.__schedule(); };
+  window.mountDC = Mount;
+})();
+
+</script>
+<script>
+
+var SIZES = { compacta: [540, 700], dividida: [960, 640], integrada: [1280, 800] };
+
+var SOCS = [
+  { id: 'RGE', name: 'Ribera Gestión, S.L.', short: 'Ribera Gestión', nif: 'B46218374' },
+  { id: 'RIN', name: 'Ribera Inmuebles, S.L.', short: 'Ribera Inmuebles', nif: 'B46730915' },
+  { id: 'ALM', name: 'Almenara Servicios Agrarios, S. Coop. V.', short: 'Almenara', nif: 'F12457830' }
+];
+var EJES = {
+  RGE: [{ y: 2026, st: 'abierto' }, { y: 2025, st: 'abierto' }, { y: 2024, st: 'cerrado' }],
+  RIN: [{ y: 2026, st: 'abierto' }, { y: 2025, st: 'cerrado' }],
+  ALM: [{ y: 2026, st: 'abierto' }, { y: 2025, st: 'abierto' }]
+};
+/* Datos ficticios. En la aplicación real la contraseña nunca viaja al cliente: se comprueba en el servidor. */
+var OPS = [
+  { id: 'msoler', name: 'Marta Soler Ibáñez', role: 'Administración', active: true, pwd: 'Ribera.2026', socs: ['RGE', 'RIN'] },
+  { id: 'ncastell', name: 'Nuria Castell Roig', role: 'Contabilidad', active: true, pwd: 'Castell.26', socs: ['RIN', 'ALM'] },
+  { id: 'jpons', name: 'Jordi Pons Vidal', role: 'Facturación', active: true, pwd: 'Pons.2026', socs: ['ALM'] },
+  { id: 'cvidal', name: 'Carmen Vidal Ortega', role: 'Recepción', active: true, pwd: null, socs: ['RGE'] },
+  { id: 'amolina', name: 'Andrés Molina Ferrer', role: 'Contabilidad', active: false, pwd: 'Molina.25', socs: ['RGE', 'ALM'] }
+];
+var MSG_CRED = 'No he podido iniciar sesión. Revisa el operador y la contraseña e inténtalo de nuevo.';
+var TECH_BODY = 'Fallo de conexión con la base de datos, no de tu contraseña. Si se repite, avisa al administrador.';
+var MSG_AUTH = 'Tu operador no tiene acceso a esta sociedad. Selecciona otra o contacta con el administrador.';
+var STATES = [
+  'Formulario inicial', 'Búsqueda sin coincidencias', 'Sociedad elegida', 'Preparado para entrar',
+  'Contraseña visible', 'Comprobación en curso', 'Credenciales rechazadas', 'Autorización retirada',
+  'Sin ejercicios', 'Sin operadores', 'Fallo técnico', 'Acceso correcto'
+];
+
+function norm(s) { return String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim(); }
+function socById(id) { for (var i = 0; i < SOCS.length; i++) if (SOCS[i].id === id) return SOCS[i]; return null; }
+function opById(id) { for (var i = 0; i < OPS.length; i++) if (OPS[i].id === id) return OPS[i]; return null; }
+function initials(n) { var p = String(n).split(' ').filter(Boolean); return ((p[0] || '')[0] || '') + ((p[1] || '')[0] || ''); }
+function range(y) { return '01/01/' + y + ' – 31/12/' + y; }
+function joinY(parts) { return parts.length < 2 ? parts.join('') : parts.slice(0, -1).join(', ') + ' y ' + parts[parts.length - 1]; }
+
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.uid = 'acc' + Math.random().toString(36).slice(2, 7);
+    this.seq = 0;
+    this.state = this.fresh(!!(props && props.demoAbierto));
+  }
+  componentWillUnmount() { clearTimeout(this.loadT); clearTimeout(this.chkT); }
+
+  fresh(demoOpen) {
+    return {
+      soc: null, eje: null, op: null, pwd: '', showPwd: false, caps: false,
+      open: null, q: '', act: 0, loading: false, lists: null, ejeNote: '', opNote: '',
+      checking: false, msg: null, done: null, exiting: false, exitNote: '',
+      demoOpen: !!demoOpen, slow: false, tech: false, noEje: false, noOp: false, revokeNext: false, revoked: {}
+    };
+  }
+
+  grab(e) {
+    var t = e && (e.currentTarget || e.target);
+    if (t && t.closest) { var r = t.closest('[data-acc]'); if (r && r.isConnected) { this.root = r; this.rootParent = r.parentNode; } }
+  }
+  getRoot() {
+    if (this.root && this.root.isConnected) return this.root;
+    if (this.rootParent) { var r = this.rootParent.querySelector('[data-acc]'); if (r) this.root = r; return r; }
+    return null;
+  }
+  focus(sel) {
+    var self = this;
+    setTimeout(function () {
+      var root = self.getRoot(), el = root && root.querySelector(sel);
+      if (el && !el.disabled) {
+        el.focus();
+        if (el.tagName === 'INPUT' && el.type !== 'checkbox') { try { var n = el.value.length; el.setSelectionRange(n, n); } catch (x) { } }
+      }
+    }, 0);
+  }
+  clearT() { clearTimeout(this.loadT); clearTimeout(this.chkT); this.seq++; }
+
+  computeLists(socId, st) {
+    var ejes = st.noEje ? [] : EJES[socId].filter(function (e) { return e.st === 'abierto'; });
+    var ops = st.noOp ? [] : OPS.filter(function (o) { return o.active && o.socs.indexOf(socId) >= 0 && !st.revoked[o.id + '|' + socId]; });
+    return { ejes: ejes, ops: ops };
+  }
+  reconcile(socId, lists, st) {
+    var s = socById(socId), out = { ejeNote: '', opNote: '' };
+    if (st.eje != null) {
+      if (lists.ejes.some(function (e) { return e.y === st.eje; })) out.eje = st.eje;
+      else { out.eje = null; if (lists.ejes.length) out.ejeNote = 'El ejercicio ' + st.eje + ' no está disponible en ' + s.short + '. Elige otro.'; }
+    } else out.eje = lists.ejes.length === 1 ? lists.ejes[0].y : null;
+    if (st.op) {
+      if (lists.ops.some(function (o) { return o.id === st.op; })) out.op = st.op;
+      else { out.op = null; if (lists.ops.length) out.opNote = opById(st.op).name.split(' ')[0] + ' no tiene acceso a ' + s.short + '. Elige tu operador.'; }
+    }
+    return out;
+  }
+
+  selectSoc(id) {
+    var st = this.state;
+    if (id === st.soc && st.lists) { this.close(true); return; }
+    var self = this, tok = ++this.seq;
+    clearTimeout(this.loadT);
+    this.setState({ soc: id, open: null, q: '', loading: true, lists: null, pwd: '', showPwd: false, caps: false, msg: null, ejeNote: '', opNote: '' });
+    this.focus('[data-trg="soc"]');
+    this.loadT = setTimeout(function () {
+      if (tok !== self.seq) return;
+      var s2 = self.state, lists = self.computeLists(id, s2), r = self.reconcile(id, lists, s2);
+      self.setState(Object.assign({ loading: false, lists: lists }, r));
+      var rr = self.getRoot(), ae = rr && rr.ownerDocument.activeElement;
+      if (ae && ae.getAttribute && ae.getAttribute('data-trg') === 'soc') {
+        if (r.eje == null && lists.ejes.length) self.focus('[data-trg="eje"]');
+        else if (!r.op && lists.ops.length) self.focus('[data-trg="op"]');
+        else if (r.op && lists.ejes.length) self.focus('[data-pw]');
+      }
+    }, 450);
+  }
+  reloadWith(patch) {
+    var st = Object.assign({}, this.state, patch);
+    if (st.soc && st.lists && !st.loading) {
+      var lists = this.computeLists(st.soc, st), r = this.reconcile(st.soc, lists, st);
+      if (r.op !== st.op) { patch.pwd = ''; patch.showPwd = false; }
+      patch = Object.assign(patch, { lists: lists, msg: null }, r);
+    }
+    this.setState(patch);
+  }
+  selectEje(y) {
+    this.setState({ eje: y, open: null, q: '', ejeNote: '' });
+    if (!this.state.op) this.focus('[data-trg="op"]'); else this.focus('[data-pw]');
+  }
+  selectOp(id) {
+    if (id !== this.state.op) this.setState({ op: id, pwd: '', showPwd: false, caps: false, msg: null, opNote: '', open: null, q: '' });
+    else this.setState({ open: null, q: '' });
+    this.focus('[data-pw]');
+  }
+
+  items(key, st) {
+    if (key === 'soc') return SOCS.map(function (s) { return { id: s.id, code: s.id, label: s.name, sub: 'NIF ' + s.nif, hay: norm(s.id + ' ' + s.name) }; });
+    if (!st.lists) return [];
+    if (key === 'eje') return st.lists.ejes.map(function (e) { return { id: e.y, label: 'Ejercicio ' + e.y, sub: range(e.y) + ' · abierto', hay: String(e.y) }; });
+    return st.lists.ops.map(function (o) { return { id: o.id, label: o.name, sub: o.role, ini: initials(o.name), hay: norm(o.name) }; });
+  }
+  filtered(key, st) {
+    var all = this.items(key, st);
+    if (key === 'eje') return all;
+    var q = norm(st.q);
+    if (!q) return all;
+    var words = q.split(/\s+/);
+    return all.filter(function (it) { return words.every(function (w) { return it.hay.indexOf(w) >= 0; }); });
+  }
+  current(key, st) { return key === 'soc' ? st.soc : key === 'eje' ? st.eje : st.op; }
+  openCb(key, seed) {
+    var st = this.state;
+    if (st.checking) return;
+    var tmp = Object.assign({}, st, { q: seed || '' });
+    var f = this.filtered(key, tmp), cur = this.current(key, st), act = 0;
+    for (var i = 0; i < f.length; i++) if (f[i].id === cur) act = i;
+    if (seed) act = 0;
+    this.setState({ open: key, q: seed || '', act: act });
+    this.focus(key === 'eje' ? '[data-lb="eje"]' : '[data-ps="' + key + '"]');
+  }
+  close(refocus) {
+    var key = this.state.open;
+    this.setState({ open: null, q: '' });
+    if (refocus && key) this.focus('[data-trg="' + key + '"]');
+  }
+  pick(key, id) {
+    if (key === 'soc') this.selectSoc(id);
+    else if (key === 'eje') this.selectEje(id);
+    else this.selectOp(id);
+  }
+  tabFrom(key, dir) {
+    var self = this;
+    this.setState({ open: null, q: '' });
+    setTimeout(function () {
+      var r = self.getRoot(); if (!r) return;
+      var all = Array.prototype.slice.call(r.querySelectorAll('button, input, [tabindex="0"]')).filter(function (el) { return !el.disabled && !el.closest('.pop') && el.getAttribute('tabindex') !== '-1' && el.offsetParent !== null; });
+      var trg = r.querySelector('[data-trg="' + key + '"]'), i = all.indexOf(trg);
+      var nx = dir > 0 ? all[i + 1] : trg;
+      if (nx) nx.focus();
+    }, 40);
+  }
+  popKey(key, e) {
+    var st = this.state, f = this.filtered(key, st), n = f.length, k = e.key;
+    if (k === 'ArrowDown') { e.preventDefault(); if (n) this.setState({ act: Math.min(st.act + 1, n - 1) }); }
+    else if (k === 'ArrowUp') { e.preventDefault(); if (n) this.setState({ act: Math.max(st.act - 1, 0) }); }
+    else if ((k === 'Home' || k === 'End') && key === 'eje') { e.preventDefault(); this.setState({ act: k === 'Home' ? 0 : Math.max(n - 1, 0) }); }
+    else if (k === 'Enter') { e.preventDefault(); e.stopPropagation(); if (n) this.pick(key, f[Math.min(st.act, n - 1)].id); }
+    else if (k === 'Escape') { e.preventDefault(); e.stopPropagation(); this.close(true); }
+    else if (k === 'Tab') { e.preventDefault(); e.stopPropagation(); this.tabFrom(key, e.shiftKey ? -1 : 1); }
+  }
+  trgKey(key, e) {
+    var k = e.key;
+    if (k === 'ArrowDown' || k === 'ArrowUp' || k === 'F4') { e.preventDefault(); this.openCb(key, ''); return; }
+    if (key !== 'eje' && k.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey && (k !== ' ' || this.state.open === key)) {
+      e.preventDefault();
+      /* Escritura rápida: mientras el foco aún no ha llegado al buscador, las teclas se acumulan en la búsqueda. */
+      if (this.state.open === key) { this.setState({ q: this.state.q + k, act: 0 }); this.focus('[data-ps="' + key + '"]'); }
+      else this.openCb(key, k);
+      return;
+    }
+    if (k === 'Backspace' && this.state.open === key) { e.preventDefault(); this.setState({ q: this.state.q.slice(0, -1), act: 0 }); }
+  }
+
+  ready(st) {
+    return !!(st.soc && !st.loading && st.lists && st.lists.ejes.length && st.lists.ops.length && st.eje != null && st.op && !st.checking && !st.done && !st.exiting);
+  }
+  submit() {
+    var st = this.state, self = this;
+    if (!this.ready(st)) return;
+    clearTimeout(this.chkT);
+    var tok = ++this.seq, snap = { soc: st.soc, eje: st.eje, op: st.op, pwd: st.pwd };
+    this.setState({ checking: true, msg: null, open: null, q: '' });
+    this.chkT = setTimeout(function () { if (tok === self.seq) self.resolve(snap); }, st.slow ? 8000 : 1100);
+  }
+  resolve(snap) {
+    var st = this.state, s = socById(snap.soc);
+    if (st.tech) {
+      this.setState({ checking: false, msg: { kind: 'tech', title: 'No he podido comprobar el acceso', body: TECH_BODY, retry: true } });
+      this.focus('[data-retry]'); return;
+    }
+    var o = opById(snap.op);
+    var credOk = !!o && o.active && (o.pwd === null ? snap.pwd === '' : snap.pwd === o.pwd);
+    if (!credOk) {
+      this.setState({ checking: false, pwd: '', showPwd: false, msg: { kind: 'err', body: MSG_CRED } });
+      this.focus('[data-pw]'); return;
+    }
+    var key = o.id + '|' + snap.soc, revoked = Object.assign({}, st.revoked);
+    if (st.revokeNext) revoked[key] = true;
+    if (o.socs.indexOf(snap.soc) < 0 || revoked[key]) {
+      this.setState({ checking: false, revoked: revoked, revokeNext: false, pwd: '', showPwd: false, msg: { kind: 'err', body: MSG_AUTH, field: 'soc' } });
+      this.focus('[data-trg="soc"]'); return;
+    }
+    var ejeOk = !st.noEje && EJES[snap.soc].some(function (e) { return e.y === snap.eje && e.st === 'abierto'; });
+    if (!ejeOk) {
+      this.setState({ checking: false, eje: null, msg: { kind: 'warn', title: 'El ejercicio ' + snap.eje + ' ya no está disponible', body: 'Se ha cerrado mientras elegías. Elige otro ejercicio de ' + s.short + ' o contacta con el administrador.', field: 'eje' } });
+      this.focus('[data-trg="eje"]'); return;
+    }
+    this.setState({ checking: false, done: { op: o.id, soc: snap.soc, eje: snap.eje }, pwd: '', showPwd: false, caps: false, msg: null });
+    this.focus('[data-welcome]');
+  }
+  exit() {
+    var st = this.state;
+    clearTimeout(this.chkT); this.seq++;
+    this.setState({ exiting: true, open: null, q: '', checking: false, exitNote: st.checking ? ' y cancela la comprobación en curso' : '' });
+    this.focus('[data-back]');
+  }
+  back() { this.setState({ exiting: false }); this.focus('[data-exit]'); }
+
+  goState(n) {
+    this.clearT();
+    var b = this.fresh(this.state.demoOpen), self = this;
+    var prep = function (soc, patch) {
+      b.soc = soc; Object.assign(b, patch || {});
+      b.lists = self.computeLists(soc, b);
+    };
+    if (n === 2) { b.open = 'soc'; b.q = 'Valencia'; }
+    if (n === 3) prep('RGE');
+    if (n >= 4 && n <= 7 || n === 11) prep('RGE', { eje: 2026, op: 'msoler', pwd: 'Ribera.2026' });
+    if (n === 5) b.showPwd = true;
+    if (n === 6) b.slow = true;
+    if (n === 7) { b.pwd = ''; b.msg = { kind: 'err', body: MSG_CRED }; }
+    if (n === 8) { b.revoked = { 'msoler|RGE': true }; b.soc = 'RGE'; b.lists = { ejes: EJES.RGE.filter(function (e) { return e.st === 'abierto'; }), ops: OPS.filter(function (o) { return o.active && o.socs.indexOf('RGE') >= 0; }) }; b.eje = 2026; b.op = 'msoler'; b.msg = { kind: 'err', body: MSG_AUTH, field: 'soc' }; }
+    if (n === 9) prep('RIN', { noEje: true });
+    if (n === 10) prep('ALM', { noOp: true, eje: 2026 });
+    if (n === 11) { b.tech = true; b.msg = { kind: 'tech', title: 'No he podido comprobar el acceso', body: TECH_BODY, retry: true }; }
+    if (n === 12) { b.soc = 'RGE'; b.eje = 2026; b.op = 'msoler'; b.lists = this.computeLists('RGE', b); b.done = { op: 'msoler', soc: 'RGE', eje: 2026 }; }
+    this.setState(b);
+    if (n === 2) this.focus('[data-ps="soc"]');
+    if (n === 6) setTimeout(function () { self.submit(); }, 60);
+    if (n === 4 || n === 5 || n === 7) this.focus('[data-pw]');
+  }
+
+  renderVals() {
+    var self = this, st = this.state, p = this.props || {};
+    var v = SIZES[p.variante] ? p.variante : 'compacta', size = SIZES[v], u = this.uid;
+    var soc = st.soc ? socById(st.soc) : null, lists = st.lists;
+    var busy = st.checking;
+    var ready = this.ready(st);
+    var loaded = !!(soc && lists && !st.loading);
+    var noEje = loaded && !lists.ejes.length, noOp = loaded && !lists.ops.length;
+    var grab = function (fn) { return function (e) { self.grab(e); fn(e); }; };
+
+    function cb(key) {
+      var open = st.open === key, f = open ? self.filtered(key, st) : [];
+      var act = Math.min(st.act, Math.max(f.length - 1, 0));
+      var cur = self.current(key, st);
+      var o = {
+        open: open, trgId: u + '-' + key, lblId: u + '-' + key + '-l', lbId: u + '-' + key + '-lb', helpId: u + '-' + key + '-h',
+        actId: f.length ? u + '-' + key + '-o' + act : '',
+        empty: open && !f.length && key !== 'eje',
+        opts: f.map(function (it, i) {
+          return {
+            code: it.code, label: it.label, sub: it.sub, ini: it.ini, sel: it.id === cur, domId: u + '-' + key + '-o' + i,
+            cls: 'opt' + (i === act ? ' act' : ''),
+            pick: function (e) { e.preventDefault(); self.grab(e); self.pick(key, it.id); }
+          };
+        }),
+        toggle: grab(function () { if (st.open === key) self.close(false); else self.openCb(key, ''); }),
+        key: grab(function (e) { self.trgKey(key, e); }),
+        popKey: grab(function (e) { self.popKey(key, e); }),
+        helpCls: 'help'
+      };
+      return o;
+    }
+
+    var c1 = cb('soc');
+    c1.has = !!soc; c1.none = !soc; c1.code = soc ? soc.id : ''; c1.text = soc ? soc.name : '';
+    c1.ph = 'Elige una sociedad'; c1.dis = busy;
+    c1.cls = 'trg' + (c1.open ? ' open' : '') + (st.msg && st.msg.field === 'soc' ? ' bad' : '');
+    c1.help = soc ? 'NIF ' + soc.nif : 'Busca por código o nombre.';
+
+    var c2 = cb('eje');
+    c2.loading = !!(soc && st.loading);
+    c2.has = loaded && st.eje != null; c2.none = !c2.has && !c2.loading;
+    c2.text = 'Ejercicio ' + st.eje;
+    c2.ph = !soc ? 'Elige antes la sociedad' : st.loading ? 'Cargando ejercicios…' : noEje ? 'Sin ejercicios disponibles' : 'Elige el ejercicio';
+    c2.dis = busy || !loaded || noEje;
+    c2.cls = 'trg' + (c2.open ? ' open' : '') + (st.msg && st.msg.field === 'eje' ? ' bad' : '');
+    if (st.ejeNote) { c2.help = st.ejeNote; c2.helpCls = 'help warn'; }
+    else if (noEje) { c2.help = 'Ninguno abierto en ' + soc.short + '.'; c2.helpCls = 'help warn'; }
+    else if (loaded && st.eje != null) c2.help = range(st.eje);
+    else if (loaded) c2.help = lists.ejes.length === 1 ? '1 ejercicio disponible' : lists.ejes.length + ' ejercicios disponibles';
+    else c2.help = '';
+
+    var c3 = cb('op'), opx = st.op ? opById(st.op) : null;
+    c3.loading = !!(soc && st.loading);
+    c3.has = loaded && !!opx; c3.none = !c3.has && !c3.loading;
+    c3.text = opx ? opx.name : ''; c3.ini = opx ? initials(opx.name) : '';
+    c3.ph = !soc ? 'Elige antes la sociedad' : st.loading ? 'Cargando operadores…' : noOp ? 'Ningún operador autorizado' : 'Elige tu operador';
+    c3.dis = busy || !loaded || noOp;
+    c3.cls = 'trg' + (c3.open ? ' open' : '');
+    if (st.opNote) { c3.help = st.opNote; c3.helpCls = 'help warn'; }
+    else if (noOp) { c3.help = 'Pide acceso al administrador.'; c3.helpCls = 'help warn'; }
+    else if (loaded) c3.help = 'Autorizados en ' + soc.short + '.';
+    else c3.help = '';
+
+    var pwDis = busy || !c3.has;
+    var pw = {
+      id: u + '-pw', helpId: u + '-pw-h', type: st.showPwd ? 'text' : 'password', hidden: !st.showPwd,
+      cls: 'in' + (st.showPwd ? ' pwv' : ''), dis: pwDis,
+      ph: !c3.has ? 'Elige antes tu operador' : 'Tu contraseña',
+      eyeLbl: st.showPwd ? 'Ocultar contraseña' : 'Mostrar contraseña',
+      helpCls: 'help caps'
+    };
+
+    var m = { cls: 'msg m-idle', role: 'status', body: '', title: '', retry: false, iErr: false, iWarn: false, iTech: false, iInfo: false, iOk: false };
+    if (busy) {
+      m.cls = 'msg m-info'; m.iInfo = true; m.title = 'Comprobando el acceso…';
+      m.body = soc.id + ' · ' + soc.short + ' · ejercicio ' + st.eje;
+    } else if (st.msg) {
+      m.cls = 'msg m-' + st.msg.kind; m.role = st.msg.kind === 'err' || st.msg.kind === 'tech' ? 'alert' : 'status';
+      m.title = st.msg.title || ''; m.body = st.msg.body; m.retry = !!st.msg.retry;
+      m.iErr = st.msg.kind === 'err'; m.iWarn = st.msg.kind === 'warn'; m.iTech = st.msg.kind === 'tech';
+    } else if (noEje || noOp) {
+      m.cls = 'msg m-warn'; m.iWarn = true;
+      if (noEje && noOp) { m.title = 'No se puede entrar en ' + soc.short; m.body = 'Sin ejercicios abiertos ni operadores autorizados. Elige otra sociedad o contacta con el administrador.'; }
+      else if (noEje) { m.title = soc.short + ' no tiene ejercicios disponibles'; m.body = 'Están cerrados o aún sin abrir. Elige otra sociedad o pide al administrador que abra uno.'; }
+      else { m.title = 'Ningún operador tiene acceso a ' + soc.short; m.body = 'Contacta con el administrador de ProConta o elige otra sociedad.'; }
+    } else {
+      var miss = [];
+      if (!soc) miss.push('la sociedad');
+      else if (st.loading) m.body = 'Cargando los ejercicios y operadores de ' + soc.short + '…';
+      if (soc && !st.loading) { if (st.eje == null) miss.push('el ejercicio'); if (!st.op) miss.push('tu operador'); }
+      if (miss.length) m.body = 'Para entrar, elige ' + joinY(miss) + '.';
+      else if (ready) m.body = st.pwd ? 'Pulsa Intro o «Entrar» para acceder.' : 'Escribe tu contraseña y pulsa Intro.';
+    }
+
+    var go = { dis: !ready, idle: !busy, cls: 'cta' + (busy ? ' busy' : ''), style: v === 'compacta' ? 'flex-grow: 1' : 'min-width: 170px' };
+
+    var w = {};
+    if (st.done) {
+      var wo = opById(st.done.op), ws = socById(st.done.soc);
+      w = { first: wo.name.split(' ')[0], op: wo.name, ini: initials(wo.name), code: ws.id, soc: ws.name, eje: 'Ejercicio ' + st.done.eje, ejeSub: range(st.done.eje) };
+    }
+    var ctxSoc = st.done ? socById(st.done.soc) : soc, ctxEje = st.done ? st.done.eje : (loaded ? st.eje : null);
+    var side = {
+      soc: ctxSoc ? ctxSoc.id + ' · ' + ctxSoc.name : 'Sin elegir', socCls: 'v' + (ctxSoc ? '' : ' none'),
+      eje: ctxEje != null ? String(ctxEje) : 'Sin elegir', ejeCls: 'v' + (ctxEje != null ? '' : ' none')
+    };
+
+    var rv = [];
+    Object.keys(st.revoked).forEach(function (k) { var a = k.split('|'); rv.push(opById(a[0]).name.split(' ').slice(0, 2).join(' ') + ' en ' + a[1]); });
+    var flag = {};
+    ['slow', 'tech', 'revokeNext', 'noEje', 'noOp'].forEach(function (f) {
+      flag[f] = grab(function () { var pch = {}; pch[f] = !self.state[f]; if (f === 'noEje' || f === 'noOp') self.reloadWith(pch); else self.setState(pch); });
+    });
+    var showDemo = p.panelDemo !== false;
+
+    return {
+      v: v, W: size[0], H: size[1], isCmp: v === 'compacta', isDiv: v === 'dividida', isInt: v === 'integrada',
+      acento: p.acento || '#F4A259', azul: p.azul || '#14213A', version: p.version || 'Versión 4.3.0',
+      ids: { s1: u + '-s1', s2: u + '-s2', ex: u + '-ex' },
+      showForm: !st.done, done: !!st.done, w: w, side: side,
+      soc: c1, eje: c2, op: c3, pw: pw, m: m, go: go,
+      q: st.q, pwd: st.pwd, showPwd: st.showPwd, caps: !!st.caps && !pwDis, checking: busy,
+      exiting: st.exiting, exitNote: st.exitNote,
+      onQ: grab(function (e) { self.setState({ q: e.target.value, act: 0 }); }),
+      onPwd: grab(function (e) { self.setState({ pwd: e.target.value }); }),
+      pwKey: grab(function (e) { if (e.getModifierState) { var c = e.getModifierState('CapsLock'); if (c !== self.state.caps) self.setState({ caps: c }); } }),
+      eyeDown: function (e) { e.preventDefault(); },
+      toggleEye: grab(function () { self.setState({ showPwd: !self.state.showPwd }); }),
+      submit: grab(function () { self.submit(); }),
+      retry: grab(function () { self.submit(); }),
+      exit: grab(function () { self.exit(); }),
+      back: grab(function () { self.back(); }),
+      backToLogin: grab(function () { var d = self.state.done; self.setState({ done: null, soc: d.soc, eje: d.eje, op: d.op, lists: self.computeLists(d.soc, self.state), msg: null }); self.focus('[data-pw]'); }),
+      onRootDown: grab(function (e) {
+        if (self.state.open && !(e.target.closest && e.target.closest('.cbw'))) self.close(false);
+      }),
+      onRootKey: grab(function (e) {
+        var s = self.state, t = e.target;
+        if (t.closest && t.closest('.demo')) return;
+        if (e.key === 'Escape') {
+          if (s.open) { e.preventDefault(); self.close(true); return; }
+          if (s.exiting) { e.preventDefault(); self.back(); return; }
+          if (s.done) return;
+          e.preventDefault(); self.exit(); return;
+        }
+        if (e.key === 'Enter') {
+          if (s.open || s.exiting || s.done) return;
+          if (t.tagName === 'BUTTON' && !t.hasAttribute('data-trg')) return;
+          if (self.ready(s)) { e.preventDefault(); self.submit(); }
+        }
+      }),
+      demoTab: showDemo && !st.demoOpen, demoPanel: showDemo && st.demoOpen,
+      demoShow: grab(function () { self.setState({ demoOpen: true }); }),
+      demoHide: grab(function () { self.setState({ demoOpen: false }); }),
+      states: STATES.map(function (t, i) { return { n: String(i + 1).padStart(2, '0'), t: t, go: grab(function () { self.goState(i + 1); }) }; }),
+      slow: st.slow, tech: st.tech, revokeNext: st.revokeNext, noEje: st.noEje, noOp: st.noOp, flag: flag,
+      revokedTxt: rv.join(', '),
+      restore: grab(function () { self.reloadWith({ revoked: {} }); }),
+      reset: grab(function () { self.clearT(); self.setState(self.fresh(self.state.demoOpen)); })
+    };
+  }
+}
+
+
+(function () {
+  var tplText = document.getElementById("tpl").textContent;
+  ['compacta', 'dividida', 'integrada'].forEach(function (v) {
+    mountDC(Component, { variante: v, acento: '#F4A259', azul: '#14213A', version: 'Versión 4.3.0', panelDemo: true, demoAbierto: true }, document.getElementById('app-' + v), tplText);
+  });
+  var tabs = Array.prototype.slice.call(document.querySelectorAll('.xtab'));
+  function show(v, focusTab) {
+    tabs.forEach(function (t) {
+      var on = t.getAttribute('data-v') === v;
+      t.setAttribute('aria-selected', on ? 'true' : 'false');
+      t.tabIndex = on ? 0 : -1;
+      document.getElementById('p-' + t.getAttribute('data-v')).hidden = !on;
+      if (on && focusTab) t.focus();
+    });
+  }
+  tabs.forEach(function (t, i) {
+    t.addEventListener('click', function () { show(t.getAttribute('data-v')); });
+    t.addEventListener('keydown', function (e) {
+      if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') {
+        e.preventDefault();
+        var n = tabs[(i + (e.key === 'ArrowRight' ? 1 : tabs.length - 1)) % tabs.length];
+        show(n.getAttribute('data-v'), true);
+      }
+    });
+  });
+  var h = (location.hash || '').replace('#', '');
+  if (h === 'dividida' || h === 'integrada') show(h);
+})();
+</script>
+</body>
+</html>

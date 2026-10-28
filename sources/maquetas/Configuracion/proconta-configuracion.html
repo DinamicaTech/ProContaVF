@@ -1,0 +1,2131 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Configuración ProConta</title>
+<style>
+/* Disposición: barra de demostración discreta + ventana del módulo (navegación funcional | cabecera + lista/editor redimensionables + barra de acciones al pie) */
+:root{
+  --bg:#E9E6DF; --frame:#F3F1EC; --surface:#FFFFFF; --surface-2:#FBFAF7; --surface-3:#F1EEE7;
+  --line:#E3DED2; --line-2:#D3CCBD; --ink:#16213A; --muted:#646A78; --faint:#8A909C;
+  --navy:#14213A; --navy-2:#22345A; --on-navy:#FFFFFF; --on-navy-muted:#AEB8CC;
+  --accent:#F4A259; --accent-ink:#9A4A12; --accent-soft:#FFF3E6; --accent-line:#F2C9A1;
+  --link:#1D5C8C; --sel:#E3ECF6; --sel-line:#9DB8D6; --hover:#F4F1EA;
+  --err:#B42318; --err-soft:#FDECEA; --err-line:#F1B5AE;
+  --ok:#1E6B45; --ok-soft:#E2F0E8; --info-soft:#EEF3F9;
+  --demo:#5B3F86; --demo-soft:#F1ECF7; --demo-line:#CDBFE0;
+  --shadow:0 12px 32px rgba(20,33,58,.18);
+  --ui:"Segoe UI","Segoe UI Variable Text",system-ui,-apple-system,Roboto,"Helvetica Neue",Arial,sans-serif;
+  --mono:"Cascadia Mono",Consolas,"SFMono-Regular",ui-monospace,monospace;
+  --fs:13px; --row:26px; --lw:184px;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0D1320; --frame:#131B2B; --surface:#182235; --surface-2:#1B263B; --surface-3:#202C44;
+  --line:#2A3752; --line-2:#36466A; --ink:#E6EAF2; --muted:#A4ADBF; --faint:#7F899D;
+  --navy:#0A1120; --navy-2:#22345A; --on-navy:#FFFFFF; --on-navy-muted:#AEB8CC;
+  --accent:#F4A259; --accent-ink:#F7B57A; --accent-soft:#3A2A1C; --accent-line:#7A4E2A;
+  --link:#8DBAE6; --sel:#22395A; --sel-line:#4D74A6; --hover:#1E2A40;
+  --err:#FF8A80; --err-soft:#3A1E22; --err-line:#7A3A3A;
+  --ok:#7BD3A4; --ok-soft:#173327; --info-soft:#1C2A40;
+  --demo:#C9B2EE; --demo-soft:#2A2340; --demo-line:#4E4270;
+  --shadow:0 12px 32px rgba(0,0,0,.5); color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0D1320; --frame:#131B2B; --surface:#182235; --surface-2:#1B263B; --surface-3:#202C44;
+  --line:#2A3752; --line-2:#36466A; --ink:#E6EAF2; --muted:#A4ADBF; --faint:#7F899D;
+  --navy:#0A1120; --navy-2:#22345A; --on-navy:#FFFFFF; --on-navy-muted:#AEB8CC;
+  --accent:#F4A259; --accent-ink:#F7B57A; --accent-soft:#3A2A1C; --accent-line:#7A4E2A;
+  --link:#8DBAE6; --sel:#22395A; --sel-line:#4D74A6; --hover:#1E2A40;
+  --err:#FF8A80; --err-soft:#3A1E22; --err-line:#7A3A3A;
+  --ok:#7BD3A4; --ok-soft:#173327; --info-soft:#1C2A40;
+  --demo:#C9B2EE; --demo-soft:#2A2340; --demo-line:#4E4270;
+  --shadow:0 12px 32px rgba(0,0,0,.5); color-scheme:dark}
+
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:var(--fs)/1.4 var(--ui);overflow:hidden}
+*{box-sizing:border-box}
+button,input,select,textarea{font:inherit;color:inherit}
+h1,h2,h3,p{margin:0}
+:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.muted{color:var(--muted)} .mono{font-family:var(--mono)} .tn{font-variant-numeric:tabular-nums}
+.ell{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+
+/* ---------- Barra de demostración ---------- */
+.page{height:100%;display:flex;flex-direction:column}
+.demo{flex-shrink:0;display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px;padding:5px 16px;background:var(--demo-soft);border-bottom:1px dashed var(--demo-line);color:var(--ink);font-size:12px}
+.demo .tag{font-weight:600;color:var(--demo);letter-spacing:.04em;text-transform:uppercase;font-size:11px}
+.demo label{display:flex;align-items:center;gap:6px;color:var(--muted)}
+.demo select{height:24px;border:1px solid var(--demo-line);background:var(--surface);border-radius:4px;padding:0 4px;max-width:160px}
+.demo .seg{display:inline-flex;border:1px solid var(--demo-line);border-radius:4px;overflow:hidden}
+.demo .seg button{border:0;background:var(--surface);height:22px;padding:0 6px;cursor:pointer;font-size:12px}
+.demo .seg button+button{border-left:1px solid var(--demo-line)}
+.demo .seg button[aria-pressed="true"]{background:var(--demo);color:var(--surface)}
+.demo .dbtn{height:24px;border:1px solid var(--demo-line);background:var(--surface);border-radius:4px;padding:0 9px;cursor:pointer}
+.demo .dbtn:hover{border-color:var(--demo)}
+.demo .grow{flex:1}
+.scn-note{flex-basis:100%;display:none;color:var(--demo);font-size:12px}
+.scn-note.on{display:block}
+
+/* ---------- Escenario / marco ---------- */
+.stage{flex:1;min-height:0;overflow:auto;padding:12px 16px}
+.frame{background:var(--frame);border:1px solid var(--line-2);border-radius:6px;display:flex;flex-direction:column;overflow:hidden;container-type:inline-size;container-name:frame;position:relative}
+.frame.fixed{box-shadow:var(--shadow)}
+.ctxbar{height:28px;flex-shrink:0;display:flex;align-items:center;gap:10px;padding:0 12px;background:var(--navy);color:var(--on-navy-muted);font-size:12px}
+.ctxbar b{color:var(--on-navy);font-weight:600}
+.ctxbar .dot{width:6px;height:6px;border-radius:50%;background:var(--accent)}
+.app{flex:1;min-height:0;display:grid;grid-template-columns:248px minmax(0,1fr)}
+
+/* ---------- Navegación funcional ---------- */
+.nav{border-right:1px solid var(--line);background:var(--surface-2);display:flex;flex-direction:column;min-height:0}
+.navhead{padding:10px 10px 8px;border-bottom:1px solid var(--line)}
+.navhead h2{font-size:15px;font-weight:600;margin:0 0 8px 2px}
+.gsearch{position:relative}
+.gsearch input{width:100%;height:30px;border:1px solid var(--line-2);border-radius:4px;background:var(--surface);padding:0 28px 0 28px}
+.gsearch input::placeholder{color:var(--faint)}
+.gsearch .ic{position:absolute;left:8px;top:8px;color:var(--faint)}
+.gsearch .clr{position:absolute;right:3px;top:3px;width:24px;height:24px;border:0;background:transparent;cursor:pointer;color:var(--muted);border-radius:3px}
+.gsearch .clr:hover{background:var(--hover)}
+.navbody{flex:1;min-height:0;overflow:auto;padding:6px 0 10px}
+.cat{margin-top:4px}
+.cat>.ch{display:flex;align-items:center;gap:6px;width:100%;border:0;background:transparent;padding:6px 12px 4px;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:600;cursor:pointer;text-align:left}
+.cat>.ch .chev{transition:transform .12s}
+.cat.closed>.ch .chev{transform:rotate(-90deg)}
+.cat.closed>.items{display:none}
+.item{display:flex;align-items:center;gap:7px;width:100%;min-height:30px;border:0;background:transparent;text-align:left;padding:4px 10px 4px 20px;cursor:pointer;border-left:3px solid transparent;color:var(--ink)}
+.item:hover{background:var(--hover)}
+.item[aria-current="true"]{background:var(--sel);border-left-color:var(--navy-2);font-weight:600}
+.item .nm{flex:1;min-width:0}
+.item .mk{display:flex;gap:4px;align-items:center;flex-shrink:0;color:var(--muted)}
+.mdot{width:8px;height:8px;border-radius:50%;background:var(--accent);display:inline-block}
+.merr{color:var(--err);font-size:12px;line-height:1}
+.ico{width:14px;height:14px;flex-shrink:0;display:inline-block;vertical-align:-2px}
+.lockic{color:var(--muted)}
+.res{padding:4px 0}
+.res h3{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);padding:8px 12px 4px;font-weight:600}
+.ritem{display:block;width:100%;border:0;background:transparent;text-align:left;padding:6px 12px;cursor:pointer;color:var(--ink);border-left:3px solid transparent}
+.ritem:hover,.ritem.kb{background:var(--hover);border-left-color:var(--accent)}
+.ritem .rt{display:flex;gap:6px;align-items:baseline}
+.ritem .rk{font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);flex-shrink:0;width:52px}
+.ritem .rp{display:block;font-size:11.5px;color:var(--muted);margin-left:58px}
+.ritem mark{background:var(--accent-soft);color:inherit;border-bottom:1px solid var(--accent)}
+.rnone{padding:12px;color:var(--muted)}
+.navfoot{border-top:1px solid var(--line);padding:6px 12px;font-size:11.5px;color:var(--muted)}
+
+/* ---------- Área principal ---------- */
+.main{display:flex;flex-direction:column;min-width:0;min-height:0;background:var(--frame)}
+.mhead{flex-shrink:0;padding:10px 16px 10px;border-bottom:1px solid var(--line);background:var(--surface);display:flex;gap:16px;align-items:flex-start;flex-wrap:wrap}
+.mhead .crumb{font-size:11.5px;color:var(--muted);display:flex;align-items:center;gap:6px}
+.navtoggle{display:none;height:26px;border:1px solid var(--line-2);background:var(--surface);border-radius:4px;padding:0 8px;cursor:pointer;margin-right:4px}
+.mhead h1{font-size:18px;font-weight:600;letter-spacing:-.01em;margin-top:1px}
+.mhead .purpose{color:var(--muted);margin-top:2px;max-width:70ch}
+.mhead .tl{flex:1;min-width:260px}
+.mhead .tr{display:flex;flex-direction:column;align-items:flex-end;gap:6px}
+.chips{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+.chip{display:inline-flex;align-items:center;gap:5px;height:22px;padding:0 8px;border-radius:11px;border:1px solid var(--line-2);background:var(--surface-2);font-size:11.5px;white-space:nowrap;color:var(--ink)}
+.chip.prop{border-style:dashed}
+.chip.scope-equipo{background:var(--info-soft);border-color:var(--sel-line)}
+.chip.lock{background:var(--surface-3)}
+.chip.dirty{background:var(--accent-soft);border-color:var(--accent-line);color:var(--accent-ink)}
+.chip.err{background:var(--err-soft);border-color:var(--err-line);color:var(--err)}
+.chip.ok{background:var(--ok-soft);border-color:transparent;color:var(--ok)}
+.chip.demo{background:var(--demo-soft);border-color:var(--demo-line);color:var(--demo)}
+.chip.syn{background:var(--demo-soft);border-color:var(--demo-line);color:var(--demo)}
+.mbody{flex:1;min-height:0;display:flex;flex-direction:column;position:relative}
+.banner{flex-shrink:0;margin:10px 16px 0;padding:8px 12px;border-radius:4px;border:1px solid var(--line-2);background:var(--surface);display:flex;gap:10px;align-items:flex-start}
+.banner.lock{background:var(--surface-3)}
+.banner.err{background:var(--err-soft);border-color:var(--err-line)}
+.banner.ext{background:var(--demo-soft);border-color:var(--demo-line);border-style:dashed}
+.banner .bt{flex:1}
+.banner b{font-weight:600}
+
+/* ---------- Partición lista / editor ---------- */
+.split{flex:1;min-height:0;display:grid;grid-template-columns:var(--listw,45%) 7px minmax(0,1fr);grid-template-rows:minmax(0,1fr)}
+.split.stack{grid-template-columns:minmax(0,1fr);grid-template-rows:var(--listh,max(150px,38%)) 7px minmax(0,1fr)}
+.gutter{background:var(--frame);cursor:col-resize;position:relative;border:0;padding:0}
+.gutter::after{content:"";position:absolute;left:3px;top:0;bottom:0;width:1px;background:var(--line-2)}
+.gutter:hover::after,.gutter:focus-visible::after{background:var(--accent);width:2px}
+.split.stack .gutter{cursor:row-resize}
+.split.stack .gutter::after{left:0;right:0;top:3px;bottom:auto;height:1px;width:auto}
+.split.stack .gutter:hover::after{height:2px;width:auto}
+
+.listp{display:flex;flex-direction:column;min-width:0;min-height:0;background:var(--surface)}
+.ltools{flex-shrink:0;display:flex;flex-wrap:wrap;gap:6px 8px;align-items:center;padding:8px 10px;border-bottom:1px solid var(--line)}
+.lsearch{position:relative;flex:1;min-width:160px;max-width:300px}
+.lsearch input{width:100%;height:28px;border:1px solid var(--line-2);border-radius:4px;padding:0 26px 0 26px;background:var(--surface)}
+.lsearch .ic{position:absolute;left:7px;top:7px;color:var(--faint)}
+.lsearch .clr{position:absolute;right:2px;top:2px;width:24px;height:24px;border:0;background:transparent;cursor:pointer;color:var(--muted)}
+.count{color:var(--muted);font-size:12px;white-space:nowrap}
+.ltools .sp{flex:1}
+.btn{height:28px;display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line-2);background:var(--surface);border-radius:4px;padding:0 10px;cursor:pointer;white-space:nowrap;color:var(--ink)}
+.btn:hover:not(:disabled){border-color:var(--navy-2);background:var(--hover)}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.btn.primary{background:var(--navy);border-color:var(--navy);color:var(--on-navy)}
+.btn.primary:hover:not(:disabled){background:var(--navy-2);border-color:var(--navy-2)}
+.btn.danger{color:var(--err)}
+.btn.danger:hover:not(:disabled){border-color:var(--err);background:var(--err-soft)}
+.btn.ghost{border-color:transparent;background:transparent}
+.btn.ghost:hover:not(:disabled){border-color:var(--line-2)}
+.btn.sm{height:24px;padding:0 8px;font-size:12px}
+.iconbtn{width:28px;padding:0;justify-content:center}
+.pfilter{flex-basis:100%;display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center;font-size:12px;padding-top:2px}
+.pfilter select{height:26px;border:1px solid var(--line-2);border-radius:4px;background:var(--surface);max-width:220px}
+.pfilter .nt{color:var(--muted)}
+.srcsel{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted)}
+
+.tablewrap{flex:1;min-height:0;overflow:auto;position:relative}
+table.grid{border-collapse:separate;border-spacing:0;width:100%;font-variant-numeric:tabular-nums}
+.grid th{position:sticky;top:0;z-index:1;background:var(--surface-3);text-align:left;font-weight:600;font-size:12px;height:28px;padding:0 8px;border-bottom:1px solid var(--line-2);white-space:nowrap;color:var(--ink)}
+.grid th button{border:0;background:transparent;font:inherit;font-weight:600;cursor:pointer;padding:0;display:inline-flex;gap:4px;align-items:center;color:inherit}
+.grid th.r,.grid td.r{text-align:right}
+.grid th.c,.grid td.c{text-align:center}
+.grid td{height:var(--row);padding:0 8px;border-bottom:1px solid var(--line);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:0}
+.grid tr{cursor:default}
+.grid tbody tr:hover td{background:var(--hover)}
+.grid tbody tr[aria-selected="true"] td{background:var(--sel)}
+.grid tbody tr[aria-selected="true"] td:first-child{box-shadow:inset 3px 0 0 var(--navy-2)}
+.grid td.mk{width:22px;padding:0 0 0 6px}
+.grid .no{color:var(--faint)}
+.grid .nul{color:var(--faint)}
+.grid .inact td:not(.mk){color:var(--muted)}
+.badge{display:inline-block;font-size:10.5px;padding:0 5px;border-radius:3px;line-height:16px;border:1px solid var(--line-2);color:var(--muted);vertical-align:1px}
+.badge.syn{border-color:var(--demo-line);color:var(--demo);background:var(--demo-soft)}
+.badge.new{border-color:var(--accent-line);color:var(--accent-ink);background:var(--accent-soft)}
+.badge.fix{border-style:dashed}
+.empty{padding:28px 20px;text-align:center;color:var(--muted);display:flex;flex-direction:column;align-items:center;gap:10px}
+.empty b{color:var(--ink);font-weight:600}
+
+/* ---------- Editor ---------- */
+.edp{display:flex;flex-direction:column;min-width:0;min-height:0;background:var(--surface);container-type:inline-size;container-name:ed}
+.ehead{flex-shrink:0;display:flex;gap:10px;align-items:center;padding:8px 14px;border-bottom:1px solid var(--line);flex-wrap:wrap;min-height:45px}
+.ehead .et{flex:1;min-width:180px}
+.ehead h2{font-size:14.5px;font-weight:600;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.ehead .es{font-size:12px;color:var(--muted)}
+.esum{flex-shrink:0;margin:10px 14px 0;padding:8px 12px;border:1px solid var(--err-line);background:var(--err-soft);border-radius:4px;color:var(--ink)}
+.esum b{color:var(--err)}
+.esum ul{margin:4px 0 0;padding-left:18px}
+.esum a{color:var(--link);cursor:pointer;text-decoration:underline}
+.tabs{flex-shrink:0;display:flex;flex-wrap:wrap;gap:2px;padding:6px 10px 0;border-bottom:1px solid var(--line)}
+.tab{border:1px solid transparent;border-bottom:1px solid transparent;margin-bottom:-1px;background:transparent;padding:6px 10px 7px;border-radius:4px 4px 0 0;cursor:pointer;white-space:nowrap;display:inline-flex;gap:6px;align-items:center;color:var(--muted);position:relative}
+.tab:hover{color:var(--ink);background:var(--hover)}
+.tab[aria-selected="true"]{background:var(--surface);border-color:var(--line);border-bottom-color:var(--surface);color:var(--ink);font-weight:600}
+.tab .n{font-size:11px;color:var(--faint);font-weight:400}
+.tcnt{font-size:10.5px;line-height:15px;min-width:16px;padding:0 4px;border-radius:8px;text-align:center;font-weight:600}
+.tcnt.d{background:var(--accent-soft);color:var(--accent-ink);border:1px solid var(--accent-line)}
+.tcnt.e{background:var(--err);color:var(--surface)}
+.escroll{flex:1;min-height:0;overflow:auto;padding:4px 14px 18px}
+.sec{border-bottom:1px solid var(--line)}
+.sec:last-child{border-bottom:0}
+.sech{display:flex;align-items:center;gap:8px;width:100%;border:0;background:transparent;padding:10px 0 8px;cursor:pointer;text-align:left;color:var(--ink)}
+.sech .st{font-weight:600;font-size:13px}
+.sech .sd{color:var(--muted);font-size:12px;flex:1;min-width:0}
+.sech .chev{transition:transform .12s;color:var(--muted)}
+.sec.closed .sech .chev{transform:rotate(-90deg)}
+.sec.closed .secb{display:none}
+.secb{padding:2px 0 12px}
+.secplain .secb{padding-top:10px}
+.gdesc{color:var(--muted);font-size:12px;margin:-2px 0 8px var(--lw);max-width:70ch}
+
+/* Campos: etiqueta a la izquierda, control a su medida */
+.f{display:grid;grid-template-columns:var(--lw) minmax(0,1fr);gap:4px 12px;align-items:start;padding:4px 0;border-radius:3px}
+.fl{padding-top:5px;color:var(--ink);display:flex;gap:5px;align-items:flex-start;min-width:0;line-height:1.3}
+.fl .lt{min-width:0;overflow-wrap:anywhere}
+.fl .req{color:var(--err)}
+.fl .cd{width:7px;height:7px;border-radius:50%;background:var(--accent);margin-top:5px;flex-shrink:0;display:none}
+.f.changed .fl .cd{display:block}
+.fc{min-width:0;display:flex;flex-direction:column;gap:3px}
+.crow{display:flex;align-items:center;gap:6px;flex-wrap:wrap;min-width:0}
+.in{height:28px;border:1px solid var(--line-2);border-radius:3px;background:var(--surface);padding:0 7px;min-width:0;max-width:100%}
+.in:hover:not(:disabled):not([readonly]){border-color:var(--faint)}
+.in:focus{border-color:var(--navy-2);outline:2px solid var(--sel-line);outline-offset:0}
+.f.invalid .in,.f.invalid .combo,.f.invalid .memo{border-color:var(--err);background:var(--err-soft)}
+.in.num{text-align:right;font-variant-numeric:tabular-nums}
+.in.code{font-family:var(--mono);letter-spacing:.02em}
+.w-xs{width:64px}.w-s{width:118px}.w-n{width:118px}.w-m{width:240px}.w-ml{width:340px}.w-l{width:100%;max-width:560px}.w-path{width:100%;max-width:620px}
+textarea.in{height:auto;padding:5px 7px;resize:vertical;line-height:1.4}
+textarea.long{resize:none;overflow:hidden;width:100%;max-width:560px}
+.memo{width:100%;max-width:720px;min-height:96px}
+.memo.big{min-height:300px}
+.unit{color:var(--muted);font-size:12.5px}
+.fh{color:var(--muted);font-size:12px;max-width:72ch}
+.fe{color:var(--err);font-size:12px;font-weight:600;display:none;max-width:72ch}
+.f.invalid .fe{display:block}
+.fw{color:var(--accent-ink);font-size:12px;display:none;max-width:72ch}
+.fw.on{display:block}
+.fnote{font-size:12px;color:var(--demo);max-width:72ch}
+.cnt{font-size:11px;color:var(--faint)}
+.pend{display:inline-flex;align-items:center;justify-content:center;font-size:10px;line-height:14px;padding:0 4px;border:1px dashed var(--line-2);border-radius:3px;color:var(--muted);flex-shrink:0;margin-top:1px;cursor:help}
+.sens{display:inline-flex;font-size:10px;line-height:14px;padding:0 4px;border-radius:3px;background:var(--accent-soft);color:var(--accent-ink);flex-shrink:0;margin-top:1px}
+.notx{font-size:11px;color:var(--demo);border:1px dashed var(--demo-line);border-radius:3px;padding:0 5px;line-height:16px}
+.ro{min-height:28px;padding:5px 0;color:var(--ink);overflow-wrap:anywhere;white-space:pre-wrap}
+.ro.nul{color:var(--faint)}
+.ro.num{font-variant-numeric:tabular-nums}
+.flash{animation:flash 1.8s ease-out}
+@keyframes flash{0%,35%{background:var(--accent-soft);box-shadow:0 0 0 2px var(--accent)}100%{background:transparent;box-shadow:0 0 0 0 transparent}}
+
+/* casillas */
+.bgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:0 18px;margin-left:calc(var(--lw) + 12px)}
+.bgrid .f{grid-template-columns:minmax(0,1fr);padding:2px 0}
+.fb .chk{display:inline-flex;align-items:flex-start;gap:8px;min-height:28px;padding:5px 0 3px;cursor:pointer;line-height:1.3}
+.fb .chk input{margin:1px 0 0;width:15px;height:15px;flex-shrink:0;accent-color:var(--navy-2)}
+.fb .chk .cd{width:7px;height:7px;border-radius:50%;background:var(--accent);margin-top:4px;flex-shrink:0;visibility:hidden}
+.fb.changed .chk .cd{visibility:visible}
+.fb .fh,.fb .fe,.fb .fw{margin-left:23px}
+.fb.ro .chk{cursor:default}
+.tri{align-self:flex-start;display:inline-flex;border:1px solid var(--line-2);border-radius:3px;overflow:hidden}
+.tri label{display:inline-flex;align-items:center;height:26px;padding:0 10px;cursor:pointer;border-left:1px solid var(--line-2)}
+.tri label:first-child{border-left:0}
+.tri input{position:absolute;opacity:0;pointer-events:none}
+.tri input:checked+span{font-weight:600}
+.tri label:has(input:checked){background:var(--sel)}
+.tri label:has(input:focus-visible){outline:2px solid var(--accent);outline-offset:-2px}
+
+/* referencia */
+.combo{height:28px;display:inline-flex;align-items:center;gap:8px;border:1px solid var(--line-2);border-radius:3px;background:var(--surface);padding:0 6px 0 8px;cursor:pointer;width:300px;max-width:100%;text-align:left}
+.combo .cv{flex:1;min-width:0}
+.combo .cc{font-family:var(--mono);font-size:11.5px;color:var(--muted)}
+.combo:disabled{cursor:default;background:var(--surface-2)}
+.pop{position:fixed;z-index:60;background:var(--surface);border:1px solid var(--line-2);border-radius:4px;box-shadow:var(--shadow);width:320px;max-width:calc(100vw - 32px);display:flex;flex-direction:column;max-height:320px}
+.pop .ps{padding:6px;border-bottom:1px solid var(--line)}
+.pop .ps input{width:100%}
+.pop .pl{overflow:auto;padding:4px 0}
+.opt{display:flex;gap:8px;align-items:center;width:100%;border:0;background:transparent;padding:6px 10px;text-align:left;cursor:pointer;color:var(--ink)}
+.opt:hover,.opt.kb{background:var(--hover)}
+.opt[aria-selected="true"]{font-weight:600}
+.opt .cc{margin-left:auto;font-family:var(--mono);font-size:11.5px;color:var(--muted)}
+.pop .pn{padding:10px;color:var(--muted)}
+
+/* secreto */
+.secret{display:flex;align-items:center;gap:8px;flex-wrap:wrap;border:1px solid var(--line-2);border-radius:3px;padding:4px 6px 4px 10px;background:var(--surface-2);max-width:560px}
+.secret .ss{flex:1;min-width:150px;display:flex;align-items:center;gap:6px}
+.secret .ok{color:var(--ok)}
+.secret .pendc{color:var(--accent-ink);font-weight:600}
+
+/* auditoría */
+.audit{margin-top:14px;padding-top:10px;border-top:1px dashed var(--line-2);display:flex;flex-wrap:wrap;gap:4px 22px;font-size:12px;color:var(--muted)}
+.audit b{font-weight:600;color:var(--ink)}
+.rel{margin-top:14px;border:1px dashed var(--demo-line);border-radius:4px;background:var(--surface-2)}
+.rel .rh{display:flex;gap:8px;align-items:center;padding:7px 10px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.rel .rh b{font-weight:600}
+.rel table{width:100%;border-collapse:collapse;font-size:12.5px}
+.rel td,.rel th{padding:4px 10px;border-bottom:1px solid var(--line);text-align:left}
+.rel th{font-weight:600;color:var(--muted);font-size:11.5px}
+.lnk{border:0;background:transparent;color:var(--link);cursor:pointer;padding:0;text-decoration:underline;font:inherit}
+
+/* barra de acciones */
+.abar{flex-shrink:0;display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:8px 14px;border-top:1px solid var(--line-2);background:var(--surface-2);min-height:46px}
+.abar .msg{font-size:12.5px;display:flex;align-items:center;gap:8px;min-width:0}
+.abar .msg.ok{color:var(--ok)}
+.abar .msg.err{color:var(--err);font-weight:600}
+.abar .chg{color:var(--accent-ink);font-weight:600}
+.kbd{font-size:11px;color:var(--muted);font-weight:400}
+.btn.primary .kbd{color:var(--on-navy-muted)}
+
+/* carga / error */
+.loading{flex:1;padding:16px;display:flex;flex-direction:column;gap:10px}
+.sk{height:14px;border-radius:3px;background:linear-gradient(90deg,var(--surface-3),var(--line),var(--surface-3));background-size:200% 100%;animation:sk 1.2s linear infinite}
+@keyframes sk{to{background-position:-200% 0}}
+.bar{height:3px;background:var(--line);overflow:hidden;position:relative}
+.bar::after{content:"";position:absolute;top:0;bottom:0;width:30%;background:var(--accent);animation:bar 1.1s ease-in-out infinite}
+@keyframes bar{0%{left:-30%}100%{left:100%}}
+.state{margin:16px;padding:14px 16px;border:1px solid var(--line-2);border-radius:4px;background:var(--surface);max-width:640px;display:flex;flex-direction:column;gap:8px}
+.state.err{border-color:var(--err-line);background:var(--err-soft)}
+.state h3{font-size:14px;font-weight:600}
+.state .acts{display:flex;gap:8px;flex-wrap:wrap}
+
+/* diálogo */
+.ovl{position:absolute;inset:0;background:rgba(10,17,32,.45);z-index:80;display:flex;align-items:center;justify-content:center;padding:16px}
+.dlg{background:var(--surface);border-radius:6px;box-shadow:var(--shadow);width:480px;max-width:100%;max-height:calc(100% - 32px);display:flex;flex-direction:column;border:1px solid var(--line-2)}
+.dlg.wide{width:760px}
+.dlg.xwide{width:980px}
+.dlg .dh{padding:14px 18px 8px;display:flex;gap:10px;align-items:flex-start}
+.dlg .dh h2{font-size:15px;font-weight:600;flex:1}
+.dlg .db{padding:0 18px 12px;overflow:auto;display:flex;flex-direction:column;gap:8px}
+.dlg .df{padding:10px 18px 14px;display:flex;gap:8px;flex-wrap:wrap;border-top:1px solid var(--line);background:var(--surface-2);border-radius:0 0 6px 6px}
+.dlg .df .sp{flex:1}
+.dlg table{border-collapse:collapse;width:100%;font-size:12.5px}
+.dlg td,.dlg th{border-bottom:1px solid var(--line);padding:5px 8px;text-align:left;vertical-align:top}
+.dlg th{font-weight:600;color:var(--muted);font-size:11.5px}
+.dlg .ttl{font-weight:600}
+.folders{border:1px solid var(--line-2);border-radius:3px;max-height:200px;overflow:auto}
+.folders button{display:block;width:100%;text-align:left;border:0;background:transparent;padding:6px 10px;cursor:pointer;font-family:var(--mono);font-size:12px;color:var(--ink)}
+.folders button:hover,.folders button[aria-pressed="true"]{background:var(--sel)}
+
+/* notas */
+.notes{font-size:13px;line-height:1.5}
+.notes h3{font-size:14px;font-weight:600;margin:14px 0 6px}
+.notes h3:first-child{margin-top:0}
+.notes p,.notes li{max-width:90ch}
+.notes ul{margin:4px 0;padding-left:18px}
+.notes .cols{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.notes .tw{overflow-x:auto}
+.ntabs{display:flex;gap:2px;flex-wrap:wrap;border-bottom:1px solid var(--line);margin:0 -18px 10px;padding:0 18px}
+.toast{position:fixed;bottom:60px;left:50%;transform:translateX(-50%);background:var(--navy);color:var(--on-navy);padding:8px 14px;border-radius:4px;box-shadow:var(--shadow);z-index:90;font-size:12.5px;max-width:calc(100% - 32px)}
+
+/* ---------- Adaptación a ancho ---------- */
+@container frame (max-width:900px){
+  .app{grid-template-columns:minmax(0,1fr)}
+  .nav{position:absolute;z-index:40;top:0;bottom:0;left:0;width:280px;max-width:88%;box-shadow:var(--shadow);display:none}
+  .frame.navopen .nav{display:flex}
+  .navtoggle{display:inline-flex;align-items:center}
+}
+@container ed (max-width:560px){
+  .f{grid-template-columns:minmax(0,1fr);gap:2px}
+  .fl{padding-top:0}
+  .bgrid{margin-left:0}
+  .gdesc{margin-left:0}
+}
+@media (max-width:640px){.demo select{max-width:150px}.stage{padding:8px 16px}}
+
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="demo" role="region" aria-label="Controles de demostración, no forman parte del producto">
+    <span class="tag">Demostración</span>
+    <label title="Contexto que fija el contenedor de ProConta (simulado)">Contexto <select id="ctxsel" aria-label="Empresa y ejercicio de trabajo (simulado)"></select></label>
+    <span id="ctxtext" class="sr"></span>
+    <label>Escenario <select id="scn"></select></label>
+    <span style="display:flex;align-items:center;gap:6px">Ventana <span class="seg"><button data-size="fit" aria-pressed="true">Ajustar</button><button data-size="1440x900" aria-pressed="false">1440×900</button><button data-size="1024x768" aria-pressed="false">1024×768</button></span></span>
+    <span style="display:flex;align-items:center;gap:6px">Escala <span class="seg"><button data-scale="1" aria-pressed="true">100 %</button><button data-scale="1.25" aria-pressed="false">125 %</button><button data-scale="1.5" aria-pressed="false">150 %</button></span></span>
+    <span id="areacap" class="muted"></span>
+    <span class="grow"></span>
+    <button class="dbtn" id="btnclose">Cerrar pestaña…</button>
+    <button class="dbtn" id="btnreset">Restablecer</button>
+    <button class="dbtn" id="btnnotes"><b>Notas de entrega</b></button>
+    <div class="scn-note" id="scnnote" role="status"></div>
+  </div>
+  <div class="stage" id="stage">
+    <div class="frame" id="frame">
+      <div class="app">
+        <aside class="nav" id="nav" aria-label="Mantenimientos">
+          <div class="navhead">
+            <h2>Configuración</h2>
+            <div class="gsearch" role="search"><span class="ic"><svg class="ico" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5 14 14"/></svg></span><input id="gq" type="search" placeholder="Buscar un ajuste o mantenimiento" aria-label="Buscar un ajuste o mantenimiento" autocomplete="off"><button id="gqclr" class="clr" aria-label="Limpiar búsqueda" hidden>×</button></div>
+          </div>
+          <div class="navbody" id="navbody"></div>
+          <div class="navfoot">Ctrl+K buscar · Ctrl+G guardar</div>
+        </aside>
+        <main class="main" id="main"></main>
+      </div>
+    </div>
+  </div>
+</div>
+<div id="layer"></div>
+
+<script>
+const SCHEMA={"Configuracion":[["IdConfiguracion",17,null,false],["RutaDatosVeriFactu",130,255,true],["SistemaInformaticoNombreRazon",130,120,true],["SistemaInformaticoNIF",130,9,true],["SistemaInformaticoNombre",130,30,true],["SistemaId",130,2,true],["SistemaInformaticoVersion",130,50,true],["SistemaInformaticoNumeroInstalacion",130,100,true],["SistemaInformaticoTipoUsoPosibleSoloVerifactu",130,1,true],["SistemaInformaticoTipoUsoPosibleMultiOT",130,1,true],["FechaModificacion",7,null,true],["OperadorModificacion",130,30,true],["EndpointIPC",130,255,true],["EndpointIRAV",130,255,true],["EmailIncidencias",130,255,true]],"ConfiguracionCorreo":[["IdConfiguracionCorreo",3,null,false],["IdSociedad",130,3,false],["Activo",11,2,false],["MotorCorreo",130,15,false],["ServidorSMTP",130,255,false],["PuertoSMTP",2,null,false],["TipoSeguridad",130,10,false],["TipoAutenticacion",130,10,false],["UsuarioSMTP",130,255,true],["PasswordProtegida",130,0,true],["Remitente",130,255,true],["NombreRemitente",130,120,true],["ResponderA",130,255,true],["CCPredeterminado",130,255,true],["CCOPredeterminado",130,255,true],["AsuntoPlantilla",130,255,true],["CuerpoPlantilla",130,0,true],["FormatoCuerpo",130,5,false],["TimeoutSegundos",2,null,true],["FechaModificacion",7,null,true],["OperadorModificacion",130,30,true]],"VeriFactuConfiguracion":[["IdVeriFactuConfiguracion",3,null,false],["Activo",11,2,false],["Entorno",130,10,true],["CertificateThumbprint",130,64,true],["CertificateSerial",130,100,true],["CertificatePath",130,255,true],["CertificatePasswordProtegida",130,0,true],["IDVersion",130,3,true],["VeriFactuEndPointPrefix",130,255,true],["VeriFactuEndPointValidatePrefix",130,255,true],["VeriFactuHashAlgorithm",130,2,true],["VeriFactuHashInputEncoding",130,20,true],["SkipNifAeatValidation",11,2,false],["SkipViesVatNumberValidation",11,2,false],["LoggingEnabled",11,2,false],["FechaModificacion",7,null,true],["OperadorModificacion",130,30,true],["ProductorNIF",130,25,true],["ProductorNombre",130,200,true],["NombreSistemaInformatico",130,30,true],["IdSistemaInformatico",130,2,true],["VersionSistemaInformatico",130,50,true],["NumeroInstalacion",130,100,true],["TipoUsoPosibleSoloVerifactu",130,1,true],["TipoUsoPosibleMultiOT",130,1,true],["IndicadorMultiplesOT",130,1,true],["IdSociedad",130,3,true]],"Sociedades":[["IdSociedad",130,3,false],["Nombre",130,255,false],["CIF",130,10,false],["FormaPagoDefecto",3,null,true],["Usuario",3,null,true],["RutaFacturasExportadas",130,255,true],["RutaFacturasDuplicadas",130,255,true],["TipoRetencion",3,null,true],["PorcentajeRetencion",3,null,true],["TipoIVA1",4,null,true],["TipoIVA2",4,null,true],["TipoIVA3",4,null,true],["TipoIVA4",4,null,true],["BDFacturasVenta",130,255,true],["BDERPGestion",130,255,true],["BDExportacion",130,255,true],["CuentaTipoIVA0",130,10,true],["CuentaTipoIVA1",130,10,true],["CuentaTipoIVA2",130,10,true],["CuentaTipoIVA3",130,10,true],["CuentaTipoIVA4",130,10,true],["CuentaSuplidoIVA",130,255,true],["CuentaRetencionIRPF",130,10,true],["CuentaSuplido",130,255,true],["CuentaIVAIntracomunitarioRepercutidoServicios",130,10,true],["CuentaIVAIntracomunitarioRepercutidoBienes",130,10,true],["CuentaIVAIntracomunitarioSoportadoServicios",130,10,true],["CuentaIVAIntracomunitarioSoportadoBienes",130,10,true],["CuentaIVAInversionSujetoPasivoRepercutido",130,10,true],["CuentaIVAInversionSujetoPasivoSoportado",130,10,true],["Cuenta113ParaCuadres",130,10,true],["CuentaRetencionServicios",130,10,true],["CuentaRetencionAlquileres",130,10,true],["CuentaPeriodificacionVentas",130,10,true],["Cuenta570Tesoreria",130,10,true]],"SociedadesEjercicios":[["IdSociedadEjercicio",3,null,false],["IdSociedad",130,3,true],["Ejercicio",130,4,true],["Nombre",130,255,true],["CIF",130,10,true],["FormaPagoDefecto",3,null,true],["Usuario",3,null,true],["RutaFacturasAExportar",130,255,true],["RutaFacturasExportadas",130,255,true],["RutaFacturasDuplicadas",130,255,true],["TipoRetencion",3,null,true],["PorcentajeRetencion",3,null,true],["TipoIVA1",4,null,true],["TipoIVA2",4,null,true],["TipoIVA3",4,null,true],["TipoIVA4",4,null,true],["BDFacturasVenta",130,255,true],["BDERPGestion",130,255,true],["BDExportacion",130,255,true],["TrimestreActivo",3,null,true],["Activa",11,2,false],["CuentaTipoIVA0",130,10,true],["CuentaTipoIVA1",130,10,true],["CuentaTipoIVA2",130,10,true],["CuentaTipoIVA3",130,10,true],["CuentaTipoIVA4",130,10,true],["CuentaSuplidoIVA",130,255,true],["CuentaRetencionIRPF",130,10,true],["CuentaSuplido",130,255,true],["CuentaIVAIntracomunitarioRepercutidoServicios",130,10,true],["CuentaIVAIntracomunitarioRepercutidoBienes",130,10,true],["CuentaIVAIntracomunitarioSoportadoServicios",130,10,true],["CuentaIVAIntracomunitarioSoportadoBienes",130,10,true],["CuentaIVAInversionSujetoPasivoRepercutido",130,10,true],["CuentaIVAInversionSujetoPasivoSoportado",130,10,true],["Cuenta113ParaCuadres",130,10,true],["CuentaRetencionServicios",130,10,true],["CuentaRetencionAlquileres",130,10,true],["NumIVSDuplicados",2,null,true],["CuentaPeriodificacionVentas",130,10,true],["Cuenta570Tesoreria",130,10,true],["PorcentajeProrrataAñoAnterior",4,null,true]],"SeriesFacturacion":[["IdSerie",3,null,false],["IdSociedadEjercicio",3,null,false],["Descripcion",130,100,false],["RangoDesde",3,null,false],["RangoHasta",3,null,false],["Prefijo",130,20,false],["UltimoNumero",3,null,true],["EsRectificativa",11,2,false],["EsPredeterminada",11,2,false]],"FormasPago":[["Codigo",17,null,true],["Descripcion",130,50,true],["Abreviatura",130,5,true],["IdAgrupacion",2,null,true],["CodigoAgrupacion",17,null,true],["Activa",11,2,false],["AsignarRecibo",17,null,true],["AsignarSesion",17,null,true],["PermitirExportacionEjecutiva",11,2,false],["CobradoDefecto",11,2,false],["MovimientoCierre",11,2,false],["Borrable",11,2,false],["Cobrable",11,2,false],["FormaPagoDevolucion",17,null,true],["Domiciliable",11,2,false],["PermiteMorosos",11,2,false],["Devuelto",11,2,false],["ImprimirTicket",11,2,false],["FormaPagoFactura",17,null,true],["ImputarATitular",11,2,false],["CobrarTPV",11,2,false],["FormaPagoPendiente",17,null,true],["Inicializada",11,2,false],["ConceptoGastosDevolucion",3,null,true],["Virtual",11,2,false],["CodigoTipoMoneda",17,null,true],["EsFactura",11,2,false],["PermitirNoCobrado",11,2,false],["AsignarNumeroFactura",11,2,false],["Color",3,null,true],["OrdenFP",17,null,true],["TipoRafaBancaria",17,null,true],["EsAlbaran",11,2,false],["SufijoRafagaBancaria",130,5,true],["DomiciliableSiempre",11,2,false],["TipoCuaderno",17,null,true],["GeneraTransferenciaBancaria",11,2,false],["ConceptoTransferencia",17,null,true],["Creditos",11,2,false],["Bono",11,2,false],["AcumularEnCesta",11,2,false],["TarjetaBancaria",11,2,false],["IdAgrupacionDestino",2,null,true],["CargoACuenta",11,2,false],["EsFacturable",11,2,false],["SoloFacturarCobrados",11,2,false],["TransferenciaBancaria",11,2,false],["PermiteModificarFechaEnCobro",11,2,false],["Metalico",11,2,false],["NecesarioIdentificarClienteConDNI",11,2,false],["C60Modalidad",17,null,true],["DisponibleParaIntegrantesReservasInternet",11,2,false],["IdFormaPagoPendienteSinDatosBancarios",17,null,true],["C60Tributo",130,3,true],["C60Emisora",130,5,true],["C60DCEmisora",130,1,true],["C60DiasMargenCobro",17,null,true],["C60IndicadorDatosCapturar",3,null,true],["C60TipoFechaReferencia",17,null,true],["CodigoExportacionFacturas",130,10,true],["IdDatosBancariosGestionPorDefecto",2,null,true],["PermitirExportacionVentasSinNumeroTicket",11,2,false],["PermitirExportacionCobrosSinNumeroTicket",11,2,false],["CodigoExterno",130,20,true]],"TiposDeIVA":[["Id",3,null,false],["Valor",5,null,false],["Descripcion",130,100,false],["Activo",11,2,false]],"TiposFactura":[["TipoFactura",130,2,false],["Descripcion",130,255,false],["EsRectificativa",11,2,false]],"TiposConcepto":[["IdTipoConcepto",3,null,false],["Descripcion",130,80,false],["Activo",11,2,false],["Notas",130,0,true]],"EstadosFactura":[["IdEstado",17,null,true],["Nombre",130,40,false],["Descripcion",130,255,true],["EsModificable",11,2,false],["EsTerminal",11,2,false]]};
+const REAL={"TiposDeIVA":[{"Id":1,"Valor":0,"Descripcion":"IVA 0 %","Activo":true},{"Id":2,"Valor":4,"Descripcion":"IVA superreducido 4 %","Activo":true},{"Id":3,"Valor":10,"Descripcion":"IVA reducido 10 %","Activo":true},{"Id":4,"Valor":16,"Descripcion":"IVA 16 %","Activo":true},{"Id":5,"Valor":18,"Descripcion":"IVA 18 %","Activo":true},{"Id":6,"Valor":21,"Descripcion":"IVA general 21 %","Activo":true}],"TiposFactura":[{"TipoFactura":"F1","Descripcion":"Factura con destinatario identificado.","EsRectificativa":false},{"TipoFactura":"F2","Descripcion":"Factura simplificada o sin identificación del destinatario.","EsRectificativa":false},{"TipoFactura":"F3","Descripcion":"Factura emitida en sustitución de facturas simplificadas.","EsRectificativa":false},{"TipoFactura":"R1","Descripcion":"Factura rectificativa por error fundado en derecho o causas del artículo 80.Uno, Dos y Seis de la Ley del IVA.","EsRectificativa":true},{"TipoFactura":"R2","Descripcion":"Factura rectificativa por concurso de acreedores, artículo 80.Tres de la Ley del IVA.","EsRectificativa":true},{"TipoFactura":"R3","Descripcion":"Factura rectificativa por crédito incobrable, artículo 80.Cuatro de la Ley del IVA.","EsRectificativa":true},{"TipoFactura":"R4","Descripcion":"Factura rectificativa por el resto de causas.","EsRectificativa":true},{"TipoFactura":"R5","Descripcion":"Factura rectificativa de factura simplificada o sin identificación del destinatario.","EsRectificativa":true}],"TiposConcepto":[{"IdTipoConcepto":8,"Descripcion":"FACTURA","Activo":true},{"IdTipoConcepto":9,"Descripcion":"HARDWARE","Activo":true},{"IdTipoConcepto":10,"Descripcion":"CONTROL ACCESO","Activo":true},{"IdTipoConcepto":11,"Descripcion":"FUNGIBLES CONTROL ACCESO","Activo":true},{"IdTipoConcepto":12,"Descripcion":"SOFTWARE","Activo":true},{"IdTipoConcepto":13,"Descripcion":"JORNADAS","Activo":true},{"IdTipoConcepto":14,"Descripcion":"08 VGA","Activo":true},{"IdTipoConcepto":15,"Descripcion":"06 DISCOS DUROS","Activo":true},{"IdTipoConcepto":16,"Descripcion":"07 CD- ROM","Activo":true},{"IdTipoConcepto":17,"Descripcion":"03 PROCESADORES","Activo":true},{"IdTipoConcepto":18,"Descripcion":"10 T.RED","Activo":true},{"IdTipoConcepto":19,"Descripcion":"02 PLACAS BASE","Activo":true}],"EstadosFactura":[{"IdEstado":0,"Nombre":"PendienteValidar","Descripcion":"Se ha solicitado el envÃ­o a VeriFactu, pero todavÃ­a no hay una respuesta fiscal concluyente.","EsModificable":false,"EsTerminal":false},{"IdEstado":1,"Nombre":"Validada","Descripcion":"La factura consta en VeriFactu y no admite modificaciones directas.","EsModificable":false,"EsTerminal":false},{"IdEstado":2,"Nombre":"Rectificada","Descripcion":"La factura original ha quedado corregida por una rectificativa ya validada.","EsModificable":false,"EsTerminal":true},{"IdEstado":3,"Nombre":"Borrador","Descripcion":"Factura editable que todavÃ­a no se ha remitido a VeriFactu.","EsModificable":true,"EsTerminal":false},{"IdEstado":4,"Nombre":"RectificacionPendiente","Descripcion":"Existe una rectificativa en preparaciÃ³n o pendiente de validar.","EsModificable":false,"EsTerminal":false}],"FormasPago":[{"Codigo":0,"Descripcion":"Indefinida","Abreviatura":"04","Activa":false,"Domiciliable":false,"TransferenciaBancaria":false,"Metalico":false,"OrdenFP":0},{"Codigo":3,"Descripcion":"Pendiente","Abreviatura":null,"Activa":true,"Domiciliable":false,"TransferenciaBancaria":false,"Metalico":false,"OrdenFP":3},{"Codigo":6,"Descripcion":"Talón bancario","Abreviatura":"02","Activa":true,"Domiciliable":false,"TransferenciaBancaria":false,"Metalico":false,"OrdenFP":2},{"Codigo":7,"Descripcion":"Exento","Abreviatura":null,"Activa":true,"Domiciliable":false,"TransferenciaBancaria":false,"Metalico":false,"OrdenFP":9},{"Codigo":9,"Descripcion":"Factura","Abreviatura":null,"Activa":true,"Domiciliable":false,"TransferenciaBancaria":false,"Metalico":false,"OrdenFP":9},{"Codigo":10,"Descripcion":"Metálico (euros)","Abreviatura":"04","Activa":true,"Domiciliable":false,"TransferenciaBancaria":false,"Metalico":true,"OrdenFP":1},{"Codigo":101,"Descripcion":"Banco RD.","Abreviatura":"05","Activa":true,"Domiciliable":true,"TransferenciaBancaria":false,"Metalico":false,"OrdenFP":9},{"Codigo":110,"Descripcion":"Recibo domiciliado","Abreviatura":"05","Activa":true,"Domiciliable":true,"TransferenciaBancaria":false,"Metalico":false,"OrdenFP":9},{"Codigo":118,"Descripcion":"Albarán","Abreviatura":null,"Activa":true,"Domiciliable":false,"TransferenciaBancaria":false,"Metalico":false,"OrdenFP":9},{"Codigo":123,"Descripcion":"Regularización","Abreviatura":null,"Activa":true,"Domiciliable":false,"TransferenciaBancaria":false,"Metalico":false,"OrdenFP":9},{"Codigo":124,"Descripcion":"Consumo interno","Abreviatura":null,"Activa":true,"Domiciliable":false,"TransferenciaBancaria":false,"Metalico":false,"OrdenFP":9},{"Codigo":125,"Descripcion":"Domiciliación proveedor","Abreviatura":null,"Activa":true,"Domiciliable":false,"TransferenciaBancaria":false,"Metalico":false,"OrdenFP":9},{"Codigo":129,"Descripcion":"Transferencia La Caixa","Abreviatura":"01","Activa":true,"Domiciliable":false,"TransferenciaBancaria":false,"Metalico":false,"OrdenFP":9},{"Codigo":130,"Descripcion":"Transferencia La Caixa1","Abreviatura":"01","Activa":false,"Domiciliable":false,"TransferenciaBancaria":false,"Metalico":false,"OrdenFP":9},{"Codigo":133,"Descripcion":"Transferencia Santander","Abreviatura":"01","Activa":true,"Domiciliable":false,"TransferenciaBancaria":false,"Metalico":false,"OrdenFP":9},{"Codigo":134,"Descripcion":"Trasferencia BBVA","Abreviatura":"01","Activa":true,"Domiciliable":false,"TransferenciaBancaria":false,"Metalico":false,"OrdenFP":9}]};
+const SYN={"Sociedades":{"registros":[{"CIF":null,"Nombre":"Empresa de demostración A","IdSociedad":"D01"},{"CIF":null,"Nombre":"Empresa de demostración B","IdSociedad":"D02"}]},"SociedadesEjercicios":{"registros":[{"Activa":true,"TrimestreActivo":1,"IdSociedad":"D01","Ejercicio":2025,"Nombre":"Empresa A · 2025","PorcentajeProrrataAñoAnterior":75.5,"IdSociedadEjercicio":9001},{"Activa":true,"TrimestreActivo":1,"IdSociedad":"D01","Ejercicio":2026,"Nombre":"Empresa A · 2026","PorcentajeProrrataAñoAnterior":75.5,"IdSociedadEjercicio":9002},{"Activa":true,"TrimestreActivo":1,"IdSociedad":"D02","Ejercicio":2025,"Nombre":"Empresa B · 2025","PorcentajeProrrataAñoAnterior":75.5,"IdSociedadEjercicio":9003},{"Activa":true,"TrimestreActivo":1,"IdSociedad":"D02","Ejercicio":2026,"Nombre":"Empresa B · 2026","PorcentajeProrrataAñoAnterior":75.5,"IdSociedadEjercicio":9004}]},"SeriesFacturacion":{"registros":[{"IdSerie":9101,"RangoHasta":999999,"EsPredeterminada":true,"UltimoNumero":125,"Descripcion":"Facturación ordinaria","Prefijo":"F26-","IdSociedadEjercicio":9002,"EsRectificativa":false,"RangoDesde":1},{"IdSerie":9102,"RangoHasta":999999,"EsPredeterminada":false,"UltimoNumero":3,"Descripcion":"Rectificativas","Prefijo":"R26-","IdSociedadEjercicio":9002,"EsRectificativa":true,"RangoDesde":1},{"IdSerie":9103,"RangoHasta":999999,"EsPredeterminada":true,"UltimoNumero":350,"Descripcion":"Facturación del ejercicio anterior","Prefijo":"F25-","IdSociedadEjercicio":9001,"EsRectificativa":false,"RangoDesde":1},{"IdSerie":9104,"RangoHasta":999999,"EsPredeterminada":true,"UltimoNumero":0,"Descripcion":"Servicios y suministros de la empresa B","Prefijo":"B26-","IdSociedadEjercicio":9004,"EsRectificativa":false,"RangoDesde":1}]},"ConfiguracionCorreo":{"registros":[{"AsuntoPlantilla":"Factura {NumeroFactura}","Activo":true,"FechaModificacion":"2026-10-01T09:30:00","ResponderA":null,"TimeoutSegundos":30,"Remitente":"facturacion@example.invalid","OperadorModificacion":"Operador demo","ServidorSMTP":"smtp.example.invalid","IdConfiguracionCorreo":9201,"IdSociedad":"D01","PuertoSMTP":587,"NombreRemitente":"Facturación Demo","CuerpoPlantilla":"Hola:\n\nAdjuntamos la factura {NumeroFactura}.\nGracias por tu confianza.\nAdministración","UsuarioSMTP":"demo@example.invalid"},{"AsuntoPlantilla":"Factura {NumeroFactura}","Activo":false,"FechaModificacion":"2026-10-01T09:30:00","ResponderA":null,"TimeoutSegundos":30,"Remitente":"facturacion@example.invalid","OperadorModificacion":"Operador demo","ServidorSMTP":"smtp.example.invalid","IdConfiguracionCorreo":9202,"IdSociedad":"D02","PuertoSMTP":587,"NombreRemitente":"Departamento de administración y atención a clientes de la empresa de demostración B","CuerpoPlantilla":"Hola:\n\nAdjuntamos la factura {NumeroFactura}.\nGracias por tu confianza.\nAdministración","UsuarioSMTP":"demo@example.invalid"}],"aux":{"credencialConfigurada":true,"nota":"Estado ficticio de presentación; no es una columna ni contiene una contraseña."}},"Configuracion":{"registros":[{"IdConfiguracion":1,"SistemaInformaticoNombre":"ProConta Demo","RutaDatosVeriFactu":"C:\\ProContaDemo\\VeriFactu","EmailIncidencias":"soporte@example.invalid","SistemaId":"DM","SistemaInformaticoVersion":"1.0-demo"}]},"VeriFactuConfiguracion":{"registros":[{"Activo":false,"CertificatePath":null,"IdSociedad":"D01","FechaModificacion":"2026-10-01T09:30:00","OperadorModificacion":"Operador demo","IdVeriFactuConfiguracion":9301}]}};
+
+'use strict';
+/* =====================================================================
+   ProConta · Configuración — maqueta
+   Un único motor: catálogo de mantenimientos (proveedores) → metadatos
+   de campo → renderizador común → copia en memoria → validar → guardar.
+   ===================================================================== */
+const $=(s,r=document)=>r.querySelector(s), $$=(s,r=document)=>[...r.querySelectorAll(s)];
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const norm=s=>String(s??'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
+const clone=o=>structuredClone(o);
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const cssid=n=>CSS.escape(n);
+const isEmpty=v=>v===null||v===undefined||v==='';
+const same=(a,b)=>(a===b)||(a!==a&&b!==b);
+const plural=(n,s,p)=>n===1?s:p;
+
+/* ---------- Números en formato español ---------- */
+function fmtNum(v,f){
+  if(v===null||v===undefined) return '';
+  if(typeof v!=='number') return String(v);
+  return v.toLocaleString('es-ES',{useGrouping:f&&f.grp===false?false:true,maximumFractionDigits:f&&f.int?0:6});
+}
+function parseNum(s,f){
+  s=String(s).trim().replace(/\s/g,'');
+  if(f.unit==='%') s=s.replace(/%$/,'');
+  if(s==='') return {ok:true,v:null};
+  let t=s;
+  if(/^-?\d{1,3}(\.\d{3})+(,\d+)?$/.test(t)) t=t.replace(/\./g,'').replace(',','.');
+  else if(t.includes(',')){ if(t.includes('.')) return {ok:false,msg:'Usa la coma para los decimales, por ejemplo 75,5.'}; t=t.replace(',','.'); }
+  if(!/^-?\d+(\.\d+)?$/.test(t)) return {ok:false,msg:f.int?'Escribe un número entero, por ejemplo 587.':'Escribe un número, por ejemplo 75,5.'};
+  const v=Number(t);
+  if(f.int&&!Number.isInteger(v)) return {ok:false,msg:'Este dato solo admite números enteros.'};
+  if((f.min!=null&&v<f.min)||(f.max!=null&&v>f.max)) return {ok:false,msg:`Escribe un valor entre ${fmtNum(f.min,f)} y ${fmtNum(f.max,f)}: es lo que admite el almacenamiento de este dato.`};
+  return {ok:true,v};
+}
+function fmtDT(v){ if(!v) return ''; const [d,t]=String(v).split('T'); const [y,m,dd]=d.split('-'); return `${dd}/${m}/${y}${t?' '+t.slice(0,5):''}`; }
+function fixMoj(s){ if(typeof s!=='string'||!/[ÃÂ]/.test(s)) return null; try{ const r=decodeURIComponent(escape(s)); return r!==s?r:null; }catch(e){ return null; } }
+function nowISO(){ const d=new Date(),p=n=>String(n).padStart(2,'0'); return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}:00`; }
+function hhmm(){ const d=new Date(); return d.toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'}); }
+
+/* ---------- Iconos (trazos sencillos) ---------- */
+const I={
+  search:'<svg class="ico" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5 14 14"/></svg>',
+  chev:'<svg class="ico chev" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="m4 6 4 4 4-4"/></svg>',
+  lock:'<svg class="ico lockic" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3.5" y="7" width="9" height="6.5" rx="1"/><path d="M5.5 7V5a2.5 2.5 0 0 1 5 0v2"/></svg>',
+  eye:'<svg class="ico" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M1.5 8S4 3.5 8 3.5 14.5 8 14.5 8 12 12.5 8 12.5 1.5 8 1.5 8Z"/><circle cx="8" cy="8" r="2"/></svg>',
+  pc:'<svg class="ico" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="3" width="12" height="8" rx="1"/><path d="M6 14h4M8 11v3"/></svg>',
+  one:'<svg class="ico" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="2.5" width="10" height="11" rx="1"/><path d="M5.5 6h5M5.5 9h3"/></svg>',
+  list:'<svg class="ico" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M5.5 4h8M5.5 8h8M5.5 12h8"/><circle cx="2.8" cy="4" r=".8"/><circle cx="2.8" cy="8" r=".8"/><circle cx="2.8" cy="12" r=".8"/></svg>',
+  side:'<svg class="ico" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="2.5" width="12" height="11" rx="1"/><path d="M7 2.5v11"/></svg>',
+  stack:'<svg class="ico" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="2.5" width="12" height="11" rx="1"/><path d="M2 7h12"/></svg>',
+  warn:'<svg class="ico" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 2 14.5 13.5h-13Z"/><path d="M8 6.5v3.2M8 11.4v.4"/></svg>',
+  check:'<svg class="ico" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><path d="m3 8.5 3 3 7-7"/></svg>',
+  folder:'<svg class="ico" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M1.5 4.5v8h13v-6.5h-7l-1.5-1.5Z"/></svg>',
+  key:'<svg class="ico" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="5" cy="8" r="2.8"/><path d="M7.8 8H14.5M12 8v2.5M14 8v2"/></svg>',
+  menu:'<svg class="ico" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M2.5 4h11M2.5 8h11M2.5 12h11"/></svg>',
+  x:'<svg class="ico" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="m4 4 8 8M12 4l-8 8"/></svg>',
+  sort:'<svg class="ico" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="m5 6 3-3 3 3M5 10l3 3 3-3"/></svg>',
+  up:'<svg class="ico" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="m4 10 4-4 4 4"/></svg>',
+  down:'<svg class="ico" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="m4 6 4 4 4-4"/></svg>',
+};
+
+/* ---------- Metadatos de campo a partir del esquema ---------- */
+// Tipos OLE DB → editor y límites de almacenamiento. Los límites no fijan el ancho visual.
+const OLE={
+  17:{ed:'int',int:true,min:0,max:255,store:'número de 0 a 255'},
+  2:{ed:'int',int:true,min:-32768,max:32767,store:'entero corto'},
+  3:{ed:'int',int:true,min:-2147483648,max:2147483647,store:'entero largo'},
+  4:{ed:'dec',store:'real simple'},
+  5:{ed:'dec',store:'real doble'},
+  11:{ed:'bool',store:'sí/no'},
+  7:{ed:'datetime',store:'fecha y hora'},
+  130:{ed:'text',store:'texto'},
+};
+const PENDING='Significado pendiente de confirmar.';
+function buildFields(table,spec){
+  const sch=SCHEMA[table]; if(!sch) throw new Error('Sin esquema '+table);
+  const byName=Object.fromEntries(sch.map(c=>[c[0],c]));
+  const out=[];
+  const names=Object.keys(spec);
+  for(const n of names){
+    const s=spec[n];
+    if(s.virtual){ out.push(Object.assign({n,virtual:true,len:null,nul:true},s,{label:s.l})); continue; }
+    const c=byName[n]; if(!c) throw new Error(`Campo ${table}.${n} no está en el esquema`);
+    const [,t,len,nul]=c; const base=OLE[t]||{ed:'text'};
+    const f=Object.assign({n,t,len,nul,table},base,s);
+    f.label=s.l||n;
+    if(t===130){ f.ed=s.ed||(len===0?'memo':'text'); f.max=null; f.min=null; f.maxLen=len>0?len:null; }
+    if(t!==130&&s.ed&&!['int','dec','pct','bool','bool3','datetime','counter','ref','option','id'].includes(s.ed)) f.ed=s.ed;
+    if(s.ed==='pct'){ f.unit='%'; }
+    if(t===11&&nul) f.ed='bool3';
+    if(s.pend){ f.help=(s.h?s.h+' ':'')+PENDING; f.pending=true; } else f.help=s.h||'';
+    out.push(f);
+  }
+  const missing=sch.filter(c=>!spec[c[0]]).map(c=>c[0]);
+  if(missing.length) console.warn('Campos sin asignar en',table,missing);
+  return out;
+}
+
+/* ---------- Origen de datos de demostración ---------- */
+let UID=0; const uid=()=>'r'+(++UID);
+function rec(v,src,aux){ return {k:uid(),src,v,aux:aux||{}}; }
+function fillPartial(table,v,{notExtracted}={}){
+  // Las filas reales solo traen algunas columnas: el resto queda "no extraído" (undefined).
+  // Los ejemplos sintéticos son parciales: lo no indicado se trata como vacío (null) y los sí/no obligatorios como No.
+  const o={};
+  for(const [n,t,,nul] of SCHEMA[table]){
+    if(n in v) o[n]=v[n];
+    else if(notExtracted) o[n]=undefined;
+    else o[n]=(t===11&&!nul)?false:null;
+  }
+  return o;
+}
+function volumeConcepts(){
+  // Escenario sintético de volumen descrito en el anexo (900001..900150): cada décimo inactivo, cada séptimo con nota larga.
+  const nota=i=>`Primer párrafo de la nota de demostración ${i}.\n\nSegundo párrafo para comprobar la lectura, el ajuste de línea y el tamaño del editor con una explicación más extensa que los valores habituales de un catálogo.\n\nTercer párrafo: estos datos son ficticios y se pueden restablecer en la maqueta.`;
+  const r=[]; for(let i=1;i<=150;i++) r.push(rec({IdTipoConcepto:900000+i,Descripcion:`Categoría de demostración ${String(i).padStart(3,'0')}`,Activo:i%10!==0,Notas:i%7===0?nota(i):null},'vol'));
+  return r;
+}
+function seedDB(){
+  UID=0; const D={};
+  D.local=[rec({Carpeta:'C:\\ProContaDemo\\Datos',Fichero:'ProcontaVF.accdb'},'syn')];
+  D.general=SYN.Configuracion.registros.map(v=>rec(fillPartial('Configuracion',v),'syn'));
+  D.sociedades=SYN.Sociedades.registros.map(v=>rec(fillPartial('Sociedades',v),'syn'));
+  D.ejercicios=SYN.SociedadesEjercicios.registros.map(v=>rec(fillPartial('SociedadesEjercicios',Object.assign({},v,{Ejercicio:String(v.Ejercicio)})),'syn'));
+  D.series=SYN.SeriesFacturacion.registros.map(v=>rec(fillPartial('SeriesFacturacion',v),'syn'));
+  D.tiposfactura=REAL.TiposFactura.map(v=>rec(clone(v),'real'));
+  D.estados=REAL.EstadosFactura.map(v=>rec(clone(v),'real'));
+  D.correo=SYN.ConfiguracionCorreo.registros.map((v,i)=>rec(fillPartial('ConfiguracionCorreo',v),'syn',{cred:{PasswordProtegida:i===0}}));
+  D.verifactu=SYN.VeriFactuConfiguracion.registros.map(v=>rec(fillPartial('VeriFactuConfiguracion',v),'syn',{cred:{CertificatePasswordProtegida:false}}));
+  D.formaspago=REAL.FormasPago.map(v=>rec(fillPartial('FormasPago',v,{notExtracted:true}),'real'));
+  D.iva=REAL.TiposDeIVA.map(v=>rec(clone(v),'real'));
+  const cp=REAL.TiposConcepto.map(v=>rec(Object.assign(clone(v),{Notas:undefined}),'real'));
+  // Copias de demostración con notas ficticias (las notas reales no se exportaron)
+  cp.push(rec({IdTipoConcepto:990001,Descripcion:'SOFTWARE',Activo:true,Notas:'Copia de demostración del concepto SOFTWARE.\n\nIncluye licencias, suscripciones y mantenimiento de programas. Las renovaciones anuales se facturan con este concepto salvo que el contrato indique otra cosa.\n\nNota ficticia: no procede de la base de datos.'},'copia'));
+  cp.push(rec({IdTipoConcepto:990002,Descripcion:'MANTENIMIENTO PREVENTIVO DE CONTROL DE ACCESO EN EDIFICIOS',Activo:true,Notas:''},'copia'));
+  cp.push(rec({IdTipoConcepto:990003,Descripcion:'CONSUMIBLES (DESCATALOGADO)',Activo:false,Notas:null},'copia'));
+  D.conceptos=cp; D.conceptosVol=volumeConcepts();
+  return D;
+}
+
+/* =====================================================================
+   Catálogo de mantenimientos. Cada entrada declara: categoría, título,
+   finalidad, ámbito, cardinalidad, capacidades, grupos y metadatos de campo.
+   Las etiquetas, grupos, ámbitos y permisos son PROPUESTA de la maqueta.
+   ===================================================================== */
+const CATS=[
+  {id:'general',t:'General'},
+  {id:'empresas',t:'Empresas y ejercicios'},
+  {id:'facturacion',t:'Facturación'},
+  {id:'integraciones',t:'Integraciones'},
+  {id:'catalogos',t:'Catálogos'},
+];
+const SCOPES={
+  equipo:{t:'Este equipo',d:'Se guarda en la configuración local de este puesto. Los demás equipos no lo ven.'},
+  compartido:{t:'Compartido',d:'Se guarda en la base de datos: afecta a todos los puestos que la usan.'},
+  empresa:{t:'Por empresa',d:'Cada registro pertenece a una empresa.'},
+  ejercicio:{t:'Por ejercicio',d:'Cada registro pertenece a un ejercicio de una empresa.'},
+};
+const AUD={FechaModificacion:{l:'Modificado el',audit:true,ro:true},OperadorModificacion:{l:'Modificado por',audit:true,ro:true}};
+const cuentas=(extra={})=>Object.assign({
+  CuentaTipoIVA0:{l:'Cuenta del tipo de IVA 0',g:'cuentas',w:'s',code:true},
+  CuentaTipoIVA1:{l:'Cuenta del tipo de IVA 1',g:'cuentas',w:'s',code:true},
+  CuentaTipoIVA2:{l:'Cuenta del tipo de IVA 2',g:'cuentas',w:'s',code:true},
+  CuentaTipoIVA3:{l:'Cuenta del tipo de IVA 3',g:'cuentas',w:'s',code:true},
+  CuentaTipoIVA4:{l:'Cuenta del tipo de IVA 4',g:'cuentas',w:'s',code:true},
+  CuentaSuplidoIVA:{l:'Cuenta de suplido con IVA',g:'cuentas',w:'s',code:true,pend:true,h:'El almacenamiento admite 255 caracteres, a diferencia del resto de cuentas (10).'},
+  CuentaSuplido:{l:'Cuenta de suplido',g:'cuentas',w:'s',code:true,pend:true,h:'El almacenamiento admite 255 caracteres.'},
+  CuentaRetencionIRPF:{l:'Cuenta de retención IRPF',g:'cuentas',w:'s',code:true,al:['retencion','irpf']},
+  CuentaRetencionServicios:{l:'Cuenta de retención de servicios',g:'cuentas',w:'s',code:true},
+  CuentaRetencionAlquileres:{l:'Cuenta de retención de alquileres',g:'cuentas',w:'s',code:true},
+  CuentaIVAIntracomunitarioRepercutidoServicios:{l:'Cuenta de IVA intracomunitario repercutido · servicios',g:'cuentas',w:'s',code:true},
+  CuentaIVAIntracomunitarioRepercutidoBienes:{l:'Cuenta de IVA intracomunitario repercutido · bienes',g:'cuentas',w:'s',code:true},
+  CuentaIVAIntracomunitarioSoportadoServicios:{l:'Cuenta de IVA intracomunitario soportado · servicios',g:'cuentas',w:'s',code:true},
+  CuentaIVAIntracomunitarioSoportadoBienes:{l:'Cuenta de IVA intracomunitario soportado · bienes',g:'cuentas',w:'s',code:true},
+  CuentaIVAInversionSujetoPasivoRepercutido:{l:'Cuenta de IVA por inversión del sujeto pasivo · repercutido',g:'cuentas',w:'s',code:true},
+  CuentaIVAInversionSujetoPasivoSoportado:{l:'Cuenta de IVA por inversión del sujeto pasivo · soportado',g:'cuentas',w:'s',code:true},
+  Cuenta113ParaCuadres:{l:'Cuenta 113 para cuadres',g:'cuentas',w:'s',code:true,pend:true},
+  CuentaPeriodificacionVentas:{l:'Cuenta de periodificación de ventas',g:'cuentas',w:'s',code:true},
+  Cuenta570Tesoreria:{l:'Cuenta 570 de tesorería',g:'cuentas',w:'s',code:true},
+},extra);
+const impuestos=()=>({
+  TipoRetencion:{l:'Tipo de retención',g:'impuestos',pend:true,h:'Código numérico; el catálogo al que remite no está acreditado.',al:['retencion']},
+  PorcentajeRetencion:{l:'Porcentaje de retención',g:'impuestos',ed:'pct',h:'Se guarda como número entero.',al:['retencion','irpf']},
+  TipoIVA1:{l:'Tipo de IVA 1',g:'impuestos',w:'n',pend:true,h:'Pendiente de confirmar si es un porcentaje o una referencia a Tipos de IVA.'},
+  TipoIVA2:{l:'Tipo de IVA 2',g:'impuestos',w:'n',pend:true},
+  TipoIVA3:{l:'Tipo de IVA 3',g:'impuestos',w:'n',pend:true},
+  TipoIVA4:{l:'Tipo de IVA 4',g:'impuestos',w:'n',pend:true},
+});
+const opcProp='Opciones propuestas: los códigos que se guardarán están por definir.';
+
+const PROVIDERS=[
+/* ---------------- General ---------------- */
+{id:'local',cat:'general',title:'Ubicación de datos',purpose:'Carpeta y fichero de la base de datos que usa este equipo al iniciar ProConta.',
+ scope:'equipo',scopeFact:true,card:'single',caps:{create:false,update:true,delete:false},local:true,
+ short:'ubicación',this:'esta ubicación',lo:'la',al:['base de datos','accdb','carpeta','ruta','fichero','conexion'],
+ groups:[{id:'ub',t:'Ubicación'}],
+ fields:[
+  {n:'Carpeta',label:'Carpeta de datos',rq:'la carpeta de datos',ed:'path',g:'ub',req:true,nul:false,maxLen:248,h:'Carpeta que contiene la base de datos.',al:['ruta','directorio']},
+  {n:'Fichero',label:'Nombre del fichero',ed:'text',w:'m',g:'ub',req:true,nul:false,maxLen:120,code:true,h:'Por ejemplo ProcontaVF.accdb.'},
+ ],
+ note:'Las etiquetas de estos dos datos son una propuesta; no corresponden necesariamente a las claves del fichero de configuración local.'},
+{id:'general',cat:'general',title:'Configuración general',table:'Configuracion',purpose:'Identificación del sistema informático, ubicaciones de trabajo y correo de incidencias.',
+ scope:'compartido',card:'single',caps:{create:false,update:true,delete:false},short:'configuración',this:'esta configuración',lo:'la',
+ al:['sistema informatico','nif','version','instalacion','incidencias','endpoint'],
+ groups:[{id:'sis',t:'Identificación del sistema'},{id:'ubi',t:'Ubicaciones e integraciones'}],
+ spec:Object.assign({
+  IdConfiguracion:{l:'Id',idf:true,ro:true},
+  SistemaInformaticoNombreRazon:{l:'Nombre o razón social del productor',g:'sis',w:'ml'},
+  SistemaInformaticoNIF:{l:'NIF del productor',g:'sis',w:'s',code:true,h:'Sin datos reales en la demostración.'},
+  SistemaInformaticoNombre:{l:'Nombre del sistema',g:'sis',w:'m'},
+  SistemaId:{l:'Id del sistema',g:'sis',w:'xs',code:true},
+  SistemaInformaticoVersion:{l:'Versión',g:'sis',w:'s'},
+  SistemaInformaticoNumeroInstalacion:{l:'Número de instalación',g:'sis',w:'m'},
+  SistemaInformaticoTipoUsoPosibleSoloVerifactu:{l:'Tipo de uso posible solo VeriFactu',g:'sis',w:'xs',code:true,pend:true,h:'Un carácter.'},
+  SistemaInformaticoTipoUsoPosibleMultiOT:{l:'Tipo de uso posible multi-OT',g:'sis',w:'xs',code:true,pend:true,h:'Un carácter.'},
+  RutaDatosVeriFactu:{l:'Carpeta de datos de VeriFactu',g:'ubi',ed:'path'},
+  EndpointIPC:{l:'Dirección del servicio IPC',g:'ubi',w:'l',pend:true,h:'Sin dirección operativa en la demostración.',al:['endpoint','url']},
+  EndpointIRAV:{l:'Dirección del servicio IRAV',g:'ubi',w:'l',pend:true,h:'Sin dirección operativa en la demostración.',al:['endpoint','url']},
+  EmailIncidencias:{l:'Correo para incidencias',g:'ubi',w:'ml',email:true,al:['email','correo']},
+ },AUD)},
+
+/* ---------------- Empresas y ejercicios ---------------- */
+{id:'sociedades',cat:'empresas',title:'Empresas',table:'Sociedades',purpose:'Datos de cada empresa: identificación, valores predeterminados, impuestos, cuentas y rutas.',
+ scope:'compartido',card:'list',caps:{create:true,update:true,delete:true},short:'empresa',this:'esta empresa',lo:'la',g:'f',
+ key:'IdSociedad',al:['sociedad','sociedades','cif','compania'],
+ groups:[{id:'ident',t:'Identificación'},{id:'pred',t:'Valores predeterminados'},{id:'impuestos',t:'Impuestos y retenciones'},{id:'cuentas',t:'Cuentas'},{id:'rutas',t:'Rutas y bases de datos'}],
+ spec:Object.assign({
+  IdSociedad:{l:'Código',g:'ident',w:'xs',code:true,req:true,keyNew:true,uniq:true,h:'Tres caracteres. Se fija al crear la empresa.'},
+  Nombre:{l:'Nombre',g:'ident',w:'l',req:true},
+  CIF:{l:'CIF',g:'ident',w:'s',code:true,warnEmpty:'Falta el CIF. La base de datos no admite dejarlo vacío; la demostración lo deja pendiente a propósito.'},
+  FormaPagoDefecto:{l:'Forma de pago predeterminada (código)',g:'pred',pend:true},
+  Usuario:{l:'Usuario (código)',g:'pred',pend:true},
+ },impuestos(),cuentas(),{
+  RutaFacturasExportadas:{l:'Carpeta de facturas exportadas',g:'rutas',ed:'path'},
+  RutaFacturasDuplicadas:{l:'Carpeta de facturas duplicadas',g:'rutas',ed:'path'},
+  BDFacturasVenta:{l:'Base de datos de facturas de venta',g:'rutas',ed:'path',file:true},
+  BDERPGestion:{l:'Base de datos del ERP de gestión',g:'rutas',ed:'path',file:true},
+  BDExportacion:{l:'Base de datos de exportación',g:'rutas',ed:'path',file:true},
+ }),
+ cols:[{n:'IdSociedad',h:'Código',w:64,mono:true},{n:'Nombre',h:'Nombre'},{n:'CIF',h:'CIF',w:96}],
+ recTitle:v=>v.Nombre||'Empresa sin nombre',recSub:v=>v.IdSociedad?`Código ${v.IdSociedad}`:'',
+ newTitle:'Nueva empresa',listw:380},
+{id:'ejercicios',cat:'empresas',title:'Ejercicios',table:'SociedadesEjercicios',purpose:'Ejercicios de cada empresa con sus valores, impuestos, cuentas y rutas.',
+ scope:'empresa',card:'list',caps:{create:true,update:true,delete:true},short:'ejercicio',this:'este ejercicio',lo:'lo',
+ key:'IdSociedadEjercicio',al:['ejercicio','año','trimestre','prorrata'],
+ groups:[{id:'ident',t:'Identificación'},{id:'pred',t:'Valores predeterminados'},{id:'impuestos',t:'Impuestos y retenciones'},{id:'cuentas',t:'Cuentas'},{id:'rutas',t:'Rutas y bases de datos'}],
+ spec:Object.assign({
+  IdSociedadEjercicio:{l:'Id',idf:true,ro:true},
+  IdSociedad:{l:'Empresa',g:'ident',ed:'ref',ref:'soc',req:true,g2:'f'},
+  Ejercicio:{l:'Ejercicio',g:'ident',w:'xs',code:true,req:true,h:'Cuatro caracteres, por ejemplo 2026.'},
+  Nombre:{l:'Nombre',g:'ident',w:'m'},
+  CIF:{l:'CIF',g:'ident',w:'s',code:true},
+  TrimestreActivo:{l:'Trimestre activo',g:'ident',w:'xs'},
+  Activa:{l:'Activa',g:'ident',h:'No indica que el ejercicio esté cerrado: esta base no tiene ese dato.'},
+  FormaPagoDefecto:{l:'Forma de pago predeterminada (código)',g:'pred',pend:true},
+  Usuario:{l:'Usuario (código)',g:'pred',pend:true},
+  NumIVSDuplicados:{l:'Número de IVS duplicados',g:'pred',pend:true},
+ },impuestos(),{PorcentajeProrrataAñoAnterior:{l:'Prorrata del año anterior',g:'impuestos',ed:'pct',al:['prorrata']}},cuentas(),{
+  RutaFacturasAExportar:{l:'Carpeta de facturas a exportar',g:'rutas',ed:'path'},
+  RutaFacturasExportadas:{l:'Carpeta de facturas exportadas',g:'rutas',ed:'path'},
+  RutaFacturasDuplicadas:{l:'Carpeta de facturas duplicadas',g:'rutas',ed:'path'},
+  BDFacturasVenta:{l:'Base de datos de facturas de venta',g:'rutas',ed:'path',file:true},
+  BDERPGestion:{l:'Base de datos del ERP de gestión',g:'rutas',ed:'path',file:true},
+  BDExportacion:{l:'Base de datos de exportación',g:'rutas',ed:'path',file:true},
+ }),
+ cols:[{n:'IdSociedad',h:'Empresa',fmt:(v)=>refText('soc',v)},{n:'Ejercicio',h:'Ejercicio',w:76,mono:true},{n:'Nombre',h:'Nombre'},{n:'Activa',h:'Activa',w:60,b:true}],
+ recTitle:v=>v.Nombre||`Ejercicio ${v.Ejercicio||'sin año'}`,recSub:v=>`${refText('soc',v.IdSociedad)||'Sin empresa'} · Id ${v.IdSociedadEjercicio??'pendiente'}`,
+ newTitle:'Nuevo ejercicio',listw:420},
+
+/* ---------------- Facturación ---------------- */
+{id:'series',cat:'facturacion',title:'Series de facturación',table:'SeriesFacturacion',purpose:'Series, prefijos y rangos de numeración de cada ejercicio.',
+ scope:'ejercicio',card:'list',caps:{create:true,update:true,delete:true},short:'serie',this:'esta serie',lo:'la',g:'f',
+ key:'IdSerie',al:['serie','prefijo','numeracion','rango','contador'],parentFilter:true,
+ groups:[{id:'id',t:'Identificación'},{id:'num',t:'Numeración'},{id:'uso',t:'Uso'}],
+ spec:{
+  IdSerie:{l:'Id',idf:true,ro:true},
+  _emp:{virtual:true,l:'Empresa',g:'id',ed:'ref',ref:'soc',h:'Ayuda para elegir el ejercicio. No se guarda en la serie.'},
+  IdSociedadEjercicio:{l:'Ejercicio',g:'id',ed:'ref',ref:'ej',req:true,dependsOn:'_emp'},
+  Descripcion:{l:'Descripción',g:'id',w:'l',req:true,g2:'f'},
+  Prefijo:{l:'Prefijo',g:'id',w:'s',code:true,req:true},
+  RangoDesde:{l:'Desde el número',rq:'el primer número del rango',g:'num',w:'n',req:true,grp:true},
+  RangoHasta:{l:'Hasta el número',rq:'el último número del rango',g:'num',w:'n',req:true,grp:true},
+  UltimoNumero:{l:'Último número emitido',g:'num',ed:'counter',ro:true,h:'Lo actualiza Facturación al numerar. Aquí solo se consulta.'},
+  EsRectificativa:{l:'Serie de facturas rectificativas',g:'uso'},
+  EsPredeterminada:{l:'Serie predeterminada del ejercicio',g:'uso'},
+ },
+ cols:[{n:'Prefijo',h:'Prefijo',w:70,mono:true},{n:'Descripcion',h:'Descripción'},{n:'IdSociedadEjercicio',h:'Ejercicio',w:150,fmt:v=>refText('ej',v)},{n:'UltimoNumero',h:'Último nº',w:80,r:true},{n:'EsPredeterminada',h:'Predet.',w:62,b:true},{n:'EsRectificativa',h:'Rectif.',w:56,b:true}],
+ recTitle:v=>v.Descripcion||'Serie sin descripción',recSub:v=>`${v.Prefijo?'Prefijo '+v.Prefijo+' · ':''}${refText('ej',v.IdSociedadEjercicio)||'Sin ejercicio'}`,
+ newTitle:'Nueva serie',listw:520},
+{id:'tiposfactura',cat:'facturacion',title:'Tipos de factura',table:'TiposFactura',purpose:'Códigos de tipo de factura (F1…F3, R1…R5) y si son rectificativas.',
+ scope:'compartido',card:'list',caps:{create:true,update:true,delete:true},perm:'read',short:'tipo de factura',this:'este tipo de factura',lo:'lo',
+ key:'TipoFactura',al:['f1','f2','f3','r1','r2','r3','r4','r5','rectificativa','tipo factura'],
+ groups:[{id:'g',t:'Tipo de factura'}],
+ spec:{
+  TipoFactura:{l:'Código',g:'g',w:'xs',code:true,req:true,keyNew:true,uniq:true},
+  Descripcion:{l:'Descripción',g:'g',ed:'textl',req:true,g2:'f'},
+  EsRectificativa:{l:'Es rectificativa',g:'g'},
+ },
+ cols:[{n:'TipoFactura',h:'Código',w:62,mono:true},{n:'Descripcion',h:'Descripción'},{n:'EsRectificativa',h:'Rectif.',w:60,b:true}],
+ recTitle:v=>v.TipoFactura?`${v.TipoFactura}`:'Nuevo tipo',recSub:v=>v.EsRectificativa?'Rectificativa':'No rectificativa',
+ listw:'58%'},
+{id:'estados',cat:'facturacion',title:'Estados de factura',table:'EstadosFactura',purpose:'Estados por los que pasa una factura respecto a VeriFactu.',
+ scope:'compartido',card:'list',caps:{create:false,update:false,delete:false},protect:'Catálogo protegido: lo mantiene el sistema. No admite altas, cambios ni bajas desde aquí.',
+ short:'estado',this:'este estado',lo:'lo',key:'IdEstado',al:['estado','borrador','validada','rectificada','pendiente'],
+ groups:[{id:'g',t:'Estado'}],
+ spec:{
+  IdEstado:{l:'Código',g:'g',w:'xs',grp:false},
+  Nombre:{l:'Nombre',g:'g',w:'m',code:true},
+  Descripcion:{l:'Descripción',g:'g',ed:'textl',moj:true},
+  EsModificable:{l:'La factura se puede modificar en este estado',g:'g',h:'Describe la factura. No indica si esta fila del catálogo se puede editar.'},
+  EsTerminal:{l:'Estado final',g:'g'},
+ },
+ cols:[{n:'IdEstado',h:'Cód.',w:50,r:true},{n:'Nombre',h:'Nombre',w:190,mono:true},{n:'Descripcion',h:'Descripción',moj:true},{n:'EsModificable',h:'Modif.',w:56,b:true},{n:'EsTerminal',h:'Final',w:50,b:true}],
+ recTitle:v=>v.Nombre,recSub:v=>`Código ${v.IdEstado}`,listw:'60%'},
+
+/* ---------------- Integraciones ---------------- */
+{id:'correo',cat:'integraciones',title:'Correo electrónico',table:'ConfiguracionCorreo',purpose:'Perfiles de envío de facturas por correo: servidor, credencial, remitente y plantilla.',
+ scope:'empresa',card:'list',caps:{create:true,update:true,delete:true},short:'perfil de correo',this:'este perfil de correo',lo:'lo',
+ key:'IdConfiguracionCorreo',al:['email','e-mail','smtp','correo','envio de facturas','servidor de correo','remitente','plantilla'],
+ groups:[{id:'perfil',t:'Perfil'},{id:'srv',t:'Servidor',d:'Datos del servidor de salida. Guardar no prueba la conexión.'},{id:'auth',t:'Autenticación'},{id:'rem',t:'Remitente y copias'},{id:'tpl',t:'Plantilla del mensaje'}],
+ spec:Object.assign({
+  IdConfiguracionCorreo:{l:'Id',idf:true,ro:true},
+  IdSociedad:{l:'Empresa',g:'perfil',ed:'ref',ref:'soc',req:true,g2:'f'},
+  Activo:{l:'Perfil activo',g:'perfil'},
+  MotorCorreo:{l:'Motor de envío',g:'perfil',ed:'option',opts:['SMTP','Otro'],h:opcProp,prop:true},
+  ServidorSMTP:{l:'Servidor SMTP',g:'srv',w:'ml',req:true,code:true,al:['smtp','host','servidor']},
+  PuertoSMTP:{l:'Puerto SMTP',g:'srv',w:'xs',req:true,grp:false,al:['smtp','puerto','port'],h:'El almacenamiento admite hasta 32.767.'},
+  TipoSeguridad:{l:'Seguridad de la conexión',g:'srv',ed:'option',opts:['Ninguna','STARTTLS','SSL/TLS'],h:opcProp,prop:true,al:['ssl','tls']},
+  TimeoutSegundos:{l:'Tiempo de espera',g:'srv',w:'xs',unit:'s',grp:false,h:'En segundos.',al:['timeout']},
+  TipoAutenticacion:{l:'Autenticación',g:'auth',ed:'option',opts:['Ninguna','Básica','OAuth'],h:opcProp,prop:true},
+  UsuarioSMTP:{l:'Usuario',g:'auth',w:'ml',al:['smtp','usuario']},
+  PasswordProtegida:{l:'Contraseña',g:'auth',ed:'secret',al:['password','clave','credencial']},
+  Remitente:{l:'Dirección del remitente',g:'rem',w:'ml',email:true,g2:'f'},
+  NombreRemitente:{l:'Nombre del remitente',g:'rem',w:'l'},
+  ResponderA:{l:'Responder a',g:'rem',w:'ml',email:true,h:'Si se deja vacío, las respuestas irán al remitente (comportamiento pendiente de confirmar).'},
+  CCPredeterminado:{l:'Copia (CC)',g:'rem',w:'ml'},
+  CCOPredeterminado:{l:'Copia oculta (CCO)',g:'rem',w:'ml'},
+  AsuntoPlantilla:{l:'Asunto',g:'tpl',w:'l',h:'La sintaxis de variables entre llaves es una propuesta, no un contrato verificado.'},
+  CuerpoPlantilla:{l:'Cuerpo del mensaje',g:'tpl',ed:'memo'},
+  FormatoCuerpo:{l:'Formato del cuerpo',g:'tpl',ed:'option',opts:['Texto','HTML'],h:opcProp,prop:true},
+ },AUD),
+ cols:[{n:'IdSociedad',h:'Empresa',fmt:v=>refText('soc',v)},{n:'ServidorSMTP',h:'Servidor',w:170,mono:true},{n:'Remitente',h:'Remitente',w:190},{n:'Activo',h:'Activo',w:56,b:true}],
+ recTitle:v=>v.NombreRemitente||v.Remitente||'Perfil sin remitente',recSub:v=>refText('soc',v.IdSociedad)||'Sin empresa',
+ newTitle:'Nuevo perfil de correo',listw:400},
+{id:'verifactu',cat:'integraciones',title:'VeriFactu',table:'VeriFactuConfiguracion',purpose:'Activación, certificado, identificación del sistema y diagnóstico de VeriFactu para la empresa de trabajo.',
+ scope:'empresa',card:'single',byCompany:true,caps:{create:false,update:true,delete:false},short:'configuración de VeriFactu',this:'esta configuración de VeriFactu',lo:'la',
+ al:['verifactu','aeat','certificado','entorno','huella','hash','vies','nif','registro'],
+ groups:[{id:'act',t:'Activación y entorno'},{id:'cert',t:'Certificado'},{id:'sis',t:'Identificación del sistema'},{id:'diag',t:'Conexión y diagnóstico'}],
+ spec:Object.assign({
+  IdVeriFactuConfiguracion:{l:'Id',idf:true,ro:true},
+  IdSociedad:{l:'Empresa',g:'act',ed:'ref',ref:'soc',ro:true,h:'La fija el contexto de trabajo.'},
+  Activo:{l:'VeriFactu activo para esta empresa',g:'act',sens:'Activar o desactivar VeriFactu cambia cómo se remiten las facturas.'},
+  Entorno:{l:'Entorno',g:'act',ed:'option',opts:['Pruebas','Producción'],h:opcProp,prop:true,sens:'Cambiar de entorno afecta a dónde se envían los registros.'},
+  IDVersion:{l:'Versión del formato',g:'act',w:'xs',code:true},
+  CertificatePath:{l:'Fichero del certificado',g:'cert',ed:'path',file:true,al:['certificado']},
+  CertificatePasswordProtegida:{l:'Contraseña del certificado',g:'cert',ed:'secret',al:['certificado','password','clave']},
+  CertificateThumbprint:{l:'Huella del certificado',g:'cert',ro:true,code:true,h:'La aportará la selección de certificado del módulo VeriFactu (extensión futura).',al:['thumbprint','huella']},
+  CertificateSerial:{l:'Número de serie del certificado',g:'cert',ro:true,code:true,h:'La aportará la selección de certificado del módulo VeriFactu (extensión futura).'},
+  ProductorNIF:{l:'NIF del productor',g:'sis',w:'s',code:true,h:'Sin datos reales en la demostración.'},
+  ProductorNombre:{l:'Nombre del productor',g:'sis',w:'l'},
+  NombreSistemaInformatico:{l:'Nombre del sistema',g:'sis',w:'m'},
+  IdSistemaInformatico:{l:'Id del sistema',g:'sis',w:'xs',code:true},
+  VersionSistemaInformatico:{l:'Versión del sistema',g:'sis',w:'s'},
+  NumeroInstalacion:{l:'Número de instalación',g:'sis',w:'m'},
+  TipoUsoPosibleSoloVerifactu:{l:'Tipo de uso posible solo VeriFactu',g:'sis',w:'xs',code:true,pend:true},
+  TipoUsoPosibleMultiOT:{l:'Tipo de uso posible multi-OT',g:'sis',w:'xs',code:true,pend:true},
+  IndicadorMultiplesOT:{l:'Indicador de múltiples OT',g:'sis',w:'xs',code:true,pend:true},
+  VeriFactuEndPointPrefix:{l:'Prefijo de la dirección de envío',g:'diag',w:'l',sens:'Una dirección incorrecta impide remitir registros.',h:'Sin dirección operativa en la demostración.',al:['endpoint','url']},
+  VeriFactuEndPointValidatePrefix:{l:'Prefijo de la dirección de validación',g:'diag',w:'l',sens:'Una dirección incorrecta impide validar registros.',al:['endpoint','url']},
+  VeriFactuHashAlgorithm:{l:'Algoritmo de huella',g:'diag',w:'xs',code:true,pend:true,al:['hash']},
+  VeriFactuHashInputEncoding:{l:'Codificación de entrada de la huella',g:'diag',w:'s',code:true,pend:true,al:['hash']},
+  SkipNifAeatValidation:{l:'Omitir la validación del NIF en la AEAT',g:'diag',sens:'Omitir validaciones puede dejar pasar datos incorrectos.',al:['nif','validacion']},
+  SkipViesVatNumberValidation:{l:'Omitir la validación del NIF-IVA en VIES',g:'diag',sens:'Omitir validaciones puede dejar pasar datos incorrectos.',al:['vies','validacion']},
+  LoggingEnabled:{l:'Registro de diagnóstico',g:'diag',al:['log','diagnostico']},
+ },AUD),
+ recTitle:v=>'VeriFactu',recSub:v=>refText('soc',v.IdSociedad)},
+
+/* ---------------- Catálogos ---------------- */
+{id:'formaspago',cat:'catalogos',title:'Formas de pago',table:'FormasPago',purpose:'Formas de cobro y pago que se eligen en facturas y cobros.',
+ scope:'compartido',card:'list',caps:{create:true,update:true,delete:true},short:'forma de pago',this:'esta forma de pago',lo:'la',g:'f',
+ key:'Codigo',al:['forma de pago','cobro','pago','domiciliacion','transferencia','metalico','recibo','c60','cuaderno'],
+ groups:[
+  {id:'ident',t:'Identificación y orden'},
+  {id:'cobros',t:'Cobros y devoluciones'},
+  {id:'fact',t:'Facturación y exportación'},
+  {id:'banco',t:'Domiciliación y transferencias'},
+  {id:'medios',t:'Medios especiales'},
+  {id:'hered',t:'Opciones avanzadas heredadas',d:'Datos de la base actual cuyo uso falta revisar. Se muestran para no perderlos; no implica que el producto final los conserve.'},
+ ],
+ spec:{
+  Codigo:{l:'Código',g:'ident',w:'xs',req:true,keyNew:true,uniq:true,grp:false,h:'De 0 a 255. Se fija al crear la forma de pago.'},
+  Descripcion:{l:'Descripción',g:'ident',w:'ml',req:true,g2:'f'},
+  Abreviatura:{l:'Abreviatura',g:'ident',w:'xs',code:true,h:'Puede repetirse en varias formas de pago.'},
+  Activa:{l:'Activa',g:'ident'},
+  OrdenFP:{l:'Orden',g:'ident',w:'xs',grp:false,h:'Posición en las listas de selección.'},
+  Color:{l:'Color',g:'ident',w:'s',pend:true,h:'Valor numérico.'},
+  CodigoExterno:{l:'Código externo',g:'ident',w:'s',code:true,pend:true},
+  IdAgrupacion:{l:'Agrupación (código)',g:'ident',w:'xs',pend:true},
+  CodigoAgrupacion:{l:'Código de agrupación',g:'ident',w:'xs',pend:true},
+  IdAgrupacionDestino:{l:'Agrupación de destino (código)',g:'ident',w:'xs',pend:true},
+  CodigoTipoMoneda:{l:'Tipo de moneda (código)',g:'ident',w:'xs',pend:true},
+  CobradoDefecto:{l:'Cobrado por defecto',g:'cobros',pend:true},
+  Cobrable:{l:'Cobrable',g:'cobros',pend:true},
+  PermitirNoCobrado:{l:'Permitir no cobrado',g:'cobros',pend:true},
+  PermiteModificarFechaEnCobro:{l:'Permite modificar la fecha en el cobro',g:'cobros',pend:true},
+  CobrarTPV:{l:'Cobrar por TPV',g:'cobros',pend:true},
+  Devuelto:{l:'Devuelto',g:'cobros',pend:true},
+  PermiteMorosos:{l:'Permite morosos',g:'cobros',pend:true},
+  FormaPagoDevolucion:{l:'Forma de pago de devolución (código)',g:'cobros',w:'xs',pend:true},
+  ConceptoGastosDevolucion:{l:'Concepto de gastos de devolución (código)',g:'cobros',w:'s',pend:true},
+  FormaPagoPendiente:{l:'Forma de pago pendiente (código)',g:'cobros',w:'xs',pend:true},
+  IdFormaPagoPendienteSinDatosBancarios:{l:'Forma de pago pendiente sin datos bancarios (código)',g:'cobros',w:'xs',pend:true},
+  EsFactura:{l:'Es factura',g:'fact',pend:true},
+  EsFacturable:{l:'Es facturable',g:'fact',pend:true},
+  SoloFacturarCobrados:{l:'Solo facturar cobrados',g:'fact',pend:true},
+  AsignarNumeroFactura:{l:'Asignar número de factura',g:'fact',pend:true},
+  EsAlbaran:{l:'Es albarán',g:'fact',pend:true},
+  ImprimirTicket:{l:'Imprimir ticket',g:'fact',pend:true},
+  PermitirExportacionEjecutiva:{l:'Permitir exportación ejecutiva',g:'fact',pend:true},
+  PermitirExportacionVentasSinNumeroTicket:{l:'Permitir exportar ventas sin número de ticket',g:'fact',pend:true},
+  PermitirExportacionCobrosSinNumeroTicket:{l:'Permitir exportar cobros sin número de ticket',g:'fact',pend:true},
+  FormaPagoFactura:{l:'Forma de pago de la factura (código)',g:'fact',w:'xs',pend:true},
+  CodigoExportacionFacturas:{l:'Código de exportación de facturas',g:'fact',w:'s',code:true,pend:true},
+  Domiciliable:{l:'Domiciliable',g:'banco',al:['domiciliado','domiciliacion','recibo']},
+  DomiciliableSiempre:{l:'Domiciliable siempre',g:'banco',pend:true,al:['domiciliado']},
+  TransferenciaBancaria:{l:'Transferencia bancaria',g:'banco',h:'Es un dato propio: no se deduce de la descripción. Hay formas llamadas «Transferencia…» con este dato en No.',al:['transferencia']},
+  GeneraTransferenciaBancaria:{l:'Genera transferencia bancaria',g:'banco',pend:true,al:['transferencia']},
+  ConceptoTransferencia:{l:'Concepto de transferencia (código)',g:'banco',w:'xs',pend:true},
+  TipoRafaBancaria:{l:'Tipo de ráfaga bancaria',g:'banco',w:'xs',pend:true,h:'El nombre interno dice «Rafa»; se interpreta como ráfaga.'},
+  SufijoRafagaBancaria:{l:'Sufijo de ráfaga bancaria',g:'banco',w:'xs',code:true,pend:true},
+  TipoCuaderno:{l:'Tipo de cuaderno bancario',g:'banco',w:'xs',pend:true,al:['cuaderno']},
+  IdDatosBancariosGestionPorDefecto:{l:'Datos bancarios de gestión por defecto (código)',g:'banco',w:'xs',pend:true},
+  Metalico:{l:'Metálico',g:'medios',al:['efectivo','caja']},
+  TarjetaBancaria:{l:'Tarjeta bancaria',g:'medios',pend:true,al:['tarjeta']},
+  Bono:{l:'Bono',g:'medios',pend:true},
+  Creditos:{l:'Créditos',g:'medios',pend:true},
+  Virtual:{l:'Virtual',g:'medios',pend:true},
+  CargoACuenta:{l:'Cargo a cuenta',g:'medios',pend:true},
+  AcumularEnCesta:{l:'Acumular en cesta',g:'medios',pend:true},
+  ImputarATitular:{l:'Imputar al titular',g:'medios',pend:true},
+  NecesarioIdentificarClienteConDNI:{l:'Exige identificar al cliente con DNI',g:'medios',pend:true,al:['dni']},
+  DisponibleParaIntegrantesReservasInternet:{l:'Disponible para integrantes de reservas por internet',g:'medios',pend:true},
+  AsignarRecibo:{l:'Asignar recibo (código)',g:'hered',w:'xs',pend:true},
+  AsignarSesion:{l:'Asignar sesión (código)',g:'hered',w:'xs',pend:true},
+  MovimientoCierre:{l:'Movimiento de cierre',g:'hered',pend:true},
+  Borrable:{l:'Borrable',g:'hered',pend:true,h:'No decide si se puede eliminar desde aquí: eso lo resuelve el mantenimiento.'},
+  Inicializada:{l:'Inicializada',g:'hered',pend:true},
+  C60Modalidad:{l:'Cuaderno 60 · modalidad',g:'hered',w:'xs',pend:true,al:['c60']},
+  C60Tributo:{l:'Cuaderno 60 · tributo',g:'hered',w:'xs',code:true,pend:true,al:['c60']},
+  C60Emisora:{l:'Cuaderno 60 · emisora',g:'hered',w:'xs',code:true,pend:true,al:['c60']},
+  C60DCEmisora:{l:'Cuaderno 60 · dígito de control de la emisora',g:'hered',w:'xs',code:true,pend:true,al:['c60']},
+  C60DiasMargenCobro:{l:'Cuaderno 60 · días de margen de cobro',g:'hered',w:'xs',pend:true,al:['c60']},
+  C60IndicadorDatosCapturar:{l:'Cuaderno 60 · indicador de datos a capturar',g:'hered',w:'s',pend:true,al:['c60']},
+  C60TipoFechaReferencia:{l:'Cuaderno 60 · tipo de fecha de referencia',g:'hered',w:'xs',pend:true,al:['c60']},
+ },
+ cols:[{n:'Codigo',h:'Cód.',w:52,r:true},{n:'Descripcion',h:'Descripción'},{n:'Abreviatura',h:'Abrev.',w:58,mono:true},{n:'Activa',h:'Activa',w:54,b:true},{n:'Domiciliable',h:'Domic.',w:56,b:true},{n:'TransferenciaBancaria',h:'Transf.',w:56,b:true},{n:'Metalico',h:'Metál.',w:54,b:true},{n:'OrdenFP',h:'Orden',w:54,r:true}],
+ recTitle:v=>v.Descripcion||'Forma de pago sin descripción',recSub:v=>isEmpty(v.Codigo)?'Código pendiente':`Código ${v.Codigo}`,
+ newTitle:'Nueva forma de pago',listw:520,
+ blockedRefs:{10:'2 facturas y 1 cobro de demostración',110:'4 recibos de demostración'}},
+{id:'iva',cat:'catalogos',title:'Tipos de IVA',table:'TiposDeIVA',purpose:'Porcentajes de IVA que se ofrecen al facturar. Incluye tipos históricos de la base de pruebas.',
+ scope:'compartido',card:'list',caps:{create:true,update:true,delete:true},short:'tipo de IVA',this:'este tipo de IVA',lo:'lo',
+ key:'Id',al:['iva','impuesto','porcentaje','tipo impositivo'],
+ groups:[{id:'g',t:'Tipo de IVA'}],
+ spec:{
+  Id:{l:'Id',idf:true,ro:true},
+  Valor:{l:'Porcentaje',g:'g',ed:'pct',req:true,h:'0 es un valor válido.',al:['valor','tipo']},
+  Descripcion:{l:'Descripción',g:'g',w:'ml',req:true,g2:'f'},
+  Activo:{l:'Activo',g:'g'},
+ },
+ cols:[{n:'Valor',h:'Porcentaje',w:92,r:true,unit:'%'},{n:'Descripcion',h:'Descripción'},{n:'Activo',h:'Activo',w:60,b:true}],
+ recTitle:v=>v.Descripcion||'Tipo sin descripción',recSub:v=>`Id ${v.Id??'pendiente'}`,newTitle:'Nuevo tipo de IVA',listw:'55%'},
+{id:'conceptos',cat:'catalogos',title:'Tipos de concepto',table:'TiposConcepto',purpose:'Clasificación de los conceptos de facturación, con notas internas.',
+ scope:'compartido',card:'list',caps:{create:true,update:true,delete:true},short:'tipo de concepto',this:'este tipo de concepto',lo:'lo',
+ key:'IdTipoConcepto',al:['concepto','categoria','notas'],volume:true,
+ groups:[{id:'g',t:'Tipo de concepto'}],
+ spec:{
+  IdTipoConcepto:{l:'Id',idf:true,ro:true},
+  Descripcion:{l:'Descripción',g:'g',w:'ml',req:true,g2:'f'},
+  Activo:{l:'Activo',g:'g'},
+  Notas:{l:'Notas',g:'g',ed:'memo'},
+ },
+ cols:[{n:'IdTipoConcepto',h:'Id',w:72,r:true,grp:false},{n:'Descripcion',h:'Descripción'},{n:'Activo',h:'Activo',w:56,b:true},{n:'Notas',h:'Notas',w:120,memo:true},{n:'_src',h:'Origen',w:96,src:true}],
+ recTitle:v=>v.Descripcion||'Tipo sin descripción',recSub:v=>`Id ${v.IdTipoConcepto??'pendiente'}`,newTitle:'Nuevo tipo de concepto',listw:'52%'},
+];
+const PL={"local": "ubicaciones", "general": "configuraciones", "sociedades": "empresas", "ejercicios": "ejercicios", "series": "series", "tiposfactura": "tipos de factura", "estados": "estados de factura", "correo": "perfiles de correo", "verifactu": "configuraciones de VeriFactu", "formaspago": "formas de pago", "iva": "tipos de IVA", "conceptos": "tipos de concepto"};
+const PBY=Object.fromEntries(PROVIDERS.map(p=>[p.id,p]));
+for(const p of PROVIDERS){
+  if(p.spec) p.fields=buildFields(p.table,p.spec);
+  else p.fields=p.fields.map(f=>Object.assign({},f,{help:f.h||'',label:f.label}));
+  p.F=Object.fromEntries(p.fields.map(f=>[f.n,f]));
+  for(const f of p.fields){ f.group=f.g; }
+  p.layout=p.fields.filter(f=>!f.idf&&!f.audit).length>30?'tabs':(p.groups.length>1?'sections':'plain');
+  p.physical=p.fields.filter(f=>!f.virtual).length;
+  p.pl=PL[p.id]||p.title.toLowerCase();
+}
+
+/* =====================================================================
+   Estado, acceso a datos en memoria, cambios y validación
+   ===================================================================== */
+let DB=seedDB();
+const CTXS=[{emp:'D01',ej:9001},{emp:'D01',ej:9002},{emp:'D02',ej:9003},{emp:'D02',ej:9004}];
+const S={
+  pid:null, sel:null, draft:null, newRec:null,
+  errors:{}, showErr:false, msg:null, failed:{}, saving:false,
+  filter:{}, sort:{}, mode:{}, listw:{}, listh:{}, tab:{}, closed:{}, lastSel:{},
+  scenario:'normal', ctx:{emp:'D01',ej:9002}, vol:false, pf:null,
+  conflictDone:{}, denied:false, gq:'', gkb:-1, navOpen:false,
+  frame:{size:'fit',scale:1},
+};
+const SCN={
+  normal:{t:'Normal',d:''},
+  vacio:{t:'Catálogo vacío',d:'Las colecciones se muestran sin registros. Compara con un filtro sin coincidencias.'},
+  carga:{t:'Carga en curso',d:'Cada mantenimiento queda cargando. Usa «Terminar la carga» para continuar.'},
+  errorCarga:{t:'Error de carga',d:'La carga falla con un motivo concreto y ofrece Reintentar.'},
+  lectura:{t:'Solo lectura',d:'Perfil de consulta: los controles siguen visibles pero no admiten cambios.'},
+  sinAcceso:{t:'Sin permiso de acceso',d:'Integraciones (Correo y VeriFactu) aparecen sin permiso para este perfil.'},
+  validacion:{t:'Validación',d:'Se ha vaciado la descripción de «Pendiente» y se ha intentado guardar.'},
+  borrado:{t:'Borrado bloqueado',d:'Eliminar cualquier forma de pago devuelve que tiene vínculos. En modo normal ocurre con Metálico (10) y Recibo domiciliado (110).'},
+  conflicto:{t:'Conflicto de actualización',d:'El primer Guardar de cada registro informa de que otro puesto lo cambió antes. Hay un cambio preparado en «Transferencia Santander».'},
+  errorGuardar:{t:'Error al guardar',d:'Guardar falla y conserva tus valores y la selección.'},
+};
+
+/* ---------- Acceso a filas ---------- */
+const P=()=>PBY[S.pid];
+function allRows(p){
+  if(p.id==='conceptos') return S.vol?DB.conceptos.concat(DB.conceptosVol):DB.conceptos;
+  return DB[p.id]||[];
+}
+function rowsOf(p){
+  if(S.scenario==='vacio'&&p.card==='list') return [];
+  let r=allRows(p);
+  if(p.byCompany) r=r.filter(x=>x.v.IdSociedad===S.ctx.emp);
+  return r;
+}
+function findRec(p,k){ return allRows(p).find(r=>r.k===k)||(S.newRec&&S.newRec.k===k?S.newRec:null); }
+function blankValues(p){
+  const o={};
+  for(const f of p.fields){ if(f.virtual) continue; o[f.n]=(f.ed==='bool')?false:null; }
+  if(p.local) for(const f of p.fields) o[f.n]=null;
+  return o;
+}
+
+/* ---------- Referencias (CargarOpciones) ---------- */
+function refOptions(ref,d){
+  if(ref==='soc') return DB.sociedades.map(r=>({v:r.v.IdSociedad,t:r.v.Nombre,c:r.v.IdSociedad}));
+  if(ref==='ej'){
+    let r=DB.ejercicios; const emp=d&&d.virt?d.virt._emp:null;
+    if(emp) r=r.filter(x=>x.v.IdSociedad===emp);
+    return r.map(x=>({v:x.v.IdSociedadEjercicio,t:x.v.Nombre||`${x.v.IdSociedad} ${x.v.Ejercicio}`,c:`${x.v.IdSociedad} · ${x.v.Ejercicio}`,emp:x.v.IdSociedad}));
+  }
+  return [];
+}
+function refText(ref,v){
+  if(isEmpty(v)) return '';
+  if(ref==='soc'){ const r=DB.sociedades.find(x=>x.v.IdSociedad===v); return r?r.v.Nombre:`Empresa ${v} (no encontrada)`; }
+  if(ref==='ej'){ const r=DB.ejercicios.find(x=>x.v.IdSociedadEjercicio===v); return r?(r.v.Nombre||r.v.Ejercicio):`Ejercicio ${v} (no encontrado)`; }
+  return String(v);
+}
+function ejEmp(id){ const r=DB.ejercicios.find(x=>x.v.IdSociedadEjercicio===id); return r?r.v.IdSociedad:null; }
+
+/* ---------- Copia en memoria ---------- */
+function makeDraft(p,r,isNew){
+  const d={pid:p.id,k:r.k,ver:r.ver||0,rawBlur:{},isNew:!!isNew,src:r.src,orig:clone(r.v),cur:clone(r.v),aux:{cred:clone((r.aux&&r.aux.cred)||{}),op:{}},raw:{},virt:{},notice:{}};
+  if(p.id==='series') d.virt._emp=ejEmp(d.cur.IdSociedadEjercicio)||(isNew?S.pf&&S.pf.emp||S.ctx.emp:null);
+  return d;
+}
+function changes(d){
+  if(!d) return [];
+  const p=PBY[d.pid], out=[];
+  for(const f of p.fields){
+    if(f.virtual||f.idf||f.audit) continue;
+    if(f.n in d.raw) { out.push({f,raw:true}); continue; }
+    if(!same(d.orig[f.n],d.cur[f.n])) out.push({f,from:d.orig[f.n],to:d.cur[f.n]});
+  }
+  for(const n in d.aux.op) out.push({f:p.F[n],secret:d.aux.op[n]});
+  return out;
+}
+function isDirty(){ const d=S.draft; return !!d&&(d.isNew||changes(d).length>0); }
+function dispVal(f,v){
+  if(v===undefined) return 'no extraído';
+  if(v===null) return 'sin valor';
+  if(v==='') return 'vacío';
+  if(f.ed==='bool'||f.ed==='bool3') return v?'Sí':'No';
+  if(f.ed==='ref') return refText(f.ref,v);
+  if(typeof v==='number') return fmtNum(v,f)+(f.unit?` ${f.unit}`:'');
+  if(f.ed==='datetime') return fmtDT(v);
+  const s=String(v); return s.length>60?s.slice(0,57)+'…':s;
+}
+
+/* ---------- Validación (Validar del proveedor + reglas de metadatos) ---------- */
+function lowerLabel(f){ return f.label.charAt(0).toLowerCase()+f.label.slice(1); }
+function reqMsg(p,f){
+  const fem=f.rq?/^la /.test(f.rq):(f.g2==='f'||/(ción|sión|dad|a)$/.test(f.label));
+  const art=fem?'la':'el';
+  const what=f.rq?`Falta ${f.rq} de ${p.this}.`:`Falta ${art} ${lowerLabel(f)} de ${p.this}.`;
+  if(f.ed==='ref') return `${what} Elíge${fem?'la':'lo'} para poder guardar${p.lo}.`;
+  if(['int','dec','pct'].includes(f.ed)) return `${what} Escribe un número; 0 también es un valor válido.`;
+  if(f.ed==='path') return `${what} Escríbela o usa Examinar para poder guardar${p.lo}.`;
+  return `${what} Escríbe${fem?'la':'lo'} para poder guardar${p.lo}.`;
+}
+function validate(p,d){
+  const e={};
+  for(const f of p.fields){
+    if(f.virtual||f.idf||f.audit) continue;
+    if(f.n in d.raw){ e[f.n]=d.raw[f.n].msg; continue; }
+    const v=d.cur[f.n];
+    if(f.req&&isEmpty(v)){ e[f.n]=reqMsg(p,f); continue; }
+    if(f.maxLen&&typeof v==='string'&&v.length>f.maxLen){ e[f.n]=`Admite ${f.maxLen} caracteres como máximo; ahora tiene ${v.length}.`; continue; }
+    if(f.uniq&&!isEmpty(v)&&rowsOf(p).some(r=>r.k!==d.k&&same(r.v[f.n],v))){ e[f.n]=`Ya existe ${p.g==='f'?'otra':'otro'} ${p.short} con este ${lowerLabel(f)} (${v}). Usa uno distinto.`; continue; }
+  }
+  if(p.id==='series'&&d.cur.RangoDesde!=null&&d.cur.RangoHasta!=null&&d.cur.RangoDesde>d.cur.RangoHasta&&!e.RangoHasta)
+    e.RangoHasta='El número final es menor que el inicial. Corrige el rango (regla de demostración, pendiente de confirmar).';
+  if(S.scenario==='validacion'&&p.id==='formaspago'&&isEmpty(d.cur.Descripcion)) e.Descripcion='Falta la descripción de esta forma de pago. Escríbela para poder guardarla.';
+  return e;
+}
+function warnings(p,d){
+  const w={};
+  for(const f of p.fields){
+    const v=d.cur[f.n];
+    if(d.rawBlur&&d.rawBlur[f.n]&&d.raw[f.n]){ w[f.n]=d.raw[f.n].msg; continue; }
+    if(f.warnEmpty&&isEmpty(v)) w[f.n]=f.warnEmpty;
+    if(f.email&&!isEmpty(v)&&!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)) w[f.n]='No parece una dirección de correo completa (aviso; no impide guardar).';
+    if(f.sens&&d.orig[f.n]!==undefined&&!same(d.orig[f.n],v)) w[f.n]=f.sens+' Se pedirá confirmación al guardar.';
+  }
+  return w;
+}
+
+/* =====================================================================
+   Renderizado común: navegación, cabecera, lista, editor y campos
+   ===================================================================== */
+function permOf(p){
+  if(S.scenario==='sinAcceso'&&p.cat==='integraciones') return 'none';
+  if(S.scenario==='lectura') return 'read';
+  return p.perm||'edit';
+}
+function roAll(p,d){
+  if(S.saving) return true;
+  if(permOf(p)!=='edit') return true;
+  if(d&&d.isNew) return !p.caps.create;
+  return !p.caps.update;
+}
+
+/* ---------- Navegación ---------- */
+function renderNav(){
+  const body=$('#navbody');
+  if(S.gq.trim()){ body.innerHTML=searchResultsHTML(S.gq); return; }
+  body.innerHTML=CATS.map(c=>{
+    const items=PROVIDERS.filter(p=>p.cat===c.id);
+    const closed=S.closed['cat:'+c.id];
+    return `<div class="cat${closed?' closed':''}"><button class="ch" data-act="cat" data-id="${c.id}" aria-expanded="${!closed}">${I.chev}${esc(c.t)}</button><div class="items">${items.map(p=>{
+      const cur=p.id===S.pid, dirty=cur&&isDirty(), fail=S.failed[p.id];
+      const locked=permOf(p)==='none'||p.protect||permOf(p)==='read';
+      const kind=p.local?`<span title="Este equipo">${I.pc}</span>`:(p.card==='single'?`<span title="Registro único">${I.one}</span>`:`<span title="Colección">${I.list}</span>`);
+      return `<button class="item" data-act="open" data-id="${p.id}" aria-current="${cur}"><span class="nm ell">${esc(p.title)}</span><span class="mk">${fail?'<span class="merr" title="El último guardado falló">▲</span>':''}${dirty?'<span class="mdot" title="Cambios sin guardar"></span>':''}${locked?`<span title="${permOf(p)==='none'?'Sin permiso':p.protect?'Catálogo protegido':'Solo consulta'}">${I.lock}</span>`:''}${kind}</span></button>`;
+    }).join('')}</div></div>`;
+  }).join('');
+}
+
+/* ---------- Cabecera del mantenimiento ---------- */
+function headHTML(p){
+  const sc=SCOPES[p.scope], cat=CATS.find(c=>c.id===p.cat);
+  const chips=[];
+  chips.push(`<span class="chip ${p.scope==='equipo'?'scope-equipo':''} ${p.scopeFact?'':'prop'}" title="${esc(sc.d)}${p.scopeFact?'':' Ámbito propuesto, pendiente de confirmar.'}">${p.scope==='equipo'?I.pc:''}Ámbito: ${esc(sc.t)}${p.scopeFact?'':' · propuesta'}</span>`);
+  if(p.byCompany) chips.push(`<span class="chip">${esc(refText('soc',S.ctx.emp))}</span>`);
+  if(p.protect) chips.push(`<span class="chip lock">${I.lock}Catálogo protegido</span>`);
+  else if(permOf(p)==='read') chips.push(`<span class="chip lock">${I.eye}Solo consulta</span>`);
+  return `<div class="tl"><div class="crumb"><button class="navtoggle" data-act="navtoggle" aria-label="Mostrar mantenimientos">${I.menu}</button>${esc(cat.t)} › ${p.card==='single'?'Registro único':'Colección'}</div>
+    <h1>${esc(p.title)}</h1><p class="purpose">${esc(p.purpose)}</p></div>
+    <div class="tr"><div class="chips">${chips.join('')}</div><div class="chips" id="statechip"></div></div>`;
+}
+
+/* ---------- Área principal ---------- */
+function renderMain(opts={}){
+  const p=P(), m=$('#main');
+  if(!p){ m.innerHTML=''; return; }
+  const perm=permOf(p);
+  let body='';
+  if(perm==='none'){
+    body=`<div class="state err" role="alert"><h3>No tienes permiso para abrir «${esc(p.title)}»</h3><p>Tu perfil no incluye el acceso a Integraciones. Pide a un administrador que te lo conceda. Ocultar el contenido no sustituye a la comprobación del permiso: el mantenimiento tampoco devolvería datos.</p></div>`;
+    m.innerHTML=`<header class="mhead">${headHTML(p)}</header><div class="mbody">${body}</div>`;
+    updateStatus(); return;
+  }
+  if(S.scenario==='carga'){
+    body=`<div class="bar" aria-hidden="true"></div><div class="state" role="status"><h3>Cargando ${esc(p.pl)}…</h3><p class="muted">Escenario de demostración: la carga no termina sola.</p><div class="acts"><button class="btn" data-act="endload">Terminar la carga</button></div></div><div class="loading" aria-hidden="true">${'<div class="sk" style="width:%"></div>'.repeat(7).replace(/%/g,()=>40+Math.round(Math.random()*50)+'%')}</div>`;
+    m.innerHTML=`<header class="mhead">${headHTML(p)}</header><div class="mbody">${body}</div>`; updateStatus(); return;
+  }
+  if(S.scenario==='errorCarga'){
+    body=`<div class="state err" role="alert"><h3>No se han podido cargar ${p.card==='single'?'los datos de':'los registros de'} «${esc(p.title)}»</h3><p>La base de datos no respondió en 30 segundos (simulado). No se ha modificado nada. Comprueba la conexión con la carpeta de datos y vuelve a intentarlo.</p><div class="acts"><button class="btn primary" data-act="retry">Reintentar</button><button class="btn" data-act="open" data-id="local">Revisar la ubicación de datos</button></div></div>`;
+    m.innerHTML=`<header class="mhead">${headHTML(p)}</header><div class="mbody">${body}</div>`; updateStatus(); return;
+  }
+  const banners=[];
+  if(p.protect) banners.push(`<div class="banner lock">${I.lock}<div class="bt"><b>${esc(p.protect)}</b> Puedes consultar y buscar. Las descripciones mal codificadas en la base se muestran corregidas y marcadas.</div></div>`);
+  else if(perm==='read') banners.push(`<div class="banner lock">${I.eye}<div class="bt"><b>Solo consulta.</b> Tu perfil puede ver ${esc(p.pl)} pero no ${p.g==='f'?'modificarlas':'modificarlos'}${S.scenario==='lectura'?'':' (perfil de demostración para este catálogo)'}. Los botones se muestran desactivados; el mantenimiento rechazaría igualmente el guardado.</div></div>`);
+  if(p.note) banners.push(`<div class="banner"><div class="bt muted">${esc(p.note)}</div></div>`);
+  if(p.card==='single'){
+    const r=rowsOf(p)[0];
+    if(!r){
+      body=`<div class="state"><h3>No hay ${esc(p.short)} para ${esc(refText('soc',S.ctx.emp))}</h3><p class="muted">Este mantenimiento es de registro único por empresa y el ejemplo de la demostración solo incluye la empresa A. El mantenimiento no ofrece altas desde aquí.</p></div>`;
+      m.innerHTML=`<header class="mhead">${headHTML(p)}</header><div class="mbody">${banners.join('')}${body}</div>`; updateStatus(); return;
+    }
+    if(!S.draft||S.draft.pid!==p.id||S.draft.k!==r.k) S.draft=makeDraft(p,r,false);
+    m.innerHTML=`<header class="mhead">${headHTML(p)}</header><div class="mbody">${banners.join('')}<div class="edp" id="edp" style="flex:1;min-height:0;margin-top:${banners.length?10:0}px;border-top:1px solid var(--line)">${editorHTML(p,S.draft)}</div>${abarHTML(p)}</div>`;
+    afterEditor(p); updateStatus(); return;
+  }
+  // colección
+  const mode=layoutMode(p);
+  const lw=S.listw[p.id]||p.listw||'45%';
+  m.innerHTML=`<header class="mhead">${headHTML(p)}</header><div class="mbody">${banners.join('')}
+    <div class="split ${mode==='stack'?'stack':''}" id="split" style="--listw:${typeof lw==='number'?lw+'px':lw};--listh:${S.listh[p.id]||'max(150px,38%)'};${banners.length?'margin-top:10px;border-top:1px solid var(--line)':''}">
+      <section class="listp" aria-label="Lista de ${esc(p.pl)}">${listToolsHTML(p)}<div class="tablewrap" id="tw" tabindex="0" aria-label="Registros. Usa las flechas para cambiar de registro.">${tableHTML(p)}</div></section>
+      <button class="gutter" id="gutter" aria-label="Redimensionar lista y editor (flechas)" title="Arrastra para redimensionar"></button>
+      <section class="edp" id="edp" aria-label="Editor del registro seleccionado">${S.draft?editorHTML(p,S.draft):emptyEditorHTML(p)}</section>
+    </div>${abarHTML(p)}</div>`;
+  if(S.draft) afterEditor(p);
+  updateStatus();
+  if(opts.scrollSel) scrollSelIntoView();
+}
+function layoutMode(p){
+  const m=S.mode[p.id]; if(m) return m;
+  const w=$('#main')?$('#main').clientWidth:1200;
+  return w<760?'stack':'side';
+}
+function emptyEditorHTML(p){
+  const rows=rowsOf(p);
+  if(!rows.length) return `<div class="empty"><span>El editor se mostrará al seleccionar o crear un registro.</span></div>`;
+  return `<div class="empty"><span>Selecciona un registro de la lista para verlo y editarlo.</span></div>`;
+}
+
+/* ---------- Lista ---------- */
+function listToolsHTML(p){
+  const ro=permOf(p)!=='edit'||!p.caps.create;
+  const why=!p.caps.create?'El mantenimiento no admite altas':(permOf(p)!=='edit'?'Tu perfil no permite altas':'');
+  const q=S.filter[p.id]||'';
+  let pf='';
+  if(p.parentFilter){
+    const pfv=S.pf||{emp:'',ej:''};
+    const ejs=DB.ejercicios.filter(x=>!pfv.emp||x.v.IdSociedad===pfv.emp);
+    pf=`<div class="pfilter"><span class="chip demo prop" title="Extensión visual propuesta: no forma parte de la implementación actual">Propuesta · padre-hijos</span>
+      <label>Empresa <select id="pf-emp" data-act="pf"><option value="">Todas</option>${DB.sociedades.map(s=>`<option value="${esc(s.v.IdSociedad)}" ${pfv.emp===s.v.IdSociedad?'selected':''}>${esc(s.v.Nombre)}</option>`).join('')}</select></label>
+      <label>Ejercicio <select id="pf-ej" data-act="pf"><option value="">Todos</option>${ejs.map(x=>`<option value="${x.v.IdSociedadEjercicio}" ${String(pfv.ej)===String(x.v.IdSociedadEjercicio)?'selected':''}>${esc(x.v.Nombre)}</option>`).join('')}</select></label>
+      <span class="nt">Solo filtra esta lista; no cambia la empresa ni el ejercicio de trabajo.</span>${S.pfNote?`<span class="nt" style="color:var(--accent-ink)">${esc(S.pfNote)}</span>`:''}</div>`;
+  }
+  const vol=p.volume?`<label class="srcsel"><input type="checkbox" id="volchk" data-act="vol" ${S.vol?'checked':''}> Incluir 150 registros sintéticos de volumen</label>`:'';
+  return `<div class="ltools">
+    <div class="lsearch"><span class="ic">${I.search}</span><input id="lq" type="search" placeholder="Filtrar ${esc(p.pl)}" value="${esc(q)}" aria-label="Filtrar los registros de esta lista" autocomplete="off"><button class="clr" data-act="lqclear" aria-label="Limpiar filtro" ${q?'':'hidden'}>${I.x}</button></div>
+    <span class="count" id="count"></span><span class="sp"></span>
+    <button class="btn iconbtn" data-act="mode" title="${layoutMode(p)==='stack'?'Lista a la izquierda':'Lista arriba'}" aria-label="Cambiar disposición: ${layoutMode(p)==='stack'?'lista a la izquierda':'lista arriba'}">${layoutMode(p)==='stack'?I.side:I.stack}</button>
+    <button class="btn" data-act="new" ${ro?'disabled':''} title="${esc(why)}">+ Nuevo</button>
+    ${vol}${pf}</div>`;
+}
+function visibleRows(p){
+  let rows=rowsOf(p).slice();
+  if(p.parentFilter&&S.pf){
+    if(S.pf.ej) rows=rows.filter(r=>String(r.v.IdSociedadEjercicio)===String(S.pf.ej));
+    else if(S.pf.emp) rows=rows.filter(r=>ejEmp(r.v.IdSociedadEjercicio)===S.pf.emp);
+  }
+  const q=norm(S.filter[p.id]||'').trim();
+  if(q){ const terms=q.split(/\s+/); rows=rows.filter(r=>{ const hay=norm(p.cols.map(c=>cellText(p,c,r.v,r)).join(' ')+' '+(r.v[p.key]??'')); return terms.every(t=>hay.includes(t)); }); }
+  const so=S.sort[p.id];
+  if(so){ const c=p.cols.find(c=>c.n===so.n); rows.sort((a,b)=>{ let x=a.v[so.n],y=b.v[so.n]; if(c&&c.fmt){x=c.fmt(x);y=c.fmt(y);} if(x==null) return 1; if(y==null) return -1; return (typeof x==='number'&&typeof y==='number'?x-y:String(x).localeCompare(String(y),'es',{numeric:true}))*so.dir; }); }
+  return rows;
+}
+function cellText(p,c,v,r){
+  if(c.src) return r?srcLabel(r.src):'';
+  const x=v[c.n];
+  if(c.fmt) return c.fmt(x);
+  if(c.moj) return fixMoj(x)||x||'';
+  if(c.b) return x===undefined?'?':x?'Sí':'No';
+  if(c.memo) return x?String(x).split('\n')[0]:'';
+  if(typeof x==='number') return fmtNum(x,{grp:c.grp})+(c.unit?' '+c.unit:'');
+  return x==null?'':String(x);
+}
+function srcLabel(s){ return {real:'Muestra real',syn:'Sintético',copia:'Copia demo',vol:'Volumen',alta:'Alta en la demo'}[s]||s; }
+function cellHTML(p,c,v,r){
+  const x=v[c.n];
+  if(c.src) return r.src==='real'?'<span class="muted">Muestra real</span>':`<span class="badge syn">${srcLabel(r.src)}</span>`;
+  if(c.b){ if(x===undefined) return '<span class="nul" title="No extraído">?</span>'; return x?'<span title="Sí">Sí</span>':'<span class="no">No</span>'; }
+  if(c.memo){ if(x===undefined) return '<span class="nul">no extraído</span>'; if(x===null) return '<span class="nul">—</span>'; if(x==='') return '<span class="nul">vacía</span>'; return `<span title="${esc(String(x).slice(0,400))}">${esc(String(x).split('\n')[0])}</span>`; }
+  if(c.moj){ const fx=fixMoj(x); return fx?`<span title="Texto corregido para mostrar. Original: ${esc(x)}">${esc(fx)}</span> <span class="badge fix">corregido</span>`:esc(x??''); }
+  if(c.fmt){ const t=c.fmt(x); return t?`<span title="${esc(t)}">${esc(t)}</span>`:'<span class="nul">—</span>'; }
+  if(x===undefined) return '<span class="nul">no extraído</span>';
+  if(x===null) return '<span class="nul" title="Sin valor">—</span>';
+  if(typeof x==='number') return esc(fmtNum(x,{grp:c.grp}))+(c.unit?'&nbsp;'+c.unit:'');
+  return `<span title="${esc(x)}">${esc(x)}</span>`;
+}
+function tableHTML(p){
+  const all=rowsOf(p), rows=visibleRows(p), q=S.filter[p.id]||'';
+  const so=S.sort[p.id]||{};
+  const head=`<thead><tr><th class="mk" aria-label="Estado"></th>${p.cols.map(c=>`<th class="${c.r?'r':''} ${c.b?'c':''}" style="${c.w?'width:'+c.w+'px':''}" aria-sort="${so.n===c.n?(so.dir>0?'ascending':'descending'):'none'}"><button data-act="sort" data-n="${c.n}">${esc(c.h)}${so.n===c.n?(so.dir>0?I.up:I.down):''}</button></th>`).join('')}</tr></thead>`;
+  let body='';
+  const nr=S.newRec&&S.newRec.pid===p.id?S.newRec:null;
+  if(nr){ const v=S.draft&&S.draft.k===nr.k?S.draft.cur:nr.v; body+=rowHTML(p,nr,v,true); }
+  body+=rows.map(r=>rowHTML(p,r,S.draft&&S.draft.k===r.k?S.draft.cur:r.v,false)).join('');
+  let empty='';
+  if(!all.length&&!nr){
+    const canNew=p.caps.create&&permOf(p)==='edit';
+    empty=`<div class="empty"><b>Todavía no hay ${esc(p.pl)}.</b><span>${canNew?`Crea ${p.g==='f'?'la primera':'el primero'} con Nuevo.`:'Este catálogo no admite altas desde aquí.'}</span>${canNew?'<button class="btn primary" data-act="new">+ Nuevo</button>':''}</div>`;
+  } else if(!rows.length&&!nr){
+    const why=q?`con «${esc(q)}»`:'en la empresa o el ejercicio elegidos';
+    empty=`<div class="empty"><b>Ninguna fila coincide ${why}.</b><span>Hay ${all.length} ${esc(plural(all.length,p.short,p.pl))} en total.</span>${q?'<button class="btn" data-act="lqclear">Limpiar filtro</button>':'<button class="btn" data-act="pfclear">Quitar el filtro de empresa y ejercicio</button>'}</div>`;
+  }
+  const minw=p.cols.reduce((a,c)=>a+(c.w||200),22);
+  return `<table class="grid" role="grid" aria-rowcount="${rows.length}" style="min-width:${minw}px">${head}<tbody id="tb">${body}</tbody></table>${empty}`;
+}
+function rowHTML(p,r,v,isNew){
+  const sel=S.sel===r.k;
+  const dirty=sel&&isDirty(), err=sel&&S.showErr&&Object.keys(S.errors).length;
+  const inact=(('Activo' in v)&&v.Activo===false)||(('Activa' in v)&&v.Activa===false);
+  return `<tr data-k="${r.k}" aria-selected="${sel}" class="${inact?'inact':''}"><td class="mk">${err?'<span class="merr" title="Datos por revisar">▲</span>':dirty?'<span class="mdot" title="Cambios sin guardar"></span>':''}${isNew?'<span class="badge new">Nuevo</span>':''}</td>${p.cols.map(c=>`<td class="${c.r?'r':''} ${c.b?'c':''} ${c.mono?'mono':''}">${cellHTML(p,c,v,r)}</td>`).join('')}</tr>`;
+}
+function refreshTable(){ const p=P(); const tw=$('#tw'); if(!tw) return; const st=tw.scrollTop; tw.innerHTML=tableHTML(p); tw.scrollTop=st; updateCount(); }
+function refreshSelRow(){
+  const p=P(); if(!p||p.card!=='list'||!S.draft) return;
+  const tr=$(`#tb tr[data-k="${S.draft.k}"]`); if(!tr) return;
+  const r=findRec(p,S.draft.k); if(!r) return;
+  const tmp=document.createElement('tbody'); tmp.innerHTML=rowHTML(p,r,S.draft.cur,S.draft.isNew); tr.replaceWith(tmp.firstElementChild);
+}
+function updateCount(){
+  const p=P(); const c=$('#count'); if(!c||!p) return;
+  const all=rowsOf(p).length, vis=visibleRows(p).length, n=S.newRec?1:0;
+  const name=plural(all,p.short,p.pl);
+  const extra=p.volume&&S.vol?` · ${DB.conceptosVol.length} sintéticos`:'';
+  c.textContent=(vis===all?`${all} ${name}`:`${vis} de ${all} ${name}`)+extra+(n?' · 1 nuevo sin guardar':'');
+}
+function scrollSelIntoView(){ const tr=$(`#tb tr[aria-selected="true"]`); if(tr) tr.scrollIntoView({block:'nearest'}); }
+
+/* ---------- Editor ---------- */
+function editorHTML(p,d){
+  const ro=roAll(p,d);
+  const r=findRec(p,d.k)||{};
+  const chips=[];
+  if(d.isNew) chips.push('<span class="badge new">Nuevo, sin guardar</span>');
+  if(r.src&&r.src!=='real'&&!d.isNew) chips.push(`<span class="badge syn" title="Registro inventado para la demostración, no procede de la base">${srcLabel(r.src)}</span>`);
+  else if(r.src==='real') chips.push('<span class="badge" title="Valores tal como están en la base de pruebas">Muestra real</span>');
+  const canDel=p.caps.delete&&permOf(p)==='edit'&&!d.isNew;
+  const delWhy=!p.caps.delete?'El mantenimiento no admite bajas':permOf(p)!=='edit'?'Tu perfil no permite eliminar':d.isNew?'Aún no está guardado: usa Cancelar cambios para descartarlo':'';
+  const head=p.card==='list'?`<div class="ehead"><div class="et"><h2><span class="ell">${esc(d.isNew?(p.newTitle||'Nuevo registro'):p.recTitle(d.orig))}</span>${chips.join('')}</h2><div class="es">${esc(p.recSub(d.cur))}</div></div>
+     ${p.caps.delete||p.card==='list'?`<button class="btn danger" data-act="del" ${canDel?'':'disabled'} title="${esc(delWhy)}">Eliminar…</button>`:''}</div>`:'';
+  const errs=S.showErr?Object.keys(S.errors):[];
+  const sum=`<div class="esum" id="esum" role="alert" ${errs.length?'':'hidden'}></div>`;
+  const gs=p.groups.filter(g=>p.fields.some(f=>f.group===g.id));
+  let content='';
+  if(p.layout==='tabs'){
+    const act=S.tab[p.id]&&gs.some(g=>g.id===S.tab[p.id])?S.tab[p.id]:gs[0].id;
+    S.tab[p.id]=act;
+    content=`<div class="tabs" role="tablist">${gs.map(g=>`<button class="tab" role="tab" id="tab-${g.id}" aria-selected="${g.id===act}" aria-controls="pn-${g.id}" data-act="tab" data-g="${g.id}">${esc(g.t)} <span class="n">${p.fields.filter(f=>f.group===g.id).length}</span><span class="tcnt d" data-gd="${g.id}" hidden></span><span class="tcnt e" data-ge="${g.id}" hidden></span></button>`).join('')}</div>
+      <div class="escroll" id="escroll">${gs.map(g=>`<div class="secplain" role="tabpanel" id="pn-${g.id}" aria-labelledby="tab-${g.id}" ${g.id===act?'':'hidden'}><div class="secb">${groupBody(p,g,d,ro)}</div></div>`).join('')}${relatedHTML(p,d)}${auditHTML(p,d)}</div>`;
+  } else if(p.layout==='sections'){
+    content=`<div class="escroll" id="escroll">${gs.map(g=>{ const cl=S.closed[p.id+':'+g.id]; return `<div class="sec${cl?' closed':''}" data-sec="${g.id}"><button class="sech" data-act="sec" data-g="${g.id}" aria-expanded="${!cl}">${I.chev}<span class="st">${esc(g.t)}</span><span class="tcnt d" data-gd="${g.id}" hidden></span><span class="tcnt e" data-ge="${g.id}" hidden></span><span class="sd ell">${esc(g.d||'')}</span></button><div class="secb">${groupBody(p,g,d,ro,true)}</div></div>`; }).join('')}${relatedHTML(p,d)}${auditHTML(p,d)}</div>`;
+  } else {
+    content=`<div class="escroll" id="escroll"><div class="secplain"><div class="secb">${gs.map(g=>groupBody(p,g,d,ro)).join('')}</div></div>${relatedHTML(p,d)}${auditHTML(p,d)}</div>`;
+  }
+  return head+sum+content;
+}
+function groupBody(p,g,d,ro,noDesc){
+  const fs=p.fields.filter(f=>f.group===g.id);
+  let h='';
+  if(g.d&&!noDesc) h+=`<p class="gdesc">${esc(g.d)}</p>`;
+  if(fs.some(f=>f.pending)) h+=`<p class="gdesc">Los datos marcados con <span class="pend" style="cursor:default">?</span> tienen significado pendiente de confirmar.</p>`;
+  let bools=[];
+  const flush=()=>{ if(bools.length){ h+=`<div class="bgrid">${bools.join('')}</div>`; bools=[]; } };
+  for(const f of fs){
+    if(f.ed==='bool'){ bools.push(fieldHTML(p,f,d,ro)); continue; }
+    flush(); h+=fieldHTML(p,f,d,ro);
+  }
+  flush();
+  return h;
+}
+function isChanged(d,f){ return (f.n in d.raw)||(!f.virtual&&!same(d.orig[f.n],d.cur[f.n]))||!!d.aux.op[f.n]; }
+function fieldHTML(p,f,d,ro){
+  const v=f.virtual?d.virt[f.n]:d.cur[f.n];
+  const id='in-'+f.n;
+  const intrinsic=f.ro||(f.keyNew&&!d.isNew)||f.ed==='counter';
+  const dis=ro||intrinsic;
+  const cls=['f']; if(f.ed==='bool') cls.push('fb'); if(dis) cls.push('ro'); if(isChanged(d,f)) cls.push('changed'); if(S.showErr&&S.errors[f.n]) cls.push('invalid');
+  const pend=f.pending?`<span class="pend" title="${esc(PENDING)}" aria-label="${esc(PENDING)}">?</span>`:'';
+  const sens=f.sens?`<span class="sens" title="${esc(f.sens)}">Sensible</span>`:'';
+  const notx=v===undefined&&!f.virtual?'<span class="notx" title="La muestra solo incluye 8 de las 64 columnas">No extraído</span>':'';
+  const help=f.help&&!f.pending?f.help:(f.pending&&f.h?f.h:'');
+  const tail=`${help?`<div class="fh" id="h-${esc(f.n)}">${esc(help)}</div>`:''}<div class="fw" data-w="${esc(f.n)}"></div><div class="fe" id="e-${esc(f.n)}" role="alert">${esc(S.showErr&&S.errors[f.n]||'')}</div>`;
+  const desc=`aria-describedby="h-${esc(f.n)} e-${esc(f.n)}"`;
+  if(f.ed==='bool'){
+    return `<div class="${cls.join(' ')}" data-f="${esc(f.n)}"><div class="fc"><label class="chk"><input type="checkbox" id="${id}" data-ed="bool" ${v?'checked':''} ${v===undefined?'data-indet="1"':''} ${dis?'disabled':''} ${desc}><span class="cd"></span><span>${esc(f.label)}</span>${pend}${sens}${notx}</label>${tail}</div></div>`;
+  }
+  const req=f.req&&!dis?'<span class="req" aria-hidden="true"> *</span>':'';
+  const lab=`<label class="fl" for="${id}"><span class="cd"></span><span class="lt">${esc(f.label)}${req}</span>${pend}${sens}</label>`;
+  let ctl='';
+  const w=f.w||'m';
+  switch(f.ed){
+    case 'text': case 'textl': {
+      if(intrinsic){ ctl=roText(f,v); break; }
+      if(f.moj&&fixMoj(v)&&dis){ ctl=mojHTML(f,v); break; }
+      const ph=v===null?(['xs','s'].includes(w)?'—':'Sin valor'):'';
+      if(f.ed==='textl') ctl=`<textarea class="in long" rows="1" id="${id}" data-ed="textl" ${f.maxLen?`maxlength="${f.maxLen}"`:''} ${dis?'readonly':''} placeholder="${ph}" ${desc}>${esc(v??'')}</textarea>${cntHTML(f,v)}`;
+      else ctl=`<div class="crow"><input class="in w-${w} ${f.code?'code':''}" id="${id}" data-ed="text" type="text" ${f.maxLen?`maxlength="${f.maxLen}"`:''} value="${esc(v??'')}" ${dis?'readonly':''} placeholder="${ph}" autocomplete="off" ${desc}>${notx}${cntHTML(f,v)}</div>`;
+      break; }
+    case 'memo': {
+      if(v===undefined&&dis){ ctl='<div class="ro nul">No extraído</div>'; break; }
+      const lines=v?String(v).split('\n').length:0;
+      ctl=`<textarea class="in memo" id="${id}" data-ed="memo" ${dis?'readonly':''} placeholder="${v===undefined?'No extraído: las notas reales no se exportaron':v===null?'Sin notas':''}" ${desc}>${esc(v??'')}</textarea>
+        <div class="crow"><span class="cnt" data-memo="${esc(f.n)}">${memoInfo(v)}</span><button type="button" class="btn sm ghost" data-act="memosize" data-n="${esc(f.n)}">Ampliar</button>${v===''?'<span class="cnt">· texto vacío (distinto de sin valor)</span>':''}${notx}</div>`;
+      break; }
+    case 'int': case 'dec': case 'pct': case 'counter': {
+      const shown=v==null?'':fmtNum(v,f);
+      if(intrinsic){ ctl=`<div class="ro num ${v==null?'nul':''}">${v==null?'Sin valor':esc(shown)+(f.unit?' '+f.unit:'')}</div>`; break; }
+      ctl=`<div class="crow"><input class="in num w-${f.w||(f.ed==='pct'?'xs':'n')}" style="${f.ed==='pct'?'width:84px':''}" id="${id}" data-ed="num" inputmode="decimal" type="text" value="${esc(f.n in d.raw?d.raw[f.n].text:shown)}" ${dis?'readonly':''} placeholder="${v===undefined?'':(['xs','s','n'].includes(f.w||'n')||f.ed==='pct'?'—':'Sin valor')}" title="${v===null?'Sin valor':''}" autocomplete="off" ${desc}>${f.unit?`<span class="unit">${f.unit}</span>`:''}${notx}</div>`;
+      break; }
+    case 'bool3': {
+      const opt=(val,t)=>`<label><input type="radio" name="${id}" value="${val}" data-ed="bool3" ${String(v)===val||(val==='null'&&v==null)?'checked':''} ${dis?'disabled':''}><span>${t}</span></label>`;
+      ctl=`<div class="tri" role="radiogroup" aria-label="${esc(f.label)}" id="${id}">${opt('true','Sí')}${opt('false','No')}${opt('null','Sin especificar')}</div>`;
+      break; }
+    case 'datetime': {
+      if(intrinsic||dis){ ctl=`<div class="ro ${v?'':'nul'}">${v?esc(fmtDT(v)):'Sin valor'}</div>`; break; }
+      const [dd,tt]=(v||'').split('T');
+      ctl=`<div class="crow"><input type="date" class="in" id="${id}" data-ed="date" value="${esc(dd||'')}" ${desc}><input type="time" class="in" id="${id}-t" data-ed="time" value="${esc((tt||'').slice(0,5))}" step="60" aria-label="Hora de ${esc(f.label)}"><span class="cnt">La hora se conserva al cambiar la fecha.</span></div>`;
+      break; }
+    case 'ref': {
+      const t=refText(f.ref,v), opts=refOptions(f.ref,d), o=opts.find(x=>same(x.v,v))||(f.ref==='ej'?refOptions('ej',{virt:{}}).find(x=>same(x.v,v)):null);
+      ctl=`<div class="crow"><button type="button" class="combo" id="${id}" data-act="ref" data-n="${esc(f.n)}" ${dis?'disabled':''} aria-haspopup="listbox" ${desc}><span class="cv ell">${t?esc(t):'<span class="muted">Sin seleccionar</span>'}</span>${o?`<span class="cc">${esc(o.c)}</span>`:''}${dis?'':I.chev}</button></div>`;
+      break; }
+    case 'option': {
+      const has=v==null||f.opts.includes(v);
+      ctl=`<div class="crow"><select class="in w-s" style="width:170px" id="${id}" data-ed="option" ${dis?'disabled':''} ${desc}><option value="">Sin especificar</option>${has?'':`<option value="${esc(v)}" selected>${esc(v)} (valor actual)</option>`}${f.opts.map(o=>`<option ${o===v?'selected':''}>${esc(o)}</option>`).join('')}</select>${f.prop?'<span class="chip demo prop" style="height:20px">Opciones propuestas</span>':''}</div>`;
+      break; }
+    case 'path': {
+      ctl=`<div class="crow"><input class="in w-path code" id="${id}" data-ed="text" type="text" ${f.maxLen?`maxlength="${f.maxLen}"`:''} value="${esc(v??'')}" title="${esc(v??'')}" ${dis?'readonly':''} placeholder="${v===null?'Sin ruta':''}" autocomplete="off" ${desc}><button type="button" class="btn sm" data-act="browse" data-n="${esc(f.n)}" ${dis?'disabled':''}>${I.folder}Examinar…</button></div><div class="cnt">Selector simulado: la maqueta no comprueba que ${f.file?'el fichero':'la carpeta'} exista.</div>`;
+      break; }
+    case 'secret': ctl=secretHTML(f,d,dis); break;
+    default: ctl=roText(f,v);
+  }
+  return `<div class="${cls.join(' ')}" data-f="${esc(f.n)}">${lab}<div class="fc">${ctl}${tail}</div></div>`;
+}
+function roText(f,v){
+  if(v===undefined) return '<div class="ro nul">No extraído</div>';
+  if(isEmpty(v)) return `<div class="ro nul">${v===''?'Vacío':'Sin valor'}</div>`;
+  if(f.moj&&fixMoj(v)) return mojHTML(f,v);
+  return `<div class="ro ${f.code?'mono':''}">${esc(typeof v==='number'?fmtNum(v,f):v)}</div>`;
+}
+function mojHTML(f,v){
+  return `<div class="ro">${esc(fixMoj(v))}</div><div class="crow"><span class="badge fix">Texto corregido solo para mostrar</span><button type="button" class="lnk" data-act="moj">Ver texto original</button></div><div class="ro mono" hidden data-moj>${esc(v)}</div>`;
+}
+function cntHTML(f,v){ if(!f.maxLen) return ''; const n=String(v??'').length; return `<span class="cnt" data-cnt="${esc(f.n)}" ${n>=f.maxLen*.7?'':'hidden'}>${n}/${f.maxLen}</span>`; }
+function memoInfo(v){ if(v==null) return 'Sin texto'; const s=String(v); return `${s.split('\n').length} ${plural(s.split('\n').length,'línea','líneas')} · ${s.length} caracteres`; }
+function secretHTML(f,d,dis){
+  const conf=!!d.aux.cred[f.n], op=d.aux.op[f.n];
+  let st,acts;
+  if(op==='cambiar'){ st=`<span class="pendc">${I.key}Nueva credencial preparada. Se guardará al guardar.</span>`; acts=`<button type="button" class="btn sm" data-act="secundo" data-n="${esc(f.n)}" ${dis?'disabled':''}>Deshacer</button>`; }
+  else if(op==='quitar'){ st=`<span class="pendc">${I.warn}Se quitará la credencial al guardar.</span>`; acts=`<button type="button" class="btn sm" data-act="secundo" data-n="${esc(f.n)}" ${dis?'disabled':''}>Deshacer</button>`; }
+  else if(conf){ st=`<span class="ok">${I.check}</span><span>Credencial configurada</span>`; acts=`<button type="button" class="btn sm" data-act="secset" data-n="${esc(f.n)}" ${dis?'disabled':''}>Cambiar…</button><button type="button" class="btn sm danger" data-act="secdel" data-n="${esc(f.n)}" ${dis?'disabled':''}>Quitar</button>`; }
+  else { st=`<span class="muted">Sin credencial configurada</span>`; acts=`<button type="button" class="btn sm" data-act="secset" data-n="${esc(f.n)}" ${dis?'disabled':''}>Establecer…</button>`; }
+  return `<div class="secret" id="in-${esc(f.n)}" tabindex="-1"><span class="ss">${st}</span>${acts}</div><div class="cnt">El contenido nunca se muestra. Dejar este control sin tocar conserva la credencial guardada.</div>`;
+}
+function auditHTML(p,d){
+  const fs=p.fields.filter(f=>f.idf||f.audit); if(!fs.length) return '';
+  return `<div class="audit" aria-label="Datos del registro">${fs.map(f=>{ const v=d.cur[f.n]; let t;
+    if(f.idf) t=d.isNew?'se asignará al guardar':(v==null?'—':fmtNum(v,{grp:false}));
+    else if(f.ed==='datetime') t=v?fmtDT(v):'—'; else t=v??'—';
+    return `<span data-f="${esc(f.n)}">${esc(f.label)}: <b>${esc(t)}</b></span>`; }).join('')}<span>Auditoría y claves internas: solo lectura.</span></div>`;
+}
+function relatedHTML(p,d){
+  if(d.isNew) return '';
+  if(p.id==='sociedades'){
+    const ej=DB.ejercicios.filter(x=>x.v.IdSociedad===d.orig.IdSociedad);
+    return `<div class="rel"><div class="rh"><b>Ejercicios de esta empresa</b><span class="chip demo prop">Propuesta de extensión · padre-hijos</span><span class="muted">Solo consulta; se editan en Ejercicios.</span></div>${ej.length?`<table><thead><tr><th>Ejercicio</th><th>Nombre</th><th>Activa</th><th></th></tr></thead><tbody>${ej.map(x=>`<tr><td class="mono">${esc(x.v.Ejercicio)}</td><td>${esc(x.v.Nombre)}</td><td>${x.v.Activa?'Sí':'No'}</td><td><button class="lnk" data-act="goto" data-p="ejercicios" data-k="${x.k}">Abrir</button></td></tr>`).join('')}</tbody></table>`:'<p class="muted" style="padding:8px 10px">Sin ejercicios.</p>'}</div>`;
+  }
+  if(p.id==='ejercicios'){
+    const se=DB.series.filter(x=>x.v.IdSociedadEjercicio===d.orig.IdSociedadEjercicio);
+    return `<div class="rel"><div class="rh"><b>Series de este ejercicio</b><span class="chip demo prop">Propuesta de extensión · padre-hijos</span><span class="muted">Solo consulta; se editan en Series de facturación.</span></div>${se.length?`<table><thead><tr><th>Prefijo</th><th>Descripción</th><th>Último nº</th><th></th></tr></thead><tbody>${se.map(x=>`<tr><td class="mono">${esc(x.v.Prefijo)}</td><td>${esc(x.v.Descripcion)}</td><td class="tn">${fmtNum(x.v.UltimoNumero,{int:true})}</td><td><button class="lnk" data-act="goto" data-p="series" data-k="${x.k}">Abrir</button></td></tr>`).join('')}</tbody></table>`:'<p class="muted" style="padding:8px 10px">Este ejercicio no tiene series.</p>'}</div>`;
+  }
+  return '';
+}
+
+/* ---------- Barra de acciones ---------- */
+function abarHTML(p){ return `<div class="abar" id="abar"></div>`; }
+function updateAbar(){
+  const p=P(), a=$('#abar'); if(!a||!p) return;
+  const d=S.draft, perm=permOf(p);
+  if(!p.caps.update&&!p.caps.create){ a.innerHTML=`<span class="msg">${I.lock}<span>Catálogo protegido: no hay cambios que guardar.</span></span>`; return; }
+  const ch=d?changes(d):[]; const dirty=isDirty();
+  const dis=!dirty||S.saving||perm!=='edit';
+  const why=perm!=='edit'?'Tu perfil no permite guardar':'';
+  let info='';
+  if(S.saving) info='<span class="msg">Guardando…</span>';
+  else if(dirty) info=`<span class="msg"><span class="chg">${d.isNew?'Registro nuevo sin guardar':`${ch.length} ${plural(ch.length,'cambio','cambios')} sin guardar`}</span>${ch.length?'<button class="lnk" data-act="showchg">Ver cuáles</button>':''}</span>`;
+  else if(perm!=='edit') info=`<span class="msg">${I.eye}<span>Solo consulta</span></span>`;
+  else info='<span class="msg muted">Sin cambios</span>';
+  let m='';
+  if(S.msg) m=`<span class="msg ${S.msg.k}" role="status">${S.msg.k==='ok'?I.check:S.msg.k==='err'?I.warn:''}<span>${esc(S.msg.t)}</span>${S.msg.retry?'<button class="btn sm" data-act="save">Reintentar</button>':''}</span>`;
+  a.innerHTML=`<button class="btn primary" data-act="save" ${dis?'disabled':''} title="${why}">Guardar <span class="kbd">Ctrl+G</span></button><button class="btn" data-act="cancel" ${!dirty||S.saving?'disabled':''}>Cancelar cambios</button>${info}<span style="flex:1"></span>${m}`;
+}
+
+/* ---------- Estado visible (cambios, errores) sin reconstruir controles ---------- */
+function updateStatus(){
+  const p=P(); if(!p) return;
+  const d=S.draft&&S.draft.pid===p.id?S.draft:null;
+  const sc=$('#statechip');
+  if(sc){
+    const dirty=isDirty(); const ne=S.showErr?Object.keys(S.errors).length:0;
+    let h='';
+    if(S.failed[p.id]) h+=`<span class="chip err">${I.warn}Último guardado fallido</span>`;
+    if(ne) h+=`<span class="chip err">${ne} ${plural(ne,'dato','datos')} por revisar</span>`;
+    if(dirty) h+=`<span class="chip dirty"><span class="mdot"></span>${d.isNew?'Alta sin guardar':'Cambios sin guardar'}</span>`;
+    else if(S.msg&&S.msg.k==='ok') h+=`<span class="chip ok">${I.check}Guardado</span>`;
+    else if(permOf(p)!=='none'&&S.scenario!=='carga'&&S.scenario!=='errorCarga') h+=`<span class="chip">Sin cambios pendientes</span>`;
+    sc.innerHTML=h;
+  }
+  if(d){
+    const ed=$('#edp');
+    if(ed){
+      for(const el of $$('.f[data-f]',ed)){ const f=p.F[el.dataset.f]; if(!f) continue; el.classList.toggle('changed',isChanged(d,f)); const bad=S.showErr&&!!S.errors[f.n]; el.classList.toggle('invalid',bad); const e=$('.fe',el); if(e) e.textContent=bad?S.errors[f.n]:''; }
+      const w=warnings(p,d);
+      for(const el of $$('.fw',ed)){ const n=el.dataset.w; const t=d.notice[n]||w[n]||''; el.textContent=t; el.classList.toggle('on',!!t); }
+      for(const g of p.groups){
+        const fs=p.fields.filter(f=>f.group===g.id);
+        const nd=fs.filter(f=>isChanged(d,f)).length, ne=S.showErr?fs.filter(f=>S.errors[f.n]).length:0;
+        const bd=$(`[data-gd="${g.id}"]`,ed), be=$(`[data-ge="${g.id}"]`,ed);
+        if(bd){ bd.hidden=!nd; bd.textContent=nd; bd.title=`${nd} ${plural(nd,'cambio','cambios')}`; }
+        if(be){ be.hidden=!ne; be.textContent=ne; be.title=`${ne} ${plural(ne,'error','errores')}`; }
+      }
+      const sum=$('#esum',ed);
+      if(sum){
+        const es=S.showErr?p.fields.filter(f=>S.errors[f.n]):[];
+        sum.hidden=!es.length;
+        if(es.length) sum.innerHTML=`<b>No se ha guardado. ${es.length===1?'Hay un dato por revisar':`Hay ${es.length} datos por revisar`}.</b> <a data-act="firsterr" tabindex="0">Ir al primero</a><ul>${es.map(f=>`<li><a data-act="goerr" data-n="${esc(f.n)}" tabindex="0">${esc(f.label)}</a>${p.layout!=='plain'?` <span class="muted">(${esc(p.groups.find(g=>g.id===f.group).t)})</span>`:''}: ${esc(S.errors[f.n])}</li>`).join('')}</ul>`;
+      }
+    }
+  }
+  updateAbar(); refreshSelRow(); updateCount();
+  // marcadores de la navegación
+  for(const it of $$('#navbody .item')){ const pid=it.dataset.id; const mk=$('.mk',it); if(!mk) continue; const dot=$('.mdot',mk); const want=pid===S.pid&&isDirty(); if(want&&!dot) mk.insertAdjacentHTML('afterbegin','<span class="mdot" title="Cambios sin guardar"></span>'); if(!want&&dot) dot.remove(); const er=$('.merr',mk); if(S.failed[pid]&&!er) mk.insertAdjacentHTML('afterbegin','<span class="merr" title="El último guardado falló">▲</span>'); if(!S.failed[pid]&&er) er.remove(); }
+}
+
+/* =====================================================================
+   Acciones: abrir, seleccionar, Nuevo, Guardar, Cancelar, Eliminar,
+   diálogos, referencias, rutas, secretos, búsqueda y escenarios
+   ===================================================================== */
+function frameEl(){ return $('#frame'); }
+function scale(){ return S.frame.scale||1; }
+
+/* ---------- Diálogos propios (sin alert/confirm) ---------- */
+function dialog({title,body,buttons,size,host,onOpen}){
+  return new Promise(res=>{
+    const layer=host==='page'?$('#layer'):frameEl();
+    const prev=document.activeElement;
+    const ov=document.createElement('div'); ov.className='ovl'; if(host==='page') ov.style.position='fixed';
+    ov.innerHTML=`<div class="dlg ${size||''}" role="dialog" aria-modal="true" aria-labelledby="dlg-t"><div class="dh"><h2 id="dlg-t">${title}</h2></div><div class="db">${body}</div><div class="df">${buttons.map((b,i)=>b.sp?'<span class="sp"></span>':`<button class="btn ${b.cls||''}" data-v="${b.v}" ${b.dis?'disabled':''}>${b.t}</button>`).join('')}</div></div>`;
+    layer.appendChild(ov);
+    const close=v=>{ ov.remove(); document.removeEventListener('keydown',kd,true); if(prev&&prev.focus&&document.contains(prev)) prev.focus(); res(v); };
+    const kd=e=>{ if(e.key==='Escape'){ e.preventDefault(); e.stopPropagation(); const esc=buttons.find(b=>b.esc); close(esc?esc.v:null); }
+      if(e.key==='Tab'){ const fs=$$('button:not([disabled]),input,select,textarea,[tabindex="0"]',ov).filter(x=>!x.hidden&&x.offsetParent!==null); if(!fs.length) return; const i=fs.indexOf(document.activeElement); if(e.shiftKey&&i<=0){e.preventDefault();fs[fs.length-1].focus();} else if(!e.shiftKey&&i===fs.length-1){e.preventDefault();fs[0].focus();} } };
+    document.addEventListener('keydown',kd,true);
+    ov.addEventListener('click',e=>{ const b=e.target.closest('.df button[data-v]'); if(b){ const spec=buttons.find(x=>String(x.v)===b.dataset.v); if(spec&&spec.check&&!spec.check(ov)) return; close(b.dataset.v); } });
+    const api={ov,close};
+    if(onOpen) onOpen(api);
+    const af=$('[autofocus]',ov)||$('.df .btn.primary',ov)||$('.df .btn',ov); if(af) af.focus();
+  });
+}
+function changesTable(ch){
+  if(!ch.length) return '';
+  return `<table><thead><tr><th>Dato</th><th>Antes</th><th>Ahora</th></tr></thead><tbody>${ch.map(c=>`<tr><td class="ttl">${esc(c.f.label)}</td>${c.secret?`<td colspan="2">${c.secret==='cambiar'?'Se cambiará la credencial':'Se quitará la credencial'}</td>`:c.raw?`<td colspan="2">Valor no válido: «${esc(S.draft.raw[c.f.n].text)}»</td>`:`<td>${esc(dispVal(c.f,c.from))}</td><td>${esc(dispVal(c.f,c.to))}</td>`}</tr>`).join('')}</tbody></table>`;
+}
+function toast(t){ const o=document.createElement('div'); o.className='toast'; o.style.position='absolute'; o.setAttribute('role','status'); o.textContent=t; frameEl().appendChild(o); setTimeout(()=>o.remove(),3200); }
+
+/* ---------- Protección de cambios pendientes ---------- */
+async function guard(what){
+  if(!isDirty()) return true;
+  const d=S.draft, p=PBY[d.pid], ch=changes(d);
+  const name=d.isNew?(p.newTitle||'registro nuevo'):p.recTitle(d.orig);
+  const v=await dialog({title:`¿Guardar los cambios de «${esc(name)}»?`,
+    body:`<p>Vas a ${esc(what)}. ${d.isNew?`${p.newTitle||'El registro nuevo'} aún no está guardad${p.lo==='la'?'a':'o'}.`:`Hay ${ch.length} ${plural(ch.length,'cambio','cambios')} sin guardar en ${esc(p.this)}.`}</p>${changesTable(ch)}`,
+    buttons:[{t:'Guardar cambios',v:'save',cls:'primary'},{t:'Descartar cambios',v:'discard'},{sp:1},{t:'Seguir editando',v:'stay',esc:true}]});
+  if(v==='save') return await save();
+  if(v==='discard'){ discard(); return true; }
+  return false;
+}
+function discard(){
+  const d=S.draft; if(!d) return; const p=PBY[d.pid];
+  if(d.isNew){ S.newRec=null; S.sel=S.prevSel||null; const r=S.sel&&findRec(p,S.sel); S.draft=r?makeDraft(p,r,false):null; }
+  else { const r=findRec(p,d.k); S.draft=r?makeDraft(p,r,false):null; }
+  S.errors={}; S.showErr=false; S.msg=null;
+}
+
+/* ---------- Abrir mantenimiento / seleccionar registro ---------- */
+async function openProvider(pid,o={}){
+  const p=PBY[pid]; if(!p) return false;
+  const changing=pid!==S.pid;
+  if(!o.force&&(changing||(o.k&&o.k!==S.sel))){ if(!(await guard(changing?`abrir «${p.title}»`:'cambiar de registro'))) return false; }
+  if(changing||o.force){
+    if(S.pid) S.lastSel[S.pid]=S.sel;
+    S.pid=pid; S.draft=null; S.newRec=null; S.errors={}; S.showErr=false; S.msg=null; S.pfNote=null;
+    if(p.parentFilter&&!S.pf) S.pf={emp:S.ctx.emp,ej:S.ctx.ej};
+  }
+  if(o.pf) S.pf=o.pf;
+  if(o.filterQ!=null) S.filter[pid]=o.filterQ;
+  if(p.card==='list'){
+    const vis=visibleRows(p);
+    let k=o.k||(changing?S.lastSel[pid]:S.sel);
+    if(!(S.draft&&S.draft.k===k&&isDirty())&&!vis.some(r=>r.k===k)) k=vis[0]?vis[0].k:null;
+    if(!S.draft||S.draft.k!==k){ S.sel=k; const r=k&&findRec(p,k); S.draft=r?makeDraft(p,r,false):null; }
+  }
+  S.navOpen=false; frameEl().classList.remove('navopen');
+  renderNav(); renderMain({scrollSel:true});
+  if(o.field) revealField(o.field,o.focus!==false);
+  return true;
+}
+async function selectRecord(k){
+  const p=P(); if(k===S.sel) return true;
+  if(!(await guard('cambiar de registro'))) return false;
+  S.sel=k; const r=findRec(p,k); S.draft=r?makeDraft(p,r,false):null; S.newRec=null; S.errors={}; S.showErr=false; S.msg=null;
+  refreshTable(); renderEditor(); scrollSelIntoView(); renderNav();
+  return true;
+}
+function renderEditor(){
+  const p=P(), ed=$('#edp'); if(!ed) return;
+  if(p.card==='single'){ renderMain(); return; }
+  ed.innerHTML=S.draft?editorHTML(p,S.draft):emptyEditorHTML(p);
+  if(S.draft) afterEditor(p);
+  updateStatus();
+}
+function afterEditor(p){
+  const root=$('#edp'); if(!root) return;
+  for(const c of $$('input[data-indet]',root)) c.indeterminate=true;
+  for(const t of $$('textarea.long',root)) autosize(t);
+}
+function autosize(t){ t.style.height='auto'; t.style.height=(t.scrollHeight+2)+'px'; }
+function revealField(n,focus){
+  const p=P(); const f=p.F[n]; if(!f) return;
+  const ed=$('#edp'); if(!ed) return;
+  if(p.layout==='tabs'&&f.group){ S.tab[p.id]=f.group; for(const t of $$('.tab',ed)) t.setAttribute('aria-selected',t.dataset.g===f.group); for(const pn of $$('[role="tabpanel"]',ed)) pn.hidden=pn.id!=='pn-'+f.group; }
+  if(p.layout==='sections'&&f.group){ const s=$(`.sec[data-sec="${f.group}"]`,ed); if(s){ s.classList.remove('closed'); delete S.closed[p.id+':'+f.group]; $('.sech',s).setAttribute('aria-expanded','true'); } }
+  const el=$(`.f[data-f="${cssid(n)}"]`,ed)||$(`.audit [data-f="${cssid(n)}"]`,ed); if(!el) return;
+  el.scrollIntoView({block:'center'});
+  el.classList.remove('flash'); void el.offsetWidth; el.classList.add('flash');
+  if(focus){ const i=$('input:not([type=hidden]),textarea,select,button.combo,.secret',el); if(i) i.focus({preventScroll:true}); }
+}
+
+/* ---------- Nuevo ---------- */
+const DEFAULTS={iva:{Activo:true},conceptos:{Activo:true},formaspago:{Activa:true},correo:{Activo:false},ejercicios:{Activa:true}};
+async function newRecord(){
+  const p=P(); if(!p.caps.create||permOf(p)!=='edit') return;
+  if(!(await guard(`crear ${p.g==='f'?'una nueva':'un nuevo'} ${p.short}`))) return;
+  const v=Object.assign(blankValues(p),DEFAULTS[p.id]||{});
+  if(p.id==='series'&&S.pf&&S.pf.ej) v.IdSociedadEjercicio=Number(S.pf.ej);
+  const r={k:uid(),src:'alta',pid:p.id,v,aux:{cred:{}},ver:0};
+  S.prevSel=S.sel; S.newRec=r; S.sel=r.k; S.draft=makeDraft(p,r,true); S.errors={}; S.showErr=false; S.msg=null;
+  refreshTable(); renderEditor(); renderNav();
+  const tw=$('#tw'); if(tw) tw.scrollTop=0;
+  const first=$('#edp .f:not(.ro) input,#edp .f:not(.ro) textarea,#edp .f:not(.ro) .combo'); if(first) first.focus();
+}
+
+/* ---------- Guardar ---------- */
+function goFirstError(){ const p=P(); const f=p.fields.find(f=>S.errors[f.n]); if(f) revealField(f.n,true); }
+async function save(){
+  const p=P(), d=S.draft;
+  if(!d||S.saving) return false;
+  if(!isDirty()) return true;
+  if(permOf(p)!=='edit'){ S.msg={k:'err',t:'Tu perfil no permite guardar cambios en este mantenimiento.'}; updateStatus(); return false; }
+  const e=validate(p,d); S.errors=e;
+  const ne=Object.keys(e).length;
+  if(ne){ S.showErr=true; S.msg={k:'err',t:`No se ha guardado: ${ne===1?'hay un dato por revisar':`hay ${ne} datos por revisar`}.`}; renderNavMarks(); updateStatus(); goFirstError(); return false; }
+  S.showErr=false;
+  const sens=changes(d).filter(c=>c.f&&c.f.sens);
+  if(sens.length){
+    const v=await dialog({title:'Confirmar cambios sensibles',body:`<p>Estos cambios afectan a cómo ProConta se comunica con VeriFactu. Revísalos antes de guardar.</p><table><thead><tr><th>Dato</th><th>Antes</th><th>Ahora</th><th>Efecto</th></tr></thead><tbody>${sens.map(c=>`<tr><td class="ttl">${esc(c.f.label)}</td><td>${esc(dispVal(c.f,c.from))}</td><td>${esc(dispVal(c.f,c.to))}</td><td>${esc(c.f.sens)}</td></tr>`).join('')}</tbody></table><p class="muted">La maqueta no se conecta a VeriFactu ni valida nada fiscalmente.</p>`,buttons:[{t:'Guardar estos cambios',v:'ok',cls:'primary'},{sp:1},{t:'Seguir editando',v:'stay',esc:true}],size:'wide'});
+    if(v!=='ok') return false;
+  }
+  S.saving=true; S.msg=null; updateStatus();
+  await sleep(450);
+  S.saving=false;
+  const r=d.isNew?null:findRec(p,d.k);
+  if(S.scenario==='errorGuardar'){
+    S.failed[p.id]=true;
+    S.msg={k:'err',t:'No se ha podido guardar: la base de datos está bloqueada por otro proceso (simulado). Tus cambios y la selección se conservan.',retry:true};
+    renderNavMarks(); updateStatus(); return false;
+  }
+  if(r&&S.scenario==='conflicto'&&!S.conflictDone[r.k]){ S.conflictDone[r.k]=true; simulateOtherChange(p,r,d); }
+  if(r&&(r.ver||0)!==d.ver){ await conflictFlow(p,r,d); return false; }
+  commit(p,d); return true;
+}
+function simulateOtherChange(p,r,d){
+  const mine=new Set(changes(d).map(c=>c.f.n)); const v=clone(r.v);
+  const ok=f=>!f.virtual&&!f.idf&&!f.audit&&!f.ro&&!f.keyNew&&!mine.has(f.n)&&v[f.n]!==undefined;
+  let f=p.fields.find(f=>ok(f)&&f.ed==='text'&&typeof v[f.n]==='string'&&f.maxLen&&v[f.n].length+10<=f.maxLen);
+  if(f) v[f.n]=v[f.n]+' (revisado)';
+  else if((f=p.fields.find(f=>ok(f)&&f.ed==='int'&&typeof v[f.n]==='number'&&v[f.n]<(f.max||1e9)))) v[f.n]=v[f.n]+1;
+  else if((f=p.fields.find(f=>ok(f)&&f.ed==='bool'))) v[f.n]=!v[f.n];
+  if('FechaModificacion' in v){ v.FechaModificacion=nowISO(); v.OperadorModificacion='Operador demo 2'; }
+  r.v=v; r.ver=(r.ver||0)+1; r.otherBy='Operador demo 2 (otro puesto)';
+}
+async function conflictFlow(p,r,d){
+  const base=d.orig, theirs=r.v, mine=d.cur;
+  const rows=p.fields.filter(f=>!f.virtual&&!f.idf&&(!same(base[f.n],theirs[f.n])||!same(base[f.n],mine[f.n])));
+  const v=await dialog({title:`Otro puesto ha guardado «${esc(p.recTitle(theirs))}» mientras lo editabas`,size:'wide',
+    body:`<p>${esc(r.otherBy||'Otro usuario')} guardó cambios en ${esc(p.this)} después de que lo abrieras (conflicto simulado). Tu copia no se ha guardado ni se ha perdido. Nada se sobrescribe automáticamente.</p>
+     <table><thead><tr><th>Dato</th><th>Al abrir</th><th>Guardado por el otro puesto</th><th>Tu versión</th></tr></thead><tbody>${rows.map(f=>`<tr><td class="ttl">${esc(f.label)}</td><td>${esc(dispVal(f,base[f.n]))}</td><td${!same(base[f.n],theirs[f.n])?' style="font-weight:600"':''}>${esc(dispVal(f,theirs[f.n]))}</td><td${!same(base[f.n],mine[f.n])?' style="font-weight:600"':''}>${esc(dispVal(f,mine[f.n]))}</td></tr>`).join('')}</tbody></table>
+     <p class="muted">Combinar aplica tus cambios sobre la versión guardada y te deja revisarlo antes de volver a pulsar Guardar. Propuesta de interacción pendiente de implementación.</p>`,
+    buttons:[{t:'Combinar y revisar',v:'merge',cls:'primary'},{t:'Recargar la versión guardada',v:'reload'},{sp:1},{t:'Seguir editando',v:'stay',esc:true}]});
+  if(v==='merge'){ const nd=makeDraft(p,r,false); for(const c of changes(d)){ if(c.secret) nd.aux.op[c.f.n]=c.secret; else if(c.raw) nd.raw[c.f.n]=d.raw[c.f.n]; else nd.cur[c.f.n]=d.cur[c.f.n]; } nd.virt=d.virt; S.draft=nd; S.msg={k:'',t:'Tus cambios se han aplicado sobre la versión guardada. Revísalos y pulsa Guardar.'}; }
+  else if(v==='reload'){ S.draft=makeDraft(p,r,false); S.msg={k:'',t:'Se ha cargado la versión guardada. Tus cambios se han descartado.'}; }
+  else { S.msg={k:'err',t:'Hay una versión más reciente guardada por otro puesto. Combina o recarga antes de guardar.'}; updateStatus(); return; }
+  S.errors={}; S.showErr=false; refreshTable(); renderEditor();
+}
+function commit(p,d){
+  const v=clone(d.cur); let r;
+  if(d.isNew){
+    r=S.newRec;
+    const idf=p.fields.find(f=>f.idf);
+    if(idf){ const base=allRows(p).filter(x=>x.src==='real'||x.src==='syn'||x.src==='alta'); v[idf.n]=Math.max(0,...(base.length?base:allRows(p)).map(x=>Number(x.v[idf.n])||0))+1; }
+    (p.id==='conceptos'?DB.conceptos:DB[p.id]).push(r); S.newRec=null;
+  } else r=findRec(p,d.k);
+  if('FechaModificacion' in v&&p.fields.some(f=>f.n==='FechaModificacion')){ v.FechaModificacion=nowISO(); v.OperadorModificacion='Operador demo'; }
+  r.v=v; r.aux=r.aux||{}; r.aux.cred=Object.assign({},d.aux.cred); for(const n in d.aux.op) r.aux.cred[n]=d.aux.op[n]==='cambiar';
+  r.ver=(r.ver||0);
+  S.draft=makeDraft(p,r,false); S.sel=r.k; S.failed[p.id]=false; S.errors={}; S.showErr=false;
+  S.msg={k:'ok',t:`${d.isNew?'Alta guardada':'Cambios guardados'} a las ${hhmm()} (en memoria).`};
+  if(p.card==='single') renderMain(); else { refreshTable(); renderEditor(); scrollSelIntoView(); }
+  renderNav();
+}
+function renderNavMarks(){ updateStatus(); }
+
+/* ---------- Cancelar cambios ---------- */
+function cancelChanges(){
+  const p=P(); if(!isDirty()) return;
+  const wasNew=S.draft.isNew; discard();
+  if(p.card==='single') renderMain(); else { refreshTable(); renderEditor(); }
+  renderNav(); toast(wasNew?'Alta descartada.':'Cambios cancelados: se ha restaurado el registro.');
+}
+
+/* ---------- Eliminar ---------- */
+async function deleteRecord(){
+  const p=P(), d=S.draft; if(!d||d.isNew||!p.caps.delete||permOf(p)!=='edit') return;
+  const name=p.recTitle(d.orig), sub=p.recSub(d.orig);
+  let blocked=null;
+  if(p.id==='formaspago'){
+    const refs=(p.blockedRefs||{})[d.orig.Codigo];
+    if(refs||S.scenario==='borrado') blocked={msg:'Esta forma de pago está utilizada por registros existentes. Revisa sus vínculos antes de eliminarla.',det:refs?`Vínculos simulados para la demostración: ${refs}.`:'En este escenario todas las formas de pago devuelven vínculos simulados.'};
+  } else if(p.id==='sociedades'){
+    const n=DB.ejercicios.filter(x=>x.v.IdSociedad===d.orig.IdSociedad).length;
+    if(n) blocked={msg:`Esta empresa tiene ${n} ${plural(n,'ejercicio','ejercicios')}. Elimínalos o revísalos antes de eliminarla.`,det:'Relación empresa → ejercicios de los datos de la demostración.'};
+  } else if(p.id==='ejercicios'){
+    const n=DB.series.filter(x=>x.v.IdSociedadEjercicio===d.orig.IdSociedadEjercicio).length;
+    if(n) blocked={msg:`Este ejercicio tiene ${n} ${plural(n,'serie','series')} de facturación. Revísalas antes de eliminarlo.`,det:'Relación ejercicio → series de los datos de la demostración.'};
+  } else if(p.id==='series'&&d.orig.UltimoNumero>0){
+    blocked={msg:`Esta serie ya ha numerado facturas (último número ${fmtNum(d.orig.UltimoNumero,{int:true})}). No se puede eliminar desde aquí.`,det:'Regla de demostración: la numeración pertenece a Facturación.'};
+  }
+  if(blocked){
+    await dialog({title:`No se puede eliminar «${esc(name)}»`,body:`<p><b>${esc(blocked.msg)}</b></p><p class="muted">${esc(blocked.det)} No se elimina en cascada ni se desactiva: el mantenimiento no ofrece esas operaciones.</p>`,buttons:[{t:'Entendido',v:'ok',cls:'primary',esc:true}]});
+    return;
+  }
+  const dirty=isDirty();
+  const v=await dialog({title:`¿Eliminar ${p.lo==='la'?'la':'el'} ${esc(p.short)} «${esc(name)}»?`,
+    body:`<p>${esc(sub)}</p><p>Se eliminará solo en la memoria de la demostración. No se eliminan otros registros relacionados.</p>${dirty?'<p><b>También se perderán los cambios sin guardar de este registro.</b></p>':''}`,
+    buttons:[{t:'Eliminar',v:'del',cls:'primary danger'},{sp:1},{t:'Cancelar',v:'no',esc:true}]});
+  if(v!=='del') return;
+  const arr=p.id==='conceptos'?(DB.conceptos.some(x=>x.k===d.k)?DB.conceptos:DB.conceptosVol):DB[p.id];
+  const vis=visibleRows(p); const i=vis.findIndex(x=>x.k===d.k);
+  const idx=arr.findIndex(x=>x.k===d.k); if(idx>=0) arr.splice(idx,1);
+  const next=vis[i+1]||vis[i-1];
+  S.sel=next&&next.k!==d.k?next.k:null; S.draft=S.sel?makeDraft(p,findRec(p,S.sel),false):null; S.errors={}; S.showErr=false;
+  S.msg={k:'ok',t:`Eliminado: ${name}.`};
+  refreshTable(); renderEditor(); renderNav();
+}
+
+/* ---------- Referencias con búsqueda ---------- */
+let POP=null;
+function closePop(){ if(POP){ POP.el.remove(); document.removeEventListener('mousedown',POP.out,true); POP=null; } }
+function edCtx(el){
+  if(el.closest('#bench')) return {p:BENCH,d:BD,root:$('#bench'),update:benchUpdate};
+  const p=P(); if(!p||!S.draft) return null; return {p,d:S.draft,root:$('#edp'),update:()=>{ if(S.showErr) S.errors=validate(p,S.draft); updateStatus(); }};
+}
+function openRef(btn){
+  closePop();
+  const ctx=edCtx(btn); if(!ctx) return; const f=ctx.p.F[btn.dataset.n]; const d=ctx.d;
+  const opts=refOptions(f.ref,d); const cur=f.virtual?d.virt[f.n]:d.cur[f.n];
+  const host=btn.closest('#bench')?document.body:frameEl();
+  const el=document.createElement('div'); el.className='pop'; el.setAttribute('role','dialog');
+  const long=opts.length>6;
+  el.innerHTML=`${long||true?`<div class="ps"><input class="in" style="width:100%" placeholder="Buscar por nombre o código" aria-label="Buscar ${esc(f.label)}"></div>`:''}<div class="pl" role="listbox"></div>`;
+  host.appendChild(el);
+  const s=host===document.body?1:scale(); const fr=host.getBoundingClientRect(), r=btn.getBoundingClientRect();
+  if(host===document.body){ el.style.left=r.left+'px'; el.style.top=(r.bottom+2)+'px'; }
+  else { el.style.position='absolute'; el.style.left=((r.left-fr.left)/s)+'px'; const top=(r.bottom-fr.top)/s+2; const fh=fr.height/s; el.style.top=(top+300>fh?Math.max(4,(r.top-fr.top)/s-302):top)+'px'; }
+  const list=$('.pl',el), inp=$('input',el); let kb=-1, shown=[];
+  const draw=()=>{ const q=norm(inp.value).trim(); shown=opts.filter(o=>!q||norm(o.t+' '+o.c).includes(q));
+    const clear=!f.req?`<button class="opt" data-v="__null"><span class="muted">Sin seleccionar</span></button>`:'';
+    list.innerHTML=(shown.length?shown.map((o,i)=>`<button class="opt ${i===kb?'kb':''}" role="option" aria-selected="${same(o.v,cur)}" data-i="${i}"><span class="ell">${esc(o.t)}</span><span class="cc">${esc(o.c)}</span></button>`).join(''):`<div class="pn">${q?'Ninguna opción coincide.':f.ref==='ej'&&d.virt._emp?'Esta empresa no tiene ejercicios.':'No hay opciones.'}</div>`)+clear; };
+  draw();
+  const pick=v=>{ closePop(); setRef(ctx,f,v); btn=$(`#in-${cssid(f.n)}`,ctx.root); if(btn) btn.focus(); };
+  list.addEventListener('click',e=>{ const b=e.target.closest('.opt'); if(!b) return; pick(b.dataset.v==='__null'?null:shown[+b.dataset.i].v); });
+  inp.addEventListener('input',()=>{kb=-1;draw();});
+  inp.addEventListener('keydown',e=>{ if(e.key==='ArrowDown'){e.preventDefault();kb=Math.min(shown.length-1,kb+1);draw();} else if(e.key==='ArrowUp'){e.preventDefault();kb=Math.max(0,kb-1);draw();} else if(e.key==='Enter'){e.preventDefault(); if(shown[kb<0?0:kb]) pick(shown[kb<0?0:kb].v);} else if(e.key==='Escape'){e.preventDefault();e.stopPropagation();closePop();btn.focus();} });
+  const out=e=>{ if(!el.contains(e.target)&&e.target!==btn&&!btn.contains(e.target)) closePop(); };
+  document.addEventListener('mousedown',out,true);
+  POP={el,out}; inp.focus();
+}
+function setRef(ctx,f,v){
+  const {p,d}=ctx;
+  if(f.virtual){
+    d.virt[f.n]=v;
+    if(p.id==='series'){
+      const cur=d.cur.IdSociedadEjercicio;
+      if(cur!=null&&v&&ejEmp(cur)!==v){ const old=refText('ej',cur); d.cur.IdSociedadEjercicio=null; d.notice.IdSociedadEjercicio=`Se ha quitado «${old}» porque pertenece a otra empresa. Elige un ejercicio de ${refText('soc',v)}.`; }
+      replaceField(ctx,'IdSociedadEjercicio');
+    }
+  } else {
+    d.cur[f.n]=v; delete d.notice[f.n];
+    if(p.id==='series'&&f.n==='IdSociedadEjercicio'&&v!=null&&d.virt._emp!==ejEmp(v)){ d.virt._emp=ejEmp(v); replaceField(ctx,'_emp'); }
+  }
+  replaceField(ctx,f.n); ctx.update();
+}
+function replaceField(ctx,n){ const el=$(`.f[data-f="${cssid(n)}"]`,ctx.root); if(!el) return; const f=ctx.p.F[n]; const ro=ctx.p===BENCH?false:roAll(ctx.p,ctx.d); const t=document.createElement('div'); t.innerHTML=fieldHTML(ctx.p,f,ctx.d,ro); const nw=t.firstElementChild; el.replaceWith(nw); for(const c of $$('input[data-indet]',nw)) c.indeterminate=true; for(const x of $$('textarea.long',nw)) autosize(x); }
+
+/* ---------- Ruta: selector simulado ---------- */
+async function browse(btn){
+  const ctx=edCtx(btn); if(!ctx) return; const f=ctx.p.F[btn.dataset.n];
+  const opts=f.file?['C:\\ProContaDemo\\Datos\\ProcontaVF.accdb','C:\\ProContaDemo\\Exportacion\\Exportacion.accdb','C:\\ProContaDemo\\ERP\\Gestion.accdb','C:\\ProContaDemo\\Certificados\\certificado-prueba.pfx']
+    :['C:\\ProContaDemo\\Datos','C:\\ProContaDemo\\VeriFactu','C:\\ProContaDemo\\Facturas\\Exportadas','C:\\ProContaDemo\\Facturas\\Duplicadas','\\\\SERVIDOR-DEMO\\ProConta\\Datos con un nombre de carpeta bastante largo\\2026'];
+  let choice=null;
+  const v=await dialog({title:`Seleccionar ${f.file?'fichero':'carpeta'} (simulado)`,host:ctx.p===BENCH?'page':undefined,
+    body:`<p class="muted">Lista ficticia. En la aplicación se abrirá el selector de Windows; la maqueta no lee el disco ni comprueba que la ruta exista.</p><div class="folders" role="listbox">${opts.map((o,i)=>`<button data-i="${i}" aria-pressed="false">${esc(o)}</button>`).join('')}</div>`,
+    buttons:[{t:'Seleccionar',v:'ok',cls:'primary',check:()=>choice!==null},{sp:1},{t:'Cancelar',v:'no',esc:true}],
+    onOpen:({ov})=>{ $('.folders',ov).addEventListener('click',e=>{ const b=e.target.closest('button'); if(!b) return; choice=opts[+b.dataset.i]; for(const x of $$('.folders button',ov)) x.setAttribute('aria-pressed',x===b); }); $('.folders',ov).addEventListener('dblclick',e=>{ if(e.target.closest('button')) $('.df .btn.primary',ov).click(); }); }});
+  if(v!=='ok'||choice===null) return;
+  ctx.d.cur[f.n]=choice; replaceField(ctx,f.n); ctx.update();
+}
+
+/* ---------- Secretos: Cambiar / Quitar explícitos ---------- */
+async function secretSet(btn){
+  const ctx=edCtx(btn); if(!ctx) return; const f=ctx.p.F[btn.dataset.n];
+  const v=await dialog({title:`${ctx.d.aux.cred[f.n]?'Cambiar':'Establecer'} ${esc(lowerLabel(f))}`,host:ctx.p===BENCH?'page':undefined,
+    body:`<p class="muted">Usa solo valores ficticios. La maqueta no conserva lo que escribas: solo registra que la credencial se cambiará al guardar.</p>
+      <div class="f" style="--lw:150px"><label class="fl" for="pw1">Nueva contraseña</label><div class="fc"><input class="in w-m" type="password" id="pw1" autocomplete="new-password" autofocus></div></div>
+      <div class="f" style="--lw:150px"><label class="fl" for="pw2">Repítela</label><div class="fc"><input class="in w-m" type="password" id="pw2" autocomplete="new-password"><div class="fe" id="pwe" style="display:block"></div></div></div>`,
+    buttons:[{t:'Preparar cambio',v:'ok',cls:'primary',check:ov=>{ const a=$('#pw1',ov).value,b=$('#pw2',ov).value; const e=$('#pwe',ov); if(!a){e.textContent='Escribe la nueva contraseña.';return false;} if(a!==b){e.textContent='Las dos contraseñas no coinciden. Vuelve a escribirlas.';return false;} $('#pw1',ov).value='';$('#pw2',ov).value=''; return true; }},{sp:1},{t:'Cancelar',v:'no',esc:true}]});
+  if(v!=='ok') return;
+  ctx.d.aux.op[f.n]='cambiar'; replaceField(ctx,f.n); ctx.update();
+}
+function secretDel(btn){ const ctx=edCtx(btn); if(!ctx) return; ctx.d.aux.op[btn.dataset.n]='quitar'; replaceField(ctx,btn.dataset.n); ctx.update(); }
+function secretUndo(btn){ const ctx=edCtx(btn); if(!ctx) return; delete ctx.d.aux.op[btn.dataset.n]; replaceField(ctx,btn.dataset.n); ctx.update(); }
+
+/* ---------- Edición de campos ---------- */
+function emptyFor(d,f){ if(d.orig[f.n]==='') return ''; return f.nul===false?'':null; }
+function onFieldInput(e){
+  const el=e.target; const ed=el.dataset&&el.dataset.ed; if(!ed) return;
+  const fe=el.closest('.f[data-f]'); if(!fe) return; const ctx=edCtx(el); if(!ctx) return;
+  const {p,d}=ctx; const f=p.F[fe.dataset.f]; if(!f) return;
+  if(e.type==='input'){
+    if(ed==='text'||ed==='textl'||ed==='memo'){
+      let val=el.value; if(ed==='textl'&&/\n/.test(val)){ val=val.replace(/\n+/g,' '); el.value=val; } if(ed==='textl') autosize(el);
+      d.cur[f.n]=val===''?emptyFor(d,f):val;
+      const c=$(`[data-cnt="${cssid(f.n)}"]`,fe); if(c&&f.maxLen){ c.textContent=`${val.length}/${f.maxLen}`; c.hidden=val.length<f.maxLen*.7; }
+      const mi=$(`[data-memo="${cssid(f.n)}"]`,fe); if(mi) mi.textContent=memoInfo(d.cur[f.n]);
+      if(el.title!==undefined&&f.ed==='path') el.title=val;
+    } else if(ed==='num'){
+      const r=parseNum(el.value,f); if(r.ok){ delete d.raw[f.n]; delete d.rawBlur[f.n]; d.cur[f.n]=r.v; } else d.raw[f.n]={text:el.value,msg:r.msg};
+    } else return;
+  } else if(e.type==='change'){
+    if(ed==='bool') d.cur[f.n]=el.checked;
+    else if(ed==='bool3') d.cur[f.n]=el.value==='null'?null:el.value==='true';
+    else if(ed==='option') d.cur[f.n]=el.value===''?null:el.value;
+    else if(ed==='date'||ed==='time'){ const dd=$(`#in-${cssid(f.n)}`,fe).value, tt=$(`#in-${cssid(f.n)}-t`,fe).value; d.cur[f.n]=dd?`${dd}T${tt||'00:00'}:00`:null; }
+    else return;
+  }
+  ctx.update();
+}
+function onFieldBlur(e){
+  const el=e.target; if(!el.dataset||el.dataset.ed!=='num') return; const fe=el.closest('.f[data-f]'); const ctx=edCtx(el); if(!ctx||!fe) return;
+  const f=ctx.p.F[fe.dataset.f]; if(!(f.n in ctx.d.raw)){ const v=ctx.d.cur[f.n]; el.value=v==null?'':fmtNum(v,f); }
+  else { ctx.d.rawBlur[f.n]=true; ctx.update(); }
+}
+
+/* =====================================================================
+   Búsqueda de ajustes y mantenimientos (separada del filtro de registros)
+   ===================================================================== */
+function hl(text,terms){ let h=esc(text); for(const t of terms){ if(!t) continue; const n=norm(text); const i=n.indexOf(t); if(i>=0){ const a=esc(text.slice(0,i)),b=esc(text.slice(i,i+t.length)),c=esc(text.slice(i+t.length)); h=`${a}<mark>${b}</mark>${c}`; break; } } return h; }
+function searchAll(q){
+  const terms=norm(q).trim().split(/\s+/).filter(Boolean); if(!terms.length) return {m:[],f:[],r:[],terms};
+  const hit=s=>terms.every(t=>norm(s).includes(t));
+  const m=[],f=[],r=[];
+  for(const p of PROVIDERS){
+    if(hit(p.title+' '+(p.al||[]).join(' ')+' '+CATS.find(c=>c.id===p.cat).t)) m.push({p,score:norm(p.title).startsWith(terms[0])?0:1});
+    for(const g of p.groups){ if(p.groups.length>1&&hit(g.t)) f.push({p,g,score:2}); }
+    for(const fl of p.fields){
+      if(fl.virtual) continue;
+      const byLabel=hit(fl.label+' '+(fl.al||[]).join(' ')), byName=!byLabel&&hit(fl.n);
+      if(byLabel||byName) f.push({p,fl,byName,score:norm(fl.label).startsWith(terms[0])?0:1});
+    }
+    if(p.card==='list'&&permOf(p)!=='none'){
+      const rows=allRows(p).filter(x=>hit(p.cols.map(c=>cellText(p,c,x.v,x)).join(' ')));
+      if(rows.length) r.push({p,n:rows.length});
+    }
+  }
+  m.sort((a,b)=>a.score-b.score); f.sort((a,b)=>a.score-b.score);
+  return {m,f:f.slice(0,40),r,terms};
+}
+function searchResultsHTML(q){
+  const {m,f,r,terms}=searchAll(q); let i=0;
+  const it=(attrs,kind,title,path)=>`<button class="ritem ${i===S.gkb?'kb':''}" data-act="gores" data-i="${i++}" ${attrs}><span class="rt"><span class="rk">${kind}</span><span>${title}</span></span>${path?`<span class="rp">${path}</span>`:''}</button>`;
+  let h='';
+  if(m.length) h+=`<div class="res"><h3>Mantenimientos</h3>${m.map(x=>it(`data-p="${x.p.id}"`,'Abrir',hl(x.p.title,terms),esc(CATS.find(c=>c.id===x.p.cat).t))).join('')}</div>`;
+  if(f.length) h+=`<div class="res"><h3>Grupos y campos</h3>${f.map(x=>x.g?it(`data-p="${x.p.id}" data-g="${x.g.id}"`,'Grupo',hl(x.g.t,terms),esc(x.p.title)):it(`data-p="${x.p.id}" data-f="${esc(x.fl.n)}"`,'Campo',hl(x.fl.label,terms),`${esc(x.p.title)}${x.fl.group&&x.p.groups.length>1?' › '+esc(x.p.groups.find(g=>g.id===x.fl.group).t):''}${x.byName?' · coincide con el nombre interno':''}`)).join('')}</div>`;
+  if(r.length) h+=`<div class="res"><h3>Registros</h3>${r.map(x=>it(`data-p="${x.p.id}" data-q="${esc(q.trim())}"`,'Filtrar',`${x.n} ${esc(plural(x.n,x.p.short,x.p.pl))} con «${esc(q.trim())}»`,`Abre ${esc(x.p.title)} con la lista filtrada`)).join('')}</div>`;
+  if(!h) h=`<p class="rnone">No hay ajustes, campos ni registros que coincidan con «${esc(q)}». Prueba con otra palabra, por ejemplo «SMTP», «retención» o «IVA».</p>`;
+  return h;
+}
+async function activateResult(b){
+  const pid=b.dataset.p;
+  if(b.dataset.q!=null){ const ok=await openProvider(pid,{filterQ:b.dataset.q}); if(ok){ const lq=$('#lq'); if(lq) lq.focus(); } return; }
+  if(b.dataset.f){
+    const p=PBY[pid];
+    if(pid!==S.pid){ if(!(await openProvider(pid))) return; }
+    if(p.card==='list'&&!S.draft){ const v=visibleRows(p)[0]; if(v) await selectRecord(v.k); }
+    revealField(b.dataset.f,true); return;
+  }
+  if(b.dataset.g){
+    if(pid!==S.pid){ if(!(await openProvider(pid))) return; }
+    const p=P(); const f=p.fields.find(x=>x.group===b.dataset.g); if(f) revealField(f.n,false); return;
+  }
+  await openProvider(pid);
+}
+
+/* =====================================================================
+   Banco de editores (notas de entrega): mismo renderizador y eventos
+   ===================================================================== */
+const BENCH={id:'bench',title:'Banco de editores',short:'ejemplo',this:'este ejemplo',lo:'lo',caps:{create:false,update:true,delete:false},groups:[{id:'g',t:'Editores'}],layout:'plain',
+  fields:[
+    {n:'Codigo',label:'Texto corto (código)',ed:'text',w:'xs',code:true,maxLen:2,nul:false,help:'Ancho de 2–3 caracteres aunque la columna admita más.'},
+    {n:'Desc',label:'Texto medio',ed:'text',w:'ml',maxLen:100,nul:true},
+    {n:'Larga',label:'Texto largo',ed:'textl',maxLen:255,nul:false,help:'Crece en altura: el contenido completo siempre es visible.'},
+    {n:'Memo',label:'Memo',ed:'memo',nul:true,help:'Conserva los saltos de línea. Ampliar da más altura.'},
+    {n:'Entero',label:'Entero (vacío = nulo)',ed:'int',int:true,min:-32768,max:32767,w:'n',nul:true},
+    {n:'Decimal',label:'Decimal con cero',ed:'dec',w:'n',nul:true},
+    {n:'Pct',label:'Porcentaje',ed:'pct',unit:'%',nul:true,help:'El símbolo es solo visual: se guarda el número.'},
+    {n:'Bool',label:'Sí/No obligatorio',ed:'bool',nul:false},
+    {n:'Bool3',label:'Sí/No que admite nulo',ed:'bool3',nul:true,help:'«Sin especificar» se guarda como nulo; no se convierte en No.'},
+    {n:'Fecha',label:'Fecha y hora',ed:'datetime',nul:true},
+    {n:'Ref',label:'Referencia',ed:'ref',ref:'soc',nul:true},
+    {n:'Opc',label:'Opciones',ed:'option',opts:['Texto','HTML'],prop:true,nul:true},
+    {n:'Ruta',label:'Ruta',ed:'path',maxLen:255,nul:true},
+    {n:'Clave',label:'Secreto',ed:'secret',nul:true},
+    {n:'Contador',label:'Contador (solo lectura)',ed:'counter',ro:true,help:'Lo gestiona otro módulo.'},
+  ]};
+BENCH.fields.forEach(f=>{f.group='g';}); BENCH.F=Object.fromEntries(BENCH.fields.map(f=>[f.n,f]));
+let BD=null;
+function benchReset(){ const v={Codigo:'R1',Desc:'Descripción de catálogo de longitud media',Larga:REAL.TiposFactura[3].Descripcion,Memo:'Primera línea.\n\nSegunda línea tras una línea en blanco.',Entero:null,Decimal:0,Pct:75.5,Bool:true,Bool3:null,Fecha:'2026-10-01T09:30:00',Ref:'D01',Opc:null,Ruta:'C:\\ProContaDemo\\Datos',Clave:null,Contador:125};
+  BD={pid:'bench',k:'b',isNew:false,orig:clone(v),cur:clone(v),aux:{cred:{Clave:true},op:{}},raw:{},virt:{},notice:{},rawBlur:{}}; }
+function benchHTML(){ return `<div id="bench" class="edp" style="--lw:170px;border:1px solid var(--line);border-radius:4px;padding:6px 12px"><div class="secb">${groupBody(BENCH,BENCH.groups[0],BD,false)}</div></div><div class="tw"><table id="benchv"></table></div>`; }
+function benchUpdate(){
+  const root=$('#bench'); if(!root) return;
+  for(const el of $$('.f[data-f]',root)){ const f=BENCH.F[el.dataset.f]; el.classList.toggle('changed',isChanged(BD,f)); }
+  for(const el of $$('.fw',root)){ const n=el.dataset.w; const t=BD.rawBlur[n]&&BD.raw[n]?BD.raw[n].msg:''; el.textContent=t; el.classList.toggle('on',!!t); }
+  const show=v=>v===undefined?'undefined':v===null?'null':JSON.stringify(v);
+  $('#benchv').innerHTML=`<thead><tr><th>Editor</th><th>Valor guardado en memoria</th></tr></thead><tbody>${BENCH.fields.map(f=>`<tr><td>${esc(f.label)}</td><td class="mono">${f.ed==='secret'?(BD.aux.op[f.n]?`credencial: se ${BD.aux.op[f.n]==='cambiar'?'cambiará':'quitará'}`:BD.aux.cred[f.n]?'credencial configurada (sin valor visible)':'sin credencial'):(f.n in BD.raw?`texto no válido «${esc(BD.raw[f.n].text)}»`:esc(show(BD.cur[f.n])))}</td></tr>`).join('')}</tbody>`;
+}
+
+/* =====================================================================
+   Notas de entrega
+   ===================================================================== */
+function coverageHTML(){
+  return `<table><thead><tr><th>Mantenimiento</th><th>Origen</th><th>Campos</th><th>Registros</th><th>Tipo</th><th>Composición</th></tr></thead><tbody>${PROVIDERS.map(p=>`<tr><td>${esc(p.title)}</td><td class="mono">${esc(p.table||'Configuración local')}</td><td class="tn">${p.physical}</td><td class="tn">${p.id==='conceptos'?`${DB.conceptos.length} + ${DB.conceptosVol.length} sint.`:allRows(p).length}</td><td>${p.card==='single'?'Único':'Colección'}</td><td>${{tabs:'Pestañas internas',sections:'Secciones plegables',plain:'Formulario directo'}[p.layout]}</td></tr>`).join('')}</tbody></table><p class="muted">${PROVIDERS.filter(p=>p.table).reduce((a,p)=>a+p.physical,0)} campos físicos en 11 tablas (el anexo indica 229). Formas de pago: ${PBY.formaspago.groups.map(g=>`${g.t} ${PBY.formaspago.fields.filter(f=>f.group===g.id).length}`).join(' · ')}.</p>`;
+}
+const NOTES={
+ sistema:()=>`<h3>Un solo motor para todos los mantenimientos</h3>
+  <ul><li><b>Catálogo de mantenimientos</b> por categoría (General, Empresas y ejercicios, Facturación, Integraciones, Catálogos). Cada entrada declara título, finalidad, ámbito, cardinalidad (registro único o colección), capacidades (Nuevo, Guardar, Eliminar), clave, columnas de lista y grupos.</li>
+  <li><b>Metadatos de campo</b>: etiqueta, ayuda, editor, longitud máxima, límites del tipo de almacenamiento, obligatorio, solo lectura, referencia, grupo, orden, tamaño orientativo (xs, s, m, ml, l), unidad visual, aviso de «sensible» y alias de búsqueda. Tipo y longitud salen del esquema; el resto es propuesta.</li>
+  <li><b>Renderizador común</b>: los 12 mantenimientos y el banco de editores usan las mismas funciones de campo, lista, editor, barra de acciones y diálogos.</li>
+  <li><b>Composición según el contenido</b>: hasta un grupo, formulario directo; varios grupos, secciones plegables; más de 30 campos, pestañas internas con orden estable. Los contadores de cambios y errores aparecen en la pestaña o sección aunque esté cerrada.</li>
+  <li><b>Lista y editor</b> lado a lado o lista arriba (cambio automático bajo 760 px), con divisor arrastrable o movible con las flechas.</li>
+  <li><b>Edición sobre copia en memoria</b>: Guardar valida; Cancelar cambios restaura; al cambiar de registro, mantenimiento, escenario, contexto o al cerrar se ofrece Guardar cambios / Descartar cambios / Seguir editando.</li></ul>
+  <h3>Composición a 1440 × 900 y a 1024 × 768</h3>
+  <p>Los tamaños de ventana descuentan el marco del contenedor: lateral de 236 px (56 px plegado por debajo de 1400) y 100 px de cabecera, pestañas y barra de estado. A 1440 × 900 el área de trabajo es de 1204 × 800: navegación de 248 px y lista y editor lado a lado. A 1024 × 768 el área es de 968 × 668: la navegación se mantiene y la lista pasa arriba con el editor a todo el ancho, para que los formularios largos conserven las etiquetas a la izquierda. Con 125 % o 150 % la navegación se convierte en un panel desplegable (botón junto a la ruta) y las etiquetas pasan encima del control cuando el editor baja de 560 px. Las tablas se desplazan dentro de su panel; la página no necesita desplazamiento horizontal. Usa Ventana y Escala en la barra de demostración para compararlo.</p>`,
+ escenarios:()=>`<table><thead><tr><th>Escenario</th><th>Dónde verlo</th><th>Estado</th></tr></thead><tbody>
+  <tr><td>Buscar «SMTP»</td><td>Buscador lateral → Correo electrónico › Servidor</td><td>Contrato existente (búsqueda de grupos, campos y alias)</td></tr>
+  <tr><td>Porcentaje a 0</td><td>Tipos de IVA, o Prorrata en Ejercicios</td><td>Contrato existente; formato español propuesto</td></tr>
+  <tr><td>«domiciliado» en formas de pago</td><td>Filtro de la lista o resultado «Registros» del buscador</td><td>Propuesta: el buscador global también ofrece filtrar registros</td></tr>
+  <tr><td>Cambiar de fila con cambios</td><td>Cualquier colección</td><td>Propuesta de interacción</td></tr>
+  <tr><td>Validación</td><td>Escenario «Validación»</td><td>Contrato existente (Validar); resumen con enlace al primer error propuesto</td></tr>
+  <tr><td>Tipo R1 y catálogo de solo lectura</td><td>Tipos de factura</td><td>Perfil de solo lectura: escenario visual, no permiso verificado</td></tr>
+  <tr><td>Notas de tres párrafos</td><td>Tipos de concepto (copias de demostración y volumen)</td><td>Contrato existente (memo)</td></tr>
+  <tr><td>Empresa → ejercicio → serie</td><td>Series (filtro superior y ayuda «Empresa»); Empresas y Ejercicios (tablas relacionadas)</td><td>Propuesta de extensión padre-hijos</td></tr>
+  <tr><td>Credenciales</td><td>Correo › Autenticación; VeriFactu › Certificado</td><td>Punto de extensión existente; Cambiar/Quitar propuestos</td></tr>
+  <tr><td>Borrado bloqueado</td><td>Formas de pago 10 y 110, empresas con ejercicios, ejercicios con series, series ya numeradas; escenario «Borrado bloqueado»</td><td>Vínculos simulados; la consulta real está pendiente</td></tr>
+  <tr><td>Catálogo protegido</td><td>Estados de factura</td><td>Capacidades del mantenimiento (sin Nuevo, Guardar ni Eliminar)</td></tr>
+  <tr><td>Catálogo vacío y filtro sin coincidencias</td><td>Escenario «Catálogo vacío»; filtro de cualquier lista</td><td>Propuesta</td></tr>
+  <tr><td>Carga y error de carga</td><td>Escenarios homónimos</td><td>Propuesta pendiente de implementación</td></tr>
+  <tr><td>Solo lectura y sin permiso</td><td>Escenarios «Solo lectura» y «Sin permiso de acceso»</td><td>Propuesta; la autorización real la decide el mantenimiento</td></tr>
+  <tr><td>Conflicto de actualización</td><td>Escenario «Conflicto»</td><td>Propuesta pendiente de implementación (control de versión)</td></tr>
+  <tr><td>Error al guardar</td><td>Escenario «Error al guardar»</td><td>Propuesta: conserva valores y selección</td></tr>
+  <tr><td>150 registros</td><td>Tipos de concepto → «Incluir 150 registros sintéticos»</td><td>Datos sintéticos con origen separado</td></tr>
+  </tbody></table>`,
+ hechos:()=>`<div class="cols"><div><h3>Hechos del anexo</h3><ul>
+  <li>11 tablas y 229 campos con tipo y longitud; 47 filas reales de cinco catálogos.</li>
+  <li>El mantenimiento admite registro único y colección; metadatos de texto, memo, entero, decimal, sí/no, fecha y hora, referencia; ruta y secreto como puntos de extensión.</li>
+  <li>Operaciones Cargar, CargarOpciones, Validar, Guardar y Eliminar con permisos declarativos.</li>
+  <li>Formas de pago: solo 8 de 64 columnas tienen valores en la muestra. El resto aparece como «No extraído».</li>
+  <li>Hay formas «Transferencia…» con Transferencia bancaria = No; se conservan.</li>
+  <li>Ubicación de datos es local («Este equipo») y sin Nuevo/Eliminar.</li>
+  <li>Las relaciones Sociedad → Ejercicio → Serie se conocen por contrato de aplicación, no por claves físicas.</li>
+  <li>Activa no indica ejercicio cerrado; no existe EjercicioCerrado.</li>
+  <li>Las descripciones de Estados contienen texto mal codificado en la base.</li></ul></div>
+  <div><h3>Propuestas de la maqueta</h3><ul>
+  <li>Etiquetas, grupos, tamaños y orden de todos los campos. Los de significado dudoso llevan «?».</li>
+  <li>Ámbitos «Compartido», «Por empresa» y «Por ejercicio» (salvo «Este equipo»).</li>
+  <li>Obligatorios: descripción, código y referencias principales; el CIF vacío solo avisa.</li>
+  <li>Opciones visibles para Motor, Seguridad, Autenticación, Formato y Entorno: en la demo se guarda el texto visible porque los códigos reales están por definir.</li>
+  <li>Valores iniciales en altas: Activo/Activa = Sí en IVA, conceptos, formas de pago y ejercicios; el resto de sí/no obligatorios, No; los demás datos, sin valor.</li>
+  <li>Vaciar un texto que admite nulo lo guarda como nulo; un memo vacío existente sigue siendo texto vacío.</li>
+  <li>Números: coma decimal; el punto solo como separador de miles (1.000). Los límites de almacenamiento (por ejemplo 0–255 o hasta 32.767) se validan.</li>
+  <li>Estados de factura: el texto se muestra corregido con la marca «corregido» y el original consultable; el dato no se modifica.</li>
+  <li>Correo: credencial configurada en el perfil de la empresa A y sin credencial en la B (estado visual ficticio).</li>
+  <li>Rango de series: Desde ≤ Hasta como regla de demostración.</li></ul></div></div>`,
+ cobertura:()=>coverageHTML(),
+ editores:()=>`<p>Mismo renderizador que los mantenimientos. La tabla inferior muestra el valor guardado en memoria: compara nulo, 0 y texto vacío.</p>${benchHTML()}`,
+ extensiones:()=>`<ul>
+  <li><b>Navegación padre-hijos</b> (Empresa → Ejercicios → Series): tablas relacionadas de solo consulta y filtro superior en Series. Requiere que el mantenimiento declare la relación.</li>
+  <li><b>Secretos</b>: estado «configurada», Cambiar y Quitar pendientes hasta Guardar. Falta el contrato de almacenamiento protegido.</li>
+  <li><b>Selector de rutas</b> nativo de Windows; la comprobación de existencia no está implementada.</li>
+  <li><b>Acciones del módulo</b> (por ejemplo, elegir certificado y rellenar huella y número de serie): huecos reservados; el editor genérico no las inventa.</li>
+  <li><b>Control de versión</b> para detectar conflictos y combinar cambios.</li>
+  <li><b>Consulta de vínculos</b> antes de eliminar; hoy los vínculos son simulados.</li>
+  <li><b>Catálogos de opciones</b> con códigos reales para Motor, Seguridad, Autenticación, Formato y Entorno.</li>
+  <li><b>Confirmación de cambios sensibles</b> declarada por el mantenimiento (VeriFactu).</li>
+  <li><b>Estados de carga y error</b>, perfil de solo lectura y falta de permiso como respuestas del mantenimiento.</li>
+  <li><b>Búsqueda global en registros</b> además de grupos, campos y alias.</li>
+  <li><b>Tipos de uso</b> de un carácter (Configuración y VeriFactu): convertirlos en opciones cuando se conozcan sus valores.</li></ul>`,
+};
+async function openNotes(tab='sistema'){
+  benchReset();
+  const tabs=[['sistema','Sistema reutilizable'],['escenarios','Escenarios'],['hechos','Hechos y propuestas'],['cobertura','Cobertura'],['editores','Banco de editores'],['extensiones','Extensiones futuras']];
+  await dialog({title:'Notas de entrega · Configuración',size:'xwide',host:'page',
+    body:`<div class="ntabs" role="tablist">${tabs.map(([k,t])=>`<button class="tab" role="tab" data-nt="${k}" aria-selected="${k===tab}">${t}</button>`).join('')}</div><div class="notes" id="notesb"></div>`,
+    buttons:[{sp:1},{t:'Cerrar',v:'x',cls:'primary',esc:true}],
+    onOpen:({ov})=>{ const show=k=>{ $('#notesb',ov).innerHTML=NOTES[k](); for(const b of $$('[data-nt]',ov)) b.setAttribute('aria-selected',b.dataset.nt===k); if(k==='editores'){ for(const c of $$('#bench input[data-indet]',ov)) c.indeterminate=true; for(const t of $$('#bench textarea.long',ov)) autosize(t); benchUpdate(); } };
+      $('.ntabs',ov).addEventListener('click',e=>{ const b=e.target.closest('[data-nt]'); if(b) show(b.dataset.nt); }); show(tab); }});
+}
+
+/* =====================================================================
+   Escenarios, contexto y marco de ventana (barra de demostración)
+   ===================================================================== */
+async function applyScenario(v){
+  if(!(await guard('cambiar de escenario'))){ $('#scn').value=S.scenario; return; }
+  if(S.scenario==='vacio'||v==='vacio'){}
+  S.scenario=v; S.msg=null; S.failed={}; S.conflictDone={}; S.newRec=null; S.errors={}; S.showErr=false;
+  const n=$('#scnnote'); n.textContent=SCN[v].d?`Escenario «${SCN[v].t}»: ${SCN[v].d}`:''; n.classList.toggle('on',!!SCN[v].d);
+  const fp=k=>DB.formaspago.find(r=>r.v.Codigo===k);
+  if(v==='validacion'){ await openProvider('formaspago',{force:true,k:fp(3).k}); S.draft.cur.Descripcion=null; renderEditor(); await save(); }
+  else if(v==='borrado'){ await openProvider('formaspago',{force:true,k:fp(10).k}); deleteRecord(); }
+  else if(v==='conflicto'){ await openProvider('formaspago',{force:true,k:fp(133).k}); S.draft.cur.Descripcion='Transferencia Santander (cuenta principal)'; renderEditor(); S.msg={k:'',t:'Cambio preparado: pulsa Guardar para ver el conflicto.'}; updateStatus(); }
+  else if(v==='sinAcceso') await openProvider('correo',{force:true});
+  else if(v==='vacio') await openProvider(S.pid&&PBY[S.pid].card==='list'?S.pid:'iva',{force:true});
+  else if(v==='errorGuardar'){ await openProvider(S.pid==='local'?'local':'iva',{force:true}); S.msg={k:'',t:'Modifica un dato y pulsa Guardar para ver el fallo.'}; updateStatus(); }
+  else await openProvider(S.pid||'formaspago',{force:true,k:S.sel});
+}
+async function changeContext(val){
+  const [emp,ej]=val.split('|');
+  if(!(await guard('cambiar la empresa o el ejercicio de trabajo'))){ $('#ctxsel').value=`${S.ctx.emp}|${S.ctx.ej}`; return; }
+  S.ctx={emp,ej:Number(ej)}; S.pf={emp,ej:Number(ej)}; S.pfNote=null;
+  renderCtx(); await openProvider(S.pid,{force:true});
+  toast(`Contexto de trabajo: ${refText('ej',S.ctx.ej)}.`);
+}
+function renderCtx(){ $('#ctxtext').innerHTML=`<b>${esc(refText('soc',S.ctx.emp))}</b> · Ejercicio <b>${esc(DB.ejercicios.find(x=>x.v.IdSociedadEjercicio===S.ctx.ej)?.v.Ejercicio||'')}</b>`; }
+async function resetDemo(){
+  const v=await dialog({title:'¿Restablecer la demostración?',body:'<p>Se vuelven a cargar los datos de ejemplo y se pierden todos los cambios hechos en memoria, incluidos los guardados.</p>',buttons:[{t:'Restablecer',v:'ok',cls:'primary'},{sp:1},{t:'Cancelar',v:'no',esc:true}]});
+  if(v!=='ok') return;
+  DB=seedDB(); Object.assign(S,{draft:null,newRec:null,sel:null,errors:{},showErr:false,msg:null,failed:{},filter:{},sort:{},lastSel:{},scenario:'normal',vol:false,pf:null,conflictDone:{},gq:''});
+  $('#scn').value='normal'; $('#scnnote').classList.remove('on'); $('#gq').value=''; $('#gqclr').hidden=true;
+  S.pid=null; await openProvider('formaspago',{force:true}); toast('Demostración restablecida.');
+}
+async function closeTab(){
+  if(!(await guard('cerrar la pestaña Configuración'))) return;
+  toast('La pestaña se cerraría ahora (simulado). Puedes seguir usando la demostración.');
+}
+function sizeFrame(){
+  const st=$('#stage'), fr=frameEl(); const s=S.frame.scale;
+  let W,H;
+  if(S.frame.size==='fit'){ W=st.clientWidth-32; H=st.clientHeight-24; }
+  else { [W,H]=S.frame.size.split('x').map(Number); W=W-(W>=1400?236:56); H=H-100; /* área de trabajo: se restan el lateral (236 px desplegado, 56 px plegado bajo 1400) y cabecera, pestañas y barra de estado del contenedor (100 px) */ }
+  const cap=$('#areacap'); if(cap) cap.textContent=S.frame.size==='fit'?'':`Área de trabajo ${Math.round(W)} × ${Math.round(H)} px${s!==1?` · ${Math.round(W/s)} × ${Math.round(H/s)} lógicos`:''}`;
+  fr.style.zoom=s; fr.style.width=Math.max(320,W)/s+'px'; fr.style.height=Math.max(360,H)/s+'px';
+  fr.classList.toggle('fixed',S.frame.size!=='fit');
+  const p=P(); if(p&&p.card==='list'&&!S.mode[p.id]){ const sp=$('#split'); if(sp){ const want=layoutMode(p)==='stack'; if(sp.classList.contains('stack')!==want){ sp.classList.toggle('stack',want); const b=$('[data-act="mode"]'); if(b) b.innerHTML=want?I.side:I.stack; } } }
+}
+
+/* =====================================================================
+   Eventos
+   ===================================================================== */
+function startDrag(e){
+  const sp=$('#split'), p=P(); if(!sp) return; e.preventDefault();
+  const g=$('#gutter'); g.setPointerCapture(e.pointerId);
+  const stack=sp.classList.contains('stack'), s=scale();
+  const mv=ev=>{ const r=sp.getBoundingClientRect();
+    if(stack){ const h=Math.min(Math.max((ev.clientY-r.top)/s,110),r.height/s-160); sp.style.setProperty('--listh',h+'px'); S.listh[p.id]=h+'px'; }
+    else { const w=Math.min(Math.max((ev.clientX-r.left)/s,240),r.width/s-300); sp.style.setProperty('--listw',w+'px'); S.listw[p.id]=w; } };
+  const up=()=>{ g.removeEventListener('pointermove',mv); g.removeEventListener('pointerup',up); };
+  g.addEventListener('pointermove',mv); g.addEventListener('pointerup',up);
+}
+function nudgeSplit(dx){
+  const sp=$('#split'), p=P(); if(!sp) return; const s=scale(); const r=sp.getBoundingClientRect();
+  if(sp.classList.contains('stack')){ const cur=$('.listp',sp).getBoundingClientRect().height/s; const h=Math.min(Math.max(cur+dx,110),r.height/s-160); sp.style.setProperty('--listh',h+'px'); S.listh[p.id]=h+'px'; }
+  else { const cur=$('.listp',sp).getBoundingClientRect().width/s; const w=Math.min(Math.max(cur+dx,240),r.width/s-300); sp.style.setProperty('--listw',w+'px'); S.listw[p.id]=w; }
+}
+async function moveSel(dir){
+  const p=P(); const rows=visibleRows(p); if(!rows.length) return;
+  let i=rows.findIndex(r=>r.k===S.sel); i=i<0?0:Math.min(rows.length-1,Math.max(0,i+dir));
+  await selectRecord(rows[i].k); const tw=$('#tw'); if(tw) tw.focus();
+}
+document.addEventListener('click',async e=>{
+  const tr=e.target.closest('#tb tr[data-k]'); if(tr&&!e.target.closest('button')){ selectRecord(tr.dataset.k); return; }
+  const a=e.target.closest('[data-act]'); if(!a) return;
+  const act=a.dataset.act;
+  switch(act){
+    case 'open': openProvider(a.dataset.id); break;
+    case 'cat': { const k='cat:'+a.dataset.id; S.closed[k]=!S.closed[k]; renderNav(); break; }
+    case 'navtoggle': S.navOpen=!S.navOpen; frameEl().classList.toggle('navopen',S.navOpen); if(S.navOpen) $('#gq').focus(); break;
+    case 'gores': activateResult(a); break;
+    case 'sort': { const p=P(); const so=S.sort[p.id]; S.sort[p.id]=so&&so.n===a.dataset.n?{n:so.n,dir:-so.dir}:{n:a.dataset.n,dir:1}; refreshTable(); break; }
+    case 'new': newRecord(); break;
+    case 'del': deleteRecord(); break;
+    case 'save': save(); break;
+    case 'cancel': cancelChanges(); break;
+    case 'showchg': dialog({title:'Cambios sin guardar',body:changesTable(changes(S.draft)),buttons:[{t:'Cerrar',v:'x',cls:'primary',esc:true}],size:'wide'}); break;
+    case 'lqclear': { const p=P(); S.filter[p.id]=''; const lq=$('#lq'); if(lq){ lq.value=''; lq.focus(); } $('[data-act="lqclear"]').hidden=true; refreshTable(); break; }
+    case 'pfclear': { const ok=await guard('quitar el filtro'); if(!ok) return; S.pf={emp:'',ej:''}; renderMain(); break; }
+    case 'mode': { const p=P(); S.mode[p.id]=layoutMode(p)==='stack'?'side':'stack'; renderMain(); break; }
+    case 'tab': { const p=P(); S.tab[p.id]=a.dataset.g; for(const t of $$('#edp .tab')) t.setAttribute('aria-selected',t===a); for(const pn of $$('#edp [role="tabpanel"]')) pn.hidden=pn.id!=='pn-'+a.dataset.g; $('#escroll').scrollTop=0; break; }
+    case 'sec': { const p=P(); const s=a.closest('.sec'); const cl=s.classList.toggle('closed'); S.closed[p.id+':'+a.dataset.g]=cl; a.setAttribute('aria-expanded',!cl); break; }
+    case 'ref': openRef(a); break;
+    case 'browse': browse(a); break;
+    case 'secset': secretSet(a); break;
+    case 'secdel': secretDel(a); break;
+    case 'secundo': secretUndo(a); break;
+    case 'memosize': { const t=$(`#in-${cssid(a.dataset.n)}`,a.closest('.f')); const big=t.classList.toggle('big'); a.textContent=big?'Reducir':'Ampliar'; break; }
+    case 'moj': { const box=$('[data-moj]',a.closest('.fc')); box.hidden=!box.hidden; a.textContent=box.hidden?'Ver texto original':'Ocultar texto original'; break; }
+    case 'firsterr': goFirstError(); break;
+    case 'goerr': revealField(a.dataset.n,true); break;
+    case 'goto': openProvider(a.dataset.p,{k:a.dataset.k,pf:a.dataset.p==='series'?{emp:'',ej:''}:undefined}); break;
+    case 'endload': case 'retry': { $('#scn').value='normal'; S.scenario='normal'; $('#scnnote').classList.remove('on'); await openProvider(S.pid,{force:true}); toast(act==='retry'?'Datos cargados.':'Carga terminada.'); break; }
+  }
+});
+document.addEventListener('keydown',e=>{
+  if(e.target.matches&&e.target.matches('.firsterr,[data-act="goerr"],[data-act="firsterr"]')&&e.key==='Enter'){ e.target.click(); return; }
+  if((e.ctrlKey||e.metaKey)&&(e.key==='g'||e.key==='G'||e.key==='s'||e.key==='S')){ if($('.ovl')) return; e.preventDefault(); if(isDirty()) save(); return; }
+  if((e.ctrlKey||e.metaKey)&&(e.key==='k'||e.key==='K')){ e.preventDefault(); if(frameEl().clientWidth<900){S.navOpen=true;frameEl().classList.add('navopen');} $('#gq').focus(); $('#gq').select(); return; }
+  if(e.key==='Escape'&&POP){ closePop(); return; }
+  if(e.target.id==='tw'){
+    if(e.key==='ArrowDown'){ e.preventDefault(); moveSel(1); }
+    else if(e.key==='ArrowUp'){ e.preventDefault(); moveSel(-1); }
+    else if(e.key==='Enter'){ e.preventDefault(); const i=$('#edp .f:not(.ro) input,#edp .f:not(.ro) textarea,#edp .f:not(.ro) select,#edp .f:not(.ro) .combo'); if(i) i.focus(); }
+  }
+  if(e.target.id==='gutter'){
+    const st=$('#split').classList.contains('stack');
+    if((!st&&e.key==='ArrowLeft')||(st&&e.key==='ArrowUp')){ e.preventDefault(); nudgeSplit(-24); }
+    if((!st&&e.key==='ArrowRight')||(st&&e.key==='ArrowDown')){ e.preventDefault(); nudgeSplit(24); }
+  }
+  if(e.target.id==='gq'){
+    const items=$$('#navbody .ritem');
+    if(e.key==='ArrowDown'){ e.preventDefault(); S.gkb=Math.min(items.length-1,S.gkb+1); items.forEach((x,i)=>x.classList.toggle('kb',i===S.gkb)); items[S.gkb]&&items[S.gkb].scrollIntoView({block:'nearest'}); }
+    else if(e.key==='ArrowUp'){ e.preventDefault(); S.gkb=Math.max(0,S.gkb-1); items.forEach((x,i)=>x.classList.toggle('kb',i===S.gkb)); items[S.gkb]&&items[S.gkb].scrollIntoView({block:'nearest'}); }
+    else if(e.key==='Enter'){ e.preventDefault(); const b=items[S.gkb<0?0:S.gkb]; if(b) activateResult(b); }
+    else if(e.key==='Escape'){ e.preventDefault(); clearGlobal(); }
+  }
+});
+function clearGlobal(){ S.gq=''; S.gkb=-1; $('#gq').value=''; $('#gqclr').hidden=true; renderNav(); }
+document.addEventListener('input',e=>{
+  if(e.target.id==='gq'){ S.gq=e.target.value; S.gkb=-1; $('#gqclr').hidden=!S.gq; renderNav(); return; }
+  if(e.target.id==='lq'){ const p=P(); S.filter[p.id]=e.target.value; $('[data-act="lqclear"]').hidden=!e.target.value; refreshTable(); return; }
+  onFieldInput(e);
+});
+document.addEventListener('change',async e=>{
+  const t=e.target;
+  if(t.id==='scn'){ applyScenario(t.value); return; }
+  if(t.id==='ctxsel'){ changeContext(t.value); return; }
+  if(t.id==='volchk'){ if(!(await guard('cambiar el origen de los datos'))){ t.checked=S.vol; return; } S.vol=t.checked; await openProvider('conceptos',{force:true}); return; }
+  if(t.id==='pf-emp'||t.id==='pf-ej'){
+    const prev=clone(S.pf||{emp:'',ej:''}); const next=clone(prev);
+    if(t.id==='pf-emp'){ next.emp=t.value; S.pfNote=null; if(next.ej&&next.emp&&ejEmp(Number(next.ej))!==next.emp){ S.pfNote=`Se ha quitado el ejercicio «${refText('ej',Number(next.ej))}» del filtro porque pertenece a otra empresa.`; next.ej=''; } }
+    else { next.ej=t.value?Number(t.value):''; if(next.ej) next.emp=ejEmp(next.ej); S.pfNote=null; }
+    const p=P(); const curVisible=()=>{ const keep=S.pf; S.pf=next; const ok=!S.sel||visibleRows(p).some(r=>r.k===S.sel); S.pf=keep; return ok; };
+    if(!curVisible()&&!(await guard('cambiar el filtro de empresa y ejercicio'))){ renderMain(); return; }
+    S.pf=next; await openProvider(p.id,{force:true,k:S.draft&&S.draft.isNew?null:S.sel}); return;
+  }
+  onFieldInput(e);
+});
+document.addEventListener('focusout',onFieldBlur);
+document.addEventListener('pointerdown',e=>{ if(e.target.id==='gutter') startDrag(e); });
+window.addEventListener('beforeunload',e=>{ if(isDirty()){ e.preventDefault(); e.returnValue=''; } });
+window.addEventListener('resize',sizeFrame);
+
+/* =====================================================================
+   Arranque
+   ===================================================================== */
+function init(){
+  $('#scn').innerHTML=Object.entries(SCN).map(([k,v])=>`<option value="${k}">${v.t}</option>`).join('');
+  $('#ctxsel').innerHTML=CTXS.map(c=>`<option value="${c.emp}|${c.ej}" ${c.emp===S.ctx.emp&&c.ej===S.ctx.ej?'selected':''}>${esc(refText('ej',c.ej))}</option>`).join('');
+  $('#gqclr').addEventListener('click',()=>{ clearGlobal(); $('#gq').focus(); });
+  for(const b of $$('[data-size]')) b.addEventListener('click',()=>{ S.frame.size=b.dataset.size; for(const x of $$('[data-size]')) x.setAttribute('aria-pressed',x===b); sizeFrame(); });
+  for(const b of $$('[data-scale]')) b.addEventListener('click',()=>{ S.frame.scale=Number(b.dataset.scale); for(const x of $$('[data-scale]')) x.setAttribute('aria-pressed',x===b); sizeFrame(); renderMain(); });
+  $('#btnreset').addEventListener('click',resetDemo);
+  $('#btnnotes').addEventListener('click',()=>openNotes());
+  $('#btnclose').addEventListener('click',closeTab);
+  renderCtx(); sizeFrame();
+  openProvider('formaspago',{force:true});
+  new ResizeObserver(()=>sizeFrame()).observe($('#stage'));
+}
+init();
+
+</script>
+</body>
+</html>

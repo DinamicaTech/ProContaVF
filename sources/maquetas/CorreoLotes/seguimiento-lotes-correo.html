@@ -1,0 +1,1305 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Seguimiento de lotes de correo · ProConta</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --navy:#14213A; --navy2:#1E2E4D; --navy3:#2B3D60; --orange:#F4A259; --orange-d:#C8562A; --orange-bg:#FFF3E6;
+  --bg:#F1EEE7; --card:#FFFFFF; --soft:#FBFAF7; --line:#E6E1D5; --line2:#ECE8DE; --hover:#F6F3EC;
+  --text:#16213A; --muted:#646A78; --muted2:#7A8090;
+  --blue:#1D5C8C; --blue-bg:#E3ECF6; --green:#1E6B45; --green-bg:#E2F0E8;
+  --red:#B42318; --red-bg:#FCEBE9; --amber:#9A4A12; --amber-bg:#FFF1E2;
+  --violet:#5B3F86; --violet-bg:#ECE6F3; --pend:#4A5163; --pend-bg:#EEF0F4; --grey:#6E7482; --grey-bg:#EFEDE8;
+  --sel:#FFF6EC; --active:#E3ECF6;
+  --row:26px; --mono:'IBM Plex Mono',ui-monospace,Consolas,monospace;
+  --focus:0 0 0 2px #fff,0 0 0 4px var(--orange-d);
+}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{font:13px/1.4 'IBM Plex Sans','Segoe UI',system-ui,sans-serif;color:var(--text);background:#DCD7CC;display:flex;flex-direction:column;overflow:hidden}
+button,input,select{font:inherit;color:inherit}
+:focus{outline:none}
+:focus-visible{box-shadow:var(--focus);border-radius:3px}
+.mono{font-family:var(--mono);font-size:12px}
+.muted{color:var(--muted)}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+
+/* ---------- barra de controles de la maqueta ---------- */
+#demo{flex:none;display:flex;flex-wrap:wrap;align-items:center;gap:6px 14px;padding:6px 14px;background:repeating-linear-gradient(135deg,#2a2f3a 0 10px,#2f3541 10px 20px);color:#E8E6E1;font-size:12px;border-bottom:2px dashed var(--orange)}
+#demo .tag{background:var(--orange);color:var(--navy);font-weight:600;padding:1px 7px;border-radius:3px;letter-spacing:.02em}
+#demo label{display:inline-flex;align-items:center;gap:5px;white-space:nowrap}
+#demo select,#demo button{background:#3B4252;border:1px solid #586074;border-radius:3px;color:#fff;padding:2px 8px;height:24px;cursor:pointer}
+#demo button:hover{background:#4A5266}
+#demo button[aria-pressed=true]{background:var(--orange);color:var(--navy);border-color:var(--orange)}
+#demo .grp{display:inline-flex;align-items:center;gap:6px}
+#demo .sep{width:1px;height:18px;background:#586074}
+#demo input[type=checkbox]{accent-color:var(--orange)}
+
+/* ---------- marco (simula el área de trabajo del contenedor) ---------- */
+#frame{flex:1;min-height:0;display:flex;justify-content:center;padding:10px;overflow:hidden}
+#app{flex:1;min-width:0;max-width:none;display:flex;flex-direction:column;background:var(--bg);border-radius:6px;overflow:hidden;box-shadow:0 1px 3px rgba(20,33,58,.25)}
+#frame.w1280 #app{max-width:1280px} #frame.w1440 #app{max-width:1440px} #frame.w1024 #app{max-width:1024px}
+.ctx{flex:none;height:22px;display:flex;align-items:center;gap:8px;padding:0 12px;font-size:11px;color:var(--muted);background:#E9E5DB;border-bottom:1px solid var(--line)}
+.ctx b{color:var(--text);font-weight:500}
+
+/* ---------- cabecera del lote ---------- */
+#hdr{flex:none;background:var(--navy);color:#fff;padding:8px 14px 9px;display:flex;gap:16px;align-items:flex-start}
+#hdr .ttl{min-width:0;flex:1}
+#hdr h1{margin:0;font:600 17px/1.25 'Bricolage Grotesque','IBM Plex Sans',sans-serif;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+#hdr .meta{display:flex;flex-wrap:wrap;gap:2px 16px;margin-top:3px;font-size:12px;color:#C3CADA}
+#hdr .meta b{color:#fff;font-weight:500}
+#hdr .keep{margin-top:4px;font-size:11.5px;color:#AEB8CC;display:flex;align-items:center;gap:6px}
+.lotstate{font:600 11.5px/1 'IBM Plex Sans','Segoe UI',system-ui,sans-serif;padding:4px 8px;border-radius:10px;display:inline-flex;align-items:center;gap:5px;white-space:nowrap}
+.lotstate.run{background:#2B4C74;color:#DCEBFA}
+.lotstate.done{background:#2E4A3C;color:#DDF1E5}
+.lotstate.warn{background:#5A3A1C;color:#FFE3C4}
+.lotstate.prep{background:#3A4152;color:#E2E5EC}
+.lotstate.pause{background:#4B3D63;color:#ECE3FA}
+#hdr .hact{display:flex;gap:6px;align-items:center;flex:none;padding-top:2px}
+.hbtn{height:28px;padding:0 10px;border-radius:4px;border:1px solid #3D5079;background:var(--navy2);color:#fff;cursor:pointer;display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+.hbtn:hover:not(:disabled){background:var(--navy3)}
+.hbtn:disabled{opacity:.5;cursor:default}
+.hbtn.proposal{border-style:dashed;border-color:#8A97B5}
+.ptag{font-size:10px;font-weight:600;letter-spacing:.03em;text-transform:uppercase;background:#3B4A6C;color:#D7DEEE;padding:1px 5px;border-radius:3px}
+
+/* menú */
+.menu{position:absolute;z-index:40;background:#fff;color:var(--text);border:1px solid var(--line);border-radius:5px;box-shadow:0 6px 24px rgba(20,33,58,.22);padding:4px;min-width:340px}
+.menu .mh{font-size:11px;color:var(--muted);padding:6px 10px 4px;text-transform:uppercase;letter-spacing:.04em}
+.menu button{display:flex;width:100%;text-align:left;align-items:flex-start;gap:8px;padding:6px 10px;border:0;background:none;border-radius:3px;cursor:pointer}
+.menu button:hover:not(:disabled),.menu button:focus-visible{background:var(--hover)}
+.menu button:disabled{color:var(--muted2);cursor:default}
+.menu button small{display:block;color:var(--muted);font-size:11.5px}
+.menu hr{border:0;border-top:1px solid var(--line2);margin:4px 0}
+.menu .cnt{margin-left:auto;font-family:var(--mono);font-size:11.5px;color:var(--muted)}
+
+/* ---------- resumen ---------- */
+#sum{flex:none;background:var(--card);border-bottom:1px solid var(--line);padding:8px 14px 8px;display:flex;flex-direction:column;gap:6px}
+.chips{display:flex;flex-wrap:wrap;gap:4px}
+.chip{display:inline-flex;align-items:center;gap:6px;height:26px;padding:0 9px 0 7px;border:1px solid var(--line);border-radius:13px;background:var(--soft);cursor:pointer;white-space:nowrap}
+.chip:hover{border-color:#CFC8B8}
+.chip .n{font-family:var(--mono);font-weight:500;font-size:12.5px}
+.chip[aria-pressed=true]{border-color:var(--navy);background:#fff;box-shadow:inset 0 0 0 1px var(--navy)}
+.chip.total{cursor:default;background:#fff}
+.chip .sw{width:10px;height:10px;border-radius:2px;flex:none}
+.chip[disabled]{opacity:.55;cursor:default}
+.progress{display:flex;align-items:center;gap:12px}
+.bar{flex:1;min-width:160px;max-width:720px;height:10px;border-radius:5px;background:var(--line2);display:flex;overflow:hidden;box-shadow:inset 0 0 0 1px rgba(0,0,0,.04)}
+.bar span{height:100%;transition:width .4s}
+.pcap{font-size:12px;color:var(--muted)}
+.pcap b{color:var(--text);font-weight:600}
+.pcap .warn{color:var(--amber);font-weight:600}
+.dsn{font-size:12px;color:var(--muted);display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+.dsn .chip{height:22px}
+
+/* colores de estado */
+.s-pendiente{--c:var(--pend);--cb:var(--pend-bg)}
+.s-proceso{--c:var(--violet);--cb:var(--violet-bg)}
+.s-aceptado{--c:var(--blue);--cb:var(--blue-bg)}
+.s-fallido{--c:var(--red);--cb:var(--red-bg)}
+.s-incierto{--c:var(--amber);--cb:var(--amber-bg)}
+.s-cancelado{--c:var(--grey);--cb:var(--grey-bg)}
+.s-entregado{--c:var(--green);--cb:var(--green-bg)}
+.s-rebotado{--c:var(--red);--cb:var(--red-bg)}
+.sw.fill{background:var(--c)}
+.seg-proceso{background:repeating-linear-gradient(45deg,#7D64A6 0 4px,#9C86C2 4px 8px)}
+.seg-incierto{background:repeating-linear-gradient(45deg,#B8661F 0 3px,#E0A060 3px 6px)}
+.ico{width:14px;height:14px;flex:none;display:inline-block;vertical-align:-2px}
+
+/* ---------- barra de herramientas de la tabla ---------- */
+#tools{flex:none;display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;padding:7px 14px;background:var(--card);border-bottom:1px solid var(--line)}
+.search{position:relative;display:inline-flex;align-items:center}
+.search input{width:300px;height:28px;border:1px solid #CFC8B8;border-radius:4px;padding:0 26px 0 28px;background:#fff}
+.search svg{position:absolute;left:8px;color:var(--muted)}
+.search .x{position:absolute;right:3px;border:0;background:none;width:22px;height:22px;cursor:pointer;color:var(--muted);border-radius:3px}
+.btn{height:28px;padding:0 10px;border:1px solid #CFC8B8;border-radius:4px;background:#fff;cursor:pointer;display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+.btn:hover:not(:disabled){background:var(--hover)}
+.btn:disabled{color:#A3A7B0;cursor:default;background:#FAF9F6}
+.btn.primary{background:var(--navy);border-color:var(--navy);color:#fff}
+.btn.primary:hover:not(:disabled){background:var(--navy3)}
+.btn.primary:disabled{background:#8D96A8;border-color:#8D96A8;color:#EEF0F4}
+.btn.warnb{border-color:#E4B48A;background:var(--orange-bg)}
+.btn.danger{border-color:#E3B3AE}
+.btn .k{font-family:var(--mono);font-size:11px;background:var(--line2);padding:0 5px;border-radius:3px;color:var(--text)}
+.btn:disabled .k{color:#A3A7B0}
+.counts{font-size:12px;color:var(--muted);white-space:nowrap}
+.counts b{color:var(--text);font-weight:600}
+.spacer{flex:1}
+.selbar{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.scope{font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);font-weight:600;margin-right:2px}
+.vsep{width:1px;height:20px;background:var(--line)}
+
+/* avisos en línea */
+.notice{flex:none;display:flex;align-items:center;gap:10px;padding:5px 14px;font-size:12.5px;border-bottom:1px solid var(--line)}
+.notice.info{background:#EEF4FA;color:#1A3F60}
+.notice.sel{background:var(--sel);color:#6B3510}
+.notice button.link{border:0;background:none;color:var(--blue);text-decoration:underline;cursor:pointer;padding:0 2px;font-weight:500}
+.notice.sel button.link{color:#8A4410}
+
+/* ---------- área principal ---------- */
+#main{flex:1;min-height:0;display:flex;position:relative}
+#tablewrap{flex:1;min-width:0;overflow:auto;background:var(--card);position:relative}
+#tablewrap:focus-visible{box-shadow:inset 0 0 0 2px var(--orange-d);border-radius:0}
+table{border-collapse:separate;border-spacing:0;width:100%;min-width:1420px;table-layout:fixed}
+thead th{position:sticky;top:0;z-index:2;background:#F4F1EA;border-bottom:1px solid #D9D3C5;height:30px;font-weight:600;font-size:12px;text-align:left;padding:0 8px;white-space:nowrap;color:#3A4152}
+thead th button.sort{border:0;background:none;font-weight:600;cursor:pointer;padding:3px 2px;display:inline-flex;align-items:center;gap:3px;color:inherit}
+thead th button.sort:hover{color:var(--blue)}
+thead th .ar{font-size:10px;color:var(--orange-d);width:8px}
+tbody td{height:var(--row);padding:0 8px;border-bottom:1px solid var(--line2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:12.5px}
+tbody tr{cursor:default;user-select:none}
+tbody tr:hover td{background:var(--hover)}
+tbody tr.sel td{background:var(--sel)}
+tbody tr.active td{background:var(--active)}
+tbody tr.active td:first-child{box-shadow:inset 3px 0 0 var(--blue)}
+tbody tr.active.sel td{background:#E9E6EC}
+#tablewrap:focus tr.active td{box-shadow:inset 0 1px 0 var(--blue),inset 0 -1px 0 var(--blue)}
+#tablewrap:focus tr.active td:first-child{box-shadow:inset 3px 0 0 var(--blue),inset 0 1px 0 var(--blue),inset 0 -1px 0 var(--blue)}
+tbody tr.stale td{color:#9196A2}
+tbody tr.stale td.c-res::after{content:'· ya no coincide con el filtro';margin-left:6px;font-size:11px;color:var(--amber)}
+tbody tr.flash td{animation:flash 1.2s ease-out}
+@keyframes flash{0%{background:#FFE7C7}100%{}}
+td.c-chk,th.c-chk{width:34px;padding:0 0 0 10px;text-align:left}
+input[type=checkbox]{width:14px;height:14px;accent-color:var(--navy);margin:0;vertical-align:-2px;cursor:pointer}
+th.c-n{width:50px} th.c-est{width:198px} th.c-dest{width:232px} th.c-asu{width:auto} th.c-org{width:132px}
+th.c-adj{width:46px} th.c-int{width:48px} th.c-ult{width:118px} th.c-res{width:290px}
+td.c-n{font-family:var(--mono);font-size:11.5px;color:var(--muted)}
+td.c-adj,td.c-int,th.c-adj,th.c-int{text-align:right}
+td.c-adj,td.c-int{font-family:var(--mono);font-size:12px}
+td.c-ult{font-family:var(--mono);font-size:11.5px}
+.st{display:inline-flex;align-items:center;gap:5px;padding:1px 7px 1px 5px;border-radius:3px;background:var(--cb);color:var(--c);font-weight:500;font-size:12px;line-height:18px;max-width:100%}
+.st .ico{width:13px;height:13px}
+.op{font-size:11px;color:var(--violet);margin-left:4px}
+.dest{display:flex;align-items:center;gap:5px;min-width:0}
+.dest .em{overflow:hidden;text-overflow:ellipsis}
+.more{flex:none;font-size:11px;font-family:var(--mono);background:var(--line2);border:1px solid var(--line);border-radius:8px;padding:0 5px;line-height:15px;cursor:help}
+.org{color:var(--blue)}
+.res-err{color:var(--red)} .res-unc{color:var(--amber)}
+.res-dsn{margin-left:6px}
+.spin{animation:spin 1.6s linear infinite;transform-origin:50% 50%}
+@keyframes spin{to{transform:rotate(360deg)}}
+.empty{padding:48px 24px;text-align:center;color:var(--muted)}
+.empty h3{color:var(--text);font:600 15px 'Bricolage Grotesque',sans-serif;margin:8px 0 4px}
+
+/* ---------- detalle ---------- */
+#detail{flex:none;width:450px;border-left:1px solid var(--line);background:var(--soft);display:flex;flex-direction:column;min-height:0}
+#detail[hidden]{display:none}
+.dhead{flex:none;padding:8px 12px;background:#fff;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:8px}
+.dhead h2{margin:0;font:600 14px 'Bricolage Grotesque',sans-serif;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ibtn{width:28px;height:28px;border:1px solid transparent;border-radius:4px;background:none;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;color:var(--muted)}
+.ibtn:hover:not(:disabled){background:var(--hover);border-color:var(--line)}
+.ibtn:disabled{opacity:.35;cursor:default}
+.dbody{flex:1;overflow:auto;padding:10px 12px 18px}
+.dsec{background:#fff;border:1px solid var(--line);border-radius:5px;margin-bottom:10px}
+.dsec>h3{margin:0;padding:7px 10px;font-size:11.5px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);border-bottom:1px solid var(--line2);display:flex;align-items:center;gap:8px}
+.dsec>h3 .r{margin-left:auto;text-transform:none;letter-spacing:0;font-weight:400}
+.dsec .in{padding:8px 10px}
+dl.kv{display:grid;grid-template-columns:92px 1fr;gap:4px 10px;margin:0}
+dl.kv dt{color:var(--muted)} dl.kv dd{margin:0;min-width:0;word-break:break-word}
+.addr{display:inline-block;background:var(--soft);border:1px solid var(--line2);border-radius:3px;padding:0 5px;margin:0 3px 3px 0;font-size:12px}
+.body{white-space:pre-wrap;background:var(--soft);border:1px solid var(--line2);border-radius:4px;padding:8px 10px;font-size:12.5px;max-height:220px;overflow:auto}
+.histnote{font-size:11.5px;color:var(--muted);margin-top:6px;display:flex;gap:6px}
+.callout{border-radius:5px;padding:9px 11px;margin-bottom:10px;border:1px solid}
+.callout.err{background:var(--red-bg);border-color:#EDC2BD}
+.callout.unc{background:var(--amber-bg);border-color:#EBC9A5}
+.callout.ok{background:var(--blue-bg);border-color:#BFD2E6}
+.callout.neu{background:#fff;border-color:var(--line)}
+.callout h4{margin:0 0 3px;font-size:13px;display:flex;align-items:center;gap:6px}
+.callout p{margin:3px 0}
+.callout .what{font-size:12.5px}
+details.tech{margin-top:6px}
+details.tech summary{cursor:pointer;font-size:12px;color:var(--blue)}
+details.tech pre{font-family:var(--mono);font-size:11px;background:#1B2335;color:#DDE3EE;border-radius:4px;padding:8px;white-space:pre-wrap;word-break:break-all;margin:6px 0 4px;max-height:200px;overflow:auto}
+.dacts{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-bottom:10px}
+.att{display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--line2)}
+.att:last-child{border-bottom:0}
+.att .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.att .sz{font-family:var(--mono);font-size:11.5px;color:var(--muted)}
+.att.na .nm{color:var(--red);text-decoration:line-through}
+.tl{list-style:none;margin:0;padding:0}
+.tl li{display:grid;grid-template-columns:118px 1fr;gap:8px;padding:5px 0;border-bottom:1px dashed var(--line2);font-size:12.5px}
+.tl li:last-child{border-bottom:0}
+.tl .t{font-family:var(--mono);font-size:11.5px;color:var(--muted)}
+.tl .att-n{font-weight:600}
+.tl .sub{color:var(--muted);font-size:11.5px}
+.link{color:var(--blue);background:none;border:0;padding:0;cursor:pointer;text-decoration:underline}
+
+/* ---------- diálogos ---------- */
+.backdrop{position:fixed;inset:0;background:rgba(20,33,58,.38);display:flex;align-items:center;justify-content:center;z-index:60;padding:16px}
+.dlg{background:#fff;border-radius:6px;box-shadow:0 12px 40px rgba(0,0,0,.3);width:560px;max-width:100%;max-height:calc(100vh - 32px);display:flex;flex-direction:column}
+.dlg.wide{width:760px}
+.dlg header{padding:12px 16px 8px;border-bottom:1px solid var(--line2)}
+.dlg header h2{margin:0;font:600 16px 'Bricolage Grotesque',sans-serif}
+.dlg header p{margin:3px 0 0;color:var(--muted);font-size:12.5px}
+.dlg .content{padding:12px 16px;overflow:auto}
+.dlg footer{padding:10px 16px;border-top:1px solid var(--line2);display:flex;gap:8px;align-items:center}
+.dlg footer .note{font-size:11.5px;color:var(--muted);margin-left:auto;text-align:right}
+.box{border:1px solid var(--line);border-radius:5px;padding:8px 10px;margin-bottom:8px}
+.box.ok{border-color:#BFD2E6;background:#F5F9FD}
+.box.ex{background:var(--soft)}
+.box.wn{border-color:#EBC9A5;background:var(--amber-bg)}
+.box h4{margin:0 0 4px;font-size:13px;display:flex;align-items:center;gap:6px}
+.box h4 .n{font-family:var(--mono)}
+.box ul{margin:2px 0 0;padding-left:18px}
+.box li{margin:2px 0}
+.ids{font-family:var(--mono);font-size:11.5px;color:var(--muted)}
+.ack{display:flex;gap:8px;align-items:flex-start;margin-top:8px;padding:8px;border-radius:4px;background:#FFF8EF;border:1px solid #F0D5B5}
+.preview{background:#E7E3DA;padding:16px;display:flex;justify-content:center}
+.page{background:#fff;width:420px;min-height:520px;box-shadow:0 2px 8px rgba(0,0,0,.18);padding:28px 30px;font-size:11px}
+.page h5{font:600 16px 'Bricolage Grotesque',sans-serif;margin:0 0 2px;color:var(--navy)}
+.page table{min-width:0;width:100%;margin-top:14px;table-layout:auto}
+.page td,.page th{border-bottom:1px solid #eee;padding:4px;font-size:11px;position:static;background:none;height:auto}
+.wm{color:#aaa;font-size:10px;text-transform:uppercase;letter-spacing:.1em;text-align:center;margin-top:30px}
+
+/* ---------- tooltips y toasts ---------- */
+#tip{position:fixed;z-index:90;max-width:360px;background:#1B2335;color:#F0F2F6;font-size:12px;line-height:1.4;padding:6px 9px;border-radius:4px;pointer-events:none;box-shadow:0 4px 14px rgba(0,0,0,.25);white-space:pre-line}
+#tip[hidden]{display:none}
+#toasts{position:fixed;right:16px;bottom:16px;z-index:80;display:flex;flex-direction:column;gap:6px;align-items:flex-end}
+.toast{background:var(--navy);color:#fff;padding:8px 12px;border-radius:5px;box-shadow:0 4px 14px rgba(0,0,0,.25);font-size:12.5px;max-width:420px;border-left:4px solid var(--orange)}
+
+/* ---------- tamaños ---------- */
+@media (max-width:1250px){
+  #detail{position:absolute;right:0;top:0;bottom:0;z-index:20;box-shadow:-6px 0 20px rgba(20,33,58,.18)}
+  .search input{width:240px}
+}
+#frame.w1024 #detail,#frame.w1280 #detail{position:absolute;right:0;top:0;bottom:0;z-index:20;box-shadow:-6px 0 20px rgba(20,33,58,.18)}
+@media (max-width:760px){
+  #detail{width:100%}
+  #hdr{flex-direction:column;gap:6px}
+  .search input{width:180px}
+}
+</style>
+</head>
+<body>
+
+<!-- ===== Controles de la maqueta (no forman parte de la pantalla) ===== -->
+<div id="demo" role="region" aria-label="Controles de la maqueta">
+  <span class="tag">MAQUETA</span>
+  <label>Escenario
+    <select id="dScen">
+      <option value="A">Lote A · Facturación periódica (120, en curso)</option>
+      <option value="B">Lote B · Envío de contratos (12, finalizado)</option>
+      <option value="B2">Lote B · con avisos de entrega del proveedor</option>
+      <option value="C">Lote C · en preparación (vacío)</option>
+    </select>
+  </label>
+  <span class="sep"></span>
+  <span class="grp">Motor simulado:
+    <button id="dPlay" aria-pressed="false">▶ Iniciar</button>
+    <button id="dStep" data-tip="Avanza un ciclo del motor: termina un mensaje en proceso y toma el siguiente pendiente.">Un paso</button>
+    <select id="dSpeed" aria-label="Velocidad"><option value="5000">Lenta (5 s)</option><option value="2500" selected>Normal (2,5 s)</option><option value="1200">Rápida (1,2 s)</option></select>
+  </span>
+  <span class="sep"></span>
+  <span class="grp">Capacidades del motor:
+    <label data-tip="Si está activada, «Comprobar estado» consulta al proveedor si el mensaje incierto llegó a enviarse."><input type="checkbox" id="cCheck"> Comprobar inciertos</label>
+    <label data-tip="Si está activada, el lote puede pausarse y reanudarse."><input type="checkbox" id="cPause"> Pausa</label>
+    <label data-tip="Simula que el operador ha corregido la cuenta de correo y regenerado los adjuntos: sus reintentos se aceptarán."><input type="checkbox" id="cFixed"> Incidencias corregidas</label>
+  </span>
+  <span class="sep"></span>
+  <span class="grp">Ancho:
+    <button data-w="w1024">1024</button><button data-w="w1280">1280</button><button data-w="w1440">1440</button><button data-w="" aria-pressed="true">Completo</button>
+  </span>
+  <button id="dReset" data-tip="Vuelve a cargar los tres lotes con sus datos iniciales.">↺ Restablecer escenarios</button>
+</div>
+
+<div id="frame">
+<div id="app">
+  <div class="ctx" aria-hidden="true">Contenedor principal › Gestor Correo › <b>Seguimiento de lote</b></div>
+
+  <header id="hdr"></header>
+  <section id="sum" aria-label="Resumen del lote"></section>
+
+  <div id="tools">
+    <div class="search">
+      <svg class="ico" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5 14 14"/></svg>
+      <input id="q" type="search" placeholder="Buscar destinatario, asunto o referencia" aria-label="Buscar por destinatario, asunto o referencia" data-tip="Busca en Para, CC y CCO (nombre y dirección), asunto, referencia de origen y número de mensaje.\nVarias palabras: deben coincidir todas.  Atajo: Ctrl+F">
+      <button class="x" id="qx" aria-label="Borrar búsqueda" hidden>✕</button>
+    </div>
+    <button class="btn" id="clear" data-tip="Quita la búsqueda y los filtros de estado. No cambia la selección.">Limpiar filtros</button>
+    <span class="counts" id="counts" aria-live="polite"></span>
+    <span class="spacer"></span>
+    <div class="selbar" id="selbar" role="toolbar" aria-label="Acciones sobre los mensajes seleccionados"></div>
+  </div>
+  <div id="notices"></div>
+
+  <div id="main">
+    <div id="tablewrap" tabindex="0" role="grid" aria-label="Mensajes del lote" aria-multiselectable="true">
+      <table>
+        <thead><tr id="thead"></tr></thead>
+        <tbody id="tbody"></tbody>
+      </table>
+      <div id="emptyv"></div>
+    </div>
+    <aside id="detail" hidden aria-label="Detalle del mensaje"></aside>
+  </div>
+</div>
+</div>
+
+<div id="tip" hidden role="tooltip"></div>
+<div id="toasts" aria-live="polite"></div>
+
+<script>
+'use strict';
+/* =========================================================
+   Utilidades
+   ========================================================= */
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const pad = n => String(n).padStart(2,'0');
+const fmtD = d => d ? `${pad(d.getDate())}/${pad(d.getMonth()+1)}/${d.getFullYear()}` : '';
+const fmtT = (d,s=true) => d ? `${pad(d.getHours())}:${pad(d.getMinutes())}${s?':'+pad(d.getSeconds()):''}` : '';
+const fmtDT = d => d ? `${fmtD(d)} ${fmtT(d)}` : '—';
+const fmtShort = d => d ? `${pad(d.getDate())}/${pad(d.getMonth()+1)} ${fmtT(d)}` : '—';
+const addS = (d,s) => new Date(d.getTime()+s*1000);
+const fmtN = n => n.toLocaleString('es-ES');
+function rng(seed){ return () => (seed = (seed*16807) % 2147483647) / 2147483647; }
+
+const ICONS = {
+  pendiente:'<svg class="ico" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="8" cy="8" r="6"/><path d="M8 4.5V8l2.5 1.5"/></svg>',
+  proceso:'<svg class="ico spin" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M8 2a6 6 0 1 1-6 6"/><path d="M2 3.5V8h4.5" stroke-width="0"/></svg>',
+  aceptado:'<svg class="ico" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M1.8 8.2 14 2.5 10.5 13.5 7.5 9.2z"/><path d="M7.5 9.2 14 2.5"/></svg>',
+  fallido:'<svg class="ico" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="8" cy="8" r="6"/><path d="m5.6 5.6 4.8 4.8m0-4.8-4.8 4.8"/></svg>',
+  incierto:'<svg class="ico" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M8 1.8 14.6 13.6H1.4z"/><path d="M8 6.2v3.4M8 11.4v.6" stroke-linecap="round"/></svg>',
+  cancelado:'<svg class="ico" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="8" cy="8" r="6"/><path d="m3.8 12.2 8.4-8.4"/></svg>',
+  entregado:'<svg class="ico" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7"><path d="m1.5 8.5 3 3 6-6.5M7.5 11.5l1 0 6-6.5"/></svg>',
+  rebotado:'<svg class="ico" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M6 3.5 2.5 7 6 10.5"/><path d="M2.5 7H10a3.5 3.5 0 0 1 0 7H8"/></svg>',
+  clip:'<svg class="ico" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M10.5 4.5 5.8 9.2a1.3 1.3 0 0 0 1.9 1.9l5-5a2.7 2.7 0 0 0-3.8-3.8l-5 5a4 4 0 0 0 5.7 5.7L14 8.6"/></svg>',
+  info:'<svg class="ico" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="8" cy="8" r="6"/><path d="M8 7.2v4M8 5v.4" stroke-linecap="round"/></svg>',
+  lock:'<svg class="ico" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="7" width="10" height="7" rx="1.2"/><path d="M5.5 7V5a2.5 2.5 0 0 1 5 0v2"/></svg>'
+};
+const EST = {
+  pendiente:{t:'Pendiente', tip:'Aún no se ha intentado enviar. Puede cancelarse.'},
+  proceso:{t:'En proceso', tip:'El motor lo está enviando ahora. Ya no puede cancelarse.'},
+  aceptado:{t:'Aceptado por el servicio', short:'Aceptado', tip:'El servidor de correo de la cuenta remitente lo aceptó (SMTP 250).\nNo confirma que haya llegado al buzón del destinatario.'},
+  fallido:{t:'Fallido', tip:'El envío falló con un error confirmado. Puede reintentarse.'},
+  incierto:{t:'Resultado incierto', tip:'No hay confirmación de si se envió. Compruebe su estado antes de repetirlo para no duplicarlo.'},
+  cancelado:{t:'Cancelado antes del envío', short:'Cancelado', tip:'Se canceló mientras estaba pendiente. No llegó a enviarse.'}
+};
+const ORDER = ['pendiente','proceso','aceptado','fallido','incierto','cancelado'];
+const stBadge = e => `<span class="st s-${e}">${ICONS[e]}<span>${EST[e].t}</span></span>`;
+
+/* Tipos de incidencia (texto comprensible + detalle técnico) */
+const ERR = {
+  direccion:{t:'Dirección rechazada', res:'Dirección rechazada por el servidor del destinatario', cls:'permanente',
+    what:'El servidor del destinatario indica que la dirección no existe. Si se reintenta, volverá a fallar.',
+    todo:'Corrija el email en la ficha del tercero y genere un envío nuevo desde el documento de origen. El reintento usaría la dirección original, porque el mensaje histórico no se modifica.',
+    code:'550 5.1.1', tech:(m)=>`RCPT TO:<${m.para[0].email}>\n<- 550 5.1.1 <${m.para[0].email}>: Recipient address rejected: User unknown in virtual mailbox table`},
+  adjunto:{t:'Adjunto no disponible', res:'No se encontró el PDF adjunto al preparar el envío', cls:'correccion',
+    what:'Al preparar el mensaje no se encontró uno de los adjuntos en la carpeta de documentos. El mensaje no llegó a enviarse.',
+    todo:'Regenere el PDF desde el documento de origen y reintente. Mientras falte el fichero, el reintento fallará igual.',
+    code:'PC-ADJ-404', tech:(m)=>`PreparacionMensaje: FileNotFoundException\nRuta: \\\\srv-docs\\ProConta\\EmpresaDemoA\\Facturas\\2026\\${m.adjuntos[0].nombre}\nNo se abrió conexión SMTP.`},
+  cuenta:{t:'La cuenta de correo requiere atención', res:'La cuenta remitente ha superado su límite de envío', cls:'correccion',
+    what:'El proveedor de la cuenta remitente rechaza nuevos envíos porque se ha alcanzado su límite diario. Afecta a la cuenta, no al destinatario.',
+    todo:'Revise la cuenta en Gestor Correo (límite, plan o cuenta alternativa) y reintente después.',
+    code:'550 5.4.5', tech:()=>`MAIL FROM:<facturacion@empresa-demo-a.example.invalid>\n<- 550 5.4.5 Daily user sending limit exceeded. For more information on sending limits visit https://support.example.invalid/sending-limits`},
+  temporal:{t:'Error temporal del servicio', res:'Servicio de correo no disponible temporalmente', cls:'transitorio',
+    what:'El servidor de correo no estaba disponible en ese momento. Es un error pasajero; lo normal es que un reintento funcione.',
+    todo:'Reintente el envío.',
+    code:'421 4.7.0', tech:()=>`<- 421 4.7.0 Try again later, closing connection. (smtp.example.invalid)`},
+  tamano:{t:'Mensaje demasiado grande', res:'El servidor del destinatario rechaza el tamaño del mensaje', cls:'correccion',
+    what:'Los adjuntos superan el tamaño máximo que acepta el servidor del destinatario.',
+    todo:'Reduzca o divida los adjuntos y genere un envío nuevo, o comparta el documento por otro medio.',
+    code:'552 5.3.4', tech:()=>`DATA\n<- 552 5.3.4 Message size exceeds fixed maximum message size (10485760 bytes)`},
+  conexion:{t:'Conexión interrumpida sin resultado confirmado', res:'Se cortó la conexión antes de recibir la confirmación', cls:'incierto',
+    what:'La conexión se cortó después de transmitir el mensaje y antes de recibir la respuesta del servidor. Puede que el mensaje se enviara o no.',
+    todo:'Compruebe su estado antes de repetirlo. Si se repite sin comprobar, el destinatario podría recibirlo dos veces.',
+    code:'—', tech:(m)=>`DATA\n-> (${(m.adjuntos.length*86+12)} KB transmitidos)\n-> .\n<- (sin respuesta) IOException: Unable to read data from the transport connection: An existing connection was forcibly closed by the remote host.\nMessage-Id: <${m.msgid}>`},
+  noconsta:{t:'No consta como enviado', res:'Comprobado: el proveedor no registra el envío', cls:'transitorio',
+    what:'La comprobación ha confirmado que el proveedor no recibió el mensaje. Ya puede reintentarse sin riesgo de duplicado.',
+    todo:'Reintente el envío.', code:'PC-CHK-0', tech:(m)=>`Consulta de registro del proveedor por Message-Id <${m.msgid}>: sin coincidencias.`}
+};
+
+/* =========================================================
+   Datos ficticios
+   ========================================================= */
+const CLIENTES = [
+ ['Ferretería Hermanos Lluch, S.L.','ferreteria-lluch'],['Clínica Dental Sonrisa Alta','clinica-sonrisa-alta'],['Talleres Mecánicos Albuixech','talleres-albuixech'],
+ ['Comunidad de Propietarios Avenida del Puerto 214','cp-avpuerto214'],['Asociación Cultural El Micalet','acultural-micalet'],['Panadería Forn de la Vila','forn-vila'],
+ ['Gestoría Benlloch y Asociados','gestoria-benlloch'],['Óptica Ruzafa Visión','optica-ruzafa'],['Construcciones Turia Norte, S.A.','turia-norte'],
+ ['Academia de Idiomas Babel','academia-babel'],['Restaurante La Albufera Gastronómica','albufera-gastro'],['Distribuciones Agrícolas del Camp de Morvedre','dist-morvedre'],
+ ['Laura Martínez Ferrer','lmartinez'],['Jorge Peñarroja Climent','jpenarroja'],['Inmobiliaria Malvarrosa Playa','inmo-malvarrosa'],
+ ['Farmacia Ldo. Vicente Soler','farmacia-soler'],['Autoescuela Campanar','autoescuela-campanar'],['Floristería Jardí del Carme','jardi-carme'],
+ ['Transportes Frigoríficos Levante Express','tfl-express'],['Centro de Fisioterapia Benimaclet','fisio-benimaclet'],['Estudio de Arquitectura Ortega & Vidal','ortega-vidal'],
+ ['Librería Papers del Mercat','papers-mercat'],['Carpintería Metálica Paterna','carpinteria-paterna'],['María José Navarro Ibáñez','mjnavarro'],
+ ['Imprenta Gráficas Russafa','graficas-russafa'],['Colegio Profesional de Ejemplo','colegio-ejemplo'],['Bodegas Requena Alta','bodegas-requena'],
+ ['Peluquería Estilo Ciutat Vella','estilo-ciutatvella'],['Seguridad Integral Mediterránea','sim-seguridad'],['Antonio Gil Sanchis','agil'],
+ ['Lavandería Industrial Silla','lavanderia-silla'],['Cooperativa Hortícola de Alboraia','coop-alboraia'],['Veterinaria Nou Moles','vet-noumoles'],
+ ['Hotel Rural Serra Calderona','hotel-calderona'],['Electricidad Burjassot Instalaciones','elec-burjassot'],['Pilar Esteve Monzó','pesteve'],
+ ['Escuela Infantil Petits Passos','petits-passos'],['Garaje Aparcamiento Plaza Redonda','garaje-redonda'],['Consultoría Informática Bitàcola','bitacola'],
+ ['Gimnasio Turia Fitness Club','turia-fitness']
+];
+const CONCEPTOS = [
+ 'Cuota mensual de mantenimiento preventivo de instalaciones de climatización y ACS — edificio de oficinas',
+ 'Alquiler local comercial C/ San Vicente Mártir 112, bajo izquierda',
+ 'Servicio de asesoría contable, fiscal y laboral',
+ 'Licencia anual de software de gestión y soporte técnico remoto',
+ 'Alquiler plaza de garaje nº 37, sótano −2',
+ 'Servicio de limpieza de zonas comunes y gestión de residuos',
+ 'Arrendamiento de oficina 3ª planta, puerta 7, con suministros incluidos',
+ 'Mantenimiento de ascensores y revisión reglamentaria trimestral',
+ 'Cuota de socio y uso de instalaciones',
+ 'Renting de equipos de impresión multifunción y consumibles',
+ 'Hosting, dominio y copias de seguridad en la nube',
+ 'Honorarios de administración de fincas'
+];
+const BASE_A = new Date(2026,9,1,9,12,0);
+const BASE_B = new Date(2026,8,30,17,40,0);
+
+function mkMsg(n, cli, asunto, cuerpo, origen, adjuntos, opts={}){
+  const [nombre,slug] = cli;
+  const persona = ['lmartinez','jpenarroja','mjnavarro','agil','pesteve'].includes(slug);
+  const para = [{nombre, email: (persona? slug : 'administracion') + '@' + (persona? 'correo-demo' : slug) + '.example.invalid'}];
+  const cc = [], cco = [];
+  if (n%4===0) cc.push({nombre:'Contabilidad', email:`contabilidad@${slug}.example.invalid`});
+  if (n%9===0) cc.push({nombre:'Gerencia', email:`gerencia@${slug}.example.invalid`});
+  if (n%7===0) para.push({nombre:'Pagos', email:`pagos@${slug}.example.invalid`});
+  if (n%6===0) cco.push({nombre:'Archivo de facturación', email:'archivo@empresa-demo-a.example.invalid'});
+  return {id:'m'+opts.lot+n, n, lot:opts.lot, estado:'pendiente', para, cc, cco, asunto, cuerpo, origen, adjuntos,
+    intentos:[], eventos:[], err:null, resumen:'', entrega:null, op:null, creado:opts.creado,
+    msgid:`${opts.lot.toLowerCase()}${n}.${(n*7919).toString(36)}@empresa-demo-a.example.invalid`,
+    cuenta:opts.cuenta, empresa:opts.empresa};
+}
+function attempt(m, ini, res, errKey, dur=3){
+  const k = ERR[errKey];
+  const a = {n:m.intentos.length+1, ini, fin:addS(ini,dur), res,
+    code: res==='aceptado' ? '250 2.0.0' : (k?k.code:''), err:errKey||null,
+    txt: res==='aceptado' ? 'Aceptado por el servidor de la cuenta remitente' : (k?k.t:''),
+    tech: res==='aceptado' ? `<- 250 2.0.0 OK queued as ${(m.n*104729).toString(16).toUpperCase()}\nMessage-Id: <${m.msgid}>` : (k?k.tech(m):'')};
+  m.intentos.push(a);
+  if (res==='aceptado'){ m.estado='aceptado'; m.err=null; m.resumen='Aceptado por el servicio · '+fmtT(a.fin,false); }
+  else if (res==='fallido'){ m.estado='fallido'; m.err=errKey; m.resumen=k.res; }
+  else if (res==='incierto'){ m.estado='incierto'; m.err=errKey; m.resumen=k.res; }
+  return a;
+}
+function ev(m, t, txt, por){ m.eventos.push({t, txt, por}); }
+
+function genA(){
+  const lot = {key:'A', id:'LOT-2026-0412', nombre:'Facturación periódica · Octubre 2026', empresa:'Empresa Demo A', origen:'Facturación · Facturas programadas',
+    creado:BASE_A, operador:'Jorge Ibarra', cuenta:'facturacion@empresa-demo-a.example.invalid', estado:'run', clock:new Date(2026,9,1,10,24,0)};
+  const msgs = [];
+  const fall = {17:'direccion',58:'direccion',23:'adjunto',71:'adjunto',44:'cuenta',45:'cuenta',36:'temporal',80:'temporal'};
+  const inc = [52,77], canc = [12,30,64,95,110], twoTry = [8,27,49,66];
+  const cancMot = ['Factura anulada antes del envío','El cliente pidió recogerla en mano','Duplicada en el lote','Factura anulada antes del envío','Cambio de dirección de facturación pendiente'];
+  for (let n=1;n<=120;n++){
+    const cli = CLIENTES[(n*7+3)%CLIENTES.length];
+    const ref = n%23===0 ? `R-2026/${pad(n%17+1)}` : `FV-2026/${String(1000+n).padStart(5,'0')}`;
+    const tipo = ref.startsWith('R') ? 'Factura rectificativa' : 'Factura';
+    const conc = CONCEPTOS[(n*5)%CONCEPTOS.length];
+    const asunto = `${tipo} ${ref} · ${conc} · Octubre 2026`;
+    const adj = [{nombre:`${ref.replace('/','-')}.pdf`, kb:70+(n*13)%60, tipo:'pdf', disponible:true}];
+    if (n%5===0) adj.push({nombre:'Detalle de consumos octubre 2026.xlsx', kb:24+(n%9), tipo:'xlsx', disponible:true});
+    if (n%11===0) adj.push({nombre:'Anexo — condiciones de renovación del contrato de mantenimiento 2027.pdf', kb:212, tipo:'pdf', disponible:true});
+    const imp = (120 + (n*37)%900 + (n%3)*0.5).toFixed(2).replace('.',',');
+    const cuerpo = `Estimado cliente:\n\nLe adjuntamos la ${tipo.toLowerCase()} ${ref} correspondiente a «${conc}», periodo octubre 2026, por importe de ${imp} €.\n\nEl cargo se realizará en la cuenta domiciliada en los próximos días. Si tiene cualquier duda puede responder a este mensaje.\n\nUn saludo,\nAdministración · Empresa Demo A`;
+    const m = mkMsg(n, cli, asunto, cuerpo, {tipo, ref, modulo:'Facturación'}, adj, {lot:'A', creado:BASE_A, cuenta:lot.cuenta, empresa:lot.empresa});
+    ev(m, BASE_A, 'Mensaje generado desde la factura programada y añadido al lote', 'Jorge Ibarra');
+    const t = addS(new Date(2026,9,1,9,14,0), n*48);
+    if (n<=85){
+      if (canc.includes(n)){ m.estado='cancelado'; const i=canc.indexOf(n); m.resumen='Cancelado por J. Ibarra · '+cancMot[i]; ev(m, addS(BASE_A,90+n), 'Cancelado antes del envío: '+cancMot[i], 'Jorge Ibarra'); }
+      else if (fall[n]){
+        const k = fall[n];
+        if (k==='adjunto') { m.adjuntos[0].disponible=false; attempt(m,t,'fallido',k,0); }
+        else if (k==='temporal'){ attempt(m,addS(t,-600),'fallido',k,8); ev(m, addS(t,-60), 'Reintento solicitado', 'Jorge Ibarra'); attempt(m,t,'fallido',k,8); }
+        else attempt(m,t,'fallido',k,2);
+      }
+      else if (inc.includes(n)) attempt(m,t,'incierto','conexion',30);
+      else { if (twoTry.includes(n)){ attempt(m,addS(t,-300),'fallido','temporal',6); ev(m, addS(t,-30), 'Reintento solicitado', 'Jorge Ibarra'); } attempt(m,t,'aceptado'); }
+    } else if (n<=88){ m.estado='proceso'; m.cur = addS(lot.clock,-(89-n)*7); m.resumen='Enviando…'; }
+    else if (canc.includes(n)){ m.estado='cancelado'; const i=canc.indexOf(n); m.resumen='Cancelado por J. Ibarra · '+cancMot[i]; ev(m, addS(lot.clock,-400-n), 'Cancelado antes del envío: '+cancMot[i], 'Jorge Ibarra'); }
+    msgs.push(m);
+  }
+  return {lot, msgs};
+}
+function genB(avisos){
+  const lot = {key: avisos?'B2':'B', id:'LOT-2026-0409', nombre:'Envío de contratos', empresa:'Empresa Demo A', origen:'Documentos · Contratos de arrendamiento',
+    creado:BASE_B, operador:'Marta Ribas', cuenta:'administracion@empresa-demo-a.example.invalid', estado:'done', clock:new Date(2026,9,1,10,24,0), avisos};
+  const inm = ['Local C/ Cirilo Amorós 41, bajo','Vivienda Av. Blasco Ibáñez 88, 5º-14','Nave industrial Pol. Fuente del Jarro, parcela 22','Oficina C/ Colón 60, 2ª planta, despacho B','Plaza de garaje C/ Jesús 12, nº 3','Local C/ Sueca 7 (esquina Cádiz)'];
+  const msgs = [];
+  for (let n=1;n<=12;n++){
+    const cli = CLIENTES[(n*11+5)%CLIENTES.length];
+    const ref = `CTR-2026-${String(30+n).padStart(3,'0')}`;
+    const im = inm[n%inm.length];
+    const adj = [{nombre:`Contrato de arrendamiento ${ref} firmado.pdf`, kb:n===9?8400:380+n*21, tipo:'pdf', disponible:true},
+                 {nombre:`Anexo I — Inventario y estado del inmueble ${ref}.pdf`, kb:n===9?3900:160, tipo:'pdf', disponible:true}];
+    if (n%3===0) adj.push({nombre:'Certificado de eficiencia energética.pdf', kb:240, tipo:'pdf', disponible:true});
+    const asunto = `Contrato ${ref} · ${im} · copia firmada y anexos`;
+    const cuerpo = `Buenos días:\n\nLe remitimos la copia firmada del contrato ${ref} relativo a ${im}, junto con sus anexos.\n\nConserve esta documentación. Para cualquier consulta, responda a este correo.\n\nAtentamente,\nAdministración · Empresa Demo A`;
+    const m = mkMsg(n+2, cli, asunto, cuerpo, {tipo:'Contrato', ref, modulo:'Documentos'}, adj, {lot:'B', creado:BASE_B, cuenta:lot.cuenta, empresa:lot.empresa});
+    m.n = n; m.id = 'mB'+n;
+    ev(m, BASE_B, 'Mensaje generado desde Documentos y añadido al lote', 'Marta Ribas');
+    const t = addS(BASE_B, 120 + n*35);
+    if (n===4) attempt(m,t,'fallido','direccion',2);
+    else if (n===9) attempt(m,t,'fallido','tamano',14);
+    else {
+      attempt(m,t,'aceptado',null,4);
+      if (avisos){
+        if (n===7) m.entrega = {e:'rebotado', t:addS(t,1800), txt:'Rebote posterior: buzón del destinatario lleno', code:'5.2.2'};
+        else if (n!==11) m.entrega = {e:'entregado', t:addS(t,20+n*3), txt:'El proveedor notifica la entrega al servidor del destinatario', code:'2.0.0'};
+      }
+    }
+    msgs.push(m);
+  }
+  return {lot, msgs};
+}
+function genC(){
+  return {lot:{key:'C', id:'LOT-2026-0415', nombre:'Recordatorio de vencimientos · Noviembre 2026', empresa:'Empresa Demo A', origen:'Terceros · Recordatorios de cobro',
+    creado:new Date(2026,9,1,10,5,0), operador:'Marta Ribas', cuenta:'cobros@empresa-demo-a.example.invalid', estado:'prep', clock:new Date(2026,9,1,10,24,0)}, msgs:[]};
+}
+
+/* =========================================================
+   Estado de la pantalla
+   ========================================================= */
+const S = {
+  scen:'A', scenarios:{}, lot:null, msgs:[], byId:new Map(),
+  q:'', estados:new Set(), sort:{key:'n', dir:1},
+  ids:[], sel:new Set(), active:null, anchor:null, detail:false,
+  stale:new Set(), newMatch:new Set(), orderDirty:false, allVisibleBanner:false,
+  busy:false, sim:{running:false, timer:null}, caps:{check:false, pause:false, fixed:false}, paused:false, operador:'Jorge Ibarra'
+};
+function buildScenarios(){
+  S.scenarios = {A:genA(), B:genB(false), B2:genB(true), C:genC()};
+  S.lotState = {};
+}
+function loadScenario(k){
+  stopSim();
+  S.scen = k; const sc = S.scenarios[k];
+  S.lot = sc.lot; S.msgs = sc.msgs; S.byId = new Map(S.msgs.map(m=>[m.id,m]));
+  S.q=''; $('#q').value=''; S.estados.clear(); S.sort={key:'n',dir:1};
+  S.sel.clear(); S.active = S.msgs[0]?.id || null; S.anchor=S.active; S.detail=false;
+  S.stale.clear(); S.newMatch.clear(); S.orderDirty=false; S.allVisibleBanner=false; S.paused = !!S.lot.paused;
+  closeMenus();
+  renderAll(true);
+}
+
+/* =========================================================
+   Cálculos
+   ========================================================= */
+function counts(){
+  const c = {total:S.msgs.length}; ORDER.forEach(e=>c[e]=0);
+  S.msgs.forEach(m=>c[m.estado]++);
+  c.entregado = S.msgs.filter(m=>m.entrega?.e==='entregado').length;
+  c.rebotado = S.msgs.filter(m=>m.entrega?.e==='rebotado').length;
+  c.sinaviso = S.msgs.filter(m=>m.estado==='aceptado' && !m.entrega).length;
+  return c;
+}
+function lotStatus(c){
+  if (S.lot.estado==='prep') return {cls:'prep', t:'En preparación', tip:'El módulo de origen todavía está generando los mensajes.'};
+  const open = c.pendiente + c.proceso;
+  if (open>0 && S.paused) return {cls:'pause', t: c.proceso? 'Pausando…':'Pausado', tip:'Propuesta: el motor no toma mensajes nuevos. Los que estaban en proceso terminan.'};
+  if (open>0) return {cls:'run', t:'En curso', tip:'El motor está procesando el lote.'};
+  if (c.fallido + c.incierto>0) return {cls:'warn', t:'Finalizado con incidencias', tip:'No quedan mensajes por procesar, pero hay fallidos o inciertos que revisar.'};
+  return {cls:'done', t:'Finalizado', tip:'Todos los mensajes tienen resultado. «Aceptado» no garantiza la entrega.'};
+}
+function hay(m){
+  return [m.n, m.asunto, m.origen.ref, m.origen.tipo, ...m.para.flatMap(p=>[p.nombre,p.email]), ...m.cc.flatMap(p=>[p.nombre,p.email]), ...m.cco.flatMap(p=>[p.nombre,p.email])].join(' ').toLowerCase()
+    .normalize('NFD').replace(/[̀-ͯ]/g,'');
+}
+function matches(m){
+  if (S.estados.size && !S.estados.has(m.estado)) return false;
+  if (S.q){ const h = hay(m); const toks = S.q.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').split(/\s+/).filter(Boolean); if (!toks.every(t=>h.includes(t))) return false; }
+  return true;
+}
+const lastT = m => m.intentos.length ? m.intentos[m.intentos.length-1].fin : (m.cur||null);
+const SORTERS = {
+  n:m=>m.n, estado:m=>ORDER.indexOf(m.estado), dest:m=>m.para[0].email, asunto:m=>m.asunto.toLowerCase(), org:m=>m.origen.ref,
+  adj:m=>m.adjuntos.length, int:m=>m.intentos.length, ult:m=>lastT(m)?.getTime()||0, res:m=>m.resumen.toLowerCase()
+};
+const MUTABLE = new Set(['estado','int','ult','res']);
+function computeIds(){
+  const f = SORTERS[S.sort.key], d = S.sort.dir;
+  S.ids = S.msgs.filter(matches).sort((a,b)=>{ const x=f(a), y=f(b); return (x<y?-1:x>y?1:0)*d || a.n-b.n; }).map(m=>m.id);
+  S.stale.clear(); S.newMatch.clear(); S.orderDirty=false;
+}
+
+/* =========================================================
+   Render: cabecera y resumen
+   ========================================================= */
+function renderHeader(){
+  const c = counts(), st = lotStatus(c), L = S.lot;
+  const canPause = c.pendiente>0;
+  $('#hdr').innerHTML = `
+    <div class="ttl">
+      <h1><span>${esc(L.nombre)}</span><span class="lotstate ${st.cls}" data-tip="${esc(st.tip)}">${st.cls==='run'?ICONS.proceso:''}${esc(st.t)}</span></h1>
+      <div class="meta">
+        <span>Empresa <b>${esc(L.empresa)}</b></span>
+        <span>Origen <b>${esc(L.origen)}</b></span>
+        <span>Creado <b>${fmtD(L.creado)} ${fmtT(L.creado,false)}</b></span>
+        <span>Operador <b>${esc(L.operador)}</b></span>
+        <span>Cuenta <b>${esc(L.cuenta)}</b></span>
+        <span class="mono" style="color:#8F9BB5">${L.id}</span>
+      </div>
+      <div class="keep">${ICONS.info}<span>${st.cls==='run'||st.cls==='pause'?'Puede cerrar esta vista: el lote sigue procesándose en segundo plano. Cerrar no cancela ningún envío.':st.cls==='prep'?'Puede cerrar esta vista: la preparación continúa en el módulo de origen.':'El motor ya no tiene mensajes de este lote por procesar. Cerrar esta vista no cambia nada.'}</span></div>
+    </div>
+    <div class="hact">
+      <button class="hbtn proposal" id="bPause" ${(!canPause && !S.paused)||S.busy?'disabled':''} data-tip="PROPUESTA — requiere contrato con el motor.\n${S.paused?'Reanudar: el motor vuelve a tomar mensajes pendientes.':'Pausar: el motor deja de tomar mensajes pendientes; los que están en proceso terminan.'}${S.caps.pause?'':'\n(En esta maqueta, active «Pausa» en los controles para simularla.)'}">${S.paused?'<svg class="ico" viewBox="0 0 16 16"><path d="M4 3v10l9-5z" fill="currentColor"/></svg> Reanudar lote':'<svg class="ico" viewBox="0 0 16 16"><path d="M4 3h3v10H4zM9 3h3v10H9z" fill="currentColor"/></svg> Pausar lote'} <span class="ptag">Propuesta</span></button>
+      <button class="hbtn" id="bLot" aria-haspopup="menu" aria-expanded="false" ${S.msgs.length&&!S.busy?'':'disabled'} data-tip="Acciones sobre TODO el lote, incluidos los mensajes que no se ven con el filtro actual.">Acciones del lote ▾</button>
+    </div>`;
+  $('#bPause').onclick = onPause;
+  $('#bLot').onclick = e => openLotMenu(e.currentTarget);
+}
+function renderSummary(){
+  const c = counts(), st = lotStatus(c);
+  const el = $('#sum');
+  if (S.lot.estado==='prep'){
+    el.innerHTML = `<div class="progress"><div class="bar" aria-hidden="true"></div><span class="pcap">Sin mensajes todavía. El recuento aparecerá cuando el origen los registre.</span></div>`;
+    return;
+  }
+  const chip = (e) => {
+    const on = S.estados.has(e);
+    return `<button class="chip s-${e}" data-est="${e}" aria-pressed="${on}" data-tip="${esc(EST[e].tip)}\nPulse para ${on?'quitar este filtro':'filtrar por este estado'} (se combinan varios).">
+      <span class="sw fill"></span>${ICONS[e].replace('class="ico','style="color:var(--c)" class="ico')}<span>${EST[e].short||EST[e].t}</span><span class="n">${fmtN(c[e])}</span></button>`;
+  };
+  const done = c.aceptado + c.fallido + c.incierto + c.cancelado;
+  const pct = c.total ? Math.floor(done*100/c.total) : 0;
+  const review = c.fallido + c.incierto;
+  const w = e => c.total ? (c[e]*100/c.total)+'%' : '0';
+  const remaining = c.pendiente + c.proceso;
+  let cap = `<b>${fmtN(done)} de ${fmtN(c.total)}</b> con resultado registrado (${pct} %)`;
+  if (remaining) cap += ` · quedan ${fmtN(remaining)} por enviar`;
+  if (review) cap += ` · <span class="warn">⚠ ${review} requieren revisión (${c.fallido} fallidos, ${c.incierto} inciertos)</span>`;
+  else if (!remaining) cap += ' · sin incidencias';
+  el.innerHTML = `
+    <div class="chips" role="group" aria-label="Recuento por estado; pulse para filtrar">
+      <span class="chip total" data-tip="Total de mensajes del lote, con independencia de los filtros.">Total <span class="n">${fmtN(c.total)}</span></span>
+      ${ORDER.map(chip).join('')}
+      <button class="chip" id="chipInc" data-tip="Atajo: filtra fallidos e inciertos a la vez." ${review?'':'disabled'}>Solo incidencias</button>
+    </div>
+    <div class="progress">
+      <div class="bar" role="img" aria-label="${esc(cap.replace(/<[^>]+>/g,''))}" data-tip="La barra cuenta los mensajes con un resultado registrado (aceptados, fallidos, inciertos y cancelados) frente al total.\nAzul: aceptados por el servicio · Rojo: fallidos · Rayado ocre: inciertos · Gris: cancelados · Rayado violeta: en proceso.\nLo vacío son pendientes. Aceptado no significa entregado.">
+        <span style="width:${w('aceptado')};background:var(--blue)"></span>
+        <span style="width:${w('fallido')};background:var(--red)"></span>
+        <span class="seg-incierto" style="width:${w('incierto')}"></span>
+        <span style="width:${w('cancelado')};background:#A3A7B0"></span>
+        <span class="seg-proceso" style="width:${w('proceso')}"></span>
+      </div>
+      <span class="pcap">${cap}</span>
+    </div>
+    ${S.lot.avisos ? `<div class="dsn"><span data-tip="El proveedor de esta cuenta envía notificaciones de entrega (DSN) después de aceptar el mensaje. Solo aparecen en ese caso.">${ICONS.info} Avisos posteriores del proveedor sobre los ${c.aceptado} aceptados:</span>
+      <span class="st s-entregado">${ICONS.entregado}Entregado ${c.entregado}</span>
+      <span class="st s-rebotado">${ICONS.rebotado}Rebotado ${c.rebotado}</span>
+      <span class="st s-cancelado">Sin aviso ${c.sinaviso}</span></div>` : ''}`;
+  el.querySelectorAll('[data-est]').forEach(b=>b.onclick=()=>{ const e=b.dataset.est; S.estados.has(e)?S.estados.delete(e):S.estados.add(e); viewChanged(); });
+  const ci = $('#chipInc'); if (ci) ci.onclick = ()=>{ S.estados = new Set(['fallido','incierto']); viewChanged(); };
+}
+
+/* =========================================================
+   Render: barra de herramientas, avisos y tabla
+   ========================================================= */
+function scopeOf(kind, ids){
+  const ok=[], ex={}, warn=[];
+  const add=(r,m)=>{ (ex[r]=ex[r]||[]).push(m); };
+  ids.map(id=>S.byId.get(id)).forEach(m=>{
+    if (m.op){ add('Tiene una operación en curso', m); return; }
+    if (kind==='retry'){
+      if (m.estado==='fallido'){ ok.push(m); if (ERR[m.err].cls==='permanente' || (ERR[m.err].cls==='correccion' && !S.caps.fixed)) warn.push(m); }
+      else add({aceptado:'Ya aceptado por el servicio: no se reintenta. Use «Reenviar» si necesita otro envío.', incierto:'Resultado incierto: compruebe primero su estado para no duplicarlo.', pendiente:'Aún no se ha intentado enviar.', proceso:'Se está enviando ahora.', cancelado:'Cancelado antes del envío.'}[m.estado], m);
+    } else if (kind==='cancel'){
+      if (m.estado==='pendiente') ok.push(m);
+      else add({proceso:'Ya se está enviando: no puede cancelarse.', aceptado:'Ya enviado (aceptado por el servicio).', fallido:'Ya intentado: no está pendiente.', incierto:'Ya intentado: no está pendiente.', cancelado:'Ya estaba cancelado.'}[m.estado], m);
+    } else if (kind==='check'){
+      if (m.estado==='incierto') ok.push(m); else add('Solo se comprueban mensajes con resultado incierto.', m);
+    } else if (kind==='resend'){
+      if (m.estado==='aceptado') ok.push(m); else add({fallido:'Fallido: use «Reintentar».', incierto:'Incierto: compruebe primero su estado.', pendiente:'Aún no enviado.', proceso:'Se está enviando ahora.', cancelado:'Cancelado: no se envió.'}[m.estado], m);
+    }
+  });
+  return {ok, ex, warn};
+}
+function renderTools(){
+  const tot = S.msgs.length, vis = S.ids.length, filt = S.q || S.estados.size;
+  $('#counts').innerHTML = filt ? `Mostrando <b>${fmtN(vis)}</b> de ${fmtN(tot)} mensajes del lote` : `<b>${fmtN(tot)}</b> mensajes en el lote`;
+  $('#clear').disabled = !filt; $('#qx').hidden = !S.q;
+  const sel = [...S.sel], ns = sel.length;
+  const hidden = sel.filter(id=>!S.ids.includes(id)).length;
+  const sc = k => scopeOf(k, sel).ok.length;
+  const dis = S.busy || !ns;
+  const b = (id,txt,n,tip,cls='') => `<button class="btn ${cls}" id="${id}" ${dis||!n?'disabled':''} data-tip="${esc(tip)}">${txt}${ns?` <span class="k">${n}</span>`:''}</button>`;
+  $('#selbar').innerHTML = `
+    <span class="scope" data-tip="Estas acciones afectan a los mensajes marcados con la casilla, también a los que el filtro actual oculta.">Selección</span>
+    <span class="counts">${ns? `<b>${ns}</b> seleccionado${ns>1?'s':''}${hidden?` · <span data-tip="Seleccionados que no se ven con el filtro actual. Se incluyen en las acciones de selección.">${hidden} oculto${hidden>1?'s':''} por el filtro</span>`:''}` : 'Ninguno seleccionado'}</span>
+    ${ns?'<button class="btn" id="bSelNone" data-tip="Quita la selección (Esc dentro de la tabla).">Quitar</button>':''}
+    <span class="vsep"></span>
+    ${b('aRetry','Reintentar',sc('retry'),'Vuelve a encolar los mensajes fallidos seleccionados. Se añade un intento nuevo y se conserva el historial.\nNo afecta a aceptados ni inciertos.')}
+    ${b('aCheck','Comprobar estado',sc('check'),'Para mensajes con resultado incierto: consulta si llegaron a enviarse antes de repetirlos.')}
+    ${b('aResend','Reenviar…',sc('resend'),'Para mensajes ya aceptados: crea un envío NUEVO vinculado al anterior. No es un reintento.')}
+    ${b('aCancel','Cancelar envío',sc('cancel'),'Cancela los seleccionados que siguen pendientes. Los que están en proceso no pueden cancelarse.','danger')}`;
+  const on = (id,f)=>{ const e=$('#'+id); if(e) e.onclick=f; };
+  on('bSelNone', ()=>{ S.sel.clear(); S.allVisibleBanner=false; refreshSelection(); });
+  on('aRetry', ()=>confirmAction('retry','sel',sel));
+  on('aCheck', ()=>confirmAction('check','sel',sel));
+  on('aResend', ()=>confirmAction('resend','sel',sel));
+  on('aCancel', ()=>confirmAction('cancel','sel',sel));
+}
+function renderNotices(){
+  const out = [];
+  if (S.stale.size || S.newMatch.size || S.orderDirty){
+    const parts = [];
+    if (S.stale.size) parts.push(`${S.stale.size} fila${S.stale.size>1?'s ya no coinciden':' ya no coincide'} con el filtro`);
+    if (S.newMatch.size) parts.push(`${S.newMatch.size} mensaje${S.newMatch.size>1?'s nuevos coinciden':' nuevo coincide'}`);
+    if (S.orderDirty) parts.push('el orden puede haber cambiado');
+    out.push(`<div class="notice info" role="status">${ICONS.info}<span>Hay actualizaciones del motor: ${parts.join(', ')}. Las filas no se mueven solas para no desplazar lo que está revisando.</span><button class="link" id="nRefresh">Actualizar vista</button></div>`);
+  }
+  const visSel = S.ids.filter(id=>S.sel.has(id)).length;
+  if (S.allVisibleBanner && S.ids.length && visSel===S.ids.length && S.ids.length < S.msgs.length){
+    out.push(`<div class="notice sel" role="status"><span>Están seleccionados los <b>${S.ids.length}</b> mensajes visibles con el filtro actual, no todo el lote.</span><button class="link" id="nAll">Seleccionar los ${S.msgs.length} mensajes del lote</button><button class="link" id="nNone">Quitar selección</button></div>`);
+  } else if (S.allVisibleBanner && S.sel.size===S.msgs.length && S.msgs.length){
+    out.push(`<div class="notice sel" role="status"><span>Están seleccionados <b>todos los ${S.msgs.length}</b> mensajes del lote, incluidos los no visibles.</span><button class="link" id="nNone">Quitar selección</button></div>`);
+  }
+  $('#notices').innerHTML = out.join('');
+  const r=$('#nRefresh'); if(r) r.onclick=()=>viewChanged(true);
+  const a=$('#nAll'); if(a) a.onclick=()=>{ S.msgs.forEach(m=>S.sel.add(m.id)); refreshSelection(); };
+  const n=$('#nNone'); if(n) n.onclick=()=>{ S.sel.clear(); S.allVisibleBanner=false; refreshSelection(); };
+}
+const COLS = [
+  ['n','Nº','c-n','Número del mensaje dentro del lote'],['estado','Estado','c-est','Estado del envío. Icono y texto; no depende solo del color.'],
+  ['dest','Destinatario','c-dest','Destinatario principal (Para). «+N» indica más destinatarios en Para, CC o CCO.'],
+  ['asunto','Asunto','c-asu',''],['org','Origen','c-org','Documento o registro que generó el mensaje'],
+  ['adj','Adj.','c-adj','Número de adjuntos'],['int','Int.','c-int','Número de intentos de envío'],
+  ['ult','Último intento','c-ult','Fecha y hora del último intento (o inicio del intento en curso)'],['res','Resultado o incidencia','c-res','']
+];
+function renderHead(){
+  const visSel = S.ids.filter(id=>S.sel.has(id)).length;
+  const all = S.ids.length && visSel===S.ids.length;
+  $('#thead').innerHTML = `<th class="c-chk"><input type="checkbox" id="chkAll" aria-label="Seleccionar los mensajes visibles" ${all?'checked':''} data-tip="Selecciona o quita los mensajes VISIBLES con el filtro actual (${S.ids.length}).\nPara todo el lote, use el aviso que aparece al marcar."></th>` +
+    COLS.map(([k,t,c,tip])=>{ const on=S.sort.key===k; return `<th class="${c}" aria-sort="${on?(S.sort.dir>0?'ascending':'descending'):'none'}"><button class="sort" data-k="${k}" ${tip?`data-tip="${esc(tip)}\nPulse para ordenar."`:'data-tip="Pulse para ordenar."'}>${t}<span class="ar">${on?(S.sort.dir>0?'▲':'▼'):''}</span></button></th>`; }).join('');
+  const ca = $('#chkAll'); ca.indeterminate = visSel>0 && !all;
+  ca.onchange = ()=>{ if (ca.checked){ S.ids.forEach(id=>S.sel.add(id)); S.allVisibleBanner=true; } else { S.ids.forEach(id=>S.sel.delete(id)); S.allVisibleBanner=false; } refreshSelection(); };
+  document.querySelectorAll('#thead .sort').forEach(b=>b.onclick=()=>{ const k=b.dataset.k; S.sort = {key:k, dir: S.sort.key===k ? -S.sort.dir : 1}; viewChanged(true); });
+}
+function recipTip(m){
+  const l = (lab,arr)=> arr.length ? `${lab}: ${arr.map(p=>p.email).join(', ')}` : '';
+  return [l('Para',m.para), l('CC',m.cc), l('CCO',m.cco)].filter(Boolean).join('\n');
+}
+function resCell(m){
+  let h='', cls='';
+  if (m.estado==='fallido') cls='res-err'; else if (m.estado==='incierto') cls='res-unc';
+  if (m.estado==='pendiente'){ const q = S.msgs.filter(x=>x.estado==='pendiente'); const pos = q.sort((a,b)=>(b.prio||0)-(a.prio||0)||a.n-b.n).indexOf(m)+1; h = (m.prio?'Reintento en cola':'En cola') + ` · posición ${pos}` + (S.paused?' · lote pausado':''); }
+  else if (m.estado==='proceso') h = 'Enviando…';
+  else h = esc(m.resumen);
+  if (m.entrega) h += ` <span class="st s-${m.entrega.e} res-dsn" data-tip="Aviso posterior del proveedor (${fmtDT(m.entrega.t)}): ${esc(m.entrega.txt)}">${ICONS[m.entrega.e]}${m.entrega.e==='entregado'?'Entregado':'Rebotado'}</span>`;
+  if (m.reenviadoComo?.length) h += ` <span class="muted">· reenviado como nº ${m.reenviadoComo.join(', ')}</span>`;
+  if (m.reenvioDe) h = `<span class="muted">Reenvío de nº ${m.reenvioDe} ·</span> ` + h;
+  return `<td class="c-res ${cls}">${h}</td>`;
+}
+function rowInner(m){
+  const others = m.para.length-1 + m.cc.length + m.cco.length;
+  const lt = lastT(m);
+  return `<td class="c-chk"><input type="checkbox" tabindex="-1" aria-label="Seleccionar mensaje ${m.n}" ${S.sel.has(m.id)?'checked':''}></td>
+    <td class="c-n">${m.n}</td>
+    <td class="c-est" data-tip="${esc(EST[m.estado].tip)}">${stBadge(m.estado)}${m.op?`<span class="op">⏳ ${m.op}</span>`:''}</td>
+    <td class="c-dest"><span class="dest"><span class="em" title="${esc(m.para[0].nombre)}">${esc(m.para[0].email)}</span>${others?`<span class="more" data-tip="${esc(recipTip(m))}">+${others}</span>`:''}</span></td>
+    <td class="c-asu" title="${esc(m.asunto)}">${esc(m.asunto)}</td>
+    <td class="c-org"><span class="org" data-tip="${esc(m.origen.tipo)} · ${esc(m.origen.modulo)}\nSe abre desde el detalle.">${esc(m.origen.ref)}</span></td>
+    <td class="c-adj" ${m.adjuntos.some(a=>!a.disponible)?'style="color:var(--red)" data-tip="Algún adjunto no está disponible"':''}>${m.adjuntos.length}</td>
+    <td class="c-int">${m.intentos.length + (m.estado==='proceso'?1:0) || '—'}</td>
+    <td class="c-ult">${lt?fmtShort(lt):'—'}</td>
+    ${resCell(m)}`;
+}
+function rowClass(m){ return [S.sel.has(m.id)?'sel':'', S.active===m.id?'active':'', S.stale.has(m.id)?'stale':''].join(' '); }
+function renderBody(){
+  const tb = $('#tbody');
+  tb.innerHTML = S.ids.map(id=>{ const m=S.byId.get(id); return `<tr data-id="${id}" class="${rowClass(m)}" aria-selected="${S.sel.has(id)}">${rowInner(m)}</tr>`; }).join('');
+  const ev = $('#emptyv');
+  if (S.lot.estado==='prep') ev.innerHTML = `<div class="empty">${ICONS.pendiente.replace('class="ico"','style="width:32px;height:32px;color:#A3A7B0" class="ico"')}<h3>El lote está en preparación</h3><p>Terceros está generando los recordatorios. Los mensajes aparecerán aquí cuando el motor los registre;<br>hasta entonces no hay acciones disponibles. Puede cerrar esta vista sin afectar a la preparación.</p></div>`;
+  else if (!S.msgs.length) ev.innerHTML = `<div class="empty"><h3>Lote vacío</h3><p>Este lote no contiene mensajes.</p></div>`;
+  else if (!S.ids.length) ev.innerHTML = `<div class="empty"><h3>Ningún mensaje coincide</h3><p>Hay ${S.msgs.length} mensajes en el lote, pero ninguno con esta búsqueda y estos filtros.</p><button class="btn" onclick="clearFilters()">Limpiar filtros</button></div>`;
+  else ev.innerHTML = '';
+}
+function updateRow(id, flash){
+  const tr = document.querySelector(`#tbody tr[data-id="${id}"]`); if (!tr) return;
+  const m = S.byId.get(id);
+  tr.innerHTML = rowInner(m); tr.className = rowClass(m) + (flash?' flash':''); tr.setAttribute('aria-selected', S.sel.has(id));
+}
+function refreshSelection(){
+  document.querySelectorAll('#tbody tr').forEach(tr=>{ const id=tr.dataset.id, m=S.byId.get(id); tr.className=rowClass(m); tr.setAttribute('aria-selected',S.sel.has(id)); tr.querySelector('input').checked=S.sel.has(id); });
+  renderHead(); renderTools(); renderNotices();
+}
+function renderAll(resetScroll){
+  computeIds();
+  renderHeader(); renderSummary(); renderTools(); renderNotices(); renderHead(); renderBody();
+  if (resetScroll) $('#tablewrap').scrollTop = 0;
+  renderDetail();
+}
+function viewChanged(keepScroll){
+  const wrap=$('#tablewrap'), st=wrap.scrollTop;
+  computeIds();
+  if (S.active && !S.ids.includes(S.active)) S.active = S.ids[0] || null;
+  S.allVisibleBanner = false;
+  renderSummary(); renderTools(); renderNotices(); renderHead(); renderBody();
+  wrap.scrollTop = keepScroll ? st : 0;
+  if (S.detail) renderDetail();
+}
+function clearFilters(){ S.q=''; $('#q').value=''; S.estados.clear(); viewChanged(); }
+
+/* Tras un cambio de datos: actualiza en sitio sin mover filas */
+function dataChanged(changedIds, flash=true){
+  changedIds.forEach(id=>{
+    const m = S.byId.get(id);
+    const vis = S.ids.includes(id);
+    if (vis){ if (!matches(m)) S.stale.add(id); else S.stale.delete(id); updateRow(id, flash); }
+    else if (matches(m)) S.newMatch.add(id); else S.newMatch.delete(id);
+  });
+  if (MUTABLE.has(S.sort.key) && changedIds.length) S.orderDirty = true;
+  // las posiciones en cola cambian: refresca la columna de resultado de los pendientes visibles
+  document.querySelectorAll('#tbody tr').forEach(tr=>{ const m=S.byId.get(tr.dataset.id); if (m.estado==='pendiente' && !changedIds.includes(m.id)) { tr.lastElementChild.outerHTML = resCell(m); } });
+  const fk = focusKey();
+  renderHeader(); renderSummary(); renderTools(); renderNotices();
+  if (S.detail && changedIds.includes(S.active)) renderDetail();
+  restoreFocus(fk);
+}
+function focusKey(){ const a=document.activeElement; if(!a||a===document.body) return null; if(a.id) return '#'+a.id; if(a.dataset.est) return `[data-est="${a.dataset.est}"]`; if(a.dataset.act) return `[data-act="${a.dataset.act}"]`; return null; }
+function restoreFocus(k){ if(!k || (document.activeElement && document.activeElement!==document.body)) return; const e=document.querySelector(k); if(e && !e.disabled) e.focus({preventScroll:true}); }
+
+/* =========================================================
+   Detalle
+   ========================================================= */
+function renderDetail(){
+  const el = $('#detail');
+  const m = S.byId.get(S.active);
+  if (!S.detail || !m){ el.hidden = true; return; }
+  el.hidden = false;
+  const keepTop = (el.dataset.mid===m.id) ? ($('#dbody')?.scrollTop||0) : 0; el.dataset.mid = m.id;
+  const idx = S.ids.indexOf(m.id);
+  const E = m.err ? ERR[m.err] : null;
+  let call = '';
+  if (m.estado==='fallido') call = `<div class="callout err"><h4>${ICONS.fallido}${esc(E.t)}</h4><p class="what">${esc(E.what)}</p><p><b>Qué hacer:</b> ${esc(E.todo)}</p>
+      ${m.err==='cuenta'?`<p><button class="link" data-open="cuenta">Abrir la cuenta en Gestor Correo</button></p>`:''}
+      <details class="tech"><summary>Detalle técnico para soporte</summary><pre id="techpre">${esc(techText(m))}</pre><button class="btn" id="copyTech">Copiar detalle técnico</button></details></div>`;
+  else if (m.estado==='incierto') call = `<div class="callout unc"><h4>${ICONS.incierto}${esc(E.t)}</h4><p class="what">${esc(E.what)}</p><p><b>Qué hacer:</b> ${esc(E.todo)}</p>
+      ${S.caps.check?'':'<p class="muted">El motor actual no puede consultar al proveedor si el mensaje llegó. Puede comprobarlo en la carpeta Enviados de la cuenta o con el destinatario y registrar el resultado.</p>'}
+      <details class="tech"><summary>Detalle técnico para soporte</summary><pre id="techpre">${esc(techText(m))}</pre><button class="btn" id="copyTech">Copiar detalle técnico</button></details></div>`;
+  else if (m.estado==='aceptado') call = `<div class="callout ok"><h4>${ICONS.aceptado}Aceptado por el servicio de correo</h4><p class="what">El servidor de la cuenta remitente lo aceptó el ${fmtDT(m.intentos.at(-1).fin)}. ${m.entrega ? (m.entrega.e==='entregado' ? `El proveedor notificó la entrega el ${fmtDT(m.entrega.t)}.` : `<b style="color:var(--red)">El proveedor notificó un rebote posterior el ${fmtDT(m.entrega.t)}: ${esc(m.entrega.txt)} (${m.entrega.code}).</b>`) : 'Esto no confirma que haya llegado al buzón del destinatario.'}</p>
+      <details class="tech"><summary>Detalle técnico</summary><pre id="techpre">${esc(techText(m))}</pre><button class="btn" id="copyTech">Copiar detalle técnico</button></details></div>`;
+  else if (m.estado==='cancelado') call = `<div class="callout neu"><h4>${ICONS.cancelado}Cancelado antes del envío</h4><p class="what">${esc(m.resumen)}. No llegó a enviarse.</p></div>`;
+  else if (m.estado==='proceso') call = `<div class="callout neu"><h4>${ICONS.proceso}En proceso</h4><p class="what">El motor lo está enviando. Ya no puede cancelarse.</p></div>`;
+  else call = `<div class="callout neu"><h4>${ICONS.pendiente}Pendiente</h4><p class="what">${m.prio?'Reintento en cola.':'Aún no se ha intentado enviar.'} Puede cancelarse mientras siga pendiente.</p></div>`;
+
+  const acts = [];
+  const lock = S.busy || m.op;
+  if (m.estado==='fallido') acts.push(`<button class="btn primary" data-act="retry" ${lock?'disabled':''}>Reintentar este mensaje</button>`);
+  if (m.estado==='incierto') acts.push(`<button class="btn primary" data-act="check" ${lock?'disabled':''}>Comprobar estado</button>`);
+  if (m.estado==='aceptado') acts.push(`<button class="btn warnb" data-act="resend" ${lock?'disabled':''} data-tip="Crea un envío nuevo. El actual se conserva tal cual.">Reenviar… (nuevo envío)</button>`);
+  if (m.estado==='pendiente') acts.push(`<button class="btn danger" data-act="cancel" ${lock?'disabled':''}>Cancelar este envío</button>`);
+
+  const addr = arr => arr.length ? arr.map(p=>`<span class="addr" title="${esc(p.nombre)}">${esc(p.nombre)} &lt;${esc(p.email)}&gt;</span>`).join('') : '<span class="muted">—</span>';
+  const hist = histItems(m);
+  el.innerHTML = `
+    <div class="dhead">
+      <button class="ibtn" id="dPrev" ${idx<=0?'disabled':''} aria-label="Mensaje anterior" data-tip="Mensaje anterior de la lista (↑)">▲</button>
+      <button class="ibtn" id="dNext" ${idx<0||idx>=S.ids.length-1?'disabled':''} aria-label="Mensaje siguiente" data-tip="Mensaje siguiente de la lista (↓)">▼</button>
+      <h2>Mensaje nº ${m.n} · ${stBadge(m.estado)}</h2>
+      <button class="ibtn" id="dClose" aria-label="Cerrar detalle" data-tip="Cerrar detalle (Esc). No afecta al envío.">✕</button>
+    </div>
+    <div class="dbody" tabindex="-1" id="dbody">
+      ${call}
+      ${acts.length?`<div class="dacts"><span class="scope" data-tip="Estas acciones afectan solo a este mensaje.">Este mensaje</span>${acts.join('')}${m.op?`<span class="op">⏳ ${m.op}</span>`:''}</div>`:''}
+      <section class="dsec"><h3>Envío</h3><div class="in"><dl class="kv">
+        <dt>Empresa</dt><dd>${esc(m.empresa)}</dd>
+        <dt>Remitente</dt><dd>${esc(m.cuenta)}</dd>
+        <dt>Para</dt><dd>${addr(m.para)}</dd>
+        <dt>CC</dt><dd>${addr(m.cc)}</dd>
+        <dt>CCO</dt><dd>${addr(m.cco)}</dd>
+        <dt>Message-Id</dt><dd class="mono" style="font-size:11px">${esc(m.msgid)}</dd>
+      </dl></div></section>
+      <section class="dsec"><h3>Contenido <span class="r">${ICONS.lock} solo lectura</span></h3><div class="in">
+        <div style="font-weight:600;margin-bottom:6px">${esc(m.asunto)}</div>
+        <div class="body">${esc(m.cuerpo)}</div>
+        <div class="histnote">${ICONS.info}<span>Contenido tal como se generó el ${fmtDT(m.creado)}. Los cambios posteriores en la plantilla no lo modifican.</span></div>
+      </div></section>
+      <section class="dsec"><h3>Adjuntos (${m.adjuntos.length})</h3><div class="in">
+        ${m.adjuntos.map((a,i)=>`<div class="att ${a.disponible?'':'na'}">${ICONS.clip}<span class="nm" title="${esc(a.nombre)}">${esc(a.nombre)}</span><span class="sz">${a.kb>=1000?(a.kb/1024).toFixed(1).replace('.',',')+' MB':a.kb+' KB'}</span>
+          ${a.disponible?`<button class="btn" data-prev="${i}">Vista previa</button>`:`<span class="res-err" style="font-size:12px" data-tip="El fichero no existe en la carpeta de documentos.">No disponible</span>`}</div>`).join('')}
+      </div></section>
+      <section class="dsec"><h3>Origen</h3><div class="in" style="display:flex;align-items:center;gap:10px">
+        <span><b>${esc(m.origen.tipo)} ${esc(m.origen.ref)}</b><br><span class="muted">${esc(m.origen.modulo)} · ${esc(S.lot.empresa)}</span></span>
+        <span class="spacer"></span><button class="btn" data-open="origen">Abrir ${esc(m.origen.tipo.toLowerCase())}</button>
+      </div></section>
+      <section class="dsec"><h3>Historial <span class="r">${m.intentos.length} intento${m.intentos.length===1?'':'s'} · ${hist.length} registros</span></h3><div class="in">
+        <ol class="tl">${hist.map(h=>`<li><span class="t">${fmtShort(h.t)}</span><span>${h.html}</span></li>`).join('')}</ol>
+      </div></section>
+    </div>`;
+  $('#dClose').onclick = closeDetail;
+  $('#dPrev').onclick = ()=>moveActive(-1,false,true);
+  $('#dNext').onclick = ()=>moveActive(1,false,true);
+  el.querySelectorAll('[data-act]').forEach(b=>b.onclick=()=>confirmAction(b.dataset.act,'one',[m.id]));
+  el.querySelectorAll('[data-prev]').forEach(b=>b.onclick=()=>preview(m, m.adjuntos[+b.dataset.prev]));
+  el.querySelectorAll('[data-open]').forEach(b=>b.onclick=()=>toast(b.dataset.open==='cuenta' ? 'En ProConta se abriría la cuenta de correo en Gestor Correo, en otra pestaña del contenedor.' : `En ProConta se abriría ${m.origen.tipo.toLowerCase()} ${m.origen.ref} en otra pestaña del contenedor.`));
+  const ct = $('#copyTech'); if (ct) ct.onclick = ()=>copy(techText(m));
+  $('#dbody').scrollTop = keepTop;
+}
+function techText(m){
+  const lines = [`Lote: ${S.lot.id} · Mensaje nº ${m.n} · Message-Id <${m.msgid}>`, `Cuenta: ${m.cuenta} · Servidor: smtp.example.invalid:587 (STARTTLS)`];
+  m.intentos.forEach(a=>{ lines.push(`--- Intento ${a.n} · ${fmtDT(a.ini)} → ${fmtT(a.fin)} · ${a.code}`); lines.push(a.tech); });
+  return lines.join('\n');
+}
+function histItems(m){
+  const it = m.eventos.map(e=>({t:e.t, html:`${esc(e.txt)}${e.por?` <span class="sub">· ${esc(e.por)}</span>`:''}`}));
+  m.intentos.forEach(a=>{
+    const cls = a.res==='aceptado'?'aceptado':a.res==='fallido'?'fallido':'incierto';
+    it.push({t:a.ini, html:`<span class="att-n">Intento ${a.n}</span> ${stBadge(cls).replace(EST[cls].t, a.res==='aceptado'?'Aceptado':a.res==='fallido'?'Fallido':'Incierto')} <span class="sub">${esc(a.txt)} · ${esc(a.code)} · ${Math.max(0,Math.round((a.fin-a.ini)/1000))} s</span>`});
+  });
+  if (m.estado==='proceso' && m.cur) it.push({t:m.cur, html:`<span class="att-n">Intento ${m.intentos.length+1}</span> ${stBadge('proceso')}`});
+  if (m.entrega) it.push({t:m.entrega.t, html:`Aviso del proveedor: <span class="st s-${m.entrega.e}">${ICONS[m.entrega.e]}${m.entrega.e==='entregado'?'Entregado':'Rebotado'}</span> <span class="sub">${esc(m.entrega.txt)} · ${m.entrega.code}</span>`});
+  return it.sort((a,b)=>a.t-b.t);
+}
+function openDetail(){ if (!S.active) return; S.detail = true; renderDetail(); }
+function closeDetail(){ S.detail=false; renderDetail(); $('#tablewrap').focus(); }
+
+/* =========================================================
+   Teclado y ratón en la tabla
+   ========================================================= */
+function setActive(id, scroll=true){
+  const prev = S.active; S.active = id;
+  [prev,id].forEach(x=>{ const tr=document.querySelector(`#tbody tr[data-id="${x}"]`); if(tr) tr.className=rowClass(S.byId.get(x)); });
+  if (scroll){ const tr=document.querySelector(`#tbody tr[data-id="${id}"]`); if (tr){ const w=$('#tablewrap'), hh=30; const top=tr.offsetTop-hh, bot=tr.offsetTop+tr.offsetHeight; if (top<w.scrollTop) w.scrollTop=top; else if (bot>w.scrollTop+w.clientHeight) w.scrollTop=bot-w.clientHeight; } }
+  if (S.detail) renderDetail();
+}
+function moveActive(d, extend, fromDetail){
+  if (!S.ids.length) return;
+  let i = S.ids.indexOf(S.active); if (i<0) i=0; else i = Math.max(0, Math.min(S.ids.length-1, i+d));
+  const id = S.ids[i];
+  if (extend){ selectRange(S.anchor||S.active, id); }
+  else S.anchor = id;
+  setActive(id);
+  if (fromDetail) $('#dbody')?.focus();
+}
+function selectRange(a,b){
+  const i=S.ids.indexOf(a), j=S.ids.indexOf(b); if (i<0||j<0) return;
+  const [x,y]=i<j?[i,j]:[j,i]; for (let k=x;k<=y;k++) S.sel.add(S.ids[k]);
+  refreshSelection();
+}
+function toggleSel(id){ S.sel.has(id)?S.sel.delete(id):S.sel.add(id); S.allVisibleBanner=false; refreshSelection(); }
+function bindTable(){
+  const tb=$('#tbody'), wrap=$('#tablewrap');
+  tb.addEventListener('click', e=>{
+    const tr = e.target.closest('tr'); if (!tr) return; const id=tr.dataset.id;
+    if (e.target.matches('input[type=checkbox]')){ e.preventDefault(); if (e.shiftKey && S.anchor) selectRange(S.anchor,id); else { toggleSel(id); S.anchor=id; } setActive(id,false); wrap.focus({preventScroll:true}); return; }
+    if (e.shiftKey && S.anchor){ selectRange(S.anchor,id); }
+    else if (e.ctrlKey||e.metaKey){ toggleSel(id); S.anchor=id; }
+    else S.anchor=id;
+    setActive(id,false); wrap.focus({preventScroll:true});
+  });
+  tb.addEventListener('dblclick', e=>{ const tr=e.target.closest('tr'); if(!tr||e.target.matches('input')) return; setActive(tr.dataset.id,false); openDetail(); });
+  wrap.addEventListener('keydown', e=>{
+    if (e.target!==wrap) return;
+    const page = Math.max(1, Math.floor(wrap.clientHeight/26)-2);
+    const k=e.key;
+    if (k==='ArrowDown'){ moveActive(1,e.shiftKey); e.preventDefault(); }
+    else if (k==='ArrowUp'){ moveActive(-1,e.shiftKey); e.preventDefault(); }
+    else if (k==='PageDown'){ moveActive(page,e.shiftKey); e.preventDefault(); }
+    else if (k==='PageUp'){ moveActive(-page,e.shiftKey); e.preventDefault(); }
+    else if (k==='Home'){ moveActive(-1e6,e.shiftKey); e.preventDefault(); }
+    else if (k==='End'){ moveActive(1e6,e.shiftKey); e.preventDefault(); }
+    else if (k===' '){ if (S.active){ toggleSel(S.active); S.anchor=S.active; } e.preventDefault(); }
+    else if (k==='Enter'){ openDetail(); e.preventDefault(); }
+    else if ((e.ctrlKey||e.metaKey) && k.toLowerCase()==='a'){ S.ids.forEach(id=>S.sel.add(id)); S.allVisibleBanner=true; refreshSelection(); e.preventDefault(); }
+    else if (k==='Escape'){ if (S.detail) closeDetail(); else if (S.sel.size){ S.sel.clear(); S.allVisibleBanner=false; refreshSelection(); } }
+  });
+}
+
+/* =========================================================
+   Acciones (con alcance, excluidos y bloqueo de dobles acciones)
+   ========================================================= */
+const KIND = {
+  retry:{verb:'Reintentar', title:n=>`Reintentar ${n} mensaje${n===1?'':'s'}`, okH:'Se reintentarán', btn:n=>`Reintentar ${n}`,
+    foot:'Cada reintento añade un intento nuevo al historial; los errores anteriores se conservan.'},
+  cancel:{verb:'Cancelar', title:n=>`Cancelar ${n} envío${n===1?'':'s'} pendiente${n===1?'':'s'}`, okH:'Se cancelarán (aún pendientes)', btn:n=>`Cancelar ${n} envío${n===1?'':'s'}`,
+    foot:'Los mensajes cancelados no se envían. Quedan en el lote con su historial.'},
+  check:{verb:'Comprobar', title:n=>`Comprobar el estado de ${n} mensaje${n===1?'':'s'} incierto${n===1?'':'s'}`, okH:'Se comprobarán', btn:n=>`Comprobar ${n}`,
+    foot:'La comprobación no reenvía nada.'},
+  resend:{verb:'Reenviar', title:n=>`Reenviar ${n} mensaje${n===1?'':'s'} ya aceptado${n===1?'':'s'}`, okH:'Se crearán envíos nuevos para', btn:n=>`Crear ${n} envío${n===1?'':'s'} nuevo${n===1?'':'s'}`,
+    foot:'Los mensajes originales se conservan como aceptados y quedan vinculados a los nuevos.'}
+};
+function confirmAction(kind, scopeType, ids){
+  if (S.busy) return;
+  const sc = scopeOf(kind, ids);
+  const vis = new Set(S.ids);
+  const hidden = ids.filter(id=>!vis.has(id)).length;
+  let scopeTxt;
+  if (scopeType==='lot') scopeTxt = `Alcance: <b>todo el lote</b> (${S.msgs.length} mensajes), incluidos los que no se ven con el filtro actual.`;
+  else if (scopeType==='sel') scopeTxt = `Alcance: <b>selección</b> de ${ids.length} mensaje${ids.length===1?'':'s'}${hidden?`, de los que <b>${hidden} no ${hidden===1?'se ve':'se ven'}</b> con el filtro actual`:''}.`;
+  else scopeTxt = `Alcance: <b>este mensaje</b> (nº ${S.byId.get(ids[0]).n}).`;
+
+  if (kind==='check' && !S.caps.check) return checkUnavailable(sc, scopeTxt);
+  const K = KIND[kind];
+  const list = arr => `<span class="ids">nº ${arr.slice(0,24).map(m=>m.n).join(', ')}${arr.length>24?` y ${arr.length-24} más`:''}</span>`;
+  const exHtml = Object.entries(sc.ex).map(([r,arr])=>`<li><b>${arr.length}</b> · ${esc(r)}<br>${list(arr)}</li>`).join('');
+  const exN = Object.values(sc.ex).reduce((s,a)=>s+a.length,0);
+  let warnHtml = '';
+  if (kind==='retry' && sc.warn.length){
+    const perm = sc.warn.filter(m=>ERR[m.err].cls==='permanente'), corr = sc.warn.filter(m=>ERR[m.err].cls!=='permanente');
+    warnHtml = `<div class="box wn"><h4>${ICONS.incierto}<span class="n">${sc.warn.length}</span> volverán a fallar previsiblemente</h4><ul>
+      ${perm.length?`<li><b>${perm.length}</b> con dirección rechazada: el reintento usa la misma dirección. ${list(perm)}</li>`:''}
+      ${corr.length?`<li><b>${corr.length}</b> pendientes de corregir (cuenta, adjunto o tamaño). ${list(corr)}</li>`:''}</ul>
+      <label style="display:flex;gap:6px;margin-top:6px"><input type="checkbox" id="incWarn"> Incluirlos igualmente</label></div>`;
+  }
+  let extra = '';
+  if (kind==='resend') extra = `<div class="ack">${ICONS.incierto}<div><b>Esto generará otro envío</b>: el destinatario recibirá el mensaje de nuevo. Se usa el mismo contenido histórico y los mismos adjuntos y destinatarios. El envío original no se modifica.<br><label style="display:flex;gap:6px;margin-top:6px"><input type="checkbox" id="ackResend"> Entiendo que se enviará de nuevo</label></div></div>`;
+  if (kind==='cancel'){
+    const proc = (sc.ex['Ya se está enviando: no puede cancelarse.']||[]).length;
+    if (proc) extra = `<p class="muted" style="margin:6px 0 0">${proc} en proceso no pueden detenerse: terminarán con su resultado.</p>`;
+  }
+  const effective = () => kind==='retry' && sc.warn.length && !$('#incWarn')?.checked ? sc.ok.filter(m=>!sc.warn.includes(m)) : sc.ok;
+  dialog({
+    title: K.title(effective().length),
+    sub: scopeTxt,
+    body: `
+      <div class="box ok"><h4>${ICONS.info}${K.okH}: <span class="n" id="okN">${effective().length}</span></h4><div id="okL">${effective().length?list(effective()):'<span class="muted">Ninguno.</span>'}</div></div>
+      ${warnHtml}
+      ${exN?`<div class="box ex"><h4>Excluidos: <span class="n">${exN}</span></h4><ul>${exHtml}</ul></div>`:''}
+      ${extra}`,
+    primary: K.btn(effective().length), primaryDisabled: !effective().length || kind==='resend',
+    note: K.foot,
+    onMount: (d, setPrimary) => {
+      const upd = ()=>{ const n=effective().length; $('#okN').textContent=n; $('#okL').innerHTML = n?list(effective()):'<span class="muted">Ninguno.</span>'; $('#dlgT').textContent=K.title(n); setPrimary(K.btn(n), !n || (kind==='resend' && !$('#ackResend').checked)); };
+      d.querySelector('#incWarn')?.addEventListener('change', upd);
+      d.querySelector('#ackResend')?.addEventListener('change', upd);
+    },
+    onOk: () => runAction(kind, effective())
+  });
+}
+function checkUnavailable(sc, scopeTxt){
+  const n = sc.ok.length;
+  dialog({
+    title:'No se puede comprobar automáticamente', sub: scopeTxt,
+    body:`<p>El motor de correo actual no puede preguntar al proveedor si ${n===1?'el mensaje llegó':'los mensajes llegaron'} a enviarse: SMTP no ofrece esa consulta y la conexión se cortó antes de la confirmación.</p>
+      <p><b>Cómo comprobarlo:</b> revise la carpeta Enviados de la cuenta remitente o confirme con el destinatario.</p>
+      <div class="box ok"><h4>Mensajes inciertos: <span class="n">${n}</span></h4><span class="ids">nº ${sc.ok.map(m=>m.n).join(', ')||'—'}</span></div>
+      <p style="margin-bottom:4px">Registre el resultado de su comprobación:</p>
+      <label style="display:flex;gap:6px;margin:4px 0"><input type="radio" name="res" value="sent"> Consta como enviado: marcar como aceptado (verificación manual)</label>
+      <label style="display:flex;gap:6px;margin:4px 0"><input type="radio" name="res" value="notsent"> No consta: marcar como fallido para poder reintentarlo</label>
+      <label style="display:flex;gap:6px;margin:4px 0"><input type="radio" name="res" value="repeat"> No lo he podido comprobar: repetir el envío igualmente</label>
+      <div class="ack" id="repAck" hidden>${ICONS.incierto}<label style="display:flex;gap:6px"><input type="checkbox" id="ackRep"> Entiendo que el destinatario podría recibirlo dos veces.</label></div>`,
+    primary:'Registrar', primaryDisabled:true,
+    note:'Queda registrado en el historial con su nombre.',
+    onMount:(d,setPrimary)=>{
+      const upd=()=>{ const v=d.querySelector('input[name=res]:checked')?.value; d.querySelector('#repAck').hidden = v!=='repeat';
+        setPrimary(v==='repeat'?`Repetir ${n} envío${n===1?'':'s'}`:'Registrar', !n || !v || (v==='repeat' && !d.querySelector('#ackRep').checked)); };
+      d.querySelectorAll('input').forEach(i=>i.addEventListener('change',upd));
+    },
+    onOk:(d)=>{ const v=d.querySelector('input[name=res]:checked').value; runAction('manual:'+v, sc.ok); }
+  });
+}
+function runAction(kind, list){
+  if (!list.length || S.busy) return;
+  S.busy = true;
+  const label = {retry:'encolando reintento', cancel:'cancelando', check:'comprobando', resend:'creando reenvío'}[kind] || 'registrando';
+  list.forEach(m=>m.op=label);
+  dataChanged(list.map(m=>m.id), false);
+  if (S.detail) renderDetail();
+  const t = S.lot.clock;
+  setTimeout(()=>{
+    const changed = list.map(m=>m.id);
+    let msg='';
+    if (kind==='retry'){
+      list.forEach(m=>{ m.op=null; m.estado='pendiente'; m.prio=Date.now(); m.resumen=''; ev(m,t,'Reintento solicitado (el intento anterior y su error se conservan)', S.operador); });
+      msg = `${list.length} mensaje${list.length>1?'s':''} en cola para reintento.${S.sim.running?'':' Se procesarán cuando el motor avance (inicie la simulación o use «Un paso»).'}`;
+    } else if (kind==='cancel'){
+      list.forEach(m=>{ m.op=null; if (m.estado!=='pendiente'){ return; } m.estado='cancelado'; m.resumen='Cancelado por '+S.operador.replace(/^(\w)\w+/,'$1.')+' · solicitado desde el seguimiento'; ev(m,t,'Cancelado antes del envío', S.operador); });
+      const done = list.filter(m=>m.estado==='cancelado').length;
+      msg = `${done} envío${done>1?'s':''} cancelado${done>1?'s':''}.` + (done<list.length?` ${list.length-done} ya habían pasado a proceso y no se cancelaron.`:'');
+    } else if (kind==='check'){
+      list.forEach((m,i)=>{ m.op=null; ev(m,t,'Comprobación de resultado solicitada al proveedor', S.operador);
+        if (i%2===0){ m.estado='aceptado'; m.err=null; m.resumen='Aceptado (confirmado por comprobación) · '+fmtT(t,false); ev(m,addS(t,2),'Comprobación: el proveedor registra el Message-Id como aceptado. Estado corregido a Aceptado.', 'Motor de correo'); }
+        else { m.estado='fallido'; m.err='noconsta'; m.resumen=ERR.noconsta.res; ev(m,addS(t,2),'Comprobación: el proveedor no registra el envío. Pasa a Fallido y puede reintentarse sin riesgo de duplicado.', 'Motor de correo'); }
+      });
+      msg = 'Comprobación terminada. Revise el resultado en cada mensaje.';
+    } else if (kind==='resend'){
+      list.forEach(m=>{
+        m.op=null;
+        const n = Math.max(...S.msgs.map(x=>x.n))+1;
+        const c = structuredClone({...m, intentos:[], eventos:[], entrega:null, reenviadoComo:undefined});
+        Object.assign(c, {id:'m'+S.lot.key+'r'+n, n, estado:'pendiente', prio:Date.now(), resumen:'', err:null, creado:t, reenvioDe:m.n, msgid:`${S.lot.key.toLowerCase()}${n}.r${m.n}@empresa-demo-a.example.invalid`,
+          cur:null});
+        c.creado = m.creado; // el contenido sigue siendo el histórico
+        c.eventos = [{t, txt:`Reenvío del mensaje nº ${m.n} (mismo contenido histórico del ${fmtDT(m.creado)})`, por:S.operador}];
+        S.msgs.push(c); S.byId.set(c.id,c);
+        (m.reenviadoComo = m.reenviadoComo||[]).push(n);
+        ev(m,t,`Reenviado como mensaje nº ${n}. Este envío se conserva sin cambios.`, S.operador);
+        if (matches(c)){ S.ids.push(c.id); $('#tbody').insertAdjacentHTML('beforeend', `<tr data-id="${c.id}" class="${rowClass(c)} flash">${rowInner(c)}</tr>`); }
+      });
+      msg = `${list.length} envío${list.length>1?'s':''} nuevo${list.length>1?'s':''} añadido${list.length>1?'s':''} al final del lote.`;
+    } else if (kind.startsWith('manual:')){
+      const v = kind.split(':')[1];
+      list.forEach(m=>{ m.op=null;
+        if (v==='sent'){ m.estado='aceptado'; m.err=null; m.resumen='Aceptado (verificado manualmente)'; ev(m,t,'Resultado registrado manualmente: consta como enviado', S.operador); }
+        else if (v==='notsent'){ m.estado='fallido'; m.err='noconsta'; m.resumen='No consta como enviado (verificado manualmente)'; ev(m,t,'Resultado registrado manualmente: no consta como enviado', S.operador); }
+        else { m.estado='pendiente'; m.prio=Date.now(); m.err=null; m.resumen=''; ev(m,t,'Repetición solicitada sin comprobación previa (posible duplicado aceptado por el operador)', S.operador); }
+      });
+      msg = v==='repeat' ? `${list.length} mensaje${list.length>1?'s':''} en cola para repetir.` : 'Resultado registrado en el historial.';
+    }
+    S.busy = false;
+    dataChanged(changed);
+    renderHead();
+    if (S.detail) renderDetail();
+    toast(msg);
+  }, 900);
+}
+
+/* Menú de acciones del lote */
+function openLotMenu(btn){
+  closeMenus();
+  const all = S.msgs.map(m=>m.id);
+  const c = counts();
+  const n = k => scopeOf(k, all).ok.length;
+  const r = btn.getBoundingClientRect();
+  const m = document.createElement('div');
+  m.className='menu'; m.setAttribute('role','menu'); m.id='lotMenu';
+  m.style.top = (r.bottom+4)+'px'; m.style.right = (window.innerWidth - r.right)+'px';
+  const cancelProc = c.proceso;
+  m.innerHTML = `<div class="mh">Todo el lote · ${c.total} mensajes (incluye los no visibles)</div>
+    <button role="menuitem" data-k="retry" ${n('retry')?'':'disabled'}><span>Reintentar todos los fallidos<small>Se avisará de los que volverán a fallar previsiblemente.</small></span><span class="cnt">${n('retry')}</span></button>
+    <button role="menuitem" data-k="check" ${n('check')?'':'disabled'}><span>Comprobar estado de los inciertos<small>${S.caps.check?'Consulta al proveedor antes de repetir.':'El motor actual no puede comprobarlo: se explicará cómo hacerlo.'}</small></span><span class="cnt">${n('check')}</span></button>
+    <button role="menuitem" data-k="cancel" ${n('cancel')?'':'disabled'}><span>Cancelar todos los pendientes<small>${cancelProc?`${cancelProc} en proceso no pueden cancelarse.`:'Ninguno en proceso.'}</small></span><span class="cnt">${n('cancel')}</span></button>
+    <hr>
+    <button role="menuitem" data-k="sel"><span>Seleccionar todos los mensajes del lote<small>Para revisar o actuar sobre la selección.</small></span><span class="cnt">${c.total}</span></button>`;
+  document.body.appendChild(m);
+  btn.setAttribute('aria-expanded','true');
+  m.querySelectorAll('button').forEach(b=>b.onclick=()=>{ closeMenus(); const k=b.dataset.k; if (k==='sel'){ all.forEach(id=>S.sel.add(id)); S.allVisibleBanner=true; refreshSelection(); } else confirmAction(k,'lot',all); });
+  m.querySelector('button:not(:disabled)')?.focus();
+  m.addEventListener('keydown', e=>{
+    const items=[...m.querySelectorAll('button:not(:disabled)')], i=items.indexOf(document.activeElement);
+    if (e.key==='ArrowDown'){ items[(i+1)%items.length].focus(); e.preventDefault(); }
+    if (e.key==='ArrowUp'){ items[(i-1+items.length)%items.length].focus(); e.preventDefault(); }
+    if (e.key==='Escape'){ closeMenus(); btn.focus(); }
+  });
+}
+function closeMenus(){ document.querySelectorAll('.menu').forEach(x=>x.remove()); const b=$('#bLot'); if(b) b.setAttribute('aria-expanded','false'); }
+document.addEventListener('mousedown', e=>{ if (!e.target.closest('.menu') && !e.target.closest('#bLot')) closeMenus(); });
+
+function onPause(){
+  if (!S.caps.pause){
+    dialog({title:'Pausar y reanudar: propuesta', sub:'Capacidad pendiente de contrato con el motor de correo.',
+      body:`<p>Esta acción se muestra como <b>propuesta</b>. Para ofrecerla, el motor debe permitir dejar de tomar mensajes pendientes de un lote y reanudarlo después, sin perder el orden ni duplicar envíos.</p>
+      <p>Comportamiento propuesto: al pausar, los mensajes en proceso terminan con su resultado y los pendientes esperan. Cerrar esta vista no pausa ni cancela el lote.</p>
+      <p class="muted">En la maqueta puede simularla activando «Pausa» en la barra de controles.</p>`,
+      primary:'Entendido', cancel:false, onOk:()=>{}});
+    return;
+  }
+  S.paused = !S.paused; S.lot.paused = S.paused;
+  toast(S.paused ? 'Lote pausado. Los mensajes en proceso terminarán; los pendientes esperan.' : 'Lote reanudado.');
+  dataChanged([]);
+}
+
+/* =========================================================
+   Diálogos, vista previa, tooltips, toasts
+   ========================================================= */
+function dialog({title, sub, body, primary='Aceptar', primaryDisabled=false, cancel=true, note='', wide=false, onMount, onOk}){
+  closeMenus();
+  const prevFocus = document.activeElement;
+  const bd = document.createElement('div'); bd.className='backdrop';
+  bd.innerHTML = `<div class="dlg ${wide?'wide':''}" role="dialog" aria-modal="true" aria-labelledby="dlgT">
+    <header><h2 id="dlgT">${title}</h2>${sub?`<p>${sub}</p>`:''}</header>
+    <div class="content">${body}</div>
+    <footer>${primary?`<button class="btn primary" id="dOk" ${primaryDisabled?'disabled':''}>${primary}</button>`:''}${cancel?`<button class="btn" id="dCancel">${primary?'Cancelar':'Cerrar'}</button>`:''}${note?`<span class="note">${note}</span>`:''}</footer></div>`;
+  document.body.appendChild(bd);
+  const d = bd.querySelector('.dlg');
+  const close = ()=>{ bd.remove(); prevFocus?.focus?.(); };
+  const setPrimary = (txt,dis)=>{ const b=d.querySelector('#dOk'); if(b){ b.textContent=txt; b.disabled=dis; } };
+  d.querySelector('#dCancel')?.addEventListener('click', close);
+  d.querySelector('#dOk')?.addEventListener('click', e=>{
+    const b=e.currentTarget; if (b.disabled) return; b.disabled=true; b.textContent='Procesando…';
+    onOk?.(d); close();
+  });
+  bd.addEventListener('keydown', e=>{
+    if (e.key==='Escape'){ close(); e.stopPropagation(); }
+    if (e.key==='Tab'){ const f=[...d.querySelectorAll('button:not(:disabled),input:not(:disabled),[tabindex="0"]')]; if(!f.length) return; const i=f.indexOf(document.activeElement); if (e.shiftKey && i<=0){ f.at(-1).focus(); e.preventDefault(); } else if (!e.shiftKey && i===f.length-1){ f[0].focus(); e.preventDefault(); } }
+  });
+  onMount?.(d, setPrimary);
+  (d.querySelector('#dOk:not(:disabled)') || d.querySelector('input') || d.querySelector('#dCancel'))?.focus();
+  return {close};
+}
+function preview(m, a){
+  let inner;
+  if (a.tipo==='xlsx') inner = `<div class="page"><h5>${esc(a.nombre)}</h5><div class="muted">Hoja 1 · Consumos</div><table><tr><th>Concepto</th><th>Unid.</th><th>Importe</th></tr>${['Horas técnico','Desplazamientos','Material fungible','Revisión filtros'].map((x,i)=>`<tr><td>${x}</td><td>${i+2}</td><td>${(45.5*(i+1)).toFixed(2).replace('.',',')} €</td></tr>`).join('')}</table><div class="wm">Vista previa simulada</div></div>`;
+  else inner = `<div class="page"><h5>${esc(m.empresa)}</h5><div class="muted">${esc(m.origen.tipo)} ${esc(m.origen.ref)} · ${fmtD(m.creado)}</div>
+    <p style="margin-top:14px"><b>Cliente:</b> ${esc(m.para[0].nombre)}</p>
+    <table><tr><th style="text-align:left">Concepto</th><th style="text-align:right">Importe</th></tr><tr><td>${esc(m.asunto.split(' · ')[1]||'')}</td><td style="text-align:right">—</td></tr></table>
+    <div class="wm">Vista previa simulada del PDF adjunto<br>${esc(a.nombre)}</div></div>`;
+  dialog({title:`Vista previa · ${esc(a.nombre)}`, sub:`Adjunto del mensaje nº ${m.n}, tal como se envió.`, body:`<div class="preview">${inner}</div>`, primary:'', cancel:true, wide:true});
+}
+let tipT=null;
+function showTip(el){
+  const t = el.getAttribute('data-tip'); if (!t) return;
+  const tip=$('#tip'); tip.textContent = t.replace(/\\n/g,'\n'); tip.hidden=false;
+  const r = el.getBoundingClientRect(); const w = tip.offsetWidth, h = tip.offsetHeight;
+  let x = Math.min(window.innerWidth-w-8, Math.max(8, r.left)); let y = r.bottom+6; if (y+h>window.innerHeight-8) y = r.top-h-6;
+  tip.style.left=x+'px'; tip.style.top=y+'px';
+}
+function hideTip(){ clearTimeout(tipT); $('#tip').hidden=true; }
+document.addEventListener('mouseover', e=>{ const el=e.target.closest('[data-tip]'); clearTimeout(tipT); if (!el){ hideTip(); return; } tipT=setTimeout(()=>showTip(el),400); });
+document.addEventListener('focusin', e=>{ const el=e.target.closest('[data-tip]'); hideTip(); if (el && el.matches(':focus-visible')) tipT=setTimeout(()=>showTip(el),250); });
+document.addEventListener('keydown', e=>{ if (e.key==='Escape') hideTip(); if ((e.ctrlKey||e.metaKey) && e.key.toLowerCase()==='f' && !document.querySelector('.backdrop')){ $('#q').focus(); $('#q').select(); e.preventDefault(); } }, true);
+document.addEventListener('scroll', hideTip, true);
+function toast(t){ const d=document.createElement('div'); d.className='toast'; d.textContent=t; $('#toasts').appendChild(d); setTimeout(()=>d.remove(), 4800); }
+function copy(t){
+  const done=()=>toast('Detalle técnico copiado al portapapeles.');
+  if (navigator.clipboard?.writeText) navigator.clipboard.writeText(t).then(done, fallback); else fallback();
+  function fallback(){ const ta=document.createElement('textarea'); ta.value=t; document.body.appendChild(ta); ta.select(); try{document.execCommand('copy'); done();}catch(e){toast('No se pudo copiar: seleccione el texto manualmente.');} ta.remove(); }
+}
+
+/* =========================================================
+   Motor simulado
+   ========================================================= */
+function retryOutcome(m){
+  if (!m.err) return m.n%17===5 && !m.prio ? ['fallido','temporal'] : ['aceptado'];
+  const k = ERR[m.err];
+  if (k.cls==='permanente') return ['fallido', m.err];
+  if (k.cls==='correccion') return S.caps.fixed ? ['aceptado'] : ['fallido', m.err];
+  return ['aceptado'];
+}
+function tick(){
+  if (S.lot.estado==='prep') return;
+  const L = S.lot; L.clock = addS(L.clock, 17);
+  const changed = [];
+  const proc = S.msgs.filter(m=>m.estado==='proceso').sort((a,b)=>a.cur-b.cur);
+  if (proc.length){
+    const m = proc[0];
+    const [res, k] = retryOutcome(m);
+    if (k==='adjunto') m.adjuntos[0].disponible = S.caps.fixed;
+    if (res==='aceptado' && m.err==='adjunto') m.adjuntos.forEach(a=>a.disponible=true);
+    attempt(m, m.cur, res, k, Math.max(2, Math.round((L.clock-m.cur)/1000)));
+    m.intentos.at(-1).fin = L.clock; m.cur=null; m.prio=0;
+    if (res==='aceptado') m.resumen = 'Aceptado por el servicio · '+fmtT(L.clock,false);
+    changed.push(m.id);
+  }
+  if (!S.paused){
+    const pend = S.msgs.filter(m=>m.estado==='pendiente' && !m.op).sort((a,b)=>(b.prio||0)-(a.prio||0)||a.n-b.n);
+    let inProc = S.msgs.filter(m=>m.estado==='proceso').length;
+    while (inProc<3 && pend.length){ const m=pend.shift(); m.estado='proceso'; m.cur = addS(L.clock, -inProc*3); m.resumen='Enviando…'; changed.push(m.id); inProc++; }
+  }
+  const c = counts();
+  if (!c.pendiente && !c.proceso && S.sim.running){ stopSim(); toast(c.fallido+c.incierto ? `Lote finalizado con incidencias: ${c.fallido} fallidos, ${c.incierto} inciertos.` : 'Lote finalizado. Todos los mensajes aceptados por el servicio.'); }
+  else if (S.paused && !c.proceso && S.sim.running){ toast('Lote en pausa: no quedan mensajes en proceso.'); }
+  dataChanged(changed);
+}
+function startSim(){ if (S.sim.running) return; S.sim.running=true; S.sim.timer=setInterval(tick, +$('#dSpeed').value); syncDemo(); }
+function stopSim(){ S.sim.running=false; clearInterval(S.sim.timer); syncDemo(); }
+function syncDemo(){ const b=$('#dPlay'); b.setAttribute('aria-pressed', S.sim.running); b.textContent = S.sim.running ? '⏸ Detener' : '▶ Iniciar'; }
+
+/* =========================================================
+   Arranque
+   ========================================================= */
+function init(){
+  buildScenarios();
+  $('#dScen').onchange = e=>loadScenario(e.target.value);
+  $('#dPlay').onclick = ()=> S.sim.running ? stopSim() : startSim();
+  $('#dStep').onclick = tick;
+  $('#dSpeed').onchange = ()=>{ if (S.sim.running){ stopSim(); startSim(); } };
+  $('#cCheck').onchange = e=>{ S.caps.check=e.target.checked; renderDetail(); };
+  $('#cPause').onchange = e=>{ S.caps.pause=e.target.checked; if(!S.caps.pause && S.paused){ S.paused=false; S.lot.paused=false; } renderHeader(); renderSummary(); };
+  $('#cFixed').onchange = e=>{ S.caps.fixed=e.target.checked; renderTools(); };
+  $('#dReset').onclick = ()=>{ const k=S.scen; buildScenarios(); ['cCheck','cPause','cFixed'].forEach(i=>$('#'+i).checked=false); S.caps={check:false,pause:false,fixed:false}; S.paused=false; loadScenario(k); toast('Escenarios restablecidos.'); };
+  document.querySelectorAll('#demo [data-w]').forEach(b=>b.onclick=()=>{ $('#frame').className=b.dataset.w; document.querySelectorAll('#demo [data-w]').forEach(x=>x.setAttribute('aria-pressed', x===b)); });
+  let qt; $('#q').addEventListener('input', e=>{ clearTimeout(qt); qt=setTimeout(()=>{ S.q=e.target.value.trim(); viewChanged(); },180); });
+  $('#q').addEventListener('keydown', e=>{ if (e.key==='Escape' && e.target.value){ e.target.value=''; S.q=''; viewChanged(); e.stopPropagation(); } if (e.key==='ArrowDown' || e.key==='Enter'){ $('#tablewrap').focus(); e.preventDefault(); } });
+  $('#qx').onclick = ()=>{ $('#q').value=''; S.q=''; viewChanged(); $('#q').focus(); };
+  $('#clear').onclick = clearFilters;
+  bindTable();
+  loadScenario('A');
+}
+init();
+</script>
+</body>
+</html>
