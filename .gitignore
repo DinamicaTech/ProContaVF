@@ -1,0 +1,6 @@
+# Proyecto original y bases de datos con datos reales: nunca en el repositorio
+/ProConta/
+*.accdb
+*.laccdb
+*.mdb
+*.ldb
