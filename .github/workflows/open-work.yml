@@ -1,0 +1,45 @@
+name: Open work
+# Installed by Claude Visual Project in a project's repository (see docs/nuevo-proyecto.md of CVP).
+# Keeps <docs>/.open-work.md on the default branch up to date with the md files that open branches
+# and pull requests are changing, so the page can mark busy nodes. Also deletes the branch of a
+# merged pull request. The tool is downloaded from CVP's public repository, so the project keeps
+# no copy of it. Its own commits do not trigger workflows (GITHUB_TOKEN).
+on:
+  push:
+  delete:
+  pull_request:
+    types: [opened, reopened, closed, edited, synchronize]
+  workflow_dispatch:
+permissions:
+  contents: write
+  pull-requests: read
+concurrency:
+  group: open-work
+  cancel-in-progress: false
+env:
+  DOCS: docs   # the docs folder of the project, from the repository root
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+      - name: Get the tool from Claude Visual Project
+        run: curl -fsSL https://raw.githubusercontent.com/DinamicaTech/ClaudeVisualProject/main/tools/open-work.mjs -o "$RUNNER_TEMP/open-work.mjs"
+      - name: Write .open-work.md
+        run: node "$RUNNER_TEMP/open-work.mjs" "$DOCS" --delete-merged
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Commit it to the default branch
+        run: |
+          git add "$DOCS/.open-work.md"
+          if git diff --cached --quiet; then exit 0; fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898+github-actions[bot]@users.noreply.github.com"
+          git commit -m "Open work: update $DOCS/.open-work.md"
+          for i in 1 2 3; do
+            git push origin HEAD:${{ github.event.repository.default_branch }} && exit 0
+            git pull --rebase origin ${{ github.event.repository.default_branch }}
+          done
+          exit 1

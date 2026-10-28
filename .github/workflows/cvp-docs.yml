@@ -1,0 +1,46 @@
+name: CVP docs
+# Installed by Claude Visual Project in a project's repository (see docs/build/github.md of CVP).
+# Keeps <docs>/.index.md (the node index) and the CVP rules block of <docs>/global-rules.md up to date
+# on the default branch: on every push to it, once a day (to pick up new CVP rules) and on demand.
+# The tools are taken from CVP's public repository, so the project keeps no copy of them. Rules newer
+# than CVP's are never downgraded. Its own commits do not trigger workflows (GITHUB_TOKEN).
+on:
+  push:
+  schedule:
+    - cron: '17 5 * * *'
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: cvp-docs
+  cancel-in-progress: false
+env:
+  DOCS: docs   # the docs folder of the project, from the repository root
+jobs:
+  update:
+    if: github.event_name != 'push' || github.ref_name == github.event.repository.default_branch
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Get the tools from Claude Visual Project
+        uses: actions/checkout@v4
+        with:
+          repository: DinamicaTech/ClaudeVisualProject
+          path: .cvp-tools
+          sparse-checkout: tools
+      - name: Update the node index and the CVP rules
+        run: |
+          node .cvp-tools/tools/update-rules.mjs "$DOCS" --auto
+          node .cvp-tools/tools/build-index.mjs "$DOCS"
+      - name: Commit them to the default branch
+        run: |
+          git add "$DOCS/.index.md" "$DOCS/global-rules.md"
+          if git diff --cached --quiet; then exit 0; fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898+github-actions[bot]@users.noreply.github.com"
+          git commit -m "CVP docs: update the node index and the CVP rules"
+          for i in 1 2 3; do
+            git push origin HEAD:$(git rev-parse --abbrev-ref HEAD) && exit 0
+            git pull --rebase origin $(git rev-parse --abbrev-ref HEAD)
+          done
+          exit 1
