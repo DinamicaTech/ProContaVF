@@ -1,0 +1,1517 @@
+<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ProConta · Compositor de correo (maqueta)</title>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --navy:#14213A;--navy2:#22314F;--navy3:#1B2A47;--ink:#16213A;--mut:#646A78;--mut2:#7A8090;--txt2:#3B4252;
+  --or:#F4A259;--or2:#D9622B;--or3:#B4481F;
+  --bg:#F1EEE7;--bg2:#FBFAF7;--card:#FFFFFF;--ln:#ECE8DE;--ln2:#F3F0E9;--ln3:#E1DDD2;--inb:#D9D5CB;--inbg:#FAF9F6;
+  --blue:#1D5C8C;--blueb:#E3ECF6;--green:#1E6B45;--greenb:#E2F0E8;--red:#B42318;--redb:#FDF1EF;
+  --amb:#8A4410;--ambb:#FFEBD6;--pur:#5B3F86;--purb:#ECE6F3;--selb:#E8F0F9;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{font-family:'IBM Plex Sans','Segoe UI',system-ui,sans-serif;font-size:13px;color:var(--ink);background:#CFCBC2;display:flex;flex-direction:column;overflow:hidden}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+button:disabled{cursor:default}
+.mono{font-family:'IBM Plex Mono',ui-monospace,monospace}
+.mut{color:var(--mut)}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+:focus-visible{outline:2px solid var(--or2);outline-offset:1px}
+svg.ic{flex-shrink:0;display:block}
+[hidden]{display:none!important}
+
+/* ───── Barra de demostración (fuera del producto) ───── */
+#demo{flex:none;display:flex;flex-wrap:wrap;align-items:center;gap:6px 14px;padding:7px 14px;background:#232427;color:#E6E6E6;font-size:12px;border-bottom:3px dashed #FFD54A;position:relative;z-index:50}
+#demo .dtag{font-family:'IBM Plex Mono',monospace;font-weight:600;font-size:11px;letter-spacing:.08em;background:#FFD54A;color:#232427;padding:2px 7px;border-radius:4px}
+#demo label{display:inline-flex;align-items:center;gap:6px;color:#BDBDBD}
+#demo select{height:26px;border-radius:6px;border:1px solid #4A4B50;background:#2F3034;color:#F0F0F0;padding:0 6px;font-size:12px}
+#demo .dseg{display:inline-flex;border:1px solid #4A4B50;border-radius:7px;overflow:hidden}
+#demo .dseg button{height:26px;border:0;background:#2F3034;color:#D0D0D0;padding:0 10px;font-size:12px}
+#demo .dseg button[aria-pressed="true"]{background:#FFD54A;color:#232427;font-weight:600}
+#demo .dbtn{height:26px;border-radius:6px;border:1px solid #4A4B50;background:#2F3034;color:#F0F0F0;padding:0 10px;font-size:12px}
+#demo .dbtn:hover{background:#3A3B40}
+#demo :focus-visible{outline:2px solid #FFD54A}
+#demo .dsim{border:1px dashed #FFD54A;color:#FFD54A;padding:2px 7px;border-radius:4px;font-size:11px}
+
+/* ───── Escenario: pantalla de origen ───── */
+#stage{flex:1 1 auto;min-height:0;position:relative;overflow:hidden}
+#origin{position:absolute;inset:0;display:flex;flex-direction:column;background:var(--bg)}
+.titlebar{height:40px;flex:none;background:var(--navy);color:#fff;display:flex;align-items:center;gap:12px;padding:0 0 0 14px}
+.brand{display:flex;align-items:center;gap:8px;font-family:'Bricolage Grotesque','Segoe UI',sans-serif;font-weight:700;font-size:15px}
+.brand i{width:20px;height:20px;border-radius:6px;background:var(--or);display:inline-block;position:relative}
+.brand i:after{content:"";position:absolute;inset:6px 5px 5px 6px;border-radius:2px;background:var(--navy)}
+.ctxpill{height:26px;display:inline-flex;align-items:center;gap:6px;padding:0 10px;border-radius:7px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.14);font-size:12px;color:#DCE3F0}
+.ctxpill b{color:#fff;font-weight:600}
+.ctxpill.chg{background:rgba(244,162,89,.25);border-color:var(--or)}
+.winbtns{display:flex;height:100%;margin-left:auto}
+.winbtns span{width:46px;display:flex;align-items:center;justify-content:center;color:#AEB8CC}
+.ctabs{height:36px;flex:none;background:var(--navy3);display:flex;align-items:flex-end;gap:2px;padding:0 8px}
+.ctab{height:30px;border-radius:8px 8px 0 0;color:#AEB8CC;padding:0 14px;display:inline-flex;align-items:center;font-size:12.5px;white-space:nowrap}
+.ctab.on{background:var(--bg);color:var(--navy);font-weight:600}
+.wbody{flex:1 1 auto;min-height:0;display:flex}
+.rail{width:56px;flex:none;background:var(--navy);display:flex;flex-direction:column;align-items:center;gap:4px;padding-top:8px}
+.rail span{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;color:#8E9AB3}
+.rail span.on{background:var(--or);color:var(--navy)}
+.omain{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;min-height:0}
+.modbar{height:48px;flex:none;background:#fff;border-bottom:1px solid var(--ln);display:flex;align-items:center;gap:10px;padding:0 14px}
+.modbar h1{margin:0;font-family:'Bricolage Grotesque','Segoe UI',sans-serif;font-size:18px;font-weight:600}
+.modbar .ctxi{font-size:12px;color:var(--mut);white-space:nowrap}
+.obtn{height:30px;display:inline-flex;align-items:center;gap:6px;padding:0 12px;border-radius:7px;border:1px solid var(--ln3);background:#fff;font-weight:500;white-space:nowrap}
+.obtn:hover{background:var(--bg2)}
+.obtn.pri{background:var(--navy);color:#fff;border-color:var(--navy)}
+.obtn.pri:hover{background:var(--navy2)}
+.ocontent{flex:1 1 auto;min-height:0;overflow:auto;padding:14px;display:flex;flex-direction:column;gap:12px}
+.ocard{background:#fff;border:1px solid var(--ln);border-radius:10px;overflow:hidden}
+.ocard h3{margin:0;padding:10px 14px;font-size:13px;border-bottom:1px solid var(--ln);display:flex;align-items:center;gap:8px}
+table.ot{width:100%;border-collapse:collapse;font-size:12.5px}
+table.ot th{text-align:left;font-weight:600;color:var(--mut);font-size:11.5px;padding:7px 12px;background:var(--bg2);border-bottom:1px solid var(--ln)}
+table.ot td{padding:0 12px;height:30px;border-bottom:1px solid var(--ln2);white-space:nowrap}
+table.ot tr.sel td{background:var(--selb)}
+table.ot td.num{text-align:right;font-variant-numeric:tabular-nums}
+.opill{display:inline-block;padding:1px 8px;border-radius:999px;font-size:11.5px;background:var(--greenb);color:var(--green)}
+.ohist{font-size:12px}
+.ohist li{padding:6px 14px;border-bottom:1px solid var(--ln2);display:flex;gap:10px;align-items:center}
+.ohist ul{list-style:none;margin:0;padding:0}
+.ohist .when{color:var(--mut);font-variant-numeric:tabular-nums;width:110px;flex:none}
+.statusbar{height:24px;flex:none;background:#fff;border-top:1px solid var(--ln);display:flex;align-items:center;gap:14px;padding:0 12px;font-size:11.5px;color:var(--mut)}
+.statusbar .dotg{width:7px;height:7px;border-radius:50%;background:#2E8A5C;display:inline-block;margin-right:5px}
+.ofrow{display:flex;gap:10px;align-items:center;padding:8px 14px;border-bottom:1px solid var(--ln2)}
+.ofrow .lab{width:120px;color:var(--mut)}
+#otoast{position:absolute;left:50%;bottom:40px;transform:translateX(-50%);background:var(--navy);color:#fff;border-radius:9px;padding:10px 14px;box-shadow:0 10px 30px rgba(0,0,0,.25);display:flex;gap:10px;align-items:center;max-width:620px;z-index:5}
+#otoast button{background:transparent;border:0;color:#AEB8CC}
+
+/* Velo modal */
+#scrim{position:absolute;inset:0;background:rgba(20,33,58,.38)}
+
+/* ───── Ventana del compositor ───── */
+#cw{position:absolute;background:var(--bg2);border:1px solid #8E96A8;border-radius:8px;box-shadow:0 18px 50px rgba(10,20,40,.35),0 2px 6px rgba(10,20,40,.2);display:flex;flex-direction:column;overflow:hidden;min-width:600px;min-height:460px;z-index:10}
+#cw.max{border-radius:0}
+.cwt{height:36px;flex:none;background:var(--navy);color:#fff;display:flex;align-items:center;gap:10px;padding-left:12px;cursor:move;user-select:none}
+#cw.max .cwt{cursor:default}
+.cwt h2{margin:0;font-size:13px;font-weight:600;white-space:nowrap}
+.cwt .ctx{font-size:12px;color:#C7D0E2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;display:flex;gap:6px;align-items:center}
+.cwt .ctx b{color:#fff;font-weight:500}
+.cwt .wb{margin-left:auto;display:flex;height:100%;flex:none}
+.cwt .wb button{width:42px;height:100%;border:0;background:transparent;color:#C7D0E2;display:flex;align-items:center;justify-content:center}
+.cwt .wb button:hover{background:rgba(255,255,255,.1);color:#fff}
+.cwt .wb button.cls:hover{background:#C42B1C}
+.cwt .wb button:focus-visible{outline:2px solid var(--or);outline-offset:-2px}
+.cwt .wb button:disabled{opacity:.4}
+
+.cwbanner{flex:none;display:flex;gap:10px;align-items:flex-start;padding:8px 14px;background:var(--blueb);color:#163E60;border-bottom:1px solid #C9DAEC;font-size:12.5px}
+.cwbanner .x{margin-left:auto;border:0;background:transparent;color:inherit;padding:2px}
+
+.cwbody{flex:1 1 auto;min-height:0;display:flex}
+.cwmain{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;min-height:0;overflow:auto}
+.fields{flex:none;padding:8px 0 6px;background:#fff;border-bottom:1px solid var(--ln)}
+.frow{display:flex;align-items:flex-start;gap:8px;padding:3px 14px}
+.flab{width:52px;flex:none;padding-top:7px;color:var(--mut);font-weight:500;text-align:right;white-space:nowrap}
+.flab label{cursor:default}
+.fctl{flex:1 1 auto;min-width:0;max-width:880px}
+.fside{flex:none;display:flex;gap:4px;padding-top:3px}
+.ccbtn{height:26px;padding:0 9px;border-radius:6px;border:1px solid var(--ln3);background:#fff;color:var(--txt2);font-size:12px;font-weight:500}
+.ccbtn:hover{background:var(--bg2)}
+.ccbtn[aria-expanded="true"]{background:var(--selb);border-color:#BFD2E8;color:var(--blue)}
+.rowx{width:26px;height:26px;border-radius:6px;border:0;background:transparent;color:var(--mut);display:flex;align-items:center;justify-content:center}
+.rowx:hover{background:var(--ln2)}
+.rowx:disabled{opacity:.35}
+
+/* Remitente */
+.from{position:relative;display:inline-block;max-width:100%}
+.frombtn{height:32px;display:inline-flex;align-items:center;gap:8px;padding:0 8px 0 10px;border:1px solid var(--inb);border-radius:6px;background:#fff;width:max-content;max-width:min(600px,100%);min-width:300px;text-align:left}
+.frombtn:hover{border-color:#B9B4A8}
+.frombtn .nm{font-weight:600;white-space:nowrap}
+.frombtn .ad{color:var(--mut);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.frombtn .chev{margin-left:auto;color:var(--mut)}
+.frombtn.err{border-color:var(--red);background:var(--redb)}
+.fromco{display:inline-flex;align-items:center;gap:5px;margin-left:10px;color:var(--mut);font-size:12px;vertical-align:middle;white-space:nowrap}
+.pop{position:absolute;z-index:30;background:#fff;border:1px solid var(--ln3);border-radius:8px;box-shadow:0 10px 30px rgba(20,33,58,.18);padding:4px}
+.lbopt{display:flex;gap:10px;align-items:flex-start;padding:7px 10px;border-radius:6px;cursor:pointer}
+.lbopt .t{display:flex;flex-direction:column;min-width:0}
+.lbopt .t b{font-weight:600}
+.lbopt .t span{color:var(--mut);font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lbopt.act{background:var(--selb)}
+.lbopt[aria-disabled="true"]{cursor:not-allowed;opacity:.75}
+.lbopt[aria-disabled="true"] .t b{color:var(--mut)}
+.lbopt .ck{width:16px;flex:none;color:var(--blue);padding-top:2px}
+.lbopt .why{color:var(--red)!important;white-space:normal!important}
+.pophead{padding:6px 10px 4px;font-size:11.5px;color:var(--mut);font-weight:600;letter-spacing:.02em}
+
+/* Campo de destinatarios */
+.tokwrap{position:relative}
+.tok{display:flex;flex-wrap:wrap;align-items:center;gap:4px;min-height:32px;max-height:98px;overflow:auto;border:1px solid var(--inb);border-radius:6px;background:#fff;padding:3px 4px;cursor:text}
+.tok:focus-within{border-color:var(--blue);box-shadow:0 0 0 2px rgba(29,92,140,.15)}
+.tok.err{border-color:var(--red)}
+.tok input.tin{flex:1 1 160px;min-width:140px;height:24px;border:0;outline:0;background:transparent;padding:0 4px}
+.chip{display:inline-flex;align-items:center;gap:5px;height:24px;max-width:100%;padding:0 2px 0 8px;border-radius:12px;background:var(--ln2);border:1px solid var(--ln3);font-size:12.5px;cursor:pointer;white-space:nowrap}
+.chip:hover{background:#ECE8DE}
+.chip .cn{overflow:hidden;text-overflow:ellipsis;max-width:260px}
+.chip .ca{color:var(--mut);overflow:hidden;text-overflow:ellipsis;max-width:240px;font-size:12px}
+.chip .cx{width:18px;height:18px;border-radius:50%;border:0;background:transparent;color:var(--mut);display:flex;align-items:center;justify-content:center;padding:0}
+.chip .cx:hover{background:rgba(0,0,0,.08);color:var(--ink)}
+.chip.unv{background:#fff;border-style:dashed;border-color:#A9A497}
+.chip.bad{background:var(--redb);border-color:#E7B1AA;color:var(--red)}
+.chip.bad .ca{color:var(--red)}
+.chip.dup{background:var(--ambb);border-color:#F0C28F;color:var(--amb)}
+.chip.rej{background:var(--redb);border-color:var(--red);color:var(--red)}
+.chip .st{display:flex}
+.chip:focus-visible{outline:2px solid var(--or2);outline-offset:1px}
+.chipedit{height:24px;border:1px solid var(--blue);border-radius:12px;padding:0 9px;min-width:240px;outline:0;box-shadow:0 0 0 2px rgba(29,92,140,.15)}
+.sugg{left:0;right:0;top:calc(100% + 3px);max-height:260px;overflow:auto;max-width:620px}
+.sugg .lbopt .t b mark,.sugg .lbopt .t span mark{background:#FFE7C7;color:inherit;border-radius:2px}
+.sugg .hint{padding:8px 10px;color:var(--mut);font-size:12px}
+.sugg .org{font-size:11.5px;color:var(--mut2);margin-left:auto;white-space:nowrap;padding-top:2px;max-width:200px;overflow:hidden;text-overflow:ellipsis}
+
+/* Mensajes junto al campo */
+.fmsg{display:flex;flex-direction:column;gap:3px;margin-top:4px}
+.fmsg:empty{display:none}
+.msg{display:flex;gap:7px;align-items:flex-start;font-size:12.3px;line-height:1.4}
+.msg .mi{padding-top:2px}
+.msg.err{color:var(--red)}
+.msg.warn{color:var(--amb)}
+.msg.info{color:var(--txt2)}
+.msg.ok{color:var(--green)}
+.msg .acts{display:inline-flex;gap:4px;flex-wrap:wrap;margin-left:4px}
+.lnk{border:0;background:transparent;color:var(--blue);padding:0 3px;font-weight:500;text-decoration:underline;text-underline-offset:2px;font-size:12.3px}
+.lnk:hover{color:#0F3F66}
+.lnk:disabled{color:var(--mut2);text-decoration:none}
+
+.subj{height:32px;width:100%;max-width:760px;border:1px solid var(--inb);border-radius:6px;padding:0 10px;background:#fff}
+.subj:focus{outline:0;border-color:var(--blue);box-shadow:0 0 0 2px rgba(29,92,140,.15)}
+.subj.err{border-color:var(--red)}
+.cnt{font-size:11.5px;color:var(--mut2);margin-left:8px}
+
+/* Barra del editor */
+.edbar{flex:none;display:flex;align-items:center;gap:4px;padding:6px 14px;background:var(--bg2);border-bottom:1px solid var(--ln);flex-wrap:wrap}
+.edbar .tpl{display:inline-flex;align-items:center;gap:6px;margin-right:6px}
+.edbar .tpl label{color:var(--mut);font-weight:500}
+.edbar select{height:28px;border:1px solid var(--inb);border-radius:6px;background:#fff;padding:0 6px;width:220px}
+.tb{width:28px;height:28px;border:1px solid transparent;border-radius:6px;background:transparent;color:var(--txt2);display:flex;align-items:center;justify-content:center;font-weight:700}
+.tb:hover{background:#fff;border-color:var(--ln3)}
+.tb[aria-pressed="true"]{background:var(--selb);border-color:#BFD2E8;color:var(--blue)}
+.tb:disabled{opacity:.4;background:transparent;border-color:transparent}
+.tsep{width:1px;height:20px;background:var(--ln3);margin:0 4px}
+.pvbtn{margin-left:auto;height:28px;display:inline-flex;align-items:center;gap:6px;padding:0 10px;border:1px solid var(--ln3);border-radius:6px;background:#fff;font-weight:500;color:var(--txt2)}
+.pvbtn[aria-pressed="true"]{background:var(--selb);border-color:#BFD2E8;color:var(--blue)}
+
+.ibar{flex:none;display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:8px 14px;border-bottom:1px solid var(--ln);font-size:12.5px}
+.ibar.warn{background:var(--ambb);color:var(--amb)}
+.ibar.info{background:var(--blueb);color:#163E60}
+.ibar input{height:28px;border:1px solid var(--inb);border-radius:6px;padding:0 8px;background:#fff;color:var(--ink)}
+.ibar .sp{flex:1}
+
+.btn{height:30px;display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:0 14px;border-radius:7px;border:1px solid var(--ln3);background:#fff;font-weight:500;white-space:nowrap;color:var(--ink)}
+.btn:hover:not(:disabled){background:var(--bg2);border-color:#CFCABD}
+.btn.sm{height:26px;padding:0 10px;font-size:12px}
+.btn.pri{background:var(--or2);border-color:var(--or2);color:#fff;font-weight:600;min-width:104px}
+.btn.pri:hover:not(:disabled){background:var(--or3);border-color:var(--or3)}
+.btn.navy{background:var(--navy);border-color:var(--navy);color:#fff}
+.btn.navy:hover:not(:disabled){background:var(--navy2)}
+.btn.danger{color:var(--red);border-color:#E7B1AA}
+.btn:disabled{opacity:.55}
+.btn.busy{opacity:1;background:#C9875F;border-color:#C9875F}
+
+/* Editor */
+.edwrap{flex:1 1 auto;min-height:150px;display:flex;flex-direction:column;background:#fff}
+#ed{flex:1 1 auto;min-height:150px;padding:12px 16px 16px;outline:0;line-height:1.55;font-size:13.5px;max-width:100%;overflow-wrap:anywhere}
+#ed:focus{box-shadow:inset 0 0 0 2px rgba(29,92,140,.18)}
+#ed p{margin:0 0 9px}
+#ed ul,#ed ol{margin:0 0 9px;padding-left:24px}
+#ed a{color:var(--blue)}
+#ed.isempty{position:relative}
+#ed.isempty:before{content:attr(data-ph);position:absolute;left:16px;top:12px;color:var(--mut2);pointer-events:none}
+#ed .ph,.pvbody .ph{background:#FFE7C7;color:var(--amb);border-radius:3px;padding:0 2px}
+#ed[contenteditable="false"]{background:var(--bg2);color:var(--txt2)}
+.edmsg{padding:0 16px 8px}
+
+/* Adjuntos */
+.atts{flex:none;border-top:1px solid var(--ln);background:var(--bg2);padding:8px 14px 10px}
+.atth{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.atth h3{margin:0;font-size:12.5px;font-weight:600;display:flex;align-items:center;gap:6px}
+.atth .tot{color:var(--mut);font-size:12px}
+.atth .undo{font-size:12px;color:var(--txt2);display:flex;gap:4px;align-items:center}
+.attadd{position:relative;margin-left:auto}
+.attlist{list-style:none;margin:6px 0 0;padding:0;display:flex;flex-direction:column;gap:4px;max-height:200px;overflow:auto}
+.att{display:grid;grid-template-columns:28px minmax(0,1fr) auto auto;align-items:center;gap:10px;padding:5px 6px 5px 8px;background:#fff;border:1px solid var(--ln);border-radius:7px}
+.att .fi{width:26px;height:30px;border-radius:4px;display:flex;align-items:flex-end;justify-content:center;font-size:8.5px;font-weight:700;color:#fff;padding-bottom:3px;letter-spacing:.03em}
+.fi.pdf{background:#C0392B}.fi.xls{background:#1E6B45}.fi.doc{background:#1D5C8C}.fi.img{background:#5B3F86}.fi.oth{background:#646A78}
+.att .nm{display:flex;flex-direction:column;min-width:0}
+.att .nm b{font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.att .nm span{font-size:11.5px;color:var(--mut);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.att .sz{font-size:12px;color:var(--mut);font-variant-numeric:tabular-nums;text-align:right;width:62px}
+.att .aa{display:flex;gap:2px}
+.ab{height:26px;display:inline-flex;align-items:center;gap:5px;padding:0 8px;border:1px solid transparent;border-radius:6px;background:transparent;color:var(--txt2);font-size:12px;white-space:nowrap}
+.ab:hover:not(:disabled){background:var(--bg2);border-color:var(--ln3)}
+.ab:disabled{opacity:.4}
+.att.miss{border-color:#E7B1AA;background:var(--redb)}
+.att.miss .nm span{color:var(--red);white-space:normal}
+.att.miss .fi{opacity:.45}
+.att.sel{box-shadow:inset 3px 0 0 var(--blue)}
+.attpop{right:0;top:calc(100% + 4px);width:360px}
+.attpop .lbopt{align-items:center}
+.attpop hr{border:0;border-top:1px solid var(--ln);margin:4px 0}
+.attempty{margin:6px 0 0;color:var(--mut);font-size:12px;padding:8px 10px;border:1px dashed var(--ln3);border-radius:7px;text-align:center}
+.cw.drag .atts{background:var(--selb);outline:2px dashed var(--blue);outline-offset:-4px}
+
+/* Vista previa */
+.cwpv{flex:0 0 42%;min-width:300px;max-width:560px;border-left:1px solid var(--ln3);display:flex;flex-direction:column;background:#E9E6DF;min-height:0}
+.pvh{flex:none;display:flex;align-items:center;gap:8px;padding:8px 12px;border-bottom:1px solid var(--ln3);background:var(--bg2)}
+.pvh h3{margin:0;font-size:12.5px;font-weight:600}
+.pvh .note{font-size:11.5px;color:var(--mut)}
+.pvsc{flex:1 1 auto;overflow:auto;padding:14px}
+.pvmail{background:#fff;border:1px solid var(--ln3);border-radius:8px;overflow:hidden}
+.pvhd{padding:12px 14px;border-bottom:1px solid var(--ln);display:grid;grid-template-columns:52px 1fr;gap:3px 8px;font-size:12.5px}
+.pvhd .k{color:var(--mut);text-align:right}
+.pvhd .v{overflow-wrap:anywhere}
+.pvhd .subjv{font-weight:600;font-size:14px}
+.pvbody{padding:14px 16px;line-height:1.55;font-size:13.5px;overflow-wrap:anywhere}
+.pvbody p{margin:0 0 9px}
+.pvbody ul,.pvbody ol{margin:0 0 9px;padding-left:24px}
+.pvbody a{color:var(--blue)}
+.pvatt{display:flex;flex-wrap:wrap;gap:6px;padding:10px 14px;border-top:1px solid var(--ln);background:var(--bg2)}
+.pvatt span{display:inline-flex;gap:6px;align-items:center;font-size:12px;border:1px solid var(--ln3);background:#fff;border-radius:6px;padding:3px 8px;max-width:100%}
+.pvatt span i{font-style:normal;color:var(--mut)}
+.pvdoc{background:#fff;border:1px solid var(--ln3);box-shadow:0 2px 8px rgba(0,0,0,.08);margin:0 auto;max-width:420px;aspect-ratio:1/1.414;padding:28px 30px;font-size:11px;display:flex;flex-direction:column;gap:10px}
+.pvdoc .bar{height:8px;background:var(--ln2);border-radius:3px}
+.pvdoc h4{margin:0;font-size:15px}
+.pvnot{padding:24px;text-align:center;color:var(--mut)}
+
+/* Resultado del envío */
+.res{flex:none;display:flex;gap:12px;align-items:flex-start;padding:10px 14px;border-top:1px solid var(--ln3);font-size:12.8px;line-height:1.45}
+.res .ri{padding-top:1px}
+.res h4{margin:0 0 2px;font-size:13px}
+.res p{margin:0}
+.res .racts{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.res.sending{background:#FFF7EE;color:var(--amb)}
+.res.ok{background:var(--greenb);color:#174F35}
+.res.err{background:var(--redb);color:#7A1A12}
+.res.unk{background:#FFF1D6;color:#6E3A0C;border-top:2px solid #E3A33B}
+.res .tech{font-family:'IBM Plex Mono',monospace;font-size:11.5px;opacity:.85}
+.steps{display:flex;gap:14px;margin-top:6px;font-size:12px;flex-wrap:wrap}
+.steps span{display:inline-flex;gap:5px;align-items:center;opacity:.5}
+.steps span.on{opacity:1;font-weight:600}
+.steps span.done{opacity:.85}
+@keyframes spin{to{transform:rotate(360deg)}}
+.spin{animation:spin .9s linear infinite}
+
+/* Pie */
+.cwf{flex:none;display:flex;align-items:center;gap:8px;padding:9px 14px;background:#fff;border-top:1px solid var(--ln3);min-height:50px;flex-wrap:wrap}
+.cwf .stat{flex:1 1 200px;min-width:0;font-size:12.3px;color:var(--mut);display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.cwf .stat.err{color:var(--red)}
+.cwf .stat .lnk{color:var(--red)}
+.prop{display:inline-flex;align-items:center;font-size:10.5px;font-weight:600;letter-spacing:.03em;text-transform:uppercase;color:var(--pur);background:var(--purb);border-radius:4px;padding:1px 5px}
+.simtag{font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:600;letter-spacing:.06em;border:1px dashed #C7A100;color:#7A6300;background:#FFF8D6;border-radius:4px;padding:1px 5px}
+.kbd{font-family:'IBM Plex Mono',monospace;font-size:11px;border:1px solid var(--ln3);border-bottom-width:2px;border-radius:4px;padding:0 4px;background:#fff;color:var(--txt2)}
+.closesheet{flex:none;display:flex;align-items:center;gap:8px;padding:10px 14px;background:#FFF7EE;border-top:2px solid var(--or);flex-wrap:wrap}
+.closesheet p{margin:0;flex:1 1 260px;font-size:12.8px}
+.closesheet p b{display:block}
+
+/* Ayuda */
+.helppop{right:8px;top:40px;width:340px;padding:10px 12px;font-size:12.3px}
+.helppop h4{margin:0 0 6px;font-size:12.5px}
+.helppop dl{display:grid;grid-template-columns:auto 1fr;gap:5px 10px;margin:0}
+.helppop dt{white-space:nowrap}
+.helppop dd{margin:0;color:var(--txt2)}
+
+/* Redimensionar */
+.rz{position:absolute;right:0;bottom:0;width:16px;height:16px;cursor:nwse-resize;z-index:2;background:linear-gradient(135deg,transparent 50%,#A9A497 50%,#A9A497 58%,transparent 58%,transparent 70%,#A9A497 70%,#A9A497 78%,transparent 78%)}
+#cw.max .rz{display:none}
+
+/* Bloqueado (enviando / aceptado / incierto) */
+#cw.locked .fields,#cw.locked .edbar,#cw.locked .atts{opacity:.78}
+#cw.locked .chip{cursor:default}
+
+/* Compacto */
+#cw.compact .flab{width:40px}
+#cw.compact .frombtn{min-width:0;max-width:100%}
+#cw.compact .fromco{display:none}
+#cw.compact .edbar select{width:170px}
+#cw.compact .cwpv{position:absolute;inset:0;max-width:none;flex:none;border-left:0;z-index:4}
+#cw.compact .cwbody{position:relative}
+#cw.compact .att{grid-template-columns:24px minmax(0,1fr) auto}
+#cw.compact .att .sz{display:none}
+#cw.compact .ab .lb{display:none}
+#cw.compact .chip .ca{display:none}
+#cw.compact .cwt .ctx .lbl{display:none}
+#cw.compact .chip .cn{max-width:200px}
+
+.ibar>span:not(.sp){flex:1 1 320px}
+.att .szc{display:none;font-style:normal}
+#cw.compact .att .szc{display:inline}
+#cw.compact .edbar select{width:190px}
+</style></head><body>
+<div id="demo" role="region" aria-label="Controles de demostración (no forman parte de ProConta)">
+  <span class="dtag">DEMO</span>
+  <label>Escenario
+    <select id="dScn" title="Cada escenario abre el compositor con los datos que precargaría el módulo de origen">
+      <option value="A">A · Envío de factura</option>
+      <option value="B">B · Envío desde Documentos</option>
+      <option value="C">C · Correo desde Terceros</option>
+      <option value="D">D · Incidencias</option>
+    </select>
+  </label>
+  <label>Resultado del envío
+    <select id="dOut">
+      <option value="ok">Aceptado por el servicio</option>
+      <option value="rej">Rechazo confirmado (destinatario)</option>
+      <option value="acc">Cuenta de envío no disponible</option>
+      <option value="unk">Resultado incierto</option>
+    </select>
+  </label>
+  <label>Al comprobar un incierto
+    <select id="dChk">
+      <option value="found">Aparece como aceptado</option>
+      <option value="none">No consta</option>
+    </select>
+  </label>
+  <span class="dseg" role="group" aria-label="Borradores">
+    <button type="button" data-drafts="0" aria-pressed="true">Sin borradores</button>
+    <button type="button" data-drafts="1" aria-pressed="false">Con borradores (propuesta)</button>
+  </span>
+  <span class="dseg" role="group" aria-label="Tamaño de la ventana">
+    <button type="button" data-size="wide" aria-pressed="true">Amplia</button>
+    <button type="button" data-size="compact" aria-pressed="false">Compacta</button>
+    <button type="button" data-size="max" aria-pressed="false">Maximizada</button>
+  </span>
+  <button type="button" class="dbtn" id="dCtx" title="Simula que la sociedad activa cambia desde otra ventana de ProConta mientras se redacta">Cambiar sociedad activa</button>
+  <button type="button" class="dbtn" id="dReset">Reiniciar escenario</button>
+  <span class="dsim">Envío simulado · sin conexión a servicios reales</span>
+</div>
+
+<div id="stage">
+  <div id="origin"></div>
+  <div id="scrim" hidden></div>
+
+  <section id="cw" class="cw" role="dialog" aria-modal="true" aria-labelledby="cwTitle" aria-describedby="cwCtx" hidden>
+    <header class="cwt" id="cwDrag">
+      <span aria-hidden="true" class="ic-mail"></span>
+      <h2 id="cwTitle">Nuevo correo</h2>
+      <span class="ctx" id="cwCtx"></span>
+      <div class="wb">
+        <button type="button" id="bHelp" aria-label="Ayuda y atajos de teclado" title="Ayuda y atajos (F1)" aria-expanded="false"></button>
+        <button type="button" id="bMax" aria-label="Maximizar" title="Maximizar"></button>
+        <button type="button" id="bClose" class="cls" aria-label="Cerrar" title="Cerrar (Esc)"></button>
+      </div>
+    </header>
+    <div class="pop helppop" id="helpPop" role="dialog" aria-label="Ayuda" hidden>
+      <h4>Atajos de teclado</h4>
+      <dl>
+        <dt><span class="kbd">Ctrl</span>+<span class="kbd">Intro</span></dt><dd>Enviar</dd>
+        <dt><span class="kbd">Esc</span></dt><dd>Cancelar (pregunta si hay cambios)</dd>
+        <dt><span class="kbd">Ctrl</span>+<span class="kbd">Mayús</span>+<span class="kbd">C</span> / <span class="kbd">B</span></dt><dd>Mostrar CC / CCO</dd>
+        <dt><span class="kbd">Ctrl</span>+<span class="kbd">Mayús</span>+<span class="kbd">P</span></dt><dd>Vista previa</dd>
+        <dt><span class="kbd">Ctrl</span>+<span class="kbd">B</span> / <span class="kbd">I</span> / <span class="kbd">K</span></dt><dd>Negrita / cursiva / enlace</dd>
+        <dt><span class="kbd">Intro</span> <span class="kbd">;</span> <span class="kbd">,</span></dt><dd>Confirmar una dirección</dd>
+        <dt><span class="kbd">←</span> <span class="kbd">→</span></dt><dd>Moverse entre destinatarios; <span class="kbd">Intro</span> edita, <span class="kbd">Supr</span> quita</dd>
+        <dt>Arrastrar título</dt><dd>Mover la ventana; esquina inferior derecha para redimensionar</dd>
+      </dl>
+    </div>
+
+    <div class="cwbanner" id="ctxBanner" role="status" hidden></div>
+
+    <div class="cwbody">
+      <div class="cwmain" id="cwMain">
+        <div class="fields">
+          <div class="frow">
+            <div class="flab"><span id="lFrom">De</span></div>
+            <div class="fctl">
+              <div class="from">
+                <button type="button" class="frombtn" id="fromBtn" aria-haspopup="listbox" aria-expanded="false" aria-labelledby="lFrom fromBtn" aria-describedby="fromMsg"></button>
+                <span class="fromco" id="fromCo"></span>
+                <div class="pop" id="fromPop" role="listbox" aria-labelledby="lFrom" tabindex="-1" hidden style="left:0;top:calc(100% + 3px);min-width:380px"></div>
+              </div>
+              <div class="fmsg" id="fromMsg" aria-live="polite"></div>
+            </div>
+          </div>
+          <div class="frow" data-row="to">
+            <div class="flab"><label for="in-to">Para</label></div>
+            <div class="fctl">
+              <div class="tokwrap"><div class="tok" data-f="to"><input class="tin" id="in-to" data-f="to" autocomplete="off" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="sg-to" aria-describedby="msg-to hintTok"></div>
+              <div class="pop sugg" id="sg-to" role="listbox" aria-label="Contactos sugeridos" hidden></div></div>
+              <div class="fmsg" id="msg-to" aria-live="polite"></div>
+            </div>
+            <div class="fside">
+              <button type="button" class="ccbtn" id="tCc" aria-expanded="false" aria-controls="row-cc" title="Mostrar CC (Ctrl+Mayús+C)">CC</button>
+              <button type="button" class="ccbtn" id="tBcc" aria-expanded="false" aria-controls="row-bcc" title="Mostrar CCO: copia oculta (Ctrl+Mayús+B)">CCO</button>
+            </div>
+          </div>
+          <div class="frow" data-row="cc" id="row-cc" hidden>
+            <div class="flab"><label for="in-cc" title="Con copia">CC</label></div>
+            <div class="fctl">
+              <div class="tokwrap"><div class="tok" data-f="cc"><input class="tin" id="in-cc" data-f="cc" autocomplete="off" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="sg-cc" aria-describedby="msg-cc"></div>
+              <div class="pop sugg" id="sg-cc" role="listbox" aria-label="Contactos sugeridos" hidden></div></div>
+              <div class="fmsg" id="msg-cc" aria-live="polite"></div>
+            </div>
+            <div class="fside"><button type="button" class="rowx" data-hide="cc" aria-label="Ocultar CC"></button></div>
+          </div>
+          <div class="frow" data-row="bcc" id="row-bcc" hidden>
+            <div class="flab"><label for="in-bcc" title="Con copia oculta: los demás destinatarios no lo ven">CCO</label></div>
+            <div class="fctl">
+              <div class="tokwrap"><div class="tok" data-f="bcc"><input class="tin" id="in-bcc" data-f="bcc" autocomplete="off" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="sg-bcc" aria-describedby="msg-bcc"></div>
+              <div class="pop sugg" id="sg-bcc" role="listbox" aria-label="Contactos sugeridos" hidden></div></div>
+              <div class="fmsg" id="msg-bcc" aria-live="polite"></div>
+            </div>
+            <div class="fside"><button type="button" class="rowx" data-hide="bcc" aria-label="Ocultar CCO"></button></div>
+          </div>
+          <div class="frow">
+            <div class="flab"><label for="subj">Asunto</label></div>
+            <div class="fctl">
+              <input class="subj" id="subj" autocomplete="off" aria-describedby="msg-subj" maxlength="250">
+              <div class="fmsg" id="msg-subj" aria-live="polite"></div>
+            </div>
+          </div>
+          <span id="hintTok" class="sr">Escribe un nombre o una dirección. Intro, punto y coma o coma confirman. Flecha izquierda para revisar los destinatarios añadidos.</span>
+        </div>
+
+        <div class="edbar" role="toolbar" aria-label="Plantilla y formato del texto" id="edbar">
+          <span class="tpl"><label for="tplSel">Plantilla</label>
+            <select id="tplSel" aria-describedby="tplHelp"></select></span>
+          <span id="tplHelp" class="sr">Al elegir una plantilla se sustituyen el asunto y el texto. Si ya los has modificado, se pide confirmación.</span>
+          <span class="tsep" aria-hidden="true"></span>
+          <button type="button" class="tb" data-cmd="bold" aria-label="Negrita" title="Negrita (Ctrl+B)" aria-pressed="false">B</button>
+          <button type="button" class="tb" data-cmd="italic" aria-label="Cursiva" title="Cursiva (Ctrl+I)" aria-pressed="false" style="font-style:italic;font-family:Georgia,serif">I</button>
+          <button type="button" class="tb" data-cmd="insertUnorderedList" aria-label="Lista con viñetas" title="Lista con viñetas" aria-pressed="false"></button>
+          <button type="button" class="tb" data-cmd="insertOrderedList" aria-label="Lista numerada" title="Lista numerada" aria-pressed="false"></button>
+          <button type="button" class="tb" data-cmd="link" aria-label="Insertar o editar enlace" title="Enlace (Ctrl+K)"></button>
+          <button type="button" class="tb" data-cmd="removeFormat" aria-label="Quitar formato" title="Quitar formato de la selección"></button>
+          <button type="button" class="pvbtn" id="pvBtn" aria-pressed="false" aria-controls="pv" title="Vista previa (Ctrl+Mayús+P)"></button>
+        </div>
+        <div class="ibar warn" id="tplBar" role="alert" hidden></div>
+        <div class="ibar info" id="linkBar" hidden>
+          <label for="lnkUrl">Dirección del enlace</label>
+          <input id="lnkUrl" style="width:300px" placeholder="https://…" aria-describedby="lnkErr">
+          <button type="button" class="btn sm navy" id="lnkOk">Aplicar</button>
+          <button type="button" class="btn sm" id="lnkRm">Quitar enlace</button>
+          <button type="button" class="btn sm" id="lnkCancel">Cancelar</button>
+          <span id="lnkErr" class="msg err" style="flex-basis:100%"></span>
+        </div>
+        <div class="edwrap">
+          <div id="ed" contenteditable="true" role="textbox" aria-multiline="true" aria-label="Texto del mensaje" aria-describedby="msg-body" data-ph="Escribe el mensaje…" spellcheck="true"></div>
+          <div class="fmsg edmsg" id="msg-body" aria-live="polite"></div>
+        </div>
+
+        <div class="atts" id="atts">
+          <div class="atth">
+            <h3 id="attTitle"></h3>
+            <span class="tot" id="attTot"></span>
+            <span class="undo" id="attUndo" aria-live="polite"></span>
+            <div class="attadd">
+              <button type="button" class="btn sm" id="attAddBtn" aria-haspopup="menu" aria-expanded="false"></button>
+              <div class="pop attpop" id="attPop" role="menu" hidden></div>
+            </div>
+            <input type="file" id="fileIn" multiple hidden>
+          </div>
+          <ul class="attlist" id="attList" aria-labelledby="attTitle"></ul>
+          <div class="fmsg" id="msg-att" aria-live="polite"></div>
+        </div>
+      </div>
+
+      <aside class="cwpv" id="pv" aria-label="Vista previa" hidden>
+        <div class="pvh"><h3 id="pvTitle">Vista previa</h3><span class="note" id="pvNote"></span>
+          <button type="button" class="btn sm" id="pvBack" style="margin-left:auto" hidden>Volver al mensaje</button>
+          <button type="button" class="rowx" id="pvClose" aria-label="Cerrar vista previa" title="Cerrar vista previa"></button></div>
+        <div class="pvsc" id="pvBody" tabindex="0"></div>
+      </aside>
+    </div>
+
+    <div class="res" id="res" role="status" aria-live="polite" hidden></div>
+
+    <div class="closesheet" id="closeSheet" role="alertdialog" aria-labelledby="csT" aria-describedby="csD" hidden>
+      <p><b id="csT">Este correo tiene cambios sin enviar.</b><span id="csD">Si lo descartas, no se guardará nada de lo redactado.</span></p>
+      <button type="button" class="btn navy" id="csKeep">Seguir editando</button>
+      <button type="button" class="btn" id="csDraft" hidden>Guardar borrador <span class="prop">Propuesta</span></button>
+      <button type="button" class="btn danger" id="csDiscard">Descartar</button>
+    </div>
+
+    <footer class="cwf" id="cwf">
+      <div class="stat" id="stat" aria-live="polite"></div>
+      <button type="button" class="btn" id="bDraft" hidden title="Propuesta funcional: guarda el borrador en la empresa de origen">Guardar borrador <span class="prop">Propuesta</span></button>
+      <button type="button" class="btn pri" id="bSend" title="Enviar (Ctrl+Intro) · envío simulado"></button>
+      <button type="button" class="btn" id="bCancel">Cancelar</button>
+    </footer>
+    <div class="rz" id="rz" aria-hidden="true" title="Redimensionar"></div>
+  </section>
+</div>
+<script>
+'use strict';
+/* ═════════ Iconos ═════════ */
+const IC={
+  mail:'<rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/>',
+  x:'<path d="M6 6l12 12M18 6 6 18"/>',
+  max:'<rect x="5" y="5" width="14" height="14" rx="1"/>',
+  restore:'<rect x="5" y="8" width="11" height="11" rx="1"/><path d="M8 8V5h11v11h-3"/>',
+  help:'<circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .9-1 1.6v.6"/><circle cx="12" cy="17" r=".6" fill="currentColor"/>',
+  chev:'<path d="m6 9 6 6 6-6"/>',
+  check:'<path d="m5 12 5 5 9-10"/>',
+  plus:'<path d="M12 5v14M5 12h14"/>',
+  ul:'<circle cx="5" cy="7" r="1" fill="currentColor"/><circle cx="5" cy="12" r="1" fill="currentColor"/><circle cx="5" cy="17" r="1" fill="currentColor"/><path d="M9 7h11M9 12h11M9 17h11"/>',
+  ol:'<path d="M9 7h11M9 12h11M9 17h11"/><path d="M4 5.5 5 5v4M4 9h2M4 14.5c0-.8 2-.8 2 0 0 .7-2 1.5-2 2.5h2" stroke-width="1.3"/>',
+  link:'<path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/>',
+  clear:'<path d="M6 5h12M12 5l-3 14M4 20 20 4"/>',
+  eye:'<path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>',
+  clip:'<path d="m20 11-8.5 8.5a5 5 0 0 1-7-7L13 4a3.5 3.5 0 0 1 5 5l-8.5 8.5a2 2 0 0 1-3-3L14 7"/>',
+  ext:'<path d="M14 4h6v6M20 4l-9 9"/><path d="M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/>',
+  minus:'<circle cx="12" cy="12" r="9"/><path d="M8 12h8"/>',
+  swap:'<path d="M4 8h13l-3-3M20 16H7l3 3"/>',
+  err:'<circle cx="12" cy="12" r="9"/><path d="M12 7v6"/><circle cx="12" cy="16.5" r=".7" fill="currentColor"/>',
+  warn:'<path d="M12 3 2 20h20L12 3z"/><path d="M12 10v4"/><circle cx="12" cy="17" r=".7" fill="currentColor"/>',
+  info:'<circle cx="12" cy="12" r="9"/><path d="M12 11v6"/><circle cx="12" cy="7.5" r=".7" fill="currentColor"/>',
+  ok:'<circle cx="12" cy="12" r="9"/><path d="m8 12 3 3 5-6"/>',
+  q:'<circle cx="12" cy="12" r="8" stroke-dasharray="3 2.4"/>',
+  spin:'<path d="M12 3a9 9 0 1 1-9 9"/>',
+  clock:'<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+  lock:'<rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>',
+  user:'<circle cx="12" cy="8" r="4"/><path d="M4 20c1.5-4 4.5-6 8-6s6.5 2 8 6"/>',
+  file:'<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/>',
+  folder:'<path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>',
+  pc:'<rect x="3" y="4" width="18" height="12" rx="1.5"/><path d="M8 20h8M12 16v4"/>',
+  inv:'<path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6"/>',
+  users:'<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c1-3.5 3.5-5.5 6.5-5.5s5.5 2 6.5 5.5"/><path d="M16 4.5a3.5 3.5 0 0 1 0 7M18 14.5c2 .6 3.3 2.6 3.8 5.5"/>',
+  home:'<path d="M4 11 12 4l8 7v9H4z"/>',
+  book:'<path d="M5 4h11a3 3 0 0 1 3 3v13H8a3 3 0 0 1-3-3z"/><path d="M5 17a3 3 0 0 1 3-3h11"/>',
+  bank:'<path d="M3 10 12 4l9 6M5 10v8M9.5 10v8M14.5 10v8M19 10v8M3 20h18"/>',
+  doc:'<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h4"/>'
+};
+const ic=(n,s=16,sw=1.8)=>`<svg class="ic" width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${sw}" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${IC[n]||''}</svg>`;
+const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const now=()=>{const d=new Date();return String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0')};
+const fmtSize=b=>b<1024*1024?Math.max(1,Math.round(b/1024))+' KB':(b/1048576).toFixed(1).replace('.',',')+' MB';
+let UID=1; const uid=()=>'u'+(UID++);
+
+/* ═════════ Datos ficticios ═════════ */
+const COMPANY='Empresa Demo A';
+const CONTACTS=[
+  {n:'Administración · Talleres Demo',a:'administracion.cliente@example.invalid',o:'Talleres Demo'},
+  {n:'Laura Pineda Ortega',a:'laura.pineda@example.invalid',o:'Talleres Demo'},
+  {n:'Pedro Alcázar Muñoz',a:'pedro.alcazar@example.invalid',o:'Talleres Demo'},
+  {n:'Contacto · Servicios Norte',a:'contacto@example.invalid',o:'Servicios Norte'},
+  {n:'Administración · Servicios Norte',a:'administracion@example.invalid',o:'Servicios Norte'},
+  {n:'María del Carmen Fernández-Villaverde Santamaría',a:'mariadelcarmen.fernandez-villaverde@construcciones-levante.example.invalid',o:'Construcciones y Reformas Integrales del Levante Demo'},
+  {n:'Departamento de Cuentas a Pagar',a:'cuentas.pagar@construcciones-levante.example.invalid',o:'Construcciones y Reformas Integrales del Levante Demo'},
+  {n:'Asesoría Fiscal Demo',a:'asesoria@example.invalid',o:'Asesoría Fiscal Demo'},
+  {n:'Tesorería · Empresa Demo A',a:'tesoreria@example.invalid',o:'Empresa Demo A (interno)'},
+  {n:'Jorge Ibarra',a:'jorge.ibarra@example.invalid',o:'Empresa Demo A (interno)'}
+];
+const KNOWN_DOMAINS=[...new Set(CONTACTS.map(c=>c.a.split('@')[1]))];
+const ACCOUNTS=[
+  {id:'fact',n:'Facturación · Empresa Demo A',a:'facturacion@example.invalid',firma:'Departamento de Facturación<br>Empresa Demo A · 960 000 000'},
+  {id:'adm',n:'Administración · Empresa Demo A',a:'administracion.demoa@example.invalid',firma:'Administración<br>Empresa Demo A · 960 000 000'},
+  {id:'jorge',n:'Jorge Ibarra',a:'jorge.ibarra@example.invalid',firma:'Jorge Ibarra<br>Facturación · Empresa Demo A'}
+];
+/* Documentos de ProConta disponibles para adjuntar (por origen) */
+const DOCS={
+  'Talleres Demo':[
+    {name:'Factura-F2026-0123.pdf',size:151552,origin:'Factura F2026-0123 · generada por ProConta'},
+    {name:'Factura-F2026-0098.pdf',size:139264,origin:'Factura F2026-0098 · generada por ProConta'},
+    {name:'Condiciones-generales-2026.pdf',size:412000,origin:'Documentos · Talleres Demo'}
+  ],
+  'Servicios Norte':[
+    {name:'Contrato-servicios.pdf',size:2516582,origin:'Documentos · Servicios Norte · Contrato'},
+    {name:'Mandato-SEPA-firmado.pdf',size:256000,origin:'Documentos · Servicios Norte · Mandato SEPA'},
+    {name:'Certificado-corriente-pago-AEAT.pdf',size:188000,origin:'Documentos · Servicios Norte · Fiscal'}
+  ],
+  'Construcciones y Reformas Integrales del Levante Demo':[
+    {name:'Albaran-2026-0457-entrega-parcial-obra-calle-mayor-firmado-cliente.pdf',size:1048000,origin:'Documentos · Albaranes · versión corregida (v2)'},
+    {name:'Factura-F2026-0131.pdf',size:162000,origin:'Factura F2026-0131 · generada por ProConta'}
+  ]
+};
+const TEMPLATES=[
+  {id:'',n:'Sin plantilla'},
+  {id:'factura',n:'Envío de factura',subj:'Factura {factura}',
+   body:'<p>Buenos días{, contacto}:</p><p>Le enviamos adjunta la factura <b>{factura}</b>, de fecha {fecha}, por un importe de <b>{importe}</b> y con vencimiento el {vencimiento}.</p><p>Si tiene cualquier duda sobre la factura, puede responder a este correo.</p><p>Un saludo,<br>{firma}</p>'},
+  {id:'recordatorio',n:'Recordatorio de vencimiento',subj:'Recordatorio: vencimiento de la factura {factura}',
+   body:'<p>Buenos días{, contacto}:</p><p>Le recordamos que la factura <b>{factura}</b>, por importe de <b>{importe}</b>, vence el {vencimiento}.</p><p>Si ya ha realizado el pago, no tenga en cuenta este mensaje.</p><p>Un saludo,<br>{firma}</p>'},
+  {id:'docs',n:'Envío de documentación',subj:'Documentación · {cliente}',
+   body:'<p>Buenos días{, contacto}:</p><p>Le enviamos adjunta la siguiente documentación:</p>{lista_adjuntos}<p>Quedamos a su disposición para cualquier aclaración.</p><p>Un saludo,<br>{firma}</p>'},
+  {id:'general',n:'Comunicación general',subj:'',
+   body:'<p>Buenos días{, contacto}:</p><p></p><p>Un saludo,<br>{firma}</p>'}
+];
+const PH_LABEL={factura:'nº de factura',fecha:'fecha de la factura',importe:'importe',vencimiento:'vencimiento',cliente:'cliente'};
+
+const SCN={
+  A:{ctx:{kind:'Factura',ref:'F2026-0123',cliente:'Talleres Demo',contacto:'',factura:'F2026-0123',fecha:'28/09/2026',importe:'1.452,00 €',vencimiento:'28/10/2026'},
+     origin:'facturas',from:'fact',to:['administracion.cliente@example.invalid'],cc:[],bcc:[],tpl:'factura',subj:'Factura F2026-0123',
+     atts:[{name:'Factura-F2026-0123.pdf',size:151552,origin:'Factura F2026-0123 · generada por ProConta',src:'pre'}],out:'ok'},
+  B:{ctx:{kind:'Documentos',ref:'Contrato de servicios',cliente:'Servicios Norte',contacto:''},
+     origin:'documentos',from:'adm',to:['contacto@example.invalid'],cc:['administracion@example.invalid'],bcc:[],tpl:'docs',subj:'Contrato de servicios y justificante',
+     atts:[{name:'Contrato-servicios.pdf',size:2516582,origin:'Documentos · Servicios Norte · Contrato',src:'pre'}],
+     after:{atts:[{name:'Justificante.pdf',size:327680,origin:'Añadido desde el equipo · C:\\Usuarios\\jibarra\\Descargas',src:'pc'}]},out:'ok'},
+  C:{ctx:{kind:'Tercero',ref:'',cliente:'Talleres Demo',contacto:'Laura'},
+     origin:'tercero',from:'adm',to:['laura.pineda@example.invalid'],cc:[],bcc:[],tpl:'',subj:'',body:'',atts:[],out:'ok'},
+  D:{ctx:{kind:'Factura',ref:'F2026-0131',cliente:'Construcciones y Reformas Integrales del Levante Demo',contacto:'María del Carmen',factura:'F2026-0131',fecha:'30/09/2026',importe:'48.906,35 €',vencimiento:'30/11/2026'},
+     origin:'facturas',from:'fact',fromOff:true,
+     to:['administracion.cliente@example','cuentas.pagar@construcciones-levante.example.invalid','mariadelcarmen.fernandez-villaverde@construcciones-levante.example.invalid','pagos@construcciones-levante.example.invlid'],
+     cc:['mariadelcarmen.fernandez-villaverde@construcciones-levante.example.invalid','asesoria@example.invalid'],bcc:['tesoreria@example.invalid'],tpl:'factura',
+     subj:'Factura F2026-0131 · certificación nº 7 de la obra de rehabilitación integral del edificio de la calle Mayor, 14 (fase II, entrega parcial)',
+     atts:[
+      {name:'Factura-F2026-0131.pdf',size:162000,origin:'Factura F2026-0131 · generada por ProConta',src:'pre'},
+      {name:'Albaran-2026-0457-entrega-parcial-obra-calle-mayor-firmado-cliente.pdf',size:1003000,origin:'Documentos · Albaranes',src:'pre',miss:'notfound',path:'\\\\servidor\\documentos\\albaranes\\2026\\'},
+      {name:'Certificacion-07-mediciones-detalladas.xlsx',size:1887436,origin:'Documentos · Obra calle Mayor, 14',src:'pre'},
+      {name:'Fotografias-estado-obra-septiembre.jpg',size:3460300,origin:'Añadido desde el equipo · C:\\Usuarios\\jibarra\\Imágenes',src:'pc',miss:'denied',path:'C:\\Usuarios\\jibarra\\Imágenes\\'},
+      {name:'Anexo-condiciones-particulares.docx',size:94000,origin:'Documentos · Construcciones y Reformas… · Contrato',src:'pre'}
+     ],out:'rej'}
+};
+/* ═════════ Estado ═════════ */
+const S={scn:'A',drafts:false,size:'wide',win:null,max:false,
+  from:'fact',off:{},to:[],cc:[],bcc:[],showCc:false,showBcc:false,
+  tpl:'',tplBase:{subj:'',body:''},atts:[],phase:'closed',tried:false,baseline:'',
+  undo:null,pv:false,pvAtt:null,ctxCo:COMPANY,ctxNotice:false,log:[],draftAt:null,
+  attempt:0,msgId:null,acceptedAt:null,rejTarget:null,openerId:'opener',checked:false};
+const F={to:'Para',cc:'CC',bcc:'CCO'};
+const sc=()=>SCN[S.scn];
+const acct=id=>ACCOUNTS.find(a=>a.id===id);
+const contactOf=a=>CONTACTS.find(c=>c.a.toLowerCase()===String(a).toLowerCase());
+const isLocked=()=>['sending','accepted','unk','checking'].includes(S.phase);
+
+/* ═════════ Direcciones ═════════ */
+function addrIssue(a){
+  if(!a) return 'está vacía';
+  if(/\s/.test(a)) return 'contiene espacios; si son varias direcciones, sepáralas con «;»';
+  const at=(a.match(/@/g)||[]).length;
+  if(at===0) return 'falta la «@» entre el usuario y el dominio';
+  if(at>1) return 'tiene más de una «@»; si son dos direcciones, sepáralas con «;»';
+  const [l,d]=a.split('@');
+  if(!l) return 'falta el usuario antes de la «@»';
+  if(!d) return 'falta el dominio después de la «@» (por ejemplo, «empresa.es»)';
+  const bad=a.match(/[^A-Za-z0-9.!#$%&'*+/=?^_`{|}~@-]/);
+  if(bad) return `contiene un carácter no admitido («${bad[0]}»)`;
+  if(l.startsWith('.')||l.endsWith('.')||l.includes('..')) return 'tiene puntos mal colocados antes de la «@»';
+  if(d.startsWith('.')||d.endsWith('.')||d.includes('..')||d.startsWith('-')) return 'el dominio tiene puntos o guiones mal colocados';
+  if(!d.includes('.')) return `al dominio «${d}» le falta la extensión (por ejemplo, «${d}.es» o «${d}.com»)`;
+  const tld=d.split('.').pop();
+  if(tld.length<2||/\d/.test(tld)) return `la extensión «.${tld}» no es válida`;
+  return null;
+}
+function lev(a,b){const m=a.length,n=b.length,d=Array.from({length:m+1},(_,i)=>[i]);for(let j=1;j<=n;j++)d[0][j]=j;
+  for(let i=1;i<=m;i++)for(let j=1;j<=n;j++)d[i][j]=Math.min(d[i-1][j]+1,d[i][j-1]+1,d[i-1][j-1]+(a[i-1]===b[j-1]?0:1));return d[m][n];}
+function typoFix(a){
+  const [l,d]=a.split('@'); if(!d||KNOWN_DOMAINS.includes(d.toLowerCase())) return null;
+  for(const k of KNOWN_DOMAINS){ if(lev(d.toLowerCase(),k)<=2) return l+'@'+k; }
+  // dominio sin extensión que coincide con el inicio de uno conocido
+  return null;
+}
+function parseAddr(t){
+  t=t.trim().replace(/^["']|["']$/g,''); if(!t) return null;
+  const m=t.match(/^(.*?)\s*<([^>]*)>\s*$/);
+  if(m) return {n:m[1].replace(/^["']|["']$/g,'').trim(),a:m[2].trim()};
+  return {n:'',a:t};
+}
+function mkRec(a,n){const c=contactOf(a);return {id:uid(),a,n:n||(c?c.n:''),rej:false};}
+function dupMap(){
+  const m={};
+  ['to','cc','bcc'].forEach(f=>S[f].forEach((r,i)=>{ if(addrIssue(r.a)) return; const k=r.a.toLowerCase(); (m[k]=m[k]||[]).push({f,id:r.id,i}); }));
+  return m;
+}
+function recStatus(r){
+  if(addrIssue(r.a)) return 'bad';
+  if(r.rej) return 'rej';
+  const dm=dupMap(); if((dm[r.a.toLowerCase()]||[]).length>1) return 'dup';
+  if(!contactOf(r.a)) return 'unv';
+  return 'ok';
+}
+
+/* ═════════ Pantalla de origen ═════════ */
+function renderOrigin(){
+  const s=sc(), kind=s.origin, co=S.ctxCo;
+  const tabs={facturas:['Inicio','Facturas','Terceros'],documentos:['Inicio','Terceros','Servicios Norte'],tercero:['Inicio','Terceros','Talleres Demo']}[kind];
+  const onTab=tabs[tabs.length-1];
+  const rail=['home','inv','users','book','bank','doc'].map((n,i)=>`<span class="${(kind==='facturas'&&i===1)||(kind!=='facturas'&&i===2)?'on':''}">${ic(n,18)}</span>`).join('');
+  let mod='',title='',ctxi='';
+  const opener=(lbl)=>`<button type="button" class="obtn pri" id="opener">${ic('mail',15)} ${lbl}</button>`;
+  if(kind==='facturas'){
+    title='Facturas emitidas';ctxi=`${co} · 2026`;
+    const rows=[
+      ['F2026-0131','30/09/2026','Construcciones y Reformas Integrales del Levante Demo','48.906,35 €'],
+      ['F2026-0130','30/09/2026','Servicios Norte','2.178,00 €'],
+      ['F2026-0123','28/09/2026','Talleres Demo','1.452,00 €'],
+      ['F2026-0122','26/09/2026','Asesoría Fiscal Demo','605,00 €'],
+      ['F2026-0118','22/09/2026','Talleres Demo','968,00 €'],
+      ['F2026-0115','19/09/2026','Servicios Norte','3.025,00 €'],
+      ['F2026-0109','15/09/2026','Construcciones y Reformas Integrales del Levante Demo','12.100,00 €']];
+    mod=`<div class="ocard"><h3>Emitidas · septiembre <span class="mut" style="font-weight:400">· ${rows.length} facturas</span><span style="margin-left:auto"></span>${opener('Enviar por correo')}</h3>
+      <table class="ot"><thead><tr><th>Número</th><th>Fecha</th><th>Cliente</th><th style="text-align:right">Total</th><th>VeriFactu</th></tr></thead><tbody>
+      ${rows.map(r=>`<tr class="${r[0]===s.ctx.ref?'sel':''}"><td class="mono">${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td><td class="num">${r[3]}</td><td><span class="opill">Aceptada</span></td></tr>`).join('')}</tbody></table></div>`;
+  } else if(kind==='documentos'){
+    title='Servicios Norte';ctxi='Tercero 1000004 · Cliente 4300004';
+    const rows=[['Contrato-servicios.pdf','Contrato','2,4 MB','12/09/2026'],['Mandato-SEPA-firmado.pdf','Mandato SEPA','250 KB','12/09/2026'],['Certificado-corriente-pago-AEAT.pdf','Fiscal','184 KB','02/09/2026'],['Factura-F2026-0130.pdf','Factura emitida','212 KB','30/09/2026']];
+    mod=`<div class="ocard"><h3>Documentos <span class="mut" style="font-weight:400">· pestaña de la ficha</span><span style="margin-left:auto"></span>${opener('Enviar por correo')}</h3>
+      <table class="ot"><thead><tr><th>Documento</th><th>Tipo</th><th style="text-align:right">Tamaño</th><th>Fecha</th></tr></thead><tbody>
+      ${rows.map((r,i)=>`<tr class="${i===0?'sel':''}"><td>${ic('file',14)}</td><td>${r[1]}</td><td class="num">${r[2]}</td><td>${r[3]}</td></tr>`.replace(ic('file',14),`<span style="display:inline-flex;gap:6px;align-items:center">${ic('file',14)} ${r[0]}</span>`)).join('')}</tbody></table></div>`;
+  } else {
+    title='Talleres Demo';ctxi='Tercero 1000002 · Cliente 4300002';
+    mod=`<div class="ocard"><h3>Contacto <span class="mut" style="font-weight:400">· pestaña de la ficha</span></h3>
+      <div class="ofrow"><span class="lab">Persona</span><b>Laura Pineda Ortega</b><span class="mut">Responsable de administración</span></div>
+      <div class="ofrow"><span class="lab">Email</span><span>laura.pineda@example.invalid</span><span class="opill">Envío de facturas</span><span style="margin-left:auto"></span>${opener('Escribir correo')}</div>
+      <div class="ofrow"><span class="lab">Email</span><span>administracion.cliente@example.invalid</span><span class="opill">Comunicaciones administrativas</span></div>
+      <div class="ofrow"><span class="lab">Teléfono</span><span>960 111 222</span></div></div>`;
+  }
+  const log=S.log.length?S.log.map(l=>`<li><span class="when">Hoy ${l.t}</span>${l.ic}<span>${l.txt}</span></li>`).join(''):'<li class="mut">Sin envíos desde esta pantalla en la sesión.</li>';
+  $('#origin').innerHTML=`
+    <div class="titlebar"><span class="brand"><i></i>ProConta</span>
+      <span class="ctxpill ${S.ctxCo!==COMPANY?'chg':''}">${ic('folder',13)} <b>${esc(co)}</b> · 2026</span>
+      <span style="font-size:12px;color:#AEB8CC">Operador: <b style="color:#fff;font-weight:500">Jorge Ibarra</b></span>
+      <span class="winbtns"><span>—</span><span>☐</span><span>✕</span></span></div>
+    <div class="ctabs">${tabs.map(t=>`<span class="ctab ${t===onTab?'on':''}">${esc(t)}</span>`).join('')}</div>
+    <div class="wbody"><nav class="rail" aria-hidden="true">${rail}</nav>
+      <div class="omain"><div class="modbar"><h1>${esc(title)}</h1><span class="ctxi">${esc(ctxi)}</span></div>
+        <div class="ocontent">${mod}
+          <div class="ocard ohist"><h3>${ic('clock',14)} Actividad de correo de este origen <span class="mut" style="font-weight:400">· historial simulado</span></h3><ul id="olog">${log}</ul></div>
+        </div></div></div>
+    <div class="statusbar"><span><span class="dotg"></span>Conectado</span><span>${esc(co)} · 2026</span><span style="margin-left:auto">Pantalla de origen (bloqueada mientras el compositor está abierto)</span></div>
+    <div id="otoast" role="status" hidden></div>`;
+  $('#opener').addEventListener('click',()=>openComposer());
+}
+function originToast(html){
+  const t=$('#otoast'); t.innerHTML=html+`<button type="button" aria-label="Cerrar aviso">${ic('x',14)}</button>`; t.hidden=false;
+  t.querySelector('button').onclick=()=>t.hidden=true;
+  clearTimeout(originToast.h); originToast.h=setTimeout(()=>t.hidden=true,9000);
+}
+function logOrigin(icn,txt){S.log.unshift({t:now(),ic:ic(icn,14),txt});}
+
+/* ═════════ Ventana: abrir, mover, redimensionar ═════════ */
+const cw=()=>$('#cw');
+function stageRect(){return $('#stage').getBoundingClientRect();}
+function sizeFor(k){const r=stageRect();
+  const want=k==='compact'?{w:720,h:580}:{w:1080,h:740};
+  const w=Math.min(want.w,r.width-24),h=Math.min(want.h,r.height-24);
+  return {w,h,x:Math.max(12,(r.width-w)/2),y:Math.max(12,(r.height-h)/2)};}
+function applyWin(){
+  const el=cw(),r=stageRect();
+  if(S.max){Object.assign(el.style,{left:'0px',top:'0px',width:r.width+'px',height:r.height+'px'});el.classList.add('max');}
+  else{const w=S.win;Object.assign(el.style,{left:w.x+'px',top:w.y+'px',width:w.w+'px',height:w.h+'px'});el.classList.remove('max');}
+  $('#bMax').innerHTML=ic(S.max?'restore':'max',14);
+  $('#bMax').setAttribute('aria-label',S.max?'Restaurar':'Maximizar');$('#bMax').title=S.max?'Restaurar':'Maximizar';
+  layoutMode();
+}
+function layoutMode(){
+  const w=cw().getBoundingClientRect().width;
+  const comp=w<900; cw().classList.toggle('compact',comp);
+}
+function setSize(k){S.size=k; if(k==='max'){S.max=true;} else {S.max=false;S.win=sizeFor(k);} applyWin();
+  $$('#demo [data-size]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.size===k)));}
+(function dragAndResize(){
+  let mode=null,sx,sy,st;
+  document.addEventListener('pointerdown',e=>{
+    if(cw().hidden) return;
+    if(e.target.closest('#rz')){mode='rz';}
+    else if(e.target.closest('#cwDrag')&&!e.target.closest('button')&&!S.max){mode='mv';}
+    else return;
+    sx=e.clientX;sy=e.clientY;st={...S.win};e.preventDefault();
+  });
+  document.addEventListener('pointermove',e=>{
+    if(!mode) return; const r=stageRect(),dx=e.clientX-sx,dy=e.clientY-sy;
+    if(mode==='mv'){S.win.x=Math.min(Math.max(-st.w+120,st.x+dx),r.width-120);S.win.y=Math.min(Math.max(0,st.y+dy),r.height-40);}
+    else{S.win.w=Math.max(600,Math.min(st.w+dx,r.width-st.x));S.win.h=Math.max(460,Math.min(st.h+dy,r.height-st.y));}
+    applyWin();
+  });
+  document.addEventListener('pointerup',()=>{mode=null;});
+  $('#cwDrag').addEventListener('dblclick',e=>{if(!e.target.closest('button')){S.max=!S.max;applyWin();}});
+  window.addEventListener('resize',()=>{if(!cw().hidden){ if(!S.max){const r=stageRect();S.win.w=Math.min(S.win.w,r.width-12);S.win.h=Math.min(S.win.h,r.height-12);S.win.x=Math.min(S.win.x,Math.max(0,r.width-S.win.w));S.win.y=Math.min(S.win.y,Math.max(0,r.height-S.win.h));} applyWin();}});
+})();
+
+/* ═════════ Abrir / precargar ═════════ */
+function loadScenario(){
+  const s=sc(); S.from=s.from; S.off={}; if(s.fromOff) S.off[s.from]='la autorización de la cuenta caducó el 30/09/2026';
+  ['to','cc','bcc'].forEach(f=>S[f]=s[f].map(a=>mkRec(a)));
+  S.showCc=S.cc.length>0; S.showBcc=S.bcc.length>0;
+  const pre=s.atts.map(a=>({...a,id:uid()})), later=(s.after?s.after.atts:[]).map(a=>({...a,id:uid()}));
+  S.atts=[...pre,...later];
+  S.phase='compose';S.tried=false;S.undo=null;S.pv=false;S.pvAtt=null;S.ctxNotice=false;S.draftAt=null;S.attempt=0;S.msgId=null;S.rejTarget=null;S.checked=false;
+  $('#subj').value=s.subj;
+  S.tpl=s.tpl;
+  $('#ed').innerHTML=s.tpl?fillTpl(TEMPLATES.find(t=>t.id===s.tpl).body):(s.body||'');
+  S.tplBase={subj:$('#subj').value,body:normBody()};
+  $('#tplSel').value=S.tpl;
+  // B: el usuario ya había añadido un adjunto a mano, así que la ventana empieza con cambios
+  S.atts=pre; S.baseline=snapshot(); S.atts=[...pre,...later];
+}
+function openComposer(){
+  loadScenario();
+  $('#tplBar').hidden=true;$('#linkBar').hidden=true;$('#closeSheet').hidden=true;$('#res').hidden=true;
+  $('#origin').inert=true; $('#scrim').hidden=false; cw().hidden=false;
+  if(S.size==='max'){S.max=true;} else if(!S.win){S.win=sizeFor(S.size);}
+  applyWin(); refresh();
+  // foco inicial: primer campo por completar
+  const s=sc();
+  setTimeout(()=>{ if(!s.subj) $('#subj').focus(); else if(S.scn==='D') $('#fromBtn').focus(); else placeCaretEnd($('#ed')); },30);
+}
+function closeComposer(how){
+  cw().hidden=true; $('#scrim').hidden=true; $('#origin').inert=false; S.phase='closed';
+  closePops();
+  renderOrigin();
+  if(how) originToast(how);
+  const op=$('#opener'); if(op) op.focus();
+}
+function placeCaretEnd(el){el.focus();const r=document.createRange();r.selectNodeContents(el);r.collapse(false);const s=getSelection();s.removeAllRanges();s.addRange(r);}
+
+/* ═════════ Remitente ═════════ */
+function renderFrom(){
+  const a=acct(S.from),off=S.off[S.from];
+  const b=$('#fromBtn');
+  b.innerHTML=`${ic('user',15)}<span class="nm">${esc(a.n)}</span><span class="ad">&lt;${esc(a.a)}&gt;</span><span class="chev">${ic('chev',14)}</span>`;
+  b.classList.toggle('err',!!off); b.disabled=isLocked();
+  b.setAttribute('aria-invalid',off?'true':'false');
+  $('#fromCo').innerHTML=`${ic('lock',12)} Cuentas autorizadas de ${esc(COMPANY)}`;
+  $('#fromCo').title='La empresa de origen se fija al abrir el compositor y no cambia aunque cambie la sociedad activa de ProConta.';
+  const m=$('#fromMsg');
+  m.innerHTML=off?msgHtml('err',`La cuenta ${esc(a.a)} no está disponible: ${esc(off)}`,
+    `<button type="button" class="lnk" data-act="pickFrom">Elegir otra cuenta</button><span class="mut">· la renueva un administrador en Configuración › Correo</span>`):'';
+}
+function openFromPop(){
+  if(isLocked()) return;
+  const p=$('#fromPop');
+  p.innerHTML=`<div class="pophead">Cuentas autorizadas de ${esc(COMPANY)}</div>`+ACCOUNTS.map(a=>{
+    const off=S.off[a.id];
+    return `<div class="lbopt" role="option" id="fo-${a.id}" data-id="${a.id}" aria-selected="${a.id===S.from}" ${off?'aria-disabled="true"':''}>
+      <span class="ck">${a.id===S.from?ic('check',14):''}</span>
+      <span class="t"><b>${esc(a.n)}</b><span>${esc(a.a)}</span>${off?`<span class="why">No disponible: ${esc(off)}</span>`:''}</span></div>`;}).join('');
+  p.hidden=false; $('#fromBtn').setAttribute('aria-expanded','true');
+  let i=ACCOUNTS.findIndex(a=>a.id===S.from); setAct(i); p.focus();
+  function setAct(k){i=k;$$('#fromPop .lbopt').forEach((o,j)=>o.classList.toggle('act',j===k));p.setAttribute('aria-activedescendant','fo-'+ACCOUNTS[k].id);}
+  p.onkeydown=e=>{
+    if(e.key==='ArrowDown'){setAct(Math.min(ACCOUNTS.length-1,i+1));e.preventDefault();}
+    else if(e.key==='ArrowUp'){setAct(Math.max(0,i-1));e.preventDefault();}
+    else if(e.key==='Enter'||e.key===' '){pick(ACCOUNTS[i].id);e.preventDefault();}
+    else if(e.key==='Escape'||e.key==='Tab'){closeFromPop();$('#fromBtn').focus();e.preventDefault();e.stopPropagation();}
+  };
+  p.onclick=e=>{const o=e.target.closest('.lbopt');if(o)pick(o.dataset.id);};
+  function pick(id){ if(S.off[id]) return; S.from=id; closeFromPop(); $('#fromBtn').focus(); refresh(); }
+}
+function closeFromPop(){$('#fromPop').hidden=true;$('#fromBtn').setAttribute('aria-expanded','false');}
+/* ═════════ Destinatarios ═════════ */
+const STLBL={bad:'dirección mal formada',rej:'rechazada por el servicio de correo',dup:'repetida en otro campo',unv:'no está en contactos; existencia sin comprobar',ok:'contacto conocido'};
+function renderTok(f){
+  const box=document.querySelector(`.tok[data-f="${f}"]`), inp=box.querySelector('.tin');
+  box.querySelectorAll('.chip,.chipedit').forEach(c=>c.remove());
+  S[f].forEach(r=>{
+    const st=recStatus(r), c=document.createElement('div');
+    c.className='chip '+({bad:'bad',rej:'rej',dup:'dup',unv:'unv',ok:''}[st]);
+    c.tabIndex=0; c.dataset.id=r.id; c.dataset.f=f;
+    c.setAttribute('role','button');
+    c.setAttribute('aria-label',`${F[f]}: ${r.n?r.n+', ':''}${r.a}. ${STLBL[st]}. Intro para editar, Suprimir para quitar.`);
+    c.title=(r.n?r.n+' <'+r.a+'>':r.a)+'\n'+STLBL[st][0].toUpperCase()+STLBL[st].slice(1)+(isLocked()?'':'\nClic o Intro para editar · Supr para quitar');
+    const sti={bad:ic('err',13),rej:ic('err',13),dup:ic('warn',13),unv:ic('q',13),ok:''}[st];
+    c.innerHTML=`${sti?`<span class="st">${sti}</span>`:''}<span class="cn">${esc(r.n||r.a)}</span>${r.n?`<span class="ca">${esc(r.a)}</span>`:''}`+
+      (isLocked()?'':`<button type="button" class="cx" tabindex="-1" aria-label="Quitar ${esc(r.n||r.a)}" title="Quitar">${ic('x',11,2.2)}</button>`);
+    box.insertBefore(c,inp);
+  });
+  inp.disabled=isLocked(); inp.placeholder=S[f].length?'':(f==='to'?'Nombre o dirección de correo':'Añadir…');
+  box.classList.toggle('err',S[f].some(r=>['bad','rej'].includes(recStatus(r)))||(f==='to'&&S.tried&&!S.to.length));
+  inp.setAttribute('aria-invalid',box.classList.contains('err')?'true':'false');
+}
+function commitText(f,text){
+  const parts=String(text).split(/[;,\n]+/).map(s=>s.trim()).filter(Boolean);
+  let added=0;
+  parts.forEach(p=>{const x=parseAddr(p); if(x){S[f].push(mkRec(x.a,x.n)); added++;}});
+  return added;
+}
+function removeRec(f,id,focusNext){
+  const i=S[f].findIndex(r=>r.id===id); if(i<0) return;
+  S[f].splice(i,1); refresh();
+  if(focusNext){const chips=$$(`.tok[data-f="${f}"] .chip`); (chips[i]||chips[i-1]||$('#in-'+f)).focus();}
+}
+function editChip(chip){
+  if(isLocked()) return;
+  const f=chip.dataset.f, r=S[f].find(x=>x.id===chip.dataset.id); if(!r) return;
+  const inp=document.createElement('input'); inp.className='chipedit';
+  inp.value=r.n&&!contactOf(r.a)?`${r.n} <${r.a}>`:r.a;
+  inp.setAttribute('aria-label',`Editar destinatario de ${F[f]}`);
+  inp.style.width=Math.min(520,Math.max(240,inp.value.length*7.4+30))+'px';
+  chip.replaceWith(inp); inp.focus(); inp.select();
+  let done=false;
+  const fin=save=>{ if(done) return; done=true;
+    if(save){ const parts=inp.value.split(/[;,]+/).map(s=>s.trim()).filter(Boolean);
+      const i=S[f].indexOf(r);
+      if(!parts.length){S[f].splice(i,1);}
+      else{ const recs=parts.map(p=>{const x=parseAddr(p);return mkRec(x.a,x.n&&!contactOf(x.a)?x.n:'');}); S[f].splice(i,1,...recs); }
+      if(S.phase==='rejected'&&S.rejTarget===r.a) S.rejTarget=null;
+    }
+    refresh(); const nc=$$(`.tok[data-f="${f}"] .chip`).find(c=>c.dataset.id===(S[f].find(x=>x.a===inp.value.trim())||{}).id); (nc||$('#in-'+f)).focus(); };
+  inp.addEventListener('keydown',e=>{ if(e.key==='Enter'){e.preventDefault();fin(true);} else if(e.key==='Escape'){e.preventDefault();e.stopPropagation();fin(false);} });
+  inp.addEventListener('blur',()=>fin(true));
+}
+/* Sugerencias */
+let SG={f:null,items:[],act:-1};
+function hl(t,q){ if(!q) return esc(t); let h=esc(t); q.split(/\s+/).filter(Boolean).forEach(w=>{const re=new RegExp('('+w.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+')','ig');h=h.replace(re,'<mark>$1</mark>');}); return h; }
+function showSugg(f){
+  const inp=$('#in-'+f),q=inp.value.trim(),p=$('#sg-'+f);
+  if(!q){hideSugg();return;}
+  const words=q.toLowerCase().split(/\s+/);
+  const inField=new Set(S[f].map(r=>r.a.toLowerCase()));
+  const items=CONTACTS.filter(c=>!inField.has(c.a.toLowerCase())&&words.every(w=>(c.n+' '+c.a+' '+c.o).toLowerCase().includes(w))).slice(0,8);
+  SG={f,items,act:items.length?0:-1};
+  const looks=q.includes('@');
+  p.innerHTML=items.map((c,i)=>`<div class="lbopt ${i===0?'act':''}" role="option" id="sgo-${f}-${i}" data-i="${i}" aria-selected="${i===0}">
+      <span class="ck">${ic('user',14)}</span><span class="t"><b>${hl(c.n,q)}</b><span>${hl(c.a,q)}</span></span><span class="org">${esc(c.o)}</span></div>`).join('')+
+    `<div class="hint">${items.length?'Flechas para elegir · Intro para añadir · ':'Ningún contacto coincide. '}${looks?`Pulsa Intro para usar «${esc(q)}» tal cual${items.length?' (elige primero «Escribir tal cual» con Esc)':''}.`:'También puedes escribir la dirección completa.'}</div>`;
+  p.hidden=false; inp.setAttribute('aria-expanded','true');
+  if(items.length) inp.setAttribute('aria-activedescendant',`sgo-${f}-0`); else inp.removeAttribute('aria-activedescendant');
+  p.onmousedown=e=>e.preventDefault();
+  p.onclick=e=>{const o=e.target.closest('.lbopt'); if(o) pickSugg(f,+o.dataset.i);};
+}
+function moveSugg(d){ if(!SG.items.length) return; SG.act=(SG.act+d+SG.items.length)%SG.items.length;
+  $$('#sg-'+SG.f+' .lbopt').forEach((o,i)=>{o.classList.toggle('act',i===SG.act);o.setAttribute('aria-selected',String(i===SG.act)); if(i===SG.act)o.scrollIntoView({block:'nearest'});});
+  $('#in-'+SG.f).setAttribute('aria-activedescendant',`sgo-${SG.f}-${SG.act}`); }
+function hideSugg(){ if(SG.f){ const p=$('#sg-'+SG.f); if(p){p.hidden=true;} const i=$('#in-'+SG.f); if(i){i.setAttribute('aria-expanded','false');i.removeAttribute('aria-activedescendant');} } SG={f:null,items:[],act:-1}; }
+function pickSugg(f,i){ const c=SG.items[i]; if(!c) return; S[f].push(mkRec(c.a,c.n)); const inp=$('#in-'+f); inp.value=''; hideSugg(); refresh(); inp.focus(); }
+
+function bindTok(f){
+  const box=document.querySelector(`.tok[data-f="${f}"]`), inp=$('#in-'+f);
+  box.addEventListener('mousedown',e=>{ if(e.target===box){e.preventDefault();inp.focus();} });
+  box.addEventListener('click',e=>{
+    if(isLocked()) return;
+    const x=e.target.closest('.cx'); if(x){const c=x.closest('.chip'); removeRec(f,c.dataset.id,false); inp.focus(); return;}
+    const c=e.target.closest('.chip'); if(c) editChip(c);
+  });
+  box.addEventListener('keydown',e=>{
+    const c=e.target.closest('.chip'); if(!c) return;
+    const chips=$$(`.tok[data-f="${f}"] .chip`), i=chips.indexOf(c);
+    if(e.key==='Enter'||e.key==='F2'){e.preventDefault();editChip(c);}
+    else if(e.key==='Delete'||e.key==='Backspace'){ if(!isLocked()){e.preventDefault();removeRec(f,c.dataset.id,true);} }
+    else if(e.key==='ArrowLeft'){e.preventDefault();(chips[i-1]||c).focus();}
+    else if(e.key==='ArrowRight'){e.preventDefault();(chips[i+1]||inp).focus();}
+  });
+  inp.addEventListener('input',()=>{
+    const v=inp.value;
+    if(/[;,]/.test(v)){ commitText(f,v); inp.value=''; hideSugg(); refresh(); inp.focus(); return; }
+    showSugg(f);
+  });
+  inp.addEventListener('keydown',e=>{
+    const open=SG.f===f&&!$('#sg-'+f).hidden;
+    if(e.key==='ArrowDown'&&open){e.preventDefault();moveSugg(1);}
+    else if(e.key==='ArrowUp'&&open){e.preventDefault();moveSugg(-1);}
+    else if(e.key==='Enter'){
+      e.preventDefault();
+      if(open&&SG.act>=0) pickSugg(f,SG.act);
+      else if(inp.value.trim()){ commitText(f,inp.value); inp.value=''; hideSugg(); refresh(); inp.focus(); }
+    }
+    else if(e.key==='Escape'&&open){e.preventDefault();e.stopPropagation(); SG.act=-1; $$('#sg-'+f+' .lbopt').forEach(o=>o.classList.remove('act')); hideSugg();}
+    else if((e.key==='Backspace'||e.key==='ArrowLeft')&&!inp.value){ const chips=$$(`.tok[data-f="${f}"] .chip`); if(chips.length){e.preventDefault();chips[chips.length-1].focus();} }
+  });
+  inp.addEventListener('paste',e=>{ const t=(e.clipboardData||window.clipboardData).getData('text'); if(/[;,\n]/.test(t)){e.preventDefault();commitText(f,inp.value+t);inp.value='';refresh();inp.focus();} });
+  inp.addEventListener('blur',()=>{ setTimeout(()=>{ if(document.activeElement===inp) return; if(inp.value.trim()){commitText(f,inp.value);inp.value='';refresh();} if(SG.f===f) hideSugg(); },120); });
+}
+
+/* ═════════ Mensajes junto a los campos ═════════ */
+function msgHtml(kind,txt,acts){
+  const icn={err:'err',warn:'warn',info:'info',ok:'ok'}[kind];
+  return `<div class="msg ${kind}"><span class="mi">${ic(icn,14)}</span><span>${txt}${acts?` <span class="acts">${acts}</span>`:''}</span></div>`;
+}
+function fieldIssues(f){
+  const out=[]; const dm=dupMap(); const order=['to','cc','bcc'];
+  S[f].forEach(r=>{
+    const st=recStatus(r), A=`<b>${esc(r.a)}</b>`;
+    if(st==='bad'){
+      const sugg=CONTACTS.find(c=>c.a.toLowerCase().startsWith(r.a.toLowerCase())&&c.a.length>r.a.length);
+      out.push({k:'err',t:`${A} no es una dirección válida: ${esc(addrIssue(r.a))}.`,a:(sugg?`<button type="button" class="lnk" data-act="replace" data-f="${f}" data-id="${r.id}" data-to="${esc(sugg.a)}">Usar ${esc(sugg.a)}</button>`:'')+`<button type="button" class="lnk" data-act="edit" data-f="${f}" data-id="${r.id}">Corregir</button><button type="button" class="lnk" data-act="remove" data-f="${f}" data-id="${r.id}">Quitar</button>`});
+    } else if(st==='rej'){
+      const fx=typoFix(r.a);
+      out.push({k:'err',t:`${A}: el servicio de correo rechazó esta dirección (el buzón no existe). Corrígela o quítala para volver a enviar.`,a:(fx?`<button type="button" class="lnk" data-act="replace" data-f="${f}" data-id="${r.id}" data-to="${esc(fx)}">Cambiar a ${esc(fx)}</button>`:'')+`<button type="button" class="lnk" data-act="edit" data-f="${f}" data-id="${r.id}">Corregir</button><button type="button" class="lnk" data-act="remove" data-f="${f}" data-id="${r.id}">Quitar</button>`});
+    } else if(st==='dup'){
+      const occ=dm[r.a.toLowerCase()];
+      if(occ[occ.length-1].id!==r.id) return; // el aviso aparece en la última aparición
+      const fields=[...new Set(occ.map(o=>o.f))].sort((a,b)=>order.indexOf(a)-order.indexOf(b));
+      if(fields.length===1){
+        out.push({k:'err',t:`${A} está repetida en ${F[f]}.`,a:`<button type="button" class="lnk" data-act="dedupe" data-key="${esc(r.a.toLowerCase())}" data-keep="${f}">Dejar una sola vez</button>`});
+      } else {
+        out.push({k:'err',t:`${A} está a la vez en ${fields.map(x=>F[x]).join(' y ')}. Cada dirección debe figurar en un solo campo.`,
+          a:fields.map(x=>`<button type="button" class="lnk" data-act="dedupe" data-key="${esc(r.a.toLowerCase())}" data-keep="${x}">Dejar solo en ${F[x]}</button>`).join('')});
+      }
+    } else if(st==='unv'){
+      const fix=typoFix(r.a);
+      out.push({k:fix?'warn':'info',t:fix?`${A}: formato correcto, pero el dominio se parece a uno conocido. ¿Quisiste decir <b>${esc(fix)}</b>?`:`${A} no está en tus contactos. El formato es correcto, pero no se ha comprobado que el buzón exista: revisa que esté bien escrita.`,
+        a:fix?`<button type="button" class="lnk" data-act="replace" data-f="${f}" data-id="${r.id}" data-to="${esc(fix)}">Cambiar a ${esc(fix)}</button><button type="button" class="lnk" data-act="ignore" data-f="${f}" data-id="${r.id}">Es correcta</button>`:''});
+    }
+  });
+  if(f==='to'&&S.tried&&!S.to.length) out.unshift({k:'err',t:'Añade al menos un destinatario en Para.',a:''});
+  return out;
+}
+function renderFieldMsgs(){
+  ['to','cc','bcc'].forEach(f=>{
+    const list=fieldIssues(f);
+    // agrupa los avisos informativos si hay muchos
+    $('#msg-'+f).innerHTML=list.map(m=>msgHtml(m.k,m.t,isLocked()?'':m.a)).join('');
+  });
+  const subj=$('#subj').value.trim();
+  $('#msg-subj').innerHTML=(S.tried&&!subj)?msgHtml('err','Escribe un asunto: es lo primero que verá el destinatario.'):'';
+  $('#subj').classList.toggle('err',S.tried&&!subj); $('#subj').setAttribute('aria-invalid',String(S.tried&&!subj));
+  const ph=placeholdersLeft(), empty=bodyEmpty();
+  let bm='';
+  if(ph.length) bm+=msgHtml('err',`Faltan datos por completar en el texto: ${ph.map(p=>'«'+esc(p)+'»').join(', ')}.`,`<button type="button" class="lnk" data-act="gotoPh">Ir al primero</button>`);
+  if(S.tried&&empty&&!S.atts.length) bm+=msgHtml('err','Escribe el mensaje o añade algún adjunto.');
+  $('#msg-body').innerHTML=bm;
+}
+/* acciones de los mensajes */
+document.addEventListener('click',e=>{
+  const b=e.target.closest('[data-act]'); if(!b||cw().hidden) return;
+  const f=b.dataset.f, id=b.dataset.id, act=b.dataset.act;
+  if(act==='remove'){removeRec(f,id,false);$('#in-'+f).focus();}
+  else if(act==='edit'){const c=$$(`.tok[data-f="${f}"] .chip`).find(c=>c.dataset.id===id); if(c) editChip(c);}
+  else if(act==='replace'){const r=S[f].find(x=>x.id===id); if(r){const nr=mkRec(b.dataset.to); r.a=nr.a; r.n=nr.n; r.rej=false;} refresh(); $('#in-'+f).focus();}
+  else if(act==='ignore'){const r=S[f].find(x=>x.id===id); if(r){CONTACTS_OK.add(r.a.toLowerCase());} refresh();}
+  else if(act==='dedupe'){dedupe(b.dataset.key,b.dataset.keep);}
+  else if(act==='pickFrom'){openFromPop();}
+  else if(act==='gotoPh'){gotoPh();}
+  else if(act==='focus'){const t=document.getElementById(b.dataset.target); if(t){ if(t.id==='fromBtn') t.focus(); else if(t.id==='ed') placeCaretEnd(t); else t.focus(); t.scrollIntoView({block:'nearest'});} }
+});
+const CONTACTS_OK=new Set();
+const _typoFix=typoFix; typoFix=a=>CONTACTS_OK.has(a.toLowerCase())?null:_typoFix(a);
+function dedupe(key,keep){
+  let kept=false;
+  ['to','cc','bcc'].forEach(f=>{ S[f]=S[f].filter(r=>{ if(r.a.toLowerCase()!==key) return true; if(f===keep&&!kept){kept=true;return true;} return false; }); });
+  refresh(); $('#in-'+keep).focus();
+}
+
+/* ═════════ Asunto, plantillas, editor ═════════ */
+function ctxVals(){
+  const s=sc().ctx, a=acct(S.from);
+  return {factura:s.factura,fecha:s.fecha,importe:s.importe,vencimiento:s.vencimiento,cliente:s.cliente,contacto:s.contacto,firma:a.firma,
+    lista_adjuntos:S.atts.length?'<ul>'+S.atts.map(x=>'<li>'+esc(x.name)+'</li>').join('')+'</ul>':'<ul><li><span class="ph">[documento]</span></li></ul>'};
+}
+function fillTpl(str){
+  const v=ctxVals();
+  return str.replace(/\{, contacto\}/g,v.contacto?', '+esc(v.contacto):'').replace(/\{(\w+)\}/g,(m,k)=>{
+    if(v[k]) return k==='firma'||k==='lista_adjuntos'?v[k]:esc(v[k]);
+    return `<span class="ph">[${PH_LABEL[k]||k}]</span>`;
+  });
+}
+function fillSubj(str){const v=ctxVals();return str.replace(/\{(\w+)\}/g,(m,k)=>v[k]?v[k]:`[${PH_LABEL[k]||k}]`);}
+function normBody(){return $('#ed').innerHTML.replace(/\s+/g,' ').trim();}
+function bodyEmpty(){return !$('#ed').textContent.trim();}
+const PH_RE=/\[(nº de factura|fecha de la factura|importe|vencimiento|cliente|documento)\]/g;
+function placeholdersLeft(){const t=$('#ed').textContent+' '+$('#subj').value;return [...new Set((t.match(PH_RE)||[]))];}
+function gotoPh(){
+  const sj=$('#subj'); const m=sj.value.match(/\[(nº de factura|fecha de la factura|importe|vencimiento|cliente|documento)\]/);
+  if(m){sj.focus();sj.setSelectionRange(m.index,m.index+m[0].length);return;}
+  const ed=$('#ed'); const w=document.createTreeWalker(ed,NodeFilter.SHOW_TEXT); let n;
+  while((n=w.nextNode())){ const re=new RegExp(PH_RE.source); const mm=n.nodeValue.match(re); if(mm){ ed.focus(); const r=document.createRange(); r.setStart(n,mm.index); r.setEnd(n,mm.index+mm[0].length); const s=getSelection(); s.removeAllRanges(); s.addRange(r); n.parentElement.scrollIntoView({block:'nearest'}); return; } }
+}
+function renderTplSel(){
+  $('#tplSel').innerHTML=TEMPLATES.map(t=>`<option value="${t.id}">${esc(t.n)}</option>`).join('');
+}
+function tplModified(){return $('#subj').value!==S.tplBase.subj||normBody()!==S.tplBase.body;}
+$('#tplSel').addEventListener('change',()=>{
+  const id=$('#tplSel').value, t=TEMPLATES.find(x=>x.id===id);
+  if(!id){ S.tpl=''; $('#tplBar').hidden=true; refresh(); return; }
+  const hasText=$('#subj').value.trim()||!bodyEmpty();
+  if(hasText&&tplModified()){
+    $('#tplSel').value=S.tpl; // no se aplica hasta confirmar
+    const bar=$('#tplBar');
+    bar.className='ibar warn';
+    bar.innerHTML=`${ic('warn',15)}<span>Has modificado el asunto o el texto. La plantilla <b>«${esc(t.n)}»</b> los sustituirá${t.subj?'':' (el asunto se mantiene)'}. Los destinatarios y adjuntos no cambian.</span><span class="sp"></span>
+      <button type="button" class="btn sm navy" id="tplYes">Sustituir el texto</button><button type="button" class="btn sm" id="tplNo">Mantener mi texto</button>`;
+    bar.hidden=false; $('#tplNo').focus();
+    $('#tplYes').onclick=()=>{applyTpl(id);};
+    $('#tplNo').onclick=()=>{bar.hidden=true;$('#tplSel').focus();};
+  } else applyTpl(id);
+});
+function applyTpl(id){
+  const t=TEMPLATES.find(x=>x.id===id); S.tpl=id; $('#tplSel').value=id;
+  if(t.subj) $('#subj').value=fillSubj(t.subj);
+  $('#ed').innerHTML=fillTpl(t.body);
+  S.tplBase={subj:$('#subj').value,body:normBody()};
+  const ph=placeholdersLeft(); const bar=$('#tplBar');
+  if(ph.length){ bar.className='ibar info'; bar.innerHTML=`${ic('info',15)}<span>Plantilla «${esc(t.n)}» aplicada. Este origen no aporta: ${ph.map(p=>esc(p.slice(1,-1))).join(', ')}. Quedan marcados entre corchetes para que los completes.</span><span class="sp"></span><button type="button" class="btn sm" data-act="gotoPh">Ir al primero</button><button type="button" class="btn sm" id="tplOk">Entendido</button>`; bar.hidden=false; $('#tplOk').onclick=()=>{bar.hidden=true;}; }
+  else { bar.hidden=true; }
+  refresh(); placeCaretEnd($('#ed'));
+}
+/* Formato básico */
+document.execCommand('defaultParagraphSeparator',false,'p');
+let savedRange=null;
+function saveSel(){const s=getSelection(); if(s.rangeCount&&$('#ed').contains(s.anchorNode)) savedRange=s.getRangeAt(0).cloneRange();}
+function restoreSel(){ if(savedRange){$('#ed').focus();const s=getSelection();s.removeAllRanges();s.addRange(savedRange);} }
+$('#edbar').addEventListener('mousedown',e=>{ if(e.target.closest('.tb')) e.preventDefault(); });
+$('#edbar').addEventListener('click',e=>{
+  const b=e.target.closest('.tb'); if(!b||b.disabled) return;
+  const cmd=b.dataset.cmd;
+  if(cmd==='link'){ openLinkBar(); return; }
+  if(!$('#ed').contains(getSelection().anchorNode)) restoreSel();
+  document.execCommand(cmd,false,null); $('#ed').focus(); updTb(); refresh(true);
+});
+// Roving tabindex en la barra de formato
+(function(){const tbs=()=>$$('#edbar .tb');
+  $('#edbar').addEventListener('keydown',e=>{ const i=tbs().indexOf(document.activeElement); if(i<0) return;
+    if(e.key==='ArrowRight'||e.key==='ArrowLeft'){e.preventDefault(); const n=tbs()[(i+(e.key==='ArrowRight'?1:-1)+tbs().length)%tbs().length]; tbs().forEach(t=>t.tabIndex=-1); n.tabIndex=0; n.focus();} });
+  tbs().forEach((t,i)=>t.tabIndex=i?-1:0);
+})();
+function updTb(){
+  ['bold','italic','insertUnorderedList','insertOrderedList'].forEach(c=>{const b=$(`.tb[data-cmd="${c}"]`); let st=false; try{st=document.queryCommandState(c);}catch(_){} b.setAttribute('aria-pressed',String(!!st&&$('#ed').contains(getSelection().anchorNode)));});
+}
+document.addEventListener('selectionchange',()=>{ if(!cw().hidden&&$('#ed').contains(getSelection().anchorNode)){saveSel();updTb();} });
+function openLinkBar(){
+  if(isLocked()) return;
+  saveSel(); const s=getSelection();
+  let a=s.anchorNode&&(s.anchorNode.nodeType===1?s.anchorNode:s.anchorNode.parentElement).closest('a');
+  if(a&&!$('#ed').contains(a)) a=null;
+  $('#lnkUrl').value=a?a.getAttribute('href'):''; $('#lnkRm').hidden=!a; $('#lnkErr').textContent='';
+  $('#linkBar').hidden=false; $('#lnkUrl').focus();
+}
+function closeLinkBar(){ $('#linkBar').hidden=true; restoreSel(); }
+$('#lnkCancel').onclick=closeLinkBar;
+$('#lnkRm').onclick=()=>{ restoreSel(); const s=getSelection(); const a=(s.anchorNode.nodeType===1?s.anchorNode:s.anchorNode.parentElement).closest('a'); if(a){const r=document.createRange();r.selectNodeContents(a);s.removeAllRanges();s.addRange(r);} document.execCommand('unlink'); $('#linkBar').hidden=true; refresh(true); };
+$('#lnkOk').onclick=applyLink;
+$('#lnkUrl').addEventListener('keydown',e=>{ if(e.key==='Enter'){e.preventDefault();applyLink();} else if(e.key==='Escape'){e.preventDefault();e.stopPropagation();closeLinkBar();} });
+function applyLink(){
+  let u=$('#lnkUrl').value.trim();
+  if(/^www\./i.test(u)) u='https://'+u;
+  if(!/^(https?:\/\/[^\s.]+\.[^\s]+|mailto:[^\s@]+@[^\s@]+\.[^\s@]+)$/i.test(u)){ $('#lnkErr').innerHTML=`${ic('err',13)} Escribe una dirección completa, por ejemplo «https://www.empresa.es/condiciones» o «mailto:persona@empresa.es».`; $('#lnkErr').style.display='flex'; $('#lnkUrl').setAttribute('aria-invalid','true'); $('#lnkUrl').focus(); return; }
+  $('#lnkUrl').setAttribute('aria-invalid','false');
+  restoreSel(); const s=getSelection();
+  if(s.isCollapsed){ const a=document.createElement('a'); a.href=u; a.textContent=u.replace(/^mailto:/,''); s.getRangeAt(0).insertNode(a); s.collapse(a,1); }
+  else document.execCommand('createLink',false,u);
+  $('#ed').querySelectorAll('a').forEach(a=>{a.target='_blank';a.rel='noopener';});
+  $('#linkBar').hidden=true; $('#ed').focus(); refresh(true);
+}
+$('#ed').addEventListener('keydown',e=>{
+  if((e.ctrlKey||e.metaKey)&&!e.shiftKey){ const k=e.key.toLowerCase();
+    if(k==='k'){e.preventDefault();openLinkBar();}
+    else if(k==='u'){e.preventDefault();} // sin subrayado: se confunde con enlaces
+  }
+});
+$('#ed').addEventListener('paste',e=>{ // pegado sin formato externo (propuesta)
+  e.preventDefault(); const t=(e.clipboardData||window.clipboardData).getData('text/plain');
+  document.execCommand('insertText',false,t);
+});
+$('#ed').addEventListener('click',e=>{ if(e.target.closest('a')&&(e.ctrlKey||e.metaKey)) e.preventDefault(); });
+$('#ed').addEventListener('input',()=>refresh(true));
+$('#subj').addEventListener('input',()=>refresh(true));
+/* ═════════ Adjuntos ═════════ */
+function ftype(n){const e=n.split('.').pop().toLowerCase();
+  if(e==='pdf') return {c:'pdf',l:'PDF',t:'Documento PDF'};
+  if(['xls','xlsx','csv'].includes(e)) return {c:'xls',l:e.toUpperCase(),t:'Hoja de cálculo'};
+  if(['doc','docx','odt'].includes(e)) return {c:'doc',l:e.toUpperCase(),t:'Documento de texto'};
+  if(['jpg','jpeg','png','gif','webp'].includes(e)) return {c:'img',l:e.toUpperCase(),t:'Imagen'};
+  return {c:'oth',l:(e||'?').slice(0,4).toUpperCase(),t:'Archivo'};}
+const MISS={notfound:'No se encuentra el fichero: puede haberse movido o eliminado',denied:'No hay permiso para leer el fichero'};
+function renderAtts(){
+  const L=S.atts, tot=L.reduce((s,a)=>s+(a.miss?0:a.size),0), lk=isLocked();
+  $('#attTitle').innerHTML=`${ic('clip',14)} Adjuntos <span class="mut" style="font-weight:400">(${L.length})</span>`;
+  $('#attTot').textContent=L.length?`Total ${fmtSize(tot)}${L.some(a=>a.miss)?' sin contar los no disponibles':''}`:'';
+  $('#attAddBtn').innerHTML=`${ic('plus',13)} Añadir adjunto`; $('#attAddBtn').disabled=lk;
+  $('#attUndo').innerHTML=S.undo&&!lk?`${ic('info',13)} «${esc(S.undo.a.name)}» quitado del mensaje; el documento original no se ha modificado. <button type="button" class="lnk" id="attUndoB">Deshacer</button>`:'';
+  if(S.undo&&!lk) $('#attUndoB').onclick=()=>{S.atts.splice(S.undo.i,0,S.undo.a);S.undo=null;refresh();};
+  const ul=$('#attList');
+  if(!L.length){ ul.innerHTML=`<li class="attempty">Sin adjuntos. Puedes añadir documentos de ProConta o ficheros del equipo, o arrastrarlos aquí.</li>`; }
+  else ul.innerHTML=L.map(a=>{const t=ftype(a.name);
+    return `<li class="att ${a.miss?'miss':''} ${S.pv&&S.pvAtt===a.id?'sel':''}" data-id="${a.id}">
+      <span class="fi ${t.c}" aria-hidden="true">${t.l}</span>
+      <span class="nm"><b title="${esc(a.name)}">${esc(a.name)}</b>
+        <span title="${esc(a.origin)}">${a.miss?`${ic('err',12)} ${MISS[a.miss]} (${esc(a.path||'')}). Sustitúyelo o quítalo para enviar.`:`${t.t}<i class="szc"> · ${fmtSize(a.size)}</i> · ${esc(a.origin)}`}</span></span>
+      <span class="sz">${fmtSize(a.size)}</span>
+      <span class="aa">${a.miss?
+        `<button type="button" class="ab" data-att="replace" ${lk?'disabled':''} aria-label="Sustituir ${esc(a.name)}">${ic('swap',13)}<span class="lb">Sustituir…</span></button>`:
+        `<button type="button" class="ab" data-att="view" aria-label="Previsualizar ${esc(a.name)}" title="Previsualizar en esta ventana">${ic('eye',13)}<span class="lb">Ver</span></button>
+         <button type="button" class="ab" data-att="open" aria-label="Abrir ${esc(a.name)} con su aplicación" title="Abrir con la aplicación predeterminada">${ic('ext',13)}</button>`}
+        <button type="button" class="ab" data-att="remove" ${lk?'disabled':''} aria-label="Quitar ${esc(a.name)} del mensaje (el original no se elimina)" title="Quitar del mensaje. El documento original no se elimina.">${ic('minus',13)}<span class="lb">Quitar</span></button></span></li>`;}).join('');
+  const miss=L.filter(a=>a.miss);
+  $('#msg-att').innerHTML=miss.length?msgHtml('err',`${miss.length===1?'Hay 1 adjunto que no se puede leer':'Hay '+miss.length+' adjuntos que no se pueden leer'}. No se puede enviar hasta sustituirlo o quitarlo.`):'';
+}
+$('#attList').addEventListener('click',e=>{
+  const b=e.target.closest('[data-att]'); if(!b) return; const li=b.closest('.att'), id=li.dataset.id, i=S.atts.findIndex(a=>a.id===id), a=S.atts[i];
+  const act=b.dataset.att;
+  if(act==='remove'){ S.atts.splice(i,1); S.undo={a,i}; if(S.pvAtt===id){S.pvAtt=null;} refresh(); const n=$$('#attList .att')[i]||$$('#attList .att')[i-1]; (n?n.querySelector('.ab'):$('#attAddBtn')).focus(); }
+  else if(act==='view'){ S.pv=true; S.pvAtt=id; refresh(); $('#pvBody').focus(); }
+  else if(act==='open'){ setStat(`${ic('ext',13)} «${esc(a.name)}» se abriría con la aplicación predeterminada de Windows (simulado).`); }
+  else if(act==='replace'){ openAttPop(id,b); }
+});
+function openAttPop(replaceId,anchor){
+  const p=$('#attPop'); const docs=DOCS[sc().ctx.cliente]||[];
+  const have=new Set(S.atts.filter(a=>!a.miss).map(a=>a.name));
+  p.innerHTML=`<div class="pophead">${replaceId?'Sustituir por…':'Añadir desde'}</div>
+    <div class="lbopt" role="menuitem" tabindex="-1" data-pc="1"><span class="ck">${ic('pc',14)}</span><span class="t"><b>Fichero del equipo…</b><span>Abre el selector de archivos de Windows</span></span></div>
+    <hr><div class="pophead">Documentos de ${esc(sc().ctx.cliente)} en ProConta</div>`+
+    (docs.length?docs.map((d,i)=>`<div class="lbopt" role="menuitem" tabindex="-1" data-doc="${i}" ${have.has(d.name)&&!replaceId?'aria-disabled="true"':''}><span class="ck">${ic('file',14)}</span><span class="t"><b>${esc(d.name)}</b><span>${esc(d.origin)} · ${fmtSize(d.size)}${have.has(d.name)&&!replaceId?' · ya adjunto':''}</span></span></div>`).join(''):'<div class="hint mut" style="padding:6px 10px">No hay documentos.</div>');
+  p.hidden=false; p.dataset.replace=replaceId||'';
+  if(replaceId){ const li=anchor.closest('.att'); p.style.position='fixed'; const r=anchor.getBoundingClientRect(); p.style.left=Math.max(8,r.right-360)+'px'; p.style.top=(r.top-6)+'px'; p.style.transform='translateY(-100%)'; p.style.right='auto'; }
+  else { p.style.position=''; p.style.left=''; p.style.right=''; p.style.transform='translateY(-100%)'; p.style.top='-4px'; }
+  $('#attAddBtn').setAttribute('aria-expanded','true');
+  const items=$$('#attPop .lbopt:not([aria-disabled])'); let k=0; items[0].classList.add('act'); items[0].focus();
+  p.onkeydown=e=>{
+    if(e.key==='ArrowDown'||e.key==='ArrowUp'){e.preventDefault(); items[k].classList.remove('act'); k=(k+(e.key==='ArrowDown'?1:-1)+items.length)%items.length; items[k].classList.add('act'); items[k].focus();}
+    else if(e.key==='Enter'||e.key===' '){e.preventDefault(); items[k].click();}
+    else if(e.key==='Escape'||e.key==='Tab'){e.preventDefault();e.stopPropagation();closeAttPop();(anchor||$('#attAddBtn')).focus();}
+  };
+  p.onclick=e=>{
+    const o=e.target.closest('.lbopt'); if(!o||o.getAttribute('aria-disabled')) return;
+    if(o.dataset.pc){ closeAttPop(); $('#fileIn').dataset.replace=replaceId||''; $('#fileIn').click(); return; }
+    const d=docs[+o.dataset.doc]; addAtt({name:d.name,size:d.size,origin:d.origin,src:'doc'},replaceId); closeAttPop();
+  };
+}
+function closeAttPop(){$('#attPop').hidden=true;$('#attAddBtn').setAttribute('aria-expanded','false');}
+$('#attAddBtn').addEventListener('click',e=>{ if($('#attPop').hidden) openAttPop(null,null); else closeAttPop(); });
+function addAtt(x,replaceId){
+  if(replaceId){ const i=S.atts.findIndex(a=>a.id===replaceId); S.atts.splice(i,1,{...x,id:uid()}); setStat(`${ic('ok',13)} Adjunto sustituido por «${esc(x.name)}».`); }
+  else if(S.atts.some(a=>a.name===x.name&&a.size===x.size)){ setStat(`${ic('info',13)} «${esc(x.name)}» ya estaba adjunto.`); return; }
+  else S.atts.push({...x,id:uid()});
+  S.undo=null; refresh();
+}
+$('#fileIn').addEventListener('change',e=>{
+  const rep=e.target.dataset.replace; [...e.target.files].forEach((f,i)=>addAtt({name:f.name,size:f.size,origin:'Añadido desde el equipo',src:'pc'},i===0?rep:null)); e.target.value='';
+});
+// Arrastrar ficheros a la ventana (solo se leen nombre y tamaño)
+['dragenter','dragover'].forEach(t=>document.addEventListener(t,e=>{ if(cw().hidden||isLocked()) return; if(cw().contains(e.target)){e.preventDefault();cw().classList.add('drag');} }));
+['dragleave','drop'].forEach(t=>document.addEventListener(t,e=>{ if(t==='dragleave'&&cw().contains(e.relatedTarget)) return; cw().classList.remove('drag'); }));
+document.addEventListener('drop',e=>{ if(cw().hidden||!cw().contains(e.target)||isLocked()) return; e.preventDefault(); [...(e.dataTransfer.files||[])].forEach(f=>addAtt({name:f.name,size:f.size,origin:'Añadido desde el equipo (arrastrado)',src:'pc'})); });
+
+/* ═════════ Vista previa (panel de la misma ventana) ═════════ */
+function renderPreview(){
+  const pv=$('#pv'); pv.hidden=!S.pv;
+  $('#pvBtn').setAttribute('aria-pressed',String(S.pv)); $('#pvBtn').innerHTML=`${ic('eye',14)} Vista previa`;
+  $('#pvClose').innerHTML=ic('x',14);
+  if(!S.pv) return;
+  const att=S.pvAtt&&S.atts.find(a=>a.id===S.pvAtt);
+  $('#pvBack').hidden=!att;
+  if(att){
+    $('#pvTitle').textContent='Adjunto'; $('#pvNote').textContent=att.name.length>36?att.name.slice(0,34)+'…':att.name;
+    const t=ftype(att.name);
+    $('#pvBody').innerHTML=t.c==='pdf'||t.c==='doc'?`<div class="pvdoc" role="img" aria-label="Previsualización simulada de ${esc(att.name)}"><h4>${esc(att.name.replace(/\.[^.]+$/,'').replace(/-/g,' '))}</h4><span class="mut">${esc(COMPANY)} · ${esc(sc().ctx.cliente)}</span>${'<div class="bar"></div>'.repeat(3)}<div class="bar" style="width:60%"></div><div style="height:16px"></div>${'<div class="bar"></div>'.repeat(5)}<div class="bar" style="width:40%"></div><div style="margin-top:auto" class="mut">Página 1 · previsualización simulada</div></div>`
+      :`<div class="pvnot">${ic(t.c==='img'?'eye':'file',36,1.4)}<p><b>${esc(att.name)}</b><br>${t.t} · ${fmtSize(att.size)}</p><p>No hay vista previa integrada para este tipo. <button type="button" class="lnk" data-att-open="${att.id}">Abrir con su aplicación</button></p></div>`;
+    return;
+  }
+  $('#pvTitle').textContent='Vista previa'; $('#pvNote').textContent='Así lo verá quien lo reciba';
+  const a=acct(S.from), list=f=>S[f].map(r=>r.n?`${esc(r.n)} &lt;${esc(r.a)}&gt;`:esc(r.a)).join(', ');
+  $('#pvBody').innerHTML=`<div class="pvmail"><div class="pvhd">
+      <span class="k">De</span><span class="v">${esc(a.n)} &lt;${esc(a.a)}&gt;</span>
+      <span class="k">Para</span><span class="v">${list('to')||'<span class="mut">—</span>'}</span>
+      ${S.cc.length?`<span class="k">CC</span><span class="v">${list('cc')}</span>`:''}
+      ${S.bcc.length?`<span class="k">CCO</span><span class="v mut">${S.bcc.length} destinatario${S.bcc.length>1?'s':''} oculto${S.bcc.length>1?'s':''}: no aparecen en la copia de los demás</span>`:''}
+      <span class="k">Asunto</span><span class="v subjv">${esc($('#subj').value)||'<span class="mut">(sin asunto)</span>'}</span></div>
+    <div class="pvbody">${$('#ed').innerHTML||'<p class="mut">(sin texto)</p>'}</div>
+    ${S.atts.length?`<div class="pvatt">${S.atts.map(x=>`<span${x.miss?' style="color:var(--red);border-color:#E7B1AA"':''}>${ic(x.miss?'err':'clip',12)}${esc(x.name)} <i>${x.miss?'no disponible':fmtSize(x.size)}</i></span>`).join('')}</div>`:''}</div>`;
+  $('#pvBody').querySelectorAll('a').forEach(l=>l.addEventListener('click',e=>{e.preventDefault();setStat(`${ic('link',13)} El enlace lleva a ${esc(l.getAttribute('href'))} (no se abre en la maqueta).`);}));
+}
+$('#pvBtn').onclick=()=>{S.pv=!S.pv;S.pvAtt=null;refresh(); if(S.pv) $('#pvBody').focus();};
+$('#pvClose').onclick=()=>{S.pv=false;S.pvAtt=null;refresh();$('#pvBtn').focus();};
+$('#pvBack').onclick=()=>{S.pvAtt=null;refresh();$('#pvBody').focus();};
+$('#pvBody').addEventListener('click',e=>{const b=e.target.closest('[data-att-open]'); if(b) setStat(`${ic('ext',13)} Se abriría con la aplicación predeterminada de Windows (simulado).`);});
+
+/* ═════════ Validación y pie ═════════ */
+function problems(){
+  const P=[];
+  if(S.off[S.from]) P.push({t:'Cuenta de envío no disponible',target:'fromBtn'});
+  ['to','cc','bcc'].forEach(f=>{
+    const st=S[f].map(recStatus);
+    const bad=st.filter(x=>x==='bad').length, rej=st.filter(x=>x==='rej').length, dup=fieldIssues(f).filter(m=>m.k==='err'&&/repetida|a la vez/.test(m.t)).length;
+    if(bad) P.push({t:`${bad} dirección${bad>1?'es':''} mal formada${bad>1?'s':''} en ${F[f]}`,target:'in-'+f});
+    if(rej) P.push({t:`Dirección rechazada en ${F[f]}`,target:'in-'+f});
+    if(dup) P.push({t:`Destinatario repetido (${F[f]})`,target:'in-'+f});
+  });
+  if(!S.to.length) P.push({t:'Falta destinatario en Para',target:'in-to'});
+  if(!$('#subj').value.trim()) P.push({t:'Falta el asunto',target:'subj'});
+  if(placeholdersLeft().length) P.push({t:'Datos sin completar en el texto',target:'ed'});
+  if(bodyEmpty()&&!S.atts.length) P.push({t:'Mensaje vacío',target:'ed'});
+  const miss=S.atts.filter(a=>a.miss).length; if(miss) P.push({t:`${miss} adjunto${miss>1?'s':''} no disponible${miss>1?'s':''}`,target:'attList'});
+  return P;
+}
+function snapshot(){return JSON.stringify([S.from,...['to','cc','bcc'].map(f=>S[f].map(r=>r.a)),$('#subj').value,normBody(),S.atts.map(a=>a.name+a.size)]);}
+const isDirty=()=>snapshot()!==S.baseline;
+let statTimer=null;
+function setStat(html){ const s=$('#stat'); s.className='stat'; s.innerHTML=html; S._statLock=true; clearTimeout(statTimer); statTimer=setTimeout(()=>{S._statLock=false;updateFooter();},6000);}
+function updateFooter(){
+  const send=$('#bSend'), lk=isLocked(), ph=S.phase;
+  $('#bDraft').hidden=!S.drafts||['accepted','sending','checking','unk'].includes(ph);
+  $('#bCancel').textContent=ph==='accepted'?'Cerrar':'Cancelar';
+  $('#bCancel').disabled=ph==='sending'||ph==='checking';
+  $('#bClose').disabled=false;
+  send.hidden=ph==='accepted';
+  send.disabled=lk; send.classList.toggle('busy',ph==='sending');
+  send.innerHTML=ph==='sending'?`${ic('spin',14,2.2).replace('class="ic"','class="ic spin"')} Enviando…`:(S.attempt>0&&ph!=='accepted'?`${ic('mail',14)} Enviar de nuevo`:`${ic('mail',14)} Enviar`)+` <span class="simtag" style="background:rgba(255,255,255,.2);color:#fff;border-color:rgba(255,255,255,.6)">SIM</span>`;
+  send.setAttribute('aria-disabled',String(lk));
+  if(S._statLock) return;
+  const st=$('#stat'); st.className='stat';
+  if(ph==='compose'||ph==='rejected'){
+    const P=problems();
+    if(S.tried&&P.length){ st.className='stat err'; st.innerHTML=`${ic('err',14)} <b>No se puede enviar todavía:</b> `+P.map(p=>`<button type="button" class="lnk" data-act="focus" data-target="${p.target}">${esc(p.t)}</button>`).join('<span aria-hidden="true">·</span>'); }
+    else if(S.draftAt&&!isDirty()) st.innerHTML=`${ic('ok',14)} Borrador guardado a las ${S.draftAt} (simulado)`;
+    else { const n=S.to.length+S.cc.length+S.bcc.length; const unv=['to','cc','bcc'].reduce((s,f)=>s+S[f].filter(r=>recStatus(r)==='unv').length,0);
+      st.innerHTML=`${n} destinatario${n!==1?'s':''}${unv?` · ${unv} sin comprobar`:''} · ${S.atts.length} adjunto${S.atts.length!==1?'s':''}${isDirty()?' · <span style="color:var(--or3)">cambios sin enviar</span>':''}`; }
+  } else if(ph==='accepted') st.innerHTML=`${ic('lock',13)} Mensaje enviado: ya no se puede modificar.`;
+  else if(ph==='unk'||ph==='checking') st.innerHTML=`${ic('lock',13)} Edición bloqueada hasta conocer el resultado, para no enviar una versión distinta.`;
+  else if(ph==='sending') st.innerHTML=`${ic('lock',13)} No se puede editar mientras se envía.`;
+}
+function lockUI(){
+  const lk=isLocked();
+  cw().classList.toggle('locked',lk);
+  $('#ed').contentEditable=String(!lk); $('#subj').readOnly=lk; $('#tplSel').disabled=lk;
+  $$('#edbar .tb').forEach(b=>b.disabled=lk); $('#tCc').disabled=lk; $('#tBcc').disabled=lk;
+  $$('.rowx[data-hide]').forEach(b=>{const f=b.dataset.hide; b.disabled=lk||S[f].length>0; b.title=S[f].length?`Quita antes los destinatarios de ${F[f]} para ocultarlo`:`Ocultar ${F[f]}`; b.innerHTML=ic('x',13);});
+}
+function refresh(light){
+  if(cw().hidden) return;
+  const s=sc().ctx;
+  $('#cwCtx').innerHTML=`<span class="lbl">·</span> ${ic(s.kind==='Factura'?'inv':s.kind==='Tercero'?'users':'doc',13)} <b>${esc(s.kind)}${s.ref?' '+esc(s.ref):''}</b> · ${esc(s.cliente)}`;
+  $('#cwCtx').title=`Origen: ${s.kind}${s.ref?' '+s.ref:''} · ${s.cliente} · Empresa ${COMPANY}`;
+  if(!light){ renderFrom(); ['to','cc','bcc'].forEach(renderTok); }
+  $('#row-cc').hidden=!S.showCc; $('#row-bcc').hidden=!S.showBcc;
+  $('#tCc').setAttribute('aria-expanded',String(S.showCc)); $('#tBcc').setAttribute('aria-expanded',String(S.showBcc));
+  $('#tCc').hidden=S.showCc; $('#tBcc').hidden=S.showBcc;
+  $('#ed').classList.toggle('isempty',bodyEmpty()&&!$('#ed').querySelector('li'));
+  renderFieldMsgs(); renderAtts(); renderPreview(); lockUI(); updateFooter();
+  const b=$('#ctxBanner'); b.hidden=!S.ctxNotice;
+  if(S.ctxNotice) b.innerHTML=`${ic('info',15)}<span>La sociedad activa de ProConta ha cambiado a <b>${esc(S.ctxCo)}</b>. Este correo se sigue redactando y se enviará desde <b>${esc(COMPANY)}</b> con la cuenta ${esc(acct(S.from).a)}; no se ha cambiado nada.</span><button type="button" class="x" id="ctxX" aria-label="Cerrar aviso">${ic('x',14)}</button>`;
+  if(S.ctxNotice) $('#ctxX').onclick=()=>{S.ctxNotice=false;refresh(true);};
+}
+$('#tCc').onclick=()=>{S.showCc=true;refresh();$('#in-cc').focus();};
+$('#tBcc').onclick=()=>{S.showBcc=true;refresh();$('#in-bcc').focus();};
+$$('.rowx[data-hide]').forEach(b=>b.onclick=()=>{const f=b.dataset.hide; if(S[f].length) return; S['show'+(f==='cc'?'Cc':'Bcc')]=false; refresh(); $(f==='cc'?'#tCc':'#tBcc').focus();});
+
+/* ═════════ Envío simulado ═════════ */
+function commitPending(){ ['to','cc','bcc'].forEach(f=>{const i=$('#in-'+f); if(i.value.trim()){commitText(f,i.value);i.value='';}}); hideSugg(); }
+function trySend(){
+  if(isLocked()||cw().hidden) return; // evita dobles pulsaciones
+  commitPending(); S.tried=true; S._statLock=false;
+  const P=problems();
+  if(P.length){ refresh(); const t=document.getElementById(P[0].target); if(t){ if(t.id==='ed') placeCaretEnd(t); else if(t.id==='attList'){ const b=t.querySelector('.att.miss .ab'); (b||t).focus(); } else t.focus(); } return; }
+  S.phase='sending'; S.attempt++; $('#tplBar').hidden=true; $('#linkBar').hidden=true; closePops(); refresh();
+  S.msgId=S.msgId||`<${Date.now().toString(36)}.${S.attempt}@empresademoa.example.invalid>`;
+  const steps=['Comprobando adjuntos','Entregando al servicio de correo','Esperando confirmación'];
+  const show=k=>{ const r=$('#res'); r.className='res sending'; r.hidden=false;
+    r.innerHTML=`<span class="ri">${ic('spin',18,2.2).replace('class="ic"','class="ic spin"')}</span><div><h4>Enviando desde ${esc(acct(S.from).a)}… <span class="simtag">SIMULADO</span></h4>
+      <p>Puedes esperar aquí; tarda unos segundos. No se puede editar ni volver a pulsar Enviar mientras tanto.</p>
+      <div class="steps">${steps.map((s,i)=>`<span class="${i<k?'done':i===k?'on':''}">${i<k?ic('check',13):i===k?ic('clock',13):ic('q',13)} ${s}</span>`).join('')}</div></div>`; };
+  show(0); setTimeout(()=>show(1),700); setTimeout(()=>show(2),1500);
+  setTimeout(()=>finishSend($('#dOut').value),2300);
+}
+function finishSend(out){
+  const r=$('#res'), a=acct(S.from), hora=now();
+  if(out==='ok'){
+    S.phase='accepted'; S.acceptedAt=hora;
+    r.className='res ok';
+    r.innerHTML=`<span class="ri">${ic('ok',20)}</span><div><h4>Aceptado por el servicio de correo · hoy a las ${hora} <span class="simtag">SIMULADO</span></h4>
+      <p>El servicio de correo de ${esc(COMPANY)} ha recibido el mensaje para entregarlo. <b>Eso no confirma que haya llegado al buzón del destinatario</b>: si la entrega falla después, el aviso de devolución llegará a ${esc(a.a)}.</p>
+      <p>El envío ya no depende de esta ventana: cerrarla no lo cancela. Queda registrado en la actividad de correo del origen.</p>
+      <p class="tech">Id. del mensaje: ${esc(S.msgId)}</p>
+</div>`;
+    logOrigin('ok',`<b>Aceptado por el servicio</b> · «${esc($('#subj').value)}» · Para: ${esc(S.to.map(x=>x.a).join(', '))}${S.atts.length?` · ${S.atts.length} adjunto${S.atts.length>1?'s':''}`:''}`);
+    refresh(); $('#bCancel').focus();
+  } else if(out==='rej'){
+    S.phase='rejected';
+    const all=[...S.to,...S.cc,...S.bcc];
+    const tgt=all.find(x=>recStatus(x)==='unv')||S.to[S.to.length-1]; tgt.rej=true; S.rejTarget=tgt.a;
+    r.className='res err';
+    r.innerHTML=`<span class="ri">${ic('err',20)}</span><div><h4>No se ha enviado: el servicio de correo rechazó el mensaje <span class="simtag">SIMULADO</span></h4>
+      <p>Causa: el buzón <b>${esc(tgt.a)}</b> no existe. El servicio confirmó el rechazo, así que <b>nadie ha recibido el mensaje</b>. Todo lo redactado se conserva.</p>
+      <p class="tech">Respuesta del servidor: 550 5.1.1 Recipient address rejected (simulada)</p>
+      <div class="racts"><button type="button" class="btn sm navy" id="rFix">Revisar la dirección</button><span class="mut" style="align-self:center">Después puedes volver a enviar sin riesgo de duplicado.</span></div></div>`;
+    logOrigin('err',`<b>Rechazado</b> · «${esc($('#subj').value)}» · buzón inexistente: ${esc(tgt.a)}`);
+    refresh(); $('#rFix').onclick=()=>{const f=['to','cc','bcc'].find(f=>S[f].includes(tgt)); const c=$$(`.tok[data-f="${f}"] .chip`).find(c=>c.dataset.id===tgt.id); if(c){c.focus();c.scrollIntoView({block:'nearest'});}}; $('#rFix').focus();
+  } else if(out==='acc'){
+    S.phase='rejected'; S.off[S.from]='el servicio de correo no aceptó sus credenciales (la autorización ha caducado o se ha revocado).';
+    r.className='res err';
+    r.innerHTML=`<span class="ri">${ic('err',20)}</span><div><h4>No se ha enviado: la cuenta ${esc(a.a)} no está disponible <span class="simtag">SIMULADO</span></h4>
+      <p>El servicio de correo rechazó la conexión antes de recibir el mensaje, así que <b>no se ha enviado nada</b>. Todo lo redactado se conserva. Elige otra cuenta autorizada de ${esc(COMPANY)} y vuelve a enviar, o pide a un administrador que renueve la autorización.</p>
+      <p class="tech">535 5.7.8 Authentication credentials invalid (simulada)</p>
+      <div class="racts"><button type="button" class="btn sm navy" id="rFrom">Elegir otra cuenta</button></div></div>`;
+    logOrigin('err',`<b>No enviado</b> · cuenta ${esc(a.a)} no disponible`);
+    refresh(); $('#rFrom').onclick=()=>{$('#fromBtn').focus();openFromPop();}; $('#rFrom').focus();
+  } else {
+    S.phase='unk';
+    r.className='res unk';
+    r.innerHTML=`<span class="ri">${ic('warn',20)}</span><div><h4>Resultado incierto: no sabemos si el mensaje se ha enviado <span class="simtag">SIMULADO</span></h4>
+      <p>La conexión se cortó después de transmitir el mensaje y antes de recibir la confirmación del servicio. Puede que se haya enviado. Para no duplicarlo, primero hay que comprobarlo; mientras tanto el mensaje queda bloqueado.</p>
+      <p class="tech">Id. del mensaje: ${esc(S.msgId)} · tiempo de espera agotado tras la transmisión (simulado)</p>
+      <div class="racts"><button type="button" class="btn sm navy" id="rChk">Comprobar si se envió</button><button type="button" class="btn sm" id="rLater">Cerrar y comprobar más tarde</button></div></div>`;
+    logOrigin('warn',`<b>Resultado incierto</b> · «${esc($('#subj').value)}» · pendiente de comprobar`);
+    refresh(); $('#rChk').onclick=checkUncertain; $('#rLater').onclick=()=>closeComposer(`${ic('warn',16)} El envío quedó como «Resultado incierto». Se conserva con todo su contenido en la actividad de correo para comprobarlo (simulado).`); $('#rChk').focus();
+  }
+}
+function checkUncertain(){
+  S.phase='checking'; refresh();
+  const r=$('#res'); r.className='res sending';
+  r.innerHTML=`<span class="ri">${ic('spin',18,2.2).replace('class="ic"','class="ic spin"')}</span><div><h4>Comprobando con el servicio de correo… <span class="simtag">SIMULADO</span></h4><p>Buscamos el mensaje por su identificador en los enviados de ${esc(acct(S.from).a)}.</p></div>`;
+  setTimeout(()=>{
+    if($('#dChk').value==='found'){ S.log.shift(); finishSend('ok'); $('#res h4').insertAdjacentHTML('afterend','<p><b>Comprobado:</b> el primer intento sí llegó al servicio. No hace falta volver a enviarlo.</p>'); }
+    else{
+      S.phase='rejected'; S.checked=true;
+      r.className='res err';
+      r.innerHTML=`<span class="ri">${ic('info',20)}</span><div><h4>No consta el envío <span class="simtag">SIMULADO</span></h4>
+        <p>El servicio de correo no tiene ningún mensaje con este identificador, así que el primer intento no se completó. Puedes revisar el mensaje y enviarlo de nuevo.</p>
+        <p class="tech">Id. buscado: ${esc(S.msgId)}</p>
+        <div class="racts"><button type="button" class="btn sm navy" id="rRe">Enviar de nuevo</button></div></div>`;
+      S.log[0]={t:now(),ic:ic('info',14),txt:`<b>No consta</b> el envío incierto · «${esc($('#subj').value)}»`};
+      S.msgId=null; refresh(); $('#rRe').onclick=trySend; $('#rRe').focus();
+    }
+  },1600);
+}
+
+/* ═════════ Cerrar / cancelar ═════════ */
+function requestClose(){
+  if(cw().hidden) return;
+  if(S.phase==='sending'||S.phase==='checking'){ setStat(`${ic('clock',13)} Espera unos segundos a que el servicio responda; si cierras ahora no podríamos mostrarte el resultado.`); return; }
+  if(S.phase==='accepted'){ closeComposer(`${ic('ok',16)} Correo aceptado por el servicio de correo (simulado). La entrega al destinatario no está confirmada.`); return; }
+  if(S.phase==='unk'){ $('#rLater')&&$('#rLater').click(); return; }
+  if(!isDirty()){ closeComposer(S.draftAt?`${ic('ok',16)} Borrador guardado (simulado).`:''); return; }
+  const cs=$('#closeSheet'); cs.hidden=false; $('#cwf').hidden=true; $('#csDraft').hidden=!S.drafts;
+  $('#csD').textContent=S.drafts?'Puedes guardarlo como borrador para terminarlo después, o descartarlo.':'Si lo descartas, no se guardará nada de lo redactado.';
+  $('#csKeep').focus();
+}
+function hideSheet(){ $('#closeSheet').hidden=true; $('#cwf').hidden=false; }
+$('#csKeep').onclick=()=>{hideSheet();$('#bCancel').focus();};
+$('#csDiscard').onclick=()=>{hideSheet();closeComposer(`${ic('info',16)} Correo descartado. Los documentos adjuntos no se han modificado.`);};
+$('#csDraft').onclick=()=>{hideSheet();saveDraft();closeComposer(`${ic('ok',16)} Borrador guardado a las ${S.draftAt} en ${esc(COMPANY)} · se reabre desde la actividad de correo del origen (propuesta, simulado).`);};
+function saveDraft(){ commitPending(); S.draftAt=now(); S.baseline=snapshot(); logOrigin('doc',`<b>Borrador</b> · «${esc($('#subj').value||'(sin asunto)')}» · ${esc(COMPANY)}`); S._statLock=false; refresh(); }
+$('#bDraft').onclick=saveDraft;
+$('#bSend').onclick=trySend;
+$('#bCancel').onclick=requestClose;
+$('#bClose').onclick=requestClose;
+$('#bMax').onclick=()=>{S.max=!S.max; if(!S.max&&!S.win) S.win=sizeFor('wide'); applyWin();};
+$('#bHelp').onclick=()=>{const p=$('#helpPop'); p.hidden=!p.hidden; $('#bHelp').setAttribute('aria-expanded',String(!p.hidden));};
+$('#fromBtn').onclick=()=>{ if($('#fromPop').hidden) openFromPop(); else closeFromPop(); };
+function closePops(){ closeFromPop(); closeAttPop(); hideSugg(); $('#helpPop').hidden=true; $('#bHelp').setAttribute('aria-expanded','false'); }
+document.addEventListener('mousedown',e=>{
+  if(!e.target.closest('.from')) closeFromPop();
+  if(!e.target.closest('.attadd')&&!e.target.closest('#attPop')&&!e.target.closest('[data-att="replace"]')) closeAttPop();
+  if(!e.target.closest('#helpPop')&&!e.target.closest('#bHelp')){$('#helpPop').hidden=true;$('#bHelp').setAttribute('aria-expanded','false');}
+});
+
+/* ═════════ Teclado global del compositor ═════════ */
+document.addEventListener('keydown',e=>{
+  if(cw().hidden) return;
+  if(!cw().contains(e.target)&&e.target!==document.body) return;
+  const k=e.key.toLowerCase(), ctrl=e.ctrlKey||e.metaKey;
+  if(e.key==='Escape'){
+    if(!$('#helpPop').hidden){closePops();$('#bHelp').focus();return;}
+    if(!$('#closeSheet').hidden){hideSheet();$('#bCancel').focus();return;}
+    if(!$('#tplBar').hidden&&$('#tplBar').contains(e.target)){$('#tplBar').hidden=true;$('#tplSel').focus();return;}
+    e.preventDefault(); requestClose();
+  }
+  else if(ctrl&&e.key==='Enter'){e.preventDefault();trySend();}
+  else if(ctrl&&e.shiftKey&&k==='c'){e.preventDefault(); if(!isLocked()){S.showCc=true;refresh();$('#in-cc').focus();}}
+  else if(ctrl&&e.shiftKey&&k==='b'){e.preventDefault(); if(!isLocked()){S.showBcc=true;refresh();$('#in-bcc').focus();}}
+  else if(ctrl&&e.shiftKey&&k==='p'){e.preventDefault(); $('#pvBtn').click();}
+  else if(e.key==='F1'){e.preventDefault();$('#bHelp').click();}
+  else if(e.key==='Tab'){ // ciclo de foco dentro de la ventana modal
+    const fs=[...cw().querySelectorAll('button,input,select,[contenteditable="true"],[tabindex="0"]')].filter(x=>!x.disabled&&x.tabIndex>=0&&x.offsetParent!==null&&!x.closest('[hidden]'));
+    if(!fs.length) return; const first=fs[0], last=fs[fs.length-1];
+    if(e.shiftKey&&document.activeElement===first){e.preventDefault();last.focus();}
+    else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus();}
+  }
+});
+
+/* ═════════ Demostración ═════════ */
+function setScenario(k){ S.scn=k; $('#dScn').value=k; $('#dOut').value=SCN[k].out; S.ctxCo=COMPANY; S.log=[]; renderOrigin(); openComposer(); }
+$('#dScn').onchange=e=>setScenario(e.target.value);
+$('#dReset').onclick=()=>setScenario(S.scn);
+$$('#demo [data-drafts]').forEach(b=>b.onclick=()=>{S.drafts=b.dataset.drafts==='1';$$('#demo [data-drafts]').forEach(x=>x.setAttribute('aria-pressed',String(x===b)));refresh();});
+$$('#demo [data-size]').forEach(b=>b.onclick=()=>{ if(cw().hidden) openComposer(); setSize(b.dataset.size); });
+$('#dCtx').onclick=()=>{ S.ctxCo=S.ctxCo===COMPANY?'Empresa Demo B':COMPANY; const wasOpen=!cw().hidden; renderOrigin(); if(wasOpen){ $('#origin').inert=true; S.ctxNotice=S.ctxCo!==COMPANY; refresh(true);} };
+
+/* ═════════ Arranque ═════════ */
+(function init(){
+  $('.ic-mail').outerHTML=ic('mail',16); $('#bHelp').innerHTML=ic('help',15); $('#bClose').innerHTML=ic('x',15);
+  $$('.tb[data-cmd="insertUnorderedList"]').forEach(b=>b.innerHTML=ic('ul',16));
+  $$('.tb[data-cmd="insertOrderedList"]').forEach(b=>b.innerHTML=ic('ol',16));
+  $$('.tb[data-cmd="link"]').forEach(b=>b.innerHTML=ic('link',16));
+  $$('.tb[data-cmd="removeFormat"]').forEach(b=>b.innerHTML=ic('clear',16));
+  renderTplSel(); ['to','cc','bcc'].forEach(bindTok);
+  const q=new URLSearchParams(location.search);
+  const e=(q.get('escenario')||'A').toUpperCase(); S.scn=SCN[e]?e:'A';
+  if(q.get('borradores')==='1'){S.drafts=true;$$('#demo [data-drafts]').forEach(x=>x.setAttribute('aria-pressed',String(x.dataset.drafts==='1')));}
+  const v=q.get('ventana'); if(['wide','compact','max'].includes(v)){S.size=v;$$('#demo [data-size]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.size===v)));}
+  $('#dScn').value=S.scn; $('#dOut').value=SCN[S.scn].out;
+  renderOrigin(); openComposer(); if(S.size!=='wide') setSize(S.size);
+})();
+</script></body></html>

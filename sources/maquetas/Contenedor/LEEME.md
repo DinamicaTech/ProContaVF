@@ -1,0 +1,58 @@
+# ProConta · Contenedor principal (maqueta) con Terceros integrado
+
+Abre `proconta-contenedor.html` con doble clic en Chrome o Edge. No necesita servidor ni conexión; con conexión carga las fuentes de Google Fonts.
+
+## Escenarios
+Añade `?escenario=` a la dirección para abrir un estado concreto, por ejemplo `proconta-contenedor.html?escenario=terceros-bus`.
+
+- `terceros-acc`: ficha con tres cambios sin guardar, para ver la barra de acciones. Añade `&acciones=derecha` para ver los botones alineados a la derecha (por defecto, `izquierda`).
+- `terceros-doc`: pestaña Documentos con un fichero recién añadido, pendiente de guardar.
+- `terceros-bus`: buscador de Terceros con la búsqueda «ferrer» y dos fichas abiertas.
+- `terceros-5`: cinco fichas abiertas; al abrir la sexta se cierra la más antigua sin cambios pendientes.
+- `terceros`: ficha de Talleres Albora con cambios pendientes.
+- `terceros-err`: guardado con errores de validación.
+- `factura`: factura abierta desde la ficha de un tercero.
+- `close`: cierre de una ficha con cambios.
+
+También funcionan los demás escenarios del contenedor (`inicio`, `ctx-pending`, `tabs`, `n43`…). El botón «Demostración» de la barra de estado permite cambiar de tamaño, de operador y de situación sin recargar la página.
+
+## Terceros en el contenedor
+- **Pestaña Terceros:** buscador multicriterio. Un mismo valor se busca en:
+  - nombre y apellidos, razón social y nombre comercial;
+  - NIF, IdTercero, IdCliente, IdProveedor e IdContacto;
+  - teléfonos, emails y domicilios;
+  - personas de contacto, perfiles y cuentas contables.
+
+  Si hay varias palabras, deben aparecer todas. Cada resultado indica en qué dato ha coincidido. Se puede filtrar por tipo, por roles y por perfil.
+- **Fichas:** doble clic o Intro sobre un resultado abre la ficha en su propia pestaña. La pestaña se titula con el nombre y el primer apellido (particulares) o con la razón social.
+- **Máximo 5 fichas:** al abrir la sexta se sustituye, en su misma posición, la ficha abierta hace más tiempo que no tenga cambios pendientes. Si todas tienen cambios, se avisa y no se abre.
+- **Cabecera de la ficha:** muestra la identidad y el estado.
+  - Los roles activos aparecen como insignias de solo lectura con su Id. Al pulsar una se va a ese rol en la pestaña Roles, que es el único sitio donde se activan o desactivan.
+  - A la derecha, el aviso de cambios sin guardar.
+- **Guardar y Descartar:** están en una barra fija al pie de la ficha, junto al número de cambios y «Ver cuáles». También se guarda con Ctrl+G (o Ctrl+S).
+- **Botón «Nuevo»** del buscador: permite crear un tercero sin rol o un cliente, proveedor o contacto con el rol ya activado.
+- **Cambios pendientes:** usan el mecanismo del contenedor. Las pestañas con cambios muestran un punto; las que no se pudieron guardar, un triángulo. Al cerrar una pestaña, cambiar de contexto o salir, se ofrece guardar o descartar.
+- **Identidad:** cada control mide lo que necesita su contenido.
+  - La etiqueta del campo de identificación cambia según el tipo elegido (NIF, CIF, NIE, NIF-IVA, Nº pasaporte…).
+  - Razón social y nombre comercial ocupan media fila cada uno.
+- **Domicilio en una línea**, que se rellena en este orden: país, CP, provincia, población y vía y número.
+  - En España, el CP fija la provincia. Si solo corresponde a una población, también se elige la población y el cursor pasa a la vía; si no, pasa a la lista de poblaciones de ese CP. Prueba con 46988 (Paterna) o 46470 (Albal, Catarroja o Massanassa).
+  - Al elegir una población, el cursor pasa a la vía.
+  - Fuera de España, región y población se escriben a mano.
+- **Roles** (antes «Funciones»):
+  - El cliente tiene una sola cuenta contable, bajo la forma de pago.
+  - El proveedor tiene una cuenta de proveedor y otra de acreedor, más la de gasto por defecto.
+  - Cada cuenta va en su fila con una descripción, para comprobar que la cuenta es la correcta. Si se indica una cuenta sin descripción, no se guarda.
+  - La cuenta es la misma en todas las sociedades.
+  - El contacto no tiene cuenta.
+  - El mayor de Contabilidad se consulta por cuenta y por sociedad y ejercicio.
+- **Ventas:** primero las facturas programadas del cliente y después las emitidas. Al seleccionar una programación, solo se ven las facturas que ha generado; se quita con la «×» del filtro o con «Limpiar filtros».
+- **Notas:** pestaña antes de Historial, con «Notas» y «Notas internas». Sus cambios cuentan como pendientes y quedan en el historial.
+- **Documentos** (entre Notas e Historial):
+  - Los documentos automáticos son las facturas emitidas, las facturas recibidas y los justificantes de pago. Llevan un candado, indican su origen con un enlace a la factura y no se pueden eliminar desde aquí.
+  - Los ficheros se añaden arrastrándolos a la zona superior o con «Seleccionar ficheros».
+  - Al añadir un fichero se elige su tipo y, si se quiere, una descripción. Altas y bajas quedan pendientes hasta guardar la ficha y se registran en el historial.
+  - Se puede buscar por nombre, descripción o número de factura, y filtrar por origen y por tipo. El buscador de Terceros también encuentra los nombres de los documentos.
+- **Facturas emitidas:** con doble clic, una factura de la sociedad y ejercicio activos se abre en su pestaña de Facturas, con el botón «Volver a Terceros». Las de otro contexto se muestran en modo consulta.
+
+Los datos son ficticios. Los cambios duran mientras la página está abierta.
