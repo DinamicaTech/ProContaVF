@@ -1,0 +1,45 @@
+{
+  "id": "20260929_009_CONTASOL_IVA",
+  "version": "0.9.0",
+  "descripcion": "Libros de IVA soportado y repercutido con sus desgloses para la integración ContaSol.",
+  "sentencias": [
+    "CREATE TABLE IVASoportado (IdIVASoportado COUNTER CONSTRAINT PK_IVASoportado PRIMARY KEY, IdSociedadEjercicio LONG NOT NULL, IdProveedor LONG, IdAsiento LONG, FechaExpedicion DATETIME NOT NULL, FechaOperacion DATETIME NOT NULL, FechaHoraRegistroContable DATETIME NOT NULL, IdPeriodoIVA LONG NOT NULL, NumeroFactura TEXT(100), NombreProveedor TEXT(150), IdentificacionFiscalProveedor TEXT(30), PaisProveedor TEXT(3), IdTipoOperacion LONG NOT NULL, TipoBienServicio TEXT(20), InversionSujetoPasivo YESNO NOT NULL, ImporteTotalFactura CURRENCY NOT NULL, BaseImponibleTotal CURRENCY NOT NULL, CuotaSoportadaTotal CURRENCY NOT NULL, CuotaDevengadaAutorrepercutidaTotal CURRENCY NOT NULL, CuotaDeducibleTotal CURRENCY NOT NULL, IncluidoModelo347 YESNO NOT NULL, Estado TEXT(20) NOT NULL, Descripcion LONGTEXT, OperadorCreacion TEXT(100), FechaHoraCreacion DATETIME NOT NULL)",
+    "CREATE TABLE DesglosesIVASoportado (IdDesgloseIVASoportado COUNTER CONSTRAINT PK_DesglosesIVASoportado PRIMARY KEY, IdIVASoportado LONG NOT NULL, Orden INTEGER NOT NULL, ClaveRegimen TEXT(10), CalificacionOperacion TEXT(30) NOT NULL, CausaExencion TEXT(10), BaseImponible CURRENCY NOT NULL, TipoIVA DECIMAL(8,4) NOT NULL, CuotaSoportada CURRENCY NOT NULL, CuotaDevengadaAutorrepercutida CURRENCY NOT NULL, PorcentajeDeducible DECIMAL(8,4) NOT NULL, CuotaDeducible CURRENCY NOT NULL, IdCuentaIVASoportado LONG, IdCuentaIVARepercutido LONG)",
+    "CREATE TABLE IVARepercutido (IdIVARepercutido COUNTER CONSTRAINT PK_IVARepercutido PRIMARY KEY, IdSociedadEjercicio LONG NOT NULL, IdCliente LONG, IdAsiento LONG, FechaExpedicion DATETIME NOT NULL, FechaOperacion DATETIME NOT NULL, FechaHoraRegistroContable DATETIME NOT NULL, IdPeriodoIVA LONG NOT NULL, NumeroFactura TEXT(100), NombreCliente TEXT(150), IdentificacionFiscalCliente TEXT(30), PaisCliente TEXT(3), IdTipoOperacion LONG NOT NULL, ImporteTotalFactura CURRENCY NOT NULL, BaseImponibleTotal CURRENCY NOT NULL, CuotaRepercutidaTotal CURRENCY NOT NULL, RecargoEquivalenciaTotal CURRENCY NOT NULL, IncluidoModelo347 YESNO NOT NULL, Estado TEXT(20) NOT NULL, Descripcion LONGTEXT, OperadorCreacion TEXT(100), FechaHoraCreacion DATETIME NOT NULL)",
+    "CREATE TABLE DesglosesIVARepercutido (IdDesgloseIVARepercutido COUNTER CONSTRAINT PK_DesglosesIVARepercutido PRIMARY KEY, IdIVARepercutido LONG NOT NULL, Orden INTEGER NOT NULL, ClaveRegimen TEXT(10), CalificacionOperacion TEXT(30) NOT NULL, CausaExencion TEXT(10), BaseImponible CURRENCY NOT NULL, TipoIVA DECIMAL(8,4) NOT NULL, CuotaRepercutida CURRENCY NOT NULL, TipoRecargoEquivalencia DECIMAL(8,4) NOT NULL, CuotaRecargoEquivalencia CURRENCY NOT NULL, IdCuentaIVARepercutido LONG)",
+    "CREATE UNIQUE INDEX UX_DesglosesIVAS_Orden ON DesglosesIVASoportado (IdIVASoportado,Orden)",
+    "CREATE UNIQUE INDEX UX_DesglosesIVAR_Orden ON DesglosesIVARepercutido (IdIVARepercutido,Orden)",
+    "ALTER TABLE IVASoportado ADD CONSTRAINT FK_IVAS_Ejercicio FOREIGN KEY (IdSociedadEjercicio) REFERENCES SociedadesEjercicios (IdSociedadEjercicio)",
+    "ALTER TABLE IVASoportado ADD CONSTRAINT FK_IVAS_Proveedor FOREIGN KEY (IdProveedor) REFERENCES Proveedores (IdProveedor)",
+    "ALTER TABLE IVASoportado ADD CONSTRAINT FK_IVAS_Asiento FOREIGN KEY (IdAsiento) REFERENCES Asientos (IdAsiento)",
+    "ALTER TABLE IVASoportado ADD CONSTRAINT FK_IVAS_Periodo FOREIGN KEY (IdPeriodoIVA) REFERENCES PeriodosIVA (IdPeriodoIVA)",
+    "ALTER TABLE IVASoportado ADD CONSTRAINT FK_IVAS_Tipo FOREIGN KEY (IdTipoOperacion) REFERENCES TiposOperacion (IdTipoOperacion)",
+    "ALTER TABLE DesglosesIVASoportado ADD CONSTRAINT FK_DetIVAS_Cabecera FOREIGN KEY (IdIVASoportado) REFERENCES IVASoportado (IdIVASoportado)",
+    "ALTER TABLE DesglosesIVASoportado ADD CONSTRAINT FK_DetIVAS_CuentaSoportado FOREIGN KEY (IdCuentaIVASoportado) REFERENCES CuentasContables (IdCuentaContable)",
+    "ALTER TABLE DesglosesIVASoportado ADD CONSTRAINT FK_DetIVAS_CuentaRepercutido FOREIGN KEY (IdCuentaIVARepercutido) REFERENCES CuentasContables (IdCuentaContable)",
+    "ALTER TABLE IVARepercutido ADD CONSTRAINT FK_IVAR_Ejercicio FOREIGN KEY (IdSociedadEjercicio) REFERENCES SociedadesEjercicios (IdSociedadEjercicio)",
+    "ALTER TABLE IVARepercutido ADD CONSTRAINT FK_IVAR_Cliente FOREIGN KEY (IdCliente) REFERENCES Clientes (IdCliente)",
+    "ALTER TABLE IVARepercutido ADD CONSTRAINT FK_IVAR_Asiento FOREIGN KEY (IdAsiento) REFERENCES Asientos (IdAsiento)",
+    "ALTER TABLE IVARepercutido ADD CONSTRAINT FK_IVAR_Periodo FOREIGN KEY (IdPeriodoIVA) REFERENCES PeriodosIVA (IdPeriodoIVA)",
+    "ALTER TABLE IVARepercutido ADD CONSTRAINT FK_IVAR_Tipo FOREIGN KEY (IdTipoOperacion) REFERENCES TiposOperacion (IdTipoOperacion)",
+    "ALTER TABLE DesglosesIVARepercutido ADD CONSTRAINT FK_DetIVAR_Cabecera FOREIGN KEY (IdIVARepercutido) REFERENCES IVARepercutido (IdIVARepercutido)",
+    "ALTER TABLE DesglosesIVARepercutido ADD CONSTRAINT FK_DetIVAR_Cuenta FOREIGN KEY (IdCuentaIVARepercutido) REFERENCES CuentasContables (IdCuentaContable)"
+  ],
+  "descripciones": {
+    "IVASoportado": {
+      "IdSociedadEjercicio": "Ejercicio del apunte fiscal; el importador comprueba que periodo, asiento, proveedor y factura corresponden a su sociedad y ejercicio.",
+      "IdPeriodoIVA": "Periodo fiscal del mismo ejercicio, validado por el importador."
+    },
+    "IVARepercutido": {
+      "IdSociedadEjercicio": "Ejercicio del apunte fiscal; el importador comprueba que periodo, asiento, cliente y factura corresponden a su sociedad y ejercicio.",
+      "IdPeriodoIVA": "Periodo fiscal del mismo ejercicio, validado por el importador."
+    },
+    "DesglosesIVASoportado": {
+      "IdCuentaIVASoportado": "Cuenta anual opcional; debe pertenecer al ejercicio del libro.",
+      "IdCuentaIVARepercutido": "Cuenta anual opcional para inversión del sujeto pasivo; debe pertenecer al ejercicio del libro."
+    },
+    "DesglosesIVARepercutido": {
+      "IdCuentaIVARepercutido": "Cuenta anual opcional; debe pertenecer al ejercicio del libro."
+    }
+  }
+}

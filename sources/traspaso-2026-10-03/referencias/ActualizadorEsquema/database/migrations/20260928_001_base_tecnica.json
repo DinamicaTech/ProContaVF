@@ -1,0 +1,51 @@
+{
+  "id": "20260928_001_BASE_TECNICA",
+  "version": "0.1.0",
+  "descripcion": "Control de versiones y catálogo técnico de IVA para una base nueva sin datos de empresa.",
+  "sentencias": [
+    "CREATE TABLE VersionesEsquema (IdMigracion TEXT(100) NOT NULL, OrdenMigracion LONG NOT NULL, Descripcion TEXT(255) NOT NULL, FechaHoraAplicacion DATETIME NOT NULL, VersionAplicacion TEXT(100), HashMigracion TEXT(64) NOT NULL, DuracionMilisegundos LONG, CopiaSeguridad TEXT(255), CONSTRAINT PK_VersionesEsquema PRIMARY KEY (IdMigracion))",
+    "CREATE UNIQUE INDEX UX_VersionesEsquema_Orden ON VersionesEsquema (OrdenMigracion)",
+    "CREATE TABLE LogMigracionesEsquema (IdEjecucion AUTOINCREMENT CONSTRAINT PK_LogMigracionesEsquema PRIMARY KEY, IdMigracion TEXT(100) NOT NULL, FechaHoraInicio DATETIME NOT NULL, FechaHoraFin DATETIME, Estado TEXT(20) NOT NULL, PasoActual TEXT(255), DescripcionError LONGTEXT, DetalleTecnico LONGTEXT, VersionAplicacion TEXT(100), Equipo TEXT(100), Operador TEXT(100), CopiaSeguridad TEXT(255))",
+    "CREATE INDEX IX_LogMigracionesEsquema_Migracion ON LogMigracionesEsquema (IdMigracion)",
+    "CREATE TABLE TiposDeIVA (Id COUNTER CONSTRAINT PK_TiposDeIVA PRIMARY KEY, Valor DOUBLE NOT NULL, Descripcion TEXT(100) NOT NULL, Activo YESNO NOT NULL)",
+    "CREATE UNIQUE INDEX UX_TiposDeIVA_Valor ON TiposDeIVA (Valor)"
+  ],
+  "descripciones": {
+    "VersionesEsquema": {
+      "IdMigracion": "Identificador inmutable de un cambio completado.",
+      "OrdenMigracion": "Posición única del cambio dentro del catálogo central.",
+      "Descripcion": "Finalidad informativa del cambio aplicado.",
+      "FechaHoraAplicacion": "Fecha y hora local en que finalizó el cambio.",
+      "VersionAplicacion": "Versión del componente que aplicó el cambio.",
+      "HashMigracion": "SHA-256 del recurso inmutable aplicado; el texto descriptivo no define la identidad.",
+      "DuracionMilisegundos": "Tiempo empleado en aplicar el cambio, en milisegundos.",
+      "CopiaSeguridad": "Ruta de la copia anterior, cuando el cambio se aplicó a una base existente."
+    },
+    "LogMigracionesEsquema": {
+      "IdEjecucion": "Identificador autonumérico del intento de cambio.",
+      "IdMigracion": "Identificador del cambio intentado.",
+      "FechaHoraInicio": "Fecha y hora local de inicio del intento.",
+      "FechaHoraFin": "Fecha y hora local de finalización, si terminó.",
+      "Estado": "Estado del intento: INICIADA, COMPLETADA o ERROR.",
+      "PasoActual": "Última operación declarada por el ejecutor.",
+      "DescripcionError": "Resumen del error que impidió completar el cambio.",
+      "DetalleTecnico": "Detalle técnico para diagnóstico y recuperación.",
+      "VersionAplicacion": "Versión del ejecutor que abrió el intento.",
+      "Equipo": "Nombre del equipo que inició el intento.",
+      "Operador": "Identificador del operador que inició el intento.",
+      "CopiaSeguridad": "Ruta de la copia previa para recuperar la base existente."
+    },
+    "TiposDeIVA": {
+      "Id": "Identificador autonumérico del tipo de IVA.",
+      "Valor": "Porcentaje de IVA; 21 representa el 21 %. Es único.",
+      "Descripcion": "Nombre que muestran los editores de ProConta.",
+      "Activo": "Indica si el porcentaje puede seleccionarse en nuevas operaciones."
+    }
+  },
+  "catalogoIva": [
+    { "valor": 0, "descripcion": "0 %" },
+    { "valor": 4, "descripcion": "4 %" },
+    { "valor": 10, "descripcion": "10 %" },
+    { "valor": 21, "descripcion": "21 %" }
+  ]
+}

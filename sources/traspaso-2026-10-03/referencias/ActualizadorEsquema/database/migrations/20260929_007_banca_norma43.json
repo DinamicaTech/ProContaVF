@@ -1,0 +1,66 @@
+{
+  "id": "20260929_007_BANCA_NORMA43",
+  "version": "0.7.0",
+  "descripcion": "Cuentas bancarias permanentes, importación Norma43, imputación y contabilización de movimientos.",
+  "sentencias": [
+    "CREATE TABLE EntidadesFinancieras (IdEntidadFinanciera COUNTER CONSTRAINT PK_EntidadesFinancieras PRIMARY KEY, Codigo TEXT(4) NOT NULL, Nombre TEXT(150), Activa YESNO NOT NULL)",
+    "CREATE TABLE CuentasBancarias (IdCuentaBancaria COUNTER CONSTRAINT PK_CuentasBancarias PRIMARY KEY, IdSociedad TEXT(3) NOT NULL, IdEntidadFinanciera LONG, EntidadOriginal TEXT(4) NOT NULL, Oficina TEXT(4) NOT NULL, Cuenta TEXT(10) NOT NULL, Iban TEXT(34), Divisa TEXT(3) NOT NULL, Nombre TEXT(150), Activa YESNO NOT NULL)",
+    "CREATE TABLE ConfiguracionesContablesCuentaBancaria (IdConfiguracionCuentaBancaria COUNTER CONSTRAINT PK_ConfigCuentaBancaria PRIMARY KEY, IdCuentaBancaria LONG NOT NULL, IdIdentidadContableBanco LONG NOT NULL, IdIdentidadCuentaPuente LONG, IdIdentidadSplit LONG, IdIdentidadGastosDivisa LONG, FechaDesde DATETIME NOT NULL, FechaHasta DATETIME)",
+    "CREATE TABLE LotesImportacionBancaria (IdLoteImportacionBancaria COUNTER CONSTRAINT PK_LotesImportacionBancaria PRIMARY KEY, IdSociedad TEXT(3) NOT NULL, Formato TEXT(20) NOT NULL, VersionEsquema TEXT(30) NOT NULL, NombreFichero TEXT(255) NOT NULL, RutaOrigen LONGTEXT, HashSha256Contenido TEXT(64) NOT NULL, TamanoBytes LONG NOT NULL, Codificacion TEXT(30) NOT NULL, Estado TEXT(30) NOT NULL, FechaHoraInicio DATETIME NOT NULL, FechaHoraFin DATETIME, NumeroRegistrosDeclarado LONG, NumeroRegistrosLeido LONG NOT NULL, NumeroExtractos LONG NOT NULL, NumeroMovimientos LONG NOT NULL, NumeroErrores LONG NOT NULL, NumeroAdvertencias LONG NOT NULL, FechaHoraReversion DATETIME, OperadorReversion TEXT(100), MotivoReversion LONGTEXT)",
+    "CREATE TABLE ExtractosBancarios (IdExtractoBancario COUNTER CONSTRAINT PK_ExtractosBancarios PRIMARY KEY, IdLoteImportacionBancaria LONG NOT NULL, OrdinalExtracto LONG NOT NULL, IdCuentaBancaria LONG, Entidad TEXT(4) NOT NULL, Oficina TEXT(4) NOT NULL, Cuenta TEXT(10) NOT NULL, Divisa TEXT(3) NOT NULL, FechaInicio DATETIME NOT NULL, FechaFin DATETIME NOT NULL, SentidoSaldoInicial TEXT(1) NOT NULL, SaldoInicial CURRENCY NOT NULL, Modalidad TEXT(1), Nombre TEXT(150), NumeroApuntesDebeDeclarado LONG NOT NULL, TotalDebeDeclarado CURRENCY NOT NULL, NumeroApuntesHaberDeclarado LONG NOT NULL, TotalHaberDeclarado CURRENCY NOT NULL, NumeroApuntesDebeCalculado LONG NOT NULL, TotalDebeCalculado CURRENCY NOT NULL, NumeroApuntesHaberCalculado LONG NOT NULL, TotalHaberCalculado CURRENCY NOT NULL, CodigoSeguridad TEXT(1), SaldoFinal CURRENCY NOT NULL, EstadoCuadre TEXT(20) NOT NULL, TextoCabeceraOriginal TEXT(80) NOT NULL, TextoCierreOriginal TEXT(80) NOT NULL)",
+    "CREATE TABLE LineasExtractoBancario (IdLineaExtractoBancario COUNTER CONSTRAINT PK_LineasExtractoBancario PRIMARY KEY, IdExtractoBancario LONG NOT NULL, OrdinalMovimiento LONG NOT NULL, NumeroLineaFisica LONG NOT NULL, OficinaOrigen TEXT(4), FechaOperacion DATETIME NOT NULL, FechaValor DATETIME NOT NULL, ConceptoComun TEXT(2), ConceptoPropio TEXT(3), Sentido TEXT(1) NOT NULL, Importe CURRENCY NOT NULL, Documento TEXT(10), Referencia1 TEXT(12), Referencia2 TEXT(16), ConceptoCompleto LONGTEXT, EntidadOficinaDestino TEXT(9), TextoOriginal TEXT(80) NOT NULL)",
+    "CREATE TABLE ComplementosLineaExtractoBancario (IdComplementoLineaExtracto COUNTER CONSTRAINT PK_ComplementosLineaExtracto PRIMARY KEY, IdLineaExtractoBancario LONG NOT NULL, OrdinalComplemento LONG NOT NULL, NumeroLineaFisica LONG NOT NULL, TipoRegistro TEXT(2) NOT NULL, CodigoDato TEXT(2), Concepto1 TEXT(59), Concepto2 TEXT(38), Divisa TEXT(3), Importe CURRENCY, TextoOriginal TEXT(80) NOT NULL)",
+    "CREATE TABLE IncidenciasImportacionBancaria (IdIncidenciaImportacionBancaria COUNTER CONSTRAINT PK_IncidenciasImportacionBancaria PRIMARY KEY, IdLoteImportacionBancaria LONG NOT NULL, NumeroLineaFisica LONG, Codigo TEXT(50) NOT NULL, Severidad TEXT(20) NOT NULL, Mensaje LONGTEXT NOT NULL, RegistroOriginal TEXT(80), EstadoResolucion TEXT(20) NOT NULL)",
+    "CREATE TABLE ImputacionesLineaExtractoBancario (IdImputacionLineaExtractoBancario COUNTER CONSTRAINT PK_ImputacionesLineaExtracto PRIMARY KEY, IdLineaExtractoBancario LONG NOT NULL, IdIdentidadContable LONG NOT NULL, Rol TEXT(30) NOT NULL, ImporteFirmado CURRENCY NOT NULL, Origen TEXT(30) NOT NULL, Confianza DECIMAL(6,5), Estado TEXT(20) NOT NULL, Concepto LONGTEXT, IdCentroCoste LONG)",
+    "CREATE TABLE ContabilizacionesLineaExtracto (IdContabilizacionLineaExtracto COUNTER CONSTRAINT PK_ContabilizacionesLineaExtracto PRIMARY KEY, IdLineaExtractoBancario LONG NOT NULL, IdAsiento LONG NOT NULL, Estado TEXT(20) NOT NULL, VersionProceso LONG NOT NULL, FechaHora DATETIME NOT NULL, Operador TEXT(100))",
+    "CREATE UNIQUE INDEX UX_EntidadesFinancieras_Codigo ON EntidadesFinancieras (Codigo)",
+    "CREATE UNIQUE INDEX UX_CuentasBancarias_Coordenadas ON CuentasBancarias (IdSociedad,EntidadOriginal,Oficina,Cuenta,Divisa)",
+    "CREATE UNIQUE INDEX UX_LotesBanco_Hash ON LotesImportacionBancaria (IdSociedad,Formato,HashSha256Contenido)",
+    "CREATE UNIQUE INDEX UX_ExtractosBanco_Ordinal ON ExtractosBancarios (IdLoteImportacionBancaria,OrdinalExtracto)",
+    "CREATE UNIQUE INDEX UX_LineasExtracto_Ordinal ON LineasExtractoBancario (IdExtractoBancario,OrdinalMovimiento)",
+    "CREATE UNIQUE INDEX UX_ComplementosLinea_Ordinal ON ComplementosLineaExtractoBancario (IdLineaExtractoBancario,OrdinalComplemento)",
+    "CREATE INDEX IX_ImputacionesLinea_Linea ON ImputacionesLineaExtractoBancario (IdLineaExtractoBancario)",
+    "ALTER TABLE CuentasBancarias ADD CONSTRAINT FK_CuentasBancarias_Sociedad FOREIGN KEY (IdSociedad) REFERENCES Sociedades (IdSociedad)",
+    "ALTER TABLE CuentasBancarias ADD CONSTRAINT FK_CuentasBancarias_Entidad FOREIGN KEY (IdEntidadFinanciera) REFERENCES EntidadesFinancieras (IdEntidadFinanciera)",
+    "ALTER TABLE ConfiguracionesContablesCuentaBancaria ADD CONSTRAINT FK_ConfigBanco_Cuenta FOREIGN KEY (IdCuentaBancaria) REFERENCES CuentasBancarias (IdCuentaBancaria)",
+    "ALTER TABLE ConfiguracionesContablesCuentaBancaria ADD CONSTRAINT FK_ConfigBanco_Identidad FOREIGN KEY (IdIdentidadContableBanco) REFERENCES IdentidadesContables (IdIdentidadContable)",
+    "ALTER TABLE ConfiguracionesContablesCuentaBancaria ADD CONSTRAINT FK_ConfigBanco_Puente FOREIGN KEY (IdIdentidadCuentaPuente) REFERENCES IdentidadesContables (IdIdentidadContable)",
+    "ALTER TABLE ConfiguracionesContablesCuentaBancaria ADD CONSTRAINT FK_ConfigBanco_Split FOREIGN KEY (IdIdentidadSplit) REFERENCES IdentidadesContables (IdIdentidadContable)",
+    "ALTER TABLE ConfiguracionesContablesCuentaBancaria ADD CONSTRAINT FK_ConfigBanco_Divisa FOREIGN KEY (IdIdentidadGastosDivisa) REFERENCES IdentidadesContables (IdIdentidadContable)",
+    "ALTER TABLE LotesImportacionBancaria ADD CONSTRAINT FK_LotesBanco_Sociedad FOREIGN KEY (IdSociedad) REFERENCES Sociedades (IdSociedad)",
+    "ALTER TABLE ExtractosBancarios ADD CONSTRAINT FK_Extractos_Lote FOREIGN KEY (IdLoteImportacionBancaria) REFERENCES LotesImportacionBancaria (IdLoteImportacionBancaria)",
+    "ALTER TABLE ExtractosBancarios ADD CONSTRAINT FK_Extractos_Cuenta FOREIGN KEY (IdCuentaBancaria) REFERENCES CuentasBancarias (IdCuentaBancaria)",
+    "ALTER TABLE LineasExtractoBancario ADD CONSTRAINT FK_LineasExtracto_Extracto FOREIGN KEY (IdExtractoBancario) REFERENCES ExtractosBancarios (IdExtractoBancario)",
+    "ALTER TABLE ComplementosLineaExtractoBancario ADD CONSTRAINT FK_Complementos_Linea FOREIGN KEY (IdLineaExtractoBancario) REFERENCES LineasExtractoBancario (IdLineaExtractoBancario)",
+    "ALTER TABLE IncidenciasImportacionBancaria ADD CONSTRAINT FK_IncidenciasBanco_Lote FOREIGN KEY (IdLoteImportacionBancaria) REFERENCES LotesImportacionBancaria (IdLoteImportacionBancaria)",
+    "ALTER TABLE ImputacionesLineaExtractoBancario ADD CONSTRAINT FK_Imputaciones_Linea FOREIGN KEY (IdLineaExtractoBancario) REFERENCES LineasExtractoBancario (IdLineaExtractoBancario)",
+    "ALTER TABLE ImputacionesLineaExtractoBancario ADD CONSTRAINT FK_Imputaciones_Identidad FOREIGN KEY (IdIdentidadContable) REFERENCES IdentidadesContables (IdIdentidadContable)",
+    "ALTER TABLE ImputacionesLineaExtractoBancario ADD CONSTRAINT FK_Imputaciones_Centro FOREIGN KEY (IdCentroCoste) REFERENCES CentrosCoste (IdCentroCoste)",
+    "ALTER TABLE ContabilizacionesLineaExtracto ADD CONSTRAINT FK_Contabilizaciones_Linea FOREIGN KEY (IdLineaExtractoBancario) REFERENCES LineasExtractoBancario (IdLineaExtractoBancario)",
+    "ALTER TABLE ContabilizacionesLineaExtracto ADD CONSTRAINT FK_Contabilizaciones_Asiento FOREIGN KEY (IdAsiento) REFERENCES Asientos (IdAsiento)"
+  ],
+  "descripciones": {
+    "CuentasBancarias": {
+      "IdSociedad": "Sociedad permanente titular; la cuenta bancaria no se duplica por ejercicio.",
+      "Cuenta": "Diez dígitos de la cuenta bancaria Norma43, no código de cuenta contable."
+    },
+    "ConfiguracionesContablesCuentaBancaria": {
+      "IdIdentidadContableBanco": "Identidad contable estable entre ejercicios; se resuelve a una cuenta anual al contabilizar.",
+      "FechaDesde": "Comienzo de validez de la configuración, sin duplicar la cuenta bancaria."
+    },
+    "LotesImportacionBancaria": {
+      "IdSociedad": "Sociedad permanente del fichero; un extracto puede abarcar más de un ejercicio.",
+      "HashSha256Contenido": "Permite detectar importaciones repetidas por sociedad y formato.",
+      "FechaHoraReversion": "Nula mientras el lote no se haya revertido.",
+      "OperadorReversion": "Persona o proceso que revirtió el lote.",
+      "MotivoReversion": "Explicación conservada para auditoría de la reversión."
+    },
+    "ImputacionesLineaExtractoBancario": {
+      "IdIdentidadContable": "Cuenta lógica permanente; el asiento utilizará su cuenta concreta del ejercicio.",
+      "IdCentroCoste": "Centro analítico local de la misma sociedad que el extracto."
+    },
+    "ContabilizacionesLineaExtracto": {
+      "IdAsiento": "Asiento anual creado para esta línea; su sociedad y ejercicio se validan al contabilizar."
+    }
+  }
+}

@@ -1,0 +1,50 @@
+{
+  "id": "20260929_006_FACTURAS_COMPRA",
+  "version": "0.6.0",
+  "descripcion": "Proveedores, cuentas por ejercicio, facturas de compra y configuración de reconocimiento.",
+  "sentencias": [
+    "CREATE TABLE Proveedores (IdProveedor COUNTER CONSTRAINT PK_Proveedores PRIMARY KEY, IdTercero LONG NOT NULL, NotasProveedor LONGTEXT, Activo YESNO NOT NULL, CONSTRAINT FK_Proveedores_Terceros FOREIGN KEY (IdTercero) REFERENCES Terceros (IdTercero))",
+    "CREATE UNIQUE INDEX UX_Proveedores_IdTercero ON Proveedores (IdTercero)",
+    "CREATE TABLE CuentasProveedoresEjercicio (IdCuentaProveedorEjercicio COUNTER CONSTRAINT PK_CuentasProveedoresEjercicio PRIMARY KEY, IdProveedor LONG NOT NULL, IdSociedadEjercicio LONG NOT NULL, IdCuentaContable LONG NOT NULL, EsPredeterminada YESNO NOT NULL)",
+    "CREATE TABLE FacturasCompra (IdRegistro COUNTER CONSTRAINT PK_FacturasCompra PRIMARY KEY, IdSociedadEjercicio LONG NOT NULL, IdProveedor LONG, CuentaContableProveedor TEXT(10), NumeroFactura TEXT(255), Fecha DATETIME, Concepto TEXT(255), ConceptoGasto TEXT(10), CuentaFormaPago TEXT(10), FechaVencimiento TEXT(255), Pagada YESNO, Archivo TEXT(255), MD5 TEXT(32), ImporteBI CURRENCY, ImporteIVA CURRENCY, ImporteTotal CURRENCY, ImporteBI0 CURRENCY, ImporteBI1 CURRENCY, ImporteBI2 CURRENCY, ImporteBI3 CURRENCY, ImporteBI4 CURRENCY, TipoIVA1 SINGLE, TipoIVA2 SINGLE, TipoIVA3 SINGLE, TipoIVA4 SINGLE, Exportada YESNO, DIAAPU SHORT, FECAPU DATETIME, ASIAPU LONG, FechaHoraExportacion DATETIME, ArchivoOriginal TEXT(255), FechaHoraRegistro DATETIME, Duplicada YESNO, Carpeta TEXT(100), NombreFichero TEXT(100), TipoOperacion LONG, TipoProducto LONG, IVASuplido CURRENCY, IdRegistroFacturaImportacionSuplido LONG, IdRegistroFacturaTransporte LONG, NotasFactura LONGTEXT, TextoAsiento LONGTEXT, ImporteDolares CURRENCY, NIF TEXT(255), PorcentajeRetencion SINGLE, TipoRetencion BYTE, IdRegistroIVA LONG, InversionSujetoPasivo YESNO, LineaN43 LONG, ASIAPURectificativa LONG, IdRegistroIVARectificativa LONG, Suplido CURRENCY, IdDepartamento LONG, IdCentroCoste LONG, LOGImportacion LONGTEXT, RequiereRevisionImportacion YESNO, ConfianzaImportacion DOUBLE)",
+    "CREATE TABLE ConfiguracionReconocimientoFacturasCompra (IdConfiguracion COUNTER CONSTRAINT PK_ConfigReconocimientoCompra PRIMARY KEY, IdSociedad TEXT(3) NOT NULL, Activo YESNO NOT NULL, SociedadTieneVies YESNO NOT NULL, UsarTextract YESNO NOT NULL, RegionAWS TEXT(30) NOT NULL, ClaveAccesoAWS TEXT(128), SecretoAWSProtegido LONGTEXT, UmbralAceptacion DOUBLE NOT NULL, UmbralDiscrepanciaImporte CURRENCY NOT NULL)",
+    "CREATE UNIQUE INDEX UX_CPE_CuentaEjercicio ON CuentasProveedoresEjercicio (IdProveedor,IdSociedadEjercicio,IdCuentaContable)",
+    "CREATE INDEX IX_FacturasCompra_EjercicioFecha ON FacturasCompra (IdSociedadEjercicio,Fecha)",
+    "CREATE INDEX IX_FacturasCompra_MD5 ON FacturasCompra (MD5)",
+    "CREATE INDEX IX_FacturasCompra_Proveedor ON FacturasCompra (IdProveedor)",
+    "CREATE UNIQUE INDEX UX_ConfigReconocimientoCompra_Sociedad ON ConfiguracionReconocimientoFacturasCompra (IdSociedad)",
+    "ALTER TABLE CuentasProveedoresEjercicio ADD CONSTRAINT FK_CPE_Proveedor FOREIGN KEY (IdProveedor) REFERENCES Proveedores (IdProveedor)",
+    "ALTER TABLE CuentasProveedoresEjercicio ADD CONSTRAINT FK_CPE_Ejercicio FOREIGN KEY (IdSociedadEjercicio) REFERENCES SociedadesEjercicios (IdSociedadEjercicio)",
+    "ALTER TABLE CuentasProveedoresEjercicio ADD CONSTRAINT FK_CPE_Cuenta FOREIGN KEY (IdCuentaContable) REFERENCES CuentasContables (IdCuentaContable)",
+    "ALTER TABLE FacturasCompra ADD CONSTRAINT FK_FacturasCompra_Ejercicio FOREIGN KEY (IdSociedadEjercicio) REFERENCES SociedadesEjercicios (IdSociedadEjercicio)",
+    "ALTER TABLE FacturasCompra ADD CONSTRAINT FK_FacturasCompra_Proveedor FOREIGN KEY (IdProveedor) REFERENCES Proveedores (IdProveedor)",
+    "ALTER TABLE FacturasCompra ADD CONSTRAINT FK_FacturasCompra_Departamento FOREIGN KEY (IdDepartamento) REFERENCES CentrosCoste (IdCentroCoste)",
+    "ALTER TABLE FacturasCompra ADD CONSTRAINT FK_FacturasCompra_Centro FOREIGN KEY (IdCentroCoste) REFERENCES CentrosCoste (IdCentroCoste)",
+    "ALTER TABLE ConfiguracionReconocimientoFacturasCompra ADD CONSTRAINT FK_ConfigReconocimientoCompra_Sociedad FOREIGN KEY (IdSociedad) REFERENCES Sociedades (IdSociedad)",
+    "ALTER TABLE Apuntes ADD CONSTRAINT FK_Apuntes_Proveedor FOREIGN KEY (IdProveedor) REFERENCES Proveedores (IdProveedor)"
+  ],
+  "descripciones": {
+    "CuentasProveedoresEjercicio": {
+      "IdSociedadEjercicio": "Ejercicio en que se utiliza la cuenta del proveedor.",
+      "IdCuentaContable": "Cuenta concreta del ejercicio; el servicio valida que ambos ejercicios coinciden.",
+      "EsPredeterminada": "Selección preferente dentro del ejercicio; el servicio impide más de una por proveedor."
+    },
+    "FacturasCompra": {
+      "IdSociedadEjercicio": "Ejercicio propietario; corresponde al IdSociedad numérico heredado, nunca a Sociedades.IdSociedad.",
+      "IdProveedor": "Proveedor identificado por correspondencia local; puede faltar en registros históricos.",
+      "CuentaContableProveedor": "Código histórico de hasta diez caracteres; se valida en el ejercicio al importar o contabilizar.",
+      "FechaVencimiento": "Texto original que puede contener formatos o varios vencimientos; no se convierte automáticamente a una fecha única.",
+      "ASIAPU": "Identificador de asiento del origen; requiere correspondencia antes de vincularse a Asientos.",
+      "IdDepartamento": "Nodo analítico superior tras correspondencia de IDs externos.",
+      "IdCentroCoste": "Centro analítico local; corresponde al IdSubDepartamento heredado.",
+      "LOGImportacion": "Trazabilidad técnica del reconocimiento documental.",
+      "RequiereRevisionImportacion": "Indica que una persona debe revisar el reconocimiento antes de contabilizar.",
+      "ConfianzaImportacion": "Puntuación del reconocimiento; no sustituye la validación fiscal."
+    },
+    "ConfiguracionReconocimientoFacturasCompra": {
+      "IdSociedad": "Sociedad permanente propietaria de esta configuración, de tres caracteres.",
+      "SecretoAWSProtegido": "Secreto protegido por la aplicación; la maestra no contiene valor inicial.",
+      "Activo": "El reconocimiento empieza desactivado hasta configurar expresamente la sociedad."
+    }
+  }
+}

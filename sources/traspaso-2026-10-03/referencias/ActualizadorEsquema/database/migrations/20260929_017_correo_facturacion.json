@@ -1,0 +1,30 @@
+{
+  "id": "20260929_017_CORREO_FACTURACION",
+  "version": "0.17.0",
+  "descripcion": "Configuración, plantillas, tipos y envíos de correo consumidos por Facturación.",
+  "sentencias": [
+    "CREATE TABLE TiposCorreo (TipoCorreo TEXT(20) CONSTRAINT PK_TiposCorreo PRIMARY KEY, Descripcion TEXT(120) NOT NULL, Activo YESNO NOT NULL)",
+    "CREATE TABLE ConfiguracionCorreo (IdConfiguracionCorreo COUNTER CONSTRAINT PK_ConfiguracionCorreo PRIMARY KEY, IdSociedad TEXT(3) NOT NULL, Activo YESNO NOT NULL, MotorCorreo TEXT(15) NOT NULL, ServidorSMTP TEXT(255) NOT NULL, PuertoSMTP SHORT NOT NULL, TipoSeguridad TEXT(10) NOT NULL, TipoAutenticacion TEXT(10) NOT NULL, UsuarioSMTP TEXT(255), PasswordProtegida LONGTEXT, Remitente TEXT(255), NombreRemitente TEXT(120), ResponderA TEXT(255), CCPredeterminado TEXT(255), CCOPredeterminado TEXT(255), AsuntoPlantilla TEXT(255), CuerpoPlantilla LONGTEXT, FormatoCuerpo TEXT(5) NOT NULL, TimeoutSegundos SHORT, FechaModificacion DATETIME, OperadorModificacion TEXT(30))",
+    "CREATE TABLE PlantillasCorreo (IdPlantillaCorreo COUNTER CONSTRAINT PK_PlantillasCorreo PRIMARY KEY, IdSociedad TEXT(3) NOT NULL, TipoCorreo TEXT(20) NOT NULL, Asunto TEXT(255) NOT NULL, Cuerpo LONGTEXT, FormatoCuerpo TEXT(5) NOT NULL, Activo YESNO NOT NULL, FechaModificacion DATETIME, OperadorModificacion TEXT(30))",
+    "CREATE TABLE EnviosCorreo (IdEnvioCorreo COUNTER CONSTRAINT PK_EnviosCorreo PRIMARY KEY, IdSociedad TEXT(3) NOT NULL, TipoCorreo TEXT(20) NOT NULL, IdFactura LONG, NumeroIntento SHORT NOT NULL, FechaHoraPreparacion DATETIME, FechaHoraEnvio DATETIME, Remitente TEXT(255), Destinatario TEXT(255) NOT NULL, CC TEXT(255), CCO TEXT(255), Asunto TEXT(255) NOT NULL, Cuerpo LONGTEXT, FormatoCuerpo TEXT(5) NOT NULL, ArchivoAdjunto TEXT(255), Estado TEXT(10) NOT NULL, MotorCorreo TEXT(15), IdMensajeServidor TEXT(255), DescripcionError LONGTEXT, Operador TEXT(30), IdPlantillaCorreo LONG, IdContrato LONG)",
+    "CREATE INDEX IX_ConfigCorreo_SociedadActiva ON ConfiguracionCorreo (IdSociedad,Activo)",
+    "CREATE INDEX IX_PlantillasCorreo_SociedadTipo ON PlantillasCorreo (IdSociedad,TipoCorreo,Activo)",
+    "CREATE INDEX IX_EnviosCorreo_Factura ON EnviosCorreo (IdFactura,TipoCorreo,NumeroIntento)",
+    "ALTER TABLE ConfiguracionCorreo ADD CONSTRAINT FK_ConfiguracionCorreo_Sociedad FOREIGN KEY (IdSociedad) REFERENCES Sociedades (IdSociedad)",
+    "ALTER TABLE PlantillasCorreo ADD CONSTRAINT FK_PlantillasCorreo_Sociedad FOREIGN KEY (IdSociedad) REFERENCES Sociedades (IdSociedad)",
+    "ALTER TABLE PlantillasCorreo ADD CONSTRAINT FK_PlantillasCorreo_Tipo FOREIGN KEY (TipoCorreo) REFERENCES TiposCorreo (TipoCorreo)",
+    "ALTER TABLE EnviosCorreo ADD CONSTRAINT FK_EnviosCorreo_Sociedad FOREIGN KEY (IdSociedad) REFERENCES Sociedades (IdSociedad)",
+    "ALTER TABLE EnviosCorreo ADD CONSTRAINT FK_EnviosCorreo_Tipo FOREIGN KEY (TipoCorreo) REFERENCES TiposCorreo (TipoCorreo)",
+    "ALTER TABLE EnviosCorreo ADD CONSTRAINT FK_EnviosCorreo_Factura FOREIGN KEY (IdFactura) REFERENCES Facturas (IdFactura)",
+    "ALTER TABLE EnviosCorreo ADD CONSTRAINT FK_EnviosCorreo_Plantilla FOREIGN KEY (IdPlantillaCorreo) REFERENCES PlantillasCorreo (IdPlantillaCorreo)",
+    "ALTER TABLE EnviosCorreo ADD CONSTRAINT FK_EnviosCorreo_Contrato FOREIGN KEY (IdContrato) REFERENCES Contratos (IdContrato)",
+    "INSERT INTO TiposCorreo (TipoCorreo,Descripcion,Activo) VALUES ('FACTURA','Envío de factura',True)",
+    "INSERT INTO TiposCorreo (TipoCorreo,Descripcion,Activo) VALUES ('INCIDENCIA','Aviso de incidencia',True)",
+    "INSERT INTO TiposCorreo (TipoCorreo,Descripcion,Activo) VALUES ('INCREMENTO IPC','Aviso de incremento de alquiler',True)"
+  ],
+  "descripciones": {
+    "ConfiguracionCorreo": {"IdSociedad": "Configuración permanente de la sociedad para el repositorio de correo heredado.", "PasswordProtegida": "Campo legado para secreto protegido; vacío en la maestra inicial y pendiente de convergencia con GestorCorreo."},
+    "PlantillasCorreo": {"TipoCorreo": "Código funcional de los tres tipos usados por los repositorios actuales."},
+    "EnviosCorreo": {"IdFactura": "Factura anual opcional; el servicio valida su sociedad frente a IdSociedad.", "IdContrato": "Contrato opcional de avisos de incremento."}
+  }
+}

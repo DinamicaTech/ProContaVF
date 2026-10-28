@@ -1,0 +1,125 @@
+{
+  "id": "20261001_023_SUPERMODELO_PROCONTA",
+  "version": "0.23.0",
+  "descripcion": "Amplía la maestra vacía con el contrato TERCEROS_VF_1 y campos de tablas locales operativas de ProConta; omite vínculos ERP y tablas de respaldo.",
+  "sentencias": [
+    "CREATE TABLE DatosContacto (IdDatoContacto COUNTER CONSTRAINT PK_DatosContacto PRIMARY KEY, IdTercero LONG NOT NULL, Tipo TEXT(20) NOT NULL, Etiqueta TEXT(100), Valor TEXT(254) NOT NULL, Activo YESNO NOT NULL, EnvioFacturas YESNO NOT NULL, EnviosAdministrativos YESNO NOT NULL, CONSTRAINT FK_DatosContacto_Tercero FOREIGN KEY (IdTercero) REFERENCES Terceros (IdTercero))",
+    "CREATE INDEX IX_DatosContacto_Tercero ON DatosContacto (IdTercero)",
+    "CREATE TABLE EstadoContratoTerceros (Contrato TEXT(40) NOT NULL CONSTRAINT PK_EstadoContratoTerceros PRIMARY KEY, Estado TEXT(15) NOT NULL, IdPlan TEXT(36) NOT NULL, HuellaPlan TEXT(64) NOT NULL, FechaActivacion DATETIME)",
+    "CREATE TABLE Perfiles (IdPerfil COUNTER CONSTRAINT PK_Perfiles PRIMARY KEY, Nombre TEXT(100) NOT NULL, Descripcion LONGTEXT, Activo YESNO NOT NULL)",
+    "CREATE UNIQUE INDEX UX_Perfiles_Nombre ON Perfiles (Nombre)",
+    "CREATE TABLE PerfilesTerceros (IdPerfilTercero COUNTER CONSTRAINT PK_PerfilesTerceros PRIMARY KEY, IdTercero LONG NOT NULL, IdPerfil LONG NOT NULL, Activo YESNO NOT NULL, FechaAsignacion DATETIME NOT NULL, FechaRetirada DATETIME, CONSTRAINT FK_PerfilesTerceros_Tercero FOREIGN KEY (IdTercero) REFERENCES Terceros (IdTercero), CONSTRAINT FK_PerfilesTerceros_Perfil FOREIGN KEY (IdPerfil) REFERENCES Perfiles (IdPerfil))",
+    "CREATE UNIQUE INDEX UX_PerfilesTerceros_Asignacion ON PerfilesTerceros (IdTercero,IdPerfil)",
+    "CREATE INDEX IX_PerfilesTerceros_Perfil ON PerfilesTerceros (IdPerfil)",
+    "ALTER TABLE Bancos ADD COLUMN [IdCuentaContable] LONG",
+    "ALTER TABLE Clientes ADD COLUMN [CuentaContable] TEXT(15)",
+    "ALTER TABLE Clientes ADD COLUMN [Notas] LONGTEXT",
+    "ALTER TABLE Clientes ADD COLUMN [FechaAlta] DATETIME",
+    "ALTER TABLE Conceptos ADD COLUMN [IdSociedadEjercicio] LONG",
+    "ALTER TABLE DomiciliosTercero ADD COLUMN [EsPrincipal] YESNO",
+    "ALTER TABLE DomiciliosTercero ADD COLUMN [Activo] YESNO",
+    "ALTER TABLE FacturasCompra ADD COLUMN [IdSociedad] LONG",
+    "ALTER TABLE FacturasCompra ADD COLUMN [Sociedad] TEXT(3)",
+    "ALTER TABLE FacturasCompra ADD COLUMN [Ejercicio] TEXT(4)",
+    "ALTER TABLE FacturasCompra ADD COLUMN [IdSubDepartamento] LONG",
+    "ALTER TABLE FacturasProgramadas ADD COLUMN [IdSociedadEjercicio] LONG",
+    "ALTER TABLE FacturasProgramadas ADD COLUMN [IdSerie] LONG",
+    "ALTER TABLE Sociedades ADD COLUMN [Nombre] TEXT(255)",
+    "ALTER TABLE Sociedades ADD COLUMN [CIF] TEXT(10)",
+    "ALTER TABLE SociedadesEjercicios ADD COLUMN [Nombre] TEXT(255)",
+    "ALTER TABLE SociedadesEjercicios ADD COLUMN [CIF] TEXT(10)",
+    "ALTER TABLE Terceros ADD COLUMN [NombrePersona] TEXT(150)",
+    "ALTER TABLE Terceros ADD COLUMN [PrimerApellido] TEXT(100)",
+    "ALTER TABLE Terceros ADD COLUMN [SegundoApellido] TEXT(100)",
+    "ALTER TABLE Terceros ADD COLUMN [NombreComercial] TEXT(150)",
+    "ALTER TABLE Terceros ADD COLUMN [TipoIdentificacion] TEXT(30)",
+    "ALTER TABLE Terceros ADD COLUMN [NotasInternas] LONGTEXT",
+    "ALTER TABLE Terceros ALTER COLUMN TipoPersona TEXT(10)",
+    "ALTER TABLE Terceros ALTER COLUMN Nombre TEXT(200) NOT NULL",
+    "ALTER TABLE Terceros ALTER COLUMN RazonSocial TEXT(200)",
+    "ALTER TABLE Bancos ADD CONSTRAINT FK_VF_Bancos_Cuenta FOREIGN KEY (IdCuentaContable) REFERENCES CuentasContables (IdCuentaContable)",
+    "ALTER TABLE Conceptos ADD CONSTRAINT FK_VF_Conceptos_Ejercicio FOREIGN KEY (IdSociedadEjercicio) REFERENCES SociedadesEjercicios (IdSociedadEjercicio)",
+    "ALTER TABLE FacturasProgramadas ADD CONSTRAINT FK_VF_FacturasProgramadas_Serie FOREIGN KEY (IdSerie) REFERENCES SeriesFacturacion (IdSerie)",
+    "ALTER TABLE FacturasProgramadas ADD CONSTRAINT FK_VF_FacturasProgramadas_Ejercicio FOREIGN KEY (IdSociedadEjercicio) REFERENCES SociedadesEjercicios (IdSociedadEjercicio)",
+    "CREATE INDEX FK_Bancos_Cuenta ON Bancos ([IdCuentaContable])",
+    "CREATE INDEX IX_Clientes_CuentaContable ON Clientes ([CuentaContable])",
+    "CREATE INDEX FK_SociedadesEjercicios_Conceptos ON Conceptos ([IdSociedadEjercicio])",
+    "CREATE INDEX IX_Conceptos_CentroCoste ON Conceptos ([IdDepartamento],[IdCentroCoste])",
+    "CREATE UNIQUE INDEX UX_ConfiguracionCorreo_IdEmpresa ON ConfiguracionCorreo ([IdSociedad])",
+    "CREATE INDEX IX_Contratos_FechaInicio ON Contratos ([FechaInicio])",
+    "CREATE INDEX IX_Cuentas_IdentidadEjercicio ON CuentasContables ([IdIdentidadContable],[IdSociedadEjercicio])",
+    "CREATE INDEX IX_EnviosCorreo_Estado ON EnviosCorreo ([Estado])",
+    "CREATE INDEX IX_EnviosCorreo_FechaHoraEnvio ON EnviosCorreo ([FechaHoraEnvio])",
+    "CREATE UNIQUE INDEX UX_EnviosCorreo_FacturaIntento ON EnviosCorreo ([IdFactura],[NumeroIntento])",
+    "CREATE INDEX FK_Facturas_Series ON Facturas ([IdSerie])",
+    "CREATE INDEX FK_FacturasProgramadas_Series ON FacturasProgramadas ([IdSerie])",
+    "CREATE INDEX FK_SociedadesEjercicios_FacturasProgramadas ON FacturasProgramadas ([IdSociedadEjercicio])",
+    "CREATE INDEX IX_LotesExportacionContable_FechaHora ON LotesExportacionContable ([FechaHora])",
+    "CREATE UNIQUE INDEX UX_PlantillasCorreo_EmpresaTipo ON PlantillasCorreo ([IdSociedad],[TipoCorreo])",
+    "CREATE INDEX IX_TiposConcepto_Descripcion ON TiposConcepto ([Descripcion])",
+    "CREATE INDEX IX_VeriFactuEnvios_Estado ON VeriFactuEnvios ([EstadoEnvio])",
+    "CREATE INDEX IX_VeriFactuEnvios_FechaEnvio ON VeriFactuEnvios ([FechaHoraEnvio])",
+    "CREATE UNIQUE INDEX IX_VF_1 ON VeriFactuEnvios ([IdFactura],[TipoRegistro],[NumeroIntento])",
+    "CREATE INDEX IX_VeriFactuLotesEnvio_Estado ON VeriFactuLotesEnvio ([Estado])",
+    "CREATE INDEX IX_VeriFactuLotesEnvio_FechaHora ON VeriFactuLotesEnvio ([FechaHoraEnvio])",
+    "CREATE INDEX IX_VeriFactuRespuestas_Estado ON VeriFactuRespuestas ([EstadoRegistro])"
+  ],
+  "descripciones": {
+    "DatosContacto": {
+      "IdTercero": "Identidad propietaria; los flags de comunicación no se infieren."
+    },
+    "EstadoContratoTerceros": {
+      "Estado": "ACTIVO solo después de comprobar estructura y datos del contrato TERCEROS_VF_1."
+    },
+    "Perfiles": {
+      "Activo": "Vigencia del perfil; no concede permisos de acceso."
+    },
+    "PerfilesTerceros": {
+      "IdTercero": "Tercero clasificado; cada pareja tercero/perfil es única."
+    },
+    "Bancos": {
+      "IdCuentaContable": "Campo local de ProConta incorporado al supermodelo; tipo LONG. Revisar su consumidor antes de usarlo."
+    },
+    "Clientes": {
+      "CuentaContable": "Campo local de ProConta incorporado al supermodelo; tipo TEXT(15). Revisar su consumidor antes de usarlo.",
+      "Notas": "Campo local de ProConta incorporado al supermodelo; tipo LONGTEXT. Revisar su consumidor antes de usarlo.",
+      "FechaAlta": "Campo local de ProConta incorporado al supermodelo; tipo DATETIME. Revisar su consumidor antes de usarlo."
+    },
+    "Conceptos": {
+      "IdSociedadEjercicio": "Campo local de ProConta incorporado al supermodelo; tipo LONG. Revisar su consumidor antes de usarlo."
+    },
+    "DomiciliosTercero": {
+      "EsPrincipal": "Campo local de ProConta incorporado al supermodelo; tipo YESNO. Revisar su consumidor antes de usarlo.",
+      "Activo": "Campo local de ProConta incorporado al supermodelo; tipo YESNO. Revisar su consumidor antes de usarlo."
+    },
+    "FacturasCompra": {
+      "IdSociedad": "Campo local de ProConta incorporado al supermodelo; tipo LONG. Revisar su consumidor antes de usarlo.",
+      "Sociedad": "Campo local de ProConta incorporado al supermodelo; tipo TEXT(3). Revisar su consumidor antes de usarlo.",
+      "Ejercicio": "Campo local de ProConta incorporado al supermodelo; tipo TEXT(4). Revisar su consumidor antes de usarlo.",
+      "IdSubDepartamento": "Campo local de ProConta incorporado al supermodelo; tipo LONG. Revisar su consumidor antes de usarlo."
+    },
+    "FacturasProgramadas": {
+      "IdSociedadEjercicio": "Campo local de ProConta incorporado al supermodelo; tipo LONG. Revisar su consumidor antes de usarlo.",
+      "IdSerie": "Campo local de ProConta incorporado al supermodelo; tipo LONG. Revisar su consumidor antes de usarlo."
+    },
+    "Sociedades": {
+      "Nombre": "Campo local de ProConta incorporado al supermodelo; tipo TEXT(255). Revisar su consumidor antes de usarlo.",
+      "CIF": "Campo local de ProConta incorporado al supermodelo; tipo TEXT(10). Revisar su consumidor antes de usarlo."
+    },
+    "SociedadesEjercicios": {
+      "Nombre": "Campo local de ProConta incorporado al supermodelo; tipo TEXT(255). Revisar su consumidor antes de usarlo.",
+      "CIF": "Campo local de ProConta incorporado al supermodelo; tipo TEXT(10). Revisar su consumidor antes de usarlo."
+    },
+    "Terceros": {
+      "TipoPersona": "NULL indica clasificación pendiente; no inferir FISICA, JURIDICA o ENTIDAD.",
+      "Nombre": "Nombre visible completo, hasta 200 caracteres.",
+      "Email": "Correo común, límite funcional acordado de 150 caracteres."
+    }
+  },
+  "camposOpcionales": [
+    {
+      "tabla": "Terceros",
+      "campo": "TipoPersona"
+    }
+  ]
+}

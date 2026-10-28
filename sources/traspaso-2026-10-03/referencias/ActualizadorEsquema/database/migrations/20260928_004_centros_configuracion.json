@@ -1,0 +1,39 @@
+{
+  "id": "20260928_004_CENTROS_CONFIGURACION",
+  "version": "0.4.0",
+  "descripcion": "Centros de coste jerárquicos y política contable por sociedad para una maestra nueva.",
+  "sentencias": [
+    "CREATE TABLE CentrosCoste (IdCentroCoste COUNTER CONSTRAINT PK_CentrosCoste PRIMARY KEY, IdSociedad TEXT(3) NOT NULL, IdCentroCostePadre LONG, Codigo TEXT(30) NOT NULL, Nombre TEXT(150) NOT NULL, Descripcion LONGTEXT, EsImputable YESNO NOT NULL, EstaActivo YESNO NOT NULL, Orden SHORT NOT NULL, Nivel BYTE NOT NULL, RutaJerarquica TEXT(255) NOT NULL, RutaOrden TEXT(255) NOT NULL, IdCentroCosteRaiz LONG)",
+    "CREATE INDEX IX_CentrosCoste_SociedadPadre ON CentrosCoste (IdSociedad,IdCentroCostePadre,Orden)",
+    "CREATE UNIQUE INDEX UX_CentrosCoste_Ruta ON CentrosCoste (IdSociedad,RutaJerarquica)",
+    "CREATE INDEX IX_CentrosCoste_RutaOrden ON CentrosCoste (IdSociedad,RutaOrden)",
+    "CREATE INDEX IX_CentrosCoste_Raiz ON CentrosCoste (IdCentroCosteRaiz)",
+    "ALTER TABLE CentrosCoste ADD CONSTRAINT FK_CentrosCoste_Sociedad FOREIGN KEY (IdSociedad) REFERENCES Sociedades (IdSociedad)",
+    "ALTER TABLE CentrosCoste ADD CONSTRAINT FK_CentrosCoste_Padre FOREIGN KEY (IdCentroCostePadre) REFERENCES CentrosCoste (IdCentroCoste)",
+    "ALTER TABLE CentrosCoste ADD CONSTRAINT FK_CentrosCoste_Raiz FOREIGN KEY (IdCentroCosteRaiz) REFERENCES CentrosCoste (IdCentroCoste)",
+    "CREATE TABLE ConfiguracionesContables (IdSociedad TEXT(3) NOT NULL CONSTRAINT PK_ConfiguracionesContables PRIMARY KEY, ToleranciaRedondeo CURRENCY NOT NULL, CuentaGastosRedondeo TEXT(10) NOT NULL, CuentaIngresosRedondeo TEXT(10) NOT NULL, PermitirAjusteAutomatico YESNO NOT NULL, PoliticaModificacionAsientos BYTE NOT NULL)",
+    "ALTER TABLE ConfiguracionesContables ADD CONSTRAINT FK_ConfiguracionesContables_Sociedad FOREIGN KEY (IdSociedad) REFERENCES Sociedades (IdSociedad)",
+    "ALTER TABLE CuentasContables ADD CONSTRAINT FK_Cuentas_CentroCoste FOREIGN KEY (IdCentroCostePredeterminado) REFERENCES CentrosCoste (IdCentroCoste)",
+    "ALTER TABLE Apuntes ADD CONSTRAINT FK_Apuntes_CentroCoste FOREIGN KEY (IdCentroCoste) REFERENCES CentrosCoste (IdCentroCoste)",
+    "ALTER TABLE Activos ADD CONSTRAINT FK_Activos_Departamento FOREIGN KEY (IdDepartamento) REFERENCES CentrosCoste (IdCentroCoste)",
+    "ALTER TABLE Activos ADD CONSTRAINT FK_Activos_SubDepartamento FOREIGN KEY (IdSubDepartamento) REFERENCES CentrosCoste (IdCentroCoste)"
+  ],
+  "descripciones": {
+    "CentrosCoste": {
+      "IdSociedad": "Sociedad permanente propietaria del árbol analítico.",
+      "IdCentroCostePadre": "Nodo superior del mismo árbol; el servicio verifica la sociedad.",
+      "Codigo": "Código analítico de departamento o subdepartamento; no es una cuenta contable.",
+      "RutaJerarquica": "Ruta materializada única dentro de la sociedad.",
+      "RutaOrden": "Ruta de ordenación estable del árbol.",
+      "IdCentroCosteRaiz": "Nodo raíz del mismo árbol; el servicio verifica la sociedad."
+    },
+    "ConfiguracionesContables": {
+      "IdSociedad": "Política contable de una sociedad permanente; no se siembra una configuración universal.",
+      "ToleranciaRedondeo": "Diferencia monetaria máxima admitida por la política de ajuste.",
+      "CuentaGastosRedondeo": "Código de cuenta para redondeo de gastos, máximo diez caracteres; se valida por ejercicio.",
+      "CuentaIngresosRedondeo": "Código de cuenta para redondeo de ingresos, máximo diez caracteres; se valida por ejercicio.",
+      "PermitirAjusteAutomatico": "Habilita el ajuste de redondeo cuando la política lo permite.",
+      "PoliticaModificacionAsientos": "Regla de edición de asientos contabilizados."
+    }
+  }
+}

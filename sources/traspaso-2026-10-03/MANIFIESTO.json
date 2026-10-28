@@ -1,0 +1,1095 @@
+{
+  "versionPaquete": "1.0",
+  "fecha": "2026-10-03",
+  "capturaNoAtomica": true,
+  "originalesNoModificados": true,
+  "basesYMaquetasIncluidas": false,
+  "repositorios": [
+    {
+      "modulo": "Facturacion",
+      "rutaOrigen": "C:\\Docs\\VeriFactu\\ProConta.Facturacion",
+      "rama": "codex/integracion-proconta-20260822",
+      "head": "35554e9f5d97163c303628ec795265af4dcbe333",
+      "tieneCambiosLocales": true
+    },
+    {
+      "modulo": "Terceros",
+      "rutaOrigen": "C:\\Docs\\VeriFactu\\ProConta.Terceros",
+      "rama": "feature/terceros",
+      "head": "8ee3a4b84dc958e85ae8527a01cb699f9b7835bc",
+      "tieneCambiosLocales": true
+    },
+    {
+      "modulo": "Seguridad",
+      "rutaOrigen": "C:\\Docs\\VeriFactu\\ProConta.Seguridad",
+      "rama": "codex/seguridad",
+      "head": "c86254f660da8ecd12989b99fce5769bbb554dbb",
+      "tieneCambiosLocales": false
+    },
+    {
+      "modulo": "ConfiguracionGlobal",
+      "rutaOrigen": "C:\\Docs\\VeriFactu\\ProConta.ConfiguracionGlobal",
+      "rama": "codex/configuracion-global",
+      "head": "d87bf346c49ced0f437dbe8152998be5930a5b3d",
+      "tieneCambiosLocales": false
+    },
+    {
+      "modulo": "WpfConfiguracion",
+      "rutaOrigen": "C:\\Docs\\VeriFactu\\ProConta.WpfConfiguracion",
+      "rama": "codex/wpf-configuracion",
+      "head": "53df5cfd470596fc6047576d313e81f9b01570eb",
+      "tieneCambiosLocales": false
+    },
+    {
+      "modulo": "WpfFacturas",
+      "rutaOrigen": "C:\\Docs\\VeriFactu\\ProConta.WpfFacturas",
+      "rama": "codex/wpf-facturas",
+      "head": "9da9d31d6a738045879c85d5759b2ea804446ce7",
+      "tieneCambiosLocales": false
+    },
+    {
+      "modulo": "GestorContable",
+      "rutaOrigen": "C:\\Docs\\VeriFactu\\ProConta.GestorContable",
+      "rama": "codex/gestor-contable",
+      "head": "231fbbd05792f597339d647aebde9091a0e0d8be",
+      "tieneCambiosLocales": false
+    },
+    {
+      "modulo": "ModelosContables",
+      "rutaOrigen": "C:\\Docs\\VeriFactu\\ProConta.ModelosContables",
+      "rama": "codex/modelos-contables",
+      "head": "31fbc37cd3794ca1443cd4028fc2b161c44ebb35",
+      "tieneCambiosLocales": false
+    },
+    {
+      "modulo": "Norma43",
+      "rutaOrigen": "C:\\Docs\\VeriFactu\\ProConta.Norma43",
+      "rama": "codex/norma43",
+      "head": "1e6d995e7c63bcaebd238b9d3e97a2dda6f53d17",
+      "tieneCambiosLocales": true
+    },
+    {
+      "modulo": "Nominas",
+      "rutaOrigen": "C:\\Docs\\VeriFactu\\ProConta.Nominas",
+      "rama": "codex/motor-nominas",
+      "head": "b8c9a1acb180ca4975fb18803e6afe0ac8286d8e",
+      "tieneCambiosLocales": true
+    },
+    {
+      "modulo": "Activos",
+      "rutaOrigen": "C:\\Docs\\VeriFactu\\ProConta.Activos",
+      "rama": "codex/activos",
+      "head": "e952318d07200f60d950387677d6f1435bbcfd24",
+      "tieneCambiosLocales": false
+    },
+    {
+      "modulo": "Reporting",
+      "rutaOrigen": "C:\\Docs\\VeriFactu\\ProConta.Reporting",
+      "rama": "codex/reporting",
+      "head": "5fc8ddf45417a94c494c7c911989402d4078f8dc",
+      "tieneCambiosLocales": false
+    },
+    {
+      "modulo": "Graficos",
+      "rutaOrigen": "C:\\Docs\\VeriFactu\\ProConta.Graficos",
+      "rama": "codex/graficos",
+      "head": "a8891b56e05a721ca9079cc972d2f98d3b5a858b",
+      "tieneCambiosLocales": false
+    },
+    {
+      "modulo": "GestorCorreo",
+      "rutaOrigen": "C:\\Docs\\VeriFactu\\ProConta.GestorCorreo",
+      "rama": "codex/gestor-correo",
+      "head": "378b88cc4c51475dd968173eaf0a7423b7e9d2c8",
+      "tieneCambiosLocales": false
+    },
+    {
+      "modulo": "MailDispatcher",
+      "rutaOrigen": "C:\\Docs\\VeriFactu\\ProConta.MailDispatcher",
+      "rama": "codex/mail-dispatcher",
+      "head": "34dd6b560cd0a151b054c56606549670c21c8eb8",
+      "tieneCambiosLocales": false
+    },
+    {
+      "modulo": "Migracion",
+      "rutaOrigen": "C:\\Docs\\VeriFactu\\ProConta.Migracion",
+      "rama": "feature/migracion-proconta",
+      "head": "792a9ae1e1b8c89cceac8e029f2294062843fe63",
+      "tieneCambiosLocales": true
+    },
+    {
+      "modulo": "ContaSol",
+      "rutaOrigen": "C:\\Docs\\VeriFactu\\ProConta.ContaSol",
+      "rama": "codex/contasol",
+      "head": "792a9ae1e1b8c89cceac8e029f2294062843fe63",
+      "tieneCambiosLocales": true
+    },
+    {
+      "modulo": "Asientos",
+      "rutaOrigen": "C:\\Docs\\VeriFactu\\ProConta.Asientos",
+      "rama": "codex/asientos",
+      "head": "8a015ba7784cc76e2a8d8eede3f382f3704827bf",
+      "tieneCambiosLocales": false
+    },
+    {
+      "modulo": "CuentasContables",
+      "rutaOrigen": "C:\\Docs\\VeriFactu\\ProConta.CuentasContables",
+      "rama": "codex/cuentas-contables",
+      "head": "7a63dab512bec3c1f3bc9f108356e098d63b2abd",
+      "tieneCambiosLocales": false
+    },
+    {
+      "modulo": "AsistenteAsientos",
+      "rutaOrigen": "C:\\Docs\\VeriFactu\\ProConta.AsistenteAsientos",
+      "rama": "codex/asistente-asientos",
+      "head": "adf0d882db3fabd1ce9775d86a1caf3f9c72d1c7",
+      "tieneCambiosLocales": false
+    },
+    {
+      "modulo": "ActualizadorEsquema",
+      "rutaOrigen": "C:\\Docs\\VeriFactu\\ProConta.ActualizadorEsquema",
+      "rama": "codex/actualizador-esquema",
+      "head": "5b111d01b162f1f0db877a1dbb1ddfa7982c64b3",
+      "tieneCambiosLocales": false
+    }
+  ],
+  "fuentes": [
+    {
+      "modulo": "Facturacion",
+      "archivo": "referencias/Facturacion/docs/MAPA_PROYECTO.md",
+      "origen": "C:\\Docs\\VeriFactu\\ProConta.Facturacion\\docs\\MAPA_PROYECTO.md",
+      "sha256": "424F2B7917C5A63046E97FA7B9922F16F9E18165FAD0D8BC5200CADB12C71B49",
+      "bytes": 30176,
+      "clase": "documentacion de referencia"
+    },
+    {
+      "modulo": "Facturacion",
+      "archivo": "referencias/Facturacion/docs/REGISTRO_HILOS.json",
+      "origen": "C:\\Docs\\VeriFactu\\ProConta.Facturacion\\docs\\REGISTRO_HILOS.json",
+      "sha256": "C69F289437A82EC481A30E7B36015D76215BEB65B6D08AC0C5E6A43725DD7472",
+      "bytes": 20661,
+      "clase": "documentacion de referencia"
+    },
+    {
+      "modulo": "Facturacion",
+      "archivo": "referencias/Facturacion/docs/DIRECTORIO_CONTRATOS.md",
+      "origen": "C:\\Docs\\VeriFactu\\ProConta.Facturacion\\docs\\DIRECTORIO_CONTRATOS.md",
+      "sha256": "05501F80AEED1988799CDD653EB7E55BC295C108586D56FD90244738AA3C1DDE",
+      "bytes": 5440,
+      "clase": "documentacion de referencia"
+    },
+    {
+      "modulo": "Facturacion",
+      "archivo": "referencias/Facturacion/docs/ACUERDOS_ACCESO_REAL.md",
+      "origen": "C:\\Docs\\VeriFactu\\ProConta.Facturacion\\docs\\ACUERDOS_ACCESO_REAL.md",
+      "sha256": "2769D77D86BB3C4F525D9A88EC84CE6535A98BC7AB161A5B8055A8D1477007E2",
+      "bytes": 6515,
+      "clase": "documentacion de referencia"
+    },
+    {
+      "modulo": "Facturacion",
+      "archivo": "referencias/Facturacion/docs/ACUERDOS_CONTENEDOR_WPF.md",
+      "origen": "C:\\Docs\\VeriFactu\\ProConta.Facturacion\\docs\\ACUERDOS_CONTENEDOR_WPF.md",
+      "sha256": "396E26AC818684524AEF99F81A7D60E9AA16D7170D68676C5213B70D4EA093E9",
+      "bytes": 3908,
+      "clase": "documentacion de referencia"
+    },
+    {
+      "modulo": "Facturacion",
+      "archivo": "referencias/Facturacion/docs/ACUERDOS_CORREO_20261001.md",
+      "origen": "C:\\Docs\\VeriFactu\\ProConta.Facturacion\\docs\\ACUERDOS_CORREO_20261001.md",
+      "sha256": "74AF8498D8DE775567CA23A6C85DD0348B38443F1057681A44FC907E24B5182E",
+      "bytes": 2229,
+      "clase": "documentacion de referencia"
+    },
+    {
+      "modulo": "Facturacion",
+      "archivo": "referencias/Facturacion/docs/MODELO_FACTURA.md",
+      "origen": "C:\\Docs\\VeriFactu\\ProConta.Facturacion\\docs\\MODELO_FACTURA.md",
+      "sha256": "79375811584AAD98207B4C83D15DB9084D2B73EBE1E87377F4B9B6949F718218",
+      "bytes": 5093,
+      "clase": "documentacion de referencia"
+    },
+    {
+      "modulo": "Facturacion",
+      "archivo": "referencias/Facturacion/docs/DECISIONES.md",
+      "origen": "C:\\Docs\\VeriFactu\\ProConta.Facturacion\\docs\\DECISIONES.md",
+      "sha256": "7FA23643F0DA85A45C96448C03E109F2AAA66C801AFE4639FBD728225EE5522F",
+      "bytes": 31487,
+      "clase": "documentacion de referencia"
+    },
+    {
+      "modulo": "Facturacion",
+      "archivo": "referencias/Facturacion/docs/RESERVAS_ALOJAMIENTO_CONTRATO.md",
+      "origen": "C:\\Docs\\VeriFactu\\ProConta.Facturacion\\docs\\RESERVAS_ALOJAMIENTO_CONTRATO.md",
+      "sha256": "901E0314B105FBDDC467F5C4523F2382D2A8A65EB616307046450F848C245A18",
+      "bytes": 10254,
+      "clase": "documentacion de referencia"
+    },
+    {
+      "modulo": "Facturacion",
+      "archivo": "referencias/Facturacion/docs/REQUISITOS_TERCEROS_20261001.md",
+      "origen": "C:\\Docs\\VeriFactu\\ProConta.Facturacion\\docs\\REQUISITOS_TERCEROS_20261001.md",
+      "sha256": "7E4C1DA3B8CCA300EE0932606675BBC697ED3C6AEA5AAF441FDA0A4F7CE2598E",
+      "bytes": 8755,
+      "clase": "documentacion de referencia"
+    },
+    {
+      "modulo": "Facturacion",
+      "archivo": "referencias/Facturacion/docs/ESPECIFICACION_REESCRITURA_RECONOCIMIENTO_FACTURAS_COMPRA.md",
+      "origen": "C:\\Docs\\VeriFactu\\ProConta.Facturacion\\docs\\ESPECIFICACION_REESCRITURA_RECONOCIMIENTO_FACTURAS_COMPRA.md",
+      "sha256": "0F69D0B64B6DE40251F77D3BA68356543C88CAE0ADE5845F38963E5F8CDCC830",
+      "bytes": 36206,
+      "clase": "documentacion de referencia"
+    },
+    {
+      "modulo": "Facturacion",
+      "archivo": "referencias/Facturacion/docs/ESTADO_RECONOCIMIENTO_FACTURAS_COMPRA.md",
+      "origen": "C:\\Docs\\VeriFactu\\ProConta.Facturacion\\docs\\ESTADO_RECONOCIMIENTO_FACTURAS_COMPRA.md",
+      "sha256": "372BF7510E4A89B17E367CEC4051BB4D6E76C3C434D08A81A0AC4BF82B64EB46",
+      "bytes": 2462,
+      "clase": "documentacion de referencia"
+    },
+    {
+      "modulo": "Facturacion",
+      "archivo": "referencias/Facturacion/docs/ARQUITECTURA.md",
+      "origen": "C:\\Docs\\VeriFactu\\ProConta.Facturacion\\docs\\ARQUITECTURA.md",
+      "sha256": "7C4E824F7B6108265A38E0E1B9DAEDD722342F2F71AFF07E3106B2E648B1187B",
+      "bytes": 7438,
+      "clase": "documentacion de referencia"
+    },
+    {
+      "modulo": "Facturacion",
+      "archivo": "referencias/Facturacion/docs/MENSAJES.md",
+      "origen": "C:\\Docs\\VeriFactu\\ProConta.Facturacion\\docs\\MENSAJES.md",
+      "sha256": "564377B0EBE8FC8C01FCF8ADAECBA93C6C15E6591AC822E1D5A7E53BC0BE9904",
+      "bytes": 7016,
+      "clase": "documentacion de referencia"
+    },
+    {
+      "modulo": "Facturacion",
+      "archivo": "referencias/Facturacion/docs/CONVENCIONES.md",
+      "origen": "C:\\Docs\\VeriFactu\\ProConta.Facturacion\\docs\\CONVENCIONES.md",
+      "sha256": "9177A98C35B5974B796222130E78FAE181C3F33D1B3210C18B32AD98F03B4244",
+      "bytes": 11813,
+      "clase": "documentacion de referencia"
+    },
+    {
+      "modulo": "Facturacion",
+      "archivo": "referencias/Facturacion/docs/contratos/DOC-GESTOR.md",
+      "origen": "C:\\Docs\\VeriFactu\\ProConta.Facturacion\\docs\\contratos\\DOC-GESTOR.md",
+      "sha256": "E23A7DC349C7C789909693C0182595C60748105FC450D0C250CF6BC34A46D5AD",
+      "bytes": 43444,
+      "clase": "documentacion de referencia"
+    },
+    {
+      "modulo": "Facturacion",
+      "archivo": "referencias/Facturacion/docs/contratos/UI-BASE.md",
+      "origen": "C:\\Docs\\VeriFactu\\ProConta.Facturacion\\docs\\contratos\\UI-BASE.md",
+      "sha256": "B7F6EE6ED2218ABF0C17A73427A45F516F015CDB086824404C41C354ADD4900B",
+      "bytes": 22722,
+      "clase": "documentacion de referencia"
+    },
+    {
+      "modulo": "Facturacion",
+      "archivo": "referencias/Facturacion/docs/contratos/UI-PRINCIPAL.md",
+      "origen": "C:\\Docs\\VeriFactu\\ProConta.Facturacion\\docs\\contratos\\UI-PRINCIPAL.md",
+      "sha256": "B8AE5F141D3E22B93881C8F4088E973742A9CD6CEDB6AE3E520B84D47B77037B",
+      "bytes": 6496,
+      "clase": "documentacion de referencia"
+    },
+    {
+      "modulo": "Facturacion",
+      "archivo": "referencias/Facturacion/docs/ENTREGA_VISUAL_10_20261001.md",
+      "origen": "C:\\Docs\\VeriFactu\\ProConta.Facturacion\\docs\\ENTREGA_VISUAL_10_20261001.md",
+      "sha256": "DD182B990B1094A7448FB5467AD9976B1E092DC67431A7D8162AC6BF31B937E3",
+      "bytes": 6290,
+      "clase": "documentacion de referencia"
+    },
+    {
+      "modulo": "Terceros",
+      "archivo": "referencias/Terceros/docs/TERCEROS_CONTRATO.md",
+      "origen": "C:\\Docs\\VeriFactu\\ProConta.Terceros\\docs\\TERCEROS_CONTRATO.md",
+      "sha256": "A9FD46A5EBAC11C8A9368CD3E07DEF1594EE5D3455694351E58E4D1B2EB87D71",
+      "bytes": 22240,
+      "clase": "documentacion de referencia"
+    },
+    {
+      "modulo": "Terceros",
+      "archivo": "referencias/Terceros/docs/CONTRATO_PUBLICO.md",
+      "origen": "C:\\Docs\\VeriFactu\\ProConta.Terceros\\docs\\CONTRATO_PUBLICO.md",
+      "sha256": "A2CB6C8292FDC9C6B040CC9FC9EE5AA5075D1BEBF0B84710732B3FFD6515B83D",
+      "bytes": 36664,
+      "clase": "documentacion de referencia"
+    },
+    {
+      "modulo": "Terceros",
+      "archivo": "referencias/Terceros/docs/CONTRATO_FINAL_TERCEROS_VF_1.md",
+      "origen": "C:\\Docs\\VeriFactu\\ProConta.Terceros\\docs\\CONTRATO_FINAL_TERCEROS_VF_1.md",
+      "sha256": "36E97062C90BC93BB249D3A8CDE3857CDD5D67ACD2CACDB2ED0D8FACF61ECA14",
+      "bytes": 12742,
+      "clase": "documentacion de referencia"
+    },
+    {
+      "modulo": "Terceros",
+      "archivo": "referencias/Terceros/docs/CONTACTOS_LIBRES_TERCEROS_20261001.md",
+      "origen": "C:\\Docs\\VeriFactu\\ProConta.Terceros\\docs\\CONTACTOS_LIBRES_TERCEROS_20261001.md",
+      "sha256": "A7E7A239597BB9A337E027BA65A52D647C715EF9A047273CE4EEF8705A35F4AD",
+      "bytes": 10060,
+      "clase": "documentacion de referencia"
+    },
+    {
+      "modulo": "Terceros",
+      "archivo": "referencias/Terceros/docs/EMAIL_TERCEROS_150_20261001.md",
+      "origen": "C:\\Docs\\VeriFactu\\ProConta.Terceros\\docs\\EMAIL_TERCEROS_150_20261001.md",
+      "sha256": "AF376804E5625B0D71A546124A66FFF592B777EBBC7E21C4E89C9148F75C0582",
+      "bytes": 2074,
+      "clase": "documentacion de referencia"
+    },
+    {
+      "modulo": "Terceros",
+      "archivo": "referencias/Terceros/docs/ENTREGA_CONTACTO_UI_10_20261001.md",
+      "origen": "C:\\Docs\\VeriFactu\\ProConta.Terceros\\docs\\ENTREGA_CONTACTO_UI_10_20261001.md",
+      "sha256": "0A0373759D2BA401335816951743C9DDDFB45980DBD3FCD24AAD04F2582D47F4",
+      "bytes": 9388,
+      "clase": "documentacion de referencia"
+    },
+    {
+      "modulo": "Terceros",
+      "archivo": "referencias/Terceros/docs/LISTADO_TERCEROS_RENDIMIENTO_20261001.md",
+      "origen": "C:\\Docs\\VeriFactu\\ProConta.Terceros\\docs\\LISTADO_TERCEROS_RENDIMIENTO_20261001.md",
+      "sha256": "91429043916D230C1C492D074A68CD286B15A9FC6791C79F9B383260BEEE25DD",
+      "bytes": 6154,
+      "clase": "documentacion de referencia"
+    },
+    {
+      "modulo": "Seguridad",
+      "archivo": "referencias/Seguridad/docs/CONTRATO_PUBLICO.md",
+      "origen": "C:\\Docs\\VeriFactu\\ProConta.Seguridad\\docs\\CONTRATO_PUBLICO.md",
+      "sha256": "F7ACE708B66C31A168CD66FD5E7FC829DA5B1A0510825E635FF0B4E66644A750",
+      "bytes": 13107,
+      "clase": "documentacion de referencia"
+    },
+    {
+      "modulo": "Seguridad",
+      "archivo": "referencias/Seguridad/docs/INTEGRACION_ACCESO_REAL.md",
+      "origen": "C:\\Docs\\VeriFactu\\ProConta.Seguridad\\docs\\INTEGRACION_ACCESO_REAL.md",
+      "sha256": "79EF0C95E119933E1AA7CAB59365AA7CA4EB4D968294048212975F0274DD8126",
+      "bytes": 6957,
+      "clase": "documentacion de referencia"
+    },
+    {
+      "modulo": "Seguridad",
+      "archivo": "referencias/Seguridad/docs/INTEGRACION_PERMISOS_CFG_MANT.md",
+      "origen": "C:\\Docs\\VeriFactu\\ProConta.Seguridad\\docs\\INTEGRACION_PERMISOS_CFG_MANT.md",
+      "sha256": "5F6DD04863F9706DB5A092A0B4ECF8909CBABBF00F5E4E4D85F0AFC318C3D04A",
+      "bytes": 4801,
+      "clase": "documentacion de referencia"
+    },
+    {
+      "modulo": "ConfiguracionGlobal",
+      "archivo": "referencias/ConfiguracionGlobal/docs/CONFIGURACION_DATOS.md",
+      "origen": "C:\\Docs\\VeriFactu\\ProConta.ConfiguracionGlobal\\docs\\CONFIGURACION_DATOS.md",
+      "sha256": "0CED811D4C2A8560B62D0DC9B1E68CCFF54A7C7F6DECB879C115087895B3AAD8",
+      "bytes": 3683,
+      "clase": "documentacion de referencia"
+    },
+    {
+      "modulo": "ConfiguracionGlobal",
+      "archivo": "referencias/ConfiguracionGlobal/docs/CONTRATO_PUBLICO.md",
+      "origen": "C:\\Docs\\VeriFactu\\ProConta.ConfiguracionGlobal\\docs\\CONTRATO_PUBLICO.md",
+      "sha256": "276AA3DC6228C8DC41304DF97EFEF841C9AD678B056C34B27F57F0FEF2AFA66F",
+      "bytes": 11133,
+      "clase": "documentacion de referencia"
+    },
+    {
+      "modulo": "WpfConfiguracion",
+      "archivo": "referencias/WpfConfiguracion/docs/CONTRATO_PUBLICO.md",
+      "origen": "C:\\Docs\\VeriFactu\\ProConta.WpfConfiguracion\\docs\\CONTRATO_PUBLICO.md",
+      "sha256": "D806AB259C8CCC329AB4F7BC6BAC840E12ADE9AAFC293535303FBD72C654C08E",
+      "bytes": 10041,
+      "clase": "documentacion de referencia"
+    },
+    {
+      "modulo": "WpfConfiguracion",
+      "archivo": "referencias/WpfConfiguracion/docs/DIFERENCIAS_MAQUETA_CONFIGURACION.md",
+      "origen": "C:\\Docs\\VeriFactu\\ProConta.WpfConfiguracion\\docs\\DIFERENCIAS_MAQUETA_CONFIGURACION.md",
+      "sha256": "82634EFCFB4EC02727D758C454D1C552F8AEB79EB6A13690EF1AFA16F8049DE0",
+      "bytes": 1231,
+      "clase": "documentacion de referencia"
+    },
+    {
+      "modulo": "WpfConfiguracion",
+      "archivo": "referencias/WpfConfiguracion/docs/INTEGRACION_CONFIGURACION_WPF.md",
+      "origen": "C:\\Docs\\VeriFactu\\ProConta.WpfConfiguracion\\docs\\INTEGRACION_CONFIGURACION_WPF.md",
+      "sha256": "AED2D579CAB1F00490FF5E2A46CC98F50F9A4A9D6978C4637AAAA80C97D360BC",
+      "bytes": 6925,
+      "clase": "documentacion de referencia"
+    },
+    {
+      "modulo": "WpfFacturas",
+      "archivo": "referencias/WpfFacturas/docs/WPF_FACTURAS.md",
+      "origen": "C:\\Docs\\VeriFactu\\ProConta.WpfFacturas\\docs\\WPF_FACTURAS.md",
+      "sha256": "7306F9E939236E94A1457B5EF5D06DA7299D23DE084C30BC5FEC7CF36417710C",
+      "bytes": 3016,
+      "clase": "documentacion de referencia"
+    },
+    {
+      "modulo": "GestorContable",
+      "archivo": "referencias/GestorContable/docs/GESTOR_CONTABLE.md",
+      "origen": "C:\\Docs\\VeriFactu\\ProConta.GestorContable\\docs\\GESTOR_CONTABLE.md",
+      "sha256": "0037A45EBD1ED26A674764E741020836925319B9C3793F409ED1535E004369A5",
+      "bytes": 3594,
+      "clase": "documentacion de referencia"
+    },
+    {
+      "modulo": "ModelosContables",
+      "archivo": "referencias/ModelosContables/docs/MODELOS_CONTABLES.md",
+      "origen": "C:\\Docs\\VeriFactu\\ProConta.ModelosContables\\docs\\MODELOS_CONTABLES.md",
+      "sha256": "4E84D6C9ADCF26A9D066CEBB4622990D7CB7DDE207810DB1B9A01417798E7122",
+      "bytes": 6836,
+      "clase": "documentacion de referencia"
+    },
+    {
+      "modulo": "Norma43",
+      "archivo": "referencias/Norma43/docs/MOTOR_NORMA43.md",
+      "origen": "C:\\Docs\\VeriFactu\\ProConta.Norma43\\docs\\MOTOR_NORMA43.md",
+      "sha256": "BB37BA6EEDA4F35D8C0EBF17171503BFFDB9F46563904B166E6066B822A4BEA2",
+      "bytes": 3821,
+      "clase": "documentacion de referencia"
+    },
+    {
+      "modulo": "Norma43",
+      "archivo": "referencias/Norma43/docs/PROPUESTA_MOTOR_IMPORTACION_NORMA43.md",
+      "origen": "C:\\Docs\\VeriFactu\\ProConta.Norma43\\docs\\PROPUESTA_MOTOR_IMPORTACION_NORMA43.md",
+      "sha256": "166541C4687E9F0BE2ACA5E10F9A5DF9A611252122F0257BE86C8696191B0794",
+      "bytes": 1538,
+      "clase": "documentacion de referencia"
+    },
+    {
+      "modulo": "Norma43",
+      "archivo": "referencias/Norma43/docs/ENTREGA_VISUAL_LINEAS_BANCARIAS_20261001.md",
+      "origen": "C:\\Docs\\VeriFactu\\ProConta.Norma43\\docs\\ENTREGA_VISUAL_LINEAS_BANCARIAS_20261001.md",
+      "sha256": "908339356FEC8FD33D8BC2FBFDA88F0E470B105DDD21D5DA636A43640A90C3F1",
+      "bytes": 3947,
+      "clase": "documentacion de referencia"
+    },
+    {
+      "modulo": "Nominas",
+      "archivo": "referencias/Nominas/docs/INTERFAZ_NOMINAS_KRYPTON.md",
+      "origen": "C:\\Docs\\VeriFactu\\ProConta.Nominas\\docs\\INTERFAZ_NOMINAS_KRYPTON.md",
+      "sha256": "41EECBB44CEC8530213A9478D048B34EA82F39DA0C70483403FED09525F767FC",
+      "bytes": 2427,
+      "clase": "documentacion de referencia"
+    },
+    {
+      "modulo": "Nominas",
+      "archivo": "referencias/Nominas/src/ProConta.Facturacion.Aplicacion/Nominas/ModeloImportacionExcelNomina.vb",
+      "origen": "C:\\Docs\\VeriFactu\\ProConta.Nominas\\src\\ProConta.Facturacion.Aplicacion\\Nominas\\ModeloImportacionExcelNomina.vb",
+      "sha256": "4176112404B2CA2D2F31E6C3C0FACAFE4668F0AD59F5A77C953E55C442C10686",
+      "bytes": 8743,
+      "clase": "evidencia de contrato de codigo"
+    },
+    {
+      "modulo": "Activos",
+      "archivo": "referencias/Activos/docs/MODELO_ACTIVOS.md",
+      "origen": "C:\\Docs\\VeriFactu\\ProConta.Activos\\docs\\MODELO_ACTIVOS.md",
+      "sha256": "2221C72C00A946A2FAB5081465F817A10014F05613CF3D9BAFAF2BE0B62906F5",
+      "bytes": 8696,
+      "clase": "documentacion de referencia"
+    },
+    {
+      "modulo": "Reporting",
+      "archivo": "referencias/Reporting/docs/REPORTING.md",
+      "origen": "C:\\Docs\\VeriFactu\\ProConta.Reporting\\docs\\REPORTING.md",
+      "sha256": "6EC268762813E8BE042480D5119BADA12AAC39D04F53654DE9D7E44ED5A136AD",
+      "bytes": 2105,
+      "clase": "documentacion de referencia"
+    },
+    {
+      "modulo": "Graficos",
+      "archivo": "referencias/Graficos/docs/MOTOR_GRAFICOS.md",
+      "origen": "C:\\Docs\\VeriFactu\\ProConta.Graficos\\docs\\MOTOR_GRAFICOS.md",
+      "sha256": "FFADF7B6CB7CCF4490C10C54398F083A0C99CB96EBF1ED208D6F746411A44EEB",
+      "bytes": 3052,
+      "clase": "documentacion de referencia"
+    },
+    {
+      "modulo": "GestorCorreo",
+      "archivo": "referencias/GestorCorreo/docs/GESTOR_CORREO.md",
+      "origen": "C:\\Docs\\VeriFactu\\ProConta.GestorCorreo\\docs\\GESTOR_CORREO.md",
+      "sha256": "54CFABD7AA77DE7058366FC2182DD86D1A10619253949A748353D8F9FB26F646",
+      "bytes": 4916,
+      "clase": "documentacion de referencia"
+    },
+    {
+      "modulo": "GestorCorreo",
+      "archivo": "referencias/GestorCorreo/docs/CONTRATO_COMPOSITOR_Y_LOTES_CORREO.md",
+      "origen": "C:\\Docs\\VeriFactu\\ProConta.GestorCorreo\\docs\\CONTRATO_COMPOSITOR_Y_LOTES_CORREO.md",
+      "sha256": "545EA45047CD6DE861B89F0A44A7BF1D8EF2DEF2AF4BD24D11511437540B7B44",
+      "bytes": 17286,
+      "clase": "documentacion de referencia"
+    },
+    {
+      "modulo": "GestorCorreo",
+      "archivo": "referencias/GestorCorreo/docs/INTEGRACION_COMPOSITOR_WPF.md",
+      "origen": "C:\\Docs\\VeriFactu\\ProConta.GestorCorreo\\docs\\INTEGRACION_COMPOSITOR_WPF.md",
+      "sha256": "54CBDF08D5A5C825B8C9FD6E3E34BBD3B98B5A6CB9F6EA082F3F5DA4CCB1FF19",
+      "bytes": 6000,
+      "clase": "documentacion de referencia"
+    },
+    {
+      "modulo": "MailDispatcher",
+      "archivo": "referencias/MailDispatcher/docs/RECEPCION_CORREO.md",
+      "origen": "C:\\Docs\\VeriFactu\\ProConta.MailDispatcher\\docs\\RECEPCION_CORREO.md",
+      "sha256": "4A292CCA7291F6D88ACF4B7445829F02C1A3915870EE61FEAE12F9EA837BFDC5",
+      "bytes": 3522,
+      "clase": "documentacion de referencia"
+    },
+    {
+      "modulo": "MailDispatcher",
+      "archivo": "referencias/MailDispatcher/docs/GESTOR_CORREO.md",
+      "origen": "C:\\Docs\\VeriFactu\\ProConta.MailDispatcher\\docs\\GESTOR_CORREO.md",
+      "sha256": "DD755808EEFF344D2CDA0677A0A47666A3944D765DBB51D60549BB6DDA7B356D",
+      "bytes": 2927,
+      "clase": "documentacion de referencia"
+    },
+    {
+      "modulo": "MailDispatcher",
+      "archivo": "referencias/MailDispatcher/src/ProConta.MailDispatcher.Aplicacion/ContratosDispatcher.vb",
+      "origen": "C:\\Docs\\VeriFactu\\ProConta.MailDispatcher\\src\\ProConta.MailDispatcher.Aplicacion\\ContratosDispatcher.vb",
+      "sha256": "ECAEE79C80D61D5E850577D3D3D68D90BDB3AF58610CF561FD210F55CC92CCF2",
+      "bytes": 11410,
+      "clase": "evidencia de contrato de codigo"
+    },
+    {
+      "modulo": "MailDispatcher",
+      "archivo": "referencias/MailDispatcher/src/ProConta.MailDispatcher.Aplicacion/ServicioRecepcionPop3.vb",
+      "origen": "C:\\Docs\\VeriFactu\\ProConta.MailDispatcher\\src\\ProConta.MailDispatcher.Aplicacion\\ServicioRecepcionPop3.vb",
+      "sha256": "674006D0C8E200FE57ACCB2C1FF2E418BE1B17501D3EB401612145592B101A44",
+      "bytes": 8342,
+      "clase": "evidencia de contrato de codigo"
+    },
+    {
+      "modulo": "MailDispatcher",
+      "archivo": "referencias/MailDispatcher/src/ProConta.MailDispatcher.Aplicacion/ServiciosDispatcher.vb",
+      "origen": "C:\\Docs\\VeriFactu\\ProConta.MailDispatcher\\src\\ProConta.MailDispatcher.Aplicacion\\ServiciosDispatcher.vb",
+      "sha256": "9D3127CB1F94F1AA877514A8A33610E7F668EAF31919B8F2EEDEFD745450622C",
+      "bytes": 11755,
+      "clase": "evidencia de contrato de codigo"
+    },
+    {
+      "modulo": "MailDispatcher",
+      "archivo": "referencias/MailDispatcher/src/ProConta.MailDispatcher.Aplicacion/ServicioMailDispatcher.vb",
+      "origen": "C:\\Docs\\VeriFactu\\ProConta.MailDispatcher\\src\\ProConta.MailDispatcher.Aplicacion\\ServicioMailDispatcher.vb",
+      "sha256": "4FC3CF5EF6E523666878DDD46C442E39E92D7FB853EBF09BCF47EFFFDD6BF589",
+      "bytes": 5977,
+      "clase": "evidencia de contrato de codigo"
+    },
+    {
+      "modulo": "Migracion",
+      "archivo": "referencias/Migracion/docs/MIGRADOR_ERP.md",
+      "origen": "C:\\Docs\\VeriFactu\\ProConta.Migracion\\docs\\MIGRADOR_ERP.md",
+      "sha256": "6E8B7E0348E228776EA74E47934901597CDB43ADADAA9F5FD4B68D6DFE7E918F",
+      "bytes": 28562,
+      "clase": "documentacion de referencia"
+    },
+    {
+      "modulo": "Migracion",
+      "archivo": "referencias/Migracion/docs/MIGRADOR_ERP_TABLAS.md",
+      "origen": "C:\\Docs\\VeriFactu\\ProConta.Migracion\\docs\\MIGRADOR_ERP_TABLAS.md",
+      "sha256": "2ADFEE632CCE536BF46DE09A1FD6D87DCE2A66CF0C4DC370632E5B30B04DF158",
+      "bytes": 21649,
+      "clase": "documentacion de referencia"
+    },
+    {
+      "modulo": "ContaSol",
+      "archivo": "referencias/ContaSol/docs/PROTOCOLO_IMPORTACION_CONTASOL.md",
+      "origen": "C:\\Docs\\VeriFactu\\ProConta.ContaSol\\docs\\PROTOCOLO_IMPORTACION_CONTASOL.md",
+      "sha256": "CCE27BD9B161148B5705C7E58D33B22174A8EE99A1677D35A35F7325629CDA3E",
+      "bytes": 10445,
+      "clase": "documentacion de referencia"
+    },
+    {
+      "modulo": "ContaSol",
+      "archivo": "referencias/ContaSol/docs/MODELO_CUENTAS_CONTABLES.md",
+      "origen": "C:\\Docs\\VeriFactu\\ProConta.ContaSol\\docs\\MODELO_CUENTAS_CONTABLES.md",
+      "sha256": "C317CF82CF5B239CAA68932CDB786658AE17757D83445291D8FD6EAA136E3EEF",
+      "bytes": 4205,
+      "clase": "documentacion de referencia"
+    },
+    {
+      "modulo": "ContaSol",
+      "archivo": "referencias/ContaSol/docs/PROPUESTA_MODELO_CONTABLE.md",
+      "origen": "C:\\Docs\\VeriFactu\\ProConta.ContaSol\\docs\\PROPUESTA_MODELO_CONTABLE.md",
+      "sha256": "425FE8B43BF5D0F4E7C1C75F784D3E6768CE2FCCF9AB122D9FB37A548C1D34DC",
+      "bytes": 39397,
+      "clase": "documentacion de referencia"
+    },
+    {
+      "modulo": "ContaSol",
+      "archivo": "referencias/ContaSol/docs/PROPUESTA_MODELO_IVA.md",
+      "origen": "C:\\Docs\\VeriFactu\\ProConta.ContaSol\\docs\\PROPUESTA_MODELO_IVA.md",
+      "sha256": "6BF1C7AD0CFBF67E2AE1CA6C3E7215936238AED3A8F4364E226B5F2368A54BC9",
+      "bytes": 21117,
+      "clase": "documentacion de referencia"
+    },
+    {
+      "modulo": "ContaSol",
+      "archivo": "referencias/ContaSol/docs/PROPUESTA_RESTO_TABLAS_CONTASOL.md",
+      "origen": "C:\\Docs\\VeriFactu\\ProConta.ContaSol\\docs\\PROPUESTA_RESTO_TABLAS_CONTASOL.md",
+      "sha256": "8C6E2D7E36A7A92F3AAA86898DB909BF21C878AF56A68CC103BEA37A400C5B53",
+      "bytes": 20764,
+      "clase": "documentacion de referencia"
+    },
+    {
+      "modulo": "Asientos",
+      "archivo": "referencias/Asientos/src/ProConta.Contabilidad.Aplicacion/Asientos/ContratosAsientos.vb",
+      "origen": "C:\\Docs\\VeriFactu\\ProConta.Asientos\\src\\ProConta.Contabilidad.Aplicacion\\Asientos\\ContratosAsientos.vb",
+      "sha256": "41F339940A9F4A7FDE2C599849FB9ABE15091B5138FD5F6B3891ED5F4016BBC0",
+      "bytes": 1956,
+      "clase": "evidencia de contrato de codigo"
+    },
+    {
+      "modulo": "Asientos",
+      "archivo": "referencias/Asientos/src/ProConta.Contabilidad.Aplicacion/Asientos/CGestorAsientos.vb",
+      "origen": "C:\\Docs\\VeriFactu\\ProConta.Asientos\\src\\ProConta.Contabilidad.Aplicacion\\Asientos\\CGestorAsientos.vb",
+      "sha256": "8C0560458CF1D32E2AB3041125201BDFFCCA3E38851AA4E9FB9C5162675164FA",
+      "bytes": 4919,
+      "clase": "evidencia de contrato de codigo"
+    },
+    {
+      "modulo": "Asientos",
+      "archivo": "referencias/Asientos/src/ProConta.Contabilidad.Dominio/Asientos/CAsiento.vb",
+      "origen": "C:\\Docs\\VeriFactu\\ProConta.Asientos\\src\\ProConta.Contabilidad.Dominio\\Asientos\\CAsiento.vb",
+      "sha256": "3C351D08F31C073B0F5138939C86027BAFBC7B86611FF6A94072684E1A19F8C4",
+      "bytes": 11977,
+      "clase": "evidencia de contrato de codigo"
+    },
+    {
+      "modulo": "Asientos",
+      "archivo": "referencias/Asientos/src/ProConta.Contabilidad.Dominio/Asientos/CPoliticaCuadre.vb",
+      "origen": "C:\\Docs\\VeriFactu\\ProConta.Asientos\\src\\ProConta.Contabilidad.Dominio\\Asientos\\CPoliticaCuadre.vb",
+      "sha256": "3043E008E4CC3DC7A587B6E4967A4D4C1787D903FAF231686E0271E3FC9F7412",
+      "bytes": 1852,
+      "clase": "evidencia de contrato de codigo"
+    },
+    {
+      "modulo": "CuentasContables",
+      "archivo": "referencias/CuentasContables/src/ProConta.Contabilidad.Aplicacion/Cuentas/ContratosCuentasContables.vb",
+      "origen": "C:\\Docs\\VeriFactu\\ProConta.CuentasContables\\src\\ProConta.Contabilidad.Aplicacion\\Cuentas\\ContratosCuentasContables.vb",
+      "sha256": "E48975CB3A77FFD05C506D202D4BDC86AF3192730292FCB7FB748DF29F5E2378",
+      "bytes": 8758,
+      "clase": "evidencia de contrato de codigo"
+    },
+    {
+      "modulo": "CuentasContables",
+      "archivo": "referencias/CuentasContables/src/ProConta.Contabilidad.Aplicacion/Balances/ContratosBalances.vb",
+      "origen": "C:\\Docs\\VeriFactu\\ProConta.CuentasContables\\src\\ProConta.Contabilidad.Aplicacion\\Balances\\ContratosBalances.vb",
+      "sha256": "3F9FC9DD5140A026CD5CA52DE88FBD76FF3368D42D6FB55E772A84BF514C91DC",
+      "bytes": 858,
+      "clase": "evidencia de contrato de codigo"
+    },
+    {
+      "modulo": "AsistenteAsientos",
+      "archivo": "referencias/AsistenteAsientos/src/ProConta.Facturacion.Aplicacion/InteligenciaArtificial/ConversacionesAsistente.vb",
+      "origen": "C:\\Docs\\VeriFactu\\ProConta.AsistenteAsientos\\src\\ProConta.Facturacion.Aplicacion\\InteligenciaArtificial\\ConversacionesAsistente.vb",
+      "sha256": "C981B61B43D1DFA348DB05CAC09D6B652435A756A3C999AE395893D7CDF15738",
+      "bytes": 7599,
+      "clase": "evidencia de contrato de codigo"
+    },
+    {
+      "modulo": "AsistenteAsientos",
+      "archivo": "referencias/AsistenteAsientos/src/ProConta.Facturacion.Integraciones/InteligenciaArtificial/PropuestaAsientosIA.vb",
+      "origen": "C:\\Docs\\VeriFactu\\ProConta.AsistenteAsientos\\src\\ProConta.Facturacion.Integraciones\\InteligenciaArtificial\\PropuestaAsientosIA.vb",
+      "sha256": "F658B6537E373E14B6856E1037310B07F3672CA2A3EBB4CF0209CEE8658C2EFE",
+      "bytes": 2207,
+      "clase": "evidencia de contrato de codigo"
+    },
+    {
+      "modulo": "ActualizadorEsquema",
+      "archivo": "referencias/ActualizadorEsquema/docs/actualizador-esquema/ACTIVOS_INMUEBLES.md",
+      "origen": "C:\\Docs\\VeriFactu\\ProConta.ActualizadorEsquema\\docs\\actualizador-esquema\\ACTIVOS_INMUEBLES.md",
+      "sha256": "FD6B7DF908BB6FB49ECFD4E003DEF042E2D4784D438E9DC760083E0D4C15825A",
+      "bytes": 12977,
+      "clase": "documentacion de referencia"
+    },
+    {
+      "modulo": "ActualizadorEsquema",
+      "archivo": "referencias/ActualizadorEsquema/docs/actualizador-esquema/AUDITORIA_MIGRACION_OPERATIVA_20261001.md",
+      "origen": "C:\\Docs\\VeriFactu\\ProConta.ActualizadorEsquema\\docs\\actualizador-esquema\\AUDITORIA_MIGRACION_OPERATIVA_20261001.md",
+      "sha256": "695532D7D4E5E4C5EEAD83B7394863822CAD78F80DAB158C1DFCA12BDCC8B782",
+      "bytes": 9121,
+      "clase": "documentacion de referencia"
+    },
+    {
+      "modulo": "ActualizadorEsquema",
+      "archivo": "referencias/ActualizadorEsquema/docs/actualizador-esquema/BANCA_NORMA43.md",
+      "origen": "C:\\Docs\\VeriFactu\\ProConta.ActualizadorEsquema\\docs\\actualizador-esquema\\BANCA_NORMA43.md",
+      "sha256": "6638FF6811E6F2A0A115839F1641FADC40DC4B5A3907669C852CA3CB87DADC5B",
+      "bytes": 1769,
+      "clase": "documentacion de referencia"
+    },
+    {
+      "modulo": "ActualizadorEsquema",
+      "archivo": "referencias/ActualizadorEsquema/docs/actualizador-esquema/CENTROS_Y_FACTURACION.md",
+      "origen": "C:\\Docs\\VeriFactu\\ProConta.ActualizadorEsquema\\docs\\actualizador-esquema\\CENTROS_Y_FACTURACION.md",
+      "sha256": "590CD831EE832730EDA2E1150F6BD315CA941DD2AC78D4DCAC946B0AB2F35A3E",
+      "bytes": 5516,
+      "clase": "documentacion de referencia"
+    },
+    {
+      "modulo": "ActualizadorEsquema",
+      "archivo": "referencias/ActualizadorEsquema/docs/actualizador-esquema/COBERTURA_SUBMODELOS.md",
+      "origen": "C:\\Docs\\VeriFactu\\ProConta.ActualizadorEsquema\\docs\\actualizador-esquema\\COBERTURA_SUBMODELOS.md",
+      "sha256": "941D8E86E37495901F19AF2E1720BE0207262054D419AAA7BC74732029F769F9",
+      "bytes": 3936,
+      "clase": "documentacion de referencia"
+    },
+    {
+      "modulo": "ActualizadorEsquema",
+      "archivo": "referencias/ActualizadorEsquema/docs/actualizador-esquema/CONTABILIDAD_INICIAL.md",
+      "origen": "C:\\Docs\\VeriFactu\\ProConta.ActualizadorEsquema\\docs\\actualizador-esquema\\CONTABILIDAD_INICIAL.md",
+      "sha256": "007FBA80A5AEF69F69D7969A87CDA43EDE35E95B6EB685EF9816847713E55E64",
+      "bytes": 3237,
+      "clase": "documentacion de referencia"
+    },
+    {
+      "modulo": "ActualizadorEsquema",
+      "archivo": "referencias/ActualizadorEsquema/docs/actualizador-esquema/CONTACTOS_LIBRES_CANDIDATO_20261001.md",
+      "origen": "C:\\Docs\\VeriFactu\\ProConta.ActualizadorEsquema\\docs\\actualizador-esquema\\CONTACTOS_LIBRES_CANDIDATO_20261001.md",
+      "sha256": "73DD681F8C29CCB92176D96C7B04BF08000F018D7EA26162F2E20E5890DE7403",
+      "bytes": 4480,
+      "clase": "documentacion de referencia"
+    },
+    {
+      "modulo": "ActualizadorEsquema",
+      "archivo": "referencias/ActualizadorEsquema/docs/actualizador-esquema/CONTASOL_IVA.md",
+      "origen": "C:\\Docs\\VeriFactu\\ProConta.ActualizadorEsquema\\docs\\actualizador-esquema\\CONTASOL_IVA.md",
+      "sha256": "62420BEBA8AEBF377B8288BB807268A5BD2259534F0B5AADFE78AECDA84E9420",
+      "bytes": 1406,
+      "clase": "documentacion de referencia"
+    },
+    {
+      "modulo": "ActualizadorEsquema",
+      "archivo": "referencias/ActualizadorEsquema/docs/actualizador-esquema/CONTASOL_NUCLEO.md",
+      "origen": "C:\\Docs\\VeriFactu\\ProConta.ActualizadorEsquema\\docs\\actualizador-esquema\\CONTASOL_NUCLEO.md",
+      "sha256": "2C97FB9D6EB20F99E1ACFA8F86DB169D559E4D2A8EB5E5C35728FA2331E828C9",
+      "bytes": 1666,
+      "clase": "documentacion de referencia"
+    },
+    {
+      "modulo": "ActualizadorEsquema",
+      "archivo": "referencias/ActualizadorEsquema/docs/actualizador-esquema/CONTRATOS_INCREMENTO_1.md",
+      "origen": "C:\\Docs\\VeriFactu\\ProConta.ActualizadorEsquema\\docs\\actualizador-esquema\\CONTRATOS_INCREMENTO_1.md",
+      "sha256": "FEECDEFA7174FFFD63145FD45ED1CE4F53DE4512895884BFC5E1F45F2839B538",
+      "bytes": 16071,
+      "clase": "documentacion de referencia"
+    },
+    {
+      "modulo": "ActualizadorEsquema",
+      "archivo": "referencias/ActualizadorEsquema/docs/actualizador-esquema/CORTE_CONTACTOS_LIBRES_PROCONTA_20261001.md",
+      "origen": "C:\\Docs\\VeriFactu\\ProConta.ActualizadorEsquema\\docs\\actualizador-esquema\\CORTE_CONTACTOS_LIBRES_PROCONTA_20261001.md",
+      "sha256": "F6B7E20B7292EDACC176C02CFFF715B83706BCC05D0819C45F1FAB31C7C5270D",
+      "bytes": 2876,
+      "clase": "documentacion de referencia"
+    },
+    {
+      "modulo": "ActualizadorEsquema",
+      "archivo": "referencias/ActualizadorEsquema/docs/actualizador-esquema/DIAGNOSTICO_BASES_EXISTENTES.md",
+      "origen": "C:\\Docs\\VeriFactu\\ProConta.ActualizadorEsquema\\docs\\actualizador-esquema\\DIAGNOSTICO_BASES_EXISTENTES.md",
+      "sha256": "4D7E075AF4E77FDEC144C3307BDEA984793455512BCD8E1F92A4BCA9C24FFF56",
+      "bytes": 1765,
+      "clase": "documentacion de referencia"
+    },
+    {
+      "modulo": "ActualizadorEsquema",
+      "archivo": "referencias/ActualizadorEsquema/docs/actualizador-esquema/DIAGNOSTICO_SUITE_20260928.md",
+      "origen": "C:\\Docs\\VeriFactu\\ProConta.ActualizadorEsquema\\docs\\actualizador-esquema\\DIAGNOSTICO_SUITE_20260928.md",
+      "sha256": "87EB2CF0C56B9F6FA713BF03519419898DF25653953EB0C79482855740E03F16",
+      "bytes": 2024,
+      "clase": "documentacion de referencia"
+    },
+    {
+      "modulo": "ActualizadorEsquema",
+      "archivo": "referencias/ActualizadorEsquema/docs/actualizador-esquema/ENSAYO_TRANSICION_TERCEROS_VF_20261001.md",
+      "origen": "C:\\Docs\\VeriFactu\\ProConta.ActualizadorEsquema\\docs\\actualizador-esquema\\ENSAYO_TRANSICION_TERCEROS_VF_20261001.md",
+      "sha256": "F08100DE494096CBA2EA958452EABDF91AB2EBA42BFD0BA2FE2FAC748854E90B",
+      "bytes": 6071,
+      "clase": "documentacion de referencia"
+    },
+    {
+      "modulo": "ActualizadorEsquema",
+      "archivo": "referencias/ActualizadorEsquema/docs/actualizador-esquema/FACTURAS_COMPRA.md",
+      "origen": "C:\\Docs\\VeriFactu\\ProConta.ActualizadorEsquema\\docs\\actualizador-esquema\\FACTURAS_COMPRA.md",
+      "sha256": "B53BB786F1DAC268DB81C0800FAE6A1E03176A8F99A09D6E2D3B10E610E89752",
+      "bytes": 2045,
+      "clase": "documentacion de referencia"
+    },
+    {
+      "modulo": "ActualizadorEsquema",
+      "archivo": "referencias/ActualizadorEsquema/docs/actualizador-esquema/IMPLEMENTACION_INICIAL.md",
+      "origen": "C:\\Docs\\VeriFactu\\ProConta.ActualizadorEsquema\\docs\\actualizador-esquema\\IMPLEMENTACION_INICIAL.md",
+      "sha256": "0FBEBDEB21ED9B8C8889C492B2728C83F3BD873C09130FBB77DE0BE9510BE21C",
+      "bytes": 10535,
+      "clase": "documentacion de referencia"
+    },
+    {
+      "modulo": "ActualizadorEsquema",
+      "archivo": "referencias/ActualizadorEsquema/docs/actualizador-esquema/INTEGRACION_TERCEROS.md",
+      "origen": "C:\\Docs\\VeriFactu\\ProConta.ActualizadorEsquema\\docs\\actualizador-esquema\\INTEGRACION_TERCEROS.md",
+      "sha256": "02A63191C2DC32F6628FE107C6F4981DED35B8C7AE80004874F6F39266175CC8",
+      "bytes": 4344,
+      "clase": "documentacion de referencia"
+    },
+    {
+      "modulo": "ActualizadorEsquema",
+      "archivo": "referencias/ActualizadorEsquema/docs/actualizador-esquema/PLAN_TRANSICION_BASE_PRUEBAS.md",
+      "origen": "C:\\Docs\\VeriFactu\\ProConta.ActualizadorEsquema\\docs\\actualizador-esquema\\PLAN_TRANSICION_BASE_PRUEBAS.md",
+      "sha256": "4692394A8F56FDE9EA33616ECE0FE9F4CAD805BCA9951F79C9403A53CAB68467",
+      "bytes": 4858,
+      "clase": "documentacion de referencia"
+    },
+    {
+      "modulo": "ActualizadorEsquema",
+      "archivo": "referencias/ActualizadorEsquema/docs/actualizador-esquema/RESERVAS_ALOJAMIENTO.md",
+      "origen": "C:\\Docs\\VeriFactu\\ProConta.ActualizadorEsquema\\docs\\actualizador-esquema\\RESERVAS_ALOJAMIENTO.md",
+      "sha256": "B32D97D2006E0AAFEE3D65D2EE3B607CE50DF2DF4C45C109F0E15CFB8A6F960A",
+      "bytes": 4389,
+      "clase": "documentacion de referencia"
+    },
+    {
+      "modulo": "ActualizadorEsquema",
+      "archivo": "referencias/ActualizadorEsquema/docs/actualizador-esquema/SEGURIDAD.md",
+      "origen": "C:\\Docs\\VeriFactu\\ProConta.ActualizadorEsquema\\docs\\actualizador-esquema\\SEGURIDAD.md",
+      "sha256": "8442B32570D9DE8A899DD927ADB535AA0D959583E5E452E020B554E7B9EC5F23",
+      "bytes": 1124,
+      "clase": "documentacion de referencia"
+    },
+    {
+      "modulo": "ActualizadorEsquema",
+      "archivo": "referencias/ActualizadorEsquema/docs/actualizador-esquema/SOCIEDADES_Y_EJERCICIOS.md",
+      "origen": "C:\\Docs\\VeriFactu\\ProConta.ActualizadorEsquema\\docs\\actualizador-esquema\\SOCIEDADES_Y_EJERCICIOS.md",
+      "sha256": "A8B9DD2B5D6A2A341275264D99376685A15EFC4B602C2D48E543AEF0020B48DA",
+      "bytes": 5690,
+      "clase": "documentacion de referencia"
+    },
+    {
+      "modulo": "ActualizadorEsquema",
+      "archivo": "referencias/ActualizadorEsquema/docs/actualizador-esquema/SUPERMODELO_PROCONTA_20261001.md",
+      "origen": "C:\\Docs\\VeriFactu\\ProConta.ActualizadorEsquema\\docs\\actualizador-esquema\\SUPERMODELO_PROCONTA_20261001.md",
+      "sha256": "BF25CE2DA5148943735B1B3AD0EBC7D97DDDBBFF2916D930505846DAB0B87150",
+      "bytes": 3660,
+      "clase": "documentacion de referencia"
+    },
+    {
+      "modulo": "ActualizadorEsquema",
+      "archivo": "referencias/ActualizadorEsquema/docs/actualizador-esquema/TERCEROS.md",
+      "origen": "C:\\Docs\\VeriFactu\\ProConta.ActualizadorEsquema\\docs\\actualizador-esquema\\TERCEROS.md",
+      "sha256": "23A090817B8C0BD4F056C30E1B1E8AEF9AB86C9A445C4836015A4398DEE92891",
+      "bytes": 2724,
+      "clase": "documentacion de referencia"
+    },
+    {
+      "modulo": "ActualizadorEsquema",
+      "archivo": "referencias/ActualizadorEsquema/database/migrations/20260928_001_base_tecnica.json",
+      "origen": "C:\\Docs\\VeriFactu\\ProConta.ActualizadorEsquema\\database\\migrations\\20260928_001_base_tecnica.json",
+      "sha256": "F4490F8FA53EB6713A41FE77256720513D4D5416FBC6C57FE65C2059CEF576DB",
+      "bytes": 3509,
+      "clase": "manifiesto fisico historico"
+    },
+    {
+      "modulo": "ActualizadorEsquema",
+      "archivo": "referencias/ActualizadorEsquema/database/migrations/20260928_002_nucleo_operativo.json",
+      "origen": "C:\\Docs\\VeriFactu\\ProConta.ActualizadorEsquema\\database\\migrations\\20260928_002_nucleo_operativo.json",
+      "sha256": "BD6D4BC693EC4BED84CEBA6E00AFA67E0C7E7E451CCD92E90FF136F573F72967",
+      "bytes": 16232,
+      "clase": "manifiesto fisico historico"
+    },
+    {
+      "modulo": "ActualizadorEsquema",
+      "archivo": "referencias/ActualizadorEsquema/database/migrations/20260928_003_contabilidad.json",
+      "origen": "C:\\Docs\\VeriFactu\\ProConta.ActualizadorEsquema\\database\\migrations\\20260928_003_contabilidad.json",
+      "sha256": "6ACCB34339CB20FB9643751FBE601398315FB05402523574C98EBCE7C7CD312C",
+      "bytes": 15568,
+      "clase": "manifiesto fisico historico"
+    },
+    {
+      "modulo": "ActualizadorEsquema",
+      "archivo": "referencias/ActualizadorEsquema/database/migrations/20260928_004_centros_configuracion.json",
+      "origen": "C:\\Docs\\VeriFactu\\ProConta.ActualizadorEsquema\\database\\migrations\\20260928_004_centros_configuracion.json",
+      "sha256": "87801B102BA8D45265DE4C8A4245ED4FBE249DA1053CCE9DEFA88C5E03A8B4B7",
+      "bytes": 3690,
+      "clase": "manifiesto fisico historico"
+    },
+    {
+      "modulo": "ActualizadorEsquema",
+      "archivo": "referencias/ActualizadorEsquema/database/migrations/20260928_005_facturacion.json",
+      "origen": "C:\\Docs\\VeriFactu\\ProConta.ActualizadorEsquema\\database\\migrations\\20260928_005_facturacion.json",
+      "sha256": "13087410D86960E2C87F4CD6A0F7634DA14B153CF4DE5AA491B4D2A96CEA2140",
+      "bytes": 21569,
+      "clase": "manifiesto fisico historico"
+    },
+    {
+      "modulo": "ActualizadorEsquema",
+      "archivo": "referencias/ActualizadorEsquema/database/migrations/20260929_006_facturas_compra.json",
+      "origen": "C:\\Docs\\VeriFactu\\ProConta.ActualizadorEsquema\\database\\migrations\\20260929_006_facturas_compra.json",
+      "sha256": "819924BF2E9B944418BA082BDC2BD9B43192250156865CA7A001C47849FCD572",
+      "bytes": 6337,
+      "clase": "manifiesto fisico historico"
+    },
+    {
+      "modulo": "ActualizadorEsquema",
+      "archivo": "referencias/ActualizadorEsquema/database/migrations/20260929_007_banca_norma43.json",
+      "origen": "C:\\Docs\\VeriFactu\\ProConta.ActualizadorEsquema\\database\\migrations\\20260929_007_banca_norma43.json",
+      "sha256": "947F25D565A63A0D45FB958B78F7C50B2C46CCFF29377FE8BFE9021EBB5F7B2F",
+      "bytes": 10174,
+      "clase": "manifiesto fisico historico"
+    },
+    {
+      "modulo": "ActualizadorEsquema",
+      "archivo": "referencias/ActualizadorEsquema/database/migrations/20260929_008_contasol_nucleo.json",
+      "origen": "C:\\Docs\\VeriFactu\\ProConta.ActualizadorEsquema\\database\\migrations\\20260929_008_contasol_nucleo.json",
+      "sha256": "2E039D57EF321C14505BE0A62AFD14339324D22777693293D5C9A8DDDE27A64E",
+      "bytes": 7658,
+      "clase": "manifiesto fisico historico"
+    },
+    {
+      "modulo": "ActualizadorEsquema",
+      "archivo": "referencias/ActualizadorEsquema/database/migrations/20260929_009_contasol_iva.json",
+      "origen": "C:\\Docs\\VeriFactu\\ProConta.ActualizadorEsquema\\database\\migrations\\20260929_009_contasol_iva.json",
+      "sha256": "A16F7CF8F86085C86529AB1BABDA871F41F0B0D75A75D14E84EE8DEA1C607409",
+      "bytes": 6181,
+      "clase": "manifiesto fisico historico"
+    },
+    {
+      "modulo": "ActualizadorEsquema",
+      "archivo": "referencias/ActualizadorEsquema/database/migrations/20260929_010_seguridad.json",
+      "origen": "C:\\Docs\\VeriFactu\\ProConta.ActualizadorEsquema\\database\\migrations\\20260929_010_seguridad.json",
+      "sha256": "D7F948B836743516A89D1FD83EA905A8E0DB71D121B1103D0BB90258B3E5D987",
+      "bytes": 3132,
+      "clase": "manifiesto fisico historico"
+    },
+    {
+      "modulo": "ActualizadorEsquema",
+      "archivo": "referencias/ActualizadorEsquema/database/migrations/20260929_011_correo_central.json",
+      "origen": "C:\\Docs\\VeriFactu\\ProConta.ActualizadorEsquema\\database\\migrations\\20260929_011_correo_central.json",
+      "sha256": "CF6E3568C58969345C3FB46E3FF07F55774DAE8CDD6720DC092486020CB23E9B",
+      "bytes": 5846,
+      "clase": "manifiesto fisico historico"
+    },
+    {
+      "modulo": "ActualizadorEsquema",
+      "archivo": "referencias/ActualizadorEsquema/database/migrations/20260929_012_gestor_contable.json",
+      "origen": "C:\\Docs\\VeriFactu\\ProConta.ActualizadorEsquema\\database\\migrations\\20260929_012_gestor_contable.json",
+      "sha256": "3D1F39DC5C5EF09397B02CEF56011C61BFB60E269FCC16B4DC0E4ADE996ED1FC",
+      "bytes": 2483,
+      "clase": "manifiesto fisico historico"
+    },
+    {
+      "modulo": "ActualizadorEsquema",
+      "archivo": "referencias/ActualizadorEsquema/database/migrations/20260929_013_nominas.json",
+      "origen": "C:\\Docs\\VeriFactu\\ProConta.ActualizadorEsquema\\database\\migrations\\20260929_013_nominas.json",
+      "sha256": "0CE2711C1E20809AD013AEEE8213C37A83184BB26E0080B9D444212FE95C7279",
+      "bytes": 7359,
+      "clase": "manifiesto fisico historico"
+    },
+    {
+      "modulo": "ActualizadorEsquema",
+      "archivo": "referencias/ActualizadorEsquema/database/migrations/20260929_014_reporting.json",
+      "origen": "C:\\Docs\\VeriFactu\\ProConta.ActualizadorEsquema\\database\\migrations\\20260929_014_reporting.json",
+      "sha256": "FB0A5664D812F0F380732EECF654417B88F5F94A146C2CB4D8440D73DC8C3CCD",
+      "bytes": 3252,
+      "clase": "manifiesto fisico historico"
+    },
+    {
+      "modulo": "ActualizadorEsquema",
+      "archivo": "referencias/ActualizadorEsquema/database/migrations/20260929_015_activos_ampliacion.json",
+      "origen": "C:\\Docs\\VeriFactu\\ProConta.ActualizadorEsquema\\database\\migrations\\20260929_015_activos_ampliacion.json",
+      "sha256": "5F6069B439CEF3737CC35E004E439CD2D4786C106B681A9D3F886A67BBD56C27",
+      "bytes": 8691,
+      "clase": "manifiesto fisico historico"
+    },
+    {
+      "modulo": "ActualizadorEsquema",
+      "archivo": "referencias/ActualizadorEsquema/database/migrations/20260929_016_verifactu.json",
+      "origen": "C:\\Docs\\VeriFactu\\ProConta.ActualizadorEsquema\\database\\migrations\\20260929_016_verifactu.json",
+      "sha256": "EA94BF7749DCCD25D96BC2A40D994E7EEA9BD9E3288B8F3A6483B9B97EAB25BC",
+      "bytes": 4069,
+      "clase": "manifiesto fisico historico"
+    },
+    {
+      "modulo": "ActualizadorEsquema",
+      "archivo": "referencias/ActualizadorEsquema/database/migrations/20260929_017_correo_facturacion.json",
+      "origen": "C:\\Docs\\VeriFactu\\ProConta.ActualizadorEsquema\\database\\migrations\\20260929_017_correo_facturacion.json",
+      "sha256": "4689BA90906BB437EF49AD69357B444E1C1DCAB4D31FC6B19D6474A271AC35D6",
+      "bytes": 4264,
+      "clase": "manifiesto fisico historico"
+    },
+    {
+      "modulo": "ActualizadorEsquema",
+      "archivo": "referencias/ActualizadorEsquema/database/migrations/20260929_018_soporte_transversal.json",
+      "origen": "C:\\Docs\\VeriFactu\\ProConta.ActualizadorEsquema\\database\\migrations\\20260929_018_soporte_transversal.json",
+      "sha256": "82319C956ADA006F1685A26EFC9DB1D1359147A7C8A908AAA391EF4A5078DA5F",
+      "bytes": 6939,
+      "clase": "manifiesto fisico historico"
+    },
+    {
+      "modulo": "ActualizadorEsquema",
+      "archivo": "referencias/ActualizadorEsquema/database/migrations/20260929_019_terceros_instantanea.json",
+      "origen": "C:\\Docs\\VeriFactu\\ProConta.ActualizadorEsquema\\database\\migrations\\20260929_019_terceros_instantanea.json",
+      "sha256": "63F445D4A1A914F63A42B7724FDE61EFB867998D1F2B2E36642F6C755FB4668B",
+      "bytes": 1045,
+      "clase": "manifiesto fisico historico"
+    },
+    {
+      "modulo": "ActualizadorEsquema",
+      "archivo": "referencias/ActualizadorEsquema/database/migrations/20260930_020_historial_terceros.json",
+      "origen": "C:\\Docs\\VeriFactu\\ProConta.ActualizadorEsquema\\database\\migrations\\20260930_020_historial_terceros.json",
+      "sha256": "B1C29DF6A1B809CA151A710FEFC7EB7D980F86145479B0DFD8D99ADEBBBEC8DD",
+      "bytes": 1297,
+      "clase": "manifiesto fisico historico"
+    },
+    {
+      "modulo": "ActualizadorEsquema",
+      "archivo": "referencias/ActualizadorEsquema/database/migrations/20260930_021_acceso_sociedades_grupo.json",
+      "origen": "C:\\Docs\\VeriFactu\\ProConta.ActualizadorEsquema\\database\\migrations\\20260930_021_acceso_sociedades_grupo.json",
+      "sha256": "BE7F9086B6402A8FAD9FE2C53AB5D498400E521FE03185061E92D7BD3ED25FB8",
+      "bytes": 962,
+      "clase": "manifiesto fisico historico"
+    },
+    {
+      "modulo": "ActualizadorEsquema",
+      "archivo": "referencias/ActualizadorEsquema/database/migrations/20260930_022_preferencias_acceso.json",
+      "origen": "C:\\Docs\\VeriFactu\\ProConta.ActualizadorEsquema\\database\\migrations\\20260930_022_preferencias_acceso.json",
+      "sha256": "E4E71176E74E12D2052ADBF28D8EB90C99591CEAAB26A7185758AFFAD243A454",
+      "bytes": 1760,
+      "clase": "manifiesto fisico historico"
+    },
+    {
+      "modulo": "ActualizadorEsquema",
+      "archivo": "referencias/ActualizadorEsquema/database/migrations/20261001_001_terceros_vf_contrato_final.json",
+      "origen": "C:\\Docs\\VeriFactu\\ProConta.ActualizadorEsquema\\database\\migrations\\20261001_001_terceros_vf_contrato_final.json",
+      "sha256": "D2E999DD2D18C94EE968E4F1033455C6DA2C9FFF8F1EF1AF7C576540F01697E7",
+      "bytes": 16836,
+      "clase": "manifiesto fisico historico"
+    },
+    {
+      "modulo": "ActualizadorEsquema",
+      "archivo": "referencias/ActualizadorEsquema/database/migrations/20261001_023_supermodelo_proconta.json",
+      "origen": "C:\\Docs\\VeriFactu\\ProConta.ActualizadorEsquema\\database\\migrations\\20261001_023_supermodelo_proconta.json",
+      "sha256": "67BE52B55C07B1D17EABB7B76EDB5FB17B9CA1D8306C8BC833034AF887EF965C",
+      "bytes": 9412,
+      "clase": "manifiesto fisico historico"
+    },
+    {
+      "modulo": "ActualizadorEsquema",
+      "archivo": "referencias/ActualizadorEsquema/database/migrations/20261001_024_contactos_libres_maestra.json",
+      "origen": "C:\\Docs\\VeriFactu\\ProConta.ActualizadorEsquema\\database\\migrations\\20261001_024_contactos_libres_maestra.json",
+      "sha256": "9559B16A74F7D87C78D127780711B25EA64D7CF5AFEBDDEED1E09C9772CBC13F",
+      "bytes": 1509,
+      "clase": "manifiesto fisico historico"
+    }
+  ],
+  "fuentesNoLocalizadas": []
+}

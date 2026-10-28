@@ -1,0 +1,28 @@
+{
+  "id": "20260929_016_VERIFACTU",
+  "version": "0.16.0",
+  "descripcion": "Configuración por sociedad y trazabilidad fiscal de lotes, envíos y respuestas VeriFactu.",
+  "sentencias": [
+    "CREATE TABLE VeriFactuConfiguracion (IdVeriFactuConfiguracion COUNTER CONSTRAINT PK_VeriFactuConfiguracion PRIMARY KEY, IdSociedad TEXT(3) NOT NULL, Activo YESNO NOT NULL, Entorno TEXT(10), CertificateThumbprint TEXT(64), CertificateSerial TEXT(100), CertificatePath TEXT(255), CertificatePasswordProtegida LONGTEXT, IDVersion TEXT(3), VeriFactuEndPointPrefix TEXT(255), VeriFactuEndPointValidatePrefix TEXT(255), VeriFactuHashAlgorithm TEXT(2), VeriFactuHashInputEncoding TEXT(20), SkipNifAeatValidation YESNO NOT NULL, SkipViesVatNumberValidation YESNO NOT NULL, LoggingEnabled YESNO NOT NULL, FechaModificacion DATETIME, OperadorModificacion TEXT(30), ProductorNIF TEXT(25), ProductorNombre TEXT(200), NombreSistemaInformatico TEXT(30), IdSistemaInformatico TEXT(2), VersionSistemaInformatico TEXT(50), NumeroInstalacion TEXT(100), TipoUsoPosibleSoloVerifactu TEXT(1), TipoUsoPosibleMultiOT TEXT(1), IndicadorMultiplesOT TEXT(1))",
+    "CREATE TABLE VeriFactuLotesEnvio (IdLoteEnvio LONG CONSTRAINT PK_VeriFactuLotesEnvio PRIMARY KEY, IdSociedadEjercicio LONG NOT NULL, FechaHoraGeneracion DATETIME, FechaHoraEnvio DATETIME, Entorno TEXT(10) NOT NULL, Estado TEXT(15) NOT NULL, XMLSolicitud LONGTEXT, RespuestaCompleta LONGTEXT, Operador TEXT(30))",
+    "CREATE TABLE VeriFactuEnvios (IdEnvio LONG CONSTRAINT PK_VeriFactuEnvios PRIMARY KEY, IdFactura LONG NOT NULL, TipoRegistro TEXT(10) NOT NULL, NumeroIntento SHORT NOT NULL, Entorno TEXT(10) NOT NULL, EstadoEnvio TEXT(30) NOT NULL, FechaHoraGeneracion DATETIME NOT NULL, FechaHoraHusoGenRegistro TEXT(35), FechaHoraEnvio DATETIME, Endpoint TEXT(255), XMLSolicitud LONGTEXT, TipoHuella TEXT(2) NOT NULL, Huella TEXT(64), HuellaAnterior TEXT(64), URLValidacion LONGTEXT, IdLoteEnvio LONG)",
+    "CREATE TABLE VeriFactuRespuestas (IdRespuesta LONG CONSTRAINT PK_VeriFactuRespuestas PRIMARY KEY, IdEnvio LONG NOT NULL, FechaHoraRespuesta DATETIME NOT NULL, ResultCode TEXT(50), ResultMessage LONGTEXT, EstadoRegistro TEXT(30), CSV TEXT(100), CodigoError TEXT(50), DescripcionError LONGTEXT, EsDuplicado YESNO NOT NULL, EstadoRegistroDuplicado TEXT(30), TiempoEspera LONG NOT NULL, RespuestaCompleta LONGTEXT)",
+    "CREATE UNIQUE INDEX UX_VeriFactuConfiguracion_IdSociedad ON VeriFactuConfiguracion (IdSociedad)",
+    "CREATE UNIQUE INDEX UX_VeriFactuEnvios_Intento ON VeriFactuEnvios (IdFactura,NumeroIntento)",
+    "CREATE UNIQUE INDEX UX_VeriFactuRespuestas_Envio ON VeriFactuRespuestas (IdEnvio)",
+    "ALTER TABLE VeriFactuConfiguracion ADD CONSTRAINT FK_VeriFactuConfiguracion_Sociedad FOREIGN KEY (IdSociedad) REFERENCES Sociedades (IdSociedad)",
+    "ALTER TABLE VeriFactuLotesEnvio ADD CONSTRAINT FK_VeriFactuLotes_Ejercicio FOREIGN KEY (IdSociedadEjercicio) REFERENCES SociedadesEjercicios (IdSociedadEjercicio)",
+    "ALTER TABLE VeriFactuEnvios ADD CONSTRAINT FK_VeriFactuEnvios_Factura FOREIGN KEY (IdFactura) REFERENCES Facturas (IdFactura)",
+    "ALTER TABLE VeriFactuEnvios ADD CONSTRAINT FK_VeriFactuEnvios_Lote FOREIGN KEY (IdLoteEnvio) REFERENCES VeriFactuLotesEnvio (IdLoteEnvio)",
+    "ALTER TABLE VeriFactuRespuestas ADD CONSTRAINT FK_VeriFactuRespuestas_Envio FOREIGN KEY (IdEnvio) REFERENCES VeriFactuEnvios (IdEnvio)"
+  ],
+  "descripciones": {
+    "VeriFactuConfiguracion": {
+      "IdSociedad": "Configuración permanente de la sociedad; las facturas y envíos guardan su ejercicio histórico.",
+      "CertificatePasswordProtegida": "Campo legado para el secreto protegido; permanece vacío en la base maestra inicial."
+    },
+    "VeriFactuLotesEnvio": {"IdSociedadEjercicio": "Ejercicio de los registros incluidos en el lote."},
+    "VeriFactuEnvios": {"IdFactura": "Factura fiscal inmutable a la que corresponde el intento.", "NumeroIntento": "Ordinal único del intento dentro de la factura."},
+    "VeriFactuRespuestas": {"IdEnvio": "Respuesta conservada para un envío registrado."}
+  }
+}

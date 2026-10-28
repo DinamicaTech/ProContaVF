@@ -1,0 +1,21 @@
+{
+  "id": "20260929_019_TERCEROS_INSTANTANEA",
+  "version": "0.19.0",
+  "descripcion": "Instantánea de domicilio y correo de cliente en facturas de la maestra con Terceros.",
+  "sentencias": [
+    "ALTER TABLE Facturas ADD COLUMN DireccionCliente TEXT(255)",
+    "ALTER TABLE Facturas ADD COLUMN CodigoPostalCliente TEXT(20)",
+    "ALTER TABLE Facturas ADD COLUMN PoblacionCliente TEXT(100)",
+    "ALTER TABLE Facturas ADD COLUMN ProvinciaCliente TEXT(100)",
+    "ALTER TABLE Facturas ADD COLUMN EmailCliente TEXT(150)"
+  ],
+  "descripciones": {
+    "Facturas": {
+      "DireccionCliente": "Domicilio fiscal materializado al emitir; una edición posterior del tercero no altera la factura.",
+      "CodigoPostalCliente": "Código postal histórico del destinatario de la factura.",
+      "PoblacionCliente": "Población histórica del destinatario de la factura.",
+      "ProvinciaCliente": "Provincia histórica del destinatario de la factura.",
+      "EmailCliente": "Correo de contacto congelado al emitir o remitir la factura."
+    }
+  }
+}

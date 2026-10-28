@@ -1,0 +1,37 @@
+{
+  "id": "20260929_010_SEGURIDAD",
+  "version": "0.10.0",
+  "descripcion": "Operadores, grupos, restricciones de reports y auditoría de seguridad.",
+  "sentencias": [
+    "CREATE TABLE OperadoresSeguridad (IdOperador COUNTER CONSTRAINT PK_OperadoresSeguridad PRIMARY KEY, Nombre TEXT(100) NOT NULL, Email TEXT(254), Activo YESNO NOT NULL, HashPassword BINARY(32), SaltPassword BINARY(16), IteracionesPassword LONG, PasswordTemporal YESNO NOT NULL, FechaHoraPassword DATETIME)",
+    "CREATE TABLE GruposOperadores (IdGrupoOperadores COUNTER CONSTRAINT PK_GruposOperadores PRIMARY KEY, Codigo TEXT(50) NOT NULL, Nombre TEXT(100) NOT NULL, Descripcion TEXT(255), Activo YESNO NOT NULL)",
+    "CREATE TABLE OperadoresGrupos (IdOperador LONG NOT NULL, IdGrupoOperadores LONG NOT NULL, CONSTRAINT PK_OperadoresGrupos PRIMARY KEY (IdOperador,IdGrupoOperadores))",
+    "CREATE TABLE RestriccionesReportsGrupo (IdGrupoOperadores LONG NOT NULL, CodigoReport TEXT(100) NOT NULL, CONSTRAINT PK_RestriccionesReportsGrupo PRIMARY KEY (IdGrupoOperadores,CodigoReport))",
+    "CREATE TABLE AuditoriaSeguridad (IdAuditoriaSeguridad COUNTER CONSTRAINT PK_AuditoriaSeguridad PRIMARY KEY, FechaHora DATETIME NOT NULL, TipoEvento TEXT(40) NOT NULL, CodigoOperador TEXT(50), Actor TEXT(50), Resultado TEXT(30) NOT NULL, Detalle TEXT(255))",
+    "CREATE UNIQUE INDEX UX_OperadoresSeguridad_Nombre ON OperadoresSeguridad (Nombre)",
+    "CREATE UNIQUE INDEX UX_GruposOperadores_Codigo ON GruposOperadores (Codigo)",
+    "CREATE INDEX IX_AuditoriaSeguridad_FechaHora ON AuditoriaSeguridad (FechaHora)",
+    "ALTER TABLE OperadoresGrupos ADD CONSTRAINT FK_OperadoresGrupos_Operador FOREIGN KEY (IdOperador) REFERENCES OperadoresSeguridad (IdOperador)",
+    "ALTER TABLE OperadoresGrupos ADD CONSTRAINT FK_OperadoresGrupos_Grupo FOREIGN KEY (IdGrupoOperadores) REFERENCES GruposOperadores (IdGrupoOperadores)",
+    "ALTER TABLE RestriccionesReportsGrupo ADD CONSTRAINT FK_RestriccionesReports_Grupo FOREIGN KEY (IdGrupoOperadores) REFERENCES GruposOperadores (IdGrupoOperadores)",
+    "INSERT INTO GruposOperadores (Codigo,Nombre,Descripcion,Activo) VALUES ('ADMINISTRADORES','Administradores','Administración completa de ProConta',True)",
+    "INSERT INTO GruposOperadores (Codigo,Nombre,Descripcion,Activo) VALUES ('OPERADORES','Operadores','Operación habitual de ProConta',True)"
+  ],
+  "descripciones": {
+    "OperadoresSeguridad": {
+      "Nombre": "Identificador visible y único del operador; reemplaza al antiguo Codigo redundante.",
+      "HashPassword": "Resumen binario de la contraseña; no se siembran operadores.",
+      "SaltPassword": "Sal binaria individual para el resumen de contraseña."
+    },
+    "GruposOperadores": {
+      "Codigo": "Código estable del grupo técnico o configurado.",
+      "Activo": "Los dos grupos técnicos iniciales están activos."
+    },
+    "RestriccionesReportsGrupo": {
+      "CodigoReport": "Código de report restringido al grupo indicado."
+    },
+    "AuditoriaSeguridad": {
+      "CodigoOperador": "Texto histórico de auditoría; puede conservar identificadores de versiones anteriores."
+    }
+  }
+}

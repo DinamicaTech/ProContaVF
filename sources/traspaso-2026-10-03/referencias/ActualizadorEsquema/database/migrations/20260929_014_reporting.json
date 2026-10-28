@@ -1,0 +1,34 @@
+{
+  "id": "20260929_014_REPORTING",
+  "version": "0.14.0",
+  "descripcion": "Modelos normativos, nodos y reglas de balances PGC Pymes 2008.",
+  "sentencias": [
+    "CREATE TABLE ModelosBalance (IdModeloBalance COUNTER CONSTRAINT PK_ModelosBalance PRIMARY KEY, Codigo TEXT(40) NOT NULL, Nombre TEXT(150) NOT NULL, TipoBalance BYTE NOT NULL, VersionNormativa TEXT(30) NOT NULL, FechaVigenciaDesde DATETIME NOT NULL, FechaVigenciaHasta DATETIME, FuenteNormativa TEXT(255) NOT NULL, EstaActivo YESNO NOT NULL)",
+    "CREATE TABLE NodosBalance (IdNodoBalance COUNTER CONSTRAINT PK_NodosBalance PRIMARY KEY, IdModeloBalance LONG NOT NULL, IdNodoPadre LONG, Codigo TEXT(60) NOT NULL, Nombre TEXT(255) NOT NULL, TipoNodo BYTE NOT NULL, Orden LONG NOT NULL, Nivel BYTE NOT NULL, Multiplicador SHORT NOT NULL, MostrarSiEsCero YESNO NOT NULL, EstaActivo YESNO NOT NULL)",
+    "CREATE TABLE ReglasCuentasBalance (IdReglaCuentaBalance COUNTER CONSTRAINT PK_ReglasCuentasBalance PRIMARY KEY, IdNodoBalance LONG NOT NULL, TipoCoincidencia BYTE NOT NULL, CuentaDesde TEXT(10), CuentaHasta TEXT(10), PrefijoCuenta TEXT(10), EsInclusion YESNO NOT NULL, Multiplicador SHORT NOT NULL, Prioridad SHORT NOT NULL, Descripcion TEXT(255))",
+    "CREATE TABLE RelacionesCalculoBalance (IdRelacionCalculoBalance COUNTER CONSTRAINT PK_RelacionesCalculoBalance PRIMARY KEY, IdNodoResultado LONG NOT NULL, IdNodoComponente LONG NOT NULL, Multiplicador SHORT NOT NULL, Orden SHORT NOT NULL)",
+    "CREATE UNIQUE INDEX UX_ModelosBalance_Codigo ON ModelosBalance (Codigo)",
+    "CREATE UNIQUE INDEX UX_NodosBalance_Codigo ON NodosBalance (IdModeloBalance,Codigo)",
+    "CREATE INDEX IX_NodosBalance_PadreOrden ON NodosBalance (IdModeloBalance,IdNodoPadre,Orden)",
+    "CREATE INDEX IX_ReglasBalance_Nodo ON ReglasCuentasBalance (IdNodoBalance)",
+    "CREATE INDEX IX_ReglasBalance_Prefijo ON ReglasCuentasBalance (PrefijoCuenta,Prioridad)",
+    "CREATE UNIQUE INDEX UX_RelacionesBalance ON RelacionesCalculoBalance (IdNodoResultado,IdNodoComponente)",
+    "ALTER TABLE NodosBalance ADD CONSTRAINT FK_NodosBalance_Modelo FOREIGN KEY (IdModeloBalance) REFERENCES ModelosBalance (IdModeloBalance)",
+    "ALTER TABLE NodosBalance ADD CONSTRAINT FK_NodosBalance_Padre FOREIGN KEY (IdNodoPadre) REFERENCES NodosBalance (IdNodoBalance)",
+    "ALTER TABLE ReglasCuentasBalance ADD CONSTRAINT FK_ReglasBalance_Nodo FOREIGN KEY (IdNodoBalance) REFERENCES NodosBalance (IdNodoBalance)",
+    "ALTER TABLE RelacionesCalculoBalance ADD CONSTRAINT FK_RelacionesBalance_Resultado FOREIGN KEY (IdNodoResultado) REFERENCES NodosBalance (IdNodoBalance)",
+    "ALTER TABLE RelacionesCalculoBalance ADD CONSTRAINT FK_RelacionesBalance_Componente FOREIGN KEY (IdNodoComponente) REFERENCES NodosBalance (IdNodoBalance)"
+  ],
+  "sembrarModelosBalance": true,
+  "descripciones": {
+    "ModelosBalance": {
+      "Codigo": "Identificador estable del modelo normativo de balance.",
+      "VersionNormativa": "Versión normativa de la jerarquía y sus reglas."
+    },
+    "ReglasCuentasBalance": {
+      "CuentaDesde": "Código de cuenta de hasta diez caracteres.",
+      "CuentaHasta": "Código de cuenta de hasta diez caracteres.",
+      "PrefijoCuenta": "Prefijo contable de hasta diez caracteres."
+    }
+  }
+}

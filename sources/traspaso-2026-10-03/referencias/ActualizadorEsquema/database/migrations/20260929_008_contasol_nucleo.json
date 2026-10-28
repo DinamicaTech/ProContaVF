@@ -1,0 +1,68 @@
+{
+  "id": "20260929_008_CONTASOL_NUCLEO",
+  "version": "0.8.0",
+  "descripcion": "Relaciones contables, cuentas de clientes, bancos, periodos IVA y trazabilidad de ContaSol.",
+  "sentencias": [
+    "CREATE TABLE RelacionesAsientos (IdRelacionAsiento COUNTER CONSTRAINT PK_RelacionesAsientos PRIMARY KEY, IdAsientoOrigen LONG NOT NULL, IdAsientoDestino LONG NOT NULL, TipoRelacion TEXT(30) NOT NULL, Motivo LONGTEXT)",
+    "CREATE TABLE CuentasClientesEjercicio (IdCuentaClienteEjercicio COUNTER CONSTRAINT PK_CuentasClientesEjercicio PRIMARY KEY, IdCliente LONG NOT NULL, IdSociedadEjercicio LONG NOT NULL, IdCuentaContable LONG NOT NULL, EsPredeterminada YESNO NOT NULL)",
+    "CREATE TABLE Bancos (IdBanco COUNTER CONSTRAINT PK_Bancos PRIMARY KEY, IdSociedad TEXT(3) NOT NULL, CodigoContaSol TEXT(30) NOT NULL, Nombre TEXT(150) NOT NULL, IdCuentaBancaria LONG, IdIdentidadContable LONG, Iban TEXT(34), Bic TEXT(20), Activo YESNO NOT NULL)",
+    "CREATE TABLE PeriodosIVA (IdPeriodoIVA COUNTER CONSTRAINT PK_PeriodosIVA PRIMARY KEY, IdSociedadEjercicio LONG NOT NULL, Numero BYTE NOT NULL, FechaInicio DATETIME NOT NULL, FechaFin DATETIME NOT NULL, Estado TEXT(20) NOT NULL)",
+    "CREATE TABLE TiposOperacion (IdTipoOperacion COUNTER CONSTRAINT PK_TiposOperacion PRIMARY KEY, Codigo TEXT(30) NOT NULL, Nombre TEXT(150) NOT NULL, Libro TEXT(20) NOT NULL, CodigoContaSol LONG, EstaActivo YESNO NOT NULL)",
+    "CREATE TABLE ImportacionesContaSol (IdImportacionContaSol COUNTER CONSTRAINT PK_ImportacionesContaSol PRIMARY KEY, IdSociedad TEXT(3) NOT NULL, IdSociedadEjercicio LONG NOT NULL, RutaOrigen TEXT(255) NOT NULL, HuellaOrigen TEXT(64) NOT NULL, VersionImportador TEXT(30) NOT NULL, FechaHoraInicio DATETIME NOT NULL, FechaHoraFin DATETIME, Operador TEXT(100), Estado TEXT(30) NOT NULL, Resumen LONGTEXT)",
+    "CREATE TABLE FasesImportacionContaSol (IdFaseImportacionContaSol COUNTER CONSTRAINT PK_FasesImportacionContaSol PRIMARY KEY, IdImportacionContaSol LONG NOT NULL, CodigoFase TEXT(50) NOT NULL, Estado TEXT(30) NOT NULL, FechaHoraInicio DATETIME NOT NULL, FechaHoraFin DATETIME, FilasLeidas LONG NOT NULL, FilasCreadas LONG NOT NULL, FilasOmitidas LONG NOT NULL)",
+    "CREATE TABLE MapasIdentidadContaSol (IdMapaIdentidadContaSol COUNTER CONSTRAINT PK_MapasIdentidadContaSol PRIMARY KEY, IdImportacionContaSol LONG NOT NULL, TipoEntidad TEXT(50) NOT NULL, ClaveOrigen TEXT(150) NOT NULL, IdDestino LONG NOT NULL)",
+    "CREATE TABLE IncidenciasImportacionContaSol (IdIncidenciaImportacionContaSol COUNTER CONSTRAINT PK_IncidenciasContaSol PRIMARY KEY, IdImportacionContaSol LONG NOT NULL, Fase TEXT(50), TablaOrigen TEXT(100), ClaveOrigen TEXT(150), CampoOrigen TEXT(100), Codigo TEXT(50) NOT NULL, Severidad TEXT(20) NOT NULL, Explicacion LONGTEXT NOT NULL, ValorOriginal LONGTEXT, Estado TEXT(20) NOT NULL)",
+    "CREATE UNIQUE INDEX UX_CCE_CuentaEjercicio ON CuentasClientesEjercicio (IdCliente,IdSociedadEjercicio,IdCuentaContable)",
+    "CREATE UNIQUE INDEX UX_Bancos_SociedadCodigo ON Bancos (IdSociedad,CodigoContaSol)",
+    "CREATE UNIQUE INDEX UX_PeriodosIVA_EjercicioNumero ON PeriodosIVA (IdSociedadEjercicio,Numero)",
+    "CREATE UNIQUE INDEX UX_TiposOperacion_Codigo ON TiposOperacion (Codigo)",
+    "INSERT INTO TiposOperacion (Codigo,Nombre,Libro,CodigoContaSol,EstaActivo) VALUES ('SOPORTADO_0','Soportado nacional','Soportado',0,True)",
+    "INSERT INTO TiposOperacion (Codigo,Nombre,Libro,CodigoContaSol,EstaActivo) VALUES ('SOPORTADO_1','Soportado intracomunitario','Soportado',1,True)",
+    "INSERT INTO TiposOperacion (Codigo,Nombre,Libro,CodigoContaSol,EstaActivo) VALUES ('SOPORTADO_2','Soportado importación','Soportado',2,True)",
+    "INSERT INTO TiposOperacion (Codigo,Nombre,Libro,CodigoContaSol,EstaActivo) VALUES ('REPERCUTIDO_0','Repercutido general','Repercutido',0,True)",
+    "CREATE UNIQUE INDEX UX_ContaSol_Mapa ON MapasIdentidadContaSol (IdImportacionContaSol,TipoEntidad,ClaveOrigen)",
+    "CREATE UNIQUE INDEX UX_ContaSol_Fase ON FasesImportacionContaSol (IdImportacionContaSol,CodigoFase)",
+    "ALTER TABLE RelacionesAsientos ADD CONSTRAINT FK_RelAsiento_Origen FOREIGN KEY (IdAsientoOrigen) REFERENCES Asientos (IdAsiento)",
+    "ALTER TABLE RelacionesAsientos ADD CONSTRAINT FK_RelAsiento_Destino FOREIGN KEY (IdAsientoDestino) REFERENCES Asientos (IdAsiento)",
+    "ALTER TABLE CuentasClientesEjercicio ADD CONSTRAINT FK_CCE_Cliente FOREIGN KEY (IdCliente) REFERENCES Clientes (IdCliente)",
+    "ALTER TABLE CuentasClientesEjercicio ADD CONSTRAINT FK_CCE_Ejercicio FOREIGN KEY (IdSociedadEjercicio) REFERENCES SociedadesEjercicios (IdSociedadEjercicio)",
+    "ALTER TABLE CuentasClientesEjercicio ADD CONSTRAINT FK_CCE_Cuenta FOREIGN KEY (IdCuentaContable) REFERENCES CuentasContables (IdCuentaContable)",
+    "ALTER TABLE Bancos ADD CONSTRAINT FK_Bancos_Sociedad FOREIGN KEY (IdSociedad) REFERENCES Sociedades (IdSociedad)",
+    "ALTER TABLE Bancos ADD CONSTRAINT FK_Bancos_CuentaBancaria FOREIGN KEY (IdCuentaBancaria) REFERENCES CuentasBancarias (IdCuentaBancaria)",
+    "ALTER TABLE Bancos ADD CONSTRAINT FK_Bancos_Identidad FOREIGN KEY (IdIdentidadContable) REFERENCES IdentidadesContables (IdIdentidadContable)",
+    "ALTER TABLE PeriodosIVA ADD CONSTRAINT FK_PeriodosIVA_Ejercicio FOREIGN KEY (IdSociedadEjercicio) REFERENCES SociedadesEjercicios (IdSociedadEjercicio)",
+    "ALTER TABLE ImportacionesContaSol ADD CONSTRAINT FK_Importaciones_Sociedad FOREIGN KEY (IdSociedad) REFERENCES Sociedades (IdSociedad)",
+    "ALTER TABLE ImportacionesContaSol ADD CONSTRAINT FK_Importaciones_Ejercicio FOREIGN KEY (IdSociedadEjercicio) REFERENCES SociedadesEjercicios (IdSociedadEjercicio)",
+    "ALTER TABLE FasesImportacionContaSol ADD CONSTRAINT FK_Fases_Importacion FOREIGN KEY (IdImportacionContaSol) REFERENCES ImportacionesContaSol (IdImportacionContaSol)",
+    "ALTER TABLE MapasIdentidadContaSol ADD CONSTRAINT FK_Mapas_Importacion FOREIGN KEY (IdImportacionContaSol) REFERENCES ImportacionesContaSol (IdImportacionContaSol)",
+    "ALTER TABLE IncidenciasImportacionContaSol ADD CONSTRAINT FK_Incidencias_Importacion FOREIGN KEY (IdImportacionContaSol) REFERENCES ImportacionesContaSol (IdImportacionContaSol)"
+  ],
+  "descripciones": {
+    "RelacionesAsientos": {
+      "IdAsientoOrigen": "Asiento de origen; el servicio comprueba que ambos asientos pertenecen al ejercicio correcto.",
+      "IdAsientoDestino": "Asiento relacionado; no se duplica por ejercicio."
+    },
+    "CuentasClientesEjercicio": {
+      "IdSociedadEjercicio": "Ejercicio en que se usa la cuenta del cliente.",
+      "IdCuentaContable": "Cuenta concreta del ejercicio; se valida su coincidencia con IdSociedadEjercicio."
+    },
+    "Bancos": {
+      "IdSociedad": "Sociedad permanente a la que pertenece el banco importado.",
+      "IdCuentaBancaria": "Correspondencia opcional con la cuenta bancaria local Norma43.",
+      "IdIdentidadContable": "Identidad estable de la cuenta contable asociada; se resuelve por ejercicio."
+    },
+    "PeriodosIVA": {
+      "IdSociedadEjercicio": "Ejercicio fiscal al que pertenece el periodo.",
+      "Numero": "Ordinal único del periodo dentro de su ejercicio."
+    },
+    "ImportacionesContaSol": {
+      "IdSociedad": "Sociedad permanente del trabajo de importación.",
+      "IdSociedadEjercicio": "Ejercicio concreto importado; el servicio comprueba que pertenece a IdSociedad.",
+      "HuellaOrigen": "Huella del fichero o base fuente para trazabilidad."
+    },
+    "MapasIdentidadContaSol": {
+      "ClaveOrigen": "Clave externa única dentro del tipo de entidad y la importación.",
+      "IdDestino": "ID local resuelto tras crear el registro de destino."
+    }
+  }
+}

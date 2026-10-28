@@ -1,0 +1,27 @@
+# Centros de coste y núcleo de facturación
+
+Los manifiestos `20260928_004_CENTROS_CONFIGURACION` y `20260928_005_FACTURACION` se aplican solo al crear una maestra nueva. No se usan para actualizar `ProcontaVF.accdb` con datos. Sus tablas de negocio empiezan vacías.
+
+## Centros y política contable
+
+`CentrosCoste` usa `IdSociedad TEXT(3)`, padre y raíz opcionales, ruta jerárquica única por sociedad e índices de búsqueda. `ConfiguracionesContables` tiene una fila opcional por sociedad permanente y códigos de cuentas de redondeo `TEXT(10)`. No se crea una configuración ficticia. El manifiesto añade FKs físicas desde `CuentasContables.IdCentroCostePredeterminado`, `Apuntes.IdCentroCoste` y los dos campos analíticos de `Activos` al centro local. La aplicación y los importadores deben comprobar que padre, raíz, cuenta, apunte y activo pertenecen a la misma sociedad; las FKs de una sola columna no expresan esa igualdad.
+
+`CentrosCoste.Codigo TEXT(30)` es un identificador analítico, no un número de cuenta. Los datos de `F_DEP` y `F_CDP` requerirán correspondencias del importador ContaSol antes de poblar el árbol; no se copian IDs externos directamente.
+
+## Facturación
+
+El quinto manifiesto crea `EstadosFactura`, `TiposFactura`, `TiposConcepto`, `Clientes`, `SeriesFacturacion`, `Contratos`, `LineasContrato`, `Conceptos`, `LotesExportacionContable`, `LotesFacturasProgramadas`, `FacturasProgramadas`, `LineasFacturasProgramadas`, `Facturas` y `LineasFactura`. Los cuatro campos textuales `CuentaContable` de Clientes, Conceptos y líneas se crean como `TEXT(10)`. `Conceptos.IdSociedad` vincula cada concepto a la sociedad, sin duplicarlo por ejercicio. Su `CuentaContable` es un valor predeterminado: al utilizarlo debe resolverse y validarse en el ejercicio de la factura o programación, donde puede tener otro código o no existir. Los códigos de clientes y líneas también se validan en el contexto del ejercicio.
+
+El precio, IVA y demás datos del concepto son valores actuales editables. Las líneas de factura guardan sus propios valores para conservar el histórico de lo emitido. Al importar conceptos de una base con registros por ejercicio, se necesita una correspondencia explícita de IDs: no se deben fusionar automáticamente registros solo por compartir nombre o cuenta. El repositorio de la aplicación aún consulta la estructura heredada con `IdSociedadEjercicio`; deberá adaptarse al activar la nueva maestra.
+
+`FacturasProgramadas.IdSociedad` mantiene la programación y sus líneas entre ejercicios. `PrefijoSerie` indica la serie deseada; en cada emisión el servicio debe localizar una serie no rectificativa con ese prefijo en el ejercicio de la fecha de factura. Si no existe, la generación se detiene y requiere configurar la serie. `Facturas.IdSociedadEjercicio` y `Facturas.IdSerie` registran el ejercicio y la serie efectivamente utilizados. Su FK compuesta `(IdSociedadEjercicio, IdSerie)` impide asignar a una factura una serie de otro ejercicio. El repositorio y el generador actuales todavía utilizan `FacturasProgramadas.IdSociedadEjercicio` e `IdSerie`; deben adaptarse antes de activar esta maestra. Los lotes de generación son operaciones de un ejercicio y conservan `IdSociedadEjercicio`.
+
+El número y fecha de factura admiten `NULL` mientras el documento es borrador. Se conserva la instantánea fiscal de emisor y cliente en Facturas para los documentos emitidos. `Contratos.IdInmueble` referencia `ActivosInmuebles.IdActivo`; la importación utilizará la correspondencia de IDs legacy y clasificará los dos contratos de prueba ambiguos antes de cargarlos. Los campos `IdDepartamento` e `IdCentroCoste` de conceptos y líneas referencian centros locales y requieren la correspondencia analítica del origen.
+
+Se siembran los cinco estados del enum del dominio y los ocho códigos F1–F3 y R1–R5 observados en los catálogos técnicos de una **copia** de la base de pruebas (SHA-256 `4A99674A9FC6DC4C9BD7D34ED4CB53DD0BE67A2DB25EFA9B868D29C1D7DF25A6`). La copia temporal se retiró y la base original mantuvo la misma huella tras la inspección. `TiposConcepto` queda vacío porque sus filas dependen de la instalación. `FormasPago` también permanece vacío hasta reconciliar el código `1` usado en pruebas con la fuente ERP actual; no se inventan formas de pago.
+
+## Alcance restante
+
+Esta maestra sigue siendo parcial. El bloque inicial de compras está en el [sexto manifiesto](FACTURAS_COMPRA.md); faltan las tablas y reglas de VeriFactu, correo, seguridad, nóminas, banca, reporting y otros detalles de activos y compras. Tampoco están conectados los importadores al nuevo contrato. Las FKs individuales de `Facturas.IdAsientoContable` y del contrato no garantizan por sí solas que todos los registros enlazados compartan sociedad y ejercicio; las operaciones de emisión, exportación e importación deben verificarlo en la misma transacción. No se usará esta maestra para emitir facturas hasta completar esos módulos y sus pruebas de consumo.
+
+La prueba del creador comprueba la nulabilidad necesaria para programaciones y borradores, la unicidad de la cuenta, las longitudes de códigos, las FKs de sociedad y el rechazo de una serie de otro ejercicio. El archivo de muestra del quinto manifiesto `work/databases/ProConta.Maestra.Facturacion.accdb` contiene cinco filas de historial y solo catálogos técnicos poblados; las muestras posteriores se enumeran en [Implementación inicial](IMPLEMENTACION_INICIAL.md).

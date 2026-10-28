@@ -1,0 +1,20 @@
+{
+  "id": "20260930_022_PREFERENCIAS_ACCESO",
+  "version": "0.22.0",
+  "descripcion": "Última sociedad por operador y último ejercicio por operador/sociedad, sin datos iniciales.",
+  "sentencias": [
+    "CREATE TABLE PreferenciasAccesoOperador (IdOperador LONG NOT NULL, IdSociedad TEXT(3) NOT NULL, CONSTRAINT PK_PreferenciasAccesoOperador PRIMARY KEY (IdOperador), CONSTRAINT FK_PreferenciasAccesoOperador_Operador FOREIGN KEY (IdOperador) REFERENCES OperadoresSeguridad (IdOperador), CONSTRAINT FK_PreferenciasAccesoOperador_Sociedad FOREIGN KEY (IdSociedad) REFERENCES Sociedades (IdSociedad))",
+    "CREATE TABLE PreferenciasAccesoEjercicio (IdOperador LONG NOT NULL, IdSociedad TEXT(3) NOT NULL, IdSociedadEjercicio LONG NOT NULL, CONSTRAINT PK_PreferenciasAccesoEjercicio PRIMARY KEY (IdOperador,IdSociedad), CONSTRAINT FK_PreferenciasAccesoEjercicio_Operador FOREIGN KEY (IdOperador) REFERENCES OperadoresSeguridad (IdOperador), CONSTRAINT FK_PreferenciasAccesoEjercicio_Sociedad FOREIGN KEY (IdSociedad) REFERENCES Sociedades (IdSociedad), CONSTRAINT FK_PreferenciasAccesoEjercicio_Ejercicio FOREIGN KEY (IdSociedadEjercicio) REFERENCES SociedadesEjercicios (IdSociedadEjercicio))"
+  ],
+  "descripciones": {
+    "PreferenciasAccesoOperador": {
+      "IdOperador": "Operador cuya última sociedad se recuerda tras completar el acceso.",
+      "IdSociedad": "Última sociedad completada por el operador. No concede permisos."
+    },
+    "PreferenciasAccesoEjercicio": {
+      "IdOperador": "Operador titular de la preferencia anual.",
+      "IdSociedad": "Sociedad cuya última elección de ejercicio se conserva.",
+      "IdSociedadEjercicio": "Último ejercicio completado; el servicio revalida sociedad y autorización al recuperarlo."
+    }
+  }
+}

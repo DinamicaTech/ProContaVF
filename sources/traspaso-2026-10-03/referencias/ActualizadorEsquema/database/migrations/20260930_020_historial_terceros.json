@@ -1,0 +1,23 @@
+{
+  "id": "20260930_020_HISTORIAL_TERCEROS",
+  "version": "0.20.0",
+  "descripcion": "Auditoría transaccional por campo de las identidades y funciones de Terceros.",
+  "sentencias": [
+    "CREATE TABLE HistorialTerceros (IdHistorialTercero COUNTER CONSTRAINT PK_HistorialTerceros PRIMARY KEY, IdTercero LONG NOT NULL, IdOperacion TEXT(36) NOT NULL, FechaHora DATETIME NOT NULL, Operador TEXT(255) NOT NULL, Entidad TEXT(50) NOT NULL, IdRegistro LONG NOT NULL, Operacion TEXT(15) NOT NULL, Campo TEXT(64) NOT NULL, ValorAntiguo LONGTEXT, ValorNuevo LONGTEXT)",
+    "CREATE INDEX IX_HistorialTerceros_Fecha ON HistorialTerceros (IdTercero, FechaHora, IdHistorialTercero)"
+  ],
+  "descripciones": {
+    "HistorialTerceros": {
+      "IdTercero": "Identidad titular del cambio; se conserva aunque una función cambie.",
+      "IdOperacion": "Identificador compartido por los campos de un mismo guardado.",
+      "FechaHora": "Instante UTC del guardado.",
+      "Operador": "Operador responsable.",
+      "Entidad": "Tabla funcional alterada.",
+      "IdRegistro": "Clave del registro funcional alterado.",
+      "Operacion": "Alta o modificación del registro.",
+      "Campo": "Campo alterado.",
+      "ValorAntiguo": "Valor previo o nulo.",
+      "ValorNuevo": "Valor posterior o nulo."
+    }
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "id": "20260929_012_GESTOR_CONTABLE",
+  "version": "0.12.0",
+  "descripcion": "Configuración fiscal anual y tratamiento de IVA por centro de coste para GestorContable.",
+  "sentencias": [
+    "CREATE TABLE ConfiguracionGestorContable (IdSociedadEjercicio LONG CONSTRAINT PK_ConfiguracionGestorContable PRIMARY KEY, CuentaIvaSoportado TEXT(10) NOT NULL, CuentaIvaRepercutido TEXT(10) NOT NULL, CuentaHaciendaIvaDeudora TEXT(10) NOT NULL, CuentaHaciendaIvaAcreedora TEXT(10) NOT NULL, CuentaAjusteProrrata TEXT(10) NOT NULL, CuentaGastoImpuestoSociedades TEXT(10) NOT NULL, CuentaHaciendaImpuestoSociedades TEXT(10) NOT NULL, CuentaResultadoEjercicio TEXT(10) NOT NULL, CuentasIngresosConDerecho LONGTEXT, CuentasIngresosTotales LONGTEXT, PorcentajeProrrataProvisional SHORT NOT NULL, PorcentajeImpuestoSociedades DOUBLE NOT NULL)",
+    "CREATE TABLE TratamientosIvaCentrosCoste (IdTratamiento COUNTER CONSTRAINT PK_TratamientosIvaCentrosCoste PRIMARY KEY, IdSociedadEjercicio LONG NOT NULL, IdCentroCoste LONG NOT NULL, TratamientoIva BYTE NOT NULL)",
+    "CREATE UNIQUE INDEX UX_TratamientosIva_EjercicioCentro ON TratamientosIvaCentrosCoste (IdSociedadEjercicio,IdCentroCoste)",
+    "ALTER TABLE ConfiguracionGestorContable ADD CONSTRAINT FK_ConfiguracionGestor_Ejercicio FOREIGN KEY (IdSociedadEjercicio) REFERENCES SociedadesEjercicios (IdSociedadEjercicio)",
+    "ALTER TABLE TratamientosIvaCentrosCoste ADD CONSTRAINT FK_TratamientosIva_Ejercicio FOREIGN KEY (IdSociedadEjercicio) REFERENCES SociedadesEjercicios (IdSociedadEjercicio)",
+    "ALTER TABLE TratamientosIvaCentrosCoste ADD CONSTRAINT FK_TratamientosIva_Centro FOREIGN KEY (IdCentroCoste) REFERENCES CentrosCoste (IdCentroCoste)"
+  ],
+  "descripciones": {
+    "ConfiguracionGestorContable": {
+      "IdSociedadEjercicio": "Configuración fiscal aplicable exclusivamente al ejercicio indicado.",
+      "CuentasIngresosConDerecho": "Lista de códigos de cuenta de hasta diez caracteres cada uno; el servicio valida sus elementos.",
+      "CuentasIngresosTotales": "Lista de códigos de cuenta de hasta diez caracteres cada uno; el servicio valida sus elementos.",
+      "PorcentajeProrrataProvisional": "Porcentaje entero único fijado al comenzar el ejercicio."
+    },
+    "TratamientosIvaCentrosCoste": {
+      "TratamientoIva": "0 deducible al 100 %, 1 sujeto a prorrata anual, 2 no deducible.",
+      "IdCentroCoste": "Centro de coste cuyo IdSociedad debe coincidir con el ejercicio configurado."
+    }
+  }
+}

@@ -1,0 +1,21 @@
+# Integración de Terceros en la maestra nueva
+
+El contrato implementado en `C:\Docs\VeriFactu\ProConta.Terceros\docs\TERCEROS_CONTRATO.md` y su DDL `database\migrations\20260929_001_terceros_maestra_nueva.sql` se han probado en una Access temporal vacía. Esa prueba demuestra que el DDL y tres funciones simultáneas comparten una identidad; no demuestra todavía que los consumidores actuales funcionen con el contrato.
+
+## Orden necesario
+
+1. Crear `Terceros` antes de `Clientes` en el bloque inicial de Facturación, junto con `Contactos`, `RelacionesContactos`, `DomiciliosTercero` y `MapasOrigenTerceros`. `Clientes` conservará `IdCliente` para las FKs funcionales, tendrá un `IdTercero` obligatorio y único, y no duplicará los datos comunes.
+2. Crear `Proveedores` con `IdProveedor` e `IdTercero` obligatorio y único en Compras. Conservar las FKs de compras, IVA y cuentas por ejercicio a `IdProveedor`.
+3. Añadir a `Facturas` las columnas de instantánea `DireccionCliente`, `CodigoPostalCliente`, `PoblacionCliente`, `ProvinciaCliente` y `EmailCliente` según `C:\Docs\VeriFactu\ProConta.Terceros\database\migrations\20260929_002_facturas_instantanea_terceros.sql`. El PDF de una factura emitida utilizará esos datos materializados.
+4. Actualizar los validadores y pruebas de la maestra para exigir las seis tablas nuevas, sus índices y relaciones, y verificar funciones simultáneas, NIF no único y cuentas independientes por función.
+5. Adaptar los consumidores que leen o escriben nombre, NIF, domicilio, teléfono y correo desde `Clientes` o `Proveedores`. Las consultas deben obtener datos vivos mediante `JOIN Terceros`; los datos fiscales de facturas emitidas permanecen en sus instantáneas.
+6. Adaptar Importador ContaSol y MigradorERP para registrar mapas por origen/contexto. No fusionar automáticamente por NIF ni identificar `IdCliente`, `IdProveedor` e `IdTercero` por coincidencia numérica. El ensayo ContaSol que pasó con la maestra 0.18 debe repetirse tras este cambio.
+7. Crear una nueva muestra descartable y ejecutar el diagnóstico físico y las pruebas de consumo. La base de pruebas existente requiere un proyecto de conversión separado sobre copia; no se le aplicará el DDL de creación vacía.
+
+No basta con añadir un manifiesto final sobre la maestra 0.18: allí `Clientes` y `Proveedores` ya existen con columnas comunes y referencias entrantes. La revisión de esos manifiestos es segura para una maestra **nueva**, pero invalidará las huellas 005 y 006 de las muestras anteriores. Estas muestras deben conservarse como antecedentes y la nueva debe recibir una identidad y documentación de versión propias.
+
+## Estado de la integración 0.19
+
+Los manifiestos 005 y 006 crean ya la identidad común y los submodelos de cliente y proveedor; el manifiesto 019 añade la instantánea de destinatario a `Facturas`. El creador, el diagnóstico y el importador ContaSol se han actualizado. La muestra descartable `work/databases/ProConta.Maestra.Terceros.0.19.accdb` tiene 19 versiones, 122 tablas y diagnóstico sin hallazgos. Una prueba confirma que un mismo tercero puede tener las funciones de cliente, proveedor y contacto, y que el NIF de Terceros no se impone como clave única. La importación ContaSol se ha ensayado sobre copia; sus mapas usan contexto de sociedad y ejercicio y separan las identidades de cliente y proveedor hasta una reconciliación explícita. Los DNI y NIE reconocibles se cargan como `FISICA`; los NIF de entidades como `JURIDICA`. Un identificador vacío o no reconocible genera incidencia de revisión porque su clasificación `JURIDICA` es provisional. MigradorERP y la conversión de la base de pruebas siguen pendientes de un ensayo integral sobre copias.
+
+El contrato posterior del hilo de Terceros incorporó `HistorialTerceros` y el valor `ENTIDAD` de `TipoPersona`. El manifiesto 020 materializa el historial en una maestra nueva; las escrituras desde el repositorio de Terceros y sus funciones generan diferencias por campo dentro de la misma transacción. La muestra `work/databases/ProConta.Maestra.Terceros.0.20.accdb` contiene 20 versiones y 123 tablas, con diagnóstico sin hallazgos. `ENTIDAD` queda reservado para colectivos sin personalidad jurídica: el importador ContaSol no lo asigna automáticamente por la mera ausencia o rareza del NIF.

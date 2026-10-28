@@ -1,0 +1,57 @@
+{
+  "id": "20260929_013_NOMINAS",
+  "version": "0.13.0",
+  "descripcion": "Empleados permanentes y ciclo anual de importación y contabilización de nóminas, sin configuración de sociedades concretas.",
+  "sentencias": [
+    "CREATE TABLE ConfiguracionesNominas (IdConfiguracionNominas COUNTER CONSTRAINT PK_ConfiguracionesNominas PRIMARY KEY, IdSociedad TEXT(3) NOT NULL, AsientoInversoEliminarAsientoNominas YESNO NOT NULL)",
+    "CREATE TABLE DepartamentosEmpleado (IdDepartamentoEmpleado COUNTER CONSTRAINT PK_DepartamentosEmpleado PRIMARY KEY, IdSociedad TEXT(3) NOT NULL, Codigo TEXT(30) NOT NULL, Nombre TEXT(150) NOT NULL, IdCentroCoste LONG, Activo YESNO NOT NULL)",
+    "CREATE TABLE Empleados (IdEmpleado COUNTER CONSTRAINT PK_Empleados PRIMARY KEY, IdSociedad TEXT(3) NOT NULL, CodigoTrabajador TEXT(30), Nombre TEXT(150) NOT NULL, Dni TEXT(30), IdDepartamentoEmpleado LONG, IdIdentidadContable LONG, Activo YESNO NOT NULL)",
+    "CREATE TABLE AliasCamposNomina (IdAliasCampoNomina COUNTER CONSTRAINT PK_AliasCamposNomina PRIMARY KEY, IdSociedad TEXT(3) NOT NULL, Origen TEXT(100) NOT NULL, Destino TEXT(50), Activo YESNO NOT NULL)",
+    "CREATE TABLE ImportacionesNomina (IdImportacionNomina COUNTER CONSTRAINT PK_ImportacionesNomina PRIMARY KEY, IdSociedadEjercicio LONG NOT NULL, Origen TEXT(20) NOT NULL, NombreOrigen TEXT(255) NOT NULL, ReferenciaOrigen LONGTEXT, HashSha256 TEXT(64) NOT NULL, FechaPago DATETIME, TipoPaga TEXT(30), Estado TEXT(20) NOT NULL, FechaHoraCreacion DATETIME NOT NULL, Operador TEXT(100), IdOperacionDeshacer LONG)",
+    "CREATE TABLE MapeosImportacionNomina (IdMapeoImportacionNomina COUNTER CONSTRAINT PK_MapeosImportacionNomina PRIMARY KEY, IdImportacionNomina LONG NOT NULL, ColumnaOrigen TEXT(100) NOT NULL, CampoDestino TEXT(50), FueAutomatico YESNO NOT NULL, Recordar YESNO NOT NULL)",
+    "CREATE TABLE Nominas (IdNomina COUNTER CONSTRAINT PK_Nominas PRIMARY KEY, IdImportacionNomina LONG NOT NULL, IdEmpleado LONG NOT NULL, FechaPago DATETIME NOT NULL, TipoPaga TEXT(30), OrdinalOrigen LONG NOT NULL, Bruto CURRENCY, DtoReEsp CURRENCY, InRetEsp CURRENCY, SSEmp CURRENCY, TC1 CURRENCY, Autonomo CURRENCY, IRPF111 CURRENCY, Neto CURRENCY, AnticOtro CURRENCY, RetEmbarg CURRENCY, FaltaPrea CURRENCY, CostEmp CURRENCY, CostPPExt CURRENCY, DtoVac CURRENCY, DifExtra CURRENCY, BFormCon CURRENCY, HEFestiv CURRENCY, RegBases CURRENCY, EnfermedadAccidente CURRENCY, CompensBonif CURRENCY, BonifFundae CURRENCY, TotalCosteSS CURRENCY, TotalFLC_FPHIB CURRENCY, ProrrataPagasExtra CURRENCY, CuotasObreras CURRENCY, Estado TEXT(20) NOT NULL)",
+    "CREATE TABLE PlantillasApuntesNomina (IdPlantillaApunteNomina COUNTER CONSTRAINT PK_PlantillasNomina PRIMARY KEY, IdSociedad TEXT(3) NOT NULL, Orden LONG NOT NULL, FormulaDescripcion TEXT(100), FormulaCuenta TEXT(100) NOT NULL, DH TEXT(1) NOT NULL, FormulaImporte TEXT(255) NOT NULL, AgruparApuntes YESNO NOT NULL, Condicion TEXT(255), Activa YESNO NOT NULL)",
+    "CREATE TABLE NominasAsientos (IdNominaAsiento COUNTER CONSTRAINT PK_NominasAsientos PRIMARY KEY, IdNomina LONG NOT NULL, IdAsiento LONG NOT NULL, IdAsientoReversion LONG, Estado TEXT(20) NOT NULL, VersionAsientoCreado LONG NOT NULL)",
+    "CREATE TABLE OperacionesNomina (IdOperacionNomina COUNTER CONSTRAINT PK_OperacionesNomina PRIMARY KEY, IdImportacionNomina LONG NOT NULL, TipoOperacion TEXT(30) NOT NULL, IdOperacionOrigen LONG, FechaHora DATETIME NOT NULL, Operador TEXT(100), Motivo LONGTEXT, EstadoAnterior TEXT(20), EstadoPosterior TEXT(20))",
+    "CREATE UNIQUE INDEX UX_ConfigNominas_Sociedad ON ConfiguracionesNominas (IdSociedad)",
+    "CREATE UNIQUE INDEX UX_DepEmp_SociedadCodigo ON DepartamentosEmpleado (IdSociedad,Codigo)",
+    "CREATE UNIQUE INDEX UX_Empleados_SociedadCodigo ON Empleados (IdSociedad,CodigoTrabajador)",
+    "CREATE INDEX IX_Empleados_SociedadDni ON Empleados (IdSociedad,Dni)",
+    "CREATE UNIQUE INDEX UX_AliasNomina_SociedadOrigen ON AliasCamposNomina (IdSociedad,Origen)",
+    "CREATE UNIQUE INDEX UX_ImportNomina_Hash ON ImportacionesNomina (IdSociedadEjercicio,HashSha256)",
+    "CREATE UNIQUE INDEX UX_Nominas_ImportacionOrdinal ON Nominas (IdImportacionNomina,OrdinalOrigen)",
+    "CREATE UNIQUE INDEX UX_NominasAsientos_Par ON NominasAsientos (IdNomina,IdAsiento)",
+    "ALTER TABLE ConfiguracionesNominas ADD CONSTRAINT FK_ConfigNominas_Sociedad FOREIGN KEY (IdSociedad) REFERENCES Sociedades (IdSociedad)",
+    "ALTER TABLE DepartamentosEmpleado ADD CONSTRAINT FK_DepEmp_Sociedad FOREIGN KEY (IdSociedad) REFERENCES Sociedades (IdSociedad)",
+    "ALTER TABLE DepartamentosEmpleado ADD CONSTRAINT FK_DepEmp_Centro FOREIGN KEY (IdCentroCoste) REFERENCES CentrosCoste (IdCentroCoste)",
+    "ALTER TABLE Empleados ADD CONSTRAINT FK_Empleados_Sociedad FOREIGN KEY (IdSociedad) REFERENCES Sociedades (IdSociedad)",
+    "ALTER TABLE Empleados ADD CONSTRAINT FK_Empleados_Departamento FOREIGN KEY (IdDepartamentoEmpleado) REFERENCES DepartamentosEmpleado (IdDepartamentoEmpleado)",
+    "ALTER TABLE Empleados ADD CONSTRAINT FK_Empleados_Identidad FOREIGN KEY (IdIdentidadContable) REFERENCES IdentidadesContables (IdIdentidadContable)",
+    "ALTER TABLE AliasCamposNomina ADD CONSTRAINT FK_AliasNomina_Sociedad FOREIGN KEY (IdSociedad) REFERENCES Sociedades (IdSociedad)",
+    "ALTER TABLE ImportacionesNomina ADD CONSTRAINT FK_ImportNomina_Ejercicio FOREIGN KEY (IdSociedadEjercicio) REFERENCES SociedadesEjercicios (IdSociedadEjercicio)",
+    "ALTER TABLE MapeosImportacionNomina ADD CONSTRAINT FK_MapeoNomina_Importacion FOREIGN KEY (IdImportacionNomina) REFERENCES ImportacionesNomina (IdImportacionNomina)",
+    "ALTER TABLE Nominas ADD CONSTRAINT FK_Nominas_Importacion FOREIGN KEY (IdImportacionNomina) REFERENCES ImportacionesNomina (IdImportacionNomina)",
+    "ALTER TABLE Nominas ADD CONSTRAINT FK_Nominas_Empleado FOREIGN KEY (IdEmpleado) REFERENCES Empleados (IdEmpleado)",
+    "ALTER TABLE PlantillasApuntesNomina ADD CONSTRAINT FK_PlantillaNomina_Sociedad FOREIGN KEY (IdSociedad) REFERENCES Sociedades (IdSociedad)",
+    "ALTER TABLE NominasAsientos ADD CONSTRAINT FK_NominaAsiento_Nomina FOREIGN KEY (IdNomina) REFERENCES Nominas (IdNomina)",
+    "ALTER TABLE NominasAsientos ADD CONSTRAINT FK_NominaAsiento_Asiento FOREIGN KEY (IdAsiento) REFERENCES Asientos (IdAsiento)",
+    "ALTER TABLE NominasAsientos ADD CONSTRAINT FK_NominaAsiento_Reversion FOREIGN KEY (IdAsientoReversion) REFERENCES Asientos (IdAsiento)",
+    "ALTER TABLE OperacionesNomina ADD CONSTRAINT FK_OperacionNomina_Importacion FOREIGN KEY (IdImportacionNomina) REFERENCES ImportacionesNomina (IdImportacionNomina)"
+  ],
+  "descripciones": {
+    "ConfiguracionesNominas": {
+      "IdSociedad": "Configuración permanente por sociedad; no se siembra una excepción para la sociedad 002.",
+      "AsientoInversoEliminarAsientoNominas": "Regla configurable al dar de alta cada sociedad."
+    },
+    "Empleados": {
+      "IdSociedad": "Empleado permanente de una sociedad, compartido entre ejercicios.",
+      "IdIdentidadContable": "Identidad estable; la cuenta concreta se resuelve en el ejercicio correspondiente."
+    },
+    "ImportacionesNomina": {
+      "IdSociedadEjercicio": "Ejercicio al que pertenecen las nóminas importadas."
+    },
+    "NominasAsientos": {
+      "IdAsiento": "Asiento anual cuya sociedad y ejercicio deben coincidir con la importación."
+    }
+  }
+}

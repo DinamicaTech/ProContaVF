@@ -1,0 +1,217 @@
+{
+  "id": "20260928_005_FACTURACION",
+  "version": "0.5.0",
+  "descripcion": "Núcleo de clientes, contratos, facturas, series y programación sobre la maestra nueva.",
+  "sentencias": [
+    "CREATE TABLE EstadosFactura (IdEstado BYTE CONSTRAINT PK_EstadosFactura PRIMARY KEY, Nombre TEXT(40) NOT NULL, Descripcion TEXT(255), EsModificable YESNO NOT NULL, EsTerminal YESNO NOT NULL)",
+    "CREATE TABLE TiposFactura (TipoFactura TEXT(2) CONSTRAINT PK_TiposFactura PRIMARY KEY, Descripcion TEXT(255) NOT NULL, EsRectificativa YESNO NOT NULL)",
+    "CREATE TABLE TiposConcepto (IdTipoConcepto COUNTER CONSTRAINT PK_TiposConcepto PRIMARY KEY, Descripcion TEXT(80) NOT NULL, Activo YESNO NOT NULL, Notas LONGTEXT)",
+    "CREATE TABLE Terceros (IdTercero COUNTER CONSTRAINT PK_Terceros PRIMARY KEY, TipoPersona TEXT(10) NOT NULL, Nombre TEXT(150) NOT NULL, RazonSocial TEXT(150), NIF TEXT(30), Telefono TEXT(50), Email TEXT(150), Direccion TEXT(255), CodigoPostal TEXT(20), Poblacion TEXT(100), Provincia TEXT(100), Pais TEXT(3), Notas LONGTEXT, Activo YESNO NOT NULL, FechaAlta DATETIME NOT NULL)",
+    "CREATE INDEX IX_Terceros_NIF ON Terceros (NIF)",
+    "CREATE INDEX IX_Terceros_Nombre ON Terceros (Nombre)",
+    "CREATE TABLE Clientes (IdCliente COUNTER CONSTRAINT PK_Clientes PRIMARY KEY, IdTercero LONG NOT NULL, IdContrato LONG, NotasCliente LONGTEXT, FechaAltaCliente DATETIME, Activo YESNO NOT NULL, CONSTRAINT FK_Clientes_Terceros FOREIGN KEY (IdTercero) REFERENCES Terceros (IdTercero))",
+    "CREATE UNIQUE INDEX UX_Clientes_IdTercero ON Clientes (IdTercero)",
+    "CREATE TABLE Contactos (IdContacto COUNTER CONSTRAINT PK_Contactos PRIMARY KEY, IdTercero LONG NOT NULL, Cargo TEXT(100), Departamento TEXT(100), NotasContacto LONGTEXT, Activo YESNO NOT NULL, CONSTRAINT FK_Contactos_Terceros FOREIGN KEY (IdTercero) REFERENCES Terceros (IdTercero))",
+    "CREATE UNIQUE INDEX UX_Contactos_IdTercero ON Contactos (IdTercero)",
+    "CREATE TABLE RelacionesContactos (IdRelacionContacto COUNTER CONSTRAINT PK_RelacionesContactos PRIMARY KEY, IdContacto LONG NOT NULL, IdTerceroOrganizacion LONG NOT NULL, TipoRelacion TEXT(40) NOT NULL, FechaInicio DATETIME, FechaFin DATETIME, Observaciones LONGTEXT, CONSTRAINT FK_RelContactos_Contacto FOREIGN KEY (IdContacto) REFERENCES Contactos (IdContacto), CONSTRAINT FK_RelContactos_Organizacion FOREIGN KEY (IdTerceroOrganizacion) REFERENCES Terceros (IdTercero))",
+    "CREATE INDEX IX_RelContactos_Organizacion ON RelacionesContactos (IdTerceroOrganizacion)",
+    "CREATE UNIQUE INDEX UX_RelContactos_ContactoOrganizacionTipoInicio ON RelacionesContactos (IdContacto,IdTerceroOrganizacion,TipoRelacion,FechaInicio)",
+    "CREATE TABLE DomiciliosTercero (IdDomicilioTercero COUNTER CONSTRAINT PK_DomiciliosTercero PRIMARY KEY, IdTercero LONG NOT NULL, TipoDomicilio TEXT(30) NOT NULL, Direccion TEXT(255) NOT NULL, CodigoPostal TEXT(20), Poblacion TEXT(100), Provincia TEXT(100), Pais TEXT(3), FechaInicio DATETIME, FechaFin DATETIME, CONSTRAINT FK_Domicilios_Terceros FOREIGN KEY (IdTercero) REFERENCES Terceros (IdTercero))",
+    "CREATE INDEX IX_Domicilios_IdTercero ON DomiciliosTercero (IdTercero)",
+    "CREATE TABLE MapasOrigenTerceros (IdMapaOrigenTercero COUNTER CONSTRAINT PK_MapasOrigenTerceros PRIMARY KEY, OrigenSistema TEXT(20) NOT NULL, ContextoOrigen TEXT(150) NOT NULL, TipoEntidad TEXT(40) NOT NULL, ClaveOrigen TEXT(150) NOT NULL, HuellaOrigen TEXT(64) NOT NULL, IdTercero LONG NOT NULL, FechaDecision DATETIME NOT NULL, CriterioDecision TEXT(100) NOT NULL, Observaciones LONGTEXT, CONSTRAINT FK_MapasOrigen_Terceros FOREIGN KEY (IdTercero) REFERENCES Terceros (IdTercero))",
+    "CREATE UNIQUE INDEX UX_MapasOrigenTerceros_Huella ON MapasOrigenTerceros (HuellaOrigen)",
+    "CREATE INDEX IX_MapasOrigenTerceros_IdTercero ON MapasOrigenTerceros (IdTercero)",
+    "CREATE TABLE SeriesFacturacion (IdSerie COUNTER CONSTRAINT PK_SeriesFacturacion PRIMARY KEY, IdSociedadEjercicio LONG NOT NULL, Descripcion TEXT(100) NOT NULL, RangoDesde LONG NOT NULL, RangoHasta LONG NOT NULL, Prefijo TEXT(20) NOT NULL, UltimoNumero LONG, EsRectificativa YESNO NOT NULL, EsPredeterminada YESNO NOT NULL)",
+    "CREATE TABLE Contratos (IdContrato COUNTER CONSTRAINT PK_Contratos PRIMARY KEY, FechaFirma DATETIME, IdInmueble LONG NOT NULL, FechaInicio DATETIME NOT NULL, FechaFin DATETIME, ImporteMensual CURRENCY NOT NULL, FormaDePago BYTE, DiaDePago BYTE NOT NULL, ImporteIBI CURRENCY, ImporteComunidad CURRENCY, ImporteBasuras CURRENCY, CondicionesEspeciales LONGTEXT, IdSociedad TEXT(3) NOT NULL, IdCliente LONG, TipoIncremento BYTE, ValorIncremento DOUBLE, FechaActualizacionValorIncremento DATETIME, FechaAplicacionIncremento DATETIME, FechaAplicadaIncremento DATETIME, Notas LONGTEXT)",
+    "CREATE TABLE LineasContrato (IdLineaContrato COUNTER CONSTRAINT PK_LineasContrato PRIMARY KEY, IdContrato LONG NOT NULL, NumeroLinea SHORT NOT NULL, IdConcepto LONG NOT NULL, Descripcion LONGTEXT, Importe CURRENCY NOT NULL, Periodicidad TEXT(10) NOT NULL, MesFacturacion BYTE, FechaInicio DATETIME, FechaFin DATETIME, Activo YESNO)",
+    "CREATE TABLE Conceptos (IdConcepto COUNTER CONSTRAINT PK_Conceptos PRIMARY KEY, IdSociedad TEXT(3) NOT NULL, IdTipoConcepto LONG, Nombre TEXT(255) NOT NULL, Descripcion LONGTEXT, CuentaContable TEXT(10), IdDepartamento LONG, IdCentroCoste LONG, PrecioUnitario CURRENCY, TipoIVA DOUBLE, Activo YESNO, Notas LONGTEXT)",
+    "CREATE TABLE LotesExportacionContable (IdLote COUNTER CONSTRAINT PK_LotesExportacionContable PRIMARY KEY, FechaHora DATETIME NOT NULL, Operador TEXT(30) NOT NULL, IdSociedadEjercicio LONG NOT NULL)",
+    "CREATE TABLE LotesFacturasProgramadas (IdLoteFacturaProgramada COUNTER CONSTRAINT PK_LotesFacturasProgramadas PRIMARY KEY, IdSociedadEjercicio LONG NOT NULL, FechaHoraInicio DATETIME NOT NULL, FechaHoraFin DATETIME, FechaGeneracionHasta DATETIME NOT NULL, Estado TEXT(12) NOT NULL, NumeroProgramaciones LONG NOT NULL, NumeroFacturasGeneradas LONG NOT NULL, Operador TEXT(30), DescripcionError LONGTEXT, Historial LONGTEXT)",
+    "CREATE TABLE FacturasProgramadas (IdFacturaProgramada COUNTER CONSTRAINT PK_FacturasProgramadas PRIMARY KEY, IdSociedad TEXT(3) NOT NULL, IdContrato LONG, IdCliente LONG, PrefijoSerie TEXT(20) NOT NULL, TipoFactura TEXT(2) NOT NULL, FechaInicio DATETIME NOT NULL, FechaFin DATETIME, Periodicidad TEXT(12) NOT NULL, DiaEmision BYTE, ProximaFechaEmision DATETIME NOT NULL, FechaUltimaGeneracion DATETIME, FormaDePago BYTE, DiaDePago BYTE, TipoRetencion SINGLE, Descripcion LONGTEXT, NotasInternas LONGTEXT, Activa YESNO NOT NULL, FechaAlta DATETIME NOT NULL, OperadorAlta TEXT(30), Historial LONGTEXT, EnviarPorEmail YESNO NOT NULL)",
+    "CREATE TABLE LineasFacturasProgramadas (IdLineaFacturaProgramada COUNTER CONSTRAINT PK_LineasFacturasProgramadas PRIMARY KEY, IdFacturaProgramada LONG NOT NULL, NumeroLinea SHORT NOT NULL, IdConcepto LONG, Nombre TEXT(255), Descripcion LONGTEXT NOT NULL, NotasInternas LONGTEXT, Cantidad DOUBLE NOT NULL, PrecioUnitario CURRENCY NOT NULL, DescuentoPorcentaje DOUBLE NOT NULL, DescuentoImporte CURRENCY NOT NULL, Impuesto TEXT(2) NOT NULL, ClaveRegimen TEXT(2) NOT NULL, CalificacionOperacion TEXT(2) NOT NULL, CausaExencion TEXT(2), TipoIVA DOUBLE NOT NULL, TipoRecargoEquivalencia DOUBLE NOT NULL, EsSuplido YESNO NOT NULL, CuentaContable TEXT(10), IdDepartamento LONG, IdCentroCoste LONG, Activa YESNO NOT NULL)",
+    "CREATE TABLE Facturas (IdFactura COUNTER CONSTRAINT PK_Facturas PRIMARY KEY, IdSociedadEjercicio LONG NOT NULL, IdSerie LONG NOT NULL, NumeroFactura TEXT(60), IdCliente LONG, IdContrato LONG, CIF TEXT(25), Nombre TEXT(150), RazonSocial TEXT(200), PaisCliente TEXT(2), TipoIdentificacionCliente BYTE, NIFEmisor TEXT(25), NombreEmisor TEXT(200), FechaFactura DATETIME, FechaOperacion DATETIME, FechaInicioValidez DATETIME, FechaFinValidez DATETIME, FechaCreacion DATETIME NOT NULL, FechaHoraEmision DATETIME, FormaDePago BYTE, DiaDePago BYTE, Descripcion LONGTEXT NOT NULL, NotasInternas LONGTEXT, BaseImponible CURRENCY NOT NULL, IVA CURRENCY NOT NULL, ImporteBruto CURRENCY NOT NULL, TipoRetencion SINGLE, Retencion CURRENCY NOT NULL, ImporteTotal CURRENCY NOT NULL, TipoFactura TEXT(2) NOT NULL, TipoRectificativa TEXT(1), EstadoFactura BYTE NOT NULL, IdFacturaRectificada LONG, FechaExportacionContable DATETIME, IdAsientoContable LONG, LoteExportacionContable LONG, PDFFactura TEXT(255), Historial LONGTEXT, IdFacturaProgramada LONG, IdLoteFacturaProgramada LONG, FechaProgramadaOrigen DATETIME)",
+    "CREATE TABLE LineasFactura (IdLineaFactura COUNTER CONSTRAINT PK_LineasFactura PRIMARY KEY, IdFactura LONG NOT NULL, NumeroLinea SHORT NOT NULL, IdConcepto LONG, Descripcion LONGTEXT NOT NULL, NotasInternas LONGTEXT, Fecha DATETIME, Cantidad DOUBLE NOT NULL, PrecioUnitario CURRENCY NOT NULL, DescuentoPorcentaje DOUBLE NOT NULL, DescuentoImporte CURRENCY NOT NULL, BaseImponible CURRENCY NOT NULL, Impuesto TEXT(2) NOT NULL, ClaveRegimen TEXT(2) NOT NULL, CalificacionOperacion TEXT(2) NOT NULL, CausaExencion TEXT(2), TipoIVA DOUBLE NOT NULL, CuotaIVA CURRENCY NOT NULL, TipoRecargoEquivalencia DOUBLE NOT NULL, CuotaRecargoEquivalencia CURRENCY NOT NULL, EsSuplido YESNO NOT NULL, ImporteTotal CURRENCY NOT NULL, Nombre TEXT(255), CuentaContable TEXT(10), IdDepartamento LONG, IdCentroCoste LONG)",
+    "CREATE UNIQUE INDEX UX_Series_SociedadPrefijo ON SeriesFacturacion (IdSociedadEjercicio,Prefijo)",
+    "CREATE UNIQUE INDEX UX_Series_EjercicioId ON SeriesFacturacion (IdSociedadEjercicio,IdSerie)",
+    "CREATE UNIQUE INDEX UX_Clientes_IdContrato ON Clientes (IdContrato)",
+    "CREATE INDEX IX_Conceptos_Sociedad ON Conceptos (IdSociedad)",
+    "CREATE INDEX IX_Conceptos_Nombre ON Conceptos (Nombre)",
+    "CREATE UNIQUE INDEX UX_LineasContrato_Orden ON LineasContrato (IdContrato,NumeroLinea)",
+    "CREATE INDEX IX_Contratos_Inmueble ON Contratos (IdInmueble)",
+    "CREATE UNIQUE INDEX UX_Facturas_SociedadNumero ON Facturas (IdSociedadEjercicio,NumeroFactura)",
+    "CREATE UNIQUE INDEX UX_Facturas_Rectificada ON Facturas (IdFacturaRectificada)",
+    "CREATE UNIQUE INDEX UX_Facturas_ProgramacionFecha ON Facturas (IdFacturaProgramada,FechaProgramadaOrigen)",
+    "CREATE INDEX IX_Facturas_Fecha ON Facturas (FechaFactura)",
+    "CREATE INDEX IX_Facturas_Estado ON Facturas (EstadoFactura)",
+    "CREATE INDEX IX_Facturas_Cliente ON Facturas (IdCliente)",
+    "CREATE INDEX IX_Facturas_Asiento ON Facturas (IdAsientoContable)",
+    "CREATE UNIQUE INDEX UX_LineasFactura_Orden ON LineasFactura (IdFactura,NumeroLinea)",
+    "CREATE INDEX IX_Programadas_Proxima ON FacturasProgramadas (Activa,ProximaFechaEmision)",
+    "CREATE INDEX IX_Programadas_Sociedad ON FacturasProgramadas (IdSociedad)",
+    "CREATE UNIQUE INDEX UX_LineasProgramadas_Orden ON LineasFacturasProgramadas (IdFacturaProgramada,NumeroLinea)",
+    "ALTER TABLE Clientes ADD CONSTRAINT FK_Clientes_Contrato FOREIGN KEY (IdContrato) REFERENCES Contratos (IdContrato)",
+    "ALTER TABLE SeriesFacturacion ADD CONSTRAINT FK_SeriesFacturacion_Ejercicio FOREIGN KEY (IdSociedadEjercicio) REFERENCES SociedadesEjercicios (IdSociedadEjercicio)",
+    "ALTER TABLE Contratos ADD CONSTRAINT FK_Contratos_Sociedad FOREIGN KEY (IdSociedad) REFERENCES Sociedades (IdSociedad)",
+    "ALTER TABLE Contratos ADD CONSTRAINT FK_Contratos_Cliente FOREIGN KEY (IdCliente) REFERENCES Clientes (IdCliente)",
+    "ALTER TABLE Contratos ADD CONSTRAINT FK_Contratos_Inmueble FOREIGN KEY (IdInmueble) REFERENCES ActivosInmuebles (IdActivo)",
+    "ALTER TABLE Contratos ADD CONSTRAINT FK_Contratos_Pago FOREIGN KEY (FormaDePago) REFERENCES FormasPago (Codigo)",
+    "ALTER TABLE LineasContrato ADD CONSTRAINT FK_LineasContrato_Contrato FOREIGN KEY (IdContrato) REFERENCES Contratos (IdContrato)",
+    "ALTER TABLE LineasContrato ADD CONSTRAINT FK_LineasContrato_Concepto FOREIGN KEY (IdConcepto) REFERENCES Conceptos (IdConcepto)",
+    "ALTER TABLE Conceptos ADD CONSTRAINT FK_Conceptos_Sociedad FOREIGN KEY (IdSociedad) REFERENCES Sociedades (IdSociedad)",
+    "ALTER TABLE Conceptos ADD CONSTRAINT FK_Conceptos_Tipo FOREIGN KEY (IdTipoConcepto) REFERENCES TiposConcepto (IdTipoConcepto)",
+    "ALTER TABLE Conceptos ADD CONSTRAINT FK_Conceptos_Departamento FOREIGN KEY (IdDepartamento) REFERENCES CentrosCoste (IdCentroCoste)",
+    "ALTER TABLE Conceptos ADD CONSTRAINT FK_Conceptos_Centro FOREIGN KEY (IdCentroCoste) REFERENCES CentrosCoste (IdCentroCoste)",
+    "ALTER TABLE LotesExportacionContable ADD CONSTRAINT FK_LotesExportacionContable_Ejercicio FOREIGN KEY (IdSociedadEjercicio) REFERENCES SociedadesEjercicios (IdSociedadEjercicio)",
+    "ALTER TABLE LotesFacturasProgramadas ADD CONSTRAINT FK_LotesFacturasProgramadas_Ejercicio FOREIGN KEY (IdSociedadEjercicio) REFERENCES SociedadesEjercicios (IdSociedadEjercicio)",
+    "ALTER TABLE FacturasProgramadas ADD CONSTRAINT FK_FacturasProgramadas_Sociedad FOREIGN KEY (IdSociedad) REFERENCES Sociedades (IdSociedad)",
+    "ALTER TABLE FacturasProgramadas ADD CONSTRAINT FK_FacturasProgramadas_Cliente FOREIGN KEY (IdCliente) REFERENCES Clientes (IdCliente)",
+    "ALTER TABLE FacturasProgramadas ADD CONSTRAINT FK_FacturasProgramadas_Contrato FOREIGN KEY (IdContrato) REFERENCES Contratos (IdContrato)",
+    "ALTER TABLE FacturasProgramadas ADD CONSTRAINT FK_FacturasProgramadas_Tipo FOREIGN KEY (TipoFactura) REFERENCES TiposFactura (TipoFactura)",
+    "ALTER TABLE FacturasProgramadas ADD CONSTRAINT FK_FacturasProgramadas_Pago FOREIGN KEY (FormaDePago) REFERENCES FormasPago (Codigo)",
+    "ALTER TABLE LineasFacturasProgramadas ADD CONSTRAINT FK_LineasFacturasProgramadas_Cabecera FOREIGN KEY (IdFacturaProgramada) REFERENCES FacturasProgramadas (IdFacturaProgramada)",
+    "ALTER TABLE LineasFacturasProgramadas ADD CONSTRAINT FK_LineasFacturasProgramadas_Concepto FOREIGN KEY (IdConcepto) REFERENCES Conceptos (IdConcepto)",
+    "ALTER TABLE LineasFacturasProgramadas ADD CONSTRAINT FK_LineasFacturasProgramadas_Departamento FOREIGN KEY (IdDepartamento) REFERENCES CentrosCoste (IdCentroCoste)",
+    "ALTER TABLE LineasFacturasProgramadas ADD CONSTRAINT FK_LineasFacturasProgramadas_Centro FOREIGN KEY (IdCentroCoste) REFERENCES CentrosCoste (IdCentroCoste)",
+    "ALTER TABLE Facturas ADD CONSTRAINT FK_Facturas_Ejercicio FOREIGN KEY (IdSociedadEjercicio) REFERENCES SociedadesEjercicios (IdSociedadEjercicio)",
+    "ALTER TABLE Facturas ADD CONSTRAINT FK_Facturas_Cliente FOREIGN KEY (IdCliente) REFERENCES Clientes (IdCliente)",
+    "ALTER TABLE Facturas ADD CONSTRAINT FK_Facturas_Contrato FOREIGN KEY (IdContrato) REFERENCES Contratos (IdContrato)",
+    "ALTER TABLE Facturas ADD CONSTRAINT FK_Facturas_Tipo FOREIGN KEY (TipoFactura) REFERENCES TiposFactura (TipoFactura)",
+    "ALTER TABLE Facturas ADD CONSTRAINT FK_Facturas_Estado FOREIGN KEY (EstadoFactura) REFERENCES EstadosFactura (IdEstado)",
+    "ALTER TABLE Facturas ADD CONSTRAINT FK_Facturas_Pago FOREIGN KEY (FormaDePago) REFERENCES FormasPago (Codigo)",
+    "ALTER TABLE Facturas ADD CONSTRAINT FK_Facturas_Rectificada FOREIGN KEY (IdFacturaRectificada) REFERENCES Facturas (IdFactura)",
+    "ALTER TABLE Facturas ADD CONSTRAINT FK_Facturas_Asiento FOREIGN KEY (IdAsientoContable) REFERENCES Asientos (IdAsiento)",
+    "ALTER TABLE Facturas ADD CONSTRAINT FK_Facturas_LoteExportacion FOREIGN KEY (LoteExportacionContable) REFERENCES LotesExportacionContable (IdLote)",
+    "ALTER TABLE Facturas ADD CONSTRAINT FK_Facturas_Programacion FOREIGN KEY (IdFacturaProgramada) REFERENCES FacturasProgramadas (IdFacturaProgramada)",
+    "ALTER TABLE Facturas ADD CONSTRAINT FK_Facturas_LoteProgramado FOREIGN KEY (IdLoteFacturaProgramada) REFERENCES LotesFacturasProgramadas (IdLoteFacturaProgramada)",
+    "ALTER TABLE LineasFactura ADD CONSTRAINT FK_LineasFactura_Factura FOREIGN KEY (IdFactura) REFERENCES Facturas (IdFactura)",
+    "ALTER TABLE LineasFactura ADD CONSTRAINT FK_LineasFactura_Concepto FOREIGN KEY (IdConcepto) REFERENCES Conceptos (IdConcepto)",
+    "ALTER TABLE LineasFactura ADD CONSTRAINT FK_LineasFactura_Departamento FOREIGN KEY (IdDepartamento) REFERENCES CentrosCoste (IdCentroCoste)",
+    "ALTER TABLE LineasFactura ADD CONSTRAINT FK_LineasFactura_Centro FOREIGN KEY (IdCentroCoste) REFERENCES CentrosCoste (IdCentroCoste)",
+    "ALTER TABLE Facturas ADD CONSTRAINT FK_Facturas_SerieEjercicio FOREIGN KEY (IdSociedadEjercicio,IdSerie) REFERENCES SeriesFacturacion (IdSociedadEjercicio,IdSerie)",
+    "ALTER TABLE Apuntes ADD CONSTRAINT FK_Apuntes_Cliente FOREIGN KEY (IdCliente) REFERENCES Clientes (IdCliente)"
+  ],
+  "descripciones": {
+    "Clientes": {
+      "IdTercero": "Identidad común obligatoria; un tercero puede activar también Proveedores y Contactos.",
+      "IdContrato": "Vínculo opcional con el contrato principal."
+    },
+    "SeriesFacturacion": {
+      "IdSociedadEjercicio": "Ejercicio propietario de la serie y su numeración.",
+      "Prefijo": "Parte fija de la numeración, única dentro del ejercicio.",
+      "EsPredeterminada": "La aplicación elige esta serie al crear una factura nueva del ejercicio."
+    },
+    "Contratos": {
+      "IdSociedad": "Sociedad permanente titular del contrato.",
+      "IdInmueble": "Ficha ActivosInmuebles tras correspondencia de importación, no ID legacy sin mapear.",
+      "IdCliente": "Arrendatario cuando está identificado."
+    },
+    "Conceptos": {
+      "IdSociedad": "Sociedad propietaria permanente; el concepto se reutiliza sin copiarlo entre ejercicios.",
+      "CuentaContable": "Código contable predeterminado de hasta diez caracteres; se resuelve y valida en el ejercicio al utilizar el concepto.",
+      "IdDepartamento": "Nodo analítico superior tras correspondencia del origen.",
+      "IdCentroCoste": "Centro analítico local."
+    },
+    "Facturas": {
+      "IdSociedadEjercicio": "Ejercicio fiscal y de numeración de la factura.",
+      "IdSerie": "Serie del mismo ejercicio; la FK compuesta impide mezcla de ejercicios.",
+      "NumeroFactura": "Nulo mientras el borrador no está numerado; único por ejercicio cuando existe.",
+      "EstadoFactura": "Código de EstadosFactura, incluido borrador.",
+      "NIFEmisor": "Dato fiscal del emisor congelado al emitir.",
+      "NombreEmisor": "Razón social del emisor congelada al emitir.",
+      "IdAsientoContable": "Asiento asociado; su ejercicio debe concordar y lo valida el servicio.",
+      "IdFacturaRectificada": "Factura original de una rectificación."
+    },
+    "LineasFactura": {
+      "CuentaContable": "Instantánea del código contable de hasta diez caracteres.",
+      "IdCentroCoste": "Centro analítico local.",
+      "NumeroLinea": "Orden único dentro de la factura."
+    },
+    "FacturasProgramadas": {
+      "IdSociedad": "Sociedad propietaria permanente; la programación continúa entre ejercicios sin copiar cabecera ni líneas.",
+      "PrefijoSerie": "Preferencia de serie. Al generar cada factura se resuelve una serie no rectificativa de la sociedad y del ejercicio de emisión con este prefijo. Si no existe, se bloquea la generación hasta configurar la serie."
+    },
+    "LineasFacturasProgramadas": {
+      "CuentaContable": "Código de cuenta de hasta diez caracteres; se valida al generar la factura."
+    },
+    "LotesFacturasProgramadas": {
+      "IdSociedadEjercicio": "Ejercicio de las programaciones procesadas en el lote."
+    },
+    "LotesExportacionContable": {
+      "IdSociedadEjercicio": "Ejercicio al que pertenecen las facturas exportadas."
+    }
+  },
+  "catalogoEstadosFactura": [
+    {
+      "codigo": 0,
+      "nombre": "PendienteValidar",
+      "modificable": false,
+      "terminal": false
+    },
+    {
+      "codigo": 1,
+      "nombre": "Validada",
+      "modificable": false,
+      "terminal": false
+    },
+    {
+      "codigo": 2,
+      "nombre": "Rectificada",
+      "modificable": false,
+      "terminal": true
+    },
+    {
+      "codigo": 3,
+      "nombre": "Borrador",
+      "modificable": true,
+      "terminal": false
+    },
+    {
+      "codigo": 4,
+      "nombre": "RectificacionPendiente",
+      "modificable": false,
+      "terminal": false
+    }
+  ],
+  "catalogoTiposFactura": [
+    {
+      "codigo": "F1",
+      "descripcion": "Factura con destinatario identificado.",
+      "rectificativa": false
+    },
+    {
+      "codigo": "F2",
+      "descripcion": "Factura simplificada o sin identificación del destinatario.",
+      "rectificativa": false
+    },
+    {
+      "codigo": "F3",
+      "descripcion": "Factura emitida en sustitución de facturas simplificadas.",
+      "rectificativa": false
+    },
+    {
+      "codigo": "R1",
+      "descripcion": "Factura rectificativa por error fundado en derecho o causas del artículo 80.Uno, Dos y Seis de la Ley del IVA.",
+      "rectificativa": true
+    },
+    {
+      "codigo": "R2",
+      "descripcion": "Factura rectificativa por concurso de acreedores, artículo 80.Tres de la Ley del IVA.",
+      "rectificativa": true
+    },
+    {
+      "codigo": "R3",
+      "descripcion": "Factura rectificativa por crédito incobrable, artículo 80.Cuatro de la Ley del IVA.",
+      "rectificativa": true
+    },
+    {
+      "codigo": "R4",
+      "descripcion": "Factura rectificativa por el resto de causas.",
+      "rectificativa": true
+    },
+    {
+      "codigo": "R5",
+      "descripcion": "Factura rectificativa de factura simplificada o sin identificación del destinatario.",
+      "rectificativa": true
+    }
+  ]
+}

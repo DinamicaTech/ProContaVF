@@ -1,0 +1,44 @@
+{
+  "id": "20260929_011_CORREO_CENTRAL",
+  "version": "0.11.0",
+  "descripcion": "Buzones, asociaciones anuales y trazabilidad de Mail Dispatcher y GestorCorreo, sin credenciales de instalación.",
+  "sentencias": [
+    "CREATE TABLE ConfiguracionMailDispatcher (IdConfiguracionMail COUNTER CONSTRAINT PK_ConfiguracionMail PRIMARY KEY, IdSociedadEjercicio LONG NOT NULL, Activo YESNO NOT NULL, DireccionReceptora TEXT(254) NOT NULL, NombreVisible TEXT(150), ServidorPop3 TEXT(255) NOT NULL, PuertoPop3 LONG NOT NULL, TlsPop3 TEXT(30) NOT NULL, UsuarioPop3 TEXT(254) NOT NULL, ServidorSmtp TEXT(255) NOT NULL, PuertoSmtp LONG NOT NULL, TlsSmtp TEXT(30) NOT NULL, AutenticarSmtp YESNO NOT NULL, UsuarioSmtp TEXT(254), ReferenciaSecreto TEXT(255) NOT NULL, DireccionRemitente TEXT(254) NOT NULL, DireccionRespuesta TEXT(254), IntervaloMinutos LONG NOT NULL, EliminarTrasProcesar YESNO NOT NULL, TiempoEsperaSegundos LONG NOT NULL, TamanoMaximoMensajeBytes LONG NOT NULL, NumeroMaximoAdjuntos LONG NOT NULL, TamanoMaximoAdjuntoBytes LONG NOT NULL)",
+    "CREATE TABLE ProcesamientosMailDispatcher (IdProcesamientoMail COUNTER CONSTRAINT PK_ProcesamientosMail PRIMARY KEY, ClaveIdempotencia TEXT(255) NOT NULL, UidlPop3 TEXT(255), MessageId TEXT(255), HashContenido TEXT(64) NOT NULL, IdConfiguracionMail LONG NOT NULL, Estado TEXT(40) NOT NULL, EsErrorTransitorio YESNO, FechaHoraInicio DATETIME NOT NULL, FechaHoraFin DATETIME, Remitente TEXT(254), Asunto LONGTEXT, Detalle LONGTEXT)",
+    "CREATE TABLE AdjuntosMailDispatcher (IdAdjuntoMail COUNTER CONSTRAINT PK_AdjuntosMail PRIMARY KEY, IdProcesamientoMail LONG NOT NULL, Ordinal LONG NOT NULL, NombreOriginal TEXT(255) NOT NULL, HashContenido TEXT(64) NOT NULL, TipoDetectado TEXT(40), Estado TEXT(40) NOT NULL, RutaMaterializada LONGTEXT, Detalle LONGTEXT)",
+    "CREATE TABLE CuentasCorreo (IdCuentaCorreo COUNTER CONSTRAINT PK_CuentasCorreo PRIMARY KEY, CodigoProveedor TEXT(50) NOT NULL, DireccionCorreo TEXT(254) NOT NULL, NombreVisible TEXT(150), ServidorPop3 TEXT(255) NOT NULL, PuertoPop3 LONG NOT NULL, ModoTlsPop3 TEXT(30) NOT NULL, UsuarioPop3 TEXT(254) NOT NULL, ServidorSmtp TEXT(255) NOT NULL, PuertoSmtp LONG NOT NULL, ModoTlsSmtp TEXT(30) NOT NULL, UsuarioSmtp TEXT(254), MetodoAutenticacion TEXT(40) NOT NULL, ReferenciaCredencialPop3 TEXT(255), ReferenciaCredencialSmtp TEXT(255), ComparteCredencialSmtp YESNO NOT NULL, DireccionRespuesta TEXT(254), Estado TEXT(40) NOT NULL, TiempoEsperaSegundos LONG NOT NULL)",
+    "CREATE TABLE CuentasCorreoSociedadesEjercicios (IdAsociacionCuentaCorreo COUNTER CONSTRAINT PK_CuentasCorreoSociedadesEjercicios PRIMARY KEY, IdCuentaCorreo LONG NOT NULL, IdSociedadEjercicio LONG NOT NULL, Activa YESNO NOT NULL)",
+    "CREATE TABLE DiagnosticosCuentasCorreo (IdDiagnosticoCuentaCorreo COUNTER CONSTRAINT PK_DiagnosticosCuentasCorreo PRIMARY KEY, IdCuentaCorreo LONG NOT NULL, FechaHora DATETIME NOT NULL, Protocolo TEXT(20) NOT NULL, Estado TEXT(30) NOT NULL, DuracionMilisegundos LONG, Titulo TEXT(150) NOT NULL, Detalle LONGTEXT, AccionRecomendada LONGTEXT)",
+    "CREATE UNIQUE INDEX UX_ConfigMail_DireccionActiva ON ConfiguracionMailDispatcher (DireccionReceptora)",
+    "CREATE UNIQUE INDEX UX_ConfigMail_SociedadEjercicio ON ConfiguracionMailDispatcher (IdSociedadEjercicio)",
+    "CREATE UNIQUE INDEX UX_ProcesamientosMail_Clave ON ProcesamientosMailDispatcher (ClaveIdempotencia)",
+    "CREATE UNIQUE INDEX UX_ProcesamientosMail_Uidl ON ProcesamientosMailDispatcher (IdConfiguracionMail,UidlPop3)",
+    "CREATE UNIQUE INDEX UX_AdjuntosMail_Ordinal ON AdjuntosMailDispatcher (IdProcesamientoMail,Ordinal)",
+    "CREATE UNIQUE INDEX UX_CuentasCorreo_Direccion ON CuentasCorreo (DireccionCorreo)",
+    "CREATE UNIQUE INDEX UX_CuentaCorreo_Ejercicio ON CuentasCorreoSociedadesEjercicios (IdSociedadEjercicio)",
+    "CREATE INDEX IX_DiagnosticosCuenta_Fecha ON DiagnosticosCuentasCorreo (IdCuentaCorreo,FechaHora)",
+    "ALTER TABLE ConfiguracionMailDispatcher ADD CONSTRAINT FK_ConfigMail_SociedadEjercicio FOREIGN KEY (IdSociedadEjercicio) REFERENCES SociedadesEjercicios (IdSociedadEjercicio)",
+    "ALTER TABLE ProcesamientosMailDispatcher ADD CONSTRAINT FK_ProcesamientoMail_Config FOREIGN KEY (IdConfiguracionMail) REFERENCES ConfiguracionMailDispatcher (IdConfiguracionMail)",
+    "ALTER TABLE AdjuntosMailDispatcher ADD CONSTRAINT FK_AdjuntoMail_Proceso FOREIGN KEY (IdProcesamientoMail) REFERENCES ProcesamientosMailDispatcher (IdProcesamientoMail)",
+    "ALTER TABLE CuentasCorreoSociedadesEjercicios ADD CONSTRAINT FK_AsociacionCuenta_Cuenta FOREIGN KEY (IdCuentaCorreo) REFERENCES CuentasCorreo (IdCuentaCorreo)",
+    "ALTER TABLE CuentasCorreoSociedadesEjercicios ADD CONSTRAINT FK_AsociacionCuenta_Ejercicio FOREIGN KEY (IdSociedadEjercicio) REFERENCES SociedadesEjercicios (IdSociedadEjercicio)",
+    "ALTER TABLE DiagnosticosCuentasCorreo ADD CONSTRAINT FK_DiagnosticoCuenta_Cuenta FOREIGN KEY (IdCuentaCorreo) REFERENCES CuentasCorreo (IdCuentaCorreo)"
+  ],
+  "descripciones": {
+    "ConfiguracionMailDispatcher": {
+      "IdSociedadEjercicio": "Configuración funcional del buzón receptor en un ejercicio concreto.",
+      "ReferenciaSecreto": "Identificador externo de secreto; la base maestra no contiene su valor."
+    },
+    "ProcesamientosMailDispatcher": {
+      "ClaveIdempotencia": "Clave única para reanudar un mensaje sin procesarlo dos veces."
+    },
+    "CuentasCorreo": {
+      "DireccionCorreo": "Cuenta transversal de correo, única en la instalación.",
+      "ReferenciaCredencialPop3": "Referencia externa opcional; no almacena la credencial.",
+      "ReferenciaCredencialSmtp": "Referencia externa opcional; no almacena la credencial."
+    },
+    "CuentasCorreoSociedadesEjercicios": {
+      "IdSociedadEjercicio": "Asociación anual de una cuenta transversal; solo una por ejercicio."
+    }
+  }
+}

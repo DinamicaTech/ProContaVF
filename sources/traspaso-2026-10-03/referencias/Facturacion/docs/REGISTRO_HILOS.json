@@ -1,0 +1,595 @@
+{
+  "version": 1,
+  "fechaCorte": "2026-10-01",
+  "estado": "Primer roadmap: nombres normalizados y dos hilos creados por autorización del usuario; resto del mapa propuesto",
+  "baseRutas": "C:/Docs/VeriFactu",
+  "notas": [
+    "Las dependencias son funcionales orientativas, no referencias de ensamblados verificadas.",
+    "Un hilo vigente identifica la referencia de continuidad, no certifica implementación terminada.",
+    "Los títulos son los devueltos por herramientas; null significa título no disponible.",
+    "El cwd del chat puede diferir de su worktree asignado. Usar la ruta asignada y verificar Git antes de editar.",
+    "La lista no garantiza cubrir todos los hilos antiguos; combina listado reciente e historial del Orquestador."
+  ],
+  "hilos": [
+    {
+      "codigo": "GOV-AUD",
+      "id": "01a0e6ec-6b63-74b3-bff4-a90df8a595b0",
+      "titulo": "GOV-AUD · Auditoría y arquitectura global",
+      "hostId": "local",
+      "area": "Gobierno",
+      "estado": "vigente",
+      "carpetaTrabajo": "C:/Docs/VeriFactu/ProConta.Facturacion",
+      "rama": "codex/integracion-proconta-20260822",
+      "documentoReferencia": "C:/Docs/VeriFactu/ProConta.Facturacion/docs/AUDITORIA_GLOBAL.md",
+      "relacionados": [
+        "GOV-ORQ"
+      ]
+    },
+    {
+      "codigo": "GOV-ORQ",
+      "id": "01a02903-4be4-74f2-afdf-a8292b08b40b",
+      "titulo": "Orquestador",
+      "hostId": "local",
+      "area": "Gobierno",
+      "estado": "vigente",
+      "carpetaTrabajo": null,
+      "rama": null,
+      "documentoReferencia": null,
+      "relacionados": [
+        "GOV-AUD"
+      ]
+    },
+    {
+      "codigo": "DAT-TERCEROS",
+      "id": "01a0ecfd-9332-7d73-ab9d-d79492aa73bf",
+      "titulo": "DAT-TERCEROS · Modelo y gestión de terceros",
+      "hostId": "local",
+      "area": "Datos maestros",
+      "estado": "vigente",
+      "carpetaTrabajo": "C:/Docs/VeriFactu/ProConta.Terceros",
+      "rama": "feature/terceros",
+      "documentoReferencia": "C:/Docs/VeriFactu/ProConta.Terceros/docs/TERCEROS_CONTRATO.md",
+      "relacionados": [
+        "CON-CUE",
+        "INF-ESQ"
+      ],
+      "contratoPublico": "C:/Docs/VeriFactu/ProConta.Terceros/docs/CONTRATO_PUBLICO.md",
+      "estadoNormalizacion": "Nombre normalizado; publicación de ficha solicitada; revisión cruzada pendiente"
+    },
+    {
+      "codigo": "FAC-RES",
+      "id": "01a0ecee-124a-79b2-8c40-b69cf12d4aba",
+      "titulo": "Facturación de reservas de alojamiento",
+      "hostId": "local",
+      "area": "Facturación",
+      "estado": "vigente",
+      "carpetaTrabajo": "C:/Docs/VeriFactu/ProConta.Facturacion",
+      "rama": "codex/integracion-proconta-20260822",
+      "documentoReferencia": "C:/Docs/VeriFactu/ProConta.Facturacion/docs/RESERVAS_ALOJAMIENTO_CONTRATO.md",
+      "relacionados": [
+        "DAT-TERCEROS",
+        "ACT",
+        "INF-ESQ"
+      ]
+    },
+    {
+      "codigo": "FAC-VF",
+      "id": "01a0763a-f47e-7701-8c77-f9b343602581",
+      "titulo": "Integración VeriFactu en ProConta",
+      "hostId": "local",
+      "area": "Facturación",
+      "estado": "vigente",
+      "carpetaTrabajo": "C:/Docs/VeriFactu/ProConta.VeriFactu",
+      "rama": "codex/integracion-verifactu",
+      "documentoReferencia": "C:/Docs/VeriFactu/ProConta.VeriFactu/docs/MODELO_FACTURA.md",
+      "relacionados": [
+        "INF-COR",
+        "INF-REP"
+      ]
+    },
+    {
+      "codigo": "FAC-LIS",
+      "id": "01a03500-a67d-7410-b1dc-3eb5f67c8b65",
+      "titulo": "FAC-LIS · Facturas emitidas y programadas",
+      "hostId": "local",
+      "area": "Facturación / presentación",
+      "estado": "referencia de implementación",
+      "carpetaTrabajo": "C:/Docs/VeriFactu/ProConta.WpfFacturas",
+      "rama": "codex/wpf-facturas",
+      "documentoReferencia": "C:/Docs/VeriFactu/ProConta.WpfFacturas/docs/WPF_FACTURAS.md",
+      "relacionados": [
+        "FAC-DET"
+      ]
+    },
+    {
+      "codigo": "FAC-DET",
+      "id": "01a03815-bbe1-7843-911f-5dc4f7f0f597",
+      "titulo": "FAC-DET · Detalle y edición de facturas",
+      "hostId": "local",
+      "area": "Facturación / presentación",
+      "estado": "referencia de implementación",
+      "carpetaTrabajo": "C:/Docs/VeriFactu/ProConta.WpfDetalleFactura",
+      "rama": "codex/wpf-detalle-factura",
+      "documentoReferencia": "C:/Docs/VeriFactu/ProConta.WpfDetalleFactura/docs/WPF_FACTURAS.md",
+      "relacionados": [
+        "DAT-TERCEROS",
+        "FAC-VF"
+      ]
+    },
+    {
+      "codigo": "COM",
+      "id": "01a07b40-0d03-72b3-a3e9-e2a7ae2f6cd1",
+      "titulo": "Motor Facturas de Compra — continuación…",
+      "hostId": "local",
+      "area": "Compras",
+      "estado": "continuación designada",
+      "carpetaTrabajo": "C:/Docs/VeriFactu/ProConta.FacturasCompra",
+      "rama": "codex/facturas-compra",
+      "documentoReferencia": "C:/Docs/VeriFactu/ProConta.FacturasCompra/docs/ESTADO_RECONOCIMIENTO_FACTURAS_COMPRA.md",
+      "relacionados": [
+        "DAT-TERCEROS",
+        "CON-ASI"
+      ]
+    },
+    {
+      "codigo": "COM-H",
+      "id": "01a00ee8-d59f-7de0-9da6-74ec17350da3",
+      "titulo": "Motor importación facturas compra",
+      "hostId": "local",
+      "area": "Compras",
+      "estado": "histórico con conversación posterior; resolver continuidad",
+      "carpetaTrabajo": null,
+      "rama": null,
+      "documentoReferencia": null,
+      "relacionados": [
+        "COM"
+      ]
+    },
+    {
+      "codigo": "CON-CUE",
+      "id": "01a07b40-19a0-7d40-85e9-8530cfb64147",
+      "titulo": "Motor Cuentas Contables",
+      "hostId": "local",
+      "area": "Contabilidad",
+      "estado": "vigente",
+      "carpetaTrabajo": "C:/Docs/VeriFactu/ProConta.CuentasContables",
+      "rama": "codex/cuentas-contables",
+      "documentoReferencia": null,
+      "relacionados": [
+        "DAT-TERCEROS"
+      ]
+    },
+    {
+      "codigo": "CON-ASI",
+      "id": "01a07b3f-d7a5-7892-94a6-8dca3ccc37d6",
+      "titulo": "Motor Asientos Contables",
+      "hostId": "local",
+      "area": "Contabilidad",
+      "estado": "vigente",
+      "carpetaTrabajo": "C:/Docs/VeriFactu/ProConta.Asientos",
+      "rama": "codex/asientos",
+      "documentoReferencia": null,
+      "relacionados": [
+        "CON-CUE"
+      ]
+    },
+    {
+      "codigo": "CON-GES",
+      "id": "01a07af8-9926-7790-9776-b09857e46d01",
+      "titulo": "GestorContable",
+      "hostId": "local",
+      "area": "Contabilidad",
+      "estado": "vigente",
+      "carpetaTrabajo": "C:/Docs/VeriFactu/ProConta.GestorContable",
+      "rama": "codex/gestor-contable",
+      "documentoReferencia": "C:/Docs/VeriFactu/ProConta.GestorContable/docs/GESTOR_CONTABLE.md",
+      "relacionados": [
+        "CON-ASI",
+        "CON-CUE",
+        "SEG-ACCESO"
+      ]
+    },
+    {
+      "codigo": "CON-MOD",
+      "id": "01a034a6-626d-7d80-a999-386575c67679",
+      "titulo": "Modelos contables",
+      "hostId": "local",
+      "area": "Contabilidad",
+      "estado": "vigente",
+      "carpetaTrabajo": "C:/Docs/VeriFactu/ProConta.ModelosContables",
+      "rama": "codex/modelos-contables",
+      "documentoReferencia": "C:/Docs/VeriFactu/ProConta.ModelosContables/docs/MODELOS_CONTABLES.md",
+      "relacionados": [
+        "CON-ASI",
+        "COM",
+        "NOM",
+        "INF-REP"
+      ]
+    },
+    {
+      "codigo": "CON-IA",
+      "id": "01a07b40-34f5-7273-a0eb-3afd31bf6804",
+      "titulo": "Asistente IA para Asientos — continuación…",
+      "hostId": "local",
+      "area": "Contabilidad",
+      "estado": "continuación designada",
+      "carpetaTrabajo": "C:/Docs/VeriFactu/ProConta.AsistenteAsientos",
+      "rama": "codex/asistente-asientos",
+      "documentoReferencia": null,
+      "relacionados": [
+        "CON-ASI",
+        "CON-CUE",
+        "SEG-ACCESO"
+      ]
+    },
+    {
+      "codigo": "NOM",
+      "id": "01a07b3f-bccd-73f3-bae6-7bf227dbbaf4",
+      "titulo": "Motor Nóminas",
+      "hostId": "local",
+      "area": "Nóminas",
+      "estado": "vigente",
+      "carpetaTrabajo": "C:/Docs/VeriFactu/ProConta.Nominas",
+      "rama": "codex/motor-nominas",
+      "documentoReferencia": "C:/Docs/VeriFactu/ProConta.Nominas/docs/INTERFAZ_NOMINAS_KRYPTON.md",
+      "relacionados": [
+        "CON-ASI",
+        "CON-CUE"
+      ]
+    },
+    {
+      "codigo": "TES-N43",
+      "id": "01a07b3f-e43b-7630-99fd-91c45619b108",
+      "titulo": "TES-N43 · Extractos y líneas bancarias",
+      "hostId": "local",
+      "area": "Tesorería",
+      "estado": "vigente",
+      "carpetaTrabajo": "C:/Docs/VeriFactu/ProConta.Norma43",
+      "rama": "codex/norma43",
+      "documentoReferencia": "C:/Docs/VeriFactu/ProConta.Norma43/docs/MOTOR_NORMA43.md",
+      "relacionados": [
+        "CON-ASI"
+      ]
+    },
+    {
+      "codigo": "ACT",
+      "id": "01a067ec-626d-7232-b61b-fbef4b252a6b",
+      "titulo": "Gestión de activos",
+      "hostId": "local",
+      "area": "Activos",
+      "estado": "vigente",
+      "carpetaTrabajo": "C:/Docs/VeriFactu/ProConta.Activos",
+      "rama": "codex/activos",
+      "documentoReferencia": "C:/Docs/VeriFactu/ProConta.Activos/docs/MODELO_ACTIVOS.md",
+      "relacionados": [
+        "CON-CUE",
+        "CON-ASI",
+        "INF-GRA"
+      ]
+    },
+    {
+      "codigo": "CFG-GLOBAL",
+      "id": "01a07b3f-f0f5-75e2-988d-51543b318131",
+      "titulo": "CFG-GLOBAL · Configuración global de datos",
+      "hostId": "local",
+      "area": "Infraestructura",
+      "estado": "vigente",
+      "carpetaTrabajo": "C:/Docs/VeriFactu/ProConta.ConfiguracionGlobal",
+      "rama": "codex/configuracion-global",
+      "documentoReferencia": "C:/Docs/VeriFactu/ProConta.ConfiguracionGlobal/docs/CONFIGURACION_DATOS.md",
+      "relacionados": [],
+      "contratoPublico": "C:/Docs/VeriFactu/ProConta.ConfiguracionGlobal/docs/CONTRATO_PUBLICO.md",
+      "estadoNormalizacion": "Nombre normalizado; publicación de ficha solicitada; revisión cruzada pendiente"
+    },
+    {
+      "codigo": "CFG-MANT",
+      "id": "01a03914-e923-7bd1-bdee-e44df0d20800",
+      "titulo": "CFG-MANT · Mantenimiento genérico de parámetros y tablas auxiliares",
+      "hostId": "local",
+      "area": "Infraestructura / presentación",
+      "estado": "sin título devuelto; referencia de implementación",
+      "carpetaTrabajo": "C:/Docs/VeriFactu/ProConta.WpfConfiguracion",
+      "rama": "codex/wpf-configuracion",
+      "documentoReferencia": "C:/Docs/VeriFactu/ProConta.WpfConfiguracion/docs/WPF_FACTURAS.md",
+      "relacionados": [
+        "CFG-GLOBAL"
+      ],
+      "contratoPublico": "C:/Docs/VeriFactu/ProConta.WpfConfiguracion/docs/CONTRATO_PUBLICO.md",
+      "estadoNormalizacion": "Nombre normalizado; publicación de ficha solicitada; revisión cruzada pendiente"
+    },
+    {
+      "codigo": "SEG-ACCESO",
+      "id": "01a07b3f-cb00-7651-9d36-3bab014f82bb",
+      "titulo": "SEG-ACCESO · Autenticación, permisos y entorno",
+      "hostId": "local",
+      "area": "Infraestructura",
+      "estado": "vigente",
+      "carpetaTrabajo": "C:/Docs/VeriFactu/ProConta.Seguridad",
+      "rama": "codex/seguridad",
+      "documentoReferencia": null,
+      "relacionados": [
+        "INF-COR"
+      ],
+      "contratoPublico": "C:/Docs/VeriFactu/ProConta.Seguridad/docs/CONTRATO_PUBLICO.md",
+      "estadoNormalizacion": "Nombre normalizado; publicación de ficha solicitada; revisión cruzada pendiente"
+    },
+    {
+      "codigo": "INF-COR",
+      "id": "01a07bce-2cbe-7c03-bb2f-427080a24b03",
+      "titulo": "INF-COR · Gestión y seguimiento del correo",
+      "hostId": "local",
+      "area": "Comunicaciones",
+      "estado": "vigente",
+      "carpetaTrabajo": "C:/Docs/VeriFactu/ProConta.GestorCorreo",
+      "rama": "codex/gestor-correo",
+      "documentoReferencia": "C:/Docs/VeriFactu/ProConta.GestorCorreo/docs/GESTOR_CORREO.md",
+      "relacionados": [
+        "CFG-GLOBAL"
+      ]
+    },
+    {
+      "codigo": "INF-DIS",
+      "id": "01a07643-ebb8-7672-bd14-d26572c49cd2",
+      "titulo": "INF-DIS · Procesamiento de correo (Mail Dispatcher)",
+      "hostId": "local",
+      "area": "Comunicaciones",
+      "estado": "vigente",
+      "carpetaTrabajo": "C:/Docs/VeriFactu/ProConta.MailDispatcher",
+      "rama": "codex/mail-dispatcher",
+      "documentoReferencia": "C:/Docs/VeriFactu/ProConta.MailDispatcher/docs/GESTOR_CORREO.md",
+      "relacionados": [
+        "INF-COR",
+        "INF-REP",
+        "COM",
+        "NOM",
+        "TES-N43",
+        "SEG-ACCESO"
+      ]
+    },
+    {
+      "codigo": "INF-REP",
+      "id": "01a07b40-0143-7463-b24b-6a27e6082f3e",
+      "titulo": "Motor Reporting",
+      "hostId": "local",
+      "area": "Presentación de resultados",
+      "estado": "vigente",
+      "carpetaTrabajo": "C:/Docs/VeriFactu/ProConta.Reporting",
+      "rama": "codex/reporting",
+      "documentoReferencia": "C:/Docs/VeriFactu/ProConta.Reporting/docs/REPORTING.md",
+      "relacionados": [
+        "CFG-GLOBAL",
+        "SEG-ACCESO"
+      ]
+    },
+    {
+      "codigo": "INF-GRA",
+      "id": "01a06c29-8e4e-7b53-bcee-3f0f1450e821",
+      "titulo": "Motor Gráficos",
+      "hostId": "local",
+      "area": "Presentación de resultados",
+      "estado": "vigente",
+      "carpetaTrabajo": "C:/Docs/VeriFactu/ProConta.Graficos",
+      "rama": "codex/graficos",
+      "documentoReferencia": "C:/Docs/VeriFactu/ProConta.Graficos/docs/MOTOR_GRAFICOS.md",
+      "relacionados": []
+    },
+    {
+      "codigo": "INF-ESQ",
+      "id": "01a0e789-7bcf-7692-ab7b-53270a6f539e",
+      "titulo": "ActualizadorEsquema",
+      "hostId": "local",
+      "area": "Infraestructura",
+      "estado": "vigente",
+      "carpetaTrabajo": "C:/Docs/VeriFactu/ProConta.ActualizadorEsquema",
+      "rama": "codex/actualizador-esquema",
+      "documentoReferencia": "C:/Docs/VeriFactu/ProConta.ActualizadorEsquema/docs/actualizador-esquema/IMPLEMENTACION_INICIAL.md",
+      "relacionados": []
+    },
+    {
+      "codigo": "MIG-ERP",
+      "id": "01a0e734-d237-7aa2-ae22-579d81e6cbc2",
+      "titulo": "MigradorERP",
+      "hostId": "local",
+      "area": "Implantación",
+      "estado": "vigente",
+      "carpetaTrabajo": "C:/Docs/VeriFactu/ProConta.Migracion",
+      "rama": "feature/migracion-proconta",
+      "documentoReferencia": "C:/Docs/VeriFactu/ProConta.Migracion/docs/MIGRADOR_ERP.md",
+      "relacionados": [
+        "INF-ESQ",
+        "DAT-TERCEROS",
+        "MIG-CS"
+      ]
+    },
+    {
+      "codigo": "MIG-CS",
+      "id": "01a07b40-273e-7130-b5c2-8936f05eb638",
+      "titulo": "Importador ContaSol",
+      "hostId": "local",
+      "area": "Implantación",
+      "estado": "vigente",
+      "carpetaTrabajo": "C:/Docs/VeriFactu/ProConta.ContaSol",
+      "rama": "codex/contasol",
+      "documentoReferencia": "C:/Docs/VeriFactu/ProConta.ContaSol/docs/PROTOCOLO_IMPORTACION_CONTASOL.md",
+      "relacionados": [
+        "INF-ESQ",
+        "DAT-TERCEROS",
+        "CON-ASI",
+        "CON-CUE"
+      ]
+    },
+    {
+      "codigo": "H-ESQ",
+      "id": "01a0e738-aee0-7870-be65-adfadb496708",
+      "titulo": "Old_ActualizadorEsquema",
+      "hostId": "local",
+      "area": "Historial",
+      "estado": "sustituido por INF-ESQ",
+      "carpetaTrabajo": null,
+      "rama": null,
+      "documentoReferencia": null,
+      "relacionados": [
+        "INF-ESQ"
+      ]
+    },
+    {
+      "codigo": "H-ASI",
+      "id": "01a0233a-1262-7aa3-b5ca-e229db4675ea",
+      "titulo": "Motor Asientos Contables",
+      "hostId": "local",
+      "area": "Historial",
+      "estado": "continuado en CON-ASI",
+      "carpetaTrabajo": null,
+      "rama": null,
+      "documentoReferencia": null,
+      "relacionados": [
+        "CON-ASI"
+      ]
+    },
+    {
+      "codigo": "H-N43",
+      "id": "01a02451-3154-72a2-a1d0-81b15970cb10",
+      "titulo": "Motor Norma 43",
+      "hostId": "local",
+      "area": "Historial",
+      "estado": "continuado en TES-N43",
+      "carpetaTrabajo": null,
+      "rama": null,
+      "documentoReferencia": null,
+      "relacionados": [
+        "TES-N43"
+      ]
+    },
+    {
+      "codigo": "H-SEG",
+      "id": "01a02a36-370c-7df0-829c-074af9f0197c",
+      "titulo": "Motor Seguridad",
+      "hostId": "local",
+      "area": "Historial",
+      "estado": "continuado en INF-SEG",
+      "carpetaTrabajo": null,
+      "rama": null,
+      "documentoReferencia": null,
+      "relacionados": [
+        "SEG-ACCESO"
+      ]
+    },
+    {
+      "codigo": "H-NOM",
+      "id": "01a0293e-ad15-78c1-8286-470c1369163a",
+      "titulo": "Motor Nóminas",
+      "hostId": "local",
+      "area": "Historial",
+      "estado": "continuado en NOM",
+      "carpetaTrabajo": null,
+      "rama": null,
+      "documentoReferencia": null,
+      "relacionados": [
+        "NOM"
+      ]
+    },
+    {
+      "codigo": "H-CFG",
+      "id": "01a02f65-b635-7352-a793-5e464af6a527",
+      "titulo": "Configuración global de datos",
+      "hostId": "local",
+      "area": "Historial",
+      "estado": "continuado en INF-CFG",
+      "carpetaTrabajo": null,
+      "rama": null,
+      "documentoReferencia": null,
+      "relacionados": [
+        "CFG-GLOBAL"
+      ]
+    },
+    {
+      "codigo": "H-REP1",
+      "id": "01a02a14-df1f-7541-be56-81220485a9c0",
+      "titulo": "Motor Reporting v1",
+      "hostId": "local",
+      "area": "Historial",
+      "estado": "continuado en INF-REP",
+      "carpetaTrabajo": null,
+      "rama": null,
+      "documentoReferencia": null,
+      "relacionados": [
+        "INF-REP"
+      ]
+    },
+    {
+      "codigo": "H-REP2",
+      "id": "01a03369-e787-74f0-8e5c-c2f609957f4f",
+      "titulo": "Motor Reporting v2",
+      "hostId": "local",
+      "area": "Historial",
+      "estado": "continuado en INF-REP",
+      "carpetaTrabajo": null,
+      "rama": null,
+      "documentoReferencia": null,
+      "relacionados": [
+        "INF-REP"
+      ]
+    },
+    {
+      "codigo": "UI-BASE",
+      "id": "01a0f1d3-5060-74c2-8945-260a39b48c6b",
+      "titulo": "UI-BASE · Base visual y componentes WPF",
+      "hostId": "local",
+      "area": "Infraestructura WPF",
+      "estado": "creado; alcance inicial, sin implementación encargada",
+      "carpetaTrabajo": "C:/Docs/VeriFactu",
+      "rama": null,
+      "documentoReferencia": "C:/Docs/VeriFactu/ProConta.Facturacion/docs/MAPA_PROYECTO.md",
+      "relacionados": [
+        "CFG-GLOBAL",
+        "SEG-ACCESO",
+        "DAT-TERCEROS",
+        "CFG-MANT",
+        "GOV-ORQ"
+      ],
+      "contratoPublico": "C:/Docs/VeriFactu/ProConta.Facturacion/docs/contratos/UI-BASE.md",
+      "estadoNormalizacion": "Nombre normalizado; publicación de ficha solicitada; revisión cruzada pendiente"
+    },
+    {
+      "codigo": "UI-PRINCIPAL",
+      "id": "01a0f1d3-5edf-76c3-8f2d-7cea5eee3eff",
+      "titulo": "UI-PRINCIPAL · Aplicación principal y navegación WPF",
+      "hostId": "local",
+      "area": "Infraestructura WPF",
+      "estado": "creado; alcance inicial, sin implementación encargada",
+      "carpetaTrabajo": "C:/Docs/VeriFactu",
+      "rama": null,
+      "documentoReferencia": "C:/Docs/VeriFactu/ProConta.Facturacion/docs/MAPA_PROYECTO.md",
+      "relacionados": [
+        "CFG-GLOBAL",
+        "SEG-ACCESO",
+        "DAT-TERCEROS",
+        "CFG-MANT",
+        "GOV-ORQ"
+      ],
+      "contratoPublico": "C:/Docs/VeriFactu/ProConta.Facturacion/docs/contratos/UI-PRINCIPAL.md",
+      "estadoNormalizacion": "Nombre normalizado; publicación de ficha solicitada; revisión cruzada pendiente"
+    },
+{
+  "codigo": "DOC-GESTOR",
+  "id": "01a0f6ee-afa9-7101-b599-97fa421a3359",
+  "titulo": "DOC-GESTOR · Gestión documental",
+  "hostId": "local",
+  "area": "Documentación transversal",
+  "estado": "Contrato inicial publicado; implementación e integración pendientes",
+  "carpetaTrabajo": "C:/Docs/VeriFactu/ProConta.Facturacion",
+  "rama": null,
+  "documentoReferencia": "C:/Docs/VeriFactu/ProConta.Facturacion/docs/contratos/DOC-GESTOR.md",
+  "contratoPublico": "C:/Docs/VeriFactu/ProConta.Facturacion/docs/contratos/DOC-GESTOR.md",
+  "relacionados": [
+    "DAT-TERCEROS",
+    "FAC-LIS",
+    "FAC-DET",
+    "INF-COR",
+    "INF-DIS",
+    "INF-ESQ"
+  ],
+  "notaUbicacion": "Contrato alojado en repositorio central; worktree ProConta.GestorDocumental y rama propia pendientes de crear/verificar."
+}
+  ]
+}

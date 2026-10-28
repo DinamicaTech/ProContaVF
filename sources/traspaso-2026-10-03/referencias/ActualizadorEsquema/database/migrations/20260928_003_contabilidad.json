@@ -1,0 +1,210 @@
+{
+  "id": "20260928_003_CONTABILIDAD",
+  "version": "0.3.0",
+  "descripcion": "Planes e identidades contables, cuentas por ejercicio, diario y auditoría para una maestra nueva.",
+  "sentencias": [
+    "CREATE TABLE PlanesContables (IdPlanContable COUNTER CONSTRAINT PK_PlanesContables PRIMARY KEY, Codigo TEXT(30) NOT NULL, Nombre TEXT(150) NOT NULL, VersionPlan TEXT(30), EstaActivo YESNO NOT NULL)",
+    "CREATE TABLE TiposCuentaContable (IdTipoCuentaContable COUNTER CONSTRAINT PK_TiposCuentaContable PRIMARY KEY, Codigo TEXT(30) NOT NULL, Nombre TEXT(100) NOT NULL, Prefijo TEXT(10), LongitudPredeterminada BYTE, Naturaleza BYTE NOT NULL, EsImputable YESNO NOT NULL, EstaActivo YESNO NOT NULL)",
+    "CREATE TABLE CuentasPlanContable (IdCuentaPlanContable COUNTER CONSTRAINT PK_CuentasPlanContable PRIMARY KEY, IdPlanContable LONG NOT NULL, IdCuentaPadre LONG, IdTipoCuentaContable LONG, Codigo TEXT(10) NOT NULL, Nombre TEXT(150) NOT NULL, Descripcion LONGTEXT, Naturaleza BYTE NOT NULL, EsImputable YESNO NOT NULL)",
+    "CREATE TABLE IdentidadesContables (IdIdentidadContable COUNTER CONSTRAINT PK_IdentidadesContables PRIMARY KEY, IdSociedad TEXT(3) NOT NULL, IdTipoCuentaContable LONG, Naturaleza BYTE NOT NULL, FechaAlta DATETIME NOT NULL, FechaBaja DATETIME)",
+    "CREATE TABLE CuentasContables (IdCuentaContable COUNTER CONSTRAINT PK_CuentasContables PRIMARY KEY, IdIdentidadContable LONG NOT NULL, IdSociedadEjercicio LONG NOT NULL, IdCuentaPadre LONG, IdCuentaPlanContable LONG, IdIdentidadSustituta LONG, Codigo TEXT(10) NOT NULL, Nombre TEXT(150) NOT NULL, Descripcion LONGTEXT, EstaActiva YESNO NOT NULL, EstaBloqueada YESNO NOT NULL, EsImputable YESNO NOT NULL, IdCentroCostePredeterminado LONG, SaldoInicial CURRENCY NOT NULL, SaldoActual CURRENCY NOT NULL, NumeroApuntes LONG NOT NULL)",
+    "CREATE TABLE CodigosContablesReservados (IdCodigoContableReservado COUNTER CONSTRAINT PK_CodigosContablesReservados PRIMARY KEY, IdSociedad TEXT(3) NOT NULL, Codigo TEXT(10) NOT NULL, IdIdentidadContable LONG NOT NULL, FechaPrimeraAsignacion DATETIME NOT NULL)",
+    "CREATE TABLE PlanesContablesEjercicios (IdPlanContableEjercicio COUNTER CONSTRAINT PK_PlanesContablesEjercicios PRIMARY KEY, IdPlanContable LONG NOT NULL, IdSociedadEjercicio LONG NOT NULL, FechaAplicacion DATETIME NOT NULL, Operador TEXT(100) NOT NULL)",
+    "CREATE TABLE FusionesCuentasContables (IdFusionCuentaContable COUNTER CONSTRAINT PK_FusionesCuentasContables PRIMARY KEY, IdIdentidadOrigen LONG NOT NULL, IdIdentidadDestino LONG NOT NULL, FechaHora DATETIME NOT NULL, Operador TEXT(100) NOT NULL, Motivo LONGTEXT NOT NULL)",
+    "CREATE TABLE RevisionesCuentasContables (IdRevisionCuentaContable COUNTER CONSTRAINT PK_RevisionesCuentasContables PRIMARY KEY, IdCuentaContable LONG NOT NULL, FechaCorte DATETIME NOT NULL, Estado TEXT(20) NOT NULL, Comentarios LONGTEXT, SaldoEnRevision CURRENCY NOT NULL, FechaHora DATETIME NOT NULL, Operador TEXT(100) NOT NULL)",
+    "CREATE TABLE AuditoriaCuentasContables (IdAuditoriaCuentaContable COUNTER CONSTRAINT PK_AuditoriaCuentasContables PRIMARY KEY, IdCuentaContable LONG, IdIdentidadContable LONG, Operacion TEXT(30) NOT NULL, ValorAnterior LONGTEXT, ValorPosterior LONGTEXT, Motivo LONGTEXT, FechaHora DATETIME NOT NULL, Operador TEXT(100) NOT NULL)",
+    "CREATE TABLE Asientos (IdAsiento COUNTER CONSTRAINT PK_Asientos PRIMARY KEY, IdSociedadEjercicio LONG NOT NULL, FechaContable DATETIME NOT NULL, Descripcion TEXT(255) NOT NULL, TipoAsiento BYTE NOT NULL, TipoAsientoManual BYTE, Notas LONGTEXT, EstadoAsiento BYTE NOT NULL, OperadorCreacion TEXT(100) NOT NULL, FechaHoraCreacion DATETIME NOT NULL, OperadorModificacion TEXT(100), FechaHoraModificacion DATETIME, OperadorContabilizacion TEXT(100), FechaHoraContabilizacion DATETIME, TotalDebe CURRENCY NOT NULL, TotalHaber CURRENCY NOT NULL, IdLoteProceso LONG, Version LONG NOT NULL, EsAutomatico YESNO NOT NULL DEFAULT False, MotorPropietario TEXT(50), CodigoProceso TEXT(100), ClaveEjecucion TEXT(150))",
+    "CREATE TABLE Apuntes (IdApunte COUNTER CONSTRAINT PK_Apuntes PRIMARY KEY, IdAsiento LONG NOT NULL, Orden SHORT NOT NULL, CuentaContable TEXT(10) NOT NULL, ImporteDebe CURRENCY, ImporteHaber CURRENCY, Descripcion TEXT(255), NumeroDocumento TEXT(100), Documento LONGTEXT, IdCliente LONG, IdProveedor LONG, FechaVencimiento DATETIME, IdCentroCoste LONG, TipoApunte BYTE NOT NULL, GeneradoAutomaticamente YESNO NOT NULL, MotivoGeneracion TEXT(255), DiferenciaOrigen CURRENCY, IdCuentaContable LONG, IdIdentidadContable LONG)",
+    "CREATE TABLE AuditoriaLotesAsientos (IdAuditoriaLote COUNTER CONSTRAINT PK_AuditoriaLotesAsientos PRIMARY KEY, FechaHora DATETIME NOT NULL, Operacion TEXT(20) NOT NULL, MotorPropietario TEXT(50), CodigoProceso TEXT(100), IdSociedadEjercicio LONG, ClaveEjecucion TEXT(150), Motivo LONGTEXT NOT NULL, Operador TEXT(100) NOT NULL, DetalleJson LONGTEXT NOT NULL)",
+    "CREATE UNIQUE INDEX UX_PlanesContables_Codigo ON PlanesContables (Codigo)",
+    "CREATE UNIQUE INDEX UX_TiposCuentaContable_Codigo ON TiposCuentaContable (Codigo)",
+    "CREATE UNIQUE INDEX UX_CuentasPlan_Codigo ON CuentasPlanContable (IdPlanContable,Codigo)",
+    "CREATE UNIQUE INDEX UX_Cuentas_EjercicioCodigo ON CuentasContables (IdSociedadEjercicio,Codigo)",
+    "CREATE UNIQUE INDEX UX_Cuentas_IdentidadEjercicio ON CuentasContables (IdIdentidadContable,IdSociedadEjercicio)",
+    "CREATE INDEX IX_Cuentas_Padre ON CuentasContables (IdCuentaPadre)",
+    "CREATE UNIQUE INDEX UX_CodigosReservados_SociedadCodigo ON CodigosContablesReservados (IdSociedad,Codigo)",
+    "CREATE UNIQUE INDEX UX_PlanEjercicio ON PlanesContablesEjercicios (IdPlanContable,IdSociedadEjercicio)",
+    "CREATE INDEX IX_Revisiones_CuentaCorte ON RevisionesCuentasContables (IdCuentaContable,FechaCorte)",
+    "CREATE INDEX IX_Asientos_Diario ON Asientos (IdSociedadEjercicio,FechaContable,IdAsiento)",
+    "CREATE INDEX IX_Asientos_Estado ON Asientos (IdSociedadEjercicio,EstadoAsiento)",
+    "CREATE INDEX IX_Asientos_Lote ON Asientos (IdLoteProceso)",
+    "CREATE INDEX IX_Asientos_PropiedadAutomatica ON Asientos (EsAutomatico,MotorPropietario,CodigoProceso,IdSociedadEjercicio,ClaveEjecucion)",
+    "CREATE UNIQUE INDEX UX_Apuntes_AsientoOrden ON Apuntes (IdAsiento,Orden)",
+    "CREATE INDEX IX_Apuntes_CuentaAsiento ON Apuntes (CuentaContable,IdAsiento)",
+    "CREATE INDEX IX_Apuntes_CentroCoste ON Apuntes (IdCentroCoste)",
+    "CREATE INDEX IX_Apuntes_Cliente ON Apuntes (IdCliente)",
+    "CREATE INDEX IX_Apuntes_Proveedor ON Apuntes (IdProveedor)",
+    "CREATE INDEX IX_Apuntes_Vencimiento ON Apuntes (FechaVencimiento)",
+    "CREATE INDEX IX_Apuntes_IdCuenta ON Apuntes (IdCuentaContable)",
+    "CREATE INDEX IX_Apuntes_IdIdentidad ON Apuntes (IdIdentidadContable)",
+    "CREATE INDEX IX_AuditoriaLotes_Identidad ON AuditoriaLotesAsientos (MotorPropietario,CodigoProceso,IdSociedadEjercicio,ClaveEjecucion)",
+    "ALTER TABLE CuentasPlanContable ADD CONSTRAINT FK_CuentasPlanContable_Plan FOREIGN KEY (IdPlanContable) REFERENCES PlanesContables (IdPlanContable)",
+    "ALTER TABLE CuentasPlanContable ADD CONSTRAINT FK_CuentasPlanContable_Padre FOREIGN KEY (IdCuentaPadre) REFERENCES CuentasPlanContable (IdCuentaPlanContable)",
+    "ALTER TABLE CuentasPlanContable ADD CONSTRAINT FK_CuentasPlanContable_Tipo FOREIGN KEY (IdTipoCuentaContable) REFERENCES TiposCuentaContable (IdTipoCuentaContable)",
+    "ALTER TABLE IdentidadesContables ADD CONSTRAINT FK_IdentidadesContables_Sociedad FOREIGN KEY (IdSociedad) REFERENCES Sociedades (IdSociedad)",
+    "ALTER TABLE IdentidadesContables ADD CONSTRAINT FK_IdentidadesContables_Tipo FOREIGN KEY (IdTipoCuentaContable) REFERENCES TiposCuentaContable (IdTipoCuentaContable)",
+    "ALTER TABLE CuentasContables ADD CONSTRAINT FK_CuentasContables_Identidad FOREIGN KEY (IdIdentidadContable) REFERENCES IdentidadesContables (IdIdentidadContable)",
+    "ALTER TABLE CuentasContables ADD CONSTRAINT FK_CuentasContables_Ejercicio FOREIGN KEY (IdSociedadEjercicio) REFERENCES SociedadesEjercicios (IdSociedadEjercicio)",
+    "ALTER TABLE CuentasContables ADD CONSTRAINT FK_CuentasContables_Padre FOREIGN KEY (IdCuentaPadre) REFERENCES CuentasContables (IdCuentaContable)",
+    "ALTER TABLE CuentasContables ADD CONSTRAINT FK_CuentasContables_Sustituta FOREIGN KEY (IdIdentidadSustituta) REFERENCES IdentidadesContables (IdIdentidadContable)",
+    "ALTER TABLE CuentasContables ADD CONSTRAINT FK_CuentasContables_Plan FOREIGN KEY (IdCuentaPlanContable) REFERENCES CuentasPlanContable (IdCuentaPlanContable)",
+    "ALTER TABLE CodigosContablesReservados ADD CONSTRAINT FK_CodigosContablesReservados_Sociedad FOREIGN KEY (IdSociedad) REFERENCES Sociedades (IdSociedad)",
+    "ALTER TABLE CodigosContablesReservados ADD CONSTRAINT FK_CodigosContablesReservados_Identidad FOREIGN KEY (IdIdentidadContable) REFERENCES IdentidadesContables (IdIdentidadContable)",
+    "ALTER TABLE PlanesContablesEjercicios ADD CONSTRAINT FK_PlanesContablesEjercicios_Plan FOREIGN KEY (IdPlanContable) REFERENCES PlanesContables (IdPlanContable)",
+    "ALTER TABLE PlanesContablesEjercicios ADD CONSTRAINT FK_PlanesContablesEjercicios_Ejercicio FOREIGN KEY (IdSociedadEjercicio) REFERENCES SociedadesEjercicios (IdSociedadEjercicio)",
+    "ALTER TABLE FusionesCuentasContables ADD CONSTRAINT FK_FusionesCuentasContables_Origen FOREIGN KEY (IdIdentidadOrigen) REFERENCES IdentidadesContables (IdIdentidadContable)",
+    "ALTER TABLE FusionesCuentasContables ADD CONSTRAINT FK_FusionesCuentasContables_Destino FOREIGN KEY (IdIdentidadDestino) REFERENCES IdentidadesContables (IdIdentidadContable)",
+    "ALTER TABLE RevisionesCuentasContables ADD CONSTRAINT FK_RevisionesCuentasContables_Cuenta FOREIGN KEY (IdCuentaContable) REFERENCES CuentasContables (IdCuentaContable)",
+    "ALTER TABLE AuditoriaCuentasContables ADD CONSTRAINT FK_AuditoriaCuentasContables_Cuenta FOREIGN KEY (IdCuentaContable) REFERENCES CuentasContables (IdCuentaContable)",
+    "ALTER TABLE AuditoriaCuentasContables ADD CONSTRAINT FK_AuditoriaCuentasContables_Identidad FOREIGN KEY (IdIdentidadContable) REFERENCES IdentidadesContables (IdIdentidadContable)",
+    "ALTER TABLE Asientos ADD CONSTRAINT FK_Asientos_Ejercicio FOREIGN KEY (IdSociedadEjercicio) REFERENCES SociedadesEjercicios (IdSociedadEjercicio)",
+    "ALTER TABLE Apuntes ADD CONSTRAINT FK_Apuntes_Asiento FOREIGN KEY (IdAsiento) REFERENCES Asientos (IdAsiento)",
+    "ALTER TABLE Apuntes ADD CONSTRAINT FK_Apuntes_Cuenta FOREIGN KEY (IdCuentaContable) REFERENCES CuentasContables (IdCuentaContable)",
+    "ALTER TABLE Apuntes ADD CONSTRAINT FK_Apuntes_Identidad FOREIGN KEY (IdIdentidadContable) REFERENCES IdentidadesContables (IdIdentidadContable)",
+    "ALTER TABLE AuditoriaLotesAsientos ADD CONSTRAINT FK_AuditoriaLotesAsientos_Ejercicio FOREIGN KEY (IdSociedadEjercicio) REFERENCES SociedadesEjercicios (IdSociedadEjercicio)"
+  ],
+  "descripciones": {
+    "PlanesContables": {
+      "Codigo": "Código estable del plan; no es un número de cuenta."
+    },
+    "TiposCuentaContable": {
+      "Prefijo": "Prefijo propuesto de cuenta, máximo diez caracteres."
+    },
+    "CuentasPlanContable": {
+      "Codigo": "Código de cuenta de plan, máximo diez caracteres.",
+      "IdCuentaPadre": "Nodo superior del mismo plan."
+    },
+    "IdentidadesContables": {
+      "IdIdentidadContable": "Identidad estable entre ejercicios y recodificaciones.",
+      "IdSociedad": "Sociedad permanente propietaria de la identidad."
+    },
+    "CuentasContables": {
+      "Codigo": "Código visible único dentro del ejercicio, máximo diez caracteres.",
+      "IdIdentidadContable": "Continuidad de la cuenta entre ejercicios.",
+      "IdSociedadEjercicio": "Ejercicio en que está vigente esta cuenta.",
+      "IdCuentaPadre": "Cuenta superior del mismo ejercicio; el servicio valida esta coincidencia.",
+      "SaldoInicial": "Caché reconstruible desde el asiento de apertura.",
+      "SaldoActual": "Caché reconstruible que excluye el cierre.",
+      "NumeroApuntes": "Caché reconstruible para consulta."
+    },
+    "CodigosContablesReservados": {
+      "Codigo": "Código histórico que no puede reasignarse a otra identidad de la sociedad."
+    },
+    "PlanesContablesEjercicios": {
+      "IdSociedadEjercicio": "Ejercicio al que se asigna el plan."
+    },
+    "FusionesCuentasContables": {
+      "IdIdentidadOrigen": "Identidad retirada por la fusión.",
+      "IdIdentidadDestino": "Identidad que recibe la continuidad."
+    },
+    "RevisionesCuentasContables": {
+      "SaldoEnRevision": "Saldo capturado para revisión, no reemplaza el saldo oficial."
+    },
+    "AuditoriaCuentasContables": {
+      "ValorAnterior": "Estado previo serializado para trazabilidad.",
+      "ValorPosterior": "Estado posterior serializado para trazabilidad."
+    },
+    "Asientos": {
+      "IdSociedadEjercicio": "Ejercicio del diario.",
+      "EsAutomatico": "Cabecera regenerable que no se edita manualmente.",
+      "MotorPropietario": "Motor autorizado a reemplazar su lote.",
+      "CodigoProceso": "Proceso automático dentro del motor.",
+      "ClaveEjecucion": "Clave estable de la ejecución idempotente."
+    },
+    "Apuntes": {
+      "CuentaContable": "Instantánea textual del código al contabilizar, máximo diez caracteres.",
+      "IdCuentaContable": "Cuenta concreta del ejercicio; debe concordar con la instantánea.",
+      "IdIdentidadContable": "Continuidad histórica de la cuenta.",
+      "GeneradoAutomaticamente": "Distingue líneas producidas por motor automático."
+    },
+    "AuditoriaLotesAsientos": {
+      "DetalleJson": "Evidencia histórica, no contabilidad activa."
+    }
+  },
+  "catalogoTiposCuenta": [
+    {
+      "codigo": "PROVEEDOR",
+      "nombre": "Proveedor",
+      "prefijo": "400",
+      "naturaleza": 2
+    },
+    {
+      "codigo": "ACREEDOR",
+      "nombre": "Acreedor",
+      "prefijo": "410",
+      "naturaleza": 2
+    },
+    {
+      "codigo": "CLIENTE",
+      "nombre": "Cliente",
+      "prefijo": "430",
+      "naturaleza": 1
+    },
+    {
+      "codigo": "BANCO",
+      "nombre": "Banco",
+      "prefijo": "572",
+      "naturaleza": 1
+    },
+    {
+      "codigo": "GASTO",
+      "nombre": "Gasto",
+      "prefijo": "600",
+      "naturaleza": 1
+    },
+    {
+      "codigo": "INGRESO",
+      "nombre": "Ingreso",
+      "prefijo": "700",
+      "naturaleza": 2
+    },
+    {
+      "codigo": "MANUAL",
+      "nombre": "Manual",
+      "prefijo": null,
+      "naturaleza": 0
+    }
+  ],
+  "planBase": {
+    "codigo": "PGC_PYMES_BASE",
+    "nombre": "Plan General de Contabilidad de Pymes · estructura base",
+    "version": "2007",
+    "grupos": [
+      {
+        "codigo": "1",
+        "nombre": "Financiación básica",
+        "naturaleza": 2
+      },
+      {
+        "codigo": "2",
+        "nombre": "Activo no corriente",
+        "naturaleza": 1
+      },
+      {
+        "codigo": "3",
+        "nombre": "Existencias",
+        "naturaleza": 1
+      },
+      {
+        "codigo": "4",
+        "nombre": "Acreedores y deudores",
+        "naturaleza": 3
+      },
+      {
+        "codigo": "5",
+        "nombre": "Cuentas financieras",
+        "naturaleza": 3
+      },
+      {
+        "codigo": "6",
+        "nombre": "Compras y gastos",
+        "naturaleza": 1
+      },
+      {
+        "codigo": "7",
+        "nombre": "Ventas e ingresos",
+        "naturaleza": 2
+      }
+    ]
+  }
+}

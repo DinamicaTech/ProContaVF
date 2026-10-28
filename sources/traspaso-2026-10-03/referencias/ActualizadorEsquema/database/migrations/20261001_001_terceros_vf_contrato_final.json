@@ -1,0 +1,819 @@
+﻿{
+  "tables": {
+    "Terceros": {
+      "IdTercero": {
+        "type": 3,
+        "length": 0,
+        "required": true
+      },
+      "TipoPersona": {
+        "type": 130,
+        "length": 10,
+        "required": false
+      },
+      "Nombre": {
+        "type": 130,
+        "length": 200,
+        "required": true
+      },
+      "RazonSocial": {
+        "type": 130,
+        "length": 200,
+        "required": false
+      },
+      "NIF": {
+        "type": 130,
+        "length": 30,
+        "required": false
+      },
+      "Telefono": {
+        "type": 130,
+        "length": 50,
+        "required": false
+      },
+      "Email": {
+        "type": 130,
+        "length": 254,
+        "required": false
+      },
+      "Direccion": {
+        "type": 130,
+        "length": 255,
+        "required": false
+      },
+      "CodigoPostal": {
+        "type": 130,
+        "length": 20,
+        "required": false
+      },
+      "Poblacion": {
+        "type": 130,
+        "length": 100,
+        "required": false
+      },
+      "Provincia": {
+        "type": 130,
+        "length": 100,
+        "required": false
+      },
+      "Pais": {
+        "type": 130,
+        "length": 3,
+        "required": false
+      },
+      "Notas": {
+        "type": 130,
+        "length": 0,
+        "required": false
+      },
+      "Activo": {
+        "type": 11,
+        "length": 0,
+        "required": true
+      },
+      "FechaAlta": {
+        "type": 7,
+        "length": 0,
+        "required": false
+      },
+      "NombrePersona": {
+        "type": 130,
+        "length": 150,
+        "required": false
+      },
+      "PrimerApellido": {
+        "type": 130,
+        "length": 100,
+        "required": false
+      },
+      "SegundoApellido": {
+        "type": 130,
+        "length": 100,
+        "required": false
+      },
+      "NombreComercial": {
+        "type": 130,
+        "length": 150,
+        "required": false
+      },
+      "TipoIdentificacion": {
+        "type": 130,
+        "length": 30,
+        "required": false
+      },
+      "NotasInternas": {
+        "type": 130,
+        "length": 0,
+        "required": false
+      }
+    },
+    "Clientes": {
+      "IdCliente": {
+        "type": 3,
+        "length": 0,
+        "required": true
+      },
+      "IdTercero": {
+        "type": 3,
+        "length": 0,
+        "required": true
+      },
+      "IdContrato": {
+        "type": 3,
+        "length": 0,
+        "required": false
+      },
+      "CuentaContable": {
+        "type": 130,
+        "length": 15,
+        "required": false
+      },
+      "Notas": {
+        "type": 130,
+        "length": 0,
+        "required": false
+      },
+      "FechaAlta": {
+        "type": 7,
+        "length": 0,
+        "required": false
+      },
+      "Activo": {
+        "type": 11,
+        "length": 0,
+        "required": true
+      }
+    },
+    "Proveedores": {
+      "IdProveedor": {
+        "type": 3,
+        "length": 0,
+        "required": true
+      },
+      "IdTercero": {
+        "type": 3,
+        "length": 0,
+        "required": true
+      },
+      "NotasProveedor": {
+        "type": 130,
+        "length": 0,
+        "required": false
+      },
+      "Activo": {
+        "type": 11,
+        "length": 0,
+        "required": true
+      }
+    },
+    "Contactos": {
+      "IdContacto": {
+        "type": 3,
+        "length": 0,
+        "required": true
+      },
+      "IdTercero": {
+        "type": 3,
+        "length": 0,
+        "required": true
+      },
+      "Cargo": {
+        "type": 130,
+        "length": 100,
+        "required": false
+      },
+      "Departamento": {
+        "type": 130,
+        "length": 100,
+        "required": false
+      },
+      "NotasContacto": {
+        "type": 130,
+        "length": 0,
+        "required": false
+      },
+      "Activo": {
+        "type": 11,
+        "length": 0,
+        "required": true
+      }
+    },
+    "RelacionesContactos": {
+      "IdRelacionContacto": {
+        "type": 3,
+        "length": 0,
+        "required": true
+      },
+      "IdContacto": {
+        "type": 3,
+        "length": 0,
+        "required": true
+      },
+      "IdTerceroOrganizacion": {
+        "type": 3,
+        "length": 0,
+        "required": true
+      },
+      "TipoRelacion": {
+        "type": 130,
+        "length": 40,
+        "required": true
+      },
+      "FechaInicio": {
+        "type": 7,
+        "length": 0,
+        "required": false
+      },
+      "FechaFin": {
+        "type": 7,
+        "length": 0,
+        "required": false
+      },
+      "Observaciones": {
+        "type": 130,
+        "length": 0,
+        "required": false
+      }
+    },
+    "DomiciliosTercero": {
+      "IdDomicilioTercero": {
+        "type": 3,
+        "length": 0,
+        "required": true
+      },
+      "IdTercero": {
+        "type": 3,
+        "length": 0,
+        "required": true
+      },
+      "TipoDomicilio": {
+        "type": 130,
+        "length": 30,
+        "required": true
+      },
+      "Direccion": {
+        "type": 130,
+        "length": 255,
+        "required": true
+      },
+      "CodigoPostal": {
+        "type": 130,
+        "length": 20,
+        "required": false
+      },
+      "Poblacion": {
+        "type": 130,
+        "length": 100,
+        "required": false
+      },
+      "Provincia": {
+        "type": 130,
+        "length": 100,
+        "required": false
+      },
+      "Pais": {
+        "type": 130,
+        "length": 3,
+        "required": false
+      },
+      "EsPrincipal": {
+        "type": 11,
+        "length": 0,
+        "required": true
+      },
+      "Activo": {
+        "type": 11,
+        "length": 0,
+        "required": true
+      },
+      "FechaInicio": {
+        "type": 7,
+        "length": 0,
+        "required": false
+      },
+      "FechaFin": {
+        "type": 7,
+        "length": 0,
+        "required": false
+      }
+    },
+    "MapasOrigenTerceros": {
+      "IdMapaOrigenTercero": {
+        "type": 3,
+        "length": 0,
+        "required": true
+      },
+      "OrigenSistema": {
+        "type": 130,
+        "length": 20,
+        "required": true
+      },
+      "ContextoOrigen": {
+        "type": 130,
+        "length": 150,
+        "required": true
+      },
+      "TipoEntidad": {
+        "type": 130,
+        "length": 40,
+        "required": true
+      },
+      "ClaveOrigen": {
+        "type": 130,
+        "length": 150,
+        "required": true
+      },
+      "HuellaOrigen": {
+        "type": 130,
+        "length": 64,
+        "required": true
+      },
+      "IdTercero": {
+        "type": 3,
+        "length": 0,
+        "required": true
+      },
+      "FechaDecision": {
+        "type": 7,
+        "length": 0,
+        "required": true
+      },
+      "CriterioDecision": {
+        "type": 130,
+        "length": 100,
+        "required": true
+      },
+      "Observaciones": {
+        "type": 130,
+        "length": 0,
+        "required": false
+      }
+    },
+    "HistorialTerceros": {
+      "IdHistorialTercero": {
+        "type": 3,
+        "length": 0,
+        "required": true
+      },
+      "IdTercero": {
+        "type": 3,
+        "length": 0,
+        "required": true
+      },
+      "IdOperacion": {
+        "type": 130,
+        "length": 36,
+        "required": true
+      },
+      "FechaHora": {
+        "type": 7,
+        "length": 0,
+        "required": true
+      },
+      "Operador": {
+        "type": 130,
+        "length": 255,
+        "required": true
+      },
+      "Entidad": {
+        "type": 130,
+        "length": 50,
+        "required": true
+      },
+      "IdRegistro": {
+        "type": 3,
+        "length": 0,
+        "required": true
+      },
+      "Operacion": {
+        "type": 130,
+        "length": 15,
+        "required": true
+      },
+      "Campo": {
+        "type": 130,
+        "length": 64,
+        "required": true
+      },
+      "ValorAntiguo": {
+        "type": 130,
+        "length": 0,
+        "required": false
+      },
+      "ValorNuevo": {
+        "type": 130,
+        "length": 0,
+        "required": false
+      }
+    },
+    "Perfiles": {
+      "IdPerfil": {
+        "type": 3,
+        "length": 0,
+        "required": true
+      },
+      "Nombre": {
+        "type": 130,
+        "length": 100,
+        "required": true
+      },
+      "Descripcion": {
+        "type": 130,
+        "length": 0,
+        "required": false
+      },
+      "Activo": {
+        "type": 11,
+        "length": 0,
+        "required": true
+      }
+    },
+    "PerfilesTerceros": {
+      "IdPerfilTercero": {
+        "type": 3,
+        "length": 0,
+        "required": true
+      },
+      "IdTercero": {
+        "type": 3,
+        "length": 0,
+        "required": true
+      },
+      "IdPerfil": {
+        "type": 3,
+        "length": 0,
+        "required": true
+      },
+      "Activo": {
+        "type": 11,
+        "length": 0,
+        "required": true
+      },
+      "FechaAsignacion": {
+        "type": 7,
+        "length": 0,
+        "required": true
+      },
+      "FechaRetirada": {
+        "type": 7,
+        "length": 0,
+        "required": false
+      }
+    },
+    "DatosContacto": {
+      "IdDatoContacto": {
+        "type": 3,
+        "length": 0,
+        "required": true
+      },
+      "IdTercero": {
+        "type": 3,
+        "length": 0,
+        "required": true
+      },
+      "Tipo": {
+        "type": 130,
+        "length": 20,
+        "required": true
+      },
+      "Etiqueta": {
+        "type": 130,
+        "length": 100,
+        "required": false
+      },
+      "Valor": {
+        "type": 130,
+        "length": 254,
+        "required": true
+      },
+      "Activo": {
+        "type": 11,
+        "length": 0,
+        "required": true
+      },
+      "EnvioFacturas": {
+        "type": 11,
+        "length": 0,
+        "required": true
+      },
+      "EnviosAdministrativos": {
+        "type": 11,
+        "length": 0,
+        "required": true
+      }
+    },
+    "EstadoContratoTerceros": {
+      "Contrato": {
+        "type": 130,
+        "length": 40,
+        "required": true
+      },
+      "Estado": {
+        "type": 130,
+        "length": 15,
+        "required": true
+      },
+      "IdPlan": {
+        "type": 130,
+        "length": 36,
+        "required": true
+      },
+      "HuellaPlan": {
+        "type": 130,
+        "length": 64,
+        "required": true
+      },
+      "FechaActivacion": {
+        "type": 7,
+        "length": 0,
+        "required": false
+      }
+    }
+  },
+  "indexes": [
+    {
+      "table": "Terceros",
+      "name": "PK_Terceros",
+      "fields": [
+        "IdTercero"
+      ],
+      "unique": true
+    },
+    {
+      "table": "Terceros",
+      "name": "IX_Terceros_NIF",
+      "fields": [
+        "NIF"
+      ],
+      "unique": false
+    },
+    {
+      "table": "Terceros",
+      "name": "IX_Terceros_Nombre",
+      "fields": [
+        "Nombre"
+      ],
+      "unique": false
+    },
+    {
+      "table": "Clientes",
+      "name": "PK_Clientes",
+      "fields": [
+        "IdCliente"
+      ],
+      "unique": true
+    },
+    {
+      "table": "Clientes",
+      "name": "UX_Clientes_IdTercero",
+      "fields": [
+        "IdTercero"
+      ],
+      "unique": true
+    },
+    {
+      "table": "Proveedores",
+      "name": "PK_Proveedores",
+      "fields": [
+        "IdProveedor"
+      ],
+      "unique": true
+    },
+    {
+      "table": "Proveedores",
+      "name": "UX_Proveedores_IdTercero",
+      "fields": [
+        "IdTercero"
+      ],
+      "unique": true
+    },
+    {
+      "table": "Contactos",
+      "name": "PK_Contactos",
+      "fields": [
+        "IdContacto"
+      ],
+      "unique": true
+    },
+    {
+      "table": "Contactos",
+      "name": "UX_Contactos_IdTercero",
+      "fields": [
+        "IdTercero"
+      ],
+      "unique": true
+    },
+    {
+      "table": "RelacionesContactos",
+      "name": "PK_RelacionesContactos",
+      "fields": [
+        "IdRelacionContacto"
+      ],
+      "unique": true
+    },
+    {
+      "table": "RelacionesContactos",
+      "name": "IX_RelContactos_Organizacion",
+      "fields": [
+        "IdTerceroOrganizacion"
+      ],
+      "unique": false
+    },
+    {
+      "table": "RelacionesContactos",
+      "name": "UX_RelContactos_ContactoOrganizacionTipoInicio",
+      "fields": [
+        "IdContacto",
+        "IdTerceroOrganizacion",
+        "TipoRelacion",
+        "FechaInicio"
+      ],
+      "unique": true
+    },
+    {
+      "table": "DomiciliosTercero",
+      "name": "PK_DomiciliosTercero",
+      "fields": [
+        "IdDomicilioTercero"
+      ],
+      "unique": true
+    },
+    {
+      "table": "DomiciliosTercero",
+      "name": "IX_Domicilios_IdTercero",
+      "fields": [
+        "IdTercero"
+      ],
+      "unique": false
+    },
+    {
+      "table": "MapasOrigenTerceros",
+      "name": "PK_MapasOrigenTerceros",
+      "fields": [
+        "IdMapaOrigenTercero"
+      ],
+      "unique": true
+    },
+    {
+      "table": "MapasOrigenTerceros",
+      "name": "UX_MapasOrigenTerceros_Huella",
+      "fields": [
+        "HuellaOrigen"
+      ],
+      "unique": true
+    },
+    {
+      "table": "MapasOrigenTerceros",
+      "name": "IX_MapasOrigenTerceros_IdTercero",
+      "fields": [
+        "IdTercero"
+      ],
+      "unique": false
+    },
+    {
+      "table": "HistorialTerceros",
+      "name": "PK_HistorialTerceros",
+      "fields": [
+        "IdHistorialTercero"
+      ],
+      "unique": true
+    },
+    {
+      "table": "HistorialTerceros",
+      "name": "IX_HistorialTerceros_Fecha",
+      "fields": [
+        "IdTercero",
+        "FechaHora",
+        "IdHistorialTercero"
+      ],
+      "unique": false
+    },
+    {
+      "table": "Perfiles",
+      "name": "PK_Perfiles",
+      "fields": [
+        "IdPerfil"
+      ],
+      "unique": true
+    },
+    {
+      "table": "Perfiles",
+      "name": "UX_Perfiles_Nombre",
+      "fields": [
+        "Nombre"
+      ],
+      "unique": true
+    },
+    {
+      "table": "PerfilesTerceros",
+      "name": "PK_PerfilesTerceros",
+      "fields": [
+        "IdPerfilTercero"
+      ],
+      "unique": true
+    },
+    {
+      "table": "PerfilesTerceros",
+      "name": "UX_PerfilesTerceros_Asignacion",
+      "fields": [
+        "IdTercero",
+        "IdPerfil"
+      ],
+      "unique": true
+    },
+    {
+      "table": "PerfilesTerceros",
+      "name": "IX_PerfilesTerceros_Perfil",
+      "fields": [
+        "IdPerfil"
+      ],
+      "unique": false
+    },
+    {
+      "table": "DatosContacto",
+      "name": "PK_DatosContacto",
+      "fields": [
+        "IdDatoContacto"
+      ],
+      "unique": true
+    },
+    {
+      "table": "DatosContacto",
+      "name": "IX_DatosContacto_Tercero",
+      "fields": [
+        "IdTercero"
+      ],
+      "unique": false
+    },
+    {
+      "table": "EstadoContratoTerceros",
+      "name": "PK_EstadoContratoTerceros",
+      "fields": [
+        "Contrato"
+      ],
+      "unique": true
+    }
+  ],
+  "foreignKeys": [
+    {
+      "table": "Clientes",
+      "field": "IdTercero",
+      "target": "Terceros",
+      "key": "IdTercero"
+    },
+    {
+      "table": "Proveedores",
+      "field": "IdTercero",
+      "target": "Terceros",
+      "key": "IdTercero"
+    },
+    {
+      "table": "Contactos",
+      "field": "IdTercero",
+      "target": "Terceros",
+      "key": "IdTercero"
+    },
+    {
+      "table": "RelacionesContactos",
+      "field": "IdContacto",
+      "target": "Contactos",
+      "key": "IdContacto"
+    },
+    {
+      "table": "RelacionesContactos",
+      "field": "IdTerceroOrganizacion",
+      "target": "Terceros",
+      "key": "IdTercero"
+    },
+    {
+      "table": "DomiciliosTercero",
+      "field": "IdTercero",
+      "target": "Terceros",
+      "key": "IdTercero"
+    },
+    {
+      "table": "MapasOrigenTerceros",
+      "field": "IdTercero",
+      "target": "Terceros",
+      "key": "IdTercero"
+    },
+    {
+      "table": "PerfilesTerceros",
+      "field": "IdTercero",
+      "target": "Terceros",
+      "key": "IdTercero"
+    },
+    {
+      "table": "PerfilesTerceros",
+      "field": "IdPerfil",
+      "target": "Perfiles",
+      "key": "IdPerfil"
+    },
+    {
+      "table": "DatosContacto",
+      "field": "IdTercero",
+      "target": "Terceros",
+      "key": "IdTercero"
+    }
+  ]
+}

@@ -1,0 +1,23 @@
+{
+  "id": "20261001_024_CONTACTOS_LIBRES_MAESTRA",
+  "version": "0.24.0",
+  "descripcion": "Añade grupos libres opcionales para los datos de contacto de Terceros, sin crear identidades ni roles.",
+  "sentencias": [
+    "CREATE TABLE ContactosLibresTercero (IdContactoLibre AUTOINCREMENT CONSTRAINT PK_ContactosLibresTercero PRIMARY KEY, IdTercero LONG NOT NULL, Nombre TEXT(150) NOT NULL, Departamento TEXT(100), CONSTRAINT FK_ContactosLibres_Tercero FOREIGN KEY (IdTercero) REFERENCES Terceros (IdTercero))",
+    "CREATE UNIQUE INDEX UX_ContactosLibres_Titular ON ContactosLibresTercero (IdTercero, IdContactoLibre)",
+    "ALTER TABLE DatosContacto ADD COLUMN IdContactoLibre LONG",
+    "CREATE INDEX IX_DatosContacto_Grupo ON DatosContacto (IdTercero, IdContactoLibre)",
+    "ALTER TABLE DatosContacto ADD CONSTRAINT FK_DatosContacto_Grupo FOREIGN KEY (IdContactoLibre) REFERENCES ContactosLibresTercero (IdContactoLibre)"
+  ],
+  "descripciones": {
+    "ContactosLibresTercero": {
+      "IdContactoLibre": "Clave autonumérica de un grupo libre de datos de contacto.",
+      "IdTercero": "Titular obligatorio del grupo; FK a Terceros.IdTercero.",
+      "Nombre": "Nombre libre de persona o departamento, obligatorio, hasta 150 caracteres; puede repetirse.",
+      "Departamento": "Departamento descriptivo opcional, hasta 100 caracteres."
+    },
+    "DatosContacto": {
+      "IdContactoLibre": "Grupo opcional del mismo tercero; NULL indica dato general. La aplicación valida la titularidad."
+    }
+  }
+}

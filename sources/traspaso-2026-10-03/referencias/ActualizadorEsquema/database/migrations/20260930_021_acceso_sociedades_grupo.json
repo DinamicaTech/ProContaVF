@@ -1,0 +1,15 @@
+{
+  "id": "20260930_021_ACCESO_SOCIEDADES_GRUPO",
+  "version": "0.21.0",
+  "descripcion": "Ámbito permanente de sociedades autorizado por grupo de operadores; sin asignaciones iniciales.",
+  "sentencias": [
+    "CREATE TABLE AccesoSociedadesGrupo (IdGrupoOperadores LONG NOT NULL, IdSociedad TEXT(3) NOT NULL, CONSTRAINT PK_AccesoSociedadesGrupo PRIMARY KEY (IdGrupoOperadores,IdSociedad), CONSTRAINT FK_AccesoSociedadesGrupo_Grupo FOREIGN KEY (IdGrupoOperadores) REFERENCES GruposOperadores (IdGrupoOperadores), CONSTRAINT FK_AccesoSociedadesGrupo_Sociedad FOREIGN KEY (IdSociedad) REFERENCES Sociedades (IdSociedad))",
+    "CREATE INDEX IX_AccesoSociedadesGrupo_Sociedad ON AccesoSociedadesGrupo (IdSociedad)"
+  ],
+  "descripciones": {
+    "AccesoSociedadesGrupo": {
+      "IdGrupoOperadores": "Grupo de seguridad al que se concede acceso a una sociedad.",
+      "IdSociedad": "Sociedad permanente concedida al grupo; no representa un ejercicio."
+    }
+  }
+}
