@@ -64,3 +64,9 @@ Los datos son ficticios. Los cambios duran mientras la página está abierta.
 - El nombre del tercero en el buscador y los datos de la cabecera de la ficha se muestran sin recortar.
 - Sin palabras enteras en mayúsculas: encabezados de columna y de sección en minúscula inicial, salvo siglas.
 - La cabecera de la ficha ya no repite «N cambios sin guardar»: se indica en la barra de acciones del pie y con el punto de la pestaña.
+
+## Facturas emitidas y programadas (29/10/2026)
+- La pestaña «Facturas emitidas» del contenedor es ahora la pantalla validada en `sources/maquetas/Facturas/` (ronda 1), reescrita dentro del contenedor: programadas arriba, emitidas abajo, separador arrastrable, detalle lateral, líneas desplegables y editables, menú contextual y diálogos.
+- Abre directamente con `?escenario=facturas`. El operador de facturación en consulta ve la pantalla en modo solo lectura.
+- Las líneas en edición cuentan como cambios pendientes de la pestaña: el punto de la pestaña, el aviso al cerrar y «Guardar» o «Descartar» del contenedor las tratan como al resto de pantallas.
+- El panel de demostración añade el tamaño 2560 × 1440, que es la resolución de referencia.

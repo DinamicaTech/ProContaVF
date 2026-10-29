@@ -695,6 +695,234 @@ textarea.tr-in{height:auto;padding:8px 10px;resize:vertical;line-height:1.5}
 .tr-lockd{display:inline-flex;color:#8A8F9B;flex-shrink:0}
 .tr-hs-Documentos{background:#E4E7F6;color:#33449A}
 
+/* ===== Facturas emitidas y programadas ===== */
+/* Facturas emitidas y programadas */
+.fcx{--navy:#14213A;--navy2:#22314F;--ink:#16213A;--mut:#646A78;--mut2:#7A8090;--txt2:#3B4252;--or:#F4A259;--or2:#D9622B;--or3:#B4481F;--bg:#F1EEE7;--bg2:#FBFAF7;--ln:#ECE8DE;--ln2:#F3F0E9;--ln3:#E1DDD2;--inb:#E4E1D8;--inbg:#FAF9F6;--blue:#1D5C8C;--green:#1E6B45;--greenb:#E2F0E8;--red:#B42318;--redb:#FDF1EF;--amb:#8A4410;--ambb:#FFEBD6;--pur:#5B3F86;--purb:#ECE6F3;--act:#FFF3E6;--selb:#E8F0F9;font-size:13px;color:var(--ink);background:var(--bg)}
+.fcx .fc-ic{flex-shrink:0;display:block}
+.fcx .fc-grow{flex:1 1 auto}
+.fcx .fc-mut{color:var(--mut)}
+.fcx .fc-tn{font-variant-numeric:tabular-nums}
+.fcx .fc-mono{font-family:'IBM Plex Mono',ui-monospace,monospace}
+.fc-modbar{height:48px;flex:none;background:#fff;border-bottom:1px solid var(--ln);display:flex;align-items:center;gap:10px;padding:0 14px;min-width:0}
+.fc-modbar h1{margin:0;font-size:18px;font-weight:600;white-space:nowrap}
+.fc-vsep{width:1px;height:22px;background:var(--ln3);flex:none}
+.fc-gtools{display:flex;gap:6px;align-items:center}
+.fc-flbl{font-size:11.5px;color:var(--mut);white-space:nowrap}
+.fc-btn{height:30px;padding:0 11px;border-radius:8px;border:1px solid var(--ln3);background:#fff;font-size:12.5px;font-weight:500;cursor:pointer;display:inline-flex;align-items:center;gap:6px;white-space:nowrap;color:var(--ink);flex-shrink:0}
+.fc-btn:hover{background:#FAF9F6;border-color:#CFC9BA}
+.fc-btn.fc-pri{background:var(--navy);border-color:var(--navy);color:#fff}
+.fc-btn.fc-pri:hover{background:var(--navy2)}
+.fc-btn.fc-ghost{border-color:transparent;background:transparent;color:var(--blue)}
+.fc-btn.fc-ghost:hover{background:var(--ln2)}
+.fc-btn.fc-danger{color:#A12B1B;border-color:#EBC7C0}
+.fc-btn.fc-sm{height:26px;padding:0 9px;font-size:12px;border-radius:7px}
+.fc-btn[aria-disabled="true"]{opacity:.45;cursor:not-allowed}
+.fc-btn[aria-disabled="true"]:hover{background:#fff;border-color:var(--ln3)}
+.fc-btn.fc-pri[aria-disabled="true"]:hover{background:var(--navy)}
+.fc-icb{width:28px;height:28px;border-radius:7px;border:0;background:none;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;color:var(--mut);flex:none;padding:0}
+.fc-icb:hover{background:var(--ln2);color:var(--navy)}
+.fc-lnk{border:0;background:none;padding:0;color:var(--blue);cursor:pointer;text-decoration:underline;text-underline-offset:2px;font-size:inherit;text-align:left}
+.fc-lnk:hover{color:var(--or3)}
+.fc-in{height:28px;border:1px solid var(--inb);border-radius:7px;background:var(--inbg);padding:0 8px;font-size:12.5px;color:var(--ink);min-width:0}
+.fc-in:hover{border-color:#D6D1C4}
+.fc-in:focus{outline:none;background:#fff;border-color:var(--navy);box-shadow:0 0 0 3px rgba(244,162,89,.35)}
+select.fc-in{padding-right:4px;cursor:pointer}
+.fc-in.fc-on{background:#FFF6EC;border-color:#EDBB95;color:var(--or3);font-weight:500}
+textarea.fc-in{height:auto;padding:6px 8px;resize:vertical}
+.fc-in.fc-err{border-color:#C23B2A;background:#FFF7F6 url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%23C23B2A' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='9'/%3E%3Cpath d='M12 7.5v5.5M12 16.5h.01'/%3E%3C/svg%3E") no-repeat right 7px center;padding-right:26px}
+.fc-sbox{height:28px;display:inline-flex;align-items:center;gap:6px;padding:0 8px;border:1px solid var(--inb);border-radius:7px;background:var(--inbg);color:var(--mut);flex:none}
+.fc-sbox:focus-within{background:#fff;border-color:var(--navy);box-shadow:0 0 0 3px rgba(244,162,89,.35)}
+.fc-sbox input{border:0;outline:none;background:transparent;min-width:0;flex:1;font-size:12.5px;color:var(--ink)}
+.fc-seg{display:inline-flex;gap:2px;padding:2px;border-radius:8px;background:var(--bg);flex:none}
+.fc-seg button{height:24px;border:0;border-radius:6px;background:none;font-size:12px;font-weight:500;color:#555B69;cursor:pointer;padding:0 9px;display:inline-flex;align-items:center;gap:5px;white-space:nowrap}
+.fc-seg button:hover{color:var(--navy)}
+.fc-seg button[aria-pressed="true"],.fc-seg button[aria-checked="true"]{background:#fff;color:var(--navy);box-shadow:0 1px 2px rgba(20,33,58,.12)}
+.fc-seg button[aria-disabled="true"]{opacity:.45;cursor:not-allowed}
+.fc-seg .fc-ct{font-size:10.5px;color:var(--mut2)}
+.fc-ws{flex:1 1 auto;min-height:0;display:flex;position:relative;padding:10px;gap:10px}
+.fc-lists{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;min-height:0;overflow-y:auto}
+.fc-panel{background:#fff;border:1px solid var(--ln);border-radius:12px;display:flex;flex-direction:column;min-height:0;flex:none}
+.fc-pemit{flex:1 1 auto;min-height:260px}
+.fc-split{flex:none;height:10px;cursor:row-resize;display:flex;align-items:center;justify-content:center;border-radius:4px;outline:none}
+.fc-split i{width:44px;height:4px;border-radius:2px;background:var(--ln3)}
+.fc-split:hover i,.fc-split:focus-visible i{background:var(--or)}
+.fc-gap{flex:none;height:10px}
+.fc-ph{display:flex;align-items:center;gap:8px;padding:7px 10px 7px 8px;min-height:42px;flex-wrap:wrap;flex:none}
+.fc-ph h2{margin:0;font-size:14px;font-weight:600;white-space:nowrap}
+.fc-cnt{font-size:12px;color:var(--mut);white-space:nowrap}
+.fc-acts{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.fc-pemit .fc-ph{padding-left:12px}
+.fc-colb .fc-ic{transition:transform .15s}
+.fc-colb[aria-expanded="false"] .fc-ic{transform:rotate(-90deg)}
+.fc-psum{font-size:12px;color:var(--mut);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.fc-psum b{color:var(--or3)}
+.fc-pbody{display:flex;flex-direction:column;min-height:0}
+.fc-fbar{display:flex;align-items:center;gap:6px 8px;padding:0 12px 8px;flex-wrap:wrap;flex:none}
+.fc-tw{overflow:auto;border-top:1px solid var(--ln);min-height:0;position:relative}
+.fc-pemit .fc-tw{flex:1 1 auto}
+.fc-progchip{height:26px;display:inline-flex;align-items:center;gap:6px;padding:0 3px 0 9px;border-radius:7px;background:#FFF3E6;border:1px solid #F2C9A3;color:#8A4410;font-size:12px;max-width:520px;min-width:0}
+.fc-progchip .fc-t{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fc-progchip button{height:20px;border-radius:5px;background:#fff;color:var(--or3);display:inline-flex;align-items:center;gap:4px;padding:0 7px;cursor:pointer;font-size:11.5px;font-weight:600;white-space:nowrap;border:1px solid #F2C9A3}
+.fc-progchip button:hover{background:#FFE8D2}
+.fc-bulk{display:flex;align-items:center;gap:6px 10px;padding:6px 12px;border-top:1px solid var(--ln);background:var(--bg2);flex-wrap:wrap;font-size:12px;flex:none}
+.fc-bl{color:var(--mut);white-space:nowrap}
+.fc-hint{font-size:11.5px;color:var(--amb);display:inline-flex;align-items:center;gap:5px}
+/* rejillas */
+.fc-grid{min-width:100%}
+.fc-gh,.fc-gr{display:grid;align-items:center}
+.fc-gh{position:sticky;top:0;z-index:2;background:var(--bg2);height:28px;border-bottom:1px solid var(--ln);font-size:12px;font-weight:600;color:var(--mut)}
+.fc-gh>*,.fc-gr>*{padding:0 8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.fc-gh .fc-r,.fc-gr .fc-r{text-align:right}
+.fc-gh .fc-cb,.fc-gr .fc-cb{padding:0;display:flex;align-items:center;justify-content:center}
+.fc-gr{height:30px;border-bottom:1px solid var(--ln2);font-size:12.5px;background:#fff;cursor:pointer;outline:none}
+.fc-gr:hover{background:#FBFAF6}
+.fc-gr:focus-visible{box-shadow:inset 0 0 0 2px var(--or)}
+.fc-gr.fc-sel{background:var(--selb)}
+.fc-gr.fc-sel:hover{background:#DFEAF6}
+.fc-gr.fc-flt{background:#FFF8EF}
+.fc-gr.fc-act{background:var(--act);box-shadow:inset 4px 0 0 var(--or2)}
+.fc-gr.fc-act.fc-sel{background:#F4ECE6}
+.fc-gr.fc-act:focus-visible{box-shadow:inset 4px 0 0 var(--or2),inset 0 0 0 2px var(--or)}
+.fc-gr.fc-dirty{box-shadow:inset 4px 0 0 var(--or)}
+.fc-gr.fc-xo{border-bottom-color:transparent}
+.fcx input[type=checkbox]{width:15px;height:15px;accent-color:var(--navy);cursor:pointer;margin:0}
+.fc-b{font-weight:600}
+.fc-sortb{border:0;background:none;padding:0;font:inherit;color:inherit;cursor:pointer;display:inline-flex;align-items:center;gap:3px;max-width:100%}
+.fc-sortb:hover{color:var(--navy)}
+.fc-ar{font-size:10px;color:var(--or2)}
+.fc-num{font-family:'IBM Plex Mono',monospace;font-size:12px}
+.fc-num b{font-weight:600;color:var(--navy)}
+.fc-drf{font-family:'IBM Plex Mono',monospace;font-size:12px;color:#57523F;font-style:italic}
+.fc-tR{font-size:9.5px;font-weight:700;color:var(--pur);background:var(--purb);border-radius:3px;padding:0 4px;margin-left:4px;vertical-align:1px}
+.fc-ocode{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--mut);margin-right:6px}
+.fc-ocode.fc-man{font-family:'IBM Plex Sans',sans-serif;font-style:italic;color:var(--mut2)}
+.fc-pcode{font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:var(--mut);margin-right:7px}
+.fc-fic{display:inline-flex;vertical-align:-2px;color:var(--or2);margin-right:4px}
+.fc-xb{width:22px;height:22px;border:0;border-radius:5px;background:none;color:var(--mut);cursor:pointer;display:inline-flex;align-items:center;justify-content:center;padding:0}
+.fc-xb:hover{background:var(--ln2);color:var(--navy)}
+.fc-xb .fc-ic{transition:transform .12s}
+.fc-xb[aria-expanded="true"] .fc-ic{transform:rotate(90deg);color:var(--or2)}
+.fc-tfoot{display:flex;align-items:center;gap:6px 16px;flex-wrap:wrap;padding:6px 12px;border-top:1px solid var(--ln);font-size:11.5px;color:var(--mut);background:var(--bg2);border-radius:0 0 12px 12px;flex:none}
+.fc-tfoot b{color:var(--ink);font-weight:600}
+.fc-lg{display:inline-flex;align-items:center;gap:5px;white-space:nowrap}
+.fc-lg i{width:14px;height:12px;border-radius:2px;display:inline-block}
+.fc-lg .fc-la{background:var(--act);box-shadow:inset 3px 0 0 var(--or2)}
+.fc-lg .fc-ls{background:var(--selb);border:1px solid #C7D8EC}
+.fc-lg .fc-lf{background:#FFF8EF;border:1px solid #F2C9A3}
+.fc-pill{display:inline-flex;align-items:center;gap:5px;height:20px;padding:0 8px;border-radius:999px;font-size:11px;font-weight:500;white-space:nowrap;vertical-align:middle}
+.fc-pill i{width:6px;height:6px;border-radius:50%;background:currentColor}
+.fc-st-BOR{background:#ECE9E0;color:#57523F;box-shadow:inset 0 0 0 1px #B9B29C}
+.fc-st-BOR i{background:transparent;border:1.5px solid currentColor;width:7px;height:7px}
+.fc-st-EMI{background:#E4E7EE;color:var(--navy)}
+.fc-st-RCT{background:var(--purb);color:var(--pur)}
+.fc-ps-A{background:var(--greenb);color:var(--green)}
+.fc-ps-P{background:var(--ambb);color:var(--amb)}
+.fc-ps-F{background:#ECE9E0;color:#6A6553}
+.fc-vf{display:inline-flex;align-items:center;gap:5px;height:20px;padding:0 7px;border-radius:4px;border:1px solid;font-size:11px;font-weight:500;background:#fff;white-space:nowrap;vertical-align:middle}
+.fc-vf-ACE{color:var(--green);border-color:#A9D2BB}
+.fc-vf-ACW{color:#7A5A00;border-color:#E2CF8F;background:#FFFBEA}
+.fc-vf-REC{color:#A12B1B;border-color:#EBC7C0;background:#FDF6F5}
+.fc-vf-ERR{color:var(--or3);border-color:#F2C9A3;background:#FFF8F0}
+.fc-vf-PEN,.fc-vf-ENV{color:var(--blue);border-color:#A9C5E2}
+.fc-vf-NA{color:var(--mut2);border-color:var(--ln3);border-style:dashed}
+.fc-vf-ENV .fc-ic{animation:spin 1s linear infinite}
+.fc-simtag{display:inline-block;font-size:11px;font-weight:600;color:var(--pur);background:var(--purb);padding:1px 6px;border-radius:4px}
+.fc-prop{display:inline-block;font-size:11px;font-weight:600;color:var(--amb);border:1px dashed var(--or2);background:#FFF6EC;padding:0 5px;border-radius:4px;white-space:nowrap}
+.fc-state{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;padding:22px 16px;text-align:center;color:var(--mut);font-size:12.5px;line-height:1.45}
+.fc-state b{color:var(--ink);font-size:13px}
+.fc-state .fc-btns{display:flex;gap:6px;margin-top:4px}
+.fc-ddot{width:7px;height:7px;border-radius:50%;background:var(--or2);display:inline-block;margin-left:6px;vertical-align:middle}
+/* líneas desplegadas */
+.fc-xrow{background:var(--bg2);border-bottom:1px solid var(--ln);padding:0}
+.fc-xp{position:sticky;left:0;max-width:1320px;margin-left:62px;padding:6px 12px 10px 12px;border-left:3px solid var(--ln3);display:flex;flex-direction:column;gap:4px}
+.fc-xp.fc-ed{border-left-color:var(--or);background:#FFFCF8}
+.fc-xph{display:flex;align-items:center;gap:8px;min-height:28px;font-size:12px}
+.fc-xlock{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;color:var(--mut)}
+.fc-xedtag{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:600;color:var(--or3);background:#FFF3E6;border-radius:5px;padding:2px 7px}
+.fc-xtw{overflow-x:auto;border:1px solid var(--ln);border-radius:8px;background:#fff}
+.fc-xt{min-width:1180px;font-size:12px}
+.fc-xt .fc-gh{position:static;background:#fff;height:24px;font-size:11.5px}
+.fc-xt .fc-gh>*,.fc-xt .fc-gl>*{padding:0 6px}
+.fc-gl{display:grid;align-items:center;height:28px;border-bottom:1px solid var(--ln2)}
+.fc-gl>*{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.fc-gl .fc-r{text-align:right}
+.fc-xp.fc-ed .fc-gl{height:34px}
+.fc-xp.fc-ed .fc-gl>*{padding:0 4px}
+.fc-gl.fc-xnew{background:#F4FAF6}
+.fc-gl.fc-tot{font-weight:600;background:var(--bg2);border-top:1px solid var(--ln3);border-bottom:0}
+.fc-gl.fc-ret{font-weight:500;color:var(--txt2);background:var(--bg2);border-bottom:0}
+.fc-gl.fc-liq{font-weight:600;font-size:13px;color:var(--navy);background:var(--bg2);border-top:1px solid var(--ln);border-bottom:0}
+.fc-xin{height:26px;width:100%;font-size:12px}
+.fc-xin.fc-r{text-align:right;font-variant-numeric:tabular-nums}
+.fc-xrp{display:inline-flex;align-items:center;gap:6px}
+.fc-xpf{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding-top:2px}
+.fc-xbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:7px 0 0;margin-top:2px;border-top:1px dashed #F2C9A3;font-size:12px}
+.fc-xcnt{color:var(--or3);font-weight:500;display:inline-flex;align-items:center;gap:6px}
+.fc-xcnt .fc-ddot{margin-left:0}
+/* detalle */
+.fc-detail{width:452px;flex:none;background:#fff;border:1px solid var(--ln);border-radius:12px;display:flex;flex-direction:column;min-height:0;overflow:hidden}
+.fc-detail.fc-over{position:absolute;right:10px;top:10px;bottom:10px;z-index:20;box-shadow:-12px 0 36px rgba(20,33,58,.22)}
+.fc-dh{padding:10px 12px 10px 14px;border-bottom:1px solid var(--ln);display:flex;flex-direction:column;gap:7px}
+.fc-dtop{display:flex;align-items:center;gap:8px}
+.fc-dkind{font-size:12px;font-weight:600;color:var(--mut)}
+.fc-dtitle{font-family:'IBM Plex Mono',monospace;font-size:17px;font-weight:600;color:var(--navy)}
+.fc-dsub{font-size:12.5px;color:var(--txt2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fc-dstat{display:flex;gap:16px;flex-wrap:wrap}
+.fc-dstat>div{display:flex;flex-direction:column;gap:3px;align-items:flex-start}
+.fc-dl{font-size:10.5px;color:var(--mut);font-weight:500}
+.fc-dacts{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.fc-dtabs{display:flex;gap:16px;padding:0 14px;border-bottom:1px solid var(--ln);flex:none}
+.fc-dtab{height:34px;border:0;border-bottom:2px solid transparent;background:none;padding:0 1px;font-size:12.5px;color:#555B69;cursor:pointer;font-weight:500;white-space:nowrap}
+.fc-dtab[aria-selected="true"]{color:var(--navy);border-bottom-color:var(--or);font-weight:600}
+.fc-dbody{flex:1 1 auto;overflow:auto;padding:12px 14px 16px;display:flex;flex-direction:column;gap:14px}
+.fc-sec{font-size:12px;font-weight:600;color:var(--mut);margin:0 0 6px;display:flex;align-items:center;gap:8px}
+.fc-sec:after{content:"";flex:1;height:1px;background:#EEEBE3}
+.fc-kv{display:grid;grid-template-columns:136px minmax(0,1fr);gap:4px 10px;font-size:12.5px;line-height:1.45;margin:0}
+.fc-kv dt{color:var(--mut)}
+.fc-kv dd{margin:0;min-width:0;overflow-wrap:anywhere}
+.fc-note{display:flex;gap:8px;align-items:flex-start;padding:8px 10px;border-radius:8px;background:#F6F4EF;color:var(--txt2);font-size:12px;line-height:1.45}
+.fc-note .fc-ic{margin-top:2px;color:var(--mut)}
+.fc-note.fc-warn{background:#FFF6EA;color:#6E3A0F}
+.fc-note.fc-err{background:var(--redb);color:#8A1F11}
+.fc-note.fc-ok{background:#F1F8F4;color:#1E5A3B}
+.fc-mini{font-size:12px}
+.fc-mini .fc-mh,.fc-mini .fc-mr{display:grid;gap:0 8px;padding:4px 6px;border-bottom:1px solid var(--ln2);align-items:start}
+.fc-mini .fc-mh{font-size:11.5px;font-weight:600;color:var(--mut);border-bottom-color:var(--ln)}
+.fc-mini .fc-r{text-align:right;white-space:nowrap}
+.fc-mini .fc-sub{font-size:11px;color:var(--mut)}
+.fc-tots .fc-mr{grid-template-columns:minmax(0,1fr) auto;border-bottom:0;padding:3px 6px}
+.fc-tots .fc-mr.fc-tot{font-weight:600;font-size:13px;border-top:1px solid var(--ln)}
+.fc-qr{display:flex;gap:12px;align-items:center}
+.fc-hash{font-family:'IBM Plex Mono',monospace;font-size:11px;word-break:break-all;color:var(--txt2)}
+.fc-proplist{display:flex;flex-direction:column;gap:6px}
+.fc-proplist>div{display:grid;gap:2px;padding:7px 9px;border:1px dashed #EDBB95;border-radius:8px;background:#FFFCF8;font-size:12px;line-height:1.45}
+/* menú y diálogos */
+.fc-catch{position:absolute;inset:0;z-index:55;background:transparent;border:0;padding:0;cursor:default}
+.fc-menu{position:absolute;z-index:60;background:#fff;border:1px solid var(--ln3);border-radius:10px;box-shadow:0 10px 30px rgba(20,33,58,.22);padding:4px;min-width:230px;display:flex;flex-direction:column}
+.fc-menu button{height:30px;border:0;background:none;text-align:left;padding:0 10px;border-radius:6px;cursor:pointer;display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--ink)}
+.fc-menu button:hover,.fc-menu button:focus{background:var(--ln2);outline:none}
+.fc-menu button[aria-disabled="true"]{opacity:.45;cursor:not-allowed}
+.fc-menu hr{border:0;border-top:1px solid var(--ln);margin:4px 2px;width:100%}
+.fc-ov{position:absolute;inset:0;background:rgba(20,33,58,.35);display:flex;align-items:center;justify-content:center;z-index:50;padding:20px}
+.fc-dlg{background:#fff;border-radius:14px;box-shadow:0 20px 60px rgba(20,33,58,.35);width:560px;max-width:100%;max-height:100%;display:flex;flex-direction:column}
+.fc-dlg.fc-wide{width:780px}
+.fc-dlg h3{margin:0;font-size:15px;font-weight:600}
+.fc-dlgh{padding:14px 18px 10px;display:flex;align-items:center;gap:8px}
+.fc-dlgb{padding:4px 18px 14px;overflow:auto;display:flex;flex-direction:column;gap:12px;font-size:12.5px;line-height:1.5}
+.fc-dlgb p{margin:0}
+.fc-dlgf{padding:12px 18px;border-top:1px solid var(--ln);display:flex;gap:8px;align-items:center}
+.fc-frow{display:flex;flex-wrap:wrap;gap:10px 12px;align-items:flex-end}
+.fc-fld{display:flex;flex-direction:column;gap:4px}
+.fc-fld label{font-size:11.5px;font-weight:500;color:#555B69}
+.fc-fld .fc-in{height:30px}
+.fc-fld textarea.fc-in{height:auto}
+.fc-chk{display:flex;gap:7px;align-items:center}
+.fc-lockchip{height:28px;display:inline-flex;align-items:center;gap:6px;padding:0 10px;border-radius:8px;background:#fff;border:1px solid var(--ln3);font-size:12.5px;font-weight:600;color:var(--navy)}
+.fc-doc{background:#fff;border:1px solid var(--ln3);box-shadow:0 2px 10px rgba(0,0,0,.08);padding:28px 32px;font-size:11.5px;line-height:1.5;color:#222}
+.fc-doc h4{margin:0;font-size:18px}
+.fc-kbdl{display:grid;grid-template-columns:190px 1fr;gap:6px 12px}
+.fcx kbd{font-family:'IBM Plex Mono',monospace;font-size:11px;background:var(--bg);border:1px solid var(--ln3);border-bottom-width:2px;border-radius:4px;padding:0 5px}
+.fc-scrollbox{max-height:180px;overflow:auto;border:1px solid var(--ln);border-radius:8px}
 </style>
 
 <style>html,body{height:100%;margin:0}body{min-width:1280px;min-height:760px;overflow:auto}#app{width:100vw;height:100vh;min-width:1280px;min-height:760px}</style>
@@ -1477,27 +1705,346 @@ textarea.tr-in{height:auto;padding:8px 10px;resize:vertical;line-height:1.5}
 </div>
 </sc-if>
 
-<sc-if value="{{m.facturas}}" hint-placeholder-val="{{false}}">
-<div class="mod">
-<div class="mtb">
-<sc-if value="{{m.showTitle}}" hint-placeholder-val="{{false}}"><h1 class="mt disp">Facturas emitidas</h1></sc-if>
-<label class="rs" style="width: 290px"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.5-3.5"></path></svg><input type="search" placeholder="Buscar factura: número, cliente o NIF" value="{{m.q}}" onChange="{{m.onQ}}" aria-label="Buscar facturas emitidas" title="Busca por número de factura, cliente o NIF"></label>
-<div class="seg" role="group" aria-label="Estado"><sc-for list="{{m.ests}}" as="t" hint-placeholder-count="3"><button class="{{t.cls}}" type="button" aria-pressed="{{t.on}}" onClick="{{t.pick}}" title="Muestra solo: {{t.t}}">{{t.t}} <span class="ct">{{t.n}}</span></button></sc-for></div>
-<div class="fill"></div>
-<button class="btn" type="button" disabled="{{m.noSel}}" onClick="{{m.openSel}}" title="Abre el registro seleccionado en su propia pestaña">Abrir factura</button>
-<button class="btn pri" type="button" onClick="{{m.nueva}}" title="Crea una factura nueva en borrador"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>Nueva factura</button>
+<sc-if value="{{m.fc}}" hint-placeholder-val="{{false}}">
+<div class="mod fcx" onKeyDown="{{m.fcKey}}">
+<div class="fc-modbar">
+<h1 class="disp">Facturas emitidas y programadas</h1><span class="fc-vsep"></span>
+<label class="fc-flbl" for="fc-cli">Cliente</label>
+<select id="fc-cli" class="{{m.fb.cliCls}}" value="{{m.fb.cli}}" onChange="{{m.fb.setCli}}" style="width: 250px" title="Muestra solo las programaciones y facturas de este cliente"><option value="">Todos los clientes</option><sc-for list="{{m.fb.clis}}" as="o" hint-placeholder-count="3"><option value="{{o.v}}">{{o.t}}</option></sc-for></select>
+<span class="fc-grow"></span>
+<div class="fc-gtools" role="toolbar" aria-label="Herramientas generales de facturación"><sc-for list="{{m.fb.tools}}" as="b" hint-placeholder-count="3"><button type="button" class="{{b.cls}}" aria-disabled="{{b.dis}}" title="{{b.tip}}" onClick="{{b.on}}"><sc-if value="{{b.hasIc}}" hint-placeholder-val="{{true}}"><svg class="fc-ic" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><sc-for list="{{b.ic}}" as="icd" hint-placeholder-count="2"><path d="{{icd}}"></path></sc-for></svg></sc-if>{{b.t}}</button></sc-for>
+<button type="button" class="fc-icb" onClick="{{m.fb.kbd}}" title="Atajos de teclado" aria-label="Atajos de teclado"><svg class="fc-ic" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><sc-for list="{{m.fb.kbdIc}}" as="icd" hint-placeholder-count="2"><path d="{{icd}}"></path></sc-for></svg></button></div>
 </div>
-<div class="gwrap scroll" data-sk="{{m.sk}}" onScroll="{{m.onScroll}}">
-<div style="min-width: 1080px">
-<div class="gh g-fac"><span>Número</span><span>Fecha</span><span>Cliente</span><span>NIF</span><span class="r" style="display: flex">Base</span><span class="r" style="display: flex">IVA</span><span class="r" style="display: flex">Total</span><span>Estado</span><span>VeriFactu</span></div>
-<sc-if value="{{m.empty}}" hint-placeholder-val="{{false}}"><div class="lempty">Ninguna factura coincide con la búsqueda y el filtro de estado.</div></sc-if>
-<sc-for list="{{m.rows}}" as="r" hint-placeholder-count="3"><button class="{{r.cls}}" type="button" aria-pressed="{{r.on}}" onClick="{{r.pick}}" onDoubleClick="{{r.open}}" onKeyDown="{{r.key}}" title="Doble clic o Intro: abre la factura {{r.num}}"><span class="mono">{{r.num}}</span><span class="tn">{{r.fecha}}</span><span>{{r.cli}}</span><span class="mono" style="font-size: 12px">{{r.nif}}</span><span class="tn r" style="display: flex">{{r.base}}</span><span class="tn r" style="display: flex">{{r.iva}}</span><span class="tn r" style="display: flex; font-weight: 600">{{r.total}}</span><span><span class="{{r.stC}}"><i></i>{{r.st}}</span></span><span style="font-size: 12px">{{r.vf}}</span></button></sc-for>
+<div class="fc-ws">
+<div class="fc-lists" data-fc-lists="1">
+<section class="{{m.fp.cls}}" aria-label="Facturas programadas">
+<div class="fc-ph">
+<button type="button" class="fc-icb fc-colb" onClick="{{m.fp.collapse}}" aria-expanded="{{m.fp.expanded}}" aria-label="{{m.fp.colLbl}}" title="Plegar o desplegar las programadas (Alt+P)"><svg class="fc-ic" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><sc-for list="{{m.fp.colIc}}" as="icd" hint-placeholder-count="2"><path d="{{icd}}"></path></sc-for></svg></button>
+<h2>Facturas programadas</h2><span class="fc-cnt">{{m.fp.count}}</span><span class="fc-psum">{{m.fp.sum}}<b>{{m.fp.sumB}}</b></span>
+<span class="fc-grow"></span><div class="fc-acts"><sc-for list="{{m.fp.acts}}" as="b" hint-placeholder-count="4"><button type="button" class="{{b.cls}}" aria-disabled="{{b.dis}}" title="{{b.tip}}" onClick="{{b.on}}"><sc-if value="{{b.hasIc}}" hint-placeholder-val="{{true}}"><svg class="fc-ic" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><sc-for list="{{b.ic}}" as="icd" hint-placeholder-count="2"><path d="{{icd}}"></path></sc-for></svg></sc-if>{{b.t}}</button></sc-for></div>
 </div>
+<sc-if value="{{m.fp.open}}" hint-placeholder-val="{{true}}">
+<div class="fc-pbody">
+<div class="fc-fbar" role="search" aria-label="Filtros de facturas programadas">
+<div class="fc-sbox" style="width: 250px"><svg class="fc-ic" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><sc-for list="{{m.fp.searchIc}}" as="icd" hint-placeholder-count="2"><path d="{{icd}}"></path></sc-for></svg><input type="search" value="{{m.fp.q}}" onChange="{{m.fp.setQ}}" placeholder="Código, descripción o cliente" aria-label="Buscar programaciones" title="Busca por código, descripción o cliente de la programación"></div>
+<div class="fc-seg" role="group" aria-label="Estado de la programación"><sc-for list="{{m.fp.ests}}" as="s" hint-placeholder-count="4"><button type="button" aria-pressed="{{s.on}}" onClick="{{s.pick}}" title="{{s.tip}}">{{s.t}}<span class="fc-ct">{{s.n}}</span></button></sc-for></div>
+<select class="{{m.fp.perCls}}" value="{{m.fp.per}}" onChange="{{m.fp.setPer}}" style="width: 150px" aria-label="Periodicidad" title="Muestra solo las programaciones con esta periodicidad"><option value="all">Periodicidad: todas</option><sc-for list="{{m.fp.pers}}" as="o" hint-placeholder-count="5"><option value="{{o.v}}">{{o.t}}</option></sc-for></select>
 </div>
-<div class="mfoot"><span><b>{{m.n}}</b> facturas</span><span>{{m.sum}}</span><span class="fill"></span><span>Doble clic o Intro para abrir una factura en su propia pestaña</span></div>
+<div class="fc-tw scroll" style="{{m.fp.twStyle}}" data-fc-ptw="1">
+<sc-if value="{{m.fp.emptyBase}}" hint-placeholder-val="{{false}}"><div class="fc-state"><b>{{m.fp.emptyBaseT}}</b><span>Las programaciones generan facturas periódicas (cuotas, alquileres, mantenimientos…).</span></div></sc-if>
+<sc-if value="{{m.fp.emptyList}}" hint-placeholder-val="{{false}}"><div class="fc-state"><b>Ninguna programación cumple los filtros</b><div class="fc-btns"><button type="button" class="{{m.fp.clearB.cls}}" aria-disabled="{{m.fp.clearB.dis}}" title="{{m.fp.clearB.tip}}" onClick="{{m.fp.clearB.on}}"><sc-if value="{{m.fp.clearB.hasIc}}" hint-placeholder-val="{{true}}"><svg class="fc-ic" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><sc-for list="{{m.fp.clearB.ic}}" as="icd" hint-placeholder-count="2"><path d="{{icd}}"></path></sc-for></svg></sc-if>{{m.fp.clearB.t}}</button></div></div></sc-if>
+<sc-if value="{{m.fp.has}}" hint-placeholder-val="{{true}}">
+<div class="fc-grid" style="{{m.fp.minW}}" role="grid" aria-label="Facturas programadas">
+<div class="fc-gh" style="{{m.fp.gcols}}" role="row"><span class="fc-cb"><input type="checkbox" checked="{{m.fp.allChk}}" onChange="{{m.fp.chkAll}}" aria-label="{{m.fp.allLbl}}" title="{{m.fp.allTip}}"></span><span></span><sc-if value="{{m.fp.showCli}}" hint-placeholder-val="{{true}}"><span>Cliente</span></sc-if><span>Programación</span><span>Notas</span><span>Periodicidad</span><span>Próxima</span><span>Vigencia</span><span class="fc-r" title="{{m.fp.genTip}}">Generadas</span><span class="fc-r" title="Total de cada factura que genera (importe fijo, salvo modificación manual de sus líneas)">Total</span><span>Estado</span></div>
+<sc-for list="{{m.fp.rows}}" as="r" hint-placeholder-count="6">
+<div class="{{r.cls}}" style="{{m.fp.gcols}}" role="row" tabindex="{{r.ti}}" data-fk="{{r.fk}}" aria-selected="{{r.sel}}" aria-expanded="{{r.exp}}" onClick="{{r.click}}" onDoubleClick="{{r.open}}" onKeyDown="{{r.key}}" title="Clic: ver solo sus facturas emitidas · Intro o doble clic: consultar · →: líneas">
+<span class="fc-cb"><input type="checkbox" tabindex="-1" checked="{{r.s}}" onClick="{{r.stop}}" onChange="{{r.chk}}" aria-label="{{r.chkLbl}}" title="Marca la programación para generar sus facturas (Espacio)"></span>
+<span class="fc-cb"><button type="button" class="fc-xb" tabindex="-1" aria-expanded="{{r.exp}}" aria-label="{{r.xpLbl}}" title="{{r.xpTip}}" onClick="{{r.xp}}"><svg class="fc-ic" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><sc-for list="{{r.xpIc}}" as="icd" hint-placeholder-count="2"><path d="{{icd}}"></path></sc-for></svg></button></span>
+<sc-if value="{{m.fp.showCli}}" hint-placeholder-val="{{true}}"><span title="{{r.cli}}">{{r.cli}}</span></sc-if>
+<span title="{{r.desc}}"><sc-if value="{{r.flt}}" hint-placeholder-val="{{false}}"><span class="fc-fic" title="Aplicada como filtro de las emitidas"><svg class="fc-ic" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><sc-for list="{{r.funnelIc}}" as="icd" hint-placeholder-count="2"><path d="{{icd}}"></path></sc-for></svg></span></sc-if><span class="fc-pcode">{{r.code}}</span><sc-if value="{{r.flt}}" hint-placeholder-val="{{false}}"><b>{{r.desc}}</b></sc-if><sc-if value="{{r.nflt}}" hint-placeholder-val="{{true}}">{{r.desc}}</sc-if><sc-if value="{{r.editing}}" hint-placeholder-val="{{false}}"><i class="fc-ddot" title="Líneas en edición"></i></sc-if></span>
+<span class="fc-mut" title="{{r.notas}}">{{r.notas}}</span>
+<span>{{r.per}}</span>
+<span class="{{r.nextCls}}" title="{{r.nextTip}}">{{r.next}}</span>
+<span class="fc-tn fc-mut" title="{{r.vig}}">{{r.vig}}</span>
+<span class="fc-r fc-tn">{{r.gen}}</span>
+<span class="fc-r fc-tn fc-b">{{r.total}}</span>
+<span><span class="{{r.pill.cls}}" title="Estado de la programación"><i></i>{{r.pill.t}}</span></span>
+</div>
+<sc-if value="{{r.xo}}" hint-placeholder-val="{{false}}"><div class="fc-xrow" data-fc-x="{{r.fk}}"><div class="{{r.x.cls}}" role="region" aria-label="Líneas de {{r.x.title}}">
+<div class="fc-xph"><b>Líneas</b><span class="fc-mut">{{r.x.n}} · {{r.x.title}}</span><span class="fc-grow"></span>
+<sc-if value="{{r.x.ed}}" hint-placeholder-val="{{false}}"><span class="fc-xedtag"><svg class="fc-ic" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><sc-for list="{{r.x.editIc}}" as="icd" hint-placeholder-count="2"><path d="{{icd}}"></path></sc-for></svg>Editando</span></sc-if>
+<sc-if value="{{r.x.lock}}" hint-placeholder-val="{{false}}"><span class="fc-xlock" title="{{r.x.lockT}}"><svg class="fc-ic" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><sc-for list="{{r.x.lockIc}}" as="icd" hint-placeholder-count="2"><path d="{{icd}}"></path></sc-for></svg>{{r.x.lockT}}</span></sc-if>
+<sc-if value="{{r.x.canEdit}}" hint-placeholder-val="{{true}}"><button type="button" class="{{r.x.editB.cls}}" aria-disabled="{{r.x.editB.dis}}" title="{{r.x.editB.tip}}" onClick="{{r.x.editB.on}}"><sc-if value="{{r.x.editB.hasIc}}" hint-placeholder-val="{{true}}"><svg class="fc-ic" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><sc-for list="{{r.x.editB.ic}}" as="icd" hint-placeholder-count="2"><path d="{{icd}}"></path></sc-for></svg></sc-if>{{r.x.editB.t}}</button></sc-if>
+</div>
+<div class="fc-xtw"><div class="fc-xt">
+<div class="fc-gh" style="{{r.x.gcols}}"><span>#</span><span>Descripción</span><span class="fc-r">Precio neto</span><span class="fc-r">Cant.</span><span class="fc-r">Importe neto</span><span class="fc-r">IVA</span><span class="fc-r" title="Descuento informativo: el precio neto ya lo incluye">Dto.</span><span class="fc-r">Precio bruto</span><span class="fc-r">Importe bruto</span><span>Notas</span><span></span></div>
+<sc-if value="{{r.x.ed}}" hint-placeholder-val="{{false}}"><sc-for list="{{r.x.rows}}" as="l" hint-placeholder-count="2"><div class="{{l.cls}}" style="{{r.x.gcols}}">
+<span class="fc-mut fc-tn">{{l.i}}</span>
+<span><input class="{{l.c.cls}}" data-fk="{{l.c.fk}}" value="{{l.c.v}}" onChange="{{l.c.set}}" placeholder="{{l.c.ph}}" aria-label="{{l.c.lbl}}" aria-invalid="{{l.c.inv}}" title="{{l.c.tip}}"></span>
+<span><input class="{{l.p.cls}}" data-fk="{{l.p.fk}}" value="{{l.p.v}}" onChange="{{l.p.set}}" placeholder="{{l.p.ph}}" aria-label="{{l.p.lbl}}" aria-invalid="{{l.p.inv}}" title="{{l.p.tip}}"></span>
+<span><input class="{{l.q.cls}}" data-fk="{{l.q.fk}}" value="{{l.q.v}}" onChange="{{l.q.set}}" placeholder="{{l.q.ph}}" aria-label="{{l.q.lbl}}" aria-invalid="{{l.q.inv}}" title="{{l.q.tip}}"></span>
+<span class="fc-r fc-tn">{{l.imp}}</span>
+<span><select class="fc-in fc-xin" value="{{l.iva}}" onChange="{{l.setIva}}" title="Tipo de IVA de la línea" aria-label="{{l.ivaLbl}}"><sc-for list="{{l.ivas}}" as="o2" hint-placeholder-count="4"><option value="{{o2.v}}">{{o2.t}}</option></sc-for></select></span>
+<span><input class="{{l.d.cls}}" data-fk="{{l.d.fk}}" value="{{l.d.v}}" onChange="{{l.d.set}}" placeholder="{{l.d.ph}}" aria-label="{{l.d.lbl}}" aria-invalid="{{l.d.inv}}" title="{{l.d.tip}}"></span>
+<span class="fc-r fc-tn fc-mut">{{l.pb}}</span>
+<span class="fc-r fc-tn">{{l.ib}}</span>
+<span><input class="{{l.n.cls}}" data-fk="{{l.n.fk}}" value="{{l.n.v}}" onChange="{{l.n.set}}" placeholder="{{l.n.ph}}" aria-label="{{l.n.lbl}}" aria-invalid="{{l.n.inv}}" title="{{l.n.tip}}"></span>
+<span><button type="button" class="fc-icb" onClick="{{l.del}}" title="{{l.delLbl}}" aria-label="{{l.delLbl}}"><svg class="fc-ic" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><sc-for list="{{l.trashIc}}" as="icd" hint-placeholder-count="2"><path d="{{icd}}"></path></sc-for></svg></button></span>
+</div></sc-for></sc-if>
+<sc-if value="{{r.x.ro}}" hint-placeholder-val="{{true}}"><sc-for list="{{r.x.rows}}" as="l" hint-placeholder-count="2"><div class="fc-gl" style="{{r.x.gcols}}">
+<span class="fc-mut fc-tn">{{l.i}}</span>
+<span title="{{l.c}}">{{l.c}}<span class="fc-mut" style="font-size: 11px">{{l.ex}}</span><sc-if value="{{l.per}}" hint-placeholder-val="{{false}}"><span class="fc-mut" style="font-size: 11px" title="Al generar, se añade el periodo facturado"> + periodo</span></sc-if></span>
+<span class="fc-r fc-tn">{{l.p}}</span><span class="fc-r fc-tn">{{l.q}}</span><span class="fc-r fc-tn">{{l.imp}}</span><span class="fc-r fc-tn">{{l.iva}}</span><span class="fc-r fc-tn">{{l.d}}</span>
+<span class="fc-r fc-tn fc-mut">{{l.pb}}</span><span class="fc-r fc-tn">{{l.ib}}</span><span class="fc-mut" title="{{l.n}}">{{l.n}}</span><span></span>
+</div></sc-for></sc-if>
+<div class="fc-gl fc-tot" style="{{r.x.gcols}}"><span></span><span>Total</span><span></span><span class="fc-r fc-tn">{{r.x.tq}}</span><span class="fc-r fc-tn">{{r.x.tneto}}</span><span></span><span></span><span></span><span class="fc-r fc-tn">{{r.x.tbruto}}</span><span></span><span></span></div>
+<sc-if value="{{r.x.showRet}}" hint-placeholder-val="{{false}}"><div class="fc-gl fc-ret" style="{{r.x.gcols}}"><span></span>
+<sc-if value="{{r.x.retRo}}" hint-placeholder-val="{{true}}"><span>{{r.x.retLbl}}</span></sc-if>
+<sc-if value="{{r.x.ed}}" hint-placeholder-val="{{false}}"><span class="fc-xrp">Retención <input class="{{r.x.rpCls}}" data-fk="{{r.x.rpFk}}" value="{{r.x.rpv}}" onChange="{{r.x.setRp}}" aria-label="Porcentaje de retención" aria-invalid="{{r.x.rpInv}}" title="{{r.x.rpTip}}" style="width: 58px"> %</span></sc-if>
+<span></span><span></span><span></span><span></span><span></span><span></span><span class="fc-r fc-tn">{{r.x.retV}}</span><span class="fc-mut" style="font-size: 11px">{{r.x.retNote}}</span><span></span></div></sc-if>
+<sc-if value="{{r.x.liq}}" hint-placeholder-val="{{false}}"><div class="fc-gl fc-liq" style="{{r.x.gcols}}"><span></span><span>Total a cobrar</span><span></span><span></span><span></span><span></span><span></span><span></span><span class="fc-r fc-tn">{{r.x.liqV}}</span><span></span><span></span></div></sc-if>
+</div></div>
+<sc-if value="{{r.x.ed}}" hint-placeholder-val="{{false}}">
+<div class="fc-xpf"><button type="button" class="{{r.x.addB.cls}}" aria-disabled="{{r.x.addB.dis}}" title="{{r.x.addB.tip}}" onClick="{{r.x.addB.on}}"><sc-if value="{{r.x.addB.hasIc}}" hint-placeholder-val="{{true}}"><svg class="fc-ic" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><sc-for list="{{r.x.addB.ic}}" as="icd" hint-placeholder-count="2"><path d="{{icd}}"></path></sc-for></svg></sc-if>{{r.x.addB.t}}</button></div>
+<div class="fc-xbar"><button type="button" class="fc-btn fc-sm fc-pri" onClick="{{r.x.save}}" title="Guardar (Ctrl+G)">Guardar</button><button type="button" class="fc-btn fc-sm" onClick="{{r.x.discard}}" title="Deshace los cambios de las líneas sin guardar">Descartar</button>
+<span class="fc-xcnt"><sc-if value="{{r.x.dirty}}" hint-placeholder-val="{{false}}"><i class="fc-ddot"></i></sc-if>{{r.x.cnt}}</span><span class="fc-mut">{{r.x.note}}</span></div>
+</sc-if>
+</div>
+</div></sc-if>
+</sc-for>
 </div>
 </sc-if>
-
+</div>
+</div>
+</sc-if>
+</section>
+<sc-if value="{{m.fsplit.on}}" hint-placeholder-val="{{true}}"><div class="fc-split" role="separator" aria-orientation="horizontal" aria-label="Repartir la altura entre programadas y emitidas" tabindex="0" data-fk="fc:split" title="{{m.fsplit.tip}}" onMouseDown="{{m.fsplit.down}}" onDoubleClick="{{m.fsplit.dbl}}" onKeyDown="{{m.fsplit.key}}"><i></i></div></sc-if>
+<section class="fc-panel fc-pemit" aria-label="Facturas emitidas">
+<div class="fc-ph"><h2>Facturas emitidas</h2><span class="fc-cnt">{{m.fe.count}}</span>
+<sc-if value="{{m.fe.chip}}" hint-placeholder-val="{{false}}"><span class="fc-progchip" role="status" title="{{m.fe.chipTip}}"><svg class="fc-ic" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><sc-for list="{{m.fe.funnelIc}}" as="icd" hint-placeholder-count="2"><path d="{{icd}}"></path></sc-for></svg><span class="fc-t">{{m.fe.chipT}}</span><button type="button" onClick="{{m.fe.chipClr}}" title="Quitar el filtro y volver a todas las facturas"><svg class="fc-ic" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><sc-for list="{{m.fe.xIc}}" as="icd" hint-placeholder-count="2"><path d="{{icd}}"></path></sc-for></svg>Ver todas</button></span></sc-if>
+<span class="fc-grow"></span><div class="fc-acts"><sc-for list="{{m.fe.acts}}" as="b" hint-placeholder-count="2"><button type="button" class="{{b.cls}}" aria-disabled="{{b.dis}}" title="{{b.tip}}" onClick="{{b.on}}"><sc-if value="{{b.hasIc}}" hint-placeholder-val="{{true}}"><svg class="fc-ic" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><sc-for list="{{b.ic}}" as="icd" hint-placeholder-count="2"><path d="{{icd}}"></path></sc-for></svg></sc-if>{{b.t}}</button></sc-for></div></div>
+<div class="fc-fbar" role="search" aria-label="Filtros de facturas emitidas">
+<div class="fc-sbox" style="width: 240px"><svg class="fc-ic" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><sc-for list="{{m.fe.searchIc}}" as="icd" hint-placeholder-count="2"><path d="{{icd}}"></path></sc-for></svg><input type="search" data-fk="fc:q" value="{{m.fe.q}}" onChange="{{m.fe.setQ}}" placeholder="{{m.fe.qPh}}" aria-label="Buscar facturas (Ctrl+F)" title="Busca por número, cliente, NIF, concepto o código de programación (Ctrl+F)"></div>
+<select class="{{m.fe.estCls}}" value="{{m.fe.est}}" onChange="{{m.fe.setEst}}" style="width: 136px" aria-label="Estado de la factura" title="Muestra solo las facturas en este estado"><option value="all">Estado: todos</option><sc-for list="{{m.fe.ests}}" as="o" hint-placeholder-count="3"><option value="{{o.v}}">{{o.t}}</option></sc-for></select>
+<select class="{{m.fe.vfCls}}" value="{{m.fe.vf}}" onChange="{{m.fe.setVf}}" style="width: 178px" aria-label="Situación VeriFactu" title="Muestra solo las facturas con esta situación en VeriFactu"><option value="all">VeriFactu: todas</option><option value="INC">Con incidencias</option><sc-for list="{{m.fe.vfs}}" as="o" hint-placeholder-count="7"><option value="{{o.v}}">{{o.t}}</option></sc-for></select>
+<select class="{{m.fe.serieCls}}" value="{{m.fe.serie}}" onChange="{{m.fe.setSerie}}" style="width: 160px" aria-label="Serie" title="Muestra solo las facturas de esta serie"><option value="all">Serie: todas</option><option value="F">F · Ordinarias</option><option value="R">R · Rectificativas</option><option value="B">Sin serie (borradores)</option></select>
+<div class="fc-seg" role="group" aria-label="Origen"><sc-for list="{{m.fe.origs}}" as="s" hint-placeholder-count="3"><button type="button" aria-pressed="{{s.on}}" onClick="{{s.pick}}" title="{{s.tip}}">{{s.t}}</button></sc-for></div>
+<span class="fc-flbl">Fecha</span><input type="text" inputmode="numeric" maxlength="10" placeholder="dd/mm/aaaa" class="{{m.fe.desdeCls}}" value="{{m.fe.desde}}" onChange="{{m.fe.setDesde}}" aria-invalid="{{m.fe.desdeInv}}" style="width: 122px" aria-label="Fecha desde" title="{{m.fe.desdeTip}}">
+<span class="fc-flbl">a</span><input type="text" inputmode="numeric" maxlength="10" placeholder="dd/mm/aaaa" class="{{m.fe.hastaCls}}" value="{{m.fe.hasta}}" onChange="{{m.fe.setHasta}}" aria-invalid="{{m.fe.hastaInv}}" style="width: 122px" aria-label="Fecha hasta" title="{{m.fe.hastaTip}}">
+<button type="button" class="{{m.fe.clear.cls}}" aria-disabled="{{m.fe.clear.dis}}" title="{{m.fe.clear.tip}}" onClick="{{m.fe.clear.on}}"><sc-if value="{{m.fe.clear.hasIc}}" hint-placeholder-val="{{true}}"><svg class="fc-ic" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><sc-for list="{{m.fe.clear.ic}}" as="icd" hint-placeholder-count="2"><path d="{{icd}}"></path></sc-for></svg></sc-if>{{m.fe.clear.t}}</button>
+</div>
+<sc-if value="{{m.fe.bulkOn}}" hint-placeholder-val="{{true}}">
+<div class="fc-bulk" role="toolbar" aria-label="Acciones colectivas"><span class="fc-bl">Actuar sobre</span>
+<div class="fc-seg" role="radiogroup" aria-label="Registros sobre los que actuar"><sc-for list="{{m.fe.scopes}}" as="s" hint-placeholder-count="2"><button type="button" role="radio" aria-checked="{{s.on}}" aria-disabled="{{s.dis}}" onClick="{{s.pick}}" title="{{s.tip}}">{{s.t}} <span class="fc-ct">{{s.n}}</span></button></sc-for></div>
+<sc-if value="{{m.fe.hidden}}" hint-placeholder-val="{{false}}"><span class="fc-hint"><svg class="fc-ic" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><sc-for list="{{m.fe.warnIc}}" as="icd" hint-placeholder-count="2"><path d="{{icd}}"></path></sc-for></svg>{{m.fe.hiddenT}} · <button type="button" class="fc-lnk" onClick="{{m.fe.dropHidden}}" title="Desmarca las facturas marcadas que no están en el listado filtrado">Quitarlas</button></span></sc-if>
+<sc-if value="{{m.fe.hasSel}}" hint-placeholder-val="{{false}}"><button type="button" class="fc-lnk" onClick="{{m.fe.clearSel}}" style="font-size: 12px" title="Desmarca todas las facturas">Quitar selección</button></sc-if>
+<span class="fc-grow"></span><sc-for list="{{m.fe.bulk}}" as="b" hint-placeholder-count="3"><button type="button" class="{{b.cls}}" aria-disabled="{{b.dis}}" title="{{b.tip}}" onClick="{{b.on}}"><sc-if value="{{b.hasIc}}" hint-placeholder-val="{{true}}"><svg class="fc-ic" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><sc-for list="{{b.ic}}" as="icd" hint-placeholder-count="2"><path d="{{icd}}"></path></sc-for></svg></sc-if>{{b.t}}</button></sc-for>
+</div>
+</sc-if>
+<div class="fc-tw scroll" data-sk="{{m.sk}}" onScroll="{{m.onScroll}}">
+<sc-if value="{{m.fe.empty}}" hint-placeholder-val="{{false}}"><div class="fc-state" role="status"><b>{{m.fe.emptyT}}</b><sc-if value="{{m.fe.hasEmptyS}}" hint-placeholder-val="{{false}}"><span>{{m.fe.emptyS}}</span></sc-if><div class="fc-btns"><sc-for list="{{m.fe.emptyBtns}}" as="b" hint-placeholder-count="1"><button type="button" class="{{b.cls}}" aria-disabled="{{b.dis}}" title="{{b.tip}}" onClick="{{b.on}}"><sc-if value="{{b.hasIc}}" hint-placeholder-val="{{true}}"><svg class="fc-ic" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><sc-for list="{{b.ic}}" as="icd" hint-placeholder-count="2"><path d="{{icd}}"></path></sc-for></svg></sc-if>{{b.t}}</button></sc-for></div></div></sc-if>
+<sc-if value="{{m.fe.has}}" hint-placeholder-val="{{true}}">
+<div class="fc-grid" style="{{m.fe.minW}}" role="grid" aria-label="Facturas emitidas" aria-multiselectable="true">
+<div class="fc-gh" style="{{m.fe.gcols}}" role="row"><span class="fc-cb"><input type="checkbox" checked="{{m.fe.allChk}}" onChange="{{m.fe.chkAll}}" aria-label="{{m.fe.allLbl}}" title="Seleccionar todas las filtradas (Ctrl+A)"></span><span></span>
+<span class="{{m.fe.hNum.cls}}" aria-sort="{{m.fe.hNum.aria}}"><button type="button" class="fc-sortb" data-fk="{{m.fe.hNum.fk}}" onClick="{{m.fe.hNum.pick}}" title="{{m.fe.hNum.tip}}">{{m.fe.hNum.t}}<span class="fc-ar">{{m.fe.hNum.ar}}</span></button></span><span class="{{m.fe.hFecha.cls}}" aria-sort="{{m.fe.hFecha.aria}}"><button type="button" class="fc-sortb" data-fk="{{m.fe.hFecha.fk}}" onClick="{{m.fe.hFecha.pick}}" title="{{m.fe.hFecha.tip}}">{{m.fe.hFecha.t}}<span class="fc-ar">{{m.fe.hFecha.ar}}</span></button></span><sc-if value="{{m.fe.showCli}}" hint-placeholder-val="{{true}}"><span class="{{m.fe.hCli.cls}}" aria-sort="{{m.fe.hCli.aria}}"><button type="button" class="fc-sortb" data-fk="{{m.fe.hCli.fk}}" onClick="{{m.fe.hCli.pick}}" title="{{m.fe.hCli.tip}}">{{m.fe.hCli.t}}<span class="fc-ar">{{m.fe.hCli.ar}}</span></button></span></sc-if><span>Concepto · origen</span><span>Notas</span><span class="fc-r">Base</span><span class="fc-r" title="Porcentaje de retención IRPF">Ret.</span><span class="{{m.fe.hTotal.cls}}" aria-sort="{{m.fe.hTotal.aria}}"><button type="button" class="fc-sortb" data-fk="{{m.fe.hTotal.fk}}" onClick="{{m.fe.hTotal.pick}}" title="{{m.fe.hTotal.tip}}">{{m.fe.hTotal.t}}<span class="fc-ar">{{m.fe.hTotal.ar}}</span></button></span><span class="{{m.fe.hEst.cls}}" aria-sort="{{m.fe.hEst.aria}}"><button type="button" class="fc-sortb" data-fk="{{m.fe.hEst.fk}}" onClick="{{m.fe.hEst.pick}}" title="{{m.fe.hEst.tip}}">{{m.fe.hEst.t}}<span class="fc-ar">{{m.fe.hEst.ar}}</span></button></span><span class="{{m.fe.hEnv.cls}}" aria-sort="{{m.fe.hEnv.aria}}"><button type="button" class="fc-sortb" data-fk="{{m.fe.hEnv.fk}}" onClick="{{m.fe.hEnv.pick}}" title="{{m.fe.hEnv.tip}}">{{m.fe.hEnv.t}}<span class="fc-ar">{{m.fe.hEnv.ar}}</span></button></span><span class="{{m.fe.hVf.cls}}" aria-sort="{{m.fe.hVf.aria}}"><button type="button" class="fc-sortb" data-fk="{{m.fe.hVf.fk}}" onClick="{{m.fe.hVf.pick}}" title="{{m.fe.hVf.tip}}">{{m.fe.hVf.t}}<span class="fc-ar">{{m.fe.hVf.ar}}</span></button></span></div>
+<sc-for list="{{m.fe.rows}}" as="r" hint-placeholder-count="12">
+<div class="{{r.cls}}" style="{{m.fe.gcols}}" role="row" tabindex="{{r.ti}}" data-fk="{{r.fk}}" aria-selected="{{r.sel}}" aria-expanded="{{r.exp}}" onClick="{{r.click}}" onDoubleClick="{{r.open}}" onKeyDown="{{r.key}}" onContextMenu="{{r.ctx}}" title="Intro o doble clic: detalle · clic derecho: acciones · →: líneas">
+<span class="fc-cb"><input type="checkbox" tabindex="-1" checked="{{r.s}}" onClick="{{r.stop}}" onChange="{{r.chk}}" aria-label="{{r.chkLbl}}" title="Marca la factura para las acciones colectivas (Espacio)"></span>
+<span class="fc-cb"><button type="button" class="fc-xb" tabindex="-1" aria-expanded="{{r.exp}}" aria-label="{{r.xpLbl}}" title="{{r.xpTip}}" onClick="{{r.xp}}"><svg class="fc-ic" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><sc-for list="{{r.xpIc}}" as="icd" hint-placeholder-count="2"><path d="{{icd}}"></path></sc-for></svg></button></span>
+<span><sc-if value="{{r.draft}}" hint-placeholder-val="{{false}}"><span class="fc-drf">{{r.numT}}</span></sc-if><sc-if value="{{r.nodraft}}" hint-placeholder-val="{{true}}"><span class="fc-num"><b>{{r.serie}}</b>{{r.rest}}</span></sc-if><sc-if value="{{r.r1}}" hint-placeholder-val="{{false}}"><span class="fc-tR" title="Factura rectificativa (R1)">R1</span></sc-if><sc-if value="{{r.editing}}" hint-placeholder-val="{{false}}"><i class="fc-ddot" title="Líneas en edición"></i></sc-if></span>
+<span class="fc-tn">{{r.fecha}}</span>
+<sc-if value="{{m.fe.showCli}}" hint-placeholder-val="{{true}}"><span title="{{r.cli}}">{{r.cli}}</span></sc-if>
+<span title="{{r.conc}}"><span class="{{r.ocodeCls}}" title="{{r.ocodeTip}}">{{r.ocode}}</span>{{r.conc}}</span>
+<span class="fc-mut" title="{{r.notas}}">{{r.notas}}</span>
+<span class="fc-r fc-tn">{{r.base}}</span><span class="fc-r fc-tn">{{r.ret}}</span><span class="fc-r fc-tn fc-b">{{r.total}}</span>
+<span><span class="{{r.pill.cls}}" title="Estado de la factura"><i></i>{{r.pill.t}}</span></span>
+<span class="{{r.envCls}}" title="{{r.envTip}}">{{r.env}}</span>
+<span><span class="{{r.vf.cls}}" title="{{r.vf.tip}}"><svg class="fc-ic" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><sc-for list="{{r.vf.ic}}" as="icd" hint-placeholder-count="2"><path d="{{icd}}"></path></sc-for></svg>{{r.vf.t}}</span></span>
+</div>
+<sc-if value="{{r.xo}}" hint-placeholder-val="{{false}}"><div class="fc-xrow" data-fc-x="{{r.fk}}"><div class="{{r.x.cls}}" role="region" aria-label="Líneas de {{r.x.title}}">
+<div class="fc-xph"><b>Líneas</b><span class="fc-mut">{{r.x.n}} · {{r.x.title}}</span><span class="fc-grow"></span>
+<sc-if value="{{r.x.ed}}" hint-placeholder-val="{{false}}"><span class="fc-xedtag"><svg class="fc-ic" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><sc-for list="{{r.x.editIc}}" as="icd" hint-placeholder-count="2"><path d="{{icd}}"></path></sc-for></svg>Editando</span></sc-if>
+<sc-if value="{{r.x.lock}}" hint-placeholder-val="{{false}}"><span class="fc-xlock" title="{{r.x.lockT}}"><svg class="fc-ic" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><sc-for list="{{r.x.lockIc}}" as="icd" hint-placeholder-count="2"><path d="{{icd}}"></path></sc-for></svg>{{r.x.lockT}}</span></sc-if>
+<sc-if value="{{r.x.canEdit}}" hint-placeholder-val="{{true}}"><button type="button" class="{{r.x.editB.cls}}" aria-disabled="{{r.x.editB.dis}}" title="{{r.x.editB.tip}}" onClick="{{r.x.editB.on}}"><sc-if value="{{r.x.editB.hasIc}}" hint-placeholder-val="{{true}}"><svg class="fc-ic" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><sc-for list="{{r.x.editB.ic}}" as="icd" hint-placeholder-count="2"><path d="{{icd}}"></path></sc-for></svg></sc-if>{{r.x.editB.t}}</button></sc-if>
+</div>
+<div class="fc-xtw"><div class="fc-xt">
+<div class="fc-gh" style="{{r.x.gcols}}"><span>#</span><span>Descripción</span><span class="fc-r">Precio neto</span><span class="fc-r">Cant.</span><span class="fc-r">Importe neto</span><span class="fc-r">IVA</span><span class="fc-r" title="Descuento informativo: el precio neto ya lo incluye">Dto.</span><span class="fc-r">Precio bruto</span><span class="fc-r">Importe bruto</span><span>Notas</span><span></span></div>
+<sc-if value="{{r.x.ed}}" hint-placeholder-val="{{false}}"><sc-for list="{{r.x.rows}}" as="l" hint-placeholder-count="2"><div class="{{l.cls}}" style="{{r.x.gcols}}">
+<span class="fc-mut fc-tn">{{l.i}}</span>
+<span><input class="{{l.c.cls}}" data-fk="{{l.c.fk}}" value="{{l.c.v}}" onChange="{{l.c.set}}" placeholder="{{l.c.ph}}" aria-label="{{l.c.lbl}}" aria-invalid="{{l.c.inv}}" title="{{l.c.tip}}"></span>
+<span><input class="{{l.p.cls}}" data-fk="{{l.p.fk}}" value="{{l.p.v}}" onChange="{{l.p.set}}" placeholder="{{l.p.ph}}" aria-label="{{l.p.lbl}}" aria-invalid="{{l.p.inv}}" title="{{l.p.tip}}"></span>
+<span><input class="{{l.q.cls}}" data-fk="{{l.q.fk}}" value="{{l.q.v}}" onChange="{{l.q.set}}" placeholder="{{l.q.ph}}" aria-label="{{l.q.lbl}}" aria-invalid="{{l.q.inv}}" title="{{l.q.tip}}"></span>
+<span class="fc-r fc-tn">{{l.imp}}</span>
+<span><select class="fc-in fc-xin" value="{{l.iva}}" onChange="{{l.setIva}}" title="Tipo de IVA de la línea" aria-label="{{l.ivaLbl}}"><sc-for list="{{l.ivas}}" as="o2" hint-placeholder-count="4"><option value="{{o2.v}}">{{o2.t}}</option></sc-for></select></span>
+<span><input class="{{l.d.cls}}" data-fk="{{l.d.fk}}" value="{{l.d.v}}" onChange="{{l.d.set}}" placeholder="{{l.d.ph}}" aria-label="{{l.d.lbl}}" aria-invalid="{{l.d.inv}}" title="{{l.d.tip}}"></span>
+<span class="fc-r fc-tn fc-mut">{{l.pb}}</span>
+<span class="fc-r fc-tn">{{l.ib}}</span>
+<span><input class="{{l.n.cls}}" data-fk="{{l.n.fk}}" value="{{l.n.v}}" onChange="{{l.n.set}}" placeholder="{{l.n.ph}}" aria-label="{{l.n.lbl}}" aria-invalid="{{l.n.inv}}" title="{{l.n.tip}}"></span>
+<span><button type="button" class="fc-icb" onClick="{{l.del}}" title="{{l.delLbl}}" aria-label="{{l.delLbl}}"><svg class="fc-ic" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><sc-for list="{{l.trashIc}}" as="icd" hint-placeholder-count="2"><path d="{{icd}}"></path></sc-for></svg></button></span>
+</div></sc-for></sc-if>
+<sc-if value="{{r.x.ro}}" hint-placeholder-val="{{true}}"><sc-for list="{{r.x.rows}}" as="l" hint-placeholder-count="2"><div class="fc-gl" style="{{r.x.gcols}}">
+<span class="fc-mut fc-tn">{{l.i}}</span>
+<span title="{{l.c}}">{{l.c}}<span class="fc-mut" style="font-size: 11px">{{l.ex}}</span><sc-if value="{{l.per}}" hint-placeholder-val="{{false}}"><span class="fc-mut" style="font-size: 11px" title="Al generar, se añade el periodo facturado"> + periodo</span></sc-if></span>
+<span class="fc-r fc-tn">{{l.p}}</span><span class="fc-r fc-tn">{{l.q}}</span><span class="fc-r fc-tn">{{l.imp}}</span><span class="fc-r fc-tn">{{l.iva}}</span><span class="fc-r fc-tn">{{l.d}}</span>
+<span class="fc-r fc-tn fc-mut">{{l.pb}}</span><span class="fc-r fc-tn">{{l.ib}}</span><span class="fc-mut" title="{{l.n}}">{{l.n}}</span><span></span>
+</div></sc-for></sc-if>
+<div class="fc-gl fc-tot" style="{{r.x.gcols}}"><span></span><span>Total</span><span></span><span class="fc-r fc-tn">{{r.x.tq}}</span><span class="fc-r fc-tn">{{r.x.tneto}}</span><span></span><span></span><span></span><span class="fc-r fc-tn">{{r.x.tbruto}}</span><span></span><span></span></div>
+<sc-if value="{{r.x.showRet}}" hint-placeholder-val="{{false}}"><div class="fc-gl fc-ret" style="{{r.x.gcols}}"><span></span>
+<sc-if value="{{r.x.retRo}}" hint-placeholder-val="{{true}}"><span>{{r.x.retLbl}}</span></sc-if>
+<sc-if value="{{r.x.ed}}" hint-placeholder-val="{{false}}"><span class="fc-xrp">Retención <input class="{{r.x.rpCls}}" data-fk="{{r.x.rpFk}}" value="{{r.x.rpv}}" onChange="{{r.x.setRp}}" aria-label="Porcentaje de retención" aria-invalid="{{r.x.rpInv}}" title="{{r.x.rpTip}}" style="width: 58px"> %</span></sc-if>
+<span></span><span></span><span></span><span></span><span></span><span></span><span class="fc-r fc-tn">{{r.x.retV}}</span><span class="fc-mut" style="font-size: 11px">{{r.x.retNote}}</span><span></span></div></sc-if>
+<sc-if value="{{r.x.liq}}" hint-placeholder-val="{{false}}"><div class="fc-gl fc-liq" style="{{r.x.gcols}}"><span></span><span>Total a cobrar</span><span></span><span></span><span></span><span></span><span></span><span></span><span class="fc-r fc-tn">{{r.x.liqV}}</span><span></span><span></span></div></sc-if>
+</div></div>
+<sc-if value="{{r.x.ed}}" hint-placeholder-val="{{false}}">
+<div class="fc-xpf"><button type="button" class="{{r.x.addB.cls}}" aria-disabled="{{r.x.addB.dis}}" title="{{r.x.addB.tip}}" onClick="{{r.x.addB.on}}"><sc-if value="{{r.x.addB.hasIc}}" hint-placeholder-val="{{true}}"><svg class="fc-ic" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><sc-for list="{{r.x.addB.ic}}" as="icd" hint-placeholder-count="2"><path d="{{icd}}"></path></sc-for></svg></sc-if>{{r.x.addB.t}}</button></div>
+<div class="fc-xbar"><button type="button" class="fc-btn fc-sm fc-pri" onClick="{{r.x.save}}" title="Guardar (Ctrl+G)">Guardar</button><button type="button" class="fc-btn fc-sm" onClick="{{r.x.discard}}" title="Deshace los cambios de las líneas sin guardar">Descartar</button>
+<span class="fc-xcnt"><sc-if value="{{r.x.dirty}}" hint-placeholder-val="{{false}}"><i class="fc-ddot"></i></sc-if>{{r.x.cnt}}</span><span class="fc-mut">{{r.x.note}}</span></div>
+</sc-if>
+</div>
+</div></sc-if>
+</sc-for>
+</div>
+</sc-if>
+</div>
+<sc-if value="{{m.fe.has}}" hint-placeholder-val="{{true}}"><div class="fc-tfoot"><span><b>{{m.fe.footN}}</b> facturas en el listado · Base <b class="fc-tn">{{m.fe.footBase}}</b> · Total <b class="fc-tn">{{m.fe.footTotal}}</b></span><span class="fc-grow"></span>
+<span class="fc-lg"><i class="fc-la"></i>Registro activo (detalle)</span><span class="fc-lg"><i class="fc-ls"></i>Seleccionada para acciones</span><span class="fc-lg"><i class="fc-lf"></i>Programación aplicada como filtro</span></div></sc-if>
+</section>
+</div>
+<sc-if value="{{m.fd.on}}" hint-placeholder-val="{{false}}">
+<aside class="{{m.fd.cls}}" aria-label="Detalle del registro activo">
+<div class="fc-dh">
+<div class="fc-dtop"><span class="fc-dkind">{{m.fd.kind}}</span><span class="fc-grow"></span><button type="button" class="fc-icb" onClick="{{m.fd.close}}" title="Cerrar el detalle (Esc)" aria-label="Cerrar el detalle"><svg class="fc-ic" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><sc-for list="{{m.fd.xIc}}" as="icd" hint-placeholder-count="2"><path d="{{icd}}"></path></sc-for></svg></button></div>
+<div class="fc-dtitle">{{m.fd.title}}</div><div class="fc-dsub" title="{{m.fd.sub}}">{{m.fd.sub}}</div>
+<div class="fc-dstat">
+<div><span class="fc-dl">{{m.fd.stA.l}}</span><span class="{{m.fd.stA.pill.cls}}"><i></i>{{m.fd.stA.pill.t}}</span></div>
+<sc-if value="{{m.fd.isE}}" hint-placeholder-val="{{true}}"><div><span class="fc-dl">Situación VeriFactu</span><span class="{{m.fd.stVf.cls}}" title="{{m.fd.stVf.tip}}"><svg class="fc-ic" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><sc-for list="{{m.fd.stVf.ic}}" as="icd" hint-placeholder-count="2"><path d="{{icd}}"></path></sc-for></svg>{{m.fd.stVf.t}}</span></div></sc-if>
+<sc-if value="{{m.fd.isP}}" hint-placeholder-val="{{false}}"><div><span class="fc-dl">Próxima emisión</span><b class="fc-tn">{{m.fd.stNext}}</b></div></sc-if>
+<div><span class="fc-dl">Total</span><b class="fc-tn" style="font-size: 15px">{{m.fd.stTotal}}</b></div>
+</div>
+<div class="fc-dacts"><sc-for list="{{m.fd.acts}}" as="b" hint-placeholder-count="4"><button type="button" class="{{b.cls}}" aria-disabled="{{b.dis}}" title="{{b.tip}}" onClick="{{b.on}}"><sc-if value="{{b.hasIc}}" hint-placeholder-val="{{true}}"><svg class="fc-ic" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><sc-for list="{{b.ic}}" as="icd" hint-placeholder-count="2"><path d="{{icd}}"></path></sc-for></svg></sc-if>{{b.t}}</button></sc-for></div>
+</div>
+<sc-if value="{{m.fd.isE}}" hint-placeholder-val="{{true}}">
+<div class="fc-dtabs" role="tablist"><sc-for list="{{m.fd.tabs}}" as="tb" hint-placeholder-count="4"><button type="button" class="fc-dtab" role="tab" data-fk="{{tb.fk}}" aria-selected="{{tb.sel}}" onClick="{{tb.pick}}" title="{{tb.tip}}">{{tb.t}}</button></sc-for></div>
+<div class="fc-dbody scroll" role="tabpanel">
+<sc-if value="{{m.fd.res}}" hint-placeholder-val="{{true}}">
+<div class="{{m.fd.note.cls}}"><svg class="fc-ic" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><sc-for list="{{m.fd.note.ic}}" as="icd" hint-placeholder-count="2"><path d="{{icd}}"></path></sc-for></svg><span>{{m.fd.note.t}}</span></div>
+<div><p class="fc-sec">Cabecera</p><dl class="fc-kv"><sc-for list="{{m.fd.cab}}" as="kv" hint-placeholder-count="3"><dt>{{kv.k}}</dt><dd class="{{kv.cls}}"><sc-if value="{{kv.lnk}}" hint-placeholder-val="{{false}}"><button type="button" class="fc-lnk" onClick="{{kv.on}}" title="{{kv.tip}}">{{kv.v}}</button>{{kv.after}}</sc-if><sc-if value="{{kv.nl}}" hint-placeholder-val="{{true}}">{{kv.v}}</sc-if></dd></sc-for></dl></div>
+<div><p class="fc-sec">Destinatario</p><dl class="fc-kv"><sc-for list="{{m.fd.dest}}" as="kv" hint-placeholder-count="3"><dt>{{kv.k}}</dt><dd class="{{kv.cls}}"><sc-if value="{{kv.lnk}}" hint-placeholder-val="{{false}}"><button type="button" class="fc-lnk" onClick="{{kv.on}}" title="{{kv.tip}}">{{kv.v}}</button>{{kv.after}}</sc-if><sc-if value="{{kv.nl}}" hint-placeholder-val="{{true}}">{{kv.v}}</sc-if></dd></sc-for></dl><p class="fc-mut" style="font-size: 11.5px; margin: 6px 0 0">{{m.fd.destHint}}</p></div>
+<div><p class="fc-sec">Emisor</p><dl class="fc-kv"><sc-for list="{{m.fd.emi}}" as="kv" hint-placeholder-count="3"><dt>{{kv.k}}</dt><dd class="{{kv.cls}}"><sc-if value="{{kv.lnk}}" hint-placeholder-val="{{false}}"><button type="button" class="fc-lnk" onClick="{{kv.on}}" title="{{kv.tip}}">{{kv.v}}</button>{{kv.after}}</sc-if><sc-if value="{{kv.nl}}" hint-placeholder-val="{{true}}">{{kv.v}}</sc-if></dd></sc-for></dl></div>
+<div><p class="fc-sec">Importes</p><div class="fc-mini fc-tots"><sc-for list="{{m.fd.tots}}" as="tr" hint-placeholder-count="3"><div class="{{tr.cls}}"><span>{{tr.t}}</span><span class="fc-r fc-tn">{{tr.v}}</span></div></sc-for></div></div>
+</sc-if>
+<sc-if value="{{m.fd.lin}}" hint-placeholder-val="{{false}}">
+<div class="fc-dacts"><sc-if value="{{m.fd.lLock}}" hint-placeholder-val="{{true}}"><span class="fc-xlock"><svg class="fc-ic" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><sc-for list="{{m.fd.lockIc}}" as="icd" hint-placeholder-count="2"><path d="{{icd}}"></path></sc-for></svg>{{m.fd.lLockT}}</span></sc-if><sc-if value="{{m.fd.lCan}}" hint-placeholder-val="{{false}}"><button type="button" class="{{m.fd.lEditB.cls}}" aria-disabled="{{m.fd.lEditB.dis}}" title="{{m.fd.lEditB.tip}}" onClick="{{m.fd.lEditB.on}}"><sc-if value="{{m.fd.lEditB.hasIc}}" hint-placeholder-val="{{true}}"><svg class="fc-ic" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><sc-for list="{{m.fd.lEditB.ic}}" as="icd" hint-placeholder-count="2"><path d="{{icd}}"></path></sc-for></svg></sc-if>{{m.fd.lEditB.t}}</button></sc-if></div>
+<div class="fc-mini"><div class="fc-mh" style="grid-template-columns: minmax(0, 1fr) 44px 80px 44px 86px"><span>Concepto</span><span class="fc-r">Cant.</span><span class="fc-r">Precio</span><span class="fc-r">IVA</span><span class="fc-r">Importe</span></div>
+<sc-for list="{{m.fd.lines}}" as="l" hint-placeholder-count="2"><div class="fc-mr" style="grid-template-columns: minmax(0, 1fr) 44px 80px 44px 86px"><span>{{l.c}}<sc-if value="{{l.hasEx}}" hint-placeholder-val="{{false}}"><span class="fc-sub" style="display: block">{{l.ex}}</span></sc-if></span><span class="fc-r fc-tn">{{l.q}}</span><span class="fc-r fc-tn">{{l.p}}</span><span class="fc-r fc-tn">{{l.iva}}</span><span class="fc-r fc-tn">{{l.imp}}</span></div></sc-for></div>
+<div class="fc-mini fc-tots"><sc-for list="{{m.fd.tots}}" as="tr" hint-placeholder-count="3"><div class="{{tr.cls}}"><span>{{tr.t}}</span><span class="fc-r fc-tn">{{tr.v}}</span></div></sc-for></div>
+</sc-if>
+<sc-if value="{{m.fd.vf}}" hint-placeholder-val="{{false}}">
+<sc-if value="{{m.fd.vfNa}}" hint-placeholder-val="{{false}}"><div class="fc-note"><svg class="fc-ic" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><sc-for list="{{m.fd.infoIc}}" as="icd" hint-placeholder-count="2"><path d="{{icd}}"></path></sc-for></svg><span>Los borradores no se registran en VeriFactu. El registro de alta se genera y se envía al emitir la factura.</span></div></sc-if>
+<sc-if value="{{m.fd.vfOn}}" hint-placeholder-val="{{true}}">
+<div class="{{m.fd.vfNote.cls}}"><svg class="fc-ic" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><sc-for list="{{m.fd.vfNote.ic}}" as="icd" hint-placeholder-count="2"><path d="{{icd}}"></path></sc-for></svg><span>{{m.fd.vfNote.t}}</span></div>
+<sc-if value="{{m.fd.vfHasActs}}" hint-placeholder-val="{{false}}"><div class="fc-dacts"><sc-for list="{{m.fd.vfActs}}" as="b" hint-placeholder-count="1"><button type="button" class="{{b.cls}}" aria-disabled="{{b.dis}}" title="{{b.tip}}" onClick="{{b.on}}"><sc-if value="{{b.hasIc}}" hint-placeholder-val="{{true}}"><svg class="fc-ic" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><sc-for list="{{b.ic}}" as="icd" hint-placeholder-count="2"><path d="{{icd}}"></path></sc-for></svg></sc-if>{{b.t}}</button></sc-for><sc-if value="{{m.fd.vfProp}}" hint-placeholder-val="{{false}}"><span class="fc-prop">Propuesta</span></sc-if></div></sc-if>
+<div><p class="fc-sec">Registro</p><dl class="fc-kv"><sc-for list="{{m.fd.reg}}" as="kv" hint-placeholder-count="3"><dt>{{kv.k}}</dt><dd class="{{kv.cls}}"><sc-if value="{{kv.lnk}}" hint-placeholder-val="{{false}}"><button type="button" class="fc-lnk" onClick="{{kv.on}}" title="{{kv.tip}}">{{kv.v}}</button>{{kv.after}}</sc-if><sc-if value="{{kv.nl}}" hint-placeholder-val="{{true}}">{{kv.v}}</sc-if></dd></sc-for></dl><dl class="fc-kv" style="margin-top: 4px"><dt>Huella</dt><dd class="fc-hash" title="{{m.fd.hashFull}}">{{m.fd.hash}}</dd><dt>Huella anterior</dt><dd class="fc-hash">{{m.fd.hashPrev}}</dd></dl></div>
+<div class="fc-qr"><svg width="84" height="84" viewBox="-1 -1 23 23" style="flex: none; background: #FFFFFF; border: 1px solid #E1DDD2; border-radius: 4px" aria-label="Código QR simulado"><g fill="#14213A"><sc-for list="{{m.fd.qr}}" as="c" hint-placeholder-count="40"><rect x="{{c.x}}" y="{{c.y}}" width="1" height="1"></rect></sc-for></g></svg><div class="fc-mut" style="font-size: 11.5px">Código QR tributario que se imprime en la factura.<br><b style="color: #16213A">Factura verificable en la sede electrónica de la AEAT</b><br><span class="fc-simtag">Simulado</span></div></div>
+<div><p class="fc-sec">Historial de envíos</p><div class="fc-mini"><div class="fc-mh" style="grid-template-columns: 120px 140px minmax(0, 1fr)"><span>Fecha y hora</span><span>Operación</span><span>Resultado</span></div>
+<sc-for list="{{m.fd.hist}}" as="h" hint-placeholder-count="1"><div class="fc-mr" style="grid-template-columns: 120px 140px minmax(0, 1fr)"><span class="fc-tn">{{h.at}}</span><span>{{h.op}}</span><span>{{h.res}}</span></div></sc-for></div></div>
+</sc-if>
+</sc-if>
+<sc-if value="{{m.fd.doc}}" hint-placeholder-val="{{false}}">
+<div><p class="fc-sec">Documento</p><div class="fc-mini"><div class="fc-mr" style="grid-template-columns: 20px minmax(0, 1fr) auto; align-items: center"><svg class="fc-ic" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><sc-for list="{{m.fd.docIc}}" as="icd" hint-placeholder-count="2"><path d="{{icd}}"></path></sc-for></svg><span><span class="fc-mono">{{m.fd.fn}}</span><span class="fc-sub" style="display: block">{{m.fd.fnSub}}</span></span><span><button type="button" class="{{m.fd.verB.cls}}" aria-disabled="{{m.fd.verB.dis}}" title="{{m.fd.verB.tip}}" onClick="{{m.fd.verB.on}}"><sc-if value="{{m.fd.verB.hasIc}}" hint-placeholder-val="{{true}}"><svg class="fc-ic" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><sc-for list="{{m.fd.verB.ic}}" as="icd" hint-placeholder-count="2"><path d="{{icd}}"></path></sc-for></svg></sc-if>{{m.fd.verB.t}}</button></span></div></div></div>
+<div><p class="fc-sec">Envíos por correo</p>
+<sc-if value="{{m.fd.hasMails}}" hint-placeholder-val="{{false}}"><div class="fc-mini"><div class="fc-mh" style="grid-template-columns: 120px minmax(0, 1fr) 80px"><span>Fecha</span><span>Destinatario</span><span>Estado</span></div>
+<sc-for list="{{m.fd.mails}}" as="ml" hint-placeholder-count="1"><div class="fc-mr" style="grid-template-columns: 120px minmax(0, 1fr) 80px"><span class="fc-tn">{{ml.at}}</span><span style="overflow-wrap: anywhere">{{ml.to}}</span><span><sc-if value="{{ml.sim}}" hint-placeholder-val="{{false}}"><span class="fc-simtag">Simulado</span></sc-if><sc-if value="{{ml.nsim}}" hint-placeholder-val="{{true}}">{{ml.st}}</sc-if></span></div></sc-for></div></sc-if>
+<sc-if value="{{m.fd.noMails}}" hint-placeholder-val="{{true}}"><p class="fc-mut" style="margin: 0">{{m.fd.noMailT}}</p></sc-if></div>
+<div class="fc-note"><svg class="fc-ic" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><sc-for list="{{m.fd.infoIc}}" as="icd" hint-placeholder-count="2"><path d="{{icd}}"></path></sc-for></svg><span>Los correos de esta maqueta no se envían: solo se registran como «Simulado».</span></div>
+</sc-if>
+</div>
+</sc-if>
+<sc-if value="{{m.fd.isP}}" hint-placeholder-val="{{false}}">
+<div class="fc-dbody scroll">
+<div><p class="fc-sec">Destinatario</p><dl class="fc-kv"><sc-for list="{{m.fd.pDest}}" as="kv" hint-placeholder-count="3"><dt>{{kv.k}}</dt><dd class="{{kv.cls}}"><sc-if value="{{kv.lnk}}" hint-placeholder-val="{{false}}"><button type="button" class="fc-lnk" onClick="{{kv.on}}" title="{{kv.tip}}">{{kv.v}}</button>{{kv.after}}</sc-if><sc-if value="{{kv.nl}}" hint-placeholder-val="{{true}}">{{kv.v}}</sc-if></dd></sc-for></dl><p class="fc-mut" style="font-size: 11.5px; margin: 6px 0 0">Cada factura tomará los datos vigentes del tercero en el momento de generarse.</p></div>
+<div><p class="fc-sec">Conceptos</p><div class="fc-dacts" style="margin-bottom: 6px"><sc-if value="{{m.fd.pLock}}" hint-placeholder-val="{{false}}"><span class="fc-xlock"><svg class="fc-ic" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><sc-for list="{{m.fd.lockIc}}" as="icd" hint-placeholder-count="2"><path d="{{icd}}"></path></sc-for></svg>{{m.fd.pLockT}}</span></sc-if><sc-if value="{{m.fd.pCan}}" hint-placeholder-val="{{true}}"><button type="button" class="{{m.fd.pEditB.cls}}" aria-disabled="{{m.fd.pEditB.dis}}" title="{{m.fd.pEditB.tip}}" onClick="{{m.fd.pEditB.on}}"><sc-if value="{{m.fd.pEditB.hasIc}}" hint-placeholder-val="{{true}}"><svg class="fc-ic" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><sc-for list="{{m.fd.pEditB.ic}}" as="icd" hint-placeholder-count="2"><path d="{{icd}}"></path></sc-for></svg></sc-if>{{m.fd.pEditB.t}}</button></sc-if></div>
+<div class="fc-mini"><div class="fc-mh" style="grid-template-columns: minmax(0, 1fr) 44px 80px 44px 86px"><span>Concepto</span><span class="fc-r">Cant.</span><span class="fc-r">Precio</span><span class="fc-r">IVA</span><span class="fc-r">Importe</span></div>
+<sc-for list="{{m.fd.pLines}}" as="l" hint-placeholder-count="2"><div class="fc-mr" style="grid-template-columns: minmax(0, 1fr) 44px 80px 44px 86px"><span>{{l.c}}<span class="fc-sub" style="display: block">{{l.perH}}</span></span><span class="fc-r fc-tn">{{l.q}}</span><span class="fc-r fc-tn">{{l.p}}</span><span class="fc-r fc-tn">{{l.iva}}</span><span class="fc-r fc-tn">{{l.imp}}</span></div></sc-for></div>
+<div class="fc-mini fc-tots"><sc-for list="{{m.fd.tots}}" as="tr" hint-placeholder-count="3"><div class="{{tr.cls}}"><span>{{tr.t}}</span><span class="fc-r fc-tn">{{tr.v}}</span></div></sc-for></div>
+<p class="fc-mut" style="font-size: 11.5px; margin: 4px 0 0">Importe fijo: cada factura generada lleva estas líneas, salvo que se modifiquen manualmente.</p></div>
+<div><p class="fc-sec">Condiciones de programación</p><dl class="fc-kv"><sc-for list="{{m.fd.cond}}" as="kv" hint-placeholder-count="3"><dt>{{kv.k}}</dt><dd class="{{kv.cls}}"><sc-if value="{{kv.lnk}}" hint-placeholder-val="{{false}}"><button type="button" class="fc-lnk" onClick="{{kv.on}}" title="{{kv.tip}}">{{kv.v}}</button>{{kv.after}}</sc-if><sc-if value="{{kv.nl}}" hint-placeholder-val="{{true}}">{{kv.v}}</sc-if></dd></sc-for></dl></div>
+<div><p class="fc-sec">Datos de facturación</p><dl class="fc-kv"><sc-for list="{{m.fd.fact}}" as="kv" hint-placeholder-count="3"><dt>{{kv.k}}</dt><dd class="{{kv.cls}}"><sc-if value="{{kv.lnk}}" hint-placeholder-val="{{false}}"><button type="button" class="fc-lnk" onClick="{{kv.on}}" title="{{kv.tip}}">{{kv.v}}</button>{{kv.after}}</sc-if><sc-if value="{{kv.nl}}" hint-placeholder-val="{{true}}">{{kv.v}}</sc-if></dd></sc-for></dl></div>
+<div><p class="fc-sec">Comportamiento por definir</p><div class="fc-proplist">
+<div><span><span class="fc-prop">Propuesta</span> Al generar, la factura se crea como <b>borrador</b> para revisarla y se emite en lote.</span><span class="fc-mut">Alternativa: emitirla directamente. No está definido en ProConta.</span></div>
+<div><span><span class="fc-prop">Propuesta</span> Los periodos que caen durante una pausa <b>no se recuperan</b> al reanudar.</span></div>
+<div><span><span class="fc-prop">Propuesta</span> La programación pasa a <b>Finalizada</b> automáticamente al acabar su vigencia.</span></div></div></div>
+</div>
+</sc-if>
+</aside>
+</sc-if>
+</div>
+<sc-if value="{{m.fm.on}}" hint-placeholder-val="{{false}}">
+<button type="button" class="fc-catch" aria-label="Cerrar el menú" onClick="{{m.fm.close}}" onContextMenu="{{m.fm.close}}" title="Cerrar el menú"></button>
+<div class="fc-menu" style="{{m.fm.pos}}" role="menu" aria-label="{{m.fm.lbl}}">
+<sc-for list="{{m.fm.items}}" as="it" hint-placeholder-count="5"><button type="button" role="menuitem" data-fk="{{it.fk}}" aria-disabled="{{it.dis}}" title="{{it.tip}}" onClick="{{it.on}}"><svg class="fc-ic" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><sc-for list="{{it.ic}}" as="icd" hint-placeholder-count="2"><path d="{{icd}}"></path></sc-for></svg>{{it.t}}</button></sc-for>
+<hr><button type="button" role="menuitem" onClick="{{m.fm.sel}}" title="Marca o desmarca la factura para las acciones colectivas"><svg class="fc-ic" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><sc-for list="{{m.fm.checkIc}}" as="icd" hint-placeholder-count="2"><path d="{{icd}}"></path></sc-for></svg>{{m.fm.selT}}</button>
+</div>
+</sc-if>
+<sc-if value="{{m.fx.on}}" hint-placeholder-val="{{false}}">
+<div class="fc-ov">
+<div class="{{m.fx.cls}}" role="dialog" aria-modal="true" aria-label="{{m.fx.title}}" tabindex="-1" data-fk="fc:dlg">
+<div class="fc-dlgh"><h3>{{m.fx.title}}</h3><sc-if value="{{m.fx.sim}}" hint-placeholder-val="{{true}}"><span class="fc-simtag">Operación simulada</span></sc-if><span class="fc-grow"></span><button type="button" class="fc-icb" onClick="{{m.fx.close}}" aria-label="Cerrar (Esc)" title="Cierra el diálogo sin hacer cambios (Esc)"><svg class="fc-ic" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><sc-for list="{{m.fx.xIc}}" as="icd" hint-placeholder-count="2"><path d="{{icd}}"></path></sc-for></svg></button></div>
+<div class="fc-dlgb scroll">
+<sc-if value="{{m.fx.guard}}" hint-placeholder-val="{{false}}"><p>Las líneas de <b>{{m.fx.gT}}</b> tienen {{m.fx.gN}}.</p></sc-if>
+<sc-if value="{{m.fx.kbd}}" hint-placeholder-val="{{false}}"><div class="fc-kbdl">
+<span><kbd>↑</kbd> <kbd>↓</kbd> <kbd>Inicio</kbd> <kbd>Fin</kbd></span><span>Moverse por la lista. Con el detalle abierto, el detalle sigue a la fila.</span>
+<span><kbd>Intro</kbd> · doble clic</span><span>Abrir el detalle del registro.</span>
+<span><kbd>Espacio</kbd></span><span>Marcar o desmarcar la fila (acciones colectivas en emitidas; «Generar facturas» en programadas).</span>
+<span><kbd>→</kbd> <kbd>←</kbd> · <kbd>+</kbd> <kbd>−</kbd></span><span>Mostrar u ocultar las líneas de la fila.</span>
+<span><kbd>F</kbd></span><span>Programadas: aplicar o quitar el filtro de emitidas (equivale al clic).</span>
+<span><kbd>Ctrl</kbd>+<kbd>G</kbd></span><span>Guardar las líneas en edición. <kbd>Esc</kbd> dentro de las líneas vuelve a la fila sin descartar.</span>
+<span><kbd>Ctrl</kbd>+<kbd>A</kbd></span><span>Seleccionar todas las emitidas del listado filtrado.</span>
+<span><kbd>Mayús</kbd>+<kbd>F10</kbd> · clic derecho</span><span>Menú de acciones de la factura.</span>
+<span><kbd>Ctrl</kbd>+<kbd>F</kbd></span><span>Buscar en las emitidas.</span>
+<span><kbd>Alt</kbd>+<kbd>P</kbd></span><span>Plegar o desplegar las programadas.</span>
+<span><kbd>Esc</kbd></span><span>Cerrar menú, diálogo o detalle (en ese orden).</span></div></sc-if>
+<sc-if value="{{m.fx.doc}}" hint-placeholder-val="{{false}}">
+<sc-if value="{{m.fx.draft}}" hint-placeholder-val="{{false}}"><div class="fc-note fc-warn"><svg class="fc-ic" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><sc-for list="{{m.fx.warnIc}}" as="icd" hint-placeholder-count="2"><path d="{{icd}}"></path></sc-for></svg><span>Borrador: documento sin validez, sin número ni QR.</span></div></sc-if>
+<div class="fc-doc"><div style="display: flex; justify-content: space-between; gap: 20px"><div><h4 class="disp">{{m.fx.socN}}</h4>{{m.fx.socNif}}<br>{{m.fx.socDom}}</div><div style="text-align: right"><b style="font-size: 14px">{{m.fx.docT}}</b><br>{{m.fx.docNum}}<br>{{m.fx.docFecha}}</div></div>
+<div style="margin: 18px 0; padding: 10px; border: 1px solid #DDDDDD"><b>{{m.fx.dest.n}}</b><br>{{m.fx.dest.nif}}<br>{{m.fx.dest.dom}}</div>
+<div class="fc-mini"><div class="fc-mh" style="grid-template-columns: minmax(0, 1fr) 50px 90px 50px 100px"><span>Concepto</span><span class="fc-r">Cant.</span><span class="fc-r">Precio</span><span class="fc-r">IVA</span><span class="fc-r">Importe</span></div>
+<sc-for list="{{m.fx.lines}}" as="l" hint-placeholder-count="2"><div class="fc-mr" style="grid-template-columns: minmax(0, 1fr) 50px 90px 50px 100px"><span>{{l.c}}</span><span class="fc-r">{{l.q}}</span><span class="fc-r">{{l.p}}</span><span class="fc-r">{{l.iva}}</span><span class="fc-r">{{l.imp}}</span></div></sc-for></div>
+<div style="display: flex; justify-content: space-between; align-items: flex-end; margin-top: 14px"><span><sc-if value="{{m.fx.nodraft}}" hint-placeholder-val="{{true}}"><span style="display: flex; gap: 8px; align-items: center"><svg width="84" height="84" viewBox="-1 -1 23 23" style="flex: none; background: #FFFFFF; border: 1px solid #E1DDD2; border-radius: 4px" aria-label="Código QR simulado"><g fill="#14213A"><sc-for list="{{m.fx.qr}}" as="c" hint-placeholder-count="40"><rect x="{{c.x}}" y="{{c.y}}" width="1" height="1"></rect></sc-for></g></svg><span style="font-size: 10px">QR tributario<br>VeriFactu</span></span></sc-if></span><div style="width: 260px"><div class="fc-mini fc-tots"><sc-for list="{{m.fx.tots}}" as="tr" hint-placeholder-count="3"><div class="{{tr.cls}}"><span>{{tr.t}}</span><span class="fc-r fc-tn">{{tr.v}}</span></div></sc-for></div></div></div>
+<p style="font-size: 10.5px; color: #666666; margin: 12px 0 0">{{m.fx.fp}}</p></div>
+</sc-if>
+<sc-if value="{{m.fx.mail}}" hint-placeholder-val="{{false}}">
+<div class="fc-frow"><div class="fc-fld"><label for="fc-mto">Para</label><input id="fc-mto" data-fk="fc:dlg:to" class="{{m.fx.to.cls}}" style="width: 320px" value="{{m.fx.to.v}}" onChange="{{m.fx.to.set}}" title="{{m.fx.to.tip}}" aria-invalid="{{m.fx.to.inv}}"></div><div class="fc-fld"><label for="fc-mcc">CC</label><input id="fc-mcc" data-fk="fc:dlg:cc" class="{{m.fx.cc.cls}}" style="width: 200px" value="{{m.fx.cc.v}}" onChange="{{m.fx.cc.set}}" title="{{m.fx.cc.tip}}"></div></div>
+<div class="fc-fld"><label for="fc-msub">Asunto</label><input id="fc-msub" data-fk="fc:dlg:sub" class="{{m.fx.sub.cls}}" style="width: 480px; max-width: 100%" value="{{m.fx.sub.v}}" onChange="{{m.fx.sub.set}}" title="{{m.fx.sub.tip}}"></div>
+<div class="fc-fld"><label for="fc-mbody">Mensaje</label><textarea id="fc-mbody" data-fk="fc:dlg:body" class="{{m.fx.body.cls}}" rows="6" style="width: 100%" value="{{m.fx.body.v}}" onChange="{{m.fx.body.set}}" title="{{m.fx.body.tip}}"></textarea></div>
+<div class="fc-note"><svg class="fc-ic" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><sc-for list="{{m.fx.docIc}}" as="icd" hint-placeholder-count="2"><path d="{{icd}}"></path></sc-for></svg><span>Adjunto: <span class="fc-mono">{{m.fx.att}}</span></span></div>
+<div class="fc-note fc-warn"><svg class="fc-ic" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><sc-for list="{{m.fx.infoIc}}" as="icd" hint-placeholder-count="2"><path d="{{icd}}"></path></sc-for></svg><span>En la maqueta no se envía ningún correo: el envío queda registrado como «Simulado» en la pestaña Documentos y envíos.</span></div>
+</sc-if>
+<sc-if value="{{m.fx.rect}}" hint-placeholder-val="{{false}}">
+<p>Se creará un <b>borrador de factura rectificativa</b> (serie R, tipo R1, por diferencias) enlazado a <span class="fc-mono">{{m.fx.rNum}}</span>. La factura original no se modifica.</p>
+<div class="fc-fld"><label for="fc-rmot">Motivo de la rectificación</label><input id="fc-rmot" data-fk="fc:dlg:mot" class="{{m.fx.mot.cls}}" style="width: 480px; max-width: 100%" placeholder="Ej.: servicio no prestado, error en el precio…" value="{{m.fx.mot.v}}" onChange="{{m.fx.mot.set}}" title="{{m.fx.mot.tip}}" aria-invalid="{{m.fx.mot.inv}}"></div>
+<div class="fc-proplist"><div><span><span class="fc-prop">Propuesta</span> La original pasa a «Rectificada» cuando se emite la rectificativa, no al crear el borrador.</span></div></div>
+</sc-if>
+<sc-if value="{{m.fx.emit}}" hint-placeholder-val="{{false}}">
+<p>Se asignará el número <b class="fc-mono">{{m.fx.eNum}}</b> con fecha {{m.fx.eFecha}}, se generará el registro VeriFactu y la factura dejará de ser editable.</p>
+<dl class="fc-kv"><dt>Cliente</dt><dd>{{m.fx.eCli}}</dd><dt>Total</dt><dd><b>{{m.fx.eTot}}</b></dd></dl>
+</sc-if>
+<sc-if value="{{m.fx.del}}" hint-placeholder-val="{{false}}"><p>{{m.fx.dT}}</p></sc-if>
+<sc-if value="{{m.fx.pause}}" hint-placeholder-val="{{false}}"><p>{{m.fx.pT}}</p><div class="fc-proplist"><div><span><span class="fc-prop">Propuesta</span> Los periodos de la pausa no se recuperan al reanudar.</span></div></div></sc-if>
+<sc-if value="{{m.fx.resume}}" hint-placeholder-val="{{false}}"><p>{{m.fx.pT}}</p></sc-if>
+<sc-if value="{{m.fx.gvf}}" hint-placeholder-val="{{false}}"><p>{{m.fx.vT}}</p></sc-if>
+<sc-if value="{{m.fx.gen}}" hint-placeholder-val="{{false}}">
+<div class="fc-note"><svg class="fc-ic" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><sc-for list="{{m.fx.infoIc}}" as="icd" hint-placeholder-count="2"><path d="{{icd}}"></path></sc-for></svg><span>Ámbito: <b>{{m.fx.gAmb}}</b>. Las pausadas y finalizadas se omiten.</span></div>
+<div class="fc-frow"><div class="fc-fld"><label for="fc-ghasta">Generar los periodos con fecha hasta</label><input id="fc-ghasta" data-fk="fc:dlg:hasta" type="text" inputmode="numeric" maxlength="10" placeholder="dd/mm/aaaa" class="{{m.fx.hasta.cls}}" style="width: 140px" value="{{m.fx.hasta.v}}" onChange="{{m.fx.hasta.set}}" title="{{m.fx.hasta.tip}}" aria-invalid="{{m.fx.hasta.inv}}"></div></div>
+<div class="fc-mini"><div class="fc-mh" style="grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr) minmax(0, 1.2fr) 100px"><span>Programación</span><span>Cliente</span><span>Periodos a generar</span><span class="fc-r">Total</span></div>
+<sc-for list="{{m.fx.gRows}}" as="g" hint-placeholder-count="3"><div class="fc-mr" style="grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr) minmax(0, 1.2fr) 100px"><span><span class="fc-mono">{{g.code}}</span> {{g.desc}}</span><span>{{g.cli}}</span><span class="{{g.perCls}}">{{g.per}}</span><span class="fc-r fc-tn">{{g.tot}}</span></div></sc-for></div>
+<sc-if value="{{m.fx.gNone}}" hint-placeholder-val="{{false}}"><div class="fc-note"><svg class="fc-ic" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><sc-for list="{{m.fx.infoIc}}" as="icd" hint-placeholder-count="2"><path d="{{icd}}"></path></sc-for></svg><span>No hay periodos pendientes hasta esa fecha. <sc-if value="{{m.fx.gUse}}" hint-placeholder-val="{{false}}"><button type="button" class="fc-lnk" onClick="{{m.fx.gUseFn}}" title="Ajusta la fecha a la próxima emisión prevista">{{m.fx.gUseT}}</button></sc-if></span></div></sc-if>
+<div class="fc-proplist"><div><span><span class="fc-prop">Propuesta</span> Se crean como <b>borradores</b> con la fecha de cada periodo, para revisarlos y emitirlos después (individualmente o en lote).</span></div></div>
+</sc-if>
+<sc-if value="{{m.fx.prog}}" hint-placeholder-val="{{false}}">
+<div class="fc-frow"><div class="fc-fld"><label for="fc-gcli">Cliente</label><sc-if value="{{m.fx.cliSel}}" hint-placeholder-val="{{true}}"><select id="fc-gcli" class="{{m.fx.cli.cls}}" style="width: 280px" value="{{m.fx.cli.v}}" onChange="{{m.fx.cli.set}}" title="{{m.fx.cli.tip}}"><sc-for list="{{m.fx.clis}}" as="o" hint-placeholder-count="3"><option value="{{o.v}}">{{o.t}}</option></sc-for></select></sc-if><sc-if value="{{m.fx.cliLock}}" hint-placeholder-val="{{false}}"><span class="fc-lockchip" title="El cliente no se cambia en una programación existente"><svg class="fc-ic" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><sc-for list="{{m.fx.lockIc}}" as="icd" hint-placeholder-count="2"><path d="{{icd}}"></path></sc-for></svg>{{m.fx.cliLockT}}</span></sc-if></div></div>
+<div class="fc-fld"><label for="fc-gdesc">Descripción</label><input id="fc-gdesc" data-fk="fc:dlg:desc" class="{{m.fx.desc.cls}}" style="width: 420px; max-width: 100%" maxlength="80" value="{{m.fx.desc.v}}" onChange="{{m.fx.desc.set}}" title="{{m.fx.desc.tip}}" aria-invalid="{{m.fx.desc.inv}}"></div>
+<div class="fc-frow"><div class="fc-fld"><label for="fc-gper">Periodicidad</label><select id="fc-gper" class="{{m.fx.per.cls}}" style="width: 140px" value="{{m.fx.per.v}}" onChange="{{m.fx.per.set}}" title="{{m.fx.per.tip}}"><sc-for list="{{m.fx.pers}}" as="o" hint-placeholder-count="5"><option value="{{o.v}}">{{o.t}}</option></sc-for></select></div>
+<div class="fc-fld"><label for="fc-gini">Primera emisión</label><input id="fc-gini" data-fk="fc:dlg:ini" type="text" inputmode="numeric" maxlength="10" placeholder="dd/mm/aaaa" class="{{m.fx.ini.cls}}" style="width: 140px" value="{{m.fx.ini.v}}" onChange="{{m.fx.ini.set}}" readonly="{{m.fx.iniRo}}" title="{{m.fx.ini.tip}}" aria-invalid="{{m.fx.ini.inv}}"></div>
+<div class="fc-fld"><label for="fc-gfin">Fin de vigencia</label><input id="fc-gfin" data-fk="fc:dlg:fin" type="text" inputmode="numeric" maxlength="10" placeholder="dd/mm/aaaa" class="{{m.fx.fin.cls}}" style="width: 140px" value="{{m.fx.fin.v}}" onChange="{{m.fx.fin.set}}" title="{{m.fx.fin.tip}}" aria-invalid="{{m.fx.fin.inv}}"></div>
+<sc-if value="{{m.fx.isNew}}" hint-placeholder-val="{{true}}"><div class="fc-fld"><label for="fc-gimp">Importe base</label><input id="fc-gimp" data-fk="fc:dlg:imp" class="{{m.fx.imp.cls}}" style="width: 110px; text-align: right" value="{{m.fx.imp.v}}" onChange="{{m.fx.imp.set}}" title="{{m.fx.imp.tip}}"></div></sc-if></div>
+<label class="fc-chk"><input type="checkbox" checked="{{m.fx.mail.v}}" onChange="{{m.fx.mail.set}}" title="{{m.fx.mail.tip}}"> Enviar por correo al emitir</label>
+<sc-if value="{{m.fx.isNew}}" hint-placeholder-val="{{true}}"><p class="fc-mut">En ProConta se añadirán aquí las líneas completas, serie, forma de pago y retención. La maqueta crea un único concepto al 21 %.</p></sc-if>
+<sc-if value="{{m.fx.notNew}}" hint-placeholder-val="{{false}}"><p class="fc-mut">Los cambios solo afectan a las facturas que se generen a partir de ahora.</p></sc-if>
+</sc-if>
+<sc-if value="{{m.fx.bulk}}" hint-placeholder-val="{{false}}">
+<div class="fc-note"><svg class="fc-ic" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><sc-for list="{{m.fx.infoIc}}" as="icd" hint-placeholder-count="2"><path d="{{icd}}"></path></sc-for></svg><span>Ámbito: <b>{{m.fx.bAmb}}</b>.</span></div>
+<dl class="fc-kv"><sc-for list="{{m.fx.bKv}}" as="kv" hint-placeholder-count="3"><dt>{{kv.k}}</dt><dd class="{{kv.cls}}"><sc-if value="{{kv.lnk}}" hint-placeholder-val="{{false}}"><button type="button" class="fc-lnk" onClick="{{kv.on}}" title="{{kv.tip}}">{{kv.v}}</button>{{kv.after}}</sc-if><sc-if value="{{kv.nl}}" hint-placeholder-val="{{true}}">{{kv.v}}</sc-if></dd></sc-for></dl>
+<div class="fc-scrollbox scroll"><div class="fc-mini"><sc-for list="{{m.fx.bList}}" as="bl" hint-placeholder-count="3"><div class="fc-mr" style="grid-template-columns: 130px minmax(0, 1fr) 100px"><span class="fc-mono">{{bl.n}}</span><span>{{bl.c}}</span><span class="fc-r fc-tn">{{bl.t}}</span></div></sc-for><sc-if value="{{m.fx.bNone}}" hint-placeholder-val="{{false}}"><div class="fc-mr fc-mut">Ninguna</div></sc-if></div></div>
+<sc-if value="{{m.fx.bMail}}" hint-placeholder-val="{{false}}"><p class="fc-mut">Se enviaría un correo por factura a los emails marcados para facturas de cada cliente. En la maqueta solo se registra como «Simulado».</p></sc-if>
+</sc-if>
+</div>
+<div class="fc-dlgf"><sc-for list="{{m.fx.acts}}" as="b" hint-placeholder-count="1"><button type="button" class="{{b.cls}}" aria-disabled="{{b.dis}}" title="{{b.tip}}" onClick="{{b.on}}"><sc-if value="{{b.hasIc}}" hint-placeholder-val="{{true}}"><svg class="fc-ic" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><sc-for list="{{b.ic}}" as="icd" hint-placeholder-count="2"><path d="{{icd}}"></path></sc-for></svg></sc-if>{{b.t}}</button></sc-for><span class="fc-grow"></span><button type="button" class="fc-btn" onClick="{{m.fx.close}}" title="Cierra el diálogo sin hacer cambios (Esc)">{{m.fx.cancelT}}</button></div>
+</div>
+</div>
+</sc-if>
+</div>
+</sc-if>
 <sc-if value="{{m.factura}}" hint-placeholder-val="{{false}}">
 <div class="mod">
 <div class="mtb">
@@ -2214,6 +2761,240 @@ function genImport(soc, y, n, from) {
   return rows.reverse();
 }
 
+/* ---------- Facturas emitidas y programadas: datos y reglas (maqueta validada en sources/maquetas/Facturas/) ---------- */
+var FC_IC = (function () {
+  var SRC = {
+    chev: '<path d="m6 9 6 6 6-6"/>', chevr: '<path d="m9 6 6 6-6 6"/>', search: '<circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>', x: '<path d="M6 6l12 12M18 6 6 18"/>',
+    plus: '<path d="M12 5v14M5 12h14"/>', eye: '<path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>',
+    edit: '<path d="M4 20h4L19 9l-4-4L4 16v4z"/>', doc: '<path d="M14 3H6a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8z"/><path d="M14 3v5h5M9 13h6M9 17h6"/>',
+    mail: '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/>',
+    repeat: '<path d="M17 2l4 4-4 4"/><path d="M3 11V9a3 3 0 0 1 3-3h15M7 22l-4-4 4-4"/><path d="M21 13v2a3 3 0 0 1-3 3H3"/>',
+    lock: '<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/>', check: '<path d="m5 12 5 5 9-10"/>',
+    clock: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>', warn: '<path d="M12 3 2 20h20z"/><path d="M12 10v4M12 17v.5"/>',
+    xc: '<circle cx="12" cy="12" r="9"/><path d="m9 9 6 6M15 9l-6 6"/>', plug: '<path d="M9 2v6M15 2v6M6 8h12v4a6 6 0 0 1-12 0zM12 18v4"/>',
+    pause: '<path d="M9 5v14M15 5v14"/>', play: '<path d="m7 4 13 8-13 8z"/>', dl: '<path d="M12 4v11M7 10l5 5 5-5M5 20h14"/>',
+    funnel: '<path d="M3 5h18l-7 8v6l-4 2v-8z"/>', kbd: '<rect x="2" y="6" width="20" height="12" rx="2"/><path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M7 14h10"/>',
+    dash: '<path d="M6 12h12"/>', book: '<path d="M4 4h10a4 4 0 0 1 4 4v12H8a4 4 0 0 1-4-4z"/>',
+    send: '<path d="M22 2 11 13M22 2l-7 20-4-9-9-4z"/>', info: '<circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.5"/>',
+    trash: '<path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/>', undo: '<path d="M9 14 4 9l5-5"/><path d="M4 9h11a5 5 0 0 1 0 10h-3"/>', spin: '<path d="M12 3a9 9 0 1 0 9 9"/>'
+  };
+  function at(s, n) { var m = new RegExp('\\b' + n + '="([^"]*)"').exec(s); return m ? +m[1] : 0; }
+  var out = {};
+  Object.keys(SRC).forEach(function (k) {
+    var ds = [];
+    SRC[k].replace(/<(path|circle|rect)\b([^>]*)\/>/g, function (_, tag, a) {
+      if (tag === 'path') ds.push(/d="([^"]*)"/.exec(a)[1]);
+      else if (tag === 'circle') { var cx = at(a, 'cx'), cy = at(a, 'cy'), r = at(a, 'r'); ds.push('M' + (cx - r) + ' ' + cy + 'a' + r + ' ' + r + ' 0 1 0 ' + 2 * r + ' 0a' + r + ' ' + r + ' 0 1 0 ' + (-2 * r) + ' 0'); }
+      else { var x = at(a, 'x'), y = at(a, 'y'), w = at(a, 'width'), h = at(a, 'height'), q = at(a, 'rx'); ds.push('M' + (x + q) + ' ' + y + 'h' + (w - 2 * q) + 'a' + q + ' ' + q + ' 0 0 1 ' + q + ' ' + q + 'v' + (h - 2 * q) + 'a' + q + ' ' + q + ' 0 0 1 ' + (-q) + ' ' + q + 'h' + (2 * q - w) + 'a' + q + ' ' + q + ' 0 0 1 ' + (-q) + ' ' + (-q) + 'v' + (2 * q - h) + 'a' + q + ' ' + q + ' 0 0 1 ' + q + ' ' + (-q) + 'z'); }
+      return '';
+    });
+    out[k] = ds;
+  });
+  return out;
+})();
+
+var FC_TIP = {
+  'p-open': 'Abre el detalle de la programación activa (Intro)', 'p-edit': 'Modifica la descripción, la periodicidad, la vigencia y el envío por correo de la programación',
+  'p-new': 'Crea una programación de facturas periódicas', 'p-clear': 'Quita la búsqueda y los filtros de las programadas', 'e-new': 'Crea una factura nueva en borrador',
+  'clear-prog': 'Quita el filtro de programación y muestra todas las facturas', 'clear-filters-keep': 'Quita los filtros de las emitidas y mantiene el de programación', 'clear-filters': 'Quita todos los filtros de las facturas emitidas',
+  doc: 'Abre la vista previa del documento de la factura', 'd-edit': 'Modifica la cabecera y las líneas del borrador', 'd-emit': 'Numera el borrador, genera su registro VeriFactu y lo deja como factura emitida', 'd-del': 'Elimina el borrador; no tiene número ni registro VeriFactu',
+  mail: 'Prepara el correo con la factura en PDF para el cliente', goprog: 'Abre la programación que generó esta factura', 'goinv-orig': 'Abre la factura que esta rectificativa corrige', 'goinv-rect': 'Abre la factura rectificativa que corrige a esta', rect: 'Crea un borrador de factura rectificativa enlazado a esta factura',
+  'vf-retry': 'Envía ahora el registro a la AEAT sin esperar al próximo ciclo', 'vf-fix': 'Prepara la corrección del registro rechazado o aceptado con errores', 'p-filter': 'Muestra en las emitidas solo las facturas generadas por esta programación',
+  'p-pause': 'Detiene la generación de facturas hasta que se reanude', 'p-resume': 'Vuelve a generar facturas a partir de la próxima fecha', 'x-edit': 'Modifica, añade o elimina líneas en la fila del listado', 'x-add': 'Añade una línea vacía al final'
+};
+var FC_XTIP = { c: 'Descripción que se imprime en la línea', p: 'Precio unitario sin IVA', q: 'Cantidad; negativa para abonar', d: 'Descuento informativo: el precio neto ya lo incluye', n: 'Notas internas de la línea; no se imprimen' };
+
+function fcNewView() {
+  return { exp: {}, edit: null, psel: {}, progCollapsed: false, pq: '', pest: 'all', pper: 'all', progSel: null, curP: null,
+    q: '', est: 'all', vf: 'all', serie: 'all', orig: 'all', desde: '', hasta: '', desdeTxt: '', hastaTxt: '', desdeErr: false, hastaErr: false, cliente: null, sort: { k: 'fecha', d: -1 },
+    selected: {}, curE: null, active: null, detailOpen: false, dtab: 'res', scope: 'sel', progH: null, menu: null, dlg: null };
+}
+
+function fcMake(soc, ej) {
+  var p2 = function (n, l) { return String(n).padStart(l || 2, '0'); };
+  var D = function (y, m, d, h, mi) { return new Date(y, m - 1, d, h || 0, mi || 0); };
+  var fd = function (d) { return d ? p2(d.getDate()) + '/' + p2(d.getMonth() + 1) + '/' + d.getFullYear() : '—'; };
+  var fdt = function (d) { return d ? fd(d) + ' ' + p2(d.getHours()) + ':' + p2(d.getMinutes()) : '—'; };
+  var isoD = function (d) { return d.getFullYear() + '-' + p2(d.getMonth() + 1) + '-' + p2(d.getDate()); };
+  var esISO = function (x) { var m = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/.exec(String(x || '').trim()); if (!m) return ''; var d = new Date(+m[3], +m[2] - 1, +m[1]); return d.getMonth() === +m[2] - 1 ? m[3] + '-' + p2(+m[2]) + '-' + p2(+m[1]) : ''; };
+  var addM = function (d, n) { return new Date(d.getFullYear(), d.getMonth() + n, d.getDate()); };
+  var addD = function (d, n) { return new Date(d.getFullYear(), d.getMonth(), d.getDate() + n); };
+  var rr = function (v) { return Math.round(v * 100) / 100; };
+  function eur(v) { var neg = v < -0.004; v = Math.abs(v); var s = v.toFixed(2).split('.'), i = s[0].replace(/\B(?=(\d{3})+(?!\d))/g, '.'); return (neg ? '−' : '') + i + ',' + s[1] + ' €'; }
+  var MESES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+  var MES3 = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+  function hh(s) { var out = '', h = 2166136261 >>> 0; for (var k = 0; k < 8; k++) { var t = s + k; for (var i = 0; i < t.length; i++) { h ^= t.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0; } out += h.toString(16).padStart(8, '0'); } return out.toUpperCase(); }
+  var numES = function (s) { s = String(s == null ? '' : s).trim(); if (!s) return NaN; if (s.indexOf(',') >= 0) s = s.replace(/\./g, '').replace(',', '.'); s = s.replace('−', '-'); return /^-?\d+(\.\d+)?$/.test(s) ? parseFloat(s) : NaN; };
+  var fmtN = function (v, dec) { var neg = v < 0; v = Math.abs(v); var s = v.toFixed(dec).split('.'), i = s[0].replace(/\B(?=(\d{3})+(?!\d))/g, '.'); return (neg ? '-' : '') + i + (dec ? ',' + s[1] : ''); };
+  var fmtQ = function (q) { return Number.isInteger(q) ? String(q) : fmtN(q, 2); };
+
+  var TODAY = D(2026, 10, 1);
+  var SOC = { n: soc.name, nif: soc.nif, dom: 'C/ Colón 42, 4.º · 46004 València', ej: ej };
+  var CLI = [
+    { id: 1, n: 'Talleres Albora, S.L.', nif: 'B46281937', dom: 'C/ Ciudad de Sevilla 18, Pol. Ind. Fuente del Jarro · 46988 Paterna (Valencia)', mail: 'administracion@talleresalbora.es' },
+    { id: 2, n: 'Neria Servicios Integrales, S.L.', nif: 'B98765432', dom: 'Av. de Aragón 30, 7.º · 46021 València', mail: 'facturas@neriaservicios.es' },
+    { id: 3, n: 'C. P. Avda. del Puerto 112', nif: 'H46123456', dom: 'Av. del Port 112 · 46023 València', mail: 'administracion@cpavdapuerto112.es' },
+    { id: 4, n: 'Clínica Dental Serrano, S.L.P.', nif: 'B97345120', dom: 'C/ Sant Vicent Màrtir 85 · 46007 València', mail: 'gestion@clinicaserrano.es' },
+    { id: 5, n: 'Lucía Ferrer Montoro', nif: '20456789K', dom: 'C/ Sueca 14, 3.ª · 46006 València', mail: 'lucia.ferrer@correo.es' },
+    { id: 6, n: 'Grupo Ledesma Logística, S.A.', nif: 'A46987001', dom: 'Ctra. de Silla km 4 · 46470 Albal (Valencia)', mail: 'cuentas.pagar@ledesmalogistica.es' },
+    { id: 7, n: 'Academia Nexo, S.L.', nif: 'B13579246', dom: 'C/ de Cuba 21 · 46006 València', mail: null },
+    { id: 8, n: 'Hostal Mar de Pinedo, S.L.', nif: 'B46555777', dom: 'Passeig Marítim de Pinedo 9 · 46012 València', mail: 'reservas@hostalpinedo.es' },
+    { id: 9, n: 'Construcciones Benlloch, S.L.', nif: 'B46333222', dom: 'C/ Major 7 · 46470 Catarroja (Valencia)', mail: 'obra@benlloch.es' }
+  ];
+  var cliById = function (id) { return CLI.find(function (c) { return c.id === id; }); };
+  var PER = { M: { t: 'Mensual', n: 1 }, B: { t: 'Bimestral', n: 2 }, T: { t: 'Trimestral', n: 3 }, S: { t: 'Semestral', n: 6 }, A: { t: 'Anual', n: 12 } };
+  var FP30 = 'Transferencia a 30 días', FPDOM = 'Recibo domiciliado SEPA al día 5';
+  var PROGS = [
+    { id: 1, notas: 'Incluye revisión trimestral de extintores', cli: 1, desc: 'Mantenimiento mensual de instalaciones', per: 'M', inicio: D(2026, 1, 1), fin: null, estado: 'A', pausa: null, fp: FPDOM, mail: true, rp: 0,
+      lines: [{ c: 'Mantenimiento preventivo de instalaciones', q: 1, p: 380, iva: 21 }, { c: 'Revisión de extintores', q: 6, p: 7.5, iva: 21, n: '6 extintores de polvo ABC, nave y oficina' }] },
+    { id: 2, notas: 'Fianza depositada: 2 mensualidades', cli: 1, desc: 'Alquiler nave 3 · Pol. Fuente del Jarro', per: 'M', inicio: D(2024, 3, 1), fin: D(2029, 2, 28), estado: 'A', pausa: null, fp: FPDOM, mail: true, rp: 19,
+      lines: [{ c: 'Alquiler nave industrial 3, Pol. Fuente del Jarro', q: 1, p: 1850, iva: 21 }] },
+    { id: 3, notas: 'Pago por transferencia antes del día 10', cli: 2, desc: 'Asesoría laboral y fiscal', per: 'T', inicio: D(2025, 1, 1), fin: null, estado: 'A', pausa: null, fp: FP30, mail: true, rp: 0,
+      lines: [{ c: 'Asesoría laboral (12 trabajadores)', q: 12, p: 30, iva: 21 }, { c: 'Asesoría fiscal trimestral', q: 1, p: 240, iva: 21 }] },
+    { id: 4, notas: 'Cuota aprobada en junta 03/2026', cli: 3, desc: 'Administración de fincas', per: 'M', inicio: D(2023, 1, 1), fin: null, estado: 'A', pausa: null, fp: FPDOM, mail: true, rp: 0,
+      lines: [{ c: 'Honorarios de administración de fincas', q: 1, p: 210, iva: 21 }] },
+    { id: 5, notas: 'Pausada a petición del cliente (obras)', cli: 4, desc: 'Mantenimiento de climatización', per: 'B', inicio: D(2026, 2, 1), fin: D(2027, 1, 31), estado: 'P', pausa: D(2026, 7, 15), fp: FP30, mail: false, rp: 0,
+      lines: [{ c: 'Mantenimiento de equipos de climatización', q: 4, p: 80, iva: 21 }] },
+    { id: 6, notas: 'Renovación automática salvo preaviso de 30 días', cli: 6, desc: 'Licencia ProGest y soporte anual', per: 'A', inicio: D(2024, 3, 15), fin: D(2027, 3, 14), estado: 'A', pausa: null, fp: FP30, mail: true, rp: 0,
+      lines: [{ c: 'Licencia ProGest (usuarios)', q: 10, p: 180, iva: 21, d: -7.38, n: 'Licencia para el uso en un puesto adicional del kit de gestión' }, { c: 'Soporte técnico anual', q: 1, p: 600, iva: 21, n: 'Horario de 8 a 18 h, días laborables' }] },
+    { id: 7, notas: 'Contrato finalizado; fianza devuelta', cli: 5, desc: 'Alquiler vivienda C/ Sueca 14, 3.ª', per: 'M', inicio: D(2025, 9, 1), fin: D(2026, 5, 31), estado: 'F', pausa: null, fp: FPDOM, mail: true, rp: 0,
+      lines: [{ c: 'Alquiler de vivienda C/ Sueca 14, 3.ª', q: 1, p: 750, iva: 0, ex: 'Exenta · art. 20.Uno.23.º LIVA' }] },
+    { id: 8, notas: 'Pendiente de firma del contrato', cli: 7, desc: 'Soporte informático (bolsa 4 h)', per: 'M', inicio: D(2026, 11, 1), fin: null, estado: 'A', pausa: null, fp: FP30, mail: false, rp: 0,
+      lines: [{ c: 'Soporte informático, bolsa de 4 horas', q: 1, p: 180, iva: 21 }] },
+    { id: 9, notas: 'Solo temporada de verano', cli: 8, desc: 'Mantenimiento de piscina (temporada)', per: 'M', inicio: D(2026, 5, 1), fin: D(2026, 9, 30), estado: 'F', pausa: null, fp: FP30, mail: true, rp: 0,
+      lines: [{ c: 'Mantenimiento de piscina', q: 1, p: 260, iva: 21 }, { c: 'Productos de tratamiento del agua', q: 1, p: 30, iva: 21, n: 'Cloro y regulador de pH' }] },
+    { id: 10, notas: 'Servidor dedicado + 50 GB de copias', cli: 1, desc: 'Hosting y copias de seguridad', per: 'T', inicio: D(2026, 4, 1), fin: null, estado: 'A', pausa: null, fp: FPDOM, mail: true, rp: 0,
+      lines: [{ c: 'Hosting y copias de seguridad', q: 1, p: 95, iva: 21 }] }
+  ];
+  var progCode = function (p) { return 'PR-' + p2(p.id, 4); };
+  var progById = function (id) { return PROGS.find(function (p) { return p.id === id; }); };
+  function calc(lines, ret) {
+    var base = rr(lines.reduce(function (s, l) { return s + l.q * l.p; }, 0)), byRate = {};
+    lines.forEach(function (l) { byRate[l.iva] = (byRate[l.iva] || 0) + l.q * l.p; });
+    var ivas = Object.keys(byRate).map(function (k) { return { rate: +k, base: rr(byRate[k]), cuota: rr(byRate[k] * k / 100) }; });
+    var iva = rr(ivas.reduce(function (s, x) { return s + x.cuota; }, 0)), retv = rr(base * (ret || 0) / 100);
+    return { base: base, ivas: ivas, iva: iva, ret: retv, total: rr(base + iva - retv) };
+  }
+  function sched(p) {
+    var out = [], n = PER[p.per].n, d = new Date(p.inicio), lim = TODAY;
+    if (p.fin && p.fin < lim) lim = p.fin; if (p.pausa && p.pausa < lim) lim = p.pausa;
+    while (d <= lim) { if (d.getFullYear() === SOC.ej) out.push(new Date(d)); d = addM(d, n); } return out;
+  }
+  function nextDate(p) {
+    if (p.estado !== 'A') return null; var n = PER[p.per].n, d = new Date(p.inicio), from = p.lastGen && p.lastGen > TODAY ? p.lastGen : TODAY;
+    while (d <= from) d = addM(d, n); if (p.fin && d > p.fin) return null; return d;
+  }
+  function perLabel(p, d) {
+    var m = d.getMonth(), y = d.getFullYear();
+    if (p.per === 'M') return MESES[m] + ' ' + y;
+    if (p.per === 'B') return MES3[m] + '–' + MES3[(m + 1) % 12] + ' ' + y;
+    if (p.per === 'T') return (Math.floor(m / 3) + 1) + '.er trimestre ' + y;
+    if (p.per === 'A') return fd(d) + ' a ' + fd(addD(addM(d, 12), -1));
+    return String(y);
+  }
+  var vigencia = function (p) { return fd(p.inicio) + ' – ' + (p.fin ? fd(p.fin) : 'sin fin'); };
+
+  var INV = [], _id = 1;
+  function mkInv(o) {
+    var c = cliById(o.cli);
+    var inv = Object.assign({ id: _id++, serie: 'F', num: null, draftNo: null, tipo: 'F1', est: 'EMI', vf: 'ACE', vfMsg: null, vfAt: null, prog: null, rp: 0, notas: '', fp: FP30, mails: [], rectOf: null, rectBy: null, motivo: null, vfLog: [] }, o);
+    inv.dest = { n: c.n, nif: c.nif, dom: c.dom, mail: c.mail }; inv.fop = inv.fop || inv.fecha;
+    return inv;
+  }
+  PROGS.forEach(function (p) {
+    sched(p).forEach(function (d) {
+      INV.push(mkInv({ fecha: d, cli: p.cli, prog: p.id, rp: p.rp, notas: p.notas, fp: p.fp, mailP: p.mail,
+        lines: p.lines.map(function (l, k) { return Object.assign({}, l, { c: k === 0 ? l.c + ' · ' + perLabel(p, d) : l.c }); }) }));
+    });
+  });
+  var Y = SOC.ej;
+  [
+    { fecha: D(Y, 1, 27), cli: 9, notas: 'Obra C/ Xàtiva 12 · pedido ' + Y + '-014', lines: [{ c: 'Dirección de obra · reforma de local C/ Xàtiva 12', q: 1, p: 3200, iva: 21 }] },
+    { fecha: D(Y, 2, 12), cli: 1, notas: 'Avería urgente, parte de trabajo 0231', lines: [{ c: 'Reparación de compresor de aire', q: 1, p: 640, iva: 21, n: 'Sustitución de válvula y presostato' }, { c: 'Desplazamiento', q: 1, p: 35, iva: 21 }] },
+    { fecha: D(Y, 5, 14), cli: 9, lines: [{ c: 'Coordinación de seguridad y salud', q: 1, p: 1450, iva: 21 }] },
+    { fecha: D(Y, 6, 10), cli: 5, lines: [{ c: 'Gestión del depósito de fianza ante la Generalitat', q: 1, p: 60, iva: 21 }] },
+    { fecha: D(Y, 6, 18), cli: 1, notas: 'Presupuesto P-' + Y + '-044 aceptado', lines: [{ c: 'Sustitución de luminarias, zona de lavado', q: 14, p: 80, iva: 21, d: -5, n: 'Pantallas LED estancas IP65' }] },
+    { fecha: D(Y, 7, 22), cli: 6, notas: 'Según oferta de 15/06/' + Y, lines: [{ c: 'Consultoría de implantación ERP (horas)', q: 24, p: 65, iva: 21 }] },
+    { fecha: D(Y, 9, 9), cli: 9, notas: 'Obra C/ Xàtiva 12 · cierre', lines: [{ c: 'Certificación final de obra', q: 1, p: 900, iva: 21 }] }
+  ].forEach(function (m) { if (m.fecha <= TODAY) INV.push(mkInv(m)); });
+  INV.sort(function (a, b) { return a.fecha - b.fecha || a.cli - b.cli || (a.prog || 99) - (b.prog || 99); });
+  INV.forEach(function (v, k) { v.num = k + 1; });
+  (function () {
+    var o = INV.find(function (v) { return v.prog === 1 && v.fecha.getMonth() === 2; }); if (!o) return;
+    var r = mkInv({ fecha: D(Y, 3, 20), cli: 1, serie: 'R', num: 1, tipo: 'R1', rectOf: o.id, fp: o.fp, notas: 'Rectifica la factura de marzo', motivo: 'Revisión de extintores no realizada en marzo (taller cerrado por obras).',
+      lines: [{ c: 'Rectificación: revisión de extintores no realizada · marzo ' + Y, q: -6, p: 7.5, iva: 21 }] });
+    o.est = 'RCT'; o.rectBy = r.id; INV.push(r);
+  })();
+  if (Y === TODAY.getFullYear()) {
+    INV.push(mkInv({ fecha: D(Y, 9, 30), cli: 1, serie: null, est: 'BOR', vf: 'NA', draftNo: 7, notas: 'Presupuesto P-' + Y + '-061', lines: [{ c: 'Instalación de iluminación LED en taller (material y mano de obra)', q: 1, p: 2350, iva: 21 }] }));
+    INV.push(mkInv({ fecha: D(Y, 9, 28), cli: 9, serie: null, est: 'BOR', vf: 'NA', draftNo: 6, lines: [{ c: 'Informe técnico de patologías, nave de Silla', q: 1, p: 780, iva: 21 }] }));
+  }
+  INV.forEach(function (v) {
+    Object.assign(v, calc(v.lines, v.rp));
+    if (v.est !== 'BOR') {
+      v.vfAt = new Date(v.fecha.getFullYear(), v.fecha.getMonth(), v.fecha.getDate(), 9, 5 + (v.id % 40));
+      v.huella = hh('h' + v.id); v.csv = 'A-' + hh('c' + v.id).slice(0, 14);
+      v.vfLog = [{ at: v.vfAt, op: v.tipo === 'R1' ? 'Alta (rectificativa)' : 'Alta', res: 'Correcto' }];
+    }
+  });
+  var findP = function (pid, m) { return INV.find(function (v) { return v.prog === pid && v.fecha.getMonth() === m - 1; }); };
+  function setVF(v, code, msg, res) { if (!v) return; v.vf = code; v.vfMsg = msg || null; if (v.vfLog.length) v.vfLog[0].res = res || v.vfLog[0].res; if (code !== 'ACE' && code !== 'ACW') v.csv = null; }
+  if (Y === TODAY.getFullYear()) {
+    setVF(findP(1, 10), 'PEN', null, 'En cola'); setVF(findP(4, 10), 'PEN', null, 'En cola'); setVF(findP(10, 10), 'PEN', null, 'En cola');
+    setVF(findP(2, 10), 'ERR', 'Sin respuesta del servicio de la AEAT (tiempo de espera agotado). Reintento automático previsto a las 12:30.', 'Error de comunicación');
+    setVF(INV.find(function (x) { return x.cli === 9 && x.fecha.getMonth() === 8 && x.est !== 'BOR'; }), 'REC', '1100 · Valor o tipo incorrecto en el campo FechaOperacion. El registro no consta en la AEAT.', 'Rechazado');
+  }
+  setVF(findP(5, 6), 'ACW', '2004 · La fecha de operación no coincide con el periodo facturado. El registro se ha aceptado y puede subsanarse.', 'Aceptado con errores');
+  INV.forEach(function (v) { if (v.mailP && v.est !== 'BOR' && v.csv) v.mails.push({ at: new Date(v.fecha.getFullYear(), v.fecha.getMonth(), v.fecha.getDate(), 10, 12), to: v.dest.mail, st: 'Enviado' }); });
+
+  var EST = { BOR: 'Borrador', EMI: 'Emitida', RCT: 'Rectificada' };
+  var VF = { PEN: ['Pendiente de envío', 'clock'], ENV: ['Enviando…', 'spin'], ACE: ['Aceptada', 'check'], ACW: ['Aceptada con errores', 'warn'], REC: ['Rechazada', 'xc'], ERR: ['Error de comunicación', 'plug'], NA: ['No aplica', 'dash'] };
+  var PST = { A: 'Activa', P: 'Pausada', F: 'Finalizada' };
+  var invNum = function (v) { return v.est === 'BOR' ? 'Borrador B-' + p2(v.draftNo, 4) : v.serie + ' ' + v.fecha.getFullYear() + '/' + p2(v.num, 4); };
+  var invById = function (id) { return INV.find(function (v) { return v.id === id; }); };
+  var nextNum = function (s) { return Math.max.apply(null, [0].concat(INV.filter(function (v) { return v.serie === s && v.num; }).map(function (v) { return v.num; }))) + 1; };
+  var lastMail = function (v) { return v.mails.length ? v.mails.reduce(function (a, b) { return b.at > a.at ? b : a; }) : null; };
+  var genCount = function (p) { return INV.filter(function (v) { return v.prog === p.id; }).length; };
+
+  function progBase(V) { return PROGS.filter(function (p) { return !V.cliente || p.cli === V.cliente; }); }
+  function progList(V) {
+    var q = V.pq.trim().toLowerCase(), pin = V.edit && V.edit.key[0] === 'p' ? +V.edit.key.slice(2) : null, ord = { A: 0, P: 1, F: 2 };
+    return progBase(V).filter(function (p) {
+      return p.id === pin || (V.pest === 'all' || p.estado === V.pest) && (V.pper === 'all' || p.per === V.pper) && (!q || (progCode(p) + ' ' + p.desc + ' ' + cliById(p.cli).n).toLowerCase().indexOf(q) >= 0);
+    }).sort(function (a, b) { return (ord[a.estado] - ord[b.estado]) || ((nextDate(a) || 9e15) - (nextDate(b) || 9e15)) || a.id - b.id; });
+  }
+  function emitBase(V) { return INV.filter(function (v) { return !V.cliente || v.cli === V.cliente; }); }
+  function hasEmitFilters(V) { return !!(V.q.trim() || V.est !== 'all' || V.vf !== 'all' || V.serie !== 'all' || V.orig !== 'all' || V.desde || V.hasta); }
+  function emitList(V) {
+    var pin = V.edit && V.edit.key[0] === 'e' ? +V.edit.key.slice(2) : null, b = emitBase(V);
+    if (V.progSel) b = b.filter(function (v) { return v.prog === V.progSel || v.id === pin; });
+    var q = V.q.trim().toLowerCase(), dd = V.desde ? new Date(V.desde + 'T00:00') : null, dh = V.hasta ? new Date(V.hasta + 'T23:59') : null;
+    b = b.filter(function (v) {
+      if (v.id === pin) return true;
+      if (V.est !== 'all' && v.est !== V.est) return false;
+      if (V.vf === 'INC') { if (['REC', 'ERR', 'ACW'].indexOf(v.vf) < 0) return false; } else if (V.vf !== 'all' && v.vf !== V.vf) return false;
+      if (V.serie === 'F' && v.serie !== 'F') return false; if (V.serie === 'R' && v.serie !== 'R') return false; if (V.serie === 'B' && v.est !== 'BOR') return false;
+      if (V.orig === 'P' && !v.prog) return false; if (V.orig === 'M' && v.prog) return false;
+      if (dd && v.fecha < dd) return false; if (dh && v.fecha > dh) return false;
+      if (q) { var s = (invNum(v) + ' ' + v.dest.n + ' ' + v.dest.nif + ' ' + v.lines.map(function (l) { return l.c; }).join(' ') + ' ' + (v.prog ? progCode(progById(v.prog)) : '')).toLowerCase(); if (!q.split(/\s+/).every(function (w) { return s.indexOf(w) >= 0; })) return false; }
+      return true;
+    });
+    var k = V.sort.k, d = V.sort.d;
+    var key = { num: function (v) { return (v.est === 'BOR' ? 'Z' : v.serie) + p2(v.num || v.draftNo, 6); }, fecha: function (v) { return +v.fecha * 1000 + (v.num || 0); }, cli: function (v) { return v.dest.n; }, total: function (v) { return v.total; }, est: function (v) { return v.est; }, vf: function (v) { return VF[v.vf][0]; }, env: function (v) { var m = lastMail(v); return m ? +m.at : 0; } }[k];
+    return b.sort(function (a, c) { var x = key(a), y = key(c); return (x < y ? -1 : x > y ? 1 : 0) * d || (c.id - a.id); });
+  }
+  function dueDates(p, hasta) {
+    if (p.estado !== 'A') return []; var out = [], n = PER[p.per].n, d = nextDate(p);
+    while (d && d <= hasta && (!p.fin || d <= p.fin)) { out.push(d); d = addM(d, n); } return out;
+  }
+  var bruto = function (p, iva) { return rr(p * (1 + iva / 100)); };
+
+  return { TODAY: TODAY, SOC: SOC, CLI: CLI, PER: PER, FP30: FP30, FPDOM: FPDOM, EST: EST, VF: VF, PST: PST, get PROGS() { return PROGS; }, get INV() { return INV; },
+    setINV: function (a) { INV = a; }, p2: p2, fd: fd, fdt: fdt, iso: isoD, esISO: esISO, addM: addM, addD: addD, r2: rr, money: eur, hh: hh, numES: numES, fmtN: fmtN, fmtQ: fmtQ,
+    cliById: cliById, progCode: progCode, progById: progById, calc: calc, nextDate: nextDate, perLabel: perLabel, vigencia: vigencia, mkInv: mkInv, invNum: invNum, invById: invById, nextNum: nextNum,
+    lastMail: lastMail, genCount: genCount, progBase: progBase, progList: progList, emitBase: emitBase, hasEmitFilters: hasEmitFilters, emitList: emitList, dueDates: dueDates, bruto: bruto };
+}
+
 class Component extends DCLogic {
 
   /* ---------- estado ---------- */
@@ -2260,7 +3041,6 @@ class Component extends DCLogic {
   mkTab(dest) {
     var D = DEST[dest], kind = KIND[dest] || 'ph', t = { id: dest, dest: dest, kind: kind, title: D.t, st: {} };
     if (kind === 'terceros') t.st = { q: '', tipo: 'all', fc: false, fp: false, fk: false, perf: '', sel: null };
-    if (kind === 'facturas') t.st = { q: '', est: 'all', sel: null };
     if (kind === 'lineas') t.st = { q: '', est: 'all', sel: {}, cta: 0 };
     if (kind === 'n43') t.st = { file: 0 };
     return t;
@@ -2972,6 +3752,7 @@ class Component extends DCLogic {
   /* ---------- cambios pendientes ---------- */
   changes(t) {
     if (t && t.kind === 'tercero') return this.trChanges(t);
+    if (t && t.kind === 'facturas') return this.fcChanges(t);
     if (!t || !t.st || !t.st.draft) return [];
     if (t.kind === 'terceros') { var rec = this.terById(t.st.draft.id), d = t.st.draft; return TF_EDIT.filter(function (f) { return String(d[f.k] || '') !== String(rec[f.k] || ''); }).map(function (f) { return f.k; }); }
     if (t.kind === 'factura') { var f = this.inv(t.num), dr = t.st.draft, out = []; if (!f) return []; if ((dr.ref || '') !== (f.ref || '')) out.push('ref'); if ((dr.notas || '') !== (f.notas || '')) out.push('notas'); return out; }
@@ -2986,6 +3767,7 @@ class Component extends DCLogic {
   saveTab(t) {
     if (!this.isDirty(t)) return { ok: true };
     if (t.kind === 'tercero') return this.trSave(t);
+    if (t.kind === 'facturas') { var fe = this.fcEnv(t); return this.fcSaveEdit(fe.F, fe.V) ? { ok: true } : { ok: false, msg: 'Hay datos por corregir en las líneas.' }; }
     var S = this.S;
     if (t.kind === 'terceros') {
       var errs = validateT(t.st.draft), ks = Object.keys(errs);
@@ -3011,7 +3793,7 @@ class Component extends DCLogic {
     }
     return { ok: true };
   }
-  discardTab(t) { if (!t) return; if (t.kind === 'tercero') return this.trDiscard(t); t.st.draft = null; t.st.err = null; t.st.showErr = false; }
+  discardTab(t) { if (!t) return; if (t.kind === 'tercero') return this.trDiscard(t); if (t.kind === 'facturas') { t.st.edit = null; return; } t.st.draft = null; t.st.err = null; t.st.showErr = false; }
 
   request(a) {
     var S = this.S, self = this; this.closeMenusRaw();
@@ -3353,6 +4135,674 @@ class Component extends DCLogic {
     return o;
   }
 
+  /* ---------- Facturas emitidas y programadas ---------- */
+  fcEnv(t) {
+    var k = this.key(), db = this.data();
+    if (!db.fcx) db.fcx = fcMake(this.soc(), this.S.ej);
+    if (!t.st || t.st.key !== k) t.st = Object.assign(fcNewView(), { key: k });
+    return { F: db.fcx, V: t.st };
+  }
+  fcCan() { var au = this.auth() || { rol: '' }; return !/consulta/i.test(au.rol); }
+  fcNoPerm() { var au = this.auth() || { rol: '' }; return 'Tu perfil (' + OPS[this.S.op].short + ' · ' + au.rol + ') no permite esta operación.'; }
+  fcFocus(k) { this._trFocus = 'fc:' + k; }
+  fcB(label, o) {
+    var self = this; o = o || {};
+    return { t: label, cls: 'fc-btn ' + (o.cls || 'fc-sm'), dis: !!o.why, tip: o.title || o.why || FC_TIP[o.act] || '', ic: FC_IC[o.icon] || [], hasIc: !!o.icon,
+      on: function (e) { if (e && e.stopPropagation) e.stopPropagation(); if (o.why) { self.toast(o.why); return self.bump(); } o.fn(e); } };
+  }
+  fcChanges(t) {
+    var V = t.st; if (!V || !V.edit) return [];
+    var F = this.data().fcx; if (!F) return [];
+    return Array(this.fcEditChanges(F, V)).fill('líneas');
+  }
+  fcRec(F, key) { var p = key.split(':'); return p[0] === 'p' ? F.progById(+p[1]) : F.invById(+p[1]); }
+  fcRecTitle(F, key) { var r = this.fcRec(F, key); return key[0] === 'p' ? F.progCode(r) + ' · ' + r.desc : F.invNum(r); }
+  fcLockWhy(F, key) {
+    var r = this.fcRec(F, key);
+    if (key[0] === 'p' && r.estado === 'F') return 'Programación finalizada: sus líneas no se modifican.';
+    if (key[0] === 'e' && r.est !== 'BOR') return r.tipo === 'R1' ? 'Rectificativa emitida: sus líneas no se modifican.' : 'Factura emitida: sus líneas no se modifican. Para corregirla, emite una rectificativa.';
+    if (!this.fcCan()) return this.fcNoPerm();
+    return null;
+  }
+  fcEditChanges(F, V) {
+    var E = V.edit; if (!E) return 0;
+    var r = this.fcRec(F, E.key), o = r.lines, n = 0, kept = {};
+    var eq = function (l, x) { return l.c.trim() === x.c && F.numES(l.q) === x.q && F.numES(l.p) === x.p && +l.iva === x.iva && (F.numES(l.d) || 0) === (x.d || 0) && (l.n || '').trim() === (x.n || ''); };
+    E.lines.forEach(function (l) { if (l._o == null) { n++; return; } kept[l._o] = 1; if (!eq(l, o[l._o])) n++; });
+    o.forEach(function (_, i) { if (!kept[i]) n++; });
+    if ((F.numES(E.rp) || 0) !== (r.rp || 0)) n++;
+    return n;
+  }
+  fcDraftLines(F, V) { return V.edit.lines.map(function (l) { return { c: l.c, q: F.numES(l.q) || 0, p: F.numES(l.p) || 0, iva: +l.iva, d: F.numES(l.d) || 0, n: l.n }; }); }
+  fcStartEdit(F, V, key) {
+    var self = this;
+    this.fcGuard(F, V, function () {
+      var why = self.fcLockWhy(F, key); if (why) { self.toast(why); return; }
+      var r = self.fcRec(F, key);
+      V.edit = { key: key, rp: F.fmtQ(r.rp || 0), err: {}, lines: r.lines.map(function (l, i) { return { c: l.c, q: F.fmtQ(l.q), p: F.fmtN(l.p, 2), iva: l.iva, d: l.d ? F.fmtN(l.d, 2) : '', n: l.n || '', ex: l.ex, _o: i }; }) };
+      V.exp[key] = true; if (key[0] === 'p') V.progCollapsed = false;
+      self.fcFocus('x:' + key + ':0c');
+    });
+  }
+  fcValidate(F, V) {
+    var E = V.edit; E.err = {};
+    if (!E.lines.length) { this.toast('La factura debe tener al menos una línea.'); return false; }
+    E.lines.forEach(function (l, i) {
+      if (!l.c.trim()) E.err[i + 'c'] = 'Indica la descripción';
+      var q = F.numES(l.q); if (isNaN(q) || q === 0) E.err[i + 'q'] = 'Cantidad no válida';
+      if (isNaN(F.numES(l.p))) E.err[i + 'p'] = 'Precio no válido';
+      if (String(l.d).trim()) { var d = F.numES(l.d); if (isNaN(d) || d < -100 || d > 100) E.err[i + 'd'] = 'Descuento entre −100 y 100 %'; }
+      if (E.key[0] === 'p' && q < 0) E.err[i + 'q'] = 'En una programación la cantidad debe ser positiva';
+    });
+    if (String(E.rp).trim()) { var rp = F.numES(E.rp); if (isNaN(rp) || rp < 0 || rp > 100) E.err.rprp = 'Retención entre 0 y 100 %'; }
+    var k = Object.keys(E.err);
+    if (k.length) { this.toast('Hay ' + k.length + ' dato' + (k.length > 1 ? 's' : '') + ' por corregir en las líneas. El mensaje aparece en el tooltip de cada campo.'); this.fcFocus('x:' + E.key + ':' + k[0]); return false; }
+    return true;
+  }
+  fcSaveEdit(F, V) {
+    if (!V.edit) return true; if (!this.fcValidate(F, V)) return false;
+    var E = V.edit, r = this.fcRec(F, E.key), n = this.fcEditChanges(F, V);
+    r.lines = E.lines.map(function (l) {
+      var o = { c: l.c.trim(), q: F.numES(l.q), p: F.numES(l.p), iva: +l.iva };
+      if (F.numES(l.d)) o.d = F.numES(l.d); if (l.n.trim()) o.n = l.n.trim(); if (l.ex && +l.iva === 0) o.ex = l.ex; return o;
+    });
+    r.rp = F.numES(E.rp) || 0;
+    if (E.key[0] === 'e') Object.assign(r, F.calc(r.lines, r.rp));
+    V.edit = null;
+    this.toast(n + ' cambio' + (n === 1 ? '' : 's') + ' guardado' + (n === 1 ? '' : 's') + ' en ' + this.fcRecTitle(F, E.key) + (E.key[0] === 'p' ? '. Se aplicarán a las próximas emisiones' : '') + '.');
+    this.fcFocus(E.key); return true;
+  }
+  fcGuard(F, V, next) {
+    if (!V.edit) return next();
+    if (!this.fcEditChanges(F, V)) { V.edit = null; return next(); }
+    V.dlg = { kind: 'guard', next: next };
+  }
+  fcSetActive(V, t, id, open) { V.active = { t: t, id: id }; if (t === 'e') V.curE = id; else V.curP = id; if (open) { if (!V.detailOpen) V.dtab = 'res'; V.detailOpen = true; } }
+  fcClearEmit(V) { Object.assign(V, { q: '', est: 'all', vf: 'all', serie: 'all', orig: 'all', desde: '', hasta: '', desdeTxt: '', hastaTxt: '', desdeErr: false, hastaErr: false }); }
+  fcGoProg(F, V, pid) {
+    if (!F.progList(V).some(function (x) { return x.id === pid; })) { V.pq = ''; V.pest = 'all'; V.pper = 'all'; }
+    V.progCollapsed = false; V.progSel = pid; this.fcSetActive(V, 'p', pid, true); this.fcFocus('p:' + pid);
+  }
+  fcGoInv(F, V, id) {
+    if (!F.emitList(V).some(function (v) { return v.id === id; })) { V.progSel = null; this.fcClearEmit(V); }
+    this.fcSetActive(V, 'e', id, true); V.dtab = 'res'; this.fcFocus('e:' + id);
+  }
+  fcSimSend(F, list) {
+    var self = this;
+    list.forEach(function (v) { v.vf = 'ENV'; });
+    setTimeout(function () {
+      list.forEach(function (v) { v.vf = 'ACE'; v.vfMsg = null; v.csv = 'A-' + F.hh('c' + v.id + 'x').slice(0, 14); v.vfLog.push({ at: new Date(), op: 'Envío', res: 'Correcto' }); });
+      self.toast('VeriFactu: ' + list.length + ' registro' + (list.length > 1 ? 's' : '') + ' aceptado' + (list.length > 1 ? 's' : '') + ' (respuesta simulada).'); self.bump();
+    }, 1600);
+  }
+  fcQR(seed) {
+    if (!this._fcqr) this._fcqr = {};
+    if (this._fcqr[seed]) return this._fcqr[seed];
+    var s = seed * 9301 + 49297, r = function () { s = (s * 9301 + 49297) % 233280; return s / 233280; }, cells = [], N = 21;
+    var fin = function (x, y) { return (x < 7 && y < 7) || (x > 13 && y < 7) || (x < 7 && y > 13); };
+    for (var y = 0; y < N; y++) for (var x = 0; x < N; x++) { var on; if (fin(x, y)) { var cx = x > 13 ? x - 14 : x, cy = y > 13 ? y - 14 : y; on = cx === 0 || cx === 6 || cy === 0 || cy === 6 || (cx > 1 && cx < 5 && cy > 1 && cy < 5); } else on = r() > .52; if (on) cells.push({ x: x, y: y }); }
+    return (this._fcqr[seed] = cells);
+  }
+  fcTotals(F, v) {
+    var rows = [{ t: 'Base imponible', v: F.money(v.base), cls: 'fc-mr' }];
+    v.ivas.forEach(function (x) { rows.push({ t: x.rate ? 'IVA ' + x.rate + ' % sobre ' + F.money(x.base) : 'Exenta de IVA', v: F.money(x.cuota), cls: 'fc-mr' }); });
+    if (v.ret) rows.push({ t: 'Retención IRPF ' + F.fmtQ(v.rp) + ' %', v: '−' + F.money(v.ret), cls: 'fc-mr' });
+    rows.push({ t: 'Total', v: F.money(v.total), cls: 'fc-mr fc-tot' });
+    return rows;
+  }
+  fcPill(F, e) { return { cls: 'fc-pill fc-st-' + e, t: F.EST[e] }; }
+  fcPst(F, e) { return { cls: 'fc-pill fc-ps-' + e, t: F.PST[e] }; }
+  fcVfTag(F, c) { return { cls: 'fc-vf fc-vf-' + c, t: F.VF[c][0], ic: FC_IC[F.VF[c][1]], tip: 'Situación VeriFactu: ' + F.VF[c][0] }; }
+  fcKv(k, v, o) { o = o || {}; return { k: k, v: v, cls: (o.mono ? 'fc-mono' : '') + (o.mut ? ' fc-mut' : '') + (o.it ? ' fc-it' : ''), lnk: !!o.on, nl: !o.on, on: o.on || null, tip: o.tip || '', after: o.after || '' }; }
+
+  fcVals(t, cw, zen, m) {
+    var self = this, env = this.fcEnv(t), F = env.F, V = env.V, can = this.fcCan(), NOPERM = this.fcNoPerm();
+    var B = function (l, o) { return self.fcB(l, o); };
+    var go = function (fn) { return function (e) { if (e && e.stopPropagation) e.stopPropagation(); fn(e); self.bump(); }; };
+    var f = !V.cliente;
+    m.fc = true; m.sk = t.id + ':fc';
+    var emitL = F.emitList(V), emitB = F.emitBase(V), progL = F.progList(V), progB = F.progBase(V);
+    var openDlg = function (d) { V.menu = null; V.dlg = d; self.fcFocus('dlg'); };
+
+    /* barra del módulo */
+    var gw = can ? null : NOPERM;
+    m.fb = {
+      cli: String(V.cliente || ''), cliCls: 'fc-in' + (V.cliente ? ' fc-on' : ''), clis: F.CLI.map(function (c) { return { v: String(c.id), t: c.n }; }),
+      setCli: function (e) { var v = e.target.value; V.cliente = v ? +v : null; if (V.progSel && V.cliente && F.progById(V.progSel).cli !== V.cliente) V.progSel = null; self.bump(); },
+      tools: [
+        B('Generar programadas…', { icon: 'repeat', why: gw, title: 'Revisar y generar las facturas programadas pendientes', fn: function () { openDlg({ kind: 'gen', all: true, ids: F.progBase(V).filter(function (p) { return p.estado === 'A'; }).map(function (p) { return p.id; }), hasta: F.fd(F.TODAY) }); self.bump(); } }),
+        B('Enviar pendientes a VeriFactu', { icon: 'send', why: gw, title: 'Enviar los registros pendientes o con error de comunicación', fn: function () { openDlg({ kind: 'gvf' }); self.bump(); } }),
+        B('Exportar a contabilidad', { icon: 'book', why: gw, title: 'Generar asientos de las facturas emitidas', fn: function () { self.toast('Generaría los asientos de las facturas emitidas no contabilizadas (simulado).'); self.bump(); } })
+      ],
+      kbd: go(function () { openDlg({ kind: 'kbd' }); }), kbdIc: FC_IC.kbd
+    };
+
+    /* programadas */
+    var cnt = { all: progB.length, A: 0, P: 0, F: 0 }; progB.forEach(function (p) { cnt[p.estado]++; });
+    var selP = V.progSel ? F.progById(V.progSel) : null;
+    var nx = progB.map(F.nextDate).filter(Boolean).sort(function (a, b) { return a - b; })[0];
+    var pselVis = Object.keys(V.psel).map(Number).filter(function (id) { return progL.some(function (p) { return p.id === id; }); });
+    var curP = V.curP ? F.progById(V.curP) : null, noSel = 'Selecciona una programación en la lista.';
+    var actP = V.detailOpen && V.active && V.active.t === 'p' ? V.active.id : null;
+    var hasXP = progL.some(function (p) { return V.exp['p:' + p.id]; });
+    var pkeys = progL.map(function (p) { return 'p:' + p.id; });
+    var curPid = V.curP && progL.some(function (p) { return p.id === V.curP; }) ? V.curP : (progL[0] && progL[0].id);
+    m.fp = {
+      cls: 'fc-panel fc-pprog', open: !V.progCollapsed, expanded: !V.progCollapsed, colLbl: V.progCollapsed ? 'Desplegar facturas programadas' : 'Plegar facturas programadas',
+      collapse: go(function () { V.progCollapsed = !V.progCollapsed; }), colIc: FC_IC.chev,
+      count: progL.length === progB.length ? String(progB.length) : progL.length + ' de ' + progB.length,
+      sum: V.progCollapsed ? '· ' + cnt.A + ' activas' + (nx ? ' · próxima emisión ' + F.fd(nx) : '') : '', sumB: V.progCollapsed && selP ? ' · filtrando por ' + F.progCode(selP) : '',
+      acts: [
+        B('Consultar', { icon: 'eye', act: 'p-open', why: !curP ? noSel : null, title: 'Ver el detalle (Intro o doble clic)', fn: function () { self.fcSetActive(V, 'p', V.curP, true); self.bump(); } }),
+        B('Editar…', { icon: 'edit', act: 'p-edit', why: !can ? NOPERM : !curP ? noSel : curP.estado === 'F' ? 'Una programación finalizada no se edita. Puedes duplicarla como nueva (propuesta).' : null, fn: function () { openDlg(self.fcProgDlg(F, V, curP)); self.bump(); } }),
+        B('Generar facturas (' + pselVis.length + ')', { icon: 'repeat', why: !can ? NOPERM : !pselVis.length ? 'Marca con las casillas las programaciones que quieres generar.' : null, title: 'Generar los periodos pendientes de las ' + pselVis.length + ' programaciones marcadas', fn: function () { openDlg({ kind: 'gen', all: false, ids: pselVis, hasta: F.fd(F.TODAY) }); self.bump(); } }),
+        B('Nueva programación', { icon: 'plus', act: 'p-new', cls: 'fc-sm fc-pri', why: !can ? NOPERM : null, fn: function () { openDlg(self.fcProgDlg(F, V, null)); self.bump(); } })
+      ],
+      q: V.pq, setQ: function (e) { V.pq = e.target.value; self.bump(); }, searchIc: FC_IC.search,
+      ests: [['all', 'Todas'], ['A', 'Activas'], ['P', 'Pausadas'], ['F', 'Finalizadas']].map(function (x) { return { t: x[1], n: cnt[x[0]], on: V.pest === x[0], tip: x[0] === 'all' ? 'Muestra todas las programaciones' : 'Muestra solo las programaciones ' + x[1].toLowerCase(), pick: go(function () { V.pest = x[0]; }) }; }),
+      per: V.pper, perCls: 'fc-in' + (V.pper !== 'all' ? ' fc-on' : ''), setPer: function (e) { V.pper = e.target.value; self.bump(); },
+      pers: Object.keys(F.PER).map(function (k) { return { v: k, t: F.PER[k].t }; }),
+      twStyle: V.progH ? 'max-height: none; height: ' + V.progH + 'px' : (hasXP ? 'max-height: clamp(220px, 50vh, 460px)' : 'max-height: clamp(120px, 24vh, 220px)'),
+      emptyBase: !progB.length, emptyBaseT: f ? 'No hay facturas programadas' : 'Este cliente no tiene facturas programadas',
+      emptyList: !!progB.length && !progL.length, clearB: B('Quitar filtros de programadas', { act: 'p-clear', fn: function () { V.pq = ''; V.pest = 'all'; V.pper = 'all'; self.bump(); } }),
+      has: !!progL.length, showCli: f,
+      gcols: 'grid-template-columns: 34px 28px ' + (f ? '190px ' : '') + 'minmax(240px, 1fr) 220px 104px 96px 184px 92px 116px 104px',
+      minW: 'min-width: ' + (f ? 1420 : 1220) + 'px',
+      allChk: !!progL.length && pselVis.length === progL.length,
+      chkAll: function (e) { var c = e.target.checked; progL.forEach(function (p) { if (c) V.psel[p.id] = 1; else delete V.psel[p.id]; }); self.bump(); },
+      allTip: 'Marcar todas las del listado', allLbl: 'Marcar las ' + progL.length + ' programaciones del listado', genTip: 'Facturas generadas en ' + F.SOC.n + ' · ' + F.SOC.ej
+    };
+    m.fp.rows = progL.map(function (p) {
+      var c = F.cliById(p.cli), nd = F.nextDate(p), tt = F.calc(p.lines, p.rp), flt = V.progSel === p.id, k = 'p:' + p.id, xo = !!V.exp[k], s = !!V.psel[p.id], ed = V.edit && V.edit.key === k;
+      var r = {
+        cls: 'fc-gr' + (flt ? ' fc-flt' : '') + (s ? ' fc-sel' : '') + (actP === p.id ? ' fc-act' : '') + (ed && self.fcEditChanges(F, V) ? ' fc-dirty' : '') + (xo ? ' fc-xo' : ''),
+        ti: p.id === curPid ? 0 : -1, fk: 'fc:' + k, s: s, xo: xo, sel: String(s), exp: String(xo), cli: c.n, code: F.progCode(p), desc: p.desc, flt: flt, nflt: !flt, editing: !!ed, notas: p.notas || '',
+        per: F.PER[p.per].t, next: nd ? F.fd(nd) : (p.estado === 'P' ? 'En pausa' : '—'), nextCls: nd ? 'fc-tn' : 'fc-mut', nextTip: nd ? 'Próxima emisión' : (p.estado === 'P' ? 'En pausa: no se generan facturas' : 'Sin emisiones futuras'),
+        vig: F.vigencia(p), gen: String(F.genCount(p)), total: F.money(tt.total), pill: self.fcPst(F, p.estado),
+        chkLbl: 'Marcar ' + F.progCode(p), xpLbl: (xo ? 'Ocultar' : 'Mostrar') + ' las líneas de ' + F.progCode(p), xpTip: (xo ? 'Ocultar' : 'Mostrar') + ' líneas (→ / ←)', xpIc: FC_IC.chevr, funnelIc: FC_IC.funnel,
+        stop: function (e) { e.stopPropagation(); },
+        chk: function (e) { if (e.target.checked) V.psel[p.id] = 1; else delete V.psel[p.id]; V.curP = p.id; self.fcFocus(k); self.bump(); },
+        xp: go(function () { self.fcToggleExp(F, V, k, !xo); }),
+        click: go(function () { self.fcRowClick(F, V, 'p', p.id); }),
+        open: go(function () { self.fcSetActive(V, 'p', p.id, true); self.fcFocus(k); }),
+        key: function (e) { self.fcRowKey(F, V, e, 'p', p.id, pkeys); }
+      };
+      if (xo) r.x = self.fcXPanel(F, V, 'p', p);
+      return r;
+    });
+    var self2 = this;
+    m.fsplit = {
+      on: !V.progCollapsed, tip: 'Arrastra para repartir la altura entre programadas y emitidas · ↑ ↓ con el teclado · doble clic: altura inicial',
+      down: function (e) {
+        if (e.button !== 0) return; e.preventDefault();
+        var tw = document.querySelector('[data-fc-ptw]'), lists = document.querySelector('[data-fc-lists]'); if (!tw || !lists) return;
+        var y0 = e.clientY, h0 = tw.getBoundingClientRect().height, sec = tw.closest('.fc-pprog');
+        var max = Math.max(80, lists.clientHeight - (sec.offsetHeight - tw.offsetHeight) - 10 - 260), last = h0;
+        var mv = function (ev) { last = Math.round(Math.min(Math.max(60, h0 + ev.clientY - y0), max)); tw.style.maxHeight = 'none'; tw.style.height = last + 'px'; };
+        var up = function () { document.removeEventListener('mousemove', mv); document.removeEventListener('mouseup', up); document.body.style.cursor = ''; V.progH = last; self2.bump(); };
+        document.body.style.cursor = 'row-resize'; document.addEventListener('mousemove', mv); document.addEventListener('mouseup', up);
+      },
+      dbl: go(function () { V.progH = null; }),
+      key: function (e) {
+        if (e.key !== 'ArrowUp' && e.key !== 'ArrowDown') return; e.preventDefault();
+        var tw = document.querySelector('[data-fc-ptw]'); if (!tw) return;
+        V.progH = Math.max(60, Math.round(tw.getBoundingClientRect().height + (e.key === 'ArrowUp' ? -24 : 24))); self.fcFocus('split'); self.bump();
+      }
+    };
+
+    /* emitidas */
+    var ids = {}; emitL.forEach(function (v) { ids[v.id] = 1; });
+    var selAll = Object.keys(V.selected).map(Number), selVis = selAll.filter(function (id) { return ids[id]; }), hidden = selAll.length - selVis.length;
+    if (!selVis.length && V.scope === 'sel') V.scope = 'filt';
+    var actE = V.detailOpen && V.active && V.active.t === 'e' ? V.active.id : null;
+    var ekeys = emitL.map(function (v) { return 'e:' + v.id; });
+    var curEid = V.curE && ids[V.curE] ? V.curE : (emitL[0] && emitL[0].id);
+    var scope = V.scope === 'sel' ? selVis.map(F.invById) : emitL, tgt = V.scope === 'sel' ? selVis.length + ' seleccionada' + (selVis.length === 1 ? '' : 's') : scope.length + ' del listado';
+    var apMail = scope.filter(function (v) { return v.est !== 'BOR'; }).length, apVf = scope.filter(function (v) { return v.vf === 'PEN' || v.vf === 'ERR'; }).length;
+    var hasF = F.hasEmitFilters(V) || !!V.progSel;
+    var sortH = function (k, l, cls) { var on = V.sort.k === k; return { t: l, cls: cls || '', ar: on ? (V.sort.d > 0 ? '▲' : '▼') : '', tip: 'Ordenar por ' + l.toLowerCase(), aria: on ? (V.sort.d > 0 ? 'ascending' : 'descending') : 'none',
+      pick: go(function () { V.sort = V.sort.k === k ? { k: k, d: -V.sort.d } : { k: k, d: k === 'cli' ? 1 : -1 }; self.fcFocus('sort:' + k); }), fk: 'fc:sort:' + k }; };
+    var setDate = function (which) { return function (e) {
+      var val = e.target.value, v = F.esISO(val), bad = !!val.trim() && !v;
+      V[which + 'Txt'] = val; V[which + 'Err'] = bad; if (!bad) V[which] = v; self.bump();
+    }; };
+    m.fe = {
+      count: emitL.length === emitB.length ? String(emitB.length) : emitL.length + ' de ' + emitB.length,
+      chip: !!selP, chipT: selP ? 'Generadas por ' + F.progCode(selP) + ' · ' + selP.desc + (f ? ' · ' + F.cliById(selP.cli).n : '') : '', chipTip: selP ? F.progCode(selP) + ' · ' + selP.desc : '', funnelIc: FC_IC.funnel, xIc: FC_IC.x,
+      chipClr: go(function () { V.progSel = null; }),
+      acts: [
+        B('Nueva factura', { icon: 'plus', act: 'e-new', cls: 'fc-sm fc-pri', why: !can ? NOPERM : null, fn: function () { self.toast('Abriría el editor de facturas en borrador. Fuera del alcance de esta maqueta.'); self.bump(); } }),
+        B('Exportar listado', { icon: 'dl', why: !emitL.length ? 'No hay facturas en el listado para exportar.' : null, title: 'Descargar un CSV con las ' + emitL.length + ' facturas del listado filtrado', fn: function () { self.toast('Exportaría a CSV las ' + emitL.length + ' facturas del listado filtrado (simulado).'); self.bump(); } })
+      ],
+      q: V.q, setQ: function (e) { V.q = e.target.value; self.bump(); }, searchIc: FC_IC.search, qPh: 'Nº, ' + (f ? 'cliente, NIF, ' : '') + 'concepto o PR-…',
+      est: V.est, estCls: 'fc-in' + (V.est !== 'all' ? ' fc-on' : ''), setEst: function (e) { V.est = e.target.value; self.bump(); }, ests: Object.keys(F.EST).map(function (k) { return { v: k, t: F.EST[k] }; }),
+      vf: V.vf, vfCls: 'fc-in' + (V.vf !== 'all' ? ' fc-on' : ''), setVf: function (e) { V.vf = e.target.value; self.bump(); }, vfs: Object.keys(F.VF).map(function (k) { return { v: k, t: F.VF[k][0] }; }),
+      serie: V.serie, serieCls: 'fc-in' + (V.serie !== 'all' ? ' fc-on' : ''), setSerie: function (e) { V.serie = e.target.value; self.bump(); },
+      origs: [['all', 'Todas', 'Muestra las facturas de cualquier origen'], ['P', 'Programadas', 'Muestra solo las generadas por una programación'], ['M', 'Manuales', 'Muestra solo las creadas a mano']].map(function (x) { return { t: x[1], tip: x[2], on: V.orig === x[0], pick: go(function () { V.orig = x[0]; }) }; }),
+      desde: V.desdeTxt, desdeCls: 'fc-in' + (V.desdeErr ? ' fc-err' : V.desde ? ' fc-on' : ''), desdeTip: V.desdeErr ? 'Fecha no válida: escríbela como dd/mm/aaaa' : 'Primera fecha de factura que se muestra', desdeInv: String(!!V.desdeErr), setDesde: setDate('desde'),
+      hasta: V.hastaTxt, hastaCls: 'fc-in' + (V.hastaErr ? ' fc-err' : V.hasta ? ' fc-on' : ''), hastaTip: V.hastaErr ? 'Fecha no válida: escríbela como dd/mm/aaaa' : 'Última fecha de factura que se muestra', hastaInv: String(!!V.hastaErr), setHasta: setDate('hasta'),
+      clear: B('Limpiar filtros', { cls: 'fc-sm fc-ghost', why: hasF ? null : 'No hay filtros aplicados.', title: hasF ? 'Quitar los filtros de las emitidas, incluido el de programación' : null, fn: function () { self.fcClearEmit(V); V.progSel = null; self.bump(); } }),
+      bulkOn: !!emitL.length,
+      scopes: [
+        { t: 'Seleccionadas', n: selVis.length, on: V.scope === 'sel', dis: !selVis.length, tip: selVis.length ? 'Las acciones colectivas se aplican solo a las facturas marcadas' : 'Marca facturas con las casillas (o Espacio) para actuar solo sobre ellas.', pick: go(function () { if (!selVis.length) return self.toast('Marca facturas con las casillas (o Espacio) para actuar solo sobre ellas.'); V.scope = 'sel'; }) },
+        { t: 'Todo el listado filtrado', n: emitL.length, on: V.scope === 'filt', dis: false, tip: 'Las acciones colectivas se aplican a todas las facturas del listado filtrado', pick: go(function () { V.scope = 'filt'; }) }
+      ],
+      hidden: hidden > 0, hiddenT: hidden + ' seleccionada' + (hidden > 1 ? 's' : '') + ' fuera del filtro no se incluirá' + (hidden > 1 ? 'n' : ''), warnIc: FC_IC.warn,
+      dropHidden: go(function () { var n = {}; selVis.forEach(function (id) { n[id] = 1; }); V.selected = n; }),
+      hasSel: selAll.length > 0, clearSel: go(function () { V.selected = {}; V.scope = 'filt'; }),
+      bulk: [
+        B('Preparar correo (' + apMail + ')', { icon: 'mail', why: !can ? NOPERM : !apMail ? 'Ninguna de las facturas del ámbito se puede enviar (los borradores no se envían).' : null, title: 'Preparar el envío por correo de ' + apMail + ' de ' + tgt, fn: function () { openDlg({ kind: 'bulk', op: 'mail' }); self.bump(); } }),
+        B('Descargar PDF (' + apMail + ')', { icon: 'dl', why: !apMail ? 'Los borradores no tienen PDF definitivo.' : null, title: 'Descargar el PDF de ' + apMail + ' de ' + tgt, fn: function () { openDlg({ kind: 'bulk', op: 'pdf' }); self.bump(); } }),
+        B('Reintentar VeriFactu (' + apVf + ')', { icon: 'send', why: !can ? NOPERM : !apVf ? 'Ninguna factura del ámbito está pendiente de envío o con error de comunicación.' : null, title: 'Reenviar ' + apVf + ' registros pendientes o con error de ' + tgt, fn: function () { openDlg({ kind: 'bulk', op: 'vf' }); self.bump(); } })
+      ],
+      has: !!emitL.length, showCli: f,
+      gcols: 'grid-template-columns: 36px 28px 150px 92px ' + (f ? '200px ' : '') + 'minmax(260px, 1fr) 200px 104px 66px 112px 112px 108px 184px',
+      minW: 'min-width: ' + (f ? 1560 : 1340) + 'px',
+      allChk: !!emitL.length && selVis.length === emitL.length, allLbl: 'Seleccionar las ' + emitL.length + ' facturas filtradas',
+      chkAll: function (e) { var c = e.target.checked; emitL.forEach(function (v) { if (c) V.selected[v.id] = 1; else delete V.selected[v.id]; }); V.scope = c ? 'sel' : 'filt'; self.bump(); },
+      hNum: sortH('num', 'Número'), hFecha: sortH('fecha', 'Fecha'), hCli: sortH('cli', 'Cliente'), hTotal: sortH('total', 'Total', 'fc-r'), hEst: sortH('est', 'Estado'), hEnv: sortH('env', 'Fecha envío'), hVf: sortH('vf', 'VeriFactu'),
+      footN: String(emitL.length), footBase: F.money(emitL.reduce(function (s, v) { return s + v.base; }, 0)), footTotal: F.money(emitL.reduce(function (s, v) { return s + v.total; }, 0))
+    };
+    var em = m.fe;
+    em.empty = !emitL.length;
+    if (em.empty) {
+      em.emptyBtns = [];
+      if (selP && !F.genCount(selP)) { var nd0 = F.nextDate(selP); em.emptyT = 'La programación ' + F.progCode(selP) + ' aún no ha generado facturas'; em.emptyS = (nd0 ? 'Primera emisión prevista: ' + F.fd(nd0) + '.' : 'No tiene emisiones previstas.') + ' No es un problema de los filtros.'; em.emptyBtns.push(B('Ver todas las facturas', { act: 'clear-prog', fn: function () { V.progSel = null; self.bump(); } })); }
+      else if (!emitB.length) { em.emptyT = f ? 'Todavía no hay facturas en ' + F.SOC.n + ' · ' + F.SOC.ej : 'Este cliente no tiene facturas en ' + F.SOC.n + ' · ' + F.SOC.ej; em.emptyS = ''; }
+      else if (selP) { em.emptyT = 'Ninguna de las ' + F.genCount(selP) + ' facturas generadas por ' + F.progCode(selP) + ' cumple los filtros'; em.emptyS = ''; em.emptyBtns.push(B('Quitar los demás filtros', { act: 'clear-filters-keep', fn: function () { self.fcClearEmit(V); self.bump(); } })); em.emptyBtns.push(B('Ver todas las facturas', { act: 'clear-prog', fn: function () { V.progSel = null; self.bump(); } })); }
+      else { em.emptyT = 'Ninguna factura cumple los filtros'; em.emptyS = 'Hay ' + emitB.length + ' facturas sin filtrar.'; em.emptyBtns.push(B('Limpiar filtros', { act: 'clear-filters', fn: function () { self.fcClearEmit(V); V.progSel = null; self.bump(); } })); }
+      em.hasEmptyS = !!em.emptyS;
+    }
+    em.rows = emitL.map(function (v) {
+      var s = !!V.selected[v.id], p = v.prog ? F.progById(v.prog) : null, k = 'e:' + v.id, xo = !!V.exp[k], ed = V.edit && V.edit.key === k, ml = F.lastMail(v);
+      var r = {
+        cls: 'fc-gr' + (s ? ' fc-sel' : '') + (actE === v.id ? ' fc-act' : '') + (ed && self.fcEditChanges(F, V) ? ' fc-dirty' : '') + (xo ? ' fc-xo' : ''),
+        ti: v.id === curEid ? 0 : -1, fk: 'fc:' + k, s: s, xo: xo, sel: String(s), exp: String(xo), editing: !!ed,
+        draft: v.est === 'BOR', nodraft: v.est !== 'BOR', numT: F.invNum(v), serie: v.serie || '', rest: v.est === 'BOR' ? '' : ' ' + v.fecha.getFullYear() + '/' + F.p2(v.num, 4), r1: v.tipo === 'R1',
+        fecha: F.fd(v.fecha), cli: v.dest.n, conc: v.lines[0].c, ocode: p ? F.progCode(p) : v.tipo === 'R1' ? 'Rectificativa' : 'Manual', ocodeCls: p ? 'fc-ocode' : 'fc-ocode fc-man', ocodeTip: p ? 'Generada por la programación ' + F.progCode(p) : v.tipo === 'R1' ? 'Factura rectificativa' : 'Creada manualmente',
+        notas: v.notas || '', base: F.money(v.base), ret: v.rp ? F.fmtQ(v.rp) + ' %' : '', total: F.money(v.total), pill: self.fcPill(F, v.est),
+        env: ml ? F.fd(ml.at) : '—', envCls: ml ? 'fc-tn' : 'fc-mut', envTip: ml ? 'Enviada por correo a ' + ml.to + (ml.st === 'Simulado' ? ' (simulado)' : '') : 'No enviada por correo', vf: self.fcVfTag(F, v.vf),
+        chkLbl: 'Seleccionar ' + F.invNum(v), xpLbl: (xo ? 'Ocultar' : 'Mostrar') + ' las líneas de ' + F.invNum(v), xpTip: (xo ? 'Ocultar' : 'Mostrar') + ' líneas (→ / ←)', xpIc: FC_IC.chevr,
+        stop: function (e) { e.stopPropagation(); },
+        chk: function (e) { if (e.target.checked) { V.selected[v.id] = 1; V.scope = 'sel'; } else delete V.selected[v.id]; V.curE = v.id; self.fcFocus(k); self.bump(); },
+        xp: go(function () { self.fcToggleExp(F, V, k, !xo); }),
+        click: go(function () { self.fcRowClick(F, V, 'e', v.id); }),
+        open: go(function () { self.fcSetActive(V, 'e', v.id, true); self.fcFocus(k); }),
+        ctx: function (e) { e.preventDefault(); e.stopPropagation(); V.curE = v.id; self.fcOpenMenu(V, v.id, e.clientX, e.clientY, e.currentTarget); self.bump(); },
+        key: function (e) { self.fcRowKey(F, V, e, 'e', v.id, ekeys); }
+      };
+      if (xo) r.x = self.fcXPanel(F, V, 'e', v);
+      return r;
+    });
+
+    /* detalle */
+    m.fd = this.fcDetailVals(F, V, cw, can, NOPERM, openDlg);
+    /* menú contextual y diálogos */
+    m.fm = this.fcMenuVals(F, V, can, NOPERM, openDlg);
+    m.fx = this.fcDlgVals(F, V, can, NOPERM);
+    m.fcKey = function (e) { self.fcRootKey(F, V, e); };
+    return m;
+  }
+
+  fcRowClick(F, V, t, id) {
+    if (t === 'p') { if (V.progSel !== id) { V.progSel = V.progSel === id ? null : id; V.curP = id; if (V.detailOpen) V.active = { t: 'p', id: id }; } else { V.curP = id; if (V.detailOpen) V.active = { t: 'p', id: id }; } }
+    else { V.curE = id; V.active = { t: 'e', id: id }; }
+    this.fcFocus(t + ':' + id);
+  }
+  fcToggleExp(F, V, key, open) {
+    var self = this, isOpen = !!V.exp[key]; if (open === isOpen) return;
+    if (isOpen && V.edit && V.edit.key === key) { this.fcGuard(F, V, function () { delete V.exp[key]; self.fcFocus(key); }); return; }
+    if (isOpen) delete V.exp[key]; else V.exp[key] = true;
+    this.fcFocus(key);
+  }
+  fcRowKey(F, V, e, t, id, keys) {
+    var key = t + ':' + id, i = keys.indexOf(key), j = null, self = this;
+    if (e.target !== e.currentTarget) return;
+    if (e.key === 'ArrowDown') j = Math.min(i + 1, keys.length - 1); else if (e.key === 'ArrowUp') j = Math.max(i - 1, 0);
+    else if (e.key === 'Home') j = 0; else if (e.key === 'End') j = keys.length - 1; else if (e.key === 'PageDown') j = Math.min(i + 10, keys.length - 1); else if (e.key === 'PageUp') j = Math.max(i - 10, 0);
+    if (j !== null) {
+      e.preventDefault(); var k = keys[j], id2 = +k.slice(2);
+      if (t === 'e') V.curE = id2; else V.curP = id2;
+      if (V.detailOpen && V.active && V.active.t === t) V.active = { t: t, id: id2 };
+      this.fcFocus(k); return this.bump();
+    }
+    if (e.key === 'Enter') { e.preventDefault(); this.fcSetActive(V, t, id, true); this.fcFocus(key); return this.bump(); }
+    if (e.key === 'ArrowRight' || e.key === '+') { e.preventDefault(); this.fcToggleExp(F, V, key, true); return this.bump(); }
+    if (e.key === 'ArrowLeft' || e.key === '-') { e.preventDefault(); this.fcToggleExp(F, V, key, false); return this.bump(); }
+    if (t === 'p' && (e.key === 'f' || e.key === 'F') && !e.ctrlKey) { e.preventDefault(); V.progSel = V.progSel === id ? null : id; V.curP = id; this.fcFocus(key); return this.bump(); }
+    if (e.key === ' ') {
+      e.preventDefault();
+      if (t === 'p') { if (V.psel[id]) delete V.psel[id]; else V.psel[id] = 1; V.curP = id; }
+      else { if (V.selected[id]) delete V.selected[id]; else { V.selected[id] = 1; V.scope = 'sel'; } V.curE = id; }
+      this.fcFocus(key); return this.bump();
+    }
+    if (t === 'e' && e.ctrlKey && (e.key === 'a' || e.key === 'A')) { e.preventDefault(); keys.forEach(function (k) { V.selected[+k.slice(2)] = 1; }); V.scope = 'sel'; this.fcFocus(key); return this.bump(); }
+    if (t === 'e' && (e.key === 'ContextMenu' || (e.shiftKey && e.key === 'F10'))) { e.preventDefault(); var r = e.currentTarget.getBoundingClientRect(); this.fcOpenMenu(V, id, r.left + 160, r.bottom, e.currentTarget); return this.bump(); }
+  }
+  fcRootKey(F, V, e) {
+    var self = this;
+    if (e.key === 'Escape') {
+      if (V.dlg) { e.preventDefault(); V.dlg = null; return this.bump(); }
+      if (V.menu) { e.preventDefault(); var mk = 'e:' + V.menu.id; V.menu = null; this.fcFocus(mk); return this.bump(); }
+      var xr = e.target.closest && e.target.closest('[data-fc-x]');
+      if (xr) { e.preventDefault(); this.fcFocus(xr.getAttribute('data-fc-x')); return this.bump(); }
+      if (V.detailOpen) { e.preventDefault(); var ak = V.active ? V.active.t + ':' + V.active.id : null; V.detailOpen = false; if (ak) this.fcFocus(ak); return this.bump(); }
+      return;
+    }
+    if (V.dlg) return;
+    if (V.edit && e.ctrlKey && (e.key === 'g' || e.key === 'G' || e.key === 's' || e.key === 'S')) { e.preventDefault(); this.fcSaveEdit(F, V); return this.bump(); }
+    if (e.altKey && (e.key === 'p' || e.key === 'P')) { e.preventDefault(); V.progCollapsed = !V.progCollapsed; return this.bump(); }
+    if (e.ctrlKey && (e.key === 'f' || e.key === 'F')) { e.preventDefault(); this.fcFocus('q'); return this.bump(); }
+  }
+  fcOpenMenu(V, id, x, y, el) {
+    var root = el && el.closest ? el.closest('.fcx') : null, rr = root ? root.getBoundingClientRect() : { left: 0, top: 0, width: 2000, height: 2000 };
+    V.menu = { id: id, x: Math.min(x - rr.left, rr.width - 250), y: Math.min(y - rr.top, rr.height - 330) };
+    this.fcFocus('menu');
+  }
+  fcInvActs(F, V, v, can, NOPERM, openDlg) {
+    var self = this, L = [], p = v.prog ? F.progById(v.prog) : null;
+    var A = function (t, ic, act, why, cls, fn) { L.push({ t: t, ic: ic, act: act, why: why || null, cls: cls || '', fn: fn }); };
+    if (v.est === 'BOR') {
+      A('Ver borrador', 'doc', 'doc', null, '', function () { openDlg({ kind: 'doc', id: v.id }); });
+      A('Editar borrador', 'edit', 'd-edit', !can ? NOPERM : null, '', function () { self.toast('Abriría el editor del borrador (fuera del alcance de esta maqueta).'); });
+      A('Emitir…', 'send', 'd-emit', !can ? NOPERM : null, 'fc-pri', function () { self.fcGuard(F, V, function () { openDlg({ kind: 'emit', id: v.id }); }); });
+      A('Eliminar borrador', 'trash', 'd-del', !can ? NOPERM : null, 'fc-danger', function () { openDlg({ kind: 'del', id: v.id }); });
+    } else {
+      A('Ver documento', 'doc', 'doc', null, '', function () { openDlg({ kind: 'doc', id: v.id }); });
+      A('Preparar correo…', 'mail', 'mail', !can ? NOPERM : !v.dest.mail ? 'El cliente no tiene email marcado para el envío de facturas. Añádelo en la pestaña Contacto de su ficha.' : null, '', function () { openDlg({ kind: 'mail', id: v.id, to: v.dest.mail || '', cc: '', sub: 'Factura ' + F.invNum(v) + ' · ' + F.SOC.n, body: 'Buenos días:\n\nLes adjuntamos la factura ' + F.invNum(v) + ' de ' + F.fd(v.fecha) + ' por importe de ' + F.money(v.total) + '.\n\nUn saludo,\n' + OPS[self.S.op].short + ' · ' + F.SOC.n }); });
+      A(p ? 'Programación ' + F.progCode(p) : 'Programación de origen', 'repeat', 'goprog', p ? null : 'Emitida manualmente: no procede de ninguna programación.', '', function () { self.fcGoProg(F, V, v.prog); });
+      if (v.tipo === 'R1') A('Ver factura rectificada', 'undo', 'goinv-orig', null, '', function () { self.fcGoInv(F, V, v.rectOf); });
+      else if (v.rectBy) A('Ver rectificativa', 'undo', 'goinv-rect', null, '', function () { self.fcGoInv(F, V, v.rectBy); });
+      else A('Rectificar…', 'undo', 'rect', !can ? NOPERM : ['PEN', 'ENV', 'ERR'].indexOf(v.vf) >= 0 ? 'Espera a que VeriFactu acepte el registro antes de rectificar.' : v.vf === 'REC' ? 'El registro fue rechazado: corresponde subsanarlo, no rectificarlo (propuesta).' : null, '', function () { openDlg({ kind: 'rect', id: v.id, mot: '' }); });
+    }
+    return L;
+  }
+  fcMenuVals(F, V, can, NOPERM, openDlg) {
+    var self = this, mn = V.menu, v = mn ? F.invById(mn.id) : null;
+    if (!mn || !v) return { on: false };
+    var close = function () { V.menu = null; };
+    var items = [{ t: 'Consultar detalle', ic: 'eye', act: 'm-open', fn: function () { self.fcSetActive(V, 'e', v.id, true); } }].concat(this.fcInvActs(F, V, v, can, NOPERM, openDlg));
+    return {
+      on: true, pos: 'left: ' + Math.max(8, mn.x) + 'px; top: ' + Math.max(8, mn.y) + 'px', lbl: 'Acciones de ' + F.invNum(v),
+      items: items.map(function (a, i) { return { t: a.t, ic: FC_IC[a.ic], dis: !!a.why, tip: a.why || FC_TIP[a.act] || (a.act === 'm-open' ? 'Abre el detalle de la factura' : a.t), fk: i === 0 ? 'fc:menu' : '',
+        on: function (e) { e.stopPropagation(); if (a.why) { self.toast(a.why); return self.bump(); } close(); a.fn(); self.bump(); } }; }),
+      selT: V.selected[v.id] ? 'Quitar de la selección' : 'Añadir a la selección', checkIc: FC_IC.check,
+      sel: function (e) { e.stopPropagation(); if (V.selected[v.id]) delete V.selected[v.id]; else { V.selected[v.id] = 1; V.scope = 'sel'; } close(); self.fcFocus('e:' + v.id); self.bump(); },
+      close: function (e) { if (e) e.preventDefault(); close(); self.fcFocus('e:' + v.id); self.bump(); }
+    };
+  }
+
+  fcXPanel(F, V, t, r) {
+    var self = this, key = t + ':' + r.id, E = V.edit && V.edit.key === key ? V.edit : null, why = this.fcLockWhy(F, key), title = t === 'p' ? F.progCode(r) : F.invNum(r);
+    var x = { cls: 'fc-xp' + (E ? ' fc-ed' : ''), xk: key, title: title, n: String((E ? E.lines : r.lines).length), ed: !!E, ro: !E, lock: !E && !!why, lockT: why || '', lockIc: FC_IC.lock, editIc: FC_IC.edit,
+      canEdit: !E && !why, editB: this.fcB('Editar líneas', { act: 'x-edit', icon: 'edit', title: 'Modificar, añadir o eliminar líneas', fn: function () { self.fcStartEdit(F, V, key); self.bump(); } }),
+      gcols: 'grid-template-columns: 30px minmax(200px, 1fr) 100px 64px 110px 78px 70px 110px 114px 230px 34px', isProg: t === 'p' };
+    var lines, rp;
+    if (E) {
+      lines = this.fcDraftLines(F, V); rp = F.numES(E.rp) || 0;
+      var fld = function (i, f, cls, lab, ph) {
+        var er = E.err[i + f]; return { v: E.lines[i][f], cls: 'fc-in fc-xin' + (cls ? ' ' + cls : '') + (er ? ' fc-err' : ''), tip: er || FC_XTIP[f], inv: String(!!er), lbl: lab + ' de la línea ' + (i + 1), ph: ph || '', fk: 'fc:x:' + key + ':' + i + f,
+          set: function (e) { E.lines[i][f] = e.target.value; if (E.err[i + f]) delete E.err[i + f]; self.fcFocus('x:' + key + ':' + i + f); self.bump(); } };
+      };
+      x.rows = E.lines.map(function (l, i) {
+        var q = F.numES(l.q), p = F.numES(l.p), ok = !isNaN(q) && !isNaN(p);
+        return { cls: 'fc-gl' + (l._o == null ? ' fc-xnew' : ''), i: String(i + 1), c: fld(i, 'c', '', 'Descripción'), p: fld(i, 'p', 'fc-r', 'Precio neto'), q: fld(i, 'q', 'fc-r', 'Cantidad'), d: fld(i, 'd', 'fc-r', 'Descuento', '—'), n: fld(i, 'n', '', 'Notas'),
+          imp: ok ? F.money(q * p) : '—', pb: isNaN(p) ? '—' : F.money(F.bruto(p, +l.iva)), ib: ok ? F.money(F.r2(q * p * (1 + l.iva / 100))) : '—',
+          iva: String(l.iva), ivaLbl: 'IVA de la línea ' + (i + 1), ivas: [{ v: '21', t: '21 %' }, { v: '10', t: '10 %' }, { v: '4', t: '4 %' }, { v: '0', t: 'Exento' }],
+          setIva: function (e) { E.lines[i].iva = +e.target.value; self.bump(); },
+          delLbl: 'Eliminar la línea ' + (i + 1), trashIc: FC_IC.trash,
+          del: function (e) { e.stopPropagation(); var l0 = E.lines[i]; E.lines.splice(i, 1); E.err = {}; self.toast('Línea ' + (i + 1) + ' eliminada' + (l0.c ? ' («' + l0.c.slice(0, 40) + '»)' : '') + '. Pulsa Descartar para recuperarla.'); self.bump(); } };
+      });
+      var er = E.err.rprp;
+      x.rpv = E.rp; x.rpCls = 'fc-in fc-xin fc-r' + (er ? ' fc-err' : ''); x.rpTip = er || 'Porcentaje de retención IRPF sobre el importe neto; 0 = sin retención'; x.rpInv = String(!!er);
+      x.setRp = function (e) { E.rp = e.target.value; delete E.err.rprp; self.fcFocus('x:' + key + ':rp'); self.bump(); }; x.rpFk = 'fc:x:' + key + ':rp';
+      x.addB = this.fcB('Añadir línea', { act: 'x-add', icon: 'plus', fn: function () { E.lines.push({ c: '', q: '1', p: '0,00', iva: 21, d: '', n: '', _o: null }); self.fcFocus('x:' + key + ':' + (E.lines.length - 1) + 'c'); self.bump(); } });
+      var n = this.fcEditChanges(F, V);
+      x.dirty = n > 0; x.cnt = n ? n + ' cambio' + (n > 1 ? 's' : '') + ' sin guardar' : 'Sin cambios';
+      x.note = t === 'p' ? 'Se aplicarán a las próximas emisiones; las facturas ya generadas no cambian.' : 'Ctrl+G guarda · Tab recorre los campos';
+      x.save = function (e) { e.stopPropagation(); self.fcSaveEdit(F, V); self.bump(); };
+      x.discard = function (e) { e.stopPropagation(); V.edit = null; self.fcFocus(key); self.bump(); };
+      x.retNote = 'Sobre el importe neto; 0 = sin retención';
+    } else {
+      lines = r.lines; rp = r.rp || 0;
+      x.rows = r.lines.map(function (l, i) {
+        return { i: String(i + 1), c: l.c, ex: l.ex ? ' · ' + l.ex : '', per: t === 'p' && i === 0, p: F.money(l.p), q: F.fmtQ(l.q).replace('-', '−'), imp: F.money(l.q * l.p), iva: l.iva ? l.iva + ' %' : 'Exento',
+          d: l.d ? F.fmtN(l.d, 2).replace('-', '−') + ' %' : '', pb: F.money(F.bruto(l.p, l.iva)), ib: F.money(F.r2(l.q * l.p * (1 + l.iva / 100))), n: l.n || '' };
+      });
+      x.retNote = 'Sobre el importe neto';
+    }
+    var c = F.calc(lines, rp), qs = lines.reduce(function (s, l) { return s + (+l.q || 0); }, 0);
+    x.tq = F.fmtQ(F.r2(qs)); x.tneto = F.money(c.base); x.tbruto = F.money(F.r2(c.base + c.iva));
+    x.showRet = !!E || !!rp; x.retV = c.ret ? '−' + F.money(c.ret) : '—'; x.retRo = !E; x.retLbl = 'Retención ' + F.fmtQ(rp) + ' %';
+    x.liq = c.ret !== 0; x.liqV = F.money(c.total);
+    return x;
+  }
+
+  fcDetailVals(F, V, cw, can, NOPERM, openDlg) {
+    var self = this;
+    if (!V.detailOpen || !V.active) return { on: false };
+    var close = function () { var k = V.active.t + ':' + V.active.id; V.detailOpen = false; self.fcFocus(k); self.bump(); };
+    var d = { on: true, cls: 'fc-detail' + (cw < 1240 ? ' fc-over' : ''), close: close, xIc: FC_IC.x, lockIc: FC_IC.lock, infoIc: FC_IC.info };
+    var B = function (l, o) { return self.fcB(l, o); };
+    if (V.active.t === 'e') {
+      var v = F.invById(V.active.id); if (!v) { V.detailOpen = false; return { on: false }; }
+      var p = v.prog ? F.progById(v.prog) : null;
+      d.isE = true; d.isP = false;
+      d.kind = v.est === 'BOR' ? 'Borrador de factura · no emitida' : v.tipo === 'R1' ? 'Factura rectificativa' : 'Factura emitida';
+      d.title = F.invNum(v); d.sub = v.dest.n + ' · ' + F.fd(v.fecha);
+      d.stA = { l: 'Estado de la factura', pill: this.fcPill(F, v.est) }; d.stVf = this.fcVfTag(F, v.vf); d.stTotal = F.money(v.total);
+      d.acts = this.fcInvActs(F, V, v, can, NOPERM, openDlg).map(function (a) { return B(a.t, { icon: a.ic, act: a.act, why: a.why, cls: 'fc-sm ' + a.cls, fn: function () { a.fn(); self.bump(); } }); });
+      d.tabs = [['res', 'Resumen', 'Cabecera, destinatario, emisor e importes'], ['lin', 'Líneas (' + v.lines.length + ')', 'Líneas de la factura'], ['vf', 'VeriFactu', 'Registro y envíos a VeriFactu'], ['doc', 'Documentos y envíos', 'Documento PDF y envíos por correo']].map(function (x) {
+        return { t: x[1], tip: x[2], on: V.dtab === x[0], sel: String(V.dtab === x[0]), fk: 'fc:dtab:' + x[0], pick: function (e) { e.stopPropagation(); V.dtab = x[0]; self.fcFocus('dtab:' + x[0]); self.bump(); } };
+      });
+      d.res = V.dtab === 'res'; d.lin = V.dtab === 'lin'; d.vf = V.dtab === 'vf'; d.doc = V.dtab === 'doc';
+      if (d.res) {
+        var orig = v.tipo === 'R1' ? F.invById(v.rectOf) : null, rb = v.rectBy ? F.invById(v.rectBy) : null;
+        d.note = v.est === 'BOR' ? { cls: 'fc-note fc-warn', ic: FC_IC.info, t: 'Borrador sin número ni registro VeriFactu. Puede modificarse; al emitirlo se numera y deja de ser editable.' }
+          : { cls: 'fc-note', ic: FC_IC.lock, t: 'Una factura emitida no se modifica. Para corregirla se emite una rectificativa' + (v.vf === 'REC' ? ' o, si VeriFactu la rechazó, se subsana' : '') + '. Solo pueden cambiarse sus notas internas.' };
+        var kv = function (k, val, o) { return self.fcKv(k, val, o); };
+        var cab = [kv('Serie y número', v.est === 'BOR' ? 'Se asignará al emitir' : F.invNum(v), { mono: v.est !== 'BOR', it: v.est === 'BOR' }),
+          kv('Tipo', v.tipo === 'R1' ? 'R1 · Rectificativa por diferencias' : 'F1 · Factura completa'),
+          kv('Fecha de expedición', F.fd(v.fecha) + (v.est === 'BOR' ? ' (prevista)' : '')), kv('Fecha de operación', F.fd(v.fop)), kv('Forma de pago', v.fp),
+          kv('Vencimiento', F.fd(F.addD(v.fecha, v.fp === F.FP30 ? 30 : v.fp === F.FPDOM ? 4 : 0))),
+          p ? kv('Origen', F.progCode(p) + ' · ' + p.desc, { on: function (e) { e.stopPropagation(); self.fcGoProg(F, V, p.id); self.bump(); }, tip: 'Abre la programación que generó esta factura' }) : kv('Origen', v.tipo === 'R1' ? 'Rectificación manual' : 'Emitida manualmente (sin programación)'),
+          kv('Notas', v.notas || '—', { mut: !v.notas })];
+        if (orig) cab.push(kv('Rectifica a', F.invNum(orig), { on: function (e) { e.stopPropagation(); self.fcGoInv(F, V, orig.id); self.bump(); }, tip: 'Abre la factura que esta rectificativa corrige', after: ' · ' + (v.motivo || '') }));
+        if (rb) cab.push(kv('Rectificada por', F.invNum(rb), { on: function (e) { e.stopPropagation(); self.fcGoInv(F, V, rb.id); self.bump(); }, tip: 'Abre la factura rectificativa que corrige a esta', after: ' del ' + F.fd(rb.fecha) }));
+        d.cab = cab;
+        d.dest = [kv('Nombre', v.dest.n), kv('NIF', v.dest.nif, { mono: true }), kv('Domicilio', v.dest.dom), kv('Email de envío', v.dest.mail || 'Sin email para facturas', { mut: !v.dest.mail })];
+        d.destHint = v.est === 'BOR' ? 'Se tomarán de la ficha del tercero al emitir.' : 'Datos con los que se emitió. Los cambios posteriores en la ficha del tercero no modifican la factura.';
+        d.emi = [kv('Sociedad', F.SOC.n + ' · ' + F.SOC.nif), kv('Domicilio', F.SOC.dom)];
+        d.tots = this.fcTotals(F, v);
+      }
+      if (d.lin) {
+        var lw = this.fcLockWhy(F, 'e:' + v.id);
+        d.lLock = !!lw; d.lLockT = lw || ''; d.lCan = !lw;
+        d.lEditB = B('Editar líneas en el listado', { icon: 'edit', title: 'Abre las líneas en la fila de la factura para modificarlas', fn: function () { self.fcStartEdit(F, V, 'e:' + v.id); self.bump(); } });
+        d.lines = v.lines.map(function (l) { return { c: l.c, ex: l.ex || '', hasEx: !!l.ex, q: String(l.q).replace('-', '−'), p: F.money(l.p), iva: l.iva + ' %', imp: F.money(l.q * l.p) }; });
+        d.tots = this.fcTotals(F, v);
+      }
+      if (d.vf) {
+        d.vfNa = v.est === 'BOR'; d.vfOn = !d.vfNa;
+        if (d.vfOn) {
+          var box = { ACE: ['fc-note fc-ok', 'check', 'Registro aceptado por la AEAT.'], ACW: ['fc-note fc-warn', 'warn', 'Aceptado con errores: ' + v.vfMsg], REC: ['fc-note fc-err', 'xc', 'Rechazado: ' + v.vfMsg], ERR: ['fc-note fc-warn', 'plug', v.vfMsg], PEN: ['fc-note', 'clock', 'El registro está generado y encadenado; se enviará en el próximo ciclo (cada 2 minutos en la maqueta).'], ENV: ['fc-note', 'spin', 'Enviando el registro a la AEAT…'] }[v.vf];
+          d.vfNote = { cls: box[0], ic: FC_IC[box[1]], t: box[2] };
+          d.vfActs = []; d.vfProp = false;
+          if (v.vf === 'PEN' || v.vf === 'ERR') d.vfActs.push(B('Enviar ahora', { icon: 'send', act: 'vf-retry', why: !can ? NOPERM : null, fn: function () { self.fcSimSend(F, [v]); self.bump(); } }));
+          if (v.vf === 'REC' || v.vf === 'ACW') { d.vfProp = true; d.vfActs.push(B(v.vf === 'REC' ? 'Preparar subsanación…' : 'Subsanar…', { icon: 'edit', act: 'vf-fix', why: !can ? NOPERM : null, fn: function () { self.toast('Abriría la subsanación del registro: corregir los datos y reenviar como subsanación (propuesta pendiente de definir).'); self.bump(); } })); }
+          d.vfHasActs = d.vfActs.length > 0;
+          d.reg = [this.fcKv('Tipo de registro', 'Alta' + (v.tipo === 'R1' ? ' · factura rectificativa' : '')), this.fcKv('Generado', F.fdt(v.vfAt)), this.fcKv('CSV de la AEAT', v.csv || 'Sin CSV (no aceptado)', { mono: !!v.csv, mut: !v.csv })];
+          d.hash = v.huella.slice(0, 32) + '…'; d.hashFull = v.huella; d.hashPrev = F.hh('h' + (v.id - 1)).slice(0, 32) + '…';
+          d.qr = this.fcQR(v.id);
+          d.hist = v.vfLog.map(function (x) { return { at: F.fdt(x.at), op: x.op, res: x.res }; });
+        }
+      }
+      if (d.doc) {
+        d.fn = (v.est === 'BOR' ? 'Borrador_B-' + F.p2(v.draftNo, 4) : F.invNum(v).replace(/[ /]/g, '_')) + '.pdf';
+        d.fnSub = v.est === 'BOR' ? 'Vista previa, sin validez' : 'Generado automáticamente al emitir · ' + F.fd(v.fecha);
+        d.docIc = FC_IC.doc; d.verB = B('Ver', { icon: 'eye', act: 'doc', fn: function () { openDlg({ kind: 'doc', id: v.id }); self.bump(); } });
+        d.mails = v.mails.map(function (x) { return { at: F.fdt(x.at), to: x.to, st: x.st, sim: x.st === 'Simulado', nsim: x.st !== 'Simulado' }; });
+        d.hasMails = v.mails.length > 0; d.noMails = !d.hasMails; d.noMailT = v.est === 'BOR' ? 'Los borradores no se envían.' : 'Todavía no se ha enviado por correo.';
+      }
+    } else {
+      var pr = F.progById(V.active.id); if (!pr) { V.detailOpen = false; return { on: false }; }
+      var c = F.cliById(pr.cli), tt = F.calc(pr.lines, pr.rp), nd = F.nextDate(pr), n = F.genCount(pr);
+      var last = F.INV.filter(function (x) { return x.prog === pr.id; }).sort(function (a, b) { return b.fecha - a.fecha; })[0];
+      d.isE = false; d.isP = true; d.kind = 'Factura programada'; d.title = F.progCode(pr); d.sub = pr.desc + ' · ' + c.n;
+      d.stA = { l: 'Estado', pill: this.fcPst(F, pr.estado) }; d.stNext = nd ? F.fd(nd) : pr.estado === 'P' ? 'En pausa' : '—'; d.stTotal = F.money(tt.total);
+      d.acts = [B('Ver facturas generadas (' + n + ')', { icon: 'funnel', act: 'p-filter', cls: 'fc-sm fc-pri', fn: function () { V.progSel = pr.id; self.toast('Emitidas filtradas por ' + F.progCode(pr) + '.'); self.bump(); } }),
+        B('Editar…', { icon: 'edit', act: 'p-edit', why: !can ? NOPERM : pr.estado === 'F' ? 'Una programación finalizada no se edita.' : null, fn: function () { openDlg(self.fcProgDlg(F, V, pr)); self.bump(); } })];
+      if (pr.estado === 'A') d.acts.push(B('Pausar', { icon: 'pause', act: 'p-pause', why: !can ? NOPERM : null, fn: function () { openDlg({ kind: 'pause', id: pr.id }); self.bump(); } }));
+      if (pr.estado === 'P') d.acts.push(B('Reanudar', { icon: 'play', act: 'p-resume', why: !can ? NOPERM : null, fn: function () { openDlg({ kind: 'resume', id: pr.id }); self.bump(); } }));
+      d.pDest = [this.fcKv('Cliente', c.n + ' · ' + c.nif), this.fcKv('Domicilio', c.dom), this.fcKv('Email de envío', c.mail || 'Sin email para facturas', { mut: !c.mail })];
+      var plw = this.fcLockWhy(F, 'p:' + pr.id);
+      d.pLock = !!plw; d.pLockT = plw || ''; d.pCan = !plw;
+      d.pEditB = B('Editar líneas en el listado', { icon: 'edit', act: 'x-edit', fn: function () { self.fcStartEdit(F, V, 'p:' + pr.id); self.bump(); } });
+      d.pLines = pr.lines.map(function (l) { return { c: l.c, perH: '+ periodo facturado (p. ej. «' + F.perLabel(pr, nd || pr.inicio) + '»)', q: String(l.q), p: F.money(l.p), iva: l.iva + ' %', imp: F.money(l.q * l.p) }; });
+      d.tots = this.fcTotals(F, Object.assign({ rp: pr.rp }, tt));
+      d.cond = [this.fcKv('Notas', pr.notas || '—', { mut: !pr.notas }), this.fcKv('Periodicidad', F.PER[pr.per].t + ' · día ' + pr.inicio.getDate() + ' de cada periodo'), this.fcKv('Vigencia', F.vigencia(pr)),
+        this.fcKv('Próxima emisión', nd ? F.fd(nd) : pr.estado === 'P' ? 'En pausa desde ' + F.fd(pr.pausa) : 'Sin emisiones futuras'),
+        this.fcKv('Generadas (' + F.SOC.ej + ')', n + (last ? ' · última ' + F.invNum(last) + ' del ' + F.fd(last.fecha) : ''))];
+      d.fact = [this.fcKv('Serie', 'F · Ordinarias'), this.fcKv('Tipo', 'F1 · Factura completa'), this.fcKv('Forma de pago', pr.fp), this.fcKv('Retención', pr.rp ? pr.rp + ' % IRPF' : 'Sin retención'), this.fcKv('Envío por correo', pr.mail ? 'Sí, al emitir, a los emails marcados para facturas' : 'No')];
+    }
+    return d;
+  }
+
+  fcProgDlg(F, V, p) {
+    var c0 = p ? p.cli : V.cliente;
+    var first = F.addM(new Date(F.TODAY.getFullYear(), F.TODAY.getMonth(), 1), 1);
+    return { kind: 'prog', id: p ? p.id : null, cli: String(c0 || F.CLI[0].id), desc: p ? p.desc : '', per: p ? p.per : 'M', ini: F.fd(p ? p.inicio : first), fin: p && p.fin ? F.fd(p.fin) : '', imp: '100,00', mail: p ? p.mail : true, err: {} };
+  }
+
+  fcDlgVals(F, V, can, NOPERM) {
+    var self = this, d = V.dlg;
+    if (!d) return { on: false };
+    var close = function (e) { if (e && e.stopPropagation) e.stopPropagation(); V.dlg = null; self.bump(); };
+    var fx = { on: true, cls: 'fc-dlg', sim: true, close: close, cancelT: 'Cancelar', acts: [], xIc: FC_IC.x, infoIc: FC_IC.info, warnIc: FC_IC.warn, docIc: FC_IC.doc };
+    fx[d.kind] = true;
+    var act = function (t, o) { o = o || {}; fx.acts.push({ t: t, cls: 'fc-btn ' + (o.cls || 'fc-pri'), dis: !!o.why, tip: o.why || o.tip || t, ic: FC_IC[o.icon] || [], hasIc: !!o.icon,
+      on: function (e) { e.stopPropagation(); if (o.why) { self.toast(o.why); return self.bump(); } if (o.fn() === false) return self.bump(); if (V.dlg === d) V.dlg = null; self.bump(); } }); };
+    var field = function (k, o) { o = o || {}; return { v: d[k], set: function (e) { d[k] = o.chk ? e.target.checked : e.target.value; if (d.err) delete d.err[k]; self.fcFocus('dlg:' + k); self.bump(); }, fk: 'fc:dlg:' + k, cls: 'fc-in' + (d.err && d.err[k] ? ' fc-err' : ''), tip: (d.err && d.err[k]) || o.tip || '', inv: String(!!(d.err && d.err[k])) }; };
+    var v = d.id && d.kind !== 'prog' && d.kind !== 'pause' && d.kind !== 'resume' ? F.invById(d.id) : null;
+    if (d.kind === 'guard') {
+      fx.sim = false; fx.title = 'Cambios sin guardar'; fx.cancelT = 'Seguir editando';
+      var n = this.fcEditChanges(F, V); fx.gT = this.fcRecTitle(F, V.edit.key); fx.gN = n + ' cambio' + (n > 1 ? 's' : '') + ' sin guardar';
+      act('Guardar', { tip: 'Guarda los cambios de las líneas y continúa', fn: function () { V.dlg = null; if (self.fcSaveEdit(F, V)) d.next(); } });
+      act('Descartar', { cls: '', tip: 'Descarta los cambios de las líneas y continúa', fn: function () { V.dlg = null; V.edit = null; d.next(); } });
+    }
+    if (d.kind === 'kbd') { fx.sim = false; fx.title = 'Atajos de teclado'; fx.cancelT = 'Cerrar'; }
+    if (d.kind === 'doc') {
+      fx.cls = 'fc-dlg fc-wide'; fx.title = 'Vista previa · ' + F.invNum(v); fx.draft = v.est === 'BOR'; fx.nodraft = !fx.draft;
+      fx.socN = F.SOC.n; fx.socNif = F.SOC.nif; fx.socDom = F.SOC.dom; fx.docT = v.tipo === 'R1' ? 'Factura rectificativa' : 'Factura'; fx.docNum = v.est === 'BOR' ? 'Borrador' : 'Nº ' + F.invNum(v); fx.docFecha = 'Fecha: ' + F.fd(v.fecha);
+      fx.dest = v.dest; fx.lines = v.lines.map(function (l) { return { c: l.c, q: String(l.q).replace('-', '−'), p: F.money(l.p), iva: l.iva + ' %', imp: F.money(l.q * l.p) }; });
+      fx.qr = this.fcQR(v.id); fx.tots = this.fcTotals(F, v); fx.fp = 'Forma de pago: ' + v.fp;
+      act('Descargar PDF', { icon: 'dl', tip: 'Prepara el PDF de la factura (simulado)', fn: function () { self.toast('PDF de ' + F.invNum(v) + ' preparado. No se ha descargado ningún fichero.'); return false; } });
+    }
+    if (d.kind === 'mail') {
+      fx.title = 'Preparar correo · ' + F.invNum(v); fx.to = field('to', { tip: 'Destinatario del correo' }); fx.cc = field('cc', { tip: 'Destinatarios en copia, separados por punto y coma' }); fx.sub = field('sub', { tip: 'Asunto del correo' }); fx.body = field('body', { tip: 'Texto del correo' });
+      fx.att = F.invNum(v).replace(/[ /]/g, '_') + '.pdf';
+      act('Simular envío', { icon: 'send', tip: 'Registra el envío como simulado; no se envía ningún correo', fn: function () {
+        var to = String(d.to || '').trim(); if (!/^\S+@\S+\.\S+$/.test(to)) { d.err = { to: 'Indica un email válido' }; self.fcFocus('dlg:to'); return false; }
+        v.mails.push({ at: new Date(), to: to, st: 'Simulado' }); V.dtab = 'doc'; self.toast('Correo de ' + F.invNum(v) + ' a ' + to + ' registrado como simulado. No se ha enviado.'); } });
+    }
+    if (d.kind === 'rect') {
+      fx.title = 'Rectificar ' + F.invNum(v); fx.rNum = F.invNum(v); fx.mot = field('mot', { tip: 'Motivo que constará en la factura rectificativa' });
+      act('Crear borrador rectificativo', { tip: 'Crea un borrador de factura rectificativa enlazado a la original', fn: function () {
+        var mt = String(d.mot || '').trim(); if (!mt) { d.err = { mot: 'Indica el motivo de la rectificación' }; self.fcFocus('dlg:mot'); return false; }
+        var dn = Math.max.apply(null, [0].concat(F.INV.map(function (x) { return x.draftNo || 0; }))) + 1;
+        var r = F.mkInv({ fecha: F.TODAY, cli: v.cli, serie: null, est: 'BOR', vf: 'NA', draftNo: dn, tipo: 'R1', rectOf: v.id, motivo: mt, fp: v.fp, lines: [{ c: 'Rectificación de ' + F.invNum(v) + ': ' + mt, q: -1, p: 0, iva: 21 }] });
+        Object.assign(r, F.calc(r.lines, 0)); F.INV.push(r); self.toast('Borrador rectificativo B-' + F.p2(dn, 4) + ' creado en la maqueta.'); V.dlg = null; self.fcGoInv(F, V, r.id); } });
+    }
+    if (d.kind === 'emit') {
+      var s = v.tipo === 'R1' ? 'R' : 'F', nn = F.nextNum(s);
+      fx.title = 'Emitir ' + F.invNum(v); fx.eNum = s + ' ' + F.SOC.ej + '/' + F.p2(nn, 4); fx.eFecha = F.fd(F.TODAY); fx.eCli = v.dest.n; fx.eTot = F.money(v.total);
+      act('Emitir (simulado)', { icon: 'send', tip: 'Numera la factura y genera su registro VeriFactu (simulado)', fn: function () {
+        Object.assign(v, { serie: s, num: nn, est: 'EMI', fecha: F.TODAY, fop: F.TODAY, vf: 'PEN', vfAt: new Date(), huella: F.hh('h' + v.id), csv: null }); v.vfLog = [{ at: new Date(), op: v.tipo === 'R1' ? 'Alta (rectificativa)' : 'Alta', res: 'En cola' }];
+        if (v.tipo === 'R1' && v.rectOf) { var o = F.invById(v.rectOf); o.est = 'RCT'; o.rectBy = v.id; }
+        self.toast('Emitida ' + F.invNum(v) + '. Registro VeriFactu en cola.'); self.fcSimSend(F, [v]); } });
+    }
+    if (d.kind === 'del') {
+      fx.title = 'Eliminar ' + F.invNum(v); fx.dT = 'El borrador de ' + v.dest.n + ' por ' + F.money(v.total) + ' se eliminará. No tiene número ni registro VeriFactu.';
+      act('Eliminar', { cls: 'fc-danger', tip: 'Elimina el borrador de la maqueta', fn: function () { F.setINV(F.INV.filter(function (x) { return x.id !== v.id; })); delete V.selected[v.id]; V.detailOpen = false; self.toast('Borrador eliminado de la maqueta.'); } });
+    }
+    if (d.kind === 'pause' || d.kind === 'resume') {
+      var pp = F.progById(d.id), pause = d.kind === 'pause';
+      fx.title = (pause ? 'Pausar ' : 'Reanudar ') + F.progCode(pp);
+      fx.pT = pause ? 'Mientras esté en pausa no se generarán facturas. La próxima emisión prevista era el ' + F.fd(F.nextDate(pp)) + '.' : 'Se reanudará la generación. La próxima emisión será el ' + F.fd(F.nextDate(Object.assign({}, pp, { estado: 'A' }))) + '.';
+      act(pause ? 'Pausar' : 'Reanudar', { tip: pause ? 'Detiene la generación de facturas' : 'Vuelve a generar facturas', fn: function () { pp.estado = pause ? 'P' : 'A'; pp.pausa = pause ? F.TODAY : null; self.toast(F.progCode(pp) + ' ' + (pause ? 'pausada' : 'reanudada') + ' en la maqueta.'); } });
+    }
+    if (d.kind === 'gen') {
+      fx.cls = 'fc-dlg fc-wide';
+      var progs = d.ids.map(F.progById), hIso = F.esISO(d.hasta), h = hIso ? new Date(hIso + 'T00:00') : null, tot = 0;
+      fx.title = d.all ? 'Generar facturas programadas · todas' : 'Generar ' + d.ids.length + ' programaci' + (d.ids.length > 1 ? 'ones' : 'ón') + ' seleccionada' + (d.ids.length > 1 ? 's' : '');
+      fx.gAmb = d.all ? 'todas las programaciones activas de ' + F.SOC.n : d.ids.length + ' marcada' + (d.ids.length > 1 ? 's' : '') + ' en el listado';
+      fx.hasta = field('hasta', { tip: 'Se generan los periodos con fecha igual o anterior a esta' }); if (!h) { fx.hasta.cls = 'fc-in fc-err'; fx.hasta.tip = 'Fecha no válida: escríbela como dd/mm/aaaa'; fx.hasta.inv = 'true'; }
+      fx.gRows = progs.map(function (p) {
+        var ds = h ? F.dueDates(p, h) : []; tot += ds.length; var nd = F.nextDate(p);
+        var why = p.estado === 'P' ? 'Pausada: no se genera' : p.estado === 'F' ? 'Finalizada' : !ds.length ? 'Nada hasta esa fecha' + (nd ? ' (próxima ' + F.fd(nd) + ')' : '') : '';
+        return { code: F.progCode(p), desc: p.desc, cli: F.cliById(p.cli).n, per: ds.length ? ds.map(F.fd).join(', ') : why, perCls: ds.length ? '' : 'fc-mut', tot: ds.length ? F.money(F.calc(p.lines, p.rp).total * ds.length) : '' };
+      });
+      var nxs = progs.map(F.nextDate).filter(Boolean).sort(function (a, b) { return a - b; });
+      fx.gNone = !tot; fx.gUse = !tot && !!nxs[0]; fx.gUseT = nxs[0] ? 'Generar hasta ' + F.fd(nxs[0]) + ' (próxima emisión)' : '';
+      fx.gUseFn = function (e) { e.stopPropagation(); d.hasta = F.fd(nxs[0]); self.bump(); };
+      act('Generar ' + tot + ' borrador' + (tot === 1 ? '' : 'es'), { why: !can ? NOPERM : !tot ? 'No hay periodos que generar hasta esa fecha.' : null, tip: 'Crea los borradores de los periodos pendientes', fn: function () {
+        var made = [];
+        progs.forEach(function (p) { F.dueDates(p, h).forEach(function (dd) {
+          var dn = Math.max.apply(null, [0].concat(F.INV.map(function (x) { return x.draftNo || 0; }))) + 1;
+          var nv = F.mkInv({ fecha: dd, cli: p.cli, prog: p.id, serie: null, est: 'BOR', vf: 'NA', draftNo: dn, rp: p.rp, notas: p.notas, fp: p.fp, mailP: p.mail, lines: p.lines.map(function (l, k) { return Object.assign({}, l, { c: k === 0 ? l.c + ' · ' + F.perLabel(p, dd) : l.c }); }) });
+          Object.assign(nv, F.calc(nv.lines, nv.rp)); F.INV.push(nv); made.push(nv); p.lastGen = dd; }); });
+        V.psel = {}; if (progs.length === 1) V.progSel = progs[0].id;
+        self.toast('Generados ' + made.length + ' borradores (' + made.map(function (x) { return 'B-' + F.p2(x.draftNo, 4); }).join(', ') + '). Revisa y emite desde las emitidas.'); } });
+    }
+    if (d.kind === 'prog') {
+      var pe = d.id ? F.progById(d.id) : null, isNew = !pe;
+      fx.title = isNew ? 'Nueva programación' : 'Editar ' + F.progCode(pe); fx.isNew = isNew; fx.notNew = !isNew;
+      fx.cliSel = isNew && !V.cliente; fx.cliLock = !fx.cliSel; fx.cliLockT = F.cliById(+d.cli).n; fx.lockIc = FC_IC.lock;
+      fx.cli = field('cli', { tip: 'Cliente al que se emitirán las facturas' }); fx.clis = F.CLI.map(function (c) { return { v: String(c.id), t: c.n }; });
+      fx.desc = field('desc', { tip: 'Descripción de la programación; aparece en los listados' });
+      fx.per = field('per', { tip: 'Cada cuánto se genera una factura' }); fx.pers = Object.keys(F.PER).map(function (k) { return { v: k, t: F.PER[k].t }; });
+      fx.ini = field('ini', { tip: isNew ? 'Fecha de la primera factura (dd/mm/aaaa)' : 'No se cambia una vez generadas facturas' }); fx.iniRo = !isNew;
+      fx.fin = field('fin', { tip: 'Última fecha en que se puede generar una factura; vacío = sin fin' });
+      fx.imp = field('imp', { tip: 'Importe base sin IVA de la única línea que crea la maqueta' });
+      fx.mail = field('mail', { chk: true, tip: 'Envía cada factura por correo al emitirla' });
+      act(isNew ? 'Crear (simulado)' : 'Guardar (simulado)', { tip: isNew ? 'Crea la programación en la maqueta' : 'Guarda los cambios en la maqueta', fn: function () {
+        var desc = String(d.desc || '').trim(), err = {};
+        if (!desc) err.desc = 'La descripción es obligatoria';
+        var finIso = d.fin.trim() ? F.esISO(d.fin) : ''; if (d.fin.trim() && !finIso) err.fin = 'Fecha no válida: escríbela como dd/mm/aaaa';
+        var iniIso = F.esISO(d.ini); if (isNew && !iniIso) err.ini = 'Fecha no válida: escríbela como dd/mm/aaaa';
+        if (Object.keys(err).length) { d.err = err; self.fcFocus('dlg:' + Object.keys(err)[0]); return false; }
+        var fin = finIso ? new Date(finIso + 'T00:00') : null;
+        if (isNew) {
+          var imp = F.numES(d.imp) || 0;
+          var np = { id: Math.max.apply(null, F.PROGS.map(function (x) { return x.id; })) + 1, cli: +d.cli, desc: desc, per: d.per, inicio: new Date(iniIso + 'T00:00'), fin: fin, estado: 'A', pausa: null, fp: F.FP30, mail: !!d.mail, rp: 0, notas: '', lines: [{ c: desc, q: 1, p: imp, iva: 21 }] };
+          F.PROGS.push(np); V.pest = 'all'; V.pq = ''; self.toast('Programación ' + F.progCode(np) + ' creada en la maqueta.'); V.dlg = null; self.fcGoProg(F, V, np.id);
+        } else { Object.assign(pe, { desc: desc, per: d.per, fin: fin, mail: !!d.mail }); self.toast(F.progCode(pe) + ' actualizada en la maqueta.'); }
+      } });
+    }
+    if (d.kind === 'bulk') {
+      var sc = V.scope === 'sel' ? (function () { var ids = {}; F.emitList(V).forEach(function (x) { ids[x.id] = 1; }); return Object.keys(V.selected).map(Number).filter(function (id) { return ids[id]; }).map(F.invById); })() : F.emitList(V);
+      var apl = { mail: sc.filter(function (x) { return x.est !== 'BOR'; }), pdf: sc.filter(function (x) { return x.est !== 'BOR'; }), vf: sc.filter(function (x) { return x.vf === 'PEN' || x.vf === 'ERR'; }) }[d.op];
+      var nomail = d.op === 'mail' ? apl.filter(function (x) { return !x.dest.mail; }) : [], ok = d.op === 'mail' ? apl.filter(function (x) { return x.dest.mail; }) : apl;
+      var T = { mail: 'Preparar correo', pdf: 'Descargar PDF', vf: 'Reintentar envío a VeriFactu' }[d.op], omit = sc.length - apl.length;
+      fx.title = T; fx.bAmb = V.scope === 'sel' ? sc.length + ' factura' + (sc.length > 1 ? 's' : '') + ' seleccionada' + (sc.length > 1 ? 's' : '') : 'las ' + sc.length + ' facturas del listado filtrado';
+      fx.bKv = [this.fcKv('Se procesarán', String(ok.length))];
+      if (omit) fx.bKv.push(this.fcKv('Se omiten', omit + ' ' + (d.op === 'vf' ? 'que no están pendientes ni con error' : 'borradores')));
+      if (nomail.length) fx.bKv.push(this.fcKv('Sin email', nomail.length + ': ' + nomail.slice(0, 4).map(function (x) { return F.invNum(x) + ' (' + x.dest.n + ')'; }).join(', ') + (nomail.length > 4 ? '…' : '')));
+      fx.bList = ok.slice(0, 60).map(function (x) { return { n: F.invNum(x), c: x.dest.n, t: F.money(x.total) }; }); fx.bNone = !ok.length; fx.bMail = d.op === 'mail';
+      act(T + ' (' + ok.length + ')', { why: ok.length ? null : 'No hay facturas a las que aplicar la operación.', fn: function () {
+        if (d.op === 'mail') { ok.forEach(function (x) { x.mails.push({ at: new Date(), to: x.dest.mail, st: 'Simulado' }); }); self.toast(ok.length + ' correos registrados como simulados. No se ha enviado ninguno.'); }
+        else if (d.op === 'pdf') self.toast(ok.length + ' PDF preparados en un ZIP. No se ha descargado ningún fichero.');
+        else self.fcSimSend(F, ok);
+      } });
+    }
+    if (d.kind === 'gvf') {
+      var l = F.INV.filter(function (x) { return x.vf === 'PEN' || x.vf === 'ERR'; });
+      fx.title = 'Enviar pendientes a VeriFactu'; fx.vT = 'Hay ' + l.length + ' registros pendientes o con error de comunicación en ' + F.SOC.n + ' · ' + F.SOC.ej + ', de todos los clientes (no depende de los filtros del listado).';
+      act('Enviar (' + l.length + ')', { icon: 'send', why: l.length ? null : 'No hay registros pendientes.', fn: function () { self.fcSimSend(F, l); } });
+    }
+    return fx;
+  }
+
   moduleVals(cw, zen) {
     var S = this.S, self = this, t = this.tab(S.active) || S.tabs[0], m = {}, soc = this.soc();
     var onScroll = this.onScrollFn();
@@ -3372,23 +4822,7 @@ class Component extends DCLogic {
     }
     if (t.kind === 'terceros') return this.trBuscador(t, cw, zen);
     if (t.kind === 'tercero') return this.trFicha(t, cw, zen);
-    if (t.kind === 'facturas') {
-      var st2 = t.st, all = this.data().fac; m.facturas = true; m.showTitle = !zen && cw >= 1250; m.sk = t.id + ':grid';
-      m.q = st2.q; m.onQ = function (e) { st2.q = e.target.value; self.bump(); };
-      var qq = norm(st2.q.trim());
-      var b2 = all.filter(function (f) { return !qq || norm(f.num + ' ' + f.cli + ' ' + f.nif).indexOf(qq) >= 0; });
-      m.ests = [['all', 'Todas'], ['Borrador', 'Borrador'], ['Emitida', 'Emitidas'], ['Cobrada', 'Cobradas'], ['Vencida', 'Vencidas']].map(function (x) { var on = st2.est === x[0]; return { t: x[1], n: b2.filter(function (f) { return x[0] === 'all' || f.st === x[0]; }).length, on: on, cls: 'sg' + (on ? ' on' : ''), pick: function () { st2.est = x[0]; self.bump(); } }; });
-      var rows2 = b2.filter(function (f) { return st2.est === 'all' || f.st === st2.est; }).slice().reverse();
-      var stc2 = { Borrador: 'st-draft', Emitida: 'st-pend', Cobrada: 'st-ok', Vencida: 'st-due' };
-      m.rows = rows2.map(function (f) { var on = f.num === st2.sel; return { num: f.num, fecha: fdate(f.fecha), cli: f.cli, nif: f.nif, base: num(f.base), iva: num(f.iva), total: money(f.total), st: f.st, stC: 'pill ' + stc2[f.st], vf: f.vf, on: on, cls: 'gr fr g-fac' + (on ? ' on' : ''),
-        pick: function () { st2.sel = f.num; self.bump(); }, open: function () { self.openFactura(f.num); },
-        key: function (e) { if (e.key === 'Enter') { e.preventDefault(); self.openFactura(f.num); } } }; });
-      m.empty = !rows2.length; m.n = rows2.length; var sb = 0; rows2.forEach(function (f) { sb += f.base; });
-      m.sum = 'Base imponible de las facturas listadas: ' + money(sb);
-      m.noSel = !st2.sel; m.openSel = function () { if (st2.sel) self.openFactura(st2.sel); };
-      m.nueva = function () { self.toast('La emisión de facturas está fuera del alcance de esta maqueta del contenedor.'); self.bump(); };
-      return m;
-    }
+    if (t.kind === 'facturas') return this.fcVals(t, cw, zen, m);
     if (t.kind === 'factura') {
       var fv = this.inv(t.num), st3 = t.st; m.factura = true; m.sk = t.id + ':main';
       if (!fv) return { ph: true, title: t.title, path: 'Factura no disponible en este contexto', ic: icf('doc') };
@@ -3560,7 +4994,7 @@ class Component extends DCLogic {
     return {
       open: dm.open, closed: !dm.open, maxH: H - 240, fluid: vp === 'fluid',
       toggle: function () { dm.open = !dm.open; self.bump(); },
-      sizes: [['Ventana', null], ['2050 × 1110', '2050 × 1110'], ['1440 × 900', '1440 × 900'], ['1280 × 800', '1280 × 800']].map(function (z) { var on = dm.size === z[1]; return { t: z[0], cls: 'db' + (on ? ' on' : ''), pick: function () { dm.size = z[1]; self.bump(); } }; }),
+      sizes: [['Ventana', null], ['2560 × 1440', '2560 × 1440'], ['2050 × 1110', '2050 × 1110'], ['1440 × 900', '1440 × 900'], ['1280 × 800', '1280 × 800']].map(function (z) { var on = dm.size === z[1]; return { t: z[0], cls: 'db' + (on ? ' on' : ''), pick: function () { dm.size = z[1]; self.bump(); } }; }),
       ops: Object.keys(OPS).map(function (k) { var on = S.op === k && S.boot === 'ok'; return { t: OPS[k].short + ' · ' + (OPS[k].auth.RG.rol), cls: 'db' + (on ? ' on' : ''), pick: function () { if (S.boot !== 'ok') { self.loginAs(k); return self.bump(); } if (S.op === k) return; self.request({ type: 'operator', to: k }); } }; }),
       prepare: function () { if (S.boot !== 'ok') return; if (!self.perm('terceros') || !self.perm('fac-emitidas')) { self.toast('Este operador no tiene acceso a Terceros o Facturas emitidas en esta sociedad.'); return self.bump(); } self.prepare(); },
       failSave: dm.failSave, togFail: function () { dm.failSave = !dm.failSave; self.bump(); },
