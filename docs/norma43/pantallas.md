@@ -13,6 +13,7 @@ Tabla densa de líneas bancarias con filtros, detalle y acciones (también las d
 ## Decisions
 - 2026-10-28 13:30 · Creado en la carga inicial de requisitos.
 - 2026-10-29 14:40 · Referencia funcional: la pantalla "Gestión de Lineas N43" de ProConta antiguo (`frmLineasN43` y su ficha `frmLineaN43`), descrita en `sources/proconta-antiguo/norma43/ANALISIS-FUNCIONAL.md`, incluida su lista de defectos, que no se reproducen. La maqueta autónoma anterior no se ha encontrado (la carpeta de maquetas está vacía); el prototipo se propondrá a partir de este análisis.
+- 2026-10-29 15:47 · Propuesto el prototipo de la pestaña «Líneas N43» dentro del contenedor (`sources/maquetas/Contenedor/`, `?escenario=n43`), pendiente de validación: filtros combinados en Y con selector de estado y fichas de filtro que se quitan una a una, filtro por remesa y diálogo «Remesas…» invocable desde la pantalla (requisito de las 15:32), menú contextual según la selección sea simple o múltiple, detalle lateral, explotar remesa con vista previa, dividir en fracciones, palabras clave y diálogo de subcuentas parametrizadas por sociedad y ejercicio (solo consulta aquí). Los atajos son provisionales hasta acordar el nodo de atajos. En el lienzo de diseño, tablero «Líneas bancarias Norma 43 · 2560 × 1440».
 
 ## Requirements
 - 2026-10-28 12:28 · From sources/01_ESPECIFICACION_FUNCIONAL.docx § 19 RF-N43-03, 04: pantalla fiel a maqueta, selección explícita
@@ -26,3 +27,4 @@ Tabla densa de líneas bancarias con filtros, detalle y acciones (también las d
 - 2026-10-29 15:23 · Quizá le podemos dar una vuelta y rediseñar el sistema de filtros desde cero, lo que hay ahora tampoco es maravilloso.
 - 2026-10-29 15:23 · Todas las subcuentas (por ejemplo, 5729999) tendrán que ser parametrizadas por Sociedad y Ejercicio, aunque, por defecto, tenga este valor
 - 2026-10-29 15:23 · La idea siempre es trasladar a menú contextual todas las funcionalidades que tengan sentido, algunas serán aplicables solo a selección simple, otras a selección múltiple (traspaso entre bancos, por ejemplo) y la mayoría a selección simple y múltiple.
+- 2026-10-29 15:32 · Quizá podemos hacer que el formulario remesas N43 se pueda invocar directamente desde la pantalla de líneas N43 y poder filtrar las líneas N43 de cualquier remesa.

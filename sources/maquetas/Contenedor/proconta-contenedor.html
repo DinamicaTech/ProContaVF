@@ -923,6 +923,55 @@ textarea.fc-in{height:auto;padding:6px 8px;resize:vertical}
 .fc-kbdl{display:grid;grid-template-columns:190px 1fr;gap:6px 12px}
 .fcx kbd{font-family:'IBM Plex Mono',monospace;font-size:11px;background:var(--bg);border:1px solid var(--ln3);border-bottom-width:2px;border-radius:4px;padding:0 5px}
 .fc-scrollbox{max-height:180px;overflow:auto;border:1px solid var(--ln);border-radius:8px}
+/* ===== Líneas bancarias Norma 43 ===== */
+/* Líneas bancarias Norma 43 (usa la base visual de .fcx) */
+.lnx .ln-fbar2{padding-top:0}
+.lnx .ln-q.ln-qerr{border-color:#C23B2A;background:#FFF7F6}
+.lnx .ln-chips{display:flex;align-items:center;gap:6px;flex-wrap:wrap;padding:0 12px 8px;font-size:12px}
+.lnx .ln-chip{height:24px;display:inline-flex;align-items:center;gap:4px;padding:0 2px 0 9px;border-radius:7px;background:#FFF3E6;border:1px solid #F2C9A3;color:#8A4410;max-width:420px;min-width:0}
+.lnx .ln-chip .fc-t{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lnx .ln-chip button{width:20px;height:20px;border:0;border-radius:5px;background:none;color:var(--or3);cursor:pointer;display:inline-flex;align-items:center;justify-content:center;padding:0}
+.lnx .ln-chip button:hover{background:#FFE8D2}
+.lnx .ln-gr{user-select:none}
+.lnx .ln-gr.ln-child{background:#FBFAF6}
+.lnx .ln-gr.ln-child>span:nth-child(5){padding-left:22px}
+.lnx .ln-gr.ln-new{box-shadow:inset 3px 0 0 #2F7D57}
+.lnx .ln-newt{font-size:10px;font-weight:700;color:#1E6B45;background:#E2F0E8;border-radius:3px;padding:0 4px;margin-right:6px;vertical-align:1px}
+.lnx .ln-ref{color:var(--mut);margin-left:8px;font-size:12px}
+.lnx .ln-imp{font-weight:600}
+.lnx .ln-c{color:#9A2A1A}
+.lnx .ln-a{color:#1E6B45}
+.lnx .ln-kwt{color:var(--txt2)}
+.lnx .ln-as{font-size:11.5px;color:var(--txt2)}
+.lnx .ln-st-imp{background:#FDECEA;color:#A12B1B}
+.lnx .ln-st-rem{background:#F1E8FA;color:#6A3A9A}
+.lnx .ln-st-pex{background:#E8F0F8;color:var(--blue)}
+.lnx .ln-st-555{background:var(--ambb);color:var(--amb)}
+.lnx .ln-st-rex{background:#FFF3E6;color:var(--or3);box-shadow:inset 0 0 0 1px #F2C9A3}
+.lnx .ln-st-exp{background:var(--greenb);color:var(--green)}
+.lnx .ln-detail{width:500px}
+.lnx .ln-dimp{font-size:18px;font-variant-numeric:tabular-nums}
+.lnx .ln-con{font-family:'IBM Plex Mono',monospace;font-size:12px;line-height:1.5;padding:8px 10px;border:1px dashed var(--ln3);border-radius:8px;background:var(--bg2);user-select:text;cursor:text;overflow-wrap:anywhere}
+.lnx .ln-con::selection,.lnx .ln-con *::selection{background:#FFD9B3}
+.lnx .ln-simp{font-weight:600;color:var(--blue)}
+.lnx .ln-ok{color:var(--green);font-weight:600}
+.lnx .ln-dif{color:#A12B1B;font-weight:600}
+.lnx .ln-reopen{position:absolute;right:0;top:60px;writing-mode:vertical-rl;height:96px;width:24px;border:1px solid var(--ln3);border-right:0;border-radius:8px 0 0 8px;background:#fff;color:var(--navy);font-size:12px;font-weight:600;cursor:pointer;z-index:5}
+.lnx .ln-reopen:hover{background:#FFF6EC}
+.lnx .ln-menu{min-width:300px}
+.lnx .ln-mhead{font-size:11.5px;font-weight:600;color:var(--mut);padding:6px 10px 4px}
+.lnx .ln-menu .ln-mdanger{color:#A12B1B}
+.lnx .ln-k{font-size:10.5px;color:var(--mut);border:0;background:none;padding:0}
+.lnx .ln-acclist{display:flex;flex-direction:column;max-height:240px;overflow:auto;border:1px solid var(--ln);border-radius:8px}
+.lnx .ln-acc{display:grid;grid-template-columns:84px minmax(0,1fr);gap:8px;align-items:center;text-align:left;height:30px;border:0;border-bottom:1px solid var(--ln2);background:#fff;padding:0 10px;font-size:12.5px;cursor:pointer;color:var(--ink)}
+.lnx .ln-acc:hover{background:#FBFAF6}
+.lnx .ln-acc.on{background:var(--selb);box-shadow:inset 3px 0 0 var(--navy)}
+.lnx .ln-acc>span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lnx .ln-chosen{font-size:12px;color:var(--mut)}
+.lnx .ln-chosen.on b{color:var(--navy)}
+.lnx .ln-radios{display:flex;flex-direction:column;gap:6px;padding:8px 10px;border:1px solid var(--ln);border-radius:8px;background:var(--bg2)}
+.lnx .ln-ri{cursor:pointer;align-items:center}
+.lnx .ln-ri.ln-out{color:var(--mut);font-style:italic}
 </style>
 
 <style>html,body{height:100%;margin:0}body{min-width:1280px;min-height:760px;overflow:auto}#app{width:100vw;height:100vh;min-width:1280px;min-height:760px}</style>
@@ -2079,29 +2128,185 @@ textarea.fc-in{height:auto;padding:6px 8px;resize:vertical}
 </div>
 </sc-if>
 
-<sc-if value="{{m.lineas}}" hint-placeholder-val="{{false}}">
-<div class="mod">
-<div class="mtb">
-<sc-if value="{{m.showTitle}}" hint-placeholder-val="{{false}}"><h1 class="mt disp">Líneas bancarias</h1></sc-if>
-<select class="in" style="width: {{m.selW}}px; height: 32px; font-size: 12.5px; flex-shrink: 0" aria-label="Cuenta bancaria" value="{{m.cta}}" onChange="{{m.onCta}}" title="Cuenta bancaria cuyos movimientos se muestran"><sc-for list="{{m.ctas}}" as="o" hint-placeholder-count="3"><option value="{{o.v}}">{{o.t}}</option></sc-for></select>
-<label class="rs" style="width: {{m.qW}}px"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.5-3.5"></path></svg><input type="search" placeholder="Buscar en concepto o referencia" value="{{m.q}}" onChange="{{m.onQ}}" aria-label="Buscar movimientos" title="Busca en el concepto o la referencia del movimiento"></label>
-<div class="seg" role="group" aria-label="Estado de conciliación"><sc-for list="{{m.ests}}" as="t" hint-placeholder-count="3"><button class="{{t.cls}}" type="button" aria-pressed="{{t.on}}" onClick="{{t.pick}}" title="Muestra solo: {{t.t}}">{{t.t}} <span class="ct">{{t.n}}</span></button></sc-for></div>
-<div class="fill"></div>
-<button class="btn" type="button" onClick="{{m.goImport}}" title="Abre la importación de ficheros Norma 43"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15V3M7 8l5-5 5 5"></path><path d="M4 15v5h16v-5"></path></svg>Importar Norma 43</button>
-<button class="btn dark" type="button" disabled="{{m.noSel}}" onClick="{{m.conciliar}}" title="Concilia los movimientos seleccionados con sus asientos">Conciliar {{m.selLbl}}</button>
+<sc-if value="{{m.ln}}" hint-placeholder-val="{{false}}">
+<div class="mod fcx lnx" onKeyDown="{{m.lnKey}}">
+<div class="fc-modbar">
+<h1 class="disp">Líneas bancarias Norma 43</h1>
+<span class="fc-grow"></span>
+<div class="fc-gtools" role="toolbar" aria-label="Herramientas de Norma 43"><sc-for list="{{m.lb.tools}}" as="b" hint-placeholder-count="5"><button type="button" class="{{b.cls}}" aria-disabled="{{b.dis}}" title="{{b.tip}}" onClick="{{b.on}}"><sc-if value="{{b.hasIc}}" hint-placeholder-val="{{true}}"><svg class="fc-ic" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><sc-for list="{{b.ic}}" as="icd" hint-placeholder-count="2"><path d="{{icd}}"></path></sc-for></svg></sc-if>{{b.t}}</button></sc-for>
+<button type="button" class="fc-icb" onClick="{{m.lb.kbd}}" title="Atajos de teclado" aria-label="Atajos de teclado"><svg class="fc-ic" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><sc-for list="{{m.lb.kbdIc}}" as="icd" hint-placeholder-count="2"><path d="{{icd}}"></path></sc-for></svg></button></div>
 </div>
-<sc-if value="{{m.opBar}}" hint-placeholder-val="{{false}}"><div class="ibar" role="status"><span class="spin" style="display: inline-flex"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-6.2-8.6"></path></svg></span><b>Importando {{m.opFile}}</b><span>{{m.opPhase}} · {{m.opPct}} %</span><span class="muted">Puedes seguir trabajando; los movimientos nuevos aparecerán en esta lista al terminar.</span></div></sc-if>
-<div class="gwrap scroll" data-sk="{{m.sk}}" onScroll="{{m.onScroll}}">
-<div style="min-width: 1270px">
-<div class="gh g-n43"><span style="display: flex; justify-content: center"><input class="chk" type="checkbox" checked="{{m.allOn}}" onChange="{{m.togAll}}" aria-label="Seleccionar todos los movimientos visibles" title="Selecciona o quita todos los movimientos visibles"></span><span>F. operación</span><span>F. valor</span><span title="Concepto común Norma 43">Cód.</span><span>Concepto común</span><span title="Concepto propio de la entidad">Propio</span><span>Concepto</span><span>Referencia 1</span><span>Referencia 2</span><span class="r" style="display: flex">Importe</span><span class="r" style="display: flex">Saldo</span><span>Estado</span><span>Asiento</span></div>
-<sc-if value="{{m.empty}}" hint-placeholder-val="{{false}}"><div class="lempty">Ningún movimiento coincide con la búsqueda y el filtro.</div></sc-if>
-<sc-for list="{{m.rows}}" as="r" hint-placeholder-count="3"><label class="{{r.cls}}"><span style="display: flex; justify-content: center"><input class="chk" type="checkbox" checked="{{r.on}}" onChange="{{r.tog}}" aria-label="Seleccionar movimiento del {{r.fo}} por {{r.imp}}" title="Selecciona este movimiento"></span><span class="tn">{{r.fo}}</span><span class="tn muted">{{r.fv}}</span><span class="mono">{{r.cc}}</span><span>{{r.ccd}}</span><span class="mono muted">{{r.cp}}</span><span>{{r.con}}</span><span class="mono" style="font-size: 11.5px">{{r.r1}}</span><span style="font-size: 11.5px">{{r.r2}}</span><span class="{{r.impC}}">{{r.imp}}</span><span class="tn r" style="display: flex">{{r.sal}}</span><span><span class="{{r.stC}}">{{r.st}}</span></span><span class="mono" style="font-size: 11.5px">{{r.as}}</span></label></sc-for>
+<div class="fc-ws">
+<div class="fc-lists">
+<section class="fc-panel fc-pemit ln-panel" aria-label="Líneas bancarias">
+<div class="fc-ph"><h2>Movimientos</h2><span class="fc-cnt">{{m.ll.count}}</span><span class="fc-grow"></span></div>
+<div class="fc-fbar" role="search" aria-label="Filtros de las líneas">
+<div class="{{m.lf.qCls}}" style="width: 330px" title="{{m.lf.qTip}}"><svg class="fc-ic" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><sc-for list="{{m.lf.searchIc}}" as="icd" hint-placeholder-count="2"><path d="{{icd}}"></path></sc-for></svg><input type="search" data-fk="ln:q" value="{{m.lf.q}}" onChange="{{m.lf.setQ}}" placeholder="Concepto, o n+ i+ e+ a+ c+ o+ f+" aria-label="Buscar líneas (Ctrl+F)" aria-invalid="{{m.lf.qInv}}" title="{{m.lf.qTip}}"></div>
+<div class="fc-seg" role="group" aria-label="Estado de la línea"><sc-for list="{{m.lf.ests}}" as="s" hint-placeholder-count="8"><button type="button" aria-pressed="{{s.on}}" onClick="{{s.pick}}" title="{{s.tip}}">{{s.t}}<span class="fc-ct">{{s.n}}</span></button></sc-for></div>
 </div>
+<div class="fc-fbar ln-fbar2" aria-label="Más filtros">
+<select class="{{m.lf.bankCls}}" value="{{m.lf.bank}}" onChange="{{m.lf.setBank}}" disabled="{{m.lf.bankDis}}" style="width: 220px" aria-label="Banco" title="Muestra solo las líneas de esta cuenta bancaria"><option value="all">Banco: todas las cuentas</option><sc-for list="{{m.lf.banks}}" as="o" hint-placeholder-count="2"><option value="{{o.v}}">{{o.t}}</option></sc-for></select>
+<select class="{{m.lf.dhCls}}" value="{{m.lf.dh}}" onChange="{{m.lf.setDh}}" style="width: 150px" aria-label="Sentido" title="Cobros (abonos) o pagos (cargos)"><option value="all">Cobros y pagos</option><option value="A">Solo cobros</option><option value="C">Solo pagos</option></select>
+<select class="{{m.lf.kwfCls}}" value="{{m.lf.kwf}}" onChange="{{m.lf.setKwf}}" style="width: 196px" aria-label="Imputación" title="Cómo se ha obtenido la cuenta de la línea"><option value="all">Imputación: todas</option><option value="kw">Con palabra clave</option><option value="man">Cuenta puesta a mano</option><option value="none">Sin palabra clave</option></select>
+<select class="{{m.lf.remCls}}" value="{{m.lf.rem}}" onChange="{{m.lf.setRem}}" style="width: 260px" aria-label="Remesa" title="Muestra la línea de una remesa SEPA y los recibos en que se ha desglosado"><option value="">Remesa: todas</option><sc-for list="{{m.lf.rems}}" as="o" hint-placeholder-count="3"><option value="{{o.v}}">{{o.t}}</option></sc-for></select>
+<span class="fc-flbl">Fecha</span><input type="text" inputmode="numeric" maxlength="10" placeholder="dd/mm/aaaa" data-fk="ln:desde" class="{{m.lf.desdeCls}}" value="{{m.lf.desde}}" onChange="{{m.lf.setDesde}}" aria-invalid="{{m.lf.desdeInv}}" style="width: 110px" aria-label="Fecha desde" title="{{m.lf.desdeTip}}">
+<span class="fc-flbl">a</span><input type="text" inputmode="numeric" maxlength="10" placeholder="dd/mm/aaaa" data-fk="ln:hasta" class="{{m.lf.hastaCls}}" value="{{m.lf.hasta}}" onChange="{{m.lf.setHasta}}" aria-invalid="{{m.lf.hastaInv}}" style="width: 110px" aria-label="Fecha hasta" title="{{m.lf.hastaTip}}">
+<span class="fc-flbl">Importe</span><input type="text" inputmode="decimal" placeholder="desde" data-fk="ln:imin" class="{{m.lf.iminCls}}" value="{{m.lf.imin}}" onChange="{{m.lf.setImin}}" aria-invalid="{{m.lf.iminInv}}" style="width: 96px" aria-label="Importe desde" title="{{m.lf.iminTip}}">
+<span class="fc-flbl">a</span><input type="text" inputmode="decimal" placeholder="hasta" data-fk="ln:imax" class="{{m.lf.imaxCls}}" value="{{m.lf.imax}}" onChange="{{m.lf.setImax}}" aria-invalid="{{m.lf.imaxInv}}" style="width: 96px" aria-label="Importe hasta" title="{{m.lf.imaxTip}}">
+<button type="button" class="{{m.lf.clear.cls}}" aria-disabled="{{m.lf.clear.dis}}" title="{{m.lf.clear.tip}}" onClick="{{m.lf.clear.on}}"><sc-if value="{{m.lf.clear.hasIc}}" hint-placeholder-val="{{true}}"><svg class="fc-ic" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><sc-for list="{{m.lf.clear.ic}}" as="icd" hint-placeholder-count="2"><path d="{{icd}}"></path></sc-for></svg></sc-if>{{m.lf.clear.t}}</button>
 </div>
-<div class="mfoot"><span><b>{{m.n}}</b> movimientos</span><span>{{m.pend}} pendientes de conciliar</span><span>{{m.selTxt}}</span><span class="fill"></span><span>Saldo según extracto a {{m.lastDate}}: <b class="tn">{{m.lastSal}}</b></span></div>
+<sc-if value="{{m.lf.hasChips}}" hint-placeholder-val="{{false}}"><div class="ln-chips" role="status" aria-label="Filtros aplicados"><span class="fc-bl">Filtrando por</span><sc-for list="{{m.lf.chips}}" as="c" hint-placeholder-count="2"><span class="ln-chip" title="{{c.t}}"><span class="fc-t">{{c.t}}</span><button type="button" onClick="{{c.clr}}" aria-label="Quitar este filtro" title="Quitar este filtro"><svg class="fc-ic" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><sc-for list="{{m.lf.xIc}}" as="icd" hint-placeholder-count="2"><path d="{{icd}}"></path></sc-for></svg></button></span></sc-for></div></sc-if>
+<sc-if value="{{m.lsel.on}}" hint-placeholder-val="{{false}}">
+<div class="fc-bulk" role="toolbar" aria-label="Acciones sobre la selección"><b>{{m.lsel.t}}</b><span class="fc-mut fc-tn">{{m.lsel.sum}}</span>
+<sc-if value="{{m.lsel.hidden}}" hint-placeholder-val="{{false}}"><span class="fc-hint"><svg class="fc-ic" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><sc-for list="{{m.lsel.warnIc}}" as="icd" hint-placeholder-count="2"><path d="{{icd}}"></path></sc-for></svg>{{m.lsel.hiddenT}} · <button type="button" class="fc-lnk" onClick="{{m.lsel.dropHidden}}" title="Desmarca las líneas seleccionadas que no están en el listado">Quitarlas</button></span></sc-if>
+<button type="button" class="fc-lnk" onClick="{{m.lsel.clear}}" style="font-size: 12px" title="Desmarca todas las líneas">Quitar selección</button>
+<span class="fc-grow"></span><sc-for list="{{m.lsel.acts}}" as="b" hint-placeholder-count="2"><button type="button" class="{{b.cls}}" aria-disabled="{{b.dis}}" title="{{b.tip}}" onClick="{{b.on}}"><sc-if value="{{b.hasIc}}" hint-placeholder-val="{{true}}"><svg class="fc-ic" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><sc-for list="{{b.ic}}" as="icd" hint-placeholder-count="2"><path d="{{icd}}"></path></sc-for></svg></sc-if>{{b.t}}</button></sc-for><button type="button" class="{{m.lsel.more.cls}}" aria-disabled="{{m.lsel.more.dis}}" title="{{m.lsel.more.tip}}" onClick="{{m.lsel.more.on}}"><sc-if value="{{m.lsel.more.hasIc}}" hint-placeholder-val="{{true}}"><svg class="fc-ic" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><sc-for list="{{m.lsel.more.ic}}" as="icd" hint-placeholder-count="2"><path d="{{icd}}"></path></sc-for></svg></sc-if>{{m.lsel.more.t}}</button>
 </div>
 </sc-if>
-
+<div class="fc-tw scroll" data-sk="{{m.sk}}" onScroll="{{m.onScroll}}">
+<sc-if value="{{m.ll.empty}}" hint-placeholder-val="{{false}}"><div class="fc-state" role="status"><b>{{m.ll.emptyT}}</b><span>{{m.ll.emptyS}}</span><div class="fc-btns"><button type="button" class="{{m.ll.emptyB.cls}}" aria-disabled="{{m.ll.emptyB.dis}}" title="{{m.ll.emptyB.tip}}" onClick="{{m.ll.emptyB.on}}"><sc-if value="{{m.ll.emptyB.hasIc}}" hint-placeholder-val="{{true}}"><svg class="fc-ic" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><sc-for list="{{m.ll.emptyB.ic}}" as="icd" hint-placeholder-count="2"><path d="{{icd}}"></path></sc-for></svg></sc-if>{{m.ll.emptyB.t}}</button></div></div></sc-if>
+<sc-if value="{{m.ll.has}}" hint-placeholder-val="{{true}}">
+<div class="fc-grid" style="min-width: 1500px" role="grid" aria-label="Líneas bancarias" aria-multiselectable="true">
+<div class="fc-gh" style="{{m.ll.gcols}}" role="row"><span class="fc-cb"><input type="checkbox" checked="{{m.ll.allChk}}" onChange="{{m.ll.chkAll}}" aria-label="{{m.ll.allLbl}}" title="Seleccionar todas las del listado (Ctrl+A)"></span>
+<span class="{{m.ll.hNum.cls}}" aria-sort="{{m.ll.hNum.aria}}"><button type="button" class="fc-sortb" data-fk="{{m.ll.hNum.fk}}" onClick="{{m.ll.hNum.pick}}" title="{{m.ll.hNum.tip}}">{{m.ll.hNum.t}}<span class="fc-ar">{{m.ll.hNum.ar}}</span></button></span><span class="{{m.ll.hFo.cls}}" aria-sort="{{m.ll.hFo.aria}}"><button type="button" class="fc-sortb" data-fk="{{m.ll.hFo.fk}}" onClick="{{m.ll.hFo.pick}}" title="{{m.ll.hFo.tip}}">{{m.ll.hFo.t}}<span class="fc-ar">{{m.ll.hFo.ar}}</span></button></span><sc-if value="{{m.ll.showBank}}" hint-placeholder-val="{{true}}"><span class="{{m.ll.hBank.cls}}" aria-sort="{{m.ll.hBank.aria}}"><button type="button" class="fc-sortb" data-fk="{{m.ll.hBank.fk}}" onClick="{{m.ll.hBank.pick}}" title="{{m.ll.hBank.tip}}">{{m.ll.hBank.t}}<span class="fc-ar">{{m.ll.hBank.ar}}</span></button></span></sc-if><span class="{{m.ll.hCon.cls}}" aria-sort="{{m.ll.hCon.aria}}"><button type="button" class="fc-sortb" data-fk="{{m.ll.hCon.fk}}" onClick="{{m.ll.hCon.pick}}" title="{{m.ll.hCon.tip}}">{{m.ll.hCon.t}}<span class="fc-ar">{{m.ll.hCon.ar}}</span></button></span><span class="{{m.ll.hImp.cls}}" aria-sort="{{m.ll.hImp.aria}}"><button type="button" class="fc-sortb" data-fk="{{m.ll.hImp.fk}}" onClick="{{m.ll.hImp.pick}}" title="{{m.ll.hImp.tip}}">{{m.ll.hImp.t}}<span class="fc-ar">{{m.ll.hImp.ar}}</span></button></span><span class="{{m.ll.hCta.cls}}" aria-sort="{{m.ll.hCta.aria}}"><button type="button" class="fc-sortb" data-fk="{{m.ll.hCta.fk}}" onClick="{{m.ll.hCta.pick}}" title="{{m.ll.hCta.tip}}">{{m.ll.hCta.t}}<span class="fc-ar">{{m.ll.hCta.ar}}</span></button></span><span>Descripción de la cuenta</span><span>Imputación</span><span>Factura</span><span>Asiento</span><span class="{{m.ll.hEst.cls}}" aria-sort="{{m.ll.hEst.aria}}"><button type="button" class="fc-sortb" data-fk="{{m.ll.hEst.fk}}" onClick="{{m.ll.hEst.pick}}" title="{{m.ll.hEst.tip}}">{{m.ll.hEst.t}}<span class="fc-ar">{{m.ll.hEst.ar}}</span></button></span></div>
+<sc-for list="{{m.ll.rows}}" as="r" hint-placeholder-count="14">
+<div class="{{r.cls}}" style="{{m.ll.gcols}}" role="row" tabindex="{{r.ti}}" data-fk="{{r.fk}}" aria-selected="{{r.sel}}" onClick="{{r.click}}" onDoubleClick="{{r.open}}" onKeyDown="{{r.key}}" onContextMenu="{{r.ctx}}">
+<span class="fc-cb"><input type="checkbox" tabindex="-1" checked="{{r.s}}" onClick="{{r.stop}}" onChange="{{r.chk}}" aria-label="{{r.chkLbl}}" title="Marca la línea para actuar sobre ella (Espacio)"></span>
+<span class="fc-mono fc-mut">{{r.num}}</span>
+<span class="fc-tn">{{r.fo}}</span>
+<sc-if value="{{m.ll.showBank}}" hint-placeholder-val="{{true}}"><span title="{{r.bank}}">{{r.bank}}</span></sc-if>
+<span title="{{r.conT}}"><sc-if value="{{r.isNew}}" hint-placeholder-val="{{false}}"><span class="ln-newt" title="Importada en la última carga">Nueva</span></sc-if>{{r.con}}<span class="ln-ref">{{r.ref}}</span></span>
+<span class="{{r.impCls}}">{{r.imp}}</span>
+<span class="{{r.ctaCls}}">{{r.cta}}</span>
+<span class="{{r.ctaDCls}}" title="{{r.ctaD}}">{{r.ctaD}}</span>
+<span class="{{r.imCls}}" title="{{r.imTip}}">{{r.imput}}</span>
+<span class="fc-mono" title="{{r.fac}}">{{r.fac}}</span>
+<span class="{{r.asCls}}">{{r.as}}</span>
+<span><span class="{{r.stCls}}" title="{{r.stTip}}"><i></i>{{r.st}}</span></span>
+</div>
+</sc-for>
+</div>
+</sc-if>
+</div>
+<sc-if value="{{m.ll.has}}" hint-placeholder-val="{{true}}"><div class="fc-tfoot"><span class="fc-tn">{{m.ll.foot}}</span><span class="fc-grow"></span><span>Clic derecho: acciones · Ctrl/Mayús+clic: varias · Intro: detalle</span></div></sc-if>
+</section>
+</div>
+<sc-if value="{{m.ld.reopen}}" hint-placeholder-val="{{false}}"><button type="button" class="ln-reopen" onClick="{{m.ld.reopenFn}}" title="Mostrar el detalle de la línea">Detalle</button></sc-if>
+<sc-if value="{{m.ld.on}}" hint-placeholder-val="{{true}}">
+<aside class="{{m.ld.cls}}" aria-label="Detalle de la línea">
+<sc-if value="{{m.ld.empty}}" hint-placeholder-val="{{false}}"><div class="fc-state"><b>Sin línea activa</b><span>Elige una línea en la lista.</span></div></sc-if>
+<sc-if value="{{m.ld.has}}" hint-placeholder-val="{{true}}">
+<div class="fc-dh">
+<div class="fc-dtop"><span class="fc-dkind">Línea bancaria</span><span class="{{m.ld.stCls}}" title="{{m.ld.stTip}}"><i></i>{{m.ld.st}}</span><span class="fc-grow"></span><button type="button" class="fc-icb" onClick="{{m.ld.close}}" title="Cerrar el detalle (Esc)" aria-label="Cerrar el detalle"><svg class="fc-ic" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><sc-for list="{{m.ld.xIc}}" as="icd" hint-placeholder-count="2"><path d="{{icd}}"></path></sc-for></svg></button></div>
+<div style="display: flex; align-items: baseline; gap: 10px"><div class="fc-dtitle">{{m.ld.title}}</div><span class="fc-grow"></span><b class="{{m.ld.impCls}}">{{m.ld.imp}}</b></div>
+<div class="fc-dsub" title="{{m.ld.sub}}">{{m.ld.sub}}</div>
+<div class="fc-dacts"><sc-for list="{{m.ld.acts}}" as="b" hint-placeholder-count="2"><button type="button" class="{{b.cls}}" aria-disabled="{{b.dis}}" title="{{b.tip}}" onClick="{{b.on}}"><sc-if value="{{b.hasIc}}" hint-placeholder-val="{{true}}"><svg class="fc-ic" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><sc-for list="{{b.ic}}" as="icd" hint-placeholder-count="2"><path d="{{icd}}"></path></sc-for></svg></sc-if>{{b.t}}</button></sc-for><button type="button" class="{{m.ld.more.cls}}" aria-disabled="{{m.ld.more.dis}}" title="{{m.ld.more.tip}}" onClick="{{m.ld.more.on}}"><sc-if value="{{m.ld.more.hasIc}}" hint-placeholder-val="{{true}}"><svg class="fc-ic" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><sc-for list="{{m.ld.more.ic}}" as="icd" hint-placeholder-count="2"><path d="{{icd}}"></path></sc-for></svg></sc-if>{{m.ld.more.t}}</button></div>
+</div>
+<div class="fc-dbody scroll">
+<div><h3 class="fc-sec">Concepto del banco</h3>
+<div class="ln-con" data-ln-con="1" title="Selecciona con el ratón el texto que identifica al tercero para crear una palabra clave">{{m.ld.con}}<sc-if value="{{m.ld.hasRef}}" hint-placeholder-val="{{true}}"><br><span class="fc-mut">{{m.ld.ref}}</span></sc-if></div>
+<div style="margin-top: 6px"><button type="button" class="fc-btn fc-sm" aria-disabled="{{m.ld.kwB.dis}}" title="{{m.ld.kwB.tip}}" onMouseDown="{{m.ld.kwB.down}}" onClick="{{m.ld.kwB.on}}"><svg class="fc-ic" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><sc-for list="{{m.ld.kwB.ic}}" as="icd" hint-placeholder-count="2"><path d="{{icd}}"></path></sc-for></svg>{{m.ld.kwB.t}} con el texto seleccionado</button></div></div>
+<sc-if value="{{m.ld.remOn}}" hint-placeholder-val="{{false}}"><div class="fc-note fc-warn"><svg class="fc-ic" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><sc-for list="{{m.ld.infoIc}}" as="icd" hint-placeholder-count="2"><path d="{{icd}}"></path></sc-for></svg><span>{{m.ld.remT}}</span></div></sc-if>
+<div><h3 class="fc-sec">Imputación</h3><dl class="fc-kv"><sc-for list="{{m.ld.impl}}" as="kv" hint-placeholder-count="3"><dt>{{kv.k}}</dt><dd class="{{kv.cls}}"><sc-if value="{{kv.lnk}}" hint-placeholder-val="{{false}}"><button type="button" class="fc-lnk" onClick="{{kv.on}}" title="{{kv.tip}}">{{kv.v}}</button>{{kv.after}}</sc-if><sc-if value="{{kv.nl}}" hint-placeholder-val="{{true}}">{{kv.v}}</sc-if></dd></sc-for></dl></div>
+<div><h3 class="fc-sec">Contabilidad</h3><dl class="fc-kv"><sc-for list="{{m.ld.cont}}" as="kv" hint-placeholder-count="3"><dt>{{kv.k}}</dt><dd class="{{kv.cls}}"><sc-if value="{{kv.lnk}}" hint-placeholder-val="{{false}}"><button type="button" class="fc-lnk" onClick="{{kv.on}}" title="{{kv.tip}}">{{kv.v}}</button>{{kv.after}}</sc-if><sc-if value="{{kv.nl}}" hint-placeholder-val="{{true}}">{{kv.v}}</sc-if></dd></sc-for></dl>
+<sc-if value="{{m.ld.rexNote}}" hint-placeholder-val="{{false}}"><div class="fc-note fc-warn" style="margin-top: 8px"><svg class="fc-ic" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><sc-for list="{{m.ld.warnIc}}" as="icd" hint-placeholder-count="2"><path d="{{icd}}"></path></sc-for></svg><span>{{m.ld.rexT}}</span></div></sc-if></div>
+<sc-if value="{{m.ld.candOn}}" hint-placeholder-val="{{false}}"><div><h3 class="fc-sec">Facturas candidatas</h3>
+<div class="fc-mini"><sc-for list="{{m.ld.cands}}" as="c" hint-placeholder-count="1"><div class="fc-mr" style="grid-template-columns: minmax(0, 1fr) 96px auto"><span><b class="fc-mono">{{c.num}}</b> · {{c.who}}<br><span class="fc-sub">{{c.fecha}} · {{c.dias}} · <span class="{{c.difCls}}">{{c.dif}}</span></span></span><span class="fc-r fc-tn">{{c.imp}}</span><span><button type="button" class="{{c.use.cls}}" aria-disabled="{{c.use.dis}}" title="{{c.use.tip}}" onClick="{{c.use.on}}"><sc-if value="{{c.use.hasIc}}" hint-placeholder-val="{{true}}"><svg class="fc-ic" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><sc-for list="{{c.use.ic}}" as="icd" hint-placeholder-count="2"><path d="{{icd}}"></path></sc-for></svg></sc-if>{{c.use.t}}</button></span></div></sc-for></div></div></sc-if>
+<sc-if value="{{m.ld.simOn}}" hint-placeholder-val="{{false}}"><div data-fk="ln:sim" tabindex="-1"><h3 class="fc-sec">Movimientos parecidos con cuenta</h3>
+<div class="fc-mini"><sc-for list="{{m.ld.sim}}" as="s" hint-placeholder-count="2"><div class="fc-mr" style="grid-template-columns: 44px minmax(0, 1fr) auto"><span class="fc-tn ln-simp">{{s.s}}</span><span><span title="{{s.con}}">{{s.con}}</span><br><span class="fc-sub"><span class="fc-mono">{{s.cta}}</span> · {{s.d}} · {{s.fo}}</span></span><span><button type="button" class="{{s.use.cls}}" aria-disabled="{{s.use.dis}}" title="{{s.use.tip}}" onClick="{{s.use.on}}"><sc-if value="{{s.use.hasIc}}" hint-placeholder-val="{{true}}"><svg class="fc-ic" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><sc-for list="{{s.use.ic}}" as="icd" hint-placeholder-count="2"><path d="{{icd}}"></path></sc-for></svg></sc-if>{{s.use.t}}</button></span></div></sc-for></div></div></sc-if>
+<sc-if value="{{m.ld.simNone}}" hint-placeholder-val="{{false}}"><div class="fc-note"><svg class="fc-ic" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><sc-for list="{{m.ld.infoIc}}" as="icd" hint-placeholder-count="2"><path d="{{icd}}"></path></sc-for></svg><span>No hay movimientos con cuenta que se parezcan al menos un 50 % a este.</span></div></sc-if>
+<div><h3 class="fc-sec">Datos del extracto</h3><dl class="fc-kv"><sc-for list="{{m.ld.bank}}" as="kv" hint-placeholder-count="3"><dt>{{kv.k}}</dt><dd class="{{kv.cls}}"><sc-if value="{{kv.lnk}}" hint-placeholder-val="{{false}}"><button type="button" class="fc-lnk" onClick="{{kv.on}}" title="{{kv.tip}}">{{kv.v}}</button>{{kv.after}}</sc-if><sc-if value="{{kv.nl}}" hint-placeholder-val="{{true}}">{{kv.v}}</sc-if></dd></sc-for></dl></div>
+</div>
+</sc-if>
+</aside>
+</sc-if>
+</div>
+<sc-if value="{{m.lm.on}}" hint-placeholder-val="{{false}}">
+<button type="button" class="fc-catch" aria-label="Cerrar el menú" onClick="{{m.lm.close}}" onContextMenu="{{m.lm.close}}" title="Cerrar el menú"></button>
+<div class="fc-menu ln-menu" style="{{m.lm.pos}}" role="menu" aria-label="{{m.lm.lbl}}">
+<div class="ln-mhead">{{m.lm.head}}</div>
+<sc-for list="{{m.lm.items}}" as="it" hint-placeholder-count="12"><sc-if value="{{it.sep}}" hint-placeholder-val="{{false}}"><hr></sc-if><sc-if value="{{it.it}}" hint-placeholder-val="{{true}}"><button type="button" role="menuitem" class="{{it.cls}}" data-fk="{{it.fk}}" aria-disabled="{{it.dis}}" title="{{it.tip}}" onClick="{{it.on}}"><svg class="fc-ic" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><sc-for list="{{it.ic}}" as="icd" hint-placeholder-count="2"><path d="{{icd}}"></path></sc-for></svg><span class="fc-grow">{{it.t}}</span><kbd class="ln-k">{{it.k}}</kbd></button></sc-if></sc-for>
+</div>
+</sc-if>
+<sc-if value="{{m.lx.on}}" hint-placeholder-val="{{false}}">
+<div class="fc-ov">
+<div class="{{m.lx.cls}}" role="dialog" aria-modal="true" aria-label="{{m.lx.title}}" tabindex="-1" data-fk="ln:dlg">
+<div class="fc-dlgh"><h3>{{m.lx.title}}</h3><sc-if value="{{m.lx.sim}}" hint-placeholder-val="{{true}}"><span class="fc-simtag">Operación simulada</span></sc-if><span class="fc-grow"></span><button type="button" class="fc-icb" onClick="{{m.lx.close}}" aria-label="Cerrar (Esc)" title="Cierra el diálogo sin hacer cambios (Esc)"><svg class="fc-ic" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><sc-for list="{{m.lx.xIc}}" as="icd" hint-placeholder-count="2"><path d="{{icd}}"></path></sc-for></svg></button></div>
+<div class="fc-dlgb scroll">
+<sc-if value="{{m.lx.kbd}}" hint-placeholder-val="{{false}}"><div class="fc-kbdl"><sc-for list="{{m.lx.keys}}" as="k" hint-placeholder-count="4"><kbd style="justify-self: start">{{k.k}}</kbd><span>{{k.t}}</span></sc-for></div><p class="fc-mut">{{m.lx.kbdNote}}</p></sc-if>
+<sc-if value="{{m.lx.par}}" hint-placeholder-val="{{false}}">
+<div class="fc-mini"><div class="fc-mh" style="grid-template-columns: minmax(0, 1fr) 90px minmax(0, 1fr) 100px"><span>Uso</span><span>Subcuenta</span><span>Descripción</span><span>Valor</span></div>
+<sc-for list="{{m.lx.pars}}" as="p" hint-placeholder-count="5"><div class="fc-mr" style="grid-template-columns: minmax(0, 1fr) 90px minmax(0, 1fr) 100px" title="{{p.tip}}"><span>{{p.t}}</span><span class="fc-mono">{{p.v}}</span><span class="fc-mut">{{p.d}}</span><span class="fc-mut">{{p.def}}</span></div></sc-for>
+<sc-for list="{{m.lx.banks}}" as="p" hint-placeholder-count="2"><div class="fc-mr" style="grid-template-columns: minmax(0, 1fr) 90px minmax(0, 1fr) 100px"><span>Cuenta contable de {{p.t}}</span><span class="fc-mono">{{p.v}}</span><span class="fc-mut">{{p.d}}</span><span class="fc-mut">Por banco</span></div></sc-for></div>
+<div class="fc-note"><svg class="fc-ic" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><sc-for list="{{m.lx.infoIc}}" as="icd" hint-placeholder-count="2"><path d="{{icd}}"></path></sc-for></svg><span>{{m.lx.parNote}}</span></div>
+</sc-if>
+<sc-if value="{{m.lx.cta}}" hint-placeholder-val="{{false}}">
+<div class="fc-fld"><label for="ln-aq">Cuenta</label><div class="fc-sbox" style="width: 100%"><svg class="fc-ic" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><sc-for list="{{m.lx.ap.searchIc}}" as="icd" hint-placeholder-count="2"><path d="{{icd}}"></path></sc-for></svg><input id="ln-aq" data-fk="{{m.lx.ap.fk}}" value="{{m.lx.ap.q}}" onChange="{{m.lx.ap.setQ}}" placeholder="Código o descripción" title="Escribe el código o parte de la descripción de la cuenta"></div></div>
+<div class="ln-acclist" role="listbox" aria-label="Cuentas"><sc-for list="{{m.lx.ap.list}}" as="a" hint-placeholder-count="5"><button type="button" role="option" class="{{a.cls}}" aria-selected="{{a.sel}}" onClick="{{a.pick}}" title="{{a.t}}"><span class="fc-mono">{{a.c}}</span><span>{{a.t}}</span></button></sc-for><sc-if value="{{m.lx.ap.none}}" hint-placeholder-val="{{false}}"><div class="fc-state">Ninguna cuenta coincide.</div></sc-if></div>
+<div class="{{m.lx.ap.chosenCls}}">Elegida: <b>{{m.lx.ap.chosen}}</b></div>
+<sc-if value="{{m.lx.ap.hasErr}}" hint-placeholder-val="{{false}}"><div class="fc-note fc-err"><svg class="fc-ic" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><sc-for list="{{m.lx.warnIc}}" as="icd" hint-placeholder-count="2"><path d="{{icd}}"></path></sc-for></svg><span>{{m.lx.ap.err}}</span></div></sc-if>
+<sc-if value="{{m.lx.kwOpt}}" hint-placeholder-val="{{false}}"><div class="ln-radios" role="radiogroup" aria-label="Alcance del cambio"><sc-for list="{{m.lx.modes}}" as="o" hint-placeholder-count="2"><label class="fc-chk"><input type="radio" name="ln-mode" checked="{{o.on}}" onChange="{{o.pick}}"> {{o.t}}</label></sc-for></div></sc-if>
+<sc-if value="{{m.lx.hasExp}}" hint-placeholder-val="{{false}}"><label class="fc-chk"><input type="checkbox" checked="{{m.lx.reexp}}" onChange="{{m.lx.setReexp}}" title="Corrige los asientos ya generados con la cuenta nueva"> {{m.lx.reexpT}}</label></sc-if>
+<sc-if value="{{m.lx.gasto}}" hint-placeholder-val="{{false}}"><label class="fc-chk"><input type="checkbox" checked="{{m.lx.expNow}}" onChange="{{m.lx.setExpNow}}" title="Como en ProConta antiguo, el gasto directo se exporta al asignarlo"> {{m.lx.expNowT}}</label></sc-if>
+</sc-if>
+<sc-if value="{{m.lx.uncta}}" hint-placeholder-val="{{false}}"><p>{{m.lx.uT}}</p></sc-if>
+<sc-if value="{{m.lx.unrem}}" hint-placeholder-val="{{false}}"><p>{{m.lx.uT}}</p></sc-if>
+<sc-if value="{{m.lx.unexp}}" hint-placeholder-val="{{false}}"><p>{{m.lx.uT}}</p></sc-if>
+<sc-if value="{{m.lx.kw}}" hint-placeholder-val="{{false}}">
+<div class="fc-note"><svg class="fc-ic" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><sc-for list="{{m.lx.infoIc}}" as="icd" hint-placeholder-count="2"><path d="{{icd}}"></path></sc-for></svg><span class="fc-mono" style="font-size: 11.5px">{{m.lx.kwCon}}</span></div>
+<div class="fc-frow"><div class="fc-fld" style="flex: 1 1 260px"><label for="ln-kt">Texto que debe contener el concepto</label><input id="ln-kt" data-fk="ln:dlg:txt" class="{{m.lx.kwTxt.cls}}" value="{{m.lx.kwTxt.v}}" onChange="{{m.lx.kwTxt.set}}" title="{{m.lx.kwTxt.tip}}"></div>
+<div class="fc-fld" style="flex: 1 1 200px"><label for="ln-kt2">Y además (opcional)</label><input id="ln-kt2" data-fk="ln:dlg:txt2" class="{{m.lx.kwTxt2.cls}}" value="{{m.lx.kwTxt2.v}}" onChange="{{m.lx.kwTxt2.set}}" title="{{m.lx.kwTxt2.tip}}"></div></div>
+<div class="fc-kv"><dt>Se aplica a</dt><dd>{{m.lx.kwScope}}</dd></div>
+<div class="fc-fld"><label for="ln-aq">Cuenta de destino</label><div class="fc-sbox" style="width: 100%"><svg class="fc-ic" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><sc-for list="{{m.lx.ap.searchIc}}" as="icd" hint-placeholder-count="2"><path d="{{icd}}"></path></sc-for></svg><input id="ln-aq" data-fk="{{m.lx.ap.fk}}" value="{{m.lx.ap.q}}" onChange="{{m.lx.ap.setQ}}" placeholder="Código o descripción (puede quedar sin cuenta)" title="Cuenta que tomarán las líneas sin cuenta"></div></div>
+<div class="ln-acclist" style="max-height: 170px" role="listbox" aria-label="Cuentas"><sc-for list="{{m.lx.ap.list}}" as="a" hint-placeholder-count="4"><button type="button" role="option" class="{{a.cls}}" aria-selected="{{a.sel}}" onClick="{{a.pick}}" title="{{a.t}}"><span class="fc-mono">{{a.c}}</span><span>{{a.t}}</span></button></sc-for></div>
+<div class="{{m.lx.ap.chosenCls}}">Elegida: <b>{{m.lx.ap.chosen}}</b></div>
+<div class="fc-note fc-ok"><svg class="fc-ic" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><sc-for list="{{m.lx.infoIc}}" as="icd" hint-placeholder-count="2"><path d="{{icd}}"></path></sc-for></svg><span>{{m.lx.kwPrev}}</span></div>
+<sc-if value="{{m.lx.kwDup}}" hint-placeholder-val="{{false}}"><div class="fc-note fc-err"><svg class="fc-ic" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><sc-for list="{{m.lx.warnIc}}" as="icd" hint-placeholder-count="2"><path d="{{icd}}"></path></sc-for></svg><span>{{m.lx.kwDupT}}</span></div></sc-if>
+<sc-if value="{{m.lx.kwNear}}" hint-placeholder-val="{{false}}"><div class="fc-note fc-warn"><svg class="fc-ic" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><sc-for list="{{m.lx.warnIc}}" as="icd" hint-placeholder-count="2"><path d="{{icd}}"></path></sc-for></svg><span>Se solapa con {{m.lx.kwNearT}}. Cuando dos encajan, gana la más larga.</span></div></sc-if>
+</sc-if>
+<sc-if value="{{m.lx.fac}}" hint-placeholder-val="{{false}}"><div class="fc-fld"><label for="ln-fac">Número de factura</label><input id="ln-fac" data-fk="ln:dlg:fac" class="fc-in fc-mono" style="width: 240px" value="{{m.lx.facF.v}}" onChange="{{m.lx.facF.set}}" title="Número de la factura que paga o cobra el movimiento"></div><p class="fc-mut">{{m.lx.facT}}</p></sc-if>
+<sc-if value="{{m.lx.div}}" hint-placeholder-val="{{false}}">
+<div class="fc-note"><svg class="fc-ic" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><sc-for list="{{m.lx.infoIc}}" as="icd" hint-placeholder-count="2"><path d="{{icd}}"></path></sc-for></svg><span>{{m.lx.dNote}}</span></div>
+<div class="fc-xtw"><div class="fc-xt" style="min-width: 0">
+<div class="fc-gh" style="grid-template-columns: 30px 120px minmax(0, 1fr) 110px minmax(0, 1fr) 34px"><span>#</span><span class="fc-r">Importe</span><span>Descripción</span><span>Cuenta</span><span></span><span></span></div>
+<sc-for list="{{m.lx.drows}}" as="d" hint-placeholder-count="2"><div class="fc-gl" style="grid-template-columns: 30px 120px minmax(0, 1fr) 110px minmax(0, 1fr) 34px; height: 34px"><span class="fc-mut">{{d.i}}</span>
+<span><input class="{{d.imp.cls}}" data-fk="{{d.imp.fk}}" value="{{d.imp.v}}" onChange="{{d.imp.set}}" placeholder="{{d.imp.ph}}" title="{{d.imp.tip}}" aria-label="Importe"></span>
+<span><input class="{{d.desc.cls}}" data-fk="{{d.desc.fk}}" value="{{d.desc.v}}" onChange="{{d.desc.set}}" placeholder="{{d.desc.ph}}" title="{{d.desc.tip}}" aria-label="Descripción"></span>
+<span><input class="{{d.cta.cls}}" data-fk="{{d.cta.fk}}" value="{{d.cta.v}}" onChange="{{d.cta.set}}" placeholder="{{d.cta.ph}}" title="{{d.cta.tip}}" aria-label="Cuenta"></span>
+<span class="fc-mut" title="{{d.ctaD}}">{{d.ctaD}}</span>
+<span><button type="button" class="fc-xb" onClick="{{d.del}}" aria-label="{{d.delLbl}}" title="{{d.delLbl}}"><svg class="fc-ic" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><sc-for list="{{d.delIc}}" as="icd" hint-placeholder-count="2"><path d="{{icd}}"></path></sc-for></svg></button></span></div></sc-for>
+</div></div>
+<div class="fc-frow" style="align-items: center"><button type="button" class="{{m.lx.dAdd.cls}}" aria-disabled="{{m.lx.dAdd.dis}}" title="{{m.lx.dAdd.tip}}" onClick="{{m.lx.dAdd.on}}"><sc-if value="{{m.lx.dAdd.hasIc}}" hint-placeholder-val="{{true}}"><svg class="fc-ic" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><sc-for list="{{m.lx.dAdd.ic}}" as="icd" hint-placeholder-count="2"><path d="{{icd}}"></path></sc-for></svg></sc-if>{{m.lx.dAdd.t}}</button><span class="fc-grow"></span><span>Línea <b class="fc-tn">{{m.lx.dTot}}</b> · fracciones <b class="fc-tn">{{m.lx.dSum}}</b> · por repartir <b class="{{m.lx.dLeftCls}}">{{m.lx.dLeft}}</b></span></div>
+</sc-if>
+<sc-if value="{{m.lx.rem}}" hint-placeholder-val="{{false}}">
+<div class="fc-kv"><dt>Línea</dt><dd>{{m.lx.rHead}}</dd></div>
+<div class="fc-note"><svg class="fc-ic" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><sc-for list="{{m.lx.infoIc}}" as="icd" hint-placeholder-count="2"><path d="{{icd}}"></path></sc-for></svg><span>{{m.lx.rNote}}</span></div>
+<div class="fc-scrollbox scroll" style="max-height: 360px"><div class="fc-mini">
+<div class="fc-mh" style="grid-template-columns: 26px 110px minmax(0, 1fr) 84px 92px 56px 96px"><span></span><span>Factura</span><span>Cliente</span><span>Cuenta</span><span>Cargo</span><span class="fc-r">Días</span><span class="fc-r">Importe</span></div>
+<sc-for list="{{m.lx.ritems}}" as="it" hint-placeholder-count="6"><label class="{{it.cls}}" style="grid-template-columns: 26px 110px minmax(0, 1fr) 84px 92px 56px 96px" title="{{it.outT}}"><input type="checkbox" checked="{{it.on}}" onChange="{{it.tog}}" aria-label="{{it.lbl}}"><span class="fc-mono">{{it.num}}</span><span>{{it.who}}</span><span class="fc-mono">{{it.cta}}</span><span class="fc-tn">{{it.ven}}</span><span class="fc-r fc-tn">{{it.dias}}</span><span class="fc-r fc-tn">{{it.imp}}</span></label></sc-for>
+</div></div>
+<div class="fc-frow" style="align-items: center"><span>{{m.lx.rN}} marcados · suma <b class="fc-tn">{{m.lx.rSum}}</b> · diferencia <b class="{{m.lx.rDifCls}}">{{m.lx.rDif}}</b></span></div>
+</sc-if>
+<sc-if value="{{m.lx.rems}}" hint-placeholder-val="{{false}}">
+<h3 class="fc-sec">Pendientes de desglosar</h3>
+<sc-if value="{{m.lx.rpNone}}" hint-placeholder-val="{{false}}"><p class="fc-mut">No hay remesas pendientes en este ejercicio.</p></sc-if>
+<div class="fc-mini"><sc-for list="{{m.lx.rpend}}" as="p" hint-placeholder-count="2"><div class="fc-mr" style="grid-template-columns: minmax(0, 1fr) 110px auto; align-items: center"><span>{{p.t}}</span><span class="fc-r fc-tn">{{p.imp}}</span><span><button type="button" class="{{p.go.cls}}" aria-disabled="{{p.go.dis}}" title="{{p.go.tip}}" onClick="{{p.go.on}}"><sc-if value="{{p.go.hasIc}}" hint-placeholder-val="{{true}}"><svg class="fc-ic" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><sc-for list="{{p.go.ic}}" as="icd" hint-placeholder-count="2"><path d="{{icd}}"></path></sc-for></svg></sc-if>{{p.go.t}}</button></span></div></sc-for></div>
+<h3 class="fc-sec">Desglosadas</h3>
+<sc-if value="{{m.lx.rdNone}}" hint-placeholder-val="{{false}}"><p class="fc-mut">Todavía no se ha desglosado ninguna remesa.</p></sc-if>
+<div class="fc-scrollbox scroll" style="max-height: 300px"><div class="fc-mini"><sc-for list="{{m.lx.rdone}}" as="p" hint-placeholder-count="3"><div class="fc-mr" style="grid-template-columns: minmax(0, 1fr) 90px 110px auto; align-items: center"><span class="fc-mono">{{p.t}}</span><span class="fc-mut">{{p.n}}</span><span class="fc-r fc-tn">{{p.imp}}</span><span><button type="button" class="{{p.go.cls}}" aria-disabled="{{p.go.dis}}" title="{{p.go.tip}}" onClick="{{p.go.on}}"><sc-if value="{{p.go.hasIc}}" hint-placeholder-val="{{true}}"><svg class="fc-ic" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><sc-for list="{{p.go.ic}}" as="icd" hint-placeholder-count="2"><path d="{{icd}}"></path></sc-for></svg></sc-if>{{p.go.t}}</button></span></div></sc-for></div></div>
+</sc-if>
+<sc-if value="{{m.lx.tras}}" hint-placeholder-val="{{false}}"><div class="fc-mini"><sc-for list="{{m.lx.tl}}" as="p" hint-placeholder-count="2"><div class="fc-mr" style="grid-template-columns: minmax(0, 1fr) 110px"><span>{{p.t}}</span><span class="fc-r fc-tn">{{p.imp}}</span></div></sc-for></div><p>{{m.lx.tT}}</p></sc-if>
+<sc-if value="{{m.lx.exp}}" hint-placeholder-val="{{false}}"><dl class="fc-kv"><sc-for list="{{m.lx.eKv}}" as="kv" hint-placeholder-count="3"><dt>{{kv.k}}</dt><dd class="{{kv.cls}}"><sc-if value="{{kv.lnk}}" hint-placeholder-val="{{false}}"><button type="button" class="fc-lnk" onClick="{{kv.on}}" title="{{kv.tip}}">{{kv.v}}</button>{{kv.after}}</sc-if><sc-if value="{{kv.nl}}" hint-placeholder-val="{{true}}">{{kv.v}}</sc-if></dd></sc-for></dl><p class="fc-mut">{{m.lx.eT}}</p></sc-if>
+<sc-if value="{{m.lx.as}}" hint-placeholder-val="{{false}}"><sc-for list="{{m.lx.asl}}" as="a" hint-placeholder-count="1"><div><h3 class="fc-sec">{{a.h}}</h3><div class="fc-mini">
+<div class="fc-mh" style="grid-template-columns: 84px minmax(0, 1fr) minmax(0, 1fr) 96px 96px 96px"><span>Cuenta</span><span>Descripción</span><span>Concepto</span><span>Documento</span><span class="fc-r">Debe</span><span class="fc-r">Haber</span></div>
+<sc-for list="{{a.ap}}" as="p" hint-placeholder-count="2"><div class="fc-mr" style="grid-template-columns: 84px minmax(0, 1fr) minmax(0, 1fr) 96px 96px 96px"><span class="fc-mono">{{p.cta}}</span><span>{{p.d}}</span><span>{{p.con}}</span><span class="fc-mono">{{p.doc}}</span><span class="fc-r fc-tn">{{p.debe}}</span><span class="fc-r fc-tn">{{p.haber}}</span></div></sc-for></div></div></sc-for></sc-if>
+</div>
+<div class="fc-dlgf"><sc-for list="{{m.lx.acts}}" as="b" hint-placeholder-count="1"><button type="button" class="{{b.cls}}" aria-disabled="{{b.dis}}" title="{{b.tip}}" onClick="{{b.on}}"><sc-if value="{{b.hasIc}}" hint-placeholder-val="{{true}}"><svg class="fc-ic" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><sc-for list="{{b.ic}}" as="icd" hint-placeholder-count="2"><path d="{{icd}}"></path></sc-for></svg></sc-if>{{b.t}}</button></sc-for><span class="fc-grow"></span><button type="button" class="fc-btn" onClick="{{m.lx.close}}" title="Cierra el diálogo sin hacer cambios (Esc)">{{m.lx.cancelT}}</button></div>
+</div>
+</div>
+</sc-if>
+</div>
+</sc-if>
 <sc-if value="{{m.n43}}" hint-placeholder-val="{{false}}">
 <div class="mod">
 <div class="mtb"><h1 class="mt disp">Importación Norma 43</h1><div class="fill"></div><button class="btn" type="button" onClick="{{m.goLineas}}" title="Abre las líneas bancarias importadas"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 6h13M8 12h13M8 18h13"></path><path d="M3.5 6h.01M3.5 12h.01M3.5 18h.01"></path></svg>Ver líneas bancarias</button></div>
@@ -2995,6 +3200,193 @@ function fcMake(soc, ej) {
     lastMail: lastMail, genCount: genCount, progBase: progBase, progList: progList, emitBase: emitBase, hasEmitFilters: hasEmitFilters, emitList: emitList, dueDates: dueDates, bruto: bruto };
 }
 
+/* ---------- Líneas bancarias Norma 43: datos y reglas (análisis en sources/proconta-antiguo/norma43/ANALISIS-FUNCIONAL.md) ---------- */
+var LN_IC = {
+  split: ['M6 3v6a3 3 0 0 0 3 3h6a3 3 0 0 1 3 3v6', 'M18 3v6a3 3 0 0 1-3 3', 'M3 6l3-3 3 3', 'M15 18l3 3 3-3'],
+  key: ['M14.5 9.5a4.5 4.5 0 1 1-9 0 4.5 4.5 0 0 1 9 0z', 'M13 13l8 8', 'M17 17l2-2', 'M19 19l2-2'],
+  link: ['M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1', 'M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1'],
+  swap: ['M7 4 3 8l4 4', 'M3 8h14', 'M17 12l4 4-4 4', 'M21 16H7'],
+  layers: ['M12 3 2 8l10 5 10-5z', 'M2 13l10 5 10-5'],
+  gear: ['M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z', 'M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-2.9 1.2V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-2.9-1.2l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1A1.7 1.7 0 0 0 3 14H3a2 2 0 1 1 0-4h.1A1.7 1.7 0 0 0 4.6 9l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1A1.7 1.7 0 0 0 9 4.6V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 2.9 1.2l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1A1.7 1.7 0 0 0 19.4 9H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 2z'],
+  similar: ['M4 7h10', 'M4 12h16', 'M4 17h7', 'M17 4l3 3-3 3'],
+  coin: ['M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18z', 'M15 9.5a3 3 0 0 0-3-1.5c-1.7 0-3 .9-3 2s1.3 1.6 3 2 3 .9 3 2-1.3 2-3 2a3 3 0 0 1-3-1.5', 'M12 6v1.5M12 16.5V18'],
+  minus: ['M5 12h14']
+};
+
+/* Subcuentas de Norma 43: por sociedad y ejercicio, con estos valores por defecto (2026-10-29 15:23). */
+var LN_PAR_DEF = [
+  { k: 'tras', t: 'Traspasos entre bancos propios', v: '5729999', tip: 'Cuenta puente de los traspasos entre cuentas bancarias de la sociedad: los dos asientos se compensan en ella' },
+  { k: 't555', t: 'Partidas pendientes de aplicación (555)', v: '5550001', tip: 'Recibe las líneas exportadas sin cuenta de destino hasta que se imputen y se reexporten' },
+  { k: 's555', t: 'Divisiones de línea (555)', v: '5550002', tip: 'Cuenta puente de las líneas divididas: la línea original va a ella y cada fracción sale de ella' },
+  { k: 'rem', t: 'Banco ficticio de remesas SEPA', v: '5729001', tip: 'La línea de la remesa pasa del banco a esta cuenta y cada recibo sale de ella hacia la 430 del cliente' },
+  { k: 'gas', t: 'Prefijo propuesto para gastos directos', v: '6', tip: 'Prefijo con el que se abre el selector en «Enviar a cuenta de gasto»' }
+];
+
+function lnMake(soc, y, lin) {
+  var r = rng(hash('ln' + soc.id + y));
+  var CL = [['TALLERES ALBORA SL', '4300003'], ['LUCIA FERRER CASALS', '4300007'], ['CP MIRADOR DEL PARQUE 14', '4300009'], ['NERIA SERVICIOS SA', '4300012'], ['AISLAMIENTOS DEL TURIA SL', '4300015'], ['MARCOS VELILLA ORTEGA', '4300018']];
+  var CTAS = [
+    ['4000004', 'Suministros Iberlux, S.A.'], ['4100002', 'Gestoría Sanmartí, S.L.P.'], ['4000011', 'Talleres Albora, S.L. (proveedor)'],
+    ['4300003', 'Talleres Albora, S.L.'], ['4300007', 'Lucía Ferrer Casals'], ['4300009', 'C.P. Mirador del Parque 14'], ['4300012', 'Neria Servicios, S.A.'], ['4300015', 'Aislamientos del Turia, S.L.'], ['4300018', 'Marcos Velilla Ortega'],
+    ['4300021', 'Inmobiliaria Safor Norte, S.L.'], ['4300024', 'Clínica Dental Benimaclet, S.L.P.'], ['4300027', 'Academia Idiomas Ruzafa, S.L.'], ['4300030', 'Pilar Amorós Giner'], ['4300033', 'Construcciones Requena, S.A.'], ['4300036', 'Farmacia Ldo. Ortiz Peris'],
+    ['4650000', 'Remuneraciones pendientes de pago'], ['4760000', 'Organismos de la Seguridad Social, acreedores'], ['5200001', 'Préstamo a corto plazo CaixaBank'],
+    ['5700000', 'Caja, euros'], ['5550001', 'Partidas pendientes de aplicación'], ['5550002', 'Partidas pendientes · divisiones de línea'], ['5729999', 'Traspasos entre bancos'], ['5729001', 'Banco ficticio · remesas SEPA'],
+    ['6210001', 'Renting de vehículos'], ['6250001', 'Primas de seguros'], ['6260001', 'Servicios bancarios y comisiones'], ['6280001', 'Suministro eléctrico'], ['6280002', 'Suministro de agua'],
+    ['6290001', 'Otros servicios · gastos varios'], ['6290003', 'Telefonía e internet'], ['6290005', 'Combustible'], ['6290007', 'Material de oficina'], ['6290009', 'Restaurantes y dietas'], ['6290011', 'Aparcamientos'], ['6400000', 'Sueldos y salarios'], ['6420000', 'Seguridad Social a cargo de la empresa'],
+    ['7050001', 'Prestaciones de servicios'], ['7590001', 'Ingresos por servicios diversos']
+  ];
+  soc.ctas.forEach(function (c, i) { CTAS.push(['572000' + (i + 1), 'Bancos · ' + c.split(' · ')[0] + ' ' + c.slice(-4)]); });
+  var CT = {}; CTAS.forEach(function (c) { CT[c[0]] = c[1]; });
+  var BANKS = soc.ctas.map(function (c, i) { var p = c.split(' · '); return { i: i, n: p[0], iban: p[1], short: p[0] + ' ··' + p[1].replace(/\s/g, '').slice(-4), cta: '572000' + (i + 1), ent: p[1].replace(/\s/g, '').slice(4, 8) }; });
+  var REMB = { i: -1, n: 'Remesas SEPA', short: 'Remesas SEPA (ficticio)', cta: '5729001', ent: '9999', fict: true };
+  var PAR = {}; LN_PAR_DEF.forEach(function (p) { PAR[p.k] = p.v; });
+
+  /* palabras clave: texto contenido en el concepto (y segundo texto opcional), por banco y sentido */
+  var KW = [], kid = 100;
+  function kw(txt, cta, dh, o) { o = o || {}; KW.push({ id: ++kid, txt: txt, txt2: o.txt2 || '', bank: o.bank == null ? 0 : o.bank, dh: dh, cta: cta, tipo: o.tipo || 'normal', alta: o.alta || '12/01/2026' }); }
+  kw('ELECTRICA LEVANTINA', '6280001', 'C'); kw('TELECOM HORIZONTE', '6290003', 'C'); kw('SEGUROS ALMENARA', '6250001', 'C'); kw('AGUAS DEL CAMPELLO', '6280002', 'C');
+  kw('RENTING VEHICULOS TURIA', '6210001', 'C'); kw('COMISION', '6260001', 'C'); kw('SEGUROS SOCIALES', '4760000', 'C'); kw('NOMINA', '4650000', 'C'); kw('CUOTA PRESTAMO', '5200001', 'C');
+  kw('TALLERES ALBORA', '4300003', 'A'); kw('LUCIA FERRER', '4300007', 'A'); kw('NERIA SERVICIOS', '4300012', 'A'); kw('MIRADOR DEL PARQUE', '4300009', 'A');
+  kw('SUMINISTROS IBERLUX', '4000004', 'C'); kw('GESTORIA SANMARTI', '4100002', 'C'); kw('INGRESO EFECTIVO', '5700000', 'A'); kw('E.S. LA SAFOR', '6290005', 'C');
+  kw('ABONO REMESA SEPA', '', 'A', { tipo: 'remesa' }); kw('DEVOLUCION RECIBO', '', 'C', { tipo: 'devuelto' });
+  if (soc.ctas.length > 1) { kw('COMISION', '6260001', 'C', { bank: 1 }); kw('TALLERES ALBORA', '4300003', 'A', { bank: 1 }); }
+
+  var L = { soc: soc, y: y, CT: CT, CTAS: CTAS, BANKS: BANKS, REMB: REMB, PAR: PAR, KW: KW, LINES: [], seen: {}, nextNum: 48210, nextAs: 1900, CL: CL, REMS: {}, nextRem: 1 };
+  L.bank = function (i) { return i === -1 ? REMB : BANKS[i] || BANKS[0]; };
+  L.ctaD = function (c) { return CT[c] || (c ? 'Cuenta no encontrada en el plan' : ''); };
+  L.kwById = function (id) { for (var i = 0; i < KW.length; i++) if (KW[i].id === id) return KW[i]; return null; };
+  L.byId = function (id) { for (var i = 0; i < L.LINES.length; i++) if (L.LINES[i].id === id) return L.LINES[i]; return null; };
+  L.byNum = function (n) { for (var i = 0; i < L.LINES.length; i++) if (L.LINES[i].num === n) return L.LINES[i]; return null; };
+  L.text = function (l) { return l.con + (l.ref ? ' ' + l.ref : ''); };
+  L.match = function (k, l) {
+    if (k.bank !== l.bank || k.dh !== l.dh) return false;
+    var t = norm(L.text(l)); return t.indexOf(norm(k.txt)) >= 0 && (!k.txt2 || t.indexOf(norm(k.txt2)) >= 0);
+  };
+  /* reasignación: la palabra clave más larga que encaja gana; la cuenta solo se hereda si la línea no tiene */
+  L.apply = function (only) {
+    var n = { kw: 0, cta: 0 };
+    L.LINES.forEach(function (l) {
+      if (l.kw === -1 || l.orig) return;
+      var best = null; KW.forEach(function (k) { if ((!only || k.id === only) && L.match(k, l) && (!best || k.txt.length > best.txt.length)) best = k; });
+      if (!best) return;
+      if (l.kw !== best.id) { l.kw = best.id; n.kw++; }
+      if (!l.cta && best.cta) { l.cta = best.cta; n.cta++; }
+      if (best.tipo === 'remesa' && !l.expl) l.rem = true;
+    });
+    return n;
+  };
+  L.state = function (l) {
+    if (l.rem && !l.expl) return 'REM';
+    if (!l.exp) return l.cta ? 'PEX' : 'IMP';
+    if (l.exp.c555) return l.cta ? 'REX' : '555';
+    return l.exp.cta !== l.cta ? 'REX' : 'EXP';
+  };
+  L.ST = { IMP: ['Por imputar', 'Sin cuenta de destino'], REM: ['Remesa por explotar', 'Remesa SEPA pendiente de desglosar en recibos'], PEX: ['Sin exportar', 'Con cuenta y sin asiento'], '555': ['En 555', 'Exportada a la cuenta 555 a la espera de cuenta'], EXP: ['Exportada', 'Asiento generado y al día'], REX: ['Reexportar', 'La cuenta de la línea ya no coincide con la del asiento'] };
+  L.newAs = function () { L.nextAs += 1; return 'A-' + y + '-' + String(L.nextAs).padStart(5, '0'); };
+  L.export = function (l) {
+    var c555 = !l.cta, as = l.exp ? l.exp.as : L.newAs();
+    l.exp = { as: as, fecha: y + '-09-30', cta: c555 ? PAR.t555 : l.cta, c555: c555 };
+    return c555;
+  };
+  L.apuntes = function (l) {
+    var b = L.bank(l.bank), dest = l.exp ? l.exp.cta : (l.cta || PAR.t555), bc = l.bankCta || b.cta, a = Math.abs(l.imp), pay = l.dh === 'C';
+    var c1 = (pay ? 'Pago a ' : 'Cobro de ') + (L.ctaD(dest) || dest), c2 = (pay ? 'Pago desde ' : 'Ingreso en ') + (L.ctaD(bc) || bc);
+    return [{ cta: dest, d: L.ctaD(dest), debe: pay ? a : 0, haber: pay ? 0 : a, con: c1, doc: l.fac }, { cta: bc, d: L.ctaD(bc), debe: pay ? 0 : a, haber: pay ? a : 0, con: c2, doc: l.fac }];
+  };
+  /* similitud: palabras del concepto compartidas con líneas que ya tienen cuenta */
+  L.words = function (s) { return norm(s).replace(/[^a-z0-9ñ ]/g, ' ').split(/\s+/).filter(function (w) { return w.length > 2 && !/^\d+$/.test(w); }); };
+  L.similar = function (l) {
+    var a = L.words(l.con), out = [];
+    if (!a.length || l.rem || l.expl) return out;
+    L.LINES.forEach(function (o) {
+      if (o === l || !o.cta || o.orig || o.rem || o.expl || o.div) return;
+      var b = L.words(o.con), inter = a.filter(function (w) { return b.indexOf(w) >= 0; }).length, uni = a.length + b.length - inter;
+      var s = uni ? Math.round(100 * inter / uni) : 0; if (s >= 50) out.push({ l: o, s: s });
+    });
+    var seen = {}; return out.sort(function (p, q) { return q.s - p.s || (q.l.fo > p.l.fo ? 1 : -1); }).filter(function (x) { if (seen[x.l.cta]) return false; seen[x.l.cta] = 1; return true; }).slice(0, 5);
+  };
+  /* facturas candidatas: mismo importe (±0,02 €) y fecha anterior, por el cliente o proveedor del concepto */
+  L.cands = function (l) {
+    if (l.cc !== '04' || l.fac) return [];
+    var m = /FRA (PROV )?([A-Z0-9/-]+)/.exec(l.ref || ''), a = Math.abs(l.imp), who = l.con.replace(/^TRANSF\. (DE|A) /, '');
+    var c = CL.filter(function (x) { return x[0] === who; })[0], cta = l.dh === 'A' ? (c ? c[1] : '4300021') : (who.indexOf('IBERLUX') >= 0 ? '4000004' : who.indexOf('SANMARTI') >= 0 ? '4100002' : '4000011');
+    var d = new Date(l.fo); d.setDate(d.getDate() - 18 - Math.floor((a * 7) % 20));
+    var out = [{ num: m ? m[2].replace(/^([A-Z])-(\d{4})-(\d+)$/, '$1 $2/$3') : (l.dh === 'A' ? 'F ' + y + '/0' + (100 + Math.round(a) % 90) : 'PRV-' + (1000 + Math.round(a) % 900)), fecha: iso(d), imp: a, cta: cta, who: L.ctaD(cta), dif: 0, dias: Math.round((new Date(l.fo) - d) / 864e5) }];
+    if (Math.round(a) % 3 === 0) { var d2 = new Date(d); d2.setDate(d2.getDate() - 31); out.push({ num: l.dh === 'A' ? 'F ' + y + '/0' + (60 + Math.round(a) % 30) : 'PRV-' + (700 + Math.round(a) % 200), fecha: iso(d2), imp: r2(a + 0.01), cta: cta, who: L.ctaD(cta), dif: 0.01, dias: Math.round((new Date(l.fo) - d2) / 864e5) }); }
+    return out;
+  };
+  /* remesas SEPA: facturas de contrato con cargo a ±3 días cuya suma cuadra con la línea */
+  L.remCands = function (l) {
+    var rr = rng(hash('rem' + l.id)), a = Math.abs(l.imp), n = 8 + Math.floor(rr() * 5), parts = [], left = a;
+    var names = CTAS.filter(function (c) { return /^430/.test(c[0]); });
+    for (var i = 0; i < n; i++) { var p = i === n - 1 ? r2(left) : r2(a / n * (0.6 + rr() * 0.8)); left = r2(left - p); parts.push(p); }
+    var d0 = new Date(l.fo), out = parts.map(function (p, i) { var c = names[(i * 3 + Math.floor(rr() * names.length)) % names.length], dd = new Date(d0); dd.setDate(dd.getDate() + Math.floor(rr() * 7) - 3);
+      return { k: i, num: 'F ' + y + '/' + String(300 + Math.floor(rr() * 400)).padStart(4, '0'), cta: c[0], who: c[1], ven: iso(dd), dias: Math.round((dd - d0) / 864e5), imp: p, on: true }; });
+    var dx = new Date(d0); dx.setDate(dx.getDate() + 5); var cx = names[Math.floor(rr() * names.length)];
+    out.push({ k: n, num: 'F ' + y + '/' + String(700 + Math.floor(rr() * 99)).padStart(4, '0'), cta: cx[0], who: cx[1], ven: iso(dx), dias: 5, imp: r2(25 + rr() * 60), on: false, out: true });
+    return out;
+  };
+  L.explode = function (l, items) {
+    var rid = 'RM-' + y + '-' + String(L.nextRem++).padStart(3, '0'), made = [];
+    l.expl = true; l.remId = rid; l.cta = PAR.rem; if (l.kw === 0) l.kw = -1;
+    items.forEach(function (it, i) {
+      var nl = { id: l.id + '-r' + i, num: ++L.nextNum, bank: -1, fo: l.fo, fv: l.fv, cc: '03', cp: '000', con: 'RECIBO SEPA ' + it.who.toUpperCase(), ref: 'FRA ' + it.num + ' · VTO ' + fdate(it.ven), r1: l.r1, imp: it.imp, dh: 'A', kw: -1, cta: it.cta, fac: it.num, exp: null, orig: { kind: 'rem', from: l.num, rem: rid }, bankCta: PAR.rem, remId: rid };
+      L.LINES.push(nl); made.push(nl);
+    });
+    L.REMS[rid] = { id: rid, from: l.num, fo: l.fo, imp: Math.abs(l.imp), n: items.length, bank: l.bank };
+    return { rid: rid, lines: made };
+  };
+  L.unexplode = function (l) {
+    var rid = l.remId, kids = L.LINES.filter(function (x) { return x.orig && x.orig.rem === rid; });
+    if (kids.some(function (x) { return x.exp; })) return 'Hay recibos de esta remesa ya exportados: borra antes sus asientos.';
+    L.LINES = L.LINES.filter(function (x) { return !(x.orig && x.orig.rem === rid); });
+    delete L.REMS[rid]; l.expl = false; l.remId = null; l.cta = ''; var k = L.kwById(l.kw); if (!k || k.tipo !== 'remesa') { l.kw = 0; L.apply(); }
+    return null;
+  };
+  L.divide = function (l, parts) {
+    var made = [];
+    parts.forEach(function (p, i) {
+      var nl = { id: l.id + '-s' + i, num: ++L.nextNum, bank: l.bank, fo: l.fo, fv: l.fv, cc: l.cc, cp: l.cp, con: p.desc.toUpperCase() + ' (DIV. ' + l.num + ')', ref: l.ref, r1: l.r1, imp: r2((l.imp < 0 ? -1 : 1) * p.imp), dh: l.dh, kw: p.cta ? -1 : 0, cta: p.cta || '', fac: l.fac, exp: null, orig: { kind: 'div', from: l.num }, bankCta: PAR.s555 };
+      L.LINES.push(nl); made.push(nl);
+    });
+    l.div = made.map(function (x) { return x.num; }); l.cta = PAR.s555; l.kw = -1;
+    return made;
+  };
+
+  /* incorpora las líneas generadas por el contenedor (incluidas las de una importación reciente) */
+  L.sync = function (lin) {
+    var added = 0;
+    lin.forEach(function (rows, bi) {
+      rows.forEach(function (x) {
+        if (L.seen[x.id]) return; L.seen[x.id] = 1; added++;
+        var l = { id: x.id, num: ++L.nextNum, bank: bi, fo: x.fo, fv: x.fv, cc: x.cc, cp: x.cp, con: x.con, ref: x.r2, r1: x.r1, imp: x.imp, dh: x.imp < 0 ? 'C' : 'A', kw: 0, cta: '', fac: '', exp: null, isNew: !!x.isNew, st0: x.st, as0: x.as };
+        L.LINES.push(l);
+      });
+    });
+    if (!added) return 0;
+    L.apply();
+    L.LINES.forEach(function (l) {
+      if (!l.st0) return; var st = l.st0, as = l.as0; delete l.st0; delete l.as0;
+      if (l.cc === '04' && l.dh === 'A' && /^FRA [A-Z]-\d{4}-\d+$/.test(l.ref || '') && st === 'Conciliada') l.fac = l.ref.replace(/^FRA ([A-Z])-(\d{4})-(\d+)$/, '$1 $2/$3');
+      if (l.cc === '12' && !l.cta && st === 'Conciliada') { var t = l.con; l.cta = /PAPELERIA|LIBRERIA/.test(t) ? '6290007' : /RESTAURANTE/.test(t) ? '6290009' : /PARKING/.test(t) ? '6290011' : '6290001'; l.kw = -1; }
+      if (l.rem && st === 'Conciliada') { l.expl = true; l.cta = PAR.rem; l.remId = 'RM-' + y + '-H' + String(l.num).slice(-3); L.REMS[l.remId] = { id: l.remId, from: l.num, fo: l.fo, imp: Math.abs(l.imp), n: 9 + l.num % 4, bank: l.bank, hist: true }; }
+      if (st === 'Conciliada' && !(l.rem && !l.expl)) l.exp = { as: as || L.newAs(), fecha: l.fo, cta: l.cta || PAR.t555, c555: !l.cta };
+    });
+    /* cuenta cambiada después de exportar: el asiento conserva la antigua */
+    var tel = KW.filter(function (k) { return k.txt === 'TELECOM HORIZONTE'; })[0];
+    L.LINES.filter(function (l) { return l.kw === tel.id && l.exp && !l.exp.c555; }).slice(0, 2).forEach(function (l) { l.exp.cta = '6290001'; });
+    L.LINES.sort(function (a, b) { return a.fo < b.fo ? 1 : a.fo > b.fo ? -1 : b.num - a.num; });
+    return added;
+  };
+  L.sync(lin);
+  return L;
+}
+
+function lnNewView() {
+  return { q: '', est: 'all', bank: 'all', dh: 'all', kwf: 'all', rem: '', desde: '', hasta: '', desdeTxt: '', hastaTxt: '', desdeErr: false, hastaErr: false, imin: '', imax: '', iminErr: false, imaxErr: false,
+    sort: { k: 'fo', d: -1 }, sel: {}, anchor: null, cur: null, detailOpen: true, menu: null, dlg: null, pick: '' };
+}
+
 class Component extends DCLogic {
 
   /* ---------- estado ---------- */
@@ -3041,7 +3433,6 @@ class Component extends DCLogic {
   mkTab(dest) {
     var D = DEST[dest], kind = KIND[dest] || 'ph', t = { id: dest, dest: dest, kind: kind, title: D.t, st: {} };
     if (kind === 'terceros') t.st = { q: '', tipo: 'all', fc: false, fp: false, fk: false, perf: '', sel: null };
-    if (kind === 'lineas') t.st = { q: '', est: 'all', sel: {}, cta: 0 };
     if (kind === 'n43') t.st = { file: 0 };
     return t;
   }
@@ -3941,7 +4332,7 @@ class Component extends DCLogic {
     }
     if (sc === 'factura') { openQ(['fac-emitidas']); this.prepare(true); var fl = this.S.tabs.filter(function (x) { return x.kind === 'factura'; })[0]; S.active = fl.id; }
     if (sc === 'facturas') { openQ(['terceros', 'fac-emitidas']); var ft = this.tab('fac-emitidas'), fa = this.data().fac; ft.st.sel = fa[fa.length - 3].num; ft.st.est = 'all'; }
-    if (sc === 'n43' || sc === 'n43-zen') { openQ(['terceros', 'fac-emitidas', 'lineas']); var lt = this.tab('lineas'), ln = this.data().lin[0]; [2, 3, 5].forEach(function (i) { lt.st.sel[ln[i].id] = true; }); if (sc === 'n43-zen') S.zen = true; }
+    if (sc === 'n43' || sc === 'n43-zen') { openQ(['terceros', 'fac-emitidas', 'lineas']); var lt = this.tab('lineas'), le = this.lnEnv(lt); le.L.LINES.slice(2, 5).forEach(function (l) { le.V.sel[l.id] = 1; }); le.V.cur = le.L.LINES[3].id; if (sc === 'n43-zen') S.zen = true; }
     if (sc === 'flyout') { S.navCol = true; openQ(['terceros', 'lineas']); S.menu = 'fly'; S.fly = { g: 'g-conta', y: 36 + 6 + 4 * 41 }; }
     if (sc === 'nsearch') { openQ(['terceros', 'fac-emitidas']); S.active = 'inicio'; S.menu = 'nq'; S.nq = 'fac'; }
     if (sc === 'jorge') { S.op = 'jibarra'; S.navOpen = { 'g-maestros': true, 'g-fact': true, 'g-compras': true }; openQ(['terceros']); S.active = 'inicio'; }
@@ -4803,6 +5194,463 @@ class Component extends DCLogic {
     return fx;
   }
 
+  /* ---------- Líneas bancarias Norma 43 ---------- */
+  lnEnv(t) {
+    var k = this.key(), db = this.data();
+    if (!db.lnx) db.lnx = lnMake(this.soc(), this.S.ej, db.lin); else db.lnx.sync(db.lin);
+    if (!t.st || t.st.key !== k) t.st = Object.assign(lnNewView(), { key: k });
+    return { L: db.lnx, V: t.st };
+  }
+  lnFocus(k) { this._trFocus = 'ln:' + k; }
+  lnB(label, o) {
+    var self = this; o = o || {};
+    return { t: label, cls: 'fc-btn ' + (o.cls || 'fc-sm'), dis: !!o.why, tip: o.why || o.title || '', ic: LN_IC[o.icon] || FC_IC[o.icon] || [], hasIc: !!o.icon,
+      on: function (e) { if (e && e.stopPropagation) e.stopPropagation(); if (o.why) { self.toast(o.why); return self.bump(); } o.fn(e); self.bump(); } };
+  }
+  /* búsqueda con prefijos de ProConta antiguo */
+  lnQ(q) {
+    q = String(q || '').trim(); if (!q) return null;
+    var m = /^([nieacofNIEACOF])\+\s*(.*)$/.exec(q), pnum = function (s) { var v = Number(String(s).replace(/\./g, '').replace(',', '.')); return isNaN(v) ? null : v; };
+    if (!m) return { t: 'Concepto contiene «' + q + '»', f: function (l, L) { return norm(L.text(l)).indexOf(norm(q)) >= 0; } };
+    var k = m[1].toLowerCase(), v = m[2].trim();
+    if (!v) return { err: 'Escribe el valor después de «' + k + '+».' };
+    if (k === 'i' || k === 'e') { var x = pnum(v); if (x === null) return { err: '«' + v + '» no es un importe: escríbelo como 150,25.' }; x = Math.abs(x); var tol = k === 'i' ? 0.5 : 0.02;
+      return { t: (k === 'i' ? 'Importe ≈ ' : 'Importe = ') + num(x) + (k === 'i' ? ' (±0,50)' : ''), f: function (l) { return Math.abs(Math.abs(l.imp) - x) < tol + 1e-9; } }; }
+    if (k === 'n') { var n = parseInt(v, 10); if (isNaN(n)) return { err: 'El número de línea debe ser un número.' }; return { t: 'Línea nº ' + n, f: function (l) { return l.num === n; } }; }
+    if (k === 'a') return { t: 'Asiento ' + v, f: function (l) { return !!l.exp && norm(l.exp.as).indexOf(norm(v)) >= 0; } };
+    if (k === 'c') return { t: 'Cuenta de destino ' + v + '…', f: function (l) { return String(l.cta).indexOf(v) === 0; } };
+    if (k === 'o') return { t: 'Cuenta del banco ' + v + '…', f: function (l, L) { return String(l.bankCta || L.bank(l.bank).cta).indexOf(v) === 0; } };
+    return { t: 'Factura contiene «' + v + '»', f: function (l) { return norm(l.fac).indexOf(norm(v)) >= 0; } };
+  }
+  lnBase(L, V) {
+    /* todo lo que filtra la barra salvo el estado, para poder contar por estado */
+    var Q = this.lnQ(V.q), out = [];
+    L.LINES.forEach(function (l) {
+      if (V.rem) { if (l.remId !== V.rem) return; }
+      else if (V.bank !== 'all' && String(l.bank) !== V.bank) return;
+      if (V.dh !== 'all' && l.dh !== V.dh) return;
+      if (V.kwf === 'kw' && !(l.kw > 0)) return; if (V.kwf === 'man' && l.kw !== -1) return; if (V.kwf === 'none' && l.kw !== 0) return;
+      if (V.desde && l.fo < V.desde) return; if (V.hasta && l.fo > V.hasta) return;
+      var a = Math.abs(l.imp); if (V.imin !== '' && !V.iminErr && a < +V.iminN) return; if (V.imax !== '' && !V.imaxErr && a > +V.imaxN) return;
+      if (Q && Q.f && !Q.f(l, L)) return;
+      out.push(l);
+    });
+    return out;
+  }
+  lnList(L, V, base) {
+    var self = this, rows = base.filter(function (l) { return V.est === 'all' || L.state(l) === V.est || (V.est === 'PEND' && L.state(l) !== 'EXP'); });
+    var k = V.sort.k, d = V.sort.d, key = function (l) {
+      if (k === 'fo') return l.fo + String(l.num).padStart(6, '0'); if (k === 'imp') return l.imp; if (k === 'num') return l.num;
+      if (k === 'con') return norm(l.con); if (k === 'cta') return l.cta || '~'; if (k === 'est') return L.state(l); if (k === 'bank') return L.bank(l.bank).short; return '';
+    };
+    return rows.slice().sort(function (a, b) { var x = key(a), y = key(b); return (x < y ? -1 : x > y ? 1 : b.num - a.num) * d; });
+  }
+  lnScope(L, V, list) {
+    var vis = {}; list.forEach(function (l) { vis[l.id] = 1; });
+    var sel = Object.keys(V.sel).filter(function (id) { return vis[id]; }).map(function (id) { return L.byId(id); }).filter(Boolean);
+    if (sel.length) return sel;
+    var c = V.cur && vis[V.cur] ? L.byId(V.cur) : null; return c ? [c] : [];
+  }
+  lnScopeT(rows) { return rows.length === 1 ? 'la línea ' + rows[0].num : rows.length + ' líneas'; }
+  lnCan() { return this.fcCan(); }
+  lnNoPerm() { return this.fcNoPerm(); }
+  lnOpenDlg(V, d) { V.menu = null; V.dlg = d; this.lnFocus('dlg'); }
+
+  /* acciones según la selección: las mismas en el menú contextual, la barra de selección y el detalle */
+  lnActs(L, V, rows) {
+    var self = this, can = this.lnCan(), NP = this.lnNoPerm(), n = rows.length, one = n === 1 ? rows[0] : null, S = this.lnScopeT(rows), out = [];
+    var A = function (t, ic, why, fn, o) { out.push(Object.assign({ t: t, ic: ic, why: why || null, fn: fn }, o || {})); };
+    var sep = function () { if (out.length && !out[out.length - 1].sep) out.push({ sep: true }); };
+    var none = !n ? 'Selecciona una o varias líneas.' : null, ro = !can ? NP : null;
+    var gen = rows.filter(function (l) { return l.orig; }).length, rem = rows.filter(function (l) { return l.rem && !l.expl; }).length;
+    var lockedWhy = function (l) { return l.expl ? 'La línea ' + l.num + ' es una remesa ya desglosada: su cuenta es la del banco ficticio. Deshaz el desglose para cambiarla.' : l.div ? 'La línea ' + l.num + ' está dividida: imputa sus fracciones.' : null; };
+    var lk = rows.map(lockedWhy).filter(Boolean)[0];
+    A('Asignar cuenta…', 'edit', none || ro || lk, function () { self.lnOpenDlg(V, { kind: 'cta', ids: rows.map(function (l) { return l.id; }), q: '', cta: one && one.cta || '', mode: 'line', reexp: true }); }, { k: 'F2' });
+    A('Enviar a cuenta de gasto (' + L.PAR.gas + '…)…', 'coin', none || ro || lk || (rows.some(function (l) { return l.dh === 'A'; }) ? 'Solo para cargos: hay cobros en ' + S + '.' : null), function () { self.lnOpenDlg(V, { kind: 'cta', gasto: true, ids: rows.map(function (l) { return l.id; }), q: L.PAR.gas, cta: '', mode: 'line', reexp: true, expNow: true }); });
+    var withCta = rows.filter(function (l) { return l.cta && !l.orig; });
+    A('Quitar la cuenta' + (n > 1 ? ' (' + withCta.length + ')' : ''), 'xc', none || ro || lk || (!withCta.length ? 'Ninguna de las líneas tiene cuenta.' : null), function () { self.lnOpenDlg(V, { kind: 'uncta', ids: withCta.map(function (l) { return l.id; }) }); });
+    sep();
+    A('Crear palabra clave…', 'key', !one ? (n ? 'Crea la palabra clave desde una sola línea.' : none) : ro || (one.orig ? 'Las líneas generadas por un desglose no admiten palabras clave.' : null), function () { self.lnKwDlg(L, V, one, ''); });
+    A('Movimientos parecidos', 'similar', !one ? (n ? 'Elige una sola línea.' : none) : null, function () { V.cur = one.id; V.detailOpen = true; V.ovOpen = true; V.dsec = 'sim'; self.lnFocus('sim'); });
+    A('Asignar número de factura…', 'doc', none || ro, function () { var f = rows.map(function (l) { return l.fac; }).filter(Boolean)[0] || ''; self.lnOpenDlg(V, { kind: 'fac', ids: rows.map(function (l) { return l.id; }), v: f }); });
+    sep();
+    A('Dividir la línea…', 'split', !one ? (n ? 'Se divide de una en una.' : none) : ro || (one.expl || one.rem ? 'Una remesa se desglosa con «Explotar remesa».' : one.div ? 'Ya está dividida.' : one.orig ? 'Es una línea generada: divide la original.' : null), function () { self.lnSplitDlg(L, V, one); });
+    A(one && one.expl ? 'Ver la remesa ' + one.remId : 'Explotar remesa…', 'layers', !one ? (n ? 'Elige una sola línea de remesa.' : none) : one.expl ? null : ro || (!one.rem ? 'Solo para líneas con palabra clave de tipo remesa SEPA.' : null), function () {
+      if (one.expl) { self.lnFilterRem(V, one.remId); return; } self.lnOpenDlg(V, { kind: 'rem', id: one.id, items: L.remCands(one) }); });
+    var tw = null; if (n === 2) { var a = rows[0], b = rows[1]; tw = a.dh === b.dh ? 'Una línea debe ser un cargo y la otra un abono.' : Math.abs(Math.abs(a.imp) - Math.abs(b.imp)) > 0.004 ? 'Los importes no coinciden (' + num(Math.abs(a.imp)) + ' y ' + num(Math.abs(b.imp)) + ').' : a.bank === b.bank ? 'Las dos líneas son del mismo banco.' : (a.exp || b.exp) ? 'Alguna de las dos ya está exportada: borra antes su asiento.' : null; }
+    A('Traspaso entre bancos', 'swap', n !== 2 ? 'Selecciona exactamente dos líneas: el cargo en un banco y el abono en el otro.' : ro || tw, function () { self.lnOpenDlg(V, { kind: 'tras', ids: rows.map(function (l) { return l.id; }) }); });
+    sep();
+    var toExp = rows.filter(function (l) { var s = L.state(l); return s === 'IMP' || s === 'PEX' || s === 'REX'; });
+    A(n > 1 ? 'Exportar a contabilidad (' + toExp.length + ')' : (one && L.state(one) === 'REX' ? 'Reexportar' : 'Exportar a contabilidad'), 'book', none || ro || (rem && rem === n ? 'Desglosa antes la remesa.' : !toExp.length ? 'Ya están exportadas y al día.' : null), function () { self.lnOpenDlg(V, { kind: 'exp', ids: toExp.map(function (l) { return l.id; }) }); }, { k: 'Ctrl+E' });
+    var exd = rows.filter(function (l) { return l.exp; });
+    A('Ver asiento' + (exd.length > 1 ? 's (' + exd.length + ')' : ''), 'eye', none || (!exd.length ? 'Ninguna está exportada.' : null), function () { self.lnOpenDlg(V, { kind: 'as', ids: exd.map(function (l) { return l.id; }) }); });
+    A('Borrar asiento' + (exd.length > 1 ? 's (' + exd.length + ')' : ''), 'trash', none || ro || (!exd.length ? 'Ninguna está exportada.' : null), function () { self.lnOpenDlg(V, { kind: 'unexp', ids: exd.map(function (l) { return l.id; }) }); }, { danger: true });
+    if (one && one.expl && !one.orig) A('Deshacer el desglose de la remesa', 'undo', ro, function () { self.lnOpenDlg(V, { kind: 'unrem', id: one.id }); }, { danger: true });
+    return out;
+  }
+  lnFilterRem(V, rid) { V.rem = rid; V.est = 'all'; V.q = ''; V.sel = {}; this.toast('Filtro aplicado: líneas de la remesa ' + rid + '.'); }
+  lnKwDlg(L, V, l, txt) {
+    var sug = txt || l.con.replace(/^(TRANSF\. (DE|A)|RECIBO|COMPRA TARJ\. \d+|DEVOLUCION RECIBO|ABONO)\s+/, '').split(/\s+/).slice(0, 3).join(' ');
+    this.lnOpenDlg(V, { kind: 'kw', id: l.id, txt: sug, txt2: '', q: '', cta: '' });
+  }
+  lnSplitDlg(L, V, l) {
+    var a = Math.abs(l.imp), h = r2(a / 2);
+    this.lnOpenDlg(V, { kind: 'div', id: l.id, rows: [{ imp: num(h), desc: 'Fracción 1', cta: '' }, { imp: num(r2(a - h)), desc: 'Fracción 2', cta: '' }], err: {} });
+  }
+  /* operaciones */
+  lnAssign(L, rows, cta, mode, reexp) {
+    var kwc = 0, ex = 0;
+    if (mode === 'kw') {
+      var k = L.kwById(rows[0].kw), old = k.cta; k.cta = cta;
+      L.LINES.forEach(function (l) { if (l.kw === k.id && (!l.cta || l.cta === old)) { l.cta = cta; kwc++; if (l.exp && reexp) { L.export(l); ex++; } } });
+      return { n: kwc, ex: ex, kw: k };
+    }
+    rows.forEach(function (l) { l.cta = cta; if (l.kw !== -1) l.kw = -1; if (l.exp && reexp) { L.export(l); ex++; } });
+    return { n: rows.length, ex: ex };
+  }
+
+  lnVals(t, cw, zen, m) {
+    var self = this, env = this.lnEnv(t), L = env.L, V = env.V, can = this.lnCan(), NP = this.lnNoPerm();
+    var go = function (fn) { return function (e) { if (e && e.stopPropagation) e.stopPropagation(); fn(e); self.bump(); }; };
+    var B = function (l, o) { return self.lnB(l, o); };
+    m.ln = true; m.sk = t.id + ':ln';
+    var base = this.lnBase(L, V), list = this.lnList(L, V, base), Q = this.lnQ(V.q);
+    var ids = {}; list.forEach(function (l) { ids[l.id] = 1; });
+    if (V.cur && !ids[V.cur]) V.cur = null;
+    if (!V.cur && list.length) V.cur = list[0].id;
+    var cur = V.cur ? L.byId(V.cur) : null, scope = this.lnScope(L, V, list);
+    var dock = cw >= 1700, showD = dock ? V.detailOpen : !!V.ovOpen;
+    var allBanks = V.bank === 'all' || !!V.rem;
+
+    /* barra del módulo */
+    var pend = L.LINES.filter(function (l) { var s = L.state(l); return s === 'PEX' || s === 'REX'; });
+    var noC = L.LINES.filter(function (l) { return !l.cta && l.kw === 0 && !l.orig; }).length;
+    m.lb = {
+      tools: [
+        B('Importar fichero…', { icon: 'dl', title: 'Abre Importación Norma 43 para cargar un extracto', fn: function () { self.openDest('n43'); } }),
+        B('Aplicar palabras clave', { icon: 'key', why: !can ? NP : null, title: 'Revisa todas las líneas con las palabras clave: las que encajen toman su cuenta si no la tienen (' + noC + ' sin palabra clave)', fn: function () { var r = L.apply(); self.toast(r.kw || r.cta ? r.kw + ' líneas han tomado palabra clave y ' + r.cta + ' han recibido cuenta.' : 'Ninguna línea nueva encaja con las palabras clave. Quedan ' + noC + ' sin palabra clave.'); } }),
+        B('Remesas…', { icon: 'layers', title: 'Remesas SEPA: pendientes de desglosar y ya desglosadas, con su filtro', fn: function () { self.lnOpenDlg(V, { kind: 'rems' }); } }),
+        B('Exportar pendientes (' + pend.length + ')', { icon: 'book', why: !can ? NP : !pend.length ? 'No hay líneas con cuenta pendientes de exportar o reexportar.' : null, title: 'Genera los asientos de las líneas con cuenta sin exportar y reexporta las que han cambiado', fn: function () { self.lnOpenDlg(V, { kind: 'exp', ids: pend.map(function (l) { return l.id; }), all: true }); } }),
+        B('Subcuentas…', { icon: 'gear', title: 'Subcuentas puente de Norma 43 de esta sociedad y ejercicio', fn: function () { self.lnOpenDlg(V, { kind: 'par' }); } })
+      ],
+      kbd: go(function () { self.lnOpenDlg(V, { kind: 'kbd' }); }), kbdIc: FC_IC.kbd
+    };
+
+    /* filtros: todos se combinan (Y) */
+    var cnt = { all: base.length, IMP: 0, REM: 0, PEX: 0, '555': 0, REX: 0, EXP: 0 }; base.forEach(function (l) { cnt[L.state(l)]++; });
+    var setDate = function (w) { return function (e) { var v = e.target.value, p = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/.exec(v.trim()), ok = p && +p[2] >= 1 && +p[2] <= 12 && +p[1] >= 1 && +p[1] <= 31;
+      V[w + 'Txt'] = v; V[w + 'Err'] = !!v.trim() && !ok; V[w] = ok ? p[3] + '-' + pad(+p[2]) + '-' + pad(+p[1]) : ''; self.lnFocus(w); self.bump(); }; };
+    var setImp = function (w) { return function (e) { var v = e.target.value, x = Number(v.replace(/\./g, '').replace(',', '.')); V[w] = v; V[w + 'Err'] = !!v.trim() && isNaN(x); V[w + 'N'] = x; self.lnFocus(w); self.bump(); }; };
+    var chips = [];
+    if (V.rem) { var R = L.REMS[V.rem]; chips.push({ t: 'Remesa ' + V.rem + (R ? ' · línea ' + R.from + ' · ' + R.n + ' recibos' : ''), clr: go(function () { V.rem = ''; }) }); }
+    if (Q && !Q.err) chips.push({ t: Q.t, clr: go(function () { V.q = ''; }) });
+    if (V.bank !== 'all' && !V.rem) chips.push({ t: 'Banco: ' + L.bank(+V.bank).short, clr: go(function () { V.bank = 'all'; }) });
+    if (V.dh !== 'all') chips.push({ t: V.dh === 'A' ? 'Solo cobros' : 'Solo pagos', clr: go(function () { V.dh = 'all'; }) });
+    if (V.kwf !== 'all') chips.push({ t: { kw: 'Con palabra clave', man: 'Cuenta puesta a mano', none: 'Sin palabra clave' }[V.kwf], clr: go(function () { V.kwf = 'all'; }) });
+    if (V.desde || V.hasta) chips.push({ t: 'Fecha ' + (V.desde ? 'desde ' + fdate(V.desde) : '') + (V.hasta ? ' hasta ' + fdate(V.hasta) : ''), clr: go(function () { V.desde = V.hasta = V.desdeTxt = V.hastaTxt = ''; V.desdeErr = V.hastaErr = false; }) });
+    if ((V.imin && !V.iminErr) || (V.imax && !V.imaxErr)) chips.push({ t: 'Importe ' + (V.imin ? 'desde ' + V.imin : '') + (V.imax ? ' hasta ' + V.imax : ''), clr: go(function () { V.imin = V.imax = ''; V.iminErr = V.imaxErr = false; }) });
+    if (V.est !== 'all') chips.push({ t: 'Estado: ' + (V.est === 'PEND' ? 'pendientes' : L.ST[V.est][0].toLowerCase()), clr: go(function () { V.est = 'all'; }) });
+    var hasF = chips.length > 0;
+    var banks = L.BANKS.map(function (b) { return { v: String(b.i), t: b.short }; });
+    m.lf = {
+      q: V.q, qCls: 'fc-sbox ln-q' + (Q && Q.err ? ' ln-qerr' : ''), qTip: Q && Q.err ? Q.err : 'Texto del concepto, o un prefijo: n+ línea · i+ importe ±0,50 · e+ importe exacto · a+ asiento · c+ cuenta de destino · o+ cuenta del banco · f+ factura (Ctrl+F)', qInv: String(!!(Q && Q.err)),
+      setQ: function (e) { V.q = e.target.value; self.lnFocus('q'); self.bump(); }, searchIc: FC_IC.search,
+      ests: [['all', 'Todas'], ['PEND', 'Pendientes'], ['IMP', 'Por imputar'], ['REM', 'Remesas'], ['PEX', 'Sin exportar'], ['555', 'En 555'], ['REX', 'Reexportar'], ['EXP', 'Exportadas']].map(function (x) {
+        var n = x[0] === 'PEND' ? base.length - cnt.EXP : cnt[x[0]];
+        return { t: x[1], n: n, on: V.est === x[0], tip: x[0] === 'all' ? 'Todas las líneas que cumplen los demás filtros' : x[0] === 'PEND' ? 'Todo lo que no está exportado y al día' : L.ST[x[0]][1], pick: go(function () { V.est = x[0]; }) }; }),
+      bank: V.rem ? 'all' : V.bank, bankCls: 'fc-in' + (V.bank !== 'all' && !V.rem ? ' fc-on' : ''), banks: banks, setBank: function (e) { V.bank = e.target.value; V.rem = ''; self.bump(); }, bankDis: !!V.rem,
+      dh: V.dh, dhCls: 'fc-in' + (V.dh !== 'all' ? ' fc-on' : ''), setDh: function (e) { V.dh = e.target.value; self.bump(); },
+      kwf: V.kwf, kwfCls: 'fc-in' + (V.kwf !== 'all' ? ' fc-on' : ''), setKwf: function (e) { V.kwf = e.target.value; self.bump(); },
+      rem: V.rem, remCls: 'fc-in' + (V.rem ? ' fc-on' : ''), rems: Object.keys(L.REMS).sort().reverse().map(function (k) { var R = L.REMS[k]; return { v: k, t: k + ' · ' + fdate(R.fo) + ' · ' + num(R.imp) }; }), setRem: function (e) { V.rem = e.target.value; V.sel = {}; self.bump(); },
+      desde: V.desdeTxt, desdeCls: 'fc-in' + (V.desdeErr ? ' fc-err' : V.desde ? ' fc-on' : ''), desdeTip: V.desdeErr ? 'Fecha no válida: escríbela como dd/mm/aaaa' : 'Primera fecha valor que se muestra', desdeInv: String(!!V.desdeErr), setDesde: setDate('desde'),
+      hasta: V.hastaTxt, hastaCls: 'fc-in' + (V.hastaErr ? ' fc-err' : V.hasta ? ' fc-on' : ''), hastaTip: V.hastaErr ? 'Fecha no válida: escríbela como dd/mm/aaaa' : 'Última fecha valor que se muestra', hastaInv: String(!!V.hastaErr), setHasta: setDate('hasta'),
+      imin: V.imin, iminCls: 'fc-in fc-r' + (V.iminErr ? ' fc-err' : V.imin ? ' fc-on' : ''), iminTip: V.iminErr ? 'Importe no válido: escríbelo como 150,25' : 'Importe mínimo, sin signo', iminInv: String(!!V.iminErr), setImin: setImp('imin'),
+      imax: V.imax, imaxCls: 'fc-in fc-r' + (V.imaxErr ? ' fc-err' : V.imax ? ' fc-on' : ''), imaxTip: V.imaxErr ? 'Importe no válido: escríbelo como 150,25' : 'Importe máximo, sin signo', imaxInv: String(!!V.imaxErr), setImax: setImp('imax'),
+      chips: chips, hasChips: hasF, xIc: FC_IC.x,
+      clear: B('Quitar filtros', { cls: 'fc-sm fc-ghost', why: hasF ? null : 'No hay filtros aplicados.', fn: function () { Object.assign(V, { q: '', est: 'all', bank: 'all', dh: 'all', kwf: 'all', rem: '', desde: '', hasta: '', desdeTxt: '', hastaTxt: '', desdeErr: false, hastaErr: false, imin: '', imax: '', iminErr: false, imaxErr: false }); } })
+    };
+
+    /* lista */
+    var selAll = Object.keys(V.sel), selVis = selAll.filter(function (id) { return ids[id]; }), hidden = selAll.length - selVis.length;
+    var keys = list.map(function (l) { return l.id; });
+    var sortH = function (k, l, cls) { var on = V.sort.k === k; return { t: l, cls: cls || '', ar: on ? (V.sort.d > 0 ? '▲' : '▼') : '', tip: 'Ordenar por ' + l.toLowerCase() + (on ? ' (clic otra vez: invertir)' : ''), aria: on ? (V.sort.d > 0 ? 'ascending' : 'descending') : 'none',
+      pick: go(function () { V.sort = V.sort.k === k ? { k: k, d: -V.sort.d } : { k: k, d: k === 'fo' || k === 'num' || k === 'imp' ? -1 : 1 }; self.lnFocus('sort:' + k); }), fk: 'ln:sort:' + k }; };
+    var cols = '34px 72px 88px ' + (allBanks ? '150px ' : '') + 'minmax(300px, 1fr) 112px 84px minmax(160px, 240px) 150px 104px 112px 132px';
+    var sumI = 0, sumC = 0; list.forEach(function (l) { if (l.imp > 0) sumI += l.imp; else sumC += l.imp; });
+    m.ll = {
+      count: list.length === L.LINES.length ? String(L.LINES.length) : list.length + ' de ' + L.LINES.length,
+      has: !!list.length, empty: !list.length, emptyT: L.LINES.length ? 'Ninguna línea cumple los filtros' : 'No hay líneas bancarias en este ejercicio',
+      emptyS: L.LINES.length ? 'Revisa los filtros activos o quítalos.' : 'Importa un extracto Norma 43 para empezar.',
+      emptyB: L.LINES.length ? B('Quitar filtros', { fn: function () { m.lf.clear.on(); } }) : B('Importar fichero…', { icon: 'dl', fn: function () { self.openDest('n43'); } }),
+      gcols: 'grid-template-columns: ' + cols, showBank: allBanks,
+      hNum: sortH('num', 'Nº'), hFo: sortH('fo', 'Fecha'), hBank: sortH('bank', 'Banco'), hCon: sortH('con', 'Concepto'), hImp: sortH('imp', 'Importe', 'fc-r'), hCta: sortH('cta', 'Cuenta'), hEst: sortH('est', 'Estado'),
+      allChk: !!list.length && selVis.length === list.length, allLbl: 'Seleccionar las ' + list.length + ' líneas del listado',
+      chkAll: function (e) { var c = e.target.checked; if (c) list.forEach(function (l) { V.sel[l.id] = 1; }); else list.forEach(function (l) { delete V.sel[l.id]; }); self.bump(); },
+      foot: plural(list.length, 'línea', 'líneas') + ' · cobros ' + num(sumI) + ' · pagos ' + num(-sumC) + ' · neto ' + num(sumI + sumC)
+    };
+    var stCls = { IMP: 'ln-st-imp', REM: 'ln-st-rem', PEX: 'ln-st-pex', '555': 'ln-st-555', EXP: 'ln-st-exp', REX: 'ln-st-rex' };
+    m.ll.rows = list.map(function (l) {
+      var s = L.state(l), on = !!V.sel[l.id], k = l.kw > 0 ? L.kwById(l.kw) : null, b = L.bank(l.bank);
+      var imput = l.orig ? (l.orig.kind === 'rem' ? 'Remesa · línea ' + l.orig.from : 'División · línea ' + l.orig.from) : l.expl ? 'Remesa desglosada' : l.div ? 'Dividida en ' + l.div.length : k ? '«' + k.txt + '»' : l.kw === -1 ? 'A mano' : '—';
+      var imTip = l.orig ? 'Línea generada desde la ' + l.orig.from : k ? 'Palabra clave ' + k.id + ': «' + k.txt + '»' + (k.txt2 ? ' + «' + k.txt2 + '»' : '') + ' · ' + b.n + ' · ' + (k.dh === 'C' ? 'cargos' : 'abonos') : l.kw === -1 ? 'Cuenta puesta a mano: la reasignación por palabras clave no la cambia' : 'Sin palabra clave';
+      return {
+        cls: 'fc-gr ln-gr' + (on ? ' fc-sel' : '') + (V.cur === l.id && showD ? ' fc-act' : '') + (l.isNew ? ' ln-new' : '') + (l.orig ? ' ln-child' : ''), ti: V.cur === l.id ? 0 : -1, fk: 'ln:r:' + l.id, sel: String(on), s: on,
+        num: String(l.num), fo: fdate(l.fo), bank: b.short, con: l.con, conT: L.text(l), ref: l.ref || '', imp: num(l.imp), impCls: 'fc-r fc-tn ln-imp ' + (l.imp < 0 ? 'ln-c' : 'ln-a'),
+        cta: l.cta || '—', ctaCls: 'fc-mono' + (l.cta ? '' : ' fc-mut'), ctaD: l.cta ? L.ctaD(l.cta) : (l.rem && !l.expl ? 'Pendiente de desglose' : 'Sin cuenta'), ctaDCls: l.cta ? '' : 'fc-mut',
+        imput: imput, imCls: l.kw > 0 ? 'ln-kwt' : 'fc-mut', imTip: imTip, fac: l.fac || '', as: l.exp ? l.exp.as : '', asCls: 'fc-mono ln-as',
+        st: L.ST[s][0], stCls: 'fc-pill ' + stCls[s], stTip: L.ST[s][1] + (s === 'REX' ? ': asiento a ' + l.exp.cta + ', línea a ' + (l.cta || 'ninguna') : ''), isNew: !!l.isNew,
+        chkLbl: 'Seleccionar la línea ' + l.num, stop: function (e) { e.stopPropagation(); },
+        chk: function (e) { if (e.target.checked) V.sel[l.id] = 1; else delete V.sel[l.id]; V.cur = l.id; V.anchor = l.id; self.lnFocus('r:' + l.id); self.bump(); },
+        click: function (e) { self.lnRowClick(L, V, e, l.id, keys); self.bump(); },
+        open: go(function () { V.cur = l.id; V.detailOpen = true; V.ovOpen = true; }),
+        ctx: function (e) { e.preventDefault(); e.stopPropagation(); if (!V.sel[l.id]) { V.sel = {}; V.sel[l.id] = 1; } V.cur = l.id; self.lnOpenMenu(V, e.clientX, e.clientY, e.currentTarget); self.bump(); },
+        key: function (e) { self.lnRowKey(L, V, e, l.id, keys, list); }
+      };
+    });
+    var acts = this.lnActs(L, V, scope);
+    var pickA = function (t) { var a = acts.filter(function (x) { return x.t && x.t.indexOf(t) === 0; })[0]; return a ? B(a.t, { icon: a.ic, why: a.why, fn: a.fn, cls: 'fc-sm' + (a.danger ? ' fc-danger' : '') }) : null; };
+    m.lsel = {
+      on: selVis.length > 0, t: plural(selVis.length, 'línea seleccionada', 'líneas seleccionadas'), sum: (function () { var s = 0; selVis.forEach(function (id) { s += L.byId(id).imp; }); return 'Suma ' + num(s); })(),
+      hidden: hidden > 0, hiddenT: plural(hidden, 'seleccionada queda', 'seleccionadas quedan') + ' fuera del listado y no se incluye' + (hidden > 1 ? 'n' : ''), warnIc: FC_IC.warn,
+      dropHidden: go(function () { selAll.forEach(function (id) { if (!ids[id]) delete V.sel[id]; }); }),
+      clear: go(function () { V.sel = {}; }),
+      acts: ['Asignar cuenta', 'Exportar', 'Reexportar'].map(pickA).filter(Boolean).slice(0, 2),
+      more: B('Más acciones', { icon: 'chev', fn: function (e) { var r = e.currentTarget.getBoundingClientRect(); self.lnOpenMenu(V, r.left, r.bottom + 4, e.currentTarget); } })
+    };
+
+    /* detalle, menú y diálogos */
+    m.ld = this.lnDetail(L, V, cur, dock, showD, acts, can, NP);
+    m.lm = this.lnMenuVals(L, V, scope, acts);
+    m.lx = this.lnDlgVals(L, V, can, NP);
+    m.lnKey = function (e) { self.lnRootKey(L, V, e, list, scope, acts); };
+    return m;
+  }
+
+  lnRowClick(L, V, e, id, keys) {
+    if (e.shiftKey && V.anchor) { var a = keys.indexOf(V.anchor), b = keys.indexOf(id); if (a >= 0 && b >= 0) { if (!e.ctrlKey) V.sel = {}; for (var i = Math.min(a, b); i <= Math.max(a, b); i++) V.sel[keys[i]] = 1; } }
+    else if (e.ctrlKey || e.metaKey) { if (V.sel[id]) delete V.sel[id]; else V.sel[id] = 1; V.anchor = id; }
+    else { V.sel = {}; V.anchor = id; }
+    V.cur = id; this.lnFocus('r:' + id);
+  }
+  lnRowKey(L, V, e, id, keys, list) {
+    if (e.target !== e.currentTarget) return;
+    var i = keys.indexOf(id), j = null;
+    if (e.key === 'ArrowDown') j = Math.min(i + 1, keys.length - 1); else if (e.key === 'ArrowUp') j = Math.max(i - 1, 0);
+    else if (e.key === 'Home') j = 0; else if (e.key === 'End') j = keys.length - 1; else if (e.key === 'PageDown') j = Math.min(i + 15, keys.length - 1); else if (e.key === 'PageUp') j = Math.max(i - 15, 0);
+    if (j !== null) {
+      e.preventDefault(); var k = keys[j];
+      if (e.shiftKey) { var a = keys.indexOf(V.anchor || id); V.sel = {}; for (var x = Math.min(a, j); x <= Math.max(a, j); x++) V.sel[keys[x]] = 1; } else V.anchor = k;
+      V.cur = k; this.lnFocus('r:' + k); return this.bump();
+    }
+    if (e.key === ' ') { e.preventDefault(); if (V.sel[id]) delete V.sel[id]; else V.sel[id] = 1; V.anchor = id; this.lnFocus('r:' + id); return this.bump(); }
+    if (e.key === 'Enter') { e.preventDefault(); V.detailOpen = true; V.ovOpen = true; this.lnFocus('r:' + id); return this.bump(); }
+    if (e.ctrlKey && (e.key === 'a' || e.key === 'A')) { e.preventDefault(); keys.forEach(function (k) { V.sel[k] = 1; }); return this.bump(); }
+    if (e.key === 'ContextMenu' || (e.shiftKey && e.key === 'F10')) { e.preventDefault(); if (!V.sel[id]) { V.sel = {}; V.sel[id] = 1; } var r = e.currentTarget.getBoundingClientRect(); this.lnOpenMenu(V, r.left + 240, r.bottom, e.currentTarget); return this.bump(); }
+  }
+  lnRootKey(L, V, e, list, scope, acts) {
+    var run = function (pre) { var a = acts.filter(function (x) { return x.t && x.t.indexOf(pre) === 0; })[0]; if (!a) return; if (a.why) this.toast(a.why); else a.fn(); }.bind(this);
+    if (e.key === 'Escape') {
+      if (V.dlg) { e.preventDefault(); V.dlg = null; this.lnFocus(V.cur ? 'r:' + V.cur : 'q'); return this.bump(); }
+      if (V.menu) { e.preventDefault(); V.menu = null; this.lnFocus(V.cur ? 'r:' + V.cur : 'q'); return this.bump(); }
+      if (V.ovOpen) { e.preventDefault(); V.ovOpen = false; this.lnFocus(V.cur ? 'r:' + V.cur : 'q'); return this.bump(); }
+      return;
+    }
+    if (V.dlg) return;
+    if (e.ctrlKey && (e.key === 'f' || e.key === 'F')) { e.preventDefault(); this.lnFocus('q'); return this.bump(); }
+    if (e.key === 'F2') { e.preventDefault(); run('Asignar cuenta'); return this.bump(); }
+    if (e.ctrlKey && (e.key === 'e' || e.key === 'E')) { e.preventDefault(); run(scope.length === 1 && L.state(scope[0]) === 'REX' ? 'Reexportar' : 'Exportar'); return this.bump(); }
+    if (e.ctrlKey && (e.key === 'k' || e.key === 'K')) { e.preventDefault(); run('Crear palabra clave'); return this.bump(); }
+  }
+  lnOpenMenu(V, x, y, el) {
+    var root = el && el.closest ? el.closest('.lnx') : null, rr = root ? root.getBoundingClientRect() : { left: 0, top: 0, width: 2000, height: 2000 };
+    V.menu = { x: Math.min(x - rr.left, rr.width - 300), y: Math.min(y - rr.top, rr.height - 520) };
+    this.lnFocus('menu');
+  }
+  lnMenuVals(L, V, scope, acts) {
+    var self = this; if (!V.menu || !scope.length) return { on: false };
+    var close = function () { V.menu = null; };
+    return {
+      on: true, pos: 'left: ' + Math.max(8, V.menu.x) + 'px; top: ' + Math.max(8, V.menu.y) + 'px', lbl: 'Acciones de ' + this.lnScopeT(scope),
+      head: scope.length === 1 ? 'Línea ' + scope[0].num + ' · ' + num(scope[0].imp) : scope.length + ' líneas seleccionadas',
+      items: acts.map(function (a, i) {
+        if (a.sep) return { sep: true, it: false };
+        return { sep: false, it: true, t: a.t, ic: LN_IC[a.ic] || FC_IC[a.ic], dis: !!a.why, tip: a.why || a.t, k: a.k || '', fk: i === 0 ? 'ln:menu' : '', cls: a.danger ? 'ln-mdanger' : '',
+          on: function (e) { e.stopPropagation(); if (a.why) { self.toast(a.why); return self.bump(); } close(); a.fn(); self.bump(); } };
+      }),
+      close: function (e) { if (e && e.preventDefault) e.preventDefault(); close(); self.lnFocus(V.cur ? 'r:' + V.cur : 'q'); self.bump(); }
+    };
+  }
+
+  lnDetail(L, V, l, dock, showD, acts, can, NP) {
+    var self = this, go = function (fn) { return function (e) { if (e && e.stopPropagation) e.stopPropagation(); fn(e); self.bump(); }; };
+    if (!showD) return { on: false, reopen: dock && !V.detailOpen, reopenFn: go(function () { V.detailOpen = true; }) };
+    if (!l) return { on: true, cls: 'fc-detail ln-detail' + (dock ? '' : ' fc-over'), empty: true, has: false, close: go(function () { V.detailOpen = false; V.ovOpen = false; }), xIc: FC_IC.x };
+    var b = L.bank(l.bank), k = l.kw > 0 ? L.kwById(l.kw) : null, s = L.state(l), B = function (t, o) { return self.lnB(t, o); };
+    var kv = function (k2, v, o) { return self.fcKv(k2, v, o); };
+    var one = this.lnActs(L, V, [l]), pick = function (pre, cls) { var a = one.filter(function (x) { return x.t && x.t.indexOf(pre) === 0; })[0]; return a ? B(a.t, { icon: a.ic, why: a.why, fn: a.fn, cls: cls || 'fc-sm' }) : null; };
+    var d = { on: true, has: true, empty: false, cls: 'fc-detail ln-detail' + (dock ? '' : ' fc-over'), close: go(function () { V.detailOpen = false; V.ovOpen = false; }), xIc: FC_IC.x,
+      title: 'Línea ' + l.num, sub: b.short + ' · ' + (l.dh === 'C' ? 'cargo' : 'abono') + ' · fecha valor ' + fdate(l.fv),
+      imp: num(l.imp) + ' €', impCls: 'ln-dimp ' + (l.imp < 0 ? 'ln-c' : 'ln-a'), st: L.ST[s][0], stCls: 'fc-pill ln-st-' + { IMP: 'imp', REM: 'rem', PEX: 'pex', '555': '555', EXP: 'exp', REX: 'rex' }[s], stTip: L.ST[s][1],
+      con: l.con, ref: l.ref || '', hasRef: !!l.ref,
+      kwB: { t: 'Crear palabra clave', tip: !can ? NP : l.orig ? 'Las líneas generadas no admiten palabras clave.' : 'Selecciona con el ratón el texto del concepto que identifica al tercero y pulsa aquí (Ctrl+K)', dis: !can || !!l.orig, ic: LN_IC.key,
+        down: function (e) { var sel = window.getSelection && window.getSelection(), box = document.querySelector('[data-ln-con]'); V._selTxt = sel && box && sel.rangeCount && box.contains(sel.anchorNode) ? sel.toString().trim() : ''; if (V._selTxt) e.preventDefault(); },
+        on: function (e) { e.stopPropagation(); if (!can || l.orig) { self.toast(!can ? NP : 'Las líneas generadas no admiten palabras clave.'); return self.bump(); } var tx = V._selTxt || ''; V._selTxt = ''; self.lnKwDlg(L, V, l, tx); self.bump(); } },
+      acts: [pick(s === 'REX' ? 'Reexportar' : 'Exportar', 'fc-sm fc-pri'), pick('Asignar cuenta'), l.rem && !l.expl ? pick('Explotar remesa', 'fc-sm fc-pri') : null, l.expl && !l.orig ? pick('Ver la remesa') : null].filter(Boolean),
+      more: B('Más acciones', { icon: 'chev', fn: function (e) { V.sel = {}; V.sel[l.id] = 1; var r = e.currentTarget.getBoundingClientRect(); self.lnOpenMenu(V, r.left, r.bottom + 4, e.currentTarget); } })
+    };
+    if (d.acts[0] && d.acts[0].dis && (s === 'EXP' || s === 'REM')) d.acts.shift();
+    /* imputación */
+    var imp = [kv('Cuenta', l.cta ? l.cta + ' · ' + L.ctaD(l.cta) : 'Sin cuenta', { mono: !!l.cta, mut: !l.cta })];
+    if (k) imp.push(kv('Palabra clave', '«' + k.txt + '»' + (k.txt2 ? ' + «' + k.txt2 + '»' : ''), { after: ' · nº ' + k.id + ' · ' + b.n + ' · ' + (k.dh === 'C' ? 'cargos' : 'abonos') + (k.tipo === 'remesa' ? ' · tipo remesa' : k.tipo === 'devuelto' ? ' · recibo devuelto' : '') }));
+    else imp.push(kv('Origen de la cuenta', l.orig ? (l.orig.kind === 'rem' ? 'Recibo de la remesa ' + l.orig.rem : 'Fracción de la línea ' + l.orig.from) : l.kw === -1 ? 'Puesta a mano (no la cambian las palabras clave)' : 'Sin palabra clave', { mut: true }));
+    if (l.orig) imp.push(kv('Línea de origen', 'Línea ' + l.orig.from, { on: go(function () { var o = L.byNum(l.orig.from); if (o) { V.cur = o.id; self.lnFocus('r:' + o.id); } }), tip: 'Ir a la línea original' }));
+    if (l.div) imp.push(kv('Fracciones', l.div.join(', '), { mono: true }));
+    if (l.expl) imp.push(kv('Remesa', l.remId, { on: go(function () { self.lnFilterRem(V, l.remId); }), tip: 'Ver solo las líneas de esta remesa', after: L.REMS[l.remId] ? ' · ' + L.REMS[l.remId].n + ' recibos' : '' }));
+    imp.push(kv('Factura', l.fac || '—', { mono: !!l.fac, mut: !l.fac }));
+    d.impl = imp;
+    /* contabilidad */
+    var con = [];
+    if (l.exp) { con.push(kv('Asiento', l.exp.as, { mono: true, on: go(function () { self.lnOpenDlg(V, { kind: 'as', ids: [l.id] }); }), tip: 'Ver el asiento' })); con.push(kv('Fecha del asiento', fdate(l.exp.fecha))); con.push(kv('Cuenta en el asiento', l.exp.cta + ' · ' + L.ctaD(l.exp.cta), { mono: true })); }
+    else con.push(kv('Asiento', s === 'REM' ? 'Se generan al desglosar la remesa' : 'Sin exportar', { mut: true }));
+    con.push(kv('Cuenta del banco', (l.bankCta || b.cta) + ' · ' + L.ctaD(l.bankCta || b.cta), { mono: true }));
+    d.cont = con; d.rexNote = s === 'REX'; d.rexT = s === 'REX' ? (l.exp.c555 ? 'Se exportó a la 555 sin cuenta; ya tiene la ' + l.cta + '. Reexporta para llevarla a su cuenta (mismo número de asiento).' : 'El asiento usa la ' + l.exp.cta + ' y la línea tiene la ' + (l.cta || 'ninguna') + '. Reexporta para corregir el asiento (mismo número).') : '';
+    d.warnIc = FC_IC.warn; d.infoIc = FC_IC.info;
+    /* datos del banco */
+    d.bank = [kv('Banco', b.n + (b.iban ? ' · ' + b.iban : ''), { mono: false }), kv('Fecha operación', fdate(l.fo)), kv('Fecha valor', fdate(l.fv)), kv('Concepto común', l.cc + ' · ' + (N43C[l.cc] || '—')), kv('Concepto propio', l.cp, { mono: true }), kv('Referencia 1', l.r1 || '—', { mono: true }), kv('Nº de línea', String(l.num), { mono: true })];
+    /* sugerencias */
+    var sim = L.similar(l).filter(function (x) { return x.l.cta !== l.cta; });
+    d.simOn = !l.orig && !l.expl && sim.length > 0; d.simHi = V.dsec === 'sim';
+    d.sim = sim.map(function (x) { return { s: x.s + ' %', con: x.l.con, fo: fdate(x.l.fo), cta: x.l.cta, d: L.ctaD(x.l.cta),
+      use: self.lnB('Usar', { cls: 'fc-sm', why: !can ? NP : null, title: 'Asignar la ' + x.l.cta + ' a la línea ' + l.num, fn: function () { var r = self.lnAssign(L, [l], x.l.cta, 'line', true); self.toast('Línea ' + l.num + ' imputada a ' + x.l.cta + (r.ex ? ' y reexportada' : '') + '.'); } }) }; });
+    d.simNone = !l.orig && !l.expl && !sim.length && V.dsec === 'sim';
+    var cands = L.cands(l);
+    d.candOn = cands.length > 0;
+    d.cands = cands.map(function (c) { return { num: c.num, who: c.who, fecha: fdate(c.fecha), dias: c.dias + ' días antes', imp: num(c.imp), dif: c.dif ? 'dif. ' + num(c.dif) : 'exacto', difCls: c.dif ? 'ln-dif' : 'ln-ok',
+      use: self.lnB('Conciliar', { cls: 'fc-sm', why: !can ? NP : null, title: 'Anota la factura ' + c.num + ' en la línea y la imputa a la ' + c.cta, fn: function () { l.fac = c.num; self.lnAssign(L, [l], c.cta, 'line', true); self.toast('Línea ' + l.num + ' conciliada con la factura ' + c.num + ' (' + c.cta + ').'); } }) }; });
+    d.remOn = !!(l.rem && !l.expl); d.remT = 'Remesa SEPA de ' + num(Math.abs(l.imp)) + ' € sin desglosar. Al explotarla se buscan las facturas de contrato con cargo a ±3 días cuya suma cuadra con la línea.';
+    return d;
+  }
+
+  lnAcctPicker(L, d, prefix) {
+    var self = this, q = norm(d.q || ''), list = L.CTAS.filter(function (c) { return !q || c[0].indexOf(d.q.trim()) === 0 || norm(c[1]).indexOf(q) >= 0; }).slice(0, 10);
+    return { q: d.q, setQ: function (e) { d.q = e.target.value; var ex = L.CT[d.q.trim()] ? d.q.trim() : ''; if (ex) d.cta = ex; self.lnFocus('dlg:q'); self.bump(); }, fk: 'ln:dlg:q',
+      list: list.map(function (c) { var on = d.cta === c[0]; return { c: c[0], t: c[1], cls: 'ln-acc' + (on ? ' on' : ''), sel: String(on), pick: function (e) { e.stopPropagation(); d.cta = c[0]; d.err = null; self.bump(); } }; }),
+      none: !list.length, chosen: d.cta ? d.cta + ' · ' + L.ctaD(d.cta) : 'Ninguna elegida', chosenCls: d.cta ? 'ln-chosen on' : 'ln-chosen', err: d.err || '', hasErr: !!d.err, searchIc: FC_IC.search };
+  }
+  lnDlgVals(L, V, can, NP) {
+    var self = this, d = V.dlg; if (!d) return { on: false };
+    var lines = (d.ids || (d.id ? [d.id] : [])).map(function (id) { return L.byId(id); }).filter(Boolean);
+    var close = function () { V.dlg = null; self.lnFocus(V.cur ? 'r:' + V.cur : 'q'); };
+    var x = { on: true, xIc: FC_IC.x, cls: 'fc-dlg', title: '', acts: [], cancelT: 'Cancelar', sim: true, close: function () { close(); self.bump(); }, infoIc: FC_IC.info, warnIc: FC_IC.warn };
+    var act = function (t, o) { x.acts.push(self.lnB(t, { icon: o.icon, cls: 'fc-pri', why: o.why, title: o.tip, fn: function () { if (o.fn() !== false) close(); } })); };
+    var ofs = function (n) { return plural(n, 'línea', 'líneas'); };
+    ['kbd', 'par', 'cta', 'uncta', 'kw', 'fac', 'div', 'rem', 'rems', 'unrem', 'tras', 'exp', 'unexp', 'as'].forEach(function (k) { x[k] = d.kind === k; });
+    if (d.kind === 'kbd') { x.title = 'Atajos de la pantalla de líneas'; x.sim = false; x.cancelT = 'Cerrar';
+      x.keys = [['Clic · Ctrl+clic · Mayús+clic', 'Elegir una línea · añadirla o quitarla · seleccionar un tramo'], ['↑ ↓ · Inicio · Fin · Re Pág · Av Pág', 'Moverse por la lista (con Mayús amplía la selección)'], ['Espacio', 'Marcar o desmarcar la línea'], ['Ctrl+A', 'Seleccionar todas las líneas del listado'], ['Intro · doble clic', 'Abrir el detalle'], ['Clic derecho · Mayús+F10', 'Acciones de la selección'], ['F2', 'Asignar cuenta'], ['Ctrl+E', 'Exportar o reexportar'], ['Ctrl+K', 'Crear palabra clave'], ['Ctrl+F', 'Buscar'], ['Esc', 'Cerrar menú, diálogo o detalle']].map(function (p) { return { k: p[0], t: p[1] }; });
+      x.kbdNote = 'Atajos provisionales: se fijarán en el nodo de atajos de teclado cuando se acuerde.'; }
+    if (d.kind === 'par') { x.title = 'Subcuentas de Norma 43 · ' + L.soc.short + ' · ' + L.y; x.sim = false; x.cancelT = 'Cerrar';
+      x.pars = LN_PAR_DEF.map(function (p) { return { t: p.t, v: L.PAR[p.k], d: p.k === 'gas' ? 'Prefijo' : L.ctaD(L.PAR[p.k]), tip: p.tip, def: L.PAR[p.k] === p.v ? 'Por defecto' : 'Personalizada' }; });
+      x.banks = L.BANKS.map(function (b) { return { t: b.short, v: b.cta, d: L.ctaD(b.cta) }; });
+      x.parNote = 'Se parametrizan por sociedad y ejercicio en la configuración de la sociedad (propuesta de sección nueva); aquí solo se consultan.'; }
+    if (d.kind === 'cta') {
+      var kws = {}; lines.forEach(function (l) { if (l.kw > 0) kws[l.kw] = 1; }); var kwIds = Object.keys(kws).map(Number), k = kwIds.length === 1 && lines.every(function (l) { return l.kw === kwIds[0]; }) ? L.kwById(kwIds[0]) : null;
+      var exd = lines.filter(function (l) { return l.exp; }).length;
+      x.title = (d.gasto ? 'Enviar a cuenta de gasto · ' : 'Asignar cuenta · ') + self.lnScopeT(lines); x.ap = self.lnAcctPicker(L, d);
+      x.kwOpt = !!k && !!d.cta && k.cta !== d.cta; x.kwOptT = k ? '«' + k.txt + '»' : '';
+      if (k) { var nk = L.LINES.filter(function (l) { return l.kw === k.id && (!l.cta || l.cta === k.cta); }).length;
+        x.modes = [{ v: 'line', t: 'Solo ' + self.lnScopeT(lines) + ', que queda' + (lines.length > 1 ? 'n' : '') + ' como cuenta puesta a mano' }, { v: 'kw', t: 'Cambiar la cuenta de la palabra clave ' + x.kwOptT + (k.cta ? ' (hoy ' + k.cta + ')' : ' (hoy sin cuenta)') + ' y de sus ' + ofs(nk) + ' con esa cuenta o sin cuenta' }].map(function (o) { return { t: o.t, on: d.mode === o.v, pick: function () { d.mode = o.v; self.bump(); } }; }); }
+      if (k && !k.cta && d.cta) x.kwOpt = true;
+      x.hasExp = exd > 0; x.reexp = !!d.reexp; x.reexpT = 'Reexportar ' + (d.mode === 'kw' ? 'las ya exportadas' : 'las ' + exd + ' ya exportadas') + ' (mismo número de asiento)'; x.setReexp = function (e) { d.reexp = e.target.checked; self.bump(); };
+      x.expNow = !!d.expNow; x.expNowT = 'Exportar ahora las líneas sin asiento'; x.setExpNow = function (e) { d.expNow = e.target.checked; self.bump(); };
+      x.gasto = !!d.gasto;
+      act(d.cta ? 'Asignar ' + d.cta : 'Asignar', { icon: 'check', why: !d.cta ? 'Elige una cuenta de la lista o escribe su código.' : null, fn: function () {
+        if (d.gasto && d.cta[0] !== '6') { d.err = 'La ' + d.cta + ' no es una cuenta de gasto (grupo 6).'; self.bump(); return false; }
+        var r = self.lnAssign(L, lines, d.cta, k && x.kwOpt ? d.mode : 'line', d.reexp), ne = 0;
+        if (d.expNow) lines.forEach(function (l) { if (!l.exp) { L.export(l); ne++; } });
+        self.toast((r.kw ? 'Palabra clave «' + r.kw.txt + '» cambiada a ' + d.cta + ': ' + plural(r.n, 'línea actualizada', 'líneas actualizadas') : plural(r.n, 'línea imputada', 'líneas imputadas') + ' a ' + d.cta) + (r.ex ? ', ' + r.ex + ' reexportadas' : '') + (ne ? ', ' + ne + ' exportadas' : '') + '.');
+      } });
+    }
+    if (d.kind === 'uncta') { x.title = 'Quitar la cuenta · ' + self.lnScopeT(lines); var ex2 = lines.filter(function (l) { return l.exp; }).length;
+      x.uT = 'Las ' + ofs(lines.length) + ' quedarán sin cuenta y sin palabra clave' + (ex2 ? '. ' + ofs(ex2) + ' ya exportadas perderán su asiento.' : '.');
+      act('Quitar la cuenta', { icon: 'xc', fn: function () { lines.forEach(function (l) { l.cta = ''; l.kw = 0; l.exp = null; }); self.toast('Cuenta quitada de ' + ofs(lines.length) + (ex2 ? '; ' + ex2 + ' asientos borrados' : '') + '.'); } }); }
+    if (d.kind === 'kw') {
+      var l0 = lines[0], b0 = L.bank(l0.bank), txt = String(d.txt || '').trim(), t2 = String(d.txt2 || '').trim();
+      x.title = 'Crear palabra clave · desde la línea ' + l0.num; x.ap = self.lnAcctPicker(L, d); x.kwCon = l0.con + (l0.ref ? ' · ' + l0.ref : '');
+      x.kwTxt = { v: d.txt, set: function (e) { d.txt = e.target.value; self.lnFocus('dlg:txt'); self.bump(); }, cls: 'fc-in' + (d.e1 ? ' fc-err' : ''), tip: d.e1 || 'Texto que debe aparecer en el concepto del banco' };
+      x.kwTxt2 = { v: d.txt2, set: function (e) { d.txt2 = e.target.value; self.lnFocus('dlg:txt2'); self.bump(); }, cls: 'fc-in', tip: 'Opcional: un segundo texto que también debe aparecer' };
+      x.kwScope = b0.short + ' · ' + (l0.dh === 'C' ? 'cargos' : 'abonos') + ' · ' + L.soc.short;
+      var probe = { id: 0, txt: txt, txt2: t2, bank: l0.bank, dh: l0.dh }, hits = txt ? L.LINES.filter(function (l) { return !l.orig && L.match(probe, l); }) : [];
+      var noc = hits.filter(function (l) { return !l.cta && l.kw !== -1; }).length, man = hits.filter(function (l) { return l.kw === -1; }).length;
+      var dup = L.KW.filter(function (k2) { return k2.bank === l0.bank && k2.dh === l0.dh && norm(k2.txt) === norm(txt) && norm(k2.txt2) === norm(t2); })[0];
+      var near = L.KW.filter(function (k2) { return k2.bank === l0.bank && k2.dh === l0.dh && txt && k2 !== dup && (norm(k2.txt).indexOf(norm(txt)) >= 0 || norm(txt).indexOf(norm(k2.txt)) >= 0); });
+      x.kwPrev = txt ? 'Encaja con ' + ofs(hits.length) + ' de ' + b0.n + ' (' + (l0.dh === 'C' ? 'cargos' : 'abonos') + '): ' + noc + ' sin cuenta tomarán ' + (d.cta || 'la cuenta que elijas') + '; las que ya tienen cuenta no cambian' + (man ? ' (' + man + ' puestas a mano)' : '') + '.' : 'Escribe el texto de la palabra clave.';
+      x.kwDup = !!dup; x.kwDupT = dup ? 'Ya existe la palabra clave ' + dup.id + ' con este texto' + (dup.cta ? ' (cuenta ' + dup.cta + ')' : '') + '.' : '';
+      x.kwNear = near.length > 0; x.kwNearT = near.map(function (k2) { return '«' + k2.txt + '» (' + (k2.txt.length > txt.length ? 'más larga' : 'más corta') + (k2.cta ? ', ' + k2.cta : '') + ')'; }).join(', ');
+      act('Crear y aplicar', { icon: 'key', why: !txt ? 'Escribe el texto.' : dup ? 'Ya existe una palabra clave igual.' : txt.length < 4 ? 'Usa al menos 4 caracteres para no imputar movimientos por error.' : null, tip: 'Crea la palabra clave y la aplica a las líneas que encajan', fn: function () {
+        var id = Math.max.apply(null, L.KW.map(function (k2) { return k2.id; })) + 1;
+        L.KW.push({ id: id, txt: txt.toUpperCase(), txt2: t2.toUpperCase(), bank: l0.bank, dh: l0.dh, cta: d.cta || '', tipo: 'normal', alta: fdate(iso(new Date())) });
+        var r = L.apply(id); self.toast('Palabra clave ' + id + ' «' + txt.toUpperCase() + '» creada' + (d.cta ? ' con la ' + d.cta : ' sin cuenta') + ': ' + ofs(r.kw) + ' la han tomado y ' + r.cta + ' han recibido cuenta.');
+      } });
+    }
+    if (d.kind === 'fac') { x.title = 'Asignar número de factura · ' + self.lnScopeT(lines);
+      x.facF = { v: d.v, set: function (e) { d.v = e.target.value; self.lnFocus('dlg:fac'); self.bump(); } }; var exf = lines.filter(function (l) { return l.exp; }).length;
+      x.facT = exf ? 'También se anotará como documento en ' + plural(exf, 'apunte exportado', 'apuntes exportados') + '.' : 'Se anota en la línea y, al exportar, como documento del apunte.';
+      act('Asignar', { icon: 'check', why: !String(d.v || '').trim() ? 'Escribe el número de factura.' : null, fn: function () { var v = String(d.v).trim(); lines.forEach(function (l) { l.fac = v; }); self.toast('Factura ' + v + ' anotada en ' + ofs(lines.length) + '.'); } }); }
+    if (d.kind === 'div') {
+      var l1 = lines[0], tot = Math.abs(l1.imp), parse = function (s) { var v = Number(String(s).replace(/\./g, '').replace(',', '.').replace('%', '')); return isNaN(v) ? null : v; };
+      var sum = 0; d.rows.forEach(function (rw) { var v = parse(rw.imp); if (v !== null) sum += /%/.test(rw.imp) ? tot * v / 100 : v; }); sum = r2(sum);
+      x.title = 'Dividir la línea ' + l1.num + ' · ' + num(l1.imp); x.dTot = num(tot); x.dSum = num(sum); x.dLeft = num(r2(tot - sum)); x.dLeftCls = Math.abs(tot - sum) < 0.005 ? 'ln-ok' : 'ln-dif';
+      x.dNote = 'La línea original pasa a la ' + L.PAR.s555 + ' (' + L.ctaD(L.PAR.s555) + ') y cada fracción sale de ella hacia su cuenta, así el banco conserva un único movimiento.';
+      x.drows = d.rows.map(function (rw, i) { var fld = function (f, ph, tip) { var er = d.err[i + f]; return { v: rw[f], cls: 'fc-in fc-xin' + (f === 'imp' ? ' fc-r' : f === 'cta' ? ' fc-mono' : '') + (er ? ' fc-err' : ''), tip: er || tip, ph: ph, fk: 'ln:dlg:' + i + f, set: function (e) { rw[f] = e.target.value; delete d.err[i + f]; self.lnFocus('dlg:' + i + f); self.bump(); } }; };
+        return { i: String(i + 1), imp: fld('imp', '0,00 o 25 %', 'Importe de la fracción, o un porcentaje del total (25 %)'), desc: fld('desc', 'Descripción', 'Texto que se añadirá al concepto'), cta: fld('cta', 'Cuenta', 'Cuenta de destino de la fracción (opcional: puede imputarse después)'), ctaD: L.CT[String(rw.cta).trim()] || (String(rw.cta).trim() ? 'No existe en el plan' : ''),
+          del: function () { if (d.rows.length > 2) { d.rows.splice(i, 1); d.err = {}; } else self.toast('Una división tiene al menos dos fracciones.'); self.bump(); }, delIc: FC_IC.trash, delLbl: 'Quitar la fracción ' + (i + 1) }; });
+      x.dAdd = self.lnB('Añadir fracción', { icon: 'plus', fn: function () { var left = r2(tot - sum); d.rows.push({ imp: left > 0 ? num(left) : '', desc: 'Fracción ' + (d.rows.length + 1), cta: '' }); self.lnFocus('dlg:' + (d.rows.length - 1) + 'imp'); } });
+      act('Dividir', { icon: 'split', fn: function () {
+        d.err = {}; var parts = [];
+        d.rows.forEach(function (rw, i) { var v = parse(rw.imp); if (v === null || v <= 0) d.err[i + 'imp'] = 'Importe no válido'; else v = /%/.test(rw.imp) ? r2(tot * v / 100) : v; if (!String(rw.desc).trim()) d.err[i + 'desc'] = 'Indica la descripción'; var c = String(rw.cta).trim(); if (c && !L.CT[c]) d.err[i + 'cta'] = 'La cuenta ' + c + ' no existe'; parts.push({ imp: v, desc: String(rw.desc).trim(), cta: c }); });
+        if (Object.keys(d.err).length) { self.toast('Hay datos por corregir en las fracciones: el motivo aparece en el tooltip de cada campo.'); self.bump(); return false; }
+        if (Math.abs(sum - tot) >= 0.005) { self.toast('Las fracciones suman ' + num(sum) + ' y la línea es de ' + num(tot) + ': ajusta ' + num(r2(tot - sum)) + '.'); self.bump(); return false; }
+        var made = L.divide(l1, parts); V.est = 'all'; V.sel = {}; made.forEach(function (n2) { V.sel[n2.id] = 1; }); self.toast('Línea ' + l1.num + ' dividida en ' + made.length + ' fracciones (líneas ' + made.map(function (n2) { return n2.num; }).join(', ') + '), seleccionadas para imputarlas.');
+      } });
+    }
+    if (d.kind === 'rem') {
+      var l2 = lines[0], ta = Math.abs(l2.imp), on = d.items.filter(function (it) { return it.on; }), s2 = r2(on.reduce(function (a, it) { return a + it.imp; }, 0));
+      x.title = 'Explotar la remesa · línea ' + l2.num; x.cls = 'fc-dlg fc-wide';
+      x.rHead = num(ta) + ' € · ' + L.bank(l2.bank).short + ' · ' + fdate(l2.fo); x.rSum = num(s2); x.rDif = num(r2(ta - s2)); x.rOk = Math.abs(ta - s2) < 0.005; x.rDifCls = x.rOk ? 'ln-ok' : 'ln-dif';
+      x.rNote = 'Facturas de contrato con cargo a ±3 días de la fecha de la línea. Al confirmar se marcan como cobradas, se crea una línea por recibo desde el banco ficticio ' + L.PAR.rem + ' hacia la 430 de cada cliente y la línea original pasa del banco a la ' + L.PAR.rem + '.';
+      x.ritems = d.items.map(function (it) { return { num: it.num, who: it.who, cta: it.cta, ven: fdate(it.ven), dias: (it.dias > 0 ? '+' : '') + it.dias + ' d', imp: num(it.imp), on: it.on, cls: 'fc-mr ln-ri' + (it.out ? ' ln-out' : ''), outT: it.out ? 'Fuera del margen de ±3 días' : '',
+        tog: function (e) { it.on = e.target.checked; self.bump(); }, lbl: 'Incluir ' + it.num } });
+      x.rN = plural(on.length, 'recibo', 'recibos');
+      act('Explotar en ' + plural(on.length, 'recibo', 'recibos'), { icon: 'layers', why: !on.length ? 'Marca al menos una factura.' : !x.rOk ? 'La suma de los recibos marcados (' + num(s2) + ') no cuadra con la línea (' + num(ta) + '): diferencia ' + num(r2(ta - s2)) + '.' : null, fn: function () {
+        var res = L.explode(l2, on); V.rem = res.rid; V.est = 'all'; V.sel = {}; V.cur = l2.id; self.toast('Remesa ' + res.rid + ' desglosada en ' + res.lines.length + ' recibos. Se muestran filtradas sus líneas.'); } });
+    }
+    if (d.kind === 'rems') { x.title = 'Remesas SEPA · ' + L.soc.short + ' · ' + L.y; x.cls = 'fc-dlg fc-wide'; x.sim = false; x.cancelT = 'Cerrar';
+      var pendR = L.LINES.filter(function (l) { return l.rem && !l.expl; });
+      x.rpend = pendR.map(function (l) { return { t: 'Línea ' + l.num + ' · ' + fdate(l.fo) + ' · ' + L.bank(l.bank).short, imp: num(l.imp), go: self.lnB('Explotar…', { cls: 'fc-sm fc-pri', why: !can ? NP : null, fn: function () { V.cur = l.id; V.dlg = { kind: 'rem', id: l.id, items: L.remCands(l) }; } }) }; });
+      x.rpNone = !pendR.length;
+      x.rdone = Object.keys(L.REMS).sort().reverse().map(function (k2) { var R = L.REMS[k2]; return { t: k2 + ' · línea ' + R.from + ' · ' + fdate(R.fo), n: R.n + ' recibos', imp: num(R.imp), go: self.lnB('Ver sus líneas', { cls: 'fc-sm', fn: function () { V.dlg = null; self.lnFilterRem(V, k2); } }) }; });
+      x.rdNone = !x.rdone.length; }
+    if (d.kind === 'unrem') { var l3 = lines[0]; x.title = 'Deshacer el desglose · remesa ' + l3.remId;
+      x.uT = 'Se borrarán los recibos generados por la remesa ' + l3.remId + ', las facturas volverán a estar pendientes de cobro y la línea ' + l3.num + ' volverá a «Remesa por explotar».';
+      act('Deshacer el desglose', { icon: 'undo', fn: function () { var rid = l3.remId, err = L.unexplode(l3); if (err) { self.toast(err); self.bump(); return false; } if (V.rem === rid) V.rem = ''; self.toast('Desglose de la remesa ' + rid + ' deshecho.'); } }); }
+    if (d.kind === 'tras') { x.title = 'Traspaso entre bancos';
+      x.tl = lines.map(function (l) { return { t: 'Línea ' + l.num + ' · ' + L.bank(l.bank).short + ' · ' + fdate(l.fo), imp: num(l.imp) }; });
+      x.tT = 'Las dos líneas se imputan a la ' + L.PAR.tras + ' (' + L.ctaD(L.PAR.tras) + ') y quedan vinculadas: los dos asientos se compensan en esa cuenta.';
+      act('Vincular como traspaso', { icon: 'swap', fn: function () { lines.forEach(function (l, i) { l.cta = L.PAR.tras; l.kw = -1; l.link = lines[1 - i].num; }); self.toast('Traspaso registrado entre las líneas ' + lines[0].num + ' y ' + lines[1].num + ' (' + L.PAR.tras + ').'); } }); }
+    if (d.kind === 'exp') {
+      var c555 = lines.filter(function (l) { return !l.cta; }).length, rex = lines.filter(function (l) { return l.exp; }).length, nw = lines.length - rex;
+      x.title = (d.all ? 'Exportar pendientes' : 'Exportar a contabilidad') + ' · ' + self.lnScopeT(lines);
+      x.eKv = [self.fcKv('Asientos nuevos', String(nw)), self.fcKv('Reexportaciones', String(rex), { after: rex ? ' (conservan su número)' : '' }), self.fcKv('A la 555', String(c555), { after: c555 ? ' (sin cuenta: ' + L.PAR.t555 + ')' : '' })];
+      x.eT = 'Cada asiento lleva dos apuntes: la cuenta de destino y la del banco, con la fecha de la línea y la factura como documento.';
+      act(rex && !nw ? 'Reexportar' : 'Exportar', { icon: 'book', why: !lines.length ? 'No hay líneas que exportar.' : null, fn: function () { lines.forEach(function (l) { L.export(l); }); self.toast(plural(nw, 'asiento generado', 'asientos generados') + (rex ? ', ' + plural(rex, 'reexportado', 'reexportados') : '') + (c555 ? ' (' + c555 + ' a la 555)' : '') + '.'); } }); }
+    if (d.kind === 'unexp') { x.title = 'Borrar asiento' + (lines.length > 1 ? 's' : '') + ' · ' + self.lnScopeT(lines);
+      x.uT = 'Se borrará' + (lines.length > 1 ? 'n los ' + lines.length + ' asientos' : ' el asiento ' + lines[0].exp.as) + ' y las líneas quedarán sin exportar, con su cuenta.';
+      act('Borrar', { icon: 'trash', fn: function () { lines.forEach(function (l) { l.exp = null; }); self.toast(plural(lines.length, 'asiento borrado', 'asientos borrados') + '.'); } }); }
+    if (d.kind === 'as') { x.title = lines.length > 1 ? 'Asientos de ' + ofs(lines.length) : 'Asiento ' + lines[0].exp.as; x.cls = 'fc-dlg fc-wide'; x.sim = false; x.cancelT = 'Cerrar';
+      x.asl = lines.map(function (l) { return { h: l.exp.as + ' · ' + fdate(l.exp.fecha) + ' · línea ' + l.num, ap: L.apuntes(l).map(function (a) { return { cta: a.cta, d: a.d, con: a.con, doc: a.doc || '', debe: a.debe ? num(a.debe) : '', haber: a.haber ? num(a.haber) : '' }; }) }; }); }
+    return x;
+  }
+
   moduleVals(cw, zen) {
     var S = this.S, self = this, t = this.tab(S.active) || S.tabs[0], m = {}, soc = this.soc();
     var onScroll = this.onScrollFn();
@@ -4847,32 +5695,7 @@ class Component extends DCLogic {
       });
       return m;
     }
-    if (t.kind === 'lineas') {
-      var st4 = t.st, ctas = soc.ctas; if (st4.cta >= ctas.length) st4.cta = 0;
-      var lin = this.data().lin[st4.cta]; m.lineas = true; m.sk = t.id + ':grid'; m.showTitle = !zen && cw >= 1560;
-      m.selW = cw < 1400 ? 210 : (cw < 1700 ? 290 : 340); m.qW = cw < 1400 ? 200 : 280;
-      m.ctas = ctas.map(function (c, i) { return { v: String(i), t: c }; }); m.cta = String(st4.cta);
-      m.onCta = function (e) { st4.cta = +e.target.value; st4.sel = {}; self.bump(); };
-      m.q = st4.q; m.onQ = function (e) { st4.q = e.target.value; self.bump(); };
-      var q4 = norm(st4.q.trim());
-      var b4 = lin.filter(function (r) { return !q4 || norm(r.con + ' ' + r.r1 + ' ' + r.r2 + ' ' + N43C[r.cc]).indexOf(q4) >= 0; });
-      m.ests = [['all', 'Todas'], ['Pendiente', 'Pendientes'], ['Propuesta', 'Propuestas'], ['Conciliada', 'Conciliadas']].map(function (x) { var on = st4.est === x[0]; return { t: x[1], n: b4.filter(function (r) { return x[0] === 'all' || r.st === x[0]; }).length, on: on, cls: 'sg' + (on ? ' on' : ''), pick: function () { st4.est = x[0]; self.bump(); } }; });
-      var rows4 = b4.filter(function (r) { return st4.est === 'all' || r.st === st4.est; });
-      var stc4 = { Conciliada: 'stp st-ok', Pendiente: 'stp st-pend', Propuesta: 'stp st-prop' };
-      m.rows = rows4.map(function (r) { var on = !!st4.sel[r.id]; return { fo: fdate(r.fo), fv: fdate(r.fv), cc: r.cc, ccd: N43C[r.cc], cp: r.cp, con: r.con, r1: r.r1, r2: r.r2, imp: num(r.imp), impC: 'tn r ' + (r.imp < 0 ? 'imp-d' : 'imp-h'), sal: num(r.sal), st: r.isNew ? 'Nueva · pendiente' : r.st, stC: r.isNew ? 'stp st-new' : stc4[r.st], as: r.as, on: on,
-        cls: 'gr nr g-n43' + (on ? ' on' : '') + (r.isNew ? ' new' : ''), tog: function () { if (st4.sel[r.id]) delete st4.sel[r.id]; else st4.sel[r.id] = true; self.bump(); } }; });
-      var nsel = Object.keys(st4.sel).length;
-      m.allOn = rows4.length > 0 && rows4.every(function (r) { return st4.sel[r.id]; });
-      m.togAll = function () { if (m.allOn) st4.sel = {}; else rows4.forEach(function (r) { st4.sel[r.id] = true; }); self.bump(); };
-      m.empty = !rows4.length; m.n = rows4.length; m.pend = lin.filter(function (r) { return r.st !== 'Conciliada'; }).length;
-      m.selTxt = nsel ? plural(nsel, 'seleccionado', 'seleccionados') : 'Marca movimientos para conciliarlos';
-      m.noSel = !nsel; m.selLbl = nsel ? '(' + nsel + ')' : '';
-      m.lastDate = lin.length ? fdate(lin[0].fo) : '—'; m.lastSal = lin.length ? money(lin[0].sal) : '—';
-      m.conciliar = function () { self.toast('Conciliación simulada de ' + plural(nsel, 'movimiento', 'movimientos') + ': el módulo de conciliación está fuera del alcance de esta maqueta.'); self.bump(); };
-      m.goImport = function () { self.openDest('n43'); };
-      var rop = this.runningOp(); m.opBar = !!rop; if (rop) { var ri = this.opInfo(rop); m.opFile = ri.file; m.opPhase = ri.phase; m.opPct = ri.pct; }
-      return m;
-    }
+    if (t.kind === 'lineas') return this.lnVals(t, cw, zen, m);
     if (t.kind === 'n43') {
       var st5 = t.st, fl = this.files(), rop5 = this.runningOp(); m.n43 = true; m.sk = t.id + ':main';
       m.folder = 'C:\\ProConta\\Bancos\\Entrada\\' + soc.short.replace(/\s+/g, '-');

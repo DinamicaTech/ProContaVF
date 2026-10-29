@@ -70,3 +70,10 @@ Los datos son ficticios. Los cambios duran mientras la página está abierta.
 - Abre directamente con `?escenario=facturas`. El operador de facturación en consulta ve la pantalla en modo solo lectura.
 - Las líneas en edición cuentan como cambios pendientes de la pestaña: el punto de la pestaña, el aviso al cerrar y «Guardar» o «Descartar» del contenedor las tratan como al resto de pantallas.
 - El panel de demostración añade el tamaño 2560 × 1440, que es la resolución de referencia.
+
+## Líneas bancarias Norma 43 (29/10/2026)
+- La pestaña «Líneas N43» propone la nueva pantalla a partir del análisis de `frmLineasN43` (`sources/proconta-antiguo/norma43/ANALISIS-FUNCIONAL.md`). Abre directamente con `?escenario=n43`.
+- Filtros combinados en Y, selector de estado y fichas de filtro removibles; la búsqueda admite prefijos (`n+`, `i+`, `e+`, `a+`, `c+`, `o+`, `f+`).
+- Las acciones viven en el menú contextual y dependen de la selección (simple, múltiple o ambas); si una no está disponible, se indica el motivo.
+- Diálogos: remesas, explotar remesa con vista previa, dividir en fracciones, asignar subcuenta, palabras clave, traspaso entre bancos, exportar y subcuentas por sociedad y ejercicio.
+- A 2560 × 1440 el detalle queda fijo a la derecha; en pantallas pequeñas se abre como panel superpuesto con Intro o doble clic.
