@@ -17,3 +17,4 @@ Listado filtrable de facturas y programaciones con selección explícita, ficha 
 - 2026-10-28 12:28 · From sources/traspaso-2026-10-03/referencias/WpfFacturas/docs/WPF_FACTURAS.md: pantallas anteriores
 - 2026-10-28 12:28 · From sources/maquetas/Facturas/: maqueta de facturas
 - 2026-10-28 12:28 · draft: Construir el listado y la ficha de facturas según la maqueta.
+- 2026-10-29 10:20 · Derived from plataforma/ui-base: validar con el propietario el prototipo HTML final de Facturas emitidas, listado y detalle de factura (sources/maquetas/Facturas/ y lienzo del contenedor), antes de construir su UI WPF.

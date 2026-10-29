@@ -17,3 +17,4 @@ Aplicación principal (UI-PRINCIPAL): cabecera con empresa, ejercicio y operador
 - 2026-10-28 12:28 · From sources/traspaso-2026-10-03/referencias/Facturacion/docs/contratos/UI-PRINCIPAL.md y ACUERDOS_CONTENEDOR_WPF.md: contrato anterior
 - 2026-10-28 12:28 · From sources/maquetas/Contenedor/: maqueta del contenedor
 - 2026-10-28 12:28 · draft: Construir el contenedor WPF según la maqueta del contenedor.
+- 2026-10-29 10:20 · Derived from plataforma/ui-base: validar con el propietario el prototipo HTML final del contenedor (lienzo «ProConta · Contenedor principal») antes de construir su UI WPF.

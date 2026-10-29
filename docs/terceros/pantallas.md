@@ -17,3 +17,4 @@ Buscador multicriterio y ficha de terceros en pestañas del contenedor (Roles, C
 - 2026-10-28 12:28 · From sources/01_ESPECIFICACION_FUNCIONAL.docx § 3 RF-ARQ-03: la pestaña aloja componentes del propietario
 - 2026-10-28 12:28 · From sources/maquetas/Contenedor/ (ficha vigente) y ProConta/Claude outputs/TercerosWPF (prototipo WPF en el disco del propietario)
 - 2026-10-28 12:28 · draft: Construir el buscador y la ficha de terceros según la maqueta.
+- 2026-10-29 10:20 · Derived from plataforma/ui-base: validar con el propietario el prototipo HTML final del buscador y la ficha de Terceros (lienzo del contenedor) antes de construir su UI WPF.

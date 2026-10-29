@@ -18,3 +18,4 @@ Pantalla genérica y extensible (CFG-MANT) para parámetros únicos y coleccione
 - 2026-10-28 12:28 · From sources/maquetas/Configuracion/: maqueta de Configuración
 - 2026-10-28 12:28 · draft: Construir el mantenimiento genérico con los proveedores del catálogo conocido.
 - 2026-10-28 12:28 · question: RF-MAN-05 ¿ámbito de cada proveedor (global, sociedad o ejercicio)? (a) lo declara cada proveedor y el servicio lo aplica ✅ (b) todos por sociedad
+- 2026-10-29 10:20 · Derived from plataforma/ui-base: validar con el propietario el prototipo HTML final de la pantalla genérica de mantenimiento 1:N con configuración (sources/maquetas/Configuracion/) antes de construir su UI WPF.
