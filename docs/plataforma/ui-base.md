@@ -24,6 +24,7 @@ Dirige la validación de los prototipos HTML de las pantallas principales (conte
 - 2026-10-29 11:38 · Resolución de diseño: 2560×1440 (los equipos del propietario trabajan con dos pantallas de esa resolución). A resoluciones menores las pantallas solo deben seguir siendo funcionales. Excepción a la regla de no recortar textos: en las columnas de texto largo de una tabla se muestra el inicio del texto con «…» y el texto completo en el tooltip.
 - 2026-10-29 12:32 · Los monitores de 2560×1440 trabajan con la escala de Windows al 100 %: el área útil de diseño es de 2560×1440 píxeles reales.
 - 2026-10-29 16:58 · Todo importe se muestra en euros con separador de miles y dos decimales (1.234,56 €), en rejillas, totales, diálogos y tooltips; los campos de entrada mantienen el número sin símbolo. Una sola moneda: las cuentas bancarias están en euros o ya convertidas.
+- 2026-10-29 17:18 · Las columnas de todas las rejillas se redimensionan arrastrando el borde de su cabecera y con doble clic se ajustan al contenido; los anchos se guardan por operador y pantalla, y el menú contextual de la cabecera ofrece «Restablecer columnas» para volver a los de fábrica. La rejilla se desplaza en horizontal cuando no cabe.
 
 ## Requirements
 - 2026-10-28 12:28 · From sources/01_ESPECIFICACION_FUNCIONAL.docx § 6 RF-UI-02, 03, 06: look and feel de las maquetas con estilos compartidos, campos del ancho de su contenido, accesibilidad y mensajes
@@ -43,6 +44,7 @@ Dirige la validación de los prototipos HTML de las pantallas principales (conte
 - 2026-10-29 12:32 · answer: ¿qué escala de Windows usan los monitores de 2560×1440? → 100 %
 - 2026-10-29 16:37 · Siempre aplicar currency a importes.
 - 2026-10-29 16:37 · En un principio, las cuentas bancarias serán siempre en euros o se habrán convertido a euros, trabajar en contabilidad con dos monedas a la vez puede ser complicado.
+- 2026-10-29 17:18 · Sí, el comportamiento es global y persistente por operador con una opción de resetear configuración (puede ser un contextual en la cabecera) por si el operador hace un estropicio
 
 ## Hand-over
 - 2026-10-29 10:20 · Hecho: acceso al lienzo confirmado, decisión HTML frente a WPF, desglose acordado y requisitos derivados en cada nodo de pantalla. Mayor antiguo exportado y analizado (`sources/proconta-antiguo/mayor/ANALISIS-FUNCIONAL.md`). Pendiente: validar los prototipos en el orden acordado, crear los de importación de compras y Mayor, y después la biblioteca WPF con su pantalla de muestra.
