@@ -56,3 +56,10 @@ También funcionan los demás escenarios del contenedor (`inicio`, `ctx-pending`
 - **Facturas emitidas:** con doble clic, una factura de la sociedad y ejercicio activos se abre en su pestaña de Facturas, con el botón «Volver a Terceros». Las de otro contexto se muestran en modo consulta.
 
 Los datos son ficticios. Los cambios duran mientras la página está abierta.
+
+## Revisión de validación 1 (29/10/2026)
+- Todos los controles del producto tienen un tooltip descriptivo; los campos editables muestran su ayuda o, si tienen un error, el mensaje del error.
+- Los errores de validación ya no se escriben debajo del campo: el campo se marca con borde rojo e icono, y el mensaje va en su tooltip y en el resumen superior.
+- Razón social, Nombre comercial y CP miden lo que su contenido.
+- El nombre del tercero en el buscador y los datos de la cabecera de la ficha se muestran sin recortar.
+- Sin palabras enteras en mayúsculas: encabezados de columna y de sección en minúscula inicial, salvo siglas.
