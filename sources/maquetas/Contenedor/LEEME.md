@@ -63,3 +63,4 @@ Los datos son ficticios. Los cambios duran mientras la página está abierta.
 - Razón social, Nombre comercial y CP miden lo que su contenido.
 - El nombre del tercero en el buscador y los datos de la cabecera de la ficha se muestran sin recortar.
 - Sin palabras enteras en mayúsculas: encabezados de columna y de sección en minúscula inicial, salvo siglas.
+- La cabecera de la ficha ya no repite «N cambios sin guardar»: se indica en la barra de acciones del pie y con el punto de la pestaña.
