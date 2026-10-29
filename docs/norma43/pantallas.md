@@ -38,3 +38,8 @@ Tabla densa de líneas bancarias con filtros, detalle y acciones (también las d
 - 2026-10-29 16:37 · Falta el selector del ejercicio, que puede ser selección múltiple
 - 2026-10-29 16:37 · El formulario de remesas con formato currency. Siempre aplicar currency a importes.
 - 2026-10-29 16:37 · Sí, la configuración de subcuentas desde la configuración global, cuando esté, podremos añadir un botón para que desde el popup de subcuentas se pueda saltar directamente a la configuración de subcuentas.
+- 2026-10-29 17:08 · Ok, pese a que, formalmente 'Cuenta' se refiere a los tres primeros dígitos de la subcuenta contable y 'SubCuenta' se refiere a todos los dígitos, nos podemos permitir poner 'Cuenta' en el título de las columnas ya que, informalmente, se suele hablar de cuenta contable como el todo, y así ahorramos algo de espacio de columnas.
+- 2026-10-29 17:08 · Faltaría añadir la descripción de la cuenta de origen, que en remesas importadas coincidirá con el nombre del banco, pero en remesas generadas 'artificialmente' corresponderá a otra descripción.
+- 2026-10-29 17:08 · Ponla justo después de 'Cuenta Origen'.
+- 2026-10-29 17:08 · Asumo que las columnas serán redimensionables y se podrán desplazar horizontalmente.
+- 2026-10-29 17:08 · No veo las opciones de 'Buscar por importe' (sería un contextual que hace lo que hay en el formulario frmN43BusquedaPorImporte) ni la de 'Movimientos similares', que ejecuta el formulario frmMovimientosN43Similares. Ambas funcionalidades se merecen un nodo propio por debajo de Norma43
