@@ -27,4 +27,4 @@ Mayor «vitaminado» reutilizable desde contabilidad y desde la ficha de tercero
 - 2026-10-29 10:12 · El límite era por la capacidad de la grid de Access, aquí ya no tendría sentido aplicarlo
 - 2026-10-29 10:12 · Ya no es necesario ningún cuadre con el ERP DeporWin, de hecho, ProContaVF sustituirá DeporWin, Proconta.accdb y ContaSol.
 - 2026-10-29 10:12 · Ok al asiento inverso con asistente
-- 2026-10-29 10:20 · Derived from plataforma/ui-base: crear y validar con el propietario el prototipo HTML del Mayor antes de construir su UI WPF.
+- 2026-10-29 10:20 · Derived from plataforma/ui-base: crear y validar con el propietario el prototipo HTML del Mayor antes de construir su UI WPF (lo hace el borrador contabilidad/mayor/prototipo).
