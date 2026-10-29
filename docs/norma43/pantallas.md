@@ -21,3 +21,8 @@ Tabla densa de líneas bancarias con filtros, detalle y acciones (también las d
 - 2026-10-28 12:28 · question: La maqueta autónoma no está en el paquete (C:\Docs\VeriFactu\Maquetas\LineasBancarias\lineas-bancarias-proconta.html): (a) la copias a ProConta y la subo a sources/maquetas ✅
 - 2026-10-29 10:20 · Derived from plataforma/ui-base: validar con el propietario el prototipo HTML final de las líneas bancarias Norma 43 (lienzo del contenedor, 2050 × 1110) antes de construir su UI WPF.
 - 2026-10-29 14:12 · Y si revisar primero el formulario frmLineasN43 con su código igual que has hecho con el Mayor vitaminado ?
+- 2026-10-29 15:23 · El código es funcional en otro formulario (frmN43Importar) y mi idea era añadir esta opción en la pantalla de líneas para explotar solo la línea seleccionada, pero me quedé a medias.
+- 2026-10-29 15:23 · De momento podemos obviar esta funcionalidad, aunque el código de esta sí es funcional.
+- 2026-10-29 15:23 · Quizá le podemos dar una vuelta y rediseñar el sistema de filtros desde cero, lo que hay ahora tampoco es maravilloso.
+- 2026-10-29 15:23 · Todas las subcuentas (por ejemplo, 5729999) tendrán que ser parametrizadas por Sociedad y Ejercicio, aunque, por defecto, tenga este valor
+- 2026-10-29 15:23 · La idea siempre es trasladar a menú contextual todas las funcionalidades que tengan sentido, algunas serán aplicables solo a selección simple, otras a selección múltiple (traspaso entre bancos, por ejemplo) y la mayoría a selección simple y múltiple.

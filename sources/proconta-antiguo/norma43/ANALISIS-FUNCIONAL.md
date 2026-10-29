@@ -111,7 +111,7 @@ La mayoría actúan sobre las líneas seleccionadas.
   - la línea original pasa a la 555 de split, queda "puesta a mano" y su concepto empieza por "(SPLIT)".
   
   Así el banco ve un único movimiento y la 555 queda a cero cuando se exportan todas.
-- **SPLIT piso**: pide un inmueble y divide cada línea seleccionada en dos con su porcentaje: "Valor vivienda" a la cuenta del inmueble y "Valor terreno" a la del terreno.
+- **SPLIT piso**: pide un inmueble y divide cada línea seleccionada en dos con su porcentaje: "Valor vivienda" a la cuenta del inmueble y "Valor terreno" a la del terreno. Sirve para la compra de un inmueble; el propietario la deja fuera por ahora (funciona).
 - **Traspaso entre bancos**: exige seleccionar **exactamente dos** líneas con el mismo importe y sentidos contrarios (se activa solo con dos seleccionadas). Pone a las dos la cuenta puente fija `5729999` y las vincula entre sí, de modo que los dos asientos se compensan en esa cuenta.
 
 ### 4.4 Contabilidad
@@ -124,8 +124,8 @@ La mayoría actúan sobre las líneas seleccionadas.
 
 ### 4.5 Remesas y facturas
 
-- **Explota Remesas**: muestra un aviso pendiente ("TODO") y desglosa las líneas de remesas de recibos SEPA en una línea por recibo (§6.2), incluidos los recibos devueltos.
-- **Asignar Numero Factura** (masivo): busca, para cada línea exportada sin factura, una factura de venta del ERP del mismo cliente con el mismo importe (±0,05 €) y fecha anterior, y si hay una sola, la anota en la línea y en el documento del apunte. En la práctica no se puede usar: el código se para en el depurador (§11).
+- **Explota Remesas**: muestra un aviso pendiente ("TODO") y desglosa las líneas de remesas de recibos SEPA en una línea por recibo (§6.2), incluidos los recibos devueltos. Según el propietario (29/10/2026), el desglose completo funciona en otro formulario (`frmN43Importar`, no exportado): busca las facturas con vencimiento próximo cuya suma cuadra con la línea, las marca como conciliadas, crea una remesa N43 ficticia de un banco 572 ficticio con una línea por factura y su titular, las lleva a la 430 de cada cliente y pasa la línea original de la 572 del banco a la 572 ficticia. Aquí quería ofrecerlo solo para la línea seleccionada y quedó a medias.
+- **Asignar Numero Factura** (masivo): busca, para cada línea exportada sin factura, una factura de venta del ERP del mismo cliente con el mismo importe (±0,05 €) y fecha anterior, y si hay una sola, la anota en la línea y en el documento del apunte. En la práctica no se puede usar: el código se para en el depurador (§11). Según el propietario ya no tiene uso: lo sustituye la conciliación automática por importes, que busca facturas de compra y venta que cuadren por fecha e importe, asigna el número de factura y lleva la línea al proveedor o cliente.
 - **Asigna #Factura**: pide un número de factura (propone el que ya tenga alguna de las líneas) y lo pone a todas las seleccionadas. No toca el asiento.
 
 ### 4.6 Salir
@@ -194,13 +194,15 @@ Una remesa de recibos domiciliados llega al banco como una sola línea. Al explo
 8. Fecha mínima del 1/12/2021 para asignar palabras clave.
 9. Una línea exportada conserva su número de asiento al reexportarse.
 
+- En Access no había menú contextual: por eso hay tantos botones. La pantalla nueva llevará al menú contextual todo lo que tenga sentido, según la selección (una línea, varias o exactamente dos).
+
 ## 11. Defectos detectados (no reproducir)
 
 **Código muerto**: búsqueda antigua de pagos y facturas por importe (sustituida por la ventana de búsqueda); fusión automática de traspasos (detrás de una salida); botón duplicado "Exportar todo" sin acción; asiento único para traspasos vinculados (condición siempre falsa); asignación por máscara de factura (desactivada).
 
 **Fallos de comportamiento**:
 1. Ayudas de los botones copiadas mal: "Importar N43" en Añadir palabra, Refrescar y Calcular similitudes; "No exportadas" con la ayuda de "Exportadas 555"; "Salir" dice "Deshacer este asiento manual".
-2. Las casillas se combinan con O, no con Y, y el rótulo dice "Sin palabra cuenta" y "SEPA exportadas" en lugar de lo marcado.
+2. En el código, las casillas se combinan con O, no con Y (el propietario las recordaba como Y; comprobar en la aplicación), y el rótulo dice "Sin palabra cuenta" y "SEPA exportadas" en lugar de lo marcado.
 3. "Pendientes reexportar" anula las otras casillas sin indicarlo; la búsqueda también.
 4. "Exportar a contabilidad" sin selección exporta toda la lista sin preguntar.
 5. La comprobación de "fracción mayor que lo que queda" en SPLIT nunca salta; si las fracciones no cuadran, la división se para en el depurador.
