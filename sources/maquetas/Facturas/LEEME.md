@@ -156,3 +156,11 @@ Casos para probar:
 - Si las emitidas incluyen el estado de cobro (no se ha añadido para no mezclarlo con el estado de la factura).
 - La anulación de registros en VeriFactu (no se ha incluido).
 - Si las acciones colectivas deben limitarse al listado visible o permitir una selección que quede oculta por el filtro.
+
+## Revisión de validación 1 (2026-10-29)
+- Separador arrastrable entre programadas y emitidas para repartir la altura (también con ↑ ↓ desde el teclado; doble clic vuelve a la altura inicial).
+- Todos los controles llevan tooltip descriptivo.
+- Sin palabras enteras en mayúsculas: encabezados de tabla y de sección, etiquetas «Propuesta» y «Simulado» y el documento de la factura.
+- Campos de fecha en formato dd/mm/aaaa, con error de campo (borde rojo, icono y mensaje en el tooltip) si la fecha no es válida.
+- Textos largos de las tablas: una línea con «…» y el texto completo en el tooltip.
+- Modo `?embebido=1` (con `operador`, `sociedad` y `ejercicio`), que muestra solo el área de trabajo, sin barra de demostración ni marco de ventana.
