@@ -1,6 +1,6 @@
 # Mayor de ProConta antiguo: análisis funcional
 
-Fuente: la exportación de `frmMayor` (ProcontaEstructura.accdb), sus módulos y consultas, ; la exportación completa (formulario, 19 módulos, consultas y estructura de 41 tablas, con la credencial de uproc.io sustituida por un marcador) está en `sources/proconta-antiguo/mayor/` del clon local del propietario y no se ha subido. Este documento describe **qué hace la pantalla**, no cómo está programada. Donde algo depende de un formulario o función que no se ha exportado (`frmAsiento`, `frmModificarAsiento`, `frmCuadrarMayor`, `frmSeleccionarCuenta`, `frmLineasN43`, `HotKeyLista`…), se indica.
+Fuente: la exportación de `frmMayor` (ProcontaEstructura.accdb), sus módulos y consultas; la exportación completa (formulario, 19 módulos, consultas y estructura de 41 tablas, con la credencial de uproc.io sustituida por un marcador) está en `sources/proconta-antiguo/mayor/` del clon local del propietario y no se ha subido. Este documento describe **qué hace la pantalla**, no cómo está programada. Donde algo depende de un formulario o función que no se ha exportado (`frmAsiento`, `frmModificarAsiento`, `frmCuadrarMayor`, `frmSeleccionarCuenta`, `frmLineasN43`, `HotKeyLista`…), se indica.
 
 ## 0. Contexto
 
