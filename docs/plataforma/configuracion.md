@@ -11,6 +11,7 @@ Resolutor único de la ubicación de datos y de la ruta exacta de la BD (CFG-GLO
 
 ## Decisions
 - 2026-10-28 13:30 · Creado en la carga inicial de requisitos.
+- 2026-10-29 16:58 · Las subcuentas de Norma 43 (traspasos, 555, divisiones, banco ficticio de remesas, prefijo de gastos) se parametrizan por sociedad y ejercicio en la configuración global, con los valores por defecto de `norma43/pantallas`; el diálogo de subcuentas de líneas N43 tendrá un botón que salta directamente a esa sección.
 
 ## Requirements
 - 2026-10-28 12:28 · From sources/01_ESPECIFICACION_FUNCIONAL.docx § 4 RF-CFG-01..05: resolutor único, precedencia de fuentes, configuración fuera de Access, comprobación de esquema al arrancar

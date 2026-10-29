@@ -11,6 +11,7 @@ Aplicación principal (UI-PRINCIPAL): cabecera con empresa, ejercicio y operador
 
 ## Decisions
 - 2026-10-28 13:30 · Creado en la carga inicial de requisitos.
+- 2026-10-29 16:58 · El separador entre el menú lateral y la pantalla sustituye a «Ampliar área de trabajo»: se arrastra para cambiar el ancho (por debajo de 150 px queda la franja de iconos y, hasta el borde, el menú se oculta), doble clic o Intro lo oculta o lo muestra, y oculto deja una franja visible con el asa para recuperarlo. La barra de estado ya no se oculta. Atajo global provisional Ctrl+Mayús+M, pendiente del catálogo de `plataforma/atajos-de-teclado`.
 
 ## Requirements
 - 2026-10-28 12:28 · From sources/01_ESPECIFICACION_FUNCIONAL.docx § 6 RF-UI-01, 04, 05, 07: contenedor, avisos técnicos discretos, ciclo de vida de fichas y rendimiento

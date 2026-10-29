@@ -23,6 +23,7 @@ Dirige la validación de los prototipos HTML de las pantallas principales (conte
 - 2026-10-29 10:58 · Validado por el propietario el prototipo del contenedor con Terceros (lienzo «ProConta · Contenedor principal», versión 16, igual a `sources/maquetas/Contenedor/`), con la ronda 1 de cambios aplicada; la pestaña Contabilidad de la ficha queda pendiente del prototipo del Mayor.
 - 2026-10-29 11:38 · Resolución de diseño: 2560×1440 (los equipos del propietario trabajan con dos pantallas de esa resolución). A resoluciones menores las pantallas solo deben seguir siendo funcionales. Excepción a la regla de no recortar textos: en las columnas de texto largo de una tabla se muestra el inicio del texto con «…» y el texto completo en el tooltip.
 - 2026-10-29 12:32 · Los monitores de 2560×1440 trabajan con la escala de Windows al 100 %: el área útil de diseño es de 2560×1440 píxeles reales.
+- 2026-10-29 16:58 · Todo importe se muestra en euros con separador de miles y dos decimales (1.234,56 €), en rejillas, totales, diálogos y tooltips; los campos de entrada mantienen el número sin símbolo. Una sola moneda: las cuentas bancarias están en euros o ya convertidas.
 
 ## Requirements
 - 2026-10-28 12:28 · From sources/01_ESPECIFICACION_FUNCIONAL.docx § 6 RF-UI-02, 03, 06: look and feel de las maquetas con estilos compartidos, campos del ancho de su contenido, accesibilidad y mensajes

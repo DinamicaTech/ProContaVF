@@ -157,6 +157,12 @@ h1,h2,h3,p{margin:0}
 .fi.cur::before{content:'';position:absolute;left:11px;top:13.5px;width:7px;height:7px;border-radius:50%;background:#F4A259}
 
 /* Pestañas */
+.nsplit{flex:none;width:6px;margin:0 -3px;position:relative;z-index:7;cursor:col-resize;display:flex;align-items:center;justify-content:center;outline:none}
+.nsplit i{width:2px;height:40px;border-radius:2px;background:transparent}
+.nsplit:hover i,.nsplit:focus-visible i{background:#F4A259}
+.nsplit.hid{width:12px;margin:0;background:#0E1729}
+.nsplit.hid i{background:rgba(255,255,255,.35);height:48px}
+.nsplit.hid:hover i,.nsplit.hid:focus-visible i{background:#F4A259}
 .main{flex-grow:1;min-width:0;display:flex;flex-direction:column;position:relative}
 .tabs{height:36px;flex-shrink:0;display:flex;align-items:flex-end;background:#E7E3D9;border-bottom:1px solid #D6D0C2;padding:0 6px;gap:2px;position:relative;z-index:4}
 .tstrip{position:relative;flex-grow:1;min-width:0;display:flex;align-items:flex-end;gap:2px;overflow-x:auto;overflow-y:hidden;scrollbar-width:none;height:36px}
@@ -972,6 +978,29 @@ textarea.fc-in{height:auto;padding:6px 8px;resize:vertical}
 .lnx .ln-radios{display:flex;flex-direction:column;gap:6px;padding:8px 10px;border:1px solid var(--ln);border-radius:8px;background:var(--bg2)}
 .lnx .ln-ri{cursor:pointer;align-items:center}
 .lnx .ln-ri.ln-out{color:var(--mut);font-style:italic}
+.lnx .ln-ejw{position:relative;display:inline-flex}
+.lnx .ln-ejb{display:inline-flex;align-items:center;gap:6px;cursor:pointer;font-weight:600;white-space:nowrap}
+.lnx .ln-ejpop{position:absolute;left:0;top:36px;min-width:300px;z-index:40;padding-bottom:6px}
+.lnx .ln-ejo{display:grid;grid-template-columns:20px 46px minmax(0,1fr);align-items:center;gap:6px;padding:5px 10px;font-size:12.5px;cursor:pointer}
+.lnx .ln-ejo:hover{background:#FBFAF6}
+.lnx .ln-ejf{display:flex;gap:14px;padding:6px 10px 2px;border-top:1px solid var(--ln2);margin-top:4px;font-size:12px}
+.lnx .ln-gr.ln-ro{color:var(--txt2)}
+.lnx .ln-gr.ln-ro>span:nth-child(3){box-shadow:inset 2px 0 0 var(--ln3)}
+.lnx .ln-acct{cursor:alias}
+.lnx .ln-kwsrc{font-size:13px;line-height:1.7;max-height:none;white-space:pre-wrap}
+.lnx .ln-hl1{background:#FFD9B3;border-radius:3px}
+.lnx .ln-hl2{background:#D8E6F6;border-radius:3px}
+.lnx .ln-tgs{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.lnx .ln-tg{display:flex;align-items:center;gap:8px;min-height:36px;padding:4px 6px 4px 10px;border:1px solid var(--ln3);border-radius:8px;background:#fff;cursor:pointer;min-width:0}
+.lnx .ln-tg.on{border-color:var(--navy);box-shadow:0 0 0 2px var(--selb)}
+.lnx .ln-crit{flex:1 1 auto;min-width:0;font-family:'IBM Plex Mono',monospace;font-size:12px;padding:1px 4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lnx .ln-kwhead{display:flex;align-items:center;gap:8px}
+.lnx .ln-kwr.on{background:var(--selb)}
+.lnx .ln-win{font-size:10.5px;font-weight:700;color:var(--green);background:var(--greenb);border-radius:4px;padding:0 5px;margin-left:4px}
+.lnx .ln-astot{font-weight:600;border-top:1px solid var(--ln3)}
+.lnx .ln-rd>span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.lnx .ln-xwide{width:1160px;max-width:calc(100vw - 48px)}
+.lnx .ln-win{white-space:nowrap}
 </style>
 
 <style>html,body{height:100%;margin:0}body{min-width:1280px;min-height:760px;overflow:auto}#app{width:100vw;height:100vh;min-width:1280px;min-height:760px}</style>
@@ -1031,7 +1060,6 @@ textarea.fc-in{height:auto;padding:6px 8px;resize:vertical}
 </sc-if>
 
 <div class="fill"></div>
-<sc-if value="{{zenBtn}}" hint-placeholder-val="{{false}}"><button class="zenx" type="button" onClick="{{toggleZen}}" title="Vuelve a mostrar la cabecera y la navegación lateral"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 14h6v6M20 10h-6V4M14 10l7-7M3 21l7-7"></path></svg>Salir de área ampliada</button></sc-if>
 
 <sc-if value="{{sess}}" hint-placeholder-val="{{false}}">
 <button class="{{usrCls}}" type="button" onClick="{{toggleUser}}" aria-haspopup="menu" aria-expanded="{{userOpen}}" title="Operador: {{opName}}"><span class="av">{{opIni}}</span><span class="ell">{{opShort}}</span><span class="chv"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"></path></svg></span></button>
@@ -1112,6 +1140,7 @@ textarea.fc-in{height:auto;padding:6px 8px;resize:vertical}
 </div>
 </nav>
 </sc-if>
+<sc-if value="{{sess}}" hint-placeholder-val="{{false}}"><div class="{{nsp.cls}}" role="separator" aria-orientation="vertical" aria-label="Ancho del menú lateral" aria-valuenow="{{navW}}" aria-valuemin="0" aria-valuemax="420" tabindex="0" data-fk="nsplit" title="{{nsp.tip}}" onMouseDown="{{nsp.down}}" onDoubleClick="{{nsp.dbl}}" onKeyDown="{{nsp.key}}"><i></i></div></sc-if>
 
 <sc-if value="{{tip.show}}" hint-placeholder-val="{{false}}"><div class="ntip" role="tooltip" style="left: {{tip.x}}px; top: {{tip.y}}px">{{tip.t}}<sc-if value="{{tip.sub}}" hint-placeholder-val="{{false}}"><small>{{tip.sub}}</small></sc-if></div></sc-if>
 
@@ -1136,7 +1165,6 @@ textarea.fc-in{height:auto;padding:6px 8px;resize:vertical}
 <sc-if value="{{tabsOver}}" hint-placeholder-val="{{false}}"><button class="tbtn" type="button" onClick="{{tabsRight}}" aria-label="Desplazar pestañas a la derecha" title="Desplazar a la derecha"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg></button></sc-if>
 <span class="tbsep" aria-hidden="true"></span>
 <button class="{{tabsMenuCls}}" type="button" onClick="{{toggleTabsMenu}}" aria-haspopup="menu" aria-expanded="{{tabsMenuOpen}}" title="Todas las pestañas abiertas"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 6h13M8 12h13M8 18h13"></path><path d="M3.5 6h.01M3.5 12h.01M3.5 18h.01"></path></svg><span class="ct">{{nTabs}}</span><sc-if value="{{nDirty}}" hint-placeholder-val="{{false}}"><span class="tdot" aria-hidden="true"></span></sc-if></button>
-<sc-if value="{{noZen}}" hint-placeholder-val="{{false}}"><button class="tbtn" type="button" onClick="{{toggleZen}}" aria-pressed="false" title="Oculta la navegación y la barra de estado"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"></path></svg><span>Ampliar área de trabajo</span></button></sc-if>
 </div>
 
 <div class="stage">
@@ -2145,10 +2173,15 @@ textarea.fc-in{height:auto;padding:6px 8px;resize:vertical}
 <div class="fc-seg" role="group" aria-label="Estado de la línea"><sc-for list="{{m.lf.ests}}" as="s" hint-placeholder-count="8"><button type="button" aria-pressed="{{s.on}}" onClick="{{s.pick}}" title="{{s.tip}}">{{s.t}}<span class="fc-ct">{{s.n}}</span></button></sc-for></div>
 </div>
 <div class="fc-fbar ln-fbar2" aria-label="Más filtros">
+<div class="ln-ejw"><button type="button" class="{{m.lf.ej.cls}}" data-fk="ln:ej" onClick="{{m.lf.ej.tog}}" aria-haspopup="dialog" aria-expanded="{{m.lf.ej.exp}}" title="Ejercicios cuyas líneas se muestran: puedes marcar varios">{{m.lf.ej.t}}<svg class="fc-ic" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><sc-for list="{{m.lf.ej.chv}}" as="icd" hint-placeholder-count="2"><path d="{{icd}}"></path></sc-for></svg></button>
+<sc-if value="{{m.lf.ej.open}}" hint-placeholder-val="{{false}}"><button type="button" class="fc-catch" aria-label="Cerrar la lista de ejercicios" onClick="{{m.lf.ej.close}}" title="Cerrar"></button>
+<div class="fc-menu ln-ejpop" role="dialog" aria-label="Ejercicios"><div class="ln-mhead">Ejercicios de la sociedad</div>
+<sc-for list="{{m.lf.ej.opts}}" as="o" hint-placeholder-count="3"><label class="ln-ejo" title="{{o.st}}"><input type="checkbox" data-fk="{{o.fk}}" checked="{{o.on}}" onChange="{{o.set}}" aria-label="{{o.lbl}}"><b>{{o.y}}</b><span class="fc-mut">{{o.st}}</span></label></sc-for>
+<div class="ln-ejf"><button type="button" class="fc-lnk" onClick="{{m.lf.ej.only}}" title="Deja marcado solo el ejercicio de trabajo">Solo el de trabajo</button><button type="button" class="fc-lnk" onClick="{{m.lf.ej.all}}" title="Marca todos los ejercicios de la sociedad">Todos</button></div></div></sc-if></div>
 <select class="{{m.lf.bankCls}}" value="{{m.lf.bank}}" onChange="{{m.lf.setBank}}" disabled="{{m.lf.bankDis}}" style="width: 220px" aria-label="Banco" title="Muestra solo las líneas de esta cuenta bancaria"><option value="all">Banco: todas las cuentas</option><sc-for list="{{m.lf.banks}}" as="o" hint-placeholder-count="2"><option value="{{o.v}}">{{o.t}}</option></sc-for></select>
 <select class="{{m.lf.dhCls}}" value="{{m.lf.dh}}" onChange="{{m.lf.setDh}}" style="width: 150px" aria-label="Sentido" title="Cobros (abonos) o pagos (cargos)"><option value="all">Cobros y pagos</option><option value="A">Solo cobros</option><option value="C">Solo pagos</option></select>
 <select class="{{m.lf.kwfCls}}" value="{{m.lf.kwf}}" onChange="{{m.lf.setKwf}}" style="width: 196px" aria-label="Imputación" title="Cómo se ha obtenido la cuenta de la línea"><option value="all">Imputación: todas</option><option value="kw">Con palabra clave</option><option value="man">Cuenta puesta a mano</option><option value="none">Sin palabra clave</option></select>
-<select class="{{m.lf.remCls}}" value="{{m.lf.rem}}" onChange="{{m.lf.setRem}}" style="width: 260px" aria-label="Remesa" title="Muestra la línea de una remesa SEPA y los recibos en que se ha desglosado"><option value="">Remesa: todas</option><sc-for list="{{m.lf.rems}}" as="o" hint-placeholder-count="3"><option value="{{o.v}}">{{o.t}}</option></sc-for></select>
+<select class="{{m.lf.remCls}}" value="{{m.lf.rem}}" onChange="{{m.lf.setRem}}" style="width: 470px" aria-label="Remesa" title="Subcuenta del banco ficticio, fechas, número de recibos e importe de cada remesa SEPA desglosada"><option value="">Remesa: todas</option><sc-for list="{{m.lf.rems}}" as="o" hint-placeholder-count="3"><option value="{{o.v}}">{{o.t}}</option></sc-for></select>
 <span class="fc-flbl">Fecha</span><input type="text" inputmode="numeric" maxlength="10" placeholder="dd/mm/aaaa" data-fk="ln:desde" class="{{m.lf.desdeCls}}" value="{{m.lf.desde}}" onChange="{{m.lf.setDesde}}" aria-invalid="{{m.lf.desdeInv}}" style="width: 110px" aria-label="Fecha desde" title="{{m.lf.desdeTip}}">
 <span class="fc-flbl">a</span><input type="text" inputmode="numeric" maxlength="10" placeholder="dd/mm/aaaa" data-fk="ln:hasta" class="{{m.lf.hastaCls}}" value="{{m.lf.hasta}}" onChange="{{m.lf.setHasta}}" aria-invalid="{{m.lf.hastaInv}}" style="width: 110px" aria-label="Fecha hasta" title="{{m.lf.hastaTip}}">
 <span class="fc-flbl">Importe</span><input type="text" inputmode="decimal" placeholder="desde" data-fk="ln:imin" class="{{m.lf.iminCls}}" value="{{m.lf.imin}}" onChange="{{m.lf.setImin}}" aria-invalid="{{m.lf.iminInv}}" style="width: 96px" aria-label="Importe desde" title="{{m.lf.iminTip}}">
@@ -2166,9 +2199,9 @@ textarea.fc-in{height:auto;padding:6px 8px;resize:vertical}
 <div class="fc-tw scroll" data-sk="{{m.sk}}" onScroll="{{m.onScroll}}">
 <sc-if value="{{m.ll.empty}}" hint-placeholder-val="{{false}}"><div class="fc-state" role="status"><b>{{m.ll.emptyT}}</b><span>{{m.ll.emptyS}}</span><div class="fc-btns"><button type="button" class="{{m.ll.emptyB.cls}}" aria-disabled="{{m.ll.emptyB.dis}}" title="{{m.ll.emptyB.tip}}" onClick="{{m.ll.emptyB.on}}"><sc-if value="{{m.ll.emptyB.hasIc}}" hint-placeholder-val="{{true}}"><svg class="fc-ic" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><sc-for list="{{m.ll.emptyB.ic}}" as="icd" hint-placeholder-count="2"><path d="{{icd}}"></path></sc-for></svg></sc-if>{{m.ll.emptyB.t}}</button></div></div></sc-if>
 <sc-if value="{{m.ll.has}}" hint-placeholder-val="{{true}}">
-<div class="fc-grid" style="min-width: 1500px" role="grid" aria-label="Líneas bancarias" aria-multiselectable="true">
+<div class="fc-grid" style="min-width: 1700px" role="grid" aria-label="Líneas bancarias" aria-multiselectable="true">
 <div class="fc-gh" style="{{m.ll.gcols}}" role="row"><span class="fc-cb"><input type="checkbox" checked="{{m.ll.allChk}}" onChange="{{m.ll.chkAll}}" aria-label="{{m.ll.allLbl}}" title="Seleccionar todas las del listado (Ctrl+A)"></span>
-<span class="{{m.ll.hNum.cls}}" aria-sort="{{m.ll.hNum.aria}}"><button type="button" class="fc-sortb" data-fk="{{m.ll.hNum.fk}}" onClick="{{m.ll.hNum.pick}}" title="{{m.ll.hNum.tip}}">{{m.ll.hNum.t}}<span class="fc-ar">{{m.ll.hNum.ar}}</span></button></span><span class="{{m.ll.hFo.cls}}" aria-sort="{{m.ll.hFo.aria}}"><button type="button" class="fc-sortb" data-fk="{{m.ll.hFo.fk}}" onClick="{{m.ll.hFo.pick}}" title="{{m.ll.hFo.tip}}">{{m.ll.hFo.t}}<span class="fc-ar">{{m.ll.hFo.ar}}</span></button></span><sc-if value="{{m.ll.showBank}}" hint-placeholder-val="{{true}}"><span class="{{m.ll.hBank.cls}}" aria-sort="{{m.ll.hBank.aria}}"><button type="button" class="fc-sortb" data-fk="{{m.ll.hBank.fk}}" onClick="{{m.ll.hBank.pick}}" title="{{m.ll.hBank.tip}}">{{m.ll.hBank.t}}<span class="fc-ar">{{m.ll.hBank.ar}}</span></button></span></sc-if><span class="{{m.ll.hCon.cls}}" aria-sort="{{m.ll.hCon.aria}}"><button type="button" class="fc-sortb" data-fk="{{m.ll.hCon.fk}}" onClick="{{m.ll.hCon.pick}}" title="{{m.ll.hCon.tip}}">{{m.ll.hCon.t}}<span class="fc-ar">{{m.ll.hCon.ar}}</span></button></span><span class="{{m.ll.hImp.cls}}" aria-sort="{{m.ll.hImp.aria}}"><button type="button" class="fc-sortb" data-fk="{{m.ll.hImp.fk}}" onClick="{{m.ll.hImp.pick}}" title="{{m.ll.hImp.tip}}">{{m.ll.hImp.t}}<span class="fc-ar">{{m.ll.hImp.ar}}</span></button></span><span class="{{m.ll.hCta.cls}}" aria-sort="{{m.ll.hCta.aria}}"><button type="button" class="fc-sortb" data-fk="{{m.ll.hCta.fk}}" onClick="{{m.ll.hCta.pick}}" title="{{m.ll.hCta.tip}}">{{m.ll.hCta.t}}<span class="fc-ar">{{m.ll.hCta.ar}}</span></button></span><span>Descripción de la cuenta</span><span>Imputación</span><span>Factura</span><span>Asiento</span><span class="{{m.ll.hEst.cls}}" aria-sort="{{m.ll.hEst.aria}}"><button type="button" class="fc-sortb" data-fk="{{m.ll.hEst.fk}}" onClick="{{m.ll.hEst.pick}}" title="{{m.ll.hEst.tip}}">{{m.ll.hEst.t}}<span class="fc-ar">{{m.ll.hEst.ar}}</span></button></span></div>
+<span class="{{m.ll.hNum.cls}}" aria-sort="{{m.ll.hNum.aria}}"><button type="button" class="fc-sortb" data-fk="{{m.ll.hNum.fk}}" onClick="{{m.ll.hNum.pick}}" title="{{m.ll.hNum.tip}}">{{m.ll.hNum.t}}<span class="fc-ar">{{m.ll.hNum.ar}}</span></button></span><span class="{{m.ll.hFo.cls}}" aria-sort="{{m.ll.hFo.aria}}"><button type="button" class="fc-sortb" data-fk="{{m.ll.hFo.fk}}" onClick="{{m.ll.hFo.pick}}" title="{{m.ll.hFo.tip}}">{{m.ll.hFo.t}}<span class="fc-ar">{{m.ll.hFo.ar}}</span></button></span><sc-if value="{{m.ll.showBank}}" hint-placeholder-val="{{true}}"><span class="{{m.ll.hBank.cls}}" aria-sort="{{m.ll.hBank.aria}}"><button type="button" class="fc-sortb" data-fk="{{m.ll.hBank.fk}}" onClick="{{m.ll.hBank.pick}}" title="{{m.ll.hBank.tip}}">{{m.ll.hBank.t}}<span class="fc-ar">{{m.ll.hBank.ar}}</span></button></span></sc-if><span class="{{m.ll.hCon.cls}}" aria-sort="{{m.ll.hCon.aria}}"><button type="button" class="fc-sortb" data-fk="{{m.ll.hCon.fk}}" onClick="{{m.ll.hCon.pick}}" title="{{m.ll.hCon.tip}}">{{m.ll.hCon.t}}<span class="fc-ar">{{m.ll.hCon.ar}}</span></button></span><span class="{{m.ll.hImp.cls}}" aria-sort="{{m.ll.hImp.aria}}"><button type="button" class="fc-sortb" data-fk="{{m.ll.hImp.fk}}" onClick="{{m.ll.hImp.pick}}" title="{{m.ll.hImp.tip}}">{{m.ll.hImp.t}}<span class="fc-ar">{{m.ll.hImp.ar}}</span></button></span><span class="{{m.ll.hOri.cls}}" aria-sort="{{m.ll.hOri.aria}}"><button type="button" class="fc-sortb" data-fk="{{m.ll.hOri.fk}}" onClick="{{m.ll.hOri.pick}}" title="{{m.ll.hOri.tip}}">{{m.ll.hOri.t}}<span class="fc-ar">{{m.ll.hOri.ar}}</span></button></span><span class="{{m.ll.hCta.cls}}" aria-sort="{{m.ll.hCta.aria}}"><button type="button" class="fc-sortb" data-fk="{{m.ll.hCta.fk}}" onClick="{{m.ll.hCta.pick}}" title="{{m.ll.hCta.tip}}">{{m.ll.hCta.t}}<span class="fc-ar">{{m.ll.hCta.ar}}</span></button></span><span>Descripción de la subcuenta destino</span><span>Imputación</span><span>Factura</span><span>Asiento</span><span class="{{m.ll.hEst.cls}}" aria-sort="{{m.ll.hEst.aria}}"><button type="button" class="fc-sortb" data-fk="{{m.ll.hEst.fk}}" onClick="{{m.ll.hEst.pick}}" title="{{m.ll.hEst.tip}}">{{m.ll.hEst.t}}<span class="fc-ar">{{m.ll.hEst.ar}}</span></button></span></div>
 <sc-for list="{{m.ll.rows}}" as="r" hint-placeholder-count="14">
 <div class="{{r.cls}}" style="{{m.ll.gcols}}" role="row" tabindex="{{r.ti}}" data-fk="{{r.fk}}" aria-selected="{{r.sel}}" onClick="{{r.click}}" onDoubleClick="{{r.open}}" onKeyDown="{{r.key}}" onContextMenu="{{r.ctx}}">
 <span class="fc-cb"><input type="checkbox" tabindex="-1" checked="{{r.s}}" onClick="{{r.stop}}" onChange="{{r.chk}}" aria-label="{{r.chkLbl}}" title="Marca la línea para actuar sobre ella (Espacio)"></span>
@@ -2177,8 +2210,9 @@ textarea.fc-in{height:auto;padding:6px 8px;resize:vertical}
 <sc-if value="{{m.ll.showBank}}" hint-placeholder-val="{{true}}"><span title="{{r.bank}}">{{r.bank}}</span></sc-if>
 <span title="{{r.conT}}"><sc-if value="{{r.isNew}}" hint-placeholder-val="{{false}}"><span class="ln-newt" title="Importada en la última carga">Nueva</span></sc-if>{{r.con}}<span class="ln-ref">{{r.ref}}</span></span>
 <span class="{{r.impCls}}">{{r.imp}}</span>
-<span class="{{r.ctaCls}}">{{r.cta}}</span>
-<span class="{{r.ctaDCls}}" title="{{r.ctaD}}">{{r.ctaD}}</span>
+<span class="fc-mono ln-acct" title="{{r.oriTip}}" onDoubleClick="{{r.oriDbl}}">{{r.ori}}</span>
+<span class="{{r.ctaCls}}" title="{{r.ctaTip}}" onDoubleClick="{{r.ctaDbl}}">{{r.cta}}</span>
+<span class="{{r.ctaDCls}}" title="{{r.ctaTip}}" onDoubleClick="{{r.ctaDbl}}">{{r.ctaD}}</span>
 <span class="{{r.imCls}}" title="{{r.imTip}}">{{r.imput}}</span>
 <span class="fc-mono" title="{{r.fac}}">{{r.fac}}</span>
 <span class="{{r.asCls}}">{{r.as}}</span>
@@ -2188,7 +2222,7 @@ textarea.fc-in{height:auto;padding:6px 8px;resize:vertical}
 </div>
 </sc-if>
 </div>
-<sc-if value="{{m.ll.has}}" hint-placeholder-val="{{true}}"><div class="fc-tfoot"><span class="fc-tn">{{m.ll.foot}}</span><span class="fc-grow"></span><span>Clic derecho: acciones · Ctrl/Mayús+clic: varias · Intro: detalle</span></div></sc-if>
+<sc-if value="{{m.ll.has}}" hint-placeholder-val="{{true}}"><div class="fc-tfoot"><span class="fc-tn">{{m.ll.foot}}</span><span class="fc-grow"></span><span>Clic: detalle · doble clic: asiento · doble clic en una subcuenta: su mayor · clic derecho: acciones · Ctrl/Mayús+clic: varias</span></div></sc-if>
 </section>
 </div>
 <sc-if value="{{m.ld.reopen}}" hint-placeholder-val="{{false}}"><button type="button" class="ln-reopen" onClick="{{m.ld.reopenFn}}" title="Mostrar el detalle de la línea">Detalle</button></sc-if>
@@ -2200,6 +2234,7 @@ textarea.fc-in{height:auto;padding:6px 8px;resize:vertical}
 <div class="fc-dtop"><span class="fc-dkind">Línea bancaria</span><span class="{{m.ld.stCls}}" title="{{m.ld.stTip}}"><i></i>{{m.ld.st}}</span><span class="fc-grow"></span><button type="button" class="fc-icb" onClick="{{m.ld.close}}" title="Cerrar el detalle (Esc)" aria-label="Cerrar el detalle"><svg class="fc-ic" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><sc-for list="{{m.ld.xIc}}" as="icd" hint-placeholder-count="2"><path d="{{icd}}"></path></sc-for></svg></button></div>
 <div style="display: flex; align-items: baseline; gap: 10px"><div class="fc-dtitle">{{m.ld.title}}</div><span class="fc-grow"></span><b class="{{m.ld.impCls}}">{{m.ld.imp}}</b></div>
 <div class="fc-dsub" title="{{m.ld.sub}}">{{m.ld.sub}}</div>
+<sc-if value="{{m.ld.roNote}}" hint-placeholder-val="{{false}}"><div class="fc-note" style="margin-top: 8px"><svg class="fc-ic" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><sc-for list="{{m.ld.infoIc}}" as="icd" hint-placeholder-count="2"><path d="{{icd}}"></path></sc-for></svg><span>{{m.ld.roT}}</span></div></sc-if>
 <div class="fc-dacts"><sc-for list="{{m.ld.acts}}" as="b" hint-placeholder-count="2"><button type="button" class="{{b.cls}}" aria-disabled="{{b.dis}}" title="{{b.tip}}" onClick="{{b.on}}"><sc-if value="{{b.hasIc}}" hint-placeholder-val="{{true}}"><svg class="fc-ic" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><sc-for list="{{b.ic}}" as="icd" hint-placeholder-count="2"><path d="{{icd}}"></path></sc-for></svg></sc-if>{{b.t}}</button></sc-for><button type="button" class="{{m.ld.more.cls}}" aria-disabled="{{m.ld.more.dis}}" title="{{m.ld.more.tip}}" onClick="{{m.ld.more.on}}"><sc-if value="{{m.ld.more.hasIc}}" hint-placeholder-val="{{true}}"><svg class="fc-ic" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><sc-for list="{{m.ld.more.ic}}" as="icd" hint-placeholder-count="2"><path d="{{icd}}"></path></sc-for></svg></sc-if>{{m.ld.more.t}}</button></div>
 </div>
 <div class="fc-dbody scroll">
@@ -2235,9 +2270,9 @@ textarea.fc-in{height:auto;padding:6px 8px;resize:vertical}
 <div class="fc-dlgb scroll">
 <sc-if value="{{m.lx.kbd}}" hint-placeholder-val="{{false}}"><div class="fc-kbdl"><sc-for list="{{m.lx.keys}}" as="k" hint-placeholder-count="4"><kbd style="justify-self: start">{{k.k}}</kbd><span>{{k.t}}</span></sc-for></div><p class="fc-mut">{{m.lx.kbdNote}}</p></sc-if>
 <sc-if value="{{m.lx.par}}" hint-placeholder-val="{{false}}">
-<div class="fc-mini"><div class="fc-mh" style="grid-template-columns: minmax(0, 1fr) 90px minmax(0, 1fr) 100px"><span>Uso</span><span>Subcuenta</span><span>Descripción</span><span>Valor</span></div>
-<sc-for list="{{m.lx.pars}}" as="p" hint-placeholder-count="5"><div class="fc-mr" style="grid-template-columns: minmax(0, 1fr) 90px minmax(0, 1fr) 100px" title="{{p.tip}}"><span>{{p.t}}</span><span class="fc-mono">{{p.v}}</span><span class="fc-mut">{{p.d}}</span><span class="fc-mut">{{p.def}}</span></div></sc-for>
-<sc-for list="{{m.lx.banks}}" as="p" hint-placeholder-count="2"><div class="fc-mr" style="grid-template-columns: minmax(0, 1fr) 90px minmax(0, 1fr) 100px"><span>Cuenta contable de {{p.t}}</span><span class="fc-mono">{{p.v}}</span><span class="fc-mut">{{p.d}}</span><span class="fc-mut">Por banco</span></div></sc-for></div>
+<div class="fc-mini"><div class="fc-mh" style="{{m.lx.pcols}}"><span>Uso</span><sc-for list="{{m.lx.pyh}}" as="h" hint-placeholder-count="1"><span>{{h}}</span></sc-for><span>Descripción</span></div>
+<sc-for list="{{m.lx.pars}}" as="p" hint-placeholder-count="5"><div class="fc-mr" style="{{m.lx.pcols}}" title="{{p.tip}}"><span>{{p.t}}</span><sc-for list="{{p.vals}}" as="v" hint-placeholder-count="1"><span class="fc-mono" title="{{v.tip}}">{{v.v}}</span></sc-for><span class="fc-mut">{{p.d}}</span></div></sc-for>
+<sc-for list="{{m.lx.banks}}" as="p" hint-placeholder-count="2"><div class="fc-mr" style="{{m.lx.pcols}}"><span>{{p.t}}</span><sc-for list="{{p.vals}}" as="v" hint-placeholder-count="1"><span class="fc-mono" title="{{v.tip}}">{{v.v}}</span></sc-for><span class="fc-mut">{{p.d}}</span></div></sc-for></div>
 <div class="fc-note"><svg class="fc-ic" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><sc-for list="{{m.lx.infoIc}}" as="icd" hint-placeholder-count="2"><path d="{{icd}}"></path></sc-for></svg><span>{{m.lx.parNote}}</span></div>
 </sc-if>
 <sc-if value="{{m.lx.cta}}" hint-placeholder-val="{{false}}">
@@ -2253,16 +2288,21 @@ textarea.fc-in{height:auto;padding:6px 8px;resize:vertical}
 <sc-if value="{{m.lx.unrem}}" hint-placeholder-val="{{false}}"><p>{{m.lx.uT}}</p></sc-if>
 <sc-if value="{{m.lx.unexp}}" hint-placeholder-val="{{false}}"><p>{{m.lx.uT}}</p></sc-if>
 <sc-if value="{{m.lx.kw}}" hint-placeholder-val="{{false}}">
-<div class="fc-note"><svg class="fc-ic" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><sc-for list="{{m.lx.infoIc}}" as="icd" hint-placeholder-count="2"><path d="{{icd}}"></path></sc-for></svg><span class="fc-mono" style="font-size: 11.5px">{{m.lx.kwCon}}</span></div>
-<div class="fc-frow"><div class="fc-fld" style="flex: 1 1 260px"><label for="ln-kt">Texto que debe contener el concepto</label><input id="ln-kt" data-fk="ln:dlg:txt" class="{{m.lx.kwTxt.cls}}" value="{{m.lx.kwTxt.v}}" onChange="{{m.lx.kwTxt.set}}" title="{{m.lx.kwTxt.tip}}"></div>
-<div class="fc-fld" style="flex: 1 1 200px"><label for="ln-kt2">Y además (opcional)</label><input id="ln-kt2" data-fk="ln:dlg:txt2" class="{{m.lx.kwTxt2.cls}}" value="{{m.lx.kwTxt2.v}}" onChange="{{m.lx.kwTxt2.set}}" title="{{m.lx.kwTxt2.tip}}"></div></div>
+<sc-if value="{{m.lx.kwExOn}}" hint-placeholder-val="{{false}}"><div><h3 class="fc-sec">{{m.lx.kwExT}}</h3>
+<div class="fc-mini"><sc-for list="{{m.lx.kwEx}}" as="k" hint-placeholder-count="1"><div class="{{k.cls}}" style="grid-template-columns: 44px minmax(0, 1fr) 84px minmax(0, 0.8fr) 80px auto; align-items: center">
+<span class="fc-mono fc-mut">{{k.id}}</span><span><b>{{k.t}}</b><sc-if value="{{k.win}}" hint-placeholder-val="{{false}}"> <span class="ln-win">{{k.winT}}</span></sc-if></span><span class="fc-mono">{{k.cta}}</span><span class="fc-mut" title="{{k.ctaD}}">{{k.ctaD}}</span><span class="fc-mut">{{k.uses}}</span>
+<span class="fc-btns"><sc-if value="{{k.del}}" hint-placeholder-val="{{false}}"><button type="button" class="{{k.rmOk.cls}}" aria-disabled="{{k.rmOk.dis}}" title="{{k.rmOk.tip}}" onClick="{{k.rmOk.on}}"><sc-if value="{{k.rmOk.hasIc}}" hint-placeholder-val="{{true}}"><svg class="fc-ic" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><sc-for list="{{k.rmOk.ic}}" as="icd" hint-placeholder-count="2"><path d="{{icd}}"></path></sc-for></svg></sc-if>{{k.rmOk.t}}</button><button type="button" class="{{k.rmNo.cls}}" aria-disabled="{{k.rmNo.dis}}" title="{{k.rmNo.tip}}" onClick="{{k.rmNo.on}}"><sc-if value="{{k.rmNo.hasIc}}" hint-placeholder-val="{{true}}"><svg class="fc-ic" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><sc-for list="{{k.rmNo.ic}}" as="icd" hint-placeholder-count="2"><path d="{{icd}}"></path></sc-for></svg></sc-if>{{k.rmNo.t}}</button></sc-if><sc-if value="{{k.nd}}" hint-placeholder-val="{{true}}"><button type="button" class="{{k.edit.cls}}" aria-disabled="{{k.edit.dis}}" title="{{k.edit.tip}}" onClick="{{k.edit.on}}"><sc-if value="{{k.edit.hasIc}}" hint-placeholder-val="{{true}}"><svg class="fc-ic" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><sc-for list="{{k.edit.ic}}" as="icd" hint-placeholder-count="2"><path d="{{icd}}"></path></sc-for></svg></sc-if>{{k.edit.t}}</button><button type="button" class="{{k.rm.cls}}" aria-disabled="{{k.rm.dis}}" title="{{k.rm.tip}}" onClick="{{k.rm.on}}"><sc-if value="{{k.rm.hasIc}}" hint-placeholder-val="{{true}}"><svg class="fc-ic" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><sc-for list="{{k.rm.ic}}" as="icd" hint-placeholder-count="2"><path d="{{icd}}"></path></sc-for></svg></sc-if>{{k.rm.t}}</button></sc-if></span></div>
+<sc-if value="{{k.del}}" hint-placeholder-val="{{false}}"><div class="fc-note fc-warn"><svg class="fc-ic" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><sc-for list="{{m.lx.warnIc}}" as="icd" hint-placeholder-count="2"><path d="{{icd}}"></path></sc-for></svg><span>{{k.delT}}</span></div></sc-if></sc-for></div></div></sc-if>
+<div class="ln-kwhead"><h3 class="fc-sec">{{m.lx.kwMode}}</h3><span class="fc-grow"></span><sc-if value="{{m.lx.kwEditing}}" hint-placeholder-val="{{false}}"><button type="button" class="{{m.lx.kwNew.cls}}" aria-disabled="{{m.lx.kwNew.dis}}" title="{{m.lx.kwNew.tip}}" onClick="{{m.lx.kwNew.on}}"><sc-if value="{{m.lx.kwNew.hasIc}}" hint-placeholder-val="{{true}}"><svg class="fc-ic" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><sc-for list="{{m.lx.kwNew.ic}}" as="icd" hint-placeholder-count="2"><path d="{{icd}}"></path></sc-for></svg></sc-if>{{m.lx.kwNew.t}}</button></sc-if></div>
+<div class="fc-fld"><label>Concepto de la línea · {{m.lx.kwLen}} · selecciona con el ratón el trozo que será el criterio</label>
+<div class="ln-con ln-kwsrc" data-ln-kwsrc="1" onClick="{{m.lx.kwPick}}" title="Selecciona con el ratón un trozo del concepto: pasará al criterio marcado abajo"><sc-for list="{{m.lx.kwSegs}}" as="g" hint-placeholder-count="1"><span class="{{g.c}}">{{g.t}}</span></sc-for></div></div>
+<div class="ln-tgs" role="radiogroup" aria-label="Dónde va la selección"><sc-for list="{{m.lx.kwTg}}" as="g" hint-placeholder-count="2"><div class="{{g.cls}}" role="radio" aria-checked="{{g.on}}" tabindex="0" onClick="{{g.pick}}" title="{{g.tip}}"><span class="fc-flbl">{{g.t}}</span><span class="{{g.vCls}}">{{g.v}}</span><sc-if value="{{g.has}}" hint-placeholder-val="{{false}}"><button type="button" class="fc-xb" onClick="{{g.clr}}" aria-label="Vaciar {{g.t}}" title="Vaciar este criterio"><svg class="fc-ic" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><sc-for list="{{m.lx.xIc}}" as="icd" hint-placeholder-count="2"><path d="{{icd}}"></path></sc-for></svg></button></sc-if></div></sc-for></div>
 <div class="fc-kv"><dt>Se aplica a</dt><dd>{{m.lx.kwScope}}</dd></div>
-<div class="fc-fld"><label for="ln-aq">Cuenta de destino</label><div class="fc-sbox" style="width: 100%"><svg class="fc-ic" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><sc-for list="{{m.lx.ap.searchIc}}" as="icd" hint-placeholder-count="2"><path d="{{icd}}"></path></sc-for></svg><input id="ln-aq" data-fk="{{m.lx.ap.fk}}" value="{{m.lx.ap.q}}" onChange="{{m.lx.ap.setQ}}" placeholder="Código o descripción (puede quedar sin cuenta)" title="Cuenta que tomarán las líneas sin cuenta"></div></div>
-<div class="ln-acclist" style="max-height: 170px" role="listbox" aria-label="Cuentas"><sc-for list="{{m.lx.ap.list}}" as="a" hint-placeholder-count="4"><button type="button" role="option" class="{{a.cls}}" aria-selected="{{a.sel}}" onClick="{{a.pick}}" title="{{a.t}}"><span class="fc-mono">{{a.c}}</span><span>{{a.t}}</span></button></sc-for></div>
+<div class="fc-fld"><label for="ln-aq">Subcuenta de destino</label><div class="fc-sbox" style="width: 100%"><svg class="fc-ic" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><sc-for list="{{m.lx.ap.searchIc}}" as="icd" hint-placeholder-count="2"><path d="{{icd}}"></path></sc-for></svg><input id="ln-aq" data-fk="{{m.lx.ap.fk}}" value="{{m.lx.ap.q}}" onChange="{{m.lx.ap.setQ}}" placeholder="Código o descripción (puede quedar sin subcuenta)" title="Subcuenta que tomarán las líneas sin subcuenta"></div></div>
+<div class="ln-acclist" style="max-height: 150px" role="listbox" aria-label="Subcuentas"><sc-for list="{{m.lx.ap.list}}" as="a" hint-placeholder-count="4"><button type="button" role="option" class="{{a.cls}}" aria-selected="{{a.sel}}" onClick="{{a.pick}}" title="{{a.t}}"><span class="fc-mono">{{a.c}}</span><span>{{a.t}}</span></button></sc-for></div>
 <div class="{{m.lx.ap.chosenCls}}">Elegida: <b>{{m.lx.ap.chosen}}</b></div>
 <div class="fc-note fc-ok"><svg class="fc-ic" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><sc-for list="{{m.lx.infoIc}}" as="icd" hint-placeholder-count="2"><path d="{{icd}}"></path></sc-for></svg><span>{{m.lx.kwPrev}}</span></div>
 <sc-if value="{{m.lx.kwDup}}" hint-placeholder-val="{{false}}"><div class="fc-note fc-err"><svg class="fc-ic" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><sc-for list="{{m.lx.warnIc}}" as="icd" hint-placeholder-count="2"><path d="{{icd}}"></path></sc-for></svg><span>{{m.lx.kwDupT}}</span></div></sc-if>
-<sc-if value="{{m.lx.kwNear}}" hint-placeholder-val="{{false}}"><div class="fc-note fc-warn"><svg class="fc-ic" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><sc-for list="{{m.lx.warnIc}}" as="icd" hint-placeholder-count="2"><path d="{{icd}}"></path></sc-for></svg><span>Se solapa con {{m.lx.kwNearT}}. Cuando dos encajan, gana la más larga.</span></div></sc-if>
 </sc-if>
 <sc-if value="{{m.lx.fac}}" hint-placeholder-val="{{false}}"><div class="fc-fld"><label for="ln-fac">Número de factura</label><input id="ln-fac" data-fk="ln:dlg:fac" class="fc-in fc-mono" style="width: 240px" value="{{m.lx.facF.v}}" onChange="{{m.lx.facF.set}}" title="Número de la factura que paga o cobra el movimiento"></div><p class="fc-mut">{{m.lx.facT}}</p></sc-if>
 <sc-if value="{{m.lx.div}}" hint-placeholder-val="{{false}}">
@@ -2289,22 +2329,48 @@ textarea.fc-in{height:auto;padding:6px 8px;resize:vertical}
 </sc-if>
 <sc-if value="{{m.lx.rems}}" hint-placeholder-val="{{false}}">
 <h3 class="fc-sec">Pendientes de desglosar</h3>
-<sc-if value="{{m.lx.rpNone}}" hint-placeholder-val="{{false}}"><p class="fc-mut">No hay remesas pendientes en este ejercicio.</p></sc-if>
-<div class="fc-mini"><sc-for list="{{m.lx.rpend}}" as="p" hint-placeholder-count="2"><div class="fc-mr" style="grid-template-columns: minmax(0, 1fr) 110px auto; align-items: center"><span>{{p.t}}</span><span class="fc-r fc-tn">{{p.imp}}</span><span><button type="button" class="{{p.go.cls}}" aria-disabled="{{p.go.dis}}" title="{{p.go.tip}}" onClick="{{p.go.on}}"><sc-if value="{{p.go.hasIc}}" hint-placeholder-val="{{true}}"><svg class="fc-ic" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><sc-for list="{{p.go.ic}}" as="icd" hint-placeholder-count="2"><path d="{{icd}}"></path></sc-for></svg></sc-if>{{p.go.t}}</button></span></div></sc-for></div>
+<sc-if value="{{m.lx.rpNone}}" hint-placeholder-val="{{false}}"><p class="fc-mut">No hay remesas pendientes en los ejercicios elegidos.</p></sc-if>
+<div class="fc-mini"><sc-for list="{{m.lx.rpend}}" as="p" hint-placeholder-count="2"><div class="fc-mr" style="grid-template-columns: 96px 92px 84px minmax(0, 1fr) 120px auto; align-items: center"><span>{{p.t}}</span><span class="fc-tn">{{p.fo}}</span><span class="fc-mono">{{p.cta}}</span><span>{{p.bank}}</span><span class="fc-r fc-tn">{{p.imp}}</span><span><button type="button" class="{{p.go.cls}}" aria-disabled="{{p.go.dis}}" title="{{p.go.tip}}" onClick="{{p.go.on}}"><sc-if value="{{p.go.hasIc}}" hint-placeholder-val="{{true}}"><svg class="fc-ic" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><sc-for list="{{p.go.ic}}" as="icd" hint-placeholder-count="2"><path d="{{icd}}"></path></sc-for></svg></sc-if>{{p.go.t}}</button></span></div></sc-for></div>
 <h3 class="fc-sec">Desglosadas</h3>
 <sc-if value="{{m.lx.rdNone}}" hint-placeholder-val="{{false}}"><p class="fc-mut">Todavía no se ha desglosado ninguna remesa.</p></sc-if>
-<div class="fc-scrollbox scroll" style="max-height: 300px"><div class="fc-mini"><sc-for list="{{m.lx.rdone}}" as="p" hint-placeholder-count="3"><div class="fc-mr" style="grid-template-columns: minmax(0, 1fr) 90px 110px auto; align-items: center"><span class="fc-mono">{{p.t}}</span><span class="fc-mut">{{p.n}}</span><span class="fc-r fc-tn">{{p.imp}}</span><span><button type="button" class="{{p.go.cls}}" aria-disabled="{{p.go.dis}}" title="{{p.go.tip}}" onClick="{{p.go.on}}"><sc-if value="{{p.go.hasIc}}" hint-placeholder-val="{{true}}"><svg class="fc-ic" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><sc-for list="{{p.go.ic}}" as="icd" hint-placeholder-count="2"><path d="{{icd}}"></path></sc-for></svg></sc-if>{{p.go.t}}</button></span></div></sc-for></div></div>
+<div class="fc-scrollbox scroll" style="max-height: 340px"><div class="fc-mini"><div class="fc-mh ln-rd" style="grid-template-columns: 116px 76px minmax(150px, 1fr) minmax(170px, 1fr) 190px 64px 112px 116px"><span>Remesa</span><span>Subcuenta</span><span>Banco ficticio</span><span>Línea de origen</span><span>Fechas de los recibos</span><span class="fc-r">Recibos</span><span class="fc-r">Importe</span><span></span></div>
+<sc-for list="{{m.lx.rdone}}" as="p" hint-placeholder-count="3"><div class="fc-mr ln-rd" style="grid-template-columns: 116px 76px minmax(150px, 1fr) minmax(170px, 1fr) 190px 64px 112px 116px; align-items: center"><span class="fc-mono">{{p.id}}</span><span class="fc-mono">{{p.cta}}</span><span title="{{p.ctaD}}">{{p.ctaD}}</span><span class="fc-mut" title="{{p.from}}">{{p.from}}</span><span class="fc-tn">{{p.fechas}}</span><span class="fc-r fc-tn">{{p.n}}</span><span class="fc-r fc-tn">{{p.imp}}</span><span><button type="button" class="{{p.go.cls}}" aria-disabled="{{p.go.dis}}" title="{{p.go.tip}}" onClick="{{p.go.on}}"><sc-if value="{{p.go.hasIc}}" hint-placeholder-val="{{true}}"><svg class="fc-ic" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><sc-for list="{{p.go.ic}}" as="icd" hint-placeholder-count="2"><path d="{{icd}}"></path></sc-for></svg></sc-if>{{p.go.t}}</button></span></div></sc-for></div></div>
 </sc-if>
 <sc-if value="{{m.lx.tras}}" hint-placeholder-val="{{false}}"><div class="fc-mini"><sc-for list="{{m.lx.tl}}" as="p" hint-placeholder-count="2"><div class="fc-mr" style="grid-template-columns: minmax(0, 1fr) 110px"><span>{{p.t}}</span><span class="fc-r fc-tn">{{p.imp}}</span></div></sc-for></div><p>{{m.lx.tT}}</p></sc-if>
 <sc-if value="{{m.lx.exp}}" hint-placeholder-val="{{false}}"><dl class="fc-kv"><sc-for list="{{m.lx.eKv}}" as="kv" hint-placeholder-count="3"><dt>{{kv.k}}</dt><dd class="{{kv.cls}}"><sc-if value="{{kv.lnk}}" hint-placeholder-val="{{false}}"><button type="button" class="fc-lnk" onClick="{{kv.on}}" title="{{kv.tip}}">{{kv.v}}</button>{{kv.after}}</sc-if><sc-if value="{{kv.nl}}" hint-placeholder-val="{{true}}">{{kv.v}}</sc-if></dd></sc-for></dl><p class="fc-mut">{{m.lx.eT}}</p></sc-if>
-<sc-if value="{{m.lx.as}}" hint-placeholder-val="{{false}}"><sc-for list="{{m.lx.asl}}" as="a" hint-placeholder-count="1"><div><h3 class="fc-sec">{{a.h}}</h3><div class="fc-mini">
+<sc-if value="{{m.lx.as}}" hint-placeholder-val="{{false}}"><sc-if value="{{m.lx.asProp}}" hint-placeholder-val="{{false}}"><div class="fc-note fc-warn"><svg class="fc-ic" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><sc-for list="{{m.lx.infoIc}}" as="icd" hint-placeholder-count="2"><path d="{{icd}}"></path></sc-for></svg><span>{{m.lx.asPropT}}</span></div></sc-if><sc-for list="{{m.lx.asl}}" as="a" hint-placeholder-count="1"><div><h3 class="fc-sec">{{a.h}}</h3><div class="fc-mini">
 <div class="fc-mh" style="grid-template-columns: 84px minmax(0, 1fr) minmax(0, 1fr) 96px 96px 96px"><span>Cuenta</span><span>Descripción</span><span>Concepto</span><span>Documento</span><span class="fc-r">Debe</span><span class="fc-r">Haber</span></div>
-<sc-for list="{{a.ap}}" as="p" hint-placeholder-count="2"><div class="fc-mr" style="grid-template-columns: 84px minmax(0, 1fr) minmax(0, 1fr) 96px 96px 96px"><span class="fc-mono">{{p.cta}}</span><span>{{p.d}}</span><span>{{p.con}}</span><span class="fc-mono">{{p.doc}}</span><span class="fc-r fc-tn">{{p.debe}}</span><span class="fc-r fc-tn">{{p.haber}}</span></div></sc-for></div></div></sc-for></sc-if>
+<sc-for list="{{a.ap}}" as="p" hint-placeholder-count="2"><div class="fc-mr" style="grid-template-columns: 84px minmax(0, 1fr) minmax(0, 1fr) 96px 96px 96px"><span class="fc-mono ln-acct" title="Doble clic: abrir el mayor de la {{p.cta}}" onDoubleClick="{{p.dbl}}">{{p.cta}}</span><span>{{p.d}}</span><span>{{p.con}}</span><span class="fc-mono">{{p.doc}}</span><span class="fc-r fc-tn">{{p.debe}}</span><span class="fc-r fc-tn">{{p.haber}}</span></div></sc-for>
+<div class="fc-mr ln-astot" style="grid-template-columns: 84px minmax(0, 1fr) minmax(0, 1fr) 96px 96px 96px"><span></span><span></span><span></span><span>Total</span><span class="fc-r fc-tn">{{a.tD}}</span><span class="fc-r fc-tn">{{a.tH}}</span></div></div></div></sc-for></sc-if>
 </div>
 <div class="fc-dlgf"><sc-for list="{{m.lx.acts}}" as="b" hint-placeholder-count="1"><button type="button" class="{{b.cls}}" aria-disabled="{{b.dis}}" title="{{b.tip}}" onClick="{{b.on}}"><sc-if value="{{b.hasIc}}" hint-placeholder-val="{{true}}"><svg class="fc-ic" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><sc-for list="{{b.ic}}" as="icd" hint-placeholder-count="2"><path d="{{icd}}"></path></sc-for></svg></sc-if>{{b.t}}</button></sc-for><span class="fc-grow"></span><button type="button" class="fc-btn" onClick="{{m.lx.close}}" title="Cierra el diálogo sin hacer cambios (Esc)">{{m.lx.cancelT}}</button></div>
 </div>
 </div>
 </sc-if>
+</div>
+</sc-if>
+<sc-if value="{{m.lmy}}" hint-placeholder-val="{{false}}">
+<div class="mod fcx lnx">
+<div class="fc-modbar">
+<h1 class="disp">Mayor · <span class="fc-mono">{{m.my2.cta}}</span> {{m.my2.d}}</h1><span class="fc-mut" style="margin-left: 10px">{{m.my2.sub}}</span>
+<span class="fc-grow"></span>
+<button type="button" class="fc-btn fc-sm" onClick="{{m.my2.back}}" title="Vuelve a la pantalla de líneas bancarias">Volver a las líneas bancarias</button>
+</div>
+<div class="fc-ws"><div class="fc-lists"><section class="fc-panel fc-pemit ln-panel" aria-label="Apuntes del mayor">
+<div class="fc-ph"><h2>Apuntes</h2><span class="fc-cnt">{{m.my2.n}}</span><span class="fc-grow"></span></div>
+<div class="fc-note" style="margin: 0 12px 8px"><svg class="fc-ic" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><sc-for list="{{m.my2.infoIc}}" as="icd" hint-placeholder-count="2"><path d="{{icd}}"></path></sc-for></svg><span>{{m.my2.note}}</span></div>
+<div class="fc-tw scroll" data-sk="{{m.sk}}" onScroll="{{m.onScroll}}">
+<sc-if value="{{m.my2.empty}}" hint-placeholder-val="{{false}}"><div class="fc-state" role="status"><b>Sin apuntes</b><span>Ninguna línea exportada de los ejercicios elegidos usa esta subcuenta.</span></div></sc-if>
+<sc-if value="{{m.my2.has}}" hint-placeholder-val="{{true}}">
+<div class="fc-grid" style="min-width: 1200px" role="grid" aria-label="Apuntes del mayor">
+<div class="fc-gh" style="{{m.my2.cols}}" role="row"><span>Fecha</span><span>Asiento</span><span>Concepto del apunte</span><span>Concepto del banco</span><span>Documento</span><span class="fc-r">Debe</span><span class="fc-r">Haber</span><span class="fc-r">Saldo</span></div>
+<sc-for list="{{m.my2.rows}}" as="r" hint-placeholder-count="12"><div class="fc-gr ln-gr" style="{{m.my2.cols}}" role="row" title="{{r.tip}}" onDoubleClick="{{r.open}}">
+<span class="fc-tn">{{r.fecha}}</span><span class="fc-mono ln-as">{{r.as}}</span><span title="{{r.con}}">{{r.con}}</span><span class="fc-mut" title="{{r.ori}}">{{r.ori}}</span><span class="fc-mono">{{r.doc}}</span><span class="fc-r fc-tn">{{r.debe}}</span><span class="fc-r fc-tn">{{r.haber}}</span><span class="fc-r fc-tn"><b>{{r.saldo}}</b></span></div></sc-for>
+</div>
+</sc-if>
+</div>
+<div class="fc-tfoot"><span class="fc-tn">Debe {{m.my2.debe}} · Haber {{m.my2.haber}} · Saldo {{m.my2.saldo}}</span><span class="fc-grow"></span><span>Doble clic en un apunte: ir a su línea bancaria</span></div>
+</section></div></div>
 </div>
 </sc-if>
 <sc-if value="{{m.n43}}" hint-placeholder-val="{{false}}">
@@ -2570,7 +2636,7 @@ textarea.fc-in{height:auto;padding:6px 8px;resize:vertical}
 function pad(n) { return (n < 10 ? '0' : '') + n; }
 function pad4(n) { return String(n).padStart(4, '0'); }
 function r2(x) { return Math.round((x || 0) * 100) / 100; }
-function num(v) { return Number(v || 0).toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+function num(v) { v = Number(v || 0); var neg = v < -0.004, s = Math.abs(v).toFixed(2).split('.'); return (neg ? '−' : '') + s[0].replace(/\B(?=(\d{3})+(?!\d))/g, '.') + ',' + s[1]; }
 function money(v) { return num(v) + ' €'; }
 function fdate(s) { if (!s) return ''; s = String(s); return s.slice(8, 10) + '/' + s.slice(5, 7) + '/' + s.slice(0, 4); }
 function iso(d) { return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); }
@@ -3222,8 +3288,8 @@ var LN_PAR_DEF = [
   { k: 'gas', t: 'Prefijo propuesto para gastos directos', v: '6', tip: 'Prefijo con el que se abre el selector en «Enviar a cuenta de gasto»' }
 ];
 
-function lnMake(soc, y, lin) {
-  var r = rng(hash('ln' + soc.id + y));
+/* una sola base por sociedad con las líneas de todos sus ejercicios; cada línea lleva su ejercicio (l.y) */
+function lnMake(soc, y, lins) {
   var CL = [['TALLERES ALBORA SL', '4300003'], ['LUCIA FERRER CASALS', '4300007'], ['CP MIRADOR DEL PARQUE 14', '4300009'], ['NERIA SERVICIOS SA', '4300012'], ['AISLAMIENTOS DEL TURIA SL', '4300015'], ['MARCOS VELILLA ORTEGA', '4300018']];
   var CTAS = [
     ['4000004', 'Suministros Iberlux, S.A.'], ['4100002', 'Gestoría Sanmartí, S.L.P.'], ['4000011', 'Talleres Albora, S.L. (proveedor)'],
@@ -3239,7 +3305,9 @@ function lnMake(soc, y, lin) {
   var CT = {}; CTAS.forEach(function (c) { CT[c[0]] = c[1]; });
   var BANKS = soc.ctas.map(function (c, i) { var p = c.split(' · '); return { i: i, n: p[0], iban: p[1], short: p[0] + ' ··' + p[1].replace(/\s/g, '').slice(-4), cta: '572000' + (i + 1), ent: p[1].replace(/\s/g, '').slice(4, 8) }; });
   var REMB = { i: -1, n: 'Remesas SEPA', short: 'Remesas SEPA (ficticio)', cta: '5729001', ent: '9999', fict: true };
-  var PAR = {}; LN_PAR_DEF.forEach(function (p) { PAR[p.k] = p.v; });
+  var PARY = {}, YRS = soc.ejs.map(function (e) { return { y: e.y, st: e.st, closed: /^Cerrado/.test(e.st) }; });
+  YRS.forEach(function (e) { var P = {}; LN_PAR_DEF.forEach(function (p) { P[p.k] = p.v; }); PARY[e.y] = P; });
+  var PAR = PARY[y];
 
   /* palabras clave: texto contenido en el concepto (y segundo texto opcional), por banco y sentido */
   var KW = [], kid = 100;
@@ -3251,7 +3319,9 @@ function lnMake(soc, y, lin) {
   kw('ABONO REMESA SEPA', '', 'A', { tipo: 'remesa' }); kw('DEVOLUCION RECIBO', '', 'C', { tipo: 'devuelto' });
   if (soc.ctas.length > 1) { kw('COMISION', '6260001', 'C', { bank: 1 }); kw('TALLERES ALBORA', '4300003', 'A', { bank: 1 }); }
 
-  var L = { soc: soc, y: y, CT: CT, CTAS: CTAS, BANKS: BANKS, REMB: REMB, PAR: PAR, KW: KW, LINES: [], seen: {}, nextNum: 48210, nextAs: 1900, CL: CL, REMS: {}, nextRem: 1 };
+  var L = { soc: soc, y: y, YRS: YRS, PARY: PARY, CT: CT, CTAS: CTAS, BANKS: BANKS, REMB: REMB, PAR: PAR, KW: KW, LINES: [], seen: {}, nextNum: 48210, nextAs: 1900, CL: CL, REMS: {}, nextRem: 1 };
+  L.par = function (x) { var yy = x && typeof x === 'object' ? x.y : x; return PARY[yy] || PAR; };
+  L.closed = function (yy) { var e = YRS.filter(function (e2) { return e2.y === yy; })[0]; return !!(e && e.closed); };
   L.bank = function (i) { return i === -1 ? REMB : BANKS[i] || BANKS[0]; };
   L.ctaD = function (c) { return CT[c] || (c ? 'Cuenta no encontrada en el plan' : ''); };
   L.kwById = function (id) { for (var i = 0; i < KW.length; i++) if (KW[i].id === id) return KW[i]; return null; };
@@ -3263,10 +3333,10 @@ function lnMake(soc, y, lin) {
     var t = norm(L.text(l)); return t.indexOf(norm(k.txt)) >= 0 && (!k.txt2 || t.indexOf(norm(k.txt2)) >= 0);
   };
   /* reasignación: la palabra clave más larga que encaja gana; la cuenta solo se hereda si la línea no tiene */
-  L.apply = function (only) {
+  L.apply = function (only, hist) {
     var n = { kw: 0, cta: 0 };
     L.LINES.forEach(function (l) {
-      if (l.kw === -1 || l.orig) return;
+      if (l.kw === -1 || l.orig || (!hist && L.closed(l.y))) return;
       var best = null; KW.forEach(function (k) { if ((!only || k.id === only) && L.match(k, l) && (!best || k.txt.length > best.txt.length)) best = k; });
       if (!best) return;
       if (l.kw !== best.id) { l.kw = best.id; n.kw++; }
@@ -3282,14 +3352,14 @@ function lnMake(soc, y, lin) {
     return l.exp.cta !== l.cta ? 'REX' : 'EXP';
   };
   L.ST = { IMP: ['Por imputar', 'Sin cuenta de destino'], REM: ['Remesa por explotar', 'Remesa SEPA pendiente de desglosar en recibos'], PEX: ['Sin exportar', 'Con cuenta y sin asiento'], '555': ['En 555', 'Exportada a la cuenta 555 a la espera de cuenta'], EXP: ['Exportada', 'Asiento generado y al día'], REX: ['Reexportar', 'La cuenta de la línea ya no coincide con la del asiento'] };
-  L.newAs = function () { L.nextAs += 1; return 'A-' + y + '-' + String(L.nextAs).padStart(5, '0'); };
+  L.newAs = function (yy) { L.nextAs += 1; return 'A-' + (yy || y) + '-' + String(L.nextAs).padStart(5, '0'); };
   L.export = function (l) {
-    var c555 = !l.cta, as = l.exp ? l.exp.as : L.newAs();
-    l.exp = { as: as, fecha: y + '-09-30', cta: c555 ? PAR.t555 : l.cta, c555: c555 };
+    var c555 = !l.cta, as = l.exp ? l.exp.as : L.newAs(l.y);
+    l.exp = { as: as, fecha: l.fo, cta: c555 ? L.par(l).t555 : l.cta, c555: c555 };
     return c555;
   };
   L.apuntes = function (l) {
-    var b = L.bank(l.bank), dest = l.exp ? l.exp.cta : (l.cta || PAR.t555), bc = l.bankCta || b.cta, a = Math.abs(l.imp), pay = l.dh === 'C';
+    var b = L.bank(l.bank), P = L.par(l), dest = l.exp ? l.exp.cta : (l.cta || (l.rem && !l.expl ? P.rem : P.t555)), bc = l.bankCta || b.cta, a = Math.abs(l.imp), pay = l.dh === 'C';
     var c1 = (pay ? 'Pago a ' : 'Cobro de ') + (L.ctaD(dest) || dest), c2 = (pay ? 'Pago desde ' : 'Ingreso en ') + (L.ctaD(bc) || bc);
     return [{ cta: dest, d: L.ctaD(dest), debe: pay ? a : 0, haber: pay ? 0 : a, con: c1, doc: l.fac }, { cta: bc, d: L.ctaD(bc), debe: pay ? 0 : a, haber: pay ? a : 0, con: c2, doc: l.fac }];
   };
@@ -3311,8 +3381,8 @@ function lnMake(soc, y, lin) {
     var m = /FRA (PROV )?([A-Z0-9/-]+)/.exec(l.ref || ''), a = Math.abs(l.imp), who = l.con.replace(/^TRANSF\. (DE|A) /, '');
     var c = CL.filter(function (x) { return x[0] === who; })[0], cta = l.dh === 'A' ? (c ? c[1] : '4300021') : (who.indexOf('IBERLUX') >= 0 ? '4000004' : who.indexOf('SANMARTI') >= 0 ? '4100002' : '4000011');
     var d = new Date(l.fo); d.setDate(d.getDate() - 18 - Math.floor((a * 7) % 20));
-    var out = [{ num: m ? m[2].replace(/^([A-Z])-(\d{4})-(\d+)$/, '$1 $2/$3') : (l.dh === 'A' ? 'F ' + y + '/0' + (100 + Math.round(a) % 90) : 'PRV-' + (1000 + Math.round(a) % 900)), fecha: iso(d), imp: a, cta: cta, who: L.ctaD(cta), dif: 0, dias: Math.round((new Date(l.fo) - d) / 864e5) }];
-    if (Math.round(a) % 3 === 0) { var d2 = new Date(d); d2.setDate(d2.getDate() - 31); out.push({ num: l.dh === 'A' ? 'F ' + y + '/0' + (60 + Math.round(a) % 30) : 'PRV-' + (700 + Math.round(a) % 200), fecha: iso(d2), imp: r2(a + 0.01), cta: cta, who: L.ctaD(cta), dif: 0.01, dias: Math.round((new Date(l.fo) - d2) / 864e5) }); }
+    var out = [{ num: m ? m[2].replace(/^([A-Z])-(\d{4})-(\d+)$/, '$1 $2/$3') : (l.dh === 'A' ? 'F ' + l.y + '/0' + (100 + Math.round(a) % 90) : 'PRV-' + (1000 + Math.round(a) % 900)), fecha: iso(d), imp: a, cta: cta, who: L.ctaD(cta), dif: 0, dias: Math.round((new Date(l.fo) - d) / 864e5) }];
+    if (Math.round(a) % 3 === 0) { var d2 = new Date(d); d2.setDate(d2.getDate() - 31); out.push({ num: l.dh === 'A' ? 'F ' + l.y + '/0' + (60 + Math.round(a) % 30) : 'PRV-' + (700 + Math.round(a) % 200), fecha: iso(d2), imp: r2(a + 0.01), cta: cta, who: L.ctaD(cta), dif: 0.01, dias: Math.round((new Date(l.fo) - d2) / 864e5) }); }
     return out;
   };
   /* remesas SEPA: facturas de contrato con cargo a ±3 días cuya suma cuadra con la línea */
@@ -3321,19 +3391,19 @@ function lnMake(soc, y, lin) {
     var names = CTAS.filter(function (c) { return /^430/.test(c[0]); });
     for (var i = 0; i < n; i++) { var p = i === n - 1 ? r2(left) : r2(a / n * (0.6 + rr() * 0.8)); left = r2(left - p); parts.push(p); }
     var d0 = new Date(l.fo), out = parts.map(function (p, i) { var c = names[(i * 3 + Math.floor(rr() * names.length)) % names.length], dd = new Date(d0); dd.setDate(dd.getDate() + Math.floor(rr() * 7) - 3);
-      return { k: i, num: 'F ' + y + '/' + String(300 + Math.floor(rr() * 400)).padStart(4, '0'), cta: c[0], who: c[1], ven: iso(dd), dias: Math.round((dd - d0) / 864e5), imp: p, on: true }; });
+      return { k: i, num: 'F ' + l.y + '/' + String(300 + Math.floor(rr() * 400)).padStart(4, '0'), cta: c[0], who: c[1], ven: iso(dd), dias: Math.round((dd - d0) / 864e5), imp: p, on: true }; });
     var dx = new Date(d0); dx.setDate(dx.getDate() + 5); var cx = names[Math.floor(rr() * names.length)];
-    out.push({ k: n, num: 'F ' + y + '/' + String(700 + Math.floor(rr() * 99)).padStart(4, '0'), cta: cx[0], who: cx[1], ven: iso(dx), dias: 5, imp: r2(25 + rr() * 60), on: false, out: true });
+    out.push({ k: n, num: 'F ' + l.y + '/' + String(700 + Math.floor(rr() * 99)).padStart(4, '0'), cta: cx[0], who: cx[1], ven: iso(dx), dias: 5, imp: r2(25 + rr() * 60), on: false, out: true });
     return out;
   };
   L.explode = function (l, items) {
-    var rid = 'RM-' + y + '-' + String(L.nextRem++).padStart(3, '0'), made = [];
-    l.expl = true; l.remId = rid; l.cta = PAR.rem; if (l.kw === 0) l.kw = -1;
+    var P = L.par(l), rid = 'RM-' + l.y + '-' + String(L.nextRem++).padStart(3, '0'), made = [], vs = items.map(function (it) { return it.ven; }).sort();
+    l.expl = true; l.remId = rid; l.cta = P.rem; if (l.kw === 0) l.kw = -1;
     items.forEach(function (it, i) {
-      var nl = { id: l.id + '-r' + i, num: ++L.nextNum, bank: -1, fo: l.fo, fv: l.fv, cc: '03', cp: '000', con: 'RECIBO SEPA ' + it.who.toUpperCase(), ref: 'FRA ' + it.num + ' · VTO ' + fdate(it.ven), r1: l.r1, imp: it.imp, dh: 'A', kw: -1, cta: it.cta, fac: it.num, exp: null, orig: { kind: 'rem', from: l.num, rem: rid }, bankCta: PAR.rem, remId: rid };
+      var nl = { id: l.id + '-r' + i, num: ++L.nextNum, y: l.y, bank: -1, fo: l.fo, fv: l.fv, cc: '03', cp: '000', con: 'RECIBO SEPA ' + it.who.toUpperCase(), ref: 'FRA ' + it.num + ' · VTO ' + fdate(it.ven), r1: l.r1, imp: it.imp, dh: 'A', kw: -1, cta: it.cta, fac: it.num, exp: null, orig: { kind: 'rem', from: l.num, rem: rid }, bankCta: P.rem, remId: rid };
       L.LINES.push(nl); made.push(nl);
     });
-    L.REMS[rid] = { id: rid, from: l.num, fo: l.fo, imp: Math.abs(l.imp), n: items.length, bank: l.bank };
+    L.REMS[rid] = { id: rid, y: l.y, from: l.num, fo: l.fo, desde: vs[0] || l.fo, hasta: vs[vs.length - 1] || l.fo, imp: Math.abs(l.imp), n: items.length, bank: l.bank, cta: P.rem };
     return { rid: rid, lines: made };
   };
   L.unexplode = function (l) {
@@ -3346,31 +3416,32 @@ function lnMake(soc, y, lin) {
   L.divide = function (l, parts) {
     var made = [];
     parts.forEach(function (p, i) {
-      var nl = { id: l.id + '-s' + i, num: ++L.nextNum, bank: l.bank, fo: l.fo, fv: l.fv, cc: l.cc, cp: l.cp, con: p.desc.toUpperCase() + ' (DIV. ' + l.num + ')', ref: l.ref, r1: l.r1, imp: r2((l.imp < 0 ? -1 : 1) * p.imp), dh: l.dh, kw: p.cta ? -1 : 0, cta: p.cta || '', fac: l.fac, exp: null, orig: { kind: 'div', from: l.num }, bankCta: PAR.s555 };
+      var nl = { id: l.id + '-s' + i, num: ++L.nextNum, y: l.y, bank: l.bank, fo: l.fo, fv: l.fv, cc: l.cc, cp: l.cp, con: p.desc.toUpperCase() + ' (DIV. ' + l.num + ')', ref: l.ref, r1: l.r1, imp: r2((l.imp < 0 ? -1 : 1) * p.imp), dh: l.dh, kw: p.cta ? -1 : 0, cta: p.cta || '', fac: l.fac, exp: null, orig: { kind: 'div', from: l.num }, bankCta: L.par(l).s555 };
       L.LINES.push(nl); made.push(nl);
     });
-    l.div = made.map(function (x) { return x.num; }); l.cta = PAR.s555; l.kw = -1;
+    l.div = made.map(function (x) { return x.num; }); l.cta = L.par(l).s555; l.kw = -1;
     return made;
   };
 
   /* incorpora las líneas generadas por el contenedor (incluidas las de una importación reciente) */
-  L.sync = function (lin) {
+  L.sync = function (lins) {
     var added = 0;
-    lin.forEach(function (rows, bi) {
+    YRS.forEach(function (e) { (lins[e.y] || []).forEach(function (rows, bi) {
       rows.forEach(function (x) {
         if (L.seen[x.id]) return; L.seen[x.id] = 1; added++;
-        var l = { id: x.id, num: ++L.nextNum, bank: bi, fo: x.fo, fv: x.fv, cc: x.cc, cp: x.cp, con: x.con, ref: x.r2, r1: x.r1, imp: x.imp, dh: x.imp < 0 ? 'C' : 'A', kw: 0, cta: '', fac: '', exp: null, isNew: !!x.isNew, st0: x.st, as0: x.as };
+        var st = e.closed && x.st !== 'Conciliada' ? 'Conciliada' : x.st;
+        var l = { id: x.id, num: ++L.nextNum, y: e.y, bank: bi, fo: x.fo, fv: x.fv, cc: x.cc, cp: x.cp, con: x.con, ref: x.r2, r1: x.r1, imp: x.imp, dh: x.imp < 0 ? 'C' : 'A', kw: 0, cta: '', fac: '', exp: null, isNew: !!x.isNew, st0: st, as0: x.as || (st !== x.st ? 'A-' + e.y + '-' + String(900 + L.nextNum % 9000).padStart(5, '0') : '') };
         L.LINES.push(l);
       });
-    });
+    }); });
     if (!added) return 0;
-    L.apply();
+    L.apply(null, true);
     L.LINES.forEach(function (l) {
       if (!l.st0) return; var st = l.st0, as = l.as0; delete l.st0; delete l.as0;
       if (l.cc === '04' && l.dh === 'A' && /^FRA [A-Z]-\d{4}-\d+$/.test(l.ref || '') && st === 'Conciliada') l.fac = l.ref.replace(/^FRA ([A-Z])-(\d{4})-(\d+)$/, '$1 $2/$3');
       if (l.cc === '12' && !l.cta && st === 'Conciliada') { var t = l.con; l.cta = /PAPELERIA|LIBRERIA/.test(t) ? '6290007' : /RESTAURANTE/.test(t) ? '6290009' : /PARKING/.test(t) ? '6290011' : '6290001'; l.kw = -1; }
-      if (l.rem && st === 'Conciliada') { l.expl = true; l.cta = PAR.rem; l.remId = 'RM-' + y + '-H' + String(l.num).slice(-3); L.REMS[l.remId] = { id: l.remId, from: l.num, fo: l.fo, imp: Math.abs(l.imp), n: 9 + l.num % 4, bank: l.bank, hist: true }; }
-      if (st === 'Conciliada' && !(l.rem && !l.expl)) l.exp = { as: as || L.newAs(), fecha: l.fo, cta: l.cta || PAR.t555, c555: !l.cta };
+      if (l.rem && st === 'Conciliada') { var P = L.par(l), d1 = new Date(l.fo), d2 = new Date(l.fo); d1.setDate(d1.getDate() - 3); d2.setDate(d2.getDate() + 3); l.expl = true; l.cta = P.rem; l.remId = 'RM-' + l.y + '-H' + String(l.num).slice(-3); L.REMS[l.remId] = { id: l.remId, y: l.y, from: l.num, fo: l.fo, desde: iso(d1), hasta: iso(d2), imp: Math.abs(l.imp), n: 9 + l.num % 4, bank: l.bank, cta: P.rem, hist: true }; }
+      if (st === 'Conciliada' && !(l.rem && !l.expl)) l.exp = { as: as || L.newAs(l.y), fecha: l.fo, cta: l.cta || L.par(l).t555, c555: !l.cta };
     });
     /* cuenta cambiada después de exportar: el asiento conserva la antigua */
     var tel = KW.filter(function (k) { return k.txt === 'TELECOM HORIZONTE'; })[0];
@@ -3378,12 +3449,12 @@ function lnMake(soc, y, lin) {
     L.LINES.sort(function (a, b) { return a.fo < b.fo ? 1 : a.fo > b.fo ? -1 : b.num - a.num; });
     return added;
   };
-  L.sync(lin);
+  L.sync(lins);
   return L;
 }
 
 function lnNewView() {
-  return { q: '', est: 'all', bank: 'all', dh: 'all', kwf: 'all', rem: '', desde: '', hasta: '', desdeTxt: '', hastaTxt: '', desdeErr: false, hastaErr: false, imin: '', imax: '', iminErr: false, imaxErr: false,
+  return { ejs: null, ejOpen: false, q: '', est: 'all', bank: 'all', dh: 'all', kwf: 'all', rem: '', desde: '', hasta: '', desdeTxt: '', hastaTxt: '', desdeErr: false, hastaErr: false, imin: '', imax: '', iminErr: false, imaxErr: false,
     sort: { k: 'fo', d: -1 }, sel: {}, anchor: null, cur: null, detailOpen: true, menu: null, dlg: null, pick: '' };
 }
 
@@ -4381,8 +4452,10 @@ class Component extends DCLogic {
     var ww = S.win === 'rest' ? W - 112 : W, wh = S.win === 'rest' ? H - 112 : H;
     var navCol = S.navCol === null ? ww < 1400 : S.navCol;
     var sess = S.boot === 'ok';
-    var navW = S.zen ? 0 : (navCol ? 56 : 236), contentW = ww - navW;
+    var navW = S.zen ? 0 : (navCol ? 56 : (S.navPx || 236)), contentW = ww - navW - (S.zen ? 12 : 0);
     var ejo = null; soc.ejs.forEach(function (e) { if (e.y === S.ej) ejo = e; });
+    /* atajo global provisional para ocultar o mostrar el menú (lo fijará el catálogo de atajos) */
+    if (!this._navKey && typeof document !== 'undefined') { this._navKey = true; document.addEventListener('keydown', function (e) { if (e.ctrlKey && e.shiftKey && !e.altKey && (e.key === 'M' || e.key === 'm')) { e.preventDefault(); self.S.zen = !self.S.zen; self.closeMenusRaw(); self.bump(); } }); }
     var o = {
       W: W, H: H, winCls: 'win ' + S.win, showDesk: S.win !== 'max', deskNote: S.win === 'min' ? 'ProConta está minimizada. Pulsa su botón en la barra de tareas para restaurarla.' : '',
       taskLbl: sess ? 'ProConta · ' + this.ctxShort() : 'ProConta',
@@ -4404,9 +4477,30 @@ class Component extends DCLogic {
       zen: S.zen, noZen: !S.zen, zenBtn: sess && S.zen, zenLbl: S.zen ? 'Salir de área ampliada' : 'Ampliar área de trabajo',
       toggleZen: function () { S.zen = !S.zen; self.closeMenusRaw(); self.bump(); },
       searchW: ww < 1400 ? 230 : 300,
-      showNav: sess && !S.zen, showSb: sess && !S.zen, navW: navW, navExp: !navCol, navCol: navCol,
+      showNav: sess && !S.zen, showSb: sess, navW: navW, navExp: !navCol, navCol: navCol,
       sideCls: 'side' + (navCol ? ' col' : ''), navTgLbl: navCol ? 'Expandir navegación' : 'Plegar navegación',
       toggleNav: function () { S.navCol = !navCol; self.closeMenusRaw(); self.bump(); },
+      nsp: {
+        cls: 'nsplit' + (S.zen ? ' hid' : ''), tip: S.zen ? 'Menú oculto: arrastra hacia la derecha o haz doble clic para mostrarlo (Ctrl+Mayús+M)' : 'Arrastra para cambiar el ancho del menú; hasta el borde lo oculta · doble clic: ocultar · Ctrl+Mayús+M',
+        down: function (e) {
+          if (e.button !== 0) return; e.preventDefault(); self.closeMenusRaw();
+          var x0 = e.clientX, w0 = navW, last = w0, nav = function () { return document.querySelector('nav.side'); };
+          if (S.zen) { S.zen = false; S.navCol = true; self.bump(); }
+          var mv = function (ev) { last = Math.round(Math.max(0, Math.min(420, w0 + ev.clientX - x0))); var n = nav(); if (n) { n.style.width = last + 'px'; n.classList.toggle('col', last < 150); } };
+          var up = function () { document.removeEventListener('mousemove', mv); document.removeEventListener('mouseup', up); document.body.style.cursor = '';
+            if (last < 28) S.zen = true; else if (last < 150) { S.zen = false; S.navCol = true; } else { S.zen = false; S.navCol = false; S.navPx = Math.max(180, last); }
+            self._trFocus = 'nsplit'; self.bump(); };
+          document.body.style.cursor = 'col-resize'; document.addEventListener('mousemove', mv); document.addEventListener('mouseup', up);
+        },
+        dbl: function () { S.zen = !S.zen; self.closeMenusRaw(); self._trFocus = 'nsplit'; self.bump(); },
+        key: function (e) {
+          var k = e.key; if (k !== 'ArrowLeft' && k !== 'ArrowRight' && k !== 'Enter' && k !== ' ') return; e.preventDefault(); self._trFocus = 'nsplit';
+          if (k === 'Enter' || k === ' ') S.zen = !S.zen;
+          else if (k === 'ArrowLeft') { if (S.zen) return; if (navCol) S.zen = true; else if ((S.navPx || 236) - 24 < 180) S.navCol = true; else S.navPx = (S.navPx || 236) - 24; }
+          else { if (S.zen) { S.zen = false; S.navCol = true; } else if (navCol) { S.navCol = false; S.navPx = 180; } else S.navPx = Math.min(420, (S.navPx || 236) + 24); }
+          self.bump();
+        }
+      },
       hideTip: function () { if (S.tip) { S.tip = null; self.bump(); } },
       onNavScroll: function () { if (S.tip || S.fly) { S.tip = null; S.fly = null; if (S.menu === 'fly') S.menu = null; self.bump(); } },
       switching: !!S.switching, switchLbl: S.switching || ''
@@ -4449,7 +4543,7 @@ class Component extends DCLogic {
     var acts = [
       { t: 'Cambiar sociedad o ejercicio…', ic: 'building', run: function () { self.closeMenusRaw(); S.nq = ''; S.menu = 'ctx'; S.cp = { soc: S.soc, ej: S.ej }; self.bump(); } },
       { t: navCol ? 'Expandir navegación' : 'Plegar navegación', ic: navCol ? 'popen' : 'pclose', run: function () { S.navCol = !navCol; S.nq = ''; self.closeMenusRaw(); self.bump(); } },
-      { t: S.zen ? 'Salir de área ampliada' : 'Ampliar área de trabajo', ic: 'expand', run: function () { S.zen = !S.zen; S.nq = ''; self.closeMenusRaw(); self.bump(); } },
+      { t: S.zen ? 'Mostrar el menú lateral' : 'Ocultar el menú lateral', ic: 'expand', run: function () { S.zen = !S.zen; S.nq = ''; self.closeMenusRaw(); self.bump(); } },
       { t: 'Cerrar pestaña activa', ic: 'x', hide: S.active === 'inicio', run: function () { S.nq = ''; self.request({ type: 'closeTab', tab: S.active }); } },
       { t: 'Cambiar operador…', ic: 'swap', run: function () { S.nq = ''; self.request({ type: 'operator' }); } },
       { t: 'Cerrar sesión', ic: 'logout', run: function () { S.nq = ''; self.request({ type: 'logout' }); } }
@@ -5195,12 +5289,21 @@ class Component extends DCLogic {
   }
 
   /* ---------- Líneas bancarias Norma 43 ---------- */
-  lnEnv(t) {
-    var k = this.key(), db = this.data();
-    if (!db.lnx) db.lnx = lnMake(this.soc(), this.S.ej, db.lin); else db.lnx.sync(db.lin);
-    if (!t.st || t.st.key !== k) t.st = Object.assign(lnNewView(), { key: k });
-    return { L: db.lnx, V: t.st };
+  /* una base de líneas por sociedad, con todos sus ejercicios */
+  lnData() {
+    var self = this, soc = this.soc(), lins = {};
+    soc.ejs.forEach(function (e) { lins[e.y] = self.data(soc.id + '-' + e.y).lin; });
+    if (!this.lnDb) this.lnDb = {};
+    var L = this.lnDb[soc.id]; if (!L) L = this.lnDb[soc.id] = lnMake(soc, this.S.ej, lins); else L.sync(lins);
+    L.y = this.S.ej; L.PAR = L.par(this.S.ej);
+    return L;
   }
+  lnEnv(t) {
+    var k = this.key(), L = this.lnData();
+    if (!t.st || t.st.key !== k) { t.st = Object.assign(lnNewView(), { key: k }); t.st.ejs = {}; t.st.ejs[this.S.ej] = 1; }
+    return { L: L, V: t.st };
+  }
+  lnYears(V) { return Object.keys(V.ejs).map(Number).sort(function (a, b) { return b - a; }); }
   lnFocus(k) { this._trFocus = 'ln:' + k; }
   lnB(label, o) {
     var self = this; o = o || {};
@@ -5215,7 +5318,7 @@ class Component extends DCLogic {
     var k = m[1].toLowerCase(), v = m[2].trim();
     if (!v) return { err: 'Escribe el valor después de «' + k + '+».' };
     if (k === 'i' || k === 'e') { var x = pnum(v); if (x === null) return { err: '«' + v + '» no es un importe: escríbelo como 150,25.' }; x = Math.abs(x); var tol = k === 'i' ? 0.5 : 0.02;
-      return { t: (k === 'i' ? 'Importe ≈ ' : 'Importe = ') + num(x) + (k === 'i' ? ' (±0,50)' : ''), f: function (l) { return Math.abs(Math.abs(l.imp) - x) < tol + 1e-9; } }; }
+      return { t: (k === 'i' ? 'Importe ≈ ' : 'Importe = ') + money(x) + (k === 'i' ? ' (±0,50)' : ''), f: function (l) { return Math.abs(Math.abs(l.imp) - x) < tol + 1e-9; } }; }
     if (k === 'n') { var n = parseInt(v, 10); if (isNaN(n)) return { err: 'El número de línea debe ser un número.' }; return { t: 'Línea nº ' + n, f: function (l) { return l.num === n; } }; }
     if (k === 'a') return { t: 'Asiento ' + v, f: function (l) { return !!l.exp && norm(l.exp.as).indexOf(norm(v)) >= 0; } };
     if (k === 'c') return { t: 'Cuenta de destino ' + v + '…', f: function (l) { return String(l.cta).indexOf(v) === 0; } };
@@ -5226,6 +5329,7 @@ class Component extends DCLogic {
     /* todo lo que filtra la barra salvo el estado, para poder contar por estado */
     var Q = this.lnQ(V.q), out = [];
     L.LINES.forEach(function (l) {
+      if (!V.ejs[l.y]) return;
       if (V.rem) { if (l.remId !== V.rem) return; }
       else if (V.bank !== 'all' && String(l.bank) !== V.bank) return;
       if (V.dh !== 'all' && l.dh !== V.dh) return;
@@ -5241,7 +5345,7 @@ class Component extends DCLogic {
     var self = this, rows = base.filter(function (l) { return V.est === 'all' || L.state(l) === V.est || (V.est === 'PEND' && L.state(l) !== 'EXP'); });
     var k = V.sort.k, d = V.sort.d, key = function (l) {
       if (k === 'fo') return l.fo + String(l.num).padStart(6, '0'); if (k === 'imp') return l.imp; if (k === 'num') return l.num;
-      if (k === 'con') return norm(l.con); if (k === 'cta') return l.cta || '~'; if (k === 'est') return L.state(l); if (k === 'bank') return L.bank(l.bank).short; return '';
+      if (k === 'con') return norm(l.con); if (k === 'cta') return l.cta || '~'; if (k === 'ori') return l.bankCta || L.bank(l.bank).cta; if (k === 'est') return L.state(l); if (k === 'bank') return L.bank(l.bank).short; return '';
     };
     return rows.slice().sort(function (a, b) { var x = key(a), y = key(b); return (x < y ? -1 : x > y ? 1 : b.num - a.num) * d; });
   }
@@ -5261,7 +5365,8 @@ class Component extends DCLogic {
     var self = this, can = this.lnCan(), NP = this.lnNoPerm(), n = rows.length, one = n === 1 ? rows[0] : null, S = this.lnScopeT(rows), out = [];
     var A = function (t, ic, why, fn, o) { out.push(Object.assign({ t: t, ic: ic, why: why || null, fn: fn }, o || {})); };
     var sep = function () { if (out.length && !out[out.length - 1].sep) out.push({ sep: true }); };
-    var none = !n ? 'Selecciona una o varias líneas.' : null, ro = !can ? NP : null;
+    var cl = rows.filter(function (l) { return L.closed(l.y); })[0];
+    var none = !n ? 'Selecciona una o varias líneas.' : null, ro = !can ? NP : cl ? 'El ejercicio ' + cl.y + ' está cerrado: sus líneas solo se consultan.' : null;
     var gen = rows.filter(function (l) { return l.orig; }).length, rem = rows.filter(function (l) { return l.rem && !l.expl; }).length;
     var lockedWhy = function (l) { return l.expl ? 'La línea ' + l.num + ' es una remesa ya desglosada: su cuenta es la del banco ficticio. Deshaz el desglose para cambiarla.' : l.div ? 'La línea ' + l.num + ' está dividida: imputa sus fracciones.' : null; };
     var lk = rows.map(lockedWhy).filter(Boolean)[0];
@@ -5270,14 +5375,14 @@ class Component extends DCLogic {
     var withCta = rows.filter(function (l) { return l.cta && !l.orig; });
     A('Quitar la cuenta' + (n > 1 ? ' (' + withCta.length + ')' : ''), 'xc', none || ro || lk || (!withCta.length ? 'Ninguna de las líneas tiene cuenta.' : null), function () { self.lnOpenDlg(V, { kind: 'uncta', ids: withCta.map(function (l) { return l.id; }) }); });
     sep();
-    A('Crear palabra clave…', 'key', !one ? (n ? 'Crea la palabra clave desde una sola línea.' : none) : ro || (one.orig ? 'Las líneas generadas por un desglose no admiten palabras clave.' : null), function () { self.lnKwDlg(L, V, one, ''); });
+    A('Palabras clave de la línea…', 'key', !one ? (n ? 'Las palabras clave se crean desde una sola línea.' : none) : ro || (one.orig ? 'Las líneas generadas por un desglose no admiten palabras clave.' : null), function () { self.lnKwDlg(L, V, one, ''); }, { k: 'Ctrl+K' });
     A('Movimientos parecidos', 'similar', !one ? (n ? 'Elige una sola línea.' : none) : null, function () { V.cur = one.id; V.detailOpen = true; V.ovOpen = true; V.dsec = 'sim'; self.lnFocus('sim'); });
     A('Asignar número de factura…', 'doc', none || ro, function () { var f = rows.map(function (l) { return l.fac; }).filter(Boolean)[0] || ''; self.lnOpenDlg(V, { kind: 'fac', ids: rows.map(function (l) { return l.id; }), v: f }); });
     sep();
     A('Dividir la línea…', 'split', !one ? (n ? 'Se divide de una en una.' : none) : ro || (one.expl || one.rem ? 'Una remesa se desglosa con «Explotar remesa».' : one.div ? 'Ya está dividida.' : one.orig ? 'Es una línea generada: divide la original.' : null), function () { self.lnSplitDlg(L, V, one); });
     A(one && one.expl ? 'Ver la remesa ' + one.remId : 'Explotar remesa…', 'layers', !one ? (n ? 'Elige una sola línea de remesa.' : none) : one.expl ? null : ro || (!one.rem ? 'Solo para líneas con palabra clave de tipo remesa SEPA.' : null), function () {
-      if (one.expl) { self.lnFilterRem(V, one.remId); return; } self.lnOpenDlg(V, { kind: 'rem', id: one.id, items: L.remCands(one) }); });
-    var tw = null; if (n === 2) { var a = rows[0], b = rows[1]; tw = a.dh === b.dh ? 'Una línea debe ser un cargo y la otra un abono.' : Math.abs(Math.abs(a.imp) - Math.abs(b.imp)) > 0.004 ? 'Los importes no coinciden (' + num(Math.abs(a.imp)) + ' y ' + num(Math.abs(b.imp)) + ').' : a.bank === b.bank ? 'Las dos líneas son del mismo banco.' : (a.exp || b.exp) ? 'Alguna de las dos ya está exportada: borra antes su asiento.' : null; }
+      if (one.expl) { self.lnFilterRem(V, one.remId, L); return; } self.lnOpenDlg(V, { kind: 'rem', id: one.id, items: L.remCands(one) }); });
+    var tw = null; if (n === 2) { var a = rows[0], b = rows[1]; tw = a.dh === b.dh ? 'Una línea debe ser un cargo y la otra un abono.' : Math.abs(Math.abs(a.imp) - Math.abs(b.imp)) > 0.004 ? 'Los importes no coinciden (' + money(Math.abs(a.imp)) + ' y ' + money(Math.abs(b.imp)) + ').' : a.bank === b.bank ? 'Las dos líneas son del mismo banco.' : (a.exp || b.exp) ? 'Alguna de las dos ya está exportada: borra antes su asiento.' : null; }
     A('Traspaso entre bancos', 'swap', n !== 2 ? 'Selecciona exactamente dos líneas: el cargo en un banco y el abono en el otro.' : ro || tw, function () { self.lnOpenDlg(V, { kind: 'tras', ids: rows.map(function (l) { return l.id; }) }); });
     sep();
     var toExp = rows.filter(function (l) { var s = L.state(l); return s === 'IMP' || s === 'PEX' || s === 'REX'; });
@@ -5288,10 +5393,20 @@ class Component extends DCLogic {
     if (one && one.expl && !one.orig) A('Deshacer el desglose de la remesa', 'undo', ro, function () { self.lnOpenDlg(V, { kind: 'unrem', id: one.id }); }, { danger: true });
     return out;
   }
-  lnFilterRem(V, rid) { V.rem = rid; V.est = 'all'; V.q = ''; V.sel = {}; this.toast('Filtro aplicado: líneas de la remesa ' + rid + '.'); }
+  lnFilterRem(V, rid, L) { V.rem = rid; V.est = 'all'; V.q = ''; V.sel = {}; var R = L && L.REMS[rid]; if (R && !V.ejs[R.y]) V.ejs[R.y] = 1; this.toast('Filtro aplicado: líneas de la remesa ' + rid + '.'); }
+  lnRemT(L, R) { return R.cta + ' ' + L.ctaD(R.cta) + ' · ' + fdate(R.desde) + ' a ' + fdate(R.hasta) + ' · ' + plural(R.n, 'recibo', 'recibos') + ' · ' + money(R.imp); }
+  /* el criterio de una palabra clave es siempre un trozo literal del concepto: se elige seleccionándolo */
   lnKwDlg(L, V, l, txt) {
-    var sug = txt || l.con.replace(/^(TRANSF\. (DE|A)|RECIBO|COMPRA TARJ\. \d+|DEVOLUCION RECIBO|ABONO)\s+/, '').split(/\s+/).slice(0, 3).join(' ');
-    this.lnOpenDlg(V, { kind: 'kw', id: l.id, txt: sug, txt2: '', q: '', cta: '' });
+    var T = L.text(l).toUpperCase(); txt = String(txt || '').trim().toUpperCase(); if (txt && T.indexOf(txt) < 0) txt = '';
+    this.lnOpenDlg(V, { kind: 'kw', id: l.id, txt: txt, txt2: '', tgt: txt ? 'txt2' : 'txt', q: '', cta: '', edit: null, del: null });
+  }
+  lnShowAs(V, l) { this.lnOpenDlg(V, { kind: 'as', ids: [l.id] }); }
+  lnOpenMayor(L, V, cta) {
+    var S = this.S, id = 'mayor:' + cta, t = this.tab(id); this.closeMenusRaw();
+    if (!this.perm('mayor')) { this.toast('No tienes permiso para el Mayor en esta sociedad.'); return; }
+    if (!t) { t = { id: id, dest: 'mayor', kind: 'lnmayor', cta: cta, title: 'Mayor ' + cta, st: { ejs: Object.assign({}, V.ejs) } }; var idx = S.tabs.indexOf(this.tab(S.active)); S.tabs.splice(idx + 1, 0, t); }
+    else t.st.ejs = Object.assign({}, V.ejs);
+    S.active = id;
   }
   lnSplitDlg(L, V, l) {
     var a = Math.abs(l.imp), h = r2(a / 2);
@@ -5323,15 +5438,16 @@ class Component extends DCLogic {
     var allBanks = V.bank === 'all' || !!V.rem;
 
     /* barra del módulo */
-    var pend = L.LINES.filter(function (l) { var s = L.state(l); return s === 'PEX' || s === 'REX'; });
-    var noC = L.LINES.filter(function (l) { return !l.cta && l.kw === 0 && !l.orig; }).length;
+    var inY = L.LINES.filter(function (l) { return V.ejs[l.y]; }), yrs = this.lnYears(V);
+    var pend = inY.filter(function (l) { var s = L.state(l); return !L.closed(l.y) && (s === 'PEX' || s === 'REX'); });
+    var noC = inY.filter(function (l) { return !l.cta && l.kw === 0 && !l.orig && !L.closed(l.y); }).length;
     m.lb = {
       tools: [
         B('Importar fichero…', { icon: 'dl', title: 'Abre Importación Norma 43 para cargar un extracto', fn: function () { self.openDest('n43'); } }),
         B('Aplicar palabras clave', { icon: 'key', why: !can ? NP : null, title: 'Revisa todas las líneas con las palabras clave: las que encajen toman su cuenta si no la tienen (' + noC + ' sin palabra clave)', fn: function () { var r = L.apply(); self.toast(r.kw || r.cta ? r.kw + ' líneas han tomado palabra clave y ' + r.cta + ' han recibido cuenta.' : 'Ninguna línea nueva encaja con las palabras clave. Quedan ' + noC + ' sin palabra clave.'); } }),
         B('Remesas…', { icon: 'layers', title: 'Remesas SEPA: pendientes de desglosar y ya desglosadas, con su filtro', fn: function () { self.lnOpenDlg(V, { kind: 'rems' }); } }),
         B('Exportar pendientes (' + pend.length + ')', { icon: 'book', why: !can ? NP : !pend.length ? 'No hay líneas con cuenta pendientes de exportar o reexportar.' : null, title: 'Genera los asientos de las líneas con cuenta sin exportar y reexporta las que han cambiado', fn: function () { self.lnOpenDlg(V, { kind: 'exp', ids: pend.map(function (l) { return l.id; }), all: true }); } }),
-        B('Subcuentas…', { icon: 'gear', title: 'Subcuentas puente de Norma 43 de esta sociedad y ejercicio', fn: function () { self.lnOpenDlg(V, { kind: 'par' }); } })
+        B('Subcuentas…', { icon: 'gear', title: 'Subcuentas puente de Norma 43 de esta sociedad, por ejercicio', fn: function () { self.lnOpenDlg(V, { kind: 'par' }); } })
       ],
       kbd: go(function () { self.lnOpenDlg(V, { kind: 'kbd' }); }), kbdIc: FC_IC.kbd
     };
@@ -5342,7 +5458,8 @@ class Component extends DCLogic {
       V[w + 'Txt'] = v; V[w + 'Err'] = !!v.trim() && !ok; V[w] = ok ? p[3] + '-' + pad(+p[2]) + '-' + pad(+p[1]) : ''; self.lnFocus(w); self.bump(); }; };
     var setImp = function (w) { return function (e) { var v = e.target.value, x = Number(v.replace(/\./g, '').replace(',', '.')); V[w] = v; V[w + 'Err'] = !!v.trim() && isNaN(x); V[w + 'N'] = x; self.lnFocus(w); self.bump(); }; };
     var chips = [];
-    if (V.rem) { var R = L.REMS[V.rem]; chips.push({ t: 'Remesa ' + V.rem + (R ? ' · línea ' + R.from + ' · ' + R.n + ' recibos' : ''), clr: go(function () { V.rem = ''; }) }); }
+    if (yrs.length !== 1 || yrs[0] !== L.y) chips.push({ t: (yrs.length > 1 ? 'Ejercicios ' : 'Ejercicio ') + yrs.join(', '), clr: go(function () { V.ejs = {}; V.ejs[L.y] = 1; V.rem = ''; }) });
+    if (V.rem) { var R = L.REMS[V.rem]; chips.push({ t: 'Remesa ' + V.rem + (R ? ' · ' + self.lnRemT(L, R) : ''), clr: go(function () { V.rem = ''; }) }); }
     if (Q && !Q.err) chips.push({ t: Q.t, clr: go(function () { V.q = ''; }) });
     if (V.bank !== 'all' && !V.rem) chips.push({ t: 'Banco: ' + L.bank(+V.bank).short, clr: go(function () { V.bank = 'all'; }) });
     if (V.dh !== 'all') chips.push({ t: V.dh === 'A' ? 'Solo cobros' : 'Solo pagos', clr: go(function () { V.dh = 'all'; }) });
@@ -5361,13 +5478,18 @@ class Component extends DCLogic {
       bank: V.rem ? 'all' : V.bank, bankCls: 'fc-in' + (V.bank !== 'all' && !V.rem ? ' fc-on' : ''), banks: banks, setBank: function (e) { V.bank = e.target.value; V.rem = ''; self.bump(); }, bankDis: !!V.rem,
       dh: V.dh, dhCls: 'fc-in' + (V.dh !== 'all' ? ' fc-on' : ''), setDh: function (e) { V.dh = e.target.value; self.bump(); },
       kwf: V.kwf, kwfCls: 'fc-in' + (V.kwf !== 'all' ? ' fc-on' : ''), setKwf: function (e) { V.kwf = e.target.value; self.bump(); },
-      rem: V.rem, remCls: 'fc-in' + (V.rem ? ' fc-on' : ''), rems: Object.keys(L.REMS).sort().reverse().map(function (k) { var R = L.REMS[k]; return { v: k, t: k + ' · ' + fdate(R.fo) + ' · ' + num(R.imp) }; }), setRem: function (e) { V.rem = e.target.value; V.sel = {}; self.bump(); },
+      rem: V.rem, remCls: 'fc-in' + (V.rem ? ' fc-on' : ''), rems: Object.keys(L.REMS).filter(function (k) { return V.ejs[L.REMS[k].y]; }).sort(function (a, b) { return L.REMS[a].fo < L.REMS[b].fo ? 1 : -1; }).map(function (k) { return { v: k, t: self.lnRemT(L, L.REMS[k]) }; }), setRem: function (e) { V.rem = e.target.value; V.sel = {}; self.bump(); },
+      ej: { t: (yrs.length > 1 ? 'Ejercicios ' : 'Ejercicio ') + yrs.join(', '), cls: 'fc-in ln-ejb' + (yrs.length !== 1 || yrs[0] !== L.y ? ' fc-on' : ''), open: V.ejOpen, exp: String(!!V.ejOpen), chv: FC_IC.chev || [],
+        tog: go(function () { V.ejOpen = !V.ejOpen; if (V.ejOpen) self.lnFocus('ej:0'); }), close: go(function () { V.ejOpen = false; self.lnFocus('ej'); }),
+        opts: L.YRS.map(function (e, i) { var on = !!V.ejs[e.y]; return { y: String(e.y), st: e.st + (e.y === L.y ? ' · el de trabajo' : ''), on: on, fk: 'ln:ej:' + i, lbl: 'Ejercicio ' + e.y,
+          set: function (ev) { if (!ev.target.checked && yrs.length === 1 && on) { self.toast('Deja al menos un ejercicio marcado.'); self.lnFocus('ej:' + i); return self.bump(); } if (ev.target.checked) V.ejs[e.y] = 1; else delete V.ejs[e.y]; if (V.rem && !V.ejs[(L.REMS[V.rem] || {}).y]) V.rem = ''; self.lnFocus('ej:' + i); self.bump(); } }; }),
+        only: go(function () { V.ejs = {}; V.ejs[L.y] = 1; V.rem = ''; V.ejOpen = false; self.lnFocus('ej'); }), all: go(function () { L.YRS.forEach(function (e) { V.ejs[e.y] = 1; }); }) },
       desde: V.desdeTxt, desdeCls: 'fc-in' + (V.desdeErr ? ' fc-err' : V.desde ? ' fc-on' : ''), desdeTip: V.desdeErr ? 'Fecha no válida: escríbela como dd/mm/aaaa' : 'Primera fecha valor que se muestra', desdeInv: String(!!V.desdeErr), setDesde: setDate('desde'),
       hasta: V.hastaTxt, hastaCls: 'fc-in' + (V.hastaErr ? ' fc-err' : V.hasta ? ' fc-on' : ''), hastaTip: V.hastaErr ? 'Fecha no válida: escríbela como dd/mm/aaaa' : 'Última fecha valor que se muestra', hastaInv: String(!!V.hastaErr), setHasta: setDate('hasta'),
       imin: V.imin, iminCls: 'fc-in fc-r' + (V.iminErr ? ' fc-err' : V.imin ? ' fc-on' : ''), iminTip: V.iminErr ? 'Importe no válido: escríbelo como 150,25' : 'Importe mínimo, sin signo', iminInv: String(!!V.iminErr), setImin: setImp('imin'),
       imax: V.imax, imaxCls: 'fc-in fc-r' + (V.imaxErr ? ' fc-err' : V.imax ? ' fc-on' : ''), imaxTip: V.imaxErr ? 'Importe no válido: escríbelo como 150,25' : 'Importe máximo, sin signo', imaxInv: String(!!V.imaxErr), setImax: setImp('imax'),
       chips: chips, hasChips: hasF, xIc: FC_IC.x,
-      clear: B('Quitar filtros', { cls: 'fc-sm fc-ghost', why: hasF ? null : 'No hay filtros aplicados.', fn: function () { Object.assign(V, { q: '', est: 'all', bank: 'all', dh: 'all', kwf: 'all', rem: '', desde: '', hasta: '', desdeTxt: '', hastaTxt: '', desdeErr: false, hastaErr: false, imin: '', imax: '', iminErr: false, imaxErr: false }); } })
+      clear: B('Quitar filtros', { cls: 'fc-sm fc-ghost', why: hasF ? null : 'No hay filtros aplicados.', fn: function () { V.ejs = {}; V.ejs[L.y] = 1; Object.assign(V, { q: '', est: 'all', bank: 'all', dh: 'all', kwf: 'all', rem: '', desde: '', hasta: '', desdeTxt: '', hastaTxt: '', desdeErr: false, hastaErr: false, imin: '', imax: '', iminErr: false, imaxErr: false }); } })
     };
 
     /* lista */
@@ -5375,34 +5497,36 @@ class Component extends DCLogic {
     var keys = list.map(function (l) { return l.id; });
     var sortH = function (k, l, cls) { var on = V.sort.k === k; return { t: l, cls: cls || '', ar: on ? (V.sort.d > 0 ? '▲' : '▼') : '', tip: 'Ordenar por ' + l.toLowerCase() + (on ? ' (clic otra vez: invertir)' : ''), aria: on ? (V.sort.d > 0 ? 'ascending' : 'descending') : 'none',
       pick: go(function () { V.sort = V.sort.k === k ? { k: k, d: -V.sort.d } : { k: k, d: k === 'fo' || k === 'num' || k === 'imp' ? -1 : 1 }; self.lnFocus('sort:' + k); }), fk: 'ln:sort:' + k }; };
-    var cols = '34px 72px 88px ' + (allBanks ? '150px ' : '') + 'minmax(300px, 1fr) 112px 84px minmax(160px, 240px) 150px 104px 112px 132px';
+    var cols = '34px 72px 88px ' + (allBanks ? '150px ' : '') + 'minmax(300px, 1fr) 124px 118px 122px minmax(170px, 260px) 150px 104px 112px 132px';
     var sumI = 0, sumC = 0; list.forEach(function (l) { if (l.imp > 0) sumI += l.imp; else sumC += l.imp; });
     m.ll = {
-      count: list.length === L.LINES.length ? String(L.LINES.length) : list.length + ' de ' + L.LINES.length,
-      has: !!list.length, empty: !list.length, emptyT: L.LINES.length ? 'Ninguna línea cumple los filtros' : 'No hay líneas bancarias en este ejercicio',
-      emptyS: L.LINES.length ? 'Revisa los filtros activos o quítalos.' : 'Importa un extracto Norma 43 para empezar.',
-      emptyB: L.LINES.length ? B('Quitar filtros', { fn: function () { m.lf.clear.on(); } }) : B('Importar fichero…', { icon: 'dl', fn: function () { self.openDest('n43'); } }),
+      count: list.length === inY.length ? String(inY.length) : list.length + ' de ' + inY.length,
+      has: !!list.length, empty: !list.length, emptyT: inY.length ? 'Ninguna línea cumple los filtros' : 'No hay líneas bancarias en ' + (yrs.length > 1 ? 'los ejercicios elegidos' : 'este ejercicio'),
+      emptyS: inY.length ? 'Revisa los filtros activos o quítalos.' : 'Importa un extracto Norma 43 para empezar.',
+      emptyB: inY.length ? B('Quitar filtros', { fn: function () { m.lf.clear.on(); } }) : B('Importar fichero…', { icon: 'dl', fn: function () { self.openDest('n43'); } }),
       gcols: 'grid-template-columns: ' + cols, showBank: allBanks,
-      hNum: sortH('num', 'Nº'), hFo: sortH('fo', 'Fecha'), hBank: sortH('bank', 'Banco'), hCon: sortH('con', 'Concepto'), hImp: sortH('imp', 'Importe', 'fc-r'), hCta: sortH('cta', 'Cuenta'), hEst: sortH('est', 'Estado'),
+      hNum: sortH('num', 'Nº'), hFo: sortH('fo', 'Fecha'), hBank: sortH('bank', 'Banco'), hCon: sortH('con', 'Concepto'), hImp: sortH('imp', 'Importe', 'fc-r'), hOri: sortH('ori', 'Subcuenta origen'), hCta: sortH('cta', 'Subcuenta destino'), hEst: sortH('est', 'Estado'),
       allChk: !!list.length && selVis.length === list.length, allLbl: 'Seleccionar las ' + list.length + ' líneas del listado',
       chkAll: function (e) { var c = e.target.checked; if (c) list.forEach(function (l) { V.sel[l.id] = 1; }); else list.forEach(function (l) { delete V.sel[l.id]; }); self.bump(); },
-      foot: plural(list.length, 'línea', 'líneas') + ' · cobros ' + num(sumI) + ' · pagos ' + num(-sumC) + ' · neto ' + num(sumI + sumC)
+      foot: plural(list.length, 'línea', 'líneas') + ' · cobros ' + money(sumI) + ' · pagos ' + money(-sumC) + ' · neto ' + money(sumI + sumC)
     };
     var stCls = { IMP: 'ln-st-imp', REM: 'ln-st-rem', PEX: 'ln-st-pex', '555': 'ln-st-555', EXP: 'ln-st-exp', REX: 'ln-st-rex' };
     m.ll.rows = list.map(function (l) {
-      var s = L.state(l), on = !!V.sel[l.id], k = l.kw > 0 ? L.kwById(l.kw) : null, b = L.bank(l.bank);
+      var s = L.state(l), on = !!V.sel[l.id], k = l.kw > 0 ? L.kwById(l.kw) : null, b = L.bank(l.bank), ori = l.bankCta || b.cta, ro = L.closed(l.y);
       var imput = l.orig ? (l.orig.kind === 'rem' ? 'Remesa · línea ' + l.orig.from : 'División · línea ' + l.orig.from) : l.expl ? 'Remesa desglosada' : l.div ? 'Dividida en ' + l.div.length : k ? '«' + k.txt + '»' : l.kw === -1 ? 'A mano' : '—';
       var imTip = l.orig ? 'Línea generada desde la ' + l.orig.from : k ? 'Palabra clave ' + k.id + ': «' + k.txt + '»' + (k.txt2 ? ' + «' + k.txt2 + '»' : '') + ' · ' + b.n + ' · ' + (k.dh === 'C' ? 'cargos' : 'abonos') : l.kw === -1 ? 'Cuenta puesta a mano: la reasignación por palabras clave no la cambia' : 'Sin palabra clave';
       return {
-        cls: 'fc-gr ln-gr' + (on ? ' fc-sel' : '') + (V.cur === l.id && showD ? ' fc-act' : '') + (l.isNew ? ' ln-new' : '') + (l.orig ? ' ln-child' : ''), ti: V.cur === l.id ? 0 : -1, fk: 'ln:r:' + l.id, sel: String(on), s: on,
-        num: String(l.num), fo: fdate(l.fo), bank: b.short, con: l.con, conT: L.text(l), ref: l.ref || '', imp: num(l.imp), impCls: 'fc-r fc-tn ln-imp ' + (l.imp < 0 ? 'ln-c' : 'ln-a'),
-        cta: l.cta || '—', ctaCls: 'fc-mono' + (l.cta ? '' : ' fc-mut'), ctaD: l.cta ? L.ctaD(l.cta) : (l.rem && !l.expl ? 'Pendiente de desglose' : 'Sin cuenta'), ctaDCls: l.cta ? '' : 'fc-mut',
+        cls: 'fc-gr ln-gr' + (on ? ' fc-sel' : '') + (V.cur === l.id && showD ? ' fc-act' : '') + (l.isNew ? ' ln-new' : '') + (l.orig ? ' ln-child' : '') + (ro ? ' ln-ro' : ''), ti: V.cur === l.id ? 0 : -1, fk: 'ln:r:' + l.id, sel: String(on), s: on,
+        num: String(l.num), fo: fdate(l.fo), bank: b.short, con: l.con, conT: L.text(l), ref: l.ref || '', imp: money(l.imp), impCls: 'fc-r fc-tn ln-imp ' + (l.imp < 0 ? 'ln-c' : 'ln-a'),
+        ori: ori, oriTip: ori + ' · ' + L.ctaD(ori) + ' · doble clic: abrir su mayor', oriDbl: function (e) { e.stopPropagation(); self.lnOpenMayor(L, V, ori); self.bump(); },
+        ctaTip: l.cta ? l.cta + ' · ' + L.ctaD(l.cta) + ' · doble clic: abrir su mayor' : 'Sin subcuenta de destino', ctaDbl: function (e) { e.stopPropagation(); if (!l.cta) { self.lnShowAs(V, l); return self.bump(); } self.lnOpenMayor(L, V, l.cta); self.bump(); },
+        cta: l.cta || '—', ctaCls: 'fc-mono ln-acct' + (l.cta ? '' : ' fc-mut'), ctaD: l.cta ? L.ctaD(l.cta) : (l.rem && !l.expl ? 'Pendiente de desglose' : 'Sin subcuenta'), ctaDCls: l.cta ? '' : 'fc-mut',
         imput: imput, imCls: l.kw > 0 ? 'ln-kwt' : 'fc-mut', imTip: imTip, fac: l.fac || '', as: l.exp ? l.exp.as : '', asCls: 'fc-mono ln-as',
         st: L.ST[s][0], stCls: 'fc-pill ' + stCls[s], stTip: L.ST[s][1] + (s === 'REX' ? ': asiento a ' + l.exp.cta + ', línea a ' + (l.cta || 'ninguna') : ''), isNew: !!l.isNew,
         chkLbl: 'Seleccionar la línea ' + l.num, stop: function (e) { e.stopPropagation(); },
         chk: function (e) { if (e.target.checked) V.sel[l.id] = 1; else delete V.sel[l.id]; V.cur = l.id; V.anchor = l.id; self.lnFocus('r:' + l.id); self.bump(); },
-        click: function (e) { self.lnRowClick(L, V, e, l.id, keys); self.bump(); },
-        open: go(function () { V.cur = l.id; V.detailOpen = true; V.ovOpen = true; }),
+        click: function (e) { self.lnRowClick(L, V, e, l.id, keys); if (!e.ctrlKey && !e.metaKey && !e.shiftKey) { V.detailOpen = true; V.ovOpen = true; } self.bump(); },
+        open: go(function () { V.cur = l.id; V.ovOpen = false; self.lnShowAs(V, l); }),
         ctx: function (e) { e.preventDefault(); e.stopPropagation(); if (!V.sel[l.id]) { V.sel = {}; V.sel[l.id] = 1; } V.cur = l.id; self.lnOpenMenu(V, e.clientX, e.clientY, e.currentTarget); self.bump(); },
         key: function (e) { self.lnRowKey(L, V, e, l.id, keys, list); }
       };
@@ -5410,7 +5534,7 @@ class Component extends DCLogic {
     var acts = this.lnActs(L, V, scope);
     var pickA = function (t) { var a = acts.filter(function (x) { return x.t && x.t.indexOf(t) === 0; })[0]; return a ? B(a.t, { icon: a.ic, why: a.why, fn: a.fn, cls: 'fc-sm' + (a.danger ? ' fc-danger' : '') }) : null; };
     m.lsel = {
-      on: selVis.length > 0, t: plural(selVis.length, 'línea seleccionada', 'líneas seleccionadas'), sum: (function () { var s = 0; selVis.forEach(function (id) { s += L.byId(id).imp; }); return 'Suma ' + num(s); })(),
+      on: selVis.length > 0, t: plural(selVis.length, 'línea seleccionada', 'líneas seleccionadas'), sum: (function () { var s = 0; selVis.forEach(function (id) { s += L.byId(id).imp; }); return 'Suma ' + money(s); })(),
       hidden: hidden > 0, hiddenT: plural(hidden, 'seleccionada queda', 'seleccionadas quedan') + ' fuera del listado y no se incluye' + (hidden > 1 ? 'n' : ''), warnIc: FC_IC.warn,
       dropHidden: go(function () { selAll.forEach(function (id) { if (!ids[id]) delete V.sel[id]; }); }),
       clear: go(function () { V.sel = {}; }),
@@ -5459,7 +5583,7 @@ class Component extends DCLogic {
     if (e.ctrlKey && (e.key === 'f' || e.key === 'F')) { e.preventDefault(); this.lnFocus('q'); return this.bump(); }
     if (e.key === 'F2') { e.preventDefault(); run('Asignar cuenta'); return this.bump(); }
     if (e.ctrlKey && (e.key === 'e' || e.key === 'E')) { e.preventDefault(); run(scope.length === 1 && L.state(scope[0]) === 'REX' ? 'Reexportar' : 'Exportar'); return this.bump(); }
-    if (e.ctrlKey && (e.key === 'k' || e.key === 'K')) { e.preventDefault(); run('Crear palabra clave'); return this.bump(); }
+    if (e.ctrlKey && (e.key === 'k' || e.key === 'K')) { e.preventDefault(); run('Palabras clave'); return this.bump(); }
   }
   lnOpenMenu(V, x, y, el) {
     var root = el && el.closest ? el.closest('.lnx') : null, rr = root ? root.getBoundingClientRect() : { left: 0, top: 0, width: 2000, height: 2000 };
@@ -5471,7 +5595,7 @@ class Component extends DCLogic {
     var close = function () { V.menu = null; };
     return {
       on: true, pos: 'left: ' + Math.max(8, V.menu.x) + 'px; top: ' + Math.max(8, V.menu.y) + 'px', lbl: 'Acciones de ' + this.lnScopeT(scope),
-      head: scope.length === 1 ? 'Línea ' + scope[0].num + ' · ' + num(scope[0].imp) : scope.length + ' líneas seleccionadas',
+      head: scope.length === 1 ? 'Línea ' + scope[0].num + ' · ' + money(scope[0].imp) : scope.length + ' líneas seleccionadas · suma ' + money(scope.reduce(function (a, l) { return a + l.imp; }, 0)),
       items: acts.map(function (a, i) {
         if (a.sep) return { sep: true, it: false };
         return { sep: false, it: true, t: a.t, ic: LN_IC[a.ic] || FC_IC[a.ic], dis: !!a.why, tip: a.why || a.t, k: a.k || '', fk: i === 0 ? 'ln:menu' : '', cls: a.danger ? 'ln-mdanger' : '',
@@ -5485,14 +5609,15 @@ class Component extends DCLogic {
     var self = this, go = function (fn) { return function (e) { if (e && e.stopPropagation) e.stopPropagation(); fn(e); self.bump(); }; };
     if (!showD) return { on: false, reopen: dock && !V.detailOpen, reopenFn: go(function () { V.detailOpen = true; }) };
     if (!l) return { on: true, cls: 'fc-detail ln-detail' + (dock ? '' : ' fc-over'), empty: true, has: false, close: go(function () { V.detailOpen = false; V.ovOpen = false; }), xIc: FC_IC.x };
-    var b = L.bank(l.bank), k = l.kw > 0 ? L.kwById(l.kw) : null, s = L.state(l), B = function (t, o) { return self.lnB(t, o); };
+    var b = L.bank(l.bank), k = l.kw > 0 ? L.kwById(l.kw) : null, s = L.state(l), B = function (t, o) { return self.lnB(t, o); }, roY = L.closed(l.y) ? 'El ejercicio ' + l.y + ' está cerrado: sus líneas solo se consultan.' : null;
+    if (roY && can) { can = false; NP = roY; }
     var kv = function (k2, v, o) { return self.fcKv(k2, v, o); };
     var one = this.lnActs(L, V, [l]), pick = function (pre, cls) { var a = one.filter(function (x) { return x.t && x.t.indexOf(pre) === 0; })[0]; return a ? B(a.t, { icon: a.ic, why: a.why, fn: a.fn, cls: cls || 'fc-sm' }) : null; };
     var d = { on: true, has: true, empty: false, cls: 'fc-detail ln-detail' + (dock ? '' : ' fc-over'), close: go(function () { V.detailOpen = false; V.ovOpen = false; }), xIc: FC_IC.x,
-      title: 'Línea ' + l.num, sub: b.short + ' · ' + (l.dh === 'C' ? 'cargo' : 'abono') + ' · fecha valor ' + fdate(l.fv),
-      imp: num(l.imp) + ' €', impCls: 'ln-dimp ' + (l.imp < 0 ? 'ln-c' : 'ln-a'), st: L.ST[s][0], stCls: 'fc-pill ln-st-' + { IMP: 'imp', REM: 'rem', PEX: 'pex', '555': '555', EXP: 'exp', REX: 'rex' }[s], stTip: L.ST[s][1],
+      title: 'Línea ' + l.num, sub: b.short + ' · ' + (l.dh === 'C' ? 'cargo' : 'abono') + ' · fecha valor ' + fdate(l.fv) + ' · ejercicio ' + l.y, roNote: !!roY, roT: roY || '',
+      imp: money(l.imp), impCls: 'ln-dimp ' + (l.imp < 0 ? 'ln-c' : 'ln-a'), st: L.ST[s][0], stCls: 'fc-pill ln-st-' + { IMP: 'imp', REM: 'rem', PEX: 'pex', '555': '555', EXP: 'exp', REX: 'rex' }[s], stTip: L.ST[s][1],
       con: l.con, ref: l.ref || '', hasRef: !!l.ref,
-      kwB: { t: 'Crear palabra clave', tip: !can ? NP : l.orig ? 'Las líneas generadas no admiten palabras clave.' : 'Selecciona con el ratón el texto del concepto que identifica al tercero y pulsa aquí (Ctrl+K)', dis: !can || !!l.orig, ic: LN_IC.key,
+      kwB: { t: 'Palabra clave', tip: !can ? NP : l.orig ? 'Las líneas generadas no admiten palabras clave.' : 'Selecciona con el ratón el texto del concepto que identifica al tercero y pulsa aquí; también puedes elegirlo después en el diálogo (Ctrl+K)', dis: !can || !!l.orig, ic: LN_IC.key,
         down: function (e) { var sel = window.getSelection && window.getSelection(), box = document.querySelector('[data-ln-con]'); V._selTxt = sel && box && sel.rangeCount && box.contains(sel.anchorNode) ? sel.toString().trim() : ''; if (V._selTxt) e.preventDefault(); },
         on: function (e) { e.stopPropagation(); if (!can || l.orig) { self.toast(!can ? NP : 'Las líneas generadas no admiten palabras clave.'); return self.bump(); } var tx = V._selTxt || ''; V._selTxt = ''; self.lnKwDlg(L, V, l, tx); self.bump(); } },
       acts: [pick(s === 'REX' ? 'Reexportar' : 'Exportar', 'fc-sm fc-pri'), pick('Asignar cuenta'), l.rem && !l.expl ? pick('Explotar remesa', 'fc-sm fc-pri') : null, l.expl && !l.orig ? pick('Ver la remesa') : null].filter(Boolean),
@@ -5500,19 +5625,20 @@ class Component extends DCLogic {
     };
     if (d.acts[0] && d.acts[0].dis && (s === 'EXP' || s === 'REM')) d.acts.shift();
     /* imputación */
-    var imp = [kv('Cuenta', l.cta ? l.cta + ' · ' + L.ctaD(l.cta) : 'Sin cuenta', { mono: !!l.cta, mut: !l.cta })];
+    var imp = [kv('Subcuenta destino', l.cta ? l.cta + ' · ' + L.ctaD(l.cta) : 'Sin subcuenta', l.cta ? { mono: true, on: go(function () { self.lnOpenMayor(L, V, l.cta); }), tip: 'Abrir su mayor' } : { mut: true })];
     if (k) imp.push(kv('Palabra clave', '«' + k.txt + '»' + (k.txt2 ? ' + «' + k.txt2 + '»' : ''), { after: ' · nº ' + k.id + ' · ' + b.n + ' · ' + (k.dh === 'C' ? 'cargos' : 'abonos') + (k.tipo === 'remesa' ? ' · tipo remesa' : k.tipo === 'devuelto' ? ' · recibo devuelto' : '') }));
     else imp.push(kv('Origen de la cuenta', l.orig ? (l.orig.kind === 'rem' ? 'Recibo de la remesa ' + l.orig.rem : 'Fracción de la línea ' + l.orig.from) : l.kw === -1 ? 'Puesta a mano (no la cambian las palabras clave)' : 'Sin palabra clave', { mut: true }));
     if (l.orig) imp.push(kv('Línea de origen', 'Línea ' + l.orig.from, { on: go(function () { var o = L.byNum(l.orig.from); if (o) { V.cur = o.id; self.lnFocus('r:' + o.id); } }), tip: 'Ir a la línea original' }));
     if (l.div) imp.push(kv('Fracciones', l.div.join(', '), { mono: true }));
-    if (l.expl) imp.push(kv('Remesa', l.remId, { on: go(function () { self.lnFilterRem(V, l.remId); }), tip: 'Ver solo las líneas de esta remesa', after: L.REMS[l.remId] ? ' · ' + L.REMS[l.remId].n + ' recibos' : '' }));
+    if (l.expl) imp.push(kv('Remesa', l.remId, { on: go(function () { self.lnFilterRem(V, l.remId, L); }), tip: 'Ver solo las líneas de esta remesa', after: L.REMS[l.remId] ? ' · ' + L.REMS[l.remId].n + ' recibos' : '' }));
     imp.push(kv('Factura', l.fac || '—', { mono: !!l.fac, mut: !l.fac }));
     d.impl = imp;
     /* contabilidad */
     var con = [];
     if (l.exp) { con.push(kv('Asiento', l.exp.as, { mono: true, on: go(function () { self.lnOpenDlg(V, { kind: 'as', ids: [l.id] }); }), tip: 'Ver el asiento' })); con.push(kv('Fecha del asiento', fdate(l.exp.fecha))); con.push(kv('Cuenta en el asiento', l.exp.cta + ' · ' + L.ctaD(l.exp.cta), { mono: true })); }
     else con.push(kv('Asiento', s === 'REM' ? 'Se generan al desglosar la remesa' : 'Sin exportar', { mut: true }));
-    con.push(kv('Cuenta del banco', (l.bankCta || b.cta) + ' · ' + L.ctaD(l.bankCta || b.cta), { mono: true }));
+    con.push(kv('Subcuenta origen', (l.bankCta || b.cta) + ' · ' + L.ctaD(l.bankCta || b.cta), { mono: true, on: go(function () { self.lnOpenMayor(L, V, l.bankCta || b.cta); }), tip: 'Abrir su mayor' }));
+    if (!l.exp) con.push(kv('Asiento propuesto', 'Ver los apuntes que se generarían', { on: go(function () { self.lnShowAs(V, l); }), tip: 'Doble clic en la línea: el mismo resultado' }));
     d.cont = con; d.rexNote = s === 'REX'; d.rexT = s === 'REX' ? (l.exp.c555 ? 'Se exportó a la 555 sin cuenta; ya tiene la ' + l.cta + '. Reexporta para llevarla a su cuenta (mismo número de asiento).' : 'El asiento usa la ' + l.exp.cta + ' y la línea tiene la ' + (l.cta || 'ninguna') + '. Reexporta para corregir el asiento (mismo número).') : '';
     d.warnIc = FC_IC.warn; d.infoIc = FC_IC.info;
     /* datos del banco */
@@ -5525,9 +5651,9 @@ class Component extends DCLogic {
     d.simNone = !l.orig && !l.expl && !sim.length && V.dsec === 'sim';
     var cands = L.cands(l);
     d.candOn = cands.length > 0;
-    d.cands = cands.map(function (c) { return { num: c.num, who: c.who, fecha: fdate(c.fecha), dias: c.dias + ' días antes', imp: num(c.imp), dif: c.dif ? 'dif. ' + num(c.dif) : 'exacto', difCls: c.dif ? 'ln-dif' : 'ln-ok',
+    d.cands = cands.map(function (c) { return { num: c.num, who: c.who, fecha: fdate(c.fecha), dias: c.dias + ' días antes', imp: money(c.imp), dif: c.dif ? 'dif. ' + money(c.dif) : 'exacto', difCls: c.dif ? 'ln-dif' : 'ln-ok',
       use: self.lnB('Conciliar', { cls: 'fc-sm', why: !can ? NP : null, title: 'Anota la factura ' + c.num + ' en la línea y la imputa a la ' + c.cta, fn: function () { l.fac = c.num; self.lnAssign(L, [l], c.cta, 'line', true); self.toast('Línea ' + l.num + ' conciliada con la factura ' + c.num + ' (' + c.cta + ').'); } }) }; });
-    d.remOn = !!(l.rem && !l.expl); d.remT = 'Remesa SEPA de ' + num(Math.abs(l.imp)) + ' € sin desglosar. Al explotarla se buscan las facturas de contrato con cargo a ±3 días cuya suma cuadra con la línea.';
+    d.remOn = !!(l.rem && !l.expl); d.remT = 'Remesa SEPA de ' + money(Math.abs(l.imp)) + ' sin desglosar. Al explotarla se buscan las facturas de contrato con cargo a ±3 días cuya suma cuadra con la línea.';
     return d;
   }
 
@@ -5546,12 +5672,15 @@ class Component extends DCLogic {
     var ofs = function (n) { return plural(n, 'línea', 'líneas'); };
     ['kbd', 'par', 'cta', 'uncta', 'kw', 'fac', 'div', 'rem', 'rems', 'unrem', 'tras', 'exp', 'unexp', 'as'].forEach(function (k) { x[k] = d.kind === k; });
     if (d.kind === 'kbd') { x.title = 'Atajos de la pantalla de líneas'; x.sim = false; x.cancelT = 'Cerrar';
-      x.keys = [['Clic · Ctrl+clic · Mayús+clic', 'Elegir una línea · añadirla o quitarla · seleccionar un tramo'], ['↑ ↓ · Inicio · Fin · Re Pág · Av Pág', 'Moverse por la lista (con Mayús amplía la selección)'], ['Espacio', 'Marcar o desmarcar la línea'], ['Ctrl+A', 'Seleccionar todas las líneas del listado'], ['Intro · doble clic', 'Abrir el detalle'], ['Clic derecho · Mayús+F10', 'Acciones de la selección'], ['F2', 'Asignar cuenta'], ['Ctrl+E', 'Exportar o reexportar'], ['Ctrl+K', 'Crear palabra clave'], ['Ctrl+F', 'Buscar'], ['Esc', 'Cerrar menú, diálogo o detalle']].map(function (p) { return { k: p[0], t: p[1] }; });
-      x.kbdNote = 'Atajos provisionales: se fijarán en el nodo de atajos de teclado cuando se acuerde.'; }
-    if (d.kind === 'par') { x.title = 'Subcuentas de Norma 43 · ' + L.soc.short + ' · ' + L.y; x.sim = false; x.cancelT = 'Cerrar';
-      x.pars = LN_PAR_DEF.map(function (p) { return { t: p.t, v: L.PAR[p.k], d: p.k === 'gas' ? 'Prefijo' : L.ctaD(L.PAR[p.k]), tip: p.tip, def: L.PAR[p.k] === p.v ? 'Por defecto' : 'Personalizada' }; });
-      x.banks = L.BANKS.map(function (b) { return { t: b.short, v: b.cta, d: L.ctaD(b.cta) }; });
-      x.parNote = 'Se parametrizan por sociedad y ejercicio en la configuración de la sociedad (propuesta de sección nueva); aquí solo se consultan.'; }
+      x.keys = [['Clic', 'Elegir la línea y ver su detalle'], ['Ctrl+clic · Mayús+clic', 'Añadir o quitar una línea · seleccionar un tramo'], ['Doble clic', 'Ver el asiento (o el que se generaría si no está exportada)'], ['Doble clic en una subcuenta', 'Abrir el mayor de la subcuenta de origen o de destino'], ['↑ ↓ · Inicio · Fin · Re Pág · Av Pág', 'Moverse por la lista (con Mayús amplía la selección)'], ['Espacio', 'Marcar o desmarcar la línea'], ['Ctrl+A', 'Seleccionar todas las líneas del listado'], ['Intro', 'Abrir el detalle'], ['Clic derecho · Mayús+F10', 'Acciones de la selección'], ['F2', 'Asignar cuenta'], ['Ctrl+E', 'Exportar o reexportar'], ['Ctrl+K', 'Palabras clave de la línea'], ['Ctrl+F', 'Buscar'], ['Esc', 'Cerrar menú, diálogo o detalle'], ['Ctrl+Mayús+M', 'Ocultar o mostrar el menú lateral (en todo ProConta)']].map(function (p) { return { k: p[0], t: p[1] }; });
+      x.kbdNote = 'Atajos provisionales: el catálogo de atajos de teclado fijará las teclas definitivas.'; }
+    if (d.kind === 'par') { var py = self.lnYears(V); x.title = 'Subcuentas de Norma 43 · ' + L.soc.short; x.sim = false; x.cancelT = 'Cerrar'; x.cls = 'fc-dlg fc-wide';
+      x.pcols = 'grid-template-columns: minmax(0, 1fr) ' + py.map(function () { return '92px'; }).join(' ') + ' minmax(0, 1fr)';
+      x.pyh = py.map(function (y) { return 'Ejercicio ' + y; });
+      x.pars = LN_PAR_DEF.map(function (p) { var v0 = L.par(py[0])[p.k]; return { t: p.t, vals: py.map(function (y) { var v = L.par(y)[p.k]; return { v: v, tip: v === p.v ? 'Valor por defecto' : 'Personalizada en ' + y }; }), d: p.k === 'gas' ? 'Prefijo de cuenta' : L.ctaD(v0), tip: p.tip }; });
+      x.banks = L.BANKS.map(function (b) { return { t: 'Cuenta contable de ' + b.short, vals: py.map(function () { return { v: b.cta, tip: 'Por banco' }; }), d: L.ctaD(b.cta) }; });
+      x.parNote = 'Se parametrizan por sociedad y ejercicio en la configuración global; aquí solo se consultan. Cuando exista esa configuración, «Configurar subcuentas» abrirá directamente su sección.';
+      x.acts.push(self.lnB('Configurar subcuentas', { icon: 'gear', cls: 'fc-pri', why: 'Disponible cuando exista la configuración global: abrirá directamente la sección de subcuentas de ' + L.soc.short + '.', fn: function () { } })); }
     if (d.kind === 'cta') {
       var kws = {}; lines.forEach(function (l) { if (l.kw > 0) kws[l.kw] = 1; }); var kwIds = Object.keys(kws).map(Number), k = kwIds.length === 1 && lines.every(function (l) { return l.kw === kwIds[0]; }) ? L.kwById(kwIds[0]) : null;
       var exd = lines.filter(function (l) { return l.exp; }).length;
@@ -5574,22 +5703,55 @@ class Component extends DCLogic {
       x.uT = 'Las ' + ofs(lines.length) + ' quedarán sin cuenta y sin palabra clave' + (ex2 ? '. ' + ofs(ex2) + ' ya exportadas perderán su asiento.' : '.');
       act('Quitar la cuenta', { icon: 'xc', fn: function () { lines.forEach(function (l) { l.cta = ''; l.kw = 0; l.exp = null; }); self.toast('Cuenta quitada de ' + ofs(lines.length) + (ex2 ? '; ' + ex2 + ' asientos borrados' : '') + '.'); } }); }
     if (d.kind === 'kw') {
-      var l0 = lines[0], b0 = L.bank(l0.bank), txt = String(d.txt || '').trim(), t2 = String(d.txt2 || '').trim();
-      x.title = 'Crear palabra clave · desde la línea ' + l0.num; x.ap = self.lnAcctPicker(L, d); x.kwCon = l0.con + (l0.ref ? ' · ' + l0.ref : '');
-      x.kwTxt = { v: d.txt, set: function (e) { d.txt = e.target.value; self.lnFocus('dlg:txt'); self.bump(); }, cls: 'fc-in' + (d.e1 ? ' fc-err' : ''), tip: d.e1 || 'Texto que debe aparecer en el concepto del banco' };
-      x.kwTxt2 = { v: d.txt2, set: function (e) { d.txt2 = e.target.value; self.lnFocus('dlg:txt2'); self.bump(); }, cls: 'fc-in', tip: 'Opcional: un segundo texto que también debe aparecer' };
+      var l0 = lines[0], b0 = L.bank(l0.bank), txt = String(d.txt || '').trim(), t2 = String(d.txt2 || '').trim(), T0 = L.text(l0), TU = T0.toUpperCase();
+      var ek = d.edit ? L.kwById(d.edit) : null;
+      x.title = 'Palabras clave · línea ' + l0.num; x.cls = 'fc-dlg fc-wide'; x.ap = self.lnAcctPicker(L, d);
+      /* concepto con los criterios resaltados: el criterio se elige seleccionando un trozo con el ratón */
+      var marks = []; [[txt, 'ln-hl1'], [t2, 'ln-hl2']].forEach(function (p) { if (!p[0]) return; var i = TU.indexOf(p[0].toUpperCase()); if (i >= 0) marks.push({ a: i, b: i + p[0].length, c: p[1] }); });
+      marks.sort(function (p, q) { return p.a - q.a; }); var segs = [], pos = 0;
+      marks.forEach(function (mk) { if (mk.a < pos) return; if (mk.a > pos) segs.push({ t: T0.slice(pos, mk.a), c: '' }); segs.push({ t: T0.slice(mk.a, mk.b), c: mk.c }); pos = mk.b; });
+      if (pos < T0.length) segs.push({ t: T0.slice(pos), c: '' });
+      x.kwSegs = segs; x.kwLen = T0.length + ' caracteres';
+      x.kwPick = function () {
+        var sel = window.getSelection && window.getSelection(), box = document.querySelector('[data-ln-kwsrc]');
+        if (!sel || !box || !sel.rangeCount || !box.contains(sel.anchorNode) || !box.contains(sel.focusNode)) return;
+        var v = sel.toString().replace(/\s+/g, ' ').trim(); if (!v) return;
+        if (TU.indexOf(v.toUpperCase()) < 0) { self.toast('Selecciona un trozo seguido del concepto.'); return self.bump(); }
+        d[d.tgt] = v.toUpperCase(); d.del = null; if (d.tgt === 'txt' && !d.txt2) d.tgt = 'txt2'; sel.removeAllRanges(); self.lnFocus('dlg'); self.bump();
+      };
+      x.kwTg = [['txt', 'Criterio', 'Texto que debe aparecer en el concepto', txt], ['txt2', 'Y además (opcional)', 'Un segundo texto que también debe aparecer', t2]].map(function (p) {
+        var on = d.tgt === p[0]; return { t: p[1], v: p[3] || 'Selecciona un trozo del concepto', vCls: 'ln-crit' + (p[3] ? ' ' + (p[0] === 'txt' ? 'ln-hl1' : 'ln-hl2') : ' fc-mut'), on: on, cls: 'ln-tg' + (on ? ' on' : ''), tip: p[2] + (on ? ': la próxima selección irá aquí' : ': pulsa para que la próxima selección vaya aquí'), err: p[0] === 'txt' && d.e1 ? d.e1 : '',
+          pick: function () { d.tgt = p[0]; self.lnFocus('dlg'); self.bump(); }, has: !!p[3], clr: function (e) { e.stopPropagation(); d[p[0]] = ''; d.tgt = p[0]; self.lnFocus('dlg'); self.bump(); } }; });
       x.kwScope = b0.short + ' · ' + (l0.dh === 'C' ? 'cargos' : 'abonos') + ' · ' + L.soc.short;
+      /* palabras clave que ya encajan con la línea */
+      var ex = L.KW.filter(function (k2) { return L.match(k2, l0); }).sort(function (p, q) { return q.txt.length - p.txt.length; });
+      x.kwEx = ex.map(function (k2, i) { var uses = L.LINES.filter(function (l) { return l.kw === k2.id; }).length, del = d.del === k2.id;
+        return { id: String(k2.id), t: '«' + k2.txt + '»' + (k2.txt2 ? ' + «' + k2.txt2 + '»' : ''), cta: k2.cta || '—', ctaD: k2.cta ? L.ctaD(k2.cta) : (k2.tipo === 'remesa' ? 'Tipo remesa SEPA' : k2.tipo === 'devuelto' ? 'Recibo devuelto' : 'Sin cuenta'), uses: plural(uses, 'línea', 'líneas'),
+          win: i === 0, winT: i === 0 ? 'Gana: es la más larga' : '', cls: 'fc-mr ln-kwr' + (d.edit === k2.id ? ' on' : ''), del: del, nd: !del, delT: del ? 'Las ' + plural(uses, 'línea que la usa', 'líneas que la usan') + ' quedarán sin palabra clave y conservarán su subcuenta; después se vuelven a aplicar las demás palabras clave.' : '',
+          edit: self.lnB('Editar', { icon: 'edit', why: !can ? NP : d.edit === k2.id ? 'Ya la estás editando.' : null, fn: function () { Object.assign(d, { edit: k2.id, txt: k2.txt, txt2: k2.txt2, cta: k2.cta, q: '', tgt: 'txt', del: null, e1: null }); self.lnFocus('dlg'); } }),
+          rm: self.lnB('Borrar', { icon: 'trash', cls: 'fc-sm fc-danger', why: !can ? NP : null, fn: function () { d.del = k2.id; self.lnFocus('dlg'); } }),
+          rmOk: self.lnB('Borrar la palabra clave', { icon: 'trash', cls: 'fc-sm fc-danger', fn: function () {
+            L.LINES.forEach(function (l) { if (l.kw === k2.id) l.kw = 0; }); L.KW.splice(L.KW.indexOf(k2), 1); var r = L.apply();
+            if (d.edit === k2.id) Object.assign(d, { edit: null, txt: '', txt2: '', cta: '', tgt: 'txt' }); d.del = null; self.lnFocus('dlg');
+            self.toast('Palabra clave ' + k2.id + ' «' + k2.txt + '» borrada: ' + plural(uses, 'línea ha quedado', 'líneas han quedado') + ' sin ella' + (r.kw ? '; ' + r.kw + ' han tomado otra' : '') + '.'); } }),
+          rmNo: self.lnB('Cancelar', { cls: 'fc-sm', fn: function () { d.del = null; self.lnFocus('dlg'); } }) }; });
+      x.kwExOn = ex.length > 0; x.kwExT = ex.length === 1 ? 'Ya hay una palabra clave que encaja con esta línea' : ex.length + ' palabras clave encajan con esta línea: cuando varias encajan, gana la más larga';
+      x.kwMode = ek ? 'Editando la palabra clave ' + ek.id : 'Nueva palabra clave'; x.kwEditing = !!ek;
+      x.kwNew = self.lnB('Nueva palabra clave', { icon: 'plus', fn: function () { Object.assign(d, { edit: null, txt: '', txt2: '', cta: '', q: '', tgt: 'txt', e1: null }); self.lnFocus('dlg'); } });
       var probe = { id: 0, txt: txt, txt2: t2, bank: l0.bank, dh: l0.dh }, hits = txt ? L.LINES.filter(function (l) { return !l.orig && L.match(probe, l); }) : [];
       var noc = hits.filter(function (l) { return !l.cta && l.kw !== -1; }).length, man = hits.filter(function (l) { return l.kw === -1; }).length;
-      var dup = L.KW.filter(function (k2) { return k2.bank === l0.bank && k2.dh === l0.dh && norm(k2.txt) === norm(txt) && norm(k2.txt2) === norm(t2); })[0];
-      var near = L.KW.filter(function (k2) { return k2.bank === l0.bank && k2.dh === l0.dh && txt && k2 !== dup && (norm(k2.txt).indexOf(norm(txt)) >= 0 || norm(txt).indexOf(norm(k2.txt)) >= 0); });
-      x.kwPrev = txt ? 'Encaja con ' + ofs(hits.length) + ' de ' + b0.n + ' (' + (l0.dh === 'C' ? 'cargos' : 'abonos') + '): ' + noc + ' sin cuenta tomarán ' + (d.cta || 'la cuenta que elijas') + '; las que ya tienen cuenta no cambian' + (man ? ' (' + man + ' puestas a mano)' : '') + '.' : 'Escribe el texto de la palabra clave.';
-      x.kwDup = !!dup; x.kwDupT = dup ? 'Ya existe la palabra clave ' + dup.id + ' con este texto' + (dup.cta ? ' (cuenta ' + dup.cta + ')' : '') + '.' : '';
-      x.kwNear = near.length > 0; x.kwNearT = near.map(function (k2) { return '«' + k2.txt + '» (' + (k2.txt.length > txt.length ? 'más larga' : 'más corta') + (k2.cta ? ', ' + k2.cta : '') + ')'; }).join(', ');
-      act('Crear y aplicar', { icon: 'key', why: !txt ? 'Escribe el texto.' : dup ? 'Ya existe una palabra clave igual.' : txt.length < 4 ? 'Usa al menos 4 caracteres para no imputar movimientos por error.' : null, tip: 'Crea la palabra clave y la aplica a las líneas que encajan', fn: function () {
+      var dup = L.KW.filter(function (k2) { return k2 !== ek && k2.bank === l0.bank && k2.dh === l0.dh && norm(k2.txt) === norm(txt) && norm(k2.txt2) === norm(t2); })[0];
+      x.kwPrev = txt ? 'Encaja con ' + ofs(hits.length) + ' de ' + b0.n + ' (' + (l0.dh === 'C' ? 'cargos' : 'abonos') + '): ' + noc + ' sin subcuenta tomarán ' + (d.cta || 'la que elijas') + '; las que ya la tienen no cambian' + (man ? ' (' + man + ' puestas a mano)' : '') + '.' : 'Selecciona en el concepto el texto que identifica al tercero.';
+      x.kwDup = !!dup; x.kwDupT = dup ? 'Ya existe la palabra clave ' + dup.id + ' con este texto' + (dup.cta ? ' (subcuenta ' + dup.cta + ')' : '') + '.' : '';
+      var why = !can ? NP : !txt ? 'Selecciona en el concepto el texto del criterio.' : dup ? 'Ya existe una palabra clave igual.' : txt.length < 4 ? 'Usa al menos 4 caracteres para no imputar movimientos por error.' : null;
+      if (ek) act('Guardar cambios', { icon: 'check', why: why || (ek.txt === txt.toUpperCase() && ek.txt2 === t2.toUpperCase() && ek.cta === (d.cta || '') ? 'No has cambiado nada.' : null), tip: 'Guarda la palabra clave y la vuelve a aplicar', fn: function () {
+        var old = { cta: ek.cta }; ek.txt = txt.toUpperCase(); ek.txt2 = t2.toUpperCase(); ek.cta = d.cta || ''; var lost = 0, moved = 0;
+        L.LINES.forEach(function (l) { if (l.kw !== ek.id) return; if (!L.match(ek, l)) { l.kw = 0; lost++; if (!l.exp && l.cta === old.cta) l.cta = ''; } else if (old.cta !== ek.cta && l.cta === old.cta) { l.cta = ek.cta; moved++; } });
+        var r = L.apply(); self.toast('Palabra clave ' + ek.id + ' guardada' + (moved ? ': ' + plural(moved, 'línea cambia', 'líneas cambian') + ' a ' + (ek.cta || 'sin subcuenta') : '') + (lost ? '; ' + plural(lost, 'línea deja', 'líneas dejan') + ' de encajar' : '') + (r.kw ? '; ' + r.kw + ' la han tomado' : '') + '.'); } });
+      else act('Crear y aplicar', { icon: 'key', why: why, tip: 'Crea la palabra clave y la aplica a las líneas que encajan', fn: function () {
         var id = Math.max.apply(null, L.KW.map(function (k2) { return k2.id; })) + 1;
         L.KW.push({ id: id, txt: txt.toUpperCase(), txt2: t2.toUpperCase(), bank: l0.bank, dh: l0.dh, cta: d.cta || '', tipo: 'normal', alta: fdate(iso(new Date())) });
-        var r = L.apply(id); self.toast('Palabra clave ' + id + ' «' + txt.toUpperCase() + '» creada' + (d.cta ? ' con la ' + d.cta : ' sin cuenta') + ': ' + ofs(r.kw) + ' la han tomado y ' + r.cta + ' han recibido cuenta.');
+        var r = L.apply(id); self.toast('Palabra clave ' + id + ' «' + txt.toUpperCase() + '» creada' + (d.cta ? ' con la ' + d.cta : ' sin subcuenta') + ': ' + ofs(r.kw) + ' la han tomado y ' + r.cta + ' han recibido subcuenta.');
       } });
     }
     if (d.kind === 'fac') { x.title = 'Asignar número de factura · ' + self.lnScopeT(lines);
@@ -5599,7 +5761,7 @@ class Component extends DCLogic {
     if (d.kind === 'div') {
       var l1 = lines[0], tot = Math.abs(l1.imp), parse = function (s) { var v = Number(String(s).replace(/\./g, '').replace(',', '.').replace('%', '')); return isNaN(v) ? null : v; };
       var sum = 0; d.rows.forEach(function (rw) { var v = parse(rw.imp); if (v !== null) sum += /%/.test(rw.imp) ? tot * v / 100 : v; }); sum = r2(sum);
-      x.title = 'Dividir la línea ' + l1.num + ' · ' + num(l1.imp); x.dTot = num(tot); x.dSum = num(sum); x.dLeft = num(r2(tot - sum)); x.dLeftCls = Math.abs(tot - sum) < 0.005 ? 'ln-ok' : 'ln-dif';
+      x.title = 'Dividir la línea ' + l1.num + ' · ' + money(l1.imp); x.dTot = money(tot); x.dSum = money(sum); x.dLeft = money(r2(tot - sum)); x.dLeftCls = Math.abs(tot - sum) < 0.005 ? 'ln-ok' : 'ln-dif';
       x.dNote = 'La línea original pasa a la ' + L.PAR.s555 + ' (' + L.ctaD(L.PAR.s555) + ') y cada fracción sale de ella hacia su cuenta, así el banco conserva un único movimiento.';
       x.drows = d.rows.map(function (rw, i) { var fld = function (f, ph, tip) { var er = d.err[i + f]; return { v: rw[f], cls: 'fc-in fc-xin' + (f === 'imp' ? ' fc-r' : f === 'cta' ? ' fc-mono' : '') + (er ? ' fc-err' : ''), tip: er || tip, ph: ph, fk: 'ln:dlg:' + i + f, set: function (e) { rw[f] = e.target.value; delete d.err[i + f]; self.lnFocus('dlg:' + i + f); self.bump(); } }; };
         return { i: String(i + 1), imp: fld('imp', '0,00 o 25 %', 'Importe de la fracción, o un porcentaje del total (25 %)'), desc: fld('desc', 'Descripción', 'Texto que se añadirá al concepto'), cta: fld('cta', 'Cuenta', 'Cuenta de destino de la fracción (opcional: puede imputarse después)'), ctaD: L.CT[String(rw.cta).trim()] || (String(rw.cta).trim() ? 'No existe en el plan' : ''),
@@ -5609,32 +5771,34 @@ class Component extends DCLogic {
         d.err = {}; var parts = [];
         d.rows.forEach(function (rw, i) { var v = parse(rw.imp); if (v === null || v <= 0) d.err[i + 'imp'] = 'Importe no válido'; else v = /%/.test(rw.imp) ? r2(tot * v / 100) : v; if (!String(rw.desc).trim()) d.err[i + 'desc'] = 'Indica la descripción'; var c = String(rw.cta).trim(); if (c && !L.CT[c]) d.err[i + 'cta'] = 'La cuenta ' + c + ' no existe'; parts.push({ imp: v, desc: String(rw.desc).trim(), cta: c }); });
         if (Object.keys(d.err).length) { self.toast('Hay datos por corregir en las fracciones: el motivo aparece en el tooltip de cada campo.'); self.bump(); return false; }
-        if (Math.abs(sum - tot) >= 0.005) { self.toast('Las fracciones suman ' + num(sum) + ' y la línea es de ' + num(tot) + ': ajusta ' + num(r2(tot - sum)) + '.'); self.bump(); return false; }
+        if (Math.abs(sum - tot) >= 0.005) { self.toast('Las fracciones suman ' + money(sum) + ' y la línea es de ' + money(tot) + ': ajusta ' + money(r2(tot - sum)) + '.'); self.bump(); return false; }
         var made = L.divide(l1, parts); V.est = 'all'; V.sel = {}; made.forEach(function (n2) { V.sel[n2.id] = 1; }); self.toast('Línea ' + l1.num + ' dividida en ' + made.length + ' fracciones (líneas ' + made.map(function (n2) { return n2.num; }).join(', ') + '), seleccionadas para imputarlas.');
       } });
     }
     if (d.kind === 'rem') {
       var l2 = lines[0], ta = Math.abs(l2.imp), on = d.items.filter(function (it) { return it.on; }), s2 = r2(on.reduce(function (a, it) { return a + it.imp; }, 0));
       x.title = 'Explotar la remesa · línea ' + l2.num; x.cls = 'fc-dlg fc-wide';
-      x.rHead = num(ta) + ' € · ' + L.bank(l2.bank).short + ' · ' + fdate(l2.fo); x.rSum = num(s2); x.rDif = num(r2(ta - s2)); x.rOk = Math.abs(ta - s2) < 0.005; x.rDifCls = x.rOk ? 'ln-ok' : 'ln-dif';
+      x.rHead = money(ta) + ' · ' + L.bank(l2.bank).short + ' · ' + fdate(l2.fo); x.rSum = money(s2); x.rDif = money(r2(ta - s2)); x.rOk = Math.abs(ta - s2) < 0.005; x.rDifCls = x.rOk ? 'ln-ok' : 'ln-dif';
       x.rNote = 'Facturas de contrato con cargo a ±3 días de la fecha de la línea. Al confirmar se marcan como cobradas, se crea una línea por recibo desde el banco ficticio ' + L.PAR.rem + ' hacia la 430 de cada cliente y la línea original pasa del banco a la ' + L.PAR.rem + '.';
-      x.ritems = d.items.map(function (it) { return { num: it.num, who: it.who, cta: it.cta, ven: fdate(it.ven), dias: (it.dias > 0 ? '+' : '') + it.dias + ' d', imp: num(it.imp), on: it.on, cls: 'fc-mr ln-ri' + (it.out ? ' ln-out' : ''), outT: it.out ? 'Fuera del margen de ±3 días' : '',
+      x.ritems = d.items.map(function (it) { return { num: it.num, who: it.who, cta: it.cta, ven: fdate(it.ven), dias: (it.dias > 0 ? '+' : '') + it.dias + ' d', imp: money(it.imp), on: it.on, cls: 'fc-mr ln-ri' + (it.out ? ' ln-out' : ''), outT: it.out ? 'Fuera del margen de ±3 días' : '',
         tog: function (e) { it.on = e.target.checked; self.bump(); }, lbl: 'Incluir ' + it.num } });
       x.rN = plural(on.length, 'recibo', 'recibos');
-      act('Explotar en ' + plural(on.length, 'recibo', 'recibos'), { icon: 'layers', why: !on.length ? 'Marca al menos una factura.' : !x.rOk ? 'La suma de los recibos marcados (' + num(s2) + ') no cuadra con la línea (' + num(ta) + '): diferencia ' + num(r2(ta - s2)) + '.' : null, fn: function () {
+      act('Explotar en ' + plural(on.length, 'recibo', 'recibos'), { icon: 'layers', why: !on.length ? 'Marca al menos una factura.' : !x.rOk ? 'La suma de los recibos marcados (' + money(s2) + ') no cuadra con la línea (' + money(ta) + '): diferencia ' + money(r2(ta - s2)) + '.' : null, fn: function () {
         var res = L.explode(l2, on); V.rem = res.rid; V.est = 'all'; V.sel = {}; V.cur = l2.id; self.toast('Remesa ' + res.rid + ' desglosada en ' + res.lines.length + ' recibos. Se muestran filtradas sus líneas.'); } });
     }
-    if (d.kind === 'rems') { x.title = 'Remesas SEPA · ' + L.soc.short + ' · ' + L.y; x.cls = 'fc-dlg fc-wide'; x.sim = false; x.cancelT = 'Cerrar';
+    if (d.kind === 'rems') { x.title = 'Remesas SEPA · ' + L.soc.short + ' · ' + self.lnYears(V).join(', '); x.cls = 'fc-dlg fc-wide ln-xwide'; x.sim = false; x.cancelT = 'Cerrar';
       var pendR = L.LINES.filter(function (l) { return l.rem && !l.expl; });
-      x.rpend = pendR.map(function (l) { return { t: 'Línea ' + l.num + ' · ' + fdate(l.fo) + ' · ' + L.bank(l.bank).short, imp: num(l.imp), go: self.lnB('Explotar…', { cls: 'fc-sm fc-pri', why: !can ? NP : null, fn: function () { V.cur = l.id; V.dlg = { kind: 'rem', id: l.id, items: L.remCands(l) }; } }) }; });
+      pendR = pendR.filter(function (l) { return V.ejs[l.y]; });
+      x.rpend = pendR.map(function (l) { var b = L.bank(l.bank); return { t: 'Línea ' + l.num, fo: fdate(l.fo), cta: b.cta, bank: b.short, imp: money(Math.abs(l.imp)), go: self.lnB('Explotar…', { cls: 'fc-sm fc-pri', why: !can ? NP : L.closed(l.y) ? 'El ejercicio ' + l.y + ' está cerrado.' : null, fn: function () { V.cur = l.id; V.dlg = { kind: 'rem', id: l.id, items: L.remCands(l) }; } }) }; });
       x.rpNone = !pendR.length;
-      x.rdone = Object.keys(L.REMS).sort().reverse().map(function (k2) { var R = L.REMS[k2]; return { t: k2 + ' · línea ' + R.from + ' · ' + fdate(R.fo), n: R.n + ' recibos', imp: num(R.imp), go: self.lnB('Ver sus líneas', { cls: 'fc-sm', fn: function () { V.dlg = null; self.lnFilterRem(V, k2); } }) }; });
+      x.rdone = Object.keys(L.REMS).filter(function (k2) { return V.ejs[L.REMS[k2].y]; }).sort(function (a, b) { return L.REMS[a].fo < L.REMS[b].fo ? 1 : -1; }).map(function (k2) { var R = L.REMS[k2], b = L.bank(R.bank);
+        return { id: k2, cta: R.cta, ctaD: L.ctaD(R.cta), from: 'Línea ' + R.from + ' · ' + b.short, fechas: fdate(R.desde) + ' a ' + fdate(R.hasta), n: String(R.n), imp: money(R.imp), go: self.lnB('Ver sus líneas', { cls: 'fc-sm', fn: function () { V.dlg = null; self.lnFilterRem(V, k2, L); } }) }; });
       x.rdNone = !x.rdone.length; }
     if (d.kind === 'unrem') { var l3 = lines[0]; x.title = 'Deshacer el desglose · remesa ' + l3.remId;
       x.uT = 'Se borrarán los recibos generados por la remesa ' + l3.remId + ', las facturas volverán a estar pendientes de cobro y la línea ' + l3.num + ' volverá a «Remesa por explotar».';
       act('Deshacer el desglose', { icon: 'undo', fn: function () { var rid = l3.remId, err = L.unexplode(l3); if (err) { self.toast(err); self.bump(); return false; } if (V.rem === rid) V.rem = ''; self.toast('Desglose de la remesa ' + rid + ' deshecho.'); } }); }
     if (d.kind === 'tras') { x.title = 'Traspaso entre bancos';
-      x.tl = lines.map(function (l) { return { t: 'Línea ' + l.num + ' · ' + L.bank(l.bank).short + ' · ' + fdate(l.fo), imp: num(l.imp) }; });
+      x.tl = lines.map(function (l) { return { t: 'Línea ' + l.num + ' · ' + L.bank(l.bank).short + ' · ' + fdate(l.fo), imp: money(l.imp) }; });
       x.tT = 'Las dos líneas se imputan a la ' + L.PAR.tras + ' (' + L.ctaD(L.PAR.tras) + ') y quedan vinculadas: los dos asientos se compensan en esa cuenta.';
       act('Vincular como traspaso', { icon: 'swap', fn: function () { lines.forEach(function (l, i) { l.cta = L.PAR.tras; l.kw = -1; l.link = lines[1 - i].num; }); self.toast('Traspaso registrado entre las líneas ' + lines[0].num + ' y ' + lines[1].num + ' (' + L.PAR.tras + ').'); } }); }
     if (d.kind === 'exp') {
@@ -5646,9 +5810,39 @@ class Component extends DCLogic {
     if (d.kind === 'unexp') { x.title = 'Borrar asiento' + (lines.length > 1 ? 's' : '') + ' · ' + self.lnScopeT(lines);
       x.uT = 'Se borrará' + (lines.length > 1 ? 'n los ' + lines.length + ' asientos' : ' el asiento ' + lines[0].exp.as) + ' y las líneas quedarán sin exportar, con su cuenta.';
       act('Borrar', { icon: 'trash', fn: function () { lines.forEach(function (l) { l.exp = null; }); self.toast(plural(lines.length, 'asiento borrado', 'asientos borrados') + '.'); } }); }
-    if (d.kind === 'as') { x.title = lines.length > 1 ? 'Asientos de ' + ofs(lines.length) : 'Asiento ' + lines[0].exp.as; x.cls = 'fc-dlg fc-wide'; x.sim = false; x.cancelT = 'Cerrar';
-      x.asl = lines.map(function (l) { return { h: l.exp.as + ' · ' + fdate(l.exp.fecha) + ' · línea ' + l.num, ap: L.apuntes(l).map(function (a) { return { cta: a.cta, d: a.d, con: a.con, doc: a.doc || '', debe: a.debe ? num(a.debe) : '', haber: a.haber ? num(a.haber) : '' }; }) }; }); }
+    if (d.kind === 'as') { var l9 = lines[0], prop = lines.length === 1 && !l9.exp; x.title = lines.length > 1 ? 'Asientos de ' + ofs(lines.length) : prop ? 'Asiento propuesto · línea ' + l9.num : 'Asiento ' + l9.exp.as; x.cls = 'fc-dlg fc-wide'; x.sim = false; x.cancelT = 'Cerrar';
+      x.asProp = prop; x.asPropT = !prop ? '' : L.state(l9) === 'REM' ? 'Remesa sin desglosar: al explotarla, la línea pasa de su banco a la ' + L.par(l9).rem + ' y cada recibo genera su propio asiento hacia la 430 del cliente.' : 'La línea no está exportada: estos son los apuntes que generaría' + (l9.cta ? '.' : ', a la ' + L.par(l9).t555 + ' porque no tiene subcuenta de destino.');
+      x.asl = lines.map(function (l) { var ap = L.apuntes(l); return { h: l.exp ? l.exp.as + ' · ' + fdate(l.exp.fecha) + ' · línea ' + l.num : 'Sin exportar · fecha ' + fdate(l.fo) + ' · línea ' + l.num,
+        ap: ap.map(function (a) { return { cta: a.cta, d: a.d, con: a.con, doc: a.doc || '', debe: a.debe ? money(a.debe) : '', haber: a.haber ? money(a.haber) : '', dbl: function (e) { e.stopPropagation(); V.dlg = null; self.lnOpenMayor(L, V, a.cta); self.bump(); } }; }),
+        tD: money(ap.reduce(function (s9, a) { return s9 + a.debe; }, 0)), tH: money(ap.reduce(function (s9, a) { return s9 + a.haber; }, 0)) }; });
+      if (prop && self.lnActs(L, V, [l9]).filter(function (a) { return a.t && a.t.indexOf('Exportar') === 0 && !a.why; }).length) act('Exportar a contabilidad', { icon: 'book', fn: function () { L.export(l9); self.toast('Línea ' + l9.num + ' exportada: asiento ' + l9.exp.as + (l9.exp.c555 ? ' a la ' + l9.exp.cta : '') + '.'); } }); }
     return x;
+  }
+
+  /* Mayor provisional de una subcuenta, con los apuntes generados desde Norma 43 (el Mayor vitaminado se prototipa después) */
+  lnMayorVals(t, cw, zen, m) {
+    var self = this, L = this.lnData(), cta = t.cta, st = t.st, yrs = Object.keys(st.ejs).map(Number).sort(function (a, b) { return b - a; });
+    var go = function (fn) { return function (e) { if (e && e.stopPropagation) e.stopPropagation(); fn(e); self.bump(); }; };
+    var ents = [];
+    L.LINES.forEach(function (l) { if (!l.exp || !st.ejs[l.y]) return; L.apuntes(l).forEach(function (a) { if (a.cta === cta) ents.push({ l: l, a: a }); }); });
+    ents.sort(function (p, q) { return p.l.exp.fecha < q.l.exp.fecha ? -1 : p.l.exp.fecha > q.l.exp.fecha ? 1 : p.l.num - q.l.num; });
+    var sal = 0, tD = 0, tH = 0, sfmt = function (v) { v = r2(v); return v === 0 ? money(0) : money(Math.abs(v)) + (v > 0 ? ' D' : ' H'); };
+    m.lmy = true; m.sk = t.id + ':grid';
+    m.my2 = { cta: cta, d: L.ctaD(cta), sub: L.soc.short + ' · ' + (yrs.length > 1 ? 'ejercicios ' : 'ejercicio ') + yrs.join(', '),
+      cols: 'grid-template-columns: 96px 128px minmax(220px, 1fr) minmax(220px, 1.2fr) 120px 130px 130px 150px',
+      note: 'Mayor provisional: solo muestra los apuntes generados desde Norma 43. Se sustituirá por el Mayor vitaminado.', infoIc: FC_IC.info,
+      rows: ents.map(function (e) { var a = e.a, l = e.l; sal += a.debe - a.haber; tD += a.debe; tH += a.haber;
+        return { fecha: fdate(l.exp.fecha), as: l.exp.as, con: a.con, ori: l.con, doc: a.doc || '', debe: a.debe ? money(a.debe) : '', haber: a.haber ? money(a.haber) : '', saldo: sfmt(sal),
+          tip: 'Línea ' + l.num + ' · doble clic: ir a la línea bancaria', open: go(function () { self.lnGoLine(l); }) }; }),
+      debe: money(tD), haber: money(tH), saldo: sfmt(sal), n: plural(ents.length, 'apunte', 'apuntes'), empty: !ents.length, has: ents.length > 0,
+      back: go(function () { self.openDest('lineas'); }) };
+    return m;
+  }
+  lnGoLine(l) {
+    this.openDest('lineas', { quiet: true });
+    var env = this.lnEnv(this.tab('lineas')), V = env.V;
+    Object.assign(V, { q: '', est: 'all', bank: 'all', dh: 'all', kwf: 'all', rem: '', desde: '', hasta: '', desdeTxt: '', hastaTxt: '', imin: '', imax: '', menu: null, dlg: null });
+    V.ejs[l.y] = 1; V.sel = {}; V.cur = l.id; V.detailOpen = true; this.lnFocus('r:' + l.id);
   }
 
   moduleVals(cw, zen) {
@@ -5696,6 +5890,7 @@ class Component extends DCLogic {
       return m;
     }
     if (t.kind === 'lineas') return this.lnVals(t, cw, zen, m);
+    if (t.kind === 'lnmayor') return this.lnMayorVals(t, cw, zen, m);
     if (t.kind === 'n43') {
       var st5 = t.st, fl = this.files(), rop5 = this.runningOp(); m.n43 = true; m.sk = t.id + ':main';
       m.folder = 'C:\\ProConta\\Bancos\\Entrada\\' + soc.short.replace(/\s+/g, '-');

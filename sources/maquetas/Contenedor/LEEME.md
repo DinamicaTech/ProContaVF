@@ -77,3 +77,5 @@ Los datos son ficticios. Los cambios duran mientras la página está abierta.
 - Las acciones viven en el menú contextual y dependen de la selección (simple, múltiple o ambas); si una no está disponible, se indica el motivo.
 - Diálogos: remesas, explotar remesa con vista previa, dividir en fracciones, asignar subcuenta, palabras clave, traspaso entre bancos, exportar y subcuentas por sociedad y ejercicio.
 - A 2560 × 1440 el detalle queda fijo a la derecha; en pantallas pequeñas se abre como panel superpuesto con Intro o doble clic.
+- Ronda 2: importes en euros, selector de ejercicio múltiple (los cerrados, solo consulta), columnas de subcuenta de origen y de destino, remesas con subcuenta, fechas, recibos e importe, palabras clave eligiendo el criterio en el concepto (con edición y borrado de las existentes), doble clic para ver el asiento y doble clic en una subcuenta para abrir su mayor provisional.
+- En todo el contenedor, «Ampliar área de trabajo» pasa a ser un separador arrastrable entre el menú lateral y la pantalla; oculto deja una franja para recuperarlo (Ctrl+Mayús+M provisional).
