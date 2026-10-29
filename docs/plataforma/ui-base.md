@@ -20,6 +20,8 @@ Dirige la validación de los prototipos HTML de las pantallas principales (conte
 - 2026-10-29 10:30 · Reglas visuales comunes: todo control lleva un tooltip descriptivo; cada campo mide lo que su contenido; los textos no se recortan si hay espacio para mostrarlos completos; no se escriben palabras enteras en mayúsculas, ni por estilo (encabezados de columna o de sección), salvo siglas como NIF o CIF.
 
 - 2026-10-29 10:30 · Errores de validación de campo: el campo se marca con borde rojo e icono y el mensaje completo va en su tooltip (al pasar el ratón o al enfocarlo) y en el resumen superior con enlace a cada campo; ningún campo cambia de tamaño ni lleva texto de error debajo. Los cuadros de mensaje se reservan para errores que bloquean y piden una decisión (por ejemplo, un guardado fallido) y la barra de estado para avisos que no bloquean.
+- 2026-10-29 10:58 · Validado por el propietario el prototipo del contenedor con Terceros (lienzo «ProConta · Contenedor principal», versión 16, igual a `sources/maquetas/Contenedor/`), con la ronda 1 de cambios aplicada; la pestaña Contabilidad de la ficha queda pendiente del prototipo del Mayor.
+
 ## Requirements
 - 2026-10-28 12:28 · From sources/01_ESPECIFICACION_FUNCIONAL.docx § 6 RF-UI-02, 03, 06: look and feel de las maquetas con estilos compartidos, campos del ancho de su contenido, accesibilidad y mensajes
 - 2026-10-28 12:28 · From sources/traspaso-2026-10-03/referencias/Facturacion/docs/contratos/UI-BASE.md: contrato anterior
