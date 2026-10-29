@@ -38,8 +38,8 @@ Dirige la validación de los prototipos HTML de las pantallas principales (conte
 - 2026-10-29 10:21 · Normalmente intentaremos evitar palabras completas en mayúsculas (excepto casos como NIF, CIF, etc.)
 - 2026-10-29 10:23 · answer: ¿cómo se muestran los errores de validación de los campos? → borde rojo y tooltip
 - 2026-10-29 11:38 · La resolución de las pantallas (al menos las nuestras) que usarán ProContaVF es de 2560 x 1440, no vamos a condicionar el diseño de pantalla por resoluciones inferiores mientras sigan siendo funcionales.
-- 2026-10-29 12:32 · answer: ¿qué escala de Windows usan los monitores de 2560×1440? → 100 %
 - 2026-10-29 11:38 · Sí, en las columnas con texto largo, mostramos el inicio del texto con ... y el texto completo en ToolTip.
+- 2026-10-29 12:32 · answer: ¿qué escala de Windows usan los monitores de 2560×1440? → 100 %
 
 ## Hand-over
 - 2026-10-29 10:20 · Hecho: acceso al lienzo confirmado, decisión HTML frente a WPF, desglose acordado y requisitos derivados en cada nodo de pantalla. Mayor antiguo exportado y analizado (`sources/proconta-antiguo/mayor/ANALISIS-FUNCIONAL.md`). Pendiente: validar los prototipos en el orden acordado, crear los de importación de compras y Mayor, y después la biblioteca WPF con su pantalla de muestra.
