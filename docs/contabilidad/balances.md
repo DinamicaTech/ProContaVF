@@ -4,6 +4,7 @@ status: draft
 depends_on: [contabilidad/asientos, informes/reporting]
 threads:
   - Carga de requisitos | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GRNMH95h9tnQp4dmEPHmw1w
+  - Analizar formularios del ProConta antiguo | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5G5wuUSovHLCVH22T7EntXcw
 ---
 ## Summary
 Balance de sumas y saldos, de situación, pérdidas y ganancias y comparativos, con trazabilidad al origen; los presenta informes/reporting.
@@ -17,3 +18,4 @@ Balance de sumas y saldos, de situación, pérdidas y ganancias y comparativos, 
 - 2026-10-28 12:28 · From ProConta/BalancePyG2026_Nuevo.xlsx y BalanceSituacion2026_Nuevo.xlsx (disco del propietario): formatos de referencia
 - 2026-10-28 12:28 · draft: Implementar los balances con sus ejemplos esperados.
 - 2026-10-28 12:28 · question: P-09 ¿los formatos de balance son los xlsx _Nuevo de la carpeta ProConta? (a) sí ✅ (b) otros
+- 2026-10-29 17:45 · From sources/proconta-antiguo/menu-principal/ANALISIS-FUNCIONAL.md § 4: exportaciones Balance PyG, PyG detallado y Balance de situación del menú antiguo.

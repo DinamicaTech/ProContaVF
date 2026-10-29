@@ -4,6 +4,7 @@ status: draft
 depends_on: [informes/reporting, contabilidad/asientos]
 threads:
   - Carga de requisitos | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GRNMH95h9tnQp4dmEPHmw1w
+  - Analizar formularios del ProConta antiguo | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5G5wuUSovHLCVH22T7EntXcw
 ---
 ## Summary
 Informes que el usuario analiza en tablas dinámicas de Excel a partir de los datos contables y de facturación.
@@ -17,3 +18,4 @@ Informes que el usuario analiza en tablas dinámicas de Excel a partir de los da
 - 2026-10-28 13:14 · Q6) a)
 - 2026-10-28 12:28 · draft: Implementar los informes en tablas dinámicas Excel.
 - 2026-10-28 12:28 · question: ¿qué informes primero? (a) diario/mayor y ventas/compras por tercero y mes ✅ (b) los describes tú
+- 2026-10-29 17:45 · From sources/proconta-antiguo/menu-principal/ANALISIS-FUNCIONAL.md § 4: listados de Mayor y Diario a Excel del menú antiguo.
