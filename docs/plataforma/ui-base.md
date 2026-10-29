@@ -40,6 +40,8 @@ Dirige la validación de los prototipos HTML de las pantallas principales (conte
 - 2026-10-29 11:38 · La resolución de las pantallas (al menos las nuestras) que usarán ProContaVF es de 2560 x 1440, no vamos a condicionar el diseño de pantalla por resoluciones inferiores mientras sigan siendo funcionales.
 - 2026-10-29 11:38 · Sí, en las columnas con texto largo, mostramos el inicio del texto con ... y el texto completo en ToolTip.
 - 2026-10-29 12:32 · answer: ¿qué escala de Windows usan los monitores de 2560×1440? → 100 %
+- 2026-10-29 16:37 · Siempre aplicar currency a importes.
+- 2026-10-29 16:37 · En un principio, las cuentas bancarias serán siempre en euros o se habrán convertido a euros, trabajar en contabilidad con dos monedas a la vez puede ser complicado.
 
 ## Hand-over
 - 2026-10-29 10:20 · Hecho: acceso al lienzo confirmado, decisión HTML frente a WPF, desglose acordado y requisitos derivados en cada nodo de pantalla. Mayor antiguo exportado y analizado (`sources/proconta-antiguo/mayor/ANALISIS-FUNCIONAL.md`). Pendiente: validar los prototipos en el orden acordado, crear los de importación de compras y Mayor, y después la biblioteca WPF con su pantalla de muestra.

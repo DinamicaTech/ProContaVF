@@ -16,3 +16,4 @@ Resolutor único de la ubicación de datos y de la ruta exacta de la BD (CFG-GLO
 - 2026-10-28 12:28 · From sources/01_ESPECIFICACION_FUNCIONAL.docx § 4 RF-CFG-01..05: resolutor único, precedencia de fuentes, configuración fuera de Access, comprobación de esquema al arrancar
 - 2026-10-28 12:28 · From sources/traspaso-2026-10-03/referencias/ConfiguracionGlobal/docs/CONTRATO_PUBLICO.md y CONFIGURACION_DATOS.md: contrato anterior
 - 2026-10-28 12:28 · draft: Implementar la resolución de la ruta de datos y la comprobación de compatibilidad del esquema al arrancar.
+- 2026-10-29 16:37 · Sí, la configuración de subcuentas desde la configuración global, cuando esté, podremos añadir un botón para que desde el popup de subcuentas se pueda saltar directamente a la configuración de subcuentas.

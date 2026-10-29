@@ -18,3 +18,5 @@ Aplicación principal (UI-PRINCIPAL): cabecera con empresa, ejercicio y operador
 - 2026-10-28 12:28 · From sources/maquetas/Contenedor/: maqueta del contenedor
 - 2026-10-28 12:28 · draft: Construir el contenedor WPF según la maqueta del contenedor.
 - 2026-10-29 10:20 · Derived from plataforma/ui-base: validar con el propietario el prototipo HTML final del contenedor (lienzo «ProConta · Contenedor principal») antes de construir su UI WPF.
+- 2026-10-29 13:04 · Veo la opción de 'Ampliar área de trabajo'. Quizá es más sencillo un slider para encoger la parte los menús de la izquierda y una hotkey global para ocultar/mostrar el menú (nunca se ocultará del todo, siempre quedará el slider para poderlo desocultar sin saber la hotkey).
+- 2026-10-29 16:37 · Igual que en la pantalla anterior, el 'Ampliar área de trabajo' un slider entre los menús y el formulario
