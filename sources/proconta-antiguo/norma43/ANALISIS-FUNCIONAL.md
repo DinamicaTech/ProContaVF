@@ -156,7 +156,13 @@ Se abre con doble clic en la lista, desde "movimientos parecidos" y desde el May
 
 ### 6.2 Remesas SEPA
 
-Una remesa de recibos domiciliados llega al banco como una sola línea. Al explotarla, se busca la remesa (o varias del mismo día cuya suma cuadre con el importe), se crea una cabecera nueva con una línea por recibo y su cuenta de cliente, y la línea original queda "explotada". Los recibos devueltos se tratan igual (varios recibos que suman el cargo, como mucho de 180 días antes). Se puede deshacer por cabecera, aunque no desde esta pantalla.
+Una remesa de recibos domiciliados llega al banco como una sola línea, con una palabra clave de tipo remesa. El desglose completo está en la pantalla de importación (`frmN43Importar`, botones "Explota Remesas Bancarias", "Explota Devoluciones Bancarias" y "Des-Explota Remesas Bancarias") y trata todas las remesas sin desglosar del ejercicio, o las de un fichero:
+
+1. Para cada línea de remesa busca las **facturas de contrato** del mismo mes cuyos clientes tienen un esquema de cobro fraccionado con el día de cargo a **±3 días** de la fecha de la línea, agrupadas por esquema, y se queda con el grupo cuya suma más se acerca al importe.
+2. Crea una cabecera N43 nueva ("Remesa …") de un banco ficticio, con **una línea por factura** con su titular, llevada a la 430 de cada cliente, y marca las facturas como cobradas.
+3. La línea original queda "explotada" y pasa de la cuenta del banco a la cuenta del banco ficticio, que queda a cero cuando se exportan las nuevas.
+
+Los recibos devueltos se tratan igual (varios recibos que suman el cargo, como mucho de 180 días antes). "Des-Explota" borra la cabecera ficticia, sus líneas y sus asientos, y libera los recibos. En `frmLineasN43` el botón quería hacer lo mismo solo con la línea seleccionada y quedó a medias.
 
 ## 7. Asiento que genera una línea
 
