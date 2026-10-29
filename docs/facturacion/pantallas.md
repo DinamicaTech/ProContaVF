@@ -17,6 +17,7 @@ Listado filtrable de facturas y programaciones con selección explícita, ficha 
 - 2026-10-29 12:05 · La maqueta de Facturas se valida primero en su página propia y, una vez validada, se reescribe en el formato del lienzo dentro del contenedor, porque el lienzo no admite incrustar otra página; así cada ronda de cambios se hace una sola vez.
 - 2026-10-29 12:32 · Validado por el propietario el prototipo de Facturas emitidas y programadas (listado y detalle), maqueta `sources/maquetas/Facturas/` con la ronda 1 de cambios. Queda pendiente reescribirlo dentro del lienzo del contenedor.
 - 2026-10-29 12:53 · Reescrito dentro del contenedor: la pestaña «Facturas emitidas» de `sources/maquetas/Contenedor/` y del lienzo muestra la pantalla validada; el lienzo añade una mesa de trabajo a 2560 × 1440. Pendiente del último vistazo del propietario en el lienzo.
+- 2026-10-29 13:04 · Validado por el propietario el prototipo de Facturas emitidas y programadas dentro del contenedor (lienzo, versión 17).
 
 ## Requirements
 - 2026-10-28 12:28 · From sources/01_ESPECIFICACION_FUNCIONAL.docx § 10 RF-FAC-10: listado, selección, proforma, contadores
@@ -27,3 +28,4 @@ Listado filtrable de facturas y programaciones con selección explícita, ficha 
 - 2026-10-29 11:38 · Sí, integrada en el contenedor
 - 2026-10-29 11:38 · La resolución de las pantallas (al menos las nuestras) que usarán ProContaVF es de 2560 x 1440, no vamos a condicionar el diseño de pantalla por resoluciones inferiores mientras sigan siendo funcionales. Lo único que añadiría es poder modificar el tamaño de la sección de programadas y emitidas para poder ajustar medidas para resoluciones más bajas.
 - 2026-10-29 12:32 · La maqueta la veo ok.
+- 2026-10-29 13:04 · Por lo demás, veo bien la maqueta, lo único que falta es ver qué funcionalidad de podemos dar a una doble pantalla.
