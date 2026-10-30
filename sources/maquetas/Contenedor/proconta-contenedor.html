@@ -2691,9 +2691,9 @@ textarea.fc-in{height:auto;padding:6px 8px;resize:vertical}
 </div>
 <sc-if value="{{m.cl.has}}" hint-placeholder-val="{{true}}"><div class="fc-tfoot"><span class="fc-tn">{{m.cl.foot}}</span><span class="fc-grow"></span><span>{{m.cl.help}}</span></div></sc-if>
 </section>
-<div class="cp-split" role="separator" aria-orientation="vertical" aria-label="Ancho de la lista" tabindex="0" data-fk="cp:split" title="{{m.tg.splitTip}}" onMouseDown="{{m.tg.splitDown}}" onDoubleClick="{{m.tg.splitReset}}" onKeyDown="{{m.tg.splitKey}}"><span></span></div>
+<sc-if value="{{m.tg.spLOn}}" hint-placeholder-val="{{true}}"><div class="cp-split" role="separator" aria-orientation="vertical" aria-label="Ancho de la lista" tabindex="0" data-fk="{{m.tg.spL.fk}}" title="{{m.tg.spL.tip}}" onMouseDown="{{m.tg.spL.down}}" onDoubleClick="{{m.tg.spL.reset}}" onKeyDown="{{m.tg.spL.key}}"><span></span></div></sc-if>
 </sc-if>
-<section class="fc-panel cp-form" aria-label="Datos de la factura">
+<section class="fc-panel cp-form" aria-label="Datos de la factura" style="{{m.tg.formSt}}">
 <sc-if value="{{m.cf.empty}}" hint-placeholder-val="{{false}}"><div class="fc-state"><b>Sin factura activa</b><span>Elige una factura en la lista.</span></div></sc-if>
 <sc-if value="{{m.cf.has}}" hint-placeholder-val="{{true}}">
 <div class="fc-dh">
@@ -2771,6 +2771,7 @@ textarea.fc-in{height:auto;padding:6px 8px;resize:vertical}
 </div>
 </sc-if>
 </section>
+<sc-if value="{{m.tg.spFOn}}" hint-placeholder-val="{{true}}"><div class="cp-split" role="separator" aria-orientation="vertical" aria-label="Ancho de los datos de la factura" tabindex="0" data-fk="{{m.tg.spF.fk}}" title="{{m.tg.spF.tip}}" onMouseDown="{{m.tg.spF.down}}" onDoubleClick="{{m.tg.spF.reset}}" onKeyDown="{{m.tg.spF.key}}"><span></span></div></sc-if>
 <sc-if value="{{m.tg.pdfOff}}" hint-placeholder-val="{{false}}"><button type="button" class="cp-reopen" onClick="{{m.tg.pdfShow}}" title="Mostrar el PDF">PDF</button></sc-if>
 <sc-if value="{{m.tg.pdfOn}}" hint-placeholder-val="{{true}}">
 <section class="{{m.tg.vCls}}" aria-label="PDF de la factura" style="{{m.tg.vSt}}">
@@ -6914,20 +6915,28 @@ class Component extends DCLogic {
     m.cm = this.cpMenuVals(C, V, scope, go, B, can, NP);
     var wide = cw >= 2000, mid = cw >= 1500;
     var LW = this.cpColW('compras-lay'), lw = V.listOn && LW.list ? LW.list : 0, ud = V.pdfOn && V.undock;
-    m.tg.listSt = lw ? 'flex: 0 0 ' + lw + 'px' : ''; m.tg.undock = ud; m.tg.winIc = CP_IC.undock; m.tg.vCls = 'fc-panel cp-view' + (ud ? ' cp-float' : '');
+    m.tg.listSt = lw && !ud ? 'flex: 0 0 ' + lw + 'px' : ''; m.tg.undock = ud; m.tg.winIc = CP_IC.undock; m.tg.vCls = 'fc-panel cp-view' + (ud ? ' cp-float' : '');
     m.tg.vSt = ud ? 'left: ' + (V.fx === null ? 'auto' : V.fx + 'px') + '; top: ' + (V.fy === null ? '120px' : V.fy + 'px') + (V.fx === null ? '; right: 24px' : '') : '';
     m.tg.dock = B('Acoplar', { icon: 'dock', cls: 'fc-sm', title: 'Vuelve a poner el visor dentro de la pantalla', fn: function () { V.undock = false; } });
     m.tg.floatDown = function (e) { if (e.button !== 0 || e.target.closest('button')) return; e.preventDefault(); var el = e.currentTarget.parentNode, r = el.getBoundingClientRect(), dx = e.clientX - r.left, dy = e.clientY - r.top;
       var mv = function (ev) { V.fx = Math.max(0, Math.min(window.innerWidth - 120, ev.clientX - dx)); V.fy = Math.max(0, Math.min(window.innerHeight - 40, ev.clientY - dy)); el.style.left = V.fx + 'px'; el.style.top = V.fy + 'px'; el.style.right = 'auto'; };
       var up = function () { document.removeEventListener('mousemove', mv); document.removeEventListener('mouseup', up); self.bump(); }; document.addEventListener('mousemove', mv); document.addEventListener('mouseup', up); };
-    var lim = function (w) { var ws = document.querySelector('.cpx .cp-ws'), fm = document.querySelector('.cpx .cp-form'); if (!ws || !fm) return w; var max = ws.clientWidth - 20 - fm.getBoundingClientRect().width - 20 - (V.pdfOn && !V.undock ? 320 : 0); return Math.round(Math.max(260, Math.min(max, w))); };
-    var setLW = function (w) { if (w) LW.list = w; else delete LW.list; self.lnColSave(); self.bump(); };
-    m.tg.splitTip = 'Arrastra para cambiar el ancho de la lista (el visor gana o pierde ese espacio); doble clic: ancho de fábrica. Se guarda para ti.';
-    m.tg.splitDown = function (e) { if (e.button !== 0) return; e.preventDefault(); var ls = document.querySelector('.cpx .cp-list'), x0 = e.clientX, w0 = ls.getBoundingClientRect().width, last = w0; document.body.style.cursor = 'col-resize';
-      var mv = function (ev) { last = lim(w0 + ev.clientX - x0); ls.style.flex = '0 0 ' + last + 'px'; };
-      var up = function () { document.removeEventListener('mousemove', mv); document.removeEventListener('mouseup', up); document.body.style.cursor = ''; if (Math.abs(last - w0) > 2) setLW(last); }; document.addEventListener('mousemove', mv); document.addEventListener('mouseup', up); };
-    m.tg.splitReset = function (e) { e.preventDefault(); setLW(0); };
-    m.tg.splitKey = function (e) { if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight' && e.key !== 'Home') return; e.preventDefault(); e.stopPropagation(); self.cpFocus('split'); if (e.key === 'Home') return setLW(0); var ls = document.querySelector('.cpx .cp-list'); setLW(lim(ls.getBoundingClientRect().width + (e.key === 'ArrowRight' ? 40 : -40))); };
+    var gw = function (q) { var e = document.querySelector('.cpx ' + q); return e ? e.getBoundingClientRect().width : 0; };
+    var lims = { list: function () { var ws = document.querySelector('.cpx .cp-ws'); return [260, (ws ? ws.clientWidth : 2000) - 40 - gw('.cp-form') - (V.pdfOn && !V.undock ? 320 : 0)]; },
+      form: function () { var ws = document.querySelector('.cpx .cp-ws'); return [440, (ws ? ws.clientWidth : 2000) - 40 - (V.listOn ? gw('.cp-list') : 30) - 320]; } };
+    var mkSplit = function (k, q, tip) {
+      var lim = function (w) { var r = lims[k](); return Math.round(Math.max(r[0], Math.min(r[1], w))); };
+      var setW = function (w) { if (w) LW[k] = w; else delete LW[k]; self.lnColSave(); self.bump(); };
+      return { tip: tip, fk: 'cp:split:' + k,
+        down: function (e) { if (e.button !== 0) return; e.preventDefault(); var el = document.querySelector('.cpx ' + q), x0 = e.clientX, w0 = el.getBoundingClientRect().width, last = w0; document.body.style.cursor = 'col-resize';
+          var mv = function (ev) { last = lim(w0 + ev.clientX - x0); el.style.flex = '0 0 ' + last + 'px'; };
+          var up = function () { document.removeEventListener('mousemove', mv); document.removeEventListener('mouseup', up); document.body.style.cursor = ''; if (Math.abs(last - w0) > 2) setW(last); }; document.addEventListener('mousemove', mv); document.addEventListener('mouseup', up); },
+        reset: function (e) { e.preventDefault(); setW(0); },
+        key: function (e) { if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight' && e.key !== 'Home') return; e.preventDefault(); e.stopPropagation(); self.cpFocus('split:' + k); if (e.key === 'Home') return setW(0); setW(lim(gw(q) + (e.key === 'ArrowRight' ? 40 : -40))); } };
+    };
+    m.tg.spL = mkSplit('list', '.cp-list', 'Arrastra para cambiar el ancho de la lista (el visor gana o pierde ese espacio); doble clic: ancho de fábrica. Se guarda para ti.'); m.tg.spLOn = !ud;
+    m.tg.spF = mkSplit('form', '.cp-form', 'Arrastra para cambiar el ancho de los datos de la factura (el visor gana o pierde ese espacio); doble clic: ancho de fábrica. Se guarda para ti.'); m.tg.spFOn = V.pdfOn && !ud;
+    m.tg.formSt = LW.form ? 'flex: 0 0 ' + LW.form + 'px' : '';
     m.cpCls = 'cp-ws' + (V.listOn ? '' : ' cp-nolist') + (V.pdfOn && !ud ? '' : ' cp-nopdf') + (ud ? ' cp-ud' : '') + (wide ? ' cp-w3' : mid ? ' cp-w2' : ' cp-w1');
     m.cpKey = function (e) { self.cpRootKey(C, V, e, list, scope, cur); };
     return m;
