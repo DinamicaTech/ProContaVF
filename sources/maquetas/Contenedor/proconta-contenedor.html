@@ -1029,13 +1029,13 @@ textarea.fc-in{height:auto;padding:6px 8px;resize:vertical}
 .cpx .cp-banner .fc-btn{flex:none}
 .cpx .cp-ws{flex:1 1 auto;min-height:0;display:flex;gap:10px;padding:10px;position:relative}
 .cpx .cp-list{flex:1 1 0;min-width:300px;min-height:0}
-.cpx .cp-form{flex:0 0 440px;min-width:0;min-height:0;overflow:hidden}
+.cpx .cp-form{flex:0 0 560px;min-width:0;min-height:0;overflow:hidden;container-type:inline-size}
 .cpx .cp-view{flex:1 1 0;min-width:320px;min-height:0;overflow:hidden}
-.cpx .cp-w2 .cp-form{flex-basis:480px}
-.cpx .cp-w3 .cp-form{flex-basis:560px}
-.cpx .cp-w3 .cp-list{flex-grow:1.15}
-.cpx .cp-nopdf .cp-form{flex-basis:560px}
-.cpx .cp-nolist .cp-form{flex-basis:520px}
+.cpx .cp-w2 .cp-form{flex-basis:720px}
+.cpx .cp-w3 .cp-form{flex-basis:900px}
+.cpx .cp-w3 .cp-list{flex-grow:1}
+.cpx .cp-nopdf .cp-form{flex-basis:900px}
+.cpx .cp-nolist .cp-form{flex-basis:820px}
 .cpx .cp-reopen{writing-mode:vertical-rl;width:26px;flex:none;border:1px solid var(--ln3);border-radius:8px;background:#fff;color:var(--navy);font-size:12px;font-weight:600;cursor:pointer}
 .cpx .cp-reopen:hover{background:#FFF6EC}
 .cpx .cp-flts{display:flex;flex-wrap:wrap;gap:6px;padding:0 10px 8px;flex:none}
@@ -1063,7 +1063,7 @@ textarea.fc-in{height:auto;padding:6px 8px;resize:vertical}
 .cpx .cp-fname{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .cpx .cp-rect{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--green)}
 .cpx .cp-rect.cp-rect-low{color:var(--amb)}
-.cpx .cp-fbody{gap:16px}
+.cpx .cp-fbody{gap:12px}
 .cpx .cp-g2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px 10px}
 .cpx .cp-l{font-size:12px;color:var(--mut);display:inline-flex;align-items:center;gap:6px}
 .cpx .cp-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:8px}
@@ -1086,16 +1086,19 @@ textarea.fc-in{height:auto;padding:6px 8px;resize:vertical}
 .cpx .cp-capb{height:17px;padding:0 5px;border:1px solid var(--inb);border-radius:4px;background:#fff;font-size:9.5px;font-weight:700;color:var(--mut);cursor:pointer;letter-spacing:.03em}
 .cpx .cp-capb[aria-pressed="true"]{background:var(--green);border-color:var(--green);color:#fff}
 .cpx .cp-mx{border:1px solid var(--ln);border-radius:8px;overflow:hidden}
-.cpx .cp-mh,.cpx .cp-rr{display:grid;grid-template-columns:62px minmax(0,1fr) minmax(0,1fr) minmax(0,1fr);gap:6px;align-items:center;padding:4px 8px}
+.cpx .cp-mh,.cpx .cp-rr{display:grid;grid-template-columns:62px minmax(0,1fr) minmax(0,1fr) minmax(0,1fr);gap:6px;align-items:center;padding:2px 8px}
 .cpx .cp-mh{background:var(--bg2);font-size:11.5px;font-weight:600;color:var(--mut);border-bottom:1px solid var(--ln)}
 .cpx .cp-rr{border-bottom:1px solid var(--ln2)}
 .cpx .cp-rr:last-child{border-bottom:0}
-.cpx .cp-rr .fc-in{height:28px}
+.cpx .cp-rr .fc-in,.cpx .cp-rr .cp-fwn .fc-in{height:26px}
 .cpx .cp-rr:not(.cp-rr-on) .fc-in{background:#fff;border-color:#EEEBE3}
 .cpx .cp-rr-on{background:#FFFCF7}
-.cpx .cp-tots{margin-top:10px}
+.cpx .cp-tots{margin-top:8px}
+.cpx .cp-tots .fc-mr{padding-top:3px;padding-bottom:3px}
 .cpx .cp-tots .fc-mr{grid-template-columns:minmax(0,1fr) 150px}
-.cpx .cp-totfr{align-items:center !important;background:var(--bg2)}
+.cpx .cp-totfr{align-items:center !important;background:var(--bg2);grid-template-columns:auto minmax(0,1fr) 150px !important;gap:8px}
+.cpx .cp-totfr .cp-bd{justify-self:end}
+.cpx .cp-totfr .fc-in{height:28px}
 .cpx .cp-totfr .cp-fw .fc-in{font-weight:700}
 .cpx .cp-chks{display:flex;flex-direction:column;gap:4px}
 .cpx .cp-chk{font-size:12px;line-height:1.4;padding:5px 8px 5px 24px;border-radius:6px;position:relative}
@@ -1150,10 +1153,38 @@ textarea.fc-in{height:auto;padding:6px 8px;resize:vertical}
 .cpx .cp-vies-err{color:var(--amb);border-color:#F2CFA8;background:var(--ambb)}
 .cpx .cp-w1 .cp-paper{zoom:.8;padding:26px 26px 30px}
 .cpx .cp-w1 .cp-vbody{padding:10px}
-.cpx .cp-w1 .cp-form{flex-basis:420px}
-.cpx .cp-w1 .cp-list{min-width:280px}
+.cpx .cp-w1 .cp-form{flex-basis:540px}
+.cpx .cp-w1 .cp-list{min-width:260px}
+.cpx .cp-w1 .cp-view{min-width:300px}
 .cpx .cp-list{position:relative}
 .cpx .cp-selw .fc-bulk{position:absolute;left:10px;right:10px;bottom:44px;z-index:6;border:1px solid var(--ln3);border-radius:10px;box-shadow:0 8px 24px rgba(20,33,58,.18);background:#fff}
+
+.cpx .cp-cols{display:grid;grid-template-columns:minmax(0,1fr);gap:12px}
+.cpx .cp-col{display:flex;flex-direction:column;gap:12px;min-width:0}
+@container (min-width: 680px){.cpx .cp-cols{grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:18px}}
+.cpx .cp-gr2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:6px 10px}
+.cpx .cp-gr3{display:grid;grid-template-columns:minmax(0,.8fr) minmax(0,.8fr) minmax(0,1.4fr);gap:6px 10px;align-items:start}
+.cpx .cp-span{grid-column:1/-1}
+.cpx .cp-gr2 .fc-fld,.cpx .cp-gr3 .fc-fld{gap:3px}
+.cpx .cp-inl{display:flex;align-items:center;gap:4px;min-width:0}
+.cpx .cp-inl .cp-fw{flex:1 1 auto}
+.cpx .fc-btn.cp-icb{width:30px;height:30px;padding:0;justify-content:center;border:1px solid var(--inb);border-radius:7px;background:#fff;flex:none}
+.cpx .fc-btn.cp-icb .fc-ic{margin:0}
+.cpx .fc-btn.cp-icb:hover{background:#FBF7F0}
+.cpx .cp-supl{display:flex;align-items:center;gap:8px;height:30px;margin-top:6px;padding:0 2px 0 9px;border:1px solid var(--ln);border-radius:7px;background:var(--bg2);cursor:default;min-width:0}
+.cpx .cp-supl .cp-supn{font-weight:600;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;flex:0 1 auto}
+.cpx .cp-supl .cp-supc{font-size:11.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;flex:1 1 auto}
+.cpx .cp-supl .fc-btn.cp-icb{width:26px;height:26px;border:0;background:none}
+.cpx .cp-row{margin-top:6px}
+.cpx .cp-gap{margin-left:10px}
+.cpx .fc-chk.cp-l{gap:6px;color:var(--mut)}
+.cpx .cp-dif{align-items:center}
+.cpx .cp-dif .fc-btn{flex:none}
+.cpx .cp-desc{border:1px solid #F3CFC9;background:#FFF8F6;border-radius:8px;padding:10px 12px}
+.cpx .cp-desc p{margin:0 0 8px}
+.cpx .cp-nifg{grid-template-columns:minmax(0,1.5fr) minmax(0,1fr)}
+.cpx .cp-nw{flex-wrap:nowrap;white-space:nowrap}
+.cpx .cp-w1.cp-nolist .cp-form{flex-basis:720px}
 </style>
 
 <style>html,body{height:100%;margin:0}body{min-width:1280px;min-height:760px;overflow:auto}#app{width:100vw;height:100vh;min-width:1280px;min-height:760px}</style>
@@ -2583,13 +2614,11 @@ textarea.fc-in{height:auto;padding:6px 8px;resize:vertical}
 <div class="mod fcx lnx cpx" onKeyDown="{{m.cpKey}}">
 <div class="fc-modbar">
 <h1 class="disp">{{m.cb.title}}</h1><sc-if value="{{m.cb.prueba}}" hint-placeholder-val="{{false}}"><span class="cp-ptag">Modo prueba</span></sc-if>
-<button type="button" class="{{m.cb.tri.cls}}" onClick="{{m.cb.tri.on}}" title="{{m.cb.tri.tip}}"><svg class="fc-ic" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><sc-for list="{{m.cb.calIc}}" as="icd" hint-placeholder-count="2"><path d="{{icd}}"></path></sc-for></svg>{{m.cb.tri.t}}</button>
 <span class="fc-grow"></span>
 <div class="fc-gtools" role="toolbar" aria-label="Herramientas de facturas recibidas"><sc-for list="{{m.cb.tools}}" as="b" hint-placeholder-count="4"><button type="button" class="{{b.cls}}" aria-disabled="{{b.dis}}" title="{{b.tip}}" onClick="{{b.on}}"><sc-if value="{{b.hasIc}}" hint-placeholder-val="{{true}}"><svg class="fc-ic" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><sc-for list="{{b.ic}}" as="icd" hint-placeholder-count="2"><path d="{{icd}}"></path></sc-for></svg></sc-if>{{b.t}}</button></sc-for>
 <button type="button" class="fc-icb" onClick="{{m.cb.kbd}}" title="Atajos de teclado" aria-label="Atajos de teclado"><svg class="fc-ic" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><sc-for list="{{m.cb.kbdIc}}" as="icd" hint-placeholder-count="2"><path d="{{icd}}"></path></sc-for></svg></button></div>
 </div>
 <sc-if value="{{m.cb.prueba}}" hint-placeholder-val="{{false}}"><div class="fc-note cp-banner"><svg class="fc-ic" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><sc-for list="{{m.cb.infoIc}}" as="icd" hint-placeholder-count="2"><path d="{{icd}}"></path></sc-for></svg><span>{{m.cb.pruebaT}}</span></div></sc-if>
-<sc-if value="{{m.cb.triProp}}" hint-placeholder-val="{{false}}"><div class="fc-note fc-warn cp-banner"><svg class="fc-ic" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><sc-for list="{{m.cb.warnIc}}" as="icd" hint-placeholder-count="2"><path d="{{icd}}"></path></sc-for></svg><span class="fc-grow">{{m.cb.triPropT}}</span><button type="button" class="{{m.cb.triGo.cls}}" aria-disabled="{{m.cb.triGo.dis}}" title="{{m.cb.triGo.tip}}" onClick="{{m.cb.triGo.on}}"><sc-if value="{{m.cb.triGo.hasIc}}" hint-placeholder-val="{{true}}"><svg class="fc-ic" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><sc-for list="{{m.cb.triGo.ic}}" as="icd" hint-placeholder-count="2"><path d="{{icd}}"></path></sc-for></svg></sc-if>{{m.cb.triGo.t}}</button><button type="button" class="{{m.cb.triLater.cls}}" aria-disabled="{{m.cb.triLater.dis}}" title="{{m.cb.triLater.tip}}" onClick="{{m.cb.triLater.on}}"><sc-if value="{{m.cb.triLater.hasIc}}" hint-placeholder-val="{{true}}"><svg class="fc-ic" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><sc-for list="{{m.cb.triLater.ic}}" as="icd" hint-placeholder-count="2"><path d="{{icd}}"></path></sc-for></svg></sc-if>{{m.cb.triLater.t}}</button></div></sc-if>
 <div class="{{m.cpCls}}">
 <sc-if value="{{m.tg.listOff}}" hint-placeholder-val="{{false}}"><button type="button" class="cp-reopen" onClick="{{m.tg.listShow}}" title="Mostrar la lista de facturas">Lista</button></sc-if>
 <sc-if value="{{m.tg.listOn}}" hint-placeholder-val="{{true}}">
@@ -2662,60 +2691,61 @@ textarea.fc-in{height:auto;padding:6px 8px;resize:vertical}
 <sc-if value="{{m.cf.chkOn}}" hint-placeholder-val="{{false}}"><div><h3 class="fc-sec">{{m.cf.chkT}}</h3><div class="cp-chks"><sc-for list="{{m.cf.chks}}" as="c" hint-placeholder-count="2"><div class="{{c.cls}}">{{c.t}}</div></sc-for></div></div></sc-if>
 <sc-if value="{{m.cf.chkNone}}" hint-placeholder-val="{{false}}"><div class="fc-note fc-ok"><svg class="fc-ic" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><sc-for list="{{m.cf.checkIc}}" as="icd" hint-placeholder-count="2"><path d="{{icd}}"></path></sc-for></svg><span>Sin avisos: lista para contabilizar.</span></div></sc-if>
 
+<div class="cp-cols"><div class="cp-col">
 <div><h3 class="fc-sec">Proveedor</h3>
-<div class="cp-g2">
-<div class="fc-fld"><label class="cp-l">NIF <button type="button" class="cp-capb" aria-pressed="{{m.cf.nif.capOn}}" onClick="{{m.cf.nif.cap}}" title="La próxima selección en el PDF irá a este campo">PDF</button></label><span class="cp-fw" onMouseEnter="{{m.cf.nif.enter}}" onMouseLeave="{{m.cf.nif.leave}}"><input class="{{m.cf.nif.cls}}" data-fk="{{m.cf.nif.fk}}" value="{{m.cf.nif.v}}" onChange="{{m.cf.nif.set}}" placeholder="{{m.cf.nif.ph}}" readonly="{{m.cf.nif.ro}}" title="{{m.cf.nif.tip}}" aria-invalid="{{m.cf.nif.inv}}"><sc-if value="{{m.cf.nif.bd.on}}" hint-placeholder-val="{{false}}"><span class="{{m.cf.nif.bd.cls}}" title="{{m.cf.nif.bd.tip}}">{{m.cf.nif.bd.t}}</span></sc-if></span></div>
+<div class="cp-gr2 cp-nifg">
+<div class="fc-fld"><label class="cp-l">NIF <button type="button" class="cp-capb" aria-pressed="{{m.cf.nif.capOn}}" onClick="{{m.cf.nif.cap}}" title="La próxima selección en el PDF irá a este campo">PDF</button></label><div class="cp-inl"><span class="cp-fw" onMouseEnter="{{m.cf.nif.enter}}" onMouseLeave="{{m.cf.nif.leave}}"><input class="{{m.cf.nif.cls}}" data-fk="{{m.cf.nif.fk}}" value="{{m.cf.nif.v}}" onChange="{{m.cf.nif.set}}" placeholder="{{m.cf.nif.ph}}" readonly="{{m.cf.nif.ro}}" title="{{m.cf.nif.tip}}" aria-invalid="{{m.cf.nif.inv}}"><sc-if value="{{m.cf.nif.bd.on}}" hint-placeholder-val="{{false}}"><span class="{{m.cf.nif.bd.cls}}" title="{{m.cf.nif.bd.tip}}">{{m.cf.nif.bd.t}}</span></sc-if></span><button type="button" class="{{m.cf.supPick.cls}}" aria-disabled="{{m.cf.supPick.dis}}" title="{{m.cf.supPick.tip}}" onClick="{{m.cf.supPick.on}}"><sc-if value="{{m.cf.supPick.hasIc}}" hint-placeholder-val="{{true}}"><svg class="fc-ic" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><sc-for list="{{m.cf.supPick.ic}}" as="icd" hint-placeholder-count="2"><path d="{{icd}}"></path></sc-for></svg></sc-if>{{m.cf.supPick.t}}</button><button type="button" class="{{m.cf.vies.cls}}" aria-disabled="{{m.cf.vies.dis}}" title="{{m.cf.vies.tip}}" onClick="{{m.cf.vies.on}}"><sc-if value="{{m.cf.vies.hasIc}}" hint-placeholder-val="{{true}}"><svg class="fc-ic" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><sc-for list="{{m.cf.vies.ic}}" as="icd" hint-placeholder-count="2"><path d="{{icd}}"></path></sc-for></svg></sc-if>{{m.cf.vies.t}}</button></div></div>
 <div class="fc-fld"><label class="cp-l">País</label><select class="fc-in" value="{{m.cf.pais}}" onChange="{{m.cf.paisSet}}" disabled="{{m.cf.ro}}" aria-label="País" title="Al cambiarlo se ajusta el tipo de operación"><sc-for list="{{m.cf.paises}}" as="o" hint-placeholder-count="3"><option value="{{o.v}}">{{o.t}}</option></sc-for></select></div>
 </div>
-<sc-if value="{{m.cf.supOn}}" hint-placeholder-val="{{true}}"><div class="cp-sup"><button type="button" class="fc-lnk cp-supn" onClick="{{m.cf.supGo}}" title="{{m.cf.supTip}}">{{m.cf.supName}}</button><span class="fc-mut fc-mono">{{m.cf.supSub}}</span></div></sc-if>
-<sc-if value="{{m.cf.unk}}" hint-placeholder-val="{{false}}"><div class="fc-note fc-warn" style="flex-wrap: wrap"><svg class="fc-ic" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><sc-for list="{{m.cf.warnIc}}" as="icd" hint-placeholder-count="2"><path d="{{icd}}"></path></sc-for></svg><span style="flex: 1 1 200px">{{m.cf.unkT}}</span><span class="fc-btns"><button type="button" class="{{m.cf.unkAlta.cls}}" aria-disabled="{{m.cf.unkAlta.dis}}" title="{{m.cf.unkAlta.tip}}" onClick="{{m.cf.unkAlta.on}}"><sc-if value="{{m.cf.unkAlta.hasIc}}" hint-placeholder-val="{{true}}"><svg class="fc-ic" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><sc-for list="{{m.cf.unkAlta.ic}}" as="icd" hint-placeholder-count="2"><path d="{{icd}}"></path></sc-for></svg></sc-if>{{m.cf.unkAlta.t}}</button><button type="button" class="{{m.cf.unkWeb.cls}}" aria-disabled="{{m.cf.unkWeb.dis}}" title="{{m.cf.unkWeb.tip}}" onClick="{{m.cf.unkWeb.on}}"><sc-if value="{{m.cf.unkWeb.hasIc}}" hint-placeholder-val="{{true}}"><svg class="fc-ic" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><sc-for list="{{m.cf.unkWeb.ic}}" as="icd" hint-placeholder-count="2"><path d="{{icd}}"></path></sc-for></svg></sc-if>{{m.cf.unkWeb.t}}</button></span></div></sc-if>
-<div class="cp-row"><button type="button" class="{{m.cf.supPick.cls}}" aria-disabled="{{m.cf.supPick.dis}}" title="{{m.cf.supPick.tip}}" onClick="{{m.cf.supPick.on}}"><sc-if value="{{m.cf.supPick.hasIc}}" hint-placeholder-val="{{true}}"><svg class="fc-ic" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><sc-for list="{{m.cf.supPick.ic}}" as="icd" hint-placeholder-count="2"><path d="{{icd}}"></path></sc-for></svg></sc-if>{{m.cf.supPick.t}}</button><button type="button" class="{{m.cf.vies.cls}}" aria-disabled="{{m.cf.vies.dis}}" title="{{m.cf.vies.tip}}" onClick="{{m.cf.vies.on}}"><sc-if value="{{m.cf.vies.hasIc}}" hint-placeholder-val="{{true}}"><svg class="fc-ic" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><sc-for list="{{m.cf.vies.ic}}" as="icd" hint-placeholder-count="2"><path d="{{icd}}"></path></sc-for></svg></sc-if>{{m.cf.vies.t}}</button></div>
-<div class="cp-row"><span class="cp-l">Operación</span><div class="fc-seg" role="radiogroup" aria-label="Tipo de operación"><sc-for list="{{m.cf.ops}}" as="o" hint-placeholder-count="3"><button type="button" role="radio" aria-checked="{{o.on}}" aria-disabled="{{m.cf.ro}}" onClick="{{o.pick}}">{{o.t}}</button></sc-for></div><sc-if value="{{m.cf.opBd.on}}" hint-placeholder-val="{{false}}"><span class="{{m.cf.opBd.cls}}" title="{{m.cf.opBd.tip}}">{{m.cf.opBd.t}}</span></sc-if></div>
-<div class="cp-row"><span class="cp-l">Producto</span><div class="fc-seg" role="radiogroup" aria-label="Tipo de producto"><sc-for list="{{m.cf.prods}}" as="o" hint-placeholder-count="2"><button type="button" role="radio" aria-checked="{{o.on}}" aria-disabled="{{m.cf.ro}}" onClick="{{o.pick}}">{{o.t}}</button></sc-for></div></div>
-<sc-if value="{{m.cf.ispShow}}" hint-placeholder-val="{{false}}"><div class="cp-row"><label class="fc-chk"><input type="checkbox" checked="{{m.cf.isp}}" onChange="{{m.cf.ispSet}}" disabled="{{m.cf.ro}}"> Inversión del sujeto pasivo</label><sc-if value="{{m.cf.ispBd.on}}" hint-placeholder-val="{{false}}"><span class="{{m.cf.ispBd.cls}}" title="{{m.cf.ispBd.tip}}">{{m.cf.ispBd.t}}</span></sc-if></div></sc-if>
-<sc-if value="{{m.cf.autoShow}}" hint-placeholder-val="{{false}}"><div class="cp-row"><span class="cp-l">{{m.cf.autoT}}</span><select class="fc-in" style="width: 90px" value="{{m.cf.auto}}" onChange="{{m.cf.autoSet}}" disabled="{{m.cf.ro}}" aria-label="{{m.cf.autoT}}" title="Tipo real de la operación: en ProConta antiguo estaba fijo al 21 %"><option value="21">21 %</option><option value="10">10 %</option><option value="5">5 %</option><option value="4">4 %</option></select></div></sc-if>
+<sc-if value="{{m.cf.supOn}}" hint-placeholder-val="{{true}}"><div class="cp-supl" onDoubleClick="{{m.cf.supGo}}" title="{{m.cf.supTip}}"><span class="cp-supn">{{m.cf.supName}}</span><span class="fc-mut fc-mono cp-supc">{{m.cf.supSub}}</span><button type="button" class="{{m.cf.supOpen.cls}}" aria-disabled="{{m.cf.supOpen.dis}}" title="{{m.cf.supOpen.tip}}" onClick="{{m.cf.supOpen.on}}"><sc-if value="{{m.cf.supOpen.hasIc}}" hint-placeholder-val="{{true}}"><svg class="fc-ic" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><sc-for list="{{m.cf.supOpen.ic}}" as="icd" hint-placeholder-count="2"><path d="{{icd}}"></path></sc-for></svg></sc-if>{{m.cf.supOpen.t}}</button></div></sc-if>
+<sc-if value="{{m.cf.unk}}" hint-placeholder-val="{{false}}"><div class="fc-note fc-warn" style="flex-wrap: wrap; margin-top: 6px"><svg class="fc-ic" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><sc-for list="{{m.cf.warnIc}}" as="icd" hint-placeholder-count="2"><path d="{{icd}}"></path></sc-for></svg><span style="flex: 1 1 200px">{{m.cf.unkT}}</span><span class="fc-btns"><button type="button" class="{{m.cf.unkAlta.cls}}" aria-disabled="{{m.cf.unkAlta.dis}}" title="{{m.cf.unkAlta.tip}}" onClick="{{m.cf.unkAlta.on}}"><sc-if value="{{m.cf.unkAlta.hasIc}}" hint-placeholder-val="{{true}}"><svg class="fc-ic" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><sc-for list="{{m.cf.unkAlta.ic}}" as="icd" hint-placeholder-count="2"><path d="{{icd}}"></path></sc-for></svg></sc-if>{{m.cf.unkAlta.t}}</button><button type="button" class="{{m.cf.unkWeb.cls}}" aria-disabled="{{m.cf.unkWeb.dis}}" title="{{m.cf.unkWeb.tip}}" onClick="{{m.cf.unkWeb.on}}"><sc-if value="{{m.cf.unkWeb.hasIc}}" hint-placeholder-val="{{true}}"><svg class="fc-ic" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><sc-for list="{{m.cf.unkWeb.ic}}" as="icd" hint-placeholder-count="2"><path d="{{icd}}"></path></sc-for></svg></sc-if>{{m.cf.unkWeb.t}}</button></span></div></sc-if>
+<div class="cp-row cp-nw"><div class="fc-seg" role="radiogroup" aria-label="Tipo de operación" title="Tipo de operación"><sc-for list="{{m.cf.ops}}" as="o" hint-placeholder-count="3"><button type="button" role="radio" aria-checked="{{o.on}}" aria-disabled="{{m.cf.ro}}" onClick="{{o.pick}}">{{o.t}}</button></sc-for></div><sc-if value="{{m.cf.opBd.on}}" hint-placeholder-val="{{false}}"><span class="{{m.cf.opBd.cls}}" title="{{m.cf.opBd.tip}}">{{m.cf.opBd.t}}</span></sc-if>
+<div class="fc-seg cp-gap" role="radiogroup" aria-label="Tipo de producto" title="Tipo de producto"><sc-for list="{{m.cf.prods}}" as="o" hint-placeholder-count="2"><button type="button" role="radio" aria-checked="{{o.on}}" aria-disabled="{{m.cf.ro}}" onClick="{{o.pick}}">{{o.t}}</button></sc-for></div></div>
+<sc-if value="{{m.cf.ispRow}}" hint-placeholder-val="{{false}}"><div class="cp-row cp-nw"><sc-if value="{{m.cf.ispShow}}" hint-placeholder-val="{{false}}"><label class="fc-chk"><input type="checkbox" checked="{{m.cf.isp}}" onChange="{{m.cf.ispSet}}" disabled="{{m.cf.ro}}"> Inversión del sujeto pasivo</label><sc-if value="{{m.cf.ispBd.on}}" hint-placeholder-val="{{false}}"><span class="{{m.cf.ispBd.cls}}" title="{{m.cf.ispBd.tip}}">{{m.cf.ispBd.t}}</span></sc-if></sc-if>
+<sc-if value="{{m.cf.autoShow}}" hint-placeholder-val="{{false}}"><span class="cp-l cp-gap">{{m.cf.autoT}}</span><select class="fc-in" style="width: 84px" value="{{m.cf.auto}}" onChange="{{m.cf.autoSet}}" disabled="{{m.cf.ro}}" aria-label="{{m.cf.autoT}}" title="Tipo real de la operación: en ProConta antiguo estaba fijo al 21 %"><option value="21">21 %</option><option value="10">10 %</option><option value="5">5 %</option><option value="4">4 %</option></select></sc-if></div></sc-if>
 </div>
 
 <div><h3 class="fc-sec">Factura</h3>
-<div class="cp-g2">
+<div class="cp-gr2">
 <div class="fc-fld"><label class="cp-l">Fecha <button type="button" class="cp-capb" aria-pressed="{{m.cf.fecha.capOn}}" onClick="{{m.cf.fecha.cap}}" title="La próxima selección en el PDF irá a este campo">PDF</button></label><span class="cp-fw" onMouseEnter="{{m.cf.fecha.enter}}" onMouseLeave="{{m.cf.fecha.leave}}"><input class="{{m.cf.fecha.cls}}" data-fk="{{m.cf.fecha.fk}}" value="{{m.cf.fecha.v}}" onChange="{{m.cf.fecha.set}}" placeholder="{{m.cf.fecha.ph}}" readonly="{{m.cf.fecha.ro}}" title="{{m.cf.fecha.tip}}" aria-invalid="{{m.cf.fecha.inv}}"><sc-if value="{{m.cf.fecha.bd.on}}" hint-placeholder-val="{{false}}"><span class="{{m.cf.fecha.bd.cls}}" title="{{m.cf.fecha.bd.tip}}">{{m.cf.fecha.bd.t}}</span></sc-if></span></div>
 <div class="fc-fld"><label class="cp-l">Número <button type="button" class="cp-capb" aria-pressed="{{m.cf.num.capOn}}" onClick="{{m.cf.num.cap}}" title="La próxima selección en el PDF irá a este campo">PDF</button></label><span class="cp-fw" onMouseEnter="{{m.cf.num.enter}}" onMouseLeave="{{m.cf.num.leave}}"><input class="{{m.cf.num.cls}}" data-fk="{{m.cf.num.fk}}" value="{{m.cf.num.v}}" onChange="{{m.cf.num.set}}" placeholder="{{m.cf.num.ph}}" readonly="{{m.cf.num.ro}}" title="{{m.cf.num.tip}}" aria-invalid="{{m.cf.num.inv}}"><sc-if value="{{m.cf.num.bd.on}}" hint-placeholder-val="{{false}}"><span class="{{m.cf.num.bd.cls}}" title="{{m.cf.num.bd.tip}}">{{m.cf.num.bd.t}}</span></sc-if></span></div>
-</div>
-<div class="fc-fld"><label class="cp-l">Concepto</label><span class="cp-fw" onMouseEnter="{{m.cf.con.enter}}" onMouseLeave="{{m.cf.con.leave}}"><input class="{{m.cf.con.cls}}" data-fk="{{m.cf.con.fk}}" value="{{m.cf.con.v}}" onChange="{{m.cf.con.set}}" placeholder="{{m.cf.con.ph}}" readonly="{{m.cf.con.ro}}" title="{{m.cf.con.tip}}" aria-invalid="{{m.cf.con.inv}}"><sc-if value="{{m.cf.con.bd.on}}" hint-placeholder-val="{{false}}"><span class="{{m.cf.con.bd.cls}}" title="{{m.cf.con.bd.tip}}">{{m.cf.con.bd.t}}</span></sc-if></span></div>
-<div class="cp-g2">
+<div class="fc-fld cp-span"><label class="cp-l">Concepto</label><span class="cp-fw" onMouseEnter="{{m.cf.con.enter}}" onMouseLeave="{{m.cf.con.leave}}"><input class="{{m.cf.con.cls}}" data-fk="{{m.cf.con.fk}}" value="{{m.cf.con.v}}" onChange="{{m.cf.con.set}}" placeholder="{{m.cf.con.ph}}" readonly="{{m.cf.con.ro}}" title="{{m.cf.con.tip}}" aria-invalid="{{m.cf.con.inv}}"><sc-if value="{{m.cf.con.bd.on}}" hint-placeholder-val="{{false}}"><span class="{{m.cf.con.bd.cls}}" title="{{m.cf.con.bd.tip}}">{{m.cf.con.bd.t}}</span></sc-if></span></div>
 <div class="fc-fld"><label class="cp-l">Forma de pago</label><select class="fc-in" value="{{m.cf.fp}}" onChange="{{m.cf.fpSet}}" disabled="{{m.cf.ro}}" aria-label="Forma de pago"><option value="">—</option><sc-for list="{{m.cf.fps}}" as="o" hint-placeholder-count="3"><option value="{{o.v}}">{{o.t}}</option></sc-for></select></div>
 <div class="fc-fld"><label class="cp-l">Vencimiento</label><span class="cp-fw" onMouseEnter="{{m.cf.venc.enter}}" onMouseLeave="{{m.cf.venc.leave}}"><input class="{{m.cf.venc.cls}}" data-fk="{{m.cf.venc.fk}}" value="{{m.cf.venc.v}}" onChange="{{m.cf.venc.set}}" placeholder="{{m.cf.venc.ph}}" readonly="{{m.cf.venc.ro}}" title="{{m.cf.venc.tip}}" aria-invalid="{{m.cf.venc.inv}}"><sc-if value="{{m.cf.venc.bd.on}}" hint-placeholder-val="{{false}}"><span class="{{m.cf.venc.bd.cls}}" title="{{m.cf.venc.bd.tip}}">{{m.cf.venc.bd.t}}</span></sc-if></span></div>
 </div>
 <sc-if value="{{m.cf.fcOn}}" hint-placeholder-val="{{false}}"><p class="fc-mut cp-hint">{{m.cf.fcT}}</p></sc-if>
 </div>
 
+<div><h3 class="fc-sec">Imputación</h3>
+<div class="cp-gr2">
+<div class="fc-fld"><label class="cp-l">Cuenta de gasto</label><div class="cp-inl"><span class="cp-fw" onMouseEnter="{{m.cf.gasto.enter}}" onMouseLeave="{{m.cf.gasto.leave}}"><input class="{{m.cf.gasto.cls}}" data-fk="{{m.cf.gasto.fk}}" value="{{m.cf.gasto.v}}" onChange="{{m.cf.gasto.set}}" placeholder="{{m.cf.gasto.ph}}" readonly="{{m.cf.gasto.ro}}" title="{{m.cf.gasto.tip}}" aria-invalid="{{m.cf.gasto.inv}}"><sc-if value="{{m.cf.gasto.bd.on}}" hint-placeholder-val="{{false}}"><span class="{{m.cf.gasto.bd.cls}}" title="{{m.cf.gasto.bd.tip}}">{{m.cf.gasto.bd.t}}</span></sc-if></span><button type="button" class="{{m.cf.gastoPick.cls}}" aria-disabled="{{m.cf.gastoPick.dis}}" title="{{m.cf.gastoPick.tip}}" onClick="{{m.cf.gastoPick.on}}"><sc-if value="{{m.cf.gastoPick.hasIc}}" hint-placeholder-val="{{true}}"><svg class="fc-ic" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><sc-for list="{{m.cf.gastoPick.ic}}" as="icd" hint-placeholder-count="2"><path d="{{icd}}"></path></sc-for></svg></sc-if>{{m.cf.gastoPick.t}}</button><button type="button" class="{{m.cf.kwB.cls}}" aria-disabled="{{m.cf.kwB.dis}}" title="{{m.cf.kwB.tip}}" onClick="{{m.cf.kwB.on}}"><sc-if value="{{m.cf.kwB.hasIc}}" hint-placeholder-val="{{true}}"><svg class="fc-ic" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><sc-for list="{{m.cf.kwB.ic}}" as="icd" hint-placeholder-count="2"><path d="{{icd}}"></path></sc-for></svg></sc-if>{{m.cf.kwB.t}}</button></div><span class="{{m.cf.gastoDCls}}">{{m.cf.gastoD}}</span></div>
+<sc-if value="{{m.cf.ccOn}}" hint-placeholder-val="{{true}}"><div class="fc-fld"><label class="cp-l">Centro de coste<sc-if value="{{m.cf.ccBd.on}}" hint-placeholder-val="{{false}}"><span class="{{m.cf.ccBd.cls}}" title="{{m.cf.ccBd.tip}}">{{m.cf.ccBd.t}}</span></sc-if></label><select class="fc-in" value="{{m.cf.cc}}" onChange="{{m.cf.ccSet}}" disabled="{{m.cf.ro}}" aria-label="Centro de coste" title="Departamento y subdepartamento: pasa a todos los apuntes del asiento"><option value="">Sin centro de coste</option><sc-for list="{{m.cf.ccs}}" as="o" hint-placeholder-count="3"><option value="{{o.v}}">{{o.t}}</option></sc-for></select></div></sc-if>
+<sc-if value="{{m.cf.ccNo}}" hint-placeholder-val="{{false}}"><div class="fc-fld"><label class="cp-l">Centro de coste</label><p class="fc-mut cp-hint">{{m.cf.ccNoT}}</p></div></sc-if>
+</div>
+<sc-if value="{{m.cf.relShow}}" hint-placeholder-val="{{false}}"><div class="fc-fld" style="margin-top: 8px"><label class="cp-l">{{m.cf.relT}}</label><div class="cp-inl"><select class="fc-in" style="flex: 1" value="{{m.cf.rel}}" onChange="{{m.cf.relSet}}" disabled="{{m.cf.ro}}" aria-label="{{m.cf.relT}}"><option value="">Sin enlazar</option><sc-for list="{{m.cf.rels}}" as="o" hint-placeholder-count="2"><option value="{{o.v}}">{{o.t}}</option></sc-for></select><button type="button" class="{{m.cf.relGo.cls}}" aria-disabled="{{m.cf.relGo.dis}}" title="{{m.cf.relGo.tip}}" onClick="{{m.cf.relGo.on}}"><sc-if value="{{m.cf.relGo.hasIc}}" hint-placeholder-val="{{true}}"><svg class="fc-ic" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><sc-for list="{{m.cf.relGo.ic}}" as="icd" hint-placeholder-count="2"><path d="{{icd}}"></path></sc-for></svg></sc-if>{{m.cf.relGo.t}}</button></div><sc-if value="{{m.cf.relNoteOn}}" hint-placeholder-val="{{false}}"><span class="fc-mut cp-hint">{{m.cf.relNote}}</span></sc-if></div></sc-if>
+</div>
+</div><div class="cp-col">
+
 <div><h3 class="fc-sec">Importes<sc-if value="{{m.cf.impBd.on}}" hint-placeholder-val="{{false}}"><span class="{{m.cf.impBd.cls}}" title="{{m.cf.impBd.tip}}">{{m.cf.impBd.t}}</span></sc-if></h3>
 <sc-if value="{{m.cf.usdOn}}" hint-placeholder-val="{{false}}"><div class="fc-note fc-warn"><svg class="fc-ic" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><sc-for list="{{m.cf.usdIc}}" as="icd" hint-placeholder-count="2"><path d="{{icd}}"></path></sc-for></svg><span class="fc-grow">{{m.cf.usdT}}</span><button type="button" class="{{m.cf.usdB.cls}}" aria-disabled="{{m.cf.usdB.dis}}" title="{{m.cf.usdB.tip}}" onClick="{{m.cf.usdB.on}}"><sc-if value="{{m.cf.usdB.hasIc}}" hint-placeholder-val="{{true}}"><svg class="fc-ic" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><sc-for list="{{m.cf.usdB.ic}}" as="icd" hint-placeholder-count="2"><path d="{{icd}}"></path></sc-for></svg></sc-if>{{m.cf.usdB.t}}</button></div></sc-if>
 <div class="cp-mx"><div class="cp-mh"><span>Tipo</span><span class="fc-r">Base</span><span class="fc-r">Cuota</span><span class="fc-r">Total</span></div>
 <sc-for list="{{m.cf.rates}}" as="r" hint-placeholder-count="5"><div class="{{r.cls}}"><span class="fc-mut">{{r.r}}</span><span class="cp-fwn" onMouseEnter="{{r.b.enter}}" onMouseLeave="{{r.b.leave}}"><input class="{{r.b.cls}}" data-fk="{{r.b.fk}}" value="{{r.b.v}}" onChange="{{r.b.set}}" placeholder="{{r.b.ph}}" readonly="{{r.b.ro}}" title="{{r.b.tip}}" aria-invalid="{{r.b.inv}}"></span><span class="cp-fwn" onMouseEnter="{{r.i.enter}}" onMouseLeave="{{r.i.leave}}"><input class="{{r.i.cls}}" data-fk="{{r.i.fk}}" value="{{r.i.v}}" onChange="{{r.i.set}}" placeholder="{{r.i.ph}}" readonly="{{r.i.ro}}" title="{{r.i.tip}}" aria-invalid="{{r.i.inv}}"></span><span class="cp-fwn" onMouseEnter="{{r.t.enter}}" onMouseLeave="{{r.t.leave}}"><input class="{{r.t.cls}}" data-fk="{{r.t.fk}}" value="{{r.t.v}}" onChange="{{r.t.set}}" placeholder="{{r.t.ph}}" readonly="{{r.t.ro}}" title="{{r.t.tip}}" aria-invalid="{{r.t.inv}}"></span></div></sc-for></div>
 <sc-if value="{{m.cf.foreignOn}}" hint-placeholder-val="{{false}}"><p class="fc-mut cp-hint">{{m.cf.foreignT}}</p></sc-if>
-<div class="cp-g2" style="margin-top: 8px">
-<div class="fc-fld"><label class="cp-l">IVA suplido (DUA)</label><span class="cp-fw" onMouseEnter="{{m.cf.ivaSup.enter}}" onMouseLeave="{{m.cf.ivaSup.leave}}"><input class="{{m.cf.ivaSup.cls}}" data-fk="{{m.cf.ivaSup.fk}}" value="{{m.cf.ivaSup.v}}" onChange="{{m.cf.ivaSup.set}}" placeholder="{{m.cf.ivaSup.ph}}" readonly="{{m.cf.ivaSup.ro}}" title="{{m.cf.ivaSup.tip}}" aria-invalid="{{m.cf.ivaSup.inv}}"><sc-if value="{{m.cf.ivaSup.bd.on}}" hint-placeholder-val="{{false}}"><span class="{{m.cf.ivaSup.bd.cls}}" title="{{m.cf.ivaSup.bd.tip}}">{{m.cf.ivaSup.bd.t}}</span></sc-if></span></div>
-<div class="fc-fld"><label class="cp-l">Suplidos</label><span class="cp-fw" onMouseEnter="{{m.cf.sup.enter}}" onMouseLeave="{{m.cf.sup.leave}}"><input class="{{m.cf.sup.cls}}" data-fk="{{m.cf.sup.fk}}" value="{{m.cf.sup.v}}" onChange="{{m.cf.sup.set}}" placeholder="{{m.cf.sup.ph}}" readonly="{{m.cf.sup.ro}}" title="{{m.cf.sup.tip}}" aria-invalid="{{m.cf.sup.inv}}"><sc-if value="{{m.cf.sup.bd.on}}" hint-placeholder-val="{{false}}"><span class="{{m.cf.sup.bd.cls}}" title="{{m.cf.sup.bd.tip}}">{{m.cf.sup.bd.t}}</span></sc-if></span></div>
+<div class="cp-gr3" style="margin-top: 8px">
+<div class="fc-fld"><label class="cp-l" title="IVA de aduanas pagado por el transitario (DUA)">IVA del DUA</label><span class="cp-fwn" onMouseEnter="{{m.cf.ivaSup.enter}}" onMouseLeave="{{m.cf.ivaSup.leave}}"><input class="{{m.cf.ivaSup.cls}}" data-fk="{{m.cf.ivaSup.fk}}" value="{{m.cf.ivaSup.v}}" onChange="{{m.cf.ivaSup.set}}" placeholder="{{m.cf.ivaSup.ph}}" readonly="{{m.cf.ivaSup.ro}}" title="{{m.cf.ivaSup.tip}}" aria-invalid="{{m.cf.ivaSup.inv}}"></span></div>
+<div class="fc-fld"><label class="cp-l">Suplidos</label><span class="cp-fwn" onMouseEnter="{{m.cf.sup.enter}}" onMouseLeave="{{m.cf.sup.leave}}"><input class="{{m.cf.sup.cls}}" data-fk="{{m.cf.sup.fk}}" value="{{m.cf.sup.v}}" onChange="{{m.cf.sup.set}}" placeholder="{{m.cf.sup.ph}}" readonly="{{m.cf.sup.ro}}" title="{{m.cf.sup.tip}}" aria-invalid="{{m.cf.sup.inv}}"></span></div>
+<div class="fc-fld"><label class="fc-chk cp-l"><input type="checkbox" checked="{{m.cf.retOn}}" onChange="{{m.cf.retSet}}" disabled="{{m.cf.ro}}"> Retención<sc-if value="{{m.cf.retBd.on}}" hint-placeholder-val="{{false}}"><span class="{{m.cf.retBd.cls}}" title="{{m.cf.retBd.tip}}">{{m.cf.retBd.t}}</span></sc-if></label>
+<sc-if value="{{m.cf.retOn}}" hint-placeholder-val="{{false}}"><div class="cp-inl"><span style="width: 56px; flex: none"><span class="cp-fwn" onMouseEnter="{{m.cf.retPct.enter}}" onMouseLeave="{{m.cf.retPct.leave}}"><input class="{{m.cf.retPct.cls}}" data-fk="{{m.cf.retPct.fk}}" value="{{m.cf.retPct.v}}" onChange="{{m.cf.retPct.set}}" placeholder="{{m.cf.retPct.ph}}" readonly="{{m.cf.retPct.ro}}" title="{{m.cf.retPct.tip}}" aria-invalid="{{m.cf.retPct.inv}}"></span></span><span class="fc-mut">%</span><select class="fc-in" style="flex: 1; min-width: 0" value="{{m.cf.retTipo}}" onChange="{{m.cf.retTipoSet}}" disabled="{{m.cf.ro}}" aria-label="Tipo de retención"><sc-for list="{{m.cf.retTipos}}" as="o" hint-placeholder-count="2"><option value="{{o.v}}">{{o.t}}</option></sc-for></select></div></sc-if></div>
 </div>
-<div class="cp-row" style="margin-top: 8px"><label class="fc-chk"><input type="checkbox" checked="{{m.cf.retOn}}" onChange="{{m.cf.retSet}}" disabled="{{m.cf.ro}}"> Retención</label>
-<sc-if value="{{m.cf.retOn}}" hint-placeholder-val="{{false}}"><span style="width: 64px"><span class="cp-fwn" onMouseEnter="{{m.cf.retPct.enter}}" onMouseLeave="{{m.cf.retPct.leave}}"><input class="{{m.cf.retPct.cls}}" data-fk="{{m.cf.retPct.fk}}" value="{{m.cf.retPct.v}}" onChange="{{m.cf.retPct.set}}" placeholder="{{m.cf.retPct.ph}}" readonly="{{m.cf.retPct.ro}}" title="{{m.cf.retPct.tip}}" aria-invalid="{{m.cf.retPct.inv}}"></span></span><span class="fc-mut">%</span><select class="fc-in" style="width: 200px" value="{{m.cf.retTipo}}" onChange="{{m.cf.retTipoSet}}" disabled="{{m.cf.ro}}" aria-label="Tipo de retención"><sc-for list="{{m.cf.retTipos}}" as="o" hint-placeholder-count="2"><option value="{{o.v}}">{{o.t}}</option></sc-for></select></sc-if>
-<sc-if value="{{m.cf.retBd.on}}" hint-placeholder-val="{{false}}"><span class="{{m.cf.retBd.cls}}" title="{{m.cf.retBd.tip}}">{{m.cf.retBd.t}}</span></sc-if></div>
 <div class="fc-mini fc-tots cp-tots"><sc-for list="{{m.cf.tots}}" as="tr" hint-placeholder-count="3"><div class="{{tr.cls}}"><span>{{tr.t}}</span><span class="fc-r fc-tn">{{tr.v}}</span></div></sc-for>
-<div class="fc-mr cp-totfr"><span class="cp-l">Total de la factura <button type="button" class="cp-capb" aria-pressed="{{m.cf.totF.capOn}}" onClick="{{m.cf.totF.cap}}" title="La próxima selección en el PDF irá a este campo">PDF</button></span><span class="cp-fw" onMouseEnter="{{m.cf.totF.enter}}" onMouseLeave="{{m.cf.totF.leave}}"><input class="{{m.cf.totF.cls}}" data-fk="{{m.cf.totF.fk}}" value="{{m.cf.totF.v}}" onChange="{{m.cf.totF.set}}" placeholder="{{m.cf.totF.ph}}" readonly="{{m.cf.totF.ro}}" title="{{m.cf.totF.tip}}" aria-invalid="{{m.cf.totF.inv}}"><sc-if value="{{m.cf.totF.bd.on}}" hint-placeholder-val="{{false}}"><span class="{{m.cf.totF.bd.cls}}" title="{{m.cf.totF.bd.tip}}">{{m.cf.totF.bd.t}}</span></sc-if></span></div></div>
-<sc-if value="{{m.cf.difOn}}" hint-placeholder-val="{{false}}"><div class="{{m.cf.difCls}}"><svg class="fc-ic" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><sc-for list="{{m.cf.warnIc}}" as="icd" hint-placeholder-count="2"><path d="{{icd}}"></path></sc-for></svg><span>{{m.cf.difT}}</span></div></sc-if>
-</div>
-
-<div><h3 class="fc-sec">Imputación</h3>
-<div class="fc-fld"><label class="cp-l">Cuenta de gasto</label><div class="cp-row" style="margin: 0"><span class="cp-fw" onMouseEnter="{{m.cf.gasto.enter}}" onMouseLeave="{{m.cf.gasto.leave}}"><input class="{{m.cf.gasto.cls}}" data-fk="{{m.cf.gasto.fk}}" value="{{m.cf.gasto.v}}" onChange="{{m.cf.gasto.set}}" placeholder="{{m.cf.gasto.ph}}" readonly="{{m.cf.gasto.ro}}" title="{{m.cf.gasto.tip}}" aria-invalid="{{m.cf.gasto.inv}}"><sc-if value="{{m.cf.gasto.bd.on}}" hint-placeholder-val="{{false}}"><span class="{{m.cf.gasto.bd.cls}}" title="{{m.cf.gasto.bd.tip}}">{{m.cf.gasto.bd.t}}</span></sc-if></span><button type="button" class="{{m.cf.gastoPick.cls}}" aria-disabled="{{m.cf.gastoPick.dis}}" title="{{m.cf.gastoPick.tip}}" onClick="{{m.cf.gastoPick.on}}"><sc-if value="{{m.cf.gastoPick.hasIc}}" hint-placeholder-val="{{true}}"><svg class="fc-ic" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><sc-for list="{{m.cf.gastoPick.ic}}" as="icd" hint-placeholder-count="2"><path d="{{icd}}"></path></sc-for></svg></sc-if>{{m.cf.gastoPick.t}}</button><button type="button" class="{{m.cf.kwB.cls}}" aria-disabled="{{m.cf.kwB.dis}}" title="{{m.cf.kwB.tip}}" onClick="{{m.cf.kwB.on}}"><sc-if value="{{m.cf.kwB.hasIc}}" hint-placeholder-val="{{true}}"><svg class="fc-ic" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><sc-for list="{{m.cf.kwB.ic}}" as="icd" hint-placeholder-count="2"><path d="{{icd}}"></path></sc-for></svg></sc-if>{{m.cf.kwB.t}}</button></div><span class="{{m.cf.gastoDCls}}">{{m.cf.gastoD}}</span></div>
-<sc-if value="{{m.cf.ccOn}}" hint-placeholder-val="{{true}}"><div class="fc-fld" style="margin-top: 8px"><label class="cp-l">Centro de coste<sc-if value="{{m.cf.ccBd.on}}" hint-placeholder-val="{{false}}"><span class="{{m.cf.ccBd.cls}}" title="{{m.cf.ccBd.tip}}">{{m.cf.ccBd.t}}</span></sc-if></label><select class="fc-in" value="{{m.cf.cc}}" onChange="{{m.cf.ccSet}}" disabled="{{m.cf.ro}}" aria-label="Centro de coste" title="Departamento y subdepartamento: pasa a todos los apuntes del asiento"><option value="">Sin centro de coste</option><sc-for list="{{m.cf.ccs}}" as="o" hint-placeholder-count="3"><option value="{{o.v}}">{{o.t}}</option></sc-for></select></div></sc-if>
-<sc-if value="{{m.cf.ccNo}}" hint-placeholder-val="{{false}}"><p class="fc-mut cp-hint">{{m.cf.ccNoT}}</p></sc-if>
-<sc-if value="{{m.cf.relShow}}" hint-placeholder-val="{{false}}"><div class="fc-fld" style="margin-top: 8px"><label class="cp-l">{{m.cf.relT}}</label><div class="cp-row" style="margin: 0"><select class="fc-in" style="flex: 1" value="{{m.cf.rel}}" onChange="{{m.cf.relSet}}" disabled="{{m.cf.ro}}" aria-label="{{m.cf.relT}}"><option value="">Sin enlazar</option><sc-for list="{{m.cf.rels}}" as="o" hint-placeholder-count="2"><option value="{{o.v}}">{{o.t}}</option></sc-for></select><button type="button" class="{{m.cf.relGo.cls}}" aria-disabled="{{m.cf.relGo.dis}}" title="{{m.cf.relGo.tip}}" onClick="{{m.cf.relGo.on}}"><sc-if value="{{m.cf.relGo.hasIc}}" hint-placeholder-val="{{true}}"><svg class="fc-ic" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><sc-for list="{{m.cf.relGo.ic}}" as="icd" hint-placeholder-count="2"><path d="{{icd}}"></path></sc-for></svg></sc-if>{{m.cf.relGo.t}}</button></div><sc-if value="{{m.cf.relNoteOn}}" hint-placeholder-val="{{false}}"><span class="fc-mut cp-hint">{{m.cf.relNote}}</span></sc-if></div></sc-if>
+<div class="fc-mr cp-totfr"><span class="cp-l">Total de la factura <button type="button" class="cp-capb" aria-pressed="{{m.cf.totF.capOn}}" onClick="{{m.cf.totF.cap}}" title="La próxima selección en el PDF irá a este campo">PDF</button></span><sc-if value="{{m.cf.totF.bd.on}}" hint-placeholder-val="{{false}}"><span class="{{m.cf.totF.bd.cls}}" title="{{m.cf.totF.bd.tip}}">{{m.cf.totF.bd.t}}</span></sc-if><span class="cp-fwn" onMouseEnter="{{m.cf.totF.enter}}" onMouseLeave="{{m.cf.totF.leave}}"><input class="{{m.cf.totF.cls}}" data-fk="{{m.cf.totF.fk}}" value="{{m.cf.totF.v}}" onChange="{{m.cf.totF.set}}" placeholder="{{m.cf.totF.ph}}" readonly="{{m.cf.totF.ro}}" title="{{m.cf.totF.tip}}" aria-invalid="{{m.cf.totF.inv}}"></span></div></div>
+<sc-if value="{{m.cf.difOn}}" hint-placeholder-val="{{false}}"><div class="{{m.cf.difCls}}"><svg class="fc-ic" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><sc-for list="{{m.cf.warnIc}}" as="icd" hint-placeholder-count="2"><path d="{{icd}}"></path></sc-for></svg><span class="fc-grow">{{m.cf.difT}}</span><sc-if value="{{m.cf.difFixOn}}" hint-placeholder-val="{{false}}"><button type="button" class="{{m.cf.difFix.cls}}" aria-disabled="{{m.cf.difFix.dis}}" title="{{m.cf.difFix.tip}}" onClick="{{m.cf.difFix.on}}"><sc-if value="{{m.cf.difFix.hasIc}}" hint-placeholder-val="{{true}}"><svg class="fc-ic" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><sc-for list="{{m.cf.difFix.ic}}" as="icd" hint-placeholder-count="2"><path d="{{icd}}"></path></sc-for></svg></sc-if>{{m.cf.difFix.t}}</button></sc-if></div></sc-if>
 </div>
 
 <sc-if value="{{m.cf.supChOn}}" hint-placeholder-val="{{false}}"><div><h3 class="fc-sec">Pasará a la ficha del proveedor</h3><div class="cp-chks"><sc-for list="{{m.cf.supCh}}" as="c" hint-placeholder-count="1"><div class="cp-chk cp-chk-i">{{c.t}}</div></sc-for></div></div></sc-if>
 <div><h3 class="fc-sec">Notas</h3><textarea class="fc-in" rows="2" style="width: 100%" data-fk="{{m.cf.notas.fk}}" value="{{m.cf.notas.v}}" onChange="{{m.cf.notas.set}}" readonly="{{m.cf.ro}}" placeholder="Notas internas de la factura" aria-label="Notas"></textarea></div>
 <sc-if value="{{m.cf.logOn}}" hint-placeholder-val="{{false}}"><div><h3 class="fc-sec">Registro</h3><div class="cp-log"><sc-for list="{{m.cf.log}}" as="l" hint-placeholder-count="2"><div><span class="fc-mut fc-tn">{{l.ts}}</span> {{l.t}}</div></sc-for></div></div></sc-if>
+</div></div>
 </div>
 </sc-if>
 </section>
@@ -2759,15 +2789,14 @@ textarea.fc-in{height:auto;padding:6px 8px;resize:vertical}
 <sc-if value="{{m.cx.par}}" hint-placeholder-val="{{false}}"><div class="fc-mini"><div class="fc-mh" style="grid-template-columns: minmax(0, 1.2fr) 84px minmax(0, 1fr)"><span>Uso</span><span>Cuenta</span><span>Descripción</span></div>
 <sc-for list="{{m.cx.pars}}" as="p" hint-placeholder-count="5"><div class="fc-mr" style="grid-template-columns: minmax(0, 1.2fr) 84px minmax(0, 1fr)"><span>{{p.t}}</span><span class="fc-mono">{{p.v}}</span><span class="fc-mut">{{p.d}}</span></div></sc-for></div>
 <div class="fc-note"><svg class="fc-ic" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><sc-for list="{{m.cx.infoIc}}" as="icd" hint-placeholder-count="2"><path d="{{icd}}"></path></sc-for></svg><span>{{m.cx.parNote}}</span></div></sc-if>
-<sc-if value="{{m.cx.tri}}" hint-placeholder-val="{{false}}"><dl class="fc-kv"><sc-for list="{{m.cx.triKv}}" as="kv" hint-placeholder-count="3"><dt>{{kv.k}}</dt><dd class="{{kv.cls}}"><sc-if value="{{kv.lnk}}" hint-placeholder-val="{{false}}"><button type="button" class="fc-lnk" onClick="{{kv.on}}" title="{{kv.tip}}">{{kv.v}}</button>{{kv.after}}</sc-if><sc-if value="{{kv.nl}}" hint-placeholder-val="{{true}}">{{kv.v}}</sc-if></dd></sc-for></dl><p>{{m.cx.triT}}</p></sc-if>
 <sc-if value="{{m.cx.uOn}}" hint-placeholder-val="{{false}}"><p>{{m.cx.uT}}</p></sc-if>
 <sc-if value="{{m.cx.del}}" hint-placeholder-val="{{false}}"><sc-if value="{{m.cx.delPdf}}" hint-placeholder-val="{{true}}"><label class="fc-chk"><input type="checkbox" checked="{{m.cx.delPdfOn}}" onChange="{{m.cx.delPdfSet}}"> Borrar también el PDF de la carpeta</label></sc-if></sc-if>
-<sc-if value="{{m.cx.redo}}" hint-placeholder-val="{{false}}"><div class="ln-radios" role="radiogroup" aria-label="Fecha contable"><sc-for list="{{m.cx.modes}}" as="o" hint-placeholder-count="3"><label class="fc-chk"><input type="radio" name="cp-redo" checked="{{o.on}}" onChange="{{o.pick}}"> {{o.t}}</label></sc-for></div>
-<sc-if value="{{m.cx.rdDate}}" hint-placeholder-val="{{false}}"><div class="fc-fld"><label for="cp-rd">Fecha contable</label><input id="cp-rd" class="fc-in" style="width: 140px" data-fk="cp:dlg:date" value="{{m.cx.rdV}}" onChange="{{m.cx.rdSet}}" placeholder="dd/mm/aaaa"></div></sc-if>
+<sc-if value="{{m.cx.redo}}" hint-placeholder-val="{{false}}"><div class="ln-radios" role="radiogroup" aria-label="Fecha del asiento"><sc-for list="{{m.cx.modes}}" as="o" hint-placeholder-count="3"><label class="fc-chk"><input type="radio" name="cp-redo" checked="{{o.on}}" onChange="{{o.pick}}"> {{o.t}}</label></sc-for></div>
 <sc-if value="{{m.cx.rdErrOn}}" hint-placeholder-val="{{false}}"><div class="fc-note fc-err"><svg class="fc-ic" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><sc-for list="{{m.cx.warnIc}}" as="icd" hint-placeholder-count="2"><path d="{{icd}}"></path></sc-for></svg><span>{{m.cx.rdErr}}</span></div></sc-if></sc-if>
 <sc-if value="{{m.cx.post}}" hint-placeholder-val="{{false}}">
 <sc-if value="{{m.cx.one}}" hint-placeholder-val="{{true}}">
 <sc-if value="{{m.cx.pBOn}}" hint-placeholder-val="{{false}}"><div><h3 class="fc-sec">No se puede contabilizar</h3><div class="cp-chks"><sc-for list="{{m.cx.pB}}" as="c" hint-placeholder-count="1"><div class="cp-chk cp-chk-b">{{c.t}}</div></sc-for></div></div></sc-if>
+<sc-if value="{{m.cx.pDesc}}" hint-placeholder-val="{{false}}"><div class="cp-desc"><h3 class="fc-sec">El asiento no cuadra</h3><p>{{m.cx.pDescT}}</p><sc-if value="{{m.cx.pDescQOn}}" hint-placeholder-val="{{false}}"><div class="cp-chks"><sc-for list="{{m.cx.pDescQ}}" as="c" hint-placeholder-count="1"><div class="cp-chk cp-chk-w">{{c.t}}</div></sc-for></div><div class="cp-row"><button type="button" class="{{m.cx.pDescFix.cls}}" aria-disabled="{{m.cx.pDescFix.dis}}" title="{{m.cx.pDescFix.tip}}" onClick="{{m.cx.pDescFix.on}}"><sc-if value="{{m.cx.pDescFix.hasIc}}" hint-placeholder-val="{{true}}"><svg class="fc-ic" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><sc-for list="{{m.cx.pDescFix.ic}}" as="icd" hint-placeholder-count="2"><path d="{{icd}}"></path></sc-for></svg></sc-if>{{m.cx.pDescFix.t}}</button></div></sc-if><div class="fc-fld" style="margin-top: 8px"><label for="cp-mot">Motivo del ajuste manual</label><input id="cp-mot" class="fc-in" style="width: 100%" data-fk="cp:dlg:mot" value="{{m.cx.pMot}}" onChange="{{m.cx.pMotSet}}" placeholder="Por ejemplo: la factura redondea el IVA línea a línea"></div></div></sc-if>
 <sc-if value="{{m.cx.pWOn}}" hint-placeholder-val="{{false}}"><div><h3 class="fc-sec">Avisos</h3><div class="cp-chks"><sc-for list="{{m.cx.pW}}" as="c" hint-placeholder-count="1"><div class="cp-chk cp-chk-w">{{c.t}}</div></sc-for></div></div></sc-if>
 <sc-if value="{{m.cx.pFcOn}}" hint-placeholder-val="{{true}}"><div class="fc-note"><svg class="fc-ic" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><sc-for list="{{m.cx.infoIc}}" as="icd" hint-placeholder-count="2"><path d="{{icd}}"></path></sc-for></svg><span>{{m.cx.pFc}}</span></div></sc-if>
 <sc-if value="{{m.cx.pPairOn}}" hint-placeholder-val="{{false}}"><div class="fc-note fc-ok"><svg class="fc-ic" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><sc-for list="{{m.cx.infoIc}}" as="icd" hint-placeholder-count="2"><path d="{{icd}}"></path></sc-for></svg><span>{{m.cx.pPair}}</span></div></sc-if>
@@ -3909,7 +3938,7 @@ var CP_IC = {
 /* columnas de las rejillas: clave, título, ancho de fábrica (0 = flexible), ordenable, clase */
 var CP_COLS = {
   pend: [['st', '', 34, 0, ''], ['file', 'Fichero', 0, 1, ''], ['fecha', 'Fecha', 88, 1, ''], ['prov', 'Proveedor', 200, 1, ''], ['nif', 'NIF', 104, 0, ''], ['total', 'Total', 108, 1, 'fc-r'], ['gasto', 'Gasto', 84, 0, ''], ['cc', 'C. coste', 84, 0, '']],
-  exp: [['reg', 'Registro', 100, 1, ''], ['as', 'Asiento', 76, 1, ''], ['fc', 'F. contable', 92, 1, ''], ['prov', 'Proveedor', 0, 1, ''], ['num', 'Nº factura', 120, 0, ''], ['base', 'Base', 104, 1, 'fc-r'], ['iva', 'IVA', 92, 0, 'fc-r'], ['ret', 'Retención', 92, 0, 'fc-r'], ['total', 'Total', 108, 1, 'fc-r'], ['op', 'Operación', 104, 0, ''], ['est', 'Estado', 118, 0, '']]
+  exp: [['reg', 'Registro', 100, 1, ''], ['as', 'Asiento', 76, 1, ''], ['fc', 'F. asiento', 92, 1, ''], ['prov', 'Proveedor', 0, 1, ''], ['num', 'Nº factura', 120, 0, ''], ['base', 'Base', 104, 1, 'fc-r'], ['iva', 'IVA', 92, 0, 'fc-r'], ['ret', 'Retención', 92, 0, 'fc-r'], ['total', 'Total', 108, 1, 'fc-r'], ['op', 'Operación', 104, 0, ''], ['est', 'Estado', 118, 0, '']]
 };
 var CP_RATES = [21, 10, 5, 4, 0];
 var CP_OP = { NAC: 'Nacional', INT: 'Intracomunitaria', IMP: 'Importación' };
@@ -4072,14 +4101,17 @@ function cpTot(d) {
 }
 function cpState(f) { if (f.exp) return f.exp.rect ? 'ANU' : 'EXP'; if (f.missing) return 'FAL'; var t = cpTot(f.d); return t.filled ? 'COM' : f.rec ? 'REV' : 'VAC'; }
 var CP_ST = { VAC: ['Sin rellenar', 'Todavía no se ha reconocido ni rellenado'], REV: ['Por completar', 'Reconocida, pero le faltan datos para contabilizarla'], COM: ['Lista', 'Tiene proveedor, número, fecha e importes: se puede contabilizar'], FAL: ['PDF no encontrado', 'El fichero ya no está en la carpeta de entrada'], EXP: ['Contabilizada', 'Tiene asiento y registro en el libro de IVA soportado'], ANU: ['Anulada', 'Contabilizada y anulada con una rectificativa'] };
-/* fecha contable: la de la factura, salvo que caiga antes del trimestre de IVA activo (entonces, su primer día) */
+/* fecha del asiento: siempre la de hoy, el día en que se contabiliza; la de la factura se conserva tal cual */
+var CP_TOL = 0.03;
 function cpFechaC(C, fecha, ej) {
-  var T = C.triFor(ej), st = cpQStart(T.y, T.q), y = +String(fecha).slice(0, 4);
-  if (!fecha) return { fc: '', why: '' };
-  if (y > ej) return { fc: '', block: 'La factura es de ' + y + ', posterior al ejercicio ' + ej + ': no se puede contabilizar en él.' };
-  if (fecha < st) return { fc: st, why: (y < ej ? 'La factura es de ' + y + '; ' : 'La factura es de un trimestre ya presentado; ') + 'se contabiliza el primer día del trimestre activo (' + cpQName(T.q) + ' ' + T.y + ').' };
-  return { fc: fecha, why: 'Fecha de la factura.' };
+  var y = +CP_HOY.slice(0, 4);
+  if (y !== ej) return { fc: '', block: 'El asiento se fecha hoy (' + fdate(CP_HOY) + '), que es del ejercicio ' + y + ': cambia a ese ejercicio para contabilizar.' };
+  if (fecha && fecha > CP_HOY) return { fc: '', block: 'La fecha de la factura (' + fdate(fecha) + ') es posterior a hoy.' };
+  return { fc: CP_HOY, why: 'fecha de hoy, el día en que se contabiliza.' };
 }
+/* cuotas que no corresponden a su base (posible error de lectura o de tecleo) */
+function cpQuotaOff(d) { return CP_RATES.filter(function (r) { return r && d.R[r][0] && Math.abs(d.R[r][1] - r2(d.R[r][0] * r / 100)) >= 0.005; }).map(function (r) { return { r: r, b: d.R[r][0], c: d.R[r][1], ok: r2(d.R[r][0] * r / 100) }; }); }
+function cpAdjOk(d, dif) { return !!(d.adj && d.adj.mot && Math.abs(Math.abs(d.adj.dif) - Math.abs(dif)) < 0.005); }
 function cpAsiento(C, f, d, sign, docPre) {
   var t = cpTot(d), P = C.PAR, s = C.sup(d.tid), out = [], k = sign || 1, con = d.con || '', doc = (docPre || '') + d.num;
   var L = function (cta, deb, hab, c2) { if (Math.abs(deb) < 0.005 && Math.abs(hab) < 0.005) return; out.push({ cta: cta, d: C.ctaD(cta), con: c2 || con, doc: doc, debe: r2(deb * k), haber: r2(hab * k) }); };
@@ -4095,7 +4127,7 @@ function cpAsiento(C, f, d, sign, docPre) {
   if (d.ivaSup) L(P.ivaImp, d.ivaSup, 0, 'IVA de importación (DUA) · ' + con);
   if (d.sup) L(P.sup, d.sup, 0, 'Suplidos · ' + con);
   var D = 0, H = 0; out.forEach(function (a) { D += a.debe; H += a.haber; }); var dif = r2(D - H);
-  if (Math.abs(dif) >= 0.005 && Math.abs(dif) <= 0.05 + 1e-9) { out.push({ cta: P.red, d: C.ctaD(P.red), con: 'Ajuste por redondeo · ' + con, doc: doc, debe: dif < 0 ? -dif : 0, haber: dif > 0 ? dif : 0, red: true }); dif = 0; }
+  if (Math.abs(dif) >= 0.005 && (Math.abs(dif) <= CP_TOL + 1e-9 || cpAdjOk(d, dif))) { var man = Math.abs(dif) > CP_TOL + 1e-9; out.push({ cta: P.red, d: C.ctaD(P.red), con: (man ? 'Ajuste manual · ' + d.adj.mot + ' · ' : 'Ajuste por redondeo · ') + con, doc: doc, debe: dif < 0 ? -dif : 0, haber: dif > 0 ? dif : 0, red: true }); dif = 0; }
   return { lines: out, dif: dif };
 }
 function cpRegIva(C, d, fc) {
@@ -4200,8 +4232,7 @@ function cpCheck(C, f, d, ej, closed) {
   if (!d.gasto) B.push('Falta la cuenta de gasto.');
   if (d.usdPend) B.push('Los importes están en dólares: conviértelos a euros.');
   var fc = cpFechaC(C, d.fecha, ej); if (fc.block) B.push(fc.block);
-  else if (fc.fc && fc.fc !== d.fecha) W.push(fc.why.replace(/^./, function (c) { return c.toUpperCase(); }));
-  var A = cpAsiento(C, f, d); if (Math.abs(A.dif) > 0.05) B.push('El asiento no cuadra: el total de la factura difiere ' + money(Math.abs(t.dif)) + ' de bases e impuestos (más de 0,05 €). Revisa los importes.');
+  var A = cpAsiento(C, f, d), desc = null; if (Math.abs(A.dif) > CP_TOL + 1e-9) { desc = { dif: A.dif, q: cpQuotaOff(d) }; B.push('El asiento no cuadra por ' + money(Math.abs(A.dif)) + ' (más de 0,03 €): ' + (desc.q.length ? 'corrige la cuota mal leída o ' : 'revisa los importes o ') + 'ajústalo a mano con un motivo al contabilizar.'); }
   if (d.fecha === CP_HOY) W.push('La fecha de la factura es la de hoy: comprueba que no sea la fecha de recepción.');
   if (t.bT === 0) W.push('La base es 0.');
   if (s && d.op === 'NAC' && !d.isp && t.iT === 0 && t.bT) { var conIva = C.INV.filter(function (x) { return x !== f && x.exp && !x.exp.rect && x.d.tid === s.id && cpTot(x.d).iT > 0; }).length; if (conIva) W.push('Factura sin IVA de un proveedor nacional que tiene ' + plural(conIva, 'otra factura', 'otras facturas') + ' con IVA.'); }
@@ -4211,8 +4242,9 @@ function cpCheck(C, f, d, ej, closed) {
   if (d.gasto === C.PAR.gen) W.push('La cuenta de gasto es la genérica ' + C.PAR.gen + ': clasifícala si puedes.');
   if (C.CC && !d.cc) W.push('Sin centro de coste.');
   if (d.op === 'INT' && d.vies !== 'ok') W.push('NIF intracomunitario sin comprobar en el VIES.');
-  if (Math.abs(t.dif) >= 0.005 && Math.abs(t.dif) <= 0.05) W.push('El total de la factura difiere ' + money(Math.abs(t.dif)) + ' de bases e impuestos: se añade un apunte de ajuste por redondeo a la ' + C.PAR.red + '.');
-  return { B: B, W: W, fc: fc };
+  if (Math.abs(t.dif) >= 0.005 && Math.abs(t.dif) <= CP_TOL + 1e-9) W.push('El total de la factura difiere ' + money(Math.abs(t.dif)) + ' de bases e impuestos: se añade un apunte de ajuste por redondeo a la ' + C.PAR.red + '.');
+  if (Math.abs(t.dif) > CP_TOL + 1e-9 && !desc) W.push('Descuadre de ' + money(Math.abs(t.dif)) + ' ajustado a mano: «' + d.adj.mot + '».');
+  return { B: B, W: W, fc: fc, desc: desc };
 }
 
 class Component extends DCLogic {
@@ -6811,7 +6843,7 @@ class Component extends DCLogic {
     grp.forEach(function (g) { if (!g || !g.exp) return; self.cpLog(g, 'Contabilización deshecha: borrado el asiento ' + as + (g.exp.rect ? ' y su rectificativo ' + g.exp.rect.as : '') + ' y el registro de IVA ' + g.exp.reg + '.'); g.exp = null; });
     return grp.length;
   }
-  cpRedo(C, f, fc) { var old = f.exp.fc; f.exp.fc = fc; f.exp.ts = CP_HOY + ' ' + nowHM(); this.cpLog(f, 'Contabilización rehecha con el mismo asiento ' + f.exp.as + ' y registro ' + f.exp.reg + (old !== fc ? ', fecha contable ' + fdate(old) + ' → ' + fdate(fc) : '') + '.'); }
+  cpRedo(C, f, fc) { var old = f.exp.fc; f.exp.fc = fc; f.exp.ts = CP_HOY + ' ' + nowHM(); this.cpLog(f, 'Contabilización rehecha con el mismo asiento ' + f.exp.as + ' y registro ' + f.exp.reg + (old !== fc ? ', fecha del asiento ' + fdate(old) + ' → ' + fdate(fc) : '') + '.'); }
   cpRect(C, f) {
     var ej = this.S.ej, fc = cpFechaC(C, f.exp.fc, ej).fc, as = C.nextAs[ej] = (C.nextAs[ej] || 1000) + 1, reg = C.nextReg[ej] = (C.nextReg[ej] || 1) + 1;
     f.exp.rect = { as: as, fc: fc, reg: 'S' + ej + '/' + pad4(reg), ts: CP_HOY + ' ' + nowHM(), op: this.S.op };
@@ -6830,14 +6862,12 @@ class Component extends DCLogic {
     if (V.cur && !ids[V.cur] && !(V.dr && V.dr.id === V.cur)) V.cur = null;
     if (!V.cur && list.length) this.cpOpen(C, V, list[0]);
     var cur = V.cur ? C.byId(V.cur) : null, scope = this.cpScope(C, V, list);
-    var T = C.triFor(ej), tq = cpQuarter(CP_HOY), inTri = tq.y === T.y && tq.q === T.q, late = !inTri && (tq.y > T.y || tq.q > T.q) && +CP_HOY.slice(8, 10) > 10;
 
     /* barra del módulo */
     var pendAll = C.INV.filter(function (f) { return !f.exp; }), vac = pendAll.filter(function (f) { return !f.missing && cpState(f) === 'VAC'; });
     var ready = scope.filter(function (f) { return !f.exp; });
     m.cb = {
       title: V.prueba ? 'Reconocimiento de facturas' : 'Facturas recibidas', prueba: V.prueba,
-      tri: { t: 'IVA · ' + cpQName(T.q) + ' ' + T.y + ' (' + cpQMonths(T.q) + ')', cls: 'cp-tri ' + (inTri ? 'cp-tri-ok' : 'cp-tri-off'), tip: inTri ? 'Trimestre de IVA activo de la sociedad: hoy está dentro' : 'Trimestre de IVA activo de la sociedad: hoy (' + fdate(CP_HOY) + ') ya está fuera de él. Las facturas anteriores a su primer día se contabilizan con esa fecha.', on: go(function () { self.cpOpenDlg(V, { kind: 'tri' }); }) },
       tools: V.prueba ? [
         B('Volver a reconocer', { icon: 'wand', why: !cur || cur.missing ? 'Elige una factura con PDF.' : null, title: 'Repite el reconocimiento de la factura activa con las reglas actuales', fn: function () { self.cpTrial(C, V, cur); self.toast('Reconocimiento repetido sobre ' + cur.file.split('\\').pop() + '. No se ha guardado nada.'); } }),
         B('Comparar con lo contabilizado', { icon: 'flask', title: 'Reconoce de nuevo todas las facturas contabilizadas y compara cada campo con lo registrado', fn: function () { self.cpOpenDlg(V, { kind: 'test' }); } })
@@ -6848,8 +6878,6 @@ class Component extends DCLogic {
         B('Cuentas…', { icon: 'gear', title: 'Cuentas que usa la contabilización de compras en esta sociedad', fn: function () { self.cpOpenDlg(V, { kind: 'par' }); } })
       ],
       kbd: go(function () { self.cpOpenDlg(V, { kind: 'kbd' }); }), kbdIc: FC_IC.kbd,
-      triProp: !V.prueba && late && !V.triLater && T.y === tq.y, triPropT: 'Ya estamos en el ' + cpQName(tq.q) + ': ¿pasas el trimestre de IVA activo al ' + cpQName(tq.q) + '? A partir de entonces, las facturas del ' + cpQName(T.q) + ' se contabilizarán con fecha del ' + fdate(cpQStart(tq.y, tq.q)) + '.',
-      triGo: B('Pasar al ' + cpQName(tq.q), { cls: 'fc-sm fc-pri', why: !can ? NP : null, fn: function () { self.cpOpenDlg(V, { kind: 'tri' }); } }), triLater: B('Más tarde', { cls: 'fc-sm fc-ghost', fn: function () { V.triLater = true; } }),
       pruebaT: 'Modo prueba: el reconocimiento se ejecuta sobre cualquier PDF y no guarda nada. Sirve para comprobar las reglas y las palabras clave.',
       infoIc: FC_IC.info, warnIc: FC_IC.warn, calIc: CP_IC.cal
     };
@@ -7092,20 +7120,21 @@ class Component extends DCLogic {
       more: B('Más acciones', { icon: 'chev', fn: function (e) { V.sel = {}; V.sel[f.id] = 1; var r = e.currentTarget.getBoundingClientRect(); self.cpOpenMenu(V, r.left - 160, r.bottom + 4, e.currentTarget); } }),
       missing: f.missing, missT: 'El PDF ya no está en ' + C.folder + '\\' + f.file + '. Si lo has movido, «Recargar carpeta» lo encuentra por su huella; si no, elimina el registro.',
       missB: B('Eliminar el registro…', { icon: 'trash', cls: 'fc-sm fc-danger', why: !can ? NP : null, fn: function () { self.cpOpenDlg(V, { kind: 'del', id: f.id, pdf: false }); } }),
-      expOn: !!f.exp, expKv: f.exp ? [{ k: 'Asiento', v: String(f.exp.as), lnk: true, nl: false, on: go(function () { self.cpOpenDlg(V, { kind: 'as', id: f.id }); }), tip: 'Ver el asiento', after: f.exp.pair ? ' · conjunto con ' + C.byId(f.exp.pair).d.num : '' }, { k: 'Fecha contable', v: fdate(f.exp.fc), nl: true }, { k: 'Registro de IVA', v: f.exp.reg, nl: true }, { k: 'Contabilizada', v: fdate(f.exp.ts.slice(0, 10)) + ' ' + f.exp.ts.slice(11) + ' · ' + (OPS[f.exp.op] ? OPS[f.exp.op].short : f.exp.op), nl: true }].concat(f.exp.rect ? [{ k: 'Rectificativa', v: 'Asiento ' + f.exp.rect.as + ' del ' + fdate(f.exp.rect.fc) + ' · registro ' + f.exp.rect.reg, nl: true, cls: 'cp-anut' }] : []) : []
+      expOn: !!f.exp, expKv: f.exp ? [{ k: 'Asiento', v: String(f.exp.as), lnk: true, nl: false, on: go(function () { self.cpOpenDlg(V, { kind: 'as', id: f.id }); }), tip: 'Ver el asiento', after: f.exp.pair ? ' · conjunto con ' + C.byId(f.exp.pair).d.num : '' }, { k: 'Fecha del asiento', v: fdate(f.exp.fc), nl: true }, { k: 'Registro de IVA', v: f.exp.reg, nl: true }, { k: 'Contabilizada', v: fdate(f.exp.ts.slice(0, 10)) + ' ' + f.exp.ts.slice(11) + ' · ' + (OPS[f.exp.op] ? OPS[f.exp.op].short : f.exp.op), nl: true }].concat(f.exp.rect ? [{ k: 'Rectificativa', v: 'Asiento ' + f.exp.rect.as + ' del ' + fdate(f.exp.rect.fc) + ' · registro ' + f.exp.rect.reg, nl: true, cls: 'cp-anut' }] : []) : []
     };
     /* proveedor */
     out.nif = FL('nif', d.nif, function (dd, v) { self.cpSetNif(C, dd, v); }, { u: d.nif, ph: 'NIF o VAT', tip: 'NIF del proveedor: Intro o Tab lo busca; F3 abre la búsqueda por nombre', cls: 'fc-mono' });
-    out.supOn = !!s; out.supName = s ? trName(s) : ''; out.supSub = s ? (C.supCta(s) + ' · ' + C.ctaD(C.supCta(s))) : '';
-    out.supGo = go(function () { self.openTercero(s.id); }); out.supTip = 'Abre la ficha del proveedor en Terceros';
-    out.supPick = B('Buscar…', { icon: 'search', why: ro ? roWhy : null, title: 'Busca el proveedor por nombre (F3)', fn: function () { self.cpOpenDlg(V, { kind: 'prov', q: '' }); } });
+    out.supOn = !!s; out.supName = s ? trName(s) : ''; out.supSub = s ? C.supCta(s) : '';
+    out.supGo = go(function () { self.openTercero(s.id); }); out.supTip = 'Doble clic: abre la ficha del proveedor en Terceros';
+    out.supOpen = B('', { icon: 'chevr', cls: 'fc-icb cp-icb', title: 'Abrir la ficha del proveedor en Terceros', fn: function () { self.openTercero(s.id); } });
+    out.supPick = B('', { icon: 'search', cls: 'fc-icb cp-icb', why: ro ? roWhy : null, title: 'Buscar el proveedor por nombre (F3)', fn: function () { self.cpOpenDlg(V, { kind: 'prov', q: '' }); } });
     out.unk = unk && !ro; out.unkT = 'El NIF ' + d.nif + ' no es de ningún proveedor' + (f.pdf.supNif === d.nif ? ': la factura es de «' + f.pdf.supN + '».' : '.');
     out.unkAlta = B('Dar de alta el proveedor…', { icon: 'plus', cls: 'fc-sm fc-pri', why: !can ? NP : null, title: 'Crea el tercero con rol de proveedor y lo asigna a esta factura', fn: function () { self.cpOpenDlg(V, { kind: 'alta', nif: d.nif, name: f.pdf.supNif === d.nif ? f.pdf.supN : '', addr: f.pdf.supNif === d.nif ? f.pdf.supAddr : '', web: false }); } });
     out.unkWeb = B('Buscar el NIF en internet', { icon: 'globe', why: !can ? NP : null, title: 'Simulado: consulta un servicio público de datos de empresas por NIF', fn: function () { self.cpOpenDlg(V, { kind: 'alta', nif: d.nif, name: f.pdf.supN, addr: f.pdf.supAddr, web: true }); } });
     out.pais = d.pais || 'ES'; out.paisSet = set('pais', function (dd, v) { dd.pais = v; if (v !== 'ES' && dd.op === 'NAC') dd.op = /^(DE|FR|IT|PT|IE|NL|BE|AT|PL|SE|DK|FI|LU|CZ|SK|HU|RO|BG|GR|HR|SI|EE|LV|LT|MT|CY)$/.test(v) ? 'INT' : 'IMP'; });
     out.paises = [['ES', 'España'], ['PT', 'Portugal'], ['FR', 'Francia'], ['DE', 'Alemania'], ['IT', 'Italia'], ['IE', 'Irlanda'], ['NL', 'Países Bajos'], ['GB', 'Reino Unido'], ['US', 'Estados Unidos'], ['CN', 'China']].map(function (p) { return { v: p[0], t: p[1] }; });
     var vies = d.vies, vCls = { ok: 'cp-vies-ok', no: 'cp-vies-no', err: 'cp-vies-err' }[vies] || '';
-    out.vies = B(vies === 'ok' ? 'VIES: válido' : vies === 'no' ? 'VIES: no válido' : vies === 'err' ? 'VIES: sin respuesta' : 'Comprobar en el VIES', { icon: 'globe', cls: 'fc-sm ' + vCls, why: ro ? roWhy : !d.nif ? 'Escribe antes el NIF.' : null, title: 'Consulta el NIF en el servicio VIES de la Comisión Europea (simulado)', fn: function () {
+    out.vies = B('', { icon: 'globe', cls: 'fc-icb cp-icb ' + vCls, why: ro ? roWhy : !d.nif ? 'Escribe antes el NIF.' : null, title: (vies === 'ok' ? 'VIES: NIF válido. ' : vies === 'no' ? 'VIES: NIF no válido. ' : vies === 'err' ? 'VIES: sin respuesta. ' : '') + 'Comprobar el NIF en el VIES de la Comisión Europea (simulado)', fn: function () {
       var okN = foreign ? /^[A-Z]{2}[0-9A-Z]{6,12}$/.test(d.nif) : true;
       self.cpSet(C, V, f, 'vies', function (dd) { dd.vies = okN ? 'ok' : 'no'; if (foreign && dd.op !== 'NAC' && cpTot(dd).iT === 0) dd.op = okN ? 'INT' : 'IMP'; });
       self.toast(okN ? 'VIES: el NIF ' + d.nif + ' es válido' + (foreign ? ': operación intracomunitaria.' : '.') : 'VIES: el NIF ' + d.nif + ' no es un NIF intracomunitario válido: operación de importación.'); } });
@@ -7113,8 +7142,8 @@ class Component extends DCLogic {
     out.prods = [['S', 'Servicios'], ['B', 'Bienes']].map(function (k) { return { t: k[1], on: d.prod === k[0], pick: set('prod', function (dd) { dd.prod = k[0]; }) }; });
     out.opBd = this.cpBadge(rec, d, 'op');
     out.ispShow = d.op === 'NAC' && t.bT > 0 && t.iT === 0 || d.isp; out.isp = !!d.isp; out.ispSet = set('isp', function (dd, v) { dd.isp = !!v; }); out.ispBd = this.cpBadge(rec, d, 'isp');
-    out.autoShow = (d.op === 'NAC' && d.isp) || d.op === 'INT'; out.auto = String(d.autoRate || 21); out.autoSet = set('autoRate', function (dd, v) { dd.autoRate = +v; });
-    out.autoT = d.op === 'INT' ? 'Tipo de IVA de la autorrepercusión' : 'Tipo de IVA de la inversión del sujeto pasivo';
+    out.autoShow = (d.op === 'NAC' && d.isp) || d.op === 'INT'; out.ispRow = out.ispShow || out.autoShow; out.auto = String(d.autoRate || 21); out.autoSet = set('autoRate', function (dd, v) { dd.autoRate = +v; });
+    out.autoT = d.op === 'INT' ? 'Tipo de IVA de la autorrepercusión' : 'Tipo de IVA';
     /* factura */
     out.fecha = FL('fecha', d.fecha ? fdate(d.fecha) : '', function (dd, v) { var x = cpParseDate(v); dd.fecha = x || ''; if (x) { var ss = C.sup(dd.tid); dd.venc = ss && +ss.fun.proveedor.dias ? cpAddDays(x, +ss.fun.proveedor.dias) : x; } }, { ph: 'dd/mm/aaaa', u: d.fecha, bad: d.fecha === '' && d.man && d.man.fecha ? 'Fecha no válida: escríbela como dd/mm/aaaa' : '' });
     out.num = FL('num', d.num, function (dd, v) { var ss = C.sup(dd.tid), prop = !dd.con || (ss && dd.con.indexOf(trShort(ss)) === 0); dd.num = String(v).trim(); if (prop && ss) dd.con = trShort(ss) + ' · ' + dd.num; }, { cls: 'fc-mono', ph: 'Número de la factura' });
@@ -7141,15 +7170,17 @@ class Component extends DCLogic {
     out.usdB = B(d.usdPend ? 'Convertir a euros…' : 'Volver a dólares', { icon: 'usd', cls: 'fc-sm' + (d.usdPend ? ' fc-pri' : ''), why: ro ? roWhy : !d.fecha ? 'Pon antes la fecha de la factura.' : null, fn: function () { if (d.usdPend) self.cpOpenDlg(V, { kind: 'usd', id: f.id }); else self.cpSet(C, V, f, 'usd', function (dd) { var k = dd.usd.c; CP_RATES.forEach(function (r) { dd.R[r] = [r2(dd.R[r][0] * k), r2(dd.R[r][1] * k)]; }); dd.ivaSup = r2(dd.ivaSup * k); dd.sup = r2(dd.sup * k); dd.usd = null; dd.usdPend = true; }); } });
     out.tots = [{ t: 'Base imponible', v: money(t.bT) }, { t: 'IVA', v: money(t.iT) }].concat(t.ret ? [{ t: 'Retención ' + num(d.ret.pct).replace(',00', '') + ' %', v: money(t.ret) }] : []).concat(d.ivaSup ? [{ t: 'IVA suplido', v: money(d.ivaSup) }] : []).concat(d.sup ? [{ t: 'Suplidos', v: money(d.sup) }] : []).concat([{ t: 'Total calculado', v: money(t.totC), cls: 'fc-tot' }]).map(function (x) { return { t: x.t, v: x.v + (d.usdPend ? ' ($)' : ''), cls: 'fc-mr' + (x.cls ? ' ' + x.cls : '') }; });
     out.totF = FL('totF', d.totF ? num(d.totF) : '', function (dd, v) { var x = cpNum(v); if (!isNaN(x)) dd.totF = r2(x); }, { cls: 'fc-r fc-tn cp-totf', ph: num(t.totC), tk: 'tot', u: d.totF, tip: 'Total impreso en la factura: es lo que se debe al proveedor' });
-    out.difOn = Math.abs(t.dif) >= 0.005; out.difCls = 'fc-note ' + (Math.abs(t.dif) <= 0.05 ? 'fc-warn' : 'fc-err');
-    out.difT = Math.abs(t.dif) <= 0.05 ? 'El total de la factura difiere ' + money(Math.abs(t.dif)) + ' del calculado: al contabilizar se añade un apunte de ajuste por redondeo a la ' + C.PAR.red + '.' : 'El total de la factura difiere ' + money(Math.abs(t.dif)) + ' del calculado: más de 0,05 €, no se puede contabilizar. Revisa las bases y las cuotas.';
+    var small = Math.abs(t.dif) <= CP_TOL + 1e-9, qOff = cpQuotaOff(d), adjd = !small && chk.desc === null && !!d.adj;
+    out.difOn = Math.abs(t.dif) >= 0.005; out.difCls = 'fc-note cp-dif ' + (small || adjd ? 'fc-warn' : 'fc-err');
+    out.difT = small ? 'Difiere ' + money(Math.abs(t.dif)) + ' del calculado: se ajusta con un apunte de redondeo a la ' + C.PAR.red + '.' : adjd ? 'Difiere ' + money(Math.abs(t.dif)) + ': ajuste manual «' + d.adj.mot + '».' : 'Difiere ' + money(Math.abs(t.dif)) + ' del calculado (más de 0,03 €)' + (qOff.length ? ': la cuota del ' + qOff.map(function (q) { return q.r + ' %'; }).join(' y del ') + ' no corresponde a su base.' : '.') + ' Al contabilizar puedes ajustarlo con un motivo.';
+    out.difFix = B('Recalcular cuotas', { cls: 'fc-sm', why: ro ? roWhy : null, title: 'Calcula cada cuota a partir de su base y su tipo', fn: function () { self.cpSet(C, V, f, 'imp', function (dd) { cpQuotaOff(dd).forEach(function (q) { dd.R[q.r][1] = q.ok; }); }); } }); out.difFixOn = !small && qOff.length > 0;
     /* imputación */
     out.gasto = FL('gasto', d.gasto, function (dd, v) { dd.gasto = String(v).trim(); }, { cls: 'fc-mono', ph: '6…', tip: 'Cuenta de gasto (grupo 6)' });
     out.gastoD = d.gasto ? C.ctaD(d.gasto) + (d.gasto === C.PAR.gen ? ' · genérica: conviene clasificarla' : '') : ''; out.gastoDCls = 'cp-hint' + (d.gasto === C.PAR.gen ? ' cp-gen' : ' fc-mut');
-    out.gastoPick = B('Buscar…', { icon: 'search', why: ro ? roWhy : null, title: 'Elige la cuenta de gasto', fn: function () { self.cpOpenDlg(V, { kind: 'cta', q: '6', cta: d.gasto, kw: '' }); } });
+    out.gastoPick = B('', { icon: 'search', cls: 'fc-icb cp-icb', why: ro ? roWhy : null, title: 'Buscar la cuenta de gasto', fn: function () { self.cpOpenDlg(V, { kind: 'cta', q: '6', cta: d.gasto, kw: '' }); } });
     out.ccOn = !!C.CC; out.ccNo = !C.CC; out.ccNoT = 'Esta sociedad no usa centros de coste.'; out.cc = d.cc || ''; out.ccSet = set('cc', function (dd, v) { dd.cc = v; }); out.ccBd = this.cpBadge(rec, d, 'cc');
     out.ccs = (C.CC || []).map(function (c) { return { v: c[0], t: c[0] + ' · ' + c[1] + ' (' + c[2] + ')' }; });
-    out.kwB = B('Palabra clave…', { icon: 'key', why: ro ? roWhy : null, title: 'Crea una palabra clave para que el reconocimiento asigne esta cuenta o este centro de coste', fn: function () { var sel = String(window.getSelection ? window.getSelection() : '').trim(); self.cpOpenDlg(V, { kind: 'kw', t: sel.length < 40 ? sel.toUpperCase() : '', what: 'gasto', id: f.id }); } });
+    out.kwB = B('', { icon: 'key', cls: 'fc-icb cp-icb', why: ro ? roWhy : null, title: 'Crea una palabra clave para que el reconocimiento asigne esta cuenta o este centro de coste', fn: function () { var sel = String(window.getSelection ? window.getSelection() : '').trim(); self.cpOpenDlg(V, { kind: 'kw', t: sel.length < 40 ? sel.toUpperCase() : '', what: 'gasto', id: f.id }); } });
     var relOpts = C.INV.filter(function (x) { if (x === f) return false; var xd = x.d; var ok = d.ivaSup ? xd.op === 'IMP' : d.op === 'IMP' ? xd.ivaSup : false; return ok && (!x.exp || d.rel === x.id || xd.rel === f.id); });
     out.relShow = !!(d.ivaSup || d.op === 'IMP'); out.rel = d.rel || ''; out.relSet = set('rel', function (dd, v) { dd.rel = v || null; });
     out.relT = d.ivaSup ? 'Factura de la mercancía (importación)' : 'Factura del transitario (con el IVA de aduanas)';
@@ -7160,7 +7191,7 @@ class Component extends DCLogic {
     /* comprobaciones y registro */
     out.chks = chk.B.map(function (x) { return { t: x, cls: 'cp-chk cp-chk-b' }; }).concat(chk.W.map(function (x) { return { t: x, cls: 'cp-chk cp-chk-w' }; }));
     out.chkOn = out.chks.length > 0; out.chkNone = !f.exp && !V.prueba && !out.chks.length && !f.missing; out.chkT = chk.B.length ? plural(chk.B.length, 'dato impide', 'datos impiden') + ' contabilizar' + (chk.W.length ? ' · ' + plural(chk.W.length, 'aviso', 'avisos') : '') : plural(chk.W.length, 'aviso', 'avisos');
-    out.fcT = !f.exp && d.fecha ? (function () { var x = cpFechaC(C, d.fecha, ej); return x.block ? '' : 'Fecha contable: ' + fdate(x.fc) + ' · ' + x.why; })() : '';
+    out.fcT = !f.exp && d.fecha ? (function () { var x = cpFechaC(C, d.fecha, ej); return x.block ? '' : 'Fecha del asiento: ' + fdate(x.fc) + ', ' + x.why; })() : '';
     out.log = f.log.slice(0, 8).map(function (l) { return { ts: l.ts, t: l.t }; }); out.logOn = !!f.log.length;
     out.supCh = !f.exp && !V.prueba ? this.cpSupDiff(C, d).map(function (c) { return { t: c.t + ': ' + c.a + ' → ' + c.b }; }) : []; out.supChOn = out.supCh.length > 0;
     /* modo prueba: reconocido frente a registrado */
@@ -7211,12 +7242,6 @@ class Component extends DCLogic {
     if (k === 'par') { x.title = 'Cuentas de la contabilización de compras · ' + C.soc.short; x.sim = false; x.cls = 'fc-dlg fc-wide'; x.cancelT = 'Cerrar';
       x.pars = CP_PAR_DEF.map(function (p) { return { t: p[1], v: C.PAR[p[0]], d: C.ctaD(C.PAR[p[0]]) }; });
       x.parNote = 'Son parámetros de la sociedad: se mantendrán desde Configuración (en ProConta antiguo la 4724001, la 6690000 y la 6000000 estaban fijas en el código). Las del proveedor y las de gasto salen de su ficha en Terceros.'; }
-    if (k === 'tri') { var T = C.triFor(ej), tq = cpQuarter(CP_HOY), nq = T.q === 4 ? { y: T.y + 1, q: 1 } : { y: T.y, q: T.q + 1 };
-      x.title = 'Trimestre de IVA activo'; x.sim = true;
-      x.triKv = [{ k: 'Activo', v: cpQName(T.q) + ' ' + T.y + ' (' + cpQMonths(T.q) + ')', nl: true }, { k: 'Hoy', v: fdate(CP_HOY) + ' · ' + cpQName(tq.q) + ' ' + tq.y, nl: true }, { k: 'Siguiente', v: cpQName(nq.q) + ' ' + nq.y, nl: true }];
-      x.triT = 'Al pasar al ' + cpQName(nq.q) + ', las facturas con fecha anterior al ' + fdate(cpQStart(nq.y, nq.q)) + ' se contabilizarán con esa fecha, para no tocar un trimestre ya presentado. Hazlo cuando hayas presentado el ' + cpQName(T.q) + '.';
-      if (nq.y === T.y) x.acts = [B('Pasar al ' + cpQName(nq.q), { cls: 'fc-sm fc-pri', why: !can ? NP : nq.y > tq.y || (nq.y === tq.y && nq.q > tq.q) ? 'Todavía no hemos llegado al ' + cpQName(nq.q) + '.' : null, fn: function () { C.tri = nq; V.dlg = null; V.triLater = true; self.toast('Trimestre de IVA activo: ' + cpQName(nq.q) + ' ' + nq.y + '.'); } })];
-      else x.triT += ' El paso al ejercicio siguiente se hace al abrir el ejercicio ' + nq.y + '.'; }
     if (k === 'auto') { x.title = 'Reconocer las facturas sin rellenar'; x.uT = 'Se reconocerán ' + plural(d.n, 'factura', 'facturas') + ' y se guardará lo encontrado en cada una. Después, revisa sobre todo los campos marcados «Revisar» o «Dudoso» antes de contabilizar.';
       x.acts = [B('Reconocer ' + d.n, { cls: 'fc-sm fc-pri', why: !can ? NP : null, fn: function () { var n = 0, low = 0; C.INV.forEach(function (g) { if (!g.exp && !g.missing && cpState(g) === 'VAC') { var r = self.cpRecog(C, g); n++; low += r.low; } }); V.dlg = null; self.toast(plural(n, 'factura reconocida', 'facturas reconocidas') + (low ? ' · ' + plural(low, 'campo dudoso', 'campos dudosos') + ' por revisar.' : '.')); } })]; }
     if (k === 'rerec') { x.title = 'Reconocer de nuevo'; x.uT = 'Se volverán a reconocer ' + plural(d.ids.length, 'factura', 'facturas') + ' y se sustituirán sus datos por lo encontrado, también lo que hayas corregido a mano.';
@@ -7234,7 +7259,7 @@ class Component extends DCLogic {
         grp.forEach(function (g) { lines = lines.concat(cpAsiento(C, g, dataOf(g)).lines); });
         x.pB = it.c.B.concat(it.pc ? it.pc.B.map(function (b) { return 'Factura enlazada: ' + b; }) : []).map(function (t) { return { t: t }; }); x.pBOn = x.pB.length > 0;
         x.pW = it.c.W.concat(it.pc ? it.pc.W.map(function (w) { return 'Factura enlazada: ' + w; }) : []).map(function (t) { return { t: t }; }); x.pWOn = x.pW.length > 0;
-        x.pFc = it.c.fc.block ? '' : 'Fecha contable: ' + fdate(it.c.fc.fc) + ' · ' + it.c.fc.why; x.pFcOn = !!x.pFc;
+        x.pFc = it.c.fc.block ? '' : 'Fecha del asiento: ' + fdate(it.c.fc.fc) + ', ' + it.c.fc.why; x.pFcOn = !!x.pFc;
         x.pPair = it.pr ? 'Se contabiliza junto con ' + (C.sup(it.pr.d.tid) ? trShort(C.sup(it.pr.d.tid)) : '') + ' ' + it.pr.d.num + ' en un único asiento, cada una con su registro de IVA.' : ''; x.pPairOn = !!it.pr;
         x.asl = [this.cpAsView(C, lines, 'Asiento propuesto · ' + (it.c.fc.fc ? fdate(it.c.fc.fc) : 'sin fecha'))];
         var rg = cpRegIva(C, it.d, it.c.fc.fc);
@@ -7242,18 +7267,25 @@ class Component extends DCLogic {
           .concat(rg.bases.map(function (b) { return { k: 'Base ' + b.r + ' %' + (b.auto ? ' (autorrepercusión)' : ''), v: money(b.b) + ' · cuota ' + money(b.c), nl: true }; }))
           .concat(rg.exenta ? [{ k: 'Base exenta', v: money(rg.exenta), nl: true }] : []).concat(rg.ivaSup ? [{ k: 'IVA suplido', v: money(rg.ivaSup), nl: true }] : [])
           .concat(rg.ret ? [{ k: 'Retención', v: rg.ret.t + ' · ' + rg.ret.pct + ' % de ' + money(rg.ret.base) + ' = ' + money(rg.ret.imp), nl: true }] : []).concat([{ k: 'Modelo 347', v: rg.m347 ? 'Se incluye' : 'No se incluye', nl: true }]);
+        var ds = it.c.desc, onlyD = ds && it.c.B.length === 1 && !(it.pc && it.pc.B.length);
+        x.pDesc = !!onlyD; x.pDescT = onlyD ? 'Bases e impuestos suman ' + money(Math.abs(ds.dif)) + ' ' + (ds.dif > 0 ? 'más' : 'menos') + ' que el total de la factura. Corrige el dato que esté mal o, si la factura es así, ajusta la diferencia con un motivo: irá a la ' + C.PAR.red + ' y quedará en el registro.' : '';
+        x.pDescQ = onlyD ? ds.q.map(function (q) { return { t: 'Cuota del ' + q.r + ' %: ' + money(q.c) + ' en la factura; ' + money(q.ok) + ' según la base de ' + money(q.b) + '.' }; }) : []; x.pDescQOn = x.pDescQ.length > 0;
+        x.pDescFix = B('Recalcular cuotas y revisar', { cls: 'fc-sm', why: !onlyD || !ds.q.length ? 'Todas las cuotas corresponden a su base.' : null, title: 'Calcula cada cuota a partir de su base y vuelve a comprobar', fn: function () { self.cpSet(C, V, it.f, 'imp', function (dd) { cpQuotaOff(dd).forEach(function (q) { dd.R[q.r][1] = q.ok; }); }); } });
+        if (onlyD) x.pBOn = false;
+        x.pMot = d.mot || ''; x.pMotSet = function (e) { d.mot = e.target.value; self.cpFocus('dlg:mot'); self.bump(); };
         x.pSup = this.cpSupDiff(C, it.d).map(function (c) { return { t: c.t + ': ' + c.a + ' → ' + c.b }; }); x.pSupOn = x.pSup.length > 0;
       } else {
         x.mItems = items.map(function (it) { var s = C.sup(it.d.tid), b = it.c.B.length || (it.pc && it.pc.B.length), w = !b && (it.c.W.length || (it.pc && it.pc.W.length)); var first = b ? it.c.B.concat(it.pc ? it.pc.B : [])[0] : w ? it.c.W.concat(it.pc ? it.pc.W : [])[0] : ''; return { t: (s ? trShort(s) : it.f.pdf.supN) + ' · ' + (it.d.num || it.f.file.split('\\').pop()), imp: money(cpTot(it.d).totF), st: b ? 'No se puede' : w ? 'Con avisos' : 'Lista', stCls: 'fc-pill ' + (b ? 'cp-pill-FAL' : w ? 'cp-pill-REV' : 'cp-pill-COM'), why: first + (b && it.c.B.length > 1 ? ' (y ' + (it.c.B.length - 1) + ' más)' : ''), fc: it.c.fc.fc ? fdate(it.c.fc.fc) : '' }; });
         x.mSum = plural(nOk, 'lista', 'listas') + ' · ' + plural(nW, 'con avisos', 'con avisos') + ' · ' + plural(nB, 'que no se puede contabilizar', 'que no se pueden contabilizar');
       }
-      var doPost = function (force) { var ids = items.filter(function (it) { return !it.c.B.length && !(it.pc && it.pc.B.length) && (force || (!it.c.W.length && !(it.pc && it.pc.W.length))); }).map(function (it) { return it.f.id; });
+      var doPost = function (force, only) { var ids = only || items.filter(function (it) { return !it.c.B.length && !(it.pc && it.pc.B.length) && (force || (!it.c.W.length && !(it.pc && it.pc.W.length))); }).map(function (it) { return it.f.id; });
         var r = self.cpPost(C, V, ids, force); V.dlg = null;
         if (r.done.length) { var as = r.done.map(function (g) { return g.exp.as; }).filter(function (a, i, A) { return A.indexOf(a) === i; }); self.toast(plural(r.done.length, 'factura contabilizada', 'facturas contabilizadas') + ': ' + (as.length === 1 ? 'asiento ' + as[0] : 'asientos ' + as[0] + ' a ' + as[as.length - 1]) + '.'); }
         var nx = list.filter(function (g) { return !g.exp && !g.missing && r.done.indexOf(g) < 0; })[0]; if (nx && r.done.some(function (g) { return g.id === V.cur; })) self.cpOpen(C, V, nx); };
       var okN = nOk + (nW ? 0 : 0);
       x.acts = [];
-      if (one && nB) x.acts.push(B('Contabilizar', { cls: 'fc-sm fc-pri', why: 'Corrige antes los datos marcados en rojo.', fn: function () {} }));
+      if (one && x.pDesc) x.acts.push(B('Contabilizar con ajuste manual', { cls: 'fc-sm fc-pri', why: !can ? NP : String(d.mot || '').trim().length < 3 ? 'Escribe el motivo del ajuste.' : null, title: 'Añade un apunte con la diferencia a la ' + C.PAR.red + ' y contabiliza', fn: function () { var g = items[0].f; self.cpSet(C, V, g, 'adj', function (dd) { dd.adj = { mot: String(d.mot).trim(), dif: items[0].c.desc.dif, ts: CP_HOY + ' ' + nowHM(), op: self.S.op }; }); self.cpLog(g, 'Descuadre de ' + money(Math.abs(items[0].c.desc.dif)) + ' ajustado a mano: «' + String(d.mot).trim() + '».'); doPost(true, [g.id]); } }));
+      else if (one && nB) x.acts.push(B('Contabilizar', { cls: 'fc-sm fc-pri', why: 'Corrige antes los datos marcados en rojo.', fn: function () {} }));
       else if (nW) x.acts.push(B(one ? 'Contabilizar con los avisos' : 'Contabilizar ' + (nOk + nW) + ' (también con avisos)', { cls: 'fc-sm' + (nOk ? '' : ' fc-pri'), why: !can ? NP : null, title: 'Has leído los avisos y quieres contabilizar igualmente', fn: function () { doPost(true); } }));
       if (!(one && nB) && (!one || !nW)) x.acts.push(B(one ? 'Contabilizar' : 'Contabilizar ' + nOk + ' sin avisos', { cls: 'fc-sm fc-pri', why: !can ? NP : !okN ? (one ? 'Corrige antes los datos marcados.' : 'Ninguna está lista sin avisos.') : null, fn: function () { doPost(false); } }));
     }
@@ -7264,15 +7296,13 @@ class Component extends DCLogic {
     if (k === 'undo' && f) { x.title = 'Deshacer la contabilización'; var pr2 = f.exp.pair ? C.byId(f.exp.pair) : null;
       x.uT = 'Se borrará el asiento ' + f.exp.as + (f.exp.rect ? ' y su rectificativo ' + f.exp.rect.as : '') + ' y ' + (pr2 ? 'los registros de IVA de las dos facturas, porque comparten asiento con ' + pr2.d.num : 'el registro de IVA ' + f.exp.reg) + '. La factura volverá a Pendientes con sus datos.';
       x.acts = [B('Deshacer la contabilización', { cls: 'fc-sm fc-danger', why: !can ? NP : null, fn: function () { var n = self.cpUndo(C, f); V.dlg = null; V.tab = 'pend'; V.cur = f.id; self.toast(n > 1 ? 'Contabilización deshecha en las dos facturas enlazadas.' : 'Contabilización deshecha: la factura vuelve a Pendientes.'); } })]; }
-    if (k === 'redo') { var fs2 = d.ids.map(function (id) { return C.byId(id); }), T2 = C.triFor(ej), st2 = cpQStart(T2.y, T2.q), dt = cpParseDate(d.date);
+    if (k === 'redo') { var fs2 = d.ids.map(function (id) { return C.byId(id); });
       x.title = 'Rehacer la contabilización' + (fs2.length > 1 ? ' de ' + fs2.length + ' facturas' : ''); x.uT = 'Se mantienen el número de asiento y el de registro de IVA; se borran sus apuntes y se vuelven a generar con los datos actuales de la factura.';
-      x.modes = [['same', 'Con la misma fecha contable'], ['tri', 'Con el primer día del trimestre activo (' + fdate(st2) + ')'], ['date', 'Con otra fecha']].map(function (o) { return { t: o[1], on: d.mode === o[0], pick: go(function () { d.mode = o[0]; }) }; });
-      x.rdDate = d.mode === 'date'; x.rdV = d.date; x.rdSet = function (e) { d.date = e.target.value; self.cpFocus('dlg:date'); self.bump(); };
-      var why = d.mode === 'date' ? (!dt ? 'Escribe la fecha como dd/mm/aaaa.' : +dt.slice(0, 4) !== ej ? 'La fecha tiene que ser del ejercicio ' + ej + '.' : dt < st2 ? 'Es de un trimestre ya presentado: usa una fecha desde el ' + fdate(st2) + '.' : null) : null;
-      x.rdErr = why && d.date ? why : ''; x.rdErrOn = !!x.rdErr;
-      x.acts = [B('Rehacer', { cls: 'fc-sm fc-pri', why: !can ? NP : why, fn: function () { fs2.forEach(function (g) { self.cpRedo(C, g, d.mode === 'same' ? g.exp.fc : d.mode === 'tri' ? (g.exp.fc < st2 ? st2 : g.exp.fc) : dt); }); V.dlg = null; self.toast(plural(fs2.length, 'contabilización rehecha', 'contabilizaciones rehechas') + ' con el mismo asiento.'); } })]; }
+      x.modes = [['same', 'Con la misma fecha del asiento'], ['hoy', 'Con la fecha de hoy (' + fdate(CP_HOY) + ')']].map(function (o) { return { t: o[1], on: d.mode === o[0], pick: go(function () { d.mode = o[0]; }) }; });
+      x.rdDate = false; x.rdErr = ''; x.rdErrOn = false;
+      x.acts = [B('Rehacer', { cls: 'fc-sm fc-pri', why: !can ? NP : null, fn: function () { fs2.forEach(function (g) { self.cpRedo(C, g, d.mode === 'same' ? g.exp.fc : CP_HOY); }); V.dlg = null; self.toast(plural(fs2.length, 'contabilización rehecha', 'contabilizaciones rehechas') + ' con el mismo asiento.'); } })]; }
     if (k === 'rect' && f) { var fcR = cpFechaC(C, f.exp.fc, ej).fc; x.title = 'Factura rectificativa (anular)'; x.cls = 'fc-dlg fc-wide cp-xwide';
-      x.uT = 'Para una factura que no se debió contabilizar (por ejemplo, duplicada). Se genera un asiento nuevo igual al ' + f.exp.as + ' con los importes en negativo y un registro de IVA también en negativo, con fecha ' + fdate(fcR) + ' (trimestre de IVA activo). La factura quedará como «Anulada».';
+      x.uT = 'Para una factura que no se debió contabilizar (por ejemplo, duplicada). Se genera un asiento nuevo igual al ' + f.exp.as + ' con los importes en negativo y un registro de IVA también en negativo, con fecha de hoy, ' + fdate(fcR) + '. La factura quedará como «Anulada».';
       var l4 = []; (f.exp.pair ? [f, C.byId(f.exp.pair)] : [f]).forEach(function (g) { l4 = l4.concat(cpAsiento(C, g, g.d, -1, 'R-').lines); }); x.asl = [this.cpAsView(C, l4, 'Asiento rectificativo propuesto · ' + fdate(fcR))];
       x.acts = [B('Generar la rectificativa', { cls: 'fc-sm fc-danger', why: !can ? NP : null, fn: function () { self.cpRect(C, f); V.dlg = null; self.toast('Factura anulada con el asiento rectificativo ' + f.exp.rect.as + '.'); } })]; }
     if (k === 'del' && f) { x.title = 'Eliminar el registro'; x.uT = f.missing ? 'El PDF ya no está en la carpeta. Se eliminará el registro de la factura' + (cpTot(f.d).filled ? ', que ya tiene datos' : '') + '.' : 'Se eliminará el registro de ' + f.file.split('\\').pop() + (cpTot(f.d).filled ? ', que ya tiene datos' : '') + '.';
