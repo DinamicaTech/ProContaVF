@@ -1185,6 +1185,27 @@ textarea.fc-in{height:auto;padding:6px 8px;resize:vertical}
 .cpx .cp-nifg{grid-template-columns:minmax(0,1.5fr) minmax(0,1fr)}
 .cpx .cp-nw{flex-wrap:nowrap;white-space:nowrap}
 .cpx .cp-w1.cp-nolist .cp-form{flex-basis:720px}
+.cpx .cp-split{flex:none;width:8px;margin:0 -9px;position:relative;z-index:3;cursor:col-resize;align-self:stretch;outline:none}
+.cpx .cp-split>span{position:absolute;left:3px;top:0;bottom:0;width:2px;border-radius:2px;background:transparent}
+.cpx .cp-split:hover>span,.cpx .cp-split:focus-visible>span{background:var(--or2)}
+.cpx .cp-icb0{border:0 !important;background:none !important;width:28px !important;height:28px !important}
+.cpx .cp-view.cp-float{position:fixed;z-index:40;width:min(760px,46vw);height:min(1000px,78vh);resize:both;overflow:hidden;box-shadow:0 18px 48px rgba(20,33,58,.32);border:1px solid var(--ln3);display:flex;flex-direction:column}
+.cpx .cp-floath{display:flex;align-items:center;gap:8px;padding:6px 8px 6px 12px;background:var(--navy);color:#fff;font-size:12px;font-weight:600;cursor:move;flex:none;user-select:none}
+.cpx .cp-floath .fc-btn{background:#fff}
+.cpx .cp-w3 .cp-fbody{gap:20px}
+.cpx .cp-w3 .cp-col{gap:20px}
+.cpx .cp-w3 .cp-cols{gap:20px 26px}
+.cpx .cp-w3 .cp-gr2,.cpx .cp-w3 .cp-gr3{gap:12px 14px}
+.cpx .cp-w3 .cp-gr2 .fc-fld,.cpx .cp-w3 .cp-gr3 .fc-fld{gap:5px}
+.cpx .cp-w3 .cp-fw .fc-in,.cpx .cp-w3 .cp-fwn .fc-in,.cpx .cp-w3 .cp-form select.fc-in{height:34px}
+.cpx .cp-w3 .fc-btn.cp-icb{width:34px;height:34px}
+.cpx .cp-w3 .cp-supl{height:34px;margin-top:10px}
+.cpx .cp-w3 .cp-row{margin-top:12px}
+.cpx .cp-w3 .cp-rr{padding:4px 10px}
+.cpx .cp-w3 .cp-rr .fc-in,.cpx .cp-w3 .cp-rr .cp-fwn .fc-in{height:30px}
+.cpx .cp-w3 .cp-tots .fc-mr{padding-top:5px;padding-bottom:5px}
+.cpx .cp-w3 .cp-totfr .fc-in{height:32px}
+.cpx .cp-w3 .cp-form .fc-sec{margin-bottom:10px}
 </style>
 
 <style>html,body{height:100%;margin:0}body{min-width:1280px;min-height:760px;overflow:auto}#app{width:100vw;height:100vh;min-width:1280px;min-height:760px}</style>
@@ -2622,7 +2643,7 @@ textarea.fc-in{height:auto;padding:6px 8px;resize:vertical}
 <div class="{{m.cpCls}}">
 <sc-if value="{{m.tg.listOff}}" hint-placeholder-val="{{false}}"><button type="button" class="cp-reopen" onClick="{{m.tg.listShow}}" title="Mostrar la lista de facturas">Lista</button></sc-if>
 <sc-if value="{{m.tg.listOn}}" hint-placeholder-val="{{true}}">
-<section class="fc-panel cp-list" aria-label="Facturas">
+<section class="fc-panel cp-list" aria-label="Facturas" style="{{m.tg.listSt}}">
 <div class="fc-ph"><div class="fc-seg" role="tablist" aria-label="Facturas"><sc-for list="{{m.cl.tabs}}" as="s" hint-placeholder-count="2"><button type="button" role="tab" aria-selected="{{s.on}}" aria-pressed="{{s.on}}" onClick="{{s.pick}}">{{s.t}}<span class="fc-ct">{{s.n}}</span></button></sc-for></div><span class="fc-grow"></span>
 <button type="button" class="fc-icb" onClick="{{m.tg.listHide}}" title="Ocultar la lista" aria-label="Ocultar la lista"><svg class="fc-ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><sc-for list="{{m.tg.hideIc}}" as="icd" hint-placeholder-count="2"><path d="{{icd}}"></path></sc-for></svg></button></div>
 <div class="fc-fbar" role="search" aria-label="Buscar facturas">
@@ -2670,6 +2691,7 @@ textarea.fc-in{height:auto;padding:6px 8px;resize:vertical}
 </div>
 <sc-if value="{{m.cl.has}}" hint-placeholder-val="{{true}}"><div class="fc-tfoot"><span class="fc-tn">{{m.cl.foot}}</span><span class="fc-grow"></span><span>{{m.cl.help}}</span></div></sc-if>
 </section>
+<div class="cp-split" role="separator" aria-orientation="vertical" aria-label="Ancho de la lista" tabindex="0" data-fk="cp:split" title="{{m.tg.splitTip}}" onMouseDown="{{m.tg.splitDown}}" onDoubleClick="{{m.tg.splitReset}}" onKeyDown="{{m.tg.splitKey}}"><span></span></div>
 </sc-if>
 <section class="fc-panel cp-form" aria-label="Datos de la factura">
 <sc-if value="{{m.cf.empty}}" hint-placeholder-val="{{false}}"><div class="fc-state"><b>Sin factura activa</b><span>Elige una factura en la lista.</span></div></sc-if>
@@ -2751,9 +2773,10 @@ textarea.fc-in{height:auto;padding:6px 8px;resize:vertical}
 </section>
 <sc-if value="{{m.tg.pdfOff}}" hint-placeholder-val="{{false}}"><button type="button" class="cp-reopen" onClick="{{m.tg.pdfShow}}" title="Mostrar el PDF">PDF</button></sc-if>
 <sc-if value="{{m.tg.pdfOn}}" hint-placeholder-val="{{true}}">
-<section class="fc-panel cp-view" aria-label="PDF de la factura">
+<section class="{{m.tg.vCls}}" aria-label="PDF de la factura" style="{{m.tg.vSt}}">
+<sc-if value="{{m.tg.undock}}" hint-placeholder-val="{{false}}"><div class="cp-floath" onMouseDown="{{m.tg.floatDown}}" title="Arrastra para mover la ventana"><svg class="fc-ic" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><sc-for list="{{m.tg.winIc}}" as="icd" hint-placeholder-count="2"><path d="{{icd}}"></path></sc-for></svg><span class="fc-grow">Visor de PDF · ventana aparte (en WPF, a la segunda pantalla)</span><button type="button" class="{{m.tg.dock.cls}}" aria-disabled="{{m.tg.dock.dis}}" title="{{m.tg.dock.tip}}" onClick="{{m.tg.dock.on}}"><sc-if value="{{m.tg.dock.hasIc}}" hint-placeholder-val="{{true}}"><svg class="fc-ic" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><sc-for list="{{m.tg.dock.ic}}" as="icd" hint-placeholder-count="2"><path d="{{icd}}"></path></sc-for></svg></sc-if>{{m.tg.dock.t}}</button></div></sc-if>
 <div class="fc-ph"><h2 class="cp-vname" title="{{m.cv.name}}">{{m.cv.name}}</h2><span class="fc-grow"></span>
-<sc-if value="{{m.cv.has}}" hint-placeholder-val="{{true}}"><label class="fc-chk" style="font-size: 12px"><input type="checkbox" checked="{{m.cv.hl}}" onChange="{{m.cv.hlSet}}"> Resaltar lo reconocido</label></sc-if><button type="button" class="{{m.cv.hide.cls}}" aria-disabled="{{m.cv.hide.dis}}" title="{{m.cv.hide.tip}}" onClick="{{m.cv.hide.on}}"><sc-if value="{{m.cv.hide.hasIc}}" hint-placeholder-val="{{true}}"><svg class="fc-ic" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><sc-for list="{{m.cv.hide.ic}}" as="icd" hint-placeholder-count="2"><path d="{{icd}}"></path></sc-for></svg></sc-if>{{m.cv.hide.t}}</button></div>
+<sc-if value="{{m.cv.has}}" hint-placeholder-val="{{true}}"><label class="fc-chk" style="font-size: 12px"><input type="checkbox" checked="{{m.cv.hl}}" onChange="{{m.cv.hlSet}}"> Resaltar lo reconocido</label></sc-if><button type="button" class="{{m.cv.undock.cls}}" aria-disabled="{{m.cv.undock.dis}}" title="{{m.cv.undock.tip}}" onClick="{{m.cv.undock.on}}"><sc-if value="{{m.cv.undock.hasIc}}" hint-placeholder-val="{{true}}"><svg class="fc-ic" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><sc-for list="{{m.cv.undock.ic}}" as="icd" hint-placeholder-count="2"><path d="{{icd}}"></path></sc-for></svg></sc-if>{{m.cv.undock.t}}</button><button type="button" class="{{m.cv.hide.cls}}" aria-disabled="{{m.cv.hide.dis}}" title="{{m.cv.hide.tip}}" onClick="{{m.cv.hide.on}}"><sc-if value="{{m.cv.hide.hasIc}}" hint-placeholder-val="{{true}}"><svg class="fc-ic" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><sc-for list="{{m.cv.hide.ic}}" as="icd" hint-placeholder-count="2"><path d="{{icd}}"></path></sc-for></svg></sc-if>{{m.cv.hide.t}}</button></div>
 <sc-if value="{{m.cv.capOn}}" hint-placeholder-val="{{false}}"><div class="cp-capbar"><span>{{m.cv.capT}}</span><span class="fc-grow"></span><sc-for list="{{m.cv.caps}}" as="c" hint-placeholder-count="5"><button type="button" class="cp-fl" aria-pressed="{{c.on}}" onClick="{{c.pick}}" title="La próxima selección irá a este campo">{{c.t}}</button></sc-for></div></sc-if>
 <div class="cp-vbody scroll">
 <sc-if value="{{m.cv.none}}" hint-placeholder-val="{{false}}"><div class="fc-state"><b>Sin factura</b><span>Elige una factura en la lista.</span></div></sc-if>
@@ -3922,6 +3945,8 @@ function lnNewView() {
 /* ---------- Facturas de compra: importación desde PDF (análisis en sources/proconta-antiguo/compras/ANALISIS-FUNCIONAL.md) ---------- */
 var CP_HOY = '2026-10-29';
 var CP_IC = {
+  undock: ['M14 4h6v6', 'M20 4l-8 8', 'M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5'],
+  dock: ['M4 4h16v16H4z', 'M4 9h16', 'M12 13v5', 'M9.5 15.5L12 18l2.5-2.5'],
   scan: ['M3 7V5a2 2 0 0 1 2-2h2', 'M17 3h2a2 2 0 0 1 2 2v2', 'M21 17v2a2 2 0 0 1-2 2h-2', 'M7 21H5a2 2 0 0 1-2-2v-2', 'M7 12h10'],
   folder: ['M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z'],
   refresh: ['M20 11a8 8 0 0 0-14.9-3.5', 'M4 4v4h4', 'M4 13a8 8 0 0 0 14.9 3.5', 'M20 20v-4h-4'],
@@ -6718,7 +6743,7 @@ class Component extends DCLogic {
   }
   cpEnv(t) {
     var k = this.key(), C = this.cpData();
-    if (!t.st || t.st.key !== k) t.st = { key: k, prueba: t.dest === 'reconocimiento', tab: t.dest === 'reconocimiento' ? 'all' : 'pend', q: '', flt: '', prov: '', sel: {}, cur: null, anchor: null, sort: { k: 'file', d: 1 }, sortE: { k: 'as', d: -1 }, dr: null, cap: 'nif', hl: true, hov: '', listOn: true, pdfOn: true, dlg: null, menu: null, hmenu: null, trial: {}, triLater: false };
+    if (!t.st || t.st.key !== k) t.st = { key: k, prueba: t.dest === 'reconocimiento', tab: t.dest === 'reconocimiento' ? 'all' : 'pend', q: '', flt: '', prov: '', sel: {}, cur: null, anchor: null, sort: { k: 'file', d: 1 }, sortE: { k: 'as', d: -1 }, dr: null, cap: 'nif', hl: true, hov: '', listOn: true, pdfOn: true, undock: false, fx: null, fy: null, dlg: null, menu: null, hmenu: null, trial: {}, triLater: false };
     return { C: C, V: t.st };
   }
   cpFocus(k) { this._trFocus = 'cp:' + k; }
@@ -6888,7 +6913,22 @@ class Component extends DCLogic {
     m.cx = this.cpDlgVals(C, V, can, NP, go, B, list);
     m.cm = this.cpMenuVals(C, V, scope, go, B, can, NP);
     var wide = cw >= 2000, mid = cw >= 1500;
-    m.cpCls = 'cp-ws' + (V.listOn ? '' : ' cp-nolist') + (V.pdfOn ? '' : ' cp-nopdf') + (wide ? ' cp-w3' : mid ? ' cp-w2' : ' cp-w1');
+    var LW = this.cpColW('compras-lay'), lw = V.listOn && LW.list ? LW.list : 0, ud = V.pdfOn && V.undock;
+    m.tg.listSt = lw ? 'flex: 0 0 ' + lw + 'px' : ''; m.tg.undock = ud; m.tg.winIc = CP_IC.undock; m.tg.vCls = 'fc-panel cp-view' + (ud ? ' cp-float' : '');
+    m.tg.vSt = ud ? 'left: ' + (V.fx === null ? 'auto' : V.fx + 'px') + '; top: ' + (V.fy === null ? '120px' : V.fy + 'px') + (V.fx === null ? '; right: 24px' : '') : '';
+    m.tg.dock = B('Acoplar', { icon: 'dock', cls: 'fc-sm', title: 'Vuelve a poner el visor dentro de la pantalla', fn: function () { V.undock = false; } });
+    m.tg.floatDown = function (e) { if (e.button !== 0 || e.target.closest('button')) return; e.preventDefault(); var el = e.currentTarget.parentNode, r = el.getBoundingClientRect(), dx = e.clientX - r.left, dy = e.clientY - r.top;
+      var mv = function (ev) { V.fx = Math.max(0, Math.min(window.innerWidth - 120, ev.clientX - dx)); V.fy = Math.max(0, Math.min(window.innerHeight - 40, ev.clientY - dy)); el.style.left = V.fx + 'px'; el.style.top = V.fy + 'px'; el.style.right = 'auto'; };
+      var up = function () { document.removeEventListener('mousemove', mv); document.removeEventListener('mouseup', up); self.bump(); }; document.addEventListener('mousemove', mv); document.addEventListener('mouseup', up); };
+    var lim = function (w) { var ws = document.querySelector('.cpx .cp-ws'), fm = document.querySelector('.cpx .cp-form'); if (!ws || !fm) return w; var max = ws.clientWidth - 20 - fm.getBoundingClientRect().width - 20 - (V.pdfOn && !V.undock ? 320 : 0); return Math.round(Math.max(260, Math.min(max, w))); };
+    var setLW = function (w) { if (w) LW.list = w; else delete LW.list; self.lnColSave(); self.bump(); };
+    m.tg.splitTip = 'Arrastra para cambiar el ancho de la lista (el visor gana o pierde ese espacio); doble clic: ancho de fábrica. Se guarda para ti.';
+    m.tg.splitDown = function (e) { if (e.button !== 0) return; e.preventDefault(); var ls = document.querySelector('.cpx .cp-list'), x0 = e.clientX, w0 = ls.getBoundingClientRect().width, last = w0; document.body.style.cursor = 'col-resize';
+      var mv = function (ev) { last = lim(w0 + ev.clientX - x0); ls.style.flex = '0 0 ' + last + 'px'; };
+      var up = function () { document.removeEventListener('mousemove', mv); document.removeEventListener('mouseup', up); document.body.style.cursor = ''; if (Math.abs(last - w0) > 2) setLW(last); }; document.addEventListener('mousemove', mv); document.addEventListener('mouseup', up); };
+    m.tg.splitReset = function (e) { e.preventDefault(); setLW(0); };
+    m.tg.splitKey = function (e) { if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight' && e.key !== 'Home') return; e.preventDefault(); e.stopPropagation(); self.cpFocus('split'); if (e.key === 'Home') return setLW(0); var ls = document.querySelector('.cpx .cp-list'); setLW(lim(ls.getBoundingClientRect().width + (e.key === 'ArrowRight' ? 40 : -40))); };
+    m.cpCls = 'cp-ws' + (V.listOn ? '' : ' cp-nolist') + (V.pdfOn && !ud ? '' : ' cp-nopdf') + (ud ? ' cp-ud' : '') + (wide ? ' cp-w3' : mid ? ' cp-w2' : ' cp-w1');
     m.cpKey = function (e) { self.cpRootKey(C, V, e, list, scope, cur); };
     return m;
   }
@@ -7219,7 +7259,8 @@ class Component extends DCLogic {
       capOn: !ro, capT: V.cap ? 'Selecciona texto en el PDF: irá a «' + lbl[V.cap] + '»' : 'Selecciona texto en el PDF y elige a qué campo va',
       caps: ['nif', 'fecha', 'num', 'imp', 'totF'].map(function (k) { return { t: lbl[k], on: V.cap === k, pick: go(function () { V.cap = k; }) }; }),
       legend: rec ? [{ t: 'Reconocido', c: 'cp-lg cp-hl-alta' }, { t: 'Revisar', c: 'cp-lg cp-hl-media' }, { t: 'Dudoso', c: 'cp-lg cp-hl-baja' }, { t: 'Corregido', c: 'cp-lg cp-hl-man' }] : [],
-      hide: B('Ocultar el visor', { icon: 'layout', cls: 'fc-sm fc-ghost', title: 'Da todo el ancho a la lista y a los datos', fn: function () { V.pdfOn = false; } }),
+      hide: B('', { icon: 'layout', cls: 'fc-icb cp-icb cp-icb0', title: 'Ocultar el visor: da todo el ancho a la lista y a los datos', fn: function () { V.pdfOn = false; V.undock = false; } }),
+      undock: B('', { icon: V.undock ? 'dock' : 'undock', cls: 'fc-icb cp-icb cp-icb0', title: V.undock ? 'Volver a acoplar el visor en la pantalla' : 'Desacoplar el visor en una ventana aparte, para llevarlo a la segunda pantalla; su hueco pasa a la lista', fn: function () { V.undock = !V.undock; } }),
       down: function (e) {
         if (ro || e.button !== 0) return; var root = e.currentTarget;
         var up = function () { document.removeEventListener('mouseup', up); var sel = window.getSelection ? window.getSelection() : null; if (!sel || sel.isCollapsed || !root.contains(sel.anchorNode)) return; var txt = String(sel); sel.removeAllRanges(); self.cpCapture(C, V, f, txt); self.bump(); };
