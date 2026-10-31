@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Contabilidad: cuentas contables, centros de coste y motor de asientos (docs/contabilidad.md). -->
+  <PropertyGroup>
+    <OutputType>Library</OutputType>
+    <RootNamespace>ProConta.Contabilidad</RootNamespace>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);CS1591;CS1573</NoWarn>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\ProConta.Nucleo\ProConta.Nucleo.csproj" />
+    <ProjectReference Include="..\ProConta.Datos.Persistencia\ProConta.Datos.Persistencia.csproj" />
+    <ProjectReference Include="..\ProConta.Organizacion\ProConta.Organizacion.csproj" />
+  </ItemGroup>
+</Project>
