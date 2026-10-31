@@ -3,7 +3,7 @@ title: Acceso y sesión
 status: draft
 depends_on: [seguridad/permisos, organizacion/sociedades-ejercicios, datos/esquema, datos/persistencia]
 threads:
-  - Carga de requisitos | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GRNMH95h9tnQp4dmEPHmw1w
+  - 2026-10-28 12:30 · Carga de requisitos | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GRNMH95h9tnQp4dmEPHmw1w
 ---
 ## Summary
 Autenticación en cuatro fases (usuario, contraseña, empresa, ejercicio) y sesión validada con FechaHoraAutenticacion; solo muestra las empresas autorizadas tras autenticar y revalida la sesión en cada operación.

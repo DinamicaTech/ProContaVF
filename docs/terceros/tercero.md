@@ -3,7 +3,7 @@ title: Tercero
 status: draft
 depends_on: [datos/esquema, datos/persistencia, nucleo, organizacion/geografia]
 threads:
-  - Carga de requisitos | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GRNMH95h9tnQp4dmEPHmw1w
+  - 2026-10-28 12:30 · Carga de requisitos | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GRNMH95h9tnQp4dmEPHmw1w
 ---
 ## Summary
 Ente Tercero: identidad estable (IdTercero) de persona física, jurídica o entidad sin personalidad; NIF revisable y no único; domicilio principal y adicionales. Nunca se fusionan terceros por NIF o nombre.

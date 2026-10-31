@@ -2,7 +2,7 @@
 title: Prototipo del Mayor
 depends_on: [plataforma/ui-base]
 threads:
-  - Validar prototipos de pantallas principales | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GGPu88XoVeXWyHsuxbrF2kK
+  - 2026-10-29 10:17 · Validar prototipos de pantallas principales | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GGPu88XoVeXWyHsuxbrF2kK
 ---
 ## Summary
 Prototipo HTML de la pantalla del Mayor, hecho en el lienzo de diseño del contenedor con la estética de las maquetas, para validarlo con el propietario antes de construir su UI WPF.

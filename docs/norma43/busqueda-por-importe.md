@@ -3,7 +3,7 @@ title: Búsqueda por importe
 status: draft
 depends_on: [norma43/pantallas, compras, facturacion, contabilidad/asientos]
 threads:
-  - Validar prototipos de pantallas principales | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GGPu88XoVeXWyHsuxbrF2kK
+  - 2026-10-29 17:19 · Validar prototipos de pantallas principales | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GGPu88XoVeXWyHsuxbrF2kK
 ---
 ## Summary
 Desde el menú contextual de la pantalla de líneas N43, con una o varias líneas, busca para cada una las facturas o cobros cuyo importe coincide y permite enlazar el elegido. Sustituye a `frmN43BusquedaPorImporte` de ProConta antiguo, sin sus defectos.

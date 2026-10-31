@@ -3,7 +3,7 @@ title: Movimientos similares
 status: draft
 depends_on: [norma43/pantallas]
 threads:
-  - Validar prototipos de pantallas principales | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GGPu88XoVeXWyHsuxbrF2kK
+  - 2026-10-29 17:19 · Validar prototipos de pantallas principales | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GGPu88XoVeXWyHsuxbrF2kK
 ---
 ## Summary
 Para una línea N43, lista las líneas con cuenta de destino cuyo concepto se parece más y permite asignar esa cuenta a la selección. Sustituye a `frmMovimientosN43Similares` de ProConta antiguo.

@@ -3,7 +3,7 @@ title: Contactos y destinatarios
 status: draft
 depends_on: [terceros/tercero]
 threads:
-  - Carga de requisitos | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GRNMH95h9tnQp4dmEPHmw1w
+  - 2026-10-28 12:30 · Carga de requisitos | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GRNMH95h9tnQp4dmEPHmw1w
 ---
 ## Summary
 Emails y teléfonos con flags de envío, resolución de destinatarios efectivos, contactos libres sin crear tercero y relaciones persona-organización con vigencia.
