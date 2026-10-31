@@ -17,3 +17,4 @@ Ratios financieros y de gestión calculados desde la contabilidad.
 - 2026-10-28 13:14 · Q6) a)
 - 2026-10-28 12:28 · draft: Implementar los ratios.
 - 2026-10-28 12:28 · question: ¿qué ratios? (a) liquidez, solvencia, endeudamiento, rentabilidad y márgenes estándar ✅ (b) los describes tú
+- 2026-10-29 17:45 · From sources/proconta-antiguo/menu-principal/ANALISIS-FUNCIONAL.md § 4: exportación «Ratios» del menú antiguo sobre la plantilla indicadores.xlsx (la ruta fija d:\deporwin se parametriza).

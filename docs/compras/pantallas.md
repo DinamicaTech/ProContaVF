@@ -52,3 +52,4 @@ Revisión de la factura reconocida con confianza, candidatos y motivos visibles,
 - 2026-10-31 07:41 · 4. Ver relacionadas lo que hará es mostrar la factura original (en el caso de estar sobre una rectificativa) o viceversa
 - 2026-10-31 07:48 · El DUA será una factura independiente suministrada por el carrier o agente de aduanas, por lo que no la tenemos en cuenta.
 - 2026-10-31 08:00 · Ok, buen trabajo ;-)
+- 2026-10-29 16:55 · frmEntradaFacturas: A partir de una lista de facturas de compra (ficheros PDF), extrae los campos principales (número factura, fecha factura, CIF Proveedor, importes), permite modificarlos, asignar analítica, notas,  etc. y generar el asiento contable de cada factura.

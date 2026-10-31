@@ -32,3 +32,5 @@ Mayor «vitaminado» reutilizable desde contabilidad y desde la ficha de tercero
 - 2026-10-29 10:20 · Derived from plataforma/ui-base: crear y validar con el propietario el prototipo HTML del Mayor antes de construir su UI WPF (lo hace el borrador contabilidad/mayor/prototipo).
 - 2026-10-31 08:43 · 1. Desaparece 2. Ok 3. Ok
 - 2026-10-31 09:48 · Ok, tiene sentido, yo puedo grabar en enero un asiento de diciembre del año anterior
+- 2026-10-31 11:20 · Derived from contabilidad/plantillas-asiento: el asistente de asientos de corrección del Mayor es el motor común de plantillas (sources/proconta-antiguo/asientos-tipo/ANALISIS-FUNCIONAL.md).
+- 2026-10-31 11:20 · Derived from (root): conservar «Reinicia cuadre del Mayor» del menú antiguo (marcar como cuadradas las cuentas con saldo de ±0,05 € o menos y, si se pide, desmarcar antes las demás; sources/proconta-antiguo/menu-principal/ANALISIS-FUNCIONAL.md § 3.13), con el umbral parametrizado.

@@ -19,3 +19,4 @@ Generación genérica de facturas de venta a partir de orígenes externos import
 - 2026-10-28 12:28 · draft: Reescribir la facturación de reservas de alojamiento como generación genérica de facturas desde orígenes externos, con las nuevas clases.
 - 2026-10-28 12:28 · question: P-07 destinatario (plataforma o huésped), atribución mensual, cancelaciones y divisas: (a) mantener lo que hace hoy la capa del accdb ✅ (b) redefinir
 - 2026-10-28 12:28 · question: ¿el inmueble? Activos está en el laboratorio: (a) mapa explícito propio hasta rediseñar activos ✅
+- 2026-10-29 17:45 · From sources/proconta-antiguo/menu-principal/ANALISIS-FUNCIONAL.md § 3.11, 5.8: «Facturar pisos turísticos» crea una factura de venta por plataforma, mes y piso, una línea por reserva, sin IVA y solo de meses cerrados.

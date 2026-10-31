@@ -17,3 +17,4 @@ Informes que el usuario analiza en tablas dinámicas de Excel a partir de los da
 - 2026-10-28 13:14 · Q6) a)
 - 2026-10-28 12:28 · draft: Implementar los informes en tablas dinámicas Excel.
 - 2026-10-28 12:28 · question: ¿qué informes primero? (a) diario/mayor y ventas/compras por tercero y mes ✅ (b) los describes tú
+- 2026-10-29 17:45 · From sources/proconta-antiguo/menu-principal/ANALISIS-FUNCIONAL.md § 4: listados de Mayor y Diario a Excel del menú antiguo.

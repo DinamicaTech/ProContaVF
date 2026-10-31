@@ -12,6 +12,7 @@ Genera los asientos de las facturas de compra con el motor de contabilidad/asien
 
 ## Decisions
 - 2026-10-28 13:30 · Creado en la carga inicial de requisitos.
+- 2026-10-29 17:45 · Referencia funcional: el asiento y el libro de IVA que genera hoy «Exportar factura» de `frmEntradaFacturas`, con transitario, deshacer, rehacer y rectificativa, en `sources/proconta-antiguo/compras/ANALISIS-FUNCIONAL.md` § 3-4, y sus defectos (§ 7), que no se reproducen. Donde el análisis y las decisiones siguientes de este nodo difieren (descuadres, fecha del asiento, rectificativas, importaciones, moneda), prevalecen las decisiones.
 - 2026-10-29 18:14 · [replaced by 2026-10-29 21:05] Un descuadre por redondeo de hasta 0,05 € (propuesta pendiente de validar) se ajusta con un apunte en la cuenta de diferencias de redondeo de la sociedad (6690000 en el prototipo); un descuadre mayor bloquea la contabilización. Nunca se graba un asiento descuadrado.
 - 2026-10-29 18:14 · [replaced by 2026-10-30 09:58] La factura rectificativa se contabiliza en el trimestre de IVA activo: su fecha contable es la mayor entre la fecha de la factura original y el primer día del trimestre activo.
 - 2026-10-29 18:14 · La autoliquidación del IVA (inversión del sujeto pasivo e intracomunitarias) usa el tipo real de la factura, no un 21 % fijo. Las cuentas de IVA, retención, suplidos y redondeo son parámetros de la sociedad.
@@ -36,3 +37,4 @@ Genera los asientos de las facturas de compra con el motor de contabilidad/asien
 - 2026-10-31 07:37 · No, la auto-repercusión del IVA es que hay que hay que hacer un apunte en una 472 aplicando el 21% de IVA (bueno, el % vigente).
 - 2026-10-31 07:41 · 2. Siempre se aplica el 21% en importaciones, lleve o no lleve IVA desglosado
 - 2026-10-31 07:48 · El DUA será una factura independiente suministrada por el carrier o agente de aduanas, por lo que no la tenemos en cuenta.
+- 2026-10-29 17:45 · Derived from compras/pantallas: generar el asiento contable (con su libro de IVA, analítica y notas) de cada factura revisada, y deshacerlo o rehacerlo, como hace hoy frmEntradaFacturas (sources/proconta-antiguo/compras/ANALISIS-FUNCIONAL.md § 3-4).

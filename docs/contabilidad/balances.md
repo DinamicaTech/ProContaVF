@@ -17,3 +17,4 @@ Balance de sumas y saldos, de situación, pérdidas y ganancias y comparativos, 
 - 2026-10-28 12:28 · From ProConta/BalancePyG2026_Nuevo.xlsx y BalanceSituacion2026_Nuevo.xlsx (disco del propietario): formatos de referencia
 - 2026-10-28 12:28 · draft: Implementar los balances con sus ejemplos esperados.
 - 2026-10-28 12:28 · question: P-09 ¿los formatos de balance son los xlsx _Nuevo de la carpeta ProConta? (a) sí ✅ (b) otros
+- 2026-10-29 17:45 · From sources/proconta-antiguo/menu-principal/ANALISIS-FUNCIONAL.md § 4: exportaciones Balance PyG, PyG detallado y Balance de situación del menú antiguo.

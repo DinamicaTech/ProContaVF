@@ -17,3 +17,4 @@ Mail Dispatcher: recibe correo, autoriza remitentes, clasifica adjuntos (Norma 4
 - 2026-10-28 12:28 · From sources/traspaso-2026-10-03/referencias/MailDispatcher/: documentos y código anteriores
 - 2026-10-28 12:28 · draft: Implementar la recepción y el procesamiento de correo.
 - 2026-10-28 12:28 · question: RF-DIS-02 ¿protocolo? (a) POP3 con UIDL, como la implementación posterior ✅ (b) IMAP (c) ambos
+- 2026-10-29 17:45 · Derived from nominas: aceptar el fichero Excel de nóminas enviado al correo de ProContaVF y pasarlo a nominas para que lo parsee, importe y genere los asientos.
