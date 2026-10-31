@@ -2765,8 +2765,7 @@ textarea.fc-in{height:auto;padding:6px 8px;resize:vertical}
 <sc-if value="{{m.cf.foreignOn}}" hint-placeholder-val="{{false}}"><p class="fc-mut cp-hint">{{m.cf.foreignT}}</p></sc-if></sc-if>
 <sc-if value="{{m.cf.impOn}}" hint-placeholder-val="{{false}}"><div class="cp-impr"><label class="cp-l" for="cp-impT">Importe</label><span class="cp-impf"><span class="cp-fwn" onMouseEnter="{{m.cf.impT.enter}}" onMouseLeave="{{m.cf.impT.leave}}"><input class="{{m.cf.impT.cls}}" data-fk="{{m.cf.impT.fk}}" value="{{m.cf.impT.v}}" onChange="{{m.cf.impT.set}}" placeholder="{{m.cf.impT.ph}}" readonly="{{m.cf.impT.ro}}" title="{{m.cf.impT.tip}}" aria-invalid="{{m.cf.impT.inv}}"></span></span></div><p class="fc-mut cp-hint">{{m.cf.impNote}}</p></sc-if>
 <sc-if value="{{m.cf.fxOn}}" hint-placeholder-val="{{false}}"><div class="{{m.cf.fxCls}}"><svg class="fc-ic" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><sc-for list="{{m.cf.infoIc}}" as="icd" hint-placeholder-count="2"><path d="{{icd}}"></path></sc-for></svg><span>{{m.cf.fxT}}</span></div></sc-if>
-<div class="cp-gr3" style="margin-top: 8px">
-<sc-if value="{{m.cf.matOn}}" hint-placeholder-val="{{true}}"><div class="fc-fld"><label class="cp-l" title="IVA de aduanas pagado por el transitario (DUA)">IVA del DUA</label><span class="cp-fwn" onMouseEnter="{{m.cf.ivaSup.enter}}" onMouseLeave="{{m.cf.ivaSup.leave}}"><input class="{{m.cf.ivaSup.cls}}" data-fk="{{m.cf.ivaSup.fk}}" value="{{m.cf.ivaSup.v}}" onChange="{{m.cf.ivaSup.set}}" placeholder="{{m.cf.ivaSup.ph}}" readonly="{{m.cf.ivaSup.ro}}" title="{{m.cf.ivaSup.tip}}" aria-invalid="{{m.cf.ivaSup.inv}}"></span></div></sc-if>
+<div class="cp-gr2" style="margin-top: 8px">
 <div class="fc-fld"><label class="cp-l">Suplidos</label><span class="cp-fwn" onMouseEnter="{{m.cf.sup.enter}}" onMouseLeave="{{m.cf.sup.leave}}"><input class="{{m.cf.sup.cls}}" data-fk="{{m.cf.sup.fk}}" value="{{m.cf.sup.v}}" onChange="{{m.cf.sup.set}}" placeholder="{{m.cf.sup.ph}}" readonly="{{m.cf.sup.ro}}" title="{{m.cf.sup.tip}}" aria-invalid="{{m.cf.sup.inv}}"></span></div>
 <div class="fc-fld"><label class="fc-chk cp-l"><input type="checkbox" checked="{{m.cf.retOn}}" onChange="{{m.cf.retSet}}" disabled="{{m.cf.ro}}"> Retención<sc-if value="{{m.cf.retBd.on}}" hint-placeholder-val="{{false}}"><span class="{{m.cf.retBd.cls}}" title="{{m.cf.retBd.tip}}">{{m.cf.retBd.t}}</span></sc-if></label>
 <sc-if value="{{m.cf.retOn}}" hint-placeholder-val="{{false}}"><div class="cp-inl"><span style="width: 56px; flex: none"><span class="cp-fwn" onMouseEnter="{{m.cf.retPct.enter}}" onMouseLeave="{{m.cf.retPct.leave}}"><input class="{{m.cf.retPct.cls}}" data-fk="{{m.cf.retPct.fk}}" value="{{m.cf.retPct.v}}" onChange="{{m.cf.retPct.set}}" placeholder="{{m.cf.retPct.ph}}" readonly="{{m.cf.retPct.ro}}" title="{{m.cf.retPct.tip}}" aria-invalid="{{m.cf.retPct.inv}}"></span></span><span class="fc-mut">%</span><select class="fc-in" style="flex: 1; min-width: 0" value="{{m.cf.retTipo}}" onChange="{{m.cf.retTipoSet}}" disabled="{{m.cf.ro}}" aria-label="Tipo de retención"><sc-for list="{{m.cf.retTipos}}" as="o" hint-placeholder-count="2"><option value="{{o.v}}">{{o.t}}</option></sc-for></select></div></sc-if></div>
@@ -4137,8 +4136,7 @@ function cpMake(soc, ter) {
     F(2026, 1000012, dir('Telecom\\2026-10', 'TH-2026-10-779551.pdf'), 'TH2026-779551', '2026-10-01', [['Cuota fibra y móviles · octubre', 189.5, 21]], { venc: '2026-10-05', alta: '2026-10-02 07:40' });
     F(2026, 1000013, dir('Nimbus\\2026-10', 'INV-IE-2026-05102.pdf'), 'INV-IE-2026-05102', '2026-10-02', [['ProConta Cloud Users · 5 seats · October', 95, 0]], { intra: true, alta: '2026-10-03 11:20', foot: ['Reverse charge: VAT to be accounted for by the recipient (Art. 196 Directive 2006/112/EC).'] });
     var pp = F(2026, 1000014, dir('Importacion\\2026-10', 'PP-INV-88213.pdf'), 'INV 88213', '2026-10-14', [['Hydraulic pump kit HPK-40 (x2)', 1150, 0], ['Seal set SS-12 (x10)', 100, 0]], { cur: 'USD', alta: '2026-10-21 12:03', foot: ['All amounts in US dollars (USD).', 'Incoterm FCA Oakland.'] });
-    var tr = F(2026, 1000015, dir('Importacion\\2026-10', 'TP-26-00931.pdf'), 'TP-26/00931', '2026-10-21', [['Flete marítimo Oakland-València', 218, 21], ['Gestión aduanera DUA 26ES00461000123456', 65, 21]], { ivaSup: 241.25, alta: '2026-10-22 09:10', q: { dua: 1 }, extra: ['IVA a la importación pagado por cuenta del cliente (suplido): 241,25 €'] });
-    pp.relTo = tr.id; tr.relTo = pp.id;
+    var tr = F(2026, 1000015, dir('Importacion\\2026-10', 'TP-26-00931.pdf'), 'TP-26/00931', '2026-10-21', [['Flete marítimo Oakland-València', 218, 21], ['Gestión aduanera DUA 26ES00461000123456', 65, 21]], { sup: 38.4, alta: '2026-10-22 09:10', extra: ['Tasas portuarias pagadas por cuenta del cliente (suplido): 38,40 €'] });
     F(2026, 1000019, dir('Importacion\\2026-10', 'BW-20261015-3381.pdf'), 'BW20261015-3381', '2026-10-17', [['LED work light 20 W (x12)', 1680, 0], ['International shipping', 120, 0]], { cur: 'CNY', alta: '2026-10-19 10:40', foot: ['All amounts in Chinese yuan (CNY).'] });
     F(2026, 1000020, dir('Importacion\\2026-10', 'HI-INV-07714.pdf'), 'INV-07714', '2026-10-25', [['Digital multimeter HI-500 (x3)', 435, 0]], { cur: 'GBP', alta: '2026-10-27 09:12', foot: ['All amounts in pounds sterling (GBP).'] });
     F(2026, 1000007, dir('Iberlux\\2026-10', 'FV2026-R-0041.pdf'), 'FV2026-R0041', '2026-10-24', [['Devolución tóner impresora (1 ud.)', -68, 21]], { rectOf: 'FV2026-3312', alta: '2026-10-26 08:30', foot: ['Factura rectificativa de la FV2026-3312 de 18/09/2026 (art. 15 del RD 1619/2012).'] });
@@ -4194,7 +4192,6 @@ function cpAsiento(C, f, d, sign, docPre) {
   if (d.op === 'NAC' && d.isp) { var q = r2(d.R[0][0] * auto / 100); L(P.ispS, q, 0, 'ISP ' + auto + ' % · ' + con); L(P.ispR, 0, q, 'ISP ' + auto + ' % · ' + con); }
   if (d.op === 'INT') { var qi = r2(d.R[0][0] * auto / 100), b = d.prod === 'B'; L(b ? P.intSB : P.intSS, qi, 0, 'Intracomunitaria ' + auto + ' % · ' + con); L(b ? P.intRB : P.intRS, 0, qi, 'Intracomunitaria ' + auto + ' % · ' + con); }
   if (d.ret.on) L(P['ret' + d.ret.tipo], 0, -t.ret, 'Retención ' + d.ret.pct + ' % · ' + con);
-  if (d.ivaSup) L(P.ivaImp, d.ivaSup, 0, 'IVA de importación (DUA) · ' + con);
   if (d.sup) L(P.sup, d.sup, 0, 'Suplidos · ' + con);
   var D = 0, H = 0; out.forEach(function (a) { D += a.debe; H += a.haber; }); var dif = r2(D - H);
   if (Math.abs(dif) >= 0.005 && (Math.abs(dif) <= CP_TOL + 1e-9 || cpAdjOk(d, dif))) { var man = Math.abs(dif) > CP_TOL + 1e-9; out.push({ cta: P.red, d: C.ctaD(P.red), con: (man ? 'Ajuste manual · ' + d.adj.mot + ' · ' : 'Ajuste por redondeo · ') + con, doc: doc, debe: dif < 0 ? -dif : 0, haber: dif > 0 ? dif : 0, red: true }); dif = 0; }
@@ -4233,7 +4230,7 @@ function cpPaper(C, f) {
     else rows.push({ c: 'cp-p-tt', s: [S(p.en ? 'Net amount (no VAT)' : p.isp ? 'Base imponible (sin IVA)' : 'Base exenta'), S(n2(p.R[0][0]), 'b0')] });
   });
   if (p.ret) rows.push({ c: 'cp-p-tt', s: [S('Retención IRPF ' + p.retPct + ' %'), S(n2(p.ret), 'ret')] });
-  if (p.ivaSup) rows.push({ c: 'cp-p-tt', s: [S('IVA importación suplido (DUA)'), S(n2(p.ivaSup), 'ivaSup')] });
+  if (p.sup) rows.push({ c: 'cp-p-tt', s: [S('Suplidos'), S(n2(p.sup), 'sup')] });
   rows.push({ c: 'cp-p-tt cp-p-tot', s: [S(p.en ? 'TOTAL' : 'TOTAL FACTURA'), S(n2(p.tot), 'tot')] });
   rows.push({ c: 'cp-p-gap', s: [] });
   p.extra.concat(p.foot).forEach(function (x) { rows.push({ c: 'cp-p-ft', s: [S(x, /sujeto pasivo/i.test(x) ? 'isp' : '')] }); });
@@ -4260,7 +4257,7 @@ function cpRecognize(C, f) {
   if (Math.abs(r2(p.tot - tc)) >= 0.005) put('totF', p.tot, 'media', 'El total impreso (' + num(p.tot) + cur + ') difiere ' + num(Math.abs(r2(p.tot - tc))) + cur + ' de la suma de bases e impuestos: se ajustará con un apunte de redondeo.', 'tot');
   else put('totF', p.tot, 'alta', 'Total impreso «' + (p.en ? 'TOTAL' : 'TOTAL FACTURA') + '».', 'tot');
   if (p.ret) put('ret', p.retPct, 'alta', 'Retención del ' + p.retPct + ' % encontrada en el pie de importes.', 'ret');
-  if (p.ivaSup) put('ivaSup', p.ivaSup, 'media', 'IVA de importación pagado por el transitario (DUA): va como IVA suplido. Enlaza esta factura con la del proveedor de la mercancía.', 'ivaSup');
+  if (p.sup) put('sup', p.sup, 'media', 'Importe pagado por cuenta del cliente (suplido), sin IVA.', 'sup');
   if (p.cur !== 'EUR') put('mon', p.cur, 'alta', 'Importes en ' + (CP_MON.filter(function (m) { return m[0] === p.cur; })[0] || ['', p.cur])[1].toLowerCase() + ' («' + cpMonSym(p.cur) + '» junto a los importes): se pasan a euros con el cambio del día de la factura.', 'tot');
   if (p.rectOf) { var orig = s ? C.INV.filter(function (x) { return x !== f && x.d.tid === s.id && norm(x.d.num) === norm(p.rectOf); })[0] : null; put('rect', orig ? orig.id : '', orig ? 'alta' : 'baja', orig ? 'El pie dice «rectificativa de la ' + p.rectOf + '», que es la factura ' + orig.d.num + ' del proveedor.' : 'El pie cita la factura ' + p.rectOf + ', pero no la encuentro entre las del proveedor.', ''); }
   var kg = C.KWG.filter(function (k) { return txt.indexOf(norm(k.t)) >= 0; })[0], pv = s ? s.fun.proveedor : null;
@@ -4290,7 +4287,6 @@ function cpApplyRec(C, f, rec, d) {
   d.ret = { on: !!p.ret, pct: p.retPct || (pv && +pv.ret) || 15, tipo: (pv && pv.retT) || 'PRO' };
   d.isp = !!p.isp; d.gasto = rec.F.gasto.v; d.cc = rec.F.cc ? rec.F.cc.v : ''; d.fp = pv ? pv.fp : '';
   d.venc = p.venc || (pv && +pv.dias ? cpAddDays(d.fecha, +pv.dias) : d.fecha);
-  if (f.relTo) d.rel = f.relTo;
   d.man = {}; d.vies = '';
   return d;
 }
@@ -6875,14 +6871,14 @@ class Component extends DCLogic {
   /* filtro de la lista (botón «Filtro»): los tipos de operación se suman entre sí; el resto se exige a la vez */
   cpFF() {
     return [['NAC', 'Nacionales', 'op', function (f, d) { return d.op === 'NAC'; }], ['INT', 'Intracomunitarias', 'op', function (f, d) { return d.op === 'INT'; }], ['IMP', 'Extranjeras (importación)', 'op', function (f, d) { return d.op === 'IMP'; }],
-      ['ret', 'Con retención', '', function (f, d) { return d.ret.on; }], ['sup', 'Con suplidos', '', function (f, d) { return !!(d.sup || d.ivaSup); }], ['isp', 'Con inversión del sujeto pasivo', '', function (f, d) { return !!d.isp; }],
+      ['ret', 'Con retención', '', function (f, d) { return d.ret.on; }], ['sup', 'Con suplidos', '', function (f, d) { return !!d.sup; }], ['isp', 'Con inversión del sujeto pasivo', '', function (f, d) { return !!d.isp; }],
       ['rect', 'Rectificativas y abonos', '', function (f, d) { return !!(d.rect || (f.exp && f.exp.rect) || cpTot(d).totC < 0); }]].map(function (x) { return { k: x[0], t: x[1], g: x[2], f: x[3] }; });
   }
   /* relacionadas: la original y sus rectificativas (en los dos sentidos) y la pareja mercancía-transitario */
   cpRelSet(C, V, f) {
     if (!f) return null; var self = this, out = [f], add = function (x) { if (x && out.indexOf(x) < 0) out.push(x); }, d = this.cpD(V, f);
-    add(this.cpPair(C, f)); if (d.rel) add(C.byId(d.rel)); if (d.rect) add(C.byId(d.rect));
-    C.INV.forEach(function (x) { var xd = self.cpD(V, x); if (xd.rect === f.id || xd.rel === f.id) add(x); });
+    if (d.rect) add(C.byId(d.rect));
+    C.INV.forEach(function (x) { var xd = self.cpD(V, x); if (xd.rect === f.id) add(x); });
     return out;
   }
   cpFilters(C, V) {
@@ -6905,7 +6901,7 @@ class Component extends DCLogic {
     if (sel.length) return sel; var c = V.cur ? C.byId(V.cur) : null; return c && vis[c.id] ? [c] : [];
   }
   cpOpenDlg(V, d) { V.menu = null; V.hmenu = null; V.dlg = d; this.cpFocus('dlg'); }
-  cpPair(C, f) { var o = f.relTo ? C.byId(f.relTo) : null; return o && (o.d.rel === f.id || f.d.rel === o.id || o.relTo === f.id) ? o : null; }
+  cpPair(C, f) { return null; } /* 2026-10-31: cada factura se contabiliza sola (sin asiento conjunto mercancía-transitario) */
 
   /* ---------- contabilizar, deshacer, rehacer y rectificar ---------- */
   cpPost(C, V, ids, force) {
@@ -7058,9 +7054,9 @@ class Component extends DCLogic {
       ffOpen: function (e) { e.stopPropagation(); var r = e.currentTarget.getBoundingClientRect(); V.fmenu = V.fmenu ? null : { x: r.left, y: r.bottom + 4 }; self.bump(); },
       fm: V.fmenu ? { on: true, pos: 'left: ' + V.fmenu.x + 'px; top: ' + V.fmenu.y + 'px', close: go(function () { V.fmenu = null; }),
         items: this.cpFF().map(function (x, i) { return { t: x.t, on: !!V.ff[x.k], sep: i === 3, fk: 'cp:ff:' + x.k, tip: x.g === 'op' ? 'Tipo de operación: si marcas varios, se ven las de cualquiera de ellos' : 'Se combina con el resto de filtros', pick: go(function () { V.ff[x.k] = !V.ff[x.k]; self.cpFocus('ff:' + x.k); }) }; }),
-        rel: B('Ver relacionadas de la factura activa', { cls: 'fc-mi', icon: 'link', why: !cur ? 'Elige antes una factura.' : null, title: 'La original y sus rectificativas, y la factura enlazada (mercancía y transitario)', fn: function () { V.relOf = cur.id; V.fmenu = null; } }),
+        rel: B('Ver relacionadas de la factura activa', { cls: 'fc-mi', icon: 'link', why: !cur ? 'Elige antes una factura.' : null, title: 'La factura original y sus rectificativas', fn: function () { V.relOf = cur.id; V.fmenu = null; } }),
         clear: B('Quitar el filtro', { cls: 'fc-mi', icon: 'xc', why: Object.keys(V.ff).some(function (k) { return V.ff[k]; }) ? null : 'No hay ningún criterio marcado.', fn: function () { V.ff = {}; V.fmenu = null; } }) } : { on: false },
-      relOn: !!V.relOf, relT: V.relOf ? 'Relacionadas con ' + (function () { var g = C.byId(V.relOf); return g ? (g.d.num || g.file.split('\\').pop()) : ''; })() + ': la original, sus rectificativas y la factura enlazada' : '', relOff: go(function () { V.relOf = null; }),
+      relOn: !!V.relOf, relT: V.relOf ? 'Relacionadas con ' + (function () { var g = C.byId(V.relOf); return g ? (g.d.num || g.file.split('\\').pop()) : ''; })() + ': la original y sus rectificativas' : '', relOff: go(function () { V.relOf = null; }),
       provs: Object.keys(provs).map(function (k) { var s = C.sup(+k); return { v: k, t: s ? trShort(s) : k }; }).sort(function (a, b) { return a.t < b.t ? -1 : 1; }),
       gcols: 'grid-template-columns: ' + colsFor(W), gmin: 'min-width: ' + minW(W) + 'px', hcols: hcols,
       hctx: function (e) { e.preventDefault(); e.stopPropagation(); var root = e.currentTarget.closest('.cpx').getBoundingClientRect(); V.hmenu = { x: Math.round(e.clientX - root.left), y: Math.round(e.clientY - root.top), ck: ck }; V.menu = null; self.bump(); },
@@ -7308,7 +7304,7 @@ class Component extends DCLogic {
     out.ccs = (C.CC || []).map(function (c) { return { v: c[0], t: c[0] + ' · ' + c[1] + ' (' + c[2] + ')' }; });
     out.kwB = B('', { icon: 'key', cls: 'fc-icb cp-icb', why: ro ? roWhy : null, title: 'Crea una palabra clave para que el reconocimiento asigne esta cuenta o este centro de coste', fn: function () { var sel = String(window.getSelection ? window.getSelection() : '').trim(); self.cpOpenDlg(V, { kind: 'kw', t: sel.length < 40 ? sel.toUpperCase() : '', what: 'gasto', id: f.id }); } });
     var relOpts = C.INV.filter(function (x) { if (x === f) return false; var xd = x.d; var ok = d.ivaSup ? xd.op === 'IMP' : d.op === 'IMP' ? xd.ivaSup : false; return ok && (!x.exp || d.rel === x.id || xd.rel === f.id); });
-    out.relShow = !!(d.ivaSup || d.op === 'IMP'); out.rel = d.rel || ''; out.relSet = set('rel', function (dd, v) { dd.rel = v || null; });
+    out.relShow = false; out.rel = d.rel || ''; out.relSet = set('rel', function (dd, v) { dd.rel = v || null; });
     out.relT = d.ivaSup ? 'Factura de la mercancía (importación)' : 'Factura del transitario (con el IVA de aduanas)';
     out.rels = relOpts.map(function (x) { var xs = C.sup(x.d.tid); return { v: x.id, t: (xs ? trShort(xs) : x.pdf.supN) + ' · ' + (x.d.num || x.file.split('\\').pop()) + (x.exp ? ' · contabilizada' : '') }; });
     out.relGo = B('Ir', { icon: 'chevr', why: !d.rel ? 'No hay factura enlazada.' : null, title: 'Abre la factura enlazada', fn: function () { var o = C.byId(d.rel); if (o) { if (o.exp && V.tab === 'pend') V.tab = 'exp'; else if (!o.exp && V.tab === 'exp') V.tab = 'pend'; self.cpOpen(C, V, o); } } });

@@ -18,5 +18,5 @@ Ente FacturaCompra con sus desgloses: inserción atómica, MD5 compatible del PD
 - 2026-10-28 12:28 · Y, por supuesto, hay que encapsular los diferentes 'entes' que aparecen en el proyecto (CuentaContable, Tercero -> Cliente/Proveedor/Asociacion/Particular..., FacturaCompra, FacturaVenta, etc.).
 - 2026-10-28 12:28 · From sources/01_ESPECIFICACION_FUNCIONAL.docx § 14 RF-COM-05: duplicados, persistencia atómica, configuración
 - 2026-10-28 12:28 · draft: Implementar el ente FacturaCompra y su persistencia con control de duplicados.
-2026-10-31 07:30 · Y en el caso de facturas de importación, se puede indicar la moneda y hago conversión a euros aplicando el tipo de cambio de la moneda en la fecha de la factura. En la contabilidad siempre se trabaja en euros.
-2026-10-31 07:41 · 4. Ver relacionadas lo que hará es mostrar la factura original (en el caso de estar sobre una rectificativa) o viceversa
+- 2026-10-31 07:30 · Y en el caso de facturas de importación, se puede indicar la moneda y hago conversión a euros aplicando el tipo de cambio de la moneda en la fecha de la factura. En la contabilidad siempre se trabaja en euros.
+- 2026-10-31 07:41 · 4. Ver relacionadas lo que hará es mostrar la factura original (en el caso de estar sobre una rectificativa) o viceversa
