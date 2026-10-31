@@ -28,6 +28,8 @@ public class DialogoProConta : Window
 
     public DialogoProConta()
     {
+        // WindowStartupLocation no es propiedad de dependencia: no puede ir en el estilo.
+        WindowStartupLocation = WindowStartupLocation.CenterOwner;
         CerrarCommand = new ComandoDelegado(() => { DialogResult = false; });
         AceptarCommand = new ComandoDelegado(() => { DialogResult = true; });
     }
