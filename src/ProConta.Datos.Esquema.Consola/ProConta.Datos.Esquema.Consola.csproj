@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Ejecutable del ActualizadorEsquema: diagnosticar, actualizar, diccionario y maestra vacía. -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>ProConta.Datos.Esquema.Consola</RootNamespace>
+    <AssemblyName>ActualizadorEsquema</AssemblyName>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\ProConta.Datos.Esquema\ProConta.Datos.Esquema.csproj" />
+  </ItemGroup>
+</Project>
