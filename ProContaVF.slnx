@@ -3,12 +3,19 @@
     <Platform Name="x64" />
   </Configurations>
   <Folder Name="/src/">
+    <Project Path="src/ProConta.Datos.Esquema.Consola/ProConta.Datos.Esquema.Consola.csproj" />
+    <Project Path="src/ProConta.Datos.Esquema/ProConta.Datos.Esquema.csproj" />
+    <Project Path="src/ProConta.Datos.Persistencia/ProConta.Datos.Persistencia.csproj" />
     <Project Path="src/ProConta.Nucleo/ProConta.Nucleo.csproj" />
+    <Project Path="src/ProConta.Plataforma.Configuracion/ProConta.Plataforma.Configuracion.csproj" />
     <Project Path="src/ProConta.UI.Base/ProConta.UI.Base.csproj" />
     <Project Path="src/ProConta.UI.Muestra/ProConta.UI.Muestra.csproj" />
   </Folder>
   <Folder Name="/tests/">
+    <Project Path="tests/ProConta.Datos.Tests/ProConta.Datos.Tests.csproj" />
     <Project Path="tests/ProConta.Nucleo.Tests/ProConta.Nucleo.Tests.csproj" />
+    <Project Path="tests/ProConta.Plataforma.Configuracion.Tests/ProConta.Plataforma.Configuracion.Tests.csproj" />
+    <Project Path="tests/ProConta.Pruebas.Access/ProConta.Pruebas.Access.csproj" />
     <Project Path="tests/ProConta.UI.Base.Tests/ProConta.UI.Base.Tests.csproj" />
   </Folder>
 </Solution>
