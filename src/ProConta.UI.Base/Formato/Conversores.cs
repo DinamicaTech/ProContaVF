@@ -16,7 +16,14 @@ public sealed class ImporteConverter : IValueConverter
         return parameter as string == "vacio" ? Formatos.ImporteOVacio(v) : Formatos.Importe(v);
     }
 
-    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) => Binding.DoNothing;
+    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+    {
+        var texto = value as string;
+        if (string.IsNullOrWhiteSpace(texto) && parameter as string == "vacio") return 0m;
+        if (Formatos.LeerImporte(texto, out var v)) return v;
+        // Con ValidatesOnExceptions=True el campo se marca en rojo con este mensaje.
+        throw new FormatException($"«{texto}» no es un importe. Escribe, por ejemplo, 1.234,56 €.");
+    }
 }
 
 /// <summary>Muestra una fecha (DateOnly o DateTime) como dd/MM/aaaa.</summary>

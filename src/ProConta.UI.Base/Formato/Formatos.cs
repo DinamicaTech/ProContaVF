@@ -4,7 +4,7 @@ namespace ProConta.UI.Base.Formato;
 
 /// <summary>
 /// Formatos de presentación comunes (docs/plataforma/ui-base.md): todo importe se muestra en euros con separador
-/// de miles y dos decimales (1.234,56 €); las fechas como dd/MM/aaaa. Los campos de entrada mantienen el número sin símbolo.
+/// de miles y dos decimales (1.234,56 €), también en los campos de entrada; las fechas como dd/MM/aaaa.
 /// </summary>
 public static class Formatos
 {
@@ -37,6 +37,27 @@ public static class Formatos
 
     /// <summary>Importe en euros: 1.234,56 € (negativos con «−»).</summary>
     public static string Importe(decimal valor) => Numero(valor) + " €";
+
+    /// <summary>
+    /// Lee un importe escrito por el operador: con o sin «€», con o sin separador de miles, con «-» o «−».
+    /// La coma es el decimal; un único punto seguido de una o dos cifras al final también (punto del teclado numérico).
+    /// </summary>
+    public static bool LeerImporte(string? texto, out decimal valor)
+    {
+        valor = 0;
+        if (string.IsNullOrWhiteSpace(texto)) return false;
+        var t = texto.Replace("€", "").Replace(" ", "").Replace("\u00A0", "").Replace(Menos, "-").Trim();
+        if (t.Length == 0) return false;
+        if (!t.Contains(',') && t.Count(c => c == '.') == 1)
+        {
+            var i = t.IndexOf('.');
+            var dec = t.Length - i - 1;
+            if (dec is 1 or 2) t = t[..i] + "," + t[(i + 1)..];
+        }
+        if (!decimal.TryParse(t, System.Globalization.NumberStyles.Number, Cultura, out valor)) return false;
+        valor = Math.Round(valor, 2, MidpointRounding.AwayFromZero);
+        return true;
+    }
 
     /// <summary>Importe o texto vacío cuando es cero (columnas Debe y Haber).</summary>
     public static string ImporteOVacio(decimal valor) => Math.Round(valor, 2) == 0 ? string.Empty : Importe(valor);

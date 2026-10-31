@@ -56,4 +56,24 @@ public class ReglaSaldoTests
         Assert.Equal("Saldo acreedor", ReglaSaldo.Descripcion(-1));
         Assert.Equal("Saldo cero", ReglaSaldo.Descripcion(0.001m));
     }
+
+    [Theory]
+    [InlineData("1.234,56 €", "1234.56")]
+    [InlineData("1234,56", "1234.56")]
+    [InlineData("1234.5", "1234.5")]
+    [InlineData("1.234", "1234")]
+    [InlineData("−741,00 €", "-741")]
+    [InlineData("-12", "-12")]
+    [InlineData("0,005", "0.01")]
+    public void Lee_importes_escritos_por_el_operador(string texto, string esperado)
+    {
+        Assert.True(Formatos.LeerImporte(texto, out var v));
+        Assert.Equal(decimal.Parse(esperado, System.Globalization.CultureInfo.InvariantCulture), v);
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("€")]
+    [InlineData("doce")]
+    public void Rechaza_lo_que_no_es_un_importe(string texto) => Assert.False(Formatos.LeerImporte(texto, out _));
 }

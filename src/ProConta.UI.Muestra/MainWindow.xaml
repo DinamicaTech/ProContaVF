@@ -187,7 +187,7 @@
                   <TextBlock Grid.Row="2" Text="Código postal" VerticalAlignment="Center" />
                   <TextBox x:Name="CampoError" Grid.Row="2" Grid.Column="1" Width="90" HorizontalAlignment="Left" Text="4600" />
                   <TextBlock Grid.Row="3" Text="Importe" VerticalAlignment="Center" />
-                  <TextBox Grid.Row="3" Grid.Column="1" Width="120" HorizontalAlignment="Left" Style="{StaticResource Campo.Importe}" Text="1.234,56" ToolTip="Importe en euros, sin símbolo" />
+                  <TextBox Grid.Row="3" Grid.Column="1" Width="120" HorizontalAlignment="Left" Style="{StaticResource Campo.Importe}" Text="1234,56" ToolTip="Importe en euros: puedes escribir solo el número" />
                   <TextBlock Grid.Row="4" Text="Forma de pago" VerticalAlignment="Center" />
                   <ComboBox Grid.Row="4" Grid.Column="1" Width="220" HorizontalAlignment="Left" SelectedIndex="0" ToolTip="Forma de pago por defecto">
                     <ComboBoxItem Content="Transferencia 30 días" />

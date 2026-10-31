@@ -367,6 +367,7 @@
   <Style x:Key="Campo.Importe" TargetType="TextBox" BasedOn="{StaticResource Campo}">
     <Setter Property="TextAlignment" Value="Right" />
     <Setter Property="Typography.NumeralAlignment" Value="Tabular" />
+    <Setter Property="pc:CampoImporte.Activo" Value="True" />
   </Style>
   <Style x:Key="Campo.Mono" TargetType="TextBox" BasedOn="{StaticResource Campo}">
     <Setter Property="FontFamily" Value="{StaticResource Fuente.Mono}" />

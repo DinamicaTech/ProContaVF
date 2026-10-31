@@ -25,13 +25,13 @@ PreferenciasOperador.Actual = new PreferenciasJson(operador);
 | Tokens | `Color.*`, `Pincel.*`, `Fuente.Texto/Mono/Titulo`, `Letra.*`, `Radio.*`, `Alto.*`, `Sombra.*` (`Themes/Tokens.xaml`) |
 | Iconos | `Icono.<nombre>` (geometrías 24×24 de las maquetas) con los estilos `Icono.Trazo`, `Icono.Trazo12/14/18/32`; en botones, `pc:Iconos.Icono` |
 | Botones | implícito, `Boton.Primario`, `Boton.Peligro`, `Boton.Pequeno`, `Boton.Fantasma`, `Boton.Icono`, `Boton.Enlace`, `Boton.Aspa` |
-| Campos | implícito `TextBox` (error: borde rojo, icono y mensaje en el tooltip), `Campo.Importe`, `Campo.Mono`, `Campo.Multilinea`, `ComboBox`, `CheckBox`, `RadioButton` |
+| Campos | implícito `TextBox` (error: borde rojo, icono y mensaje en el tooltip), `Campo.Importe` (siempre en moneda: se escribe el número, con o sin «€», y al salir se ve «1.234,56 €»), `Campo.Mono`, `Campo.Multilinea`, `ComboBox`, `CheckBox`, `RadioButton` |
 | Selector segmentado | `Border Style="{StaticResource Segmentado}"` con `RadioButton Style="{StaticResource Segmento}"` |
 | Textos | `Texto.TituloPantalla`, `Texto.Titulo`, `Texto.Seccion`, `Texto.Apagado`, `Texto.Mono`, `Texto.Importe`, `Texto.Saldo`, `Texto.Celda` (inicio con «…» y texto completo en el tooltip) |
 | Contenedores | `Tarjeta`, `Barra.Pie`, `Barra.Seleccion`, `Separador` (Thumb), `GridSplitter`, `TabControl`, `ContextMenu`, `ToolTip`, barras de desplazamiento finas |
 | Tabla | `pc:TablaProConta`: criterio global de columnas (ordenar, mover, ocultar, redimensionar, restablecer, exportar a Excel) guardado por operador con `ClavePreferencias`. Por columna: `pc:TablaProConta.Clave`, `OcultaDeFabrica`, `SiempreVisible`, `RutaExportar` |
 | Componentes | `pc:PanelPlegable`, `pc:VistaEstado` (vacío, cargando, error, sin permiso), `pc:Etiqueta` (filtro), `pc:Nota`, `pc:DialogoProConta` |
-| Formatos | `Formatos.Importe/Saldo/Fecha/Plural`, `ReglaSaldo` (color del saldo por grupo del PGC), conversores `ImporteConverter`, `FechaConverter`, `SaldoPincelConverter` |
+| Formatos | `Formatos.Importe/Saldo/Fecha/Plural/LeerImporte`, `ReglaSaldo` (color del saldo por grupo del PGC), conversores `ImporteConverter` (también de vuelta, para campos enlazados), `FechaConverter`, `SaldoPincelConverter` |
 | Preferencias | `IPreferenciasOperador`, `PreferenciasJson` (fichero local por operador; más adelante, base de datos) |
 
 ## Muestra
