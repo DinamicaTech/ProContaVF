@@ -49,6 +49,7 @@ public static class CatalogoMigraciones
     [
         MigracionesOrganizacion.FormasPagoPropia,
         MigracionesOrganizacion.EjercicioCerrado,
+        MigracionesTerceros.VersionTercero,
     ];
 
     /// <summary>Versión del esquema que espera esta versión del programa.</summary>

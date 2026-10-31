@@ -337,6 +337,7 @@ Relaciones:
 | NombreComercial | TEXT(150) | sí |  | Contrato TERCEROS_VF_1: tipo ACE 130, longitud 150, obligatorio False. |
 | TipoIdentificacion | TEXT(30) | sí |  | Contrato TERCEROS_VF_1: tipo ACE 130, longitud 30, obligatorio False. |
 | NotasInternas | LONGTEXT | sí |  | Contrato TERCEROS_VF_1: tipo ACE 130, longitud 0, obligatorio False. |
+| Version | LONG | no | 0 |  |
 
 Índices:
 - IX_Terceros_NIF: NIF

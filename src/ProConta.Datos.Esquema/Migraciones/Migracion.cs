@@ -97,6 +97,26 @@ public sealed class AnadirColumna(string tabla, string columna, string definicio
     public override Task AplicarAsync(ISesionDatos sesion, ContextoMigracion contexto) => sesion.EjecutarAsync(Firma);
 }
 
+/// <summary>
+/// Añade una columna obligatoria con valor por defecto a una tabla con filas: Access deja a null las
+/// filas existentes aunque la columna sea NOT NULL, así que se añade, se rellena y después se exige.
+/// Si la columna ya existe pero admite nulos (intento anterior a medias), se completa.
+/// </summary>
+public sealed class AnadirColumnaObligatoria(string tabla, string columna, string tipo, string valorPorDefecto) : PasoMigracion
+{
+    public override string Descripcion => $"Añadir {tabla}.{columna} obligatoria (por defecto {valorPorDefecto})";
+    public override string Firma => $"ALTER TABLE [{tabla}] ADD COLUMN [{columna}] {tipo} DEFAULT {valorPorDefecto}; UPDATE [{tabla}] SET [{columna}] = {valorPorDefecto} WHERE [{columna}] IS NULL; ALTER TABLE [{tabla}] ALTER COLUMN [{columna}] {tipo} NOT NULL DEFAULT {valorPorDefecto}";
+    public override Task<bool> YaAplicadoAsync(ISesionDatos sesion, EsquemaFisico esquema) =>
+        Task.FromResult(esquema.Tabla(tabla)?.Columna(columna) is { AdmiteNulos: false });
+    public override async Task AplicarAsync(ISesionDatos sesion, ContextoMigracion contexto)
+    {
+        if (!sesion.LeerEsquema().ExisteColumna(tabla, columna))
+            await sesion.EjecutarAsync($"ALTER TABLE [{tabla}] ADD COLUMN [{columna}] {tipo} DEFAULT {valorPorDefecto}");
+        await sesion.EjecutarAsync($"UPDATE [{tabla}] SET [{columna}] = {valorPorDefecto} WHERE [{columna}] IS NULL");
+        await sesion.EjecutarAsync($"ALTER TABLE [{tabla}] ALTER COLUMN [{columna}] {tipo} NOT NULL DEFAULT {valorPorDefecto}");
+    }
+}
+
 /// <summary>Crea un índice si no existe. <c>sql</c> es el CREATE [UNIQUE] INDEX completo.</summary>
 public sealed class CrearIndice(string tabla, string indice, string sql) : PasoMigracion
 {

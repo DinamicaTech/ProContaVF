@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Terceros: ente Tercero, roles y contactos (docs/terceros.md). -->
+  <PropertyGroup>
+    <OutputType>Library</OutputType>
+    <RootNamespace>ProConta.Terceros</RootNamespace>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);CS1591;CS1573</NoWarn>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\ProConta.Nucleo\ProConta.Nucleo.csproj" />
+    <ProjectReference Include="..\ProConta.Datos.Persistencia\ProConta.Datos.Persistencia.csproj" />
+    <ProjectReference Include="..\ProConta.Contabilidad\ProConta.Contabilidad.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="ProConta.Terceros.Tests" />
+  </ItemGroup>
+</Project>
