@@ -5,6 +5,7 @@ depends_on: [compras/factura-compra, contabilidad/asientos, contabilidad/cuenta-
 threads:
   - 2026-10-28 12:30 · Carga de requisitos | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GRNMH95h9tnQp4dmEPHmw1w
   - 2026-10-29 18:54 · Validar prototipos de pantallas principales | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GGPu88XoVeXWyHsuxbrF2kK
+  - 2026-10-31 16:58 · Cerrar preguntas pendientes del proyecto | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5G7UyrP5eDJV4Ds6CCBozdbu
 ---
 ## Summary
 Genera los asientos de las facturas de compra con el motor de contabilidad/asientos.
@@ -21,12 +22,15 @@ Genera los asientos de las facturas de compra con el motor de contabilidad/asien
 - 2026-10-30 09:58 · El asiento se fecha siempre el día en que se genera (hoy), también el rectificativo; la fecha de la factura se conserva tal cual y es básicamente informativa. El asiento va al ejercicio de esa fecha: si el ejercicio de trabajo es otro, o la factura tiene fecha posterior a hoy, no se deja contabilizar. Rehacer una contabilización permite mantener la fecha del asiento o pasarla a hoy. La pantalla deja de usar el trimestre de IVA activo para fechar.
 - 2026-10-31 07:46 · Importación: la factura lleva un solo importe y se desglosa siempre al tipo de IVA vigente (21 % por defecto), lleve o no IVA desglosado: el gasto es el importe / (1 + tipo) y el resto va a la cuenta de IVA soportado en importaciones de la sociedad (4724001), sin cuenta 477. Intracomunitarias con inversión del sujeto pasivo: doble apunte 472/477 al tipo vigente sobre la base, con las cuentas parametrizadas por sociedad. Moneda: los importes se guardan en la moneda de la factura y se pasan a euros con el cambio oficial del día de la factura (o del último día hábil anterior, hasta 7 días); sin cambio no se deja contabilizar. La contabilidad y el libro de IVA van siempre en euros.
 - 2026-10-31 07:48 · Cada factura de importación se contabiliza sola, con su IVA de importación al 21 % a la 4724001 (decisión de 07:46): no hay asiento conjunto de la mercancía con la factura del transitario ni se descuenta el IVA del DUA. El DUA es una factura independiente del transitario o agente de aduanas, que se contabiliza como una factura nacional, con lo que paga por cuenta nuestra como suplido (5550010, sin IVA).
+- 2026-10-31 16:54 · La cuenta de gasto de una factura de compra es la del proveedor (valor por defecto de su ficha, que se actualiza desde la factura según terceros/roles 2026-10-29 18:14), con la última usada como propuesta revisable; no hay reglas por concepto (resuelve P-08).
 
 ## Requirements
 - 2026-10-28 12:28 · From sources/01_ESPECIFICACION_FUNCIONAL.docx § 14 RF-COM-07: contabilización de compra, contrato incompleto
 - 2026-10-28 13:14 · Q5) b) La lógica de contabilización está dentro del propio nodo (FacturasCompra, FacturasVenta, etc.). Ya tenemos un motor para gestionar Asientos, por lo que mejor conectar este motor directamente cada nodo que ha de generar asientos
 - 2026-10-28 12:28 · draft: Contabilizar las facturas de compra registradas mediante el motor de contabilidad/asientos.
-- 2026-10-28 12:28 · question: P-08 ¿de dónde sale la cuenta de gasto? (a) la del proveedor, con la última usada como propuesta revisable ✅ (b) reglas por concepto
+- 2026-10-28 12:28 · [answered 2026-10-31 16:54] question: P-08 ¿de dónde sale la cuenta de gasto? (a) la del proveedor, con la última usada como propuesta revisable ✅ (b) reglas por concepto
+- 2026-10-31 16:54 · 1. a
+- 2026-10-31 16:54 · answer: P-08 cuenta de gasto → (a) la del proveedor, con la última usada como propuesta revisable
 - 2026-10-29 18:14 · * A veces un asiento queda descuadrado por tema de redondeos (principalmente con apuntes de IVA), si es el caso, hay que ajustarlo con un apunte de diferencias de redondeo o similar
 - 2026-10-29 18:14 · * Ok, rectificativas al trimestre activo
 - 2026-10-29 21:05 · 1. Bueno, realmente la fecha de la factura se conserva sea la que sea. La fecha contable corresponderá al día en el que se contabiliza. Suponiendo que por fecha contable entendamos asiento.Fecha

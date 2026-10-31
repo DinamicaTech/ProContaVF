@@ -5,6 +5,7 @@ depends_on: [norma43, plataforma/contenedor, norma43/busqueda-por-importe, norma
 threads:
   - 2026-10-28 12:30 · Carga de requisitos | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GRNMH95h9tnQp4dmEPHmw1w
   - 2026-10-29 10:15 · Validar prototipos de pantallas principales | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GGPu88XoVeXWyHsuxbrF2kK
+  - 2026-10-31 16:58 · Cerrar preguntas pendientes del proyecto | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5G7UyrP5eDJV4Ds6CCBozdbu
 ---
 ## Summary
 Tabla densa de líneas bancarias con filtros, detalle y acciones (también las de conciliación).
@@ -24,7 +25,9 @@ Tabla densa de líneas bancarias con filtros, detalle y acciones (también las d
 - 2026-10-28 12:28 · From sources/01_ESPECIFICACION_FUNCIONAL.docx § 19 RF-N43-03, 04: pantalla fiel a maqueta, selección explícita
 - 2026-10-28 12:28 · From sources/traspaso-2026-10-03/referencias/Norma43/docs/ENTREGA_VISUAL_LINEAS_BANCARIAS_20261001.md: entrega visual anterior
 - 2026-10-28 12:28 · draft: Construir la pantalla de líneas bancarias según la maqueta.
-- 2026-10-28 12:28 · question: La maqueta autónoma no está en el paquete (C:\Docs\VeriFactu\Maquetas\LineasBancarias\lineas-bancarias-proconta.html): (a) la copias a ProConta y la subo a sources/maquetas ✅
+- 2026-10-28 12:28 · [answered 2026-10-31 16:54] question: La maqueta autónoma no está en el paquete (C:\Docs\VeriFactu\Maquetas\LineasBancarias\lineas-bancarias-proconta.html): (a) la copias a ProConta y la subo a sources/maquetas ✅
+- 2026-10-31 16:54 · 26. Ya no hace falta
+- 2026-10-31 16:54 · answer: maqueta autónoma → ya no hace falta (sustituida por el prototipo validado el 2026-10-29 17:38)
 - 2026-10-29 10:20 · Derived from plataforma/ui-base: validar con el propietario el prototipo HTML final de las líneas bancarias Norma 43 (lienzo del contenedor, 2050 × 1110) antes de construir su UI WPF.
 - 2026-10-29 14:12 · Y si revisar primero el formulario frmLineasN43 con su código igual que has hecho con el Mayor vitaminado ?
 - 2026-10-29 15:23 · El código es funcional en otro formulario (frmN43Importar) y mi idea era añadir esta opción en la pantalla de líneas para explotar solo la línea seleccionada, pero me quedé a medias.
