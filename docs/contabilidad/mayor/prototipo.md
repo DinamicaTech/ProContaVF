@@ -16,3 +16,4 @@ Prototipo HTML de la pantalla del Mayor, hecho en el lienzo de diseño del conte
 - 2026-10-29 10:14 · El prototipo del mayor quizá es más conveniente que lo haga un nodo que cuelgue de contabilidad/mayor para no sobrecargar este nodo transversal.
 - 2026-10-29 10:17 · draft: Crear y validar con el propietario el prototipo HTML de la pantalla del Mayor, a partir del Mayor de ProConta antiguo con los cambios acordados.
 - 2026-10-29 10:45 · Derived from terceros/pantallas: el prototipo incluye el Mayor embebido en la pestaña Contabilidad de la ficha de terceros, con las mismas funciones y filtrado por las cuentas del tercero.
+- 2026-10-31 08:41 · Está Ok, ahora a por el Mayor vitaminado, ánimos.
