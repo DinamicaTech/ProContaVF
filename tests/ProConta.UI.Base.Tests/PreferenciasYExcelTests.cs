@@ -1,3 +1,4 @@
+using System.IO;
 using ClosedXML.Excel;
 using ProConta.UI.Base.Preferencias;
 using ProConta.UI.Base.Tablas;
