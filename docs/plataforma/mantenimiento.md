@@ -13,6 +13,7 @@ Pantalla genérica y extensible (CFG-MANT) para parámetros únicos y coleccione
 ## Decisions
 - 2026-10-28 13:30 · Creado en la carga inicial de requisitos.
 - 2026-10-31 08:14 · El propietario valida el funcionamiento del prototipo de la pantalla genérica de mantenimiento 1:N con configuración (`sources/maquetas/Configuracion/`, revisión de validación 1) como referencia para su UI WPF; el aspecto aún es el de la maqueta original.
+- 2026-10-31 08:15 · Acordado con el propietario: la pantalla se integra en el contenedor con su estilo (pestañas «Parámetros y tablas auxiliares» y «Sociedades y ejercicios», lienzo versión 27, `?escenario=config`) sin cambiar su funcionamiento. La empresa y el ejercicio de trabajo los fija el contenedor y el perfil de consulta del operador deja la pantalla en solo lectura.
 
 ## Requirements
 - 2026-10-28 12:28 · From sources/01_ESPECIFICACION_FUNCIONAL.docx § 8 RF-MAN-01..05: pantalla por proveedores, editores, servicios tipados para datos con invariantes, catálogo conocido
