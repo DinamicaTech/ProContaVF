@@ -4,10 +4,11 @@ depends_on: [plataforma/entrega]
 threads:
   - 2026-10-28 12:30 · Nuevo proyecto | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GRNMH95h9tnQp4dmEPHmw1w
   - 2026-10-31 08:38 · Estrategia de desarrollo | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GPQZwFm28U4vq3sQdopN45C
+  - 2026-10-31 16:58 · Cerrar preguntas pendientes del proyecto | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5G7UyrP5eDJV4Ds6CCBozdbu
 ---
 ## Summary
 Decisiones técnicas que condicionan todo el árbol: aplicación de escritorio Windows en WPF y C# (.NET 10, x64) sobre una base Access (accdb) detrás de una capa de persistencia propia, instalada en un único Windows Server al que acceden 2-3 usuarios por Escritorio remoto.
-La solución es nueva, en este repositorio; el proyecto antiguo (VB.NET) solo se consulta.
+La solución es nueva, en este repositorio; el proyecto antiguo (VB.NET) solo se consulta. ProContaVF será software libre con licencia MIT, y sus dependencias deben ser compatibles con ella.
 La estructura de la BD tiene un único dueño (`datos/esquema`), que publica el diccionario de datos; cada ente es un nodo de su área funcional que publica su contrato.
 El código se construye de abajo arriba: esqueleto técnico, motores de los entes sin pantallas en orden de dependencias y después los cortes por área con sus pantallas, de uno en uno; las pruebas se ejecutan en local.
 
@@ -30,6 +31,7 @@ El código se construye de abajo arriba: esqueleto técnico, motores de los ente
   - Clases: una clase por ente (agregado), no por tabla; un ente incluye sus tablas 1:N propias y se guarda en una transacción (p. ej. FacturaVenta con líneas y desgloses de IVA). Los catálogos simples no necesitan una clase propia: se publican con un proveedor declarativo (columnas y validaciones) para `plataforma/mantenimiento`, que nunca escribe directamente en la BD sino a través del dueño de la tabla.
   - Paralelismo: un único hilo de código a la vez; en paralelo solo hilos que no tocan código (análisis, documentación).
   - Pruebas: en local, sin compilación en GitHub. Cada hilo ejecuta las pruebas sin BD antes de abrir su PR y las pruebas contra Access en el equipo del propietario, contra la BD de pruebas, antes de pedir la validación. Se podrá añadir la ejecución en GitHub más adelante sin rehacer nada.
+- 2026-10-31 16:54 · Licencia: ProContaVF será software libre con licencia MIT; toda dependencia que se añada debe tener una licencia compatible (por ejemplo, FastReport en su edición de código abierto, no la comercial).
 
 ## Requirements
 - 2026-10-28 12:28 · es importante que haya un nodo especializado en mantener la estructura de la base de datos para poder actualizar el modelo cuando se actualice una instalación en producción, por lo tanto, cualquier nodo que quiera modificar la estructura de la Base de Datos ha de comunicarlo o pasar a través del nodo de mantenimiento de estructura de BD.
@@ -44,3 +46,4 @@ El código se construye de abajo arriba: esqueleto técnico, motores de los ente
 - 2026-10-31 08:31 · Antes de los cortes verticales, no se podrían avanzar las clases núcleo (por ejemplo, el motor de asientos, motor de terceros, etc.) transversales ?
 - 2026-10-31 08:31 · P1. Hace falta compilarlo en Github ? Quizá es más sencillo compilar y probar solo en local contra la BD de pruebas
 - 2026-10-31 08:36 · Ok, entiendo que se puede organizar la implementación de los 'entes' haciendo un drill-up, es decir, implementando los más periféricos que no dependan de otros y a partir de ahí ir construyendo los de arriba, así no habría que dejar tanto código pendiente de otros contratos
+- 2026-10-31 16:54 · 22. a) Basta la edición gratuita, la idea es que ProContaVF sea licencia MIT
