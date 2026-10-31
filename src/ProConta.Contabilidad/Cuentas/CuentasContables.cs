@@ -161,7 +161,7 @@ public sealed class CatalogoCuentasAccess(IBaseDatos bd) : ICatalogoCuentas
     private static Resultado<CuentaContable> Fallo(string codigo, string mensaje, string registro, string causa, string accion) =>
         Resultado<CuentaContable>.Fallo(new Error(codigo, mensaje, registro, causa, accion));
 
-    internal static CuentaContable Mapear(IFilaDatos f) => new(
+    public static CuentaContable Mapear(IFilaDatos f) => new(
         f.Entero("IdCuentaContable"), f.Entero("IdIdentidadContable"), f.Entero("IdSociedadEjercicio"), f.EnteroNulo("IdCuentaPadre"),
         f.Texto("Codigo") ?? "", f.Texto("Nombre") ?? "", f.Logico("EstaActiva"), f.Logico("EstaBloqueada"), f.Logico("EsImputable"),
         f.EnteroNulo("IdCentroCostePredeterminado"), f.Decimal("SaldoInicial"), f.Decimal("SaldoActual"), f.Entero("NumeroApuntes"));

@@ -65,12 +65,17 @@ Relaciones:
 | TotalHaber | CURRENCY | no |  | Instantánea de control recalculada desde los apuntes. |
 | IdLoteProceso | LONG | sí |  |  |
 | Version | LONG | no |  | Número de concurrencia optimista incrementado en cada revisión. |
+| EsAutomatico | YESNO | no | No |  |
+| MotorPropietario | TEXT(50) | sí |  |  |
+| CodigoProceso | TEXT(100) | sí |  |  |
+| ClaveEjecucion | TEXT(150) | sí |  |  |
 
 Índices:
 - FK_Asientos_SociedadesEjercicios: IdSociedadEjercicio
 - IX_Asientos_Diario: IdSociedadEjercicio, FechaContable, IdAsiento
 - IX_Asientos_Estado: IdSociedadEjercicio, EstadoAsiento
 - IX_Asientos_Lote: IdLoteProceso
+- IX_Asientos_PropiedadAutomatica: EsAutomatico, MotorPropietario, CodigoProceso, IdSociedadEjercicio, ClaveEjecucion
 - PK_Asientos (clave primaria): IdAsiento
 
 Relaciones:
@@ -457,6 +462,30 @@ Relaciones:
 Relaciones:
 - FK_Presentaciones_Ejercicios: (IdSociedadEjercicio) → SociedadesEjercicios (IdSociedadEjercicio); borrado NO ACTION, actualización NO ACTION
 - FK_Presentaciones_Rectificada: (IdPresentacionRectificada) → PresentacionesTributarias (IdPresentacionTributaria); borrado NO ACTION, actualización NO ACTION
+
+## RegistroCambiosApuntes
+
+- Dueño funcional: `contabilidad/asientos`
+
+| Campo | Tipo | Nulo | Por defecto | Descripción |
+|---|---|---|---|---|
+| IdCambioApunte | COUNTER | no |  |  |
+| IdLote | TEXT(36) | no |  |  |
+| FechaHora | DATETIME | no |  |  |
+| Operador | TEXT(100) | no |  |  |
+| Motivo | LONGTEXT | no |  |  |
+| IdAsiento | LONG | no |  |  |
+| IdApunte | LONG | sí |  |  |
+| Orden | SHORT | sí |  |  |
+| Operacion | TEXT(15) | no |  |  |
+| Campo | TEXT(64) | no |  |  |
+| ValorAntiguo | LONGTEXT | sí |  |  |
+| ValorNuevo | LONGTEXT | sí |  |  |
+
+Índices:
+- IX_RegistroCambiosApuntes_Asiento: IdAsiento
+- IX_RegistroCambiosApuntes_Lote: IdLote
+- PK_RegistroCambiosApuntes (clave primaria): IdCambioApunte
 
 ## ReglasCuentasBalance
 

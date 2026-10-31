@@ -51,6 +51,7 @@ public static class CatalogoMigraciones
         MigracionesOrganizacion.EjercicioCerrado,
         MigracionesTerceros.VersionTercero,
         MigracionesOrganizacion.FormaPagoIndefinida,
+        MigracionesContabilidad.MotorAsientos,
     ];
 
     /// <summary>Versión del esquema que espera esta versión del programa.</summary>

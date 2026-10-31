@@ -18,7 +18,7 @@ public static class MigracionesOrganizacion
     /// (Facturas y Contratos) se quitan y no se recrean: hay valores (el código 1) sin forma de pago.
     /// </summary>
     public static Migracion FormasPagoPropia { get; } = new(
-        "20261031_1945_FORMAS_PAGO_PROPIA", 261031001,
+        "20261031_1845_FORMAS_PAGO_PROPIA", 261031001,
         "FormasPago como tabla propia (Id, Descripcion, SEPA) con las filas del vínculo anterior.",
         "organizacion/formas-pago",
         new PasoPersonalizado(
@@ -56,7 +56,7 @@ public static class MigracionesOrganizacion
 
     /// <summary>Marca de ejercicio cerrado en SociedadesEjercicios: limita operaciones, no el acceso (RF-SEG-02).</summary>
     public static Migracion EjercicioCerrado { get; } = new(
-        "20261031_1946_EJERCICIO_CERRADO", 261031002,
+        "20261031_1846_EJERCICIO_CERRADO", 261031002,
         "SociedadesEjercicios.EjercicioCerrado (sí/no, por defecto no).",
         "organizacion/sociedades-ejercicios",
         new AnadirColumna("SociedadesEjercicios", "EjercicioCerrado", "YESNO NOT NULL DEFAULT No"));
@@ -66,7 +66,7 @@ public static class MigracionesOrganizacion
     /// ejercicios sin que existiera) y restauración de las relaciones de Facturas y Contratos con FormasPago.
     /// </summary>
     public static Migracion FormaPagoIndefinida { get; } = new(
-        "20261031_2010_FORMA_PAGO_INDEFINIDA", 261031004,
+        "20261031_1910_FORMA_PAGO_INDEFINIDA", 261031004,
         "Forma de pago 1 «Indefinida» y relaciones de Facturas y Contratos con FormasPago.",
         "organizacion/formas-pago",
         new PasoPersonalizado(
