@@ -1426,7 +1426,7 @@ textarea.fc-in{height:auto;padding:6px 8px;resize:vertical}
 .myx .my-rec.on{background:var(--selb);box-shadow:inset 3px 0 0 var(--navy)}
 .myx .my-recb{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;align-items:flex-start;gap:1px;border:0;background:none;padding:6px 10px;cursor:pointer;text-align:left;font-size:12.5px;color:var(--ink)}
 .myx .my-recb:hover{color:var(--navy)}
-.myx .my-recd{font-size:11.5px;color:var(--mut);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:190px}
+.myx .my-recd{font-size:11.5px;color:var(--mut);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
 .myx .my-sidef{font-size:11px;padding:6px 10px;border-top:1px solid var(--ln);line-height:1.4}
 .myx .my-grpb{padding:8px 10px 10px;border-top:1px solid var(--ln);display:flex;flex-direction:column;gap:6px;font-size:12px}
 .myx .my-grpb .fc-btns{display:flex;gap:6px;flex-wrap:wrap}
@@ -1462,6 +1462,8 @@ textarea.fc-in{height:auto;padding:6px 8px;resize:vertical}
 .myx .my-sep>span{padding-left:46px}
 .myx .my-sal{font-weight:600}
 .myx .my-h{color:#9A2A1A}
+.myx .my-fav,.myx .my-tsal.my-fav{color:var(--green)}
+.myx .my-con,.myx .my-tsal.my-con{color:#B3261E}
 .myx .my-pun{color:var(--green);font-weight:700;text-align:center}
 .myx .my-nh{color:var(--blue)}
 .myx .my-hdot{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--blue);margin-right:6px;vertical-align:1px}
@@ -1518,6 +1520,17 @@ textarea.fc-in{height:auto;padding:6px 8px;resize:vertical}
 .myx .my-wzb .fc-sec{margin-top:4px}
 .myx .my-wzf{margin:0;font-weight:500;color:var(--navy)}
 .myx .my-ivl{display:block}
+/* panel de recientes con separador y cabeceras que se ordenan y se mueven */
+.myx .my-side{max-width:440px}
+.myx .my-split{flex:none;width:8px;margin:0 -9px;position:relative;z-index:3;cursor:col-resize;align-self:stretch;outline:none}
+.myx .my-split>span{position:absolute;left:3px;top:0;bottom:0;width:2px;border-radius:2px;background:transparent}
+.myx .my-split:hover>span,.myx .my-split:focus-visible>span{background:var(--or2)}
+.myx .fc-gh>.my-hc{cursor:grab}
+.myx .fc-gh>.my-hc.my-drag{opacity:.45}
+.myx .fc-gh>.my-hc.my-over{box-shadow:inset 2px 0 0 var(--navy);background:#FFF6EC}
+.myx .my-mh2{border-top:1px solid var(--ln);margin-top:4px}
+.myx .my-hcl{display:grid;grid-template-columns:1fr 1fr;gap:2px 12px;padding:4px 12px 10px}
+.myx .my-hcl .my-ck{display:flex;align-items:center;gap:6px;padding:3px 0}
 </style>
 
 <style>html,body{height:100%;margin:0}body{min-width:1280px;min-height:760px;overflow:auto}#app{width:100vw;height:100vh;min-width:1280px;min-height:760px}</style>
@@ -2131,16 +2144,17 @@ textarea.fc-in{height:auto;padding:6px 8px;resize:vertical}
 </section></div></sc-if>
 <sc-if value="{{m.Y.bodyOn}}" hint-placeholder-val="{{true}}">
 <div class="fc-ws">
-<sc-if value="{{m.Y.sideOn}}" hint-placeholder-val="{{true}}"><aside class="fc-panel my-side" aria-label="Cuentas recientes">
-<div class="fc-ph"><h2>Recientes</h2><span class="fc-grow"></span><button type="button" class="{{m.Y.recClr.cls}}" aria-disabled="{{m.Y.recClr.dis}}" title="{{m.Y.recClr.tip}}" onClick="{{m.Y.recClr.on}}"><sc-if value="{{m.Y.recClr.hasIc}}" hint-placeholder-val="{{true}}"><svg class="fc-ic" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><sc-for list="{{m.Y.recClr.ic}}" as="icd" hint-placeholder-count="2"><path d="{{icd}}"></path></sc-for></svg></sc-if>{{m.Y.recClr.t}}</button><button type="button" class="fc-icb" onClick="{{m.Y.sideHide}}" title="Ocultar el panel de cuentas" aria-label="Ocultar el panel de cuentas"><svg class="fc-ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><sc-for list="{{m.Y.sideIc}}" as="icd" hint-placeholder-count="2"><path d="{{icd}}"></path></sc-for></svg></button></div>
+<sc-if value="{{m.Y.sideOn}}" hint-placeholder-val="{{true}}"><aside class="fc-panel my-side" style="{{m.Y.sideSt}}" aria-label="Cuentas recientes">
+<div class="fc-ph"><h2>Recientes</h2><span class="fc-grow"></span><button type="button" class="{{m.Y.recClr.cls}}" aria-disabled="{{m.Y.recClr.dis}}" title="{{m.Y.recClr.tip}}" onClick="{{m.Y.recClr.on}}"><sc-if value="{{m.Y.recClr.hasIc}}" hint-placeholder-val="{{true}}"><svg class="fc-ic" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><sc-for list="{{m.Y.recClr.ic}}" as="icd" hint-placeholder-count="2"><path d="{{icd}}"></path></sc-for></svg></sc-if>{{m.Y.recClr.t}}</button><button type="button" class="fc-icb" onClick="{{m.Y.sideHide}}" title="Plegar el panel de recientes (se recuerda para ti)" aria-label="Plegar el panel de recientes"><svg class="fc-ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><sc-for list="{{m.Y.sideIc}}" as="icd" hint-placeholder-count="2"><path d="{{icd}}"></path></sc-for></svg></button></div>
 <div class="my-recl scroll" role="listbox" aria-label="Cuentas recientes" aria-multiselectable="true">
 <sc-for list="{{m.Y.rec}}" as="c" hint-placeholder-count="6"><div class="{{c.cls}}"><button type="button" class="my-recb" role="option" aria-selected="{{c.on}}" data-fk="{{c.fk}}" onClick="{{c.pick}}" title="{{c.tip}}"><span class="fc-mono">{{c.c}}</span><span class="my-recd">{{c.d}}</span></button><button type="button" class="fc-xb" onClick="{{c.del}}" title="{{c.delTip}}" aria-label="{{c.delTip}}"><svg class="fc-ic" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><sc-for list="{{m.Y.xIc}}" as="icd" hint-placeholder-count="2"><path d="{{icd}}"></path></sc-for></svg></button></div></sc-for>
 <sc-if value="{{m.Y.recNone}}" hint-placeholder-val="{{false}}"><p class="fc-mut my-pad">Las cuentas que consultes aparecerán aquí.</p></sc-if>
 </div>
 <div class="my-sidef fc-mut">Clic: ver solo esa cuenta · Ctrl+clic: añadirla al mayor combinado</div>
 <sc-if value="{{m.Y.grpOn}}" hint-placeholder-val="{{false}}"><div class="my-grpb"><div class="fc-sec">Grupo de cuentas</div><span class="fc-mono" title="{{m.Y.grpD}}">{{m.Y.grpT}}</span><div class="fc-btns"><button type="button" class="{{m.Y.grpB.cls}}" aria-disabled="{{m.Y.grpB.dis}}" title="{{m.Y.grpB.tip}}" onClick="{{m.Y.grpB.on}}"><sc-if value="{{m.Y.grpB.hasIc}}" hint-placeholder-val="{{true}}"><svg class="fc-ic" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><sc-for list="{{m.Y.grpB.ic}}" as="icd" hint-placeholder-count="2"><path d="{{icd}}"></path></sc-for></svg></sc-if>{{m.Y.grpB.t}}</button><button type="button" class="{{m.Y.grpX.cls}}" aria-disabled="{{m.Y.grpX.dis}}" title="{{m.Y.grpX.tip}}" onClick="{{m.Y.grpX.on}}"><sc-if value="{{m.Y.grpX.hasIc}}" hint-placeholder-val="{{true}}"><svg class="fc-ic" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><sc-for list="{{m.Y.grpX.ic}}" as="icd" hint-placeholder-count="2"><path d="{{icd}}"></path></sc-for></svg></sc-if>{{m.Y.grpX.t}}</button></div></div></sc-if>
-</aside></sc-if>
-<sc-if value="{{m.Y.sideOff}}" hint-placeholder-val="{{false}}"><button type="button" class="my-reopen" onClick="{{m.Y.sideShow}}" title="Mostrar las cuentas recientes">Recientes</button></sc-if>
+</aside>
+<div class="cp-split my-split" role="separator" aria-orientation="vertical" aria-label="Ancho del panel de recientes" tabindex="0" data-fk="my:split" title="{{m.Y.sp.tip}}" onMouseDown="{{m.Y.sp.down}}" onDoubleClick="{{m.Y.sp.reset}}" onKeyDown="{{m.Y.sp.key}}"><span></span></div></sc-if>
+<sc-if value="{{m.Y.sideOff}}" hint-placeholder-val="{{false}}"><button type="button" class="my-reopen" onClick="{{m.Y.sideShow}}" title="Desplegar el panel de cuentas recientes">Recientes</button></sc-if>
 <div class="fc-lists"><section class="fc-panel fc-pemit ln-panel my-panel" aria-label="Mayor">
 <div class="fc-fbar my-hbar">
 <sc-if value="{{m.Y.full}}" hint-placeholder-val="{{true}}"><button type="button" class="{{m.Y.prev.cls}}" aria-disabled="{{m.Y.prev.dis}}" title="{{m.Y.prev.tip}}" onClick="{{m.Y.prev.on}}"><sc-if value="{{m.Y.prev.hasIc}}" hint-placeholder-val="{{true}}"><svg class="fc-ic" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><sc-for list="{{m.Y.prev.ic}}" as="icd" hint-placeholder-count="2"><path d="{{icd}}"></path></sc-for></svg></sc-if>{{m.Y.prev.t}}</button>
@@ -2178,33 +2192,21 @@ textarea.fc-in{height:auto;padding:6px 8px;resize:vertical}
 <sc-if value="{{m.Y.empty}}" hint-placeholder-val="{{false}}"><div class="fc-state" role="status"><b>{{m.Y.emptyT}}</b><span>{{m.Y.emptyS}}</span><div class="fc-btns"><button type="button" class="{{m.Y.emptyB.cls}}" aria-disabled="{{m.Y.emptyB.dis}}" title="{{m.Y.emptyB.tip}}" onClick="{{m.Y.emptyB.on}}"><sc-if value="{{m.Y.emptyB.hasIc}}" hint-placeholder-val="{{true}}"><svg class="fc-ic" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><sc-for list="{{m.Y.emptyB.ic}}" as="icd" hint-placeholder-count="2"><path d="{{icd}}"></path></sc-for></svg></sc-if>{{m.Y.emptyB.t}}</button></div></div></sc-if>
 <sc-if value="{{m.Y.has}}" hint-placeholder-val="{{true}}">
 <div class="fc-grid" style="{{m.Y.gmin}}" data-my-grid="1" role="grid" aria-label="Apuntes del mayor" aria-multiselectable="true">
-<div class="fc-gh" style="{{m.Y.gcols}}" role="row" onContextMenu="{{m.Y.hctx}}" title="Clic derecho: ajustar o restablecer las columnas"><span class="fc-cb"><input type="checkbox" checked="{{m.Y.allChk}}" onChange="{{m.Y.chkAll}}" aria-label="{{m.Y.allLbl}}" title="Seleccionar todas las filas (Ctrl+A)"></span>
-<sc-for list="{{m.Y.hcols}}" as="h" hint-placeholder-count="12"><span class="{{h.cls}}"><span title="{{h.tip}}">{{h.t}}</span><i class="ln-rz" onMouseDown="{{h.rz}}" onDoubleClick="{{h.fit}}" title="{{h.rzTip}}"></i></span></sc-for></div>
+<div class="fc-gh" style="{{m.Y.gcols}}" role="row" onContextMenu="{{m.Y.hctx}}" title="Clic en un título: ordenar · arrastrar un título: mover la columna · clic derecho: columnas visibles, ajustar o restablecer"><span class="fc-cb"><input type="checkbox" checked="{{m.Y.allChk}}" onChange="{{m.Y.chkAll}}" aria-label="{{m.Y.allLbl}}" title="Seleccionar todas las filas (Ctrl+A)"></span>
+<sc-for list="{{m.Y.hcols}}" as="h" hint-placeholder-count="12"><span class="{{h.cls}}" aria-sort="{{h.aria}}" draggable="true" onDragStart="{{h.drag}}" onDragOver="{{h.over}}" onDragLeave="{{h.leave}}" onDrop="{{h.drop}}" onDragEnd="{{h.end}}" onContextMenu="{{h.ctx}}"><button type="button" class="fc-sortb" data-fk="{{h.fk}}" onClick="{{h.pick}}" onKeyDown="{{h.key}}" title="{{h.tip}}">{{h.t}}<span class="fc-ar">{{h.ar}}</span></button><i class="ln-rz" onMouseDown="{{h.rz}}" onDoubleClick="{{h.fit}}" title="{{h.rzTip}}"></i></span></sc-for></div>
 <sc-if value="{{m.Y.padTOn}}" hint-placeholder-val="{{false}}"><div style="{{m.Y.padT}}" aria-hidden="true"></div></sc-if>
 <sc-for list="{{m.Y.rows}}" as="r" hint-placeholder-count="14">
 <sc-if value="{{r.sep}}" hint-placeholder-val="{{false}}"><div class="fc-gr my-sep" role="row"><span>{{r.t}}</span></div></sc-if>
 <sc-if value="{{r.ap}}" hint-placeholder-val="{{true}}"><div class="{{r.cls}}" style="{{r.st}}" role="row" tabindex="{{r.ti}}" data-fk="{{r.fk}}" aria-selected="{{r.sel}}" onClick="{{r.click}}" onDoubleClick="{{r.open}}" onKeyDown="{{r.key}}" onContextMenu="{{r.ctx}}">
 <span class="fc-cb"><input type="checkbox" tabindex="-1" checked="{{r.s}}" onClick="{{r.stop}}" onChange="{{r.chk}}" aria-label="{{r.chkLbl}}" title="Marca la fila (Espacio)"></span>
-<sc-if value="{{m.Y.ctaCol}}" hint-placeholder-val="{{false}}"><span class="fc-mono" title="{{r.ctaTip}}">{{r.cta}}</span></sc-if>
-<span class="fc-tn">{{r.fe}}</span>
-<span class="fc-mono ln-as" title="{{r.asTip}}">{{r.as}}</span>
-<span title="{{r.conT}}"><sc-if value="{{r.grpOn}}" hint-placeholder-val="{{false}}"><span class="my-ng" title="Apuntes agrupados en esta fila">{{r.nGrp}}</span></sc-if><sc-if value="{{r.n43}}" hint-placeholder-val="{{false}}"><span class="my-tag" title="Asiento generado desde una línea de Norma 43">N43</span></sc-if>{{r.con}}</span>
-<span class="fc-mono">{{r.doc}}</span>
-<span class="fc-r fc-tn" title="{{r.apeTip}}">{{r.debe}}</span>
-<span class="fc-r fc-tn" title="{{r.apeTip}}">{{r.haber}}</span>
-<span class="{{r.salCls}}" title="{{r.apeTip}}">{{r.sal}}</span>
-<span class="my-pun" title="{{r.punTip}}">{{r.pun}}</span>
-<span class="{{r.cpCls}}" title="{{r.cpTip}}" onDoubleClick="{{r.cpDbl}}">{{r.cp}}</span>
-<span class="ln-acct" title="{{r.cpTip}}" onDoubleClick="{{r.cpDbl}}">{{r.cpd}}</span>
-<span class="{{r.notaCls}}" title="{{r.nota}}"><sc-if value="{{r.hist}}" hint-placeholder-val="{{false}}"><span class="my-hdot" title="El apunte tiene historial de cambios"></span></sc-if>{{r.nota}}</span>
-<span class="fc-tn fc-mut">{{r.cre}}</span>
+<sc-for list="{{r.cells}}" as="c" hint-placeholder-count="12"><span class="{{c.cls}}" title="{{c.tip}}" onDoubleClick="{{c.dbl}}"><sc-if value="{{c.ng}}" hint-placeholder-val="{{false}}"><span class="my-ng" title="Apuntes agrupados en esta fila">{{c.ngT}}</span></sc-if><sc-if value="{{c.n43}}" hint-placeholder-val="{{false}}"><span class="my-tag" title="Asiento generado desde una línea de Norma 43">N43</span></sc-if><sc-if value="{{c.hd}}" hint-placeholder-val="{{false}}"><span class="my-hdot" title="El apunte tiene historial de cambios"></span></sc-if>{{c.t}}</span></sc-for>
 </div></sc-if>
 </sc-for>
 <sc-if value="{{m.Y.padBOn}}" hint-placeholder-val="{{false}}"><div style="{{m.Y.padB}}" aria-hidden="true"></div></sc-if>
 </div>
 </sc-if>
 </div>
-<div class="fc-tfoot my-foot"><span class="fc-cnt">{{m.Y.count}}</span><span class="fc-tn">Debe <b>{{m.Y.tD}}</b></span><span class="fc-tn">Haber <b>{{m.Y.tH}}</b></span><span class="fc-tn">Saldo <b class="{{m.Y.tSCls}}">{{m.Y.tS}}</b></span>
+<div class="fc-tfoot my-foot"><span class="fc-cnt">{{m.Y.count}}</span><span class="fc-tn">Debe <b>{{m.Y.tD}}</b></span><span class="fc-tn">Haber <b>{{m.Y.tH}}</b></span><span class="fc-tn">Saldo <b class="{{m.Y.tSCls}}" title="{{m.Y.tSTip}}">{{m.Y.tS}}</b></span>
 <sc-if value="{{m.Y.partial}}" hint-placeholder-val="{{false}}"><span class="my-part"><svg class="fc-ic" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><sc-for list="{{m.Y.infoIc}}" as="icd" hint-placeholder-count="2"><path d="{{icd}}"></path></sc-for></svg>{{m.Y.partialT}}</span></sc-if>
 <span class="fc-grow"></span><span>Doble clic: ver el asiento · en la contrapartida: abrir su mayor · clic derecho: acciones</span></div>
 </section></div>
@@ -2217,7 +2219,7 @@ textarea.fc-in{height:auto;padding:6px 8px;resize:vertical}
 <div class="my-pkf"><sc-for list="{{m.Y.pk.flts}}" as="f" hint-placeholder-count="5"><label class="fc-chk" title="{{f.tip}}"><input type="checkbox" checked="{{f.on}}" onChange="{{f.set}}"> {{f.t}}</label></sc-for></div>
 <sc-if value="{{m.Y.pk.grpOn}}" hint-placeholder-val="{{false}}"><button type="button" class="fc-lnk my-pkg" onClick="{{m.Y.pk.grpGo}}" title="Mayor de todas las subcuentas de ese grupo">{{m.Y.pk.grpT}}</button></sc-if>
 <div class="my-pl"><div class="my-ph"><span>Cuenta</span><span>Descripción</span><span class="fc-r">Saldo sin apertura</span><span class="fc-r">Saldo</span><span class="fc-r">Apuntes</span><span>Cuadrada</span></div>
-<div class="my-plb scroll" role="listbox"><sc-for list="{{m.Y.pk.rows}}" as="g" hint-placeholder-count="8"><button type="button" role="option" class="{{g.cls}}" onClick="{{g.pick}}" title="{{g.tip}}"><span class="fc-mono">{{g.c}}</span><span class="my-pd">{{g.d}}</span><span class="fc-r fc-tn">{{g.neto}}</span><span class="fc-r fc-tn">{{g.sal}}</span><span class="fc-r fc-tn">{{g.n}}</span><span class="{{g.cuCls}}">{{g.cu}}</span></button></sc-for>
+<div class="my-plb scroll" role="listbox"><sc-for list="{{m.Y.pk.rows}}" as="g" hint-placeholder-count="8"><button type="button" role="option" class="{{g.cls}}" onClick="{{g.pick}}" title="{{g.tip}}"><span class="fc-mono">{{g.c}}</span><span class="my-pd">{{g.d}}</span><span class="fc-r fc-tn">{{g.neto}}</span><span class="{{g.salCls}}">{{g.sal}}</span><span class="fc-r fc-tn">{{g.n}}</span><span class="{{g.cuCls}}">{{g.cu}}</span></button></sc-for>
 <sc-if value="{{m.Y.pk.none}}" hint-placeholder-val="{{false}}"><div class="fc-state">{{m.Y.pk.noneT}}</div></sc-if>
 <sc-if value="{{m.Y.pk.more}}" hint-placeholder-val="{{false}}"><div class="fc-mut my-pad">Se muestran las 200 primeras: escribe más para afinar.</div></sc-if></div></div>
 </div>
@@ -2231,7 +2233,7 @@ textarea.fc-in{height:auto;padding:6px 8px;resize:vertical}
 </sc-if>
 <sc-if value="{{m.Y.hm.on}}" hint-placeholder-val="{{false}}">
 <button type="button" class="fc-catch" aria-label="Cerrar el menú" onClick="{{m.Y.hm.close}}" onContextMenu="{{m.Y.hm.close}}" title="Cerrar el menú"></button>
-<div class="fc-menu ln-menu ln-hmenu" style="{{m.Y.hm.pos}}" role="menu" aria-label="Columnas"><div class="ln-mhead">Columnas</div><sc-for list="{{m.Y.hm.items}}" as="b" hint-placeholder-count="2"><button type="button" class="{{b.cls}}" aria-disabled="{{b.dis}}" title="{{b.tip}}" onClick="{{b.on}}"><sc-if value="{{b.hasIc}}" hint-placeholder-val="{{true}}"><svg class="fc-ic" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><sc-for list="{{b.ic}}" as="icd" hint-placeholder-count="2"><path d="{{icd}}"></path></sc-for></svg></sc-if>{{b.t}}</button></sc-for></div>
+<div class="fc-menu ln-menu ln-hmenu" style="{{m.Y.hm.pos}}" role="menu" aria-label="Columnas"><div class="ln-mhead">Columnas</div><sc-for list="{{m.Y.hm.items}}" as="b" hint-placeholder-count="2"><button type="button" class="{{b.cls}}" aria-disabled="{{b.dis}}" title="{{b.tip}}" onClick="{{b.on}}"><sc-if value="{{b.hasIc}}" hint-placeholder-val="{{true}}"><svg class="fc-ic" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><sc-for list="{{b.ic}}" as="icd" hint-placeholder-count="2"><path d="{{icd}}"></path></sc-for></svg></sc-if>{{b.t}}</button></sc-for><div class="ln-mhead my-mh2">Columnas visibles</div><div class="my-hcl"><sc-for list="{{m.Y.hm.cols}}" as="c" hint-placeholder-count="6"><label class="fc-ck my-ck"><input type="checkbox" data-fk="{{c.fk}}" checked="{{c.on}}" onChange="{{c.set}}"> {{c.t}}</label></sc-for></div></div>
 </sc-if>
 <sc-if value="{{m.Y.dx.on}}" hint-placeholder-val="{{false}}">
 <div class="fc-ov">
@@ -3671,16 +3673,17 @@ textarea.fc-in{height:auto;padding:6px 8px;resize:vertical}
 </section></div></sc-if>
 <sc-if value="{{m.Y.bodyOn}}" hint-placeholder-val="{{true}}">
 <div class="fc-ws">
-<sc-if value="{{m.Y.sideOn}}" hint-placeholder-val="{{true}}"><aside class="fc-panel my-side" aria-label="Cuentas recientes">
-<div class="fc-ph"><h2>Recientes</h2><span class="fc-grow"></span><button type="button" class="{{m.Y.recClr.cls}}" aria-disabled="{{m.Y.recClr.dis}}" title="{{m.Y.recClr.tip}}" onClick="{{m.Y.recClr.on}}"><sc-if value="{{m.Y.recClr.hasIc}}" hint-placeholder-val="{{true}}"><svg class="fc-ic" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><sc-for list="{{m.Y.recClr.ic}}" as="icd" hint-placeholder-count="2"><path d="{{icd}}"></path></sc-for></svg></sc-if>{{m.Y.recClr.t}}</button><button type="button" class="fc-icb" onClick="{{m.Y.sideHide}}" title="Ocultar el panel de cuentas" aria-label="Ocultar el panel de cuentas"><svg class="fc-ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><sc-for list="{{m.Y.sideIc}}" as="icd" hint-placeholder-count="2"><path d="{{icd}}"></path></sc-for></svg></button></div>
+<sc-if value="{{m.Y.sideOn}}" hint-placeholder-val="{{true}}"><aside class="fc-panel my-side" style="{{m.Y.sideSt}}" aria-label="Cuentas recientes">
+<div class="fc-ph"><h2>Recientes</h2><span class="fc-grow"></span><button type="button" class="{{m.Y.recClr.cls}}" aria-disabled="{{m.Y.recClr.dis}}" title="{{m.Y.recClr.tip}}" onClick="{{m.Y.recClr.on}}"><sc-if value="{{m.Y.recClr.hasIc}}" hint-placeholder-val="{{true}}"><svg class="fc-ic" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><sc-for list="{{m.Y.recClr.ic}}" as="icd" hint-placeholder-count="2"><path d="{{icd}}"></path></sc-for></svg></sc-if>{{m.Y.recClr.t}}</button><button type="button" class="fc-icb" onClick="{{m.Y.sideHide}}" title="Plegar el panel de recientes (se recuerda para ti)" aria-label="Plegar el panel de recientes"><svg class="fc-ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><sc-for list="{{m.Y.sideIc}}" as="icd" hint-placeholder-count="2"><path d="{{icd}}"></path></sc-for></svg></button></div>
 <div class="my-recl scroll" role="listbox" aria-label="Cuentas recientes" aria-multiselectable="true">
 <sc-for list="{{m.Y.rec}}" as="c" hint-placeholder-count="6"><div class="{{c.cls}}"><button type="button" class="my-recb" role="option" aria-selected="{{c.on}}" data-fk="{{c.fk}}" onClick="{{c.pick}}" title="{{c.tip}}"><span class="fc-mono">{{c.c}}</span><span class="my-recd">{{c.d}}</span></button><button type="button" class="fc-xb" onClick="{{c.del}}" title="{{c.delTip}}" aria-label="{{c.delTip}}"><svg class="fc-ic" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><sc-for list="{{m.Y.xIc}}" as="icd" hint-placeholder-count="2"><path d="{{icd}}"></path></sc-for></svg></button></div></sc-for>
 <sc-if value="{{m.Y.recNone}}" hint-placeholder-val="{{false}}"><p class="fc-mut my-pad">Las cuentas que consultes aparecerán aquí.</p></sc-if>
 </div>
 <div class="my-sidef fc-mut">Clic: ver solo esa cuenta · Ctrl+clic: añadirla al mayor combinado</div>
 <sc-if value="{{m.Y.grpOn}}" hint-placeholder-val="{{false}}"><div class="my-grpb"><div class="fc-sec">Grupo de cuentas</div><span class="fc-mono" title="{{m.Y.grpD}}">{{m.Y.grpT}}</span><div class="fc-btns"><button type="button" class="{{m.Y.grpB.cls}}" aria-disabled="{{m.Y.grpB.dis}}" title="{{m.Y.grpB.tip}}" onClick="{{m.Y.grpB.on}}"><sc-if value="{{m.Y.grpB.hasIc}}" hint-placeholder-val="{{true}}"><svg class="fc-ic" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><sc-for list="{{m.Y.grpB.ic}}" as="icd" hint-placeholder-count="2"><path d="{{icd}}"></path></sc-for></svg></sc-if>{{m.Y.grpB.t}}</button><button type="button" class="{{m.Y.grpX.cls}}" aria-disabled="{{m.Y.grpX.dis}}" title="{{m.Y.grpX.tip}}" onClick="{{m.Y.grpX.on}}"><sc-if value="{{m.Y.grpX.hasIc}}" hint-placeholder-val="{{true}}"><svg class="fc-ic" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><sc-for list="{{m.Y.grpX.ic}}" as="icd" hint-placeholder-count="2"><path d="{{icd}}"></path></sc-for></svg></sc-if>{{m.Y.grpX.t}}</button></div></div></sc-if>
-</aside></sc-if>
-<sc-if value="{{m.Y.sideOff}}" hint-placeholder-val="{{false}}"><button type="button" class="my-reopen" onClick="{{m.Y.sideShow}}" title="Mostrar las cuentas recientes">Recientes</button></sc-if>
+</aside>
+<div class="cp-split my-split" role="separator" aria-orientation="vertical" aria-label="Ancho del panel de recientes" tabindex="0" data-fk="my:split" title="{{m.Y.sp.tip}}" onMouseDown="{{m.Y.sp.down}}" onDoubleClick="{{m.Y.sp.reset}}" onKeyDown="{{m.Y.sp.key}}"><span></span></div></sc-if>
+<sc-if value="{{m.Y.sideOff}}" hint-placeholder-val="{{false}}"><button type="button" class="my-reopen" onClick="{{m.Y.sideShow}}" title="Desplegar el panel de cuentas recientes">Recientes</button></sc-if>
 <div class="fc-lists"><section class="fc-panel fc-pemit ln-panel my-panel" aria-label="Mayor">
 <div class="fc-fbar my-hbar">
 <sc-if value="{{m.Y.full}}" hint-placeholder-val="{{true}}"><button type="button" class="{{m.Y.prev.cls}}" aria-disabled="{{m.Y.prev.dis}}" title="{{m.Y.prev.tip}}" onClick="{{m.Y.prev.on}}"><sc-if value="{{m.Y.prev.hasIc}}" hint-placeholder-val="{{true}}"><svg class="fc-ic" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><sc-for list="{{m.Y.prev.ic}}" as="icd" hint-placeholder-count="2"><path d="{{icd}}"></path></sc-for></svg></sc-if>{{m.Y.prev.t}}</button>
@@ -3718,33 +3721,21 @@ textarea.fc-in{height:auto;padding:6px 8px;resize:vertical}
 <sc-if value="{{m.Y.empty}}" hint-placeholder-val="{{false}}"><div class="fc-state" role="status"><b>{{m.Y.emptyT}}</b><span>{{m.Y.emptyS}}</span><div class="fc-btns"><button type="button" class="{{m.Y.emptyB.cls}}" aria-disabled="{{m.Y.emptyB.dis}}" title="{{m.Y.emptyB.tip}}" onClick="{{m.Y.emptyB.on}}"><sc-if value="{{m.Y.emptyB.hasIc}}" hint-placeholder-val="{{true}}"><svg class="fc-ic" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><sc-for list="{{m.Y.emptyB.ic}}" as="icd" hint-placeholder-count="2"><path d="{{icd}}"></path></sc-for></svg></sc-if>{{m.Y.emptyB.t}}</button></div></div></sc-if>
 <sc-if value="{{m.Y.has}}" hint-placeholder-val="{{true}}">
 <div class="fc-grid" style="{{m.Y.gmin}}" data-my-grid="1" role="grid" aria-label="Apuntes del mayor" aria-multiselectable="true">
-<div class="fc-gh" style="{{m.Y.gcols}}" role="row" onContextMenu="{{m.Y.hctx}}" title="Clic derecho: ajustar o restablecer las columnas"><span class="fc-cb"><input type="checkbox" checked="{{m.Y.allChk}}" onChange="{{m.Y.chkAll}}" aria-label="{{m.Y.allLbl}}" title="Seleccionar todas las filas (Ctrl+A)"></span>
-<sc-for list="{{m.Y.hcols}}" as="h" hint-placeholder-count="12"><span class="{{h.cls}}"><span title="{{h.tip}}">{{h.t}}</span><i class="ln-rz" onMouseDown="{{h.rz}}" onDoubleClick="{{h.fit}}" title="{{h.rzTip}}"></i></span></sc-for></div>
+<div class="fc-gh" style="{{m.Y.gcols}}" role="row" onContextMenu="{{m.Y.hctx}}" title="Clic en un título: ordenar · arrastrar un título: mover la columna · clic derecho: columnas visibles, ajustar o restablecer"><span class="fc-cb"><input type="checkbox" checked="{{m.Y.allChk}}" onChange="{{m.Y.chkAll}}" aria-label="{{m.Y.allLbl}}" title="Seleccionar todas las filas (Ctrl+A)"></span>
+<sc-for list="{{m.Y.hcols}}" as="h" hint-placeholder-count="12"><span class="{{h.cls}}" aria-sort="{{h.aria}}" draggable="true" onDragStart="{{h.drag}}" onDragOver="{{h.over}}" onDragLeave="{{h.leave}}" onDrop="{{h.drop}}" onDragEnd="{{h.end}}" onContextMenu="{{h.ctx}}"><button type="button" class="fc-sortb" data-fk="{{h.fk}}" onClick="{{h.pick}}" onKeyDown="{{h.key}}" title="{{h.tip}}">{{h.t}}<span class="fc-ar">{{h.ar}}</span></button><i class="ln-rz" onMouseDown="{{h.rz}}" onDoubleClick="{{h.fit}}" title="{{h.rzTip}}"></i></span></sc-for></div>
 <sc-if value="{{m.Y.padTOn}}" hint-placeholder-val="{{false}}"><div style="{{m.Y.padT}}" aria-hidden="true"></div></sc-if>
 <sc-for list="{{m.Y.rows}}" as="r" hint-placeholder-count="14">
 <sc-if value="{{r.sep}}" hint-placeholder-val="{{false}}"><div class="fc-gr my-sep" role="row"><span>{{r.t}}</span></div></sc-if>
 <sc-if value="{{r.ap}}" hint-placeholder-val="{{true}}"><div class="{{r.cls}}" style="{{r.st}}" role="row" tabindex="{{r.ti}}" data-fk="{{r.fk}}" aria-selected="{{r.sel}}" onClick="{{r.click}}" onDoubleClick="{{r.open}}" onKeyDown="{{r.key}}" onContextMenu="{{r.ctx}}">
 <span class="fc-cb"><input type="checkbox" tabindex="-1" checked="{{r.s}}" onClick="{{r.stop}}" onChange="{{r.chk}}" aria-label="{{r.chkLbl}}" title="Marca la fila (Espacio)"></span>
-<sc-if value="{{m.Y.ctaCol}}" hint-placeholder-val="{{false}}"><span class="fc-mono" title="{{r.ctaTip}}">{{r.cta}}</span></sc-if>
-<span class="fc-tn">{{r.fe}}</span>
-<span class="fc-mono ln-as" title="{{r.asTip}}">{{r.as}}</span>
-<span title="{{r.conT}}"><sc-if value="{{r.grpOn}}" hint-placeholder-val="{{false}}"><span class="my-ng" title="Apuntes agrupados en esta fila">{{r.nGrp}}</span></sc-if><sc-if value="{{r.n43}}" hint-placeholder-val="{{false}}"><span class="my-tag" title="Asiento generado desde una línea de Norma 43">N43</span></sc-if>{{r.con}}</span>
-<span class="fc-mono">{{r.doc}}</span>
-<span class="fc-r fc-tn" title="{{r.apeTip}}">{{r.debe}}</span>
-<span class="fc-r fc-tn" title="{{r.apeTip}}">{{r.haber}}</span>
-<span class="{{r.salCls}}" title="{{r.apeTip}}">{{r.sal}}</span>
-<span class="my-pun" title="{{r.punTip}}">{{r.pun}}</span>
-<span class="{{r.cpCls}}" title="{{r.cpTip}}" onDoubleClick="{{r.cpDbl}}">{{r.cp}}</span>
-<span class="ln-acct" title="{{r.cpTip}}" onDoubleClick="{{r.cpDbl}}">{{r.cpd}}</span>
-<span class="{{r.notaCls}}" title="{{r.nota}}"><sc-if value="{{r.hist}}" hint-placeholder-val="{{false}}"><span class="my-hdot" title="El apunte tiene historial de cambios"></span></sc-if>{{r.nota}}</span>
-<span class="fc-tn fc-mut">{{r.cre}}</span>
+<sc-for list="{{r.cells}}" as="c" hint-placeholder-count="12"><span class="{{c.cls}}" title="{{c.tip}}" onDoubleClick="{{c.dbl}}"><sc-if value="{{c.ng}}" hint-placeholder-val="{{false}}"><span class="my-ng" title="Apuntes agrupados en esta fila">{{c.ngT}}</span></sc-if><sc-if value="{{c.n43}}" hint-placeholder-val="{{false}}"><span class="my-tag" title="Asiento generado desde una línea de Norma 43">N43</span></sc-if><sc-if value="{{c.hd}}" hint-placeholder-val="{{false}}"><span class="my-hdot" title="El apunte tiene historial de cambios"></span></sc-if>{{c.t}}</span></sc-for>
 </div></sc-if>
 </sc-for>
 <sc-if value="{{m.Y.padBOn}}" hint-placeholder-val="{{false}}"><div style="{{m.Y.padB}}" aria-hidden="true"></div></sc-if>
 </div>
 </sc-if>
 </div>
-<div class="fc-tfoot my-foot"><span class="fc-cnt">{{m.Y.count}}</span><span class="fc-tn">Debe <b>{{m.Y.tD}}</b></span><span class="fc-tn">Haber <b>{{m.Y.tH}}</b></span><span class="fc-tn">Saldo <b class="{{m.Y.tSCls}}">{{m.Y.tS}}</b></span>
+<div class="fc-tfoot my-foot"><span class="fc-cnt">{{m.Y.count}}</span><span class="fc-tn">Debe <b>{{m.Y.tD}}</b></span><span class="fc-tn">Haber <b>{{m.Y.tH}}</b></span><span class="fc-tn">Saldo <b class="{{m.Y.tSCls}}" title="{{m.Y.tSTip}}">{{m.Y.tS}}</b></span>
 <sc-if value="{{m.Y.partial}}" hint-placeholder-val="{{false}}"><span class="my-part"><svg class="fc-ic" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><sc-for list="{{m.Y.infoIc}}" as="icd" hint-placeholder-count="2"><path d="{{icd}}"></path></sc-for></svg>{{m.Y.partialT}}</span></sc-if>
 <span class="fc-grow"></span><span>Doble clic: ver el asiento · en la contrapartida: abrir su mayor · clic derecho: acciones</span></div>
 </section></div>
@@ -3757,7 +3748,7 @@ textarea.fc-in{height:auto;padding:6px 8px;resize:vertical}
 <div class="my-pkf"><sc-for list="{{m.Y.pk.flts}}" as="f" hint-placeholder-count="5"><label class="fc-chk" title="{{f.tip}}"><input type="checkbox" checked="{{f.on}}" onChange="{{f.set}}"> {{f.t}}</label></sc-for></div>
 <sc-if value="{{m.Y.pk.grpOn}}" hint-placeholder-val="{{false}}"><button type="button" class="fc-lnk my-pkg" onClick="{{m.Y.pk.grpGo}}" title="Mayor de todas las subcuentas de ese grupo">{{m.Y.pk.grpT}}</button></sc-if>
 <div class="my-pl"><div class="my-ph"><span>Cuenta</span><span>Descripción</span><span class="fc-r">Saldo sin apertura</span><span class="fc-r">Saldo</span><span class="fc-r">Apuntes</span><span>Cuadrada</span></div>
-<div class="my-plb scroll" role="listbox"><sc-for list="{{m.Y.pk.rows}}" as="g" hint-placeholder-count="8"><button type="button" role="option" class="{{g.cls}}" onClick="{{g.pick}}" title="{{g.tip}}"><span class="fc-mono">{{g.c}}</span><span class="my-pd">{{g.d}}</span><span class="fc-r fc-tn">{{g.neto}}</span><span class="fc-r fc-tn">{{g.sal}}</span><span class="fc-r fc-tn">{{g.n}}</span><span class="{{g.cuCls}}">{{g.cu}}</span></button></sc-for>
+<div class="my-plb scroll" role="listbox"><sc-for list="{{m.Y.pk.rows}}" as="g" hint-placeholder-count="8"><button type="button" role="option" class="{{g.cls}}" onClick="{{g.pick}}" title="{{g.tip}}"><span class="fc-mono">{{g.c}}</span><span class="my-pd">{{g.d}}</span><span class="fc-r fc-tn">{{g.neto}}</span><span class="{{g.salCls}}">{{g.sal}}</span><span class="fc-r fc-tn">{{g.n}}</span><span class="{{g.cuCls}}">{{g.cu}}</span></button></sc-for>
 <sc-if value="{{m.Y.pk.none}}" hint-placeholder-val="{{false}}"><div class="fc-state">{{m.Y.pk.noneT}}</div></sc-if>
 <sc-if value="{{m.Y.pk.more}}" hint-placeholder-val="{{false}}"><div class="fc-mut my-pad">Se muestran las 200 primeras: escribe más para afinar.</div></sc-if></div></div>
 </div>
@@ -3771,7 +3762,7 @@ textarea.fc-in{height:auto;padding:6px 8px;resize:vertical}
 </sc-if>
 <sc-if value="{{m.Y.hm.on}}" hint-placeholder-val="{{false}}">
 <button type="button" class="fc-catch" aria-label="Cerrar el menú" onClick="{{m.Y.hm.close}}" onContextMenu="{{m.Y.hm.close}}" title="Cerrar el menú"></button>
-<div class="fc-menu ln-menu ln-hmenu" style="{{m.Y.hm.pos}}" role="menu" aria-label="Columnas"><div class="ln-mhead">Columnas</div><sc-for list="{{m.Y.hm.items}}" as="b" hint-placeholder-count="2"><button type="button" class="{{b.cls}}" aria-disabled="{{b.dis}}" title="{{b.tip}}" onClick="{{b.on}}"><sc-if value="{{b.hasIc}}" hint-placeholder-val="{{true}}"><svg class="fc-ic" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><sc-for list="{{b.ic}}" as="icd" hint-placeholder-count="2"><path d="{{icd}}"></path></sc-for></svg></sc-if>{{b.t}}</button></sc-for></div>
+<div class="fc-menu ln-menu ln-hmenu" style="{{m.Y.hm.pos}}" role="menu" aria-label="Columnas"><div class="ln-mhead">Columnas</div><sc-for list="{{m.Y.hm.items}}" as="b" hint-placeholder-count="2"><button type="button" class="{{b.cls}}" aria-disabled="{{b.dis}}" title="{{b.tip}}" onClick="{{b.on}}"><sc-if value="{{b.hasIc}}" hint-placeholder-val="{{true}}"><svg class="fc-ic" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><sc-for list="{{b.ic}}" as="icd" hint-placeholder-count="2"><path d="{{icd}}"></path></sc-for></svg></sc-if>{{b.t}}</button></sc-for><div class="ln-mhead my-mh2">Columnas visibles</div><div class="my-hcl"><sc-for list="{{m.Y.hm.cols}}" as="c" hint-placeholder-count="6"><label class="fc-ck my-ck"><input type="checkbox" data-fk="{{c.fk}}" checked="{{c.on}}" onChange="{{c.set}}"> {{c.t}}</label></sc-for></div></div>
 </sc-if>
 <sc-if value="{{m.Y.dx.on}}" hint-placeholder-val="{{false}}">
 <div class="fc-ov">
@@ -6662,7 +6653,9 @@ var MY_IC = {
 };
 /* columnas de la rejilla: clave, título, ancho de fábrica (0 = flexible), clase */
 var MY_COLS = [['cta', 'Cuenta', 92, ''], ['fe', 'Fecha', 88, ''], ['as', 'Asiento', 112, ''], ['con', 'Concepto', 0, ''], ['doc', 'Documento', 120, ''], ['debe', 'Debe', 112, 'fc-r'], ['haber', 'Haber', 112, 'fc-r'], ['sal', 'Saldo', 132, 'fc-r'], ['pun', 'Punteo', 64, ''],
-  ['cp', 'Contrapartida', 104, ''], ['cpd', 'Descripción contrapartida', 210, ''], ['nota', 'Notas', 230, ''], ['cre', 'Creado', 88, '']];
+  ['cp', 'Contrapartida', 104, ''], ['cpd', 'Descripción contrapartida', 210, ''], ['nota', 'Notas', 230, ''], ['fdoc', 'Fecha doc.', 92, ''], ['cre', 'Grabado el', 92, ''], ['mod', 'Modificado el', 104, '']];
+/* columnas ocultas de fábrica: el operador las muestra desde el menú de la cabecera */
+var MY_HID = { fdoc: 1, cre: 1, mod: 1 };
 var MY_WIZ = [
   ['reg', 'Regularización de saldo inicial', 'Dos líneas contra la cuenta de cuadres de la sociedad (1130001) por el importe pendiente.'],
   ['inv', 'Asiento inverso', 'Invierte todas las líneas del asiento original y, si es una factura, también su registro de IVA.'],
@@ -6676,7 +6669,12 @@ var MY_WIZ = [
 function myRng(seed) { var a = 0; for (var i = 0; i < seed.length; i++) a = (a * 31 + seed.charCodeAt(i)) | 0; return function () { a = (a + 0x6D2B79F5) | 0; var t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
 function myAddDays(s, n) { var d = new Date(s + 'T12:00:00'); d.setDate(d.getDate() + n); return iso(d); }
 function myDocN(s) { return String(s || '').replace(/\D/g, ''); }
-function mySal(v) { v = r2(v); return v === 0 ? money(0) : money(Math.abs(v)) + (v > 0 ? ' D' : ' H'); }
+/* saldo con signo: deudor en positivo, acreedor en negativo */
+function mySal(v) { return money(r2(v)); }
+function mySalT(v) { v = r2(v); return v > 0 ? 'Saldo deudor' : v < 0 ? 'Saldo acreedor' : 'Saldo cero'; }
+/* color del saldo según el grupo del PGC: 4 y 5, deudor a favor (verde) y acreedor en contra (rojo); 6 a 9, al revés (gasto en rojo, ingreso en verde); 1 a 3, sin color */
+function mySalCls(g, v) { v = r2(v); if (!v || !g) return ''; if (g === '4' || g === '5') return v > 0 ? ' my-fav' : ' my-con'; if ('6789'.indexOf(g) >= 0) return v > 0 ? ' my-con' : ' my-fav'; return ''; }
+function myGrp(ctas) { var g = ctas.length ? String(ctas[0]).charAt(0) : ''; return ctas.every(function (c) { return String(c).charAt(0) === g; }) ? g : ''; }
 function myIsIva(c) { return /^(472|477|4751)/.test(c); }
 
 function myMake(soc, src) {
@@ -6705,7 +6703,7 @@ function myMake(soc, src) {
     lines.forEach(function (l) { l.debe = r2(l.debe || 0); l.haber = r2(l.haber || 0); d += l.debe; h += l.haber; });
     if (Math.abs(d - h) > 0.004) throw new Error('Asiento descuadrado: ' + money(d) + ' / ' + money(h));
     var k = o.key || (y + ':' + (Object.keys(D.AS).length + 1));
-    var A = { key: k, y: y, fecha: fecha, n: o.n || 0, num: o.num || '', nota: o.nota || '', adj: o.adj || '', tipo: o.tipo || '', src: o.src || '', n43: o.n43 || null, iva: o.iva || [], ids: [] };
+    var A = { key: k, y: y, fecha: fecha, n: o.n || 0, num: o.num || '', nota: o.nota || '', adj: o.adj || '', tipo: o.tipo || '', fdoc: o.fdoc || '', src: o.src || '', n43: o.n43 || null, iva: o.iva || [], ids: [] };
     D.AS[k] = A;
     lines.forEach(function (l, i) {
       var id = o.idp ? o.idp + ':' + i : k + ':' + i;
@@ -6772,7 +6770,7 @@ function myMake(soc, src) {
       ks.forEach(function (c) { L1.push({ cta: c, haber: ing[c], con: con, doc: f.num, pun: P() }); });
       L1.push({ cta: '4770001', haber: f.iva, con: con, doc: f.num, pun: P() });
       if (Math.abs(r2(f.total - f.base - f.iva)) > 0.004) L1.push({ cta: '4770001', haber: r2(f.total - f.base - f.iva), con: con, doc: f.num });
-      addAs(y, lim(f.fecha), L1, { adj: f.num + '.pdf', tipo: 'fe', iva: [{ lado: 'Repercutido', tipo: 21, base: f.base, cuota: f.iva }], nota: fi % 11 === 4 ? NOTAS[fi % NOTAS.length] : '', cre: lim(myAddDays(f.fecha, fi % 3)) });
+      addAs(y, lim(f.fecha), L1, { adj: f.num + '.pdf', tipo: 'fe', fdoc: f.fecha, iva: [{ lado: 'Repercutido', tipo: 21, base: f.base, cuota: f.iva }], nota: fi % 11 === 4 ? NOTAS[fi % NOTAS.length] : '', cre: lim(myAddDays(f.fecha, fi % 3)) });
       if (f.st === 'Cobrada') {
         var fc = lim(f.venc || myAddDays(f.fecha, 30)), r = rr(), doc = r < 0.16 ? '' : r < 0.3 ? f.num.replace(/^F-?/, '') : f.num;
         var cc = doc ? 'Cobro factura ' + doc : 'Transferencia recibida · ' + f.cli.toUpperCase();
@@ -6786,7 +6784,8 @@ function myMake(soc, src) {
       var L2 = [{ cta: gs, debe: c.base, con: con, doc: c.num, pun: P() }, { cta: '4720001', debe: c.iva, con: con, doc: c.num, pun: P() }, { cta: pv, haber: r2(c.total - (c.ret || 0)), con: con, doc: c.num, pun: P() }];
       if (c.ret) L2.push({ cta: '4751001', haber: c.ret, con: con, doc: c.num });
       var dif = r2(c.base + c.iva - c.total); if (Math.abs(dif) > 0.004) L2[0].debe = r2(c.base - dif);
-      addAs(y, lim(c.fecha), L2, { tipo: 'fr', adj: c.num.replace(/\//g, '-') + '.pdf', iva: [{ lado: 'Soportado', tipo: 21, base: c.base, cuota: c.iva }] });
+      var crR = c.fecha.slice(5, 7) === '12' && ci % 2 ? (y + 1) + '-01-' + pad(8 + ci % 12) : myAddDays(c.fecha, 2 + ci % 6); if (crR > src.today) crR = src.today;
+      addAs(y, lim(c.fecha), L2, { tipo: 'fr', fdoc: c.fecha, cre: crR, adj: c.num.replace(/\//g, '-') + '.pdf', iva: [{ lado: 'Soportado', tipo: 21, base: c.base, cuota: c.iva }] });
       if (/Pagada/.test(c.st)) { var fpg = lim(myAddDays(c.fecha, 30)); addAs(y, fpg, [{ cta: pv, debe: r2(c.total - (c.ret || 0)), con: 'Pago factura ' + c.num, doc: c.num }, { cta: bank, haber: r2(c.total - (c.ret || 0)), con: 'Pago factura ' + c.num, doc: c.num }], { tipo: 'pago' }); }
     });
     /* nóminas */
@@ -6868,7 +6867,7 @@ function myMake(soc, src) {
 }
 function myNewView(o) {
   return Object.assign({ ctas: [], ejs: {}, mode: 'normal', nopun: false, nhist: false, q: '', fac: null, hidden: {}, sel: {}, cur: null, anchor: null, menu: null, hmenu: null, dlg: null, pick: null,
-    pf: { sub: true, saldo: false, sinIni: false, mov: true, nocuad: false }, side: true, ejOpen: false, scn: 'normal', ws: 0 }, o || {});
+    pf: { sub: true, saldo: false, sinIni: false, mov: true, nocuad: false }, side: true, sort: null, ejOpen: false, scn: 'normal', ws: 0 }, o || {});
 }
 
 class Component extends DCLogic {
@@ -10339,6 +10338,9 @@ class Component extends DCLogic {
     this.sm[sk] = Math.max(0, top);
   }
 
+  /* fecha del último cambio del apunte (su historial), sin contar el alta */
+  myMod(a) { for (var i = a.hist.length - 1; i >= 0; i--) if (a.hist[i].campo !== 'Alta') return a.hist[i].ts.slice(0, 10); return ''; }
+
   /* modelo de la pantalla: sirve para la pestaña del Mayor y para la ficha de terceros */
   myBuild(D, V, cw, o) {
     var self = this, can = this.myCan(), NP = this.myNP();
@@ -10376,8 +10378,18 @@ class Component extends DCLogic {
 
     /* panel de cuentas recientes y grupo */
     var R = this.myRecents(), cur0 = V.ctas[0] || '';
-    X.sideOn = o.full && V.side && cw >= 1300; X.sideOff = o.full && !X.sideOn && cw >= 1300;
-    X.sideShow = go(function () { V.side = true; }); X.sideHide = go(function () { V.side = false; });
+    /* panel plegable y con ancho ajustable; ambas cosas se guardan para cada operador */
+    var LY = this.cpColW('mayor-lay'), sideW = LY.side || 252;
+    X.sideOn = o.full && !LY.sideOff; X.sideOff = o.full && !!LY.sideOff; X.sideSt = 'width: ' + sideW + 'px';
+    X.sideShow = go(function () { delete LY.sideOff; self.lnColSave(); }); X.sideHide = go(function () { LY.sideOff = 1; self.lnColSave(); });
+    var spLim = function (w) { return Math.round(Math.max(180, Math.min(Math.min(440, cw * 0.3), w))); };
+    var spSet = function (w) { if (w && w !== 252) LY.side = w; else delete LY.side; self.lnColSave(); self.bump(); };
+    X.sp = { tip: 'Arrastra para cambiar el ancho del panel de recientes; doble clic: ancho de fábrica; flechas ← →: ajustar. Se guarda para ti.',
+      down: function (e) { if (e.button !== 0) return; e.preventDefault(); var el = e.currentTarget.previousElementSibling, x0 = e.clientX, w0 = el.getBoundingClientRect().width, last = w0; document.body.style.cursor = 'col-resize';
+        var mv = function (ev) { last = spLim(w0 + ev.clientX - x0); el.style.width = last + 'px'; };
+        var up = function () { document.removeEventListener('mousemove', mv); document.removeEventListener('mouseup', up); document.body.style.cursor = ''; if (Math.abs(last - w0) > 2) spSet(last); }; document.addEventListener('mousemove', mv); document.addEventListener('mouseup', up); },
+      reset: function (e) { e.preventDefault(); spSet(0); },
+      key: function (e) { if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight' && e.key !== 'Home') return; e.preventDefault(); e.stopPropagation(); self.myFocus('split'); if (e.key === 'Home') return spSet(0); spSet(spLim(sideW + (e.key === 'ArrowRight' ? 30 : -30))); } };
     X.rec = R.map(function (c, i) {
       var on = V.ctas.indexOf(c) >= 0 && !(V.fac && V.fac.kind === 'busca');
       return { c: c, d: D.ctaD(c), cls: 'my-rec' + (on ? ' on' : ''), on: on, fk: 'my:rec:' + i, tip: c + ' · ' + D.ctaD(c) + ' · clic: ver solo esta · Ctrl+clic: añadirla o quitarla del mayor combinado',
@@ -10427,14 +10439,49 @@ class Component extends DCLogic {
     X.cuadNote = one && cu && cu.com ? { on: true, t: 'Comentario de cuadre: ' + cu.com + ' · ' + OPS[cu.op].short + ', ' + fdate(cu.fecha), cls: 'fc-note ' + (cu.ok ? 'fc-ok' : 'fc-warn') + ' my-cnote' } : { on: false };
     X.roNote = { on: !can || yrs.some(function (y) { return D.closed(y); }), t: !can ? 'Solo consulta: ' + NP : 'Los apuntes de ' + yrs.filter(function (y) { return D.closed(y); }).join(', ') + ' son de un ejercicio cerrado y solo se consultan; el asistente de corrección fecha sus correcciones en el ejercicio de trabajo.' };
 
-    /* rejilla con ventana: solo se pintan las filas visibles */
-    var W = this.cpColW('mayor'), cols = MY_COLS.filter(function (c) { return c[0] !== 'cta' || calc.ctas.length > 1; });
+    /* columnas: orden, visibles y anchos por operador; ordenar no recalcula el saldo (cada fila guarda su saldo acumulado por fecha) */
+    var W = this.cpColW('mayor'), byC = {}; MY_COLS.forEach(function (c) { byC[c[0]] = c; });
+    var ord = (LY.ord || []).filter(function (k) { return byC[k]; }); MY_COLS.forEach(function (c) { if (ord.indexOf(c[0]) < 0) ord.push(c[0]); });
+    var shown = function (k) { return LY.vis && k in LY.vis ? !!LY.vis[k] : !MY_HID[k]; };
+    var cols = ord.filter(function (k) { return shown(k) && (k !== 'cta' || calc.ctas.length > 1); }).map(function (k) { return byC[k]; });
     var colsFor = function (w) { return '34px ' + cols.map(function (c) { var v = w[c[0]]; return v ? v + 'px' : c[2] ? c[2] + 'px' : 'minmax(260px, 1fr)'; }).join(' '); };
     var minW = function (w) { return 34 + cols.reduce(function (a, c) { return a + (w[c[0]] || c[2] || 260); }, 0) + 16; };
-    var custom = Object.keys(W).length > 0;
+    var custom = Object.keys(W).length > 0 || !!LY.ord || !!LY.vis;
     var fitW = function (grid, i) { var mx = 0; grid.querySelectorAll('.fc-gh > :nth-child(' + (i + 2) + '), .fc-gr > :nth-child(' + (i + 2) + ')').forEach(function (el) { mx = Math.max(mx, el.scrollWidth); }); return Math.max(48, Math.min(640, mx + 6)); };
+    var grpG = myGrp(calc.ctas);
+    var srt = V.sort && byC[V.sort.k] ? V.sort : null;
+    if (srt && !shown(srt.k)) srt = V.sort = null;
+    if (srt) {
+      var sk = srt.k + srt.d + '|' + V._ck;
+      if (V._srtK !== sk || V._srtC !== calc) {
+        var sv = function (r) { var a = r.a, A = D.AS[a.as];
+          switch (srt.k) { case 'cta': return a.cta; case 'fe': return a.fecha; case 'as': return A.num; case 'con': return norm(a.con); case 'doc': return a.doc ? myDocN(a.doc) : ''; case 'debe': return r.ape2 ? 0 : r.debe; case 'haber': return r.ape2 ? 0 : r.haber; case 'sal': return r.sal;
+            case 'pun': return r.ids.filter(function (id) { return D.AP[id].pun; }).length / r.ids.length; case 'cp': return self.myCp(D, a).t; case 'cpd': return norm(self.myCp(D, a).d); case 'nota': return norm(A.nota || '');
+            case 'fdoc': return A.fdoc || ''; case 'cre': return a.cre || ''; case 'mod': return self.myMod(a) || ''; } return ''; };
+        var base = calc.rows.filter(function (r) { return r.kind !== 'sep'; }).map(function (r, i) { return { r: r, v: sv(r), i: i }; });
+        base.sort(function (p, q) { return p.v < q.v ? -srt.d : p.v > q.v ? srt.d : p.i - q.i; });
+        V._srtK = sk; V._srtC = calc; V._srtR = base.map(function (x) { return x.r; });
+      }
+      rows = V._srtR; keys = rows.map(function (r) { return r.k; }); X._keys = keys;
+    }
+    var colT = function (c) { return c[1]; };
+    var saveL = function () { self.lnColSave(); };
+    var move = function (k, to) { var o2 = ord.slice(), i = o2.indexOf(k); if (i < 0) return; o2.splice(i, 1); o2.splice(Math.max(0, Math.min(o2.length, to)), 0, k); LY.ord = o2; saveL(); };
+    var visIdx = function (k) { return ord.indexOf(k); };
+    var neighbour = function (k, dir) { var vs = cols.map(function (c) { return c[0]; }), i = vs.indexOf(k), j = i + dir; return j >= 0 && j < vs.length ? vs[j] : null; };
     X.hcols = cols.map(function (c, i) {
-      return { t: c[1], cls: (c[3] || '') + ' ln-hc', tip: c[1], rzTip: 'Arrastra para cambiar el ancho de «' + c[1] + '» · doble clic: ajustarla al contenido · clic derecho en la cabecera: restablecer',
+      var on = srt && srt.k === c[0], dragOn = self._myColDrag === c[0];
+      var tip = 'Ordenar por ' + c[1].toLowerCase() + (on ? (srt.d > 0 ? ' (ascendente; clic: descendente)' : ' (descendente; clic: volver al orden por fecha)') : '') + (c[0] === 'sal' ? '\nEl saldo de cada fila es el acumulado por fecha: al ordenar por otra columna no se recalcula.' : '') + '\nArrastra el título para mover la columna · Alt+← →: moverla con el teclado';
+      return { t: colT(c), cls: (c[3] || '') + ' ln-hc my-hc' + (dragOn ? ' my-drag' : '') + (V._myOver === c[0] ? ' my-over' : ''), tip: tip, ar: on ? (srt.d > 0 ? '▲' : '▼') : '', aria: on ? (srt.d > 0 ? 'ascending' : 'descending') : 'none', fk: 'my:sort:' + c[0],
+        pick: go(function () { V.sort = !on ? { k: c[0], d: 1 } : srt.d > 0 ? { k: c[0], d: -1 } : null; V.sel = {}; V.cur = null; self.sm[o.sk] = 0; self.myFocus('sort:' + c[0]); }),
+        key: function (e) { if (!e.altKey || (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight')) return; e.preventDefault(); e.stopPropagation(); var nb = neighbour(c[0], e.key === 'ArrowLeft' ? -1 : 1); if (!nb) return; move(c[0], visIdx(nb)); self.myFocus('sort:' + c[0]); self.bump(); },
+        drag: function (e) { self._myColDrag = c[0]; try { e.dataTransfer.setData('text/plain', c[0]); e.dataTransfer.effectAllowed = 'move'; } catch (x) { } },
+        over: function (e) { if (!self._myColDrag || self._myColDrag === c[0]) return; e.preventDefault(); if (V._myOver !== c[0]) { V._myOver = c[0]; e.currentTarget.classList.add('my-over'); } },
+        leave: function (e) { e.currentTarget.classList.remove('my-over'); },
+        drop: function (e) { e.preventDefault(); var k = self._myColDrag; self._myColDrag = null; V._myOver = null; if (!k || k === c[0]) return self.bump(); var r = e.currentTarget.getBoundingClientRect(), after = e.clientX > r.left + r.width / 2, o2 = ord.filter(function (x) { return x !== k; }), j = o2.indexOf(c[0]) + (after ? 1 : 0); o2.splice(j, 0, k); LY.ord = o2; saveL(); self.toast('Columna «' + byC[k][1] + '» movida. El orden se guarda para ti; «Restablecer columnas» lo devuelve al de fábrica.'); self.bump(); },
+        end: function () { if (self._myColDrag || V._myOver) { self._myColDrag = null; V._myOver = null; self.bump(); } },
+        ctx: function (e) { e.preventDefault(); e.stopPropagation(); var root = e.currentTarget.closest('.myx').getBoundingClientRect(); V.hmenu = { x: Math.round(e.clientX - root.left), y: Math.round(e.clientY - root.top), col: c[0] }; V.menu = null; self.bump(); },
+        rzTip: 'Arrastra para cambiar el ancho de «' + c[1] + '» · doble clic: ajustarla al contenido · clic derecho en la cabecera: columnas',
         rz: function (e) {
           if (e.button !== 0) return; e.preventDefault(); e.stopPropagation();
           var cell = e.currentTarget.parentNode, grid = cell.closest('.fc-grid'), x0 = e.clientX, w0 = cell.getBoundingClientRect().width, last = w0;
@@ -10446,9 +10493,20 @@ class Component extends DCLogic {
     });
     X.ctaCol = calc.ctas.length > 1; X.gcols = 'grid-template-columns: ' + colsFor(W); X.gmin = 'min-width: ' + minW(W) + 'px';
     X.hctx = function (e) { e.preventDefault(); e.stopPropagation(); var root = e.currentTarget.closest('.myx').getBoundingClientRect(); V.hmenu = { x: Math.round(e.clientX - root.left), y: Math.round(e.clientY - root.top) }; V.menu = null; self.bump(); };
-    X.hm = V.hmenu ? { on: true, pos: 'left: ' + V.hmenu.x + 'px; top: ' + V.hmenu.y + 'px', close: go(function () { V.hmenu = null; }), items: [
-      B('Ajustar todas al contenido', { cls: 'fc-mi', icon: 'funnel', title: 'Ajusta el ancho de cada columna a su contenido visible', fn: function () { var grid = document.querySelector('.myx [data-my-grid]'); if (grid) cols.forEach(function (c, i) { if (c[0] !== 'con') W[c[0]] = fitW(grid, i); }); self.lnColSave(); V.hmenu = null; } }),
-      B('Restablecer columnas', { cls: 'fc-mi', icon: 'undo', why: custom ? null : 'Las columnas ya tienen el ancho de fábrica.', title: 'Vuelve a los anchos de fábrica (solo para ti)', fn: function () { Object.keys(W).forEach(function (k) { delete W[k]; }); self.lnColSave(); V.hmenu = null; self.toast('Columnas restablecidas a su ancho de fábrica.'); } })] } : { on: false };
+    if (V.hmenu) {
+      var hc = V.hmenu.col && byC[V.hmenu.col] ? byC[V.hmenu.col] : null, hItems = [];
+      if (hc) {
+        var nL = neighbour(hc[0], -1), nR = neighbour(hc[0], 1);
+        hItems.push(B('Mover «' + hc[1] + '» a la izquierda', { cls: 'fc-mi', icon: 'prev', why: nL ? null : 'Ya es la primera columna.', fn: function () { move(hc[0], visIdx(nL)); V.hmenu = null; } }));
+        hItems.push(B('Mover «' + hc[1] + '» a la derecha', { cls: 'fc-mi', icon: 'next', why: nR ? null : 'Ya es la última columna.', fn: function () { move(hc[0], visIdx(nR) ); V.hmenu = null; } }));
+        hItems.push(B('Ocultar «' + hc[1] + '»', { cls: 'fc-mi', icon: 'hide', why: cols.length <= 3 ? 'Deja al menos tres columnas visibles.' : hc[0] === 'con' ? 'El concepto siempre se muestra.' : null, fn: function () { LY.vis = LY.vis || {}; LY.vis[hc[0]] = 0; saveL(); V.hmenu = null; } }));
+      }
+      X.hmCols = MY_COLS.filter(function (c) { return c[0] !== 'con' && (c[0] !== 'cta' || calc.ctas.length > 1); }).map(function (c) { var on2 = shown(c[0]);
+        return { t: c[1], on: on2, fk: 'my:hc:' + c[0], set: function (e) { e.stopPropagation(); LY.vis = LY.vis || {}; LY.vis[c[0]] = e.target.checked ? 1 : 0; saveL(); self.myFocus('hc:' + c[0]); self.bump(); } }; });
+      hItems.push(B('Ajustar todas al contenido', { cls: 'fc-mi', icon: 'funnel', title: 'Ajusta el ancho de cada columna a su contenido visible', fn: function () { var grid = document.querySelector('.myx [data-my-grid]'); if (grid) cols.forEach(function (c, i) { if (c[0] !== 'con') W[c[0]] = fitW(grid, i); }); self.lnColSave(); V.hmenu = null; } }));
+      hItems.push(B('Restablecer columnas', { cls: 'fc-mi', icon: 'undo', why: custom ? null : 'Las columnas ya están como de fábrica.', title: 'Vuelve al orden, las columnas visibles y los anchos de fábrica (solo para ti)', fn: function () { Object.keys(W).forEach(function (k) { delete W[k]; }); delete LY.ord; delete LY.vis; self.lnColSave(); V.hmenu = null; self.toast('Columnas restablecidas: orden, visibles y anchos de fábrica.'); } }));
+      X.hm = { on: true, pos: 'left: ' + V.hmenu.x + 'px; top: ' + V.hmenu.y + 'px', close: go(function () { V.hmenu = null; }), items: hItems, cols: X.hmCols };
+    } else X.hm = { on: false, cols: [] };
     var el = document.querySelector('[data-sk="' + o.sk + '"]'), h = el && el.clientHeight > 50 ? el.clientHeight : (o.full ? 900 : 480); X._h = h;
     var top = this.sm[o.sk] || 0, N = rows.length, w0 = Math.max(0, Math.floor(top / 30) - 40), w1 = Math.min(N, w0 + Math.ceil(h / 30) + 80);
     if (top > N * 30) { w0 = 0; w1 = Math.min(N, Math.ceil(h / 30) + 80); }
@@ -10460,22 +10518,40 @@ class Component extends DCLogic {
       if ((s - 15 < V._w0 && V._w0 > 0) || (s + vr + 15 > V._w1 && V._w1 < V._n)) { if (!self._myRaf) self._myRaf = requestAnimationFrame(function () { self._myRaf = null; self.bump(); }); }
     };
     var lastHist = function (a) { var hh = a.hist[a.hist.length - 1]; return hh ? hh.campo + ' · ' + OPS[hh.op].short + ' ' + fdate(hh.ts.slice(0, 10)) + (hh.motivo ? ': ' + hh.motivo : '') : ''; };
+    var noop = function () { };
     X.rows = rows.slice(w0, w1).map(function (r) {
       if (r.kind === 'sep') return { sep: true, ap: false, t: r.t, cls: 'my-sep', st: X.gcols };
       var a = r.a, A = D.AS[a.as], on = !!V.sel[r.k], cp = self.myCp(D, a), grp = r.ids.length > 1;
       var apes = r.ids.map(function (id) { return D.AP[id]; }), pn = apes.filter(function (x) { return x.pun; }).length;
       var nota = V.nhist ? (apes.map(lastHist).filter(Boolean)[0] || '') : (A.nota || (A.adj ? 'Factura ' + A.adj : ''));
-      var ro = D.closed(a.y);
-      return { sep: false, ap: true, k: r.k,
+      var ro = D.closed(a.y), hist = apes.some(function (x) { return x.hist.length; });
+      var apeTip = r.ape2 ? 'Apertura de ' + a.y + ': ' + mySal(r.debe - r.haber) + ' · continúa el saldo del ejercicio anterior y no suma en los totales' : '';
+      var cpDbl = function (e) { e.stopPropagation(); if (cp.one) { if (o.emb || X.emb) self.myOpen(cp.one, { ejs: V.ejs }); else self.myGoCta(V, [cp.one]); } else self.myDlgOpen(V, { kind: 'as', keys: [a.as], note: 'Varias contrapartidas: haz doble clic en la cuenta a la que quieres ir.' }); self.bump(); };
+      var cpTip = (cp.one ? 'Doble clic: abrir el mayor de la ' + cp.one + '\n' : cp.all.length > 1 ? 'Contrapartidas:\n' : '') + cp.tip;
+      var md = self.myMod(a);
+      var cell = function (k) {
+        switch (k) {
+          case 'cta': return { t: a.cta, cls: 'fc-mono', tip: a.cta + ' · ' + D.ctaD(a.cta) };
+          case 'fe': return { t: fdate(a.fecha), cls: 'fc-tn', tip: 'Fecha contable del asiento' };
+          case 'as': return { t: A.num, cls: 'fc-mono ln-as', tip: (A.tipo === 'ape' ? 'Asiento de apertura' : A.n43 ? 'Asiento generado desde Norma 43' : 'Asiento ' + A.num) + (grp ? ' · ' + plural(r.ids.length, 'apunte agrupado', 'apuntes agrupados') + ' (doble clic: verlos en vista normal)' : '') };
+          case 'con': return { t: a.con, cls: '', tip: a.con + (grp ? ' · ' + r.ids.length + ' apuntes' : ''), ng: grp, ngT: grp ? String(r.ids.length) : '', n43: !!A.n43 };
+          case 'doc': return { t: a.doc, cls: 'fc-mono', tip: a.doc };
+          case 'debe': return { t: r.ape2 || !r.debe ? '' : money(r.debe), cls: 'fc-r fc-tn', tip: apeTip };
+          case 'haber': return { t: r.ape2 || !r.haber ? '' : money(r.haber), cls: 'fc-r fc-tn', tip: apeTip };
+          case 'sal': return { t: mySal(r.sal), cls: 'fc-r fc-tn my-sal' + mySalCls(grpG, r.sal), tip: apeTip || mySalT(r.sal) + (srt && srt.k !== 'fe' ? ' · acumulado por fecha, no por el orden actual' : '') };
+          case 'pun': return { t: pn === apes.length ? '✓' : pn ? pn + '/' + apes.length : '', cls: 'my-pun', tip: pn === apes.length ? 'Punteado' : pn ? pn + ' de ' + apes.length + ' apuntes punteados' : 'Sin puntear' };
+          case 'cp': return { t: cp.t, cls: 'fc-mono ln-acct' + (cp.one ? '' : ' fc-mut'), tip: cpTip, dbl: cpDbl };
+          case 'cpd': return { t: cp.d, cls: 'ln-acct', tip: cpTip, dbl: cpDbl };
+          case 'nota': return { t: nota, cls: V.nhist ? 'my-nh' : 'fc-mut', tip: nota, hd: hist };
+          case 'fdoc': return { t: A.fdoc ? fdate(A.fdoc) : '', cls: 'fc-tn', tip: A.fdoc ? 'Fecha de la factura' + (A.fdoc !== a.fecha ? ' (distinta de la fecha contable)' : '') : 'El asiento no viene de una factura' };
+          case 'cre': return { t: fdate(a.cre), cls: 'fc-tn fc-mut', tip: 'Día en que se grabó el asiento' + (a.cre.slice(0, 4) !== String(a.y) ? ': se grabó en otro año, después del cierre del mes' : '') };
+          case 'mod': return { t: md ? fdate(md) : '', cls: 'fc-tn fc-mut', tip: md ? 'Último cambio del apunte (detalle en su historial)' : 'Sin cambios desde que se grabó' };
+        }
+        return { t: '' };
+      };
+      var cells = cols.map(function (c) { return cell(c[0]); });
+      return { sep: false, ap: true, k: r.k, cells: cells,
         cls: 'fc-gr ln-gr my-gr' + (on ? ' fc-sel' : '') + (V.cur === r.k ? ' fc-act' : '') + (r.ape2 || A.tipo === 'ape' ? ' my-ape' : '') + (ro ? ' ln-ro' : '') + (grp ? ' my-grp' : ''), ti: V.cur === r.k || (!V.cur && r.k === keys[0]) ? 0 : -1, fk: 'my:r:' + r.k, sel: String(on), s: on,
-        cta: a.cta, ctaTip: a.cta + ' · ' + D.ctaD(a.cta), fe: fdate(a.fecha), as: A.num, asTip: (A.tipo === 'ape' ? 'Asiento de apertura' : A.n43 ? 'Asiento generado desde Norma 43' : 'Asiento ' + A.num) + (grp ? ' · ' + plural(r.ids.length, 'apunte agrupado', 'apuntes agrupados') + ' (doble clic: verlos en vista normal)' : ''),
-        con: a.con, conT: a.con + (grp ? ' · ' + r.ids.length + ' apuntes' : ''), nGrp: grp ? String(r.ids.length) : '', grpOn: grp,
-        doc: a.doc, cp: cp.t, cpCls: 'fc-mono ln-acct' + (cp.one ? '' : ' fc-mut'), cpd: cp.d, cpTip: (cp.one ? 'Doble clic: abrir el mayor de la ' + cp.one + '\n' : cp.all.length > 1 ? 'Contrapartidas:\n' : '') + cp.tip,
-        cpDbl: function (e) { e.stopPropagation(); if (cp.one) { if (o.emb || X.emb) self.myOpen(cp.one, { ejs: V.ejs }); else self.myGoCta(V, [cp.one]); } else self.myDlgOpen(V, { kind: 'as', keys: [a.as], note: 'Varias contrapartidas: haz doble clic en la cuenta a la que quieres ir.' }); self.bump(); },
-        debe: r.ape2 ? '' : r.debe ? num(r.debe) : '', haber: r.ape2 ? '' : r.haber ? num(r.haber) : '', sal: mySal(r.sal), salCls: 'fc-r fc-tn my-sal' + (r2(r.sal) < 0 ? ' my-h' : ''),
-        apeTip: r.ape2 ? 'Apertura de ' + a.y + ': ' + mySal(r.debe - r.haber) + ' · continúa el saldo del ejercicio anterior y no suma en los totales' : '',
-        pun: pn === apes.length ? '✓' : pn ? pn + '/' + apes.length : '', punTip: pn === apes.length ? 'Punteado' : pn ? pn + ' de ' + apes.length + ' apuntes punteados' : 'Sin puntear',
-        nota: nota, notaCls: V.nhist ? 'my-nh' : 'fc-mut', cre: fdate(a.cre), n43: !!A.n43, hist: apes.some(function (x) { return x.hist.length; }),
         chkLbl: 'Seleccionar el apunte ' + A.num, stop: function (e) { e.stopPropagation(); },
         chk: function (e) { if (e.target.checked) V.sel[r.k] = 1; else delete V.sel[r.k]; V.cur = r.k; V.anchor = r.k; self.myFocus('r:' + r.k); self.bump(); },
         click: function (e) {
@@ -10497,7 +10573,7 @@ class Component extends DCLogic {
     X.count = calc.nShown === calc.nAll ? tn(calc.nAll) + (calc.nAll === 1 ? ' apunte' : ' apuntes') : tn(calc.nShown) + ' de ' + tn(calc.nAll) + ' apuntes';
     if (V.mode !== 'normal') X.count += ' · ' + tn(keys.length) + (keys.length === 1 ? ' fila' : ' filas');
     /* totales: siempre de todas las filas, no solo de las pintadas */
-    X.tD = money(calc.tD); X.tH = money(calc.tH); X.tS = mySal(calc.sal); X.tSCls = 'my-tsal' + (calc.sal < 0 ? ' my-h' : '');
+    X.tD = money(calc.tD); X.tH = money(calc.tH); X.tS = mySal(calc.sal); X.tSCls = 'my-tsal' + mySalCls(myGrp(calc.ctas), calc.sal); X.tSTip = mySalT(calc.sal) + (myGrp(calc.ctas) ? '' : ' · cuentas de varios grupos: sin color');
     X.partial = calc.partial; X.partialT = 'Totales de las filas mostradas. Saldo real de ' + (calc.ctas.length > 1 ? 'las cuentas' : 'la cuenta') + ': ' + mySal(calc.accSal);
     var ss = sc.aps, sD = 0, sH = 0; Object.keys(V.sel).length && ss.forEach(function (a) { sD += a.debe; sH += a.haber; });
     X.selOn = Object.keys(V.sel).length > 0; X.selT = plural(Object.keys(V.sel).length, 'fila seleccionada', 'filas seleccionadas');
@@ -10559,7 +10635,7 @@ class Component extends DCLogic {
       flts: [fl('sub', 'Solo subcuentas', 'Solo códigos de 7 o más dígitos'), fl('mov', 'Con movimientos', 'Cuentas con algún apunte en los ejercicios elegidos'), fl('saldo', 'Con saldo', 'Saldo con apertura mayor de 1 €'), fl('sinIni', 'Con saldo sin la apertura', 'Saldo sin contar la apertura mayor de 1 € (tiene prioridad sobre «Con saldo»)'), fl('nocuad', 'No cuadradas', 'Oculta las cuentas marcadas como cuadradas')],
       grpOn: !!grpQ, grpT: 'Ver todas las subcuentas que empiezan por ' + grpQ, grpGo: go(function () { self.myGoCta(V, [grpQ]); self.myFocus('acc'); }),
       n: list.length === AL.length ? plural(AL.length, 'cuenta', 'cuentas') : list.length + ' de ' + AL.length + ' cuentas', more: list.length > 200,
-      rows: shown.map(function (g, i) { var cu = D.CUAD[g.c]; return { c: g.c, d: g.d, neto: mySal(g.neto), sal: mySal(g.sal), n: String(g.n), cu: cu && cu.ok ? 'Sí' : cu && cu.com ? 'Comentario' : 'No', cuCls: cu && cu.ok ? 'my-ok' : cu && cu.com ? 'my-amb' : 'fc-mut',
+      rows: shown.map(function (g, i) { var cu = D.CUAD[g.c]; return { c: g.c, d: g.d, neto: mySal(g.neto), sal: mySal(g.sal), salCls: 'fc-r fc-tn' + mySalCls(g.c.charAt(0), g.sal), n: String(g.n), cu: cu && cu.ok ? 'Sí' : cu && cu.com ? 'Comentario' : 'No', cuCls: cu && cu.ok ? 'my-ok' : cu && cu.com ? 'my-amb' : 'fc-mut',
         cls: 'my-po' + (i === P.hi ? ' on' : '') + (V.ctas.indexOf(g.c) >= 0 ? ' cur' : ''), pick: go(function () { choose(g.c); }), tip: g.c + ' · ' + g.d + (V.ctas.indexOf(g.c) >= 0 ? ' · ya está en la vista' : '') }; }),
       none: !list.length, noneT: grpQ ? 'Ninguna subcuenta cumple los filtros. Intro: ver la cuenta de grupo ' + grpQ + '.' : 'Ninguna cuenta coincide con la búsqueda y los filtros.',
       close: go(function () { V.pick = null; self.myFocus('acc'); }) };
@@ -10643,7 +10719,7 @@ class Component extends DCLogic {
     }
     else if (d.kind === 'hist') {
       var a = D.AP[d.id], A2 = D.AS[a.as]; x.title = 'Historial del apunte · ' + A2.num; x.cls = 'fc-dlg fc-wide'; x.hist = true; x.cancelT = 'Cerrar';
-      x.hKv = [{ k: 'Cuenta', v: a.cta + ' · ' + D.ctaD(a.cta), nl: true }, { k: 'Fecha', v: fdate(a.fecha), nl: true }, { k: 'Importe', v: mySal(a.debe - a.haber), nl: true }, { k: 'Creado', v: fdate(a.cre) + (A2.n43 ? ' · desde Norma 43' : A2.tipo === 'man' ? ' · asistente de corrección' : ''), nl: true }];
+      x.hKv = [{ k: 'Cuenta', v: a.cta + ' · ' + D.ctaD(a.cta), nl: true }, { k: 'Fecha', v: fdate(a.fecha), nl: true }, { k: 'Importe', v: mySal(a.debe - a.haber), nl: true }, { k: 'Grabado el', v: fdate(a.cre) + (A2.n43 ? ' · desde Norma 43' : A2.tipo === 'man' ? ' · asistente de corrección' : ''), nl: true }];
       x.hl = a.hist.slice().reverse().map(function (h) { return { ts: fdate(h.ts.slice(0, 10)) + ' ' + h.ts.slice(11), op: OPS[h.op] ? OPS[h.op].short : h.op, campo: h.campo, antes: h.antes, nuevo: h.nuevo, motivo: h.motivo || '—', lote: h.lote }; });
       x.hNone = !a.hist.length; x.hAny = a.hist.length > 0;
       x.hNote = 'Todas las modificaciones pasan por el motor de asientos: guarda el valor anterior y el nuevo, y un mismo lote une los apuntes cambiados en una operación.';

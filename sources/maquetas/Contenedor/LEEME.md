@@ -107,4 +107,5 @@ Los datos son ficticios. Los cambios duran mientras la página está abierta.
 - Menú contextual (clic derecho o Mayús+F10) con todas las acciones; las que cambian apuntes pasan por el motor de asientos y dejan historial con lote.
 - Los datos de ejemplo salen de las facturas emitidas y recibidas del prototipo, nóminas, el banco y las líneas de Norma 43 exportadas. Los códigos de cuenta tienen 7 u 8 dígitos según la pantalla de la que vienen.
 - El selector «Demostración» de la barra carga los escenarios de cuenta vacía, error de carga, carga, ejercicio cerrado, perfil de consulta y sin permiso.
+- Ronda 2: importes en euros; saldo con signo y color según el grupo de la cuenta; columnas ocultas «Fecha doc.», «Grabado el» y «Modificado el»; panel de recientes plegable y con separador arrastrable; columnas que se ordenan con clic en el título, se mueven arrastrando o con Alt+← → y se muestran u ocultan desde el clic derecho de la cabecera. Todo se guarda por operador.
 
