@@ -98,3 +98,13 @@ Los datos son ficticios. Los cambios duran mientras la página está abierta.
 - «Parámetros y tablas auxiliares» y «Sociedades y ejercicios» (menú Configuración) abren la pantalla genérica de mantenimiento validada en `sources/maquetas/Configuracion/`, ya con el estilo del contenedor. Abre directamente con `?escenario=config` (2560 × 1440), `?escenario=config-1440` o `?escenario=config-sociedades`.
 - Mismo funcionamiento que la maqueta validada: los 12 mantenimientos, búsqueda de ajustes (Ctrl+K), lista con filtro, orden y separador redimensionable (se guarda para cada operador), editor directo, por secciones o por pestañas, avisos de cambios pendientes, validación con el resumen arriba y el mensaje en el tooltip del campo, credenciales, rutas, referencias con búsqueda, cambios sensibles de VeriFactu, conflicto con otro puesto y los 10 escenarios de demostración (selector «Demostración» de la barra del módulo).
 - Lo que cambia respecto a la maqueta: la empresa y el ejercicio los fija el contenedor (Ribera Gestión, Ribera Inmuebles…); el perfil de consulta del operador deja la pantalla en solo lectura; al cerrar la pestaña con cambios pide guardar o descartar como el resto. Se quitan la barra de tamaño y escala, las notas de entrega y el banco de editores, que eran solo de la maqueta.
+
+## Mayor «vitaminado» (31/10/2026)
+
+- Pestaña Contabilidad › Mayor y doble clic en cualquier subcuenta (Norma 43, asientos, contrapartidas): abre el Mayor de esa cuenta. Escenarios: `?escenario=mayor`, `mayor-1440`, `mayor-grande` (banco con unos 5.000 movimientos), `mayor-asistente` y `mayor-tercero` (pestaña Contabilidad de la ficha de terceros).
+- Selector de cuentas (Ctrl+F) con saldo sin apertura, saldo, apuntes y cuadre, y los filtros del Mayor antiguo; un código corto muestra todas sus subcuentas. Cuentas recientes y grupos (Añadir cuenta guarda el grupo).
+- Vistas Normal, Compacto, Solo pendientes y Agrupar 700; varios ejercicios; filtros como etiquetas que se quitan; Supr quita filas solo de la vista.
+- Menú contextual (clic derecho o Mayús+F10) con todas las acciones; las que cambian apuntes pasan por el motor de asientos y dejan historial con lote.
+- Los datos de ejemplo salen de las facturas emitidas y recibidas del prototipo, nóminas, el banco y las líneas de Norma 43 exportadas. Los códigos de cuenta tienen 7 u 8 dígitos según la pantalla de la que vienen.
+- El selector «Demostración» de la barra carga los escenarios de cuenta vacía, error de carga, carga, ejercicio cerrado, perfil de consulta y sin permiso.
+

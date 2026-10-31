@@ -18,6 +18,7 @@ Tabla densa de líneas bancarias con filtros, detalle y acciones (también las d
 - 2026-10-29 17:18 · Columnas «Cuenta origen», «Descripción cuenta origen», «Cuenta destino» y «Descripción cuenta destino» (informalmente «cuenta» es la subcuenta completa). En los recibos de una remesa explotada, la cuenta origen es la del banco ficticio con su propia descripción. «Buscar por importe…» y «Movimientos similares…» se abren desde el menú contextual y viven en sus propios nodos, `norma43/busqueda-por-importe` y `norma43/movimientos-similares`.
 - 2026-10-29 17:40 · Ronda 3 del prototipo (lienzo, versión 20): columnas con los nombres de la decisión de las 17:18 y sin la columna «Banco», cuyo dato ya da «Descripción cuenta origen»; columnas redimensionables y guardadas por operador según `plataforma/ui-base`; «Buscar por importe…» y «Movimientos similares…» en el menú contextual, con su avance de 3 resultados y «Ver todos» en el detalle.
 - 2026-10-29 17:38 · El propietario valida el prototipo de la pantalla de líneas N43 (rondas 1 a 3, lienzo versión 20) como referencia para su UI WPF.
+- 2026-10-31 09:40 · El doble clic en una subcuenta abre el Mayor del prototipo (lienzo versión 28) con los ejercicios marcados en las líneas; desaparece el mayor provisional. Asignar un número de factura desde el Mayor lo escribe también en la línea bancaria vinculada.
 
 ## Requirements
 - 2026-10-28 12:28 · From sources/01_ESPECIFICACION_FUNCIONAL.docx § 19 RF-N43-03, 04: pantalla fiel a maqueta, selección explícita
