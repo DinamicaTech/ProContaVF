@@ -200,6 +200,7 @@
     <Setter Property="Template">
       <Setter.Value>
         <ControlTemplate TargetType="pc:DialogoProConta">
+          <AdornerDecorator>
           <Border Margin="30,20,30,40" Background="White" CornerRadius="{StaticResource Radio.Dialogo}" Effect="{StaticResource Sombra.Dialogo}">
             <DockPanel>
               <DockPanel x:Name="PART_Cabecera" DockPanel.Dock="Top" Margin="18,14,10,10" Background="Transparent">
@@ -213,6 +214,7 @@
               <ContentPresenter Margin="18,0,18,16" />
             </DockPanel>
           </Border>
+          </AdornerDecorator>
         </ControlTemplate>
       </Setter.Value>
     </Setter>

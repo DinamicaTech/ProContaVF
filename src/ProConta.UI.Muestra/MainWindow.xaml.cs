@@ -116,9 +116,27 @@ public partial class MainWindow : Window
         };
     }
 
-    private void Dialogo_Click(object sender, RoutedEventArgs e)
+    private void Dialogo_Click(object sender, RoutedEventArgs e) => AbrirDialogo(false);
+
+    /// <summary>Prueba automática: abre el diálogo, lo cierra al segundo y sale con código 0, o 1 si falló.</summary>
+    public void ProbarDialogo()
+    {
+        ContentRendered += (_, _) => Dispatcher.BeginInvoke(DispatcherPriority.ApplicationIdle, new Action(() =>
+        {
+            try { AbrirDialogo(true); Application.Current.Shutdown(0); }
+            catch (Exception ex) { App.Registrar(ex); Application.Current.Shutdown(1); }
+        }));
+    }
+
+    private void AbrirDialogo(bool cerrarSolo)
     {
         var dlg = new DialogoProConta { Owner = this, Title = "Asignar número de factura" };
+        if (cerrarSolo)
+        {
+            var t = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
+            t.Tick += (_, _) => { t.Stop(); dlg.CerrarCommand.Execute(null); };
+            t.Start();
+        }
         var pie = new StackPanel { Orientation = Orientation.Horizontal };
         pie.Children.Add(new Button { Content = "Cancelar", Margin = new Thickness(0, 0, 8, 0), Command = dlg.CerrarCommand, ToolTip = "Cierra sin cambiar nada (Esc)" });
         pie.Children.Add(new Button { Content = "Asignar", Style = (Style)FindResource("Boton.Primario"), Command = dlg.AceptarCommand, IsDefault = true, ToolTip = "Escribe el número en los 2 apuntes elegidos" });

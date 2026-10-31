@@ -198,6 +198,9 @@
     <Setter Property="ToolTipService.InitialShowDelay" Value="400" />
     <Setter Property="pc:Iconos.Icono" Value="{x:Null}" />
     <Setter Property="Tag" Value="8" />
+    <Setter Property="pc:Aspecto.FondoEncima" Value="{StaticResource Pincel.Hover}" />
+    <Setter Property="pc:Aspecto.BordeEncima" Value="{StaticResource Pincel.HoverBorde}" />
+    <Setter Property="pc:Aspecto.FondoPulsado" Value="{StaticResource Pincel.Fondo}" />
     <Setter Property="Template">
       <Setter.Value>
         <ControlTemplate TargetType="ButtonBase">
@@ -219,11 +222,11 @@
               <Setter TargetName="Ico" Property="Margin" Value="0" />
             </Trigger>
             <Trigger Property="IsMouseOver" Value="True">
-              <Setter TargetName="Fondo" Property="Background" Value="{StaticResource Pincel.Hover}" />
-              <Setter TargetName="Fondo" Property="BorderBrush" Value="{StaticResource Pincel.HoverBorde}" />
+              <Setter TargetName="Fondo" Property="Background" Value="{Binding (pc:Aspecto.FondoEncima), RelativeSource={RelativeSource TemplatedParent}}" />
+              <Setter TargetName="Fondo" Property="BorderBrush" Value="{Binding (pc:Aspecto.BordeEncima), RelativeSource={RelativeSource TemplatedParent}}" />
             </Trigger>
             <Trigger Property="IsPressed" Value="True">
-              <Setter TargetName="Fondo" Property="Background" Value="{StaticResource Pincel.Fondo}" />
+              <Setter TargetName="Fondo" Property="Background" Value="{Binding (pc:Aspecto.FondoPulsado), RelativeSource={RelativeSource TemplatedParent}}" />
             </Trigger>
             <Trigger Property="IsEnabled" Value="False">
               <Setter Property="Opacity" Value="0.5" />
@@ -241,11 +244,9 @@
     <Setter Property="Background" Value="{StaticResource Pincel.Marino}" />
     <Setter Property="BorderBrush" Value="{StaticResource Pincel.Marino}" />
     <Setter Property="Foreground" Value="White" />
-    <Style.Triggers>
-      <Trigger Property="IsMouseOver" Value="True">
-        <Setter Property="Background" Value="{StaticResource Pincel.Marino2}" />
-      </Trigger>
-    </Style.Triggers>
+    <Setter Property="pc:Aspecto.FondoEncima" Value="{StaticResource Pincel.Marino2}" />
+    <Setter Property="pc:Aspecto.BordeEncima" Value="{StaticResource Pincel.Marino2}" />
+    <Setter Property="pc:Aspecto.FondoPulsado" Value="{StaticResource Pincel.Marino}" />
   </Style>
   <Style x:Key="Boton.Peligro" TargetType="Button" BasedOn="{StaticResource Boton}">
     <Setter Property="Foreground" Value="{StaticResource Pincel.Rojo}" />
