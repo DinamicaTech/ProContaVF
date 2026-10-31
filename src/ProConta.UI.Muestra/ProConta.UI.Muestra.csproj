@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Pantalla de muestra con todos los componentes de ProConta.UI.Base, para compararla con las maquetas a 2560×1440. -->
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <UseWPF>true</UseWPF>
+    <RootNamespace>ProConta.UI.Muestra</RootNamespace>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\ProConta.UI.Base\ProConta.UI.Base.csproj" />
+  </ItemGroup>
+</Project>
