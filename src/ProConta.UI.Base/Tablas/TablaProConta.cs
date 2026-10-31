@@ -116,6 +116,29 @@ public class TablaProConta : DataGrid
         _guardarAnchos = new DispatcherTimer(TimeSpan.FromMilliseconds(400), DispatcherPriority.Background, (_, _) => { _guardarAnchos!.Stop(); GuardarAnchos(); }, Dispatcher);
         _guardarAnchos.Stop();
         Loaded += (_, _) => Iniciar();
+        // Mientras el operador arrastra un separador de cabecera se liberan los mínimos; al soltar se vuelven a fijar.
+        AddHandler(Thumb.DragStartedEvent, new DragStartedEventHandler((_, e) => { if (EsSeparadorCabecera(e.OriginalSource)) LiberarMinimos(); }));
+        AddHandler(Thumb.DragCompletedEvent, new DragCompletedEventHandler((_, e) => { if (EsSeparadorCabecera(e.OriginalSource)) FijarMinimos(); }));
+    }
+
+    private const double MinimoArrastre = 24;
+
+    private static bool EsSeparadorCabecera(object o) => o is Thumb { TemplatedParent: DataGridColumnHeader };
+
+    /// <summary>
+    /// Criterio global: una columna de ancho fijo nunca se estrecha sola para caber en la ventana (recortaría
+    /// fechas e importes). Si no caben todas, aparece la barra horizontal. Su ancho mínimo es su ancho actual.
+    /// </summary>
+    private void FijarMinimos()
+    {
+        foreach (var c in Columns)
+            if (c.Width.IsAbsolute) c.MinWidth = c.Width.Value;
+    }
+
+    private void LiberarMinimos()
+    {
+        foreach (var c in Columns)
+            if (c.Width.IsAbsolute || c.Width.IsAuto || c.Width.IsSizeToCells || c.Width.IsSizeToHeader) c.MinWidth = Math.Min(c.MinWidth, MinimoArrastre);
     }
 
     private IPreferenciasOperador Prefs => Preferencias ?? PreferenciasOperador.Actual;
@@ -154,6 +177,7 @@ public class TablaProConta : DataGrid
         {
             var res = DisposicionColumnas.Resolver(Definiciones(), _cfg);
             var porClave = _ordenFabrica.ToDictionary(ClaveDe, StringComparer.Ordinal);
+            LiberarMinimos();
             foreach (var r in res)
             {
                 var col = porClave[r.Definicion.Clave];
@@ -161,6 +185,7 @@ public class TablaProConta : DataGrid
                 col.Visibility = r.Visible ? Visibility.Visible : Visibility.Collapsed;
                 col.Width = r.Ancho is { } w ? new DataGridLength(w) : _anchosFabrica[col];
             }
+            FijarMinimos();
         }
         finally { _aplicando = false; }
     }
@@ -274,10 +299,12 @@ public class TablaProConta : DataGrid
     public void AjustarTodasAlContenido()
     {
         var fijas = Columns.Where(c => c.Visibility == Visibility.Visible && !c.Width.IsStar).ToList();
+        foreach (var c in fijas) c.MinWidth = MinimoArrastre;
         foreach (var c in fijas) c.Width = new DataGridLength(1, DataGridLengthUnitType.SizeToCells);
         Dispatcher.BeginInvoke(DispatcherPriority.Loaded, new Action(() =>
         {
             foreach (var c in fijas) c.Width = new DataGridLength(Math.Clamp(c.ActualWidth, 48, 640));
+            FijarMinimos();
             GuardarAnchos();
         }));
     }
