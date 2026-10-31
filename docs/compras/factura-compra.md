@@ -3,7 +3,7 @@ title: Factura de compra
 status: draft
 depends_on: [datos/esquema, datos/persistencia, nucleo, terceros/tercero]
 threads:
-  - Carga de requisitos | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GRNMH95h9tnQp4dmEPHmw1w
+  - 2026-10-28 12:30 · Carga de requisitos | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GRNMH95h9tnQp4dmEPHmw1w
 ---
 ## Summary
 Ente FacturaCompra con sus desgloses: inserción atómica, MD5 compatible del PDF para duplicados, configuración por sociedad y destino por sociedad/ejercicio.

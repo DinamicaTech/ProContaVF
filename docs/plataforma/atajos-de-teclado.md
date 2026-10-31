@@ -3,7 +3,7 @@ title: Atajos de teclado
 depends_on: []
 status: draft
 threads:
-  - Diseñar atajos de teclado | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GV1VwrZgQybpW6Pw4fub1Tr
+  - 2026-10-29 16:34 · Diseñar atajos de teclado | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GV1VwrZgQybpW6Pw4fub1Tr
 ---
 ## Summary
 Diseña y gestiona los atajos de teclado de todas las operativas que el operador ejecuta a mano (menús, cinta, menús contextuales y botones). Cada módulo publica sus operativas en un catálogo único (id como `LineasN43.ExportarAContabilidad` y texto descriptivo); de ese catálogo salen el atajo, su ejecución y su presentación en menús, cinta, tooltips y búsqueda de acciones.

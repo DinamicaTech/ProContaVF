@@ -3,7 +3,7 @@ title: Estructura de la BD (ActualizadorEsquema)
 status: draft
 depends_on: [architecture]
 threads:
-  - Carga de requisitos | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GRNMH95h9tnQp4dmEPHmw1w
+  - 2026-10-28 12:30 · Carga de requisitos | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GRNMH95h9tnQp4dmEPHmw1w
 ---
 ## Summary
 Único dueño del DDL: crea y versiona la maestra, actualiza instalaciones en producción con respaldo y diagnóstico, y publica el diccionario de datos (tablas, campos, tipos, longitudes, índices, relaciones y dueño funcional de cada tabla) que leen los demás nodos. Cada área pide aquí sus cambios de estructura con una línea "Derived from".
