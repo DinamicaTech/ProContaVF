@@ -11,6 +11,7 @@ Ente Tercero: identidad estable (IdTercero) de persona física, jurídica o enti
 
 ## Decisions
 - 2026-10-28 13:30 · Creado en la carga inicial de requisitos.
+- 2026-10-29 10:20 · La consulta de datos de empresas por CIF en uproc.io que tenía ProConta antiguo (`CProveedor`) está obsoleta (el servicio dejó de funcionar) y no se migra.
 
 ## Requirements
 - 2026-10-28 12:28 · From sources/01_ESPECIFICACION_FUNCIONAL.docx § 7 RF-TER-01, 02, 06: identidad, tipos de persona, domicilios

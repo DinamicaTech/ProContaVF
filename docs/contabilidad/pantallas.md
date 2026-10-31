@@ -15,3 +15,4 @@ Editor y visor común de asientos (también para propuestas de procesos), consul
 ## Requirements
 - 2026-10-28 12:28 · From sources/01_ESPECIFICACION_FUNCIONAL.docx § 16 RF-GES-02: editor/visor común, modal y con pestañas
 - 2026-10-28 12:28 · draft: Construir el editor de asientos y la consulta del mayor.
+- 2026-10-29 10:20 · Derived from plataforma/ui-base: la consulta del Mayor se construye en WPF solo cuando su prototipo HTML esté validado (lo prepara contabilidad/mayor).

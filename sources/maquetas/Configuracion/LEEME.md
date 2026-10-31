@@ -16,3 +16,17 @@ Ctrl+K busca un ajuste o mantenimiento. Ctrl+G (o Ctrl+S) guarda. Con el foco en
 ## Escenarios añadidos a los 8 pedidos
 
 «Sin permiso de acceso» y «Error al guardar». Representan la falta de permiso y el guardado fallido que conserva los valores.
+
+## Revisión de validación 1 (29/10/2026)
+
+Se aplican los criterios ya validados en Terceros y Facturas:
+
+- Todos los controles tienen un tooltip descriptivo. Los campos muestran su etiqueta y su ayuda, o el mensaje del error si lo tienen.
+- Los errores ya no se escriben debajo del campo: el campo se marca con borde rojo e icono, y el mensaje va en su tooltip y en el resumen superior del editor.
+- Sin palabras enteras en mayúsculas: las categorías de la navegación y los rótulos de la búsqueda van en minúscula inicial.
+- A 2560 × 1440 la lista se ensancha hasta mostrar todas sus columnas (como máximo el 62 % del ancho) mientras no se mueva el divisor a mano.
+- La barra de demostración añade el tamaño de ventana 2560 × 1440, que es la resolución de referencia.
+
+## Integración en el contenedor (31/10/2026)
+
+El propietario validó el funcionamiento de esta maqueta. La pantalla ya está dentro del contenedor con su estilo (`sources/maquetas/Contenedor/`, `?escenario=config`); este fichero queda como referencia de la revisión validada.
