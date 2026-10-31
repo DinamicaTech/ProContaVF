@@ -6,9 +6,10 @@ threads:
   - 2026-10-28 12:30 · Carga de requisitos | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GRNMH95h9tnQp4dmEPHmw1w
   - 2026-10-29 18:54 · Validar prototipos de pantallas principales | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GGPu88XoVeXWyHsuxbrF2kK
   - 2026-10-31 16:58 · Cerrar preguntas pendientes del proyecto | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5G7UyrP5eDJV4Ds6CCBozdbu
+  - 2026-10-31 20:05 · Desarrollos base | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GPQZwFm28U4vq3sQdopN45C
 ---
 ## Summary
-Roles opcionales de una identidad (Cliente, Proveedor, Contacto…) con IDs funcionales propios y cuentas contables por rol y sociedad/ejercicio.
+Roles opcionales de una identidad (Cliente, Proveedor, Contacto…) con IDs funcionales propios y cuentas contables por rol y sociedad/ejercicio. Código: `ServicioRoles` (src/ProConta.Terceros/Roles): consultar los roles, darlos de alta de forma idempotente y leer o asignar la cuenta predeterminada del cliente o del proveedor en un ejercicio.
 **Aceptación:** añadir un rol no duplica la identidad; las cuentas cambian con el contexto.
 
 ## Decisions
@@ -17,6 +18,8 @@ Roles opcionales de una identidad (Cliente, Proveedor, Contacto…) con IDs func
 - 2026-10-31 07:46 · La moneda de las facturas del proveedor es otro de sus valores por defecto: se propone en sus facturas y, si se cambia en una, se actualiza en su ficha como el resto (decisión de 2026-10-29 18:14).
 - 2026-10-31 16:54 · Particular (persona física) y Asociación (entidad sin personalidad) son tipos de persona, no roles; los roles siguen siendo Cliente, Proveedor y Contacto.
 - 2026-10-31 16:54 · Proveedor/Acreedor: el rol Proveedor tiene dos cuentas opcionales (proveedor y acreedor) por sociedad y ejercicio; no son dos roles (resuelve P-04).
+- 2026-10-31 20:05 · Alta de rol idempotente: si el tercero ya tiene el rol se devuelve su ID (y se reactiva si estaba inactivo). IdCliente no es autonumérico (conserva los números del ERP): el nuevo es el siguiente libre dentro de la transacción; IdProveedor e IdContacto son autonuméricos.
+- 2026-10-31 20:05 · Cuentas por rol y ejercicio en CuentasClientesEjercicio y CuentasProveedoresEjercicio; se lee la predeterminada (EsPredeterminada) del ejercicio del contexto y solo se asigna una cuenta de ese mismo ejercicio. El Contacto no tiene cuenta.
 
 ## Requirements
 - 2026-10-28 12:28 · From sources/01_ESPECIFICACION_FUNCIONAL.docx § 7 RF-TER-03, 04: roles idempotentes y cuentas por rol y sociedad/ejercicio
@@ -30,3 +33,7 @@ Roles opcionales de una identidad (Cliente, Proveedor, Contacto…) con IDs func
 - 2026-10-29 18:14 · * Puede entorpecer exportaciones masivas de facturas. Si se ha modificado alguno de esos parámetros, asumimos que son los correctos y actualizamos, no tengo claro en qué circunstancia se pueden modificar sin quererlos actualizar en el proveedor.
 - 2026-10-31 07:30 · Y en el caso de facturas de importación, se puede indicar la moneda y hago conversión a euros aplicando el tipo de cambio de la moneda en la fecha de la factura. En la contabilidad siempre se trabaja en euros.
 - 2026-10-31 16:54 · Derived from compras/reconocimiento: el rol Proveedor guarda el nombre de la carpeta donde están sus PDF (`<ejercicio>\Proveedores\<carpeta>`), por defecto su nombre comercial.
+- 2026-10-31 17:53 · Derived from architecture: los roles Cliente, Proveedor y Contacto idempotentes y la cuenta de cliente y de proveedor por sociedad y ejercicio.
+
+## Hand-over
+- 2026-10-31 20:05 · Hecho: roles y cuentas por ejercicio, con pruebas (rol idempotente sin duplicar identidad, cuentas distintas por ejercicio, cuenta de otro ejercicio rechazada). Pendiente, porque necesita columnas nuevas y lo pedirá compras: distinguir cuenta de proveedor y de acreedor (decisión 2026-10-31 16:54), valores por defecto del proveedor (tipo de operación, producto, retención, país, forma de pago, cuenta de gasto, moneda) y su actualización desde la factura (decisiones 2026-10-29 18:14 y 2026-10-31 07:46), y la carpeta de PDF del proveedor.
