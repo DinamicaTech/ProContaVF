@@ -34,8 +34,9 @@ public partial class MainWindow : Window
         Ejemplos();
         Galeria.ItemsSource = Application.Current.Resources.MergedDictionaries
             .SelectMany(Todos)
-            .Where(kv => kv.Key is string k && k.StartsWith("Icono.", StringComparison.Ordinal) && kv.Value is Geometry)
-            .Select(kv => new KeyValuePair<string, Geometry>(((string)kv.Key)["Icono.".Length..], (Geometry)kv.Value))
+            .Select(kv => (Clave: kv.Key as string, Geometria: kv.Value as Geometry))
+            .Where(x => x.Clave is not null && x.Clave.StartsWith("Icono.", StringComparison.Ordinal) && x.Geometria is not null)
+            .Select(x => new KeyValuePair<string, Geometry>(x.Clave!["Icono.".Length..], x.Geometria!))
             .GroupBy(kv => kv.Key).Select(g => g.First())
             .OrderBy(kv => kv.Key)
             .ToList();

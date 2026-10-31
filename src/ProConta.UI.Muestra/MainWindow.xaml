@@ -9,6 +9,7 @@
     <pc:ImporteConverter x:Key="Importe" />
     <pc:FechaConverter x:Key="Fecha" />
     <pc:SaldoPincelConverter x:Key="SaldoPincel" />
+    <pc:VisibleSiConverter x:Key="VisibleSi" />
   </Window.Resources>
 
   <DockPanel>
@@ -98,10 +99,10 @@
                 <pc:TablaProConta x:Name="Tabla" ClavePreferencias="muestra.mayor" TituloExportacion="Mayor 43000012 Talleres Albora" BorderBrush="{StaticResource Pincel.Linea}" BorderThickness="0,1,0,0">
                   <pc:TablaProConta.Columns>
                     <DataGridTextColumn Header="Cuenta" Binding="{Binding Cuenta}" Width="92" ElementStyle="{StaticResource Texto.Celda.Mono}" pc:TablaProConta.Clave="cta" pc:TablaProConta.OcultaDeFabrica="True" />
-                    <DataGridTextColumn Header="Fecha" Binding="{Binding Fecha, Converter={StaticResource Fecha}}" SortMemberPath="Fecha" Width="88" pc:TablaProConta.Clave="fe" pc:TablaProConta.RutaExportar="Fecha" />
-                    <DataGridTextColumn Header="Asiento" Binding="{Binding Asiento}" Width="112" ElementStyle="{StaticResource Texto.Celda.Mono}" pc:TablaProConta.Clave="as" />
+                    <DataGridTextColumn Header="Fecha" Binding="{Binding Fecha, Converter={StaticResource Fecha}}" SortMemberPath="Fecha" Width="104" pc:TablaProConta.Clave="fe" pc:TablaProConta.RutaExportar="Fecha" />
+                    <DataGridTextColumn Header="Asiento" Binding="{Binding Asiento}" Width="124" ElementStyle="{StaticResource Texto.Celda.Mono}" pc:TablaProConta.Clave="as" />
                     <DataGridTextColumn Header="Concepto" Binding="{Binding Concepto}" Width="*" MinWidth="260" ElementStyle="{StaticResource Texto.Celda}" pc:TablaProConta.Clave="con" pc:TablaProConta.SiempreVisible="True" />
-                    <DataGridTextColumn Header="Documento" Binding="{Binding Documento}" Width="120" ElementStyle="{StaticResource Texto.Celda.Mono}" pc:TablaProConta.Clave="doc" />
+                    <DataGridTextColumn Header="Documento" Binding="{Binding Documento}" Width="132" ElementStyle="{StaticResource Texto.Celda.Mono}" pc:TablaProConta.Clave="doc" />
                     <DataGridTextColumn Header="Debe" Binding="{Binding Debe, Converter={StaticResource Importe}, ConverterParameter=vacio}" SortMemberPath="Debe" Width="112"
                                         ElementStyle="{StaticResource Texto.Celda.Importe}" HeaderStyle="{StaticResource Tabla.Cabecera.Derecha}" pc:TablaProConta.Clave="debe" pc:TablaProConta.RutaExportar="Debe" />
                     <DataGridTextColumn Header="Haber" Binding="{Binding Haber, Converter={StaticResource Importe}, ConverterParameter=vacio}" SortMemberPath="Haber" Width="112"
@@ -121,17 +122,20 @@
                         </DataTemplate>
                       </DataGridTemplateColumn.CellTemplate>
                     </DataGridTemplateColumn>
-                    <DataGridTextColumn Header="Punteo" Binding="{Binding PunteadoTexto}" SortMemberPath="Punteado" Width="64" pc:TablaProConta.Clave="pun" pc:TablaProConta.RutaExportar="Punteado">
-                      <DataGridTextColumn.ElementStyle>
-                        <Style TargetType="TextBlock"><Setter Property="Foreground" Value="{StaticResource Pincel.Verde}" /><Setter Property="FontWeight" Value="Bold" /><Setter Property="HorizontalAlignment" Value="Center" /><Setter Property="VerticalAlignment" Value="Center" /></Style>
-                      </DataGridTextColumn.ElementStyle>
-                    </DataGridTextColumn>
-                    <DataGridTextColumn Header="Contrapartida" Binding="{Binding Contrapartida}" Width="104" ElementStyle="{StaticResource Texto.Celda.Mono}" pc:TablaProConta.Clave="cp" />
+                    <DataGridTemplateColumn Header="Punteo" SortMemberPath="Punteado" Width="72" pc:TablaProConta.Clave="pun" pc:TablaProConta.RutaExportar="Punteado">
+                      <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                          <Path Data="{StaticResource Icono.check}" Style="{StaticResource Icono.Trazo14}" Stroke="{StaticResource Pincel.Verde}" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                Visibility="{Binding Punteado, Converter={StaticResource VisibleSi}}" ToolTip="Apunte punteado" />
+                        </DataTemplate>
+                      </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
+                    <DataGridTextColumn Header="Contrapartida" Binding="{Binding Contrapartida}" Width="120" ElementStyle="{StaticResource Texto.Celda.Mono}" pc:TablaProConta.Clave="cp" />
                     <DataGridTextColumn Header="Descripción contrapartida" Binding="{Binding DescripcionContrapartida}" Width="210" ElementStyle="{StaticResource Texto.Celda}" pc:TablaProConta.Clave="cpd" />
                     <DataGridTextColumn Header="Notas" Binding="{Binding Notas}" Width="230" ElementStyle="{StaticResource Texto.Celda}" pc:TablaProConta.Clave="nota" />
-                    <DataGridTextColumn Header="Fecha doc." Binding="{Binding FechaDocumento, Converter={StaticResource Fecha}}" SortMemberPath="FechaDocumento" Width="92" pc:TablaProConta.Clave="fdoc" pc:TablaProConta.OcultaDeFabrica="True" pc:TablaProConta.RutaExportar="FechaDocumento" />
-                    <DataGridTextColumn Header="Grabado el" Binding="{Binding GrabadoEl, Converter={StaticResource Fecha}}" SortMemberPath="GrabadoEl" Width="92" pc:TablaProConta.Clave="cre" pc:TablaProConta.OcultaDeFabrica="True" pc:TablaProConta.RutaExportar="GrabadoEl" />
-                    <DataGridTextColumn Header="Modificado el" Binding="{Binding ModificadoEl, Converter={StaticResource Fecha}}" SortMemberPath="ModificadoEl" Width="104" pc:TablaProConta.Clave="mod" pc:TablaProConta.OcultaDeFabrica="True" pc:TablaProConta.RutaExportar="ModificadoEl" />
+                    <DataGridTextColumn Header="Fecha doc." Binding="{Binding FechaDocumento, Converter={StaticResource Fecha}}" SortMemberPath="FechaDocumento" Width="104" pc:TablaProConta.Clave="fdoc" pc:TablaProConta.OcultaDeFabrica="True" pc:TablaProConta.RutaExportar="FechaDocumento" />
+                    <DataGridTextColumn Header="Grabado el" Binding="{Binding GrabadoEl, Converter={StaticResource Fecha}}" SortMemberPath="GrabadoEl" Width="104" pc:TablaProConta.Clave="cre" pc:TablaProConta.OcultaDeFabrica="True" pc:TablaProConta.RutaExportar="GrabadoEl" />
+                    <DataGridTextColumn Header="Modificado el" Binding="{Binding ModificadoEl, Converter={StaticResource Fecha}}" SortMemberPath="ModificadoEl" Width="120" pc:TablaProConta.Clave="mod" pc:TablaProConta.OcultaDeFabrica="True" pc:TablaProConta.RutaExportar="ModificadoEl" />
                   </pc:TablaProConta.Columns>
                 </pc:TablaProConta>
               </pc:VistaEstado>

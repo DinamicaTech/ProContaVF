@@ -60,7 +60,7 @@ public class ColumnasTests
     {
         var guardada = new ConfiguracionColumnas { Orden = new() { "sal", "fe", "as", "con", "debe", "haber" } };
         var orden = DisposicionColumnas.Resolver(Defs, guardada).Select(x => x.Definicion.Clave).ToArray();
-        Assert.Equal(new[] { "sal", "fe", "as", "con", "debe", "haber", "cre" }, orden);
+        Assert.Equal(new[] { "sal", "cre", "fe", "as", "con", "debe", "haber" }, orden);
     }
 
     [Fact]
