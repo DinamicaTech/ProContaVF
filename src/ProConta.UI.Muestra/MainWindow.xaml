@@ -1,0 +1,296 @@
+<Window x:Class="ProConta.UI.Muestra.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:pc="urn:proconta-ui"
+        Title="ProConta · Muestra de la biblioteca de estilos"
+        Style="{StaticResource Ventana.ProConta}"
+        Width="2560" Height="1440" WindowState="Maximized">
+  <Window.Resources>
+    <pc:ImporteConverter x:Key="Importe" />
+    <pc:FechaConverter x:Key="Fecha" />
+    <pc:SaldoPincelConverter x:Key="SaldoPincel" />
+  </Window.Resources>
+
+  <DockPanel>
+    <!-- Barra de estado: avisos que no bloquean -->
+    <Border DockPanel.Dock="Bottom" Background="{StaticResource Pincel.Fondo}" BorderBrush="{StaticResource Pincel.Linea3}" BorderThickness="0,1,0,0" Padding="14,5">
+      <DockPanel>
+        <TextBlock DockPanel.Dock="Right" Text="ProConta.UI.Base · muestra" Foreground="{StaticResource Pincel.Apagado}" FontSize="{StaticResource Letra.Pequena}" />
+        <TextBlock x:Name="Estado" Text="Listo." Foreground="{StaticResource Pincel.Texto2}" FontSize="{StaticResource Letra.Pequena}" TextTrimming="CharacterEllipsis" />
+      </DockPanel>
+    </Border>
+
+    <!-- Cabecera de pantalla -->
+    <Border DockPanel.Dock="Top" Background="White" BorderBrush="{StaticResource Pincel.Linea}" BorderThickness="0,0,0,1" Padding="14,10">
+      <StackPanel Orientation="Horizontal">
+        <TextBlock Text="Mayor" Style="{StaticResource Texto.TituloPantalla}" VerticalAlignment="Center" />
+        <TextBlock Text="Ribera Gestión · ejercicio de trabajo 2026 · datos de muestra" Margin="12,4,0,0" Foreground="{StaticResource Pincel.Apagado}" VerticalAlignment="Center" />
+      </StackPanel>
+    </Border>
+
+    <TabControl x:Name="Pestanas" Padding="14">
+      <!-- ================= Mayor de muestra: tabla, panel plegable, filtros ================= -->
+      <TabItem Header="Tabla y panel" ToolTip="El Mayor de muestra: tabla con el criterio global de columnas y panel de recientes plegable">
+        <DockPanel>
+          <pc:PanelPlegable DockPanel.Dock="Left" Titulo="Recientes" ClavePreferencias="muestra.recientes" AnchoFabrica="252">
+            <pc:PanelPlegable.Acciones>
+              <Button Style="{StaticResource Boton.Fantasma}" Content="Vaciar" ToolTip="Vacía la lista de cuentas recientes" Click="Vaciar_Click" />
+            </pc:PanelPlegable.Acciones>
+            <pc:PanelPlegable.Pie>
+              <TextBlock Margin="10,6" Style="{StaticResource Texto.Apagado}" FontSize="{StaticResource Letra.Mini}" Text="Clic: ver solo esa cuenta · Ctrl+clic: añadirla al mayor combinado" />
+            </pc:PanelPlegable.Pie>
+            <ListBox x:Name="ListaRecientes" SelectionMode="Extended" AutomationProperties.Name="Cuentas recientes">
+              <ListBox.ItemTemplate>
+                <DataTemplate>
+                  <StackPanel ToolTip="{Binding Descripcion}">
+                    <TextBlock Text="{Binding Codigo}" Style="{StaticResource Texto.Mono}" />
+                    <TextBlock Text="{Binding Descripcion}" FontSize="{StaticResource Letra.Pequena}" Foreground="{StaticResource Pincel.Apagado}" TextTrimming="CharacterEllipsis" />
+                  </StackPanel>
+                </DataTemplate>
+              </ListBox.ItemTemplate>
+            </ListBox>
+          </pc:PanelPlegable>
+
+          <Border Style="{StaticResource Tarjeta}" Margin="4,0,0,0">
+            <DockPanel>
+              <!-- Barra de herramientas -->
+              <StackPanel DockPanel.Dock="Top" Margin="12,10,12,6">
+                <WrapPanel>
+                  <Button Style="{StaticResource Boton.Icono}" pc:Iconos.Icono="{StaticResource Icono.prev}" ToolTip="Cuenta anterior de la lista (Alt+←)" />
+                  <Button Content="43000012  Talleres Albora (cliente)" Margin="4,0" FontWeight="SemiBold" pc:Iconos.Icono="{StaticResource Icono.search}" ToolTip="Elige la cuenta (Ctrl+F)" />
+                  <Button Style="{StaticResource Boton.Icono}" pc:Iconos.Icono="{StaticResource Icono.next}" ToolTip="Cuenta siguiente de la lista (Alt+→)" />
+                  <Button Content="Añadir cuenta" Margin="8,0,0,0" pc:Iconos.Icono="{StaticResource Icono.plus}" ToolTip="Añade otra cuenta a esta vista (mayor combinado)" />
+                  <Button Content="Numerar…" Margin="8,0,0,0" pc:Iconos.Icono="{StaticResource Icono.doc}" ToolTip="Propone números de factura para cobros y pagos sin número" />
+                  <Button Content="Exportar a Excel" Margin="8,0,0,0" pc:Iconos.Icono="{StaticResource Icono.xls}" Command="{Binding ExportarExcelCommand, ElementName=Tabla}"
+                          ToolTip="Exporta todas las filas de la vista con las columnas visibles, en el mismo orden" />
+                  <Button Content="Guardar" Margin="8,0,0,0" Style="{StaticResource Boton.Primario}" ToolTip="Botón principal de muestra" />
+                  <Button Content="Deshabilitado" Margin="8,0,0,0" IsEnabled="False" ToolTip="Un botón deshabilitado dice por qué: no hay filas seleccionadas." />
+                </WrapPanel>
+                <WrapPanel Margin="0,10,0,0">
+                  <Border Style="{StaticResource Segmentado}" VerticalAlignment="Center">
+                    <StackPanel Orientation="Horizontal">
+                      <RadioButton Style="{StaticResource Segmento}" GroupName="Vista" Content="Normal" IsChecked="True" ToolTip="Un apunte por fila" />
+                      <RadioButton Style="{StaticResource Segmento}" GroupName="Vista" Content="Compacto" ToolTip="Una fila por cuenta y factura" />
+                      <RadioButton Style="{StaticResource Segmento}" GroupName="Vista" Content="Solo pendientes" ToolTip="Solo las facturas que no netean a cero" />
+                      <RadioButton Style="{StaticResource Segmento}" GroupName="Vista" Content="Agrupar 700" ToolTip="Agrupa por cuenta, fecha, factura y lado" />
+                    </StackPanel>
+                  </Border>
+                  <CheckBox Content="Solo no punteados" Margin="14,0,0,0" VerticalAlignment="Center" ToolTip="Oculta los apuntes punteados" />
+                  <CheckBox Content="Notas del historial" Margin="14,0,0,0" VerticalAlignment="Center" ToolTip="En Notas, el último cambio de cada apunte" />
+                  <TextBox Width="300" Margin="14,0,0,0" Text="cobro" ToolTip="Filtra por concepto, documento, número de asiento o importe exacto" />
+                  <pc:Etiqueta Margin="10,0,6,0" VerticalAlignment="Center" Content="Concepto, documento o importe: «cobro»" AyudaQuitar="Quitar el filtro por texto" />
+                  <pc:Etiqueta VerticalAlignment="Center" Content="Solo no punteados" AyudaQuitar="Quitar el filtro de punteo" />
+                </WrapPanel>
+              </StackPanel>
+
+              <!-- Pie con totales -->
+              <Border DockPanel.Dock="Bottom" Style="{StaticResource Barra.Pie}" CornerRadius="0,0,12,12">
+                <StackPanel Orientation="Horizontal">
+                  <TextBlock x:Name="Recuento" Margin="0,0,18,0" />
+                  <TextBlock Margin="0,0,18,0">Debe <Run x:Name="TotalDebe" FontWeight="SemiBold" Foreground="{StaticResource Pincel.Tinta}" /></TextBlock>
+                  <TextBlock Margin="0,0,18,0">Haber <Run x:Name="TotalHaber" FontWeight="SemiBold" Foreground="{StaticResource Pincel.Tinta}" /></TextBlock>
+                  <TextBlock x:Name="TextoSaldo">Saldo <Run x:Name="TotalSaldo" FontWeight="SemiBold" /></TextBlock>
+                  <TextBlock Margin="24,0,0,0" Text="Doble clic: ver el asiento · clic derecho en la cabecera: columnas · Alt+← →: mover la columna" />
+                </StackPanel>
+              </Border>
+
+              <pc:VistaEstado x:Name="Vista" Titulo="Ningún apunte cumple los filtros" Mensaje="Hay apuntes en la cuenta: revisa las etiquetas de filtro o quítalas." TextoAccion="Quitar filtros" AyudaAccion="Quita todas las etiquetas de filtro">
+                <pc:TablaProConta x:Name="Tabla" ClavePreferencias="muestra.mayor" TituloExportacion="Mayor 43000012 Talleres Albora" BorderBrush="{StaticResource Pincel.Linea}" BorderThickness="0,1,0,0">
+                  <pc:TablaProConta.Columns>
+                    <DataGridTextColumn Header="Cuenta" Binding="{Binding Cuenta}" Width="92" ElementStyle="{StaticResource Texto.Celda.Mono}" pc:TablaProConta.Clave="cta" pc:TablaProConta.OcultaDeFabrica="True" />
+                    <DataGridTextColumn Header="Fecha" Binding="{Binding Fecha, Converter={StaticResource Fecha}}" SortMemberPath="Fecha" Width="88" pc:TablaProConta.Clave="fe" pc:TablaProConta.RutaExportar="Fecha" />
+                    <DataGridTextColumn Header="Asiento" Binding="{Binding Asiento}" Width="112" ElementStyle="{StaticResource Texto.Celda.Mono}" pc:TablaProConta.Clave="as" />
+                    <DataGridTextColumn Header="Concepto" Binding="{Binding Concepto}" Width="*" MinWidth="260" ElementStyle="{StaticResource Texto.Celda}" pc:TablaProConta.Clave="con" pc:TablaProConta.SiempreVisible="True" />
+                    <DataGridTextColumn Header="Documento" Binding="{Binding Documento}" Width="120" ElementStyle="{StaticResource Texto.Celda.Mono}" pc:TablaProConta.Clave="doc" />
+                    <DataGridTextColumn Header="Debe" Binding="{Binding Debe, Converter={StaticResource Importe}, ConverterParameter=vacio}" SortMemberPath="Debe" Width="112"
+                                        ElementStyle="{StaticResource Texto.Celda.Importe}" HeaderStyle="{StaticResource Tabla.Cabecera.Derecha}" pc:TablaProConta.Clave="debe" pc:TablaProConta.RutaExportar="Debe" />
+                    <DataGridTextColumn Header="Haber" Binding="{Binding Haber, Converter={StaticResource Importe}, ConverterParameter=vacio}" SortMemberPath="Haber" Width="112"
+                                        ElementStyle="{StaticResource Texto.Celda.Importe}" HeaderStyle="{StaticResource Tabla.Cabecera.Derecha}" pc:TablaProConta.Clave="haber" pc:TablaProConta.RutaExportar="Haber" />
+                    <DataGridTemplateColumn Header="Saldo" SortMemberPath="Saldo" Width="132" HeaderStyle="{StaticResource Tabla.Cabecera.Derecha}" pc:TablaProConta.Clave="sal" pc:TablaProConta.RutaExportar="Saldo">
+                      <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                          <TextBlock Style="{StaticResource Texto.Saldo}" VerticalAlignment="Center" Text="{Binding Saldo, Converter={StaticResource Importe}}"
+                                     ToolTip="Saldo acumulado por fecha: al ordenar por otra columna no se recalcula">
+                            <TextBlock.Foreground>
+                              <MultiBinding Converter="{StaticResource SaldoPincel}">
+                                <Binding Path="Saldo" />
+                                <Binding Path="Cuenta" />
+                              </MultiBinding>
+                            </TextBlock.Foreground>
+                          </TextBlock>
+                        </DataTemplate>
+                      </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
+                    <DataGridTextColumn Header="Punteo" Binding="{Binding PunteadoTexto}" SortMemberPath="Punteado" Width="64" pc:TablaProConta.Clave="pun" pc:TablaProConta.RutaExportar="Punteado">
+                      <DataGridTextColumn.ElementStyle>
+                        <Style TargetType="TextBlock"><Setter Property="Foreground" Value="{StaticResource Pincel.Verde}" /><Setter Property="FontWeight" Value="Bold" /><Setter Property="HorizontalAlignment" Value="Center" /><Setter Property="VerticalAlignment" Value="Center" /></Style>
+                      </DataGridTextColumn.ElementStyle>
+                    </DataGridTextColumn>
+                    <DataGridTextColumn Header="Contrapartida" Binding="{Binding Contrapartida}" Width="104" ElementStyle="{StaticResource Texto.Celda.Mono}" pc:TablaProConta.Clave="cp" />
+                    <DataGridTextColumn Header="Descripción contrapartida" Binding="{Binding DescripcionContrapartida}" Width="210" ElementStyle="{StaticResource Texto.Celda}" pc:TablaProConta.Clave="cpd" />
+                    <DataGridTextColumn Header="Notas" Binding="{Binding Notas}" Width="230" ElementStyle="{StaticResource Texto.Celda}" pc:TablaProConta.Clave="nota" />
+                    <DataGridTextColumn Header="Fecha doc." Binding="{Binding FechaDocumento, Converter={StaticResource Fecha}}" SortMemberPath="FechaDocumento" Width="92" pc:TablaProConta.Clave="fdoc" pc:TablaProConta.OcultaDeFabrica="True" pc:TablaProConta.RutaExportar="FechaDocumento" />
+                    <DataGridTextColumn Header="Grabado el" Binding="{Binding GrabadoEl, Converter={StaticResource Fecha}}" SortMemberPath="GrabadoEl" Width="92" pc:TablaProConta.Clave="cre" pc:TablaProConta.OcultaDeFabrica="True" pc:TablaProConta.RutaExportar="GrabadoEl" />
+                    <DataGridTextColumn Header="Modificado el" Binding="{Binding ModificadoEl, Converter={StaticResource Fecha}}" SortMemberPath="ModificadoEl" Width="104" pc:TablaProConta.Clave="mod" pc:TablaProConta.OcultaDeFabrica="True" pc:TablaProConta.RutaExportar="ModificadoEl" />
+                  </pc:TablaProConta.Columns>
+                </pc:TablaProConta>
+              </pc:VistaEstado>
+            </DockPanel>
+          </Border>
+        </DockPanel>
+      </TabItem>
+
+      <!-- ================= Galería de controles ================= -->
+      <TabItem Header="Controles" ToolTip="Todos los controles de la biblioteca con sus estados">
+        <ScrollViewer VerticalScrollBarVisibility="Auto">
+          <WrapPanel Orientation="Horizontal">
+            <WrapPanel.Resources>
+              <Style TargetType="Border" BasedOn="{StaticResource Tarjeta}">
+                <Setter Property="Margin" Value="0,0,14,14" />
+                <Setter Property="Padding" Value="16" />
+                <Setter Property="Width" Value="600" />
+                <Setter Property="VerticalAlignment" Value="Top" />
+              </Style>
+            </WrapPanel.Resources>
+
+            <Border>
+              <StackPanel>
+                <TextBlock Text="Botones" Style="{StaticResource Texto.Seccion}" />
+                <WrapPanel>
+                  <Button Content="Normal" Margin="0,0,8,8" ToolTip="Botón normal" />
+                  <Button Content="Principal" Style="{StaticResource Boton.Primario}" Margin="0,0,8,8" ToolTip="Botón principal" />
+                  <Button Content="Con icono" pc:Iconos.Icono="{StaticResource Icono.print}" Margin="0,0,8,8" ToolTip="Botón con icono" />
+                  <Button Content="Peligro" Style="{StaticResource Boton.Peligro}" pc:Iconos.Icono="{StaticResource Icono.trash}" Margin="0,0,8,8" ToolTip="Acción que borra o anula" />
+                  <Button Content="Pequeño" Style="{StaticResource Boton.Pequeno}" Margin="0,0,8,8" ToolTip="Botón pequeño" />
+                  <Button Content="Fantasma" Style="{StaticResource Boton.Fantasma}" Margin="0,0,8,8" ToolTip="Botón sin borde" />
+                  <Button Style="{StaticResource Boton.Icono}" pc:Iconos.Icono="{StaticResource Icono.kbd}" Margin="0,0,8,8" ToolTip="Atajos de teclado" />
+                  <Button Content="Enlace" Style="{StaticResource Boton.Enlace}" Margin="0,6,8,8" ToolTip="Acción secundaria con aspecto de enlace" />
+                  <Button Content="Deshabilitado" IsEnabled="False" Margin="0,0,8,8" ToolTip="Deshabilitado: el tooltip explica por qué" />
+                </WrapPanel>
+              </StackPanel>
+            </Border>
+
+            <Border>
+              <StackPanel>
+                <TextBlock Text="Campos" Style="{StaticResource Texto.Seccion}" />
+                <Grid>
+                  <Grid.ColumnDefinitions><ColumnDefinition Width="120" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                  <Grid.RowDefinitions><RowDefinition Height="36" /><RowDefinition Height="36" /><RowDefinition Height="36" /><RowDefinition Height="36" /><RowDefinition Height="36" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+                  <TextBlock Text="Razón social" VerticalAlignment="Center" />
+                  <TextBox Grid.Column="1" Width="320" HorizontalAlignment="Left" Text="Talleres Albora, S.L." ToolTip="Nombre fiscal completo" />
+                  <TextBlock Grid.Row="1" Text="NIF" VerticalAlignment="Center" />
+                  <TextBox Grid.Row="1" Grid.Column="1" Width="120" HorizontalAlignment="Left" Style="{StaticResource Campo.Mono}" Text="B00000000" ToolTip="NIF o CIF" />
+                  <TextBlock Grid.Row="2" Text="Código postal" VerticalAlignment="Center" />
+                  <TextBox x:Name="CampoError" Grid.Row="2" Grid.Column="1" Width="90" HorizontalAlignment="Left" Text="4600" />
+                  <TextBlock Grid.Row="3" Text="Importe" VerticalAlignment="Center" />
+                  <TextBox Grid.Row="3" Grid.Column="1" Width="120" HorizontalAlignment="Left" Style="{StaticResource Campo.Importe}" Text="1.234,56" ToolTip="Importe en euros, sin símbolo" />
+                  <TextBlock Grid.Row="4" Text="Forma de pago" VerticalAlignment="Center" />
+                  <ComboBox Grid.Row="4" Grid.Column="1" Width="220" HorizontalAlignment="Left" SelectedIndex="0" ToolTip="Forma de pago por defecto">
+                    <ComboBoxItem Content="Transferencia 30 días" />
+                    <ComboBoxItem Content="Recibo domiciliado" />
+                    <ComboBoxItem Content="Contado" />
+                  </ComboBox>
+                  <TextBox Grid.Row="5" Grid.ColumnSpan="2" Margin="0,8,0,0" Style="{StaticResource Campo.Multilinea}" Text="Notas largas de varias líneas…" ToolTip="Notas internas" />
+                </Grid>
+              </StackPanel>
+            </Border>
+
+            <Border>
+              <StackPanel>
+                <TextBlock Text="Casillas, opciones y segmentos" Style="{StaticResource Texto.Seccion}" />
+                <WrapPanel>
+                  <CheckBox Content="Marcada" IsChecked="True" Margin="0,0,16,8" ToolTip="Casilla marcada" />
+                  <CheckBox Content="Sin marcar" Margin="0,0,16,8" ToolTip="Casilla sin marcar" />
+                  <CheckBox Content="Indeterminada" IsThreeState="True" IsChecked="{x:Null}" Margin="0,0,16,8" ToolTip="Casilla con selección parcial" />
+                  <RadioButton Content="Opción A" IsChecked="True" GroupName="G" Margin="0,0,16,8" ToolTip="Opción" />
+                  <RadioButton Content="Opción B" GroupName="G" Margin="0,0,16,8" ToolTip="Opción" />
+                </WrapPanel>
+                <Border Style="{StaticResource Segmentado}" Margin="0,6,0,0" Padding="2" Width="Auto">
+                  <StackPanel Orientation="Horizontal">
+                    <RadioButton Style="{StaticResource Segmento}" GroupName="S" Content="Todas sus cuentas" IsChecked="True" ToolTip="Mayor combinado de todas las cuentas" />
+                    <RadioButton Style="{StaticResource Segmento}" GroupName="S" Content="43000012 · Cliente" ToolTip="Solo la cuenta de cliente" />
+                    <RadioButton Style="{StaticResource Segmento}" GroupName="S" Content="40000031 · Proveedor" ToolTip="Solo la cuenta de proveedor" />
+                  </StackPanel>
+                </Border>
+              </StackPanel>
+            </Border>
+
+            <Border>
+              <StackPanel>
+                <TextBlock Text="Notas, etiquetas y saldos" Style="{StaticResource Texto.Seccion}" />
+                <pc:Nota Content="Información: los apuntes de 2024 son de un ejercicio cerrado y solo se consultan." Margin="0,0,0,6" />
+                <pc:Nota Tipo="Aviso" Content="Aviso: totales de las filas mostradas; hay filtros aplicados." Margin="0,0,0,6" />
+                <pc:Nota Tipo="Ok" Content="Cuenta cuadrada el 30/09/2026." Margin="0,0,0,6" />
+                <pc:Nota Tipo="Error" Content="No se ha podido guardar: el ejercicio está cerrado. Usa el asistente de corrección." Margin="0,0,0,10" />
+                <WrapPanel>
+                  <pc:Etiqueta Content="Factura F-2026-0102" />
+                  <pc:Etiqueta Content="Solo no punteados" />
+                </WrapPanel>
+                <StackPanel x:Name="Saldos" Margin="0,10,0,0" />
+              </StackPanel>
+            </Border>
+
+            <Border Height="300">
+              <DockPanel>
+                <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,8">
+                  <TextBlock Text="Estados" Style="{StaticResource Texto.Seccion}" VerticalAlignment="Center" Margin="0,0,12,0" />
+                  <Border Style="{StaticResource Segmentado}" Padding="2" Width="Auto" Margin="0">
+                    <StackPanel Orientation="Horizontal">
+                      <RadioButton Style="{StaticResource Segmento}" GroupName="E" Content="Vacío" Tag="Vacio" Checked="Estado_Checked" IsChecked="True" ToolTip="Sin datos" />
+                      <RadioButton Style="{StaticResource Segmento}" GroupName="E" Content="Cargando" Tag="Cargando" Checked="Estado_Checked" ToolTip="Cargando" />
+                      <RadioButton Style="{StaticResource Segmento}" GroupName="E" Content="Error" Tag="Error" Checked="Estado_Checked" ToolTip="Error al cargar" />
+                      <RadioButton Style="{StaticResource Segmento}" GroupName="E" Content="Sin permiso" Tag="SinPermiso" Checked="Estado_Checked" ToolTip="Sin permiso" />
+                    </StackPanel>
+                  </Border>
+                </StackPanel>
+                <pc:VistaEstado x:Name="Demo" Estado="Vacio" Titulo="Sin movimientos en el ejercicio 2026" Mensaje="La cuenta existe en el plan pero no tiene apuntes. Puedes elegir otros ejercicios o crear un asiento." TextoAccion="Marcar todos los ejercicios" AyudaAccion="Muestra los apuntes de todos los ejercicios" />
+              </DockPanel>
+            </Border>
+
+            <Border>
+              <StackPanel>
+                <TextBlock Text="Menús, diálogos y tooltips" Style="{StaticResource Texto.Seccion}" />
+                <WrapPanel>
+                  <Button Content="Menú contextual (clic derecho)" Margin="0,0,8,8" ToolTip="Clic derecho para ver el menú contextual de muestra">
+                    <Button.ContextMenu>
+                      <ContextMenu>
+                        <MenuItem Header="Ver asiento" InputGestureText="Intro" ToolTip="Abre el asiento del apunte" />
+                        <MenuItem Header="Puntear" InputGestureText="F4" ToolTip="Marca el apunte como punteado" />
+                        <MenuItem Header="Asignar número de factura…" InputGestureText="Ctrl+N" ToolTip="Escribe el número de factura en los apuntes" />
+                        <Separator />
+                        <MenuItem Header="Columnas visibles">
+                          <MenuItem Header="Fecha doc." IsCheckable="True" />
+                          <MenuItem Header="Grabado el" IsCheckable="True" IsChecked="True" />
+                        </MenuItem>
+                        <MenuItem Header="Cambiar la contrapartida…" IsEnabled="False" ToolTip="El asiento tiene varias contrapartidas: usa el asistente de corrección." />
+                      </ContextMenu>
+                    </Button.ContextMenu>
+                  </Button>
+                  <Button Content="Abrir diálogo" Margin="0,0,8,8" Click="Dialogo_Click" ToolTip="Abre un diálogo de muestra" />
+                  <Button Content="Pasa el ratón" Margin="0,0,8,8" ToolTip="Un tooltip largo se parte en varias líneas y dice qué hace el control, no solo su nombre: así el operador sabe qué pasará antes de pulsar." />
+                </WrapPanel>
+              </StackPanel>
+            </Border>
+
+            <Border Width="1214">
+              <StackPanel>
+                <TextBlock Text="Iconos" Style="{StaticResource Texto.Seccion}" />
+                <ItemsControl x:Name="Galeria">
+                  <ItemsControl.ItemsPanel><ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                      <StackPanel Width="84" Margin="0,0,6,10" ToolTip="{Binding Key}">
+                        <Path Data="{Binding Value}" Style="{StaticResource Icono.Trazo18}" HorizontalAlignment="Center" TextElement.Foreground="{StaticResource Pincel.Marino}" />
+                        <TextBlock Text="{Binding Key}" HorizontalAlignment="Center" FontSize="{StaticResource Letra.Mini}" Foreground="{StaticResource Pincel.Apagado}" Margin="0,3,0,0" />
+                      </StackPanel>
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+              </StackPanel>
+            </Border>
+          </WrapPanel>
+        </ScrollViewer>
+      </TabItem>
+    </TabControl>
+  </DockPanel>
+</Window>

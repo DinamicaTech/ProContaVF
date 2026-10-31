@@ -1,0 +1,12 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <!--
+    Punto de entrada de la biblioteca. Cada aplicación lo añade una vez en App.xaml:
+      <ResourceDictionary Source="/ProConta.UI.Base;component/Themes/ProConta.xaml" />
+    e indica Style="{StaticResource Ventana.ProConta}" en sus ventanas.
+    Las plantillas de los componentes propios (PanelPlegable, VistaEstado, Etiqueta, Nota, DialogoProConta) están en Generic.xaml.
+  -->
+  <ResourceDictionary.MergedDictionaries>
+    <ResourceDictionary Source="/ProConta.UI.Base;component/Themes/Controles.xaml" />
+  </ResourceDictionary.MergedDictionaries>
+</ResourceDictionary>
