@@ -33,6 +33,12 @@ public sealed class Migracion
 
     public IReadOnlyList<PasoMigracion> Pasos { get; }
 
+    /// <summary>
+    /// Comprobación previa opcional: se ejecuta para todas las pendientes antes de hacer la copia y de
+    /// cambiar nada; si devuelve un error, la actualización no empieza.
+    /// </summary>
+    public Func<ISesionDatos, ContextoMigracion, Task<Nucleo.Resultados.Error?>>? Precondicion { get; init; }
+
     /// <summary>SHA-256 de la definición: identifica la migración aplicada aunque cambie su texto descriptivo.</summary>
     public string Hash { get; }
 
@@ -46,6 +52,17 @@ public sealed class Migracion
     public override string ToString() => Id;
 }
 
+/// <summary>
+/// Datos que recibe una migración al aplicarse: parámetros de la instalación (por ejemplo, el
+/// fichero de origen de un catálogo que estaba vinculado), indicados al ejecutar el ActualizadorEsquema.
+/// </summary>
+public sealed record ContextoMigracion(IReadOnlyDictionary<string, string> Parametros)
+{
+    public static readonly ContextoMigracion Vacio = new(new Dictionary<string, string>());
+
+    public string? Parametro(string nombre) => Parametros.TryGetValue(nombre, out var valor) && !string.IsNullOrWhiteSpace(valor) ? valor : null;
+}
+
 /// <summary>Paso idempotente de una migración.</summary>
 public abstract class PasoMigracion
 {
@@ -57,7 +74,7 @@ public abstract class PasoMigracion
 
     public abstract Task<bool> YaAplicadoAsync(ISesionDatos sesion, EsquemaFisico esquema);
 
-    public abstract Task AplicarAsync(ISesionDatos sesion);
+    public abstract Task AplicarAsync(ISesionDatos sesion, ContextoMigracion contexto);
 }
 
 /// <summary>Crea una tabla si no existe. <c>sql</c> es el CREATE TABLE completo.</summary>
@@ -67,7 +84,7 @@ public sealed class CrearTabla(string tabla, string sql) : PasoMigracion
     public override string Firma => sql;
     public override Task<bool> YaAplicadoAsync(ISesionDatos sesion, EsquemaFisico esquema) =>
         Task.FromResult(esquema.Tabla(tabla) is { EsVinculada: false });
-    public override Task AplicarAsync(ISesionDatos sesion) => sesion.EjecutarAsync(sql);
+    public override Task AplicarAsync(ISesionDatos sesion, ContextoMigracion contexto) => sesion.EjecutarAsync(sql);
 }
 
 /// <summary>Añade una columna si no existe (<c>definicion</c>: «TEXT(50) NOT NULL», «YESNO»…).</summary>
@@ -77,7 +94,7 @@ public sealed class AnadirColumna(string tabla, string columna, string definicio
     public override string Firma => $"ALTER TABLE [{tabla}] ADD COLUMN [{columna}] {definicion}";
     public override Task<bool> YaAplicadoAsync(ISesionDatos sesion, EsquemaFisico esquema) =>
         Task.FromResult(esquema.ExisteColumna(tabla, columna));
-    public override Task AplicarAsync(ISesionDatos sesion) => sesion.EjecutarAsync(Firma);
+    public override Task AplicarAsync(ISesionDatos sesion, ContextoMigracion contexto) => sesion.EjecutarAsync(Firma);
 }
 
 /// <summary>Crea un índice si no existe. <c>sql</c> es el CREATE [UNIQUE] INDEX completo.</summary>
@@ -87,7 +104,7 @@ public sealed class CrearIndice(string tabla, string indice, string sql) : PasoM
     public override string Firma => sql;
     public override Task<bool> YaAplicadoAsync(ISesionDatos sesion, EsquemaFisico esquema) =>
         Task.FromResult(esquema.ExisteIndice(tabla, indice));
-    public override Task AplicarAsync(ISesionDatos sesion) => sesion.EjecutarAsync(sql);
+    public override Task AplicarAsync(ISesionDatos sesion, ContextoMigracion contexto) => sesion.EjecutarAsync(sql);
 }
 
 /// <summary>Quita el vínculo de una tabla vinculada (no toca la BD de destino del vínculo).</summary>
@@ -97,7 +114,7 @@ public sealed class QuitarVinculo(string tabla) : PasoMigracion
     public override string Firma => $"DROP LINK [{tabla}]";
     public override Task<bool> YaAplicadoAsync(ISesionDatos sesion, EsquemaFisico esquema) =>
         Task.FromResult(esquema.Tabla(tabla) is not { EsVinculada: true });
-    public override Task AplicarAsync(ISesionDatos sesion) => sesion.EjecutarAsync($"DROP TABLE [{tabla}]");
+    public override Task AplicarAsync(ISesionDatos sesion, ContextoMigracion contexto) => sesion.EjecutarAsync($"DROP TABLE [{tabla}]");
 }
 
 /// <summary>Paso de datos o de DDL particular, con su propia comprobación de «ya hecho».</summary>
@@ -105,10 +122,10 @@ public sealed class PasoPersonalizado(
     string descripcion,
     string firma,
     Func<ISesionDatos, EsquemaFisico, Task<bool>> yaAplicado,
-    Func<ISesionDatos, Task> aplicar) : PasoMigracion
+    Func<ISesionDatos, ContextoMigracion, Task> aplicar) : PasoMigracion
 {
     public override string Descripcion => descripcion;
     public override string Firma => firma;
     public override Task<bool> YaAplicadoAsync(ISesionDatos sesion, EsquemaFisico esquema) => yaAplicado(sesion, esquema);
-    public override Task AplicarAsync(ISesionDatos sesion) => aplicar(sesion);
+    public override Task AplicarAsync(ISesionDatos sesion, ContextoMigracion contexto) => aplicar(sesion, contexto);
 }

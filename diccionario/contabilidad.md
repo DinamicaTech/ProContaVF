@@ -225,6 +225,11 @@ Relaciones:
 - PK_CuentasPlanContable (clave primaria): IdCuentaPlanContable
 - UX_CuentasPlan_Codigo (único): IdPlanContable, Codigo
 
+## F_CDP
+
+- Dueño funcional: `contabilidad/centros-coste`
+- Tabla **vinculada** a otro fichero: su estructura no se lee desde la maestra.
+
 ## F_DEP
 
 - Dueño funcional: `contabilidad/centros-coste`

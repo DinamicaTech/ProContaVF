@@ -75,7 +75,6 @@ Relaciones:
 
 Relaciones:
 - FK_Contratos_Clientes: (IdCliente) → Clientes (IdCliente); borrado NO ACTION, actualización NO ACTION
-- FK_FormasPago_Contratos: (FormaDePago) → FormasPago (Codigo); borrado NO ACTION, actualización NO ACTION
 - FK_Inmuebles_Contratos: (IdInmueble) → Inmuebles (Id); borrado NO ACTION, actualización NO ACTION
 - FK_Sociedades_Contratos: (IdSociedad) → Sociedades (IdSociedad); borrado NO ACTION, actualización NO ACTION
 
@@ -220,7 +219,6 @@ Relaciones:
 - FK_Facturas_Rectificada: (IdFacturaRectificada) → Facturas (IdFactura); borrado NO ACTION, actualización NO ACTION
 - FK_Facturas_Series: (IdSerie) → SeriesFacturacion (IdSerie); borrado NO ACTION, actualización NO ACTION
 - FK_Facturas_TiposFactura: (TipoFactura) → TiposFactura (TipoFactura); borrado NO ACTION, actualización NO ACTION
-- FK_FormasPago_Facturas: (FormaDePago) → FormasPago (Codigo); borrado NO ACTION, actualización NO ACTION
 - FK_LotesExportacionContable_Facturas: (LoteExportacionContable) → LotesExportacionContable (IdLote); borrado NO ACTION, actualización NO ACTION
 - FK_SociedadesEjercicios_Facturas: (IdSociedadEjercicio) → SociedadesEjercicios (IdSociedadEjercicio); borrado NO ACTION, actualización NO ACTION
 

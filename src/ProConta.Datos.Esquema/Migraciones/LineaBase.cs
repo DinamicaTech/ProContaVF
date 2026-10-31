@@ -45,7 +45,11 @@ public static class LineaBase
 /// </summary>
 public static class CatalogoMigraciones
 {
-    public static IReadOnlyList<Migracion> Todas { get; } = [];
+    public static IReadOnlyList<Migracion> Todas { get; } =
+    [
+        MigracionesOrganizacion.FormasPagoPropia,
+        MigracionesOrganizacion.EjercicioCerrado,
+    ];
 
     /// <summary>Versión del esquema que espera esta versión del programa.</summary>
     public static int VersionPrograma => LineaBase.Version + Todas.Count;

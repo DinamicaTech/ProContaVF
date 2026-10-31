@@ -5,12 +5,15 @@
 ## FormasPago
 
 - Dueño funcional: `organizacion/formas-pago`
-- Tabla **vinculada** a otro fichero: su estructura no se lee desde la maestra.
 
-## F_CDP
+| Campo | Tipo | Nulo | Por defecto | Descripción |
+|---|---|---|---|---|
+| Id | BYTE | no |  |  |
+| Descripcion | TEXT(100) | no |  |  |
+| SEPA | YESNO | no |  |  |
 
-- Dueño funcional: `organizacion/geografia`
-- Tabla **vinculada** a otro fichero: su estructura no se lee desde la maestra.
+Índices:
+- PK_FormasPago (clave primaria): Id
 
 ## Sociedades
 
@@ -107,6 +110,7 @@
 | CuentaPeriodificacionVentas | TEXT(10) | sí |  |  |
 | Cuenta570Tesoreria | TEXT(10) | sí |  |  |
 | PorcentajeProrrataAñoAnterior | SINGLE | sí |  |  |
+| EjercicioCerrado | YESNO | no | No |  |
 
 Índices:
 - FK_Sociedades_SociedadesEjercicios: IdSociedad

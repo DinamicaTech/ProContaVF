@@ -146,7 +146,8 @@ public sealed class PersistenciaTests : IDisposable
         Assert.Equal("CURRENCY", tabla.Columna("Importe")!.Tipo);
         Assert.Equal("LONGTEXT", tabla.Columna("Nota")!.Tipo);
         Assert.Contains(tabla.Indices, i => i.Nombre == "UX_PruebaPersistencia_Codigo" && i.EsUnico);
-        Assert.True(esquema.Tabla("FormasPago")!.EsVinculada);
+        Assert.True(esquema.Tabla("F_DEP")!.EsVinculada);
+        Assert.False(esquema.Tabla("FormasPago")!.EsVinculada);
         Assert.True(esquema.ExisteColumna("Sociedades", "CIF"));
     }
 

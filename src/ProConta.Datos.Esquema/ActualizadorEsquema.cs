@@ -29,9 +29,12 @@ public sealed class ActualizadorEsquema
     private readonly Actor _actor;
     private readonly IReloj _reloj;
     private readonly string _versionAplicacion;
+    private readonly ContextoMigracion _contexto;
 
-    public ActualizadorEsquema(Actor actor, IReadOnlyList<Migracion>? catalogo = null, IReloj? reloj = null, string? versionAplicacion = null)
+    public ActualizadorEsquema(Actor actor, IReadOnlyList<Migracion>? catalogo = null, IReloj? reloj = null, string? versionAplicacion = null,
+        IReadOnlyDictionary<string, string>? parametros = null)
     {
+        _contexto = parametros is null ? ContextoMigracion.Vacio : new ContextoMigracion(parametros);
         _catalogo = catalogo ?? CatalogoMigraciones.Todas;
         _actor = actor;
         _reloj = reloj ?? RelojSistema.Instancia;
@@ -64,6 +67,12 @@ public sealed class ActualizadorEsquema
             return Resultado<InformeActualizacion>.Correcto(new(exclusiva.Ruta, diagnostico.VersionBd, diagnostico.VersionBd, [], null));
         if (!diagnostico.SePuedeActualizar)
             return Resultado<InformeActualizacion>.Fallo(diagnostico.ComoError()!);
+
+        foreach (var migracion in diagnostico.Pendientes.Where(m => m.Precondicion is not null))
+        {
+            var error = await exclusiva.EjecutarAsync(s => migracion.Precondicion!(s, _contexto));
+            if (error is not null) return Resultado<InformeActualizacion>.Fallo(error);
+        }
 
         var copia = HacerCopia(exclusiva.Ruta, carpetaCopias, diagnostico.VersionBd);
         if (!copia.EsCorrecto) return Resultado<InformeActualizacion>.Fallo(copia.Errores);
@@ -103,7 +112,7 @@ public sealed class ActualizadorEsquema
                     pasoActual = paso.Descripcion;
                     await s.EjecutarAsync("UPDATE LogMigracionesEsquema SET PasoActual = ? WHERE IdEjecucion = ?", Recortar(pasoActual, 255), idEjecucion);
                     if (await paso.YaAplicadoAsync(s, s.LeerEsquema())) continue;
-                    await paso.AplicarAsync(s);
+                    await paso.AplicarAsync(s, _contexto);
                 }
                 await s.EjecutarAsync(
                     "INSERT INTO VersionesEsquema (IdMigracion, OrdenMigracion, Descripcion, FechaHoraAplicacion, VersionAplicacion, HashMigracion, DuracionMilisegundos, CopiaSeguridad) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",

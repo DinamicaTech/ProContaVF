@@ -18,7 +18,6 @@ public static class DuenosTablas
         Asignar("plataforma", "plataforma/mantenimiento", "Configuracion", "AliasCamposConfiguracion");
         Asignar("organizacion", "organizacion/sociedades-ejercicios", "Sociedades", "SociedadesEjercicios");
         Asignar("organizacion", "organizacion/formas-pago", "FormasPago");
-        Asignar("organizacion", "organizacion/geografia", "F_CDP");
         Asignar("seguridad", "seguridad/permisos", "GruposOperadores", "OperadoresGrupos", "AccesoSociedadesGrupo", "RestriccionesReportsGrupo");
         Asignar("seguridad", "seguridad/acceso", "OperadoresSeguridad", "AuditoriaSeguridad", "PreferenciasAccesoOperador", "PreferenciasAccesoEjercicio");
         Asignar("terceros", "terceros/tercero", "Terceros", "HistorialTerceros", "MapasOrigenTerceros", "DomiciliosTercero");
@@ -27,7 +26,7 @@ public static class DuenosTablas
         Asignar("terceros", "terceros/perfiles-notas", "Perfiles", "PerfilesTerceros");
         Asignar("contabilidad", "contabilidad/cuenta-contable", "CuentasContables", "IdentidadesContables", "CodigosContablesReservados",
             "CuentasContablesLegacy", "CuentasPlanContable", "PlanesContables", "TiposCuentaContable");
-        Asignar("contabilidad", "contabilidad/centros-coste", "CentrosCoste", "F_DEP");
+        Asignar("contabilidad", "contabilidad/centros-coste", "CentrosCoste", "F_CDP", "F_DEP");
         Asignar("contabilidad", "contabilidad/asientos", "Asientos", "Apuntes", "RelacionesAsientos", "RevisionesAsientos");
         Asignar("contabilidad", "contabilidad/procesos", "ConfiguracionesContables", "ConfiguracionesContablesCuentaBancaria", "PeriodosIVA", "IVARepercutido", "IVASoportado");
         Asignar("contabilidad", "contabilidad/modelos-tributarios", "PresentacionesTributarias");
