@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Tipos comunes de todas las áreas, sin reglas de negocio (docs/nucleo.md). -->
+  <PropertyGroup>
+    <OutputType>Library</OutputType>
+    <RootNamespace>ProConta.Nucleo</RootNamespace>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);CS1591</NoWarn>
+  </PropertyGroup>
+</Project>

@@ -3,10 +3,12 @@
     <Platform Name="x64" />
   </Configurations>
   <Folder Name="/src/">
+    <Project Path="src/ProConta.Nucleo/ProConta.Nucleo.csproj" />
     <Project Path="src/ProConta.UI.Base/ProConta.UI.Base.csproj" />
     <Project Path="src/ProConta.UI.Muestra/ProConta.UI.Muestra.csproj" />
   </Folder>
   <Folder Name="/tests/">
+    <Project Path="tests/ProConta.Nucleo.Tests/ProConta.Nucleo.Tests.csproj" />
     <Project Path="tests/ProConta.UI.Base.Tests/ProConta.UI.Base.Tests.csproj" />
   </Folder>
 </Solution>

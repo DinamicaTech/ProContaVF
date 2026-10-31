@@ -1,0 +1,24 @@
+<Project>
+  <!-- Versión de entrega visible (RF-TEC-06, docs/plataforma/entrega.md):
+       InformationalVersion = ProContaVF-<rama>.<número de commits>+<sha corto>.
+       Si git no está disponible queda "ProContaVF-local". -->
+  <Target Name="ProContaVersionDesdeGit" BeforeTargets="GetAssemblyVersion;GenerateAssemblyInfo" Condition="'$(ProContaVersionCalculada)' != 'true'">
+    <Exec Command="git rev-parse --abbrev-ref HEAD" ConsoleToMSBuild="true" StandardOutputImportance="low" IgnoreExitCode="true" WorkingDirectory="$(MSBuildThisFileDirectory)">
+      <Output TaskParameter="ConsoleOutput" PropertyName="_ProContaRama" />
+      <Output TaskParameter="ExitCode" PropertyName="_ProContaGitCodigo" />
+    </Exec>
+    <Exec Command="git rev-list --count HEAD" ConsoleToMSBuild="true" StandardOutputImportance="low" IgnoreExitCode="true" WorkingDirectory="$(MSBuildThisFileDirectory)" Condition="'$(_ProContaGitCodigo)' == '0'">
+      <Output TaskParameter="ConsoleOutput" PropertyName="_ProContaSecuencia" />
+    </Exec>
+    <Exec Command="git rev-parse --short HEAD" ConsoleToMSBuild="true" StandardOutputImportance="low" IgnoreExitCode="true" WorkingDirectory="$(MSBuildThisFileDirectory)" Condition="'$(_ProContaGitCodigo)' == '0'">
+      <Output TaskParameter="ConsoleOutput" PropertyName="_ProContaSha" />
+    </Exec>
+    <PropertyGroup>
+      <_ProContaRama>$(_ProContaRama.Replace('/', '-'))</_ProContaRama>
+      <InformationalVersion Condition="'$(_ProContaGitCodigo)' == '0'">ProContaVF-$(_ProContaRama).$(_ProContaSecuencia)+$(_ProContaSha)</InformationalVersion>
+      <InformationalVersion Condition="'$(_ProContaGitCodigo)' != '0'">ProContaVF-local</InformationalVersion>
+      <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
+      <ProContaVersionCalculada>true</ProContaVersionCalculada>
+    </PropertyGroup>
+  </Target>
+</Project>
