@@ -29,7 +29,9 @@ public static class MigracionesOrganizacion
         new PasoPersonalizado(
             "Quitar las relaciones antiguas hacia el vínculo FormasPago",
             "ALTER TABLE Facturas DROP CONSTRAINT FK_FormasPago_Facturas; ALTER TABLE Contratos DROP CONSTRAINT FK_FormasPago_Contratos",
-            (_, e) => Task.FromResult(!TieneRelacion(e, "Facturas", "FK_FormasPago_Facturas") && !TieneRelacion(e, "Contratos", "FK_FormasPago_Contratos")),
+            // Hecho si ya no quedan, o si FormasPago ya no es el vínculo (las relaciones de mismo nombre son las nuevas).
+            (_, e) => Task.FromResult(e.Tabla("FormasPago") is { EsVinculada: false } ||
+                (!TieneRelacion(e, "Facturas", "FK_FormasPago_Facturas") && !TieneRelacion(e, "Contratos", "FK_FormasPago_Contratos"))),
             async (s, _) =>
             {
                 var e = s.LeerEsquema();
@@ -58,6 +60,62 @@ public static class MigracionesOrganizacion
         "SociedadesEjercicios.EjercicioCerrado (sí/no, por defecto no).",
         "organizacion/sociedades-ejercicios",
         new AnadirColumna("SociedadesEjercicios", "EjercicioCerrado", "YESNO NOT NULL DEFAULT No"));
+
+    /// <summary>
+    /// Alta del código 1 «Indefinida» (lo usan facturas y la forma de pago por defecto de sociedades y
+    /// ejercicios sin que existiera) y restauración de las relaciones de Facturas y Contratos con FormasPago.
+    /// </summary>
+    public static Migracion FormaPagoIndefinida { get; } = new(
+        "20261031_2010_FORMA_PAGO_INDEFINIDA", 261031004,
+        "Forma de pago 1 «Indefinida» y relaciones de Facturas y Contratos con FormasPago.",
+        "organizacion/formas-pago",
+        new PasoPersonalizado(
+            "Dar de alta la forma de pago 1 «Indefinida»",
+            "INSERT INTO FormasPago (Id, Descripcion, SEPA) VALUES (1, 'Indefinida', False) si no existe",
+            async (s, _) => Convert.ToInt32(await s.EscalarAsync("SELECT COUNT(*) FROM FormasPago WHERE Id = 1")) > 0,
+            (s, _) => s.EjecutarAsync("INSERT INTO FormasPago (Id, Descripcion, SEPA) VALUES (?, ?, ?)", (byte)1, "Indefinida", false)),
+        new PasoPersonalizado(
+            "Relacionar Facturas.FormaDePago con FormasPago",
+            "ALTER TABLE Facturas ADD CONSTRAINT FK_FormasPago_Facturas FOREIGN KEY (FormaDePago) REFERENCES FormasPago (Id)",
+            (_, e) => Task.FromResult(TieneRelacion(e, "Facturas", "FK_FormasPago_Facturas")),
+            (s, _) => s.EjecutarAsync("ALTER TABLE Facturas ADD CONSTRAINT FK_FormasPago_Facturas FOREIGN KEY (FormaDePago) REFERENCES FormasPago (Id)")),
+        new PasoPersonalizado(
+            "Relacionar Contratos.FormaDePago con FormasPago",
+            "ALTER TABLE Contratos ADD CONSTRAINT FK_FormasPago_Contratos FOREIGN KEY (FormaDePago) REFERENCES FormasPago (Id)",
+            (_, e) => Task.FromResult(TieneRelacion(e, "Contratos", "FK_FormasPago_Contratos")),
+            (s, _) => s.EjecutarAsync("ALTER TABLE Contratos ADD CONSTRAINT FK_FormasPago_Contratos FOREIGN KEY (FormaDePago) REFERENCES FormasPago (Id)")))
+    {
+        Precondicion = ComprobarCodigosUsadosAsync
+    };
+
+    /// <summary>
+    /// Antes de relacionar: todo código usado en Facturas o Contratos debe existir (o ser el 1 que se da de
+    /// alta). Si FormasPago aún es el vínculo, se compara con las filas que copiará la migración anterior.
+    /// </summary>
+    private static async Task<Nucleo.Resultados.Error?> ComprobarCodigosUsadosAsync(ISesionDatos s, ContextoMigracion contexto)
+    {
+        HashSet<int> existentes;
+        if (s.LeerEsquema().Tabla("FormasPago") is { EsVinculada: false })
+            existentes = (await s.ConsultarAsync("SELECT Id FROM FormasPago", f => f.Entero("Id"))).ToHashSet();
+        else if (await LeerOrigenAsync(s, contexto) is { } origen)
+            existentes = origen.Select(o => o.Codigo).ToHashSet();
+        else
+            return null; // sin origen ya la detiene la comprobación de FormasPagoPropia
+        existentes.Add(1);
+
+        var huerfanos = new List<string>();
+        foreach (var tabla in new[] { "Facturas", "Contratos" })
+        {
+            var usados = await s.ConsultarAsync($"SELECT DISTINCT FormaDePago FROM [{tabla}] WHERE FormaDePago IS NOT NULL", f => f.Entero("FormaDePago"));
+            huerfanos.AddRange(usados.Where(c => !existentes.Contains(c)).Select(c => $"{tabla}: {c}"));
+        }
+        return huerfanos.Count == 0
+            ? null
+            : new Nucleo.Resultados.Error("Esquema.FormasPagoHuerfanas",
+                "Hay facturas o contratos con formas de pago que no existen; no he cambiado nada.", "FormasPago",
+                "Códigos sin forma de pago: " + string.Join(", ", huerfanos) + ".",
+                "Da de alta esas formas de pago o corrige esos registros y vuelve a ejecutar el ActualizadorEsquema.");
+    }
 
     private static bool TieneRelacion(EsquemaFisico esquema, string tabla, string relacion) =>
         esquema.Tabla(tabla)?.Relaciones.Any(r => string.Equals(r.Nombre, relacion, StringComparison.OrdinalIgnoreCase)) == true;

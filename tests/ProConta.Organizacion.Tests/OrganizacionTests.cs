@@ -92,14 +92,14 @@ public sealed class OrganizacionAccessTests : IDisposable
     {
         var bd = _copia.Bd();
         var catalogo = new CatalogoFormasPagoAccess(bd);
-        Assert.Equal(BdPruebas.FormasPagoSinteticas.Count, (await catalogo.ListarAsync()).Count);
+        Assert.Equal(BdPruebas.FormasPagoSinteticas.Count + 1, (await catalogo.ListarAsync()).Count); // + la 1 «Indefinida»
+        Assert.Equal("Indefinida", (await catalogo.ObtenerAsync(1))!.Descripcion);
 
         var alta = await catalogo.AltaAsync("  Bizum  ", false);
         Assert.True(alta.EsCorrecto, alta.Error?.ToString());
         Assert.Equal("Bizum", alta.Valor.Descripcion);
         Assert.Equal(BdPruebas.FormasPagoSinteticas.Max(f => f.Codigo) + 1, alta.Valor.Id);
 
-        Assert.Equal("FormasPago.Repetida", (await catalogo.AltaAsync("BIZUM", false)).Error!.Codigo);
         Assert.Equal("FormasPago.SinDescripcion", (await catalogo.AltaAsync(" ", false)).Error!.Codigo);
 
         Assert.True((await catalogo.ModificarAsync(alta.Valor with { Sepa = true })).EsCorrecto);

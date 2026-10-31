@@ -19,6 +19,7 @@ Operadores, grupos (N:M) y permisos por ámbito: ámbito sin configurar permite 
 - 2026-10-31 19:55 · Primer administrador: si no hay ningún operador, `CrearPrimerAdministradorAsync` crea uno con contraseña (mínimo 8 caracteres) y lo pone en el grupo ADMINISTRADORES (lo crea si falta), en una sola transacción y con auditoría; si ya hay operadores, se niega.
 - 2026-10-31 19:55 · Contraseñas: PBKDF2-HMAC-SHA256 con salt de 16 bytes, hash de 32 y 210.000 iteraciones, comparación en tiempo constante; mismo formato que el programa anterior, así que las credenciales guardadas siguen valiendo.
 - 2026-10-31 19:55 · Un nombre de operador que aparece dos veces (sin distinguir mayúsculas) no identifica a nadie: no se puede entrar con él hasta que se corrija.
+- 2026-10-31 19:02 · No se obliga a los operadores a tener contraseña; el primer administrador sí la define (mínimo 8 caracteres) y cualquier operador puede tenerla.
 
 ## Requirements
 - 2026-10-28 12:28 · From sources/01_ESPECIFICACION_FUNCIONAL.docx § 5 RF-SEG-03, 04, 07: operadores y grupos, política de ámbitos, puntos pendientes
@@ -31,6 +32,7 @@ Operadores, grupos (N:M) y permisos por ámbito: ámbito sin configurar permite 
 - 2026-10-31 16:54 · answer: bloqueo, expiración y segundo factor → (a) fuera del primer incremento
 - 2026-10-29 17:45 · Derived from (root): los procesos que generan asientos o borran datos (amortizaciones, IVA, apertura y cierre, dividendos, resetear la demo…) exigen un permiso propio, y ningún atajo de teclado da privilegios sin autenticarse (sources/proconta-antiguo/menu-principal/ANALISIS-FUNCIONAL.md § 1, 6.3).
 - 2026-10-31 17:53 · Derived from architecture: la política de permisos por ámbitos, los operadores y grupos que necesita el acceso y el asistente del primer administrador (lógica, sin pantallas).
+- 2026-10-31 19:02 · 3. No, de momento podemos trabajar sin contraseñas
 
 ## Hand-over
-- 2026-10-31 19:55 · Hecho: política común, ámbito de sociedades, operadores (búsqueda, grupos activos, primer administrador, cambio de contraseña) y pruebas. Pendiente: mantenimiento completo de operadores y grupos (seguridad/pantallas); ámbitos de reports (las RestriccionesReportsGrupo antiguas son de denegación y necesitan adaptarse, RF-SEG-07) y de procesos que generan asientos o borran datos (requisito 2026-10-29 17:45, sin tabla todavía); regeneración de contraseña temporal por correo.
+- 2026-10-31 20:10 · Hecho: política común, ámbito de sociedades, operadores (búsqueda, grupos activos, primer administrador, cambio de contraseña) y pruebas. Pendiente: mantenimiento completo de operadores y grupos (seguridad/pantallas); ámbitos de reports (las RestriccionesReportsGrupo antiguas son de denegación y necesitan adaptarse, RF-SEG-07) y de procesos que generan asientos o borran datos (requisito 2026-10-29 17:45, sin tabla todavía); regeneración de contraseña temporal por correo.

@@ -203,12 +203,13 @@ public sealed class EsquemaAccessTests : IDisposable
         Assert.Equal(["Id", "Descripcion", "SEPA"], tabla.Columnas.Select(c => c.Nombre));
         Assert.Equal("BYTE", tabla.Columna("Id")!.Tipo);
         Assert.False(esquema.ExisteTabla("FormasPagoMigracion"));
-        Assert.DoesNotContain(esquema.Tabla("Facturas")!.Relaciones, x => x.Nombre == "FK_FormasPago_Facturas");
         Assert.True(esquema.ExisteColumna("SociedadesEjercicios", "EjercicioCerrado"));
 
         var filas = await bd.EjecutarAsync(s => s.ConsultarAsync("SELECT Id, Descripcion, SEPA FROM FormasPago ORDER BY Id",
             f => (Id: f.Entero("Id"), Descripcion: f.Texto("Descripcion"), Sepa: f.Logico("SEPA"))));
-        Assert.Equal(BdPruebas.FormasPagoSinteticas.Select(x => (int)x.Codigo), filas.Select(f => f.Id));
+        Assert.Equal(BdPruebas.FormasPagoSinteticas.Select(x => (int)x.Codigo).Append(1).Order(), filas.Select(f => f.Id));
+        Assert.Contains(esquema.Tabla("Facturas")!.Relaciones, x => x.Nombre == "FK_FormasPago_Facturas" && x.TablaReferenciada == "FormasPago");
+        Assert.Contains(esquema.Tabla("Contratos")!.Relaciones, x => x.Nombre == "FK_FormasPago_Contratos");
         Assert.Equal([110], filas.Where(f => f.Sepa).Select(f => f.Id));
 
         var segunda = await new ActualizadorEsquema(_actor, parametros: parametros).ActualizarAsync(version1.Ruta, Path.Combine(carpeta, "copias"));

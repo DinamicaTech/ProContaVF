@@ -88,10 +88,8 @@ public sealed class CatalogoFormasPagoAccess(IBaseDatos bd) : ICatalogoFormasPag
         if (descripcion.Length > LongitudDescripcion)
             return new Error("FormasPago.DescripcionLarga", $"La descripción tiene más de {LongitudDescripcion} caracteres.", null,
                 $"Tiene {descripcion.Length}.", "Acórtala.");
-        var repetida = await s.ConsultarPrimeroAsync("SELECT Id FROM FormasPago WHERE UCASE(Descripcion) = UCASE(?)", f => (int?)f.Entero("Id"), descripcion);
-        if (repetida is not null && repetida != id)
-            return new Error("FormasPago.Repetida", $"Ya existe la forma de pago «{descripcion}».", $"Forma de pago {repetida}",
-                "Dos formas de pago no pueden llamarse igual.", "Usa la que ya existe o cambia la descripción.");
+        // Las descripciones pueden repetirse (0 y 1 se llaman «Indefinida», decisión del propietario).
+        await Task.CompletedTask;
         return null;
     }
 
