@@ -20,6 +20,7 @@ En la raíz del repositorio: `compilar.cmd` compila `ProContaVF.slnx` en Release
 2026-10-31 18:02 · Comandos de entrega en la raíz: `compilar.cmd` (`dotnet build ProContaVF.slnx -c Release -p:Platform=x64`) y `probar.cmd` (compila y ejecuta todas las pruebas; con el argumento `sinbd` excluye las de la categoría `Access`).
 2026-10-31 18:02 · InformationalVersion calculada desde git en cada compilación (`Directory.Build.targets`): `ProContaVF-<rama>.<número de commits>+<sha corto>`, con «/» de la rama cambiada por «-»; sin git queda `ProContaVF-local`. Cumple el formato `<producto>-<rama>.<secuencia>` de RF-TEC-06 y añade el commit.
 2026-10-31 18:02 · Las pruebas que tocan Access llevan `[Trait("Categoria","Access")]` y trabajan siempre sobre una copia de la BD en una carpeta temporal, nunca sobre el original.
+- 2026-10-31 19:30 · `ejecutar.cmd` en la raíz abre ProContaVF.exe (lo compila si no existe) y pasa sus argumentos, por ejemplo `--bd "<ruta del accdb>"`. La versión de entrega se ve en la pantalla de acceso y en la barra de estado de la ventana principal.
 
 ## Requirements
 - 2026-10-28 12:28 · From sources/01_ESPECIFICACION_FUNCIONAL.docx § 27 RF-TEC-04..07: pruebas sin efectos externos, backups con ensayo de restauración, entregas versionadas, compilación completa
@@ -31,4 +32,4 @@ En la raíz del repositorio: `compilar.cmd` compila `ProContaVF.slnx` en Release
 - 2026-10-31 17:53 · Derived from architecture: los comandos locales de compilación x64 y de pruebas (con y sin Access) y la versión de entrega calculada desde git.
 
 ## Hand-over
-- 2026-10-31 18:02 · Hecho: `compilar.cmd`, `probar.cmd [sinbd]` y la versión desde git en todos los binarios. Pendiente: mostrar la versión en el contenedor (plataforma/contenedor), el script de instalación en el Windows Server con respaldo previo (P-14) y el ensayo de restauración de copias (RF-TEC-05).
+- 2026-10-31 19:30 · Hecho: `compilar.cmd`, `probar.cmd [sinbd]`, `ejecutar.cmd` y la versión desde git, visible en la aplicación. Pendiente: el script de instalación en el Windows Server con respaldo previo y actualización del esquema (P-14) y el ensayo de restauración de copias (RF-TEC-05).

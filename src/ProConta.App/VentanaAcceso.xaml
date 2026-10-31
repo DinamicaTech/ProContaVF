@@ -1,0 +1,115 @@
+<Window x:Class="ProConta.App.VentanaAcceso"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:pc="urn:proconta-ui"
+        Title="ProContaVF · Acceso de operador"
+        Style="{StaticResource Ventana.ProConta}"
+        Width="960" Height="640" ResizeMode="NoResize" WindowStyle="None"
+        WindowStartupLocation="CenterScreen" Background="White"
+        BorderBrush="{StaticResource Pincel.Linea}" BorderThickness="1"
+        MouseLeftButtonDown="Ventana_MouseLeftButtonDown" PreviewKeyDown="Ventana_PreviewKeyDown">
+  <Grid>
+    <Grid.ColumnDefinitions>
+      <ColumnDefinition Width="380" />
+      <ColumnDefinition Width="*" />
+    </Grid.ColumnDefinitions>
+
+    <!-- Franja de marca con el resumen «Vas a trabajar en» -->
+    <Border Grid.Column="0" Background="{StaticResource Pincel.Marino}" Padding="36,36,36,28" ClipToBounds="True">
+      <Grid>
+        <Canvas IsHitTestVisible="False">
+          <Ellipse Canvas.Left="200" Canvas.Top="150" Width="360" Height="360" Stroke="#14FFFFFF" StrokeThickness="1" />
+          <Ellipse Canvas.Left="130" Canvas.Top="80" Width="500" Height="500" Stroke="{StaticResource Pincel.Acento}" Opacity="0.22" StrokeThickness="1" />
+          <Rectangle Canvas.Left="226" Canvas.Top="314" Width="36" Height="36" RadiusX="9" RadiusY="9" Fill="{StaticResource Pincel.Acento}" Opacity="0.9" />
+        </Canvas>
+        <DockPanel>
+          <StackPanel DockPanel.Dock="Top">
+            <StackPanel Orientation="Horizontal">
+              <Border Width="34" Height="34" CornerRadius="8" Background="White">
+                <TextBlock Text="pc" FontFamily="{StaticResource Fuente.Titulo}" FontWeight="Bold" FontSize="16" Foreground="{StaticResource Pincel.Marino}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+              </Border>
+              <TextBlock Text="ProConta" Margin="12,0,0,0" FontFamily="{StaticResource Fuente.Titulo}" FontWeight="Bold" FontSize="22" Foreground="White" VerticalAlignment="Center" />
+            </StackPanel>
+            <TextBlock Text="Contabilidad y facturación" Margin="0,14,0,0" Foreground="#AEB8CC" />
+          </StackPanel>
+          <StackPanel DockPanel.Dock="Bottom">
+            <TextBlock Text="VAS A TRABAJAR EN" FontSize="{StaticResource Letra.Mini}" FontWeight="SemiBold" Foreground="#AEB8CC" Margin="0,0,0,10" />
+            <Border CornerRadius="8" Background="#12FFFFFF" BorderBrush="#24FFFFFF" BorderThickness="1" Padding="14,10" Margin="0,0,0,8">
+              <StackPanel>
+                <TextBlock Text="SOCIEDAD" FontSize="{StaticResource Letra.Mini}" Foreground="#AEB8CC" />
+                <TextBlock x:Name="ResumenSociedad" Text="Sin elegir" Foreground="White" FontWeight="SemiBold" Margin="0,2,0,0" TextTrimming="CharacterEllipsis" />
+              </StackPanel>
+            </Border>
+            <Border CornerRadius="8" Background="#12FFFFFF" BorderBrush="#24FFFFFF" BorderThickness="1" Padding="14,10" Margin="0,0,0,8">
+              <StackPanel>
+                <TextBlock Text="EJERCICIO" FontSize="{StaticResource Letra.Mini}" Foreground="#AEB8CC" />
+                <TextBlock x:Name="ResumenEjercicio" Text="Sin elegir" Foreground="White" FontWeight="SemiBold" Margin="0,2,0,0" />
+              </StackPanel>
+            </Border>
+            <TextBlock x:Name="ResumenOperador" Text="Operador: sin identificar" Foreground="#AEB8CC" Margin="0,6,0,0" TextTrimming="CharacterEllipsis" />
+            <TextBlock x:Name="TextoVersion" Foreground="#7E8AA3" FontSize="{StaticResource Letra.Mini}" Margin="0,14,0,0" TextTrimming="CharacterEllipsis"
+                       ToolTip="Versión del programa (rama, número de cambios y commit)" />
+          </StackPanel>
+          <Border />
+        </DockPanel>
+      </Grid>
+    </Border>
+
+    <!-- Formulario en cuatro fases: operador, contraseña, sociedad y ejercicio -->
+    <DockPanel Grid.Column="1" Margin="56,56,56,40">
+      <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" HorizontalAlignment="Right">
+        <Button x:Name="BotonSalir" Content="Salir" MinWidth="90" Click="Salir_Click" ToolTip="Cierra ProContaVF sin entrar (Esc)" />
+        <Button x:Name="BotonPrincipal" Content="Continuar" MinWidth="150" Margin="10,0,0,0" Style="{StaticResource Boton.Primario}"
+                Click="Principal_Click" ToolTip="Comprueba el operador y la contraseña (Intro)" />
+      </StackPanel>
+
+      <StackPanel>
+        <TextBlock Text="Acceso de operador" Style="{StaticResource Texto.TituloPantalla}" />
+        <TextBlock x:Name="Indicacion" Text="Identifícate con tu operador y tu contraseña." Margin="0,6,0,0" Foreground="{StaticResource Pincel.Apagado}" TextWrapping="Wrap" />
+
+        <TextBlock Text="IDENTIFICACIÓN" Style="{StaticResource Texto.SeccionAcceso}" />
+        <Grid>
+          <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="16" />
+            <ColumnDefinition Width="*" />
+          </Grid.ColumnDefinitions>
+          <StackPanel Grid.Column="0">
+            <TextBlock Text="Operador" Style="{StaticResource Etiqueta.Campo}" />
+            <TextBox x:Name="CampoOperador" MaxLength="100" ToolTip="Tu nombre de operador, tal como te lo dio el administrador" />
+          </StackPanel>
+          <StackPanel Grid.Column="2">
+            <TextBlock Text="Contraseña" Style="{StaticResource Etiqueta.Campo}" />
+            <PasswordBox x:Name="CampoContrasena" ToolTip="Tu contraseña; si tu operador no tiene, déjala vacía" />
+          </StackPanel>
+        </Grid>
+        <Button x:Name="BotonCambiarOperador" Style="{StaticResource Boton.Enlace}" Content="Entrar con otro operador" HorizontalAlignment="Left"
+                Margin="0,8,0,0" Visibility="Collapsed" Click="CambiarOperador_Click" ToolTip="Vuelve a la identificación para entrar con otro operador" />
+
+        <TextBlock Text="DÓNDE QUIERES TRABAJAR" Style="{StaticResource Texto.SeccionAcceso}" />
+        <Grid>
+          <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="2*" />
+            <ColumnDefinition Width="16" />
+            <ColumnDefinition Width="*" />
+          </Grid.ColumnDefinitions>
+          <StackPanel Grid.Column="0">
+            <TextBlock Text="Sociedad" Style="{StaticResource Etiqueta.Campo}" />
+            <ComboBox x:Name="ComboSociedad" IsEnabled="False" DisplayMemberPath="Texto" SelectionChanged="Sociedad_SelectionChanged"
+                      ToolTip="Sociedades a las que tienes acceso; se elige después de identificarte" />
+          </StackPanel>
+          <StackPanel Grid.Column="2">
+            <TextBlock Text="Ejercicio" Style="{StaticResource Etiqueta.Campo}" />
+            <ComboBox x:Name="ComboEjercicio" IsEnabled="False" DisplayMemberPath="Texto" SelectionChanged="Ejercicio_SelectionChanged"
+                      ToolTip="Ejercicio de trabajo; un ejercicio cerrado se puede abrir para consultar" />
+          </StackPanel>
+        </Grid>
+
+        <Border x:Name="CajaMensaje" Margin="0,22,0,0" Padding="12,10" CornerRadius="6" Visibility="Collapsed"
+                Background="{StaticResource Pincel.RojoSuave}" BorderBrush="{StaticResource Pincel.RojoBorde}" BorderThickness="1">
+          <TextBlock x:Name="TextoMensaje" TextWrapping="Wrap" Foreground="{StaticResource Pincel.Tinta}" />
+        </Border>
+      </StackPanel>
+    </DockPanel>
+  </Grid>
+</Window>
