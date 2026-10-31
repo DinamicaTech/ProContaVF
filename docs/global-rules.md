@@ -8,6 +8,7 @@ Las "CVP rules" las escribe Claude Visual Project y las reemplaza "Update rules"
 
 ## Decisions
 - 2026-10-28 12:30 · Creado por Claude Visual Project con su versión de reglas 10.
+- 2026-10-31 08:37 · Excepción a la regla CVP "Regression tests": las pruebas no se ejecutan en GitHub en cada PR ni de forma programada, sino en local (ver architecture 2026-10-31 08:37).
 
 ## CVP rules
 <!-- cvp-rules 10 begin · Written by Claude Visual Project ("Update rules" in the page). Do not edit: an update replaces everything up to the end marker. Add your own rules under ## Project rules. -->
@@ -65,3 +66,4 @@ Once confirmed, the change is atomic: do all of it in this thread and one branch
 ## Project rules
 <!-- Rules of this project for every thread, added by its people or by threads with the owner's OK. -->
 - Working docs are written in Spanish.
+- Las pruebas automáticas se ejecutan en local, no en GitHub: cada hilo ejecuta las pruebas sin BD antes de abrir su PR y las pruebas contra Access en el equipo del propietario, contra la BD de pruebas, antes de pedir la validación. Prevalece sobre la parte "run on every pull request and on a schedule" de la regla CVP "Regression tests".
