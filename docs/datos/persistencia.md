@@ -3,7 +3,7 @@ title: Capa de persistencia
 status: draft
 depends_on: [datos/esquema, nucleo]
 threads:
-  - Carga de requisitos | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GRNMH95h9tnQp4dmEPHmw1w
+  - 2026-10-28 12:30 · Carga de requisitos | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GRNMH95h9tnQp4dmEPHmw1w
 ---
 ## Summary
 Capa común sobre ACE/OLE DB x64: conexiones y transacciones cortas, consultas parametrizadas por posición, concurrencia optimista y unicidad en BD, traducción de fallos técnicos (tabla ausente, lectura fallida) a errores explícitos, nunca a «vacío» o «sin permiso». El dominio no conoce OLE DB.

@@ -3,7 +3,7 @@ title: Núcleo común
 status: draft
 depends_on: []
 threads:
-  - Carga de requisitos | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GRNMH95h9tnQp4dmEPHmw1w
+  - 2026-10-28 12:30 · Carga de requisitos | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GRNMH95h9tnQp4dmEPHmw1w
 ---
 ## Summary
 Tipos compartidos por todas las áreas: NIF y su validación, importes Decimal con redondeo monetario, contexto sociedad/ejercicio, resultado con errores recuperables, historial y auditoría (actor, instante, operación). No contiene reglas de negocio de ningún área.

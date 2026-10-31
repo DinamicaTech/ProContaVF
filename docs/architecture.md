@@ -2,8 +2,8 @@
 title: Arquitectura
 depends_on: [plataforma/entrega]
 threads:
-  - Nuevo proyecto | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GRNMH95h9tnQp4dmEPHmw1w
-  - Estrategia de desarrollo | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GPQZwFm28U4vq3sQdopN45C
+  - 2026-10-28 12:30 · Nuevo proyecto | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GRNMH95h9tnQp4dmEPHmw1w
+  - 2026-10-31 08:38 · Estrategia de desarrollo | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GPQZwFm28U4vq3sQdopN45C
 ---
 ## Summary
 Decisiones técnicas que condicionan todo el árbol: aplicación de escritorio Windows en WPF y C# (.NET 10, x64) sobre una base Access (accdb) detrás de una capa de persistencia propia, instalada en un único Windows Server al que acceden 2-3 usuarios por Escritorio remoto.
