@@ -7,7 +7,7 @@ threads:
   - 2026-10-31 16:58 · Cerrar preguntas pendientes del proyecto | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5G7UyrP5eDJV4Ds6CCBozdbu
 ---
 ## Summary
-Cálculo trazable y borrador de los modelos 303 y 390, separado de la presentación a la AEAT; el PDF oficial rellenado y el fichero de intercambio con la AEAT quedan para después de la Versión Mínima Viable.
+Cálculo trazable y borrador de los modelos 303 y 390, separado de la presentación a la AEAT; el PDF oficial rellenado y el fichero de intercambio con la AEAT quedan para después de la Versión Mínima Viable, en el borrador hijo `contabilidad/modelos-tributarios/presentacion`.
 **Aceptación:** un modelo incompleto no ofrece presentación válida.
 
 ## Decisions
