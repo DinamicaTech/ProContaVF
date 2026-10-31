@@ -17,6 +17,7 @@ Mayor «vitaminado» reutilizable desde contabilidad y desde la ficha de tercero
 - 2026-10-29 10:20 · Sin cuadre contra DeporWin ni contra ningún ERP: ProContaVF sustituye a DeporWin, Proconta.accdb y ContaSol.
 - 2026-10-29 10:20 · El asiento inverso solo se genera con el asistente de asientos de corrección, que invierte también el IVA; desaparece el «Asiento inverso» rápido.
 - 2026-10-29 10:20 · Toda modificación de apuntes desde el Mayor (cuenta, contrapartida, concepto, número de factura, punteo) pasa por el motor de asientos, que guarda el registro de cambios (contabilidad/asientos).
+- 2026-10-31 08:43 · Sin ERP desaparece la ayuda «Pagos − Conta» del antiguo. «Muy compacto» y «Facturas pendientes» se unen en una sola vista «Solo pendientes» (por cuenta y factura, oculta las que netean a cero; F2024001 y 2024001 son la misma factura). Si el asiento tiene varias contrapartidas, la columna de destino dice «Varias» y su ayuda las lista todas.
 
 ## Requirements
 - 2026-10-28 12:28 · From sources/01_ESPECIFICACION_FUNCIONAL.docx § 15 RF-MAY-01: mayor reutilizable con servicios compartidos
@@ -28,3 +29,4 @@ Mayor «vitaminado» reutilizable desde contabilidad y desde la ficha de tercero
 - 2026-10-29 10:12 · Ya no es necesario ningún cuadre con el ERP DeporWin, de hecho, ProContaVF sustituirá DeporWin, Proconta.accdb y ContaSol.
 - 2026-10-29 10:12 · Ok al asiento inverso con asistente
 - 2026-10-29 10:20 · Derived from plataforma/ui-base: crear y validar con el propietario el prototipo HTML del Mayor antes de construir su UI WPF (lo hace el borrador contabilidad/mayor/prototipo).
+- 2026-10-31 08:43 · 1. Desaparece 2. Ok 3. Ok

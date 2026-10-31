@@ -11,9 +11,11 @@ Prototipo HTML de la pantalla del Mayor, hecho en el lienzo de diseño del conte
 
 ## Decisions
 - 2026-10-29 10:25 · Creado como borrador hijo de contabilidad/mayor para no sobrecargar el nodo transversal plataforma/ui-base.
+- 2026-10-31 08:43 · Plan acordado con el propietario: el Mayor es una pestaña del contenedor (Contabilidad → Mayor) y el mismo componente va embebido en la pestaña Contabilidad de la ficha de terceros (filtrado por sus cuentas) y sustituye al mayor provisional de Norma 43. Cabecera con selector de cuenta (saldo, apuntes, cuadrada), cuentas recientes y mayor combinado, y periodo por ejercicios de la sociedad con selección múltiple como en Norma 43. Vistas Normal, Compacto, Solo pendientes, Agrupar 700 y Solo no punteados. Todas las filas y totales sobre todo; total de la selección; Supr quita filas solo de la vista y recalcula el saldo con aviso de las ocultas; los filtros por factura se ven como etiquetas que se quitan. Acciones en menú contextual: ver asiento, línea Norma 43 o historial; ir a la subcuenta destino; buscar factura o importe; puntear; asignar número de factura con vista previa; cambiar concepto, subcuenta origen o destino; asistente de corrección (8 tipos) con asiento propuesto; marcar cuadrada con comentario; imprimir y exportar a Excel. Escenarios: vacío, error de carga, 5.000 movimientos, ejercicio cerrado en solo lectura y sin permiso.
 
 ## Requirements
 - 2026-10-29 10:14 · El prototipo del mayor quizá es más conveniente que lo haga un nodo que cuelgue de contabilidad/mayor para no sobrecargar este nodo transversal.
 - 2026-10-29 10:17 · draft: Crear y validar con el propietario el prototipo HTML de la pantalla del Mayor, a partir del Mayor de ProConta antiguo con los cambios acordados.
 - 2026-10-29 10:45 · Derived from terceros/pantallas: el prototipo incluye el Mayor embebido en la pestaña Contabilidad de la ficha de terceros, con las mismas funciones y filtrado por las cuentas del tercero.
 - 2026-10-31 08:41 · Está Ok, ahora a por el Mayor vitaminado, ánimos.
+- 2026-10-31 08:43 · 1. Desaparece 2. Ok 3. Ok
