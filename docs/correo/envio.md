@@ -3,7 +3,7 @@ title: Envío de correo
 status: draft
 depends_on: [datos/esquema, datos/persistencia, plataforma/configuracion, documentos]
 threads:
-  - Carga de requisitos | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GRNMH95h9tnQp4dmEPHmw1w
+  - 2026-10-28 12:30 · Carga de requisitos | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GRNMH95h9tnQp4dmEPHmw1w
 ---
 ## Summary
 Cuentas, transporte SMTP con credenciales fuera de Access y coordinador saliente durable con intentos, lotes y estados que distinguen aceptación, fallo e incertidumbre.

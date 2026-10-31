@@ -3,7 +3,6 @@ title: Plantillas de asiento
 status: draft
 depends_on: [contabilidad/asientos, contabilidad/cuenta-contable]
 threads:
-  - Analizar formularios del ProConta antiguo | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5G5wuUSovHLCVH22T7EntXcw
 ---
 ## Summary
 Motor genérico de plantillas de apuntes predefinidos («asientos tipo»): a partir de un apunte o de unos datos de entrada propone un asiento según una plantilla (anular, cambiar de cuenta, contra-apunte, ajuste de saldo inicial, paso a tesorería o a deuda con socios…) y lo genera con el motor de asientos, siempre con un motivo obligatorio. Es el único motor de plantillas: también lo usa nominas para contabilizar. Toma como base el asistente «Modificación de un asiento» de ProConta antiguo (`frmModificarAsiento`).

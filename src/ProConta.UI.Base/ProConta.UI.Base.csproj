@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Biblioteca de estilos y componentes WPF compartidos (docs/plataforma/ui-base.md). -->
+  <PropertyGroup>
+    <OutputType>Library</OutputType>
+    <UseWPF>true</UseWPF>
+    <RootNamespace>ProConta.UI.Base</RootNamespace>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);CS1591</NoWarn>
+  </PropertyGroup>
+  <ItemGroup>
+    <!-- Exportar a Excel (licencia MIT), aprobada por el propietario el 31/10/2026. -->
+    <PackageReference Include="ClosedXML" Version="0.105.0" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- Fuentes de las maquetas (licencia OFL), incluidas en el programa. -->
+    <Resource Include="Fonts\*.ttf" />
+    <None Include="Fonts\OFL-*.txt" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="ProConta.UI.Base.Tests" />
+  </ItemGroup>
+</Project>

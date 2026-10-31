@@ -55,7 +55,7 @@ h1,h2,h3,p{margin:0}
 /* ---------- Barra de demostración ---------- */
 .page{height:100%;display:flex;flex-direction:column}
 .demo{flex-shrink:0;display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px;padding:5px 16px;background:var(--demo-soft);border-bottom:1px dashed var(--demo-line);color:var(--ink);font-size:12px}
-.demo .tag{font-weight:600;color:var(--demo);letter-spacing:.04em;text-transform:uppercase;font-size:11px}
+.demo .tag{font-weight:600;color:var(--demo);font-size:11px}
 .demo label{display:flex;align-items:center;gap:6px;color:var(--muted)}
 .demo select{height:24px;border:1px solid var(--demo-line);background:var(--surface);border-radius:4px;padding:0 4px;max-width:160px}
 .demo .seg{display:inline-flex;border:1px solid var(--demo-line);border-radius:4px;overflow:hidden}
@@ -89,7 +89,7 @@ h1,h2,h3,p{margin:0}
 .gsearch .clr:hover{background:var(--hover)}
 .navbody{flex:1;min-height:0;overflow:auto;padding:6px 0 10px}
 .cat{margin-top:4px}
-.cat>.ch{display:flex;align-items:center;gap:6px;width:100%;border:0;background:transparent;padding:6px 12px 4px;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:600;cursor:pointer;text-align:left}
+.cat>.ch{display:flex;align-items:center;gap:6px;width:100%;border:0;background:transparent;padding:6px 12px 4px;font-size:11.5px;color:var(--muted);font-weight:600;cursor:pointer;text-align:left}
 .cat>.ch .chev{transition:transform .12s}
 .cat.closed>.ch .chev{transform:rotate(-90deg)}
 .cat.closed>.items{display:none}
@@ -103,11 +103,11 @@ h1,h2,h3,p{margin:0}
 .ico{width:14px;height:14px;flex-shrink:0;display:inline-block;vertical-align:-2px}
 .lockic{color:var(--muted)}
 .res{padding:4px 0}
-.res h3{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);padding:8px 12px 4px;font-weight:600}
+.res h3{font-size:11.5px;color:var(--muted);padding:8px 12px 4px;font-weight:600}
 .ritem{display:block;width:100%;border:0;background:transparent;text-align:left;padding:6px 12px;cursor:pointer;color:var(--ink);border-left:3px solid transparent}
 .ritem:hover,.ritem.kb{background:var(--hover);border-left-color:var(--accent)}
 .ritem .rt{display:flex;gap:6px;align-items:baseline}
-.ritem .rk{font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);flex-shrink:0;width:52px}
+.ritem .rk{font-size:11px;color:var(--muted);flex-shrink:0;width:52px}
 .ritem .rp{display:block;font-size:11.5px;color:var(--muted);margin-left:58px}
 .ritem mark{background:var(--accent-soft);color:inherit;border-bottom:1px solid var(--accent)}
 .rnone{padding:12px;color:var(--muted)}
@@ -250,7 +250,9 @@ textarea.long{resize:none;overflow:hidden;width:100%;max-width:560px}
 .unit{color:var(--muted);font-size:12.5px}
 .fh{color:var(--muted);font-size:12px;max-width:72ch}
 .fe{color:var(--err);font-size:12px;font-weight:600;display:none;max-width:72ch}
-.f.invalid .fe{display:block}
+.f.invalid .fe{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.f.invalid input.in,.f.invalid .combo{padding-right:26px;background:var(--err-soft) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%23C23B2A' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='9'/%3E%3Cpath d='M12 7.5v5.5M12 16.5h.01'/%3E%3C/svg%3E") no-repeat right 7px center}
+.f.invalid .chk .cd{outline:1.5px solid var(--err);outline-offset:1px}
 .fw{color:var(--accent-ink);font-size:12px;display:none;max-width:72ch}
 .fw.on{display:block}
 .fnote{font-size:12px;color:var(--demo);max-width:72ch}
@@ -387,7 +389,7 @@ textarea.long{resize:none;overflow:hidden;width:100%;max-width:560px}
     <label title="Contexto que fija el contenedor de ProConta (simulado)">Contexto <select id="ctxsel" aria-label="Empresa y ejercicio de trabajo (simulado)"></select></label>
     <span id="ctxtext" class="sr"></span>
     <label>Escenario <select id="scn"></select></label>
-    <span style="display:flex;align-items:center;gap:6px">Ventana <span class="seg"><button data-size="fit" aria-pressed="true">Ajustar</button><button data-size="1440x900" aria-pressed="false">1440×900</button><button data-size="1024x768" aria-pressed="false">1024×768</button></span></span>
+    <span style="display:flex;align-items:center;gap:6px">Ventana <span class="seg"><button data-size="fit" aria-pressed="true">Ajustar</button><button data-size="2560x1440" aria-pressed="false">2560×1440</button><button data-size="1440x900" aria-pressed="false">1440×900</button><button data-size="1024x768" aria-pressed="false">1024×768</button></span></span>
     <span style="display:flex;align-items:center;gap:6px">Escala <span class="seg"><button data-scale="1" aria-pressed="true">100 %</button><button data-scale="1.25" aria-pressed="false">125 %</button><button data-scale="1.5" aria-pressed="false">150 %</button></span></span>
     <span id="areacap" class="muted"></span>
     <span class="grow"></span>
@@ -2126,6 +2128,48 @@ function init(){
 }
 init();
 
+
+/* ===== Revisión de validación 1: tooltips en todos los controles y lista ajustada a su contenido ===== */
+const TIP_ID={ctxsel:'Empresa y ejercicio de trabajo que fijaría el contenedor (simulado)',scn:'Escenario de demostración que se carga',btnclose:'Simula cerrar la pestaña de Configuración del contenedor',btnreset:'Vuelve a los datos iniciales de la maqueta',btnnotes:'Abre las notas de entrega de la maqueta',gq:'Busca un ajuste o un mantenimiento por su nombre (Ctrl+K)',lq:'Filtra los registros de la lista por cualquier columna visible','pf-emp':'Muestra solo los registros de esta empresa','pf-ej':'Muestra solo los registros de este ejercicio'};
+const TIP_ACT={lqclear:'Quita el filtro de la lista',new:'Añade un registro nuevo a esta lista',del:'Elimina el registro seleccionado (pide confirmación)',save:'Guarda los cambios (Ctrl+G)',cancel:'Deshace los cambios sin guardar de este registro',browse:'Elige la ruta con el selector (simulado)',moj:'Muestra el texto tal como está guardado en la base',goto:'Abre el mantenimiento relacionado',goerr:'Lleva al primer dato por revisar',firsterr:'Lleva al primer dato por revisar',retry:'Vuelve a intentar la carga',endload:'Termina la carga simulada',pfclear:'Quita el filtro de empresa y ejercicio',navtoggle:'Muestra u oculta la lista de mantenimientos',showchg:'Muestra la lista de cambios sin guardar',memosize:'Amplía o reduce el cuadro de texto',secset:'Establece un valor nuevo para este dato sensible',secundo:'Deshace el cambio de este dato sensible',secdel:'Borra el valor guardado de este dato sensible',vol:'Muestra el volumen de registros',gores:'Abre este resultado'};
+const TIP_SIZE={fit:'Ajusta la maqueta al tamaño de la ventana','2560x1440':'Área de trabajo de una pantalla de 2560 × 1440 dentro del contenedor','1440x900':'Área de trabajo de una pantalla de 1440 × 900 dentro del contenedor','1024x768':'Área de trabajo de una pantalla de 1024 × 768 dentro del contenedor'};
+function tipText(e){
+  const t=(e.textContent||'').replace(/\s+/g,' ').trim();
+  if(e.id&&e.id.startsWith('in-')){ const p=P(), f=p&&p.F[e.id.slice(3)]; if(!f) return t; const err=S.showErr&&S.errors[f.n]; if(err) return err; const h=f.help||f.h; return f.label+(h?': '+h.charAt(0).toLowerCase()+h.slice(1):'')+(e.readOnly||e.disabled?' (no editable)':''); }
+  if(TIP_ID[e.id]) return TIP_ID[e.id];
+  if(e.dataset.size) return TIP_SIZE[e.dataset.size]||'';
+  if(e.dataset.scale) return 'Simula la escala de Windows al '+Math.round(+e.dataset.scale*100)+' %';
+  const a=e.dataset.act;
+  if(a==='cat') return 'Despliega o pliega la categoría «'+t+'»';
+  if(a==='open'){ const p=PBY[e.dataset.id]; return p?p.title+': '+(p.purpose||'abre el mantenimiento'):t; }
+  if(a==='sort') return 'Ordena la lista por «'+t+'»; otro clic invierte el orden';
+  if(a==='tab') return 'Muestra los campos de «'+t.replace(/\s*\d+$/,'')+'»';
+  if(a==='sec') return 'Despliega o pliega la sección «'+t.replace(/\s*\d+$/,'')+'»';
+  if(a==='mode') return e.getAttribute('aria-label')||'Cambia la disposición de lista y editor';
+  if(a==='ref'){ const p=P(), f=p&&p.F[e.dataset.n]; return f?(f.help||'Elige '+f.label.toLowerCase()):'Elige un valor'; }
+  if(TIP_ACT[a]) return TIP_ACT[a];
+  return e.getAttribute('aria-label')||t;
+}
+function fillTips(){
+  for(const e of document.querySelectorAll('button,input,select,textarea,a')){
+    if(e.title&&!e.dataset.tipAuto&&!(e.id&&e.id.startsWith('in-'))) continue;
+    if(e.id&&e.id.startsWith('in-')&&e.dataset.ed==='path') continue;
+    const t=tipText(e); if(t&&e.title!==t){ e.title=t; e.dataset.tipAuto='1'; }
+  }
+  fitList();
+}
+function fitList(){
+  const p=P(), sp=document.getElementById('split'), tw=document.getElementById('tw');
+  if(!p||p.card!=='list'||!sp||!tw||sp.classList.contains('stack')||S.listw[p.id]!=null) return;
+  const tb=tw.querySelector('table'); if(!tb) return;
+  const need=tb.scrollWidth+2, cur=sp.querySelector('.listp').getBoundingClientRect().width, max=sp.clientWidth*0.62;
+  if(need>cur+1){ const w=Math.round(Math.min(need,max)); if(w>cur+1) sp.style.setProperty('--listw',w+'px'); }
+}
+let tipQ=false;
+new MutationObserver(()=>{ if(tipQ) return; tipQ=true; requestAnimationFrame(()=>{ tipQ=false; fillTips(); }); }).observe(document.body,{childList:true,subtree:true,characterData:true});
+document.addEventListener('input',e=>{ if(e.target.id&&e.target.id.startsWith('in-')) requestAnimationFrame(fillTips); },true);
+window.addEventListener('resize',()=>requestAnimationFrame(fitList));
+requestAnimationFrame(fillTips);
 </script>
 </body>
 </html>

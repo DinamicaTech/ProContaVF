@@ -4,3 +4,10 @@
 *.laccdb
 *.mdb
 *.ldb
+
+# Compilación .NET
+bin/
+obj/
+*.user
+.vs/
+TestResults/

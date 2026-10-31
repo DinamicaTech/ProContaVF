@@ -56,3 +56,56 @@ También funcionan los demás escenarios del contenedor (`inicio`, `ctx-pending`
 - **Facturas emitidas:** con doble clic, una factura de la sociedad y ejercicio activos se abre en su pestaña de Facturas, con el botón «Volver a Terceros». Las de otro contexto se muestran en modo consulta.
 
 Los datos son ficticios. Los cambios duran mientras la página está abierta.
+
+## Revisión de validación 1 (29/10/2026)
+- Todos los controles del producto tienen un tooltip descriptivo; los campos editables muestran su ayuda o, si tienen un error, el mensaje del error.
+- Los errores de validación ya no se escriben debajo del campo: el campo se marca con borde rojo e icono, y el mensaje va en su tooltip y en el resumen superior.
+- Razón social, Nombre comercial y CP miden lo que su contenido.
+- El nombre del tercero en el buscador y los datos de la cabecera de la ficha se muestran sin recortar.
+- Sin palabras enteras en mayúsculas: encabezados de columna y de sección en minúscula inicial, salvo siglas.
+- La cabecera de la ficha ya no repite «N cambios sin guardar»: se indica en la barra de acciones del pie y con el punto de la pestaña.
+
+## Facturas emitidas y programadas (29/10/2026)
+- La pestaña «Facturas emitidas» del contenedor es ahora la pantalla validada en `sources/maquetas/Facturas/` (ronda 1), reescrita dentro del contenedor: programadas arriba, emitidas abajo, separador arrastrable, detalle lateral, líneas desplegables y editables, menú contextual y diálogos.
+- Abre directamente con `?escenario=facturas`. El operador de facturación en consulta ve la pantalla en modo solo lectura.
+- Las líneas en edición cuentan como cambios pendientes de la pestaña: el punto de la pestaña, el aviso al cerrar y «Guardar» o «Descartar» del contenedor las tratan como al resto de pantallas.
+- El panel de demostración añade el tamaño 2560 × 1440, que es la resolución de referencia.
+
+## Líneas bancarias Norma 43 (29/10/2026)
+- La pestaña «Líneas N43» propone la nueva pantalla a partir del análisis de `frmLineasN43` (`sources/proconta-antiguo/norma43/ANALISIS-FUNCIONAL.md`). Abre directamente con `?escenario=n43`.
+- Filtros combinados en Y, selector de estado y fichas de filtro removibles; la búsqueda admite prefijos (`n+`, `i+`, `e+`, `a+`, `c+`, `o+`, `f+`).
+- Las acciones viven en el menú contextual y dependen de la selección (simple, múltiple o ambas); si una no está disponible, se indica el motivo.
+- Diálogos: remesas, explotar remesa con vista previa, dividir en fracciones, asignar subcuenta, palabras clave, traspaso entre bancos, exportar y subcuentas por sociedad y ejercicio.
+- A 2560 × 1440 el detalle queda fijo a la derecha; en pantallas pequeñas se abre como panel superpuesto con Intro o doble clic.
+- Ronda 2: importes en euros, selector de ejercicio múltiple (los cerrados, solo consulta), columnas de subcuenta de origen y de destino, remesas con subcuenta, fechas, recibos e importe, palabras clave eligiendo el criterio en el concepto (con edición y borrado de las existentes), doble clic para ver el asiento y doble clic en una subcuenta para abrir su mayor provisional.
+- En todo el contenedor, «Ampliar área de trabajo» pasa a ser un separador arrastrable entre el menú lateral y la pantalla; oculto deja una franja para recuperarlo (Ctrl+Mayús+M provisional).
+- Ronda 3: columnas «Cuenta origen», «Descripción cuenta origen», «Cuenta destino» y «Descripción cuenta destino», redimensionables (arrastre o doble clic en el borde de la cabecera) y guardadas por operador en el navegador; clic derecho en la cabecera: ajustar todas o restablecer. Menú contextual con «Buscar por importe…» (varias líneas) y «Movimientos similares…».
+
+## Facturas de compra: importación desde PDF (29/10/2026)
+- La pestaña «Facturas recibidas» propone la nueva pantalla a partir del análisis de `frmEntradaFacturas` (`sources/proconta-antiguo/compras/ANALISIS-FUNCIONAL.md`). Abre directamente con `?escenario=compras` (2560 × 1440), `?escenario=compras-1440` o, en modo prueba del reconocimiento, `?escenario=compras-prueba`.
+- Tres zonas: lista (Pendientes y Contabilizadas, filtros en fichas, columnas redimensionables por operador), ficha de la factura y visor del PDF simulado. Cada campo reconocido muestra su confianza y el motivo, y al pasar por encima se resalta en el visor de dónde sale.
+- Seleccionar texto en el visor rellena el campo marcado para captura; no se usa el portapapeles.
+- F12 contabiliza (una o varias) enseñando antes el asiento propuesto, los avisos y los bloqueos. El asiento se fecha siempre hoy; la fecha de la factura se conserva. Un descuadre de hasta 0,03 € se ajusta con un apunte de redondeo; si es mayor, se pueden recalcular las cuotas o contabilizar con un ajuste manual escribiendo el motivo. Deshacer, rehacer y rectificativa son acciones distintas.
+- Al cambiar de factura se guardan sus cambios. Los valores por defecto del proveedor cambiados en la factura pasan a su ficha al guardar o contabilizar, con su historial.
+- Casos de ejemplo en la sociedad de trabajo: PDF que falta, PDF escaneado, proveedor desconocido, importaciones en dólares, yuanes y libras, abono que rectifica a otra factura, factura de transitario con suplidos, inversión del sujeto pasivo, factura del ejercicio anterior, descuadre de 0,01 € y factura dirigida a otra sociedad. Todos los datos son ficticios.
+- Ronda 2 (30/10/2026): ficha central más ancha y en dos columnas cuando cabe, con los campos agrupados por filas; a 2560 × 1440 no hace falta desplazarse y a 1440 × 900 tampoco si se oculta la lista.
+- Ronda 3 (30/10/2026): más aire vertical a 2560 × 1440; botón para desacoplar el visor de PDF en una ventana aparte que se puede mover (en WPF irá a la segunda pantalla) y volver a acoplar; separador arrastrable entre la lista y la ficha para cambiar el ancho de la lista a costa del visor (también con ← y →; doble clic: ancho de fábrica), guardado por operador.
+- Ronda 4 (30/10/2026): segundo separador entre la ficha y el visor, con el mismo comportamiento que el de la lista; al desacoplar el visor, todo su hueco pasa a la lista aunque tuviera un ancho guardado.
+- Ronda 5 (31/10/2026): en Importación, un solo importe que se desglosa al 21 % (IVA a la 4724001); selector de moneda con conversión automática al cambio del día de la factura; «Rectifica a la factura» en los abonos; botón «Filtro» y «Ver relacionadas» en la lista; prefijos `a+`, `f+` e `i+` en el buscador.
+- Ronda 6 (31/10/2026): sin pareja mercancía-transitario ni campo «IVA del DUA»; la factura del transitario es una factura nacional con sus suplidos y «Ver relacionadas» solo une la original con sus rectificativas.
+
+## Configuración: mantenimientos 1:N (31/10/2026)
+- «Parámetros y tablas auxiliares» y «Sociedades y ejercicios» (menú Configuración) abren la pantalla genérica de mantenimiento validada en `sources/maquetas/Configuracion/`, ya con el estilo del contenedor. Abre directamente con `?escenario=config` (2560 × 1440), `?escenario=config-1440` o `?escenario=config-sociedades`.
+- Mismo funcionamiento que la maqueta validada: los 12 mantenimientos, búsqueda de ajustes (Ctrl+K), lista con filtro, orden y separador redimensionable (se guarda para cada operador), editor directo, por secciones o por pestañas, avisos de cambios pendientes, validación con el resumen arriba y el mensaje en el tooltip del campo, credenciales, rutas, referencias con búsqueda, cambios sensibles de VeriFactu, conflicto con otro puesto y los 10 escenarios de demostración (selector «Demostración» de la barra del módulo).
+- Lo que cambia respecto a la maqueta: la empresa y el ejercicio los fija el contenedor (Ribera Gestión, Ribera Inmuebles…); el perfil de consulta del operador deja la pantalla en solo lectura; al cerrar la pestaña con cambios pide guardar o descartar como el resto. Se quitan la barra de tamaño y escala, las notas de entrega y el banco de editores, que eran solo de la maqueta.
+
+## Mayor «vitaminado» (31/10/2026)
+
+- Pestaña Contabilidad › Mayor y doble clic en cualquier subcuenta (Norma 43, asientos, contrapartidas): abre el Mayor de esa cuenta. Escenarios: `?escenario=mayor`, `mayor-1440`, `mayor-grande` (banco con unos 5.000 movimientos), `mayor-asistente` y `mayor-tercero` (pestaña Contabilidad de la ficha de terceros).
+- Selector de cuentas (Ctrl+F) con saldo sin apertura, saldo, apuntes y cuadre, y los filtros del Mayor antiguo; un código corto muestra todas sus subcuentas. Cuentas recientes y grupos (Añadir cuenta guarda el grupo).
+- Vistas Normal, Compacto, Solo pendientes y Agrupar 700; varios ejercicios; filtros como etiquetas que se quitan; Supr quita filas solo de la vista.
+- Menú contextual (clic derecho o Mayús+F10) con todas las acciones; las que cambian apuntes pasan por el motor de asientos y dejan historial con lote.
+- Los datos de ejemplo salen de las facturas emitidas y recibidas del prototipo, nóminas, el banco y las líneas de Norma 43 exportadas. Los códigos de cuenta tienen 7 u 8 dígitos según la pantalla de la que vienen.
+- El selector «Demostración» de la barra carga los escenarios de cuenta vacía, error de carga, carga, ejercicio cerrado, perfil de consulta y sin permiso.
+- Ronda 2: importes en euros; saldo con signo y color según el grupo de la cuenta; columnas ocultas «Fecha doc.», «Grabado el» y «Modificado el»; panel de recientes plegable y con separador arrastrable; columnas que se ordenan con clic en el título, se mueven arrastrando o con Alt+← → y se muestran u ocultan desde el clic derecho de la cabecera. Todo se guarda por operador.
+

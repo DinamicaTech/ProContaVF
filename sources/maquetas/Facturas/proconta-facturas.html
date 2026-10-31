@@ -38,6 +38,7 @@ button,input,select,textarea{font:inherit;color:inherit}
 #demo .dseg button[aria-pressed="true"]{background:#FFD54A;color:#232427;font-weight:600}
 #demo .dbtn{height:26px;border-radius:6px;border:1px solid #4A4B50;background:#2F3034;color:#F0F0F0;padding:0 10px;cursor:pointer}
 #demo :focus-visible{outline:2px solid #FFD54A}
+body.emb{background:var(--bg)}body.emb #demo{display:none}body.emb #stage{overflow:hidden}body.emb #win{box-shadow:none;min-height:0}
 
 /* ───── Ventana ───── */
 #stage{flex:1 1 auto;min-height:0;display:flex;justify-content:center;overflow:auto}
@@ -126,9 +127,14 @@ textarea.in{height:auto;padding:6px 8px;resize:vertical}
 
 /* ───── Área de trabajo compartida ───── */
 .ws{flex:1 1 auto;min-height:0;display:flex;position:relative;padding:10px;gap:10px}
-.lists{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;gap:10px;min-height:0;overflow-y:auto}
+.lists{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;gap:0;min-height:0;overflow-y:auto}
 .panel{background:#fff;border:1px solid var(--ln);border-radius:12px;display:flex;flex-direction:column;min-height:0;flex:none}
 .pemit{flex:1 1 auto;min-height:260px}
+.split{flex:none;height:10px;cursor:row-resize;display:flex;align-items:center;justify-content:center;border-radius:4px}
+.split i{width:44px;height:4px;border-radius:2px;background:var(--ln3)}
+.split:hover i,.split:focus-visible i,.split.drag i{background:var(--or)}
+.pprog.collapsed+.split{visibility:hidden}
+body.dragging{cursor:row-resize;user-select:none}
 .ph,.fbar,.bulk,.tfoot{flex:none}
 .ph{display:flex;align-items:center;gap:8px;padding:7px 10px 7px 8px;min-height:42px;flex-wrap:wrap}
 .ph h2{margin:0;font-size:14px;font-weight:600;white-space:nowrap}
@@ -159,7 +165,7 @@ textarea.in{height:auto;padding:6px 8px;resize:vertical}
 
 /* tabla */
 .tbl{border-collapse:separate;border-spacing:0;width:100%;table-layout:fixed}
-.tbl th{position:sticky;top:0;z-index:2;background:var(--bg2);text-align:left;font-size:10.5px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--mut);height:28px;padding:0 8px;border-bottom:1px solid var(--ln);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tbl th{position:sticky;top:0;z-index:2;background:var(--bg2);text-align:left;font-size:12px;font-weight:600;color:var(--mut);height:28px;padding:0 8px;border-bottom:1px solid var(--ln);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .tbl th.r,.tbl td.r{text-align:right}
 .tbl td{height:30px;padding:0 8px;border-bottom:1px solid var(--ln2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:12.5px;background:#fff}
 .tbl tr.r{cursor:pointer}
@@ -218,8 +224,8 @@ textarea.in{height:auto;padding:6px 8px;resize:vertical}
 .vf-NA{color:var(--mut2);border-color:var(--ln3);border-style:dashed}
 .spin{animation:sp 1s linear infinite}
 @keyframes sp{to{transform:rotate(360deg)}}
-.simtag{display:inline-block;font-size:9.5px;font-weight:700;letter-spacing:.06em;color:var(--pur);background:var(--purb);padding:1px 6px;border-radius:4px;text-transform:uppercase;vertical-align:1px}
-.prop{display:inline-block;font-size:9.5px;font-weight:700;letter-spacing:.05em;color:var(--amb);border:1px dashed var(--or2);background:#FFF6EC;padding:0 5px;border-radius:4px;text-transform:uppercase;vertical-align:1px;white-space:nowrap}
+.simtag{display:inline-block;font-size:11px;font-weight:600;color:var(--pur);background:var(--purb);padding:1px 6px;border-radius:4px;vertical-align:1px}
+.prop{display:inline-block;font-size:11px;font-weight:600;color:var(--amb);border:1px dashed var(--or2);background:#FFF6EC;padding:0 5px;border-radius:4px;vertical-align:1px;white-space:nowrap}
 
 /* estados de lista */
 .state{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;padding:22px 16px;text-align:center;color:var(--mut);font-size:12.5px;line-height:1.45}
@@ -237,7 +243,7 @@ textarea.in{height:auto;padding:6px 8px;resize:vertical}
 #win.nd .detail{position:absolute;right:10px;top:10px;bottom:10px;z-index:20;box-shadow:-12px 0 36px rgba(20,33,58,.22)}
 .dh{padding:10px 12px 10px 14px;border-bottom:1px solid var(--ln);display:flex;flex-direction:column;gap:7px}
 .dtop{display:flex;align-items:center;gap:8px}
-.dkind{font-size:10.5px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--mut)}
+.dkind{font-size:12px;font-weight:600;color:var(--mut)}
 .dtitle{font-family:'IBM Plex Mono',monospace;font-size:17px;font-weight:600;color:var(--navy)}
 .dsub{font-size:12.5px;color:var(--txt2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .dstat{display:flex;gap:16px;flex-wrap:wrap}
@@ -248,7 +254,7 @@ textarea.in{height:auto;padding:6px 8px;resize:vertical}
 .dtab{height:34px;border:0;border-bottom:2px solid transparent;background:none;padding:0 1px;font-size:12.5px;color:#555B69;cursor:pointer;font-weight:500;white-space:nowrap}
 .dtab[aria-selected="true"]{color:var(--navy);border-bottom-color:var(--or);font-weight:600}
 .dbody{flex:1 1 auto;overflow:auto;padding:12px 14px 16px;display:flex;flex-direction:column;gap:14px}
-.sec{font-size:10.5px;font-weight:600;color:var(--mut);letter-spacing:.08em;text-transform:uppercase;margin:0 0 6px;display:flex;align-items:center;gap:8px}
+.sec{font-size:12px;font-weight:600;color:var(--mut);margin:0 0 6px;display:flex;align-items:center;gap:8px}
 .sec:after{content:"";flex:1;height:1px;background:#EEEBE3}
 .kv{display:grid;grid-template-columns:136px minmax(0,1fr);gap:4px 10px;font-size:12.5px;line-height:1.45}
 .kv dt{color:var(--mut)}
@@ -259,7 +265,7 @@ textarea.in{height:auto;padding:6px 8px;resize:vertical}
 .note.err{background:var(--redb);color:#8A1F11}
 .note.ok{background:#F1F8F4;color:#1E5A3B}
 .mini{width:100%;border-collapse:collapse;font-size:12px}
-.mini th{font-size:10px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--mut);text-align:left;padding:4px 6px;border-bottom:1px solid var(--ln)}
+.mini th{font-size:11.5px;font-weight:600;color:var(--mut);text-align:left;padding:4px 6px;border-bottom:1px solid var(--ln)}
 .mini td{padding:5px 6px;border-bottom:1px solid var(--ln2);vertical-align:top}
 .mini .r{text-align:right;white-space:nowrap}
 .mini tfoot td{border-bottom:0;padding-top:3px;padding-bottom:3px}
@@ -317,7 +323,7 @@ kbd{font-family:'IBM Plex Mono',monospace;font-size:11px;background:var(--bg);bo
 .tbl .xt tfoot tr.xret td{font-weight:500;color:var(--txt2)}
 .tbl .xt tfoot tr.xliq td{border-top:1px solid var(--ln);font-size:13px;color:var(--navy)}
 .xrp{display:inline-flex;align-items:center;gap:6px}
-.tbl .xt th{font-size:10px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--mut);text-align:left;padding:0 6px;height:24px;border-bottom:1px solid var(--ln);background:#fff}
+.tbl .xt th{font-size:11.5px;font-weight:600;color:var(--mut);text-align:left;padding:0 6px;height:24px;border-bottom:1px solid var(--ln);background:#fff}
 .tbl .xt th.r,.tbl .xt td.r{text-align:right}
 .tbl .xt td{padding:0 6px;height:28px;border-bottom:1px solid var(--ln2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .tbl .xt tbody tr:last-child td{border-bottom:0}
@@ -325,7 +331,7 @@ kbd{font-family:'IBM Plex Mono',monospace;font-size:11px;background:var(--bg);bo
 .tbl .xt tr.xnew td{background:#F4FAF6}
 .xin{height:26px;width:100%;font-size:12px}
 .xin.r{text-align:right;font-variant-numeric:tabular-nums}
-.in.err{border-color:#C23B2A;background:#FFF7F6}
+.in.err{border-color:#C23B2A;background:#FFF7F6 url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%23C23B2A' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='9'/%3E%3Cpath d='M12 7.5v5.5M12 16.5h.01'/%3E%3C/svg%3E") no-repeat right 7px center;padding-right:26px}
 .xpf{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding-top:2px}
 .xtot{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--mut)}
 .xtot b{color:var(--ink);font-weight:600}
@@ -351,6 +357,9 @@ const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&
 const pad=(n,l=2)=>String(n).padStart(l,'0');
 const D=(y,m,d,h=0,mi=0)=>new Date(y,m-1,d,h,mi);
 const fd=d=>d?pad(d.getDate())+'/'+pad(d.getMonth()+1)+'/'+d.getFullYear():'—';
+const isoES=x=>x?x.slice(8,10)+'/'+x.slice(5,7)+'/'+x.slice(0,4):'';
+const esISO=x=>{const m=/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/.exec(String(x||'').trim());if(!m)return '';const d=new Date(+m[3],+m[2]-1,+m[1]);return d.getMonth()===+m[2]-1?`${m[3]}-${pad(+m[2])}-${pad(+m[1])}`:'';};
+const dv=el=>esISO(el.value);
 const fdt=d=>d?fd(d)+' '+pad(d.getHours())+':'+pad(d.getMinutes()):'—';
 const iso=d=>d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
 const addM=(d,n)=>new Date(d.getFullYear(),d.getMonth()+n,d.getDate());
@@ -524,7 +533,9 @@ const lastMail=v=>v.mails.length?v.mails.reduce((a,b)=>b.at>a.at?b:a):null;
 function newView(){return {exp:new Set(),edit:null,psel:new Set(),progCollapsed:false,pq:'',pest:'all',pper:'all',progSel:null,curP:null,
   q:'',est:'all',vf:'all',serie:'all',orig:'all',desde:'',hasta:'',cliente:null,sort:{k:'fecha',d:-1},
   selected:new Set(),curE:null,active:null,detailOpen:false,dtab:'res',scope:'sel',fromTercero:null};}
-const S={ctx:'full',terceroId:1,data:'ok',role:'fact',width:'auto',views:{full:newView(),tercero:newView()}};
+const S={ctx:'full',terceroId:1,data:'ok',role:'fact',width:'auto',progH:null,views:{full:newView(),tercero:newView()}};
+const QP=new URLSearchParams(location.search),EMB=QP.get('embebido')==='1';
+if(EMB){if(QP.get('operador')==='cons')S.role='cons';if(QP.get('sociedad'))SOC.n=QP.get('sociedad');if(QP.get('ejercicio'))SOC.ej=+QP.get('ejercicio');}
 let V=S.views.full;
 const OPS={fact:{n:'Jorge Ibarra',p:'Facturación'},cons:{n:'Marta Ribas',p:'Administración contable · solo consulta en Facturación'}};
 const canEdit=()=>S.role==='fact';
@@ -570,9 +581,16 @@ const estPill=e=>`<span class="pill st-${e}" title="Estado de la factura"><i></i
 const vfTag=(c,short)=>`<span class="vf vf-${c}" title="Situación VeriFactu: ${VF[c][0]}">${ic(VF[c][1],12,2.2,c==='ENV'?'spin':'')}${VF[c][0]}</span>`;
 const pstPill=e=>`<span class="pill ps-${e}"><i></i>${PST[e]}</span>`;
 const numHTML=v=>v.est==='BOR'?`<span class="drf">${invNum(v)}</span>`:`<span class="num"><b>${v.serie}</b> ${v.fecha.getFullYear()}/${pad(v.num,4)}</span>${v.tipo==='R1'?'<span class="tR" title="Factura rectificativa (R1)">R1</span>':''}`;
+const BTIP={retry:'Vuelve a intentar cargar los datos','p-open':'Abre el detalle de la programación activa (Intro)','p-edit':'Modifica la descripción, la periodicidad, la vigencia y el envío por correo de la programación',
+ 'p-new':'Crea una programación de facturas periódicas','p-clear':'Quita la búsqueda y los filtros de las programadas','e-new':'Crea una factura nueva en borrador',
+ 'clear-prog':'Quita el filtro de programación y muestra todas las facturas','clear-filters-keep':'Quita los filtros de las emitidas y mantiene el de programación','clear-filters':'Quita todos los filtros de las facturas emitidas',
+ doc:'Abre la vista previa del documento de la factura','d-edit':'Modifica la cabecera y las líneas del borrador','d-emit':'Numera el borrador, genera su registro VeriFactu y lo deja como factura emitida','d-del':'Elimina el borrador; no tiene número ni registro VeriFactu',
+ mail:'Prepara el correo con la factura en PDF para el cliente',goprog:'Abre la programación que generó esta factura','goinv-orig':'Abre la factura que esta rectificativa corrige','goinv-rect':'Abre la factura rectificativa que corrige a esta',rect:'Crea un borrador de factura rectificativa enlazado a esta factura',
+ 'vf-retry':'Envía ahora el registro a la AEAT sin esperar al próximo ciclo','vf-fix':'Prepara la corrección del registro rechazado o aceptado con errores','p-filter':'Muestra en las emitidas solo las facturas generadas por esta programación',
+ 'p-pause':'Detiene la generación de facturas hasta que se reanude','p-resume':'Vuelve a generar facturas a partir de la próxima fecha','x-edit':'Modifica, añade o elimina líneas en la fila del listado','x-add':'Añade una línea vacía al final'};
 function btn(label,o={}){
   const dis=o.why?` aria-disabled="true" data-why="${esc(o.why)}"`:'';
-  const t=o.title||o.why||'';
+  const t=o.title||o.why||BTIP[o.act]||'';
   return `<button type="button" class="btn ${o.cls||'sm'}" data-act="${o.act||''}" ${o.data||''}${dis} ${t?`title="${esc(t)}"`:''}>${o.icon?ic(o.icon,13):''}${label}</button>`;
 }
 function stateBox(kind,ctxLbl){
@@ -584,7 +602,7 @@ function skeleton(cols){return `<table class="tbl" aria-busy="true"><tbody>${Arr
 /* ════════════ Demo + marco ════════════ */
 function renderDemo(){
   const ter=CLI.map(c=>`<option value="${c.id}" ${c.id===S.terceroId?'selected':''}>${esc(c.n)}</option>`).join('');
-  $('#demo').innerHTML=`<span class="dtag">DEMOSTRACIÓN</span><span class="dnote">No forma parte de ProConta</span>
+  $('#demo').innerHTML=`<span class="dtag">Demostración</span><span class="dnote">No forma parte de ProConta</span>
   <label>Contexto <span class="dseg" role="group" aria-label="Contexto">
     <button type="button" data-act="demo-ctx" data-v="full" aria-pressed="${full()}">Facturación (pantalla completa)</button>
     <button type="button" data-act="demo-ctx" data-v="tercero" aria-pressed="${!full()}">Terceros › Ventas</button></span></label>
@@ -596,12 +614,13 @@ function renderDemo(){
 }
 function renderShell(){
   V=S.views[S.ctx];
+  if(EMB){document.body.classList.add('emb');const w=$('#win');w.innerHTML=`<div class="wbody"><main id="main">${mainFull()}</main></div><div id="toasts" aria-live="polite"></div>`;fitWidth();refresh();syncControls();return;}
   const w=$('#win');w.style.width=S.width==='auto'?'100%':S.width+'px';
   const t=cliById(S.terceroId);
   const tabs=`<div class="ctabs" role="tablist" aria-label="Pantallas abiertas">
-    <button class="ctab" role="tab" aria-selected="false" data-act="noop" data-why="Inicio no forma parte de esta maqueta.">${ic('home',13)}</button>
-    <button class="ctab" role="tab" aria-selected="${!full()}" data-act="go-tercero">${ic('users',13)}${esc(t.n.split(',')[0])}</button>
-    <button class="ctab" role="tab" aria-selected="${full()}" data-act="go-full">${ic('receipt',13)}Facturación</button></div>`;
+    <button class="ctab" role="tab" aria-selected="false" data-act="noop" data-why="Inicio no forma parte de esta maqueta." title="Inicio (no forma parte de esta maqueta)">${ic('home',13)}</button>
+    <button class="ctab" role="tab" aria-selected="${!full()}" data-act="go-tercero" title="Ficha del tercero, pestaña Ventas">${ic('users',13)}${esc(t.n.split(',')[0])}</button>
+    <button class="ctab" role="tab" aria-selected="${full()}" data-act="go-full" title="Pantalla de Facturación">${ic('receipt',13)}Facturación</button></div>`;
   const op=OPS[S.role];
   w.innerHTML=`<div class="titlebar"><span class="brand"><i></i>ProConta</span>
     <span class="ctxpill">${ic('bank',13)}<b>Ribera Gestión</b> · Ejercicio ${SOC.ej}</span><span class="grow"></span>
@@ -618,8 +637,8 @@ function mainFull(){
   const opts=`<option value="">Todos los clientes</option>`+CLI.map(c=>`<option value="${c.id}">${esc(c.n)}</option>`).join('');
   const fromT=V.fromTercero?cliById(V.fromTercero):null;
   const gw=canEdit()?null:NOPERM;
-  return `<div class="modbar"><h1>Facturación</h1><span class="ctxi">Ventas · Ribera Gestión · ${SOC.ej}</span><span class="vsep"></span>
-    ${S.data==='denied'?'':`<label class="flbl" for="fCli">Cliente</label><select id="fCli" class="in" style="width:250px">${opts}</select>`}
+  return `<div class="modbar"><h1>${EMB?'Facturas emitidas y programadas':'Facturación'}</h1>${EMB?'':`<span class="ctxi">Ventas · ${esc(SOC.n.split(',')[0])} · ${SOC.ej}</span>`}<span class="vsep"></span>
+    ${S.data==='denied'?'':`<label class="flbl" for="fCli">Cliente</label><select id="fCli" title="Muestra solo las programaciones y facturas de este cliente" class="in" style="width:250px">${opts}</select>`}
     ${fromT?`<button type="button" class="btn sm ghost" data-act="go-tercero" title="Volver a la pestaña Ventas de la ficha">${ic('arrowl',13)}Volver a ${esc(fromT.n.split(',')[0])}</button>`:''}
     <span class="grow"></span>
     <div class="gtools" role="toolbar" aria-label="Herramientas generales de Facturación" ${S.data==='denied'?'hidden':''}>
@@ -636,7 +655,7 @@ function mainTercero(){
   return `<div class="fhead"><span class="av ${t.tipo}">${initials(t.n)}</span><div style="min-width:0"><h1>${esc(t.n)}</h1>
     <div class="fsub">${t.tipo==='F'?'NIF':'CIF'} <span class="mono">${t.nif}</span> · IdTercero <span class="mono">${t.idt}</span></div></div>
     <span class="rbadge" title="Rol de cliente (se gestiona en la pestaña Roles)">Cliente <span class="mono">${t.idc}</span></span></div>
-    <div class="ftabs" role="tablist" aria-label="Pestañas de la ficha">${ft.map(x=>`<button class="ftab" role="tab" aria-selected="${x==='Ventas'}" data-act="${x==='Ventas'?'noop':'ftab'}">${x}</button>`).join('')}</div>
+    <div class="ftabs" role="tablist" aria-label="Pestañas de la ficha">${ft.map(x=>`<button class="ftab" title="Pestaña ${x} de la ficha" role="tab" aria-selected="${x==='Ventas'}" data-act="${x==='Ventas'?'noop':'ftab'}">${x}</button>`).join('')}</div>
     <div class="vstrip"><span class="lockchip" title="En la ficha del tercero este filtro es fijo; no se puede cambiar de tercero desde aquí">${ic('lock',13)}${esc(t.n)}</span>
       <span class="flbl">Ribera Gestión · ${SOC.ej}</span><span class="grow"></span>
       <button type="button" class="btn sm" data-act="open-fact" title="Abrir en la pantalla de Facturación conservando el tercero y el registro seleccionado">${ic('ext',13)}Abrir en Facturación</button>
@@ -658,22 +677,23 @@ function wsHTML(){
    </div>
    <div class="pbody" id="progBody">
     <div class="fbar" role="search" aria-label="Filtros de facturas programadas">
-      <div class="sbox" style="width:${f?250:220}px">${ic('search',13)}<input id="pq" type="search" placeholder="Código, descripción${f?' o cliente':''}" aria-label="Buscar programaciones"></div>
-      <div class="seg" role="group" aria-label="Estado de la programación" id="pestSeg">${[['all','Todas'],['A','Activas'],['P','Pausadas'],['F','Finalizadas']].map(([v,t])=>`<button type="button" data-act="pest" data-v="${v}">${t}<span class="ct" data-ct="${v}"></span></button>`).join('')}</div>
-      <select id="pper" class="in" style="width:150px" aria-label="Periodicidad"><option value="all">Periodicidad: todas</option>${Object.entries(PER).map(([k,o])=>`<option value="${k}">${o.t}</option>`).join('')}</select>
+      <div class="sbox" style="width:${f?250:220}px">${ic('search',13)}<input id="pq" title="Busca por código, descripción o cliente de la programación" type="search" placeholder="Código, descripción${f?' o cliente':''}" aria-label="Buscar programaciones"></div>
+      <div class="seg" role="group" aria-label="Estado de la programación" id="pestSeg">${[['all','Todas'],['A','Activas'],['P','Pausadas'],['F','Finalizadas']].map(([v,t])=>`<button type="button" data-act="pest" data-v="${v}" title="${v==='all'?'Muestra todas las programaciones':'Muestra solo las programaciones '+t.toLowerCase()}">${t}<span class="ct" data-ct="${v}"></span></button>`).join('')}</div>
+      <select id="pper" title="Muestra solo las programaciones con esta periodicidad" class="in" style="width:150px" aria-label="Periodicidad"><option value="all">Periodicidad: todas</option>${Object.entries(PER).map(([k,o])=>`<option value="${k}">${o.t}</option>`).join('')}</select>
     </div>
     <div class="tw" id="progTW"></div>
    </div>
   </section>
+  <div class="split" id="split" role="separator" aria-orientation="horizontal" aria-controls="progTW" tabindex="0" title="Arrastra para repartir la altura entre programadas y emitidas · ↑ ↓ con el teclado · doble clic: altura inicial"><i></i></div>
   <section class="panel pemit" id="pEmit" aria-labelledby="hEmit">
    <div class="ph"><h2 id="hEmit">Facturas emitidas</h2><span class="cnt" id="emitCount"></span><span id="progChip" style="display:contents"></span><span class="grow"></span><div class="acts" id="emitActs"></div></div>
    <div class="fbar" role="search" aria-label="Filtros de facturas emitidas">
-     <div class="sbox" style="width:${f?240:220}px">${ic('search',13)}<input id="q" type="search" placeholder="Nº, ${f?'cliente, NIF, ':''}concepto o PR-…" aria-label="Buscar facturas (Ctrl+F)"></div>
-     <select id="fest" class="in" style="width:136px" aria-label="Estado de la factura"><option value="all">Estado: todos</option>${Object.entries(EST).map(([k,t])=>`<option value="${k}">${t}</option>`).join('')}</select>
-     <select id="fvf" class="in" style="width:178px" aria-label="Situación VeriFactu"><option value="all">VeriFactu: todas</option><option value="INC">Con incidencias</option>${Object.entries(VF).map(([k,t])=>`<option value="${k}">${t[0]}</option>`).join('')}</select>
-     <select id="fserie" class="in" style="width:144px" aria-label="Serie"><option value="all">Serie: todas</option><option value="F">F · Ordinarias</option><option value="R">R · Rectificativas</option><option value="B">Sin serie (borradores)</option></select>
-     <div class="seg" role="group" aria-label="Origen" id="origSeg">${[['all','Todas'],['P','Programadas'],['M','Manuales']].map(([v,t])=>`<button type="button" data-act="orig" data-v="${v}">${t}</button>`).join('')}</div>
-     <span class="flbl">Fecha</span><input id="fdesde" type="date" class="in" style="width:122px" aria-label="Fecha desde"><span class="flbl">a</span><input id="fhasta" type="date" class="in" style="width:122px" aria-label="Fecha hasta">
+     <div class="sbox" style="width:${f?240:220}px">${ic('search',13)}<input id="q" title="Busca por número, cliente, NIF, concepto o código de programación (Ctrl+F)" type="search" placeholder="Nº, ${f?'cliente, NIF, ':''}concepto o PR-…" aria-label="Buscar facturas (Ctrl+F)"></div>
+     <select id="fest" title="Muestra solo las facturas en este estado" class="in" style="width:136px" aria-label="Estado de la factura"><option value="all">Estado: todos</option>${Object.entries(EST).map(([k,t])=>`<option value="${k}">${t}</option>`).join('')}</select>
+     <select id="fvf" title="Muestra solo las facturas con esta situación en VeriFactu" class="in" style="width:178px" aria-label="Situación VeriFactu"><option value="all">VeriFactu: todas</option><option value="INC">Con incidencias</option>${Object.entries(VF).map(([k,t])=>`<option value="${k}">${t[0]}</option>`).join('')}</select>
+     <select id="fserie" title="Muestra solo las facturas de esta serie" class="in" style="width:144px" aria-label="Serie"><option value="all">Serie: todas</option><option value="F">F · Ordinarias</option><option value="R">R · Rectificativas</option><option value="B">Sin serie (borradores)</option></select>
+     <div class="seg" role="group" aria-label="Origen" id="origSeg">${[['all','Todas'],['P','Programadas'],['M','Manuales']].map(([v,t])=>`<button type="button" data-act="orig" data-v="${v}" title="${v==='all'?'Muestra las facturas de cualquier origen':v==='P'?'Muestra solo las generadas por una programación':'Muestra solo las creadas a mano'}">${t}</button>`).join('')}</div>
+     <span class="flbl">Fecha</span><input id="fdesde" title="Primera fecha de factura que se muestra" type="text" inputmode="numeric" maxlength="10" placeholder="dd/mm/aaaa" class="in" style="width:122px" aria-label="Fecha desde"><span class="flbl">a</span><input id="fhasta" title="Última fecha de factura que se muestra" type="text" inputmode="numeric" maxlength="10" placeholder="dd/mm/aaaa" class="in" style="width:122px" aria-label="Fecha hasta">
      <button type="button" class="btn sm ghost" data-act="clear-filters" id="btnClear">Limpiar filtros</button>
    </div>
    <div class="bulk" id="bulk" role="toolbar" aria-label="Acciones colectivas"></div>
@@ -683,18 +703,27 @@ function wsHTML(){
  </div>
  <aside class="detail" id="detail" aria-label="Detalle del registro activo" hidden></aside>`;
 }
+function applySplit(){const tw=$('#progTW');if(!tw)return;if(S.progH){tw.style.maxHeight='none';tw.style.height=S.progH+'px';}else{tw.style.maxHeight='';tw.style.height='';}
+  const sp=$('#split');if(sp){sp.setAttribute('aria-valuenow',Math.round(tw.getBoundingClientRect().height));}}
+function maxProgH(){const l=$('#lists'),tw=$('#progTW');if(!l||!tw)return 600;return Math.max(80,l.clientHeight-($('#pProg').offsetHeight-tw.offsetHeight)-10-260);}
+function setProgH(h){S.progH=h==null?null:Math.round(Math.min(Math.max(60,h),maxProgH()));applySplit();}
+document.addEventListener('mousedown',e=>{const sp=e.target.closest&&e.target.closest('#split');if(!sp||e.button!==0)return;e.preventDefault();
+  const tw=$('#progTW'),y0=e.clientY,h0=tw.getBoundingClientRect().height;sp.classList.add('drag');document.body.classList.add('dragging');
+  const mv=ev=>setProgH(h0+ev.clientY-y0);const up=()=>{sp.classList.remove('drag');document.body.classList.remove('dragging');document.removeEventListener('mousemove',mv);document.removeEventListener('mouseup',up);};
+  document.addEventListener('mousemove',mv);document.addEventListener('mouseup',up);});
+document.addEventListener('dblclick',e=>{if(e.target.closest&&e.target.closest('#split'))setProgH(null);});
 function fitWidth(){const w=$('#win');const x=w.clientWidth;w.classList.toggle('nd',x<1240);w.classList.toggle('nt',x<1120);w.classList.toggle('xn',x<1000);}
 
 function syncControls(){
   const set=(id,v)=>{const e=$('#'+id);if(e&&e.value!==String(v??''))e.value=v??'';};
-  set('pq',V.pq);set('pper',V.pper);set('q',V.q);set('fest',V.est);set('fvf',V.vf);set('fserie',V.serie);set('fdesde',V.desde);set('fhasta',V.hasta);
+  set('pq',V.pq);set('pper',V.pper);set('q',V.q);set('fest',V.est);set('fvf',V.vf);set('fserie',V.serie);set('fdesde',isoES(V.desde));set('fhasta',isoES(V.hasta));
   if($('#fCli'))$('#fCli').value=V.cliente||'';
   $$('#pestSeg button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.v===V.pest));
   $$('#origSeg button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.v===V.orig));
   ['fest','fvf','fserie','pper','fdesde','fhasta','fCli'].forEach(id=>{const e=$('#'+id);if(e)e.classList.toggle('on',!!e.value&&e.value!=='all');});
   const pp=$('#pProg');if(pp){pp.classList.toggle('collapsed',V.progCollapsed);const b=$('[data-act=prog-collapse]');b.setAttribute('aria-expanded',!V.progCollapsed);b.setAttribute('aria-label',V.progCollapsed?'Desplegar facturas programadas':'Plegar facturas programadas');}
 }
-function refresh(){if(S.data==='denied')return;renderProg();renderEmit();renderDetail();}
+function refresh(){if(S.data==='denied')return;renderProg();renderEmit();renderDetail();applySplit();}
 
 /* ════════════ Programadas ════════════ */
 function renderProg(){
@@ -726,7 +755,7 @@ function renderProg(){
    <thead><tr><th class="cb"><input type="checkbox" id="pchkAll" aria-label="Marcar las ${list.length} programaciones del listado" ${pall?'checked':''} title="Marcar todas las del listado"></th><th class="cb"><span class="sr">Líneas</span></th>${f?'<th>Cliente</th>':''}<th>Programación</th><th>Notas</th><th>Periodicidad</th><th>Próxima</th><th>Vigencia</th><th class="r" title="Facturas generadas en Ribera Gestión · ${SOC.ej}">Generadas</th><th class="r" title="Total de cada factura que genera (importe fijo, salvo modificación manual de sus líneas)">Total</th><th>Estado</th></tr></thead>
    <tbody>${list.map(p=>{const c=cliById(p.cli),nd=nextDate(p),t=calc(p.lines,p.rp),flt=V.progSel===p.id,k='p:'+p.id,xo=V.exp.has(k),s=V.psel.has(p.id),ed=V.edit&&V.edit.key===k;
      return `<tr class="r${flt?' flt':''}${s?' sel':''}${act===p.id?' act':''}${ed&&editChanges()?' dirty':''}" data-row="${k}" tabindex="${p.id===curId?0:-1}" aria-expanded="${xo}" aria-selected="${s}" title="Clic: ver solo sus facturas emitidas · Intro o doble clic: consultar · →: líneas">
-      <td class="cb"><input type="checkbox" data-act="pchk" data-id="${p.id}" tabindex="-1" ${s?'checked':''} aria-label="Marcar ${progCode(p)}"></td>
+      <td class="cb"><input type="checkbox" data-act="pchk" title="Marca la programación para generar sus facturas (Espacio)" data-id="${p.id}" tabindex="-1" ${s?'checked':''} aria-label="Marcar ${progCode(p)}"></td>
       <td class="cb"><button type="button" class="xb" data-act="xp" data-k="${k}" tabindex="-1" aria-expanded="${xo}" aria-label="${xo?'Ocultar':'Mostrar'} las líneas de ${progCode(p)}" title="${xo?'Ocultar':'Mostrar'} líneas (→ / ←)">${ic('chevr',14,2.2)}</button></td>
       ${f?`<td title="${esc(c.n)}">${esc(c.n)}</td>`:''}
       <td title="${esc(p.desc)}">${flt?`<span class="fic" title="Aplicada como filtro de las emitidas">${ic('funnel',12)}</span>`:''}<span class="pcode">${progCode(p)}</span>${flt?`<b>${esc(p.desc)}</b>`:esc(p.desc)}${ed?'<i class="ddot" title="Líneas en edición"></i>':''}</td>
@@ -779,7 +808,7 @@ function renderEmit(){
    ${th('num','Número')}${th('fecha','Fecha')}${f?th('cli','Cliente'):''}<th>Concepto · origen</th><th>Notas</th><th class="r">Base</th><th class="r" title="Porcentaje de retención IRPF">Ret.</th>${th('total','Total','r')}${th('est','Estado')}${th('env','Fecha envío')}${th('vf','VeriFactu')}</tr></thead>
    <tbody>${list.map(v=>{const s=V.selected.has(v.id);const p=v.prog?progById(v.prog):null;const k='e:'+v.id,xo=V.exp.has(k),ed=V.edit&&V.edit.key===k;
     return `<tr class="r${s?' sel':''}${act===v.id?' act':''}${ed&&editChanges()?' dirty':''}" data-row="${k}" tabindex="${v.id===curId?0:-1}" aria-selected="${s}" aria-expanded="${xo}">
-     <td class="cb"><input type="checkbox" data-act="chk" data-id="${v.id}" tabindex="-1" ${s?'checked':''} aria-label="Seleccionar ${esc(invNum(v))}"></td>
+     <td class="cb"><input type="checkbox" data-act="chk" title="Marca la factura para las acciones colectivas (Espacio)" data-id="${v.id}" tabindex="-1" ${s?'checked':''} aria-label="Seleccionar ${esc(invNum(v))}"></td>
      <td class="cb"><button type="button" class="xb" data-act="xp" data-k="${k}" tabindex="-1" aria-expanded="${xo}" aria-label="${xo?'Ocultar':'Mostrar'} las líneas de ${esc(invNum(v))}" title="${xo?'Ocultar':'Mostrar'} líneas (→ / ←)">${ic('chevr',14,2.2)}</button></td>
      <td>${numHTML(v)}${ed?'<i class="ddot" title="Líneas en edición"></i>':''}</td><td class="tn">${fd(v.fecha)}</td>
      ${f?`<td title="${esc(v.dest.n)}">${esc(v.dest.n)}</td>`:''}
@@ -800,10 +829,10 @@ function renderBulk(list,selVis,hidden){
   const apMail=scope.filter(v=>v.est!=='BOR').length, apVf=scope.filter(v=>['PEN','ERR'].includes(v.vf)).length, apPdf=scope.filter(v=>v.est!=='BOR').length;
   b.innerHTML=`<span class="bl">Actuar sobre</span>
    <div class="seg" role="radiogroup" aria-label="Registros sobre los que actuar">
-    <button type="button" role="radio" data-act="scope" data-v="sel" aria-checked="${V.scope==='sel'}" ${selVis.length?'':'aria-disabled="true" data-why="Marca facturas con las casillas (o Espacio) para actuar solo sobre ellas."'}>Seleccionadas <span class="ct">${selVis.length}</span></button>
-    <button type="button" role="radio" data-act="scope" data-v="filt" aria-checked="${V.scope==='filt'}">Todo el listado filtrado <span class="ct">${list.length}</span></button></div>
-   ${hidden?`<span class="hint warn">${ic('warn',12)} ${hidden} seleccionada${hidden>1?'s':''} fuera del filtro no se incluirá${hidden>1?'n':''} · <button type="button" class="lnk" data-act="drop-hidden">Quitarlas</button></span>`:''}
-   ${V.selected.size?`<button type="button" class="lnk" data-act="clear-sel" style="font-size:12px">Quitar selección</button>`:''}
+    <button type="button" role="radio" data-act="scope" data-v="sel" title="Las acciones colectivas se aplican solo a las facturas marcadas" aria-checked="${V.scope==='sel'}" ${selVis.length?'':'aria-disabled="true" data-why="Marca facturas con las casillas (o Espacio) para actuar solo sobre ellas."'}>Seleccionadas <span class="ct">${selVis.length}</span></button>
+    <button type="button" role="radio" data-act="scope" data-v="filt" title="Las acciones colectivas se aplican a todas las facturas del listado filtrado" aria-checked="${V.scope==='filt'}">Todo el listado filtrado <span class="ct">${list.length}</span></button></div>
+   ${hidden?`<span class="hint warn">${ic('warn',12)} ${hidden} seleccionada${hidden>1?'s':''} fuera del filtro no se incluirá${hidden>1?'n':''} · <button type="button" class="lnk" data-act="drop-hidden" title="Desmarca las facturas marcadas que no están en el listado filtrado">Quitarlas</button></span>`:''}
+   ${V.selected.size?`<button type="button" class="lnk" data-act="clear-sel" style="font-size:12px" title="Desmarca todas las facturas">Quitar selección</button>`:''}
    <span class="grow"></span>
    ${btn(`Preparar correo (${apMail})`,{act:'b-mail',icon:'mail',why:!canEdit()?NOPERM:!apMail?'Ninguna de las facturas del ámbito se puede enviar (los borradores no se envían).':undefined,title:`Preparar el envío por correo de ${apMail} de ${tgt}`})}
    ${btn(`Descargar PDF (${apPdf})`,{act:'b-pdf',icon:'dl',why:!apPdf?'Los borradores no tienen PDF definitivo.':undefined,title:`Descargar el PDF de ${apPdf} de ${tgt}`})}
@@ -858,10 +887,10 @@ function detEmit(v){
      <dt>Fecha de operación</dt><dd>${fd(v.fop)}</dd>
      <dt>Forma de pago</dt><dd>${esc(v.fp)}</dd>
      <dt>Vencimiento</dt><dd>${fd(addD(v.fecha,v.fp===FP30?30:v.fp===FPDOM?4:0))}</dd>
-     <dt>Origen</dt><dd>${p?`<button type="button" class="lnk" data-act="goprog">${progCode(p)} · ${esc(p.desc)}</button>`:v.tipo==='R1'?'Rectificación manual':'Emitida manualmente <span class="mut">(sin programación)</span>'}</dd>
+     <dt>Origen</dt><dd>${p?`<button type="button" class="lnk" data-act="goprog" title="Abre la programación que generó esta factura">${progCode(p)} · ${esc(p.desc)}</button>`:v.tipo==='R1'?'Rectificación manual':'Emitida manualmente <span class="mut">(sin programación)</span>'}</dd>
      <dt>Notas</dt><dd>${v.notas?esc(v.notas):'<span class="mut">—</span>'}</dd>
-     ${orig?`<dt>Rectifica a</dt><dd><button type="button" class="lnk" data-act="goinv-orig">${invNum(orig)}</button> · ${esc(v.motivo||'')}</dd>`:''}
-     ${rb?`<dt>Rectificada por</dt><dd><button type="button" class="lnk" data-act="goinv-rect">${invNum(rb)}</button> del ${fd(rb.fecha)}</dd>`:''}
+     ${orig?`<dt>Rectifica a</dt><dd><button type="button" class="lnk" data-act="goinv-orig" title="Abre la factura que esta rectificativa corrige">${invNum(orig)}</button> · ${esc(v.motivo||'')}</dd>`:''}
+     ${rb?`<dt>Rectificada por</dt><dd><button type="button" class="lnk" data-act="goinv-rect" title="Abre la factura rectificativa que corrige a esta">${invNum(rb)}</button> del ${fd(rb.fecha)}</dd>`:''}
     </dl></div>
     <div><p class="sec">Destinatario</p><dl class="kv"><dt>Nombre</dt><dd>${esc(v.dest.n)}</dd><dt>NIF</dt><dd class="mono">${v.dest.nif}</dd><dt>Domicilio</dt><dd>${esc(v.dest.dom)}</dd><dt>Email de envío</dt><dd>${v.dest.mail?esc(v.dest.mail):'<span class="mut">Sin email para facturas</span>'}</dd></dl>
      <p class="mut" style="font-size:11.5px;margin:6px 0 0">${v.est==='BOR'?'Se tomarán de la ficha del tercero al emitir.':'Datos con los que se emitió. Los cambios posteriores en la ficha del tercero no modifican la factura.'}</p></div>
@@ -891,7 +920,7 @@ function detEmit(v){
      <div class="note">${ic('info',14)}<span>Los correos de esta maqueta no se envían: solo se registran como «Simulado».</span></div>`;
   }
   return detHead(kind,v.est==='BOR'?'Borrador B-'+pad(v.draftNo,4):invNum(v),`${esc(v.dest.n)} · ${fd(v.fecha)}`,stat,acts)+
-   `<div class="dtabs" role="tablist">${tabs.map(([k,t])=>`<button type="button" class="dtab" role="tab" aria-selected="${V.dtab===k}" data-act="dtab" data-v="${k}">${t}</button>`).join('')}</div><div class="dbody" role="tabpanel">${body}</div>`;
+   `<div class="dtabs" role="tablist">${tabs.map(([k,t])=>`<button type="button" class="dtab" title="${{res:'Cabecera, destinatario, emisor e importes',lin:'Líneas de la factura',vf:'Registro y envíos a VeriFactu',doc:'Documento PDF y envíos por correo'}[k]}" role="tab" aria-selected="${V.dtab===k}" data-act="dtab" data-v="${k}">${t}</button>`).join('')}</div><div class="dbody" role="tabpanel">${body}</div>`;
 }
 function totalsTable(v){
   return `<table class="mini"><tfoot>
@@ -1008,6 +1037,7 @@ function toggleExp(key,open){
   key[0]==='p'?renderProg():renderEmit();focusRow(key);
 }
 /* columnas como en el ERP: Descripción · Precio neto · Cant. · Importe neto · IVA · Dto. · Precio bruto · Importe bruto · Notas */
+const XTIP={c:'Descripción que se imprime en la línea',p:'Precio unitario sin IVA',q:'Cantidad; negativa para abonar',d:'Descuento informativo: el precio neto ya lo incluye',n:'Notas internas de la línea; no se imprimen'};
 const XCOLS='<colgroup><col style="width:30px"><col><col style="width:100px"><col style="width:64px"><col style="width:110px"><col style="width:78px"><col style="width:70px"><col style="width:110px"><col style="width:114px"><col style="width:230px"><col style="width:34px"></colgroup>';
 const XHEAD='<thead><tr><th>#</th><th>Descripción</th><th class="r">Precio neto</th><th class="r">Cant.</th><th class="r">Importe neto</th><th class="r">IVA</th><th class="r" title="Descuento informativo: el precio neto ya lo incluye">Dto.</th><th class="r">Precio bruto</th><th class="r">Importe bruto</th><th>Notas</th><th></th></tr></thead>';
 const bruto=(p,iva)=>r2(p*(1+iva/100));
@@ -1017,7 +1047,7 @@ function xTotalsVals(lines,rp){
 }
 function xFoot(lines,rp,E){
   const v=xTotalsVals(lines,rp),rpv=E?E.rp:rp;const er=E&&E.err['rprp'];
-  const rpCell=E?`<span class="xrp">Retención <input class="in xin r${er?' err':''}" data-xi="rp" data-f="rp" value="${esc(rpv)}" aria-label="Porcentaje de retención" ${er?`aria-invalid="true" title="${esc(er)}"`:''} style="width:58px"> %</span>`:`Retención ${fmtQ(rp)} %`;
+  const rpCell=E?`<span class="xrp">Retención <input class="in xin r${er?' err':''}" data-xi="rp" data-f="rp" value="${esc(rpv)}" aria-label="Porcentaje de retención" ${er?`aria-invalid="true" title="${esc(er)}"`:'title="Porcentaje de retención IRPF sobre el importe neto; 0 = sin retención"'} style="width:58px"> %</span>`:`Retención ${fmtQ(rp)} %`;
   return `<tfoot><tr class="xt-tot"><td></td><td>Total</td><td></td><td class="r tn" data-t="q">${v.q}</td><td class="r tn" data-t="neto">${v.neto}</td><td></td><td></td><td></td><td class="r tn" data-t="bruto">${v.bruto}</td><td></td><td></td></tr>
    ${E||rp?`<tr class="xret"><td></td><td>${rpCell}</td><td></td><td></td><td></td><td></td><td></td><td></td><td class="r tn" data-t="ret">${v.hasRet?v.ret:'—'}</td><td class="mut" style="font-size:11px">${E?'Sobre el importe neto; 0 = sin retención':'Sobre el importe neto'}</td><td></td></tr>`:''}
    <tr class="xliq" ${v.hasRet?'':'hidden'}><td></td><td>Total a cobrar</td><td></td><td></td><td></td><td></td><td></td><td></td><td class="r tn" data-t="liq">${v.liq}</td><td></td><td></td></tr></tfoot>`;
@@ -1029,8 +1059,8 @@ function xrowHTML(t,r,cols){
     ${E?'<span class="xedtag">'+ic('edit',12)+'Editando</span>':why?`<span class="xlock" title="${esc(why)}">${ic('lock',12)}${esc(why)}</span>`:btn('Editar líneas',{act:'x-edit',icon:'edit',data:`data-k="${key}"`,title:'Modificar, añadir o eliminar líneas'})}</div>`;
   let rows;
   if(E){
-    const ivaSel=(i,v)=>`<select class="in xin" data-xi="${i}" data-f="iva" aria-label="IVA de la línea ${i+1}">${[21,10,4,0].map(x=>`<option value="${x}" ${+v===x?'selected':''}>${x?x+' %':'Exento'}</option>`).join('')}</select>`;
-    const inp=(i,f,v,cls,lab,ph='')=>{const er=E.err[i+f];return `<input class="in xin ${cls}${er?' err':''}" data-xi="${i}" data-f="${f}" value="${esc(v)}" placeholder="${ph}" aria-label="${lab} de la línea ${i+1}" ${er?`aria-invalid="true" title="${esc(er)}"`:''}>`;};
+    const ivaSel=(i,v)=>`<select class="in xin" data-xi="${i}" data-f="iva" title="Tipo de IVA de la línea" aria-label="IVA de la línea ${i+1}">${[21,10,4,0].map(x=>`<option value="${x}" ${+v===x?'selected':''}>${x?x+' %':'Exento'}</option>`).join('')}</select>`;
+    const inp=(i,f,v,cls,lab,ph='')=>{const er=E.err[i+f];return `<input class="in xin ${cls}${er?' err':''}" data-xi="${i}" data-f="${f}" value="${esc(v)}" placeholder="${ph}" aria-label="${lab} de la línea ${i+1}" ${er?`aria-invalid="true" title="${esc(er)}"`:`title="${XTIP[f]}"`}>`;};
     rows=E.lines.map((l,i)=>{const q=numES(l.q),p=numES(l.p),ok=!isNaN(q)&&!isNaN(p);const nw=l._o==null;
       return `<tr class="${nw?'xnew':''}"><td class="mut tn">${i+1}</td><td>${inp(i,'c',l.c,'','Descripción')}</td><td>${inp(i,'p',l.p,'r','Precio neto')}</td><td>${inp(i,'q',l.q,'r','Cantidad')}</td>
       <td class="r tn" data-in="${i}">${ok?money(q*p):'—'}</td><td>${ivaSel(i,l.iva)}</td><td>${inp(i,'d',l.d,'r','Descuento','—')}</td>
@@ -1046,7 +1076,7 @@ function xrowHTML(t,r,cols){
   return `<tr class="xrow" data-x="${key}"><td colspan="${cols}"><div class="xp${E?' ed':''}" role="region" aria-label="Líneas de ${esc(title)}">${head}
     <div class="xtw"><table class="xt">${XCOLS}${XHEAD}<tbody>${rows}</tbody>${xFoot(lines,E?numES(E.rp)||0:(r.rp||0),E)}</table></div>
     ${E?`<div class="xpf">${btn('Añadir línea',{act:'x-add',icon:'plus'})}</div>
-    <div class="xbar"><button type="button" class="btn sm pri" data-act="x-save" title="Guardar (Ctrl+G)">Guardar</button><button type="button" class="btn sm" data-act="x-discard">Descartar</button>
+    <div class="xbar"><button type="button" class="btn sm pri" data-act="x-save" title="Guardar (Ctrl+G)">Guardar</button><button type="button" class="btn sm" data-act="x-discard" title="Deshace los cambios de las líneas sin guardar">Descartar</button>
       <span class="xcnt">${n?`<i class="ddot"></i>${n} cambio${n>1?'s':''} sin guardar`:'Sin cambios'}</span>
       <span class="mut">${t==='p'?'Se aplicarán a las próximas emisiones; las facturas ya generadas no cambian.':'Ctrl+G guarda · Tab recorre los campos'}</span></div>`:''}
   </div></td></tr>`;
@@ -1076,18 +1106,18 @@ function genDialog(ids,all){
       const why=p.estado==='P'?'Pausada: no se genera':p.estado==='F'?'Finalizada':!ds.length?`Nada hasta esa fecha${nextDate(p)?' (próxima '+fd(nextDate(p))+')':''}`:'';
       return `<tr><td><span class="mono">${progCode(p)}</span> ${esc(p.desc)}</td><td>${esc(cliById(p.cli).n)}</td><td>${ds.length?ds.map(fd).join(', '):`<span class="mut">${why}</span>`}</td><td class="r tn">${ds.length?money(calc(p.lines,p.rp).total*ds.length):''}</td></tr>`;}).join('');
     return {tot,html:`<table class="mini"><thead><tr><th>Programación</th><th>Cliente</th><th>Periodos a generar</th><th class="r">Total</th></tr></thead><tbody>${rows}</tbody></table>
-      ${!tot?`<div class="note">${ic('info',14)}<span>No hay periodos pendientes hasta esa fecha.${nxs[0]?` <button type="button" class="lnk" id="gUse">Generar hasta ${fd(nxs[0])} (próxima emisión)</button>`:''}</span></div>`:''}`};};
-  const upd=ov=>{const h=new Date($('#gHasta',ov).value+'T00:00');const t=table(h);$('#gTbl',ov).innerHTML=t.html;
+      ${!tot?`<div class="note">${ic('info',14)}<span>No hay periodos pendientes hasta esa fecha.${nxs[0]?` <button type="button" class="lnk" id="gUse" title="Ajusta la fecha a la próxima emisión prevista">Generar hasta ${fd(nxs[0])} (próxima emisión)</button>`:''}</span></div>`:''}`};};
+  const upd=ov=>{const h=new Date(dv($('#gHasta',ov))+'T00:00');const t=table(h);$('#gTbl',ov).innerHTML=t.html;
     const b=$('.dlgf [data-m="0"]',ov);b.textContent=`Generar ${t.tot} borrador${t.tot===1?'':'es'}`;
     if(t.tot){b.removeAttribute('aria-disabled');b.title='';}else{b.setAttribute('aria-disabled','true');b.title='No hay periodos que generar hasta esa fecha.';}
-    $('#gUse',ov)?.addEventListener('click',()=>{$('#gHasta',ov).value=iso(nxs[0]);upd(ov);});};
+    $('#gUse',ov)?.addEventListener('click',()=>{$('#gHasta',ov).value=fd(nxs[0]);upd(ov);});};
   modal({title:all?'Generar facturas programadas · todas':`Generar ${ids.length} programaci${ids.length>1?'ones':'ón'} seleccionada${ids.length>1?'s':''}`,sim:true,wide:true,
    body:`<div class="note">${ic('info',14)}<span>Ámbito: <b>${all?'todas las programaciones activas de Ribera Gestión':ids.length+' marcada'+(ids.length>1?'s':'')+' en el listado'}</b>. Las pausadas y finalizadas se omiten.</span></div>
-    <div class="frow"><div class="fld"><label for="gHasta">Generar los periodos con fecha hasta</label><input id="gHasta" type="date" class="in" style="width:140px" value="${iso(TODAY)}"></div></div>
+    <div class="frow"><div class="fld"><label for="gHasta">Generar los periodos con fecha hasta</label><input id="gHasta" title="Se generan los periodos con fecha igual o anterior a esta" type="text" inputmode="numeric" maxlength="10" placeholder="dd/mm/aaaa" class="in" style="width:140px" value="${fd(TODAY)}"></div></div>
     <div id="gTbl"></div>
     <div class="proplist"><div><span><span class="prop">Propuesta</span> Se crean como <b>borradores</b> con la fecha de cada periodo, para revisarlos y emitirlos después (individualmente o en lote).</span></div></div>`,
    actions:[{t:'Generar',cls:'pri',fn:ov=>{
-     const h=new Date($('#gHasta',ov).value+'T00:00');let made=[];
+     const h=new Date(dv($('#gHasta',ov))+'T00:00');let made=[];
      progs.forEach(p=>{dueDates(p,h).forEach(d=>{const dn=Math.max(0,...INV.map(x=>x.draftNo||0))+1;
        const v=mkInv({fecha:d,cli:p.cli,prog:p.id,serie:null,est:'BOR',vf:'NA',draftNo:dn,rp:p.rp,notas:p.notas,fp:p.fp,mailP:p.mail,lines:p.lines.map((l,k)=>({...l,c:k===0?l.c+' · '+perLabel(p,d):l.c}))});
        Object.assign(v,calc(v.lines,v.rp));INV.push(v);made.push(v);p.lastGen=d;});});
@@ -1108,8 +1138,8 @@ let modalReturn=null;
 function modal({title,body,actions=[],sim=false,wide=false,onOpen,cancel='Cancelar'}){
   closeModal(true);modalReturn=document.activeElement;
   const ov=document.createElement('div');ov.className='ov';ov.id='ov';
-  ov.innerHTML=`<div class="dlg${wide?' wide':''}" role="dialog" aria-modal="true" aria-labelledby="dlgT"><div class="dlgh"><h3 id="dlgT">${title}</h3>${sim?'<span class="simtag">Operación simulada</span>':''}<span class="grow"></span><button type="button" class="icb" data-m="x" aria-label="Cerrar (Esc)">${ic('x',16)}</button></div>
-   <div class="dlgb">${body}</div><div class="dlgf">${actions.map((a,i)=>`<button type="button" class="btn ${a.cls||''}" data-m="${i}" ${a.why?`aria-disabled="true" title="${esc(a.why)}"`:''}>${a.t}</button>`).join('')}<span class="grow"></span><button type="button" class="btn" data-m="x">${cancel}</button></div></div>`;
+  ov.innerHTML=`<div class="dlg${wide?' wide':''}" role="dialog" aria-modal="true" aria-labelledby="dlgT"><div class="dlgh"><h3 id="dlgT">${title}</h3>${sim?'<span class="simtag">Operación simulada</span>':''}<span class="grow"></span><button type="button" class="icb" data-m="x" aria-label="Cerrar (Esc)" title="Cierra el diálogo sin hacer cambios (Esc)">${ic('x',16)}</button></div>
+   <div class="dlgb">${body}</div><div class="dlgf">${actions.map((a,i)=>`<button type="button" class="btn ${a.cls||''}" data-m="${i}" ${a.why?`aria-disabled="true" title="${esc(a.why)}"`:`title="${esc(a.tip||a.t.replace(/<[^>]+>/g,''))}"`}>${a.t}</button>`).join('')}<span class="grow"></span><button type="button" class="btn" data-m="x" title="Cierra el diálogo sin hacer cambios (Esc)">${cancel}</button></div></div>`;
   $('#win').appendChild(ov);
   ov.addEventListener('click',e=>{const b=e.target.closest('[data-m]');if(!b)return;if(b.getAttribute('aria-disabled')==='true'){toast(b.title,'info');return;}
     if(b.dataset.m==='x'){closeModal();return;}const a=actions[+b.dataset.m];if(a.fn&&a.fn(ov)===false)return;closeModal();});
@@ -1123,8 +1153,8 @@ function closeMenu(){const m=$('#ctxmenu');if(m){m.remove();return true;}return 
 function openMenu(v,x,y,returnTo){
   closeMenu();const m=document.createElement('div');m.className='menu';m.id='ctxmenu';m.setAttribute('role','menu');m.setAttribute('aria-label','Acciones de '+invNum(v));
   const items=[['Consultar detalle','eye','m-open'],...invActs(v)];
-  m.innerHTML=items.map(([t,i,a,why])=>`<button type="button" role="menuitem" data-act="${a}" data-mid="${v.id}" ${why?`aria-disabled="true" data-why="${esc(why)}" title="${esc(why)}"`:''}>${ic(i,14)}${t.replace('…','…')}</button>`).join('')+
-   `<hr><button type="button" role="menuitem" data-act="m-sel" data-mid="${v.id}">${ic('check',14)}${V.selected.has(v.id)?'Quitar de la selección':'Añadir a la selección'}</button>`;
+  m.innerHTML=items.map(([t,i,a,why])=>`<button type="button" role="menuitem" data-act="${a}" data-mid="${v.id}" ${why?`aria-disabled="true" data-why="${esc(why)}" title="${esc(why)}"`:`title="${esc(BTIP[a]||(a==='m-open'?'Abre el detalle de la factura':t))}"`}>${ic(i,14)}${t.replace('…','…')}</button>`).join('')+
+   `<hr><button type="button" role="menuitem" data-act="m-sel" data-mid="${v.id}" title="Marca o desmarca la factura para las acciones colectivas">${ic('check',14)}${V.selected.has(v.id)?'Quitar de la selección':'Añadir a la selección'}</button>`;
   const w=$('#win'),r=w.getBoundingClientRect();w.appendChild(m);
   const mw=m.offsetWidth,mh=m.offsetHeight;m.style.left=Math.min(x-r.left,r.width-mw-8)+'px';m.style.top=Math.min(y-r.top,r.height-mh-8)+'px';
   m._ret=returnTo;m.querySelector('button').focus();
@@ -1161,10 +1191,10 @@ function opDoc(v){
   modal({title:'Vista previa · '+esc(v.est==='BOR'?'Borrador B-'+pad(v.draftNo,4):invNum(v)),sim:true,wide:true,body:`
    ${v.est==='BOR'?'<div class="note warn">'+ic('warn',14)+'<span>Borrador: documento sin validez, sin número ni QR.</span></div>':''}
    <div class="doc"><div style="display:flex;justify-content:space-between;gap:20px"><div><h4>${SOC.n}</h4>${SOC.nif}<br>${SOC.dom}</div>
-    <div style="text-align:right"><b style="font-size:14px">${v.tipo==='R1'?'FACTURA RECTIFICATIVA':'FACTURA'}</b><br>${v.est==='BOR'?'Borrador':'Nº '+invNum(v)}<br>Fecha: ${fd(v.fecha)}</div></div>
+    <div style="text-align:right"><b style="font-size:14px">${v.tipo==='R1'?'Factura rectificativa':'Factura'}</b><br>${v.est==='BOR'?'Borrador':'Nº '+invNum(v)}<br>Fecha: ${fd(v.fecha)}</div></div>
     <div style="margin:18px 0;padding:10px;border:1px solid #ddd"><b>${esc(v.dest.n)}</b><br>${v.dest.nif}<br>${esc(v.dest.dom)}</div>
     <table style="width:100%;border-collapse:collapse" class="mini"><thead><tr><th>Concepto</th><th class="r">Cant.</th><th class="r">Precio</th><th class="r">IVA</th><th class="r">Importe</th></tr></thead><tbody>${lines}</tbody></table>
-    <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-top:14px">${v.est==='BOR'?'<span></span>':`<div style="display:flex;gap:8px;align-items:center">${fakeQR(v.id)}<span style="font-size:10px">QR tributario<br>VERI*FACTU</span></div>`}
+    <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-top:14px">${v.est==='BOR'?'<span></span>':`<div style="display:flex;gap:8px;align-items:center">${fakeQR(v.id)}<span style="font-size:10px">QR tributario<br>VeriFactu</span></div>`}
      <div style="width:260px">${totalsTable(v)}</div></div><p style="font-size:10.5px;color:#666;margin:12px 0 0">Forma de pago: ${esc(v.fp)}</p></div>`,
    actions:[{t:ic('dl',13)+'Descargar PDF',cls:'pri',fn:()=>toast(`PDF de ${esc(invNum(v))} preparado. No se ha descargado ningún fichero.`)}]});
 }
@@ -1211,16 +1241,16 @@ function progDialog(p){
    <div class="frow">${isNew&&f&&!V.cliente?`<div class="fld"><label for="gCli">Cliente</label><select id="gCli" class="in" style="width:280px">${cliOpt}</select></div>`:`<div class="fld"><label>Cliente</label><span class="lockchip">${ic('lock',12)}${esc(cliById(p?p.cli:scopeCli()).n)}</span></div>`}</div>
    <div class="fld"><label for="gDesc">Descripción</label><input id="gDesc" class="in" style="width:420px;max-width:100%" maxlength="80" value="${esc(p?p.desc:'')}"></div>
    <div class="frow"><div class="fld"><label for="gPer">Periodicidad</label><select id="gPer" class="in" style="width:140px">${Object.entries(PER).map(([k,o])=>`<option value="${k}" ${(p?p.per:'M')===k?'selected':''}>${o.t}</option>`).join('')}</select></div>
-    <div class="fld"><label for="gIni">Primera emisión</label><input id="gIni" type="date" class="in" style="width:140px" value="${iso(p?p.inicio:addM(new Date(TODAY.getFullYear(),TODAY.getMonth(),1),1))}" ${p?'disabled title="No se cambia una vez generadas facturas"':''}></div>
-    <div class="fld"><label for="gFin">Fin de vigencia</label><input id="gFin" type="date" class="in" style="width:140px" value="${p&&p.fin?iso(p.fin):''}"></div>
+    <div class="fld"><label for="gIni">Primera emisión</label><input id="gIni" type="text" inputmode="numeric" maxlength="10" placeholder="dd/mm/aaaa" class="in" style="width:140px" value="${fd(p?p.inicio:addM(new Date(TODAY.getFullYear(),TODAY.getMonth(),1),1))}" ${p?'disabled title="No se cambia una vez generadas facturas"':''}></div>
+    <div class="fld"><label for="gFin">Fin de vigencia</label><input id="gFin" type="text" inputmode="numeric" maxlength="10" placeholder="dd/mm/aaaa" class="in" style="width:140px" value="${p&&p.fin?fd(p.fin):''}"></div>
     ${isNew?`<div class="fld"><label for="gImp">Importe base</label><input id="gImp" class="in tn" style="width:110px;text-align:right" value="100,00"></div>`:''}</div>
    <label style="display:flex;gap:7px;align-items:center"><input type="checkbox" id="gMail" ${!p||p.mail?'checked':''}> Enviar por correo al emitir</label>
    ${isNew?'<p class="mut" style="margin:0">En ProConta se añadirán aquí las líneas completas, serie, forma de pago y retención. La maqueta crea un único concepto al 21 %.</p>':'<p class="mut" style="margin:0">Los cambios solo afectan a las facturas que se generen a partir de ahora.</p>'}`,
    actions:[{t:isNew?'Crear (simulado)':'Guardar (simulado)',cls:'pri',fn:ov=>{
      const desc=$('#gDesc',ov).value.trim();if(!desc){toast('La descripción es obligatoria.','info');$('#gDesc',ov).focus();return false;}
-     const fin=$('#gFin',ov).value?new Date($('#gFin',ov).value+'T00:00'):null;
+     const fin=dv($('#gFin',ov))?new Date(dv($('#gFin',ov))+'T00:00'):null;
      if(isNew){const imp=parseFloat($('#gImp',ov).value.replace(/\./g,'').replace(',','.'))||0;const cli=$('#gCli',ov)?+$('#gCli',ov).value:scopeCli();
-       const np={id:Math.max(...PROGS.map(x=>x.id))+1,cli,desc,per:$('#gPer',ov).value,inicio:new Date($('#gIni',ov).value+'T00:00'),fin,estado:'A',pausa:null,fp:FP30,mail:$('#gMail',ov).checked,rp:0,notas:'',lines:[{c:desc,q:1,p:imp,iva:21}]};
+       const np={id:Math.max(...PROGS.map(x=>x.id))+1,cli,desc,per:$('#gPer',ov).value,inicio:new Date((dv($('#gIni',ov))||iso(TODAY))+'T00:00'),fin,estado:'A',pausa:null,fp:FP30,mail:$('#gMail',ov).checked,rp:0,notas:'',lines:[{c:desc,q:1,p:imp,iva:21}]};
        PROGS.push(np);toast(`Programación ${progCode(np)} creada en la maqueta.`);V.pest='all';V.pq='';goProg(np.id);}
      else{Object.assign(p,{desc,per:$('#gPer',ov).value,fin,mail:$('#gMail',ov).checked});p.lines[0]&&0;toast(`${progCode(p)} actualizada en la maqueta.`);refresh();}
    }}]});
@@ -1230,7 +1260,7 @@ function scopeDesc(){
   const parts=[];if(!full())parts.push('tercero '+cliById(S.terceroId).n);else if(V.cliente)parts.push('cliente '+cliById(V.cliente).n);
   if(V.progSel)parts.push('programación '+progCode(progById(V.progSel)));
   if(V.q.trim())parts.push('búsqueda «'+V.q.trim()+'»');if(V.est!=='all')parts.push('estado '+EST[V.est]);if(V.vf!=='all')parts.push('VeriFactu '+(V.vf==='INC'?'con incidencias':VF[V.vf][0]));
-  if(V.serie!=='all')parts.push('serie '+V.serie);if(V.orig!=='all')parts.push(V.orig==='P'?'origen programadas':'origen manual');if(V.desde||V.hasta)parts.push('fechas '+(V.desde||'…')+' a '+(V.hasta||'…'));
+  if(V.serie!=='all')parts.push('serie '+V.serie);if(V.orig!=='all')parts.push(V.orig==='P'?'origen programadas':'origen manual');if(V.desde||V.hasta)parts.push('fechas '+(isoES(V.desde)||'…')+' a '+(isoES(V.hasta)||'…'));
   return parts.length?parts.join(' · '):'sin filtros';
 }
 function bulkDialog(op){
@@ -1372,6 +1402,7 @@ document.addEventListener('change',e=>{
   if(e.target.dataset&&e.target.dataset.xi!==undefined)return;
   const id=e.target.id,val=e.target.value;
   const map={pper:'pper',fest:'est',fvf:'vf',fserie:'serie',fdesde:'desde',fhasta:'hasta'};
+  if(id==='fdesde'||id==='fhasta'){const v=esISO(val),bad=!!val.trim()&&!v;e.target.classList.toggle('err',bad);e.target.setAttribute('aria-invalid',bad);e.target.title=bad?'Fecha no válida: escríbela como dd/mm/aaaa':(id==='fdesde'?'Primera fecha de factura que se muestra':'Última fecha de factura que se muestra');if(bad)return;V[map[id]]=v;syncControls();renderEmit();return;}
   if(map[id]){V[map[id]]=val;syncControls();id==='pper'?renderProg():renderEmit();}
   else if(id==='fCli'){V.cliente=val?+val:null;if(V.progSel&&V.cliente&&progById(V.progSel).cli!==V.cliente)V.progSel=null;if(!V.cliente)V.fromTercero=null;renderShell();}
   else if(id==='dTer'){const prev=S.terceroId;e.target.value=prev;guardEdit(()=>{S.terceroId=+val;S.views.tercero=newView();renderDemo();renderShell();});}
@@ -1380,6 +1411,7 @@ document.addEventListener('change',e=>{
   else if(id==='dWidth'){S.width=val;renderShell();}
 });
 document.addEventListener('keydown',e=>{
+  if(e.target.id==='split'&&(e.key==='ArrowUp'||e.key==='ArrowDown')){e.preventDefault();setProgH($('#progTW').getBoundingClientRect().height+(e.key==='ArrowUp'?-24:24));return;}
   if(e.key==='Escape'&&!$('#ov')&&e.target.closest&&e.target.closest('tr.xrow')){e.preventDefault();focusRow(e.target.closest('tr.xrow').dataset.x);return;}
   if(e.key==='Escape'){if(closeMenu()){const r=$('tr[data-row][tabindex="0"]',$('#emitTW'));r&&r.focus();e.preventDefault();return;}
     if($('#ov')){closeModal();e.preventDefault();return;}
@@ -1419,7 +1451,7 @@ new ResizeObserver(()=>fitWidth()).observe($('#win'));
 window.addEventListener('resize',fitWidth);
 
 /* ════════════ Arranque ════════════ */
-(function(){const q=new URLSearchParams(location.search);
+(function(){const q=QP;
   if(q.get('contexto')==='terceros')S.ctx='tercero';
   if(q.get('datos'))S.data=q.get('datos');
   renderDemo();renderShell();})();

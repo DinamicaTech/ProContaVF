@@ -3,7 +3,7 @@ title: Migración del ERP
 status: draft
 depends_on: [terceros/tercero, facturacion/factura-venta, contabilidad/asientos]
 threads:
-  - Carga de requisitos | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GRNMH95h9tnQp4dmEPHmw1w
+  - 2026-10-28 12:30 · Carga de requisitos | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GRNMH95h9tnQp4dmEPHmw1w
 ---
 ## Summary
 Migración única desde ProcontaEstructura.accdb (antes deporwin.mdb) para sustituir la instalación actual, con inventario completo, mapas de identidades y conciliación; nada se reenvía a la AEAT ni se activa al cargar.

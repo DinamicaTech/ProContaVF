@@ -3,8 +3,7 @@ title: Nóminas
 status: draft
 depends_on: [contabilidad/asientos, datos/esquema, datos/persistencia, contabilidad/plantillas-asiento]
 threads:
-  - Carga de requisitos | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GRNMH95h9tnQp4dmEPHmw1w
-  - Analizar formularios del ProConta antiguo | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5G5wuUSovHLCVH22T7EntXcw
+  - 2026-10-28 12:30 · Carga de requisitos | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GRNMH95h9tnQp4dmEPHmw1w
 ---
 ## Summary
 Importación de nóminas directamente desde el fichero Excel, también recibido por correo en ProContaVF (detección de cabecera, mapeo y alias por sociedad, resolución de empleados) y su contabilización con el motor común de plantillas (contabilidad/plantillas-asiento) y el motor de asientos; reversión y reimportación controladas.

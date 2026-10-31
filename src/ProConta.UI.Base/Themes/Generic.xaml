@@ -1,0 +1,221 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:pc="clr-namespace:ProConta.UI.Base.Controles">
+  <!-- Plantillas de los componentes propios de la biblioteca. -->
+  <ResourceDictionary.MergedDictionaries>
+    <ResourceDictionary Source="/ProConta.UI.Base;component/Themes/Controles.xaml" />
+  </ResourceDictionary.MergedDictionaries>
+
+  <!-- ===================== Panel plegable con separador ===================== -->
+  <Style TargetType="pc:PanelPlegable">
+    <Setter Property="Background" Value="White" />
+    <Setter Property="Template">
+      <Setter.Value>
+        <ControlTemplate TargetType="pc:PanelPlegable">
+          <Grid>
+            <Grid x:Name="Abierto">
+              <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="{Binding AnchoPanel, RelativeSource={RelativeSource TemplatedParent}, Converter={x:Static pc:AnchoColumna.Conversor}}" />
+                <ColumnDefinition Width="12" />
+              </Grid.ColumnDefinitions>
+              <Border Style="{StaticResource Tarjeta}" Background="{TemplateBinding Background}">
+                <DockPanel>
+                  <DockPanel DockPanel.Dock="Top" Margin="12,7,6,7" MinHeight="28">
+                    <Button DockPanel.Dock="Right" Style="{StaticResource Boton.Icono}" pc:Iconos.Icono="{StaticResource Icono.side}"
+                            Command="{Binding PlegarCommand, RelativeSource={RelativeSource TemplatedParent}}"
+                            ToolTip="Plegar el panel (se recuerda para ti)" AutomationProperties.Name="Plegar el panel" />
+                    <ContentPresenter DockPanel.Dock="Right" Content="{TemplateBinding Acciones}" VerticalAlignment="Center" />
+                    <TextBlock Text="{TemplateBinding Titulo}" Style="{StaticResource Texto.Titulo}" VerticalAlignment="Center" />
+                  </DockPanel>
+                  <ContentPresenter DockPanel.Dock="Bottom" Content="{TemplateBinding Pie}" />
+                  <Border BorderBrush="{StaticResource Pincel.Linea}" BorderThickness="0,1,0,0">
+                    <ContentPresenter />
+                  </Border>
+                </DockPanel>
+              </Border>
+              <Thumb x:Name="PART_Separador" Grid.Column="1" Style="{StaticResource Separador}" HorizontalAlignment="Center"
+                     ToolTip="Arrastra para cambiar el ancho del panel; doble clic: ancho de fábrica; con el foco, ← → ajustan. Se guarda para ti."
+                     AutomationProperties.Name="Ancho del panel" />
+            </Grid>
+            <Button x:Name="Plegado" Visibility="Collapsed" VerticalAlignment="Top" HorizontalAlignment="Left" Margin="0,70,0,0"
+                    Command="{Binding DesplegarCommand, RelativeSource={RelativeSource TemplatedParent}}"
+                    ToolTip="Desplegar el panel" Cursor="Hand">
+              <Button.Template>
+                <ControlTemplate TargetType="Button">
+                  <Border x:Name="B" Width="24" Height="96" Background="White" BorderBrush="{StaticResource Pincel.Linea3}" BorderThickness="1,1,1,1" CornerRadius="0,8,8,0">
+                    <TextBlock Text="{Binding Titulo, RelativeSource={RelativeSource AncestorType=pc:PanelPlegable}}" Foreground="{StaticResource Pincel.Marino}" FontWeight="SemiBold"
+                               FontSize="{StaticResource Letra.Secundaria}" HorizontalAlignment="Center" VerticalAlignment="Center">
+                      <TextBlock.LayoutTransform><RotateTransform Angle="-90" /></TextBlock.LayoutTransform>
+                    </TextBlock>
+                  </Border>
+                  <ControlTemplate.Triggers>
+                    <Trigger Property="IsMouseOver" Value="True">
+                      <Setter TargetName="B" Property="Background" Value="{StaticResource Pincel.AcentoSuave}" />
+                    </Trigger>
+                  </ControlTemplate.Triggers>
+                </ControlTemplate>
+              </Button.Template>
+            </Button>
+          </Grid>
+          <ControlTemplate.Triggers>
+            <Trigger Property="Plegado" Value="True">
+              <Setter TargetName="Abierto" Property="Visibility" Value="Collapsed" />
+              <Setter TargetName="Plegado" Property="Visibility" Value="Visible" />
+            </Trigger>
+          </ControlTemplate.Triggers>
+        </ControlTemplate>
+      </Setter.Value>
+    </Setter>
+  </Style>
+
+  <!-- ===================== Vista con estados ===================== -->
+  <Style TargetType="pc:VistaEstado">
+    <Setter Property="Template">
+      <Setter.Value>
+        <ControlTemplate TargetType="pc:VistaEstado">
+          <Grid>
+            <ContentPresenter x:Name="Contenido" />
+            <StackPanel x:Name="Estado" Visibility="Collapsed" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="16,60,16,16" MaxWidth="520">
+              <Path x:Name="Ico" Data="{StaticResource Icono.info}" Style="{StaticResource Icono.Trazo32}" HorizontalAlignment="Center" Margin="0,0,0,8"
+                    TextElement.Foreground="{StaticResource Pincel.Apagado2}" />
+              <ProgressBar x:Name="Carga" IsIndeterminate="True" Width="220" Margin="0,0,0,12" Visibility="Collapsed" />
+              <TextBlock Text="{TemplateBinding Titulo}" FontWeight="SemiBold" FontSize="{StaticResource Letra.Destacada}" Foreground="{StaticResource Pincel.Tinta}" HorizontalAlignment="Center" TextAlignment="Center" TextWrapping="Wrap" />
+              <TextBlock Text="{TemplateBinding Mensaje}" Margin="0,6,0,0" FontSize="{StaticResource Letra.Normal}" Foreground="{StaticResource Pincel.Apagado}" HorizontalAlignment="Center" TextAlignment="Center" TextWrapping="Wrap" LineHeight="18" />
+              <Button x:Name="Accion" Margin="0,12,0,0" HorizontalAlignment="Center" Style="{StaticResource Boton.Primario}"
+                      Content="{TemplateBinding TextoAccion}" Command="{TemplateBinding ComandoAccion}" ToolTip="{TemplateBinding AyudaAccion}" />
+            </StackPanel>
+          </Grid>
+          <ControlTemplate.Triggers>
+            <Trigger Property="Estado" Value="Vacio">
+              <Setter TargetName="Contenido" Property="Visibility" Value="Collapsed" />
+              <Setter TargetName="Estado" Property="Visibility" Value="Visible" />
+            </Trigger>
+            <Trigger Property="Estado" Value="Cargando">
+              <Setter TargetName="Contenido" Property="Visibility" Value="Collapsed" />
+              <Setter TargetName="Estado" Property="Visibility" Value="Visible" />
+              <Setter TargetName="Ico" Property="Visibility" Value="Collapsed" />
+              <Setter TargetName="Carga" Property="Visibility" Value="Visible" />
+            </Trigger>
+            <Trigger Property="Estado" Value="Error">
+              <Setter TargetName="Contenido" Property="Visibility" Value="Collapsed" />
+              <Setter TargetName="Estado" Property="Visibility" Value="Visible" />
+              <Setter TargetName="Ico" Property="Data" Value="{StaticResource Icono.warn}" />
+              <Setter TargetName="Ico" Property="TextElement.Foreground" Value="{StaticResource Pincel.RojoError}" />
+            </Trigger>
+            <Trigger Property="Estado" Value="SinPermiso">
+              <Setter TargetName="Contenido" Property="Visibility" Value="Collapsed" />
+              <Setter TargetName="Estado" Property="Visibility" Value="Visible" />
+              <Setter TargetName="Ico" Property="Data" Value="{StaticResource Icono.lock}" />
+            </Trigger>
+            <Trigger Property="TextoAccion" Value="{x:Null}">
+              <Setter TargetName="Accion" Property="Visibility" Value="Collapsed" />
+            </Trigger>
+          </ControlTemplate.Triggers>
+        </ControlTemplate>
+      </Setter.Value>
+    </Setter>
+  </Style>
+
+  <!-- ===================== Etiqueta de filtro ===================== -->
+  <Style TargetType="pc:Etiqueta">
+    <Setter Property="Height" Value="{StaticResource Alto.Etiqueta}" />
+    <Setter Property="MaxWidth" Value="420" />
+    <Setter Property="Margin" Value="0,0,6,0" />
+    <Setter Property="FontSize" Value="{StaticResource Letra.Secundaria}" />
+    <Setter Property="Foreground" Value="{StaticResource Pincel.AcentoTexto}" />
+    <Setter Property="Template">
+      <Setter.Value>
+        <ControlTemplate TargetType="pc:Etiqueta">
+          <Border Background="{StaticResource Pincel.AcentoSuave}" BorderBrush="{StaticResource Pincel.AcentoBorde}" BorderThickness="1" CornerRadius="{StaticResource Radio.Campo}" Padding="9,0,2,0">
+            <DockPanel>
+              <Button DockPanel.Dock="Right" Style="{StaticResource Boton.Aspa}" Width="20" Height="20" Foreground="{StaticResource Pincel.AcentoTexto}"
+                      Command="{TemplateBinding ComandoQuitar}" CommandParameter="{TemplateBinding ParametroQuitar}"
+                      ToolTip="{TemplateBinding AyudaQuitar}" AutomationProperties.Name="{TemplateBinding AyudaQuitar}" />
+              <ContentPresenter VerticalAlignment="Center" Margin="0,0,2,0">
+                <ContentPresenter.Resources>
+                  <Style TargetType="TextBlock"><Setter Property="TextTrimming" Value="CharacterEllipsis" /></Style>
+                </ContentPresenter.Resources>
+              </ContentPresenter>
+            </DockPanel>
+          </Border>
+        </ControlTemplate>
+      </Setter.Value>
+    </Setter>
+  </Style>
+
+  <!-- ===================== Nota ===================== -->
+  <Style TargetType="pc:Nota">
+    <Setter Property="Background" Value="{StaticResource Pincel.Nota}" />
+    <Setter Property="Foreground" Value="{StaticResource Pincel.Texto2}" />
+    <Setter Property="FontSize" Value="{StaticResource Letra.Secundaria}" />
+    <Setter Property="Padding" Value="10,8" />
+    <Setter Property="Template">
+      <Setter.Value>
+        <ControlTemplate TargetType="pc:Nota">
+          <Border Background="{TemplateBinding Background}" CornerRadius="{StaticResource Radio.Boton}" Padding="{TemplateBinding Padding}">
+            <DockPanel>
+              <Path x:Name="Ico" DockPanel.Dock="Left" Data="{StaticResource Icono.info}" Style="{StaticResource Icono.Trazo14}" Margin="0,1,8,0" VerticalAlignment="Top" />
+              <ContentPresenter>
+                <ContentPresenter.Resources>
+                  <Style TargetType="TextBlock"><Setter Property="TextWrapping" Value="Wrap" /><Setter Property="LineHeight" Value="17" /></Style>
+                </ContentPresenter.Resources>
+              </ContentPresenter>
+            </DockPanel>
+          </Border>
+          <ControlTemplate.Triggers>
+            <Trigger Property="Tipo" Value="Aviso">
+              <Setter Property="Background" Value="{StaticResource Pincel.AvisoSuave}" />
+              <Setter Property="Foreground" Value="{StaticResource Pincel.Aviso}" />
+              <Setter TargetName="Ico" Property="Data" Value="{StaticResource Icono.warn}" />
+            </Trigger>
+            <Trigger Property="Tipo" Value="Ok">
+              <Setter Property="Background" Value="{StaticResource Pincel.VerdeSuave}" />
+              <Setter Property="Foreground" Value="{StaticResource Pincel.Verde}" />
+              <Setter TargetName="Ico" Property="Data" Value="{StaticResource Icono.check}" />
+            </Trigger>
+            <Trigger Property="Tipo" Value="Error">
+              <Setter Property="Background" Value="{StaticResource Pincel.RojoSuave}" />
+              <Setter Property="Foreground" Value="{StaticResource Pincel.Rojo}" />
+              <Setter TargetName="Ico" Property="Data" Value="{StaticResource Icono.xc}" />
+            </Trigger>
+          </ControlTemplate.Triggers>
+        </ControlTemplate>
+      </Setter.Value>
+    </Setter>
+  </Style>
+
+  <!-- ===================== Diálogo ===================== -->
+  <Style TargetType="pc:DialogoProConta">
+    <Setter Property="WindowStyle" Value="None" />
+    <Setter Property="AllowsTransparency" Value="True" />
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="ResizeMode" Value="NoResize" />
+    <Setter Property="SizeToContent" Value="Height" />
+    <Setter Property="Width" Value="620" />
+    <Setter Property="ShowInTaskbar" Value="False" />
+    <Setter Property="FontFamily" Value="{StaticResource Fuente.Texto}" />
+    <Setter Property="FontSize" Value="{StaticResource Letra.Normal}" />
+    <Setter Property="Foreground" Value="{StaticResource Pincel.Tinta}" />
+    <Setter Property="Template">
+      <Setter.Value>
+        <ControlTemplate TargetType="pc:DialogoProConta">
+          <AdornerDecorator>
+          <Border Margin="30,20,30,40" Background="White" CornerRadius="{StaticResource Radio.Dialogo}" Effect="{StaticResource Sombra.Dialogo}">
+            <DockPanel>
+              <DockPanel x:Name="PART_Cabecera" DockPanel.Dock="Top" Margin="18,14,10,10" Background="Transparent">
+                <Button DockPanel.Dock="Right" Style="{StaticResource Boton.Icono}" pc:Iconos.Icono="{StaticResource Icono.x}" IsCancel="True"
+                        Command="{Binding CerrarCommand, RelativeSource={RelativeSource TemplatedParent}}" ToolTip="Cerrar sin hacer cambios (Esc)" AutomationProperties.Name="Cerrar" />
+                <TextBlock Text="{TemplateBinding Title}" FontSize="16" FontWeight="SemiBold" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+              </DockPanel>
+              <Border DockPanel.Dock="Bottom" BorderBrush="{StaticResource Pincel.Linea}" BorderThickness="0,1,0,0" Padding="18,12">
+                <ContentPresenter Content="{TemplateBinding Botones}" HorizontalAlignment="Right" />
+              </Border>
+              <ContentPresenter Margin="18,0,18,16" />
+            </DockPanel>
+          </Border>
+          </AdornerDecorator>
+        </ControlTemplate>
+      </Setter.Value>
+    </Setter>
+  </Style>
+</ResourceDictionary>
