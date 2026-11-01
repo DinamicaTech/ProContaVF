@@ -288,4 +288,40 @@ public sealed class FichaAccessTests : IDisposable
         Assert.False(esquema.ExisteTabla("CuentasClientesSociedad"));
         Assert.False(Directory.Exists(Path.Combine(carpeta, "copias")) && Directory.EnumerateFiles(Path.Combine(carpeta, "copias")).Any());
     }
+
+    [Fact]
+    public async Task LaMigracionPasaElEmailYElTelefonoAntiguosALaListaSinDuplicar()
+    {
+        using var v1 = BdPruebas.NuevaVersion1();
+        var bd = v1.Bd();
+        var (conTodo, yaEstaba, raro) = await bd.EjecutarAsync(async s =>
+        {
+            async Task<int> Alta(string nombre, string? email, string? telefono)
+            {
+                await s.EjecutarAsync("INSERT INTO Terceros (Nombre, Activo, Email, Telefono) VALUES (?, ?, ?, ?)", nombre, true, email, telefono);
+                return await s.UltimoIdAsync();
+            }
+            var a = await Alta("Sintética A", "Ana@Ejemplo.test; otra@ejemplo.test", "961 23 45 67");
+            var b = await Alta("Sintética B", "b@ejemplo.test", "961-234-567");
+            await s.EjecutarAsync("INSERT INTO DatosContacto (IdTercero, Tipo, Valor, Activo, EnvioFacturas, EnviosAdministrativos) VALUES (?, ?, ?, ?, ?, ?)", b, "EMAIL", " B@EJEMPLO.test ", true, true, false);
+            await s.EjecutarAsync("INSERT INTO DatosContacto (IdTercero, Tipo, Valor, Activo, EnvioFacturas, EnviosAdministrativos) VALUES (?, ?, ?, ?, ?, ?)", b, "TELEFONO", "961234567", true, false, false);
+            var c = await Alta("Sintética C", "sin arroba", "Calle Mayor 3");
+            return (a, b, c);
+        });
+
+        var carpeta = BdPruebas.CarpetaTemporal();
+        var parametros = new Dictionary<string, string> { [MigracionesOrganizacion.ParametroOrigenFormasPago] = BdPruebas.CrearOrigenFormasPago(carpeta) };
+        var r = await new ActualizadorEsquema(_actor, parametros: parametros).ActualizarAsync(v1.Ruta, Path.Combine(carpeta, "copias"));
+        Assert.True(r.EsCorrecto, r.Error?.ToString());
+
+        async Task<string[]> Datos(int id) => (await bd.EjecutarAsync(s => s.ConsultarAsync(
+            "SELECT Tipo, Valor, Etiqueta, EnvioFacturas FROM DatosContacto WHERE IdTercero = ? ORDER BY IdDatoContacto", f => $"{f.Texto("Tipo")}|{f.Texto("Valor")}|{f.Texto("Etiqueta")}|{f.Logico("EnvioFacturas")}", id))).ToArray();
+        Assert.Equal(["EMAIL|Ana@Ejemplo.test|Principal|False", "EMAIL|otra@ejemplo.test|Principal|False", "TELEFONO|961 23 45 67|Principal|False"], await Datos(conTodo));
+        Assert.Equal(2, (await Datos(yaEstaba)).Length); // ya estaban: nada nuevo
+        Assert.Empty(await Datos(raro)); // sin «@» ni 6 cifras: se queda en la ficha antigua
+        Assert.Equal(1, Convert.ToInt32(await bd.EjecutarAsync(s => s.EscalarAsync("SELECT COUNT(*) FROM HistorialTerceros WHERE IdTercero = ? AND Operador LIKE 'proceso:migracion%'", conTodo))));
+        Assert.Equal("Ana@Ejemplo.test; otra@ejemplo.test", await bd.EjecutarAsync(s => s.EscalarAsync("SELECT Email FROM Terceros WHERE IdTercero = ?", conTodo)));
+
+        Assert.Empty(await bd.EjecutarAsync(MigracionesTerceros.PlanContactoFichaAntiguaAsync)); // repetirla no añade nada
+    }
 }

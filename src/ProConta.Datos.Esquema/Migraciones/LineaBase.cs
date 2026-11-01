@@ -54,6 +54,7 @@ public static class CatalogoMigraciones
         MigracionesContabilidad.MotorAsientos,
         MigracionesSeguridad.ListaOperadoresAcceso,
         MigracionesTerceros.CuentasRolesSociedad,
+        MigracionesTerceros.ContactoFichaAntigua,
     ];
 
     /// <summary>Versión del esquema que espera esta versión del programa.</summary>

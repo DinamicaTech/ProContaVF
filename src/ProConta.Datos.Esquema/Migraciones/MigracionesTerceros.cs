@@ -66,6 +66,73 @@ public static class MigracionesTerceros
         Precondicion = ComprobarTrasladoAsync
     };
 
+    /// <summary>
+    /// Email y teléfono de la ficha antigua a la lista de datos de contacto (terceros/contactos): para cada tercero, cada
+    /// email de Terceros.Email que no esté ya entre sus emails (sin distinguir mayúsculas ni espacios) se añade como EMAIL
+    /// «Principal», activo y sin marcas; igual Terceros.Telefono como TELEFONO, comparando solo las cifras. No toca las
+    /// columnas antiguas. Deja una fila de historial por tercero. Un email sin «@» o un teléfono con menos de 6 cifras no
+    /// se trasladan (se quedan en la ficha antigua, que la pantalla sigue mostrando).
+    /// </summary>
+    public static Migracion ContactoFichaAntigua { get; } = new(
+        "20261101_1300_CONTACTO_FICHA_ANTIGUA", 261101003,
+        "Email y teléfono de la ficha antigua (Terceros.Email y Telefono) a DatosContacto, sin duplicar.",
+        "terceros/contactos",
+        new PasoPersonalizado(
+            "Añadir a DatosContacto el email y el teléfono de la ficha antigua que falten",
+            "INSERT INTO DatosContacto (IdTercero, Tipo, Etiqueta, Valor, Activo, EnvioFacturas, EnviosAdministrativos) <- Terceros.Email (por cada email, sin mayúsculas ni espacios) y Terceros.Telefono (por cifras), 'Principal', activo, sin marcas; una fila de HistorialTerceros por tercero",
+            async (s, _) => (await PlanContactoFichaAntiguaAsync(s)).Count == 0,
+            TrasladarContactoFichaAntiguaAsync));
+
+    /// <summary>Dato de la ficha antigua que falta en la lista de un tercero.</summary>
+    public sealed record DatoAntiguo(int IdTercero, string Tipo, string Valor);
+
+    /// <summary>Lo que trasladaría la migración ahora mismo (vacío si ya está hecha).</summary>
+    public static async Task<IReadOnlyList<DatoAntiguo>> PlanContactoFichaAntiguaAsync(ISesionDatos s)
+    {
+        var terceros = await s.ConsultarAsync("SELECT IdTercero, Email, Telefono FROM Terceros WHERE Email IS NOT NULL OR Telefono IS NOT NULL",
+            f => (Id: f.Entero("IdTercero"), Email: f.Texto("Email"), Telefono: f.Texto("Telefono")));
+        var existentes = (await s.ConsultarAsync("SELECT IdTercero, Tipo, Valor FROM DatosContacto",
+                f => (Id: f.Entero("IdTercero"), Tipo: (f.Texto("Tipo") ?? "").Trim().ToUpperInvariant(), Valor: f.Texto("Valor") ?? "")))
+            .ToLookup(d => d.Id);
+        var plan = new List<DatoAntiguo>();
+        foreach (var t in terceros)
+        {
+            var emails = existentes[t.Id].Where(d => d.Tipo == "EMAIL").Select(d => ClaveEmail(d.Valor)).ToHashSet();
+            foreach (var email in (t.Email ?? "").Split([';', ',', ' ', '\t', '\r', '\n'], StringSplitOptions.RemoveEmptyEntries))
+            {
+                var v = email.Trim();
+                var arroba = v.IndexOf('@');
+                if (arroba <= 0 || arroba == v.Length - 1 || v.Length > 254 || !emails.Add(ClaveEmail(v))) continue;
+                plan.Add(new DatoAntiguo(t.Id, "EMAIL", v));
+            }
+            var cifras = Cifras(t.Telefono);
+            if (cifras.Length >= 6 && t.Telefono!.Trim().Length <= 254 &&
+                !existentes[t.Id].Any(d => d.Tipo == "TELEFONO" && Cifras(d.Valor) == cifras))
+                plan.Add(new DatoAntiguo(t.Id, "TELEFONO", t.Telefono.Trim()));
+        }
+        return plan;
+    }
+
+    private static async Task TrasladarContactoFichaAntiguaAsync(ISesionDatos s, ContextoMigracion _)
+    {
+        var ahora = DateTime.Now;
+        foreach (var grupo in (await PlanContactoFichaAntiguaAsync(s)).GroupBy(d => d.IdTercero))
+        {
+            foreach (var d in grupo)
+                await s.EjecutarAsync(
+                    "INSERT INTO DatosContacto (IdTercero, Tipo, Etiqueta, Valor, Activo, EnvioFacturas, EnviosAdministrativos) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                    d.IdTercero, d.Tipo, "Principal", d.Valor, true, false, false);
+            await s.EjecutarAsync(
+                "INSERT INTO HistorialTerceros (IdTercero, IdOperacion, FechaHora, Operador, Entidad, IdRegistro, Operacion, Campo, ValorAntiguo, ValorNuevo) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                grupo.Key, Guid.NewGuid().ToString(), ahora, "proceso:migracion 20261101_1300", "DatosContacto", grupo.Key, "ALTA", "DatosContacto", null,
+                "De la ficha antigua: " + string.Join("; ", grupo.Select(d => $"{(d.Tipo == "EMAIL" ? "Email" : "Teléfono")} {d.Valor}")));
+        }
+    }
+
+    private static string ClaveEmail(string valor) => new(valor.Where(c => !char.IsWhiteSpace(c)).Select(char.ToLowerInvariant).ToArray());
+
+    private static string Cifras(string? valor) => new((valor ?? "").Where(char.IsAsciiDigit).ToArray());
+
     /// <summary>Fila de una tabla de cuentas por ejercicio con lo necesario para trasladarla.</summary>
     public sealed record FilaCuentaEjercicio(int Id, int IdRol, int IdCuentaContable, int? IdIdentidadContable, string? IdSociedad, string? Ejercicio, bool EsPredeterminada);
 

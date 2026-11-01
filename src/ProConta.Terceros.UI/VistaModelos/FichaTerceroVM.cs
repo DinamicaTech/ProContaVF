@@ -55,7 +55,7 @@ public sealed class FichaTerceroVM : Observable, IPestanaTrabajo, INotifyDataErr
         AnadirEmailCommand = new ComandoDelegado(() => AnadirDato(TipoDatoContacto.Email));
         AnadirTelefonoCommand = new ComandoDelegado(() => AnadirDato(TipoDatoContacto.Telefono));
         PasarEmailPrincipalCommand = new ComandoDelegado(PasarEmailPrincipal, () => MostrarEmailAntiguo);
-        PasarTelefonoPrincipalCommand = new ComandoDelegado(PasarTelefonoPrincipal, () => MostrarTelefonoAntiguo);
+        PasarTelefonoPrincipalCommand = new ComandoDelegado(PasarTelefonoPrincipal, () => MostrarTelefonoAntiguo && TelefonoAntiguoValido);
         AnadirGrupoCommand = new ComandoDelegado(AnadirGrupo);
         VincularPersonaCommand = new ComandoDelegado(() => Vincular(comoOrganizacion: true));
         VincularOrganizacionCommand = new ComandoDelegado(() => Vincular(comoOrganizacion: false));
@@ -398,6 +398,9 @@ public sealed class FichaTerceroVM : Observable, IPestanaTrabajo, INotifyDataErr
 
     public bool MostrarFichaAntigua => MostrarEmailAntiguo || MostrarTelefonoAntiguo;
 
+    /// <summary>El valor antiguo parece un teléfono (al menos 6 cifras); si no, se muestra pero no se ofrece pasarlo a la lista.</summary>
+    public bool TelefonoAntiguoValido => Cifras(T.Telefono).Length >= 6;
+
     private static string Cifras(string? texto) => new((texto ?? "").Where(char.IsAsciiDigit).ToArray());
 
     public ICommand AnadirEmailCommand { get; }
@@ -706,7 +709,7 @@ public sealed class FichaTerceroVM : Observable, IPestanaTrabajo, INotifyDataErr
         EstadoDestinatarios = DestinatariosFicha.Calcular(T.DatosContacto);
         foreach (var e in Emails) e.RefrescarImplicitos();
         RecalcularErrores();
-        Avisar(nameof(AvisoFacturas), nameof(AvisoAdministrativos), nameof(MostrarEmailAntiguo), nameof(MostrarTelefonoAntiguo), nameof(MostrarFichaAntigua), nameof(MostrarNotaFacturas));
+        Avisar(nameof(AvisoFacturas), nameof(AvisoAdministrativos), nameof(MostrarEmailAntiguo), nameof(MostrarTelefonoAntiguo), nameof(TelefonoAntiguoValido), nameof(MostrarFichaAntigua), nameof(MostrarNotaFacturas));
         Avisar(nameof(TieneCambios), nameof(TextoCambios), nameof(Marcas), nameof(Titulo), nameof(Ayuda), nameof(NombreCabecera), nameof(InicialesCabecera), nameof(TipoTexto),
             nameof(LineaDatos), nameof(Insignias));
     }

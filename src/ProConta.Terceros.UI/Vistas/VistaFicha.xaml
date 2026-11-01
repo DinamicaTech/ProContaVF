@@ -410,7 +410,10 @@
                   <StackPanel Orientation="Horizontal" Margin="0,12,0,0" Visibility="{Binding MostrarTelefonoAntiguo, Converter={StaticResource Visible}}">
                     <TextBlock Style="{StaticResource Texto.Apagado}" VerticalAlignment="Center" Margin="0,0,10,0">Teléfono de la ficha antigua: <Run Text="{Binding TelefonoPrincipal, Mode=OneWay}" /></TextBlock>
                     <Button Style="{StaticResource Boton.Enlace}" Content="Añadirlo a la lista" Command="{Binding PasarTelefonoPrincipalCommand}" VerticalAlignment="Center"
+                            Visibility="{Binding TelefonoAntiguoValido, Converter={StaticResource Visible}}"
                             ToolTip="Copia este teléfono a la lista; el programa antiguo lo guardaba aparte" />
+                    <TextBlock Style="{StaticResource Texto.Apagado}" VerticalAlignment="Center" Text="(no parece un teléfono: si es una dirección, cópiala al domicilio)"
+                               Visibility="{Binding TelefonoAntiguoValido, Converter={StaticResource Visible}, ConverterParameter=invertir}" />
                   </StackPanel>
                 </StackPanel>
               </Border>
