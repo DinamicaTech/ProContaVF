@@ -398,6 +398,9 @@ public sealed class FichaTerceroVM : Observable, IPestanaTrabajo, INotifyDataErr
 
     public bool MostrarFichaAntigua => MostrarEmailAntiguo || MostrarTelefonoAntiguo;
 
+    public bool HayGrupos => Grupos.Count > 0;
+    public bool HayRelaciones => Relaciones.Count > 0;
+
     /// <summary>El valor antiguo parece un teléfono (al menos 6 cifras); si no, se muestra pero no se ofrece pasarlo a la lista.</summary>
     public bool TelefonoAntiguoValido => Cifras(T.Telefono).Length >= 6;
 
@@ -595,6 +598,7 @@ public sealed class FichaTerceroVM : Observable, IPestanaTrabajo, INotifyDataErr
     private string _filtroPerfiles = "";
     public string FiltroPerfiles { get => _filtroPerfiles; set { if (Fijar(ref _filtroPerfiles, value)) RefrescarPerfiles(); } }
     public int NumeroPerfiles => PerfilesAsignados.Count;
+    public bool SinPerfilesAsignados => PerfilesAsignados.Count == 0;
     public ICommand AsignarPerfilesCommand { get; }
     public ICommand RetirarPerfilesCommand { get; }
     public ICommand NuevoPerfilCommand { get; }
@@ -610,7 +614,7 @@ public sealed class FichaTerceroVM : Observable, IPestanaTrabajo, INotifyDataErr
         foreach (var p in _catalogoPerfiles.Where(p => !asignados.Contains(p.IdPerfil) && (f.Length == 0 || IndiceTerceros.Normalizar(p.Nombre + " " + p.Descripcion).Contains(f)))
                      .OrderByDescending(p => p.Activo).ThenBy(p => p.Nombre, StringComparer.CurrentCultureIgnoreCase))
             PerfilesDisponibles.Add(new PerfilItemVM(p.IdPerfil, p.Nombre, p.Descripcion, p.Activo));
-        Avisar(nameof(NumeroPerfiles), nameof(TextoSinPerfiles), nameof(Cabeceras));
+        Avisar(nameof(NumeroPerfiles), nameof(SinPerfilesAsignados), nameof(TextoSinPerfiles), nameof(Cabeceras));
     }
 
     public string TextoSinPerfiles => _catalogoPerfiles.Count == 0
@@ -709,7 +713,7 @@ public sealed class FichaTerceroVM : Observable, IPestanaTrabajo, INotifyDataErr
         EstadoDestinatarios = DestinatariosFicha.Calcular(T.DatosContacto);
         foreach (var e in Emails) e.RefrescarImplicitos();
         RecalcularErrores();
-        Avisar(nameof(AvisoFacturas), nameof(AvisoAdministrativos), nameof(MostrarEmailAntiguo), nameof(MostrarTelefonoAntiguo), nameof(TelefonoAntiguoValido), nameof(MostrarFichaAntigua), nameof(MostrarNotaFacturas));
+        Avisar(nameof(AvisoFacturas), nameof(AvisoAdministrativos), nameof(MostrarEmailAntiguo), nameof(MostrarTelefonoAntiguo), nameof(TelefonoAntiguoValido), nameof(MostrarFichaAntigua), nameof(HayGrupos), nameof(HayRelaciones), nameof(MostrarNotaFacturas));
         Avisar(nameof(TieneCambios), nameof(TextoCambios), nameof(Marcas), nameof(Titulo), nameof(Ayuda), nameof(NombreCabecera), nameof(InicialesCabecera), nameof(TipoTexto),
             nameof(LineaDatos), nameof(Insignias));
     }
