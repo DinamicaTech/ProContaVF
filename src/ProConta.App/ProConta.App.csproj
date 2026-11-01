@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Contenedor WPF de ProContaVF (docs/plataforma/contenedor.md): arranque, acceso y ventana principal. -->
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <UseWPF>true</UseWPF>
+    <RootNamespace>ProConta.App</RootNamespace>
+    <AssemblyName>ProContaVF</AssemblyName>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\ProConta.UI.Base\ProConta.UI.Base.csproj" />
+    <ProjectReference Include="..\ProConta.Plataforma.Configuracion\ProConta.Plataforma.Configuracion.csproj" />
+    <ProjectReference Include="..\ProConta.Organizacion\ProConta.Organizacion.csproj" />
+    <ProjectReference Include="..\ProConta.Seguridad\ProConta.Seguridad.csproj" />
+  </ItemGroup>
+</Project>

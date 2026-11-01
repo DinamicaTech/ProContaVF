@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Ayuda común para las pruebas contra Access: copias temporales de la maestra sin datos de negocio. -->
+  <PropertyGroup>
+    <OutputType>Library</OutputType>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>false</IsTestProject>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\ProConta.Datos.Esquema\ProConta.Datos.Esquema.csproj" />
+  </ItemGroup>
+</Project>

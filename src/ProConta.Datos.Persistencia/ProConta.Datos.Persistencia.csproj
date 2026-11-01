@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Capa común de acceso a Access (ACE/OLE DB x64): única que abre conexiones (docs/datos/persistencia.md). -->
+  <PropertyGroup>
+    <OutputType>Library</OutputType>
+    <RootNamespace>ProConta.Datos.Persistencia</RootNamespace>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);CS1591;CS1573</NoWarn>
+  </PropertyGroup>
+  <ItemGroup>
+    <!-- Proveedor OLE DB de Microsoft (licencia MIT), aprobado en architecture 2026-10-31 17:53. -->
+    <PackageReference Include="System.Data.OleDb" Version="10.0.10" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\ProConta.Nucleo\ProConta.Nucleo.csproj" />
+  </ItemGroup>
+</Project>
