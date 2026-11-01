@@ -85,7 +85,9 @@ public sealed class ResolutorUbicacionDatos(IAlmacenConfiguracionLocal almacen, 
         if (!validada.EsCorrecto) return validada;
         try
         {
-            almacen.Guardar(new ConfiguracionLocal { RutaBaseDatos = validada.Valor.RutaBaseDatos });
+            ConfiguracionLocal? anterior = null;
+            try { anterior = almacen.Leer(); } catch (InvalidDataException) { /* dañada: se sustituye */ }
+            almacen.Guardar((anterior ?? new ConfiguracionLocal()) with { RutaBaseDatos = validada.Valor.RutaBaseDatos });
             return Resultado.Correcto();
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)

@@ -52,6 +52,7 @@ public static class CatalogoMigraciones
         MigracionesTerceros.VersionTercero,
         MigracionesOrganizacion.FormaPagoIndefinida,
         MigracionesContabilidad.MotorAsientos,
+        MigracionesSeguridad.ListaOperadoresAcceso,
     ];
 
     /// <summary>Versión del esquema que espera esta versión del programa.</summary>

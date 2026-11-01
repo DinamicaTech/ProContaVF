@@ -5,17 +5,17 @@
 ## Conceptos
 
 - Dueño funcional: `facturacion/conceptos`
-- CatÃ¡logo de conceptos facturables y su imputaciÃ³n contable predeterminada por sociedad y ejercicio.
+- Catálogo de conceptos facturables y su imputación contable predeterminada por sociedad y ejercicio.
 
 | Campo | Tipo | Nulo | Por defecto | Descripción |
 |---|---|---|---|---|
-| IdConcepto | LONG | no |  | Identificador manual y Ãºnico del concepto; permite conservar los identificadores migrados del ERP. |
+| IdConcepto | LONG | no |  | Identificador manual y único del concepto; permite conservar los identificadores migrados del ERP. |
 | IdSociedadEjercicio | LONG | no |  | Sociedad y ejercicio para los que se configura el concepto. Relacionado con Sociedades.IdSociedad. |
-| IdTipoConcepto | LONG | sí |  | ClasificaciÃ³n opcional del concepto. Relacionado con TiposConcepto.IdTipoConcepto. |
-| Nombre | TEXT(255) | no |  | DescripciÃ³n abreviada que aparece como encabezado de la lÃ­nea en la factura. |
-| Descripcion | LONGTEXT | sí |  | DescripciÃ³n extensa y multilÃ­nea que aparece debajo del nombre en la factura. |
-| CuentaContable | TEXT(7) | sí |  | Cuenta contable de venta predeterminada, con hasta 7 caracteres, utilizada en la exportaciÃ³n contable. |
-| IdDepartamento | LONG | sí |  | Departamento analÃ­tico predeterminado. Corresponde a F_DEP.CODDEP. |
+| IdTipoConcepto | LONG | sí |  | Clasificación opcional del concepto. Relacionado con TiposConcepto.IdTipoConcepto. |
+| Nombre | TEXT(255) | no |  | Descripción abreviada que aparece como encabezado de la línea en la factura. |
+| Descripcion | LONGTEXT | sí |  | Descripción extensa y multilínea que aparece debajo del nombre en la factura. |
+| CuentaContable | TEXT(7) | sí |  | Cuenta contable de venta predeterminada, con hasta 7 caracteres, utilizada en la exportación contable. |
+| IdDepartamento | LONG | sí |  | Departamento analítico predeterminado. Corresponde a F_DEP.CODDEP. |
 | IdCentroCoste | LONG | sí |  | Centro de coste predeterminado. Corresponde a F_CDP.CODCDP dentro del departamento indicado. |
 | PrecioUnitario | CURRENCY | sí | 0 | Precio unitario predeterminado al insertar el concepto en una factura. |
 | TipoIVA | DOUBLE | sí |  | Porcentaje de IVA predeterminado al insertar el concepto en una factura. |
@@ -55,7 +55,7 @@ Relaciones:
 | ImporteComunidad | CURRENCY | sí | 0 | Importe de gastos de comunidad repercutido según el contrato. |
 | ImporteBasuras | CURRENCY | sí | 0 | Importe de tasas de basuras repercutido según el contrato. |
 | CondicionesEspeciales | LONGTEXT | sí |  | Texto libre con cláusulas o condiciones especiales del contrato. |
-| IdSociedad | TEXT(3) | no |  | Empresa permanente propietaria del contrato. RelaciÃ³n con Empresas.IdEmpresa; no depende del ejercicio contable. |
+| IdSociedad | TEXT(3) | no |  | Empresa permanente propietaria del contrato. Relación con Empresas.IdEmpresa; no depende del ejercicio contable. |
 | IdCliente | LONG | sí |  | Cliente titular del contrato. Referencia a Clientes.IdCliente. |
 | TipoIncremento | BYTE | sí |  | Tipo de revision anual: 0 o nulo = sin revision; 1 = IPC; 2 = IRAV. |
 | ValorIncremento | DOUBLE | sí |  | Porcentaje oficial de IPC o IRAV materializado para la proxima revision. |
@@ -175,13 +175,13 @@ Relaciones:
 | ImporteTotal | CURRENCY | no | 0 | Importe final de la factura después de impuestos y retenciones. |
 | TipoFactura | TEXT(2) | no | "F1" | Código oficial del tipo de factura. Referencia a TiposFactura.TipoFactura; F1 por defecto. |
 | TipoRectificativa | TEXT(1) | sí |  | Solo para tipos R1-R5: I=rectificación por diferencias; S=rectificación por sustitución; Nulo en facturas no rectificativas. |
-| EstadoFactura | BYTE | no | 0 | Estado del ciclo fiscal: 0=PendienteValidar; 1=Validada; 2=Rectificada; 3=Borrador; 4=RectificacionPendiente. Los estados distintos de Borrador no permiten ediciÃ³n directa. |
+| EstadoFactura | BYTE | no | 0 | Estado del ciclo fiscal: 0=PendienteValidar; 1=Validada; 2=Rectificada; 3=Borrador; 4=RectificacionPendiente. Los estados distintos de Borrador no permiten edición directa. |
 | IdFacturaRectificada | LONG | sí |  | Factura original corregida por esta factura rectificativa. Referencia única opcional a Facturas.IdFactura. |
 | FechaExportacionContable | DATETIME | sí |  | Fecha y hora en que la factura fue exportada definitivamente a contabilidad. |
 | IdAsientoContable | LONG | sí |  | Identificador o número del asiento contable generado para la factura. |
 | LoteExportacionContable | LONG | sí |  | Lote que agrupó la exportación de la factura. Referencia a LotesExportacionContable.IdLote. |
-| PDFFactura | TEXT(255) | sí |  | Ruta del Ãºnico documento PDF generado para la factura. El archivo no se incrusta en la base de datos. |
-| Historial | LONGTEXT | sí |  | Registro cronolÃ³gico interno en texto, con una lÃ­nea por evento de la factura: fecha, hora, operador y acciÃ³n. |
+| PDFFactura | TEXT(255) | sí |  | Ruta del único documento PDF generado para la factura. El archivo no se incrusta en la base de datos. |
+| Historial | LONGTEXT | sí |  | Registro cronológico interno en texto, con una línea por evento de la factura: fecha, hora, operador y acción. |
 | IdFacturaProgramada | LONG | sí |  | Programacion concreta que origino la factura; vacio para facturas creadas manualmente. |
 | IdLoteFacturaProgramada | LONG | sí |  | Lote durante el cual se genero la factura; vacio para facturas creadas manualmente. |
 | FechaProgramadaOrigen | DATETIME | sí |  | Fecha prevista de la ocurrencia procesada. Junto con IdFacturaProgramada evita generar dos veces la misma factura. |
@@ -254,7 +254,7 @@ Relaciones:
 | FechaAlta | DATETIME | no | Now() | Fecha y hora de creacion de la programacion. |
 | OperadorAlta | TEXT(30) | sí |  | Usuario u operador que creo la programacion. |
 | Historial | LONGTEXT | sí |  | Registro acumulativo de cambios, ejecuciones y errores. |
-| EnviarPorEmail | YESNO | no | False | Indica si, despuÃ©s de validar y generar el PDF, el proceso automÃ¡tico debe enviarlo al cliente. False significa que no se espera ningÃºn envÃ­o y no constituye una incidencia. |
+| EnviarPorEmail | YESNO | no | False | Indica si, después de validar y generar el PDF, el proceso automático debe enviarlo al cliente. False significa que no se espera ningún envío y no constituye una incidencia. |
 
 Índices:
 - FK_Clientes_FacturasProgramadas: IdCliente
@@ -314,21 +314,21 @@ Relaciones:
 ## LineasContrato
 
 - Dueño funcional: `facturacion/contratos`
-- LÃ­neas periÃ³dicas o puntuales que un contrato genera en las facturas.
+- Líneas periódicas o puntuales que un contrato genera en las facturas.
 
 | Campo | Tipo | Nulo | Por defecto | Descripción |
 |---|---|---|---|---|
-| IdLineaContrato | COUNTER | no |  | Identificador autonumÃ©rico interno de la lÃ­nea de contrato. |
-| IdContrato | LONG | no |  | Contrato al que pertenece la lÃ­nea. Relacionado con Contratos.IdContrato. |
-| NumeroLinea | SHORT | no |  | Orden de la lÃ­nea dentro del contrato. Es Ãºnico para cada contrato. |
-| IdConcepto | LONG | no |  | Concepto facturable utilizado para generar la lÃ­nea de factura. |
-| Descripcion | LONGTEXT | sí |  | Texto extenso opcional que sustituye la descripciÃ³n predeterminada del concepto al generar la factura. |
-| Importe | CURRENCY | no | 0 | Importe unitario que se aplicarÃ¡ al generar la lÃ­nea de factura. |
-| Periodicidad | TEXT(10) | no | "MENSUAL" | Frecuencia de facturaciÃ³n: MENSUAL, TRIMESTRAL, ANUAL o PUNTUAL. |
-| MesFacturacion | BYTE | sí |  | Mes de facturaciÃ³n (1 a 12). En periodicidad trimestral indica el primer mes del ciclo; en anual, el mes de emisiÃ³n. |
-| FechaInicio | DATETIME | sí |  | Primera fecha desde la que puede generarse esta lÃ­nea. Si estÃ¡ vacÃ­a se utiliza la fecha de inicio del contrato. |
-| FechaFin | DATETIME | sí |  | Ãšltima fecha hasta la que puede generarse esta lÃ­nea. Si estÃ¡ vacÃ­a se utiliza la fecha de fin del contrato. |
-| Activo | YESNO | no | True | Indica si la lÃ­nea debe incluirse al generar nuevas facturas del contrato. |
+| IdLineaContrato | COUNTER | no |  | Identificador autonumérico interno de la línea de contrato. |
+| IdContrato | LONG | no |  | Contrato al que pertenece la línea. Relacionado con Contratos.IdContrato. |
+| NumeroLinea | SHORT | no |  | Orden de la línea dentro del contrato. Es único para cada contrato. |
+| IdConcepto | LONG | no |  | Concepto facturable utilizado para generar la línea de factura. |
+| Descripcion | LONGTEXT | sí |  | Texto extenso opcional que sustituye la descripción predeterminada del concepto al generar la factura. |
+| Importe | CURRENCY | no | 0 | Importe unitario que se aplicará al generar la línea de factura. |
+| Periodicidad | TEXT(10) | no | "MENSUAL" | Frecuencia de facturación: MENSUAL, TRIMESTRAL, ANUAL o PUNTUAL. |
+| MesFacturacion | BYTE | sí |  | Mes de facturación (1 a 12). En periodicidad trimestral indica el primer mes del ciclo; en anual, el mes de emisión. |
+| FechaInicio | DATETIME | sí |  | Primera fecha desde la que puede generarse esta línea. Si está vacía se utiliza la fecha de inicio del contrato. |
+| FechaFin | DATETIME | sí |  | Última fecha hasta la que puede generarse esta línea. Si está vacía se utiliza la fecha de fin del contrato. |
+| Activo | YESNO | no | True | Indica si la línea debe incluirse al generar nuevas facturas del contrato. |
 
 Índices:
 - FK_LineasContrato_Conceptos: IdConcepto
@@ -370,10 +370,10 @@ Relaciones:
 | CuotaRecargoEquivalencia | CURRENCY | no | 0 | Importe del recargo de equivalencia calculado para la línea. |
 | EsSuplido | YESNO | no | False | Indica que la línea corresponde a un suplido y requiere tratamiento separado de la base imponible ordinaria. |
 | ImporteTotal | CURRENCY | no | 0 | Importe total congelado de la línea: base imponible más IVA y, en su caso, recargo. |
-| Nombre | TEXT(255) | sí |  | DescripciÃ³n abreviada y visible que encabeza la lÃ­nea de factura; se copia del concepto y queda congelada. |
-| CuentaContable | TEXT(7) | sí |  | Cuenta contable de venta copiada del concepto y congelada para la exportaciÃ³n contable. |
-| IdDepartamento | LONG | sí |  | Departamento analÃ­tico copiado del concepto y congelado para la exportaciÃ³n contable. |
-| IdCentroCoste | LONG | sí |  | Centro de coste copiado del concepto y congelado para la exportaciÃ³n contable. |
+| Nombre | TEXT(255) | sí |  | Descripción abreviada y visible que encabeza la línea de factura; se copia del concepto y queda congelada. |
+| CuentaContable | TEXT(7) | sí |  | Cuenta contable de venta copiada del concepto y congelada para la exportación contable. |
+| IdDepartamento | LONG | sí |  | Departamento analítico copiado del concepto y congelado para la exportación contable. |
+| IdCentroCoste | LONG | sí |  | Centro de coste copiado del concepto y congelado para la exportación contable. |
 
 Índices:
 - FK_Facturas_LineasFactura: IdFactura
@@ -491,7 +491,7 @@ Relaciones:
 | Prefijo | TEXT(20) | no |  | Texto antepuesto al número correlativo, por ejemplo R2026. |
 | UltimoNumero | LONG | sí |  | Último correlativo emitido. Nulo antes de emitir la primera factura; se actualiza transaccionalmente. |
 | EsRectificativa | YESNO | no | False | Indica si la serie se utiliza exclusivamente para numerar facturas rectificativas. Solo debe existir una por sociedad. |
-| EsPredeterminada | YESNO | no | 0 | Serie normal seleccionada automÃ¡ticamente al crear una factura manual. Debe existir una sola por sociedad. |
+| EsPredeterminada | YESNO | no | 0 | Serie normal seleccionada automáticamente al crear una factura manual. Debe existir una sola por sociedad. |
 
 Índices:
 - FK_SociedadesEjercicios_SeriesFacturacion: IdSociedadEjercicio
@@ -505,7 +505,7 @@ Relaciones:
 ## TiposConcepto
 
 - Dueño funcional: `facturacion/conceptos`
-- ClasificaciÃ³n funcional de los conceptos facturables.
+- Clasificación funcional de los conceptos facturables.
 
 | Campo | Tipo | Nulo | Por defecto | Descripción |
 |---|---|---|---|---|
@@ -567,36 +567,36 @@ Relaciones:
 ## VeriFactuConfiguracion
 
 - Dueño funcional: `facturacion/verifactu`
-- ConfiguraciÃ³n de la integraciÃ³n VeriFactu para cada sociedad y ejercicio.
+- Configuración de la integración VeriFactu para cada sociedad y ejercicio.
 
 | Campo | Tipo | Nulo | Por defecto | Descripción |
 |---|---|---|---|---|
-| IdVeriFactuConfiguracion | COUNTER | no |  | Identificador autonumÃ©rico interno de la configuraciÃ³n VeriFactu. |
-| Activo | YESNO | no | False | Indica si la emisiÃ³n y remisiÃ³n VeriFactu estÃ¡ habilitada para esta sociedad. |
-| Entorno | TEXT(10) | sí | "PRUEBAS" | Entorno de comunicaciÃ³n: PRUEBAS o PRODUCCION. |
-| CertificateThumbprint | TEXT(64) | sí |  | Huella digital del certificado instalado en el almacÃ©n de certificados de Windows. MÃ©todo recomendado. |
-| CertificateSerial | TEXT(100) | sí |  | NÃºmero de serie del certificado instalado; alternativa a CertificateThumbprint. |
+| IdVeriFactuConfiguracion | COUNTER | no |  | Identificador autonumérico interno de la configuración VeriFactu. |
+| Activo | YESNO | no | False | Indica si la emisión y remisión VeriFactu está habilitada para esta sociedad. |
+| Entorno | TEXT(10) | sí | "PRUEBAS" | Entorno de comunicación: PRUEBAS o PRODUCCION. |
+| CertificateThumbprint | TEXT(64) | sí |  | Huella digital del certificado instalado en el almacén de certificados de Windows. Método recomendado. |
+| CertificateSerial | TEXT(100) | sí |  | Número de serie del certificado instalado; alternativa a CertificateThumbprint. |
 | CertificatePath | TEXT(255) | sí |  | Ruta a un certificado PFX; alternativa al certificado instalado en Windows. |
-| CertificatePasswordProtegida | LONGTEXT | sí |  | ContraseÃ±a cifrada del certificado PFX. Nunca debe almacenarse aquÃ­ en texto claro. |
-| IDVersion | TEXT(3) | sí | "1.0" | VersiÃ³n del esquema VeriFactu utilizada para generar los registros. Actualmente 1.0. |
-| VeriFactuEndPointPrefix | TEXT(255) | sí | "https://prewww1.aeat.es/wlpl/TIKE-CONT/ws/SistemaFacturacion/VerifactuSOAP" | Endpoint AEAT para enviar registros de alta y anulaciÃ³n. Debe corresponder con el entorno seleccionado. |
-| VeriFactuEndPointValidatePrefix | TEXT(255) | sí | "https://prewww2.aeat.es/wlpl/TIKE-CONT/ValidarQR" | Endpoint AEAT para validar el cÃ³digo QR. Debe corresponder con el entorno seleccionado. |
-| VeriFactuHashAlgorithm | TEXT(2) | sí | "01" | Tipo de huella: 01=SHA-256, Ãºnico valor actualmente admitido. |
-| VeriFactuHashInputEncoding | TEXT(20) | sí | "UTF-8" | CodificaciÃ³n del texto de entrada empleado para calcular la huella. Valor habitual: UTF-8. |
-| SkipNifAeatValidation | YESNO | no | False | SÃ­=omite la validaciÃ³n en lÃ­nea del NIF con la AEAT; No=realiza la validaciÃ³n. |
-| SkipViesVatNumberValidation | YESNO | no | False | SÃ­=omite la validaciÃ³n VIES de NIF-IVA intracomunitarios; No=realiza la validaciÃ³n. |
-| LoggingEnabled | YESNO | no | True | Indica si la librerÃ­a debe generar su registro de mensajes. |
-| FechaModificacion | DATETIME | sí | Now() | Fecha y hora de la Ãºltima modificaciÃ³n de esta configuraciÃ³n. |
-| OperadorModificacion | TEXT(30) | sí |  | Usuario u operador que realizÃ³ la Ãºltima modificaciÃ³n. |
-| ProductorNIF | TEXT(25) | sí |  | NIF de la persona o entidad productora del sistema informÃ¡tico. |
-| ProductorNombre | TEXT(200) | sí |  | Nombre o razÃ³n social de la persona o entidad productora del sistema informÃ¡tico. |
-| NombreSistemaInformatico | TEXT(30) | sí |  | Nombre declarado del sistema informÃ¡tico de facturaciÃ³n. Valor habitual: ProConta. |
-| IdSistemaInformatico | TEXT(2) | sí |  | Identificador de dos caracteres declarado para el sistema informÃ¡tico. |
-| VersionSistemaInformatico | TEXT(50) | sí |  | VersiÃ³n instalada del sistema informÃ¡tico que genera el registro. |
-| NumeroInstalacion | TEXT(100) | sí |  | Identificador estable y Ãºnico de esta instalaciÃ³n de ProConta. |
+| CertificatePasswordProtegida | LONGTEXT | sí |  | Contraseña cifrada del certificado PFX. Nunca debe almacenarse aquí en texto claro. |
+| IDVersion | TEXT(3) | sí | "1.0" | Versión del esquema VeriFactu utilizada para generar los registros. Actualmente 1.0. |
+| VeriFactuEndPointPrefix | TEXT(255) | sí | "https://prewww1.aeat.es/wlpl/TIKE-CONT/ws/SistemaFacturacion/VerifactuSOAP" | Endpoint AEAT para enviar registros de alta y anulación. Debe corresponder con el entorno seleccionado. |
+| VeriFactuEndPointValidatePrefix | TEXT(255) | sí | "https://prewww2.aeat.es/wlpl/TIKE-CONT/ValidarQR" | Endpoint AEAT para validar el código QR. Debe corresponder con el entorno seleccionado. |
+| VeriFactuHashAlgorithm | TEXT(2) | sí | "01" | Tipo de huella: 01=SHA-256, único valor actualmente admitido. |
+| VeriFactuHashInputEncoding | TEXT(20) | sí | "UTF-8" | Codificación del texto de entrada empleado para calcular la huella. Valor habitual: UTF-8. |
+| SkipNifAeatValidation | YESNO | no | False | Sí=omite la validación en línea del NIF con la AEAT; No=realiza la validación. |
+| SkipViesVatNumberValidation | YESNO | no | False | Sí=omite la validación VIES de NIF-IVA intracomunitarios; No=realiza la validación. |
+| LoggingEnabled | YESNO | no | True | Indica si la librería debe generar su registro de mensajes. |
+| FechaModificacion | DATETIME | sí | Now() | Fecha y hora de la última modificación de esta configuración. |
+| OperadorModificacion | TEXT(30) | sí |  | Usuario u operador que realizó la última modificación. |
+| ProductorNIF | TEXT(25) | sí |  | NIF de la persona o entidad productora del sistema informático. |
+| ProductorNombre | TEXT(200) | sí |  | Nombre o razón social de la persona o entidad productora del sistema informático. |
+| NombreSistemaInformatico | TEXT(30) | sí |  | Nombre declarado del sistema informático de facturación. Valor habitual: ProConta. |
+| IdSistemaInformatico | TEXT(2) | sí |  | Identificador de dos caracteres declarado para el sistema informático. |
+| VersionSistemaInformatico | TEXT(50) | sí |  | Versión instalada del sistema informático que genera el registro. |
+| NumeroInstalacion | TEXT(100) | sí |  | Identificador estable y único de esta instalación de ProConta. |
 | TipoUsoPosibleSoloVerifactu | TEXT(1) | sí |  | S/N. Indica si el sistema puede funcionar exclusivamente como VeriFactu. |
 | TipoUsoPosibleMultiOT | TEXT(1) | sí |  | S/N. Indica si el sistema admite varios obligados tributarios. |
-| IndicadorMultiplesOT | TEXT(1) | sí |  | S/N. Indica si esta instalaciÃ³n gestiona varios obligados tributarios. |
+| IndicadorMultiplesOT | TEXT(1) | sí |  | S/N. Indica si esta instalación gestiona varios obligados tributarios. |
 | IdSociedad | TEXT(3) | sí |  |  |
 
 Índices:
@@ -619,7 +619,7 @@ Relaciones:
 | TipoRegistro | TEXT(10) | no |  | Operación realizada: ALTA=registro de alta de factura; ANULACION=registro de anulación. |
 | NumeroIntento | SHORT | no | 1 | Número correlativo del intento para la factura y tipo de registro, comenzando en 1. |
 | Entorno | TEXT(10) | no | "PRUEBAS" | Entorno de destino: PRUEBAS o PRODUCCION. |
-| EstadoEnvio | TEXT(30) | no | "PENDIENTE" | Resultado tÃ©cnico del intento: ACEPTADO, ACEPTADO_DUPLICADO, RECHAZADO, ERROR_PREVIO_ENVIO o COMUNICACION_DUDOSA. Los errores legados pueden conservar el valor ERROR. |
+| EstadoEnvio | TEXT(30) | no | "PENDIENTE" | Resultado técnico del intento: ACEPTADO, ACEPTADO_DUPLICADO, RECHAZADO, ERROR_PREVIO_ENVIO o COMUNICACION_DUDOSA. Los errores legados pueden conservar el valor ERROR. |
 | FechaHoraGeneracion | DATETIME | no | Now() | Fecha y hora local en la que se generó el registro o XML. |
 | FechaHoraHusoGenRegistro | TEXT(35) | sí |  | Valor ISO 8601 exacto de FechaHoraHusoGenRegistro, incluida la zona horaria, utilizado en el XML y en la huella. |
 | FechaHoraEnvio | DATETIME | sí |  | Fecha y hora en la que se inició la comunicación con la AEAT. |
@@ -629,7 +629,7 @@ Relaciones:
 | Huella | TEXT(64) | sí |  | Huella SHA-256 del registro, representada mediante 64 caracteres hexadecimales. |
 | HuellaAnterior | TEXT(64) | sí |  | Huella del registro anterior en la cadena del obligado emisor; nulo en el primer registro. |
 | URLValidacion | LONGTEXT | sí |  | URL incluida en el código QR para cotejo o remisión de la factura. |
-| IdLoteEnvio | LONG | sí |  | Lote o peticiÃ³n AEAT que contiene este intento de envÃ­o. Relacionado con VeriFactuLotesEnvio.IdLoteEnvio. |
+| IdLoteEnvio | LONG | sí |  | Lote o petición AEAT que contiene este intento de envío. Relacionado con VeriFactuLotesEnvio.IdLoteEnvio. |
 
 Índices:
 - FK_Facturas_VeriFactuEnvios: IdFactura
@@ -648,19 +648,19 @@ Relaciones:
 ## VeriFactuLotesEnvio
 
 - Dueño funcional: `facturacion/verifactu`
-- Peticiones o lotes remitidos a la AEAT, cada uno con uno o varios intentos de envÃ­o de facturas.
+- Peticiones o lotes remitidos a la AEAT, cada uno con uno o varios intentos de envío de facturas.
 
 | Campo | Tipo | Nulo | Por defecto | Descripción |
 |---|---|---|---|---|
-| IdLoteEnvio | COUNTER | no |  | Identificador autonumÃ©rico de la peticiÃ³n o lote VeriFactu. |
-| FechaHoraGeneracion | DATETIME | sí | Now() | Fecha y hora en que se construyÃ³ el XML completo del lote. |
-| FechaHoraEnvio | DATETIME | sí |  | Fecha y hora en que se remitiÃ³ el lote a la AEAT. |
+| IdLoteEnvio | COUNTER | no |  | Identificador autonumérico de la petición o lote VeriFactu. |
+| FechaHoraGeneracion | DATETIME | sí | Now() | Fecha y hora en que se construyó el XML completo del lote. |
+| FechaHoraEnvio | DATETIME | sí |  | Fecha y hora en que se remitió el lote a la AEAT. |
 | Entorno | TEXT(10) | no | "PRUEBAS" | Entorno al que se dirige el lote: PRUEBAS o PRODUCCION. |
 | Estado | TEXT(15) | no | "PENDIENTE" | Estado del lote: PENDIENTE, GENERADO, ENVIANDO, RESPONDIDO o ERROR. |
 | XMLSolicitud | LONGTEXT | sí |  | XML completo e inmutable enviado a la AEAT para este lote. |
 | RespuestaCompleta | LONGTEXT | sí |  | Respuesta completa recibida de la AEAT para el lote. |
-| Operador | TEXT(30) | sí |  | Usuario u operador que iniciÃ³ el envÃ­o. |
-| IdSociedadEjercicio | LONG | no |  | Sociedad y obligado tributario al que pertenece la peticiÃ³n AEAT. Un lote no puede mezclar emisores. |
+| Operador | TEXT(30) | sí |  | Usuario u operador que inició el envío. |
+| IdSociedadEjercicio | LONG | no |  | Sociedad y obligado tributario al que pertenece la petición AEAT. Un lote no puede mezclar emisores. |
 
 Índices:
 - FK_SociedadesEjercicios_VeriFactuLotesEnvio: IdSociedadEjercicio
@@ -688,7 +688,7 @@ Relaciones:
 | CSV | TEXT(100) | sí |  | Código Seguro de Verificación devuelto por la AEAT cuando proceda. |
 | CodigoError | TEXT(50) | sí |  | Código de validación o error comunicado por la AEAT. |
 | DescripcionError | LONGTEXT | sí |  | Descripción detallada del error comunicado por la AEAT. |
-| EsDuplicado | YESNO | no | False | Indica que la AEAT rechazÃ³ el reenvÃ­o como duplicado y proporcionÃ³ el estado del registro almacenado previamente. |
+| EsDuplicado | YESNO | no | False | Indica que la AEAT rechazó el reenvío como duplicado y proporcionó el estado del registro almacenado previamente. |
 | EstadoRegistroDuplicado | TEXT(30) | sí |  | Estado del registro previamente almacenado: Correcta, AceptadaConErrores o Anulada. |
 | TiempoEspera | LONG | no | 0 | Tiempo de espera indicado por la AEAT antes de realizar el siguiente envío, expresado en segundos. |
 | RespuestaCompleta | LONGTEXT | sí |  | Contenido completo de la respuesta XML/SOAP devuelta por la AEAT o por la librería. |

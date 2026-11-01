@@ -67,6 +67,21 @@ public sealed class ServicioOperadores(IBaseDatos bd, IReloj? reloj = null)
     public Task<Operador?> ObtenerAsync(int idOperador) =>
         bd.EjecutarAsync(s => BuscarAsync(s, "IdOperador = ?", idOperador));
 
+    /// <summary>Nombres de los operadores activos, para la lista del acceso.</summary>
+    public Task<IReadOnlyList<string>> ListarNombresActivosAsync() =>
+        bd.EjecutarAsync(s => s.ConsultarAsync("SELECT Nombre FROM OperadoresSeguridad WHERE Activo = True ORDER BY Nombre", f => f.Texto("Nombre") ?? ""));
+
+    /// <summary>
+    /// Parámetro general «Mostrar la lista de operadores en el acceso» (Configuracion.OcultarListaOperadoresAcceso,
+    /// guardado en negativo). Sin fila de configuración, se muestra.
+    /// </summary>
+    public async Task<bool> MostrarListaOperadoresAsync()
+    {
+        var ocultar = await bd.EjecutarAsync(s => s.ConsultarPrimeroAsync(
+            "SELECT TOP 1 OcultarListaOperadoresAcceso FROM Configuracion ORDER BY IdConfiguracion", f => (bool?)f.Logico("OcultarListaOperadoresAcceso")));
+        return ocultar != true;
+    }
+
     /// <summary>Grupos activos del operador.</summary>
     public Task<IReadOnlyList<int>> GruposActivosAsync(int idOperador) =>
         bd.EjecutarAsync(s => s.ConsultarAsync(

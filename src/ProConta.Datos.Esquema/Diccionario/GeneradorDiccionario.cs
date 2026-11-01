@@ -87,5 +87,24 @@ public static class GeneradorDiccionario
     }
 
     private static string Limpiar(string? texto) =>
-        string.IsNullOrWhiteSpace(texto) ? "" : texto.Replace("|", "\\|").Replace("\r", " ").Replace("\n", " ").Trim();
+        string.IsNullOrWhiteSpace(texto) ? "" : Recodificar(texto).Replace("|", "\\|").Replace("\r", " ").Replace("\n", " ").Trim();
+
+    /// <summary>
+    /// Las descripciones que guardó la herramienta antigua tienen el UTF-8 leído como Windows-1252
+    /// («ConfiguraciÃ³n»); se muestran corregidas sin tocar la BD.
+    /// </summary>
+    internal static string Recodificar(string texto)
+    {
+        if (!texto.Contains('Ã') && !texto.Contains('Â')) return texto;
+        try
+        {
+            System.Text.Encoding.RegisterProvider(System.Text.CodePagesEncodingProvider.Instance);
+            var windows1252 = System.Text.Encoding.GetEncoding(1252, System.Text.EncoderFallback.ExceptionFallback, System.Text.DecoderFallback.ExceptionFallback);
+            return new System.Text.UTF8Encoding(false, true).GetString(windows1252.GetBytes(texto));
+        }
+        catch (Exception ex) when (ex is System.Text.DecoderFallbackException or System.Text.EncoderFallbackException)
+        {
+            return texto;
+        }
+    }
 }

@@ -29,31 +29,31 @@ Relaciones:
 ## ConfiguracionCorreo
 
 - Dueño funcional: `correo`
-- ConfiguraciÃ³n del motor de envÃ­o de correo para cada empresa.
+- Configuración del motor de envío de correo para cada empresa.
 
 | Campo | Tipo | Nulo | Por defecto | Descripción |
 |---|---|---|---|---|
-| IdConfiguracionCorreo | COUNTER | no |  | Identificador autonumÃ©rico interno de la configuraciÃ³n de correo. |
-| IdSociedad | TEXT(3) | no |  | Empresa a la que pertenece la cuenta remitente. Solo puede existir una configuraciÃ³n por empresa. |
-| Activo | YESNO | no | False | Indica si el envÃ­o de correo estÃ¡ habilitado para esta empresa. |
+| IdConfiguracionCorreo | COUNTER | no |  | Identificador autonumérico interno de la configuración de correo. |
+| IdSociedad | TEXT(3) | no |  | Empresa a la que pertenece la cuenta remitente. Solo puede existir una configuración por empresa. |
+| Activo | YESNO | no | False | Indica si el envío de correo está habilitado para esta empresa. |
 | MotorCorreo | TEXT(15) | no | "CDO" | Motor utilizado para enviar: inicialmente CDO; permite sustituirlo en el futuro. |
-| ServidorSMTP | TEXT(255) | no | "email.dinamica.tech" | Nombre DNS o direcciÃ³n del servidor SMTP. |
+| ServidorSMTP | TEXT(255) | no | "email.dinamica.tech" | Nombre DNS o dirección del servidor SMTP. |
 | PuertoSMTP | SHORT | no | 587 | Puerto TCP del servidor SMTP; actualmente 587. |
 | TipoSeguridad | TEXT(10) | no | "STARTTLS" | Seguridad de transporte: NINGUNA, STARTTLS o SSL. |
-| TipoAutenticacion | TEXT(10) | no | "BASICA" | AutenticaciÃ³n SMTP: ANONIMA, BASICA o NTLM. |
+| TipoAutenticacion | TEXT(10) | no | "BASICA" | Autenticación SMTP: ANONIMA, BASICA o NTLM. |
 | UsuarioSMTP | TEXT(255) | sí |  | Nombre de usuario utilizado para autenticarse en SMTP. |
-| PasswordProtegida | LONGTEXT | sí |  | ContraseÃ±a SMTP cifrada mediante DPAPI. Nunca debe contener texto claro. |
-| Remitente | TEXT(255) | sí |  | DirecciÃ³n de correo utilizada en el encabezado From. |
-| NombreRemitente | TEXT(120) | sí |  | Nombre visible asociado a la direcciÃ³n remitente. |
-| ResponderA | TEXT(255) | sí |  | DirecciÃ³n Reply-To opcional. |
+| PasswordProtegida | LONGTEXT | sí |  | Contraseña SMTP cifrada mediante DPAPI. Nunca debe contener texto claro. |
+| Remitente | TEXT(255) | sí |  | Dirección de correo utilizada en el encabezado From. |
+| NombreRemitente | TEXT(120) | sí |  | Nombre visible asociado a la dirección remitente. |
+| ResponderA | TEXT(255) | sí |  | Dirección Reply-To opcional. |
 | CCPredeterminado | TEXT(255) | sí |  | Destinatarios en copia aplicados de forma predeterminada. |
 | CCOPredeterminado | TEXT(255) | sí |  | Destinatarios en copia oculta aplicados de forma predeterminada. |
 | AsuntoPlantilla | TEXT(255) | sí |  | Plantilla predeterminada del asunto; puede contener variables como {NumeroFactura} o {NombreEmpresa}. |
 | CuerpoPlantilla | LONGTEXT | sí |  | Plantilla predeterminada del cuerpo del mensaje. |
 | FormatoCuerpo | TEXT(5) | no | "HTML" | Formato del mensaje: TEXTO o HTML. |
-| TimeoutSegundos | SHORT | sí | 60 | Tiempo mÃ¡ximo de espera de la operaciÃ³n SMTP, en segundos. |
-| FechaModificacion | DATETIME | sí | Now() | Fecha y hora de la Ãºltima modificaciÃ³n. |
-| OperadorModificacion | TEXT(30) | sí |  | Usuario u operador que realizÃ³ la Ãºltima modificaciÃ³n. |
+| TimeoutSegundos | SHORT | sí | 60 | Tiempo máximo de espera de la operación SMTP, en segundos. |
+| FechaModificacion | DATETIME | sí | Now() | Fecha y hora de la última modificación. |
+| OperadorModificacion | TEXT(30) | sí |  | Usuario u operador que realizó la última modificación. |
 
 Índices:
 - FK_Sociedades_ConfiguracionCorreo: IdSociedad
@@ -105,30 +105,30 @@ Relaciones:
 ## EnviosCorreo
 
 - Dueño funcional: `correo`
-- Historial general de intentos de envÃ­o de correo realizados por ProConta.
+- Historial general de intentos de envío de correo realizados por ProConta.
 
 | Campo | Tipo | Nulo | Por defecto | Descripción |
 |---|---|---|---|---|
-| IdEnvioCorreo | COUNTER | no |  | Identificador autonumÃ©rico del intento de envÃ­o. |
+| IdEnvioCorreo | COUNTER | no |  | Identificador autonumérico del intento de envío. |
 | IdSociedad | TEXT(3) | no |  | Empresa remitente del correo. |
 | TipoCorreo | TEXT(20) | no | "FACTURA" | Finalidad del mensaje, definida en TiposCorreo. |
-| IdFactura | LONG | sí |  | Factura relacionada cuando TipoCorreo=FACTURA; puede quedar vacÃ­o para otros mensajes. |
-| NumeroIntento | SHORT | no | 1 | NÃºmero correlativo de intento para la factura o comunicaciÃ³n. |
-| FechaHoraPreparacion | DATETIME | sí | Now() | Fecha y hora en que se preparÃ³ el mensaje. |
-| FechaHoraEnvio | DATETIME | sí |  | Fecha y hora en que el motor confirmÃ³ el envÃ­o al servidor SMTP. |
-| Remitente | TEXT(255) | sí |  | DirecciÃ³n remitente congelada para este intento. |
+| IdFactura | LONG | sí |  | Factura relacionada cuando TipoCorreo=FACTURA; puede quedar vacío para otros mensajes. |
+| NumeroIntento | SHORT | no | 1 | Número correlativo de intento para la factura o comunicación. |
+| FechaHoraPreparacion | DATETIME | sí | Now() | Fecha y hora en que se preparó el mensaje. |
+| FechaHoraEnvio | DATETIME | sí |  | Fecha y hora en que el motor confirmó el envío al servidor SMTP. |
+| Remitente | TEXT(255) | sí |  | Dirección remitente congelada para este intento. |
 | Destinatario | TEXT(255) | no |  | Destinatario o destinatarios principales congelados para este intento. |
 | CC | TEXT(255) | sí |  | Destinatarios en copia congelados. |
 | CCO | TEXT(255) | sí |  | Destinatarios en copia oculta congelados. |
 | Asunto | TEXT(255) | no |  | Asunto definitivo enviado. |
 | Cuerpo | LONGTEXT | sí |  | Cuerpo definitivo enviado. |
 | FormatoCuerpo | TEXT(5) | no | "HTML" | Formato del cuerpo: TEXTO o HTML. |
-| ArchivoAdjunto | TEXT(255) | sí |  | Ruta del archivo adjunto principal utilizado en el envÃ­o. |
+| ArchivoAdjunto | TEXT(255) | sí |  | Ruta del archivo adjunto principal utilizado en el envío. |
 | Estado | TEXT(10) | no | "PENDIENTE" | Estado del intento: PENDIENTE, ENVIANDO, ENVIADO, ERROR o CANCELADO. |
-| MotorCorreo | TEXT(15) | sí | "CDO" | Motor que realizÃ³ el intento, inicialmente CDO. |
+| MotorCorreo | TEXT(15) | sí | "CDO" | Motor que realizó el intento, inicialmente CDO. |
 | IdMensajeServidor | TEXT(255) | sí |  | Identificador del mensaje si el motor o servidor SMTP lo proporciona. |
-| DescripcionError | LONGTEXT | sí |  | Detalle completo del error producido durante la preparaciÃ³n o el envÃ­o. |
-| Operador | TEXT(30) | sí |  | Usuario u operador que iniciÃ³ el envÃ­o. |
+| DescripcionError | LONGTEXT | sí |  | Detalle completo del error producido durante la preparación o el envío. |
+| Operador | TEXT(30) | sí |  | Usuario u operador que inició el envío. |
 | IdPlantillaCorreo | LONG | sí |  | Plantilla especifica utilizada para generar el mensaje; queda vacio si se usaron los valores predeterminados o un contenido proporcionado por el emisor. |
 | IdContrato | LONG | sí |  | Contrato al que corresponde el correo, cuando se trate de un aviso contractual. |
 

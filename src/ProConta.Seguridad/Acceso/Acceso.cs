@@ -104,6 +104,18 @@ public sealed class ServicioAcceso
         return Resultado<SesionAcceso>.Correcto(sesion);
     }
 
+    /// <summary>
+    /// Al elegir un operador de la lista: si es un operador activo sin contraseña, lo autentica en ese
+    /// momento; si tiene contraseña (o no vale), devuelve null sin registrar ningún intento fallido.
+    /// </summary>
+    public async Task<SesionAcceso?> AutenticarSinContrasenaAsync(string usuario)
+    {
+        var operador = await _operadores.BuscarPorNombreAsync(usuario);
+        if (operador is not { Activo: true, TieneContrasena: false }) return null;
+        var r = await AutenticarAsync(usuario, "");
+        return r.EsCorrecto ? r.Valor : null;
+    }
+
     /// <summary>La sesión sigue siendo válida: la emitió este servicio, no se ha cerrado y el operador sigue activo.</summary>
     public async Task<Resultado> ValidarAsync(SesionAcceso sesion)
     {

@@ -49,13 +49,16 @@ public partial class App : Application
                 return;
             }
 
-            var acceso = new VentanaAcceso(_acceso, sociedades);
+            var almacen = new AlmacenConfiguracionLocalJson();
+            var operadores = await _acceso.Operadores.MostrarListaOperadoresAsync() ? await _acceso.Operadores.ListarNombresActivosAsync() : null;
+            var acceso = new VentanaAcceso(_acceso, operadores, PreferenciasPuesto.UltimoOperador(almacen));
             if (acceso.ShowDialog() != true || acceso.Resultado is null)
             {
                 Shutdown(0);
                 return;
             }
             _sesion = acceso.Resultado.Sesion;
+            PreferenciasPuesto.RecordarOperador(almacen, _sesion.NombreOperador);
 
             var principal = new VentanaPrincipal(acceso.Resultado, ubicacion, compatible.Valor.VersionBd);
             principal.Closed += (_, _) => Shutdown(0);

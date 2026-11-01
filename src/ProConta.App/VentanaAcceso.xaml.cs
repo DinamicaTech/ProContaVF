@@ -9,9 +9,10 @@ using ProConta.Seguridad.Acceso;
 namespace ProConta.App;
 
 /// <summary>
-/// Pantalla de acceso (seguridad/acceso, maqueta «Dividida»): operador y contraseña primero; las
-/// sociedades autorizadas solo se consultan después de autenticar. Sin marco, se mueve arrastrando
-/// las zonas libres, Intro avanza y Esc sale.
+/// Pantalla de acceso (seguridad/acceso y seguridad/pantallas, maqueta «Dividida»). Operador y contraseña
+/// se comprueban al salir de la contraseña (Tab), con Intro o con «Entrar»; un operador sin contraseña se
+/// comprueba al elegirlo de la lista. Solo entonces aparece «Dónde quieres trabajar», con la última sociedad
+/// y el último ejercicio propuestos y el foco en «Entrar». Sin marco, se mueve arrastrando; Esc sale.
 /// </summary>
 public partial class VentanaAcceso : Window
 {
@@ -22,81 +23,148 @@ public partial class VentanaAcceso : Window
     }
 
     private readonly ServicioAcceso _acceso;
+    private readonly bool _conLista;
     private SesionAcceso? _sesion;
     private bool _ocupado;
+    private bool _cargando;
 
-    public VentanaAcceso(ServicioAcceso acceso, IServicioSociedades _)
+    /// <param name="operadores">Operadores activos si el parámetro muestra la lista; null para escribir el nombre.</param>
+    /// <param name="ultimoOperador">Último operador que entró en este puesto, para proponerlo.</param>
+    public VentanaAcceso(ServicioAcceso acceso, IReadOnlyList<string>? operadores, string? ultimoOperador)
     {
         InitializeComponent();
         _acceso = acceso;
+        _conLista = operadores is not null;
         TextoVersion.Text = App.Version;
-        Loaded += (_, _) => CampoOperador.Focus();
+        if (_conLista)
+        {
+            CampoOperador.Visibility = Visibility.Collapsed;
+            ComboOperador.Visibility = Visibility.Visible;
+            ComboOperador.ItemsSource = operadores;
+        }
+        else
+        {
+            CampoOperador.Text = ultimoOperador ?? "";
+        }
+        Loaded += (_, _) =>
+        {
+            if (_conLista && ultimoOperador is not null && operadores!.Contains(ultimoOperador, StringComparer.OrdinalIgnoreCase))
+            {
+                // Proponer el último operador: si no tiene contraseña, entra solo (Operador_SelectionChanged).
+                CampoContrasena.Focus();
+                ComboOperador.SelectedItem = operadores!.First(o => string.Equals(o, ultimoOperador, StringComparison.OrdinalIgnoreCase));
+            }
+            else if (_conLista) ComboOperador.Focus();
+            else if (CampoOperador.Text.Length > 0) CampoContrasena.Focus();
+            else CampoOperador.Focus();
+        };
     }
 
     /// <summary>Contexto validado al completar el acceso; null si se sale.</summary>
     public ContextoAcceso? Resultado { get; private set; }
 
+    private string NombreOperador => _conLista ? ComboOperador.SelectedItem as string ?? "" : CampoOperador.Text;
+
     private async void Principal_Click(object sender, RoutedEventArgs e)
     {
         if (_ocupado) return;
-        if (_sesion is null) await AutenticarAsync();
+        if (_sesion is null) await AutenticarAsync(avisarSiVacio: true);
         else await EntrarAsync();
     }
 
-    private async Task AutenticarAsync()
+    /// <summary>Al salir de la contraseña con Tab se comprueba, salvo que se vaya a «Salir» o a «Entrar» (que ya lo hace).</summary>
+    private async void Contrasena_PreviewLostKeyboardFocus(object sender, KeyboardFocusChangedEventArgs e)
     {
+        if (_sesion is not null || _ocupado || e.NewFocus == BotonSalir || e.NewFocus == BotonPrincipal || !IsActive) return;
+        await AutenticarAsync(avisarSiVacio: false);
+    }
+
+    /// <summary>Un operador sin contraseña entra al elegirlo; con contraseña, el foco pasa a la contraseña.</summary>
+    private async void Operador_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (_sesion is not null || _ocupado || ComboOperador.SelectedItem is not string nombre) return;
         await Ocupado(async () =>
         {
-            var r = await _acceso.AutenticarAsync(CampoOperador.Text, CampoContrasena.Password);
-            CampoContrasena.Clear();
-            if (!r.EsCorrecto) { Mostrar(r.Error!); CampoContrasena.Focus(); return; }
-            _sesion = r.Valor;
-            ResumenOperador.Text = "Operador: " + _sesion.NombreOperador;
-            CampoOperador.IsEnabled = CampoContrasena.IsEnabled = false;
-            BotonCambiarOperador.Visibility = Visibility.Visible;
+            var sesion = await _acceso.AutenticarSinContrasenaAsync(nombre);
+            if (sesion is null) { CampoContrasena.Focus(); return; }
+            await IdentificadoAsync(sesion);
+        });
+    }
 
-            var opciones = await _acceso.ListarSociedadesAsync(_sesion);
-            if (!opciones.EsCorrecto) { Mostrar(opciones.Error!); return; }
-            if (opciones.Valor.Sociedades.Count == 0)
+    private async Task AutenticarAsync(bool avisarSiVacio)
+    {
+        if (string.IsNullOrWhiteSpace(NombreOperador))
+        {
+            if (avisarSiVacio)
+                Mostrar(new Error("Acceso.SinOperador", "Indica tu operador.", null, "El operador está vacío.",
+                    _conLista ? "Elígelo en la lista." : "Escribe tu nombre de operador."));
+            return;
+        }
+        await Ocupado(async () =>
+        {
+            var r = await _acceso.AutenticarAsync(NombreOperador, CampoContrasena.Password);
+            CampoContrasena.Clear();
+            if (!r.EsCorrecto)
             {
-                Mostrar(new Error("Acceso.SinSociedades", "No tienes acceso a ninguna sociedad.", null,
-                    "Tu operador no está en ningún grupo con acceso a sociedades.", "Pide a un administrador que te dé acceso."));
+                Mostrar(r.Error!);
+                CampoContrasena.Focus();
                 return;
             }
-            ComboSociedad.ItemsSource = opciones.Valor.Sociedades.Select(s => new Opcion<Sociedad>(s, $"{s.RazonSocial}  ({s.IdSociedad})")).ToList();
-            ComboSociedad.IsEnabled = true;
-            BotonPrincipal.Content = "Entrar";
-            BotonPrincipal.ToolTip = "Entra en la sociedad y el ejercicio elegidos (Intro)";
-            Indicacion.Text = "Elige la sociedad y el ejercicio en los que vas a trabajar.";
-            ComboSociedad.SelectedItem = ((IEnumerable<Opcion<Sociedad>>)ComboSociedad.ItemsSource)
-                .FirstOrDefault(o => o.Valor.IdSociedad == opciones.Valor.IdPropuesta);
-            ComboSociedad.Focus();
+            await IdentificadoAsync(r.Valor);
         });
+    }
+
+    /// <summary>Operador correcto: aparece «Dónde quieres trabajar» con lo último elegido y el foco en «Entrar».</summary>
+    private async Task IdentificadoAsync(SesionAcceso sesion)
+    {
+        _sesion = sesion;
+        ResumenOperador.Text = "Operador: " + sesion.NombreOperador;
+        CampoOperador.IsEnabled = ComboOperador.IsEnabled = CampoContrasena.IsEnabled = false;
+        BotonCambiarOperador.Visibility = Visibility.Visible;
+
+        var opciones = await _acceso.ListarSociedadesAsync(sesion);
+        if (!opciones.EsCorrecto) { Mostrar(opciones.Error!); return; }
+        if (opciones.Valor.Sociedades.Count == 0)
+        {
+            Mostrar(new Error("Acceso.SinSociedades", "No tienes acceso a ninguna sociedad.", null,
+                "Tu operador no está en ningún grupo con acceso a sociedades.", "Pide a un administrador que te dé acceso."));
+            return;
+        }
+        Indicacion.Text = "Elige la sociedad y el ejercicio en los que vas a trabajar.";
+        BloqueDonde.Visibility = Visibility.Visible;
+        var lista = opciones.Valor.Sociedades.Select(s => new Opcion<Sociedad>(s, $"{s.RazonSocial}  ({s.IdSociedad})")).ToList();
+        ComboSociedad.ItemsSource = lista;
+        _cargando = true;
+        ComboSociedad.SelectedItem = lista.FirstOrDefault(o => o.Valor.IdSociedad == opciones.Valor.IdPropuesta);
+        _cargando = false;
+        await CargarEjerciciosAsync();
+        if (ComboSociedad.SelectedItem is not null && ComboEjercicio.SelectedItem is not null) BotonPrincipal.Focus();
+        else ComboSociedad.Focus();
     }
 
     private async void Sociedad_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
+        if (_cargando) return;
+        await Ocupado(CargarEjerciciosAsync);
+    }
+
+    private async Task CargarEjerciciosAsync()
+    {
         ComboEjercicio.ItemsSource = null;
-        ComboEjercicio.IsEnabled = false;
         ResumenEjercicio.Text = "Sin elegir";
         if (_sesion is null || ComboSociedad.SelectedItem is not Opcion<Sociedad> sociedad) { ResumenSociedad.Text = "Sin elegir"; return; }
         ResumenSociedad.Text = sociedad.Valor.RazonSocial;
-        await Ocupado(async () =>
+        var r = await _acceso.ListarEjerciciosAsync(_sesion, sociedad.Valor.IdSociedad);
+        if (!r.EsCorrecto) { Mostrar(r.Error!); return; }
+        if (r.Valor.Ejercicios.Count == 0)
         {
-            var r = await _acceso.ListarEjerciciosAsync(_sesion, sociedad.Valor.IdSociedad);
-            if (!r.EsCorrecto) { Mostrar(r.Error!); return; }
-            if (r.Valor.Ejercicios.Count == 0)
-            {
-                Mostrar(new Error("Acceso.SinEjercicios", "Esta sociedad no tiene ejercicios.", sociedad.Valor.RazonSocial,
-                    "No hay ningún ejercicio dado de alta para ella.", "Elige otra sociedad o pide que abran su ejercicio."));
-                return;
-            }
-            var opciones = r.Valor.Ejercicios.Select(x => new Opcion<SociedadEjercicio>(x, x.Cerrado ? $"{x.Ejercicio} · cerrado" : x.Ejercicio.ToString())).ToList();
-            ComboEjercicio.ItemsSource = opciones;
-            ComboEjercicio.IsEnabled = true;
-            ComboEjercicio.SelectedItem = opciones.FirstOrDefault(o => o.Valor.IdSociedadEjercicio == r.Valor.IdPropuesto);
-            OcultarMensaje();
-        });
+            Mostrar(new Error("Acceso.SinEjercicios", "Esta sociedad no tiene ejercicios.", sociedad.Valor.RazonSocial,
+                "No hay ningún ejercicio dado de alta para ella.", "Elige otra sociedad o pide que abran su ejercicio."));
+            return;
+        }
+        var opciones = r.Valor.Ejercicios.Select(x => new Opcion<SociedadEjercicio>(x, x.Cerrado ? $"{x.Ejercicio} · cerrado" : x.Ejercicio.ToString())).ToList();
+        ComboEjercicio.ItemsSource = opciones;
+        ComboEjercicio.SelectedItem = opciones.FirstOrDefault(o => o.Valor.IdSociedadEjercicio == r.Valor.IdPropuesto);
     }
 
     private void Ejercicio_SelectionChanged(object sender, SelectionChangedEventArgs e) =>
@@ -108,7 +176,7 @@ public partial class VentanaAcceso : Window
     {
         if (ComboSociedad.SelectedItem is not Opcion<Sociedad> sociedad || ComboEjercicio.SelectedItem is not Opcion<SociedadEjercicio> ejercicio)
         {
-            Mostrar(new Error("Acceso.SinContexto", "Elige la sociedad y el ejercicio.", null, "Faltan por elegir.", "Elígelos en las listas de la derecha."));
+            Mostrar(new Error("Acceso.SinContexto", "Elige la sociedad y el ejercicio.", null, "Faltan por elegir.", "Elígelos en las listas."));
             return;
         }
         await Ocupado(async () =>
@@ -124,31 +192,32 @@ public partial class VentanaAcceso : Window
     {
         if (_sesion is not null) await _acceso.CerrarSesionAsync(_sesion);
         _sesion = null;
+        BloqueDonde.Visibility = Visibility.Collapsed;
         ComboSociedad.ItemsSource = null;
-        ComboSociedad.IsEnabled = false;
-        CampoOperador.IsEnabled = CampoContrasena.IsEnabled = true;
+        ComboEjercicio.ItemsSource = null;
+        ResumenSociedad.Text = ResumenEjercicio.Text = "Sin elegir";
+        CampoOperador.IsEnabled = ComboOperador.IsEnabled = CampoContrasena.IsEnabled = true;
         BotonCambiarOperador.Visibility = Visibility.Collapsed;
-        BotonPrincipal.Content = "Continuar";
-        BotonPrincipal.ToolTip = "Comprueba el operador y la contraseña (Intro)";
         Indicacion.Text = "Identifícate con tu operador y tu contraseña.";
         ResumenOperador.Text = "Operador: sin identificar";
         OcultarMensaje();
-        CampoOperador.SelectAll();
-        CampoOperador.Focus();
+        if (_conLista) { ComboOperador.SelectedItem = null; ComboOperador.Focus(); }
+        else { CampoOperador.SelectAll(); CampoOperador.Focus(); }
     }
 
     private void Salir_Click(object sender, RoutedEventArgs e) => DialogResult = false;
 
     private void Ventana_PreviewKeyDown(object sender, KeyEventArgs e)
     {
-        if (e.Key == Key.Escape && !(ComboSociedad.IsDropDownOpen || ComboEjercicio.IsDropDownOpen))
+        var desplegado = ComboSociedad.IsDropDownOpen || ComboEjercicio.IsDropDownOpen || ComboOperador.IsDropDownOpen;
+        if (e.Key == Key.Escape && !desplegado)
         {
             DialogResult = false;
             e.Handled = true;
         }
-        else if (e.Key == Key.Enter && !(ComboSociedad.IsDropDownOpen || ComboEjercicio.IsDropDownOpen))
+        else if (e.Key == Key.Enter && !desplegado)
         {
-            if (_sesion is null && Keyboard.FocusedElement == CampoOperador && CampoContrasena.IsEnabled)
+            if (_sesion is null && (Keyboard.FocusedElement == CampoOperador || Keyboard.FocusedElement == ComboOperador))
                 CampoContrasena.Focus();
             else
                 Principal_Click(sender, e);

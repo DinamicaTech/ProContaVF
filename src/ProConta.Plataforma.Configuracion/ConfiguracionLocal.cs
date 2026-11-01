@@ -7,6 +7,26 @@ public sealed record ConfiguracionLocal
 {
     /// <summary>Ruta completa del accdb elegido en este puesto.</summary>
     public string? RutaBaseDatos { get; init; }
+
+    /// <summary>Último operador que entró en este puesto, para proponerlo en el acceso.</summary>
+    public string? UltimoOperador { get; init; }
+}
+
+/// <summary>Preferencias del puesto que no son la ubicación de datos.</summary>
+public static class PreferenciasPuesto
+{
+    public static string? UltimoOperador(IAlmacenConfiguracionLocal almacen)
+    {
+        try { return almacen.Leer()?.UltimoOperador; }
+        catch (Exception ex) when (ex is InvalidDataException or IOException) { return null; }
+    }
+
+    /// <summary>Recuerda el operador conservando el resto de la configuración; si no se puede guardar, no pasa nada.</summary>
+    public static void RecordarOperador(IAlmacenConfiguracionLocal almacen, string nombre)
+    {
+        try { almacen.Guardar((almacen.Leer() ?? new ConfiguracionLocal()) with { UltimoOperador = nombre }); }
+        catch (Exception ex) when (ex is InvalidDataException or IOException or UnauthorizedAccessException) { }
+    }
 }
 
 public interface IAlmacenConfiguracionLocal

@@ -59,8 +59,8 @@
     <DockPanel Grid.Column="1" Margin="56,56,56,40">
       <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" HorizontalAlignment="Right">
         <Button x:Name="BotonSalir" Content="Salir" MinWidth="90" Click="Salir_Click" ToolTip="Cierra ProContaVF sin entrar (Esc)" />
-        <Button x:Name="BotonPrincipal" Content="Continuar" MinWidth="150" Margin="10,0,0,0" Style="{StaticResource Boton.Primario}"
-                Click="Principal_Click" ToolTip="Comprueba el operador y la contraseña (Intro)" />
+        <Button x:Name="BotonPrincipal" Content="Entrar" MinWidth="150" Margin="10,0,0,0" Style="{StaticResource Boton.Primario}"
+                Click="Principal_Click" ToolTip="Comprueba el operador y la contraseña y, después, entra en la sociedad y el ejercicio elegidos (Intro)" />
       </StackPanel>
 
       <StackPanel>
@@ -77,15 +77,20 @@
           <StackPanel Grid.Column="0">
             <TextBlock Text="Operador" Style="{StaticResource Etiqueta.Campo}" />
             <TextBox x:Name="CampoOperador" MaxLength="100" ToolTip="Tu nombre de operador, tal como te lo dio el administrador" />
+            <ComboBox x:Name="ComboOperador" Visibility="Collapsed" SelectionChanged="Operador_SelectionChanged"
+                      ToolTip="Elige tu operador; si no tiene contraseña, entra al elegirlo" />
           </StackPanel>
           <StackPanel Grid.Column="2">
             <TextBlock Text="Contraseña" Style="{StaticResource Etiqueta.Campo}" />
-            <PasswordBox x:Name="CampoContrasena" ToolTip="Tu contraseña; si tu operador no tiene, déjala vacía" />
+            <PasswordBox x:Name="CampoContrasena" PreviewLostKeyboardFocus="Contrasena_PreviewLostKeyboardFocus"
+                         ToolTip="Tu contraseña; al pasar al siguiente campo (Tab) se comprueba. Si tu operador no tiene, déjala vacía" />
           </StackPanel>
         </Grid>
         <Button x:Name="BotonCambiarOperador" Style="{StaticResource Boton.Enlace}" Content="Entrar con otro operador" HorizontalAlignment="Left"
                 Margin="0,8,0,0" Visibility="Collapsed" Click="CambiarOperador_Click" ToolTip="Vuelve a la identificación para entrar con otro operador" />
 
+        <!-- Oculto hasta que el operador y la contraseña son correctos: sin identificarse no se ve qué sociedades hay. -->
+        <StackPanel x:Name="BloqueDonde" Visibility="Collapsed">
         <TextBlock Text="DÓNDE QUIERES TRABAJAR" Style="{StaticResource Texto.SeccionAcceso}" />
         <Grid>
           <Grid.ColumnDefinitions>
@@ -95,15 +100,16 @@
           </Grid.ColumnDefinitions>
           <StackPanel Grid.Column="0">
             <TextBlock Text="Sociedad" Style="{StaticResource Etiqueta.Campo}" />
-            <ComboBox x:Name="ComboSociedad" IsEnabled="False" DisplayMemberPath="Texto" SelectionChanged="Sociedad_SelectionChanged"
+            <ComboBox x:Name="ComboSociedad" DisplayMemberPath="Texto" SelectionChanged="Sociedad_SelectionChanged"
                       ToolTip="Sociedades a las que tienes acceso; se elige después de identificarte" />
           </StackPanel>
           <StackPanel Grid.Column="2">
             <TextBlock Text="Ejercicio" Style="{StaticResource Etiqueta.Campo}" />
-            <ComboBox x:Name="ComboEjercicio" IsEnabled="False" DisplayMemberPath="Texto" SelectionChanged="Ejercicio_SelectionChanged"
+            <ComboBox x:Name="ComboEjercicio" DisplayMemberPath="Texto" SelectionChanged="Ejercicio_SelectionChanged"
                       ToolTip="Ejercicio de trabajo; un ejercicio cerrado se puede abrir para consultar" />
           </StackPanel>
         </Grid>
+        </StackPanel>
 
         <Border x:Name="CajaMensaje" Margin="0,22,0,0" Padding="12,10" CornerRadius="6" Visibility="Collapsed"
                 Background="{StaticResource Pincel.RojoSuave}" BorderBrush="{StaticResource Pincel.RojoBorde}" BorderThickness="1">

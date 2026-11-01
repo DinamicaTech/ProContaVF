@@ -103,6 +103,20 @@ public sealed class ResolutorTests : IDisposable
     }
 
     [Fact]
+    public void ElUltimoOperadorSeRecuerdaSinPerderLaUbicacion()
+    {
+        Assert.Null(PreferenciasPuesto.UltimoOperador(_almacen));
+        _almacen.Guardar(new ConfiguracionLocal { RutaBaseDatos = _bd });
+        PreferenciasPuesto.RecordarOperador(_almacen, "operador.prueba");
+        Assert.Equal("operador.prueba", PreferenciasPuesto.UltimoOperador(_almacen));
+        Assert.Equal(_bd, _almacen.Leer()!.RutaBaseDatos);
+
+        var resolutor = Resolutor();
+        Assert.True(resolutor.GuardarSeleccion(resolutor.ValidarSeleccion(_otraBd).Valor).EsCorrecto);
+        Assert.Equal("operador.prueba", PreferenciasPuesto.UltimoOperador(_almacen)); // cambiar de BD no lo pierde
+    }
+
+    [Fact]
     public void ConfiguracionDanadaSeInformaSinPerderla()
     {
         Directory.CreateDirectory(Path.GetDirectoryName(_almacen.Ruta)!);

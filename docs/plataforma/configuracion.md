@@ -16,6 +16,7 @@ Resolutor único de la ubicación de datos y de la ruta exacta de la BD (CFG-GLO
 - 2026-10-31 18:40 · Precedencia de la ubicación de datos: argumento `--bd <ruta del accdb>`, variable de entorno `PROCONTA_BD` y configuración local del usuario; sin ninguna, se pide elegir la BD. Una fuente prioritaria inválida es un error que nombra la fuente, la ruta y la acción: nunca se pasa en silencio a la siguiente. Dos `--bd` distintos son error. Se simplifica la precedencia antigua de RF-CFG-02 (sin configuración junto al ejecutable ni «última selección» aparte, que aquí es la configuración local).
 - 2026-10-31 18:40 · La configuración local es `%LocalAppData%\ProContaVF\configuracion.json` (solo la ruta de la BD, nunca secretos), escrita de forma atómica. Elegir una BD primero la valida (`ValidarSeleccion`) y solo se guarda al confirmar (`GuardarSeleccion`): cancelar no cambia nada. Una configuración dañada se informa y no se borra.
 - 2026-10-31 18:40 · Al arrancar, `ComprobadorArranque` abre la BD en solo lectura y usa el diagnóstico de datos/esquema: solo una BD actualizada es compatible; con pendientes indica ejecutar el ActualizadorEsquema; más nueva, parcial o ajena se rechaza con su motivo. Nunca crea ni migra una BD.
+- 2026-11-01 09:30 · La configuración local del puesto guarda también el último operador que entró (`UltimoOperador`), que el acceso propone; elegir otra BD lo conserva y recordarlo no borra la ubicación de datos.
 
 ## Requirements
 - 2026-10-28 12:28 · From sources/01_ESPECIFICACION_FUNCIONAL.docx § 4 RF-CFG-01..05: resolutor único, precedencia de fuentes, configuración fuera de Access, comprobación de esquema al arrancar
@@ -23,6 +24,7 @@ Resolutor único de la ubicación de datos y de la ruta exacta de la BD (CFG-GLO
 - 2026-10-28 12:28 · draft: Implementar la resolución de la ruta de datos y la comprobación de compatibilidad del esquema al arrancar.
 - 2026-10-29 16:37 · Sí, la configuración de subcuentas desde la configuración global, cuando esté, podremos añadir un botón para que desde el popup de subcuentas se pueda saltar directamente a la configuración de subcuentas.
 - 2026-10-31 17:53 · Derived from architecture: el resolutor de la ubicación de datos con la configuración local en el perfil del usuario de Windows y la comprobación de compatibilidad del esquema al arrancar (lógica, sin pantalla).
+- 2026-11-01 09:30 · Derived from seguridad/acceso: recordar en cada puesto el último operador que entró.
 
 ## Hand-over
-- 2026-10-31 18:40 · Hecho: resolutor, configuración local y comprobación de arranque, con 11 pruebas (9 sin BD y 2 contra Access). Pendiente: el selector de BD en pantalla (lo usará plataforma/contenedor), el modo desatendido y la parametrización de subcuentas de Norma 43 (decisión 2026-10-29 16:58), que se hará con su nodo.
+- 2026-11-01 09:30 · Hecho: resolutor, configuración local (ubicación y último operador) y comprobación de arranque, con 12 pruebas. Pendiente: el modo desatendido y la parametrización de subcuentas de Norma 43 (decisión 2026-10-29 16:58), que se hará con su nodo.

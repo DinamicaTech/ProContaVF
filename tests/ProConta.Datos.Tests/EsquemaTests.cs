@@ -12,17 +12,17 @@ public class MigracionTests
     [Fact]
     public void IdentificadorConFechaYHoraObligatorio()
     {
-        Assert.Throws<ArgumentException>(() => new Migracion("20261031_PRUEBA", 261031901, "x", "datos/esquema", new AnadirColumna("T", "C", "LONG")));
-        var m = new Migracion("20261031_1910_PRUEBA", 261031901, "x", "datos/esquema", new AnadirColumna("T", "C", "LONG"));
+        Assert.Throws<ArgumentException>(() => new Migracion("20261031_PRUEBA", 261231901, "x", "datos/esquema", new AnadirColumna("T", "C", "LONG")));
+        var m = new Migracion("20261031_1910_PRUEBA", 261231901, "x", "datos/esquema", new AnadirColumna("T", "C", "LONG"));
         Assert.Equal(64, m.Hash.Length);
     }
 
     [Fact]
     public void ElHashDependeDeLaDefinicionNoDeLaDescripcion()
     {
-        var a = new Migracion("20261031_1910_PRUEBA", 261031901, "uno", "n", new AnadirColumna("T", "C", "LONG"));
-        var b = new Migracion("20261031_1910_PRUEBA", 261031901, "otro texto", "n", new AnadirColumna("T", "C", "LONG"));
-        var c = new Migracion("20261031_1910_PRUEBA", 261031901, "uno", "n", new AnadirColumna("T", "C", "TEXT(5)"));
+        var a = new Migracion("20261031_1910_PRUEBA", 261231901, "uno", "n", new AnadirColumna("T", "C", "LONG"));
+        var b = new Migracion("20261031_1910_PRUEBA", 261231901, "otro texto", "n", new AnadirColumna("T", "C", "LONG"));
+        var c = new Migracion("20261031_1910_PRUEBA", 261231901, "uno", "n", new AnadirColumna("T", "C", "TEXT(5)"));
         Assert.Equal(a.Hash, b.Hash);
         Assert.NotEqual(a.Hash, c.Hash);
     }
@@ -33,9 +33,18 @@ public class MigracionTests
         var actor = new Actor("prueba");
         var vieja = new Migracion("20261031_1910_A", 261001001, "a", "n", new AnadirColumna("T", "C", "LONG"));
         Assert.Throws<InvalidOperationException>(() => new ActualizadorEsquema(actor, [vieja]));
-        var m1 = new Migracion("20261031_1910_A", 261031902, "a", "n", new AnadirColumna("T", "C", "LONG"));
-        var m2 = new Migracion("20261031_1911_B", 261031901, "b", "n", new AnadirColumna("T", "D", "LONG"));
+        var m1 = new Migracion("20261031_1910_A", 261231902, "a", "n", new AnadirColumna("T", "C", "LONG"));
+        var m2 = new Migracion("20261031_1911_B", 261231901, "b", "n", new AnadirColumna("T", "D", "LONG"));
         Assert.Throws<InvalidOperationException>(() => new ActualizadorEsquema(actor, [m1, m2]));
+    }
+
+    [Fact]
+    public void DescripcionesMalCodificadasSeCorrigenAlPublicar()
+    {
+        Assert.Equal("Configuración general de la aplicación.", Esquema.Diccionario.GeneradorDiccionario.Recodificar("ConfiguraciÃ³n general de la aplicaciÃ³n."));
+        Assert.Equal("Único valor permitido: 1.", Esquema.Diccionario.GeneradorDiccionario.Recodificar("Ãšnico valor permitido: 1."));
+        Assert.Equal("Texto sin acentos.", Esquema.Diccionario.GeneradorDiccionario.Recodificar("Texto sin acentos."));
+        Assert.Equal("Año 2026", Esquema.Diccionario.GeneradorDiccionario.Recodificar("Año 2026"));
     }
 
     [Fact]
@@ -57,14 +66,14 @@ public sealed class EsquemaAccessTests : IDisposable
 
     private static Migracion[] Catalogo(params Migracion[] extra) => [.. CatalogoMigraciones.Todas, .. extra];
 
-    private static Migracion Primera => new("20261031_2320_PRUEBA_TABLA", 261031901, "Tabla de prueba", "datos/esquema",
+    private static Migracion Primera => new("20261031_2320_PRUEBA_TABLA", 261231901, "Tabla de prueba", "datos/esquema",
         new CrearTabla("PruebaEsquema", "CREATE TABLE PruebaEsquema (Id COUNTER CONSTRAINT PK_PruebaEsquema PRIMARY KEY, Nombre TEXT(50) NOT NULL)"),
         new CrearIndice("PruebaEsquema", "UX_PruebaEsquema_Nombre", "CREATE UNIQUE INDEX UX_PruebaEsquema_Nombre ON PruebaEsquema (Nombre)"));
 
-    private static Migracion Segunda => new("20261031_2321_PRUEBA_COLUMNA", 261031902, "Columna de prueba", "datos/esquema",
+    private static Migracion Segunda => new("20261031_2321_PRUEBA_COLUMNA", 261231902, "Columna de prueba", "datos/esquema",
         new AnadirColumna("PruebaEsquema", "Activa", "YESNO"));
 
-    private static Migracion Rota => new("20261031_2322_PRUEBA_ROTA", 261031903, "Falla a mitad", "datos/esquema",
+    private static Migracion Rota => new("20261031_2322_PRUEBA_ROTA", 261231903, "Falla a mitad", "datos/esquema",
         new AnadirColumna("PruebaEsquema", "Antes", "LONG"),
         new PasoPersonalizado("Paso que falla", "SQL INVÁLIDO", (_, _) => Task.FromResult(false),
             (s, _) => s.EjecutarAsync("ALTER TABLE TablaQueNoExiste ADD COLUMN X LONG")));
