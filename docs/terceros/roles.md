@@ -18,8 +18,9 @@ Roles opcionales de una identidad (Cliente, Proveedor, Contacto…) con IDs func
 - 2026-10-31 16:54 · Particular (persona física) y Asociación (entidad sin personalidad) son tipos de persona, no roles; los roles siguen siendo Cliente, Proveedor y Contacto.
 - 2026-10-31 16:54 · Proveedor/Acreedor: el rol Proveedor tiene dos cuentas opcionales (proveedor y acreedor) por sociedad y ejercicio; no son dos roles (resuelve P-04).
 - 2026-10-31 19:05 · Alta de rol idempotente: si el tercero ya tiene el rol se devuelve su ID (y se reactiva si estaba inactivo). IdCliente no es autonumérico (conserva los números del ERP): el nuevo es el siguiente libre dentro de la transacción; IdProveedor e IdContacto son autonuméricos.
-- 2026-10-31 19:05 · Cuentas por rol y ejercicio en CuentasClientesEjercicio y CuentasProveedoresEjercicio; se lee la predeterminada (EsPredeterminada) del ejercicio del contexto y solo se asigna una cuenta de ese mismo ejercicio. El Contacto no tiene cuenta.
+- 2026-10-31 19:05 · [replaced by 2026-11-01 09:52] Cuentas por rol y ejercicio en CuentasClientesEjercicio y CuentasProveedoresEjercicio; se lee la predeterminada (EsPredeterminada) del ejercicio del contexto y solo se asigna una cuenta de ese mismo ejercicio. El Contacto no tiene cuenta.
 - 2026-11-01 09:31 · Validado por el propietario (desarrollos base).
+- 2026-11-01 09:52 · Cuentas de los roles por sociedad, no por ejercicio: el rol Cliente y el rol Proveedor guardan su cuenta por sociedad apuntando a la identidad contable (IdentidadesContables), que da la continuidad entre ejercicios aunque cambie el código; en cada ejercicio se usa la cuenta de esa identidad en ese ejercicio y, si aún no existe, se ofrece crearla con el mismo código. El proveedor tiene dos cuentas opcionales, de proveedor y de acreedor. Tablas nuevas CuentasClientesSociedad y CuentasProveedoresSociedad; las filas de CuentasClientesEjercicio y CuentasProveedoresEjercicio se trasladan a ellas y esas dos tablas se retiran. El Contacto no tiene cuenta.
 
 ## Requirements
 - 2026-10-28 12:28 · From sources/01_ESPECIFICACION_FUNCIONAL.docx § 7 RF-TER-03, 04: roles idempotentes y cuentas por rol y sociedad/ejercicio
@@ -36,6 +37,8 @@ Roles opcionales de una identidad (Cliente, Proveedor, Contacto…) con IDs func
 - 2026-10-31 17:53 · Derived from architecture: los roles Cliente, Proveedor y Contacto idempotentes y la cuenta de cliente y de proveedor por sociedad y ejercicio.
 - 2026-11-01 09:48 · Sí, tiene sentido que las cuentas sean por sociedad, pero no tanto por ejercicio.
 - 2026-11-01 09:55 · Derived from terceros/pantallas: cuenta de acreedor del proveedor, editable desde la ficha.
+- 2026-11-01 09:52 · A. El concepto de Identidad traslada las M:N a otro sitio más cómodo y permite una continuidad entre ejercicios de una entidad sin depender de la cuenta contable.
+- 2026-11-01 09:52 · answer: cuenta de los roles → (A) por sociedad, apuntando a la identidad contable
 
 ## Hand-over
 - 2026-10-31 19:05 · Hecho: roles y cuentas por ejercicio, con pruebas (rol idempotente sin duplicar identidad, cuentas distintas por ejercicio, cuenta de otro ejercicio rechazada). Pendiente, porque necesita columnas nuevas y lo pedirá compras: distinguir cuenta de proveedor y de acreedor (decisión 2026-10-31 16:54), valores por defecto del proveedor (tipo de operación, producto, retención, país, forma de pago, cuenta de gasto, moneda) y su actualización desde la factura (decisiones 2026-10-29 18:14 y 2026-10-31 07:46), y la carpeta de PDF del proveedor.
