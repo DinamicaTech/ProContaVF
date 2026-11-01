@@ -39,6 +39,13 @@ public sealed class Migracion
     /// </summary>
     public Func<ISesionDatos, ContextoMigracion, Task<Nucleo.Resultados.Error?>>? Precondicion { get; init; }
 
+    /// <summary>
+    /// Pasos de migraciones anteriores que esta deshace a propósito (por ejemplo, un índice que sustituye por otro), como
+    /// «IdMigracion» y la descripción del paso. Una vez aplicada esta, el diagnóstico deja de exigir esos pasos y no toma
+    /// la migración anterior por una a medias. No forma parte del hash.
+    /// </summary>
+    public IReadOnlyList<(string IdMigracion, string DescripcionPaso)> Retira { get; init; } = [];
+
     /// <summary>SHA-256 de la definición: identifica la migración aplicada aunque cambie su texto descriptivo.</summary>
     public string Hash { get; }
 

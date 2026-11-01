@@ -39,6 +39,19 @@ public class MigracionTests
     }
 
     [Fact]
+    public void LosPasosRetiradosSonDeMigracionesAnterioresDelCatalogo()
+    {
+        var todas = CatalogoMigraciones.Todas.ToList();
+        foreach (var (m, i) in todas.Select((m, i) => (m, i)))
+            foreach (var (id, paso) in m.Retira)
+            {
+                var anterior = todas.Take(i).SingleOrDefault(x => x.Id == id);
+                Assert.True(anterior is not null, $"{m.Id} retira un paso de {id}, que no es una migración anterior del catálogo.");
+                Assert.Contains(anterior!.Pasos, p => p.Descripcion == paso);
+            }
+    }
+
+    [Fact]
     public void DescripcionesMalCodificadasSeCorrigenAlPublicar()
     {
         Assert.Equal("Configuración general de la aplicación.", Esquema.Diccionario.GeneradorDiccionario.Recodificar("ConfiguraciÃ³n general de la aplicaciÃ³n."));
@@ -77,6 +90,26 @@ public sealed class EsquemaAccessTests : IDisposable
         new AnadirColumna("PruebaEsquema", "Antes", "LONG"),
         new PasoPersonalizado("Paso que falla", "SQL INVÁLIDO", (_, _) => Task.FromResult(false),
             (s, _) => s.EjecutarAsync("ALTER TABLE TablaQueNoExiste ADD COLUMN X LONG")));
+
+    private static Migracion SustituyeIndice => new("20261031_2323_PRUEBA_SUSTITUYE", 261231904, "Sustituye un índice", "datos/esquema",
+        new PasoPersonalizado("Quitar el índice UX_PruebaEsquema_Nombre", "DROP INDEX UX_PruebaEsquema_Nombre ON PruebaEsquema",
+            (_, e) => Task.FromResult(!e.ExisteIndice("PruebaEsquema", "UX_PruebaEsquema_Nombre")),
+            (s, _) => s.EjecutarAsync("DROP INDEX UX_PruebaEsquema_Nombre ON PruebaEsquema")),
+        new CrearIndice("PruebaEsquema", "IX_PruebaEsquema_Nombre", "CREATE INDEX IX_PruebaEsquema_Nombre ON PruebaEsquema (Nombre)"))
+    {
+        Retira = [("20261031_2320_PRUEBA_TABLA", "Crear el índice UX_PruebaEsquema_Nombre de PruebaEsquema")],
+    };
+
+    [Fact]
+    public async Task UnPasoDeshechoPorUnaMigracionPosteriorNoSeTomaPorMigracionAMedias()
+    {
+        var catalogo = Catalogo(Primera, SustituyeIndice);
+        var r = await new ActualizadorEsquema(_actor, catalogo).ActualizarAsync(_copia.Ruta, BdPruebas.CarpetaTemporal());
+        Assert.True(r.EsCorrecto, r.Error?.Mensaje);
+        var d = await DiagnosticadorEsquema.DiagnosticarAsync(_copia.Bd(ModoApertura.SoloLectura), catalogo);
+        Assert.Equal(EstadoEsquema.Actualizada, d.Estado);
+        Assert.Empty(d.Parciales);
+    }
 
     [Fact]
     public async Task LaMaestraEsLaVersion1YLaPlantillaEstaActualizada()

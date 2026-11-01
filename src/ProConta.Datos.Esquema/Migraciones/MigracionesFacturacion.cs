@@ -93,7 +93,11 @@ public static class MigracionesFacturacion
             (_, e) => Task.FromResult(!e.ExisteIndice("CuentasClientesSociedad", "UX_CCS_ClienteSociedad")),
             (s, _) => s.EjecutarAsync("DROP INDEX UX_CCS_ClienteSociedad ON CuentasClientesSociedad")),
         new CrearIndice("CuentasClientesSociedad", "UX_CCS_ClienteSociedadClase",
-            "CREATE UNIQUE INDEX UX_CCS_ClienteSociedadClase ON CuentasClientesSociedad (IdCliente, IdSociedad, Clase)"));
+            "CREATE UNIQUE INDEX UX_CCS_ClienteSociedadClase ON CuentasClientesSociedad (IdCliente, IdSociedad, Clase)"))
+    {
+        // El índice por cliente y sociedad de 20261101_1000_CUENTAS_ROLES_SOCIEDAD se sustituye por este.
+        Retira = [("20261101_1000_CUENTAS_ROLES_SOCIEDAD", "Crear el índice UX_CCS_ClienteSociedad de CuentasClientesSociedad")],
+    };
 
     /// <summary>
     /// Permisos de acciones por grupo (seguridad/permisos, regla común): una acción sin filas la puede hacer cualquier
