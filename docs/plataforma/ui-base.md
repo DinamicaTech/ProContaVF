@@ -6,7 +6,7 @@ threads:
   - 2026-10-29 10:15 · Validar prototipos de pantallas principales | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GGPu88XoVeXWyHsuxbrF2kK
 ---
 ## Summary
-Estilos, recursos y componentes WPF compartidos: tipografía, colores, separaciones, pestañas, listas, estados, botones, foco, validaciones y ayudas. Fija el ancho de campo según contenido y las pautas de accesibilidad.
+Estilos, recursos y componentes WPF compartidos: tipografía, colores, separaciones, pestañas, listas, estados, botones, foco, validaciones y ayudas. Fija el ancho de campo según contenido y las pautas de accesibilidad. La voz de los mensajes al operador está en su hijo plataforma/ui-base/mensajes.
 Dirigió la validación de los prototipos HTML de las pantallas principales (contenedor, Terceros, líneas Norma 43, Facturas emitidas, importación de facturas de compra, mantenimiento 1:N con configuración y Mayor), de la que sale la biblioteca WPF `src/ProConta.UI.Base`, validada, con su aplicación de muestra `src/ProConta.UI.Muestra` y sus pruebas.
 **Aceptación:** cada pantalla principal tiene su prototipo HTML validado por el propietario; una pantalla de muestra con todos los componentes WPF comparada con las maquetas a igual escala.
 
@@ -31,6 +31,8 @@ Dirigió la validación de los prototipos HTML de las pantallas principales (con
 - 2026-10-31 10:57 · Todo importe se muestra en euros con separador de miles y dos decimales (1.234,56 €), en rejillas, totales, diálogos, tooltips y también en los campos de entrada: el operador puede escribir solo el número, con o sin «€» (la coma es el decimal, y un punto seguido de una o dos cifras al final también), y al salir del campo se ve en moneda. Una sola moneda: las cuentas bancarias están en euros o ya convertidas.
 - 2026-10-31 10:57 · Validada la biblioteca WPF `src/ProConta.UI.Base` con su muestra `src/ProConta.UI.Muestra`: tokens, fuentes, 67 iconos, estilos de los controles estándar, tabla con el criterio global de columnas y exportación a Excel, panel plegable con separador, estados (contenido, vacío, cargando, error, sin permiso), etiquetas, notas, diálogo, formatos y regla de color del saldo. Pantallas estrechas: una columna de ancho fijo nunca se estrecha sola para caber; si no caben todas aparece la barra horizontal, y el operador puede ocultar o estrechar columnas. Pruebas automáticas con xUnit (Apache 2.0, solo en el proyecto de pruebas), ejecutadas en local en el equipo del propietario.
 - 2026-10-31 10:57 · El botón principal conserva su fondo oscuro al pasar el ratón (un azul algo más claro): cada variante de botón fija sus colores de ratón encima y pulsado, para que el texto siempre se lea.
+
+- 2026-11-01 09:35 · Los mensajes al operador siguen la guía de voz de plataforma/ui-base/mensajes (tono cercano e informal pero neutro, sin humor de serie), que sustituye a la guía `MENSAJES.md` del proyecto antiguo.
 
 ## Requirements
 - 2026-10-28 12:28 · From sources/01_ESPECIFICACION_FUNCIONAL.docx § 6 RF-UI-02, 03, 06: look and feel de las maquetas con estilos compartidos, campos del ancho de su contenido, accesibilidad y mensajes

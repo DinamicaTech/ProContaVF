@@ -9,3 +9,4 @@ Sale del laboratorio cuando el propietario lo decide: se convierte en borrador o
 
 ## Decisions
 - 2026-10-28 12:30 · Creado con el proyecto.
+- 2026-11-01 09:35 · La idea «Humor en los mensajes al operador» (creative-lab/humor-mensajes) sale del laboratorio ejecutada en versión reducida, sin humor de serie: ahora es plataforma/ui-base/mensajes.
