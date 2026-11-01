@@ -66,7 +66,7 @@ public sealed class FacturasAccessTests : IDisposable
         foreach (var (codigo, nombre) in new[] { ("4300001", "Cliente sintético"), ("7520001", "Ingresos por arrendamientos"), ("4770021", "IVA repercutido 21"), ("4770010", "IVA repercutido 10"), ("5550001", "Suplidos") })
             Assert.True((await Cuentas.AltaAsync(_ctx, new AltaCuenta(codigo, nombre))).EsCorrecto);
 
-        var t = await new RepositorioTercerosAccess(Bd, _reloj).GuardarAsync(new Tercero { TipoPersona = TipoPersona.Juridica, RazonSocial = "Inquilina Sintética SL", Nif = "B87654326", Direccion = "Calle Mayor 1", CodigoPostal = "08001", Poblacion = "Barcelona", Pais = "724" }, _actor);
+        var t = await new RepositorioTercerosAccess(Bd, _reloj).GuardarAsync(new Tercero { TipoPersona = TipoPersona.Juridica, RazonSocial = "Inquilina Sintética SL", Nif = "B87654323", Direccion = "Calle Mayor 1", CodigoPostal = "08001", Poblacion = "Barcelona", Pais = "724" }, _actor);
         Assert.True(t.EsCorrecto, t.Error?.ToString());
         _idTercero = t.Valor.IdTercero;
         _idCliente = (await Roles.AsegurarClienteAsync(_idTercero)).Valor;
@@ -105,7 +105,7 @@ public sealed class FacturasAccessTests : IDisposable
         Assert.Equal("F20260001", f.NumeroFactura);
         Assert.Equal(EstadoFactura.Validada, f.Estado);
         Assert.True(f.SinVeriFactu);
-        Assert.Equal("B87654326", f.Cliente.Nif);
+        Assert.Equal("B87654323", f.Cliente.Nif);
         Assert.Equal("ES", f.Cliente.Pais);
         Assert.Equal("Sociedad sintética SL", f.NombreEmisor);
         Assert.NotNull(f.IdAsientoContable);

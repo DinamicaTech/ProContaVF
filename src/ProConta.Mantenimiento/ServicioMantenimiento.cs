@@ -43,7 +43,8 @@ public sealed class ServicioMantenimiento(IEnumerable<IProveedorMantenimiento> p
     {
         var bloqueo = await Bloqueo(p, r, r.EsNuevo ? "crear" : "cambiar");
         if (bloqueo is not null) return Resultado<RegistroMantenimiento>.Fallo(bloqueo);
-        if (r.EsNuevo && !p.PermiteAlta) return Resultado<RegistroMantenimiento>.Fallo(new Error("Mantenimiento.SinAlta", $"En {p.Titulo} no se crean registros."));
+        // Un parámetro único (fila sola) que aún no existe se crea al guardarlo por primera vez.
+        if (r.EsNuevo && !p.PermiteAlta && p.Cardinalidad != Cardinalidad.Unico) return Resultado<RegistroMantenimiento>.Fallo(new Error("Mantenimiento.SinAlta", $"En {p.Titulo} no se crean registros."));
         var errores = p.Validar(r);
         if (errores.Count > 0)
             return Resultado<RegistroMantenimiento>.Fallo(errores.Select(e => new Error("Mantenimiento.Campo", e.Mensaje, e.Campo)));

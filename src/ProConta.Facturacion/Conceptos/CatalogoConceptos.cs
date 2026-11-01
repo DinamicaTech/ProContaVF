@@ -50,8 +50,10 @@ public sealed class CatalogoConceptos(IBaseDatos bd, ICatalogoCuentas cuentas)
     public async Task<IReadOnlyList<Concepto>> ListarAsync(ContextoSociedadEjercicio contexto, bool soloActivos = false)
     {
         var filas = await bd.EjecutarAsync(s => s.ConsultarAsync(
-            $"SELECT {Columnas}, cc.Codigo AS CodigoCuenta, cc.Nombre AS NombreCuenta FROM Conceptos AS c LEFT JOIN CuentasContables AS cc " +
-            "ON (c.IdIdentidadContable = cc.IdIdentidadContable AND cc.IdSociedadEjercicio = ?) WHERE c.IdSociedad = ?" + (soloActivos ? " AND c.Activo = True" : "") + " ORDER BY c.Nombre",
+            // El filtro del ejercicio va en una subconsulta: Access no admite bien parámetros en el ON de un LEFT JOIN.
+            $"SELECT {Columnas}, cc.Codigo AS CodigoCuenta, cc.Nombre AS NombreCuenta FROM Conceptos AS c LEFT JOIN " +
+            "(SELECT IdIdentidadContable, Codigo, Nombre FROM CuentasContables WHERE IdSociedadEjercicio = ?) AS cc " +
+            "ON c.IdIdentidadContable = cc.IdIdentidadContable WHERE c.IdSociedad = ?" + (soloActivos ? " AND c.Activo = True" : "") + " ORDER BY c.Nombre",
             Mapear, contexto.IdSociedadEjercicio, contexto.IdSociedad));
         // La identidad sin cuenta en este ejercicio muestra su último código conocido (para avisar y ofrecer crearla).
         var r = new List<Concepto>();
