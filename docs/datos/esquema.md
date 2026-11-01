@@ -35,6 +35,7 @@ Código: `src/ProConta.Datos.Esquema` (diagnóstico, migraciones idempotentes, a
 - 2026-11-01 09:30 · Versión 7 = `20261101_0925_LISTA_OPERADORES_ACCESO` (seguridad/acceso): Configuracion.OcultarListaOperadoresAcceso (sí/no, por defecto no). El diccionario muestra corregidas las descripciones que la herramienta antigua guardó con los acentos mal codificados (UTF-8 leído como Windows-1252); la BD no se toca.
 - 2026-11-01 09:31 · Validado por el propietario (desarrollos base).
 - 2026-11-01 10:46 · Versión 8 = `20261101_1000_CUENTAS_ROLES_SOCIEDAD` (terceros/roles): CuentasClientesSociedad y CuentasProveedoresSociedad con el traslado de las filas por ejercicio y la retirada de CuentasClientesEjercicio y CuentasProveedoresEjercicio, con comprobación previa. Probada sobre una copia de la maestra real; diccionario regenerado.
+- 2026-11-01 13:10 · Versión 9 = `20261101_1300_CONTACTO_FICHA_ANTIGUA` (terceros/contactos): copia el email y el teléfono antiguos de Terceros a DatosContacto; diccionario regenerado.
 
 ## Requirements
 - 2026-10-28 12:28 · es importante que haya un nodo especializado en mantener la estructura de la base de datos para poder actualizar el modelo cuando se actualice una instalación en producción, por lo tanto, cualquier nodo que quiera modificar la estructura de la Base de Datos ha de comunicarlo o pasar a través del nodo de mantenimiento de estructura de BD.
@@ -60,6 +61,7 @@ Código: `src/ProConta.Datos.Esquema` (diagnóstico, migraciones idempotentes, a
 - 2026-11-01 04:46 · Te sirve de algo saber que la base de datos modelo más actualizada del desarrollo anterior es: C:\docs\Codigo\ProContaVF\ProConta\ProConta.ActualizadorEsquema\work\databases\ProConta.Maestra.ContactosLibres.0.24.accdb ?
 - 2026-11-01 09:30 · Derived from seguridad/acceso: parámetro general «Mostrar la lista de operadores en el acceso» (Configuracion.OcultarListaOperadoresAcceso, por defecto no se oculta).
 - 2026-11-01 10:46 · Derived from terceros/roles: cuentas de los roles por sociedad con la identidad contable (CuentasClientesSociedad, CuentasProveedoresSociedad con Clase PROVEEDOR o ACREEDOR), traslado de las filas por ejercicio y retirada de las tablas antiguas.
+- 2026-11-01 13:10 · Derived from terceros/contactos: paso de datos que copia Terceros.Email y Terceros.Telefono a DatosContacto cuando aún no están en la lista.
 
 ## Hand-over
 - 2026-11-01 09:30 · Hecho: diagnóstico, actualizador con copia verificada, comprobación previa y parámetros, registro de intentos, migraciones idempotentes (catálogo en la versión 7), diccionario en `diccionario/`, copia sin datos y la maestra 0.24 del desarrollo anterior registrada como referencia estructural. Pendiente: «crear la maestra desde cero» se cubre con `copia-estructura` (estructura de la versión 1 sin datos), no con DDL desde cero; script de instalación en el servidor (plataforma/entrega); descripciones de campo que faltan en la maestra actual (se pueden tomar de la referencia 0.24).
