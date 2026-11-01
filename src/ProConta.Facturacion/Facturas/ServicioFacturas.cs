@@ -302,9 +302,10 @@ public sealed class ServicioFacturas
         else
             cliente = Instantaneas.DeTercero((await TerceroDeClienteAsync(f.IdCliente!.Value))!);
 
+        FacturaVenta validada;
         try
         {
-            var validada = await _bd.EnTransaccionAsync(async s =>
+            validada = await _bd.EnTransaccionAsync(async s =>
             {
                 var actual = await RepositorioFacturas.CargarAsync(s, idFactura);
                 if (actual is null || !actual.EsBorrador || actual.Version != versionLeida)
@@ -346,15 +347,28 @@ public sealed class ServicioFacturas
                 }
                 return actual;
             });
-
-            var asiento = await _contabilizador.ContabilizarAsync(validada, actor);
-            var final = await ObtenerAsync(validada.IdFactura) ?? validada;
-            return new ResultadoValidacion(final, incidencias, asiento.EsCorrecto ? null : asiento.Errores);
         }
         catch (ExcepcionDatos ex)
         {
             return new ResultadoValidacion(null, [new(ex.Error.Codigo, ex.Error.TextoOperador())]);
         }
+
+        // La factura ya está numerada (transacción confirmada): lo que falle a partir de aquí no la deja sin validar,
+        // solo sin asiento, y se puede volver a contabilizar.
+        IReadOnlyList<Error>? errorAsiento;
+        try
+        {
+            var asiento = await _contabilizador.ContabilizarAsync(validada, actor);
+            errorAsiento = asiento.EsCorrecto ? null : asiento.Errores;
+        }
+        catch (ExcepcionDatos ex)
+        {
+            errorAsiento = [ex.Error];
+        }
+        FacturaVenta final;
+        try { final = await ObtenerAsync(validada.IdFactura) ?? validada; }
+        catch (ExcepcionDatos) { final = validada; }
+        return new ResultadoValidacion(final, incidencias, errorAsiento);
     }
 
     /// <summary>Vuelve a generar el asiento de una factura validada (por ejemplo, tras corregir una cuenta). No duplica.</summary>

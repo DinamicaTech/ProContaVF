@@ -47,8 +47,8 @@ public sealed class FacturasAccessTests : IDisposable
         await DatosSinteticos.SociedadAsync(Bd, "T01", "Sociedad sintética SL");
         await DatosSinteticos.EjercicioAsync(Bd, 9001, "T01", 2026);
         await Bd.EjecutarAsync(s => s.EjecutarAsync(
-            "UPDATE SociedadesEjercicios SET CIF = ?, TipoIVA1 = ?, CuentaTipoIVA1 = ?, TipoIVA2 = ?, CuentaTipoIVA2 = ?, CuentaSuplido = ? WHERE IdSociedadEjercicio = ?",
-            "B12345674", 21f, "4770021", 10f, "4770010", "5550001", 9001));
+            "UPDATE SociedadesEjercicios SET Nombre = ?, CIF = ?, TipoIVA1 = ?, CuentaTipoIVA1 = ?, TipoIVA2 = ?, CuentaTipoIVA2 = ?, CuentaSuplido = ? WHERE IdSociedadEjercicio = ?",
+            "Sociedad sintética SL (2026)", "B12345674", 21f, "4770021", 10f, "4770010", "5550001", 9001));
         await Bd.EjecutarAsync(async s =>
         {
             foreach (var (tipo, descripcion, rect) in new[] { ("F1", "Factura", false), ("F2", "Simplificada", false), ("R4", "Rectificativa (resto)", true), ("R5", "Rectificativa simplificada", true) })
@@ -107,7 +107,8 @@ public sealed class FacturasAccessTests : IDisposable
         Assert.True(f.SinVeriFactu);
         Assert.Equal("B87654323", f.Cliente.Nif);
         Assert.Equal("ES", f.Cliente.Pais);
-        Assert.Equal("Sociedad sintética SL", f.NombreEmisor);
+        // El emisor es el nombre del ejercicio (puede cambiar de un año a otro), no el de la sociedad.
+        Assert.Equal("Sociedad sintética SL (2026)", f.NombreEmisor);
         Assert.NotNull(f.IdAsientoContable);
 
         // Regenerar el asiento no lo duplica.

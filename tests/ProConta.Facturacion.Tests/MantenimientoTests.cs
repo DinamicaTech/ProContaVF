@@ -165,7 +165,14 @@ public sealed class MantenimientoAccessTests : IDisposable
         // Usado en una línea no se borra; la copia sin uso, sí.
         await Bd.EjecutarAsync(async x =>
         {
-            await x.EjecutarAsync("INSERT INTO Facturas (IdSociedadEjercicio, IdSerie, Descripcion, EstadoFactura, TipoFactura, FechaCreacion) VALUES (?, ?, ?, ?, ?, ?)", 9001, 0, "Sintética", (byte)3, "F1", DateTime.Now);
+            if (Convert.ToInt32(await x.EscalarAsync("SELECT COUNT(*) FROM TiposFactura WHERE TipoFactura = ?", "F1")) == 0)
+                await x.EjecutarAsync("INSERT INTO TiposFactura (TipoFactura, Descripcion, EsRectificativa) VALUES (?, ?, ?)", "F1", "Factura", false);
+            if (Convert.ToInt32(await x.EscalarAsync("SELECT COUNT(*) FROM EstadosFactura WHERE IdEstado = ?", (byte)3)) == 0)
+                await x.EjecutarAsync("INSERT INTO EstadosFactura (IdEstado, Nombre, EsModificable, EsTerminal) VALUES (?, ?, ?, ?)", (byte)3, "Borrador", true, false);
+            await x.EjecutarAsync("INSERT INTO SeriesFacturacion (IdSociedadEjercicio, Descripcion, RangoDesde, RangoHasta, Prefijo, EsRectificativa, EsPredeterminada) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                9001, "Serie sintética", 1, 99999, "S2026", false, true);
+            var idSerie = await x.UltimoIdAsync();
+            await x.EjecutarAsync("INSERT INTO Facturas (IdSociedadEjercicio, IdSerie, Descripcion, EstadoFactura, TipoFactura, FechaCreacion) VALUES (?, ?, ?, ?, ?, ?)", 9001, idSerie, "Sintética", (byte)3, "F1", DateTime.Now);
             var idFactura = await x.UltimoIdAsync();
             return await x.EjecutarAsync("INSERT INTO LineasFactura (IdFactura, NumeroLinea, IdConcepto, Nombre, Descripcion, Cantidad, PrecioUnitario, BaseImponible, TipoIVA, CuotaIVA, ImporteTotal) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                 idFactura, (short)1, en2026.IdConcepto, "Alquiler", " ", 1d, 500m, 500m, 21d, 105m, 605m);
