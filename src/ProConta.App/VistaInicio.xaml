@@ -13,9 +13,10 @@
       <TextBlock Text="En esta versión" Style="{StaticResource Texto.SeccionAcceso}" Margin="0,28,0,10" />
       <Border Style="{StaticResource Tarjeta}" Padding="18,14">
         <TextBlock TextWrapping="Wrap" LineHeight="22">
-          Esta entrega contiene el esqueleto técnico, los motores sin pantallas y la primera pantalla: <Bold>Terceros</Bold> (menú Datos maestros › Terceros),
-          con el buscador multicriterio y la ficha completa. Las pantallas de las demás áreas (Facturación, Compras, Contabilidad…) llegarán en las próximas
-          entregas; por eso el menú las muestra atenuadas.
+          Esta entrega contiene <Bold>Terceros</Bold> (Datos maestros › Terceros), la <Bold>facturación de venta</Bold> (Facturación › Facturas emitidas:
+          borradores, validación numerada, rectificativas y su asiento) y <Bold>Parámetros y tablas</Bold> (Configuración). La validación de facturas es
+          provisional, sin VeriFactu: solo vale en la base de datos de pruebas. Las demás áreas (Compras, Contabilidad…) llegarán en las próximas entregas;
+          por eso el menú las muestra atenuadas.
         </TextBlock>
       </Border>
     </StackPanel>

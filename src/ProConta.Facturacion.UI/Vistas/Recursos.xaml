@@ -1,0 +1,64 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:pc="urn:proconta-ui">
+  <!-- Composiciones de facturación con los tokens de ProConta.UI.Base (sin colores propios). -->
+  <pc:VisibleSiConverter x:Key="Visible" />
+
+  <!-- Píldora rellena del estado de la factura. -->
+  <Style x:Key="Pildora" TargetType="Border">
+    <Setter Property="CornerRadius" Value="{StaticResource Radio.Pastilla}" />
+    <Setter Property="Padding" Value="8,2" />
+    <Setter Property="Margin" Value="0,0,6,0" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+    <Setter Property="Background" Value="{StaticResource Pincel.Fondo2}" />
+    <Setter Property="BorderBrush" Value="{StaticResource Pincel.Linea}" />
+    <Setter Property="BorderThickness" Value="1" />
+  </Style>
+  <Style x:Key="Texto.Pildora" TargetType="TextBlock">
+    <Setter Property="FontSize" Value="{StaticResource Letra.Mini}" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="Foreground" Value="{StaticResource Pincel.Tinta}" />
+  </Style>
+
+  <!-- Etiqueta de campo. -->
+  <Style x:Key="Etiqueta.Campo" TargetType="TextBlock">
+    <Setter Property="FontSize" Value="{StaticResource Letra.Pequena}" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="Foreground" Value="{StaticResource Pincel.Texto2}" />
+    <Setter Property="Margin" Value="0,0,0,4" />
+  </Style>
+
+  <!-- Bloque etiqueta + campo del formulario. -->
+  <Style x:Key="Bloque.Campo" TargetType="StackPanel">
+    <Setter Property="Margin" Value="0,0,14,12" />
+  </Style>
+
+  <!-- Encabezado de tarjeta. -->
+  <Style x:Key="Titulo.Tarjeta" TargetType="TextBlock">
+    <Setter Property="FontSize" Value="{StaticResource Letra.Destacada}" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="Foreground" Value="{StaticResource Pincel.Tinta}" />
+    <Setter Property="Margin" Value="0,0,10,10" />
+  </Style>
+
+  <Style x:Key="Tarjeta.Factura" TargetType="Border" BasedOn="{StaticResource Tarjeta}">
+    <Setter Property="Padding" Value="16,14" />
+    <Setter Property="Margin" Value="0,0,0,14" />
+  </Style>
+
+  <!-- Celda de cabecera de la tabla de líneas. -->
+  <Style x:Key="Cabecera.Linea" TargetType="TextBlock">
+    <Setter Property="FontSize" Value="{StaticResource Letra.Pequena}" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="Foreground" Value="{StaticResource Pincel.Apagado}" />
+    <Setter Property="Margin" Value="4,0" />
+    <Setter Property="VerticalAlignment" Value="Bottom" />
+  </Style>
+
+  <Style x:Key="Calculado" TargetType="TextBlock">
+    <Setter Property="FontFamily" Value="{StaticResource Fuente.Mono}" />
+    <Setter Property="HorizontalAlignment" Value="Right" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+    <Setter Property="Margin" Value="4,0" />
+  </Style>
+</ResourceDictionary>

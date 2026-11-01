@@ -247,7 +247,7 @@ public sealed class VistaMantenimiento : UserControl
         return raiz;
     }
 
-    private static DataTemplate Plantilla(Func<object?, FrameworkElement> crear) => PlantillasCodigo.Crear(crear);
+    private static DataTemplate Plantilla(Func<object?, FrameworkElement> crear) => PlantillaCodigo.Crear(crear);
 
     private void AlCambiar(object? sender, PropertyChangedEventArgs e)
     {
@@ -378,39 +378,6 @@ public sealed class VistaMantenimiento : UserControl
         var primero = _controles.Values.FirstOrDefault(c => c is TextBox { IsReadOnly: false } || c.IsEnabled);
         primero?.Focus();
     }
-}
-
-/// <summary>Plantillas de datos creadas en código: cada elemento de la lista construye su vista con la función dada.</summary>
-internal static class PlantillasCodigo
-{
-    public static DataTemplate Crear(Func<object?, FrameworkElement> crear)
-    {
-        var fabrica = new FrameworkElementFactory(typeof(PresentadorCodigo));
-        fabrica.SetValue(PresentadorCodigo.FabricaProperty, crear);
-        return new DataTemplate { VisualTree = fabrica };
-    }
-}
-
-/// <summary>Muestra la vista que construye <see cref="Fabrica"/> para su DataContext, y la rehace si cambia.</summary>
-internal sealed class PresentadorCodigo : ContentControl
-{
-    public static readonly DependencyProperty FabricaProperty = DependencyProperty.Register(
-        nameof(Fabrica), typeof(Func<object?, FrameworkElement>), typeof(PresentadorCodigo), new PropertyMetadata(null, (d, _) => ((PresentadorCodigo)d).Construir()));
-
-    public PresentadorCodigo()
-    {
-        Focusable = false;
-        IsTabStop = false;
-        DataContextChanged += (_, _) => Construir();
-    }
-
-    public Func<object?, FrameworkElement>? Fabrica
-    {
-        get => (Func<object?, FrameworkElement>?)GetValue(FabricaProperty);
-        set => SetValue(FabricaProperty, value);
-    }
-
-    private void Construir() => Content = Fabrica is { } f && DataContext is { } dato ? f(dato) : null;
 }
 
 /// <summary>Visible si el valor es true (o, con <c>invertir</c>, si es false); también acepta texto o colección no vacíos.</summary>

@@ -3,12 +3,24 @@ using System.Windows;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Threading;
+using ProConta.Contabilidad.Asientos;
 using ProConta.Contabilidad.Cuentas;
+using ProConta.Facturacion.Conceptos;
+using ProConta.Facturacion.Facturas;
+using ProConta.Facturacion.Mantenimiento;
+using ProConta.Facturacion.UI.VistaModelos;
+using ProConta.Facturacion.UI.Vistas;
+using ProConta.Mantenimiento;
+using ProConta.Mantenimiento.UI;
 using ProConta.Datos.Persistencia;
 using ProConta.Nucleo.Auditoria;
+using ProConta.Organizacion.FormasPago;
 using ProConta.Organizacion.Geografia;
+using ProConta.Organizacion.Mantenimiento;
+using ProConta.Organizacion.Sociedades;
 using ProConta.Plataforma.Configuracion;
 using ProConta.Seguridad.Acceso;
+using ProConta.Seguridad.Permisos;
 using ProConta.Terceros;
 using ProConta.Terceros.Busqueda;
 using ProConta.Terceros.Perfiles;
@@ -16,6 +28,7 @@ using ProConta.Terceros.Roles;
 using ProConta.Terceros.UI.Vistas;
 using ProConta.Terceros.UI.VistaModelos;
 using ProConta.UI.Base.Comandos;
+using ProConta.UI.Base.Controles;
 
 namespace ProConta.App;
 
@@ -36,6 +49,9 @@ public partial class VentanaPrincipal : Window
     private double _anchoNavegacion = 228;
     private readonly AreaTrabajo _area;
     private readonly ModuloTerceros _terceros;
+    private readonly ModuloFacturacion _facturacion;
+    private readonly Func<PantallaMantenimientoVM> _crearMantenimiento;
+    private PantallaMantenimientoVM? _mantenimiento;
     private readonly DispatcherTimer _borrarAviso;
     private bool _saliendo;
 
@@ -71,22 +87,45 @@ public partial class VentanaPrincipal : Window
             () => new FuenteGeografiaAccess(bd).CargarAsync(), contexto.Contexto, contexto.RazonSocial, new Actor(sesion.NombreOperador));
         _terceros = new ModuloTerceros(servicios, _area, new DialogosTerceros(servicios));
 
+        // Facturación de venta (facturacion/pantallas) y Parámetros y tablas (plataforma/mantenimiento).
+        var roles = new ServicioRoles(bd, cuentas);
+        var sociedades = new ServicioSociedadesAccess(bd);
+        var autorizador = new AutorizadorAccionesAccess(bd, new ServicioOperadores(bd), sesion.IdOperador);
+        var contabilizador = new ContabilizadorVentas(bd, new MotorAsientosAccess(bd), cuentas, roles, sociedades);
+        var facturas = new ServicioFacturas(bd, sociedades, new RepositorioTercerosAccess(bd), roles, cuentas, contabilizador, autorizador);
+        var apoyo = new ApoyoEditorFacturas(bd, roles);
+        var serviciosFacturacion = new ServiciosFacturacion(facturas, new ConsultaFacturas(bd), new CatalogoConceptos(bd, cuentas), apoyo, new CatalogoFormasPagoAccess(bd),
+            new LectorConfiguracionEjercicio(bd), contexto.Contexto, contexto.RazonSocial, new Actor(sesion.NombreOperador));
+        _facturacion = new ModuloFacturacion(serviciosFacturacion, _area, new DialogosFacturacion(apoyo, () => this), _terceros.AbrirFicha);
+
+        var mantenimiento = new ServicioMantenimiento(
+            new IProveedorMantenimiento[] { new ProveedorConfiguracionGeneral(bd) }.Concat(ProveedoresOrganizacion.Todos(bd)).Concat(ProveedoresFacturacion.Todos(bd, cuentas)),
+            () => autorizador.PuedeAsync(Acciones.MantenimientoEditar));
+        var contextoMantenimiento = new ContextoMantenimiento(contexto.Contexto, contexto.RazonSocial, new Actor(sesion.NombreOperador));
+        _crearMantenimiento = () => new PantallaMantenimientoVM(mantenimiento, contextoMantenimiento,
+            (titulo, mensaje, detalles, opciones) => ServicioMensajes.Preguntar(this, titulo, mensaje, detalles, opciones),
+            Avisar, vm => new VistaMantenimiento(vm));
+
         const string proxima = "Aún no está disponible en esta versión: llegará con las pantallas de su área.";
         Geometry? Icono(string clave) => TryFindResource("Icono." + clave) as Geometry;
         var irAInicio = new ComandoDelegado(() => _area.Activar(_area.Lista[0].Pantalla));
         var abrirTerceros = new ComandoDelegado(_terceros.AbrirBuscador);
+        var abrirFacturas = new ComandoDelegado(_facturacion.AbrirListado);
+        var abrirParametros = new ComandoDelegado(AbrirParametros);
         Navegacion.ItemsSource = new[]
         {
             new OpcionNavegacion("Inicio", Icono("layout"), true, false, "Página de inicio", irAInicio),
             new OpcionNavegacion("Datos maestros", Icono("user"), true, false, "Terceros: clientes, proveedores, contactos y demás personas y organizaciones", abrirTerceros),
             new OpcionNavegacion("Terceros", null, true, false, "Buscador y fichas de terceros (clientes, proveedores, contactos…)", abrirTerceros, EsHija: true),
-            new OpcionNavegacion("Facturación", Icono("doc"), false, false, proxima),
+            new OpcionNavegacion("Facturación", Icono("doc"), true, false, "Facturas de venta: emitidas y borradores", abrirFacturas),
+            new OpcionNavegacion("Facturas emitidas", null, true, false, "Listado de facturas y borradores del ejercicio, con su detalle y acciones", abrirFacturas, EsHija: true),
             new OpcionNavegacion("Compras", Icono("scan"), false, false, proxima),
             new OpcionNavegacion("Contabilidad", Icono("book"), false, false, proxima),
             new OpcionNavegacion("Bancos", Icono("bank"), false, false, proxima),
             new OpcionNavegacion("Nóminas", Icono("coin"), false, false, proxima),
             new OpcionNavegacion("Informes", Icono("xls"), false, false, proxima),
-            new OpcionNavegacion("Configuración", Icono("gear"), false, false, proxima),
+            new OpcionNavegacion("Configuración", Icono("gear"), true, false, "Parámetros y tablas: empresas, ejercicios, series, conceptos, formas de pago…", abrirParametros),
+            new OpcionNavegacion("Parámetros y tablas", null, true, false, "Mantenimiento de las tablas y los parámetros de la aplicación, con buscador", abrirParametros, EsHija: true),
         };
         RefrescarEstado();
     }
@@ -94,6 +133,21 @@ public partial class VentanaPrincipal : Window
     public ICommand AlternarNavegacionCommand { get; }
     public ICommand GuardarActivaCommand { get; }
     public ICommand CerrarActivaCommand { get; }
+
+    /// <summary>Abre (o activa) la pestaña Parámetros y tablas.</summary>
+    private void AbrirParametros()
+    {
+        if (_mantenimiento is not null && _area.Pestanas.Contains(_mantenimiento))
+        {
+            _area.Activar(_mantenimiento);
+            return;
+        }
+        _mantenimiento = _crearMantenimiento();
+        _area.Abrir(_mantenimiento);
+        _ = _mantenimiento.IniciarAsync();
+    }
+
+    internal ModuloFacturacion Facturacion => _facturacion;
 
     /// <summary>Abre la pestaña de Terceros (lo usan la navegación y el modo de capturas).</summary>
     internal ModuloTerceros Terceros => _terceros;
