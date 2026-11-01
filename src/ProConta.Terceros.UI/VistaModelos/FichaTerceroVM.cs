@@ -54,7 +54,8 @@ public sealed class FichaTerceroVM : Observable, IPestanaTrabajo, INotifyDataErr
         AnadirDomicilioCommand = new ComandoDelegado(AnadirDomicilio);
         AnadirEmailCommand = new ComandoDelegado(() => AnadirDato(TipoDatoContacto.Email));
         AnadirTelefonoCommand = new ComandoDelegado(() => AnadirDato(TipoDatoContacto.Telefono));
-        PasarEmailPrincipalCommand = new ComandoDelegado(PasarEmailPrincipal, () => !string.IsNullOrWhiteSpace(T.Email));
+        PasarEmailPrincipalCommand = new ComandoDelegado(PasarEmailPrincipal, () => MostrarEmailAntiguo);
+        PasarTelefonoPrincipalCommand = new ComandoDelegado(PasarTelefonoPrincipal, () => MostrarTelefonoAntiguo);
         AnadirGrupoCommand = new ComandoDelegado(AnadirGrupo);
         VincularPersonaCommand = new ComandoDelegado(() => Vincular(comoOrganizacion: true));
         VincularOrganizacionCommand = new ComandoDelegado(() => Vincular(comoOrganizacion: false));
@@ -367,7 +368,9 @@ public sealed class FichaTerceroVM : Observable, IPestanaTrabajo, INotifyDataErr
         AvisoEstado($"El domicilio «{TiposDomicilio.Texto(d.TipoDomicilio)}» es ahora el principal; el anterior queda como adicional. Guarda la ficha para conservarlo.");
     }
 
-    /// <summary>Texto fijo de la ficha: los cambios de identidad o domicilio no alteran facturas ya emitidas.</summary>
+    /// <summary>Aviso de que los cambios de identidad o domicilio no alteran facturas ya emitidas (solo si hay alguno pendiente).</summary>
+    public bool MostrarNotaFacturas => _cambios.Any(c => c.Pestana == PestanaFicha.Identidad);
+
     public string NotaFacturas => "Los cambios de identidad o domicilio no alteran las facturas ya emitidas o registradas: cada una conserva los datos con que se emitió.";
 
     // ---------- contacto ----------
@@ -380,12 +383,27 @@ public sealed class FichaTerceroVM : Observable, IPestanaTrabajo, INotifyDataErr
     /// <summary>Opciones de «Persona» de cada email o teléfono: General (null) y las personas de contacto.</summary>
     public ObservableCollection<OpcionGrupo> OpcionesGrupo { get; } = [];
 
-    private IReadOnlyList<LineaDestinatarios> _destinatarios = [];
-    public IReadOnlyList<LineaDestinatarios> Destinatarios { get => _destinatarios; private set => Fijar(ref _destinatarios, value); }
+    /// <summary>Quién recibe cada finalidad sin estar marcado y los avisos de las columnas (RF-TER-09).</summary>
+    internal EstadoDestinatarios EstadoDestinatarios { get; private set; } = DestinatariosFicha.Calcular([]);
+    public string? AvisoFacturas => EstadoDestinatarios.AvisoFacturas;
+    public string? AvisoAdministrativos => EstadoDestinatarios.AvisoAdministrativos;
+
+    /// <summary>El email antiguo de la ficha solo se ve si aún no está en la lista de emails.</summary>
+    public bool MostrarEmailAntiguo => !string.IsNullOrWhiteSpace(T.Email) &&
+        !T.DatosContacto.Any(d => d.Tipo == TipoDatoContacto.Email && string.Equals(d.Valor.Trim(), T.Email.Trim(), StringComparison.OrdinalIgnoreCase));
+
+    /// <summary>El teléfono antiguo solo se ve si sus cifras no están ya en la lista de teléfonos.</summary>
+    public bool MostrarTelefonoAntiguo => Cifras(T.Telefono) is { Length: > 0 } c &&
+        !T.DatosContacto.Any(d => d.Tipo == TipoDatoContacto.Telefono && Cifras(d.Valor) == c);
+
+    public bool MostrarFichaAntigua => MostrarEmailAntiguo || MostrarTelefonoAntiguo;
+
+    private static string Cifras(string? texto) => new((texto ?? "").Where(char.IsAsciiDigit).ToArray());
 
     public ICommand AnadirEmailCommand { get; }
     public ICommand AnadirTelefonoCommand { get; }
     public ICommand PasarEmailPrincipalCommand { get; }
+    public ICommand PasarTelefonoPrincipalCommand { get; }
     public ICommand AnadirGrupoCommand { get; }
 
     /// <summary>Se acaba de añadir una fila: la vista pone el cursor en ella.</summary>
@@ -408,6 +426,15 @@ public sealed class FichaTerceroVM : Observable, IPestanaTrabajo, INotifyDataErr
         var d = new DatoContacto { Tipo = TipoDatoContacto.Email, Valor = T.Email.Trim(), Etiqueta = "Principal", Activo = true };
         T.DatosContacto.Add(d);
         Emails.Add(new DatoContactoVM(this, d));
+        Modificado();
+    }
+
+    private void PasarTelefonoPrincipal()
+    {
+        if (!MostrarTelefonoAntiguo) return;
+        var d = new DatoContacto { Tipo = TipoDatoContacto.Telefono, Valor = T.Telefono!.Trim(), Etiqueta = "Principal", Activo = true };
+        T.DatosContacto.Add(d);
+        Telefonos.Add(new DatoContactoVM(this, d));
         Modificado();
     }
 
@@ -676,8 +703,10 @@ public sealed class FichaTerceroVM : Observable, IPestanaTrabajo, INotifyDataErr
         if (_cargando) return;
         Cambios = CambiosFicha.Comparar(_original, T);
         if (!TieneCambios) VerCambios = false;
-        Destinatarios = PastillaDestinatarios.Calcular(T.DatosContacto, T.Email);
+        EstadoDestinatarios = DestinatariosFicha.Calcular(T.DatosContacto);
+        foreach (var e in Emails) e.RefrescarImplicitos();
         RecalcularErrores();
+        Avisar(nameof(AvisoFacturas), nameof(AvisoAdministrativos), nameof(MostrarEmailAntiguo), nameof(MostrarTelefonoAntiguo), nameof(MostrarFichaAntigua), nameof(MostrarNotaFacturas));
         Avisar(nameof(TieneCambios), nameof(TextoCambios), nameof(Marcas), nameof(Titulo), nameof(Ayuda), nameof(NombreCabecera), nameof(InicialesCabecera), nameof(TipoTexto),
             nameof(LineaDatos), nameof(Insignias));
     }

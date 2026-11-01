@@ -2,36 +2,49 @@ using ProConta.Terceros.Contactos;
 
 namespace ProConta.Terceros.UI.Logica;
 
-/// <summary>Una línea de la pastilla «Destinatarios efectivos»: la finalidad y a quién se enviaría, o por qué a nadie.</summary>
-public sealed record LineaDestinatarios(FinalidadEnvio Finalidad, string TextoFinalidad, bool Correcta, string Texto, string Ayuda);
-
 /// <summary>
-/// Pastilla de destinatarios efectivos de cada finalidad (RF-TER-09), calculada con <see cref="ResolutorDestinatarios"/>
-/// a partir de los emails tal como están en la ficha (también sin guardar), para que el operador vea al momento a
-/// quién llegarán las facturas y los envíos administrativos.
+/// A quién llegan los envíos automáticos de cada finalidad, visto en la tabla de emails de la ficha (RF-TER-09): qué
+/// emails reciben una finalidad sin estar marcados (el único email activo) y, si no se puede elegir ninguno, el aviso
+/// de esa columna. Se calcula con <see cref="ResolutorDestinatarios"/> sobre los datos tal como están en la ficha.
 /// </summary>
-public static class PastillaDestinatarios
+public sealed record EstadoDestinatarios(
+    IReadOnlySet<DatoContacto> FacturasImplicitas,
+    IReadOnlySet<DatoContacto> AdministrativosImplicitos,
+    string? AvisoFacturas,
+    string? AvisoAdministrativos)
 {
-    public static IReadOnlyList<LineaDestinatarios> Calcular(IEnumerable<DatoContacto> datos, string? emailPrincipal = null)
+    public bool RecibeImplicito(DatoContacto d, FinalidadEnvio f) =>
+        (f == FinalidadEnvio.Facturas ? FacturasImplicitas : AdministrativosImplicitos).Contains(d);
+}
+
+public static class DestinatariosFicha
+{
+    public static EstadoDestinatarios Calcular(IEnumerable<DatoContacto> datos)
     {
         var lista = datos.ToList();
-        return [Linea(lista, FinalidadEnvio.Facturas, emailPrincipal), Linea(lista, FinalidadEnvio.Administrativos, emailPrincipal)];
+        var (fi, fa) = Finalidad(lista, FinalidadEnvio.Facturas);
+        var (ai, aa) = Finalidad(lista, FinalidadEnvio.Administrativos);
+        return new EstadoDestinatarios(fi, ai, fa, aa);
     }
 
-    private static LineaDestinatarios Linea(List<DatoContacto> datos, FinalidadEnvio finalidad, string? emailPrincipal)
+    private static (IReadOnlySet<DatoContacto> Implicitos, string? Aviso) Finalidad(List<DatoContacto> datos, FinalidadEnvio finalidad)
     {
-        var texto = finalidad == FinalidadEnvio.Facturas ? "Envío de facturas" : "Comunic. administrativas";
         var r = ResolutorDestinatarios.Resolver(datos, finalidad);
+        bool Marcado(DatoContacto d) => finalidad == FinalidadEnvio.Facturas ? d.EnvioFacturas : d.EnviosAdministrativos;
+        var implicitos = new HashSet<DatoContacto>(ReferenceEqualityComparer.Instance);
         if (r.HayDestinatarios)
         {
-            var marcados = datos.Any(d => d.Tipo == TipoDatoContacto.Email && d.Activo &&
-                (finalidad == FinalidadEnvio.Facturas ? d.EnvioFacturas : d.EnviosAdministrativos));
-            return new(finalidad, texto, true, string.Join(", ", r.Emails),
-                marcados ? "Emails activos marcados para esta finalidad." : "No hay ninguno marcado, pero solo hay un email activo: se usa ese.");
+            foreach (var d in datos.Where(d => d.Tipo == TipoDatoContacto.Email && d.Activo && !Marcado(d) &&
+                         r.Emails.Contains(d.Valor.Trim(), StringComparer.OrdinalIgnoreCase)))
+                implicitos.Add(d);
+            return (implicitos, null);
         }
-        var problema = r.Incidencia!.Mensaje + " " + r.Incidencia.AccionCorrectora;
-        if (r.Incidencia.Codigo == "Contactos.SinEmail" && !string.IsNullOrWhiteSpace(emailPrincipal))
-            problema = $"El email de la ficha antigua ({emailPrincipal.Trim()}) no se usa para los envíos automáticos. Añádelo a la lista de emails.";
-        return new(finalidad, texto, false, problema, "Sin destinatario: los envíos automáticos de esta finalidad quedarán como incidencia.");
+        if (r.Incidencia?.Codigo != "Contactos.EmailAmbiguo") return (implicitos, null);
+        var que = finalidad == FinalidadEnvio.Facturas ? "las facturas" : "las comunicaciones administrativas";
+        return (implicitos, $"Hay varios emails activos y ninguno marcado: no se enviarán {que} por email hasta que marques cuál o cuáles las reciben.");
     }
+
+    public static string AyudaImplicita(FinalidadEnvio f) => f == FinalidadEnvio.Facturas
+        ? "Recibe los envíos de facturas aunque no esté marcado, porque es el único email activo. Márcalo si quieres fijarlo."
+        : "Recibe las comunicaciones administrativas aunque no esté marcado, porque es el único email activo. Márcalo si quieres fijarlo.";
 }

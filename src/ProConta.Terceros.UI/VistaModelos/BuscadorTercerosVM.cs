@@ -133,11 +133,11 @@ public sealed class BuscadorTercerosVM : Observable, IPestanaTrabajo
     public bool IncluirInactivos { get => _inactivos; set { if (Fijar(ref _inactivos, value)) FiltroCambiado(); } }
 
     /// <summary>Opción «Todos los perfiles» (no filtra).</summary>
-    public static readonly Perfil TodosLosPerfiles = new(0, "Todos los perfiles", null, true);
+    public static readonly OpcionPerfil TodosLosPerfiles = new(null);
 
-    public ObservableCollection<Perfil> PerfilesDisponibles { get; } = [TodosLosPerfiles];
-    private Perfil? _perfil;
-    public Perfil PerfilElegido { get => _perfil ?? TodosLosPerfiles; set { if (Fijar(ref _perfil, value?.IdPerfil > 0 ? value : null)) FiltroCambiado(); } }
+    public ObservableCollection<OpcionPerfil> PerfilesDisponibles { get; } = [TodosLosPerfiles];
+    private OpcionPerfil? _perfil;
+    public OpcionPerfil PerfilElegido { get => _perfil ?? TodosLosPerfiles; set { if (Fijar(ref _perfil, value?.Perfil is null ? null : value)) FiltroCambiado(); } }
 
     private int _recClientes, _recProveedores, _recContactos;
     public int RecuentoClientes { get => _recClientes; private set => Fijar(ref _recClientes, value); }
@@ -166,7 +166,7 @@ public sealed class BuscadorTercerosVM : Observable, IPestanaTrabajo
         false,
         new HashSet<RolBusqueda>((_clientes ? [RolBusqueda.Cliente] : Array.Empty<RolBusqueda>())
             .Concat(_proveedores ? [RolBusqueda.Proveedor] : []).Concat(_contactos ? [RolBusqueda.Contacto] : [])),
-        _perfil?.IdPerfil,
+        _perfil?.Perfil?.IdPerfil,
         _inactivos);
 
     // ---------- resultados ----------
@@ -213,7 +213,7 @@ public sealed class BuscadorTercerosVM : Observable, IPestanaTrabajo
             if (!_perfilesCargados)
             {
                 _perfilesCargados = true;
-                foreach (var p in await _s.Perfiles.ListarAsync()) PerfilesDisponibles.Add(p);
+                foreach (var p in await _s.Perfiles.ListarAsync()) PerfilesDisponibles.Add(new OpcionPerfil(p));
             }
             if (Resultados.Count == 0) { Estado = EstadoVista.Cargando; TituloEstado = "Buscando terceros…"; MensajeEstado = ""; AccionEstado = null; }
             var filtro = Filtro();
@@ -287,4 +287,12 @@ public sealed class BuscadorTercerosVM : Observable, IPestanaTrabajo
 
     /// <summary>La pestaña se ha vuelto a mostrar o se ha guardado una ficha: repite la búsqueda para ver los cambios.</summary>
     internal void Refrescar() => _ = BuscarAsync();
+}
+
+/// <summary>Opción del filtro de perfil: un perfil del catálogo o «Todos los perfiles». Se pinta con su nombre.</summary>
+public sealed class OpcionPerfil(Perfil? perfil)
+{
+    public Perfil? Perfil { get; } = perfil;
+    public string Nombre => Perfil is null ? "Todos los perfiles" : Perfil.Activo ? Perfil.Nombre : $"{Perfil.Nombre} (retirado)";
+    public override string ToString() => Nombre;
 }

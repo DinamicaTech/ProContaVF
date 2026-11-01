@@ -98,42 +98,45 @@ public class CambiosFichaTests
     }
 }
 
-public class PastillaDestinatariosTests
+public class DestinatariosFichaTests
 {
     private static DatoContacto Email(string v, bool activo = true, bool facturas = false, bool admin = false) =>
         new() { Tipo = TipoDatoContacto.Email, Valor = v, Activo = activo, EnvioFacturas = facturas, EnviosAdministrativos = admin };
 
     [Fact]
-    public void MuestraLosMarcadosDeCadaFinalidad()
+    public void ConEmailsMarcadosNoHayImplicitosNiAvisos()
     {
-        var lineas = PastillaDestinatarios.Calcular([Email("facturas@ejemplo.test", facturas: true), Email("admin@ejemplo.test", admin: true), Email("viejo@ejemplo.test", activo: false, facturas: true)]);
-        Assert.True(lineas[0].Correcta);
-        Assert.Equal("facturas@ejemplo.test", lineas[0].Texto);
-        Assert.Equal("admin@ejemplo.test", lineas[1].Texto);
+        var e = DestinatariosFicha.Calcular([Email("facturas@ejemplo.test", facturas: true), Email("admin@ejemplo.test", admin: true), Email("viejo@ejemplo.test", activo: false, facturas: true)]);
+        Assert.Empty(e.FacturasImplicitas);
+        Assert.Empty(e.AdministrativosImplicitos);
+        Assert.Null(e.AvisoFacturas);
+        Assert.Null(e.AvisoAdministrativos);
     }
 
     [Fact]
-    public void SeActualizaAlEditar()
+    public void ElUnicoEmailActivoRecibeSinEstarMarcadoYSeActualizaAlEditar()
     {
         var a = Email("a@ejemplo.test");
+        var datos = new List<DatoContacto> { a, Email("b@ejemplo.test", activo: false) };
+        var e = DestinatariosFicha.Calcular(datos);
+        Assert.True(e.RecibeImplicito(a, FinalidadEnvio.Facturas));
+        Assert.True(e.RecibeImplicito(a, FinalidadEnvio.Administrativos));
+
         var b = Email("b@ejemplo.test");
-        var datos = new List<DatoContacto> { a };
-        Assert.True(PastillaDestinatarios.Calcular(datos)[0].Correcta); // un único email activo: ese
         datos.Add(b);
-        var ambigua = PastillaDestinatarios.Calcular(datos)[0];
-        Assert.False(ambigua.Correcta);
-        Assert.Contains("ninguno marcado", ambigua.Texto);
+        e = DestinatariosFicha.Calcular(datos);
+        Assert.False(e.RecibeImplicito(a, FinalidadEnvio.Facturas));
+        Assert.Contains("ninguno marcado", e.AvisoFacturas);
+
         b.EnvioFacturas = true;
-        Assert.Equal("b@ejemplo.test", PastillaDestinatarios.Calcular(datos)[0].Texto);
+        e = DestinatariosFicha.Calcular(datos);
+        Assert.Null(e.AvisoFacturas);
+        Assert.Empty(e.FacturasImplicitas);
+        Assert.NotNull(e.AvisoAdministrativos); // administrativos sigue sin marcar
     }
 
     [Fact]
-    public void SinEmailsExplicaQueElDeLaFichaAntiguaNoSeUsa()
-    {
-        var linea = PastillaDestinatarios.Calcular([], "antiguo@ejemplo.test")[0];
-        Assert.False(linea.Correcta);
-        Assert.Contains("antiguo@ejemplo.test", linea.Texto);
-    }
+    public void SinEmailsNoHayAvisoEnLaColumna() => Assert.Null(DestinatariosFicha.Calcular([]).AvisoFacturas);
 }
 
 public class ValidacionFichaTests

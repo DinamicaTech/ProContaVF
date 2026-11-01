@@ -203,6 +203,14 @@ public sealed class DatoContactoVM : ParteFicha
 
     internal void RefrescarGrupo() => Avisar(nameof(Grupo));
 
+    /// <summary>Recibe esa finalidad sin estar marcado (es el único email activo): la casilla se ve atenuada como marcada.</summary>
+    public bool FacturasImplicito => Ficha.EstadoDestinatarios.RecibeImplicito(Dato, FinalidadEnvio.Facturas);
+    public bool AdministrativosImplicito => Ficha.EstadoDestinatarios.RecibeImplicito(Dato, FinalidadEnvio.Administrativos);
+    public string AyudaFacturas => FacturasImplicito ? DestinatariosFicha.AyudaImplicita(FinalidadEnvio.Facturas) : "Recibe las facturas que se envían por email";
+    public string AyudaAdministrativos => AdministrativosImplicito ? DestinatariosFicha.AyudaImplicita(FinalidadEnvio.Administrativos) : "Recibe las comunicaciones administrativas (recordatorios, certificados…)";
+
+    internal void RefrescarImplicitos() => Avisar(nameof(FacturasImplicito), nameof(AdministrativosImplicito), nameof(AyudaFacturas), nameof(AyudaAdministrativos));
+
     public string AyudaValor => EsEmail
         ? "Dirección de email. Marca a la derecha si recibe facturas o comunicaciones administrativas"
         : "Número de teléfono, con prefijo si es del extranjero";
