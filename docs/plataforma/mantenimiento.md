@@ -6,6 +6,7 @@ threads:
   - 2026-10-28 12:30 · Carga de requisitos | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GRNMH95h9tnQp4dmEPHmw1w
   - 2026-10-29 10:15 · Validar prototipos de pantallas principales | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GGPu88XoVeXWyHsuxbrF2kK
   - 2026-10-31 16:58 · Cerrar preguntas pendientes del proyecto | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5G7UyrP5eDJV4Ds6CCBozdbu
+  - 2026-11-01 16:20 · Construir facturación de venta | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GCSSp6rAPiW3SbbKR5GnpnG
 ---
 ## Summary
 Pantalla genérica y extensible (CFG-MANT) para parámetros únicos y colecciones 1:N, agrupados por categorías, alimentada por proveedores que publica cada área dueña de sus datos; no adquiere la propiedad de las tablas.
@@ -29,3 +30,5 @@ Pantalla genérica y extensible (CFG-MANT) para parámetros únicos y coleccione
 - 2026-10-29 10:20 · Derived from plataforma/ui-base: validar con el propietario el prototipo HTML final de la pantalla genérica de mantenimiento 1:N con configuración (sources/maquetas/Configuracion/) antes de construir su UI WPF.
 - 2026-10-31 08:14 · Ok a Mantenimientos 1:N y Configuración
 - 2026-10-31 08:41 · Está Ok, ahora a por el Mayor vitaminado, ánimos.
+- 2026-11-01 16:18 · 5. Ok
+- 2026-11-01 16:18 · answer: proveedores en este desarrollo → (a) la pantalla genérica con Configuración general, Empresas, Ejercicios, Series de facturación, Formas de pago, Tipos de IVA, Tipos de concepto y Conceptos; Tipos y Estados de factura en solo lectura; Correo, VeriFactu y Ubicación de datos con sus nodos

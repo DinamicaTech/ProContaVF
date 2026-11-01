@@ -5,6 +5,7 @@ depends_on: [facturacion/factura-venta, facturacion/programadas, plataforma/cont
 threads:
   - 2026-10-28 12:30 · Carga de requisitos | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GRNMH95h9tnQp4dmEPHmw1w
   - 2026-10-29 10:15 · Validar prototipos de pantallas principales | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GGPu88XoVeXWyHsuxbrF2kK
+  - 2026-11-01 16:20 · Construir facturación de venta | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GCSSp6rAPiW3SbbKR5GnpnG
 ---
 ## Summary
 Listado filtrable de facturas y programaciones con selección explícita, ficha de factura y acciones contextuales.
@@ -29,3 +30,5 @@ Listado filtrable de facturas y programaciones con selección explícita, ficha 
 - 2026-10-29 11:38 · La resolución de las pantallas (al menos las nuestras) que usarán ProContaVF es de 2560 x 1440, no vamos a condicionar el diseño de pantalla por resoluciones inferiores mientras sigan siendo funcionales. Lo único que añadiría es poder modificar el tamaño de la sección de programadas y emitidas para poder ajustar medidas para resoluciones más bajas.
 - 2026-10-29 12:32 · La maqueta la veo ok.
 - 2026-10-29 13:04 · Por lo demás, veo bien la maqueta, lo único que falta es ver qué funcionalidad de podemos dar a una doble pantalla.
+- 2026-11-01 16:18 · 2. Ok
+- 2026-11-01 16:18 · answer: editor del borrador sin prototipo → (a) prototipo HTML corto del editor para validarlo antes de WPF

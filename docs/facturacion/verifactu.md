@@ -16,3 +16,4 @@ Intercambio fiscal con la AEAT encapsulado detrás de una interfaz propia (.NET 
 - 2026-10-28 12:28 · From sources/01_ESPECIFICACION_FUNCIONAL.docx § 11 RF-VF-01..05: integración, traducción, estados, recuperación, PDF/QR
 - 2026-10-28 12:28 · From ProConta/VeriFactu-main (disco del propietario): biblioteca VeriFactu .NET de referencia
 - 2026-10-28 12:28 · draft: Integrar VeriFactu .NET detrás de una interfaz propia, con pruebas que no emiten realmente.
+- 2026-11-01 16:20 · Derived from facturacion/factura-venta: implementar el paso fiscal de la validación que hoy cubre el provisional «sin VeriFactu».

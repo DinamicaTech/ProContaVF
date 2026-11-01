@@ -5,6 +5,7 @@ depends_on: [datos/esquema, datos/persistencia, nucleo, terceros/tercero, factur
 threads:
   - 2026-10-28 12:30 · Carga de requisitos | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GRNMH95h9tnQp4dmEPHmw1w
   - 2026-10-31 16:58 · Cerrar preguntas pendientes del proyecto | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5G7UyrP5eDJV4Ds6CCBozdbu
+  - 2026-11-01 16:20 · Construir facturación de venta | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GCSSp6rAPiW3SbbKR5GnpnG
 ---
 ## Summary
 Ente FacturaVenta: borrador sin número, cálculo de líneas y totales, validación, numeración transaccional, instantánea de emisor y destinatario, estados, inmutabilidad tras emitir, duplicado y rectificativa 1:1.
@@ -21,3 +22,10 @@ Ente FacturaVenta: borrador sin número, cálculo de líneas y totales, validaci
 - 2026-10-28 12:28 · [answered 2026-10-31 16:54] question: P-05 ¿se ratifica la rectificativa completa 1:1 y el retorno a borrador tras consultar la AEAT? (a) sí, como dice la spec ✅ (b) revisar antes
 - 2026-10-31 16:54 · 15. a
 - 2026-10-31 16:54 · answer: P-05 rectificativa 1:1 y retorno a borrador → (a) sí, como dice la spec
+- 2026-11-01 15:52 · 1. Conceptos, Factura Venta, etc.
+- 2026-11-01 15:53 · Lanzamos 1 a 3 y así evitamos posibles colisiones.
+- 2026-11-01 16:18 · 1. Ok
+- 2026-11-01 16:18 · answer: validar sin VeriFactu → (a) validar numera, congela la instantánea, contabiliza y deja la factura Validada mediante un paso fiscal intercambiable, provisional «sin VeriFactu» para la BD de pruebas
+- 2026-11-01 16:18 · 6. Una entrega final
+- 2026-11-01 16:18 · answer: entregas → una sola entrega final con mantenimiento, conceptos, factura de venta, contabilización y pantalla de Facturas emitidas
+- 2026-11-01 16:20 · Derived from facturacion/pantallas: estados, acciones y consultas ligeras del listado de Facturas emitidas.

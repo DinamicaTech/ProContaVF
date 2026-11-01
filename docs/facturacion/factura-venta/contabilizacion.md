@@ -5,6 +5,7 @@ depends_on: [facturacion/factura-venta, contabilidad/asientos, contabilidad/cuen
 threads:
   - 2026-10-28 12:30 · Carga de requisitos | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GRNMH95h9tnQp4dmEPHmw1w
   - 2026-10-31 16:58 · Cerrar preguntas pendientes del proyecto | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5G7UyrP5eDJV4Ds6CCBozdbu
+  - 2026-11-01 16:20 · Construir facturación de venta | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GCSSp6rAPiW3SbbKR5GnpnG
 ---
 ## Summary
 Genera los asientos de las facturas de venta con el motor de contabilidad/asientos; la lógica de contabilización vive aquí, no en contabilidad.
@@ -20,3 +21,7 @@ Genera los asientos de las facturas de venta con el motor de contabilidad/asient
 - 2026-10-28 12:28 · [answered 2026-10-31 16:54] question: ¿cuándo se contabiliza? (a) al validar la factura, en lote regenerable ✅ (b) manualmente por lotes
 - 2026-10-31 16:54 · 16. a, aunque aparecerá un submodelo de albaranes o algo similar para poder registrar ventas (en forma de albaranes o similar) que se facturarán (y contabilizarán) posteriormente de forma masiva. Aplicable, principalmente, a las reservas de los pisos turísticos
 - 2026-10-31 16:54 · answer: cuándo se contabiliza → (a) al validar la factura, en lote regenerable; las ventas registradas como albaranes o similar se facturarán y contabilizarán después de forma masiva (facturacion/reservas)
+- 2026-11-01 16:18 · 4. La cuenta de retención sería diferente para cada cliente.
+- 2026-11-01 16:18 · Realmente debería ser una subcuenta por cliente, no por inmueble, pero como apenas hay rotación, pues ya no sirve aunque no sea lo ideal.
+- 2026-11-01 16:18 · Me parece perfecto
+- 2026-11-01 16:18 · answer: cuentas del asiento → Debe la cuenta del cliente en la sociedad y su cuenta de retención (por cliente y sociedad, en terceros/roles); Haber el ingreso por la cuenta de cada línea, el IVA por las cuentas del ejercicio según el tipo y los suplidos a CuentaSuplido; la rectificativa con importes en negativo

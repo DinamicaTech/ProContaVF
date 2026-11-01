@@ -33,6 +33,7 @@ Operadores, grupos (N:M) y permisos por ámbito: ámbito sin configurar permite 
 - 2026-10-29 17:45 · Derived from (root): los procesos que generan asientos o borran datos (amortizaciones, IVA, apertura y cierre, dividendos, resetear la demo…) exigen un permiso propio, y ningún atajo de teclado da privilegios sin autenticarse (sources/proconta-antiguo/menu-principal/ANALISIS-FUNCIONAL.md § 1, 6.3).
 - 2026-10-31 17:53 · Derived from architecture: la política de permisos por ámbitos, los operadores y grupos que necesita el acceso y el asistente del primer administrador (lógica, sin pantallas).
 - 2026-10-31 19:02 · 3. No, de momento podemos trabajar sin contraseñas
+- 2026-11-01 16:20 · Derived from facturacion/factura-venta: las acciones de validar, rectificar y eliminar borradores se autorizan en el servicio con la regla común.
 
 ## Hand-over
 - 2026-10-31 19:10 · Hecho: política común, ámbito de sociedades, operadores (búsqueda, grupos activos, primer administrador, cambio de contraseña) y pruebas. Pendiente: mantenimiento completo de operadores y grupos (seguridad/pantallas); ámbitos de reports (las RestriccionesReportsGrupo antiguas son de denegación y necesitan adaptarse, RF-SEG-07) y de procesos que generan asientos o borran datos (requisito 2026-10-29 17:45, sin tabla todavía); regeneración de contraseña temporal por correo.
