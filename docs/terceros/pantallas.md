@@ -1,14 +1,14 @@
 ---
 title: Pantallas de terceros
 status: draft
-depends_on: [terceros/tercero, terceros/roles, terceros/contactos, terceros/perfiles-notas, plataforma/contenedor, contabilidad/mayor]
+depends_on: [terceros/tercero, terceros/roles, terceros/contactos, terceros/perfiles-notas, plataforma/contenedor, contabilidad/mayor, contabilidad/cuenta-contable, plataforma/ui-base]
 threads:
   - 2026-10-28 12:30 · Carga de requisitos | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GRNMH95h9tnQp4dmEPHmw1w
   - 2026-10-29 10:15 · Validar prototipos de pantallas principales | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GGPu88XoVeXWyHsuxbrF2kK
   - 2026-11-01 09:55 · Desarrollar la pantalla de Terceros | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GVR2rh2hJF6h9BMYjKSu8jn
 ---
 ## Summary
-Buscador multicriterio y ficha de terceros en pestañas del contenedor (Roles, Contactos, Notas, Historial, Ventas, Compras, Mayor, Documentos), que alojan los componentes de sus áreas dueñas.
+Buscador multicriterio y ficha de terceros en pestañas del contenedor, con sus diez pestañas en el orden de la maqueta (identidad, contacto, roles, perfiles, notas, historial y los huecos de otras áreas). Primera versión en `src/ProConta.Terceros.UI`, abierta desde «Datos maestros › Terceros»: buscador con filtros y coincidencia, ficha con barra de Guardar/Descartar al pie, errores en el campo y en el resumen, y huecos explícitos para Ventas, Compras, Contabilidad y Documentos hasta que lleguen sus áreas.
 **Aceptación:** la de spec § 7; guardar un tercero no modifica una factura emitida.
 
 ## Decisions
@@ -20,6 +20,11 @@ Buscador multicriterio y ficha de terceros en pestañas del contenedor (Roles, C
 - 2026-11-01 09:55 · Roles: se construye con los campos que ya tiene la BD más la cuenta de acreedor del proveedor; los valores por defecto del proveedor (forma de pago, días, retención, tipo de operación, IBAN, cuenta de gasto) llegan con el corte de compras, los datos comerciales del cliente (días de pago, descuento, riesgo, IBAN) con el de facturación y el idioma y canal del contacto con el de correo. Hasta entonces esos campos no aparecen en la ficha.
 - 2026-11-01 09:55 · Las Notas internas no tienen de momento capa de seguridad: las ven y editan todos los operadores (sustituye, por ahora, la capacidad específica de RF-TER-14).
 - 2026-11-01 09:55 · El botón «Enviar email» junto a cada email queda desactivado, con un tooltip que lo explica, hasta que exista el compositor de correo.
+- 2026-11-01 10:46 · Buscador: una caja de búsqueda (Ctrl+F; ↓ pasa a los resultados) con filtros por tipo de persona, rol y perfil con sus recuentos, inactivos opcionales y «Quitar búsqueda y filtros»; tabla con nombre y nombre comercial, tipo, NIF, IdTercero, roles como etiquetas con su Id, población, teléfono, email y «Coincide en» (Perfiles, columna oculta de fábrica), con Exportar a Excel. Doble clic o Intro abre la ficha; «Nuevo» crea un tercero sin rol o un cliente, proveedor o contacto con el rol activado.
+- 2026-11-01 10:46 · Ficha: cabecera con nombre, tipo, estado e insignias de los roles activos que llevan a la pestaña Roles; pestañas en el orden de la maqueta con punto de cambios y triángulo de error; barra al pie con Guardar, Descartar (con confirmación), número de cambios y «Ver cuáles». Errores: borde rojo con el mensaje en el tooltip y resumen arriba con enlace a cada campo; cuadro de mensaje solo para el conflicto de versión (Recargar la ficha o Seguir editando) y el fallo de la BD (Reintentar).
+- 2026-11-01 10:46 · Domicilio en una línea País › CP › Provincia › Población › Vía: el CP resuelve provincia y población con organizacion/geografia solo cuando escribe el operador, nunca al cargar una ficha. El domicilio principal sigue en las columnas de Terceros y se ve como la tarjeta «Principal»; «Marcar como principal» intercambia sus datos con los de un domicilio adicional. El país se guarda con el código numérico ISO que ya usa la BD (724 = España) y «ES» o «ESP» se leen como España.
+- 2026-11-01 10:46 · El email y el teléfono de las columnas antiguas de Terceros se ven como «Email/Teléfono principal de la ficha antigua» con el botón «Añadirlo a la lista»; la pastilla de destinatarios explica que ese email no se usa en los envíos automáticos. En una ficha antigua sin tipo de persona se ve su nombre y, al elegir el tipo, pasa a Nombre o a Razón social.
+- 2026-11-01 10:46 · Las fechas de las relaciones se escriben dd/mm/aaaa en un campo de texto, porque la biblioteca visual aún no tiene un selector de fecha con su estilo.
 
 ## Requirements
 - 2026-10-28 12:28 · From sources/01_ESPECIFICACION_FUNCIONAL.docx § 7 RF-TER-05, 09, 11, 15: comportamiento del domicilio, pastilla de destinatarios, búsqueda modal, pestaña Ventas
@@ -32,3 +37,6 @@ Buscador multicriterio y ficha de terceros en pestañas del contenedor (Roles, C
 - 2026-11-01 09:36 · Ya tenemos desarrollado el 'framework' del proyecto. Empezamos los desarrollos específicos. El primero será Terceros ya que es bastante autónomo (excepto pestañas como Contabilidad) y alimenta datos para otros núcleos funcionales.
 - 2026-11-01 09:36 · Primero revisa si he de resolver alguna pregunta y, en caso contrario, inicia el desarrollo de toda la pantalla.
 - 2026-11-01 09:48 · c)   De momento no montamos una capa de seguridad en las notas.
+
+## Hand-over
+- 2026-11-01 10:46 · Hecho: buscador, ficha completa con sus diez pestañas, motores y pruebas (147 sin BD y 204 con Access, todas superadas), compilado en `C:\Docs\Codigo\ProContaVF-build` con la BD de prueba `capturas-terceros\prueba-terceros.accdb` (operador «capturas» sin contraseña) y capturas a 2560×1440 en la misma carpeta. Pendiente: validación del propietario (cuadros de mensaje, arrastre de perfiles y foco tras el CP, que solo se comprueban a mano); la BD real está en la versión 1 del esquema y necesita el ActualizadorEsquema (con `--origen-formas-pago`) antes de abrirla con esta versión; Ventas, Compras, Contabilidad y Documentos llegan con sus áreas.
