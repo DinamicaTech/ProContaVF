@@ -8,7 +8,7 @@ threads:
   - 2026-11-01 16:20 · Construir facturación de venta | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GCSSp6rAPiW3SbbKR5GnpnG
 ---
 ## Summary
-Listado filtrable de facturas y programaciones con selección explícita, ficha de factura y acciones contextuales.
+Listado filtrable de facturas y programaciones con selección explícita, ficha de factura y acciones contextuales. Código: `src/ProConta.Facturacion.UI` (`ListadoFacturasVM` y `VistaListadoFacturas`, `EditorFacturaVM` y `VistaEditorFactura`, `DialogosFacturacion`), en el menú Facturación › Facturas emitidas.
 **Aceptación:** comparación con la maqueta; selección, fila activa y universo filtrado no se confunden.
 
 ## Decisions
@@ -19,6 +19,9 @@ Listado filtrable de facturas y programaciones con selección explícita, ficha 
 - 2026-10-29 12:32 · Validado por el propietario el prototipo de Facturas emitidas y programadas (listado y detalle), maqueta `sources/maquetas/Facturas/` con la ronda 1 de cambios. Queda pendiente reescribirlo dentro del lienzo del contenedor.
 - 2026-10-29 12:53 · Reescrito dentro del contenedor: la pestaña «Facturas emitidas» de `sources/maquetas/Contenedor/` y del lienzo muestra la pantalla validada; el lienzo añade una mesa de trabajo a 2560 × 1440. Pendiente del último vistazo del propietario en el lienzo.
 - 2026-10-29 13:04 · Validado por el propietario el prototipo de Facturas emitidas y programadas dentro del contenedor (lienzo, versión 17).
+- 2026-11-01 17:15 · Facturas emitidas: búsqueda (número, cliente, NIF, descripción, notas y facturas relacionadas) y filtros de estado, VeriFactu, serie, origen y fechas, con «Limpiar filtros»; fila activa (la del detalle lateral), casillas de marca y ámbito de las acciones colectivas, que son las marcadas o, sin marcas, la activa (quitar una fila del filtro la desmarca); desplegable de líneas en la fila; pie con recuento y total. Validar y Contabilizar actúan sobre el ámbito; Abrir, Duplicar, Rectificar y Eliminar borrador sobre la activa. VeriFactu, PDF, Enviar y Generar programadas se ven desactivados con el motivo; la sección de programadas llega con facturacion/programadas.
+- 2026-11-01 17:15 · Editor de la factura, según el prototipo `sources/maquetas/FacturaBorrador/`: una pestaña por factura; cliente con sus cuentas de cliente y de retención en la sociedad y «Asignar…» cuando faltan; datos de la factura; líneas con cálculo al escribir (descuento en % y después fijo, redondeo por línea, suplidos sin IVA, total con IVA que recalcula la base); totales con desglose de IVA; vista previa del asiento con el mismo constructor que la contabilización (las cuentas que faltan en rojo); historial; errores en el campo y en un resumen con su acción correctora. Validar guarda antes los cambios pendientes. Una factura validada se ve en solo lectura y solo se cambian sus notas.
+- 2026-11-01 17:15 · El diálogo «Rectificar» no pide motivo, a diferencia del prototipo: el servicio no lo guarda todavía. Queda pendiente decidir dónde se guarda (historial de las dos facturas) si se quiere.
 
 ## Requirements
 - 2026-10-28 12:28 · From sources/01_ESPECIFICACION_FUNCIONAL.docx § 10 RF-FAC-10: listado, selección, proforma, contadores
@@ -32,3 +35,6 @@ Listado filtrable de facturas y programaciones con selección explícita, ficha 
 - 2026-10-29 13:04 · Por lo demás, veo bien la maqueta, lo único que falta es ver qué funcionalidad de podemos dar a una doble pantalla.
 - 2026-11-01 16:18 · 2. Ok
 - 2026-11-01 16:18 · answer: editor del borrador sin prototipo → (a) prototipo HTML corto del editor para validarlo antes de WPF
+
+## Hand-over
+- 2026-11-01 17:15 · Hecho: las dos pantallas compiladas y en el menú. Pendiente: probarlas en el equipo del propietario y validarlas contra la maqueta; el motivo de la rectificación y la doble pantalla quedan por decidir.

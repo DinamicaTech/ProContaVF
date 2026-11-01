@@ -20,6 +20,7 @@ Operadores, grupos (N:M) y permisos por ámbito: ámbito sin configurar permite 
 - 2026-10-31 18:55 · Un nombre de operador que aparece dos veces (sin distinguir mayúsculas) no identifica a nadie: no se puede entrar con él hasta que se corrija.
 - 2026-10-31 19:02 · No se obliga a los operadores a tener contraseña; el primer administrador sí la define (mínimo 8 caracteres) y cualquier operador puede tenerla.
 - 2026-11-01 09:31 · Validado por el propietario (desarrollos base).
+- 2026-11-01 17:15 · Migración `20261101_1633_PERMISOS_ACCIONES`: tabla PermisosAccionesGrupo (CodigoAccion, IdGrupoOperadores, única por los dos). `AutorizadorAccionesAccess` aplica la regla común: una acción sin filas la puede cualquier operador; con alguna, solo los grupos activos del operador que la tienen. Acciones de hoy: FACTURAS.EDITAR, FACTURAS.VALIDAR, FACTURAS.RECTIFICAR y MANTENIMIENTO.EDITAR. Aún no hay pantalla para asignarlas.
 
 ## Requirements
 - 2026-10-28 12:28 · From sources/01_ESPECIFICACION_FUNCIONAL.docx § 5 RF-SEG-03, 04, 07: operadores y grupos, política de ámbitos, puntos pendientes
