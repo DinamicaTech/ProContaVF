@@ -1,0 +1,24 @@
+---
+title: Guía de voz de los mensajes
+depends_on: []
+threads:
+  - 2026-11-01 09:35 · Dar humor y tono campechano a los mensajes | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GAMddEjQM8pMXATjPJFxczi
+---
+## Summary
+Cómo habla ProContaVF con el operador en diálogos, avisos de la barra de estado, tooltips de error y mensajes de éxito: tono cercano e informal pero neutro, sin chistes de serie, y mensajes que nunca dejan al operador en un callejón sin salida.
+Sustituye a la guía de voz del proyecto antiguo (`sources/traspaso-2026-10-03/referencias/Facturacion/docs/MENSAJES.md`), que se conserva sin cambios como referencia: vale su estructura de mensaje, su lista de comprobación y su servicio central, pero no su apartado «Humor» ni sus ejemplos con chiste.
+**Aceptación:** cada mensaje nuevo pasa la lista de comprobación de la guía; ningún mensaje contiene chistes ni ocurrencias, y ninguno se limita a decir que algo ha fallado.
+
+## Decisions
+- 2026-11-01 09:35 · Sale del laboratorio (creative-lab/humor-mensajes): ejecutada en versión reducida. Se descarta el humor marcado o absurdo de serie (alarga el desarrollo, porque cada mensaje habría que revisarlo, y el mismo chiste repetido cansa) y se adopta un lenguaje cercano e informal más neutro.
+- 2026-11-01 09:35 · Voz: la aplicación habla en primera persona y trata al operador de tú, con frases naturales y cortas, en castellano de España. Es cercana e informal, pero neutra: sin chistes, juegos de palabras, ironías ni expresiones muy marcadas. Se admiten giros coloquiales suaves y habituales («Hecho», «Listo», «Vaya», «¿Te abro…?»). En cuestiones fiscales, contables, irreversibles o de soporte el tono es sobrio y preciso.
+- 2026-11-01 09:35 · Contenido: cada mensaje, en la medida en que se sepa, dice qué intentaba hacer el programa, sobre qué registro (con su número o nombre), por qué no puede seguir, qué consecuencia tiene y qué puede hacer el operador, y ofrece hacerlo directamente con un botón. No se inventa una causa que no se conoce. El detalle técnico (excepción, traza, SQL, rutas) nunca es el mensaje: va al log con un identificador y se ofrece con «Ver detalles» o «Copiar información para soporte».
+- 2026-11-01 09:35 · Forma: títulos breves y descriptivos («Cliente pendiente», «Factura ya emitida», «Envío pendiente de VeriFactu»); botones con verbos de la acción real («Buscar cliente», «Reintentar envío», «Conservar borrador»), nunca Sí/No/Cancelar; una acción destructiva o fiscal nunca es el botón predeterminado. Una confirmación dice la acción exacta, los registros afectados, sus consecuencias y si se puede deshacer. Los éxitos son breves y no modales (barra de estado o cambio visual). El canal sigue plataforma/ui-base 2026-10-29 10:30: errores de campo en el tooltip y el resumen superior, cuadro de mensaje solo para lo que bloquea y pide decisión, barra de estado para avisos.
+- 2026-11-01 09:35 · Ejemplos de referencia. Falta un dato: «No puedo guardar la factura sin cliente. ¿Te abro el selector para elegir uno?» [Buscar cliente] [Volver a la factura]. Fichero bloqueado: «La factura 2026-0042 está abierta en otro programa y no puedo reemplazar su PDF. Ciérrala y lo vuelvo a intentar.» [Reintentar] [Abrir carpeta] [Cancelar]. Extracto repetido: «Este extracto N43 ya lo importé el 28/10/2026, así que no lo vuelvo a cargar.» [Ver aquella importación] [Cerrar]. Error sin diagnosticar: «No he conseguido enviar la factura 2026-0042 a VeriFactu: la comunicación se cortó antes de que respondiera la AEAT. La factura sigue emitida y queda pendiente de envío; no hace falta crearla otra vez.» [Reintentar] [Ver pendientes] [Cerrar]. Éxito: «Hecho: 214 movimientos importados y 187 ya conciliados.»
+- 2026-11-01 09:35 · Lista de comprobación antes de dar por bueno un mensaje: ¿dice qué operación y qué registro?; ¿explica la causa conocida sin inventarla?; ¿dice qué puede hacer el operador y se lo ofrece en un botón?; ¿los botones nombran acciones reales?; ¿el detalle técnico va aparte?; ¿el tono es cercano y neutro, sin chistes?; ¿hace falta que sea modal?
+- 2026-11-01 09:35 · Los formularios no muestran mensajes directamente: los presenta un servicio común de mensajes de la biblioteca de UI (como el `IServicioMensajes` de la guía antigua), que asocia una decisión a cada botón, para que el tono y la forma sean iguales en todo el programa.
+
+## Requirements
+- 2026-11-01 09:22 · idea: Dar a los mensajes al operador un tono cercano y con humor, a menudo absurdo, como los de ProcontaEstructura.accdb, para que la interacción sea más amable y el software se diferencie.
+- 2026-11-01 09:29 · Pues lo que haremos es mantener un lenguaje cercano e informal más neutro, que cansa menos y es más fácil de generar por tu parte.
+- 2026-11-01 09:29 · Pasa el nodo a 'resuelto' y actualiza la guía de voz
