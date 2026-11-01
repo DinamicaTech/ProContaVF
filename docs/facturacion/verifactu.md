@@ -16,6 +16,8 @@ El análisis funcional de la implementación anterior y la lista de lo que neces
 - 2026-11-01 16:20 · Se usa la biblioteca VeriFactu de Irene Solutions (mdiago/VeriFactu, AGPL-3.0) detrás de una interfaz propia, como en la versión anterior; no se reimplementa el protocolo de la AEAT. Requiere que ProContaVF se publique con licencia AGPL-3.0 (architecture 2026-11-01 16:20). La biblioteca se fija a una revisión concreta y solo se actualiza de forma explícita, revisando cambios y pasando todas las pruebas.
 - 2026-11-01 16:20 · Se mantienen del diseño anterior, salvo lo que corrige "Lo que necesita el corte": los cinco resultados de un intento (ACEPTADO, ACEPTADO_DUPLICADO, RECHAZADO, ERROR_PREVIO_ENVIO, COMUNICACION_DUDOSA); tras una comunicación dudosa se reenvía el mismo registro (misma huella, encadenamiento y fecha de generación), nunca un alta nueva; un duplicado solo es éxito si el registro previo está Correcta o AceptadaConErrores; sin anulación registral (la anulación económica es una rectificativa 1:1); el QR se genera con la URL de validación y solo tras la aceptación; un fallo de PDF o correo no revierte la aceptación ni reemite.
 - 2026-11-01 16:20 · El corte de VeriFactu corrige los siete puntos débiles de la implementación anterior (ver "Puntos débiles detectados"), como describe "Lo que necesita el corte": contraseña del certificado desprotegida antes de usarla, reenvío técnico que recupera el XML de la BD, bloqueo de envío entre procesos, versión y algoritmo de huella leídos de la configuración y entorno que decide los endpoints, rectificativas con la factura rectificada informada, validación de NIF en AEAT y VIES activada, y ningún dato del certificado en scripts versionados.
+- 2026-11-01 16:28 · Certificado: uno por sociedad, instalado una sola vez en el almacén del equipo del servidor (`LocalMachine\My`), con permiso de lectura de su clave privada para el grupo de Windows de los usuarios de ProContaVF; la BD solo guarda su huella o serie. Si la biblioteca solo busca en el almacén del usuario, el adaptador carga el certificado del almacén del equipo y se lo entrega; el corte lo comprueba con "Probar configuración" desde dos usuarios distintos. Renovarlo es instalar el nuevo en el mismo almacén y cambiar la huella en la configuración de la sociedad.
+- 2026-11-01 16:28 · El primer corte de VeriFactu emite solo para la sociedad 002 (Dinámica), en el entorno de pruebas de la AEAT; las demás sociedades se activan después, una a una.
 
 ## Requirements
 - 2026-10-28 12:28 · From sources/01_ESPECIFICACION_FUNCIONAL.docx § 11 RF-VF-01..05: integración, traducción, estados, recuperación, PDF/QR
@@ -24,8 +26,12 @@ El análisis funcional de la implementación anterior y la lista de lo que neces
 - 2026-11-01 15:52 · Análisis en paralelo de Verifactu anterior
 - 2026-11-01 16:20 · Ok a todo, incluyendo resolver las 'incorreciones' del código anterior
 - 2026-11-01 16:08 · Derived from architecture: integrar la biblioteca VeriFactu existente (AGPL-3.0) en lugar de desarrollar el protocolo.
-- 2026-11-01 16:20 · question: ¿Dónde se instala el certificado en el servidor? La biblioteca lo buscaba en el almacén del usuario (`CurrentUser\My`). (a) en el almacén de cada usuario de Windows que use ProContaVF (2-3 usuarios), como en la versión anterior — recomendado, no cambia nada de la biblioteca; (b) un .pfx en una carpeta protegida del servidor con su contraseña protegida, más cómodo de renovar pero con el secreto en disco; (c) en el almacén del equipo (`LocalMachine\My`), solo si se confirma que la biblioteca lo admite.
-- 2026-11-01 16:20 · question: ¿Qué sociedades emiten con VeriFactu en el primer corte? (a) solo la sociedad que ya se probó (002, Dinámica) — recomendado; (b) todas las que facturan hoy en el ERP.
+- 2026-11-01 16:20 · [answered 2026-11-01 16:28] question: ¿Dónde se instala el certificado en el servidor? La biblioteca lo buscaba en el almacén del usuario (`CurrentUser\My`). (a) en el almacén de cada usuario de Windows que use ProContaVF (2-3 usuarios), como en la versión anterior — recomendado, no cambia nada de la biblioteca; (b) un .pfx en una carpeta protegida del servidor con su contraseña protegida, más cómodo de renovar pero con el secreto en disco; (c) en el almacén del equipo (`LocalMachine\My`), solo si se confirma que la biblioteca lo admite.
+- 2026-11-01 16:20 · [answered 2026-11-01 16:28] question: ¿Qué sociedades emiten con VeriFactu en el primer corte? (a) solo la sociedad que ya se probó (002, Dinámica) — recomendado; (b) todas las que facturan hoy en el ERP.
+- 2026-11-01 16:28 · El certificado mejor en el equipo ya que varios usuarios diferentes lo van a necesitar y no quiero tener que gestionar ese mantenimiento
+- 2026-11-01 16:28 · Corte en Sociedad 002, correcto
+- 2026-11-01 16:28 · answer: dónde se instala el certificado → en el almacén del equipo (`LocalMachine\My`), para que lo usen todos los usuarios sin mantenerlo por usuario
+- 2026-11-01 16:28 · answer: sociedades del primer corte → solo la 002 (Dinámica)
 
 ## Análisis de la implementación anterior
 Fuentes: `sources/traspaso-2026-10-03/referencias/Facturacion/docs/DECISIONES.md` (2026-08-09 a 2026-08-13), `MODELO_FACTURA.md`, `ARQUITECTURA.md`, `MENSAJES.md`, la migración `referencias/ActualizadorEsquema/database/migrations/20260929_016_verifactu.json` y, en el disco del propietario (fuera de Git), `C:\Docs\Codigo\ProContaVF\ProConta\ProConta.VeriFactu` (adaptador VB.NET, sus pruebas y su `docs/DECISIONES.md`) y `ProConta\VeriFactu-main`. Revisado en solo lectura el 2026-11-01.
@@ -82,7 +88,7 @@ Para el corte "facturación con VeriFactu de pruebas y PDF" (architecture 2026-1
 
 ### Certificado
 - Un certificado electrónico de representante de persona jurídica (o de sello) de cada sociedad que emita, válido para el entorno de pruebas de la AEAT (el de producción sirve también en pruebas). Lo aporta el propietario; nunca entra en el repositorio, la BD ni los logs.
-- Instalado en el almacén de certificados de Windows del usuario que ejecuta ProContaVF en el servidor (`CurrentUser\My`), con su clave privada. La BD solo guarda cómo encontrarlo (huella o serie). Si se usa un .pfx, su contraseña se guarda protegida con DPAPI y se desprotege justo antes de usarla (corrige el punto débil 1). Con varias sesiones de Escritorio remoto de usuarios distintos, dónde vive el certificado es una pregunta abierta.
+- Instalado en el almacén del equipo del servidor (`LocalMachine\My`), con su clave privada legible por los usuarios de ProContaVF (decisión 2026-11-01 16:28). La BD solo guarda cómo encontrarlo (huella o serie). Si se usa un .pfx, su contraseña se guarda protegida con DPAPI y se desprotege justo antes de usarla (corrige el punto débil 1).
 - Comprobación: una función "Probar configuración" por sociedad que dice qué certificado ha encontrado, su titular, su caducidad y si tiene clave privada, sin enviar nada; un certificado caducado o que caduca en menos de 30 días se avisa con la acción a seguir.
 
 ### Entorno de pruebas de la AEAT
@@ -114,10 +120,7 @@ Pruebas automáticas (sin red, con la AEAT simulada) y, después, la misma bater
 15. Programadas en lote con validación automática → un rechazo no detiene el lote.
 16. Fallo de PDF o de correo tras la aceptación → la factura sigue Validada; regenerar el PDF no cambia número, huella ni QR.
 17. Sociedad en PRUEBAS → marca de pruebas en pantalla y PDF; pasar a PRODUCCION exige la confirmación de administrador.
-- Terminado cuando: las pruebas automáticas pasan sin red, la batería 1–17 se ha ejecutado contra el entorno de pruebas de la AEAT con sus CSV anotados en el informe de validación, y el propietario ha comprobado en el portal de la AEAT al menos los casos 1, 8 y 11.
-
-### Preguntas abiertas
-Están como líneas "question:" en Requirements.
+- Terminado cuando: las pruebas automáticas pasan sin red, el hilo del corte ha ejecutado la batería 1–17 contra el entorno de pruebas de la AEAT con la sociedad 002 y ha anotado sus CSV en el informe de validación, y el propietario ha comprobado en el portal de la AEAT al menos los casos 1, 8 y 11 (lo único que se le pide).
 
 ## Hand-over
 - 2026-11-01 16:20 · Hecho: análisis funcional de la implementación anterior y lista de lo que necesita el corte. Pendiente: el desarrollo (draft de este nodo), que se hará después del ente FacturaVenta y con las preguntas abiertas cerradas.
