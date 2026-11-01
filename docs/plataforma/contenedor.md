@@ -36,7 +36,7 @@ Aplicación principal (UI-PRINCIPAL): cabecera con empresa, ejercicio y operador
 - 2026-10-31 11:20 · Derived from (root): la navegación del contenedor da acceso a todas las funciones del menú principal antiguo que se conservan (sources/proconta-antiguo/menu-principal/ANALISIS-FUNCIONAL.md § 2, con el reparto por nodo de la decisión de la raíz de 2026-10-29 17:50); los procesos que generan asientos se lanzan como acciones con permiso propio.
 - 2026-10-31 17:53 · Derived from architecture: el contenedor WPF ejecutable con la pantalla de acceso, que muestra su versión; es el punto de validación de los desarrollos base.
 - 2026-11-01 10:46 · Derived from terceros/pantallas: pestañas de ficha con cambios pendientes y límite de fichas abiertas.
-- 2026-11-01 16:20 · Derived from facturacion/pantallas y plataforma/mantenimiento: entradas de menú de Facturas emitidas y de Parámetros y tablas.
+- 2026-11-01 17:20 · Derived from facturacion/pantallas y plataforma/mantenimiento: entradas de menú de Facturas emitidas y de Parámetros y tablas.
 
 ## Hand-over
 - 2026-10-31 19:30 · Hecho: ejecutable con arranque, primer administrador, acceso y ventana principal; revisado renderizando las ventanas fuera de pantalla contra una copia de la maestra en la versión 6. Pendiente (próximas entregas): búsqueda «Ir a», pestañas de pantallas con cambios pendientes, cambio de sociedad o ejercicio sin volver a entrar, franja de iconos por debajo de 150 px y posición del separador guardada por operador, barra de título propia de la maqueta, doble pantalla y el resto del catálogo de atajos.

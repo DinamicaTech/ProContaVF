@@ -26,7 +26,7 @@ Roles opcionales de una identidad (Cliente, Proveedor, Contacto) con IDs funcion
 - 2026-11-01 10:46 · Una cuenta por sociedad se resuelve en el ejercicio de trabajo con la identidad; si la identidad aún no tiene cuenta en ese ejercicio, la ficha dice «La cuenta X aún no existe en el ejercicio N» y ofrece crearla con el mismo código. Si se escribe un código que no existe, el error lo explica y ofrece crear la cuenta con el nombre del tercero. La cuenta se crea al momento, tras confirmación, porque es del plan contable; su asignación al rol se guarda con la ficha.
 - 2026-11-01 10:46 · Desactivar un rol conserva su fila y su Id. En la pestaña Roles, el cliente tiene su cuenta, el proveedor la de proveedor y la de acreedor (cada una en su fila con su descripción), el contacto cargo, departamento y notas, y el cliente y el proveedor sus notas.
 - 2026-11-01 15:48 · Validado por el propietario (pantalla de Terceros y revisión 1).
-- 2026-11-01 17:15 · Cuenta de retención del cliente por sociedad (migración `20261101_1632_CUENTA_RETENCION_CLIENTE`): CuentasClientesSociedad tiene una clase, CLIENTE o RETENCION, como las cuentas del proveedor; las filas existentes son CLIENTE y el índice único pasa a ser por cliente, sociedad y clase. Se edita en la pestaña Roles junto a la cuenta del cliente y la usa la contabilización de ventas; la factura ofrece asignarla o crearla («Retención IRPF <cliente>», 473) cuando falta.
+- 2026-11-01 18:15 · Cuenta de retención del cliente por sociedad (migración `20261101_1632_CUENTA_RETENCION_CLIENTE`): CuentasClientesSociedad tiene una clase, CLIENTE o RETENCION, como las cuentas del proveedor; las filas existentes son CLIENTE y el índice único pasa a ser por cliente, sociedad y clase. Se edita en la pestaña Roles junto a la cuenta del cliente y la usa la contabilización de ventas; la factura ofrece asignarla o crearla («Retención IRPF <cliente>», 473) cuando falta.
 
 ## Requirements
 - 2026-10-28 12:28 · From sources/01_ESPECIFICACION_FUNCIONAL.docx § 7 RF-TER-03, 04: roles idempotentes y cuentas por rol y sociedad/ejercicio
@@ -45,8 +45,8 @@ Roles opcionales de una identidad (Cliente, Proveedor, Contacto) con IDs funcion
 - 2026-11-01 09:55 · Derived from terceros/pantallas: cuenta de acreedor del proveedor, editable desde la ficha.
 - 2026-11-01 09:52 · A. El concepto de Identidad traslada las M:N a otro sitio más cómodo y permite una continuidad entre ejercicios de una entidad sin depender de la cuenta contable.
 - 2026-11-01 09:52 · answer: cuenta de los roles → (A) por sociedad, apuntando a la identidad contable
-- 2026-11-01 16:18 · 4. La cuenta de retención sería diferente para cada cliente.
-- 2026-11-01 16:20 · Derived from facturacion/factura-venta/contabilizacion: cuenta de retención del rol Cliente por sociedad (identidad contable), editable en la pestaña Roles.
+- 2026-11-01 17:18 · 4. La cuenta de retención sería diferente para cada cliente.
+- 2026-11-01 17:20 · Derived from facturacion/factura-venta/contabilizacion: cuenta de retención del rol Cliente por sociedad (identidad contable), editable en la pestaña Roles.
 
 ## Hand-over
 - 2026-10-31 19:05 · Hecho: roles y cuentas por ejercicio, con pruebas (rol idempotente sin duplicar identidad, cuentas distintas por ejercicio, cuenta de otro ejercicio rechazada). Pendiente, porque necesita columnas nuevas y lo pedirá compras: distinguir cuenta de proveedor y de acreedor (decisión 2026-10-31 16:54), valores por defecto del proveedor (tipo de operación, producto, retención, país, forma de pago, cuenta de gasto, moneda) y su actualización desde la factura (decisiones 2026-10-29 18:14 y 2026-10-31 07:46), y la carpeta de PDF del proveedor.

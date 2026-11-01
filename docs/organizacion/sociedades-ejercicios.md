@@ -22,7 +22,7 @@ Sociedad permanente y su instancia por ejercicio (SociedadEjercicio), con consul
 - 2026-10-28 12:28 · From sources/traspaso-2026-10-03/referencias/ActualizadorEsquema/docs/actualizador-esquema/SOCIEDADES_Y_EJERCICIOS.md: modelo anterior
 - 2026-10-28 12:28 · draft: Definir e implementar el contrato de sociedades y ejercicios.
 - 2026-10-31 17:53 · Derived from architecture: el contrato de sociedades y ejercicios (listado, contexto validado y consulta de ejercicio cerrado) sobre las tablas actuales.
-- 2026-11-01 16:20 · Derived from plataforma/mantenimiento: proveedores de Empresas y Ejercicios (con sus cuentas de IVA, suplidos y la configuración de facturación) para la pantalla genérica.
+- 2026-11-01 17:20 · Derived from plataforma/mantenimiento: proveedores de Empresas y Ejercicios (con sus cuentas de IVA, suplidos y la configuración de facturación) para la pantalla genérica.
 
 ## Hand-over
 - 2026-10-31 18:55 · Hecho: contrato y servicio sobre Access, migración de EjercicioCerrado y pruebas (contexto válido e inválido, ejercicio cerrado). Pendiente: apertura de ejercicio nuevo y cierre/reapertura (contabilidad/procesos), unicidad (IdSociedad, Ejercicio) y unicidad del NIF de sociedad (la maestra tiene dos sociedades con el mismo NIF, una de pruebas), y la regla de propagación de la razón social a los ejercicios.

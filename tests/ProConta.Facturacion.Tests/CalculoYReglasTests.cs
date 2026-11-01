@@ -21,6 +21,7 @@ public class CalculoTests
         Assert.Equal(84.99m, l.BaseImponible.Valor);
         Assert.Equal(17.85m, l.CuotaIva.Valor);
         Assert.Equal(102.84m, l.ImporteTotal.Valor);
+        Assert.Equal(l.ImporteTotal.Valor, l.BaseImponible.Valor + l.CuotaIva.Valor);
     }
 
     [Fact]
@@ -42,6 +43,7 @@ public class CalculoTests
         Assert.Equal(1260m, t.ImporteBruto.Valor);
         Assert.Equal(190m, t.Retencion.Valor);
         Assert.Equal(1070m, t.ImporteTotal.Valor);
+        Invariantes.Totales(t);
         Assert.Equal(0m, lineas[1].CuotaIva.Valor);
     }
 
@@ -207,8 +209,10 @@ public class AsientoVentaTests
     [Fact]
     public void AsientoCuadradoConClienteRetencionIngresosIvaYSuplidos()
     {
-        var a = AsientoVenta.Construir(Factura(), Ctx, Cuentas, new DateTime(2026, 3, 2));
-        Assert.Equal(a.TotalDebe, a.TotalHaber);
+        var f = Factura();
+        Invariantes.Factura(f);
+        var a = AsientoVenta.Construir(f, Ctx, Cuentas, new DateTime(2026, 3, 2));
+        Invariantes.Asiento(a);
         Assert.True(ReglasAsiento.ValidarYCuadrar(a, PoliticaCuadre.Estricta).EsCorrecto);
         // Bruto: 1000 + 210 + 100 + 10 + 30 = 1350; retención 19 % de 1100 = 209; a cobrar 1141.
         Assert.Equal(1141m, a.Apuntes.Single(x => x.CodigoCuenta == "4300001").Debe.Valor);
@@ -229,6 +233,8 @@ public class AsientoVentaTests
         foreach (var l in original.Lineas) r.AnadirLinea(l.Copiar(invertir: true));
         var a = AsientoVenta.Construir(r, Ctx, Cuentas, new DateTime(2026, 3, 5));
         Assert.Equal(TipoAsiento.Rectificacion, a.Tipo);
+        Invariantes.Factura(r);
+        Invariantes.Asiento(a);
         Assert.True(ReglasAsiento.ValidarYCuadrar(a, PoliticaCuadre.Estricta).EsCorrecto);
         Assert.Equal(1141m, a.Apuntes.Single(x => x.CodigoCuenta == "4300001").Haber.Valor);
         Assert.Equal(1000m, a.Apuntes.Single(x => x.CodigoCuenta == "7520001").Debe.Valor);
@@ -240,7 +246,7 @@ public class AsientoVentaTests
     {
         var a = AsientoVenta.Construir(Factura(0m), Ctx, Cuentas with { Retencion = null }, new DateTime(2026, 3, 2));
         Assert.DoesNotContain(a.Apuntes, x => x.CodigoCuenta == "4735079");
-        Assert.Equal(a.TotalDebe, a.TotalHaber);
+        Invariantes.Asiento(a);
     }
 
     [Fact]

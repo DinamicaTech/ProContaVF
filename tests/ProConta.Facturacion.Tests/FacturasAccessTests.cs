@@ -127,6 +127,7 @@ public sealed class FacturasAccessTests : IDisposable
         // La siguiente sigue la serie.
         var b2 = await BorradorAsync(servicio);
         Assert.Equal("F20260002", (await servicio.ValidarAsync(b2.IdFactura, b2.Version, _actor)).Factura!.NumeroFactura);
+        await Invariantes.EnBaseDeDatosAsync(Bd, servicio);
     }
 
     [Fact]
@@ -139,6 +140,7 @@ public sealed class FacturasAccessTests : IDisposable
         Assert.True(v.SoloAvisos);
         Assert.Null((await servicio.ObtenerAsync(b.IdFactura))!.NumeroFactura);
         Assert.True((await servicio.ValidarAsync(b.IdFactura, b.Version, _actor, aceptarAvisos: true)).Validada);
+        await Invariantes.EnBaseDeDatosAsync(Bd, servicio);
     }
 
     [Fact]
@@ -161,6 +163,7 @@ public sealed class FacturasAccessTests : IDisposable
         var ok = await servicio.ValidarAsync(b.IdFactura, b.Version, _actor);
         Assert.True(ok.Contabilizada, string.Join(" | ", ok.Incidencias.Select(i => i.Mensaje)));
         Assert.Equal(190m, ok.Factura!.Totales.Retencion.Valor);
+        await Invariantes.EnBaseDeDatosAsync(Bd, servicio);
     }
 
     [Fact]
@@ -193,6 +196,7 @@ public sealed class FacturasAccessTests : IDisposable
         Assert.Equal("R20260001", v.Factura!.NumeroFactura);
         Assert.Equal(original.Cliente, v.Factura.Cliente);
         Assert.Equal(EstadoFactura.Rectificada, (await servicio.ObtenerAsync(original.IdFactura))!.Estado);
+        await Invariantes.EnBaseDeDatosAsync(Bd, servicio);
     }
 
     [Fact]
@@ -210,6 +214,7 @@ public sealed class FacturasAccessTests : IDisposable
         Assert.True(d.Valor.Cliente.EstaVacia);
         Assert.Equal(f.Totales.ImporteTotal, d.Valor.Totales.ImporteTotal);
         Assert.Contains(d.Valor.LineasHistorial, h => h.Contains("Duplicado de F20260001"));
+        await Invariantes.EnBaseDeDatosAsync(Bd, servicio);
     }
 
     [Fact]
@@ -224,6 +229,7 @@ public sealed class FacturasAccessTests : IDisposable
         Assert.NotEmpty(numeros);
         Assert.Equal(numeros.Count, numeros.Distinct().Count());
         Assert.Equal(numeros.Count, await Contar("SELECT COUNT(*) FROM Facturas WHERE NumeroFactura IS NOT NULL"));
+        await Invariantes.EnBaseDeDatosAsync(Bd, servicio);
     }
 
     [Fact]

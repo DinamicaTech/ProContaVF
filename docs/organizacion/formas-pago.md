@@ -29,7 +29,7 @@ Catálogo de formas de pago, del que cuelgan las cuentas de proveedor/acreedor d
 - 2026-10-31 19:02 · answer: SEPA solo para 110 «Recibo domiciliado» y 125 «Domiciliación proveedor» → sí
 - 2026-10-31 19:02 · 2. Alta como 'indefinida'
 - 2026-10-31 19:02 · answer: código 1 sin forma de pago → darlo de alta como «Indefinida»
-- 2026-11-01 16:20 · Derived from plataforma/mantenimiento: proveedor de Formas de pago para la pantalla genérica.
+- 2026-11-01 17:20 · Derived from plataforma/mantenimiento: proveedor de Formas de pago para la pantalla genérica.
 
 ## Hand-over
 - 2026-10-31 19:10 · Hecho: migraciones (tabla propia, código 1 «Indefinida» y relaciones restauradas), contrato y pruebas. Pendiente: el proveedor declarativo para plataforma/mantenimiento.
