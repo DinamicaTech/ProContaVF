@@ -21,7 +21,7 @@ public static class DuenosTablas
         Asignar("seguridad", "seguridad/permisos", "GruposOperadores", "OperadoresGrupos", "AccesoSociedadesGrupo", "RestriccionesReportsGrupo");
         Asignar("seguridad", "seguridad/acceso", "OperadoresSeguridad", "AuditoriaSeguridad", "PreferenciasAccesoOperador", "PreferenciasAccesoEjercicio");
         Asignar("terceros", "terceros/tercero", "Terceros", "HistorialTerceros", "MapasOrigenTerceros", "DomiciliosTercero");
-        Asignar("terceros", "terceros/roles", "Clientes", "Proveedores", "CuentasClientesEjercicio", "CuentasProveedoresEjercicio");
+        Asignar("terceros", "terceros/roles", "Clientes", "Proveedores", "CuentasClientesSociedad", "CuentasProveedoresSociedad");
         Asignar("terceros", "terceros/contactos", "Contactos", "ContactosLibresTercero", "DatosContacto", "RelacionesContactos");
         Asignar("terceros", "terceros/perfiles-notas", "Perfiles", "PerfilesTerceros");
         Asignar("contabilidad", "contabilidad/cuenta-contable", "CuentasContables", "IdentidadesContables", "CodigosContablesReservados",

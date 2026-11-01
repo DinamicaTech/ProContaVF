@@ -1,6 +1,8 @@
 using ProConta.Nucleo.Identificacion;
 using ProConta.Nucleo.Resultados;
 using ProConta.Terceros.Contactos;
+using ProConta.Terceros.Perfiles;
+using ProConta.Terceros.Roles;
 
 namespace ProConta.Terceros;
 
@@ -69,7 +71,61 @@ public sealed class Tercero
     public List<DatoContacto> DatosContacto { get; } = [];
     public List<ContactoLibre> ContactosLibres { get; } = [];
 
+    /// <summary>Roles Cliente, Proveedor y Contacto, con su estado y sus datos propios; se guardan con la ficha.</summary>
+    public RolesFicha Roles { get; } = new();
+
+    /// <summary>Asignaciones de perfiles (activas y retiradas); se guardan con la ficha (RF-TER-12/13).</summary>
+    public List<AsignacionPerfil> Perfiles { get; } = [];
+
+    /// <summary>Relaciones persona-organización en las que participa el tercero, como persona o como organización (RF-TER-11).</summary>
+    public List<RelacionContacto> Relaciones { get; } = [];
+
+    /// <summary>
+    /// Cuentas de los roles en una sociedad (identidades contables). Null si la ficha no las ha cargado: entonces
+    /// guardar no las toca. Las carga y las resuelve en el ejercicio <see cref="ServicioRoles"/>.
+    /// </summary>
+    public CuentasRolesFicha? CuentasRoles { get; set; }
+
     public bool EsNuevo => IdTercero == 0;
+
+    /// <summary>Asigna un perfil (o reactiva su asignación retirada). Repetir el estado actual no cambia nada.</summary>
+    public void AsignarPerfil(Perfil perfil)
+    {
+        var a = Perfiles.FirstOrDefault(x => x.IdPerfil == perfil.IdPerfil);
+        if (a is null) Perfiles.Add(new AsignacionPerfil(perfil.IdPerfil, perfil.Nombre, perfil.Descripcion, perfil.Activo) { Activo = true });
+        else a.Activo = true;
+    }
+
+    /// <summary>Retira un perfil asignado (la fila se conserva con su fecha de retirada al guardar).</summary>
+    public void RetirarPerfil(int idPerfil)
+    {
+        var a = Perfiles.FirstOrDefault(x => x.IdPerfil == idPerfil);
+        if (a is null) return;
+        if (a.EsNueva) Perfiles.Remove(a);
+        else a.Activo = false;
+    }
+
+    /// <summary>Copia profunda de la ficha (para comparar el estado original con el editado).</summary>
+    public Tercero Clonar()
+    {
+        var copia = new Tercero
+        {
+            IdTercero = IdTercero, TipoPersona = TipoPersona, Nombre = Nombre, NombrePersona = NombrePersona, PrimerApellido = PrimerApellido,
+            SegundoApellido = SegundoApellido, RazonSocial = RazonSocial, NombreComercial = NombreComercial, Nif = Nif, TipoIdentificacion = TipoIdentificacion,
+            Telefono = Telefono, Email = Email, Pais = Pais, CodigoPostal = CodigoPostal, Provincia = Provincia, Poblacion = Poblacion, Direccion = Direccion,
+            Notas = Notas, NotasInternas = NotasInternas, Activo = Activo, FechaAlta = FechaAlta, Version = Version,
+            CuentasRoles = CuentasRoles?.Clonar(),
+        };
+        copia.Domicilios.AddRange(Domicilios);
+        var grupos = new Dictionary<ContactoLibre, ContactoLibre>(ReferenceEqualityComparer.Instance);
+        foreach (var g in ContactosLibres) grupos[g] = g.Clonar();
+        copia.ContactosLibres.AddRange(ContactosLibres.Select(g => grupos[g]));
+        copia.DatosContacto.AddRange(DatosContacto.Select(d => d.Clonar(d.ContactoLibre is { } g && grupos.TryGetValue(g, out var cg) ? cg : d.ContactoLibre)));
+        copia.Roles.CopiarDe(Roles);
+        copia.Perfiles.AddRange(Perfiles.Select(p => p.Clonar()));
+        copia.Relaciones.AddRange(Relaciones.Select(r => r.Clonar()));
+        return copia;
+    }
 
     /// <summary>Nombre visible que corresponde a los datos actuales.</summary>
     public string NombreCalculado() => TipoPersona switch
@@ -119,6 +175,22 @@ public sealed class Tercero
         foreach (var dato in DatosContacto.Where(d => d.ContactoLibre is { } grupo && !ContactosLibres.Contains(grupo)))
             errores.Add(new Error("Contactos.GrupoAjeno", "Un dato de contacto apunta a un contacto libre de otro tercero.", registro,
                 "Los contactos libres pertenecen a su titular.", "Asigna el dato a un contacto libre de esta ficha o déjalo como dato general."));
+        foreach (var d in Domicilios.Where(d => string.IsNullOrWhiteSpace(d.Direccion) || string.IsNullOrWhiteSpace(d.TipoDomicilio)))
+            errores.Add(new Error("Tercero.DomicilioIncompleto", "Hay un domicilio adicional sin finalidad o sin vía.", registro,
+                "Cada domicilio adicional necesita su finalidad (fiscal, envío…) y la vía con el número.", "Complétalo o quita el domicilio."));
+        foreach (var r in Relaciones)
+        {
+            var e = r.Validar();
+            if (e is not null) errores.Add(e with { RegistroAfectado = registro });
+        }
+        foreach (var repetida in Relaciones.GroupBy(r => (r.IdTerceroPersona, r.IdTerceroOrganizacion, Tipo: r.TipoRelacion.Trim().ToUpperInvariant(), r.FechaInicio)).Where(g => g.Count() > 1))
+            errores.Add(new Error("Relaciones.Repetida", $"La relación «{repetida.First().TipoRelacion}» entre {repetida.First().NombrePersona} y {repetida.First().NombreOrganizacion} está repetida.", registro,
+                "No puede haber dos relaciones del mismo tipo con la misma fecha de inicio.", "Cambia la fecha de inicio o quita la repetida."));
+        if (Roles.Contacto is { } contacto)
+        {
+            if (contacto.Cargo is { Length: > 100 }) errores.Add(new Error("Roles.CargoLargo", "El cargo del contacto tiene más de 100 caracteres.", registro, "No cabe.", "Acórtalo."));
+            if (contacto.Departamento is { Length: > 100 }) errores.Add(new Error("Roles.DepartamentoLargo", "El departamento del contacto tiene más de 100 caracteres.", registro, "No cabe.", "Acórtalo."));
+        }
         foreach (var grupo in ContactosLibres.Where(g => string.IsNullOrWhiteSpace(g.Nombre)))
             errores.Add(new Error("Contactos.SinNombre", "Un contacto libre no tiene nombre.", registro,
                 "El nombre de la persona de contacto es obligatorio.", "Escribe su nombre o quita el contacto."));

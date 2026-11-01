@@ -2,7 +2,7 @@
 
 # Diccionario de datos
 
-Esquema versión 7 (Actualizada); 114 tablas. SHA-256 de la BD de origen: `A6CC24684CEC173E200B48B6F0E7EAFEA99EED7D279501D9CEDDD3BCCD0BF78F`.
+Esquema versión 8 (Actualizada); 114 tablas. SHA-256 de la BD de origen: `A6CC24684CEC173E200B48B6F0E7EAFEA99EED7D279501D9CEDDD3BCCD0BF78F`.
 
 | Área | Tablas |
 |---|---|
@@ -17,4 +17,4 @@ Esquema versión 7 (Actualizada); 114 tablas. SHA-256 de la BD de origen: `A6CC2
 | [organizacion](organizacion.md) | FormasPago, Sociedades, SociedadesEjercicios |
 | [plataforma](plataforma.md) | AliasCamposConfiguracion, Configuracion |
 | [seguridad](seguridad.md) | AccesoSociedadesGrupo, AuditoriaSeguridad, GruposOperadores, OperadoresGrupos, OperadoresSeguridad, PreferenciasAccesoEjercicio, PreferenciasAccesoOperador, RestriccionesReportsGrupo |
-| [terceros](terceros.md) | Clientes, Contactos, ContactosLibresTercero, CuentasClientesEjercicio, CuentasProveedoresEjercicio, DatosContacto, DomiciliosTercero, HistorialTerceros, MapasOrigenTerceros, Perfiles, PerfilesTerceros, Proveedores, RelacionesContactos, Terceros |
+| [terceros](terceros.md) | Clientes, Contactos, ContactosLibresTercero, CuentasClientesSociedad, CuentasProveedoresSociedad, DatosContacto, DomiciliosTercero, HistorialTerceros, MapasOrigenTerceros, Perfiles, PerfilesTerceros, Proveedores, RelacionesContactos, Terceros |

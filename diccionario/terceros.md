@@ -71,51 +71,52 @@ Relaciones:
 Relaciones:
 - FK_ContactosLibres_Tercero: (IdTercero) → Terceros (IdTercero); borrado NO ACTION, actualización NO ACTION
 
-## CuentasClientesEjercicio
+## CuentasClientesSociedad
 
 - Dueño funcional: `terceros/roles`
 
 | Campo | Tipo | Nulo | Por defecto | Descripción |
 |---|---|---|---|---|
-| IdCuentaClienteEjercicio | COUNTER | no |  |  |
+| IdCuentaClienteSociedad | COUNTER | no |  |  |
 | IdCliente | LONG | no |  |  |
-| IdSociedadEjercicio | LONG | no |  |  |
-| IdCuentaContable | LONG | no |  |  |
-| EsPredeterminada | YESNO | no |  |  |
+| IdSociedad | TEXT(3) | no |  |  |
+| IdIdentidadContable | LONG | no |  |  |
 
 Índices:
-- FK_CCE_Cliente: IdCliente
-- FK_CCE_Cuenta: IdCuentaContable
-- FK_CCE_Ejercicio: IdSociedadEjercicio
-- PK_CuentasClientesEjercicio (clave primaria): IdCuentaClienteEjercicio
+- FK_CCS_Cliente: IdCliente
+- FK_CCS_Identidad: IdIdentidadContable
+- FK_CCS_Sociedad: IdSociedad
+- PK_CuentasClientesSociedad (clave primaria): IdCuentaClienteSociedad
+- UX_CCS_ClienteSociedad (único): IdCliente, IdSociedad
 
 Relaciones:
-- FK_CCE_Cliente: (IdCliente) → Clientes (IdCliente); borrado NO ACTION, actualización NO ACTION
-- FK_CCE_Cuenta: (IdCuentaContable) → CuentasContables (IdCuentaContable); borrado NO ACTION, actualización NO ACTION
-- FK_CCE_Ejercicio: (IdSociedadEjercicio) → SociedadesEjercicios (IdSociedadEjercicio); borrado NO ACTION, actualización NO ACTION
+- FK_CCS_Cliente: (IdCliente) → Clientes (IdCliente); borrado NO ACTION, actualización NO ACTION
+- FK_CCS_Identidad: (IdIdentidadContable) → IdentidadesContables (IdIdentidadContable); borrado NO ACTION, actualización NO ACTION
+- FK_CCS_Sociedad: (IdSociedad) → Sociedades (IdSociedad); borrado NO ACTION, actualización NO ACTION
 
-## CuentasProveedoresEjercicio
+## CuentasProveedoresSociedad
 
 - Dueño funcional: `terceros/roles`
 
 | Campo | Tipo | Nulo | Por defecto | Descripción |
 |---|---|---|---|---|
-| IdCuentaProveedorEjercicio | COUNTER | no |  |  |
+| IdCuentaProveedorSociedad | COUNTER | no |  |  |
 | IdProveedor | LONG | no |  |  |
-| IdSociedadEjercicio | LONG | no |  |  |
-| IdCuentaContable | LONG | no |  |  |
-| EsPredeterminada | YESNO | no |  |  |
+| IdSociedad | TEXT(3) | no |  |  |
+| Clase | TEXT(10) | no |  |  |
+| IdIdentidadContable | LONG | no |  |  |
 
 Índices:
-- FK_CPE_Cuenta: IdCuentaContable
-- FK_CPE_Ejercicio: IdSociedadEjercicio
-- FK_CPE_Proveedor: IdProveedor
-- PK_CuentasProveedoresEjercicio (clave primaria): IdCuentaProveedorEjercicio
+- FK_CPS_Identidad: IdIdentidadContable
+- FK_CPS_Proveedor: IdProveedor
+- FK_CPS_Sociedad: IdSociedad
+- PK_CuentasProveedoresSociedad (clave primaria): IdCuentaProveedorSociedad
+- UX_CPS_ProveedorSociedadClase (único): IdProveedor, IdSociedad, Clase
 
 Relaciones:
-- FK_CPE_Cuenta: (IdCuentaContable) → CuentasContables (IdCuentaContable); borrado NO ACTION, actualización NO ACTION
-- FK_CPE_Ejercicio: (IdSociedadEjercicio) → SociedadesEjercicios (IdSociedadEjercicio); borrado NO ACTION, actualización NO ACTION
-- FK_CPE_Proveedor: (IdProveedor) → Proveedores (IdProveedor); borrado NO ACTION, actualización NO ACTION
+- FK_CPS_Identidad: (IdIdentidadContable) → IdentidadesContables (IdIdentidadContable); borrado NO ACTION, actualización NO ACTION
+- FK_CPS_Proveedor: (IdProveedor) → Proveedores (IdProveedor); borrado NO ACTION, actualización NO ACTION
+- FK_CPS_Sociedad: (IdSociedad) → Sociedades (IdSociedad); borrado NO ACTION, actualización NO ACTION
 
 ## DatosContacto
 

@@ -24,6 +24,8 @@ public sealed class ContactoLibre
     public int IdContactoLibre { get; internal set; }
     public string Nombre { get; set; } = "";
     public string? Departamento { get; set; }
+
+    internal ContactoLibre Clonar() => new() { IdContactoLibre = IdContactoLibre, Nombre = Nombre, Departamento = Departamento };
 }
 
 /// <summary>Email o teléfono de un tercero (tabla DatosContacto), opcionalmente de un contacto libre suyo.</summary>
@@ -39,6 +41,12 @@ public sealed class DatoContacto
 
     /// <summary>Contacto libre al que pertenece; null si es un dato general del tercero.</summary>
     public ContactoLibre? ContactoLibre { get; set; }
+
+    internal DatoContacto Clonar(ContactoLibre? grupo) => new()
+    {
+        IdDatoContacto = IdDatoContacto, Tipo = Tipo, Etiqueta = Etiqueta, Valor = Valor, Activo = Activo,
+        EnvioFacturas = EnvioFacturas, EnviosAdministrativos = EnviosAdministrativos, ContactoLibre = grupo
+    };
 
     internal Error? Validar()
     {
