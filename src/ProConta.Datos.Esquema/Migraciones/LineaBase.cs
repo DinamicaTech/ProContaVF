@@ -55,6 +55,10 @@ public static class CatalogoMigraciones
         MigracionesSeguridad.ListaOperadoresAcceso,
         MigracionesTerceros.CuentasRolesSociedad,
         MigracionesTerceros.ContactoFichaAntigua,
+        MigracionesFacturacion.ConceptosSociedad,
+        MigracionesFacturacion.FacturasInstantanea,
+        MigracionesFacturacion.CuentaRetencionCliente,
+        MigracionesFacturacion.PermisosAcciones,
     ];
 
     /// <summary>Versión del esquema que espera esta versión del programa.</summary>

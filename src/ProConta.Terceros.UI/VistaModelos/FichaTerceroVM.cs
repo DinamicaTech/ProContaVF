@@ -44,6 +44,7 @@ public sealed class FichaTerceroVM : Observable, IPestanaTrabajo, INotifyDataErr
         CuentaCliente = new CuentaRolVM(this, ClaseCuentaRol.Cliente);
         CuentaProveedor = new CuentaRolVM(this, ClaseCuentaRol.Proveedor);
         CuentaAcreedor = new CuentaRolVM(this, ClaseCuentaRol.Acreedor);
+        CuentaRetencion = new CuentaRolVM(this, ClaseCuentaRol.Retencion);
 
         GuardarCommand = new ComandoDelegado(() => _ = GuardarAsync(), () => !Guardando && Estado == EstadoVista.Contenido);
         DescartarCommand = new ComandoDelegado(PreguntarDescartar, () => TieneCambios && !Guardando);
@@ -169,6 +170,7 @@ public sealed class FichaTerceroVM : Observable, IPestanaTrabajo, INotifyDataErr
         CuentaCliente.Cargar(await De(ClaseCuentaRol.Cliente));
         CuentaProveedor.Cargar(await De(ClaseCuentaRol.Proveedor));
         CuentaAcreedor.Cargar(await De(ClaseCuentaRol.Acreedor));
+        CuentaRetencion.Cargar(await De(ClaseCuentaRol.Retencion));
     }
 
     /// <summary>Rehace las partes editables a partir de la copia de trabajo.</summary>
@@ -552,6 +554,7 @@ public sealed class FichaTerceroVM : Observable, IPestanaTrabajo, INotifyDataErr
     public CuentaRolVM CuentaCliente { get; }
     public CuentaRolVM CuentaProveedor { get; }
     public CuentaRolVM CuentaAcreedor { get; }
+    public CuentaRolVM CuentaRetencion { get; }
 
     public string TextoCuentas => $"Las cuentas valen para todos los ejercicios de {NombreSociedad}: en cada ejercicio se usa la misma cuenta, aunque cambie su código. Se ven las del ejercicio {Ejercicio}.";
 
@@ -735,7 +738,7 @@ public sealed class FichaTerceroVM : Observable, IPestanaTrabajo, INotifyDataErr
     internal void Tocar(object modelo, string campo) => _tocados.Add((modelo, campo));
 
     private IEnumerable<ParteFicha> Partes() =>
-        Domicilios.Cast<ParteFicha>().Concat(Emails).Concat(Telefonos).Concat(Grupos).Concat(Relaciones).Concat([CuentaCliente, CuentaProveedor, CuentaAcreedor]);
+        Domicilios.Cast<ParteFicha>().Concat(Emails).Concat(Telefonos).Concat(Grupos).Concat(Relaciones).Concat([CuentaCliente, CuentaRetencion, CuentaProveedor, CuentaAcreedor]);
 
     private void RecalcularErrores()
     {
@@ -827,7 +830,7 @@ public sealed class FichaTerceroVM : Observable, IPestanaTrabajo, INotifyDataErr
         _intentoGuardar = true;
         _erroresGuardado = [];
         // Confirma las cuentas escritas y aún sin comprobar (el foco puede seguir en el campo).
-        foreach (var c in new[] { CuentaCliente, CuentaProveedor, CuentaAcreedor }) await c.ConfirmarAsync();
+        foreach (var c in new[] { CuentaCliente, CuentaRetencion, CuentaProveedor, CuentaAcreedor }) await c.ConfirmarAsync();
         RecalcularErrores();
         if (_errores.Count > 0)
         {
