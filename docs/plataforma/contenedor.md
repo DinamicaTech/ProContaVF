@@ -22,6 +22,7 @@ Aplicación principal (UI-PRINCIPAL): cabecera con empresa, ejercicio y operador
 - 2026-11-01 10:46 · Pestañas de trabajo: la entrada «Datos maestros › Terceros» del menú abre la primera pantalla de área. Las pestañas se cierran con su aspa, clic central o Ctrl+F4 y muestran un punto si tienen cambios y un triángulo si falló el guardado. Al cerrar una con cambios se ofrece Guardar y cerrar, Descartar cambios y cerrar o Seguir editando; al salir, Guardar todo y salir, Salir sin guardar o Seguir trabajando. Ctrl+G y Ctrl+S guardan la pestaña activa. La barra de estado muestra las pantallas abiertas, cuántas tienen cambios y avisos breves.
 - 2026-11-01 10:46 · Máximo 5 fichas de terceros abiertas: la sexta sustituye, en su posición, a la abierta hace más tiempo sin cambios; si todas tienen cambios, avisa y ofrece ir a la más antigua.
 - 2026-11-01 10:46 · Las pantallas se integran con el contrato `IPestanaTrabajo`/`IAnfitrionPestanas` de plataforma/ui-base; al entrar se fijan las preferencias del operador (columnas y paneles).
+- 2026-11-01 15:48 · Validado por el propietario (pantalla de Terceros y revisión 1).
 
 ## Requirements
 - 2026-10-28 12:28 · From sources/01_ESPECIFICACION_FUNCIONAL.docx § 6 RF-UI-01, 04, 05, 07: contenedor, avisos técnicos discretos, ciclo de vida de fichas y rendimiento

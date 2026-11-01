@@ -17,6 +17,8 @@ Emails y teléfonos con flags de envío, resolución de destinatarios efectivos,
 - 2026-11-01 09:31 · Validado por el propietario (desarrollos base).
 - 2026-11-01 10:46 · Relaciones persona-organización (RelacionesContactos, RF-TER-11) dentro de la ficha: tipo, fechas desde y hasta, estado (Sin guardar, Vigente o Finalizada) y observaciones; la otra parte se elige con el buscador de terceros en una ventana modal («Vincular persona…» o «Vincular a organización…»). Si la persona no tiene el rol Contacto se le da, de forma idempotente, en la misma transacción. «Quitar» solo existe para una relación aún no guardada; una guardada se termina con «Cerrar vigencia», que le pone la fecha fin de hoy. El historial queda en los dos terceros.
 - 2026-11-01 13:10 · Migración `20261101_1300_CONTACTO_FICHA_ANTIGUA` (versión 9 del esquema): añade como datos de contacto «Principal», activos y sin marcas, los emails de Terceros.Email que aún no están en la lista (sin distinguir mayúsculas ni espacios; varios separados por «;» o «,», uno a uno) y el teléfono de Terceros.Telefono si sus cifras no están ya; no toca las columnas antiguas, deja una fila de historial por tercero y es idempotente. En una copia de la maestra real añade 241 emails y 17 teléfonos (248 terceros); 59 «teléfonos» antiguos no se trasladan porque son direcciones.
+- 2026-11-01 15:48 · Validado por el propietario (pantalla de Terceros y revisión 1).
+- 2026-11-01 15:48 · Los 59 «teléfonos» antiguos que son direcciones indicaban el inmueble alquilado; no se migran: eso se llevará con los contratos de activos.
 
 ## Requirements
 - 2026-10-28 12:28 · From sources/01_ESPECIFICACION_FUNCIONAL.docx § 7.1 RF-TER-07..11: datos de contacto, destinatarios, contactos libres, relaciones
@@ -24,6 +26,7 @@ Emails y teléfonos con flags de envío, resolución de destinatarios efectivos,
 - 2026-10-31 17:53 · Derived from architecture: datos de contacto y contactos libres dentro de la ficha del tercero y la resolución de destinatarios.
 - 2026-11-01 10:46 · Derived from terceros/pantallas: guardar las relaciones con vigencia dentro de la ficha y elegir la otra parte con el buscador modal.
 - 2026-11-01 12:49 · De todas formas, la idea sería migrar los datos de forma que no haya que hacer revisión manual de cada ficha.
+- 2026-11-01 15:48 · Bueno, estos 59 'teléfonos' era una forma de indicar el inmueble que tienen alquilado. Ahora ya lo haremos mediante los contratos de activos, por lo que ya está bien lo que propones.
 
 ## Hand-over
 - 2026-10-31 19:05 · Hecho: datos de contacto, contactos libres y resolución de destinatarios, con pruebas. Pendiente: relaciones persona-organización con vigencia (RelacionesContactos, RF-TER-11), que llegarán con terceros/pantallas; la pastilla de destinatarios y el botón Enviar email son de pantalla.

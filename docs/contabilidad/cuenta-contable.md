@@ -17,6 +17,7 @@ Ente CuentaContable: identidad permanente (IdentidadesContables) y cuenta por ej
 - 2026-10-31 19:05 · Caché de saldos: `ReconstruirSaldosAsync` recalcula SaldoActual (SaldoInicial + debe − haber) y NumeroApuntes de las cuentas del ejercicio a partir de sus apuntes, que guardan el código de la cuenta.
 - 2026-11-01 09:31 · Validado por el propietario (desarrollos base).
 - 2026-11-01 10:46 · `ICatalogoCuentas` añade `CuentaDeIdentidadAsync` (cuenta de una identidad en un ejercicio), `UltimaCuentaDeIdentidadAsync` y `AltaEnEjercicioAsync`, que da de alta la cuenta de una identidad existente en otro ejercicio respetando la reserva de códigos: admite el código reservado para esa identidad o uno libre, nunca el de otra identidad de la sociedad.
+- 2026-11-01 15:48 · Validado por el propietario (pantalla de Terceros y revisión 1).
 
 ## Requirements
 - 2026-10-28 12:28 · Y, por supuesto, hay que encapsular los diferentes 'entes' que aparecen en el proyecto (CuentaContable, Tercero -> Cliente/Proveedor/Asociacion/Particular..., FacturaCompra, FacturaVenta, etc.).

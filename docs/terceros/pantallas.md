@@ -1,6 +1,5 @@
 ---
 title: Pantallas de terceros
-status: draft
 depends_on: [terceros/tercero, terceros/roles, terceros/contactos, terceros/perfiles-notas, plataforma/contenedor, contabilidad/mayor, contabilidad/cuenta-contable, plataforma/ui-base]
 threads:
   - 2026-10-28 12:30 · Carga de requisitos | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GRNMH95h9tnQp4dmEPHmw1w
@@ -29,6 +28,7 @@ Buscador multicriterio y ficha de terceros en pestañas del contenedor, con sus 
 - 2026-11-01 13:10 · Pestaña Contacto: Emails, Teléfonos, Personas de contacto sin ficha y Relaciones van cada una en su tarjeta con título; los botones «Añadir…» y «Vincular…» van justo debajo de su lista, a la izquierda; las personas sin ficha llevan las etiquetas Nombre y Departamento; las cabeceras de una lista vacía se ocultan. Las finalidades se titulan «Env. fact.» y «Com. adm.», con el texto completo en el tooltip.
 - 2026-11-01 13:10 · Sin bloque de destinatarios efectivos ni aviso del buzón genérico: cuando un email recibe una finalidad sin estar marcado (es el único activo), su casilla se ve atenuada con un visto gris y un tooltip que lo explica; si hay varios emails activos y ninguno marcado, un icono de aviso junto a la cabecera de la finalidad dice que no se enviará nada hasta marcar cuál. Sigue resolviendo terceros/contactos (ResolutorDestinatarios).
 - 2026-11-01 13:10 · Email y teléfono de las columnas antiguas de Terceros: tras la migración de terceros/contactos solo se ven, en gris y con «Añadirlo a la lista», si su valor no está ya en la lista. Un «teléfono» antiguo que no es un teléfono (por ejemplo una dirección) se ve con la nota «no parece un teléfono: si es una dirección, cópiala al domicilio», sin ofrecer pasarlo a la lista.
+- 2026-11-01 15:48 · Validado por el propietario (pantalla de Terceros y revisión 1).
 
 ## Requirements
 - 2026-10-28 12:28 · From sources/01_ESPECIFICACION_FUNCIONAL.docx § 7 RF-TER-05, 09, 11, 15: comportamiento del domicilio, pastilla de destinatarios, búsqueda modal, pestaña Ventas
@@ -50,6 +50,7 @@ Buscador multicriterio y ficha de terceros en pestañas del contenedor, con sus 
 - 2026-11-01 12:49 · Los 'labels' 'Destinatarios efectivos' y el de 'un buzón genérico como Administración....' se muestran con mucha relevancia (si la pantalla tuvieses profundidad, que la tiene, estarían en primer plano), cuando creo que deberían estar en un plano posterior a los datos ya que simplemente es informativo, no debe robar protagonismo al resto de campos. De hecho, quizá podemos eliminar la sección de Destinatarios efectivos si marcamos el check 'Envío de facturas' y 'Com. administrativas' en color gris o algo diferente del check (o un check atenuado) para indicar que es como si estuviesen marcados. Y creo que podemos eliminar el aviso de 'Un buzón genérico como ....', el operador ya lo adivinará por si mismo
 - 2026-11-01 12:49 · En la pestaña Contacto, tenemos al menos cuatro elementos (emails, teléfonos, contactos y relaciones), pero estas secciones no están remarcadas o diferenciadas, por lo que la información no es muy legible (muchas etiquetas y campos sin nada que ayude a enfocar y diferenciar una sección de otra)
 - 2026-11-01 12:49 · Los checks Envíos de facturas y Comunic. Administrativas ocupan dos líneas, cosa que hace que los labels de esa fila de campos estén separados de los campos, cosa que rompe la harmonía visual. Se puede poner perfectamente 'Env.Fact' y 'Com.Adm.' y poner el texto completo en el tooltip del label. Así cabe todo en una sola línea.
+- 2026-11-01 15:48 · Por lo demás, todo ok.
 
 ## Hand-over
 - 2026-11-01 10:46 · Hecho: buscador, ficha completa con sus diez pestañas, motores y pruebas (147 sin BD y 204 con Access, todas superadas), compilado en `C:\Docs\Codigo\ProContaVF-build` con la BD de prueba `capturas-terceros\prueba-terceros.accdb` (operador «capturas» sin contraseña) y capturas a 2560×1440 en la misma carpeta. Pendiente: validación del propietario (cuadros de mensaje, arrastre de perfiles y foco tras el CP, que solo se comprueban a mano); la BD real está en la versión 1 del esquema y necesita el ActualizadorEsquema (con `--origen-formas-pago`) antes de abrirla con esta versión; Ventas, Compras, Contabilidad y Documentos llegan con sus áreas.

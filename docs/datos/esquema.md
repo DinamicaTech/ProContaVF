@@ -36,6 +36,7 @@ Código: `src/ProConta.Datos.Esquema` (diagnóstico, migraciones idempotentes, a
 - 2026-11-01 09:31 · Validado por el propietario (desarrollos base).
 - 2026-11-01 10:46 · Versión 8 = `20261101_1000_CUENTAS_ROLES_SOCIEDAD` (terceros/roles): CuentasClientesSociedad y CuentasProveedoresSociedad con el traslado de las filas por ejercicio y la retirada de CuentasClientesEjercicio y CuentasProveedoresEjercicio, con comprobación previa. Probada sobre una copia de la maestra real; diccionario regenerado.
 - 2026-11-01 13:10 · Versión 9 = `20261101_1300_CONTACTO_FICHA_ANTIGUA` (terceros/contactos): copia el email y el teléfono antiguos de Terceros a DatosContacto; diccionario regenerado.
+- 2026-11-01 15:48 · Validado por el propietario (pantalla de Terceros y revisión 1).
 
 ## Requirements
 - 2026-10-28 12:28 · es importante que haya un nodo especializado en mantener la estructura de la base de datos para poder actualizar el modelo cuando se actualice una instalación en producción, por lo tanto, cualquier nodo que quiera modificar la estructura de la Base de Datos ha de comunicarlo o pasar a través del nodo de mantenimiento de estructura de BD.

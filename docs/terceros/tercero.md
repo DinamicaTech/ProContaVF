@@ -21,6 +21,7 @@ Ente Tercero: identidad estable (IdTercero) de persona física, jurídica o enti
 - 2026-11-01 10:46 · La ficha completa (identidad, domicilios, datos de contacto, contactos libres, roles, perfiles, relaciones y cuentas de los roles) se guarda en una sola transacción con `GuardarAsync`; cada parte deja su historial, un error no deja nada a medias y nunca se toca Facturas.
 - 2026-11-01 10:46 · Búsqueda multicriterio: un mismo texto se busca en nombre y apellidos, razón social, nombre comercial, NIF (también con guiones o espacios), IdTercero, IdCliente, IdProveedor, IdContacto, teléfonos y emails, domicilios, contactos libres, relaciones, perfiles, cuentas de los roles y la columna antigua Clientes.CuentaContable; con varias palabras deben aparecer todas, sin distinguir tildes ni mayúsculas. Cada resultado dice en qué dato coincidió y trae sus roles con su Id; filtros por tipo, rol y perfil, con o sin inactivos; máximo 500 filas con el total y los recuentos de los filtros. Se apoya en un índice en memoria que se carga con una consulta por tabla, vale 30 segundos y se invalida al guardar.
 - 2026-11-01 10:46 · `HistorialAsync(idTercero)` lee HistorialTerceros por fecha, operador, sección, operación, campo, antes y después; para mostrar código y nombre de las cuentas se leen (solo lectura) CuentasContables.
+- 2026-11-01 15:48 · Validado por el propietario (pantalla de Terceros y revisión 1).
 
 ## Requirements
 - 2026-10-28 12:28 · From sources/01_ESPECIFICACION_FUNCIONAL.docx § 7 RF-TER-01, 02, 06: identidad, tipos de persona, domicilios
