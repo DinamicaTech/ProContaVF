@@ -9,6 +9,7 @@
     <Project Path="src/ProConta.Datos.Esquema/ProConta.Datos.Esquema.csproj" />
     <Project Path="src/ProConta.Datos.Persistencia/ProConta.Datos.Persistencia.csproj" />
     <Project Path="src/ProConta.Facturacion/ProConta.Facturacion.csproj" />
+    <Project Path="src/ProConta.Mantenimiento/ProConta.Mantenimiento.csproj" />
     <Project Path="src/ProConta.Nucleo/ProConta.Nucleo.csproj" />
     <Project Path="src/ProConta.Organizacion/ProConta.Organizacion.csproj" />
     <Project Path="src/ProConta.Plataforma.Configuracion/ProConta.Plataforma.Configuracion.csproj" />

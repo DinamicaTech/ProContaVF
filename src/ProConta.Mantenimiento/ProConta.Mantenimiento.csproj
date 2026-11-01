@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Mantenimiento genérico (plataforma/mantenimiento): contrato de proveedores, servicio y proveedor de tablas sencillas. -->
+  <PropertyGroup>
+    <OutputType>Library</OutputType>
+    <RootNamespace>ProConta.Mantenimiento</RootNamespace>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);CS1591;CS1573</NoWarn>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\ProConta.Nucleo\ProConta.Nucleo.csproj" />
+    <ProjectReference Include="..\ProConta.Datos.Persistencia\ProConta.Datos.Persistencia.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="ProConta.Mantenimiento.Tests" />
+  </ItemGroup>
+</Project>
