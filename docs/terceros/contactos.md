@@ -22,6 +22,7 @@ Emails y teléfonos con flags de envío, resolución de destinatarios efectivos,
 - 2026-10-28 12:28 · draft: Implementar contactos, resolución de destinatarios, contactos libres y relaciones.
 - 2026-10-31 17:53 · Derived from architecture: datos de contacto y contactos libres dentro de la ficha del tercero y la resolución de destinatarios.
 - 2026-11-01 10:46 · Derived from terceros/pantallas: guardar las relaciones con vigencia dentro de la ficha y elegir la otra parte con el buscador modal.
+- 2026-11-01 12:49 · De todas formas, la idea sería migrar los datos de forma que no haya que hacer revisión manual de cada ficha.
 
 ## Hand-over
 - 2026-10-31 19:05 · Hecho: datos de contacto, contactos libres y resolución de destinatarios, con pruebas. Pendiente: relaciones persona-organización con vigencia (RelacionesContactos, RF-TER-11), que llegarán con terceros/pantallas; la pastilla de destinatarios y el botón Enviar email son de pantalla.
