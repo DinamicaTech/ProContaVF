@@ -60,7 +60,7 @@ public partial class App : Application
             _sesion = acceso.Resultado.Sesion;
             PreferenciasPuesto.RecordarOperador(almacen, _sesion.NombreOperador);
 
-            var principal = new VentanaPrincipal(acceso.Resultado, ubicacion, compatible.Valor.VersionBd);
+            var principal = new VentanaPrincipal(acceso.Resultado, ubicacion, compatible.Valor.VersionBd, bd);
             principal.Closed += (_, _) => Shutdown(0);
             MainWindow = principal;
             principal.Show();

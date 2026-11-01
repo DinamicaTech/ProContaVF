@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Pantallas de Terceros (docs/terceros/pantallas.md): buscador y ficha en pestañas del contenedor. -->
+  <PropertyGroup>
+    <OutputType>Library</OutputType>
+    <UseWPF>true</UseWPF>
+    <RootNamespace>ProConta.Terceros.UI</RootNamespace>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);CS1591;CS1573</NoWarn>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\ProConta.UI.Base\ProConta.UI.Base.csproj" />
+    <ProjectReference Include="..\ProConta.Terceros\ProConta.Terceros.csproj" />
+    <ProjectReference Include="..\ProConta.Organizacion\ProConta.Organizacion.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="ProConta.Terceros.UI.Tests" />
+  </ItemGroup>
+</Project>

@@ -5,8 +5,14 @@
         Title="ProContaVF"
         Style="{StaticResource Ventana.ProConta}"
         Width="1440" Height="900" MinWidth="1024" MinHeight="640" WindowState="Maximized">
+  <Window.Resources>
+    <pc:VisibleSiConverter x:Key="Visible" />
+  </Window.Resources>
   <Window.InputBindings>
     <KeyBinding Key="M" Modifiers="Ctrl+Shift" Command="{Binding AlternarNavegacionCommand, RelativeSource={RelativeSource AncestorType=Window}}" />
+    <KeyBinding Key="G" Modifiers="Ctrl" Command="{Binding GuardarActivaCommand, RelativeSource={RelativeSource AncestorType=Window}}" />
+    <KeyBinding Key="S" Modifiers="Ctrl" Command="{Binding GuardarActivaCommand, RelativeSource={RelativeSource AncestorType=Window}}" />
+    <KeyBinding Key="F4" Modifiers="Ctrl" Command="{Binding CerrarActivaCommand, RelativeSource={RelativeSource AncestorType=Window}}" />
   </Window.InputBindings>
 
   <DockPanel>
@@ -39,7 +45,7 @@
       </DockPanel>
     </Border>
 
-    <!-- Barra de estado: datos, esquema y versión (siempre visible) -->
+    <!-- Barra de estado: datos, esquema, pantallas abiertas, avisos y versión (siempre visible) -->
     <Border DockPanel.Dock="Bottom" Background="{StaticResource Pincel.Fondo}" BorderBrush="{StaticResource Pincel.Linea}" BorderThickness="0,1,0,0" Padding="12,4">
       <DockPanel>
         <TextBlock x:Name="TextoVersion" DockPanel.Dock="Right" Foreground="{StaticResource Pincel.Apagado}" FontSize="{StaticResource Letra.Pequena}"
@@ -49,6 +55,11 @@
           <TextBlock x:Name="TextoDatos" Margin="6,0,0,0" FontSize="{StaticResource Letra.Pequena}" Foreground="{StaticResource Pincel.Apagado}" />
           <TextBlock x:Name="TextoEsquema" Margin="16,0,0,0" FontSize="{StaticResource Letra.Pequena}" Foreground="{StaticResource Pincel.Apagado}"
                      ToolTip="Versión de la estructura de la base de datos" />
+          <Rectangle Width="1" Fill="{StaticResource Pincel.Linea}" Margin="12,2" />
+          <TextBlock x:Name="TextoPantallas" FontSize="{StaticResource Letra.Pequena}" Foreground="{StaticResource Pincel.Apagado}"
+                     ToolTip="Pantallas abiertas en el área de trabajo y cuántas tienen cambios sin guardar" />
+          <Ellipse x:Name="PuntoCambios" Width="7" Height="7" Fill="{StaticResource Pincel.Acento2}" Margin="6,0,0,0" VerticalAlignment="Center" Visibility="Collapsed" />
+          <TextBlock x:Name="TextoAviso" Margin="16,0,0,0" FontSize="{StaticResource Letra.Pequena}" Foreground="{StaticResource Pincel.Tinta}" TextTrimming="CharacterEllipsis" MaxWidth="1400" />
         </StackPanel>
       </DockPanel>
     </Border>
@@ -63,25 +74,31 @@
       <!-- Navegación lateral -->
       <Border Grid.Column="0" Background="{StaticResource Pincel.Marino}">
         <ScrollViewer VerticalScrollBarVisibility="Auto">
-          <ItemsControl x:Name="Navegacion" Margin="8,10">
+          <ItemsControl x:Name="Navegacion" Margin="8,10" Focusable="False">
             <ItemsControl.ItemTemplate>
               <DataTemplate>
-                <Border x:Name="Fila" CornerRadius="6" Padding="10,8" Margin="0,1" ToolTip="{Binding Ayuda}">
-                  <StackPanel Orientation="Horizontal">
-                    <Path Style="{StaticResource Icono.Trazo}" Data="{Binding Icono}" Stroke="#C9D1E0" Width="24" Height="24">
+                <Button Command="{Binding Comando}" ToolTip="{Binding Ayuda}" Cursor="Hand" ToolTipService.ShowOnDisabled="True" AutomationProperties.Name="{Binding Titulo}">
+                  <Button.Template>
+                    <ControlTemplate TargetType="Button">
+                      <Border x:Name="Fila" CornerRadius="6" Padding="10,7" Margin="0,1" Background="Transparent">
+                        <ContentPresenter />
+                      </Border>
+                      <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Fila" Property="Background" Value="#1FFFFFFF" /></Trigger>
+                        <Trigger Property="IsKeyboardFocused" Value="True"><Setter TargetName="Fila" Property="Background" Value="#2BFFFFFF" /></Trigger>
+                        <DataTrigger Binding="{Binding Activa}" Value="True"><Setter TargetName="Fila" Property="Background" Value="{StaticResource Pincel.Acento}" /></DataTrigger>
+                        <DataTrigger Binding="{Binding Disponible}" Value="False"><Setter TargetName="Fila" Property="Opacity" Value="0.55" /></DataTrigger>
+                      </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                  </Button.Template>
+                  <StackPanel Orientation="Horizontal" Margin="{Binding Sangria}">
+                    <Path Style="{StaticResource Icono.Trazo}" Data="{Binding Icono}" Stroke="#C9D1E0" Width="24" Height="24" Visibility="{Binding Icono, Converter={StaticResource Visible}}">
                       <Path.LayoutTransform><ScaleTransform ScaleX="0.75" ScaleY="0.75" /></Path.LayoutTransform>
                     </Path>
-                    <TextBlock Text="{Binding Titulo}" Foreground="#E6EAF2" Margin="10,0,0,0" VerticalAlignment="Center" />
+                    <Ellipse Width="5" Height="5" Fill="{StaticResource Pincel.Acento}" Margin="4,0,0,0" VerticalAlignment="Center" Visibility="{Binding EsHija, Converter={StaticResource Visible}}" />
+                    <TextBlock Text="{Binding Titulo}" Foreground="#E6EAF2" Margin="10,0,0,0" VerticalAlignment="Center" FontWeight="{Binding Peso}" />
                   </StackPanel>
-                </Border>
-                <DataTemplate.Triggers>
-                  <DataTrigger Binding="{Binding Activa}" Value="True">
-                    <Setter TargetName="Fila" Property="Background" Value="{StaticResource Pincel.Acento}" />
-                  </DataTrigger>
-                  <DataTrigger Binding="{Binding Disponible}" Value="False">
-                    <Setter TargetName="Fila" Property="Opacity" Value="0.55" />
-                  </DataTrigger>
-                </DataTemplate.Triggers>
+                </Button>
               </DataTemplate>
             </ItemsControl.ItemTemplate>
           </ItemsControl>
@@ -94,28 +111,43 @@
                     ToolTip="Arrastra para cambiar el ancho del menú; doble clic o Ctrl+Mayús+M para ocultarlo o mostrarlo" />
 
       <!-- Área de trabajo con pestañas -->
-      <TabControl Grid.Column="2" Margin="0" Padding="0">
-        <TabItem Header="Inicio" ToolTip="Página de inicio">
-          <ScrollViewer VerticalScrollBarVisibility="Auto">
-            <StackPanel Margin="40,32" MaxWidth="1040" HorizontalAlignment="Left" TextElement.FontWeight="Normal">
-              <TextBlock x:Name="TextoSaludo" Style="{StaticResource Texto.TituloPantalla}" FontSize="30" />
-              <TextBlock x:Name="TextoContexto" Margin="0,8,0,0" TextWrapping="Wrap" />
-              <Border x:Name="AvisoCerrado" Margin="0,16,0,0" Padding="12,10" CornerRadius="6" Visibility="Collapsed"
-                      Background="{StaticResource Pincel.AvisoSuave}" BorderBrush="{StaticResource Pincel.AvisoBorde}" BorderThickness="1">
-                <TextBlock TextWrapping="Wrap" Text="Este ejercicio está cerrado: puedes consultarlo, pero no se admiten cambios en sus asientos." />
-              </Border>
-              <TextBlock Text="EN ESTA VERSIÓN" Style="{StaticResource Texto.SeccionAcceso}" Margin="0,28,0,10" />
-              <Border Style="{StaticResource Tarjeta}" Padding="18,14">
-                <TextBlock TextWrapping="Wrap" LineHeight="22">
-                  Esta entrega contiene el esqueleto técnico y los motores sin pantallas: configuración de datos y actualizador del esquema, organización,
-                  seguridad y acceso, terceros, cuentas contables, centros de coste y el motor de asientos. Las pantallas de cada área
-                  (Terceros, Facturación, Compras, Contabilidad…) llegarán en las próximas entregas; por eso el menú las muestra atenuadas.
-                </TextBlock>
-              </Border>
-            </StackPanel>
-          </ScrollViewer>
-        </TabItem>
-      </TabControl>
+      <DockPanel Grid.Column="2">
+        <Border DockPanel.Dock="Top" Background="{StaticResource Pincel.Fondo2}" BorderBrush="{StaticResource Pincel.Linea}" BorderThickness="0,0,0,1">
+          <ItemsControl x:Name="TiraPestanas" Focusable="False">
+            <ItemsControl.ItemsPanel>
+              <ItemsPanelTemplate><StackPanel Orientation="Horizontal" /></ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+            <ItemsControl.ItemTemplate>
+              <DataTemplate>
+                <Border x:Name="Pestana" BorderBrush="{StaticResource Pincel.Linea}" BorderThickness="0,0,1,0" Background="Transparent" Cursor="Hand" ToolTip="{Binding Ayuda}"
+                        MouseLeftButtonUp="Pestana_MouseLeftButtonUp" MouseDown="Pestana_MouseDown">
+                  <Grid>
+                    <Border x:Name="Marca" Height="2" VerticalAlignment="Top" Background="Transparent" />
+                    <StackPanel Orientation="Horizontal" Margin="12,8,8,8">
+                      <Path Style="{StaticResource Icono.Trazo12}" Data="{Binding Icono}" VerticalAlignment="Center" Margin="0,0,7,0" />
+                      <TextBlock x:Name="Texto" Text="{Binding Titulo}" VerticalAlignment="Center" MaxWidth="260" TextTrimming="CharacterEllipsis" Foreground="{StaticResource Pincel.Texto2}" />
+                      <Ellipse Width="7" Height="7" Fill="{StaticResource Pincel.Acento2}" Margin="7,0,0,0" VerticalAlignment="Center" Visibility="{Binding ConCambios, Converter={StaticResource Visible}}" />
+                      <Path Style="{StaticResource Icono.Trazo12}" Data="{StaticResource Icono.warn}" Margin="6,0,0,0" VerticalAlignment="Center" TextElement.Foreground="{StaticResource Pincel.RojoError}"
+                            Visibility="{Binding ConFallo, Converter={StaticResource Visible}}" />
+                      <Button Style="{StaticResource Boton.Aspa}" Command="{Binding CerrarCommand}" Margin="6,0,0,0" Visibility="{Binding Cerrable, Converter={StaticResource Visible}}"
+                              ToolTip="Cerrar la pestaña (si tiene cambios, pregunta antes)" AutomationProperties.Name="Cerrar pestaña" />
+                    </StackPanel>
+                  </Grid>
+                </Border>
+                <DataTemplate.Triggers>
+                  <DataTrigger Binding="{Binding Activa}" Value="True">
+                    <Setter TargetName="Pestana" Property="Background" Value="White" />
+                    <Setter TargetName="Marca" Property="Background" Value="{StaticResource Pincel.Acento2}" />
+                    <Setter TargetName="Texto" Property="Foreground" Value="{StaticResource Pincel.Marino}" />
+                    <Setter TargetName="Texto" Property="FontWeight" Value="SemiBold" />
+                  </DataTrigger>
+                </DataTemplate.Triggers>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </Border>
+        <Grid x:Name="AreaVistas" Background="White" />
+      </DockPanel>
     </Grid>
   </DockPanel>
 </Window>
