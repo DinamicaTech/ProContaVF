@@ -194,11 +194,11 @@ public sealed class DatoContactoVM : ParteFicha
     public bool EnvioFacturas { get => Dato.EnvioFacturas; set { if (value == Dato.EnvioFacturas) return; Dato.EnvioFacturas = value; Avisar(); Cambiado(nameof(EnvioFacturas)); } }
     public bool EnviosAdministrativos { get => Dato.EnviosAdministrativos; set { if (value == Dato.EnviosAdministrativos) return; Dato.EnviosAdministrativos = value; Avisar(); Cambiado(nameof(EnviosAdministrativos)); } }
 
-    /// <summary>Persona de contacto a la que pertenece (la opción «General» es null).</summary>
-    public GrupoContactoVM? Grupo
+    /// <summary>Persona de contacto a la que pertenece («General» si es de la organización).</summary>
+    public OpcionGrupo? Grupo
     {
-        get => Ficha.Grupos.FirstOrDefault(g => ReferenceEquals(g.Grupo, Dato.ContactoLibre));
-        set { if (ReferenceEquals(value?.Grupo, Dato.ContactoLibre)) return; Dato.ContactoLibre = value?.Grupo; Avisar(); Cambiado(nameof(Grupo)); }
+        get => Ficha.OpcionesGrupo.FirstOrDefault(o => ReferenceEquals(o.Grupo?.Grupo, Dato.ContactoLibre));
+        set { if (value is null || ReferenceEquals(value.Grupo?.Grupo, Dato.ContactoLibre)) return; Dato.ContactoLibre = value.Grupo?.Grupo; Avisar(); Cambiado(nameof(Grupo)); }
     }
 
     internal void RefrescarGrupo() => Avisar(nameof(Grupo));
@@ -483,7 +483,13 @@ public sealed class MovimientoVM(MovimientoHistorial m)
     public string Operador { get; } = m.Operador;
     public string Seccion { get; } = m.Entidad switch
     {
-        "Tercero" => "Identidad",
+        "Tercero" or "Terceros" => "Identidad",
+        "DomiciliosTercero" => "Domicilios",
+        "Clientes" => "Rol Cliente",
+        "Proveedores" => "Rol Proveedor",
+        "Contactos" => "Rol Contacto",
+        "PerfilesTerceros" => "Perfiles",
+        "RelacionesContactos" => "Relaciones",
         "DatosContacto" => "Contacto y domicilios",
         "Relacion" => "Relaciones",
         "Perfil" => "Perfiles",
@@ -512,3 +518,12 @@ public sealed record MarcaPestana(bool Cambios, bool Error)
 
 /// <summary>Título de una pestaña de la ficha con su número (si lo tiene) y su marca.</summary>
 public sealed record CabeceraPestana(string Texto, string? Numero, MarcaPestana Marca);
+
+/// <summary>Opción de la columna «Persona» de un email o teléfono: «General» o una persona de contacto.</summary>
+public sealed class OpcionGrupo(GrupoContactoVM? grupo)
+{
+    public static readonly OpcionGrupo General = new(null);
+    public GrupoContactoVM? Grupo { get; } = grupo;
+    public string Nombre => Grupo is null ? "General" : Grupo.ToString();
+    public override string ToString() => Nombre;
+}

@@ -26,12 +26,15 @@ public static class Paises
 
     public static bool EsEspana(string? codigo) => string.IsNullOrWhiteSpace(codigo) || codigo.Trim() is Espana or "ES" or "ESP";
 
+    private static readonly Dictionary<string, string> _alias = new(StringComparer.OrdinalIgnoreCase) { ["ES"] = "España", ["ESP"] = "España" };
+
     public static string Nombre(string? codigo) =>
         string.IsNullOrWhiteSpace(codigo) ? "" : Lista.FirstOrDefault(p => p.Valor == codigo.Trim())?.Texto ?? codigo.Trim();
 
     /// <summary>La lista con el código dado aunque no esté en ella (para no perder un país antiguo).</summary>
     public static IReadOnlyList<Opcion> ListaCon(string? codigo) =>
-        string.IsNullOrWhiteSpace(codigo) || Lista.Any(p => p.Valor == codigo.Trim()) ? Lista : [.. Lista, new Opcion(codigo.Trim(), $"Código {codigo.Trim()}")];
+        string.IsNullOrWhiteSpace(codigo) || Lista.Any(p => p.Valor == codigo.Trim()) ? Lista
+            : [.. Lista, new Opcion(codigo.Trim(), _alias.TryGetValue(codigo.Trim(), out var n) ? $"{n} ({codigo.Trim()})" : $"Código {codigo.Trim()}")];
 }
 
 /// <summary>Tipos de identificación y la etiqueta del campo según el tipo (maqueta: NIF, CIF, NIE, NIF-IVA, Nº pasaporte…).</summary>

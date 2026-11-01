@@ -288,7 +288,14 @@ public sealed class FichaTerceroVM : Observable, IPestanaTrabajo, INotifyDataErr
         {
             TipoPersona? nuevo = value switch { "fisica" => TipoPersona.Fisica, "juridica" => TipoPersona.Juridica, "entidad" => TipoPersona.EntidadSinPersonalidad, _ => T.TipoPersona };
             if (nuevo == T.TipoPersona) return;
+            // Una ficha antigua sin clasificar conserva su nombre en el campo que corresponde al tipo elegido.
+            if (T.TipoPersona is null && !string.IsNullOrWhiteSpace(T.Nombre))
+            {
+                if (nuevo == TipoPersona.Fisica && string.IsNullOrWhiteSpace(T.NombrePersona)) T.NombrePersona = T.Nombre.Trim();
+                if (nuevo is TipoPersona.Juridica or TipoPersona.EntidadSinPersonalidad && string.IsNullOrWhiteSpace(T.RazonSocial)) T.RazonSocial = T.Nombre.Trim();
+            }
             T.TipoPersona = nuevo;
+            Avisar(nameof(NombrePersona), nameof(RazonSocial));
             Avisar(nameof(TipoPersonaTexto), nameof(EsFisica), nameof(EsOrganizacion), nameof(SinClasificar), nameof(EsParticular), nameof(EsEmpresa), nameof(EsEntidad));
             CambiadoAqui(nameof(TipoPersona));
         }
@@ -300,7 +307,7 @@ public sealed class FichaTerceroVM : Observable, IPestanaTrabajo, INotifyDataErr
     public bool EsFisica => T.TipoPersona == TipoPersona.Fisica;
     public bool EsOrganizacion => T.TipoPersona is TipoPersona.Juridica or TipoPersona.EntidadSinPersonalidad;
     public bool SinClasificar => T.TipoPersona is null;
-    public string? NombreAntiguo => T.Nombre;
+    public string? NombreAntiguo { get => T.Nombre; set => Texto(T.Nombre, value, v => T.Nombre = v ?? "", nameof(NombreAntiguo)); }
 
     public IReadOnlyList<Opcion> TiposIdentificacion => Identificaciones.Lista.Any(o => o.Valor == (T.TipoIdentificacion ?? "").Trim().ToUpperInvariant()) || string.IsNullOrWhiteSpace(T.TipoIdentificacion)
         ? Identificaciones.Lista : [.. Identificaciones.Lista, new Opcion(T.TipoIdentificacion!.Trim(), T.TipoIdentificacion.Trim())];
@@ -371,7 +378,7 @@ public sealed class FichaTerceroVM : Observable, IPestanaTrabajo, INotifyDataErr
     public ObservableCollection<GrupoContactoVM> Grupos { get; } = [];
 
     /// <summary>Opciones de «Persona» de cada email o teléfono: General (null) y las personas de contacto.</summary>
-    public ObservableCollection<GrupoContactoVM?> OpcionesGrupo { get; } = [];
+    public ObservableCollection<OpcionGrupo> OpcionesGrupo { get; } = [];
 
     private IReadOnlyList<LineaDestinatarios> _destinatarios = [];
     public IReadOnlyList<LineaDestinatarios> Destinatarios { get => _destinatarios; private set => Fijar(ref _destinatarios, value); }
@@ -440,8 +447,8 @@ public sealed class FichaTerceroVM : Observable, IPestanaTrabajo, INotifyDataErr
     private void RefrescarOpcionesGrupo()
     {
         OpcionesGrupo.Clear();
-        OpcionesGrupo.Add(null);
-        foreach (var g in Grupos) OpcionesGrupo.Add(g);
+        OpcionesGrupo.Add(OpcionGrupo.General);
+        foreach (var g in Grupos) OpcionesGrupo.Add(new OpcionGrupo(g));
         foreach (var d in Emails.Concat(Telefonos)) d.RefrescarGrupo();
     }
 
@@ -698,7 +705,7 @@ public sealed class FichaTerceroVM : Observable, IPestanaTrabajo, INotifyDataErr
     {
         _errores = ValidacionFicha.Revisar(T, Domicilios).Concat(Partes().SelectMany(p => p.ErroresPropios())).Concat(_erroresGuardado).ToList();
         foreach (var p in Partes()) p.RefrescarErrores();
-        foreach (var c in new[] { "TipoPersona", nameof(NombrePersona), nameof(RazonSocial), nameof(Nif), "Nombre", nameof(EmailPrincipal) })
+        foreach (var c in new[] { "TipoPersona", nameof(NombrePersona), nameof(RazonSocial), nameof(Nif), nameof(NombreAntiguo), nameof(EmailPrincipal) })
             ErrorsChanged?.Invoke(this, new DataErrorsChangedEventArgs(c));
         if (_intentoGuardar) RellenarResumen();
         Avisar(nameof(Marcas), nameof(Cabeceras));
@@ -732,7 +739,7 @@ public sealed class FichaTerceroVM : Observable, IPestanaTrabajo, INotifyDataErr
     public event EventHandler<DataErrorsChangedEventArgs>? ErrorsChanged;
     public bool HasErrors => _errores.Any(e => ReferenceEquals(e.Objeto, T));
     public IEnumerable GetErrors(string? propertyName) =>
-        propertyName is not null && ErrorVisible(T, propertyName == nameof(EmailPrincipal) ? "Email" : propertyName) is { } e ? new[] { e } : Array.Empty<string>();
+        propertyName is not null && ErrorVisible(T, propertyName switch { nameof(EmailPrincipal) => "Email", nameof(NombreAntiguo) => "Nombre", _ => propertyName }) is { } e ? new[] { e } : Array.Empty<string>();
 
     public ObservableCollection<ErrorResumen> Resumen { get; } = [];
     public bool HayResumen => Resumen.Count > 0;

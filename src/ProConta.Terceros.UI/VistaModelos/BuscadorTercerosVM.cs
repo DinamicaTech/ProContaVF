@@ -132,9 +132,12 @@ public sealed class BuscadorTercerosVM : Observable, IPestanaTrabajo
     public bool Contactos { get => _contactos; set { if (Fijar(ref _contactos, value)) FiltroCambiado(); } }
     public bool IncluirInactivos { get => _inactivos; set { if (Fijar(ref _inactivos, value)) FiltroCambiado(); } }
 
-    public ObservableCollection<Perfil?> PerfilesDisponibles { get; } = [null];
+    /// <summary>Opción «Todos los perfiles» (no filtra).</summary>
+    public static readonly Perfil TodosLosPerfiles = new(0, "Todos los perfiles", null, true);
+
+    public ObservableCollection<Perfil> PerfilesDisponibles { get; } = [TodosLosPerfiles];
     private Perfil? _perfil;
-    public Perfil? PerfilElegido { get => _perfil; set { if (Fijar(ref _perfil, value)) FiltroCambiado(); } }
+    public Perfil PerfilElegido { get => _perfil ?? TodosLosPerfiles; set { if (Fijar(ref _perfil, value?.IdPerfil > 0 ? value : null)) FiltroCambiado(); } }
 
     private int _recClientes, _recProveedores, _recContactos;
     public int RecuentoClientes { get => _recClientes; private set => Fijar(ref _recClientes, value); }

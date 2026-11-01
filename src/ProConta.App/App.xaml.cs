@@ -59,6 +59,8 @@ public partial class App : Application
             }
             _sesion = acceso.Resultado.Sesion;
             PreferenciasPuesto.RecordarOperador(almacen, _sesion.NombreOperador);
+            // Columnas de las tablas y paneles se guardan por operador (ProConta.UI.Base).
+            UI.Base.Preferencias.PreferenciasOperador.Actual = new UI.Base.Preferencias.PreferenciasJson(_sesion.NombreOperador);
 
             var principal = new VentanaPrincipal(acceso.Resultado, ubicacion, compatible.Valor.VersionBd, bd);
             principal.Closed += (_, _) => Shutdown(0);

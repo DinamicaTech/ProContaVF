@@ -77,19 +77,8 @@
           <CheckBox IsChecked="{Binding Contactos}" VerticalAlignment="Center" Margin="0,0,14,0" ToolTip="Solo los terceros con el rol Contacto activo (se suma a los otros roles marcados)">
             <TextBlock><Run Text="Contactos" /><Run Text=" " /><Run Text="{Binding RecuentoContactos, Mode=OneWay}" Foreground="{StaticResource Pincel.Apagado}" /></TextBlock>
           </CheckBox>
-          <ComboBox ItemsSource="{Binding PerfilesDisponibles}" SelectedItem="{Binding PerfilElegido}" Width="220" VerticalAlignment="Center" Margin="0,0,14,0"
-                    ToolTip="Solo los terceros que tienen asignado este perfil">
-            <ComboBox.ItemTemplate>
-              <DataTemplate>
-                <TextBlock x:Name="T" Text="{Binding Nombre}" />
-                <DataTemplate.Triggers>
-                  <DataTrigger Binding="{Binding}" Value="{x:Null}">
-                    <Setter TargetName="T" Property="Text" Value="Todos los perfiles" />
-                  </DataTrigger>
-                </DataTemplate.Triggers>
-              </DataTemplate>
-            </ComboBox.ItemTemplate>
-          </ComboBox>
+          <ComboBox ItemsSource="{Binding PerfilesDisponibles}" SelectedItem="{Binding PerfilElegido}" DisplayMemberPath="Nombre" Width="220" VerticalAlignment="Center" Margin="0,0,14,0"
+                    ToolTip="Solo los terceros que tienen asignado este perfil" />
           <CheckBox Content="Incluir inactivos" IsChecked="{Binding IncluirInactivos}" VerticalAlignment="Center" ToolTip="Muestra también los terceros desactivados" />
         </WrapPanel>
       </DockPanel>
@@ -121,7 +110,7 @@
                     <TextBlock Text="{Binding Iniciales}" Style="{StaticResource Texto.Avatar}" />
                   </Border>
                   <StackPanel VerticalAlignment="Center">
-                    <TextBlock Text="{Binding Nombre}" FontWeight="SemiBold" />
+                    <TextBlock Text="{Binding Nombre}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
                     <StackPanel Orientation="Horizontal">
                       <TextBlock Text="{Binding NombreComercial}" FontSize="{StaticResource Letra.Pequena}" Foreground="{StaticResource Pincel.Apagado}" Margin="0,0,8,0" />
                       <Border Style="{StaticResource Insignia.Contacto}" Visibility="{Binding FichaAbierta, Converter={StaticResource Visible}}" ToolTip="La ficha de este tercero ya está abierta en una pestaña">

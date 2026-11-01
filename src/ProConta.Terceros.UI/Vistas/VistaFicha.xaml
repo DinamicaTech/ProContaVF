@@ -177,6 +177,13 @@
                 </StackPanel>
               </WrapPanel>
 
+              <WrapPanel Visibility="{Binding SinClasificar, Converter={StaticResource Visible}}">
+                <StackPanel Margin="0,0,14,12">
+                  <TextBlock Text="Nombre *" Style="{StaticResource Etiqueta.Campo}" />
+                  <TextBox Text="{Binding NombreAntiguo, UpdateSourceTrigger=PropertyChanged, ValidatesOnNotifyDataErrors=True}" Width="460" Tag="Nombre" MaxLength="200"
+                           ToolTip="Nombre de la ficha antigua. Al elegir el tipo de persona pasa al nombre o a la razón social" />
+                </StackPanel>
+              </WrapPanel>
               <WrapPanel Visibility="{Binding EsFisica, Converter={StaticResource Visible}}">
                 <StackPanel Margin="0,0,14,12">
                   <TextBlock Text="Nombre *" Style="{StaticResource Etiqueta.Campo}" />
@@ -245,7 +252,7 @@
                           </StackPanel>
                           <StackPanel Margin="0,0,10,0">
                             <TextBlock Text="CP" Style="{StaticResource Etiqueta.Campo}" />
-                            <TextBox x:Name="CodigoPostal" Text="{Binding CodigoPostal, UpdateSourceTrigger=PropertyChanged, ValidatesOnNotifyDataErrors=True}" Width="90" Style="{StaticResource Campo.Mono}"
+                            <TextBox x:Name="CodigoPostal" Text="{Binding CodigoPostal, UpdateSourceTrigger=PropertyChanged, ValidatesOnNotifyDataErrors=True}" Width="112" Style="{StaticResource Campo.Mono}"
                                      MaxLength="10" Tag="CodigoPostal" TextChanged="CodigoPostal_TextChanged"
                                      ToolTip="Código postal. En España (5 dígitos) fija la provincia y, si corresponde a una sola población, también la población" />
                           </StackPanel>
@@ -261,7 +268,7 @@
                           </StackPanel>
                           <StackPanel>
                             <TextBlock Text="Vía y número" Style="{StaticResource Etiqueta.Campo}" />
-                            <TextBox x:Name="Via" Text="{Binding Direccion, UpdateSourceTrigger=PropertyChanged, ValidatesOnNotifyDataErrors=True}" Width="480" MaxLength="255" Tag="Direccion"
+                            <TextBox x:Name="Via" Text="{Binding Direccion, UpdateSourceTrigger=PropertyChanged, ValidatesOnNotifyDataErrors=True}" Width="440" MaxLength="255" Tag="Direccion"
                                      ToolTip="Calle, número, piso y puerta" />
                           </StackPanel>
                         </WrapPanel>
@@ -318,15 +325,8 @@
                       <CheckBox Grid.Column="2" IsChecked="{Binding Activo}" HorizontalAlignment="Center" ToolTip="Una dirección inactiva se conserva, pero no recibe envíos" />
                       <CheckBox Grid.Column="3" IsChecked="{Binding EnvioFacturas}" HorizontalAlignment="Center" ToolTip="Recibe las facturas que se envían por email" />
                       <CheckBox Grid.Column="4" IsChecked="{Binding EnviosAdministrativos}" HorizontalAlignment="Center" ToolTip="Recibe las comunicaciones administrativas (recordatorios, certificados…)" />
-                      <ComboBox Grid.Column="5" Margin="10,0,0,0" ItemsSource="{Binding DataContext.OpcionesGrupo, RelativeSource={RelativeSource AncestorType=UserControl}}" SelectedItem="{Binding Grupo}"
-                                ToolTip="Persona de contacto a la que pertenece esta dirección; «General» si es de la organización">
-                        <ComboBox.ItemTemplate>
-                          <DataTemplate>
-                            <TextBlock x:Name="T" Text="{Binding Nombre}" />
-                            <DataTemplate.Triggers><DataTrigger Binding="{Binding}" Value="{x:Null}"><Setter TargetName="T" Property="Text" Value="General" /></DataTrigger></DataTemplate.Triggers>
-                          </DataTemplate>
-                        </ComboBox.ItemTemplate>
-                      </ComboBox>
+                      <ComboBox Grid.Column="5" Margin="10,0,0,0" ItemsSource="{Binding DataContext.OpcionesGrupo, RelativeSource={RelativeSource AncestorType=UserControl}}" SelectedItem="{Binding Grupo}" DisplayMemberPath="Nombre"
+                                ToolTip="Persona de contacto a la que pertenece esta dirección; «General» si es de la organización" />
                       <StackPanel Grid.Column="6" Orientation="Horizontal" Margin="8,0,0,0">
                         <Button Style="{StaticResource Boton.Icono}" pc:Iconos.Icono="{StaticResource Icono.send}" IsEnabled="False" ToolTipService.ShowOnDisabled="True"
                                 ToolTip="{Binding DataContext.AyudaEnviarEmail, RelativeSource={RelativeSource AncestorType=UserControl}}" AutomationProperties.Name="Enviar email" />
@@ -400,15 +400,8 @@
                       <TextBox Text="{Binding Etiqueta, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,8,0" MaxLength="100" ToolTip="Para qué es este número (Centralita, Taller, Móvil…)" />
                       <TextBox Grid.Column="1" Text="{Binding Valor, UpdateSourceTrigger=PropertyChanged, ValidatesOnNotifyDataErrors=True}" Tag="Valor" MaxLength="254" ToolTip="{Binding AyudaValor}" />
                       <CheckBox Grid.Column="2" IsChecked="{Binding Activo}" HorizontalAlignment="Center" ToolTip="Un número inactivo se conserva, pero no se propone" />
-                      <ComboBox Grid.Column="3" Margin="10,0,0,0" ItemsSource="{Binding DataContext.OpcionesGrupo, RelativeSource={RelativeSource AncestorType=UserControl}}" SelectedItem="{Binding Grupo}"
-                                ToolTip="Persona de contacto a la que pertenece este número; «General» si es de la organización">
-                        <ComboBox.ItemTemplate>
-                          <DataTemplate>
-                            <TextBlock x:Name="T" Text="{Binding Nombre}" />
-                            <DataTemplate.Triggers><DataTrigger Binding="{Binding}" Value="{x:Null}"><Setter TargetName="T" Property="Text" Value="General" /></DataTrigger></DataTemplate.Triggers>
-                          </DataTemplate>
-                        </ComboBox.ItemTemplate>
-                      </ComboBox>
+                      <ComboBox Grid.Column="3" Margin="10,0,0,0" ItemsSource="{Binding DataContext.OpcionesGrupo, RelativeSource={RelativeSource AncestorType=UserControl}}" SelectedItem="{Binding Grupo}" DisplayMemberPath="Nombre"
+                                ToolTip="Persona de contacto a la que pertenece este número; «General» si es de la organización" />
                       <Button Grid.Column="4" Margin="8,0,0,0" Style="{StaticResource Boton.Icono}" pc:Iconos.Icono="{StaticResource Icono.trash}" Command="{Binding QuitarCommand}" ToolTip="Quita este número (al guardar la ficha)" />
                     </Grid>
                   </DataTemplate>
