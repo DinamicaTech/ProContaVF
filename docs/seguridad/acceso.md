@@ -1,6 +1,5 @@
 ---
 title: Acceso y sesión
-status: draft
 depends_on: [seguridad/permisos, organizacion/sociedades-ejercicios, datos/esquema, datos/persistencia]
 threads:
   - 2026-10-28 12:30 · Carga de requisitos | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GRNMH95h9tnQp4dmEPHmw1w
@@ -19,6 +18,7 @@ Autenticación en cuatro fases (usuario, contraseña, empresa, ejercicio) y sesi
 - 2026-10-31 19:02 · De momento se trabaja sin contraseñas: un operador sin contraseña entra con la contraseña vacía, como en el programa anterior, sin que se le pida definir una al entrar; la sesión conserva internamente la marca `SinContrasena`. Un operador con contraseña nunca entra con la contraseña vacía.
 - 2026-11-01 09:30 · Flujo de la pantalla de acceso: el bloque «Dónde quieres trabajar» (sociedad y ejercicio) está oculto hasta que el operador y la contraseña son correctos. Se comprueban al salir de la contraseña (Tab), con Intro en la contraseña o con el botón, que se llama «Entrar» desde el principio. Si son correctos, aparecen la sociedad y el ejercicio con la última elección del operador propuesta y el foco en «Entrar»; Intro (o clic) entra. Un operador sin contraseña elegido de la lista entra al elegirlo (`AutenticarSinContrasenaAsync`, que no registra ningún intento fallido si el operador tiene contraseña). No se comprueba a cada pulsación. Si falla, mensaje genérico y el bloque sigue oculto.
 - 2026-11-01 09:30 · Parámetro general de seguridad «Mostrar la lista de operadores en el acceso», activado por defecto, guardado en negativo como Configuracion.OcultarListaOperadoresAcceso (migración 20261101_0925_LISTA_OPERADORES_ACCESO, esquema versión 7): con la lista, un desplegable con los operadores activos; sin ella, se escribe el nombre. En los dos casos, cada puesto recuerda el último operador que entró (configuración local) y lo propone.
+- 2026-11-01 09:31 · Validado por el propietario (desarrollos base).
 
 ## Requirements
 - 2026-10-28 12:28 · From sources/01_ESPECIFICACION_FUNCIONAL.docx § 5 RF-SEG-01, 02, 05, 06: cuatro fases, preferencias de empresa/ejercicio, sesión sin credenciales, hash PBKDF2

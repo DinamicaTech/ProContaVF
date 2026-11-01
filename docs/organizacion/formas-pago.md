@@ -1,6 +1,5 @@
 ---
 title: Formas de pago
-status: draft
 depends_on: [datos/esquema, datos/persistencia]
 threads:
   - 2026-10-28 12:30 · Carga de requisitos | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GRNMH95h9tnQp4dmEPHmw1w
@@ -18,6 +17,7 @@ Catálogo de formas de pago, del que cuelgan las cuentas de proveedor/acreedor d
 - 2026-10-31 18:55 · Alta con el siguiente código libre (hasta 255) dentro de transacción; descripción obligatoria, de hasta 100 caracteres y sin repetir. La baja se rechaza, diciendo dónde, si la usan facturas, contratos o la forma de pago por defecto de sociedades o ejercicios. Las descripciones pueden repetirse (0 y 1 se llaman «Indefinida»).
 - 2026-10-31 19:02 · SEPA validado por el propietario: solo 110 «Recibo domiciliado» y 125 «Domiciliación proveedor».
 - 2026-10-31 19:02 · El código 1, que usan 2 facturas y la forma de pago por defecto de las sociedades y sus ejercicios, se da de alta como «Indefinida» (SEPA no) y se restauran las relaciones de Facturas.FormaDePago y Contratos.FormaDePago con FormasPago (migración 20261031_1910_FORMA_PAGO_INDEFINIDA, con comprobación previa de que no quedan códigos sin forma de pago). Sustituye a la decisión 19:55 de no recrearlas.
+- 2026-11-01 09:31 · Validado por el propietario (desarrollos base).
 
 ## Requirements
 - 2026-10-28 12:28 · From sources/01_ESPECIFICACION_FUNCIONAL.docx § 29 P-02: propietario de formas de pago

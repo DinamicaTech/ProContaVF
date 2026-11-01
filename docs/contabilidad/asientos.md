@@ -1,6 +1,5 @@
 ---
 title: Motor de asientos
-status: draft
 depends_on: [contabilidad/cuenta-contable, contabilidad/centros-coste]
 threads:
   - 2026-10-28 12:30 · Carga de requisitos | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GRNMH95h9tnQp4dmEPHmw1w
@@ -19,6 +18,7 @@ Motor común que valida y guarda asientos como agregado atómico con cuadre, aud
 - 2026-10-31 19:15 · Asientos automáticos: llevan la identidad de su lote (motor propietario, proceso y clave de ejecución, columnas nuevas de Asientos). `ReemplazarLoteAsync` borra los del lote y guarda los nuevos en una transacción (regenerar no duplica; si uno falla, no se guarda ninguno y queda lo anterior). La vía manual (guardar, borrar, cambiar cuenta) rechaza los automáticos.
 - 2026-10-31 19:15 · Auditoría: cada alta, modificación o lote escribe una revisión en RevisionesAsientos con la instantánea JSON anterior y la resultante; modificar o borrar exige motivo. Cada cambio de apunte (ALTA, BAJA o MODIFICACION de cada campo, comparando por orden) va a la tabla nueva RegistroCambiosApuntes con valor anterior y nuevo, operador y motivo, y un IdLote común a toda la operación (por ejemplo, un cambio de cuenta de varios apuntes). Al borrar un asiento se borran sus revisiones y relaciones, y la traza queda en RegistroCambiosApuntes.
 - 2026-10-31 19:15 · Concurrencia optimista con Asientos.Version. La caché de saldos (SaldoActual y NumeroApuntes) de las cuentas afectadas se recalcula en la misma transacción. EstadoAsiento se guarda siempre como contabilizado: no hay borradores descuadrados.
+- 2026-11-01 09:31 · Validado por el propietario (desarrollos base).
 
 ## Requirements
 - 2026-10-28 12:28 · From sources/01_ESPECIFICACION_FUNCIONAL.docx § 15 RF-ASI-01..03: agregado atómico, cuadre, automáticos regenerables por su lote

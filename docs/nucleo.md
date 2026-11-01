@@ -1,6 +1,5 @@
 ---
 title: Núcleo común
-status: draft
 depends_on: []
 threads:
   - 2026-10-28 12:30 · Carga de requisitos | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GRNMH95h9tnQp4dmEPHmw1w
@@ -17,6 +16,7 @@ Tipos compartidos por todas las áreas, en la biblioteca `src/ProConta.Nucleo`: 
 2026-10-31 18:02 · ContextoSociedadEjercicio lleva el código permanente de la sociedad (texto), la clave de su instancia anual y el año; lo construye y valida organizacion/sociedades-ejercicios.
 2026-10-31 18:02 · Los errores recuperables se devuelven como `Resultado`/`Resultado<T>` con uno o varios `Error` (código estable, mensaje en primera persona, registro afectado, causa, acción correctora y detalle técnico sin secretos); las excepciones quedan para fallos de programación o técnicos.
 2026-10-31 18:02 · La auditoría se expresa con `MarcaAuditoria` (actor, instante local, operación, contexto, correlación) y un reloj inyectable (`IReloj`) para las pruebas.
+- 2026-11-01 09:31 · Validado por el propietario (desarrollos base).
 
 ## Requirements
 - 2026-10-28 12:28 · From sources/01_ESPECIFICACION_FUNCIONAL.docx § 27 RF-TEC-02: convenciones de código (adaptadas a C# en architecture)

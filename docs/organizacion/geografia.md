@@ -1,6 +1,5 @@
 ---
 title: Geografía
-status: draft
 depends_on: [datos/esquema, datos/persistencia]
 threads:
   - 2026-10-28 12:30 · Carga de requisitos | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GRNMH95h9tnQp4dmEPHmw1w
@@ -16,6 +15,7 @@ Países, provincias, poblaciones y códigos postales deducidos solo de los domic
 - 2026-10-31 16:54 · El catálogo geográfico se carga solo con los datos de la BD actual (sin importar el INE); la dirección física es cada vez más irrelevante, así que se mantiene lo más simple posible.
 - 2026-10-31 18:55 · La maestra no tiene ninguna tabla geográfica (F_CDP, que lo parecía, es el catálogo de centros de coste del ERP). El catálogo se deduce, en solo lectura, de las combinaciones país/CP/provincia/población de Terceros y DomiciliosTercero; no se crea tabla ni se importa nada. Es la única lectura directa de tablas de terceros fuera de su dueño, y no escribe.
 - 2026-10-31 18:55 · Se agrupan sin distinguir mayúsculas ni espacios repetidos y se muestra la forma escrita más frecuente (a igualdad, la que no está toda en mayúsculas). Un CP con una sola provincia la propone y, dentro de ella, la población si es única; con varias se deja elegir; sin correspondencia no se propone nada.
+- 2026-11-01 09:31 · Validado por el propietario (desarrollos base).
 
 ## Requirements
 - 2026-10-28 12:28 · From sources/01_ESPECIFICACION_FUNCIONAL.docx § 7 RF-TER-05: orden y autocompletado del domicilio; catálogo geográfico pendiente

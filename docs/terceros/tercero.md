@@ -1,6 +1,5 @@
 ---
 title: Tercero
-status: draft
 depends_on: [datos/esquema, datos/persistencia, nucleo, organizacion/geografia]
 threads:
   - 2026-10-28 12:30 · Carga de requisitos | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GRNMH95h9tnQp4dmEPHmw1w
@@ -17,6 +16,7 @@ Ente Tercero: identidad estable (IdTercero) de persona física, jurídica o enti
 - 2026-10-31 19:05 · El NIF español (identificación vacía, NIF, CIF, NIE o DNI) se valida con nucleo solo al dar de alta o al cambiarlo, para que un NIF antiguo mal escrito no impida guardar otros cambios; otras identificaciones (VAT, pasaporte…) no se validan.
 - 2026-10-31 19:05 · Concurrencia optimista con la nueva columna Terceros.Version (migración 20261031_1905_TERCEROS_VERSION; las filas existentes empiezan en 0). Guardar sustituye los domicilios adicionales, los contactos libres y los datos de contacto por los de la ficha en la misma transacción.
 - 2026-10-31 19:05 · Historial: cada guardado escribe en HistorialTerceros una fila por campo cambiado (operación ALTA o MODIFICACION, valor antiguo y nuevo, operador e identificador de operación común) y una fila resumen si cambian los datos de contacto o los domicilios.
+- 2026-11-01 09:31 · Validado por el propietario (desarrollos base).
 
 ## Requirements
 - 2026-10-28 12:28 · From sources/01_ESPECIFICACION_FUNCIONAL.docx § 7 RF-TER-01, 02, 06: identidad, tipos de persona, domicilios

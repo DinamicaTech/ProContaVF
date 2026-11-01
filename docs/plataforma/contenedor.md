@@ -1,6 +1,5 @@
 ---
 title: Contenedor principal
-status: draft
 depends_on: [plataforma/ui-base, seguridad/acceso]
 threads:
   - 2026-10-28 12:30 · Carga de requisitos | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GRNMH95h9tnQp4dmEPHmw1w
@@ -18,6 +17,7 @@ Aplicación principal (UI-PRINCIPAL): cabecera con empresa, ejercicio y operador
 - 2026-10-31 19:30 · Arranque de ProContaVF.exe: resuelve la BD con plataforma/configuracion (argumento `--bd`, variable PROCONTA_BD o configuración del puesto); si no hay o no vale, explica el motivo y ofrece «Elegir base de datos…» (cancelar no cambia nada y la elegida se guarda en el perfil del usuario); comprueba que el esquema es el del programa y, si no, explica qué hacer y sale sin migrar nada; si la BD no tiene operadores, abre el asistente del primer administrador; después, la pantalla de acceso y la ventana principal.
 - 2026-10-31 19:30 · Ventana principal: cabecera azul marino con la marca, la sociedad y el ejercicio de trabajo y el operador; navegación lateral con las áreas del menú (las que aún no tienen pantallas se ven atenuadas con un tooltip que lo explica); separador arrastrable entre menú y área de trabajo, que con doble clic o Ctrl+Mayús+M oculta o muestra el menú y queda siempre visible; pestaña Inicio con el saludo, el contexto (avisa si el ejercicio está cerrado) y lo que contiene la versión; barra de estado siempre visible con la BD conectada (ruta completa en el tooltip), la versión del esquema y la versión del programa (InformationalVersion).
 - 2026-10-31 19:30 · Al salir se cierra la sesión y el proceso termina con `BaseDatosAccess.TerminarProceso`, para evitar el fallo del ACE de Office al descargarse (datos/persistencia).
+- 2026-11-01 09:31 · Validado por el propietario (desarrollos base).
 
 ## Requirements
 - 2026-10-28 12:28 · From sources/01_ESPECIFICACION_FUNCIONAL.docx § 6 RF-UI-01, 04, 05, 07: contenedor, avisos técnicos discretos, ciclo de vida de fichas y rendimiento

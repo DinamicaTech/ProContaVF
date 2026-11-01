@@ -1,6 +1,5 @@
 ---
 title: Cuenta contable
-status: draft
 depends_on: [datos/esquema, datos/persistencia, organizacion/sociedades-ejercicios]
 threads:
   - 2026-10-28 12:30 · Carga de requisitos | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GRNMH95h9tnQp4dmEPHmw1w
@@ -15,6 +14,7 @@ Ente CuentaContable: identidad permanente (IdentidadesContables) y cuenta por ej
 - 2026-10-31 19:05 · Se resuelve siempre por ejercicio y código exacto (índice único existente UX_Cuentas_EjercicioCodigo); una cuenta inexistente, inactiva, bloqueada o no imputable no recibe apuntes y el error dice por qué.
 - 2026-10-31 19:05 · Alta: código solo con cifras (hasta 30) y nombre de hasta 150; crea en una transacción la identidad, la cuenta del ejercicio y la reserva del código en CodigosContablesReservados. Un código reservado por otra identidad de la sociedad no se reutiliza en otro ejercicio para una cuenta nueva: la misma cuenta se copiará entre ejercicios (pendiente). La cuenta padre debe ser del mismo ejercicio.
 - 2026-10-31 19:05 · Caché de saldos: `ReconstruirSaldosAsync` recalcula SaldoActual (SaldoInicial + debe − haber) y NumeroApuntes de las cuentas del ejercicio a partir de sus apuntes, que guardan el código de la cuenta.
+- 2026-11-01 09:31 · Validado por el propietario (desarrollos base).
 
 ## Requirements
 - 2026-10-28 12:28 · Y, por supuesto, hay que encapsular los diferentes 'entes' que aparecen en el proyecto (CuentaContable, Tercero -> Cliente/Proveedor/Asociacion/Particular..., FacturaCompra, FacturaVenta, etc.).

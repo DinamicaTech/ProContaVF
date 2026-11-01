@@ -1,6 +1,5 @@
 ---
 title: Configuración global
-status: draft
 depends_on: [datos/esquema]
 threads:
   - 2026-10-28 12:30 · Carga de requisitos | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GRNMH95h9tnQp4dmEPHmw1w
@@ -17,6 +16,7 @@ Resolutor único de la ubicación de datos y de la ruta exacta de la BD (CFG-GLO
 - 2026-10-31 18:40 · La configuración local es `%LocalAppData%\ProContaVF\configuracion.json` (solo la ruta de la BD, nunca secretos), escrita de forma atómica. Elegir una BD primero la valida (`ValidarSeleccion`) y solo se guarda al confirmar (`GuardarSeleccion`): cancelar no cambia nada. Una configuración dañada se informa y no se borra.
 - 2026-10-31 18:40 · Al arrancar, `ComprobadorArranque` abre la BD en solo lectura y usa el diagnóstico de datos/esquema: solo una BD actualizada es compatible; con pendientes indica ejecutar el ActualizadorEsquema; más nueva, parcial o ajena se rechaza con su motivo. Nunca crea ni migra una BD.
 - 2026-11-01 09:30 · La configuración local del puesto guarda también el último operador que entró (`UltimoOperador`), que el acceso propone; elegir otra BD lo conserva y recordarlo no borra la ubicación de datos.
+- 2026-11-01 09:31 · Validado por el propietario (desarrollos base).
 
 ## Requirements
 - 2026-10-28 12:28 · From sources/01_ESPECIFICACION_FUNCIONAL.docx § 4 RF-CFG-01..05: resolutor único, precedencia de fuentes, configuración fuera de Access, comprobación de esquema al arrancar

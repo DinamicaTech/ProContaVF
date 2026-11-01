@@ -1,6 +1,5 @@
 ---
 title: Entrega y calidad
-status: draft
 depends_on: [architecture]
 threads:
   - 2026-10-28 12:30 · Carga de requisitos | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GRNMH95h9tnQp4dmEPHmw1w
@@ -20,7 +19,8 @@ En la raíz del repositorio: `compilar.cmd` compila `ProContaVF.slnx` en Release
 2026-10-31 18:02 · Comandos de entrega en la raíz: `compilar.cmd` (`dotnet build ProContaVF.slnx -c Release -p:Platform=x64`) y `probar.cmd` (compila y ejecuta todas las pruebas; con el argumento `sinbd` excluye las de la categoría `Access`).
 2026-10-31 18:02 · InformationalVersion calculada desde git en cada compilación (`Directory.Build.targets`): `ProContaVF-<rama>.<número de commits>+<sha corto>`, con «/» de la rama cambiada por «-»; sin git queda `ProContaVF-local`. Cumple el formato `<producto>-<rama>.<secuencia>` de RF-TEC-06 y añade el commit.
 2026-10-31 18:02 · Las pruebas que tocan Access llevan `[Trait("Categoria","Access")]` y trabajan siempre sobre una copia de la BD en una carpeta temporal, nunca sobre el original.
-- 2026-10-31 19:30 · `ejecutar.cmd` en la raíz abre ProContaVF.exe (lo compila si no existe) y pasa sus argumentos, por ejemplo `--bd "<ruta del accdb>"`. La versión de entrega se ve en la pantalla de acceso y en la barra de estado de la ventana principal.
+- 2026-10-31 19:30 · `ejecutar.cmd` en la raíz abre ProContaVF.exe sin necesidad de compilar antes (si no está compilado, lo compila; las entregas se dejan ya compiladas en la carpeta) y pasa sus argumentos, por ejemplo `--bd "<ruta del accdb>"`. La versión de entrega se ve en la pantalla de acceso y en la barra de estado de la ventana principal.
+- 2026-11-01 09:31 · Validado por el propietario (desarrollos base).
 
 ## Requirements
 - 2026-10-28 12:28 · From sources/01_ESPECIFICACION_FUNCIONAL.docx § 27 RF-TEC-04..07: pruebas sin efectos externos, backups con ensayo de restauración, entregas versionadas, compilación completa

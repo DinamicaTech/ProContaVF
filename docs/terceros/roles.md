@@ -1,6 +1,5 @@
 ---
 title: Roles del tercero
-status: draft
 depends_on: [terceros/tercero, contabilidad/cuenta-contable, organizacion/formas-pago]
 threads:
   - 2026-10-28 12:30 · Carga de requisitos | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GRNMH95h9tnQp4dmEPHmw1w
@@ -20,6 +19,7 @@ Roles opcionales de una identidad (Cliente, Proveedor, Contacto…) con IDs func
 - 2026-10-31 16:54 · Proveedor/Acreedor: el rol Proveedor tiene dos cuentas opcionales (proveedor y acreedor) por sociedad y ejercicio; no son dos roles (resuelve P-04).
 - 2026-10-31 19:05 · Alta de rol idempotente: si el tercero ya tiene el rol se devuelve su ID (y se reactiva si estaba inactivo). IdCliente no es autonumérico (conserva los números del ERP): el nuevo es el siguiente libre dentro de la transacción; IdProveedor e IdContacto son autonuméricos.
 - 2026-10-31 19:05 · Cuentas por rol y ejercicio en CuentasClientesEjercicio y CuentasProveedoresEjercicio; se lee la predeterminada (EsPredeterminada) del ejercicio del contexto y solo se asigna una cuenta de ese mismo ejercicio. El Contacto no tiene cuenta.
+- 2026-11-01 09:31 · Validado por el propietario (desarrollos base).
 
 ## Requirements
 - 2026-10-28 12:28 · From sources/01_ESPECIFICACION_FUNCIONAL.docx § 7 RF-TER-03, 04: roles idempotentes y cuentas por rol y sociedad/ejercicio
