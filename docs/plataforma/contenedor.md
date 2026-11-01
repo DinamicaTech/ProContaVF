@@ -5,6 +5,7 @@ threads:
   - 2026-10-28 12:30 · Carga de requisitos | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GRNMH95h9tnQp4dmEPHmw1w
   - 2026-10-29 10:15 · Validar prototipos de pantallas principales | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GGPu88XoVeXWyHsuxbrF2kK
   - 2026-10-31 19:30 · Desarrollos base | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GPQZwFm28U4vq3sQdopN45C
+  - 2026-11-01 10:46 · Desarrollar la pantalla de Terceros | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GVR2rh2hJF6h9BMYjKSu8jn
 ---
 ## Summary
 Aplicación principal (UI-PRINCIPAL): cabecera con empresa, ejercicio y operador, navegación lateral plegable, búsqueda de pantallas y acciones, área de trabajo con pestañas y gestión de cambios pendientes al cambiar de ficha o contexto. Primera versión en `src/ProConta.App` (ejecutable ProContaVF.exe; `ejecutar.cmd` en la raíz): arranque con resolución de la BD y comprobación del esquema, asistente del primer administrador, pantalla de acceso y ventana principal con la cabecera, la navegación (solo Inicio activo), la pestaña Inicio y la barra de estado con la BD, la versión del esquema y la versión del programa.
@@ -18,6 +19,10 @@ Aplicación principal (UI-PRINCIPAL): cabecera con empresa, ejercicio y operador
 - 2026-10-31 19:30 · Ventana principal: cabecera azul marino con la marca, la sociedad y el ejercicio de trabajo y el operador; navegación lateral con las áreas del menú (las que aún no tienen pantallas se ven atenuadas con un tooltip que lo explica); separador arrastrable entre menú y área de trabajo, que con doble clic o Ctrl+Mayús+M oculta o muestra el menú y queda siempre visible; pestaña Inicio con el saludo, el contexto (avisa si el ejercicio está cerrado) y lo que contiene la versión; barra de estado siempre visible con la BD conectada (ruta completa en el tooltip), la versión del esquema y la versión del programa (InformationalVersion).
 - 2026-10-31 19:30 · Al salir se cierra la sesión y el proceso termina con `BaseDatosAccess.TerminarProceso`, para evitar el fallo del ACE de Office al descargarse (datos/persistencia).
 - 2026-11-01 09:31 · Validado por el propietario (desarrollos base).
+- 2026-11-01 10:46 · Pestañas de trabajo: la entrada «Datos maestros › Terceros» del menú abre la primera pantalla de área. Las pestañas se cierran con su aspa, clic central o Ctrl+F4 y muestran un punto si tienen cambios y un triángulo si falló el guardado. Al cerrar una con cambios se ofrece Guardar y cerrar, Descartar cambios y cerrar o Seguir editando; al salir, Guardar todo y salir, Salir sin guardar o Seguir trabajando. Ctrl+G y Ctrl+S guardan la pestaña activa. La barra de estado muestra las pantallas abiertas, cuántas tienen cambios y avisos breves.
+- 2026-11-01 10:46 · Máximo 5 fichas de terceros abiertas: la sexta sustituye, en su posición, a la abierta hace más tiempo sin cambios; si todas tienen cambios, avisa y ofrece ir a la más antigua.
+- 2026-11-01 10:46 · Las pantallas se integran con el contrato `IPestanaTrabajo`/`IAnfitrionPestanas` de plataforma/ui-base; al entrar se fijan las preferencias del operador (columnas y paneles).
+- 2026-11-01 15:48 · Validado por el propietario (pantalla de Terceros y revisión 1).
 
 ## Requirements
 - 2026-10-28 12:28 · From sources/01_ESPECIFICACION_FUNCIONAL.docx § 6 RF-UI-01, 04, 05, 07: contenedor, avisos técnicos discretos, ciclo de vida de fichas y rendimiento
@@ -30,6 +35,8 @@ Aplicación principal (UI-PRINCIPAL): cabecera con empresa, ejercicio y operador
 - 2026-10-30 14:59 · La idea será poder hacer un undock del visualizador de PDF para poderlo mover a la segunda pantalla a full screen y así ganar todo ese espacio como más anchura de la lista de ficheros.
 - 2026-10-31 11:20 · Derived from (root): la navegación del contenedor da acceso a todas las funciones del menú principal antiguo que se conservan (sources/proconta-antiguo/menu-principal/ANALISIS-FUNCIONAL.md § 2, con el reparto por nodo de la decisión de la raíz de 2026-10-29 17:50); los procesos que generan asientos se lanzan como acciones con permiso propio.
 - 2026-10-31 17:53 · Derived from architecture: el contenedor WPF ejecutable con la pantalla de acceso, que muestra su versión; es el punto de validación de los desarrollos base.
+- 2026-11-01 10:46 · Derived from terceros/pantallas: pestañas de ficha con cambios pendientes y límite de fichas abiertas.
 
 ## Hand-over
 - 2026-10-31 19:30 · Hecho: ejecutable con arranque, primer administrador, acceso y ventana principal; revisado renderizando las ventanas fuera de pantalla contra una copia de la maestra en la versión 6. Pendiente (próximas entregas): búsqueda «Ir a», pestañas de pantallas con cambios pendientes, cambio de sociedad o ejercicio sin volver a entrar, franja de iconos por debajo de 150 px y posición del separador guardada por operador, barra de título propia de la maqueta, doble pantalla y el resto del catálogo de atajos.
+- 2026-11-01 10:46 · Hecho: pestañas de trabajo con cambios pendientes y la entrada de Terceros. Pendiente: cambio de sociedad y ejercicio sin salir y búsqueda de pantallas y acciones.

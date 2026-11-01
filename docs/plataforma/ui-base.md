@@ -4,6 +4,7 @@ depends_on: [plataforma/contenedor, terceros/pantallas, norma43/pantallas, factu
 threads:
   - 2026-10-28 12:30 · Carga de requisitos | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GRNMH95h9tnQp4dmEPHmw1w
   - 2026-10-29 10:15 · Validar prototipos de pantallas principales | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GGPu88XoVeXWyHsuxbrF2kK
+  - 2026-11-01 10:46 · Desarrollar la pantalla de Terceros | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GVR2rh2hJF6h9BMYjKSu8jn
 ---
 ## Summary
 Estilos, recursos y componentes WPF compartidos: tipografía, colores, separaciones, pestañas, listas, estados, botones, foco, validaciones y ayudas. Fija el ancho de campo según contenido y las pautas de accesibilidad. La voz de los mensajes al operador está en su hijo plataforma/ui-base/mensajes.
@@ -33,6 +34,8 @@ Dirigió la validación de los prototipos HTML de las pantallas principales (con
 - 2026-10-31 10:57 · El botón principal conserva su fondo oscuro al pasar el ratón (un azul algo más claro): cada variante de botón fija sus colores de ratón encima y pulsado, para que el texto siempre se lea.
 
 - 2026-11-01 09:35 · Los mensajes al operador siguen la guía de voz de plataforma/ui-base/mensajes (tono cercano e informal pero neutro, sin humor de serie), que sustituye a la guía `MENSAJES.md` del proyecto antiguo.
+- 2026-11-01 10:46 · La biblioteca publica el contrato de pestaña de trabajo (`IPestanaTrabajo`, `IAnfitrionPestanas`: título, cambios pendientes, guardar, descartar, error de guardado) y `ServicioMensajes`, el servicio común para los mensajes al operador que pide la guía de voz.
+- 2026-11-01 15:48 · Validado por el propietario (pantalla de Terceros y revisión 1).
 
 ## Requirements
 - 2026-10-28 12:28 · From sources/01_ESPECIFICACION_FUNCIONAL.docx § 6 RF-UI-02, 03, 06: look and feel de las maquetas con estilos compartidos, campos del ancho de su contenido, accesibilidad y mensajes
@@ -61,6 +64,7 @@ Dirigió la validación de los prototipos HTML de las pantallas principales (con
 - 2026-10-31 10:51 · 1. Ok 2. Ok
 - 2026-10-31 10:51 · Importe: Siempre en currency
 - 2026-10-31 10:57 · Ok, validado
+- 2026-11-01 10:46 · Derived from plataforma/contenedor: contrato común de pestaña de trabajo y servicio de mensajes.
 
 ## Hand-over
 - 2026-10-29 10:20 · Hecho: acceso al lienzo confirmado, decisión HTML frente a WPF, desglose acordado y requisitos derivados en cada nodo de pantalla. Mayor antiguo exportado y analizado (`sources/proconta-antiguo/mayor/ANALISIS-FUNCIONAL.md`). Pendiente: validar los prototipos en el orden acordado, crear los de importación de compras y Mayor, y después la biblioteca WPF con su pantalla de muestra.

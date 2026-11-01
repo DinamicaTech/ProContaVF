@@ -1,0 +1,172 @@
+<UserControl x:Class="ProConta.Terceros.UI.Vistas.VistaBuscador"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:pc="urn:proconta-ui"
+             Background="White">
+  <UserControl.Resources>
+    <ResourceDictionary>
+      <ResourceDictionary.MergedDictionaries>
+        <ResourceDictionary Source="Recursos.xaml" />
+      </ResourceDictionary.MergedDictionaries>
+    </ResourceDictionary>
+  </UserControl.Resources>
+  <UserControl.InputBindings>
+    <KeyBinding Key="F" Modifiers="Ctrl" Command="{Binding EnfocarBusquedaCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" />
+  </UserControl.InputBindings>
+
+  <DockPanel>
+    <!-- Cabecera: título, búsqueda, fichas abiertas, abrir y nuevo -->
+    <Border DockPanel.Dock="Top" BorderBrush="{StaticResource Pincel.Linea}" BorderThickness="0,0,0,1" Padding="14,8">
+      <DockPanel>
+        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+          <TextBlock Text="{Binding FichasAbiertas}" Style="{StaticResource Texto.Apagado}" VerticalAlignment="Center" Margin="0,0,12,0"
+                     ToolTip="Puedes tener hasta 5 fichas abiertas: al abrir otra se cierra la abierta hace más tiempo sin cambios pendientes" />
+          <Button x:Name="BotonAbrir" Content="Abrir ficha" Command="{Binding AbrirCommand}" Margin="0,0,8,0"
+                  ToolTip="Abre la ficha del tercero seleccionado en su pestaña (también con doble clic o Intro)" />
+          <Button x:Name="BotonNuevo" Content="Nuevo" Style="{StaticResource Boton.Primario}" pc:Iconos.Icono="{StaticResource Icono.plus}"
+                  Click="Nuevo_Click" ToolTip="Crea un tercero nuevo: sin rol, o un cliente, un proveedor o un contacto con el rol ya activado">
+            <Button.ContextMenu>
+              <ContextMenu>
+                <MenuItem Header="Tercero sin rol" Command="{Binding NuevoCommand}" CommandParameter="sinrol" ToolTip="Ficha nueva sin ningún rol; los roles se activan después en la pestaña Roles" />
+                <MenuItem Header="Cliente" Command="{Binding NuevoCommand}" CommandParameter="cliente" ToolTip="Ficha nueva con el rol Cliente activado" />
+                <MenuItem Header="Proveedor" Command="{Binding NuevoCommand}" CommandParameter="proveedor" ToolTip="Ficha nueva con el rol Proveedor activado" />
+                <MenuItem Header="Contacto" Command="{Binding NuevoCommand}" CommandParameter="contacto" ToolTip="Ficha nueva de una persona con el rol Contacto activado" />
+              </ContextMenu>
+            </Button.ContextMenu>
+          </Button>
+        </StackPanel>
+        <StackPanel Orientation="Horizontal">
+          <TextBlock x:Name="TituloPantalla" Text="Terceros" Style="{StaticResource Texto.TituloPantalla}" VerticalAlignment="Center" Margin="0,0,14,0" />
+          <Grid Width="460" VerticalAlignment="Center">
+            <TextBox x:Name="CajaBusqueda" Text="{Binding Texto, UpdateSourceTrigger=PropertyChanged}" Padding="28,0,6,0" PreviewKeyDown="CajaBusqueda_PreviewKeyDown"
+                     ToolTip="Busca a la vez en nombre y apellidos, razón social, nombre comercial, NIF, IdTercero, IdCliente, IdProveedor, IdContacto, teléfonos, emails, domicilios, personas de contacto, perfiles y cuentas. Con varias palabras deben aparecer todas. Ctrl+F para volver aquí; ↓ para ir a los resultados"
+                     AutomationProperties.Name="Buscar terceros" />
+            <Path Style="{StaticResource Icono.Trazo14}" Data="{StaticResource Icono.search}" HorizontalAlignment="Left" Margin="9,0,0,0" VerticalAlignment="Center" IsHitTestVisible="False" />
+          </Grid>
+        </StackPanel>
+      </DockPanel>
+    </Border>
+
+    <!-- Filtros -->
+    <Border DockPanel.Dock="Top" BorderBrush="{StaticResource Pincel.Linea}" BorderThickness="0,0,0,1" Padding="14,7">
+      <DockPanel>
+        <Button DockPanel.Dock="Right" Style="{StaticResource Boton.Enlace}" Content="Quitar búsqueda y filtros" Command="{Binding QuitarFiltrosCommand}" VerticalAlignment="Center"
+                Visibility="{Binding HayFiltros, Converter={StaticResource Visible}}" ToolTip="Vacía la búsqueda y quita todos los filtros" />
+        <WrapPanel VerticalAlignment="Center">
+          <Border Style="{StaticResource Segmentado}" VerticalAlignment="Center">
+            <ItemsControl ItemsSource="{Binding Tipos}">
+              <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate><StackPanel Orientation="Horizontal" /></ItemsPanelTemplate>
+              </ItemsControl.ItemsPanel>
+              <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                  <RadioButton Style="{StaticResource Segmento}" GroupName="TipoBuscador" IsChecked="{Binding Elegida}" ToolTip="{Binding Ayuda}">
+                    <TextBlock><Run Text="{Binding Texto, Mode=OneWay}" /><Run Text=" " /><Run Text="{Binding Recuento, Mode=OneWay}" Foreground="{StaticResource Pincel.Apagado}" /></TextBlock>
+                  </RadioButton>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </Border>
+          <Rectangle Width="1" Fill="{StaticResource Pincel.Linea}" Margin="12,4" />
+          <CheckBox IsChecked="{Binding Clientes}" VerticalAlignment="Center" Margin="0,0,14,0" ToolTip="Solo los terceros con el rol Cliente activo (se suma a los otros roles marcados)">
+            <TextBlock><Run Text="Clientes" /><Run Text=" " /><Run Text="{Binding RecuentoClientes, Mode=OneWay}" Foreground="{StaticResource Pincel.Apagado}" /></TextBlock>
+          </CheckBox>
+          <CheckBox IsChecked="{Binding Proveedores}" VerticalAlignment="Center" Margin="0,0,14,0" ToolTip="Solo los terceros con el rol Proveedor activo (se suma a los otros roles marcados)">
+            <TextBlock><Run Text="Proveedores" /><Run Text=" " /><Run Text="{Binding RecuentoProveedores, Mode=OneWay}" Foreground="{StaticResource Pincel.Apagado}" /></TextBlock>
+          </CheckBox>
+          <CheckBox IsChecked="{Binding Contactos}" VerticalAlignment="Center" Margin="0,0,14,0" ToolTip="Solo los terceros con el rol Contacto activo (se suma a los otros roles marcados)">
+            <TextBlock><Run Text="Contactos" /><Run Text=" " /><Run Text="{Binding RecuentoContactos, Mode=OneWay}" Foreground="{StaticResource Pincel.Apagado}" /></TextBlock>
+          </CheckBox>
+          <ComboBox ItemsSource="{Binding PerfilesDisponibles}" SelectedItem="{Binding PerfilElegido}" DisplayMemberPath="Nombre" Width="220" VerticalAlignment="Center" Margin="0,0,14,0"
+                    ToolTip="Solo los terceros que tienen asignado este perfil" />
+          <CheckBox Content="Incluir inactivos" IsChecked="{Binding IncluirInactivos}" VerticalAlignment="Center" ToolTip="Muestra también los terceros desactivados" />
+        </WrapPanel>
+      </DockPanel>
+    </Border>
+
+    <!-- Pie: recuento y ayuda -->
+    <Border DockPanel.Dock="Bottom" Style="{StaticResource Barra.Pie}">
+      <DockPanel>
+        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+          <TextBlock x:Name="AyudaPie" Text="Doble clic o Intro abre la ficha en su pestaña · hasta 5 fichas: al abrir otra se cierra la más antigua sin cambios pendientes"
+                     Style="{StaticResource Texto.Apagado}" VerticalAlignment="Center" Margin="0,0,12,0" />
+          <Button Content="Exportar a Excel" pc:Iconos.Icono="{StaticResource Icono.xls}" Command="{Binding ExportarExcelCommand, ElementName=Tabla}" Style="{StaticResource Boton.Pequeno}"
+                  ToolTip="Exporta todas las filas de la vista con las columnas visibles, en el mismo orden" />
+        </StackPanel>
+        <TextBlock Text="{Binding Pie}" FontWeight="SemiBold" VerticalAlignment="Center" />
+      </DockPanel>
+    </Border>
+
+    <pc:VistaEstado Estado="{Binding Estado}" Titulo="{Binding TituloEstado}" Mensaje="{Binding MensajeEstado}" TextoAccion="{Binding AccionEstado}" ComandoAccion="{Binding ComandoEstado}">
+      <pc:TablaProConta x:Name="Tabla" ItemsSource="{Binding Resultados}" SelectedItem="{Binding Seleccionada}" ClavePreferencias="terceros.buscador" TituloExportacion="Terceros"
+                        IsReadOnly="True" SelectionMode="Single" MouseDoubleClick="Tabla_MouseDoubleClick" PreviewKeyDown="Tabla_PreviewKeyDown"
+                        AutomationProperties.Name="Resultados de la búsqueda de terceros">
+        <pc:TablaProConta.Columns>
+          <DataGridTemplateColumn Header="Tercero" SortMemberPath="Nombre" Width="440" pc:TablaProConta.Clave="nombre" pc:TablaProConta.SiempreVisible="True" pc:TablaProConta.RutaExportar="Nombre">
+            <DataGridTemplateColumn.CellTemplate>
+              <DataTemplate>
+                <StackPanel Orientation="Horizontal" Margin="0,3" ToolTip="{Binding Nombre}">
+                  <Border Style="{StaticResource Avatar}" Margin="0,0,10,0">
+                    <TextBlock Text="{Binding Iniciales}" Style="{StaticResource Texto.Avatar}" />
+                  </Border>
+                  <StackPanel VerticalAlignment="Center">
+                    <TextBlock Text="{Binding Nombre}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                    <StackPanel Orientation="Horizontal">
+                      <TextBlock Text="{Binding NombreComercial}" FontSize="{StaticResource Letra.Pequena}" Foreground="{StaticResource Pincel.Apagado}" Margin="0,0,8,0" />
+                      <Border Style="{StaticResource Insignia.Contacto}" Visibility="{Binding FichaAbierta, Converter={StaticResource Visible}}" ToolTip="La ficha de este tercero ya está abierta en una pestaña">
+                        <TextBlock Text="Ficha abierta" Style="{StaticResource Texto.Insignia}" />
+                      </Border>
+                      <Border Style="{StaticResource Insignia}" Visibility="{Binding Activo, Converter={StaticResource Visible}, ConverterParameter=invertir}" ToolTip="Tercero desactivado">
+                        <TextBlock Text="Inactivo" Style="{StaticResource Texto.Insignia}" />
+                      </Border>
+                    </StackPanel>
+                  </StackPanel>
+                </StackPanel>
+              </DataTemplate>
+            </DataGridTemplateColumn.CellTemplate>
+          </DataGridTemplateColumn>
+          <DataGridTextColumn Header="Tipo" Binding="{Binding Tipo}" Width="100" ElementStyle="{StaticResource Texto.Celda}" pc:TablaProConta.Clave="tipo" />
+          <DataGridTextColumn Header="NIF" Binding="{Binding Nif}" Width="120" ElementStyle="{StaticResource Texto.Celda.Mono}" pc:TablaProConta.Clave="nif" />
+          <DataGridTextColumn Header="IdTercero" Binding="{Binding IdTercero}" Width="100" ElementStyle="{StaticResource Texto.Celda.Mono}" pc:TablaProConta.Clave="id" />
+          <DataGridTemplateColumn Header="Roles" SortMemberPath="RolesTexto" Width="190" pc:TablaProConta.Clave="roles" pc:TablaProConta.RutaExportar="RolesTexto">
+            <DataGridTemplateColumn.CellTemplate>
+              <DataTemplate>
+                <ItemsControl ItemsSource="{Binding Roles}" VerticalAlignment="Center" ToolTip="{Binding RolesAyuda}">
+                  <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate><StackPanel Orientation="Horizontal" /></ItemsPanelTemplate>
+                  </ItemsControl.ItemsPanel>
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                      <Border x:Name="Pastilla" Style="{StaticResource Insignia.Cliente}">
+                        <TextBlock Style="{StaticResource Texto.Insignia}"><Run Text="{Binding Abreviatura, Mode=OneWay}" /><Run Text=" " /><Run Text="{Binding Id, Mode=OneWay}" FontFamily="{StaticResource Fuente.Mono}" FontWeight="Normal" /></TextBlock>
+                      </Border>
+                      <DataTemplate.Triggers>
+                        <DataTrigger Binding="{Binding Rol}" Value="Proveedor"><Setter TargetName="Pastilla" Property="Style" Value="{StaticResource Insignia.Proveedor}" /></DataTrigger>
+                        <DataTrigger Binding="{Binding Rol}" Value="Contacto"><Setter TargetName="Pastilla" Property="Style" Value="{StaticResource Insignia.Contacto}" /></DataTrigger>
+                        <DataTrigger Binding="{Binding Activo}" Value="False"><Setter TargetName="Pastilla" Property="Opacity" Value="0.45" /></DataTrigger>
+                      </DataTemplate.Triggers>
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+              </DataTemplate>
+            </DataGridTemplateColumn.CellTemplate>
+          </DataGridTemplateColumn>
+          <DataGridTextColumn Header="Población" Binding="{Binding Poblacion}" Width="190" ElementStyle="{StaticResource Texto.Celda}" pc:TablaProConta.Clave="poblacion" />
+          <DataGridTextColumn Header="Teléfono" Binding="{Binding Telefono}" Width="130" ElementStyle="{StaticResource Texto.Celda}" pc:TablaProConta.Clave="telefono" />
+          <DataGridTextColumn Header="Email" Binding="{Binding Email}" Width="300" ElementStyle="{StaticResource Texto.Celda}" pc:TablaProConta.Clave="email" />
+          <DataGridTextColumn Header="Perfiles" Binding="{Binding Perfiles}" Width="220" ElementStyle="{StaticResource Texto.Celda}" pc:TablaProConta.Clave="perfiles" pc:TablaProConta.OcultaDeFabrica="True" />
+          <DataGridTemplateColumn Header="Coincide en" SortMemberPath="Coincidencia" Width="*" MinWidth="240" pc:TablaProConta.Clave="coincidencia" pc:TablaProConta.RutaExportar="Coincidencia">
+            <DataGridTemplateColumn.CellTemplate>
+              <DataTemplate>
+                <StackPanel VerticalAlignment="Center" ToolTip="{Binding Coincidencia}">
+                  <TextBlock Text="{Binding CoincidenciaFuente}" FontSize="{StaticResource Letra.Pequena}" FontWeight="SemiBold" Foreground="{StaticResource Pincel.AcentoTexto}" TextTrimming="CharacterEllipsis" />
+                  <TextBlock Text="{Binding CoincidenciaValor}" FontSize="{StaticResource Letra.Pequena}" TextTrimming="CharacterEllipsis" />
+                </StackPanel>
+              </DataTemplate>
+            </DataGridTemplateColumn.CellTemplate>
+          </DataGridTemplateColumn>
+        </pc:TablaProConta.Columns>
+      </pc:TablaProConta>
+    </pc:VistaEstado>
+  </DockPanel>
+</UserControl>

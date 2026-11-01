@@ -1,0 +1,775 @@
+<UserControl x:Class="ProConta.Terceros.UI.Vistas.VistaFicha"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:pc="urn:proconta-ui"
+             Background="White">
+  <UserControl.Resources>
+    <ResourceDictionary>
+      <ResourceDictionary.MergedDictionaries>
+        <ResourceDictionary Source="Recursos.xaml" />
+      </ResourceDictionary.MergedDictionaries>
+
+      <!-- Insignias de la ficha: rectángulo con el radio de los campos (no óvalo). -->
+      <Style x:Key="Insignia.Ficha" TargetType="Border" BasedOn="{StaticResource Insignia}">
+        <Setter Property="CornerRadius" Value="{StaticResource Radio.Campo}" />
+        <Setter Property="Padding" Value="7,2" />
+      </Style>
+      <Style x:Key="Insignia.Ficha.Cliente" TargetType="Border" BasedOn="{StaticResource Insignia.Cliente}">
+        <Setter Property="CornerRadius" Value="{StaticResource Radio.Campo}" />
+        <Setter Property="Padding" Value="7,2" />
+      </Style>
+      <Style x:Key="Insignia.Ficha.Proveedor" TargetType="Border" BasedOn="{StaticResource Insignia.Proveedor}">
+        <Setter Property="CornerRadius" Value="{StaticResource Radio.Campo}" />
+        <Setter Property="Padding" Value="7,2" />
+      </Style>
+      <Style x:Key="Insignia.Ficha.Contacto" TargetType="Border" BasedOn="{StaticResource Insignia.Contacto}">
+        <Setter Property="CornerRadius" Value="{StaticResource Radio.Campo}" />
+        <Setter Property="Padding" Value="7,2" />
+      </Style>
+
+      <!-- Resumen de errores de validación, con enlace a cada campo (arriba de cada pestaña). -->
+      <DataTemplate x:Key="ResumenErrores">
+        <Border Visibility="{Binding HayResumen, Converter={StaticResource Visible}}" Background="{StaticResource Pincel.RojoSuave}" BorderBrush="{StaticResource Pincel.RojoBorde}"
+                BorderThickness="1" CornerRadius="8" Padding="14,10" Margin="0,0,0,16" MaxWidth="1580" HorizontalAlignment="Left">
+          <StackPanel>
+            <TextBlock Text="{Binding TituloResumen}" FontWeight="SemiBold" Foreground="{StaticResource Pincel.RojoError}" Margin="0,0,0,4" />
+            <ItemsControl ItemsSource="{Binding Resumen}">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                  <Button Style="{StaticResource Boton.Enlace}" Content="{Binding Texto}" HorizontalAlignment="Left" Foreground="{StaticResource Pincel.RojoError}" Margin="0,1"
+                          Command="{Binding DataContext.IrAErrorCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}"
+                          ToolTip="Lleva el cursor al dato que hay que corregir" />
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </StackPanel>
+        </Border>
+      </DataTemplate>
+
+      <!-- Título de pestaña con su marca: punto si tiene cambios, triángulo si no se pudo guardar por un error suyo. -->
+      <DataTemplate x:Key="CabeceraPestana">
+        <StackPanel Orientation="Horizontal">
+          <TextBlock Text="{Binding Texto}" />
+          <TextBlock Text="{Binding Numero}" Margin="6,0,0,0" FontSize="{StaticResource Letra.Pequena}" Foreground="{StaticResource Pincel.Apagado}" VerticalAlignment="Center"
+                     Visibility="{Binding Numero, Converter={StaticResource Visible}}" />
+          <Ellipse Width="7" Height="7" Fill="{StaticResource Pincel.Acento2}" Margin="7,0,0,0" VerticalAlignment="Center"
+                   Visibility="{Binding Marca.SoloCambios, Converter={StaticResource Visible}}" ToolTip="Esta pestaña tiene cambios sin guardar" />
+          <Path Style="{StaticResource Icono.Trazo12}" Data="{StaticResource Icono.warn}" Margin="6,0,0,0" VerticalAlignment="Center" TextElement.Foreground="{StaticResource Pincel.RojoError}"
+                Visibility="{Binding Marca.Error, Converter={StaticResource Visible}}" ToolTip="Hay datos por corregir en esta pestaña" />
+        </StackPanel>
+      </DataTemplate>
+
+      <!-- Fila de cuenta de un rol: código, nombre de la cuenta, aviso y arreglo. -->
+      <DataTemplate x:Key="FilaCuenta">
+        <StackPanel Margin="0,0,0,10">
+          <StackPanel Orientation="Horizontal">
+            <StackPanel Margin="0,0,10,0">
+              <TextBlock Text="{Binding Titulo}" Style="{StaticResource Etiqueta.Campo}" />
+              <TextBox Text="{Binding Codigo, UpdateSourceTrigger=PropertyChanged, ValidatesOnNotifyDataErrors=True}" Width="130" Style="{StaticResource Campo.Mono}" Tag="Codigo"
+                       ToolTip="{Binding AyudaCodigo}" LostKeyboardFocus="Cuenta_LostKeyboardFocus" KeyDown="Cuenta_KeyDown" />
+            </StackPanel>
+            <StackPanel Margin="0,0,10,0">
+              <TextBlock Text="Descripción" Style="{StaticResource Etiqueta.Campo}" />
+              <TextBox Text="{Binding Nombre, Mode=OneWay}" IsReadOnly="True" Width="380" ToolTip="Nombre de la cuenta en el plan contable, para comprobar que es la correcta. Se cambia en el plan de cuentas" />
+            </StackPanel>
+            <Button Content="{Binding AccionTexto}" Command="{Binding AccionCommand}" VerticalAlignment="Bottom" Visibility="{Binding HayAccion, Converter={StaticResource Visible}}"
+                    pc:Iconos.Icono="{StaticResource Icono.plus}" ToolTip="Da de alta la cuenta en el plan contable del ejercicio de trabajo (se crea al momento, aunque luego descartes la ficha)" />
+          </StackPanel>
+          <TextBlock Text="{Binding Aviso}" Visibility="{Binding HayAviso, Converter={StaticResource Visible}}" Foreground="{StaticResource Pincel.Aviso}" Margin="0,4,0,0" TextWrapping="Wrap" />
+        </StackPanel>
+      </DataTemplate>
+    </ResourceDictionary>
+  </UserControl.Resources>
+
+  <pc:VistaEstado Estado="{Binding Estado}" Titulo="{Binding TituloEstado}" Mensaje="{Binding MensajeEstado}" TextoAccion="Reintentar" ComandoAccion="{Binding RecargarCommand}"
+                  AyudaAccion="Vuelve a leer la ficha de la base de datos">
+    <DockPanel>
+      <!-- Cabecera: identidad, estado e insignias de roles -->
+      <Border DockPanel.Dock="Top" BorderBrush="{StaticResource Pincel.Linea}" BorderThickness="0,0,0,1" Padding="14,9">
+        <StackPanel Orientation="Horizontal">
+          <Border Style="{StaticResource Avatar}" Width="34" Height="34" CornerRadius="8" Margin="0,0,10,0">
+            <TextBlock Text="{Binding InicialesCabecera}" Style="{StaticResource Texto.Avatar}" FontSize="{StaticResource Letra.Pequena}" />
+          </Border>
+          <StackPanel VerticalAlignment="Center">
+            <StackPanel Orientation="Horizontal">
+              <TextBlock Text="{Binding NombreCabecera}" Style="{StaticResource Texto.Titulo}" VerticalAlignment="Center" ToolTip="Nombre del tercero" />
+              <Border Style="{StaticResource Insignia.Ficha.Contacto}" Margin="8,0,0,0" ToolTip="Tipo de persona">
+                <TextBlock Text="{Binding TipoTexto}" Style="{StaticResource Texto.Insignia}" />
+              </Border>
+              <Border Style="{StaticResource Insignia.Ficha}" Margin="6,0,0,0" Visibility="{Binding Inactivo, Converter={StaticResource Visible}}"
+                      ToolTip="Ficha desactivada: no se propone en facturas nuevas. Se reactiva en Identidad">
+                <TextBlock Text="Inactivo" Style="{StaticResource Texto.Insignia}" />
+              </Border>
+            </StackPanel>
+            <TextBlock Text="{Binding LineaDatos}" Style="{StaticResource Texto.Mono}" FontSize="{StaticResource Letra.Pequena}" Foreground="{StaticResource Pincel.Apagado}"
+                       ToolTip="Identificador del tercero, identificación fiscal, nombre comercial y población" />
+          </StackPanel>
+          <Rectangle Width="1" Fill="{StaticResource Pincel.Linea}" Margin="16,2" />
+          <ItemsControl ItemsSource="{Binding Insignias}" VerticalAlignment="Center">
+            <ItemsControl.ItemsPanel>
+              <ItemsPanelTemplate><StackPanel Orientation="Horizontal" /></ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+            <ItemsControl.ItemTemplate>
+              <DataTemplate>
+                <Button Command="{Binding DataContext.IrARolCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding Rol}"
+                        ToolTip="{Binding Ayuda}" Cursor="Hand" Margin="0,0,6,0" Background="Transparent" BorderThickness="0" Padding="0">
+                  <Button.Template>
+                    <ControlTemplate TargetType="Button"><ContentPresenter /></ControlTemplate>
+                  </Button.Template>
+                  <Border x:Name="Pastilla" Style="{StaticResource Insignia.Ficha.Cliente}" Padding="9,3">
+                    <TextBlock Style="{StaticResource Texto.Insignia}" FontSize="{StaticResource Letra.Pequena}"><Run Text="{Binding Texto, Mode=OneWay}" /><Run Text="  " /><Run Text="{Binding Id, Mode=OneWay}" FontFamily="{StaticResource Fuente.Mono}" FontWeight="Normal" /></TextBlock>
+                  </Border>
+                </Button>
+                <DataTemplate.Triggers>
+                  <DataTrigger Binding="{Binding Rol}" Value="proveedor"><Setter TargetName="Pastilla" Property="Style" Value="{StaticResource Insignia.Ficha.Proveedor}" /></DataTrigger>
+                  <DataTrigger Binding="{Binding Rol}" Value="contacto"><Setter TargetName="Pastilla" Property="Style" Value="{StaticResource Insignia.Ficha.Contacto}" /></DataTrigger>
+                </DataTemplate.Triggers>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </StackPanel>
+      </Border>
+
+      <!-- Barra fija al pie: Guardar, Descartar y cambios pendientes -->
+      <Border DockPanel.Dock="Bottom" Style="{StaticResource Barra.Pie}" Background="{StaticResource Pincel.AvisoSuave}">
+        <StackPanel Orientation="Horizontal">
+          <Button Content="Guardar" Style="{StaticResource Boton.Primario}" pc:Iconos.Icono="{StaticResource Icono.check}" Command="{Binding GuardarCommand}"
+                  ToolTip="Guarda todos los cambios de la ficha a la vez (Ctrl+G o Ctrl+S)" />
+          <Button Content="Descartar" Margin="8,0,0,0" Command="{Binding DescartarCommand}" ToolTip="Deshace todos los cambios pendientes y deja la ficha como estaba al abrirla (pide confirmación)" />
+          <TextBlock Text="{Binding TextoCambios}" Margin="14,0,0,0" VerticalAlignment="Center" FontWeight="SemiBold" Foreground="{StaticResource Pincel.Aviso}"
+                     Visibility="{Binding TieneCambios, Converter={StaticResource Visible}}" />
+          <TextBlock Text="Sin cambios pendientes" Margin="14,0,0,0" VerticalAlignment="Center" Style="{StaticResource Texto.Apagado}"
+                     Visibility="{Binding TieneCambios, Converter={StaticResource Visible}, ConverterParameter=invertir}" />
+          <Button x:Name="BotonVerCambios" Style="{StaticResource Boton.Enlace}" Content="Ver cuáles" Margin="8,0,0,0" Command="{Binding VerCambiosCommand}" VerticalAlignment="Center"
+                  Visibility="{Binding TieneCambios, Converter={StaticResource Visible}}" ToolTip="Muestra la lista de cambios pendientes de guardar" />
+          <Popup IsOpen="{Binding VerCambios}" PlacementTarget="{Binding ElementName=BotonVerCambios}" Placement="Top" StaysOpen="False" AllowsTransparency="True">
+            <Border Background="White" BorderBrush="{StaticResource Pincel.Linea}" BorderThickness="1" CornerRadius="8" Padding="14,10" Margin="8" Effect="{StaticResource Sombra.Menu}" MaxWidth="640">
+              <StackPanel>
+                <TextBlock Text="Cambios sin guardar" FontWeight="SemiBold" Margin="0,0,0,6" />
+                <ItemsControl ItemsSource="{Binding Cambios}">
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate><TextBlock Text="{Binding}" TextWrapping="Wrap" Margin="0,2" /></DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+              </StackPanel>
+            </Border>
+          </Popup>
+          <TextBlock Text="Guardando…" Margin="14,0,0,0" VerticalAlignment="Center" Style="{StaticResource Texto.Apagado}" Visibility="{Binding Guardando, Converter={StaticResource Visible}}" />
+        </StackPanel>
+      </Border>
+
+      <TabControl x:Name="Pestanas" SelectedIndex="{Binding PestanaActiva}" Padding="0">
+        <!-- ===================== Identidad ===================== -->
+        <TabItem ToolTip="Tipo de persona, identificación, nombre o razón social, estado y domicilios">
+          <TabItem.Header><ContentControl ContentTemplate="{StaticResource CabeceraPestana}" Content="{Binding Cabeceras[0]}" /></TabItem.Header>
+          <ScrollViewer VerticalScrollBarVisibility="Auto">
+            <StackPanel Margin="18,16" HorizontalAlignment="Left" MaxWidth="1580">
+              <ContentControl Content="{Binding}" ContentTemplate="{StaticResource ResumenErrores}" />
+              <pc:Nota Tipo="Aviso" Margin="0,0,0,14" Visibility="{Binding SinClasificar, Converter={StaticResource Visible}}">
+                <TextBlock TextWrapping="Wrap">Ficha antigua sin clasificar («<Run Text="{Binding NombreAntiguo, Mode=OneWay}" />»): elige si es un particular, una empresa o una entidad y completa su nombre.</TextBlock>
+              </pc:Nota>
+              <WrapPanel>
+                <StackPanel Margin="0,0,14,12">
+                  <TextBlock Text="Tipo de persona" Style="{StaticResource Etiqueta.Campo}" />
+                  <Border Style="{StaticResource Segmentado}" Tag="TipoPersona">
+                    <StackPanel Orientation="Horizontal">
+                      <RadioButton Style="{StaticResource Segmento}" GroupName="{Binding Clave, StringFormat=tipo{0}}" Content="Particular" IsChecked="{Binding EsParticular}" ToolTip="Persona física: nombre y apellidos" />
+                      <RadioButton Style="{StaticResource Segmento}" GroupName="{Binding Clave, StringFormat=tipo{0}}" Content="Empresa" IsChecked="{Binding EsEmpresa}" ToolTip="Persona jurídica (sociedad): razón social y nombre comercial" />
+                      <RadioButton Style="{StaticResource Segmento}" GroupName="{Binding Clave, StringFormat=tipo{0}}" Content="Entidad" IsChecked="{Binding EsEntidad}" ToolTip="Entidad sin personalidad jurídica (comunidad de propietarios, asociación…): razón social" />
+                    </StackPanel>
+                  </Border>
+                </StackPanel>
+                <StackPanel Margin="0,0,14,12">
+                  <TextBlock Text="Tipo de identificación" Style="{StaticResource Etiqueta.Campo}" />
+                  <ComboBox ItemsSource="{Binding TiposIdentificacion}" SelectedValuePath="Valor" DisplayMemberPath="Texto" SelectedValue="{Binding TipoIdentificacion}" Width="170"
+                            ToolTip="Clase de documento: cambia la etiqueta del campo de al lado y si se comprueba como NIF español" />
+                </StackPanel>
+                <StackPanel Margin="0,0,14,12">
+                  <TextBlock Text="{Binding EtiquetaIdentificacion}" Style="{StaticResource Etiqueta.Campo}" />
+                  <TextBox Text="{Binding Nif, UpdateSourceTrigger=PropertyChanged, ValidatesOnNotifyDataErrors=True}" Width="170" Style="{StaticResource Campo.Mono}" Tag="Nif"
+                           ToolTip="{Binding AyudaIdentificacion}" MaxLength="30" />
+                </StackPanel>
+                <StackPanel Margin="0,0,14,12" VerticalAlignment="Bottom">
+                  <CheckBox Content="Ficha activa" IsChecked="{Binding Activo}" Margin="0,0,0,7"
+                            ToolTip="Desmarca para desactivar el tercero: no se borra ni pierde su historial, pero deja de proponerse. No afecta a las facturas ya emitidas" />
+                </StackPanel>
+              </WrapPanel>
+
+              <WrapPanel Visibility="{Binding SinClasificar, Converter={StaticResource Visible}}">
+                <StackPanel Margin="0,0,14,12">
+                  <TextBlock Text="Nombre *" Style="{StaticResource Etiqueta.Campo}" />
+                  <TextBox Text="{Binding NombreAntiguo, UpdateSourceTrigger=PropertyChanged, ValidatesOnNotifyDataErrors=True}" Width="460" Tag="Nombre" MaxLength="200"
+                           ToolTip="Nombre de la ficha antigua. Al elegir el tipo de persona pasa al nombre o a la razón social" />
+                </StackPanel>
+              </WrapPanel>
+              <WrapPanel Visibility="{Binding EsFisica, Converter={StaticResource Visible}}">
+                <StackPanel Margin="0,0,14,12">
+                  <TextBlock Text="Nombre *" Style="{StaticResource Etiqueta.Campo}" />
+                  <TextBox Text="{Binding NombrePersona, UpdateSourceTrigger=PropertyChanged, ValidatesOnNotifyDataErrors=True}" Width="260" Tag="NombrePersona" MaxLength="150"
+                           ToolTip="Nombre de pila de la persona (obligatorio)" />
+                </StackPanel>
+                <StackPanel Margin="0,0,14,12">
+                  <TextBlock Text="Primer apellido" Style="{StaticResource Etiqueta.Campo}" />
+                  <TextBox Text="{Binding PrimerApellido, UpdateSourceTrigger=PropertyChanged}" Width="240" MaxLength="100" ToolTip="Primer apellido (opcional)" />
+                </StackPanel>
+                <StackPanel Margin="0,0,14,12">
+                  <TextBlock Text="Segundo apellido" Style="{StaticResource Etiqueta.Campo}" />
+                  <TextBox Text="{Binding SegundoApellido, UpdateSourceTrigger=PropertyChanged}" Width="240" MaxLength="100" ToolTip="Segundo apellido (opcional)" />
+                </StackPanel>
+              </WrapPanel>
+              <WrapPanel Visibility="{Binding EsOrganizacion, Converter={StaticResource Visible}}">
+                <StackPanel Margin="0,0,14,12">
+                  <TextBlock Text="Razón social *" Style="{StaticResource Etiqueta.Campo}" />
+                  <TextBox Text="{Binding RazonSocial, UpdateSourceTrigger=PropertyChanged, ValidatesOnNotifyDataErrors=True}" Width="460" Tag="RazonSocial" MaxLength="200"
+                           ToolTip="Denominación legal completa, tal como sale en las facturas (obligatoria)" />
+                </StackPanel>
+                <StackPanel Margin="0,0,14,12">
+                  <TextBlock Text="Nombre comercial" Style="{StaticResource Etiqueta.Campo}" />
+                  <TextBox Text="{Binding NombreComercial, UpdateSourceTrigger=PropertyChanged}" Width="340" MaxLength="150" ToolTip="Nombre con el que se le conoce (opcional); también sirve para buscarlo" />
+                </StackPanel>
+              </WrapPanel>
+
+              <!-- Domicilios -->
+              <DockPanel Margin="0,10,0,10" Width="1240" HorizontalAlignment="Left">
+                <Button DockPanel.Dock="Right" Content="Añadir domicilio" pc:Iconos.Icono="{StaticResource Icono.plus}" Command="{Binding AnadirDomicilioCommand}"
+                        ToolTip="Añade un domicilio adicional con su finalidad (envío, almacén…)" />
+                <StackPanel Orientation="Horizontal">
+                  <TextBlock Text="Domicilios" Style="{StaticResource Seccion.Ficha}" />
+                  <TextBlock Text="Principal y adicionales, con su finalidad." Style="{StaticResource Texto.Apagado}" Margin="10,0,0,0" VerticalAlignment="Center" />
+                </StackPanel>
+              </DockPanel>
+              <ItemsControl ItemsSource="{Binding Domicilios}" Width="1240" HorizontalAlignment="Left">
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate>
+                    <Border x:Name="Tarjeta" Style="{StaticResource Tarjeta}" Padding="14,10" Margin="0,0,0,12">
+                      <StackPanel>
+                        <DockPanel Margin="0,0,0,8">
+                          <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Visibility="{Binding EsPrincipal, Converter={StaticResource Visible}, ConverterParameter=invertir}">
+                            <CheckBox Content="Activo" IsChecked="{Binding Activo}" VerticalAlignment="Center" Margin="0,0,10,0" ToolTip="Un domicilio inactivo se conserva, pero no se propone" />
+                            <Button Style="{StaticResource Boton.Icono}" pc:Iconos.Icono="{StaticResource Icono.trash}" Command="{Binding QuitarCommand}" ToolTip="Quita este domicilio adicional (al guardar la ficha)" />
+                          </StackPanel>
+                          <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="Domicilio principal" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,8,0" Visibility="{Binding EsPrincipal, Converter={StaticResource Visible}}" />
+                            <Border Style="{StaticResource Insignia.Ficha.Proveedor}" Visibility="{Binding EsPrincipal, Converter={StaticResource Visible}}"
+                                    ToolTip="El domicilio principal es el que se usa por defecto en las facturas nuevas">
+                              <TextBlock Text="Principal" Style="{StaticResource Texto.Insignia}" />
+                            </Border>
+                            <ComboBox ItemsSource="{Binding Tipos}" SelectedValuePath="Valor" DisplayMemberPath="Texto" SelectedValue="{Binding TipoDomicilio, ValidatesOnNotifyDataErrors=True}"
+                                      Width="170" Tag="TipoDomicilio" Visibility="{Binding EsPrincipal, Converter={StaticResource Visible}, ConverterParameter=invertir}"
+                                      ToolTip="Finalidad del domicilio: fiscal, envío, almacén…" />
+                            <Button Style="{StaticResource Boton.Enlace}" Content="Marcar como principal" Command="{Binding MarcarPrincipalCommand}" Margin="10,0,0,0" VerticalAlignment="Center"
+                                    Visibility="{Binding EsPrincipal, Converter={StaticResource Visible}, ConverterParameter=invertir}"
+                                    ToolTip="Lo convierte en el domicilio principal; el principal actual pasa a ser un domicilio adicional" />
+                          </StackPanel>
+                        </DockPanel>
+                        <WrapPanel>
+                          <StackPanel Margin="0,0,10,0">
+                            <TextBlock Text="País" Style="{StaticResource Etiqueta.Campo}" />
+                            <ComboBox ItemsSource="{Binding PaisesLista}" SelectedValuePath="Valor" DisplayMemberPath="Texto" SelectedValue="{Binding Pais}" Width="170"
+                                      ToolTip="País del domicilio. En España el código postal propone la provincia y la población" />
+                          </StackPanel>
+                          <StackPanel Margin="0,0,10,0">
+                            <TextBlock Text="CP" Style="{StaticResource Etiqueta.Campo}" />
+                            <TextBox x:Name="CodigoPostal" Text="{Binding CodigoPostal, UpdateSourceTrigger=PropertyChanged, ValidatesOnNotifyDataErrors=True}" Width="112" Style="{StaticResource Campo.Mono}"
+                                     MaxLength="10" Tag="CodigoPostal" TextChanged="CodigoPostal_TextChanged"
+                                     ToolTip="Código postal. En España (5 dígitos) fija la provincia y, si corresponde a una sola población, también la población" />
+                          </StackPanel>
+                          <StackPanel Margin="0,0,10,0">
+                            <TextBlock Text="Provincia" Style="{StaticResource Etiqueta.Campo}" />
+                            <ComboBox ItemsSource="{Binding Provincias}" Text="{Binding Provincia, UpdateSourceTrigger=LostFocus}" IsEditable="True" Width="190" ToolTip="{Binding AyudaProvincia}" />
+                          </StackPanel>
+                          <StackPanel Margin="0,0,10,0">
+                            <TextBlock Text="Población" Style="{StaticResource Etiqueta.Campo}" />
+                            <ComboBox x:Name="Poblacion" ItemsSource="{Binding Poblaciones}" Text="{Binding Poblacion, UpdateSourceTrigger=LostFocus}" IsEditable="True" Width="230"
+                                      DropDownClosed="Poblacion_DropDownClosed"
+                                      ToolTip="Población: elige una de las de ese código postal o escríbela. Al elegirla, el cursor pasa a la vía" />
+                          </StackPanel>
+                          <StackPanel>
+                            <TextBlock Text="Vía y número" Style="{StaticResource Etiqueta.Campo}" />
+                            <TextBox x:Name="Via" Text="{Binding Direccion, UpdateSourceTrigger=PropertyChanged, ValidatesOnNotifyDataErrors=True}" Width="440" MaxLength="255" Tag="Direccion"
+                                     ToolTip="Calle, número, piso y puerta" />
+                          </StackPanel>
+                        </WrapPanel>
+                      </StackPanel>
+                    </Border>
+                    <DataTemplate.Triggers>
+                      <DataTrigger Binding="{Binding EsPrincipal}" Value="True">
+                        <Setter TargetName="Tarjeta" Property="Background" Value="{StaticResource Pincel.AcentoSuave}" />
+                        <Setter TargetName="Tarjeta" Property="BorderBrush" Value="{StaticResource Pincel.AcentoBorde}" />
+                      </DataTrigger>
+                    </DataTemplate.Triggers>
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+              <TextBlock Text="{Binding NotaFacturas}" TextWrapping="Wrap" Style="{StaticResource Texto.Apagado}" Width="1240" HorizontalAlignment="Left" Margin="2,0,0,0"
+                         Visibility="{Binding MostrarNotaFacturas, Converter={StaticResource Visible}}" />
+            </StackPanel>
+          </ScrollViewer>
+        </TabItem>
+
+        <!-- ===================== Contacto ===================== -->
+        <TabItem ToolTip="Emails y teléfonos con sus finalidades, personas de contacto sin ficha y relaciones con otros terceros">
+          <TabItem.Header><ContentControl ContentTemplate="{StaticResource CabeceraPestana}" Content="{Binding Cabeceras[1]}" /></TabItem.Header>
+          <ScrollViewer VerticalScrollBarVisibility="Auto">
+            <StackPanel Margin="18,16" HorizontalAlignment="Left" Width="1240">
+              <ContentControl Content="{Binding}" ContentTemplate="{StaticResource ResumenErrores}" />
+
+              <!-- Emails -->
+              <Border Style="{StaticResource Tarjeta}" Padding="16,12" Margin="0,0,0,14">
+                <StackPanel>
+                  <TextBlock Text="Emails" Style="{StaticResource Seccion.Ficha}" Margin="0,0,0,10" />
+                  <Grid Margin="0,0,0,4" TextElement.FontSize="{StaticResource Letra.Pequena}" TextElement.FontWeight="SemiBold" TextElement.Foreground="{StaticResource Pincel.Texto2}">
+                    <Grid.ColumnDefinitions>
+                      <ColumnDefinition Width="180" /><ColumnDefinition Width="340" /><ColumnDefinition Width="64" /><ColumnDefinition Width="86" /><ColumnDefinition Width="86" /><ColumnDefinition Width="200" /><ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Text="Etiqueta" />
+                    <TextBlock Grid.Column="1" Text="Dirección" />
+                    <TextBlock Grid.Column="2" Text="Activo" HorizontalAlignment="Center" ToolTip="Una dirección inactiva se conserva, pero no recibe envíos" />
+                    <StackPanel Grid.Column="3" Orientation="Horizontal" HorizontalAlignment="Center" Background="Transparent" ToolTip="Envío de facturas: las direcciones marcadas reciben las facturas que se envían por email">
+                      <TextBlock Text="Env. fact." />
+                      <Path Style="{StaticResource Icono.Trazo12}" Data="{StaticResource Icono.warn}" Margin="4,0,0,0" TextElement.Foreground="{StaticResource Pincel.Aviso}"
+                            Visibility="{Binding AvisoFacturas, Converter={StaticResource Visible}}" ToolTip="{Binding AvisoFacturas}" />
+                    </StackPanel>
+                    <StackPanel Grid.Column="4" Orientation="Horizontal" HorizontalAlignment="Center" Background="Transparent" ToolTip="Comunicaciones administrativas: las direcciones marcadas reciben recordatorios, certificados y demás envíos administrativos">
+                      <TextBlock Text="Com. adm." />
+                      <Path Style="{StaticResource Icono.Trazo12}" Data="{StaticResource Icono.warn}" Margin="4,0,0,0" TextElement.Foreground="{StaticResource Pincel.Aviso}"
+                            Visibility="{Binding AvisoAdministrativos, Converter={StaticResource Visible}}" ToolTip="{Binding AvisoAdministrativos}" />
+                    </StackPanel>
+                    <TextBlock Grid.Column="5" Text="Persona" Margin="10,0,0,0" ToolTip="Persona de contacto a la que pertenece la dirección; «General» si es de la organización" />
+                  </Grid>
+                  <ItemsControl ItemsSource="{Binding Emails}">
+                    <ItemsControl.ItemTemplate>
+                      <DataTemplate>
+                        <Grid Margin="0,0,0,6">
+                          <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="180" /><ColumnDefinition Width="340" /><ColumnDefinition Width="64" /><ColumnDefinition Width="86" /><ColumnDefinition Width="86" /><ColumnDefinition Width="200" /><ColumnDefinition Width="Auto" />
+                          </Grid.ColumnDefinitions>
+                          <TextBox Text="{Binding Etiqueta, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,8,0" MaxLength="100" ToolTip="Para qué es esta dirección (Facturación, Administración…)" />
+                          <TextBox Grid.Column="1" Text="{Binding Valor, UpdateSourceTrigger=PropertyChanged, ValidatesOnNotifyDataErrors=True}" Tag="Valor" MaxLength="254" ToolTip="{Binding AyudaValor}" />
+                          <CheckBox Grid.Column="2" IsChecked="{Binding Activo}" HorizontalAlignment="Center" ToolTip="Una dirección inactiva se conserva, pero no recibe envíos" />
+                          <Grid Grid.Column="3" HorizontalAlignment="Center" VerticalAlignment="Center" ToolTip="{Binding AyudaFacturas}">
+                            <CheckBox IsChecked="{Binding EnvioFacturas}" ToolTip="{Binding AyudaFacturas}" />
+                            <Path Style="{StaticResource Icono.Trazo12}" Data="{StaticResource Icono.check}" TextElement.Foreground="{StaticResource Pincel.Apagado}" StrokeThickness="2.5"
+                                  HorizontalAlignment="Center" VerticalAlignment="Center" IsHitTestVisible="False" Visibility="{Binding FacturasImplicito, Converter={StaticResource Visible}}" />
+                          </Grid>
+                          <Grid Grid.Column="4" HorizontalAlignment="Center" VerticalAlignment="Center" ToolTip="{Binding AyudaAdministrativos}">
+                            <CheckBox IsChecked="{Binding EnviosAdministrativos}" ToolTip="{Binding AyudaAdministrativos}" />
+                            <Path Style="{StaticResource Icono.Trazo12}" Data="{StaticResource Icono.check}" TextElement.Foreground="{StaticResource Pincel.Apagado}" StrokeThickness="2.5"
+                                  HorizontalAlignment="Center" VerticalAlignment="Center" IsHitTestVisible="False" Visibility="{Binding AdministrativosImplicito, Converter={StaticResource Visible}}" />
+                          </Grid>
+                          <ComboBox Grid.Column="5" Margin="10,0,0,0" ItemsSource="{Binding DataContext.OpcionesGrupo, RelativeSource={RelativeSource AncestorType=UserControl}}" SelectedItem="{Binding Grupo}"
+                                    ToolTip="Persona de contacto a la que pertenece esta dirección; «General» si es de la organización" />
+                          <StackPanel Grid.Column="6" Orientation="Horizontal" Margin="8,0,0,0">
+                            <Button Style="{StaticResource Boton.Icono}" pc:Iconos.Icono="{StaticResource Icono.send}" IsEnabled="False" ToolTipService.ShowOnDisabled="True"
+                                    ToolTip="{Binding DataContext.AyudaEnviarEmail, RelativeSource={RelativeSource AncestorType=UserControl}}" AutomationProperties.Name="Enviar email" />
+                            <Button Style="{StaticResource Boton.Icono}" pc:Iconos.Icono="{StaticResource Icono.trash}" Command="{Binding QuitarCommand}" ToolTip="Quita esta dirección (al guardar la ficha)" />
+                          </StackPanel>
+                        </Grid>
+                      </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                  </ItemsControl>
+                  <Button Content="Añadir email" pc:Iconos.Icono="{StaticResource Icono.plus}" Command="{Binding AnadirEmailCommand}" HorizontalAlignment="Left" Margin="0,4,0,0"
+                          ToolTip="Añade una dirección de email a la lista" />
+                  <!-- Email antiguo de la ficha, solo si aún no está en la lista -->
+                  <StackPanel Orientation="Horizontal" Margin="0,12,0,0" Visibility="{Binding MostrarEmailAntiguo, Converter={StaticResource Visible}}">
+                    <TextBlock Style="{StaticResource Texto.Apagado}" VerticalAlignment="Center" Margin="0,0,10,0">Email de la ficha antigua: <Run Text="{Binding EmailPrincipal, Mode=OneWay}" /></TextBlock>
+                    <Button Style="{StaticResource Boton.Enlace}" Content="Añadirlo a la lista" Command="{Binding PasarEmailPrincipalCommand}" VerticalAlignment="Center"
+                            ToolTip="Copia este email a la lista, donde se le pueden marcar finalidades; el programa antiguo lo guardaba aparte" />
+                  </StackPanel>
+                </StackPanel>
+              </Border>
+
+              <!-- Teléfonos -->
+              <Border Style="{StaticResource Tarjeta}" Padding="16,12" Margin="0,0,0,14">
+                <StackPanel>
+                  <TextBlock Text="Teléfonos" Style="{StaticResource Seccion.Ficha}" Margin="0,0,0,10" />
+                  <Grid Margin="0,0,0,4" TextElement.FontSize="{StaticResource Letra.Pequena}" TextElement.FontWeight="SemiBold" TextElement.Foreground="{StaticResource Pincel.Texto2}">
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="180" /><ColumnDefinition Width="200" /><ColumnDefinition Width="64" /><ColumnDefinition Width="200" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                    <TextBlock Text="Etiqueta" />
+                    <TextBlock Grid.Column="1" Text="Número" />
+                    <TextBlock Grid.Column="2" Text="Activo" HorizontalAlignment="Center" ToolTip="Un número inactivo se conserva, pero no se propone" />
+                    <TextBlock Grid.Column="3" Text="Persona" Margin="10,0,0,0" ToolTip="Persona de contacto a la que pertenece el número; «General» si es de la organización" />
+                  </Grid>
+                  <ItemsControl ItemsSource="{Binding Telefonos}">
+                    <ItemsControl.ItemTemplate>
+                      <DataTemplate>
+                        <Grid Margin="0,0,0,6">
+                          <Grid.ColumnDefinitions><ColumnDefinition Width="180" /><ColumnDefinition Width="200" /><ColumnDefinition Width="64" /><ColumnDefinition Width="200" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                          <TextBox Text="{Binding Etiqueta, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,8,0" MaxLength="100" ToolTip="Para qué es este número (Centralita, Taller, Móvil…)" />
+                          <TextBox Grid.Column="1" Text="{Binding Valor, UpdateSourceTrigger=PropertyChanged, ValidatesOnNotifyDataErrors=True}" Tag="Valor" MaxLength="254" ToolTip="{Binding AyudaValor}" />
+                          <CheckBox Grid.Column="2" IsChecked="{Binding Activo}" HorizontalAlignment="Center" ToolTip="Un número inactivo se conserva, pero no se propone" />
+                          <ComboBox Grid.Column="3" Margin="10,0,0,0" ItemsSource="{Binding DataContext.OpcionesGrupo, RelativeSource={RelativeSource AncestorType=UserControl}}" SelectedItem="{Binding Grupo}"
+                                    ToolTip="Persona de contacto a la que pertenece este número; «General» si es de la organización" />
+                          <Button Grid.Column="4" Margin="8,0,0,0" Style="{StaticResource Boton.Icono}" pc:Iconos.Icono="{StaticResource Icono.trash}" Command="{Binding QuitarCommand}" ToolTip="Quita este número (al guardar la ficha)" />
+                        </Grid>
+                      </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                  </ItemsControl>
+                  <Button Content="Añadir teléfono" pc:Iconos.Icono="{StaticResource Icono.plus}" Command="{Binding AnadirTelefonoCommand}" HorizontalAlignment="Left" Margin="0,4,0,0"
+                          ToolTip="Añade un número de teléfono a la lista" />
+                  <StackPanel Orientation="Horizontal" Margin="0,12,0,0" Visibility="{Binding MostrarTelefonoAntiguo, Converter={StaticResource Visible}}">
+                    <TextBlock Style="{StaticResource Texto.Apagado}" VerticalAlignment="Center" Margin="0,0,10,0">Teléfono de la ficha antigua: <Run Text="{Binding TelefonoPrincipal, Mode=OneWay}" /></TextBlock>
+                    <Button Style="{StaticResource Boton.Enlace}" Content="Añadirlo a la lista" Command="{Binding PasarTelefonoPrincipalCommand}" VerticalAlignment="Center"
+                            Visibility="{Binding TelefonoAntiguoValido, Converter={StaticResource Visible}}"
+                            ToolTip="Copia este teléfono a la lista; el programa antiguo lo guardaba aparte" />
+                    <TextBlock Style="{StaticResource Texto.Apagado}" VerticalAlignment="Center" Text="(no parece un teléfono: si es una dirección, cópiala al domicilio)"
+                               Visibility="{Binding TelefonoAntiguoValido, Converter={StaticResource Visible}, ConverterParameter=invertir}" />
+                  </StackPanel>
+                </StackPanel>
+              </Border>
+
+              <!-- Personas de contacto sin ficha -->
+              <Border Style="{StaticResource Tarjeta}" Padding="16,12" Margin="0,0,0,14">
+                <StackPanel>
+                  <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                    <TextBlock Text="Personas de contacto sin ficha" Style="{StaticResource Seccion.Ficha}" />
+                    <TextBlock Text="No crean un tercero; sus emails y teléfonos se eligen en la columna «Persona»." Style="{StaticResource Texto.Apagado}" Margin="10,0,0,0" VerticalAlignment="Center" />
+                  </StackPanel>
+                  <Grid Margin="0,0,0,4" TextElement.FontSize="{StaticResource Letra.Pequena}" TextElement.FontWeight="SemiBold" TextElement.Foreground="{StaticResource Pincel.Texto2}"
+                        Visibility="{Binding HayGrupos, Converter={StaticResource Visible}}">
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="288" /><ColumnDefinition Width="228" /></Grid.ColumnDefinitions>
+                    <TextBlock Text="Nombre" ToolTip="Nombre de la persona o del departamento (obligatorio)" />
+                    <TextBlock Grid.Column="1" Text="Departamento" ToolTip="Departamento (opcional)" />
+                  </Grid>
+                  <ItemsControl ItemsSource="{Binding Grupos}">
+                    <ItemsControl.ItemTemplate>
+                      <DataTemplate>
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+                          <TextBox Text="{Binding Nombre, UpdateSourceTrigger=PropertyChanged, ValidatesOnNotifyDataErrors=True}" Width="280" Margin="0,0,8,0" Tag="Nombre" MaxLength="150"
+                                   ToolTip="Nombre de la persona o del departamento (obligatorio)" />
+                          <TextBox Text="{Binding Departamento, UpdateSourceTrigger=PropertyChanged}" Width="220" Margin="0,0,8,0" MaxLength="100" ToolTip="Departamento (opcional)" />
+                          <Button Style="{StaticResource Boton.Icono}" pc:Iconos.Icono="{StaticResource Icono.trash}" Command="{Binding QuitarCommand}"
+                                  ToolTip="Quita esta persona; sus emails y teléfonos pasan a ser generales" />
+                        </StackPanel>
+                      </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                  </ItemsControl>
+                  <Button Content="Añadir persona" pc:Iconos.Icono="{StaticResource Icono.plus}" Command="{Binding AnadirGrupoCommand}" HorizontalAlignment="Left" Margin="0,4,0,0"
+                          ToolTip="Añade una persona de contacto sin crear una ficha de tercero para ella; luego le asignas emails y teléfonos en la columna «Persona»" />
+                </StackPanel>
+              </Border>
+
+              <!-- Relaciones persona-organización -->
+              <Border Style="{StaticResource Tarjeta}" Padding="16,12" Margin="0,0,0,14">
+                <StackPanel>
+                  <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                    <TextBlock Text="Relaciones" Style="{StaticResource Seccion.Ficha}" />
+                    <TextBlock Text="Personas y organizaciones vinculadas, con su tipo y vigencia." Style="{StaticResource Texto.Apagado}" Margin="10,0,0,0" VerticalAlignment="Center" />
+                  </StackPanel>
+                  <Grid Margin="0,0,0,4" TextElement.FontSize="{StaticResource Letra.Pequena}" TextElement.FontWeight="SemiBold" TextElement.Foreground="{StaticResource Pincel.Texto2}"
+                        Visibility="{Binding HayRelaciones, Converter={StaticResource Visible}}">
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="330" /><ColumnDefinition Width="210" /><ColumnDefinition Width="112" /><ColumnDefinition Width="112" /><ColumnDefinition Width="100" /><ColumnDefinition Width="230" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                    <TextBlock Text="Persona u organización" />
+                    <TextBlock Grid.Column="1" Text="Tipo de relación" />
+                    <TextBlock Grid.Column="2" Text="Desde" />
+                    <TextBlock Grid.Column="3" Text="Hasta" />
+                    <TextBlock Grid.Column="4" Text="Estado" />
+                    <TextBlock Grid.Column="5" Text="Observaciones" />
+                  </Grid>
+                  <ItemsControl ItemsSource="{Binding Relaciones}">
+                    <ItemsControl.ItemTemplate>
+                      <DataTemplate>
+                        <Grid Margin="0,0,0,6">
+                          <Grid.ColumnDefinitions><ColumnDefinition Width="330" /><ColumnDefinition Width="210" /><ColumnDefinition Width="112" /><ColumnDefinition Width="112" /><ColumnDefinition Width="100" /><ColumnDefinition Width="230" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                          <Button Command="{Binding AbrirOtroCommand}" ToolTip="{Binding AyudaOtro}" HorizontalAlignment="Left" Background="Transparent" BorderThickness="0" Cursor="Hand">
+                            <Button.Template><ControlTemplate TargetType="Button"><ContentPresenter /></ControlTemplate></Button.Template>
+                            <StackPanel Orientation="Horizontal">
+                              <Border Style="{StaticResource Avatar}" Background="{StaticResource Pincel.AzulSuave}" Margin="0,0,8,0">
+                                <TextBlock Text="{Binding InicialesOtro}" Style="{StaticResource Texto.Avatar}" Foreground="{StaticResource Pincel.Marino}" />
+                              </Border>
+                              <StackPanel VerticalAlignment="Center">
+                                <TextBlock Text="{Binding NombreOtro}" FontWeight="SemiBold" TextDecorations="Underline" />
+                                <TextBlock Text="{Binding Papel}" FontSize="{StaticResource Letra.Mini}" Foreground="{StaticResource Pincel.Apagado}" />
+                              </StackPanel>
+                            </StackPanel>
+                          </Button>
+                          <ComboBox Grid.Column="1" ItemsSource="{Binding Tipos}" Text="{Binding TipoRelacion, UpdateSourceTrigger=LostFocus, ValidatesOnNotifyDataErrors=True}" IsEditable="True"
+                                    Margin="0,0,8,0" Tag="TipoRelacion" ToolTip="Tipo de relación: elige uno o escribe otro (hasta 40 caracteres)" />
+                          <TextBox Grid.Column="2" Text="{Binding TextoDesde, UpdateSourceTrigger=LostFocus, ValidatesOnNotifyDataErrors=True}" Margin="0,0,8,0" Tag="TextoDesde" Style="{StaticResource Campo.Mono}"
+                                   ToolTip="Fecha de inicio de la relación (dd/mm/aaaa); puede quedar vacía" />
+                          <TextBox Grid.Column="3" Text="{Binding TextoHasta, UpdateSourceTrigger=LostFocus, ValidatesOnNotifyDataErrors=True}" Margin="0,0,8,0" Tag="TextoHasta" Style="{StaticResource Campo.Mono}"
+                                   ToolTip="Fecha de fin (dd/mm/aaaa); vacía si la relación sigue vigente" />
+                          <Border Grid.Column="4" x:Name="Estado" Style="{StaticResource Insignia.Ficha.Cliente}" HorizontalAlignment="Left" ToolTip="Vigente si no tiene fecha de fin o aún no ha llegado">
+                            <TextBlock Text="{Binding Estado}" Style="{StaticResource Texto.Insignia}" />
+                          </Border>
+                          <TextBox Grid.Column="5" Text="{Binding Observaciones, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,8,0" ToolTip="Observaciones de la relación (opcional)" />
+                          <Button Grid.Column="6" Content="{Binding AccionTexto}" Command="{Binding AccionCommand}" ToolTip="{Binding AccionAyuda}" Style="{StaticResource Boton.Pequeno}"
+                                  Visibility="{Binding HayAccion, Converter={StaticResource Visible}}" />
+                        </Grid>
+                        <DataTemplate.Triggers>
+                          <DataTrigger Binding="{Binding EsVigente}" Value="False"><Setter TargetName="Estado" Property="Style" Value="{StaticResource Insignia.Ficha}" /></DataTrigger>
+                          <DataTrigger Binding="{Binding EsNueva}" Value="True"><Setter TargetName="Estado" Property="Style" Value="{StaticResource Insignia.Ficha.Proveedor}" /></DataTrigger>
+                        </DataTemplate.Triggers>
+                      </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                  </ItemsControl>
+                  <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
+                    <Button Content="Vincular persona…" pc:Iconos.Icono="{StaticResource Icono.link}" Command="{Binding VincularPersonaCommand}" Margin="0,0,8,0"
+                            ToolTip="Elige en el buscador de terceros una persona que es contacto de este tercero; al guardar recibe el rol Contacto si no lo tiene" />
+                    <Button Content="Vincular a organización…" pc:Iconos.Icono="{StaticResource Icono.link}" Command="{Binding VincularOrganizacionCommand}"
+                            ToolTip="Elige en el buscador la organización de la que este tercero es contacto; al guardar recibe el rol Contacto si no lo tiene" />
+                  </StackPanel>
+                </StackPanel>
+              </Border>
+            </StackPanel>
+          </ScrollViewer>
+        </TabItem>
+
+        <!-- ===================== Roles ===================== -->
+        <TabItem ToolTip="Roles Cliente, Proveedor y Contacto: activarlos o desactivarlos, sus Ids, cuentas y notas">
+          <TabItem.Header><ContentControl ContentTemplate="{StaticResource CabeceraPestana}" Content="{Binding Cabeceras[2]}" /></TabItem.Header>
+          <ScrollViewer VerticalScrollBarVisibility="Auto">
+            <StackPanel Margin="18,16" HorizontalAlignment="Left" Width="1240">
+              <ContentControl Content="{Binding}" ContentTemplate="{StaticResource ResumenErrores}" />
+
+              <!-- Cliente -->
+              <Border Style="{StaticResource Tarjeta}" Margin="0,0,0,14" Tag="rol:cliente">
+                <StackPanel>
+                  <DockPanel Margin="14,10">
+                    <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                      <TextBlock Text="{Binding EstadoCliente}" Style="{StaticResource Texto.Apagado}" VerticalAlignment="Center" Margin="0,0,10,0" />
+                      <StackPanel Orientation="Horizontal" Visibility="{Binding ClienteActivo, Converter={StaticResource Visible}}">
+                        <TextBlock Text="IdCliente" Style="{StaticResource Etiqueta.Campo}" VerticalAlignment="Center" Margin="0,0,8,0" />
+                        <TextBox Text="{Binding IdCliente, Mode=OneWay}" IsReadOnly="True" Width="100" Style="{StaticResource Campo.Mono}" Margin="0,0,10,0"
+                                 ToolTip="Número de cliente: conserva el del programa antiguo; uno nuevo recibe el siguiente libre al guardar" />
+                        <Button Style="{StaticResource Boton.Enlace}" Content="Desactivar" Command="{Binding DesactivarRolCommand}" CommandParameter="cliente" VerticalAlignment="Center"
+                                ToolTip="Desactiva el rol Cliente al guardar: conserva su número, su cuenta y sus facturas" />
+                      </StackPanel>
+                      <Button Content="Activar" Command="{Binding ActivarRolCommand}" CommandParameter="cliente" Style="{StaticResource Boton.Pequeno}"
+                              Visibility="{Binding ClienteActivo, Converter={StaticResource Visible}, ConverterParameter=invertir}"
+                              ToolTip="Da al tercero el rol Cliente al guardar (si ya lo tuvo, lo reactiva con el mismo número)" />
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal">
+                      <Border Style="{StaticResource Insignia.Ficha.Cliente}"><TextBlock Text="Cli" Style="{StaticResource Texto.Insignia}" /></Border>
+                      <TextBlock Text="Cliente" Style="{StaticResource Seccion.Ficha}" Margin="6,0,0,0" />
+                    </StackPanel>
+                  </DockPanel>
+                  <StackPanel Margin="14,0,14,12" Visibility="{Binding ClienteActivo, Converter={StaticResource Visible}}">
+                    <ContentControl Content="{Binding CuentaCliente}" ContentTemplate="{StaticResource FilaCuenta}" />
+                    <TextBlock Text="Notas del cliente" Style="{StaticResource Etiqueta.Campo}" />
+                    <TextBox Text="{Binding NotasCliente, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource Campo.Multilinea}" Width="760" Height="64" HorizontalAlignment="Left"
+                             ToolTip="Observaciones del rol Cliente (se guardan con la ficha)" />
+                  </StackPanel>
+                </StackPanel>
+              </Border>
+
+              <!-- Proveedor -->
+              <Border Style="{StaticResource Tarjeta}" Margin="0,0,0,14" Tag="rol:proveedor">
+                <StackPanel>
+                  <DockPanel Margin="14,10">
+                    <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                      <TextBlock Text="{Binding EstadoProveedor}" Style="{StaticResource Texto.Apagado}" VerticalAlignment="Center" Margin="0,0,10,0" />
+                      <StackPanel Orientation="Horizontal" Visibility="{Binding ProveedorActivo, Converter={StaticResource Visible}}">
+                        <TextBlock Text="IdProveedor" Style="{StaticResource Etiqueta.Campo}" VerticalAlignment="Center" Margin="0,0,8,0" />
+                        <TextBox Text="{Binding IdProveedor, Mode=OneWay}" IsReadOnly="True" Width="100" Style="{StaticResource Campo.Mono}" Margin="0,0,10,0"
+                                 ToolTip="Número de proveedor; uno nuevo lo recibe al guardar" />
+                        <Button Style="{StaticResource Boton.Enlace}" Content="Desactivar" Command="{Binding DesactivarRolCommand}" CommandParameter="proveedor" VerticalAlignment="Center"
+                                ToolTip="Desactiva el rol Proveedor al guardar: conserva su número, sus cuentas y sus facturas" />
+                      </StackPanel>
+                      <Button Content="Activar" Command="{Binding ActivarRolCommand}" CommandParameter="proveedor" Style="{StaticResource Boton.Pequeno}"
+                              Visibility="{Binding ProveedorActivo, Converter={StaticResource Visible}, ConverterParameter=invertir}"
+                              ToolTip="Da al tercero el rol Proveedor al guardar (si ya lo tuvo, lo reactiva con el mismo número)" />
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal">
+                      <Border Style="{StaticResource Insignia.Ficha.Proveedor}"><TextBlock Text="Prov" Style="{StaticResource Texto.Insignia}" /></Border>
+                      <TextBlock Text="Proveedor" Style="{StaticResource Seccion.Ficha}" Margin="6,0,0,0" />
+                    </StackPanel>
+                  </DockPanel>
+                  <StackPanel Margin="14,0,14,12" Visibility="{Binding ProveedorActivo, Converter={StaticResource Visible}}">
+                    <ContentControl Content="{Binding CuentaProveedor}" ContentTemplate="{StaticResource FilaCuenta}" />
+                    <ContentControl Content="{Binding CuentaAcreedor}" ContentTemplate="{StaticResource FilaCuenta}" />
+                    <TextBlock Text="Notas del proveedor" Style="{StaticResource Etiqueta.Campo}" />
+                    <TextBox Text="{Binding NotasProveedor, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource Campo.Multilinea}" Width="760" Height="64" HorizontalAlignment="Left"
+                             ToolTip="Observaciones del rol Proveedor (se guardan con la ficha)" />
+                  </StackPanel>
+                </StackPanel>
+              </Border>
+
+              <!-- Contacto -->
+              <Border Style="{StaticResource Tarjeta}" Margin="0,0,0,14" Tag="rol:contacto">
+                <StackPanel>
+                  <DockPanel Margin="14,10">
+                    <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                      <TextBlock Text="{Binding EstadoContacto}" Style="{StaticResource Texto.Apagado}" VerticalAlignment="Center" Margin="0,0,10,0" />
+                      <StackPanel Orientation="Horizontal" Visibility="{Binding ContactoActivo, Converter={StaticResource Visible}}">
+                        <TextBlock Text="IdContacto" Style="{StaticResource Etiqueta.Campo}" VerticalAlignment="Center" Margin="0,0,8,0" />
+                        <TextBox Text="{Binding IdContacto, Mode=OneWay}" IsReadOnly="True" Width="100" Style="{StaticResource Campo.Mono}" Margin="0,0,10,0" ToolTip="Número de contacto; uno nuevo lo recibe al guardar" />
+                        <Button Style="{StaticResource Boton.Enlace}" Content="Desactivar" Command="{Binding DesactivarRolCommand}" CommandParameter="contacto" VerticalAlignment="Center"
+                                ToolTip="Desactiva el rol Contacto al guardar; sus relaciones se conservan" />
+                      </StackPanel>
+                      <Button Content="Activar" Command="{Binding ActivarRolCommand}" CommandParameter="contacto" Style="{StaticResource Boton.Pequeno}"
+                              Visibility="{Binding ContactoActivo, Converter={StaticResource Visible}, ConverterParameter=invertir}"
+                              ToolTip="Da al tercero el rol Contacto al guardar (persona de contacto de otras organizaciones)" />
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal">
+                      <Border Style="{StaticResource Insignia.Ficha.Contacto}"><TextBlock Text="Cont" Style="{StaticResource Texto.Insignia}" /></Border>
+                      <TextBlock Text="Contacto" Style="{StaticResource Seccion.Ficha}" Margin="6,0,0,0" />
+                    </StackPanel>
+                  </DockPanel>
+                  <StackPanel Margin="14,0,14,12" Visibility="{Binding ContactoActivo, Converter={StaticResource Visible}}">
+                    <WrapPanel Margin="0,0,0,10">
+                      <StackPanel Margin="0,0,10,0">
+                        <TextBlock Text="Cargo" Style="{StaticResource Etiqueta.Campo}" />
+                        <TextBox Text="{Binding Cargo, UpdateSourceTrigger=PropertyChanged}" Width="280" MaxLength="100" ToolTip="Cargo de la persona (Gerente, Jefa de compras…)" />
+                      </StackPanel>
+                      <StackPanel>
+                        <TextBlock Text="Departamento" Style="{StaticResource Etiqueta.Campo}" />
+                        <TextBox Text="{Binding Departamento, UpdateSourceTrigger=PropertyChanged}" Width="280" MaxLength="100" ToolTip="Departamento en el que trabaja" />
+                      </StackPanel>
+                    </WrapPanel>
+                    <TextBlock Text="Notas del contacto" Style="{StaticResource Etiqueta.Campo}" />
+                    <TextBox Text="{Binding NotasContacto, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource Campo.Multilinea}" Width="760" Height="64" HorizontalAlignment="Left"
+                             ToolTip="Observaciones del rol Contacto (se guardan con la ficha)" />
+                  </StackPanel>
+                </StackPanel>
+              </Border>
+
+              <TextBlock Text="{Binding TextoCuentas}" TextWrapping="Wrap" Style="{StaticResource Texto.Apagado}" Margin="2,0,0,6" />
+              <TextBlock Style="{StaticResource Texto.Apagado}" Margin="2,0,0,0" TextWrapping="Wrap" Text="Los valores por defecto del proveedor (forma de pago, días, retención, tipo de operación, IBAN y cuenta de gasto) llegarán con el desarrollo de compras; los datos comerciales del cliente (días de pago, descuento, riesgo e IBAN), con el de facturación." />
+            </StackPanel>
+          </ScrollViewer>
+        </TabItem>
+
+        <!-- ===================== Perfiles ===================== -->
+        <TabItem ToolTip="Perfiles de clasificación del tercero (independientes de los roles)">
+          <TabItem.Header><ContentControl ContentTemplate="{StaticResource CabeceraPestana}" Content="{Binding Cabeceras[3]}" /></TabItem.Header>
+          <DockPanel Margin="18,16" HorizontalAlignment="Left" Width="1240">
+            <ContentControl DockPanel.Dock="Top" Content="{Binding}" ContentTemplate="{StaticResource ResumenErrores}" />
+            <DockPanel DockPanel.Dock="Top" Margin="0,0,0,10">
+              <Button DockPanel.Dock="Right" Content="Nuevo perfil…" pc:Iconos.Icono="{StaticResource Icono.plus}" Command="{Binding NuevoPerfilCommand}"
+                      ToolTip="Crea un perfil nuevo en el catálogo (al momento) y lo asigna a esta ficha (se guarda con la ficha)" />
+              <TextBlock Text="Perfiles" Style="{StaticResource Seccion.Ficha}" />
+              <TextBlock Text="Arrastra un perfil de una lista a la otra para asignarlo o quitarlo; también con doble clic, con Intro o con la flecha. Mayús o Ctrl para elegir varios."
+                         Style="{StaticResource Texto.Apagado}" Margin="10,0,0,0" VerticalAlignment="Center" />
+            </DockPanel>
+            <Grid MaxHeight="760" VerticalAlignment="Top">
+              <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="16" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+              <Border Style="{StaticResource Tarjeta}">
+                <DockPanel>
+                  <DockPanel DockPanel.Dock="Top" Margin="12,8">
+                    <Grid DockPanel.Dock="Right" Width="220">
+                      <TextBox Text="{Binding FiltroPerfiles, UpdateSourceTrigger=PropertyChanged}" Padding="26,0,6,0" ToolTip="Filtra los perfiles disponibles por nombre o descripción" />
+                      <Path Style="{StaticResource Icono.Trazo12}" Data="{StaticResource Icono.search}" HorizontalAlignment="Left" Margin="9,0,0,0" VerticalAlignment="Center" IsHitTestVisible="False" />
+                    </Grid>
+                    <TextBlock VerticalAlignment="Center" FontWeight="SemiBold"><Run Text="Disponibles " /><Run Text="{Binding PerfilesDisponibles.Count, Mode=OneWay}" Foreground="{StaticResource Pincel.Apagado}" /></TextBlock>
+                  </DockPanel>
+                  <ListBox x:Name="ListaDisponibles" ItemsSource="{Binding PerfilesDisponibles}" SelectionMode="Extended" AllowDrop="True" Margin="6,0,6,6" MinHeight="300"
+                           MouseDoubleClick="ListaDisponibles_MouseDoubleClick" KeyDown="ListaDisponibles_KeyDown" PreviewMouseLeftButtonDown="Lista_PreviewMouseLeftButtonDown"
+                           PreviewMouseMove="Lista_PreviewMouseMove" Drop="ListaDisponibles_Drop" AutomationProperties.Name="Perfiles disponibles">
+                    <ListBox.ItemTemplate>
+                      <DataTemplate>
+                        <DockPanel ToolTip="{Binding Ayuda}">
+                          <Button DockPanel.Dock="Right" Style="{StaticResource Boton.Icono}" pc:Iconos.Icono="{StaticResource Icono.chevr}"
+                                  Command="{Binding DataContext.AsignarPerfilesCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}"
+                                  IsEnabled="{Binding PerfilActivo}" ToolTipService.ShowOnDisabled="True" ToolTip="Asigna este perfil al tercero" />
+                          <StackPanel x:Name="Textos">
+                            <TextBlock Text="{Binding Nombre}" FontWeight="SemiBold" />
+                            <TextBlock Text="{Binding Descripcion}" FontSize="{StaticResource Letra.Pequena}" Foreground="{StaticResource Pincel.Apagado}" TextTrimming="CharacterEllipsis" />
+                          </StackPanel>
+                        </DockPanel>
+                        <DataTemplate.Triggers>
+                          <DataTrigger Binding="{Binding PerfilActivo}" Value="False"><Setter TargetName="Textos" Property="Opacity" Value="0.5" /></DataTrigger>
+                        </DataTemplate.Triggers>
+                      </DataTemplate>
+                    </ListBox.ItemTemplate>
+                  </ListBox>
+                </DockPanel>
+              </Border>
+              <Border Grid.Column="2" Style="{StaticResource Tarjeta}" Background="{StaticResource Pincel.Fondo}">
+                <DockPanel>
+                  <TextBlock DockPanel.Dock="Top" Margin="12,13" FontWeight="SemiBold"><Run Text="Asignados a este tercero " /><Run Text="{Binding NumeroPerfiles, Mode=OneWay}" Foreground="{StaticResource Pincel.Apagado}" /></TextBlock>
+                  <Grid>
+                    <TextBlock Text="{Binding TextoSinPerfiles}" Style="{StaticResource Texto.Apagado}" TextWrapping="Wrap" Margin="14" IsHitTestVisible="False"
+                               Visibility="{Binding SinPerfilesAsignados, Converter={StaticResource Visible}}" />
+                    <ListBox x:Name="ListaAsignados" ItemsSource="{Binding PerfilesAsignados}" SelectionMode="Extended" AllowDrop="True" Margin="6,0,6,6" MinHeight="300" Background="Transparent"
+                             MouseDoubleClick="ListaAsignados_MouseDoubleClick" KeyDown="ListaAsignados_KeyDown" PreviewMouseLeftButtonDown="Lista_PreviewMouseLeftButtonDown"
+                             PreviewMouseMove="Lista_PreviewMouseMove" Drop="ListaAsignados_Drop" AutomationProperties.Name="Perfiles asignados">
+                      <ListBox.ItemTemplate>
+                        <DataTemplate>
+                          <DockPanel ToolTip="{Binding Ayuda}">
+                            <Button DockPanel.Dock="Left" Style="{StaticResource Boton.Icono}" pc:Iconos.Icono="{StaticResource Icono.prev}" Margin="0,0,8,0"
+                                    Command="{Binding DataContext.RetirarPerfilesCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}"
+                                    ToolTip="Quita este perfil del tercero (al guardar queda retirado con su fecha)" />
+                            <StackPanel>
+                              <TextBlock Text="{Binding Nombre}" FontWeight="SemiBold" />
+                              <TextBlock Text="{Binding Descripcion}" FontSize="{StaticResource Letra.Pequena}" Foreground="{StaticResource Pincel.Apagado}" TextTrimming="CharacterEllipsis" />
+                            </StackPanel>
+                          </DockPanel>
+                        </DataTemplate>
+                      </ListBox.ItemTemplate>
+                    </ListBox>
+                  </Grid>
+                </DockPanel>
+              </Border>
+            </Grid>
+          </DockPanel>
+        </TabItem>
+
+        <!-- ===================== Huecos de otras áreas ===================== -->
+        <TabItem ToolTip="Facturas programadas y emitidas del cliente (llega con el desarrollo de facturación)">
+          <TabItem.Header><ContentControl ContentTemplate="{StaticResource CabeceraPestana}" Content="{Binding Cabeceras[4]}" /></TabItem.Header>
+          <pc:VistaEstado Estado="Vacio" Titulo="Ventas llega con el desarrollo de facturación"
+                          Mensaje="Aquí verás primero las facturas programadas del cliente y después las emitidas; al elegir una programación, solo las facturas que ha generado. Doble clic abrirá la factura en su pestaña de Facturas." />
+        </TabItem>
+        <TabItem ToolTip="Facturas recibidas del proveedor (llega con el desarrollo de compras)">
+          <TabItem.Header><ContentControl ContentTemplate="{StaticResource CabeceraPestana}" Content="{Binding Cabeceras[5]}" /></TabItem.Header>
+          <pc:VistaEstado Estado="Vacio" Titulo="Compras llega con el desarrollo de compras"
+                          Mensaje="Aquí verás las facturas recibidas del proveedor, con su estado de contabilización y el acceso a cada factura y a su PDF." />
+        </TabItem>
+        <TabItem ToolTip="Mayor de las cuentas del tercero (llega con el Mayor de contabilidad)">
+          <TabItem.Header><ContentControl ContentTemplate="{StaticResource CabeceraPestana}" Content="{Binding Cabeceras[6]}" /></TabItem.Header>
+          <pc:VistaEstado Estado="Vacio" Titulo="Contabilidad llega con el Mayor de contabilidad"
+                          Mensaje="Aquí verás el Mayor de las cuentas del tercero (cliente, proveedor y acreedor), todas juntas o una a una, con sus filtros; lo que salga de ellas se abrirá en una pestaña del Mayor." />
+        </TabItem>
+
+        <!-- ===================== Notas ===================== -->
+        <TabItem ToolTip="Notas y notas internas del tercero">
+          <TabItem.Header><ContentControl ContentTemplate="{StaticResource CabeceraPestana}" Content="{Binding Cabeceras[7]}" /></TabItem.Header>
+          <StackPanel Margin="18,16" HorizontalAlignment="Left">
+            <ContentControl Content="{Binding}" ContentTemplate="{StaticResource ResumenErrores}" />
+            <TextBlock Text="Notas" Style="{StaticResource Etiqueta.Campo}" />
+            <TextBox Text="{Binding Notas, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource Campo.Multilinea}" Width="900" Height="200" Margin="0,0,0,16"
+                     ToolTip="Notas del tercero. Sus cambios cuentan como pendientes y quedan en el historial" />
+            <TextBlock Text="Notas internas" Style="{StaticResource Etiqueta.Campo}" />
+            <TextBox Text="{Binding NotasInternas, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource Campo.Multilinea}" Width="900" Height="200"
+                     ToolTip="Notas internas, para el equipo. De momento las ven y editan todos los operadores; quedan en el historial" />
+          </StackPanel>
+        </TabItem>
+
+        <TabItem ToolTip="Documentos del tercero (llega con el motor documental)">
+          <TabItem.Header><ContentControl ContentTemplate="{StaticResource CabeceraPestana}" Content="{Binding Cabeceras[8]}" /></TabItem.Header>
+          <pc:VistaEstado Estado="Vacio" Titulo="Documentos llega con el motor documental"
+                          Mensaje="Aquí verás los documentos del tercero: los automáticos (facturas emitidas y recibidas, justificantes de pago) y los ficheros que añadas arrastrándolos, con su tipo y descripción." />
+        </TabItem>
+
+        <!-- ===================== Historial ===================== -->
+        <TabItem ToolTip="Cambios guardados de la ficha: fecha, operador, sección, campo, antes y después">
+          <TabItem.Header><ContentControl ContentTemplate="{StaticResource CabeceraPestana}" Content="{Binding Cabeceras[9]}" /></TabItem.Header>
+          <DockPanel Margin="0">
+            <Border DockPanel.Dock="Bottom" Style="{StaticResource Barra.Pie}">
+              <StackPanel Orientation="Horizontal">
+                <Button Content="Actualizar" pc:Iconos.Icono="{StaticResource Icono.refresh}" Command="{Binding RecargarHistorialCommand}" Style="{StaticResource Boton.Pequeno}" Margin="0,0,8,0"
+                        ToolTip="Vuelve a leer el historial de la base de datos" />
+                <Button Content="Exportar a Excel" pc:Iconos.Icono="{StaticResource Icono.xls}" Command="{Binding ExportarExcelCommand, ElementName=TablaHistorial}" Style="{StaticResource Boton.Pequeno}"
+                        ToolTip="Exporta todas las filas del historial con las columnas visibles" />
+              </StackPanel>
+            </Border>
+            <pc:VistaEstado Estado="{Binding EstadoHistorial}" Titulo="Sin cambios registrados" Mensaje="{Binding MensajeHistorial}">
+              <pc:TablaProConta x:Name="TablaHistorial" ItemsSource="{Binding Movimientos}" ClavePreferencias="terceros.historial" TituloExportacion="Historial del tercero" IsReadOnly="True">
+                <pc:TablaProConta.Columns>
+                  <DataGridTextColumn Header="Fecha y hora" Binding="{Binding Fecha}" SortMemberPath="FechaHora" Width="140" ElementStyle="{StaticResource Texto.Celda.Mono}" pc:TablaProConta.Clave="fecha" pc:TablaProConta.RutaExportar="FechaHora" />
+                  <DataGridTextColumn Header="Operador" Binding="{Binding Operador}" Width="150" ElementStyle="{StaticResource Texto.Celda}" pc:TablaProConta.Clave="operador" />
+                  <DataGridTextColumn Header="Sección" Binding="{Binding Seccion}" Width="170" ElementStyle="{StaticResource Texto.Celda}" pc:TablaProConta.Clave="seccion" />
+                  <DataGridTextColumn Header="Operación" Binding="{Binding Operacion}" Width="90" ElementStyle="{StaticResource Texto.Celda}" pc:TablaProConta.Clave="operacion" />
+                  <DataGridTextColumn Header="Campo" Binding="{Binding Campo}" Width="190" ElementStyle="{StaticResource Texto.Celda}" pc:TablaProConta.Clave="campo" />
+                  <DataGridTextColumn Header="Antes" Binding="{Binding Antes}" Width="*" MinWidth="260" ElementStyle="{StaticResource Texto.Celda}" pc:TablaProConta.Clave="antes" />
+                  <DataGridTextColumn Header="Después" Binding="{Binding Despues}" Width="*" MinWidth="260" ElementStyle="{StaticResource Texto.Celda}" pc:TablaProConta.Clave="despues" />
+                </pc:TablaProConta.Columns>
+              </pc:TablaProConta>
+            </pc:VistaEstado>
+          </DockPanel>
+        </TabItem>
+      </TabControl>
+    </DockPanel>
+  </pc:VistaEstado>
+</UserControl>

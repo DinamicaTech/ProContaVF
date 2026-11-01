@@ -51,6 +51,19 @@ public interface ICatalogoCuentas
 
     Task<Resultado<CuentaContable>> AltaAsync(ContextoSociedadEjercicio contexto, AltaCuenta alta);
 
+    /// <summary>Cuenta de una identidad en el ejercicio del contexto, o null si la identidad aún no tiene cuenta en él.</summary>
+    Task<CuentaContable?> CuentaDeIdentidadAsync(ContextoSociedadEjercicio contexto, int idIdentidadContable);
+
+    /// <summary>Cuenta de la identidad en su ejercicio más reciente (para proponer código y nombre), o null si no tiene ninguna.</summary>
+    Task<CuentaContable?> UltimaCuentaDeIdentidadAsync(int idIdentidadContable);
+
+    /// <summary>
+    /// Alta en el ejercicio del contexto de la cuenta de una identidad que ya existe en otro ejercicio de la sociedad,
+    /// por defecto con el código y el nombre de su ejercicio más reciente. Respeta la reserva histórica de códigos: el
+    /// código puede ser el reservado para esa identidad o uno libre (que queda reservado), nunca el de otra identidad.
+    /// </summary>
+    Task<Resultado<CuentaContable>> AltaEnEjercicioAsync(ContextoSociedadEjercicio contexto, int idIdentidadContable, string? codigo = null, string? nombre = null);
+
     /// <summary>Recalcula SaldoActual y NumeroApuntes de las cuentas del ejercicio desde sus apuntes.</summary>
     Task ReconstruirSaldosAsync(ContextoSociedadEjercicio contexto);
 }
@@ -141,6 +154,61 @@ public sealed class CatalogoCuentasAccess(IBaseDatos bd) : ICatalogoCuentas
                 contexto.IdSociedad, codigo, identidad, hoy);
             return Resultado<CuentaContable>.Correcto(new CuentaContable(id, identidad, contexto.IdSociedadEjercicio, alta.IdCuentaPadre, codigo, nombre,
                 true, false, alta.EsImputable, alta.IdCentroCostePredeterminado, 0m, 0m, 0));
+        });
+
+    public Task<CuentaContable?> CuentaDeIdentidadAsync(ContextoSociedadEjercicio contexto, int idIdentidadContable) =>
+        bd.EjecutarAsync(s => s.ConsultarPrimeroAsync($"SELECT {Columnas} FROM CuentasContables WHERE IdSociedadEjercicio = ? AND IdIdentidadContable = ? ORDER BY IdCuentaContable",
+            Mapear, contexto.IdSociedadEjercicio, idIdentidadContable));
+
+    public Task<CuentaContable?> UltimaCuentaDeIdentidadAsync(int idIdentidadContable) =>
+        bd.EjecutarAsync(s => UltimaAsync(s, idIdentidadContable));
+
+    private static Task<CuentaContable?> UltimaAsync(ISesionDatos s, int idIdentidadContable) =>
+        s.ConsultarPrimeroAsync(
+            "SELECT c.IdCuentaContable, c.IdIdentidadContable, c.IdSociedadEjercicio, c.IdCuentaPadre, c.Codigo, c.Nombre, c.EstaActiva, c.EstaBloqueada, c.EsImputable, " +
+            "c.IdCentroCostePredeterminado, c.SaldoInicial, c.SaldoActual, c.NumeroApuntes FROM CuentasContables AS c INNER JOIN SociedadesEjercicios AS se " +
+            "ON c.IdSociedadEjercicio = se.IdSociedadEjercicio WHERE c.IdIdentidadContable = ? ORDER BY se.Ejercicio DESC, c.IdCuentaContable DESC",
+            Mapear, idIdentidadContable);
+
+    public Task<Resultado<CuentaContable>> AltaEnEjercicioAsync(ContextoSociedadEjercicio contexto, int idIdentidadContable, string? codigo = null, string? nombre = null) =>
+        bd.EnTransaccionAsync(async s =>
+        {
+            var sociedad = await s.ConsultarPrimeroAsync("SELECT IdSociedad FROM IdentidadesContables WHERE IdIdentidadContable = ?", f => f.Texto("IdSociedad"), idIdentidadContable);
+            var ultima = await UltimaAsync(s, idIdentidadContable);
+            var cod = (codigo ?? ultima?.Codigo ?? "").Trim();
+            var nom = (nombre ?? ultima?.Nombre ?? "").Trim();
+            var registro = $"Cuenta {cod}";
+            if (sociedad is null || !string.Equals(sociedad.Trim(), contexto.IdSociedad.Trim(), StringComparison.OrdinalIgnoreCase))
+                return Fallo("Cuentas.IdentidadDeOtraSociedad", "Esa cuenta no es de la sociedad de trabajo.", registro,
+                    "Cada sociedad tiene sus propias cuentas.", "Elige una cuenta de esta sociedad o da de alta una nueva.");
+            if (await s.ConsultarPrimeroAsync("SELECT Codigo FROM CuentasContables WHERE IdSociedadEjercicio = ? AND IdIdentidadContable = ?",
+                    f => f.Texto("Codigo"), contexto.IdSociedadEjercicio, idIdentidadContable) is { } existente)
+                return Fallo("Cuentas.YaExisteEnEjercicio", $"La cuenta ya existe en el ejercicio {contexto.Ejercicio} con el código {existente}.", registro,
+                    "Una identidad solo tiene una cuenta en cada ejercicio.", $"Usa la cuenta {existente}.");
+            if (cod.Length == 0 || cod.Length > ReglasCuenta.LongitudMaximaCodigo || !cod.All(char.IsAsciiDigit))
+                return Fallo("Cuentas.CodigoNoValido", $"El código de cuenta «{cod}» no es válido.", registro,
+                    $"Debe tener solo cifras, entre 1 y {ReglasCuenta.LongitudMaximaCodigo}.", "Escribe el código con cifras, por ejemplo 4300001.");
+            if (nom.Length == 0 || nom.Length > ReglasCuenta.LongitudMaximaNombre)
+                return Fallo("Cuentas.NombreNoValido", "Falta el nombre de la cuenta o es demasiado largo.", registro,
+                    $"Debe tener entre 1 y {ReglasCuenta.LongitudMaximaNombre} caracteres.", "Escribe el nombre de la cuenta.");
+            if (Convert.ToInt32(await s.EscalarAsync("SELECT COUNT(*) FROM CuentasContables WHERE IdSociedadEjercicio = ? AND Codigo = ?", contexto.IdSociedadEjercicio, cod)) > 0)
+                return Fallo("Cuentas.Repetida", $"El código {cod} ya lo usa otra cuenta en el ejercicio {contexto.Ejercicio}.", registro,
+                    "El código es único dentro de cada ejercicio.", "Elige otro código para esta cuenta.");
+            var reservada = await s.ConsultarPrimeroAsync("SELECT IdIdentidadContable FROM CodigosContablesReservados WHERE IdSociedad = ? AND Codigo = ?",
+                f => (int?)f.Entero("IdIdentidadContable"), contexto.IdSociedad, cod);
+            if (reservada is int otra && otra != idIdentidadContable)
+                return Fallo("Cuentas.CodigoReservado", $"El código {cod} ya se usó en otro ejercicio para otra cuenta de esta sociedad.", registro,
+                    "Los códigos usados se reservan para no confundir cuentas distintas en el histórico.", "Elige otro código para esta cuenta.");
+
+            await s.EjecutarAsync(
+                "INSERT INTO CuentasContables (IdIdentidadContable, IdSociedadEjercicio, IdCuentaPadre, Codigo, Nombre, EstaActiva, EstaBloqueada, EsImputable, IdCentroCostePredeterminado, SaldoInicial, SaldoActual, NumeroApuntes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                idIdentidadContable, contexto.IdSociedadEjercicio, null, cod, nom, true, false, ultima?.EsImputable ?? true, ultima?.IdCentroCostePredeterminado, 0m, 0m, 0);
+            var id = await s.UltimoIdAsync();
+            if (reservada is null)
+                await s.EjecutarAsync("INSERT INTO CodigosContablesReservados (IdSociedad, Codigo, IdIdentidadContable, FechaPrimeraAsignacion) VALUES (?, ?, ?, ?)",
+                    contexto.IdSociedad, cod, idIdentidadContable, DateTime.Today);
+            return Resultado<CuentaContable>.Correcto(new CuentaContable(id, idIdentidadContable, contexto.IdSociedadEjercicio, null, cod, nom,
+                true, false, ultima?.EsImputable ?? true, ultima?.IdCentroCostePredeterminado, 0m, 0m, 0));
         });
 
     public Task ReconstruirSaldosAsync(ContextoSociedadEjercicio contexto) =>

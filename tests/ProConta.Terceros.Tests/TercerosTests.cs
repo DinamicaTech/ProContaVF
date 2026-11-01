@@ -141,34 +141,17 @@ public sealed class TercerosAccessTests : IDisposable
     }
 
     [Fact]
-    public async Task RolesIdempotentesYCuentasPorEjercicio()
+    public async Task RolesIdempotentesSinDuplicarIdentidad()
     {
         var bd = _copia.Bd();
-        await DatosSinteticos.SociedadAsync(bd, "T01", "Sociedad sintética");
-        await DatosSinteticos.EjercicioAsync(bd, 9001, "T01", 2025);
-        await DatosSinteticos.EjercicioAsync(bd, 9002, "T01", 2026);
-        var c2025 = new ContextoSociedadEjercicio("T01", 9001, 2025);
-        var c2026 = new ContextoSociedadEjercicio("T01", 9002, 2026);
-        var cuentas = new CatalogoCuentasAccess(bd);
-        var cuenta2025 = (await cuentas.AltaAsync(c2025, new AltaCuenta("4300001", "Cliente sintético"))).Valor;
-        var cuenta2026 = await cuentas.AltaAsync(c2026, new AltaCuenta("4300002", "Cliente sintético 2026"));
-        Assert.True(cuenta2026.EsCorrecto, cuenta2026.Error?.ToString());
-
         var idTercero = (await Repositorio().GuardarAsync(Juridica("Sintética SL"), _actor)).Valor.IdTercero;
-        var roles = new ServicioRoles(bd, cuentas);
+        var roles = new ServicioRoles(bd, new CatalogoCuentasAccess(bd));
         var cliente = (await roles.AsegurarClienteAsync(idTercero)).Valor;
         Assert.Equal(cliente, (await roles.AsegurarClienteAsync(idTercero)).Valor);
-        var proveedor = (await roles.AsegurarProveedorAsync(idTercero)).Valor;
+        await roles.AsegurarProveedorAsync(idTercero);
         var leidos = await roles.ObtenerAsync(idTercero);
         Assert.True(leidos.EsCliente && leidos.EsProveedor && !leidos.EsContacto);
         Assert.Equal(1, Convert.ToInt32(await bd.EjecutarAsync(s => s.EscalarAsync("SELECT COUNT(*) FROM Terceros"))));
-
-        Assert.Equal("Roles.CuentaDeOtroEjercicio", (await roles.AsignarCuentaClienteAsync(cliente, c2026, cuenta2025.IdCuentaContable)).Error!.Codigo);
-        Assert.True((await roles.AsignarCuentaClienteAsync(cliente, c2025, cuenta2025.IdCuentaContable)).EsCorrecto);
-        Assert.True((await roles.AsignarCuentaClienteAsync(cliente, c2026, cuenta2026.Valor.IdCuentaContable)).EsCorrecto);
-        Assert.Equal("4300001", (await roles.CuentaClienteAsync(cliente, c2025))!.Codigo);
-        Assert.Equal("4300002", (await roles.CuentaClienteAsync(cliente, c2026))!.Codigo);
-        Assert.Null(await roles.CuentaProveedorAsync(proveedor, c2026));
         Assert.Equal("Roles.SinTercero", (await roles.AsegurarClienteAsync(999999)).Error!.Codigo);
     }
 

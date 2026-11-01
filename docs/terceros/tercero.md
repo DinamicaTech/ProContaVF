@@ -4,9 +4,10 @@ depends_on: [datos/esquema, datos/persistencia, nucleo, organizacion/geografia]
 threads:
   - 2026-10-28 12:30 · Carga de requisitos | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GRNMH95h9tnQp4dmEPHmw1w
   - 2026-10-31 19:05 · Desarrollos base | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GPQZwFm28U4vq3sQdopN45C
+  - 2026-11-01 10:46 · Desarrollar la pantalla de Terceros | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GVR2rh2hJF6h9BMYjKSu8jn
 ---
 ## Summary
-Ente Tercero: identidad estable (IdTercero) de persona física, jurídica o entidad sin personalidad; NIF revisable y no único; domicilio principal y adicionales. Nunca se fusionan terceros por NIF o nombre. Contrato `IRepositorioTerceros` (src/ProConta.Terceros/Tercero): obtener la ficha, buscar y guardar la ficha completa (con domicilios, datos de contacto y contactos libres) en una transacción con concurrencia optimista e historial.
+Ente Tercero: identidad estable (IdTercero) de persona física, jurídica o entidad sin personalidad; NIF revisable y no único; domicilio principal y adicionales. Nunca se fusionan terceros por NIF o nombre. Contrato `IRepositorioTerceros` (src/ProConta.Terceros/Tercero): obtener la ficha, buscar con criterios múltiples (Busqueda/BuscadorTerceros), leer su historial y guardar la ficha completa (domicilios, datos de contacto, contactos libres, roles, perfiles, relaciones y cuentas de los roles) en una transacción con concurrencia optimista e historial.
 **Aceptación:** dos terceros con igual NIF siguen siendo distintos.
 
 ## Decisions
@@ -17,6 +18,10 @@ Ente Tercero: identidad estable (IdTercero) de persona física, jurídica o enti
 - 2026-10-31 19:05 · Concurrencia optimista con la nueva columna Terceros.Version (migración 20261031_1905_TERCEROS_VERSION; las filas existentes empiezan en 0). Guardar sustituye los domicilios adicionales, los contactos libres y los datos de contacto por los de la ficha en la misma transacción.
 - 2026-10-31 19:05 · Historial: cada guardado escribe en HistorialTerceros una fila por campo cambiado (operación ALTA o MODIFICACION, valor antiguo y nuevo, operador e identificador de operación común) y una fila resumen si cambian los datos de contacto o los domicilios.
 - 2026-11-01 09:31 · Validado por el propietario (desarrollos base).
+- 2026-11-01 10:46 · La ficha completa (identidad, domicilios, datos de contacto, contactos libres, roles, perfiles, relaciones y cuentas de los roles) se guarda en una sola transacción con `GuardarAsync`; cada parte deja su historial, un error no deja nada a medias y nunca se toca Facturas.
+- 2026-11-01 10:46 · Búsqueda multicriterio: un mismo texto se busca en nombre y apellidos, razón social, nombre comercial, NIF (también con guiones o espacios), IdTercero, IdCliente, IdProveedor, IdContacto, teléfonos y emails, domicilios, contactos libres, relaciones, perfiles, cuentas de los roles y la columna antigua Clientes.CuentaContable; con varias palabras deben aparecer todas, sin distinguir tildes ni mayúsculas. Cada resultado dice en qué dato coincidió y trae sus roles con su Id; filtros por tipo, rol y perfil, con o sin inactivos; máximo 500 filas con el total y los recuentos de los filtros. Se apoya en un índice en memoria que se carga con una consulta por tabla, vale 30 segundos y se invalida al guardar.
+- 2026-11-01 10:46 · `HistorialAsync(idTercero)` lee HistorialTerceros por fecha, operador, sección, operación, campo, antes y después; para mostrar código y nombre de las cuentas se leen (solo lectura) CuentasContables.
+- 2026-11-01 15:48 · Validado por el propietario (pantalla de Terceros y revisión 1).
 
 ## Requirements
 - 2026-10-28 12:28 · From sources/01_ESPECIFICACION_FUNCIONAL.docx § 7 RF-TER-01, 02, 06: identidad, tipos de persona, domicilios
