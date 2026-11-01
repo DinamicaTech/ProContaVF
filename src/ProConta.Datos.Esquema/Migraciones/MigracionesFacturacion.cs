@@ -66,7 +66,7 @@ public static class MigracionesFacturacion
     /// </summary>
     public static Migracion FacturasInstantanea { get; } = new(
         "20261101_1631_FACTURAS_INSTANTANEA", 261101005,
-        "Domicilio y email del cliente congelados en Facturas, marca «sin VeriFactu» y cuenta de las líneas a 30 caracteres.",
+        "Domicilio y email del cliente congelados en Facturas, marca «sin VeriFactu», versión de fila y cuenta de las líneas a 30 caracteres.",
         "facturacion/factura-venta",
         new AnadirColumna("Facturas", "DireccionCliente", "TEXT(255)"),
         new AnadirColumna("Facturas", "CodigoPostalCliente", "TEXT(20)"),
@@ -74,6 +74,7 @@ public static class MigracionesFacturacion
         new AnadirColumna("Facturas", "ProvinciaCliente", "TEXT(100)"),
         new AnadirColumna("Facturas", "EmailCliente", "TEXT(254)"),
         new AnadirColumnaObligatoria("Facturas", "SinVeriFactu", "YESNO", "False"),
+        new AnadirColumnaObligatoria("Facturas", "Version", "LONG", "0"),
         new AmpliarTexto("LineasFactura", "CuentaContable", 30));
 
     /// <summary>

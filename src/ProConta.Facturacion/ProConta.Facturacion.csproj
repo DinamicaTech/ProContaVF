@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Facturación de venta: conceptos, factura de venta, series y su contabilización (docs/facturacion.md). -->
+  <PropertyGroup>
+    <OutputType>Library</OutputType>
+    <RootNamespace>ProConta.Facturacion</RootNamespace>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);CS1591;CS1573</NoWarn>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\ProConta.Nucleo\ProConta.Nucleo.csproj" />
+    <ProjectReference Include="..\ProConta.Datos.Persistencia\ProConta.Datos.Persistencia.csproj" />
+    <ProjectReference Include="..\ProConta.Contabilidad\ProConta.Contabilidad.csproj" />
+    <ProjectReference Include="..\ProConta.Organizacion\ProConta.Organizacion.csproj" />
+    <ProjectReference Include="..\ProConta.Terceros\ProConta.Terceros.csproj" />
+    <ProjectReference Include="..\ProConta.Seguridad\ProConta.Seguridad.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="ProConta.Facturacion.Tests" />
+  </ItemGroup>
+</Project>

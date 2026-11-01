@@ -8,6 +8,7 @@
     <Project Path="src/ProConta.Datos.Esquema.Consola/ProConta.Datos.Esquema.Consola.csproj" />
     <Project Path="src/ProConta.Datos.Esquema/ProConta.Datos.Esquema.csproj" />
     <Project Path="src/ProConta.Datos.Persistencia/ProConta.Datos.Persistencia.csproj" />
+    <Project Path="src/ProConta.Facturacion/ProConta.Facturacion.csproj" />
     <Project Path="src/ProConta.Nucleo/ProConta.Nucleo.csproj" />
     <Project Path="src/ProConta.Organizacion/ProConta.Organizacion.csproj" />
     <Project Path="src/ProConta.Plataforma.Configuracion/ProConta.Plataforma.Configuracion.csproj" />
@@ -20,6 +21,7 @@
   <Folder Name="/tests/">
     <Project Path="tests/ProConta.Contabilidad.Tests/ProConta.Contabilidad.Tests.csproj" />
     <Project Path="tests/ProConta.Datos.Tests/ProConta.Datos.Tests.csproj" />
+    <Project Path="tests/ProConta.Facturacion.Tests/ProConta.Facturacion.Tests.csproj" />
     <Project Path="tests/ProConta.Nucleo.Tests/ProConta.Nucleo.Tests.csproj" />
     <Project Path="tests/ProConta.Organizacion.Tests/ProConta.Organizacion.Tests.csproj" />
     <Project Path="tests/ProConta.Plataforma.Configuracion.Tests/ProConta.Plataforma.Configuracion.Tests.csproj" />
