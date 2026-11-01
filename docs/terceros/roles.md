@@ -34,6 +34,8 @@ Roles opcionales de una identidad (Cliente, Proveedor, Contacto…) con IDs func
 - 2026-10-31 07:30 · Y en el caso de facturas de importación, se puede indicar la moneda y hago conversión a euros aplicando el tipo de cambio de la moneda en la fecha de la factura. En la contabilidad siempre se trabaja en euros.
 - 2026-10-31 16:54 · Derived from compras/reconocimiento: el rol Proveedor guarda el nombre de la carpeta donde están sus PDF (`<ejercicio>\Proveedores\<carpeta>`), por defecto su nombre comercial.
 - 2026-10-31 17:53 · Derived from architecture: los roles Cliente, Proveedor y Contacto idempotentes y la cuenta de cliente y de proveedor por sociedad y ejercicio.
+- 2026-11-01 09:48 · Sí, tiene sentido que las cuentas sean por sociedad, pero no tanto por ejercicio.
+- 2026-11-01 09:55 · Derived from terceros/pantallas: cuenta de acreedor del proveedor, editable desde la ficha.
 
 ## Hand-over
 - 2026-10-31 19:05 · Hecho: roles y cuentas por ejercicio, con pruebas (rol idempotente sin duplicar identidad, cuentas distintas por ejercicio, cuenta de otro ejercicio rechazada). Pendiente, porque necesita columnas nuevas y lo pedirá compras: distinguir cuenta de proveedor y de acreedor (decisión 2026-10-31 16:54), valores por defecto del proveedor (tipo de operación, producto, retención, país, forma de pago, cuenta de gasto, moneda) y su actualización desde la factura (decisiones 2026-10-29 18:14 y 2026-10-31 07:46), y la carpeta de PDF del proveedor.
