@@ -149,7 +149,7 @@
               <DataGridTemplateColumn Header="" Width="30" pc:TablaProConta.Clave="desplegar" pc:TablaProConta.SiempreVisible="True">
                 <DataGridTemplateColumn.CellTemplate>
                   <DataTemplate>
-                    <ToggleButton IsChecked="{Binding Desplegada, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource Boton.Icono}" Content="▾"
+                    <ToggleButton IsChecked="{Binding Desplegada, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource Boton.Desplegar}"
                                   ToolTip="Muestra u oculta las líneas de la factura" />
                   </DataTemplate>
                 </DataGridTemplateColumn.CellTemplate>

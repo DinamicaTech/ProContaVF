@@ -61,4 +61,30 @@
     <Setter Property="VerticalAlignment" Value="Center" />
     <Setter Property="Margin" Value="4,0" />
   </Style>
+
+  <!-- Botón para desplegar u ocultar las líneas de una fila (ToggleButton: el estilo Boton.Icono es solo para Button). -->
+  <Style x:Key="Boton.Desplegar" TargetType="ToggleButton">
+    <Setter Property="Width" Value="24" />
+    <Setter Property="Height" Value="24" />
+    <Setter Property="Cursor" Value="Hand" />
+    <Setter Property="Foreground" Value="{StaticResource Pincel.Apagado}" />
+    <Setter Property="FocusVisualStyle" Value="{StaticResource Foco.Anillo}" />
+    <Setter Property="Template">
+      <Setter.Value>
+        <ControlTemplate TargetType="ToggleButton">
+          <Border Background="Transparent">
+            <TextBlock x:Name="Flecha" Text="▸" HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="{TemplateBinding Foreground}" />
+          </Border>
+          <ControlTemplate.Triggers>
+            <Trigger Property="IsChecked" Value="True">
+              <Setter TargetName="Flecha" Property="Text" Value="▾" />
+            </Trigger>
+            <Trigger Property="IsMouseOver" Value="True">
+              <Setter Property="Foreground" Value="{StaticResource Pincel.Marino}" />
+            </Trigger>
+          </ControlTemplate.Triggers>
+        </ControlTemplate>
+      </Setter.Value>
+    </Setter>
+  </Style>
 </ResourceDictionary>
