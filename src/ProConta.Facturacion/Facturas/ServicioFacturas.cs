@@ -415,9 +415,15 @@ public sealed class ServicioFacturas
     /// serie de rectificativas del ejercicio de trabajo, con las líneas de la original en negativo y su misma instantánea
     /// de cliente. La original pasa a «Rectificación pendiente» en la misma transacción: si algo falla, no cambia nada.
     /// </summary>
-    public async Task<Resultado<FacturaVenta>> CrearRectificativaAsync(int idFactura, ContextoSociedadEjercicio trabajo, Actor actor)
+    public async Task<Resultado<FacturaVenta>> CrearRectificativaAsync(int idFactura, string motivo, ContextoSociedadEjercicio trabajo, Actor actor)
     {
         if (!await _autorizador.PuedeAsync(Acciones.FacturasRectificar)) return SinPermiso<FacturaVenta>("rectificar facturas", FacturaVenta.RotuloBorrador(idFactura));
+        motivo = motivo?.Trim() ?? "";
+        if (motivo.Length == 0)
+            return Resultado<FacturaVenta>.Fallo(new Error("Facturas.SinMotivo", "Falta el motivo de la rectificación.", FacturaVenta.RotuloBorrador(idFactura), null,
+                "Explica por qué se anula la factura original."));
+        if (motivo.Length > ReglasFactura.LongitudMotivo)
+            return Resultado<FacturaVenta>.Fallo(new Error("Facturas.MotivoLargo", $"El motivo tiene más de {ReglasFactura.LongitudMotivo} caracteres.", FacturaVenta.RotuloBorrador(idFactura), null, "Acórtalo."));
         var original = await ObtenerAsync(idFactura);
         if (original is null) return Resultado<FacturaVenta>.Fallo(new Error("Facturas.NoExiste", "La factura ya no existe.", FacturaVenta.RotuloBorrador(idFactura)));
         if (original.Estado != EstadoFactura.Validada || original.EsRectificativa)
@@ -450,7 +456,8 @@ public sealed class ServicioFacturas
             TipoFactura = ReglasFactura.TipoRectificativaDe(original.TipoFactura),
             TipoRectificativa = "I",
             IdFacturaRectificada = original.IdFactura,
-            NumeroFacturaRectificada = original.NumeroFactura
+            NumeroFacturaRectificada = original.NumeroFactura,
+            MotivoRectificacion = motivo
         };
         foreach (var l in original.Lineas) f.AnadirLinea(l.Copiar(invertir: true));
 
@@ -460,11 +467,11 @@ public sealed class ServicioFacturas
             {
                 var ahora = _reloj.Ahora;
                 var o = await RepositorioFacturas.CargarAsync(s, idFactura);
-                o!.Anotar(ahora, actor.Nombre, "Rectificación pendiente: se crea el borrador de su rectificativa");
+                o!.Anotar(ahora, actor.Nombre, $"Rectificación pendiente: se crea el borrador de su rectificativa. Motivo: {motivo}");
                 if (!await RepositorioFacturas.CambiarEstadoAsync(s, idFactura, EstadoFactura.Validada, EstadoFactura.RectificacionPendiente, o.Historial))
                     throw new ConflictoConcurrenciaException(new Error("Facturas.Conflicto", "Otro operador ha cambiado la factura mientras la rectificabas.",
                         original.Rotulo, null, "Actualiza el listado y comprueba su estado."));
-                f.Anotar(ahora, actor.Nombre, $"Borrador de rectificativa de {original.NumeroFactura}");
+                f.Anotar(ahora, actor.Nombre, $"Borrador de rectificativa de {original.NumeroFactura}. Motivo: {motivo}");
                 return await RepositorioFacturas.InsertarAsync(s, f);
             });
             return Resultado<FacturaVenta>.Correcto((await ObtenerAsync(id))!);

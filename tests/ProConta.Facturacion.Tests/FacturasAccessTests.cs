@@ -174,17 +174,21 @@ public sealed class FacturasAccessTests : IDisposable
         var b = await BorradorAsync(servicio);
         var original = (await servicio.ValidarAsync(b.IdFactura, b.Version, _actor)).Factura!;
 
-        var r = await servicio.CrearRectificativaAsync(original.IdFactura, _ctx, _actor);
+        Assert.Equal("Facturas.SinMotivo", (await servicio.CrearRectificativaAsync(original.IdFactura, "  ", _ctx, _actor)).Error!.Codigo);
+        var r = await servicio.CrearRectificativaAsync(original.IdFactura, "Error en el importe de la renta", _ctx, _actor);
         Assert.True(r.EsCorrecto, r.Error?.ToString());
         Assert.Equal("R4", r.Valor.TipoFactura);
+        Assert.Equal("Error en el importe de la renta", r.Valor.MotivoRectificacion);
         Assert.Equal(-original.Totales.ImporteTotal.Valor, r.Valor.Totales.ImporteTotal.Valor);
         Assert.Equal(EstadoFactura.RectificacionPendiente, (await servicio.ObtenerAsync(original.IdFactura))!.Estado);
-        Assert.Equal("Facturas.NoRectificable", (await servicio.CrearRectificativaAsync(original.IdFactura, _ctx, _actor)).Error!.Codigo);
+        Assert.Equal("Facturas.NoRectificable", (await servicio.CrearRectificativaAsync(original.IdFactura, "Otra vez", _ctx, _actor)).Error!.Codigo);
 
         Assert.True((await servicio.EliminarBorradorAsync(r.Valor.IdFactura, r.Valor.Version, _actor)).EsCorrecto);
         Assert.Equal(EstadoFactura.Validada, (await servicio.ObtenerAsync(original.IdFactura))!.Estado);
 
-        var r2 = (await servicio.CrearRectificativaAsync(original.IdFactura, _ctx, _actor)).Valor;
+        var r2 = (await servicio.CrearRectificativaAsync(original.IdFactura, "Error en el importe de la renta", _ctx, _actor)).Valor;
+        Assert.Equal("Error en el importe de la renta", r2.MotivoRectificacion);
+        Assert.Contains(r2.LineasHistorial, h => h.Contains("Motivo: Error en el importe de la renta"));
         // En una rectificativa las líneas no se cambian: guardar conserva las de la original en negativo.
         r2.Lineas[0].PrecioUnitario = 1m;
         r2.Lineas[0].Recalcular();

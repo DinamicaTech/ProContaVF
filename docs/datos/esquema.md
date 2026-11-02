@@ -38,6 +38,7 @@ Código: `src/ProConta.Datos.Esquema` (diagnóstico, migraciones idempotentes, a
 - 2026-11-01 13:10 · Versión 9 = `20261101_1300_CONTACTO_FICHA_ANTIGUA` (terceros/contactos): copia el email y el teléfono antiguos de Terceros a DatosContacto; diccionario regenerado.
 - 2026-11-01 15:48 · Validado por el propietario (pantalla de Terceros y revisión 1).
 - 2026-11-01 18:40 · Una migración puede declarar en `Retira` los pasos de una migración anterior que deshace a propósito (por ejemplo, un índice que sustituye por otro); una vez aplicada, el diagnóstico deja de exigirlos y no toma la anterior por una migración a medias. La primera es `20261101_1632_CUENTA_RETENCION_CLIENTE`, que sustituye el índice UX_CCS_ClienteSociedad por UX_CCS_ClienteSociedadClase.
+- 2026-11-02 12:50 · Migración `20261102_1300_MOTIVO_RECTIFICACION` (versión 261102001): columna Facturas.MotivoRectificacion TEXT(255), de facturacion/factura-venta.
 
 ## Requirements
 - 2026-10-28 12:28 · es importante que haya un nodo especializado en mantener la estructura de la base de datos para poder actualizar el modelo cuando se actualice una instalación en producción, por lo tanto, cualquier nodo que quiera modificar la estructura de la Base de Datos ha de comunicarlo o pasar a través del nodo de mantenimiento de estructura de BD.

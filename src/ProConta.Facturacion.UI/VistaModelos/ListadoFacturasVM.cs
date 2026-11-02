@@ -59,7 +59,8 @@ public sealed class FilaFacturaVM(FilaFactura datos, Action marcaCambiada, Func<
     public string Origen => Datos.EsRectificativa ? "Rectificativa" : Datos.EsProgramada ? "Programada" : "Manual";
     public string Asiento => Datos.EsBorrador ? "" : Datos.IdAsientoContable is null ? "Sin asiento" : "Contabilizada";
     public bool SinAsiento => !Datos.EsBorrador && Datos.IdAsientoContable is null;
-    public string? Relacion => Datos.NumeroRectificada is { } o ? $"Rectifica a {o}" : Datos.NumeroRectificativa is { } r ? $"Rectificada por {r}" : null;
+    public string? Relacion => Datos.NumeroRectificada is { } o ? $"Rectifica a {o}" + (Datos.MotivoRectificacion is { } m ? $" · Motivo: {m}" : "")
+        : Datos.NumeroRectificativa is { } r ? $"Rectificada por {r}" : null;
 }
 
 /// <summary>Opción de un filtro desplegable.</summary>
@@ -453,11 +454,10 @@ public sealed class ListadoFacturasVM : ModeloVista, IPestanaTrabajo
         if (_activa is null) return;
         var fila = _activa;
         var tipo = ReglasFactura.TipoRectificativaDe(fila.Datos.TipoFactura);
-        if (_modulo.Dialogos.Preguntar($"Rectificar {fila.Numero}",
-                $"Se crea un borrador rectificativo {tipo} en la serie de rectificativas con las mismas líneas y las cantidades en negativo. Mientras sea borrador, {fila.Numero} queda en «Rectificación pendiente»; al validarlo pasa a «Rectificada». Si eliminas el borrador, vuelve a «Validada».",
-                null, new OpcionMensaje("Cancelar", "No crea la rectificativa", Cancelar: true),
-                new OpcionMensaje("Crear rectificativa", "Crea el borrador rectificativo y lo abre", Principal: true)) != 1) return;
-        var r = await _s.Facturas.CrearRectificativaAsync(fila.Datos.IdFactura, _s.Trabajo, _s.Actor);
+        var motivo = _modulo.Dialogos.PedirMotivoRectificacion(fila.Numero,
+                $"Se crea un borrador rectificativo {tipo} en la serie de rectificativas con las mismas líneas y las cantidades en negativo. Mientras sea borrador, {fila.Numero} queda en «Rectificación pendiente»; al validarlo pasa a «Rectificada». Si eliminas el borrador, vuelve a «Validada».");
+        if (motivo is null) return;
+        var r = await _s.Facturas.CrearRectificativaAsync(fila.Datos.IdFactura, motivo, _s.Trabajo, _s.Actor);
         if (!r.EsCorrecto) { Error("No se ha creado la rectificativa", r.Errores); return; }
         await CargarAsync(r.Valor.IdFactura);
         _modulo.AbrirFactura(r.Valor.IdFactura);

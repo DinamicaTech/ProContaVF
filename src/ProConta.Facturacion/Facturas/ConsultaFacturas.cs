@@ -29,7 +29,8 @@ public sealed record FilaFactura(
     string? NumeroRectificada,
     string? NumeroRectificativa,
     int? IdAsientoContable,
-    int Version)
+    int Version,
+    string? MotivoRectificacion = null)
 {
     public string Rotulo => NumeroFactura ?? FacturaVenta.RotuloBorrador(IdFactura);
     public bool EsBorrador => Estado == EstadoFactura.Borrador;
@@ -40,9 +41,9 @@ public sealed record FilaFactura(
     /// <summary>Situación VeriFactu mientras no hay VeriFactu: no aplica en borradores; «Sin VeriFactu» en las validadas con el paso provisional.</summary>
     public string TextoVeriFactu => EsBorrador ? "No aplica" : SinVeriFactu ? "Sin VeriFactu" : "Pendiente";
 
-    /// <summary>Texto de búsqueda: número, cliente, NIF, descripción y notas.</summary>
+    /// <summary>Texto de búsqueda: número, cliente, NIF, descripción, notas, facturas relacionadas y motivo de la rectificación.</summary>
     public bool Contiene(string texto) =>
-        string.IsNullOrWhiteSpace(texto) || new[] { Rotulo, Cliente, Nif, Descripcion, NotasInternas, NumeroRectificada, NumeroRectificativa }
+        string.IsNullOrWhiteSpace(texto) || new[] { Rotulo, Cliente, Nif, Descripcion, NotasInternas, NumeroRectificada, NumeroRectificativa, MotivoRectificacion }
             .Any(c => c?.Contains(texto.Trim(), StringComparison.CurrentCultureIgnoreCase) == true);
 }
 
@@ -52,7 +53,7 @@ public sealed class ConsultaFacturas(IBaseDatos bd)
     private const string Sql =
         "SELECT f.IdFactura, f.NumeroFactura, f.FechaFactura, f.IdCliente, f.Nombre, f.RazonSocial, f.CIF, t.Nombre AS NombreTercero, t.RazonSocial AS RazonTercero, t.NIF AS NifTercero, " +
         "f.Descripcion, f.NotasInternas, f.BaseImponible, f.TipoRetencion, f.ImporteTotal, f.EstadoFactura, f.TipoFactura, f.IdSerie, s.Prefijo, s.EsRectificativa, f.SinVeriFactu, " +
-        "f.IdFacturaProgramada, f.IdFacturaRectificada, o.NumeroFactura AS NumeroOriginal, r.NumeroFactura AS NumeroRectificativa, r.IdFactura AS IdRectificativa, f.IdAsientoContable, f.Version " +
+        "f.IdFacturaProgramada, f.IdFacturaRectificada, o.NumeroFactura AS NumeroOriginal, r.NumeroFactura AS NumeroRectificativa, r.IdFactura AS IdRectificativa, f.IdAsientoContable, f.Version, f.MotivoRectificacion " +
         "FROM ((((Facturas AS f LEFT JOIN SeriesFacturacion AS s ON f.IdSerie = s.IdSerie) " +
         "LEFT JOIN Clientes AS c ON f.IdCliente = c.IdCliente) LEFT JOIN Terceros AS t ON c.IdTercero = t.IdTercero) " +
         "LEFT JOIN Facturas AS o ON f.IdFacturaRectificada = o.IdFactura) " +
@@ -104,6 +105,7 @@ public sealed class ConsultaFacturas(IBaseDatos bd)
             r.Texto("NumeroOriginal"),
             r.Texto("NumeroRectificativa") ?? (r.EsNulo("IdRectificativa") ? null : FacturaVenta.RotuloBorrador(r.Entero("IdRectificativa"))),
             r.EnteroNulo("IdAsientoContable"),
-            r.EnteroNulo("Version") ?? 0);
+            r.EnteroNulo("Version") ?? 0,
+            r.Texto("MotivoRectificacion"));
     }
 }

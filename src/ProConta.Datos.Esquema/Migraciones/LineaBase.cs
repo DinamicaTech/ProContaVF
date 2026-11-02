@@ -59,6 +59,7 @@ public static class CatalogoMigraciones
         MigracionesFacturacion.FacturasInstantanea,
         MigracionesFacturacion.CuentaRetencionCliente,
         MigracionesFacturacion.PermisosAcciones,
+        MigracionesFacturacion.MotivoRectificacion,
     ];
 
     /// <summary>Versión del esquema que espera esta versión del programa.</summary>

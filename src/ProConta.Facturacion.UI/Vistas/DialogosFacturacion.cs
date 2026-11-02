@@ -163,4 +163,31 @@ public sealed class DialogosFacturacion(ApoyoEditorFacturas apoyo, Func<Window?>
         dialogo.Loaded += (_, _) => { codigo.Focus(); codigo.SelectAll(); };
         return dialogo.ShowDialog() == true ? codigo.Text.Trim() : null;
     }
+
+    public string? PedirMotivoRectificacion(string numero, string explicacion)
+    {
+        var dialogo = new DialogoProConta { Title = $"Rectificar {numero}", Owner = Propietario, Width = 620 };
+        var motivo = new TextBox { Style = (Style)dialogo.FindResource("Campo.Multilinea"), MinHeight = 64, MaxLength = ReglasFactura.LongitudMotivo,
+            ToolTip = "Por qué se anula la factura original. Queda en la rectificativa y en el historial de las dos facturas." };
+        var aviso = new TextBlock { Text = "Escribe el motivo para crear la rectificativa.", Foreground = (Brush)dialogo.FindResource("Pincel.RojoError"),
+            Visibility = Visibility.Collapsed, Margin = new Thickness(0, 4, 0, 0) };
+        var panel = new StackPanel();
+        panel.Children.Add(new TextBlock { Text = explicacion, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 0, 0, 12) });
+        panel.Children.Add(new TextBlock { Text = "Motivo de la rectificación", Style = (Style)dialogo.FindResource("Texto.Seccion"), Margin = new Thickness(0, 0, 0, 4) });
+        panel.Children.Add(motivo);
+        panel.Children.Add(aviso);
+        dialogo.Content = panel;
+        var aceptar = new Button { Content = "Crear rectificativa", Style = (Style)dialogo.FindResource("Boton.Primario"), Margin = new Thickness(8, 0, 0, 0),
+            ToolTip = "Crea el borrador rectificativo y lo abre" };
+        var cancelar = new Button { Content = "Cancelar", IsCancel = true, ToolTip = "No crea la rectificativa" };
+        aceptar.Click += (_, _) =>
+        {
+            if (motivo.Text.Trim().Length == 0) { aviso.Visibility = Visibility.Visible; motivo.Focus(); return; }
+            dialogo.DialogResult = true;
+        };
+        cancelar.Click += (_, _) => dialogo.DialogResult = false;
+        dialogo.Botones = new StackPanel { Orientation = Orientation.Horizontal, Children = { cancelar, aceptar } };
+        dialogo.Loaded += (_, _) => motivo.Focus();
+        return dialogo.ShowDialog() == true ? motivo.Text.Trim() : null;
+    }
 }

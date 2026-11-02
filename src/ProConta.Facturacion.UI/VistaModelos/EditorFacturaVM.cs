@@ -142,6 +142,9 @@ public sealed class EditorFacturaVM : ModeloVista, IPestanaTrabajo, INotifyDataE
     public bool FaltaCuentaCliente => _cliente is not null && _cuentaCliente is not { ExisteEnEjercicio: true };
     public string CuentaRetencion => _cuentaRetencion is null ? (_f.TipoRetencion > 0 ? "Sin cuenta (hace falta: hay retención)" : "Sin cuenta") : Rotulo(_cuentaRetencion);
     public bool FaltaCuentaRetencion => _cliente is not null && _f.TipoRetencion > 0 && _cuentaRetencion is not { ExisteEnEjercicio: true };
+    /// <summary>Id del cliente y su cuenta contable en la sociedad, en corto para la cabecera compacta del cliente.</summary>
+    public string CodigoCliente => _f.IdCliente is int id ? $"Cliente {id}" : "";
+    public string CuentaClienteCorta => _cuentaCliente is { ExisteEnEjercicio: true } c ? c.EnEjercicio!.Codigo : "Sin cuenta";
     public string? NumeroAsiento => _f.IdAsientoContable is int a ? $"generado al validar · id {a}" : EsBorrador ? "se generará al validar" : "sin asiento: contabilízala desde Facturas emitidas";
 
     private string Rotulo(CuentaRol r) => r.ExisteEnEjercicio
@@ -206,7 +209,7 @@ public sealed class EditorFacturaVM : ModeloVista, IPestanaTrabajo, INotifyDataE
             else PonerError(nameof(Retencion), "La retención es un porcentaje entre 0 y 100.");
             Avisar();
             Cambio();
-            Avisar(nameof(CuentaRetencion), nameof(FaltaCuentaRetencion), nameof(TextoRetencion));
+            Avisar(nameof(CuentaRetencion), nameof(FaltaCuentaRetencion), nameof(TextoRetencion), nameof(HayRetencion));
         }
     }
 
@@ -214,6 +217,13 @@ public sealed class EditorFacturaVM : ModeloVista, IPestanaTrabajo, INotifyDataE
     {
         get => _f.Descripcion;
         set { _f.Descripcion = value ?? ""; Avisar(); Cambio(); }
+    }
+
+    /// <summary>Motivo de la rectificación (solo en rectificativas): se pide al crearla y se puede ajustar mientras es borrador.</summary>
+    public string Motivo
+    {
+        get => _f.MotivoRectificacion ?? "";
+        set { _f.MotivoRectificacion = string.IsNullOrWhiteSpace(value) ? null : value; QuitarError(nameof(Motivo)); Avisar(); Cambio(); }
     }
 
     public string Notas
@@ -251,6 +261,9 @@ public sealed class EditorFacturaVM : ModeloVista, IPestanaTrabajo, INotifyDataE
     public string TextoRetencion => $"Retención {Texto.Porcentaje(_f.TipoRetencion)} %";
     public string TotalRetencion => Formatos.Importe(-T.Retencion.Valor);
     public string TotalACobrar => Formatos.Importe(T.ImporteTotal.Valor);
+    public bool HaySuplidos => !T.Suplidos.EsCero;
+    public bool HayRetencion => !T.Retencion.EsCero || _f.TipoRetencion != 0m;
+    public bool HayVariosIva => CalculoFactura.Desglose(_f.Lineas).Count > 1;
     public IReadOnlyList<DesgloseVM> Desglose =>
         CalculoFactura.Desglose(_f.Lineas).Select(d => new DesgloseVM($"{Texto.Porcentaje(d.TipoIva)} %", Formatos.Numero(d.BaseImponible.Valor), Formatos.Numero(d.CuotaIva.Valor))).ToList();
 
@@ -403,7 +416,8 @@ public sealed class EditorFacturaVM : ModeloVista, IPestanaTrabajo, INotifyDataE
 
     private void AvisarTotales() =>
         Avisar(nameof(TotalBase), nameof(TotalIva), nameof(TotalSuplidos), nameof(TotalBruto), nameof(TotalRetencion), nameof(TotalACobrar),
-            nameof(Desglose), nameof(Asiento), nameof(TextoLineas), nameof(SinLineas), nameof(TextoRetencion));
+            nameof(Desglose), nameof(Asiento), nameof(TextoLineas), nameof(SinLineas), nameof(TextoRetencion),
+            nameof(HaySuplidos), nameof(HayRetencion), nameof(HayVariosIva));
 
     private void TodoCambiado()
     {
@@ -437,7 +451,8 @@ public sealed class EditorFacturaVM : ModeloVista, IPestanaTrabajo, INotifyDataE
         }
         QuitarError("Cliente");
         Avisar(nameof(HayCliente), nameof(NombreCliente), nameof(NifCliente), nameof(DomicilioCliente), nameof(TextoBuscarCliente), nameof(CuentaCliente),
-            nameof(FaltaCuentaCliente), nameof(CuentaRetencion), nameof(FaltaCuentaRetencion), nameof(Retencion), nameof(DiaPago), nameof(FormaPago), nameof(TextoRetencion));
+            nameof(FaltaCuentaCliente), nameof(CuentaRetencion), nameof(FaltaCuentaRetencion), nameof(Retencion), nameof(DiaPago), nameof(FormaPago), nameof(TextoRetencion),
+            nameof(CodigoCliente), nameof(CuentaClienteCorta));
         AvisarTotales();
         Cambio();
     }
@@ -458,7 +473,7 @@ public sealed class EditorFacturaVM : ModeloVista, IPestanaTrabajo, INotifyDataE
         await CargarCuentasAsync();
         _modulo.Avisar($"Cuenta {r.Valor.Codigo} asignada a {_cliente.Nombre} en {_s.Trabajo.IdSociedad}.");
         Incidencias.Clear();
-        Avisar(nameof(CuentaCliente), nameof(FaltaCuentaCliente), nameof(CuentaRetencion), nameof(FaltaCuentaRetencion), nameof(Asiento), nameof(HayIncidencias));
+        Avisar(nameof(CuentaCliente), nameof(CuentaClienteCorta), nameof(FaltaCuentaCliente), nameof(CuentaRetencion), nameof(FaltaCuentaRetencion), nameof(Asiento), nameof(HayIncidencias));
     }
 
     // ---------- líneas ----------
@@ -593,13 +608,10 @@ public sealed class EditorFacturaVM : ModeloVista, IPestanaTrabajo, INotifyDataE
     {
         if (TieneCambios && !await GuardarAsync()) return;
         var tipo = ReglasFactura.TipoRectificativaDe(_f.TipoFactura);
-        var opcion = _modulo.Dialogos.Preguntar($"Rectificar {_f.NumeroFactura}",
-            $"Se crea un borrador rectificativo {tipo} en la serie de rectificativas con las mismas líneas y las cantidades en negativo. Mientras sea borrador, {_f.NumeroFactura} queda en «Rectificación pendiente»; al validarlo pasa a «Rectificada». Si eliminas el borrador, vuelve a «Validada».",
-            null,
-            new OpcionMensaje("Cancelar", "No crea la rectificativa", Cancelar: true),
-            new OpcionMensaje("Crear rectificativa", "Crea el borrador rectificativo y lo abre", Principal: true));
-        if (opcion != 1) return;
-        var r = await _s.Facturas.CrearRectificativaAsync(_f.IdFactura, _s.Trabajo, _s.Actor);
+        var motivo = _modulo.Dialogos.PedirMotivoRectificacion(_f.NumeroFactura ?? _f.Rotulo,
+            $"Se crea un borrador rectificativo {tipo} en la serie de rectificativas con las mismas líneas y las cantidades en negativo. Mientras sea borrador, {_f.NumeroFactura} queda en «Rectificación pendiente»; al validarlo pasa a «Rectificada». Si eliminas el borrador, vuelve a «Validada».");
+        if (motivo is null) return;
+        var r = await _s.Facturas.CrearRectificativaAsync(_f.IdFactura, motivo, _s.Trabajo, _s.Actor);
         if (!r.EsCorrecto) { MostrarErrores("No se ha creado la rectificativa", r.Errores); return; }
         await RecargarAsync(_f.IdFactura);
         _modulo.FacturaCambiada(r.Valor.IdFactura);
@@ -651,6 +663,7 @@ public sealed class EditorFacturaVM : ModeloVista, IPestanaTrabajo, INotifyDataE
             "FechaInicioValidez" => nameof(PeriodoDesde),
             "TipoRetencion" => nameof(Retencion),
             "IdSerie" => nameof(Serie),
+            "MotivoRectificacion" => nameof(Motivo),
             _ => campo
         };
         PonerError(propiedad, mensaje);
@@ -688,7 +701,7 @@ public sealed class EditorFacturaVM : ModeloVista, IPestanaTrabajo, INotifyDataE
         var f = _f;
         var b = new StringBuilder();
         b.Append(CultureInfo.InvariantCulture, $"{f.IdSerie}|{f.IdCliente}|{f.TipoFactura}|{f.FechaFactura:d}|{f.FechaOperacion:d}|{f.FechaInicioValidez:d}|{f.FechaFinValidez:d}|");
-        b.Append(CultureInfo.InvariantCulture, $"{f.FormaDePago}|{f.DiaDePago}|{f.TipoRetencion}|{f.Descripcion}|{f.NotasInternas}");
+        b.Append(CultureInfo.InvariantCulture, $"{f.FormaDePago}|{f.DiaDePago}|{f.TipoRetencion}|{f.Descripcion}|{f.NotasInternas}|{f.MotivoRectificacion}");
         foreach (var l in f.Lineas)
             b.Append(CultureInfo.InvariantCulture,
                 $"#{l.IdConcepto}|{l.Nombre}|{l.Descripcion}|{l.Cantidad}|{l.PrecioUnitario}|{l.DescuentoPorcentaje}|{l.DescuentoImporte}|{l.TipoIva}|{l.EsSuplido}|{l.CuentaContable}|{l.ImporteTotal}");

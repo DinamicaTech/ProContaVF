@@ -113,4 +113,11 @@ public static class MigracionesFacturacion
             "IdGrupoOperadores LONG NOT NULL CONSTRAINT FK_PermisosAcciones_Grupo REFERENCES GruposOperadores (IdGrupoOperadores))"),
         new CrearIndice("PermisosAccionesGrupo", "UX_PermisosAcciones_AccionGrupo",
             "CREATE UNIQUE INDEX UX_PermisosAcciones_AccionGrupo ON PermisosAccionesGrupo (CodigoAccion, IdGrupoOperadores)"));
+
+    /// <summary>Motivo de la rectificación en la rectificativa (facturacion/factura-venta 2026-11-02).</summary>
+    public static Migracion MotivoRectificacion { get; } = new(
+        "20261102_1300_MOTIVO_RECTIFICACION", 261102001,
+        "Motivo de la rectificación en Facturas (obligatorio en las rectificativas nuevas).",
+        "facturacion/factura-venta",
+        new AnadirColumna("Facturas", "MotivoRectificacion", "TEXT(255)"));
 }

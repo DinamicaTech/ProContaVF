@@ -185,7 +185,7 @@
                 <TextBlock Text="{Binding DetalleEstado}" Style="{StaticResource Texto.Pildora}" />
               </Border>
             </WrapPanel>
-            <TextBlock Text="{Binding DetalleRelacion}" Style="{StaticResource Texto.Apagado}" Margin="0,2,0,0" Visibility="{Binding DetalleRelacion, Converter={StaticResource Visible}}" />
+            <TextBlock Text="{Binding DetalleRelacion}" Style="{StaticResource Texto.Apagado}" TextWrapping="Wrap" Margin="0,2,0,0" Visibility="{Binding DetalleRelacion, Converter={StaticResource Visible}}" />
             <TextBlock Text="{Binding DetalleFechas}" Style="{StaticResource Texto.Apagado}" Margin="0,4,0,10" />
 
             <Border Style="{StaticResource Tarjeta.Factura}">

@@ -35,6 +35,9 @@ public interface IDialogosFacturacion
 
     /// <summary>Pide la cuenta (existente o nueva) para el rol Cliente; null si se cancela.</summary>
     string? PedirCuenta(ClaseCuentaRol clase, string nombreCliente, string propuesta, string razonSocial);
+
+    /// <summary>Explica la rectificación y pide su motivo (obligatorio); null si se cancela.</summary>
+    string? PedirMotivoRectificacion(string numero, string explicacion);
 }
 
 /// <summary>

@@ -227,6 +227,9 @@ public sealed class FacturaVenta
     public EstadoFactura Estado { get; internal set; } = EstadoFactura.Borrador;
     public int? IdFacturaRectificada { get; internal set; }
     public string? NumeroFacturaRectificada { get; internal set; }
+
+    /// <summary>Motivo de la rectificación, obligatorio en una rectificativa (Facturas.MotivoRectificacion, hasta 255 caracteres).</summary>
+    public string? MotivoRectificacion { get; set; }
     public int? IdAsientoContable { get; internal set; }
     public DateTime? FechaExportacionContable { get; internal set; }
     public string? Historial { get; internal set; }

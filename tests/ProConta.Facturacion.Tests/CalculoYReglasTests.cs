@@ -93,6 +93,18 @@ public class ReglasFacturaTests
     public void BorradorCompletoNoTieneIncidencias() => Assert.Empty(ReglasFactura.ValidarParaEmision(Borrador(), null));
 
     [Fact]
+    public void RectificativaSinMotivoNoSeValida()
+    {
+        var f = Borrador();
+        f.TipoFactura = "R4";
+        Assert.Contains(ReglasFactura.ValidarParaEmision(f, null), i => i.Codigo == "Facturas.SinMotivo" && i.Campo == "MotivoRectificacion");
+        f.MotivoRectificacion = "Precio equivocado";
+        Assert.DoesNotContain(ReglasFactura.ValidarParaEmision(f, null), i => i.Codigo == "Facturas.SinMotivo");
+        f.MotivoRectificacion = new string('x', ReglasFactura.LongitudMotivo + 1);
+        Assert.Contains(ReglasFactura.ValidarParaEmision(f, null), i => i.Codigo == "Facturas.MotivoLargo");
+    }
+
+    [Fact]
     public void AcumulaTodosLosErroresALaVez()
     {
         var f = new FacturaVenta { FechaInicioValidez = new DateTime(2026, 3, 31), FechaFinValidez = new DateTime(2026, 3, 1) };

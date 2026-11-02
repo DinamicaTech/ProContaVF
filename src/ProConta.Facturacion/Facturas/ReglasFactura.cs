@@ -35,6 +35,7 @@ public sealed record Serie(
 public static class ReglasFactura
 {
     public const int LongitudNombreLinea = 255;
+    public const int LongitudMotivo = 255;
     public const int CifrasPorDefecto = 4;
 
     /// <summary>
@@ -52,6 +53,10 @@ public static class ReglasFactura
             r.Add(new("Facturas.SinDescripcion", "Falta la descripción general. Es la que se comunica a la AEAT: resume qué se factura.", "Descripcion"));
         if (string.IsNullOrWhiteSpace(f.TipoFactura))
             r.Add(new("Facturas.SinTipo", "Falta el tipo de factura.", "TipoFactura"));
+        if (f.EsRectificativa && string.IsNullOrWhiteSpace(f.MotivoRectificacion))
+            r.Add(new("Facturas.SinMotivo", "Falta el motivo de la rectificación. Explica por qué se anula la factura original.", "MotivoRectificacion"));
+        else if (f.MotivoRectificacion is { } m && m.Trim().Length > LongitudMotivo)
+            r.Add(new("Facturas.MotivoLargo", $"El motivo de la rectificación tiene más de {LongitudMotivo} caracteres; acórtalo.", "MotivoRectificacion"));
         if (f.Lineas.Count == 0)
             r.Add(new("Facturas.SinLineas", "La factura no tiene líneas. Añade al menos una con «Añadir línea».", "Lineas"));
         if (f.FechaInicioValidez is { } d && f.FechaFinValidez is { } h && d.Date > h.Date)
