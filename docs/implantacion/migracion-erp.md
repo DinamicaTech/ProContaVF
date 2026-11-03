@@ -69,6 +69,7 @@ Origen: ProcontaEstructura.accdb. Destino: tablas del diccionario versión 9. «
 Recuento: 74 tablas en los 25 bloques, 44 sin dueño y 17 de ContaSol, 135 en total.
 
 ## Hand-over
+Análisis: el mapa completo está en la sección «Mapa de tablas» de este nodo y el nodo nuevo en `docs/facturacion/remesas-sepa.md`; hay una copia para leer fuera de GitHub en los archivos del proyecto (`procontavf/migracion-erp/mapa-tablas-migracion-erp.md` y `procontavf/migracion-erp/remesas-sepa.md`).
 Hecho (2026-11-01): mapa a nivel de tabla, preguntas M-01 a M-10 y nodo facturacion/remesas-sepa. Pendiente: que el propietario responda las preguntas; el perfilado sobre una copia de la BD (campos, filas, años con datos, unicidad de claves, contenido exclusivo de las copias); después, el detalle por campo de cada bloque con su nodo dueño, y la implementación del borrador.
 
 ## Requirements
