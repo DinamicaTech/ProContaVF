@@ -1,14 +1,18 @@
 ---
 title: Reglas globales
 depends_on: []
+threads:
+  - 2026-11-01 19:06 · Añadir reglas de dominio del proyecto | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5G67NUPbFyc2J9xUVbLzSKV9
 ---
 ## Summary
 Las reglas que sigue todo hilo cuando trabaja en un nodo de este proyecto. Los prompts que copia la página apuntan aquí en lugar de repetirlas.
 Las "CVP rules" las escribe Claude Visual Project y las reemplaza "Update rules"; las "Project rules" son propias de este proyecto y la página nunca las cambia.
+Las Project rules incluyen las reglas del dominio: importes en decimal con redondeo documentado, invariantes contables en las pruebas, sin datos reales en el repositorio, paridad con ProConta y zona horaria Europe/Madrid.
 
 ## Decisions
 - 2026-10-28 12:30 · Creado por Claude Visual Project con su versión de reglas 10.
 - 2026-10-31 08:37 · Excepción a la regla CVP "Regression tests": las pruebas no se ejecutan en GitHub en cada PR ni de forma programada, sino en local (ver architecture 2026-10-31 08:37).
+- 2026-11-01 19:06 · Se añaden a Project rules las reglas del dominio del apartado 5 de la propuesta CVP v14: Money, Accounting invariants, Real data, Parity with ProConta y Time zone. Ajustes: la numeración sin huecos aplica a las facturas validadas de cada serie (los borradores no tienen número); el cuadre de la factura incluye retención y suplidos; la paridad se queda en unas cuantas pruebas unitarias contra valores conocidos de ProConta y se afinará en el borrador global-rules/paridad-proconta. El resto de la propuesta (CVP v14) va en el repositorio de CVP.
 
 ## CVP rules
 <!-- cvp-rules 13 begin · Written by Claude Visual Project ("Update rules" in the page). Do not edit: an update replaces everything up to the end marker. Add your own rules under ## Project rules. -->
@@ -67,3 +71,12 @@ Once confirmed, the change is atomic: do all of it in this thread and one branch
 <!-- Rules of this project for every thread, added by its people or by threads with the owner's OK. -->
 - Working docs are written in Spanish.
 - Las pruebas automáticas se ejecutan en local, no en GitHub: cada hilo ejecuta las pruebas sin BD antes de abrir su PR y las pruebas contra Access en el equipo del propietario, contra la BD de pruebas, antes de pedir la validación. Prevalece sobre la parte "run on every pull request and on a schedule" de la regla CVP "Regression tests".
+- **Money.** Amounts are always `decimal`, never `double`. Rounding is explicit and documented in the node that owns it: per line or per total, and to how many decimals.
+- **Accounting invariants.** Every accounting test checks the invariants that apply: debits equal credits; taxable bases plus taxes, minus withholding, plus suplidos, equal the invoice total; validated invoices have no gaps in their numbering within each series (drafts have no number).
+- **Real data.** No real customer data and no `.accdb` or `.mdb` files in the repository. Test copies hold invented data only.
+- **Parity with ProConta.** Fiscal features (VeriFactu, models 303 and 390, prorrata) are covered by a few unit tests that compare their result with known ProConta values.
+- **Time zone.** Europe/Madrid: dated lines in the docs use local time in that zone, not UTC.
+
+## Requirements
+- 2026-11-01 17:56 · Te parece bien aplicar el punto 5 de este documento a este proyecto ?
+- 2026-11-01 17:57 · Ok, abre un hilo.
