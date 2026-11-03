@@ -182,15 +182,33 @@ public partial class VentanaPrincipal : Window
     }
 
     /// <summary>Al salir con cambios pendientes, se ofrece guardarlos todos, descartarlos o seguir trabajando.</summary>
-    protected override async void OnClosing(CancelEventArgs e)
+    /// <remarks>
+    /// La pregunta y el cierre van después de terminar este Closing: llamar a Close() (o mostrar un diálogo) mientras la
+    /// ventana se está cerrando lanza InvalidOperationException, y «Salir sin guardar» responde sin esperar.
+    /// </remarks>
+    protected override void OnClosing(CancelEventArgs e)
     {
         base.OnClosing(e);
         if (_saliendo || !_area.HayCambios) return;
         e.Cancel = true;
-        if (!await _area.PuedeSalirAsync()) return;
-        _saliendo = true;
-        Close();
+        if (_preguntandoSalida) return;
+        _preguntandoSalida = true;
+        Dispatcher.InvokeAsync(async () =>
+        {
+            try
+            {
+                if (!await _area.PuedeSalirAsync()) return;
+                _saliendo = true;
+                Close();
+            }
+            finally
+            {
+                _preguntandoSalida = false;
+            }
+        });
     }
+
+    private bool _preguntandoSalida;
 
     private void Separador_MouseDoubleClick(object sender, MouseButtonEventArgs e) => AlternarNavegacion();
 
