@@ -15,7 +15,7 @@ Las Project rules incluyen las reglas del dominio: importes en decimal con redon
 - 2026-11-01 19:06 · Se añaden a Project rules las reglas del dominio del apartado 5 de la propuesta CVP v14: Money, Accounting invariants, Real data, Parity with ProConta y Time zone. Ajustes: la numeración sin huecos aplica a las facturas validadas de cada serie (los borradores no tienen número); el cuadre de la factura incluye retención y suplidos; la paridad se queda en unas cuantas pruebas unitarias contra valores conocidos de ProConta y se afinará en el borrador global-rules/paridad-proconta. El resto de la propuesta (CVP v14) va en el repositorio de CVP.
 
 ## CVP rules
-<!-- cvp-rules 13 begin · Written by Claude Visual Project ("Update rules" in the page). Do not edit: an update replaces everything up to the end marker. Add your own rules under ## Project rules. -->
+<!-- cvp-rules 14 begin · Written by Claude Visual Project ("Update rules" in the page). Do not edit: an update replaces everything up to the end marker. Add your own rules under ## Project rules. -->
 These rules apply to every thread that works on a node of this project. The prompt that starts the thread names the node it starts from (for a new sub-task, the new node it proposes), the files to read and the task. Paths are relative to the docs folder unless they say otherwise.
 
 **Reading.** Read the node file in full. For its ancestors and dependencies, read only the Summary and Decisions blocks; open them in full only if needed. Ignore every decision marked "[replaced by ...]": a later decision overrides it.
@@ -63,6 +63,8 @@ Once confirmed, the change is atomic: do all of it in this thread and one branch
 - **Useful tooltips.** In a user interface, whenever possible, every control has a tooltip that is useful and descriptive for the user: it says what the control does, not just its name.
 - **No dead ends in errors.** Every error message tells the user everything that helps: why it happened and how to fix it, and when possible it offers the fix itself (a button, a link or the corrected value), so that the user is never left at a dead end.
 - **Hand-over.** If a thread stops before finishing, or grows long, it writes in its node what it did and what is left, so that another thread can go on without reading the conversation.
+
+**Claude project.** The line `- Claude project: <link>` under ## Project rules names the Claude project whose chat starts this project's threads (its address, https://claude.ai/code/project/<id>, without "?thread=…"); the page opens that chat to start new threads. If the line is missing and you can tell the address of the Claude project you are in, add it. If it names a different Claude project from yours, tell the owner and change it only with their OK: the project may have moved to another Claude project.
 
 **Thread link.** If you can tell the link to this thread, add it to the `threads` list in the front matter of the node you work on, as a line `  - YYYY-MM-DD HH:MM · <short title> | <link>`, with the date and time you add it, like a decision line. Only there: `threads` lists the conversations that worked on a node, and the page opens the last one. A thread that creates many nodes at once (a requirements load, a new project) does not add its link to the nodes it creates; their "Created in…" decision is enough, and each one gets its own thread when someone starts working on it.
 <!-- cvp-rules end -->
