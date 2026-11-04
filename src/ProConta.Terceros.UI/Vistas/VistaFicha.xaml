@@ -546,6 +546,7 @@
                   </DockPanel>
                   <StackPanel Margin="14,0,14,12" Visibility="{Binding ClienteActivo, Converter={StaticResource Visible}}">
                     <ContentControl Content="{Binding CuentaCliente}" ContentTemplate="{StaticResource FilaCuenta}" />
+                    <ContentControl Content="{Binding CuentaRetencion}" ContentTemplate="{StaticResource FilaCuenta}" />
                     <TextBlock Text="Notas del cliente" Style="{StaticResource Etiqueta.Campo}" />
                     <TextBox Text="{Binding NotasCliente, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource Campo.Multilinea}" Width="760" Height="64" HorizontalAlignment="Left"
                              ToolTip="Observaciones del rol Cliente (se guardan con la ficha)" />

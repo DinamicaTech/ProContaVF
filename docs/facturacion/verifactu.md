@@ -32,6 +32,7 @@ El análisis funcional de la implementación anterior y la lista de lo que neces
 - 2026-11-01 16:28 · Corte en Sociedad 002, correcto
 - 2026-11-01 16:28 · answer: dónde se instala el certificado → en el almacén del equipo (`LocalMachine\My`), para que lo usen todos los usuarios sin mantenerlo por usuario
 - 2026-11-01 16:28 · answer: sociedades del primer corte → solo la 002 (Dinámica)
+- 2026-11-01 17:20 · Derived from facturacion/factura-venta: implementar el paso fiscal de la validación que hoy cubre el provisional «sin VeriFactu».
 
 ## Análisis de la implementación anterior
 Fuentes: `sources/traspaso-2026-10-03/referencias/Facturacion/docs/DECISIONES.md` (2026-08-09 a 2026-08-13), `MODELO_FACTURA.md`, `ARQUITECTURA.md`, `MENSAJES.md`, la migración `referencias/ActualizadorEsquema/database/migrations/20260929_016_verifactu.json` y, en el disco del propietario (fuera de Git), `C:\Docs\Codigo\ProContaVF\ProConta\ProConta.VeriFactu` (adaptador VB.NET, sus pruebas y su `docs/DECISIONES.md`) y `ProConta\VeriFactu-main`. Revisado en solo lectura el 2026-11-01.

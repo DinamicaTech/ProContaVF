@@ -23,6 +23,7 @@ Aplicación principal (UI-PRINCIPAL): cabecera con empresa, ejercicio y operador
 - 2026-11-01 10:46 · Máximo 5 fichas de terceros abiertas: la sexta sustituye, en su posición, a la abierta hace más tiempo sin cambios; si todas tienen cambios, avisa y ofrece ir a la más antigua.
 - 2026-11-01 10:46 · Las pantallas se integran con el contrato `IPestanaTrabajo`/`IAnfitrionPestanas` de plataforma/ui-base; al entrar se fijan las preferencias del operador (columnas y paneles).
 - 2026-11-01 15:48 · Validado por el propietario (pantalla de Terceros y revisión 1).
+- 2026-11-03 10:02 · Salir con cambios pendientes: la pregunta y el cierre se hacen después de terminar el evento de cierre de la ventana. Antes, «Salir sin guardar» cerraba la ventana mientras se estaba cerrando y la app terminaba con una excepción.
 
 ## Requirements
 - 2026-10-28 12:28 · From sources/01_ESPECIFICACION_FUNCIONAL.docx § 6 RF-UI-01, 04, 05, 07: contenedor, avisos técnicos discretos, ciclo de vida de fichas y rendimiento
@@ -36,6 +37,7 @@ Aplicación principal (UI-PRINCIPAL): cabecera con empresa, ejercicio y operador
 - 2026-10-31 11:20 · Derived from (root): la navegación del contenedor da acceso a todas las funciones del menú principal antiguo que se conservan (sources/proconta-antiguo/menu-principal/ANALISIS-FUNCIONAL.md § 2, con el reparto por nodo de la decisión de la raíz de 2026-10-29 17:50); los procesos que generan asientos se lanzan como acciones con permiso propio.
 - 2026-10-31 17:53 · Derived from architecture: el contenedor WPF ejecutable con la pantalla de acceso, que muestra su versión; es el punto de validación de los desarrollos base.
 - 2026-11-01 10:46 · Derived from terceros/pantallas: pestañas de ficha con cambios pendientes y límite de fichas abiertas.
+- 2026-11-01 17:20 · Derived from facturacion/pantallas y plataforma/mantenimiento: entradas de menú de Facturas emitidas y de Parámetros y tablas.
 
 ## Hand-over
 - 2026-10-31 19:30 · Hecho: ejecutable con arranque, primer administrador, acceso y ventana principal; revisado renderizando las ventanas fuera de pantalla contra una copia de la maestra en la versión 6. Pendiente (próximas entregas): búsqueda «Ir a», pestañas de pantallas con cambios pendientes, cambio de sociedad o ejercicio sin volver a entrar, franja de iconos por debajo de 150 px y posición del separador guardada por operador, barra de título propia de la maqueta, doble pantalla y el resto del catálogo de atajos.
