@@ -110,6 +110,19 @@ public static class LineasProgramada
         c.Recalcular();
         return c;
     }
+
+    /// <summary>
+    /// Línea de plantilla a partir de una línea de factura. La plantilla solo guarda cantidad, precio y descuentos: si con
+    /// ellos no sale el total de la factura (las facturas del ERP guardan en esos campos valores que no son descuentos),
+    /// la línea se fija desde su total, con la base y la cuota correctas y sin descuentos.
+    /// </summary>
+    public static LineaFacturaVenta DesdeLineaFactura(LineaFacturaVenta l)
+    {
+        var total = l.ImporteTotal.Valor;
+        var c = Copiar(l);
+        if (c.ImporteTotal.Valor != total) c.FijarTotal(total);
+        return c;
+    }
 }
 
 /// <summary>
@@ -249,8 +262,23 @@ public static class ReglasProgramada
         var plantilla = p.Plantilla.Clonar();
         plantilla.Estado = EstadoFactura.Borrador;
         r.AddRange(ReglasFactura.ValidarParaEmision(plantilla, null).Where(i => !i.EsAviso && i.Codigo != "Facturas.NoEsBorrador"));
+        r.AddRange(ValidarLineas(p));
         r.AddRange(ValidarProgramacion(p));
         return r;
+    }
+
+    /// <summary>
+    /// Descuentos que no se pueden calcular con sentido: un descuento fijo negativo o un descuento sobre un precio negativo.
+    /// Así vienen las líneas del ERP que usan esos campos para otra cosa; con ellos las facturas saldrían con importes
+    /// equivocados, así que la programada no se activa ni genera hasta corregirlos.
+    /// </summary>
+    private static IEnumerable<Incidencia> ValidarLineas(FacturaProgramada p)
+    {
+        foreach (var l in p.Plantilla.Lineas)
+            if (l.DescuentoImporte < 0m || (l.PrecioUnitario < 0m && (l.DescuentoPorcentaje != 0m || l.DescuentoImporte != 0m)))
+                yield return new("Programadas.DescuentoNoValido",
+                    $"La línea {l.NumeroLinea} tiene descuentos que no se pueden calcular (Dto. % {l.DescuentoPorcentaje.ToString("0.##", CultureInfo.CurrentCulture)}, Dto. € {l.DescuentoImporte.ToString("0.##", CultureInfo.CurrentCulture)}) y su importe saldría mal. Escribe el total correcto en la línea o corrige el precio y quita los descuentos.",
+                    $"Linea{l.NumeroLinea}.DescuentoImporte");
     }
 
     /// <summary>Coherencia de la programación (también en una pausada: lo que se guarda tiene que tener sentido).</summary>

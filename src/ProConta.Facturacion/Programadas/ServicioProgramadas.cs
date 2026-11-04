@@ -117,7 +117,7 @@ public sealed class ServicioProgramadas
         f.DiaDePago = origen.DiaDePago;
         f.TipoRetencion = origen.TipoRetencion;
         f.TipoFactura = origen.EsRectificativa ? "F1" : origen.TipoFactura;
-        foreach (var l in origen.Lineas) f.AnadirLinea(LineasProgramada.Copiar(origen.EsRectificativa ? l.Copiar(invertir: true) : l));
+        foreach (var l in origen.Lineas) f.AnadirLinea(LineasProgramada.DesdeLineaFactura(origen.EsRectificativa ? l.Copiar(invertir: true) : l));
         return Resultado<FacturaProgramada>.Correcto(p);
     }
 

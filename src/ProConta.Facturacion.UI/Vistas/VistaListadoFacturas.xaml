@@ -20,8 +20,6 @@
     <Border DockPanel.Dock="Top" BorderBrush="{StaticResource Pincel.Linea}" BorderThickness="0,0,0,1" Padding="14,8">
       <DockPanel>
         <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
-          <Button Content="Generar programadas…" Command="{Binding GenerarCommand}" Margin="0,0,8,0"
-                  ToolTip="Elige hasta qué fecha y qué programadas: crea en un lote una factura por cada vencimiento" />
           <Button Content="Enviar pendientes a VeriFactu" IsEnabled="False" Margin="0,0,8,0" ToolTipService.ShowOnDisabled="True" ToolTip="{Binding MotivoVeriFactu}" />
           <Button Content="Nueva factura" Command="{Binding NuevaCommand}" Style="{StaticResource Boton.Primario}" pc:Iconos.Icono="{StaticResource Icono.plus}"
                   ToolTip="Abre un borrador nuevo sin número en su pestaña" />
@@ -69,54 +67,6 @@
     </Border>
 
     <Grid>
-      <Grid.RowDefinitions>
-        <RowDefinition Height="250" MinHeight="90" />
-        <RowDefinition Height="Auto" />
-        <RowDefinition Height="*" MinHeight="200" />
-      </Grid.RowDefinitions>
-
-      <!-- Facturas programadas -->
-      <DockPanel Grid.Row="0">
-        <Border DockPanel.Dock="Top" Padding="14,8" BorderBrush="{StaticResource Pincel.Linea}" BorderThickness="0,0,0,1" Background="{StaticResource Pincel.Fondo}">
-          <DockPanel>
-            <WrapPanel DockPanel.Dock="Right">
-              <Button Content="Nueva programada" Command="{Binding NuevaProgramadaCommand}" Style="{StaticResource Boton.Pequeno}" Margin="6,0,0,0" pc:Iconos.Icono="{StaticResource Icono.plus}"
-                      ToolTip="Abre una factura programada nueva: la plantilla de la factura y su programación" />
-              <Button Content="Abrir" Command="{Binding AbrirProgramadaCommand}" Style="{StaticResource Boton.Pequeno}" Margin="6,0,0,0" ToolTip="Abre la programada activa para verla o cambiarla" />
-              <Button Content="Ver sus facturas" Command="{Binding VerFacturasCommand}" Style="{StaticResource Boton.Pequeno}" Margin="6,0,0,0" ToolTip="Filtra el listado de abajo con las facturas que ha generado la programada activa" />
-              <Button Content="{Binding TextoPausar}" Command="{Binding PausarCommand}" Style="{StaticResource Boton.Pequeno}" Margin="6,0,0,0" ToolTip="{Binding AyudaPausar}" />
-              <Button Content="Duplicar" Command="{Binding DuplicarProgramadaCommand}" Style="{StaticResource Boton.Pequeno}" Margin="6,0,0,0" ToolTip="Crea otra programada igual, pausada y sin facturas generadas" />
-              <Button Content="Eliminar" Command="{Binding EliminarProgramadaCommand}" Style="{StaticResource Boton.Pequeno}" Margin="6,0,0,0" ToolTip="Borra la programada activa si aún no ha generado ninguna factura" />
-            </WrapPanel>
-            <TextBlock Text="{Binding TituloProgramadas}" FontWeight="SemiBold" VerticalAlignment="Center" />
-          </DockPanel>
-        </Border>
-        <Grid>
-          <TextBlock Text="No hay facturas programadas en esta sociedad. Crea una con «Nueva programada» o marca «Periódica» en una factura nueva." Style="{StaticResource Texto.Apagado}"
-                     HorizontalAlignment="Center" VerticalAlignment="Center" Visibility="{Binding HayProgramadas, Converter={StaticResource Visible}, ConverterParameter=invertir}" />
-          <pc:TablaProConta x:Name="TablaProgramadas" ItemsSource="{Binding Programadas}" SelectedItem="{Binding ProgramadaActiva}" ClavePreferencias="facturacion.programadas" TituloExportacion="Facturas programadas"
-                            IsReadOnly="True" SelectionMode="Single" MouseDoubleClick="TablaProgramadas_MouseDoubleClick" PreviewKeyDown="TablaProgramadas_PreviewKeyDown"
-                            AutomationProperties.Name="Facturas programadas" Visibility="{Binding HayProgramadas, Converter={StaticResource Visible}}">
-            <pc:TablaProConta.Columns>
-              <DataGridTextColumn Header="Código" Binding="{Binding Codigo}" Width="90" ElementStyle="{StaticResource Texto.Celda.Mono}" pc:TablaProConta.Clave="codigo" pc:TablaProConta.SiempreVisible="True" />
-              <DataGridTextColumn Header="Cliente" Binding="{Binding Cliente}" Width="280" ElementStyle="{StaticResource Texto.Celda}" pc:TablaProConta.Clave="cliente" />
-              <DataGridTextColumn Header="Descripción" Binding="{Binding Descripcion}" Width="*" MinWidth="200" ElementStyle="{StaticResource Texto.Celda}" pc:TablaProConta.Clave="descripcion" />
-              <DataGridTextColumn Header="Periodicidad" Binding="{Binding Periodicidad}" Width="120" ElementStyle="{StaticResource Texto.Celda}" pc:TablaProConta.Clave="periodicidad" />
-              <DataGridTextColumn Header="Próxima" Binding="{Binding Proxima}" SortMemberPath="ProximaOrden" Width="100" ElementStyle="{StaticResource Texto.Celda}" pc:TablaProConta.Clave="proxima" />
-              <DataGridTextColumn Header="Final" Binding="{Binding Final}" Width="150" ElementStyle="{StaticResource Texto.Celda}" pc:TablaProConta.Clave="final" />
-              <DataGridTextColumn Header="Generadas" Binding="{Binding TextoGeneradas}" SortMemberPath="Generadas" Width="90" ElementStyle="{StaticResource Texto.Celda.Importe}" HeaderStyle="{StaticResource Tabla.Cabecera.Derecha}" pc:TablaProConta.Clave="generadas" />
-              <DataGridTextColumn Header="Total" Binding="{Binding TextoTotal}" SortMemberPath="Total" Width="120" ElementStyle="{StaticResource Texto.Celda.Importe}" HeaderStyle="{StaticResource Tabla.Cabecera.Derecha}" pc:TablaProConta.Clave="total" />
-              <DataGridTextColumn Header="Genera" Binding="{Binding AlGenerar}" Width="90" ElementStyle="{StaticResource Texto.Celda}" pc:TablaProConta.Clave="genera" />
-              <DataGridTextColumn Header="Estado" Binding="{Binding Estado}" Width="100" ElementStyle="{StaticResource Texto.Celda}" pc:TablaProConta.Clave="estado" />
-            </pc:TablaProConta.Columns>
-          </pc:TablaProConta>
-        </Grid>
-      </DockPanel>
-
-      <GridSplitter Grid.Row="1" Height="5" HorizontalAlignment="Stretch" VerticalAlignment="Center" Background="{StaticResource Pincel.Linea}" ResizeBehavior="PreviousAndNext" ResizeDirection="Rows"
-                    ToolTip="Arrastra para repartir la altura entre las programadas y las facturas" />
-
-      <Grid Grid.Row="2">
       <Grid.ColumnDefinitions>
         <ColumnDefinition Width="*" MinWidth="600" />
         <ColumnDefinition Width="Auto" />
@@ -328,7 +278,6 @@
           </StackPanel>
         </StackPanel>
       </ScrollViewer>
-      </Grid>
     </Grid>
   </DockPanel>
 </UserControl>

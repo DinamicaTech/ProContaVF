@@ -1,0 +1,383 @@
+using System.Collections.ObjectModel;
+using System.Windows.Input;
+using ProConta.Facturacion.Facturas;
+using ProConta.Facturacion.Programadas;
+using ProConta.Seguridad.Permisos;
+using ProConta.UI.Base.Comandos;
+using ProConta.UI.Base.Contenedor;
+using ProConta.UI.Base.Controles;
+using ProConta.UI.Base.Formato;
+using ProConta.UI.Base.Modelos;
+
+namespace ProConta.Facturacion.UI.VistaModelos;
+
+/// <summary>Fila del listado de programadas: la programada, su cliente y cuántas facturas ha generado en el ejercicio.</summary>
+public sealed class FilaProgramadaVM(FacturaProgramada datos, string cliente, int generadasEjercicio) : ModeloVista
+{
+    public FacturaProgramada Datos { get; } = datos;
+    public int Id => Datos.IdFacturaProgramada;
+    public string Codigo => Datos.Rotulo;
+    public string Cliente { get; } = cliente;
+    public string Descripcion => Datos.Plantilla.Descripcion;
+    public string Periodicidad => Datos.Periodicidad.EsPuntual ? "Una vez" : Datos.Periodicidad.Codigo[..1] + Datos.Periodicidad.Codigo[1..].ToLowerInvariant();
+    public DateTime? ProximaOrden => Datos.ProximaCalculada;
+    public string Proxima => Datos.ProximaCalculada is { } d ? Formatos.Fecha(d) : "—";
+    public string Final => ReglasProgramada.TextoFinal(Datos);
+    public int Generadas { get; } = generadasEjercicio;
+    public string TextoGeneradas => Generadas.ToString(Formatos.Cultura);
+    public decimal Total => Datos.Plantilla.Totales.ImporteTotal.Valor;
+    public string TextoTotal => Formatos.Importe(Total);
+    public string AlGenerar => Datos.AlGenerar == Programadas.AlGenerar.Validar ? "Validada" : "Borrador";
+    public string Estado => Datos.TextoEstado;
+
+    /// <summary>Orden por defecto: activas, pausadas y finalizadas; dentro de cada grupo, por próxima emisión.</summary>
+    public int Grupo => Datos.Finalizada ? 2 : Datos.Activa ? 0 : 1;
+
+    public bool Contiene(string texto) =>
+        string.IsNullOrWhiteSpace(texto) || new[] { Codigo, Cliente, Descripcion, Datos.Plantilla.NotasInternas }
+            .Any(c => c?.Contains(texto.Trim(), StringComparison.CurrentCultureIgnoreCase) == true);
+}
+
+/// <summary>
+/// Pantalla Facturas programadas (facturacion/pantallas 2026-11-04): listado filtrable de las programadas de la sociedad
+/// y, a la derecha, el detalle de la activa con su programación, líneas, totales, notas e historial. Desde aquí se generan
+/// los lotes; «Ver sus facturas» abre Facturas filtrada por la programada.
+/// </summary>
+public sealed class ListadoProgramadasVM : ModeloVista, IPestanaTrabajo
+{
+    private readonly ModuloFacturacion _modulo;
+    private readonly ServiciosFacturacion _s;
+    private List<FilaProgramadaVM> _todas = [];
+    private object? _vista;
+    private EstadoVista _estado = EstadoVista.Cargando;
+    private string _mensajeEstado = "";
+    private FilaProgramadaVM? _activa;
+    private ClienteElegible? _cliente;
+    private string _texto = "";
+    private OpcionFiltro _filtroEstado;
+    private bool _puedeEditar;
+    private int _cargas;
+
+    internal ListadoProgramadasVM(ModuloFacturacion modulo)
+    {
+        _modulo = modulo;
+        _s = modulo.Servicios;
+        OpcionesEstado = [new("Todos los estados", null), new("Activas", "Activa"), new("Pausadas", "Pausada"), new("Finalizadas", "Finalizada")];
+        _filtroEstado = OpcionesEstado[0];
+
+        NuevaCommand = new ComandoDelegado(_modulo.NuevaProgramada, () => _puedeEditar);
+        AbrirCommand = new ComandoDelegado(() => { if (_activa is not null) _modulo.AbrirProgramada(_activa.Id); }, () => _activa is not null);
+        PausarCommand = new ComandoDelegado(() => _ = PausarAsync(), () => _puedeEditar && _activa is { Datos.Finalizada: false });
+        DuplicarCommand = new ComandoDelegado(() => _ = DuplicarAsync(), () => _puedeEditar && _activa is not null);
+        EliminarCommand = new ComandoDelegado(() => _ = EliminarAsync(), () => _puedeEditar && _activa is not null);
+        VerFacturasCommand = new ComandoDelegado(() => { if (_activa is not null) _modulo.VerFacturasDeProgramada(_activa.Id); }, () => _activa is not null);
+        GenerarCommand = new ComandoDelegado(() => _ = GenerarAsync(), () => _puedeEditar);
+        RefrescarCommand = new ComandoDelegado(() => _ = CargarAsync());
+        LimpiarFiltrosCommand = new ComandoDelegado(LimpiarFiltros, () => HayFiltros);
+    }
+
+    // ---------- pestaña ----------
+
+    public string Titulo => "Facturas programadas";
+    public string Ayuda => $"Facturas programadas de {_s.RazonSocial}";
+    public string Icono => "doc";
+    public bool TieneCambios => false;
+    public bool GuardadoFallido => false;
+    public object Vista => _vista ??= new Vistas.VistaListadoProgramadas { DataContext = this };
+    public IReadOnlyList<string> DescribirCambios() => [];
+    public Task<bool> GuardarAsync() => Task.FromResult(true);
+    public void Descartar() { }
+    public void AlCerrar() => _modulo.ProgramadasCerrado();
+
+    // ---------- estado ----------
+
+    public EstadoVista Estado { get => _estado; private set => Fijar(ref _estado, value); }
+    public string TituloEstado => Estado switch
+    {
+        EstadoVista.Vacio => _todas.Count == 0 ? "Aún no hay facturas programadas en esta sociedad" : "Ninguna programada cumple los filtros",
+        EstadoVista.Error => "No he podido leer las facturas programadas",
+        EstadoVista.Cargando => "Leyendo facturas programadas…",
+        _ => ""
+    };
+    public string MensajeEstado { get => _mensajeEstado; private set => Fijar(ref _mensajeEstado, value); }
+    public string? AccionEstado => Estado switch
+    {
+        EstadoVista.Vacio when _todas.Count == 0 => _puedeEditar ? "Nueva programada" : null,
+        EstadoVista.Vacio => "Quitar filtros",
+        EstadoVista.Error => "Reintentar",
+        _ => null
+    };
+    public ICommand? ComandoEstado => Estado switch
+    {
+        EstadoVista.Vacio when _todas.Count == 0 => NuevaCommand,
+        EstadoVista.Vacio => LimpiarFiltrosCommand,
+        EstadoVista.Error => RefrescarCommand,
+        _ => null
+    };
+
+    // ---------- filtros ----------
+
+    public IReadOnlyList<OpcionFiltro> OpcionesEstado { get; }
+    public string Texto { get => _texto; set { if (Fijar(ref _texto, value ?? "")) Filtrar(); } }
+    public OpcionFiltro FiltroEstado { get => _filtroEstado; set { if (value is not null && Fijar(ref _filtroEstado, value)) Filtrar(); } }
+    public bool HayFiltros => _texto.Length > 0 || _filtroEstado.Valor is not null;
+
+    private void LimpiarFiltros()
+    {
+        _texto = "";
+        _filtroEstado = OpcionesEstado[0];
+        Avisar(nameof(Texto), nameof(FiltroEstado));
+        Filtrar();
+    }
+
+    private void Filtrar()
+    {
+        var id = _activa?.Id;
+        Filas.Clear();
+        foreach (var p in _todas.Where(p => p.Contiene(_texto) && (_filtroEstado.Valor is not { } e || p.Estado == e))) Filas.Add(p);
+        Activa = Filas.FirstOrDefault(p => p.Id == id) ?? Filas.FirstOrDefault();
+        Estado = Filas.Count == 0 ? EstadoVista.Vacio : EstadoVista.Contenido;
+        MensajeEstado = _todas.Count == 0 ? "Crea la primera con «Nueva programada», o con «Programar…» desde una factura." : "Cambia o quita los filtros para ver más programadas.";
+        Avisar(nameof(HayFiltros), nameof(Pie), nameof(TituloEstado), nameof(AccionEstado), nameof(ComandoEstado));
+        CommandManager.InvalidateRequerySuggested();
+    }
+
+    // ---------- filas y activa ----------
+
+    public ObservableCollection<FilaProgramadaVM> Filas { get; } = [];
+
+    /// <summary>Programada activa: la del detalle y la de las acciones.</summary>
+    public FilaProgramadaVM? Activa
+    {
+        get => _activa;
+        set
+        {
+            if (!Fijar(ref _activa, value)) return;
+            _ = CargarClienteAsync(value);
+            AvisarDetalle();
+            CommandManager.InvalidateRequerySuggested();
+        }
+    }
+
+    public string Pie
+    {
+        get
+        {
+            var activas = _todas.Count(p => p.Grupo == 0);
+            var pendientes = _todas.Count(p => p.Grupo == 0 && p.Datos.ProximaCalculada is { } d && d <= DateTime.Today);
+            var texto = $"{Formatos.Plural(Filas.Count, "programada", "programadas")} · {Formatos.Plural(activas, "activa", "activas")}";
+            return pendientes > 0 ? $"{texto} · {Formatos.Plural(pendientes, "pendiente de generar", "pendientes de generar")} hoy" : texto;
+        }
+    }
+
+    public string TextoPausar => _activa?.Datos.Activa == true ? "Pausar" : "Reanudar";
+    public string AyudaPausar => _activa?.Datos.Activa == true
+        ? "Pausa la programada: deja de generar facturas hasta que la reanudes"
+        : "Reanuda la programada: vuelve a generar facturas en sus vencimientos (debe estar completa)";
+
+    // ---------- detalle ----------
+
+    private FacturaProgramada? D => _activa?.Datos;
+    public bool HayDetalle => _activa is not null;
+    public string DetalleTitulo => _activa?.Codigo ?? "";
+    public string DetalleEstado => _activa?.Estado ?? "";
+    public string DetalleCliente => _activa?.Cliente ?? "";
+    public string DetalleNif => _cliente?.Nif ?? "";
+    public string DetalleDomicilio => _cliente?.Domicilio ?? "";
+    public string DetalleDescripcion => D?.Plantilla.Descripcion ?? "";
+    public string DetallePeriodicidad => D?.Periodicidad.Texto ?? "";
+    public string DetalleInicio => D?.FechaInicio is { } d ? Formatos.Fecha(d) : "";
+    public string DetalleDia => D is null ? "" : D.DiaEmision is byte b ? b switch
+    {
+        31 => "31 (último día del mes)",
+        30 => "30 (penúltimo día del mes)",
+        29 => "29 (antepenúltimo día del mes)",
+        _ => b.ToString(Formatos.Cultura)
+    } : "El de la fecha de inicio";
+    public string DetalleFinal => D is null ? "" : ReglasProgramada.TextoFinal(D);
+    public string DetalleGenera => D is null ? "" : D.AlGenerar == AlGenerar.Validar ? "Una factura validada" : "Un borrador";
+    public string DetalleEnvio => D is null ? "" : D.EnviarPorEmail ? "Por correo, cuando esté disponible" : "No se envía";
+
+    public string DetalleProximas
+    {
+        get
+        {
+            if (D is null) return "";
+            var proximas = D.ProximasEmisiones(4);
+            return proximas.Count == 0 ? "No le quedan facturas por emitir." : string.Join(" · ", proximas.Select(x => Formatos.Fecha(x)));
+        }
+    }
+
+    public string DetallePeriodo
+    {
+        get
+        {
+            if (D?.ProximaCalculada is null) return "";
+            var (d, h) = D.Periodo(D.FacturasGeneradas);
+            return d is null && h is null ? "Las facturas no llevarán periodo."
+                : $"La próxima factura facturará el periodo {(d is { } x ? Formatos.Fecha(x) : "…")} – {(h is { } y ? Formatos.Fecha(y) : "…")}.";
+        }
+    }
+
+    public string DetalleGeneradas => _activa is null ? "" : _activa.Generadas == 0
+        ? $"Sin facturas generadas en {_s.Trabajo.Ejercicio}."
+        : $"{Formatos.Plural(_activa.Generadas, "factura generada", "facturas generadas")} en {_s.Trabajo.Ejercicio}.";
+
+    public IReadOnlyList<LineaDetalle> DetalleLineas => D?.Plantilla.Lineas.Select(l => new LineaDetalle(l)).ToList() ?? [];
+    public string DetalleBase => D is null ? "" : Formatos.Importe(D.Plantilla.Totales.BaseImponible.Valor);
+
+    public IReadOnlyList<FilaResumen> DetalleIvas
+    {
+        get
+        {
+            if (D is null) return [];
+            var filas = CalculoFactura.Desglose(D.Plantilla.Lineas)
+                .Select(x => new FilaResumen($"IVA {VistaModelos.Texto.Porcentaje(x.TipoIva)} %", Formatos.Importe((x.CuotaIva + x.CuotaRecargo).Valor))).ToList();
+            return filas.Count > 0 ? filas : [new FilaResumen("IVA", Formatos.Importe(D.Plantilla.Totales.Iva.Valor))];
+        }
+    }
+
+    public string DetalleTextoRetencion => D?.Plantilla is { TipoRetencion: > 0m } f ? $"Retención {VistaModelos.Texto.Porcentaje(f.TipoRetencion)} %" : "Retención";
+    public string DetalleRetencion => D is null ? "" : Formatos.Importe(-D.Plantilla.Totales.Retencion.Valor);
+    public string DetalleTotal => D is null ? "" : Formatos.Importe(D.Plantilla.Totales.ImporteTotal.Valor);
+    public string? DetalleNotas => string.IsNullOrWhiteSpace(D?.Plantilla.NotasInternas) ? null : D!.Plantilla.NotasInternas;
+    public IReadOnlyList<string> DetalleHistorial => D?.LineasHistorial.Reverse().Take(8).ToList() ?? [];
+
+    private void AvisarDetalle() =>
+        Avisar(nameof(HayDetalle), nameof(DetalleTitulo), nameof(DetalleEstado), nameof(DetalleCliente), nameof(DetalleNif), nameof(DetalleDomicilio), nameof(DetalleDescripcion),
+            nameof(DetallePeriodicidad), nameof(DetalleInicio), nameof(DetalleDia), nameof(DetalleFinal), nameof(DetalleGenera), nameof(DetalleEnvio), nameof(DetalleProximas),
+            nameof(DetallePeriodo), nameof(DetalleGeneradas), nameof(DetalleLineas), nameof(DetalleBase), nameof(DetalleIvas), nameof(DetalleTextoRetencion), nameof(DetalleRetencion),
+            nameof(DetalleTotal), nameof(DetalleNotas), nameof(DetalleHistorial), nameof(TextoPausar), nameof(AyudaPausar));
+
+    private async Task CargarClienteAsync(FilaProgramadaVM? fila)
+    {
+        _cliente = null;
+        Avisar(nameof(DetalleNif), nameof(DetalleDomicilio));
+        if (fila?.Datos.Plantilla.IdCliente is not int id) return;
+        try
+        {
+            var c = await _s.Apoyo.ClienteAsync(id);
+            if (!ReferenceEquals(_activa, fila)) return;
+            _cliente = c;
+            Avisar(nameof(DetalleNif), nameof(DetalleDomicilio));
+        }
+        catch (Exception ex) when (ex is ProConta.Datos.Persistencia.ExcepcionDatos or InvalidOperationException)
+        {
+            // El NIF y el domicilio son informativos: si fallan, el detalle sigue con el resto.
+        }
+    }
+
+    // ---------- carga ----------
+
+    public async Task CargarAsync(int? idActiva = null)
+    {
+        var carga = ++_cargas;
+        if (_todas.Count == 0) Estado = EstadoVista.Cargando;
+        try
+        {
+            _puedeEditar = await _s.Facturas.PuedeAsync(Acciones.FacturasEditar);
+            var programadas = await _s.Programadas.ListarAsync(_s.Trabajo.IdSociedad);
+            var generadas = await _s.Programadas.GeneradasEnEjercicioAsync(_s.Trabajo.IdSociedadEjercicio);
+            var clientes = await _s.Programadas.NombresClientesAsync();
+            if (carga != _cargas) return;
+            var activa = idActiva ?? _activa?.Id;
+            _todas = programadas
+                .Select(p => new FilaProgramadaVM(p, p.Plantilla.IdCliente is int c && clientes.TryGetValue(c, out var n) ? n : "Sin cliente", generadas.GetValueOrDefault(p.IdFacturaProgramada)))
+                .OrderBy(p => p.Grupo).ThenBy(p => p.ProximaOrden ?? DateTime.MaxValue).ThenBy(p => p.Id)
+                .ToList();
+            _activa = _todas.FirstOrDefault(p => p.Id == activa);
+            var conservada = _activa;
+            _activa = null;
+            Filas.Clear();
+            Activa = conservada;
+            Filtrar();
+        }
+        catch (Exception ex) when (ex is ProConta.Datos.Persistencia.ExcepcionDatos or InvalidOperationException)
+        {
+            Estado = EstadoVista.Error;
+            MensajeEstado = ex is ProConta.Datos.Persistencia.ExcepcionDatos d ? d.Error.TextoOperador() : ex.Message;
+            Avisar(nameof(TituloEstado), nameof(AccionEstado), nameof(ComandoEstado));
+        }
+    }
+
+    // ---------- acciones ----------
+
+    public ICommand NuevaCommand { get; }
+    public ICommand AbrirCommand { get; }
+    public ICommand PausarCommand { get; }
+    public ICommand DuplicarCommand { get; }
+    public ICommand EliminarCommand { get; }
+    public ICommand VerFacturasCommand { get; }
+    public ICommand GenerarCommand { get; }
+    public ICommand RefrescarCommand { get; }
+    public ICommand LimpiarFiltrosCommand { get; }
+
+    private async Task PausarAsync()
+    {
+        if (_activa is not { } fila) return;
+        var r = await _s.Programadas.CambiarActivaAsync(fila.Id, !fila.Datos.Activa, fila.Datos.Version, _s.Actor);
+        if (!r.Guardada)
+        {
+            Error(fila.Datos.Activa ? $"No se ha pausado {fila.Codigo}" : $"No se ha reanudado {fila.Codigo}", r.Incidencias.Select(i => i.Mensaje).ToList());
+            return;
+        }
+        _modulo.Avisar(r.Programada!.Activa ? $"{fila.Codigo} reanudada." : $"{fila.Codigo} pausada: no genera facturas hasta que la reanudes.");
+        await CargarAsync(fila.Id);
+    }
+
+    private async Task DuplicarAsync()
+    {
+        if (_activa is not { } fila) return;
+        var r = await _s.Programadas.DuplicarAsync(fila.Id, _s.Actor);
+        if (!r.Guardada) { Error("No se ha duplicado", r.Incidencias.Select(i => i.Mensaje).ToList()); return; }
+        await CargarAsync(r.Programada!.IdFacturaProgramada);
+        _modulo.AbrirProgramada(r.Programada.IdFacturaProgramada);
+    }
+
+    private async Task EliminarAsync()
+    {
+        if (_activa is not { } fila) return;
+        if (_modulo.Dialogos.Preguntar($"Eliminar {fila.Codigo}", "Se borra la programada y sus líneas. Solo se puede si aún no ha generado ninguna factura; si ya tiene, páusala.", null,
+                new OpcionMensaje("Cancelar", "No borra nada", Cancelar: true), new OpcionMensaje("Eliminar", "Borra la programada", Peligro: true)) != 1) return;
+        var r = await _s.Programadas.EliminarAsync(fila.Id, fila.Datos.Version);
+        if (!r.EsCorrecto) { Error("No se ha eliminado", r.Errores.Select(e => e.Mensaje + (e.AccionCorrectora is { } a ? " " + a : "")).ToList()); return; }
+        _modulo.Avisar($"{fila.Codigo} eliminada.");
+        await CargarAsync();
+    }
+
+    /// <summary>«Generar programadas…»: elige la fecha y las programadas, genera el lote y resume lo creado y las incidencias.</summary>
+    private async Task GenerarAsync()
+    {
+        try
+        {
+            var eleccion = _modulo.Dialogos.ElegirProgramadasAGenerar(DateTime.Today, h => _s.Programadas.PendientesAsync(_s.Trabajo.IdSociedad, h));
+            if (eleccion is not { } e) return;
+            var r = await _s.Programadas.GenerarAsync(_s.Trabajo, e.Hasta, e.Ids, _s.Actor);
+            if (!r.EsCorrecto) { Error("No se ha generado el lote", r.Errores.Select(x => x.Mensaje + (x.AccionCorrectora is { } a ? " " + a : "")).ToList()); return; }
+            var lote = r.Valor;
+            await CargarAsync();
+            _modulo.FacturaCambiada();
+            var creadas = lote.Facturas.Select(f => $"{f.Programada} · {Formatos.Fecha(f.Vencimiento)} → {(f.Validada ? f.Rotulo : f.Rotulo + " (borrador)")}").ToList();
+            var titulo = lote.Facturas.Count == 0 ? "No se ha creado ninguna factura" : $"Lote {lote.IdLote}: {Formatos.Plural(lote.Facturas.Count, "factura creada", "facturas creadas")}";
+            if (lote.SinIncidencias)
+            {
+                _modulo.Avisar($"{titulo}. Las ves en Facturas; los borradores se validan con «Validar…».");
+                return;
+            }
+            _modulo.Dialogos.Preguntar(titulo,
+                lote.Facturas.Count == 0 ? "Ninguna programada ha generado su factura. Revisa lo siguiente:" : "Las demás programadas necesitan revisión; lo creado ya está guardado:",
+                [.. creadas, .. lote.Incidencias.Select(i => "⚠ " + i)],
+                new OpcionMensaje("Entendido", "Cierra el aviso", Principal: true, Cancelar: true));
+        }
+        catch (Exception ex)
+        {
+            // Un fallo inesperado no se pierde en silencio: se explica y se puede repetir.
+            _modulo.Dialogos.Preguntar("No se ha podido generar", $"Ha fallado la generación de programadas: {ex.Message} Lo que ya se hubiera creado está guardado; actualiza el listado y vuelve a intentarlo.", [ex.ToString()],
+                new OpcionMensaje("Entendido", "Cierra el aviso", Principal: true, Cancelar: true));
+        }
+    }
+
+    private void Error(string titulo, IReadOnlyList<string> detalles) =>
+        _modulo.Dialogos.Preguntar(titulo, detalles.Count == 1 ? detalles[0] : "Revisa lo siguiente:", detalles.Count == 1 ? null : detalles,
+            new OpcionMensaje("Entendido", "Cierra el aviso", Principal: true, Cancelar: true));
+}

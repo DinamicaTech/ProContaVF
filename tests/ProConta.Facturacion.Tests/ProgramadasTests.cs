@@ -142,4 +142,46 @@ public sealed class ProgramadasTests
         Assert.Equal("Sin periodo  - ", MarcadoresPeriodo.Sustituir("Sin periodo %fechainicio% - %FECHAFIN%", null, null));
         Assert.Equal("", MarcadoresPeriodo.Sustituir(null, null, null));
     }
+
+    [Fact]
+    public void LaLineaDeUnaFacturaDelErpConservaSuTotalAlProgramarla()
+    {
+        // Como las del ERP: el precio es el total con IVA y el descuento fijo no es un descuento (1.002,00 + 210,42).
+        var alquiler = new LineaFacturaVenta { Nombre = "Alquiler", Cantidad = 1m, PrecioUnitario = 1212.42m, DescuentoImporte = -1212.42m, TipoIva = 21m };
+        alquiler.CargarImportes(1002m, 210.42m, 0m, 1212.42m);
+        var c = LineasProgramada.DesdeLineaFactura(alquiler);
+        Assert.Equal(1212.42m, c.ImporteTotal.Valor);
+        Assert.Equal(1002m, c.BaseImponible.Valor);
+        Assert.Equal(210.42m, c.CuotaIva.Valor);
+        Assert.Equal(0m, c.DescuentoImporte);
+
+        // La línea de retención: 0,19 × -1.002,00 con un 100 % que el ERP no aplicaba.
+        var retencion = new LineaFacturaVenta { Nombre = "Retención", Cantidad = 0.19m, PrecioUnitario = -1002m, DescuentoPorcentaje = 100m, DescuentoImporte = 1002m, TipoIva = 0m };
+        retencion.CargarImportes(-190.38m, 0m, 0m, -190.38m);
+        var r = LineasProgramada.DesdeLineaFactura(retencion);
+        Assert.Equal(-190.38m, r.ImporteTotal.Valor);
+        Assert.Equal(0m, r.DescuentoPorcentaje);
+
+        // Lo que al recalcular es igual no se toca.
+        var normal = new LineaFacturaVenta { Nombre = "Cuota", Cantidad = 2m, PrecioUnitario = 50m, DescuentoPorcentaje = 10m, TipoIva = 21m };
+        normal.Recalcular();
+        var n = LineasProgramada.DesdeLineaFactura(normal);
+        Assert.Equal(10m, n.DescuentoPorcentaje);
+        Assert.Equal(normal.ImporteTotal, n.ImporteTotal);
+
+        var t = CalculoFactura.Totales([c, r], 0m);
+        Assert.Equal(1022.04m, t.ImporteTotal.Valor);
+        Invariantes.Totales(t);
+    }
+
+    [Fact]
+    public void UnaPlantillaConDescuentosDelErpNoSeActiva()
+    {
+        var p = new FacturaProgramada { FechaInicio = D(2026, 1, 1), DiaEmision = 1 };
+        p.Plantilla.AnadirLinea(new LineaFacturaVenta { Nombre = "Alquiler", PrecioUnitario = 1212.42m, DescuentoImporte = -1212.42m });
+        p.Plantilla.AnadirLinea(new LineaFacturaVenta { Nombre = "Retención", Cantidad = 0.19m, PrecioUnitario = -1002m, DescuentoPorcentaje = 100m });
+        p.Plantilla.AnadirLinea(new LineaFacturaVenta { Nombre = "Normal", PrecioUnitario = 100m, DescuentoPorcentaje = 10m, DescuentoImporte = 5m });
+        var malas = ReglasProgramada.ValidarParaActivar(p).Where(i => i.Codigo == "Programadas.DescuentoNoValido").ToList();
+        Assert.Equal(["Linea1.DescuentoImporte", "Linea2.DescuentoImporte"], malas.Select(i => i.Campo));
+    }
 }

@@ -51,8 +51,8 @@ public interface IDialogosFacturacion
 }
 
 /// <summary>
-/// Facturación dentro del contenedor: una pestaña «Facturas emitidas» y una pestaña por factura abierta en el editor
-/// (si ya está abierta, se activa).
+/// Facturación dentro del contenedor: una pestaña «Facturas», otra «Facturas programadas» y una por cada factura o
+/// programada abierta en el editor (si ya está abierta, se activa).
 /// </summary>
 public sealed class ModuloFacturacion
 {
@@ -62,6 +62,7 @@ public sealed class ModuloFacturacion
     private readonly Action<int> _abrirFichaTercero;
     private readonly List<EditorFacturaVM> _editores = [];
     private ListadoFacturasVM? _listado;
+    private ListadoProgramadasVM? _programadas;
 
     public ModuloFacturacion(ServiciosFacturacion servicios, IAnfitrionPestanas anfitrion, IDialogosFacturacion dialogos, Action<int> abrirFichaTercero)
     {
@@ -90,6 +91,29 @@ public sealed class ModuloFacturacion
     }
 
     internal void ListadoCerrado() => _listado = null;
+
+    /// <summary>Abre (o activa) la pestaña Facturas programadas.</summary>
+    public void AbrirProgramadas()
+    {
+        if (_programadas is not null)
+        {
+            _anfitrion.Activar(_programadas);
+            _ = _programadas.CargarAsync();
+            return;
+        }
+        _programadas = new ListadoProgramadasVM(this);
+        _anfitrion.Abrir(_programadas);
+        _ = _programadas.CargarAsync();
+    }
+
+    internal void ProgramadasCerrado() => _programadas = null;
+
+    /// <summary>«Ver sus facturas»: abre Facturas filtrada por la programada.</summary>
+    internal void VerFacturasDeProgramada(int idProgramada)
+    {
+        AbrirListado();
+        _listado!.FiltrarPorProgramada(idProgramada);
+    }
 
     /// <summary>Abre una factura en el editor (borrador editable o validada en solo lectura).</summary>
     public void AbrirFactura(int idFactura)
@@ -157,13 +181,19 @@ public sealed class ModuloFacturacion
     /// <summary>El editor guardó, validó o borró: el listado se refresca si está abierto.</summary>
     internal void FacturaCambiada(int? idActiva = null) => _ = _listado?.CargarAsync(idActiva);
 
-    /// <summary>El editor guardó o borró una programada: el listado se refresca si está abierto.</summary>
-    internal void ProgramadaCambiada(int? idProgramada = null) => _ = _listado?.CargarAsync(idProgramadaActiva: idProgramada);
+    /// <summary>El editor guardó o borró una programada: su listado se refresca si está abierto.</summary>
+    internal void ProgramadaCambiada(int? idProgramada = null) => _ = _programadas?.CargarAsync(idProgramada);
 
     internal void VolverAlListado()
     {
         if (_listado is null) AbrirListado();
         else _anfitrion.Activar(_listado);
+    }
+
+    internal void VolverAProgramadas()
+    {
+        if (_programadas is null) AbrirProgramadas();
+        else _anfitrion.Activar(_programadas);
     }
 
     internal void AbrirFichaTercero(int idTercero) => _abrirFichaTercero(idTercero);

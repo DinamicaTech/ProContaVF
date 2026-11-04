@@ -82,7 +82,7 @@ public sealed class EditorFacturaVM : ModeloVista, IPestanaTrabajo, INotifyDataE
         QuitarLineaCommand = new ComandoDelegado(p => { if (p is LineaFacturaVM l) QuitarLinea(l); }, _ => EditableLineas);
         SubirLineaCommand = new ComandoDelegado(p => { if (p is LineaFacturaVM l) MoverLinea(l, -1); }, p => EditableLineas && p is LineaFacturaVM l && Lineas.IndexOf(l) > 0);
         BajarLineaCommand = new ComandoDelegado(p => { if (p is LineaFacturaVM l) MoverLinea(l, 1); }, p => EditableLineas && p is LineaFacturaVM l && Lineas.IndexOf(l) is var i && i >= 0 && i < Lineas.Count - 1);
-        VolverCommand = new ComandoDelegado(_modulo.VolverAlListado);
+        VolverCommand = new ComandoDelegado(() => { if (_p is null) _modulo.VolverAlListado(); else _modulo.VolverAProgramadas(); });
     }
 
     public int IdFactura => _p is null ? _f.IdFactura : 0;
@@ -131,6 +131,8 @@ public sealed class EditorFacturaVM : ModeloVista, IPestanaTrabajo, INotifyDataE
     public string TextoEliminar => _p is not null ? "Eliminar programada" : EsRectificativa ? "Eliminar rectificativa" : "Eliminar borrador";
     public string AyudaEliminar => _p is not null ? "Borra la programada si aún no ha generado ninguna factura; si ya tiene, páusala" : "Borra el borrador; no consume número";
     public string AyudaDuplicar => _p is not null ? "Crea otra programada igual, pausada y sin facturas generadas" : "Crea otro borrador con el mismo cliente y líneas, sin número ni fechas";
+
+    public string TextoVolver => _p is null ? "Volver a Facturas" : "Volver a Facturas programadas";
 
     public string TextoEstado => _p?.TextoEstado ?? TextosEstado.Texto(_f.Estado);
     public string Subtitulo => $"{(_cliente?.Nombre ?? NombreClienteFactura ?? "Sin cliente")} · " +

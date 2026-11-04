@@ -21,7 +21,7 @@
     <!-- Cabecera: número o borrador, estado, rectifica a, sin VeriFactu, cliente y fecha -->
     <Border DockPanel.Dock="Top" BorderBrush="{StaticResource Pincel.Linea}" BorderThickness="0,0,0,1" Padding="18,10">
       <DockPanel>
-        <Button DockPanel.Dock="Right" Content="Volver a Facturas" Command="{Binding VolverCommand}" Style="{StaticResource Boton.Fantasma}"
+        <Button DockPanel.Dock="Right" Content="{Binding TextoVolver}" Command="{Binding VolverCommand}" Style="{StaticResource Boton.Fantasma}"
                 ToolTip="Vuelve al listado sin cerrar esta pestaña" VerticalAlignment="Center" />
         <WrapPanel VerticalAlignment="Center">
           <TextBlock Text="{Binding Titulo}" Style="{StaticResource Texto.TituloPantalla}" VerticalAlignment="Center" Margin="0,0,12,0" />
