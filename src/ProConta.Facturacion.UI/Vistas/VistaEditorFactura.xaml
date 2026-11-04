@@ -21,12 +21,14 @@
     <!-- Cabecera: número o borrador, estado, rectifica a, sin VeriFactu, cliente y fecha -->
     <Border DockPanel.Dock="Top" BorderBrush="{StaticResource Pincel.Linea}" BorderThickness="0,0,0,1" Padding="18,10">
       <DockPanel>
-        <Button DockPanel.Dock="Right" Content="Volver a Facturas emitidas" Command="{Binding VolverCommand}" Style="{StaticResource Boton.Fantasma}"
+        <Button DockPanel.Dock="Right" Content="Volver a Facturas" Command="{Binding VolverCommand}" Style="{StaticResource Boton.Fantasma}"
                 ToolTip="Vuelve al listado sin cerrar esta pestaña" VerticalAlignment="Center" />
         <WrapPanel VerticalAlignment="Center">
           <TextBlock Text="{Binding Titulo}" Style="{StaticResource Texto.TituloPantalla}" VerticalAlignment="Center" Margin="0,0,12,0" />
-          <Border Style="{StaticResource Pildora}" Background="{StaticResource Pincel.AcentoSuave}" BorderBrush="{StaticResource Pincel.AcentoBorde}" ToolTip="Estado de la factura">
-            <TextBlock Text="{Binding TextoEstado}" Style="{StaticResource Texto.Pildora}" />
+          <Border Style="{StaticResource Estado.Marco}" ToolTip="Estado de la factura">
+            <Border Style="{StaticResource Estado.Segmento}">
+              <TextBlock Text="{Binding TextoEstado}" Style="{StaticResource Texto.Estado}" />
+            </Border>
           </Border>
           <Border Style="{StaticResource Pildora}" Visibility="{Binding TextoRectifica, Converter={StaticResource Visible}}"
                   ToolTip="Esta factura rectifica por completo a la original, con los importes en negativo">
@@ -286,24 +288,23 @@
 
               <Grid Margin="0,0,0,4">
                 <Grid.ColumnDefinitions>
-                  <ColumnDefinition Width="30" /><ColumnDefinition Width="240" /><ColumnDefinition Width="*" MinWidth="160" /><ColumnDefinition Width="70" />
-                    <ColumnDefinition Width="96" /><ColumnDefinition Width="64" /><ColumnDefinition Width="84" /><ColumnDefinition Width="96" />
-                    <ColumnDefinition Width="70" /><ColumnDefinition Width="84" /><ColumnDefinition Width="46" /><ColumnDefinition Width="100" />
-                    <ColumnDefinition Width="104" /><ColumnDefinition Width="34" />
+                  <ColumnDefinition Width="30" /><ColumnDefinition Width="240" /><ColumnDefinition Width="*" MinWidth="160" /><ColumnDefinition Width="96" /><ColumnDefinition Width="70" /><ColumnDefinition Width="96" /><ColumnDefinition Width="64" /><ColumnDefinition Width="84" /><ColumnDefinition Width="96" /><ColumnDefinition Width="70" /><ColumnDefinition Width="84" /><ColumnDefinition Width="46" /><ColumnDefinition Width="100" /><ColumnDefinition Width="180" /><ColumnDefinition Width="104" /><ColumnDefinition Width="86" />
                 </Grid.ColumnDefinitions>
                 <TextBlock Grid.Column="0" Text="#" Style="{StaticResource Cabecera.Linea}" />
                 <TextBlock Grid.Column="1" Text="Concepto" Style="{StaticResource Cabecera.Linea}" />
                 <TextBlock Grid.Column="2" Text="Descripción" Style="{StaticResource Cabecera.Linea}" />
-                <TextBlock Grid.Column="3" Text="Cantidad" Style="{StaticResource Cabecera.Linea}" HorizontalAlignment="Right" />
-                <TextBlock Grid.Column="4" Text="Precio" Style="{StaticResource Cabecera.Linea}" HorizontalAlignment="Right" />
-                <TextBlock Grid.Column="5" Text="Dto. %" Style="{StaticResource Cabecera.Linea}" HorizontalAlignment="Right" />
-                <TextBlock Grid.Column="6" Text="Dto. €" Style="{StaticResource Cabecera.Linea}" HorizontalAlignment="Right" />
-                <TextBlock Grid.Column="7" Text="Base" Style="{StaticResource Cabecera.Linea}" HorizontalAlignment="Right" />
-                <TextBlock Grid.Column="8" Text="IVA %" Style="{StaticResource Cabecera.Linea}" HorizontalAlignment="Right" />
-                <TextBlock Grid.Column="9" Text="Cuota" Style="{StaticResource Cabecera.Linea}" HorizontalAlignment="Right" />
-                <TextBlock Grid.Column="10" Text="Supl." Style="{StaticResource Cabecera.Linea}" ToolTip="Suplido: fuera de IVA y retención" />
-                <TextBlock Grid.Column="11" Text="Cuenta" Style="{StaticResource Cabecera.Linea}" />
-                <TextBlock Grid.Column="12" Text="Total" Style="{StaticResource Cabecera.Linea}" HorizontalAlignment="Right" ToolTip="Puedes escribir aquí el total con IVA y el programa calcula la base" />
+                <TextBlock Grid.Column="3" Text="Fecha" Style="{StaticResource Cabecera.Linea}" ToolTip="Fecha de entrega o consumo de la línea (por ejemplo, la entrada de un alquiler turístico); opcional" />
+                <TextBlock Grid.Column="4" Text="Cantidad" Style="{StaticResource Cabecera.Linea}" HorizontalAlignment="Right" />
+                <TextBlock Grid.Column="5" Text="Precio" Style="{StaticResource Cabecera.Linea}" HorizontalAlignment="Right" />
+                <TextBlock Grid.Column="6" Text="Dto. %" Style="{StaticResource Cabecera.Linea}" HorizontalAlignment="Right" />
+                <TextBlock Grid.Column="7" Text="Dto. €" Style="{StaticResource Cabecera.Linea}" HorizontalAlignment="Right" />
+                <TextBlock Grid.Column="8" Text="Base" Style="{StaticResource Cabecera.Linea}" HorizontalAlignment="Right" />
+                <TextBlock Grid.Column="9" Text="IVA %" Style="{StaticResource Cabecera.Linea}" HorizontalAlignment="Right" />
+                <TextBlock Grid.Column="10" Text="Cuota" Style="{StaticResource Cabecera.Linea}" HorizontalAlignment="Right" />
+                <TextBlock Grid.Column="11" Text="Supl." Style="{StaticResource Cabecera.Linea}" ToolTip="Suplido: fuera de IVA y retención" />
+                <TextBlock Grid.Column="12" Text="Cuenta" Style="{StaticResource Cabecera.Linea}" />
+                <TextBlock Grid.Column="13" Text="Centro de coste" Style="{StaticResource Cabecera.Linea}" ToolTip="Analítica de la línea: viene del concepto y la puedes cambiar al emitir" />
+                <TextBlock Grid.Column="14" Text="Total" Style="{StaticResource Cabecera.Linea}" HorizontalAlignment="Right" ToolTip="Puedes escribir aquí el total con IVA y el programa calcula la base" />
               </Grid>
               <Rectangle Height="1" Fill="{StaticResource Pincel.Linea}" Margin="0,0,0,4" />
               <TextBlock Text="Sin líneas. Añade la primera con «Añadir línea…» (F2)." Style="{StaticResource Texto.Apagado}" HorizontalAlignment="Center" Margin="0,14"
@@ -312,34 +313,44 @@
                 <ItemsControl.ItemTemplate>
                   <DataTemplate>
                     <Grid Margin="0,3">
+                      <Grid.InputBindings>
+                        <KeyBinding Key="Up" Modifiers="Alt" Command="{Binding DataContext.SubirLineaCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}" CommandParameter="{Binding}" />
+                        <KeyBinding Key="Down" Modifiers="Alt" Command="{Binding DataContext.BajarLineaCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}" CommandParameter="{Binding}" />
+                      </Grid.InputBindings>
                       <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="30" /><ColumnDefinition Width="240" /><ColumnDefinition Width="*" MinWidth="160" /><ColumnDefinition Width="70" />
-                    <ColumnDefinition Width="96" /><ColumnDefinition Width="64" /><ColumnDefinition Width="84" /><ColumnDefinition Width="96" />
-                    <ColumnDefinition Width="70" /><ColumnDefinition Width="84" /><ColumnDefinition Width="46" /><ColumnDefinition Width="100" />
-                    <ColumnDefinition Width="104" /><ColumnDefinition Width="34" />
+                        <ColumnDefinition Width="30" /><ColumnDefinition Width="240" /><ColumnDefinition Width="*" MinWidth="160" /><ColumnDefinition Width="96" /><ColumnDefinition Width="70" /><ColumnDefinition Width="96" /><ColumnDefinition Width="64" /><ColumnDefinition Width="84" /><ColumnDefinition Width="96" /><ColumnDefinition Width="70" /><ColumnDefinition Width="84" /><ColumnDefinition Width="46" /><ColumnDefinition Width="100" /><ColumnDefinition Width="180" /><ColumnDefinition Width="104" /><ColumnDefinition Width="86" />
                       </Grid.ColumnDefinitions>
                       <TextBlock Grid.Column="0" Text="{Binding Numero}" Style="{StaticResource Texto.Apagado}" VerticalAlignment="Top" Margin="4,6,0,0" />
                       <TextBox Grid.Column="1" Margin="2,0" VerticalAlignment="Top" Text="{Binding Nombre, UpdateSourceTrigger=PropertyChanged, ValidatesOnNotifyDataErrors=True}" IsReadOnly="{Binding SoloLectura}" Style="{StaticResource Campo}"
                                MaxLength="255" ToolTip="Nombre visible de la línea; se copia del concepto y lo puedes cambiar" />
-                      <TextBox Grid.Column="2" Margin="2,0" VerticalAlignment="Top" Text="{Binding Descripcion, UpdateSourceTrigger=PropertyChanged}" IsReadOnly="{Binding SoloLectura}" Style="{StaticResource Campo.Multilinea}"
+                      <TextBox Grid.Column="2" Margin="2,0" VerticalAlignment="Top" Text="{Binding Descripcion, UpdateSourceTrigger=PropertyChanged}" IsReadOnly="{Binding SoloLectura}" Style="{StaticResource Campo.Multilinea}" MinHeight="0"
                                ToolTip="Descripción ampliada que sale debajo del nombre; crece con el texto" />
-                      <TextBox Grid.Column="3" Margin="2,0" VerticalAlignment="Top" Text="{Binding Cantidad, ValidatesOnNotifyDataErrors=True}" IsReadOnly="{Binding SoloLectura}" Style="{StaticResource Campo.Numero}" ToolTip="Unidades facturadas" />
-                      <TextBox Grid.Column="4" Margin="2,0" VerticalAlignment="Top" Text="{Binding Precio, ValidatesOnNotifyDataErrors=True}" IsReadOnly="{Binding SoloLectura}" Style="{StaticResource Campo.Numero}" ToolTip="Precio por unidad antes de descuentos (hasta 4 decimales)" />
-                      <TextBox Grid.Column="5" Margin="2,0" VerticalAlignment="Top" Text="{Binding DescuentoPorcentaje, ValidatesOnNotifyDataErrors=True}" IsReadOnly="{Binding SoloLectura}" Style="{StaticResource Campo.Numero}" ToolTip="Descuento en porcentaje; se aplica antes que el descuento fijo" />
-                      <TextBox Grid.Column="6" Margin="2,0" VerticalAlignment="Top" Text="{Binding DescuentoImporte, ValidatesOnNotifyDataErrors=True}" IsReadOnly="{Binding SoloLectura}" Style="{StaticResource Campo.Importe}" ToolTip="Descuento fijo en euros, después del porcentaje" />
-                      <TextBlock Grid.Column="7" Text="{Binding Base}" Style="{StaticResource Calculado}" VerticalAlignment="Top" Margin="4,6,4,0" ToolTip="Base imponible de la línea, redondeada a céntimos" />
-                      <ComboBox Grid.Column="8" Margin="2,0" VerticalAlignment="Top" ItemsSource="{Binding TiposIva}" SelectedItem="{Binding TipoIva, ValidatesOnNotifyDataErrors=True}" IsEnabled="{Binding PuedeCambiarIva}"
+                      <TextBox Grid.Column="3" Margin="2,0" VerticalAlignment="Top" Text="{Binding Fecha, ValidatesOnNotifyDataErrors=True}" IsReadOnly="{Binding SoloLectura}" Style="{StaticResource Campo}"
+                               ToolTip="Fecha de entrega o consumo (dd/mm/aaaa); déjala vacía si no corresponde" />
+                      <TextBox Grid.Column="4" Margin="2,0" VerticalAlignment="Top" Text="{Binding Cantidad, ValidatesOnNotifyDataErrors=True}" IsReadOnly="{Binding SoloLectura}" Style="{StaticResource Campo.Numero}" ToolTip="Unidades facturadas" />
+                      <TextBox Grid.Column="5" Margin="2,0" VerticalAlignment="Top" Text="{Binding Precio, ValidatesOnNotifyDataErrors=True}" IsReadOnly="{Binding SoloLectura}" Style="{StaticResource Campo.Numero}" ToolTip="Precio por unidad antes de descuentos (hasta 4 decimales)" />
+                      <TextBox Grid.Column="6" Margin="2,0" VerticalAlignment="Top" Text="{Binding DescuentoPorcentaje, ValidatesOnNotifyDataErrors=True}" IsReadOnly="{Binding SoloLectura}" Style="{StaticResource Campo.Numero}" ToolTip="Descuento en porcentaje; se aplica antes que el descuento fijo" />
+                      <TextBox Grid.Column="7" Margin="2,0" VerticalAlignment="Top" Text="{Binding DescuentoImporte, ValidatesOnNotifyDataErrors=True}" IsReadOnly="{Binding SoloLectura}" Style="{StaticResource Campo.Importe}" ToolTip="Descuento fijo en euros, después del porcentaje" />
+                      <TextBlock Grid.Column="8" Text="{Binding Base}" Style="{StaticResource Calculado}" VerticalAlignment="Top" Margin="4,6,4,0" ToolTip="Base imponible de la línea, redondeada a céntimos" />
+                      <ComboBox Grid.Column="9" Margin="2,0" VerticalAlignment="Top" ItemsSource="{Binding TiposIva}" SelectedItem="{Binding TipoIva, ValidatesOnNotifyDataErrors=True}" IsEnabled="{Binding PuedeCambiarIva}"
                                 ItemStringFormat="0.##" ToolTip="Tipo de IVA de la línea (un suplido no lleva IVA)" />
-                      <TextBlock Grid.Column="9" Text="{Binding Cuota}" Style="{StaticResource Calculado}" VerticalAlignment="Top" Margin="4,6,4,0" />
-                      <CheckBox Grid.Column="10" IsChecked="{Binding EsSuplido}" IsEnabled="{Binding Editable}" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,6,0,0"
+                      <TextBlock Grid.Column="10" Text="{Binding Cuota}" Style="{StaticResource Calculado}" VerticalAlignment="Top" Margin="4,6,4,0" />
+                      <CheckBox Grid.Column="11" IsChecked="{Binding EsSuplido}" IsEnabled="{Binding Editable}" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,6,0,0"
                                 ToolTip="Suplido: importe pagado en nombre del cliente; va al total pero no lleva IVA ni retención" />
-                      <TextBox Grid.Column="11" Margin="2,0" VerticalAlignment="Top" Text="{Binding Cuenta, UpdateSourceTrigger=PropertyChanged, ValidatesOnNotifyDataErrors=True}" IsReadOnly="{Binding SoloLectura}"
+                      <TextBox Grid.Column="12" Margin="2,0" VerticalAlignment="Top" Text="{Binding Cuenta, UpdateSourceTrigger=PropertyChanged, ValidatesOnNotifyDataErrors=True}" IsReadOnly="{Binding SoloLectura}"
                                Style="{StaticResource Campo.Mono}" ToolTip="Cuenta de ingreso (o de suplidos) de la línea; viene del concepto" />
-                      <TextBox Grid.Column="12" Margin="2,0" VerticalAlignment="Top" Text="{Binding Total, ValidatesOnNotifyDataErrors=True}" IsReadOnly="{Binding SoloLectura}" Style="{StaticResource Campo.Importe}"
+                      <ComboBox Grid.Column="13" Margin="2,0" VerticalAlignment="Top" ItemsSource="{Binding CentrosCoste}" SelectedItem="{Binding CentroCoste}" DisplayMemberPath="Rotulo" IsEnabled="{Binding Editable}"
+                                ToolTip="Centro de coste (analítica) de la línea; viene del concepto y lo puedes cambiar" />
+                      <TextBox Grid.Column="14" Margin="2,0" VerticalAlignment="Top" Text="{Binding Total, ValidatesOnNotifyDataErrors=True}" IsReadOnly="{Binding SoloLectura}" Style="{StaticResource Campo.Importe}"
                                ToolTip="Total con IVA. Si lo escribes, se calcula la base y la cuota conservando este total" />
-                      <Button Grid.Column="13" Style="{StaticResource Boton.Aspa}" VerticalAlignment="Top" Margin="4,4,0,0"
-                              Command="{Binding DataContext.QuitarLineaCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}" CommandParameter="{Binding}"
-                              Visibility="{Binding Editable, Converter={StaticResource Visible}}" ToolTip="Quita esta línea" />
+                      <StackPanel Grid.Column="15" Orientation="Horizontal" VerticalAlignment="Top" Margin="4,4,0,0" Visibility="{Binding Editable, Converter={StaticResource Visible}}">
+                        <Button Content="↑" Style="{StaticResource Boton.Icono}" Width="22" Height="22" Margin="0,0,2,0"
+                                Command="{Binding DataContext.SubirLineaCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}" CommandParameter="{Binding}" ToolTip="Sube la línea un puesto (Alt+↑)" />
+                        <Button Content="↓" Style="{StaticResource Boton.Icono}" Width="22" Height="22" Margin="0,0,2,0"
+                                Command="{Binding DataContext.BajarLineaCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}" CommandParameter="{Binding}" ToolTip="Baja la línea un puesto (Alt+↓)" />
+                        <Button Style="{StaticResource Boton.Aspa}"
+                                Command="{Binding DataContext.QuitarLineaCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}" CommandParameter="{Binding}" ToolTip="Quita esta línea" />
+                      </StackPanel>
                     </Grid>
                   </DataTemplate>
                 </ItemsControl.ItemTemplate>
@@ -354,18 +365,15 @@
           <Border Style="{StaticResource Tarjeta.Factura}">
             <Grid>
               <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="30" /><ColumnDefinition Width="240" /><ColumnDefinition Width="*" MinWidth="160" /><ColumnDefinition Width="70" />
-                    <ColumnDefinition Width="96" /><ColumnDefinition Width="64" /><ColumnDefinition Width="84" /><ColumnDefinition Width="96" />
-                    <ColumnDefinition Width="70" /><ColumnDefinition Width="84" /><ColumnDefinition Width="46" /><ColumnDefinition Width="100" />
-                    <ColumnDefinition Width="104" /><ColumnDefinition Width="34" />
+                <ColumnDefinition Width="30" /><ColumnDefinition Width="240" /><ColumnDefinition Width="*" MinWidth="160" /><ColumnDefinition Width="96" /><ColumnDefinition Width="70" /><ColumnDefinition Width="96" /><ColumnDefinition Width="64" /><ColumnDefinition Width="84" /><ColumnDefinition Width="96" /><ColumnDefinition Width="70" /><ColumnDefinition Width="84" /><ColumnDefinition Width="46" /><ColumnDefinition Width="100" /><ColumnDefinition Width="180" /><ColumnDefinition Width="104" /><ColumnDefinition Width="86" />
               </Grid.ColumnDefinitions>
               <Grid.RowDefinitions>
                 <RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" />
               </Grid.RowDefinitions>
               <TextBlock Grid.ColumnSpan="2" Text="Totales" Style="{StaticResource Titulo.Tarjeta}" Margin="0" VerticalAlignment="Center" />
-              <TextBlock Grid.Column="7" Text="{Binding TotalBase}" Style="{StaticResource Texto.Importe}" Margin="4,0" ToolTip="Base imponible (sin suplidos)" />
-              <TextBlock Grid.Column="9" Text="{Binding TotalIva}" Style="{StaticResource Texto.Importe}" Margin="4,0" ToolTip="Cuotas de IVA" />
-              <TextBlock Grid.Column="12" Text="{Binding TotalBruto}" Style="{StaticResource Texto.Importe}" Margin="4,0" ToolTip="Base, IVA y suplidos" />
+              <TextBlock Grid.Column="8" Text="{Binding TotalBase}" Style="{StaticResource Texto.Importe}" Margin="4,0" ToolTip="Base imponible (sin suplidos)" />
+              <TextBlock Grid.Column="10" Text="{Binding TotalIva}" Style="{StaticResource Texto.Importe}" Margin="4,0" ToolTip="Cuotas de IVA" />
+              <TextBlock Grid.Column="14" Text="{Binding TotalBruto}" Style="{StaticResource Texto.Importe}" Margin="4,0" ToolTip="Base, IVA y suplidos" />
 
               <!-- Desglose por tipo, solo si hay más de un tipo de IVA -->
               <ItemsControl Grid.Row="1" Grid.RowSpan="3" Grid.Column="1" Grid.ColumnSpan="2" ItemsSource="{Binding Desglose}" Margin="0,6,0,0"
@@ -379,19 +387,19 @@
                 </ItemsControl.ItemTemplate>
               </ItemsControl>
 
-              <TextBlock Grid.Row="1" Grid.Column="7" Grid.ColumnSpan="5" Text="Suplidos (fuera de la base)" Style="{StaticResource Texto.Apagado}" HorizontalAlignment="Right" Margin="0,4,8,0"
+              <TextBlock Grid.Row="1" Grid.Column="8" Grid.ColumnSpan="5" Text="Suplidos (fuera de la base)" Style="{StaticResource Texto.Apagado}" HorizontalAlignment="Right" Margin="0,4,8,0"
                          Visibility="{Binding HaySuplidos, Converter={StaticResource Visible}}" />
-              <TextBlock Grid.Row="1" Grid.Column="12" Text="{Binding TotalSuplidos}" Style="{StaticResource Texto.Importe}" Margin="4,4,4,0"
+              <TextBlock Grid.Row="1" Grid.Column="14" Text="{Binding TotalSuplidos}" Style="{StaticResource Texto.Importe}" Margin="4,4,4,0"
                          Visibility="{Binding HaySuplidos, Converter={StaticResource Visible}}" />
-              <TextBlock Grid.Row="2" Grid.Column="7" Grid.ColumnSpan="5" Text="{Binding TextoRetencion}" Style="{StaticResource Texto.Apagado}" HorizontalAlignment="Right" Margin="0,4,8,0"
+              <TextBlock Grid.Row="2" Grid.Column="8" Grid.ColumnSpan="5" Text="{Binding TextoRetencion}" Style="{StaticResource Texto.Apagado}" HorizontalAlignment="Right" Margin="0,4,8,0"
                          Visibility="{Binding HayRetencion, Converter={StaticResource Visible}}" />
-              <TextBlock Grid.Row="2" Grid.Column="12" Text="{Binding TotalRetencion}" Style="{StaticResource Texto.Importe}" Margin="4,4,4,0"
+              <TextBlock Grid.Row="2" Grid.Column="14" Text="{Binding TotalRetencion}" Style="{StaticResource Texto.Importe}" Margin="4,4,4,0"
                          Visibility="{Binding HayRetencion, Converter={StaticResource Visible}}" />
-              <Border Grid.Row="3" Grid.Column="12" BorderBrush="{StaticResource Pincel.Linea}" BorderThickness="0,1,0,0" Margin="0,6,0,0" Padding="0,6,0,0">
+              <Border Grid.Row="3" Grid.Column="14" BorderBrush="{StaticResource Pincel.Linea}" BorderThickness="0,1,0,0" Margin="0,6,0,0" Padding="0,6,0,0">
                 <TextBlock Text="{Binding TotalACobrar}" Style="{StaticResource Texto.Importe}" FontWeight="SemiBold" FontSize="{StaticResource Letra.Destacada}" Margin="4,0"
                            ToolTip="Total a cobrar: bruto menos retención" />
               </Border>
-              <TextBlock Grid.Row="3" Grid.Column="7" Grid.ColumnSpan="5" Text="Total a cobrar" FontWeight="SemiBold" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,0,8,0" />
+              <TextBlock Grid.Row="3" Grid.Column="8" Grid.ColumnSpan="5" Text="Total a cobrar" FontWeight="SemiBold" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,0,8,0" />
             </Grid>
           </Border>
         </StackPanel>

@@ -122,7 +122,7 @@ public sealed class ListadoFacturasVM : ModeloVista, IPestanaTrabajo
 
     // ---------- pestaña ----------
 
-    public string Titulo => "Facturas emitidas";
+    public string Titulo => "Facturas";
     public string Ayuda => $"Facturas y borradores de {_s.RazonSocial} en {_s.Trabajo.Ejercicio}";
     public string Icono => "doc";
     public bool TieneCambios => false;
@@ -302,6 +302,20 @@ public sealed class ListadoFacturasVM : ModeloVista, IPestanaTrabajo
     public IReadOnlyList<LineaDetalle> DetalleLineas => _detalle?.Lineas.Select(l => new LineaDetalle(l)).ToList() ?? [];
     public string DetalleBase => _detalle is null ? "" : Formatos.Importe(_detalle.Totales.BaseImponible.Valor);
     public string DetalleIva => _detalle is null ? "" : Formatos.Importe(_detalle.Totales.Iva.Valor);
+
+    /// <summary>Una fila de IVA por cada tipo de la factura («IVA 21 %»), con su cuota; «IVA» si no hay líneas con IVA.</summary>
+    public IReadOnlyList<FilaResumen> DetalleIvas
+    {
+        get
+        {
+            if (_detalle is null) return [];
+            var filas = CalculoFactura.Desglose(_detalle.Lineas)
+                .Select(d => new FilaResumen($"IVA {VistaModelos.Texto.Porcentaje(d.TipoIva)} %", Formatos.Importe((d.CuotaIva + d.CuotaRecargo).Valor))).ToList();
+            return filas.Count > 0 ? filas : [new FilaResumen("IVA", DetalleIva)];
+        }
+    }
+
+    public string DetalleTextoRetencion => _detalle is { TipoRetencion: > 0m } d ? $"Retención {VistaModelos.Texto.Porcentaje(d.TipoRetencion)} %" : "Retención";
     public string DetalleRetencion => _detalle is null ? "" : Formatos.Importe(-_detalle.Totales.Retencion.Valor);
     public string DetalleTotal => _detalle is null ? "" : Formatos.Importe(_detalle.Totales.ImporteTotal.Valor);
     public string DetalleAsiento => _detalle is null ? "" : _detalle.EsBorrador ? "Se generará al validar" : _detalle.IdAsientoContable is int a ? $"Asiento generado (id {a})" : "Sin asiento: usa «Contabilizar»";
@@ -309,7 +323,7 @@ public sealed class ListadoFacturasVM : ModeloVista, IPestanaTrabajo
 
     private void AvisarDetalle() =>
         Avisar(nameof(HayDetalle), nameof(DetalleTitulo), nameof(DetalleEstado), nameof(DetalleCliente), nameof(DetalleNif), nameof(DetalleDomicilio), nameof(DetalleFechas),
-            nameof(DetalleDescripcion), nameof(DetalleNotas), nameof(DetalleRelacion), nameof(DetalleLineas), nameof(DetalleBase), nameof(DetalleIva), nameof(DetalleRetencion),
+            nameof(DetalleDescripcion), nameof(DetalleNotas), nameof(DetalleRelacion), nameof(DetalleLineas), nameof(DetalleBase), nameof(DetalleIva), nameof(DetalleIvas), nameof(DetalleTextoRetencion), nameof(DetalleRetencion),
             nameof(DetalleTotal), nameof(DetalleAsiento), nameof(DetalleHistorial));
 
     private async Task CargarDetalleAsync(FilaFacturaVM? fila)
@@ -494,3 +508,6 @@ public sealed record LineaDetalle(LineaFacturaVenta Linea)
     public string Total => Formatos.Numero(Linea.ImporteTotal.Valor);
     public string Cuenta => Linea.CuentaContable ?? "";
 }
+
+/// <summary>Fila del resumen de importes del detalle (texto e importe).</summary>
+public sealed record FilaResumen(string Texto, string Importe);

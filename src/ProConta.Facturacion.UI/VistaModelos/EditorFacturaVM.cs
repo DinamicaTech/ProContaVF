@@ -4,6 +4,7 @@ using System.ComponentModel;
 using System.Globalization;
 using System.Text;
 using System.Windows.Input;
+using ProConta.Contabilidad.CentrosCoste;
 using ProConta.Facturacion.Facturas;
 using ProConta.Nucleo.Resultados;
 using ProConta.Organizacion.FormasPago;
@@ -54,6 +55,8 @@ public sealed class EditorFacturaVM : ModeloVista, IPestanaTrabajo, INotifyDataE
     private CuentaRol? _cuentaRetencion;
     private ConfiguracionEjercicio? _config;
     private IReadOnlyList<decimal> _tiposIva = [21m, 10m, 4m, 0m];
+    private IReadOnlyList<OpcionCentroCoste> _centros = [SinCentro];
+    private static readonly OpcionCentroCoste SinCentro = new(null, "Sin centro");
     private string _fechaFactura = "", _fechaOperacion = "", _periodoDesde = "", _periodoHasta = "", _diaPago = "", _retencion = "";
 
     internal EditorFacturaVM(ModuloFacturacion modulo)
@@ -72,6 +75,8 @@ public sealed class EditorFacturaVM : ModeloVista, IPestanaTrabajo, INotifyDataE
         AbrirFichaCommand = new ComandoDelegado(() => { if (_cliente is not null) _modulo.AbrirFichaTercero(_cliente.IdTercero); }, () => _cliente is not null);
         AnadirLineaCommand = new ComandoDelegado(() => _ = AnadirLineaAsync(), () => EditableLineas);
         QuitarLineaCommand = new ComandoDelegado(p => { if (p is LineaFacturaVM l) QuitarLinea(l); }, _ => EditableLineas);
+        SubirLineaCommand = new ComandoDelegado(p => { if (p is LineaFacturaVM l) MoverLinea(l, -1); }, p => EditableLineas && p is LineaFacturaVM l && Lineas.IndexOf(l) > 0);
+        BajarLineaCommand = new ComandoDelegado(p => { if (p is LineaFacturaVM l) MoverLinea(l, 1); }, p => EditableLineas && p is LineaFacturaVM l && Lineas.IndexOf(l) is var i && i >= 0 && i < Lineas.Count - 1);
         VolverCommand = new ComandoDelegado(_modulo.VolverAlListado);
     }
 
@@ -145,7 +150,7 @@ public sealed class EditorFacturaVM : ModeloVista, IPestanaTrabajo, INotifyDataE
     /// <summary>Id del cliente y su cuenta contable en la sociedad, en corto para la cabecera compacta del cliente.</summary>
     public string CodigoCliente => _f.IdCliente is int id ? $"Cliente {id}" : "";
     public string CuentaClienteCorta => _cuentaCliente is { ExisteEnEjercicio: true } c ? c.EnEjercicio!.Codigo : "Sin cuenta";
-    public string? NumeroAsiento => _f.IdAsientoContable is int a ? $"generado al validar · id {a}" : EsBorrador ? "se generará al validar" : "sin asiento: contabilízala desde Facturas emitidas";
+    public string? NumeroAsiento => _f.IdAsientoContable is int a ? $"generado al validar · id {a}" : EsBorrador ? "se generará al validar" : "sin asiento: contabilízala desde Facturas";
 
     private string Rotulo(CuentaRol r) => r.ExisteEnEjercicio
         ? $"{r.EnEjercicio!.Codigo} · {r.EnEjercicio.Nombre}"
@@ -324,6 +329,10 @@ public sealed class EditorFacturaVM : ModeloVista, IPestanaTrabajo, INotifyDataE
     public ICommand AbrirFichaCommand { get; }
     public ICommand AnadirLineaCommand { get; }
     public ICommand QuitarLineaCommand { get; }
+    /// <summary>Sube la línea un puesto (Alt+↑); el orden de las líneas tiene significado y se guarda.</summary>
+    public ICommand SubirLineaCommand { get; }
+    /// <summary>Baja la línea un puesto (Alt+↓).</summary>
+    public ICommand BajarLineaCommand { get; }
     public ICommand VolverCommand { get; }
 
     public string MotivoPdf => "Llega con el desarrollo del PDF.";
@@ -356,6 +365,8 @@ public sealed class EditorFacturaVM : ModeloVista, IPestanaTrabajo, INotifyDataE
             _puedeRectificar = await _s.Facturas.PuedeAsync(Acciones.FacturasRectificar);
             _config = await _s.Configuracion.ObtenerAsync(_s.Trabajo.IdSociedadEjercicio);
             _tiposIva = await _s.Apoyo.TiposIvaAsync();
+            var centros = await _s.CentrosCoste.ListarAsync(_s.Trabajo.IdSociedad);
+            _centros = [SinCentro, .. centros.Where(c => c.EstaActivo && c.EsImputable).Select(c => new OpcionCentroCoste(c.IdCentroCoste, $"{c.Codigo.Trim()} · {c.Nombre.Trim()}"))];
             Rellenar(Series, await _s.Facturas.SeriesAsync(_s.Trabajo.IdSociedadEjercicio));
             Rellenar(TiposFactura, await _s.Apoyo.TiposFacturaAsync());
             Rellenar(FormasPago, await _s.FormasPago.ListarAsync());
@@ -407,7 +418,7 @@ public sealed class EditorFacturaVM : ModeloVista, IPestanaTrabajo, INotifyDataE
     private void ReconstruirLineas()
     {
         Lineas.Clear();
-        foreach (var l in _f.Lineas) Lineas.Add(new LineaFacturaVM(l, EditableLineas, _tiposIva, LineaCambiada));
+        foreach (var l in _f.Lineas) Lineas.Add(new LineaFacturaVM(l, EditableLineas, _tiposIva, _centros, LineaCambiada));
     }
 
     private void LineaCambiada()
@@ -500,10 +511,21 @@ public sealed class EditorFacturaVM : ModeloVista, IPestanaTrabajo, INotifyDataE
         else linea.TipoIva = _tiposIva.FirstOrDefault();
         linea.Recalcular();
         _f.AnadirLinea(linea);
-        Lineas.Add(new LineaFacturaVM(linea, EditableLineas, _tiposIva, LineaCambiada));
+        Lineas.Add(new LineaFacturaVM(linea, EditableLineas, _tiposIva, _centros, LineaCambiada));
         QuitarError("Lineas");
         AvisarTotales();
         Cambio();
+    }
+
+    internal void MoverLinea(LineaFacturaVM l, int desplazamiento)
+    {
+        var i = Lineas.IndexOf(l);
+        if (!_f.MoverLinea(l.Datos, desplazamiento)) return;
+        Lineas.Move(i, i + desplazamiento);
+        foreach (var x in Lineas) x.AvisarNumero();
+        AvisarTotales();
+        Cambio();
+        CommandManager.InvalidateRequerySuggested();
     }
 
     private void QuitarLinea(LineaFacturaVM l)
@@ -575,7 +597,7 @@ public sealed class EditorFacturaVM : ModeloVista, IPestanaTrabajo, INotifyDataE
         if (r.Contabilizada) _modulo.Avisar($"Factura {r.Factura!.NumeroFactura} validada y contabilizada.");
         else
             MostrarErrores($"Factura {r.Factura!.NumeroFactura} validada sin asiento", r.ErrorContabilizacion ?? [],
-                "La factura ya tiene su número y no cambia. El asiento no se ha podido generar; corrige lo que se indica y contabilízala desde Facturas emitidas.");
+                "La factura ya tiene su número y no cambia. El asiento no se ha podido generar; corrige lo que se indica y contabilízala desde Facturas.");
     }
 
     private async Task DuplicarAsync()
@@ -706,7 +728,7 @@ public sealed class EditorFacturaVM : ModeloVista, IPestanaTrabajo, INotifyDataE
         b.Append(CultureInfo.InvariantCulture, $"{f.FormaDePago}|{f.DiaDePago}|{f.TipoRetencion}|{f.Descripcion}|{f.NotasInternas}|{f.MotivoRectificacion}");
         foreach (var l in f.Lineas)
             b.Append(CultureInfo.InvariantCulture,
-                $"#{l.IdConcepto}|{l.Nombre}|{l.Descripcion}|{l.Cantidad}|{l.PrecioUnitario}|{l.DescuentoPorcentaje}|{l.DescuentoImporte}|{l.TipoIva}|{l.EsSuplido}|{l.CuentaContable}|{l.ImporteTotal}");
+                $"#{l.IdConcepto}|{l.Nombre}|{l.Descripcion}|{l.Cantidad}|{l.PrecioUnitario}|{l.DescuentoPorcentaje}|{l.DescuentoImporte}|{l.TipoIva}|{l.EsSuplido}|{l.CuentaContable}|{l.ImporteTotal}|{l.Fecha:d}|{l.IdCentroCoste}");
         return b.ToString();
     }
 }

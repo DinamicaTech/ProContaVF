@@ -81,7 +81,7 @@ internal static class RepositorioFacturas
             Nombre = r.Texto("Nombre") ?? "",
             Descripcion = r.Texto("Descripcion") ?? "",
             NotasInternas = r.Texto("NotasInternas"),
-            Fecha = r.FechaNula("Fecha"),
+            Fecha = FechaReal(r, "Fecha"),
             Cantidad = Redondear(r.Doble("Cantidad"), 6),
             PrecioUnitario = r.Decimal("PrecioUnitario"),
             DescuentoPorcentaje = Redondear(r.Doble("DescuentoPorcentaje")),

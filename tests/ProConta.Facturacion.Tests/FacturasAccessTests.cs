@@ -89,6 +89,41 @@ public sealed class FacturasAccessTests : IDisposable
     }
 
     [Fact]
+    public async Task BorradorNuevoConFechasDeHoyYLineasConFechaCentroYOrden()
+    {
+        await PrepararAsync();
+        var servicio = Servicio();
+        var f = (await servicio.NuevoBorradorAsync(_ctx)).Valor;
+        var hoy = new DateTime(2026, 3, 10);
+        Assert.Equal(hoy, f.FechaOperacion);
+        Assert.Equal(hoy, f.FechaInicioValidez);
+        Assert.Equal(hoy, f.FechaFinValidez);
+
+        var centro = await new ProConta.Contabilidad.CentrosCoste.CatalogoCentrosCosteAccess(Bd).AltaAsync("T01", "TUR", "Alquiler turístico");
+        Assert.True(centro.EsCorrecto, centro.Error?.ToString());
+        f.IdCliente = _idCliente;
+        f.Descripcion = "Alquileres por meses";
+        foreach (var nombre in new[] { "Junio", "Julio", "Agosto" })
+        {
+            var l = new LineaFacturaVenta { Nombre = nombre, PrecioUnitario = 100m, CuentaContable = "7520001" };
+            l.Recalcular();
+            f.AnadirLinea(l);
+        }
+        f.Lineas[2].Fecha = new DateTime(2026, 8, 1);
+        f.Lineas[2].IdCentroCoste = centro.Valor.IdCentroCoste;
+        Assert.True(f.MoverLinea(f.Lineas[2], -2));
+        var r = await servicio.GuardarBorradorAsync(f, _actor);
+        Assert.True(r.EsCorrecto, r.Error?.ToString());
+
+        var leida = (await servicio.ObtenerAsync(r.Valor.IdFactura))!;
+        Assert.Equal(["Agosto", "Junio", "Julio"], leida.Lineas.Select(l => l.Nombre));
+        Assert.Equal([1, 2, 3], leida.Lineas.Select(l => l.NumeroLinea));
+        Assert.Equal(new DateTime(2026, 8, 1), leida.Lineas[0].Fecha);
+        Assert.Equal(centro.Valor.IdCentroCoste, leida.Lineas[0].IdCentroCoste);
+        Assert.Null(leida.Lineas[1].Fecha);
+    }
+
+    [Fact]
     public async Task GuardarNoNumeraYValidarNumeraCongelaYContabiliza()
     {
         await PrepararAsync();

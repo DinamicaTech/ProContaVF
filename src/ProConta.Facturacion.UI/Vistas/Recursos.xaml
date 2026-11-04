@@ -20,6 +20,27 @@
     <Setter Property="Foreground" Value="{StaticResource Pincel.Tinta}" />
   </Style>
 
+  <!-- Estado de la factura con el aspecto del segmento elegido de un selector (como «Tipo de persona» en Terceros). -->
+  <Style x:Key="Estado.Marco" TargetType="Border" BasedOn="{StaticResource Segmentado}">
+    <Setter Property="Margin" Value="0,0,6,0" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+  </Style>
+  <Style x:Key="Estado.Segmento" TargetType="Border">
+    <Setter Property="Height" Value="24" />
+    <Setter Property="Padding" Value="9,0" />
+    <Setter Property="CornerRadius" Value="6" />
+    <Setter Property="Background" Value="White" />
+    <Setter Property="Effect">
+      <Setter.Value><DropShadowEffect Color="#14213A" Opacity="0.12" BlurRadius="3" ShadowDepth="1" Direction="270" /></Setter.Value>
+    </Setter>
+  </Style>
+  <Style x:Key="Texto.Estado" TargetType="TextBlock">
+    <Setter Property="FontSize" Value="{StaticResource Letra.Secundaria}" />
+    <Setter Property="FontWeight" Value="Medium" />
+    <Setter Property="Foreground" Value="{StaticResource Pincel.Marino}" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+  </Style>
+
   <!-- Etiqueta de campo. -->
   <Style x:Key="Etiqueta.Campo" TargetType="TextBlock">
     <Setter Property="FontSize" Value="{StaticResource Letra.Pequena}" />

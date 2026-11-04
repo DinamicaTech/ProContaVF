@@ -83,6 +83,10 @@ public sealed class ServicioFacturas
             IdSociedadEjercicio = contexto.IdSociedadEjercicio,
             IdSerie = serie.Valor.IdSerie,
             FechaFactura = hoy.Year == contexto.Ejercicio ? hoy : null,
+            // Fecha de operación y periodo proponen el día de hoy (facturacion/pantallas 2026-11-04); se pueden cambiar.
+            FechaOperacion = hoy,
+            FechaInicioValidez = hoy,
+            FechaFinValidez = hoy,
             FechaCreacion = _reloj.Ahora,
             FormaDePago = config?.FormaPagoDefecto,
             TipoFactura = "F1"
@@ -401,8 +405,8 @@ public sealed class ServicioFacturas
         f.FormaDePago = origen.FormaDePago ?? f.FormaDePago;
         f.DiaDePago = origen.DiaDePago;
         f.TipoRetencion = origen.TipoRetencion;
-        f.FechaInicioValidez = origen.FechaInicioValidez;
-        f.FechaFinValidez = origen.FechaFinValidez;
+        f.FechaInicioValidez = origen.FechaInicioValidez ?? f.FechaInicioValidez;
+        f.FechaFinValidez = origen.FechaFinValidez ?? f.FechaFinValidez;
         f.TipoFactura = origen.EsRectificativa ? "F1" : origen.TipoFactura;
         foreach (var l in origen.Lineas) f.AnadirLinea(l.Copiar(invertir: origen.EsRectificativa));
         var r = await GuardarBorradorAsync(f, actor);

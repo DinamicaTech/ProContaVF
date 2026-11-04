@@ -281,3 +281,34 @@ public class FechasLegadasTests
         Assert.Equal(new DateTime(2026, 11, 4), RepositorioFacturas.SinFechaCero(new DateTime(2026, 11, 4)));
     }
 }
+
+public class OrdenLineasTests
+{
+    private static FacturaVenta ConLineas(params string[] nombres)
+    {
+        var f = new FacturaVenta();
+        foreach (var n in nombres) f.AnadirLinea(new LineaFacturaVenta { Nombre = n });
+        return f;
+    }
+
+    [Fact]
+    public void MoverLineaCambiaElOrdenYRenumera()
+    {
+        var f = ConLineas("A", "B", "C");
+        Assert.True(f.MoverLinea(f.Lineas[2], -1));
+        Assert.Equal(["A", "C", "B"], f.Lineas.Select(l => l.Nombre));
+        Assert.Equal([1, 2, 3], f.Lineas.Select(l => l.NumeroLinea));
+        Assert.True(f.MoverLinea(f.Lineas[0], 2));
+        Assert.Equal(["C", "B", "A"], f.Lineas.Select(l => l.Nombre));
+    }
+
+    [Fact]
+    public void NoSeMuevePorEncimaDeLaPrimeraNiPorDebajoDeLaUltima()
+    {
+        var f = ConLineas("A", "B");
+        Assert.False(f.MoverLinea(f.Lineas[0], -1));
+        Assert.False(f.MoverLinea(f.Lineas[1], 1));
+        Assert.False(f.MoverLinea(new LineaFacturaVenta { Nombre = "X" }, 1));
+        Assert.Equal(["A", "B"], f.Lineas.Select(l => l.Nombre));
+    }
+}

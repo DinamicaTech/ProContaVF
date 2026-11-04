@@ -1,3 +1,4 @@
+using ProConta.Contabilidad.CentrosCoste;
 using ProConta.Facturacion.Conceptos;
 using ProConta.Facturacion.Facturas;
 using ProConta.Nucleo.Auditoria;
@@ -20,7 +21,8 @@ public sealed record ServiciosFacturacion(
     LectorConfiguracionEjercicio Configuracion,
     ContextoSociedadEjercicio Trabajo,
     string RazonSocial,
-    Actor Actor);
+    Actor Actor,
+    ICatalogoCentrosCoste CentrosCoste);
 
 /// <summary>Diálogos de facturación (en la vista, para que los modelos de vista se prueben sin ventanas).</summary>
 public interface IDialogosFacturacion

@@ -264,6 +264,21 @@ public sealed class FacturaVenta
         Renumerar();
     }
 
+    /// <summary>
+    /// Mueve una línea hacia arriba (desplazamiento negativo) o hacia abajo y renumera: el orden tiene significado
+    /// (las líneas se agrupan, por ejemplo «alquileres junio», «alquileres julio»). Devuelve false si no se puede mover.
+    /// </summary>
+    public bool MoverLinea(LineaFacturaVenta linea, int desplazamiento)
+    {
+        var i = Lineas.IndexOf(linea);
+        var destino = i + desplazamiento;
+        if (i < 0 || desplazamiento == 0 || destino < 0 || destino >= Lineas.Count) return false;
+        Lineas.RemoveAt(i);
+        Lineas.Insert(destino, linea);
+        Renumerar();
+        return true;
+    }
+
     internal void Renumerar()
     {
         for (var i = 0; i < Lineas.Count; i++) Lineas[i].NumeroLinea = i + 1;

@@ -26,7 +26,7 @@
                   ToolTip="Abre un borrador nuevo sin número en su pestaña" />
         </StackPanel>
         <StackPanel Orientation="Horizontal">
-          <TextBlock Text="Facturas emitidas" Style="{StaticResource Texto.TituloPantalla}" VerticalAlignment="Center" Margin="0,0,14,0" />
+          <TextBlock Text="Facturas" Style="{StaticResource Texto.TituloPantalla}" VerticalAlignment="Center" Margin="0,0,14,0" />
           <Grid Width="420" VerticalAlignment="Center">
             <TextBox x:Name="CajaBusqueda" Text="{Binding Texto, UpdateSourceTrigger=PropertyChanged, Delay=200}" Padding="28,0,6,0"
                      ToolTip="Busca en número, cliente, NIF, descripción, notas y facturas relacionadas (Ctrl+F)" AutomationProperties.Name="Buscar facturas" />
@@ -102,9 +102,9 @@
         </Border>
 
         <pc:VistaEstado Estado="{Binding Estado}" Titulo="{Binding TituloEstado}" Mensaje="{Binding MensajeEstado}" TextoAccion="{Binding AccionEstado}" ComandoAccion="{Binding ComandoEstado}">
-          <pc:TablaProConta x:Name="Tabla" ItemsSource="{Binding Filas}" SelectedItem="{Binding Activa}" ClavePreferencias="facturacion.emitidas" TituloExportacion="Facturas emitidas"
+          <pc:TablaProConta x:Name="Tabla" ItemsSource="{Binding Filas}" SelectedItem="{Binding Activa}" ClavePreferencias="facturacion.emitidas" TituloExportacion="Facturas"
                             IsReadOnly="True" SelectionMode="Single" MouseDoubleClick="Tabla_MouseDoubleClick" PreviewKeyDown="Tabla_PreviewKeyDown"
-                            AutomationProperties.Name="Facturas emitidas">
+                            AutomationProperties.Name="Facturas">
             <pc:TablaProConta.RowStyle>
               <Style TargetType="DataGridRow" BasedOn="{StaticResource Tabla.Fila}">
                 <Setter Property="Height" Value="Auto" />
@@ -181,8 +181,10 @@
           <StackPanel Visibility="{Binding HayDetalle, Converter={StaticResource Visible}}">
             <WrapPanel>
               <TextBlock Text="{Binding DetalleTitulo}" Style="{StaticResource Texto.Titulo}" Margin="0,0,10,0" />
-              <Border Style="{StaticResource Pildora}" Background="{StaticResource Pincel.AcentoSuave}" BorderBrush="{StaticResource Pincel.AcentoBorde}">
-                <TextBlock Text="{Binding DetalleEstado}" Style="{StaticResource Texto.Pildora}" />
+              <Border Style="{StaticResource Estado.Marco}" ToolTip="Estado de la factura">
+                <Border Style="{StaticResource Estado.Segmento}">
+                  <TextBlock Text="{Binding DetalleEstado}" Style="{StaticResource Texto.Estado}" />
+                </Border>
               </Border>
             </WrapPanel>
             <TextBlock Text="{Binding DetalleRelacion}" Style="{StaticResource Texto.Apagado}" TextWrapping="Wrap" Margin="0,2,0,0" Visibility="{Binding DetalleRelacion, Converter={StaticResource Visible}}" />
@@ -234,9 +236,17 @@
                 </Grid.RowDefinitions>
                 <TextBlock Text="Base imponible" />
                 <TextBlock Grid.Column="1" Text="{Binding DetalleBase}" Style="{StaticResource Texto.Importe}" />
-                <TextBlock Grid.Row="1" Text="IVA" />
-                <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding DetalleIva}" Style="{StaticResource Texto.Importe}" />
-                <TextBlock Grid.Row="2" Text="Retención" />
+                <ItemsControl Grid.Row="1" Grid.ColumnSpan="2" ItemsSource="{Binding DetalleIvas}" Focusable="False" ToolTip="Cuota de IVA por tipo">
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                      <DockPanel>
+                        <TextBlock DockPanel.Dock="Right" Text="{Binding Importe}" Style="{StaticResource Texto.Importe}" />
+                        <TextBlock Text="{Binding Texto}" />
+                      </DockPanel>
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+                <TextBlock Grid.Row="2" Text="{Binding DetalleTextoRetencion}" />
                 <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding DetalleRetencion}" Style="{StaticResource Texto.Importe}" />
                 <TextBlock Grid.Row="3" Text="Total a cobrar" FontWeight="SemiBold" Margin="0,6,0,0" />
                 <TextBlock Grid.Row="3" Grid.Column="1" Text="{Binding DetalleTotal}" Style="{StaticResource Texto.Importe}" FontWeight="SemiBold" Margin="0,6,0,0" />

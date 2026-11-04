@@ -16,13 +16,20 @@ public sealed class LineaFacturaVM : ModeloVista, INotifyDataErrorInfo
     private readonly Action _cambiada;
     private readonly Dictionary<string, string> _errores = new(StringComparer.Ordinal);
 
-    internal LineaFacturaVM(LineaFacturaVenta linea, bool editable, IReadOnlyList<decimal> tiposIva, Action cambiada)
+    internal LineaFacturaVM(LineaFacturaVenta linea, bool editable, IReadOnlyList<decimal> tiposIva, IReadOnlyList<OpcionCentroCoste> centros, Action cambiada)
     {
         Datos = linea;
         Editable = editable;
         TiposIva = tiposIva.Contains(linea.TipoIva) ? tiposIva : tiposIva.Append(linea.TipoIva).OrderByDescending(v => v).ToList();
+        // Un centro que ya no está activo o no es imputable se sigue viendo en la línea que lo tiene.
+        CentrosCoste = linea.IdCentroCoste is int c && centros.All(o => o.Id != c)
+            ? centros.Append(new OpcionCentroCoste(c, $"Centro {c} (inactivo o no imputable)")).ToList()
+            : centros;
+        _fecha = Texto.Fecha(linea.Fecha);
         _cambiada = cambiada;
     }
+
+    private string _fecha;
 
     public LineaFacturaVenta Datos { get; }
     public bool Editable { get; }
@@ -30,6 +37,31 @@ public sealed class LineaFacturaVM : ModeloVista, INotifyDataErrorInfo
     public IReadOnlyList<decimal> TiposIva { get; }
 
     public int Numero => Datos.NumeroLinea;
+
+    /// <summary>Fecha de entrega o consumo de la línea (por ejemplo, la entrada de un alquiler turístico); opcional.</summary>
+    public string Fecha
+    {
+        get => _fecha;
+        set
+        {
+            _fecha = value ?? "";
+            if (Texto.LeerFecha(_fecha, out var f)) { Datos.Fecha = f; QuitarError(nameof(Fecha)); }
+            else PonerError(nameof(Fecha), $"«{_fecha}» no es una fecha. Escríbela como dd/mm/aaaa, por ejemplo 01/07/2026, o déjala vacía.");
+            Cambiada(nameof(Fecha));
+        }
+    }
+
+    /// <summary>Centros de coste imputables de la sociedad, con «Sin centro» al principio.</summary>
+    public IReadOnlyList<OpcionCentroCoste> CentrosCoste { get; }
+
+    /// <summary>Centro de coste (analítica) de la línea: viene del concepto y se puede cambiar al emitir.</summary>
+    public OpcionCentroCoste? CentroCoste
+    {
+        get => CentrosCoste.FirstOrDefault(o => o.Id == Datos.IdCentroCoste);
+        set { Datos.IdCentroCoste = value?.Id; Cambiada(nameof(CentroCoste)); }
+    }
+
+    internal void AvisarNumero() => Avisar(nameof(Numero));
 
     public string Nombre
     {
@@ -167,6 +199,12 @@ public sealed class LineaFacturaVM : ModeloVista, INotifyDataErrorInfo
         "DescuentoPorcentaje" => nameof(DescuentoPorcentaje),
         _ => null
     };
+}
+
+/// <summary>Centro de coste elegible en una línea; Id null es «Sin centro».</summary>
+public sealed record OpcionCentroCoste(int? Id, string Rotulo)
+{
+    public override string ToString() => Rotulo;
 }
 
 /// <summary>Formato y lectura de números del editor (formato español; precios con hasta cuatro decimales).</summary>
