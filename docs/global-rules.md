@@ -78,6 +78,7 @@ Once confirmed, the change is atomic: do all of it in this thread and one branch
 - **Real data.** No real customer data and no `.accdb` or `.mdb` files in the repository. Test copies hold invented data only.
 - **Parity with ProConta.** Fiscal features (VeriFactu, models 303 and 390, prorrata) are covered by a few unit tests that compare their result with known ProConta values.
 - **Time zone.** Europe/Madrid: dated lines in the docs use local time in that zone, not UTC.
+- Claude project: https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G
 
 ## Requirements
 - 2026-11-01 17:56 · Te parece bien aplicar el punto 5 de este documento a este proyecto ?

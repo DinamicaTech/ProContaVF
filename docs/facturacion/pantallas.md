@@ -6,6 +6,7 @@ threads:
   - 2026-10-28 12:30 · Carga de requisitos | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GRNMH95h9tnQp4dmEPHmw1w
   - 2026-10-29 10:15 · Validar prototipos de pantallas principales | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GGPu88XoVeXWyHsuxbrF2kK
   - 2026-11-01 17:20 · Construir facturación de venta | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GCSSp6rAPiW3SbbKR5GnpnG
+  - 2026-11-04 14:15 · Revisión visual de facturación de venta | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GJ1hUmWghpJQT8AjYb4rrpj
 ---
 ## Summary
 Listado filtrable de facturas y programaciones con selección explícita, ficha de factura y acciones contextuales. Código: `src/ProConta.Facturacion.UI` (`ListadoFacturasVM` y `VistaListadoFacturas`, `EditorFacturaVM` y `VistaEditorFactura`, `DialogosFacturacion`), en el menú Facturación › Facturas emitidas.
@@ -25,6 +26,7 @@ Listado filtrable de facturas y programaciones con selección explícita, ficha 
 - 2026-11-02 12:50 · Nuevo diseño del editor (del propietario): arriba a la izquierda el cliente compacto (cuenta contable, nombre, NIF, id de cliente y domicilio; sin la cuenta de retención, que se sigue pidiendo con «Asignar…» en los avisos al validar) con «Cambiar cliente…» y el enlace a su ficha, y debajo el historial, que termina a la altura de «Datos de la factura» y tiene su propio desplazamiento. Arriba a la derecha «Datos de la factura», con el asiento en una segunda pestaña (vista previa para comprobar el funcionamiento, sin ocupar sitio fijo). Las líneas ocupan todo el ancho, con la descripción ampliada en la misma línea y altura variable. Los totales van debajo, en las columnas de base, cuota y total; la fila de suplidos solo aparece si los hay (no están en la base imponible) y el desglose por tipo solo con más de un tipo de IVA. Se quitan las etiquetas de ayuda. F2 añade una línea (de momento con el buscador de conceptos actual).
 - 2026-11-02 12:50 · El diálogo «Rectificar» pide el motivo, obligatorio; el motivo se ve y se ajusta en «Datos de la factura» mientras la rectificativa es borrador, sale en el detalle del listado y la búsqueda lo encuentra.
 - 2026-11-02 12:50 · Ocultar y mover columnas de la tabla de líneas queda para más adelante.
+- 2026-11-04 14:15 · Revisión visual en el equipo del propietario contra la copia de pruebas: en el editor, cantidad, precio, Dto. %, retención % y día de pago se ven como números sin «€» (el precio conserva hasta 4 decimales); cambiar la retención recalcula el total a cobrar y el asiento; al abrir o volver al editor el foco pasa a la pantalla para que F2 y F3 funcionen sin hacer clic; la fecha cero de Access (30/12/1899) que dejaba el ERP antiguo se muestra vacía.
 
 ## Requirements
 - 2026-10-28 12:28 · From sources/01_ESPECIFICACION_FUNCIONAL.docx § 10 RF-FAC-10: listado, selección, proforma, contadores
@@ -42,3 +44,4 @@ Listado filtrable de facturas y programaciones con selección explícita, ficha 
 ## Hand-over
 - 2026-11-01 18:15 · Hecho: las dos pantallas compiladas y en el menú. Pendiente: probarlas en el equipo del propietario y validarlas contra la maqueta; el motivo de la rectificación y la doble pantalla quedan por decidir.
 - 2026-11-02 12:50 · Hecho: el nuevo diseño del editor y el motivo de la rectificación. Pendiente: probarlo en el equipo del propietario y su validación.
+- 2026-11-04 14:15 · Hecho: primera revisión visual (Facturas emitidas, desplegar filas, factura nueva con F3 y F2, suplido, retención, pestaña Asiento, Rectificar… con motivo, cerrar con cambios) y correcciones de lo encontrado. Pendiente: segunda pasada visual con las correcciones, paridad con 2 o 3 facturas reales de ProConta y la validación del propietario.

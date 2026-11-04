@@ -37,6 +37,7 @@ Dirigió la validación de los prototipos HTML de las pantallas principales (con
 - 2026-11-01 10:46 · La biblioteca publica el contrato de pestaña de trabajo (`IPestanaTrabajo`, `IAnfitrionPestanas`: título, cambios pendientes, guardar, descartar, error de guardado) y `ServicioMensajes`, el servicio común para los mensajes al operador que pide la guía de voz.
 - 2026-11-01 15:48 · Validado por el propietario (pantalla de Terceros y revisión 1).
 - 2026-11-01 18:15 · Piezas comunes nuevas: `ModeloVista` (aviso de cambios de propiedad para los modelos de vista) y `PlantillaCodigo` (plantillas de datos construidas en código, para las vistas que se generan desde un contrato, como Parámetros y tablas).
+- 2026-11-04 14:15 · Los campos numéricos que no son importes en euros (cantidades, porcentajes, días y precios con más de dos decimales) usan el estilo `Campo.Numero`: alineados a la derecha, seleccionan todo al entrar y no se formatean en moneda; `Campo.Importe` queda para importes en euros. La plantilla común del desplegable respeta `DisplayMemberPath` (antes mostraba el texto interno del registro).
 
 ## Requirements
 - 2026-10-28 12:28 · From sources/01_ESPECIFICACION_FUNCIONAL.docx § 6 RF-UI-02, 03, 06: look and feel de las maquetas con estilos compartidos, campos del ancho de su contenido, accesibilidad y mensajes
