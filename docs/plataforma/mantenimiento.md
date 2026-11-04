@@ -36,6 +36,7 @@ Pantalla genérica y extensible (CFG-MANT) para parámetros únicos y coleccione
 - 2026-11-01 17:18 · 5. Ok
 - 2026-11-01 17:18 · answer: proveedores en este desarrollo → (a) la pantalla genérica con Configuración general, Empresas, Ejercicios, Series de facturación, Formas de pago, Tipos de IVA, Tipos de concepto y Conceptos; Tipos y Estados de factura en solo lectura; Correo, VeriFactu y Ubicación de datos con sus nodos
 - 2026-11-04 17:57 · Ok, validado
+- 2026-11-04 23:55 · Derived from plataforma/atajos-de-teclado: acoger el proveedor «Atajos de teclado» (un `IProveedorMantenimiento` de ámbito global): lista de operativas con id, texto, tecla por defecto y tecla asignada, captura de la tecla pulsándola, aviso de conflicto con la corrección propuesta y restaurar valores por defecto.
 
 ## Hand-over
 - 2026-11-01 18:15 · Hecho: contrato, servicio, proveedores y pantalla, con pruebas sin BD (validación, búsqueda, permisos, solo consulta) y contra Access (series y conceptos). Pendiente: probar la pantalla en el equipo del propietario; Correo, VeriFactu y Ubicación de datos llegan con sus nodos.
