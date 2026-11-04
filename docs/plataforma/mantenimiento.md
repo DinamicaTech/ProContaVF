@@ -1,6 +1,5 @@
 ---
 title: Mantenimiento de parámetros
-status: draft
 depends_on: [plataforma/ui-base, seguridad/permisos]
 threads:
   - 2026-10-28 12:30 · Carga de requisitos | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GRNMH95h9tnQp4dmEPHmw1w
@@ -21,6 +20,7 @@ Pantalla genérica y extensible (CFG-MANT) para parámetros únicos y coleccione
 - 2026-11-01 18:15 · Proveedores de este desarrollo: Configuración general (fila única), Empresas, Ejercicios (de la empresa de trabajo, con sus cuentas de IVA y suplidos y la configuración de facturación), Series de facturación (con el servicio tipado de series), Formas de pago (con su catálogo), Tipos de IVA, Tipos de concepto y Conceptos (Duplicar, Ver uso y baja según uso); Tipos y Estados de factura en solo lectura.
 - 2026-11-01 18:15 · El servicio comprueba en cada guardado, baja o acción el permiso MANTENIMIENTO.EDITAR, la solo lectura del proveedor y la validación de cada campo (todos los errores a la vez, en su campo). La búsqueda no distingue tildes y encuentra mantenimientos, campos y sinónimos. Bajas restringidas por uso con el recuento de dónde se usa.
 - 2026-11-01 18:15 · Las tablas sencillas no tienen columna de versión: si dos operadores cambian el mismo registro a la vez, gana el último que guarda. Las que tienen invariantes (series, conceptos, formas de pago) pasan por su servicio tipado.
+- 2026-11-04 17:57 · Validado por el propietario (facturación de venta, PR #14).
 
 ## Requirements
 - 2026-10-28 12:28 · From sources/01_ESPECIFICACION_FUNCIONAL.docx § 8 RF-MAN-01..05: pantalla por proveedores, editores, servicios tipados para datos con invariantes, catálogo conocido
@@ -35,6 +35,7 @@ Pantalla genérica y extensible (CFG-MANT) para parámetros únicos y coleccione
 - 2026-10-31 08:41 · Está Ok, ahora a por el Mayor vitaminado, ánimos.
 - 2026-11-01 17:18 · 5. Ok
 - 2026-11-01 17:18 · answer: proveedores en este desarrollo → (a) la pantalla genérica con Configuración general, Empresas, Ejercicios, Series de facturación, Formas de pago, Tipos de IVA, Tipos de concepto y Conceptos; Tipos y Estados de factura en solo lectura; Correo, VeriFactu y Ubicación de datos con sus nodos
+- 2026-11-04 17:57 · Ok, validado
 
 ## Hand-over
 - 2026-11-01 18:15 · Hecho: contrato, servicio, proveedores y pantalla, con pruebas sin BD (validación, búsqueda, permisos, solo consulta) y contra Access (series y conceptos). Pendiente: probar la pantalla en el equipo del propietario; Correo, VeriFactu y Ubicación de datos llegan con sus nodos.

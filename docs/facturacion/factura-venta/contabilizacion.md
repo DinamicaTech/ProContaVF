@@ -1,6 +1,5 @@
 ---
 title: Contabilización de ventas
-status: draft
 depends_on: [facturacion/factura-venta, contabilidad/asientos, contabilidad/cuenta-contable]
 threads:
   - 2026-10-28 12:30 · Carga de requisitos | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GRNMH95h9tnQp4dmEPHmw1w
@@ -18,6 +17,7 @@ Genera los asientos de las facturas de venta con el motor de contabilidad/asient
 - 2026-11-01 18:15 · Rectificativa: el motor de asientos no admite importes negativos, así que cada importe negativo se apunta en positivo en el lado contrario (el cliente al Haber, el ingreso y el IVA al Debe) y el asiento es de tipo rectificación. Precisa la respuesta del 2026-11-01 17:18, que decía «importes en negativo»: el efecto contable es el mismo.
 - 2026-11-01 18:15 · Fecha del asiento: el día en que se genera si cae en el ejercicio de la factura; si no, la fecha de la factura.
 - 2026-11-01 18:15 · Antes de validar se comprueban todas las cuentas del asiento en el ejercicio (existen y admiten apuntes). Si al cliente le falta la cuenta del cliente o la de retención (cuando hay retención), el error ofrece asignarla o crearla con su nombre (430 o «Retención IRPF <cliente>» en 473, código siguiente libre propuesto); si la cuenta del rol es de otro ejercicio, ofrece darla de alta en este con el mismo código. El recargo de equivalencia aún no se contabiliza y se rechaza con un error que lo explica.
+- 2026-11-04 17:57 · Validado por el propietario (facturación de venta, PR #14).
 
 ## Requirements
 - 2026-10-28 13:14 · Q5) b) La lógica de contabilización está dentro del propio nodo (FacturasCompra, FacturasVenta, etc.). Ya tenemos un motor para gestionar Asientos, por lo que mejor conectar este motor directamente cada nodo que ha de generar asientos
@@ -29,6 +29,7 @@ Genera los asientos de las facturas de venta con el motor de contabilidad/asient
 - 2026-11-01 17:18 · Realmente debería ser una subcuenta por cliente, no por inmueble, pero como apenas hay rotación, pues ya no sirve aunque no sea lo ideal.
 - 2026-11-01 17:18 · Me parece perfecto
 - 2026-11-01 17:18 · answer: cuentas del asiento → Debe la cuenta del cliente en la sociedad y su cuenta de retención (por cliente y sociedad, en terceros/roles); Haber el ingreso por la cuenta de cada línea, el IVA por las cuentas del ejercicio según el tipo y los suplidos a CuentaSuplido; la rectificativa con importes en negativo
+- 2026-11-04 17:57 · Ok, validado
 
 ## Hand-over
 - 2026-11-01 18:15 · Hecho con pruebas sin BD (lados, rectificativa, suplidos) y contra Access. Pendiente: ejecutar las pruebas Access en el equipo del propietario.

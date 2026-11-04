@@ -1,6 +1,5 @@
 ---
 title: Factura de venta
-status: draft
 depends_on: [datos/esquema, datos/persistencia, nucleo, terceros/tercero, facturacion/conceptos, facturacion/verifactu]
 threads:
   - 2026-10-28 12:30 · Carga de requisitos | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GRNMH95h9tnQp4dmEPHmw1w
@@ -29,6 +28,7 @@ Ente FacturaVenta: borrador sin número, cálculo de líneas y totales, validaci
 - 2026-11-02 12:50 · Motivo de la rectificación (decidido por el propietario): Rectificar lo pide y es obligatorio, hasta 255 caracteres; se guarda en Facturas.MotivoRectificacion de la rectificativa (migración `20261102_1300_MOTIVO_RECTIFICACION`) y se anota en el historial de las dos facturas. Se puede ajustar mientras la rectificativa es borrador; validar sin motivo es un error. Lo podrán usar el PDF y VeriFactu.
 - 2026-11-02 12:50 · Asiento de la rectificativa con el debe y el haber cambiados de lado, sin importes negativos: confirmado por el propietario.
 - 2026-11-04 17:05 · Paridad con ProConta: `ParidadProContaTests` reproduce con importes (sin datos de clientes) ocho facturas reales del ERP de octubre de 2026: siete alquileres de vivienda al 0 % de IVA y un alquiler de local con IVA del 21 % y retención del 19 % (2.800,00 + 588,00 − 532,00 = 2.856,00), con su asiento; y comprueba que la numeración continúa el formato del ERP (sin prefijo, seis cifras: 083239 → 083240). En el ERP la retención salía como una línea negativa por sus limitaciones; aquí es el tipo de retención de la factura. Los PDF de origen quedan fuera del repositorio (carpeta `ERP/`, ignorada).
+- 2026-11-04 17:57 · Validado por el propietario (facturación de venta, PR #14).
 
 ## Requirements
 - 2026-10-28 12:28 · Y, por supuesto, hay que encapsular los diferentes 'entes' que aparecen en el proyecto (CuentaContable, Tercero -> Cliente/Proveedor/Asociacion/Particular..., FacturaCompra, FacturaVenta, etc.).
@@ -44,6 +44,7 @@ Ente FacturaVenta: borrador sin número, cálculo de líneas y totales, validaci
 - 2026-11-01 17:18 · 6. Una entrega final
 - 2026-11-01 17:18 · answer: entregas → una sola entrega final con mantenimiento, conceptos, factura de venta, contabilización y pantalla de Facturas emitidas
 - 2026-11-01 17:20 · Derived from facturacion/pantallas: estados, acciones y consultas ligeras del listado de Facturas emitidas.
+- 2026-11-04 17:57 · Ok, validado
 
 ## Hand-over
 - 2026-11-01 18:15 · Hecho: el ente, su servicio, las series y la consulta del listado, con pruebas sin BD (cálculo, reglas y asiento) y contra Access (validar numera y contabiliza, total cero, retención sin cuenta, rectificativa, duplicar, numeración concurrente y conflicto de versión). Pendiente: ejecutar las pruebas Access y las migraciones en el equipo del propietario; comprobar el formato del número con las series reales; VeriFactu, PDF, correo y programadas quedan fuera de este desarrollo.

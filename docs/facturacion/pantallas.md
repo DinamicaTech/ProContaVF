@@ -1,6 +1,5 @@
 ---
 title: Pantallas de facturación
-status: draft
 depends_on: [facturacion/factura-venta, facturacion/programadas, plataforma/contenedor]
 threads:
   - 2026-10-28 12:30 · Carga de requisitos | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GRNMH95h9tnQp4dmEPHmw1w
@@ -28,6 +27,7 @@ Listado filtrable de facturas y programaciones con selección explícita, ficha 
 - 2026-11-02 12:50 · Ocultar y mover columnas de la tabla de líneas queda para más adelante.
 - 2026-11-04 14:15 · Revisión visual en el equipo del propietario contra la copia de pruebas: en el editor, cantidad, precio, Dto. %, retención % y día de pago se ven como números sin «€» (el precio conserva hasta 4 decimales); cambiar la retención recalcula el total a cobrar y el asiento; al abrir o volver al editor el foco pasa a la pantalla para que F2 y F3 funcionen sin hacer clic; la fecha cero de Access (30/12/1899) que dejaba el ERP antiguo se muestra vacía.
 - 2026-11-04 18:05 · Ajustes del editor y del listado (propietario, 2026-11-04): la pantalla se llama «Facturas» (menú, pestaña y «Volver a Facturas»); Descripción general y la descripción de cada línea tienen la altura de un campo y crecen con el texto; Descripción general y Notas internas tienen el mismo ancho; una factura nueva propone hoy como fecha de operación y periodo; la tabla de líneas añade «Fecha» (entrega o consumo, LineasFactura.Fecha) y «Centro de coste» (de la lista de centros activos e imputables de la sociedad, propuesto por el concepto y modificable), y las líneas se reordenan con ↑ ↓ o Alt+↑ ↓ (el orden se guarda en NumeroLinea); el resumen del listado muestra una fila de IVA por tipo («IVA 21 %») y «Retención 19 %»; el estado de la factura se ve como el segmento elegido de un selector (como «Tipo de persona» en Terceros).
+- 2026-11-04 17:57 · Validado por el propietario (facturación de venta, PR #14).
 
 ## Requirements
 - 2026-10-28 12:28 · From sources/01_ESPECIFICACION_FUNCIONAL.docx § 10 RF-FAC-10: listado, selección, proforma, contadores
@@ -50,6 +50,7 @@ Listado filtrable de facturas y programaciones con selección explícita, ficha 
 - 2026-11-04 17:28 · El óvalo 'Validada' que aparece arriba del resumen de la factura, con un estilo como el de Tipo de persona en terceros (Empresa, Particular...)
 - 2026-11-04 17:50 · En borrador nuevo, la altura de descripción igual que la del resto de campos
 - 2026-11-04 17:50 · La anchura de Descripción general y Notas internas que sea la misma
+- 2026-11-04 17:57 · Ok, validado
 
 ## Hand-over
 - 2026-11-01 18:15 · Hecho: las dos pantallas compiladas y en el menú. Pendiente: probarlas en el equipo del propietario y validarlas contra la maqueta; el motivo de la rectificación y la doble pantalla quedan por decidir.
