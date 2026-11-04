@@ -269,3 +269,15 @@ public class AsientoVentaTests
         Assert.Equal(new DateTime(2026, 3, 1), AsientoVenta.Fecha(f, 2026, new DateTime(2027, 1, 5)));
     }
 }
+
+public class FechasLegadasTests
+{
+    [Fact]
+    public void LaFechaCeroDeAccessSeLeeComoVacia()
+    {
+        // El ERP antiguo dejaba 30/12/1899 en fechas sin rellenar: no debe mostrarse como fecha de operación ni de periodo.
+        Assert.Null(RepositorioFacturas.SinFechaCero(new DateTime(1899, 12, 30)));
+        Assert.Null(RepositorioFacturas.SinFechaCero(null));
+        Assert.Equal(new DateTime(2026, 11, 4), RepositorioFacturas.SinFechaCero(new DateTime(2026, 11, 4)));
+    }
+}

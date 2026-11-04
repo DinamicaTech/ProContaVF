@@ -210,12 +210,12 @@
                       </StackPanel>
                       <StackPanel Style="{StaticResource Bloque.Campo}">
                         <TextBlock Text="Día de pago" Style="{StaticResource Etiqueta.Campo}" />
-                        <TextBox Width="70" Text="{Binding DiaPago, ValidatesOnNotifyDataErrors=True}" IsReadOnly="{Binding SoloLectura}" Style="{StaticResource Campo.Importe}"
+                        <TextBox Width="70" Text="{Binding DiaPago, ValidatesOnNotifyDataErrors=True}" IsReadOnly="{Binding SoloLectura}" Style="{StaticResource Campo.Numero}"
                                  ToolTip="Día del mes previsto para el pago; vacío si no hay día fijo" />
                       </StackPanel>
                       <StackPanel Style="{StaticResource Bloque.Campo}">
                         <TextBlock Text="Retención %" Style="{StaticResource Etiqueta.Campo}" />
-                        <TextBox Width="80" Text="{Binding Retencion, ValidatesOnNotifyDataErrors=True}" IsReadOnly="{Binding SoloLectura}" Style="{StaticResource Campo.Importe}"
+                        <TextBox Width="80" Text="{Binding Retencion, ValidatesOnNotifyDataErrors=True}" IsReadOnly="{Binding SoloLectura}" Style="{StaticResource Campo.Numero}"
                                  ToolTip="Porcentaje de retención IRPF sobre la base (sin suplidos); 0 si no hay" />
                       </StackPanel>
                     </WrapPanel>
@@ -323,9 +323,9 @@
                                MaxLength="255" ToolTip="Nombre visible de la línea; se copia del concepto y lo puedes cambiar" />
                       <TextBox Grid.Column="2" Margin="2,0" VerticalAlignment="Top" Text="{Binding Descripcion, UpdateSourceTrigger=PropertyChanged}" IsReadOnly="{Binding SoloLectura}" Style="{StaticResource Campo.Multilinea}"
                                ToolTip="Descripción ampliada que sale debajo del nombre; crece con el texto" />
-                      <TextBox Grid.Column="3" Margin="2,0" VerticalAlignment="Top" Text="{Binding Cantidad, ValidatesOnNotifyDataErrors=True}" IsReadOnly="{Binding SoloLectura}" Style="{StaticResource Campo.Importe}" ToolTip="Unidades facturadas" />
-                      <TextBox Grid.Column="4" Margin="2,0" VerticalAlignment="Top" Text="{Binding Precio, ValidatesOnNotifyDataErrors=True}" IsReadOnly="{Binding SoloLectura}" Style="{StaticResource Campo.Importe}" ToolTip="Precio por unidad antes de descuentos (hasta 4 decimales)" />
-                      <TextBox Grid.Column="5" Margin="2,0" VerticalAlignment="Top" Text="{Binding DescuentoPorcentaje, ValidatesOnNotifyDataErrors=True}" IsReadOnly="{Binding SoloLectura}" Style="{StaticResource Campo.Importe}" ToolTip="Descuento en porcentaje; se aplica antes que el descuento fijo" />
+                      <TextBox Grid.Column="3" Margin="2,0" VerticalAlignment="Top" Text="{Binding Cantidad, ValidatesOnNotifyDataErrors=True}" IsReadOnly="{Binding SoloLectura}" Style="{StaticResource Campo.Numero}" ToolTip="Unidades facturadas" />
+                      <TextBox Grid.Column="4" Margin="2,0" VerticalAlignment="Top" Text="{Binding Precio, ValidatesOnNotifyDataErrors=True}" IsReadOnly="{Binding SoloLectura}" Style="{StaticResource Campo.Numero}" ToolTip="Precio por unidad antes de descuentos (hasta 4 decimales)" />
+                      <TextBox Grid.Column="5" Margin="2,0" VerticalAlignment="Top" Text="{Binding DescuentoPorcentaje, ValidatesOnNotifyDataErrors=True}" IsReadOnly="{Binding SoloLectura}" Style="{StaticResource Campo.Numero}" ToolTip="Descuento en porcentaje; se aplica antes que el descuento fijo" />
                       <TextBox Grid.Column="6" Margin="2,0" VerticalAlignment="Top" Text="{Binding DescuentoImporte, ValidatesOnNotifyDataErrors=True}" IsReadOnly="{Binding SoloLectura}" Style="{StaticResource Campo.Importe}" ToolTip="Descuento fijo en euros, después del porcentaje" />
                       <TextBlock Grid.Column="7" Text="{Binding Base}" Style="{StaticResource Calculado}" VerticalAlignment="Top" Margin="4,6,4,0" ToolTip="Base imponible de la línea, redondeada a céntimos" />
                       <ComboBox Grid.Column="8" Margin="2,0" VerticalAlignment="Top" ItemsSource="{Binding TiposIva}" SelectedItem="{Binding TipoIva, ValidatesOnNotifyDataErrors=True}" IsEnabled="{Binding PuedeCambiarIva}"

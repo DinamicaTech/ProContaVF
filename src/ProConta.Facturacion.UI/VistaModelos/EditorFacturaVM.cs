@@ -209,7 +209,9 @@ public sealed class EditorFacturaVM : ModeloVista, IPestanaTrabajo, INotifyDataE
             else PonerError(nameof(Retencion), "La retención es un porcentaje entre 0 y 100.");
             Avisar();
             Cambio();
-            Avisar(nameof(CuentaRetencion), nameof(FaltaCuentaRetencion), nameof(TextoRetencion), nameof(HayRetencion));
+            // La retención cambia el total a cobrar y el asiento, no solo su rótulo.
+            Avisar(nameof(CuentaRetencion), nameof(FaltaCuentaRetencion));
+            AvisarTotales();
         }
     }
 

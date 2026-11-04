@@ -85,7 +85,7 @@ public sealed class ConsultaFacturas(IBaseDatos bd)
         return new FilaFactura(
             r.Entero("IdFactura"),
             r.Texto("NumeroFactura"),
-            r.FechaNula("FechaFactura"),
+            RepositorioFacturas.FechaReal(r, "FechaFactura"),
             r.EnteroNulo("IdCliente"),
             cliente,
             (numerada ? r.Texto("CIF") : null) ?? r.Texto("NifTercero"),

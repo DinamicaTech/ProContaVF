@@ -46,10 +46,10 @@ internal static class RepositorioFacturas
             r.Texto("DireccionCliente"), r.Texto("CodigoPostalCliente"), r.Texto("PoblacionCliente"), r.Texto("ProvinciaCliente"), r.Texto("EmailCliente")),
         NifEmisor = r.Texto("NIFEmisor"),
         NombreEmisor = r.Texto("NombreEmisor"),
-        FechaFactura = r.FechaNula("FechaFactura"),
-        FechaOperacion = r.FechaNula("FechaOperacion"),
-        FechaInicioValidez = r.FechaNula("FechaInicioValidez"),
-        FechaFinValidez = r.FechaNula("FechaFinValidez"),
+        FechaFactura = FechaReal(r, "FechaFactura"),
+        FechaOperacion = FechaReal(r, "FechaOperacion"),
+        FechaInicioValidez = FechaReal(r, "FechaInicioValidez"),
+        FechaFinValidez = FechaReal(r, "FechaFinValidez"),
         FechaCreacion = r.FechaNula("FechaCreacion") ?? DateTime.MinValue,
         FechaHoraEmision = r.FechaNula("FechaHoraEmision"),
         FormaDePago = r.EsNulo("FormaDePago") ? null : (byte)r.Entero("FormaDePago"),
@@ -102,6 +102,16 @@ internal static class RepositorioFacturas
     }
 
     /// <summary>Los porcentajes y cantidades se guardan como DOUBLE/SINGLE: se redondean al leer para que 21 no sea 20,99999.</summary>
+    /// <summary>
+    /// Fecha que puede faltar. El ERP antiguo guardaba a veces la fecha cero de Access (30/12/1899) en lugar de vacío:
+    /// se lee como vacía para no mostrarla ni arrastrarla.
+    /// </summary>
+    internal static DateTime? FechaReal(IFilaDatos r, string campo) => SinFechaCero(r.FechaNula(campo));
+
+    internal static DateTime? SinFechaCero(DateTime? fecha) => fecha is { } d && d.Date != FechaCeroAccess ? d : null;
+
+    private static readonly DateTime FechaCeroAccess = new(1899, 12, 30);
+
     private static decimal Redondear(double valor, int decimales = 4) => Math.Round((decimal)valor, decimales, MidpointRounding.AwayFromZero);
 
     private static object? Nulo(string? texto) => string.IsNullOrWhiteSpace(texto) ? null : texto.Trim();
