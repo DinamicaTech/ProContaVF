@@ -21,9 +21,10 @@ public sealed class LineaFacturaVM : ModeloVista, INotifyDataErrorInfo
         Datos = linea;
         Editable = editable;
         TiposIva = tiposIva.Contains(linea.TipoIva) ? tiposIva : tiposIva.Append(linea.TipoIva).OrderByDescending(v => v).ToList();
-        // Un centro que ya no está activo o no es imputable se sigue viendo en la línea que lo tiene.
+        // Un valor que no es un centro activo e imputable se sigue viendo en la línea que lo tiene. Hasta la migración del
+        // ERP, conceptos y líneas antiguos guardan aquí el código del centro del ERP (318…), no el id del centro nuevo.
         CentrosCoste = linea.IdCentroCoste is int c && centros.All(o => o.Id != c)
-            ? centros.Append(new OpcionCentroCoste(c, $"Centro {c} (inactivo o no imputable)")).ToList()
+            ? centros.Append(new OpcionCentroCoste(c, $"ERP {c} (sin migrar)")).ToList()
             : centros;
         _fecha = Texto.Fecha(linea.Fecha);
         _cambiada = cambiada;

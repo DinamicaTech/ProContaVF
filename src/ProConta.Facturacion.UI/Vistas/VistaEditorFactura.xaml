@@ -229,9 +229,9 @@
                     <StackPanel Style="{StaticResource Bloque.Campo}">
                       <TextBlock Text="Descripción general" Style="{StaticResource Etiqueta.Campo}" />
                       <TextBox Text="{Binding Descripcion, UpdateSourceTrigger=PropertyChanged, ValidatesOnNotifyDataErrors=True}" IsReadOnly="{Binding SoloLectura}" Style="{StaticResource Campo.Multilinea}"
-                               MinHeight="44" MaxLength="500" ToolTip="Qué se factura, en una frase. Va a la AEAT y encabeza el PDF." />
+                               MinHeight="{StaticResource Alto.Campo}" Padding="6,3" VerticalContentAlignment="Center" MaxLength="500" ToolTip="Qué se factura, en una frase. Va a la AEAT y encabeza el PDF." />
                     </StackPanel>
-                    <StackPanel>
+                    <StackPanel Margin="0,0,14,0">
                       <TextBlock Text="Notas internas" Style="{StaticResource Etiqueta.Campo}" />
                       <TextBox Text="{Binding Notas, UpdateSourceTrigger=PropertyChanged}" IsReadOnly="{Binding NotasSoloLectura}" Style="{StaticResource Campo.Multilinea}" MinHeight="44"
                                ToolTip="Solo para uso interno: no salen en la factura ni van a la AEAT. Se pueden cambiar también en una factura validada." />
@@ -323,7 +323,7 @@
                       <TextBlock Grid.Column="0" Text="{Binding Numero}" Style="{StaticResource Texto.Apagado}" VerticalAlignment="Top" Margin="4,6,0,0" />
                       <TextBox Grid.Column="1" Margin="2,0" VerticalAlignment="Top" Text="{Binding Nombre, UpdateSourceTrigger=PropertyChanged, ValidatesOnNotifyDataErrors=True}" IsReadOnly="{Binding SoloLectura}" Style="{StaticResource Campo}"
                                MaxLength="255" ToolTip="Nombre visible de la línea; se copia del concepto y lo puedes cambiar" />
-                      <TextBox Grid.Column="2" Margin="2,0" VerticalAlignment="Top" Text="{Binding Descripcion, UpdateSourceTrigger=PropertyChanged}" IsReadOnly="{Binding SoloLectura}" Style="{StaticResource Campo.Multilinea}" MinHeight="0"
+                      <TextBox Grid.Column="2" Margin="2,0" VerticalAlignment="Top" Text="{Binding Descripcion, UpdateSourceTrigger=PropertyChanged}" IsReadOnly="{Binding SoloLectura}" Style="{StaticResource Campo.Multilinea}" MinHeight="{StaticResource Alto.Campo}" Padding="6,3" VerticalContentAlignment="Center"
                                ToolTip="Descripción ampliada que sale debajo del nombre; crece con el texto" />
                       <TextBox Grid.Column="3" Margin="2,0" VerticalAlignment="Top" Text="{Binding Fecha, ValidatesOnNotifyDataErrors=True}" IsReadOnly="{Binding SoloLectura}" Style="{StaticResource Campo}"
                                ToolTip="Fecha de entrega o consumo (dd/mm/aaaa); déjala vacía si no corresponde" />

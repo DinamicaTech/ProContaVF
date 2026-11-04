@@ -27,6 +27,7 @@ Listado filtrable de facturas y programaciones con selección explícita, ficha 
 - 2026-11-02 12:50 · El diálogo «Rectificar» pide el motivo, obligatorio; el motivo se ve y se ajusta en «Datos de la factura» mientras la rectificativa es borrador, sale en el detalle del listado y la búsqueda lo encuentra.
 - 2026-11-02 12:50 · Ocultar y mover columnas de la tabla de líneas queda para más adelante.
 - 2026-11-04 14:15 · Revisión visual en el equipo del propietario contra la copia de pruebas: en el editor, cantidad, precio, Dto. %, retención % y día de pago se ven como números sin «€» (el precio conserva hasta 4 decimales); cambiar la retención recalcula el total a cobrar y el asiento; al abrir o volver al editor el foco pasa a la pantalla para que F2 y F3 funcionen sin hacer clic; la fecha cero de Access (30/12/1899) que dejaba el ERP antiguo se muestra vacía.
+- 2026-11-04 18:05 · Ajustes del editor y del listado (propietario, 2026-11-04): la pantalla se llama «Facturas» (menú, pestaña y «Volver a Facturas»); Descripción general y la descripción de cada línea tienen la altura de un campo y crecen con el texto; Descripción general y Notas internas tienen el mismo ancho; una factura nueva propone hoy como fecha de operación y periodo; la tabla de líneas añade «Fecha» (entrega o consumo, LineasFactura.Fecha) y «Centro de coste» (de la lista de centros activos e imputables de la sociedad, propuesto por el concepto y modificable), y las líneas se reordenan con ↑ ↓ o Alt+↑ ↓ (el orden se guarda en NumeroLinea); el resumen del listado muestra una fila de IVA por tipo («IVA 21 %») y «Retención 19 %»; el estado de la factura se ve como el segmento elegido de un selector (como «Tipo de persona» en Terceros).
 
 ## Requirements
 - 2026-10-28 12:28 · From sources/01_ESPECIFICACION_FUNCIONAL.docx § 10 RF-FAC-10: listado, selección, proforma, contadores
@@ -40,8 +41,18 @@ Listado filtrable de facturas y programaciones con selección explícita, ficha 
 - 2026-10-29 13:04 · Por lo demás, veo bien la maqueta, lo único que falta es ver qué funcionalidad de podemos dar a una doble pantalla.
 - 2026-11-01 17:18 · 2. Ok
 - 2026-11-01 17:18 · answer: editor del borrador sin prototipo → (a) prototipo HTML corto del editor para validarlo antes de WPF
+- 2026-11-04 17:28 · Ajustar la altura de 'Descripción' (al crear una factura) al contenido, de serie está a triple altura aunque esté vacío
+- 2026-11-04 17:28 · La línea factura tiene un campo fecha (LineasFactura.Fecha) que sirve para indicar la fecha de entrega/consumo (por ejemplo, al facturar alquileres turísticos, indica la fecha de entrada). Añádelo a la grid de líneas para poderlo notificar si corresponde.
+- 2026-11-04 17:28 · Fecha de operación, Periodo desde y hasta, por defecto, today().
+- 2026-11-04 17:28 · Poder modificar el orden de las líneas factura. En facturas más complicadas, las líneas se organizan por grupos (por ejemplo, 'alquileres junio', 'alquileres julio'...), con lo que la posición de la línea tiene un significado semántico.
+- 2026-11-04 17:28 · En el menú de la izquierda, en lugar de 'Facturas emitidas' -> 'Facturas' ya que la pantalla de facturas no solo muestra emitidas si no que permite generar nuevas facturas
+- 2026-11-04 17:28 · En la pantalla 'Facturas emitidas', en el resumen de la derecha (Base imponible, IVA, retención, Total a cobrar...) poner el % de IVA (una línea por % si hay más de un % de IVA en la factura) y el % de retención.
+- 2026-11-04 17:28 · El óvalo 'Validada' que aparece arriba del resumen de la factura, con un estilo como el de Tipo de persona en terceros (Empresa, Particular...)
+- 2026-11-04 17:50 · En borrador nuevo, la altura de descripción igual que la del resto de campos
+- 2026-11-04 17:50 · La anchura de Descripción general y Notas internas que sea la misma
 
 ## Hand-over
 - 2026-11-01 18:15 · Hecho: las dos pantallas compiladas y en el menú. Pendiente: probarlas en el equipo del propietario y validarlas contra la maqueta; el motivo de la rectificación y la doble pantalla quedan por decidir.
 - 2026-11-02 12:50 · Hecho: el nuevo diseño del editor y el motivo de la rectificación. Pendiente: probarlo en el equipo del propietario y su validación.
 - 2026-11-04 14:15 · Hecho: primera revisión visual (Facturas emitidas, desplegar filas, factura nueva con F3 y F2, suplido, retención, pestaña Asiento, Rectificar… con motivo, cerrar con cambios) y correcciones de lo encontrado. Pendiente: segunda pasada visual con las correcciones, paridad con 2 o 3 facturas reales de ProConta y la validación del propietario.
+- 2026-11-04 18:05 · Hecho: ajustes del 04/11 (Facturas, fecha y centro de coste en las líneas, orden de líneas, fechas por defecto, IVA por tipo, estado). Pendiente: la validación del propietario. La conversión de los centros de coste del ERP queda para implantacion/migracion-erp (ver facturacion/conceptos 2026-11-04 18:05).
