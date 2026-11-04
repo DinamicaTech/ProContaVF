@@ -90,7 +90,7 @@ public sealed class ProgramadasAccessTests : IDisposable
         p.NumeroRepeticiones = repeticiones;
         p.AlGenerar = alGenerar;
         p.Plantilla.IdCliente = _idCliente;
-        p.Plantilla.Descripcion = "Alquiler mensual del local";
+        p.Plantilla.Descripcion = "Alquiler mensual del local %FECHAINICIO% - %FECHAFIN%";
         p.Plantilla.FechaInicioValidez = new DateTime(2026, 1, 1);
         p.Plantilla.FechaFinValidez = new DateTime(2026, 1, 31);
         var l = new LineaFacturaVenta { Nombre = "Renta", PrecioUnitario = 1000m, CuentaContable = "7520001" };
@@ -170,6 +170,7 @@ public sealed class ProgramadasAccessTests : IDisposable
         Assert.Equal(new DateTime(2026, 2, 1), febrero.FechaInicioValidez);
         Assert.Equal(new DateTime(2026, 2, 28), febrero.FechaFinValidez);
         Assert.Equal(1210m, febrero.Totales.ImporteTotal.Valor);
+        Assert.Equal("Alquiler mensual del local 01/02/2026 - 28/02/2026", febrero.Descripcion);
         Invariantes.Factura(febrero);
 
         var avanzada = (await servicio.ObtenerAsync(p.IdFacturaProgramada))!;

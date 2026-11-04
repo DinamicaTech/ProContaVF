@@ -366,12 +366,18 @@ public sealed class ServicioProgramadas
                         FechaCreacion = ahora,
                         FormaDePago = plantilla.FormaDePago,
                         DiaDePago = plantilla.DiaDePago,
-                        Descripcion = plantilla.Descripcion,
+                        Descripcion = MarcadoresPeriodo.Sustituir(plantilla.Descripcion, desde, hastaPeriodo),
                         NotasInternas = plantilla.NotasInternas,
                         TipoRetencion = plantilla.TipoRetencion,
                         TipoFactura = plantilla.TipoFactura
                     };
-                    foreach (var l in plantilla.Lineas) f.AnadirLinea(LineasProgramada.Copiar(l));
+                    foreach (var l in plantilla.Lineas)
+                    {
+                        var copia = LineasProgramada.Copiar(l);
+                        copia.Nombre = MarcadoresPeriodo.Sustituir(copia.Nombre, desde, hastaPeriodo);
+                        copia.Descripcion = MarcadoresPeriodo.Sustituir(copia.Descripcion, desde, hastaPeriodo);
+                        f.AnadirLinea(copia);
+                    }
                     f.Anotar(ahora, actor.Nombre, $"Generada por la programada {p.Rotulo}, vencimiento del {vencimiento:dd/MM/yyyy} (lote {idLote})");
                     var idFactura = await RepositorioFacturas.InsertarAsync(s, f);
                     await RepositorioProgramadas.MarcarOrigenAsync(s, idFactura, p.IdFacturaProgramada, idLote, vencimiento);

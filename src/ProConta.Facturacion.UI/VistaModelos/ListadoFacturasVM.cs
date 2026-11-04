@@ -366,6 +366,20 @@ public sealed class ListadoFacturasVM : ModeloVista, IPestanaTrabajo
     /// </summary>
     private async Task GenerarAsync()
     {
+        try
+        {
+            await GenerarLoteAsync();
+        }
+        catch (Exception ex)
+        {
+            // Un fallo inesperado no se pierde en silencio: se explica y se puede repetir.
+            _modulo.Dialogos.Preguntar("No se ha podido generar", $"Ha fallado la generación de programadas: {ex.Message} Lo que ya se hubiera creado está guardado; actualiza el listado y vuelve a intentarlo.", [ex.ToString()],
+                new OpcionMensaje("Entendido", "Cierra el aviso", Principal: true, Cancelar: true));
+        }
+    }
+
+    private async Task GenerarLoteAsync()
+    {
         var eleccion = _modulo.Dialogos.ElegirProgramadasAGenerar(DateTime.Today, h => _s.Programadas.PendientesAsync(_s.Trabajo.IdSociedad, h));
         if (eleccion is not { } e) return;
         var r = await _s.Programadas.GenerarAsync(_s.Trabajo, e.Hasta, e.Ids, _s.Actor);

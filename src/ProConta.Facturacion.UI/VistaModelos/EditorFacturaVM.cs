@@ -514,7 +514,8 @@ public sealed class EditorFacturaVM : ModeloVista, IPestanaTrabajo, INotifyDataE
         get
         {
             var errores = Incidencias.Count(i => !i.EsAviso);
-            return errores == 0 ? "Aviso" : errores == 1 ? "No puedo validar: hay un dato que corregir" : $"No puedo validar: hay {errores} datos que corregir";
+            var accion = _p is null ? "validar" : _p.Activa ? "guardar la programada activa (o desmarca «Activa» para guardarla pausada)" : "guardar la programada";
+            return errores == 0 ? "Aviso" : errores == 1 ? $"No puedo {accion}: hay un dato que corregir" : $"No puedo {accion}: hay {errores} datos que corregir";
         }
     }
     public bool IncidenciasSonAvisos => Incidencias.Count > 0 && Incidencias.All(i => i.EsAviso);

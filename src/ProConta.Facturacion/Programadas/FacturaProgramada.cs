@@ -81,6 +81,24 @@ public static class CalendarioProgramacion
     }
 }
 
+/// <summary>
+/// Marcadores del texto de una programada que cada factura sustituye por su periodo, como hacía el ERP:
+/// %FECHAINICIO% y %FECHAFIN% pasan a «01/08/2026» y «31/08/2026» (sin periodo, quedan vacíos).
+/// </summary>
+public static class MarcadoresPeriodo
+{
+    public const string Inicio = "%FECHAINICIO%";
+    public const string Fin = "%FECHAFIN%";
+
+    public static string Sustituir(string? texto, DateTime? desde, DateTime? hasta)
+    {
+        if (string.IsNullOrEmpty(texto)) return texto ?? "";
+        return texto
+            .Replace(Inicio, desde?.ToString("dd/MM/yyyy", CultureInfo.InvariantCulture) ?? "", StringComparison.OrdinalIgnoreCase)
+            .Replace(Fin, hasta?.ToString("dd/MM/yyyy", CultureInfo.InvariantCulture) ?? "", StringComparison.OrdinalIgnoreCase);
+    }
+}
+
 /// <summary>Línea de una programada: la de una factura (se copia tal cual a cada factura generada).</summary>
 /// <remarks>LineasFacturasProgramadas no tiene fecha ni importes calculados: se recalculan desde cantidad y precio.</remarks>
 public static class LineasProgramada

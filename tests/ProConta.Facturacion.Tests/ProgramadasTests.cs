@@ -133,4 +133,13 @@ public sealed class ProgramadasTests
         Assert.Equal(1210m, c.ImporteTotal.Valor);
         Assert.NotSame(l, c);
     }
+
+    [Fact]
+    public void LosMarcadoresDeFechaSeSustituyenPorElPeriodo()
+    {
+        Assert.Equal("Alquiler local 01/08/2026 - 31/08/2026",
+            MarcadoresPeriodo.Sustituir("Alquiler local %FECHAINICIO% - %FECHAFIN%", D(2026, 8, 1), D(2026, 8, 31)));
+        Assert.Equal("Sin periodo  - ", MarcadoresPeriodo.Sustituir("Sin periodo %fechainicio% - %FECHAFIN%", null, null));
+        Assert.Equal("", MarcadoresPeriodo.Sustituir(null, null, null));
+    }
 }
