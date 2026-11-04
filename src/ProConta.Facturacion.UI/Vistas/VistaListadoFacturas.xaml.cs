@@ -5,7 +5,7 @@ using ProConta.UI.Base.Comandos;
 
 namespace ProConta.Facturacion.UI.Vistas;
 
-/// <summary>Vista de Facturas emitidas (maqueta sources/maquetas/Facturas).</summary>
+/// <summary>Vista de Facturas: programadas y emitidas (maqueta sources/maquetas/Facturas).</summary>
 public partial class VistaListadoFacturas : UserControl
 {
     public VistaListadoFacturas()
@@ -33,6 +33,20 @@ public partial class VistaListadoFacturas : UserControl
         else if (e.Key == Key.Space && Vm?.Activa is { } f)
         {
             f.Marcada = !f.Marcada;
+            e.Handled = true;
+        }
+    }
+
+    private void TablaProgramadas_MouseDoubleClick(object sender, MouseButtonEventArgs e)
+    {
+        if (e.OriginalSource is System.Windows.DependencyObject d && EsDeFila(d)) Vm?.AbrirProgramadaCommand.Execute(null);
+    }
+
+    private void TablaProgramadas_PreviewKeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.Key == Key.Enter && Vm?.ProgramadaActiva is not null)
+        {
+            Vm.AbrirProgramadaCommand.Execute(null);
             e.Handled = true;
         }
     }

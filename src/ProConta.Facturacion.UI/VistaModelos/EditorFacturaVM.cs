@@ -6,6 +6,7 @@ using System.Text;
 using System.Windows.Input;
 using ProConta.Contabilidad.CentrosCoste;
 using ProConta.Facturacion.Facturas;
+using ProConta.Facturacion.Programadas;
 using ProConta.Nucleo.Resultados;
 using ProConta.Organizacion.FormasPago;
 using ProConta.Organizacion.Sociedades;
@@ -34,7 +35,8 @@ public sealed record DesgloseVM(string Tipo, string Base, string Cuota);
 /// <summary>
 /// Editor de una factura de venta (facturacion/pantallas, prototipo sources/maquetas/FacturaBorrador): un borrador se
 /// edita y se guarda sin número; validarlo asigna el número, congela el cliente y genera el asiento. Una factura validada
-/// se ve en solo lectura y solo se cambian sus notas internas.
+/// se ve en solo lectura y solo se cambian sus notas internas. Con la casilla «Periódica» (facturacion/programadas) el
+/// mismo editor edita una factura programada: la factura es su plantilla y la pestaña «Programación», su cadencia.
 /// </summary>
 public sealed class EditorFacturaVM : ModeloVista, IPestanaTrabajo, INotifyDataErrorInfo
 {
@@ -58,6 +60,9 @@ public sealed class EditorFacturaVM : ModeloVista, IPestanaTrabajo, INotifyDataE
     private IReadOnlyList<OpcionCentroCoste> _centros = [SinCentro];
     private static readonly OpcionCentroCoste SinCentro = new(null, "Sin centro");
     private string _fechaFactura = "", _fechaOperacion = "", _periodoDesde = "", _periodoHasta = "", _diaPago = "", _retencion = "";
+    private FacturaProgramada? _p;
+    private string _inicio = "", _diaEmision = "", _fechaFin = "", _repeticiones = "";
+    private int _tipoFinal;
 
     internal EditorFacturaVM(ModuloFacturacion modulo)
     {
@@ -65,8 +70,8 @@ public sealed class EditorFacturaVM : ModeloVista, IPestanaTrabajo, INotifyDataE
         _s = modulo.Servicios;
         GuardarCommand = new ComandoDelegado(() => _ = GuardarAsync(), () => PuedeGuardar);
         DescartarCommand = new ComandoDelegado(Descartar, () => TieneCambios);
-        ValidarCommand = new ComandoDelegado(() => _ = ValidarAsync(), () => EsBorrador && _puedeValidar && !_cargando);
-        DuplicarCommand = new ComandoDelegado(() => _ = DuplicarAsync(), () => !_f.EsNueva && _puedeEditar && !_cargando);
+        ValidarCommand = new ComandoDelegado(() => _ = ValidarAsync(), () => EsBorrador && !EsProgramada && _puedeValidar && !_cargando);
+        DuplicarCommand = new ComandoDelegado(() => _ = DuplicarAsync(), () => Guardada && _puedeEditar && !_cargando);
         EliminarCommand = new ComandoDelegado(() => _ = EliminarAsync(), () => EsBorrador && _puedeEditar && !_cargando);
         RectificarCommand = new ComandoDelegado(() => _ = RectificarAsync(), () => PuedeRectificar);
         BuscarClienteCommand = new ComandoDelegado(() => _ = BuscarClienteAsync(), () => EditableCliente);
@@ -80,19 +85,26 @@ public sealed class EditorFacturaVM : ModeloVista, IPestanaTrabajo, INotifyDataE
         VolverCommand = new ComandoDelegado(_modulo.VolverAlListado);
     }
 
-    public int IdFactura => _f.IdFactura;
+    public int IdFactura => _p is null ? _f.IdFactura : 0;
+    public int IdProgramada => _p?.IdFacturaProgramada ?? 0;
+
+    /// <summary>Ya está guardada (la factura o la programada).</summary>
+    private bool Guardada => _p is null ? !_f.EsNueva : !_p.EsNueva;
 
     // ---------- pestaña ----------
 
-    public string Titulo => _cargando && _f.EsNueva && _errorCarga is null ? "Factura…" : _f.Rotulo;
-    public string Ayuda => (EsBorrador ? "Borrador de factura de venta" : $"Factura {_f.Rotulo} ({TextosEstado.Texto(_f.Estado).ToLowerInvariant()})") +
+    public string Titulo => _cargando && _f.EsNueva && _errorCarga is null ? "Factura…" : _p is not null ? (_p.EsNueva ? "Programada nueva" : $"Programada {_p.Rotulo}") : _f.Rotulo;
+    public string Ayuda => (_p is not null ? $"Factura programada: plantilla y programación ({_p.TextoEstado.ToLowerInvariant()})"
+                              : EsBorrador ? "Borrador de factura de venta" : $"Factura {_f.Rotulo} ({TextosEstado.Texto(_f.Estado).ToLowerInvariant()})") +
                            (TieneCambios ? ". Cambios sin guardar" : "");
     public string Icono => "doc";
     public bool TieneCambios => !_cargando && Firma() != _firmaGuardada;
     public bool GuardadoFallido { get => _guardadoFallido; private set => Fijar(ref _guardadoFallido, value); }
     public object Vista => _vista ??= new Vistas.VistaEditorFactura { DataContext = this };
 
-    public IReadOnlyList<string> DescribirCambios() => TieneCambios ? [$"{_f.Rotulo}: {(EsBorrador ? "cambios en el borrador" : "notas internas")}"] : [];
+    public IReadOnlyList<string> DescribirCambios() => !TieneCambios ? []
+        : _p is not null ? [$"{Titulo}: cambios en la programada"]
+        : [$"{_f.Rotulo}: {(EsBorrador ? "cambios en el borrador" : "notas internas")}"];
 
     Task<bool> IPestanaTrabajo.GuardarAsync() => GuardarAsync();
 
@@ -114,11 +126,16 @@ public sealed class EditorFacturaVM : ModeloVista, IPestanaTrabajo, INotifyDataE
     public bool PuedeGuardar => TieneCambios && _puedeEditar;
     public bool PuedeRectificar => _puedeRectificar && _f.Estado == EstadoFactura.Validada && !_f.EsRectificativa && !_cargando;
     public string TextoGuardar => EsBorrador ? "Guardar" : "Guardar notas";
-    public string AyudaGuardar => EsBorrador ? "Guarda el borrador sin numerarlo (Ctrl+G)" : "Guarda las notas internas (Ctrl+G)";
-    public string TextoEliminar => EsRectificativa ? "Eliminar rectificativa" : "Eliminar borrador";
+    public string AyudaGuardar => _p is not null ? "Guarda la programada; los cambios solo afectan a las facturas que se generen después (Ctrl+G)"
+        : EsBorrador ? "Guarda el borrador sin numerarlo (Ctrl+G)" : "Guarda las notas internas (Ctrl+G)";
+    public string TextoEliminar => _p is not null ? "Eliminar programada" : EsRectificativa ? "Eliminar rectificativa" : "Eliminar borrador";
+    public string AyudaEliminar => _p is not null ? "Borra la programada si aún no ha generado ninguna factura; si ya tiene, páusala" : "Borra el borrador; no consume número";
+    public string AyudaDuplicar => _p is not null ? "Crea otra programada igual, pausada y sin facturas generadas" : "Crea otro borrador con el mismo cliente y líneas, sin número ni fechas";
 
-    public string TextoEstado => TextosEstado.Texto(_f.Estado);
-    public string Subtitulo => $"{(_cliente?.Nombre ?? NombreClienteFactura ?? "Sin cliente")} · {(_f.FechaFactura is { } d ? Formatos.Fecha(d) : "Fecha al validar")}";
+    public string TextoEstado => _p?.TextoEstado ?? TextosEstado.Texto(_f.Estado);
+    public string Subtitulo => $"{(_cliente?.Nombre ?? NombreClienteFactura ?? "Sin cliente")} · " +
+        (_p is not null ? (_p.ProximaCalculada is { } pr ? $"próxima emisión {Formatos.Fecha(pr)}" : "sin emisiones pendientes")
+            : _f.FechaFactura is { } d ? Formatos.Fecha(d) : "Fecha al validar");
     private string? NombreClienteFactura => _f.Cliente.EstaVacia ? null : _f.Cliente.NombreVisible;
     public string? TextoRectifica => _f.EsRectificativa && _f.NumeroFacturaRectificada is { } n ? $"Rectifica a {n}" : null;
     public bool SinVeriFactu => _f.SinVeriFactu && !_f.EsBorrador;
@@ -134,7 +151,7 @@ public sealed class EditorFacturaVM : ModeloVista, IPestanaTrabajo, INotifyDataE
         ? "Las cantidades van en negativo: la rectificativa anula por completo a la original. El cliente y las líneas son los de la original y no se cambian; puedes ajustar la descripción, las fechas y las notas."
         : null;
 
-    public string TextoCabeceraCliente => EsBorrador ? "los datos se copian a la factura al validarla" : "datos copiados al validar; los cambios posteriores en Terceros no la alteran";
+    public string TextoCabeceraCliente => _p is not null ? "cada factura generada copia sus datos al validarse" : EsBorrador ? "los datos se copian a la factura al validarla" : "datos copiados al validar; los cambios posteriores en Terceros no la alteran";
 
     // ---------- cliente ----------
 
@@ -150,7 +167,8 @@ public sealed class EditorFacturaVM : ModeloVista, IPestanaTrabajo, INotifyDataE
     /// <summary>Id del cliente y su cuenta contable en la sociedad, en corto para la cabecera compacta del cliente.</summary>
     public string CodigoCliente => _f.IdCliente is int id ? $"Cliente {id}" : "";
     public string CuentaClienteCorta => _cuentaCliente is { ExisteEnEjercicio: true } c ? c.EnEjercicio!.Codigo : "Sin cuenta";
-    public string? NumeroAsiento => _f.IdAsientoContable is int a ? $"generado al validar · id {a}" : EsBorrador ? "se generará al validar" : "sin asiento: contabilízala desde Facturas";
+    public string? NumeroAsiento => _p is not null ? "vista previa: cada factura generada tendrá el suyo al validarse"
+        : _f.IdAsientoContable is int a ? $"generado al validar · id {a}" : EsBorrador ? "se generará al validar" : "sin asiento: contabilízala desde Facturas";
 
     private string Rotulo(CuentaRol r) => r.ExisteEnEjercicio
         ? $"{r.EnEjercicio!.Codigo} · {r.EnEjercicio.Nombre}"
@@ -176,7 +194,7 @@ public sealed class EditorFacturaVM : ModeloVista, IPestanaTrabajo, INotifyDataE
         set { if (value is not null && value.Codigo != _f.TipoFactura) { _f.TipoFactura = value.Codigo; Cambio(); } }
     }
 
-    public string Numero => _f.NumeroFactura ?? "Se asigna al validar";
+    public string Numero => _p is not null ? "Uno por factura" : _f.NumeroFactura ?? "Se asigna al validar";
 
     public FormaPago? FormaPago
     {
@@ -254,6 +272,192 @@ public sealed class EditorFacturaVM : ModeloVista, IPestanaTrabajo, INotifyDataE
         Cambio();
     }
 
+    // ---------- programada ----------
+
+    /// <summary>El editor tiene una programada (casilla «Periódica» marcada).</summary>
+    public bool EsProgramada => _p is not null;
+    public bool EsFactura => _p is null;
+    public bool MostrarValidar => EsBorrador && _p is null;
+
+    /// <summary>La casilla se ve en una factura nueva y en las programadas (no en una factura ya guardada ni en una rectificativa).</summary>
+    public bool MostrarPeriodica => !_cargando && !_f.EsRectificativa && (_p is not null || _f.EsNueva);
+
+    /// <summary>Solo se cambia antes de guardar: una programada guardada no vuelve a ser factura, ni al revés.</summary>
+    public bool PuedeCambiarPeriodica => Editable && (_p is null ? _f.EsNueva : _p.EsNueva);
+
+    public string AyudaPeriodica => PuedeCambiarPeriodica
+        ? "Convierte esta factura en una factura programada: una plantilla que genera una factura en cada vencimiento (pestaña «Programación»)"
+        : "Es una factura programada: genera una factura en cada vencimiento. Para programar una factura ya guardada, usa «Programar…» en Facturas.";
+
+    public bool Periodica
+    {
+        get => _p is not null;
+        set
+        {
+            if (value == (_p is not null) || !PuedeCambiarPeriodica) { Avisar(); return; }
+            if (value)
+            {
+                _p = FacturaProgramada.DesdePlantilla(_f, DateTime.Today);
+                _periodoDesde = Texto.Fecha(_f.FechaInicioValidez);
+                _periodoHasta = Texto.Fecha(_f.FechaFinValidez);
+                CargarCamposProgramacion();
+            }
+            else _p = null;
+            foreach (var e in new[] { nameof(FechaInicioProgramacion), nameof(DiaEmision), nameof(FechaFinProgramacion), nameof(Repeticiones) }) QuitarError(e);
+            TodoCambiado();
+            Cambio();
+        }
+    }
+
+    public string EtiquetaPeriodoDesde => _p is not null ? "Primer periodo desde" : "Periodo desde";
+    public string AyudaPeriodoDesde => _p is not null ? "Primer día del periodo de la primera factura; en cada factura avanza según la periodicidad" : "Primer día del periodo facturado";
+    public string AyudaPeriodoHasta => _p is not null ? "Último día del periodo de la primera factura (avanza igual; un 31 sigue siendo el último día del mes)" : "Último día del periodo facturado; no puede ser anterior al primero";
+
+    public IReadOnlyList<Periodicidad> Periodicidades => Periodicidad.Todas;
+
+    public Periodicidad? PeriodicidadElegida
+    {
+        get => _p?.Periodicidad;
+        set
+        {
+            if (_p is null || value is null || value == _p.Periodicidad) return;
+            _p.Periodicidad = value;
+            AvisarProgramacion();
+            Cambio();
+        }
+    }
+
+    public string FechaInicioProgramacion
+    {
+        get => _inicio;
+        set => FijarFecha(ref _inicio, value, nameof(FechaInicioProgramacion), d => { if (_p is not null) _p.FechaInicio = d; AvisarProgramacion(); });
+    }
+
+    public string DiaEmision
+    {
+        get => _diaEmision;
+        set
+        {
+            _diaEmision = value ?? "";
+            if (_p is null) return;
+            if (_diaEmision.Trim().Length == 0) { _p.DiaEmision = null; QuitarError(nameof(DiaEmision)); }
+            else if (byte.TryParse(_diaEmision.Trim(), NumberStyles.None, CultureInfo.InvariantCulture, out var d) && d is >= 1 and <= 31) { _p.DiaEmision = d; QuitarError(nameof(DiaEmision)); }
+            else PonerError(nameof(DiaEmision), "El día de emisión es un número del 1 al 31; del 29 al 31 cuentan desde el final del mes (31 = último día).");
+            Avisar();
+            AvisarProgramacion();
+            Cambio();
+        }
+    }
+
+    public IReadOnlyList<string> OpcionesFinal { get; } = ["Sin final", "En una fecha", "Tras un número de facturas"];
+
+    /// <summary>0 sin final, 1 en una fecha (FechaFin), 2 tras un número de facturas (NumeroRepeticiones).</summary>
+    public int TipoFinal
+    {
+        get => _tipoFinal;
+        set
+        {
+            if (_p is null || value == _tipoFinal || value is < 0 or > 2) return;
+            _tipoFinal = value;
+            if (value != 1) { _p.FechaFin = null; _fechaFin = ""; QuitarError(nameof(FechaFinProgramacion)); }
+            if (value != 2) { _p.NumeroRepeticiones = null; _repeticiones = ""; QuitarError(nameof(Repeticiones)); }
+            Avisar(nameof(TipoFinal), nameof(FinPorFecha), nameof(FinPorRepeticiones), nameof(FechaFinProgramacion), nameof(Repeticiones));
+            AvisarProgramacion();
+            Cambio();
+        }
+    }
+
+    public bool FinPorFecha => _tipoFinal == 1;
+    public bool FinPorRepeticiones => _tipoFinal == 2;
+
+    public string FechaFinProgramacion
+    {
+        get => _fechaFin;
+        set => FijarFecha(ref _fechaFin, value, nameof(FechaFinProgramacion), d => { if (_p is not null) _p.FechaFin = d; AvisarProgramacion(); });
+    }
+
+    public string Repeticiones
+    {
+        get => _repeticiones;
+        set
+        {
+            _repeticiones = value ?? "";
+            if (_p is null) return;
+            if (_repeticiones.Trim().Length == 0) { _p.NumeroRepeticiones = null; QuitarError(nameof(Repeticiones)); }
+            else if (int.TryParse(_repeticiones.Trim(), NumberStyles.None, CultureInfo.InvariantCulture, out var n) && n >= 1) { _p.NumeroRepeticiones = n; QuitarError(nameof(Repeticiones)); }
+            else PonerError(nameof(Repeticiones), "Escribe cuántas facturas genera en total (1 o más).");
+            Avisar();
+            AvisarProgramacion();
+            Cambio();
+        }
+    }
+
+    public bool AlGenerarBorrador
+    {
+        get => _p?.AlGenerar != AlGenerar.Validar;
+        set { if (_p is null || !value || _p.AlGenerar == AlGenerar.Borrador) return; _p.AlGenerar = AlGenerar.Borrador; Avisar(nameof(AlGenerarBorrador), nameof(AlGenerarValidar)); Cambio(); }
+    }
+
+    public bool AlGenerarValidar
+    {
+        get => _p?.AlGenerar == AlGenerar.Validar;
+        set { if (_p is null || !value || _p.AlGenerar == AlGenerar.Validar) return; _p.AlGenerar = AlGenerar.Validar; Avisar(nameof(AlGenerarBorrador), nameof(AlGenerarValidar)); Cambio(); }
+    }
+
+    public bool EnviarPorEmail
+    {
+        get => _p?.EnviarPorEmail == true;
+        set { if (_p is null || value == _p.EnviarPorEmail) return; _p.EnviarPorEmail = value; Avisar(); Cambio(); }
+    }
+
+    public bool Activa
+    {
+        get => _p?.Activa == true;
+        set { if (_p is null || value == _p.Activa) return; _p.Activa = value; Avisar(); AvisarProgramacion(); Cambio(); }
+    }
+
+    public string TextoProximas
+    {
+        get
+        {
+            if (_p is null) return "";
+            if (_p.FechaInicio is null) return "Escribe la fecha de inicio para ver las próximas emisiones.";
+            var proximas = _p.ProximasEmisiones(4);
+            if (proximas.Count == 0) return "No le quedan facturas por emitir: está finalizada.";
+            return (proximas.Count == 1 ? "Próxima emisión: " : "Próximas emisiones: ") + string.Join(" · ", proximas.Select(d => Formatos.Fecha(d)));
+        }
+    }
+
+    public string TextoPeriodoProximo
+    {
+        get
+        {
+            if (_p is null || _p.ProximaCalculada is null) return "";
+            var (d, h) = _p.Periodo(_p.FacturasGeneradas);
+            return d is null && h is null ? "Las facturas no llevarán periodo: escribe el de la primera en «Datos de la factura»."
+                : $"La próxima factura facturará el periodo {(d is { } x ? Formatos.Fecha(x) : "…")} – {(h is { } y ? Formatos.Fecha(y) : "…")}.";
+        }
+    }
+
+    public string TextoGeneradas => _p is null ? ""
+        : _p.FacturasGeneradas == 0 ? "Aún no ha generado ninguna factura."
+        : $"Ha generado {Formatos.Plural(_p.FacturasGeneradas, "factura", "facturas")}" + (_p.FechaUltimaGeneracion is { } u ? $"; la última, el {Formatos.Fecha(u)}." : ".");
+
+    public string MotivoEnvio => "El envío por correo llegará con su propio desarrollo: de momento se guarda la preferencia y no se envía nada.";
+
+    private void CargarCamposProgramacion()
+    {
+        if (_p is null) return;
+        _inicio = Texto.Fecha(_p.FechaInicio);
+        _diaEmision = _p.DiaEmision?.ToString(CultureInfo.InvariantCulture) ?? "";
+        _fechaFin = Texto.Fecha(_p.FechaFin);
+        _repeticiones = _p.NumeroRepeticiones?.ToString(CultureInfo.InvariantCulture) ?? "";
+        _tipoFinal = _p.NumeroRepeticiones is not null ? 2 : _p.FechaFin is not null ? 1 : 0;
+    }
+
+    private void AvisarProgramacion() =>
+        Avisar(nameof(TextoProximas), nameof(TextoPeriodoProximo), nameof(TextoEstado), nameof(Subtitulo), nameof(TextoGeneradas), nameof(Titulo), nameof(Ayuda));
+
     // ---------- líneas, totales y asiento ----------
 
     public ObservableCollection<LineaFacturaVM> Lineas { get; } = [];
@@ -299,7 +503,7 @@ public sealed class EditorFacturaVM : ModeloVista, IPestanaTrabajo, INotifyDataE
     }
 
     public string TextoAsientoVacio => "Elige el cliente y añade líneas para ver el asiento.";
-    public IReadOnlyList<string> Historial => _f.LineasHistorial.Reverse().ToList();
+    public IReadOnlyList<string> Historial => (_p?.LineasHistorial ?? _f.LineasHistorial).Reverse().ToList();
 
     // ---------- resumen de errores ----------
 
@@ -342,14 +546,40 @@ public sealed class EditorFacturaVM : ModeloVista, IPestanaTrabajo, INotifyDataE
 
     public async Task NuevaAsync()
     {
+        _p = null;
         await PrepararAsync();
         var r = await _s.Facturas.NuevoBorradorAsync(_s.Trabajo);
         if (!r.EsCorrecto) { FalloCarga(r.Errores); return; }
         await MostrarAsync(r.Valor);
     }
 
+    /// <summary>Programada nueva sin guardar; con <paramref name="desdeFactura"/>, con el contenido de esa factura («Programar…»).</summary>
+    public async Task NuevaProgramadaAsync(int? desdeFactura = null)
+    {
+        await PrepararAsync();
+        var r = desdeFactura is int id ? await _s.Programadas.DesdeFacturaAsync(id, _s.Trabajo) : await _s.Programadas.NuevaAsync(_s.Trabajo);
+        if (!r.EsCorrecto) { FalloCarga(r.Errores); return; }
+        await MostrarProgramadaAsync(r.Valor);
+    }
+
+    public async Task CargarProgramadaAsync(int idProgramada)
+    {
+        await PrepararAsync();
+        var p = await _s.Programadas.ObtenerAsync(idProgramada);
+        if (p is null) { ErrorCarga = "La programada ya no existe: otro operador la ha borrado. Cierra esta pestaña y actualiza el listado."; Cargando = false; return; }
+        await MostrarProgramadaAsync(p);
+    }
+
+    private async Task MostrarProgramadaAsync(FacturaProgramada p)
+    {
+        _p = p.Clonar();
+        CargarCamposProgramacion();
+        await MostrarAsync(_p.Plantilla);
+    }
+
     public async Task CargarAsync(int idFactura)
     {
+        _p = null;
         await PrepararAsync();
         var f = await _s.Facturas.ObtenerAsync(idFactura);
         if (f is null) { ErrorCarga = "La factura ya no existe: otro operador la ha borrado. Cierra esta pestaña y actualiza el listado."; Cargando = false; return; }
@@ -392,6 +622,7 @@ public sealed class EditorFacturaVM : ModeloVista, IPestanaTrabajo, INotifyDataE
     private async Task MostrarAsync(FacturaVenta f)
     {
         _f = f.Clonar();
+        _p?.CambiarPlantilla(_f);
         _cliente = f.IdCliente is int c ? await _s.Apoyo.ClienteAsync(c) : null;
         await CargarCuentasAsync();
         _fechaFactura = Texto.Fecha(f.FechaFactura);
@@ -547,6 +778,17 @@ public sealed class EditorFacturaVM : ModeloVista, IPestanaTrabajo, INotifyDataE
             GuardadoFallido = true;
             return false;
         }
+        if (_p is not null)
+        {
+            var nueva = _p.EsNueva;
+            var rp = await _s.Programadas.GuardarAsync(_p, _s.Actor);
+            if (!rp.Guardada) { MostrarIncidencias(rp.Incidencias); GuardadoFallido = true; return false; }
+            await MostrarProgramadaAsync(rp.Programada!);
+            _modulo.Avisar($"Programada {rp.Programada!.Rotulo} {(nueva ? "creada" : "guardada")}" +
+                           (rp.Programada.Activa ? rp.Programada.ProximaCalculada is { } pr ? $": próxima emisión el {Formatos.Fecha(pr)}." : "." : ", pausada: no genera facturas hasta que la reanudes."));
+            _modulo.ProgramadaCambiada(rp.Programada.IdFacturaProgramada);
+            return true;
+        }
         if (!EsBorrador)
         {
             var notas = await _s.Facturas.GuardarNotasAsync(_f.IdFactura, _f.NotasInternas, _f.Version, _s.Actor);
@@ -566,6 +808,12 @@ public sealed class EditorFacturaVM : ModeloVista, IPestanaTrabajo, INotifyDataE
 
     public void Descartar()
     {
+        if (_p is not null)
+        {
+            if (_p.EsNueva) _ = NuevaProgramadaAsync();
+            else _ = CargarProgramadaAsync(_p.IdFacturaProgramada);
+            return;
+        }
         if (_f.EsNueva) { _ = NuevaAsync(); return; }
         _ = RecargarAsync(_f.IdFactura);
     }
@@ -603,6 +851,15 @@ public sealed class EditorFacturaVM : ModeloVista, IPestanaTrabajo, INotifyDataE
     private async Task DuplicarAsync()
     {
         if (TieneCambios && EsBorrador && !await GuardarAsync()) return;
+        if (_p is not null)
+        {
+            var d = await _s.Programadas.DuplicarAsync(_p.IdFacturaProgramada, _s.Actor);
+            if (!d.Guardada) { MostrarErrores("No se ha duplicado", d.Incidencias.Select(i => new Error(i.Codigo, i.Mensaje)).ToList()); return; }
+            _modulo.ProgramadaCambiada(d.Programada!.IdFacturaProgramada);
+            _modulo.AbrirProgramada(d.Programada.IdFacturaProgramada);
+            _modulo.Avisar($"Creada {d.Programada.Rotulo} a partir de {_p.Rotulo}, pausada y sin facturas generadas: revísala y reanúdala.");
+            return;
+        }
         var r = await _s.Facturas.DuplicarAsync(_f.IdFactura, _s.Trabajo, _s.Actor);
         if (!r.EsCorrecto) { MostrarErrores("No se ha duplicado", r.Errores); return; }
         _modulo.FacturaCambiada(r.Valor.IdFactura);
@@ -612,6 +869,20 @@ public sealed class EditorFacturaVM : ModeloVista, IPestanaTrabajo, INotifyDataE
 
     private async Task EliminarAsync()
     {
+        if (_p is not null)
+        {
+            if (_p.EsNueva) { _cargando = true; _modulo.CerrarEditor(this); return; }
+            if (_modulo.Dialogos.Preguntar($"Eliminar {_p.Rotulo}", "Se borra la programada y sus líneas. Solo se puede si aún no ha generado ninguna factura; si ya tiene, páusala.", null,
+                    new OpcionMensaje("Cancelar", "No borra nada", Cancelar: true),
+                    new OpcionMensaje("Eliminar", "Borra la programada", Peligro: true)) != 1) return;
+            var e = await _s.Programadas.EliminarAsync(_p.IdFacturaProgramada, _p.Version);
+            if (!e.EsCorrecto) { MostrarErrores("No se ha eliminado", e.Errores); return; }
+            _modulo.Avisar($"{_p.Rotulo} eliminada.");
+            _modulo.ProgramadaCambiada();
+            _cargando = true;
+            _modulo.CerrarEditor(this);
+            return;
+        }
         if (_f.EsNueva) { _modulo.CerrarEditor(this); return; }
         var mensaje = EsRectificativa
             ? $"Se borra este borrador y la factura {_f.NumeroFacturaRectificada} vuelve a «Validada», todo a la vez."
@@ -688,6 +959,9 @@ public sealed class EditorFacturaVM : ModeloVista, IPestanaTrabajo, INotifyDataE
             "TipoRetencion" => nameof(Retencion),
             "IdSerie" => nameof(Serie),
             "MotivoRectificacion" => nameof(Motivo),
+            "FechaInicio" => nameof(FechaInicioProgramacion),
+            "FechaFin" => nameof(FechaFinProgramacion),
+            "NumeroRepeticiones" => nameof(Repeticiones),
             _ => campo
         };
         PonerError(propiedad, mensaje);
@@ -726,6 +1000,8 @@ public sealed class EditorFacturaVM : ModeloVista, IPestanaTrabajo, INotifyDataE
         var b = new StringBuilder();
         b.Append(CultureInfo.InvariantCulture, $"{f.IdSerie}|{f.IdCliente}|{f.TipoFactura}|{f.FechaFactura:d}|{f.FechaOperacion:d}|{f.FechaInicioValidez:d}|{f.FechaFinValidez:d}|");
         b.Append(CultureInfo.InvariantCulture, $"{f.FormaDePago}|{f.DiaDePago}|{f.TipoRetencion}|{f.Descripcion}|{f.NotasInternas}|{f.MotivoRectificacion}");
+        if (_p is { } p)
+            b.Append(CultureInfo.InvariantCulture, $"|P{p.IdFacturaProgramada}|{p.Periodicidad.Codigo}|{p.FechaInicio:d}|{p.DiaEmision}|{p.FechaFin:d}|{p.NumeroRepeticiones}|{p.AlGenerar}|{p.EnviarPorEmail}|{p.Activa}");
         foreach (var l in f.Lineas)
             b.Append(CultureInfo.InvariantCulture,
                 $"#{l.IdConcepto}|{l.Nombre}|{l.Descripcion}|{l.Cantidad}|{l.PrecioUnitario}|{l.DescuentoPorcentaje}|{l.DescuentoImporte}|{l.TipoIva}|{l.EsSuplido}|{l.CuentaContable}|{l.ImporteTotal}|{l.Fecha:d}|{l.IdCentroCoste}");

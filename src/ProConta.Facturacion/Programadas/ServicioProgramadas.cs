@@ -67,6 +67,15 @@ public sealed class ServicioProgramadas
             return (IReadOnlyDictionary<int, int>)filas.ToDictionary(x => x.Item1, x => x.Item2);
         });
 
+    /// <summary>Nombre de cada cliente (el del tercero), para listados de programadas.</summary>
+    public Task<IReadOnlyDictionary<int, string>> NombresClientesAsync() =>
+        _bd.EjecutarAsync(async s =>
+        {
+            var clientes = await s.ConsultarAsync("SELECT c.IdCliente, t.Nombre FROM Clientes AS c INNER JOIN Terceros AS t ON c.IdTercero = t.IdTercero",
+                f => (f.Entero("IdCliente"), f.Texto("Nombre") ?? ""));
+            return (IReadOnlyDictionary<int, string>)clientes.GroupBy(c => c.Item1).ToDictionary(g => g.Key, g => g.First().Item2);
+        });
+
     // ---------- alta y edición ----------
 
     /// <summary>
@@ -77,17 +86,7 @@ public sealed class ServicioProgramadas
     {
         var b = await _facturas.NuevoBorradorAsync(contexto);
         if (!b.EsCorrecto) return Resultado<FacturaProgramada>.Fallo(b.Errores);
-        var p = new FacturaProgramada
-        {
-            IdSociedadEjercicio = contexto.IdSociedadEjercicio,
-            Plantilla = b.Valor,
-            FechaInicio = _reloj.Ahora.Date,
-            DiaEmision = 1,
-            Activa = true,
-            FechaAlta = _reloj.Ahora
-        };
-        ProponerPeriodo(p);
-        return Resultado<FacturaProgramada>.Correcto(p);
+        return Resultado<FacturaProgramada>.Correcto(FacturaProgramada.DesdePlantilla(b.Valor, _reloj.Ahora));
     }
 
     /// <summary>Propone como periodo de la primera factura el mes completo de su emisión.</summary>
@@ -241,10 +240,7 @@ public sealed class ServicioProgramadas
     public async Task<IReadOnlyList<ProgramadaPendiente>> PendientesAsync(string idSociedad, DateTime hasta)
     {
         var lista = await ListarAsync(idSociedad);
-        var clientes = await _bd.EjecutarAsync(s => s.ConsultarAsync(
-            "SELECT c.IdCliente, t.Nombre FROM Clientes AS c INNER JOIN Terceros AS t ON c.IdTercero = t.IdTercero",
-            f => (f.Entero("IdCliente"), f.Texto("Nombre") ?? "")));
-        var nombres = clientes.GroupBy(c => c.Item1).ToDictionary(g => g.Key, g => g.First().Item2);
+        var nombres = await NombresClientesAsync();
         return lista.Where(p => p.Activa)
             .Select(p => new ProgramadaPendiente(p, p.Plantilla.IdCliente is int c && nombres.TryGetValue(c, out var n) ? n : "Sin cliente", Vencimientos(p, hasta)))
             .Where(x => x.Vencimientos.Count > 0)

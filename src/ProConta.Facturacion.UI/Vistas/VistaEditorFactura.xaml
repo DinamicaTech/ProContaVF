@@ -54,9 +54,9 @@
                      Visibility="{Binding TieneCambios, Converter={StaticResource Visible}}" />
         </StackPanel>
         <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-          <Button Content="Duplicar" Command="{Binding DuplicarCommand}" Margin="8,0,0,0" ToolTip="Crea otro borrador con el mismo cliente y líneas, sin número ni fechas" />
+          <Button Content="Duplicar" Command="{Binding DuplicarCommand}" Margin="8,0,0,0" ToolTip="{Binding AyudaDuplicar}" />
           <Button Content="{Binding TextoEliminar}" Command="{Binding EliminarCommand}" Style="{StaticResource Boton.Peligro}" Margin="8,0,0,0"
-                  Visibility="{Binding EsBorrador, Converter={StaticResource Visible}}" ToolTip="Borra el borrador; no consume número" />
+                  Visibility="{Binding EsBorrador, Converter={StaticResource Visible}}" ToolTip="{Binding AyudaEliminar}" />
           <Button Content="PDF" IsEnabled="False" Margin="8,0,0,0" ToolTipService.ShowOnDisabled="True" ToolTip="{Binding MotivoPdf}"
                   Visibility="{Binding EsValidada, Converter={StaticResource Visible}}" />
           <Button Content="Enviar a VeriFactu" IsEnabled="False" Margin="8,0,0,0" ToolTipService.ShowOnDisabled="True" ToolTip="{Binding MotivoVeriFactu}"
@@ -64,7 +64,7 @@
           <Button Content="Rectificar…" Command="{Binding RectificarCommand}" Style="{StaticResource Boton.Primario}" Margin="8,0,0,0"
                   Visibility="{Binding EsValidada, Converter={StaticResource Visible}}" ToolTip="Crea un borrador rectificativo que anula esta factura por completo" />
           <Button Content="Validar…" Command="{Binding ValidarCommand}" Style="{StaticResource Boton.Primario}" Margin="8,0,0,0"
-                  Visibility="{Binding EsBorrador, Converter={StaticResource Visible}}"
+                  Visibility="{Binding MostrarValidar, Converter={StaticResource Visible}}"
                   ToolTip="Comprueba los datos, asigna el número, copia los datos del cliente y genera el asiento" />
         </StackPanel>
       </DockPanel>
@@ -172,6 +172,8 @@
               <TabControl Padding="0,12,0,0" Margin="-12,0,0,0">
                 <TabItem Header="Datos de la factura">
                   <StackPanel Margin="12,0,0,0">
+                    <CheckBox Content="Periódica" IsChecked="{Binding Periodica}" IsEnabled="{Binding PuedeCambiarPeriodica}" ToolTipService.ShowOnDisabled="True" ToolTip="{Binding AyudaPeriodica}"
+                              FontWeight="SemiBold" Margin="0,0,0,10" Visibility="{Binding MostrarPeriodica, Converter={StaticResource Visible}}" />
                     <WrapPanel>
                       <StackPanel Style="{StaticResource Bloque.Campo}">
                         <TextBlock Text="Serie" Style="{StaticResource Etiqueta.Campo}" />
@@ -187,24 +189,24 @@
                         <TextBlock Text="Número" Style="{StaticResource Etiqueta.Campo}" />
                         <TextBox Width="170" Text="{Binding Numero, Mode=OneWay}" IsReadOnly="True" Style="{StaticResource Campo.Mono}" ToolTip="El número lo asigna el programa al validar, nunca a mano" />
                       </StackPanel>
-                      <StackPanel Style="{StaticResource Bloque.Campo}">
+                      <StackPanel Style="{StaticResource Bloque.Campo}" Visibility="{Binding EsFactura, Converter={StaticResource Visible}}">
                         <TextBlock Text="Fecha de factura" Style="{StaticResource Etiqueta.Campo}" />
                         <TextBox Width="110" Text="{Binding FechaFactura, ValidatesOnNotifyDataErrors=True}" IsReadOnly="{Binding SoloLectura}" Style="{StaticResource Campo}"
                                  ToolTip="Fecha de expedición; si la dejas vacía se pone la de hoy al validar. No puede ser anterior a la última factura de la serie." />
                       </StackPanel>
-                      <StackPanel Style="{StaticResource Bloque.Campo}">
+                      <StackPanel Style="{StaticResource Bloque.Campo}" Visibility="{Binding EsFactura, Converter={StaticResource Visible}}">
                         <TextBlock Text="Fecha de operación" Style="{StaticResource Etiqueta.Campo}" />
                         <TextBox Width="110" Text="{Binding FechaOperacion, ValidatesOnNotifyDataErrors=True}" IsReadOnly="{Binding SoloLectura}" Style="{StaticResource Campo}"
                                  ToolTip="Solo si la operación se hizo en una fecha distinta de la de la factura" />
                       </StackPanel>
                       <StackPanel Style="{StaticResource Bloque.Campo}">
-                        <TextBlock Text="Periodo desde" Style="{StaticResource Etiqueta.Campo}" />
-                        <TextBox Width="110" Text="{Binding PeriodoDesde, ValidatesOnNotifyDataErrors=True}" IsReadOnly="{Binding SoloLectura}" Style="{StaticResource Campo}" ToolTip="Primer día del periodo facturado" />
+                        <TextBlock Text="{Binding EtiquetaPeriodoDesde}" Style="{StaticResource Etiqueta.Campo}" />
+                        <TextBox Width="110" Text="{Binding PeriodoDesde, ValidatesOnNotifyDataErrors=True}" IsReadOnly="{Binding SoloLectura}" Style="{StaticResource Campo}" ToolTip="{Binding AyudaPeriodoDesde}" />
                       </StackPanel>
                       <StackPanel Style="{StaticResource Bloque.Campo}">
                         <TextBlock Text="Hasta" Style="{StaticResource Etiqueta.Campo}" />
                         <TextBox Width="110" Text="{Binding PeriodoHasta, ValidatesOnNotifyDataErrors=True}" IsReadOnly="{Binding SoloLectura}" Style="{StaticResource Campo}"
-                                 ToolTip="Último día del periodo facturado; no puede ser anterior al primero" />
+                                 ToolTip="{Binding AyudaPeriodoHasta}" />
                       </StackPanel>
                       <StackPanel Style="{StaticResource Bloque.Campo}">
                         <TextBlock Text="Forma de pago" Style="{StaticResource Etiqueta.Campo}" />
@@ -236,6 +238,58 @@
                       <TextBox Text="{Binding Notas, UpdateSourceTrigger=PropertyChanged}" IsReadOnly="{Binding NotasSoloLectura}" Style="{StaticResource Campo.Multilinea}" MinHeight="44"
                                ToolTip="Solo para uso interno: no salen en la factura ni van a la AEAT. Se pueden cambiar también en una factura validada." />
                     </StackPanel>
+                  </StackPanel>
+                </TabItem>
+                <TabItem Header="Programación" Visibility="{Binding EsProgramada, Converter={StaticResource Visible}}">
+                  <StackPanel Margin="12,0,0,0">
+                    <WrapPanel>
+                      <StackPanel Style="{StaticResource Bloque.Campo}">
+                        <TextBlock Text="Periodicidad" Style="{StaticResource Etiqueta.Campo}" />
+                        <ComboBox Width="220" ItemsSource="{Binding Periodicidades}" SelectedItem="{Binding PeriodicidadElegida}" DisplayMemberPath="Texto" IsEnabled="{Binding Editable}"
+                                  ToolTip="Cada cuánto se emite una factura; «Una sola vez» emite solo la primera" />
+                      </StackPanel>
+                      <StackPanel Style="{StaticResource Bloque.Campo}">
+                        <TextBlock Text="Fecha de inicio" Style="{StaticResource Etiqueta.Campo}" />
+                        <TextBox Width="110" Text="{Binding FechaInicioProgramacion, ValidatesOnNotifyDataErrors=True}" IsReadOnly="{Binding SoloLectura}" Style="{StaticResource Campo}"
+                                 ToolTip="Desde esta fecha se emite la primera factura, el primer día de emisión que llegue (dd/mm/aaaa)" />
+                      </StackPanel>
+                      <StackPanel Style="{StaticResource Bloque.Campo}">
+                        <TextBlock Text="Día de emisión" Style="{StaticResource Etiqueta.Campo}" />
+                        <TextBox Width="70" Text="{Binding DiaEmision, ValidatesOnNotifyDataErrors=True}" IsReadOnly="{Binding SoloLectura}" Style="{StaticResource Campo.Numero}"
+                                 ToolTip="Día del mes en que se emite (1 a 31). Del 29 al 31 cuentan desde el final del mes: 31 es siempre el último día y 30 el penúltimo. Vacío: el día de la fecha de inicio" />
+                      </StackPanel>
+                      <StackPanel Style="{StaticResource Bloque.Campo}">
+                        <TextBlock Text="Final" Style="{StaticResource Etiqueta.Campo}" />
+                        <ComboBox Width="210" ItemsSource="{Binding OpcionesFinal}" SelectedIndex="{Binding TipoFinal}" IsEnabled="{Binding Editable}"
+                                  ToolTip="Cuándo deja de emitir: nunca, después de una fecha o tras un número de facturas" />
+                      </StackPanel>
+                      <StackPanel Style="{StaticResource Bloque.Campo}" Visibility="{Binding FinPorFecha, Converter={StaticResource Visible}}">
+                        <TextBlock Text="Última fecha" Style="{StaticResource Etiqueta.Campo}" />
+                        <TextBox Width="110" Text="{Binding FechaFinProgramacion, ValidatesOnNotifyDataErrors=True}" IsReadOnly="{Binding SoloLectura}" Style="{StaticResource Campo}"
+                                 ToolTip="No se emite ninguna factura después de esta fecha (dd/mm/aaaa)" />
+                      </StackPanel>
+                      <StackPanel Style="{StaticResource Bloque.Campo}" Visibility="{Binding FinPorRepeticiones, Converter={StaticResource Visible}}">
+                        <TextBlock Text="Nº de facturas" Style="{StaticResource Etiqueta.Campo}" />
+                        <TextBox Width="70" Text="{Binding Repeticiones, ValidatesOnNotifyDataErrors=True}" IsReadOnly="{Binding SoloLectura}" Style="{StaticResource Campo.Numero}"
+                                 ToolTip="Cuántas facturas emite en total, contando las ya generadas" />
+                      </StackPanel>
+                    </WrapPanel>
+                    <TextBlock Text="{Binding TextoProximas}" FontWeight="SemiBold" TextWrapping="Wrap" Margin="0,0,0,2" />
+                    <TextBlock Text="{Binding TextoPeriodoProximo}" Style="{StaticResource Texto.Apagado}" TextWrapping="Wrap" />
+                    <TextBlock Text="{Binding TextoGeneradas}" Style="{StaticResource Texto.Apagado}" TextWrapping="Wrap" Margin="0,0,0,10" />
+
+                    <TextBlock Text="En cada vencimiento genera" Style="{StaticResource Etiqueta.Campo}" />
+                    <WrapPanel Margin="0,0,0,10">
+                      <RadioButton Content="Un borrador" IsChecked="{Binding AlGenerarBorrador}" IsEnabled="{Binding Editable}" Margin="0,0,18,0" GroupName="AlGenerar"
+                                   ToolTip="La factura queda como borrador sin número, para revisarla y validarla después" />
+                      <RadioButton Content="Una factura validada" IsChecked="{Binding AlGenerarValidar}" IsEnabled="{Binding Editable}" GroupName="AlGenerar"
+                                   ToolTip="La factura se numera, se valida y se contabiliza al generarla; si algo lo impide, queda como borrador y se avisa" />
+                    </WrapPanel>
+                    <CheckBox Content="Enviarla por correo al cliente después de validarla" IsChecked="{Binding EnviarPorEmail}" IsEnabled="{Binding Editable}" Margin="0,0,0,2"
+                              ToolTip="Preferencia de envío de esta programada: el proceso automático solo envía las que la tienen marcada" />
+                    <TextBlock Text="{Binding MotivoEnvio}" Style="{StaticResource Texto.Apagado}" FontSize="{StaticResource Letra.Pequena}" TextWrapping="Wrap" Margin="20,0,0,10" />
+                    <CheckBox Content="Activa" IsChecked="{Binding Activa}" IsEnabled="{Binding Editable}"
+                              ToolTip="Solo las activas generan facturas. Una pausada se puede guardar incompleta; para activarla tiene que estar completa, como para validar una factura" />
                   </StackPanel>
                 </TabItem>
                 <TabItem Header="Asiento">

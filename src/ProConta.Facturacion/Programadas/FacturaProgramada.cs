@@ -133,6 +133,29 @@ public sealed class FacturaProgramada
 
     public bool EsNueva => IdFacturaProgramada == 0;
 
+    /// <summary>
+    /// Programada nueva sin guardar con esta plantilla (la casilla «Periódica» de una factura nueva): mensual, desde
+    /// <paramref name="hoy"/>, emisión el día 1 y activa; el periodo de la primera factura se propone con
+    /// <see cref="ServicioProgramadas.ProponerPeriodo"/>.
+    /// </summary>
+    public static FacturaProgramada DesdePlantilla(FacturaVenta plantilla, DateTime hoy)
+    {
+        var p = new FacturaProgramada
+        {
+            IdSociedadEjercicio = plantilla.IdSociedadEjercicio,
+            Plantilla = plantilla,
+            FechaInicio = hoy.Date,
+            DiaEmision = 1,
+            Activa = true,
+            FechaAlta = hoy
+        };
+        ServicioProgramadas.ProponerPeriodo(p);
+        return p;
+    }
+
+    /// <summary>Sustituye la plantilla por otra (el editor trabaja sobre su propia copia).</summary>
+    public void CambiarPlantilla(FacturaVenta plantilla) => Plantilla = plantilla;
+
     /// <summary>Código visible: «P-0041» (o «Programada nueva»).</summary>
     public string Rotulo => RotuloDe(IdFacturaProgramada);
 

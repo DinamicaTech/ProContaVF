@@ -8,6 +8,7 @@ using ProConta.Contabilidad.CentrosCoste;
 using ProConta.Contabilidad.Cuentas;
 using ProConta.Facturacion.Conceptos;
 using ProConta.Facturacion.Facturas;
+using ProConta.Facturacion.Programadas;
 using ProConta.Facturacion.Mantenimiento;
 using ProConta.Facturacion.UI.VistaModelos;
 using ProConta.Facturacion.UI.Vistas;
@@ -96,7 +97,8 @@ public partial class VentanaPrincipal : Window
         var facturas = new ServicioFacturas(bd, sociedades, new RepositorioTercerosAccess(bd), roles, cuentas, contabilizador, autorizador);
         var apoyo = new ApoyoEditorFacturas(bd, roles);
         var serviciosFacturacion = new ServiciosFacturacion(facturas, new ConsultaFacturas(bd), new CatalogoConceptos(bd, cuentas), apoyo, new CatalogoFormasPagoAccess(bd),
-            new LectorConfiguracionEjercicio(bd), contexto.Contexto, contexto.RazonSocial, new Actor(sesion.NombreOperador), new CatalogoCentrosCosteAccess(bd));
+            new LectorConfiguracionEjercicio(bd), contexto.Contexto, contexto.RazonSocial, new Actor(sesion.NombreOperador), new CatalogoCentrosCosteAccess(bd),
+            new ServicioProgramadas(bd, sociedades, facturas, autorizador));
         _facturacion = new ModuloFacturacion(serviciosFacturacion, _area, new DialogosFacturacion(apoyo, () => this), _terceros.AbrirFicha);
 
         var mantenimiento = new ServicioMantenimiento(
