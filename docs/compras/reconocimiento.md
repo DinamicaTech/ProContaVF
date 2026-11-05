@@ -5,6 +5,7 @@ depends_on: [compras/factura-compra, terceros/tercero]
 threads:
   - 2026-10-28 12:30 · Carga de requisitos | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GRNMH95h9tnQp4dmEPHmw1w
   - 2026-10-31 16:58 · Cerrar preguntas pendientes del proyecto | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5G7UyrP5eDJV4Ds6CCBozdbu
+  - 2026-11-05 11:24 · Construir facturas de compra | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GEbtcX2Z7baM2yhwHY2wJXj
 ---
 ## Summary
 Motor que reconoce los campos de un PDF de compra (texto nativo y OCR, proveedor por NIF, número, fecha, importes, IVA, retención, divisas) con confianza por campo, sin escribir; detecta por checksum los PDF nuevos de `<ejercicio>\Proveedores\<carpeta del proveedor>`; conserva el entrenamiento hecho y su corpus de regresión.
@@ -13,8 +14,13 @@ Motor que reconoce los campos de un PDF de compra (texto nativo y OCR, proveedor
 ## Decisions
 - 2026-10-28 13:30 · Creado en la carga inicial de requisitos.
 - 2026-10-29 17:45 · Referencia funcional de la extracción actual: la pantalla «Facturas Proveedores» de ProConta antiguo (`frmEntradaFacturas`), en `sources/proconta-antiguo/compras/ANALISIS-FUNCIONAL.md` § 2.3-2.7 (proveedor por NIF, extracción automática del PDF y botón «Auto», VIES, conversión de moneda, captura del portapapeles) y § 6-7 (reglas y defectos, que no se reproducen).
-- 2026-10-31 16:54 · Los PDF de compras viven en `<raíz>\<ejercicio>\Proveedores\<carpeta del proveedor>` (hoy D:\SynologyBox\SynologyDrive\2026\Proveedores), fuera de Git; son el corpus de regresión (A06) y se leen solo en local. Se mantiene el escaneo de los PDF del ejercicio, que detecta los nuevos por checksum y los incorpora a Facturas de Compra; las facturas que llegan al correo de ProContaVF se guardan en esa misma estructura, creando la carpeta del proveedor (nombre comercial) si no existe.
+- 2026-10-31 16:54 · [replaced by 2026-11-05 11:24] Los PDF de compras viven en `<raíz>\<ejercicio>\Proveedores\<carpeta del proveedor>` (hoy D:\SynologyBox\SynologyDrive\2026\Proveedores), fuera de Git; son el corpus de regresión (A06) y se leen solo en local. Se mantiene el escaneo de los PDF del ejercicio, que detecta los nuevos por checksum y los incorpora a Facturas de Compra; las facturas que llegan al correo de ProContaVF se guardan en esa misma estructura, creando la carpeta del proveedor (nombre comercial) si no existe.
 - 2026-10-31 16:54 · El entrenamiento se conserva portando a C# las reglas y umbrales del motor VB y validándolos con el corpus; no se reentrena desde cero.
+- 2026-11-05 11:24 · Los PDF de compras viven en `<carpeta de datos>\<carpeta de la sociedad>\<ejercicio>\Proveedores\<carpeta del proveedor>`, donde la carpeta de datos es la que contiene la BD compartida y la de la sociedad es un parámetro de la sociedad (ver organizacion/sociedades-ejercicios); fuera de Git. Se mantiene el escaneo de los PDF del ejercicio, que detecta los nuevos por checksum (MD5) y los incorpora a Facturas de Compra; las facturas que lleguen al correo de ProContaVF se guardarán en esa misma estructura, creando la carpeta del proveedor (nombre comercial) si no existe.
+- 2026-11-05 11:24 · Fuente del port: el motor VB del desarrollo anterior, en el equipo del propietario (`C:\Docs\Codigo\ProContaVF\ProConta\ProConta.Terceros\src\ProConta.Facturacion.Aplicacion\ReconocimientoFacturasCompra`: `MotorReconocimientoFacturaCompra.vb` reconoce los campos y `ServicioProcesamientoFacturaCompra.vb` orquesta PDF nativo, Textract y persistencia), fuera del repositorio; prevalece sobre la especificación de `sources/` donde difieran, salvo en las decisiones de este nodo.
+- 2026-11-05 11:24 · Corpus de regresión: copia de los PDF de 2025 y 2026 en `C:\Docs\Codigo\ProContaVF\ERP\FacturasCompra` (fuera de Git); los valores correctos son los de FacturasCompra en la copia de pruebas `ProConta-copia.accdb`. Una diferencia se informa como posible error de lo grabado, sin deformar el motor para reproducirla.
+- 2026-11-05 11:24 · OCR con AWS Textract solo para los PDF sin texto nativo útil (escaneados o imagen), desactivable por sociedad y con el secreto cifrado con DPAPI; no se usa como segunda lectura de los PDF nativos: los casos dudosos quedan marcados para revisión.
+- 2026-11-05 11:24 · Bibliotecas y servicios aprobados: PdfPig (texto con posición), WebView2 (visor en compras/pantallas), Frankfurter (cambio del BCE, sin clave) y el servicio VNifV2 de la AEAT (razón social por NIF, con el certificado de la sociedad aunque VeriFactu esté desactivado; sin certificado no se consulta).
 
 ## Requirements
 - 2026-10-28 12:28 · Quizá la parte más importante es el módulo de FacturasCompra ya que se ha hecho un entrenamiento algo laborioso para afinar el reconocimiento automático de los campos de facturas de compra (PDF).
@@ -30,3 +36,8 @@ Motor que reconoce los campos de un PDF de compra (texto nativo y OCR, proveedor
 - 2026-10-31 16:54 · 3. a
 - 2026-10-31 16:54 · answer: conservar el entrenamiento → (a) portar las reglas y umbrales del motor VB y validarlos con el corpus
 - 2026-10-29 17:45 · Derived from compras/pantallas: extraer de cada PDF de la lista de facturas de compra los campos principales (número de factura, fecha, CIF del proveedor, importes) como propuesta corregible, al menos como lo hace hoy frmEntradaFacturas (sources/proconta-antiguo/compras/ANALISIS-FUNCIONAL.md § 2).
+- 2026-11-05 11:01 · P1. El código lo tienes en: C:\Docs\Codigo\ProContaVF\ProConta\ProConta.Terceros\src\ProConta.Facturacion.Aplicacion\ReconocimientoFacturasCompra El motor principal que reconoce los campos está en: [MotorReconocimientoFacturaCompra.vb]La orquestación entre PDF nativo, Textract y persistencia está en: [ServicioProcesamientoFacturaCompra.vb]
+- 2026-11-05 11:18 · P2. Te he hecho una copia de las facturas del 2025 y 2026 en C:\Docs\Codigo\ProContaVF\ERP\FacturasCompra para que lo tengas más fácil. Son las mismas que deberían estar en ProConta-copia.accdb
+- 2026-11-05 11:18 · P3. a) Solo con facturas no nativas PDF.
+- 2026-11-05 11:18 · P4. Ok
+- 2026-11-05 11:18 · answer: OCR → Textract solo con los PDF no nativos; bibliotecas → PdfPig, WebView2, Frankfurter y AEAT VNifV2 aprobadas

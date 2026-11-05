@@ -38,6 +38,7 @@ El análisis funcional de la implementación anterior y la lista de lo que neces
 - 2026-11-01 17:20 · Derived from facturacion/factura-venta: implementar el paso fiscal de la validación que hoy cubre el provisional «sin VeriFactu».
 - 2026-11-05 10:39 · Ok, pero hay que tener en cuenta que durante un período trabajaremos sin VeriFactu (no será obligatorio hasta el 2028), por lo que se ha de poder gestionar todo el ciclo de facturación sin el QR.
 - 2026-11-05 10:43 · Ok, adelante con ello. Será un parámetro general para activar VeriFactu (desactivado por defecto).
+- 2026-11-05 11:24 · Derived from compras: el certificado de la sociedad se puede usar para consultar la razón social por NIF en la AEAT (VNifV2) aunque VeriFactu esté desactivado.
 
 ## Análisis de la implementación anterior
 Fuentes: `sources/traspaso-2026-10-03/referencias/Facturacion/docs/DECISIONES.md` (2026-08-09 a 2026-08-13), `MODELO_FACTURA.md`, `ARQUITECTURA.md`, `MENSAJES.md`, la migración `referencias/ActualizadorEsquema/database/migrations/20260929_016_verifactu.json` y, en el disco del propietario (fuera de Git), `C:\Docs\Codigo\ProContaVF\ProConta\ProConta.VeriFactu` (adaptador VB.NET, sus pruebas y su `docs/DECISIONES.md`) y `ProConta\VeriFactu-main`. Revisado en solo lectura el 2026-11-01.

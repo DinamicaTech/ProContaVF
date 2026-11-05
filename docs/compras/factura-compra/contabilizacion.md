@@ -6,6 +6,7 @@ threads:
   - 2026-10-28 12:30 · Carga de requisitos | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GRNMH95h9tnQp4dmEPHmw1w
   - 2026-10-29 18:54 · Validar prototipos de pantallas principales | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GGPu88XoVeXWyHsuxbrF2kK
   - 2026-10-31 16:58 · Cerrar preguntas pendientes del proyecto | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5G7UyrP5eDJV4Ds6CCBozdbu
+  - 2026-11-05 11:24 · Construir facturas de compra | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GEbtcX2Z7baM2yhwHY2wJXj
 ---
 ## Summary
 Genera los asientos de las facturas de compra con el motor de contabilidad/asientos.
@@ -23,6 +24,7 @@ Genera los asientos de las facturas de compra con el motor de contabilidad/asien
 - 2026-10-31 07:46 · Importación: la factura lleva un solo importe y se desglosa siempre al tipo de IVA vigente (21 % por defecto), lleve o no IVA desglosado: el gasto es el importe / (1 + tipo) y el resto va a la cuenta de IVA soportado en importaciones de la sociedad (4724001), sin cuenta 477. Intracomunitarias con inversión del sujeto pasivo: doble apunte 472/477 al tipo vigente sobre la base, con las cuentas parametrizadas por sociedad. Moneda: los importes se guardan en la moneda de la factura y se pasan a euros con el cambio oficial del día de la factura (o del último día hábil anterior, hasta 7 días); sin cambio no se deja contabilizar. La contabilidad y el libro de IVA van siempre en euros.
 - 2026-10-31 07:48 · Cada factura de importación se contabiliza sola, con su IVA de importación al 21 % a la 4724001 (decisión de 07:46): no hay asiento conjunto de la mercancía con la factura del transitario ni se descuenta el IVA del DUA. El DUA es una factura independiente del transitario o agente de aduanas, que se contabiliza como una factura nacional, con lo que paga por cuenta nuestra como suplido (5550010, sin IVA).
 - 2026-10-31 16:54 · La cuenta de gasto de una factura de compra es la del proveedor (valor por defecto de su ficha, que se actualiza desde la factura según terceros/roles 2026-10-29 18:14), con la última usada como propuesta revisable; no hay reglas por concepto (resuelve P-08).
+- 2026-11-05 11:24 · Al contabilizar se graba, en la misma transacción que el asiento, el registro de la factura en el libro de IVA soportado (contabilidad/procesos), que usarán los modelos 303, 390 y 347. No se genera apunte de pago: se concilia con Norma 43.
 
 ## Requirements
 - 2026-10-28 12:28 · From sources/01_ESPECIFICACION_FUNCIONAL.docx § 14 RF-COM-07: contabilización de compra, contrato incompleto
@@ -42,3 +44,7 @@ Genera los asientos de las facturas de compra con el motor de contabilidad/asien
 - 2026-10-31 07:41 · 2. Siempre se aplica el 21% en importaciones, lleve o no lleve IVA desglosado
 - 2026-10-31 07:48 · El DUA será una factura independiente suministrada por el carrier o agente de aduanas, por lo que no la tenemos en cuenta.
 - 2026-10-29 17:45 · Derived from compras/pantallas: generar el asiento contable (con su libro de IVA, analítica y notas) de cada factura revisada, y deshacerlo o rehacerlo, como hace hoy frmEntradaFacturas (sources/proconta-antiguo/compras/ANALISIS-FUNCIONAL.md § 3-4).
+- 2026-11-05 11:18 · P6. a
+- 2026-11-05 11:18 · answer: libro de IVA soportado → compras graba su registro al contabilizar, en la misma operación que el asiento
+- 2026-11-05 11:18 · P7 a (conciliamos con N43)
+- 2026-11-05 11:18 · answer: pago de la factura → contabilizar solo registra la factura; el pago se concilia con N43
