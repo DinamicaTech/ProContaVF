@@ -337,6 +337,8 @@ public sealed class ServicioFacturasCompra(
         leida.Notas = factura.Notas;
         leida.Operacion = factura.Operacion;
         leida.Producto = factura.Producto;
+        // Es una lectura nueva: queda pendiente de revisar aunque la factura se hubiera guardado antes.
+        leida.RequiereRevision = true;
         var reemplazo = await bd.EnTransaccionAsync(s => RepositorioFacturasCompra.ReemplazarPdfAsync(s, leida), cancelacion);
         if (!reemplazo.EsCorrecto) return Resultado<ImportacionPdf>.Fallo(reemplazo.Errores);
         return Resultado<ImportacionPdf>.Correcto(await ImportarAsync(ctx, ruta2, cancelacion));

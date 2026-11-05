@@ -59,12 +59,14 @@ public sealed class FilaCompraVM(FilaFacturaCompra datos) : ModeloVista
 
     /// <summary>
     /// Columna «Mín. %»: la confianza más baja de NIF, número, fecha e importes, para revisar primero las peores. Una
-    /// factura ya guardada desde la pantalla sale «Revisada»; sin reconocimiento (del ERP o a mano), vacía.
+    /// factura ya guardada desde la pantalla sale «Revisada» (salvo que una lectura nueva, al separarla, la deje pendiente); sin reconocimiento (del ERP o a mano), vacía.
     /// </summary>
-    public string Minimo => _datos.Version > 0 ? "Revisada" : _datos.ConfianzaMinima is { } c ? $"{Math.Round(c * 100m):0} %" : "";
+    public string Minimo => Revisada ? "Revisada" : _datos.ConfianzaMinima is { } c ? $"{Math.Round(c * 100m):0} %" : "";
+
+    private bool Revisada => _datos.Version > 0 && !_datos.RequiereRevision;
 
     /// <summary>Orden de «Mín. %»: de la más baja a la más alta, luego las revisadas y al final las que no tienen reconocimiento.</summary>
-    public decimal MinimoOrden => _datos.Version > 0 ? 2m : _datos.ConfianzaMinima ?? 3m;
+    public decimal MinimoOrden => Revisada ? 2m : _datos.ConfianzaMinima ?? 3m;
 
     /// <summary>Búsqueda libre; con «f+» solo en la ruta del fichero.</summary>
     public bool Contiene(string texto)

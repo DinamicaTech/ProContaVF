@@ -113,12 +113,17 @@ internal static class RepositorioFacturasCompra
             r => (Id: r.Entero("IdAsiento"), Fecha: r.FechaNula("FechaContable"), Descripcion: r.Texto("Descripcion") ?? ""),
             idSociedadEjercicio, numeroFactura, cuentaProveedor);
         if (cabecera.Id == 0) return null;
-        var apuntes = await s.ConsultarAsync(
-            "SELECT ap.Orden, ap.CuentaContable, ap.ImporteDebe, ap.ImporteHaber, ap.Descripcion, cc.Nombre FROM Apuntes AS ap LEFT JOIN CuentasContables AS cc " +
-            "ON (ap.CuentaContable = cc.Codigo AND cc.IdSociedadEjercicio = ?) WHERE ap.IdAsiento = ? ORDER BY ap.Orden",
-            r => new ApunteFactura(r.Texto("CuentaContable")?.Trim() ?? "", r.Texto("Nombre")?.Trim(), r.DecimalNulo("ImporteDebe") ?? 0m,
-                r.DecimalNulo("ImporteHaber") ?? 0m, r.Texto("Descripcion")?.Trim()),
-            idSociedadEjercicio, cabecera.Id);
+        // Sin parámetros en el ON: Access los recibe en otro orden y devolvía los apuntes de otro asiento.
+        var leidos = await s.ConsultarAsync(
+            "SELECT Orden, CuentaContable, ImporteDebe, ImporteHaber, Descripcion FROM Apuntes WHERE IdAsiento = ? ORDER BY Orden",
+            r => (Cuenta: r.Texto("CuentaContable")?.Trim() ?? "", Debe: r.DecimalNulo("ImporteDebe") ?? 0m, Haber: r.DecimalNulo("ImporteHaber") ?? 0m,
+                Descripcion: r.Texto("Descripcion")?.Trim()),
+            cabecera.Id);
+        var nombres = new Dictionary<string, string?>(StringComparer.Ordinal);
+        foreach (var cuenta in leidos.Select(x => x.Cuenta).Where(x => x.Length > 0).Distinct())
+            nombres[cuenta] = (await s.EscalarAsync("SELECT TOP 1 Nombre FROM CuentasContables WHERE IdSociedadEjercicio = ? AND Codigo = ?",
+                idSociedadEjercicio, cuenta) as string)?.Trim();
+        var apuntes = leidos.Select(x => new ApunteFactura(x.Cuenta, nombres.GetValueOrDefault(x.Cuenta), x.Debe, x.Haber, x.Descripcion)).ToList();
         // Antes de 1901 es la fecha vacía del ERP.
         var fecha = cabecera.Fecha is { Year: > 1900 } f ? f : (DateTime?)null;
         return new AsientoFactura(cabecera.Id, fecha, cabecera.Descripcion, apuntes);

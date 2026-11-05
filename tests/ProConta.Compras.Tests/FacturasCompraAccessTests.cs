@@ -350,4 +350,35 @@ public sealed class FacturasCompraAccessTests : IDisposable
         segunda = (await servicio.CargarAsync(segunda.IdRegistro))!;
         Assert.Equal("Compras.SepararContabilizada", (await servicio.SepararAsync(_ctx, segunda, 2, "otra")).Error!.Codigo);
     }
+    [Fact]
+    public async Task El_asiento_de_una_factura_del_erp_trae_sus_propios_apuntes_con_el_nombre_de_la_cuenta()
+    {
+        await EmpresaConProveedorAsync();
+        await FacturaAntiguaAsync("FV260098", new DateTime(2026, 1, 10), "55555555555555555555555555555555");
+        await Bd.EjecutarAsync(async s =>
+        {
+            const string asiento = "INSERT INTO Asientos (IdSociedadEjercicio, FechaContable, Descripcion, TipoAsiento, EstadoAsiento, OperadorCreacion, FechaHoraCreacion, TotalDebe, TotalHaber, Version) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+            const string apunte = "INSERT INTO Apuntes (IdAsiento, Orden, CuentaContable, ImporteDebe, ImporteHaber, TipoApunte, GeneradoAutomaticamente, NumeroDocumento, Documento) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
+            // Otro asiento antes, para que el de la factura no tenga el mismo número que nada más.
+            await s.EjecutarAsync(asiento, 9001, new DateTime(2026, 1, 5), "Venta", (byte)1, (byte)1, "prueba", DateTime.Now, 500m, 500m, 1);
+            var otro = await s.UltimoIdAsync();
+            await s.EjecutarAsync(apunte, otro, (short)1, "4300001", 500m, null, (byte)0, false, "V1", null);
+            await s.EjecutarAsync(apunte, otro, (short)2, "7000001", null, 500m, (byte)0, false, "V1", null);
+            await s.EjecutarAsync(asiento, 9001, new DateTime(2026, 1, 10), "Emisor Ficticio S.L.", (byte)1, (byte)1, "prueba", DateTime.Now, 10m, 10m, 1);
+            var propio = await s.UltimoIdAsync();
+            await s.EjecutarAsync(apunte, propio, (short)1, "4000001", null, 10m, (byte)0, false, "FV260098", @"X:\2026\Proveedores\Ficticio\f.pdf");
+            await s.EjecutarAsync(apunte, propio, (short)2, "6000000", 10m, null, (byte)0, false, "FV260098", null);
+            return true;
+        });
+        await Bd.EjecutarAsync(s => s.EjecutarAsync("UPDATE FacturasCompra SET Exportada = ? WHERE NumeroFactura = ?", true, "FV260098"));
+        var servicio = Servicio();
+        var fila = (await servicio.ListarAsync(_ctx)).Single(x => x.NumeroFactura == "FV260098");
+        var f = (await servicio.CargarAsync(fila.IdRegistro))!;
+
+        var a = await servicio.AsientoAsync(_ctx, f);
+        Assert.NotNull(a);
+        Assert.Equal("Emisor Ficticio S.L.", a!.Descripcion);
+        Assert.Equal([("4000001", "Emisor Ficticio S.L.", 0m, 10m), ("6000000", null, 10m, 0m)],
+            a.Apuntes.Select(x => (x.Cuenta, x.NombreCuenta, x.Debe, x.Haber)));
+    }
 }
