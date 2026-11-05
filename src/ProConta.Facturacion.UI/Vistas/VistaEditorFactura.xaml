@@ -36,7 +36,7 @@
           </Border>
           <Border Style="{StaticResource Pildora}" Background="{StaticResource Pincel.AvisoSuave}" BorderBrush="{StaticResource Pincel.AvisoBorde}"
                   Visibility="{Binding SinVeriFactu, Converter={StaticResource Visible}}"
-                  ToolTip="La validación se ha hecho con el paso provisional: esta factura no se ha enviado a la AEAT. Solo vale en la BD de pruebas.">
+                  ToolTip="Esta factura se validó con VeriFactu desactivado: no se ha comunicado a la AEAT.">
             <TextBlock Text="Sin VeriFactu" Style="{StaticResource Texto.Pildora}" />
           </Border>
           <TextBlock Text="{Binding Subtitulo}" Style="{StaticResource Texto.Apagado}" VerticalAlignment="Center" Margin="6,0,0,0" />
@@ -57,10 +57,10 @@
           <Button Content="Duplicar" Command="{Binding DuplicarCommand}" Margin="8,0,0,0" ToolTip="{Binding AyudaDuplicar}" />
           <Button Content="{Binding TextoEliminar}" Command="{Binding EliminarCommand}" Style="{StaticResource Boton.Peligro}" Margin="8,0,0,0"
                   Visibility="{Binding EsBorrador, Converter={StaticResource Visible}}" ToolTip="{Binding AyudaEliminar}" />
-          <Button Content="PDF" IsEnabled="False" Margin="8,0,0,0" ToolTipService.ShowOnDisabled="True" ToolTip="{Binding MotivoPdf}"
-                  Visibility="{Binding EsValidada, Converter={StaticResource Visible}}" />
+          <Button Content="{Binding TextoPdf}" Command="{Binding PdfCommand}" Margin="8,0,0,0" ToolTip="{Binding AyudaPdf}"
+                  Visibility="{Binding MostrarPdf, Converter={StaticResource Visible}}" />
           <Button Content="Enviar a VeriFactu" IsEnabled="False" Margin="8,0,0,0" ToolTipService.ShowOnDisabled="True" ToolTip="{Binding MotivoVeriFactu}"
-                  Visibility="{Binding EsValidada, Converter={StaticResource Visible}}" />
+                  Visibility="{Binding MostrarEnviarVeriFactu, Converter={StaticResource Visible}}" />
           <Button Content="Rectificar…" Command="{Binding RectificarCommand}" Style="{StaticResource Boton.Primario}" Margin="8,0,0,0"
                   Visibility="{Binding EsValidada, Converter={StaticResource Visible}}" ToolTip="Crea un borrador rectificativo que anula esta factura por completo" />
           <Button Content="Validar…" Command="{Binding ValidarCommand}" Style="{StaticResource Boton.Primario}" Margin="8,0,0,0"

@@ -14,7 +14,8 @@ internal static class RepositorioFacturas
         "f.TipoIdentificacionCliente, f.DireccionCliente, f.CodigoPostalCliente, f.PoblacionCliente, f.ProvinciaCliente, f.EmailCliente, " +
         "f.NIFEmisor, f.NombreEmisor, f.FechaFactura, f.FechaOperacion, f.FechaInicioValidez, f.FechaFinValidez, f.FechaCreacion, f.FechaHoraEmision, " +
         "f.FormaDePago, f.DiaDePago, f.Descripcion, f.NotasInternas, f.TipoRetencion, f.TipoFactura, f.TipoRectificativa, f.EstadoFactura, " +
-        "f.IdFacturaRectificada, f.IdAsientoContable, f.FechaExportacionContable, f.Historial, f.SinVeriFactu, f.IdFacturaProgramada, f.Version, f.MotivoRectificacion";
+        "f.IdFacturaRectificada, f.IdAsientoContable, f.FechaExportacionContable, f.Historial, f.SinVeriFactu, f.IdFacturaProgramada, f.Version, f.MotivoRectificacion, " +
+        "f.DireccionEmisor, f.CodigoPostalEmisor, f.PoblacionEmisor, f.ProvinciaEmisor";
 
     private const string ColumnasLinea =
         "IdLineaFactura, NumeroLinea, IdConcepto, Nombre, Descripcion, NotasInternas, Fecha, Cantidad, PrecioUnitario, DescuentoPorcentaje, DescuentoImporte, " +
@@ -46,6 +47,10 @@ internal static class RepositorioFacturas
             r.Texto("DireccionCliente"), r.Texto("CodigoPostalCliente"), r.Texto("PoblacionCliente"), r.Texto("ProvinciaCliente"), r.Texto("EmailCliente")),
         NifEmisor = r.Texto("NIFEmisor"),
         NombreEmisor = r.Texto("NombreEmisor"),
+        DireccionEmisor = r.Texto("DireccionEmisor"),
+        CodigoPostalEmisor = r.Texto("CodigoPostalEmisor"),
+        PoblacionEmisor = r.Texto("PoblacionEmisor"),
+        ProvinciaEmisor = r.Texto("ProvinciaEmisor"),
         FechaFactura = FechaReal(r, "FechaFactura"),
         FechaOperacion = FechaReal(r, "FechaOperacion"),
         FechaInicioValidez = FechaReal(r, "FechaInicioValidez"),
@@ -181,11 +186,11 @@ internal static class RepositorioFacturas
         s.ActualizarConVersionAsync(
             "UPDATE Facturas SET NumeroFactura = ?, FechaFactura = ?, FechaHoraEmision = ?, EstadoFactura = ?, CIF = ?, Nombre = ?, RazonSocial = ?, PaisCliente = ?, " +
             "TipoIdentificacionCliente = ?, DireccionCliente = ?, CodigoPostalCliente = ?, PoblacionCliente = ?, ProvinciaCliente = ?, EmailCliente = ?, NIFEmisor = ?, " +
-            "NombreEmisor = ?, Historial = ?, SinVeriFactu = ?, Version = Version + 1 WHERE IdFactura = ? AND Version = ? AND EstadoFactura = ?",
+            "NombreEmisor = ?, DireccionEmisor = ?, CodigoPostalEmisor = ?, PoblacionEmisor = ?, ProvinciaEmisor = ?, Historial = ?, SinVeriFactu = ?, Version = Version + 1 WHERE IdFactura = ? AND Version = ? AND EstadoFactura = ?",
             f.Rotulo,
             f.NumeroFactura, f.FechaFactura, f.FechaHoraEmision, (byte)f.Estado, Nulo(f.Cliente.Nif), Nulo(f.Cliente.Nombre), Nulo(f.Cliente.RazonSocial),
             Nulo(f.Cliente.Pais), f.Cliente.TipoIdentificacion, Nulo(f.Cliente.Direccion), Nulo(f.Cliente.CodigoPostal), Nulo(f.Cliente.Poblacion),
-            Nulo(f.Cliente.Provincia), Nulo(f.Cliente.Email), Nulo(f.NifEmisor), Nulo(f.NombreEmisor), f.Historial, f.SinVeriFactu,
+            Nulo(f.Cliente.Provincia), Nulo(f.Cliente.Email), Nulo(f.NifEmisor), Nulo(f.NombreEmisor), Nulo(f.DireccionEmisor), Nulo(f.CodigoPostalEmisor), Nulo(f.PoblacionEmisor), Nulo(f.ProvinciaEmisor), f.Historial, f.SinVeriFactu,
             f.IdFactura, f.Version, (byte)EstadoFactura.Borrador);
 
     /// <summary>Cambia el estado de una factura (y su historial) solo si está en el estado esperado.</summary>

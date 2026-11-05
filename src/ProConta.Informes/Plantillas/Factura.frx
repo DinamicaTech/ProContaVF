@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Report ScriptLanguage="CSharp" ReportInfo.Created="11/05/2026 10:00:00" ReportInfo.Modified="11/05/2026 10:00:00" ReportInfo.CreatorVersion="2026.2.3">
+  <Dictionary>
+    <BusinessObjectDataSource Name="Factura" ReferenceName="Factura" DataType="System.Int32" Enabled="true">
+      <Column Name="Titulo" DataType="System.String"/>
+      <Column Name="Aviso" DataType="System.String"/>
+      <Column Name="Numero" DataType="System.String"/>
+      <Column Name="Fecha" DataType="System.String"/>
+      <Column Name="FechaOperacion" DataType="System.String"/>
+      <Column Name="Periodo" DataType="System.String"/>
+      <Column Name="Descripcion" DataType="System.String"/>
+      <Column Name="Rectifica" DataType="System.String"/>
+      <Column Name="EmisorNombre" DataType="System.String"/>
+      <Column Name="EmisorNif" DataType="System.String"/>
+      <Column Name="EmisorDomicilio" DataType="System.String"/>
+      <Column Name="ClienteNombre" DataType="System.String"/>
+      <Column Name="ClienteNif" DataType="System.String"/>
+      <Column Name="ClienteDomicilio" DataType="System.String"/>
+      <Column Name="FormaPago" DataType="System.String"/>
+      <Column Name="Total" DataType="System.String"/>
+    </BusinessObjectDataSource>
+    <BusinessObjectDataSource Name="Lineas" ReferenceName="Lineas" DataType="System.Int32" Enabled="true">
+      <Column Name="Concepto" DataType="System.String"/>
+      <Column Name="Cantidad" DataType="System.String"/>
+      <Column Name="Precio" DataType="System.String"/>
+      <Column Name="Descuento" DataType="System.String"/>
+      <Column Name="Base" DataType="System.String"/>
+      <Column Name="Iva" DataType="System.String"/>
+      <Column Name="Total" DataType="System.String"/>
+    </BusinessObjectDataSource>
+    <BusinessObjectDataSource Name="Resumen" ReferenceName="Resumen" DataType="System.Int32" Enabled="true">
+      <Column Name="Etiqueta" DataType="System.String"/>
+      <Column Name="Importe" DataType="System.String"/>
+    </BusinessObjectDataSource>
+  </Dictionary>
+  <ReportPage Name="Page1" PaperWidth="210" PaperHeight="297" LeftMargin="15" RightMargin="15" TopMargin="15" BottomMargin="15">
+    <ReportTitleBand Name="Cabecera" Width="680.4" Height="215">
+      <TextObject Name="Emisor" Width="340.2" Height="75.6" CanGrow="true" Text="[Factura.EmisorNombre]&#13;&#10;NIF: [Factura.EmisorNif]&#13;&#10;[Factura.EmisorDomicilio]" Font="Arial, 10pt"/>
+      <TextObject Name="Titulo" Left="340.2" Width="340.2" Height="28.35" Text="[Factura.Titulo]" HorzAlign="Right" Font="Arial, 16pt, style=Bold"/>
+      <TextObject Name="Aviso" Left="340.2" Top="28.35" Width="340.2" Height="18.9" Text="[Factura.Aviso]" HorzAlign="Right" TextFill.Color="128, 0, 0" Font="Arial, 9pt, style=Bold"/>
+      <TextObject Name="Datos" Left="396.9" Top="47.25" Width="283.5" Height="66.15" Text="[Factura.Numero]&#13;&#10;Fecha: [Factura.Fecha]&#13;&#10;[Factura.FechaOperacion]&#13;&#10;[Factura.Periodo]" HorzAlign="Right" Font="Arial, 9pt"/>
+      <TextObject Name="Cliente" Top="94.5" Width="378" Height="75.6" CanGrow="true" Border.Lines="All" Border.Color="DarkGray" Padding="6, 4, 6, 4" Text="[Factura.ClienteNombre]&#13;&#10;NIF: [Factura.ClienteNif]&#13;&#10;[Factura.ClienteDomicilio]" Font="Arial, 10pt"/>
+      <TextObject Name="Descripcion" Top="179" Width="680.4" Height="32" CanGrow="true" Text="[Factura.Descripcion]&#13;&#10;[Factura.Rectifica]" Font="Arial, 10pt"/>
+    </ReportTitleBand>
+    <DataBand Name="BandaLineas" Top="243" Width="680.4" Height="20" CanGrow="true" DataSource="Lineas">
+      <TextObject Name="LinConcepto" Width="302.4" Height="20" CanGrow="true" Text="[Lineas.Concepto]" Font="Arial, 9pt"/>
+      <TextObject Name="LinCantidad" Left="302.4" Width="56.7" Height="20" Text="[Lineas.Cantidad]" HorzAlign="Right" Font="Arial, 9pt"/>
+      <TextObject Name="LinPrecio" Left="359.1" Width="75.6" Height="20" Text="[Lineas.Precio]" HorzAlign="Right" Font="Arial, 9pt"/>
+      <TextObject Name="LinDescuento" Left="434.7" Width="56.7" Height="20" Text="[Lineas.Descuento]" HorzAlign="Right" Font="Arial, 9pt"/>
+      <TextObject Name="LinBase" Left="491.4" Width="75.6" Height="20" Text="[Lineas.Base]" HorzAlign="Right" Font="Arial, 9pt"/>
+      <TextObject Name="LinIva" Left="567" Width="37.8" Height="20" Text="[Lineas.Iva]" HorzAlign="Right" Font="Arial, 9pt"/>
+      <TextObject Name="LinTotal" Left="604.8" Width="75.6" Height="20" Text="[Lineas.Total]" HorzAlign="Right" Font="Arial, 9pt"/>
+      <DataHeaderBand Name="CabeceraLineas" Top="220" Width="680.4" Height="20" RepeatOnEveryPage="true">
+        <TextObject Name="CabConcepto" Width="302.4" Height="20" Border.Lines="Bottom" Text="Concepto" Font="Arial, 9pt, style=Bold"/>
+        <TextObject Name="CabCantidad" Left="302.4" Width="56.7" Height="20" Border.Lines="Bottom" Text="Cant." HorzAlign="Right" Font="Arial, 9pt, style=Bold"/>
+        <TextObject Name="CabPrecio" Left="359.1" Width="75.6" Height="20" Border.Lines="Bottom" Text="Precio" HorzAlign="Right" Font="Arial, 9pt, style=Bold"/>
+        <TextObject Name="CabDescuento" Left="434.7" Width="56.7" Height="20" Border.Lines="Bottom" Text="Dto." HorzAlign="Right" Font="Arial, 9pt, style=Bold"/>
+        <TextObject Name="CabBase" Left="491.4" Width="75.6" Height="20" Border.Lines="Bottom" Text="Base" HorzAlign="Right" Font="Arial, 9pt, style=Bold"/>
+        <TextObject Name="CabIva" Left="567" Width="37.8" Height="20" Border.Lines="Bottom" Text="IVA" HorzAlign="Right" Font="Arial, 9pt, style=Bold"/>
+        <TextObject Name="CabTotal" Left="604.8" Width="75.6" Height="20" Border.Lines="Bottom" Text="Total" HorzAlign="Right" Font="Arial, 9pt, style=Bold"/>
+      </DataHeaderBand>
+    </DataBand>
+    <DataBand Name="BandaResumen" Top="290" Width="680.4" Height="18" DataSource="Resumen">
+      <TextObject Name="ResEtiqueta" Left="340.2" Width="226.8" Height="18" Text="[Resumen.Etiqueta]" HorzAlign="Right" Font="Arial, 9pt"/>
+      <TextObject Name="ResImporte" Left="567" Width="113.4" Height="18" Text="[Resumen.Importe]" HorzAlign="Right" Font="Arial, 9pt"/>
+      <DataHeaderBand Name="SeparadorResumen" Top="268" Width="680.4" Height="14"/>
+    </DataBand>
+    <ReportSummaryBand Name="Totales" Top="315" Width="680.4" Height="62">
+      <TextObject Name="EtiquetaTotal" Left="340.2" Top="4" Width="226.8" Height="24" Border.Lines="Top" Text="Total a pagar" HorzAlign="Right" VertAlign="Center" Font="Arial, 11pt, style=Bold"/>
+      <TextObject Name="Total" Left="567" Top="4" Width="113.4" Height="24" Border.Lines="Top" Text="[Factura.Total]" HorzAlign="Right" VertAlign="Center" Font="Arial, 11pt, style=Bold"/>
+      <TextObject Name="FormaPago" Top="36" Width="680.4" Height="20" Text="[Factura.FormaPago]" Font="Arial, 9pt"/>
+    </ReportSummaryBand>
+    <PageFooterBand Name="Pie" Top="382" Width="680.4" Height="18.9">
+      <TextObject Name="Pagina" Width="680.4" Height="18.9" Text="Página [Page] de [TotalPages#]" HorzAlign="Center" Font="Arial, 8pt"/>
+    </PageFooterBand>
+  </ReportPage>
+</Report>

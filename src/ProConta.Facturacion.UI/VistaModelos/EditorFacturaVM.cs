@@ -49,6 +49,7 @@ public sealed class EditorFacturaVM : ModeloVista, IPestanaTrabajo, INotifyDataE
     private bool _puedeEditar;
     private bool _puedeValidar;
     private bool _puedeRectificar;
+    private bool _veriFactuActivo;
     private bool _cargando = true;
     private bool _guardadoFallido;
     private string? _errorCarga;
@@ -74,6 +75,7 @@ public sealed class EditorFacturaVM : ModeloVista, IPestanaTrabajo, INotifyDataE
         DuplicarCommand = new ComandoDelegado(() => _ = DuplicarAsync(), () => Guardada && _puedeEditar && !_cargando);
         EliminarCommand = new ComandoDelegado(() => _ = EliminarAsync(), () => EsBorrador && _puedeEditar && !_cargando);
         RectificarCommand = new ComandoDelegado(() => _ = RectificarAsync(), () => PuedeRectificar);
+        PdfCommand = new ComandoDelegado(() => _ = PdfAsync(), () => _p is null && !_f.EsNueva && !_cargando);
         BuscarClienteCommand = new ComandoDelegado(() => _ = BuscarClienteAsync(), () => EditableCliente);
         AsignarCuentaClienteCommand = new ComandoDelegado(() => _ = AsignarCuentaAsync(ClaseCuentaRol.Cliente), () => _cliente is not null && _puedeEditar && EsBorrador);
         AsignarCuentaRetencionCommand = new ComandoDelegado(() => _ = AsignarCuentaAsync(ClaseCuentaRol.Retencion), () => _cliente is not null && _puedeEditar && EsBorrador);
@@ -140,7 +142,15 @@ public sealed class EditorFacturaVM : ModeloVista, IPestanaTrabajo, INotifyDataE
             : _f.FechaFactura is { } d ? Formatos.Fecha(d) : "Fecha al validar");
     private string? NombreClienteFactura => _f.Cliente.EstaVacia ? null : _f.Cliente.NombreVisible;
     public string? TextoRectifica => _f.EsRectificativa && _f.NumeroFacturaRectificada is { } n ? $"Rectifica a {n}" : null;
-    public bool SinVeriFactu => _f.SinVeriFactu && !_f.EsBorrador;
+    public bool SinVeriFactu => _veriFactuActivo && _f.SinVeriFactu && !_f.EsBorrador;
+
+    /// <summary>El botón de VeriFactu solo se ve con el parámetro general activado.</summary>
+    public bool MostrarEnviarVeriFactu => _veriFactuActivo && EsValidada;
+    public bool MostrarPdf => _p is null;
+    public string TextoPdf => EsBorrador ? "Proforma en PDF" : "PDF";
+    public string AyudaPdf => EsBorrador
+        ? "Abre una proforma del borrador, sin número ni validez fiscal, con sus cambios guardados"
+        : "Abre el PDF de la factura y lo archiva si aún no lo está; el número y los importes no cambian";
 
     /// <summary>Banda de solo lectura: factura validada o perfil de consulta.</summary>
     public string? MotivoSoloLectura =>
@@ -530,6 +540,7 @@ public sealed class EditorFacturaVM : ModeloVista, IPestanaTrabajo, INotifyDataE
     public ICommand DuplicarCommand { get; }
     public ICommand EliminarCommand { get; }
     public ICommand RectificarCommand { get; }
+    public ICommand PdfCommand { get; }
     public ICommand BuscarClienteCommand { get; }
     public ICommand AsignarCuentaClienteCommand { get; }
     public ICommand AsignarCuentaRetencionCommand { get; }
@@ -542,8 +553,7 @@ public sealed class EditorFacturaVM : ModeloVista, IPestanaTrabajo, INotifyDataE
     public ICommand BajarLineaCommand { get; }
     public ICommand VolverCommand { get; }
 
-    public string MotivoPdf => "Llega con el desarrollo del PDF.";
-    public string MotivoVeriFactu => "Llega con el desarrollo de VeriFactu: hoy las facturas se validan sin enviarse a la AEAT (solo BD de pruebas).";
+    public string MotivoVeriFactu => "VeriFactu aún no está disponible en esta versión.";
 
     // ---------- carga ----------
 
@@ -596,6 +606,7 @@ public sealed class EditorFacturaVM : ModeloVista, IPestanaTrabajo, INotifyDataE
             _puedeEditar = await _s.Facturas.PuedeAsync(Acciones.FacturasEditar);
             _puedeValidar = await _s.Facturas.PuedeAsync(Acciones.FacturasValidar);
             _puedeRectificar = await _s.Facturas.PuedeAsync(Acciones.FacturasRectificar);
+            _veriFactuActivo = await _s.Facturas.VeriFactuActivoAsync();
             _config = await _s.Configuracion.ObtenerAsync(_s.Trabajo.IdSociedadEjercicio);
             _tiposIva = await _s.Apoyo.TiposIvaAsync();
             var centros = await _s.CentrosCoste.ListarAsync(_s.Trabajo.IdSociedad);
@@ -835,8 +846,7 @@ public sealed class EditorFacturaVM : ModeloVista, IPestanaTrabajo, INotifyDataE
         var serie = Serie?.Prefijo.Trim() ?? "";
         var fecha = _f.FechaFactura is { } d ? Formatos.Fecha(d) : Formatos.Fecha(DateTime.Today);
         var avisos = previas.Where(i => i.EsAviso).Select(i => i.Mensaje).ToList();
-        var mensaje = $"Se asignará el siguiente número de la serie {serie} con fecha {fecha}, se copiarán los datos del cliente y se generará el asiento. Después no se podrá cambiar." +
-                      $"{Environment.NewLine}{Environment.NewLine}Esta validación es provisional, «{_s.Facturas.NombrePasoFiscal}»: la factura no se envía a la AEAT y solo vale en la BD de pruebas.";
+        var mensaje = $"Se asignará el siguiente número de la serie {serie} con fecha {fecha}, se copiarán los datos del cliente y se generará el asiento. Después no se podrá cambiar.";
         var opcion = _modulo.Dialogos.Preguntar("Validar la factura", mensaje, avisos.Count > 0 ? avisos : null,
             new OpcionMensaje("Cancelar", "Vuelve al borrador sin validar", Cancelar: true),
             new OpcionMensaje(avisos.Count > 0 ? "Validar con total cero" : "Validar", "Numera la factura y genera el asiento", Principal: true));
@@ -849,6 +859,15 @@ public sealed class EditorFacturaVM : ModeloVista, IPestanaTrabajo, INotifyDataE
         else
             MostrarErrores($"Factura {r.Factura!.NumeroFactura} validada sin asiento", r.ErrorContabilizacion ?? [],
                 "La factura ya tiene su número y no cambia. El asiento no se ha podido generar; corrige lo que se indica y contabilízala desde Facturas.");
+    }
+
+    private async Task PdfAsync()
+    {
+        if (TieneCambios && EsBorrador && !await GuardarAsync()) return;
+        var r = await _s.Pdf.ObtenerAsync(_f.IdFactura, _s.Actor);
+        if (!r.EsCorrecto) { MostrarErrores("No se ha podido crear el PDF", r.Errores); return; }
+        if (r.Valor.Generado && !r.Valor.EsProforma) await RecargarAsync(_f.IdFactura);
+        _modulo.Dialogos.AbrirArchivo(r.Valor.Ruta);
     }
 
     private async Task DuplicarAsync()

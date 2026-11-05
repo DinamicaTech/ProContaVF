@@ -62,6 +62,7 @@ public sealed class ProgramadasAccessTests : IDisposable
     private async Task PrepararAsync()
     {
         await DatosSinteticos.SociedadAsync(Bd, "T01", "Sociedad sintética SL");
+        await Bd.EjecutarAsync(s => s.EjecutarAsync("UPDATE Sociedades SET DireccionFiscal = ?, CodigoPostalFiscal = ?, PoblacionFiscal = ? WHERE IdSociedad = ?", "Calle Sintética 1", "08001", "Barcelona", "T01"));
         await Bd.EjecutarAsync(async s =>
         {
             foreach (var (tipo, descripcion, rect) in new[] { ("F1", "Factura", false), ("R4", "Rectificativa (resto)", true) })

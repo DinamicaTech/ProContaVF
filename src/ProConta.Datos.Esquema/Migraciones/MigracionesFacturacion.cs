@@ -166,4 +166,24 @@ public static class MigracionesFacturacion
         await s.EjecutarAsync($"ALTER TABLE [{tabla}] ALTER COLUMN [Periodicidad] TEXT(15) NOT NULL DEFAULT 'MENSUAL'");
         await s.EjecutarAsync($"ALTER TABLE [{tabla}] DROP COLUMN [PeriodicidadAnterior]");
     }
+
+    /// <summary>
+    /// Facturar sin VeriFactu y PDF (facturacion/verifactu, facturacion/factura-venta 2026-11-05): parámetro general
+    /// Configuracion.VeriFactuActivo, por defecto no; domicilio fiscal y carpeta de documentos de cada empresa, y domicilio
+    /// del emisor congelado en la factura al validar. Solo añade columnas.
+    /// </summary>
+    public static Migracion FacturasSinVeriFactu { get; } = new(
+        "20261105_1100_FACTURAS_SIN_VERIFACTU", 261105001,
+        "Parámetro para activar VeriFactu, domicilio fiscal y carpeta de documentos de la empresa, y domicilio del emisor en la factura.",
+        "facturacion/verifactu",
+        new AnadirColumna("Configuracion", "VeriFactuActivo", "YESNO NOT NULL DEFAULT No"),
+        new AnadirColumna("Sociedades", "DireccionFiscal", "TEXT(255)"),
+        new AnadirColumna("Sociedades", "CodigoPostalFiscal", "TEXT(20)"),
+        new AnadirColumna("Sociedades", "PoblacionFiscal", "TEXT(100)"),
+        new AnadirColumna("Sociedades", "ProvinciaFiscal", "TEXT(100)"),
+        new AnadirColumna("Sociedades", "RutaDocumentos", "TEXT(255)"),
+        new AnadirColumna("Facturas", "DireccionEmisor", "TEXT(255)"),
+        new AnadirColumna("Facturas", "CodigoPostalEmisor", "TEXT(20)"),
+        new AnadirColumna("Facturas", "PoblacionEmisor", "TEXT(100)"),
+        new AnadirColumna("Facturas", "ProvinciaEmisor", "TEXT(100)"));
 }

@@ -1,5 +1,6 @@
 using ProConta.Contabilidad.CentrosCoste;
 using ProConta.Facturacion.Conceptos;
+using ProConta.Facturacion.Documentos;
 using ProConta.Facturacion.Facturas;
 using ProConta.Facturacion.Programadas;
 using ProConta.Nucleo.Auditoria;
@@ -24,12 +25,16 @@ public sealed record ServiciosFacturacion(
     string RazonSocial,
     Actor Actor,
     ICatalogoCentrosCoste CentrosCoste,
-    ServicioProgramadas Programadas);
+    ServicioProgramadas Programadas,
+    ServicioPdfFacturas Pdf);
 
 /// <summary>Diálogos de facturación (en la vista, para que los modelos de vista se prueben sin ventanas).</summary>
 public interface IDialogosFacturacion
 {
     int Preguntar(string titulo, string mensaje, IReadOnlyList<string>? detalles, params OpcionMensaje[] opciones);
+
+    /// <summary>Abre un fichero con el programa predeterminado de Windows (el visor de PDF); si no puede, lo explica.</summary>
+    void AbrirArchivo(string ruta);
 
     /// <summary>Busca y elige un cliente; null si se cancela.</summary>
     ClienteElegible? ElegirCliente();

@@ -66,6 +66,14 @@ public sealed class ServicioFacturas
 
     public Task<bool> PuedeAsync(string accion) => _autorizador.PuedeAsync(accion);
 
+    /// <summary>Parámetro general «Activar VeriFactu» (Configuracion.VeriFactuActivo); desactivado si aún no hay configuración.</summary>
+    public Task<bool> VeriFactuActivoAsync() =>
+        _bd.EjecutarAsync(s => s.ConsultarPrimeroAsync("SELECT TOP 1 VeriFactuActivo FROM Configuracion ORDER BY IdConfiguracion", f => f.Logico("VeriFactuActivo")));
+
+    /// <summary>Datos actuales del cliente como quedarían congelados al validar (para la proforma de un borrador).</summary>
+    public async Task<InstantaneaCliente?> InstantaneaClienteAsync(int idCliente) =>
+        await TerceroDeClienteAsync(idCliente) is { } t ? Instantaneas.DeTercero(t) : null;
+
     // ---------- borrador ----------
 
     /// <summary>
@@ -242,6 +250,11 @@ public sealed class ServicioFacturas
         }
         var abierto = await _sociedades.ComprobarEjercicioAbiertoAsync(ejercicio.Contexto);
         if (!abierto.EsCorrecto) r.Add(new(abierto.Error!.Codigo, abierto.Error.Mensaje));
+        if (await VeriFactuActivoAsync())
+            r.Add(new("Facturas.VeriFactuNoDisponible", "VeriFactu está activado, pero aún no está disponible en esta versión, así que no se puede validar sin dejar la factura fuera de la AEAT. Desactívalo en Configuración › Parámetros y tablas › Configuración general para seguir validando sin VeriFactu."));
+        var configuracion = await new LectorConfiguracionEjercicio(_bd).ObtenerAsync(f.IdSociedadEjercicio);
+        if (string.IsNullOrWhiteSpace(configuracion?.DireccionEmisor))
+            r.Add(new("Facturas.EmisorSinDomicilio", $"La empresa {ejercicio.RazonSocial} no tiene domicilio fiscal, que es obligatorio en la factura. Escríbelo en Configuración › Parámetros y tablas › Empresas."));
 
         var (serie, ultimaFecha) = await _bd.EjecutarAsync(async s =>
             (await RepositorioFacturas.SerieAsync(s, f.IdSerie), await RepositorioFacturas.UltimaFechaSerieAsync(s, f.IdSerie, f.IdFactura)));
@@ -335,6 +348,10 @@ public sealed class ServicioFacturas
                 actual.Cliente = cliente;
                 actual.NifEmisor = config?.NifEmisor;
                 actual.NombreEmisor = config?.NombreEmisor;
+                actual.DireccionEmisor = config?.DireccionEmisor;
+                actual.CodigoPostalEmisor = config?.CodigoPostalEmisor;
+                actual.PoblacionEmisor = config?.PoblacionEmisor;
+                actual.ProvinciaEmisor = config?.ProvinciaEmisor;
                 actual.Estado = EstadoFactura.PendienteValidar;
                 actual.Estado = await _pasoFiscal.AlEmitirAsync(s, actual);
                 actual.Anotar(ahora, actor.Nombre, $"Validada con el número {actual.NumeroFactura} ({_pasoFiscal.Nombre})");

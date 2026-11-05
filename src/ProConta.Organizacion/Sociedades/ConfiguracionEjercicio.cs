@@ -19,7 +19,11 @@ public sealed record ConfiguracionEjercicio(
     decimal? PorcentajeRetencion,
     IReadOnlyList<TipoIvaEjercicio> TiposIva,
     string? CuentaIvaCero,
-    string? CuentaSuplido)
+    string? CuentaSuplido,
+    string? DireccionEmisor = null,
+    string? CodigoPostalEmisor = null,
+    string? PoblacionEmisor = null,
+    string? ProvinciaEmisor = null)
 {
     /// <summary>Cuenta de IVA repercutido para un porcentaje, o null si el ejercicio no la tiene configurada.</summary>
     public string? CuentaIva(decimal porcentaje)
@@ -37,7 +41,7 @@ public sealed class LectorConfiguracionEjercicio(IBaseDatos bd)
 
     public static Task<ConfiguracionEjercicio?> ObtenerAsync(ISesionDatos s, int idSociedadEjercicio) =>
         s.ConsultarPrimeroAsync(
-            "SELECT se.IdSociedadEjercicio, se.IdSociedad, se.Nombre, se.CIF, so.Nombre AS NombreSociedad, so.CIF AS CifSociedad, " +
+            "SELECT se.IdSociedadEjercicio, se.IdSociedad, se.Nombre, se.CIF, so.Nombre AS NombreSociedad, so.CIF AS CifSociedad, so.DireccionFiscal, so.CodigoPostalFiscal, so.PoblacionFiscal, so.ProvinciaFiscal, " +
             "se.FormaPagoDefecto, se.PorcentajeRetencion, se.TipoIVA1, se.TipoIVA2, se.TipoIVA3, se.TipoIVA4, " +
             "se.CuentaTipoIVA0, se.CuentaTipoIVA1, se.CuentaTipoIVA2, se.CuentaTipoIVA3, se.CuentaTipoIVA4, se.CuentaSuplido " +
             "FROM SociedadesEjercicios AS se LEFT JOIN Sociedades AS so ON se.IdSociedad = so.IdSociedad WHERE se.IdSociedadEjercicio = ?",
@@ -62,6 +66,10 @@ public sealed class LectorConfiguracionEjercicio(IBaseDatos bd)
             f.EsNulo("PorcentajeRetencion") ? null : f.Entero("PorcentajeRetencion"),
             tipos,
             f.Texto("CuentaTipoIVA0"),
-            f.Texto("CuentaSuplido"));
+            f.Texto("CuentaSuplido"),
+            f.Texto("DireccionFiscal"),
+            f.Texto("CodigoPostalFiscal"),
+            f.Texto("PoblacionFiscal"),
+            f.Texto("ProvinciaFiscal"));
     }
 }
