@@ -120,4 +120,50 @@ public static class MigracionesFacturacion
         "Motivo de la rectificación en Facturas (obligatorio en las rectificativas nuevas).",
         "facturacion/factura-venta",
         new AnadirColumna("Facturas", "MotivoRectificacion", "TEXT(255)"));
+
+    /// <summary>
+    /// Facturación programada (facturacion/programadas 2026-11-04): periodo de la primera factura (avanza en cada
+    /// generada), número de repeticiones como final alternativo a FechaFin, facturas ya generadas, qué se genera
+    /// (BORRADOR o VALIDAR), versión de fila, más cadencias (BIMESTRAL, CUATRIMESTRAL) y la cuenta de las líneas a 30
+    /// caracteres, como en LineasFactura. Solo añade y amplía columnas: no cambia los datos que ya hay.
+    /// </summary>
+    public static Migracion FacturasProgramadas { get; } = new(
+        "20261104_1820_FACTURAS_PROGRAMADAS", 261104001,
+        "Programación de las facturas programadas: periodo, repeticiones, facturas generadas, qué se genera, versión y más cadencias.",
+        "facturacion/programadas",
+        new AnadirColumna("FacturasProgramadas", "PeriodoDesde", "DATETIME"),
+        new AnadirColumna("FacturasProgramadas", "PeriodoHasta", "DATETIME"),
+        new AnadirColumna("FacturasProgramadas", "NumeroRepeticiones", "LONG"),
+        new AnadirColumnaObligatoria("FacturasProgramadas", "FacturasGeneradas", "LONG", "0"),
+        new AnadirColumnaObligatoria("FacturasProgramadas", "AlGenerar", "TEXT(10)", "'BORRADOR'"),
+        new AnadirColumnaObligatoria("FacturasProgramadas", "Version", "LONG", "0"),
+        new PasoPersonalizado(
+            "Rehacer FacturasProgramadas.Periodicidad a 15 caracteres sin la regla que solo admitía cinco cadencias",
+            "FacturasProgramadas.Periodicidad TEXT(15) NOT NULL DEFAULT 'MENSUAL' (copia los valores por PeriodicidadAnterior)",
+            (_, e) => Task.FromResult(e.Tabla("FacturasProgramadas")?.Columna("Periodicidad") is { Longitud: >= 15 } && !e.ExisteColumna("FacturasProgramadas", "PeriodicidadAnterior")),
+            RehacerPeriodicidadAsync),
+        new AmpliarTexto("LineasFacturasProgramadas", "CuentaContable", 30));
+
+    /// <summary>
+    /// La columna heredada tiene una regla de validación de Access que solo admite MENSUAL, TRIMESTRAL, SEMESTRAL, ANUAL y
+    /// PUNTUAL, y el SQL de Access no puede quitarla: se rehace la columna (los valores se conservan tal cual) para
+    /// admitir también BIMESTRAL y CUATRIMESTRAL. Se puede repetir si se interrumpe: los valores esperan en
+    /// PeriodicidadAnterior hasta el final.
+    /// </summary>
+    private static async Task RehacerPeriodicidadAsync(ISesionDatos s, ContextoMigracion _)
+    {
+        const string tabla = "FacturasProgramadas";
+        var esquema = s.LeerEsquema();
+        if (!esquema.ExisteColumna(tabla, "PeriodicidadAnterior"))
+        {
+            await s.EjecutarAsync($"ALTER TABLE [{tabla}] ADD COLUMN [PeriodicidadAnterior] TEXT(15)");
+            await s.EjecutarAsync($"UPDATE [{tabla}] SET [PeriodicidadAnterior] = [Periodicidad]");
+        }
+        if (s.LeerEsquema().ExisteColumna(tabla, "Periodicidad"))
+            await s.EjecutarAsync($"ALTER TABLE [{tabla}] DROP COLUMN [Periodicidad]");
+        await s.EjecutarAsync($"ALTER TABLE [{tabla}] ADD COLUMN [Periodicidad] TEXT(15) DEFAULT 'MENSUAL'");
+        await s.EjecutarAsync($"UPDATE [{tabla}] SET [Periodicidad] = IIf([PeriodicidadAnterior] Is Null, 'MENSUAL', [PeriodicidadAnterior])");
+        await s.EjecutarAsync($"ALTER TABLE [{tabla}] ALTER COLUMN [Periodicidad] TEXT(15) NOT NULL DEFAULT 'MENSUAL'");
+        await s.EjecutarAsync($"ALTER TABLE [{tabla}] DROP COLUMN [PeriodicidadAnterior]");
+    }
 }

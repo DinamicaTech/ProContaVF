@@ -4,6 +4,7 @@ using System.Windows.Input;
 using System.Windows.Media;
 using ProConta.Facturacion.Conceptos;
 using ProConta.Facturacion.Facturas;
+using ProConta.Facturacion.Programadas;
 using ProConta.Facturacion.UI.VistaModelos;
 using ProConta.Terceros.Roles;
 using ProConta.UI.Base.Controles;
@@ -189,5 +190,106 @@ public sealed class DialogosFacturacion(ApoyoEditorFacturas apoyo, Func<Window?>
         dialogo.Botones = new StackPanel { Orientation = Orientation.Horizontal, Children = { cancelar, aceptar } };
         dialogo.Loaded += (_, _) => motivo.Focus();
         return dialogo.ShowDialog() == true ? motivo.Text.Trim() : null;
+    }
+
+    /// <summary>Fila del diálogo «Generar programadas»: la programada, sus vencimientos y su marca.</summary>
+    private sealed class FilaGenerar(ProgramadaPendiente p, bool marcada)
+    {
+        public ProgramadaPendiente Datos { get; } = p;
+        public bool Marcada { get; set; } = marcada;
+    }
+
+    public (DateTime Hasta, IReadOnlyList<int> Ids)? ElegirProgramadasAGenerar(DateTime hasta, Func<DateTime, Task<IReadOnlyList<ProgramadaPendiente>>> pendientes, IReadOnlySet<int>? soloMarcadas = null)
+    {
+        var dialogo = new DialogoProConta { Title = "Generar facturas programadas", Owner = Propietario, Width = 1040, Height = 660, SizeToContent = SizeToContent.Manual };
+        var apagado = (Brush)dialogo.FindResource("Pincel.Apagado");
+        var fecha = new TextBox { Text = Texto.Fecha(hasta), Width = 110, Style = (Style)dialogo.FindResource("Campo"),
+            ToolTip = "Se generan los vencimientos de esta fecha y anteriores (dd/mm/aaaa)" };
+        var leer = new Button { Content = "Ver vencimientos", Margin = new Thickness(8, 0, 0, 0), ToolTip = "Vuelve a leer las programadas con vencimientos hasta esa fecha" };
+        var estado = new TextBlock { Margin = new Thickness(0, 8, 0, 8), Foreground = apagado, TextWrapping = TextWrapping.Wrap };
+        var lista = new ListBox { HorizontalContentAlignment = HorizontalAlignment.Stretch };
+        var filas = new List<FilaGenerar>();
+        var generar = new Button { Content = "Generar", Style = (Style)dialogo.FindResource("Boton.Primario"), Margin = new Thickness(8, 0, 0, 0),
+            ToolTip = "Crea en un lote una factura por cada vencimiento de las programadas marcadas" };
+
+        void Recontar()
+        {
+            var marcadas = filas.Where(f => f.Marcada).ToList();
+            var facturas = marcadas.Sum(f => f.Datos.Vencimientos.Count);
+            generar.IsEnabled = facturas > 0;
+            generar.Content = facturas == 0 ? "Generar" : $"Generar {Formatos.Plural(facturas, "factura", "facturas")}";
+        }
+
+        lista.ItemTemplate = PlantillaCodigo.Crear(o =>
+        {
+            var fila = (FilaGenerar)o!;
+            var p = fila.Datos.Programada;
+            var g = new Grid { Margin = new Thickness(0, 3, 0, 3) };
+            foreach (var ancho in new[] { 30d, 90d, double.NaN, 120d, 150d })
+                g.ColumnDefinitions.Add(new ColumnDefinition { Width = double.IsNaN(ancho) ? new GridLength(1, GridUnitType.Star) : new GridLength(ancho) });
+            var marca = new CheckBox { IsChecked = fila.Marcada, VerticalAlignment = VerticalAlignment.Top, Margin = new Thickness(0, 2, 0, 0), ToolTip = "Incluye esta programada en el lote" };
+            marca.Checked += (_, _) => { fila.Marcada = true; Recontar(); };
+            marca.Unchecked += (_, _) => { fila.Marcada = false; Recontar(); };
+            var codigo = new TextBlock { Text = p.Rotulo, FontFamily = (FontFamily)dialogo.FindResource("Fuente.Mono") };
+            var texto = new StackPanel();
+            texto.Children.Add(new TextBlock { Text = $"{fila.Datos.Cliente} · {p.Plantilla.Descripcion}", FontWeight = FontWeights.SemiBold, TextTrimming = TextTrimming.CharacterEllipsis });
+            texto.Children.Add(new TextBlock
+            {
+                Text = (fila.Datos.Vencimientos.Count == 1 ? "Vencimiento " : $"{fila.Datos.Vencimientos.Count} vencimientos: ") + string.Join(" · ", fila.Datos.Vencimientos.Select(d => Formatos.Fecha(d))),
+                Foreground = apagado, TextWrapping = TextWrapping.Wrap
+            });
+            var genera = new TextBlock { Text = p.AlGenerar == AlGenerar.Validar ? "Factura validada" : "Borrador", Foreground = apagado,
+                ToolTip = p.AlGenerar == AlGenerar.Validar ? "Se numera, se valida y se contabiliza al generarla" : "Queda como borrador sin número para revisarlo y validarlo después" };
+            var total = new TextBlock { Text = $"{Formatos.Importe(p.Plantilla.Totales.ImporteTotal.Valor)} cada una", HorizontalAlignment = HorizontalAlignment.Right };
+            Grid.SetColumn(codigo, 1);
+            Grid.SetColumn(texto, 2);
+            Grid.SetColumn(genera, 3);
+            Grid.SetColumn(total, 4);
+            g.Children.Add(marca);
+            g.Children.Add(codigo);
+            g.Children.Add(texto);
+            g.Children.Add(genera);
+            g.Children.Add(total);
+            return g;
+        });
+
+        var leida = hasta.Date;
+        async Task LeerAsync()
+        {
+            if (!Texto.LeerFecha(fecha.Text, out var d) || d is not { } f) { estado.Text = "Escribe la fecha como dd/mm/aaaa."; return; }
+            leida = f.Date;
+            fecha.Text = Texto.Fecha(leida);
+            estado.Text = "Leyendo programadas…";
+            var r = await pendientes(leida);
+            filas.Clear();
+            filas.AddRange(r.Select(x => new FilaGenerar(x, soloMarcadas?.Contains(x.Programada.IdFacturaProgramada) ?? true)));
+            lista.ItemsSource = null;
+            lista.ItemsSource = filas;
+            estado.Text = filas.Count == 0
+                ? $"Ninguna programada activa tiene vencimientos hasta el {Formatos.Fecha(leida)}. Las pausadas no se generan."
+                : $"{Formatos.Plural(filas.Count, "programada activa tiene", "programadas activas tienen")} vencimientos hasta el {Formatos.Fecha(leida)}. Cada vencimiento crea una factura; si una programada falla, las demás siguen.";
+            Recontar();
+        }
+        leer.Click += async (_, _) => await LeerAsync();
+        fecha.KeyDown += async (_, e) => { if (e.Key == Key.Enter) { e.Handled = true; await LeerAsync(); } };
+
+        var cabecera = new StackPanel { Orientation = Orientation.Horizontal };
+        cabecera.Children.Add(new TextBlock { Text = "Generar los vencimientos hasta el", VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 8, 0) });
+        cabecera.Children.Add(fecha);
+        cabecera.Children.Add(leer);
+        var cuerpo = new DockPanel();
+        DockPanel.SetDock(cabecera, Dock.Top);
+        DockPanel.SetDock(estado, Dock.Top);
+        cuerpo.Children.Add(cabecera);
+        cuerpo.Children.Add(estado);
+        cuerpo.Children.Add(lista);
+        dialogo.Content = cuerpo;
+
+        var cancelar = new Button { Content = "Cancelar", IsCancel = true, ToolTip = "No genera nada" };
+        cancelar.Click += (_, _) => dialogo.DialogResult = false;
+        generar.Click += (_, _) => { if (filas.Any(f => f.Marcada)) dialogo.DialogResult = true; };
+        dialogo.Botones = new StackPanel { Orientation = Orientation.Horizontal, Children = { cancelar, generar } };
+        dialogo.Loaded += async (_, _) => await LeerAsync();
+        return dialogo.ShowDialog() == true ? (leida, filas.Where(f => f.Marcada).Select(f => f.Datos.Programada.IdFacturaProgramada).ToList()) : null;
     }
 }

@@ -8,6 +8,7 @@ using ProConta.Contabilidad.CentrosCoste;
 using ProConta.Contabilidad.Cuentas;
 using ProConta.Facturacion.Conceptos;
 using ProConta.Facturacion.Facturas;
+using ProConta.Facturacion.Programadas;
 using ProConta.Facturacion.Mantenimiento;
 using ProConta.Facturacion.UI.VistaModelos;
 using ProConta.Facturacion.UI.Vistas;
@@ -96,7 +97,8 @@ public partial class VentanaPrincipal : Window
         var facturas = new ServicioFacturas(bd, sociedades, new RepositorioTercerosAccess(bd), roles, cuentas, contabilizador, autorizador);
         var apoyo = new ApoyoEditorFacturas(bd, roles);
         var serviciosFacturacion = new ServiciosFacturacion(facturas, new ConsultaFacturas(bd), new CatalogoConceptos(bd, cuentas), apoyo, new CatalogoFormasPagoAccess(bd),
-            new LectorConfiguracionEjercicio(bd), contexto.Contexto, contexto.RazonSocial, new Actor(sesion.NombreOperador), new CatalogoCentrosCosteAccess(bd));
+            new LectorConfiguracionEjercicio(bd), contexto.Contexto, contexto.RazonSocial, new Actor(sesion.NombreOperador), new CatalogoCentrosCosteAccess(bd),
+            new ServicioProgramadas(bd, sociedades, facturas, autorizador));
         _facturacion = new ModuloFacturacion(serviciosFacturacion, _area, new DialogosFacturacion(apoyo, () => this), _terceros.AbrirFicha);
 
         var mantenimiento = new ServicioMantenimiento(
@@ -112,6 +114,7 @@ public partial class VentanaPrincipal : Window
         var irAInicio = new ComandoDelegado(() => _area.Activar(_area.Lista[0].Pantalla));
         var abrirTerceros = new ComandoDelegado(_terceros.AbrirBuscador);
         var abrirFacturas = new ComandoDelegado(_facturacion.AbrirListado);
+        var abrirProgramadas = new ComandoDelegado(_facturacion.AbrirProgramadas);
         var abrirParametros = new ComandoDelegado(AbrirParametros);
         Navegacion.ItemsSource = new[]
         {
@@ -119,6 +122,7 @@ public partial class VentanaPrincipal : Window
             new OpcionNavegacion("Datos maestros", Icono("user"), true, false, "Terceros: clientes, proveedores, contactos y demás personas y organizaciones", abrirTerceros),
             new OpcionNavegacion("Terceros", null, true, false, "Buscador y fichas de terceros (clientes, proveedores, contactos…)", abrirTerceros, EsHija: true),
             new OpcionNavegacion("Facturación", Icono("doc"), true, false, "Facturas de venta: emitidas y borradores", abrirFacturas),
+            new OpcionNavegacion("Facturas programadas", null, true, false, "Facturas que se generan solas en cada vencimiento: su programación, sus líneas y la generación por lotes", abrirProgramadas, EsHija: true),
             new OpcionNavegacion("Facturas", null, true, false, "Listado de facturas y borradores del ejercicio, con su detalle y acciones", abrirFacturas, EsHija: true),
             new OpcionNavegacion("Compras", Icono("scan"), false, false, proxima),
             new OpcionNavegacion("Contabilidad", Icono("book"), false, false, proxima),
