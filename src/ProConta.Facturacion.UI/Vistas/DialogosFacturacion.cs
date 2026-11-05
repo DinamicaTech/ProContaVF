@@ -193,13 +193,13 @@ public sealed class DialogosFacturacion(ApoyoEditorFacturas apoyo, Func<Window?>
     }
 
     /// <summary>Fila del diálogo «Generar programadas»: la programada, sus vencimientos y su marca.</summary>
-    private sealed class FilaGenerar(ProgramadaPendiente p)
+    private sealed class FilaGenerar(ProgramadaPendiente p, bool marcada)
     {
         public ProgramadaPendiente Datos { get; } = p;
-        public bool Marcada { get; set; } = true;
+        public bool Marcada { get; set; } = marcada;
     }
 
-    public (DateTime Hasta, IReadOnlyList<int> Ids)? ElegirProgramadasAGenerar(DateTime hasta, Func<DateTime, Task<IReadOnlyList<ProgramadaPendiente>>> pendientes)
+    public (DateTime Hasta, IReadOnlyList<int> Ids)? ElegirProgramadasAGenerar(DateTime hasta, Func<DateTime, Task<IReadOnlyList<ProgramadaPendiente>>> pendientes, IReadOnlySet<int>? soloMarcadas = null)
     {
         var dialogo = new DialogoProConta { Title = "Generar facturas programadas", Owner = Propietario, Width = 1040, Height = 660, SizeToContent = SizeToContent.Manual };
         var apagado = (Brush)dialogo.FindResource("Pincel.Apagado");
@@ -262,7 +262,7 @@ public sealed class DialogosFacturacion(ApoyoEditorFacturas apoyo, Func<Window?>
             estado.Text = "Leyendo programadas…";
             var r = await pendientes(leida);
             filas.Clear();
-            filas.AddRange(r.Select(x => new FilaGenerar(x)));
+            filas.AddRange(r.Select(x => new FilaGenerar(x, soloMarcadas?.Contains(x.Programada.IdFacturaProgramada) ?? true)));
             lista.ItemsSource = null;
             lista.ItemsSource = filas;
             estado.Text = filas.Count == 0

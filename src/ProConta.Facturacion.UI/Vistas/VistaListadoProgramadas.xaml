@@ -20,8 +20,6 @@
     <Border DockPanel.Dock="Top" BorderBrush="{StaticResource Pincel.Linea}" BorderThickness="0,0,0,1" Padding="14,8">
       <DockPanel>
         <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
-          <Button Content="Generar programadas…" Command="{Binding GenerarCommand}" Margin="0,0,8,0"
-                  ToolTip="Elige hasta qué fecha y qué programadas: crea en un lote una factura por cada vencimiento" />
           <Button Content="Nueva programada" Command="{Binding NuevaCommand}" Style="{StaticResource Boton.Primario}" pc:Iconos.Icono="{StaticResource Icono.plus}"
                   ToolTip="Abre una factura programada nueva: la plantilla de la factura y su programación" />
         </StackPanel>
@@ -34,7 +32,7 @@
           </Grid>
           <ComboBox Width="170" Margin="10,0,0,0" VerticalAlignment="Center" ItemsSource="{Binding OpcionesEstado}" SelectedItem="{Binding FiltroEstado}" ToolTip="Activas, pausadas o finalizadas" />
           <Button Style="{StaticResource Boton.Enlace}" Content="Limpiar filtros" Command="{Binding LimpiarFiltrosCommand}" VerticalAlignment="Center" Margin="10,0,0,0"
-                  Visibility="{Binding HayFiltros, Converter={StaticResource Visible}}" ToolTip="Vacía la búsqueda y quita el filtro de estado" />
+                  Visibility="{Binding HayFiltros, Converter={StaticResource Visible}}" ToolTip="Vacía la búsqueda y vuelve a mostrar las activas" />
         </StackPanel>
       </DockPanel>
     </Border>
@@ -43,7 +41,7 @@
     <Border DockPanel.Dock="Bottom" Style="{StaticResource Barra.Pie}">
       <DockPanel>
         <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
-          <TextBlock Text="Doble clic o Intro abre la programada" Style="{StaticResource Texto.Apagado}" VerticalAlignment="Center" Margin="0,0,12,0" />
+          <TextBlock Text="Clic derecho: acciones · Ctrl o Mayús: seleccionar varias · Doble clic o Intro: abrir" Style="{StaticResource Texto.Apagado}" VerticalAlignment="Center" Margin="0,0,12,0" />
           <Button Content="Exportar a Excel" pc:Iconos.Icono="{StaticResource Icono.xls}" Command="{Binding ExportarExcelCommand, ElementName=Tabla}" Style="{StaticResource Boton.Pequeno}"
                   ToolTip="Exporta todas las filas de la vista con las columnas visibles, en el mismo orden" />
         </StackPanel>
@@ -58,37 +56,43 @@
         <ColumnDefinition Width="560" MinWidth="380" />
       </Grid.ColumnDefinitions>
 
-      <!-- Acciones y tabla -->
-      <DockPanel Grid.Column="0">
-        <Border DockPanel.Dock="Top" Padding="14,8" BorderBrush="{StaticResource Pincel.Linea}" BorderThickness="0,0,0,1">
-          <WrapPanel HorizontalAlignment="Right">
-            <Button Content="Abrir" Command="{Binding AbrirCommand}" Style="{StaticResource Boton.Pequeno}" Margin="6,0,0,0" ToolTip="Abre la programada para verla o cambiarla" />
-            <Button Content="Ver sus facturas" Command="{Binding VerFacturasCommand}" Style="{StaticResource Boton.Pequeno}" Margin="6,0,0,0" ToolTip="Abre Facturas con las que ha generado esta programada en el ejercicio de trabajo" />
-            <Button Content="{Binding TextoPausar}" Command="{Binding PausarCommand}" Style="{StaticResource Boton.Pequeno}" Margin="6,0,0,0" ToolTip="{Binding AyudaPausar}" />
-            <Button Content="Duplicar" Command="{Binding DuplicarCommand}" Style="{StaticResource Boton.Pequeno}" Margin="6,0,0,0" ToolTip="Crea otra programada igual, pausada y sin facturas generadas" />
-            <Button Content="Eliminar" Command="{Binding EliminarCommand}" Style="{StaticResource Boton.Pequeno}" Margin="6,0,0,0" ToolTip="Borra la programada si aún no ha generado ninguna factura" />
-          </WrapPanel>
-        </Border>
-
-        <pc:VistaEstado Estado="{Binding Estado}" Titulo="{Binding TituloEstado}" Mensaje="{Binding MensajeEstado}" TextoAccion="{Binding AccionEstado}" ComandoAccion="{Binding ComandoEstado}">
-          <pc:TablaProConta x:Name="Tabla" ItemsSource="{Binding Filas}" SelectedItem="{Binding Activa}" ClavePreferencias="facturacion.programadas" TituloExportacion="Facturas programadas"
-                            IsReadOnly="True" SelectionMode="Single" MouseDoubleClick="Tabla_MouseDoubleClick" PreviewKeyDown="Tabla_PreviewKeyDown"
-                            AutomationProperties.Name="Facturas programadas">
-            <pc:TablaProConta.Columns>
-              <DataGridTextColumn Header="Código" Binding="{Binding Codigo}" Width="90" ElementStyle="{StaticResource Texto.Celda.Mono}" pc:TablaProConta.Clave="codigo" pc:TablaProConta.SiempreVisible="True" />
-              <DataGridTextColumn Header="Cliente" Binding="{Binding Cliente}" Width="260" ElementStyle="{StaticResource Texto.Celda}" pc:TablaProConta.Clave="cliente" />
-              <DataGridTextColumn Header="Descripción" Binding="{Binding Descripcion}" Width="*" MinWidth="200" ElementStyle="{StaticResource Texto.Celda}" pc:TablaProConta.Clave="descripcion" />
-              <DataGridTextColumn Header="Periodicidad" Binding="{Binding Periodicidad}" Width="110" ElementStyle="{StaticResource Texto.Celda}" pc:TablaProConta.Clave="periodicidad" />
-              <DataGridTextColumn Header="Próxima" Binding="{Binding Proxima}" SortMemberPath="ProximaOrden" Width="100" ElementStyle="{StaticResource Texto.Celda}" pc:TablaProConta.Clave="proxima" />
-              <DataGridTextColumn Header="Final" Binding="{Binding Final}" Width="130" ElementStyle="{StaticResource Texto.Celda}" pc:TablaProConta.Clave="final" />
-              <DataGridTextColumn Header="Generadas" Binding="{Binding TextoGeneradas}" SortMemberPath="Generadas" Width="90" ElementStyle="{StaticResource Texto.Celda.Importe}" HeaderStyle="{StaticResource Tabla.Cabecera.Derecha}" pc:TablaProConta.Clave="generadas" />
-              <DataGridTextColumn Header="Total" Binding="{Binding TextoTotal}" SortMemberPath="Total" Width="110" ElementStyle="{StaticResource Texto.Celda.Importe}" HeaderStyle="{StaticResource Tabla.Cabecera.Derecha}" pc:TablaProConta.Clave="total" />
-              <DataGridTextColumn Header="Genera" Binding="{Binding AlGenerar}" Width="80" ElementStyle="{StaticResource Texto.Celda}" pc:TablaProConta.Clave="genera" />
-              <DataGridTextColumn Header="Estado" Binding="{Binding Estado}" Width="90" ElementStyle="{StaticResource Texto.Celda}" pc:TablaProConta.Clave="estado" />
-            </pc:TablaProConta.Columns>
-          </pc:TablaProConta>
-        </pc:VistaEstado>
-      </DockPanel>
+      <!-- Tabla, con todas las acciones en el menú contextual -->
+      <pc:VistaEstado Grid.Column="0" Estado="{Binding Estado}" Titulo="{Binding TituloEstado}" Mensaje="{Binding MensajeEstado}" TextoAccion="{Binding AccionEstado}" ComandoAccion="{Binding ComandoEstado}">
+        <pc:VistaEstado.ContextMenu>
+          <ContextMenu>
+            <MenuItem Header="Abrir" Command="{Binding AbrirCommand}" InputGestureText="Intro" ToolTip="Abre la programada para verla o cambiarla (solo con una seleccionada)" />
+            <MenuItem Header="Ver sus facturas" Command="{Binding VerFacturasCommand}" ToolTip="Abre Facturas con las que ha generado esta programada en el ejercicio de trabajo (solo con una seleccionada)" />
+            <Separator />
+            <MenuItem Header="{Binding TextoGenerarSeleccionadas}" Command="{Binding GenerarSeleccionadasCommand}" ToolTip="Abre el diálogo de generar con las programadas seleccionadas marcadas" />
+            <MenuItem Header="Generar facturas programadas…" Command="{Binding GenerarCommand}" ToolTip="Elige hasta qué fecha y qué programadas: crea en un lote una factura por cada vencimiento" />
+            <Separator />
+            <MenuItem Header="{Binding TextoPausar}" Command="{Binding PausarCommand}" ToolTip="Pausa las seleccionadas que están activas: dejan de generar facturas hasta que las reanudes" />
+            <MenuItem Header="{Binding TextoReanudar}" Command="{Binding ReanudarCommand}" ToolTip="Reanuda las seleccionadas que están pausadas: vuelven a generar facturas (deben estar completas)" />
+            <MenuItem Header="{Binding TextoDuplicar}" Command="{Binding DuplicarCommand}" ToolTip="Crea otra programada igual de cada seleccionada, pausada y sin facturas generadas" />
+            <MenuItem Header="{Binding TextoEliminar}" Command="{Binding EliminarCommand}" ToolTip="Borra las seleccionadas que aún no han generado ninguna factura" />
+            <Separator />
+            <MenuItem Header="Nueva programada" Command="{Binding NuevaCommand}" ToolTip="Abre una factura programada nueva: la plantilla de la factura y su programación" />
+            <MenuItem Header="Actualizar" Command="{Binding RefrescarCommand}" InputGestureText="F5" ToolTip="Vuelve a leer las programadas" />
+          </ContextMenu>
+        </pc:VistaEstado.ContextMenu>
+        <pc:TablaProConta x:Name="Tabla" ItemsSource="{Binding Filas}" SelectedItem="{Binding Activa}" ClavePreferencias="facturacion.programadas" TituloExportacion="Facturas programadas"
+                          IsReadOnly="True" SelectionMode="Extended" MouseDoubleClick="Tabla_MouseDoubleClick" PreviewKeyDown="Tabla_PreviewKeyDown"
+                          SelectionChanged="Tabla_SelectionChanged" PreviewMouseRightButtonDown="Tabla_PreviewMouseRightButtonDown"
+                          AutomationProperties.Name="Facturas programadas">
+          <pc:TablaProConta.Columns>
+            <DataGridTextColumn Header="Código" Binding="{Binding Codigo}" Width="90" ElementStyle="{StaticResource Texto.Celda.Mono}" pc:TablaProConta.Clave="codigo" pc:TablaProConta.SiempreVisible="True" />
+            <DataGridTextColumn Header="Cliente" Binding="{Binding Cliente}" Width="260" ElementStyle="{StaticResource Texto.Celda}" pc:TablaProConta.Clave="cliente" />
+            <DataGridTextColumn Header="Descripción" Binding="{Binding Descripcion}" Width="*" MinWidth="200" ElementStyle="{StaticResource Texto.Celda}" pc:TablaProConta.Clave="descripcion" />
+            <DataGridTextColumn Header="Periodicidad" Binding="{Binding Periodicidad}" Width="110" ElementStyle="{StaticResource Texto.Celda}" pc:TablaProConta.Clave="periodicidad" />
+            <DataGridTextColumn Header="Próxima" Binding="{Binding Proxima}" SortMemberPath="ProximaOrden" Width="100" ElementStyle="{StaticResource Texto.Celda}" pc:TablaProConta.Clave="proxima" />
+            <DataGridTextColumn Header="Final" Binding="{Binding Final}" Width="130" ElementStyle="{StaticResource Texto.Celda}" pc:TablaProConta.Clave="final" />
+            <DataGridTextColumn Header="Generadas" Binding="{Binding TextoGeneradas}" SortMemberPath="Generadas" Width="90" ElementStyle="{StaticResource Texto.Celda.Importe}" HeaderStyle="{StaticResource Tabla.Cabecera.Derecha}" pc:TablaProConta.Clave="generadas" />
+            <DataGridTextColumn Header="Total" Binding="{Binding TextoTotal}" SortMemberPath="Total" Width="110" ElementStyle="{StaticResource Texto.Celda.Importe}" HeaderStyle="{StaticResource Tabla.Cabecera.Derecha}" pc:TablaProConta.Clave="total" />
+            <DataGridTextColumn Header="Genera" Binding="{Binding AlGenerar}" Width="80" ElementStyle="{StaticResource Texto.Celda}" pc:TablaProConta.Clave="genera" />
+            <DataGridTextColumn Header="Estado" Binding="{Binding Estado}" Width="90" ElementStyle="{StaticResource Texto.Celda}" pc:TablaProConta.Clave="estado" />
+          </pc:TablaProConta.Columns>
+        </pc:TablaProConta>
+      </pc:VistaEstado>
 
       <GridSplitter Grid.Column="1" Width="5" HorizontalAlignment="Center" VerticalAlignment="Stretch" Background="{StaticResource Pincel.Linea}" ResizeBehavior="PreviousAndNext"
                     ToolTip="Arrastra para repartir el ancho entre el listado y el detalle" />
@@ -98,6 +102,9 @@
         <StackPanel Margin="16,14">
           <TextBlock Text="Elige una programada para ver su detalle." Style="{StaticResource Texto.Apagado}" Visibility="{Binding HayDetalle, Converter={StaticResource Visible}, ConverterParameter=invertir}" />
           <StackPanel Visibility="{Binding HayDetalle, Converter={StaticResource Visible}}">
+            <pc:Nota Tipo="Info" Margin="0,0,0,10" Visibility="{Binding AvisoSeleccion, Converter={StaticResource Visible}}">
+              <TextBlock Text="{Binding AvisoSeleccion}" TextWrapping="Wrap" />
+            </pc:Nota>
             <WrapPanel Margin="0,0,0,10">
               <TextBlock Text="{Binding DetalleTitulo}" Style="{StaticResource Texto.Titulo}" Margin="0,0,10,0" />
               <Border Style="{StaticResource Estado.Marco}" ToolTip="Activa, pausada o finalizada">

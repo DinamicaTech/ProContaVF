@@ -44,10 +44,10 @@ public interface IDialogosFacturacion
     string? PedirMotivoRectificacion(string numero, string explicacion);
 
     /// <summary>
-    /// Elige hasta qué fecha generar y qué programadas con vencimientos hasta entonces (todas marcadas al abrir);
-    /// <paramref name="pendientes"/> lee las de una fecha. Null si se cancela.
+    /// Elige hasta qué fecha generar y qué programadas con vencimientos hasta entonces; al abrir están marcadas todas o,
+    /// con <paramref name="soloMarcadas"/>, solo esas. <paramref name="pendientes"/> lee las de una fecha. Null si se cancela.
     /// </summary>
-    (DateTime Hasta, IReadOnlyList<int> Ids)? ElegirProgramadasAGenerar(DateTime hasta, Func<DateTime, Task<IReadOnlyList<ProgramadaPendiente>>> pendientes);
+    (DateTime Hasta, IReadOnlyList<int> Ids)? ElegirProgramadasAGenerar(DateTime hasta, Func<DateTime, Task<IReadOnlyList<ProgramadaPendiente>>> pendientes, IReadOnlySet<int>? soloMarcadas = null);
 }
 
 /// <summary>
