@@ -1,6 +1,5 @@
 ---
 title: Facturación programada
-status: draft
 depends_on: [facturacion/factura-venta, correo/envio, facturacion/pantallas, datos/esquema]
 threads:
   - 2026-10-28 12:30 · Carga de requisitos | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GRNMH95h9tnQp4dmEPHmw1w
@@ -24,12 +23,15 @@ Programaciones con cadencia y ancla de día, generación por lotes idempotente p
 - 2026-11-04 21:50 · Importes de las líneas del ERP: guardan en precio y descuentos valores que no son descuentos (por ejemplo, precio 1.212,42 con Dto. € -1.212,42 para una base de 1.002,00, o 0,19 × -1.002,00 con un 100 % que no se aplicaba), así que recalcularlas da un importe equivocado. «Programar…» conserva el total de cada línea de la factura: si con sus datos no sale, la fija desde el total, sin descuentos. Una programada con un descuento fijo negativo o con descuentos sobre un precio negativo no se puede activar ni generar, y el error dice qué línea corregir; se puede pausar. Las programadas del ERP afectadas muestran hasta entonces un total que no es el real: su conversión corresponde a implantacion/migracion-erp.
 - 2026-11-04 18:50 · Envío (RF-PRO-05): EnviarPorEmail se guarda por programada y lo usará el envío automático cuando exista correo/envio; hoy no se envía nada.
 - 2026-11-04 18:50 · Datos del ERP en la BD actual: las programadas que vienen del ERP tienen el periodo en FechaInicio/FechaFin y no tienen PeriodoDesde/Hasta; aquí aparecen sin periodo (sus facturas saldrían sin periodo) y FacturasGeneradas a 0. Su conversión (periodo, facturas ya emitidas y próxima emisión) corresponde a implantacion/migracion-erp cuando se regenere la BD.
+- 2026-11-05 10:40 · Validado por el propietario (facturación programada, PR #16).
 
 ## Requirements
 - 2026-10-28 12:28 · From sources/01_ESPECIFICACION_FUNCIONAL.docx § 12 RF-PRO-01..06: programaciones, anclas, lotes, concurrencia, envío, duplicado
 - 2026-10-28 12:28 · draft: Implementar programaciones y la generación por lotes.
 - 2026-11-04 18:14 · Ok a lo de generar una programada a partir de una factura, pero no me queda claro lo de 'Periódica solo aparece' (es un menú contextual?)
 - 2026-11-04 18:14 · Ok (la factura programada decide cómo se envía)
+- 2026-11-05 10:35 · Ok, perfecto.
 
 ## Hand-over
 - 2026-11-04 18:50 · Hecho: dominio, calendario, servicio, lotes y migración `20261104_1820_FACTURAS_PROGRAMADAS`; editor con «Periódica» y «Programación», sección de programadas, «Generar programadas…» y «Programar…» en Facturas; pruebas sin BD y contra Access en verde; la copia de pruebas actualizada a la versión 15. Pendiente: revisión en pantalla y validación del propietario; envío automático con correo/envio y PDF; conversión de las programadas del ERP (implantacion/migracion-erp).
+- 2026-11-05 10:40 · Hecho y validado. Queda fuera: envío automático con correo/envio, PDF con informes/reporting y facturacion/verifactu, y conversión de las programadas del ERP en implantacion/migracion-erp.
