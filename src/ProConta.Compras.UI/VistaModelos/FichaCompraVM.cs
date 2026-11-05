@@ -21,9 +21,12 @@ public sealed record MarcaConfianza(string Texto, string Nivel, string Motivo)
     public bool Visible => Texto.Length > 0;
 
     /// <summary>Alta desde 0,9 (el umbral de aceptación), media desde 0,6 y baja por debajo.</summary>
-    public static MarcaConfianza De(decimal? confianza, string campo, IReadOnlyList<string> avisos)
+    public static MarcaConfianza De(decimal? confianza, string campo, IReadOnlyList<string> avisos, bool plantilla = false)
     {
         if (confianza is not { } c) return Ninguna;
+        if (plantilla)
+            return new($"{Math.Round(c * 100m):0} % plantilla", "alta",
+                $"Leído con la plantilla que se aprendió al guardar otra factura de este proveedor con el mismo formato ({campo}).");
         var nivel = c >= 0.9m ? "alta" : c >= 0.6m ? "media" : "baja";
         var motivo = c == 0m ? $"No he encontrado {campo} en el PDF." : $"Confianza del reconocimiento en {campo}: {Math.Round(c * 100m):0} %.";
         var relacionados = avisos.Where(a => a.Contains(campo, StringComparison.CurrentCultureIgnoreCase)).ToList();
@@ -253,10 +256,10 @@ public sealed class FichaCompraVM : ModeloVista
 
     // ---------- confianza ----------
 
-    public MarcaConfianza ConfianzaNif => _manuales.Contains("nif") ? MarcaConfianza.Manual : MarcaConfianza.De(_confianza.Nif, "el NIF", _confianza.Avisos);
-    public MarcaConfianza ConfianzaNumero => _manuales.Contains("numero") ? MarcaConfianza.Manual : MarcaConfianza.De(_confianza.Numero, "el número", _confianza.Avisos);
-    public MarcaConfianza ConfianzaFecha => _manuales.Contains("fecha") ? MarcaConfianza.Manual : MarcaConfianza.De(_confianza.Fecha, "la fecha", _confianza.Avisos);
-    public MarcaConfianza ConfianzaImportes => _manuales.Contains("importes") ? MarcaConfianza.Manual : MarcaConfianza.De(_confianza.Importes, "los importes", _confianza.Avisos);
+    public MarcaConfianza ConfianzaNif => _manuales.Contains("nif") ? MarcaConfianza.Manual : MarcaConfianza.De(_confianza.Nif, "el NIF", _confianza.Avisos, _confianza.EsPlantilla("nif"));
+    public MarcaConfianza ConfianzaNumero => _manuales.Contains("numero") ? MarcaConfianza.Manual : MarcaConfianza.De(_confianza.Numero, "el número", _confianza.Avisos, _confianza.EsPlantilla("numero"));
+    public MarcaConfianza ConfianzaFecha => _manuales.Contains("fecha") ? MarcaConfianza.Manual : MarcaConfianza.De(_confianza.Fecha, "la fecha", _confianza.Avisos, _confianza.EsPlantilla("fecha"));
+    public MarcaConfianza ConfianzaImportes => _manuales.Contains("importes") ? MarcaConfianza.Manual : MarcaConfianza.De(_confianza.Importes, "los importes", _confianza.Avisos, _confianza.EsPlantilla("total") && _confianza.Importes == 1m);
 
     /// <summary>Avisos del reconocimiento y lo que falta para que la factura esté lista.</summary>
     public IReadOnlyList<string> Avisos

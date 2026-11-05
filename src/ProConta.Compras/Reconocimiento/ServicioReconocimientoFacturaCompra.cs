@@ -22,6 +22,8 @@ public sealed class ContextoProcesamiento
     public ContextoReconocimientoFacturaCompra Reconocimiento { get; init; } = new();
     /// <summary>Facturas completas ya registradas del proveedor de la carpeta: dos o más lo consolidan.</summary>
     public int FacturasAceptadasProveedor { get; init; }
+    /// <summary>Plantillas de campo del proveedor de la carpeta, de más a menos aciertos.</summary>
+    public IReadOnlyList<PlantillaCampo> Plantillas { get; init; } = [];
 }
 
 /// <summary>Resultado final del reconocimiento de un PDF, listo para registrar o para mostrar en el modo «Probar».</summary>
@@ -60,7 +62,9 @@ public sealed class ServicioReconocimientoFacturaCompra(
         if (!File.Exists(rutaPdf))
             throw new FileNotFoundException($"No encuentro el PDF. Ruta intentada: {rutaPdf}. Comprueba que la carpeta compartida esté conectada.", rutaPdf);
 
-        var local = _motor.Reconocer(extractorLocal.Extraer(rutaPdf), contexto.Reconocimiento);
+        var documentoLocal = extractorLocal.Extraer(rutaPdf);
+        var local = _motor.Reconocer(documentoLocal, contexto.Reconocimiento);
+        var documento = documentoLocal;
         var elegido = local;
         var fuente = "pdf-local";
         var razonOcr = string.Empty;
@@ -71,20 +75,23 @@ public sealed class ServicioReconocimientoFacturaCompra(
             if (contexto.Configuracion.Activo && contexto.Configuracion.UsarOcr && extractorOcr is not null)
             {
                 razonOcr = "pdf_sin_texto_nativo";
-                elegido = _motor.Reconocer(await extractorOcr.ExtraerAsync(rutaPdf, cancelacion).ConfigureAwait(false), contexto.Reconocimiento);
+                documento = await extractorOcr.ExtraerAsync(rutaPdf, cancelacion).ConfigureAwait(false);
+                elegido = _motor.Reconocer(documento, contexto.Reconocimiento);
                 fuente = "ocr";
                 advertencias = [.. elegido.Advertencias, "Leído con OCR porque el PDF no tiene texto nativo."];
             }
             else advertencias.Add("El OCR no está activo para esta sociedad: rellena los campos a mano.");
         }
 
+        elegido.Advertencias = advertencias;
+        AplicarPlantillas(documento, elegido, contexto.Plantillas);
+
         if (elegido.RequiereConversionDivisa)
         {
             var convertido = tiposCambio is not null &&
                              await new ConversorDivisaFacturaCompra(tiposCambio).ConvertirAEurosAsync(elegido, cancelacion).ConfigureAwait(false);
-            if (!convertido) advertencias.Add($"No hay cambio oficial de {elegido.Divisa} a EUR para la fecha de la factura: no se podrá contabilizar sin él.");
+            if (!convertido) elegido.Advertencias = [.. elegido.Advertencias, $"No hay cambio oficial de {elegido.Divisa} a EUR para la fecha de la factura: no se podrá contabilizar sin él."];
         }
-        elegido.Advertencias = advertencias;
 
         var confianza = ConfianzaGlobal(elegido, contexto);
         var requiereRevision = RequiereRevision(elegido, local, confianza, contexto);
@@ -115,6 +122,46 @@ public sealed class ServicioReconocimientoFacturaCompra(
             Fuente = fuente,
             Log = log
         };
+    }
+
+    /// <summary>Texto y geometría del PDF con el extractor local, para aprender plantillas al guardar una factura revisada.</summary>
+    public DocumentoFacturaExtraido Extraer(string rutaPdf) => extractorLocal.Extraer(rutaPdf);
+
+    /// <summary>
+    /// Los campos que una plantilla del proveedor encuentra se toman de ahí con confianza 1 (compras/reconocimiento
+    /// 2026-11-05 18:42): la primera plantilla de cada campo, por aciertos, cuyo rótulo aparece y da un valor válido.
+    /// </summary>
+    internal static void AplicarPlantillas(DocumentoFacturaExtraido documento, ResultadoReconocimientoFacturaCompra r, IReadOnlyList<PlantillaCampo> plantillas)
+    {
+        var aplicados = new List<string>();
+        foreach (var grupo in plantillas.GroupBy(p => p.Campo))
+        {
+            var valor = grupo.OrderByDescending(p => p.Aciertos).Select(p => PlantillasReconocimiento.Leer(documento, p)).FirstOrDefault(v => v is not null);
+            if (valor is null) continue;
+            switch (grupo.Key)
+            {
+                case PlantillasReconocimiento.Nif:
+                    r.NifProveedor = valor; r.ConfianzaNif = 1m; r.NifAsignadoDesdeProveedor = false; break;
+                case PlantillasReconocimiento.Numero:
+                    r.NumeroFactura = valor; r.ConfianzaNumero = 1m; break;
+                case PlantillasReconocimiento.Fecha:
+                    r.FechaFactura = DateTime.ParseExact(valor, "yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture); r.ConfianzaFecha = 1m; break;
+                case PlantillasReconocimiento.Total:
+                    var total = decimal.Parse(valor, System.Globalization.CultureInfo.InvariantCulture);
+                    r.ImporteTotal = total; r.ImporteTotalDivisa = total;
+                    // Los importes solo pasan a 1 si la base y la cuota leídas cuadran con ese total.
+                    if (r.BaseImponible is { } b && r.CuotaIva is { } c && b + c - (r.ImporteRetencion ?? 0m) == total) r.ConfianzaImportes = 1m;
+                    break;
+                default: continue;
+            }
+            aplicados.Add(grupo.Key);
+        }
+        if (aplicados.Count == 0) return;
+        r.CamposPlantilla = aplicados;
+        r.Advertencias = r.Advertencias.Where(a => !(aplicados.Contains(PlantillasReconocimiento.Fecha) && a.Contains("fecha de factura", StringComparison.Ordinal))
+                                                 && !(aplicados.Contains(PlantillasReconocimiento.Numero) && a.Contains("número de factura", StringComparison.Ordinal))
+                                                 && !(aplicados.Contains(PlantillasReconocimiento.Nif) && a.Contains("NIF del proveedor", StringComparison.Ordinal))
+                                                 && !(aplicados.Contains(PlantillasReconocimiento.Total) && a.Contains("importe total", StringComparison.Ordinal))).ToList();
     }
 
     /// <summary>50 % importes, 20 % fecha, 20 % número y 10 % NIF; el histórico aceptado suma hasta 0,08.</summary>

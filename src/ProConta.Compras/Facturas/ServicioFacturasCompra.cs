@@ -105,10 +105,12 @@ public sealed class ServicioFacturasCompra(
                 proveedor = new ProveedorCarpeta(elegido.Proveedor?.IdProveedor, elegido.Proveedor?.CuentaPara(elegido.Cuenta) ?? elegido.Cuenta, Vacio(elegido.Nif), elegido.Carpeta);
             }
 
+            var carpetaPdf = FacturaCompra.CarpetaDe(rutaPdf);
             var contexto = new ContextoProcesamiento
             {
                 Configuracion = configuracion,
                 FacturasAceptadasProveedor = completas,
+                Plantillas = carpetaPdf.Length == 0 ? [] : await RepositorioPlantillasCompra.ListarAsync(s, ctx.IdSociedad, carpetaPdf),
                 Reconocimiento = new ContextoReconocimientoFacturaCompra
                 {
                     NifsProveedoresConocidos = proveedores.Select(p => p.Nif).Where(n => n.Length > 0).Distinct(StringComparer.OrdinalIgnoreCase).ToList(),
@@ -254,7 +256,62 @@ public sealed class ServicioFacturasCompra(
         var r = await bd.EnTransaccionAsync(s => RepositorioFacturasCompra.ActualizarAsync(s, factura), cancelacion);
         if (!r.EsCorrecto) return Resultado.Fallo(r.Errores);
         factura.Version = r.Valor;
+        await AprenderAsync(factura, cancelacion);
         return Resultado.Correcto();
+    }
+
+    /// <summary>Máximo de plantillas por proveedor y campo (formatos distintos de factura).</summary>
+    internal const int MaxPlantillasPorCampo = 5;
+
+    /// <summary>
+    /// Guardar enseña (compras/reconocimiento 2026-11-05 18:42): los valores guardados de NIF, número, fecha y total son los
+    /// buenos. Cada plantilla del proveedor que en este PDF lee el valor bueno suma un acierto; la que lee otro se descarta;
+    /// si ninguna lo lee, se aprende una nueva. Un fallo al leer el PDF no impide guardar: simplemente no se aprende.
+    /// </summary>
+    internal async Task AprenderAsync(FacturaCompra factura, CancellationToken cancelacion)
+    {
+        var carpeta = FacturaCompra.CarpetaDe(factura.RutaPdf);
+        if (carpeta.Length == 0 || !File.Exists(factura.RutaPdf)) return;
+        DocumentoFacturaExtraido documento;
+        try { documento = reconocimiento.Extraer(factura.RutaPdf); }
+        catch (Exception ex) when (ex is not OperationCanceledException and not ExcepcionDatos) { return; }
+        var valores = ValoresGuardados(factura);
+        if (valores.Count == 0) return;
+        var ahora = _reloj.Ahora;
+        await bd.EnTransaccionAsync(async s =>
+        {
+            var existentes = await RepositorioPlantillasCompra.ListarAsync(s, factura.Ejercicio.IdSociedad, carpeta);
+            foreach (var (campo, valor) in valores)
+            {
+                var delCampo = existentes.Where(p => p.Campo == campo).ToList();
+                var acertada = false;
+                foreach (var p in delCampo)
+                {
+                    var leido = PlantillasReconocimiento.Leer(documento, p);
+                    if (leido is null) continue;
+                    if (PlantillasReconocimiento.Coincide(campo, leido, valor)) { await RepositorioPlantillasCompra.AcertarAsync(s, p.IdPlantilla, ahora); acertada = true; }
+                    else await RepositorioPlantillasCompra.BorrarAsync(s, p.IdPlantilla);
+                }
+                if (acertada || PlantillasReconocimiento.Aprender(documento, campo, valor) is not { } nueva) continue;
+                await RepositorioPlantillasCompra.InsertarAsync(s, factura.Ejercicio.IdSociedad, carpeta, nueva, ahora);
+                var sobrantes = (await RepositorioPlantillasCompra.ListarAsync(s, factura.Ejercicio.IdSociedad, carpeta))
+                    .Where(p => p.Campo == campo).Skip(MaxPlantillasPorCampo).ToList();
+                foreach (var p in sobrantes) await RepositorioPlantillasCompra.BorrarAsync(s, p.IdPlantilla);
+            }
+            return true;
+        }, cancelacion);
+    }
+
+    /// <summary>Valores guardados que sirven de verdad para las plantillas; en moneda extranjera, el total en esa moneda.</summary>
+    internal static IReadOnlyList<(string Campo, string Valor)> ValoresGuardados(FacturaCompra f)
+    {
+        var valores = new List<(string, string)>();
+        if (!string.IsNullOrWhiteSpace(f.NifProveedor)) valores.Add((PlantillasReconocimiento.Nif, f.NifProveedor));
+        if (!string.IsNullOrWhiteSpace(f.NumeroFactura)) valores.Add((PlantillasReconocimiento.Numero, f.NumeroFactura));
+        if (f.Fecha is { } fecha) valores.Add((PlantillasReconocimiento.Fecha, fecha.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)));
+        var total = f.Divisa != "EUR" ? f.ImporteTotalDivisa ?? f.ImporteTotal : f.ImporteTotal;
+        if (total is { } t) valores.Add((PlantillasReconocimiento.Total, t.ToString("0.00", CultureInfo.InvariantCulture)));
+        return valores;
     }
 
     /// <summary>

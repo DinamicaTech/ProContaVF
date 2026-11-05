@@ -10,6 +10,11 @@ public sealed record ConfianzaCampos(decimal? Nif, decimal? Numero, decimal? Fec
 {
     public static ConfianzaCampos Ninguna { get; } = new(null, null, null, null, null, [], null);
 
+    /// <summary>Campos leídos con una plantilla del proveedor (nif, numero, fecha, total).</summary>
+    public IReadOnlyList<string> Plantilla { get; init; } = [];
+
+    public bool EsPlantilla(string campo) => Plantilla.Contains(campo);
+
     public static ConfianzaCampos DesdeLog(string? log)
     {
         if (string.IsNullOrWhiteSpace(log)) return Ninguna;
@@ -25,8 +30,11 @@ public sealed record ConfianzaCampos(decimal? Nif, decimal? Numero, decimal? Fec
                 ? a.EnumerateArray().Where(x => x.ValueKind == JsonValueKind.String).Select(x => x.GetString()!).ToList()
                 : [];
             var fuente = raiz.TryGetProperty("fuenteElegida", out var f) && f.ValueKind == JsonValueKind.String ? f.GetString() : null;
+            var plantilla = candidato.ValueKind == JsonValueKind.Object && candidato.TryGetProperty("CamposPlantilla", out var cp) && cp.ValueKind == JsonValueKind.Array
+                ? cp.EnumerateArray().Where(x => x.ValueKind == JsonValueKind.String).Select(x => x.GetString()!).ToList()
+                : [];
             return new ConfianzaCampos(D(candidato, "ConfianzaNif"), D(candidato, "ConfianzaNumero"), D(candidato, "ConfianzaFecha"),
-                D(candidato, "ConfianzaImportes"), D(raiz, "confianza"), avisos, fuente);
+                D(candidato, "ConfianzaImportes"), D(raiz, "confianza"), avisos, fuente) { Plantilla = plantilla };
         }
         catch (JsonException)
         {

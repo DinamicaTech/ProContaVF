@@ -68,4 +68,22 @@ public static class MigracionesCompras
         new AnadirColumna("FacturasCompra", "IdCentroCoste", "LONG"),
         new CrearIndice("FacturasCompra", "IX_FacturasCompra_CentroCoste",
             "CREATE INDEX IX_FacturasCompra_CentroCoste ON FacturasCompra (IdCentroCoste)"));
+
+    /// <summary>
+    /// Plantillas de reconocimiento por proveedor (compras/reconocimiento 2026-11-05 18:42): para cada empresa, carpeta del
+    /// proveedor y campo (nif, numero, fecha, total), el rótulo que precede al valor, su posición y cuántas palabras ocupa.
+    /// Se aprenden al guardar una factura revisada; un proveedor puede tener varias por campo, una por formato de factura.
+    /// </summary>
+    public static Migracion PlantillasReconocimientoCompra { get; } = new(
+        "20261105_1900_PLANTILLAS_RECONOCIMIENTO_COMPRA", 261105004,
+        "Facturas de compra: plantillas de reconocimiento aprendidas por proveedor.",
+        "compras/reconocimiento",
+        new CrearTabla("PlantillasReconocimientoCompra",
+            "CREATE TABLE PlantillasReconocimientoCompra (IdPlantilla COUNTER CONSTRAINT PK_PlantillasReconocimientoCompra PRIMARY KEY, " +
+            "IdSociedad TEXT(3) NOT NULL CONSTRAINT FK_PRC_Sociedad REFERENCES Sociedades (IdSociedad), " +
+            "Carpeta TEXT(255) NOT NULL, Campo TEXT(10) NOT NULL, Pagina SHORT NOT NULL, Ancla TEXT(120) NOT NULL, Posicion TEXT(10) NOT NULL, " +
+            "Palabras SHORT NOT NULL, X DOUBLE NOT NULL, Y DOUBLE NOT NULL, DesplazamientoX DOUBLE NOT NULL, Aciertos LONG NOT NULL, " +
+            "FechaAlta DATETIME NOT NULL, FechaUso DATETIME NOT NULL)"),
+        new CrearIndice("PlantillasReconocimientoCompra", "IX_PRC_SociedadCarpeta",
+            "CREATE INDEX IX_PRC_SociedadCarpeta ON PlantillasReconocimientoCompra (IdSociedad, Carpeta)"));
 }

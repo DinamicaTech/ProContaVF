@@ -40,6 +40,12 @@ public sealed class FacturasCompraAccessTests : IDisposable
         public DocumentoFacturaExtraido Extraer(string rutaPdf) => Texto(texto, rutaPdf);
     }
 
+    /// <summary>Texto con geometría distinto para cada PDF (por el nombre del fichero).</summary>
+    private sealed class ExtractorPorFichero(IReadOnlyDictionary<string, string> textos) : IExtractorDocumentoFacturaCompra
+    {
+        public DocumentoFacturaExtraido Extraer(string rutaPdf) => Maquetado(textos[Path.GetFileName(rutaPdf)], rutaPdf);
+    }
+
     private static readonly string Completa = $"""
         Emisor Ficticio S.L. NIF: {NifProveedor}
         Número de factura: FV260123
@@ -194,6 +200,47 @@ public sealed class FacturasCompraAccessTests : IDisposable
         var r = await Servicio().BuscarPdfNuevosAsync(_ctx);
         Assert.Equal("Compras.SinCarpetaDocumentos", r.Error!.Codigo);
         Assert.Contains("Empresas", r.Error.AccionCorrectora);
+    }
+
+    [Fact]
+    public async Task Guardar_aprende_la_plantilla_y_la_siguiente_factura_del_proveedor_sale_al_100()
+    {
+        await EmpresaConProveedorAsync();
+        string Factura(string numero, string fecha, string vence) => $"""
+            Emisor Ficticio S.L. NIF: {NifProveedor}
+            Número de factura: {numero}
+            Emitida el {fecha}   Vence el {vence}
+            IVA 21% 100,00 21,00
+            Total factura 121,00
+            """;
+        // La fecha de emisión no lleva rótulo de «fecha», así que el motor duda; el operador la confirma al guardar.
+        var servicio = new ServicioFacturasCompra(Bd, new ServicioReconocimientoFacturaCompra(new ExtractorPorFichero(new Dictionary<string, string>
+        {
+            ["a.pdf"] = Factura("FV260001", "10/02/2026", "10/03/2026"),
+            ["b.pdf"] = Factura("FV260002", "12/03/2026", "11/04/2026")
+        })), _reloj);
+        var a = await servicio.ImportarAsync(_ctx, Pdf("Ficticio", "a.pdf", "a"));
+        Assert.True(a.Registrada, a.Error?.ToString());
+        var f = (await servicio.CargarAsync(a.Factura!.IdRegistro))!;
+        f.Fecha = new DateTime(2026, 2, 10);
+        Assert.True((await servicio.GuardarAsync(f)).EsCorrecto);
+        Assert.Equal(1, await Contar("SELECT COUNT(*) FROM PlantillasReconocimientoCompra WHERE IdSociedad = ? AND Carpeta = ? AND Campo = ? AND Ancla = ?",
+            "T01", "Ficticio", "fecha", "emitida el"));
+
+        var (reconocida, leida) = await servicio.ProbarAsync(_ctx, Pdf("Ficticio", "b.pdf", "b"));
+        Assert.Equal((new DateTime(2026, 3, 12), 1m), (leida.Fecha!.Value, reconocida.Lectura.ConfianzaFecha));
+        Assert.Contains("fecha", reconocida.Lectura.CamposPlantilla);
+
+        // Volver a guardar la misma factura confirma la plantilla (un acierto más), no crea otra.
+        Assert.True((await servicio.GuardarAsync(f)).EsCorrecto);
+        Assert.Equal(2, await Contar("SELECT Aciertos FROM PlantillasReconocimientoCompra WHERE Campo = ? AND Ancla = ?", "fecha", "emitida el"));
+        Assert.Equal(1, await Contar("SELECT COUNT(*) FROM PlantillasReconocimientoCompra WHERE Campo = ?", "fecha"));
+
+        // Si el operador corrige la fecha a la de vencimiento, la plantilla anterior se descarta y se aprende la nueva.
+        f.Fecha = new DateTime(2026, 3, 10);
+        Assert.True((await servicio.GuardarAsync(f)).EsCorrecto);
+        Assert.Equal(0, await Contar("SELECT COUNT(*) FROM PlantillasReconocimientoCompra WHERE Campo = ? AND Ancla = ?", "fecha", "emitida el"));
+        Assert.Equal(1, await Contar("SELECT COUNT(*) FROM PlantillasReconocimientoCompra WHERE Campo = ? AND Ancla = ?", "fecha", "vence el"));
     }
 
     [Fact]
