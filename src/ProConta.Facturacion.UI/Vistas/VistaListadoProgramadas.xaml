@@ -30,7 +30,7 @@
                      ToolTip="Busca en código, cliente, descripción y notas (Ctrl+F)" AutomationProperties.Name="Buscar facturas programadas" />
             <Path Style="{StaticResource Icono.Trazo14}" Data="{StaticResource Icono.search}" HorizontalAlignment="Left" Margin="9,0,0,0" VerticalAlignment="Center" IsHitTestVisible="False" />
           </Grid>
-          <ComboBox Width="170" Margin="10,0,0,0" VerticalAlignment="Center" ItemsSource="{Binding OpcionesEstado}" SelectedItem="{Binding FiltroEstado}" ToolTip="Activas, pausadas o finalizadas" />
+          <ComboBox Width="170" Margin="10,0,0,0" VerticalAlignment="Center" ItemsSource="{Binding OpcionesEstado}" SelectedItem="{Binding FiltroEstado}" ToolTip="Activas, activas vencidas (próxima emisión hoy o antes: las que toca facturar), pausadas o finalizadas" />
           <Button Style="{StaticResource Boton.Enlace}" Content="Limpiar filtros" Command="{Binding LimpiarFiltrosCommand}" VerticalAlignment="Center" Margin="10,0,0,0"
                   Visibility="{Binding HayFiltros, Converter={StaticResource Visible}}" ToolTip="Vacía la búsqueda y vuelve a mostrar las activas" />
         </StackPanel>

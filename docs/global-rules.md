@@ -13,6 +13,7 @@ Las Project rules incluyen las reglas del dominio: importes en decimal con redon
 - 2026-10-28 12:30 · Creado por Claude Visual Project con su versión de reglas 10.
 - 2026-10-31 08:37 · Excepción a la regla CVP "Regression tests": las pruebas no se ejecutan en GitHub en cada PR ni de forma programada, sino en local (ver architecture 2026-10-31 08:37).
 - 2026-11-01 19:06 · Se añaden a Project rules las reglas del dominio del apartado 5 de la propuesta CVP v14: Money, Accounting invariants, Real data, Parity with ProConta y Time zone. Ajustes: la numeración sin huecos aplica a las facturas validadas de cada serie (los borradores no tienen número); el cuadre de la factura incluye retención y suplidos; la paridad se queda en unas cuantas pruebas unitarias contra valores conocidos de ProConta y se afinará en el borrador global-rules/paridad-proconta. El resto de la propuesta (CVP v14) va en el repositorio de CVP.
+- 2026-11-05 10:20 · Se añade a Project rules la regla «Menú contextual», a petición del propietario (ver facturacion/pantallas 2026-11-05 10:20).
 
 ## CVP rules
 <!-- cvp-rules 14 begin · Written by Claude Visual Project ("Update rules" in the page). Do not edit: an update replaces everything up to the end marker. Add your own rules under ## Project rules. -->
@@ -78,6 +79,7 @@ Once confirmed, the change is atomic: do all of it in this thread and one branch
 - **Real data.** No real customer data and no `.accdb` or `.mdb` files in the repository. Test copies hold invented data only.
 - **Parity with ProConta.** Fiscal features (VeriFactu, models 303 and 390, prorrata) are covered by a few unit tests that compare their result with known ProConta values.
 - **Time zone.** Europe/Madrid: dated lines in the docs use local time in that zone, not UTC.
+- **Menú contextual.** En las pantallas de listado, las acciones van en el menú contextual siempre que se pueda, para dejar la pantalla más limpia y homogeneizar la forma de trabajar: selección múltiple con Ctrl o Mayús, opciones exclusivas de selección simple o múltiple, y sin botones de acción salvo «Nueva…» en la cabecera.
 - Claude project: https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G
 
 ## Requirements

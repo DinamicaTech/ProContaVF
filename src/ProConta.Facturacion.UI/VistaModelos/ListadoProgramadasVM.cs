@@ -46,6 +46,9 @@ public sealed class FilaProgramadaVM(FacturaProgramada datos, string cliente, in
 /// </summary>
 public sealed class ListadoProgramadasVM : ModeloVista, IPestanaTrabajo
 {
+    /// <summary>Valor del filtro «Activas vencidas»: activas con la próxima emisión hoy o antes, las que toca facturar.</summary>
+    private const string Vencidas = "Vencida";
+
     private readonly ModuloFacturacion _modulo;
     private readonly ServiciosFacturacion _s;
     private List<FilaProgramadaVM> _todas = [];
@@ -64,7 +67,7 @@ public sealed class ListadoProgramadasVM : ModeloVista, IPestanaTrabajo
     {
         _modulo = modulo;
         _s = modulo.Servicios;
-        OpcionesEstado = [new("Todos los estados", null), new("Activas", "Activa"), new("Pausadas", "Pausada"), new("Finalizadas", "Finalizada")];
+        OpcionesEstado = [new("Todos los estados", null), new("Activas", "Activa"), new("Activas vencidas", Vencidas), new("Pausadas", "Pausada"), new("Finalizadas", "Finalizada")];
         _filtroEstado = OpcionesEstado[1];
 
         NuevaCommand = new ComandoDelegado(_modulo.NuevaProgramada, () => _puedeEditar);
@@ -99,7 +102,7 @@ public sealed class ListadoProgramadasVM : ModeloVista, IPestanaTrabajo
     public EstadoVista Estado { get => _estado; private set => Fijar(ref _estado, value); }
     public string TituloEstado => Estado switch
     {
-        EstadoVista.Vacio => _todas.Count == 0 ? "Aún no hay facturas programadas en esta sociedad" : HayFiltros ? "Ninguna programada cumple los filtros" : "No hay programadas activas",
+        EstadoVista.Vacio => _todas.Count == 0 ? "Aún no hay facturas programadas en esta sociedad" : _filtroEstado.Valor == Vencidas && _texto.Length == 0 ? "No hay programadas vencidas: hoy no toca facturar ninguna" : HayFiltros ? "Ninguna programada cumple los filtros" : "No hay programadas activas",
         EstadoVista.Error => "No he podido leer las facturas programadas",
         EstadoVista.Cargando => "Leyendo facturas programadas…",
         _ => ""
@@ -139,11 +142,18 @@ public sealed class ListadoProgramadasVM : ModeloVista, IPestanaTrabajo
         Filtrar();
     }
 
+    private bool CumpleEstado(FilaProgramadaVM p) => _filtroEstado.Valor switch
+    {
+        null => true,
+        Vencidas => p.Grupo == 0 && p.Datos.ProximaCalculada is { } d && d <= DateTime.Today,
+        var e => p.Estado == e
+    };
+
     private void Filtrar()
     {
         var id = _activa?.Id;
         Filas.Clear();
-        foreach (var p in _todas.Where(p => p.Contiene(_texto) && (_filtroEstado.Valor is not { } e || p.Estado == e))) Filas.Add(p);
+        foreach (var p in _todas.Where(p => p.Contiene(_texto) && CumpleEstado(p))) Filas.Add(p);
         Activa = Filas.FirstOrDefault(p => p.Id == id) ?? Filas.FirstOrDefault();
         Estado = Filas.Count == 0 ? EstadoVista.Vacio : EstadoVista.Contenido;
         MensajeEstado = _todas.Count == 0 ? "Crea la primera con «Nueva programada», o con «Programar…» desde una factura." : HayFiltros ? "Cambia o quita los filtros para ver más programadas." : "Las demás están pausadas o finalizadas.";
@@ -316,7 +326,7 @@ public sealed class ListadoProgramadasVM : ModeloVista, IPestanaTrabajo
                 .ToList();
             var conservada = _todas.FirstOrDefault(p => p.Id == activa);
             // Si se pide ver una programada que el filtro de estado oculta (una recién duplicada está pausada), se muestran todas.
-            if (idActiva is not null && conservada is not null && _filtroEstado.Valor is { } e && conservada.Estado != e)
+            if (idActiva is not null && conservada is not null && !CumpleEstado(conservada))
             {
                 _filtroEstado = OpcionesEstado[0];
                 Avisar(nameof(FiltroEstado));

@@ -20,7 +20,6 @@
     <Border DockPanel.Dock="Top" BorderBrush="{StaticResource Pincel.Linea}" BorderThickness="0,0,0,1" Padding="14,8">
       <DockPanel>
         <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
-          <Button Content="Enviar pendientes a VeriFactu" IsEnabled="False" Margin="0,0,8,0" ToolTipService.ShowOnDisabled="True" ToolTip="{Binding MotivoVeriFactu}" />
           <Button Content="Nueva factura" Command="{Binding NuevaCommand}" Style="{StaticResource Boton.Primario}" pc:Iconos.Icono="{StaticResource Icono.plus}"
                   ToolTip="Abre un borrador nuevo sin número en su pestaña" />
         </StackPanel>
@@ -58,7 +57,7 @@
     <Border DockPanel.Dock="Bottom" Style="{StaticResource Barra.Pie}">
       <DockPanel>
         <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
-          <TextBlock Text="Doble clic o Intro abre la factura · la casilla marca para las acciones colectivas" Style="{StaticResource Texto.Apagado}" VerticalAlignment="Center" Margin="0,0,12,0" />
+          <TextBlock Text="Clic derecho: acciones · Ctrl o Mayús: seleccionar varias · Doble clic o Intro: abrir" Style="{StaticResource Texto.Apagado}" VerticalAlignment="Center" Margin="0,0,12,0" />
           <Button Content="Exportar a Excel" pc:Iconos.Icono="{StaticResource Icono.xls}" Command="{Binding ExportarExcelCommand, ElementName=Tabla}" Style="{StaticResource Boton.Pequeno}"
                   ToolTip="Exporta todas las filas de la vista con las columnas visibles, en el mismo orden" />
         </StackPanel>
@@ -75,27 +74,6 @@
 
       <!-- Ámbito, acciones y tabla -->
       <DockPanel Grid.Column="0">
-        <Border DockPanel.Dock="Top" Padding="14,8" BorderBrush="{StaticResource Pincel.Linea}" BorderThickness="0,0,0,1">
-          <DockPanel>
-            <WrapPanel DockPanel.Dock="Right">
-              <Button Content="Abrir" Command="{Binding AbrirCommand}" Style="{StaticResource Boton.Pequeno}" Margin="6,0,0,0" ToolTip="Abre la factura activa (borrador editable o validada en solo lectura)" />
-              <Button Content="Validar…" Command="{Binding ValidarCommand}" Style="{StaticResource Boton.Pequeno}" Margin="6,0,0,0" ToolTip="Valida los borradores del ámbito: las marcadas o, si no hay, la activa" />
-              <Button Content="Contabilizar" Command="{Binding ContabilizarCommand}" Style="{StaticResource Boton.Pequeno}" Margin="6,0,0,0" ToolTip="Genera el asiento de las facturas validadas sin asiento del ámbito" />
-              <Button Content="Duplicar" Command="{Binding DuplicarCommand}" Style="{StaticResource Boton.Pequeno}" Margin="6,0,0,0" ToolTip="Crea un borrador con el cliente y las líneas de la factura activa" />
-              <Button Content="Programar…" Command="{Binding ProgramarCommand}" Style="{StaticResource Boton.Pequeno}" Margin="6,0,0,0" ToolTip="Crea una factura programada nueva con el cliente, las condiciones y las líneas de la factura activa" />
-              <Button Content="Rectificar…" Command="{Binding RectificarCommand}" Style="{StaticResource Boton.Pequeno}" Margin="6,0,0,0" ToolTip="Crea un borrador rectificativo que anula por completo la factura activa" />
-              <Button Content="Eliminar borrador" Command="{Binding EliminarCommand}" Style="{StaticResource Boton.Pequeno}" Margin="6,0,0,0" ToolTip="Borra el borrador activo; no consume número" />
-              <Button Content="PDF" IsEnabled="False" Style="{StaticResource Boton.Pequeno}" Margin="6,0,0,0" ToolTipService.ShowOnDisabled="True" ToolTip="{Binding MotivoPdf}" />
-              <Button Content="Enviar" IsEnabled="False" Style="{StaticResource Boton.Pequeno}" Margin="6,0,0,0" ToolTipService.ShowOnDisabled="True" ToolTip="{Binding MotivoEnviar}" />
-            </WrapPanel>
-            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-              <TextBlock Text="{Binding TextoAmbito}" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,12,0" />
-              <Button Content="Marcar todas" Command="{Binding MarcarTodasCommand}" Style="{StaticResource Boton.Enlace}" Margin="0,0,10,0" ToolTip="Marca todas las facturas que se ven con los filtros actuales" />
-              <Button Content="Desmarcar" Command="{Binding DesmarcarCommand}" Style="{StaticResource Boton.Enlace}" ToolTip="Quita todas las marcas: las acciones vuelven a la factura activa" />
-            </StackPanel>
-          </DockPanel>
-        </Border>
-
         <pc:Nota DockPanel.Dock="Top" Tipo="Info" Margin="14,8,14,0" Visibility="{Binding HayFiltroProgramada, Converter={StaticResource Visible}}">
           <WrapPanel>
             <TextBlock Text="{Binding FiltroProgramada}" VerticalAlignment="Center" Margin="0,0,10,0" />
@@ -104,8 +82,28 @@
         </pc:Nota>
 
         <pc:VistaEstado Estado="{Binding Estado}" Titulo="{Binding TituloEstado}" Mensaje="{Binding MensajeEstado}" TextoAccion="{Binding AccionEstado}" ComandoAccion="{Binding ComandoEstado}">
+          <pc:VistaEstado.ContextMenu>
+            <ContextMenu>
+              <MenuItem Header="Abrir" Command="{Binding AbrirCommand}" InputGestureText="Intro" ToolTip="Abre la factura: un borrador se puede editar y una validada se ve en solo lectura (solo con una seleccionada)" />
+              <MenuItem Header="Programar…" Command="{Binding ProgramarCommand}" ToolTip="Crea una factura programada nueva con el cliente, las condiciones y las líneas de esta factura (solo con una seleccionada)" />
+              <MenuItem Header="Rectificar…" Command="{Binding RectificarCommand}" ToolTip="Crea un borrador rectificativo que anula por completo la factura (solo con una validada seleccionada)" />
+              <Separator />
+              <MenuItem Header="{Binding TextoValidar}" Command="{Binding ValidarCommand}" ToolTip="Valida los borradores seleccionados: número, datos del cliente y asiento" />
+              <MenuItem Header="{Binding TextoContabilizar}" Command="{Binding ContabilizarCommand}" ToolTip="Genera el asiento de las facturas validadas seleccionadas que no lo tienen" />
+              <MenuItem Header="{Binding TextoDuplicar}" Command="{Binding DuplicarCommand}" ToolTip="Crea un borrador con el cliente y las líneas de cada factura seleccionada" />
+              <MenuItem Header="{Binding TextoEliminar}" Command="{Binding EliminarCommand}" ToolTip="Borra los borradores seleccionados; no consumen número" />
+              <Separator />
+              <MenuItem Header="PDF" IsEnabled="False" ToolTip="{Binding MotivoPdf}" />
+              <MenuItem Header="Enviar" IsEnabled="False" ToolTip="{Binding MotivoEnviar}" />
+              <MenuItem Header="Enviar pendientes a VeriFactu" IsEnabled="False" ToolTip="{Binding MotivoVeriFactu}" />
+              <Separator />
+              <MenuItem Header="Nueva factura" Command="{Binding NuevaCommand}" ToolTip="Abre un borrador nuevo sin número en su pestaña" />
+              <MenuItem Header="Actualizar" Command="{Binding RefrescarCommand}" InputGestureText="F5" ToolTip="Vuelve a leer las facturas" />
+            </ContextMenu>
+          </pc:VistaEstado.ContextMenu>
           <pc:TablaProConta x:Name="Tabla" ItemsSource="{Binding Filas}" SelectedItem="{Binding Activa}" ClavePreferencias="facturacion.emitidas" TituloExportacion="Facturas"
-                            IsReadOnly="True" SelectionMode="Single" MouseDoubleClick="Tabla_MouseDoubleClick" PreviewKeyDown="Tabla_PreviewKeyDown"
+                            IsReadOnly="True" SelectionMode="Extended" MouseDoubleClick="Tabla_MouseDoubleClick" PreviewKeyDown="Tabla_PreviewKeyDown"
+                            SelectionChanged="Tabla_SelectionChanged" PreviewMouseRightButtonDown="Tabla_PreviewMouseRightButtonDown"
                             AutomationProperties.Name="Facturas">
             <pc:TablaProConta.RowStyle>
               <Style TargetType="DataGridRow" BasedOn="{StaticResource Tabla.Fila}">
@@ -140,14 +138,6 @@
               </DataTemplate>
             </pc:TablaProConta.RowDetailsTemplate>
             <pc:TablaProConta.Columns>
-              <DataGridTemplateColumn Header="" Width="34" pc:TablaProConta.Clave="marca" pc:TablaProConta.SiempreVisible="True">
-                <DataGridTemplateColumn.CellTemplate>
-                  <DataTemplate>
-                    <CheckBox IsChecked="{Binding Marcada, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" HorizontalAlignment="Center" VerticalAlignment="Center"
-                              ToolTip="Marca la factura para las acciones colectivas" />
-                  </DataTemplate>
-                </DataGridTemplateColumn.CellTemplate>
-              </DataGridTemplateColumn>
               <DataGridTemplateColumn Header="" Width="30" pc:TablaProConta.Clave="desplegar" pc:TablaProConta.SiempreVisible="True">
                 <DataGridTemplateColumn.CellTemplate>
                   <DataTemplate>
@@ -181,6 +171,9 @@
         <StackPanel Margin="16,14">
           <TextBlock Text="Elige una factura para ver su detalle." Style="{StaticResource Texto.Apagado}" Visibility="{Binding HayDetalle, Converter={StaticResource Visible}, ConverterParameter=invertir}" />
           <StackPanel Visibility="{Binding HayDetalle, Converter={StaticResource Visible}}">
+            <pc:Nota Tipo="Info" Margin="0,0,0,10" Visibility="{Binding AvisoSeleccion, Converter={StaticResource Visible}}">
+              <TextBlock Text="{Binding AvisoSeleccion}" TextWrapping="Wrap" />
+            </pc:Nota>
             <WrapPanel>
               <TextBlock Text="{Binding DetalleTitulo}" Style="{StaticResource Texto.Titulo}" Margin="0,0,10,0" />
               <Border Style="{StaticResource Estado.Marco}" ToolTip="Estado de la factura">
