@@ -1,9 +1,10 @@
 ---
 title: Atajos de teclado
-depends_on: []
+depends_on: [plataforma/contenedor, plataforma/ui-base, plataforma/mantenimiento]
 status: draft
 threads:
   - 2026-10-29 16:34 · Diseñar atajos de teclado | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GV1VwrZgQybpW6Pw4fub1Tr
+  - 2026-11-04 23:55 · Diseñar atajos de teclado | https://claude.ai/code/project/chan_0125B72VaQBNxehpdTjp4Nvp?thread=cmsg_0125B72VaQBNxehpdTjp4NvpXjL1WPEParodvXJ7TPcpdN
 ---
 ## Summary
 Diseña y gestiona los atajos de teclado de todas las operativas que el operador ejecuta a mano (menús, cinta, menús contextuales y botones). Cada módulo publica sus operativas en un catálogo único (id como `LineasN43.ExportarAContabilidad` y texto descriptivo); de ese catálogo salen el atajo, su ejecución y su presentación en menús, cinta, tooltips y búsqueda de acciones.
@@ -20,6 +21,7 @@ Primero un catálogo fijo; después, una pantalla de mantenimiento con atajos co
 - 2026-10-29 16:34 · Los atajos personalizados son comunes a todos los operadores, no por operador.
 - 2026-10-29 16:34 · El id de operativa podrá servir también como identificador de permiso en `seguridad/permisos`, pero en la versión mínima viable no se aplica seguridad a las operativas.
 - 2026-10-29 16:45 · Diseño validado por el propietario (catálogo, interceptación, presentación, conflictos y fases). El nodo sigue en borrador por su tarea pendiente: el catálogo fijo inicial y la pantalla de mantenimiento.
+- 2026-11-04 23:55 · Líneas derivadas añadidas en `plataforma/contenedor` (punto único de escucha, aviso en la barra de estado, menús, cinta y búsqueda de acciones desde el catálogo y ayuda de teclado), `plataforma/ui-base` (atajo visible en menús, cinta y tooltips) y `plataforma/mantenimiento` (proveedor «Atajos de teclado»). Los nodos de pantalla recibirán «publicar sus operativas en el catálogo» cuando construyan su interfaz. Cuando se construya el catálogo, los atajos que ya están fijos en el código (Ctrl+Mayús+M, Ctrl+G, Ctrl+S y Ctrl+F4 en el contenedor; Alt+← → en las tablas) pasan a leerse de él.
 
 ## Requirements
 - 2026-10-29 16:29 · Todas las operativas de los diferentes módulos ejecutables manualmente por el operador (incluyendo menús y botones 'ribbon') son candidatas a tener un acceso directo de teclado.
@@ -29,6 +31,8 @@ Primero un catálogo fijo; después, una pantalla de mantenimiento con atajos co
 - 2026-10-29 16:33 · answer: ¿atajos personalizados por operador o comunes? → Atajos comunes
 - 2026-10-29 16:33 · answer: ¿el id de operativa sirve también como permiso? → Lo podemos aprovechar, aunque mi idea es no aplicar seguridad en la versión mínima viable.
 - 2026-10-29 16:34 · draft: Definir el catálogo fijo inicial de operativas y atajos a partir de las maquetas, resolviendo los choques Ctrl+B y Ctrl+K, y después construir la pantalla de mantenimiento de atajos comunes como proveedor de plataforma/mantenimiento.
+- 2026-11-03 11:51 · answer: ¿esperar a que se fusione la PR #14 antes de escribir las líneas derivadas? → A (esperar)
 
 ## Hand-over
 - 2026-10-29 16:34 · Hecho: nodo creado con el diseño de catálogo, interceptación, presentación, conflictos y fases. Diseño validado a las 16:45. Pendiente: añadir las líneas derivadas en `plataforma/contenedor` (punto único de escucha y atajo visible en menús, cinta, menús contextuales y búsqueda de acciones), `plataforma/ui-base` (cómo se muestra el atajo en menús y tooltips) y `plataforma/mantenimiento` (proveedor de atajos) cuando se fusione la rama del hilo «Validar prototipos de pantallas principales»; los nodos de pantalla reciben «publicar sus operativas en el catálogo» cuando construyan su interfaz.
+- 2026-11-04 23:55 · Hecho: líneas derivadas en contenedor, ui-base y mantenimiento. Pendiente (tarea del borrador): definir el catálogo fijo inicial a partir de las maquetas, resolviendo los choques Ctrl+B y Ctrl+K, y después la pantalla de mantenimiento de atajos.

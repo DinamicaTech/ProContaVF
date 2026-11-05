@@ -67,6 +67,7 @@ Dirigió la validación de los prototipos HTML de las pantallas principales (con
 - 2026-10-31 10:51 · Importe: Siempre en currency
 - 2026-10-31 10:57 · Ok, validado
 - 2026-11-01 10:46 · Derived from plataforma/contenedor: contrato común de pestaña de trabajo y servicio de mensajes.
+- 2026-11-04 23:55 · Derived from plataforma/atajos-de-teclado: las entradas de menú, menú contextual y botones de cinta muestran el atajo de su operativa leído del catálogo, sin escribirlo a mano, y su tooltip lo incluye («Exportar a contabilidad · Ctrl+E»).
 
 ## Hand-over
 - 2026-10-29 10:20 · Hecho: acceso al lienzo confirmado, decisión HTML frente a WPF, desglose acordado y requisitos derivados en cada nodo de pantalla. Mayor antiguo exportado y analizado (`sources/proconta-antiguo/mayor/ANALISIS-FUNCIONAL.md`). Pendiente: validar los prototipos en el orden acordado, crear los de importación de compras y Mayor, y después la biblioteca WPF con su pantalla de muestra.

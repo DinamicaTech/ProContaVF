@@ -13,7 +13,9 @@ Las Project rules incluyen las reglas del dominio: importes en decimal con redon
 - 2026-10-28 12:30 · Creado por Claude Visual Project con su versión de reglas 10.
 - 2026-10-31 08:37 · Excepción a la regla CVP "Regression tests": las pruebas no se ejecutan en GitHub en cada PR ni de forma programada, sino en local (ver architecture 2026-10-31 08:37).
 - 2026-11-01 19:06 · Se añaden a Project rules las reglas del dominio del apartado 5 de la propuesta CVP v14: Money, Accounting invariants, Real data, Parity with ProConta y Time zone. Ajustes: la numeración sin huecos aplica a las facturas validadas de cada serie (los borradores no tienen número); el cuadre de la factura incluye retención y suplidos; la paridad se queda en unas cuantas pruebas unitarias contra valores conocidos de ProConta y se afinará en el borrador global-rules/paridad-proconta. El resto de la propuesta (CVP v14) va en el repositorio de CVP.
+- 2026-11-04 23:55 · [replaced by 2026-11-05 10:55] La línea «Claude project» apunta al proyecto de Claude nuevo (chan_0125B72VaQBNxehpdTjp4Nvp), al que se trasladaron los hilos desde el anterior; acordado con el propietario en el hilo «Diseñar atajos de teclado».
 - 2026-11-05 10:20 · Se añade a Project rules la regla «Menú contextual», a petición del propietario (ver facturacion/pantallas 2026-11-05 10:20).
+- 2026-11-05 10:55 · La línea «Claude project» apunta al proyecto ProContaVF (chan_01SQZ7PCqQx2V9FyGTmZCe5G), donde se vuelve a trabajar desde el 2026-11-04.
 
 ## CVP rules
 <!-- cvp-rules 14 begin · Written by Claude Visual Project ("Update rules" in the page). Do not edit: an update replaces everything up to the end marker. Add your own rules under ## Project rules. -->
