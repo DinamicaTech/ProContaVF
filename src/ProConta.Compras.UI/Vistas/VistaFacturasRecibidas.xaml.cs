@@ -66,6 +66,18 @@ public partial class VistaFacturasRecibidas : UserControl
         }
     }
 
+    /// <summary>Doble clic en una fila: abre su PDF con el programa asociado de Windows.</summary>
+    private void Tabla_MouseDoubleClick(object sender, MouseButtonEventArgs e)
+    {
+        for (var x = e.OriginalSource as DependencyObject; x is not null; x = VisualTreeHelper.GetParent(x))
+        {
+            if (x is not DataGridRow) continue;
+            if (Vm?.AbrirPdfCommand is { } abrir && abrir.CanExecute(null)) abrir.Execute(null);
+            e.Handled = true;
+            return;
+        }
+    }
+
     private void BotonFiltro_Click(object sender, RoutedEventArgs e) => PopupFiltro.IsOpen = !PopupFiltro.IsOpen;
 
     // ---------- captura y resaltado ----------
@@ -119,11 +131,28 @@ public partial class VistaFacturasRecibidas : UserControl
         var f = Vm?.Ficha;
         IReadOnlyList<ValorResaltado> valores = f is null ? [] :
         [
-            new("nif", f.Nif), new("numero", f.Numero), new("fecha", f.Fecha), new("total", f.Total)
+            new("nif", f.Nif), new("numero", f.Numero), .. VariantesFecha(f.Fecha).Select(t => new ValorResaltado("fecha", t)), new("total", f.Total)
         ];
         var activo = _campoCaptura?.Tag as string;
         Visor.Resaltar(valores, activo);
         _ventanaVisor?.Visor.Resaltar(valores, activo);
+    }
+
+    private static readonly System.Globalization.CultureInfo[] CulturasFecha =
+        [System.Globalization.CultureInfo.GetCultureInfo("es-ES"), System.Globalization.CultureInfo.GetCultureInfo("ca-ES"), System.Globalization.CultureInfo.GetCultureInfo("en-GB")];
+
+    private static readonly string[] FormatosFecha =
+        ["dd/MM/yyyy", "d/M/yyyy", "dd/MM/yy", "dd-MMM-yyyy", "d-MMM-yyyy", "d 'de' MMMM 'de' yyyy", "d MMMM yyyy", "MMMM d, yyyy", "yyyy-MM-dd"];
+
+    /// <summary>
+    /// La fecha de la ficha escrita como suele aparecer en las facturas (10/07/2026, 10-jul-2026, 10 de julio de 2026…),
+    /// para resaltarla en el PDF aunque no esté con barras.
+    /// </summary>
+    internal static IReadOnlyList<string> VariantesFecha(string? fecha)
+    {
+        if (string.IsNullOrWhiteSpace(fecha)) return [];
+        if (!DateTime.TryParse(fecha, System.Globalization.CultureInfo.GetCultureInfo("es-ES"), System.Globalization.DateTimeStyles.None, out var d)) return [fecha];
+        return CulturasFecha.SelectMany(c => FormatosFecha.Select(f => d.ToString(f, c))).Prepend(fecha).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
     }
 
     // ---------- anchos de la lista y la ficha ----------

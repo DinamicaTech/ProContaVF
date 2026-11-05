@@ -308,4 +308,46 @@ public sealed class FacturasCompraAccessTests : IDisposable
         Assert.Contains(filas, x => x.NumeroFactura == "FV260098");
         Assert.Empty(await servicio.ListarAsync(new ContextoSociedadEjercicio("T01", 9002, 2025)));
     }
+    [Fact]
+    public async Task Separar_deja_la_primera_en_el_mismo_registro_registra_la_segunda_y_guarda_el_original_como_bak()
+    {
+        await EmpresaConProveedorAsync();
+        var dos = Completa.Replace("FV260123", "FV260200").Replace("176,00", "50,00");
+        var servicio = new ServicioFacturasCompra(Bd, new ServicioReconocimientoFacturaCompra(new ExtractorPorFichero(new Dictionary<string, string>
+        {
+            ["doble.pdf"] = Completa,
+            ["doble_2.pdf"] = dos,
+        })), _reloj);
+        var dir = Path.Combine(_raiz, "2026", "Proveedores", "Ficticio");
+        Directory.CreateDirectory(dir);
+        var ruta = Path.Combine(dir, "doble.pdf");
+        File.WriteAllBytes(ruta, PantallaComprasTests.PdfDePaginas("Factura uno", "Factura dos"));
+        var r = await servicio.ImportarAsync(_ctx, ruta);
+        Assert.True(r.Registrada, r.Error?.ToString());
+        var f = (await servicio.CargarAsync(r.Factura!.IdRegistro))!;
+        f.Notas = "Se conserva";
+        Assert.True((await servicio.GuardarAsync(f)).EsCorrecto);
+        f = (await servicio.CargarAsync(f.IdRegistro))!;
+        var md5Original = f.Md5;
+
+        Assert.Equal("Compras.NombreExiste", (await servicio.SepararAsync(_ctx, f, 2, "doble")).Error!.Codigo);
+        Assert.Equal("Compras.PaginaNoValida", (await servicio.SepararAsync(_ctx, f, 3, "doble_2")).Error!.Codigo);
+        var s = await servicio.SepararAsync(_ctx, f, 2, "doble_2");
+        Assert.True(s.EsCorrecto, s.Error?.ToString());
+        Assert.True(s.Valor!.Registrada, s.Valor.Error?.ToString());
+
+        Assert.True(File.Exists(Path.Combine(dir, "doble.BAK")));
+        Assert.False(File.Exists(ruta + ".separando"));
+        Assert.Equal(1, Integraciones.DivisorPdf.ContarPaginas(File.ReadAllBytes(ruta)));
+        var primera = (await servicio.CargarAsync(f.IdRegistro))!;
+        Assert.NotEqual(md5Original, primera.Md5);
+        Assert.Equal(ServicioReconocimientoFacturaCompra.CalcularMd5(ruta), primera.Md5);
+        Assert.Equal(("FV260123", "Se conserva"), (primera.NumeroFactura, primera.Notas!));
+        var segunda = (await servicio.CargarAsync(s.Valor.Factura!.IdRegistro))!;
+        Assert.Equal(("FV260200", 50m), (segunda.NumeroFactura, segunda.ImporteTotal!.Value));
+
+        await Bd.EjecutarAsync(x => x.EjecutarAsync("UPDATE FacturasCompra SET Exportada = ? WHERE IdRegistro = ?", true, segunda.IdRegistro));
+        segunda = (await servicio.CargarAsync(segunda.IdRegistro))!;
+        Assert.Equal("Compras.SepararContabilizada", (await servicio.SepararAsync(_ctx, segunda, 2, "otra")).Error!.Codigo);
+    }
 }

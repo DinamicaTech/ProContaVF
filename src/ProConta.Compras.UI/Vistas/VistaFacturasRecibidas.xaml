@@ -103,6 +103,8 @@
                       Visibility="{Binding Prueba, Converter={StaticResource Visible}, ConverterParameter=invertir}" />
             <MenuItem Header="Volver a reconocer" Command="{Binding ReconocerCommand}" InputGestureText="Ctrl+R"
                       ToolTip="Lee de nuevo el PDF de la factura activa con las reglas actuales; los datos leídos quedan en la ficha sin guardar" />
+            <MenuItem Header="Modo prueba (no guarda nada)" IsCheckable="True" IsChecked="{Binding Prueba, Mode=TwoWay}"
+                      ToolTip="Al elegir una factura se reconoce de nuevo su PDF con las reglas actuales y se compara con lo grabado, sin guardar nada" />
             <MenuItem Header="Comparar todas con lo grabado" Command="{Binding CompararTodasCommand}"
                       ToolTip="Reconoce de nuevo los PDF de la lista y cuenta, campo a campo, cuántos coinciden con lo grabado. No guarda nada"
                       Visibility="{Binding Prueba, Converter={StaticResource Visible}}" />
@@ -113,13 +115,16 @@
             <MenuItem Header="Ver relacionadas" Command="{Binding VerRelacionadasCommand}" ToolTip="Muestra la factura original y sus rectificativas, en los dos sentidos" />
             <MenuItem Header="Abrir el PDF" Command="{Binding AbrirPdfCommand}" ToolTip="Abre el PDF con el programa de Windows" />
             <MenuItem Header="Abrir la carpeta" Command="{Binding AbrirCarpetaCommand}" ToolTip="Abre la carpeta del PDF en el Explorador" />
+            <MenuItem Header="Copiar ruta" Command="{Binding CopiarRutaCommand}" ToolTip="Copia al portapapeles la ruta completa del PDF" />
+            <MenuItem Header="Separar facturas…" Command="{Binding SepararCommand}"
+                      ToolTip="El PDF trae dos facturas: pregunta desde qué página empieza la segunda y su nombre, deja el original como .BAK y registra la segunda" />
             <Separator />
             <MenuItem Header="Actualizar" Command="{Binding RefrescarCommand}" InputGestureText="F5" ToolTip="Vuelve a leer las facturas" />
           </ContextMenu>
         </pc:VistaEstado.ContextMenu>
         <pc:TablaProConta x:Name="Tabla" ItemsSource="{Binding Filas}" SelectedItem="{Binding Activa}" ClavePreferencias="compras.recibidas" TituloExportacion="Facturas recibidas"
                           IsReadOnly="True" SelectionMode="Extended" SelectionChanged="Tabla_SelectionChanged"
-                          PreviewMouseRightButtonDown="Tabla_PreviewMouseRightButtonDown" AutomationProperties.Name="Facturas recibidas">
+                          PreviewMouseRightButtonDown="Tabla_PreviewMouseRightButtonDown" MouseDoubleClick="Tabla_MouseDoubleClick" AutomationProperties.Name="Facturas recibidas">
           <pc:TablaProConta.Columns>
             <DataGridTextColumn Header="" Binding="{Binding Marca}" Width="28" ElementStyle="{StaticResource Texto.Celda}" pc:TablaProConta.Clave="marca" pc:TablaProConta.SiempreVisible="True" />
             <DataGridTextColumn Header="Fichero" Binding="{Binding Fichero}" Width="200" ElementStyle="{StaticResource Texto.Celda}" pc:TablaProConta.Clave="fichero" pc:TablaProConta.SiempreVisible="True" />
@@ -128,6 +133,7 @@
             <DataGridTextColumn Header="Número" Binding="{Binding Numero}" Width="130" ElementStyle="{StaticResource Texto.Celda.Mono}" pc:TablaProConta.Clave="numero" />
             <DataGridTextColumn Header="Total" Binding="{Binding Total}" SortMemberPath="TotalOrden" Width="105" ElementStyle="{StaticResource Texto.Celda.Importe}" HeaderStyle="{StaticResource Tabla.Cabecera.Derecha}" pc:TablaProConta.Clave="total" />
             <DataGridTextColumn Header="Estado" Binding="{Binding Estado}" Width="120" ElementStyle="{StaticResource Texto.Celda}" pc:TablaProConta.Clave="estado" />
+            <DataGridTextColumn Header="Mín. %" Binding="{Binding Minimo}" SortMemberPath="MinimoOrden" Width="78" ElementStyle="{StaticResource Texto.Celda}" pc:TablaProConta.Clave="minimo" />
             <DataGridTextColumn Header="NIF" Binding="{Binding Nif}" Width="110" ElementStyle="{StaticResource Texto.Celda.Mono}" pc:TablaProConta.Clave="nif" pc:TablaProConta.OcultaDeFabrica="True" />
             <DataGridTextColumn Header="Base" Binding="{Binding Base}" SortMemberPath="BaseOrden" Width="105" ElementStyle="{StaticResource Texto.Celda.Importe}" HeaderStyle="{StaticResource Tabla.Cabecera.Derecha}" pc:TablaProConta.Clave="base" pc:TablaProConta.OcultaDeFabrica="True" />
             <DataGridTextColumn Header="Confianza" Binding="{Binding Confianza}" Width="80" ElementStyle="{StaticResource Texto.Celda}" pc:TablaProConta.Clave="confianza" pc:TablaProConta.OcultaDeFabrica="True" />
@@ -389,6 +395,44 @@
               </DataTemplate>
             </ContentControl.ContentTemplate>
           </ContentControl>
+
+          <!-- Asiento de la factura contabilizada: solo lectura, a todo el ancho de la ficha -->
+          <StackPanel Visibility="{Binding HayAsiento, Converter={StaticResource Visible}}">
+          <Border Style="{StaticResource Tarjeta.Compra}" DataContext="{Binding AsientoFicha}">
+            <StackPanel>
+              <TextBlock Text="{Binding Titulo}" Style="{StaticResource Titulo.Tarjeta}" TextTrimming="CharacterEllipsis" ToolTip="{Binding Titulo}" />
+              <TextBlock Text="{Binding Mensaje}" Style="{StaticResource Texto.Apagado}" TextWrapping="Wrap" Visibility="{Binding Mensaje, Converter={StaticResource Visible}}" />
+              <StackPanel Visibility="{Binding HayApuntes, Converter={StaticResource Visible}}">
+                <Grid Margin="0,0,0,4">
+                  <Grid.ColumnDefinitions><ColumnDefinition Width="80" /><ColumnDefinition Width="*" /><ColumnDefinition Width="95" /><ColumnDefinition Width="95" /></Grid.ColumnDefinitions>
+                  <TextBlock Text="Cuenta" Style="{StaticResource Etiqueta.Campo}" />
+                  <TextBlock Grid.Column="1" Text="Concepto" Style="{StaticResource Etiqueta.Campo}" />
+                  <TextBlock Grid.Column="2" Text="Debe" Style="{StaticResource Etiqueta.Campo}" HorizontalAlignment="Right" />
+                  <TextBlock Grid.Column="3" Text="Haber" Style="{StaticResource Etiqueta.Campo}" HorizontalAlignment="Right" />
+                </Grid>
+                <ItemsControl ItemsSource="{Binding Apuntes}">
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                      <Grid Margin="0,2">
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="80" /><ColumnDefinition Width="*" /><ColumnDefinition Width="95" /><ColumnDefinition Width="95" /></Grid.ColumnDefinitions>
+                        <TextBlock Text="{Binding Cuenta}" FontFamily="{StaticResource Fuente.Mono}" ToolTip="{Binding NombreCuenta}" />
+                        <TextBlock Grid.Column="1" Text="{Binding Descripcion}" TextTrimming="CharacterEllipsis" ToolTip="{Binding NombreCuenta}" Margin="0,0,8,0" />
+                        <TextBlock Grid.Column="2" Text="{Binding Debe}" FontFamily="{StaticResource Fuente.Mono}" HorizontalAlignment="Right" />
+                        <TextBlock Grid.Column="3" Text="{Binding Haber}" FontFamily="{StaticResource Fuente.Mono}" HorizontalAlignment="Right" />
+                      </Grid>
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+                <Grid Margin="0,4,0,0">
+                  <Grid.ColumnDefinitions><ColumnDefinition Width="80" /><ColumnDefinition Width="*" /><ColumnDefinition Width="95" /><ColumnDefinition Width="95" /></Grid.ColumnDefinitions>
+                  <TextBlock Grid.Column="1" Text="Total" FontWeight="SemiBold" />
+                  <TextBlock Grid.Column="2" Text="{Binding TotalDebe}" FontFamily="{StaticResource Fuente.Mono}" FontWeight="SemiBold" HorizontalAlignment="Right" />
+                  <TextBlock Grid.Column="3" Text="{Binding TotalHaber}" FontFamily="{StaticResource Fuente.Mono}" FontWeight="SemiBold" HorizontalAlignment="Right" />
+                </Grid>
+              </StackPanel>
+            </StackPanel>
+          </Border>
+          </StackPanel>
         </StackPanel>
       </ScrollViewer>
 

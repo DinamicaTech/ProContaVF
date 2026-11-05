@@ -23,16 +23,21 @@ public interface IDialogosCompras
 
     /// <summary>Abre un fichero o una carpeta con el programa predeterminado de Windows; si no puede, lo explica.</summary>
     void Abrir(string ruta);
+
+    /// <summary>Copia el texto al portapapeles; false si Windows no lo deja.</summary>
+    bool Copiar(string texto);
+
+    /// <summary>«Separar facturas»: página en la que empieza la segunda factura y su nombre de fichero; null si se cancela.</summary>
+    (int Pagina, string Nombre)? PedirSeparacion(string fichero, string nombrePropuesto);
 }
 
 /// <summary>
-/// Compras dentro del contenedor (compras/pantallas): la pestaña «Facturas recibidas» y la de «Reconocimiento de
-/// facturas», que es la misma pantalla en modo «Probar» y nunca escribe.
+/// Compras dentro del contenedor (compras/pantallas): una sola pestaña, «Facturas recibidas», con el modo prueba (que
+/// vuelve a reconocer y compara sin escribir) en su menú contextual (compras/pantallas 2026-11-05 20:29).
 /// </summary>
 public sealed class ModuloCompras(ServiciosCompras servicios, IAnfitrionPestanas anfitrion, IDialogosCompras dialogos, Action<int> abrirFichaTercero)
 {
     private FacturasRecibidasVM? _recibidas;
-    private FacturasRecibidasVM? _prueba;
 
     internal ServiciosCompras Servicios => servicios;
     internal IDialogosCompras Dialogos => dialogos;
@@ -40,33 +45,26 @@ public sealed class ModuloCompras(ServiciosCompras servicios, IAnfitrionPestanas
     internal void AbrirFichaTercero(int idTercero) => abrirFichaTercero(idTercero);
 
     /// <summary>Abre (o activa) Facturas recibidas; al abrir busca los PDF nuevos de la carpeta.</summary>
-    public void AbrirRecibidas() => Abrir(ref _recibidas, prueba: false);
-
-    /// <summary>Abre (o activa) Reconocimiento de facturas: el modo «Probar», que no guarda nada.</summary>
-    public void AbrirReconocimiento() => Abrir(ref _prueba, prueba: true);
-
-    private void Abrir(ref FacturasRecibidasVM? pestana, bool prueba)
+    public void AbrirRecibidas()
     {
-        if (pestana is not null)
+        if (_recibidas is not null)
         {
-            anfitrion.Activar(pestana);
+            anfitrion.Activar(_recibidas);
             return;
         }
-        pestana = new FacturasRecibidasVM(this, prueba);
-        anfitrion.Abrir(pestana);
-        _ = pestana.IniciarAsync();
+        _recibidas = new FacturasRecibidasVM(this, prueba: false);
+        anfitrion.Abrir(_recibidas);
+        _ = _recibidas.IniciarAsync();
     }
 
     internal void Cerrada(FacturasRecibidasVM pestana)
     {
         if (ReferenceEquals(pestana, _recibidas)) _recibidas = null;
-        if (ReferenceEquals(pestana, _prueba)) _prueba = null;
     }
 
-    /// <summary>Una factura cambió en una pestaña: la otra se refresca si está abierta.</summary>
+    /// <summary>Una factura cambió (reservado para otras pantallas que muestren facturas de compra).</summary>
     internal void FacturaCambiada(FacturasRecibidasVM origen)
     {
         if (_recibidas is not null && !ReferenceEquals(origen, _recibidas)) _ = _recibidas.CargarAsync();
-        if (_prueba is not null && !ReferenceEquals(origen, _prueba)) _ = _prueba.CargarAsync();
     }
 }

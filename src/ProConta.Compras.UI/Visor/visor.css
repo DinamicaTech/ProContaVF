@@ -3,6 +3,10 @@ html, body { margin: 0; height: 100%; background: var(--fondo); font: 13px "Sego
 #paginas { padding: 12px 0 24px; display: flex; flex-direction: column; align-items: center; gap: 12px; }
 .pagina { position: relative; background: #fff; box-shadow: 0 1px 4px rgba(20, 33, 58, .18); }
 .pagina canvas { display: block; }
+/* Con [hidden] no debe tapar las páginas: si no, se come el ratón y no se puede seleccionar texto. */
+#mensaje[hidden] { display: none; }
+#aviso { position: fixed; right: 12px; bottom: 12px; padding: 6px 10px; border-radius: 6px; background: var(--marino); color: #fff; font-size: 12px; opacity: 0; transition: opacity .2s; pointer-events: none; }
+#aviso.visible { opacity: .92; }
 #mensaje { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; padding: 24px; text-align: center; color: #5b6578; }
 
 /* Capa de texto de PDF.js (pdf_viewer.css, reducido a lo que usa este visor). */

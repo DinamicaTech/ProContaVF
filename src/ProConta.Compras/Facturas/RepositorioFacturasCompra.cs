@@ -101,6 +101,44 @@ internal static class RepositorioFacturasCompra
     }
 
     /// <summary>
+    /// Asiento de una factura contabilizada en el ERP (compras/pantallas 2026-11-05 20:29). ASIAPU no es el IdAsiento: el
+    /// enlace fiable es el apunte del proveedor con el número de la factura y con Documento (la ruta del PDF), que solo
+    /// lleva el apunte de la factura, no el del pago.
+    /// </summary>
+    public static async Task<AsientoFactura?> AsientoErpAsync(ISesionDatos s, int idSociedadEjercicio, string numeroFactura, string cuentaProveedor)
+    {
+        var cabecera = await s.ConsultarPrimeroAsync(
+            "SELECT TOP 1 a.IdAsiento, a.FechaContable, a.Descripcion FROM Apuntes AS ap INNER JOIN Asientos AS a ON ap.IdAsiento = a.IdAsiento " +
+            "WHERE a.IdSociedadEjercicio = ? AND ap.NumeroDocumento = ? AND ap.CuentaContable = ? AND ap.Documento Is Not Null AND ap.Documento <> '' ORDER BY a.IdAsiento",
+            r => (Id: r.Entero("IdAsiento"), Fecha: r.FechaNula("FechaContable"), Descripcion: r.Texto("Descripcion") ?? ""),
+            idSociedadEjercicio, numeroFactura, cuentaProveedor);
+        if (cabecera.Id == 0) return null;
+        var apuntes = await s.ConsultarAsync(
+            "SELECT ap.Orden, ap.CuentaContable, ap.ImporteDebe, ap.ImporteHaber, ap.Descripcion, cc.Nombre FROM Apuntes AS ap LEFT JOIN CuentasContables AS cc " +
+            "ON (ap.CuentaContable = cc.Codigo AND cc.IdSociedadEjercicio = ?) WHERE ap.IdAsiento = ? ORDER BY ap.Orden",
+            r => new ApunteFactura(r.Texto("CuentaContable")?.Trim() ?? "", r.Texto("Nombre")?.Trim(), r.DecimalNulo("ImporteDebe") ?? 0m,
+                r.DecimalNulo("ImporteHaber") ?? 0m, r.Texto("Descripcion")?.Trim()),
+            idSociedadEjercicio, cabecera.Id);
+        // Antes de 1901 es la fecha vacía del ERP.
+        var fecha = cabecera.Fecha is { Year: > 1900 } f ? f : (DateTime?)null;
+        return new AsientoFactura(cabecera.Id, fecha, cabecera.Descripcion, apuntes);
+    }
+
+    /// <summary>
+    /// La factura pasa a otro PDF (la primera parte al separar facturas): sus datos y su reconocimiento se sustituyen por los
+    /// de la nueva lectura, con el mismo control de versión que al guardar. Debe llamarse dentro de una transacción.
+    /// </summary>
+    public static async Task<Resultado<int>> ReemplazarPdfAsync(ISesionDatos s, FacturaCompra f)
+    {
+        var r = await ActualizarAsync(s, f);
+        if (!r.EsCorrecto) return r;
+        await s.EjecutarAsync(
+            "UPDATE FacturasCompra SET MD5 = ?, NombreFichero = ?, ConfianzaImportacion = ?, FuenteImportacion = ?, LOGImportacion = ? WHERE IdRegistro = ?",
+            f.Md5, f.NombreFichero, f.Confianza, f.Fuente, Nulo(f.Log), f.IdRegistro);
+        return r;
+    }
+
+    /// <summary>
     /// Facturas de compra del ejercicio de la empresa para la lista de la pantalla, con el nombre del proveedor. Las del ERP
     /// sin IdSociedadEjercicio se reconocen por su sociedad y su año.
     /// </summary>
@@ -110,7 +148,7 @@ internal static class RepositorioFacturasCompra
             "SELECT fc.IdRegistro, fc.IdProveedor, fc.NIF, fc.NumeroFactura, fc.Fecha, fc.ImporteBI, fc.ImporteIVA, fc.ImporteTotal, fc.ImporteRetencion, " +
             "fc.PorcentajeRetencion, fc.Suplido, fc.InversionSujetoPasivo, fc.TipoOperacion, fc.Divisa, fc.IdRegistroFacturaRectificada, fc.Exportada, " +
             "fc.Duplicada, fc.ArchivoOriginal, fc.Archivo, fc.Carpeta, fc.ConceptoGasto, fc.IdCentroCoste, fc.ConfianzaImportacion, " +
-            "fc.RequiereRevisionImportacion, fc.FechaHoraRegistro, fc.ASIAPU, t.Nombre AS NombreTercero, t.RazonSocial, t.NombreComercial, fc.NombreProveedorAeat " +
+            "fc.RequiereRevisionImportacion, fc.FechaHoraRegistro, fc.ASIAPU, fc.LOGImportacion, fc.Version, t.Nombre AS NombreTercero, t.RazonSocial, t.NombreComercial, fc.NombreProveedorAeat " +
             "FROM (FacturasCompra AS fc LEFT JOIN Proveedores AS p ON fc.IdProveedor = p.IdProveedor) LEFT JOIN Terceros AS t ON p.IdTercero = t.IdTercero " +
             "WHERE fc.IdSociedadEjercicio = ? OR (fc.IdSociedadEjercicio Is Null AND fc.Sociedad = ? AND fc.Ejercicio = ?)",
             r => new FilaFacturaCompra
@@ -141,7 +179,9 @@ internal static class RepositorioFacturasCompra
                 Confianza = r.DecimalNulo("ConfianzaImportacion"),
                 RequiereRevision = !r.EsNulo("RequiereRevisionImportacion") && r.Logico("RequiereRevisionImportacion"),
                 FechaHoraRegistro = r.FechaNula("FechaHoraRegistro"),
-                Asiento = r.EnteroNulo("ASIAPU")
+                Asiento = r.EnteroNulo("ASIAPU"),
+                ConfianzaMinima = ConfianzaMinima(r.Texto("LOGImportacion")),
+                Version = r.EnteroNulo("Version") ?? 0
             },
             ctx.IdSociedadEjercicio, ctx.IdSociedad, ctx.Ejercicio.ToString(CultureInfo.InvariantCulture));
         return filas;
@@ -154,6 +194,14 @@ internal static class RepositorioFacturasCompra
             "INNER JOIN Proveedores AS p ON cps.IdProveedor = p.IdProveedor) INNER JOIN Terceros AS t ON p.IdTercero = t.IdTercero WHERE cps.IdSociedad = ?",
             r => new ProveedorFicha(r.Entero("IdProveedor"), r.Entero("IdTercero"), r.Texto("NIF")?.Trim() ?? "",
                 Primero(r.Texto("NombreComercial"), r.Texto("RazonSocial"), r.Texto("Nombre"))), idSociedad);
+
+    /// <summary>La confianza más baja de NIF, número, fecha e importes según el log del reconocimiento; null sin log.</summary>
+    internal static decimal? ConfianzaMinima(string? log)
+    {
+        var c = ConfianzaCampos.DesdeLog(log);
+        var valores = new[] { c.Nif, c.Numero, c.Fecha, c.Importes }.Where(v => v is not null).Select(v => v!.Value).ToList();
+        return valores.Count == 0 ? null : valores.Min();
+    }
 
     /// <summary>Rutas del PDF guardadas en la fila (ArchivoOriginal y Archivo), sin vacías ni repetidas.</summary>
     private static IReadOnlyList<string> Rutas(IFilaDatos r) =>
@@ -350,6 +398,10 @@ public sealed class FilaFacturaCompra
     public DateTime? FechaHoraRegistro { get; init; }
     /// <summary>Número de asiento del ERP (ASIAPU), si está contabilizada.</summary>
     public int? Asiento { get; init; }
+    /// <summary>La confianza más baja de los campos reconocidos (columna «Mín. %»); null sin reconocimiento.</summary>
+    public decimal? ConfianzaMinima { get; init; }
+    /// <summary>Versión de la fila: mayor que 0 si alguien la ha guardado desde la pantalla (revisada).</summary>
+    public int Version { get; init; }
 
     public string NombreFichero => Path.GetFileName(RutaPdf);
 
@@ -364,6 +416,12 @@ public sealed class FilaFacturaCompra
 
     public bool EsRectificativa => IdRegistroFacturaRectificada is not null || ImporteTotal < 0;
 }
+
+/// <summary>Asiento de una factura de compra, para la pastilla de solo lectura de la ficha.</summary>
+public sealed record AsientoFactura(int IdAsiento, DateTime? Fecha, string Descripcion, IReadOnlyList<ApunteFactura> Apuntes);
+
+/// <summary>Un apunte del asiento de la factura.</summary>
+public sealed record ApunteFactura(string Cuenta, string? NombreCuenta, decimal Debe, decimal Haber, string? Descripcion);
 
 /// <summary>Proveedor de una empresa: su NIF de terceros, su cuenta en el ejercicio y los códigos que ha tenido.</summary>
 internal sealed record ProveedorEmpresa(int IdProveedor, string Nif, IReadOnlyList<string> CuentasEjercicio, IReadOnlySet<string> Codigos)

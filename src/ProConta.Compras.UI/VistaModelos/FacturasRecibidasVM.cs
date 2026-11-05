@@ -53,12 +53,13 @@ public sealed class FacturasRecibidasVM : ModeloVista, IPestanaTrabajo
     private bool _puedeEditar;
     private string? _errorFicha;
     private int _cargaFicha;
+    private bool _prueba;
 
     internal FacturasRecibidasVM(ModuloCompras modulo, bool prueba)
     {
         _modulo = modulo;
         _s = modulo.Servicios;
-        Prueba = prueba;
+        _prueba = prueba;
         _pestanaLista = prueba ? "todas" : "pendientes";
         Filtros =
         [
@@ -72,9 +73,11 @@ public sealed class FacturasRecibidasVM : ModeloVista, IPestanaTrabajo
         ReconocerCommand = new ComandoDelegado(() => _ = ReconocerDeNuevoAsync(), () => _activa is { PdfExiste: true } && (Prueba || _ficha is { Editable: true }) && !Ocupado);
         CompararTodasCommand = new ComandoDelegado(() => _ = CompararTodasAsync(), () => Prueba && Filas.Count > 0 && !Ocupado);
         // Guardar sin cambios también vale: confirma lo leído y enseña las plantillas del proveedor (compras/reconocimiento 2026-11-05 18:42).
-        GuardarCommand = new ComandoDelegado(() => _ = GuardarFichaAsync(confirmar: true), () => _ficha is { Editable: true } && !Ocupado);
+        GuardarCommand = new ComandoDelegado(() => _ = GuardarOEnsenarAsync(), () => (_ficha is { Editable: true } || PuedeEnsenar) && !Ocupado);
         DescartarCommand = new ComandoDelegado(() => { Descartar(); }, () => _ficha is { TieneCambios: true });
         AbrirPdfCommand = new ComandoDelegado(() => { if (_activa is { PdfExiste: true } a) _modulo.Dialogos.Abrir(a.Datos.RutaPdf); }, () => _activa is { PdfExiste: true });
+        CopiarRutaCommand = new ComandoDelegado(CopiarRuta, () => _activa is not null && _activa.Datos.RutaPdf.Length > 0);
+        SepararCommand = new ComandoDelegado(() => _ = SepararAsync(), () => !Prueba && _puedeEditar && _activa is { PdfExiste: true } && !_activa.Datos.Contabilizada && !Ocupado);
         AbrirCarpetaCommand = new ComandoDelegado(() => { if (_activa is { } a && Path.GetDirectoryName(a.Datos.RutaPdf) is { } d) _modulo.Dialogos.Abrir(d); }, () => _activa is not null);
         VerRelacionadasCommand = new ComandoDelegado(VerRelacionadas, () => _activa is not null && (_activa.Datos.IdRegistroFacturaRectificada is not null || _datos.Any(d => d.IdRegistroFacturaRectificada == _activa.IdRegistro)));
         QuitarRelacionadasCommand = new ComandoDelegado(() => { _relacionadasDe = null; Avisar(nameof(TextoRelacionadas), nameof(HayRelacionadas)); Filtrar(); }, () => _relacionadasDe is not null);
@@ -88,11 +91,35 @@ public sealed class FacturasRecibidasVM : ModeloVista, IPestanaTrabajo
         VerTodasCommand = new ComandoDelegado(() => PestanaLista = "todas");
     }
 
-    public bool Prueba { get; }
+    /// <summary>
+    /// Modo prueba (casilla del menú contextual): al elegir una factura se reconoce de nuevo su PDF y se compara con lo
+    /// grabado, sin guardar nada. Al entrar se guardan antes los cambios de la ficha.
+    /// </summary>
+    public bool Prueba
+    {
+        get => _prueba;
+        set { if (value != _prueba) _ = CambiarModoAsync(value); }
+    }
+
+    private async Task CambiarModoAsync(bool prueba)
+    {
+        if (TieneCambios && !await GuardarFichaAsync())
+        {
+            Avisar(nameof(Prueba));
+            return;
+        }
+        _prueba = prueba;
+        _pestanaLista = prueba ? "todas" : "pendientes";
+        _rapido = OpcionesRapidas[0];
+        Avisar(nameof(Prueba), nameof(Ayuda), nameof(OpcionesRapidas), nameof(FiltroRapido), nameof(EnPendientes), nameof(EnContabilizadas), nameof(EnTodas));
+        Filtrar();
+        if (_activa is not null) await AbrirFichaAsync(_activa, guardarAntes: false);
+        CommandManager.InvalidateRequerySuggested();
+    }
 
     // ---------- pestaña del contenedor ----------
 
-    public string Titulo => Prueba ? "Reconocimiento de facturas" : "Facturas recibidas";
+    public string Titulo => "Facturas recibidas";
     public string Ayuda => Prueba
         ? $"Modo prueba: vuelve a reconocer los PDF de compras de {_s.RazonSocial} y compara con lo grabado, sin guardar nada"
         : $"Facturas de compra de {_s.RazonSocial} en {_s.Trabajo.Ejercicio}: revisión de lo reconocido en los PDF";
@@ -147,7 +174,7 @@ public sealed class FacturasRecibidasVM : ModeloVista, IPestanaTrabajo
     /// <summary>Al abrir: lee las facturas, los proveedores y los catálogos y, fuera del modo prueba, busca los PDF nuevos.</summary>
     internal async Task IniciarAsync()
     {
-        _puedeEditar = !Prueba && await _s.PuedeEditar();
+        _puedeEditar = await _s.PuedeEditar();
         try
         {
             _proveedores = await _s.Facturas.ProveedoresAsync(_s.Trabajo);
@@ -288,7 +315,7 @@ public sealed class FacturasRecibidasVM : ModeloVista, IPestanaTrabajo
         if (!ReferenceEquals(nueva, _activa)) Activa = nueva;
         Estado = Filas.Count == 0 ? EstadoVista.Vacio : EstadoVista.Contenido;
         MensajeEstado = _todas.Count == 0
-            ? Prueba ? "Registra antes alguna factura en Facturas recibidas." : "Pon los PDF en la carpeta de compras del ejercicio y pulsa «Buscar PDF nuevos» (clic derecho)."
+            ? Prueba ? "Sal del modo prueba (clic derecho) y registra antes alguna factura." : "Pon los PDF en la carpeta de compras del ejercicio y pulsa «Buscar PDF nuevos» (clic derecho)."
             : "Cambia o quita los filtros para ver más facturas.";
         Avisar(nameof(HayFiltros), nameof(Pie), nameof(TituloEstado), nameof(AccionEstado), nameof(ComandoEstado), nameof(TextoBotonFiltro));
         CommandManager.InvalidateRequerySuggested();
@@ -348,6 +375,7 @@ public sealed class FacturasRecibidasVM : ModeloVista, IPestanaTrabajo
         var carga = ++_cargaFicha;
         ErrorFicha = null;
         Comparacion = [];
+        AsientoFicha = null;
         try
         {
             var factura = await _s.Facturas.CargarAsync(fila.IdRegistro);
@@ -358,6 +386,7 @@ public sealed class FacturasRecibidasVM : ModeloVista, IPestanaTrabajo
                 ErrorFicha = "La factura ya no existe: otro operador la ha borrado.";
                 return;
             }
+            if (factura.Contabilizada) _ = CargarAsientoAsync(factura, carga);
             if (!Prueba)
             {
                 Ficha = new FichaCompraVM(factura, _proveedores, _cuentasGasto, _centros, _datos, soloLectura: !_puedeEditar);
@@ -387,6 +416,30 @@ public sealed class FacturasRecibidasVM : ModeloVista, IPestanaTrabajo
     }
 
     public bool HayFicha => _ficha is not null;
+
+    // ---------- asiento de la factura ----------
+
+    private AsientoFacturaVM? _asiento;
+
+    /// <summary>Asiento de la factura contabilizada, en la pastilla de solo lectura al pie de la ficha.</summary>
+    public AsientoFacturaVM? AsientoFicha { get => _asiento; private set { if (Fijar(ref _asiento, value)) Avisar(nameof(HayAsiento)); } }
+    public bool HayAsiento => _asiento is not null;
+
+    private async Task CargarAsientoAsync(FacturaCompra factura, int carga)
+    {
+        try
+        {
+            var asiento = await _s.Facturas.AsientoAsync(_s.Trabajo, factura);
+            if (carga != _cargaFicha) return;
+            AsientoFicha = asiento is null
+                ? new AsientoFacturaVM("Asiento", "No he encontrado el asiento de esta factura en la contabilidad.", [])
+                : AsientoFacturaVM.De(asiento);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            if (carga == _cargaFicha) AsientoFicha = new AsientoFacturaVM("Asiento", $"No he podido leer el asiento: {ex.Message}", []);
+        }
+    }
 
     private void AlCambiarFicha(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
     {
@@ -423,6 +476,77 @@ public sealed class FacturasRecibidasVM : ModeloVista, IPestanaTrabajo
     public string TituloVisor => _activa is null ? "Visor del PDF" : _activa.PdfExiste ? _activa.Fichero : $"{_activa.Fichero} (no encontrado)";
 
     // ---------- guardar ----------
+
+    /// <summary>Una contabilizada no se modifica desde aquí (hasta la entrega 3), pero «Guardar» sí enseña la plantilla con sus valores.</summary>
+    private bool PuedeEnsenar => !Prueba && _puedeEditar && _ficha is { Factura.Contabilizada: true } && _activa is { PdfExiste: true };
+
+    private async Task GuardarOEnsenarAsync()
+    {
+        if (_ficha is { Editable: true })
+        {
+            await GuardarFichaAsync(confirmar: true);
+            return;
+        }
+        if (!PuedeEnsenar) return;
+        TextoOcupado = "Aprendiendo de la factura…";
+        try
+        {
+            await _s.Facturas.EnsenarAsync(_ficha!.Factura);
+            _modulo.Avisar("He aprendido dónde están los campos de esta factura. Sus datos no cambian porque está contabilizada.");
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            ErrorFicha = $"No he podido aprender de la factura: {ex.Message}";
+        }
+        finally
+        {
+            TextoOcupado = "";
+        }
+    }
+
+    // ---------- copiar ruta y separar facturas ----------
+
+    private void CopiarRuta()
+    {
+        if (_activa is null) return;
+        _modulo.Avisar(_modulo.Dialogos.Copiar(_activa.Datos.RutaPdf) ? $"Ruta copiada: {_activa.Datos.RutaPdf}" : "Windows no ha dejado copiar la ruta; vuelve a intentarlo.");
+    }
+
+    /// <summary>«Separar facturas»: el PDF trae dos facturas (pasa con algunas de Amazon).</summary>
+    private async Task SepararAsync()
+    {
+        if (_activa is not { PdfExiste: true } fila) return;
+        if (TieneCambios && !await GuardarFichaAsync()) return;
+        var propuesto = Path.GetFileNameWithoutExtension(fila.Datos.RutaPdf) + "_2.pdf";
+        if (_modulo.Dialogos.PedirSeparacion(fila.Fichero, propuesto) is not { } eleccion) return;
+        var factura = await _s.Facturas.CargarAsync(fila.IdRegistro);
+        if (factura is null) return;
+        TextoOcupado = "Separando las facturas…";
+        try
+        {
+            var r = await _s.Facturas.SepararAsync(_s.Trabajo, factura, eleccion.Pagina, eleccion.Nombre);
+            if (!r.EsCorrecto)
+            {
+                var e = r.Error!;
+                _modulo.Dialogos.Preguntar("No he podido separar las facturas", e.Mensaje, e.AccionCorrectora is { } a ? [a] : null, new OpcionMensaje("Entendido", "Cierra el aviso", Principal: true));
+                return;
+            }
+            var segunda = r.Valor;
+            _modulo.Avisar(segunda.Registrada
+                ? $"Facturas separadas: {fila.Fichero} y {Path.GetFileName(segunda.Ruta)}. El original queda como .BAK."
+                : $"Facturas separadas, pero {Path.GetFileName(segunda.Ruta)} no se ha podido registrar: {segunda.Error?.Mensaje}");
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            _modulo.Dialogos.Preguntar("No he podido separar las facturas", ex.Message, null, new OpcionMensaje("Entendido", "Cierra el aviso", Principal: true));
+        }
+        finally
+        {
+            TextoOcupado = "";
+        }
+        await CargarAsync(fila.IdRegistro);
+        if (_activa is not null) await AbrirFichaAsync(_activa, guardarAntes: false);
+    }
 
     private async Task<bool> GuardarFichaAsync(bool confirmar = false)
     {
@@ -465,7 +589,8 @@ public sealed class FacturasRecibidasVM : ModeloVista, IPestanaTrabajo
             ImporteTotal = f.ImporteTotal, ImporteRetencion = f.ImporteRetencion, TieneRetencion = (f.ImporteRetencion ?? 0m) != 0m, Suplido = f.Suplido,
             InversionSujetoPasivo = f.InversionSujetoPasivo, Operacion = f.Operacion, Divisa = f.Divisa, IdRegistroFacturaRectificada = f.IdRegistroFacturaRectificada,
             Contabilizada = o.Contabilizada, Duplicada = o.Duplicada, RutaPdf = o.RutaPdf, Carpeta = o.Carpeta, CuentaGasto = f.CuentaGasto,
-            IdCentroCoste = f.IdCentroCoste, Confianza = o.Confianza, RequiereRevision = f.RequiereRevision, FechaHoraRegistro = o.FechaHoraRegistro, Asiento = o.Asiento
+            IdCentroCoste = f.IdCentroCoste, Confianza = o.Confianza, RequiereRevision = f.RequiereRevision, FechaHoraRegistro = o.FechaHoraRegistro, Asiento = o.Asiento,
+            ConfianzaMinima = o.ConfianzaMinima, Version = f.Version, RutasGuardadas = o.RutasGuardadas
         };
         _datos = _datos.Select(d => d.IdRegistro == nueva.IdRegistro ? nueva : d).ToList();
         fila.Datos = nueva;
@@ -622,6 +747,8 @@ public sealed class FacturasRecibidasVM : ModeloVista, IPestanaTrabajo
     public ICommand DescartarCommand { get; }
     public ICommand AbrirPdfCommand { get; }
     public ICommand AbrirCarpetaCommand { get; }
+    public ICommand CopiarRutaCommand { get; }
+    public ICommand SepararCommand { get; }
     public ICommand VerRelacionadasCommand { get; }
     public ICommand QuitarRelacionadasCommand { get; }
     public ICommand AbrirProveedorCommand { get; }

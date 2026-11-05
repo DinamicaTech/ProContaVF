@@ -172,4 +172,35 @@ public sealed class PantallaComprasTests
         Assert.True(c["IVA"].Igual);
         Assert.True(c["Total"].Igual);
     }
+
+    /// <summary>PDF de prueba con una línea de texto por página.</summary>
+    internal static byte[] PdfDePaginas(params string[] textos)
+    {
+        var builder = new UglyToad.PdfPig.Writer.PdfDocumentBuilder();
+        var fuente = builder.AddStandard14Font(UglyToad.PdfPig.Fonts.Standard14Fonts.Standard14Font.Helvetica);
+        foreach (var t in textos)
+            builder.AddPage(UglyToad.PdfPig.Content.PageSize.A4).AddText(t, 12, new UglyToad.PdfPig.Core.PdfPoint(50, 750), fuente);
+        return builder.Build();
+    }
+
+    [Fact]
+    public void Dividir_un_PDF_deja_las_paginas_anteriores_y_las_siguientes()
+    {
+        var pdf = PdfDePaginas("Factura uno", "Factura uno sigue", "Factura dos");
+        var (primera, segunda) = DivisorPdf.Dividir(pdf, 3);
+        Assert.Equal(2, DivisorPdf.ContarPaginas(primera));
+        Assert.Equal(1, DivisorPdf.ContarPaginas(segunda));
+        using var doc = UglyToad.PdfPig.PdfDocument.Open(segunda);
+        Assert.Contains("dos", doc.GetPage(1).Text);
+        Assert.Throws<ArgumentOutOfRangeException>(() => DivisorPdf.Dividir(pdf, 1));
+        Assert.Throws<ArgumentOutOfRangeException>(() => DivisorPdf.Dividir(pdf, 4));
+    }
+
+    [Fact]
+    public void La_confianza_minima_es_la_del_peor_campo_del_log()
+    {
+        Assert.Equal(0.4m, RepositorioFacturasCompra.ConfianzaMinima("""{"candidato":{"ConfianzaNif":1.0,"ConfianzaNumero":0.7,"ConfianzaFecha":0.4,"ConfianzaImportes":0.95}}"""));
+        Assert.Null(RepositorioFacturasCompra.ConfianzaMinima(null));
+        Assert.Null(RepositorioFacturasCompra.ConfianzaMinima("no es json"));
+    }
 }

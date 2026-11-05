@@ -57,6 +57,15 @@ public sealed class FilaCompraVM(FilaFacturaCompra datos) : ModeloVista
 
     public string Confianza => _datos.Confianza is { } c ? $"{Math.Round(c * 100m):0} %" : "";
 
+    /// <summary>
+    /// Columna «Mín. %»: la confianza más baja de NIF, número, fecha e importes, para revisar primero las peores. Una
+    /// factura ya guardada desde la pantalla sale «Revisada»; sin reconocimiento (del ERP o a mano), vacía.
+    /// </summary>
+    public string Minimo => _datos.Version > 0 ? "Revisada" : _datos.ConfianzaMinima is { } c ? $"{Math.Round(c * 100m):0} %" : "";
+
+    /// <summary>Orden de «Mín. %»: de la más baja a la más alta, luego las revisadas y al final las que no tienen reconocimiento.</summary>
+    public decimal MinimoOrden => _datos.Version > 0 ? 2m : _datos.ConfianzaMinima ?? 3m;
+
     /// <summary>Búsqueda libre; con «f+» solo en la ruta del fichero.</summary>
     public bool Contiene(string texto)
     {
@@ -83,4 +92,24 @@ public sealed class FilaCompraVM(FilaFacturaCompra datos) : ModeloVista
 public sealed record OpcionCompra(string Texto, string Clave, string Ayuda)
 {
     public override string ToString() => Texto;
+}
+
+/// <summary>Pastilla del asiento de la factura: cabecera y apuntes ya formateados.</summary>
+public sealed record AsientoFacturaVM(string Titulo, string? Mensaje, IReadOnlyList<ApunteFacturaVM> Apuntes)
+{
+    public bool HayApuntes => Apuntes.Count > 0;
+    public string TotalDebe => Formatos.Importe(Apuntes.Sum(a => a.DebeValor));
+    public string TotalHaber => Formatos.Importe(Apuntes.Sum(a => a.HaberValor));
+
+    public static AsientoFacturaVM De(AsientoFactura a) => new(
+        $"Asiento {a.IdAsiento.ToString(Formatos.Cultura)}{(a.Fecha is { } f ? $" · {Formatos.Fecha(f)}" : "")}{(a.Descripcion.Length > 0 ? $" · {a.Descripcion}" : "")}",
+        null,
+        a.Apuntes.Select(x => new ApunteFacturaVM(x.Cuenta, x.NombreCuenta ?? "", x.Debe, x.Haber, x.Descripcion ?? "")).ToList());
+}
+
+/// <summary>Un apunte en la pastilla del asiento.</summary>
+public sealed record ApunteFacturaVM(string Cuenta, string NombreCuenta, decimal DebeValor, decimal HaberValor, string Descripcion)
+{
+    public string Debe => DebeValor == 0m ? "" : Formatos.Importe(DebeValor);
+    public string Haber => HaberValor == 0m ? "" : Formatos.Importe(HaberValor);
 }

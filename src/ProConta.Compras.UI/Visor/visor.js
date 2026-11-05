@@ -94,23 +94,55 @@ async function pintar(mia) {
 // Compara sin espacios, sin puntos de miles ni guiones y sin distinguir mayúsculas.
 const normalizar = (t) => (t || "").normalize("NFKD").replace(/[̀-ͯ]/g, "").replace(/[\s.\-\/]/g, "").toUpperCase();
 
+// Un valor puede estar partido en varios trozos de texto («10», «de», «julio»…): se busca también en grupos de hasta seis
+// trozos seguidos de la misma página y se marcan solo los del grupo más corto que lo contiene.
 function marcar() {
-  const spans = contenedor.querySelectorAll(".textLayer span");
-  spans.forEach((s) => s.classList.remove("origen", "activo"));
+  const capas = contenedor.querySelectorAll(".textLayer");
+  contenedor.querySelectorAll(".textLayer span").forEach((s) => { s.classList.remove("origen", "activo"); s.removeAttribute("title"); });
   let primero = null;
-  for (const v of valores) {
-    const buscado = normalizar(v.texto);
-    if (buscado.length < 2) continue;
-    for (const s of spans) {
-      const texto = normalizar(s.textContent);
-      if (texto.length === 0 || !texto.includes(buscado)) continue;
-      s.classList.add("origen");
-      s.title = v.campo;
-      if (v.campo === activo) { s.classList.add("activo"); primero = primero || s; }
+  for (const capa of capas) {
+    const spans = Array.from(capa.querySelectorAll("span")).filter((s) => !s.classList.contains("markedContent"));
+    const textos = spans.map((s) => normalizar(s.textContent));
+    for (const v of valores) {
+      const buscado = normalizar(v.texto);
+      if (buscado.length < 2) continue;
+      for (let i = 0; i < spans.length; i++) {
+        if (textos[i].length === 0) continue;
+        let acumulado = "";
+        for (let j = i; j < Math.min(spans.length, i + 6); j++) {
+          acumulado += textos[j];
+          if (!acumulado.includes(buscado)) { if (acumulado.length > buscado.length + 40) break; continue; }
+          // El grupo es mínimo si sin el primer trozo ya no contiene el valor.
+          if (j > i && acumulado.slice(textos[i].length).includes(buscado)) break;
+          for (let k = i; k <= j; k++) {
+            spans[k].classList.add("origen");
+            spans[k].title = v.campo;
+            if (v.campo === activo) { spans[k].classList.add("activo"); primero = primero || spans[k]; }
+          }
+          break;
+        }
+      }
     }
   }
   if (primero) primero.scrollIntoView({ block: "center", behavior: "smooth" });
 }
+
+let temporizadorAviso = null;
+function mostrarAviso(texto) {
+  const aviso = document.getElementById("aviso");
+  aviso.textContent = texto;
+  aviso.classList.add("visible");
+  clearTimeout(temporizadorAviso);
+  temporizadorAviso = setTimeout(() => aviso.classList.remove("visible"), 1400);
+}
+
+// Clic derecho con texto seleccionado: lo copia al portapapeles (Ctrl+C también funciona).
+document.addEventListener("contextmenu", (e) => {
+  e.preventDefault();
+  const texto = (window.getSelection() || "").toString().trim();
+  if (!texto) return;
+  navigator.clipboard.writeText(texto).then(() => mostrarAviso("Copiado"), () => { document.execCommand("copy"); mostrarAviso("Copiado"); });
+});
 
 document.addEventListener("mouseup", () => {
   contenedor.querySelectorAll(".textLayer.selecting").forEach((c) => c.classList.remove("selecting"));

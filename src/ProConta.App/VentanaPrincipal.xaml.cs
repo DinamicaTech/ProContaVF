@@ -133,7 +133,6 @@ public partial class VentanaPrincipal : Window
         var abrirProgramadas = new ComandoDelegado(_facturacion.AbrirProgramadas);
         var abrirParametros = new ComandoDelegado(AbrirParametros);
         var abrirRecibidas = new ComandoDelegado(_compras.AbrirRecibidas);
-        var abrirReconocimiento = new ComandoDelegado(_compras.AbrirReconocimiento);
         Navegacion.ItemsSource = new[]
         {
             new OpcionNavegacion("Inicio", Icono("layout"), true, false, "Página de inicio", irAInicio),
@@ -143,8 +142,7 @@ public partial class VentanaPrincipal : Window
             new OpcionNavegacion("Facturas programadas", null, true, false, "Facturas que se generan solas en cada vencimiento: su programación, sus líneas y la generación por lotes", abrirProgramadas, EsHija: true),
             new OpcionNavegacion("Facturas", null, true, false, "Listado de facturas y borradores del ejercicio, con su detalle y acciones", abrirFacturas, EsHija: true),
             new OpcionNavegacion("Compras", Icono("scan"), true, false, "Facturas de compra: los PDF de la carpeta de proveedores, su revisión y el modo prueba del reconocimiento", abrirRecibidas),
-            new OpcionNavegacion("Facturas recibidas", null, true, false, "Facturas de compra del ejercicio reconocidas de sus PDF: revisión, corrección y registro", abrirRecibidas, EsHija: true),
-            new OpcionNavegacion("Reconocimiento de facturas", null, true, false, "Modo prueba: vuelve a reconocer los PDF y compara con lo grabado, sin guardar nada", abrirReconocimiento, EsHija: true),
+            new OpcionNavegacion("Facturas recibidas", null, true, false, "Facturas de compra del ejercicio reconocidas de sus PDF: revisión, corrección y registro (y el modo prueba, en el menú contextual)", abrirRecibidas, EsHija: true),
             new OpcionNavegacion("Contabilidad", Icono("book"), false, false, proxima),
             new OpcionNavegacion("Bancos", Icono("bank"), false, false, proxima),
             new OpcionNavegacion("Nóminas", Icono("coin"), false, false, proxima),

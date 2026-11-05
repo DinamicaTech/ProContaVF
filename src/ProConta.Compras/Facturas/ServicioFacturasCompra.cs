@@ -260,6 +260,101 @@ public sealed class ServicioFacturasCompra(
         return Resultado.Correcto();
     }
 
+    /// <summary>
+    /// Enseña las plantillas con los valores de una factura sin cambiar sus datos: para las contabilizadas, que no se
+    /// modifican desde aquí hasta la entrega 3 (compras/pantallas 2026-11-05 20:29).
+    /// </summary>
+    public Task EnsenarAsync(FacturaCompra factura, CancellationToken cancelacion = default)
+    {
+        ArgumentNullException.ThrowIfNull(factura);
+        return AprenderAsync(factura, cancelacion);
+    }
+
+    /// <summary>
+    /// «Separar facturas» (compras/pantallas 2026-11-05 20:29): el PDF tiene dos facturas y la segunda empieza en
+    /// <paramref name="paginaSegunda"/>. El original pasa a .BAK, la primera parte se queda con el nombre original y en el
+    /// mismo registro (se reconoce de nuevo; se conservan la imputación y las notas) y la segunda se escribe con
+    /// <paramref name="nombreSegunda"/> y se registra como factura nueva. No se hace con facturas contabilizadas.
+    /// </summary>
+    public async Task<Resultado<ImportacionPdf>> SepararAsync(ContextoSociedadEjercicio ctx, FacturaCompra factura, int paginaSegunda, string nombreSegunda, CancellationToken cancelacion = default)
+    {
+        ArgumentNullException.ThrowIfNull(factura);
+        Resultado<ImportacionPdf> Fallo(string codigo, string mensaje, string? accion = null) =>
+            Resultado<ImportacionPdf>.Fallo(new Error(codigo, mensaje, factura.Rotulo, null, accion));
+        if (factura.Contabilizada) return Fallo("Compras.SepararContabilizada", "La factura está contabilizada y no se separa desde aquí.", "Deshaz antes su contabilización.");
+        var ruta = factura.RutaPdf;
+        if (!File.Exists(ruta)) return Fallo("Compras.PdfNoEncontrado", $"No encuentro el PDF. Ruta intentada: {ruta}.");
+        var nombre = (nombreSegunda ?? "").Trim();
+        if (!nombre.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase)) nombre += ".pdf";
+        if (nombre.Length <= 4 || nombre.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0 || nombre.Contains('\\') || nombre.Contains('/'))
+            return Fallo("Compras.NombreNoValido", $"«{nombre}» no vale como nombre de fichero.", "Escribe solo el nombre, sin carpeta ni caracteres como \\ / : * ? \" < > |.");
+        var carpeta = Path.GetDirectoryName(ruta)!;
+        var ruta2 = Path.Combine(carpeta, nombre);
+        if (File.Exists(ruta2) || string.Equals(ruta2, ruta, StringComparison.OrdinalIgnoreCase))
+            return Fallo("Compras.NombreExiste", $"Ya hay un fichero {nombre} en la carpeta.", "Elige otro nombre para la segunda factura.");
+
+        byte[] primera, segunda;
+        try
+        {
+            var bytes = await File.ReadAllBytesAsync(ruta, cancelacion);
+            var paginas = Integraciones.DivisorPdf.ContarPaginas(bytes);
+            if (paginas < 2) return Fallo("Compras.UnaPagina", "El PDF solo tiene una página: no hay nada que separar.");
+            if (paginaSegunda < 2 || paginaSegunda > paginas)
+                return Fallo("Compras.PaginaNoValida", $"La segunda factura tiene que empezar entre la página 2 y la {paginas}.");
+            (primera, segunda) = Integraciones.DivisorPdf.Dividir(bytes, paginaSegunda);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException and not ArgumentOutOfRangeException)
+        {
+            return Fallo("Compras.PdfIlegible", $"No he podido partir el PDF: {ex.Message}");
+        }
+
+        var bak = Path.ChangeExtension(ruta, ".BAK");
+        for (var n = 2; File.Exists(bak); n++) bak = Path.ChangeExtension(ruta, $".{n}.BAK");
+        var temporal = ruta + ".separando";
+        try
+        {
+            await File.WriteAllBytesAsync(temporal, primera, cancelacion);
+            await File.WriteAllBytesAsync(ruta2, segunda, cancelacion);
+            File.Move(ruta, bak);
+            File.Move(temporal, ruta);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            // Se deja la carpeta como estaba.
+            if (!File.Exists(ruta) && File.Exists(bak)) File.Move(bak, ruta);
+            if (File.Exists(temporal)) File.Delete(temporal);
+            if (File.Exists(ruta2)) File.Delete(ruta2);
+            return Fallo("Compras.SepararCarpeta", $"No he podido escribir en la carpeta: {ex.Message}", "Comprueba que el PDF no esté abierto en otro programa y vuelve a intentarlo.");
+        }
+
+        // La primera parte sigue en el mismo registro con su nueva lectura; la imputación y las notas se conservan.
+        var (_, leida) = await ProbarAsync(ctx, ruta, cancelacion);
+        leida.IdRegistro = factura.IdRegistro;
+        leida.Version = factura.Version;
+        leida.CuentaGasto = factura.CuentaGasto;
+        leida.IdCentroCoste = factura.IdCentroCoste;
+        leida.CuentaFormaPago = factura.CuentaFormaPago;
+        leida.Notas = factura.Notas;
+        leida.Operacion = factura.Operacion;
+        leida.Producto = factura.Producto;
+        var reemplazo = await bd.EnTransaccionAsync(s => RepositorioFacturasCompra.ReemplazarPdfAsync(s, leida), cancelacion);
+        if (!reemplazo.EsCorrecto) return Resultado<ImportacionPdf>.Fallo(reemplazo.Errores);
+        return Resultado<ImportacionPdf>.Correcto(await ImportarAsync(ctx, ruta2, cancelacion));
+    }
+
+    /// <summary>
+    /// Asiento de la factura, si está contabilizada. Las del ERP se encuentran por el apunte del proveedor con su número de
+    /// factura y la ruta del PDF; las de ProContaVF se enlazarán al contabilizarlas (entrega 3).
+    /// </summary>
+    public Task<AsientoFactura?> AsientoAsync(ContextoSociedadEjercicio ctx, FacturaCompra factura, CancellationToken cancelacion = default)
+    {
+        ArgumentNullException.ThrowIfNull(factura);
+        if (!factura.Contabilizada || string.IsNullOrWhiteSpace(factura.NumeroFactura) || string.IsNullOrWhiteSpace(factura.CuentaContableProveedor))
+            return Task.FromResult<AsientoFactura?>(null);
+        var idSe = factura.Ejercicio.IdSociedadEjercicio > 0 ? factura.Ejercicio.IdSociedadEjercicio : ctx.IdSociedadEjercicio;
+        return bd.EjecutarAsync(s => RepositorioFacturasCompra.AsientoErpAsync(s, idSe, factura.NumeroFactura.Trim(), factura.CuentaContableProveedor.Trim()), cancelacion);
+    }
+
     /// <summary>Máximo de plantillas por proveedor y campo (formatos distintos de factura).</summary>
     internal const int MaxPlantillasPorCampo = 5;
 
