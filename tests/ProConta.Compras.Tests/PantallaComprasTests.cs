@@ -121,4 +121,41 @@ public sealed class PantallaComprasTests
     [InlineData(HttpStatusCode.NotFound, "{}")]
     public async Task Sin_cambio_valido_o_cercano_no_inventa_ninguno(HttpStatusCode codigo, string cuerpo) =>
         Assert.Null(await new TiposCambioFrankfurter(new HttpClient(new Respuesta(codigo, cuerpo))).ObtenerAsync("USD", "EUR", new DateTime(2026, 2, 8), default));
+
+    [Theory]
+    [InlineData(@"D:\SynologyBox\2025\Proveedores\Repsol Benzinera\20250630Sportage.pdf", "2025", "Repsol Benzinera", "20250630Sportage.pdf")]
+    [InlineData(@"D:\SYNOLOGYBOX\2022\PROVEEDORES\Varias\sub\f.pdf", "2022", "Varias", "sub", "f.pdf")]
+    [InlineData(@"\\s-oficina\oficina\Administracion\Systemtronic\2021\Proveedores\Varias\F.pdf", "2021", "Varias", "F.pdf")]
+    public void Reubicar_conserva_desde_el_ejercicio(string guardada, params string[] resto)
+    {
+        var raiz = Path.Combine(Path.GetTempPath(), "raiz");
+        Assert.Equal(Path.Combine([raiz, resto[0], "Proveedores", .. resto[1..]]), ServicioFacturasCompra.Reubicar(guardada, raiz));
+    }
+
+    [Theory]
+    [InlineData(@"D:\Facturas\f.pdf")]
+    [InlineData(@"D:\2025\Otros\f.pdf")]
+    [InlineData(@"D:\2025\Proveedores")]
+    public void Reubicar_sin_estructura_de_ejercicio_es_null(string guardada) =>
+        Assert.Null(ServicioFacturasCompra.Reubicar(guardada, Path.GetTempPath()));
+
+    [Fact]
+    public void LocalizarPdf_prefiere_la_grabada_y_si_no_la_reubicada()
+    {
+        var raiz = Directory.CreateTempSubdirectory("compras-raiz").FullName;
+        try
+        {
+            var carpeta = Directory.CreateDirectory(Path.Combine(raiz, "2026", "Proveedores", "Acme")).FullName;
+            var reubicada = Path.Combine(carpeta, "f.pdf");
+            File.WriteAllText(reubicada, "%PDF");
+            var antigua = @"Z:\NoExiste\2026\Proveedores\Acme\f.pdf";
+            Assert.Equal(reubicada, ServicioFacturasCompra.LocalizarPdf([antigua, @"Z:\Otra\f.pdf"], raiz));
+            Assert.Equal(reubicada, ServicioFacturasCompra.LocalizarPdf([@"Z:\Otra\f.pdf", antigua], raiz));
+            Assert.Equal(antigua, ServicioFacturasCompra.LocalizarPdf([antigua], null));
+            Assert.Equal(antigua, ServicioFacturasCompra.LocalizarPdf([antigua], Path.Combine(raiz, "vacia")));
+            Assert.Equal(reubicada, ServicioFacturasCompra.LocalizarPdf([reubicada, antigua], null));
+            Assert.Equal("", ServicioFacturasCompra.LocalizarPdf([], raiz));
+        }
+        finally { Directory.Delete(raiz, recursive: true); }
+    }
 }

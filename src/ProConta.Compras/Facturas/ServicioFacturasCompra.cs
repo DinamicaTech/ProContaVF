@@ -180,11 +180,61 @@ public sealed class ServicioFacturasCompra(
     }
 
     public Task<FacturaCompra?> CargarAsync(int idRegistro, CancellationToken cancelacion = default) =>
-        bd.EjecutarAsync(s => RepositorioFacturasCompra.CargarAsync(s, idRegistro), cancelacion);
+        bd.EjecutarAsync(async s =>
+        {
+            var f = await RepositorioFacturasCompra.CargarAsync(s, idRegistro);
+            if (f is null || f.RutasGuardadas.Count == 0) return f;
+            var raiz = await RaizAsync(s, f.Ejercicio.IdSociedad);
+            f.RutaPdf = LocalizarPdf(f.RutasGuardadas, raiz);
+            return f;
+        }, cancelacion);
 
-    /// <summary>Facturas de compra del ejercicio para la lista de la pantalla.</summary>
+    /// <summary>Facturas de compra del ejercicio para la lista de la pantalla, con el PDF localizado.</summary>
     public Task<IReadOnlyList<FilaFacturaCompra>> ListarAsync(ContextoSociedadEjercicio ctx, CancellationToken cancelacion = default) =>
-        bd.EjecutarAsync(s => RepositorioFacturasCompra.ListarAsync(s, ctx), cancelacion);
+        bd.EjecutarAsync(async s =>
+        {
+            var filas = await RepositorioFacturasCompra.ListarAsync(s, ctx);
+            var raiz = await RaizAsync(s, ctx.IdSociedad);
+            foreach (var f in filas.Where(f => f.RutasGuardadas.Count > 0)) f.RutaPdf = LocalizarPdf(f.RutasGuardadas, raiz);
+            return filas;
+        }, cancelacion);
+
+    private async Task<string?> RaizAsync(ISesionDatos s, string idSociedad)
+    {
+        var (_, raiz) = await RepositorioFacturasCompra.EmpresaAsync(s, idSociedad);
+        return string.IsNullOrWhiteSpace(raiz) ? null : RaizEmpresa(raiz);
+    }
+
+    /// <summary>
+    /// PDF de una factura ya registrada: la primera ruta grabada que exista; si ninguna existe (el ERP guardaba rutas
+    /// completas de unidades que han cambiado, p. ej. D:\SynologyBox\2025\Proveedores\…), la misma factura dentro de la
+    /// carpeta de la empresa: lo que va desde «&lt;ejercicio&gt;\Proveedores\» se busca en «&lt;raíz&gt;\&lt;ejercicio&gt;\Proveedores\».
+    /// No cambia lo grabado. Sin ninguna, la primera ruta grabada (la fila sale como «PDF no encontrado»).
+    /// </summary>
+    internal static string LocalizarPdf(IReadOnlyList<string> guardadas, string? raiz)
+    {
+        if (guardadas.Count == 0) return string.Empty;
+        if (guardadas.FirstOrDefault(File.Exists) is { } existente) return existente;
+        if (raiz is not null)
+            foreach (var ruta in guardadas)
+                if (Reubicar(ruta, raiz) is { } nueva && File.Exists(nueva)) return nueva;
+        return guardadas[0];
+    }
+
+    /// <summary>
+    /// La ruta grabada dentro de otra raíz: busca el último tramo «&lt;año&gt;\Proveedores» (sin distinguir mayúsculas) y
+    /// conserva lo que hay a partir de él. Null si la ruta no sigue esa estructura.
+    /// </summary>
+    internal static string? Reubicar(string ruta, string raiz)
+    {
+        var tramos = ruta.Split(['\\', '/'], StringSplitOptions.RemoveEmptyEntries);
+        for (var i = tramos.Length - 3; i >= 0; i--)
+        {
+            if (tramos[i].Length == 4 && tramos[i].All(char.IsAsciiDigit) && tramos[i + 1].Equals("Proveedores", StringComparison.OrdinalIgnoreCase))
+                return Path.Combine([raiz, tramos[i], "Proveedores", .. tramos[(i + 2)..]]);
+        }
+        return null;
+    }
 
     /// <summary>Proveedores de la empresa con su tercero, su NIF y su nombre (buscar por NIF y abrir la ficha).</summary>
     public Task<IReadOnlyList<ProveedorFicha>> ProveedoresAsync(ContextoSociedadEjercicio ctx, CancellationToken cancelacion = default) =>

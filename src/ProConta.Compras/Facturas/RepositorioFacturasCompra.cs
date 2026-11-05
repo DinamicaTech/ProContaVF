@@ -134,6 +134,7 @@ internal static class RepositorioFacturasCompra
                 Contabilizada = r.Logico("Exportada"),
                 Duplicada = r.Logico("Duplicada"),
                 RutaPdf = r.Texto("ArchivoOriginal") ?? r.Texto("Archivo") ?? "",
+                RutasGuardadas = Rutas(r),
                 Carpeta = r.Texto("Carpeta")?.Trim() ?? "",
                 CuentaGasto = r.Texto("ConceptoGasto")?.Trim(),
                 IdCentroCoste = r.EnteroNulo("IdCentroCoste"),
@@ -153,6 +154,11 @@ internal static class RepositorioFacturasCompra
             "INNER JOIN Proveedores AS p ON cps.IdProveedor = p.IdProveedor) INNER JOIN Terceros AS t ON p.IdTercero = t.IdTercero WHERE cps.IdSociedad = ?",
             r => new ProveedorFicha(r.Entero("IdProveedor"), r.Entero("IdTercero"), r.Texto("NIF")?.Trim() ?? "",
                 Primero(r.Texto("NombreComercial"), r.Texto("RazonSocial"), r.Texto("Nombre"))), idSociedad);
+
+    /// <summary>Rutas del PDF guardadas en la fila (ArchivoOriginal y Archivo), sin vacías ni repetidas.</summary>
+    private static IReadOnlyList<string> Rutas(IFilaDatos r) =>
+        new[] { r.Texto("ArchivoOriginal")?.Trim(), r.Texto("Archivo")?.Trim() }
+            .Where(x => !string.IsNullOrEmpty(x)).Select(x => x!).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
 
     private static string Primero(params string?[] textos) => textos.FirstOrDefault(t => !string.IsNullOrWhiteSpace(t))?.Trim() ?? "";
 
@@ -197,6 +203,7 @@ internal static class RepositorioFacturasCompra
             FechaTipoCambio = r.FechaNula("FechaTipoCambio"),
             IdRegistroFacturaRectificada = r.EnteroNulo("IdRegistroFacturaRectificada"),
             RutaPdf = r.Texto("ArchivoOriginal") ?? r.Texto("Archivo") ?? string.Empty,
+            RutasGuardadas = Rutas(r),
             Carpeta = r.Texto("Carpeta") ?? string.Empty,
             Md5 = r.Texto("MD5")?.Trim().ToLowerInvariant() ?? string.Empty,
             Confianza = r.DecimalNulo("ConfianzaImportacion") ?? 0m,
@@ -331,7 +338,10 @@ public sealed class FilaFacturaCompra
     public int? IdRegistroFacturaRectificada { get; init; }
     public bool Contabilizada { get; init; }
     public bool Duplicada { get; init; }
-    public string RutaPdf { get; init; } = "";
+    /// <summary>Ruta del PDF: la guardada si existe; si no, la reubicada en la carpeta de la empresa (ver ServicioFacturasCompra.LocalizarPdf).</summary>
+    public string RutaPdf { get; set; } = "";
+    /// <summary>Rutas tal como están grabadas (ArchivoOriginal y Archivo); no se modifican.</summary>
+    public IReadOnlyList<string> RutasGuardadas { get; init; } = [];
     public string Carpeta { get; init; } = "";
     public string? CuentaGasto { get; init; }
     public int? IdCentroCoste { get; init; }

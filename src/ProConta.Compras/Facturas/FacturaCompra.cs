@@ -72,8 +72,10 @@ public sealed class FacturaCompra
     /// <summary>Factura del mismo proveedor a la que rectifica (rectificativa o abono).</summary>
     public int? IdRegistroFacturaRectificada { get; set; }
 
-    /// <summary>Ruta completa del PDF al registrarlo.</summary>
-    public required string RutaPdf { get; init; }
+    /// <summary>Ruta completa del PDF: la grabada al registrarlo o, si ya no existe, la reubicada en la carpeta de la empresa al cargarla.</summary>
+    public required string RutaPdf { get; set; }
+    /// <summary>Rutas grabadas en la BD (ArchivoOriginal y Archivo) al cargar la factura; vacía en una factura nueva.</summary>
+    public IReadOnlyList<string> RutasGuardadas { get; init; } = [];
     /// <summary>Carpeta del proveedor (primer nivel bajo «Proveedores»).</summary>
     public string Carpeta { get; set; } = string.Empty;
     public string NombreFichero => Path.GetFileName(RutaPdf);
