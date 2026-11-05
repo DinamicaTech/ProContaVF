@@ -177,6 +177,17 @@ public sealed class FacturasCompraAccessTests : IDisposable
     }
 
     [Fact]
+    public async Task Una_carpeta_de_empresa_relativa_esta_dentro_de_la_carpeta_de_la_bd()
+    {
+        await EmpresaConProveedorAsync();
+        Directory.CreateDirectory(Path.Combine(_raiz, "2026", "Proveedores"));
+        await Bd.EjecutarAsync(s => s.EjecutarAsync("UPDATE Sociedades SET RutaDocumentos = ? WHERE IdSociedad = ?", Path.GetFileName(_raiz), "T01"));
+        var r = await Servicio().CarpetaComprasAsync(_ctx);
+        Assert.True(r.EsCorrecto, r.Error?.ToString());
+        Assert.Equal(Path.Combine(_raiz, "2026", "Proveedores"), r.Valor);
+    }
+
+    [Fact]
     public async Task Sin_carpeta_de_documentos_explica_donde_escribirla()
     {
         await DatosSinteticos.SociedadAsync(Bd, "T01", "Sociedad sintética", NifSociedad);

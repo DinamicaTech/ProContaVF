@@ -38,11 +38,21 @@ public sealed class ServicioFacturasCompra(
             return Resultado<string>.Fallo(new Error("Compras.SinCarpetaDocumentos",
                 $"La empresa {nombre ?? ctx.IdSociedad} no tiene carpeta de documentos, y es donde busco los PDF de compra.", ctx.ToString(), null,
                 "Escríbela en Configuración › Parámetros y tablas › Empresas (grupo «Rutas y bases de datos») y vuelve a buscar los PDF."));
-        var carpeta = Path.Combine(raiz.Trim(), ctx.Ejercicio.ToString(CultureInfo.InvariantCulture), "Proveedores");
+        var carpeta = Path.Combine(RaizEmpresa(raiz), ctx.Ejercicio.ToString(CultureInfo.InvariantCulture), "Proveedores");
         if (!Directory.Exists(carpeta))
             return Resultado<string>.Fallo(new Error("Compras.CarpetaNoExiste", $"No encuentro la carpeta de compras. Ruta intentada: {carpeta}.", ctx.ToString(),
                 "La carpeta no existe o la unidad compartida no está conectada.", "Comprueba que la carpeta compartida esté conectada o crea la carpeta del ejercicio."));
         return Resultado<string>.Correcto(carpeta);
+    }
+
+    /// <summary>
+    /// Carpeta de la empresa: Sociedades.RutaDocumentos tal cual si es una ruta completa; si es solo un nombre o una ruta
+    /// relativa, dentro de la carpeta de datos, que es la que contiene la BD compartida (compras/reconocimiento 2026-11-05 11:24).
+    /// </summary>
+    internal string RaizEmpresa(string rutaDocumentos)
+    {
+        var ruta = rutaDocumentos.Trim();
+        return Path.IsPathFullyQualified(ruta) ? ruta : Path.GetFullPath(Path.Combine(Path.GetDirectoryName(Path.GetFullPath(bd.Ruta)) ?? string.Empty, ruta));
     }
 
     /// <summary>PDF de las carpetas de proveedor cuyo MD5 no está registrado, en orden de carpeta y fichero.</summary>
