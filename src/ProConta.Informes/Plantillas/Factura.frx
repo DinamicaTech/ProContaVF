@@ -46,7 +46,7 @@
       <TextObject Name="LinConcepto" Width="302.4" Height="20" CanGrow="true" Text="[Lineas.Concepto]" Font="Arial, 9pt"/>
       <TextObject Name="LinCantidad" Left="302.4" Width="56.7" Height="20" Text="[Lineas.Cantidad]" HorzAlign="Right" Font="Arial, 9pt"/>
       <TextObject Name="LinPrecio" Left="359.1" Width="75.6" Height="20" Text="[Lineas.Precio]" HorzAlign="Right" Font="Arial, 9pt"/>
-      <TextObject Name="LinDescuento" Left="434.7" Width="56.7" Height="20" Text="[Lineas.Descuento]" HorzAlign="Right" Font="Arial, 9pt"/>
+      <TextObject Name="LinDescuento" Left="434.7" Width="56.7" Height="20" CanGrow="true" Text="[Lineas.Descuento]" HorzAlign="Right" Font="Arial, 9pt"/>
       <TextObject Name="LinBase" Left="491.4" Width="75.6" Height="20" Text="[Lineas.Base]" HorzAlign="Right" Font="Arial, 9pt"/>
       <TextObject Name="LinIva" Left="567" Width="37.8" Height="20" Text="[Lineas.Iva]" HorzAlign="Right" Font="Arial, 9pt"/>
       <TextObject Name="LinTotal" Left="604.8" Width="75.6" Height="20" Text="[Lineas.Total]" HorzAlign="Right" Font="Arial, 9pt"/>

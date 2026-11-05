@@ -56,6 +56,21 @@ public sealed class PdfFacturasTests
     }
 
     [Fact]
+    public void UnaLineaDelErpMuestraSuImporteSinElFalsoDescuento()
+    {
+        var f = new FacturaVenta { Descripcion = "Alquiler", NumeroFactura = "83193", FechaFactura = new DateTime(2026, 8, 3) };
+        var l = new LineaFacturaVenta { Nombre = "Alquiler", Cantidad = 1m, PrecioUnitario = 1212.42m, DescuentoImporte = -1212.42m, TipoIva = 21m };
+        l.CargarImportes(1002m, 210.42m, 0m, 1212.42m);
+        f.Lineas.Add(l);
+        var (_, lineas, _) = ConstructorPdfFactura.Construir(f, Cliente, "E", "N", Emisor, null);
+        var linea = Assert.Single(lineas);
+        Assert.Equal("", linea.Descuento);
+        Assert.Equal("1.002,00", linea.Precio);
+        Assert.Equal("1.002,00", linea.Base);
+        Assert.Equal("1.212,42", linea.Total);
+    }
+
+    [Fact]
     public void UnBorradorEsProforma()
     {
         var f = new FacturaVenta { Descripcion = "Prueba" };

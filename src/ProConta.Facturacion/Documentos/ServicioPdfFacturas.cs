@@ -57,14 +57,20 @@ public static class ConstructorPdfFactura
             FormaPago = pago,
             Total = Euros(t.ImporteTotal.Valor)
         };
-        var lineas = f.Lineas.Select(l => new LineaFacturaPdf(
-            Lineas(l.Nombre, l.Descripcion, l.Fecha is { } x ? Fecha(x) : null),
-            Numero(l.Cantidad),
-            Numero(l.PrecioUnitario, "#,##0.00##"),
-            string.Join(" ", new[] { l.DescuentoPorcentaje != 0m ? Numero(l.DescuentoPorcentaje) + " %" : null, l.DescuentoImporte != 0m ? Euros(l.DescuentoImporte) : null }.Where(x => x is not null)),
-            Numero(l.BaseImponible.Valor, "N2"),
-            l.EsSuplido ? "Supl." : Numero(l.TipoIva) + " %",
-            Numero(l.ImporteTotal.Valor, "N2"))).ToList();
+        var lineas = f.Lineas.Select(l =>
+        {
+            // Las líneas del ERP guardan en precio y descuentos valores que no lo son: si con ellos no sale su importe, se
+            // muestran la cantidad y el precio que le corresponden, sin descuentos. Base y total son siempre los guardados.
+            var v = Programadas.LineasProgramada.DesdeLineaFactura(l);
+            return new LineaFacturaPdf(
+                Lineas(l.Nombre, l.Descripcion, l.Fecha is { } x ? $"Fecha: {Fecha(x)}" : null),
+                Numero(v.Cantidad),
+                Numero(v.PrecioUnitario, "#,##0.00##"),
+                string.Join(" ", new[] { v.DescuentoPorcentaje != 0m ? Numero(v.DescuentoPorcentaje) + " %" : null, v.DescuentoImporte != 0m ? Euros(v.DescuentoImporte) : null }.Where(y => y is not null)),
+                Numero(l.BaseImponible.Valor, "N2"),
+                l.EsSuplido ? "Supl." : Numero(l.TipoIva) + " %",
+                Numero(l.ImporteTotal.Valor, "N2"));
+        }).ToList();
         var resumen = new List<ResumenFacturaPdf> { new("Base imponible", Euros(t.BaseImponible.Valor)) };
         foreach (var d2 in CalculoFactura.Desglose(f.Lineas))
         {
