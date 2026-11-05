@@ -5,6 +5,7 @@ depends_on: [compras/reconocimiento, plataforma/contenedor]
 threads:
   - 2026-10-28 12:30 · Carga de requisitos | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GRNMH95h9tnQp4dmEPHmw1w
   - 2026-10-29 10:15 · Validar prototipos de pantallas principales | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GGPu88XoVeXWyHsuxbrF2kK
+  - 2026-11-05 11:24 · Construir facturas de compra | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GEbtcX2Z7baM2yhwHY2wJXj
 ---
 ## Summary
 Revisión de la factura reconocida con confianza, candidatos y motivos visibles, y pantalla de pruebas no destructiva del reconocimiento.
@@ -21,6 +22,7 @@ Revisión de la factura reconocida con confianza, candidatos y motivos visibles,
 - 2026-10-31 07:46 · [replaced by 2026-10-31 07:48] Ronda 5 del prototipo (lienzo, versión 25), acordada con el propietario: en Importación desaparece la matriz de tipos de IVA y queda un solo «Importe», con la nota de su desglose al tipo vigente; selector de moneda junto a los importes, con el cambio oficial aplicado y el total en euros a la vista (sin paso de conversión aparte); campo «Rectifica a la factura» en los abonos; botón «Filtro» en la lista con nacionales, intracomunitarias y extranjeras (se suman entre sí), con retención, con suplidos, con inversión del sujeto pasivo y rectificativas y abonos (se exigen a la vez), y «Ver relacionadas» (la original y sus rectificativas, en los dos sentidos, y la pareja mercancía-transitario), también en el menú contextual; el buscador admite los prefijos `a+` (asiento), `f+` (fichero) e `i+` (registro de IVA). No hay filtro SQL libre.
 - 2026-10-31 07:48 · Rondas 5 y 6 del prototipo (lienzo, versión 26), acordada con el propietario: en Importación desaparece la matriz de tipos de IVA y queda un solo «Importe», con la nota de su desglose al tipo vigente; selector de moneda junto a los importes, con el cambio oficial aplicado y el total en euros a la vista (sin paso de conversión aparte); campo «Rectifica a la factura» en los abonos; botón «Filtro» en la lista con nacionales, intracomunitarias y extranjeras (se suman entre sí), con retención, con suplidos, con inversión del sujeto pasivo y rectificativas y abonos (se exigen a la vez), y «Ver relacionadas» (la original y sus rectificativas, en los dos sentidos), también en el menú contextual; el buscador admite los prefijos `a+` (asiento), `f+` (fichero) e `i+` (registro de IVA). No hay filtro SQL libre. No hay pareja mercancía-transitario ni campo «IVA del DUA»: el DUA es una factura independiente del transitario o agente de aduanas, que se registra como una factura nacional más, con lo que paga por cuenta nuestra en «Suplidos».
 - 2026-10-31 08:00 · El propietario valida el prototipo de la importación de facturas de compra (rondas 1 a 6, lienzo versión 26) como referencia para su UI WPF.
+- 2026-11-05 11:24 · Los PDF nuevos de la carpeta se buscan al abrir la pantalla y con «Buscar PDF nuevos» en el menú contextual de la lista; no hay escaneo en segundo plano. El visor del PDF usa WebView2.
 
 ## Requirements
 - 2026-10-28 12:28 · From sources/01_ESPECIFICACION_FUNCIONAL.docx § 14 RF-COM-06, 07: pantalla de pruebas y revisión final
@@ -53,3 +55,5 @@ Revisión de la factura reconocida con confianza, candidatos y motivos visibles,
 - 2026-10-31 07:48 · El DUA será una factura independiente suministrada por el carrier o agente de aduanas, por lo que no la tenemos en cuenta.
 - 2026-10-31 08:00 · Ok, buen trabajo ;-)
 - 2026-10-29 16:55 · frmEntradaFacturas: A partir de una lista de facturas de compra (ficheros PDF), extrae los campos principales (número factura, fecha factura, CIF Proveedor, importes), permite modificarlos, asignar analítica, notas,  etc. y generar el asiento contable de cada factura.
+- 2026-11-05 11:18 · P10 a
+- 2026-11-05 11:18 · answer: cuándo buscar PDF nuevos → al abrir la pantalla y con «Buscar PDF nuevos» en el menú contextual

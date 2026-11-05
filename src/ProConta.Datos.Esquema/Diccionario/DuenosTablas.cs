@@ -28,7 +28,7 @@ public static class DuenosTablas
             "CuentasContablesLegacy", "CuentasPlanContable", "PlanesContables", "TiposCuentaContable");
         Asignar("contabilidad", "contabilidad/centros-coste", "CentrosCoste", "F_CDP", "F_DEP");
         Asignar("contabilidad", "contabilidad/asientos", "Asientos", "Apuntes", "RelacionesAsientos", "RevisionesAsientos", "RegistroCambiosApuntes");
-        Asignar("contabilidad", "contabilidad/procesos", "ConfiguracionesContables", "ConfiguracionesContablesCuentaBancaria", "PeriodosIVA", "IVARepercutido", "IVASoportado");
+        Asignar("contabilidad", "contabilidad/procesos", "ConfiguracionesContables", "ConfiguracionesContablesCuentaBancaria", "PeriodosIVA", "IVARepercutido", "IVASoportado", "DesglosesIVASoportado");
         Asignar("contabilidad", "contabilidad/modelos-tributarios", "PresentacionesTributarias");
         Asignar("contabilidad", "contabilidad/balances", "ModelosBalance", "NodosBalance", "ReglasCuentasBalance", "RelacionesCalculoBalance");
         Asignar("facturacion", "facturacion/factura-venta", "Facturas", "LineasFactura", "DesglosesIVARepercutido", "SeriesFacturacion",
@@ -37,7 +37,8 @@ public static class DuenosTablas
         Asignar("facturacion", "facturacion/contratos", "Contratos", "LineasContrato", "EstadoContratoTerceros");
         Asignar("facturacion", "facturacion/programadas", "FacturasProgramadas", "FacturasProgramadasBak", "LineasFacturasProgramadas", "LotesFacturasProgramadas");
         Asignar("facturacion", "facturacion/verifactu", "VeriFactuConfiguracion", "VeriFactuEnvios", "VeriFactuLotesEnvio", "VeriFactuRespuestas");
-        Asignar("compras", "compras/factura-compra", "FacturasCompra", "DesglosesIVASoportado");
+        Asignar("compras", "compras/factura-compra", "FacturasCompra", "DesglosesFacturaCompra");
+        Asignar("compras", "compras/reconocimiento", "ConfiguracionReconocimientoFacturasCompra");
         Asignar("norma43", "norma43", "Bancos", "EntidadesFinancieras", "CuentasBancarias", "ExtractosBancarios", "LineasExtractoBancario",
             "ComplementosLineaExtractoBancario", "ContabilizacionesLineaExtracto", "ImputacionesLineaExtractoBancario",
             "IncidenciasImportacionBancaria", "LotesImportacionBancaria");

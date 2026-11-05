@@ -47,6 +47,7 @@ Roles opcionales de una identidad (Cliente, Proveedor, Contacto) con IDs funcion
 - 2026-11-01 09:52 · answer: cuenta de los roles → (A) por sociedad, apuntando a la identidad contable
 - 2026-11-01 17:18 · 4. La cuenta de retención sería diferente para cada cliente.
 - 2026-11-01 17:20 · Derived from facturacion/factura-venta/contabilizacion: cuenta de retención del rol Cliente por sociedad (identidad contable), editable en la pestaña Roles.
+- 2026-11-05 11:24 · Derived from compras: el rol Proveedor guarda la carpeta de sus PDF y sus valores por defecto (tipo de operación, tipo de producto, retención, país, forma de pago, cuenta de gasto y moneda), que la factura de compra propone y actualiza en su ficha según las decisiones 2026-10-29 18:14 y 2026-10-31 07:46.
 
 ## Hand-over
 - 2026-10-31 19:05 · Hecho: roles y cuentas por ejercicio, con pruebas (rol idempotente sin duplicar identidad, cuentas distintas por ejercicio, cuenta de otro ejercicio rechazada). Pendiente, porque necesita columnas nuevas y lo pedirá compras: distinguir cuenta de proveedor y de acreedor (decisión 2026-10-31 16:54), valores por defecto del proveedor (tipo de operación, producto, retención, país, forma de pago, cuenta de gasto, moneda) y su actualización desde la factura (decisiones 2026-10-29 18:14 y 2026-10-31 07:46), y la carpeta de PDF del proveedor.
