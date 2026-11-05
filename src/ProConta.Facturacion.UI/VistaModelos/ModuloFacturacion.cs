@@ -1,6 +1,7 @@
 using ProConta.Contabilidad.CentrosCoste;
 using ProConta.Facturacion.Conceptos;
 using ProConta.Facturacion.Facturas;
+using ProConta.Facturacion.Programadas;
 using ProConta.Nucleo.Auditoria;
 using ProConta.Nucleo.Contexto;
 using ProConta.Organizacion.FormasPago;
@@ -22,7 +23,8 @@ public sealed record ServiciosFacturacion(
     ContextoSociedadEjercicio Trabajo,
     string RazonSocial,
     Actor Actor,
-    ICatalogoCentrosCoste CentrosCoste);
+    ICatalogoCentrosCoste CentrosCoste,
+    ServicioProgramadas Programadas);
 
 /// <summary>Diálogos de facturación (en la vista, para que los modelos de vista se prueben sin ventanas).</summary>
 public interface IDialogosFacturacion
@@ -40,11 +42,17 @@ public interface IDialogosFacturacion
 
     /// <summary>Explica la rectificación y pide su motivo (obligatorio); null si se cancela.</summary>
     string? PedirMotivoRectificacion(string numero, string explicacion);
+
+    /// <summary>
+    /// Elige hasta qué fecha generar y qué programadas con vencimientos hasta entonces; al abrir están marcadas todas o,
+    /// con <paramref name="soloMarcadas"/>, solo esas. <paramref name="pendientes"/> lee las de una fecha. Null si se cancela.
+    /// </summary>
+    (DateTime Hasta, IReadOnlyList<int> Ids)? ElegirProgramadasAGenerar(DateTime hasta, Func<DateTime, Task<IReadOnlyList<ProgramadaPendiente>>> pendientes, IReadOnlySet<int>? soloMarcadas = null);
 }
 
 /// <summary>
-/// Facturación dentro del contenedor: una pestaña «Facturas emitidas» y una pestaña por factura abierta en el editor
-/// (si ya está abierta, se activa).
+/// Facturación dentro del contenedor: una pestaña «Facturas», otra «Facturas programadas» y una por cada factura o
+/// programada abierta en el editor (si ya está abierta, se activa).
 /// </summary>
 public sealed class ModuloFacturacion
 {
@@ -54,6 +62,7 @@ public sealed class ModuloFacturacion
     private readonly Action<int> _abrirFichaTercero;
     private readonly List<EditorFacturaVM> _editores = [];
     private ListadoFacturasVM? _listado;
+    private ListadoProgramadasVM? _programadas;
 
     public ModuloFacturacion(ServiciosFacturacion servicios, IAnfitrionPestanas anfitrion, IDialogosFacturacion dialogos, Action<int> abrirFichaTercero)
     {
@@ -67,7 +76,7 @@ public sealed class ModuloFacturacion
     internal IDialogosFacturacion Dialogos => _dialogos;
     internal void Avisar(string texto) => _anfitrion.Avisar(texto);
 
-    /// <summary>Abre (o activa) la pestaña Facturas emitidas.</summary>
+    /// <summary>Abre (o activa) la pestaña Facturas.</summary>
     public void AbrirListado()
     {
         if (_listado is not null)
@@ -82,6 +91,29 @@ public sealed class ModuloFacturacion
     }
 
     internal void ListadoCerrado() => _listado = null;
+
+    /// <summary>Abre (o activa) la pestaña Facturas programadas.</summary>
+    public void AbrirProgramadas()
+    {
+        if (_programadas is not null)
+        {
+            _anfitrion.Activar(_programadas);
+            _ = _programadas.CargarAsync();
+            return;
+        }
+        _programadas = new ListadoProgramadasVM(this);
+        _anfitrion.Abrir(_programadas);
+        _ = _programadas.CargarAsync();
+    }
+
+    internal void ProgramadasCerrado() => _programadas = null;
+
+    /// <summary>«Ver sus facturas»: abre Facturas filtrada por la programada.</summary>
+    internal void VerFacturasDeProgramada(int idProgramada)
+    {
+        AbrirListado();
+        _listado!.FiltrarPorProgramada(idProgramada);
+    }
 
     /// <summary>Abre una factura en el editor (borrador editable o validada en solo lectura).</summary>
     public void AbrirFactura(int idFactura)
@@ -106,6 +138,38 @@ public sealed class ModuloFacturacion
         _ = editor.NuevaAsync();
     }
 
+    /// <summary>Abre una programada en el editor (o activa su pestaña si ya está abierta).</summary>
+    public void AbrirProgramada(int idProgramada)
+    {
+        if (_editores.FirstOrDefault(e => e.IdProgramada == idProgramada) is { } abierto)
+        {
+            _anfitrion.Activar(abierto);
+            return;
+        }
+        var editor = new EditorFacturaVM(this);
+        _editores.Add(editor);
+        _anfitrion.Abrir(editor);
+        _ = editor.CargarProgramadaAsync(idProgramada);
+    }
+
+    /// <summary>Abre una programada nueva sin guardar (la casilla «Periódica» ya marcada).</summary>
+    public void NuevaProgramada()
+    {
+        var editor = new EditorFacturaVM(this);
+        _editores.Add(editor);
+        _anfitrion.Abrir(editor);
+        _ = editor.NuevaProgramadaAsync();
+    }
+
+    /// <summary>«Programar…»: abre una programada nueva sin guardar con el contenido de la factura.</summary>
+    public void ProgramarDesde(int idFactura)
+    {
+        var editor = new EditorFacturaVM(this);
+        _editores.Add(editor);
+        _anfitrion.Abrir(editor);
+        _ = editor.NuevaProgramadaAsync(idFactura);
+    }
+
     internal void EditorCerrado(EditorFacturaVM editor) => _editores.Remove(editor);
 
     internal void CerrarEditor(EditorFacturaVM editor)
@@ -117,10 +181,19 @@ public sealed class ModuloFacturacion
     /// <summary>El editor guardó, validó o borró: el listado se refresca si está abierto.</summary>
     internal void FacturaCambiada(int? idActiva = null) => _ = _listado?.CargarAsync(idActiva);
 
+    /// <summary>El editor guardó o borró una programada: su listado se refresca si está abierto.</summary>
+    internal void ProgramadaCambiada(int? idProgramada = null) => _ = _programadas?.CargarAsync(idProgramada);
+
     internal void VolverAlListado()
     {
         if (_listado is null) AbrirListado();
         else _anfitrion.Activar(_listado);
+    }
+
+    internal void VolverAProgramadas()
+    {
+        if (_programadas is null) AbrirProgramadas();
+        else _anfitrion.Activar(_programadas);
     }
 
     internal void AbrirFichaTercero(int idTercero) => _abrirFichaTercero(idTercero);
