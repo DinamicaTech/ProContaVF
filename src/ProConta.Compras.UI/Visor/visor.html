@@ -1,0 +1,16 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Visor del PDF</title>
+<link rel="stylesheet" href="visor.css">
+</head>
+<body>
+<!-- Visor de PDF de compras (compras/pantallas): PDF.js dentro de WebView2. Resalta de dónde sale cada campo
+     reconocido y, al seleccionar texto, se lo pasa a la pantalla para rellenar el campo marcado. -->
+<div id="paginas" aria-label="Páginas del PDF"></div>
+<div id="mensaje" hidden></div>
+<script type="module" src="visor.js"></script>
+</body>
+</html>

@@ -96,7 +96,7 @@ public sealed class FacturasCompraAccessTests : IDisposable
     {
         var esquema = await Bd.EjecutarAsync(s => Task.FromResult(s.LeerEsquema()));
         foreach (var c in new[] { "IdSociedadEjercicio", "IdProveedor", "Divisa", "ImporteTotalDivisa", "TipoCambioAplicado", "FechaTipoCambio",
-                     "IdRegistroFacturaRectificada", "ConfianzaImportacion", "RequiereRevisionImportacion", "LOGImportacion", "Version" })
+                     "IdRegistroFacturaRectificada", "ConfianzaImportacion", "RequiereRevisionImportacion", "LOGImportacion", "Version", "IdCentroCoste" })
             Assert.True(esquema.ExisteColumna("FacturasCompra", c), c);
         Assert.True(esquema.ExisteTabla("DesglosesFacturaCompra"));
         Assert.True(esquema.ExisteTabla("ConfiguracionReconocimientoFacturasCompra"));
@@ -194,5 +194,71 @@ public sealed class FacturasCompraAccessTests : IDisposable
         var r = await Servicio().BuscarPdfNuevosAsync(_ctx);
         Assert.Equal("Compras.SinCarpetaDocumentos", r.Error!.Codigo);
         Assert.Contains("Empresas", r.Error.AccionCorrectora);
+    }
+
+    [Fact]
+    public async Task Guardar_cambia_los_datos_y_los_desgloses_y_no_pisa_los_cambios_de_otro_operador()
+    {
+        await EmpresaConProveedorAsync();
+        var servicio = Servicio();
+        var r = await servicio.ImportarAsync(_ctx, Pdf("Ficticio", "g.pdf", "guardar"));
+        Assert.True(r.Registrada, r.Error?.ToString());
+        var f = (await servicio.CargarAsync(r.Factura!.IdRegistro))!;
+        var otro = (await servicio.CargarAsync(f.IdRegistro))!;
+
+        f.NumeroFactura = "FV260124";
+        f.Operacion = OperacionCompra.Intracomunitaria;
+        f.Producto = ProductoCompra.Bienes;
+        f.CuentaGasto = "6000000";
+        f.Suplido = 4m;
+        f.ImporteTotal = 180m;
+        f.Notas = "Revisada";
+        f.Desgloses.Clear();
+        f.Desgloses.Add(new DesgloseFacturaCompra(1, 21m, 150m, 26m));
+        var g = await servicio.GuardarAsync(f);
+        Assert.True(g.EsCorrecto, g.Error?.ToString());
+        Assert.Equal(1, f.Version);
+
+        var leida = (await servicio.CargarAsync(f.IdRegistro))!;
+        Assert.Equal(("FV260124", OperacionCompra.Intracomunitaria, ProductoCompra.Bienes, "6000000", 4m, "Revisada"),
+            (leida.NumeroFactura, leida.Operacion, leida.Producto!.Value, leida.CuentaGasto!, leida.Suplido!.Value, leida.Notas!));
+        Assert.Equal([(21m, 150m, 26m)], leida.Desgloses.Select(d => (d.TipoIva, d.BaseImponible, d.CuotaIva)));
+        Assert.Equal(1, leida.Version);
+        Assert.False(leida.RequiereRevision);
+
+        // Otro operador la tenía abierta con la versión anterior: no pisa lo guardado.
+        otro.NumeroFactura = "PISADO";
+        var conflicto = await servicio.GuardarAsync(otro);
+        Assert.Equal("Compras.Concurrencia", conflicto.Error!.Codigo);
+        Assert.Equal("FV260124", (await servicio.CargarAsync(f.IdRegistro))!.NumeroFactura);
+    }
+
+    [Fact]
+    public async Task Una_factura_contabilizada_no_se_guarda_desde_la_pantalla()
+    {
+        await EmpresaConProveedorAsync();
+        var servicio = Servicio();
+        var r = await servicio.ImportarAsync(_ctx, Pdf("Ficticio", "c.pdf", "contabilizada"));
+        await Bd.EjecutarAsync(s => s.EjecutarAsync("UPDATE FacturasCompra SET Exportada = ? WHERE IdRegistro = ?", true, r.Factura!.IdRegistro));
+        var f = (await servicio.CargarAsync(r.Factura!.IdRegistro))!;
+        Assert.True(f.Contabilizada);
+        f.Notas = "No debería";
+        Assert.Equal("Compras.Contabilizada", (await servicio.GuardarAsync(f)).Error!.Codigo);
+    }
+
+    [Fact]
+    public async Task La_lista_incluye_las_nuevas_y_las_del_erp_del_ejercicio_con_el_nombre_del_proveedor()
+    {
+        await EmpresaConProveedorAsync();
+        await FacturaAntiguaAsync("FV260098", new DateTime(2026, 1, 10), "44444444444444444444444444444444");
+        var servicio = Servicio();
+        var r = await servicio.ImportarAsync(_ctx, Pdf("Ficticio", "l.pdf", "lista"));
+        var filas = await servicio.ListarAsync(_ctx);
+        Assert.Equal(2, filas.Count);
+        var nueva = filas.Single(x => x.IdRegistro == r.Factura!.IdRegistro);
+        Assert.Equal(("Emisor Ficticio S.L.", "FV260123", 176m), (nueva.Proveedor, nueva.NumeroFactura, nueva.ImporteTotal!.Value));
+        Assert.True(nueva.Lista);
+        Assert.Contains(filas, x => x.NumeroFactura == "FV260098");
+        Assert.Empty(await servicio.ListarAsync(new ContextoSociedadEjercicio("T01", 9002, 2025)));
     }
 }

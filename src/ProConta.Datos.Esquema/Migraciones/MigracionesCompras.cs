@@ -55,4 +55,17 @@ public static class MigracionesCompras
             "UmbralDiscrepanciaImporte CURRENCY NOT NULL, Version LONG NOT NULL)"),
         new CrearIndice("ConfiguracionReconocimientoFacturasCompra", "UX_CRFC_Sociedad",
             "CREATE UNIQUE INDEX UX_CRFC_Sociedad ON ConfiguracionReconocimientoFacturasCompra (IdSociedad)"));
+
+    /// <summary>
+    /// Centro de coste de la factura de compra (compras/pantallas, entrega 2): IdCentroCoste apunta a CentrosCoste. La
+    /// columna heredada IdSubDepartamento guarda el código del ERP y la convierte la migración del ERP, como en las líneas
+    /// de las facturas de venta.
+    /// </summary>
+    public static Migracion FacturasCompraCentroCoste { get; } = new(
+        "20261105_1830_FACTURAS_COMPRA_CENTRO_COSTE", 261105003,
+        "Facturas de compra: centro de coste.",
+        "compras/factura-compra",
+        new AnadirColumna("FacturasCompra", "IdCentroCoste", "LONG"),
+        new CrearIndice("FacturasCompra", "IX_FacturasCompra_CentroCoste",
+            "CREATE INDEX IX_FacturasCompra_CentroCoste ON FacturasCompra (IdCentroCoste)"));
 }

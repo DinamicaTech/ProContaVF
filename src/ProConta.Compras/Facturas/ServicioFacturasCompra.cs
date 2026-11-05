@@ -11,6 +11,9 @@ namespace ProConta.Compras.Facturas;
 /// <summary>PDF de la carpeta de compras que aún no está registrado.</summary>
 public sealed record PdfPendiente(string Ruta, string Carpeta, string Md5);
 
+/// <summary>Un campo en el modo «Probar»: lo grabado, lo leído ahora y si coinciden. <c>SinGrabar</c>: no había nada grabado.</summary>
+public sealed record ComparacionCampo(string Campo, string Grabado, string Leido, bool Igual, bool SinGrabar);
+
 /// <summary>Resultado de importar un PDF: la factura registrada o el motivo por el que no se registró.</summary>
 public sealed record ImportacionPdf(string Ruta, FacturaCompra? Factura, Error? Error)
 {
@@ -178,6 +181,55 @@ public sealed class ServicioFacturasCompra(
 
     public Task<FacturaCompra?> CargarAsync(int idRegistro, CancellationToken cancelacion = default) =>
         bd.EjecutarAsync(s => RepositorioFacturasCompra.CargarAsync(s, idRegistro), cancelacion);
+
+    /// <summary>Facturas de compra del ejercicio para la lista de la pantalla.</summary>
+    public Task<IReadOnlyList<FilaFacturaCompra>> ListarAsync(ContextoSociedadEjercicio ctx, CancellationToken cancelacion = default) =>
+        bd.EjecutarAsync(s => RepositorioFacturasCompra.ListarAsync(s, ctx), cancelacion);
+
+    /// <summary>Proveedores de la empresa con su tercero, su NIF y su nombre (buscar por NIF y abrir la ficha).</summary>
+    public Task<IReadOnlyList<ProveedorFicha>> ProveedoresAsync(ContextoSociedadEjercicio ctx, CancellationToken cancelacion = default) =>
+        bd.EjecutarAsync(s => RepositorioFacturasCompra.ProveedoresFichaAsync(s, ctx.IdSociedad), cancelacion);
+
+    /// <summary>
+    /// Guarda lo que el operador ha revisado o corregido en una factura sin contabilizar. Con proveedor, número, fecha e
+    /// importes que cuadran, deja de pedir revisión. Si otro operador la cambió mientras tanto, no se pisa.
+    /// </summary>
+    public async Task<Resultado> GuardarAsync(FacturaCompra factura, CancellationToken cancelacion = default)
+    {
+        ArgumentNullException.ThrowIfNull(factura);
+        if (factura.IdRegistro <= 0) throw new ArgumentException("Solo se guardan facturas ya registradas.", nameof(factura));
+        var validacion = factura.Validar();
+        if (!validacion.EsCorrecto) return validacion;
+        if (factura.Lista) factura.RequiereRevision = false;
+        var r = await bd.EnTransaccionAsync(s => RepositorioFacturasCompra.ActualizarAsync(s, factura), cancelacion);
+        if (!r.EsCorrecto) return Resultado.Fallo(r.Errores);
+        factura.Version = r.Valor;
+        return Resultado.Correcto();
+    }
+
+    /// <summary>
+    /// Modo «Probar»: compara campo a campo lo grabado con lo que el motor lee ahora del mismo PDF. Los números se comparan
+    /// limpios (solo letras y dígitos), las fechas por día y los importes al céntimo. No escribe nada.
+    /// </summary>
+    public static IReadOnlyList<ComparacionCampo> Comparar(FacturaCompra grabada, FacturaCompra leida)
+    {
+        ArgumentNullException.ThrowIfNull(grabada);
+        ArgumentNullException.ThrowIfNull(leida);
+        static string Imp(decimal? v) => v is { } x ? x.ToString("N2", CultureInfo.GetCultureInfo("es-ES")) : "";
+        static string Fec(DateTime? v) => v is { } x ? x.ToString("dd/MM/yyyy", CultureInfo.InvariantCulture) : "";
+        static string Num(string? v) => new((v ?? "").Where(char.IsAsciiLetterOrDigit).Select(char.ToUpperInvariant).ToArray());
+        static string Nif(string? v) => MotorReconocimientoFacturaCompra.CompactarNif(v);
+        ComparacionCampo C(string campo, string g, string l, bool igual) => new(campo, g, l, igual, g.Length == 0);
+        return
+        [
+            C("NIF", grabada.NifProveedor ?? "", leida.NifProveedor ?? "", Nif(grabada.NifProveedor) == Nif(leida.NifProveedor)),
+            C("Número", grabada.NumeroFactura, leida.NumeroFactura, Num(grabada.NumeroFactura) == Num(leida.NumeroFactura)),
+            C("Fecha", Fec(grabada.Fecha), Fec(leida.Fecha), grabada.Fecha?.Date == leida.Fecha?.Date),
+            C("Base", Imp(grabada.BaseImponible), Imp(leida.BaseImponible), grabada.BaseImponible == leida.BaseImponible),
+            C("IVA", Imp(grabada.CuotaIva), Imp(leida.CuotaIva), grabada.CuotaIva == leida.CuotaIva),
+            C("Total", Imp(grabada.ImporteTotal), Imp(leida.ImporteTotal), grabada.ImporteTotal == leida.ImporteTotal)
+        ];
+    }
 
     /// <summary>Carpeta histórica con su cuenta o proveedor y el NIF del catálogo de terceros.</summary>
     internal sealed record AliasCarpeta(string Carpeta, string? Cuenta, ProveedorEmpresa? Proveedor, string? Nif);

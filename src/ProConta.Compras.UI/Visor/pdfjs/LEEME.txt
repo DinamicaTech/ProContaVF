@@ -1,0 +1,1 @@
+PDF.js 4.10.38 (pdfjs-dist, Mozilla, Apache 2.0): build/pdf.min.mjs y build/pdf.worker.min.mjs (renombrados a .js para que WebView2 los sirva como JavaScript), cmaps y standard_fonts sin cambios.

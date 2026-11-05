@@ -63,6 +63,7 @@ public static class CatalogoMigraciones
         MigracionesFacturacion.FacturasProgramadas,
         MigracionesFacturacion.FacturasSinVeriFactu,
         MigracionesCompras.FacturasCompraReconocimiento,
+        MigracionesCompras.FacturasCompraCentroCoste,
     ];
 
     /// <summary>Versión del esquema que espera esta versión del programa.</summary>
