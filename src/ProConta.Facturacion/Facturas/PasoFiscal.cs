@@ -16,8 +16,9 @@ public interface IPasoFiscal
 }
 
 /// <summary>
-/// Paso provisional «sin VeriFactu», solo para la BD de pruebas: deja la factura Validada y marcada como no comunicada
-/// (Facturas.SinVeriFactu), visible en la factura y en el listado. En producción se sigue facturando con el ERP.
+/// Paso «sin VeriFactu», el de producción mientras el parámetro general VeriFactu está desactivado
+/// (facturacion/verifactu 2026-11-05): deja la factura Validada y marcada como no comunicada (Facturas.SinVeriFactu).
+/// Las facturas así marcadas no se envían después aunque se active VeriFactu.
 /// </summary>
 public sealed class PasoFiscalSinVeriFactu : IPasoFiscal
 {

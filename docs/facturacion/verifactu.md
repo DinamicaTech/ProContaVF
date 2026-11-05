@@ -1,13 +1,14 @@
 ---
 title: VeriFactu
 status: draft
-depends_on: [facturacion/factura-venta, plataforma/configuracion, architecture]
+depends_on: [facturacion/factura-venta, plataforma/configuracion, architecture, plataforma/mantenimiento, datos/esquema, informes/reporting, organizacion/sociedades-ejercicios]
 threads:
   - 2026-10-28 12:30 · Carga de requisitos | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GRNMH95h9tnQp4dmEPHmw1w
   - 2026-11-01 16:20 · Analizar el VeriFactu anterior | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GEyEz6FipiZodYmTieuk1Rs
+  - 2026-11-05 11:20 · Facturar sin VeriFactu y PDF de factura | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5G5gKjeMHEgF7kCNcP3p5Nni
 ---
 ## Summary
-Intercambio fiscal con la AEAT encapsulado detrás de una interfaz propia (.NET nativo, sin COM) sobre la biblioteca VeriFactu de Irene Solutions (AGPL-3.0, la misma que ya funcionó en la versión anterior): traducción de la factura, envío, cinco resultados de un intento, reenvío técnico de las incertidumbres, consulta de registros propios antes de volver a borrador, y PDF/QR tras la aceptación.
+Pendiente de construir: mientras tanto se factura sin VeriFactu con el parámetro general «Activar VeriFactu» desactivado (Configuracion.VeriFactuActivo). Intercambio fiscal con la AEAT encapsulado detrás de una interfaz propia (.NET nativo, sin COM) sobre la biblioteca VeriFactu de Irene Solutions (AGPL-3.0, la misma que ya funcionó en la versión anterior): traducción de la factura, envío, cinco resultados de un intento, reenvío técnico de las incertidumbres, consulta de registros propios antes de volver a borrador, y PDF/QR tras la aceptación.
 El análisis funcional de la implementación anterior y la lista de lo que necesita el corte (certificado, entorno de pruebas de la AEAT y casos) están en "Análisis de la implementación anterior" y "Lo que necesita el corte".
 **Aceptación:** la de spec § 11 (pérdida de respuesta no duplica emisión; consulta fallida no desbloquea edición; rechazo explícito informa corrección; recuperación PDF no cambia número ni cadena; entorno de pruebas imposible de confundir con producción) más la batería de casos de "Lo que necesita el corte" aceptada en el entorno de pruebas de la AEAT.
 
@@ -18,6 +19,8 @@ El análisis funcional de la implementación anterior y la lista de lo que neces
 - 2026-11-01 16:20 · El corte de VeriFactu corrige los siete puntos débiles de la implementación anterior (ver "Puntos débiles detectados"), como describe "Lo que necesita el corte": contraseña del certificado desprotegida antes de usarla, reenvío técnico que recupera el XML de la BD, bloqueo de envío entre procesos, versión y algoritmo de huella leídos de la configuración y entorno que decide los endpoints, rectificativas con la factura rectificada informada, validación de NIF en AEAT y VIES activada, y ningún dato del certificado en scripts versionados.
 - 2026-11-01 16:28 · Certificado: uno por sociedad, instalado una sola vez en el almacén del equipo del servidor (`LocalMachine\My`), con permiso de lectura de su clave privada para el grupo de Windows de los usuarios de ProContaVF; la BD solo guarda su huella o serie. Si la biblioteca solo busca en el almacén del usuario, el adaptador carga el certificado del almacén del equipo y se lo entrega; el corte lo comprueba con "Probar configuración" desde dos usuarios distintos. Renovarlo es instalar el nuevo en el mismo almacén y cambiar la huella en la configuración de la sociedad.
 - 2026-11-01 16:28 · El primer corte de VeriFactu emite solo para la sociedad 002 (Dinámica), en el entorno de pruebas de la AEAT; las demás sociedades se activan después, una a una.
+- 2026-11-05 11:20 · Se debe poder hacer todo el ciclo de facturación real sin VeriFactu ni QR hasta que sea obligatorio (propietario). Parámetro general «Activar VeriFactu» (Configuracion.VeriFactuActivo, en Parámetros y tablas › Configuración general), desactivado por defecto y común a todas las empresas. Desactivado, validar usa el paso «sin VeriFactu» (`PasoFiscalSinVeriFactu`): numera, congela los datos, deja la factura Validada y marcada con Facturas.SinVeriFactu y genera el asiento; la columna, el filtro y las acciones de VeriFactu no se ven. Las facturas validadas así no se envían después aunque se active. Activado, como VeriFactu aún no está construido, validar se detiene sin numerar y explica cómo desactivarlo. La fecha de obligatoriedad que da el propietario es 2028; octubre de 2028 era el 2026-11-05 un anuncio de Hacienda y no se pudo confirmar su publicación en el BOE: la norma que se vio vigente decía 01/01/2027 (sociedades) y 01/07/2027 (resto). Conviene confirmarlo antes de depender de esa fecha.
+- 2026-11-05 11:25 · Validado por el propietario el trabajo sin VeriFactu (PR #18). El nodo sigue en borrador: el envío a la AEAT está sin construir.
 
 ## Requirements
 - 2026-10-28 12:28 · From sources/01_ESPECIFICACION_FUNCIONAL.docx § 11 RF-VF-01..05: integración, traducción, estados, recuperación, PDF/QR
@@ -33,6 +36,8 @@ El análisis funcional de la implementación anterior y la lista de lo que neces
 - 2026-11-01 16:28 · answer: dónde se instala el certificado → en el almacén del equipo (`LocalMachine\My`), para que lo usen todos los usuarios sin mantenerlo por usuario
 - 2026-11-01 16:28 · answer: sociedades del primer corte → solo la 002 (Dinámica)
 - 2026-11-01 17:20 · Derived from facturacion/factura-venta: implementar el paso fiscal de la validación que hoy cubre el provisional «sin VeriFactu».
+- 2026-11-05 10:39 · Ok, pero hay que tener en cuenta que durante un período trabajaremos sin VeriFactu (no será obligatorio hasta el 2028), por lo que se ha de poder gestionar todo el ciclo de facturación sin el QR.
+- 2026-11-05 10:43 · Ok, adelante con ello. Será un parámetro general para activar VeriFactu (desactivado por defecto).
 
 ## Análisis de la implementación anterior
 Fuentes: `sources/traspaso-2026-10-03/referencias/Facturacion/docs/DECISIONES.md` (2026-08-09 a 2026-08-13), `MODELO_FACTURA.md`, `ARQUITECTURA.md`, `MENSAJES.md`, la migración `referencias/ActualizadorEsquema/database/migrations/20260929_016_verifactu.json` y, en el disco del propietario (fuera de Git), `C:\Docs\Codigo\ProContaVF\ProConta\ProConta.VeriFactu` (adaptador VB.NET, sus pruebas y su `docs/DECISIONES.md`) y `ProConta\VeriFactu-main`. Revisado en solo lectura el 2026-11-01.

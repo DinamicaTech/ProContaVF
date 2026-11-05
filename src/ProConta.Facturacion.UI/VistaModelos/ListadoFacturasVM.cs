@@ -85,6 +85,7 @@ public sealed class ListadoFacturasVM : ModeloVista, IPestanaTrabajo
     private int _cargas;
     private int? _filtroProgramada;
     private IReadOnlyList<FilaFacturaVM> _seleccion = [];
+    private bool _veriFactuActivo;
 
     internal ListadoFacturasVM(ModuloFacturacion modulo)
     {
@@ -110,6 +111,8 @@ public sealed class ListadoFacturasVM : ModeloVista, IPestanaTrabajo
         DuplicarCommand = new ComandoDelegado(() => _ = DuplicarAsync(), () => _puedeEditar && Ambito.Count > 0);
         RectificarCommand = new ComandoDelegado(() => _ = RectificarAsync(), () => _puedeRectificar && Ambito is [{ Datos: { Estado: EstadoFactura.Validada, EsRectificativa: false } }]);
         EliminarCommand = new ComandoDelegado(() => _ = EliminarAsync(), () => _puedeEditar && Ambito.Any(f => f.Datos.EsBorrador));
+        PdfCommand = new ComandoDelegado(() => _ = PdfAsync(false), () => Ambito.Count > 0);
+        RegenerarPdfCommand = new ComandoDelegado(() => _ = PdfAsync(true), () => _puedeEditar && Ambito.Any(f => !f.Datos.EsBorrador));
         RefrescarCommand = new ComandoDelegado(() => _ = CargarAsync(_activa?.Datos.IdFactura));
         LimpiarFiltrosCommand = new ComandoDelegado(LimpiarFiltros, () => HayFiltros);
 
@@ -251,7 +254,7 @@ public sealed class ListadoFacturasVM : ModeloVista, IPestanaTrabajo
         set
         {
             if (!Fijar(ref _activa, value)) return;
-            Avisar(nameof(HayActiva), nameof(AvisoSeleccion));
+            Avisar(nameof(HayActiva), nameof(AvisoSeleccion), nameof(TextoPdf), nameof(TextoRegenerarPdf));
             _ = CargarDetalleAsync(value);
             CommandManager.InvalidateRequerySuggested();
         }
@@ -263,7 +266,7 @@ public sealed class ListadoFacturasVM : ModeloVista, IPestanaTrabajo
     public void CambiarSeleccion(IReadOnlyList<FilaFacturaVM> seleccion)
     {
         _seleccion = seleccion;
-        Avisar(nameof(Pie), nameof(AvisoSeleccion), nameof(TextoValidar), nameof(TextoContabilizar), nameof(TextoDuplicar), nameof(TextoEliminar));
+        Avisar(nameof(Pie), nameof(AvisoSeleccion), nameof(TextoValidar), nameof(TextoContabilizar), nameof(TextoDuplicar), nameof(TextoEliminar), nameof(TextoPdf), nameof(TextoRegenerarPdf));
         CommandManager.InvalidateRequerySuggested();
     }
 
@@ -273,6 +276,11 @@ public sealed class ListadoFacturasVM : ModeloVista, IPestanaTrabajo
     private static string ConCuenta(string texto, int n) => n > 1 ? $"{texto} ({n})" : texto;
     public string TextoValidar => ConCuenta("Validar…", Ambito.Count(f => f.Datos.EsBorrador));
     public string TextoContabilizar => ConCuenta("Contabilizar", Ambito.Count(f => f.SinAsiento));
+    public string TextoPdf => Ambito.All(f => f.Datos.EsBorrador) ? ConCuenta("Proforma en PDF", Ambito.Count) : ConCuenta("PDF", Ambito.Count);
+    public string TextoRegenerarPdf => ConCuenta("Regenerar PDF", Ambito.Count(f => !f.Datos.EsBorrador));
+
+    /// <summary>Parámetro general «Activar VeriFactu»: desactivado, lo de VeriFactu no se ve.</summary>
+    public bool VeriFactuActivo { get => _veriFactuActivo; private set => Fijar(ref _veriFactuActivo, value); }
     public string TextoDuplicar => ConCuenta("Duplicar", Ambito.Count);
     public string TextoEliminar => ConCuenta("Eliminar borrador", Ambito.Count(f => f.Datos.EsBorrador));
 
@@ -354,6 +362,7 @@ public sealed class ListadoFacturasVM : ModeloVista, IPestanaTrabajo
             _puedeEditar = await _s.Facturas.PuedeAsync(Acciones.FacturasEditar);
             _puedeValidar = await _s.Facturas.PuedeAsync(Acciones.FacturasValidar);
             _puedeRectificar = await _s.Facturas.PuedeAsync(Acciones.FacturasRectificar);
+            VeriFactuActivo = await _s.Facturas.VeriFactuActivoAsync();
             var filas = await _s.Consulta.ListarAsync(_s.Trabajo.IdSociedadEjercicio);
             if (carga != _cargas) return;
             var activa = idActiva ?? _activa?.Datos.IdFactura;
@@ -386,11 +395,12 @@ public sealed class ListadoFacturasVM : ModeloVista, IPestanaTrabajo
     public ICommand DuplicarCommand { get; }
     public ICommand RectificarCommand { get; }
     public ICommand EliminarCommand { get; }
+    public ICommand PdfCommand { get; }
+    public ICommand RegenerarPdfCommand { get; }
     public ICommand RefrescarCommand { get; }
     public ICommand LimpiarFiltrosCommand { get; }
 
-    public string MotivoVeriFactu => "Llega con el desarrollo de VeriFactu: hoy las facturas se validan «sin VeriFactu» (solo BD de pruebas).";
-    public string MotivoPdf => "Llega con el desarrollo del PDF.";
+    public string MotivoVeriFactu => "VeriFactu aún no está disponible en esta versión.";
     public string MotivoEnviar => "Llega con el envío por correo.";
     public ICommand VerTodasCommand { get; }
     public ICommand ProgramarCommand { get; }
@@ -402,8 +412,7 @@ public sealed class ListadoFacturasVM : ModeloVista, IPestanaTrabajo
         var borradores = Ambito.Where(f => f.Datos.EsBorrador).ToList();
         if (borradores.Count == 0) return;
         var opcion = _modulo.Dialogos.Preguntar(borradores.Count == 1 ? $"Validar {borradores[0].Numero}" : $"Validar {borradores.Count} borradores",
-            $"Cada borrador recibe el siguiente número de su serie, se copian los datos del cliente y se genera su asiento. Después no se podrán cambiar.{Environment.NewLine}{Environment.NewLine}" +
-            $"Validación provisional «{_s.Facturas.NombrePasoFiscal}»: no se envían a la AEAT y solo valen en la BD de pruebas.",
+            "Cada borrador recibe el siguiente número de su serie, se copian los datos del cliente y se genera su asiento. Después no se podrán cambiar.",
             borradores.Select(b => $"{b.Numero} · {b.Cliente} · {b.TextoTotal}").ToList(),
             new OpcionMensaje("Cancelar", "No valida nada", Cancelar: true),
             new OpcionMensaje("Validar", "Numera y contabiliza", Principal: true));
@@ -476,6 +485,28 @@ public sealed class ListadoFacturasVM : ModeloVista, IPestanaTrabajo
         if (creadas.Count > 0) await CargarAsync(creadas[^1].IdFactura);
         if (creadas.Count == 1 && problemas.Count == 0) { _modulo.AbrirFactura(creadas[0].IdFactura); return; }
         Informar($"{Formatos.Plural(creadas.Count, "borrador creado", "borradores creados")}", creadas.Select(f => f.Rotulo).ToList(), problemas);
+    }
+
+    /// <summary>
+    /// PDF de las seleccionadas: una se abre; varias se archivan y se avisa dónde. Con <paramref name="regenerar"/> vuelve a
+    /// crear las ya archivadas. Los borradores salen como proforma y solo se abren si son uno.
+    /// </summary>
+    private async Task PdfAsync(bool regenerar)
+    {
+        var filas = regenerar ? Ambito.Where(f => !f.Datos.EsBorrador).ToList() : Ambito.ToList();
+        var hechos = new List<ProConta.Facturacion.Documentos.PdfFactura>();
+        var numeros = new List<string>();
+        var problemas = new List<string>();
+        foreach (var f in filas)
+        {
+            var r = await _s.Pdf.ObtenerAsync(f.Datos.IdFactura, _s.Actor, regenerar);
+            if (r.EsCorrecto) { hechos.Add(r.Valor); numeros.Add(f.Numero); }
+            else problemas.Add($"{f.Numero}: {string.Join(" ", r.Errores.Select(e => e.Mensaje + (e.AccionCorrectora is { } a ? " " + a : "")))}");
+        }
+        _ = CargarDetalleAsync(_activa);
+        if (hechos.Count == 1 && problemas.Count == 0) { _modulo.Dialogos.AbrirArchivo(hechos[0].Ruta); return; }
+        var carpeta = hechos.Where(h => !h.EsProforma).Select(h => System.IO.Path.GetDirectoryName(h.Ruta)).FirstOrDefault();
+        Informar($"{Formatos.Plural(hechos.Count, "PDF listo", "PDF listos")}" + (carpeta is null ? "" : $" en {carpeta}"), numeros, problemas);
     }
 
     private async Task RectificarAsync()

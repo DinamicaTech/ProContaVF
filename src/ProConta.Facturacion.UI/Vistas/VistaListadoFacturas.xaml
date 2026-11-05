@@ -41,7 +41,7 @@
                 Visibility="{Binding HayFiltros, Converter={StaticResource Visible}}" ToolTip="Vacía la búsqueda y quita todos los filtros" />
         <WrapPanel VerticalAlignment="Center">
           <ComboBox Width="190" Margin="0,0,10,0" ItemsSource="{Binding OpcionesEstado}" SelectedItem="{Binding FiltroEstado}" ToolTip="Estado de la factura" />
-          <ComboBox Width="170" Margin="0,0,10,0" ItemsSource="{Binding OpcionesVeriFactu}" SelectedItem="{Binding FiltroVeriFactu}" ToolTip="Situación VeriFactu" />
+          <ComboBox Width="170" Margin="0,0,10,0" ItemsSource="{Binding OpcionesVeriFactu}" SelectedItem="{Binding FiltroVeriFactu}" ToolTip="Situación VeriFactu" Visibility="{Binding VeriFactuActivo, Converter={StaticResource Visible}}" />
           <ComboBox Width="160" Margin="0,0,10,0" ItemsSource="{Binding OpcionesSerie}" SelectedItem="{Binding FiltroSerie}" ToolTip="Serie de facturación" />
           <ComboBox Width="170" Margin="0,0,14,0" ItemsSource="{Binding OpcionesOrigen}" SelectedItem="{Binding FiltroOrigen}" ToolTip="Manual, programada o rectificativa" />
           <TextBlock Text="Desde" VerticalAlignment="Center" Margin="0,0,6,0" Style="{StaticResource Texto.Apagado}" />
@@ -93,9 +93,10 @@
               <MenuItem Header="{Binding TextoDuplicar}" Command="{Binding DuplicarCommand}" ToolTip="Crea un borrador con el cliente y las líneas de cada factura seleccionada" />
               <MenuItem Header="{Binding TextoEliminar}" Command="{Binding EliminarCommand}" ToolTip="Borra los borradores seleccionados; no consumen número" />
               <Separator />
-              <MenuItem Header="PDF" IsEnabled="False" ToolTip="{Binding MotivoPdf}" />
+              <MenuItem Header="{Binding TextoPdf}" Command="{Binding PdfCommand}" ToolTip="Abre el PDF de la factura y lo archiva si aún no lo está; con varias, los archiva todos. Un borrador sale como proforma, sin número ni validez fiscal" />
+              <MenuItem Header="{Binding TextoRegenerarPdf}" Command="{Binding RegenerarPdfCommand}" ToolTip="Vuelve a crear el PDF de las facturas numeradas con la plantilla actual y sus datos congelados; el número y los importes no cambian" />
               <MenuItem Header="Enviar" IsEnabled="False" ToolTip="{Binding MotivoEnviar}" />
-              <MenuItem Header="Enviar pendientes a VeriFactu" IsEnabled="False" ToolTip="{Binding MotivoVeriFactu}" />
+              <MenuItem Header="Enviar pendientes a VeriFactu" IsEnabled="False" ToolTip="{Binding MotivoVeriFactu}" Visibility="{Binding VeriFactuActivo, Converter={StaticResource Visible}}" />
               <Separator />
               <MenuItem Header="Nueva factura" Command="{Binding NuevaCommand}" ToolTip="Abre un borrador nuevo sin número en su pestaña" />
               <MenuItem Header="Actualizar" Command="{Binding RefrescarCommand}" InputGestureText="F5" ToolTip="Vuelve a leer las facturas" />

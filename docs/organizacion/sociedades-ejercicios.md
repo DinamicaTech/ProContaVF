@@ -15,6 +15,7 @@ Sociedad permanente y su instancia por ejercicio (SociedadEjercicio), con consul
 - 2026-10-31 18:55 · Un ejercicio sin sociedad o sin año numérico no forma un contexto válido y no se lista.
 - 2026-10-31 18:55 · Ejercicio cerrado: nueva columna SociedadesEjercicios.EjercicioCerrado (migración 20261031_1846_EJERCICIO_CERRADO, por defecto no). `ComprobarEjercicioAbiertoAsync` devuelve un error explicado si está cerrado; el acceso no lo impide (RF-SEG-02).
 - 2026-11-01 09:31 · Validado por el propietario (desarrollos base).
+- 2026-11-05 11:20 · La empresa guarda su domicilio fiscal (Sociedades.DireccionFiscal, CodigoPostalFiscal, PoblacionFiscal y ProvinciaFiscal), que `LectorConfiguracionEjercicio` da como emisor, y su carpeta de documentos (Sociedades.RutaDocumentos).
 
 ## Requirements
 - 2026-10-28 12:28 · From sources/01_ESPECIFICACION_FUNCIONAL.docx § 3 RF-ARQ-04: propietario de Sociedades/SociedadesEjercicios
@@ -23,6 +24,7 @@ Sociedad permanente y su instancia por ejercicio (SociedadEjercicio), con consul
 - 2026-10-28 12:28 · draft: Definir e implementar el contrato de sociedades y ejercicios.
 - 2026-10-31 17:53 · Derived from architecture: el contrato de sociedades y ejercicios (listado, contexto validado y consulta de ejercicio cerrado) sobre las tablas actuales.
 - 2026-11-01 17:20 · Derived from plataforma/mantenimiento: proveedores de Empresas y Ejercicios (con sus cuentas de IVA, suplidos y la configuración de facturación) para la pantalla genérica.
+- 2026-11-05 11:20 · Derived from facturacion/factura-venta: domicilio fiscal y carpeta de documentos de la empresa.
 
 ## Hand-over
 - 2026-10-31 18:55 · Hecho: contrato y servicio sobre Access, migración de EjercicioCerrado y pruebas (contexto válido e inválido, ejercicio cerrado). Pendiente: apertura de ejercicio nuevo y cierre/reapertura (contabilidad/procesos), unicidad (IdSociedad, Ejercicio) y unicidad del NIF de sociedad (la maestra tiene dos sociedades con el mismo NIF, una de pruebas), y la regla de propagación de la razón social a los ejercicios.

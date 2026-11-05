@@ -45,6 +45,7 @@ public sealed class FacturasAccessTests : IDisposable
     private async Task PrepararAsync()
     {
         await DatosSinteticos.SociedadAsync(Bd, "T01", "Sociedad sintética SL");
+        await Bd.EjecutarAsync(s => s.EjecutarAsync("UPDATE Sociedades SET DireccionFiscal = ?, CodigoPostalFiscal = ?, PoblacionFiscal = ? WHERE IdSociedad = ?", "Calle Sintética 1", "08001", "Barcelona", "T01"));
         await DatosSinteticos.EjercicioAsync(Bd, 9001, "T01", 2026);
         await Bd.EjecutarAsync(s => s.EjecutarAsync(
             "UPDATE SociedadesEjercicios SET Nombre = ?, CIF = ?, TipoIVA1 = ?, CuentaTipoIVA1 = ?, TipoIVA2 = ?, CuentaTipoIVA2 = ?, CuentaSuplido = ? WHERE IdSociedadEjercicio = ?",

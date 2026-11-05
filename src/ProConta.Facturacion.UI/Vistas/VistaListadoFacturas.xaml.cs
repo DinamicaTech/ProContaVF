@@ -12,7 +12,29 @@ public partial class VistaListadoFacturas : UserControl
     {
         EnfocarBusquedaCommand = new ComandoDelegado(() => { CajaBusqueda.Focus(); CajaBusqueda.SelectAll(); });
         InitializeComponent();
+        Loaded += (_, _) => AplicarColumnaVeriFactu();
+        DataContextChanged += (_, e) =>
+        {
+            if (e.OldValue is ListadoFacturasVM viejo) viejo.PropertyChanged -= AlCambiarModelo;
+            if (e.NewValue is ListadoFacturasVM nuevo) nuevo.PropertyChanged += AlCambiarModelo;
+        };
     }
+
+    private void AlCambiarModelo(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(ListadoFacturasVM.VeriFactuActivo)) AplicarColumnaVeriFactu();
+    }
+
+    /// <summary>
+    /// Con VeriFactu desactivado la columna no se ve. Se aplica después de que la tabla restaure las preferencias, que
+    /// podrían volver a mostrarla.
+    /// </summary>
+    private void AplicarColumnaVeriFactu() =>
+        Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Background, () =>
+        {
+            var columna = Tabla.Columns.FirstOrDefault(k => ProConta.UI.Base.Tablas.TablaProConta.GetClave(k) == "verifactu");
+            if (columna is not null) columna.Visibility = Vm?.VeriFactuActivo == true ? System.Windows.Visibility.Visible : System.Windows.Visibility.Collapsed;
+        });
 
     public ICommand EnfocarBusquedaCommand { get; }
 

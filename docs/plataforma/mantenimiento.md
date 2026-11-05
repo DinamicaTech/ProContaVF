@@ -21,6 +21,7 @@ Pantalla genérica y extensible (CFG-MANT) para parámetros únicos y coleccione
 - 2026-11-01 18:15 · El servicio comprueba en cada guardado, baja o acción el permiso MANTENIMIENTO.EDITAR, la solo lectura del proveedor y la validación de cada campo (todos los errores a la vez, en su campo). La búsqueda no distingue tildes y encuentra mantenimientos, campos y sinónimos. Bajas restringidas por uso con el recuento de dónde se usa.
 - 2026-11-01 18:15 · Las tablas sencillas no tienen columna de versión: si dos operadores cambian el mismo registro a la vez, gana el último que guarda. Las que tienen invariantes (series, conceptos, formas de pago) pasan por su servicio tipado.
 - 2026-11-04 17:57 · Validado por el propietario (facturación de venta, PR #14).
+- 2026-11-05 11:20 · Configuración general añade «Activar VeriFactu» (facturacion/verifactu), y Empresas, domicilio fiscal, código postal, población, provincia y carpeta de documentos (facturacion/factura-venta).
 
 ## Requirements
 - 2026-10-28 12:28 · From sources/01_ESPECIFICACION_FUNCIONAL.docx § 8 RF-MAN-01..05: pantalla por proveedores, editores, servicios tipados para datos con invariantes, catálogo conocido
@@ -37,6 +38,7 @@ Pantalla genérica y extensible (CFG-MANT) para parámetros únicos y coleccione
 - 2026-11-01 17:18 · answer: proveedores en este desarrollo → (a) la pantalla genérica con Configuración general, Empresas, Ejercicios, Series de facturación, Formas de pago, Tipos de IVA, Tipos de concepto y Conceptos; Tipos y Estados de factura en solo lectura; Correo, VeriFactu y Ubicación de datos con sus nodos
 - 2026-11-04 17:57 · Ok, validado
 - 2026-11-04 23:55 · Derived from plataforma/atajos-de-teclado: acoger el proveedor «Atajos de teclado» (un `IProveedorMantenimiento` de ámbito global): lista de operativas con id, texto, tecla por defecto y tecla asignada, captura de la tecla pulsándola, aviso de conflicto con la corrección propuesta y restaurar valores por defecto.
+- 2026-11-05 11:20 · Derived from facturacion/verifactu: casilla «Activar VeriFactu» en Configuración general; y de facturacion/factura-venta: domicilio fiscal y carpeta de documentos en Empresas.
 
 ## Hand-over
 - 2026-11-01 18:15 · Hecho: contrato, servicio, proveedores y pantalla, con pruebas sin BD (validación, búsqueda, permisos, solo consulta) y contra Access (series y conceptos). Pendiente: probar la pantalla en el equipo del propietario; Correo, VeriFactu y Ubicación de datos llegan con sus nodos.

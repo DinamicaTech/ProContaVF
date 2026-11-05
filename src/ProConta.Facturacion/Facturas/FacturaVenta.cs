@@ -211,6 +211,10 @@ public sealed class FacturaVenta
     public InstantaneaCliente Cliente { get; internal set; } = InstantaneaCliente.Vacia;
     public string? NifEmisor { get; internal set; }
     public string? NombreEmisor { get; internal set; }
+    public string? DireccionEmisor { get; internal set; }
+    public string? CodigoPostalEmisor { get; internal set; }
+    public string? PoblacionEmisor { get; internal set; }
+    public string? ProvinciaEmisor { get; internal set; }
     public DateTime? FechaFactura { get; set; }
     public DateTime? FechaOperacion { get; set; }
     public DateTime? FechaInicioValidez { get; set; }

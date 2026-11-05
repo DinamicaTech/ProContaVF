@@ -20,6 +20,19 @@ public sealed class DialogosFacturacion(ApoyoEditorFacturas apoyo, Func<Window?>
     public int Preguntar(string titulo, string mensaje, IReadOnlyList<string>? detalles, params OpcionMensaje[] opciones) =>
         ServicioMensajes.Preguntar(Propietario, titulo, mensaje, detalles, opciones);
 
+    public void AbrirArchivo(string ruta)
+    {
+        try
+        {
+            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(ruta) { UseShellExecute = true });
+        }
+        catch (Exception ex) when (ex is System.ComponentModel.Win32Exception or InvalidOperationException or System.IO.IOException)
+        {
+            Preguntar("No he podido abrir el PDF", $"El fichero está guardado en {ruta}, pero Windows no lo ha podido abrir: {ex.Message} Ábrelo desde esa carpeta o instala un visor de PDF.", null,
+                new OpcionMensaje("Entendido", "Cierra el aviso", Principal: true, Cancelar: true));
+        }
+    }
+
     public ClienteElegible? ElegirCliente()
     {
         var dialogo = new DialogoProConta { Title = "Buscar cliente", Owner = Propietario, Width = 900, Height = 620, SizeToContent = SizeToContent.Manual };
