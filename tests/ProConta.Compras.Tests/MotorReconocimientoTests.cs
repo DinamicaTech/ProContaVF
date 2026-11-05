@@ -181,4 +181,32 @@ public sealed class MotorReconocimientoTests
         Assert.Equal("USD", r.Divisa);
         Assert.True(r.RequiereConversionDivisa);
     }
+
+    // Reglas añadidas al afinar el motor con el corpus (2026-11-05).
+
+    [Theory]
+    [InlineData("Fecha: 24 febrero 2025\nTotal 10,00", 2025, 2, 24)]
+    [InlineData("Invoice date: Mon, January 27, 2025\nTotal 10.00", 2025, 1, 27)]
+    [InlineData("Data factura: 03/03/2025\nData de cobrament: 20/03/2025\nTotal 10,00", 2025, 3, 3)]
+    [InlineData("Període 01/01/2025 - 31/01/2025\nData d'emissió: 05/02/2025\nTotal 10,00", 2025, 2, 5)]
+    public void Fechas_con_mes_en_letra_y_etiquetas_en_catalan(string texto, int anio, int mes, int dia)
+        => Assert.Equal(new DateTime(anio, mes, dia), Reconocer(Texto(texto)).FechaFactura);
+
+    [Theory]
+    [InlineData("Factura núm: FA-2025-118\nTotal 10,00", "FA-2025-118")]
+    [InlineData("Nº factura: 7781\nTotal 10,00", "7781")]
+    [InlineData("A250042 Número de factura:\nTotal 10,00", "A250042")]
+    [InlineData("Factura Nº Fecha\nFV25-031 12/03/2025\nTotal 10,00", "FV25-031")]
+    [InlineData("CE2025-77\nNúmero de factura\nTotal 10,00", "CE2025-77")]
+    public void Numero_de_factura_en_las_disposiciones_nuevas(string texto, string esperado)
+        => Assert.Equal(CompactarNumero(esperado), CompactarNumero(Reconocer(Texto(texto)).NumeroFactura));
+
+    [Theory]
+    [InlineData("Factura: B61465332\nTotal 10,00")]
+    [InlineData("Factura: 2025\nTotal 10,00")]
+    [InlineData("Factura: 08001BARCELONA\nTotal 10,00")]
+    public void No_toma_nif_anio_ni_codigo_postal_como_numero(string texto)
+        => Assert.True(string.IsNullOrEmpty(Reconocer(Texto(texto)).NumeroFactura));
+
+    private static string CompactarNumero(string? n) => MotorReconocimientoFacturaCompra.CompactarNumeroFactura(n);
 }

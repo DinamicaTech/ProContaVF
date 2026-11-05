@@ -14,7 +14,10 @@ namespace ProConta.Compras.Reconocimiento;
 public sealed class MotorReconocimientoFacturaCompra
 {
     private static readonly Regex PatronNif = new(@"(?<![A-Z0-9])(?:[A-Z][0-9]{7}[A-Z0-9]|[0-9]{8}[A-Z]|[A-Z]{2}[A-Z0-9]{8,12})(?![A-Z0-9])", RegexOptions.IgnoreCase | RegexOptions.Compiled);
-    private static readonly Regex PatronFecha = new(@"(?<![0-9])(?:[0-3]?[0-9][./-][01]?[0-9][./-](?:(?:19|20)?[0-9]{2})|(?:19|20)[0-9]{2}[./-][01]?[0-9][./-][0-3]?[0-9]|[0-3]?[0-9](?:\s+de\s+|[./-])[A-ZÀ-ÿ]+(?:\s+de\s+|[./-])(?:19|20)[0-9]{2})(?![0-9])", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+    /// <summary>Nombres de mes en español, catalán e inglés (completos o abreviados), para las fechas con el mes escrito y sin «de».</summary>
+    private const string MesNombre = @"(?:enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|setiembre|octubre|noviembre|diciembre|gener|febrer|mar[cç]|maig|juny|juliol|agost|setembre|novembre|desembre|january|february|march|april|may|june|july|august|september|october|november|december|ene|feb|mar|abr|ago|sept?|oct|nov|dic|jan|apr|jun|jul|aug|dec)\.?";
+    private static readonly Regex PatronFecha = new(@"(?<![0-9])(?:[0-3]?[0-9][./-][01]?[0-9][./-](?:(?:19|20)?[0-9]{2})|(?:19|20)[0-9]{2}[./-][01]?[0-9][./-][0-3]?[0-9]|[0-3]?[0-9](?:\s+de\s+|[./-])[A-ZÀ-ÿ]+(?:\s+de\s+|[./-])(?:19|20)[0-9]{2}" +
+        @"|[0-3]?[0-9]\s+" + MesNombre + @"\s+(?:19|20)[0-9]{2}|(?<![A-Za-z])" + MesNombre + @"\s+[0-3]?[0-9],\s*(?:19|20)[0-9]{2})(?![0-9])", RegexOptions.IgnoreCase | RegexOptions.Compiled);
     private static readonly Regex PatronImporte = new(@"(?<![0-9])[-+]?(?:[0-9]{1,3}(?:[.\s][0-9]{3})+|[0-9]+)[,.][0-9]{2,4}[-+]?(?![0-9])", RegexOptions.Compiled);
     private static readonly Regex PatronImporteMonetario = new(@"(?<![A-Z0-9])(?:[-+]?\s*[€$£]\s*[-+]?\s*(?:[0-9]{1,3}(?:[.,\s][0-9]{3})+|[0-9]+)(?:[,.][0-9]{1,6})?|[-+]?(?:[0-9]{1,3}(?:[.,\s][0-9]{3})+|[0-9]+)(?:[,.][0-9]{1,6})?\s*(?:€|EUR(?:O)?|USD|GBP)|[-+]?(?:[0-9]{1,3}(?:[.\s][0-9]{3})+|[0-9]+)[,.][0-9]{2,6}[-+]?)(?![A-Z0-9])", RegexOptions.IgnoreCase | RegexOptions.Compiled);
     private static readonly Regex PatronTipoIva = new(@"(?<![0-9])([0-9]{1,2}(?:[,.][0-9]+)?)\s*%", RegexOptions.Compiled);
@@ -314,10 +317,33 @@ public sealed class MotorReconocimientoFacturaCompra
         var tableNumber = Regex.Match(text, @"(?:CLIENT\s+DATA\s+NUMERO\s+FULL)[^\r\n]*[\r\n]+\s*[A-Z0-9]+\s+[0-3]?[0-9][-/.][01]?[0-9][-/.](?:20)?[0-9]{2}\s+([A-Z0-9./_-]+)", RegexOptions.IgnoreCase);
         if (tableNumber.Success) return (CompactarNumeroFactura(tableNumber.Groups[1].Value), 0.99m);
 
-        foreach (var line in text.Split('\n', StringSplitOptions.RemoveEmptyEntries))
+        var lineas = text.Split('\n', StringSplitOptions.RemoveEmptyEntries);
+        for (var i = 1; i <= lineas.Length; i++)
+        {
+            // Valor pegado delante de la etiqueta en la misma línea («IEE2025000000271Número de factura»).
+            var pegado = Regex.Match(QuitarDiacriticos(lineas[i - 1]).Trim(), @"^([A-Z0-9][A-Z0-9./_-]{3,39}?)\s*NUMERO\s+DE\s+FACTURA\s*:?$", RegexOptions.IgnoreCase);
+            if (pegado.Success && EsNumeroFacturaPlausible(CompactarNumeroFactura(pegado.Groups[1].Value)) && !PatronFecha.IsMatch(pegado.Groups[1].Value))
+                return (CompactarNumeroFactura(pegado.Groups[1].Value), 0.99m);
+            // Etiqueta sola debajo del valor («IEE2025000000271» y en la línea siguiente «Número de factura»).
+            if (i == lineas.Length) continue;
+            // Cabecera de tabla «FACTURA Nº  FECHA  CLIENTE…» con los valores en la línea siguiente: el primero es el número.
+            if (Regex.IsMatch(QuitarDiacriticos(lineas[i - 1]).Trim(), @"^FACTURA\s+N\s*[.º°O]*\s+(?:FECHA|DATA)\b", RegexOptions.IgnoreCase))
+            {
+                var primero = Regex.Match(lineas[i].Trim(), @"^[A-Z0-9][A-Z0-9./_-]{2,39}", RegexOptions.IgnoreCase);
+                if (primero.Success && !PatronFecha.IsMatch(primero.Value) && EsNumeroFacturaPlausible(CompactarNumeroFactura(primero.Value)))
+                    return (CompactarNumeroFactura(primero.Value), 0.99m);
+            }
+            if (!Regex.IsMatch(QuitarDiacriticos(lineas[i]).Trim(), @"^(?:N[UÚ]MERO\s+DE\s+FACTURA|N\s*[.º°]*\s*(?:DE\s+)?FACTURA|INVOICE\s+(?:NUMBER|NO\.?))\s*:?$", RegexOptions.IgnoreCase)) continue;
+            var anterior = lineas[i - 1].Trim();
+            if (!Regex.IsMatch(anterior, @"^[A-Z0-9][A-Z0-9./_-]{3,39}$", RegexOptions.IgnoreCase)) continue;
+            var candidato = CompactarNumeroFactura(anterior);
+            if (EsNumeroFacturaPlausible(candidato) && !PatronFecha.IsMatch(anterior)) return (candidato, 0.99m);
+        }
+
+        foreach (var line in lineas)
         {
             var normalized = QuitarDiacriticos(line).ToUpperInvariant();
-            var labelled = Regex.Match(normalized, @"(?:N\s*[.º°O]*\s*DE\s+FACTURA|NUMERO\s+DE\s+(?:LA\s+)?FACTURA|N\W*FACTURA|FACTURA\s*(?:N[º°O]|#|-)|NUMERO)\s*[:#-]?\s*(.+)$", RegexOptions.IgnoreCase);
+            var labelled = Regex.Match(normalized, @"(?:N\s*[.º°O]*\s*DE\s+FACTURA|NUMERO\s+DE\s+(?:LA\s+)?FACTURA|N\W*FACTURA|N\s*[.º°O]+\s*FACTURA|FACTURA\s+NUM(?:ERO)?\.?|FACTURA\s*(?:N[º°O]|#|-)|NUMERO)\s*[:#-]?\s*(.+)$", RegexOptions.IgnoreCase);
             if (!labelled.Success) continue;
             var parts = Regex.Matches(labelled.Groups[1].Value, @"[A-Z0-9]+(?:[./_-][A-Z0-9]+)*").Select(m => m.Value).Take(2).ToArray();
             if (parts.Length == 0) continue;
@@ -505,7 +531,22 @@ public sealed class MotorReconocimientoFacturaCompra
         if (PatronFecha.IsMatch(value)) return false;
         if (Regex.IsMatch(QuitarDiacriticos(value), "^[0-3]?[0-9][./-]?(?:ENE|FEB|MAR|ABR|MAY|JUN|JUL|AGO|SEP|OCT|NOV|DIC)[./-]?[0-9]{2,4}", RegexOptions.IgnoreCase)) return false;
         var digits = value.Count(char.IsDigit);
-        return digits >= 1 && !value.Equals("FACTURA", StringComparison.OrdinalIgnoreCase);
+        if (digits < 1 || value.Equals("FACTURA", StringComparison.OrdinalIgnoreCase)) return false;
+        return !EsTextoQueNoEsNumero(value);
+    }
+
+    /// <summary>
+    /// Valores que aparecen junto a las etiquetas pero no son el número: un año suelto, un NIF o CIF válido (también con su
+    /// prefijo NIF, CIF, IVA, VAT o de país) y un código postal pegado a la población.
+    /// </summary>
+    private static bool EsTextoQueNoEsNumero(string value)
+    {
+        var compacto = CompactarNif(value);
+        if (Regex.IsMatch(compacto, "^(?:19|20)[0-9]{2}$")) return true;
+        if (Regex.IsMatch(compacto, "^[0-9]{5}[A-Z]{3,}$")) return true;
+        var sinPrefijo = Regex.Replace(compacto, "^(?:NIF|CIF|IVA|VAT|DNI|NIE)", string.Empty);
+        if (EsNifEspanolValido(sinPrefijo)) return true;
+        return sinPrefijo.Length > 2 && Regex.IsMatch(sinPrefijo, "^ES") && EsNifEspanolValido(sinPrefijo[2..]);
     }
 
     /// <summary>Puntúa fechas según sus etiquetas cercanas y penaliza vencimientos.</summary>
@@ -522,6 +563,11 @@ public sealed class MotorReconocimientoFacturaCompra
             var context = QuitarDiacriticos(text.Substring(contextStart, match.Index - contextStart)).ToLowerInvariant();
             var score = 1;
             if (context.Contains("fecha factura", StringComparison.Ordinal) || context.Contains("fecha de factura", StringComparison.Ordinal) || context.Contains("fecha de facturacion", StringComparison.Ordinal)) score += 12;
+            if (context.Contains("fecha de la factura", StringComparison.Ordinal) || context.Contains("data factura", StringComparison.Ordinal) || context.Contains("data de factura", StringComparison.Ordinal) ||
+                context.Contains("num. factura", StringComparison.Ordinal) || context.Contains("data d'emissio", StringComparison.Ordinal) || context.Contains("data emissio", StringComparison.Ordinal)) score += 12;
+            if (context.Contains("cobrament", StringComparison.Ordinal) || context.Contains("carrec", StringComparison.Ordinal) || context.Contains("periode", StringComparison.Ordinal) ||
+                context.Contains("pedido", StringComparison.Ordinal) || context.Contains("cobertura", StringComparison.Ordinal) || context.Contains("entrega prevista", StringComparison.Ordinal) ||
+                context.Contains("contracte", StringComparison.Ordinal) || context.Contains("rebut", StringComparison.Ordinal)) score -= 10;
             if (context.Contains("fecha de emision", StringComparison.Ordinal) || context.Contains("fecha emision", StringComparison.Ordinal) || context.Contains("fecha de expedicion", StringComparison.Ordinal)) score += 12;
             if (context.Contains("fecha fra", StringComparison.Ordinal)) score += 10;
             if (context.Contains("emision", StringComparison.Ordinal) || context.Contains("expedicion", StringComparison.Ordinal)) score += 5;
@@ -586,7 +632,10 @@ public sealed class MotorReconocimientoFacturaCompra
         if (corta.Success && DateTime.TryParseExact(
                 $"{corta.Groups["dia"].Value}/{corta.Groups["mes"].Value}/{2000 + int.Parse(corta.Groups["anio"].Value, CultureInfo.InvariantCulture)}",
                 "d/M/yyyy", CultureInfo.InvariantCulture, DateTimeStyles.None, out parsed)) return parsed.Date;
-        var textual = Regex.Match(QuitarDiacriticos(value), @"^(?<dia>[0-3]?[0-9])(?:\s+de\s+|[./-])(?<mes>[A-Z]+)(?:\s+de\s+|[./-])(?<anio>(?:19|20)[0-9]{2})$", RegexOptions.IgnoreCase);
+        var sinAcentos = QuitarDiacriticos(value.Trim());
+        var textual = Regex.Match(sinAcentos, @"^(?<dia>[0-3]?[0-9])(?:\s+de\s+|[./-]|\s+)(?<mes>[A-Z]+)\.?(?:\s+de\s+|[./-]|\s+)(?<anio>(?:19|20)[0-9]{2})$", RegexOptions.IgnoreCase);
+        if (!textual.Success)
+            textual = Regex.Match(sinAcentos, @"^(?<mes>[A-Z]+)\.?\s+(?<dia>[0-3]?[0-9]),\s*(?<anio>(?:19|20)[0-9]{2})$", RegexOptions.IgnoreCase);
         if (textual.Success)
         {
             var mes = ObtenerMes(textual.Groups["mes"].Value);
