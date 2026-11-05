@@ -8,6 +8,7 @@ namespace ProConta.Compras.Regresion;
 /// <summary>
 /// Regresión del reconocimiento sobre el corpus real. Uso:
 ///   ProConta.Compras.Regresion --corpus &lt;carpeta con 2025\, 2026\…&gt; --verdad &lt;FacturasCompra.csv&gt; --sociedades &lt;Sociedades.csv&gt; --salida &lt;informe.txt&gt;
+/// Con --nifs, el NIF de cada proveedor sale de su ficha (CSV Cuenta,NIF), como en producción.
 /// Los CSV son la exportación de las tablas FacturasCompra y Sociedades de la copia de pruebas (fechas mm/dd/yy).
 /// Cada PDF se empareja con su fila grabada por MD5. El histórico del proveedor que se da al motor excluye
 /// la propia factura, para que no se reconozca copiando su número grabado.
@@ -21,11 +22,18 @@ public static class Program
         var a = LeerArgumentos(args);
         if (!a.TryGetValue("corpus", out var corpus) || !a.TryGetValue("verdad", out var verdad) || !a.TryGetValue("salida", out var salida))
         {
-            Console.Error.WriteLine("Uso: --corpus <carpeta> --verdad <FacturasCompra.csv> [--sociedades <Sociedades.csv>] --salida <informe.txt> [--vies]");
+            Console.Error.WriteLine("Uso: --corpus <carpeta> --verdad <FacturasCompra.csv> [--sociedades <Sociedades.csv>] [--nifs <Cuenta,NIF.csv>] --salida <informe.txt> [--vies]");
             return 2;
         }
         var filas = Csv.Leer(verdad).ToList();
         var nifsSociedades = a.TryGetValue("sociedades", out var soc) ? Csv.Leer(soc).Select(f => f.Get("CIF")).Where(c => c != "").ToArray() : [];
+        // NIF del proveedor según su ficha (cuenta → tercero), no el copiado en cada factura, que a veces es de otro.
+        var nifsCatalogo = a.TryGetValue("nifs", out var rutaNifs)
+            ? Csv.Leer(rutaNifs).GroupBy(f => f.Get("Cuenta")).ToDictionary(g => g.Key, g => g.First().Get("NIF"))
+            : new Dictionary<string, string>();
+        if (nifsCatalogo.Count > 0)
+            foreach (var f in filas)
+                if (nifsCatalogo.TryGetValue(f.Get("CuentaContableProveedor"), out var n) && n != "") f.Set("NIF", n);
         var porMd5 = filas.Where(f => f.Get("MD5") != "").GroupBy(f => f.Get("MD5").ToLowerInvariant()).ToDictionary(g => g.Key, g => g.First());
         var servicio = new ServicioReconocimientoFacturaCompra(new ExtractorPdfPig());
         var vies = a.ContainsKey("vies");
@@ -138,8 +146,8 @@ public static class Program
             case "Base": return Imp("ImporteBI", r.BaseImponible);
             case "Iva": return Imp("ImporteIVA", r.CuotaIva ?? (r.BaseImponible.HasValue ? 0m : null));
             case "Nif":
-                var nif = MotorReconocimientoFacturaCompra.CompactarNif(f.Get("NIF"));
-                return nif == "" ? null : MotorReconocimientoFacturaCompra.CompactarNif(r.NifProveedor) == nif;
+                var nif = SinPrefijoPais(MotorReconocimientoFacturaCompra.CompactarNif(f.Get("NIF")));
+                return nif == "" ? null : SinPrefijoPais(MotorReconocimientoFacturaCompra.CompactarNif(r.NifProveedor)) == nif;
             case "Fecha":
                 var fecha = Fecha(f.Get("Fecha"));
                 return fecha.HasValue ? r.FechaFactura == fecha : null;
@@ -149,6 +157,10 @@ public static class Program
         }
         return null;
     }
+
+    /// <summary>Quita el prefijo de país de un NIF intracomunitario (IE9827384L y 9827384L son el mismo).</summary>
+    private static string SinPrefijoPais(string nif)
+        => nif.Length > 2 && char.IsLetter(nif[0]) && char.IsLetter(nif[1]) && nif.Skip(2).Count(char.IsDigit) >= 5 ? nif[2..] : nif;
 
     private static void Escribir(string salida, List<Linea> lineas)
     {
@@ -223,6 +235,7 @@ public static class Program
 internal sealed class Fila(Dictionary<string, string> valores)
 {
     public string Get(string columna) => valores.TryGetValue(columna, out var v) ? v : "";
+    public void Set(string columna, string valor) => valores[columna] = valor;
 }
 
 internal static class Csv
