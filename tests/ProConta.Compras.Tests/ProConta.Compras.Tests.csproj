@@ -13,5 +13,7 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\src\ProConta.Compras\ProConta.Compras.csproj" />
+    <ProjectReference Include="..\..\src\ProConta.Datos.Esquema\ProConta.Datos.Esquema.csproj" />
+    <ProjectReference Include="..\ProConta.Pruebas.Access\ProConta.Pruebas.Access.csproj" />
   </ItemGroup>
 </Project>
