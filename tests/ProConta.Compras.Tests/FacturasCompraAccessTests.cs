@@ -343,6 +343,7 @@ public sealed class FacturasCompraAccessTests : IDisposable
         Assert.NotEqual(md5Original, primera.Md5);
         Assert.Equal(ServicioReconocimientoFacturaCompra.CalcularMd5(ruta), primera.Md5);
         Assert.Equal(("FV260123", "Se conserva"), (primera.NumeroFactura, primera.Notas!));
+        Assert.True(primera.RequiereRevision);
         var segunda = (await servicio.CargarAsync(s.Valor.Factura!.IdRegistro))!;
         Assert.Equal(("FV260200", 50m), (segunda.NumeroFactura, segunda.ImporteTotal!.Value));
 
