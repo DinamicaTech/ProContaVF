@@ -76,7 +76,7 @@ public sealed class DesgloseVM : ModeloVista
 public sealed class FichaCompraVM : ModeloVista
 {
     private readonly IReadOnlyList<ProveedorFicha> _proveedores;
-    private readonly ConfianzaCampos _confianza;
+    private ConfianzaCampos _confianza;
     private readonly HashSet<string> _manuales = new(StringComparer.Ordinal);
     private bool _cargando = true;
     private bool _tieneCambios;
@@ -319,18 +319,28 @@ public sealed class FichaCompraVM : ModeloVista
     internal void AplicarLectura(FacturaCompra leida)
     {
         if (SoloLectura) return;
-        Nif = leida.NifProveedor ?? "";
-        Numero = leida.NumeroFactura;
-        Fecha = leida.Fecha is { } f ? Formatos.Fecha(f) : "";
-        Total = leida.ImporteTotal is { } t ? Formatos.Numero(t) : "";
-        Isp = leida.InversionSujetoPasivo;
-        Desgloses.Clear();
-        foreach (var d in leida.Desgloses) Desgloses.Add(new DesgloseVM(AlCambiarImportes, d.TipoIva, d.BaseImponible, d.CuotaIva));
-        if (Desgloses.Count == 0) Desgloses.Add(new DesgloseVM(AlCambiarImportes, TipoDeducido(leida), leida.BaseImponible, leida.CuotaIva));
-        ImporteUnico = leida.BaseImponible is { } b ? Formatos.Numero(b) : "";
-        ConRetencion = (leida.ImporteRetencion ?? 0m) != 0m;
-        if (leida.PorcentajeRetencion is { } p && p != 0) PorcentajeRetencion = p.ToString("0.##", Formatos.Cultura);
-        Marcar("importes");
+        // Lo leído de nuevo no es manual: la confianza pasa a ser la de esta lectura y queda como cambio sin guardar.
+        _cargando = true;
+        try
+        {
+            Nif = leida.NifProveedor ?? "";
+            Numero = leida.NumeroFactura;
+            Fecha = leida.Fecha is { } f ? Formatos.Fecha(f) : "";
+            Total = leida.ImporteTotal is { } t ? Formatos.Numero(t) : "";
+            Isp = leida.InversionSujetoPasivo;
+            Desgloses.Clear();
+            foreach (var d in leida.Desgloses) Desgloses.Add(new DesgloseVM(AlCambiarImportes, d.TipoIva, d.BaseImponible, d.CuotaIva));
+            if (Desgloses.Count == 0) Desgloses.Add(new DesgloseVM(AlCambiarImportes, TipoDeducido(leida), leida.BaseImponible, leida.CuotaIva));
+            ImporteUnico = leida.BaseImponible is { } b ? Formatos.Numero(b) : "";
+            ConRetencion = (leida.ImporteRetencion ?? 0m) != 0m;
+            if (leida.PorcentajeRetencion is { } p && p != 0) PorcentajeRetencion = p.ToString("0.##", Formatos.Cultura);
+        }
+        finally { _cargando = false; }
+        if (!string.IsNullOrWhiteSpace(leida.Log)) _confianza = ConfianzaCampos.DesdeLog(leida.Log);
+        _manuales.Clear();
+        TieneCambios = true;
+        Avisar(nameof(TextoBase), nameof(TextoCuota), nameof(TextoRetencion), nameof(TextoTotalCalculado), nameof(Descuadre));
+        Avisar(nameof(ConfianzaNif), nameof(ConfianzaNumero), nameof(ConfianzaFecha), nameof(ConfianzaImportes), nameof(Avisos), nameof(HayAvisos), nameof(Resumen));
     }
 
     /// <summary>La factura con lo que hay en la ficha (sin guardar).</summary>

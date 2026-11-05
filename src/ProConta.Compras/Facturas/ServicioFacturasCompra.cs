@@ -326,15 +326,17 @@ public sealed class ServicioFacturasCompra(
         static string Fec(DateTime? v) => v is { } x ? x.ToString("dd/MM/yyyy", CultureInfo.InvariantCulture) : "";
         static string Num(string? v) => new((v ?? "").Where(char.IsAsciiLetterOrDigit).Select(char.ToUpperInvariant).ToArray());
         static string Nif(string? v) => MotorReconocimientoFacturaCompra.CompactarNif(v);
+        // Al céntimo: el ERP grabó algunos importes con cuatro decimales (14,0154 frente a 14,02 leído).
+        static decimal? Cent(decimal? v) => v is { } x ? MotorReconocimientoFacturaCompra.Redondear(x) : null;
         ComparacionCampo C(string campo, string g, string l, bool igual) => new(campo, g, l, igual, g.Length == 0);
         return
         [
             C("NIF", grabada.NifProveedor ?? "", leida.NifProveedor ?? "", Nif(grabada.NifProveedor) == Nif(leida.NifProveedor)),
             C("Número", grabada.NumeroFactura, leida.NumeroFactura, Num(grabada.NumeroFactura) == Num(leida.NumeroFactura)),
             C("Fecha", Fec(grabada.Fecha), Fec(leida.Fecha), grabada.Fecha?.Date == leida.Fecha?.Date),
-            C("Base", Imp(grabada.BaseImponible), Imp(leida.BaseImponible), grabada.BaseImponible == leida.BaseImponible),
-            C("IVA", Imp(grabada.CuotaIva), Imp(leida.CuotaIva), grabada.CuotaIva == leida.CuotaIva),
-            C("Total", Imp(grabada.ImporteTotal), Imp(leida.ImporteTotal), grabada.ImporteTotal == leida.ImporteTotal)
+            C("Base", Imp(grabada.BaseImponible), Imp(leida.BaseImponible), Cent(grabada.BaseImponible) == Cent(leida.BaseImponible)),
+            C("IVA", Imp(grabada.CuotaIva), Imp(leida.CuotaIva), Cent(grabada.CuotaIva) == Cent(leida.CuotaIva)),
+            C("Total", Imp(grabada.ImporteTotal), Imp(leida.ImporteTotal), Cent(grabada.ImporteTotal) == Cent(leida.ImporteTotal))
         ];
     }
 

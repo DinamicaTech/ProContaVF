@@ -158,4 +158,18 @@ public sealed class PantallaComprasTests
         }
         finally { Directory.Delete(raiz, recursive: true); }
     }
+
+    [Fact]
+    public void Comparar_los_importes_al_centimo()
+    {
+        var grabada = Factura();
+        grabada.CuotaIva = 14.0154m;
+        grabada.ImporteTotal = 80.7554m;
+        var leida = Factura();
+        leida.CuotaIva = 14.02m;
+        leida.ImporteTotal = 80.76m;
+        var c = ServicioFacturasCompra.Comparar(grabada, leida).ToDictionary(x => x.Campo);
+        Assert.True(c["IVA"].Igual);
+        Assert.True(c["Total"].Igual);
+    }
 }

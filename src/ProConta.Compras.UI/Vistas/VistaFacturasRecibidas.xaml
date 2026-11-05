@@ -107,7 +107,7 @@
                       ToolTip="Reconoce de nuevo los PDF de la lista y cuenta, campo a campo, cuántos coinciden con lo grabado. No guarda nada"
                       Visibility="{Binding Prueba, Converter={StaticResource Visible}}" />
             <Separator />
-            <MenuItem Header="Guardar los cambios" Command="{Binding GuardarCommand}" InputGestureText="Ctrl+G" ToolTip="Guarda la ficha sin cambiar de factura" />
+            <MenuItem Header="Guardar" Command="{Binding GuardarCommand}" InputGestureText="Ctrl+G" ToolTip="Guarda la ficha sin cambiar de factura. Aunque no hayas cambiado nada, confirma lo leído y enseña dónde están el NIF, el número, la fecha y el total en las facturas de este proveedor" />
             <MenuItem Header="Descartar los cambios" Command="{Binding DescartarCommand}" ToolTip="Vuelve a lo guardado de la factura activa" />
             <Separator />
             <MenuItem Header="Ver relacionadas" Command="{Binding VerRelacionadasCommand}" ToolTip="Muestra la factura original y sus rectificativas, en los dos sentidos" />

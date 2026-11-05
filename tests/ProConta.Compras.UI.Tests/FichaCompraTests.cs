@@ -51,6 +51,20 @@ public sealed class FichaCompraTests
     }
 
     [Fact]
+    public void Volver_a_reconocer_deja_cambios_con_la_confianza_de_la_nueva_lectura_no_manual()
+    {
+        var f = Ficha();
+        f.Numero = "FV-2";
+        var leida = Factura();
+        leida.Log = """{"version":1,"confianza":1.0,"candidato":{"ConfianzaNif":1.0,"ConfianzaNumero":1.0,"ConfianzaFecha":1.0,"ConfianzaImportes":0.97,"CamposPlantilla":["fecha"]},"advertencias":[]}""";
+        f.AplicarLectura(leida);
+        Assert.True(f.TieneCambios);
+        Assert.Equal("100 % plantilla", f.ConfianzaFecha.Texto);
+        Assert.Equal("100 %", f.ConfianzaNumero.Texto);
+        Assert.Equal("97 %", f.ConfianzaImportes.Texto);
+    }
+
+    [Fact]
     public void Los_importes_se_suman_por_tipo_con_retencion_y_suplido_y_se_avisa_si_no_cuadran()
     {
         var f = Ficha();

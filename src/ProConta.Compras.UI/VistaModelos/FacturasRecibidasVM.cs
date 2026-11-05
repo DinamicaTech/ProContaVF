@@ -71,7 +71,8 @@ public sealed class FacturasRecibidasVM : ModeloVista, IPestanaTrabajo
         BuscarPdfNuevosCommand = new ComandoDelegado(() => _ = BuscarPdfNuevosAsync(), () => !Prueba && _puedeEditar && !Ocupado);
         ReconocerCommand = new ComandoDelegado(() => _ = ReconocerDeNuevoAsync(), () => _activa is { PdfExiste: true } && (Prueba || _ficha is { Editable: true }) && !Ocupado);
         CompararTodasCommand = new ComandoDelegado(() => _ = CompararTodasAsync(), () => Prueba && Filas.Count > 0 && !Ocupado);
-        GuardarCommand = new ComandoDelegado(() => _ = GuardarAsync(), () => _ficha is { TieneCambios: true });
+        // Guardar sin cambios también vale: confirma lo leído y enseña las plantillas del proveedor (compras/reconocimiento 2026-11-05 18:42).
+        GuardarCommand = new ComandoDelegado(() => _ = GuardarFichaAsync(confirmar: true), () => _ficha is { Editable: true } && !Ocupado);
         DescartarCommand = new ComandoDelegado(() => { Descartar(); }, () => _ficha is { TieneCambios: true });
         AbrirPdfCommand = new ComandoDelegado(() => { if (_activa is { PdfExiste: true } a) _modulo.Dialogos.Abrir(a.Datos.RutaPdf); }, () => _activa is { PdfExiste: true });
         AbrirCarpetaCommand = new ComandoDelegado(() => { if (_activa is { } a && Path.GetDirectoryName(a.Datos.RutaPdf) is { } d) _modulo.Dialogos.Abrir(d); }, () => _activa is not null);
@@ -423,9 +424,9 @@ public sealed class FacturasRecibidasVM : ModeloVista, IPestanaTrabajo
 
     // ---------- guardar ----------
 
-    private async Task<bool> GuardarFichaAsync()
+    private async Task<bool> GuardarFichaAsync(bool confirmar = false)
     {
-        if (_ficha is not { TieneCambios: true } ficha) return true;
+        if (_ficha is not { Editable: true } ficha || !ficha.TieneCambios && !confirmar) return true;
         var f = ficha.Construir();
         Resultado r;
         try
