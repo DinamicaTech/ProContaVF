@@ -39,7 +39,7 @@ public static class ComboFiltro
             c.SelectionChanged += AlElegir;
             c.LostKeyboardFocus += AlSalir;
             c.DropDownClosed += AlCerrar;
-            c.AddHandler(UIElement.PreviewKeyDownEvent, new KeyEventHandler(AlPulsar), handledEventsToo: true);
+            RegistrarTeclas();
         }
         else
         {
@@ -47,7 +47,6 @@ public static class ComboFiltro
             c.SelectionChanged -= AlElegir;
             c.LostKeyboardFocus -= AlSalir;
             c.DropDownClosed -= AlCerrar;
-            c.RemoveHandler(UIElement.PreviewKeyDownEvent, new KeyEventHandler(AlPulsar));
         }
     }
 
@@ -80,9 +79,25 @@ public static class ComboFiltro
     /// manejador de clase, antes que los de instancia, y su resaltado no sirve con la lista filtrada; por eso este manejador
     /// se registra también para eventos ya tratados.
     /// </summary>
-    private static void AlPulsar(object sender, KeyEventArgs e)
+    private static bool _teclasRegistradas;
+
+    /// <summary>
+    /// El combo editable trata las teclas en su OnPreviewKeyDown (manejador de clase de UIElement), antes que cualquier
+    /// manejador de instancia: avanzaba desde su propio resaltado y elegía sobre la marcha. Un manejador de clase de
+    /// ComboBox corre antes que el de UIElement, así que las flechas, Enter y Tab de los combos con filtro se tratan aquí.
+    /// </summary>
+    private static void RegistrarTeclas()
     {
-        var c = (ComboBox)sender;
+        if (_teclasRegistradas) return;
+        _teclasRegistradas = true;
+        EventManager.RegisterClassHandler(typeof(ComboBox), UIElement.PreviewKeyDownEvent, new KeyEventHandler((o, e) =>
+        {
+            if (o is ComboBox c && !e.Handled && GetActivo(c)) AlPulsar(c, e);
+        }));
+    }
+
+    private static void AlPulsar(ComboBox c, KeyEventArgs e)
+    {
         // Tab desde la lista sale sin elegir (el combo, por sí solo, elegiría el resaltado y dejaría la lista abierta).
         if (e.Key == Key.Tab && c.IsDropDownOpen && e.OriginalSource is ComboBoxItem)
         {
@@ -113,7 +128,9 @@ public static class ComboFiltro
         var visibles = vista.Cast<object>().ToList();
         e.Handled = true;
         if (visibles.Count == 0) return;
-        var actual = desdeElemento ? visibles.IndexOf(c.ItemContainerGenerator.ItemFromContainer((ComboBoxItem)e.OriginalSource)) : -1;
+        // Desde el texto sin filtro (el texto es el del elegido), se parte del elegido; con filtro, del principio o del final.
+        var actual = desdeElemento ? visibles.IndexOf(c.ItemContainerGenerator.ItemFromContainer((ComboBoxItem)e.OriginalSource))
+            : c.SelectedItem is { } sel && string.Equals(sel.ToString(), c.Text, StringComparison.CurrentCulture) ? visibles.IndexOf(sel) : -1;
         var indice = actual < 0
             ? (e.Key == Key.Down ? 0 : visibles.Count - 1)
             : Math.Clamp(actual + (e.Key == Key.Down ? 1 : -1), 0, visibles.Count - 1);
