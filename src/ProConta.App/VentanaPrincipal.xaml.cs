@@ -114,7 +114,8 @@ public partial class VentanaPrincipal : Window
         // Compras (compras/pantallas): facturas recibidas y su modo «Probar».
         var reconocimiento = new ServicioReconocimientoFacturaCompra(new ExtractorPdfPig(), null, new TiposCambioFrankfurter(Http));
         var serviciosCompras = new ServiciosCompras(new ServicioFacturasCompra(bd, reconocimiento), cuentas, new CatalogoCentrosCosteAccess(bd), contexto.Contexto,
-            contexto.RazonSocial, () => autorizador.PuedeAsync(Acciones.FacturasEditar));
+            contexto.RazonSocial, () => autorizador.PuedeAsync(Acciones.FacturasEditar),
+            async () => (await new LectorConfiguracionEjercicio(bd).ObtenerAsync(contexto.Contexto.IdSociedadEjercicio))?.TiposIva.Select(t => t.Porcentaje).ToList() ?? []);
         _compras = new ModuloCompras(serviciosCompras, _area, new DialogosCompras(() => this), _terceros.AbrirFicha);
 
         var mantenimiento = new ServicioMantenimiento(

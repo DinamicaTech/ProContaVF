@@ -22,3 +22,5 @@ html, body { margin: 0; height: 100%; background: var(--fondo); font: 13px "Sego
 /* Origen de los campos reconocidos. */
 .textLayer span.origen { background: var(--resaltado); border-radius: 2px; }
 .textLayer span.origen.activo { background: var(--resaltado-activo); outline: 1px solid rgba(232, 93, 4, .8); }
+.textLayer span.origen { cursor: pointer; }
+.textLayer span.origen.elegido { background: rgba(31, 138, 76, .40); outline: 1px solid rgba(31, 138, 76, .9); }

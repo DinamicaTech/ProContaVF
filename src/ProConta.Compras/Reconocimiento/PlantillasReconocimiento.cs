@@ -26,7 +26,21 @@ public static class PlantillasReconocimiento
     /// Plantilla para que <paramref name="valor"/> (el valor bueno del campo, ya revisado) se vuelva a leer en facturas
     /// con el mismo formato. Null si el valor no aparece en el PDF o si no hay un rótulo que lo identifique sin ambigüedad.
     /// </summary>
-    public static PlantillaCampo? Aprender(DocumentoFacturaExtraido documento, string campo, string valor)
+    /// <remarks>
+    /// Con <paramref name="elegido"/> (el punto del PDF en el que el operador eligió el valor en el visor) solo se aprende de
+    /// esa aparición; si ahí no está el valor, de la mejor de todas (o null con <paramref name="soloAhi"/>).
+    /// </remarks>
+    public static PlantillaCampo? Aprender(DocumentoFacturaExtraido documento, string campo, string valor, PuntoDocumento? elegido = null, bool soloAhi = false)
+    {
+        if (elegido is not null && AprenderEn(documento, campo, valor, elegido) is { } enElegido) return enElegido;
+        return elegido is not null && soloAhi ? null : AprenderEn(documento, campo, valor, null);
+    }
+
+    /// <summary>¿Las dos plantillas leen del mismo sitio (mismo rótulo, posición y página)?</summary>
+    public static bool MismoSitio(PlantillaCampo a, PlantillaCampo b) =>
+        a.Campo == b.Campo && a.Ancla == b.Ancla && a.Posicion == b.Posicion && a.Pagina == b.Pagina;
+
+    private static PlantillaCampo? AprenderEn(DocumentoFacturaExtraido documento, string campo, string valor, PuntoDocumento? elegido)
     {
         if (string.IsNullOrWhiteSpace(valor) || !Campos.Contains(campo)) return null;
         var lineas = Lineas(documento);
@@ -40,6 +54,7 @@ public static class PlantillasReconocimiento
                 {
                     var texto = Unir(linea.Palabras, i, n);
                     if (Interpretar(campo, texto) is not { } leido || !Coincide(campo, leido, valor)) continue;
+                    if (elegido is not null && !Contiene(linea.Palabras, i, n, elegido)) break;
                     foreach (var candidata in Candidatas(lineas, li, i, n, campo))
                     {
                         // Solo vale si, aplicada a este mismo PDF, devuelve este valor (el rótulo no lleva a otro sitio).
@@ -51,6 +66,19 @@ public static class PlantillasReconocimiento
                 }
         }
         return mejor;
+    }
+
+    /// <summary>¿Alguna de las palabras i..i+n−1 está en el punto elegido (con 3 puntos de holgura)?</summary>
+    private static bool Contiene(IReadOnlyList<PalabraDocumento> palabras, int i, int n, PuntoDocumento p)
+    {
+        const double holgura = 3;
+        for (var k = i; k < i + n; k++)
+        {
+            var w = palabras[k];
+            if (w.Pagina == p.Pagina && p.X >= w.X - holgura && p.X <= w.X + w.Ancho + holgura && p.Y >= w.Y - holgura && p.Y <= w.Y + w.Alto + holgura)
+                return true;
+        }
+        return false;
     }
 
     /// <summary>Valor del campo según la plantilla, normalizado (fecha yyyy-MM-dd, importe con punto, NIF y número compactos), o null.</summary>

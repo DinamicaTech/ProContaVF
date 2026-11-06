@@ -7,14 +7,18 @@ using ProConta.UI.Base.Controles;
 
 namespace ProConta.Compras.UI.VistaModelos;
 
-/// <summary>Servicios que usan las pantallas de compras, ya ligados a la sociedad y el ejercicio de trabajo.</summary>
+/// <summary>
+/// Servicios que usan las pantallas de compras, ya ligados a la sociedad y el ejercicio de trabajo. <c>TiposIva</c>: los tipos
+/// de IVA 1 a 4 del ejercicio (organizacion/sociedades-ejercicios), para el desplegable de la ficha.
+/// </summary>
 public sealed record ServiciosCompras(
     ServicioFacturasCompra Facturas,
     ICatalogoCuentas Cuentas,
     ICatalogoCentrosCoste CentrosCoste,
     ContextoSociedadEjercicio Trabajo,
     string RazonSocial,
-    Func<Task<bool>> PuedeEditar);
+    Func<Task<bool>> PuedeEditar,
+    Func<Task<IReadOnlyList<decimal>>>? TiposIva = null);
 
 /// <summary>Diálogos de compras (en la vista, para que los modelos de vista se prueben sin ventanas).</summary>
 public interface IDialogosCompras

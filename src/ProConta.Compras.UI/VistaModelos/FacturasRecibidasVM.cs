@@ -40,6 +40,7 @@ public sealed class FacturasRecibidasVM : ModeloVista, IPestanaTrabajo
     private IReadOnlyList<ProveedorFicha> _proveedores = [];
     private IReadOnlyList<OpcionFicha<string>> _cuentasGasto = [];
     private IReadOnlyList<CentroCoste> _centros = [];
+    private IReadOnlyList<decimal> _tiposIva = [];
     private IReadOnlyList<FilaCompraVM> _seleccion = [];
     private object? _vista;
     private EstadoVista _estado = EstadoVista.Cargando;
@@ -183,6 +184,7 @@ public sealed class FacturasRecibidasVM : ModeloVista, IPestanaTrabajo
                 .OrderBy(c => c.Codigo, StringComparer.Ordinal)
                 .Select(c => new OpcionFicha<string>($"{c.Codigo} · {c.Nombre}", c.Codigo)).ToList();
             _centros = await _s.CentrosCoste.ListarAsync(_s.Trabajo.IdSociedad);
+            if (_s.TiposIva is { } tipos) _tiposIva = await tipos();
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
@@ -389,11 +391,11 @@ public sealed class FacturasRecibidasVM : ModeloVista, IPestanaTrabajo
             if (factura.Contabilizada) _ = CargarAsientoAsync(factura, carga);
             if (!Prueba)
             {
-                Ficha = new FichaCompraVM(factura, _proveedores, _cuentasGasto, _centros, _datos, soloLectura: !_puedeEditar);
+                Ficha = new FichaCompraVM(factura, _proveedores, _cuentasGasto, _centros, _datos, soloLectura: !_puedeEditar, tiposIva: _tiposIva);
                 return;
             }
             // Modo prueba: se reconoce de nuevo el PDF y se compara con lo grabado; nada se guarda.
-            Ficha = new FichaCompraVM(factura, _proveedores, _cuentasGasto, _centros, _datos, soloLectura: true);
+            Ficha = new FichaCompraVM(factura, _proveedores, _cuentasGasto, _centros, _datos, soloLectura: true, tiposIva: _tiposIva);
             if (fila.PdfExiste) await ProbarAsync(factura, carga);
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
@@ -480,6 +482,13 @@ public sealed class FacturasRecibidasVM : ModeloVista, IPestanaTrabajo
     /// <summary>Una contabilizada no se modifica desde aquí (hasta la entrega 3), pero «Guardar» sí enseña la plantilla con sus valores.</summary>
     private bool PuedeEnsenar => !Prueba && _puedeEditar && _ficha is { Factura.Contabilizada: true } && _activa is { PdfExiste: true };
 
+    /// <summary>Tras un clic en un valor resaltado del visor.</summary>
+    internal void AvisarElegido(string campo)
+    {
+        var nombre = campo switch { "nif" => "el NIF", "numero" => "el número", "fecha" => "la fecha", "total" => "el total", _ => campo };
+        _modulo.Avisar($"Al guardar, la plantilla aprenderá {nombre} de ese sitio del PDF.");
+    }
+
     private async Task GuardarOEnsenarAsync()
     {
         if (_ficha is { Editable: true })
@@ -491,7 +500,7 @@ public sealed class FacturasRecibidasVM : ModeloVista, IPestanaTrabajo
         TextoOcupado = "Aprendiendo de la factura…";
         try
         {
-            await _s.Facturas.EnsenarAsync(_ficha!.Factura);
+            await _s.Facturas.EnsenarAsync(_ficha!.Factura, _ficha.Elegidos);
             _modulo.Avisar("He aprendido dónde están los campos de esta factura. Sus datos no cambian porque está contabilizada.");
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
@@ -555,7 +564,7 @@ public sealed class FacturasRecibidasVM : ModeloVista, IPestanaTrabajo
         Resultado r;
         try
         {
-            r = await _s.Facturas.GuardarAsync(f);
+            r = await _s.Facturas.GuardarAsync(f, ficha.Elegidos);
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
@@ -688,7 +697,7 @@ public sealed class FacturasRecibidasVM : ModeloVista, IPestanaTrabajo
         {
             var (reconocida, leida) = await _s.Facturas.ProbarAsync(_s.Trabajo, grabada.RutaPdf);
             if (carga != _cargaFicha) return;
-            Ficha = new FichaCompraVM(leida, _proveedores, _cuentasGasto, _centros, _datos, soloLectura: true, ConfianzaCampos.DesdeLog(reconocida.Log));
+            Ficha = new FichaCompraVM(leida, _proveedores, _cuentasGasto, _centros, _datos, soloLectura: true, ConfianzaCampos.DesdeLog(reconocida.Log), _tiposIva);
             Comparacion = ServicioFacturasCompra.Comparar(grabada, leida);
         }
         catch (Exception ex) when (ex is not OperationCanceledException)

@@ -12,6 +12,12 @@ namespace ProConta.Compras.UI.Vistas;
 public sealed record ValorResaltado(string Campo, string Texto);
 
 /// <summary>
+/// Lo que el operador hace en el PDF: seleccionar texto (<see cref="Texto"/>) o hacer clic en un valor resaltado
+/// (<see cref="Campos"/>: los campos que se resaltan ahí). <see cref="Punto"/> es dónde, en coordenadas del PDF.
+/// </summary>
+public sealed record SeleccionPdf(string Texto, IReadOnlyList<string> Campos, ProConta.Compras.Reconocimiento.PuntoDocumento? Punto);
+
+/// <summary>
 /// Visor del PDF de compras (compras/pantallas): WebView2 con PDF.js, servido desde la carpeta Visor del programa. Pinta
 /// el PDF, resalta de dónde sale cada campo reconocido y avisa del texto que el operador selecciona. El PDF se pasa por
 /// mensaje (sus bytes), así que el visor no necesita acceso a la carpeta compartida.
@@ -35,8 +41,8 @@ public sealed class VisorPdf : ContentControl
         Loaded += async (_, _) => await IniciarAsync();
     }
 
-    /// <summary>Texto seleccionado en el PDF (para rellenar el campo marcado de la ficha).</summary>
-    public event EventHandler<string>? TextoSeleccionado;
+    /// <summary>Texto seleccionado en el PDF (para rellenar el campo marcado de la ficha) o valor resaltado elegido con un clic.</summary>
+    public event EventHandler<SeleccionPdf>? TextoSeleccionado;
 
     public static readonly DependencyProperty RutaProperty = DependencyProperty.Register(nameof(Ruta), typeof(string), typeof(VisorPdf),
         new PropertyMetadata(null, (d, _) => ((VisorPdf)d).Abrir()));
@@ -94,13 +100,21 @@ public sealed class VisorPdf : ContentControl
                 Abrir();
             }
             else if (tipo == "seleccion" && doc.RootElement.TryGetProperty("texto", out var texto) && texto.GetString() is { Length: > 0 } s)
-                TextoSeleccionado?.Invoke(this, s);
+                TextoSeleccionado?.Invoke(this, new SeleccionPdf(s, [], Punto(doc.RootElement)));
+            else if (tipo == "elegir" && doc.RootElement.TryGetProperty("campos", out var campos) && campos.ValueKind == JsonValueKind.Array && Punto(doc.RootElement) is { } p)
+                TextoSeleccionado?.Invoke(this, new SeleccionPdf("", campos.EnumerateArray().Select(c => c.GetString() ?? "").Where(c => c.Length > 0).ToList(), p));
         }
         catch (JsonException)
         {
-            // Un mensaje que no se entiende se ignora: el visor solo envía «listo» y «seleccion».
+            // Un mensaje que no se entiende se ignora: el visor solo envía «listo», «seleccion» y «elegir».
         }
     }
+
+    private static ProConta.Compras.Reconocimiento.PuntoDocumento? Punto(JsonElement m) =>
+        m.TryGetProperty("punto", out var p) && p.ValueKind == JsonValueKind.Object
+        && p.TryGetProperty("pagina", out var n) && n.TryGetInt32(out var pagina)
+        && p.TryGetProperty("x", out var x) && x.TryGetDouble(out var vx) && p.TryGetProperty("y", out var y) && y.TryGetDouble(out var vy)
+            ? new ProConta.Compras.Reconocimiento.PuntoDocumento(pagina, vx, vy) : null;
 
     private async void Abrir()
     {

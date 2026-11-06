@@ -25,8 +25,9 @@ public sealed class FichaCompraTests
         return f;
     }
 
-    private static FichaCompraVM Ficha(FacturaCompra? f = null, bool soloLectura = false) =>
-        new(f ?? Factura(), [Proveedor], [new("6000000 · Compras", "6000000")], [new CentroCoste(3, "T01", null, "3", "COCHES", true, true, 0, "3")], [], soloLectura);
+    private static FichaCompraVM Ficha(FacturaCompra? f = null, bool soloLectura = false, IReadOnlyList<FilaFacturaCompra>? otras = null) =>
+        new(f ?? Factura(), [Proveedor], [new("6000000 · Compras", "6000000")], [new CentroCoste(3, "T01", null, "3", "COCHES", true, true, 0, "3")], otras ?? [], soloLectura,
+            tiposIva: [21m, 10m, 4m]);
 
     [Fact]
     public void Al_abrir_no_hay_cambios_y_la_confianza_sale_del_log()
@@ -104,7 +105,7 @@ public sealed class FichaCompraTests
         f.AnadirTipo();
         var d = f.Desgloses[^1];
         d.Base = "33,33";
-        Assert.Equal("7,00", d.Cuota);
+        Assert.Equal("7,00 €", d.Cuota);
     }
 
     [Fact]
@@ -136,5 +137,71 @@ public sealed class FichaCompraTests
         f.Numero = "OTRO";
         Assert.Equal("FV1", f.Numero);
         Assert.False(f.TieneCambios);
+    }
+    [Fact]
+    public void Los_importes_se_ven_en_moneda_y_el_tipo_se_elige_de_los_del_ejercicio()
+    {
+        var f = Ficha();
+        var d = f.Desgloses[^1];
+        Assert.Equal(("100,00 €", "21,00 €"), (d.Base, d.Cuota));
+        Assert.Equal(["21 %", "10 %", "4 %", "0 %"], d.Tipos.Select(t => t.Texto));
+        Assert.Equal("21 %", d.TipoElegido!.Texto);
+        d.Base = "200";
+        Assert.Equal("200,00 €", d.Base);
+        Assert.NotNull(f.Descuadre);
+        Assert.Equal("176,00 €", f.Total);
+    }
+
+    [Fact]
+    public void Con_cuota_de_iva_no_se_marca_la_inversion_y_al_marcarla_la_cuota_es_cero()
+    {
+        var f = Ficha();
+        Assert.False(f.PuedeMarcarIsp);
+        f.Isp = true;
+        Assert.False(f.Isp);
+        foreach (var d in f.Desgloses) d.Cuota = "0";
+        Assert.True(f.PuedeMarcarIsp);
+        f.Isp = true;
+        Assert.True(f.Isp);
+        Assert.True(f.CuotaBloqueada);
+        f.Desgloses[0].Cuota = "5";
+        Assert.Equal(0m, f.CuotaCalculada);
+        f.Desgloses[0].Base = "60";
+        Assert.Equal(0m, f.Desgloses[0].CuotaValor);
+    }
+
+    [Fact]
+    public void Una_factura_con_inversion_y_cuota_no_esta_lista()
+    {
+        var f = Factura();
+        f.InversionSujetoPasivo = true;
+        Assert.Contains(f.Pendiente(), p => p.Contains("cuota", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void Solo_se_puede_rectificar_una_factura_del_mismo_proveedor()
+    {
+        var f = Factura();
+        f.IdProveedor = null;
+        var otras = new List<FilaFacturaCompra>
+        {
+            new() { IdRegistro = 1, Nif = "B-61465332", NumeroFactura = "A1" },
+            new() { IdRegistro = 2, Nif = "A58818501", NumeroFactura = "B1" },
+            new() { IdRegistro = 3, IdProveedor = 9, NumeroFactura = "C1" },
+        };
+        var ficha = Ficha(f, otras: otras);
+        Assert.Equal([null, 1], ficha.Rectificables.Select(r => r.Valor));
+    }
+
+    [Fact]
+    public void Elegir_en_el_visor_deja_cambios_para_guardar_y_se_olvida_al_guardar()
+    {
+        var f = Ficha();
+        f.Elegir("fecha", new ProConta.Compras.Reconocimiento.PuntoDocumento(1, 100, 700));
+        f.Elegir("otro", new ProConta.Compras.Reconocimiento.PuntoDocumento(1, 100, 700));
+        Assert.True(f.TieneCambios);
+        Assert.Equal(["fecha"], f.Elegidos.Keys);
+        f.Guardada(f.Construir());
+        Assert.Empty(f.Elegidos);
     }
 }

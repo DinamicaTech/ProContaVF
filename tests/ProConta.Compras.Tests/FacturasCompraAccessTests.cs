@@ -244,6 +244,31 @@ public sealed class FacturasCompraAccessTests : IDisposable
     }
 
     [Fact]
+    public async Task Si_el_operador_elige_la_fecha_en_el_visor_la_plantilla_aprende_de_ahi_y_quita_la_de_otro_sitio()
+    {
+        await EmpresaConProveedorAsync();
+        // Emisión y vencimiento coinciden en esta factura: el operador elige la de «Vence el» (columna 33 de la línea 2).
+        var servicio = new ServicioFacturasCompra(Bd, new ServicioReconocimientoFacturaCompra(new ExtractorPorFichero(new Dictionary<string, string>
+        {
+            ["d.pdf"] = $"""
+                Emisor Ficticio S.L. NIF: {NifProveedor}
+                Número de factura: FV260009
+                Emitida el 10/02/2026   Vence el 10/02/2026
+                IVA 21% 100,00 21,00
+                Total factura 121,00
+                """
+        })), _reloj);
+        var r = await servicio.ImportarAsync(_ctx, Pdf("Ficticio", "d.pdf", "d"));
+        Assert.True(r.Registrada, r.Error?.ToString());
+        var f = (await servicio.CargarAsync(r.Factura!.IdRegistro))!;
+        f.Fecha = new DateTime(2026, 2, 10);
+        Assert.True((await servicio.GuardarAsync(f)).EsCorrecto);
+        Assert.True((await servicio.GuardarAsync(f, new Dictionary<string, PuntoDocumento> { ["fecha"] = new(1, 40 + 33 * 5 + 10, 776 + 4) })).EsCorrecto);
+        Assert.Equal(1, await Contar("SELECT COUNT(*) FROM PlantillasReconocimientoCompra WHERE Campo = ?", "fecha"));
+        Assert.Equal(1, await Contar("SELECT COUNT(*) FROM PlantillasReconocimientoCompra WHERE Campo = ? AND Ancla = ?", "fecha", "vence el"));
+    }
+
+    [Fact]
     public async Task Guardar_cambia_los_datos_y_los_desgloses_y_no_pisa_los_cambios_de_otro_operador()
     {
         await EmpresaConProveedorAsync();

@@ -1,6 +1,9 @@
 namespace ProConta.Compras.Reconocimiento;
 
 /// <summary>Palabra de una página con su posición en puntos PDF (origen abajo a la izquierda).</summary>
+/// <summary>Punto de una página del PDF en coordenadas de usuario del PDF (origen abajo a la izquierda, en puntos).</summary>
+public sealed record PuntoDocumento(int Pagina, double X, double Y);
+
 public sealed class PalabraDocumento
 {
     public int Pagina { get; init; }

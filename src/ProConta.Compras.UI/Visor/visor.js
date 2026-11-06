@@ -2,7 +2,9 @@
 //   { tipo: "abrir", datos: "<base64>", nombre }  abre el PDF
 //   { tipo: "resaltar", valores: [{ campo, texto }], activo }  marca dónde aparece cada valor
 //   { tipo: "zoom", factor }  1 = ajustar al ancho
-// y recibe { tipo: "seleccion", texto } al soltar el ratón con texto seleccionado.
+// y le envía { tipo: "seleccion", texto, punto } al soltar el ratón con texto seleccionado, y { tipo: "elegir", campos, punto }
+// al hacer clic en un valor resaltado (para elegir de cuál de sus apariciones aprende la plantilla). El punto va en
+// coordenadas del PDF (página, x, y desde abajo a la izquierda), las mismas que usa el reconocimiento.
 import * as pdfjsLib from "./pdfjs/pdf.min.js";
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = "./pdfjs/pdf.worker.min.js";
@@ -14,6 +16,7 @@ let zoom = 1;
 let valores = [];
 let activo = null;
 let generacion = 0;
+const vistas = [];
 
 const host = window.chrome && window.chrome.webview;
 const enviar = (m) => host && host.postMessage(m);
@@ -66,6 +69,8 @@ async function pintar(mia) {
 
     const div = document.createElement("div");
     div.className = "pagina";
+    div.dataset.pagina = n;
+    vistas[n] = vista;
     div.style.setProperty("--scale-factor", escala);
     div.style.width = vista.width + "px";
     div.style.height = vista.height + "px";
@@ -98,7 +103,8 @@ const normalizar = (t) => (t || "").normalize("NFKD").replace(/[̀-ͯ]/g, "").re
 // trozos seguidos de la misma página y se marcan solo los del grupo más corto que lo contiene.
 function marcar() {
   const capas = contenedor.querySelectorAll(".textLayer");
-  contenedor.querySelectorAll(".textLayer span").forEach((s) => { s.classList.remove("origen", "activo"); s.removeAttribute("title"); });
+  contenedor.querySelectorAll(".textLayer span").forEach((s) => { s.classList.remove("origen", "activo", "elegido"); s.removeAttribute("title"); delete s.dataset.campos; delete s.dataset.grupo; });
+  let grupo = 0;
   let primero = null;
   for (const capa of capas) {
     const spans = Array.from(capa.querySelectorAll("span")).filter((s) => !s.classList.contains("markedContent"));
@@ -114,9 +120,14 @@ function marcar() {
           if (!acumulado.includes(buscado)) { if (acumulado.length > buscado.length + 40) break; continue; }
           // El grupo es mínimo si sin el primer trozo ya no contiene el valor.
           if (j > i && acumulado.slice(textos[i].length).includes(buscado)) break;
+          grupo++;
           for (let k = i; k <= j; k++) {
             spans[k].classList.add("origen");
-            spans[k].title = v.campo;
+            spans[k].title = v.campo + " · clic para que la plantilla aprenda de aquí";
+            const campos = (spans[k].dataset.campos || "").split(",").filter((c) => c);
+            if (!campos.includes(v.campo)) campos.push(v.campo);
+            spans[k].dataset.campos = campos.join(",");
+            spans[k].dataset.grupo = v.campo + ":" + grupo;
             if (v.campo === activo) { spans[k].classList.add("activo"); primero = primero || spans[k]; }
           }
           break;
@@ -144,10 +155,37 @@ document.addEventListener("contextmenu", (e) => {
   navigator.clipboard.writeText(texto).then(() => mostrarAviso("Copiado"), () => { document.execCommand("copy"); mostrarAviso("Copiado"); });
 });
 
-document.addEventListener("mouseup", () => {
+// Punto del PDF en el centro de un rectángulo de la pantalla, o null si no cae en una página.
+function puntoPdf(rect) {
+  const cx = rect.left + rect.width / 2, cy = rect.top + rect.height / 2;
+  for (const div of contenedor.querySelectorAll(".pagina")) {
+    const r = div.getBoundingClientRect();
+    if (cx < r.left || cx > r.right || cy < r.top || cy > r.bottom) continue;
+    const n = Number(div.dataset.pagina);
+    const [x, y] = vistas[n].convertToPdfPoint(cx - r.left, cy - r.top);
+    return { pagina: n, x, y };
+  }
+  return null;
+}
+
+document.addEventListener("mouseup", (e) => {
   contenedor.querySelectorAll(".textLayer.selecting").forEach((c) => c.classList.remove("selecting"));
-  const texto = (window.getSelection() || "").toString().replace(/\s+/g, " ").trim();
-  if (texto.length > 0 && texto.length <= 200) enviar({ tipo: "seleccion", texto });
+  const seleccion = window.getSelection();
+  const texto = (seleccion || "").toString().replace(/\s+/g, " ").trim();
+  if (texto.length > 0 && texto.length <= 200) {
+    const rects = seleccion.rangeCount > 0 ? seleccion.getRangeAt(0).getClientRects() : [];
+    enviar({ tipo: "seleccion", texto, punto: rects.length > 0 ? puntoPdf(rects[0]) : null });
+    return;
+  }
+  // Clic en un valor resaltado: elige esta aparición.
+  const span = e.target && e.target.closest ? e.target.closest(".textLayer span.origen") : null;
+  if (!span || e.button !== 0) return;
+  const punto = puntoPdf(span.getBoundingClientRect());
+  if (!punto) return;
+  const grupo = span.dataset.grupo;
+  contenedor.querySelectorAll(".textLayer span.elegido").forEach((s) => s.classList.remove("elegido"));
+  contenedor.querySelectorAll(".textLayer span").forEach((s) => { if (s.dataset.grupo === grupo) s.classList.add("elegido"); });
+  enviar({ tipo: "elegir", campos: (span.dataset.campos || "").split(",").filter((c) => c), punto });
 });
 
 document.addEventListener("wheel", (e) => {

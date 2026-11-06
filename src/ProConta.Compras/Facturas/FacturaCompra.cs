@@ -196,6 +196,8 @@ public sealed class FacturaCompra
         if (Fecha is null) l.Add("fecha");
         if (ImporteTotal is null) l.Add("total");
         else if (!Cuadra) l.Add("importes que cuadren");
+        // Con inversión del sujeto pasivo la factura no lleva IVA: lo autorrepercute la empresa (compras/pantallas 2026-11-06 12:10).
+        if (InversionSujetoPasivo && (CuotaIva ?? 0m) != 0m) l.Add("quitar la cuota de IVA (con inversión del sujeto pasivo no lleva IVA)");
         return l;
     }
 

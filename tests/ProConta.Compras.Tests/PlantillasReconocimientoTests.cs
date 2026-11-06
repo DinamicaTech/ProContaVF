@@ -117,4 +117,25 @@ public sealed class PlantillasReconocimientoTests
         ServicioReconocimientoFacturaCompra.AplicarPlantillas(Maquetado(Mayo), noCuadra, [p]);
         Assert.Equal((1250m, 0.7m), (noCuadra.ImporteTotal!.Value, noCuadra.ConfianzaImportes));
     }
+    [Fact]
+    public void Si_el_operador_elige_donde_esta_la_fecha_aprende_de_ese_sitio_aunque_aparezca_en_otro()
+    {
+        // La fecha de cargo coincide con la de la factura: sin elegir, cualquiera de las dos valdría hoy.
+        const string doble = """
+            Proveedor Ficticio
+            Fecha de cargo: 23/04/2026
+            Fecha emisión: 23/04/2026
+            TOTAL 50,00
+            """;
+        var documento = Maquetado(doble);
+        // «23/04/2026» empieza en la columna 15 (X = 40 + 15 × 5) en las líneas 1 y 2 (Y = 800 − línea × 12).
+        var cargo = PlantillasReconocimiento.Aprender(documento, PlantillasReconocimiento.Fecha, "2026-04-23", new PuntoDocumento(1, 130, 788 + 4), soloAhi: true);
+        var emision = PlantillasReconocimiento.Aprender(documento, PlantillasReconocimiento.Fecha, "2026-04-23", new PuntoDocumento(1, 130, 776 + 4), soloAhi: true);
+        Assert.Equal("fecha de cargo", cargo!.Ancla);
+        Assert.Equal("fecha emision", emision!.Ancla);
+        Assert.False(PlantillasReconocimiento.MismoSitio(cargo, emision));
+        // Un punto donde no está el valor: con soloAhi no aprende; sin él, aprende de la mejor aparición.
+        Assert.Null(PlantillasReconocimiento.Aprender(documento, PlantillasReconocimiento.Fecha, "2026-04-23", new PuntoDocumento(1, 300, 700), soloAhi: true));
+        Assert.NotNull(PlantillasReconocimiento.Aprender(documento, PlantillasReconocimiento.Fecha, "2026-04-23", new PuntoDocumento(1, 300, 700)));
+    }
 }
