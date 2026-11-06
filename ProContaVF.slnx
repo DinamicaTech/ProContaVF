@@ -13,6 +13,7 @@
     <Project Path="src/ProConta.Informes/ProConta.Informes.csproj" />
     <Project Path="src/ProConta.Facturacion/ProConta.Facturacion.csproj" />
     <Project Path="src/ProConta.Facturacion.UI/ProConta.Facturacion.UI.csproj" />
+    <Project Path="src/ProConta.Compras.UI/ProConta.Compras.UI.csproj" />
     <Project Path="src/ProConta.Mantenimiento/ProConta.Mantenimiento.csproj" />
     <Project Path="src/ProConta.Mantenimiento.UI/ProConta.Mantenimiento.UI.csproj" />
     <Project Path="src/ProConta.Nucleo/ProConta.Nucleo.csproj" />
@@ -26,6 +27,7 @@
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/ProConta.Compras.Tests/ProConta.Compras.Tests.csproj" />
+    <Project Path="tests/ProConta.Compras.UI.Tests/ProConta.Compras.UI.Tests.csproj" />
     <Project Path="tests/ProConta.Contabilidad.Tests/ProConta.Contabilidad.Tests.csproj" />
     <Project Path="tests/ProConta.Datos.Tests/ProConta.Datos.Tests.csproj" />
     <Project Path="tests/ProConta.Facturacion.Tests/ProConta.Facturacion.Tests.csproj" />

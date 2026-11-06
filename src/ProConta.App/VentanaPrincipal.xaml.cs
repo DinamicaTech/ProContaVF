@@ -3,6 +3,11 @@ using System.Windows;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Threading;
+using ProConta.Compras.Facturas;
+using ProConta.Compras.Integraciones;
+using ProConta.Compras.Reconocimiento;
+using ProConta.Compras.UI.VistaModelos;
+using ProConta.Compras.UI.Vistas;
 using ProConta.Contabilidad.Asientos;
 using ProConta.Contabilidad.CentrosCoste;
 using ProConta.Contabilidad.Cuentas;
@@ -54,6 +59,8 @@ public partial class VentanaPrincipal : Window
     private readonly AreaTrabajo _area;
     private readonly ModuloTerceros _terceros;
     private readonly ModuloFacturacion _facturacion;
+    private readonly ModuloCompras _compras;
+    private static readonly System.Net.Http.HttpClient Http = new() { Timeout = TimeSpan.FromSeconds(15) };
     private readonly Func<PantallaMantenimientoVM> _crearMantenimiento;
     private PantallaMantenimientoVM? _mantenimiento;
     private readonly DispatcherTimer _borrarAviso;
@@ -104,6 +111,12 @@ public partial class VentanaPrincipal : Window
             new ServicioPdfFacturas(bd, facturas, sociedades, new GeneradorPdfFastReport(), autorizador));
         _facturacion = new ModuloFacturacion(serviciosFacturacion, _area, new DialogosFacturacion(apoyo, () => this), _terceros.AbrirFicha);
 
+        // Compras (compras/pantallas): facturas recibidas y su modo «Probar».
+        var reconocimiento = new ServicioReconocimientoFacturaCompra(new ExtractorPdfPig(), null, new TiposCambioFrankfurter(Http));
+        var serviciosCompras = new ServiciosCompras(new ServicioFacturasCompra(bd, reconocimiento), cuentas, new CatalogoCentrosCosteAccess(bd), contexto.Contexto,
+            contexto.RazonSocial, () => autorizador.PuedeAsync(Acciones.FacturasEditar));
+        _compras = new ModuloCompras(serviciosCompras, _area, new DialogosCompras(() => this), _terceros.AbrirFicha);
+
         var mantenimiento = new ServicioMantenimiento(
             new IProveedorMantenimiento[] { new ProveedorConfiguracionGeneral(bd) }.Concat(ProveedoresOrganizacion.Todos(bd)).Concat(ProveedoresFacturacion.Todos(bd, cuentas)),
             () => autorizador.PuedeAsync(Acciones.MantenimientoEditar));
@@ -119,6 +132,7 @@ public partial class VentanaPrincipal : Window
         var abrirFacturas = new ComandoDelegado(_facturacion.AbrirListado);
         var abrirProgramadas = new ComandoDelegado(_facturacion.AbrirProgramadas);
         var abrirParametros = new ComandoDelegado(AbrirParametros);
+        var abrirRecibidas = new ComandoDelegado(_compras.AbrirRecibidas);
         Navegacion.ItemsSource = new[]
         {
             new OpcionNavegacion("Inicio", Icono("layout"), true, false, "Página de inicio", irAInicio),
@@ -127,7 +141,8 @@ public partial class VentanaPrincipal : Window
             new OpcionNavegacion("Facturación", Icono("doc"), true, false, "Facturas de venta: emitidas y borradores", abrirFacturas),
             new OpcionNavegacion("Facturas programadas", null, true, false, "Facturas que se generan solas en cada vencimiento: su programación, sus líneas y la generación por lotes", abrirProgramadas, EsHija: true),
             new OpcionNavegacion("Facturas", null, true, false, "Listado de facturas y borradores del ejercicio, con su detalle y acciones", abrirFacturas, EsHija: true),
-            new OpcionNavegacion("Compras", Icono("scan"), false, false, proxima),
+            new OpcionNavegacion("Compras", Icono("scan"), true, false, "Facturas de compra: los PDF de la carpeta de proveedores, su revisión y el modo prueba del reconocimiento", abrirRecibidas),
+            new OpcionNavegacion("Facturas recibidas", null, true, false, "Facturas de compra del ejercicio reconocidas de sus PDF: revisión, corrección y registro (y el modo prueba, en el menú contextual)", abrirRecibidas, EsHija: true),
             new OpcionNavegacion("Contabilidad", Icono("book"), false, false, proxima),
             new OpcionNavegacion("Bancos", Icono("bank"), false, false, proxima),
             new OpcionNavegacion("Nóminas", Icono("coin"), false, false, proxima),

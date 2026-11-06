@@ -15,6 +15,17 @@ internal static class Documentos
             Paginas = [new PaginaDocumento { Numero = 1, Texto = texto.Replace("\r\n", "\n") }]
         };
 
+    /// <summary>Texto con geometría simulada: cada línea a 12 puntos de la anterior y cada carácter de 5 puntos de ancho.</summary>
+    public static DocumentoFacturaExtraido Maquetado(string texto, string ruta = @"X:\Datos\Soc\2026\Proveedores\Ficticio\factura.pdf")
+    {
+        var lineas = texto.Replace("\r\n", "\n").Split('\n');
+        var palabras = new List<PalabraDocumento>();
+        for (var l = 0; l < lineas.Length; l++)
+            foreach (System.Text.RegularExpressions.Match m in System.Text.RegularExpressions.Regex.Matches(lineas[l], @"\S+"))
+                palabras.Add(new PalabraDocumento { Pagina = 1, Texto = m.Value, X = 40 + m.Index * 5, Y = 800 - l * 12, Ancho = m.Length * 5, Alto = 8 });
+        return new() { Ruta = ruta, Paginas = [new PaginaDocumento { Numero = 1, Texto = string.Join("\n", lineas), Palabras = palabras }] };
+    }
+
     public static DocumentoFacturaExtraido ConPalabras(string ruta, params (string Texto, double X, double Y)[] palabras)
         => new()
         {

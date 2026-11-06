@@ -7,6 +7,15 @@ namespace ProConta.Compras.Facturas;
 /// <summary>Un tipo de IVA de la factura de compra (DesglosesFacturaCompra). <c>TipoIva</c> es un porcentaje (21 = 21 %).</summary>
 public sealed record DesgloseFacturaCompra(short Orden, decimal TipoIva, decimal BaseImponible, decimal CuotaIva, decimal? Confianza = null, string? Evidencia = null);
 
+/// <summary>Tipo de operación de la compra (FacturasCompra.TipoOperacion, con los códigos del ERP).</summary>
+public enum OperacionCompra { Nacional = 0, Intracomunitaria = 1, Importacion = 2 }
+
+/// <summary>Tipo de producto (FacturasCompra.TipoProducto, con los códigos del ERP).</summary>
+public enum ProductoCompra { Servicios = 1, Bienes = 2 }
+
+/// <summary>Clase de la retención (FacturasCompra.TipoRetencion): profesionales (servicios remunerados) o arrendamientos.</summary>
+public enum ClaseRetencion { Profesionales = 1, Arrendamientos = 2 }
+
 /// <summary>Proveedor al que pertenece la carpeta de un PDF, tal como lo resuelve el contexto de la empresa.</summary>
 public sealed record ProveedorCarpeta(int? IdProveedor, string? CuentaContable, string? Nif, string Carpeta);
 
@@ -37,6 +46,23 @@ public sealed class FacturaCompra
     public bool InversionSujetoPasivo { get; set; }
     public List<DesgloseFacturaCompra> Desgloses { get; } = [];
 
+    public OperacionCompra Operacion { get; set; }
+    public ProductoCompra? Producto { get; set; }
+    public ClaseRetencion? ClaseRetencion { get; set; }
+    /// <summary>Gasto que el proveedor paga por cuenta nuestra, sin IVA (suma al total).</summary>
+    public decimal? Suplido { get; set; }
+    /// <summary>Cuenta de gasto (FacturasCompra.ConceptoGasto).</summary>
+    public string? CuentaGasto { get; set; }
+    public int? IdCentroCoste { get; set; }
+    /// <summary>Forma de pago como dato de la factura: el pago se concilia después con el banco.</summary>
+    public string? CuentaFormaPago { get; set; }
+    public string? Notas { get; set; }
+
+    /// <summary>Contabilizada (FacturasCompra.Exportada): ya no se edita aquí.</summary>
+    public bool Contabilizada { get; set; }
+    /// <summary>Marcada como duplicada en el ERP.</summary>
+    public bool Duplicada { get; set; }
+
     /// <summary>Código ISO de la moneda de la factura (EUR si es nacional).</summary>
     public string Divisa { get; set; } = "EUR";
     public decimal? ImporteTotalDivisa { get; set; }
@@ -46,8 +72,10 @@ public sealed class FacturaCompra
     /// <summary>Factura del mismo proveedor a la que rectifica (rectificativa o abono).</summary>
     public int? IdRegistroFacturaRectificada { get; set; }
 
-    /// <summary>Ruta completa del PDF al registrarlo.</summary>
-    public required string RutaPdf { get; init; }
+    /// <summary>Ruta completa del PDF: la grabada al registrarlo o, si ya no existe, la reubicada en la carpeta de la empresa al cargarla.</summary>
+    public required string RutaPdf { get; set; }
+    /// <summary>Rutas grabadas en la BD (ArchivoOriginal y Archivo) al cargar la factura; vacía en una factura nueva.</summary>
+    public IReadOnlyList<string> RutasGuardadas { get; init; } = [];
     /// <summary>Carpeta del proveedor (primer nivel bajo «Proveedores»).</summary>
     public string Carpeta { get; set; } = string.Empty;
     public string NombreFichero => Path.GetFileName(RutaPdf);
@@ -143,13 +171,36 @@ public sealed class FacturaCompra
             errores.Add(new Error("Compras.Divisa", $"La moneda «{Divisa}» no es un código ISO de tres letras.", Rotulo, null, "Escribe el código, por ejemplo USD."));
         if (IdRegistroFacturaRectificada is { } rect && rect == IdRegistro && IdRegistro != 0)
             errores.Add(new Error("Compras.RectificaASiMisma", "Una factura no puede rectificarse a sí misma.", Rotulo, null, "Elige la factura original."));
+        if (Fecha is { } fecha && Ejercicio.Ejercicio > 0 && Math.Abs(fecha.Year - Ejercicio.Ejercicio) > 1)
+            errores.Add(new Error("Compras.FechaFuera", $"La fecha {fecha:dd/MM/yyyy} está muy lejos del ejercicio {Ejercicio.Ejercicio}.", Rotulo, null, "Comprueba el año de la fecha."));
+        if (BaseImponible is { } bi && ImporteTotal is { } it && bi != 0 && it != 0 && bi < 0 != it < 0)
+            errores.Add(new Error("Compras.Signos", "La base y el total tienen signos distintos.", Rotulo, "En un abono, los dos van en negativo.", "Corrige el signo."));
+        if (CuentaGasto is { Length: > 10 })
+            errores.Add(new Error("Compras.CuentaGasto", $"La cuenta de gasto «{CuentaGasto}» es demasiado larga.", Rotulo, null, "Elige una cuenta del plan."));
+        if (PorcentajeRetencion is < 0 or > 100)
+            errores.Add(new Error("Compras.Retencion", "El porcentaje de retención debe estar entre 0 y 100.", Rotulo));
         if (RutaPdf.Length > 255)
             errores.Add(new Error("Compras.RutaLarga", "La ruta del PDF pasa de 255 caracteres y no cabe en la ficha.", Rotulo, null, "Acorta el nombre del fichero o de la carpeta."));
         return errores.Count == 0 ? Resultado.Correcto() : Resultado.Fallo(errores);
     }
 
-    /// <summary>Base + cuota = total (con la retención aparte), cuando los tres importes están.</summary>
-    public bool Cuadra => BaseImponible is { } b && CuotaIva is { } c && ImporteTotal is { } t && b + c - (ImporteRetencion ?? 0m) == t;
+    /// <summary>Base + cuota − retención + suplido = total, cuando los tres importes están.</summary>
+    public bool Cuadra => BaseImponible is { } b && CuotaIva is { } c && ImporteTotal is { } t && b + c - (ImporteRetencion ?? 0m) + (Suplido ?? 0m) == t;
+
+    /// <summary>Lo que falta para que la factura esté lista para contabilizar (proveedor, número, fecha e importes que cuadren).</summary>
+    public IReadOnlyList<string> Pendiente()
+    {
+        var l = new List<string>();
+        if (IdProveedor is null && string.IsNullOrWhiteSpace(NifProveedor)) l.Add("proveedor");
+        if (string.IsNullOrWhiteSpace(NumeroFactura)) l.Add("número");
+        if (Fecha is null) l.Add("fecha");
+        if (ImporteTotal is null) l.Add("total");
+        else if (!Cuadra) l.Add("importes que cuadren");
+        return l;
+    }
+
+    /// <summary>Con proveedor, número, fecha e importes que cuadran.</summary>
+    public bool Lista => Pendiente().Count == 0;
 
     /// <summary>Primer nivel bajo la carpeta «Proveedores» (o la carpeta del PDF, si no está dentro de una).</summary>
     public static string CarpetaDe(string rutaPdf)
