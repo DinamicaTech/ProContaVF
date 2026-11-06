@@ -107,9 +107,14 @@ public static class ComboFiltro
         }
     }
 
+    /// <summary>Último elemento elegido, para volver a él si lo escrito no coincide con ninguno (Esc, Tab, clic fuera).</summary>
+    private static readonly DependencyProperty AnteriorProperty =
+        DependencyProperty.RegisterAttached("Anterior", typeof(object), typeof(ComboFiltro), new PropertyMetadata(null));
+
     private static void AlElegir(object sender, SelectionChangedEventArgs e)
     {
         var c = (ComboBox)sender;
+        if (c.SelectedItem is { } nuevo) c.SetValue(AnteriorProperty, nuevo);
         if ((bool)c.GetValue(AplicandoProperty) || c.SelectedItem is null || c.IsDropDownOpen) return;
         Quitar(c);
     }
@@ -129,7 +134,8 @@ public static class ComboFiltro
         c.SetValue(AplicandoProperty, true);
         try
         {
-            var elegido = c.SelectedItem;
+            // El combo editable deja de tener elección al escribir un texto que no es de ningún elemento: se vuelve al anterior.
+            var elegido = c.SelectedItem ?? c.GetValue(AnteriorProperty);
             if (Vista(c) is { Filter: not null } vista) vista.Filter = null;
             if (elegido is not null && !ReferenceEquals(c.SelectedItem, elegido)) c.SelectedItem = elegido;
             var texto = c.SelectedItem?.ToString() ?? "";
