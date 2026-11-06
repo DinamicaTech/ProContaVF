@@ -105,7 +105,7 @@ public sealed class FichaCompraTests
         f.AnadirTipo();
         var d = f.Desgloses[^1];
         d.Base = "33,33";
-        Assert.Equal("7,00 €", d.Cuota);
+        Assert.Equal("7,00 €", d.Cuota);
     }
 
     [Fact]
@@ -143,13 +143,13 @@ public sealed class FichaCompraTests
     {
         var f = Ficha();
         var d = f.Desgloses[^1];
-        Assert.Equal(("100,00 €", "21,00 €"), (d.Base, d.Cuota));
+        Assert.Equal(("100,00 €", "21,00 €"), (d.Base, d.Cuota));
         Assert.Equal(["21 %", "10 %", "4 %", "0 %"], d.Tipos.Select(t => t.Texto));
         Assert.Equal("21 %", d.TipoElegido!.Texto);
         d.Base = "200";
-        Assert.Equal("200,00 €", d.Base);
+        Assert.Equal("200,00 €", d.Base);
         Assert.NotNull(f.Descuadre);
-        Assert.Equal("176,00 €", f.Total);
+        Assert.Equal("176,00 €", f.Total);
     }
 
     [Fact]
