@@ -312,8 +312,9 @@ public sealed class ContabilizadorCompras(IBaseDatos bd, IMotorAsientos motor, I
     // ---------- exportar ----------
 
     /// <summary>
-    /// Exporta o re-exporta la factura. <paramref name="guardarCambios"/>: la ficha tiene cambios y se guardan en la misma
-    /// transacción que el asiento («Guardar y re-exportar», o «Guardar y exportar» de una pendiente).
+    /// Exporta o re-exporta la factura. Sus datos se guardan siempre en la misma transacción que el asiento, para que la
+    /// factura y el asiento coincidan («Guardar y re-exportar» y lo que la ficha propuso). <paramref name="guardarCambios"/>
+    /// se conserva por compatibilidad.
     /// </summary>
     public async Task<Resultado<ResultadoExportacionCompra>> ExportarAsync(FacturaCompra f, Actor actor, OpcionesExportacion? opciones = null, bool guardarCambios = false)
     {
@@ -377,7 +378,7 @@ public sealed class ContabilizadorCompras(IBaseDatos bd, IMotorAsientos motor, I
             Antes: BorrarLibroAsync,
             Despues: async (s, ids) =>
             {
-                if (guardarCambios || reexportando)
+                // La factura se guarda siempre con el asiento: lo que la ficha propuso (producto, forma de pago) queda igual en los dos.
                 {
                     var guardada = await RepositorioFacturasCompra.ActualizarAsync(s, f, permitirExportada: true);
                     if (!guardada.EsCorrecto) return Resultado.Fallo(guardada.Errores);

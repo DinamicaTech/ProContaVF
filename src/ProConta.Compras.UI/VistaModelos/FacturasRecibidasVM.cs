@@ -783,7 +783,8 @@ public sealed class FacturasRecibidasVM : ModeloVista, IPestanaTrabajo
 
     private async Task GuardarOEnsenarAsync()
     {
-        if (_ficha is { Editable: true })
+        // Una exportada no se guarda sola: sus cambios van con «Guardar y re-exportar».
+        if (_ficha is { Editable: true } && !FichaExportada)
         {
             await GuardarFichaAsync(confirmar: true);
             return;

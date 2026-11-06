@@ -140,7 +140,8 @@ public sealed class FichaCompraVM : ModeloVista
         Factura = factura;
         _tiposIva = tiposIva ?? [];
         _proveedores = proveedores;
-        SoloLectura = soloLectura || factura.Contabilizada;
+        // Las exportadas por ProContaVF se pueden cambiar para re-exportarlas; las del ERP, no (compras/pantallas 2026-11-06 12:10).
+        SoloLectura = soloLectura || factura.Contabilizada && !factura.ExportadaAqui;
         _confianza = confianza ?? ConfianzaCampos.DesdeLog(factura.Log);
 
         Operaciones = [new("Nacional", OperacionCompra.Nacional), new("Intracomunitaria", OperacionCompra.Intracomunitaria), new("Importación", OperacionCompra.Importacion)];
@@ -590,7 +591,9 @@ public sealed class FichaCompraVM : ModeloVista
 
     public bool HayAvisos => Avisos.Count > 0;
 
-    public string Resumen => Factura.Contabilizada ? "Contabilizada: solo se consulta."
+    public string Resumen => Factura.ExportadaAqui
+            ? (SoloLectura ? $"Exportada (asiento {Factura.IdAsientoContable}): solo se consulta." : $"Exportada (asiento {Factura.IdAsientoContable}): si la cambias, «Guardar y re-exportar» actualiza el asiento.")
+        : Factura.Contabilizada ? "Contabilizada en el ERP: solo se consulta."
         : _confianza.Global is { } g ? $"Reconocida con confianza {Math.Round(g * 100m):0} %{(_confianza.Fuente == "ocr" ? " (con OCR)" : "")}." : "Sin datos del reconocimiento.";
 
     // ---------- cambios ----------

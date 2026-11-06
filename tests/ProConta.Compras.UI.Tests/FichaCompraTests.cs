@@ -212,6 +212,20 @@ public sealed class FichaCompraTests
     }
 
     [Fact]
+    public void Una_exportada_por_ProContaVF_se_puede_cambiar_y_una_del_ERP_no()
+    {
+        var aqui = Factura();
+        aqui.Contabilizada = true;
+        aqui.IdAsientoContable = 1127;
+        Assert.True(Ficha(aqui).Editable);
+        Assert.Contains("re-exportar", Ficha(aqui).Resumen);
+        var erp = Factura();
+        erp.Contabilizada = true;
+        Assert.False(Ficha(erp).Editable);
+        Assert.False(Ficha(aqui, soloLectura: true).Editable);
+    }
+
+    [Fact]
     public void El_nombre_leido_no_se_propone_para_un_nif_distinto_del_leido()
     {
         var factura = Factura();
