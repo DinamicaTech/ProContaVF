@@ -135,6 +135,19 @@ public partial class VistaFacturasRecibidas : UserControl
     private void AlCambiarFicha(object? sender, PropertyChangedEventArgs e)
     {
         if (e.PropertyName is nameof(FichaCompraVM.Nif) or nameof(FichaCompraVM.Numero) or nameof(FichaCompraVM.Fecha) or nameof(FichaCompraVM.Total)) Resaltar();
+        // Al guardar se olvidan los sitios elegidos en el visor: se quita su marca verde.
+        else if (e.PropertyName == nameof(FichaCompraVM.TieneCambios) && sender is FichaCompraVM { TieneCambios: false }) Resaltar();
+    }
+
+    /// <summary>
+    /// Al cambiar de ficha (también al cancelar) el desplegable de moneda conservaba la moneda elegida antes y no dejaba
+    /// volver a elegirla: se quita esa selección y el texto vuelve a ser el de la ficha.
+    /// </summary>
+    private void Moneda_DataContextChanged(object sender, DependencyPropertyChangedEventArgs e)
+    {
+        if (sender is not ComboBox c) return;
+        c.SelectedIndex = -1;
+        c.GetBindingExpression(ComboBox.TextProperty)?.UpdateTarget();
     }
 
     /// <summary>Envía al visor (o a la ventana desacoplada) los valores de la ficha para resaltar su origen en el PDF.</summary>

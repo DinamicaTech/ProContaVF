@@ -381,7 +381,7 @@
                             <Grid.ColumnDefinitions><ColumnDefinition Width="80" /><ColumnDefinition Width="12" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
                             <StackPanel>
                               <TextBlock Text="Moneda" Style="{StaticResource Etiqueta.Campo}" />
-                              <ComboBox ItemsSource="{Binding Monedas}" IsEditable="True" IsTextSearchEnabled="False" Text="{Binding Divisa, UpdateSourceTrigger=LostFocus}"
+                              <ComboBox ItemsSource="{Binding Monedas}" IsEditable="True" IsTextSearchEnabled="False" Text="{Binding Divisa, UpdateSourceTrigger=LostFocus}" DataContextChanged="Moneda_DataContextChanged"
                                         IsEnabled="{Binding Editable}" FontFamily="{StaticResource Fuente.Mono}" Padding="6,0,22,0" ToolTip="Código ISO de la moneda: elige uno o escribe otro (por ejemplo, JPY)" />
                             </StackPanel>
                             <StackPanel Grid.Column="2" Visibility="{Binding EsDivisa, Converter={StaticResource Visible}}">
