@@ -75,8 +75,8 @@ public static class ComboFiltro
     }
 
     /// <summary>
-    /// ↑ ↓ desde el texto pasan el foco a la lista filtrada: ↓ al primer elemento, ↑ al último. Desde ahí el propio combo
-    /// mueve el resaltado, Enter elige y Esc o Tab salen sin cambiar la elección. El combo editable trata estas teclas en su
+    /// ↑ ↓ desde el texto pasan el foco a la lista filtrada: ↓ al primer elemento, ↑ al último; desde un elemento, al
+    /// siguiente o al anterior. Enter elige el elemento con el foco y Esc o Tab salen sin cambiar la elección. El combo editable trata estas teclas en su
     /// manejador de clase, antes que los de instancia, y su resaltado no sirve con la lista filtrada; por eso este manejador
     /// se registra también para eventos ya tratados.
     /// </summary>
@@ -105,12 +105,19 @@ public static class ComboFiltro
             e.Handled = true;
             return;
         }
-        if (e.Key is not (Key.Down or Key.Up) || !c.IsDropDownOpen || Keyboard.Modifiers != ModifierKeys.None
-            || e.OriginalSource is not TextBox || Vista(c) is not { } vista) return;
+        if (e.Key is not (Key.Down or Key.Up) || !c.IsDropDownOpen || Keyboard.Modifiers != ModifierKeys.None || Vista(c) is not { } vista) return;
+        // Desde el texto o desde un elemento de esta lista: el foco es la única posición. El combo, por sí solo, avanza desde
+        // su resaltado (que puede ser la elección anterior) y elige sobre la marcha, con lo que Esc ya no volvía atrás.
+        var desdeElemento = e.OriginalSource is ComboBoxItem it && ItemsControl.ItemsControlFromItemContainer(it) == c;
+        if (!desdeElemento && e.OriginalSource is not TextBox) return;
         var visibles = vista.Cast<object>().ToList();
         e.Handled = true;
         if (visibles.Count == 0) return;
-        var destino = e.Key == Key.Down ? visibles[0] : visibles[^1];
+        var actual = desdeElemento ? visibles.IndexOf(c.ItemContainerGenerator.ItemFromContainer((ComboBoxItem)e.OriginalSource)) : -1;
+        var indice = actual < 0
+            ? (e.Key == Key.Down ? 0 : visibles.Count - 1)
+            : Math.Clamp(actual + (e.Key == Key.Down ? 1 : -1), 0, visibles.Count - 1);
+        var destino = visibles[indice];
         if (c.ItemContainerGenerator.ContainerFromItem(destino) is not ComboBoxItem)
             c.UpdateLayout();
         if (c.ItemContainerGenerator.ContainerFromItem(destino) is ComboBoxItem item)

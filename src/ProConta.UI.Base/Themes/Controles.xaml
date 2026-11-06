@@ -661,6 +661,12 @@
               <Setter TargetName="F" Property="Background" Value="{StaticResource Pincel.Seleccion}" />
               <Setter Property="FontWeight" Value="Medium" />
             </Trigger>
+            <!-- Con el teclado (ComboFiltro), el elemento con el foco es el que Enter elige: se ve resaltado. -->
+            <Trigger Property="IsKeyboardFocused" Value="True">
+              <Setter TargetName="F" Property="Background" Value="{StaticResource Pincel.Hover}" />
+              <Setter TargetName="F" Property="BorderBrush" Value="{StaticResource Pincel.Foco}" />
+              <Setter TargetName="F" Property="BorderThickness" Value="1" />
+            </Trigger>
           </ControlTemplate.Triggers>
         </ControlTemplate>
       </Setter.Value>
