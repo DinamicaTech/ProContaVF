@@ -111,6 +111,8 @@
             <Separator />
             <MenuItem Header="Dar por revisada" Command="{Binding GuardarCommand}" InputGestureText="Ctrl+G" ToolTip="Guarda la ficha tal como está aunque no hayas cambiado nada: confirma lo leído y enseña dónde están el NIF, el número, la fecha y el total en las facturas de este proveedor" />
             <Separator />
+            <MenuItem Header="Dar de alta el proveedor…" Command="{Binding Ficha.DarDeAltaProveedorCommand}"
+                      ToolTip="Crea el proveedor con el NIF de la factura (confirmado con la AEAT si la empresa tiene certificado) y su cuenta de acreedor 410" />
             <MenuItem Header="Ver relacionadas" Command="{Binding VerRelacionadasCommand}" ToolTip="Muestra la factura original y sus rectificativas, en los dos sentidos" />
             <MenuItem Header="Abrir el PDF" Command="{Binding AbrirPdfCommand}" ToolTip="Abre el PDF con el programa de Windows" />
             <MenuItem Header="Abrir la carpeta" Command="{Binding AbrirCarpetaCommand}" ToolTip="Abre la carpeta del PDF en el Explorador" />
@@ -227,6 +229,12 @@
                   <WrapPanel>
                     <StackPanel Width="400" Margin="0,0,12,0">
                       <Border Style="{StaticResource Tarjeta.Compra}">
+                        <Border.ContextMenu>
+                          <ContextMenu>
+                            <MenuItem Header="Dar de alta el proveedor…" Command="{Binding DarDeAltaProveedorCommand}"
+                                      ToolTip="Crea el proveedor con el NIF de la factura (confirmado con la AEAT si la empresa tiene certificado) y su cuenta de acreedor 410" />
+                          </ContextMenu>
+                        </Border.ContextMenu>
                         <StackPanel>
                           <TextBlock Text="Proveedor" Style="{StaticResource Titulo.Tarjeta}" />
                           <StackPanel Orientation="Horizontal"><TextBlock Text="NIF" Style="{StaticResource Etiqueta.Campo}" />

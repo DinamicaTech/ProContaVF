@@ -31,6 +31,7 @@ Roles opcionales de una identidad (Cliente, Proveedor, Contacto) con IDs funcion
 - 2026-11-06 12:35 · CuentasProveedoresSociedad.IdFormaPagoDefecto (versión 21): forma de pago por defecto del proveedor en la empresa. La fija compras al guardar una factura recibida con forma de pago (en todas las cuentas del proveedor en la empresa) y se propone en sus facturas nuevas.
 - 2026-11-06 13:42 · CuentasProveedoresSociedad.TipoProductoDefecto (versión 23): producto por defecto del proveedor en la empresa (1 servicios, 2 bienes). Lo fija compras al guardar una factura recibida y se propone en sus facturas nuevas.
 - 2026-11-06 19:59 · CuentasProveedoresSociedad.IdIdentidadGastoDefecto e IdCentroCosteDefecto (versión 25): cuenta de gasto (por su identidad contable) y centro de coste por defecto del proveedor en la empresa. Los fija compras al guardar una factura recibida y se proponen en sus facturas nuevas cuando ningún texto clave los asigna.
+- 2026-11-06 23:59 · Compras da de alta proveedores desde la factura de compra (compras/pantallas, bloque 3): tercero nuevo con el rol Proveedor y la cuenta de acreedor (410) en la empresa, o el rol para el único tercero que ya tenga ese NIF.
 
 ## Requirements
 - 2026-10-28 12:28 · From sources/01_ESPECIFICACION_FUNCIONAL.docx § 7 RF-TER-03, 04: roles idempotentes y cuentas por rol y sociedad/ejercicio

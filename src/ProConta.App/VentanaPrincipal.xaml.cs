@@ -119,7 +119,9 @@ public partial class VentanaPrincipal : Window
             async () => (await new ProConta.Organizacion.FormasPago.CatalogoFormasPagoAccess(bd).ListarAsync()).Select(f => (f.Id, f.Descripcion)).ToList(),
             async () => (await new ProConta.Organizacion.Sociedades.CatalogoTiposRetencion(bd).VigentesAsync(DateTime.Today))
                 .Select(t => new TipoRetencionCompra(t.Porcentaje, t.Descripcion, t.Clase == 2 ? ClaseRetencion.Arrendamientos : ClaseRetencion.Profesionales)).ToList(),
-            new CatalogoTextosClaveCompra(bd));
+            new CatalogoTextosClaveCompra(bd),
+            new ProConta.Compras.Proveedores.ServicioAltaProveedorCompra(bd, new ProConta.Terceros.RepositorioTercerosAccess(bd), new ProConta.Terceros.Roles.ServicioRoles(bd, cuentas), cuentas,
+                new ProConta.Compras.Integraciones.ConsultaNifAeatVNif(bd), new Actor(sesion.NombreOperador)));
         _compras = new ModuloCompras(serviciosCompras, _area, new DialogosCompras(() => this), _terceros.AbrirFicha);
 
         var mantenimiento = new ServicioMantenimiento(

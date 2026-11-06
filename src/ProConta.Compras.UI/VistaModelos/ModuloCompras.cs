@@ -11,7 +11,7 @@ namespace ProConta.Compras.UI.VistaModelos;
 /// Servicios que usan las pantallas de compras, ya ligados a la sociedad y el ejercicio de trabajo. <c>TiposIva</c>: los tipos
 /// de IVA 1 a 4 del ejercicio (organizacion/sociedades-ejercicios), para el desplegable de la ficha. <c>FormasPago</c>: el
 /// catálogo de formas de pago (organizacion/formas-pago). <c>TiposRetencion</c>: los tipos de retención vigentes.
-/// <c>TextosClave</c>: los textos clave de compras de la empresa.
+/// <c>TextosClave</c>: los textos clave de compras de la empresa. <c>AltaProveedor</c>: el alta de proveedor desde la factura.
 /// </summary>
 public sealed record ServiciosCompras(
     ServicioFacturasCompra Facturas,
@@ -23,7 +23,8 @@ public sealed record ServiciosCompras(
     Func<Task<IReadOnlyList<decimal>>>? TiposIva = null,
     Func<Task<IReadOnlyList<(byte Id, string Descripcion)>>>? FormasPago = null,
     Func<Task<IReadOnlyList<TipoRetencionCompra>>>? TiposRetencion = null,
-    CatalogoTextosClaveCompra? TextosClave = null);
+    CatalogoTextosClaveCompra? TextosClave = null,
+    ProConta.Compras.Proveedores.ServicioAltaProveedorCompra? AltaProveedor = null);
 
 /// <summary>Diálogos de compras (en la vista, para que los modelos de vista se prueben sin ventanas).</summary>
 public interface IDialogosCompras
@@ -47,6 +48,15 @@ public interface IDialogosCompras
     /// <paramref name="guardar"/>, que devuelve el error que se enseña en el diálogo o null. True si se guardó.
     /// </summary>
     bool PedirTextoClave(string? cuenta, string? centro, Func<string, bool, bool, Task<string?>> guardar);
+
+    /// <summary>
+    /// Alta de proveedor sin razón social confirmada por la AEAT: formulario con el NIF y la razón social obligatorios y
+    /// el nombre comercial, la dirección, el teléfono y el email opcionales. <paramref name="motivo"/>: por qué no se
+    /// confirmó. Con <paramref name="urlEInforma"/>, un botón «Buscar en eInforma» la abre en el navegador.
+    /// <paramref name="guardar"/> da de alta y devuelve el error que se enseña o null. True si se dio de alta.
+    /// </summary>
+    bool PedirDatosProveedor(ProConta.Compras.Proveedores.DatosAltaProveedor propuesta, string? motivo, string? urlEInforma,
+        Func<ProConta.Compras.Proveedores.DatosAltaProveedor, Task<string?>> guardar);
 }
 
 /// <summary>

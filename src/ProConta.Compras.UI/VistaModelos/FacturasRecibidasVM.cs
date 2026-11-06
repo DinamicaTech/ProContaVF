@@ -429,6 +429,46 @@ public sealed class FacturasRecibidasVM : ModeloVista, IPestanaTrabajo
         return Task.FromResult(c);
     }
 
+    /// <summary>
+    /// Alta del proveedor del NIF de la ficha (compras/pantallas 2026-11-06 12:10 y 13:16): con la razón social confirmada
+    /// por la AEAT se crea directamente; si no, se piden los datos, con «Buscar en eInforma» si el PDF tampoco la trae.
+    /// Queda como acreedor (410) y la ficha lo toma; se guarda en la factura con lo demás.
+    /// </summary>
+    private async Task DarDeAltaProveedorAsync(FichaCompraVM ficha)
+    {
+        if (_s.AltaProveedor is not { } alta || !ficha.PuedeDarDeAltaProveedor) return;
+        var nif = ficha.Nif;
+        var leido = ficha.NombreLeido;
+        _modulo.Avisar($"Compruebo el NIF {nif} en la AEAT…");
+        var aeat = await alta.ConsultarAsync(_s.Trabajo, nif, leido);
+        ProConta.Compras.Proveedores.ProveedorCreado? creado = null;
+        async Task<string?> Crear(ProConta.Compras.Proveedores.DatosAltaProveedor datos)
+        {
+            var r = await alta.AltaAsync(_s.Trabajo, datos);
+            if (!r.EsCorrecto) return string.Join(" ", r.Errores.Select(e => e.AccionCorrectora is { } a ? $"{e.Mensaje} {a}" : e.Mensaje));
+            creado = r.Valor;
+            return null;
+        }
+        if (aeat.Identificado)
+        {
+            if (await Crear(new(nif, aeat.RazonSocial!)) is { } error)
+            {
+                _modulo.Dialogos.Preguntar("No he podido dar de alta el proveedor", error, null, new OpcionMensaje("Entendido", "Cierra el aviso", Principal: true));
+                return;
+            }
+        }
+        else
+        {
+            var url = string.IsNullOrWhiteSpace(leido) ? "https://www.google.com/search?q=" + Uri.EscapeDataString($"{nif} site:einforma.com") : null;
+            if (!_modulo.Dialogos.PedirDatosProveedor(new(nif, leido ?? ""), aeat.Motivo, url, Crear)) return;
+        }
+        if (creado is null) return;
+        _proveedores = await _s.Facturas.ProveedoresAsync(_s.Trabajo);
+        if (ReferenceEquals(_ficha, ficha)) ficha.ProveedorDadoDeAlta(_proveedores, creado.IdProveedor, creado.Cuenta);
+        _modulo.Avisar((creado.TerceroExistente ? $"{creado.Nombre} ya estaba en Terceros: ahora es proveedor" : $"Proveedor {creado.Nombre} dado de alta")
+            + $" con la cuenta {creado.Cuenta}{(aeat.Identificado ? ", con la razón social de la AEAT" : "")}. Se guarda en la factura con los demás cambios.");
+    }
+
     /// <summary>Pide un texto clave con la cuenta y el centro de la ficha y lo guarda en la empresa (compras/pantallas 2026-11-06 17:02).</summary>
     private Task AnadirTextoClaveAsync(FichaCompraVM ficha)
     {
@@ -456,6 +496,7 @@ public sealed class FacturasRecibidasVM : ModeloVista, IPestanaTrabajo
                 value.PropertyChanged += AlCambiarFicha;
                 value.BuscarCuenta = BuscarCuentaGastoAsync;
                 if (_s.TextosClave is not null && _puedeEditar && !Prueba) value.AnadirTextoClave = AnadirTextoClaveAsync;
+                if (_s.AltaProveedor is not null && _puedeEditar && !Prueba) value.DarDeAltaProveedor = DarDeAltaProveedorAsync;
             }
             Avisar(nameof(HayFicha), nameof(TieneCambios));
             CommandManager.InvalidateRequerySuggested();
