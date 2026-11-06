@@ -45,11 +45,15 @@ public class DialogoProConta : Window
     }
 
 
+    private SizeToContent _ajusteAntes = SizeToContent.Manual;
+
     private void Maximizar()
     {
         if (!Redimensionable) return;
+        // Al restaurar vuelve el ajuste al contenido que tenía (salvo que el operador lo cambiara con el asa).
+        if (WindowState == WindowState.Maximized) { WindowState = WindowState.Normal; SizeToContent = _ajusteAntes; return; }
+        _ajusteAntes = SizeToContent;
         SizeToContent = SizeToContent.Manual;
-        if (WindowState == WindowState.Maximized) { WindowState = WindowState.Normal; return; }
         // Sin borde de Windows, maximizar taparía la barra de tareas: se limita al área de trabajo.
         var area = SystemParameters.WorkArea;
         MaxWidth = area.Width;
