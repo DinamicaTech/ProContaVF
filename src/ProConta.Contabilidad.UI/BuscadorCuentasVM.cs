@@ -59,13 +59,17 @@ public sealed class BuscadorCuentasVM : ModeloVista
     }
 
     /// <summary>
-    /// Cuenta de tres cifras que se propone para crear una subcuenta: la de la seleccionada, la del texto escrito si
-    /// empieza por tres cifras, o vacía.
+    /// Cuenta de tres cifras que se propone para crear una subcuenta: la de la seleccionada si es de los grupos de la
+    /// pantalla (con el filtro quitado, una 572 no se propone para una cuenta de gasto), la del texto escrito si empieza
+    /// por tres cifras, o vacía.
     /// </summary>
     public string CuentaPropuesta =>
-        _seleccionada is { Codigo.Length: >= 3 } s ? s.Codigo[..3]
+        _seleccionada is { Codigo.Length: >= 3 } s && EnGrupos(s.Codigo) ? s.Codigo[..3]
         : _texto.Length >= 3 && _texto[..3].All(char.IsAsciiDigit) ? _texto[..3]
         : Grupos.FirstOrDefault(g => g.Length == 3) ?? "";
+
+    /// <summary>Sin grupos, cualquiera; con grupos, la que empieza por uno de ellos (aunque se haya quitado el filtro).</summary>
+    private bool EnGrupos(string codigo) => !HayGrupos || Grupos.Any(g => codigo.StartsWith(g, StringComparison.Ordinal));
 
     /// <summary>Comprueba la cuenta de tres cifras y devuelve el siguiente código libre de subcuenta, o el error.</summary>
     public async Task<Resultado<string>> SiguienteCodigoAsync(string cuenta)

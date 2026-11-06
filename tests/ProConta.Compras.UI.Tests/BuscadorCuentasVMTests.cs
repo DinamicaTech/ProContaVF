@@ -59,6 +59,12 @@ public sealed class BuscadorCuentasVMTests
         vm.Texto = "629.1";
         Assert.Equal("6290001", vm.Seleccionada?.Codigo);
         Assert.Equal("629", vm.CuentaPropuesta);
+
+        // Con el filtro quitado, una cuenta de otro grupo no se propone para la subcuenta.
+        vm.SoloGrupos = false;
+        vm.Texto = "santander";
+        Assert.Equal("5720017", vm.Seleccionada?.Codigo);
+        Assert.Equal("", vm.CuentaPropuesta);
     }
 
     [Fact]

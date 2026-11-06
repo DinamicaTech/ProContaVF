@@ -34,6 +34,18 @@ public class DialogoProConta : Window
         AceptarCommand = new ComandoDelegado(() => { DialogResult = true; });
     }
 
+    /// <summary>
+    /// Esc cierra sin aceptar aunque ningún botón tenga IsCancel o el foco esté en un campo que no lo deja pasar; un
+    /// control que usa Esc (un desplegable abierto) lo marca como atendido y el diálogo no se cierra.
+    /// </summary>
+    protected override void OnKeyDown(KeyEventArgs e)
+    {
+        base.OnKeyDown(e);
+        if (e.Handled || e.Key != Key.Escape || Keyboard.Modifiers != ModifierKeys.None) return;
+        e.Handled = true;
+        DialogResult = false;
+    }
+
     public override void OnApplyTemplate()
     {
         base.OnApplyTemplate();
