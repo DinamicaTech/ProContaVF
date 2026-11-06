@@ -170,6 +170,8 @@ public sealed class FichaCompraVM : ModeloVista
         _rectifica = Rectificables.FirstOrDefault(r => r.Valor == factura.IdRegistroFacturaRectificada) ?? Rectificables[0];
         _formaPago = FormasPago.FirstOrDefault(x => x.Valor == factura.IdFormaPago) ?? FormasPago[0];
         _notas = factura.Notas ?? "";
+        // Una factura editable sin forma de pago trae la del proveedor; se guarda con lo demás.
+        if (!SoloLectura) ProponerFormaPago();
 
         if (factura.Desgloses.Count > 0)
             foreach (var d in factura.Desgloses) Desgloses.Add(NuevoDesglose(d.TipoIva, d.BaseImponible, d.CuotaIva));
@@ -425,6 +427,7 @@ public sealed class FichaCompraVM : ModeloVista
             if (leida.PorcentajeRetencion is { } p && p != 0) PorcentajeRetencion = p.ToString("0.##", Formatos.Cultura);
         }
         finally { _cargando = false; }
+        ProponerFormaPago();
         if (!string.IsNullOrWhiteSpace(leida.Log)) _confianza = ConfianzaCampos.DesdeLog(leida.Log);
         _manuales.Clear();
         _elegidos.Clear();

@@ -34,6 +34,7 @@ Revisión de la factura reconocida con confianza, candidatos y motivos visibles,
 - 2026-11-06 12:35 · Forma de pago de la ficha: desplegable con filtro de las formas de pago del catálogo, guardada en FacturasCompra.IdFormaPago. Al guardar pasa a ser la forma de pago por defecto del proveedor; las facturas nuevas del proveedor la traen ya puesta y, en la ficha, al cambiar de proveedor sin forma de pago elegida se propone la suya. CuentaFormaPago queda como dato heredado del ERP y no se edita.
 - 2026-11-06 12:36 · Hecho (bloque 1, forma de pago, esquema 20 y 21): forma de pago de la ficha del catálogo, por defecto del proveedor, y mantenimiento «Cuentas de las formas de pago» para su subcuenta por empresa. Pendiente de probar en el equipo, con la copia de pruebas migrada a la versión 21.
 - 2026-11-06 12:55 · Al importar un PDF cuya carpeta no da proveedor, se asigna el proveedor del NIF leído si en la empresa solo hay uno con ese NIF, como ya hacía la ficha al guardar; así la factura nueva trae su forma de pago por defecto. La forma de pago guardada se propone enseguida en las otras facturas del proveedor y F5 vuelve a leer los proveedores.
+- 2026-11-06 13:05 · La forma de pago del proveedor también se propone al abrir una factura editable sin forma de pago y al volver a reconocerla; se guarda con lo demás (también con «Dar por revisada»).
 
 ## Requirements
 - 2026-10-28 12:28 · From sources/01_ESPECIFICACION_FUNCIONAL.docx § 14 RF-COM-06, 07: pantalla de pruebas y revisión final

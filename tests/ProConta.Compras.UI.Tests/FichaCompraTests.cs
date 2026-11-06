@@ -50,6 +50,15 @@ public sealed class FichaCompraTests
         f.Nif = "B12345674";
         Assert.Equal("Transferencia", f.FormaPago.Texto);
 
+        // Al abrir una factura del proveedor sin forma de pago, se propone la suya sin dejar cambios.
+        var suya = Factura();
+        suya.IdProveedor = 8;
+        suya.NifProveedor = "B12345674";
+        var abierta = Ficha(suya);
+        Assert.Equal("Recibo domiciliado", abierta.FormaPago.Texto);
+        Assert.False(abierta.TieneCambios);
+        Assert.Equal("Sin forma de pago", Ficha(suya, soloLectura: true).FormaPago.Texto);
+
         var vieja = Factura();
         vieja.IdFormaPago = 9;
         Assert.Equal("Forma de pago 9 (ya no existe)", Ficha(vieja).FormaPago.Texto);
