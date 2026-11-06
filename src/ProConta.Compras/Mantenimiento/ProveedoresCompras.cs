@@ -40,7 +40,7 @@ public sealed class ProveedorTextosClaveCompra(CatalogoTextosClaveCompra catalog
 
     public override IReadOnlyList<ColumnaLista> Columnas => [new("Texto", "Texto clave"), new("Cuenta", "Cuenta", 90), new("NombreCuenta", "Nombre de la cuenta"), new("Centro", "Centro de coste")];
 
-    public override string TituloRegistro(RegistroMantenimiento r) => r.EsNuevo ? "Nuevo texto clave" : $"«{r.Texto("Texto")}»";
+    public override string TituloRegistro(RegistroMantenimiento r) => r.EsNuevo ? "Nuevo texto clave" : r.Texto("Texto") ?? "Texto clave sin texto";
 
     public override async Task<IReadOnlyList<RegistroMantenimiento>> ListarAsync(ContextoMantenimiento c)
     {
