@@ -16,3 +16,4 @@ Asistente con IA que propone asientos contables a partir de documentos o convers
 - 2026-10-28 12:28 · From docs/README.md (descripción del propietario): asistente para generación de asientos
 - 2026-10-28 13:14 · Q7) b)
 - 2026-10-28 12:28 · idea: Un asistente con IA propone asientos a partir de documentos o texto, revisados por el usuario antes de grabarlos con el motor de asientos.
+- 2026-11-06 12:08 · Apunta en creative labs la posibilidad de que al crear una subcuenta, se pueda usar un asistente IA (p.e. necesito una subcuenta para contabilizar los gastos de un seguro de responsabilidad civil)
