@@ -1,3 +1,4 @@
+using ProConta.Contabilidad.CentrosCoste;
 using ProConta.Contabilidad.Cuentas;
 using ProConta.Nucleo.Contexto;
 using ProConta.Nucleo.Resultados;
@@ -8,12 +9,14 @@ namespace ProConta.Contabilidad.UI;
 /// <summary>
 /// Buscador de cuentas del ejercicio de trabajo (contabilidad/cuenta-contable 2026-11-06), común a todas las pantallas.
 /// Cada pantalla lo limita a sus grupos (la cuenta de gasto, al 6) y el operador puede quitar el filtro con una casilla.
-/// «Crear subcuenta» pide la cuenta de tres cifras (por defecto, la de la seleccionada) y después el código, que propone el
-/// siguiente libre, y el nombre.
+/// «Crear subcuenta» elige la cuenta de tres cifras en un desplegable (código, nombre y descripción; por defecto, la de
+/// la seleccionada) y después pide el código, que propone el siguiente libre, el nombre, la descripción y el centro de
+/// coste por defecto.
 /// </summary>
 public sealed class BuscadorCuentasVM : ModeloVista
 {
     private readonly ICatalogoCuentas _cuentas;
+    private readonly ICatalogoCentrosCoste? _centrosCoste;
     private readonly ContextoSociedadEjercicio _trabajo;
     private List<CuentaContable> _todas = [];
     private string _texto;
@@ -22,9 +25,11 @@ public sealed class BuscadorCuentasVM : ModeloVista
     private CuentaContable? _seleccionada;
     private string _estado = "Leyendo el plan de cuentas…";
 
-    public BuscadorCuentasVM(ICatalogoCuentas cuentas, ContextoSociedadEjercicio trabajo, IReadOnlyList<string> grupos, string? texto = null)
+    public BuscadorCuentasVM(ICatalogoCuentas cuentas, ContextoSociedadEjercicio trabajo, IReadOnlyList<string> grupos, string? texto = null,
+        ICatalogoCentrosCoste? centrosCoste = null)
     {
         _cuentas = cuentas;
+        _centrosCoste = centrosCoste;
         _trabajo = trabajo;
         Grupos = grupos;
         _soloGrupos = grupos.Count > 0;
@@ -42,10 +47,16 @@ public sealed class BuscadorCuentasVM : ModeloVista
     public CuentaContable? Seleccionada { get => _seleccionada; set { if (Fijar(ref _seleccionada, value)) Avisar(nameof(CuentaPropuesta)); } }
     public string Estado { get => _estado; private set => Fijar(ref _estado, value); }
 
-    /// <summary>Lee las cuentas del ejercicio y aplica el texto inicial.</summary>
+    /// <summary>Centros de coste imputables de la sociedad, para el centro de coste por defecto de la subcuenta.</summary>
+    public IReadOnlyList<CentroCoste> CentrosCoste { get; private set; } = [];
+
+    /// <summary>Lee las cuentas del ejercicio (y los centros de coste) y aplica el texto inicial.</summary>
     public async Task CargarAsync()
     {
         _todas = (await _cuentas.ListarAsync(_trabajo)).ToList();
+        if (_centrosCoste is not null)
+            CentrosCoste = (await _centrosCoste.ListarAsync(_trabajo.IdSociedad)).Where(c => c.EstaActivo && c.EsImputable)
+                .OrderBy(c => c.RutaJerarquica, StringComparer.Ordinal).ToList();
         Filtrar();
     }
 
@@ -57,6 +68,14 @@ public sealed class BuscadorCuentasVM : ModeloVista
             ? _soloGrupos && HayGrupos ? $"Ninguna cuenta del {(Grupos.Count == 1 ? "grupo " + Grupos[0] : "filtro")} coincide. Quita «{TextoGrupos}» o crea la subcuenta." : "Ninguna cuenta coincide. Puedes crear la subcuenta."
             : Resultados.Count == 1 ? "1 cuenta" : $"{Resultados.Count} cuentas";
     }
+
+    /// <summary>
+    /// Cuentas de tres cifras del ejercicio en las que se puede crear una subcuenta: activas y, con el filtro puesto, de
+    /// los grupos de la pantalla.
+    /// </summary>
+    public IReadOnlyList<CuentaContable> CuentasPadre =>
+        _todas.Where(c => c.Codigo.Length == 3 && c.Codigo.All(char.IsAsciiDigit) && c.EstaActiva && (!_soloGrupos || EnGrupos(c.Codigo)))
+            .OrderBy(c => c.Codigo, StringComparer.Ordinal).ToList();
 
     /// <summary>
     /// Cuenta de tres cifras que se propone para crear una subcuenta: la de la seleccionada si es de los grupos de la
@@ -76,18 +95,21 @@ public sealed class BuscadorCuentasVM : ModeloVista
     {
         var c = (cuenta ?? "").Trim();
         if (c.Length != 3 || !c.All(char.IsAsciiDigit))
-            return Resultado<string>.Fallo(new Error("Cuentas.CuentaNoValida", "La cuenta tiene tres cifras.", null, null, "Escribe, por ejemplo, 629."));
+            return Resultado<string>.Fallo(new Error("Cuentas.CuentaNoValida", "Elige la cuenta de tres cifras en la que va la subcuenta.", null, null, "Por ejemplo, 629."));
         if (_soloGrupos && HayGrupos && !Grupos.Any(g => c.StartsWith(g, StringComparison.Ordinal) || g.StartsWith(c, StringComparison.Ordinal)))
             return Resultado<string>.Fallo(new Error("Cuentas.FueraDeGrupo", $"La cuenta {c} no es del {TextoGrupos.ToLowerInvariant().Replace("solo ", "")}.", null, null,
-                $"Escribe una cuenta del grupo o quita «{TextoGrupos}» en el buscador."));
+                $"Elige una cuenta del grupo o quita «{TextoGrupos}» en el buscador."));
         var siguiente = await _cuentas.SiguienteSubcuentaAsync(_trabajo, c);
         return siguiente is null
             ? Resultado<string>.Fallo(new Error("Cuentas.SinCodigos", $"No quedan códigos libres en la cuenta {c}.", null, null, "Escribe el código a mano o usa otra cuenta."))
             : Resultado<string>.Correcto(siguiente);
     }
 
-    /// <summary>Da de alta la subcuenta en el ejercicio de trabajo (bajo la cuenta de tres cifras si existe) y la elige.</summary>
-    public async Task<Resultado<CuentaContable>> CrearAsync(string cuenta, string codigo, string nombre)
+    /// <summary>
+    /// Da de alta la subcuenta en el ejercicio de trabajo (bajo la cuenta de tres cifras si existe), con su descripción
+    /// y su centro de coste por defecto, y la elige.
+    /// </summary>
+    public async Task<Resultado<CuentaContable>> CrearAsync(string cuenta, string codigo, string nombre, string? descripcion = null, int? idCentroCoste = null)
     {
         var c = (cuenta ?? "").Trim();
         var cod = (codigo ?? "").Trim();
@@ -95,7 +117,8 @@ public sealed class BuscadorCuentasVM : ModeloVista
             return Resultado<CuentaContable>.Fallo(new Error("Cuentas.CodigoFueraDeCuenta", $"El código de la subcuenta tiene que empezar por {c} y ser más largo.", null, null,
                 "Corrige el código o vuelve al paso anterior para elegir otra cuenta."));
         var padre = await _cuentas.ResolverAsync(_trabajo, c);
-        var alta = await _cuentas.AltaAsync(_trabajo, new AltaCuenta(cod, nombre, padre.EsCorrecto ? padre.Valor.IdCuentaContable : null));
+        var alta = await _cuentas.AltaAsync(_trabajo, new AltaCuenta(cod, nombre, padre.EsCorrecto ? padre.Valor.IdCuentaContable : null,
+            IdCentroCostePredeterminado: idCentroCoste, Descripcion: descripcion));
         if (!alta.EsCorrecto) return alta;
         _todas.Add(alta.Valor);
         _texto = cod;

@@ -20,7 +20,7 @@ public sealed class BuscadorCuentasVMTests
     private sealed class PlanFalso : ICatalogoCuentas
     {
         public List<CuentaContable> Cuentas { get; } =
-            [C(1, "629", "Otros servicios", imputable: false), C(2, "6290001", "Gastos de viaje"), C(3, "6280011", "Suministros: electricidad"), C(4, "5720017", "Banco Santander")];
+            [C(1, "629", "Otros servicios", imputable: false), C(2, "6290001", "Gastos de viaje") with { Descripcion = "Desplazamientos del personal" }, C(3, "6280011", "Suministros: electricidad"), C(4, "5720017", "Banco Santander")];
 
         public Task<IReadOnlyList<CuentaContable>> ListarAsync(ContextoSociedadEjercicio contexto, string? prefijo = null) =>
             Task.FromResult<IReadOnlyList<CuentaContable>>(Cuentas.Where(c => prefijo is null || c.Codigo.StartsWith(prefijo, StringComparison.Ordinal)).ToList());
@@ -31,7 +31,10 @@ public sealed class BuscadorCuentasVMTests
         public Task<Resultado<CuentaContable>> AltaAsync(ContextoSociedadEjercicio contexto, AltaCuenta alta)
         {
             if (string.IsNullOrWhiteSpace(alta.Nombre)) return Task.FromResult(Resultado<CuentaContable>.Fallo(new Error("Cuentas.NombreNoValido", "Falta el nombre de la cuenta.")));
-            var c = C(Cuentas.Count + 1, alta.Codigo, alta.Nombre) with { IdCuentaPadre = alta.IdCuentaPadre };
+            var c = C(Cuentas.Count + 1, alta.Codigo, alta.Nombre) with
+            {
+                IdCuentaPadre = alta.IdCuentaPadre, Descripcion = alta.Descripcion, IdCentroCostePredeterminado = alta.IdCentroCostePredeterminado,
+            };
             Cuentas.Add(c);
             return Task.FromResult(Resultado<CuentaContable>.Correcto(c));
         }
@@ -56,6 +59,8 @@ public sealed class BuscadorCuentasVMTests
         vm.SoloGrupos = false;
         Assert.Equal(["5720017"], vm.Resultados.Select(c => c.Codigo));
         vm.SoloGrupos = true;
+        vm.Texto = "desplazamientos";
+        Assert.Equal(["6290001"], vm.Resultados.Select(c => c.Codigo));
         vm.Texto = "629.1";
         Assert.Equal("6290001", vm.Seleccionada?.Codigo);
         Assert.Equal("629", vm.CuentaPropuesta);
@@ -82,9 +87,10 @@ public sealed class BuscadorCuentasVMTests
 
         Assert.Equal("Cuentas.CodigoFueraDeCuenta", (await vm.CrearAsync("629", "6280002", "Agua")).Errores[0].Codigo);
         Assert.False((await vm.CrearAsync("629", "6290002", " ")).EsCorrecto);
-        var creada = await vm.CrearAsync("629", "6290002", "Suministros: agua");
+        Assert.Equal(["629"], vm.CuentasPadre.Select(c => c.Codigo));
+        var creada = await vm.CrearAsync("629", "6290002", "Suministros: agua", "Agua de la oficina", 3);
         Assert.True(creada.EsCorrecto);
-        Assert.Equal(1, creada.Valor.IdCuentaPadre);
+        Assert.Equal((1, "Agua de la oficina", 3), (creada.Valor.IdCuentaPadre, creada.Valor.Descripcion, creada.Valor.IdCentroCostePredeterminado!.Value));
         Assert.Equal("6290002", vm.Seleccionada?.Codigo);
         Assert.Equal(["6290002"], vm.Resultados.Select(c => c.Codigo));
     }
@@ -96,7 +102,8 @@ public sealed class BuscadorCuentasVMTests
             IdRegistro = 5, Ejercicio = Ctx, RutaPdf = @"X:\D\f.pdf", Md5 = "0123456789abcdef0123456789abcdef", Carpeta = "Ficticio",
             NifProveedor = "B61465332", NumeroFactura = "FV1", Fecha = new DateTime(2026, 2, 10), CuentaGasto = "6000000", Version = 1,
         };
-        var ficha = new FichaCompraVM(f, [], [new("6000000 · Compras", "6000000"), new("6290001 · Gastos de viaje", "6290001")], Array.Empty<CentroCoste>(), [], soloLectura: false);
+        var ficha = new FichaCompraVM(f, [], [new("6000000 · Compras", "6000000"), new("6290001 · Gastos de viaje", "6290001")],
+            [new CentroCoste(3, "T01", null, "3", "COCHES", true, true, 0, "3")], [], soloLectura: false);
         ficha.BuscarCuenta = t => { textos.Add(t); return buscar(t); };
         return ficha;
     }
@@ -105,7 +112,7 @@ public sealed class BuscadorCuentasVMTests
     public async Task La_cuenta_de_gasto_admite_el_punto_y_abre_el_buscador_con_un_codigo_desconocido()
     {
         var textos = new List<string>();
-        var ficha = Ficha(_ => Task.FromResult<CuentaContable?>(C(9, "6290002", "Suministros: agua")), textos);
+        var ficha = Ficha(_ => Task.FromResult<CuentaContable?>(C(9, "6290002", "Suministros: agua") with { IdCentroCostePredeterminado = 3 }), textos);
         Assert.Equal(("6000000", "Compras"), (ficha.CodigoCuentaGasto, ficha.NombreCuentaGasto));
 
         ficha.CodigoCuentaGasto = "629.1";
@@ -120,7 +127,7 @@ public sealed class BuscadorCuentasVMTests
         Assert.Equal(["agua"], textos);
         Assert.Equal(("6290002", "Suministros: agua"), (ficha.CodigoCuentaGasto, ficha.NombreCuentaGasto));
         Assert.Contains(ficha.CuentasGasto, c => c.Valor == "6290002");
-        Assert.Equal("6290002", ficha.Construir().CuentaGasto);
+        Assert.Equal(("6290002", 3), (ficha.Construir().CuentaGasto, ficha.Construir().IdCentroCoste!.Value));
 
         ficha.CodigoCuentaGasto = "";
         Assert.Null(ficha.Construir().CuentaGasto);

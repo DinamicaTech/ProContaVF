@@ -31,7 +31,7 @@ public static class BuscadorCuentas
     /// <summary>
     /// Las cuentas que admiten apuntes (activas, no bloqueadas e imputables), de los <paramref name="grupos"/> si se dan
     /// (prefijos de código), que coinciden con <paramref name="texto"/>: por el principio del código (con el punto
-    /// expandido) si son cifras, o por cualquier parte del nombre sin distinguir mayúsculas ni acentos.
+    /// expandido) si son cifras, o por cualquier parte del nombre o de la descripción sin distinguir mayúsculas ni acentos.
     /// </summary>
     public static IReadOnlyList<CuentaContable> Filtrar(IEnumerable<CuentaContable> cuentas, string? texto, IReadOnlyList<string>? grupos)
     {
@@ -47,7 +47,8 @@ public static class BuscadorCuentas
             else
             {
                 var buscado = Plano(t);
-                q = q.Where(c => Plano(c.Nombre).Contains(buscado, StringComparison.Ordinal) || c.Codigo.StartsWith(t, StringComparison.Ordinal));
+                q = q.Where(c => Plano(c.Nombre).Contains(buscado, StringComparison.Ordinal) || Plano(c.Descripcion).Contains(buscado, StringComparison.Ordinal)
+                    || c.Codigo.StartsWith(t, StringComparison.Ordinal));
             }
         }
         return q.OrderBy(c => c.Codigo, StringComparer.Ordinal).ToList();

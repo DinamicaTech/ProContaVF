@@ -368,6 +368,9 @@ public sealed class FichaCompraVM : ModeloVista
                 Avisar(nameof(CuentasGasto));
             }
             CuentaGasto = op;
+            // Sin centro de coste en la factura, el de la cuenta (contabilidad/cuenta-contable 2026-11-06 18:10).
+            if (_centroCoste.Valor is null && elegida.IdCentroCostePredeterminado is int cc && CentrosCoste.FirstOrDefault(c => c.Valor == cc) is { } centro)
+                CentroCoste = centro;
         }
         finally
         {

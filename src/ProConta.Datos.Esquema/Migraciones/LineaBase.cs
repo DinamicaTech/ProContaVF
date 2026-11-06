@@ -69,6 +69,7 @@ public static class CatalogoMigraciones
         MigracionesCompras.FormaPagoCompras,
         MigracionesOrganizacion.TiposRetencion,
         MigracionesCompras.ProductoDefectoProveedor,
+        MigracionesContabilidad.DescripcionCuentas,
     ];
 
     /// <summary>Versión del esquema que espera esta versión del programa.</summary>

@@ -422,7 +422,7 @@ public sealed class FacturasRecibidasVM : ModeloVista, IPestanaTrabajo
     /// </summary>
     private Task<ProConta.Contabilidad.Cuentas.CuentaContable?> BuscarCuentaGastoAsync(string texto)
     {
-        var buscador = new ProConta.Contabilidad.UI.BuscadorCuentasVM(_s.Cuentas, _s.Trabajo, ["6"], texto);
+        var buscador = new ProConta.Contabilidad.UI.BuscadorCuentasVM(_s.Cuentas, _s.Trabajo, ["6"], texto, _s.CentrosCoste);
         var c = _modulo.Dialogos.ElegirCuenta(buscador, "Cuenta de gasto");
         if (c is not null && c.Codigo.StartsWith('6') && _cuentasGasto.All(o => o.Valor != c.Codigo))
             _cuentasGasto = [.. _cuentasGasto.Append(new OpcionFicha<string>($"{c.Codigo} · {c.Nombre}", c.Codigo)).OrderBy(o => o.Valor, StringComparer.Ordinal)];
