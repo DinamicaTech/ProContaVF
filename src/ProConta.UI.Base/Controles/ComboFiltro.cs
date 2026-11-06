@@ -39,6 +39,7 @@ public static class ComboFiltro
             c.SelectionChanged += AlElegir;
             c.LostKeyboardFocus += AlSalir;
             c.DropDownClosed += AlCerrar;
+            c.PreviewKeyDown += AlPulsar;
         }
         else
         {
@@ -46,6 +47,7 @@ public static class ComboFiltro
             c.SelectionChanged -= AlElegir;
             c.LostKeyboardFocus -= AlSalir;
             c.DropDownClosed -= AlCerrar;
+            c.PreviewKeyDown -= AlPulsar;
         }
     }
 
@@ -70,6 +72,31 @@ public static class ComboFiltro
             if (c.Template.FindName("PART_EditableTextBox", c) is TextBox caja) { caja.SelectionLength = 0; caja.CaretIndex = texto.Length; }
         }
         finally { c.SetValue(AplicandoProperty, false); }
+    }
+
+    /// <summary>
+    /// ↑ ↓ con la lista abierta recorren los elementos que deja el filtro: el combo editable, por sí solo, parte del elemento
+    /// elegido aunque el filtro lo haya ocultado y no avanza. Enter cierra la lista con el resaltado elegido.
+    /// </summary>
+    private static void AlPulsar(object sender, KeyEventArgs e)
+    {
+        var c = (ComboBox)sender;
+        if (e.Key is not (Key.Down or Key.Up) || !c.IsDropDownOpen || Keyboard.Modifiers != ModifierKeys.None || Vista(c) is not { } vista) return;
+        var visibles = vista.Cast<object>().ToList();
+        if (visibles.Count == 0) { e.Handled = true; return; }
+        var actual = c.SelectedItem is { } sel ? visibles.IndexOf(sel) : -1;
+        var siguiente = actual < 0 ? (e.Key == Key.Down ? 0 : visibles.Count - 1)
+            : Math.Clamp(actual + (e.Key == Key.Down ? 1 : -1), 0, visibles.Count - 1);
+        c.SetValue(AplicandoProperty, true);
+        try
+        {
+            c.SelectedItem = visibles[siguiente];
+            // Elegir pone el texto del elemento; el filtro sigue siendo lo que escribió el operador hasta cerrar la lista.
+            if (c.Template.FindName("PART_EditableTextBox", c) is TextBox caja) caja.SelectAll();
+        }
+        finally { c.SetValue(AplicandoProperty, false); }
+        if (c.ItemContainerGenerator.ContainerFromItem(visibles[siguiente]) is ComboBoxItem item) item.BringIntoView();
+        e.Handled = true;
     }
 
     private static void AlElegir(object sender, SelectionChangedEventArgs e)
