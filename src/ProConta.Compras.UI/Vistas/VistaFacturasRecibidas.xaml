@@ -206,7 +206,7 @@
             </StackPanel>
           </Border>
 
-          <ContentControl Content="{Binding Ficha}" Focusable="False">
+          <ContentControl Content="{Binding Ficha}" Focusable="False" Visibility="{Binding HayFicha, Converter={StaticResource Visible}}">
             <ContentControl.ContentTemplate>
               <DataTemplate>
                 <StackPanel>
