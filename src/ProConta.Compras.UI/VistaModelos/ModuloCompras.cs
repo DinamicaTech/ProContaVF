@@ -11,6 +11,7 @@ namespace ProConta.Compras.UI.VistaModelos;
 /// Servicios que usan las pantallas de compras, ya ligados a la sociedad y el ejercicio de trabajo. <c>TiposIva</c>: los tipos
 /// de IVA 1 a 4 del ejercicio (organizacion/sociedades-ejercicios), para el desplegable de la ficha. <c>FormasPago</c>: el
 /// catálogo de formas de pago (organizacion/formas-pago). <c>TiposRetencion</c>: los tipos de retención vigentes.
+/// <c>TextosClave</c>: los textos clave de compras de la empresa.
 /// </summary>
 public sealed record ServiciosCompras(
     ServicioFacturasCompra Facturas,
@@ -21,7 +22,8 @@ public sealed record ServiciosCompras(
     Func<Task<bool>> PuedeEditar,
     Func<Task<IReadOnlyList<decimal>>>? TiposIva = null,
     Func<Task<IReadOnlyList<(byte Id, string Descripcion)>>>? FormasPago = null,
-    Func<Task<IReadOnlyList<TipoRetencionCompra>>>? TiposRetencion = null);
+    Func<Task<IReadOnlyList<TipoRetencionCompra>>>? TiposRetencion = null,
+    CatalogoTextosClaveCompra? TextosClave = null);
 
 /// <summary>Diálogos de compras (en la vista, para que los modelos de vista se prueben sin ventanas).</summary>
 public interface IDialogosCompras
@@ -39,6 +41,12 @@ public interface IDialogosCompras
 
     /// <summary>Buscador de cuentas común (contabilidad/cuenta-contable): la cuenta elegida o creada, o null si se cancela.</summary>
     ProConta.Contabilidad.Cuentas.CuentaContable? ElegirCuenta(ProConta.Contabilidad.UI.BuscadorCuentasVM buscador, string titulo);
+
+    /// <summary>
+    /// «Añadir texto clave…»: pide el texto y qué asigna (la cuenta, el centro o los dos, de los que se dan) y lo guarda con
+    /// <paramref name="guardar"/>, que devuelve el error que se enseña en el diálogo o null. True si se guardó.
+    /// </summary>
+    bool PedirTextoClave(string? cuenta, string? centro, Func<string, bool, bool, Task<string?>> guardar);
 }
 
 /// <summary>

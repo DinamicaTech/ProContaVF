@@ -212,6 +212,29 @@ public sealed class FacturaCompra
     /// <summary>Con proveedor, número, fecha e importes que cuadran.</summary>
     public bool Lista => Pendiente().Count == 0;
 
+    /// <summary>
+    /// Añade avisos al log del reconocimiento (los ve la ficha) y marca la factura para revisión. Un log que no es el
+    /// JSON del reconocimiento se sustituye por uno con solo los avisos.
+    /// </summary>
+    public void AnadirAvisos(IReadOnlyList<string> avisos)
+    {
+        if (avisos.Count == 0) return;
+        System.Text.Json.Nodes.JsonObject raiz;
+        try
+        {
+            raiz = System.Text.Json.Nodes.JsonNode.Parse(string.IsNullOrWhiteSpace(Log) ? "{}" : Log) as System.Text.Json.Nodes.JsonObject ?? [];
+        }
+        catch (System.Text.Json.JsonException)
+        {
+            raiz = [];
+        }
+        if (raiz["advertencias"] is not System.Text.Json.Nodes.JsonArray lista)
+            raiz["advertencias"] = lista = [];
+        foreach (var a in avisos) lista.Add(a);
+        Log = raiz.ToJsonString();
+        RequiereRevision = true;
+    }
+
     /// <summary>Primer nivel bajo la carpeta «Proveedores» (o la carpeta del PDF, si no está dentro de una).</summary>
     public static string CarpetaDe(string rutaPdf)
     {

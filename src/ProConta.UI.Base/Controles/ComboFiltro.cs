@@ -40,6 +40,7 @@ public static class ComboFiltro
             c.LostKeyboardFocus += AlSalir;
             c.DropDownClosed += AlCerrar;
             c.GotKeyboardFocus += AlEntrar;
+            c.Loaded += AlCargar;
             RegistrarTeclas();
         }
         else
@@ -49,7 +50,18 @@ public static class ComboFiltro
             c.LostKeyboardFocus -= AlSalir;
             c.DropDownClosed -= AlCerrar;
             c.GotKeyboardFocus -= AlEntrar;
+            c.Loaded -= AlCargar;
         }
+    }
+
+    /// <summary>
+    /// El menú contextual del combo vale también sobre su texto: si no, la caja editable enseña el suyo (Cortar, Copiar,
+    /// Pegar) y el del combo no sale.
+    /// </summary>
+    private static void AlCargar(object sender, RoutedEventArgs e)
+    {
+        var c = (ComboBox)sender;
+        if (c.ContextMenu is not null && c.Template?.FindName("PART_EditableTextBox", c) is TextBox { ContextMenu: null } caja) caja.ContextMenu = c.ContextMenu;
     }
 
     private static ICollectionView? Vista(ComboBox c) => c.ItemsSource is null ? null : CollectionViewSource.GetDefaultView(c.ItemsSource);

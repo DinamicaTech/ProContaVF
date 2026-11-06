@@ -178,6 +178,8 @@ public sealed class FichaCompraVM : ModeloVista
         _totalDivisa = factura.ImporteTotalDivisa is { } td ? Formatos.Numero(td) : "";
         _cuentaGasto = CuentasGasto.FirstOrDefault(c => c.Valor == factura.CuentaGasto) ?? CuentasGasto[0];
         _centroCoste = CentrosCoste.FirstOrDefault(c => c.Valor == factura.IdCentroCoste) ?? CentrosCoste[0];
+        AnadirTextoClaveCommand = new ComandoDelegado(_ => _ = AnadirTextoClave?.Invoke(this),
+            _ => AnadirTextoClave is not null && (_cuentaGasto.Valor is not null || _centroCoste.Valor is not null));
         _rectifica = Rectificables.FirstOrDefault(r => r.Valor == factura.IdRegistroFacturaRectificada) ?? Rectificables[0];
         _formaPago = FormasPago.FirstOrDefault(x => x.Valor == factura.IdFormaPago) ?? FormasPago[0];
         _notas = factura.Notas ?? "";
@@ -325,6 +327,22 @@ public sealed class FichaCompraVM : ModeloVista
 
     /// <summary>Abre el buscador de cuentas (lo pone la pantalla): recibe el texto y devuelve la cuenta elegida o creada, o null.</summary>
     internal Func<string, Task<CuentaContable?>>? BuscarCuenta { get; set; }
+
+    /// <summary>
+    /// «Añadir texto clave…» en el menú contextual de la cuenta de gasto y del centro de coste (compras/pantallas
+    /// 2026-11-06 17:02): un texto que, si aparece en el contenido o la ruta de un PDF, le asigna la cuenta y el centro
+    /// que tiene ahora la ficha. No cambia la factura.
+    /// </summary>
+    public System.Windows.Input.ICommand AnadirTextoClaveCommand { get; }
+
+    /// <summary>Lo pone la pantalla: pide el texto y lo guarda.</summary>
+    internal Func<FichaCompraVM, Task>? AnadirTextoClave { get; set; }
+
+    /// <summary>Cuenta de gasto elegida en la ficha (código y «código · nombre»), o null.</summary>
+    internal (string Codigo, string Texto)? CuentaGastoActual => _cuentaGasto.Valor is { } v ? (v, _cuentaGasto.Texto) : null;
+
+    /// <summary>Centro de coste elegido en la ficha, o null.</summary>
+    internal (int Id, string Texto)? CentroCosteActual => _centroCoste.Valor is int v ? (v, _centroCoste.Texto) : null;
 
     private void EscribirCuentaGasto(string? texto)
     {
