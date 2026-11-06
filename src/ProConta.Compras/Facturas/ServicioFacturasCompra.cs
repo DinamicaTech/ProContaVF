@@ -335,6 +335,7 @@ public sealed class ServicioFacturasCompra(
         leida.CuentaGasto = factura.CuentaGasto;
         leida.IdCentroCoste = factura.IdCentroCoste;
         leida.CuentaFormaPago = factura.CuentaFormaPago;
+        leida.IdFormaPago = factura.IdFormaPago;
         leida.Notas = factura.Notas;
         leida.Operacion = factura.Operacion;
         leida.Producto = factura.Producto;

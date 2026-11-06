@@ -13,7 +13,7 @@ namespace ProConta.Organizacion.Mantenimiento;
 public static class ProveedoresOrganizacion
 {
     public static IEnumerable<IProveedorMantenimiento> Todos(IBaseDatos bd) =>
-        [Empresas(bd), Ejercicios(bd), new ProveedorFormasPago(bd, new CatalogoFormasPagoAccess(bd))];
+        [Empresas(bd), Ejercicios(bd), new ProveedorFormasPago(bd, new CatalogoFormasPagoAccess(bd)), new ProveedorFormasPagoSociedad(new CatalogoFormasPagoSociedad(bd))];
 
     internal static IReadOnlyList<GrupoCampos> GruposEmpresa =>
         [new("ident", "Identificación"), new("pred", "Valores predeterminados"), new("impuestos", "Impuestos y retenciones"), new("cuentas", "Cuentas"), new("rutas", "Rutas y bases de datos")];
@@ -161,4 +161,58 @@ public sealed class ProveedorFormasPago(IBaseDatos bd, ICatalogoFormasPago catal
 
     public override Task<Resultado> EliminarAsync(RegistroMantenimiento registro, ContextoMantenimiento contexto) =>
         catalogo.BajaAsync(Convert.ToByte(registro.Clave, CultureInfo.InvariantCulture));
+}
+
+/// <summary>
+/// Subcuenta de cada forma de pago en la empresa de trabajo (FormasPagoSociedad, organizacion/formas-pago 2026-11-06). Lista
+/// todas las formas de pago; solo se cambia la cuenta. Las formas de pago se crean y borran en «Formas de pago».
+/// </summary>
+public sealed class ProveedorFormasPagoSociedad(CatalogoFormasPagoSociedad catalogo) : ProveedorBase
+{
+    public override string Clave => "formaspagosociedad";
+    public override string Titulo => "Cuentas de las formas de pago";
+    public override string Categoria => "Empresas y ejercicios";
+    public override string Finalidad => "Subcuenta de tesorería o de efectos que usa cada forma de pago en la empresa de trabajo.";
+    public override AmbitoMantenimiento Ambito => AmbitoMantenimiento.Sociedad;
+    public override bool PermiteAlta => false;
+    public override bool PermiteBaja => false;
+    public override string NombreRegistro => "forma de pago";
+    public override IReadOnlyList<string> Sinonimos => ["forma de pago", "cuenta de pago", "banco", "caja", "572", "tesoreria"];
+
+    public override IReadOnlyList<CampoMantenimiento> Campos =>
+    [
+        new("Descripcion", "Forma de pago") { SoloLectura = true, Ancho = "l" },
+        new("Cuenta", "Subcuenta", TipoCampo.Cuenta) { Longitud = 30, Ancho = "s", Sinonimos = ["cuenta", "572", "banco"],
+            Ayuda = "Código en el ejercicio de trabajo. Se guarda su identidad contable, así vale en los demás ejercicios aunque cambie el código. Vacía, la forma de pago no tiene subcuenta en esta empresa." },
+        new("NombreCuenta", "Nombre de la cuenta") { SoloLectura = true, Ancho = "l" },
+    ];
+
+    public override IReadOnlyList<ColumnaLista> Columnas => [new("Descripcion", "Forma de pago"), new("Cuenta", "Subcuenta", 90), new("NombreCuenta", "Nombre de la cuenta")];
+
+    public override string TituloRegistro(RegistroMantenimiento r) => r.Texto("Descripcion") ?? $"Forma de pago {r.Clave}";
+    public override string? SubtituloRegistro(RegistroMantenimiento r) => $"Código {r.Clave}";
+
+    public override async Task<IReadOnlyList<RegistroMantenimiento>> ListarAsync(ContextoMantenimiento c) =>
+        (await catalogo.ListarAsync(c.Trabajo)).Select(AsRegistro).ToList();
+
+    private static RegistroMantenimiento AsRegistro(FormaPagoSociedad x) => new(x.IdFormaPago, new Dictionary<string, object?>
+    {
+        ["Descripcion"] = x.Descripcion, ["Cuenta"] = x.Cuenta,
+        ["NombreCuenta"] = x.Cuenta is null ? null : x.CuentaEnEjercicio ? x.NombreCuenta : $"{x.NombreCuenta} (no existe en este ejercicio)",
+        ["_CuentaOriginal"] = x.Cuenta,
+    });
+
+    public override async Task<Resultado<RegistroMantenimiento>> GuardarAsync(RegistroMantenimiento r, ContextoMantenimiento c)
+    {
+        var id = Convert.ToByte(r.Clave, CultureInfo.InvariantCulture);
+        var cuenta = r.Texto("Cuenta");
+        // Si no se tocó una cuenta que no existe en el ejercicio, se conserva su identidad.
+        if (cuenta is null || cuenta != r["_CuentaOriginal"] as string)
+        {
+            var g = await catalogo.AsignarAsync(id, cuenta, c.Trabajo);
+            if (!g.EsCorrecto) return Resultado<RegistroMantenimiento>.Fallo(g.Errores);
+        }
+        var guardado = (await catalogo.ListarAsync(c.Trabajo)).First(x => x.IdFormaPago == id);
+        return Resultado<RegistroMantenimiento>.Correcto(AsRegistro(guardado));
+    }
 }

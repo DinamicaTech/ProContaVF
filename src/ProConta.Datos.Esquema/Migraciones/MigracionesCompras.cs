@@ -86,4 +86,25 @@ public static class MigracionesCompras
             "FechaAlta DATETIME NOT NULL, FechaUso DATETIME NOT NULL)"),
         new CrearIndice("PlantillasReconocimientoCompra", "IX_PRC_SociedadCarpeta",
             "CREATE INDEX IX_PRC_SociedadCarpeta ON PlantillasReconocimientoCompra (IdSociedad, Carpeta)"));
+    /// <summary>
+    /// Forma de pago de la factura de compra y la del proveedor por defecto (compras/pantallas 2026-11-06): la factura
+    /// apunta a FormasPago (su subcuenta sale de FormasPagoSociedad) y la cuenta del proveedor en la empresa guarda la
+    /// última que se le asignó, que se propone en sus facturas nuevas. CuentaFormaPago queda como dato heredado del ERP.
+    /// </summary>
+    public static Migracion FormaPagoCompras { get; } = new(
+        "20261106_1310_FORMA_PAGO_COMPRAS", 261106002,
+        "Facturas de compra: forma de pago y forma de pago por defecto del proveedor.",
+        "compras/factura-compra",
+        new AnadirColumna("FacturasCompra", "IdFormaPago", "BYTE"),
+        Relacion("FacturasCompra", "IdFormaPago", "FK_FacturasCompra_FormaPago"),
+        new AnadirColumna("CuentasProveedoresSociedad", "IdFormaPagoDefecto", "BYTE"),
+        Relacion("CuentasProveedoresSociedad", "IdFormaPagoDefecto", "FK_CPS_FormaPagoDefecto"));
+
+    private static PasoPersonalizado Relacion(string tabla, string columna, string nombre)
+    {
+        var sql = $"ALTER TABLE {tabla} ADD CONSTRAINT {nombre} FOREIGN KEY ({columna}) REFERENCES FormasPago (Id)";
+        return new PasoPersonalizado($"Relacionar {tabla}.{columna} con FormasPago", sql,
+            (_, e) => Task.FromResult(MigracionesOrganizacion.TieneRelacion(e, tabla, nombre)),
+            (s, _) => s.EjecutarAsync(sql));
+    }
 }

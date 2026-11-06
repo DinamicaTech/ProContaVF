@@ -41,6 +41,7 @@ public sealed class FacturasRecibidasVM : ModeloVista, IPestanaTrabajo
     private IReadOnlyList<OpcionFicha<string>> _cuentasGasto = [];
     private IReadOnlyList<CentroCoste> _centros = [];
     private IReadOnlyList<decimal> _tiposIva = [];
+    private IReadOnlyList<(byte Id, string Descripcion)> _formasPago = [];
     private IReadOnlyList<FilaCompraVM> _seleccion = [];
     private object? _vista;
     private EstadoVista _estado = EstadoVista.Cargando;
@@ -185,6 +186,7 @@ public sealed class FacturasRecibidasVM : ModeloVista, IPestanaTrabajo
                 .Select(c => new OpcionFicha<string>($"{c.Codigo} · {c.Nombre}", c.Codigo)).ToList();
             _centros = await _s.CentrosCoste.ListarAsync(_s.Trabajo.IdSociedad);
             if (_s.TiposIva is { } tipos) _tiposIva = await tipos();
+            if (_s.FormasPago is { } formas) _formasPago = await formas();
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
@@ -391,11 +393,11 @@ public sealed class FacturasRecibidasVM : ModeloVista, IPestanaTrabajo
             if (factura.Contabilizada) _ = CargarAsientoAsync(factura, carga);
             if (!Prueba)
             {
-                Ficha = new FichaCompraVM(factura, _proveedores, _cuentasGasto, _centros, _datos, soloLectura: !_puedeEditar, tiposIva: _tiposIva);
+                Ficha = new FichaCompraVM(factura, _proveedores, _cuentasGasto, _centros, _datos, soloLectura: !_puedeEditar, tiposIva: _tiposIva, formasPago: _formasPago);
                 return;
             }
             // Modo prueba: se reconoce de nuevo el PDF y se compara con lo grabado; nada se guarda.
-            Ficha = new FichaCompraVM(factura, _proveedores, _cuentasGasto, _centros, _datos, soloLectura: true, tiposIva: _tiposIva);
+            Ficha = new FichaCompraVM(factura, _proveedores, _cuentasGasto, _centros, _datos, soloLectura: true, tiposIva: _tiposIva, formasPago: _formasPago);
             if (fila.PdfExiste) await ProbarAsync(factura, carga);
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
@@ -697,7 +699,7 @@ public sealed class FacturasRecibidasVM : ModeloVista, IPestanaTrabajo
         {
             var (reconocida, leida) = await _s.Facturas.ProbarAsync(_s.Trabajo, grabada.RutaPdf);
             if (carga != _cargaFicha) return;
-            Ficha = new FichaCompraVM(leida, _proveedores, _cuentasGasto, _centros, _datos, soloLectura: true, ConfianzaCampos.DesdeLog(reconocida.Log), _tiposIva);
+            Ficha = new FichaCompraVM(leida, _proveedores, _cuentasGasto, _centros, _datos, soloLectura: true, ConfianzaCampos.DesdeLog(reconocida.Log), _tiposIva, _formasPago);
             Comparacion = ServicioFacturasCompra.Comparar(grabada, leida);
         }
         catch (Exception ex) when (ex is not OperationCanceledException)

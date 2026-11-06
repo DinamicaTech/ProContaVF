@@ -25,9 +25,35 @@ public sealed class FichaCompraTests
         return f;
     }
 
+    private static readonly ProveedorFicha ConFormaPago = new(8, 80, "B12345674", "Otro S.L.", 4);
+
     private static FichaCompraVM Ficha(FacturaCompra? f = null, bool soloLectura = false, IReadOnlyList<FilaFacturaCompra>? otras = null) =>
-        new(f ?? Factura(), [Proveedor], [new("6000000 · Compras", "6000000")], [new CentroCoste(3, "T01", null, "3", "COCHES", true, true, 0, "3")], otras ?? [], soloLectura,
-            tiposIva: [21m, 10m, 4m]);
+        new(f ?? Factura(), [Proveedor, ConFormaPago], [new("6000000 · Compras", "6000000")], [new CentroCoste(3, "T01", null, "3", "COCHES", true, true, 0, "3")], otras ?? [], soloLectura,
+            tiposIva: [21m, 10m, 4m], formasPago: [(3, "Transferencia"), (4, "Recibo domiciliado")]);
+
+    [Fact]
+    public void La_forma_de_pago_se_elige_del_catalogo_y_se_propone_la_del_proveedor()
+    {
+        var f = Ficha();
+        Assert.Equal(["Sin forma de pago", "Transferencia", "Recibo domiciliado"], f.FormasPago.Select(x => x.Texto));
+        Assert.Null(f.FormaPago.Valor);
+        f.FormaPago = f.FormasPago[1];
+        Assert.True(f.TieneCambios);
+        Assert.Equal((byte)3, f.Construir().IdFormaPago);
+
+        var otra = Ficha();
+        otra.Nif = "B12345674";
+        Assert.Equal("Recibo domiciliado", otra.FormaPago.Texto);
+        Assert.Equal((byte)4, otra.Construir().IdFormaPago);
+
+        // Ya elegida, cambiar de proveedor no la pisa.
+        f.Nif = "B12345674";
+        Assert.Equal("Transferencia", f.FormaPago.Texto);
+
+        var vieja = Factura();
+        vieja.IdFormaPago = 9;
+        Assert.Equal("Forma de pago 9 (ya no existe)", Ficha(vieja).FormaPago.Texto);
+    }
 
     [Fact]
     public void Al_abrir_no_hay_cambios_y_la_confianza_sale_del_log()

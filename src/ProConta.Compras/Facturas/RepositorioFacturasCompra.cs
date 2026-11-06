@@ -42,8 +42,8 @@ internal static class RepositorioFacturasCompra
             "NumeroFactura, Fecha, Concepto, ImporteBI, ImporteIVA, ImporteTotal, PorcentajeRetencion, ImporteRetencion, InversionSujetoPasivo, " +
             "Divisa, ImporteTotalDivisa, TipoCambioAplicado, FechaTipoCambio, IdRegistroFacturaRectificada, ArchivoOriginal, Carpeta, NombreFichero, MD5, " +
             "Pagada, Exportada, Duplicada, FechaHoraRegistro, ConfianzaImportacion, RequiereRevisionImportacion, FuenteImportacion, LOGImportacion, Version, " +
-            "TipoOperacion, TipoProducto, TipoRetencion, Suplido, ConceptoGasto, IdCentroCoste, CuentaFormaPago, NotasFactura) " +
-            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            "TipoOperacion, TipoProducto, TipoRetencion, Suplido, ConceptoGasto, IdCentroCoste, CuentaFormaPago, NotasFactura, IdFormaPago) " +
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
             f.Ejercicio.IdSociedad, f.Ejercicio.Ejercicio.ToString(CultureInfo.InvariantCulture), f.Ejercicio.IdSociedadEjercicio, f.IdProveedor,
             Nulo(f.CuentaContableProveedor), Nulo(f.NifProveedor), Nulo(f.NombreProveedorAeat),
             Nulo(f.NumeroFactura), f.Fecha?.Date, Nulo(f.Concepto), f.BaseImponible, f.CuotaIva, f.ImporteTotal,
@@ -52,7 +52,7 @@ internal static class RepositorioFacturasCompra
             f.RutaPdf, Nulo(f.Carpeta), f.NombreFichero, f.Md5,
             false, false, false, ahora, f.Confianza, f.RequiereRevision, f.Fuente, Nulo(f.Log), 0,
             (int)f.Operacion, f.Producto is { } p ? (int)p : null, f.ClaseRetencion is { } cr ? (byte)cr : null, f.Suplido,
-            Nulo(f.CuentaGasto), f.IdCentroCoste, Nulo(f.CuentaFormaPago), Nulo(f.Notas));
+            Nulo(f.CuentaGasto), f.IdCentroCoste, Nulo(f.CuentaFormaPago), Nulo(f.Notas), f.IdFormaPago ?? await FormaPagoDefectoAsync(s, f));
         var id = await s.UltimoIdAsync();
 
         foreach (var d in f.Desgloses)
@@ -85,13 +85,16 @@ internal static class RepositorioFacturasCompra
             "UPDATE FacturasCompra SET IdProveedor = ?, CuentaContableProveedor = ?, NIF = ?, NumeroFactura = ?, Fecha = ?, Concepto = ?, " +
             "ImporteBI = ?, ImporteIVA = ?, ImporteTotal = ?, PorcentajeRetencion = ?, ImporteRetencion = ?, InversionSujetoPasivo = ?, " +
             "Divisa = ?, ImporteTotalDivisa = ?, TipoCambioAplicado = ?, FechaTipoCambio = ?, IdRegistroFacturaRectificada = ?, " +
-            "TipoOperacion = ?, TipoProducto = ?, TipoRetencion = ?, Suplido = ?, ConceptoGasto = ?, IdCentroCoste = ?, CuentaFormaPago = ?, " +
+            "TipoOperacion = ?, TipoProducto = ?, TipoRetencion = ?, Suplido = ?, ConceptoGasto = ?, IdCentroCoste = ?, CuentaFormaPago = ?, IdFormaPago = ?, " +
             "NotasFactura = ?, RequiereRevisionImportacion = ?, Version = ? WHERE IdRegistro = ? AND Version = ?",
             f.IdProveedor, Nulo(f.CuentaContableProveedor), Nulo(f.NifProveedor), Nulo(f.NumeroFactura), f.Fecha?.Date, Nulo(f.Concepto),
             f.BaseImponible, f.CuotaIva, f.ImporteTotal, f.PorcentajeRetencion is { } pr ? (float)pr : null, f.ImporteRetencion, f.InversionSujetoPasivo,
             f.Divisa, f.ImporteTotalDivisa, f.TipoCambioAplicado is { } tc ? (double)tc : null, f.FechaTipoCambio?.Date, f.IdRegistroFacturaRectificada,
             (int)f.Operacion, f.Producto is { } p ? (int)p : null, f.ClaseRetencion is { } cr ? (byte)cr : null, f.Suplido,
-            Nulo(f.CuentaGasto), f.IdCentroCoste, Nulo(f.CuentaFormaPago), Nulo(f.Notas), f.RequiereRevision, nueva, f.IdRegistro, f.Version);
+            Nulo(f.CuentaGasto), f.IdCentroCoste, Nulo(f.CuentaFormaPago), f.IdFormaPago, Nulo(f.Notas), f.RequiereRevision, nueva, f.IdRegistro, f.Version);
+        // La forma de pago elegida pasa a ser la del proveedor por defecto (compras/pantallas 2026-11-06).
+        if (f.IdFormaPago is { } fp && f.IdProveedor is { } prov)
+            await s.EjecutarAsync("UPDATE CuentasProveedoresSociedad SET IdFormaPagoDefecto = ? WHERE IdProveedor = ? AND IdSociedad = ?", fp, prov, f.Ejercicio.IdSociedad);
         await s.EjecutarAsync("DELETE FROM DesglosesFacturaCompra WHERE IdRegistro = ?", f.IdRegistro);
         foreach (var d in f.Desgloses)
             await s.EjecutarAsync(
@@ -192,13 +195,22 @@ internal static class RepositorioFacturasCompra
         return filas;
     }
 
-    /// <summary>Proveedores de la empresa con su tercero y su nombre, para buscar por NIF y abrir la ficha.</summary>
-    public static Task<IReadOnlyList<ProveedorFicha>> ProveedoresFichaAsync(ISesionDatos s, string idSociedad) =>
-        s.ConsultarAsync(
-            "SELECT DISTINCT p.IdProveedor, p.IdTercero, t.NIF, t.Nombre, t.RazonSocial, t.NombreComercial FROM (CuentasProveedoresSociedad AS cps " +
+    /// <summary>
+    /// Proveedores de la empresa con su tercero, su nombre y su forma de pago por defecto, para buscar por NIF, abrir la
+    /// ficha y proponer la forma de pago.
+    /// </summary>
+    public static async Task<IReadOnlyList<ProveedorFicha>> ProveedoresFichaAsync(ISesionDatos s, string idSociedad)
+    {
+        var filas = await s.ConsultarAsync(
+            "SELECT p.IdProveedor, p.IdTercero, t.NIF, t.Nombre, t.RazonSocial, t.NombreComercial, cps.IdFormaPagoDefecto FROM (CuentasProveedoresSociedad AS cps " +
             "INNER JOIN Proveedores AS p ON cps.IdProveedor = p.IdProveedor) INNER JOIN Terceros AS t ON p.IdTercero = t.IdTercero WHERE cps.IdSociedad = ?",
             r => new ProveedorFicha(r.Entero("IdProveedor"), r.Entero("IdTercero"), r.Texto("NIF")?.Trim() ?? "",
-                Primero(r.Texto("NombreComercial"), r.Texto("RazonSocial"), r.Texto("Nombre"))), idSociedad);
+                Primero(r.Texto("NombreComercial"), r.Texto("RazonSocial"), r.Texto("Nombre")),
+                r.EnteroNulo("IdFormaPagoDefecto") is int fp ? (byte)fp : null), idSociedad);
+        // Un proveedor puede tener varias cuentas en la empresa: uno por proveedor, con la forma de pago que tenga alguna.
+        return filas.GroupBy(p => p.IdProveedor)
+            .Select(g => g.FirstOrDefault(p => p.IdFormaPagoDefecto is not null) ?? g.First()).ToList();
+    }
 
     /// <summary>La confianza más baja de NIF, número, fecha e importes según el log del reconocimiento; null sin log.</summary>
     internal static decimal? ConfianzaMinima(string? log)
@@ -214,6 +226,15 @@ internal static class RepositorioFacturasCompra
             .Where(x => !string.IsNullOrEmpty(x)).Select(x => x!).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
 
     private static string Primero(params string?[] textos) => textos.FirstOrDefault(t => !string.IsNullOrWhiteSpace(t))?.Trim() ?? "";
+
+    /// <summary>La forma de pago por defecto del proveedor en la empresa, para una factura nueva suya.</summary>
+    private static async Task<byte?> FormaPagoDefectoAsync(ISesionDatos s, FacturaCompra f)
+    {
+        if (f.IdProveedor is not { } prov) return null;
+        var v = await s.EscalarAsync("SELECT TOP 1 IdFormaPagoDefecto FROM CuentasProveedoresSociedad WHERE IdProveedor = ? AND IdSociedad = ? AND IdFormaPagoDefecto Is Not Null",
+            prov, f.Ejercicio.IdSociedad);
+        return v is null or DBNull ? null : Convert.ToByte(v, CultureInfo.InvariantCulture);
+    }
 
     public static async Task<FacturaCompra?> CargarAsync(ISesionDatos s, int idRegistro)
     {
@@ -272,6 +293,7 @@ internal static class RepositorioFacturasCompra
             CuentaGasto = r.Texto("ConceptoGasto")?.Trim(),
             IdCentroCoste = r.EnteroNulo("IdCentroCoste"),
             CuentaFormaPago = r.Texto("CuentaFormaPago")?.Trim(),
+            IdFormaPago = r.EsNulo("IdFormaPago") ? null : (byte)r.Entero("IdFormaPago"),
             Notas = r.Texto("NotasFactura"),
             Contabilizada = r.Logico("Exportada"),
             Duplicada = r.Logico("Duplicada")
@@ -368,7 +390,7 @@ internal static class RepositorioFacturasCompra
 }
 
 /// <summary>Proveedor de la empresa tal como lo necesita la ficha: su tercero (para abrir su ficha), su NIF y su nombre.</summary>
-public sealed record ProveedorFicha(int IdProveedor, int IdTercero, string Nif, string Nombre);
+public sealed record ProveedorFicha(int IdProveedor, int IdTercero, string Nif, string Nombre, byte? IdFormaPagoDefecto = null);
 
 /// <summary>Factura de compra resumida para la lista de la pantalla.</summary>
 public sealed class FilaFacturaCompra

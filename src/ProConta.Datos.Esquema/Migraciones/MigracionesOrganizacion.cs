@@ -117,7 +117,7 @@ public static class MigracionesOrganizacion
                 "Da de alta esas formas de pago o corrige esos registros y vuelve a ejecutar el ActualizadorEsquema.");
     }
 
-    private static bool TieneRelacion(EsquemaFisico esquema, string tabla, string relacion) =>
+    internal static bool TieneRelacion(EsquemaFisico esquema, string tabla, string relacion) =>
         esquema.Tabla(tabla)?.Relaciones.Any(r => string.Equals(r.Nombre, relacion, StringComparison.OrdinalIgnoreCase)) == true;
 
     private const string Consulta = "SELECT Codigo, Descripcion FROM [FormasPago]";
@@ -179,4 +179,20 @@ public static class MigracionesOrganizacion
                 (byte)codigo, texto.Length > 100 ? texto[..100] : texto, sepa);
         }
     }
+    /// <summary>
+    /// Subcuenta de cada forma de pago en cada empresa (organizacion/formas-pago 2026-11-06): FormasPago es común a todas
+    /// las empresas y la subcuenta (banco, caja, tarjeta…) es de cada una. Se guarda la identidad contable, como en los
+    /// conceptos, para que valga en todos los ejercicios aunque cambie el código.
+    /// </summary>
+    public static Migracion FormasPagoSociedad { get; } = new(
+        "20261106_1300_FORMAS_PAGO_SOCIEDAD", 261106001,
+        "FormasPagoSociedad: subcuenta de cada forma de pago en cada empresa.",
+        "organizacion/formas-pago",
+        new CrearTabla("FormasPagoSociedad",
+            "CREATE TABLE FormasPagoSociedad (IdFormaPagoSociedad COUNTER CONSTRAINT PK_FormasPagoSociedad PRIMARY KEY, " +
+            "IdFormaPago BYTE NOT NULL CONSTRAINT FK_FPS_FormaPago REFERENCES FormasPago (Id), " +
+            "IdSociedad TEXT(3) NOT NULL CONSTRAINT FK_FPS_Sociedad REFERENCES Sociedades (IdSociedad), " +
+            "IdIdentidadContable LONG CONSTRAINT FK_FPS_Identidad REFERENCES IdentidadesContables (IdIdentidadContable))"),
+        new CrearIndice("FormasPagoSociedad", "UX_FPS_SociedadForma",
+            "CREATE UNIQUE INDEX UX_FPS_SociedadForma ON FormasPagoSociedad (IdSociedad, IdFormaPago)"));
 }

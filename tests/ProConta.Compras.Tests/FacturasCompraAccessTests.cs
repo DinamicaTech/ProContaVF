@@ -102,10 +102,12 @@ public sealed class FacturasCompraAccessTests : IDisposable
     {
         var esquema = await Bd.EjecutarAsync(s => Task.FromResult(s.LeerEsquema()));
         foreach (var c in new[] { "IdSociedadEjercicio", "IdProveedor", "Divisa", "ImporteTotalDivisa", "TipoCambioAplicado", "FechaTipoCambio",
-                     "IdRegistroFacturaRectificada", "ConfianzaImportacion", "RequiereRevisionImportacion", "LOGImportacion", "Version", "IdCentroCoste" })
+                     "IdRegistroFacturaRectificada", "ConfianzaImportacion", "RequiereRevisionImportacion", "LOGImportacion", "Version", "IdCentroCoste", "IdFormaPago" })
             Assert.True(esquema.ExisteColumna("FacturasCompra", c), c);
         Assert.True(esquema.ExisteTabla("DesglosesFacturaCompra"));
         Assert.True(esquema.ExisteTabla("ConfiguracionReconocimientoFacturasCompra"));
+        Assert.True(esquema.ExisteTabla("FormasPagoSociedad"));
+        Assert.True(esquema.ExisteColumna("CuentasProveedoresSociedad", "IdFormaPagoDefecto"));
     }
 
     [Fact]
@@ -303,6 +305,27 @@ public sealed class FacturasCompraAccessTests : IDisposable
         var conflicto = await servicio.GuardarAsync(otro);
         Assert.Equal("Compras.Concurrencia", conflicto.Error!.Codigo);
         Assert.Equal("FV260124", (await servicio.CargarAsync(f.IdRegistro))!.NumeroFactura);
+    }
+
+    [Fact]
+    public async Task La_forma_de_pago_elegida_pasa_a_ser_la_del_proveedor_y_se_propone_en_su_siguiente_factura()
+    {
+        var idProveedor = await EmpresaConProveedorAsync();
+        await Bd.EjecutarAsync(s => s.EjecutarAsync("INSERT INTO FormasPago (Id, Descripcion, SEPA) VALUES (?, ?, ?)", 200, "Transferencia de prueba", false));
+        var servicio = Servicio();
+        var r = await servicio.ImportarAsync(_ctx, Pdf("Ficticio", "fp1.pdf", "forma uno"));
+        Assert.True(r.Registrada, r.Error?.ToString());
+        var f = (await servicio.CargarAsync(r.Factura!.IdRegistro))!;
+        Assert.Null(f.IdFormaPago);
+
+        f.IdFormaPago = 200;
+        Assert.True((await servicio.GuardarAsync(f)).EsCorrecto);
+        Assert.Equal((byte)200, (await servicio.CargarAsync(f.IdRegistro))!.IdFormaPago);
+        Assert.Equal(200, await Contar("SELECT IdFormaPagoDefecto FROM CuentasProveedoresSociedad WHERE IdProveedor = ? AND IdSociedad = ?", idProveedor, "T01"));
+
+        var siguiente = await servicio.ImportarAsync(_ctx, Pdf("Ficticio", "fp2.pdf", "forma dos"));
+        Assert.True(siguiente.Registrada, siguiente.Error?.ToString());
+        Assert.Equal((byte)200, (await servicio.CargarAsync(siguiente.Factura!.IdRegistro))!.IdFormaPago);
     }
 
     [Fact]

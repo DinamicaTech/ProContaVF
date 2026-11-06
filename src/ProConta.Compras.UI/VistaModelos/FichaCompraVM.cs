@@ -112,7 +112,8 @@ public sealed class FichaCompraVM : ModeloVista
     private bool _tieneCambios;
 
     private string _nif = "", _numero = "", _fecha = "", _total = "", _porcentajeRetencion = "", _suplido = "", _divisa = "EUR", _totalDivisa = "";
-    private string _formaPago = "", _notas = "", _importeUnico = "";
+    private string _notas = "", _importeUnico = "";
+    private OpcionFicha<byte?> _formaPago;
     private bool _isp, _conRetencion;
     private ProveedorFicha? _proveedor;
     private OpcionFicha<OperacionCompra> _operacion;
@@ -126,7 +127,7 @@ public sealed class FichaCompraVM : ModeloVista
 
     internal FichaCompraVM(FacturaCompra factura, IReadOnlyList<ProveedorFicha> proveedores, IReadOnlyList<OpcionFicha<string>> cuentasGasto,
         IReadOnlyList<CentroCoste> centros, IReadOnlyList<FilaFacturaCompra> otras, bool soloLectura, ConfianzaCampos? confianza = null,
-        IReadOnlyList<decimal>? tiposIva = null)
+        IReadOnlyList<decimal>? tiposIva = null, IReadOnlyList<(byte Id, string Descripcion)>? formasPago = null)
     {
         Factura = factura;
         _tiposIva = tiposIva ?? [];
@@ -146,6 +147,10 @@ public sealed class FichaCompraVM : ModeloVista
             .Where(o => o.IdRegistro != factura.IdRegistro && (o.IdRegistro == factura.IdRegistroFacturaRectificada || MismoProveedor(factura, o)))
             .OrderByDescending(o => o.Fecha).Select(o => new OpcionFicha<int?>($"{(o.NumeroFactura.Length > 0 ? o.NumeroFactura : o.NombreFichero)} · {(o.Fecha is { } f ? Formatos.Fecha(f) : "sin fecha")} · {(o.ImporteTotal is { } t ? Formatos.Importe(t) : "")}", o.IdRegistro))];
 
+        var formas = (formasPago ?? []).Select(x => new OpcionFicha<byte?>(x.Descripcion, x.Id)).ToList();
+        if (factura.IdFormaPago is byte fpa && formas.All(x => x.Valor != fpa)) formas.Add(new($"Forma de pago {fpa} (ya no existe)", fpa));
+        FormasPago = [new("Sin forma de pago", null), .. formas];
+
         _nif = factura.NifProveedor ?? "";
         _proveedor = proveedores.FirstOrDefault(p => p.IdProveedor == factura.IdProveedor) ?? BuscarPorNif(_nif);
         _numero = factura.NumeroFactura;
@@ -163,7 +168,7 @@ public sealed class FichaCompraVM : ModeloVista
         _cuentaGasto = CuentasGasto.FirstOrDefault(c => c.Valor == factura.CuentaGasto) ?? CuentasGasto[0];
         _centroCoste = CentrosCoste.FirstOrDefault(c => c.Valor == factura.IdCentroCoste) ?? CentrosCoste[0];
         _rectifica = Rectificables.FirstOrDefault(r => r.Valor == factura.IdRegistroFacturaRectificada) ?? Rectificables[0];
-        _formaPago = factura.CuentaFormaPago ?? "";
+        _formaPago = FormasPago.FirstOrDefault(x => x.Valor == factura.IdFormaPago) ?? FormasPago[0];
         _notas = factura.Notas ?? "";
 
         if (factura.Desgloses.Count > 0)
@@ -218,6 +223,7 @@ public sealed class FichaCompraVM : ModeloVista
             if (!Cambiar(ref _nif, (value ?? "").Trim().ToUpperInvariant(), "nif")) return;
             _proveedor = BuscarPorNif(_nif);
             Avisar(nameof(NombreProveedor), nameof(HayProveedor), nameof(AvisoProveedor));
+            ProponerFormaPago();
         }
     }
 
@@ -282,7 +288,16 @@ public sealed class FichaCompraVM : ModeloVista
     public OpcionFicha<string> CuentaGasto { get => _cuentaGasto; set { if (value is not null) Cambiar(ref _cuentaGasto, value, "gasto"); } }
     public OpcionFicha<int?> CentroCoste { get => _centroCoste; set { if (value is not null) Cambiar(ref _centroCoste, value, "centro"); } }
     public OpcionFicha<int?> Rectifica { get => _rectifica; set { if (value is not null) Cambiar(ref _rectifica, value, "rectifica"); } }
-    public string FormaPago { get => _formaPago; set => Cambiar(ref _formaPago, value ?? "", "formaPago"); }
+    /// <summary>Formas de pago del catálogo (organizacion/formas-pago); la elegida pasa a ser la del proveedor al guardar.</summary>
+    public IReadOnlyList<OpcionFicha<byte?>> FormasPago { get; }
+    public OpcionFicha<byte?> FormaPago { get => _formaPago; set { if (value is not null) Cambiar(ref _formaPago, value, "formaPago"); } }
+
+    /// <summary>Sin forma de pago elegida, propone la del proveedor (compras/pantallas 2026-11-06).</summary>
+    private void ProponerFormaPago()
+    {
+        if (_formaPago.Valor is not null || _proveedor?.IdFormaPagoDefecto is not byte fp) return;
+        if (FormasPago.FirstOrDefault(x => x.Valor == fp) is { } opcion) { _formaPago = opcion; Avisar(nameof(FormaPago)); }
+    }
     public string Notas { get => _notas; set => Cambiar(ref _notas, value ?? "", "notas"); }
 
     // ---------- importes ----------
@@ -460,7 +475,7 @@ public sealed class FichaCompraVM : ModeloVista
             FechaTipoCambio = EsDivisa ? o.FechaTipoCambio : null,
             IdRegistroFacturaRectificada = _rectifica.Valor,
             CuentaGasto = _cuentaGasto.Valor, IdCentroCoste = _centroCoste.Valor,
-            CuentaFormaPago = _formaPago.Length == 0 ? null : _formaPago.Trim(),
+            IdFormaPago = _formaPago.Valor, CuentaFormaPago = o.CuentaFormaPago,
             Notas = _notas.Length == 0 ? null : _notas,
             Confianza = o.Confianza, RequiereRevision = o.RequiereRevision, Fuente = o.Fuente, Log = o.Log,
             FechaHoraRegistro = o.FechaHoraRegistro, Version = o.Version, Contabilizada = o.Contabilizada, Duplicada = o.Duplicada

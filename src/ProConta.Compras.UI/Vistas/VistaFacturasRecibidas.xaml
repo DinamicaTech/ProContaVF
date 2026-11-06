@@ -291,9 +291,9 @@
                           <TextBlock Text="Centro de coste" Style="{StaticResource Etiqueta.Campo}" />
                           <ComboBox ItemsSource="{Binding CentrosCoste}" SelectedItem="{Binding CentroCoste}" IsEnabled="{Binding Editable}" pc:ComboFiltro.Activo="True" Margin="0,0,0,8"
                                     ToolTip="Centro de coste imputable de la empresa; escribe parte del código o del nombre para filtrar la lista" />
-                          <TextBlock Text="Forma de pago (cuenta)" Style="{StaticResource Etiqueta.Campo}" />
-                          <TextBox Text="{Binding FormaPago, UpdateSourceTrigger=LostFocus}" Style="{StaticResource Campo.Mono}" IsReadOnly="{Binding SoloLectura}"
-                                   ToolTip="Se guarda como dato de la factura: el pago se concilia después con el banco" />
+                          <TextBlock Text="Forma de pago" Style="{StaticResource Etiqueta.Campo}" />
+                          <ComboBox ItemsSource="{Binding FormasPago}" SelectedItem="{Binding FormaPago}" IsEnabled="{Binding Editable}" pc:ComboFiltro.Activo="True"
+                                    ToolTip="Al guardar, pasa a ser la forma de pago del proveedor; escribe parte del nombre para filtrar la lista" />
                         </StackPanel>
                       </Border>
                     </StackPanel>
