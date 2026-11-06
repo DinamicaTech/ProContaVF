@@ -97,3 +97,6 @@ Revisión de la factura reconocida con confianza, candidatos y motivos visibles,
 - 2026-11-06 12:06 · P6: Sí (configurar el certificado para VNifV2)
 - 2026-11-06 12:24 · Q1. En el ERP, FormasPago tiene un campo IdAgrupacion, que apunta a la tabla Agrupaciones que contiene subcuenta contable, centro de coste, departamento, etc., pero, efectivamente, lo correcto es FormasPagoSociedad para esta información. Ok a FacturasCompra.IdFormaPago. Ok a la forma de pago por defecto.
 - 2026-11-06 13:14 · Q2. Ok a lo del botón de einforma en el caso de no haber conseguido la razón social por otra vía.
+- 2026-11-06 13:30 · En el desplegable Centro de coste, si escribo un texto de búsqueda, ya no funcionan las flechas del cursor para seleccionar un elemento de la lista
+- 2026-11-06 13:30 · Producto: Por defecto, bienes
+- 2026-11-06 13:30 · La retención que sea un desplegable con los tipos de retención vigentes (nueva tabla TiposRetencion?) con su descripción: 15% (Tipo general); 7% (Tipo reducido por inicio de actividad); 2% (Actividades agrícolas, ganaderas y forestales); 1% (Actividades de engorde de porcino, avicultura o módulos); 19% (Alquiler de locales comerciales)
