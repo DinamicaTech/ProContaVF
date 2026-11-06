@@ -56,8 +56,9 @@ public static class ComboFiltro
         var c = (ComboBox)sender;
         if ((bool)c.GetValue(AplicandoProperty) || !c.IsKeyboardFocusWithin || Vista(c) is not { } vista) return;
         var texto = c.Text;
-        // El texto del elemento elegido no filtra: así al abrir la lista se ven todos.
-        if (c.SelectedItem is { } elegido && string.Equals(elegido.ToString(), texto, StringComparison.CurrentCulture)) { vista.Filter = null; return; }
+        // El texto del elemento elegido no cambia el filtro: al moverse con ↑ ↓ por la lista filtrada, el combo pone el texto
+        // del elemento resaltado, y quitar el filtro entonces hacía saltar la lista entera. Al cerrar se quita (Quitar).
+        if (c.SelectedItem is { } elegido && string.Equals(elegido.ToString(), texto, StringComparison.CurrentCulture)) return;
         var buscado = Plano(texto);
         c.SetValue(AplicandoProperty, true);
         try

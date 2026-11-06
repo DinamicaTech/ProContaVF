@@ -195,4 +195,29 @@ public static class MigracionesOrganizacion
             "IdIdentidadContable LONG CONSTRAINT FK_FPS_Identidad REFERENCES IdentidadesContables (IdIdentidadContable))"),
         new CrearIndice("FormasPagoSociedad", "UX_FPS_SociedadForma",
             "CREATE UNIQUE INDEX UX_FPS_SociedadForma ON FormasPagoSociedad (IdSociedad, IdFormaPago)"));
+
+    /// <summary>Tipos de retención vigentes, con su clase (1 actividades y profesionales, modelo 111; 2 arrendamientos, modelo 115).</summary>
+    private static readonly (decimal Porcentaje, string Descripcion, byte Clase)[] _tiposRetencion =
+    [
+        (15m, "Tipo general", 1), (7m, "Tipo reducido por inicio de actividad", 1), (2m, "Actividades agrícolas, ganaderas y forestales", 1),
+        (1m, "Actividades de engorde de porcino, avicultura o módulos", 1), (19m, "Alquiler de locales comerciales", 2),
+    ];
+
+    /// <summary>TiposRetencion: catálogo de tipos de retención (compras/pantallas 2026-11-06 13:30), con los cinco vigentes.</summary>
+    public static Migracion TiposRetencion { get; } = new(
+        "20261106_1340_TIPOS_RETENCION", 261106003,
+        "TiposRetencion: tipos de retención con su clase y vigencia, con los cinco vigentes.",
+        "organizacion/sociedades-ejercicios",
+        new CrearTabla("TiposRetencion",
+            "CREATE TABLE TiposRetencion (IdTipoRetencion COUNTER CONSTRAINT PK_TiposRetencion PRIMARY KEY, Porcentaje DECIMAL(5,2) NOT NULL, " +
+            "Descripcion TEXT(100) NOT NULL, Clase BYTE NOT NULL, VigenteDesde DATETIME, VigenteHasta DATETIME, Activo YESNO)"),
+        new PasoPersonalizado(
+            "Dar de alta los tipos de retención vigentes",
+            "INSERT INTO TiposRetencion: 15 tipo general, 7 inicio de actividad, 2 agrícolas, 1 porcino y avicultura (clase 1), 19 alquiler de locales (clase 2), si la tabla está vacía",
+            async (s, _) => Convert.ToInt32(await s.EscalarAsync("SELECT COUNT(*) FROM TiposRetencion")) > 0,
+            async (s, _) =>
+            {
+                foreach (var (porcentaje, descripcion, clase) in _tiposRetencion)
+                    await s.EjecutarAsync("INSERT INTO TiposRetencion (Porcentaje, Descripcion, Clase, Activo) VALUES (?, ?, ?, ?)", porcentaje, descripcion, clase, true);
+            }));
 }

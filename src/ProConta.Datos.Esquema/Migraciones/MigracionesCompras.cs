@@ -100,6 +100,13 @@ public static class MigracionesCompras
         new AnadirColumna("CuentasProveedoresSociedad", "IdFormaPagoDefecto", "BYTE"),
         Relacion("CuentasProveedoresSociedad", "IdFormaPagoDefecto", "FK_CPS_FormaPagoDefecto"));
 
+    /// <summary>Producto por defecto del proveedor (compras/pantallas 2026-11-06 13:36): el de su última factura guardada.</summary>
+    public static Migracion ProductoDefectoProveedor { get; } = new(
+        "20261106_1345_PRODUCTO_DEFECTO_PROVEEDOR", 261106004,
+        "Tipo de producto por defecto del proveedor (1 servicios, 2 bienes).",
+        "compras/factura-compra",
+        new AnadirColumna("CuentasProveedoresSociedad", "TipoProductoDefecto", "BYTE"));
+
     private static PasoPersonalizado Relacion(string tabla, string columna, string nombre)
     {
         var sql = $"ALTER TABLE {tabla} ADD CONSTRAINT {nombre} FOREIGN KEY ({columna}) REFERENCES FormasPago (Id)";

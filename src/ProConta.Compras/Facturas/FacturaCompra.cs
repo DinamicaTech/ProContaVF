@@ -16,6 +16,9 @@ public enum ProductoCompra { Servicios = 1, Bienes = 2 }
 /// <summary>Clase de la retención (FacturasCompra.TipoRetencion): profesionales (servicios remunerados) o arrendamientos.</summary>
 public enum ClaseRetencion { Profesionales = 1, Arrendamientos = 2 }
 
+/// <summary>Tipo de retención que se ofrece en la ficha (catálogo TiposRetencion de organizacion/sociedades-ejercicios).</summary>
+public sealed record TipoRetencionCompra(decimal Porcentaje, string Descripcion, ClaseRetencion Clase);
+
 /// <summary>Proveedor al que pertenece la carpeta de un PDF, tal como lo resuelve el contexto de la empresa.</summary>
 public sealed record ProveedorCarpeta(int? IdProveedor, string? CuentaContable, string? Nif, string Carpeta);
 

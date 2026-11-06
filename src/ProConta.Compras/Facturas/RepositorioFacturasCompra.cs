@@ -37,6 +37,9 @@ internal static class RepositorioFacturasCompra
                 $"Sus bytes son idénticos a los de la factura {idExistente}{(string.IsNullOrWhiteSpace(archivo) ? "" : $" ({archivo})")}.",
                 "Si es otro documento, comprueba que el PDF sea el correcto."));
 
+        // Una factura nueva trae la forma de pago y el producto del proveedor; sin producto, bienes (compras/pantallas 2026-11-06 13:36).
+        f.IdFormaPago ??= await FormaPagoDefectoAsync(s, f);
+        f.Producto ??= await ProductoDefectoAsync(s, f) ?? ProductoCompra.Bienes;
         await s.EjecutarAsync(
             "INSERT INTO FacturasCompra (Sociedad, Ejercicio, IdSociedadEjercicio, IdProveedor, CuentaContableProveedor, NIF, NombreProveedorAeat, " +
             "NumeroFactura, Fecha, Concepto, ImporteBI, ImporteIVA, ImporteTotal, PorcentajeRetencion, ImporteRetencion, InversionSujetoPasivo, " +
@@ -52,7 +55,7 @@ internal static class RepositorioFacturasCompra
             f.RutaPdf, Nulo(f.Carpeta), f.NombreFichero, f.Md5,
             false, false, false, ahora, f.Confianza, f.RequiereRevision, f.Fuente, Nulo(f.Log), 0,
             (int)f.Operacion, f.Producto is { } p ? (int)p : null, f.ClaseRetencion is { } cr ? (byte)cr : null, f.Suplido,
-            Nulo(f.CuentaGasto), f.IdCentroCoste, Nulo(f.CuentaFormaPago), Nulo(f.Notas), f.IdFormaPago ?? await FormaPagoDefectoAsync(s, f));
+            Nulo(f.CuentaGasto), f.IdCentroCoste, Nulo(f.CuentaFormaPago), Nulo(f.Notas), f.IdFormaPago);
         var id = await s.UltimoIdAsync();
 
         foreach (var d in f.Desgloses)
@@ -95,6 +98,9 @@ internal static class RepositorioFacturasCompra
         // La forma de pago elegida pasa a ser la del proveedor por defecto (compras/pantallas 2026-11-06).
         if (f.IdFormaPago is { } fp && f.IdProveedor is { } prov)
             await s.EjecutarAsync("UPDATE CuentasProveedoresSociedad SET IdFormaPagoDefecto = ? WHERE IdProveedor = ? AND IdSociedad = ?", fp, prov, f.Ejercicio.IdSociedad);
+        // Igual el producto (compras/pantallas 2026-11-06 13:36).
+        if (f.Producto is { } producto && f.IdProveedor is { } prov2)
+            await s.EjecutarAsync("UPDATE CuentasProveedoresSociedad SET TipoProductoDefecto = ? WHERE IdProveedor = ? AND IdSociedad = ?", (byte)producto, prov2, f.Ejercicio.IdSociedad);
         await s.EjecutarAsync("DELETE FROM DesglosesFacturaCompra WHERE IdRegistro = ?", f.IdRegistro);
         foreach (var d in f.Desgloses)
             await s.EjecutarAsync(
@@ -202,14 +208,19 @@ internal static class RepositorioFacturasCompra
     public static async Task<IReadOnlyList<ProveedorFicha>> ProveedoresFichaAsync(ISesionDatos s, string idSociedad)
     {
         var filas = await s.ConsultarAsync(
-            "SELECT p.IdProveedor, p.IdTercero, t.NIF, t.Nombre, t.RazonSocial, t.NombreComercial, cps.IdFormaPagoDefecto FROM (CuentasProveedoresSociedad AS cps " +
+            "SELECT p.IdProveedor, p.IdTercero, t.NIF, t.Nombre, t.RazonSocial, t.NombreComercial, cps.IdFormaPagoDefecto, cps.TipoProductoDefecto FROM (CuentasProveedoresSociedad AS cps " +
             "INNER JOIN Proveedores AS p ON cps.IdProveedor = p.IdProveedor) INNER JOIN Terceros AS t ON p.IdTercero = t.IdTercero WHERE cps.IdSociedad = ?",
             r => new ProveedorFicha(r.Entero("IdProveedor"), r.Entero("IdTercero"), r.Texto("NIF")?.Trim() ?? "",
                 Primero(r.Texto("NombreComercial"), r.Texto("RazonSocial"), r.Texto("Nombre")),
-                r.EnteroNulo("IdFormaPagoDefecto") is int fp ? (byte)fp : null), idSociedad);
+                r.EnteroNulo("IdFormaPagoDefecto") is int fp ? (byte)fp : null,
+                r.EnteroNulo("TipoProductoDefecto") is int tp && Enum.IsDefined((ProductoCompra)tp) ? (ProductoCompra)tp : null), idSociedad);
         // Un proveedor puede tener varias cuentas en la empresa: uno por proveedor, con la forma de pago que tenga alguna.
         return filas.GroupBy(p => p.IdProveedor)
-            .Select(g => g.FirstOrDefault(p => p.IdFormaPagoDefecto is not null) ?? g.First()).ToList();
+            .Select(g => g.First() with
+            {
+                IdFormaPagoDefecto = g.Select(p => p.IdFormaPagoDefecto).FirstOrDefault(x => x is not null),
+                ProductoDefecto = g.Select(p => p.ProductoDefecto).FirstOrDefault(x => x is not null)
+            }).ToList();
     }
 
     /// <summary>La confianza más baja de NIF, número, fecha e importes según el log del reconocimiento; null sin log.</summary>
@@ -234,6 +245,15 @@ internal static class RepositorioFacturasCompra
         var v = await s.EscalarAsync("SELECT TOP 1 IdFormaPagoDefecto FROM CuentasProveedoresSociedad WHERE IdProveedor = ? AND IdSociedad = ? AND IdFormaPagoDefecto Is Not Null",
             prov, f.Ejercicio.IdSociedad);
         return v is null or DBNull ? null : Convert.ToByte(v, CultureInfo.InvariantCulture);
+    }
+
+    /// <summary>El producto por defecto del proveedor en la empresa, para una factura nueva suya.</summary>
+    private static async Task<ProductoCompra?> ProductoDefectoAsync(ISesionDatos s, FacturaCompra f)
+    {
+        if (f.IdProveedor is not { } prov) return null;
+        var v = await s.EscalarAsync("SELECT TOP 1 TipoProductoDefecto FROM CuentasProveedoresSociedad WHERE IdProveedor = ? AND IdSociedad = ? AND TipoProductoDefecto Is Not Null",
+            prov, f.Ejercicio.IdSociedad);
+        return v is null or DBNull || !Enum.IsDefined((ProductoCompra)Convert.ToInt32(v, CultureInfo.InvariantCulture)) ? null : (ProductoCompra)Convert.ToInt32(v, CultureInfo.InvariantCulture);
     }
 
     public static async Task<FacturaCompra?> CargarAsync(ISesionDatos s, int idRegistro)
@@ -390,7 +410,7 @@ internal static class RepositorioFacturasCompra
 }
 
 /// <summary>Proveedor de la empresa tal como lo necesita la ficha: su tercero (para abrir su ficha), su NIF y su nombre.</summary>
-public sealed record ProveedorFicha(int IdProveedor, int IdTercero, string Nif, string Nombre, byte? IdFormaPagoDefecto = null);
+public sealed record ProveedorFicha(int IdProveedor, int IdTercero, string Nif, string Nombre, byte? IdFormaPagoDefecto = null, ProductoCompra? ProductoDefecto = null);
 
 /// <summary>Factura de compra resumida para la lista de la pantalla.</summary>
 public sealed class FilaFacturaCompra
