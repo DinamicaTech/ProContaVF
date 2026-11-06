@@ -131,7 +131,20 @@ public sealed class ServicioFacturasCompra(
     {
         var (contexto, proveedor) = await CargarContextoAsync(ctx, rutaPdf, cancelacion);
         var reconocida = await reconocimiento.ReconocerAsync(rutaPdf, contexto, cancelacion);
-        return (reconocida, FacturaCompra.DesdeReconocimiento(reconocida, ctx, proveedor));
+        var factura = FacturaCompra.DesdeReconocimiento(reconocida, ctx, proveedor);
+        // Sin proveedor por la carpeta, el del NIF leído si solo hay uno en la empresa (como hace la ficha al guardar).
+        if (factura.IdProveedor is null && factura.NifProveedor is { Length: > 0 } nif)
+        {
+            var conNif = (await ProveedoresAsync(ctx, cancelacion)).Where(p => MismoNif(p.Nif, nif)).Select(p => p.IdProveedor).Distinct().ToList();
+            if (conNif.Count == 1) factura.IdProveedor = conNif[0];
+        }
+        return (reconocida, factura);
+    }
+
+    private static bool MismoNif(string a, string b)
+    {
+        static string Compacto(string t) => new(t.Where(char.IsAsciiLetterOrDigit).Select(char.ToUpperInvariant).ToArray());
+        return Compacto(a) == Compacto(b);
     }
 
     /// <summary>Reconoce un PDF y lo registra con sus desgloses en una sola transacción. Un PDF ya registrado no crea otra factura.</summary>

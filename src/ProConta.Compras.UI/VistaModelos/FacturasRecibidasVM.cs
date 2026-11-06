@@ -86,7 +86,7 @@ public sealed class FacturasRecibidasVM : ModeloVista, IPestanaTrabajo
         AbrirProveedorCommand = new ComandoDelegado(() => { if (_ficha?.IdTerceroProveedor is int t) _modulo.AbrirFichaTercero(t); }, () => _ficha?.IdTerceroProveedor is not null);
         AnadirTipoCommand = new ComandoDelegado(() => _ficha?.AnadirTipo(), () => _ficha is { Editable: true });
         QuitarTipoCommand = new ComandoDelegado(p => { if (p is DesgloseVM d) _ficha?.QuitarTipo(d); }, _ => _ficha is { Editable: true, Desgloses.Count: > 1 });
-        RefrescarCommand = new ComandoDelegado(() => _ = CargarAsync());
+        RefrescarCommand = new ComandoDelegado(() => _ = RefrescarAsync());
         LimpiarFiltrosCommand = new ComandoDelegado(LimpiarFiltros, () => HayFiltros);
         VerPendientesCommand = new ComandoDelegado(() => PestanaLista = "pendientes");
         VerContabilizadasCommand = new ComandoDelegado(() => PestanaLista = "contabilizadas");
@@ -194,6 +194,14 @@ public sealed class FacturasRecibidasVM : ModeloVista, IPestanaTrabajo
         }
         await CargarAsync();
         if (!Prueba && _puedeEditar) await BuscarPdfNuevosAsync(silencioso: true);
+    }
+
+    /// <summary>F5: vuelve a leer los proveedores (su forma de pago por defecto puede haber cambiado) y la lista.</summary>
+    private async Task RefrescarAsync()
+    {
+        try { _proveedores = await _s.Facturas.ProveedoresAsync(_s.Trabajo); }
+        catch (Exception ex) when (ex is not OperationCanceledException) { _modulo.Avisar($"No he podido leer los proveedores: {ex.Message}"); }
+        await CargarAsync();
     }
 
     /// <summary>Vuelve a leer la lista, conservando la factura activa (sus cambios se guardan antes).</summary>
@@ -580,6 +588,9 @@ public sealed class FacturasRecibidasVM : ModeloVista, IPestanaTrabajo
         }
         ErrorFicha = null;
         ficha.Guardada(f);
+        // La forma de pago guardada pasa a ser la del proveedor: se propone ya en sus otras facturas.
+        if (f.IdProveedor is int prov && f.IdFormaPago is byte fp)
+            _proveedores = _proveedores.Select(p => p.IdProveedor == prov ? p with { IdFormaPagoDefecto = fp } : p).ToList();
         ActualizarFila(f);
         _modulo.FacturaCambiada(this);
         Avisar(nameof(TieneCambios), nameof(GuardadoFallido));
