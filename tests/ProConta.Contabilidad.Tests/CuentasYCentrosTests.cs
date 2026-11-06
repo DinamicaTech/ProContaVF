@@ -60,6 +60,24 @@ public sealed class CuentasAccessTests : IDisposable
     }
 
     [Fact]
+    public async Task LaSubcuentaGuardaSuDescripcionYElSiguienteCodigoSaltaLosReservados()
+    {
+        await PrepararAsync();
+        var catalogo = new CatalogoCuentasAccess(_copia.Bd());
+        await catalogo.AltaAsync(_c2025, new AltaCuenta("629", "Otros servicios", EsImputable: false, Descripcion: "Gastos diversos"));
+        var agua = await catalogo.AltaAsync(_c2025, new AltaCuenta("6290001", "Suministros: agua", Descripcion: "  Agua de la oficina  "));
+        Assert.True(agua.EsCorrecto, agua.Error?.ToString());
+        Assert.Equal("Agua de la oficina", (await catalogo.ResolverAsync(_c2025, "6290001")).Valor.Descripcion);
+        Assert.Null((await catalogo.AltaAsync(_c2025, new AltaCuenta("6290002", "Sin descripción", Descripcion: " "))).Valor.Descripcion);
+        Assert.Equal("Cuentas.DescripcionNoValida", (await catalogo.AltaAsync(_c2025, new AltaCuenta("6290003", "Larga", Descripcion: new string('x', 256)))).Error!.Codigo);
+        Assert.Equal("6290003", await catalogo.SiguienteSubcuentaAsync(_c2025, "629"));
+        // En 2026 los códigos de 2025 siguen reservados.
+        Assert.Equal("6290003", await catalogo.SiguienteSubcuentaAsync(_c2026, "629"));
+        // La copia a otro ejercicio conserva la descripción.
+        Assert.Equal("Agua de la oficina", (await catalogo.AltaEnEjercicioAsync(_c2026, agua.Valor.IdIdentidadContable)).Valor.Descripcion);
+    }
+
+    [Fact]
     public async Task LaCacheDeSaldosReconstruidaCoincideConLosApuntes()
     {
         await PrepararAsync();

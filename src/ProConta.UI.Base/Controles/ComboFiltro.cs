@@ -39,7 +39,8 @@ public static class ComboFiltro
             c.SelectionChanged += AlElegir;
             c.LostKeyboardFocus += AlSalir;
             c.DropDownClosed += AlCerrar;
-            c.AddHandler(UIElement.PreviewKeyDownEvent, new KeyEventHandler(AlPulsar), handledEventsToo: true);
+            c.GotKeyboardFocus += AlEntrar;
+            RegistrarTeclas();
         }
         else
         {
@@ -47,7 +48,7 @@ public static class ComboFiltro
             c.SelectionChanged -= AlElegir;
             c.LostKeyboardFocus -= AlSalir;
             c.DropDownClosed -= AlCerrar;
-            c.RemoveHandler(UIElement.PreviewKeyDownEvent, new KeyEventHandler(AlPulsar));
+            c.GotKeyboardFocus -= AlEntrar;
         }
     }
 
@@ -75,14 +76,30 @@ public static class ComboFiltro
     }
 
     /// <summary>
-    /// ↑ ↓ desde el texto pasan el foco a la lista filtrada: ↓ al primer elemento, ↑ al último. Desde ahí el propio combo
-    /// mueve el resaltado, Enter elige y Esc o Tab salen sin cambiar la elección. El combo editable trata estas teclas en su
+    /// ↑ ↓ desde el texto pasan el foco a la lista filtrada: ↓ al primer elemento, ↑ al último; desde un elemento, al
+    /// siguiente o al anterior. Enter elige el elemento con el foco y Esc o Tab salen sin cambiar la elección. El combo editable trata estas teclas en su
     /// manejador de clase, antes que los de instancia, y su resaltado no sirve con la lista filtrada; por eso este manejador
     /// se registra también para eventos ya tratados.
     /// </summary>
-    private static void AlPulsar(object sender, KeyEventArgs e)
+    private static bool _teclasRegistradas;
+
+    /// <summary>
+    /// El combo editable trata las teclas en su OnPreviewKeyDown (manejador de clase de UIElement), antes que cualquier
+    /// manejador de instancia: avanzaba desde su propio resaltado y elegía sobre la marcha. Un manejador de clase de
+    /// ComboBox corre antes que el de UIElement, así que las flechas, Enter y Tab de los combos con filtro se tratan aquí.
+    /// </summary>
+    private static void RegistrarTeclas()
     {
-        var c = (ComboBox)sender;
+        if (_teclasRegistradas) return;
+        _teclasRegistradas = true;
+        EventManager.RegisterClassHandler(typeof(ComboBox), UIElement.PreviewKeyDownEvent, new KeyEventHandler((o, e) =>
+        {
+            if (o is ComboBox c && !e.Handled && GetActivo(c)) AlPulsar(c, e);
+        }));
+    }
+
+    private static void AlPulsar(ComboBox c, KeyEventArgs e)
+    {
         // Tab desde la lista sale sin elegir (el combo, por sí solo, elegiría el resaltado y dejaría la lista abierta).
         if (e.Key == Key.Tab && c.IsDropDownOpen && e.OriginalSource is ComboBoxItem)
         {
@@ -92,12 +109,34 @@ public static class ComboFiltro
             e.Handled = true;
             return;
         }
-        if (e.Key is not (Key.Down or Key.Up) || !c.IsDropDownOpen || Keyboard.Modifiers != ModifierKeys.None
-            || e.OriginalSource is not TextBox || Vista(c) is not { } vista) return;
+        // Enter sobre un elemento de la lista lo elige. El combo editable no siempre lo hace: el foco puesto desde el texto no
+        // mueve su resaltado, y Enter solo cerraba la lista sin elegir.
+        if (e.Key == Key.Enter && c.IsDropDownOpen && Keyboard.FocusedElement is ComboBoxItem enfocado
+            && ItemsControl.ItemsControlFromItemContainer(enfocado) == c && c.ItemContainerGenerator.ItemFromContainer(enfocado) is { } item0
+            && item0 != DependencyProperty.UnsetValue)
+        {
+            c.SetValue(AnteriorProperty, item0);
+            c.SelectedItem = item0;
+            c.IsDropDownOpen = false;
+            (c.Template.FindName("PART_EditableTextBox", c) as TextBox)?.Focus();
+            e.Handled = true;
+            return;
+        }
+        if (e.Key is not (Key.Down or Key.Up) || !c.IsDropDownOpen || Keyboard.Modifiers != ModifierKeys.None || Vista(c) is not { } vista) return;
+        // Desde el texto o desde un elemento de esta lista: el foco es la única posición. El combo, por sí solo, avanza desde
+        // su resaltado (que puede ser la elección anterior) y elige sobre la marcha, con lo que Esc ya no volvía atrás.
+        var desdeElemento = e.OriginalSource is ComboBoxItem it && ItemsControl.ItemsControlFromItemContainer(it) == c;
+        if (!desdeElemento && e.OriginalSource is not TextBox) return;
         var visibles = vista.Cast<object>().ToList();
         e.Handled = true;
         if (visibles.Count == 0) return;
-        var destino = e.Key == Key.Down ? visibles[0] : visibles[^1];
+        // Desde el texto sin filtro (el texto es el del elegido), se parte del elegido; con filtro, del principio o del final.
+        var actual = desdeElemento ? visibles.IndexOf(c.ItemContainerGenerator.ItemFromContainer((ComboBoxItem)e.OriginalSource))
+            : c.SelectedItem is { } sel && string.Equals(sel.ToString(), c.Text, StringComparison.CurrentCulture) ? visibles.IndexOf(sel) : -1;
+        var indice = actual < 0
+            ? (e.Key == Key.Down ? 0 : visibles.Count - 1)
+            : Math.Clamp(actual + (e.Key == Key.Down ? 1 : -1), 0, visibles.Count - 1);
+        var destino = visibles[indice];
         if (c.ItemContainerGenerator.ContainerFromItem(destino) is not ComboBoxItem)
             c.UpdateLayout();
         if (c.ItemContainerGenerator.ContainerFromItem(destino) is ComboBoxItem item)
@@ -107,11 +146,28 @@ public static class ComboFiltro
         }
     }
 
+    /// <summary>Último elemento elegido, para volver a él si lo escrito no coincide con ninguno (Esc, Tab, clic fuera).</summary>
+    private static readonly DependencyProperty AnteriorProperty =
+        DependencyProperty.RegisterAttached("Anterior", typeof(object), typeof(ComboFiltro), new PropertyMetadata(null));
+
     private static void AlElegir(object sender, SelectionChangedEventArgs e)
     {
         var c = (ComboBox)sender;
+        if (c.SelectedItem is { } nuevo) c.SetValue(AnteriorProperty, nuevo);
         if ((bool)c.GetValue(AplicandoProperty) || c.SelectedItem is null || c.IsDropDownOpen) return;
         Quitar(c);
+    }
+
+    /// <summary>
+    /// Al entrar en el campo, el combo editable selecciona todo el texto y lo desplaza hasta el final: en un texto largo
+    /// («629 · Otros servicios · …») se veía el final y no el código. Se deja seleccionado, pero visto desde el principio.
+    /// </summary>
+    private static void AlEntrar(object sender, KeyboardFocusChangedEventArgs e)
+    {
+        var c = (ComboBox)sender;
+        if (e.OldFocus is DependencyObject antes && c.IsAncestorOf(antes)) return;
+        if (c.Template?.FindName("PART_EditableTextBox", c) is not TextBox caja) return;
+        c.Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Input, () => caja.ScrollToHorizontalOffset(0));
     }
 
     private static void AlCerrar(object? sender, EventArgs e) => Quitar((ComboBox)sender!);
@@ -129,7 +185,8 @@ public static class ComboFiltro
         c.SetValue(AplicandoProperty, true);
         try
         {
-            var elegido = c.SelectedItem;
+            // El combo editable deja de tener elección al escribir un texto que no es de ningún elemento: se vuelve al anterior.
+            var elegido = c.SelectedItem ?? c.GetValue(AnteriorProperty);
             if (Vista(c) is { Filter: not null } vista) vista.Filter = null;
             if (elegido is not null && !ReferenceEquals(c.SelectedItem, elegido)) c.SelectedItem = elegido;
             var texto = c.SelectedItem?.ToString() ?? "";

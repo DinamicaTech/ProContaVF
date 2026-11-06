@@ -2,6 +2,8 @@ using System.Collections.ObjectModel;
 using System.Globalization;
 using ProConta.Compras.Facturas;
 using ProConta.Contabilidad.CentrosCoste;
+using ProConta.Contabilidad.Cuentas;
+using ProConta.UI.Base.Comandos;
 using ProConta.UI.Base.Formato;
 using ProConta.UI.Base.Modelos;
 
@@ -123,6 +125,7 @@ public sealed class FichaCompraVM : ModeloVista
     private IReadOnlyList<OpcionFicha<TipoRetencionCompra?>> _tiposRetencion;
     private OpcionFicha<TipoRetencionCompra?> _tipoRetencion;
     private OpcionFicha<string> _cuentaGasto;
+    private IReadOnlyList<OpcionFicha<string>> _cuentasGasto;
     private OpcionFicha<int?> _centroCoste;
     private OpcionFicha<int?> _rectifica;
     private readonly IReadOnlyList<decimal> _tiposIva;
@@ -144,7 +147,8 @@ public sealed class FichaCompraVM : ModeloVista
         ClasesRetencion = [new("Profesionales", Facturas.ClaseRetencion.Profesionales), new("Arrendamientos", Facturas.ClaseRetencion.Arrendamientos)];
         var gasto = cuentasGasto.ToList();
         if (factura.CuentaGasto is { Length: > 0 } cg && gasto.All(c => c.Valor != cg)) gasto.Add(new($"{cg} · (no está en el plan del ejercicio)", cg));
-        CuentasGasto = [new("Sin cuenta de gasto", null), .. gasto];
+        _cuentasGasto = [new("Sin cuenta de gasto", null), .. gasto];
+        BuscarCuentaGastoCommand = new ComandoDelegado(p => _ = BuscarCuentaGastoAsync(p as string, diferir: false), _ => Editable);
         CentrosCoste = [new("Sin centro de coste", null), .. centros.Where(c => c.EstaActivo && c.EsImputable).OrderBy(c => c.RutaJerarquica, StringComparer.Ordinal)
             .Select(c => new OpcionFicha<int?>($"{c.Codigo} · {c.Nombre}", c.IdCentroCoste))];
         Rectificables = [new("No rectifica a ninguna", null), .. otras
@@ -203,7 +207,8 @@ public sealed class FichaCompraVM : ModeloVista
     public IReadOnlyList<OpcionFicha<OperacionCompra>> Operaciones { get; }
     public IReadOnlyList<OpcionFicha<ProductoCompra?>> Productos { get; }
     public IReadOnlyList<OpcionFicha<ClaseRetencion?>> ClasesRetencion { get; }
-    public IReadOnlyList<OpcionFicha<string>> CuentasGasto { get; }
+    /// <summary>Subcuentas del grupo 6 del ejercicio (y las que se eligen o crean con el buscador).</summary>
+    public IReadOnlyList<OpcionFicha<string>> CuentasGasto => _cuentasGasto;
     public IReadOnlyList<OpcionFicha<int?>> CentrosCoste { get; }
     public IReadOnlyList<OpcionFicha<int?>> Rectificables { get; }
     public ObservableCollection<DesgloseVM> Desgloses { get; } = [];
@@ -300,7 +305,78 @@ public sealed class FichaCompraVM : ModeloVista
         ? "La cuota la autorrepercute la empresa con el tipo general del ejercicio (intracomunitarias, importación y casos de inversión); la factura no lleva IVA."
         : "Una factura con inversión del sujeto pasivo no puede llevar IVA: deja la cuota a 0 para marcarla.";
 
-    public OpcionFicha<string> CuentaGasto { get => _cuentaGasto; set { if (value is not null) Cambiar(ref _cuentaGasto, value, "gasto"); } }
+    public OpcionFicha<string> CuentaGasto
+    {
+        get => _cuentaGasto;
+        set { if (value is not null && Cambiar(ref _cuentaGasto, value, "gasto")) Avisar(nameof(CodigoCuentaGasto), nameof(NombreCuentaGasto)); }
+    }
+
+    /// <summary>
+    /// Código de la cuenta de gasto tal como se escribe en la ficha (contabilidad/cuenta-contable 2026-11-06): admite el
+    /// punto de relleno (629.1 = 6290001); un código que no está en la lista abre el buscador con lo escrito.
+    /// </summary>
+    public string CodigoCuentaGasto { get => _cuentaGasto.Valor ?? ""; set => EscribirCuentaGasto(value); }
+
+    public string NombreCuentaGasto => _cuentaGasto.Valor is null ? "Sin cuenta de gasto"
+        : _cuentaGasto.Texto.IndexOf(" · ", StringComparison.Ordinal) is var i and >= 0 ? _cuentaGasto.Texto[(i + 3)..] : _cuentaGasto.Texto;
+
+    /// <summary>Lupa o F4 junto a la cuenta de gasto: abre el buscador de cuentas con el texto del campo.</summary>
+    public System.Windows.Input.ICommand BuscarCuentaGastoCommand { get; }
+
+    /// <summary>Abre el buscador de cuentas (lo pone la pantalla): recibe el texto y devuelve la cuenta elegida o creada, o null.</summary>
+    internal Func<string, Task<CuentaContable?>>? BuscarCuenta { get; set; }
+
+    private void EscribirCuentaGasto(string? texto)
+    {
+        var t = (texto ?? "").Trim();
+        if (SoloLectura || t == (_cuentaGasto.Valor ?? "")) return;
+        if (t.Length == 0) { CuentaGasto = _cuentasGasto[0]; return; }
+        if (OpcionCuentaGasto(t) is { } op) { CuentaGasto = op; return; }
+        // Código desconocido: el campo vuelve a la cuenta que había y se abre el buscador con lo escrito.
+        Avisar(nameof(CodigoCuentaGasto));
+        _ = BuscarCuentaGastoAsync(t, diferir: true);
+    }
+
+    /// <summary>La cuenta de la lista con ese código exacto o, con punto, la única que coincide al expandirlo.</summary>
+    private OpcionFicha<string>? OpcionCuentaGasto(string texto)
+    {
+        if (_cuentasGasto.FirstOrDefault(c => c.Valor == texto) is { } exacta) return exacta;
+        if (!texto.Contains('.')) return null;
+        var porPunto = _cuentasGasto.Where(c => c.Valor is { } v && BuscadorCuentas.ExpandirPunto(texto, v.Length) == v).Take(2).ToList();
+        return porPunto.Count == 1 ? porPunto[0] : null;
+    }
+
+    private bool _buscandoCuenta;
+
+    /// <summary>Abre el buscador y pone la cuenta elegida; la añade a la lista si no estaba (la recién creada, por ejemplo).</summary>
+    internal async Task BuscarCuentaGastoAsync(string? texto, bool diferir)
+    {
+        if (SoloLectura || BuscarCuenta is null || _buscandoCuenta) return;
+        // Desde el campo, después de que termine de escribirse el valor (no se abre una ventana dentro del enlace).
+        if (diferir) await Task.Yield();
+        if (_buscandoCuenta) return;
+        _buscandoCuenta = true;
+        try
+        {
+            var elegida = await BuscarCuenta((texto ?? _cuentaGasto.Valor ?? "").Trim());
+            if (elegida is null) return;
+            var op = _cuentasGasto.FirstOrDefault(c => c.Valor == elegida.Codigo);
+            if (op is null)
+            {
+                op = new OpcionFicha<string>($"{elegida.Codigo} · {elegida.Nombre}", elegida.Codigo);
+                _cuentasGasto = [_cuentasGasto[0], .. _cuentasGasto.Skip(1).Append(op).OrderBy(c => c.Valor, StringComparer.Ordinal)];
+                Avisar(nameof(CuentasGasto));
+            }
+            CuentaGasto = op;
+            // Sin centro de coste en la factura, el de la cuenta (contabilidad/cuenta-contable 2026-11-06 18:10).
+            if (_centroCoste.Valor is null && elegida.IdCentroCostePredeterminado is int cc && CentrosCoste.FirstOrDefault(c => c.Valor == cc) is { } centro)
+                CentroCoste = centro;
+        }
+        finally
+        {
+            _buscandoCuenta = false;
+        }
+    }
     public OpcionFicha<int?> CentroCoste { get => _centroCoste; set { if (value is not null) Cambiar(ref _centroCoste, value, "centro"); } }
     public OpcionFicha<int?> Rectifica { get => _rectifica; set { if (value is not null) Cambiar(ref _rectifica, value, "rectifica"); } }
     /// <summary>Formas de pago del catálogo (organizacion/formas-pago); la elegida pasa a ser la del proveedor al guardar.</summary>

@@ -36,6 +36,9 @@ public interface IDialogosCompras
 
     /// <summary>«Separar facturas»: página en la que empieza la segunda factura y su nombre de fichero; null si se cancela.</summary>
     (int Pagina, string Nombre)? PedirSeparacion(string fichero, string nombrePropuesto);
+
+    /// <summary>Buscador de cuentas común (contabilidad/cuenta-contable): la cuenta elegida o creada, o null si se cancela.</summary>
+    ProConta.Contabilidad.Cuentas.CuentaContable? ElegirCuenta(ProConta.Contabilidad.UI.BuscadorCuentasVM buscador, string titulo);
 }
 
 /// <summary>

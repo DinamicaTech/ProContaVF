@@ -29,11 +29,12 @@ public sealed record CuentaContable(
     int? IdCentroCostePredeterminado,
     decimal SaldoInicial,
     decimal SaldoActual,
-    int NumeroApuntes);
+    int NumeroApuntes,
+    string? Descripcion = null);
 
 /// <summary>Datos para dar de alta una cuenta nueva (con identidad nueva).</summary>
 public sealed record AltaCuenta(string Codigo, string Nombre, int? IdCuentaPadre = null, int? IdTipoCuentaContable = null,
-    Naturaleza Naturaleza = Naturaleza.SinDefinir, bool EsImputable = true, int? IdCentroCostePredeterminado = null);
+    Naturaleza Naturaleza = Naturaleza.SinDefinir, bool EsImputable = true, int? IdCentroCostePredeterminado = null, string? Descripcion = null);
 
 /// <summary>
 /// Contrato del ente CuentaContable: resolver por ejercicio y código exacto, comprobar que una cuenta
@@ -66,12 +67,21 @@ public interface ICatalogoCuentas
 
     /// <summary>Recalcula SaldoActual y NumeroApuntes de las cuentas del ejercicio desde sus apuntes.</summary>
     Task ReconstruirSaldosAsync(ContextoSociedadEjercicio contexto);
+
+    /// <summary>
+    /// Siguiente código libre de subcuenta de <paramref name="cuenta"/> (tres cifras) en el ejercicio, sin usar los
+    /// reservados de la sociedad (<see cref="BuscadorCuentas.SiguienteCodigo"/>). Null si no queda ninguno.
+    /// </summary>
+    Task<string?> SiguienteSubcuentaAsync(ContextoSociedadEjercicio contexto, string cuenta);
 }
 
 public static class ReglasCuenta
 {
     public const int LongitudMaximaCodigo = 30;
     public const int LongitudMaximaNombre = 150;
+
+    /// <summary>Descripción de la cuenta (NEXMAE en el ERP), opcional.</summary>
+    public const int LongitudMaximaDescripcion = 255;
 
     /// <summary>Una cuenta inexistente, inactiva, bloqueada o no imputable no recibe apuntes nuevos (RF-CUE-01).</summary>
     public static Resultado AdmiteApuntes(CuentaContable cuenta)
@@ -88,7 +98,7 @@ public static class ReglasCuenta
 public sealed class CatalogoCuentasAccess(IBaseDatos bd) : ICatalogoCuentas
 {
     private const string Columnas =
-        "IdCuentaContable, IdIdentidadContable, IdSociedadEjercicio, IdCuentaPadre, Codigo, Nombre, EstaActiva, EstaBloqueada, EsImputable, IdCentroCostePredeterminado, SaldoInicial, SaldoActual, NumeroApuntes";
+        "IdCuentaContable, IdIdentidadContable, IdSociedadEjercicio, IdCuentaPadre, Codigo, Nombre, EstaActiva, EstaBloqueada, EsImputable, IdCentroCostePredeterminado, SaldoInicial, SaldoActual, NumeroApuntes, Descripcion";
 
     public Task<CuentaContable?> ObtenerAsync(int idCuentaContable) =>
         bd.EjecutarAsync(s => s.ConsultarPrimeroAsync($"SELECT {Columnas} FROM CuentasContables WHERE IdCuentaContable = ?", Mapear, idCuentaContable));
@@ -116,6 +126,7 @@ public sealed class CatalogoCuentasAccess(IBaseDatos bd) : ICatalogoCuentas
         {
             var codigo = (alta.Codigo ?? "").Trim();
             var nombre = (alta.Nombre ?? "").Trim();
+            var descripcion = string.IsNullOrWhiteSpace(alta.Descripcion) ? null : alta.Descripcion.Trim();
             var registro = $"Cuenta {codigo}";
             if (codigo.Length == 0 || codigo.Length > ReglasCuenta.LongitudMaximaCodigo || !codigo.All(char.IsAsciiDigit))
                 return Fallo("Cuentas.CodigoNoValido", $"El código de cuenta «{codigo}» no es válido.", registro,
@@ -123,6 +134,9 @@ public sealed class CatalogoCuentasAccess(IBaseDatos bd) : ICatalogoCuentas
             if (nombre.Length == 0 || nombre.Length > ReglasCuenta.LongitudMaximaNombre)
                 return Fallo("Cuentas.NombreNoValido", "Falta el nombre de la cuenta o es demasiado largo.", registro,
                     $"Debe tener entre 1 y {ReglasCuenta.LongitudMaximaNombre} caracteres.", "Escribe el nombre de la cuenta.");
+            if (descripcion is { Length: > ReglasCuenta.LongitudMaximaDescripcion })
+                return Fallo("Cuentas.DescripcionNoValida", "La descripción de la cuenta es demasiado larga.", registro,
+                    $"Puede tener hasta {ReglasCuenta.LongitudMaximaDescripcion} caracteres.", "Acorta la descripción.");
 
             if (Convert.ToInt32(await s.EscalarAsync("SELECT COUNT(*) FROM CuentasContables WHERE IdSociedadEjercicio = ? AND Codigo = ?", contexto.IdSociedadEjercicio, codigo)) > 0)
                 return Fallo("Cuentas.Repetida", $"La cuenta {codigo} ya existe en el ejercicio {contexto.Ejercicio}.", registro,
@@ -147,13 +161,26 @@ public sealed class CatalogoCuentasAccess(IBaseDatos bd) : ICatalogoCuentas
                 contexto.IdSociedad, alta.IdTipoCuentaContable, (byte)alta.Naturaleza, hoy);
             var identidad = await s.UltimoIdAsync();
             await s.EjecutarAsync(
-                "INSERT INTO CuentasContables (IdIdentidadContable, IdSociedadEjercicio, IdCuentaPadre, Codigo, Nombre, EstaActiva, EstaBloqueada, EsImputable, IdCentroCostePredeterminado, SaldoInicial, SaldoActual, NumeroApuntes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                identidad, contexto.IdSociedadEjercicio, alta.IdCuentaPadre, codigo, nombre, true, false, alta.EsImputable, alta.IdCentroCostePredeterminado, 0m, 0m, 0);
+                "INSERT INTO CuentasContables (IdIdentidadContable, IdSociedadEjercicio, IdCuentaPadre, Codigo, Nombre, EstaActiva, EstaBloqueada, EsImputable, IdCentroCostePredeterminado, SaldoInicial, SaldoActual, NumeroApuntes, Descripcion) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                identidad, contexto.IdSociedadEjercicio, alta.IdCuentaPadre, codigo, nombre, true, false, alta.EsImputable, alta.IdCentroCostePredeterminado, 0m, 0m, 0, descripcion);
             var id = await s.UltimoIdAsync();
             await s.EjecutarAsync("INSERT INTO CodigosContablesReservados (IdSociedad, Codigo, IdIdentidadContable, FechaPrimeraAsignacion) VALUES (?, ?, ?, ?)",
                 contexto.IdSociedad, codigo, identidad, hoy);
             return Resultado<CuentaContable>.Correcto(new CuentaContable(id, identidad, contexto.IdSociedadEjercicio, alta.IdCuentaPadre, codigo, nombre,
-                true, false, alta.EsImputable, alta.IdCentroCostePredeterminado, 0m, 0m, 0));
+                true, false, alta.EsImputable, alta.IdCentroCostePredeterminado, 0m, 0m, 0, descripcion));
+        });
+
+    public Task<string?> SiguienteSubcuentaAsync(ContextoSociedadEjercicio contexto, string cuenta) =>
+        bd.EjecutarAsync(async s =>
+        {
+            var prefijo = (cuenta ?? "").Trim();
+            if (prefijo.Length == 0 || !prefijo.All(char.IsAsciiDigit)) return null;
+            var like = prefijo + "%";
+            var enEjercicio = await s.ConsultarAsync("SELECT Codigo FROM CuentasContables WHERE IdSociedadEjercicio = ? AND Codigo LIKE ?",
+                f => f.Texto("Codigo") ?? "", contexto.IdSociedadEjercicio, like);
+            var reservados = await s.ConsultarAsync("SELECT Codigo FROM CodigosContablesReservados WHERE IdSociedad = ? AND Codigo LIKE ?",
+                f => f.Texto("Codigo") ?? "", contexto.IdSociedad, like);
+            return BuscadorCuentas.SiguienteCodigo(prefijo, enEjercicio.Concat(reservados).Select(c => c.Trim()));
         });
 
     public Task<CuentaContable?> CuentaDeIdentidadAsync(ContextoSociedadEjercicio contexto, int idIdentidadContable) =>
@@ -166,7 +193,7 @@ public sealed class CatalogoCuentasAccess(IBaseDatos bd) : ICatalogoCuentas
     private static Task<CuentaContable?> UltimaAsync(ISesionDatos s, int idIdentidadContable) =>
         s.ConsultarPrimeroAsync(
             "SELECT c.IdCuentaContable, c.IdIdentidadContable, c.IdSociedadEjercicio, c.IdCuentaPadre, c.Codigo, c.Nombre, c.EstaActiva, c.EstaBloqueada, c.EsImputable, " +
-            "c.IdCentroCostePredeterminado, c.SaldoInicial, c.SaldoActual, c.NumeroApuntes FROM CuentasContables AS c INNER JOIN SociedadesEjercicios AS se " +
+            "c.IdCentroCostePredeterminado, c.SaldoInicial, c.SaldoActual, c.NumeroApuntes, c.Descripcion FROM CuentasContables AS c INNER JOIN SociedadesEjercicios AS se " +
             "ON c.IdSociedadEjercicio = se.IdSociedadEjercicio WHERE c.IdIdentidadContable = ? ORDER BY se.Ejercicio DESC, c.IdCuentaContable DESC",
             Mapear, idIdentidadContable);
 
@@ -201,14 +228,14 @@ public sealed class CatalogoCuentasAccess(IBaseDatos bd) : ICatalogoCuentas
                     "Los códigos usados se reservan para no confundir cuentas distintas en el histórico.", "Elige otro código para esta cuenta.");
 
             await s.EjecutarAsync(
-                "INSERT INTO CuentasContables (IdIdentidadContable, IdSociedadEjercicio, IdCuentaPadre, Codigo, Nombre, EstaActiva, EstaBloqueada, EsImputable, IdCentroCostePredeterminado, SaldoInicial, SaldoActual, NumeroApuntes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                idIdentidadContable, contexto.IdSociedadEjercicio, null, cod, nom, true, false, ultima?.EsImputable ?? true, ultima?.IdCentroCostePredeterminado, 0m, 0m, 0);
+                "INSERT INTO CuentasContables (IdIdentidadContable, IdSociedadEjercicio, IdCuentaPadre, Codigo, Nombre, EstaActiva, EstaBloqueada, EsImputable, IdCentroCostePredeterminado, SaldoInicial, SaldoActual, NumeroApuntes, Descripcion) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                idIdentidadContable, contexto.IdSociedadEjercicio, null, cod, nom, true, false, ultima?.EsImputable ?? true, ultima?.IdCentroCostePredeterminado, 0m, 0m, 0, ultima?.Descripcion);
             var id = await s.UltimoIdAsync();
             if (reservada is null)
                 await s.EjecutarAsync("INSERT INTO CodigosContablesReservados (IdSociedad, Codigo, IdIdentidadContable, FechaPrimeraAsignacion) VALUES (?, ?, ?, ?)",
                     contexto.IdSociedad, cod, idIdentidadContable, DateTime.Today);
             return Resultado<CuentaContable>.Correcto(new CuentaContable(id, idIdentidadContable, contexto.IdSociedadEjercicio, null, cod, nom,
-                true, false, ultima?.EsImputable ?? true, ultima?.IdCentroCostePredeterminado, 0m, 0m, 0));
+                true, false, ultima?.EsImputable ?? true, ultima?.IdCentroCostePredeterminado, 0m, 0m, 0, ultima?.Descripcion));
         });
 
     public Task ReconstruirSaldosAsync(ContextoSociedadEjercicio contexto) =>
@@ -232,5 +259,5 @@ public sealed class CatalogoCuentasAccess(IBaseDatos bd) : ICatalogoCuentas
     public static CuentaContable Mapear(IFilaDatos f) => new(
         f.Entero("IdCuentaContable"), f.Entero("IdIdentidadContable"), f.Entero("IdSociedadEjercicio"), f.EnteroNulo("IdCuentaPadre"),
         f.Texto("Codigo") ?? "", f.Texto("Nombre") ?? "", f.Logico("EstaActiva"), f.Logico("EstaBloqueada"), f.Logico("EsImputable"),
-        f.EnteroNulo("IdCentroCostePredeterminado"), f.Decimal("SaldoInicial"), f.Decimal("SaldoActual"), f.Entero("NumeroApuntes"));
+        f.EnteroNulo("IdCentroCostePredeterminado"), f.Decimal("SaldoInicial"), f.Decimal("SaldoActual"), f.Entero("NumeroApuntes"), f.Texto("Descripcion"));
 }

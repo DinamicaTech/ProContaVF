@@ -25,4 +25,11 @@ public static class MigracionesContabilidad
             "CREATE INDEX IX_RegistroCambiosApuntes_Lote ON RegistroCambiosApuntes (IdLote)"),
         new CrearIndice("RegistroCambiosApuntes", "IX_RegistroCambiosApuntes_Asiento",
             "CREATE INDEX IX_RegistroCambiosApuntes_Asiento ON RegistroCambiosApuntes (IdAsiento)"));
+
+    /// <summary>Descripción de la cuenta (contabilidad/cuenta-contable 2026-11-06): la NEXMAE del ERP, que trae su migración.</summary>
+    public static Migracion DescripcionCuentas { get; } = new(
+        "20261106_1810_DESCRIPCION_CUENTAS", 261106005,
+        "Descripción opcional de las cuentas contables.",
+        "contabilidad/cuenta-contable",
+        new AnadirColumna("CuentasContables", "Descripcion", "TEXT(255)"));
 }

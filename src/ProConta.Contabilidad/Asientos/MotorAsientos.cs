@@ -363,7 +363,7 @@ public sealed class MotorAsientosAccess(IBaseDatos bd, PoliticaCuadre? politica 
     {
         var texto = (codigo ?? "").Trim();
         var cuenta = await s.ConsultarPrimeroAsync(
-            "SELECT IdCuentaContable, IdIdentidadContable, IdSociedadEjercicio, IdCuentaPadre, Codigo, Nombre, EstaActiva, EstaBloqueada, EsImputable, IdCentroCostePredeterminado, SaldoInicial, SaldoActual, NumeroApuntes FROM CuentasContables WHERE IdSociedadEjercicio = ? AND Codigo = ?",
+            "SELECT IdCuentaContable, IdIdentidadContable, IdSociedadEjercicio, IdCuentaPadre, Codigo, Nombre, EstaActiva, EstaBloqueada, EsImputable, IdCentroCostePredeterminado, SaldoInicial, SaldoActual, NumeroApuntes, Descripcion FROM CuentasContables WHERE IdSociedadEjercicio = ? AND Codigo = ?",
             CatalogoCuentasAccess.Mapear, contexto.IdSociedadEjercicio, texto);
         if (cuenta is null)
             return Resultado<CuentaContable>.Fallo(new Error("Cuentas.NoExiste", $"No existe la cuenta {texto} en el ejercicio {contexto.Ejercicio}.", $"Cuenta {texto}",
