@@ -19,6 +19,7 @@ Motor común que valida y guarda asientos como agregado atómico con cuadre, aud
 - 2026-10-31 19:15 · Auditoría: cada alta, modificación o lote escribe una revisión en RevisionesAsientos con la instantánea JSON anterior y la resultante; modificar o borrar exige motivo. Cada cambio de apunte (ALTA, BAJA o MODIFICACION de cada campo, comparando por orden) va a la tabla nueva RegistroCambiosApuntes con valor anterior y nuevo, operador y motivo, y un IdLote común a toda la operación (por ejemplo, un cambio de cuenta de varios apuntes). Al borrar un asiento se borran sus revisiones y relaciones, y la traza queda en RegistroCambiosApuntes.
 - 2026-10-31 19:15 · Concurrencia optimista con Asientos.Version. La caché de saldos (SaldoActual y NumeroApuntes) de las cuentas afectadas se recalcula en la misma transacción. EstadoAsiento se guarda siempre como contabilizado: no hay borradores descuadrados.
 - 2026-11-01 09:31 · Validado por el propietario (desarrollos base).
+- 2026-11-07 00:19 · El motor admite un trabajo del área dueña del lote dentro de la misma transacción (TrabajoLote: antes de borrar los asientos del lote y después de grabar los nuevos), para que compras grabe el libro de IVA y la marca de la factura con el asiento; si ese trabajo falla, no se guarda nada.
 
 ## Requirements
 - 2026-10-28 12:28 · From sources/01_ESPECIFICACION_FUNCIONAL.docx § 15 RF-ASI-01..03: agregado atómico, cuadre, automáticos regenerables por su lote

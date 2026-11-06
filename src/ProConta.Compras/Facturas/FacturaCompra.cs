@@ -68,6 +68,12 @@ public sealed class FacturaCompra
 
     /// <summary>Contabilizada (FacturasCompra.Exportada): ya no se edita aquí.</summary>
     public bool Contabilizada { get; set; }
+
+    /// <summary>Asiento vigente si la exportó ProContaVF (null: sin exportar o exportada en el ERP).</summary>
+    public int? IdAsientoContable { get; set; }
+
+    /// <summary>Exportada por ProContaVF: se puede re-exportar o deshacer (las del ERP, no).</summary>
+    public bool ExportadaAqui => Contabilizada && IdAsientoContable is not null;
     /// <summary>Marcada como duplicada en el ERP.</summary>
     public bool Duplicada { get; set; }
 
@@ -192,8 +198,11 @@ public sealed class FacturaCompra
         return errores.Count == 0 ? Resultado.Correcto() : Resultado.Fallo(errores);
     }
 
-    /// <summary>Base + cuota − retención + suplido = total, cuando los tres importes están.</summary>
-    public bool Cuadra => BaseImponible is { } b && CuotaIva is { } c && ImporteTotal is { } t && b + c - (ImporteRetencion ?? 0m) + (Suplido ?? 0m) == t;
+    /// <summary>
+    /// Base + cuota − retención + suplido = total, cuando los tres importes están, con hasta 0,03 € de diferencia, que el
+    /// asiento ajusta con un apunte de redondeo (compras/pantallas 2026-11-05 20:29).
+    /// </summary>
+    public bool Cuadra => BaseImponible is { } b && CuotaIva is { } c && ImporteTotal is { } t && Math.Abs(b + c - (ImporteRetencion ?? 0m) + (Suplido ?? 0m) - t) <= AsientoCompra.ToleranciaRedondeo;
 
     /// <summary>Lo que falta para que la factura esté lista para contabilizar (proveedor, número, fecha e importes que cuadren).</summary>
     public IReadOnlyList<string> Pendiente()

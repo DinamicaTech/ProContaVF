@@ -212,6 +212,17 @@ public sealed class FichaCompraTests
     }
 
     [Fact]
+    public void El_nombre_leido_no_se_propone_para_un_nif_distinto_del_leido()
+    {
+        var factura = Factura();
+        factura.NombreProveedorAeat = "Ficticio Sociedad Limitada";
+        var f = Ficha(factura);
+        Assert.Equal("Ficticio Sociedad Limitada", f.NombreLeido);
+        f.Nif = "B76543214";
+        Assert.Null(f.NombreLeido);
+    }
+
+    [Fact]
     public void Lo_construido_conserva_la_version_y_la_imputacion_elegida()
     {
         var f = Ficha();

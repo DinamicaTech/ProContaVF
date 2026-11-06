@@ -154,6 +154,10 @@ public sealed class DialogosCompras(Func<Window?> ventana) : IDialogosCompras
             var fila = new DockPanel();
             var buscar = new Button { Content = "Buscar en eInforma", Margin = new Thickness(8, 0, 0, 0), ToolTip = "Abre en el navegador la búsqueda del NIF en eInforma para copiar la razón social" };
             buscar.Click += (_, _) => Abrir(urlEInforma);
+            // Solo cuando falta la razón social: si la trae la factura o se escribe, sobra.
+            void Mostrar() => buscar.Visibility = string.IsNullOrWhiteSpace(razon.Text) ? Visibility.Visible : Visibility.Collapsed;
+            razon.TextChanged += (_, _) => Mostrar();
+            Mostrar();
             DockPanel.SetDock(buscar, Dock.Right);
             fila.Children.Add(buscar);
             fila.Children.Add(razon);
@@ -190,5 +194,34 @@ public sealed class DialogosCompras(Func<Window?> ventana) : IDialogosCompras
         dialogo.Botones = new StackPanel { Orientation = Orientation.Horizontal, Children = { cancelar, aceptar } };
         dialogo.Loaded += (_, _) => (string.IsNullOrWhiteSpace(razon.Text) ? razon : (UIElement)aceptar).Focus();
         return dialogo.ShowDialog() == true;
+    }
+
+    public string? PedirMotivoAjuste(string explicacion)
+    {
+        var dialogo = new DialogoProConta { Title = "El asiento no cuadra", Owner = ventana(), Width = 560 };
+        var motivo = new TextBox { MaxLength = 200, HorizontalAlignment = HorizontalAlignment.Stretch, ToolTip = "Va en el concepto del apunte de ajuste y queda en el registro del asiento" };
+        var error = new TextBlock { Foreground = System.Windows.Media.Brushes.Firebrick, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 10, 0, 0), Visibility = Visibility.Collapsed };
+        var panel = new StackPanel();
+        panel.Children.Add(new TextBlock { Text = explicacion, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 0, 0, 8) });
+        panel.Children.Add(new TextBlock
+        {
+            Text = "Corrige las cuotas en la ficha o, si la factura es así, exporta con un ajuste manual a la cuenta de redondeo escribiendo el motivo.",
+            TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 0, 0, 12)
+        });
+        panel.Children.Add(new TextBlock { Text = "Motivo del ajuste *", Style = (Style)dialogo.FindResource("Texto.Seccion"), Margin = new Thickness(0, 0, 0, 4) });
+        panel.Children.Add(motivo);
+        panel.Children.Add(error);
+        dialogo.Content = panel;
+        var aceptar = new Button { Content = "Exportar con el ajuste", Style = (Style)dialogo.FindResource("Boton.Primario"), Margin = new Thickness(8, 0, 0, 0), IsDefault = true };
+        var cancelar = new Button { Content = "Cancelar", IsCancel = true, ToolTip = "No exporta; puedes corregir la ficha" };
+        aceptar.Click += (_, _) =>
+        {
+            if (string.IsNullOrWhiteSpace(motivo.Text)) { error.Text = "Escribe el motivo."; error.Visibility = Visibility.Visible; motivo.Focus(); return; }
+            dialogo.DialogResult = true;
+        };
+        cancelar.Click += (_, _) => dialogo.DialogResult = false;
+        dialogo.Botones = new StackPanel { Orientation = Orientation.Horizontal, Children = { cancelar, aceptar } };
+        dialogo.Loaded += (_, _) => motivo.Focus();
+        return dialogo.ShowDialog() == true ? motivo.Text.Trim() : null;
     }
 }

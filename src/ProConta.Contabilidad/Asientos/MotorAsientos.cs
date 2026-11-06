@@ -13,6 +13,15 @@ public sealed record CambioApunte(Guid IdLote, DateTime FechaHora, string Operad
     string Operacion, string Campo, string? ValorAntiguo, string? ValorNuevo);
 
 /// <summary>
+/// Trabajo del área dueña del lote dentro de la misma transacción que sus asientos (p. ej. el libro de IVA y la marca
+/// de la factura, compras/factura-compra/contabilizacion 2026-11-05 11:24). Antes recibe los asientos del lote que se
+/// van a borrar (para quitar lo que los referencia); Despues, los nuevos. Si Despues falla, no se guarda nada.
+/// </summary>
+public sealed record TrabajoLote(
+    Func<ISesionDatos, IReadOnlyList<int>, Task>? Antes = null,
+    Func<ISesionDatos, IReadOnlyList<int>, Task<Resultado>>? Despues = null);
+
+/// <summary>
 /// Motor común de asientos: la única vía para crear, modificar o borrar asientos y apuntes. Valida el
 /// agregado completo (cuadre, cuentas, centros, fecha y ejercicio abierto) dentro de la transacción en
 /// que lo guarda, mantiene la caché de saldos de las cuentas afectadas, registra cada revisión
@@ -33,10 +42,11 @@ public interface IMotorAsientos
     /// Sustituye todos los asientos de un lote automático por los indicados, en una sola transacción:
     /// regenerar no duplica, y si uno falla no se guarda ninguno.
     /// </summary>
-    Task<Resultado<IReadOnlyList<int>>> ReemplazarLoteAsync(ContextoSociedadEjercicio contexto, IdentidadLote lote, IReadOnlyList<Asiento> asientos, Actor actor, string motivo);
+    Task<Resultado<IReadOnlyList<int>>> ReemplazarLoteAsync(ContextoSociedadEjercicio contexto, IdentidadLote lote, IReadOnlyList<Asiento> asientos, Actor actor, string motivo,
+        TrabajoLote? enLaTransaccion = null);
 
     /// <summary>Borra los asientos de un lote automático; devuelve cuántos.</summary>
-    Task<Resultado<int>> EliminarLoteAsync(ContextoSociedadEjercicio contexto, IdentidadLote lote, Actor actor, string motivo);
+    Task<Resultado<int>> EliminarLoteAsync(ContextoSociedadEjercicio contexto, IdentidadLote lote, Actor actor, string motivo, TrabajoLote? enLaTransaccion = null);
 
     /// <summary>Cambia de cuenta varios apuntes manuales en una operación (mismo IdLote en el registro).</summary>
     Task<Resultado<Guid>> CambiarCuentaApuntesAsync(ContextoSociedadEjercicio contexto, IReadOnlyCollection<int> idsApunte, string nuevaCuenta, Actor actor, string motivo);
@@ -85,7 +95,8 @@ public sealed class MotorAsientosAccess(IBaseDatos bd, PoliticaCuadre? politica 
             return Resultado.Correcto();
         });
 
-    public Task<Resultado<IReadOnlyList<int>>> ReemplazarLoteAsync(ContextoSociedadEjercicio contexto, IdentidadLote lote, IReadOnlyList<Asiento> asientos, Actor actor, string motivo) =>
+    public Task<Resultado<IReadOnlyList<int>>> ReemplazarLoteAsync(ContextoSociedadEjercicio contexto, IdentidadLote lote, IReadOnlyList<Asiento> asientos, Actor actor, string motivo,
+        TrabajoLote? enLaTransaccion = null) =>
         bd.EnTransaccionAsync(async s =>
         {
             var error = ValidarLote(lote, motivo) ?? asientos.Where(a => a.Contexto != contexto).Select(a => new Error("Asientos.LoteOtroEjercicio",
@@ -96,6 +107,7 @@ public sealed class MotorAsientosAccess(IBaseDatos bd, PoliticaCuadre? politica 
 
             var idLote = Guid.NewGuid();
             var anteriores = await IdsDelLoteAsync(s, contexto, lote);
+            if (enLaTransaccion?.Antes is { } antes) await antes(s, anteriores);
             var cuentas = new List<string>();
             foreach (var id in anteriores)
             {
@@ -114,11 +126,16 @@ public sealed class MotorAsientosAccess(IBaseDatos bd, PoliticaCuadre? politica 
                 else errores.AddRange(guardado.Errores);
             }
             if (errores.Count > 0) return Resultado<IReadOnlyList<int>>.Fallo(errores);
+            if (enLaTransaccion?.Despues is { } despues)
+            {
+                var hecho = await despues(s, nuevos);
+                if (!hecho.EsCorrecto) return Resultado<IReadOnlyList<int>>.Fallo(hecho.Errores);
+            }
             await ActualizarSaldosAsync(s, contexto, cuentas);
             return Resultado<IReadOnlyList<int>>.Correcto(nuevos);
         });
 
-    public Task<Resultado<int>> EliminarLoteAsync(ContextoSociedadEjercicio contexto, IdentidadLote lote, Actor actor, string motivo) =>
+    public Task<Resultado<int>> EliminarLoteAsync(ContextoSociedadEjercicio contexto, IdentidadLote lote, Actor actor, string motivo, TrabajoLote? enLaTransaccion = null) =>
         bd.EnTransaccionAsync(async s =>
         {
             var error = ValidarLote(lote, motivo);
@@ -127,12 +144,18 @@ public sealed class MotorAsientosAccess(IBaseDatos bd, PoliticaCuadre? politica 
             if (!abierto.EsCorrecto) return Resultado<int>.Fallo(abierto.Errores);
             var idLote = Guid.NewGuid();
             var ids = await IdsDelLoteAsync(s, contexto, lote);
+            if (enLaTransaccion?.Antes is { } antes) await antes(s, ids);
             var cuentas = new List<string>();
             foreach (var id in ids)
             {
                 var viejo = (await CargarAsync(s, id))!;
                 cuentas.AddRange(viejo.Apuntes.Select(a => a.CodigoCuenta));
                 await BorrarAsync(s, viejo, actor, motivo.Trim(), idLote);
+            }
+            if (enLaTransaccion?.Despues is { } despues)
+            {
+                var hecho = await despues(s, []);
+                if (!hecho.EsCorrecto) return Resultado<int>.Fallo(hecho.Errores);
             }
             await ActualizarSaldosAsync(s, contexto, cuentas);
             return Resultado<int>.Correcto(ids.Count);

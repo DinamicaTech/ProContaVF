@@ -12,6 +12,7 @@ namespace ProConta.Compras.UI.VistaModelos;
 /// de IVA 1 a 4 del ejercicio (organizacion/sociedades-ejercicios), para el desplegable de la ficha. <c>FormasPago</c>: el
 /// catálogo de formas de pago (organizacion/formas-pago). <c>TiposRetencion</c>: los tipos de retención vigentes.
 /// <c>TextosClave</c>: los textos clave de compras de la empresa. <c>AltaProveedor</c>: el alta de proveedor desde la factura.
+/// <c>Contabilizador</c>: exportar, re-exportar y deshacer la exportación, como <c>Operador</c>.
 /// </summary>
 public sealed record ServiciosCompras(
     ServicioFacturasCompra Facturas,
@@ -24,7 +25,9 @@ public sealed record ServiciosCompras(
     Func<Task<IReadOnlyList<(byte Id, string Descripcion)>>>? FormasPago = null,
     Func<Task<IReadOnlyList<TipoRetencionCompra>>>? TiposRetencion = null,
     CatalogoTextosClaveCompra? TextosClave = null,
-    ProConta.Compras.Proveedores.ServicioAltaProveedorCompra? AltaProveedor = null);
+    ProConta.Compras.Proveedores.ServicioAltaProveedorCompra? AltaProveedor = null,
+    ContabilizadorCompras? Contabilizador = null,
+    ProConta.Nucleo.Auditoria.Actor? Operador = null);
 
 /// <summary>Diálogos de compras (en la vista, para que los modelos de vista se prueben sin ventanas).</summary>
 public interface IDialogosCompras
@@ -57,6 +60,12 @@ public interface IDialogosCompras
     /// </summary>
     bool PedirDatosProveedor(ProConta.Compras.Proveedores.DatosAltaProveedor propuesta, string? motivo, string? urlEInforma,
         Func<ProConta.Compras.Proveedores.DatosAltaProveedor, Task<string?>> guardar);
+
+    /// <summary>
+    /// Descuadre de más de 0,03 € al exportar (compras/factura-compra/contabilizacion 2026-10-29 21:05): explica cuánto
+    /// falta y pide el motivo del ajuste manual a la cuenta de redondeo. Null si se cancela.
+    /// </summary>
+    string? PedirMotivoAjuste(string explicacion);
 }
 
 /// <summary>

@@ -15,6 +15,7 @@
     <KeyBinding Key="F" Modifiers="Ctrl" Command="{Binding EnfocarBusquedaCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" />
     <KeyBinding Key="F5" Command="{Binding RefrescarCommand}" />
     <KeyBinding Key="R" Modifiers="Ctrl" Command="{Binding ReconocerCommand}" />
+    <KeyBinding Key="F12" Command="{Binding ExportarCommand}" />
   </UserControl.InputBindings>
 
   <DockPanel>
@@ -110,6 +111,10 @@
                       Visibility="{Binding Prueba, Converter={StaticResource Visible}}" />
             <Separator />
             <MenuItem Header="Dar por revisada" Command="{Binding GuardarCommand}" InputGestureText="Ctrl+G" ToolTip="Guarda la ficha tal como está aunque no hayas cambiado nada: confirma lo leído y enseña dónde están el NIF, el número, la fecha y el total en las facturas de este proveedor" />
+            <MenuItem Header="Exportar" Command="{Binding ExportarCommand}" InputGestureText="F12"
+                      ToolTip="Genera el asiento y el registro del libro de IVA soportado; con varias seleccionadas, exporta las pendientes sin preguntar y deja pendientes las que necesitan respuesta" />
+            <MenuItem Header="Deshacer exportación" Command="{Binding DeshacerExportacionCommand}"
+                      ToolTip="Del trimestre activo, borra el asiento; de uno cerrado, hace un contra-asiento en el trimestre activo" />
             <Separator />
             <MenuItem Header="Dar de alta el proveedor…" Command="{Binding Ficha.DarDeAltaProveedorCommand}"
                       ToolTip="Crea el proveedor con el NIF de la factura (confirmado con la AEAT si la empresa tiene certificado) y su cuenta de acreedor 410" />
@@ -150,13 +155,27 @@
 
       <!-- Ficha de la factura activa -->
       <DockPanel Grid.Column="2" Background="{StaticResource Pincel.Fondo}">
-      <!-- Botones de la ficha: actúan sobre los campos en edición, no sobre la factura (compras/pantallas 2026-11-06 12:10).
-           Exportar a contabilidad llega con la entrega 3. -->
+      <!-- Botones de la ficha (compras/pantallas 2026-11-06 12:10): con cambios, Cancelar, Guardar y Guardar y exportar (en una
+           exportada, Cancelar y Guardar y re-exportar, sin Guardar solo); sin cambios, Exportar o Deshacer exportación. -->
       <Border DockPanel.Dock="Bottom" BorderBrush="{StaticResource Pincel.Linea}" BorderThickness="0,1,0,0" Padding="14,8"
-              Visibility="{Binding TieneCambios, Converter={StaticResource Visible}}">
+              Visibility="{Binding HayBotonesFicha, Converter={StaticResource Visible}}">
         <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-          <Button Content="Cancelar" Command="{Binding DescartarCommand}" Margin="0,0,8,0" ToolTip="Vuelve a lo guardado de esta factura" />
-          <Button Content="Guardar" Style="{StaticResource Boton.Primario}" Command="{Binding GuardarCommand}" ToolTip="Guarda los cambios de esta factura (Ctrl+G)" />
+          <Button Content="Cancelar" Command="{Binding DescartarCommand}" Margin="0,0,8,0" ToolTip="Vuelve a lo guardado de esta factura"
+                  Visibility="{Binding TieneCambios, Converter={StaticResource Visible}}" />
+          <Button Content="Guardar" Command="{Binding GuardarCommand}" Margin="0,0,8,0" ToolTip="Guarda los cambios de esta factura (Ctrl+G)"
+                  Visibility="{Binding MostrarGuardar, Converter={StaticResource Visible}}" />
+          <Button Content="Guardar y exportar" Style="{StaticResource Boton.Primario}" Command="{Binding GuardarYExportarCommand}"
+                  ToolTip="Guarda los cambios y genera el asiento y el registro del libro de IVA soportado"
+                  Visibility="{Binding MostrarGuardarYExportar, Converter={StaticResource Visible}}" />
+          <Button Content="Guardar y re-exportar" Style="{StaticResource Boton.Primario}" Command="{Binding GuardarYReexportarCommand}"
+                  ToolTip="Guarda los cambios y regenera el asiento; si es de un trimestre cerrado, hace contra-asiento y asiento nuevo en el trimestre activo"
+                  Visibility="{Binding MostrarGuardarYReexportar, Converter={StaticResource Visible}}" />
+          <Button Content="Exportar" Style="{StaticResource Boton.Primario}" Command="{Binding ExportarCommand}"
+                  ToolTip="Genera el asiento de la factura (fechado hoy) y su registro del libro de IVA soportado"
+                  Visibility="{Binding MostrarExportar, Converter={StaticResource Visible}}" />
+          <Button Content="Deshacer exportación" Command="{Binding DeshacerExportacionCommand}"
+                  ToolTip="Del trimestre activo, borra el asiento; de uno cerrado, hace un contra-asiento en el trimestre activo"
+                  Visibility="{Binding MostrarDeshacer, Converter={StaticResource Visible}}" />
         </StackPanel>
       </Border>
       <ScrollViewer x:Name="ZonaFicha" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Background="{StaticResource Pincel.Fondo}">

@@ -69,16 +69,17 @@ internal static class RepositorioFacturasCompra
     /// Guarda los datos editables de una factura sin contabilizar, con control de versión: si otro operador la cambió
     /// después de leerla, no se pisa. Los desgloses se sustituyen enteros. Debe llamarse dentro de una transacción.
     /// </summary>
-    public static async Task<Resultado<int>> ActualizarAsync(ISesionDatos s, FacturaCompra f)
+    /// <remarks><paramref name="permitirExportada"/>: al re-exportar, los cambios se guardan en la misma transacción que el asiento nuevo.</remarks>
+    public static async Task<Resultado<int>> ActualizarAsync(ISesionDatos s, FacturaCompra f, bool permitirExportada = false)
     {
         if (!s.EnTransaccion) throw new InvalidOperationException("La factura de compra se guarda dentro de una transacción.");
         var estado = await s.ConsultarPrimeroAsync("SELECT Exportada, Version FROM FacturasCompra WHERE IdRegistro = ?",
             r => (Existe: true, Exportada: r.Logico("Exportada"), Version: r.EnteroNulo("Version") ?? 0), f.IdRegistro);
         if (!estado.Existe)
             return Resultado<int>.Fallo(new Error("Compras.NoExiste", "La factura de compra ya no existe.", f.Rotulo, "Otro operador la ha borrado.", "Actualiza la lista."));
-        if (estado.Exportada)
+        if (estado.Exportada && !permitirExportada)
             return Resultado<int>.Fallo(new Error("Compras.Contabilizada", "La factura ya está contabilizada y no se cambia desde aquí.", f.Rotulo, null,
-                "Para corregirla, deshaz su contabilización."));
+                "Para corregirla, usa «Guardar y re-exportar» o deshaz su exportación."));
         if (estado.Version != f.Version)
             return Resultado<int>.Fallo(new Error("Compras.Concurrencia", "Otro operador ha cambiado esta factura mientras la tenías abierta.", f.Rotulo,
                 "Tus cambios no se han guardado para no pisar los suyos.", "Actualiza la lista y vuelve a hacer tus cambios."));
@@ -132,6 +133,20 @@ internal static class RepositorioFacturasCompra
             r => (Id: r.Entero("IdAsiento"), Fecha: r.FechaNula("FechaContable"), Descripcion: r.Texto("Descripcion") ?? ""),
             idSociedadEjercicio, numeroFactura, cuentaProveedor);
         if (cabecera.Id == 0) return null;
+        return await AsientoAsync(s, idSociedadEjercicio, cabecera.Id, cabecera.Fecha, cabecera.Descripcion);
+    }
+
+    /// <summary>Asiento exportado por ProContaVF (FacturasCompra.IdAsientoContable).</summary>
+    public static async Task<AsientoFactura?> AsientoPorIdAsync(ISesionDatos s, int idSociedadEjercicio, int idAsiento)
+    {
+        var cabecera = await s.ConsultarPrimeroAsync("SELECT IdAsiento, FechaContable, Descripcion FROM Asientos WHERE IdAsiento = ?",
+            r => (Id: r.Entero("IdAsiento"), Fecha: r.FechaNula("FechaContable"), Descripcion: r.Texto("Descripcion") ?? ""), idAsiento);
+        return cabecera.Id == 0 ? null : await AsientoAsync(s, idSociedadEjercicio, cabecera.Id, cabecera.Fecha, cabecera.Descripcion);
+    }
+
+    private static async Task<AsientoFactura> AsientoAsync(ISesionDatos s, int idSociedadEjercicio, int idAsiento, DateTime? fechaContable, string descripcion)
+    {
+        var cabecera = (Id: idAsiento, Fecha: fechaContable, Descripcion: descripcion);
         // Sin parámetros en el ON: Access los recibe en otro orden y devolvía los apuntes de otro asiento.
         var leidos = await s.ConsultarAsync(
             "SELECT Orden, CuentaContable, ImporteDebe, ImporteHaber, Descripcion FROM Apuntes WHERE IdAsiento = ? ORDER BY Orden",
@@ -172,7 +187,7 @@ internal static class RepositorioFacturasCompra
             "SELECT fc.IdRegistro, fc.IdProveedor, fc.NIF, fc.NumeroFactura, fc.Fecha, fc.ImporteBI, fc.ImporteIVA, fc.ImporteTotal, fc.ImporteRetencion, " +
             "fc.PorcentajeRetencion, fc.Suplido, fc.InversionSujetoPasivo, fc.TipoOperacion, fc.Divisa, fc.IdRegistroFacturaRectificada, fc.Exportada, " +
             "fc.Duplicada, fc.ArchivoOriginal, fc.Archivo, fc.Carpeta, fc.ConceptoGasto, fc.IdCentroCoste, fc.ConfianzaImportacion, " +
-            "fc.RequiereRevisionImportacion, fc.FechaHoraRegistro, fc.ASIAPU, fc.LOGImportacion, fc.Version, t.Nombre AS NombreTercero, t.RazonSocial, t.NombreComercial, fc.NombreProveedorAeat " +
+            "fc.RequiereRevisionImportacion, fc.FechaHoraRegistro, fc.ASIAPU, fc.IdAsientoContable, fc.LOGImportacion, fc.Version, t.Nombre AS NombreTercero, t.RazonSocial, t.NombreComercial, fc.NombreProveedorAeat " +
             "FROM (FacturasCompra AS fc LEFT JOIN Proveedores AS p ON fc.IdProveedor = p.IdProveedor) LEFT JOIN Terceros AS t ON p.IdTercero = t.IdTercero " +
             "WHERE fc.IdSociedadEjercicio = ? OR (fc.IdSociedadEjercicio Is Null AND fc.Sociedad = ? AND fc.Ejercicio = ?)",
             r => new FilaFacturaCompra
@@ -203,7 +218,7 @@ internal static class RepositorioFacturasCompra
                 Confianza = r.DecimalNulo("ConfianzaImportacion"),
                 RequiereRevision = !r.EsNulo("RequiereRevisionImportacion") && r.Logico("RequiereRevisionImportacion"),
                 FechaHoraRegistro = r.FechaNula("FechaHoraRegistro"),
-                Asiento = r.EnteroNulo("ASIAPU"),
+                Asiento = r.EnteroNulo("IdAsientoContable") ?? r.EnteroNulo("ASIAPU"),
                 ConfianzaMinima = ConfianzaMinima(r.Texto("LOGImportacion")),
                 Version = r.EnteroNulo("Version") ?? 0
             },
@@ -360,6 +375,7 @@ internal static class RepositorioFacturasCompra
             IdFormaPago = r.EsNulo("IdFormaPago") ? null : (byte)r.Entero("IdFormaPago"),
             Notas = r.Texto("NotasFactura"),
             Contabilizada = r.Logico("Exportada"),
+            IdAsientoContable = r.EnteroNulo("IdAsientoContable"),
             Duplicada = r.Logico("Duplicada")
         };
     }

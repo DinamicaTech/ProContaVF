@@ -269,10 +269,15 @@ public sealed class FichaCompraVM : ModeloVista
     public bool PuedeDarDeAltaProveedor => !SoloLectura && _proveedor is null && _nif.Length > 0;
 
     /// <summary>Nombre del proveedor que leyó el reconocimiento en el PDF, para proponerlo en el alta.</summary>
+    /// <summary>
+    /// Razón social leída de la factura (la de la AEAT o la del reconocimiento), solo si el NIF de la ficha es el leído:
+    /// con otro NIF, el nombre leído es de otra empresa y no se propone.
+    /// </summary>
     internal string? NombreLeido
     {
         get
         {
+            if (!string.Equals(Nucleo.Identificacion.Nif.Normalizar(Factura.NifProveedor ?? ""), Nucleo.Identificacion.Nif.Normalizar(_nif), StringComparison.OrdinalIgnoreCase)) return null;
             if (!string.IsNullOrWhiteSpace(Factura.NombreProveedorAeat)) return Factura.NombreProveedorAeat.Trim();
             try
             {
