@@ -92,6 +92,19 @@ public static class ComboFiltro
             e.Handled = true;
             return;
         }
+        // Enter sobre un elemento de la lista lo elige. El combo editable no siempre lo hace: el foco puesto desde el texto no
+        // mueve su resaltado, y Enter solo cerraba la lista sin elegir.
+        if (e.Key == Key.Enter && c.IsDropDownOpen && Keyboard.FocusedElement is ComboBoxItem enfocado
+            && ItemsControl.ItemsControlFromItemContainer(enfocado) == c && c.ItemContainerGenerator.ItemFromContainer(enfocado) is { } item0
+            && item0 != DependencyProperty.UnsetValue)
+        {
+            c.SetValue(AnteriorProperty, item0);
+            c.SelectedItem = item0;
+            c.IsDropDownOpen = false;
+            (c.Template.FindName("PART_EditableTextBox", c) as TextBox)?.Focus();
+            e.Handled = true;
+            return;
+        }
         if (e.Key is not (Key.Down or Key.Up) || !c.IsDropDownOpen || Keyboard.Modifiers != ModifierKeys.None
             || e.OriginalSource is not TextBox || Vista(c) is not { } vista) return;
         var visibles = vista.Cast<object>().ToList();
