@@ -44,10 +44,6 @@ public class DialogoProConta : Window
         MaximizarCommand = new ComandoDelegado(Maximizar, () => Redimensionable);
     }
 
-    private long _ultimoClic;
-
-    [System.Runtime.InteropServices.DllImport("user32.dll")]
-    private static extern uint GetDoubleClickTime();
 
     private void Maximizar()
     {
@@ -77,15 +73,24 @@ public class DialogoProConta : Window
     {
         base.OnApplyTemplate();
         if (GetTemplateChild("PART_Cabecera") is UIElement cab)
+        {
+            // DragMove se queda con el ratón: llamarlo al pulsar impedía que llegara el doble clic. Se arrastra al mover.
+            Point? pulsado = null;
             cab.MouseLeftButtonDown += (_, e) =>
             {
-                // DragMove se queda con el ratón hasta soltarlo y el segundo clic no llega como doble: se mide a mano.
-                var ahora = Environment.TickCount64;
-                var doble = ahora - _ultimoClic <= GetDoubleClickTime();
-                _ultimoClic = doble ? 0 : ahora;
-                if (doble && Redimensionable) { Maximizar(); e.Handled = true; }
-                else if (e.ButtonState == MouseButtonState.Pressed && WindowState == WindowState.Normal) DragMove();
+                if (e.ClickCount == 2 && Redimensionable) { pulsado = null; Maximizar(); e.Handled = true; return; }
+                pulsado = WindowState == WindowState.Normal ? e.GetPosition(this) : null;
             };
+            cab.MouseLeftButtonUp += (_, _) => pulsado = null;
+            cab.MouseMove += (_, e) =>
+            {
+                if (pulsado is not { } p || e.LeftButton != MouseButtonState.Pressed) return;
+                var v = e.GetPosition(this) - p;
+                if (Math.Abs(v.X) < SystemParameters.MinimumHorizontalDragDistance && Math.Abs(v.Y) < SystemParameters.MinimumVerticalDragDistance) return;
+                pulsado = null;
+                DragMove();
+            };
+        }
         if (!Redimensionable) return;
         if (GetTemplateChild("PART_Maximizar") is UIElement max) max.Visibility = Visibility.Visible;
         if (GetTemplateChild("PART_Asa") is System.Windows.Controls.Primitives.Thumb asa)

@@ -221,13 +221,6 @@
             <Trigger Property="Content" Value="">
               <Setter TargetName="Ico" Property="Margin" Value="0" />
             </Trigger>
-            <Trigger Property="IsMouseOver" Value="True">
-              <Setter TargetName="Fondo" Property="Background" Value="{Binding (pc:Aspecto.FondoEncima), RelativeSource={RelativeSource TemplatedParent}}" />
-              <Setter TargetName="Fondo" Property="BorderBrush" Value="{Binding (pc:Aspecto.BordeEncima), RelativeSource={RelativeSource TemplatedParent}}" />
-            </Trigger>
-            <Trigger Property="IsPressed" Value="True">
-              <Setter TargetName="Fondo" Property="Background" Value="{Binding (pc:Aspecto.FondoPulsado), RelativeSource={RelativeSource TemplatedParent}}" />
-            </Trigger>
             <Trigger Property="IsEnabled" Value="False">
               <Setter Property="Opacity" Value="0.5" />
               <Setter Property="Cursor" Value="Arrow" />
@@ -236,7 +229,18 @@
         </ControlTemplate>
       </Setter.Value>
     </Setter>
+    <Style.Triggers>
+      <Trigger Property="IsMouseOver" Value="True">
+        <Setter Property="Background" Value="{StaticResource Pincel.Hover}" />
+        <Setter Property="BorderBrush" Value="{StaticResource Pincel.HoverBorde}" />
+      </Trigger>
+      <Trigger Property="IsPressed" Value="True">
+        <Setter Property="Background" Value="{StaticResource Pincel.Fondo}" />
+      </Trigger>
+    </Style.Triggers>
   </Style>
+  <!-- El fondo al pasar el ratón y al pulsar va en los disparadores del estilo (cada estilo pone el suyo), no en la plantilla:
+       el enlace de la plantilla a Aspecto.FondoEncima se quedaba vacío y el botón principal se volvía blanco sobre blanco. -->
   <Style TargetType="Button" BasedOn="{StaticResource Boton}" />
   <Style TargetType="RepeatButton" BasedOn="{StaticResource Boton}" />
 
@@ -247,6 +251,15 @@
     <Setter Property="pc:Aspecto.FondoEncima" Value="{StaticResource Pincel.Marino2}" />
     <Setter Property="pc:Aspecto.BordeEncima" Value="{StaticResource Pincel.Marino2}" />
     <Setter Property="pc:Aspecto.FondoPulsado" Value="{StaticResource Pincel.Marino}" />
+    <Style.Triggers>
+      <Trigger Property="IsMouseOver" Value="True">
+        <Setter Property="Background" Value="{StaticResource Pincel.Marino2}" />
+        <Setter Property="BorderBrush" Value="{StaticResource Pincel.Marino2}" />
+      </Trigger>
+      <Trigger Property="IsPressed" Value="True">
+        <Setter Property="Background" Value="{StaticResource Pincel.Marino}" />
+      </Trigger>
+    </Style.Triggers>
   </Style>
   <Style x:Key="Boton.Peligro" TargetType="Button" BasedOn="{StaticResource Boton}">
     <Setter Property="Foreground" Value="{StaticResource Pincel.Rojo}" />
