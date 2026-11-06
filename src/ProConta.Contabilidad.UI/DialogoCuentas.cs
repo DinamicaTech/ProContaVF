@@ -152,6 +152,11 @@ public static class DialogoCuentas
             ItemsSource = padres, ItemTemplate = PlantillaOpcion<CuentaContable>(apagado), HorizontalContentAlignment = HorizontalAlignment.Stretch,
             ToolTip = "Cuenta de tres cifras del ejercicio; escribe parte del código, del nombre o de la descripción para filtrar la lista",
         };
+        // El estilo común fija la altura de los elementos (una línea); aquí llevan nombre y descripción.
+        cuenta.ItemContainerStyle = new Style(typeof(ComboBoxItem), dialogo.TryFindResource(typeof(ComboBoxItem)) as Style)
+        {
+            Setters = { new Setter(FrameworkElement.HeightProperty, double.NaN), new Setter(FrameworkElement.MinHeightProperty, 28d), new Setter(Control.PaddingProperty, new Thickness(8, 4, 8, 4)) },
+        };
         ComboFiltro.SetActivo(cuenta, true);
         cuenta.SelectedItem = padres.FirstOrDefault(p => p.Valor!.Codigo == vm.CuentaPropuesta);
         var sinCuentas = new TextBlock
