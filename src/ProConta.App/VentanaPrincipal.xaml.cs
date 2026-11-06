@@ -1,3 +1,4 @@
+using ProConta.UI.Base.Preferencias;
 using System.ComponentModel;
 using System.Windows;
 using System.Windows.Input;
@@ -102,6 +103,10 @@ public partial class VentanaPrincipal : Window
         var roles = new ServicioRoles(bd, cuentas);
         var sociedades = new ServicioSociedadesAccess(bd);
         var autorizador = new AutorizadorAccionesAccess(bd, new ServicioOperadores(bd), sesion.IdOperador);
+        _trimestres = new ServicioTrimestreActivo(bd);
+        _ejercicioTrabajo = contexto.Contexto;
+        _puedeCambiarTrimestre = () => autorizador.PuedeAsync(Acciones.FacturasEditar);
+        _ = RefrescarTrimestreAsync();
         var contabilizador = new ContabilizadorVentas(bd, new MotorAsientosAccess(bd), cuentas, roles, sociedades);
         var facturas = new ServicioFacturas(bd, sociedades, new RepositorioTercerosAccess(bd), roles, cuentas, contabilizador, autorizador);
         var apoyo = new ApoyoEditorFacturas(bd, roles);
@@ -123,7 +128,8 @@ public partial class VentanaPrincipal : Window
             new ProConta.Compras.Proveedores.ServicioAltaProveedorCompra(bd, new ProConta.Terceros.RepositorioTercerosAccess(bd), new ProConta.Terceros.Roles.ServicioRoles(bd, cuentas), cuentas,
                 new ProConta.Compras.Integraciones.ConsultaNifAeatVNif(bd), new Actor(sesion.NombreOperador)),
             new ContabilizadorCompras(bd, new MotorAsientosAccess(bd), cuentas, roles),
-            new Actor(sesion.NombreOperador));
+            new Actor(sesion.NombreOperador),
+            ComprobarTrimestreAlEntrarAsync);
         _compras = new ModuloCompras(serviciosCompras, _area, new DialogosCompras(() => this), _terceros.AbrirFicha);
 
         var mantenimiento = new ServicioMantenimiento(
@@ -192,6 +198,113 @@ public partial class VentanaPrincipal : Window
     }
 
     /// <summary>Aviso breve en la barra de estado (no bloquea); se borra solo al cabo de unos segundos.</summary>
+    // ---------- trimestre contable activo (compras/pantallas 2026-11-06 12:10) ----------
+
+    private readonly ServicioTrimestreActivo _trimestres;
+    private readonly ProConta.Nucleo.Contexto.ContextoSociedadEjercicio _ejercicioTrabajo;
+    private readonly Func<Task<bool>> _puedeCambiarTrimestre;
+    private const string ClaveAvisoTrimestre = "compras.trimestre.avisarDesde";
+
+    private async Task<int?> RefrescarTrimestreAsync()
+    {
+        try
+        {
+            var t = await _trimestres.ObtenerAsync(_ejercicioTrabajo.IdSociedadEjercicio);
+            TextoTrimestre.Text = t is int n ? $"Trimestre activo: {ServicioTrimestreActivo.Nombre(n)}" : "Sin trimestre activo";
+            return t;
+        }
+        catch (Exception ex)
+        {
+            TextoTrimestre.Text = "Trimestre activo: ¿?";
+            TextoTrimestre.ToolTip = $"No he podido leer el trimestre activo: {ex.Message}";
+            return null;
+        }
+    }
+
+    private async void AlPulsarTrimestre(object sender, System.Windows.Input.MouseButtonEventArgs e)
+    {
+        try
+        {
+            await GestionarTrimestreAsync(alEntrar: false);
+        }
+        catch (Exception ex)
+        {
+            Avisar($"No he podido cambiar el trimestre activo: {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// Cerrar el trimestre activo y activar el siguiente, o reactivar el anterior con aviso si hoy + 10 días cae en el activo.
+    /// Al entrar en facturas de compra fuera del trimestre activo, ofrece además recordarlo en 1, 3 o 7 días (por operador).
+    /// </summary>
+    private async Task GestionarTrimestreAsync(bool alEntrar)
+    {
+        var activo = await RefrescarTrimestreAsync();
+        var hoy = _trimestres.Hoy;
+        var ejercicio = _ejercicioTrabajo.Ejercicio;
+        if (!await _puedeCambiarTrimestre())
+        {
+            if (!alEntrar) Avisar("No tienes permiso para cambiar el trimestre activo.");
+            return;
+        }
+        var opciones = new List<(OpcionMensaje Opcion, Func<Task>? Accion)>();
+        if (activo is not 4)
+        {
+            var siguiente = activo is int a ? a + 1 : ServicioTrimestreActivo.Trimestre(hoy);
+            opciones.Add((new OpcionMensaje(activo is int x ? $"Cerrar {ServicioTrimestreActivo.Nombre(x)} y activar {ServicioTrimestreActivo.Nombre(siguiente)}" : $"Activar {ServicioTrimestreActivo.Nombre(siguiente)}",
+                "Un trimestre cerrado ya no se modifica: los cambios de sus facturas irán con contra-asiento al trimestre activo", Principal: true),
+                async () =>
+                {
+                    var r = await _trimestres.ActivarSiguienteAsync(_ejercicioTrabajo.IdSociedadEjercicio);
+                    Avisar(r.EsCorrecto ? $"Trimestre activo: {ServicioTrimestreActivo.Nombre(r.Valor)}." : r.Error!.Mensaje + " " + r.Error.Causa);
+                }));
+        }
+        if (!alEntrar && ServicioTrimestreActivo.PuedeReactivar(activo, ejercicio, hoy))
+            opciones.Add((new OpcionMensaje($"Reactivar {ServicioTrimestreActivo.Nombre(activo!.Value - 1)}", "Vuelve a abrir el trimestre anterior", Peligro: true),
+                async () =>
+                {
+                    var seguro = ServicioMensajes.Preguntar(this, "Reactivar el trimestre anterior",
+                        $"Vas a reactivar {ServicioTrimestreActivo.Nombre(activo.Value - 1)}. Si ya presentaste sus modelos de IVA, lo que cambies no coincidirá con lo presentado.", null,
+                        new OpcionMensaje("Reactivar", "Vuelve a abrir el trimestre anterior", Peligro: true), new OpcionMensaje("Cancelar", "No cambia nada", Cancelar: true));
+                    if (seguro != 0) return;
+                    var r = await _trimestres.ReactivarAnteriorAsync(_ejercicioTrabajo.IdSociedadEjercicio, ejercicio);
+                    Avisar(r.EsCorrecto ? $"Trimestre activo: {ServicioTrimestreActivo.Nombre(r.Valor)}." : r.Error!.Mensaje);
+                }));
+        if (alEntrar)
+            foreach (var dias in new[] { 1, 3, 7 })
+                opciones.Add((new OpcionMensaje($"Recordármelo en {dias} {(dias == 1 ? "día" : "días")}", "No vuelve a avisar hasta entonces"),
+                    () => { PreferenciasOperador.Actual.Guardar(ClaveAvisoTrimestre, hoy.AddDays(dias)); return Task.CompletedTask; }));
+        opciones.Add((new OpcionMensaje(alEntrar ? "Ahora no" : "Cancelar", "No cambia nada", Cancelar: true), null));
+        if (opciones.Count == 1)
+        {
+            Avisar("El cuarto trimestre no se cierra aquí: se cierra con el cierre del ejercicio.");
+            return;
+        }
+        var texto = alEntrar
+            ? $"Hoy es {hoy:dd/MM/yyyy} ({ServicioTrimestreActivo.Nombre(ServicioTrimestreActivo.Trimestre(hoy))}) y el trimestre contable activo es {ServicioTrimestreActivo.Nombre(activo ?? 0)}. Los asientos de compras se fechan hoy y su IVA va al trimestre activo."
+            : activo is int t ? $"El trimestre contable activo es {ServicioTrimestreActivo.Nombre(t)}." : "El ejercicio no tiene trimestre activo.";
+        var eleccion = ServicioMensajes.Preguntar(this, alEntrar ? "Hoy no cae en el trimestre activo" : "Trimestre activo", texto, null, [.. opciones.Select(o => o.Opcion)]);
+        if (eleccion >= 0 && eleccion < opciones.Count && opciones[eleccion].Accion is { } accion) await accion();
+        await RefrescarTrimestreAsync();
+    }
+
+    /// <summary>Al entrar en facturas de compra: avisa si hoy no cae en el trimestre activo, salvo que el operador lo pospusiera.</summary>
+    private async Task ComprobarTrimestreAlEntrarAsync()
+    {
+        try
+        {
+            var activo = await _trimestres.ObtenerAsync(_ejercicioTrabajo.IdSociedadEjercicio);
+            var hoy = _trimestres.Hoy;
+            if (!ServicioTrimestreActivo.FueraDelActivo(activo, _ejercicioTrabajo.Ejercicio, hoy)) return;
+            if (PreferenciasOperador.Actual.Leer<DateTime?>(ClaveAvisoTrimestre) is DateTime desde && hoy < desde) return;
+            await GestionarTrimestreAsync(alEntrar: true);
+        }
+        catch (Exception ex)
+        {
+            Avisar($"No he podido comprobar el trimestre activo: {ex.Message}");
+        }
+    }
+
     private void Avisar(string texto)
     {
         TextoAviso.Text = texto;

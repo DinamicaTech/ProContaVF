@@ -200,6 +200,8 @@ public sealed class FacturasRecibidasVM : ModeloVista, IPestanaTrabajo
         }
         await CargarAsync();
         if (!Prueba && _puedeEditar) await BuscarPdfNuevosAsync(silencioso: true);
+        // Aviso si hoy no cae en el trimestre contable activo (compras/pantallas 2026-11-06 10:48).
+        if (!Prueba && _s.ComprobarTrimestre is { } comprobar) await comprobar();
     }
 
     /// <summary>F5: vuelve a leer los proveedores (su forma de pago por defecto puede haber cambiado) y la lista.</summary>

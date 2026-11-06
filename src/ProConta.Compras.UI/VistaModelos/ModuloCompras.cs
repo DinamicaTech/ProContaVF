@@ -27,7 +27,8 @@ public sealed record ServiciosCompras(
     CatalogoTextosClaveCompra? TextosClave = null,
     ProConta.Compras.Proveedores.ServicioAltaProveedorCompra? AltaProveedor = null,
     ContabilizadorCompras? Contabilizador = null,
-    ProConta.Nucleo.Auditoria.Actor? Operador = null);
+    ProConta.Nucleo.Auditoria.Actor? Operador = null,
+    Func<Task>? ComprobarTrimestre = null);
 
 /// <summary>Diálogos de compras (en la vista, para que los modelos de vista se prueben sin ventanas).</summary>
 public interface IDialogosCompras

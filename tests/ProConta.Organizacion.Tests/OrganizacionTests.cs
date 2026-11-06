@@ -183,3 +183,26 @@ public sealed class OrganizacionAccessTests : IDisposable
         Assert.True(catalogo.Resolver("08001").SinCorrespondencia);
     }
 }
+
+/// <summary>Trimestre contable activo (compras/pantallas 2026-11-06 12:10).</summary>
+public class TrimestreActivoTests
+{
+    [Fact]
+    public void Nombres_y_aviso_fuera_del_trimestre_activo()
+    {
+        Assert.Equal("jul-sep", ServicioTrimestreActivo.Nombre(3));
+        Assert.True(ServicioTrimestreActivo.FueraDelActivo(3, 2026, new DateTime(2026, 10, 10)));
+        Assert.False(ServicioTrimestreActivo.FueraDelActivo(4, 2026, new DateTime(2026, 10, 10)));
+        Assert.False(ServicioTrimestreActivo.FueraDelActivo(4, 2026, new DateTime(2027, 1, 5)));
+        Assert.False(ServicioTrimestreActivo.FueraDelActivo(null, 2026, new DateTime(2026, 10, 10)));
+    }
+
+    [Fact]
+    public void El_anterior_solo_se_reactiva_si_hoy_mas_diez_dias_cae_en_el_activo()
+    {
+        Assert.True(ServicioTrimestreActivo.PuedeReactivar(4, 2026, new DateTime(2026, 9, 25)));
+        Assert.True(ServicioTrimestreActivo.PuedeReactivar(4, 2026, new DateTime(2026, 10, 15)));
+        Assert.False(ServicioTrimestreActivo.PuedeReactivar(4, 2026, new DateTime(2026, 9, 10)));
+        Assert.False(ServicioTrimestreActivo.PuedeReactivar(1, 2026, new DateTime(2026, 1, 15)));
+    }
+}

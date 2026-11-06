@@ -32,6 +32,10 @@
               <Rectangle Width="1" Fill="#33FFFFFF" Margin="12,2" />
               <Path Style="{StaticResource Icono.Trazo12}" Data="{StaticResource Icono.cal}" Stroke="#AEB8CC" VerticalAlignment="Center" />
               <TextBlock x:Name="TextoEjercicio" Foreground="White" Margin="6,0,0,0" VerticalAlignment="Center" />
+              <Rectangle Width="1" Fill="#33FFFFFF" Margin="12,2" />
+              <!-- Trimestre contable activo (compras/pantallas 2026-11-06 12:10): pulsarlo permite cerrarlo o reactivar el anterior. -->
+              <TextBlock x:Name="TextoTrimestre" Foreground="White" VerticalAlignment="Center" Cursor="Hand" MouseLeftButtonUp="AlPulsarTrimestre"
+                         ToolTip="Trimestre contable activo: el que se está contabilizando. Púlsalo para cerrarlo y activar el siguiente" />
             </StackPanel>
           </Border>
         </StackPanel>
