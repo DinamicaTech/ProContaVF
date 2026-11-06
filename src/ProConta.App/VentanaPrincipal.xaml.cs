@@ -251,7 +251,7 @@ public partial class VentanaPrincipal : Window
         if (activo is not 4)
         {
             var siguiente = activo is int a ? a + 1 : ServicioTrimestreActivo.Trimestre(hoy);
-            opciones.Add((new OpcionMensaje(activo is int x ? $"Cerrar {ServicioTrimestreActivo.Nombre(x)} y activar {ServicioTrimestreActivo.Nombre(siguiente)}" : $"Activar {ServicioTrimestreActivo.Nombre(siguiente)}",
+            opciones.Add((new OpcionMensaje(activo is int x ? (alEntrar ? $"Activar {ServicioTrimestreActivo.Nombre(siguiente)}" : $"Cerrar {ServicioTrimestreActivo.Nombre(x)} y activar {ServicioTrimestreActivo.Nombre(siguiente)}") : $"Activar {ServicioTrimestreActivo.Nombre(siguiente)}",
                 "Un trimestre cerrado ya no se modifica: los cambios de sus facturas irán con contra-asiento al trimestre activo", Principal: true),
                 async () =>
                 {
@@ -272,16 +272,16 @@ public partial class VentanaPrincipal : Window
                 }));
         if (alEntrar)
             foreach (var dias in new[] { 1, 3, 7 })
-                opciones.Add((new OpcionMensaje($"Recordármelo en {dias} {(dias == 1 ? "día" : "días")}", "No vuelve a avisar hasta entonces"),
+                opciones.Add((new OpcionMensaje($"En {dias} {(dias == 1 ? "día" : "días")}", $"Me lo recuerdas dentro de {dias} {(dias == 1 ? "día" : "días")}"),
                     () => { PreferenciasOperador.Actual.Guardar(ClaveAvisoTrimestre, hoy.AddDays(dias)); return Task.CompletedTask; }));
-        opciones.Add((new OpcionMensaje(alEntrar ? "Ahora no" : "Cancelar", "No cambia nada", Cancelar: true), null));
+        opciones.Add((new OpcionMensaje(alEntrar ? "Ahora no" : "Cancelar", alEntrar ? "Vuelve a avisar la próxima vez" : "No cambia nada", Cancelar: true), null));
         if (opciones.Count == 1)
         {
             Avisar("El cuarto trimestre no se cierra aquí: se cierra con el cierre del ejercicio.");
             return;
         }
         var texto = alEntrar
-            ? $"Hoy es {hoy:dd/MM/yyyy} ({ServicioTrimestreActivo.Nombre(ServicioTrimestreActivo.Trimestre(hoy))}) y el trimestre contable activo es {ServicioTrimestreActivo.Nombre(activo ?? 0)}. Los asientos de compras se fechan hoy y su IVA va al trimestre activo."
+            ? $"Hoy es {hoy:dd/MM/yyyy} ({ServicioTrimestreActivo.Nombre(ServicioTrimestreActivo.Trimestre(hoy))}) y el trimestre contable activo es {ServicioTrimestreActivo.Nombre(activo ?? 0)}. Los asientos de compras se fechan hoy y su IVA va al trimestre activo. Puedes cerrarlo y activar el siguiente, o que te lo recuerde en 1, 3 o 7 días."
             : activo is int t ? $"El trimestre contable activo es {ServicioTrimestreActivo.Nombre(t)}." : "El ejercicio no tiene trimestre activo.";
         var eleccion = ServicioMensajes.Preguntar(this, alEntrar ? "Hoy no cae en el trimestre activo" : "Trimestre activo", texto, null, [.. opciones.Select(o => o.Opcion)]);
         if (eleccion >= 0 && eleccion < opciones.Count && opciones[eleccion].Accion is { } accion) await accion();
