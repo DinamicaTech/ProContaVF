@@ -109,6 +109,9 @@ public sealed class FacturasCompraAccessTests : IDisposable
         Assert.True(esquema.ExisteTabla("FormasPagoSociedad"));
         Assert.True(esquema.ExisteColumna("CuentasProveedoresSociedad", "IdFormaPagoDefecto"));
         Assert.True(esquema.ExisteColumna("CuentasProveedoresSociedad", "TipoProductoDefecto"));
+        Assert.True(esquema.ExisteTabla("TextosClaveCompra"));
+        Assert.True(esquema.ExisteColumna("CuentasProveedoresSociedad", "IdIdentidadGastoDefecto"));
+        Assert.True(esquema.ExisteColumna("CuentasProveedoresSociedad", "IdCentroCosteDefecto"));
     }
 
     [Fact]
@@ -327,6 +330,70 @@ public sealed class FacturasCompraAccessTests : IDisposable
         var siguiente = await servicio.ImportarAsync(_ctx, Pdf("Ficticio", "fp2.pdf", "forma dos"));
         Assert.True(siguiente.Registrada, siguiente.Error?.ToString());
         Assert.Equal((byte)200, (await servicio.CargarAsync(siguiente.Factura!.IdRegistro))!.IdFormaPago);
+    }
+
+    /// <summary>Subcuenta de gasto imputable en el ejercicio 9001, con su identidad.</summary>
+    private Task<int> CuentaGastoAsync(string codigo, int? centro = null) => Bd.EjecutarAsync(async s =>
+    {
+        await s.EjecutarAsync("INSERT INTO IdentidadesContables (IdSociedad, Naturaleza, FechaAlta) VALUES (?, ?, ?)", "T01", (byte)0, DateTime.Today);
+        var identidad = await s.UltimoIdAsync();
+        await s.EjecutarAsync("INSERT INTO CuentasContables (IdIdentidadContable, IdSociedadEjercicio, Codigo, Nombre, EstaActiva, EstaBloqueada, EsImputable, SaldoInicial, SaldoActual, NumeroApuntes, IdCentroCostePredeterminado) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            identidad, 9001, codigo, $"Gasto {codigo}", true, false, true, 0m, 0m, 0, centro);
+        return identidad;
+    });
+
+    private Task<int> CentroAsync(string codigo) => Bd.EjecutarAsync(async s =>
+    {
+        await s.EjecutarAsync("INSERT INTO CentrosCoste (IdSociedad, Codigo, Nombre, EsImputable, EstaActivo, Orden, Nivel, RutaJerarquica, RutaOrden) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            "T01", codigo, $"Centro {codigo}", true, true, (short)1, (byte)1, codigo, codigo);
+        return await s.UltimoIdAsync();
+    });
+
+    [Fact]
+    public async Task Los_textos_clave_asignan_cuenta_y_centro_y_si_no_los_del_proveedor_aprendidos_al_guardar()
+    {
+        await EmpresaConProveedorAsync();
+        await CuentaGastoAsync("6280001");
+        await CuentaGastoAsync("6290001");
+        var centro = await CentroAsync("C1");
+        var catalogo = new CatalogoTextosClaveCompra(Bd);
+        Assert.True((await catalogo.GuardarAsync(_ctx, null, "Total factura", "6280001", null)).EsCorrecto);
+        // Dar de alta el mismo texto con otra cosa se la añade (y no lo repite).
+        Assert.True((await catalogo.GuardarAsync(_ctx, null, "TOTAL FACTURA", null, centro)).EsCorrecto);
+        var textos = await catalogo.ListarAsync(_ctx);
+        Assert.Equal(("6280001", (int?)centro), (textos.Single().Cuenta, textos.Single().IdCentroCoste));
+        Assert.Equal("TextosClave.CuentaNoExiste", (await catalogo.GuardarAsync(_ctx, null, "otro", "6999999", null)).Error!.Codigo);
+
+        var servicio = Servicio();
+        var r = await servicio.ImportarAsync(_ctx, Pdf("Ficticio", "tc1.pdf", "texto uno"));
+        Assert.True(r.Registrada, r.Error?.ToString());
+        var f = (await servicio.CargarAsync(r.Factura!.IdRegistro))!;
+        Assert.Equal(("6280001", (int?)centro), (f.CuentaGasto, f.IdCentroCoste));
+
+        // Sin textos clave, la cuenta y el centro que se guardaron por última vez para el proveedor.
+        await catalogo.EliminarAsync(_ctx, textos.Single().IdTextoClave);
+        f.CuentaGasto = "6290001";
+        Assert.True((await servicio.GuardarAsync(f)).EsCorrecto);
+        var siguiente = await servicio.ImportarAsync(_ctx, Pdf("Ficticio", "tc2.pdf", "texto dos"));
+        Assert.True(siguiente.Registrada, siguiente.Error?.ToString());
+        var g = (await servicio.CargarAsync(siguiente.Factura!.IdRegistro))!;
+        Assert.Equal(("6290001", (int?)centro), (g.CuentaGasto, g.IdCentroCoste));
+    }
+
+    [Fact]
+    public async Task Un_empate_entre_textos_clave_no_asigna_la_cuenta_ni_toma_la_del_proveedor_y_avisa()
+    {
+        await EmpresaConProveedorAsync();
+        await CuentaGastoAsync("6280001");
+        await CuentaGastoAsync("6290001");
+        var catalogo = new CatalogoTextosClaveCompra(Bd);
+        Assert.True((await catalogo.GuardarAsync(_ctx, null, "Emisor", "6280001", null)).EsCorrecto);
+        Assert.True((await catalogo.GuardarAsync(_ctx, null, "Número", "6290001", null)).EsCorrecto);
+        var r = await Servicio().ImportarAsync(_ctx, Pdf("Ficticio", "tc3.pdf", "texto tres"));
+        Assert.True(r.Registrada, r.Error?.ToString());
+        Assert.Null(r.Factura!.CuentaGasto);
+        Assert.True(r.Factura.RequiereRevision);
+        Assert.Contains(ConfianzaCampos.DesdeLog(r.Factura.Log).Avisos, a => a.Contains("«Emisor» y «Número»", StringComparison.Ordinal));
     }
 
     [Fact]

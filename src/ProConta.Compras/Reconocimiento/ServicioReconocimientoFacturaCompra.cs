@@ -41,6 +41,8 @@ public sealed class FacturaReconocida
     public required string Fuente { get; init; }
     /// <summary>JSON versionado que explica cada decisión (FacturasCompra.LogImportacion).</summary>
     public required string Log { get; init; }
+    /// <summary>Texto del documento leído (nativo u OCR), para buscar los textos clave.</summary>
+    public string Texto { get; init; } = string.Empty;
 }
 
 /// <summary>
@@ -120,7 +122,8 @@ public sealed class ServicioReconocimientoFacturaCompra(
             Confianza = confianza,
             RequiereRevision = requiereRevision,
             Fuente = fuente,
-            Log = log
+            Log = log,
+            Texto = documento.TextoCompleto
         };
     }
 

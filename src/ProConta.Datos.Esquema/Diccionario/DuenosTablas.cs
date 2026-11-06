@@ -37,7 +37,7 @@ public static class DuenosTablas
         Asignar("facturacion", "facturacion/contratos", "Contratos", "LineasContrato", "EstadoContratoTerceros");
         Asignar("facturacion", "facturacion/programadas", "FacturasProgramadas", "FacturasProgramadasBak", "LineasFacturasProgramadas", "LotesFacturasProgramadas");
         Asignar("facturacion", "facturacion/verifactu", "VeriFactuConfiguracion", "VeriFactuEnvios", "VeriFactuLotesEnvio", "VeriFactuRespuestas");
-        Asignar("compras", "compras/factura-compra", "FacturasCompra", "DesglosesFacturaCompra");
+        Asignar("compras", "compras/factura-compra", "FacturasCompra", "DesglosesFacturaCompra", "TextosClaveCompra");
         Asignar("compras", "compras/reconocimiento", "ConfiguracionReconocimientoFacturasCompra", "PlantillasReconocimientoCompra");
         Asignar("norma43", "norma43", "Bancos", "EntidadesFinancieras", "CuentasBancarias", "ExtractosBancarios", "LineasExtractoBancario",
             "ComplementosLineaExtractoBancario", "ContabilizacionesLineaExtracto", "ImputacionesLineaExtractoBancario",

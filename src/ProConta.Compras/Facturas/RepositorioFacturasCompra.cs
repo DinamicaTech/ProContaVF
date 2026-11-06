@@ -101,6 +101,16 @@ internal static class RepositorioFacturasCompra
         // Igual el producto (compras/pantallas 2026-11-06 13:36).
         if (f.Producto is { } producto && f.IdProveedor is { } prov2)
             await s.EjecutarAsync("UPDATE CuentasProveedoresSociedad SET TipoProductoDefecto = ? WHERE IdProveedor = ? AND IdSociedad = ?", (byte)producto, prov2, f.Ejercicio.IdSociedad);
+        // Y la cuenta de gasto (por su identidad) y el centro de coste (compras/pantallas 2026-11-06 17:02).
+        if (f.IdProveedor is { } prov3)
+        {
+            if (Nulo(f.CuentaGasto) is { } gasto && await s.EscalarAsync("SELECT IdIdentidadContable FROM CuentasContables WHERE IdSociedadEjercicio = ? AND Codigo = ?",
+                    f.Ejercicio.IdSociedadEjercicio, gasto) is { } identidad and not DBNull)
+                await s.EjecutarAsync("UPDATE CuentasProveedoresSociedad SET IdIdentidadGastoDefecto = ? WHERE IdProveedor = ? AND IdSociedad = ?",
+                    Convert.ToInt32(identidad, CultureInfo.InvariantCulture), prov3, f.Ejercicio.IdSociedad);
+            if (f.IdCentroCoste is { } centro)
+                await s.EjecutarAsync("UPDATE CuentasProveedoresSociedad SET IdCentroCosteDefecto = ? WHERE IdProveedor = ? AND IdSociedad = ?", centro, prov3, f.Ejercicio.IdSociedad);
+        }
         await s.EjecutarAsync("DELETE FROM DesglosesFacturaCompra WHERE IdRegistro = ?", f.IdRegistro);
         foreach (var d in f.Desgloses)
             await s.EjecutarAsync(
@@ -245,6 +255,40 @@ internal static class RepositorioFacturasCompra
         var v = await s.EscalarAsync("SELECT TOP 1 IdFormaPagoDefecto FROM CuentasProveedoresSociedad WHERE IdProveedor = ? AND IdSociedad = ? AND IdFormaPagoDefecto Is Not Null",
             prov, f.Ejercicio.IdSociedad);
         return v is null or DBNull ? null : Convert.ToByte(v, CultureInfo.InvariantCulture);
+    }
+
+    /// <summary>
+    /// Cuenta de gasto (código en el ejercicio de la factura) y centro de coste por defecto del proveedor en la empresa. La
+    /// cuenta que no existe en el ejercicio o no admite apuntes, y el centro inactivo o no imputable, no se proponen.
+    /// </summary>
+    public static async Task<(string? Cuenta, int? IdCentroCoste)> ImputacionDefectoAsync(ISesionDatos s, ContextoSociedadEjercicio ctx, int? idProveedor)
+    {
+        if (idProveedor is not { } prov) return (null, null);
+        var filas = await s.ConsultarAsync("SELECT IdIdentidadGastoDefecto, IdCentroCosteDefecto FROM CuentasProveedoresSociedad WHERE IdProveedor = ? AND IdSociedad = ?",
+            r => (Identidad: r.EnteroNulo("IdIdentidadGastoDefecto"), Centro: r.EnteroNulo("IdCentroCosteDefecto")), prov, ctx.IdSociedad);
+        string? cuenta = null;
+        if (filas.Select(f => f.Identidad).FirstOrDefault(x => x is not null) is int identidad)
+            cuenta = await s.ConsultarPrimeroAsync("SELECT Codigo FROM CuentasContables WHERE IdSociedadEjercicio = ? AND IdIdentidadContable = ? AND EsImputable = True",
+                r => r.Texto("Codigo")?.Trim(), ctx.IdSociedadEjercicio, identidad);
+        int? centro = filas.Select(f => f.Centro).FirstOrDefault(x => x is not null) is int c && await CentroImputableAsync(s, ctx.IdSociedad, c) ? c : null;
+        return (cuenta, centro);
+    }
+
+    /// <summary>Centro de coste por defecto de una subcuenta del ejercicio (CuentasContables.IdCentroCostePredeterminado), si es imputable.</summary>
+    public static async Task<int?> CentroDeCuentaAsync(ISesionDatos s, ContextoSociedadEjercicio ctx, string cuenta)
+    {
+        var v = await s.EscalarAsync("SELECT IdCentroCostePredeterminado FROM CuentasContables WHERE IdSociedadEjercicio = ? AND Codigo = ?", ctx.IdSociedadEjercicio, cuenta);
+        if (v is null or DBNull) return null;
+        var c = Convert.ToInt32(v, CultureInfo.InvariantCulture);
+        return await CentroImputableAsync(s, ctx.IdSociedad, c) ? c : null;
+    }
+
+    /// <summary>El centro es de la empresa, está activo y admite apuntes.</summary>
+    public static async Task<bool> CentroImputableAsync(ISesionDatos s, string idSociedad, int idCentroCoste)
+    {
+        var c = await s.ConsultarPrimeroAsync("SELECT IdSociedad, EstaActivo, EsImputable FROM CentrosCoste WHERE IdCentroCoste = ?",
+            r => (Sociedad: r.Texto("IdSociedad")?.Trim(), Activo: r.Logico("EstaActivo"), Imputable: r.Logico("EsImputable")), idCentroCoste);
+        return c.Sociedad == idSociedad && c.Activo && c.Imputable;
     }
 
     /// <summary>El producto por defecto del proveedor en la empresa, para una factura nueva suya.</summary>

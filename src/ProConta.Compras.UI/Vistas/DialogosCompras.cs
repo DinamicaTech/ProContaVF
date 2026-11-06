@@ -76,4 +76,52 @@ public sealed class DialogosCompras(Func<Window?> ventana) : IDialogosCompras
         dialogo.Loaded += (_, _) => { pagina.Focus(); pagina.SelectAll(); };
         return dialogo.ShowDialog() == true ? (n, nombre.Text.Trim()) : null;
     }
+
+    public bool PedirTextoClave(string? cuenta, string? centro, Func<string, bool, bool, Task<string?>> guardar)
+    {
+        var dialogo = new DialogoProConta { Title = "Añadir texto clave", Owner = ventana(), Width = 560 };
+        var texto = new TextBox { Width = 420, HorizontalAlignment = HorizontalAlignment.Left, MaxLength = ProConta.Compras.Facturas.ReglasTextosClave.LongitudMaxima,
+            ToolTip = "Palabra o frase del PDF (o de su carpeta) que identifica el gasto; no distingue mayúsculas ni acentos" };
+        var conCuenta = new CheckBox { Content = $"Asignar la cuenta de gasto {cuenta}", IsChecked = cuenta is not null, IsEnabled = cuenta is not null, Margin = new Thickness(0, 12, 0, 0),
+            Visibility = cuenta is null ? Visibility.Collapsed : Visibility.Visible };
+        var conCentro = new CheckBox { Content = $"Asignar el centro de coste {centro}", IsChecked = centro is not null, IsEnabled = centro is not null, Margin = new Thickness(0, 6, 0, 0),
+            Visibility = centro is null ? Visibility.Collapsed : Visibility.Visible };
+        var error = new TextBlock { Foreground = System.Windows.Media.Brushes.Firebrick, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 10, 0, 0), Visibility = Visibility.Collapsed };
+        var panel = new StackPanel();
+        panel.Children.Add(new TextBlock
+        {
+            Text = "Al leer un PDF, si este texto aparece en su contenido o en su ruta, la factura toma lo que marques. Si coinciden varios textos, gana el más largo. No cambia esta factura.",
+            TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 0, 0, 12)
+        });
+        panel.Children.Add(new TextBlock { Text = "Texto clave *", Style = (Style)dialogo.FindResource("Texto.Seccion"), Margin = new Thickness(0, 0, 0, 4) });
+        panel.Children.Add(texto);
+        panel.Children.Add(conCuenta);
+        panel.Children.Add(conCentro);
+        panel.Children.Add(error);
+        dialogo.Content = panel;
+        var aceptar = new Button { Content = "Guardar", Style = (Style)dialogo.FindResource("Boton.Primario"), Margin = new Thickness(8, 0, 0, 0), IsDefault = true,
+            ToolTip = "Guarda el texto clave en la empresa" };
+        var cancelar = new Button { Content = "Cancelar", IsCancel = true, ToolTip = "No guarda nada" };
+        void Error(string mensaje) { error.Text = mensaje; error.Visibility = Visibility.Visible; }
+        aceptar.Click += async (_, _) =>
+        {
+            if (string.IsNullOrWhiteSpace(texto.Text)) { Error("Escribe el texto clave."); texto.Focus(); return; }
+            if (conCuenta.IsChecked != true && conCentro.IsChecked != true) { Error("Marca la cuenta de gasto, el centro de coste o los dos."); return; }
+            aceptar.IsEnabled = false;
+            try
+            {
+                var fallo = await guardar(texto.Text.Trim(), conCuenta.IsChecked == true, conCentro.IsChecked == true);
+                if (fallo is null) dialogo.DialogResult = true;
+                else Error(fallo);
+            }
+            finally
+            {
+                aceptar.IsEnabled = true;
+            }
+        };
+        cancelar.Click += (_, _) => dialogo.DialogResult = false;
+        dialogo.Botones = new StackPanel { Orientation = Orientation.Horizontal, Children = { cancelar, aceptar } };
+        dialogo.Loaded += (_, _) => texto.Focus();
+        return dialogo.ShowDialog() == true;
+    }
 }

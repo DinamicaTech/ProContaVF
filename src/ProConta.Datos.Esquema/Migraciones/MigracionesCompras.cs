@@ -107,6 +107,28 @@ public static class MigracionesCompras
         "compras/factura-compra",
         new AnadirColumna("CuentasProveedoresSociedad", "TipoProductoDefecto", "BYTE"));
 
+    /// <summary>
+    /// Textos clave de compras y cuenta de gasto y centro de coste por defecto del proveedor (compras/pantallas
+    /// 2026-11-06 17:02): cada empresa guarda textos que, si aparecen en el contenido o en la ruta del PDF, asignan una
+    /// cuenta de gasto (por su identidad contable, que vale en todos los ejercicios), un centro de coste o los dos. Si no
+    /// coincide ninguno, se usan los del proveedor, que se aprenden al guardar su factura. La migración del ERP trae
+    /// PalabrasClaveTipoGasto y PalabrasClaveSubDepartamento.
+    /// </summary>
+    public static Migracion TextosClaveCompra { get; } = new(
+        "20261106_2000_TEXTOS_CLAVE_COMPRA", 261106006,
+        "Textos clave de compras por empresa y cuenta de gasto y centro de coste por defecto del proveedor.",
+        "compras/factura-compra",
+        new CrearTabla("TextosClaveCompra",
+            "CREATE TABLE TextosClaveCompra (IdTextoClave COUNTER CONSTRAINT PK_TextosClaveCompra PRIMARY KEY, " +
+            "IdSociedad TEXT(3) NOT NULL CONSTRAINT FK_TCC_Sociedad REFERENCES Sociedades (IdSociedad), " +
+            "Texto TEXT(100) NOT NULL, " +
+            "IdIdentidadContable LONG CONSTRAINT FK_TCC_Identidad REFERENCES IdentidadesContables (IdIdentidadContable), " +
+            "IdCentroCoste LONG CONSTRAINT FK_TCC_CentroCoste REFERENCES CentrosCoste (IdCentroCoste))"),
+        new CrearIndice("TextosClaveCompra", "UX_TCC_SociedadTexto",
+            "CREATE UNIQUE INDEX UX_TCC_SociedadTexto ON TextosClaveCompra (IdSociedad, Texto)"),
+        new AnadirColumna("CuentasProveedoresSociedad", "IdIdentidadGastoDefecto", "LONG"),
+        new AnadirColumna("CuentasProveedoresSociedad", "IdCentroCosteDefecto", "LONG"));
+
     private static PasoPersonalizado Relacion(string tabla, string columna, string nombre)
     {
         var sql = $"ALTER TABLE {tabla} ADD CONSTRAINT {nombre} FOREIGN KEY ({columna}) REFERENCES FormasPago (Id)";

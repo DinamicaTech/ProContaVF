@@ -292,6 +292,17 @@
                                     ToolTip="Busca la cuenta por código o nombre, o crea una subcuenta (F4)" AutomationProperties.Name="Buscar la cuenta de gasto" />
                             <TextBox x:Name="CampoCuentaGasto" DockPanel.Dock="Left" Width="110" Text="{Binding CodigoCuentaGasto, UpdateSourceTrigger=LostFocus}" Style="{StaticResource Campo.Mono}"
                                      IsReadOnly="{Binding SoloLectura}" ToolTip="Código de la cuenta (629.1 = 6290001); F4 o un código que no existe abren el buscador">
+                              <TextBox.ContextMenu>
+                                <ContextMenu>
+                                  <MenuItem Header="Buscar cuenta…" InputGestureText="F4" Command="{Binding BuscarCuentaGastoCommand}" CommandParameter="{Binding PlacementTarget.Text, RelativeSource={RelativeSource AncestorType=ContextMenu}}" />
+                                  <MenuItem Header="Añadir texto clave…" Command="{Binding AnadirTextoClaveCommand}"
+                                            ToolTip="Texto que, si aparece en el contenido o la ruta de un PDF, le asigna esta cuenta de gasto y, si quieres, este centro de coste" />
+                                  <Separator />
+                                  <MenuItem Command="ApplicationCommands.Cut" Header="Cortar" />
+                                  <MenuItem Command="ApplicationCommands.Copy" Header="Copiar" />
+                                  <MenuItem Command="ApplicationCommands.Paste" Header="Pegar" />
+                                </ContextMenu>
+                              </TextBox.ContextMenu>
                               <TextBox.InputBindings>
                                 <KeyBinding Key="F4" Command="{Binding BuscarCuentaGastoCommand}" CommandParameter="{Binding Text, ElementName=CampoCuentaGasto}" />
                               </TextBox.InputBindings>
@@ -300,7 +311,14 @@
                           </DockPanel>
                           <TextBlock Text="Centro de coste" Style="{StaticResource Etiqueta.Campo}" />
                           <ComboBox ItemsSource="{Binding CentrosCoste}" SelectedItem="{Binding CentroCoste}" IsEnabled="{Binding Editable}" pc:ComboFiltro.Activo="True" Margin="0,0,0,8"
-                                    ToolTip="Centro de coste imputable de la empresa; escribe parte del código o del nombre para filtrar la lista" />
+                                    ToolTip="Centro de coste imputable de la empresa; escribe parte del código o del nombre para filtrar la lista">
+                            <ComboBox.ContextMenu>
+                              <ContextMenu>
+                                <MenuItem Header="Añadir texto clave…" Command="{Binding AnadirTextoClaveCommand}"
+                                          ToolTip="Texto que, si aparece en el contenido o la ruta de un PDF, le asigna este centro de coste y, si quieres, esta cuenta de gasto" />
+                              </ContextMenu>
+                            </ComboBox.ContextMenu>
+                          </ComboBox>
                           <TextBlock Text="Forma de pago" Style="{StaticResource Etiqueta.Campo}" />
                           <ComboBox ItemsSource="{Binding FormasPago}" SelectedItem="{Binding FormaPago}" IsEnabled="{Binding Editable}" pc:ComboFiltro.Activo="True"
                                     ToolTip="Al guardar, pasa a ser la forma de pago del proveedor; escribe parte del nombre para filtrar la lista" />

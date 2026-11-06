@@ -138,8 +138,33 @@ public sealed class ServicioFacturasCompra(
             var conNif = (await ProveedoresAsync(ctx, cancelacion)).Where(p => MismoNif(p.Nif, nif)).Select(p => p.IdProveedor).Distinct().ToList();
             if (conNif.Count == 1) factura.IdProveedor = conNif[0];
         }
+        await AsignarImputacionAsync(factura, reconocida.Texto, cancelacion);
         return (reconocida, factura);
     }
+
+    /// <summary>
+    /// Cuenta de gasto y centro de coste de una factura leída (compras/pantallas 2026-11-06 17:02): primero los textos clave
+    /// de la empresa que aparezcan en el contenido o en la ruta del PDF (gana el más largo; con empate no se asigna y se
+    /// avisa); si no, los del proveedor por defecto; el centro, por último, el de la cuenta. Lo que ya tiene la factura no se toca.
+    /// </summary>
+    internal Task AsignarImputacionAsync(FacturaCompra factura, string? texto, CancellationToken cancelacion = default) =>
+        bd.EjecutarAsync(async s =>
+        {
+            var ctx = factura.Ejercicio;
+            var textos = await CatalogoTextosClaveCompra.ListarAsync(s, ctx);
+            var activos = new List<TextoClaveCompra>(textos.Count);
+            foreach (var t in textos)
+                activos.Add(t.IdCentroCoste is int c && !await RepositorioFacturasCompra.CentroImputableAsync(s, ctx.IdSociedad, c) ? t with { IdCentroCoste = null } : t);
+            var porTexto = ReglasTextosClave.Elegir(activos, texto, factura.RutaPdf);
+            var (cuentaProveedor, centroProveedor) = await RepositorioFacturasCompra.ImputacionDefectoAsync(s, ctx, factura.IdProveedor);
+            if (string.IsNullOrWhiteSpace(factura.CuentaGasto))
+                factura.CuentaGasto = porTexto.Cuenta ?? (porTexto.EmpateCuenta ? null : cuentaProveedor);
+            if (factura.IdCentroCoste is null)
+                factura.IdCentroCoste = porTexto.IdCentroCoste ?? (porTexto.EmpateCentro ? null : centroProveedor
+                    ?? (factura.CuentaGasto is { Length: > 0 } cuenta ? await RepositorioFacturasCompra.CentroDeCuentaAsync(s, ctx, cuenta) : null));
+            factura.AnadirAvisos(porTexto.Avisos);
+            return true;
+        }, cancelacion);
 
     private static bool MismoNif(string a, string b)
     {

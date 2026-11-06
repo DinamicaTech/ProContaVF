@@ -429,6 +429,21 @@ public sealed class FacturasRecibidasVM : ModeloVista, IPestanaTrabajo
         return Task.FromResult(c);
     }
 
+    /// <summary>Pide un texto clave con la cuenta y el centro de la ficha y lo guarda en la empresa (compras/pantallas 2026-11-06 17:02).</summary>
+    private Task AnadirTextoClaveAsync(FichaCompraVM ficha)
+    {
+        if (_s.TextosClave is not { } catalogo) return Task.CompletedTask;
+        var cuenta = ficha.CuentaGastoActual;
+        var centro = ficha.CentroCosteActual;
+        var guardado = _modulo.Dialogos.PedirTextoClave(cuenta?.Texto, centro?.Texto, async (texto, conCuenta, conCentro) =>
+        {
+            var r = await catalogo.GuardarAsync(_s.Trabajo, null, texto, conCuenta ? cuenta?.Codigo : null, conCentro ? centro?.Id : null);
+            return r.EsCorrecto ? null : r.Error!.Mensaje + (r.Error.AccionCorrectora is { } a ? " " + a : "");
+        });
+        if (guardado) _modulo.Avisar("Texto clave guardado: se aplicará a los PDF que se lean a partir de ahora.");
+        return Task.CompletedTask;
+    }
+
     public FichaCompraVM? Ficha
     {
         get => _ficha;
@@ -440,6 +455,7 @@ public sealed class FacturasRecibidasVM : ModeloVista, IPestanaTrabajo
             {
                 value.PropertyChanged += AlCambiarFicha;
                 value.BuscarCuenta = BuscarCuentaGastoAsync;
+                if (_s.TextosClave is not null && _puedeEditar && !Prueba) value.AnadirTextoClave = AnadirTextoClaveAsync;
             }
             Avisar(nameof(HayFicha), nameof(TieneCambios));
             CommandManager.InvalidateRequerySuggested();
