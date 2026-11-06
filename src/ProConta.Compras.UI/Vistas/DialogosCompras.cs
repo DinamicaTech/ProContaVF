@@ -25,6 +25,9 @@ public sealed class DialogosCompras(Func<Window?> ventana) : IDialogosCompras
         }
     }
 
+    public ProConta.Contabilidad.Cuentas.CuentaContable? ElegirCuenta(ProConta.Contabilidad.UI.BuscadorCuentasVM buscador, string titulo) =>
+        ProConta.Contabilidad.UI.DialogoCuentas.Elegir(ventana(), buscador, titulo);
+
     public bool Copiar(string texto)
     {
         try

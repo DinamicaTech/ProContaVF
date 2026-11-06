@@ -66,6 +66,12 @@ public interface ICatalogoCuentas
 
     /// <summary>Recalcula SaldoActual y NumeroApuntes de las cuentas del ejercicio desde sus apuntes.</summary>
     Task ReconstruirSaldosAsync(ContextoSociedadEjercicio contexto);
+
+    /// <summary>
+    /// Siguiente código libre de subcuenta de <paramref name="cuenta"/> (tres cifras) en el ejercicio, sin usar los
+    /// reservados de la sociedad (<see cref="BuscadorCuentas.SiguienteCodigo"/>). Null si no queda ninguno.
+    /// </summary>
+    Task<string?> SiguienteSubcuentaAsync(ContextoSociedadEjercicio contexto, string cuenta);
 }
 
 public static class ReglasCuenta
@@ -154,6 +160,19 @@ public sealed class CatalogoCuentasAccess(IBaseDatos bd) : ICatalogoCuentas
                 contexto.IdSociedad, codigo, identidad, hoy);
             return Resultado<CuentaContable>.Correcto(new CuentaContable(id, identidad, contexto.IdSociedadEjercicio, alta.IdCuentaPadre, codigo, nombre,
                 true, false, alta.EsImputable, alta.IdCentroCostePredeterminado, 0m, 0m, 0));
+        });
+
+    public Task<string?> SiguienteSubcuentaAsync(ContextoSociedadEjercicio contexto, string cuenta) =>
+        bd.EjecutarAsync(async s =>
+        {
+            var prefijo = (cuenta ?? "").Trim();
+            if (prefijo.Length == 0 || !prefijo.All(char.IsAsciiDigit)) return null;
+            var like = prefijo + "%";
+            var enEjercicio = await s.ConsultarAsync("SELECT Codigo FROM CuentasContables WHERE IdSociedadEjercicio = ? AND Codigo LIKE ?",
+                f => f.Texto("Codigo") ?? "", contexto.IdSociedadEjercicio, like);
+            var reservados = await s.ConsultarAsync("SELECT Codigo FROM CodigosContablesReservados WHERE IdSociedad = ? AND Codigo LIKE ?",
+                f => f.Texto("Codigo") ?? "", contexto.IdSociedad, like);
+            return BuscadorCuentas.SiguienteCodigo(prefijo, enEjercicio.Concat(reservados).Select(c => c.Trim()));
         });
 
     public Task<CuentaContable?> CuentaDeIdentidadAsync(ContextoSociedadEjercicio contexto, int idIdentidadContable) =>

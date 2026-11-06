@@ -416,6 +416,19 @@ public sealed class FacturasRecibidasVM : ModeloVista, IPestanaTrabajo
         }
     }
 
+    /// <summary>
+    /// Buscador de cuentas para la cuenta de gasto (contabilidad/cuenta-contable 2026-11-06): limitado al grupo 6, con la
+    /// casilla para quitar el filtro. La subcuenta del grupo 6 que se crea pasa a la lista de las fichas siguientes.
+    /// </summary>
+    private Task<ProConta.Contabilidad.Cuentas.CuentaContable?> BuscarCuentaGastoAsync(string texto)
+    {
+        var buscador = new ProConta.Contabilidad.UI.BuscadorCuentasVM(_s.Cuentas, _s.Trabajo, ["6"], texto);
+        var c = _modulo.Dialogos.ElegirCuenta(buscador, "Cuenta de gasto");
+        if (c is not null && c.Codigo.StartsWith('6') && _cuentasGasto.All(o => o.Valor != c.Codigo))
+            _cuentasGasto = [.. _cuentasGasto.Append(new OpcionFicha<string>($"{c.Codigo} · {c.Nombre}", c.Codigo)).OrderBy(o => o.Valor, StringComparer.Ordinal)];
+        return Task.FromResult(c);
+    }
+
     public FichaCompraVM? Ficha
     {
         get => _ficha;
@@ -423,7 +436,11 @@ public sealed class FacturasRecibidasVM : ModeloVista, IPestanaTrabajo
         {
             if (_ficha is not null) _ficha.PropertyChanged -= AlCambiarFicha;
             if (!Fijar(ref _ficha, value)) return;
-            if (value is not null) value.PropertyChanged += AlCambiarFicha;
+            if (value is not null)
+            {
+                value.PropertyChanged += AlCambiarFicha;
+                value.BuscarCuenta = BuscarCuentaGastoAsync;
+            }
             Avisar(nameof(HayFicha), nameof(TieneCambios));
             CommandManager.InvalidateRequerySuggested();
         }

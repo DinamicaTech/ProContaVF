@@ -286,8 +286,18 @@
                         <StackPanel>
                           <TextBlock Text="Imputación" Style="{StaticResource Titulo.Tarjeta}" />
                           <TextBlock Text="Cuenta de gasto" Style="{StaticResource Etiqueta.Campo}" />
-                          <ComboBox ItemsSource="{Binding CuentasGasto}" SelectedItem="{Binding CuentaGasto}" IsEnabled="{Binding Editable}" IsTextSearchEnabled="True" Margin="0,0,0,8"
-                                    ToolTip="Cuenta del grupo 6 del ejercicio; escribe el código para saltar a ella" />
+                          <DockPanel Margin="0,0,0,8">
+                            <Button DockPanel.Dock="Right" Style="{StaticResource Boton.Icono}" pc:Iconos.Icono="{StaticResource Icono.search}" Margin="6,0,0,0"
+                                    Command="{Binding BuscarCuentaGastoCommand}" CommandParameter="{Binding Text, ElementName=CampoCuentaGasto}"
+                                    ToolTip="Busca la cuenta por código o nombre, o crea una subcuenta (F4)" AutomationProperties.Name="Buscar la cuenta de gasto" />
+                            <TextBox x:Name="CampoCuentaGasto" DockPanel.Dock="Left" Width="110" Text="{Binding CodigoCuentaGasto, UpdateSourceTrigger=LostFocus}" Style="{StaticResource Campo.Mono}"
+                                     IsReadOnly="{Binding SoloLectura}" ToolTip="Código de la cuenta (629.1 = 6290001); F4 o un código que no existe abren el buscador">
+                              <TextBox.InputBindings>
+                                <KeyBinding Key="F4" Command="{Binding BuscarCuentaGastoCommand}" CommandParameter="{Binding Text, ElementName=CampoCuentaGasto}" />
+                              </TextBox.InputBindings>
+                            </TextBox>
+                            <TextBlock Text="{Binding NombreCuentaGasto}" ToolTip="{Binding NombreCuentaGasto}" VerticalAlignment="Center" Margin="8,0,0,0" TextTrimming="CharacterEllipsis" />
+                          </DockPanel>
                           <TextBlock Text="Centro de coste" Style="{StaticResource Etiqueta.Campo}" />
                           <ComboBox ItemsSource="{Binding CentrosCoste}" SelectedItem="{Binding CentroCoste}" IsEnabled="{Binding Editable}" pc:ComboFiltro.Activo="True" Margin="0,0,0,8"
                                     ToolTip="Centro de coste imputable de la empresa; escribe parte del código o del nombre para filtrar la lista" />
