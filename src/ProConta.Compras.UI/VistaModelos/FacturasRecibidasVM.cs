@@ -663,10 +663,12 @@ public sealed class FacturasRecibidasVM : ModeloVista, IPestanaTrabajo
         try
         {
             var cerrado = await conta.TrimestreCerradoAsync(f);
+            var anulado = (await conta.EstadoAsync(f.IdRegistro)).IdAsientoAnulado;
             var eleccion = _modulo.Dialogos.Preguntar("Deshacer la exportación",
                 cerrado
                     ? $"El asiento {f.IdAsientoContable} es de un trimestre cerrado y no se toca: haré un contra-asiento en el trimestre activo y la factura volverá a Pendientes."
-                    : $"Borraré el asiento {f.IdAsientoContable} y su registro del libro de IVA; es del trimestre activo, así que no tiene consecuencias fiscales. La factura volverá a Pendientes.",
+                    : $"Borraré el asiento {f.IdAsientoContable} y su registro del libro de IVA; es del trimestre activo, así que no tiene consecuencias fiscales. La factura volverá a Pendientes."
+                      + (anulado is int a ? $" Se queda el contra-asiento del asiento {a}, que es de un trimestre cerrado." : ""),
                 null,
                 new OpcionMensaje("Deshacer la exportación", cerrado ? "Hace el contra-asiento" : "Borra el asiento", Principal: true, Peligro: !cerrado),
                 new OpcionMensaje("Cancelar", "No cambia nada", Cancelar: true));
