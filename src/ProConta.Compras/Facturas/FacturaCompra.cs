@@ -54,8 +54,13 @@ public sealed class FacturaCompra
     /// <summary>Cuenta de gasto (FacturasCompra.ConceptoGasto).</summary>
     public string? CuentaGasto { get; set; }
     public int? IdCentroCoste { get; set; }
-    /// <summary>Forma de pago como dato de la factura: el pago se concilia después con el banco.</summary>
+    /// <summary>Cuenta de la forma de pago grabada por el ERP (dato heredado; la de ProContaVF es <see cref="IdFormaPago"/>).</summary>
     public string? CuentaFormaPago { get; set; }
+    /// <summary>
+    /// Forma de pago (FormasPago); su subcuenta en la empresa sale de FormasPagoSociedad. Al guardar pasa a ser la forma de
+    /// pago por defecto del proveedor, que se propone en sus facturas nuevas (compras/pantallas 2026-11-06).
+    /// </summary>
+    public byte? IdFormaPago { get; set; }
     public string? Notas { get; set; }
 
     /// <summary>Contabilizada (FacturasCompra.Exportada): ya no se edita aquí.</summary>
@@ -196,6 +201,8 @@ public sealed class FacturaCompra
         if (Fecha is null) l.Add("fecha");
         if (ImporteTotal is null) l.Add("total");
         else if (!Cuadra) l.Add("importes que cuadren");
+        // Con inversión del sujeto pasivo la factura no lleva IVA: lo autorrepercute la empresa (compras/pantallas 2026-11-06 12:10).
+        if (InversionSujetoPasivo && (CuotaIva ?? 0m) != 0m) l.Add("quitar la cuota de IVA (con inversión del sujeto pasivo no lleva IVA)");
         return l;
     }
 

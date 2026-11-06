@@ -109,8 +109,7 @@
                       ToolTip="Reconoce de nuevo los PDF de la lista y cuenta, campo a campo, cuántos coinciden con lo grabado. No guarda nada"
                       Visibility="{Binding Prueba, Converter={StaticResource Visible}}" />
             <Separator />
-            <MenuItem Header="Guardar" Command="{Binding GuardarCommand}" InputGestureText="Ctrl+G" ToolTip="Guarda la ficha sin cambiar de factura. Aunque no hayas cambiado nada, confirma lo leído y enseña dónde están el NIF, el número, la fecha y el total en las facturas de este proveedor" />
-            <MenuItem Header="Descartar los cambios" Command="{Binding DescartarCommand}" ToolTip="Vuelve a lo guardado de la factura activa" />
+            <MenuItem Header="Dar por revisada" Command="{Binding GuardarCommand}" InputGestureText="Ctrl+G" ToolTip="Guarda la ficha tal como está aunque no hayas cambiado nada: confirma lo leído y enseña dónde están el NIF, el número, la fecha y el total en las facturas de este proveedor" />
             <Separator />
             <MenuItem Header="Ver relacionadas" Command="{Binding VerRelacionadasCommand}" ToolTip="Muestra la factura original y sus rectificativas, en los dos sentidos" />
             <MenuItem Header="Abrir el PDF" Command="{Binding AbrirPdfCommand}" ToolTip="Abre el PDF con el programa de Windows" />
@@ -148,7 +147,17 @@
              ToolTip="Arrastra para cambiar el ancho de la lista (el visor gana o pierde ese espacio); doble clic o Inicio: ancho de fábrica; con el foco, ← → ajustan. Se guarda para ti." />
 
       <!-- Ficha de la factura activa -->
-      <ScrollViewer x:Name="ZonaFicha" Grid.Column="2" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Background="{StaticResource Pincel.Fondo}">
+      <DockPanel Grid.Column="2" Background="{StaticResource Pincel.Fondo}">
+      <!-- Botones de la ficha: actúan sobre los campos en edición, no sobre la factura (compras/pantallas 2026-11-06 12:10).
+           Exportar a contabilidad llega con la entrega 3. -->
+      <Border DockPanel.Dock="Bottom" BorderBrush="{StaticResource Pincel.Linea}" BorderThickness="0,1,0,0" Padding="14,8"
+              Visibility="{Binding TieneCambios, Converter={StaticResource Visible}}">
+        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+          <Button Content="Cancelar" Command="{Binding DescartarCommand}" Margin="0,0,8,0" ToolTip="Vuelve a lo guardado de esta factura" />
+          <Button Content="Guardar" Style="{StaticResource Boton.Primario}" Command="{Binding GuardarCommand}" ToolTip="Guarda los cambios de esta factura (Ctrl+G)" />
+        </StackPanel>
+      </Border>
+      <ScrollViewer x:Name="ZonaFicha" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Background="{StaticResource Pincel.Fondo}">
         <StackPanel Margin="14,12">
           <pc:Nota Tipo="Error" Margin="0,0,0,10" Visibility="{Binding ErrorFicha, Converter={StaticResource Visible}}">
             <TextBlock Text="{Binding ErrorFicha}" TextWrapping="Wrap" />
@@ -203,7 +212,7 @@
                 <StackPanel>
                   <DockPanel Margin="0,0,0,8">
                     <TextBlock DockPanel.Dock="Right" Text="Cambios sin guardar" Foreground="{StaticResource Pincel.Acento}" FontWeight="SemiBold" VerticalAlignment="Center"
-                               Visibility="{Binding TieneCambios, Converter={StaticResource Visible}}" ToolTip="Se guardan al cambiar de factura (o con Ctrl+G)" />
+                               Visibility="{Binding TieneCambios, Converter={StaticResource Visible}}" ToolTip="Se guardan con «Guardar», con Ctrl+G o al cambiar de factura" />
                     <TextBlock Text="{Binding Resumen}" Style="{StaticResource Texto.Apagado}" VerticalAlignment="Center" TextWrapping="Wrap" />
                   </DockPanel>
                   <pc:Nota Tipo="Aviso" Margin="0,0,0,10" Visibility="{Binding HayAvisos, Converter={StaticResource Visible}}">
@@ -280,11 +289,11 @@
                           <ComboBox ItemsSource="{Binding CuentasGasto}" SelectedItem="{Binding CuentaGasto}" IsEnabled="{Binding Editable}" IsTextSearchEnabled="True" Margin="0,0,0,8"
                                     ToolTip="Cuenta del grupo 6 del ejercicio; escribe el código para saltar a ella" />
                           <TextBlock Text="Centro de coste" Style="{StaticResource Etiqueta.Campo}" />
-                          <ComboBox ItemsSource="{Binding CentrosCoste}" SelectedItem="{Binding CentroCoste}" IsEnabled="{Binding Editable}" IsTextSearchEnabled="True" Margin="0,0,0,8"
-                                    ToolTip="Centro de coste imputable de la empresa" />
-                          <TextBlock Text="Forma de pago (cuenta)" Style="{StaticResource Etiqueta.Campo}" />
-                          <TextBox Text="{Binding FormaPago, UpdateSourceTrigger=LostFocus}" Style="{StaticResource Campo.Mono}" IsReadOnly="{Binding SoloLectura}"
-                                   ToolTip="Se guarda como dato de la factura: el pago se concilia después con el banco" />
+                          <ComboBox ItemsSource="{Binding CentrosCoste}" SelectedItem="{Binding CentroCoste}" IsEnabled="{Binding Editable}" pc:ComboFiltro.Activo="True" Margin="0,0,0,8"
+                                    ToolTip="Centro de coste imputable de la empresa; escribe parte del código o del nombre para filtrar la lista" />
+                          <TextBlock Text="Forma de pago" Style="{StaticResource Etiqueta.Campo}" />
+                          <ComboBox ItemsSource="{Binding FormasPago}" SelectedItem="{Binding FormaPago}" IsEnabled="{Binding Editable}" pc:ComboFiltro.Activo="True"
+                                    ToolTip="Al guardar, pasa a ser la forma de pago del proveedor; escribe parte del nombre para filtrar la lista" />
                         </StackPanel>
                       </Border>
                     </StackPanel>
@@ -308,12 +317,12 @@
                                 <DataTemplate>
                                   <Grid Margin="0,0,0,6">
                                     <Grid.ColumnDefinitions><ColumnDefinition Width="70" /><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /><ColumnDefinition Width="30" /></Grid.ColumnDefinitions>
-                                    <TextBox Text="{Binding Tipo, UpdateSourceTrigger=LostFocus}" Style="{StaticResource Campo.Numero}"
-                                             IsReadOnly="{Binding DataContext.SoloLectura, RelativeSource={RelativeSource AncestorType=ItemsControl}}" ToolTip="Tipo de IVA en porcentaje" />
-                                    <TextBox Grid.Column="1" Margin="6,0,0,0" Text="{Binding Base, UpdateSourceTrigger=LostFocus}" Style="{StaticResource Campo.Numero}" Tag="base"
+                                    <ComboBox ItemsSource="{Binding Tipos}" SelectedItem="{Binding TipoElegido}" Padding="6,0,22,0"
+                                              IsEnabled="{Binding DataContext.Editable, RelativeSource={RelativeSource AncestorType=ItemsControl}}" ToolTip="Tipo de IVA: 0 % o uno de los tipos del ejercicio" />
+                                    <TextBox Grid.Column="1" Margin="6,0,0,0" Text="{Binding Base, UpdateSourceTrigger=LostFocus}" Style="{StaticResource Campo.Importe}" Tag="base"
                                              IsReadOnly="{Binding DataContext.SoloLectura, RelativeSource={RelativeSource AncestorType=ItemsControl}}" GotKeyboardFocus="Campo_GotKeyboardFocus" ToolTip="Base imponible a este tipo" />
-                                    <TextBox Grid.Column="2" Margin="6,0,0,0" Text="{Binding Cuota, UpdateSourceTrigger=LostFocus}" Style="{StaticResource Campo.Numero}" Tag="cuota"
-                                             IsReadOnly="{Binding DataContext.SoloLectura, RelativeSource={RelativeSource AncestorType=ItemsControl}}" GotKeyboardFocus="Campo_GotKeyboardFocus" ToolTip="Cuota de IVA; vacía, se calcula al céntimo" />
+                                    <TextBox Grid.Column="2" Margin="6,0,0,0" Text="{Binding Cuota, UpdateSourceTrigger=LostFocus}" Style="{StaticResource Campo.Importe}" Tag="cuota"
+                                             IsReadOnly="{Binding DataContext.CuotaBloqueada, RelativeSource={RelativeSource AncestorType=ItemsControl}}" GotKeyboardFocus="Campo_GotKeyboardFocus" ToolTip="Cuota de IVA; vacía, se calcula al céntimo. Con inversión del sujeto pasivo es 0" />
                                     <Button Grid.Column="3" Style="{StaticResource Boton.Icono}" pc:Iconos.Icono="{StaticResource Icono.x}" CommandParameter="{Binding}"
                                             Command="{Binding DataContext.QuitarTipoCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" ToolTip="Quita este tipo de IVA" />
                                   </Grid>
@@ -327,13 +336,13 @@
                           <!-- Importación: un solo importe (el IVA de aduanas va en el DUA, que es otra factura) -->
                           <StackPanel Visibility="{Binding EsImportacion, Converter={StaticResource Visible}}" Margin="0,0,0,8">
                             <TextBlock Text="Importe" Style="{StaticResource Etiqueta.Campo}" />
-                            <TextBox Text="{Binding ImporteUnico, UpdateSourceTrigger=LostFocus}" Style="{StaticResource Campo.Numero}" IsReadOnly="{Binding SoloLectura}" Tag="base" GotKeyboardFocus="Campo_GotKeyboardFocus"
+                            <TextBox Text="{Binding ImporteUnico, UpdateSourceTrigger=LostFocus}" Style="{StaticResource Campo.Importe}" IsReadOnly="{Binding SoloLectura}" Tag="base" GotKeyboardFocus="Campo_GotKeyboardFocus"
                                      ToolTip="Importe de la factura de importación, sin desglose de IVA" />
                             <TextBlock Text="En importación no hay desglose de IVA: el IVA de aduanas lo trae el DUA, que es una factura aparte del transitario." Style="{StaticResource Texto.Apagado}" TextWrapping="Wrap" Margin="0,4,0,0" />
                           </StackPanel>
 
-                          <CheckBox Content="Inversión del sujeto pasivo" IsChecked="{Binding Isp}" IsEnabled="{Binding Editable}" Margin="0,0,0,8"
-                                    ToolTip="La cuota la autorrepercute la empresa (intracomunitarias, importación y casos de inversión)" />
+                          <CheckBox Content="Inversión del sujeto pasivo" IsChecked="{Binding Isp}" IsEnabled="{Binding PuedeMarcarIsp}" Margin="0,0,0,8"
+                                    ToolTip="{Binding AyudaIsp}" ToolTipService.ShowOnDisabled="True" />
                           <Grid Margin="0,0,0,8">
                             <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="70" /><ColumnDefinition Width="8" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
                             <CheckBox Content="Retención" IsChecked="{Binding ConRetencion}" IsEnabled="{Binding Editable}" VerticalAlignment="Center" Margin="0,0,8,0" ToolTip="Retención de IRPF sobre la base" />
@@ -343,7 +352,7 @@
                           </Grid>
                           <DockPanel Margin="0,0,0,8">
                             <TextBlock Text="Suplido" Style="{StaticResource Etiqueta.Campo}" Width="110" />
-                            <TextBox Text="{Binding Suplido, UpdateSourceTrigger=LostFocus}" Style="{StaticResource Campo.Numero}" IsReadOnly="{Binding SoloLectura}"
+                            <TextBox Text="{Binding Suplido, UpdateSourceTrigger=LostFocus}" Style="{StaticResource Campo.Importe}" IsReadOnly="{Binding SoloLectura}"
                                      ToolTip="Lo que el proveedor paga por cuenta nuestra, sin IVA; suma al total" />
                           </DockPanel>
 
@@ -363,7 +372,7 @@
                           </Border>
                           <DockPanel Margin="0,8,0,0">
                             <TextBlock Text="Total del PDF" Style="{StaticResource Etiqueta.Campo}" Width="110" />
-                            <TextBox Text="{Binding Total, UpdateSourceTrigger=LostFocus}" Style="{StaticResource Campo.Numero}" IsReadOnly="{Binding SoloLectura}" Tag="total" GotKeyboardFocus="Campo_GotKeyboardFocus"
+                            <TextBox Text="{Binding Total, UpdateSourceTrigger=LostFocus}" Style="{StaticResource Campo.Importe}" IsReadOnly="{Binding SoloLectura}" Tag="total" GotKeyboardFocus="Campo_GotKeyboardFocus"
                                      ToolTip="Total a pagar que dice el PDF; selecciona el importe en el PDF para rellenarlo" />
                           </DockPanel>
                           <TextBlock Text="{Binding Descuadre}" Foreground="{StaticResource Pincel.RojoError}" TextWrapping="Wrap" Margin="0,6,0,0" Visibility="{Binding Descuadre, Converter={StaticResource Visible}}" />
@@ -372,7 +381,8 @@
                             <Grid.ColumnDefinitions><ColumnDefinition Width="80" /><ColumnDefinition Width="12" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
                             <StackPanel>
                               <TextBlock Text="Moneda" Style="{StaticResource Etiqueta.Campo}" />
-                              <TextBox Text="{Binding Divisa, UpdateSourceTrigger=LostFocus}" Style="{StaticResource Campo.Mono}" IsReadOnly="{Binding SoloLectura}" MaxLength="3" ToolTip="Código ISO de la moneda (EUR, USD…)" />
+                              <ComboBox ItemsSource="{Binding Monedas}" IsEditable="True" IsTextSearchEnabled="False" Text="{Binding Divisa, UpdateSourceTrigger=LostFocus}" DataContextChanged="Moneda_DataContextChanged"
+                                        IsEnabled="{Binding Editable}" FontFamily="{StaticResource Fuente.Mono}" Padding="6,0,22,0" ToolTip="Código ISO de la moneda: elige uno o escribe otro (por ejemplo, JPY)" />
                             </StackPanel>
                             <StackPanel Grid.Column="2" Visibility="{Binding EsDivisa, Converter={StaticResource Visible}}">
                               <TextBlock Text="Total en la moneda de la factura" Style="{StaticResource Etiqueta.Campo}" />
@@ -435,6 +445,7 @@
           </StackPanel>
         </StackPanel>
       </ScrollViewer>
+      </DockPanel>
 
       <Thumb x:Name="SepFicha" Grid.Column="3" Style="{StaticResource Separador}" DragDelta="SepFicha_DragDelta" DragCompleted="Separador_DragCompleted"
              MouseDoubleClick="SepFicha_MouseDoubleClick" KeyDown="SepFicha_KeyDown" AutomationProperties.Name="Ancho de la ficha"

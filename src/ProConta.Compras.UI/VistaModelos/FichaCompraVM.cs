@@ -35,23 +35,52 @@ public sealed record MarcaConfianza(string Texto, string Nivel, string Motivo)
     }
 }
 
-/// <summary>Un tipo de IVA editable de la ficha.</summary>
+/// <summary>
+/// Un tipo de IVA de la ficha: el tipo se elige de la lista del ejercicio (compras/pantallas 2026-11-06 12:10); base y
+/// cuota se ven en moneda (1.234,56 €). Con inversión del sujeto pasivo la cuota es 0 y no se escribe.
+/// </summary>
 public sealed class DesgloseVM : ModeloVista
 {
     private string _tipo = "", _base = "", _cuota = "";
     private readonly Action _cambio;
+    private readonly Func<bool> _sinCuota;
 
-    public DesgloseVM(Action cambio, decimal? tipo = null, decimal? @base = null, decimal? cuota = null)
+    public DesgloseVM(Action cambio, decimal? tipo = null, decimal? @base = null, decimal? cuota = null, IReadOnlyList<decimal>? tipos = null, Func<bool>? sinCuota = null)
     {
         _cambio = cambio;
-        _tipo = tipo is { } t ? t.ToString("0.##", Formatos.Cultura) : "";
-        _base = @base is { } b ? Formatos.Numero(b) : "";
-        _cuota = cuota is { } c ? Formatos.Numero(c) : "";
+        _sinCuota = sinCuota ?? (() => false);
+        _tipo = tipo is { } t ? Porcentaje(t) : "";
+        _base = @base is { } b ? Formatos.Importe(b) : "";
+        _cuota = cuota is { } c ? Formatos.Importe(c) : "";
+        var lista = (tipos is { Count: > 0 } ? tipos : [21m, 10m, 4m, 0m]).Append(0m).Distinct().OrderByDescending(x => x).ToList();
+        if (tipo is { } actual && !lista.Contains(actual)) lista.Add(actual);
+        Tipos = lista.Select(x => new OpcionFicha<decimal?>(Porcentaje(x), x)).ToList();
     }
 
-    public string Tipo { get => _tipo; set { if (Fijar(ref _tipo, value ?? "")) { ProponerCuota(); _cambio(); } } }
-    public string Base { get => _base; set { if (Fijar(ref _base, value ?? "")) { ProponerCuota(); _cambio(); } } }
-    public string Cuota { get => _cuota; set { if (Fijar(ref _cuota, value ?? "")) _cambio(); } }
+    private static string Porcentaje(decimal t) => t.ToString("0.##", Formatos.Cultura) + " %";
+
+    /// <summary>0 % y los tipos de IVA del ejercicio (y el de la factura si no es uno de ellos).</summary>
+    public IReadOnlyList<OpcionFicha<decimal?>> Tipos { get; }
+    public OpcionFicha<decimal?>? TipoElegido
+    {
+        get => Tipos.FirstOrDefault(o => o.Valor == TipoValor);
+        set { if (value?.Valor is { } v) Tipo = Porcentaje(v); }
+    }
+
+    public string Tipo { get => _tipo; set { if (Fijar(ref _tipo, value ?? "")) { Avisar(nameof(TipoElegido)); ProponerCuota(); _cambio(); } } }
+    public string Base { get => _base; set { if (Fijar(ref _base, Importe(value))) { ProponerCuota(); _cambio(); } } }
+    public string Cuota { get => _cuota; set { if (!_sinCuota() && Fijar(ref _cuota, Importe(value))) _cambio(); } }
+
+    /// <summary>Lo escrito se vuelve a ver en moneda; si no es un importe, se deja tal cual para que se vea el error.</summary>
+    internal static string Importe(string? texto) => Texto.LeerDecimal(texto) is { } v ? Formatos.Importe(v) : (texto ?? "").Trim();
+
+    /// <summary>Con inversión del sujeto pasivo: la cuota pasa a 0.</summary>
+    internal void QuitarCuota()
+    {
+        if (CuotaValor is null or 0m) return;
+        _cuota = Formatos.Importe(0m);
+        Avisar(nameof(Cuota));
+    }
 
     public decimal? TipoValor => Texto.LeerDecimal(_tipo);
     public decimal? BaseValor => Texto.LeerDecimal(_base);
@@ -60,9 +89,10 @@ public sealed class DesgloseVM : ModeloVista
     /// <summary>Con tipo y base, la cuota se propone redondeada a céntimos (alejándose de cero) si estaba vacía.</summary>
     private void ProponerCuota()
     {
+        if (_sinCuota()) return;
         if (_cuota.Length == 0 && TipoValor is { } t && BaseValor is { } b)
         {
-            _cuota = Formatos.Numero(Math.Round(b * t / 100m, 2, MidpointRounding.AwayFromZero));
+            _cuota = Formatos.Importe(Math.Round(b * t / 100m, 2, MidpointRounding.AwayFromZero));
             Avisar(nameof(Cuota));
         }
     }
@@ -82,7 +112,8 @@ public sealed class FichaCompraVM : ModeloVista
     private bool _tieneCambios;
 
     private string _nif = "", _numero = "", _fecha = "", _total = "", _porcentajeRetencion = "", _suplido = "", _divisa = "EUR", _totalDivisa = "";
-    private string _formaPago = "", _notas = "", _importeUnico = "";
+    private string _notas = "", _importeUnico = "";
+    private OpcionFicha<byte?> _formaPago;
     private bool _isp, _conRetencion;
     private ProveedorFicha? _proveedor;
     private OpcionFicha<OperacionCompra> _operacion;
@@ -91,11 +122,15 @@ public sealed class FichaCompraVM : ModeloVista
     private OpcionFicha<string> _cuentaGasto;
     private OpcionFicha<int?> _centroCoste;
     private OpcionFicha<int?> _rectifica;
+    private readonly IReadOnlyList<decimal> _tiposIva;
+    private readonly Dictionary<string, Compras.Reconocimiento.PuntoDocumento> _elegidos = new(StringComparer.Ordinal);
 
     internal FichaCompraVM(FacturaCompra factura, IReadOnlyList<ProveedorFicha> proveedores, IReadOnlyList<OpcionFicha<string>> cuentasGasto,
-        IReadOnlyList<CentroCoste> centros, IReadOnlyList<FilaFacturaCompra> otras, bool soloLectura, ConfianzaCampos? confianza = null)
+        IReadOnlyList<CentroCoste> centros, IReadOnlyList<FilaFacturaCompra> otras, bool soloLectura, ConfianzaCampos? confianza = null,
+        IReadOnlyList<decimal>? tiposIva = null, IReadOnlyList<(byte Id, string Descripcion)>? formasPago = null)
     {
         Factura = factura;
+        _tiposIva = tiposIva ?? [];
         _proveedores = proveedores;
         SoloLectura = soloLectura || factura.Contabilizada;
         _confianza = confianza ?? ConfianzaCampos.DesdeLog(factura.Log);
@@ -109,8 +144,12 @@ public sealed class FichaCompraVM : ModeloVista
         CentrosCoste = [new("Sin centro de coste", null), .. centros.Where(c => c.EstaActivo && c.EsImputable).OrderBy(c => c.RutaJerarquica, StringComparer.Ordinal)
             .Select(c => new OpcionFicha<int?>($"{c.Codigo} · {c.Nombre}", c.IdCentroCoste))];
         Rectificables = [new("No rectifica a ninguna", null), .. otras
-            .Where(o => o.IdRegistro != factura.IdRegistro && (factura.IdProveedor is null || o.IdProveedor == factura.IdProveedor))
+            .Where(o => o.IdRegistro != factura.IdRegistro && (o.IdRegistro == factura.IdRegistroFacturaRectificada || MismoProveedor(factura, o)))
             .OrderByDescending(o => o.Fecha).Select(o => new OpcionFicha<int?>($"{(o.NumeroFactura.Length > 0 ? o.NumeroFactura : o.NombreFichero)} · {(o.Fecha is { } f ? Formatos.Fecha(f) : "sin fecha")} · {(o.ImporteTotal is { } t ? Formatos.Importe(t) : "")}", o.IdRegistro))];
+
+        var formas = (formasPago ?? []).Select(x => new OpcionFicha<byte?>(x.Descripcion, x.Id)).ToList();
+        if (factura.IdFormaPago is byte fpa && formas.All(x => x.Valor != fpa)) formas.Add(new($"Forma de pago {fpa} (ya no existe)", fpa));
+        FormasPago = [new("Sin forma de pago", null), .. formas];
 
         _nif = factura.NifProveedor ?? "";
         _proveedor = proveedores.FirstOrDefault(p => p.IdProveedor == factura.IdProveedor) ?? BuscarPorNif(_nif);
@@ -122,22 +161,24 @@ public sealed class FichaCompraVM : ModeloVista
         _conRetencion = (factura.PorcentajeRetencion ?? 0m) != 0m || (factura.ImporteRetencion ?? 0m) != 0m;
         _porcentajeRetencion = factura.PorcentajeRetencion is { } pr && pr != 0 ? pr.ToString("0.##", Formatos.Cultura) : _conRetencion ? "" : "15";
         _claseRetencion = ClasesRetencion.FirstOrDefault(c => c.Valor == factura.ClaseRetencion) ?? ClasesRetencion[0];
-        _suplido = factura.Suplido is { } su && su != 0 ? Formatos.Numero(su) : "";
-        _total = factura.ImporteTotal is { } t ? Formatos.Numero(t) : "";
+        _suplido = factura.Suplido is { } su && su != 0 ? Formatos.Importe(su) : "";
+        _total = factura.ImporteTotal is { } t ? Formatos.Importe(t) : "";
         _divisa = factura.Divisa;
         _totalDivisa = factura.ImporteTotalDivisa is { } td ? Formatos.Numero(td) : "";
         _cuentaGasto = CuentasGasto.FirstOrDefault(c => c.Valor == factura.CuentaGasto) ?? CuentasGasto[0];
         _centroCoste = CentrosCoste.FirstOrDefault(c => c.Valor == factura.IdCentroCoste) ?? CentrosCoste[0];
         _rectifica = Rectificables.FirstOrDefault(r => r.Valor == factura.IdRegistroFacturaRectificada) ?? Rectificables[0];
-        _formaPago = factura.CuentaFormaPago ?? "";
+        _formaPago = FormasPago.FirstOrDefault(x => x.Valor == factura.IdFormaPago) ?? FormasPago[0];
         _notas = factura.Notas ?? "";
+        // Una factura editable sin forma de pago trae la del proveedor; se guarda con lo demás.
+        if (!SoloLectura) ProponerFormaPago();
 
         if (factura.Desgloses.Count > 0)
-            foreach (var d in factura.Desgloses) Desgloses.Add(new DesgloseVM(AlCambiarImportes, d.TipoIva, d.BaseImponible, d.CuotaIva));
+            foreach (var d in factura.Desgloses) Desgloses.Add(NuevoDesglose(d.TipoIva, d.BaseImponible, d.CuotaIva));
         else if (factura.BaseImponible is not null || factura.CuotaIva is not null)
-            Desgloses.Add(new DesgloseVM(AlCambiarImportes, TipoDeducido(factura), factura.BaseImponible, factura.CuotaIva));
-        if (Desgloses.Count == 0) Desgloses.Add(new DesgloseVM(AlCambiarImportes, 21m));
-        _importeUnico = factura.BaseImponible is { } bi ? Formatos.Numero(bi) : "";
+            Desgloses.Add(NuevoDesglose(TipoDeducido(factura), factura.BaseImponible, factura.CuotaIva));
+        if (Desgloses.Count == 0) Desgloses.Add(NuevoDesglose(TipoGeneral));
+        _importeUnico = factura.BaseImponible is { } bi ? Formatos.Importe(bi) : "";
         _cargando = false;
     }
 
@@ -155,6 +196,25 @@ public sealed class FichaCompraVM : ModeloVista
     public IReadOnlyList<OpcionFicha<int?>> Rectificables { get; }
     public ObservableCollection<DesgloseVM> Desgloses { get; } = [];
 
+    /// <summary>Monedas que se ofrecen; se puede escribir cualquier otro código ISO de tres letras.</summary>
+    public IReadOnlyList<string> Monedas { get; } = ["EUR", "USD", "GBP", "CHF"];
+
+    private DesgloseVM NuevoDesglose(decimal? tipo, decimal? @base = null, decimal? cuota = null) =>
+        new(AlCambiarImportes, tipo, @base, cuota, _tiposIva, () => _isp);
+
+    /// <summary>El tipo general del ejercicio para una línea nueva: el más alto de los configurados, o el 21 %.</summary>
+    private decimal TipoGeneral => _tiposIva.Count > 0 ? _tiposIva.Max() : 21m;
+
+    /// <summary>Las facturas que puede rectificar: del mismo proveedor (por su id, su NIF o, sin ninguno, su carpeta).</summary>
+    private static bool MismoProveedor(FacturaCompra f, FilaFacturaCompra o)
+    {
+        static string Compacto(string? t) => new((t ?? "").Where(char.IsAsciiLetterOrDigit).Select(char.ToUpperInvariant).ToArray());
+        if (f.IdProveedor is { } id && o.IdProveedor is { } otro) return id == otro;
+        var nif = Compacto(f.NifProveedor);
+        if (nif.Length > 0 && Compacto(o.Nif).Length > 0) return nif == Compacto(o.Nif);
+        return f.Carpeta.Length > 0 && string.Equals(f.Carpeta, o.Carpeta, StringComparison.OrdinalIgnoreCase);
+    }
+
     // ---------- proveedor ----------
 
     public string Nif
@@ -165,6 +225,7 @@ public sealed class FichaCompraVM : ModeloVista
             if (!Cambiar(ref _nif, (value ?? "").Trim().ToUpperInvariant(), "nif")) return;
             _proveedor = BuscarPorNif(_nif);
             Avisar(nameof(NombreProveedor), nameof(HayProveedor), nameof(AvisoProveedor));
+            ProponerFormaPago();
         }
     }
 
@@ -194,7 +255,7 @@ public sealed class FichaCompraVM : ModeloVista
         set
         {
             if (value is null || !Cambiar(ref _operacion, value, "operacion")) return;
-            if (value.Valor == OperacionCompra.Importacion && !_isp) { _isp = true; Avisar(nameof(Isp)); }
+            if (value.Valor == OperacionCompra.Importacion && !_isp) { _isp = true; Avisar(nameof(Isp), nameof(CuotaBloqueada), nameof(PuedeMarcarIsp), nameof(AyudaIsp)); }
             Avisar(nameof(EsImportacion), nameof(NoEsImportacion));
             AlCambiarImportes();
         }
@@ -203,24 +264,54 @@ public sealed class FichaCompraVM : ModeloVista
     public bool EsImportacion => _operacion.Valor == OperacionCompra.Importacion;
     public bool NoEsImportacion => !EsImportacion;
     public OpcionFicha<ProductoCompra?> Producto { get => _producto; set { if (value is not null) Cambiar(ref _producto, value, "producto"); } }
-    public bool Isp { get => _isp; set => Cambiar(ref _isp, value, "isp"); }
+    /// <summary>
+    /// Inversión del sujeto pasivo: la factura no lleva IVA (lo autorrepercute la empresa con el tipo general del ejercicio).
+    /// Con cuota de IVA no se puede marcar; al marcarla, la cuota de cada tipo pasa a 0.
+    /// </summary>
+    public bool Isp
+    {
+        get => _isp;
+        set
+        {
+            if (value && !_cargando && CuotaCalculada != 0m) { Avisar(nameof(Isp)); return; }
+            if (!Cambiar(ref _isp, value, "isp")) return;
+            if (_isp) foreach (var d in Desgloses) d.QuitarCuota();
+            Avisar(nameof(CuotaBloqueada), nameof(PuedeMarcarIsp), nameof(AyudaIsp));
+            AlCambiarImportes();
+        }
+    }
+
+    public bool CuotaBloqueada => SoloLectura || _isp;
+    public bool PuedeMarcarIsp => Editable && (_isp || CuotaCalculada == 0m);
+    public string AyudaIsp => _isp || CuotaCalculada == 0m
+        ? "La cuota la autorrepercute la empresa con el tipo general del ejercicio (intracomunitarias, importación y casos de inversión); la factura no lleva IVA."
+        : "Una factura con inversión del sujeto pasivo no puede llevar IVA: deja la cuota a 0 para marcarla.";
 
     public OpcionFicha<string> CuentaGasto { get => _cuentaGasto; set { if (value is not null) Cambiar(ref _cuentaGasto, value, "gasto"); } }
     public OpcionFicha<int?> CentroCoste { get => _centroCoste; set { if (value is not null) Cambiar(ref _centroCoste, value, "centro"); } }
     public OpcionFicha<int?> Rectifica { get => _rectifica; set { if (value is not null) Cambiar(ref _rectifica, value, "rectifica"); } }
-    public string FormaPago { get => _formaPago; set => Cambiar(ref _formaPago, value ?? "", "formaPago"); }
+    /// <summary>Formas de pago del catálogo (organizacion/formas-pago); la elegida pasa a ser la del proveedor al guardar.</summary>
+    public IReadOnlyList<OpcionFicha<byte?>> FormasPago { get; }
+    public OpcionFicha<byte?> FormaPago { get => _formaPago; set { if (value is not null) Cambiar(ref _formaPago, value, "formaPago"); } }
+
+    /// <summary>Sin forma de pago elegida, propone la del proveedor (compras/pantallas 2026-11-06).</summary>
+    private void ProponerFormaPago()
+    {
+        if (_formaPago.Valor is not null || _proveedor?.IdFormaPagoDefecto is not byte fp) return;
+        if (FormasPago.FirstOrDefault(x => x.Valor == fp) is { } opcion) { _formaPago = opcion; Avisar(nameof(FormaPago)); }
+    }
     public string Notas { get => _notas; set => Cambiar(ref _notas, value ?? "", "notas"); }
 
     // ---------- importes ----------
 
     /// <summary>En importación no hay desglose por tipos: un solo importe (sin IVA deducible en la factura).</summary>
-    public string ImporteUnico { get => _importeUnico; set { if (Cambiar(ref _importeUnico, value ?? "", "importes")) AlCambiarImportes(); } }
+    public string ImporteUnico { get => _importeUnico; set { if (Cambiar(ref _importeUnico, DesgloseVM.Importe(value), "importes")) AlCambiarImportes(); } }
 
     public bool ConRetencion { get => _conRetencion; set { if (Cambiar(ref _conRetencion, value, "retencion")) AlCambiarImportes(); } }
     public string PorcentajeRetencion { get => _porcentajeRetencion; set { if (Cambiar(ref _porcentajeRetencion, value ?? "", "retencion")) AlCambiarImportes(); } }
     public OpcionFicha<ClaseRetencion?> ClaseRetencion { get => _claseRetencion; set { if (value is not null) Cambiar(ref _claseRetencion, value, "retencion"); } }
-    public string Suplido { get => _suplido; set { if (Cambiar(ref _suplido, value ?? "", "suplido")) AlCambiarImportes(); } }
-    public string Total { get => _total; set { if (Cambiar(ref _total, value ?? "", "importes")) AlCambiarImportes(); } }
+    public string Suplido { get => _suplido; set { if (Cambiar(ref _suplido, DesgloseVM.Importe(value), "suplido")) AlCambiarImportes(); } }
+    public string Total { get => _total; set { if (Cambiar(ref _total, DesgloseVM.Importe(value), "importes")) AlCambiarImportes(); } }
 
     public string Divisa { get => _divisa; set { if (Cambiar(ref _divisa, (value ?? "").Trim().ToUpperInvariant(), "divisa")) Avisar(nameof(EsDivisa), nameof(TextoCambio)); } }
     public bool EsDivisa => !string.Equals(_divisa, "EUR", StringComparison.OrdinalIgnoreCase) && _divisa.Length > 0;
@@ -250,7 +341,7 @@ public sealed class FichaCompraVM : ModeloVista
 
     private void AlCambiarImportes()
     {
-        Avisar(nameof(TextoBase), nameof(TextoCuota), nameof(TextoRetencion), nameof(TextoTotalCalculado), nameof(Descuadre));
+        Avisar(nameof(TextoBase), nameof(TextoCuota), nameof(TextoRetencion), nameof(TextoTotalCalculado), nameof(Descuadre), nameof(PuedeMarcarIsp), nameof(AyudaIsp));
         if (!_cargando) Marcar("importes");
     }
 
@@ -301,7 +392,7 @@ public sealed class FichaCompraVM : ModeloVista
     internal void AnadirTipo()
     {
         if (SoloLectura) return;
-        Desgloses.Add(new DesgloseVM(AlCambiarImportes, 21m));
+        Desgloses.Add(NuevoDesglose(TipoGeneral));
         AlCambiarImportes();
     }
 
@@ -326,22 +417,40 @@ public sealed class FichaCompraVM : ModeloVista
             Nif = leida.NifProveedor ?? "";
             Numero = leida.NumeroFactura;
             Fecha = leida.Fecha is { } f ? Formatos.Fecha(f) : "";
-            Total = leida.ImporteTotal is { } t ? Formatos.Numero(t) : "";
+            Total = leida.ImporteTotal is { } t ? Formatos.Importe(t) : "";
             Isp = leida.InversionSujetoPasivo;
             Desgloses.Clear();
-            foreach (var d in leida.Desgloses) Desgloses.Add(new DesgloseVM(AlCambiarImportes, d.TipoIva, d.BaseImponible, d.CuotaIva));
-            if (Desgloses.Count == 0) Desgloses.Add(new DesgloseVM(AlCambiarImportes, TipoDeducido(leida), leida.BaseImponible, leida.CuotaIva));
-            ImporteUnico = leida.BaseImponible is { } b ? Formatos.Numero(b) : "";
+            foreach (var d in leida.Desgloses) Desgloses.Add(NuevoDesglose(d.TipoIva, d.BaseImponible, d.CuotaIva));
+            if (Desgloses.Count == 0) Desgloses.Add(NuevoDesglose(TipoDeducido(leida), leida.BaseImponible, leida.CuotaIva));
+            ImporteUnico = leida.BaseImponible is { } b ? Formatos.Importe(b) : "";
             ConRetencion = (leida.ImporteRetencion ?? 0m) != 0m;
             if (leida.PorcentajeRetencion is { } p && p != 0) PorcentajeRetencion = p.ToString("0.##", Formatos.Cultura);
         }
         finally { _cargando = false; }
+        ProponerFormaPago();
         if (!string.IsNullOrWhiteSpace(leida.Log)) _confianza = ConfianzaCampos.DesdeLog(leida.Log);
         _manuales.Clear();
+        _elegidos.Clear();
         TieneCambios = true;
         Avisar(nameof(TextoBase), nameof(TextoCuota), nameof(TextoRetencion), nameof(TextoTotalCalculado), nameof(Descuadre));
         Avisar(nameof(ConfianzaNif), nameof(ConfianzaNumero), nameof(ConfianzaFecha), nameof(ConfianzaImportes), nameof(Avisos), nameof(HayAvisos), nameof(Resumen));
+        Avisar(nameof(CuotaBloqueada), nameof(PuedeMarcarIsp), nameof(AyudaIsp));
     }
+
+    /// <summary>
+    /// El operador ha elegido en el visor dónde está el valor de un campo (nif, numero, fecha o total): al guardar, la
+    /// plantilla aprende de ese sitio y no de otro donde el valor también aparezca (compras/pantallas 2026-11-06 12:10).
+    /// </summary>
+    internal void Elegir(string campo, Compras.Reconocimiento.PuntoDocumento punto)
+    {
+        if (SoloLectura || !Compras.Reconocimiento.PlantillasReconocimiento.Campos.Contains(campo)) return;
+        _elegidos[campo] = punto;
+        TieneCambios = true;
+        Avisar(nameof(Elegidos));
+    }
+
+    /// <summary>Dónde eligió el operador cada campo en el visor (se pasa al guardar).</summary>
+    public IReadOnlyDictionary<string, Compras.Reconocimiento.PuntoDocumento> Elegidos => _elegidos;
 
     /// <summary>La factura con lo que hay en la ficha (sin guardar).</summary>
     internal FacturaCompra Construir()
@@ -369,7 +478,7 @@ public sealed class FichaCompraVM : ModeloVista
             FechaTipoCambio = EsDivisa ? o.FechaTipoCambio : null,
             IdRegistroFacturaRectificada = _rectifica.Valor,
             CuentaGasto = _cuentaGasto.Valor, IdCentroCoste = _centroCoste.Valor,
-            CuentaFormaPago = _formaPago.Length == 0 ? null : _formaPago.Trim(),
+            IdFormaPago = _formaPago.Valor, CuentaFormaPago = o.CuentaFormaPago,
             Notas = _notas.Length == 0 ? null : _notas,
             Confianza = o.Confianza, RequiereRevision = o.RequiereRevision, Fuente = o.Fuente, Log = o.Log,
             FechaHoraRegistro = o.FechaHoraRegistro, Version = o.Version, Contabilizada = o.Contabilizada, Duplicada = o.Duplicada
@@ -391,6 +500,7 @@ public sealed class FichaCompraVM : ModeloVista
     {
         Factura = guardada;
         TieneCambios = false;
+        _elegidos.Clear();
         Avisar(nameof(Cuenta), nameof(Resumen), nameof(Avisos), nameof(HayAvisos));
     }
 

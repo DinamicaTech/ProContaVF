@@ -65,6 +65,8 @@ public static class CatalogoMigraciones
         MigracionesCompras.FacturasCompraReconocimiento,
         MigracionesCompras.FacturasCompraCentroCoste,
         MigracionesCompras.PlantillasReconocimientoCompra,
+        MigracionesOrganizacion.FormasPagoSociedad,
+        MigracionesCompras.FormaPagoCompras,
     ];
 
     /// <summary>Versión del esquema que espera esta versión del programa.</summary>

@@ -36,7 +36,7 @@ public partial class VistaFacturasRecibidas : UserControl
         (_lista, _ficha) = (guardados?.Lista, guardados?.Ficha);
         Loaded += (_, _) => AplicarAnchos();
         Zonas.SizeChanged += (_, _) => AplicarAnchos();
-        Visor.TextoSeleccionado += (_, texto) => Capturar(texto);
+        Visor.TextoSeleccionado += (_, s) => Capturar(s);
         DataContextChanged += (_, e) =>
         {
             if (e.OldValue is FacturasRecibidasVM viejo) viejo.PropertyChanged -= AlCambiarModelo;
@@ -90,19 +90,31 @@ public partial class VistaFacturasRecibidas : UserControl
         Resaltar();
     }
 
-    private void Capturar(string texto)
+    private void Capturar(SeleccionPdf seleccion)
     {
-        if (_campoCaptura is not { IsReadOnly: false, IsLoaded: true } campo || Vm?.Ficha is not { Editable: true }) return;
-        var tipo = campo.Tag as string;
-        var valor = tipo switch
+        if (Vm?.Ficha is not { Editable: true } ficha) return;
+        var activo = _campoCaptura is { IsLoaded: true } ? _campoCaptura.Tag as string : null;
+        // Clic en un valor resaltado: de esa aparición aprenderá la plantilla al guardar (compras/pantallas 2026-11-06 12:10).
+        if (seleccion.Texto.Length == 0)
+        {
+            var campo = activo is not null && seleccion.Campos.Contains(activo) ? activo : seleccion.Campos.Count == 1 ? seleccion.Campos[0] : null;
+            if (campo is null || seleccion.Punto is not { } punto) return;
+            ficha.Elegir(campo, punto);
+            Vm.AvisarElegido(campo);
+            return;
+        }
+        if (_campoCaptura is not { IsReadOnly: false, IsLoaded: true } caja) return;
+        var texto = seleccion.Texto;
+        var valor = activo switch
         {
             "nif" => new string(texto.Where(char.IsAsciiLetterOrDigit).ToArray()).ToUpperInvariant(),
             "base" or "cuota" or "total" => new string(texto.Where(c => char.IsDigit(c) || c is ',' or '.' or '-').ToArray()),
             _ => texto.Trim()
         };
         if (valor.Length == 0) return;
-        campo.Text = valor;
-        campo.GetBindingExpression(TextBox.TextProperty)?.UpdateSource();
+        caja.Text = valor;
+        caja.GetBindingExpression(TextBox.TextProperty)?.UpdateSource();
+        if (activo is not null && seleccion.Punto is { } p) ficha.Elegir(activo, p);
         Resaltar();
     }
 
@@ -123,6 +135,19 @@ public partial class VistaFacturasRecibidas : UserControl
     private void AlCambiarFicha(object? sender, PropertyChangedEventArgs e)
     {
         if (e.PropertyName is nameof(FichaCompraVM.Nif) or nameof(FichaCompraVM.Numero) or nameof(FichaCompraVM.Fecha) or nameof(FichaCompraVM.Total)) Resaltar();
+        // Al guardar se olvidan los sitios elegidos en el visor: se quita su marca verde.
+        else if (e.PropertyName == nameof(FichaCompraVM.TieneCambios) && sender is FichaCompraVM { TieneCambios: false }) Resaltar();
+    }
+
+    /// <summary>
+    /// Al cambiar de ficha (también al cancelar) el desplegable de moneda conservaba la moneda elegida antes y no dejaba
+    /// volver a elegirla: se quita esa selección y el texto vuelve a ser el de la ficha.
+    /// </summary>
+    private void Moneda_DataContextChanged(object sender, DependencyPropertyChangedEventArgs e)
+    {
+        if (sender is not ComboBox c) return;
+        c.SelectedIndex = -1;
+        c.GetBindingExpression(ComboBox.TextProperty)?.UpdateTarget();
     }
 
     /// <summary>Envía al visor (o a la ventana desacoplada) los valores de la ficha para resaltar su origen en el PDF.</summary>
@@ -131,7 +156,7 @@ public partial class VistaFacturasRecibidas : UserControl
         var f = Vm?.Ficha;
         IReadOnlyList<ValorResaltado> valores = f is null ? [] :
         [
-            new("nif", f.Nif), new("numero", f.Numero), .. VariantesFecha(f.Fecha).Select(t => new ValorResaltado("fecha", t)), new("total", f.Total)
+            new("nif", f.Nif), new("numero", f.Numero), .. VariantesFecha(f.Fecha).Select(t => new ValorResaltado("fecha", t)), new("total", f.Total.Replace("€", "").Trim())
         ];
         var activo = _campoCaptura?.Tag as string;
         Visor.Resaltar(valores, activo);
@@ -262,7 +287,7 @@ public partial class VistaFacturasRecibidas : UserControl
     {
         if (_ventanaVisor is not null) { _ventanaVisor.Activate(); return; }
         _ventanaVisor = new VentanaVisor { DataContext = DataContext, Owner = Window.GetWindow(this) };
-        _ventanaVisor.Visor.TextoSeleccionado += (_, texto) => Capturar(texto);
+        _ventanaVisor.Visor.TextoSeleccionado += (_, s) => Capturar(s);
         _ventanaVisor.Closed += (_, _) => { _ventanaVisor = null; AplicarAnchos(); Resaltar(); };
         _ventanaVisor.Show();
         AplicarAnchos();

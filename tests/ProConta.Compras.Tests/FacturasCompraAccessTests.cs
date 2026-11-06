@@ -102,10 +102,12 @@ public sealed class FacturasCompraAccessTests : IDisposable
     {
         var esquema = await Bd.EjecutarAsync(s => Task.FromResult(s.LeerEsquema()));
         foreach (var c in new[] { "IdSociedadEjercicio", "IdProveedor", "Divisa", "ImporteTotalDivisa", "TipoCambioAplicado", "FechaTipoCambio",
-                     "IdRegistroFacturaRectificada", "ConfianzaImportacion", "RequiereRevisionImportacion", "LOGImportacion", "Version", "IdCentroCoste" })
+                     "IdRegistroFacturaRectificada", "ConfianzaImportacion", "RequiereRevisionImportacion", "LOGImportacion", "Version", "IdCentroCoste", "IdFormaPago" })
             Assert.True(esquema.ExisteColumna("FacturasCompra", c), c);
         Assert.True(esquema.ExisteTabla("DesglosesFacturaCompra"));
         Assert.True(esquema.ExisteTabla("ConfiguracionReconocimientoFacturasCompra"));
+        Assert.True(esquema.ExisteTabla("FormasPagoSociedad"));
+        Assert.True(esquema.ExisteColumna("CuentasProveedoresSociedad", "IdFormaPagoDefecto"));
     }
 
     [Fact]
@@ -244,6 +246,31 @@ public sealed class FacturasCompraAccessTests : IDisposable
     }
 
     [Fact]
+    public async Task Si_el_operador_elige_la_fecha_en_el_visor_la_plantilla_aprende_de_ahi_y_quita_la_de_otro_sitio()
+    {
+        await EmpresaConProveedorAsync();
+        // Emisión y vencimiento coinciden en esta factura: el operador elige la de «Vence el» (columna 33 de la línea 2).
+        var servicio = new ServicioFacturasCompra(Bd, new ServicioReconocimientoFacturaCompra(new ExtractorPorFichero(new Dictionary<string, string>
+        {
+            ["d.pdf"] = $"""
+                Emisor Ficticio S.L. NIF: {NifProveedor}
+                Número de factura: FV260009
+                Emitida el 10/02/2026   Vence el 10/02/2026
+                IVA 21% 100,00 21,00
+                Total factura 121,00
+                """
+        })), _reloj);
+        var r = await servicio.ImportarAsync(_ctx, Pdf("Ficticio", "d.pdf", "d"));
+        Assert.True(r.Registrada, r.Error?.ToString());
+        var f = (await servicio.CargarAsync(r.Factura!.IdRegistro))!;
+        f.Fecha = new DateTime(2026, 2, 10);
+        Assert.True((await servicio.GuardarAsync(f)).EsCorrecto);
+        Assert.True((await servicio.GuardarAsync(f, new Dictionary<string, PuntoDocumento> { ["fecha"] = new(1, 40 + 33 * 5 + 10, 776 + 4) })).EsCorrecto);
+        Assert.Equal(1, await Contar("SELECT COUNT(*) FROM PlantillasReconocimientoCompra WHERE Campo = ?", "fecha"));
+        Assert.Equal(1, await Contar("SELECT COUNT(*) FROM PlantillasReconocimientoCompra WHERE Campo = ? AND Ancla = ?", "fecha", "vence el"));
+    }
+
+    [Fact]
     public async Task Guardar_cambia_los_datos_y_los_desgloses_y_no_pisa_los_cambios_de_otro_operador()
     {
         await EmpresaConProveedorAsync();
@@ -278,6 +305,27 @@ public sealed class FacturasCompraAccessTests : IDisposable
         var conflicto = await servicio.GuardarAsync(otro);
         Assert.Equal("Compras.Concurrencia", conflicto.Error!.Codigo);
         Assert.Equal("FV260124", (await servicio.CargarAsync(f.IdRegistro))!.NumeroFactura);
+    }
+
+    [Fact]
+    public async Task La_forma_de_pago_elegida_pasa_a_ser_la_del_proveedor_y_se_propone_en_su_siguiente_factura()
+    {
+        var idProveedor = await EmpresaConProveedorAsync();
+        await Bd.EjecutarAsync(s => s.EjecutarAsync("INSERT INTO FormasPago (Id, Descripcion, SEPA) VALUES (?, ?, ?)", 200, "Transferencia de prueba", false));
+        var servicio = Servicio();
+        var r = await servicio.ImportarAsync(_ctx, Pdf("Ficticio", "fp1.pdf", "forma uno"));
+        Assert.True(r.Registrada, r.Error?.ToString());
+        var f = (await servicio.CargarAsync(r.Factura!.IdRegistro))!;
+        Assert.Null(f.IdFormaPago);
+
+        f.IdFormaPago = 200;
+        Assert.True((await servicio.GuardarAsync(f)).EsCorrecto);
+        Assert.Equal((byte)200, (await servicio.CargarAsync(f.IdRegistro))!.IdFormaPago);
+        Assert.Equal(200, await Contar("SELECT IdFormaPagoDefecto FROM CuentasProveedoresSociedad WHERE IdProveedor = ? AND IdSociedad = ?", idProveedor, "T01"));
+
+        var siguiente = await servicio.ImportarAsync(_ctx, Pdf("Ficticio", "fp2.pdf", "forma dos"));
+        Assert.True(siguiente.Registrada, siguiente.Error?.ToString());
+        Assert.Equal((byte)200, (await servicio.CargarAsync(siguiente.Factura!.IdRegistro))!.IdFormaPago);
     }
 
     [Fact]

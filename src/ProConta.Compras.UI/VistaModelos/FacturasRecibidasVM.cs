@@ -40,6 +40,8 @@ public sealed class FacturasRecibidasVM : ModeloVista, IPestanaTrabajo
     private IReadOnlyList<ProveedorFicha> _proveedores = [];
     private IReadOnlyList<OpcionFicha<string>> _cuentasGasto = [];
     private IReadOnlyList<CentroCoste> _centros = [];
+    private IReadOnlyList<decimal> _tiposIva = [];
+    private IReadOnlyList<(byte Id, string Descripcion)> _formasPago = [];
     private IReadOnlyList<FilaCompraVM> _seleccion = [];
     private object? _vista;
     private EstadoVista _estado = EstadoVista.Cargando;
@@ -84,7 +86,7 @@ public sealed class FacturasRecibidasVM : ModeloVista, IPestanaTrabajo
         AbrirProveedorCommand = new ComandoDelegado(() => { if (_ficha?.IdTerceroProveedor is int t) _modulo.AbrirFichaTercero(t); }, () => _ficha?.IdTerceroProveedor is not null);
         AnadirTipoCommand = new ComandoDelegado(() => _ficha?.AnadirTipo(), () => _ficha is { Editable: true });
         QuitarTipoCommand = new ComandoDelegado(p => { if (p is DesgloseVM d) _ficha?.QuitarTipo(d); }, _ => _ficha is { Editable: true, Desgloses.Count: > 1 });
-        RefrescarCommand = new ComandoDelegado(() => _ = CargarAsync());
+        RefrescarCommand = new ComandoDelegado(() => _ = RefrescarAsync());
         LimpiarFiltrosCommand = new ComandoDelegado(LimpiarFiltros, () => HayFiltros);
         VerPendientesCommand = new ComandoDelegado(() => PestanaLista = "pendientes");
         VerContabilizadasCommand = new ComandoDelegado(() => PestanaLista = "contabilizadas");
@@ -183,6 +185,8 @@ public sealed class FacturasRecibidasVM : ModeloVista, IPestanaTrabajo
                 .OrderBy(c => c.Codigo, StringComparer.Ordinal)
                 .Select(c => new OpcionFicha<string>($"{c.Codigo} · {c.Nombre}", c.Codigo)).ToList();
             _centros = await _s.CentrosCoste.ListarAsync(_s.Trabajo.IdSociedad);
+            if (_s.TiposIva is { } tipos) _tiposIva = await tipos();
+            if (_s.FormasPago is { } formas) _formasPago = await formas();
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
@@ -190,6 +194,14 @@ public sealed class FacturasRecibidasVM : ModeloVista, IPestanaTrabajo
         }
         await CargarAsync();
         if (!Prueba && _puedeEditar) await BuscarPdfNuevosAsync(silencioso: true);
+    }
+
+    /// <summary>F5: vuelve a leer los proveedores (su forma de pago por defecto puede haber cambiado) y la lista.</summary>
+    private async Task RefrescarAsync()
+    {
+        try { _proveedores = await _s.Facturas.ProveedoresAsync(_s.Trabajo); }
+        catch (Exception ex) when (ex is not OperationCanceledException) { _modulo.Avisar($"No he podido leer los proveedores: {ex.Message}"); }
+        await CargarAsync();
     }
 
     /// <summary>Vuelve a leer la lista, conservando la factura activa (sus cambios se guardan antes).</summary>
@@ -389,11 +401,11 @@ public sealed class FacturasRecibidasVM : ModeloVista, IPestanaTrabajo
             if (factura.Contabilizada) _ = CargarAsientoAsync(factura, carga);
             if (!Prueba)
             {
-                Ficha = new FichaCompraVM(factura, _proveedores, _cuentasGasto, _centros, _datos, soloLectura: !_puedeEditar);
+                Ficha = new FichaCompraVM(factura, _proveedores, _cuentasGasto, _centros, _datos, soloLectura: !_puedeEditar, tiposIva: _tiposIva, formasPago: _formasPago);
                 return;
             }
             // Modo prueba: se reconoce de nuevo el PDF y se compara con lo grabado; nada se guarda.
-            Ficha = new FichaCompraVM(factura, _proveedores, _cuentasGasto, _centros, _datos, soloLectura: true);
+            Ficha = new FichaCompraVM(factura, _proveedores, _cuentasGasto, _centros, _datos, soloLectura: true, tiposIva: _tiposIva, formasPago: _formasPago);
             if (fila.PdfExiste) await ProbarAsync(factura, carga);
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
@@ -480,6 +492,13 @@ public sealed class FacturasRecibidasVM : ModeloVista, IPestanaTrabajo
     /// <summary>Una contabilizada no se modifica desde aquí (hasta la entrega 3), pero «Guardar» sí enseña la plantilla con sus valores.</summary>
     private bool PuedeEnsenar => !Prueba && _puedeEditar && _ficha is { Factura.Contabilizada: true } && _activa is { PdfExiste: true };
 
+    /// <summary>Tras un clic en un valor resaltado del visor.</summary>
+    internal void AvisarElegido(string campo)
+    {
+        var nombre = campo switch { "nif" => "el NIF", "numero" => "el número", "fecha" => "la fecha", "total" => "el total", _ => campo };
+        _modulo.Avisar($"Al guardar, la plantilla aprenderá {nombre} de ese sitio del PDF.");
+    }
+
     private async Task GuardarOEnsenarAsync()
     {
         if (_ficha is { Editable: true })
@@ -491,7 +510,7 @@ public sealed class FacturasRecibidasVM : ModeloVista, IPestanaTrabajo
         TextoOcupado = "Aprendiendo de la factura…";
         try
         {
-            await _s.Facturas.EnsenarAsync(_ficha!.Factura);
+            await _s.Facturas.EnsenarAsync(_ficha!.Factura, _ficha.Elegidos);
             _modulo.Avisar("He aprendido dónde están los campos de esta factura. Sus datos no cambian porque está contabilizada.");
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
@@ -555,7 +574,7 @@ public sealed class FacturasRecibidasVM : ModeloVista, IPestanaTrabajo
         Resultado r;
         try
         {
-            r = await _s.Facturas.GuardarAsync(f);
+            r = await _s.Facturas.GuardarAsync(f, ficha.Elegidos);
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
@@ -569,6 +588,9 @@ public sealed class FacturasRecibidasVM : ModeloVista, IPestanaTrabajo
         }
         ErrorFicha = null;
         ficha.Guardada(f);
+        // La forma de pago guardada pasa a ser la del proveedor: se propone ya en sus otras facturas.
+        if (f.IdProveedor is int prov && f.IdFormaPago is byte fp)
+            _proveedores = _proveedores.Select(p => p.IdProveedor == prov ? p with { IdFormaPagoDefecto = fp } : p).ToList();
         ActualizarFila(f);
         _modulo.FacturaCambiada(this);
         Avisar(nameof(TieneCambios), nameof(GuardadoFallido));
@@ -688,7 +710,7 @@ public sealed class FacturasRecibidasVM : ModeloVista, IPestanaTrabajo
         {
             var (reconocida, leida) = await _s.Facturas.ProbarAsync(_s.Trabajo, grabada.RutaPdf);
             if (carga != _cargaFicha) return;
-            Ficha = new FichaCompraVM(leida, _proveedores, _cuentasGasto, _centros, _datos, soloLectura: true, ConfianzaCampos.DesdeLog(reconocida.Log));
+            Ficha = new FichaCompraVM(leida, _proveedores, _cuentasGasto, _centros, _datos, soloLectura: true, ConfianzaCampos.DesdeLog(reconocida.Log), _tiposIva, _formasPago);
             Comparacion = ServicioFacturasCompra.Comparar(grabada, leida);
         }
         catch (Exception ex) when (ex is not OperationCanceledException)

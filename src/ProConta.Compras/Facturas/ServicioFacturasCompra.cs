@@ -131,7 +131,20 @@ public sealed class ServicioFacturasCompra(
     {
         var (contexto, proveedor) = await CargarContextoAsync(ctx, rutaPdf, cancelacion);
         var reconocida = await reconocimiento.ReconocerAsync(rutaPdf, contexto, cancelacion);
-        return (reconocida, FacturaCompra.DesdeReconocimiento(reconocida, ctx, proveedor));
+        var factura = FacturaCompra.DesdeReconocimiento(reconocida, ctx, proveedor);
+        // Sin proveedor por la carpeta, el del NIF leído si solo hay uno en la empresa (como hace la ficha al guardar).
+        if (factura.IdProveedor is null && factura.NifProveedor is { Length: > 0 } nif)
+        {
+            var conNif = (await ProveedoresAsync(ctx, cancelacion)).Where(p => MismoNif(p.Nif, nif)).Select(p => p.IdProveedor).Distinct().ToList();
+            if (conNif.Count == 1) factura.IdProveedor = conNif[0];
+        }
+        return (reconocida, factura);
+    }
+
+    private static bool MismoNif(string a, string b)
+    {
+        static string Compacto(string t) => new(t.Where(char.IsAsciiLetterOrDigit).Select(char.ToUpperInvariant).ToArray());
+        return Compacto(a) == Compacto(b);
     }
 
     /// <summary>Reconoce un PDF y lo registra con sus desgloses en una sola transacción. Un PDF ya registrado no crea otra factura.</summary>
@@ -246,7 +259,8 @@ public sealed class ServicioFacturasCompra(
     /// Guarda lo que el operador ha revisado o corregido en una factura sin contabilizar. Con proveedor, número, fecha e
     /// importes que cuadran, deja de pedir revisión. Si otro operador la cambió mientras tanto, no se pisa.
     /// </summary>
-    public async Task<Resultado> GuardarAsync(FacturaCompra factura, CancellationToken cancelacion = default)
+    /// <remarks><paramref name="elegidos"/>: dónde eligió el operador cada campo en el visor, para que la plantilla aprenda de ahí.</remarks>
+    public async Task<Resultado> GuardarAsync(FacturaCompra factura, IReadOnlyDictionary<string, PuntoDocumento>? elegidos = null, CancellationToken cancelacion = default)
     {
         ArgumentNullException.ThrowIfNull(factura);
         if (factura.IdRegistro <= 0) throw new ArgumentException("Solo se guardan facturas ya registradas.", nameof(factura));
@@ -256,7 +270,7 @@ public sealed class ServicioFacturasCompra(
         var r = await bd.EnTransaccionAsync(s => RepositorioFacturasCompra.ActualizarAsync(s, factura), cancelacion);
         if (!r.EsCorrecto) return Resultado.Fallo(r.Errores);
         factura.Version = r.Valor;
-        await AprenderAsync(factura, cancelacion);
+        await AprenderAsync(factura, elegidos, cancelacion);
         return Resultado.Correcto();
     }
 
@@ -264,10 +278,10 @@ public sealed class ServicioFacturasCompra(
     /// Enseña las plantillas con los valores de una factura sin cambiar sus datos: para las contabilizadas, que no se
     /// modifican desde aquí hasta la entrega 3 (compras/pantallas 2026-11-05 20:29).
     /// </summary>
-    public Task EnsenarAsync(FacturaCompra factura, CancellationToken cancelacion = default)
+    public Task EnsenarAsync(FacturaCompra factura, IReadOnlyDictionary<string, PuntoDocumento>? elegidos = null, CancellationToken cancelacion = default)
     {
         ArgumentNullException.ThrowIfNull(factura);
-        return AprenderAsync(factura, cancelacion);
+        return AprenderAsync(factura, elegidos, cancelacion);
     }
 
     /// <summary>
@@ -334,6 +348,7 @@ public sealed class ServicioFacturasCompra(
         leida.CuentaGasto = factura.CuentaGasto;
         leida.IdCentroCoste = factura.IdCentroCoste;
         leida.CuentaFormaPago = factura.CuentaFormaPago;
+        leida.IdFormaPago = factura.IdFormaPago;
         leida.Notas = factura.Notas;
         leida.Operacion = factura.Operacion;
         leida.Producto = factura.Producto;
@@ -365,7 +380,7 @@ public sealed class ServicioFacturasCompra(
     /// buenos. Cada plantilla del proveedor que en este PDF lee el valor bueno suma un acierto; la que lee otro se descarta;
     /// si ninguna lo lee, se aprende una nueva. Un fallo al leer el PDF no impide guardar: simplemente no se aprende.
     /// </summary>
-    internal async Task AprenderAsync(FacturaCompra factura, CancellationToken cancelacion)
+    internal async Task AprenderAsync(FacturaCompra factura, IReadOnlyDictionary<string, PuntoDocumento>? elegidos, CancellationToken cancelacion)
     {
         var carpeta = FacturaCompra.CarpetaDe(factura.RutaPdf);
         if (carpeta.Length == 0 || !File.Exists(factura.RutaPdf)) return;
@@ -381,15 +396,19 @@ public sealed class ServicioFacturasCompra(
             foreach (var (campo, valor) in valores)
             {
                 var delCampo = existentes.Where(p => p.Campo == campo).ToList();
+                // Si el operador eligió en el visor dónde está el valor, manda ese sitio: las plantillas que leen de otro se quitan
+                // aunque hoy acierten (por ejemplo, una fecha de vencimiento que coincide con la de la factura).
+                var elegida = elegidos?.GetValueOrDefault(campo) is { } punto ? PlantillasReconocimiento.Aprender(documento, campo, valor, punto, soloAhi: true) : null;
                 var acertada = false;
                 foreach (var p in delCampo)
                 {
                     var leido = PlantillasReconocimiento.Leer(documento, p);
                     if (leido is null) continue;
-                    if (PlantillasReconocimiento.Coincide(campo, leido, valor)) { await RepositorioPlantillasCompra.AcertarAsync(s, p.IdPlantilla, ahora); acertada = true; }
+                    var vale = PlantillasReconocimiento.Coincide(campo, leido, valor) && (elegida is null || PlantillasReconocimiento.MismoSitio(p, elegida));
+                    if (vale) { await RepositorioPlantillasCompra.AcertarAsync(s, p.IdPlantilla, ahora); acertada = true; }
                     else await RepositorioPlantillasCompra.BorrarAsync(s, p.IdPlantilla);
                 }
-                if (acertada || PlantillasReconocimiento.Aprender(documento, campo, valor) is not { } nueva) continue;
+                if (acertada || (elegida ?? PlantillasReconocimiento.Aprender(documento, campo, valor)) is not { } nueva) continue;
                 await RepositorioPlantillasCompra.InsertarAsync(s, factura.Ejercicio.IdSociedad, carpeta, nueva, ahora);
                 var sobrantes = (await RepositorioPlantillasCompra.ListarAsync(s, factura.Ejercicio.IdSociedad, carpeta))
                     .Where(p => p.Campo == campo).Skip(MaxPlantillasPorCampo).ToList();

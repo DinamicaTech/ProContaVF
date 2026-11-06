@@ -7,6 +7,7 @@ threads:
   - 2026-10-31 16:58 · Cerrar preguntas pendientes del proyecto | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5G7UyrP5eDJV4Ds6CCBozdbu
   - 2026-10-31 19:05 · Desarrollos base | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GPQZwFm28U4vq3sQdopN45C
   - 2026-11-01 10:46 · Desarrollar la pantalla de Terceros | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GVR2rh2hJF6h9BMYjKSu8jn
+  - 2026-11-05 11:24 · Construir facturas de compra | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GEbtcX2Z7baM2yhwHY2wJXj
 ---
 ## Summary
 Roles opcionales de una identidad (Cliente, Proveedor, Contacto) con IDs funcionales propios y cuentas contables por rol y sociedad, apuntando a la identidad contable. Código: `ServicioRoles` (src/ProConta.Terceros/Roles): consultar los roles, darlos de alta o desactivarlos de forma idempotente dentro del guardado de la ficha y leer o asignar la cuenta del cliente y las de proveedor y acreedor por sociedad, resueltas en el ejercicio de trabajo.
@@ -27,6 +28,7 @@ Roles opcionales de una identidad (Cliente, Proveedor, Contacto) con IDs funcion
 - 2026-11-01 10:46 · Desactivar un rol conserva su fila y su Id. En la pestaña Roles, el cliente tiene su cuenta, el proveedor la de proveedor y la de acreedor (cada una en su fila con su descripción), el contacto cargo, departamento y notas, y el cliente y el proveedor sus notas.
 - 2026-11-01 15:48 · Validado por el propietario (pantalla de Terceros y revisión 1).
 - 2026-11-01 18:15 · Cuenta de retención del cliente por sociedad (migración `20261101_1632_CUENTA_RETENCION_CLIENTE`): CuentasClientesSociedad tiene una clase, CLIENTE o RETENCION, como las cuentas del proveedor; las filas existentes son CLIENTE y el índice único pasa a ser por cliente, sociedad y clase. Se edita en la pestaña Roles junto a la cuenta del cliente y la usa la contabilización de ventas; la factura ofrece asignarla o crearla («Retención IRPF <cliente>», 473) cuando falta.
+- 2026-11-06 12:35 · CuentasProveedoresSociedad.IdFormaPagoDefecto (versión 21): forma de pago por defecto del proveedor en la empresa. La fija compras al guardar una factura recibida con forma de pago (en todas las cuentas del proveedor en la empresa) y se propone en sus facturas nuevas.
 
 ## Requirements
 - 2026-10-28 12:28 · From sources/01_ESPECIFICACION_FUNCIONAL.docx § 7 RF-TER-03, 04: roles idempotentes y cuentas por rol y sociedad/ejercicio
@@ -48,6 +50,7 @@ Roles opcionales de una identidad (Cliente, Proveedor, Contacto) con IDs funcion
 - 2026-11-01 17:18 · 4. La cuenta de retención sería diferente para cada cliente.
 - 2026-11-01 17:20 · Derived from facturacion/factura-venta/contabilizacion: cuenta de retención del rol Cliente por sociedad (identidad contable), editable en la pestaña Roles.
 - 2026-11-05 11:24 · Derived from compras: el rol Proveedor guarda la carpeta de sus PDF y sus valores por defecto (tipo de operación, tipo de producto, retención, país, forma de pago, cuenta de gasto y moneda), que la factura de compra propone y actualiza en su ficha según las decisiones 2026-10-29 18:14 y 2026-10-31 07:46.
+- 2026-11-06 12:35 · Derived from compras: forma de pago por defecto del proveedor, que pasa a ser la última asignada en una factura suya.
 
 ## Hand-over
 - 2026-10-31 19:05 · Hecho: roles y cuentas por ejercicio, con pruebas (rol idempotente sin duplicar identidad, cuentas distintas por ejercicio, cuenta de otro ejercicio rechazada). Pendiente, porque necesita columnas nuevas y lo pedirá compras: distinguir cuenta de proveedor y de acreedor (decisión 2026-10-31 16:54), valores por defecto del proveedor (tipo de operación, producto, retención, país, forma de pago, cuenta de gasto, moneda) y su actualización desde la factura (decisiones 2026-10-29 18:14 y 2026-10-31 07:46), y la carpeta de PDF del proveedor.

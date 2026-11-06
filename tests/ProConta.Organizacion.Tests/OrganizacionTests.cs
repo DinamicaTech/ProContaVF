@@ -117,6 +117,42 @@ public sealed class OrganizacionAccessTests : IDisposable
     }
 
     [Fact]
+    public async Task LaSubcuentaDeUnaFormaDePagoSeGuardaPorIdentidadYSeMuestraConElCodigoDelEjercicio()
+    {
+        var bd = _copia.Bd();
+        await DatosSinteticos.SociedadAsync(bd, "T01", "Sociedad sintética");
+        await DatosSinteticos.EjercicioAsync(bd, 9001, "T01", 2025);
+        await DatosSinteticos.EjercicioAsync(bd, 9002, "T01", 2026);
+        var identidad = await bd.EjecutarAsync(async s =>
+        {
+            await s.EjecutarAsync("INSERT INTO IdentidadesContables (IdSociedad, Naturaleza, FechaAlta) VALUES (?, ?, ?)", "T01", (byte)0, DateTime.Today);
+            var id = await s.UltimoIdAsync();
+            await s.EjecutarAsync("INSERT INTO CuentasContables (IdIdentidadContable, IdSociedadEjercicio, Codigo, Nombre, EstaActiva, EstaBloqueada, EsImputable, SaldoInicial, SaldoActual, NumeroApuntes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                id, 9002, "5720001", "Banco sintético", true, false, true, 0m, 0m, 0);
+            await s.EjecutarAsync("INSERT INTO CuentasContables (IdIdentidadContable, IdSociedadEjercicio, Codigo, Nombre, EstaActiva, EstaBloqueada, EsImputable, SaldoInicial, SaldoActual, NumeroApuntes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                id, 9001, "5720009", "Banco sintético antes", true, false, true, 0m, 0m, 0);
+            return id;
+        });
+        var catalogo = new CatalogoFormasPagoSociedad(bd);
+        var t2026 = new Nucleo.Contexto.ContextoSociedadEjercicio("T01", 9002, 2026);
+        var t2025 = new Nucleo.Contexto.ContextoSociedadEjercicio("T01", 9001, 2025);
+
+        var todas = await catalogo.ListarAsync(t2026);
+        Assert.Equal(BdPruebas.FormasPagoSinteticas.Count + 1, todas.Count);
+        Assert.All(todas, f => Assert.Null(f.Cuenta));
+
+        Assert.Equal("FormasPago.CuentaNoExiste", (await catalogo.AsignarAsync(1, "5729999", t2026)).Error!.Codigo);
+        Assert.True((await catalogo.AsignarAsync(1, "5720001", t2026)).EsCorrecto);
+        var una = (await catalogo.ListarAsync(t2026)).Single(f => f.IdFormaPago == 1);
+        Assert.Equal((identidad, "5720001", "Banco sintético", true), (una.IdIdentidadContable!.Value, una.Cuenta!, una.NombreCuenta!, una.CuentaEnEjercicio));
+        // En otro ejercicio la misma identidad tiene otro código.
+        Assert.Equal("5720009", (await catalogo.ListarAsync(t2025)).Single(f => f.IdFormaPago == 1).Cuenta);
+
+        Assert.True((await catalogo.AsignarAsync(1, "", t2026)).EsCorrecto);
+        Assert.Null((await catalogo.ListarAsync(t2026)).Single(f => f.IdFormaPago == 1).Cuenta);
+    }
+
+    [Fact]
     public async Task GeografiaSeCargaDeLosDomiciliosDeLaBd()
     {
         var bd = _copia.Bd();
