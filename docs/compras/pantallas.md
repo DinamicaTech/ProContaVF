@@ -36,6 +36,7 @@ Revisión de la factura reconocida con confianza, candidatos y motivos visibles,
 - 2026-11-06 12:55 · Al importar un PDF cuya carpeta no da proveedor, se asigna el proveedor del NIF leído si en la empresa solo hay uno con ese NIF, como ya hacía la ficha al guardar; así la factura nueva trae su forma de pago por defecto. La forma de pago guardada se propone enseguida en las otras facturas del proveedor y F5 vuelve a leer los proveedores.
 - 2026-11-06 13:05 · La forma de pago del proveedor también se propone al abrir una factura editable sin forma de pago y al volver a reconocerla; se guarda con lo demás (también con «Dar por revisada»).
 - 2026-11-06 13:16 · Alta de proveedor desde la factura (bloque 3): la razón social se obtiene primero de la AEAT (VNifV2, con el certificado de la empresa) y de lo leído en el PDF; solo si no se consigue por esas vías, un botón «Buscar en eInforma» abre el navegador con la búsqueda «<NIF> site:einforma.com» para que el operador la copie. El programa no lanza ni lee búsquedas de Google por sí mismo (condiciones de uso y fragilidad).
+- 2026-11-06 13:42 · Ficha: el producto es «Bienes» si la factura no lo tiene (o el del proveedor), y el que se guarda pasa a ser el del proveedor, como la forma de pago; con la pantalla abierta, cambiar a un proveedor con producto propio lo propone si el operador no lo ha cambiado. La retención es un desplegable con «Sin retención» y los tipos vigentes del catálogo TiposRetencion («15 % · Tipo general»…), que rellena el porcentaje y la clase (el 19 % de alquileres es Arrendamientos, modelo 115); un porcentaje que no está en el catálogo se muestra igualmente. Las flechas recorren la lista filtrada de Centro de coste y Forma de pago.
 
 ## Requirements
 - 2026-10-28 12:28 · From sources/01_ESPECIFICACION_FUNCIONAL.docx § 14 RF-COM-06, 07: pantalla de pruebas y revisión final
@@ -99,4 +100,7 @@ Revisión de la factura reconocida con confianza, candidatos y motivos visibles,
 - 2026-11-06 13:14 · Q2. Ok a lo del botón de einforma en el caso de no haber conseguido la razón social por otra vía.
 - 2026-11-06 13:30 · En el desplegable Centro de coste, si escribo un texto de búsqueda, ya no funcionan las flechas del cursor para seleccionar un elemento de la lista
 - 2026-11-06 13:30 · Producto: Por defecto, bienes
+- 2026-11-06 13:36 · 1. Ok
+- 2026-11-06 13:36 · 2. Ok, el proveedor tendrá un TipoProducto por defecto. En la migración de datos, se podrá asignar este valor en función de la última factura de cada proveedor.
+- 2026-11-06 13:36 · 3. Ok. No me suena que en el ERP haya una tabla de tipos de retención, por lo que podemos hacerlo desde cero.
 - 2026-11-06 13:30 · La retención que sea un desplegable con los tipos de retención vigentes (nueva tabla TiposRetencion?) con su descripción: 15% (Tipo general); 7% (Tipo reducido por inicio de actividad); 2% (Actividades agrícolas, ganaderas y forestales); 1% (Actividades de engorde de porcino, avicultura o módulos); 19% (Alquiler de locales comerciales)

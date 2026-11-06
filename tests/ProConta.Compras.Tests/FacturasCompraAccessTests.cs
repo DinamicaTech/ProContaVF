@@ -108,6 +108,7 @@ public sealed class FacturasCompraAccessTests : IDisposable
         Assert.True(esquema.ExisteTabla("ConfiguracionReconocimientoFacturasCompra"));
         Assert.True(esquema.ExisteTabla("FormasPagoSociedad"));
         Assert.True(esquema.ExisteColumna("CuentasProveedoresSociedad", "IdFormaPagoDefecto"));
+        Assert.True(esquema.ExisteColumna("CuentasProveedoresSociedad", "TipoProductoDefecto"));
     }
 
     [Fact]
@@ -326,6 +327,24 @@ public sealed class FacturasCompraAccessTests : IDisposable
         var siguiente = await servicio.ImportarAsync(_ctx, Pdf("Ficticio", "fp2.pdf", "forma dos"));
         Assert.True(siguiente.Registrada, siguiente.Error?.ToString());
         Assert.Equal((byte)200, (await servicio.CargarAsync(siguiente.Factura!.IdRegistro))!.IdFormaPago);
+    }
+
+    [Fact]
+    public async Task El_producto_es_bienes_por_defecto_y_el_guardado_pasa_a_ser_el_del_proveedor()
+    {
+        await EmpresaConProveedorAsync();
+        var servicio = Servicio();
+        var r = await servicio.ImportarAsync(_ctx, Pdf("Ficticio", "pr1.pdf", "producto uno"));
+        Assert.True(r.Registrada, r.Error?.ToString());
+        var f = (await servicio.CargarAsync(r.Factura!.IdRegistro))!;
+        Assert.Equal(ProductoCompra.Bienes, f.Producto);
+
+        f.Producto = ProductoCompra.Servicios;
+        Assert.True((await servicio.GuardarAsync(f)).EsCorrecto);
+        var siguiente = await servicio.ImportarAsync(_ctx, Pdf("Ficticio", "pr2.pdf", "producto dos"));
+        Assert.True(siguiente.Registrada, siguiente.Error?.ToString());
+        Assert.Equal(ProductoCompra.Servicios, (await servicio.CargarAsync(siguiente.Factura!.IdRegistro))!.Producto);
+        Assert.Equal(ProductoCompra.Servicios, (await servicio.ProveedoresAsync(_ctx)).Single().ProductoDefecto);
     }
 
     [Fact]

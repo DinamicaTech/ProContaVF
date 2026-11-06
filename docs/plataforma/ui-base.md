@@ -5,6 +5,7 @@ threads:
   - 2026-10-28 12:30 · Carga de requisitos | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GRNMH95h9tnQp4dmEPHmw1w
   - 2026-10-29 10:15 · Validar prototipos de pantallas principales | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GGPu88XoVeXWyHsuxbrF2kK
   - 2026-11-01 10:46 · Desarrollar la pantalla de Terceros | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GVR2rh2hJF6h9BMYjKSu8jn
+  - 2026-11-05 11:24 · Construir facturas de compra | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GEbtcX2Z7baM2yhwHY2wJXj
 ---
 ## Summary
 Estilos, recursos y componentes WPF compartidos: tipografía, colores, separaciones, pestañas, listas, estados, botones, foco, validaciones y ayudas. Fija el ancho de campo según contenido y las pautas de accesibilidad. La voz de los mensajes al operador está en su hijo plataforma/ui-base/mensajes.
@@ -38,6 +39,9 @@ Dirigió la validación de los prototipos HTML de las pantallas principales (con
 - 2026-11-01 15:48 · Validado por el propietario (pantalla de Terceros y revisión 1).
 - 2026-11-01 18:15 · Piezas comunes nuevas: `ModeloVista` (aviso de cambios de propiedad para los modelos de vista) y `PlantillaCodigo` (plantillas de datos construidas en código, para las vistas que se generan desde un contrato, como Parámetros y tablas).
 - 2026-11-04 14:15 · Los campos numéricos que no son importes en euros (cantidades, porcentajes, días y precios con más de dos decimales) usan el estilo `Campo.Numero`: alineados a la derecha, seleccionan todo al entrar y no se formatean en moneda; `Campo.Importe` queda para importes en euros. La plantilla común del desplegable respeta `DisplayMemberPath` (antes mostraba el texto interno del registro).
+- 2026-11-06 13:42 · ComboFiltro: el texto del elemento elegido ya no quita el filtro mientras la lista está abierta, para que ↑ ↓ recorran los elementos filtrados (al moverse el combo pone el texto del resaltado); el filtro se quita al cerrar la lista o salir del campo (compras/pantallas 2026-11-06 13:30).
+- 2026-11-06 14:05 · [replaced by 2026-11-06 14:17] ComboFiltro: con la lista abierta, ↑ ↓ los gestiona el propio comportamiento y eligen el siguiente o el anterior de los elementos filtrados (el combo editable, por sí solo, partía del elemento elegido aunque el filtro lo ocultara y no avanzaba). En el mantenimiento genérico, los campos Entero, Decimal y Porcentaje usan el estilo Campo.Numero: Campo.Importe los formateaba en euros («19,00 €»).
+- 2026-11-06 14:17 · ComboFiltro: desde el texto, con la lista abierta, ↓ pasa el foco al primer elemento filtrado y ↑ al último; desde ahí el propio combo mueve el resaltado sin cambiar la elección, Enter elige, y Esc, Tab o un clic fuera salen dejando lo que había. El manejador de teclas se registra también para eventos ya tratados, porque el combo editable trata estas teclas antes que los manejadores de instancia. Sin prueba automática: exige ventana real y hilo STA, y se comprueba en la app. En el mantenimiento genérico, los campos Entero, Decimal y Porcentaje usan el estilo Campo.Numero: Campo.Importe los formateaba en euros («19,00 €»).
 
 ## Requirements
 - 2026-10-28 12:28 · From sources/01_ESPECIFICACION_FUNCIONAL.docx § 6 RF-UI-02, 03, 06: look and feel de las maquetas con estilos compartidos, campos del ancho de su contenido, accesibilidad y mensajes

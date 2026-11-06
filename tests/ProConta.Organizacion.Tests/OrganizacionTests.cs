@@ -153,6 +153,25 @@ public sealed class OrganizacionAccessTests : IDisposable
     }
 
     [Fact]
+    public async Task LosTiposDeRetencionVigentesVienenDeLaMigracionYRespetanLaVigencia()
+    {
+        var bd = _copia.Bd();
+        var catalogo = new CatalogoTiposRetencion(bd);
+        var hoy = await catalogo.VigentesAsync(new DateTime(2026, 11, 6));
+        Assert.Equal([19m, 15m, 7m, 2m, 1m], hoy.Select(t => t.Porcentaje));
+        Assert.Equal((byte)2, hoy[0].Clase);
+        Assert.All(hoy.Skip(1), t => Assert.Equal((byte)1, t.Clase));
+
+        await bd.EjecutarAsync(s => s.EjecutarAsync("UPDATE TiposRetencion SET VigenteHasta = ? WHERE Porcentaje = 7", new DateTime(2026, 12, 31)));
+        await bd.EjecutarAsync(s => s.EjecutarAsync("INSERT INTO TiposRetencion (Porcentaje, Descripcion, Clase, VigenteDesde, Activo) VALUES (?, ?, ?, ?, ?)",
+            8m, "Inicio de actividad (nuevo)", (byte)1, new DateTime(2027, 1, 1), true));
+        Assert.DoesNotContain(8m, (await catalogo.VigentesAsync(new DateTime(2026, 12, 31))).Select(t => t.Porcentaje));
+        var en2027 = (await catalogo.VigentesAsync(new DateTime(2027, 1, 1))).Select(t => t.Porcentaje).ToList();
+        Assert.Contains(8m, en2027);
+        Assert.DoesNotContain(7m, en2027);
+    }
+
+    [Fact]
     public async Task GeografiaSeCargaDeLosDomiciliosDeLaBd()
     {
         var bd = _copia.Bd();

@@ -13,7 +13,7 @@ namespace ProConta.Organizacion.Mantenimiento;
 public static class ProveedoresOrganizacion
 {
     public static IEnumerable<IProveedorMantenimiento> Todos(IBaseDatos bd) =>
-        [Empresas(bd), Ejercicios(bd), new ProveedorFormasPago(bd, new CatalogoFormasPagoAccess(bd)), new ProveedorFormasPagoSociedad(new CatalogoFormasPagoSociedad(bd))];
+        [Empresas(bd), Ejercicios(bd), new ProveedorFormasPago(bd, new CatalogoFormasPagoAccess(bd)), new ProveedorFormasPagoSociedad(new CatalogoFormasPagoSociedad(bd)), TiposRetencion(bd)];
 
     internal static IReadOnlyList<GrupoCampos> GruposEmpresa =>
         [new("ident", "Identificación"), new("pred", "Valores predeterminados"), new("impuestos", "Impuestos y retenciones"), new("cuentas", "Cuentas"), new("rutas", "Rutas y bases de datos")];
@@ -87,6 +87,26 @@ public static class ProveedoresOrganizacion
         Titular = r => r.EsNuevo ? "Nueva empresa" : r.Texto("Nombre") ?? "Empresa sin nombre",
         Subtitular = r => r.Texto("IdSociedad") is string c ? $"Código {c}" : null,
         Reglas = r => r.Texto("IdSociedad") is string c && c.Length != 3 ? [new ErrorCampo("IdSociedad", "El código de la empresa tiene tres caracteres.")] : [],
+    };
+
+    /// <summary>Tipos de retención que se ofrecen en las facturas recibidas (organizacion/sociedades-ejercicios 2026-11-06).</summary>
+    public static ProveedorTablaAccess TiposRetencion(IBaseDatos bd) => new(bd, "tiposretencion", "Tipos de retención", "Catálogos",
+        "Porcentajes de retención de IRPF que se ofrecen en las facturas recibidas, con su clase y vigencia.", AmbitoMantenimiento.Compartido, "tipo de retención",
+        "TiposRetencion", "IdTipoRetencion", ClaveNueva.Autonumerica,
+        [
+            new("Porcentaje", "Porcentaje", TipoCampo.Porcentaje) { Obligatorio = true, Ancho = "xs", Ayuda = "Por ejemplo 15 para el 15 %." },
+            new("Descripcion", "Descripción") { Obligatorio = true, Longitud = 100, Ancho = "l", Ayuda = "Sale junto al porcentaje en el desplegable de la factura." },
+            new("Clase", "Clase", TipoCampo.Lista) { Obligatorio = true, Ancho = "m",
+                Opciones = [new OpcionCampo((byte)1, "Actividades y profesionales (modelo 111)"), new OpcionCampo((byte)2, "Arrendamientos (modelo 115)")] },
+            new("VigenteDesde", "Vigente desde", TipoCampo.Fecha) { Ancho = "s", Ayuda = "Vacía: sin límite. Los tipos cambian por ley; da de alta el nuevo con su fecha en vez de cambiar el antiguo." },
+            new("VigenteHasta", "Vigente hasta", TipoCampo.Fecha) { Ancho = "s", Ayuda = "Vacía: sin límite." },
+            new("Activo", "Activo", TipoCampo.Logico) { Ayuda = "Solo los activos y vigentes se ofrecen en las facturas." },
+        ],
+        [new("Porcentaje", "%", 60, Derecha: true), new("Descripcion", "Descripción"), new("VigenteDesde", "Desde", 90), new("VigenteHasta", "Hasta", 90), new("Activo", "Activo", 60)])
+    {
+        Orden = "Porcentaje DESC",
+        Alias = ["retencion", "irpf", "111", "115", "alquiler"],
+        Titular = r => r.EsNuevo ? "Nuevo tipo de retención" : $"{r.Decimal("Porcentaje"):0.##} % · {r.Texto("Descripcion")}",
     };
 
     public static ProveedorTablaAccess Ejercicios(IBaseDatos bd) => new(bd, "ejercicios", "Ejercicios", "Empresas y ejercicios",

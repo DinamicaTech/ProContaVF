@@ -206,7 +206,7 @@
             </StackPanel>
           </Border>
 
-          <ContentControl Content="{Binding Ficha}" Focusable="False">
+          <ContentControl Content="{Binding Ficha}" Focusable="False" Visibility="{Binding HayFicha, Converter={StaticResource Visible}}">
             <ContentControl.ContentTemplate>
               <DataTemplate>
                 <StackPanel>
@@ -343,13 +343,11 @@
 
                           <CheckBox Content="Inversión del sujeto pasivo" IsChecked="{Binding Isp}" IsEnabled="{Binding PuedeMarcarIsp}" Margin="0,0,0,8"
                                     ToolTip="{Binding AyudaIsp}" ToolTipService.ShowOnDisabled="True" />
-                          <Grid Margin="0,0,0,8">
-                            <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="70" /><ColumnDefinition Width="8" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
-                            <CheckBox Content="Retención" IsChecked="{Binding ConRetencion}" IsEnabled="{Binding Editable}" VerticalAlignment="Center" Margin="0,0,8,0" ToolTip="Retención de IRPF sobre la base" />
-                            <TextBox Grid.Column="1" Text="{Binding PorcentajeRetencion, UpdateSourceTrigger=LostFocus}" Style="{StaticResource Campo.Numero}" IsReadOnly="{Binding SoloLectura}"
-                                     IsEnabled="{Binding ConRetencion}" ToolTip="Porcentaje de retención" />
-                            <ComboBox Grid.Column="3" ItemsSource="{Binding ClasesRetencion}" SelectedItem="{Binding ClaseRetencion}" IsEnabled="{Binding ConRetencion}" ToolTip="Clase de la retención" />
-                          </Grid>
+                          <DockPanel Margin="0,0,0,8">
+                            <TextBlock Text="Retención" Style="{StaticResource Etiqueta.Campo}" Width="110" VerticalAlignment="Center" />
+                            <ComboBox ItemsSource="{Binding TiposRetencion}" SelectedItem="{Binding TipoRetencion}" IsEnabled="{Binding Editable}"
+                                      ToolTip="Retención de IRPF sobre la base: elige el tipo (Mantenimiento › Tipos de retención); el 19 % de alquileres va al modelo 115 y los demás al 111" />
+                          </DockPanel>
                           <DockPanel Margin="0,0,0,8">
                             <TextBlock Text="Suplido" Style="{StaticResource Etiqueta.Campo}" Width="110" />
                             <TextBox Text="{Binding Suplido, UpdateSourceTrigger=LostFocus}" Style="{StaticResource Campo.Importe}" IsReadOnly="{Binding SoloLectura}"

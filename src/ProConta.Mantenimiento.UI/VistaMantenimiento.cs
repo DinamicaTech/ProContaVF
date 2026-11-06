@@ -352,7 +352,9 @@ public sealed class VistaMantenimiento : UserControl
                 {
                     TipoCampo.TextoLargo => "Campo.Multilinea",
                     TipoCampo.Codigo or TipoCampo.Cuenta => "Campo.Mono",
-                    TipoCampo.Importe or TipoCampo.Entero or TipoCampo.Decimal or TipoCampo.Porcentaje => "Campo.Importe",
+                    TipoCampo.Importe => "Campo.Importe",
+                    // Campo.Importe formatea en euros: los demás números van a la derecha sin moneda.
+                    TipoCampo.Entero or TipoCampo.Decimal or TipoCampo.Porcentaje => "Campo.Numero",
                     _ => "Campo"
                 };
                 var tb = new TextBox { Style = (Style)FindResource(estilo), IsReadOnly = c.SoloLectura };

@@ -5,6 +5,7 @@ depends_on: [terceros/tercero, facturacion/factura-venta, contabilidad/asientos]
 threads:
   - 2026-10-28 12:30 · Carga de requisitos | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GRNMH95h9tnQp4dmEPHmw1w
   - 2026-10-31 16:58 · Cerrar preguntas pendientes del proyecto | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5G7UyrP5eDJV4Ds6CCBozdbu
+  - 2026-11-05 11:24 · Construir facturas de compra | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GEbtcX2Z7baM2yhwHY2wJXj
 ---
 ## Summary
 Migración única desde ProcontaEstructura.accdb (antes deporwin.mdb) para sustituir la instalación actual, con inventario completo, mapas de identidades y conciliación; nada se reenvía a la AEAT ni se activa al cargar.
@@ -21,3 +22,5 @@ Migración única desde ProcontaEstructura.accdb (antes deporwin.mdb) para susti
 - 2026-10-28 12:28 · [answered 2026-10-31 16:54] question: P-13 ¿cobertura temporal? (a) todos los ejercicios con facturas emitidas ✅ (b) solo el ejercicio en curso
 - 2026-10-31 16:54 · 19. a. Aunque el ERP no tiene ejercicios (a diferencia de ContaSol), es un modelo continuo.
 - 2026-10-31 16:54 · answer: P-13 cobertura temporal → (a) todos los ejercicios con facturas emitidas; el ERP no tiene ejercicios (a diferencia de ContaSol), es un modelo continuo
+- 2026-11-06 13:36 · 2. Ok, el proveedor tendrá un TipoProducto por defecto. En la migración de datos, se podrá asignar este valor en función de la última factura de cada proveedor.
+- 2026-11-06 13:42 · Derived from compras: rellenar CuentasProveedoresSociedad.TipoProductoDefecto con el TipoProducto de la última factura de compra de cada proveedor.

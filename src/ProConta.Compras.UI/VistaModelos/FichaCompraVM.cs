@@ -119,6 +119,9 @@ public sealed class FichaCompraVM : ModeloVista
     private OpcionFicha<OperacionCompra> _operacion;
     private OpcionFicha<ProductoCompra?> _producto;
     private OpcionFicha<ClaseRetencion?> _claseRetencion;
+    private readonly IReadOnlyList<TipoRetencionCompra> _tiposRetencionCatalogo;
+    private IReadOnlyList<OpcionFicha<TipoRetencionCompra?>> _tiposRetencion;
+    private OpcionFicha<TipoRetencionCompra?> _tipoRetencion;
     private OpcionFicha<string> _cuentaGasto;
     private OpcionFicha<int?> _centroCoste;
     private OpcionFicha<int?> _rectifica;
@@ -127,7 +130,8 @@ public sealed class FichaCompraVM : ModeloVista
 
     internal FichaCompraVM(FacturaCompra factura, IReadOnlyList<ProveedorFicha> proveedores, IReadOnlyList<OpcionFicha<string>> cuentasGasto,
         IReadOnlyList<CentroCoste> centros, IReadOnlyList<FilaFacturaCompra> otras, bool soloLectura, ConfianzaCampos? confianza = null,
-        IReadOnlyList<decimal>? tiposIva = null, IReadOnlyList<(byte Id, string Descripcion)>? formasPago = null)
+        IReadOnlyList<decimal>? tiposIva = null, IReadOnlyList<(byte Id, string Descripcion)>? formasPago = null,
+        IReadOnlyList<TipoRetencionCompra>? tiposRetencion = null)
     {
         Factura = factura;
         _tiposIva = tiposIva ?? [];
@@ -161,6 +165,9 @@ public sealed class FichaCompraVM : ModeloVista
         _conRetencion = (factura.PorcentajeRetencion ?? 0m) != 0m || (factura.ImporteRetencion ?? 0m) != 0m;
         _porcentajeRetencion = factura.PorcentajeRetencion is { } pr && pr != 0 ? pr.ToString("0.##", Formatos.Cultura) : _conRetencion ? "" : "15";
         _claseRetencion = ClasesRetencion.FirstOrDefault(c => c.Valor == factura.ClaseRetencion) ?? ClasesRetencion[0];
+        _tiposRetencionCatalogo = tiposRetencion ?? [];
+        _tiposRetencion = OpcionesRetencion();
+        _tipoRetencion = OpcionRetencionActual();
         _suplido = factura.Suplido is { } su && su != 0 ? Formatos.Importe(su) : "";
         _total = factura.ImporteTotal is { } t ? Formatos.Importe(t) : "";
         _divisa = factura.Divisa;
@@ -171,7 +178,12 @@ public sealed class FichaCompraVM : ModeloVista
         _formaPago = FormasPago.FirstOrDefault(x => x.Valor == factura.IdFormaPago) ?? FormasPago[0];
         _notas = factura.Notas ?? "";
         // Una factura editable sin forma de pago trae la del proveedor; se guarda con lo demás.
-        if (!SoloLectura) ProponerFormaPago();
+        if (!SoloLectura)
+        {
+            ProponerFormaPago();
+            // Sin producto, el del proveedor o bienes (compras/pantallas 2026-11-06 13:36).
+            if (_producto.Valor is null) _producto = Productos.First(p => p.Valor == (_proveedor?.ProductoDefecto ?? ProductoCompra.Bienes));
+        }
 
         if (factura.Desgloses.Count > 0)
             foreach (var d in factura.Desgloses) Desgloses.Add(NuevoDesglose(d.TipoIva, d.BaseImponible, d.CuotaIva));
@@ -226,6 +238,7 @@ public sealed class FichaCompraVM : ModeloVista
             _proveedor = BuscarPorNif(_nif);
             Avisar(nameof(NombreProveedor), nameof(HayProveedor), nameof(AvisoProveedor));
             ProponerFormaPago();
+            ProponerProducto();
         }
     }
 
@@ -294,6 +307,14 @@ public sealed class FichaCompraVM : ModeloVista
     public IReadOnlyList<OpcionFicha<byte?>> FormasPago { get; }
     public OpcionFicha<byte?> FormaPago { get => _formaPago; set { if (value is not null) Cambiar(ref _formaPago, value, "formaPago"); } }
 
+    /// <summary>Al cambiar de proveedor, su producto por defecto si el operador no ha elegido otro.</summary>
+    private void ProponerProducto()
+    {
+        if (_manuales.Contains("producto") || _proveedor?.ProductoDefecto is not ProductoCompra pd || _producto.Valor == pd) return;
+        _producto = Productos.First(p => p.Valor == pd);
+        Avisar(nameof(Producto));
+    }
+
     /// <summary>Sin forma de pago elegida, propone la del proveedor (compras/pantallas 2026-11-06).</summary>
     private void ProponerFormaPago()
     {
@@ -307,9 +328,66 @@ public sealed class FichaCompraVM : ModeloVista
     /// <summary>En importación no hay desglose por tipos: un solo importe (sin IVA deducible en la factura).</summary>
     public string ImporteUnico { get => _importeUnico; set { if (Cambiar(ref _importeUnico, DesgloseVM.Importe(value), "importes")) AlCambiarImportes(); } }
 
-    public bool ConRetencion { get => _conRetencion; set { if (Cambiar(ref _conRetencion, value, "retencion")) AlCambiarImportes(); } }
-    public string PorcentajeRetencion { get => _porcentajeRetencion; set { if (Cambiar(ref _porcentajeRetencion, value ?? "", "retencion")) AlCambiarImportes(); } }
+    public bool ConRetencion { get => _conRetencion; set { if (Cambiar(ref _conRetencion, value, "retencion")) { SincronizarTipoRetencion(); AlCambiarImportes(); } } }
+    public string PorcentajeRetencion { get => _porcentajeRetencion; set { if (Cambiar(ref _porcentajeRetencion, value ?? "", "retencion")) { SincronizarTipoRetencion(); AlCambiarImportes(); } } }
     public OpcionFicha<ClaseRetencion?> ClaseRetencion { get => _claseRetencion; set { if (value is not null) Cambiar(ref _claseRetencion, value, "retencion"); } }
+
+    /// <summary>
+    /// «Sin retención» y los tipos vigentes del catálogo (compras/pantallas 2026-11-06 13:36); un porcentaje que no esté en él
+    /// (facturas antiguas o leídas así del PDF) se muestra igualmente.
+    /// </summary>
+    public IReadOnlyList<OpcionFicha<TipoRetencionCompra?>> TiposRetencion => _tiposRetencion;
+
+    /// <summary>Elegir un tipo rellena el porcentaje y la clase de la retención.</summary>
+    public OpcionFicha<TipoRetencionCompra?> TipoRetencion
+    {
+        get => _tipoRetencion;
+        set
+        {
+            if (value is null || !Cambiar(ref _tipoRetencion, value, "retencion")) return;
+            var t = value.Valor;
+            _conRetencion = t is not null;
+            if (t is not null)
+            {
+                _porcentajeRetencion = t.Porcentaje.ToString("0.##", Formatos.Cultura);
+                _claseRetencion = ClasesRetencion.First(c => c.Valor == t.Clase);
+            }
+            Avisar(nameof(ConRetencion), nameof(PorcentajeRetencion), nameof(ClaseRetencion));
+            AlCambiarImportes();
+        }
+    }
+
+    private static string TextoRetencionOpcion(TipoRetencionCompra t) => $"{t.Porcentaje.ToString("0.##", Formatos.Cultura)} % · {t.Descripcion}";
+
+    private IReadOnlyList<OpcionFicha<TipoRetencionCompra?>> OpcionesRetencion()
+    {
+        var l = new List<OpcionFicha<TipoRetencionCompra?>> { new("Sin retención", null) };
+        l.AddRange(_tiposRetencionCatalogo.Select(t => new OpcionFicha<TipoRetencionCompra?>(TextoRetencionOpcion(t), t)));
+        if (_conRetencion && Texto.LeerDecimal(_porcentajeRetencion) is { } p && Coincidente(l, p) is null)
+        {
+            var clase = _claseRetencion.Valor ?? Facturas.ClaseRetencion.Profesionales;
+            var otro = new TipoRetencionCompra(p, clase == Facturas.ClaseRetencion.Arrendamientos ? "Arrendamientos (no está en la tabla)" : "no está en la tabla", clase);
+            l.Add(new(TextoRetencionOpcion(otro), otro));
+        }
+        return l;
+    }
+
+    private OpcionFicha<TipoRetencionCompra?>? Coincidente(IEnumerable<OpcionFicha<TipoRetencionCompra?>> opciones, decimal porcentaje)
+    {
+        var mismo = opciones.Where(o => o.Valor is { } t && t.Porcentaje == porcentaje).ToList();
+        return mismo.FirstOrDefault(o => o.Valor!.Clase == _claseRetencion.Valor) ?? mismo.FirstOrDefault();
+    }
+
+    private OpcionFicha<TipoRetencionCompra?> OpcionRetencionActual() =>
+        _conRetencion && Texto.LeerDecimal(_porcentajeRetencion) is { } p ? Coincidente(_tiposRetencion, p) ?? _tiposRetencion[0] : _tiposRetencion[0];
+
+    /// <summary>Tras cambiar la retención por otra vía (volver a reconocer), el desplegable refleja el porcentaje.</summary>
+    private void SincronizarTipoRetencion()
+    {
+        _tiposRetencion = OpcionesRetencion();
+        _tipoRetencion = OpcionRetencionActual();
+        Avisar(nameof(TiposRetencion), nameof(TipoRetencion));
+    }
     public string Suplido { get => _suplido; set { if (Cambiar(ref _suplido, DesgloseVM.Importe(value), "suplido")) AlCambiarImportes(); } }
     public string Total { get => _total; set { if (Cambiar(ref _total, DesgloseVM.Importe(value), "importes")) AlCambiarImportes(); } }
 
@@ -427,6 +505,7 @@ public sealed class FichaCompraVM : ModeloVista
             if (leida.PorcentajeRetencion is { } p && p != 0) PorcentajeRetencion = p.ToString("0.##", Formatos.Cultura);
         }
         finally { _cargando = false; }
+        SincronizarTipoRetencion();
         ProponerFormaPago();
         if (!string.IsNullOrWhiteSpace(leida.Log)) _confianza = ConfianzaCampos.DesdeLog(leida.Log);
         _manuales.Clear();

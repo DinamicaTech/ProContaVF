@@ -116,7 +116,9 @@ public partial class VentanaPrincipal : Window
         var serviciosCompras = new ServiciosCompras(new ServicioFacturasCompra(bd, reconocimiento), cuentas, new CatalogoCentrosCosteAccess(bd), contexto.Contexto,
             contexto.RazonSocial, () => autorizador.PuedeAsync(Acciones.FacturasEditar),
             async () => (await new LectorConfiguracionEjercicio(bd).ObtenerAsync(contexto.Contexto.IdSociedadEjercicio))?.TiposIva.Select(t => t.Porcentaje).ToList() ?? [],
-            async () => (await new ProConta.Organizacion.FormasPago.CatalogoFormasPagoAccess(bd).ListarAsync()).Select(f => (f.Id, f.Descripcion)).ToList());
+            async () => (await new ProConta.Organizacion.FormasPago.CatalogoFormasPagoAccess(bd).ListarAsync()).Select(f => (f.Id, f.Descripcion)).ToList(),
+            async () => (await new ProConta.Organizacion.Sociedades.CatalogoTiposRetencion(bd).VigentesAsync(DateTime.Today))
+                .Select(t => new TipoRetencionCompra(t.Porcentaje, t.Descripcion, t.Clase == 2 ? ClaseRetencion.Arrendamientos : ClaseRetencion.Profesionales)).ToList());
         _compras = new ModuloCompras(serviciosCompras, _area, new DialogosCompras(() => this), _terceros.AbrirFicha);
 
         var mantenimiento = new ServicioMantenimiento(

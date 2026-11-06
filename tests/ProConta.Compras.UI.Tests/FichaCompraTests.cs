@@ -25,11 +25,55 @@ public sealed class FichaCompraTests
         return f;
     }
 
-    private static readonly ProveedorFicha ConFormaPago = new(8, 80, "B12345674", "Otro S.L.", 4);
+    private static readonly ProveedorFicha ConFormaPago = new(8, 80, "B12345674", "Otro S.L.", 4, ProductoCompra.Servicios);
+    private static readonly TipoRetencionCompra[] Retenciones =
+        [new(19m, "Alquiler de locales comerciales", ClaseRetencion.Arrendamientos), new(15m, "Tipo general", ClaseRetencion.Profesionales), new(7m, "Tipo reducido por inicio de actividad", ClaseRetencion.Profesionales)];
 
     private static FichaCompraVM Ficha(FacturaCompra? f = null, bool soloLectura = false, IReadOnlyList<FilaFacturaCompra>? otras = null) =>
         new(f ?? Factura(), [Proveedor, ConFormaPago], [new("6000000 · Compras", "6000000")], [new CentroCoste(3, "T01", null, "3", "COCHES", true, true, 0, "3")], otras ?? [], soloLectura,
-            tiposIva: [21m, 10m, 4m], formasPago: [(3, "Transferencia"), (4, "Recibo domiciliado")]);
+            tiposIva: [21m, 10m, 4m], formasPago: [(3, "Transferencia"), (4, "Recibo domiciliado")], tiposRetencion: Retenciones);
+
+    [Fact]
+    public void La_retencion_se_elige_de_los_tipos_y_rellena_porcentaje_y_clase()
+    {
+        var f = Ficha();
+        Assert.Equal(["Sin retención", "19 % · Alquiler de locales comerciales", "15 % · Tipo general", "7 % · Tipo reducido por inicio de actividad"], f.TiposRetencion.Select(t => t.Texto));
+        Assert.Equal("Sin retención", f.TipoRetencion.Texto);
+        f.TipoRetencion = f.TiposRetencion[1];
+        Assert.True(f.TieneCambios);
+        Assert.Equal(28.5m, f.RetencionCalculada);
+        var g = f.Construir();
+        Assert.Equal((19m, ClaseRetencion.Arrendamientos, 28.5m), (g.PorcentajeRetencion!.Value, g.ClaseRetencion!.Value, g.ImporteRetencion!.Value));
+        f.TipoRetencion = f.TiposRetencion[0];
+        Assert.Null(f.Construir().ImporteRetencion);
+
+        // Un porcentaje que no está en la tabla se sigue viendo.
+        var vieja = Factura();
+        vieja.PorcentajeRetencion = 12m;
+        vieja.ImporteRetencion = 18m;
+        vieja.ClaseRetencion = ClaseRetencion.Profesionales;
+        Assert.Equal("12 % · no está en la tabla", Ficha(vieja).TipoRetencion.Texto);
+    }
+
+    [Fact]
+    public void El_producto_es_bienes_por_defecto_o_el_del_proveedor()
+    {
+        var f = Ficha();
+        Assert.Equal("Bienes", f.Producto.Texto);
+        Assert.False(f.TieneCambios);
+        Assert.Equal(ProductoCompra.Bienes, f.Construir().Producto);
+        f.Nif = "B12345674";
+        Assert.Equal("Servicios", f.Producto.Texto);
+
+        // Si el operador ya lo eligió, cambiar de proveedor no lo pisa.
+        var g = Ficha();
+        g.Producto = g.Productos.First(p => p.Valor == ProductoCompra.Servicios);
+        g.Producto = g.Productos.First(p => p.Valor == ProductoCompra.Bienes);
+        g.Nif = "B12345674";
+        Assert.Equal("Bienes", g.Producto.Texto);
+        // En solo consulta se ve lo grabado.
+        Assert.Equal("Sin indicar", Ficha(soloLectura: true).Producto.Texto);
+    }
 
     [Fact]
     public void La_forma_de_pago_se_elige_del_catalogo_y_se_propone_la_del_proveedor()
@@ -110,6 +154,7 @@ public sealed class FichaCompraTests
         Assert.Equal(150m, f.BaseCalculada);
         Assert.Equal(26m, f.CuotaCalculada);
         Assert.Equal(22.5m, f.RetencionCalculada);
+        Assert.Equal("15 % · Tipo general", f.TipoRetencion.Texto);
         Assert.Equal(163.5m, f.TotalCalculado);
         Assert.NotNull(f.Descuadre);
         f.Total = "163,50";
