@@ -22,7 +22,7 @@ public class DialogoProConta : Window
 
     /// <summary>
     /// Diálogo que se puede maximizar (botón o doble clic en el título) y cambiar de tamaño con el asa de la esquina. Lo
-    /// fija quien crea el diálogo, antes de mostrarlo; pone SizeToContent en Manual.
+    /// fija quien crea el diálogo, antes de mostrarlo. Respeta su SizeToContent hasta que el operador cambia el tamaño.
     /// </summary>
     public bool Redimensionable { get; init; }
 
@@ -44,9 +44,15 @@ public class DialogoProConta : Window
         MaximizarCommand = new ComandoDelegado(Maximizar, () => Redimensionable);
     }
 
+    private long _ultimoClic;
+
+    [System.Runtime.InteropServices.DllImport("user32.dll")]
+    private static extern uint GetDoubleClickTime();
+
     private void Maximizar()
     {
         if (!Redimensionable) return;
+        SizeToContent = SizeToContent.Manual;
         if (WindowState == WindowState.Maximized) { WindowState = WindowState.Normal; return; }
         // Sin borde de Windows, maximizar taparía la barra de tareas: se limita al área de trabajo.
         var area = SystemParameters.WorkArea;
@@ -73,11 +79,14 @@ public class DialogoProConta : Window
         if (GetTemplateChild("PART_Cabecera") is UIElement cab)
             cab.MouseLeftButtonDown += (_, e) =>
             {
-                if (e.ClickCount == 2 && Redimensionable) { Maximizar(); e.Handled = true; }
+                // DragMove se queda con el ratón hasta soltarlo y el segundo clic no llega como doble: se mide a mano.
+                var ahora = Environment.TickCount64;
+                var doble = ahora - _ultimoClic <= GetDoubleClickTime();
+                _ultimoClic = doble ? 0 : ahora;
+                if (doble && Redimensionable) { Maximizar(); e.Handled = true; }
                 else if (e.ButtonState == MouseButtonState.Pressed && WindowState == WindowState.Normal) DragMove();
             };
         if (!Redimensionable) return;
-        SizeToContent = SizeToContent.Manual;
         if (GetTemplateChild("PART_Maximizar") is UIElement max) max.Visibility = Visibility.Visible;
         if (GetTemplateChild("PART_Asa") is System.Windows.Controls.Primitives.Thumb asa)
         {
@@ -85,6 +94,7 @@ public class DialogoProConta : Window
             asa.DragDelta += (_, e) =>
             {
                 if (WindowState != WindowState.Normal) return;
+                SizeToContent = SizeToContent.Manual;
                 Width = Math.Max(MinWidth > 0 ? MinWidth : 360, ActualWidth + e.HorizontalChange);
                 Height = Math.Max(MinHeight > 0 ? MinHeight : 260, ActualHeight + e.VerticalChange);
             };

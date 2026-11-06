@@ -149,7 +149,7 @@ public static class DialogoCuentas
     /// </summary>
     private static CuentaContable? CrearSubcuenta(Window propietario, BuscadorCuentasVM vm)
     {
-        var dialogo = new DialogoProConta { Title = "Crear subcuenta", Owner = propietario, Width = 760, Height = 600, MinWidth = 480, MinHeight = 420, SizeToContent = SizeToContent.Manual, Redimensionable = true };
+        var dialogo = new DialogoProConta { Title = "Crear subcuenta", Owner = propietario, Width = 760, MinWidth = 480, SizeToContent = SizeToContent.Height, Redimensionable = true };
         var apagado = (Brush)dialogo.FindResource("Pincel.Apagado");
         var rojo = (Brush)dialogo.FindResource("Pincel.RojoError");
         var estiloMono = (Style)dialogo.FindResource("Campo.Mono");

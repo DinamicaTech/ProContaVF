@@ -21,7 +21,7 @@ public sealed class BuscadorCuentasVMTests
     {
         public List<CuentaContable> Cuentas { get; } =
             [C(1, "629", "Otros servicios", imputable: false), C(2, "6290001", "Gastos de viaje") with { Descripcion = "Desplazamientos del personal" }, C(3, "6280011", "Suministros: electricidad"), C(4, "5720017", "Banco Santander"),
-             C(5, "6299", "Otros servicios: varios", imputable: false), C(6, "6299001", "Mensajería"), C(7, "629900", "Imputable de seis cifras")];
+             C(5, "6299", "Otros servicios: varios", imputable: false), C(6, "6299001", "Mensajería"), C(7, "62950", "Cuenta de cinco cifras")];
 
         public Task<IReadOnlyList<CuentaContable>> ListarAsync(ContextoSociedadEjercicio contexto, string? prefijo = null) =>
             Task.FromResult<IReadOnlyList<CuentaContable>>(Cuentas.Where(c => prefijo is null || c.Codigo.StartsWith(prefijo, StringComparison.Ordinal)).ToList());
@@ -92,7 +92,7 @@ public sealed class BuscadorCuentasVMTests
 
         Assert.Equal("Cuentas.CodigoFueraDeCuenta", (await vm.CrearAsync("629", "6280002", "Agua")).Errores[0].Codigo);
         Assert.False((await vm.CrearAsync("629", "6290002", " ")).EsCorrecto);
-        Assert.Equal(["629", "6299"], vm.CuentasPadre.Select(c => c.Codigo));
+        Assert.Equal(["629", "62950", "6299"], vm.CuentasPadre.Select(c => c.Codigo));
         Assert.Equal("Cuentas.CodigoFueraDeCuenta", (await vm.CrearAsync("629", "629001", "Corto")).Errores[0].Codigo);
         var creada = await vm.CrearAsync("629", "6290002", "Suministros: agua", "Agua de la oficina", 3);
         Assert.True(creada.EsCorrecto);
