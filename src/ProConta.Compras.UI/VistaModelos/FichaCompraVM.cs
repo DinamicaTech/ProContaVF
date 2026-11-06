@@ -246,7 +246,7 @@ public sealed class FichaCompraVM : ModeloVista
             if (!Cambiar(ref _nif, (value ?? "").Trim().ToUpperInvariant(), "nif")) return;
             _proveedor = BuscarPorNif(_nif);
             _cuentaProveedorNueva = null;
-            Avisar(nameof(NombreProveedor), nameof(HayProveedor), nameof(AvisoProveedor), nameof(PuedeDarDeAltaProveedor));
+            Avisar(nameof(NombreProveedor), nameof(HayProveedor), nameof(AvisoProveedor), nameof(PuedeDarDeAltaProveedor), nameof(IdTerceroProveedor), nameof(Cuenta));
             ProponerFormaPago();
             ProponerProducto();
         }

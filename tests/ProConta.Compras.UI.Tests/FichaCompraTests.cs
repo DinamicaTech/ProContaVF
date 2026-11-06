@@ -200,6 +200,18 @@ public sealed class FichaCompraTests
     }
 
     [Fact]
+    public void Al_cambiar_a_un_nif_desconocido_la_tarjeta_deja_de_mostrar_la_cuenta_del_proveedor_anterior()
+    {
+        var f = Ficha();
+        Assert.Equal("4000007", f.Cuenta);
+        var avisadas = new List<string?>();
+        f.PropertyChanged += (_, e) => avisadas.Add(e.PropertyName);
+        f.Nif = "B76543214";
+        Assert.Equal("", f.Cuenta);
+        Assert.Contains(nameof(FichaCompraVM.Cuenta), avisadas);
+    }
+
+    [Fact]
     public void Lo_construido_conserva_la_version_y_la_imputacion_elegida()
     {
         var f = Ficha();
