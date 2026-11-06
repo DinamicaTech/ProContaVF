@@ -45,5 +45,18 @@ public class BuscadorCuentasTests
         Assert.Equal("62300000004", BuscadorCuentas.SiguienteCodigo("623", ["62300000003"]));
         // Sin hueco al final, el primero libre.
         Assert.Equal("6290005", BuscadorCuentas.SiguienteCodigo("629", ["6299999", "6290001", "6290002", "6290003", "6290004"]));
+        // Lo que cuelga de una cuenta intermedia (6299) es de ella: la 629 no lo cuenta ni lo propone.
+        Assert.Equal("6290003", BuscadorCuentas.SiguienteCodigo("629", ["629", "6299", "6290001", "6290002", "6299001", "6299002"]));
+        Assert.Equal("6299003", BuscadorCuentas.SiguienteCodigo("6299", ["629", "6299", "6290001", "6299001", "6299002"]));
+    }
+
+    [Fact]
+    public void Las_subcuentas_tienen_siete_cifras_o_mas()
+    {
+        Assert.True(BuscadorCuentas.EsSubcuenta("6290001"));
+        Assert.False(BuscadorCuentas.EsSubcuenta("629001"));
+        var plan = Plan.Append(C("62900", "Cuenta imputable de cinco cifras")).ToList();
+        Assert.Contains(BuscadorCuentas.Filtrar(plan, "629", ["6"]), c => c.Codigo == "62900");
+        Assert.Equal(["6290001"], BuscadorCuentas.Filtrar(plan, "629", ["6"], soloSubcuentas: true).Select(c => c.Codigo));
     }
 }

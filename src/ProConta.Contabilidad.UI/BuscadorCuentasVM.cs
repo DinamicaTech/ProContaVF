@@ -26,8 +26,9 @@ public sealed class BuscadorCuentasVM : ModeloVista
     private string _estado = "Leyendo el plan de cuentas…";
 
     public BuscadorCuentasVM(ICatalogoCuentas cuentas, ContextoSociedadEjercicio trabajo, IReadOnlyList<string> grupos, string? texto = null,
-        ICatalogoCentrosCoste? centrosCoste = null)
+        ICatalogoCentrosCoste? centrosCoste = null, bool soloSubcuentas = true)
     {
+        SoloSubcuentas = soloSubcuentas;
         _cuentas = cuentas;
         _centrosCoste = centrosCoste;
         _trabajo = trabajo;
@@ -37,6 +38,12 @@ public sealed class BuscadorCuentasVM : ModeloVista
     }
 
     public IReadOnlyList<string> Grupos { get; }
+
+    /// <summary>
+    /// La lista solo enseña subcuentas (7 cifras o más), que son las que admiten apuntes; una pantalla que elige una
+    /// cuenta (XXX, XXXX…) lo crea con false (contabilidad/cuenta-contable 2026-11-06 19:05).
+    /// </summary>
+    public bool SoloSubcuentas { get; }
     public bool HayGrupos => Grupos.Count > 0;
     public string TextoGrupos => Grupos.Count == 1 ? $"Solo el grupo {Grupos[0]}" : $"Solo los grupos {string.Join(", ", Grupos)}";
     public int Ejercicio => _trabajo.Ejercicio;
@@ -62,7 +69,7 @@ public sealed class BuscadorCuentasVM : ModeloVista
 
     private void Filtrar()
     {
-        Resultados = BuscadorCuentas.Filtrar(_todas, _texto, _soloGrupos ? Grupos : null);
+        Resultados = BuscadorCuentas.Filtrar(_todas, _texto, _soloGrupos ? Grupos : null, SoloSubcuentas);
         Seleccionada = Resultados.FirstOrDefault(c => c.Codigo == _texto.Trim()) ?? Resultados.FirstOrDefault();
         Estado = Resultados.Count == 0
             ? _soloGrupos && HayGrupos ? $"Ninguna cuenta del {(Grupos.Count == 1 ? "grupo " + Grupos[0] : "filtro")} coincide. Quita «{TextoGrupos}» o crea la subcuenta." : "Ninguna cuenta coincide. Puedes crear la subcuenta."
@@ -70,32 +77,43 @@ public sealed class BuscadorCuentasVM : ModeloVista
     }
 
     /// <summary>
-    /// Cuentas de tres cifras del ejercicio en las que se puede crear una subcuenta: activas y, con el filtro puesto, de
-    /// los grupos de la pantalla.
+    /// Cuentas del ejercicio en las que se puede crear una subcuenta: las de 3 a 6 cifras (XXX, XXXX…), activas y, con el
+    /// filtro puesto, de los grupos de la pantalla.
     /// </summary>
     public IReadOnlyList<CuentaContable> CuentasPadre =>
-        _todas.Where(c => c.Codigo.Length == 3 && c.Codigo.All(char.IsAsciiDigit) && c.EstaActiva && (!_soloGrupos || EnGrupos(c.Codigo)))
+        _todas.Where(c => c.Codigo.Length >= 3 && !BuscadorCuentas.EsSubcuenta(c.Codigo) && c.Codigo.All(char.IsAsciiDigit) && c.EstaActiva
+                && (!_soloGrupos || EnGrupos(c.Codigo)))
             .OrderBy(c => c.Codigo, StringComparer.Ordinal).ToList();
 
     /// <summary>
-    /// Cuenta de tres cifras que se propone para crear una subcuenta: la de la seleccionada si es de los grupos de la
-    /// pantalla (con el filtro quitado, una 572 no se propone para una cuenta de gasto), la del texto escrito si empieza
-    /// por tres cifras, o vacía.
+    /// Cuenta que se propone para crear una subcuenta: la cuenta más larga de la que cuelga la seleccionada (6299 antes
+    /// que 629) si es de los grupos de la pantalla (con el filtro quitado, una 572 no se propone para una cuenta de gasto);
+    /// si no, la más larga que empieza el texto escrito; si no, el grupo de tres cifras o vacía.
     /// </summary>
-    public string CuentaPropuesta =>
-        _seleccionada is { Codigo.Length: >= 3 } s && EnGrupos(s.Codigo) ? s.Codigo[..3]
-        : _texto.Length >= 3 && _texto[..3].All(char.IsAsciiDigit) ? _texto[..3]
-        : Grupos.FirstOrDefault(g => g.Length == 3) ?? "";
+    public string CuentaPropuesta
+    {
+        get
+        {
+            var padres = _todas.Where(c => c.Codigo.Length >= 3 && !BuscadorCuentas.EsSubcuenta(c.Codigo) && c.EstaActiva).Select(c => c.Codigo).ToList();
+            string? Padre(string codigo) => padres.Where(p => codigo.Length > p.Length && codigo.StartsWith(p, StringComparison.Ordinal))
+                .OrderByDescending(p => p.Length).FirstOrDefault();
+            if (_seleccionada is { } s && EnGrupos(s.Codigo))
+                return Padre(s.Codigo) ?? (s.Codigo.Length >= 3 ? s.Codigo[..3] : "");
+            if (_texto.Length >= 3 && _texto.All(char.IsAsciiDigit))
+                return padres.Where(p => _texto.StartsWith(p, StringComparison.Ordinal)).OrderByDescending(p => p.Length).FirstOrDefault() ?? _texto[..3];
+            return Grupos.FirstOrDefault(g => g.Length == 3) ?? "";
+        }
+    }
 
     /// <summary>Sin grupos, cualquiera; con grupos, la que empieza por uno de ellos (aunque se haya quitado el filtro).</summary>
     private bool EnGrupos(string codigo) => !HayGrupos || Grupos.Any(g => codigo.StartsWith(g, StringComparison.Ordinal));
 
-    /// <summary>Comprueba la cuenta de tres cifras y devuelve el siguiente código libre de subcuenta, o el error.</summary>
+    /// <summary>Comprueba la cuenta (de 3 a 6 cifras) y devuelve el siguiente código libre de subcuenta, o el error.</summary>
     public async Task<Resultado<string>> SiguienteCodigoAsync(string cuenta)
     {
         var c = (cuenta ?? "").Trim();
-        if (c.Length != 3 || !c.All(char.IsAsciiDigit))
-            return Resultado<string>.Fallo(new Error("Cuentas.CuentaNoValida", "Elige la cuenta de tres cifras en la que va la subcuenta.", null, null, "Por ejemplo, 629."));
+        if (c.Length < 3 || BuscadorCuentas.EsSubcuenta(c) || !c.All(char.IsAsciiDigit))
+            return Resultado<string>.Fallo(new Error("Cuentas.CuentaNoValida", "Elige la cuenta (de 3 a 6 cifras) en la que va la subcuenta.", null, null, "Por ejemplo, 629 o 6299."));
         if (_soloGrupos && HayGrupos && !Grupos.Any(g => c.StartsWith(g, StringComparison.Ordinal) || g.StartsWith(c, StringComparison.Ordinal)))
             return Resultado<string>.Fallo(new Error("Cuentas.FueraDeGrupo", $"La cuenta {c} no es del {TextoGrupos.ToLowerInvariant().Replace("solo ", "")}.", null, null,
                 $"Elige una cuenta del grupo o quita «{TextoGrupos}» en el buscador."));
@@ -113,8 +131,8 @@ public sealed class BuscadorCuentasVM : ModeloVista
     {
         var c = (cuenta ?? "").Trim();
         var cod = (codigo ?? "").Trim();
-        if (!cod.StartsWith(c, StringComparison.Ordinal) || cod.Length <= c.Length)
-            return Resultado<CuentaContable>.Fallo(new Error("Cuentas.CodigoFueraDeCuenta", $"El código de la subcuenta tiene que empezar por {c} y ser más largo.", null, null,
+        if (!cod.StartsWith(c, StringComparison.Ordinal) || cod.Length <= c.Length || !BuscadorCuentas.EsSubcuenta(cod))
+            return Resultado<CuentaContable>.Fallo(new Error("Cuentas.CodigoFueraDeCuenta", $"El código de la subcuenta tiene que empezar por {c} y tener {BuscadorCuentas.LongitudSubcuenta} cifras o más.", null, null,
                 "Corrige el código o vuelve al paso anterior para elegir otra cuenta."));
         var padre = await _cuentas.ResolverAsync(_trabajo, c);
         var alta = await _cuentas.AltaAsync(_trabajo, new AltaCuenta(cod, nombre, padre.EsCorrecto ? padre.Valor.IdCuentaContable : null,

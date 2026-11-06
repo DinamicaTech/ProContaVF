@@ -39,6 +39,7 @@ public static class ComboFiltro
             c.SelectionChanged += AlElegir;
             c.LostKeyboardFocus += AlSalir;
             c.DropDownClosed += AlCerrar;
+            c.GotKeyboardFocus += AlEntrar;
             RegistrarTeclas();
         }
         else
@@ -47,6 +48,7 @@ public static class ComboFiltro
             c.SelectionChanged -= AlElegir;
             c.LostKeyboardFocus -= AlSalir;
             c.DropDownClosed -= AlCerrar;
+            c.GotKeyboardFocus -= AlEntrar;
         }
     }
 
@@ -154,6 +156,18 @@ public static class ComboFiltro
         if (c.SelectedItem is { } nuevo) c.SetValue(AnteriorProperty, nuevo);
         if ((bool)c.GetValue(AplicandoProperty) || c.SelectedItem is null || c.IsDropDownOpen) return;
         Quitar(c);
+    }
+
+    /// <summary>
+    /// Al entrar en el campo, el combo editable selecciona todo el texto y lo desplaza hasta el final: en un texto largo
+    /// («629 · Otros servicios · …») se veía el final y no el código. Se deja seleccionado, pero visto desde el principio.
+    /// </summary>
+    private static void AlEntrar(object sender, KeyboardFocusChangedEventArgs e)
+    {
+        var c = (ComboBox)sender;
+        if (e.OldFocus is DependencyObject antes && c.IsAncestorOf(antes)) return;
+        if (c.Template?.FindName("PART_EditableTextBox", c) is not TextBox caja) return;
+        c.Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Input, () => caja.ScrollToHorizontalOffset(0));
     }
 
     private static void AlCerrar(object? sender, EventArgs e) => Quitar((ComboBox)sender!);

@@ -13,14 +13,14 @@ namespace ProConta.Contabilidad.UI;
 /// <summary>
 /// Ventana del buscador de cuentas (contabilidad/cuenta-contable 2026-11-06) con <see cref="DialogoProConta"/>: búsqueda,
 /// casilla del filtro de grupos, lista con código, nombre y descripción, y «Crear subcuenta…» en dos pasos (cuenta de
-/// tres cifras y, después, código, nombre, descripción y centro de coste).
+/// 3 a 6 cifras y, después, código, nombre, descripción y centro de coste).
 /// </summary>
 public static class DialogoCuentas
 {
     /// <summary>Abre el buscador y devuelve la cuenta elegida (o la creada), o null si se cancela.</summary>
     public static CuentaContable? Elegir(Window? propietario, BuscadorCuentasVM vm, string titulo = "Buscar cuenta")
     {
-        var dialogo = new DialogoProConta { Title = titulo, Owner = propietario, Width = 820, Height = 600, SizeToContent = SizeToContent.Manual };
+        var dialogo = new DialogoProConta { Title = titulo, Owner = propietario, Width = 1180, Height = 680, MinWidth = 600, MinHeight = 360, SizeToContent = SizeToContent.Manual, Redimensionable = true };
         var apagado = (Brush)dialogo.FindResource("Pincel.Apagado");
         var mono = (FontFamily)dialogo.FindResource("Fuente.Mono");
         var busqueda = new TextBox { Text = vm.Texto, ToolTip = "Código (628.11 = 6280011) o parte del nombre o de la descripción; ↓ para ir a la lista, Intro para elegir" };
@@ -32,27 +32,38 @@ public static class DialogoCuentas
         };
         var estado = new TextBlock { Margin = new Thickness(0, 8, 0, 8), Foreground = apagado, Text = vm.Estado, TextWrapping = TextWrapping.Wrap };
         var lista = new ListBox { HorizontalContentAlignment = HorizontalAlignment.Stretch, ItemsSource = vm.Resultados };
-        lista.ItemTemplate = PlantillaCodigo.Crear(o =>
+        // Una línea por cuenta, con la descripción en su columna: caben más cuentas a la vista.
+        Grid Fila(string codigo, string nombre, string? descripcion, bool cabecera)
         {
-            var c = (CuentaContable)o!;
-            var g = new Grid { Margin = new Thickness(0, 3, 0, 3) };
+            var g = new Grid { Margin = cabecera ? new Thickness(6, 0, 6, 4) : new Thickness(0, 2, 0, 2) };
             g.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(110) });
-            g.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-            var texto = new StackPanel();
-            texto.Children.Add(new TextBlock { Text = c.Nombre, TextTrimming = TextTrimming.CharacterEllipsis });
-            if (c.Descripcion is { Length: > 0 } d) texto.Children.Add(new TextBlock { Text = d, Foreground = apagado, TextTrimming = TextTrimming.CharacterEllipsis, ToolTip = d });
-            Grid.SetColumn(texto, 1);
-            g.Children.Add(new TextBlock { Text = c.Codigo, FontFamily = mono });
-            g.Children.Add(texto);
+            g.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(2, GridUnitType.Star) });
+            g.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(3, GridUnitType.Star) });
+            var celdas = new[]
+            {
+                new TextBlock { Text = codigo, FontFamily = cabecera ? dialogo.FontFamily : mono },
+                new TextBlock { Text = nombre, TextTrimming = TextTrimming.CharacterEllipsis, Margin = new Thickness(0, 0, 12, 0), ToolTip = cabecera ? null : nombre },
+                new TextBlock { Text = descripcion ?? "", TextTrimming = TextTrimming.CharacterEllipsis, Foreground = apagado, ToolTip = string.IsNullOrEmpty(descripcion) || cabecera ? null : descripcion },
+            };
+            for (var i = 0; i < celdas.Length; i++)
+            {
+                if (cabecera) { celdas[i].Foreground = apagado; celdas[i].FontWeight = FontWeights.SemiBold; }
+                Grid.SetColumn(celdas[i], i);
+                g.Children.Add(celdas[i]);
+            }
             return g;
-        });
+        }
+        lista.ItemTemplate = PlantillaCodigo.Crear(o => { var c = (CuentaContable)o!; return Fila(c.Codigo, c.Nombre, c.Descripcion, cabecera: false); });
+        var cabeceraLista = Fila("Código", "Nombre", "Descripción", cabecera: true);
         var cuerpo = new DockPanel();
         DockPanel.SetDock(busqueda, Dock.Top);
         DockPanel.SetDock(soloGrupos, Dock.Top);
         DockPanel.SetDock(estado, Dock.Top);
+        DockPanel.SetDock(cabeceraLista, Dock.Top);
         cuerpo.Children.Add(busqueda);
         cuerpo.Children.Add(soloGrupos);
         cuerpo.Children.Add(estado);
+        cuerpo.Children.Add(cabeceraLista);
         cuerpo.Children.Add(lista);
         dialogo.Content = cuerpo;
 
@@ -132,25 +143,25 @@ public static class DialogoCuentas
     });
 
     /// <summary>
-    /// «Crear subcuenta» en dos pasos: primero la cuenta de tres cifras en un desplegable con código, nombre y descripción
+    /// «Crear subcuenta» en dos pasos: primero la cuenta (de 3 a 6 cifras) en un desplegable con código, nombre y descripción
     /// (propuesta: la de la seleccionada) y después el código (el siguiente libre, editable), el nombre, la descripción y el
     /// centro de coste por defecto. Devuelve la subcuenta creada o null.
     /// </summary>
     private static CuentaContable? CrearSubcuenta(Window propietario, BuscadorCuentasVM vm)
     {
-        var dialogo = new DialogoProConta { Title = "Crear subcuenta", Owner = propietario, Width = 620, SizeToContent = SizeToContent.Height };
+        var dialogo = new DialogoProConta { Title = "Crear subcuenta", Owner = propietario, Width = 760, Height = 600, MinWidth = 480, MinHeight = 420, SizeToContent = SizeToContent.Manual, Redimensionable = true };
         var apagado = (Brush)dialogo.FindResource("Pincel.Apagado");
         var rojo = (Brush)dialogo.FindResource("Pincel.RojoError");
         var estiloMono = (Style)dialogo.FindResource("Campo.Mono");
         TextBlock Etiqueta(string texto) => new() { Text = texto, Foreground = apagado, Margin = new Thickness(0, 8, 0, 2) };
 
         // Paso 1: la cuenta.
-        var explicacionCuenta = new TextBlock { TextWrapping = TextWrapping.Wrap, Text = $"¿En qué cuenta va la subcuenta? Se dará de alta en el ejercicio {vm.Ejercicio}." };
+        var explicacionCuenta = new TextBlock { TextWrapping = TextWrapping.Wrap, Text = $"¿En qué cuenta (XXX, XXXX…) va la subcuenta? Se dará de alta en el ejercicio {vm.Ejercicio}." };
         var padres = vm.CuentasPadre.Select(c => new Opcion<CuentaContable>(c, $"{c.Codigo} · {c.Nombre}", c.Descripcion)).ToList();
         var cuenta = new ComboBox
         {
             ItemsSource = padres, ItemTemplate = PlantillaOpcion<CuentaContable>(apagado), HorizontalContentAlignment = HorizontalAlignment.Stretch,
-            ToolTip = "Cuenta de tres cifras del ejercicio; escribe parte del código, del nombre o de la descripción para filtrar la lista",
+            ToolTip = "Cuenta del ejercicio (de 3 a 6 cifras); escribe parte del código, del nombre o de la descripción para filtrar la lista",
         };
         // El estilo común fija la altura de los elementos (una línea); aquí llevan nombre y descripción.
         cuenta.ItemContainerStyle = new Style(typeof(ComboBoxItem), dialogo.TryFindResource(typeof(ComboBoxItem)) as Style)
@@ -162,8 +173,8 @@ public static class DialogoCuentas
         var sinCuentas = new TextBlock
         {
             TextWrapping = TextWrapping.Wrap, Foreground = apagado, Margin = new Thickness(0, 6, 0, 0),
-            Text = vm.HayGrupos && vm.SoloGrupos ? $"No hay cuentas de tres cifras del {vm.TextoGrupos.ToLowerInvariant().Replace("solo ", "")} en el ejercicio. Quita «{vm.TextoGrupos}» en el buscador o da de alta la cuenta en el plan."
-                : "No hay cuentas de tres cifras en el ejercicio. Da de alta la cuenta en el plan.",
+            Text = vm.HayGrupos && vm.SoloGrupos ? $"No hay cuentas (XXX, XXXX…) del {vm.TextoGrupos.ToLowerInvariant().Replace("solo ", "")} en el ejercicio. Quita «{vm.TextoGrupos}» en el buscador o da de alta la cuenta en el plan."
+                : "No hay cuentas (XXX, XXXX…) en el ejercicio. Da de alta la cuenta en el plan.",
             Visibility = padres.Count == 0 ? Visibility.Visible : Visibility.Collapsed,
         };
         var paso1 = new StackPanel { Children = { explicacionCuenta, Etiqueta("Cuenta"), cuenta, sinCuentas } };

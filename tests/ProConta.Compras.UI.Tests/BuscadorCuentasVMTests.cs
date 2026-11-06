@@ -20,7 +20,8 @@ public sealed class BuscadorCuentasVMTests
     private sealed class PlanFalso : ICatalogoCuentas
     {
         public List<CuentaContable> Cuentas { get; } =
-            [C(1, "629", "Otros servicios", imputable: false), C(2, "6290001", "Gastos de viaje") with { Descripcion = "Desplazamientos del personal" }, C(3, "6280011", "Suministros: electricidad"), C(4, "5720017", "Banco Santander")];
+            [C(1, "629", "Otros servicios", imputable: false), C(2, "6290001", "Gastos de viaje") with { Descripcion = "Desplazamientos del personal" }, C(3, "6280011", "Suministros: electricidad"), C(4, "5720017", "Banco Santander"),
+             C(5, "6299", "Otros servicios: varios", imputable: false), C(6, "6299001", "Mensajería"), C(7, "629900", "Imputable de seis cifras")];
 
         public Task<IReadOnlyList<CuentaContable>> ListarAsync(ContextoSociedadEjercicio contexto, string? prefijo = null) =>
             Task.FromResult<IReadOnlyList<CuentaContable>>(Cuentas.Where(c => prefijo is null || c.Codigo.StartsWith(prefijo, StringComparison.Ordinal)).ToList());
@@ -64,6 +65,10 @@ public sealed class BuscadorCuentasVMTests
         vm.Texto = "629.1";
         Assert.Equal("6290001", vm.Seleccionada?.Codigo);
         Assert.Equal("629", vm.CuentaPropuesta);
+        // La propuesta es la cuenta más larga de la que cuelga la seleccionada; la lista no enseña las de menos de 7 cifras.
+        vm.Texto = "6299";
+        Assert.Equal(["6299001"], vm.Resultados.Select(c => c.Codigo));
+        Assert.Equal("6299", vm.CuentaPropuesta);
 
         // Con el filtro quitado, una cuenta de otro grupo no se propone para la subcuenta.
         vm.SoloGrupos = false;
@@ -87,7 +92,8 @@ public sealed class BuscadorCuentasVMTests
 
         Assert.Equal("Cuentas.CodigoFueraDeCuenta", (await vm.CrearAsync("629", "6280002", "Agua")).Errores[0].Codigo);
         Assert.False((await vm.CrearAsync("629", "6290002", " ")).EsCorrecto);
-        Assert.Equal(["629"], vm.CuentasPadre.Select(c => c.Codigo));
+        Assert.Equal(["629", "6299"], vm.CuentasPadre.Select(c => c.Codigo));
+        Assert.Equal("Cuentas.CodigoFueraDeCuenta", (await vm.CrearAsync("629", "629001", "Corto")).Errores[0].Codigo);
         var creada = await vm.CrearAsync("629", "6290002", "Suministros: agua", "Agua de la oficina", 3);
         Assert.True(creada.EsCorrecto);
         Assert.Equal((1, "Agua de la oficina", 3), (creada.Valor.IdCuentaPadre, creada.Valor.Descripcion, creada.Valor.IdCentroCostePredeterminado!.Value));
