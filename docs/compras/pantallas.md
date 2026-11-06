@@ -35,6 +35,7 @@ Revisión de la factura reconocida con confianza, candidatos y motivos visibles,
 - 2026-11-06 12:36 · Hecho (bloque 1, forma de pago, esquema 20 y 21): forma de pago de la ficha del catálogo, por defecto del proveedor, y mantenimiento «Cuentas de las formas de pago» para su subcuenta por empresa. Pendiente de probar en el equipo, con la copia de pruebas migrada a la versión 21.
 - 2026-11-06 12:55 · Al importar un PDF cuya carpeta no da proveedor, se asigna el proveedor del NIF leído si en la empresa solo hay uno con ese NIF, como ya hacía la ficha al guardar; así la factura nueva trae su forma de pago por defecto. La forma de pago guardada se propone enseguida en las otras facturas del proveedor y F5 vuelve a leer los proveedores.
 - 2026-11-06 13:05 · La forma de pago del proveedor también se propone al abrir una factura editable sin forma de pago y al volver a reconocerla; se guarda con lo demás (también con «Dar por revisada»).
+- 2026-11-06 13:16 · Alta de proveedor desde la factura (bloque 3): la razón social se obtiene primero de la AEAT (VNifV2, con el certificado de la empresa) y de lo leído en el PDF; solo si no se consigue por esas vías, un botón «Buscar en eInforma» abre el navegador con la búsqueda «<NIF> site:einforma.com» para que el operador la copie. El programa no lanza ni lee búsquedas de Google por sí mismo (condiciones de uso y fragilidad).
 
 ## Requirements
 - 2026-10-28 12:28 · From sources/01_ESPECIFICACION_FUNCIONAL.docx § 14 RF-COM-06, 07: pantalla de pruebas y revisión final
@@ -95,3 +96,4 @@ Revisión de la factura reconocida con confianza, candidatos y motivos visibles,
 - 2026-11-06 12:06 · P3: Ok, un trimestre cerrado no debería poderse modificar. Eso quiere decir que hemos de ofrecer la posibilidad de 'des-cerrar' un trimestre (como mucho, el trimestre anterior del trimestre(hoy()). Pulsando en el trimestre activo (en la cabecera), si Trimestre natural(fechaactual+10)=trimestre contable, ofrecer la posibilidad de reactivar el trimestre anterior con un aviso importante.
 - 2026-11-06 12:06 · P6: Sí (configurar el certificado para VNifV2)
 - 2026-11-06 12:24 · Q1. En el ERP, FormasPago tiene un campo IdAgrupacion, que apunta a la tabla Agrupaciones que contiene subcuenta contable, centro de coste, departamento, etc., pero, efectivamente, lo correcto es FormasPagoSociedad para esta información. Ok a FacturasCompra.IdFormaPago. Ok a la forma de pago por defecto.
+- 2026-11-06 13:14 · Q2. Ok a lo del botón de einforma en el caso de no haber conseguido la razón social por otra vía.
