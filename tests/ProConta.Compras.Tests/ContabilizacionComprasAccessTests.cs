@@ -126,6 +126,27 @@ public sealed class ContabilizacionComprasAccessTests : IDisposable
         Assert.Null(roles.Acreedor);
         Assert.Equal("4000001", (await RecargarAsync(f.IdRegistro)).CuentaContableProveedor);
         Assert.Equal(1, await Contar("SELECT COUNT(*) FROM Apuntes WHERE CuentaContable = '4000001' AND IdAsiento = ?", r.Valor.IdAsiento));
+        // Sin apuntes, la 410 ha cambiado de código: no queda una subcuenta 410 sin usar ni su código reservado.
+        Assert.False((await cuentas.ResolverAsync(_ctx, prov.Cuenta)).EsCorrecto);
+        Assert.Equal(0, await Contar("SELECT COUNT(*) FROM CodigosContablesReservados WHERE Codigo = ?", prov.Cuenta));
+        Assert.Equal((await cuentas.ResolverAsync(_ctx, "4000001")).Valor.IdIdentidadContable, roles.Proveedor.IdIdentidadContable);
+    }
+
+    [Fact]
+    public async Task Una_cuenta_de_los_parametros_que_no_existe_se_crea_al_exportar()
+    {
+        await EmpresaAsync();
+        await Bd.EjecutarAsync(s => s.EjecutarAsync("UPDATE SociedadesEjercicios SET CuentaRedondeoGastos = ? WHERE IdSociedadEjercicio = 9001", "6590000"));
+        var (f, _) = await FacturaAsync(total: 176.02m);
+        var servicio = Servicio();
+        Assert.True((await servicio.ComprobarAsync(f, new OpcionesExportacion(EsProveedor: false))).Lista);
+        var r = await servicio.ExportarAsync(f, _actor, new OpcionesExportacion(EsProveedor: false));
+        Assert.True(r.EsCorrecto, r.Error?.ToString());
+        Assert.Contains("6590000", r.Valor.Aviso);
+        var creada = await new CatalogoCuentasAccess(Bd).ResolverAsync(_ctx, "6590000");
+        Assert.True(creada.EsCorrecto);
+        Assert.Equal("Diferencias de redondeo (gastos)", creada.Valor.Nombre);
+        Assert.Equal(1, await Contar("SELECT COUNT(*) FROM Apuntes WHERE CuentaContable = '6590000' AND IdAsiento = ?", r.Valor.IdAsiento));
     }
 
     [Fact]
@@ -223,7 +244,11 @@ public sealed class ContabilizacionComprasAccessTests : IDisposable
     }
 
     /// <summary>Marca la factura como contabilizada en el ERP, con su asiento (sin libro de IVA), como los datos migrados.</summary>
-    private async Task<int> ContabilizarEnErpAsync(FacturaCompra f)
+    /// <summary>
+    /// Como las del ERP real: la factura sin IdSociedadEjercicio (solo Sociedad y Ejercicio) y, con libro, su registro de
+    /// IVA soportado sin IdAsiento.
+    /// </summary>
+    private async Task<int> ContabilizarEnErpAsync(FacturaCompra f, bool conLibro = false)
     {
         var id = await Bd.EnTransaccionAsync(async s =>
         {
@@ -234,7 +259,24 @@ public sealed class ContabilizacionComprasAccessTests : IDisposable
             await s.EjecutarAsync(apunte, a, (short)1, f.CuentaContableProveedor, null, 176m, (byte)0, false, f.NumeroFactura, f.RutaPdf);
             await s.EjecutarAsync(apunte, a, (short)2, "6290000", 150m, null, (byte)0, false, f.NumeroFactura, null);
             await s.EjecutarAsync(apunte, a, (short)3, "4720021", 26m, null, (byte)0, false, f.NumeroFactura, null);
-            await s.EjecutarAsync("UPDATE FacturasCompra SET Exportada = ?, Fecha = ? WHERE IdRegistro = ?", true, new DateTime(2026, 5, 12), f.IdRegistro);
+            await s.EjecutarAsync("UPDATE FacturasCompra SET Exportada = ?, Fecha = ?, IdSociedadEjercicio = Null WHERE IdRegistro = ?", true, new DateTime(2026, 5, 12), f.IdRegistro);
+            if (conLibro)
+            {
+                var periodo = await ContabilizadorCompras.PeriodoAsync(s, 9001, 2026, 2);
+                var tipo = await ContabilizadorCompras.TipoOperacionAsync(s, f);
+                await s.EjecutarAsync(
+                    "INSERT INTO IVASoportado (IdSociedadEjercicio, IdProveedor, IdAsiento, FechaExpedicion, FechaOperacion, FechaHoraRegistroContable, IdPeriodoIVA, NumeroFactura, " +
+                    "NombreProveedor, IdentificacionFiscalProveedor, PaisProveedor, IdTipoOperacion, TipoBienServicio, InversionSujetoPasivo, ImporteTotalFactura, BaseImponibleTotal, " +
+                    "CuotaSoportadaTotal, CuotaDevengadaAutorrepercutidaTotal, CuotaDeducibleTotal, IncluidoModelo347, Estado, Descripcion, OperadorCreacion, FechaHoraCreacion) " +
+                    "VALUES (?, ?, Null, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                    9001, f.IdProveedor, new DateTime(2026, 5, 12), new DateTime(2026, 5, 12), DateTime.Now, periodo, f.NumeroFactura, "Emisor Ficticio S.L.", f.NifProveedor,
+                    "ES", tipo, "SERVICIOS", false, 176m, 150m, 26m, 0m, 26m, true, "REGISTRADO", "erp", "erp", DateTime.Now);
+                var libro = await s.UltimoIdAsync();
+                await s.EjecutarAsync(
+                    "INSERT INTO DesglosesIVASoportado (IdIVASoportado, Orden, ClaveRegimen, CalificacionOperacion, CausaExencion, BaseImponible, TipoIVA, CuotaSoportada, " +
+                    "CuotaDevengadaAutorrepercutida, PorcentajeDeducible, CuotaDeducible, IdCuentaIVASoportado, IdCuentaIVARepercutido) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                    libro, 1, "01", "S1", null, 150m, 21m, 26m, 0m, 100m, 26m, null, null);
+            }
             return Resultado<int>.Correcto(a);
         });
         return id.Valor;
@@ -245,9 +287,10 @@ public sealed class ContabilizacionComprasAccessTests : IDisposable
     {
         await EmpresaAsync(trimestreActivo: 3);
         var (f, _) = await FacturaAsync();
-        var erp = await ContabilizarEnErpAsync(f);
+        var erp = await ContabilizarEnErpAsync(f, conLibro: true);
         var servicio = Servicio();
         var g = await RecargarAsync(f.IdRegistro);
+        Assert.Equal(9001, g.Ejercicio.IdSociedadEjercicio);
         Assert.True(g.ExportadaEnErp);
         Assert.True(await servicio.TrimestreCerradoAsync(g));
         Assert.Equal((erp, true), ((await servicio.EstadoAsync(g.IdRegistro)).IdAsiento, (await servicio.EstadoAsync(g.IdRegistro)).DelErp));
@@ -258,7 +301,9 @@ public sealed class ContabilizacionComprasAccessTests : IDisposable
         Assert.Equal(new DateTime(2026, 7, 1), contra.FechaContable);
         Assert.Equal(176m, contra.Apuntes.Single(a => a.CodigoCuenta == f.CuentaContableProveedor).Debe.Valor);
         Assert.NotNull(await new MotorAsientosAccess(Bd).ObtenerAsync(erp));
-        Assert.Equal(0, await Contar("SELECT COUNT(*) FROM IVASoportado"));
+        // El registro del ERP (sin IdAsiento) se queda y el contra-asiento lleva su registro negado.
+        Assert.Equal(1, await Contar("SELECT COUNT(*) FROM IVASoportado WHERE IdAsiento Is Null"));
+        Assert.Equal(-176, await Contar($"SELECT ImporteTotalFactura FROM IVASoportado WHERE IdAsiento = {d.Valor.IdContraAsiento}"));
         var h = await RecargarAsync(f.IdRegistro);
         Assert.False(h.Contabilizada);
 
@@ -268,7 +313,7 @@ public sealed class ContabilizacionComprasAccessTests : IDisposable
         Assert.True(r.EsCorrecto, r.Error?.ToString());
         Assert.Equal(d.Valor.IdContraAsiento, r.Valor.IdContraAsiento);
         Assert.Equal(2, await Contar("SELECT COUNT(*) FROM Asientos WHERE MotorPropietario = 'compras/factura-compra'"));
-        Assert.Equal(1, await Contar("SELECT COUNT(*) FROM IVASoportado"));
+        Assert.Equal(3, await Contar("SELECT COUNT(*) FROM IVASoportado"));
         Assert.True((await RecargarAsync(f.IdRegistro)).ExportadaAqui);
     }
 

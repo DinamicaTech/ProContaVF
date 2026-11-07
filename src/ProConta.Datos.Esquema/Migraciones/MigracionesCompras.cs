@@ -146,6 +146,28 @@ public static class MigracionesCompras
         new AnadirColumna("SociedadesEjercicios", "CuentaRedondeoGastos", "TEXT(10)"),
         new AnadirColumna("SociedadesEjercicios", "CuentaRedondeoIngresos", "TEXT(10)"));
 
+    /// <summary>
+    /// Cambios del 7 de noviembre (propietario 2026-11-07 11:59): cuentas de IVA repercutido de ventas por tipo (las
+    /// CuentaTipoIVA quedan para el soportado de compras), origen del documento de compra (carpeta o email), concepto
+    /// leído de la factura y su versión abreviada, y NIF del proveedor en las plantillas de reconocimiento (pasan a ir por
+    /// proveedor, no por carpeta). Solo estructura, sin datos.
+    /// </summary>
+    public static Migracion ComprasVentasNoviembre { get; } = new(
+        "20261107_1300_COMPRAS_VENTAS_NOVIEMBRE", 261107002,
+        "IVA repercutido de ventas por tipo, origen y concepto de las facturas de compra y plantillas de reconocimiento por NIF.",
+        "compras/factura-compra",
+        new AnadirColumna("SociedadesEjercicios", "CuentaIVARepercutido0", "TEXT(10)"),
+        new AnadirColumna("SociedadesEjercicios", "CuentaIVARepercutido1", "TEXT(10)"),
+        new AnadirColumna("SociedadesEjercicios", "CuentaIVARepercutido2", "TEXT(10)"),
+        new AnadirColumna("SociedadesEjercicios", "CuentaIVARepercutido3", "TEXT(10)"),
+        new AnadirColumna("SociedadesEjercicios", "CuentaIVARepercutido4", "TEXT(10)"),
+        new AnadirColumna("FacturasCompra", "OrigenDocumento", "TEXT(10)"),
+        new AnadirColumna("FacturasCompra", "ConceptoFactura", "TEXT(255)"),
+        new AnadirColumna("FacturasCompra", "ConceptoAbreviado", "TEXT(60)"),
+        new AnadirColumna("PlantillasReconocimientoCompra", "NIF", "TEXT(20)"),
+        new CrearIndice("PlantillasReconocimientoCompra", "IX_PRC_SociedadNif",
+            "CREATE INDEX IX_PRC_SociedadNif ON PlantillasReconocimientoCompra (IdSociedad, NIF)"));
+
     private static PasoPersonalizado Relacion(string tabla, string columna, string nombre)
     {
         var sql = $"ALTER TABLE {tabla} ADD CONSTRAINT {nombre} FOREIGN KEY ({columna}) REFERENCES FormasPago (Id)";

@@ -415,7 +415,7 @@ public sealed class FacturasCompraAccessTests : IDisposable
     }
 
     [Fact]
-    public async Task Una_factura_contabilizada_no_se_guarda_desde_la_pantalla()
+    public async Task Una_factura_contabilizada_guarda_las_notas_pero_no_un_cambio_del_asiento()
     {
         await EmpresaConProveedorAsync();
         var servicio = Servicio();
@@ -423,7 +423,11 @@ public sealed class FacturasCompraAccessTests : IDisposable
         await Bd.EjecutarAsync(s => s.EjecutarAsync("UPDATE FacturasCompra SET Exportada = ? WHERE IdRegistro = ?", true, r.Factura!.IdRegistro));
         var f = (await servicio.CargarAsync(r.Factura!.IdRegistro))!;
         Assert.True(f.Contabilizada);
-        f.Notas = "No debería";
+        f.Notas = "Se guarda";
+        Assert.True((await servicio.GuardarAsync(f)).EsCorrecto);
+        f = (await servicio.CargarAsync(r.Factura!.IdRegistro))!;
+        Assert.Equal("Se guarda", f.Notas);
+        f.NumeroFactura += "-B";
         Assert.Equal("Compras.Contabilizada", (await servicio.GuardarAsync(f)).Error!.Codigo);
     }
 

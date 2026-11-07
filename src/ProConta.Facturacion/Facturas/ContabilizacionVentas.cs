@@ -92,7 +92,8 @@ public sealed class ContabilizadorVentas(IBaseDatos bd, IMotorAsientos motor, IC
     private readonly IReloj _reloj = reloj ?? RelojSistema.Instancia;
 
     /// <summary>Comprueba que todas las cuentas del asiento existen y admiten apuntes; devuelve las incidencias (vacía si todo está bien).</summary>
-    public async Task<(CuentasVenta? Cuentas, IReadOnlyList<Incidencia> Incidencias)> ResolverAsync(FacturaVenta f, ContextoSociedadEjercicio contexto)
+    /// <param name="crearCuentasIva">Al contabilizar: la cuenta de IVA repercutido configurada (o la 477 deducida) que no exista se crea.</param>
+    public async Task<(CuentasVenta? Cuentas, IReadOnlyList<Incidencia> Incidencias)> ResolverAsync(FacturaVenta f, ContextoSociedadEjercicio contexto, bool crearCuentasIva = false)
     {
         var r = new List<Incidencia>();
         var config = await new LectorConfiguracionEjercicio(bd).ObtenerAsync(contexto.IdSociedadEjercicio);
@@ -162,8 +163,18 @@ public sealed class ContabilizadorVentas(IBaseDatos bd, IMotorAsientos motor, IC
             var codigo = config.CuentaIva(d.TipoIva);
             if (codigo is null)
                 r.Add(new("Contabilizacion.SinCuentaIva", $"El ejercicio {contexto.Ejercicio} no tiene cuenta de IVA repercutido para el {d.TipoIva:0.##} %. Configúrala en Parámetros y tablas › Ejercicios."));
-            else if (await Comprobar(codigo, $"cuenta de IVA del {d.TipoIva:0.##} %", null) is string ok)
-                iva[d.TipoIva] = ok;
+            else
+            {
+                // La cuenta del ejercicio que aún no existe no es un error: se crea al contabilizar (propietario 2026-11-07 11:59).
+                if (!(await cuentas.ResolverAsync(contexto, codigo)).EsCorrecto)
+                {
+                    if (!crearCuentasIva) { iva[d.TipoIva] = codigo; continue; }
+                    var alta = await cuentas.AltaSubcuentaAsync(contexto, codigo, $"IVA repercutido del {d.TipoIva:0.##} %");
+                    if (!alta.EsCorrecto) r.Add(new("Contabilizacion.CuentaNoCreada", $"No he podido crear la cuenta de IVA repercutido {codigo}: {alta.Error!.Mensaje}"));
+                }
+                if (await Comprobar(codigo, $"cuenta de IVA del {d.TipoIva:0.##} %", null) is string ok)
+                    iva[d.TipoIva] = ok;
+            }
         }
 
         string? suplido = null;
@@ -197,7 +208,7 @@ public sealed class ContabilizadorVentas(IBaseDatos bd, IMotorAsientos motor, IC
         if (ejercicio is null)
             return Resultado<int>.Fallo(new Error("Contabilizacion.SinEjercicio", "No encuentro el ejercicio de la factura.", registro));
         var contexto = ejercicio.Contexto;
-        var (cuentasVenta, incidencias) = await ResolverAsync(f, contexto);
+        var (cuentasVenta, incidencias) = await ResolverAsync(f, contexto, crearCuentasIva: true);
         if (cuentasVenta is null)
             return Resultado<int>.Fallo(incidencias.Select(i => new Error(i.Codigo, i.Mensaje, registro, null,
                 i.Accion is null ? "Corrígelo y vuelve a contabilizar la factura." : null)));

@@ -227,7 +227,7 @@ public sealed class FichaCompraTests
     }
 
     [Fact]
-    public void Una_exportada_por_ProContaVF_se_puede_cambiar_y_una_del_ERP_no()
+    public void Una_exportada_por_ProContaVF_o_por_el_ERP_se_puede_cambiar()
     {
         var aqui = Factura();
         aqui.Contabilizada = true;
@@ -236,7 +236,8 @@ public sealed class FichaCompraTests
         Assert.Contains("re-exportar", Ficha(aqui).Resumen);
         var erp = Factura();
         erp.Contabilizada = true;
-        Assert.False(Ficha(erp).Editable);
+        Assert.True(Ficha(erp).Editable);
+        Assert.Contains("ERP", Ficha(erp).Resumen);
         Assert.False(Ficha(aqui, soloLectura: true).Editable);
     }
 

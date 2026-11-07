@@ -318,9 +318,10 @@ internal static class RepositorioFacturasCompra
 
     public static async Task<FacturaCompra?> CargarAsync(ISesionDatos s, int idRegistro)
     {
+        var respaldo = await EjercicioDeRegistroAsync(s, idRegistro);
         var f = await s.ConsultarPrimeroAsync(
             "SELECT fc.*, se.IdSociedad AS SociedadEjercicio, se.Ejercicio AS AnioEjercicio FROM FacturasCompra AS fc " +
-            "LEFT JOIN SociedadesEjercicios AS se ON fc.IdSociedadEjercicio = se.IdSociedadEjercicio WHERE fc.IdRegistro = ?", Mapear, idRegistro);
+            "LEFT JOIN SociedadesEjercicios AS se ON fc.IdSociedadEjercicio = se.IdSociedadEjercicio WHERE fc.IdRegistro = ?", r => Mapear(r, respaldo), idRegistro);
         if (f is null) return null;
         f.Desgloses.AddRange(await s.ConsultarAsync(
             "SELECT Orden, TipoIVA, BaseImponible, CuotaIVA, Confianza, Evidencia FROM DesglosesFacturaCompra WHERE IdRegistro = ? ORDER BY Orden",
@@ -329,9 +330,32 @@ internal static class RepositorioFacturasCompra
         return f;
     }
 
-    private static FacturaCompra Mapear(IFilaDatos r)
+    /// <summary>
+    /// IdSociedadEjercicio de una sociedad y un año. Las facturas del ERP no lo tienen grabado (solo Sociedad y Ejercicio).
+    /// </summary>
+    public static async Task<int?> IdEjercicioAsync(ISesionDatos s, string? idSociedad, int ejercicio)
     {
-        var idSe = r.EnteroNulo("IdSociedadEjercicio") ?? 0;
+        if (string.IsNullOrWhiteSpace(idSociedad) || ejercicio == 0) return null;
+        var v = await s.EscalarAsync("SELECT IdSociedadEjercicio FROM SociedadesEjercicios WHERE IdSociedad = ? AND Ejercicio = ?",
+            idSociedad.Trim(), ejercicio.ToString(CultureInfo.InvariantCulture));
+        return v is null or DBNull ? null : Convert.ToInt32(v, CultureInfo.InvariantCulture);
+    }
+
+    /// <summary>
+    /// IdSociedadEjercicio de una factura: el grabado o, en las del ERP que no lo tienen, el de su sociedad y su año.
+    /// </summary>
+    public static async Task<int> EjercicioDeRegistroAsync(ISesionDatos s, int idRegistro)
+    {
+        var fila = await s.ConsultarPrimeroAsync("SELECT IdSociedadEjercicio, Sociedad, Ejercicio FROM FacturasCompra WHERE IdRegistro = ?",
+            r => (Id: r.EnteroNulo("IdSociedadEjercicio"), Sociedad: r.Texto("Sociedad"), Anio: r.Texto("Ejercicio")), idRegistro);
+        if (fila.Id is int id) return id;
+        return int.TryParse(fila.Anio, NumberStyles.Integer, CultureInfo.InvariantCulture, out var anio)
+            && await IdEjercicioAsync(s, fila.Sociedad, anio) is int resuelto ? resuelto : 0;
+    }
+
+    private static FacturaCompra Mapear(IFilaDatos r, int respaldo)
+    {
+        var idSe = r.EnteroNulo("IdSociedadEjercicio") ?? respaldo;
         var sociedad = r.Texto("SociedadEjercicio") ?? r.Texto("Sociedad") ?? string.Empty;
         var anio = int.TryParse(r.Texto("AnioEjercicio") ?? r.Texto("Ejercicio"), NumberStyles.Integer, CultureInfo.InvariantCulture, out var a) ? a : 0;
         return new FacturaCompra
