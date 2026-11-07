@@ -661,12 +661,20 @@ public sealed class ContabilizadorCompras(IBaseDatos bd, IMotorAsientos motor, I
     {
         var cabecera = await s.ConsultarPrimeroAsync("SELECT IdIVASoportado, ImporteTotalFactura FROM IVASoportado WHERE IdAsiento = ?",
             f => (Id: f.Entero("IdIVASoportado"), Total: f.Decimal("ImporteTotalFactura")), idAsiento);
-        if (cabecera.Id == 0 && factura.IdProveedor is int idProveedor && !string.IsNullOrWhiteSpace(factura.NumeroFactura))
+        var idProveedor = factura.IdProveedor ?? await RepositorioFacturasCompra.ProveedorDeErpAsync(s, factura);
+        if (cabecera.Id == 0 && idProveedor is int prov && !string.IsNullOrWhiteSpace(factura.NumeroFactura))
             cabecera = await s.ConsultarPrimeroAsync(
                 "SELECT TOP 1 IdIVASoportado, ImporteTotalFactura FROM IVASoportado WHERE IdAsiento Is Null AND IdProveedor = ? AND Trim(NumeroFactura) = ? " +
                 "AND (IdSociedadEjercicio = ? OR IdSociedadEjercicio Is Null) ORDER BY IdIVASoportado",
                 f => (Id: f.Entero("IdIVASoportado"), Total: f.Decimal("ImporteTotalFactura")),
-                idProveedor, factura.NumeroFactura.Trim(), factura.Ejercicio.IdSociedadEjercicio);
+                prov, factura.NumeroFactura.Trim(), factura.Ejercicio.IdSociedadEjercicio);
+        // El ERP puede haber grabado el número de otra forma: el mismo proveedor, la misma fecha y el mismo total.
+        if (cabecera.Id == 0 && idProveedor is int prov2 && factura.Fecha is DateTime fecha && factura.ImporteTotal is decimal total)
+            cabecera = await s.ConsultarPrimeroAsync(
+                "SELECT TOP 1 IdIVASoportado, ImporteTotalFactura FROM IVASoportado WHERE IdAsiento Is Null AND IdProveedor = ? AND FechaExpedicion = ? " +
+                "AND ImporteTotalFactura = ? AND (IdSociedadEjercicio = ? OR IdSociedadEjercicio Is Null) ORDER BY IdIVASoportado",
+                f => (Id: f.Entero("IdIVASoportado"), Total: f.Decimal("ImporteTotalFactura")),
+                prov2, fecha.Date, total, factura.Ejercicio.IdSociedadEjercicio);
         if (cabecera.Id == 0) return new LibroCompra(0m, []);
         var tramos = await s.ConsultarAsync(
             "SELECT d.TipoIVA, d.BaseImponible, d.CuotaSoportada, d.CuotaDevengadaAutorrepercutida, cs.Codigo AS CuentaS, cr.Codigo AS CuentaR " +

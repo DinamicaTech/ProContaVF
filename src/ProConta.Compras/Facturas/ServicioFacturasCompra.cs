@@ -77,12 +77,60 @@ public sealed class ServicioFacturasCompra(
         return Resultado<IReadOnlyList<PdfPendiente>>.Correcto(nuevos);
     }
 
-    /// <summary>Todos los PDF bajo las carpetas de proveedor (cada carpeta de primer nivel es un proveedor).</summary>
+    /// <summary>
+    /// Los PDF de la carpeta raíz («Proveedores», sin carpeta de proveedor) y después todos los de las carpetas de proveedor
+    /// (cada carpeta de primer nivel es un proveedor).
+    /// </summary>
     internal static IEnumerable<string> EnumerarPdf(string carpetaProveedores) =>
-        Directory.EnumerateDirectories(carpetaProveedores)
+        Directory.EnumerateFiles(carpetaProveedores, "*.pdf", new EnumerationOptions { MatchCasing = MatchCasing.CaseInsensitive })
+            .OrderBy(f => f, StringComparer.OrdinalIgnoreCase)
+            .Concat(Directory.EnumerateDirectories(carpetaProveedores)
             .OrderBy(d => d, StringComparer.OrdinalIgnoreCase)
             .SelectMany(d => Directory.EnumerateFiles(d, "*.pdf", new EnumerationOptions { RecurseSubdirectories = true, MatchCasing = MatchCasing.CaseInsensitive })
-                .OrderBy(f => f, StringComparer.OrdinalIgnoreCase));
+                .OrderBy(f => f, StringComparer.OrdinalIgnoreCase)));
+
+    /// <summary>El PDF está en la carpeta raíz: directamente en «&lt;ejercicio&gt;\Proveedores».</summary>
+    public static bool EnRaiz(string rutaPdf) =>
+        !string.IsNullOrWhiteSpace(rutaPdf) && string.Equals(Path.GetFileName(Path.GetDirectoryName(rutaPdf)), "Proveedores", StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// Mueve un PDF de la carpeta raíz a la carpeta de su proveedor (<see cref="RepositorioFacturasCompra.CarpetaProveedorAsync"/>),
+    /// creándola si no existe, y graba la ruta nueva. Sin proveedor, o si no se puede mover (abierto en otro programa, sin
+    /// permisos), el PDF se queda en la raíz y se intentará al guardar la ficha. Con otro PDF del mismo nombre en el destino,
+    /// se añade « (2)», « (3)»… Devuelve si lo ha movido.
+    /// </summary>
+    internal async Task<bool> MoverDesdeRaizAsync(FacturaCompra f, CancellationToken cancelacion = default)
+    {
+        if (f.IdRegistro <= 0 || f.IdProveedor is not int prov || !EnRaiz(f.RutaPdf) || !File.Exists(f.RutaPdf)) return false;
+        var carpeta = await bd.EjecutarAsync(s => RepositorioFacturasCompra.CarpetaProveedorAsync(s, f.Ejercicio.IdSociedad, prov), cancelacion);
+        if (carpeta is null) return false;
+        var origen = f.RutaPdf;
+        var destino = Path.Combine(Path.GetDirectoryName(origen)!, carpeta, Path.GetFileName(origen));
+        try
+        {
+            Directory.CreateDirectory(Path.GetDirectoryName(destino)!);
+            for (var n = 2; File.Exists(destino); n++)
+                destino = Path.Combine(Path.GetDirectoryName(destino)!, $"{Path.GetFileNameWithoutExtension(origen)} ({n}){Path.GetExtension(origen)}");
+            File.Move(origen, destino);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            return false;
+        }
+        try
+        {
+            await bd.EnTransaccionAsync(async s => { await RepositorioFacturasCompra.ReubicarPdfAsync(s, f.IdRegistro, destino, carpeta); return Resultado.Correcto(); }, cancelacion);
+        }
+        catch
+        {
+            // Sin la ruta grabada, el PDF vuelve a la raíz para que la factura no lo pierda.
+            File.Move(destino, origen);
+            throw;
+        }
+        f.RutaPdf = destino;
+        f.Carpeta = carpeta;
+        return true;
+    }
 
     /// <summary>Contexto del reconocimiento para un PDF: configuración de la empresa, NIF conocidos, proveedor de la carpeta e histórico.</summary>
     public Task<(ContextoProcesamiento Contexto, ProveedorCarpeta? Proveedor)> CargarContextoAsync(
@@ -94,7 +142,8 @@ public sealed class ServicioFacturasCompra(
             var historicas = await RepositorioFacturasCompra.CarpetasHistoricasAsync(s, ctx.IdSociedad);
             var alias = ResolverCarpetas(historicas, proveedores);
 
-            var elegido = ElegirCarpeta(rutaPdf, alias);
+            // En la carpeta raíz no hay carpeta de proveedor: el proveedor sale solo del NIF leído.
+            var elegido = EnRaiz(rutaPdf) ? null : ElegirCarpeta(rutaPdf, alias);
             var numeros = (IReadOnlyList<string>)[];
             var completas = 0;
             ProveedorCarpeta? proveedor = null;
@@ -185,7 +234,10 @@ public sealed class ServicioFacturasCompra(
             return new ImportacionPdf(rutaPdf, null, new Error("Compras.PdfIlegible", $"No he podido leer el PDF: {ex.Message}", Path.GetFileName(rutaPdf),
                 null, "Comprueba que el fichero se abre con un visor de PDF y que la carpeta compartida esté conectada.", ex.GetType().Name));
         }
-        return await RegistrarAsync(factura, cancelacion);
+        factura.OrigenDocumento ??= EnRaiz(rutaPdf) ? OrigenesDocumento.Raiz : OrigenesDocumento.Carpeta;
+        var registrada = await RegistrarAsync(factura, cancelacion);
+        if (registrada.Factura is { } f) await MoverDesdeRaizAsync(f, cancelacion);
+        return registrada;
     }
 
     /// <summary>Registra una factura ya leída (también la que el operador ha corregido en la pantalla).</summary>
@@ -295,6 +347,7 @@ public sealed class ServicioFacturasCompra(
         var r = await bd.EnTransaccionAsync(s => RepositorioFacturasCompra.ActualizarAsync(s, factura), cancelacion);
         if (!r.EsCorrecto) return Resultado.Fallo(r.Errores);
         factura.Version = r.Valor;
+        await MoverDesdeRaizAsync(factura, cancelacion);
         await AprenderAsync(factura, elegidos, cancelacion);
         return Resultado.Correcto();
     }

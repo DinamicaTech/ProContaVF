@@ -144,6 +144,47 @@ public sealed class FacturasCompraAccessTests : IDisposable
     }
 
     [Fact]
+    public async Task Un_pdf_de_la_carpeta_raiz_se_mueve_a_la_carpeta_del_proveedor_al_reconocerlo()
+    {
+        var idProveedor = await EmpresaConProveedorAsync();
+        var raiz = Path.Combine(_raiz, "2026", "Proveedores");
+        var ruta = Pdf("", "suelta.pdf", "raiz uno");
+        var r = await Servicio().ImportarAsync(_ctx, ruta);
+        Assert.True(r.Registrada, r.Error?.ToString());
+
+        // Sin carpeta usada por el proveedor, la de su nombre (sin el punto final), creada al vuelo.
+        var destino = Path.Combine(raiz, "Emisor Ficticio S.L", "suelta.pdf");
+        Assert.False(File.Exists(ruta));
+        Assert.True(File.Exists(destino));
+        var f = (await Servicio().CargarAsync(r.Factura!.IdRegistro))!;
+        Assert.Equal((destino, "Emisor Ficticio S.L", OrigenesDocumento.Raiz, idProveedor), (f.RutaPdf, f.Carpeta, f.OrigenDocumento, f.IdProveedor!.Value));
+
+        // La siguiente va a la carpeta que el proveedor ya usa; con el mismo nombre de fichero, « (2)».
+        var otra = Pdf("", "suelta.pdf", "raiz dos");
+        var r2 = await Servicio(Completa.Replace("FV260123", "FV260124")).ImportarAsync(_ctx, otra);
+        Assert.True(r2.Registrada, r2.Error?.ToString());
+        Assert.Equal(Path.Combine(raiz, "Emisor Ficticio S.L", "suelta (2).pdf"), (await Servicio().CargarAsync(r2.Factura!.IdRegistro))!.RutaPdf);
+
+        // Sin proveedor reconocido por el NIF, se queda en la raíz.
+        var sinNif = Pdf("", "desconocida.pdf", "raiz tres");
+        var r3 = await Servicio("Factura 77\nFecha 10/02/2026\nTotal 10,00").ImportarAsync(_ctx, sinNif);
+        Assert.True(r3.Registrada, r3.Error?.ToString());
+        Assert.True(File.Exists(sinNif));
+        Assert.Equal(("", OrigenesDocumento.Raiz), ((await Servicio().CargarAsync(r3.Factura!.IdRegistro))!.Carpeta, (await Servicio().CargarAsync(r3.Factura!.IdRegistro))!.OrigenDocumento));
+
+        // Al guardarla con el proveedor elegido, se mueve.
+        var g = (await Servicio().CargarAsync(r3.Factura!.IdRegistro))!;
+        g.IdProveedor = idProveedor;
+        Assert.True((await Servicio().GuardarAsync(g)).EsCorrecto);
+        Assert.False(File.Exists(sinNif));
+        Assert.Equal(Path.Combine(raiz, "Emisor Ficticio S.L", "desconocida.pdf"), (await Servicio().CargarAsync(g.IdRegistro))!.RutaPdf);
+
+        // Una de la carpeta de un proveedor queda con origen «carpeta».
+        var r4 = await Servicio(Completa.Replace("FV260123", "FV260125")).ImportarAsync(_ctx, Pdf("Ficticio", "f.pdf", "carpeta"));
+        Assert.Equal(OrigenesDocumento.Carpeta, (await Servicio().CargarAsync(r4.Factura!.IdRegistro))!.OrigenDocumento);
+    }
+
+    [Fact]
     public async Task Un_fallo_tras_insertar_no_deja_cabecera_ni_desgloses()
     {
         await EmpresaConProveedorAsync();

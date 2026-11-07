@@ -245,7 +245,7 @@ public sealed class ContabilizacionComprasAccessTests : IDisposable
 
     /// <summary>Marca la factura como contabilizada en el ERP, con su asiento (sin libro de IVA), como los datos migrados.</summary>
     /// <summary>
-    /// Como las del ERP real: la factura sin IdSociedadEjercicio (solo Sociedad y Ejercicio) y, con libro, su registro de
+    /// Como las del ERP real: la factura sin IdSociedadEjercicio (solo Sociedad y Ejercicio) ni IdProveedor y, con libro, su registro de
     /// IVA soportado sin IdAsiento.
     /// </summary>
     private async Task<int> ContabilizarEnErpAsync(FacturaCompra f, bool conLibro = false)
@@ -259,7 +259,7 @@ public sealed class ContabilizacionComprasAccessTests : IDisposable
             await s.EjecutarAsync(apunte, a, (short)1, f.CuentaContableProveedor, null, 176m, (byte)0, false, f.NumeroFactura, f.RutaPdf);
             await s.EjecutarAsync(apunte, a, (short)2, "6290000", 150m, null, (byte)0, false, f.NumeroFactura, null);
             await s.EjecutarAsync(apunte, a, (short)3, "4720021", 26m, null, (byte)0, false, f.NumeroFactura, null);
-            await s.EjecutarAsync("UPDATE FacturasCompra SET Exportada = ?, Fecha = ?, IdSociedadEjercicio = Null WHERE IdRegistro = ?", true, new DateTime(2026, 5, 12), f.IdRegistro);
+            await s.EjecutarAsync("UPDATE FacturasCompra SET Exportada = ?, Fecha = ?, IdSociedadEjercicio = Null, IdProveedor = Null WHERE IdRegistro = ?", true, new DateTime(2026, 5, 12), f.IdRegistro);
             if (conLibro)
             {
                 var periodo = await ContabilizadorCompras.PeriodoAsync(s, 9001, 2026, 2);
@@ -290,7 +290,7 @@ public sealed class ContabilizacionComprasAccessTests : IDisposable
         var erp = await ContabilizarEnErpAsync(f, conLibro: true);
         var servicio = Servicio();
         var g = await RecargarAsync(f.IdRegistro);
-        Assert.Equal(9001, g.Ejercicio.IdSociedadEjercicio);
+        Assert.Equal((9001, f.IdProveedor), (g.Ejercicio.IdSociedadEjercicio, g.IdProveedor));
         Assert.True(g.ExportadaEnErp);
         Assert.True(await servicio.TrimestreCerradoAsync(g));
         Assert.Equal((erp, true), ((await servicio.EstadoAsync(g.IdRegistro)).IdAsiento, (await servicio.EstadoAsync(g.IdRegistro)).DelErp));

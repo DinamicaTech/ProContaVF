@@ -68,7 +68,7 @@ public sealed class FacturasRecibidasVM : ModeloVista, IPestanaTrabajo
         [
             new("Nacionales", "nac", true, Filtrar), new("Intracomunitarias", "int", true, Filtrar), new("Extranjeras (importación)", "imp", true, Filtrar),
             new("Con retención", "ret", false, Filtrar), new("Con suplidos", "sup", false, Filtrar), new("Con inversión del sujeto pasivo", "isp", false, Filtrar),
-            new("Rectificativas y abonos", "rect", false, Filtrar)
+            new("Rectificativas y abonos", "rect", false, Filtrar), new("Recibidas por email", "email", false, Filtrar)
         ];
         _rapido = OpcionesRapidas[0];
 
@@ -319,6 +319,7 @@ public sealed class FacturasRecibidasVM : ModeloVista, IPestanaTrabajo
                 "sup" => (d.Suplido ?? 0m) != 0m,
                 "isp" => d.InversionSujetoPasivo,
                 "rect" => d.EsRectificativa || _datos.Any(o => o.IdRegistroFacturaRectificada == d.IdRegistro),
+                "email" => d.OrigenDocumento == OrigenesDocumento.Email,
                 _ => true
             };
             if (!cumple) return false;
@@ -917,9 +918,10 @@ public sealed class FacturasRecibidasVM : ModeloVista, IPestanaTrabajo
             Nif = f.NifProveedor, NumeroFactura = f.NumeroFactura, Fecha = f.Fecha, BaseImponible = f.BaseImponible, CuotaIva = f.CuotaIva,
             ImporteTotal = f.ImporteTotal, ImporteRetencion = f.ImporteRetencion, TieneRetencion = (f.ImporteRetencion ?? 0m) != 0m, Suplido = f.Suplido,
             InversionSujetoPasivo = f.InversionSujetoPasivo, Operacion = f.Operacion, Divisa = f.Divisa, IdRegistroFacturaRectificada = f.IdRegistroFacturaRectificada,
-            Contabilizada = o.Contabilizada, Duplicada = o.Duplicada, RutaPdf = o.RutaPdf, Carpeta = o.Carpeta, CuentaGasto = f.CuentaGasto,
+            Contabilizada = o.Contabilizada, Duplicada = o.Duplicada, RutaPdf = f.RutaPdf.Length > 0 ? f.RutaPdf : o.RutaPdf, Carpeta = f.RutaPdf.Length > 0 ? f.Carpeta : o.Carpeta, CuentaGasto = f.CuentaGasto,
             IdCentroCoste = f.IdCentroCoste, Confianza = o.Confianza, RequiereRevision = f.RequiereRevision, FechaHoraRegistro = o.FechaHoraRegistro, Asiento = o.Asiento,
-            ConfianzaMinima = o.ConfianzaMinima, Version = f.Version, RutasGuardadas = o.RutasGuardadas
+            ConfianzaMinima = o.ConfianzaMinima, Version = f.Version, OrigenDocumento = o.OrigenDocumento,
+            RutasGuardadas = f.RutaPdf != o.RutaPdf && f.RutaPdf.Length > 0 ? [f.RutaPdf] : o.RutasGuardadas
         };
         _datos = _datos.Select(d => d.IdRegistro == nueva.IdRegistro ? nueva : d).ToList();
         fila.Datos = nueva;

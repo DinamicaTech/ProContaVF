@@ -82,6 +82,7 @@ public sealed class FacturaCompraTests
     [InlineData(@"X:\Datos\Soc\2026\Proveedores\Ficticio\f.pdf", "Ficticio")]
     [InlineData(@"X:\Datos\Soc\2026\Proveedores\Ficticio\Enero\f.pdf", "Ficticio")]
     [InlineData(@"X:\Otra\Carpeta\f.pdf", "Carpeta")]
+    [InlineData(@"X:\Datos\Soc\2026\Proveedores\f.pdf", "")]
     public void La_carpeta_del_proveedor_es_el_primer_nivel_bajo_proveedores(string ruta, string esperada)
         => Assert.Equal(esperada, FacturaCompra.CarpetaDe(ruta));
 
@@ -109,7 +110,7 @@ public sealed class FacturaCompraTests
     }
 
     [Fact]
-    public void Enumera_los_pdf_de_cada_carpeta_de_proveedor_incluidas_subcarpetas()
+    public void Enumera_los_pdf_de_la_raiz_y_de_cada_carpeta_de_proveedor_incluidas_subcarpetas()
     {
         var raiz = Path.Combine(Path.GetTempPath(), $"compras-{Guid.NewGuid():N}");
         try
@@ -121,7 +122,7 @@ public sealed class FacturaCompraTests
             File.WriteAllText(Path.Combine(raiz, "A", "nota.txt"), "x");
             File.WriteAllText(Path.Combine(raiz, "B", "Enero", "2.pdf"), "x");
             var rutas = ServicioFacturasCompra.EnumerarPdf(raiz).Select(r => Path.GetRelativePath(raiz, r).Replace('\\', '/')).ToList();
-            Assert.Equal(["A/1.PDF", "B/Enero/2.pdf"], rutas);
+            Assert.Equal(["suelto.pdf", "A/1.PDF", "B/Enero/2.pdf"], rutas);
         }
         finally
         {

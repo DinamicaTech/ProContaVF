@@ -286,10 +286,22 @@ public sealed class FacturaCompra
         var partes = rutaPdf.Split(['\\', '/'], StringSplitOptions.RemoveEmptyEntries);
         var i = Array.FindLastIndex(partes, p => p.Equals("Proveedores", StringComparison.OrdinalIgnoreCase));
         if (i >= 0 && i + 1 < partes.Length - 1) return partes[i + 1];
+        if (i >= 0 && i == partes.Length - 2) return string.Empty; // en la carpeta raíz, sin carpeta de proveedor
         return partes.Length >= 2 ? partes[^2] : string.Empty;
     }
 
     private static decimal Redondear(decimal v) => Math.Round(v, 2, MidpointRounding.AwayFromZero);
 
     private static string? Vacio(string? s) => string.IsNullOrWhiteSpace(s) ? null : s.Trim();
+}
+
+/// <summary>Valores de FacturasCompra.OrigenDocumento.</summary>
+public static class OrigenesDocumento
+{
+    /// <summary>Encontrado en la carpeta de un proveedor.</summary>
+    public const string Carpeta = "carpeta";
+    /// <summary>Encontrado en la carpeta raíz (y movido a la del proveedor al reconocerlo).</summary>
+    public const string Raiz = "raiz";
+    /// <summary>Recibido por la cuenta de correo de ProContaVF (lo rellenará el módulo de correo).</summary>
+    public const string Email = "email";
 }
