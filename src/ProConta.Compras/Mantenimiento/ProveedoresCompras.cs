@@ -12,7 +12,7 @@ namespace ProConta.Compras.Mantenimiento;
 public static class ProveedoresCompras
 {
     public static IReadOnlyList<IProveedorMantenimiento> Todos(IBaseDatos bd) =>
-        [new ProveedorTextosClaveCompra(new CatalogoTextosClaveCompra(bd)), new ProveedorReconocimientoCompra(bd)];
+        [new ProveedorTextosClaveCompra(new CatalogoTextosClaveCompra(bd)), new ProveedorReconocimientoCompra(bd), new ProveedorCertificadoEmpresa(bd)];
 }
 
 /// <summary>
@@ -193,5 +193,149 @@ public sealed class ProveedorReconocimientoCompra(IBaseDatos bd, Func<Credencial
         if (accion != "quitarclaves") return await base.EjecutarAsync(accion, registro, c);
         await bd.EjecutarAsync(s => s.EjecutarAsync($"UPDATE {Tabla} SET ClaveAccesoAWS = Null, SecretoAWSProtegido = Null, Version = Version + 1 WHERE IdSociedad = ?", c.Trabajo.IdSociedad));
         return Resultado<ResultadoAccion>.Correcto(new ResultadoAccion("Claves de AWS quitadas: el OCR usará el perfil de AWS de cada equipo."));
+    }
+}
+
+/// <summary>Un certificado del almacén de Windows que puede usar la empresa (con clave privada).</summary>
+public sealed record CertificadoEquipo(string Huella, string Titular, string? Nif, DateTime Caduca)
+{
+    public string Texto => $"{Titular}{(Nif is null ? "" : $" · {Nif}")} · caduca el {Caduca:dd/MM/yyyy}";
+}
+
+/// <summary>
+/// Certificado de la empresa de trabajo (VeriFactuConfiguracion.CertificateThumbprint, compras/pantallas 2026-11-07): se
+/// elige en un desplegable entre los instalados en Windows con clave privada y sin caducar, y se guarda su huella. Lo usan
+/// la consulta del NIF en la AEAT (alta de proveedores) y, más adelante, VeriFactu. Cada equipo que lo use debe tenerlo
+/// instalado; con el mismo certificado, la huella es la misma.
+/// </summary>
+public sealed class ProveedorCertificadoEmpresa(IBaseDatos bd, Func<IReadOnlyList<CertificadoEquipo>>? certificados = null,
+    Func<string, string, CancellationToken, Task<Proveedores.ResultadoNifAeat>>? consultar = null) : ProveedorBase
+{
+    private IReadOnlyList<OpcionCampo> _opciones = [];
+
+    public override string Clave => "certificadoempresa";
+    public override string Titulo => "Certificado de la empresa";
+    public override string Categoria => "Parámetros";
+    public override string Finalidad => "Certificado digital con el que la empresa consulta la AEAT (razón social de los NIF de proveedores) y, más adelante, envía a VeriFactu.";
+    public override AmbitoMantenimiento Ambito => AmbitoMantenimiento.Sociedad;
+    public override Cardinalidad Cardinalidad => Cardinalidad.Unico;
+    public override bool PermiteAlta => false;
+    public override bool PermiteBaja => false;
+    public override string NombreRegistro => "certificado";
+    public override IReadOnlyList<string> Sinonimos => ["certificado", "aeat", "firma", "verifactu", "vnif", "huella"];
+    public override IReadOnlyList<AccionMantenimiento> Acciones =>
+        [new("probaraeat", "Probar con la AEAT", "Consulta en la AEAT el NIF de la propia empresa con el certificado guardado y dice si responde. Guarda antes los cambios.", Modifica: false)];
+
+    public override IReadOnlyList<CampoMantenimiento> Campos =>
+    [
+        new("Huella", "Certificado", TipoCampo.Lista) { Opciones = _opciones, Ancho = "f",
+            Ayuda = "Certificados instalados en Windows (del equipo o de tu usuario) con clave privada y sin caducar. Si no sale, instálalo en este equipo (doble clic en el .pfx) y vuelve a abrir esta pantalla." },
+        new("HuellaGuardada", "Huella guardada", TipoCampo.Codigo) { SoloLectura = true, Ancho = "l" },
+    ];
+
+    public override IReadOnlyList<ColumnaLista> Columnas => [new("HuellaGuardada", "Huella")];
+
+    public override string TituloRegistro(RegistroMantenimiento r) => "Certificado de la empresa";
+
+    public override async Task<IReadOnlyList<RegistroMantenimiento>> ListarAsync(ContextoMantenimiento c)
+    {
+        var instalados = (certificados ?? CertificadosEquipo)();
+        var guardada = await HuellaAsync(c.Trabajo.IdSociedad);
+        var opciones = new List<OpcionCampo> { new(null, "Sin certificado") };
+        opciones.AddRange(instalados.Select(x => new OpcionCampo(x.Huella, x.Texto)));
+        if (guardada.Existe && guardada.Huella is { } h && instalados.All(x => !string.Equals(x.Huella, h, StringComparison.OrdinalIgnoreCase)))
+            opciones.Add(new OpcionCampo(h, $"No instalado en este equipo (huella {h})"));
+        _opciones = opciones;
+        var valor = guardada.Huella is { } g ? opciones.FirstOrDefault(o => string.Equals(o.Valor as string, g, StringComparison.OrdinalIgnoreCase))?.Valor : null;
+        return [new RegistroMantenimiento(guardada.Existe ? c.Trabajo.IdSociedad : null, new Dictionary<string, object?> { ["Huella"] = valor, ["HuellaGuardada"] = guardada.Huella })];
+    }
+
+    private Task<(bool Existe, string? Huella)> HuellaAsync(string idSociedad) =>
+        bd.EjecutarAsync(async s =>
+        {
+            var filas = await s.ConsultarAsync("SELECT CertificateThumbprint FROM VeriFactuConfiguracion WHERE IdSociedad = ?", f => f.Texto("CertificateThumbprint")?.Replace(" ", "").Trim(), idSociedad);
+            return filas.Count == 0 ? (false, (string?)null) : (true, string.IsNullOrWhiteSpace(filas[0]) ? null : filas[0]!.ToUpperInvariant());
+        });
+
+    public override async Task<Resultado<RegistroMantenimiento>> GuardarAsync(RegistroMantenimiento r, ContextoMantenimiento c)
+    {
+        var id = c.Trabajo.IdSociedad;
+        var huella = r.Texto("Huella");
+        try
+        {
+            await bd.EjecutarAsync(async s =>
+            {
+                var existe = Convert.ToInt32(await s.EscalarAsync("SELECT COUNT(*) FROM VeriFactuConfiguracion WHERE IdSociedad = ?", id), CultureInfo.InvariantCulture) > 0;
+                // El número de serie se quita: manda la huella elegida aquí.
+                if (existe) await s.EjecutarAsync("UPDATE VeriFactuConfiguracion SET CertificateThumbprint = ?, CertificateSerial = Null WHERE IdSociedad = ?", huella, id);
+                else await s.EjecutarAsync("INSERT INTO VeriFactuConfiguracion (IdSociedad, CertificateThumbprint) VALUES (?, ?)", id, huella);
+                return true;
+            });
+        }
+        catch (ExcepcionDatos ex)
+        {
+            return Resultado<RegistroMantenimiento>.Fallo(new Error("Certificado.Guardar", $"No he podido guardar el certificado: {ex.Message}", Titulo));
+        }
+        return Resultado<RegistroMantenimiento>.Correcto((await ListarAsync(c))[0]);
+    }
+
+    public override async Task<Resultado<ResultadoAccion>> EjecutarAsync(string accion, RegistroMantenimiento registro, ContextoMantenimiento c)
+    {
+        if (accion != "probaraeat") return await base.EjecutarAsync(accion, registro, c);
+        var nif = await bd.EjecutarAsync(s => s.EscalarAsync("SELECT CIF FROM Sociedades WHERE IdSociedad = ?", c.Trabajo.IdSociedad)) as string;
+        if (string.IsNullOrWhiteSpace(nif))
+            return Resultado<ResultadoAccion>.Fallo(new Error("Certificado.SinNif", "La empresa no tiene NIF: no hay nada que consultar.", Titulo));
+        Proveedores.ResultadoNifAeat r;
+        try
+        {
+            r = consultar is not null ? await consultar(c.Trabajo.IdSociedad, nif.Trim(), CancellationToken.None)
+                : await new Integraciones.ConsultaNifAeatVNif(bd).ConsultarAsync(c.Trabajo.IdSociedad, nif.Trim(), null);
+        }
+        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or System.Security.Cryptography.CryptographicException)
+        {
+            r = Proveedores.ResultadoNifAeat.SinConsultar($"No he podido conectar con la AEAT: {ex.Message}");
+        }
+        if (r.Identificado) return Resultado<ResultadoAccion>.Correcto(new ResultadoAccion($"La AEAT responde con este certificado: el NIF {nif.Trim()} es de {r.RazonSocial}."));
+        return r.Consultado
+            ? Resultado<ResultadoAccion>.Correcto(new ResultadoAccion($"La AEAT responde con este certificado, pero no identifica el NIF {nif.Trim()}: {r.Motivo}"))
+            : Resultado<ResultadoAccion>.Fallo(new Error("Certificado.SinAeat", r.Motivo ?? "No he podido consultar la AEAT.", Titulo, null,
+                "Comprueba que el certificado elegido está instalado en este equipo con su clave privada y que no ha caducado."));
+    }
+
+    /// <summary>Certificados con clave privada y sin caducar del almacén personal del equipo y del usuario.</summary>
+    public static IReadOnlyList<CertificadoEquipo> CertificadosEquipo()
+    {
+        var lista = new Dictionary<string, CertificadoEquipo>(StringComparer.OrdinalIgnoreCase);
+        foreach (var ubicacion in new[] { System.Security.Cryptography.X509Certificates.StoreLocation.CurrentUser, System.Security.Cryptography.X509Certificates.StoreLocation.LocalMachine })
+        {
+            using var almacen = new System.Security.Cryptography.X509Certificates.X509Store(System.Security.Cryptography.X509Certificates.StoreName.My, ubicacion);
+            try { almacen.Open(System.Security.Cryptography.X509Certificates.OpenFlags.ReadOnly | System.Security.Cryptography.X509Certificates.OpenFlags.OpenExistingOnly); }
+            catch (System.Security.Cryptography.CryptographicException) { continue; }
+            foreach (var x in almacen.Certificates)
+            {
+                using (x)
+                {
+                    if (!x.HasPrivateKey || x.NotAfter < DateTime.Now || lista.ContainsKey(x.Thumbprint)) continue;
+                    lista[x.Thumbprint] = new CertificadoEquipo(x.Thumbprint.ToUpperInvariant(), Titular(x.Subject), NifDe(x.Subject), x.NotAfter);
+                }
+            }
+        }
+        return lista.Values.OrderBy(c => c.Titular, StringComparer.CurrentCulture).ToList();
+    }
+
+    /// <summary>El nombre del titular (CN, o la organización) del sujeto del certificado.</summary>
+    internal static string Titular(string sujeto)
+    {
+        string? Valor(string clave) => System.Text.RegularExpressions.Regex.Match(sujeto, $@"(?:^|,\s*){clave}=(""[^""]*""|[^,]*)") is { Success: true } m ? m.Groups[1].Value.Trim('"', ' ') : null;
+        return Valor("CN") ?? Valor("O") ?? sujeto;
+    }
+
+    /// <summary>NIF del sujeto: el identificador de organización (VATES-…) o el número de serie (IDCES-…).</summary>
+    internal static string? NifDe(string sujeto)
+    {
+        var m = System.Text.RegularExpressions.Regex.Match(sujeto, @"(?:OID\.2\.5\.4\.97|organizationIdentifier)=VATES-([A-Z0-9]+)", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+        if (m.Success) return m.Groups[1].Value.ToUpperInvariant();
+        m = System.Text.RegularExpressions.Regex.Match(sujeto, @"SERIALNUMBER=(?:IDCES-)?([A-Z0-9]{9})", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+        return m.Success ? m.Groups[1].Value.ToUpperInvariant() : null;
     }
 }

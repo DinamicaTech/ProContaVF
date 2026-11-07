@@ -132,3 +132,4 @@ Pruebas automáticas (sin red, con la AEAT simulada) y, después, la misma bater
 
 ## Hand-over
 - 2026-11-01 16:20 · Hecho: análisis funcional de la implementación anterior y lista de lo que necesita el corte. Pendiente: el desarrollo (draft de este nodo), que se hará después del ente FacturaVenta y con las preguntas abiertas cerradas.
+- 2026-11-07 18:48 · Pantalla «Certificado de la empresa» (Mantenimientos › Parámetros, por empresa; decisión de Ronald, la hizo el hilo de compras): desplegable con los certificados de Windows (almacén personal del usuario y del equipo) con clave privada y sin caducar, con titular, NIF y caducidad; guarda la huella en VeriFactuConfiguracion.CertificateThumbprint (quita CertificateSerial) y, si la empresa no tiene fila, la crea solo con la huella. «Probar con la AEAT» consulta en VNifV2 el NIF de la propia empresa. Si el certificado guardado no está en el equipo, sale como «No instalado en este equipo».
