@@ -399,6 +399,9 @@ public sealed class FichaCompraVM : ModeloVista
         ? "La cuota la autorrepercute la empresa con el tipo general del ejercicio (intracomunitarias, importación y casos de inversión); la factura no lleva IVA."
         : "Una factura con inversión del sujeto pasivo no puede llevar IVA: deja la cuota a 0 para marcarla.";
 
+    /// <summary>Cuenta de gasto genérica que dejaba el ERP cuando no se sabía la buena: se trata como «sin cuenta».</summary>
+    internal const string CuentaGastoGenerica = "6000000";
+
     public OpcionFicha<string> CuentaGasto
     {
         get => _cuentaGasto;
@@ -691,7 +694,7 @@ public sealed class FichaCompraVM : ModeloVista
 
     /// <summary>
     /// Vuelca lo leído de nuevo del PDF («Volver a reconocer») sobre la ficha, como cambios sin guardar: el número, la
-    /// fecha, el NIF y los importes. No toca la imputación ni las notas.
+    /// fecha, el NIF, los importes y el concepto; la cuenta de gasto y el centro solo si la ficha no los tiene. No toca las notas.
     /// </summary>
     internal void AplicarLectura(FacturaCompra leida)
     {
@@ -719,8 +722,23 @@ public sealed class FichaCompraVM : ModeloVista
                 _conceptoFactura = leida.ConceptoFactura.Trim();
                 _conceptoAbreviado = FacturaCompra.Abreviar(_conceptoFactura) ?? "";
             }
+            // Sin cuenta de gasto (o con la genérica 6000000), la de la lectura: textos clave o la del proveedor por defecto.
+            // Lo mismo el centro de coste. Una imputación ya elegida no se toca.
+            if ((_cuentaGasto.Valor is null || _cuentaGasto.Valor == CuentaGastoGenerica) && leida.CuentaGasto is { Length: > 0 } cg && cg != _cuentaGasto.Valor)
+            {
+                var op = _cuentasGasto.FirstOrDefault(c => c.Valor == cg);
+                if (op is null)
+                {
+                    op = new OpcionFicha<string>($"{cg} · (no está en el plan del ejercicio)", cg);
+                    _cuentasGasto = [_cuentasGasto[0], .. _cuentasGasto.Skip(1).Append(op).OrderBy(c => c.Valor, StringComparer.Ordinal)];
+                }
+                _cuentaGasto = op;
+            }
+            if (_centroCoste.Valor is null && leida.IdCentroCoste is int cc && CentrosCoste.FirstOrDefault(c => c.Valor == cc) is { } centro)
+                _centroCoste = centro;
         }
         finally { _cargando = false; }
+        Avisar(nameof(CuentasGasto), nameof(CuentaGasto), nameof(CodigoCuentaGasto), nameof(NombreCuentaGasto), nameof(CentroCoste));
         Avisar(nameof(ConceptoFactura), nameof(ConceptoAbreviado), nameof(AvisoProveedor), nameof(RazonSocialAeat));
         SincronizarTipoRetencion();
         ProponerFormaPago();

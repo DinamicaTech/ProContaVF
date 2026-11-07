@@ -148,6 +148,26 @@ public sealed class FichaCompraTests
     }
 
     [Fact]
+    public void Volver_a_reconocer_pone_la_cuenta_de_gasto_del_proveedor_si_no_habia_y_no_cambia_la_elegida()
+    {
+        var sin = Factura();
+        sin.CuentaGasto = null;
+        sin.IdCentroCoste = null;
+        var f = Ficha(sin);
+        var leida = Factura();
+        leida.CuentaGasto = "6230000";
+        leida.IdCentroCoste = 3;
+        f.AplicarLectura(leida);
+        Assert.Equal(("6230000", 3), (f.Construir().CuentaGasto, f.Construir().IdCentroCoste));
+
+        var con = Factura();
+        con.CuentaGasto = "6290001";
+        var g = Ficha(con);
+        g.AplicarLectura(leida);
+        Assert.Equal("6290001", g.Construir().CuentaGasto);
+    }
+
+    [Fact]
     public void Escribir_el_total_de_un_tipo_reparte_base_e_iva()
     {
         var f = Ficha();
