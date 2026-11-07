@@ -285,6 +285,8 @@ public partial class VentanaPrincipal : Window
             : activo is int t ? $"El trimestre contable activo es {ServicioTrimestreActivo.Nombre(t)}." : "El ejercicio no tiene trimestre activo.";
         var eleccion = ServicioMensajes.Preguntar(this, alEntrar ? "Hoy no cae en el trimestre activo" : "Trimestre activo", texto, null, [.. opciones.Select(o => o.Opcion)]);
         if (eleccion >= 0 && eleccion < opciones.Count && opciones[eleccion].Accion is { } accion) await accion();
+        // El foco vuelve a la pantalla activa: si no, sus atajos (p. ej. Ctrl+L) no responden hasta hacer clic en ella.
+        if (_area.Activa?.Vista is UIElement vista) vista.MoveFocus(new TraversalRequest(FocusNavigationDirection.First));
         await RefrescarTrimestreAsync();
     }
 

@@ -1,3 +1,4 @@
+using ProConta.UI.Base.Formato;
 using ProConta.Compras.Facturas;
 using ProConta.Compras.UI.VistaModelos;
 using ProConta.Contabilidad.CentrosCoste;
@@ -151,12 +152,11 @@ public sealed class FichaCompraTests
     {
         var f = Ficha();
         var d = f.Desgloses.Single(x => x.TipoValor == 21m);
-        Assert.Equal("121,00 €", d.Total);
+        Assert.Equal(Formatos.Importe(121m), d.Total);
         d.Total = "242";
-        Assert.Equal(("200,00 €", "42,00 €"), (d.Base, d.Cuota));
+        Assert.Equal((200m, 42m), (d.BaseValor, d.CuotaValor));
         d.Total = "100";
-        Assert.Equal(100m, d.BaseValor + d.CuotaValor);
-        Assert.Equal(("82,64 €", "17,36 €"), (d.Base, d.Cuota));
+        Assert.Equal((82.64m, 17.36m), (d.BaseValor, d.CuotaValor));
     }
 
     [Fact]
