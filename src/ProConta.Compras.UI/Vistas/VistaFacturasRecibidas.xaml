@@ -136,6 +136,7 @@
             <DataGridTextColumn Header="" Binding="{Binding Marca}" Width="28" ElementStyle="{StaticResource Texto.Celda}" pc:TablaProConta.Clave="marca" pc:TablaProConta.SiempreVisible="True" />
             <DataGridTextColumn Header="Fichero" Binding="{Binding Fichero}" Width="200" ElementStyle="{StaticResource Texto.Celda}" pc:TablaProConta.Clave="fichero" pc:TablaProConta.SiempreVisible="True" />
             <DataGridTextColumn Header="Proveedor" Binding="{Binding Proveedor}" Width="170" ElementStyle="{StaticResource Texto.Celda}" pc:TablaProConta.Clave="proveedor" />
+            <DataGridTextColumn Header="Carpeta" Binding="{Binding Carpeta}" Width="140" ElementStyle="{StaticResource Texto.Celda}" pc:TablaProConta.Clave="carpeta" />
             <DataGridTextColumn Header="Fecha" Binding="{Binding Fecha}" SortMemberPath="FechaOrden" Width="92" ElementStyle="{StaticResource Texto.Celda}" pc:TablaProConta.Clave="fecha" />
             <DataGridTextColumn Header="Número" Binding="{Binding Numero}" Width="130" ElementStyle="{StaticResource Texto.Celda.Mono}" pc:TablaProConta.Clave="numero" />
             <DataGridTextColumn Header="Total" Binding="{Binding Total}" SortMemberPath="TotalOrden" Width="105" ElementStyle="{StaticResource Texto.Celda.Importe}" HeaderStyle="{StaticResource Tabla.Cabecera.Derecha}" pc:TablaProConta.Clave="total" />
@@ -144,7 +145,6 @@
             <DataGridTextColumn Header="NIF" Binding="{Binding Nif}" Width="110" ElementStyle="{StaticResource Texto.Celda.Mono}" pc:TablaProConta.Clave="nif" pc:TablaProConta.OcultaDeFabrica="True" />
             <DataGridTextColumn Header="Base" Binding="{Binding Base}" SortMemberPath="BaseOrden" Width="105" ElementStyle="{StaticResource Texto.Celda.Importe}" HeaderStyle="{StaticResource Tabla.Cabecera.Derecha}" pc:TablaProConta.Clave="base" pc:TablaProConta.OcultaDeFabrica="True" />
             <DataGridTextColumn Header="Confianza" Binding="{Binding Confianza}" Width="80" ElementStyle="{StaticResource Texto.Celda}" pc:TablaProConta.Clave="confianza" pc:TablaProConta.OcultaDeFabrica="True" />
-            <DataGridTextColumn Header="Carpeta" Binding="{Binding Carpeta}" Width="140" ElementStyle="{StaticResource Texto.Celda}" pc:TablaProConta.Clave="carpeta" pc:TablaProConta.OcultaDeFabrica="True" />
             <DataGridTextColumn Header="Asiento" Binding="{Binding Asiento}" Width="80" ElementStyle="{StaticResource Texto.Celda}" pc:TablaProConta.Clave="asiento" pc:TablaProConta.OcultaDeFabrica="True" />
           </pc:TablaProConta.Columns>
         </pc:TablaProConta>

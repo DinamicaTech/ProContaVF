@@ -290,6 +290,18 @@ public sealed class FichaCompraVM : ModeloVista
     private string? _razonAeat;
 
     /// <summary>
+    /// Razón social consultada en la AEAT al abrir la factura (compras/pantallas 2026-11-07 19:42): sale bajo el NIF si el
+    /// NIF de la ficha sigue siendo ese. No deja cambios: se guarda con la factura la próxima vez que se guarde.
+    /// </summary>
+    internal void RazonSocialConsultada(string nif, string razon)
+    {
+        if (!string.Equals(Nucleo.Identificacion.Nif.Normalizar(nif), Nucleo.Identificacion.Nif.Normalizar(_nif), StringComparison.OrdinalIgnoreCase)) return;
+        _razonAeat = razon.Trim();
+        _nifLeido = nif;
+        Avisar(nameof(AvisoProveedor), nameof(RazonSocialAeat), nameof(PuedeDarDeAltaProveedor));
+    }
+
+    /// <summary>
     /// Razón social que dio la AEAT para el NIF leído (compras/pantallas 2026-11-07), solo si el NIF de la ficha es ese:
     /// sale bajo el NIF con el botón «Dar de alta».
     /// </summary>

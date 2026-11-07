@@ -184,6 +184,21 @@ public sealed class FichaCompraTests
     }
 
     [Fact]
+    public void La_razon_social_consultada_al_abrir_sale_bajo_el_nif_si_no_ha_cambiado()
+    {
+        var sin = Factura();
+        sin.IdProveedor = null;
+        sin.NifProveedor = "ESN2763708A";
+        var f = Ficha(sin);
+        Assert.Equal("Ningún proveedor de la empresa tiene este NIF.", f.AvisoProveedor);
+        f.RazonSocialConsultada("ESN2763708A", "VENDEDOR FICTICIO SARL");
+        Assert.Equal("VENDEDOR FICTICIO SARL", f.RazonSocialAeat);
+        Assert.False(f.TieneCambios);
+        f.RazonSocialConsultada("B00000000", "OTRA");
+        Assert.Equal("VENDEDOR FICTICIO SARL", f.RazonSocialAeat);
+    }
+
+    [Fact]
     public void Escribir_el_total_de_un_tipo_reparte_base_e_iva()
     {
         var f = Ficha();
