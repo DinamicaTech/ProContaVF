@@ -51,7 +51,9 @@ public interface IDialogosCompras
     /// «Añadir texto clave…»: pide el texto y qué asigna (la cuenta, el centro o los dos, de los que se dan) y lo guarda con
     /// <paramref name="guardar"/>, que devuelve el error que se enseña en el diálogo o null. True si se guardó.
     /// </summary>
-    bool PedirTextoClave(string? cuenta, string? centro, Func<string, bool, bool, Task<string?>> guardar);
+    /// <param name="textoInicial">Texto ya escrito (el seleccionado en el PDF).</param>
+    /// <param name="soloCampo">«cuenta» o «centro»: solo esa casilla marcada (la del campo con el foco); null, las dos.</param>
+    bool PedirTextoClave(string? cuenta, string? centro, Func<string, bool, bool, Task<string?>> guardar, string? textoInicial = null, string? soloCampo = null);
 
     /// <summary>
     /// Alta de proveedor sin razón social confirmada por la AEAT: formulario con el NIF y la razón social obligatorios y

@@ -23,6 +23,9 @@ public partial class VistaFacturasRecibidas : UserControl
     private const string ClaveAnchos = "compras.recibidas.anchos";
     private const double MinLista = 260, MinFicha = 420, MinVisor = 320, Paso = 40;
     private TextBox? _campoCaptura;
+
+    /// <summary>«cuenta» o «centro» si el último campo con el foco es la cuenta de gasto o el centro de coste.</summary>
+    private string? _campoClave;
     private FichaCompraVM? _fichaObservada;
     private VentanaVisor? _ventanaVisor;
     private bool _listaOculta;
@@ -106,6 +109,19 @@ public partial class VistaFacturasRecibidas : UserControl
     {
         if (sender is not TextBox t) return;
         _campoCaptura = t;
+        _campoClave = null;
+        Resaltar();
+    }
+
+    /// <summary>
+    /// Foco en la cuenta de gasto o en el centro de coste (propietario 2026-11-07 19:55): el texto que se seleccione en el PDF
+    /// abre «Añadir texto clave» con ese texto y ese campo marcado, en lugar de escribirse en el campo.
+    /// </summary>
+    private void CampoClave_GotKeyboardFocus(object sender, KeyboardFocusChangedEventArgs e)
+    {
+        if (sender is not FrameworkElement { Tag: string campo }) return;
+        _campoClave = campo;
+        _campoCaptura = null;
         Resaltar();
     }
 
@@ -120,6 +136,11 @@ public partial class VistaFacturasRecibidas : UserControl
             if (campo is null || seleccion.Punto is not { } punto) return;
             ficha.Elegir(campo, punto);
             Vm.AvisarElegido(campo);
+            return;
+        }
+        if (_campoClave is { } clave)
+        {
+            ficha.AnadirTextoClaveDesdePdf(seleccion.Texto, clave);
             return;
         }
         if (_campoCaptura is not { IsReadOnly: false, IsLoaded: true } caja) return;
@@ -148,6 +169,7 @@ public partial class VistaFacturasRecibidas : UserControl
         _fichaObservada = Vm?.Ficha;
         if (_fichaObservada is not null) _fichaObservada.PropertyChanged += AlCambiarFicha;
         _campoCaptura = null;
+        _campoClave = null;
         Resaltar();
     }
 

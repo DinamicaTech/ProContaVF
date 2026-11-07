@@ -51,6 +51,22 @@ public sealed class BuscadorCuentasVMTests
     }
 
     [Fact]
+    public async Task Sin_el_filtro_la_cuenta_de_gasto_admite_inmovilizado_y_las_otras_permitidas_pero_no_el_banco()
+    {
+        var plan = new PlanFalso();
+        plan.Cuentas.Add(C(20, "2180001", "Elementos de transporte"));
+        plan.Cuentas.Add(C(21, "4070001", "Anticipos a proveedores"));
+        var vm = new BuscadorCuentasVM(plan, Ctx, FacturaCompra.GruposCuentaGasto, null, ampliados: FacturaCompra.OtrasCuentasGasto);
+        await vm.CargarAsync();
+        Assert.DoesNotContain(vm.Resultados, c => c.Codigo == "2180001");
+        vm.SoloGrupos = false;
+        Assert.Contains(vm.Resultados, c => c.Codigo == "2180001");
+        Assert.Contains(vm.Resultados, c => c.Codigo == "4070001");
+        Assert.DoesNotContain(vm.Resultados, c => c.Codigo == "5720017");
+        Assert.False((await vm.SiguienteCodigoAsync("572")).EsCorrecto);
+    }
+
+    [Fact]
     public async Task Filtra_por_grupo_con_casilla_y_propone_la_cuenta_de_la_seleccionada()
     {
         var vm = new BuscadorCuentasVM(new PlanFalso(), Ctx, ["6"], "santander");

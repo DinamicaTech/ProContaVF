@@ -199,8 +199,8 @@ public sealed class FacturasRecibidasVM : ModeloVista, IPestanaTrabajo
         try
         {
             _proveedores = await _s.Facturas.ProveedoresAsync(_s.Trabajo);
-            _cuentasGasto = (await _s.Cuentas.ListarAsync(_s.Trabajo, "6"))
-                .Where(c => c.EstaActiva && !c.EstaBloqueada && c.Codigo.Length >= 7)
+            _cuentasGasto = (await _s.Cuentas.ListarAsync(_s.Trabajo))
+                .Where(c => c.EstaActiva && !c.EstaBloqueada && c.Codigo.Length >= 7 && FacturaCompra.EsCuentaGastoPermitida(c.Codigo))
                 .OrderBy(c => c.Codigo, StringComparer.Ordinal)
                 .Select(c => new OpcionFicha<string>($"{c.Codigo} · {c.Nombre}", c.Codigo)).ToList();
             _centros = await _s.CentrosCoste.ListarAsync(_s.Trabajo.IdSociedad);
@@ -469,9 +469,10 @@ public sealed class FacturasRecibidasVM : ModeloVista, IPestanaTrabajo
     /// </summary>
     private Task<ProConta.Contabilidad.Cuentas.CuentaContable?> BuscarCuentaGastoAsync(string texto)
     {
-        var buscador = new ProConta.Contabilidad.UI.BuscadorCuentasVM(_s.Cuentas, _s.Trabajo, ["6"], texto, _s.CentrosCoste);
+        var buscador = new ProConta.Contabilidad.UI.BuscadorCuentasVM(_s.Cuentas, _s.Trabajo, FacturaCompra.GruposCuentaGasto, texto, _s.CentrosCoste,
+            ampliados: FacturaCompra.OtrasCuentasGasto);
         var c = _modulo.Dialogos.ElegirCuenta(buscador, "Cuenta de gasto");
-        if (c is not null && c.Codigo.StartsWith('6') && _cuentasGasto.All(o => o.Valor != c.Codigo))
+        if (c is not null && FacturaCompra.EsCuentaGastoPermitida(c.Codigo) && _cuentasGasto.All(o => o.Valor != c.Codigo))
             _cuentasGasto = [.. _cuentasGasto.Append(new OpcionFicha<string>($"{c.Codigo} · {c.Nombre}", c.Codigo)).OrderBy(o => o.Valor, StringComparer.Ordinal)];
         return Task.FromResult(c);
     }
@@ -588,16 +589,22 @@ public sealed class FacturasRecibidasVM : ModeloVista, IPestanaTrabajo
     }
 
     /// <summary>Pide un texto clave con la cuenta y el centro de la ficha y lo guarda en la empresa (compras/pantallas 2026-11-06 17:02).</summary>
-    private Task AnadirTextoClaveAsync(FichaCompraVM ficha)
+    private Task AnadirTextoClaveAsync(FichaCompraVM ficha, string? textoInicial, string? soloCampo)
     {
         if (_s.TextosClave is not { } catalogo) return Task.CompletedTask;
         var cuenta = ficha.CuentaGastoActual;
         var centro = ficha.CentroCosteActual;
+        // Desde el PDF, el campo con el foco tiene que tener ya su valor.
+        if (soloCampo == "cuenta" && cuenta is null || soloCampo == "centro" && centro is null)
+        {
+            _modulo.Avisar(soloCampo == "cuenta" ? "Elige primero la cuenta de gasto y vuelve a seleccionar el texto en el PDF." : "Elige primero el centro de coste y vuelve a seleccionar el texto en el PDF.");
+            return Task.CompletedTask;
+        }
         var guardado = _modulo.Dialogos.PedirTextoClave(cuenta?.Texto, centro?.Texto, async (texto, conCuenta, conCentro) =>
         {
             var r = await catalogo.GuardarAsync(_s.Trabajo, null, texto, conCuenta ? cuenta?.Codigo : null, conCentro ? centro?.Id : null);
             return r.EsCorrecto ? null : r.Error!.Mensaje + (r.Error.AccionCorrectora is { } a ? " " + a : "");
-        });
+        }, textoInicial, soloCampo);
         if (guardado) _modulo.Avisar("Texto clave guardado: se aplicará a los PDF que se lean a partir de ahora.");
         return Task.CompletedTask;
     }

@@ -32,13 +32,14 @@ public sealed record TramoLibroCompra(decimal TipoIva, decimal Base, decimal Cuo
 }
 
 /// <summary>Registro del libro de IVA soportado de un asiento (IVASoportado y sus desgloses), en euros.</summary>
-public sealed record LibroCompra(decimal Total, IReadOnlyList<TramoLibroCompra> Tramos)
+/// <param name="BienInversion">Compra de un bien de inversión (cuenta del grupo 2): en el 303 va en sus casillas y se regulariza.</param>
+public sealed record LibroCompra(decimal Total, IReadOnlyList<TramoLibroCompra> Tramos, bool BienInversion = false)
 {
     public decimal Base => Tramos.Sum(t => t.Base);
     public decimal CuotaSoportada => Tramos.Sum(t => t.CuotaSoportada);
     public decimal CuotaAutorrepercutida => Tramos.Sum(t => t.CuotaAutorrepercutida);
     public decimal CuotaDeducible => Tramos.Sum(t => t.CuotaDeducible);
-    public LibroCompra Negado() => new(-Total, [.. Tramos.Select(t => t.Negado())]);
+    public LibroCompra Negado() => new(-Total, [.. Tramos.Select(t => t.Negado())], BienInversion);
     /// <summary>Sin registro en el libro (un asiento del ERP sin IVA soportado grabado).</summary>
     public bool Vacio => Total == 0m && Tramos.Count == 0;
 }
@@ -170,7 +171,7 @@ public static class AsientoCompra
             if (descuadre > 0m) Anadir(cuentas.RedondeoIngresos, descuadre, false, texto, motivoApunte: explicacion);
             else Anadir(cuentas.RedondeoGastos, -descuadre, true, texto, motivoApunte: explicacion);
         }
-        return new PropuestaAsientoCompra(asiento, new LibroCompra(total, tramos), descuadre);
+        return new PropuestaAsientoCompra(asiento, new LibroCompra(total, tramos, FacturaCompra.EsBienInversion(f.CuentaGasto)), descuadre);
     }
 
     /// <summary>Contra-asiento de otro: los mismos apuntes con Debe y Haber cambiados, con la fecha que se le pase (la del original o el día 1 del trimestre activo).</summary>

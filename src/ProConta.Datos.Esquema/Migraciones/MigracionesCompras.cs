@@ -178,6 +178,16 @@ public static class MigracionesCompras
         "compras/factura-compra",
         new AnadirColumna("CuentasProveedoresSociedad", "ConceptoAbreviadoDefecto", "TEXT(60)"));
 
+    /// <summary>
+    /// Bien de inversión en el libro de IVA soportado (propietario 2026-11-07 19:55): la compra con cuenta de gasto del grupo 2
+    /// (inmovilizado) va en las casillas de bienes de inversión del 303 y se regulariza. Solo estructura, sin datos.
+    /// </summary>
+    public static Migracion BienInversionIvaSoportado { get; } = new(
+        "20261107_2000_BIEN_INVERSION_IVA_SOPORTADO", 261107004,
+        "Marca de bien de inversión en el libro de IVA soportado.",
+        "contabilidad/procesos",
+        new AnadirColumna("IVASoportado", "BienInversion", "YESNO"));
+
     private static PasoPersonalizado Relacion(string tabla, string columna, string nombre)
     {
         var sql = $"ALTER TABLE {tabla} ADD CONSTRAINT {nombre} FOREIGN KEY ({columna}) REFERENCES FormasPago (Id)";

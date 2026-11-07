@@ -109,7 +109,22 @@ public sealed class ContabilizacionComprasAccessTests : IDisposable
         Assert.Equal(2, await Contar("SELECT COUNT(*) FROM DesglosesIVASoportado"));
         Assert.Equal(3, await Contar("SELECT p.Numero FROM IVASoportado AS i INNER JOIN PeriodosIVA AS p ON i.IdPeriodoIVA = p.IdPeriodoIVA WHERE i.IdAsiento = ?", r.Valor.IdAsiento));
         Assert.Equal(26m, Convert.ToDecimal(await Bd.EjecutarAsync(s => s.EscalarAsync("SELECT CuotaSoportadaTotal FROM IVASoportado"))));
+        Assert.False(Convert.ToBoolean(await Bd.EjecutarAsync(s => s.EscalarAsync("SELECT BienInversion FROM IVASoportado"))));
         Assert.Equal(PreguntaExportacion.Ninguna, (await servicio.ComprobarAsync(g)).Pregunta);
+    }
+
+    [Fact]
+    public async Task Con_una_cuenta_de_inmovilizado_el_libro_de_iva_marca_bien_de_inversion()
+    {
+        await EmpresaAsync();
+        Assert.True((await new CatalogoCuentasAccess(Bd).AltaAsync(_ctx, new AltaCuenta("2180001", "Elementos de transporte", EsImputable: true))).EsCorrecto);
+        var (f, _) = await FacturaAsync();
+        f.CuentaGasto = "2180001";
+        var servicio = Servicio();
+        var r = await servicio.ExportarAsync(f, _actor, new OpcionesExportacion(EsProveedor: false));
+        Assert.True(r.EsCorrecto, r.Error?.ToString());
+        Assert.True(Convert.ToBoolean(await Bd.EjecutarAsync(s => s.EscalarAsync("SELECT BienInversion FROM IVASoportado WHERE IdAsiento = ?", r.Valor.IdAsiento))));
+
     }
 
     [Fact]

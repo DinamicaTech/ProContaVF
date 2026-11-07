@@ -204,7 +204,7 @@ public sealed class FichaCompraVM : ModeloVista
         _cuentaGasto = CuentasGasto.FirstOrDefault(c => c.Valor == factura.CuentaGasto) ?? CuentasGasto[0];
         _centroCoste = CentrosCoste.FirstOrDefault(c => c.Valor == factura.IdCentroCoste) ?? CentrosCoste[0];
         DarDeAltaProveedorCommand = new ComandoDelegado(_ => _ = DarDeAltaProveedor?.Invoke(this), _ => DarDeAltaProveedor is not null && PuedeDarDeAltaProveedor);
-        AnadirTextoClaveCommand = new ComandoDelegado(_ => _ = AnadirTextoClave?.Invoke(this),
+        AnadirTextoClaveCommand = new ComandoDelegado(_ => _ = AnadirTextoClave?.Invoke(this, null, null),
             _ => AnadirTextoClave is not null && (_cuentaGasto.Valor is not null || _centroCoste.Valor is not null));
         _rectifica = Rectificables.FirstOrDefault(r => r.Valor == factura.IdRegistroFacturaRectificada) ?? Rectificables[0];
         _formaPago = FormasPago.FirstOrDefault(x => x.Valor == factura.IdFormaPago) ?? FormasPago[0];
@@ -444,7 +444,17 @@ public sealed class FichaCompraVM : ModeloVista
     public System.Windows.Input.ICommand AnadirTextoClaveCommand { get; }
 
     /// <summary>Lo pone la pantalla: pide el texto y lo guarda.</summary>
-    internal Func<FichaCompraVM, Task>? AnadirTextoClave { get; set; }
+    internal Func<FichaCompraVM, string?, string?, Task>? AnadirTextoClave { get; set; }
+
+    /// <summary>
+    /// Texto seleccionado en el PDF con el foco en la cuenta de gasto o en el centro de coste (propietario 2026-11-07 19:55):
+    /// abre «Añadir texto clave» con ese texto y solo la casilla de ese campo marcada.
+    /// </summary>
+    internal void AnadirTextoClaveDesdePdf(string texto, string campo)
+    {
+        if (AnadirTextoClave is null || string.IsNullOrWhiteSpace(texto)) return;
+        _ = AnadirTextoClave(this, texto, campo);
+    }
 
     /// <summary>Cuenta de gasto elegida en la ficha (código y «código · nombre»), o null.</summary>
     internal (string Codigo, string Texto)? CuentaGastoActual => _cuentaGasto.Valor is { } v ? (v, _cuentaGasto.Texto) : null;

@@ -681,14 +681,14 @@ public sealed class ContabilizadorCompras(IBaseDatos bd, IMotorAsientos motor, I
         await s.EjecutarAsync(
             "INSERT INTO IVASoportado (IdSociedadEjercicio, IdProveedor, IdAsiento, FechaExpedicion, FechaOperacion, FechaHoraRegistroContable, IdPeriodoIVA, NumeroFactura, " +
             "NombreProveedor, IdentificacionFiscalProveedor, PaisProveedor, IdTipoOperacion, TipoBienServicio, InversionSujetoPasivo, ImporteTotalFactura, BaseImponibleTotal, " +
-            "CuotaSoportadaTotal, CuotaDevengadaAutorrepercutidaTotal, CuotaDeducibleTotal, IncluidoModelo347, Estado, Descripcion, OperadorCreacion, FechaHoraCreacion) " +
-            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            "CuotaSoportadaTotal, CuotaDevengadaAutorrepercutidaTotal, CuotaDeducibleTotal, IncluidoModelo347, Estado, Descripcion, OperadorCreacion, FechaHoraCreacion, BienInversion) " +
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
             f.Ejercicio.IdSociedadEjercicio, f.IdProveedor, idAsiento, fecha, fecha, ahora, idPeriodo, Recortar(f.NumeroFactura, 100),
             Recortar(nombreProveedor, 150), Recortar(nif, 30), pais, tipo, f.Producto == ProductoCompra.Servicios ? "SERVICIOS" : "BIENES", f.InversionSujetoPasivo,
             libro.Total, libro.Base, libro.CuotaSoportada, libro.CuotaAutorrepercutida, libro.CuotaDeducible,
             // Modelo 347: nacionales sin retención (las que la llevan se declaran en el 190 o el 180).
             f.Operacion == OperacionCompra.Nacional && (f.ImporteRetencion ?? 0m) == 0m,
-            anulacion ? "ANULACION" : "REGISTRADO", anulacion ? $"Anulación de la {f.Rotulo.ToLowerInvariant()}" : f.Concepto, actor.ToString(), ahora);
+            anulacion ? "ANULACION" : "REGISTRADO", anulacion ? $"Anulación de la {f.Rotulo.ToLowerInvariant()}" : f.Concepto, actor.ToString(), ahora, libro.BienInversion);
         var idLibro = await s.UltimoIdAsync();
         var orden = 1;
         var calificacion = f.InversionSujetoPasivo || f.Operacion == OperacionCompra.Intracomunitaria ? "S2" : "S1";
@@ -711,21 +711,21 @@ public sealed class ContabilizadorCompras(IBaseDatos bd, IMotorAsientos motor, I
     /// </summary>
     private static async Task<LibroCompra> LeerLibroAsync(ISesionDatos s, int idAsiento, FacturaCompra factura)
     {
-        var cabecera = await s.ConsultarPrimeroAsync("SELECT IdIVASoportado, ImporteTotalFactura FROM IVASoportado WHERE IdAsiento = ?",
-            f => (Id: f.Entero("IdIVASoportado"), Total: f.Decimal("ImporteTotalFactura")), idAsiento);
+        var cabecera = await s.ConsultarPrimeroAsync("SELECT IdIVASoportado, ImporteTotalFactura, BienInversion FROM IVASoportado WHERE IdAsiento = ?",
+            f => (Id: f.Entero("IdIVASoportado"), Total: f.Decimal("ImporteTotalFactura"), Bien: f.Logico("BienInversion")), idAsiento);
         var idProveedor = factura.IdProveedor ?? await RepositorioFacturasCompra.ProveedorDeErpAsync(s, factura);
         if (cabecera.Id == 0 && idProveedor is int prov && !string.IsNullOrWhiteSpace(factura.NumeroFactura))
             cabecera = await s.ConsultarPrimeroAsync(
-                "SELECT TOP 1 IdIVASoportado, ImporteTotalFactura FROM IVASoportado WHERE IdAsiento Is Null AND IdProveedor = ? AND Trim(NumeroFactura) = ? " +
+                "SELECT TOP 1 IdIVASoportado, ImporteTotalFactura, BienInversion FROM IVASoportado WHERE IdAsiento Is Null AND IdProveedor = ? AND Trim(NumeroFactura) = ? " +
                 "AND (IdSociedadEjercicio = ? OR IdSociedadEjercicio Is Null) ORDER BY IdIVASoportado",
-                f => (Id: f.Entero("IdIVASoportado"), Total: f.Decimal("ImporteTotalFactura")),
+                f => (Id: f.Entero("IdIVASoportado"), Total: f.Decimal("ImporteTotalFactura"), Bien: f.Logico("BienInversion")),
                 prov, factura.NumeroFactura.Trim(), factura.Ejercicio.IdSociedadEjercicio);
         // El ERP puede haber grabado el número de otra forma: el mismo proveedor, la misma fecha y el mismo total.
         if (cabecera.Id == 0 && idProveedor is int prov2 && factura.Fecha is DateTime fecha && factura.ImporteTotal is decimal total)
             cabecera = await s.ConsultarPrimeroAsync(
-                "SELECT TOP 1 IdIVASoportado, ImporteTotalFactura FROM IVASoportado WHERE IdAsiento Is Null AND IdProveedor = ? AND FechaExpedicion = ? " +
+                "SELECT TOP 1 IdIVASoportado, ImporteTotalFactura, BienInversion FROM IVASoportado WHERE IdAsiento Is Null AND IdProveedor = ? AND FechaExpedicion = ? " +
                 "AND ImporteTotalFactura = ? AND (IdSociedadEjercicio = ? OR IdSociedadEjercicio Is Null) ORDER BY IdIVASoportado",
-                f => (Id: f.Entero("IdIVASoportado"), Total: f.Decimal("ImporteTotalFactura")),
+                f => (Id: f.Entero("IdIVASoportado"), Total: f.Decimal("ImporteTotalFactura"), Bien: f.Logico("BienInversion")),
                 prov2, fecha.Date, total, factura.Ejercicio.IdSociedadEjercicio);
         if (cabecera.Id == 0) return new LibroCompra(0m, []);
         var tramos = await s.ConsultarAsync(
@@ -734,7 +734,7 @@ public sealed class ContabilizadorCompras(IBaseDatos bd, IMotorAsientos motor, I
             "LEFT JOIN CuentasContables AS cr ON d.IdCuentaIVARepercutido = cr.IdCuentaContable WHERE d.IdIVASoportado = ? ORDER BY d.Orden",
             f => new TramoLibroCompra(f.Decimal("TipoIVA"), f.Decimal("BaseImponible"), f.Decimal("CuotaSoportada"), f.Decimal("CuotaDevengadaAutorrepercutida"),
                 f.Texto("CuentaS"), f.Texto("CuentaR")), cabecera.Id);
-        return new LibroCompra(cabecera.Total, tramos);
+        return new LibroCompra(cabecera.Total, tramos, cabecera.Bien);
     }
 
     private static string? Recortar(string? texto, int maximo) => texto is null ? null : texto.Length <= maximo ? texto : texto[..maximo];

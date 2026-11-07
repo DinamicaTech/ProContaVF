@@ -65,6 +65,22 @@ public sealed class FacturaCompra
     public decimal? Suplido { get; set; }
     /// <summary>Cuenta de gasto (FacturasCompra.ConceptoGasto).</summary>
     public string? CuentaGasto { get; set; }
+
+    /// <summary>Grupo de la cuenta de gasto que se ofrece por defecto.</summary>
+    public static readonly IReadOnlyList<string> GruposCuentaGasto = ["6"];
+
+    /// <summary>
+    /// Otras cuentas que se pueden poner en «Cuenta de gasto» quitando el filtro (propietario 2026-11-07 19:55): inmovilizado
+    /// (grupo 2), envases a devolver (406), anticipos (407) y gastos anticipados (480).
+    /// </summary>
+    public static readonly IReadOnlyList<string> OtrasCuentasGasto = ["2", "406", "407", "480"];
+
+    /// <summary>¿La cuenta se puede usar como cuenta de gasto (grupo 6 o las otras permitidas)?</summary>
+    public static bool EsCuentaGastoPermitida(string? cuenta) =>
+        cuenta is { Length: > 0 } c && GruposCuentaGasto.Concat(OtrasCuentasGasto).Any(g => c.StartsWith(g, StringComparison.Ordinal));
+
+    /// <summary>Una cuenta de inmovilizado (grupo 2) hace de la compra un bien de inversión en el libro de IVA.</summary>
+    public static bool EsBienInversion(string? cuenta) => cuenta is { Length: > 0 } c && c.StartsWith('2');
     public int? IdCentroCoste { get; set; }
     /// <summary>Cuenta de la forma de pago grabada por el ERP (dato heredado; la de ProContaVF es <see cref="IdFormaPago"/>).</summary>
     public string? CuentaFormaPago { get; set; }

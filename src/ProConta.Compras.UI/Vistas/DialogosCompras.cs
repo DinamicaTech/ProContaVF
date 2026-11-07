@@ -77,14 +77,14 @@ public sealed class DialogosCompras(Func<Window?> ventana) : IDialogosCompras
         return dialogo.ShowDialog() == true ? (n, nombre.Text.Trim()) : null;
     }
 
-    public bool PedirTextoClave(string? cuenta, string? centro, Func<string, bool, bool, Task<string?>> guardar)
+    public bool PedirTextoClave(string? cuenta, string? centro, Func<string, bool, bool, Task<string?>> guardar, string? textoInicial = null, string? soloCampo = null)
     {
         var dialogo = new DialogoProConta { Title = "Añadir texto clave", Owner = ventana(), Width = 560 };
-        var texto = new TextBox { Width = 420, HorizontalAlignment = HorizontalAlignment.Left, MaxLength = ProConta.Compras.Facturas.ReglasTextosClave.LongitudMaxima,
+        var texto = new TextBox { Text = (textoInicial ?? "").Trim(), Width = 420, HorizontalAlignment = HorizontalAlignment.Left, MaxLength = ProConta.Compras.Facturas.ReglasTextosClave.LongitudMaxima,
             ToolTip = "Palabra o frase del PDF (o de su carpeta) que identifica el gasto; no distingue mayúsculas ni acentos" };
-        var conCuenta = new CheckBox { Content = $"Asignar la cuenta de gasto {cuenta}", IsChecked = cuenta is not null, IsEnabled = cuenta is not null, Margin = new Thickness(0, 12, 0, 0),
+        var conCuenta = new CheckBox { Content = $"Asignar la cuenta de gasto {cuenta}", IsChecked = cuenta is not null && soloCampo is null or "cuenta", IsEnabled = cuenta is not null, Margin = new Thickness(0, 12, 0, 0),
             Visibility = cuenta is null ? Visibility.Collapsed : Visibility.Visible };
-        var conCentro = new CheckBox { Content = $"Asignar el centro de coste {centro}", IsChecked = centro is not null, IsEnabled = centro is not null, Margin = new Thickness(0, 6, 0, 0),
+        var conCentro = new CheckBox { Content = $"Asignar el centro de coste {centro}", IsChecked = centro is not null && soloCampo is null or "centro", IsEnabled = centro is not null, Margin = new Thickness(0, 6, 0, 0),
             Visibility = centro is null ? Visibility.Collapsed : Visibility.Visible };
         var error = new TextBlock { Foreground = System.Windows.Media.Brushes.Firebrick, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 10, 0, 0), Visibility = Visibility.Collapsed };
         var panel = new StackPanel();

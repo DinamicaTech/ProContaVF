@@ -322,7 +322,8 @@
                                     Command="{Binding BuscarCuentaGastoCommand}" CommandParameter="{Binding Text, ElementName=CampoCuentaGasto}"
                                     ToolTip="Busca la cuenta por código o nombre, o crea una subcuenta (F4)" AutomationProperties.Name="Buscar la cuenta de gasto" />
                             <TextBox x:Name="CampoCuentaGasto" DockPanel.Dock="Left" Width="110" Text="{Binding CodigoCuentaGasto, UpdateSourceTrigger=LostFocus}" Style="{StaticResource Campo.Mono}"
-                                     IsReadOnly="{Binding SoloLectura}" ToolTip="Código de la cuenta (629.1 = 6290001); F4 o un código que no existe abren el buscador">
+                                     IsReadOnly="{Binding SoloLectura}" Tag="cuenta" GotKeyboardFocus="CampoClave_GotKeyboardFocus"
+                                     ToolTip="Código de la cuenta (629.1 = 6290001); F4 o un código que no existe abren el buscador. Con el foco aquí, selecciona un texto en el PDF para añadirlo como texto clave">
                               <TextBox.ContextMenu>
                                 <ContextMenu>
                                   <MenuItem Header="Buscar cuenta…" InputGestureText="F4" Command="{Binding BuscarCuentaGastoCommand}" CommandParameter="{Binding PlacementTarget.Text, RelativeSource={RelativeSource AncestorType=ContextMenu}}" />
@@ -342,7 +343,8 @@
                           </DockPanel>
                           <TextBlock Text="Centro de coste" Style="{StaticResource Etiqueta.Campo}" />
                           <ComboBox ItemsSource="{Binding CentrosCoste}" SelectedItem="{Binding CentroCoste}" IsEnabled="{Binding Editable}" pc:ComboFiltro.Activo="True" Margin="0,0,0,8"
-                                    ToolTip="Centro de coste imputable de la empresa; escribe parte del código o del nombre para filtrar la lista">
+                                    Tag="centro" GotKeyboardFocus="CampoClave_GotKeyboardFocus"
+                                    ToolTip="Centro de coste imputable de la empresa; escribe parte del código o del nombre para filtrar la lista. Con el foco aquí, selecciona un texto en el PDF para añadirlo como texto clave">
                             <ComboBox.ContextMenu>
                               <ContextMenu>
                                 <MenuItem Header="Añadir texto clave…" Command="{Binding AnadirTextoClaveCommand}"
