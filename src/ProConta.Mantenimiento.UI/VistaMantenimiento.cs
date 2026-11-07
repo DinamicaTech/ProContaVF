@@ -342,6 +342,13 @@ public sealed class VistaMantenimiento : UserControl
                 etiqueta.Text = " ";
                 control = cb;
                 break;
+            case TipoCampo.Secreto:
+                // Sin enlace al texto: lo escrito pasa al modelo y lo guardado nunca vuelve a la pantalla.
+                var pb = new PasswordBox { IsEnabled = !c.SoloLectura };
+                if (c.Definicion.Longitud is int lp) pb.MaxLength = lp;
+                pb.PasswordChanged += (_, _) => c.Texto = pb.Password;
+                control = pb;
+                break;
             case TipoCampo.Lista:
                 var combo = new ComboBox { ItemsSource = c.Opciones, DisplayMemberPath = nameof(OpcionCampo.Texto), IsEnabled = !c.SoloLectura };
                 combo.SetBinding(System.Windows.Controls.Primitives.Selector.SelectedItemProperty, new Binding(nameof(CampoEdicionVM.Opcion)) { Mode = BindingMode.TwoWay, ValidatesOnNotifyDataErrors = true });

@@ -15,9 +15,10 @@ namespace ProConta.Compras.Integraciones;
 /// las plantillas y el visor funcionen igual.
 /// </summary>
 /// <remarks>
-/// Las credenciales no se guardan en la BD ni en el repositorio: salen del perfil de AWS del puesto (el fichero de
-/// credenciales estándar, o el que diga AWS_SHARED_CREDENTIALS_FILE), con el nombre <see cref="PerfilPorDefecto"/> o el de
-/// la variable PROCONTA_AWS_PERFIL. La región, de ese perfil (AWS_CONFIG_FILE) o de AWS_REGION.
+/// Las credenciales salen de la configuración del reconocimiento de la sociedad (cifradas, <see cref="ConCredenciales"/>);
+/// si no las tiene, del perfil de AWS del puesto (el fichero de credenciales estándar, o el que diga
+/// AWS_SHARED_CREDENTIALS_FILE), con el nombre <see cref="PerfilPorDefecto"/> o el de la variable PROCONTA_AWS_PERFIL. La
+/// región, de ese perfil (AWS_CONFIG_FILE) o de AWS_REGION.
 /// </remarks>
 public sealed class ExtractorOcrTextract(IAmazonTextract cliente) : IExtractorOcrFacturaCompra
 {
@@ -45,6 +46,10 @@ public sealed class ExtractorOcrTextract(IAmazonTextract cliente) : IExtractorOc
             return (null, $"No he podido leer el perfil de AWS «{perfil}»: {ex.Message}");
         }
     }
+
+    /// <summary>El extractor con las claves guardadas en la configuración de la sociedad.</summary>
+    public static ExtractorOcrTextract ConCredenciales(CredencialesOcr c) =>
+        new(new AmazonTextractClient(new BasicAWSCredentials(c.ClaveAcceso, c.Secreto), RegionEndpoint.GetBySystemName(c.Region)));
 
     public async Task<DocumentoFacturaExtraido> ExtraerAsync(string rutaPdf, CancellationToken cancelacion)
     {

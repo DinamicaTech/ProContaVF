@@ -13,6 +13,17 @@ public sealed class ConfiguracionReconocimiento
     public bool UsarOcr { get; init; }
     public decimal UmbralAceptacion { get; init; } = 0.9m;
     public decimal UmbralDiscrepanciaImporte { get; init; } = 0.02m;
+    /// <summary>Claves de AWS de la sociedad, ya descifradas; null si no tiene (se usa el perfil del puesto).</summary>
+    public CredencialesOcr? CredencialesOcr { get; init; }
+    /// <summary>Por qué las claves guardadas no valen (por ejemplo, no se pueden descifrar); null si valen o no hay.</summary>
+    public string? MotivoCredencialesOcr { get; init; }
+}
+
+/// <summary>Claves de AWS para el OCR (compras/reconocimiento 2026-11-07), guardadas cifradas en la configuración de la sociedad.</summary>
+public sealed record CredencialesOcr(string Region, string ClaveAcceso, string Secreto)
+{
+    /// <summary>Sin el secreto, para que no aparezca en registros ni depuración.</summary>
+    public override string ToString() => $"{ClaveAcceso} ({Region})";
 }
 
 /// <summary>Lo que el reconocimiento necesita saber del proveedor y de la sociedad, ya cargado.</summary>
@@ -59,9 +70,31 @@ public sealed class ServicioReconocimientoFacturaCompra(
     IExtractorDocumentoFacturaCompra extractorLocal,
     IExtractorOcrFacturaCompra? extractorOcr = null,
     IProveedorTiposCambioHistoricos? tiposCambio = null,
-    string? motivoSinOcr = null)
+    string? motivoSinOcr = null,
+    Func<CredencialesOcr, IExtractorOcrFacturaCompra>? ocrConCredenciales = null)
 {
     private readonly MotorReconocimientoFacturaCompra _motor = new();
+    private readonly object _bloqueo = new();
+    private (CredencialesOcr Credenciales, IExtractorOcrFacturaCompra Extractor)? _ocrSociedad;
+
+    /// <summary>
+    /// El OCR que toca: con las claves de la sociedad si las tiene; si no, el del perfil de AWS del puesto. Se reutiliza
+    /// mientras las claves no cambien.
+    /// </summary>
+    private IExtractorOcrFacturaCompra? Ocr(ConfiguracionReconocimiento configuracion)
+    {
+        if (configuracion.CredencialesOcr is not { } c || ocrConCredenciales is null) return extractorOcr;
+        lock (_bloqueo)
+        {
+            if (_ocrSociedad is { } actual && actual.Credenciales == c) return actual.Extractor;
+            var nuevo = ocrConCredenciales(c);
+            _ocrSociedad = (c, nuevo);
+            return nuevo;
+        }
+    }
+
+    private string MotivoSinOcr(ConfiguracionReconocimiento c) =>
+        (c.MotivoCredencialesOcr ?? motivoSinOcr) is { Length: > 0 } m ? $" ({m.TrimEnd('.')})" : "";
 
     public async Task<FacturaReconocida> ReconocerAsync(string rutaPdf, ContextoProcesamiento contexto, CancellationToken cancelacion = default)
     {
@@ -80,16 +113,17 @@ public sealed class ServicioReconocimientoFacturaCompra(
 
         if (local.RequiereOcr)
         {
-            if (contexto.Configuracion.Activo && contexto.Configuracion.UsarOcr && extractorOcr is not null)
+            var ocr = Ocr(contexto.Configuracion);
+            if (contexto.Configuracion.Activo && contexto.Configuracion.UsarOcr && ocr is not null)
             {
                 razonOcr = "pdf_sin_texto_nativo";
-                documento = await extractorOcr.ExtraerAsync(rutaPdf, cancelacion).ConfigureAwait(false);
+                documento = await ocr.ExtraerAsync(rutaPdf, cancelacion).ConfigureAwait(false);
                 elegido = _motor.Reconocer(documento, contexto.Reconocimiento);
                 fuente = "ocr";
                 advertencias = [.. elegido.Advertencias, "Leído con OCR porque el PDF no tiene texto nativo."];
             }
-            else advertencias.Add(contexto.Configuracion.Activo && contexto.Configuracion.UsarOcr && extractorOcr is null
-                ? $"El PDF no tiene texto y este equipo no tiene el OCR configurado{(motivoSinOcr is null ? "" : $" ({motivoSinOcr.TrimEnd('.')})")}: rellena los campos a mano."
+            else advertencias.Add(contexto.Configuracion.Activo && contexto.Configuracion.UsarOcr && ocr is null
+                ? $"El PDF no tiene texto y el OCR no tiene claves de AWS{MotivoSinOcr(contexto.Configuracion)}: guárdalas en Mantenimientos › Reconocimiento de facturas de compra o rellena los campos a mano."
                 : "El OCR no está activo para esta sociedad: rellena los campos a mano.");
         }
 

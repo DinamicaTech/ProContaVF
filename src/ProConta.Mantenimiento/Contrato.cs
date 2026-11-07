@@ -42,7 +42,11 @@ public enum TipoCampo
     Cuenta,
     Ruta,
     Email,
-    Fecha
+    Fecha,
+    /// <summary>
+    /// Clave o contraseña: se escribe sin verse y nunca se muestra lo guardado; vacío, se conserva lo que hubiera.
+    /// </summary>
+    Secreto
 }
 
 public sealed record OpcionCampo(object? Valor, string Texto);

@@ -473,15 +473,32 @@ internal static class RepositorioFacturasCompra
     /// <summary>Configuración del reconocimiento de la empresa; sin fila, la predeterminada (activo, sin OCR ni VIES).</summary>
     public static async Task<ConfiguracionReconocimiento> ConfiguracionAsync(ISesionDatos s, string idSociedad) =>
         await s.ConsultarPrimeroAsync(
-            "SELECT Activo, SociedadTieneVies, UsarTextract, UmbralAceptacion, UmbralDiscrepanciaImporte FROM ConfiguracionReconocimientoFacturasCompra WHERE IdSociedad = ?",
-            r => new ConfiguracionReconocimiento
+            "SELECT Activo, SociedadTieneVies, UsarTextract, UmbralAceptacion, UmbralDiscrepanciaImporte, RegionAWS, ClaveAccesoAWS, SecretoAWSProtegido " +
+            "FROM ConfiguracionReconocimientoFacturasCompra WHERE IdSociedad = ?",
+            r =>
             {
-                Activo = r.Logico("Activo"),
-                SociedadTieneVies = r.Logico("SociedadTieneVies"),
-                UsarOcr = r.Logico("UsarTextract"),
-                UmbralAceptacion = r.Decimal("UmbralAceptacion"),
-                UmbralDiscrepanciaImporte = r.Decimal("UmbralDiscrepanciaImporte")
+                var (credenciales, motivo) = Credenciales(r.Texto("RegionAWS"), r.Texto("ClaveAccesoAWS"), r.Texto("SecretoAWSProtegido"));
+                return new ConfiguracionReconocimiento
+                {
+                    Activo = r.Logico("Activo"),
+                    SociedadTieneVies = r.Logico("SociedadTieneVies"),
+                    UsarOcr = r.Logico("UsarTextract"),
+                    UmbralAceptacion = r.Decimal("UmbralAceptacion"),
+                    UmbralDiscrepanciaImporte = r.Decimal("UmbralDiscrepanciaImporte"),
+                    CredencialesOcr = credenciales,
+                    MotivoCredencialesOcr = motivo
+                };
             }, idSociedad) ?? new ConfiguracionReconocimiento();
+
+    /// <summary>Las claves de AWS guardadas de la sociedad, descifradas; sin clave de acceso, ninguna (se usa el perfil del puesto).</summary>
+    internal static (CredencialesOcr? Credenciales, string? Motivo) Credenciales(string? region, string? claveAcceso, string? secretoProtegido)
+    {
+        if (string.IsNullOrWhiteSpace(claveAcceso)) return (null, null);
+        if (string.IsNullOrWhiteSpace(region)) return (null, "las claves de AWS guardadas no dicen la región");
+        if (Integraciones.SecretoProtegido.Desproteger(secretoProtegido) is not { Length: > 0 } secreto)
+            return (null, "no puedo descifrar el secreto de AWS guardado: vuelve a escribirlo");
+        return (new CredencialesOcr(region.Trim(), claveAcceso.Trim(), secreto), null);
+    }
 
     /// <summary>Carpeta de documentos de la empresa (Sociedades.RutaDocumentos) y su nombre.</summary>
     public static Task<(string Nombre, string? Raiz)> EmpresaAsync(ISesionDatos s, string idSociedad) =>

@@ -1,5 +1,6 @@
 using System.Globalization;
 using ProConta.Compras.Facturas;
+using ProConta.Compras.Integraciones;
 using ProConta.Datos.Persistencia;
 using ProConta.Mantenimiento;
 using ProConta.Nucleo.Resultados;
@@ -9,7 +10,8 @@ namespace ProConta.Compras.Mantenimiento;
 /// <summary>Mantenimientos de compras para la pantalla genérica (plataforma/mantenimiento).</summary>
 public static class ProveedoresCompras
 {
-    public static IReadOnlyList<IProveedorMantenimiento> Todos(IBaseDatos bd) => [new ProveedorTextosClaveCompra(new CatalogoTextosClaveCompra(bd))];
+    public static IReadOnlyList<IProveedorMantenimiento> Todos(IBaseDatos bd) =>
+        [new ProveedorTextosClaveCompra(new CatalogoTextosClaveCompra(bd)), new ProveedorReconocimientoCompra(bd)];
 }
 
 /// <summary>
@@ -66,4 +68,118 @@ public sealed class ProveedorTextosClaveCompra(CatalogoTextosClaveCompra catalog
 
     public override Task<Resultado> EliminarAsync(RegistroMantenimiento r, ContextoMantenimiento c) =>
         catalogo.EliminarAsync(c.Trabajo, Convert.ToInt32(r.Clave, CultureInfo.InvariantCulture));
+}
+
+/// <summary>
+/// Parámetros del reconocimiento de facturas de compra de la empresa de trabajo (ConfiguracionReconocimientoFacturasCompra,
+/// compras/reconocimiento 2026-11-07): activo, VIES, OCR y las claves de AWS del OCR. El secreto se guarda cifrado
+/// (<see cref="SecretoProtegido"/>) y nunca vuelve a la pantalla: solo se sustituye o se quita.
+/// </summary>
+public sealed class ProveedorReconocimientoCompra(IBaseDatos bd) : ProveedorBase
+{
+    private const string Tabla = "ConfiguracionReconocimientoFacturasCompra";
+
+    public override string Clave => "reconocimientocompra";
+    public override string Titulo => "Reconocimiento de facturas de compra";
+    public override string Categoria => "Parámetros";
+    public override string Finalidad => "Cómo se leen los PDF de compra de la empresa: si se reconocen, si se usa el OCR para los escaneados y con qué claves de AWS.";
+    public override AmbitoMantenimiento Ambito => AmbitoMantenimiento.Sociedad;
+    public override Cardinalidad Cardinalidad => Cardinalidad.Unico;
+    public override bool PermiteAlta => false;
+    public override bool PermiteBaja => false;
+    public override string NombreRegistro => "configuración del reconocimiento";
+    public override IReadOnlyList<string> Sinonimos => ["ocr", "textract", "aws", "amazon", "escaneado", "credenciales", "vies", "reconocimiento"];
+    public override IReadOnlyList<GrupoCampos> Grupos => [new("rec", "Reconocimiento"), new("ocr", "OCR (Amazon Textract)")];
+    public override IReadOnlyList<AccionMantenimiento> Acciones =>
+        [new("quitarclaves", "Quitar las claves de AWS", "Borra la clave de acceso y el secreto guardados: el OCR usará el perfil de AWS de cada equipo, si lo tiene.")];
+
+    public override IReadOnlyList<CampoMantenimiento> Campos =>
+    [
+        new("Activo", "Reconocer los PDF de compra", TipoCampo.Logico) { Grupo = "rec" },
+        new("SociedadTieneVies", "La empresa está en el VIES", TipoCampo.Logico) { Grupo = "rec", Sinonimos = ["vies", "intracomunitario"] },
+        new("UmbralAceptacion", "Confianza mínima para aceptar", TipoCampo.Decimal) { Grupo = "rec", Obligatorio = true, Minimo = 0m, Maximo = 1m, Ancho = "s",
+            Ayuda = "Entre 0 y 1. Por debajo, la factura queda para revisar." },
+        new("UmbralDiscrepanciaImporte", "Descuadre de importes admitido", TipoCampo.Importe) { Grupo = "rec", Obligatorio = true, Minimo = 0m, Ancho = "s",
+            Ayuda = "Diferencia máxima entre base + IVA − retención y el total para darla por cuadrada." },
+        new("UsarTextract", "Usar OCR en los PDF escaneados", TipoCampo.Logico) { Grupo = "ocr", Sinonimos = ["ocr", "textract"],
+            Ayuda = "Los PDF sin texto se leen con Amazon Textract (tiene coste por página). Sin marcar, esos PDF se rellenan a mano." },
+        new("RegionAWS", "Región de AWS", TipoCampo.Codigo) { Grupo = "ocr", Longitud = 30, Ancho = "s", Sinonimos = ["region"],
+            Ayuda = "Por ejemplo eu-west-1. Obligatoria si se guarda una clave de acceso." },
+        new("ClaveAccesoAWS", "Clave de acceso (Access key ID)", TipoCampo.Codigo) { Grupo = "ocr", Longitud = 128, Ancho = "l", Sinonimos = ["access key", "credenciales"],
+            Ayuda = "De un usuario de AWS que solo pueda usar Textract (DetectDocumentText). Vacía, cada equipo usa su perfil de AWS «proconta-textract»." },
+        new("SecretoAWS", "Clave secreta (Secret access key)", TipoCampo.Secreto) { Grupo = "ocr", Longitud = 128, Ancho = "l", Sinonimos = ["secret", "secreto"],
+            Ayuda = "Se guarda cifrada y no se vuelve a mostrar. Déjala vacía para conservar la guardada." },
+        new("EstadoSecreto", "Clave secreta guardada") { Grupo = "ocr", SoloLectura = true, Ancho = "s" },
+    ];
+
+    public override IReadOnlyList<ColumnaLista> Columnas => [new("ClaveAccesoAWS", "Clave de acceso")];
+
+    public override string TituloRegistro(RegistroMantenimiento r) => "Reconocimiento de facturas de compra";
+
+    public override async Task<IReadOnlyList<RegistroMantenimiento>> ListarAsync(ContextoMantenimiento c) =>
+        [await LeerAsync(c.Trabajo.IdSociedad) ?? await NuevoAsync(c)];
+
+    public override Task<RegistroMantenimiento> NuevoAsync(ContextoMantenimiento contexto) =>
+        Task.FromResult(new RegistroMantenimiento(null, new Dictionary<string, object?>
+        {
+            ["Activo"] = true, ["SociedadTieneVies"] = false, ["UsarTextract"] = false, ["UmbralAceptacion"] = 0.9m, ["UmbralDiscrepanciaImporte"] = 0.02m,
+            ["RegionAWS"] = null, ["ClaveAccesoAWS"] = null, ["SecretoAWS"] = null, ["EstadoSecreto"] = "No",
+        }));
+
+    private Task<RegistroMantenimiento?> LeerAsync(string idSociedad) =>
+        bd.EjecutarAsync(s => s.ConsultarPrimeroAsync(
+            $"SELECT IdConfiguracion, Activo, SociedadTieneVies, UsarTextract, UmbralAceptacion, UmbralDiscrepanciaImporte, RegionAWS, ClaveAccesoAWS, SecretoAWSProtegido FROM {Tabla} WHERE IdSociedad = ?",
+            r => new RegistroMantenimiento(r.Entero("IdConfiguracion"), new Dictionary<string, object?>
+            {
+                ["Activo"] = r.Logico("Activo"), ["SociedadTieneVies"] = r.Logico("SociedadTieneVies"), ["UsarTextract"] = r.Logico("UsarTextract"),
+                ["UmbralAceptacion"] = r.Decimal("UmbralAceptacion"), ["UmbralDiscrepanciaImporte"] = r.Decimal("UmbralDiscrepanciaImporte"),
+                ["RegionAWS"] = r.Texto("RegionAWS"), ["ClaveAccesoAWS"] = r.Texto("ClaveAccesoAWS"), ["SecretoAWS"] = null,
+                ["EstadoSecreto"] = string.IsNullOrWhiteSpace(r.Texto("SecretoAWSProtegido")) ? "No"
+                    : SecretoProtegido.Desproteger(r.Texto("SecretoAWSProtegido")) is null ? "No se puede leer: escríbela de nuevo" : "Sí",
+            }), idSociedad));
+
+    public override IReadOnlyList<ErrorCampo> Validar(RegistroMantenimiento r)
+    {
+        var errores = ValidacionGenerica.Validar(Campos, r).ToList();
+        var clave = r.Texto("ClaveAccesoAWS");
+        var secreto = r.Texto("SecretoAWS");
+        var region = r.Texto("RegionAWS");
+        if (clave is not null && region is null) errores.Add(new("RegionAWS", "Falta la región de AWS (por ejemplo eu-west-1)."));
+        if (region is not null && !System.Text.RegularExpressions.Regex.IsMatch(region, "^[a-z]{2}(-[a-z]+)+-[0-9]$"))
+            errores.Add(new("RegionAWS", "Región de AWS: escríbela como eu-west-1."));
+        if (clave is not null && secreto is null && r.Texto("EstadoSecreto") != "Sí")
+            errores.Add(new("SecretoAWS", "Falta la clave secreta de AWS."));
+        if (clave is null && secreto is not null) errores.Add(new("ClaveAccesoAWS", "Falta la clave de acceso que va con la clave secreta."));
+        return errores;
+    }
+
+    public override async Task<Resultado<RegistroMantenimiento>> GuardarAsync(RegistroMantenimiento r, ContextoMantenimiento c)
+    {
+        var idSociedad = c.Trabajo.IdSociedad;
+        var clave = r.Texto("ClaveAccesoAWS");
+        var secreto = r.Texto("SecretoAWS");
+        await bd.EjecutarAsync(async s =>
+        {
+            var existe = await s.ConsultarPrimeroAsync($"SELECT IdConfiguracion FROM {Tabla} WHERE IdSociedad = ?", f => (int?)f.Entero("IdConfiguracion"), idSociedad);
+            if (existe is null)
+                await s.EjecutarAsync($"INSERT INTO {Tabla} (IdSociedad, Activo, SociedadTieneVies, UsarTextract, UmbralAceptacion, UmbralDiscrepanciaImporte, Version) VALUES (?, ?, ?, ?, ?, ?, 1)",
+                    idSociedad, r.Logico("Activo"), r.Logico("SociedadTieneVies"), r.Logico("UsarTextract"), r.Decimal("UmbralAceptacion") ?? 0.9m, r.Decimal("UmbralDiscrepanciaImporte") ?? 0.02m);
+            await s.EjecutarAsync($"UPDATE {Tabla} SET Activo = ?, SociedadTieneVies = ?, UsarTextract = ?, UmbralAceptacion = ?, UmbralDiscrepanciaImporte = ?, " +
+                "RegionAWS = ?, ClaveAccesoAWS = ?, Version = Version + 1 WHERE IdSociedad = ?",
+                r.Logico("Activo"), r.Logico("SociedadTieneVies"), r.Logico("UsarTextract"), r.Decimal("UmbralAceptacion") ?? 0.9m, r.Decimal("UmbralDiscrepanciaImporte") ?? 0.02m,
+                r.Texto("RegionAWS"), clave, idSociedad);
+            // Sin clave de acceso no se guarda ningún secreto; con un secreto nuevo, sustituye al anterior.
+            if (clave is null) await s.EjecutarAsync($"UPDATE {Tabla} SET SecretoAWSProtegido = Null WHERE IdSociedad = ?", idSociedad);
+            else if (secreto is not null) await s.EjecutarAsync($"UPDATE {Tabla} SET SecretoAWSProtegido = ? WHERE IdSociedad = ?", SecretoProtegido.Proteger(secreto), idSociedad);
+            return true;
+        });
+        return Resultado<RegistroMantenimiento>.Correcto((await LeerAsync(idSociedad))!);
+    }
+
+    public override async Task<Resultado<ResultadoAccion>> EjecutarAsync(string accion, RegistroMantenimiento registro, ContextoMantenimiento c)
+    {
+        if (accion != "quitarclaves") return await base.EjecutarAsync(accion, registro, c);
+        await bd.EjecutarAsync(s => s.EjecutarAsync($"UPDATE {Tabla} SET ClaveAccesoAWS = Null, SecretoAWSProtegido = Null, Version = Version + 1 WHERE IdSociedad = ?", c.Trabajo.IdSociedad));
+        return Resultado<ResultadoAccion>.Correcto(new ResultadoAccion("Claves de AWS quitadas: el OCR usará el perfil de AWS de cada equipo."));
+    }
 }

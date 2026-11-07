@@ -559,7 +559,7 @@ public sealed class PantallaMantenimientoVM : ModeloVista, IPestanaTrabajo
     // ---------- formato ----------
     internal static string Formatear(CampoMantenimiento? c, object? v)
     {
-        if (v is null) return "";
+        if (v is null || c?.Tipo == TipoCampo.Secreto) return "";
         if (c?.Tipo == TipoCampo.Lista) return c.Opciones?.FirstOrDefault(o => Equals(Convert.ToString(o.Valor, CultureInfo.InvariantCulture), Convert.ToString(v, CultureInfo.InvariantCulture)))?.Texto ?? Convert.ToString(v, Formatos.Cultura) ?? "";
         return v switch
         {
