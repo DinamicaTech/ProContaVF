@@ -37,6 +37,8 @@ public sealed record LibroCompra(decimal Total, IReadOnlyList<TramoLibroCompra> 
     public decimal CuotaAutorrepercutida => Tramos.Sum(t => t.CuotaAutorrepercutida);
     public decimal CuotaDeducible => Tramos.Sum(t => t.CuotaDeducible);
     public LibroCompra Negado() => new(-Total, [.. Tramos.Select(t => t.Negado())]);
+    /// <summary>Sin registro en el libro (un asiento del ERP sin IVA soportado grabado).</summary>
+    public bool Vacio => Total == 0m && Tramos.Count == 0;
 }
 
 /// <summary>Asiento propuesto con su registro del libro de IVA y el descuadre que hubo que ajustar.</summary>
@@ -161,7 +163,7 @@ public static class AsientoCompra
         return new PropuestaAsientoCompra(asiento, new LibroCompra(total, tramos), descuadre);
     }
 
-    /// <summary>Contra-asiento de otro: los mismos apuntes con Debe y Haber cambiados, fechado hoy (2026-11-06 12:10).</summary>
+    /// <summary>Contra-asiento de otro: los mismos apuntes con Debe y Haber cambiados, con la fecha que se le pase (la del original o el día 1 del trimestre activo).</summary>
     public static Asiento Contra(Asiento original, ContextoSociedadEjercicio contexto, DateTime fecha, string rotulo)
     {
         var contra = new Asiento(contexto, fecha, Recortar($"Anulación de {original.Descripcion}")) { Tipo = TipoAsiento.Rectificacion };

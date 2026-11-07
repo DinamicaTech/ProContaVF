@@ -108,18 +108,24 @@ public sealed class MotorAsientosAccess(IBaseDatos bd, PoliticaCuadre? politica 
             var idLote = Guid.NewGuid();
             var anteriores = await IdsDelLoteAsync(s, contexto, lote);
             if (enLaTransaccion?.Antes is { } antes) await antes(s, anteriores);
+            // Los asientos que ya tiene el lote se reutilizan en orden (cambian sus apuntes, no su número), y solo se
+            // borran los que sobran o se crean los que faltan (contabilidad/asientos 2026-11-07).
             var cuentas = new List<string>();
-            foreach (var id in anteriores)
+            var reutilizados = new List<Asiento>();
+            foreach (var (id, i) in anteriores.Select((id, i) => (id, i)))
             {
                 var viejo = (await CargarAsync(s, id))!;
                 cuentas.AddRange(viejo.Apuntes.Select(a => a.CodigoCuenta));
-                await BorrarAsync(s, viejo, actor, motivo.Trim(), idLote);
+                if (i < asientos.Count) reutilizados.Add(viejo);
+                else await BorrarAsync(s, viejo, actor, motivo.Trim(), idLote);
             }
             var nuevos = new List<int>();
             var errores = new List<Error>();
-            foreach (var asiento in asientos)
+            for (var i = 0; i < asientos.Count; i++)
             {
-                asiento.IdAsiento = 0;
+                var asiento = asientos[i];
+                asiento.IdAsiento = i < reutilizados.Count ? reutilizados[i].IdAsiento : 0;
+                if (i < reutilizados.Count) asiento.Version = reutilizados[i].Version;
                 asiento.Lote = lote;
                 var guardado = await GuardarInternoAsync(s, asiento, actor, motivo.Trim(), idLote, manual: false);
                 if (guardado.EsCorrecto) nuevos.Add(guardado.Valor);

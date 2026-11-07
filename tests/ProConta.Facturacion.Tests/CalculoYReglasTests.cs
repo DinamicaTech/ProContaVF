@@ -262,11 +262,14 @@ public class AsientoVentaTests
     }
 
     [Fact]
-    public void FechaDelAsientoHoySiCaeEnElEjercicio()
+    public void FechaDelAsientoEsLaDeLaFacturaSalvoQueSeaAnteriorAlTrimestreActivo()
     {
         var f = Factura();
-        Assert.Equal(new DateTime(2026, 4, 10), AsientoVenta.Fecha(f, 2026, new DateTime(2026, 4, 10, 9, 30, 0)));
-        Assert.Equal(new DateTime(2026, 3, 1), AsientoVenta.Fecha(f, 2026, new DateTime(2027, 1, 5)));
+        Assert.Equal(new DateTime(2026, 3, 1), f.FechaFactura);
+        Assert.Equal(new DateTime(2026, 3, 1), AsientoVenta.Fecha(f, 2026, 1, new DateTime(2026, 4, 10, 9, 30, 0)));
+        Assert.Equal(new DateTime(2026, 4, 1), AsientoVenta.Fecha(f, 2026, 2, new DateTime(2026, 4, 10)));
+        // Sin trimestre activo configurado y con el ejercicio ya pasado, cuenta el cuarto.
+        Assert.Equal(new DateTime(2026, 10, 1), AsientoVenta.Fecha(f, 2026, null, new DateTime(2027, 1, 5)));
     }
 }
 

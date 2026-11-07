@@ -24,6 +24,7 @@ Aplicación principal (UI-PRINCIPAL): cabecera con empresa, ejercicio y operador
 - 2026-11-01 10:46 · Las pantallas se integran con el contrato `IPestanaTrabajo`/`IAnfitrionPestanas` de plataforma/ui-base; al entrar se fijan las preferencias del operador (columnas y paneles).
 - 2026-11-01 15:48 · Validado por el propietario (pantalla de Terceros y revisión 1).
 - 2026-11-03 10:02 · Salir con cambios pendientes: la pregunta y el cierre se hacen después de terminar el evento de cierre de la ventana. Antes, «Salir sin guardar» cerraba la ventana mientras se estaba cerrando y la app terminaba con una excepción.
+- 2026-11-07 12:44 · Menú principal (petición del propietario, 2026-11-07 11:59): «Facturación» pasa a «Ventas» y su entrada «Facturas» a «Facturas emitidas» (también el título de la pestaña).
 
 ## Requirements
 - 2026-10-28 12:28 · From sources/01_ESPECIFICACION_FUNCIONAL.docx § 6 RF-UI-01, 04, 05, 07: contenedor, avisos técnicos discretos, ciclo de vida de fichas y rendimiento

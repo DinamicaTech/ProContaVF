@@ -16,6 +16,7 @@
     <KeyBinding Key="F5" Command="{Binding RefrescarCommand}" />
     <KeyBinding Key="R" Modifiers="Ctrl" Command="{Binding ReconocerCommand}" />
     <KeyBinding Key="F12" Command="{Binding ExportarCommand}" />
+    <KeyBinding Key="L" Modifiers="Ctrl" Command="{Binding AlternarListaCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" />
   </UserControl.InputBindings>
 
   <DockPanel>
@@ -26,7 +27,7 @@
           <TextBlock Text="{Binding TextoOcupado}" Style="{StaticResource Texto.Apagado}" VerticalAlignment="Center" Margin="0,0,12,0"
                      Visibility="{Binding Ocupado, Converter={StaticResource Visible}}" />
           <Button x:Name="BotonLista" Content="Ocultar lista" Style="{StaticResource Boton.Pequeno}" pc:Iconos.Icono="{StaticResource Icono.side}" Margin="0,0,6,0"
-                  ToolTip="Muestra u oculta la lista de facturas (para revisar a 1440 × 900 sin desplazarte)" Click="BotonLista_Click" />
+                  ToolTip="Muestra u oculta la lista de facturas (para revisar a 1440 × 900 sin desplazarte) · Ctrl+L" Click="BotonLista_Click" />
         </StackPanel>
         <WrapPanel VerticalAlignment="Center">
           <TextBlock Text="{Binding Titulo}" Style="{StaticResource Texto.TituloPantalla}" VerticalAlignment="Center" Margin="0,0,14,0" />
@@ -171,7 +172,7 @@
                   ToolTip="Guarda los cambios y regenera el asiento; si es de un trimestre cerrado, hace contra-asiento y asiento nuevo en el trimestre activo"
                   Visibility="{Binding MostrarGuardarYReexportar, Converter={StaticResource Visible}}" />
           <Button Content="Exportar" Style="{StaticResource Boton.Primario}" Command="{Binding ExportarCommand}"
-                  ToolTip="Genera el asiento de la factura (fechado hoy) y su registro del libro de IVA soportado"
+                  ToolTip="Genera el asiento de la factura (con su fecha, o el día 1 del trimestre activo si es anterior) y su registro del libro de IVA soportado"
                   Visibility="{Binding MostrarExportar, Converter={StaticResource Visible}}" />
           <Button Content="Deshacer exportación" Command="{Binding DeshacerExportacionCommand}"
                   ToolTip="Del trimestre activo, borra el asiento; de uno cerrado, hace un contra-asiento en el trimestre activo"
@@ -362,23 +363,26 @@
                           <!-- Nacional o intracomunitaria: un renglón por tipo de IVA -->
                           <StackPanel Visibility="{Binding NoEsImportacion, Converter={StaticResource Visible}}">
                             <Grid Margin="0,0,0,4">
-                              <Grid.ColumnDefinitions><ColumnDefinition Width="70" /><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /><ColumnDefinition Width="30" /></Grid.ColumnDefinitions>
+                              <Grid.ColumnDefinitions><ColumnDefinition Width="66" /><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /><ColumnDefinition Width="30" /></Grid.ColumnDefinitions>
                               <TextBlock Text="IVA %" Style="{StaticResource Etiqueta.Campo}" />
                               <TextBlock Grid.Column="1" Text="Base" Style="{StaticResource Etiqueta.Campo}" Margin="6,0,0,4" />
-                              <TextBlock Grid.Column="2" Text="Cuota" Style="{StaticResource Etiqueta.Campo}" Margin="6,0,0,4" />
+                              <TextBlock Grid.Column="2" Text="IVA" Style="{StaticResource Etiqueta.Campo}" Margin="6,0,0,4" />
+                              <TextBlock Grid.Column="3" Text="Total" Style="{StaticResource Etiqueta.Campo}" Margin="6,0,0,4" />
                             </Grid>
                             <ItemsControl ItemsSource="{Binding Desgloses}">
                               <ItemsControl.ItemTemplate>
                                 <DataTemplate>
                                   <Grid Margin="0,0,0,6">
-                                    <Grid.ColumnDefinitions><ColumnDefinition Width="70" /><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /><ColumnDefinition Width="30" /></Grid.ColumnDefinitions>
+                                    <Grid.ColumnDefinitions><ColumnDefinition Width="66" /><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /><ColumnDefinition Width="30" /></Grid.ColumnDefinitions>
                                     <ComboBox ItemsSource="{Binding Tipos}" SelectedItem="{Binding TipoElegido}" Padding="6,0,22,0"
                                               IsEnabled="{Binding DataContext.Editable, RelativeSource={RelativeSource AncestorType=ItemsControl}}" ToolTip="Tipo de IVA: 0 % o uno de los tipos del ejercicio" />
                                     <TextBox Grid.Column="1" Margin="6,0,0,0" Text="{Binding Base, UpdateSourceTrigger=LostFocus}" Style="{StaticResource Campo.Importe}" Tag="base"
                                              IsReadOnly="{Binding DataContext.SoloLectura, RelativeSource={RelativeSource AncestorType=ItemsControl}}" GotKeyboardFocus="Campo_GotKeyboardFocus" ToolTip="Base imponible a este tipo" />
                                     <TextBox Grid.Column="2" Margin="6,0,0,0" Text="{Binding Cuota, UpdateSourceTrigger=LostFocus}" Style="{StaticResource Campo.Importe}" Tag="cuota"
                                              IsReadOnly="{Binding DataContext.CuotaBloqueada, RelativeSource={RelativeSource AncestorType=ItemsControl}}" GotKeyboardFocus="Campo_GotKeyboardFocus" ToolTip="Cuota de IVA; vacía, se calcula al céntimo. Con inversión del sujeto pasivo es 0" />
-                                    <Button Grid.Column="3" Style="{StaticResource Boton.Icono}" pc:Iconos.Icono="{StaticResource Icono.x}" CommandParameter="{Binding}"
+                                    <TextBox Grid.Column="3" Margin="6,0,0,0" Text="{Binding Total, UpdateSourceTrigger=LostFocus}" Style="{StaticResource Campo.Importe}" Tag="totaltipo"
+                                             IsReadOnly="{Binding DataContext.SoloLectura, RelativeSource={RelativeSource AncestorType=ItemsControl}}" GotKeyboardFocus="Campo_GotKeyboardFocus" ToolTip="Base + IVA de este tipo; si lo escribes, se calculan la base y el IVA" />
+                                    <Button Grid.Column="4" Style="{StaticResource Boton.Icono}" pc:Iconos.Icono="{StaticResource Icono.x}" CommandParameter="{Binding}"
                                             Command="{Binding DataContext.QuitarTipoCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" ToolTip="Quita este tipo de IVA" />
                                   </Grid>
                                 </DataTemplate>

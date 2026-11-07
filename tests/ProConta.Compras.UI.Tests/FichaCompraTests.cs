@@ -1,3 +1,4 @@
+using ProConta.UI.Base.Formato;
 using ProConta.Compras.Facturas;
 using ProConta.Compras.UI.VistaModelos;
 using ProConta.Contabilidad.CentrosCoste;
@@ -142,6 +143,20 @@ public sealed class FichaCompraTests
         Assert.Equal("100 % plantilla", f.ConfianzaFecha.Texto);
         Assert.Equal("100 %", f.ConfianzaNumero.Texto);
         Assert.Equal("97 %", f.ConfianzaImportes.Texto);
+        // Lo que se guarda es la nueva lectura: al volver a abrirla se ve la misma confianza.
+        Assert.Equal(leida.Log, f.Construir().Log);
+    }
+
+    [Fact]
+    public void Escribir_el_total_de_un_tipo_reparte_base_e_iva()
+    {
+        var f = Ficha();
+        var d = f.Desgloses.Single(x => x.TipoValor == 21m);
+        Assert.Equal(Formatos.Importe(121m), d.Total);
+        d.Total = "242";
+        Assert.Equal((200m, 42m), (d.BaseValor, d.CuotaValor));
+        d.Total = "100";
+        Assert.Equal((82.64m, 17.36m), (d.BaseValor, d.CuotaValor));
     }
 
     [Fact]

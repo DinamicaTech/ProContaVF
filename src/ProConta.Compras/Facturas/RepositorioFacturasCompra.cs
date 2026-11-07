@@ -77,9 +77,10 @@ internal static class RepositorioFacturasCompra
             r => (Existe: true, Exportada: r.Logico("Exportada"), Version: r.EnteroNulo("Version") ?? 0), f.IdRegistro);
         if (!estado.Existe)
             return Resultado<int>.Fallo(new Error("Compras.NoExiste", "La factura de compra ya no existe.", f.Rotulo, "Otro operador la ha borrado.", "Actualiza la lista."));
-        if (estado.Exportada && !permitirExportada)
-            return Resultado<int>.Fallo(new Error("Compras.Contabilizada", "La factura ya está contabilizada y no se cambia desde aquí.", f.Rotulo, null,
-                "Para corregirla, usa «Guardar y re-exportar» o deshaz su exportación."));
+        // Una contabilizada se guarda sin re-exportar solo si el cambio no toca el asiento (notas, forma de pago).
+        if (estado.Exportada && !permitirExportada && await CargarAsync(s, f.IdRegistro) is { } guardada && FacturaCompra.AfectaAlAsiento(guardada, f))
+            return Resultado<int>.Fallo(new Error("Compras.Contabilizada", "Este cambio afecta al asiento de la factura, que ya está contabilizada.", f.Rotulo, null,
+                "Usa «Guardar y re-exportar», que actualiza el asiento (o hace contra-asiento si es de un trimestre cerrado)."));
         if (estado.Version != f.Version)
             return Resultado<int>.Fallo(new Error("Compras.Concurrencia", "Otro operador ha cambiado esta factura mientras la tenías abierta.", f.Rotulo,
                 "Tus cambios no se han guardado para no pisar los suyos.", "Actualiza la lista y vuelve a hacer tus cambios."));
@@ -90,12 +91,12 @@ internal static class RepositorioFacturasCompra
             "ImporteBI = ?, ImporteIVA = ?, ImporteTotal = ?, PorcentajeRetencion = ?, ImporteRetencion = ?, InversionSujetoPasivo = ?, " +
             "Divisa = ?, ImporteTotalDivisa = ?, TipoCambioAplicado = ?, FechaTipoCambio = ?, IdRegistroFacturaRectificada = ?, " +
             "TipoOperacion = ?, TipoProducto = ?, TipoRetencion = ?, Suplido = ?, ConceptoGasto = ?, IdCentroCoste = ?, CuentaFormaPago = ?, IdFormaPago = ?, " +
-            "NotasFactura = ?, RequiereRevisionImportacion = ?, Version = ? WHERE IdRegistro = ? AND Version = ?",
+            "NotasFactura = ?, RequiereRevisionImportacion = ?, ConfianzaImportacion = ?, FuenteImportacion = ?, LOGImportacion = ?, Version = ? WHERE IdRegistro = ? AND Version = ?",
             f.IdProveedor, Nulo(f.CuentaContableProveedor), Nulo(f.NifProveedor), Nulo(f.NumeroFactura), f.Fecha?.Date, Nulo(f.Concepto),
             f.BaseImponible, f.CuotaIva, f.ImporteTotal, f.PorcentajeRetencion is { } pr ? (float)pr : null, f.ImporteRetencion, f.InversionSujetoPasivo,
             f.Divisa, f.ImporteTotalDivisa, f.TipoCambioAplicado is { } tc ? (double)tc : null, f.FechaTipoCambio?.Date, f.IdRegistroFacturaRectificada,
             (int)f.Operacion, f.Producto is { } p ? (int)p : null, f.ClaseRetencion is { } cr ? (byte)cr : null, f.Suplido,
-            Nulo(f.CuentaGasto), f.IdCentroCoste, Nulo(f.CuentaFormaPago), f.IdFormaPago, Nulo(f.Notas), f.RequiereRevision, nueva, f.IdRegistro, f.Version);
+            Nulo(f.CuentaGasto), f.IdCentroCoste, Nulo(f.CuentaFormaPago), f.IdFormaPago, Nulo(f.Notas), f.RequiereRevision, f.Confianza, Nulo(f.Fuente), Nulo(f.Log), nueva, f.IdRegistro, f.Version);
         // La forma de pago elegida pasa a ser la del proveedor por defecto (compras/pantallas 2026-11-06).
         if (f.IdFormaPago is { } fp && f.IdProveedor is { } prov)
             await s.EjecutarAsync("UPDATE CuentasProveedoresSociedad SET IdFormaPagoDefecto = ? WHERE IdProveedor = ? AND IdSociedad = ?", fp, prov, f.Ejercicio.IdSociedad);
@@ -218,7 +219,7 @@ internal static class RepositorioFacturasCompra
                 Confianza = r.DecimalNulo("ConfianzaImportacion"),
                 RequiereRevision = !r.EsNulo("RequiereRevisionImportacion") && r.Logico("RequiereRevisionImportacion"),
                 FechaHoraRegistro = r.FechaNula("FechaHoraRegistro"),
-                Asiento = r.EnteroNulo("IdAsientoContable") ?? r.EnteroNulo("ASIAPU"),
+                Asiento = r.Logico("Exportada") ? r.EnteroNulo("IdAsientoContable") ?? r.EnteroNulo("ASIAPU") : null,
                 ConfianzaMinima = ConfianzaMinima(r.Texto("LOGImportacion")),
                 Version = r.EnteroNulo("Version") ?? 0
             },
