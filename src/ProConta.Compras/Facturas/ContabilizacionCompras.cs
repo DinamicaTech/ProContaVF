@@ -242,6 +242,8 @@ public sealed class ContabilizadorCompras(IBaseDatos bd, IMotorAsientos motor, I
             return c.Valor.Codigo;
         }
 
+        // Con proveedor pero sin su cuenta en la factura (se reconoció por el NIF), la de su ficha en este ejercicio.
+        if (string.IsNullOrWhiteSpace(f.CuentaContableProveedor) && await CuentaDeLaFichaAsync(f) is { } deFicha) f.CuentaContableProveedor = deFicha;
         var proveedor = await Cuenta(f.CuentaContableProveedor, "cuenta del proveedor", "proveedor");
         var gasto = await Cuenta(f.CuentaGasto, "cuenta de gasto", "gasto");
         var bases = AsientoCompra.Bases(f);
@@ -317,6 +319,16 @@ public sealed class ContabilizadorCompras(IBaseDatos bd, IMotorAsientos motor, I
         var cuentasCompra = new CuentasCompra(proveedor!, gasto!, f.IdCentroCoste, iva, retencion, autoS, autoR, importacion, suplido,
             redG ?? "", redI ?? "", tipoGeneral ?? 0m, await NombreProveedorAsync(f), nombreGasto);
         return new(new ComprobacionExportacion([], pregunta, explicacion, cerrado, descuadre), cuentasCompra, config, estado, porCrear);
+    }
+
+    /// <summary>La cuenta de acreedor (o, si no tiene, de proveedor) de la ficha del proveedor en el ejercicio de la factura.</summary>
+    private async Task<string?> CuentaDeLaFichaAsync(FacturaCompra f)
+    {
+        if (f.IdProveedor is not int id) return null;
+        var tercero = await bd.EjecutarAsync(s => s.EscalarAsync("SELECT IdTercero FROM Proveedores WHERE IdProveedor = ?", id));
+        if (tercero is null or DBNull) return null;
+        var c = await roles.CuentasAsync(Convert.ToInt32(tercero, CultureInfo.InvariantCulture), f.Ejercicio);
+        return new[] { c.Acreedor, c.Proveedor }.FirstOrDefault(x => x is { ExisteEnEjercicio: true })?.Codigo;
     }
 
     /// <summary>Nombre del proveedor para las descripciones: el comercial, si no la razón social (o el nombre leído, o la carpeta).</summary>

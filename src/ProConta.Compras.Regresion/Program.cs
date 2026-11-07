@@ -20,6 +20,24 @@ public static class Program
     public static async Task<int> Main(string[] args)
     {
         var a = LeerArgumentos(args);
+        // Diagnóstico de plantillas: --volcar <pdf> [--campo concepto --valor <texto> --otro <pdf>]: líneas del PDF, la
+        // plantilla que se aprendería con ese valor y lo que leería en el otro PDF.
+        if (a.TryGetValue("volcar", out var volcar))
+        {
+            var extractor = new ExtractorPdfPig();
+            var doc = extractor.Extraer(volcar);
+            Console.WriteLine(PlantillasReconocimiento.DescribirLineas(doc));
+            if (a.TryGetValue("valor", out var valor))
+            {
+                var campo = a.TryGetValue("campo", out var c) && c.Length > 0 ? c : PlantillasReconocimiento.Concepto;
+                var p = PlantillasReconocimiento.Aprender(doc, campo, valor);
+                Console.WriteLine();
+                Console.WriteLine(p is null ? "PLANTILLA: ninguna (no encuentro el valor con un rótulo que lo identifique)" : $"PLANTILLA: {p}");
+                if (p is not null) Console.WriteLine($"LEE EN ESTE: {PlantillasReconocimiento.Leer(doc, p) ?? "(nada)"}");
+                if (p is not null && a.TryGetValue("otro", out var otro)) Console.WriteLine($"LEE EN EL OTRO: {PlantillasReconocimiento.Leer(extractor.Extraer(otro), p) ?? "(nada)"}");
+            }
+            return 0;
+        }
         if (!a.TryGetValue("corpus", out var corpus) || !a.TryGetValue("verdad", out var verdad) || !a.TryGetValue("salida", out var salida))
         {
             Console.Error.WriteLine("Uso: --corpus <carpeta> --verdad <FacturasCompra.csv> [--sociedades <Sociedades.csv>] [--nifs <Cuenta,NIF.csv>] --salida <informe.txt> [--vies]");

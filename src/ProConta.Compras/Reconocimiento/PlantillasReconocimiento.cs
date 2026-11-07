@@ -42,6 +42,11 @@ public static class PlantillasReconocimiento
         return elegido is not null && soloAhi ? null : AprenderEn(documento, campo, valor, null);
     }
 
+    /// <summary>Las líneas tal como las ve el motor de plantillas (página, altura y cada palabra con su X), para diagnosticar.</summary>
+    public static string DescribirLineas(DocumentoFacturaExtraido documento) =>
+        string.Join(Environment.NewLine, Lineas(documento).Select(l =>
+            $"p{l.Pagina} y={l.Y:0} | " + string.Join(" ", l.Palabras.Select(w => $"{w.Texto}@{w.X:0}-{w.X + w.Ancho:0}"))));
+
     /// <summary>¿Las dos plantillas leen del mismo sitio (mismo rótulo, posición y página)?</summary>
     public static bool MismoSitio(PlantillaCampo a, PlantillaCampo b) =>
         a.Campo == b.Campo && a.Ancla == b.Ancla && a.Posicion == b.Posicion && a.Pagina == b.Pagina;
