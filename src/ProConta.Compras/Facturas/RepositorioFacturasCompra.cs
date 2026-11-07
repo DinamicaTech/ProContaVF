@@ -245,13 +245,13 @@ internal static class RepositorioFacturasCompra
     public static async Task<IReadOnlyList<ProveedorFicha>> ProveedoresFichaAsync(ISesionDatos s, string idSociedad)
     {
         var filas = await s.ConsultarAsync(
-            "SELECT p.IdProveedor, p.IdTercero, t.NIF, t.Nombre, t.RazonSocial, t.NombreComercial, cps.IdFormaPagoDefecto, cps.TipoProductoDefecto, cps.ConceptoAbreviadoDefecto FROM (CuentasProveedoresSociedad AS cps " +
+            "SELECT p.IdProveedor, p.IdTercero, t.NIF, t.Nombre, t.RazonSocial, t.NombreComercial, cps.IdFormaPagoDefecto, cps.TipoProductoDefecto, cps.ConceptoAbreviadoDefecto, p.EstadoVies FROM (CuentasProveedoresSociedad AS cps " +
             "INNER JOIN Proveedores AS p ON cps.IdProveedor = p.IdProveedor) INNER JOIN Terceros AS t ON p.IdTercero = t.IdTercero WHERE cps.IdSociedad = ?",
             r => new ProveedorFicha(r.Entero("IdProveedor"), r.Entero("IdTercero"), r.Texto("NIF")?.Trim() ?? "",
                 Primero(r.Texto("NombreComercial"), r.Texto("RazonSocial"), r.Texto("Nombre")),
                 r.EnteroNulo("IdFormaPagoDefecto") is int fp ? (byte)fp : null,
                 r.EnteroNulo("TipoProductoDefecto") is int tp && Enum.IsDefined((ProductoCompra)tp) ? (ProductoCompra)tp : null,
-                Nulo(r.Texto("ConceptoAbreviadoDefecto")), Nulo(r.Texto("RazonSocial")) ?? Nulo(r.Texto("Nombre")), Nulo(r.Texto("NombreComercial"))), idSociedad);
+                Nulo(r.Texto("ConceptoAbreviadoDefecto")), Nulo(r.Texto("RazonSocial")) ?? Nulo(r.Texto("Nombre")), Nulo(r.Texto("NombreComercial")), Nulo(r.Texto("EstadoVies"))), idSociedad);
         // Un proveedor puede tener varias cuentas en la empresa: uno por proveedor, con la forma de pago que tenga alguna.
         return filas.GroupBy(p => p.IdProveedor)
             .Select(g => g.First() with
@@ -594,7 +594,7 @@ internal static class RepositorioFacturasCompra
 
 /// <summary>Proveedor de la empresa tal como lo necesita la ficha: su tercero (para abrir su ficha), su NIF y su nombre.</summary>
 public sealed record ProveedorFicha(int IdProveedor, int IdTercero, string Nif, string Nombre, byte? IdFormaPagoDefecto = null, ProductoCompra? ProductoDefecto = null,
-    string? ConceptoAbreviadoDefecto = null, string? RazonSocial = null, string? NombreComercial = null)
+    string? ConceptoAbreviadoDefecto = null, string? RazonSocial = null, string? NombreComercial = null, string? EstadoVies = null)
 {
     /// <summary>«RAZÓN SOCIAL (NOMBRE COMERCIAL)», o solo la razón social si no hay nombre comercial o es el mismo (compras/pantallas 2026-11-07 20:10).</summary>
     public string NombreCompleto

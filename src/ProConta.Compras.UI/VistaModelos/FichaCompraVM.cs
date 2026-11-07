@@ -274,7 +274,7 @@ public sealed class FichaCompraVM : ModeloVista
             if (!Cambiar(ref _nif, (value ?? "").Trim().ToUpperInvariant(), "nif")) return;
             _proveedor = BuscarPorNif(_nif);
             _cuentaProveedorNueva = null;
-            Avisar(nameof(NombreProveedor), nameof(HayProveedor), nameof(AvisoProveedor), nameof(RazonSocialAeat), nameof(PuedeDarDeAltaProveedor), nameof(IdTerceroProveedor), nameof(Cuenta), nameof(PuedeEditarNombreComercial));
+            Avisar(nameof(NombreProveedor), nameof(HayProveedor), nameof(AvisoProveedor), nameof(RazonSocialAeat), nameof(PuedeDarDeAltaProveedor), nameof(IdTerceroProveedor), nameof(Cuenta), nameof(PuedeEditarNombreComercial), nameof(MarcaVies), nameof(AyudaVies));
             ProponerFormaPago();
             ProponerProducto();
             ProponerAbreviado();
@@ -307,13 +307,50 @@ public sealed class FichaCompraVM : ModeloVista
     {
         _proveedores = proveedores;
         if (_proveedor is { } p) _proveedor = proveedores.FirstOrDefault(x => x.IdProveedor == p.IdProveedor) ?? p;
-        Avisar(nameof(NombreProveedor));
+        Avisar(nameof(NombreProveedor), nameof(MarcaVies), nameof(AyudaVies));
     }
     public string? AvisoProveedor => _nif.Length == 0 || _proveedor is not null ? null
         : RazonSocialAeat is { } razon ? $"Según la AEAT, este NIF es de {razon}. Ningún proveedor de la empresa lo tiene."
         : "Ningún proveedor de la empresa tiene este NIF.";
 
     private string? _razonAeat;
+
+    private bool? _viesConsultado;
+
+    /// <summary>
+    /// Marca VIES junto al NIF de un proveedor comunitario (propietario 2026-11-07 20:25): «VIES», «NO VIES» o «VIES ?»
+    /// (sin verificar); null con un NIF español o sin NIF. Con proveedor, la de su ficha; sin él, la de la consulta.
+    /// </summary>
+    public string? MarcaVies
+    {
+        get
+        {
+            if (Compras.Proveedores.ServicioAltaProveedorCompra.NifComunitario(_nif) is null) return null;
+            var estado = _proveedor is not null ? _proveedor.EstadoVies switch
+            {
+                Compras.Proveedores.ServicioAltaProveedorCompra.EstadoViesSi => true,
+                Compras.Proveedores.ServicioAltaProveedorCompra.EstadoViesNo => false,
+                _ => (bool?)null
+            } : MismoNifLeido ? _viesConsultado : null;
+            return estado switch { true => "VIES", false => "NO VIES", null => "VIES ?" };
+        }
+    }
+
+    public string AyudaVies => MarcaVies switch
+    {
+        "VIES" => "Operador intracomunitario: su NIF-IVA está dado de alta en el VIES.",
+        "NO VIES" => "Su NIF-IVA no está dado de alta en el VIES: no es una operación intracomunitaria a efectos de IVA.",
+        _ => "Sin verificar en el VIES (el servicio no ha respondido): se volverá a consultar al abrir la factura."
+    };
+
+    /// <summary>Resultado del VIES para el NIF sin proveedor de la ficha (al abrirla).</summary>
+    internal void ViesConsultado(string nif, bool? vies)
+    {
+        if (!string.Equals(Nucleo.Identificacion.Nif.Normalizar(nif), Nucleo.Identificacion.Nif.Normalizar(_nif), StringComparison.OrdinalIgnoreCase)) return;
+        _viesConsultado = vies;
+        _nifLeido = nif;
+        Avisar(nameof(MarcaVies), nameof(AyudaVies));
+    }
 
     /// <summary>
     /// Razón social consultada en la AEAT al abrir la factura (compras/pantallas 2026-11-07 19:42): sale bajo el NIF si el
@@ -381,7 +418,7 @@ public sealed class FichaCompraVM : ModeloVista
         _proveedor = proveedores.FirstOrDefault(p => p.IdProveedor == idProveedor);
         _cuentaProveedorNueva = cuenta;
         Marcar("proveedor");
-        Avisar(nameof(NombreProveedor), nameof(HayProveedor), nameof(AvisoProveedor), nameof(RazonSocialAeat), nameof(PuedeDarDeAltaProveedor), nameof(IdTerceroProveedor), nameof(Cuenta), nameof(PuedeEditarNombreComercial));
+        Avisar(nameof(NombreProveedor), nameof(HayProveedor), nameof(AvisoProveedor), nameof(RazonSocialAeat), nameof(PuedeDarDeAltaProveedor), nameof(IdTerceroProveedor), nameof(Cuenta), nameof(PuedeEditarNombreComercial), nameof(MarcaVies), nameof(AyudaVies));
         ProponerFormaPago();
         ProponerProducto();
     }

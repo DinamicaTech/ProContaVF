@@ -16,10 +16,25 @@ public sealed record DatosAltaProveedor(string Nif, string RazonSocial, string? 
 /// <summary>Proveedor dado de alta (o el tercero que ya existía con ese NIF, ahora proveedor) y su cuenta de acreedor.</summary>
 public sealed record ProveedorCreado(int IdProveedor, int IdTercero, string Nif, string Nombre, string Cuenta, bool TerceroExistente);
 
-/// <summary>Respuesta de la AEAT sobre un NIF. <c>Consultado</c> = false: no se pudo preguntar (sin certificado, sin conexión…), con el motivo.</summary>
-public sealed record ResultadoNifAeat(bool Consultado, bool Identificado, string? RazonSocial, string? Motivo)
+/// <summary>
+/// Respuesta de la AEAT (o del VIES, para un NIF comunitario) sobre un NIF. <c>Consultado</c> = false: no se pudo preguntar
+/// (sin certificado, sin conexión…), con el motivo. <c>Vies</c>: con un NIF comunitario, si está en el VIES (null, sin saberlo).
+/// </summary>
+public sealed record ResultadoNifAeat(bool Consultado, bool Identificado, string? RazonSocial, string? Motivo, bool? Vies = null)
 {
     public static ResultadoNifAeat SinConsultar(string motivo) => new(false, false, null, motivo);
+}
+
+/// <summary>Respuesta del VIES: <c>Valido</c> = dado de alta para operaciones intracomunitarias; el nombre, si el país lo da.</summary>
+public sealed record ResultadoVies(bool Consultado, bool Valido, string? Nombre, string? Motivo)
+{
+    public static ResultadoVies SinConsultar(string motivo) => new(false, false, null, motivo);
+}
+
+/// <summary>Consulta de un NIF-IVA comunitario en el VIES de la Comisión Europea.</summary>
+public interface IConsultaVies
+{
+    Task<ResultadoVies> ConsultarAsync(string pais, string numero, CancellationToken cancelacion = default);
 }
 
 /// <summary>Consulta de la razón social de un NIF español en la AEAT (servicio VNifV2) con el certificado de la empresa.</summary>
@@ -35,8 +50,44 @@ public interface IConsultaNifAeat
 /// preguntará si es proveedor (400). Si ya hay un único tercero con ese NIF, se le da el rol en lugar de duplicarlo.
 /// </summary>
 public sealed class ServicioAltaProveedorCompra(IBaseDatos bd, IRepositorioTerceros terceros, ServicioRoles roles, ICatalogoCuentas cuentas,
-    IConsultaNifAeat? aeat, Actor actor)
+    IConsultaNifAeat? aeat, Actor actor, IConsultaVies? vies = null)
 {
+    private static readonly HashSet<string> PaisesUe = new(StringComparer.Ordinal)
+    {
+        "AT", "BE", "BG", "CY", "CZ", "DE", "DK", "EE", "EL", "FI", "FR", "HR", "HU", "IE", "IT", "LT", "LU", "LV", "MT", "NL", "PL", "PT", "RO", "SE", "SI", "SK", "XI"
+    };
+
+    /// <summary>
+    /// País y número para el VIES de un NIF comunitario no español («DE123456789» → DE, 123456789; Grecia, GR o EL → EL);
+    /// null si no lo es.
+    /// </summary>
+    public static (string Pais, string Numero)? NifComunitario(string? nif)
+    {
+        var n = Nif.Normalizar(nif ?? "");
+        if (n.Length < 4 || !char.IsAsciiLetter(n[0]) || !char.IsAsciiLetter(n[1])) return null;
+        var pais = n[..2] == "GR" ? "EL" : n[..2];
+        return PaisesUe.Contains(pais) ? (pais, n[2..]) : null;
+    }
+
+    /// <summary>
+    /// Marca VIES del proveedor (Proveedores.EstadoVies, propietario 2026-11-07 20:25): «VIES», «NO VIES» o null (sin verificar).
+    /// </summary>
+    public Task GuardarViesAsync(int idProveedor, bool enVies) =>
+        bd.EjecutarAsync(s => s.EjecutarAsync("UPDATE Proveedores SET EstadoVies = ?, FechaVies = ? WHERE IdProveedor = ?",
+            enVies ? EstadoViesSi : EstadoViesNo, DateTime.Now, idProveedor));
+
+    public const string EstadoViesSi = "VIES", EstadoViesNo = "NO VIES";
+
+    /// <summary>Consulta el VIES y guarda la marca del proveedor; null si no se ha podido consultar.</summary>
+    public async Task<bool?> VerificarViesAsync(int idProveedor, string nif, CancellationToken cancelacion = default)
+    {
+        if (NifComunitario(nif) is not { } ue) return null;
+        var r = await ConsultarViesAsync(ue.Pais, ue.Numero, cancelacion);
+        if (r.Vies is not { } enVies) return null;
+        await GuardarViesAsync(idProveedor, enVies);
+        return enVies;
+    }
+
     public const string CuentaAcreedores = "410";
     public const string CuentaProveedores = "400";
 
@@ -51,6 +102,7 @@ public sealed class ServicioAltaProveedorCompra(IBaseDatos bd, IRepositorioTerce
         var aeat = await ConsultarAsync(ctx, nif, nombreLeido, cancelacion);
         if (!aeat.Identificado || string.IsNullOrWhiteSpace(aeat.RazonSocial) || !NombreEnTexto(aeat.RazonSocial, textoPdf)) return (aeat, null, null);
         var r = await AltaAsync(ctx, new DatosAltaProveedor(nif, aeat.RazonSocial.Trim()));
+        if (r.EsCorrecto && aeat.Vies is { } enVies) await GuardarViesAsync(r.Valor.IdProveedor, enVies);
         return r.EsCorrecto ? (aeat, r.Valor, null) : (aeat, null, string.Join(" ", r.Errores.Select(e => e.Mensaje)));
     }
 
@@ -88,6 +140,26 @@ public sealed class ServicioAltaProveedorCompra(IBaseDatos bd, IRepositorioTerce
     }
 
     /// <summary>
+    /// NIF comunitario en el VIES (propietario 2026-11-07 20:25): con el nombre, se trata como la razón social de la AEAT;
+    /// sin él (Alemania…), solo se sabe si es válido y el alta pide los datos con el nombre leído.
+    /// </summary>
+    private async Task<ResultadoNifAeat> ConsultarViesAsync(string pais, string numero, CancellationToken cancelacion)
+    {
+        if (vies is null) return ResultadoNifAeat.SinConsultar("La consulta al VIES no está disponible.");
+        ResultadoVies r;
+        try { r = await vies.ConsultarAsync(pais, numero, cancelacion); }
+        catch (Exception ex) when (ex is not OperationCanceledException || !cancelacion.IsCancellationRequested)
+        {
+            return ResultadoNifAeat.SinConsultar($"No he podido consultar el VIES: {ex.Message}");
+        }
+        if (!r.Consultado) return ResultadoNifAeat.SinConsultar(r.Motivo ?? "No he podido consultar el VIES.");
+        if (!r.Valido) return new ResultadoNifAeat(true, false, null, $"El NIF-IVA {pais}{numero} no está dado de alta en el VIES.", Vies: false);
+        return r.Nombre is { } nombre
+            ? new ResultadoNifAeat(true, true, nombre, null, Vies: true)
+            : new ResultadoNifAeat(true, false, null, $"NIF-IVA válido en el VIES, pero {pais} no da el nombre: compruébalo con la factura.", Vies: true);
+    }
+
+    /// <summary>
     /// Pone el nombre comercial del tercero del proveedor (compras/pantallas 2026-11-07 20:10): el alta automática solo
     /// trae la razón social, y muchas veces el proveedor se conoce por su nombre comercial. Vacío, lo quita.
     /// </summary>
@@ -107,6 +179,7 @@ public sealed class ServicioAltaProveedorCompra(IBaseDatos bd, IRepositorioTerce
     public async Task<ResultadoNifAeat> ConsultarAsync(ContextoSociedadEjercicio ctx, string nif, string? nombre, CancellationToken cancelacion = default)
     {
         var n = Nif.Validar(nif);
+        if (!n.EsCorrecto && NifComunitario(nif) is { } ue) return await ConsultarViesAsync(ue.Pais, ue.Numero, cancelacion);
         if (!n.EsCorrecto) return ResultadoNifAeat.SinConsultar("La AEAT solo comprueba NIF españoles.");
         if (aeat is null) return ResultadoNifAeat.SinConsultar("La consulta a la AEAT no está disponible.");
         try

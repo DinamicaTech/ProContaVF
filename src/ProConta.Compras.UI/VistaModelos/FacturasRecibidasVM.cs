@@ -518,6 +518,8 @@ public sealed class FacturasRecibidasVM : ModeloVista, IPestanaTrabajo
     }
 
     private readonly Dictionary<string, string?> _razonesAeat = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, bool?> _viesPorNif = new(StringComparer.OrdinalIgnoreCase);
+    private readonly HashSet<string> _viesSinRespuesta = new(StringComparer.OrdinalIgnoreCase);
 
     /// <summary>
     /// Al abrir una factura con un NIF sin proveedor y sin razón social de la AEAT (importada antes o sin certificado), la
@@ -525,9 +527,25 @@ public sealed class FacturasRecibidasVM : ModeloVista, IPestanaTrabajo
     /// </summary>
     private async Task ConsultarRazonAeatAsync(FichaCompraVM ficha)
     {
-        if (_s.AltaProveedor is null || !ficha.PuedeDarDeAltaProveedor) return;
+        if (_s.AltaProveedor is not { } servicioAlta) return;
         var nif = ficha.Nif;
         if (nif.Length == 0) return;
+        // Proveedor comunitario sin verificar en el VIES: se consulta y se guarda en su ficha (una vez por sesión si no responde).
+        if (ficha.ProveedorActual is { EstadoVies: null } prov && ficha.MarcaVies is not null && _viesSinRespuesta.Add(nif))
+        {
+            try
+            {
+                if (await servicioAlta.VerificarViesAsync(prov.IdProveedor, nif) is not null)
+                {
+                    _viesSinRespuesta.Remove(nif);
+                    _proveedores = await _s.Facturas.ProveedoresAsync(_s.Trabajo);
+                    if (ReferenceEquals(_ficha, ficha)) ficha.ProveedoresRecargados(_proveedores);
+                }
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException) { }
+            return;
+        }
+        if (!ficha.PuedeDarDeAltaProveedor) return;
         if (!_razonesAeat.TryGetValue(nif, out var razon))
         {
             try
@@ -537,6 +555,7 @@ public sealed class FacturasRecibidasVM : ModeloVista, IPestanaTrabajo
                 razon = aeat.Identificado && !string.IsNullOrWhiteSpace(aeat.RazonSocial) ? aeat.RazonSocial.Trim() : null;
                 // Sin certificado o sin conexión no se guarda: se vuelve a intentar al abrir otra vez la factura.
                 if (aeat.Identificado || aeat.Consultado) _razonesAeat[nif] = razon;
+                if (aeat.Consultado) _viesPorNif[nif] = aeat.Vies;
                 if (creado is not null)
                 {
                     _proveedores = await _s.Facturas.ProveedoresAsync(_s.Trabajo);
@@ -547,7 +566,9 @@ public sealed class FacturasRecibidasVM : ModeloVista, IPestanaTrabajo
             }
             catch (Exception ex) when (ex is not OperationCanceledException) { return; }
         }
-        if (razon is not null && ReferenceEquals(_ficha, ficha)) ficha.RazonSocialConsultada(nif, razon);
+        if (!ReferenceEquals(_ficha, ficha)) return;
+        if (_viesPorNif.TryGetValue(nif, out var vies)) ficha.ViesConsultado(nif, vies);
+        if (razon is not null) ficha.RazonSocialConsultada(nif, razon);
     }
 
     /// <summary>
@@ -560,7 +581,7 @@ public sealed class FacturasRecibidasVM : ModeloVista, IPestanaTrabajo
         var nif = ficha.Nif;
         var leido = ficha.NombreLeido;
         ProConta.Compras.Proveedores.ResultadoNifAeat aeat;
-        if (ficha.RazonSocialAeat is { } yaAeat) aeat = new(true, true, yaAeat, null);
+        if (ficha.RazonSocialAeat is { } yaAeat) aeat = new(true, true, yaAeat, null, _viesPorNif.GetValueOrDefault(nif));
         else
         {
             _modulo.Avisar($"Comprobando el NIF {nif}…");
@@ -589,6 +610,7 @@ public sealed class FacturasRecibidasVM : ModeloVista, IPestanaTrabajo
             if (!_modulo.Dialogos.PedirDatosProveedor(new(nif, leido ?? ""), aeat.Motivo, url, Crear)) return false;
         }
         if (creado is null) return false;
+        if (aeat.Vies is { } enVies) await alta.GuardarViesAsync(creado.IdProveedor, enVies);
         _proveedores = await _s.Facturas.ProveedoresAsync(_s.Trabajo);
         if (ReferenceEquals(_ficha, ficha)) ficha.ProveedorDadoDeAlta(_proveedores, creado.IdProveedor, creado.Cuenta);
         _modulo.Avisar((creado.TerceroExistente ? $"{creado.Nombre} ya estaba en Terceros: ahora es proveedor" : $"Proveedor {creado.Nombre} dado de alta")

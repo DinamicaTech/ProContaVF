@@ -257,8 +257,31 @@
                         </Border.ContextMenu>
                         <StackPanel>
                           <TextBlock Text="Proveedor" Style="{StaticResource Titulo.Tarjeta}" />
-                          <StackPanel Orientation="Horizontal"><TextBlock Text="NIF" Style="{StaticResource Etiqueta.Campo}" />
-                            <Border Style="{StaticResource Confianza}" DataContext="{Binding ConfianzaNif}"><TextBlock Style="{StaticResource Texto.Confianza}" /></Border></StackPanel>
+                          <DockPanel LastChildFill="False">
+                            <!-- Marca VIES del proveedor comunitario, arriba a la derecha del NIF (Ronald, 2026-11-07 20:25). -->
+                            <Border DockPanel.Dock="Right" CornerRadius="3" Padding="5,0" BorderThickness="1" VerticalAlignment="Bottom" Margin="0,0,0,2"
+                                    Visibility="{Binding MarcaVies, Converter={StaticResource Visible}}" ToolTip="{Binding AyudaVies}">
+                              <Border.Style>
+                                <Style TargetType="Border">
+                                  <Setter Property="Background" Value="{StaticResource Pincel.AvisoSuave}" />
+                                  <Setter Property="BorderBrush" Value="{StaticResource Pincel.AvisoBorde}" />
+                                  <Style.Triggers>
+                                    <DataTrigger Binding="{Binding MarcaVies}" Value="VIES">
+                                      <Setter Property="Background" Value="{StaticResource Pincel.VerdeSuave}" />
+                                      <Setter Property="BorderBrush" Value="{StaticResource Pincel.VerdeBorde}" />
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding MarcaVies}" Value="NO VIES">
+                                      <Setter Property="Background" Value="{StaticResource Pincel.RojoSuave}" />
+                                      <Setter Property="BorderBrush" Value="{StaticResource Pincel.RojoBorde}" />
+                                    </DataTrigger>
+                                  </Style.Triggers>
+                                </Style>
+                              </Border.Style>
+                              <TextBlock Text="{Binding MarcaVies}" FontSize="10" FontWeight="SemiBold" />
+                            </Border>
+                            <StackPanel Orientation="Horizontal"><TextBlock Text="NIF" Style="{StaticResource Etiqueta.Campo}" />
+                              <Border Style="{StaticResource Confianza}" DataContext="{Binding ConfianzaNif}"><TextBlock Style="{StaticResource Texto.Confianza}" /></Border></StackPanel>
+                          </DockPanel>
                           <DockPanel Margin="0,0,0,8">
                             <Button DockPanel.Dock="Right" Style="{StaticResource Boton.Icono}" pc:Iconos.Icono="{StaticResource Icono.user}" Margin="6,0,0,0"
                                     Command="{Binding DataContext.AbrirProveedorCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"

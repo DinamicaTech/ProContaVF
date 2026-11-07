@@ -188,6 +188,17 @@ public static class MigracionesCompras
         "contabilidad/procesos",
         new AnadirColumna("IVASoportado", "BienInversion", "YESNO"));
 
+    /// <summary>
+    /// Marca VIES del proveedor (propietario 2026-11-07 20:25): «VIES», «NO VIES» o vacía (sin verificar; se consulta al abrir
+    /// una factura suya), y cuándo se comprobó. Solo estructura, sin datos.
+    /// </summary>
+    public static Migracion ViesProveedor { get; } = new(
+        "20261107_2030_VIES_PROVEEDOR", 261107005,
+        "Marca VIES del proveedor y fecha de la comprobación.",
+        "terceros/roles",
+        new AnadirColumna("Proveedores", "EstadoVies", "TEXT(10)"),
+        new AnadirColumna("Proveedores", "FechaVies", "DATETIME"));
+
     private static PasoPersonalizado Relacion(string tabla, string columna, string nombre)
     {
         var sql = $"ALTER TABLE {tabla} ADD CONSTRAINT {nombre} FOREIGN KEY ({columna}) REFERENCES FormasPago (Id)";

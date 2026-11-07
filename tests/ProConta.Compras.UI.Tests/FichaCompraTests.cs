@@ -218,6 +218,21 @@ public sealed class FichaCompraTests
     }
 
     [Fact]
+    public void La_marca_vies_sale_solo_con_un_nif_comunitario()
+    {
+        var de = Factura();
+        de.IdProveedor = null;
+        de.NifProveedor = "DE123456789";
+        var f = Ficha(de);
+        Assert.Equal("VIES ?", f.MarcaVies);
+        f.ViesConsultado("DE123456789", true);
+        Assert.Equal("VIES", f.MarcaVies);
+        f.ViesConsultado("DE123456789", false);
+        Assert.Equal("NO VIES", f.MarcaVies);
+        Assert.Null(Ficha().MarcaVies);
+    }
+
+    [Fact]
     public void Escribir_el_total_de_un_tipo_reparte_base_e_iva()
     {
         var f = Ficha();
