@@ -105,7 +105,7 @@ public partial class VentanaPrincipal : Window
         var autorizador = new AutorizadorAccionesAccess(bd, new ServicioOperadores(bd), sesion.IdOperador);
         _trimestres = new ServicioTrimestreActivo(bd);
         _ejercicioTrabajo = contexto.Contexto;
-        _puedeCambiarTrimestre = () => autorizador.PuedeAsync(Acciones.FacturasEditar);
+        _puedeCambiarTrimestre = () => autorizador.PuedeAsync(Acciones.TrimestreCambiar);
         _ = RefrescarTrimestreAsync();
         var contabilizador = new ContabilizadorVentas(bd, new MotorAsientosAccess(bd), cuentas, roles, sociedades);
         var facturas = new ServicioFacturas(bd, sociedades, new RepositorioTercerosAccess(bd), roles, cuentas, contabilizador, autorizador);
