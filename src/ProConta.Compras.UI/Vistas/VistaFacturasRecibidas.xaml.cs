@@ -83,6 +83,22 @@ public partial class VistaFacturasRecibidas : UserControl
 
     private void BotonFiltro_Click(object sender, RoutedEventArgs e) => PopupFiltro.IsOpen = !PopupFiltro.IsOpen;
 
+    /// <summary>
+    /// La rueda baja la ficha hasta el final aunque el ratón esté sobre un campo de varias líneas o una lista: si ese
+    /// control no puede desplazarse más en ese sentido, se desplaza la ficha.
+    /// </summary>
+    private void ZonaFicha_PreviewMouseWheel(object sender, MouseWheelEventArgs e)
+    {
+        for (var d = e.OriginalSource as DependencyObject; d is not null && !ReferenceEquals(d, ZonaFicha); d = d is Visual or System.Windows.Media.Media3D.Visual3D ? VisualTreeHelper.GetParent(d) : LogicalTreeHelper.GetParent(d))
+        {
+            if (d is ScrollViewer interior && interior.ScrollableHeight > 0
+                && (e.Delta > 0 ? interior.VerticalOffset > 0 : interior.VerticalOffset < interior.ScrollableHeight))
+                return;
+        }
+        ZonaFicha.ScrollToVerticalOffset(ZonaFicha.VerticalOffset - e.Delta / 3.0);
+        e.Handled = true;
+    }
+
     // ---------- captura y resaltado ----------
 
     /// <summary>El último campo capturable con el foco recibe el texto que se selecciona en el PDF.</summary>

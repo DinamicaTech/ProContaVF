@@ -179,7 +179,7 @@
                   Visibility="{Binding MostrarDeshacer, Converter={StaticResource Visible}}" />
         </StackPanel>
       </Border>
-      <ScrollViewer x:Name="ZonaFicha" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Background="{StaticResource Pincel.Fondo}">
+      <ScrollViewer x:Name="ZonaFicha" PreviewMouseWheel="ZonaFicha_PreviewMouseWheel" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Background="{StaticResource Pincel.Fondo}">
         <StackPanel Margin="14,12">
           <pc:Nota Tipo="Error" Margin="0,0,0,10" Visibility="{Binding ErrorFicha, Converter={StaticResource Visible}}">
             <TextBlock Text="{Binding ErrorFicha}" TextWrapping="Wrap" />
