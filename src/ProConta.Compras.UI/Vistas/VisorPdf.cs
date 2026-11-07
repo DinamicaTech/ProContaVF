@@ -30,6 +30,7 @@ public sealed class VisorPdf : ContentControl
     private bool _listo;
     private string? _pendiente;
     private IReadOnlyList<ValorResaltado> _valores = [];
+    private IReadOnlyDictionary<string, Compras.Reconocimiento.PuntoDocumento>? _puntos;
     private string? _activo;
 
     public VisorPdf()
@@ -55,11 +56,16 @@ public sealed class VisorPdf : ContentControl
     }
 
     /// <summary>Marca en el PDF dónde aparecen los valores reconocidos; el del campo activo, más intenso y a la vista.</summary>
-    public void Resaltar(IReadOnlyList<ValorResaltado> valores, string? activo)
+    public void Resaltar(IReadOnlyList<ValorResaltado> valores, string? activo, IReadOnlyDictionary<string, Compras.Reconocimiento.PuntoDocumento>? puntos = null)
     {
         _valores = valores;
         _activo = activo;
-        if (_listo) Enviar(new { tipo = "resaltar", valores = valores.Select(v => new { campo = v.Campo, texto = v.Texto }), activo });
+        _puntos = puntos;
+        if (_listo) Enviar(new
+        {
+            tipo = "resaltar", valores = valores.Select(v => new { campo = v.Campo, texto = v.Texto }), activo,
+            puntos = (puntos ?? new Dictionary<string, Compras.Reconocimiento.PuntoDocumento>()).ToDictionary(p => p.Key, p => new { pagina = p.Value.Pagina, x = p.Value.X, y = p.Value.Y })
+        });
     }
 
     private async Task IniciarAsync()
@@ -137,7 +143,7 @@ public sealed class VisorPdf : ContentControl
         if (!ReferenceEquals(_pendiente, ruta)) return;
         if (datos is not null) _aviso.Text = "";
         Enviar(new { tipo = "abrir", datos, nombre = ruta is null ? null : Path.GetFileName(ruta) });
-        if (_valores.Count > 0) Resaltar(_valores, _activo);
+        if (_valores.Count > 0) Resaltar(_valores, _activo, _puntos);
     }
 
     private void Enviar(object mensaje)

@@ -24,6 +24,11 @@ public sealed class ContextoProcesamiento
     public int FacturasAceptadasProveedor { get; init; }
     /// <summary>Plantillas de campo del proveedor de la carpeta, de más a menos aciertos.</summary>
     public IReadOnlyList<PlantillaCampo> Plantillas { get; init; } = [];
+    /// <summary>
+    /// Plantillas de la empresa por NIF del proveedor (solo letras y dígitos, en mayúsculas): se aplican cuando el NIF ya
+    /// se ha leído, también a un PDF de otra carpeta o de la raíz (compras/reconocimiento 2026-11-07).
+    /// </summary>
+    public IReadOnlyDictionary<string, IReadOnlyList<PlantillaCampo>> PlantillasPorNif { get; init; } = new Dictionary<string, IReadOnlyList<PlantillaCampo>>();
 }
 
 /// <summary>Resultado final del reconocimiento de un PDF, listo para registrar o para mostrar en el modo «Probar».</summary>
@@ -86,7 +91,9 @@ public sealed class ServicioReconocimientoFacturaCompra(
         }
 
         elegido.Advertencias = advertencias;
+        // Dos pasos: las de la carpeta (que pueden leer el NIF) y después las del NIF leído, que mandan.
         AplicarPlantillas(documento, elegido, contexto.Plantillas);
+        if (PlantillasDelNif(contexto, elegido.NifProveedor) is { Count: > 0 } delNif) AplicarPlantillas(documento, elegido, delNif);
 
         if (elegido.RequiereConversionDivisa)
         {
@@ -160,11 +167,21 @@ public sealed class ServicioReconocimientoFacturaCompra(
             aplicados.Add(grupo.Key);
         }
         if (aplicados.Count == 0) return;
-        r.CamposPlantilla = aplicados;
+        r.CamposPlantilla = [.. r.CamposPlantilla.Union(aplicados)];
         r.Advertencias = r.Advertencias.Where(a => !(aplicados.Contains(PlantillasReconocimiento.Fecha) && a.Contains("fecha de factura", StringComparison.Ordinal))
                                                  && !(aplicados.Contains(PlantillasReconocimiento.Numero) && a.Contains("número de factura", StringComparison.Ordinal))
                                                  && !(aplicados.Contains(PlantillasReconocimiento.Nif) && a.Contains("NIF del proveedor", StringComparison.Ordinal))
                                                  && !(aplicados.Contains(PlantillasReconocimiento.Total) && a.Contains("importe total", StringComparison.Ordinal))).ToList();
+    }
+
+    /// <summary>Plantillas del NIF leído (con o sin prefijo de país).</summary>
+    internal static IReadOnlyList<PlantillaCampo> PlantillasDelNif(ContextoProcesamiento contexto, string? nif)
+    {
+        var clave = new string((nif ?? "").Where(char.IsAsciiLetterOrDigit).Select(char.ToUpperInvariant).ToArray());
+        if (clave.Length == 0) return [];
+        if (contexto.PlantillasPorNif.TryGetValue(clave, out var p)) return p;
+        if (clave.Length > 9 && clave.StartsWith("ES", StringComparison.Ordinal) && contexto.PlantillasPorNif.TryGetValue(clave[2..], out p)) return p;
+        return contexto.PlantillasPorNif.TryGetValue("ES" + clave, out p) ? p : [];
     }
 
     /// <summary>50 % importes, 20 % fecha, 20 % número y 10 % NIF; el histórico aceptado suma hasta 0,08.</summary>

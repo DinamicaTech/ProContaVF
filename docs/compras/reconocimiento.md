@@ -48,3 +48,4 @@ Motor que reconoce los campos de un PDF de compra (texto nativo y OCR, proveedor
 - 2026-11-05 11:18 · P3. a) Solo con facturas no nativas PDF.
 - 2026-11-05 11:18 · P4. Ok
 - 2026-11-05 11:18 · answer: OCR → Textract solo con los PDF no nativos; bibliotecas → PdfPig, WebView2, Frankfurter y AEAT VNifV2 aprobadas
+- 2026-11-07 13:19 · Plantillas por proveedor (NIF), no por carpeta: se aprenden con el NIF del proveedor (PlantillasReconocimientoCompra.NIF, versión 27) y valen para sus facturas en cualquier carpeta o en la raíz. El reconocimiento va en dos pasos: primero las de la carpeta (que pueden leer el NIF) y después las del NIF leído, que mandan. Las antiguas sin NIF siguen valiendo por su carpeta y toman el NIF del proveedor al acertar.

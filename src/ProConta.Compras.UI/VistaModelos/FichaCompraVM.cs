@@ -707,6 +707,26 @@ public sealed class FichaCompraVM : ModeloVista
     /// <summary>Dónde eligió el operador cada campo en el visor (se pasa al guardar).</summary>
     public IReadOnlyDictionary<string, Compras.Reconocimiento.PuntoDocumento> Elegidos => _elegidos;
 
+    private IReadOnlyDictionary<string, Compras.Reconocimiento.PuntoDocumento> _puntosPlantilla = new Dictionary<string, Compras.Reconocimiento.PuntoDocumento>();
+
+    /// <summary>Dónde leen las plantillas del proveedor cada campo: el visor marca en verde esa aparición (compras/pantallas 2026-11-07).</summary>
+    public IReadOnlyDictionary<string, Compras.Reconocimiento.PuntoDocumento> PuntosPlantilla
+    {
+        get => _puntosPlantilla;
+        internal set { _puntosPlantilla = value; Avisar(nameof(PuntosPlantilla), nameof(PuntosUsados)); }
+    }
+
+    /// <summary>La aparición usada de cada campo: la elegida en el visor y, si no, la de la plantilla.</summary>
+    public IReadOnlyDictionary<string, Compras.Reconocimiento.PuntoDocumento> PuntosUsados
+    {
+        get
+        {
+            var d = new Dictionary<string, Compras.Reconocimiento.PuntoDocumento>(_puntosPlantilla, StringComparer.Ordinal);
+            foreach (var (k, v) in _elegidos) d[k] = v;
+            return d;
+        }
+    }
+
     /// <summary>La factura con lo que hay en la ficha (sin guardar).</summary>
     internal FacturaCompra Construir()
     {

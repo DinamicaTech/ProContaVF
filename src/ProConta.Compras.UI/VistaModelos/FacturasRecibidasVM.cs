@@ -418,6 +418,7 @@ public sealed class FacturasRecibidasVM : ModeloVista, IPestanaTrabajo
                 // (compras/pantallas 2026-11-07).
                 var soloLectura = !_puedeEditar || factura.Contabilizada && _s.Contabilizador is null;
                 Ficha = new FichaCompraVM(factura, _proveedores, _cuentasGasto, _centros, _datos, soloLectura: soloLectura, tiposIva: _tiposIva, formasPago: _formasPago, tiposRetencion: _tiposRetencion);
+                _ = CargarPuntosPlantillaAsync(Ficha, carga);
                 return;
             }
             // Modo prueba: se reconoce de nuevo el PDF y se compara con lo grabado; nada se guarda.
@@ -427,6 +428,20 @@ public sealed class FacturasRecibidasVM : ModeloVista, IPestanaTrabajo
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
             if (carga == _cargaFicha) ErrorFicha = ex.Message;
+        }
+    }
+
+    /// <summary>Dónde leen las plantillas cada campo, para marcar en verde esas apariciones en el visor; sin bloquear la ficha.</summary>
+    private async Task CargarPuntosPlantillaAsync(FichaCompraVM ficha, int carga)
+    {
+        try
+        {
+            var puntos = await _s.Facturas.PuntosPlantillaAsync(ficha.Factura);
+            if (carga == _cargaFicha && ReferenceEquals(Ficha, ficha)) ficha.PuntosPlantilla = puntos;
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            // Sin puntos, el visor marca en ámbar como antes.
         }
     }
 
@@ -895,6 +910,7 @@ public sealed class FacturasRecibidasVM : ModeloVista, IPestanaTrabajo
         }
         ErrorFicha = null;
         ficha.Guardada(f);
+        _ = CargarPuntosPlantillaAsync(ficha, _cargaFicha);
         // La forma de pago guardada pasa a ser la del proveedor: se propone ya en sus otras facturas.
         if (f.IdProveedor is int prov)
             _proveedores = _proveedores.Select(p => p.IdProveedor == prov

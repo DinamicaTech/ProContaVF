@@ -137,7 +137,8 @@ public partial class VistaFacturasRecibidas : UserControl
 
     private void AlCambiarFicha(object? sender, PropertyChangedEventArgs e)
     {
-        if (e.PropertyName is nameof(FichaCompraVM.Nif) or nameof(FichaCompraVM.Numero) or nameof(FichaCompraVM.Fecha) or nameof(FichaCompraVM.Total)) Resaltar();
+        if (e.PropertyName is nameof(FichaCompraVM.Nif) or nameof(FichaCompraVM.Numero) or nameof(FichaCompraVM.Fecha) or nameof(FichaCompraVM.Total)
+            or nameof(FichaCompraVM.PuntosPlantilla) or nameof(FichaCompraVM.Elegidos)) Resaltar();
         // Al guardar se olvidan los sitios elegidos en el visor: se quita su marca verde.
         else if (e.PropertyName == nameof(FichaCompraVM.TieneCambios) && sender is FichaCompraVM { TieneCambios: false }) Resaltar();
     }
@@ -162,8 +163,9 @@ public partial class VistaFacturasRecibidas : UserControl
             new("nif", f.Nif), new("numero", f.Numero), .. VariantesFecha(f.Fecha).Select(t => new ValorResaltado("fecha", t)), new("total", f.Total.Replace("€", "").Trim())
         ];
         var activo = _campoCaptura?.Tag as string;
-        Visor.Resaltar(valores, activo);
-        _ventanaVisor?.Visor.Resaltar(valores, activo);
+        var puntos = f?.PuntosUsados;
+        Visor.Resaltar(valores, activo, puntos);
+        _ventanaVisor?.Visor.Resaltar(valores, activo, puntos);
     }
 
     private static readonly System.Globalization.CultureInfo[] CulturasFecha =

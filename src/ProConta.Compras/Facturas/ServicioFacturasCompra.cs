@@ -160,6 +160,7 @@ public sealed class ServicioFacturasCompra(
                 Configuracion = configuracion,
                 FacturasAceptadasProveedor = completas,
                 Plantillas = carpetaPdf.Length == 0 ? [] : await RepositorioPlantillasCompra.ListarAsync(s, ctx.IdSociedad, carpetaPdf),
+                PlantillasPorNif = await RepositorioPlantillasCompra.PorNifAsync(s, ctx.IdSociedad),
                 Reconocimiento = new ContextoReconocimientoFacturaCompra
                 {
                     NifsProveedoresConocidos = proveedores.Select(p => p.Nif).Where(n => n.Length > 0).Distinct(StringComparer.OrdinalIgnoreCase).ToList(),
@@ -463,7 +464,8 @@ public sealed class ServicioFacturasCompra(
     internal async Task AprenderAsync(FacturaCompra factura, IReadOnlyDictionary<string, PuntoDocumento>? elegidos, CancellationToken cancelacion)
     {
         var carpeta = FacturaCompra.CarpetaDe(factura.RutaPdf);
-        if (carpeta.Length == 0 || !File.Exists(factura.RutaPdf)) return;
+        var nif = RepositorioPlantillasCompra.Clave(factura.NifProveedor);
+        if (carpeta.Length == 0 && nif is null || !File.Exists(factura.RutaPdf)) return;
         DocumentoFacturaExtraido documento;
         try { documento = reconocimiento.Extraer(factura.RutaPdf); }
         catch (Exception ex) when (ex is not OperationCanceledException and not ExcepcionDatos) { return; }
@@ -472,7 +474,7 @@ public sealed class ServicioFacturasCompra(
         var ahora = _reloj.Ahora;
         await bd.EnTransaccionAsync(async s =>
         {
-            var existentes = await RepositorioPlantillasCompra.ListarAsync(s, factura.Ejercicio.IdSociedad, carpeta);
+            var existentes = await RepositorioPlantillasCompra.DelProveedorAsync(s, factura.Ejercicio.IdSociedad, nif, carpeta);
             foreach (var (campo, valor) in valores)
             {
                 var delCampo = existentes.Where(p => p.Campo == campo).ToList();
@@ -485,17 +487,43 @@ public sealed class ServicioFacturasCompra(
                     var leido = PlantillasReconocimiento.Leer(documento, p);
                     if (leido is null) continue;
                     var vale = PlantillasReconocimiento.Coincide(campo, leido, valor) && (elegida is null || PlantillasReconocimiento.MismoSitio(p, elegida));
-                    if (vale) { await RepositorioPlantillasCompra.AcertarAsync(s, p.IdPlantilla, ahora); acertada = true; }
+                    if (vale) { await RepositorioPlantillasCompra.AcertarAsync(s, p.IdPlantilla, nif, ahora); acertada = true; }
                     else await RepositorioPlantillasCompra.BorrarAsync(s, p.IdPlantilla);
                 }
                 if (acertada || (elegida ?? PlantillasReconocimiento.Aprender(documento, campo, valor)) is not { } nueva) continue;
-                await RepositorioPlantillasCompra.InsertarAsync(s, factura.Ejercicio.IdSociedad, carpeta, nueva, ahora);
-                var sobrantes = (await RepositorioPlantillasCompra.ListarAsync(s, factura.Ejercicio.IdSociedad, carpeta))
+                await RepositorioPlantillasCompra.InsertarAsync(s, factura.Ejercicio.IdSociedad, nif, carpeta, nueva, ahora);
+                var sobrantes = (await RepositorioPlantillasCompra.DelProveedorAsync(s, factura.Ejercicio.IdSociedad, nif, carpeta))
                     .Where(p => p.Campo == campo).Skip(MaxPlantillasPorCampo).ToList();
                 foreach (var p in sobrantes) await RepositorioPlantillasCompra.BorrarAsync(s, p.IdPlantilla);
             }
             return true;
         }, cancelacion);
+    }
+
+    /// <summary>
+    /// Dónde leen en el PDF las plantillas del proveedor el valor de cada campo de la factura (compras/pantallas 2026-11-07):
+    /// el visor marca en verde esa aparición. Solo los campos cuya plantilla lee el valor que tiene la factura.
+    /// </summary>
+    public async Task<IReadOnlyDictionary<string, PuntoDocumento>> PuntosPlantillaAsync(FacturaCompra factura, CancellationToken cancelacion = default)
+    {
+        ArgumentNullException.ThrowIfNull(factura);
+        var vacio = new Dictionary<string, PuntoDocumento>();
+        var carpeta = FacturaCompra.CarpetaDe(factura.RutaPdf);
+        if (!File.Exists(factura.RutaPdf)) return vacio;
+        var plantillas = await bd.EjecutarAsync(s => RepositorioPlantillasCompra.DelProveedorAsync(s, factura.Ejercicio.IdSociedad, factura.NifProveedor, carpeta), cancelacion);
+        if (plantillas.Count == 0) return vacio;
+        DocumentoFacturaExtraido documento;
+        try { documento = reconocimiento.Extraer(factura.RutaPdf); }
+        catch (Exception ex) when (ex is not OperationCanceledException and not ExcepcionDatos) { return vacio; }
+        var puntos = new Dictionary<string, PuntoDocumento>();
+        foreach (var (campo, valor) in ValoresGuardados(factura))
+            foreach (var p in plantillas.Where(p => p.Campo == campo).OrderByDescending(p => p.Aciertos))
+                if (PlantillasReconocimiento.LeerConPunto(documento, p) is { } leido)
+                {
+                    if (PlantillasReconocimiento.Coincide(campo, leido.Valor, valor)) puntos[campo] = leido.Punto;
+                    break;
+                }
+        return puntos;
     }
 
     /// <summary>Valores guardados que sirven de verdad para las plantillas; en moneda extranjera, el total en esa moneda.</summary>

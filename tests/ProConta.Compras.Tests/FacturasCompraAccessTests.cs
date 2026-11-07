@@ -291,6 +291,39 @@ public sealed class FacturasCompraAccessTests : IDisposable
     }
 
     [Fact]
+    public async Task Las_plantillas_son_del_nif_del_proveedor_y_valen_en_otra_carpeta_y_dicen_donde_leen()
+    {
+        await EmpresaConProveedorAsync();
+        string Factura(string numero, string fecha) => $"""
+            Emisor Ficticio S.L. NIF: {NifProveedor}
+            Número de factura: {numero}
+            Emitida el {fecha}   Vence el 30/04/2026
+            IVA 21% 100,00 21,00
+            Total factura 121,00
+            """;
+        var servicio = new ServicioFacturasCompra(Bd, new ServicioReconocimientoFacturaCompra(new ExtractorPorFichero(new Dictionary<string, string>
+        {
+            ["a.pdf"] = Factura("FV260001", "10/02/2026"),
+            ["c.pdf"] = Factura("FV260003", "15/03/2026")
+        })), _reloj);
+        var a = await servicio.ImportarAsync(_ctx, Pdf("Ficticio", "a.pdf", "a"));
+        var f = (await servicio.CargarAsync(a.Factura!.IdRegistro))!;
+        f.Fecha = new DateTime(2026, 2, 10);
+        Assert.True((await servicio.GuardarAsync(f)).EsCorrecto);
+        Assert.Equal(1, await Contar("SELECT COUNT(*) FROM PlantillasReconocimientoCompra WHERE NIF = ? AND Campo = ? AND Ancla = ?", NifProveedor, "fecha", "emitida el"));
+
+        // Otra carpeta (otro nombre para el mismo proveedor): la plantilla del NIF lee la fecha.
+        var (reconocida, leida) = await servicio.ProbarAsync(_ctx, Pdf("Otro nombre", "c.pdf", "c"));
+        Assert.Equal((new DateTime(2026, 3, 15), 1m), (leida.Fecha!.Value, reconocida.Lectura.ConfianzaFecha));
+        Assert.Contains("fecha", reconocida.Lectura.CamposPlantilla);
+
+        // Dónde lee: en la línea 3 (la de «Emitida el»), a la derecha del rótulo.
+        var puntos = await servicio.PuntosPlantillaAsync(f);
+        Assert.True(puntos.TryGetValue("fecha", out var punto));
+        Assert.Equal(1, punto.Pagina);
+    }
+
+    [Fact]
     public async Task Si_el_operador_elige_la_fecha_en_el_visor_la_plantilla_aprende_de_ahi_y_quita_la_de_otro_sitio()
     {
         await EmpresaConProveedorAsync();

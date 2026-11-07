@@ -1,6 +1,7 @@
 // Visor de PDF de compras (compras/pantallas). La pantalla le envía mensajes por WebView2:
 //   { tipo: "abrir", datos: "<base64>", nombre }  abre el PDF
-//   { tipo: "resaltar", valores: [{ campo, texto }], activo }  marca dónde aparece cada valor
+//   { tipo: "resaltar", valores: [{ campo, texto }], activo, puntos: { campo: { pagina, x, y } } }  marca dónde aparece cada
+//     valor; en verde, la aparición usada: la del punto del campo (elegida o la que lee la plantilla) o, si solo hay una, esa
 //   { tipo: "zoom", factor }  1 = ajustar al ancho
 // y le envía { tipo: "seleccion", texto, punto } al soltar el ratón con texto seleccionado, y { tipo: "elegir", campos, punto }
 // al hacer clic en un valor resaltado (para elegir de cuál de sus apariciones aprende la plantilla). El punto va en
@@ -15,6 +16,7 @@ let documento = null;
 let zoom = 1;
 let valores = [];
 let activo = null;
+let puntos = {};
 let generacion = 0;
 const vistas = [];
 
@@ -135,7 +137,44 @@ function marcar() {
       }
     }
   }
+  marcarUsadas();
   if (primero) primero.scrollIntoView({ block: "center", behavior: "smooth" });
+}
+
+// Distancia en pantalla del centro de un trozo de texto al punto del PDF (en su página), o Infinity si es de otra página.
+function distancia(span, p) {
+  const div = span.closest(".pagina");
+  if (!div || Number(div.dataset.pagina) !== p.pagina || !vistas[p.pagina]) return Infinity;
+  const [vx, vy] = vistas[p.pagina].convertToViewportPoint(p.x, p.y);
+  const r = span.getBoundingClientRect(), d = div.getBoundingClientRect();
+  return Math.hypot(r.left - d.left + r.width / 2 - vx, r.top - d.top + r.height / 2 - vy);
+}
+
+// En verde la aparición usada de cada campo (compras/pantallas 2026-11-07): la más cercana a su punto, si lo hay y cae
+// cerca (40 px); si no, la única aparición. Con varias y sin punto, quedan todas en ámbar para elegir con un clic.
+function marcarUsadas() {
+  const grupos = {};
+  contenedor.querySelectorAll(".textLayer span.origen").forEach((s) => {
+    const g = s.dataset.grupo;
+    if (!g) return;
+    const campo = g.split(":")[0];
+    (grupos[campo] = grupos[campo] || {})[g] = (grupos[campo][g] || []).concat(s);
+  });
+  for (const campo of Object.keys(grupos)) {
+    const lista = Object.entries(grupos[campo]);
+    let elegido = null;
+    const p = puntos && puntos[campo];
+    if (p) {
+      let mejor = Infinity;
+      for (const [g, spans] of lista) {
+        const d = Math.min(...spans.map((s) => distancia(s, p)));
+        if (d < mejor) { mejor = d; elegido = g; }
+      }
+      if (mejor > 40) elegido = null;
+    }
+    if (!elegido && lista.length === 1) elegido = lista[0][0];
+    if (elegido) grupos[campo][elegido].forEach((s) => s.classList.add("elegido"));
+  }
 }
 
 let temporizadorAviso = null;
@@ -205,7 +244,7 @@ if (host) {
   host.addEventListener("message", (e) => {
     const m = e.data || {};
     if (m.tipo === "abrir") { zoom = 1; abrir(m.datos); }
-    else if (m.tipo === "resaltar") { valores = m.valores || []; activo = m.activo || null; marcar(); }
+    else if (m.tipo === "resaltar") { valores = m.valores || []; activo = m.activo || null; puntos = m.puntos || {}; marcar(); }
     else if (m.tipo === "zoom") { zoom = m.factor || 1; pintar(generacion); }
   });
   enviar({ tipo: "listo" });

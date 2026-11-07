@@ -84,6 +84,14 @@ public static class PlantillasReconocimiento
     /// <summary>Valor del campo según la plantilla, normalizado (fecha yyyy-MM-dd, importe con punto, NIF y número compactos), o null.</summary>
     public static string? Leer(DocumentoFacturaExtraido documento, PlantillaCampo plantilla) => Leer(documento, plantilla, Lineas(documento));
 
+    /// <summary>
+    /// Lo que lee la plantilla y dónde: el centro de la primera palabra del valor, para marcar en el visor la aparición que
+    /// se ha usado (compras/pantallas 2026-11-07). Null si no lee nada.
+    /// </summary>
+    public static (string Valor, PuntoDocumento Punto)? LeerConPunto(DocumentoFacturaExtraido documento, PlantillaCampo plantilla) =>
+        LeerEn(documento, plantilla, Lineas(documento)) is { } r
+            ? (r.Valor, new PuntoDocumento(r.Palabra.Pagina, r.Palabra.X + r.Palabra.Ancho / 2, r.Palabra.Y + r.Palabra.Alto / 2)) : null;
+
     /// <summary>¿El valor leído es el mismo que el guardado? Fechas por día, importes por valor, NIF y número compactos.</summary>
     public static bool Coincide(string campo, string leido, string guardado)
     {
@@ -162,7 +170,9 @@ public static class PlantillasReconocimiento
 
     // ---------- leer ----------
 
-    private static string? Leer(DocumentoFacturaExtraido documento, PlantillaCampo p, IReadOnlyList<Linea> lineas)
+    private static string? Leer(DocumentoFacturaExtraido documento, PlantillaCampo p, IReadOnlyList<Linea> lineas) => LeerEn(documento, p, lineas)?.Valor;
+
+    private static (string Valor, PalabraDocumento Palabra)? LeerEn(DocumentoFacturaExtraido documento, PlantillaCampo p, IReadOnlyList<Linea> lineas)
     {
         var apariciones = new List<(int Linea, int Inicio, int Fin)>();
         for (var li = 0; li < lineas.Count; li++)
@@ -176,16 +186,16 @@ public static class PlantillasReconocimiento
         return null;
     }
 
-    private static string? LeerDerecha(Linea linea, int desde, PlantillaCampo p)
+    private static (string Valor, PalabraDocumento Palabra)? LeerDerecha(Linea linea, int desde, PlantillaCampo p)
     {
         if (desde >= linea.Palabras.Count) return null;
-        if (desde + p.Palabras <= linea.Palabras.Count && Interpretar(p.Campo, Unir(linea.Palabras, desde, p.Palabras)) is { } exacto) return exacto;
+        if (desde + p.Palabras <= linea.Palabras.Count && Interpretar(p.Campo, Unir(linea.Palabras, desde, p.Palabras)) is { } exacto) return (exacto, linea.Palabras[desde]);
         for (var n = MaxPalabrasValor; n >= 1; n--)
-            if (desde + n <= linea.Palabras.Count && Interpretar(p.Campo, Unir(linea.Palabras, desde, n)) is { } v) return v;
+            if (desde + n <= linea.Palabras.Count && Interpretar(p.Campo, Unir(linea.Palabras, desde, n)) is { } v) return (v, linea.Palabras[desde]);
         return null;
     }
 
-    private static string? LeerDebajo(IReadOnlyList<Linea> lineas, int li, double x, PlantillaCampo p)
+    private static (string Valor, PalabraDocumento Palabra)? LeerDebajo(IReadOnlyList<Linea> lineas, int li, double x, PlantillaCampo p)
     {
         var ancla = lineas[li];
         for (var abajo = li + 1; abajo < lineas.Count && lineas[abajo].Pagina == ancla.Pagina && ancla.Y - lineas[abajo].Y <= Math.Max(3 * ancla.Alto, 30); abajo++)
