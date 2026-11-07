@@ -26,8 +26,9 @@ public sealed class BuscadorCuentasVM : ModeloVista
     private string _estado = "Leyendo el plan de cuentas…";
 
     public BuscadorCuentasVM(ICatalogoCuentas cuentas, ContextoSociedadEjercicio trabajo, IReadOnlyList<string> grupos, string? texto = null,
-        ICatalogoCentrosCoste? centrosCoste = null, bool soloSubcuentas = true)
+        ICatalogoCentrosCoste? centrosCoste = null, bool soloSubcuentas = true, IReadOnlyList<string>? ampliados = null)
     {
+        Ampliados = ampliados ?? [];
         SoloSubcuentas = soloSubcuentas;
         _cuentas = cuentas;
         _centrosCoste = centrosCoste;
@@ -38,6 +39,18 @@ public sealed class BuscadorCuentasVM : ModeloVista
     }
 
     public IReadOnlyList<string> Grupos { get; }
+
+    /// <summary>
+    /// Cuentas que se pueden elegir además al quitar el filtro (la cuenta de gasto: grupo 2, 406, 407 y 480; compras
+    /// 2026-11-07 19:55). Vacía, sin el filtro vale cualquier cuenta.
+    /// </summary>
+    public IReadOnlyList<string> Ampliados { get; }
+
+    /// <summary>Prefijos que limitan la lista ahora: los grupos con el filtro; sin él, los grupos y los ampliados (o ninguno).</summary>
+    private IReadOnlyList<string>? Limite => _soloGrupos ? (HayGrupos ? Grupos : null) : Ampliados.Count > 0 ? [.. Grupos, .. Ampliados] : null;
+
+    /// <summary>Texto de la ayuda de la casilla: qué más se puede elegir al quitarla.</summary>
+    public string AyudaGrupos => Ampliados.Count == 0 ? "Quítala para ver todas las cuentas." : $"Quita la marca para elegir también cuentas que empiecen por {string.Join(", ", Ampliados)}";
 
     /// <summary>
     /// La lista solo enseña subcuentas (7 cifras o más), que son las que admiten apuntes; una pantalla que elige una
@@ -69,7 +82,7 @@ public sealed class BuscadorCuentasVM : ModeloVista
 
     private void Filtrar()
     {
-        Resultados = BuscadorCuentas.Filtrar(_todas, _texto, _soloGrupos ? Grupos : null, SoloSubcuentas);
+        Resultados = BuscadorCuentas.Filtrar(_todas, _texto, Limite, SoloSubcuentas);
         Seleccionada = Resultados.FirstOrDefault(c => c.Codigo == _texto.Trim()) ?? Resultados.FirstOrDefault();
         Estado = Resultados.Count == 0
             ? _soloGrupos && HayGrupos ? $"Ninguna cuenta del {(Grupos.Count == 1 ? "grupo " + Grupos[0] : "filtro")} coincide. Quita «{TextoGrupos}» o crea la subcuenta." : "Ninguna cuenta coincide. Puedes crear la subcuenta."
@@ -82,7 +95,7 @@ public sealed class BuscadorCuentasVM : ModeloVista
     /// </summary>
     public IReadOnlyList<CuentaContable> CuentasPadre =>
         _todas.Where(c => c.Codigo.Length >= 3 && !BuscadorCuentas.EsSubcuenta(c.Codigo) && c.Codigo.All(char.IsAsciiDigit) && c.EstaActiva
-                && (!_soloGrupos || EnGrupos(c.Codigo)))
+                && (Limite is not { } limite || limite.Any(g => c.Codigo.StartsWith(g, StringComparison.Ordinal) || g.StartsWith(c.Codigo, StringComparison.Ordinal))))
             .OrderBy(c => c.Codigo, StringComparer.Ordinal).ToList();
 
     /// <summary>
@@ -106,7 +119,7 @@ public sealed class BuscadorCuentasVM : ModeloVista
     }
 
     /// <summary>Sin grupos, cualquiera; con grupos, la que empieza por uno de ellos (aunque se haya quitado el filtro).</summary>
-    private bool EnGrupos(string codigo) => !HayGrupos || Grupos.Any(g => codigo.StartsWith(g, StringComparison.Ordinal));
+    private bool EnGrupos(string codigo) => !HayGrupos || Grupos.Concat(_soloGrupos ? [] : Ampliados).Any(g => codigo.StartsWith(g, StringComparison.Ordinal));
 
     /// <summary>Comprueba la cuenta (de 3 a 6 cifras) y devuelve el siguiente código libre de subcuenta, o el error.</summary>
     public async Task<Resultado<string>> SiguienteCodigoAsync(string cuenta)
@@ -114,6 +127,9 @@ public sealed class BuscadorCuentasVM : ModeloVista
         var c = (cuenta ?? "").Trim();
         if (c.Length < 3 || BuscadorCuentas.EsSubcuenta(c) || !c.All(char.IsAsciiDigit))
             return Resultado<string>.Fallo(new Error("Cuentas.CuentaNoValida", "Elige la cuenta (de 3 a 6 cifras) en la que va la subcuenta.", null, null, "Por ejemplo, 629 o 6299."));
+        if (!_soloGrupos && Limite is { } ampliado && !ampliado.Any(g => c.StartsWith(g, StringComparison.Ordinal) || g.StartsWith(c, StringComparison.Ordinal)))
+            return Resultado<string>.Fallo(new Error("Cuentas.FueraDeGrupo", $"La cuenta {c} no se puede usar aquí.", null, null,
+                $"Elige una cuenta que empiece por {string.Join(", ", ampliado)}."));
         if (_soloGrupos && HayGrupos && !Grupos.Any(g => c.StartsWith(g, StringComparison.Ordinal) || g.StartsWith(c, StringComparison.Ordinal)))
             return Resultado<string>.Fallo(new Error("Cuentas.FueraDeGrupo", $"La cuenta {c} no es del {TextoGrupos.ToLowerInvariant().Replace("solo ", "")}.", null, null,
                 $"Elige una cuenta del grupo o quita «{TextoGrupos}» en el buscador."));

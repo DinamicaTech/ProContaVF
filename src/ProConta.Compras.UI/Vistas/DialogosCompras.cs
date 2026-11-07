@@ -77,14 +77,14 @@ public sealed class DialogosCompras(Func<Window?> ventana) : IDialogosCompras
         return dialogo.ShowDialog() == true ? (n, nombre.Text.Trim()) : null;
     }
 
-    public bool PedirTextoClave(string? cuenta, string? centro, Func<string, bool, bool, Task<string?>> guardar)
+    public bool PedirTextoClave(string? cuenta, string? centro, Func<string, bool, bool, Task<string?>> guardar, string? textoInicial = null, string? soloCampo = null)
     {
         var dialogo = new DialogoProConta { Title = "Añadir texto clave", Owner = ventana(), Width = 560 };
-        var texto = new TextBox { Width = 420, HorizontalAlignment = HorizontalAlignment.Left, MaxLength = ProConta.Compras.Facturas.ReglasTextosClave.LongitudMaxima,
+        var texto = new TextBox { Text = (textoInicial ?? "").Trim(), Width = 420, HorizontalAlignment = HorizontalAlignment.Left, MaxLength = ProConta.Compras.Facturas.ReglasTextosClave.LongitudMaxima,
             ToolTip = "Palabra o frase del PDF (o de su carpeta) que identifica el gasto; no distingue mayúsculas ni acentos" };
-        var conCuenta = new CheckBox { Content = $"Asignar la cuenta de gasto {cuenta}", IsChecked = cuenta is not null, IsEnabled = cuenta is not null, Margin = new Thickness(0, 12, 0, 0),
+        var conCuenta = new CheckBox { Content = $"Asignar la cuenta de gasto {cuenta}", IsChecked = cuenta is not null && soloCampo is null or "cuenta", IsEnabled = cuenta is not null, Margin = new Thickness(0, 12, 0, 0),
             Visibility = cuenta is null ? Visibility.Collapsed : Visibility.Visible };
-        var conCentro = new CheckBox { Content = $"Asignar el centro de coste {centro}", IsChecked = centro is not null, IsEnabled = centro is not null, Margin = new Thickness(0, 6, 0, 0),
+        var conCentro = new CheckBox { Content = $"Asignar el centro de coste {centro}", IsChecked = centro is not null && soloCampo is null or "centro", IsEnabled = centro is not null, Margin = new Thickness(0, 6, 0, 0),
             Visibility = centro is null ? Visibility.Collapsed : Visibility.Visible };
         var error = new TextBlock { Foreground = System.Windows.Media.Brushes.Firebrick, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 10, 0, 0), Visibility = Visibility.Collapsed };
         var panel = new StackPanel();
@@ -122,6 +122,42 @@ public sealed class DialogosCompras(Func<Window?> ventana) : IDialogosCompras
         cancelar.Click += (_, _) => dialogo.DialogResult = false;
         dialogo.Botones = new StackPanel { Orientation = Orientation.Horizontal, Children = { cancelar, aceptar } };
         dialogo.Loaded += (_, _) => texto.Focus();
+        return dialogo.ShowDialog() == true;
+    }
+
+    public bool PedirNombreComercial(string razonSocial, string? actual, Func<string, Task<string?>> guardar)
+    {
+        var dialogo = new DialogoProConta { Title = "Nombre comercial del proveedor", Owner = ventana(), Width = 520 };
+        var texto = new TextBox { Text = actual ?? "", Width = 400, HorizontalAlignment = HorizontalAlignment.Left, MaxLength = 150,
+            ToolTip = "El nombre por el que conoces al proveedor; vacío, se quita" };
+        var error = new TextBlock { Foreground = System.Windows.Media.Brushes.Firebrick, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 10, 0, 0), Visibility = Visibility.Collapsed };
+        var panel = new StackPanel();
+        panel.Children.Add(new TextBlock { Text = $"Razón social: {razonSocial}. El nombre comercial se guarda en su ficha de Terceros y sale en las listas y en los apuntes.",
+            TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 0, 0, 12) });
+        panel.Children.Add(new TextBlock { Text = "Nombre comercial", Style = (Style)dialogo.FindResource("Texto.Seccion"), Margin = new Thickness(0, 0, 0, 4) });
+        panel.Children.Add(texto);
+        panel.Children.Add(error);
+        dialogo.Content = panel;
+        var aceptar = new Button { Content = "Guardar", Style = (Style)dialogo.FindResource("Boton.Primario"), Margin = new Thickness(8, 0, 0, 0), IsDefault = true,
+            ToolTip = "Guarda el nombre comercial en la ficha del proveedor" };
+        var cancelar = new Button { Content = "Cancelar", IsCancel = true, ToolTip = "No cambia nada" };
+        aceptar.Click += async (_, _) =>
+        {
+            aceptar.IsEnabled = false;
+            try
+            {
+                var fallo = await guardar(texto.Text.Trim());
+                if (fallo is null) dialogo.DialogResult = true;
+                else { error.Text = fallo; error.Visibility = Visibility.Visible; }
+            }
+            finally
+            {
+                aceptar.IsEnabled = true;
+            }
+        };
+        cancelar.Click += (_, _) => dialogo.DialogResult = false;
+        dialogo.Botones = new StackPanel { Orientation = Orientation.Horizontal, Children = { cancelar, aceptar } };
+        dialogo.Loaded += (_, _) => { texto.Focus(); texto.SelectAll(); };
         return dialogo.ShowDialog() == true;
     }
 

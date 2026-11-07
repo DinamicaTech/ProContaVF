@@ -21,6 +21,19 @@ public sealed class CriterioFiltroVM(string texto, string clave, bool esOperacio
     public bool EsOperacion { get; } = esOperacion;
     public bool Marcado { get => _marcado; set { if (Fijar(ref _marcado, value)) cambio(); } }
     internal void Quitar() { _marcado = false; Avisar(nameof(Marcado)); }
+
+    private bool _visible = true;
+    /// <summary>Si se ofrece en la pestaña actual («Contabilizadas hoy» solo en Contabilizadas); oculto, no filtra.</summary>
+    public bool Visible
+    {
+        get => _visible;
+        internal set
+        {
+            if (!Fijar(ref _visible, value) || value || !_marcado) return;
+            Quitar();
+            cambio();
+        }
+    }
 }
 
 /// <summary>
@@ -68,7 +81,8 @@ public sealed class FacturasRecibidasVM : ModeloVista, IPestanaTrabajo
         [
             new("Nacionales", "nac", true, Filtrar), new("Intracomunitarias", "int", true, Filtrar), new("Extranjeras (importación)", "imp", true, Filtrar),
             new("Con retención", "ret", false, Filtrar), new("Con suplidos", "sup", false, Filtrar), new("Con inversión del sujeto pasivo", "isp", false, Filtrar),
-            new("Rectificativas y abonos", "rect", false, Filtrar)
+            new("Rectificativas y abonos", "rect", false, Filtrar), new("Recibidas por email", "email", false, Filtrar),
+            new("Contabilizadas hoy", "hoy", false, Filtrar) { Visible = false }
         ];
         _rapido = OpcionesRapidas[0];
 
@@ -185,8 +199,8 @@ public sealed class FacturasRecibidasVM : ModeloVista, IPestanaTrabajo
         try
         {
             _proveedores = await _s.Facturas.ProveedoresAsync(_s.Trabajo);
-            _cuentasGasto = (await _s.Cuentas.ListarAsync(_s.Trabajo, "6"))
-                .Where(c => c.EstaActiva && !c.EstaBloqueada && c.Codigo.Length >= 7)
+            _cuentasGasto = (await _s.Cuentas.ListarAsync(_s.Trabajo))
+                .Where(c => c.EstaActiva && !c.EstaBloqueada && c.Codigo.Length >= 7 && FacturaCompra.EsCuentaGastoPermitida(c.Codigo))
                 .OrderBy(c => c.Codigo, StringComparer.Ordinal)
                 .Select(c => new OpcionFicha<string>($"{c.Codigo} · {c.Nombre}", c.Codigo)).ToList();
             _centros = await _s.CentrosCoste.ListarAsync(_s.Trabajo.IdSociedad);
@@ -244,6 +258,7 @@ public sealed class FacturasRecibidasVM : ModeloVista, IPestanaTrabajo
             if (!Fijar(ref _pestanaLista, value)) return;
             _rapido = OpcionesRapidas[0];
             Avisar(nameof(OpcionesRapidas), nameof(FiltroRapido), nameof(EnPendientes), nameof(EnContabilizadas), nameof(EnTodas));
+            foreach (var x in Filtros.Where(x => x.Clave == "hoy")) x.Visible = EnContabilizadas;
             Filtrar();
         }
     }
@@ -251,9 +266,10 @@ public sealed class FacturasRecibidasVM : ModeloVista, IPestanaTrabajo
     public bool EnPendientes => _pestanaLista == "pendientes";
     public bool EnContabilizadas => _pestanaLista == "contabilizadas";
     public bool EnTodas => _pestanaLista == "todas";
-    public string TextoPendientes => $"Pendientes ({Formatos.Recuento(_todas.Count(f => !f.Datos.Contabilizada))})";
-    public string TextoContabilizadas => $"Contabilizadas ({Formatos.Recuento(_todas.Count(f => f.Datos.Contabilizada))})";
-    public string TextoTodas => $"Todas ({Formatos.Recuento(_todas.Count)})";
+    // Los contadores de las pestañas cuentan lo que cumple los filtros (texto, rápido y criterios), sin la pestaña.
+    public string TextoPendientes => $"Pendientes ({Formatos.Recuento(_todas.Count(f => !f.Datos.Contabilizada && Cumple(f, conPestana: false)))})";
+    public string TextoContabilizadas => $"Contabilizadas ({Formatos.Recuento(_todas.Count(f => f.Datos.Contabilizada && Cumple(f, conPestana: false)))})";
+    public string TextoTodas => $"Todas ({Formatos.Recuento(_todas.Count(f => Cumple(f, conPestana: false)))})";
 
     public IReadOnlyList<OpcionCompra> OpcionesRapidas => _pestanaLista switch
     {
@@ -284,7 +300,9 @@ public sealed class FacturasRecibidasVM : ModeloVista, IPestanaTrabajo
         Filtrar();
     }
 
-    private bool Cumple(FilaCompraVM f)
+    private bool Cumple(FilaCompraVM f) => Cumple(f, conPestana: true);
+
+    private bool Cumple(FilaCompraVM f, bool conPestana)
     {
         var d = f.Datos;
         if (_relacionadasDe is int rel)
@@ -292,8 +310,8 @@ public sealed class FacturasRecibidasVM : ModeloVista, IPestanaTrabajo
             var origen = _datos.FirstOrDefault(x => x.IdRegistro == rel);
             return d.IdRegistro == rel || d.IdRegistroFacturaRectificada == rel || origen?.IdRegistroFacturaRectificada == d.IdRegistro;
         }
-        if (_pestanaLista == "pendientes" && d.Contabilizada) return false;
-        if (_pestanaLista == "contabilizadas" && !d.Contabilizada) return false;
+        if (conPestana && _pestanaLista == "pendientes" && d.Contabilizada) return false;
+        if (conPestana && _pestanaLista == "contabilizadas" && !d.Contabilizada) return false;
         if (!f.Contiene(_texto)) return false;
         var ok = _rapido.Clave switch
         {
@@ -308,7 +326,7 @@ public sealed class FacturasRecibidasVM : ModeloVista, IPestanaTrabajo
         if (!ok) return false;
         var ops = Filtros.Where(x => x.EsOperacion && x.Marcado).Select(x => x.Clave).ToList();
         if (ops.Count > 0 && !ops.Contains(d.Operacion switch { OperacionCompra.Intracomunitaria => "int", OperacionCompra.Importacion => "imp", _ => "nac" })) return false;
-        foreach (var x in Filtros.Where(x => !x.EsOperacion && x.Marcado))
+        foreach (var x in Filtros.Where(x => !x.EsOperacion && x.Marcado && x.Visible))
         {
             var cumple = x.Clave switch
             {
@@ -316,6 +334,9 @@ public sealed class FacturasRecibidasVM : ModeloVista, IPestanaTrabajo
                 "sup" => (d.Suplido ?? 0m) != 0m,
                 "isp" => d.InversionSujetoPasivo,
                 "rect" => d.EsRectificativa || _datos.Any(o => o.IdRegistroFacturaRectificada == d.IdRegistro),
+                "email" => d.OrigenDocumento == OrigenesDocumento.Email,
+                // Exportadas hoy desde ProContaVF (compras/pantallas 2026-11-07): las del ERP no tienen hora de exportación.
+                "hoy" => d.Contabilizada && d.FechaHoraExportacion?.Date == DateTime.Today,
                 _ => true
             };
             if (!cumple) return false;
@@ -337,7 +358,8 @@ public sealed class FacturasRecibidasVM : ModeloVista, IPestanaTrabajo
         MensajeEstado = _todas.Count == 0
             ? Prueba ? "Sal del modo prueba (clic derecho) y registra antes alguna factura." : "Pon los PDF en la carpeta de compras del ejercicio y pulsa «Buscar PDF nuevos» (clic derecho)."
             : "Cambia o quita los filtros para ver más facturas.";
-        Avisar(nameof(HayFiltros), nameof(Pie), nameof(TituloEstado), nameof(AccionEstado), nameof(ComandoEstado), nameof(TextoBotonFiltro));
+        Avisar(nameof(HayFiltros), nameof(Pie), nameof(TituloEstado), nameof(AccionEstado), nameof(ComandoEstado), nameof(TextoBotonFiltro),
+            nameof(TextoPendientes), nameof(TextoContabilizadas), nameof(TextoTodas));
         CommandManager.InvalidateRequerySuggested();
     }
 
@@ -407,11 +429,14 @@ public sealed class FacturasRecibidasVM : ModeloVista, IPestanaTrabajo
                 return;
             }
             if (factura.Contabilizada) _ = CargarAsientoAsync(factura, carga);
+            else if (!Prueba) _ = CargarPropuestaAsync(factura, carga);
             if (!Prueba)
             {
-                // Una exportada por ProContaVF se puede cambiar para re-exportarla; una del ERP, no (compras/pantallas 2026-11-06 12:10).
-                var soloLectura = !_puedeEditar || factura.Contabilizada && (!factura.ExportadaAqui || _s.Contabilizador is null);
+                // Una contabilizada (aquí o en el ERP) se puede cambiar: lo que no toca el asiento se guarda; lo demás, al re-exportar
+                // (compras/pantallas 2026-11-07).
+                var soloLectura = !_puedeEditar || factura.Contabilizada && _s.Contabilizador is null;
                 Ficha = new FichaCompraVM(factura, _proveedores, _cuentasGasto, _centros, _datos, soloLectura: soloLectura, tiposIva: _tiposIva, formasPago: _formasPago, tiposRetencion: _tiposRetencion);
+                _ = CargarPuntosPlantillaAsync(Ficha, carga);
                 return;
             }
             // Modo prueba: se reconoce de nuevo el PDF y se compara con lo grabado; nada se guarda.
@@ -424,15 +449,30 @@ public sealed class FacturasRecibidasVM : ModeloVista, IPestanaTrabajo
         }
     }
 
+    /// <summary>Dónde leen las plantillas cada campo, para marcar en verde esas apariciones en el visor; sin bloquear la ficha.</summary>
+    private async Task CargarPuntosPlantillaAsync(FichaCompraVM ficha, int carga, FacturaCompra? valores = null)
+    {
+        try
+        {
+            var puntos = await _s.Facturas.PuntosPlantillaAsync(valores ?? ficha.Factura);
+            if (carga == _cargaFicha && ReferenceEquals(Ficha, ficha)) ficha.PuntosPlantilla = puntos;
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            // Sin puntos, el visor marca en ámbar como antes.
+        }
+    }
+
     /// <summary>
     /// Buscador de cuentas para la cuenta de gasto (contabilidad/cuenta-contable 2026-11-06): limitado al grupo 6, con la
     /// casilla para quitar el filtro. La subcuenta del grupo 6 que se crea pasa a la lista de las fichas siguientes.
     /// </summary>
     private Task<ProConta.Contabilidad.Cuentas.CuentaContable?> BuscarCuentaGastoAsync(string texto)
     {
-        var buscador = new ProConta.Contabilidad.UI.BuscadorCuentasVM(_s.Cuentas, _s.Trabajo, ["6"], texto, _s.CentrosCoste);
+        var buscador = new ProConta.Contabilidad.UI.BuscadorCuentasVM(_s.Cuentas, _s.Trabajo, FacturaCompra.GruposCuentaGasto, texto, _s.CentrosCoste,
+            ampliados: FacturaCompra.OtrasCuentasGasto);
         var c = _modulo.Dialogos.ElegirCuenta(buscador, "Cuenta de gasto");
-        if (c is not null && c.Codigo.StartsWith('6') && _cuentasGasto.All(o => o.Valor != c.Codigo))
+        if (c is not null && FacturaCompra.EsCuentaGastoPermitida(c.Codigo) && _cuentasGasto.All(o => o.Valor != c.Codigo))
             _cuentasGasto = [.. _cuentasGasto.Append(new OpcionFicha<string>($"{c.Codigo} · {c.Nombre}", c.Codigo)).OrderBy(o => o.Valor, StringComparer.Ordinal)];
         return Task.FromResult(c);
     }
@@ -444,15 +484,113 @@ public sealed class FacturasRecibidasVM : ModeloVista, IPestanaTrabajo
     /// </summary>
     private async Task DarDeAltaProveedorAsync(FichaCompraVM ficha)
     {
-        if (_s.AltaProveedor is not { } alta || !ficha.PuedeDarDeAltaProveedor) return;
+        // Como al guardar: se elige proveedor (400) o acreedor (410) (compras/pantallas 2026-11-07 19:42).
+        var eleccion = PreguntarComoAlta(ficha, "¿Cómo lo doy de alta?", new OpcionMensaje("Cancelar", "No da de alta el proveedor.", Cancelar: true));
+        if (eleccion is 0 or 1) await AltaProveedorAsync(ficha, comoProveedor: eleccion == 0);
+    }
+
+    /// <summary>Diálogo de alta con los datos del proveedor: 0 = proveedor (400), 1 = acreedor (410), otro = la tercera opción o cerrar.</summary>
+    private int PreguntarComoAlta(FichaCompraVM ficha, string pregunta, OpcionMensaje tercera)
+    {
+        var nombre = ficha.RazonSocialAeat ?? ficha.NombreLeido;
+        var datos = new List<string> { $"NIF: {ficha.Nif}" };
+        datos.Add(ficha.RazonSocialAeat is { } r ? $"Razón social (AEAT): {r}" : nombre is { } n ? $"Nombre leído en la factura: {n}" : "Sin razón social: te la pediré al darlo de alta.");
+        return _modulo.Dialogos.Preguntar("El proveedor no está dado de alta", pregunta, datos,
+            new OpcionMensaje("Alta como proveedor", "Proveedor (cuenta 400): te vende lo que forma parte de tu actividad: mercaderías, materias primas o lo que revendes o transformas."),
+            new OpcionMensaje("Alta como acreedor", "Acreedor (cuenta 410): te presta servicios o te vende otras cosas: suministros, alquileres, asesoría, reparaciones, publicidad.", Principal: true),
+            tercera);
+    }
+
+    /// <summary>Nombre comercial del proveedor de la ficha (compras/pantallas 2026-11-07 20:10): se guarda en su tercero.</summary>
+    private async Task EditarNombreComercialAsync(FichaCompraVM ficha)
+    {
+        if (_s.AltaProveedor is not { } alta || ficha.ProveedorActual is not { } p) return;
+        var razon = string.IsNullOrWhiteSpace(p.RazonSocial) ? p.Nombre : p.RazonSocial;
+        var guardado = _modulo.Dialogos.PedirNombreComercial(razon, p.NombreComercial, async nombre =>
+        {
+            var r = await alta.NombreComercialAsync(p.IdTercero, nombre);
+            return r.EsCorrecto ? null : r.Error!.Mensaje + (r.Error.AccionCorrectora is { } a ? " " + a : "");
+        });
+        if (!guardado) return;
+        _proveedores = await _s.Facturas.ProveedoresAsync(_s.Trabajo);
+        ficha.ProveedoresRecargados(_proveedores);
+        _modulo.Avisar("Nombre comercial guardado en la ficha del proveedor.");
+    }
+
+    private readonly Dictionary<string, string?> _razonesAeat = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, bool?> _viesPorNif = new(StringComparer.OrdinalIgnoreCase);
+    private readonly HashSet<string> _viesSinRespuesta = new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// Al abrir una factura con un NIF sin proveedor y sin razón social de la AEAT (importada antes o sin certificado), la
+    /// consulta en segundo plano y la pone bajo el NIF (compras/pantallas 2026-11-07 19:42). Una consulta por NIF y sesión.
+    /// </summary>
+    private async Task ConsultarRazonAeatAsync(FichaCompraVM ficha)
+    {
+        if (_s.AltaProveedor is not { } servicioAlta) return;
+        var nif = ficha.Nif;
+        if (nif.Length == 0) return;
+        // Proveedor comunitario sin verificar en el VIES: se consulta y se guarda en su ficha (una vez por sesión si no responde).
+        if (ficha.ProveedorActual is { EstadoVies: null } prov && ficha.MarcaVies is not null && _viesSinRespuesta.Add(nif))
+        {
+            try
+            {
+                if (await servicioAlta.VerificarViesAsync(prov.IdProveedor, nif) is not null)
+                {
+                    _viesSinRespuesta.Remove(nif);
+                    _proveedores = await _s.Facturas.ProveedoresAsync(_s.Trabajo);
+                    if (ReferenceEquals(_ficha, ficha)) ficha.ProveedoresRecargados(_proveedores);
+                }
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException) { }
+            return;
+        }
+        if (!ficha.PuedeDarDeAltaProveedor) return;
+        if (!_razonesAeat.TryGetValue(nif, out var razon))
+        {
+            try
+            {
+                // Si la razón social está en el PDF, el proveedor se da de alta como acreedor, como al importar (Ronald, 2026-11-07 20:10).
+                var (aeat, creado) = await _s.Facturas.RazonSocialYAltaAsync(_s.Trabajo, nif, ficha.Factura.RutaPdf, ficha.NombreLeido);
+                razon = aeat.Identificado && !string.IsNullOrWhiteSpace(aeat.RazonSocial) ? aeat.RazonSocial.Trim() : null;
+                // Sin certificado o sin conexión no se guarda: se vuelve a intentar al abrir otra vez la factura.
+                if (aeat.Identificado || aeat.Consultado) _razonesAeat[nif] = razon;
+                if (aeat.Consultado) _viesPorNif[nif] = aeat.Vies;
+                if (creado is not null)
+                {
+                    _proveedores = await _s.Facturas.ProveedoresAsync(_s.Trabajo);
+                    if (ReferenceEquals(_ficha, ficha)) ficha.ProveedorDadoDeAlta(_proveedores, creado.IdProveedor, creado.Cuenta);
+                    _modulo.Avisar($"Proveedor {creado.Nombre} dado de alta como acreedor ({creado.Cuenta}): su razón social de la AEAT está en la factura. Se guarda en la factura con los demás cambios.");
+                    return;
+                }
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException) { return; }
+        }
+        if (!ReferenceEquals(_ficha, ficha)) return;
+        if (_viesPorNif.TryGetValue(nif, out var vies)) ficha.ViesConsultado(nif, vies);
+        if (razon is not null) ficha.RazonSocialConsultada(nif, razon);
+    }
+
+    /// <summary>
+    /// Alta del proveedor de la ficha como acreedor (410) o, si el operador lo ha elegido al guardar, como proveedor (400).
+    /// La razón social de la AEAT que ya trae la factura se usa sin volver a consultar. Devuelve si se ha dado de alta.
+    /// </summary>
+    private async Task<bool> AltaProveedorAsync(FichaCompraVM ficha, bool comoProveedor)
+    {
+        if (_s.AltaProveedor is not { } alta || !ficha.PuedeDarDeAltaProveedor) return false;
         var nif = ficha.Nif;
         var leido = ficha.NombreLeido;
-        _modulo.Avisar($"Comprobando el NIF {nif}…");
-        var aeat = await alta.ConsultarAsync(_s.Trabajo, nif, leido);
+        ProConta.Compras.Proveedores.ResultadoNifAeat aeat;
+        if (ficha.RazonSocialAeat is { } yaAeat) aeat = new(true, true, yaAeat, null, _viesPorNif.GetValueOrDefault(nif));
+        else
+        {
+            _modulo.Avisar($"Comprobando el NIF {nif}…");
+            aeat = await alta.ConsultarAsync(_s.Trabajo, nif, leido);
+        }
         ProConta.Compras.Proveedores.ProveedorCreado? creado = null;
         async Task<string?> Crear(ProConta.Compras.Proveedores.DatosAltaProveedor datos)
         {
-            var r = await alta.AltaAsync(_s.Trabajo, datos);
+            var r = await alta.AltaAsync(_s.Trabajo, datos, comoProveedor);
             if (!r.EsCorrecto) return string.Join(" ", r.Errores.Select(e => e.AccionCorrectora is { } a ? $"{e.Mensaje} {a}" : e.Mensaje));
             creado = r.Valor;
             return null;
@@ -462,33 +600,57 @@ public sealed class FacturasRecibidasVM : ModeloVista, IPestanaTrabajo
             if (await Crear(new(nif, aeat.RazonSocial!)) is { } error)
             {
                 _modulo.Dialogos.Preguntar("No he podido dar de alta el proveedor", error, null, new OpcionMensaje("Entendido", "Cierra el aviso", Principal: true));
-                return;
+                return false;
             }
         }
         else
         {
             // El botón de eInforma sale mientras la razón social esté vacía (compras/pantallas 2026-11-06 13:16).
             var url = "https://www.google.com/search?q=" + Uri.EscapeDataString($"{nif} site:einforma.com");
-            if (!_modulo.Dialogos.PedirDatosProveedor(new(nif, leido ?? ""), aeat.Motivo, url, Crear)) return;
+            if (!_modulo.Dialogos.PedirDatosProveedor(new(nif, leido ?? ""), aeat.Motivo, url, Crear)) return false;
         }
-        if (creado is null) return;
+        if (creado is null) return false;
+        if (aeat.Vies is { } enVies) await alta.GuardarViesAsync(creado.IdProveedor, enVies);
         _proveedores = await _s.Facturas.ProveedoresAsync(_s.Trabajo);
         if (ReferenceEquals(_ficha, ficha)) ficha.ProveedorDadoDeAlta(_proveedores, creado.IdProveedor, creado.Cuenta);
         _modulo.Avisar((creado.TerceroExistente ? $"{creado.Nombre} ya estaba en Terceros: ahora es proveedor" : $"Proveedor {creado.Nombre} dado de alta")
             + $" con la cuenta {creado.Cuenta}{(aeat.Identificado ? ", con la razón social de la AEAT" : "")}. Se guarda en la factura con los demás cambios.");
+        return true;
+    }
+
+    private enum RespuestaAlta { Seguir, NoPorAhora, Cancelar }
+
+    /// <summary>
+    /// Al pulsar «Guardar» o «Guardar y exportar» con un NIF sin proveedor (compras/pantallas 2026-11-07): alta como
+    /// proveedor (400) o como acreedor (410), o «No por ahora», que guarda sin proveedor y no deja exportar. Al cambiar de
+    /// factura no se pregunta.
+    /// </summary>
+    private async Task<RespuestaAlta> PreguntarAltaProveedorAsync(FichaCompraVM ficha)
+    {
+        if (_s.AltaProveedor is null || !ficha.PuedeDarDeAltaProveedor) return RespuestaAlta.Seguir;
+        var eleccion = PreguntarComoAlta(ficha, "Para exportar la factura, su proveedor tiene que estar dado de alta en la empresa. ¿Lo doy de alta ahora?",
+            new OpcionMensaje("No por ahora", "Guarda la factura sin proveedor: no se podrá exportar hasta darlo de alta.", Cancelar: true));
+        if (eleccion is not (0 or 1)) return eleccion == 2 ? RespuestaAlta.NoPorAhora : RespuestaAlta.Cancelar;
+        return await AltaProveedorAsync(ficha, comoProveedor: eleccion == 0) ? RespuestaAlta.Seguir : RespuestaAlta.Cancelar;
     }
 
     /// <summary>Pide un texto clave con la cuenta y el centro de la ficha y lo guarda en la empresa (compras/pantallas 2026-11-06 17:02).</summary>
-    private Task AnadirTextoClaveAsync(FichaCompraVM ficha)
+    private Task AnadirTextoClaveAsync(FichaCompraVM ficha, string? textoInicial, string? soloCampo)
     {
         if (_s.TextosClave is not { } catalogo) return Task.CompletedTask;
         var cuenta = ficha.CuentaGastoActual;
         var centro = ficha.CentroCosteActual;
+        // Desde el PDF, el campo con el foco tiene que tener ya su valor.
+        if (soloCampo == "cuenta" && cuenta is null || soloCampo == "centro" && centro is null)
+        {
+            _modulo.Avisar(soloCampo == "cuenta" ? "Elige primero la cuenta de gasto y vuelve a seleccionar el texto en el PDF." : "Elige primero el centro de coste y vuelve a seleccionar el texto en el PDF.");
+            return Task.CompletedTask;
+        }
         var guardado = _modulo.Dialogos.PedirTextoClave(cuenta?.Texto, centro?.Texto, async (texto, conCuenta, conCentro) =>
         {
             var r = await catalogo.GuardarAsync(_s.Trabajo, null, texto, conCuenta ? cuenta?.Codigo : null, conCentro ? centro?.Id : null);
             return r.EsCorrecto ? null : r.Error!.Mensaje + (r.Error.AccionCorrectora is { } a ? " " + a : "");
-        });
+        }, textoInicial, soloCampo);
         if (guardado) _modulo.Avisar("Texto clave guardado: se aplicará a los PDF que se lean a partir de ahora.");
         return Task.CompletedTask;
     }
@@ -505,7 +667,12 @@ public sealed class FacturasRecibidasVM : ModeloVista, IPestanaTrabajo
                 value.PropertyChanged += AlCambiarFicha;
                 value.BuscarCuenta = BuscarCuentaGastoAsync;
                 if (_s.TextosClave is not null && _puedeEditar && !Prueba) value.AnadirTextoClave = AnadirTextoClaveAsync;
-                if (_s.AltaProveedor is not null && _puedeEditar && !Prueba) value.DarDeAltaProveedor = DarDeAltaProveedorAsync;
+                if (_s.AltaProveedor is not null && _puedeEditar && !Prueba)
+                {
+                    value.DarDeAltaProveedor = DarDeAltaProveedorAsync;
+                    value.EditarNombreComercial = EditarNombreComercialAsync;
+                    _ = ConsultarRazonAeatAsync(value);
+                }
             }
             Avisar(nameof(HayFicha), nameof(TieneCambios));
             AvisarBotonesFicha();
@@ -518,19 +685,22 @@ public sealed class FacturasRecibidasVM : ModeloVista, IPestanaTrabajo
     /// <summary>Exportar, re-exportar y deshacer: con el contabilizador, permiso de edición y fuera del modo prueba.</summary>
     public bool PuedeContabilizar => _s.Contabilizador is not null && _puedeEditar && !Prueba;
 
-    /// <summary>La factura de la ficha la exportó ProContaVF.</summary>
-    public bool FichaExportada => _ficha?.Factura.ExportadaAqui == true;
+    /// <summary>La factura de la ficha está contabilizada (por ProContaVF o en el ERP).</summary>
+    public bool FichaExportada => _ficha?.Factura.Contabilizada == true;
+
+    /// <summary>Los cambios de la ficha de una contabilizada tocan su asiento: se guardan re-exportando.</summary>
+    public bool CambiosAfectanAlAsiento => _ficha is { TieneCambios: true } f && FichaExportada && FacturaCompra.AfectaAlAsiento(f.Factura, f.Construir());
 
     /// <summary>Pie de la ficha: los botones de los campos en edición y, sin cambios, Exportar o Deshacer exportación.</summary>
     public bool HayBotonesFicha => _ficha is { Editable: true } f && (f.TieneCambios || PuedeContabilizar);
 
-    public bool MostrarGuardar => _ficha is { Editable: true, TieneCambios: true } && !FichaExportada;
-    public bool MostrarGuardarYExportar => MostrarGuardar && PuedeContabilizar;
-    public bool MostrarGuardarYReexportar => _ficha is { Editable: true, TieneCambios: true } && FichaExportada && PuedeContabilizar;
+    public bool MostrarGuardar => _ficha is { Editable: true, TieneCambios: true } && !CambiosAfectanAlAsiento;
+    public bool MostrarGuardarYExportar => _ficha is { Editable: true, TieneCambios: true } && !FichaExportada && PuedeContabilizar;
+    public bool MostrarGuardarYReexportar => _ficha is { Editable: true, TieneCambios: true } && CambiosAfectanAlAsiento && PuedeContabilizar;
     public bool MostrarExportar => _ficha is { Editable: true, TieneCambios: false } && !_ficha.Factura.Contabilizada && PuedeContabilizar;
     public bool MostrarDeshacer => _ficha is { Editable: true, TieneCambios: false } && FichaExportada && PuedeContabilizar;
 
-    private void AvisarBotonesFicha() => Avisar(nameof(HayBotonesFicha), nameof(FichaExportada), nameof(MostrarGuardar), nameof(MostrarGuardarYExportar),
+    private void AvisarBotonesFicha() => Avisar(nameof(HayBotonesFicha), nameof(FichaExportada), nameof(CambiosAfectanAlAsiento), nameof(MostrarGuardar), nameof(MostrarGuardarYExportar),
         nameof(MostrarGuardarYReexportar), nameof(MostrarExportar), nameof(MostrarDeshacer));
 
     private bool PuedeExportar => PuedeContabilizar && !Ocupado && (_seleccion.Count > 1
@@ -539,7 +709,15 @@ public sealed class FacturasRecibidasVM : ModeloVista, IPestanaTrabajo
 
     private async Task GuardarYExportarAsync()
     {
+        if (_ficha is not { } ficha) return;
+        var alta = await PreguntarAltaProveedorAsync(ficha);
+        if (alta == RespuestaAlta.Cancelar) return;
         if (!await GuardarFichaAsync()) return;
+        if (alta == RespuestaAlta.NoPorAhora)
+        {
+            _modulo.Avisar("Factura guardada sin proveedor: no se exporta hasta que lo des de alta.");
+            return;
+        }
         await ExportarFichaAsync(guardarCambios: false);
     }
 
@@ -556,7 +734,7 @@ public sealed class FacturasRecibidasVM : ModeloVista, IPestanaTrabajo
         if (_s.Contabilizador is not { } conta || _ficha is not { Editable: true } ficha) return;
         var f = ficha.Construir();
         var opciones = new OpcionesExportacion();
-        var reexportar = f.ExportadaAqui;
+        var reexportar = f.Contabilizada;
         TextoOcupado = reexportar ? "Re-exportando la factura…" : "Exportando la factura…";
         try
         {
@@ -589,8 +767,9 @@ public sealed class FacturasRecibidasVM : ModeloVista, IPestanaTrabajo
                 if (reexportar && c.TrimestreCerrado)
                 {
                     TextoOcupado = "";
-                    var seguir = _modulo.Dialogos.Preguntar("El asiento es de un trimestre cerrado",
-                        "El asiento actual no se toca: haré un contra-asiento con los datos anteriores y un asiento nuevo, los dos en el trimestre activo.", null,
+                    var seguir = _modulo.Dialogos.Preguntar(f.ExportadaEnErp ? "La factura se contabilizó en el ERP" : "El asiento es de un trimestre cerrado",
+                        (f.ExportadaEnErp ? "Su asiento del ERP no se toca" : "El asiento actual no se toca") +
+                        ": haré un contra-asiento con los datos anteriores y un asiento nuevo con los cambios, con la fecha de la factura o el día 1 del trimestre activo si es anterior.", null,
                         new OpcionMensaje("Re-exportar", "Hace el contra-asiento y el asiento nuevo", Principal: true),
                         new OpcionMensaje("Cancelar", "No cambia nada", Cancelar: true));
                     if (seguir != 0) return;
@@ -660,14 +839,17 @@ public sealed class FacturasRecibidasVM : ModeloVista, IPestanaTrabajo
     /// </summary>
     private async Task DeshacerExportacionAsync()
     {
-        if (_s.Contabilizador is not { } conta || _ficha is not { } ficha || !ficha.Factura.ExportadaAqui) return;
+        if (_s.Contabilizador is not { } conta || _ficha is not { } ficha || !ficha.Factura.Contabilizada) return;
         var f = ficha.Factura;
         try
         {
             var cerrado = await conta.TrimestreCerradoAsync(f);
             var anulado = (await conta.EstadoAsync(f.IdRegistro)).IdAsientoAnulado;
+            var estado = await conta.EstadoAsync(f.IdRegistro);
             var eleccion = _modulo.Dialogos.Preguntar("Deshacer la exportación",
-                cerrado
+                estado.DelErp
+                    ? $"La factura se contabilizó en el ERP{(estado.IdAsiento is int erp ? $" (asiento {erp})" : "")}. Ese asiento no se toca: haré un contra-asiento y la factura volverá a Pendientes."
+                    : cerrado
                     ? $"El asiento {f.IdAsientoContable} es de un trimestre cerrado y no se toca: haré un contra-asiento en el trimestre activo y la factura volverá a Pendientes."
                     : $"Borraré el asiento {f.IdAsientoContable} y su registro del libro de IVA; es del trimestre activo, así que no tiene consecuencias fiscales. La factura volverá a Pendientes."
                       + (anulado is int a ? $" Se queda el contra-asiento del asiento {a}, que es de un trimestre cerrado." : ""),
@@ -738,6 +920,24 @@ public sealed class FacturasRecibidasVM : ModeloVista, IPestanaTrabajo
         }
     }
 
+    /// <summary>
+    /// Propuesta de asiento de una factura sin contabilizar (compras/pantallas 2026-11-07): lo que generaría exportarla,
+    /// con lo guardado; se recalcula al abrir la ficha y al guardar.
+    /// </summary>
+    private async Task CargarPropuestaAsync(FacturaCompra factura, int carga)
+    {
+        if (_s.Contabilizador is not { } conta) return;
+        try
+        {
+            var (asiento, mensaje) = await conta.ProponerAsync(factura);
+            if (carga == _cargaFicha) AsientoFicha = AsientoFacturaVM.Propuesta(asiento, mensaje);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            if (carga == _cargaFicha) AsientoFicha = new AsientoFacturaVM("Propuesta de asiento", $"No he podido calcularla: {ex.Message}", []);
+        }
+    }
+
     private void AlCambiarFicha(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
     {
         if (e.PropertyName == nameof(FichaCompraVM.TieneCambios))
@@ -746,6 +946,8 @@ public sealed class FacturasRecibidasVM : ModeloVista, IPestanaTrabajo
             AvisarBotonesFicha();
             CommandManager.InvalidateRequerySuggested();
         }
+        // En una contabilizada, cada cambio decide si basta «Guardar» o hace falta «Guardar y re-exportar».
+        else if (FichaExportada && _ficha is { TieneCambios: true }) AvisarBotonesFicha();
     }
 
     /// <summary>Selección de la tabla (la mantiene la vista): el ámbito de las acciones del menú contextual.</summary>
@@ -787,9 +989,15 @@ public sealed class FacturasRecibidasVM : ModeloVista, IPestanaTrabajo
 
     private async Task GuardarOEnsenarAsync()
     {
-        // Una exportada no se guarda sola: sus cambios van con «Guardar y re-exportar».
-        if (_ficha is { Editable: true } && !FichaExportada)
+        // Una contabilizada se guarda sola si el cambio no toca el asiento; si lo toca, va con «Guardar y re-exportar».
+        if (_ficha is { Editable: true } && (!FichaExportada || _ficha.TieneCambios))
         {
+            if (CambiosAfectanAlAsiento)
+            {
+                ErrorFicha = "Este cambio afecta al asiento de la factura, que ya está contabilizada: usa «Guardar y re-exportar».";
+                return;
+            }
+            if (await PreguntarAltaProveedorAsync(_ficha) == RespuestaAlta.Cancelar) return;
             await GuardarFichaAsync(confirmar: true);
             return;
         }
@@ -875,6 +1083,8 @@ public sealed class FacturasRecibidasVM : ModeloVista, IPestanaTrabajo
         }
         ErrorFicha = null;
         ficha.Guardada(f);
+        _ = CargarPuntosPlantillaAsync(ficha, _cargaFicha);
+        if (!f.Contabilizada && ReferenceEquals(Ficha, ficha)) _ = CargarPropuestaAsync(f, _cargaFicha);
         // La forma de pago guardada pasa a ser la del proveedor: se propone ya en sus otras facturas.
         if (f.IdProveedor is int prov)
             _proveedores = _proveedores.Select(p => p.IdProveedor == prov
@@ -898,9 +1108,10 @@ public sealed class FacturasRecibidasVM : ModeloVista, IPestanaTrabajo
             Nif = f.NifProveedor, NumeroFactura = f.NumeroFactura, Fecha = f.Fecha, BaseImponible = f.BaseImponible, CuotaIva = f.CuotaIva,
             ImporteTotal = f.ImporteTotal, ImporteRetencion = f.ImporteRetencion, TieneRetencion = (f.ImporteRetencion ?? 0m) != 0m, Suplido = f.Suplido,
             InversionSujetoPasivo = f.InversionSujetoPasivo, Operacion = f.Operacion, Divisa = f.Divisa, IdRegistroFacturaRectificada = f.IdRegistroFacturaRectificada,
-            Contabilizada = o.Contabilizada, Duplicada = o.Duplicada, RutaPdf = o.RutaPdf, Carpeta = o.Carpeta, CuentaGasto = f.CuentaGasto,
+            Contabilizada = o.Contabilizada, Duplicada = o.Duplicada, RutaPdf = f.RutaPdf.Length > 0 ? f.RutaPdf : o.RutaPdf, Carpeta = f.RutaPdf.Length > 0 ? f.Carpeta : o.Carpeta, CuentaGasto = f.CuentaGasto,
             IdCentroCoste = f.IdCentroCoste, Confianza = o.Confianza, RequiereRevision = f.RequiereRevision, FechaHoraRegistro = o.FechaHoraRegistro, Asiento = o.Asiento,
-            ConfianzaMinima = o.ConfianzaMinima, Version = f.Version, RutasGuardadas = o.RutasGuardadas
+            ConfianzaMinima = o.ConfianzaMinima, Version = f.Version, OrigenDocumento = o.OrigenDocumento, FechaHoraExportacion = o.FechaHoraExportacion,
+            RutasGuardadas = f.RutaPdf != o.RutaPdf && f.RutaPdf.Length > 0 ? [f.RutaPdf] : o.RutasGuardadas
         };
         _datos = _datos.Select(d => d.IdRegistro == nueva.IdRegistro ? nueva : d).ToList();
         fila.Datos = nueva;
@@ -941,7 +1152,12 @@ public sealed class FacturasRecibidasVM : ModeloVista, IPestanaTrabajo
             if (fallidos.Count > 0 && !silencioso)
                 _modulo.Dialogos.Preguntar("Algunos PDF no se han podido registrar", "Estos PDF siguen en la carpeta y se volverán a intentar la próxima vez.",
                     fallidos.Select(f => $"{Path.GetFileName(f.Ruta)}: {f.Error!.Mensaje}").ToList(), new OpcionMensaje("Entendido", "Cierra el aviso", Principal: true));
-            if (registrados > 0) await CargarAsync();
+            if (registrados > 0)
+            {
+                // La importación puede haber dado de alta proveedores (alta automática con la AEAT).
+                _proveedores = await _s.Facturas.ProveedoresAsync(_s.Trabajo);
+                await CargarAsync();
+            }
             else foreach (var f in _todas) f.ComprobarPdf();
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
@@ -971,8 +1187,17 @@ public sealed class FacturasRecibidasVM : ModeloVista, IPestanaTrabajo
         TextoOcupado = "Reconociendo el PDF…";
         try
         {
-            var (_, leida) = await _s.Facturas.ProbarAsync(_s.Trabajo, _activa.Datos.RutaPdf);
-            _ficha.AplicarLectura(leida);
+            var ficha = _ficha;
+            var (_, leida) = await _s.Facturas.ProbarAsync(_s.Trabajo, _activa.Datos.RutaPdf, altaAutomatica: !ficha.HayProveedor);
+            ficha.AplicarLectura(leida);
+            // Alta automática del proveedor (su razón social de la AEAT está en el PDF): la ficha lo toma.
+            if (leida.IdProveedor is int nuevo && !_proveedores.Any(p => p.IdProveedor == nuevo))
+            {
+                _proveedores = await _s.Facturas.ProveedoresAsync(_s.Trabajo);
+                if (ReferenceEquals(_ficha, ficha)) ficha.ProveedorDadoDeAlta(_proveedores, nuevo, leida.CuentaContableProveedor ?? "");
+                _modulo.Avisar($"Proveedor {leida.NombreProveedorAeat} dado de alta como acreedor ({leida.CuentaContableProveedor}): su razón social de la AEAT está en la factura.");
+            }
+            _ = CargarPuntosPlantillaAsync(_ficha, _cargaFicha, leida);
             _modulo.Avisar("Reconocido de nuevo: revisa los campos y guarda (se guarda solo al cambiar de factura).");
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
@@ -1000,6 +1225,7 @@ public sealed class FacturasRecibidasVM : ModeloVista, IPestanaTrabajo
             if (carga != _cargaFicha) return;
             Ficha = new FichaCompraVM(leida, _proveedores, _cuentasGasto, _centros, _datos, soloLectura: true, ConfianzaCampos.DesdeLog(reconocida.Log), _tiposIva, _formasPago, _tiposRetencion);
             Comparacion = ServicioFacturasCompra.Comparar(grabada, leida);
+            _ = CargarPuntosPlantillaAsync(Ficha, carga);
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {

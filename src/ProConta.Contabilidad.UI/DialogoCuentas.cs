@@ -28,7 +28,7 @@ public static class DialogoCuentas
         {
             Content = vm.TextoGrupos, IsChecked = vm.SoloGrupos, Margin = new Thickness(0, 8, 0, 0),
             Visibility = vm.HayGrupos ? Visibility.Visible : Visibility.Collapsed,
-            ToolTip = "Quita la marca para buscar en todo el plan de cuentas del ejercicio",
+            ToolTip = vm.AyudaGrupos,
         };
         var estado = new TextBlock { Margin = new Thickness(0, 8, 0, 8), Foreground = apagado, Text = vm.Estado, TextWrapping = TextWrapping.Wrap };
         var lista = new ListBox { HorizontalContentAlignment = HorizontalAlignment.Stretch, ItemsSource = vm.Resultados };

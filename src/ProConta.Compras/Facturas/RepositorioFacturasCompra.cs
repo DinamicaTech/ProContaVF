@@ -45,8 +45,9 @@ internal static class RepositorioFacturasCompra
             "NumeroFactura, Fecha, Concepto, ImporteBI, ImporteIVA, ImporteTotal, PorcentajeRetencion, ImporteRetencion, InversionSujetoPasivo, " +
             "Divisa, ImporteTotalDivisa, TipoCambioAplicado, FechaTipoCambio, IdRegistroFacturaRectificada, ArchivoOriginal, Carpeta, NombreFichero, MD5, " +
             "Pagada, Exportada, Duplicada, FechaHoraRegistro, ConfianzaImportacion, RequiereRevisionImportacion, FuenteImportacion, LOGImportacion, Version, " +
-            "TipoOperacion, TipoProducto, TipoRetencion, Suplido, ConceptoGasto, IdCentroCoste, CuentaFormaPago, NotasFactura, IdFormaPago) " +
-            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            "TipoOperacion, TipoProducto, TipoRetencion, Suplido, ConceptoGasto, IdCentroCoste, CuentaFormaPago, NotasFactura, IdFormaPago, " +
+            "ConceptoFactura, ConceptoAbreviado, OrigenDocumento) " +
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
             f.Ejercicio.IdSociedad, f.Ejercicio.Ejercicio.ToString(CultureInfo.InvariantCulture), f.Ejercicio.IdSociedadEjercicio, f.IdProveedor,
             Nulo(f.CuentaContableProveedor), Nulo(f.NifProveedor), Nulo(f.NombreProveedorAeat),
             Nulo(f.NumeroFactura), f.Fecha?.Date, Nulo(f.Concepto), f.BaseImponible, f.CuotaIva, f.ImporteTotal,
@@ -55,7 +56,8 @@ internal static class RepositorioFacturasCompra
             f.RutaPdf, Nulo(f.Carpeta), f.NombreFichero, f.Md5,
             false, false, false, ahora, f.Confianza, f.RequiereRevision, f.Fuente, Nulo(f.Log), 0,
             (int)f.Operacion, f.Producto is { } p ? (int)p : null, f.ClaseRetencion is { } cr ? (byte)cr : null, f.Suplido,
-            Nulo(f.CuentaGasto), f.IdCentroCoste, Nulo(f.CuentaFormaPago), Nulo(f.Notas), f.IdFormaPago);
+            Nulo(f.CuentaGasto), f.IdCentroCoste, Nulo(f.CuentaFormaPago), Nulo(f.Notas), f.IdFormaPago,
+            Recortar(Nulo(f.ConceptoFactura), 255), Recortar(Nulo(f.ConceptoAbreviado), 60), Recortar(Nulo(f.OrigenDocumento), 10));
         var id = await s.UltimoIdAsync();
 
         foreach (var d in f.Desgloses)
@@ -77,9 +79,10 @@ internal static class RepositorioFacturasCompra
             r => (Existe: true, Exportada: r.Logico("Exportada"), Version: r.EnteroNulo("Version") ?? 0), f.IdRegistro);
         if (!estado.Existe)
             return Resultado<int>.Fallo(new Error("Compras.NoExiste", "La factura de compra ya no existe.", f.Rotulo, "Otro operador la ha borrado.", "Actualiza la lista."));
-        if (estado.Exportada && !permitirExportada)
-            return Resultado<int>.Fallo(new Error("Compras.Contabilizada", "La factura ya está contabilizada y no se cambia desde aquí.", f.Rotulo, null,
-                "Para corregirla, usa «Guardar y re-exportar» o deshaz su exportación."));
+        // Una contabilizada se guarda sin re-exportar solo si el cambio no toca el asiento (notas, forma de pago).
+        if (estado.Exportada && !permitirExportada && await CargarAsync(s, f.IdRegistro) is { } guardada && FacturaCompra.AfectaAlAsiento(guardada, f))
+            return Resultado<int>.Fallo(new Error("Compras.Contabilizada", "Este cambio afecta al asiento de la factura, que ya está contabilizada.", f.Rotulo, null,
+                "Usa «Guardar y re-exportar», que actualiza el asiento (o hace contra-asiento si es de un trimestre cerrado)."));
         if (estado.Version != f.Version)
             return Resultado<int>.Fallo(new Error("Compras.Concurrencia", "Otro operador ha cambiado esta factura mientras la tenías abierta.", f.Rotulo,
                 "Tus cambios no se han guardado para no pisar los suyos.", "Actualiza la lista y vuelve a hacer tus cambios."));
@@ -90,12 +93,15 @@ internal static class RepositorioFacturasCompra
             "ImporteBI = ?, ImporteIVA = ?, ImporteTotal = ?, PorcentajeRetencion = ?, ImporteRetencion = ?, InversionSujetoPasivo = ?, " +
             "Divisa = ?, ImporteTotalDivisa = ?, TipoCambioAplicado = ?, FechaTipoCambio = ?, IdRegistroFacturaRectificada = ?, " +
             "TipoOperacion = ?, TipoProducto = ?, TipoRetencion = ?, Suplido = ?, ConceptoGasto = ?, IdCentroCoste = ?, CuentaFormaPago = ?, IdFormaPago = ?, " +
-            "NotasFactura = ?, RequiereRevisionImportacion = ?, Version = ? WHERE IdRegistro = ? AND Version = ?",
+            "NotasFactura = ?, ConceptoFactura = ?, ConceptoAbreviado = ?, RequiereRevisionImportacion = ?, ConfianzaImportacion = ?, FuenteImportacion = ?, LOGImportacion = ?, Version = ? WHERE IdRegistro = ? AND Version = ?",
             f.IdProveedor, Nulo(f.CuentaContableProveedor), Nulo(f.NifProveedor), Nulo(f.NumeroFactura), f.Fecha?.Date, Nulo(f.Concepto),
             f.BaseImponible, f.CuotaIva, f.ImporteTotal, f.PorcentajeRetencion is { } pr ? (float)pr : null, f.ImporteRetencion, f.InversionSujetoPasivo,
             f.Divisa, f.ImporteTotalDivisa, f.TipoCambioAplicado is { } tc ? (double)tc : null, f.FechaTipoCambio?.Date, f.IdRegistroFacturaRectificada,
             (int)f.Operacion, f.Producto is { } p ? (int)p : null, f.ClaseRetencion is { } cr ? (byte)cr : null, f.Suplido,
-            Nulo(f.CuentaGasto), f.IdCentroCoste, Nulo(f.CuentaFormaPago), f.IdFormaPago, Nulo(f.Notas), f.RequiereRevision, nueva, f.IdRegistro, f.Version);
+            Nulo(f.CuentaGasto), f.IdCentroCoste, Nulo(f.CuentaFormaPago), f.IdFormaPago, Nulo(f.Notas), Recortar(Nulo(f.ConceptoFactura), 255), Recortar(Nulo(f.ConceptoAbreviado), 60), f.RequiereRevision, f.Confianza, Nulo(f.Fuente), Nulo(f.Log), nueva, f.IdRegistro, f.Version);
+        // Las del ERP no traían el ejercicio: se graba el resuelto al cargarlas.
+        if (f.Ejercicio.IdSociedadEjercicio > 0)
+            await s.EjecutarAsync("UPDATE FacturasCompra SET IdSociedadEjercicio = ? WHERE IdRegistro = ? AND IdSociedadEjercicio Is Null", f.Ejercicio.IdSociedadEjercicio, f.IdRegistro);
         // La forma de pago elegida pasa a ser la del proveedor por defecto (compras/pantallas 2026-11-06).
         if (f.IdFormaPago is { } fp && f.IdProveedor is { } prov)
             await s.EjecutarAsync("UPDATE CuentasProveedoresSociedad SET IdFormaPagoDefecto = ? WHERE IdProveedor = ? AND IdSociedad = ?", fp, prov, f.Ejercicio.IdSociedad);
@@ -111,6 +117,10 @@ internal static class RepositorioFacturasCompra
                     Convert.ToInt32(identidad, CultureInfo.InvariantCulture), prov3, f.Ejercicio.IdSociedad);
             if (f.IdCentroCoste is { } centro)
                 await s.EjecutarAsync("UPDATE CuentasProveedoresSociedad SET IdCentroCosteDefecto = ? WHERE IdProveedor = ? AND IdSociedad = ?", centro, prov3, f.Ejercicio.IdSociedad);
+            // Sin concepto leído, el abreviado escrito a mano pasa a ser el del proveedor (propietario 2026-11-07 19:21).
+            if (Nulo(f.ConceptoFactura) is null && Nulo(f.ConceptoAbreviado) is { } abreviado)
+                await s.EjecutarAsync("UPDATE CuentasProveedoresSociedad SET ConceptoAbreviadoDefecto = ? WHERE IdProveedor = ? AND IdSociedad = ?",
+                    Recortar(abreviado.Trim(), 60), prov3, f.Ejercicio.IdSociedad);
         }
         await s.EjecutarAsync("DELETE FROM DesglosesFacturaCompra WHERE IdRegistro = ?", f.IdRegistro);
         foreach (var d in f.Desgloses)
@@ -187,7 +197,7 @@ internal static class RepositorioFacturasCompra
             "SELECT fc.IdRegistro, fc.IdProveedor, fc.NIF, fc.NumeroFactura, fc.Fecha, fc.ImporteBI, fc.ImporteIVA, fc.ImporteTotal, fc.ImporteRetencion, " +
             "fc.PorcentajeRetencion, fc.Suplido, fc.InversionSujetoPasivo, fc.TipoOperacion, fc.Divisa, fc.IdRegistroFacturaRectificada, fc.Exportada, " +
             "fc.Duplicada, fc.ArchivoOriginal, fc.Archivo, fc.Carpeta, fc.ConceptoGasto, fc.IdCentroCoste, fc.ConfianzaImportacion, " +
-            "fc.RequiereRevisionImportacion, fc.FechaHoraRegistro, fc.ASIAPU, fc.IdAsientoContable, fc.LOGImportacion, fc.Version, t.Nombre AS NombreTercero, t.RazonSocial, t.NombreComercial, fc.NombreProveedorAeat " +
+            "fc.RequiereRevisionImportacion, fc.FechaHoraRegistro, fc.ASIAPU, fc.IdAsientoContable, fc.LOGImportacion, fc.Version, fc.OrigenDocumento, fc.FechaHoraExportacion, t.Nombre AS NombreTercero, t.RazonSocial, t.NombreComercial, fc.NombreProveedorAeat " +
             "FROM (FacturasCompra AS fc LEFT JOIN Proveedores AS p ON fc.IdProveedor = p.IdProveedor) LEFT JOIN Terceros AS t ON p.IdTercero = t.IdTercero " +
             "WHERE fc.IdSociedadEjercicio = ? OR (fc.IdSociedadEjercicio Is Null AND fc.Sociedad = ? AND fc.Ejercicio = ?)",
             r => new FilaFacturaCompra
@@ -218,9 +228,11 @@ internal static class RepositorioFacturasCompra
                 Confianza = r.DecimalNulo("ConfianzaImportacion"),
                 RequiereRevision = !r.EsNulo("RequiereRevisionImportacion") && r.Logico("RequiereRevisionImportacion"),
                 FechaHoraRegistro = r.FechaNula("FechaHoraRegistro"),
-                Asiento = r.EnteroNulo("IdAsientoContable") ?? r.EnteroNulo("ASIAPU"),
+                Asiento = r.Logico("Exportada") ? r.EnteroNulo("IdAsientoContable") ?? r.EnteroNulo("ASIAPU") : null,
                 ConfianzaMinima = ConfianzaMinima(r.Texto("LOGImportacion")),
-                Version = r.EnteroNulo("Version") ?? 0
+                Version = r.EnteroNulo("Version") ?? 0,
+                OrigenDocumento = r.Texto("OrigenDocumento")?.Trim(),
+                FechaHoraExportacion = r.FechaNula("FechaHoraExportacion")
             },
             ctx.IdSociedadEjercicio, ctx.IdSociedad, ctx.Ejercicio.ToString(CultureInfo.InvariantCulture));
         return filas;
@@ -233,18 +245,20 @@ internal static class RepositorioFacturasCompra
     public static async Task<IReadOnlyList<ProveedorFicha>> ProveedoresFichaAsync(ISesionDatos s, string idSociedad)
     {
         var filas = await s.ConsultarAsync(
-            "SELECT p.IdProveedor, p.IdTercero, t.NIF, t.Nombre, t.RazonSocial, t.NombreComercial, cps.IdFormaPagoDefecto, cps.TipoProductoDefecto FROM (CuentasProveedoresSociedad AS cps " +
+            "SELECT p.IdProveedor, p.IdTercero, t.NIF, t.Nombre, t.RazonSocial, t.NombreComercial, cps.IdFormaPagoDefecto, cps.TipoProductoDefecto, cps.ConceptoAbreviadoDefecto, p.EstadoVies FROM (CuentasProveedoresSociedad AS cps " +
             "INNER JOIN Proveedores AS p ON cps.IdProveedor = p.IdProveedor) INNER JOIN Terceros AS t ON p.IdTercero = t.IdTercero WHERE cps.IdSociedad = ?",
             r => new ProveedorFicha(r.Entero("IdProveedor"), r.Entero("IdTercero"), r.Texto("NIF")?.Trim() ?? "",
                 Primero(r.Texto("NombreComercial"), r.Texto("RazonSocial"), r.Texto("Nombre")),
                 r.EnteroNulo("IdFormaPagoDefecto") is int fp ? (byte)fp : null,
-                r.EnteroNulo("TipoProductoDefecto") is int tp && Enum.IsDefined((ProductoCompra)tp) ? (ProductoCompra)tp : null), idSociedad);
+                r.EnteroNulo("TipoProductoDefecto") is int tp && Enum.IsDefined((ProductoCompra)tp) ? (ProductoCompra)tp : null,
+                Nulo(r.Texto("ConceptoAbreviadoDefecto")), Nulo(r.Texto("RazonSocial")) ?? Nulo(r.Texto("Nombre")), Nulo(r.Texto("NombreComercial")), Nulo(r.Texto("EstadoVies"))), idSociedad);
         // Un proveedor puede tener varias cuentas en la empresa: uno por proveedor, con la forma de pago que tenga alguna.
         return filas.GroupBy(p => p.IdProveedor)
             .Select(g => g.First() with
             {
                 IdFormaPagoDefecto = g.Select(p => p.IdFormaPagoDefecto).FirstOrDefault(x => x is not null),
-                ProductoDefecto = g.Select(p => p.ProductoDefecto).FirstOrDefault(x => x is not null)
+                ProductoDefecto = g.Select(p => p.ProductoDefecto).FirstOrDefault(x => x is not null),
+                ConceptoAbreviadoDefecto = g.Select(p => p.ConceptoAbreviadoDefecto).FirstOrDefault(x => x is not null)
             }).ToList();
     }
 
@@ -289,6 +303,15 @@ internal static class RepositorioFacturasCompra
         return (cuenta, centro);
     }
 
+    /// <summary>Concepto abreviado por defecto del proveedor en la empresa, o null.</summary>
+    public static async Task<string?> ConceptoAbreviadoDefectoAsync(ISesionDatos s, string idSociedad, int? idProveedor)
+    {
+        if (idProveedor is not { } prov) return null;
+        var v = await s.EscalarAsync("SELECT TOP 1 ConceptoAbreviadoDefecto FROM CuentasProveedoresSociedad WHERE IdProveedor = ? AND IdSociedad = ? AND ConceptoAbreviadoDefecto Is Not Null",
+            prov, idSociedad);
+        return v is string t && t.Trim().Length > 0 ? t.Trim() : null;
+    }
+
     /// <summary>Centro de coste por defecto de una subcuenta del ejercicio (CuentasContables.IdCentroCostePredeterminado), si es imputable.</summary>
     public static async Task<int?> CentroDeCuentaAsync(ISesionDatos s, ContextoSociedadEjercicio ctx, string cuenta)
     {
@@ -317,10 +340,12 @@ internal static class RepositorioFacturasCompra
 
     public static async Task<FacturaCompra?> CargarAsync(ISesionDatos s, int idRegistro)
     {
+        var respaldo = await EjercicioDeRegistroAsync(s, idRegistro);
         var f = await s.ConsultarPrimeroAsync(
             "SELECT fc.*, se.IdSociedad AS SociedadEjercicio, se.Ejercicio AS AnioEjercicio FROM FacturasCompra AS fc " +
-            "LEFT JOIN SociedadesEjercicios AS se ON fc.IdSociedadEjercicio = se.IdSociedadEjercicio WHERE fc.IdRegistro = ?", Mapear, idRegistro);
+            "LEFT JOIN SociedadesEjercicios AS se ON fc.IdSociedadEjercicio = se.IdSociedadEjercicio WHERE fc.IdRegistro = ?", r => Mapear(r, respaldo), idRegistro);
         if (f is null) return null;
+        f.IdProveedor ??= await ProveedorDeErpAsync(s, f);
         f.Desgloses.AddRange(await s.ConsultarAsync(
             "SELECT Orden, TipoIVA, BaseImponible, CuotaIVA, Confianza, Evidencia FROM DesglosesFacturaCompra WHERE IdRegistro = ? ORDER BY Orden",
             r => new DesgloseFacturaCompra((short)r.Entero("Orden"), r.Decimal("TipoIVA"), r.Decimal("BaseImponible"), r.Decimal("CuotaIVA"),
@@ -328,9 +353,87 @@ internal static class RepositorioFacturasCompra
         return f;
     }
 
-    private static FacturaCompra Mapear(IFilaDatos r)
+    /// <summary>
+    /// Carpeta a la que se mueve un PDF de la carpeta raíz (compras 2026-11-07): la que el proveedor ya usa (la de su última
+    /// factura en la empresa); si no tiene, su nombre comercial y, sin él, la razón social. Sin caracteres no válidos.
+    /// </summary>
+    public static async Task<string?> CarpetaProveedorAsync(ISesionDatos s, string idSociedad, int idProveedor)
     {
-        var idSe = r.EnteroNulo("IdSociedadEjercicio") ?? 0;
+        var usada = await s.ConsultarPrimeroAsync(
+            "SELECT TOP 1 Carpeta FROM FacturasCompra WHERE IdProveedor = ? AND Sociedad = ? AND Carpeta Is Not Null AND Carpeta <> '' ORDER BY IdRegistro DESC",
+            r => r.Texto("Carpeta")?.Trim(), idProveedor, idSociedad);
+        if (NombreCarpeta(usada) is { } carpeta) return carpeta;
+        var t = await s.ConsultarPrimeroAsync(
+            "SELECT t.NombreComercial, t.RazonSocial, t.Nombre FROM Proveedores AS p INNER JOIN Terceros AS t ON p.IdTercero = t.IdTercero WHERE p.IdProveedor = ?",
+            r => (Comercial: r.Texto("NombreComercial"), Razon: r.Texto("RazonSocial"), Nombre: r.Texto("Nombre")), idProveedor);
+        return NombreCarpeta(t.Comercial) ?? NombreCarpeta(t.Razon) ?? NombreCarpeta(t.Nombre);
+    }
+
+    /// <summary>Nombre válido de carpeta: sin caracteres prohibidos ni puntos o espacios al final; null si queda vacío o es «Proveedores».</summary>
+    internal static string? NombreCarpeta(string? nombre)
+    {
+        if (string.IsNullOrWhiteSpace(nombre)) return null;
+        var limpio = new string(nombre.Trim().Select(c => Path.GetInvalidFileNameChars().Contains(c) || "<>:\"/\\|?*".Contains(c) ? ' ' : c).ToArray());
+        limpio = string.Join(' ', limpio.Split(' ', StringSplitOptions.RemoveEmptyEntries)).TrimEnd('.', ' ');
+        return limpio.Length == 0 || limpio.Equals("Proveedores", StringComparison.OrdinalIgnoreCase) ? null : limpio;
+    }
+
+    /// <summary>Nueva ubicación del PDF, sin tocar la versión (no es un cambio del operador).</summary>
+    public static Task ReubicarPdfAsync(ISesionDatos s, int idRegistro, string ruta, string carpeta) =>
+        s.EjecutarAsync("UPDATE FacturasCompra SET ArchivoOriginal = ?, Carpeta = ?, NombreFichero = ? WHERE IdRegistro = ?",
+            ruta, Recortar(carpeta, 255), Recortar(Path.GetFileName(ruta), 255), idRegistro);
+
+    /// <summary>
+    /// IdSociedadEjercicio de una sociedad y un año. Las facturas del ERP no lo tienen grabado (solo Sociedad y Ejercicio).
+    /// </summary>
+    public static async Task<int?> IdEjercicioAsync(ISesionDatos s, string? idSociedad, int ejercicio)
+    {
+        if (string.IsNullOrWhiteSpace(idSociedad) || ejercicio == 0) return null;
+        var v = await s.EscalarAsync("SELECT IdSociedadEjercicio FROM SociedadesEjercicios WHERE IdSociedad = ? AND Ejercicio = ?",
+            idSociedad.Trim(), ejercicio.ToString(CultureInfo.InvariantCulture));
+        return v is null or DBNull ? null : Convert.ToInt32(v, CultureInfo.InvariantCulture);
+    }
+
+    /// <summary>
+    /// Proveedor de una factura del ERP sin IdProveedor grabado: el de su cuenta (CuentaContableProveedor en el ejercicio,
+    /// por su identidad contable en CuentasProveedoresSociedad) o, si no, el único proveedor de la empresa con su NIF.
+    /// </summary>
+    internal static async Task<int?> ProveedorDeErpAsync(ISesionDatos s, FacturaCompra f)
+    {
+        if (Nulo(f.CuentaContableProveedor) is { } cuenta && f.Ejercicio.IdSociedadEjercicio > 0)
+        {
+            var porCuenta = await s.ConsultarAsync(
+                "SELECT DISTINCT cps.IdProveedor FROM CuentasProveedoresSociedad AS cps INNER JOIN CuentasContables AS cc ON cc.IdIdentidadContable = cps.IdIdentidadContable " +
+                "WHERE cc.IdSociedadEjercicio = ? AND cc.Codigo = ? AND cps.IdSociedad = ?",
+                r => r.Entero("IdProveedor"), f.Ejercicio.IdSociedadEjercicio, cuenta, f.Ejercicio.IdSociedad);
+            if (porCuenta.Count == 1) return porCuenta[0];
+        }
+        if (Nulo(f.NifProveedor) is { } nif)
+        {
+            var porNif = await s.ConsultarAsync(
+                "SELECT DISTINCT p.IdProveedor FROM (Proveedores AS p INNER JOIN Terceros AS t ON p.IdTercero = t.IdTercero) " +
+                "INNER JOIN CuentasProveedoresSociedad AS cps ON cps.IdProveedor = p.IdProveedor WHERE t.NIF = ? AND cps.IdSociedad = ?",
+                r => r.Entero("IdProveedor"), nif, f.Ejercicio.IdSociedad);
+            if (porNif.Count == 1) return porNif[0];
+        }
+        return null;
+    }
+
+    /// <summary>
+    /// IdSociedadEjercicio de una factura: el grabado o, en las del ERP que no lo tienen, el de su sociedad y su año.
+    /// </summary>
+    public static async Task<int> EjercicioDeRegistroAsync(ISesionDatos s, int idRegistro)
+    {
+        var fila = await s.ConsultarPrimeroAsync("SELECT IdSociedadEjercicio, Sociedad, Ejercicio FROM FacturasCompra WHERE IdRegistro = ?",
+            r => (Id: r.EnteroNulo("IdSociedadEjercicio"), Sociedad: r.Texto("Sociedad"), Anio: r.Texto("Ejercicio")), idRegistro);
+        if (fila.Id is int id) return id;
+        return int.TryParse(fila.Anio, NumberStyles.Integer, CultureInfo.InvariantCulture, out var anio)
+            && await IdEjercicioAsync(s, fila.Sociedad, anio) is int resuelto ? resuelto : 0;
+    }
+
+    private static FacturaCompra Mapear(IFilaDatos r, int respaldo)
+    {
+        var idSe = r.EnteroNulo("IdSociedadEjercicio") ?? respaldo;
         var sociedad = r.Texto("SociedadEjercicio") ?? r.Texto("Sociedad") ?? string.Empty;
         var anio = int.TryParse(r.Texto("AnioEjercicio") ?? r.Texto("Ejercicio"), NumberStyles.Integer, CultureInfo.InvariantCulture, out var a) ? a : 0;
         return new FacturaCompra
@@ -344,6 +447,9 @@ internal static class RepositorioFacturasCompra
             NumeroFactura = r.Texto("NumeroFactura") ?? string.Empty,
             Fecha = r.FechaNula("Fecha"),
             Concepto = r.Texto("Concepto") ?? string.Empty,
+            ConceptoFactura = r.Texto("ConceptoFactura"),
+            ConceptoAbreviado = r.Texto("ConceptoAbreviado"),
+            OrigenDocumento = r.Texto("OrigenDocumento")?.Trim(),
             BaseImponible = r.DecimalNulo("ImporteBI"),
             CuotaIva = r.DecimalNulo("ImporteIVA"),
             ImporteTotal = r.DecimalNulo("ImporteTotal"),
@@ -383,15 +489,32 @@ internal static class RepositorioFacturasCompra
     /// <summary>Configuración del reconocimiento de la empresa; sin fila, la predeterminada (activo, sin OCR ni VIES).</summary>
     public static async Task<ConfiguracionReconocimiento> ConfiguracionAsync(ISesionDatos s, string idSociedad) =>
         await s.ConsultarPrimeroAsync(
-            "SELECT Activo, SociedadTieneVies, UsarTextract, UmbralAceptacion, UmbralDiscrepanciaImporte FROM ConfiguracionReconocimientoFacturasCompra WHERE IdSociedad = ?",
-            r => new ConfiguracionReconocimiento
+            "SELECT Activo, SociedadTieneVies, UsarTextract, UmbralAceptacion, UmbralDiscrepanciaImporte, RegionAWS, ClaveAccesoAWS, SecretoAWSProtegido " +
+            "FROM ConfiguracionReconocimientoFacturasCompra WHERE IdSociedad = ?",
+            r =>
             {
-                Activo = r.Logico("Activo"),
-                SociedadTieneVies = r.Logico("SociedadTieneVies"),
-                UsarOcr = r.Logico("UsarTextract"),
-                UmbralAceptacion = r.Decimal("UmbralAceptacion"),
-                UmbralDiscrepanciaImporte = r.Decimal("UmbralDiscrepanciaImporte")
+                var (credenciales, motivo) = Credenciales(r.Texto("RegionAWS"), r.Texto("ClaveAccesoAWS"), r.Texto("SecretoAWSProtegido"));
+                return new ConfiguracionReconocimiento
+                {
+                    Activo = r.Logico("Activo"),
+                    SociedadTieneVies = r.Logico("SociedadTieneVies"),
+                    UsarOcr = r.Logico("UsarTextract"),
+                    UmbralAceptacion = r.Decimal("UmbralAceptacion"),
+                    UmbralDiscrepanciaImporte = r.Decimal("UmbralDiscrepanciaImporte"),
+                    CredencialesOcr = credenciales,
+                    MotivoCredencialesOcr = motivo
+                };
             }, idSociedad) ?? new ConfiguracionReconocimiento();
+
+    /// <summary>Las claves de AWS guardadas de la sociedad, descifradas; sin clave de acceso, ninguna (se usa el perfil del puesto).</summary>
+    internal static (CredencialesOcr? Credenciales, string? Motivo) Credenciales(string? region, string? claveAcceso, string? secretoProtegido)
+    {
+        if (string.IsNullOrWhiteSpace(claveAcceso)) return (null, null);
+        if (string.IsNullOrWhiteSpace(region)) return (null, "las claves de AWS guardadas no dicen la región");
+        if (Integraciones.SecretoProtegido.Desproteger(secretoProtegido) is not { Length: > 0 } secreto)
+            return (null, "no puedo descifrar el secreto de AWS guardado: vuelve a escribirlo");
+        return (new CredencialesOcr(region.Trim(), claveAcceso.Trim(), secreto), null);
+    }
 
     /// <summary>Carpeta de documentos de la empresa (Sociedades.RutaDocumentos) y su nombre.</summary>
     public static Task<(string Nombre, string? Raiz)> EmpresaAsync(ISesionDatos s, string idSociedad) =>
@@ -470,7 +593,19 @@ internal static class RepositorioFacturasCompra
 }
 
 /// <summary>Proveedor de la empresa tal como lo necesita la ficha: su tercero (para abrir su ficha), su NIF y su nombre.</summary>
-public sealed record ProveedorFicha(int IdProveedor, int IdTercero, string Nif, string Nombre, byte? IdFormaPagoDefecto = null, ProductoCompra? ProductoDefecto = null);
+public sealed record ProveedorFicha(int IdProveedor, int IdTercero, string Nif, string Nombre, byte? IdFormaPagoDefecto = null, ProductoCompra? ProductoDefecto = null,
+    string? ConceptoAbreviadoDefecto = null, string? RazonSocial = null, string? NombreComercial = null, string? EstadoVies = null)
+{
+    /// <summary>«RAZÓN SOCIAL (NOMBRE COMERCIAL)», o solo la razón social si no hay nombre comercial o es el mismo (compras/pantallas 2026-11-07 20:10).</summary>
+    public string NombreCompleto
+    {
+        get
+        {
+            var razon = string.IsNullOrWhiteSpace(RazonSocial) ? Nombre : RazonSocial.Trim();
+            return NombreComercial is { Length: > 0 } c && !string.Equals(c.Trim(), razon, StringComparison.OrdinalIgnoreCase) ? $"{razon} ({c.Trim()})" : razon;
+        }
+    }
+}
 
 /// <summary>Factura de compra resumida para la lista de la pantalla.</summary>
 public sealed class FilaFacturaCompra
@@ -498,6 +633,10 @@ public sealed class FilaFacturaCompra
     /// <summary>Rutas tal como están grabadas (ArchivoOriginal y Archivo); no se modifican.</summary>
     public IReadOnlyList<string> RutasGuardadas { get; init; } = [];
     public string Carpeta { get; init; } = "";
+    /// <summary>carpeta, raiz o email (<see cref="FacturaCompra.OrigenDocumento"/>).</summary>
+    public string? OrigenDocumento { get; init; }
+    /// <summary>Cuándo la exportó ProContaVF por última vez (filtro «Contabilizadas hoy»); null en las del ERP.</summary>
+    public DateTime? FechaHoraExportacion { get; init; }
     public string? CuentaGasto { get; init; }
     public int? IdCentroCoste { get; init; }
     public decimal? Confianza { get; init; }

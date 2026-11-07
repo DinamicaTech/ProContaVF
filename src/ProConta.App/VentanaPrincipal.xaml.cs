@@ -105,7 +105,7 @@ public partial class VentanaPrincipal : Window
         var autorizador = new AutorizadorAccionesAccess(bd, new ServicioOperadores(bd), sesion.IdOperador);
         _trimestres = new ServicioTrimestreActivo(bd);
         _ejercicioTrabajo = contexto.Contexto;
-        _puedeCambiarTrimestre = () => autorizador.PuedeAsync(Acciones.FacturasEditar);
+        _puedeCambiarTrimestre = () => autorizador.PuedeAsync(Acciones.TrimestreCambiar);
         _ = RefrescarTrimestreAsync();
         var contabilizador = new ContabilizadorVentas(bd, new MotorAsientosAccess(bd), cuentas, roles, sociedades);
         var facturas = new ServicioFacturas(bd, sociedades, new RepositorioTercerosAccess(bd), roles, cuentas, contabilizador, autorizador);
@@ -117,16 +117,19 @@ public partial class VentanaPrincipal : Window
         _facturacion = new ModuloFacturacion(serviciosFacturacion, _area, new DialogosFacturacion(apoyo, () => this), _terceros.AbrirFicha);
 
         // Compras (compras/pantallas): facturas recibidas y su modo «Probar».
-        var reconocimiento = new ServicioReconocimientoFacturaCompra(new ExtractorPdfPig(), null, new TiposCambioFrankfurter(Http));
-        var serviciosCompras = new ServiciosCompras(new ServicioFacturasCompra(bd, reconocimiento), cuentas, new CatalogoCentrosCosteAccess(bd), contexto.Contexto,
+        // OCR con Textract si el puesto tiene el perfil de AWS (compras/reconocimiento 2026-11-07); sin él, los escaneados se rellenan a mano.
+        var (ocr, sinOcr) = ExtractorOcrTextract.Crear();
+        var reconocimiento = new ServicioReconocimientoFacturaCompra(new ExtractorPdfPig(), ocr, new TiposCambioFrankfurter(Http), sinOcr, ExtractorOcrTextract.ConCredenciales);
+        var altaProveedor = new ProConta.Compras.Proveedores.ServicioAltaProveedorCompra(bd, new ProConta.Terceros.RepositorioTercerosAccess(bd), new ProConta.Terceros.Roles.ServicioRoles(bd, cuentas), cuentas,
+            new ProConta.Compras.Integraciones.ConsultaNifAeatVNif(bd), new Actor(sesion.NombreOperador), new ProConta.Compras.Integraciones.ConsultaViesRest(Http));
+        var serviciosCompras = new ServiciosCompras(new ServicioFacturasCompra(bd, reconocimiento) { AltaProveedor = altaProveedor }, cuentas, new CatalogoCentrosCosteAccess(bd), contexto.Contexto,
             contexto.RazonSocial, () => autorizador.PuedeAsync(Acciones.FacturasEditar),
             async () => (await new LectorConfiguracionEjercicio(bd).ObtenerAsync(contexto.Contexto.IdSociedadEjercicio))?.TiposIva.Select(t => t.Porcentaje).ToList() ?? [],
             async () => (await new ProConta.Organizacion.FormasPago.CatalogoFormasPagoAccess(bd).ListarAsync()).Select(f => (f.Id, f.Descripcion)).ToList(),
             async () => (await new ProConta.Organizacion.Sociedades.CatalogoTiposRetencion(bd).VigentesAsync(DateTime.Today))
                 .Select(t => new TipoRetencionCompra(t.Porcentaje, t.Descripcion, t.Clase == 2 ? ClaseRetencion.Arrendamientos : ClaseRetencion.Profesionales)).ToList(),
             new CatalogoTextosClaveCompra(bd),
-            new ProConta.Compras.Proveedores.ServicioAltaProveedorCompra(bd, new ProConta.Terceros.RepositorioTercerosAccess(bd), new ProConta.Terceros.Roles.ServicioRoles(bd, cuentas), cuentas,
-                new ProConta.Compras.Integraciones.ConsultaNifAeatVNif(bd), new Actor(sesion.NombreOperador)),
+            altaProveedor,
             new ContabilizadorCompras(bd, new MotorAsientosAccess(bd), cuentas, roles),
             new Actor(sesion.NombreOperador),
             ComprobarTrimestreAlEntrarAsync);
@@ -154,9 +157,9 @@ public partial class VentanaPrincipal : Window
             new OpcionNavegacion("Inicio", Icono("layout"), true, false, "Página de inicio", irAInicio),
             new OpcionNavegacion("Datos maestros", Icono("user"), true, false, "Terceros: clientes, proveedores, contactos y demás personas y organizaciones", abrirTerceros),
             new OpcionNavegacion("Terceros", null, true, false, "Buscador y fichas de terceros (clientes, proveedores, contactos…)", abrirTerceros, EsHija: true),
-            new OpcionNavegacion("Facturación", Icono("doc"), true, false, "Facturas de venta: emitidas y borradores", abrirFacturas),
+            new OpcionNavegacion("Ventas", Icono("doc"), true, false, "Facturas de venta: emitidas y borradores", abrirFacturas),
             new OpcionNavegacion("Facturas programadas", null, true, false, "Facturas que se generan solas en cada vencimiento: su programación, sus líneas y la generación por lotes", abrirProgramadas, EsHija: true),
-            new OpcionNavegacion("Facturas", null, true, false, "Listado de facturas y borradores del ejercicio, con su detalle y acciones", abrirFacturas, EsHija: true),
+            new OpcionNavegacion("Facturas emitidas", null, true, false, "Listado de facturas y borradores del ejercicio, con su detalle y acciones", abrirFacturas, EsHija: true),
             new OpcionNavegacion("Compras", Icono("scan"), true, false, "Facturas de compra: los PDF de la carpeta de proveedores, su revisión y el modo prueba del reconocimiento", abrirRecibidas),
             new OpcionNavegacion("Facturas recibidas", null, true, false, "Facturas de compra del ejercicio reconocidas de sus PDF: revisión, corrección y registro (y el modo prueba, en el menú contextual)", abrirRecibidas, EsHija: true),
             new OpcionNavegacion("Contabilidad", Icono("book"), false, false, proxima),
@@ -281,10 +284,12 @@ public partial class VentanaPrincipal : Window
             return;
         }
         var texto = alEntrar
-            ? $"Hoy es {hoy:dd/MM/yyyy} ({ServicioTrimestreActivo.Nombre(ServicioTrimestreActivo.Trimestre(hoy))}) y el trimestre contable activo es {ServicioTrimestreActivo.Nombre(activo ?? 0)}. Los asientos de compras se fechan hoy y su IVA va al trimestre activo. Puedes cerrarlo y activar el siguiente, o que te lo recuerde en 1, 3 o 7 días."
+            ? $"Hoy es {hoy:dd/MM/yyyy} ({ServicioTrimestreActivo.Nombre(ServicioTrimestreActivo.Trimestre(hoy))}) y el trimestre contable activo es {ServicioTrimestreActivo.Nombre(activo ?? 0)}. Las facturas de {ServicioTrimestreActivo.Nombre(activo ?? 0)} se seguirán contabilizando en ese trimestre, lo cual afecta a su cierre de IVA. Si ya has cerrado ese trimestre (presentado la declaración del IVA), activa el trimestre siguiente para evitar descuadres con el IVA presentado. También puedo recordártelo en 1, 3 o 7 días."
             : activo is int t ? $"El trimestre contable activo es {ServicioTrimestreActivo.Nombre(t)}." : "El ejercicio no tiene trimestre activo.";
         var eleccion = ServicioMensajes.Preguntar(this, alEntrar ? "Hoy no cae en el trimestre activo" : "Trimestre activo", texto, null, [.. opciones.Select(o => o.Opcion)]);
         if (eleccion >= 0 && eleccion < opciones.Count && opciones[eleccion].Accion is { } accion) await accion();
+        // El foco vuelve a la pantalla activa: si no, sus atajos (p. ej. Ctrl+L) no responden hasta hacer clic en ella.
+        if (_area.Activa?.Vista is UIElement vista) vista.MoveFocus(new TraversalRequest(FocusNavigationDirection.First));
         await RefrescarTrimestreAsync();
     }
 

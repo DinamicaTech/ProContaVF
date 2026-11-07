@@ -103,6 +103,8 @@ public sealed class ResultadoReconocimientoFacturaCompra
     public bool InversionSujetoPasivo { get; set; }
     public IReadOnlyList<DesgloseIvaReconocido> DesglosesIva { get; set; } = [];
     public IReadOnlyList<string> Advertencias { get; set; } = [];
-    /// <summary>Campos que se han leído con una plantilla del proveedor (nif, numero, fecha, total).</summary>
+    /// <summary>Concepto de la factura (qué se compra), leído con la plantilla del proveedor; null si no tiene.</summary>
+    public string? ConceptoFactura { get; set; }
+    /// <summary>Campos que se han leído con una plantilla del proveedor (nif, numero, fecha, total, concepto).</summary>
     public IReadOnlyList<string> CamposPlantilla { get; set; } = [];
 }

@@ -1,3 +1,4 @@
+using ProConta.UI.Base.Formato;
 using ProConta.Compras.Facturas;
 using ProConta.Compras.UI.VistaModelos;
 using ProConta.Contabilidad.CentrosCoste;
@@ -142,6 +143,105 @@ public sealed class FichaCompraTests
         Assert.Equal("100 % plantilla", f.ConfianzaFecha.Texto);
         Assert.Equal("100 %", f.ConfianzaNumero.Texto);
         Assert.Equal("97 %", f.ConfianzaImportes.Texto);
+        // Lo que se guarda es la nueva lectura: al volver a abrirla se ve la misma confianza.
+        Assert.Equal(leida.Log, f.Construir().Log);
+    }
+
+    [Fact]
+    public void Volver_a_reconocer_pone_la_cuenta_de_gasto_del_proveedor_si_no_habia_y_no_cambia_la_elegida()
+    {
+        var sin = Factura();
+        sin.CuentaGasto = null;
+        sin.IdCentroCoste = null;
+        var f = Ficha(sin);
+        var leida = Factura();
+        leida.CuentaGasto = "6230000";
+        leida.IdCentroCoste = 3;
+        f.AplicarLectura(leida);
+        Assert.Equal(("6230000", 3), (f.Construir().CuentaGasto, f.Construir().IdCentroCoste));
+
+        var con = Factura();
+        con.CuentaGasto = "6290001";
+        var g = Ficha(con);
+        g.AplicarLectura(leida);
+        Assert.Equal("6290001", g.Construir().CuentaGasto);
+    }
+
+    [Fact]
+    public void El_abreviado_por_defecto_del_proveedor_gana_al_del_concepto_leido()
+    {
+        var conDefecto = Proveedor with { ConceptoAbreviadoDefecto = "Asesoría mensual" };
+        var f = new FichaCompraVM(Factura(), [conDefecto, ConFormaPago], [new("6000000 · Compras", "6000000")], [], [], false,
+            tiposIva: [21m, 10m, 4m], formasPago: [(3, "Transferencia")], tiposRetencion: Retenciones);
+        var leida = Factura();
+        leida.ConceptoFactura = "Asesoramiento contable del mes de agosto";
+        leida.ConceptoAbreviado = "Asesoría mensual"; // lo pone el servicio al leer
+        f.AplicarLectura(leida);
+        Assert.Equal(("Asesoramiento contable del mes de agosto", "Asesoría mensual"), (f.ConceptoFactura, f.ConceptoAbreviado));
+        // Cambiar el concepto no le quita el abreviado del proveedor.
+        f.ConceptoFactura = "Otra cosa";
+        Assert.Equal("Asesoría mensual", f.ConceptoAbreviado);
+    }
+
+    [Fact]
+    public void La_razon_social_consultada_al_abrir_sale_bajo_el_nif_si_no_ha_cambiado()
+    {
+        var sin = Factura();
+        sin.IdProveedor = null;
+        sin.NifProveedor = "ESN2763708A";
+        var f = Ficha(sin);
+        Assert.Equal("Ningún proveedor de la empresa tiene este NIF.", f.AvisoProveedor);
+        f.RazonSocialConsultada("ESN2763708A", "VENDEDOR FICTICIO SARL");
+        Assert.Equal("VENDEDOR FICTICIO SARL", f.RazonSocialAeat);
+        Assert.False(f.TieneCambios);
+        f.RazonSocialConsultada("B00000000", "OTRA");
+        Assert.Equal("VENDEDOR FICTICIO SARL", f.RazonSocialAeat);
+    }
+
+    [Theory]
+    [InlineData("HANNA INSTRUMENTS SL", "Hanna", "HANNA INSTRUMENTS SL (Hanna)")]
+    [InlineData("HANNA INSTRUMENTS SL", null, "HANNA INSTRUMENTS SL")]
+    [InlineData("HANNA INSTRUMENTS SL", "hanna instruments sl", "HANNA INSTRUMENTS SL")]
+    public void El_proveedor_se_ve_con_su_razon_social_y_su_nombre_comercial(string razon, string? comercial, string esperado) =>
+        Assert.Equal(esperado, (Proveedor with { RazonSocial = razon, NombreComercial = comercial }).NombreCompleto);
+
+    [Fact]
+    public void El_boton_del_nombre_comercial_sale_cuando_la_pantalla_pone_la_accion()
+    {
+        var f = Ficha();
+        var avisos = new List<string?>();
+        f.PropertyChanged += (_, e) => avisos.Add(e.PropertyName);
+        Assert.False(f.PuedeEditarNombreComercial);
+        f.EditarNombreComercial = _ => Task.CompletedTask;
+        Assert.True(f.PuedeEditarNombreComercial);
+        Assert.Contains(nameof(FichaCompraVM.PuedeEditarNombreComercial), avisos);
+    }
+
+    [Fact]
+    public void La_marca_vies_sale_solo_con_un_nif_comunitario()
+    {
+        var de = Factura();
+        de.IdProveedor = null;
+        de.NifProveedor = "DE123456789";
+        var f = Ficha(de);
+        Assert.Equal("VIES ?", f.MarcaVies);
+        f.ViesConsultado("DE123456789", true);
+        Assert.Equal("VIES", f.MarcaVies);
+        f.ViesConsultado("DE123456789", false);
+        Assert.Equal("NO VIES", f.MarcaVies);
+        Assert.Null(Ficha().MarcaVies);
+    }
+
+    [Fact]
+    public void Escribir_el_total_de_un_tipo_reparte_base_e_iva()
+    {
+        var f = Ficha();
+        var d = f.Desgloses.Single(x => x.TipoValor == 21m);
+        Assert.Equal(Formatos.Importe(121m), d.Total);
+        d.Total = "242";
+        Assert.Equal((200m, 42m), (d.BaseValor, d.CuotaValor));
+        d.Total = "100";
+        Assert.Equal((82.64m, 17.36m), (d.BaseValor, d.CuotaValor));
     }
 
     [Fact]
@@ -212,7 +312,7 @@ public sealed class FichaCompraTests
     }
 
     [Fact]
-    public void Una_exportada_por_ProContaVF_se_puede_cambiar_y_una_del_ERP_no()
+    public void Una_exportada_por_ProContaVF_o_por_el_ERP_se_puede_cambiar()
     {
         var aqui = Factura();
         aqui.Contabilizada = true;
@@ -221,7 +321,8 @@ public sealed class FichaCompraTests
         Assert.Contains("re-exportar", Ficha(aqui).Resumen);
         var erp = Factura();
         erp.Contabilizada = true;
-        Assert.False(Ficha(erp).Editable);
+        Assert.True(Ficha(erp).Editable);
+        Assert.Contains("ERP", Ficha(erp).Resumen);
         Assert.False(Ficha(aqui, soloLectura: true).Editable);
     }
 

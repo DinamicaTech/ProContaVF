@@ -146,6 +146,59 @@ public static class MigracionesCompras
         new AnadirColumna("SociedadesEjercicios", "CuentaRedondeoGastos", "TEXT(10)"),
         new AnadirColumna("SociedadesEjercicios", "CuentaRedondeoIngresos", "TEXT(10)"));
 
+    /// <summary>
+    /// Cambios del 7 de noviembre (propietario 2026-11-07 11:59): cuentas de IVA repercutido de ventas por tipo (las
+    /// CuentaTipoIVA quedan para el soportado de compras), origen del documento de compra (carpeta o email), concepto
+    /// leído de la factura y su versión abreviada, y NIF del proveedor en las plantillas de reconocimiento (pasan a ir por
+    /// proveedor, no por carpeta). Solo estructura, sin datos.
+    /// </summary>
+    public static Migracion ComprasVentasNoviembre { get; } = new(
+        "20261107_1300_COMPRAS_VENTAS_NOVIEMBRE", 261107002,
+        "IVA repercutido de ventas por tipo, origen y concepto de las facturas de compra y plantillas de reconocimiento por NIF.",
+        "compras/factura-compra",
+        new AnadirColumna("SociedadesEjercicios", "CuentaIVARepercutido0", "TEXT(10)"),
+        new AnadirColumna("SociedadesEjercicios", "CuentaIVARepercutido1", "TEXT(10)"),
+        new AnadirColumna("SociedadesEjercicios", "CuentaIVARepercutido2", "TEXT(10)"),
+        new AnadirColumna("SociedadesEjercicios", "CuentaIVARepercutido3", "TEXT(10)"),
+        new AnadirColumna("SociedadesEjercicios", "CuentaIVARepercutido4", "TEXT(10)"),
+        new AnadirColumna("FacturasCompra", "OrigenDocumento", "TEXT(10)"),
+        new AnadirColumna("FacturasCompra", "ConceptoFactura", "TEXT(255)"),
+        new AnadirColumna("FacturasCompra", "ConceptoAbreviado", "TEXT(60)"),
+        new AnadirColumna("PlantillasReconocimientoCompra", "NIF", "TEXT(20)"),
+        new CrearIndice("PlantillasReconocimientoCompra", "IX_PRC_SociedadNif",
+            "CREATE INDEX IX_PRC_SociedadNif ON PlantillasReconocimientoCompra (IdSociedad, NIF)"));
+
+    /// <summary>
+    /// Concepto abreviado por defecto del proveedor (propietario 2026-11-07 19:21): el que se escribe a mano en una factura
+    /// sin concepto leído; gana al abreviado del concepto leído en las facturas siguientes. Solo estructura, sin datos.
+    /// </summary>
+    public static Migracion ConceptoAbreviadoProveedor { get; } = new(
+        "20261107_1925_CONCEPTO_ABREVIADO_PROVEEDOR", 261107003,
+        "Concepto abreviado por defecto del proveedor.",
+        "compras/factura-compra",
+        new AnadirColumna("CuentasProveedoresSociedad", "ConceptoAbreviadoDefecto", "TEXT(60)"));
+
+    /// <summary>
+    /// Bien de inversión en el libro de IVA soportado (propietario 2026-11-07 19:55): la compra con cuenta de gasto del grupo 2
+    /// (inmovilizado) va en las casillas de bienes de inversión del 303 y se regulariza. Solo estructura, sin datos.
+    /// </summary>
+    public static Migracion BienInversionIvaSoportado { get; } = new(
+        "20261107_2000_BIEN_INVERSION_IVA_SOPORTADO", 261107004,
+        "Marca de bien de inversión en el libro de IVA soportado.",
+        "contabilidad/procesos",
+        new AnadirColumna("IVASoportado", "BienInversion", "YESNO"));
+
+    /// <summary>
+    /// Marca VIES del proveedor (propietario 2026-11-07 20:25): «VIES», «NO VIES» o vacía (sin verificar; se consulta al abrir
+    /// una factura suya), y cuándo se comprobó. Solo estructura, sin datos.
+    /// </summary>
+    public static Migracion ViesProveedor { get; } = new(
+        "20261107_2030_VIES_PROVEEDOR", 261107005,
+        "Marca VIES del proveedor y fecha de la comprobación.",
+        "terceros/roles",
+        new AnadirColumna("Proveedores", "EstadoVies", "TEXT(10)"),
+        new AnadirColumna("Proveedores", "FechaVies", "DATETIME"));
+
     private static PasoPersonalizado Relacion(string tabla, string columna, string nombre)
     {
         var sql = $"ALTER TABLE {tabla} ADD CONSTRAINT {nombre} FOREIGN KEY ({columna}) REFERENCES FormasPago (Id)";

@@ -72,6 +72,10 @@ public static class CatalogoMigraciones
         MigracionesContabilidad.DescripcionCuentas,
         MigracionesCompras.TextosClaveCompra,
         MigracionesCompras.ExportacionCompras,
+        MigracionesCompras.ComprasVentasNoviembre,
+        MigracionesCompras.ConceptoAbreviadoProveedor,
+        MigracionesCompras.BienInversionIvaSoportado,
+        MigracionesCompras.ViesProveedor,
     ];
 
     /// <summary>Versión del esquema que espera esta versión del programa.</summary>

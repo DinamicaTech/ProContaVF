@@ -73,6 +73,29 @@ public sealed class AccesoAccessTests : IDisposable
     }
 
     [Fact]
+    public async Task Cambiar_el_trimestre_sigue_a_editar_facturas_hasta_que_tiene_grupos_propios()
+    {
+        var bd = _copia.Bd();
+        var editores = await DatosSinteticos.GrupoAsync(bd, "EDITORES");
+        var otros = await DatosSinteticos.GrupoAsync(bd, "OTROS");
+        var ana = await DatosSinteticos.OperadorSinContrasenaAsync(bd, "ana.prueba");
+        var luis = await DatosSinteticos.OperadorSinContrasenaAsync(bd, "luis.prueba");
+        await DatosSinteticos.MiembroAsync(bd, ana, editores);
+        await DatosSinteticos.MiembroAsync(bd, luis, otros);
+        await bd.EjecutarAsync(s => s.EjecutarAsync("INSERT INTO PermisosAccionesGrupo (IdGrupoOperadores, CodigoAccion) VALUES (?, ?)", editores, Acciones.FacturasEditar));
+        AutorizadorAccionesAccess De(int operador) => new(bd, new ServicioOperadores(bd), operador);
+
+        // Sin grupos propios, quien edita facturas.
+        Assert.True(await De(ana).PuedeAsync(Acciones.TrimestreCambiar));
+        Assert.False(await De(luis).PuedeAsync(Acciones.TrimestreCambiar));
+
+        // Con un grupo propio, solo ese.
+        await bd.EjecutarAsync(s => s.EjecutarAsync("INSERT INTO PermisosAccionesGrupo (IdGrupoOperadores, CodigoAccion) VALUES (?, ?)", otros, Acciones.TrimestreCambiar));
+        Assert.False(await De(ana).PuedeAsync(Acciones.TrimestreCambiar));
+        Assert.True(await De(luis).PuedeAsync(Acciones.TrimestreCambiar));
+    }
+
+    [Fact]
     public async Task PrimerAdministradorSoloSinOperadores()
     {
         var acceso = Servicio();

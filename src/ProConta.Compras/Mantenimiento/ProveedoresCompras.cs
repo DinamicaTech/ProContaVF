@@ -1,5 +1,7 @@
 using System.Globalization;
 using ProConta.Compras.Facturas;
+using ProConta.Compras.Integraciones;
+using ProConta.Compras.Reconocimiento;
 using ProConta.Datos.Persistencia;
 using ProConta.Mantenimiento;
 using ProConta.Nucleo.Resultados;
@@ -9,7 +11,8 @@ namespace ProConta.Compras.Mantenimiento;
 /// <summary>Mantenimientos de compras para la pantalla genérica (plataforma/mantenimiento).</summary>
 public static class ProveedoresCompras
 {
-    public static IReadOnlyList<IProveedorMantenimiento> Todos(IBaseDatos bd) => [new ProveedorTextosClaveCompra(new CatalogoTextosClaveCompra(bd))];
+    public static IReadOnlyList<IProveedorMantenimiento> Todos(IBaseDatos bd) =>
+        [new ProveedorTextosClaveCompra(new CatalogoTextosClaveCompra(bd)), new ProveedorReconocimientoCompra(bd), new ProveedorCertificadoEmpresa(bd)];
 }
 
 /// <summary>
@@ -66,4 +69,278 @@ public sealed class ProveedorTextosClaveCompra(CatalogoTextosClaveCompra catalog
 
     public override Task<Resultado> EliminarAsync(RegistroMantenimiento r, ContextoMantenimiento c) =>
         catalogo.EliminarAsync(c.Trabajo, Convert.ToInt32(r.Clave, CultureInfo.InvariantCulture));
+}
+
+/// <summary>
+/// Parámetros del reconocimiento de facturas de compra de la empresa de trabajo (ConfiguracionReconocimientoFacturasCompra,
+/// compras/reconocimiento 2026-11-07): activo, VIES, OCR y las claves de AWS del OCR. El secreto se guarda cifrado
+/// (<see cref="SecretoProtegido"/>) y nunca vuelve a la pantalla: solo se sustituye o se quita.
+/// </summary>
+public sealed class ProveedorReconocimientoCompra(IBaseDatos bd, Func<CredencialesOcr?, CancellationToken, Task<(bool Correcta, string Mensaje)>>? probar = null) : ProveedorBase
+{
+    private const string Tabla = "ConfiguracionReconocimientoFacturasCompra";
+
+    public override string Clave => "reconocimientocompra";
+    public override string Titulo => "Reconocimiento de facturas de compra";
+    public override string Categoria => "Parámetros";
+    public override string Finalidad => "Cómo se leen los PDF de compra de la empresa: si se reconocen, si se usa el OCR para los escaneados y con qué claves de AWS.";
+    public override AmbitoMantenimiento Ambito => AmbitoMantenimiento.Sociedad;
+    public override Cardinalidad Cardinalidad => Cardinalidad.Unico;
+    public override bool PermiteAlta => false;
+    public override bool PermiteBaja => false;
+    public override string NombreRegistro => "configuración del reconocimiento";
+    public override IReadOnlyList<string> Sinonimos => ["ocr", "textract", "aws", "amazon", "escaneado", "credenciales", "vies", "reconocimiento"];
+    public override IReadOnlyList<GrupoCampos> Grupos => [new("rec", "Reconocimiento"), new("ocr", "OCR (Amazon Textract)")];
+    public override IReadOnlyList<AccionMantenimiento> Acciones =>
+        [
+            new("probarclaves", "Probar el OCR", "Manda a Amazon Textract una página de prueba con las claves guardadas (o, sin ellas, con el perfil de AWS de este equipo) y dice si la lee. Cuesta lo que una página de OCR. Guarda antes los cambios.", Modifica: false),
+            new("quitarclaves", "Quitar las claves de AWS", "Borra la clave de acceso y el secreto guardados: el OCR usará el perfil de AWS de cada equipo, si lo tiene."),
+        ];
+
+    public override IReadOnlyList<CampoMantenimiento> Campos =>
+    [
+        new("Activo", "Reconocer los PDF de compra", TipoCampo.Logico) { Grupo = "rec" },
+        new("SociedadTieneVies", "La empresa está en el VIES", TipoCampo.Logico) { Grupo = "rec", Sinonimos = ["vies", "intracomunitario"] },
+        new("UmbralAceptacion", "Confianza mínima para aceptar", TipoCampo.Decimal) { Grupo = "rec", Obligatorio = true, Minimo = 0m, Maximo = 1m, Ancho = "s",
+            Ayuda = "Entre 0 y 1. Por debajo, la factura queda para revisar." },
+        new("UmbralDiscrepanciaImporte", "Descuadre de importes admitido", TipoCampo.Importe) { Grupo = "rec", Obligatorio = true, Minimo = 0m, Ancho = "s",
+            Ayuda = "Diferencia máxima entre base + IVA − retención y el total para darla por cuadrada." },
+        new("UsarTextract", "Usar OCR en los PDF escaneados", TipoCampo.Logico) { Grupo = "ocr", Sinonimos = ["ocr", "textract"],
+            Ayuda = "Los PDF sin texto se leen con Amazon Textract (tiene coste por página). Sin marcar, esos PDF se rellenan a mano." },
+        new("RegionAWS", "Región de AWS", TipoCampo.Codigo) { Grupo = "ocr", Longitud = 30, Ancho = "s", Sinonimos = ["region"],
+            Ayuda = "Por ejemplo eu-west-1. Obligatoria si se guarda una clave de acceso." },
+        new("ClaveAccesoAWS", "Clave de acceso (Access key ID)", TipoCampo.Codigo) { Grupo = "ocr", Longitud = 128, Ancho = "l", Sinonimos = ["access key", "credenciales"],
+            Ayuda = "De un usuario de AWS que solo pueda usar Textract (DetectDocumentText). Vacía, cada equipo usa su perfil de AWS «proconta-textract»." },
+        new("SecretoAWS", "Clave secreta (Secret access key)", TipoCampo.Secreto) { Grupo = "ocr", Longitud = 128, Ancho = "l", Sinonimos = ["secret", "secreto"],
+            Ayuda = "Se guarda cifrada y no se vuelve a mostrar. Déjala vacía para conservar la guardada." },
+        new("EstadoSecreto", "Clave secreta guardada") { Grupo = "ocr", SoloLectura = true, Ancho = "s" },
+    ];
+
+    public override IReadOnlyList<ColumnaLista> Columnas => [new("ClaveAccesoAWS", "Clave de acceso")];
+
+    public override string TituloRegistro(RegistroMantenimiento r) => "Reconocimiento de facturas de compra";
+
+    public override async Task<IReadOnlyList<RegistroMantenimiento>> ListarAsync(ContextoMantenimiento c) =>
+        [await LeerAsync(c.Trabajo.IdSociedad) ?? await NuevoAsync(c)];
+
+    public override Task<RegistroMantenimiento> NuevoAsync(ContextoMantenimiento contexto) =>
+        Task.FromResult(new RegistroMantenimiento(null, new Dictionary<string, object?>
+        {
+            ["Activo"] = true, ["SociedadTieneVies"] = false, ["UsarTextract"] = false, ["UmbralAceptacion"] = 0.9m, ["UmbralDiscrepanciaImporte"] = 0.02m,
+            ["RegionAWS"] = null, ["ClaveAccesoAWS"] = null, ["SecretoAWS"] = null, ["EstadoSecreto"] = "No",
+        }));
+
+    private Task<RegistroMantenimiento?> LeerAsync(string idSociedad) =>
+        bd.EjecutarAsync(s => s.ConsultarPrimeroAsync(
+            $"SELECT IdConfiguracion, Activo, SociedadTieneVies, UsarTextract, UmbralAceptacion, UmbralDiscrepanciaImporte, RegionAWS, ClaveAccesoAWS, SecretoAWSProtegido FROM {Tabla} WHERE IdSociedad = ?",
+            r => new RegistroMantenimiento(r.Entero("IdConfiguracion"), new Dictionary<string, object?>
+            {
+                ["Activo"] = r.Logico("Activo"), ["SociedadTieneVies"] = r.Logico("SociedadTieneVies"), ["UsarTextract"] = r.Logico("UsarTextract"),
+                ["UmbralAceptacion"] = r.Decimal("UmbralAceptacion"), ["UmbralDiscrepanciaImporte"] = r.Decimal("UmbralDiscrepanciaImporte"),
+                ["RegionAWS"] = r.Texto("RegionAWS"), ["ClaveAccesoAWS"] = r.Texto("ClaveAccesoAWS"), ["SecretoAWS"] = null,
+                ["EstadoSecreto"] = string.IsNullOrWhiteSpace(r.Texto("SecretoAWSProtegido")) ? "No"
+                    : SecretoProtegido.Desproteger(r.Texto("SecretoAWSProtegido")) is null ? "No se puede leer: escríbela de nuevo" : "Sí",
+            }), idSociedad));
+
+    public override IReadOnlyList<ErrorCampo> Validar(RegistroMantenimiento r)
+    {
+        var errores = ValidacionGenerica.Validar(Campos, r).ToList();
+        var clave = r.Texto("ClaveAccesoAWS");
+        var secreto = r.Texto("SecretoAWS");
+        var region = r.Texto("RegionAWS");
+        if (clave is not null && region is null) errores.Add(new("RegionAWS", "Falta la región de AWS (por ejemplo eu-west-1)."));
+        if (region is not null && !System.Text.RegularExpressions.Regex.IsMatch(region, "^[a-z]{2}(-[a-z]+)+-[0-9]$"))
+            errores.Add(new("RegionAWS", "Región de AWS: escríbela como eu-west-1."));
+        if (clave is not null && secreto is null && r.Texto("EstadoSecreto") != "Sí")
+            errores.Add(new("SecretoAWS", "Falta la clave secreta de AWS."));
+        if (clave is null && secreto is not null) errores.Add(new("ClaveAccesoAWS", "Falta la clave de acceso que va con la clave secreta."));
+        return errores;
+    }
+
+    public override async Task<Resultado<RegistroMantenimiento>> GuardarAsync(RegistroMantenimiento r, ContextoMantenimiento c)
+    {
+        var idSociedad = c.Trabajo.IdSociedad;
+        var clave = r.Texto("ClaveAccesoAWS");
+        var secreto = r.Texto("SecretoAWS");
+        await bd.EjecutarAsync(async s =>
+        {
+            var existe = await s.ConsultarPrimeroAsync($"SELECT IdConfiguracion FROM {Tabla} WHERE IdSociedad = ?", f => (int?)f.Entero("IdConfiguracion"), idSociedad);
+            if (existe is null)
+                await s.EjecutarAsync($"INSERT INTO {Tabla} (IdSociedad, Activo, SociedadTieneVies, UsarTextract, UmbralAceptacion, UmbralDiscrepanciaImporte, Version) VALUES (?, ?, ?, ?, ?, ?, 1)",
+                    idSociedad, r.Logico("Activo"), r.Logico("SociedadTieneVies"), r.Logico("UsarTextract"), r.Decimal("UmbralAceptacion") ?? 0.9m, r.Decimal("UmbralDiscrepanciaImporte") ?? 0.02m);
+            await s.EjecutarAsync($"UPDATE {Tabla} SET Activo = ?, SociedadTieneVies = ?, UsarTextract = ?, UmbralAceptacion = ?, UmbralDiscrepanciaImporte = ?, " +
+                "RegionAWS = ?, ClaveAccesoAWS = ?, Version = Version + 1 WHERE IdSociedad = ?",
+                r.Logico("Activo"), r.Logico("SociedadTieneVies"), r.Logico("UsarTextract"), r.Decimal("UmbralAceptacion") ?? 0.9m, r.Decimal("UmbralDiscrepanciaImporte") ?? 0.02m,
+                r.Texto("RegionAWS"), clave, idSociedad);
+            // Sin clave de acceso no se guarda ningún secreto; con un secreto nuevo, sustituye al anterior.
+            if (clave is null) await s.EjecutarAsync($"UPDATE {Tabla} SET SecretoAWSProtegido = Null WHERE IdSociedad = ?", idSociedad);
+            else if (secreto is not null) await s.EjecutarAsync($"UPDATE {Tabla} SET SecretoAWSProtegido = ? WHERE IdSociedad = ?", SecretoProtegido.Proteger(secreto), idSociedad);
+            return true;
+        });
+        return Resultado<RegistroMantenimiento>.Correcto((await LeerAsync(idSociedad))!);
+    }
+
+    public override async Task<Resultado<ResultadoAccion>> EjecutarAsync(string accion, RegistroMantenimiento registro, ContextoMantenimiento c)
+    {
+        if (accion == "probarclaves")
+        {
+            var config = await bd.EjecutarAsync(s => RepositorioFacturasCompra.ConfiguracionAsync(s, c.Trabajo.IdSociedad));
+            if (config.MotivoCredencialesOcr is { } motivo) return Resultado<ResultadoAccion>.Fallo(new Error("Reconocimiento.ClavesAws", $"Las claves guardadas no valen: {motivo}.", Titulo));
+            var (correcta, mensaje) = await (probar ?? ExtractorOcrTextract.ProbarAsync)(config.CredencialesOcr, CancellationToken.None);
+            return correcta ? Resultado<ResultadoAccion>.Correcto(new ResultadoAccion(mensaje))
+                : Resultado<ResultadoAccion>.Fallo(new Error("Reconocimiento.OcrNoFunciona", mensaje, Titulo, null, "Revisa la región y las claves, y que el usuario de AWS pueda usar Textract (DetectDocumentText)."));
+        }
+        if (accion != "quitarclaves") return await base.EjecutarAsync(accion, registro, c);
+        await bd.EjecutarAsync(s => s.EjecutarAsync($"UPDATE {Tabla} SET ClaveAccesoAWS = Null, SecretoAWSProtegido = Null, Version = Version + 1 WHERE IdSociedad = ?", c.Trabajo.IdSociedad));
+        return Resultado<ResultadoAccion>.Correcto(new ResultadoAccion("Claves de AWS quitadas: el OCR usará el perfil de AWS de cada equipo."));
+    }
+}
+
+/// <summary>Un certificado del almacén de Windows que puede usar la empresa (con clave privada).</summary>
+public sealed record CertificadoEquipo(string Huella, string Titular, string? Nif, DateTime Caduca)
+{
+    public string Texto => $"{Titular}{(Nif is null ? "" : $" · {Nif}")} · caduca el {Caduca:dd/MM/yyyy}";
+}
+
+/// <summary>
+/// Certificado de la empresa de trabajo (VeriFactuConfiguracion.CertificateThumbprint, compras/pantallas 2026-11-07): se
+/// elige en un desplegable entre los instalados en Windows con clave privada y sin caducar, y se guarda su huella. Lo usan
+/// la consulta del NIF en la AEAT (alta de proveedores) y, más adelante, VeriFactu. Cada equipo que lo use debe tenerlo
+/// instalado; con el mismo certificado, la huella es la misma.
+/// </summary>
+public sealed class ProveedorCertificadoEmpresa(IBaseDatos bd, Func<IReadOnlyList<CertificadoEquipo>>? certificados = null,
+    Func<string, string, CancellationToken, Task<Proveedores.ResultadoNifAeat>>? consultar = null) : ProveedorBase
+{
+    private IReadOnlyList<OpcionCampo> _opciones = [];
+
+    public override string Clave => "certificadoempresa";
+    public override string Titulo => "Certificado de la empresa";
+    public override string Categoria => "Parámetros";
+    public override string Finalidad => "Certificado digital con el que la empresa consulta la AEAT (razón social de los NIF de proveedores) y, más adelante, envía a VeriFactu.";
+    public override AmbitoMantenimiento Ambito => AmbitoMantenimiento.Sociedad;
+    public override Cardinalidad Cardinalidad => Cardinalidad.Unico;
+    public override bool PermiteAlta => false;
+    public override bool PermiteBaja => false;
+    public override string NombreRegistro => "certificado";
+    public override IReadOnlyList<string> Sinonimos => ["certificado", "aeat", "firma", "verifactu", "vnif", "huella"];
+    public override IReadOnlyList<AccionMantenimiento> Acciones =>
+        [new("probaraeat", "Probar con la AEAT", "Consulta en la AEAT el NIF de la propia empresa con el certificado guardado y dice si responde. Guarda antes los cambios.", Modifica: false)];
+
+    public override IReadOnlyList<CampoMantenimiento> Campos =>
+    [
+        new("Huella", "Certificado", TipoCampo.Lista) { Opciones = _opciones, Ancho = "f",
+            Ayuda = "Certificados instalados en Windows (del equipo o de tu usuario) con clave privada y sin caducar. Si no sale, instálalo en este equipo (doble clic en el .pfx) y vuelve a abrir esta pantalla." },
+        new("HuellaGuardada", "Huella guardada", TipoCampo.Codigo) { SoloLectura = true, Ancho = "l" },
+    ];
+
+    public override IReadOnlyList<ColumnaLista> Columnas => [new("HuellaGuardada", "Huella")];
+
+    public override string TituloRegistro(RegistroMantenimiento r) => "Certificado de la empresa";
+
+    public override async Task<IReadOnlyList<RegistroMantenimiento>> ListarAsync(ContextoMantenimiento c)
+    {
+        var instalados = (certificados ?? CertificadosEquipo)();
+        var guardada = await HuellaAsync(c.Trabajo.IdSociedad);
+        var opciones = new List<OpcionCampo> { new(null, "Sin certificado") };
+        opciones.AddRange(instalados.Select(x => new OpcionCampo(x.Huella, x.Texto)));
+        if (guardada.Existe && guardada.Huella is { } h && instalados.All(x => !string.Equals(x.Huella, h, StringComparison.OrdinalIgnoreCase)))
+            opciones.Add(new OpcionCampo(h, $"No instalado en este equipo (huella {h})"));
+        _opciones = opciones;
+        var valor = guardada.Huella is { } g ? opciones.FirstOrDefault(o => string.Equals(o.Valor as string, g, StringComparison.OrdinalIgnoreCase))?.Valor : null;
+        return [new RegistroMantenimiento(guardada.Existe ? c.Trabajo.IdSociedad : null, new Dictionary<string, object?> { ["Huella"] = valor, ["HuellaGuardada"] = guardada.Huella })];
+    }
+
+    private Task<(bool Existe, string? Huella)> HuellaAsync(string idSociedad) =>
+        bd.EjecutarAsync(async s =>
+        {
+            var filas = await s.ConsultarAsync("SELECT CertificateThumbprint FROM VeriFactuConfiguracion WHERE IdSociedad = ?", f => f.Texto("CertificateThumbprint")?.Replace(" ", "").Trim(), idSociedad);
+            return filas.Count == 0 ? (false, (string?)null) : (true, string.IsNullOrWhiteSpace(filas[0]) ? null : filas[0]!.ToUpperInvariant());
+        });
+
+    public override async Task<Resultado<RegistroMantenimiento>> GuardarAsync(RegistroMantenimiento r, ContextoMantenimiento c)
+    {
+        var id = c.Trabajo.IdSociedad;
+        var huella = r.Texto("Huella");
+        try
+        {
+            await bd.EjecutarAsync(async s =>
+            {
+                var existe = Convert.ToInt32(await s.EscalarAsync("SELECT COUNT(*) FROM VeriFactuConfiguracion WHERE IdSociedad = ?", id), CultureInfo.InvariantCulture) > 0;
+                // El número de serie se quita: manda la huella elegida aquí.
+                if (existe) await s.EjecutarAsync("UPDATE VeriFactuConfiguracion SET CertificateThumbprint = ?, CertificateSerial = Null WHERE IdSociedad = ?", huella, id);
+                else
+                {
+                    // La clave de la maestra no siempre es autonumérica: la siguiente libre vale en los dos casos.
+                    var siguiente = Convert.ToInt32(await s.EscalarAsync("SELECT IIf(MAX(IdVeriFactuConfiguracion) Is Null, 0, MAX(IdVeriFactuConfiguracion)) + 1 FROM VeriFactuConfiguracion"), CultureInfo.InvariantCulture);
+                    await s.EjecutarAsync("INSERT INTO VeriFactuConfiguracion (IdVeriFactuConfiguracion, IdSociedad, CertificateThumbprint) VALUES (?, ?, ?)", siguiente, id, huella);
+                }
+                return true;
+            });
+        }
+        catch (ExcepcionDatos ex)
+        {
+            return Resultado<RegistroMantenimiento>.Fallo(new Error("Certificado.Guardar", $"No he podido guardar el certificado: {ex.Message}", Titulo));
+        }
+        return Resultado<RegistroMantenimiento>.Correcto((await ListarAsync(c))[0]);
+    }
+
+    public override async Task<Resultado<ResultadoAccion>> EjecutarAsync(string accion, RegistroMantenimiento registro, ContextoMantenimiento c)
+    {
+        if (accion != "probaraeat") return await base.EjecutarAsync(accion, registro, c);
+        var nif = await bd.EjecutarAsync(s => s.EscalarAsync("SELECT CIF FROM Sociedades WHERE IdSociedad = ?", c.Trabajo.IdSociedad)) as string;
+        if (string.IsNullOrWhiteSpace(nif))
+            return Resultado<ResultadoAccion>.Fallo(new Error("Certificado.SinNif", "La empresa no tiene NIF: no hay nada que consultar.", Titulo));
+        Proveedores.ResultadoNifAeat r;
+        try
+        {
+            r = consultar is not null ? await consultar(c.Trabajo.IdSociedad, nif.Trim(), CancellationToken.None)
+                : await new Integraciones.ConsultaNifAeatVNif(bd).ConsultarAsync(c.Trabajo.IdSociedad, nif.Trim(), null);
+        }
+        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or System.Security.Cryptography.CryptographicException)
+        {
+            r = Proveedores.ResultadoNifAeat.SinConsultar($"No he podido conectar con la AEAT: {ex.Message}");
+        }
+        if (r.Identificado) return Resultado<ResultadoAccion>.Correcto(new ResultadoAccion($"La AEAT responde con este certificado: el NIF {nif.Trim()} es de {r.RazonSocial}."));
+        return r.Consultado
+            ? Resultado<ResultadoAccion>.Correcto(new ResultadoAccion($"La AEAT responde con este certificado, pero no identifica el NIF {nif.Trim()}: {r.Motivo}"))
+            : Resultado<ResultadoAccion>.Fallo(new Error("Certificado.SinAeat", r.Motivo ?? "No he podido consultar la AEAT.", Titulo, null,
+                "Comprueba que el certificado elegido está instalado en este equipo con su clave privada y que no ha caducado."));
+    }
+
+    /// <summary>Certificados con clave privada y sin caducar del almacén personal del equipo y del usuario.</summary>
+    public static IReadOnlyList<CertificadoEquipo> CertificadosEquipo()
+    {
+        var lista = new Dictionary<string, CertificadoEquipo>(StringComparer.OrdinalIgnoreCase);
+        foreach (var ubicacion in new[] { System.Security.Cryptography.X509Certificates.StoreLocation.CurrentUser, System.Security.Cryptography.X509Certificates.StoreLocation.LocalMachine })
+        {
+            using var almacen = new System.Security.Cryptography.X509Certificates.X509Store(System.Security.Cryptography.X509Certificates.StoreName.My, ubicacion);
+            try { almacen.Open(System.Security.Cryptography.X509Certificates.OpenFlags.ReadOnly | System.Security.Cryptography.X509Certificates.OpenFlags.OpenExistingOnly); }
+            catch (System.Security.Cryptography.CryptographicException) { continue; }
+            foreach (var x in almacen.Certificates)
+            {
+                using (x)
+                {
+                    if (!x.HasPrivateKey || x.NotAfter < DateTime.Now || lista.ContainsKey(x.Thumbprint)) continue;
+                    lista[x.Thumbprint] = new CertificadoEquipo(x.Thumbprint.ToUpperInvariant(), Titular(x.Subject), NifDe(x.Subject), x.NotAfter);
+                }
+            }
+        }
+        return lista.Values.OrderBy(c => c.Titular, StringComparer.CurrentCulture).ToList();
+    }
+
+    /// <summary>El nombre del titular (CN, o la organización) del sujeto del certificado.</summary>
+    internal static string Titular(string sujeto)
+    {
+        string? Valor(string clave) => System.Text.RegularExpressions.Regex.Match(sujeto, $@"(?:^|,\s*){clave}=(""[^""]*""|[^,]*)") is { Success: true } m ? m.Groups[1].Value.Trim('"', ' ') : null;
+        return Valor("CN") ?? Valor("O") ?? sujeto;
+    }
+
+    /// <summary>NIF del sujeto: el identificador de organización (VATES-…) o el número de serie (IDCES-…).</summary>
+    internal static string? NifDe(string sujeto)
+    {
+        var m = System.Text.RegularExpressions.Regex.Match(sujeto, @"(?:OID\.2\.5\.4\.97|organizationIdentifier)=VATES-([A-Z0-9]+)", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+        if (m.Success) return m.Groups[1].Value.ToUpperInvariant();
+        m = System.Text.RegularExpressions.Regex.Match(sujeto, @"SERIALNUMBER=(?:IDCES-)?([A-Z0-9]{9})", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+        return m.Success ? m.Groups[1].Value.ToUpperInvariant() : null;
+    }
 }

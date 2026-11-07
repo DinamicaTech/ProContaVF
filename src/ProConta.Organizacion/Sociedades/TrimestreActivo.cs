@@ -14,7 +14,7 @@ public sealed class ServicioTrimestreActivo(IBaseDatos bd, IReloj? reloj = null)
 {
     private readonly IReloj _reloj = reloj ?? RelojSistema.Instancia;
 
-    public static int Trimestre(DateTime fecha) => (fecha.Month - 1) / 3 + 1;
+    public static int Trimestre(DateTime fecha) => Nucleo.Contexto.TrimestreContable.De(fecha);
 
     /// <summary>«ene-mar», «abr-jun», «jul-sep» u «oct-dic».</summary>
     public static string Nombre(int trimestre) => trimestre switch { 1 => "ene-mar", 2 => "abr-jun", 3 => "jul-sep", 4 => "oct-dic", _ => "sin trimestre" };

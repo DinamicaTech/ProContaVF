@@ -51,6 +51,18 @@ public static class Acciones
     public const string FacturasValidar = "FACTURAS.VALIDAR";
     public const string FacturasRectificar = "FACTURAS.RECTIFICAR";
     public const string MantenimientoEditar = "MANTENIMIENTO.EDITAR";
+    /// <summary>Cambiar el trimestre activo (compras 2026-11-07).</summary>
+    public const string TrimestreCambiar = "TRIMESTRE.CAMBIAR";
+
+    /// <summary>
+    /// Acción que manda mientras una acción nueva no tenga ningún grupo asignado: «Cambiar el trimestre activo» la tienen
+    /// al principio quienes pueden editar facturas, sin copiar datos; en cuanto se le asigna algún grupo, va por su cuenta.
+    /// </summary>
+    public static string? Respaldo(string codigoAccion) => codigoAccion switch
+    {
+        TrimestreCambiar => FacturasEditar,
+        _ => null
+    };
 }
 
 /// <summary>Autoriza para un operador concreto (el de la sesión).</summary>
@@ -63,7 +75,7 @@ public sealed class AutorizadorAccionesAccess(IBaseDatos bd, ServicioOperadores 
         var asignaciones = await bd.EjecutarAsync(s => s.ConsultarAsync(
             "SELECT IdGrupoOperadores, CodigoAccion FROM PermisosAccionesGrupo WHERE CodigoAccion = ?",
             f => (Grupo: f.Entero("IdGrupoOperadores"), Recurso: f.Texto("CodigoAccion") ?? ""), codigoAccion));
-        if (asignaciones.Count == 0) return true;
+        if (asignaciones.Count == 0) return Acciones.Respaldo(codigoAccion) is not { } respaldo || await PuedeAsync(respaldo);
         _grupos ??= await operadores.GruposActivosAsync(idOperador);
         return PoliticaAmbito.Permite(asignaciones, _grupos, codigoAccion, StringComparer.OrdinalIgnoreCase);
     }

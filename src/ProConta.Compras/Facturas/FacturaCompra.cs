@@ -40,6 +40,15 @@ public sealed class FacturaCompra
     public string NumeroFactura { get; set; } = string.Empty;
     public DateTime? Fecha { get; set; }
     public string Concepto { get; set; } = string.Empty;
+    /// <summary>Concepto leído de la factura (qué se compra), entero (FacturasCompra.ConceptoFactura).</summary>
+    public string? ConceptoFactura { get; set; }
+    /// <summary>
+    /// Concepto abreviado (unos 40 caracteres, cortado por palabras), el que va en las descripciones de los apuntes
+    /// (FacturasCompra.ConceptoAbreviado).
+    /// </summary>
+    public string? ConceptoAbreviado { get; set; }
+    /// <summary>De dónde llegó el PDF: «carpeta» (la del proveedor), «raiz» (la carpeta raíz) o «email» (FacturasCompra.OrigenDocumento).</summary>
+    public string? OrigenDocumento { get; set; }
 
     public decimal? BaseImponible { get; set; }
     public decimal? CuotaIva { get; set; }
@@ -56,6 +65,22 @@ public sealed class FacturaCompra
     public decimal? Suplido { get; set; }
     /// <summary>Cuenta de gasto (FacturasCompra.ConceptoGasto).</summary>
     public string? CuentaGasto { get; set; }
+
+    /// <summary>Grupo de la cuenta de gasto que se ofrece por defecto.</summary>
+    public static readonly IReadOnlyList<string> GruposCuentaGasto = ["6"];
+
+    /// <summary>
+    /// Otras cuentas que se pueden poner en «Cuenta de gasto» quitando el filtro (propietario 2026-11-07 19:55): inmovilizado
+    /// (grupo 2), envases a devolver (406), anticipos (407) y gastos anticipados (480).
+    /// </summary>
+    public static readonly IReadOnlyList<string> OtrasCuentasGasto = ["2", "406", "407", "480"];
+
+    /// <summary>¿La cuenta se puede usar como cuenta de gasto (grupo 6 o las otras permitidas)?</summary>
+    public static bool EsCuentaGastoPermitida(string? cuenta) =>
+        cuenta is { Length: > 0 } c && GruposCuentaGasto.Concat(OtrasCuentasGasto).Any(g => c.StartsWith(g, StringComparison.Ordinal));
+
+    /// <summary>Una cuenta de inmovilizado (grupo 2) hace de la compra un bien de inversión en el libro de IVA.</summary>
+    public static bool EsBienInversion(string? cuenta) => cuenta is { Length: > 0 } c && c.StartsWith('2');
     public int? IdCentroCoste { get; set; }
     /// <summary>Cuenta de la forma de pago grabada por el ERP (dato heredado; la de ProContaVF es <see cref="IdFormaPago"/>).</summary>
     public string? CuentaFormaPago { get; set; }
@@ -66,14 +91,41 @@ public sealed class FacturaCompra
     public byte? IdFormaPago { get; set; }
     public string? Notas { get; set; }
 
-    /// <summary>Contabilizada (FacturasCompra.Exportada): ya no se edita aquí.</summary>
+    /// <summary>
+    /// Contabilizada (FacturasCompra.Exportada), aquí o en el ERP. Se edita: si el cambio afecta al asiento
+    /// (<see cref="AfectaAlAsiento"/>), con «Guardar y re-exportar»; si no, con «Guardar» (compras/pantallas 2026-11-07).
+    /// </summary>
     public bool Contabilizada { get; set; }
 
     /// <summary>Asiento vigente si la exportó ProContaVF (null: sin exportar o exportada en el ERP).</summary>
     public int? IdAsientoContable { get; set; }
 
-    /// <summary>Exportada por ProContaVF: se puede re-exportar o deshacer (las del ERP, no).</summary>
+    /// <summary>Exportada por ProContaVF (las del ERP están contabilizadas sin asiento de ProContaVF).</summary>
     public bool ExportadaAqui => Contabilizada && IdAsientoContable is not null;
+
+    /// <summary>Contabilizada en el ERP: su asiento no es de ProContaVF y nunca se toca (se anula con un contra-asiento).</summary>
+    public bool ExportadaEnErp => Contabilizada && IdAsientoContable is null;
+
+    /// <summary>
+    /// El cambio de <paramref name="antes"/> a <paramref name="despues"/> cambia el asiento o el libro de IVA: proveedor,
+    /// número, fecha, importes, cuentas, centro de coste (lo usa la prorrata del IVA), operación, producto, retención,
+    /// suplido, divisa o concepto. Las notas y la forma de pago, no (compras/pantallas 2026-11-07).
+    /// </summary>
+    public static bool AfectaAlAsiento(FacturaCompra antes, FacturaCompra despues)
+    {
+        static string? T(string? s) => string.IsNullOrWhiteSpace(s) ? null : s.Trim();
+        return antes.IdProveedor != despues.IdProveedor || T(antes.CuentaContableProveedor) != T(despues.CuentaContableProveedor)
+            || T(antes.NumeroFactura) != T(despues.NumeroFactura) || antes.Fecha?.Date != despues.Fecha?.Date
+            || antes.BaseImponible != despues.BaseImponible || antes.CuotaIva != despues.CuotaIva || antes.ImporteTotal != despues.ImporteTotal
+            || !antes.Desgloses.Select(d => (d.TipoIva, d.BaseImponible, d.CuotaIva)).SequenceEqual(despues.Desgloses.Select(d => (d.TipoIva, d.BaseImponible, d.CuotaIva)))
+            || T(antes.CuentaGasto) != T(despues.CuentaGasto) || antes.IdCentroCoste != despues.IdCentroCoste
+            || antes.Operacion != despues.Operacion || antes.Producto != despues.Producto || antes.InversionSujetoPasivo != despues.InversionSujetoPasivo
+            || antes.PorcentajeRetencion != despues.PorcentajeRetencion || antes.ImporteRetencion != despues.ImporteRetencion || antes.ClaseRetencion != despues.ClaseRetencion
+            || antes.Suplido != despues.Suplido || !string.Equals(antes.Divisa, despues.Divisa, StringComparison.OrdinalIgnoreCase)
+            || antes.ImporteTotalDivisa != despues.ImporteTotalDivisa || T(antes.Concepto) != T(despues.Concepto)
+            || T(antes.ConceptoAbreviado) != T(despues.ConceptoAbreviado)
+            || antes.IdRegistroFacturaRectificada != despues.IdRegistroFacturaRectificada;
+    }
     /// <summary>Marcada como duplicada en el ERP.</summary>
     public bool Duplicada { get; set; }
 
@@ -132,6 +184,8 @@ public sealed class FacturaCompra
             NumeroFactura = reconocida.NumeroFactura,
             Fecha = r.FechaFactura,
             Concepto = reconocida.Concepto,
+            ConceptoFactura = Vacio(r.ConceptoFactura),
+            ConceptoAbreviado = Abreviar(r.ConceptoFactura),
             PorcentajeRetencion = r.TipoRetencion,
             ImporteRetencion = r.ImporteRetencion,
             InversionSujetoPasivo = r.InversionSujetoPasivo,
@@ -245,15 +299,47 @@ public sealed class FacturaCompra
     }
 
     /// <summary>Primer nivel bajo la carpeta «Proveedores» (o la carpeta del PDF, si no está dentro de una).</summary>
+    /// <summary>Largo aproximado del concepto abreviado (compras 2026-11-07).</summary>
+    public const int LongitudConceptoAbreviado = 40;
+
+    /// <summary>
+    /// Concepto abreviado: el concepto cortado por palabras completas hasta <paramref name="maximo"/> caracteres (si la
+    /// primera palabra ya es más larga, se corta ella). Null si no hay concepto.
+    /// </summary>
+    public static string? Abreviar(string? concepto, int maximo = LongitudConceptoAbreviado)
+    {
+        var palabras = (concepto ?? "").Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries);
+        if (palabras.Length == 0) return null;
+        var texto = palabras[0].Length > maximo ? palabras[0][..maximo] : palabras[0];
+        foreach (var p in palabras.Skip(1))
+        {
+            if (texto.Length + 1 + p.Length > maximo) break;
+            texto += " " + p;
+        }
+        return texto.TrimEnd(',', ';', ':', '-', '.');
+    }
+
     public static string CarpetaDe(string rutaPdf)
     {
         var partes = rutaPdf.Split(['\\', '/'], StringSplitOptions.RemoveEmptyEntries);
         var i = Array.FindLastIndex(partes, p => p.Equals("Proveedores", StringComparison.OrdinalIgnoreCase));
         if (i >= 0 && i + 1 < partes.Length - 1) return partes[i + 1];
+        if (i >= 0 && i == partes.Length - 2) return string.Empty; // en la carpeta raíz, sin carpeta de proveedor
         return partes.Length >= 2 ? partes[^2] : string.Empty;
     }
 
     private static decimal Redondear(decimal v) => Math.Round(v, 2, MidpointRounding.AwayFromZero);
 
     private static string? Vacio(string? s) => string.IsNullOrWhiteSpace(s) ? null : s.Trim();
+}
+
+/// <summary>Valores de FacturasCompra.OrigenDocumento.</summary>
+public static class OrigenesDocumento
+{
+    /// <summary>Encontrado en la carpeta de un proveedor.</summary>
+    public const string Carpeta = "carpeta";
+    /// <summary>Encontrado en la carpeta raíz (y movido a la del proveedor al reconocerlo).</summary>
+    public const string Raiz = "raiz";
+    /// <summary>Recibido por la cuenta de correo de ProContaVF (lo rellenará el módulo de correo).</summary>
+    public const string Email = "email";
 }

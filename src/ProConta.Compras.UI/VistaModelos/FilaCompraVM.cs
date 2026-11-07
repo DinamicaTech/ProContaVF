@@ -107,6 +107,12 @@ public sealed record AsientoFacturaVM(string Titulo, string? Mensaje, IReadOnlyL
         $"Asiento {a.IdAsiento.ToString(Formatos.Cultura)}{(a.Fecha is { } f ? $" · {Formatos.Fecha(f)}" : "")}{(a.Descripcion.Length > 0 ? $" · {a.Descripcion}" : "")}",
         null,
         a.Apuntes.Select(x => new ApunteFacturaVM(x.Cuenta, x.NombreCuenta ?? "", x.Debe, x.Haber, x.Descripcion ?? "")).ToList());
+
+    /// <summary>El asiento que generaría exportar (sin grabar), con lo que habrá que responder o lo que se creará.</summary>
+    public static AsientoFacturaVM Propuesta(AsientoFactura? a, string? mensaje) => a is null
+        ? new("Propuesta de asiento", mensaje ?? "No hay propuesta.", [])
+        : new($"Propuesta de asiento (sin grabar){(a.Fecha is { } f ? $" · {Formatos.Fecha(f)}" : "")}{(a.Descripcion.Length > 0 ? $" · {a.Descripcion}" : "")}",
+            mensaje, a.Apuntes.Select(x => new ApunteFacturaVM(x.Cuenta, x.NombreCuenta ?? "", x.Debe, x.Haber, x.Descripcion ?? "")).ToList());
 }
 
 /// <summary>Un apunte en la pastilla del asiento.</summary>

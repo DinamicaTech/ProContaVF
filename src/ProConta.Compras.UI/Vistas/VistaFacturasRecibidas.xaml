@@ -16,6 +16,7 @@
     <KeyBinding Key="F5" Command="{Binding RefrescarCommand}" />
     <KeyBinding Key="R" Modifiers="Ctrl" Command="{Binding ReconocerCommand}" />
     <KeyBinding Key="F12" Command="{Binding ExportarCommand}" />
+    <KeyBinding Key="L" Modifiers="Ctrl" Command="{Binding AlternarListaCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" />
   </UserControl.InputBindings>
 
   <DockPanel>
@@ -26,7 +27,7 @@
           <TextBlock Text="{Binding TextoOcupado}" Style="{StaticResource Texto.Apagado}" VerticalAlignment="Center" Margin="0,0,12,0"
                      Visibility="{Binding Ocupado, Converter={StaticResource Visible}}" />
           <Button x:Name="BotonLista" Content="Ocultar lista" Style="{StaticResource Boton.Pequeno}" pc:Iconos.Icono="{StaticResource Icono.side}" Margin="0,0,6,0"
-                  ToolTip="Muestra u oculta la lista de facturas (para revisar a 1440 × 900 sin desplazarte)" Click="BotonLista_Click" />
+                  ToolTip="Muestra u oculta la lista de facturas (para revisar a 1440 × 900 sin desplazarte) · Ctrl+L" Click="BotonLista_Click" />
         </StackPanel>
         <WrapPanel VerticalAlignment="Center">
           <TextBlock Text="{Binding Titulo}" Style="{StaticResource Texto.TituloPantalla}" VerticalAlignment="Center" Margin="0,0,14,0" />
@@ -54,7 +55,7 @@
               <ItemsControl ItemsSource="{Binding Filtros}">
                 <ItemsControl.ItemTemplate>
                   <DataTemplate>
-                    <CheckBox Content="{Binding Texto}" IsChecked="{Binding Marcado}" Margin="0,3" />
+                    <CheckBox Content="{Binding Texto}" IsChecked="{Binding Marcado}" Margin="0,3" Visibility="{Binding Visible, Converter={StaticResource Visible}}" />
                   </DataTemplate>
                 </ItemsControl.ItemTemplate>
               </ItemsControl>
@@ -135,6 +136,7 @@
             <DataGridTextColumn Header="" Binding="{Binding Marca}" Width="28" ElementStyle="{StaticResource Texto.Celda}" pc:TablaProConta.Clave="marca" pc:TablaProConta.SiempreVisible="True" />
             <DataGridTextColumn Header="Fichero" Binding="{Binding Fichero}" Width="200" ElementStyle="{StaticResource Texto.Celda}" pc:TablaProConta.Clave="fichero" pc:TablaProConta.SiempreVisible="True" />
             <DataGridTextColumn Header="Proveedor" Binding="{Binding Proveedor}" Width="170" ElementStyle="{StaticResource Texto.Celda}" pc:TablaProConta.Clave="proveedor" />
+            <DataGridTextColumn Header="Carpeta" Binding="{Binding Carpeta}" Width="140" ElementStyle="{StaticResource Texto.Celda}" pc:TablaProConta.Clave="carpeta" />
             <DataGridTextColumn Header="Fecha" Binding="{Binding Fecha}" SortMemberPath="FechaOrden" Width="92" ElementStyle="{StaticResource Texto.Celda}" pc:TablaProConta.Clave="fecha" />
             <DataGridTextColumn Header="Número" Binding="{Binding Numero}" Width="130" ElementStyle="{StaticResource Texto.Celda.Mono}" pc:TablaProConta.Clave="numero" />
             <DataGridTextColumn Header="Total" Binding="{Binding Total}" SortMemberPath="TotalOrden" Width="105" ElementStyle="{StaticResource Texto.Celda.Importe}" HeaderStyle="{StaticResource Tabla.Cabecera.Derecha}" pc:TablaProConta.Clave="total" />
@@ -143,7 +145,6 @@
             <DataGridTextColumn Header="NIF" Binding="{Binding Nif}" Width="110" ElementStyle="{StaticResource Texto.Celda.Mono}" pc:TablaProConta.Clave="nif" pc:TablaProConta.OcultaDeFabrica="True" />
             <DataGridTextColumn Header="Base" Binding="{Binding Base}" SortMemberPath="BaseOrden" Width="105" ElementStyle="{StaticResource Texto.Celda.Importe}" HeaderStyle="{StaticResource Tabla.Cabecera.Derecha}" pc:TablaProConta.Clave="base" pc:TablaProConta.OcultaDeFabrica="True" />
             <DataGridTextColumn Header="Confianza" Binding="{Binding Confianza}" Width="80" ElementStyle="{StaticResource Texto.Celda}" pc:TablaProConta.Clave="confianza" pc:TablaProConta.OcultaDeFabrica="True" />
-            <DataGridTextColumn Header="Carpeta" Binding="{Binding Carpeta}" Width="140" ElementStyle="{StaticResource Texto.Celda}" pc:TablaProConta.Clave="carpeta" pc:TablaProConta.OcultaDeFabrica="True" />
             <DataGridTextColumn Header="Asiento" Binding="{Binding Asiento}" Width="80" ElementStyle="{StaticResource Texto.Celda}" pc:TablaProConta.Clave="asiento" pc:TablaProConta.OcultaDeFabrica="True" />
           </pc:TablaProConta.Columns>
         </pc:TablaProConta>
@@ -171,14 +172,14 @@
                   ToolTip="Guarda los cambios y regenera el asiento; si es de un trimestre cerrado, hace contra-asiento y asiento nuevo en el trimestre activo"
                   Visibility="{Binding MostrarGuardarYReexportar, Converter={StaticResource Visible}}" />
           <Button Content="Exportar" Style="{StaticResource Boton.Primario}" Command="{Binding ExportarCommand}"
-                  ToolTip="Genera el asiento de la factura (fechado hoy) y su registro del libro de IVA soportado"
+                  ToolTip="Genera el asiento de la factura (con su fecha, o el día 1 del trimestre activo si es anterior) y su registro del libro de IVA soportado"
                   Visibility="{Binding MostrarExportar, Converter={StaticResource Visible}}" />
           <Button Content="Deshacer exportación" Command="{Binding DeshacerExportacionCommand}"
                   ToolTip="Del trimestre activo, borra el asiento; de uno cerrado, hace un contra-asiento en el trimestre activo"
                   Visibility="{Binding MostrarDeshacer, Converter={StaticResource Visible}}" />
         </StackPanel>
       </Border>
-      <ScrollViewer x:Name="ZonaFicha" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Background="{StaticResource Pincel.Fondo}">
+      <ScrollViewer x:Name="ZonaFicha" PreviewMouseWheel="ZonaFicha_PreviewMouseWheel" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Background="{StaticResource Pincel.Fondo}">
         <StackPanel Margin="14,12">
           <pc:Nota Tipo="Error" Margin="0,0,0,10" Visibility="{Binding ErrorFicha, Converter={StaticResource Visible}}">
             <TextBlock Text="{Binding ErrorFicha}" TextWrapping="Wrap" />
@@ -256,8 +257,31 @@
                         </Border.ContextMenu>
                         <StackPanel>
                           <TextBlock Text="Proveedor" Style="{StaticResource Titulo.Tarjeta}" />
-                          <StackPanel Orientation="Horizontal"><TextBlock Text="NIF" Style="{StaticResource Etiqueta.Campo}" />
-                            <Border Style="{StaticResource Confianza}" DataContext="{Binding ConfianzaNif}"><TextBlock Style="{StaticResource Texto.Confianza}" /></Border></StackPanel>
+                          <DockPanel LastChildFill="False">
+                            <!-- Marca VIES del proveedor comunitario, arriba a la derecha del NIF (Ronald, 2026-11-07 20:25). -->
+                            <Border DockPanel.Dock="Right" CornerRadius="3" Padding="5,0" BorderThickness="1" VerticalAlignment="Bottom" Margin="0,0,0,2"
+                                    Visibility="{Binding MarcaVies, Converter={StaticResource Visible}}" ToolTip="{Binding AyudaVies}">
+                              <Border.Style>
+                                <Style TargetType="Border">
+                                  <Setter Property="Background" Value="{StaticResource Pincel.AvisoSuave}" />
+                                  <Setter Property="BorderBrush" Value="{StaticResource Pincel.AvisoBorde}" />
+                                  <Style.Triggers>
+                                    <DataTrigger Binding="{Binding MarcaVies}" Value="VIES">
+                                      <Setter Property="Background" Value="{StaticResource Pincel.VerdeSuave}" />
+                                      <Setter Property="BorderBrush" Value="{StaticResource Pincel.VerdeBorde}" />
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding MarcaVies}" Value="NO VIES">
+                                      <Setter Property="Background" Value="{StaticResource Pincel.RojoSuave}" />
+                                      <Setter Property="BorderBrush" Value="{StaticResource Pincel.RojoBorde}" />
+                                    </DataTrigger>
+                                  </Style.Triggers>
+                                </Style>
+                              </Border.Style>
+                              <TextBlock Text="{Binding MarcaVies}" FontSize="10" FontWeight="SemiBold" />
+                            </Border>
+                            <StackPanel Orientation="Horizontal"><TextBlock Text="NIF" Style="{StaticResource Etiqueta.Campo}" />
+                              <Border Style="{StaticResource Confianza}" DataContext="{Binding ConfianzaNif}"><TextBlock Style="{StaticResource Texto.Confianza}" /></Border></StackPanel>
+                          </DockPanel>
                           <DockPanel Margin="0,0,0,8">
                             <Button DockPanel.Dock="Right" Style="{StaticResource Boton.Icono}" pc:Iconos.Icono="{StaticResource Icono.user}" Margin="6,0,0,0"
                                     Command="{Binding DataContext.AbrirProveedorCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
@@ -265,9 +289,17 @@
                             <TextBox Text="{Binding Nif, UpdateSourceTrigger=LostFocus}" Style="{StaticResource Campo.Mono}" IsReadOnly="{Binding SoloLectura}" Tag="nif"
                                      GotKeyboardFocus="Campo_GotKeyboardFocus" ToolTip="NIF del proveedor; selecciona texto en el PDF para rellenarlo" />
                           </DockPanel>
-                          <TextBlock Text="{Binding NombreProveedor}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" ToolTip="{Binding NombreProveedor}" />
+                          <DockPanel>
+                            <Button DockPanel.Dock="Right" Style="{StaticResource Boton.Icono}" pc:Iconos.Icono="{StaticResource Icono.edit}" Margin="6,0,0,0" Command="{Binding NombreComercialCommand}"
+                                    Visibility="{Binding PuedeEditarNombreComercial, Converter={StaticResource Visible}}"
+                                    ToolTip="Pon el nombre comercial del proveedor: el nombre por el que lo conoces, si no es su razón social" AutomationProperties.Name="Nombre comercial del proveedor" />
+                            <TextBlock Text="{Binding NombreProveedor}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" ToolTip="{Binding NombreProveedor}" VerticalAlignment="Center" />
+                          </DockPanel>
                           <TextBlock Text="{Binding Cuenta}" FontFamily="{StaticResource Fuente.Mono}" Style="{StaticResource Texto.Apagado}" Visibility="{Binding Cuenta, Converter={StaticResource Visible}}" />
                           <TextBlock Text="{Binding AvisoProveedor}" Foreground="{StaticResource Pincel.RojoError}" TextWrapping="Wrap" Visibility="{Binding AvisoProveedor, Converter={StaticResource Visible}}" />
+                          <Button Content="Dar de alta…" Style="{StaticResource Boton.Pequeno}" HorizontalAlignment="Left" Margin="0,4,0,0" Command="{Binding DarDeAltaProveedorCommand}"
+                                  Visibility="{Binding PuedeDarDeAltaProveedor, Converter={StaticResource Visible}}"
+                                  ToolTip="Da de alta el proveedor de este NIF: con la razón social de la AEAT si la ha dado; si no, te pide los datos" />
                         </StackPanel>
                       </Border>
 
@@ -318,7 +350,8 @@
                                     Command="{Binding BuscarCuentaGastoCommand}" CommandParameter="{Binding Text, ElementName=CampoCuentaGasto}"
                                     ToolTip="Busca la cuenta por código o nombre, o crea una subcuenta (F4)" AutomationProperties.Name="Buscar la cuenta de gasto" />
                             <TextBox x:Name="CampoCuentaGasto" DockPanel.Dock="Left" Width="110" Text="{Binding CodigoCuentaGasto, UpdateSourceTrigger=LostFocus}" Style="{StaticResource Campo.Mono}"
-                                     IsReadOnly="{Binding SoloLectura}" ToolTip="Código de la cuenta (629.1 = 6290001); F4 o un código que no existe abren el buscador">
+                                     IsReadOnly="{Binding SoloLectura}" Tag="cuenta" GotKeyboardFocus="CampoClave_GotKeyboardFocus"
+                                     ToolTip="Código de la cuenta (629.1 = 6290001); F4 o un código que no existe abren el buscador. Con el foco aquí, selecciona un texto en el PDF para añadirlo como texto clave">
                               <TextBox.ContextMenu>
                                 <ContextMenu>
                                   <MenuItem Header="Buscar cuenta…" InputGestureText="F4" Command="{Binding BuscarCuentaGastoCommand}" CommandParameter="{Binding PlacementTarget.Text, RelativeSource={RelativeSource AncestorType=ContextMenu}}" />
@@ -338,7 +371,8 @@
                           </DockPanel>
                           <TextBlock Text="Centro de coste" Style="{StaticResource Etiqueta.Campo}" />
                           <ComboBox ItemsSource="{Binding CentrosCoste}" SelectedItem="{Binding CentroCoste}" IsEnabled="{Binding Editable}" pc:ComboFiltro.Activo="True" Margin="0,0,0,8"
-                                    ToolTip="Centro de coste imputable de la empresa; escribe parte del código o del nombre para filtrar la lista">
+                                    Tag="centro" GotKeyboardFocus="CampoClave_GotKeyboardFocus"
+                                    ToolTip="Centro de coste imputable de la empresa; escribe parte del código o del nombre para filtrar la lista. Con el foco aquí, selecciona un texto en el PDF para añadirlo como texto clave">
                             <ComboBox.ContextMenu>
                               <ContextMenu>
                                 <MenuItem Header="Añadir texto clave…" Command="{Binding AnadirTextoClaveCommand}"
@@ -362,23 +396,26 @@
                           <!-- Nacional o intracomunitaria: un renglón por tipo de IVA -->
                           <StackPanel Visibility="{Binding NoEsImportacion, Converter={StaticResource Visible}}">
                             <Grid Margin="0,0,0,4">
-                              <Grid.ColumnDefinitions><ColumnDefinition Width="70" /><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /><ColumnDefinition Width="30" /></Grid.ColumnDefinitions>
+                              <Grid.ColumnDefinitions><ColumnDefinition Width="66" /><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /><ColumnDefinition Width="30" /></Grid.ColumnDefinitions>
                               <TextBlock Text="IVA %" Style="{StaticResource Etiqueta.Campo}" />
                               <TextBlock Grid.Column="1" Text="Base" Style="{StaticResource Etiqueta.Campo}" Margin="6,0,0,4" />
-                              <TextBlock Grid.Column="2" Text="Cuota" Style="{StaticResource Etiqueta.Campo}" Margin="6,0,0,4" />
+                              <TextBlock Grid.Column="2" Text="IVA" Style="{StaticResource Etiqueta.Campo}" Margin="6,0,0,4" />
+                              <TextBlock Grid.Column="3" Text="Total" Style="{StaticResource Etiqueta.Campo}" Margin="6,0,0,4" />
                             </Grid>
                             <ItemsControl ItemsSource="{Binding Desgloses}">
                               <ItemsControl.ItemTemplate>
                                 <DataTemplate>
                                   <Grid Margin="0,0,0,6">
-                                    <Grid.ColumnDefinitions><ColumnDefinition Width="70" /><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /><ColumnDefinition Width="30" /></Grid.ColumnDefinitions>
+                                    <Grid.ColumnDefinitions><ColumnDefinition Width="66" /><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /><ColumnDefinition Width="30" /></Grid.ColumnDefinitions>
                                     <ComboBox ItemsSource="{Binding Tipos}" SelectedItem="{Binding TipoElegido}" Padding="6,0,22,0"
                                               IsEnabled="{Binding DataContext.Editable, RelativeSource={RelativeSource AncestorType=ItemsControl}}" ToolTip="Tipo de IVA: 0 % o uno de los tipos del ejercicio" />
                                     <TextBox Grid.Column="1" Margin="6,0,0,0" Text="{Binding Base, UpdateSourceTrigger=LostFocus}" Style="{StaticResource Campo.Importe}" Tag="base"
                                              IsReadOnly="{Binding DataContext.SoloLectura, RelativeSource={RelativeSource AncestorType=ItemsControl}}" GotKeyboardFocus="Campo_GotKeyboardFocus" ToolTip="Base imponible a este tipo" />
                                     <TextBox Grid.Column="2" Margin="6,0,0,0" Text="{Binding Cuota, UpdateSourceTrigger=LostFocus}" Style="{StaticResource Campo.Importe}" Tag="cuota"
                                              IsReadOnly="{Binding DataContext.CuotaBloqueada, RelativeSource={RelativeSource AncestorType=ItemsControl}}" GotKeyboardFocus="Campo_GotKeyboardFocus" ToolTip="Cuota de IVA; vacía, se calcula al céntimo. Con inversión del sujeto pasivo es 0" />
-                                    <Button Grid.Column="3" Style="{StaticResource Boton.Icono}" pc:Iconos.Icono="{StaticResource Icono.x}" CommandParameter="{Binding}"
+                                    <TextBox Grid.Column="3" Margin="6,0,0,0" Text="{Binding Total, UpdateSourceTrigger=LostFocus}" Style="{StaticResource Campo.Importe}" Tag="totaltipo"
+                                             IsReadOnly="{Binding DataContext.SoloLectura, RelativeSource={RelativeSource AncestorType=ItemsControl}}" GotKeyboardFocus="Campo_GotKeyboardFocus" ToolTip="Base + IVA de este tipo; si lo escribes, se calculan la base y el IVA" />
+                                    <Button Grid.Column="4" Style="{StaticResource Boton.Icono}" pc:Iconos.Icono="{StaticResource Icono.x}" CommandParameter="{Binding}"
                                             Command="{Binding DataContext.QuitarTipoCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" ToolTip="Quita este tipo de IVA" />
                                   </Grid>
                                 </DataTemplate>
@@ -448,6 +485,18 @@
 
                       <Border Style="{StaticResource Tarjeta.Compra}">
                         <StackPanel>
+                          <TextBlock Text="Concepto" Style="{StaticResource Titulo.Tarjeta}" />
+                          <TextBlock Text="Qué se compra" Style="{StaticResource Etiqueta.Campo}" />
+                          <TextBox Text="{Binding ConceptoFactura, UpdateSourceTrigger=LostFocus}" IsReadOnly="{Binding SoloLectura}" Tag="concepto" GotKeyboardFocus="Campo_GotKeyboardFocus"
+                                   TextWrapping="Wrap" ToolTip="Concepto de la factura; selecciónalo en el PDF y la plantilla del proveedor aprenderá a leerlo" />
+                          <TextBlock Text="Abreviado (va en los apuntes)" Style="{StaticResource Etiqueta.Campo}" Margin="0,8,0,0" />
+                          <TextBox Text="{Binding ConceptoAbreviado, UpdateSourceTrigger=LostFocus}" IsReadOnly="{Binding SoloLectura}" MaxLength="60"
+                                   ToolTip="Unos 40 caracteres; sustituye al nombre de la cuenta de gasto en la descripción de su apunte" />
+                        </StackPanel>
+                      </Border>
+
+                      <Border Style="{StaticResource Tarjeta.Compra}">
+                        <StackPanel>
                           <TextBlock Text="Notas" Style="{StaticResource Titulo.Tarjeta}" />
                           <TextBox Text="{Binding Notas, UpdateSourceTrigger=LostFocus}" Style="{StaticResource Campo.Multilinea}" IsReadOnly="{Binding SoloLectura}" MinHeight="60" ToolTip="Notas de la factura" />
                         </StackPanel>
@@ -459,7 +508,7 @@
             </ContentControl.ContentTemplate>
           </ContentControl>
 
-          <!-- Asiento de la factura contabilizada: solo lectura, a todo el ancho de la ficha -->
+          <!-- Asiento de la factura contabilizada o, sin contabilizar, la propuesta (sin grabar): solo lectura, a todo el ancho de la ficha -->
           <StackPanel Visibility="{Binding HayAsiento, Converter={StaticResource Visible}}">
           <Border Style="{StaticResource Tarjeta.Compra}" DataContext="{Binding AsientoFicha}">
             <StackPanel>

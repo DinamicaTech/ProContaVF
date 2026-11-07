@@ -122,7 +122,7 @@ public sealed class ListadoFacturasVM : ModeloVista, IPestanaTrabajo
 
     // ---------- pestaña ----------
 
-    public string Titulo => "Facturas";
+    public string Titulo => "Facturas emitidas";
     public string Ayuda => $"Facturas y borradores de {_s.RazonSocial} en {_s.Trabajo.Ejercicio}";
     public string Icono => "doc";
     public bool TieneCambios => false;

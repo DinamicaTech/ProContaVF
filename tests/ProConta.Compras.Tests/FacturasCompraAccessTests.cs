@@ -112,6 +112,42 @@ public sealed class FacturasCompraAccessTests : IDisposable
         Assert.True(esquema.ExisteTabla("TextosClaveCompra"));
         Assert.True(esquema.ExisteColumna("CuentasProveedoresSociedad", "IdIdentidadGastoDefecto"));
         Assert.True(esquema.ExisteColumna("CuentasProveedoresSociedad", "IdCentroCosteDefecto"));
+        Assert.True(esquema.ExisteColumna("CuentasProveedoresSociedad", "ConceptoAbreviadoDefecto"));
+    }
+
+    [Fact]
+    public async Task Sin_concepto_leido_el_abreviado_escrito_pasa_a_ser_el_del_proveedor_y_gana_en_la_siguiente()
+    {
+        await EmpresaConProveedorAsync();
+        string Factura(string numero) => $"""
+            Emisor Ficticio S.L. NIF: {NifProveedor}
+            Número de factura: {numero}
+            Fecha: 10/02/2026
+            IVA 21% 100,00 21,00
+            Total factura 121,00
+            """;
+        var servicio = new ServicioFacturasCompra(Bd, new ServicioReconocimientoFacturaCompra(new ExtractorPorFichero(new Dictionary<string, string>
+        {
+            ["a.pdf"] = Factura("FV260001"),
+            ["b.pdf"] = Factura("FV260002")
+        })), _reloj);
+        var a = await servicio.ImportarAsync(_ctx, Pdf("Ficticio", "a.pdf", "a"));
+        Assert.True(a.Registrada, a.Error?.ToString());
+        var f = (await servicio.CargarAsync(a.Factura!.IdRegistro))!;
+        f.ConceptoFactura = null;
+        f.ConceptoAbreviado = "Asesoría mensual";
+        Assert.True((await servicio.GuardarAsync(f)).EsCorrecto);
+
+        var (_, leida) = await servicio.ProbarAsync(_ctx, Pdf("Ficticio", "b.pdf", "b"));
+        Assert.Equal("Asesoría mensual", leida.ConceptoAbreviado);
+
+        // Con concepto, el abreviado no cambia el del proveedor.
+        f = (await servicio.CargarAsync(a.Factura!.IdRegistro))!;
+        f.ConceptoFactura = "Asesoramiento de febrero";
+        f.ConceptoAbreviado = "Otra cosa";
+        Assert.True((await servicio.GuardarAsync(f)).EsCorrecto);
+        (_, leida) = await servicio.ProbarAsync(_ctx, Pdf("Ficticio", "b.pdf", "b"));
+        Assert.Equal("Asesoría mensual", leida.ConceptoAbreviado);
     }
 
     [Fact]
@@ -141,6 +177,47 @@ public sealed class FacturasCompraAccessTests : IDisposable
         Assert.False(otra.Registrada);
         Assert.Equal("Compras.Duplicada", otra.Error!.Codigo);
         Assert.Equal(1, await Contar("SELECT COUNT(*) FROM FacturasCompra WHERE IdProveedor = ?", idProveedor));
+    }
+
+    [Fact]
+    public async Task Un_pdf_de_la_carpeta_raiz_se_mueve_a_la_carpeta_del_proveedor_al_reconocerlo()
+    {
+        var idProveedor = await EmpresaConProveedorAsync();
+        var raiz = Path.Combine(_raiz, "2026", "Proveedores");
+        var ruta = Pdf("", "suelta.pdf", "raiz uno");
+        var r = await Servicio().ImportarAsync(_ctx, ruta);
+        Assert.True(r.Registrada, r.Error?.ToString());
+
+        // Sin carpeta usada por el proveedor, la de su nombre (sin el punto final), creada al vuelo.
+        var destino = Path.Combine(raiz, "Emisor Ficticio S.L", "suelta.pdf");
+        Assert.False(File.Exists(ruta));
+        Assert.True(File.Exists(destino));
+        var f = (await Servicio().CargarAsync(r.Factura!.IdRegistro))!;
+        Assert.Equal((destino, "Emisor Ficticio S.L", OrigenesDocumento.Raiz, idProveedor), (f.RutaPdf, f.Carpeta, f.OrigenDocumento, f.IdProveedor!.Value));
+
+        // La siguiente va a la carpeta que el proveedor ya usa; con el mismo nombre de fichero, « (2)».
+        var otra = Pdf("", "suelta.pdf", "raiz dos");
+        var r2 = await Servicio(Completa.Replace("FV260123", "FV260124")).ImportarAsync(_ctx, otra);
+        Assert.True(r2.Registrada, r2.Error?.ToString());
+        Assert.Equal(Path.Combine(raiz, "Emisor Ficticio S.L", "suelta (2).pdf"), (await Servicio().CargarAsync(r2.Factura!.IdRegistro))!.RutaPdf);
+
+        // Sin proveedor reconocido por el NIF, se queda en la raíz.
+        var sinNif = Pdf("", "desconocida.pdf", "raiz tres");
+        var r3 = await Servicio("Factura 77\nFecha 10/02/2026\nTotal 10,00").ImportarAsync(_ctx, sinNif);
+        Assert.True(r3.Registrada, r3.Error?.ToString());
+        Assert.True(File.Exists(sinNif));
+        Assert.Equal(("", OrigenesDocumento.Raiz), ((await Servicio().CargarAsync(r3.Factura!.IdRegistro))!.Carpeta, (await Servicio().CargarAsync(r3.Factura!.IdRegistro))!.OrigenDocumento));
+
+        // Al guardarla con el proveedor elegido, se mueve.
+        var g = (await Servicio().CargarAsync(r3.Factura!.IdRegistro))!;
+        g.IdProveedor = idProveedor;
+        Assert.True((await Servicio().GuardarAsync(g)).EsCorrecto);
+        Assert.False(File.Exists(sinNif));
+        Assert.Equal(Path.Combine(raiz, "Emisor Ficticio S.L", "desconocida.pdf"), (await Servicio().CargarAsync(g.IdRegistro))!.RutaPdf);
+
+        // Una de la carpeta de un proveedor queda con origen «carpeta».
+        var r4 = await Servicio(Completa.Replace("FV260123", "FV260125")).ImportarAsync(_ctx, Pdf("Ficticio", "f.pdf", "carpeta"));
+        Assert.Equal(OrigenesDocumento.Carpeta, (await Servicio().CargarAsync(r4.Factura!.IdRegistro))!.OrigenDocumento);
     }
 
     [Fact]
@@ -247,6 +324,45 @@ public sealed class FacturasCompraAccessTests : IDisposable
         Assert.True((await servicio.GuardarAsync(f)).EsCorrecto);
         Assert.Equal(0, await Contar("SELECT COUNT(*) FROM PlantillasReconocimientoCompra WHERE Campo = ? AND Ancla = ?", "fecha", "emitida el"));
         Assert.Equal(1, await Contar("SELECT COUNT(*) FROM PlantillasReconocimientoCompra WHERE Campo = ? AND Ancla = ?", "fecha", "vence el"));
+    }
+
+    [Fact]
+    public async Task Las_plantillas_son_del_nif_del_proveedor_y_valen_en_otra_carpeta_y_dicen_donde_leen()
+    {
+        await EmpresaConProveedorAsync();
+        string Factura(string numero, string fecha) => $"""
+            Emisor Ficticio S.L. NIF: {NifProveedor}
+            Número de factura: {numero}
+            Emitida el {fecha}   Vence el 30/04/2026
+            IVA 21% 100,00 21,00
+            Total factura 121,00
+            """;
+        var servicio = new ServicioFacturasCompra(Bd, new ServicioReconocimientoFacturaCompra(new ExtractorPorFichero(new Dictionary<string, string>
+        {
+            ["a.pdf"] = Factura("FV260001", "10/02/2026"),
+            ["c.pdf"] = Factura("FV260003", "15/03/2026")
+        })), _reloj);
+        var a = await servicio.ImportarAsync(_ctx, Pdf("Ficticio", "a.pdf", "a"));
+        var f = (await servicio.CargarAsync(a.Factura!.IdRegistro))!;
+        f.Fecha = new DateTime(2026, 2, 10);
+        Assert.True((await servicio.GuardarAsync(f)).EsCorrecto);
+        Assert.Equal(1, await Contar("SELECT COUNT(*) FROM PlantillasReconocimientoCompra WHERE NIF = ? AND Campo = ? AND Ancla = ?", NifProveedor, "fecha", "emitida el"));
+
+        // Otra carpeta (otro nombre para el mismo proveedor): la plantilla del NIF lee la fecha.
+        var (reconocida, leida) = await servicio.ProbarAsync(_ctx, Pdf("Otro nombre", "c.pdf", "c"));
+        Assert.Equal((new DateTime(2026, 3, 15), 1m), (leida.Fecha!.Value, reconocida.Lectura.ConfianzaFecha));
+        Assert.Contains("fecha", reconocida.Lectura.CamposPlantilla);
+
+        // El concepto se aprende como un campo más y se lee entero, con su abreviado.
+        f = (await servicio.CargarAsync(a.Factura!.IdRegistro))!;
+        f.ConceptoFactura = "Total factura 121,00";
+        Assert.True((await servicio.GuardarAsync(f)).EsCorrecto);
+        Assert.Equal(1, await Contar("SELECT COUNT(*) FROM PlantillasReconocimientoCompra WHERE NIF = ? AND Campo = ?", NifProveedor, "concepto"));
+
+        // Dónde lee: en la línea 3 (la de «Emitida el»), a la derecha del rótulo.
+        var puntos = await servicio.PuntosPlantillaAsync(f);
+        Assert.True(puntos.TryGetValue("fecha", out var punto));
+        Assert.Equal(1, punto.Pagina);
     }
 
     [Fact]
@@ -415,7 +531,7 @@ public sealed class FacturasCompraAccessTests : IDisposable
     }
 
     [Fact]
-    public async Task Una_factura_contabilizada_no_se_guarda_desde_la_pantalla()
+    public async Task Una_factura_contabilizada_guarda_las_notas_pero_no_un_cambio_del_asiento()
     {
         await EmpresaConProveedorAsync();
         var servicio = Servicio();
@@ -423,7 +539,11 @@ public sealed class FacturasCompraAccessTests : IDisposable
         await Bd.EjecutarAsync(s => s.EjecutarAsync("UPDATE FacturasCompra SET Exportada = ? WHERE IdRegistro = ?", true, r.Factura!.IdRegistro));
         var f = (await servicio.CargarAsync(r.Factura!.IdRegistro))!;
         Assert.True(f.Contabilizada);
-        f.Notas = "No debería";
+        f.Notas = "Se guarda";
+        Assert.True((await servicio.GuardarAsync(f)).EsCorrecto);
+        f = (await servicio.CargarAsync(r.Factura!.IdRegistro))!;
+        Assert.Equal("Se guarda", f.Notas);
+        f.NumeroFactura += "-B";
         Assert.Equal("Compras.Contabilizada", (await servicio.GuardarAsync(f)).Error!.Codigo);
     }
 

@@ -69,9 +69,30 @@ public sealed class DesgloseVM : ModeloVista
         set { if (value?.Valor is { } v) Tipo = Porcentaje(v); }
     }
 
-    public string Tipo { get => _tipo; set { if (Fijar(ref _tipo, value ?? "")) { Avisar(nameof(TipoElegido)); ProponerCuota(); _cambio(); } } }
-    public string Base { get => _base; set { if (Fijar(ref _base, Importe(value))) { ProponerCuota(); _cambio(); } } }
-    public string Cuota { get => _cuota; set { if (!_sinCuota() && Fijar(ref _cuota, Importe(value))) _cambio(); } }
+    public string Tipo { get => _tipo; set { if (Fijar(ref _tipo, value ?? "")) { Avisar(nameof(TipoElegido)); ProponerCuota(); Avisar(nameof(Total)); _cambio(); } } }
+    public string Base { get => _base; set { if (Fijar(ref _base, Importe(value))) { ProponerCuota(); Avisar(nameof(Total)); _cambio(); } } }
+    public string Cuota { get => _cuota; set { if (!_sinCuota() && Fijar(ref _cuota, Importe(value))) { Avisar(nameof(Total)); _cambio(); } } }
+
+    /// <summary>
+    /// Base + cuota del tipo. Escribir el total reparte base y cuota con el tipo de la fila (la base, redondeada a
+    /// céntimos; la cuota, el resto), para poder entrar la factura por su total (compras/pantallas 2026-11-07).
+    /// </summary>
+    public string Total
+    {
+        get => BaseValor is null && CuotaValor is null ? "" : Formatos.Importe((BaseValor ?? 0m) + (CuotaValor ?? 0m));
+        set
+        {
+            if (Texto.LeerDecimal(value) is not { } total) { Avisar(nameof(Total)); return; }
+            var tipo = _sinCuota() ? 0m : TipoValor ?? 0m;
+            var @base = Math.Round(total / (1m + tipo / 100m), 2, MidpointRounding.AwayFromZero);
+            // El IVA es el resto: base + IVA dan siempre el total escrito (si no hay reparto exacto, el céntimo va al IVA).
+            var cuota = total - @base;
+            _base = Formatos.Importe(@base);
+            _cuota = Formatos.Importe(cuota);
+            Avisar(nameof(Base), nameof(Cuota), nameof(Total));
+            _cambio();
+        }
+    }
 
     /// <summary>Lo escrito se vuelve a ver en moneda; si no es un importe, se deja tal cual para que se vea el error.</summary>
     internal static string Importe(string? texto) => Texto.LeerDecimal(texto) is { } v ? Formatos.Importe(v) : (texto ?? "").Trim();
@@ -81,7 +102,7 @@ public sealed class DesgloseVM : ModeloVista
     {
         if (CuotaValor is null or 0m) return;
         _cuota = Formatos.Importe(0m);
-        Avisar(nameof(Cuota));
+        Avisar(nameof(Cuota), nameof(Total));
     }
 
     public decimal? TipoValor => Texto.LeerDecimal(_tipo);
@@ -95,7 +116,7 @@ public sealed class DesgloseVM : ModeloVista
         if (_cuota.Length == 0 && TipoValor is { } t && BaseValor is { } b)
         {
             _cuota = Formatos.Importe(Math.Round(b * t / 100m, 2, MidpointRounding.AwayFromZero));
-            Avisar(nameof(Cuota));
+            Avisar(nameof(Cuota), nameof(Total));
         }
     }
 }
@@ -110,12 +131,14 @@ public sealed class FichaCompraVM : ModeloVista
     private IReadOnlyList<ProveedorFicha> _proveedores;
     private string? _cuentaProveedorNueva;
     private ConfianzaCampos _confianza;
+    /// <summary>Lo de «Volver a reconocer», pendiente de guardar con la factura.</summary>
+    private (decimal Confianza, string Fuente, string Log, bool RequiereRevision)? _lectura;
     private readonly HashSet<string> _manuales = new(StringComparer.Ordinal);
     private bool _cargando = true;
     private bool _tieneCambios;
 
     private string _nif = "", _numero = "", _fecha = "", _total = "", _porcentajeRetencion = "", _suplido = "", _divisa = "EUR", _totalDivisa = "";
-    private string _notas = "", _importeUnico = "";
+    private string _notas = "", _importeUnico = "", _conceptoFactura = "", _conceptoAbreviado = "";
     private OpcionFicha<byte?> _formaPago;
     private bool _isp, _conRetencion;
     private ProveedorFicha? _proveedor;
@@ -140,8 +163,8 @@ public sealed class FichaCompraVM : ModeloVista
         Factura = factura;
         _tiposIva = tiposIva ?? [];
         _proveedores = proveedores;
-        // Las exportadas por ProContaVF se pueden cambiar para re-exportarlas; las del ERP, no (compras/pantallas 2026-11-06 12:10).
-        SoloLectura = soloLectura || factura.Contabilizada && !factura.ExportadaAqui;
+        // Las contabilizadas (aquí o en el ERP) se pueden cambiar: lo que toca el asiento, re-exportando (compras/pantallas 2026-11-07).
+        SoloLectura = soloLectura;
         _confianza = confianza ?? ConfianzaCampos.DesdeLog(factura.Log);
 
         Operaciones = [new("Nacional", OperacionCompra.Nacional), new("Intracomunitaria", OperacionCompra.Intracomunitaria), new("Importación", OperacionCompra.Importacion)];
@@ -181,11 +204,15 @@ public sealed class FichaCompraVM : ModeloVista
         _cuentaGasto = CuentasGasto.FirstOrDefault(c => c.Valor == factura.CuentaGasto) ?? CuentasGasto[0];
         _centroCoste = CentrosCoste.FirstOrDefault(c => c.Valor == factura.IdCentroCoste) ?? CentrosCoste[0];
         DarDeAltaProveedorCommand = new ComandoDelegado(_ => _ = DarDeAltaProveedor?.Invoke(this), _ => DarDeAltaProveedor is not null && PuedeDarDeAltaProveedor);
-        AnadirTextoClaveCommand = new ComandoDelegado(_ => _ = AnadirTextoClave?.Invoke(this),
+        NombreComercialCommand = new ComandoDelegado(_ => _ = EditarNombreComercial?.Invoke(this), _ => PuedeEditarNombreComercial);
+        AnadirTextoClaveCommand = new ComandoDelegado(_ => _ = AnadirTextoClave?.Invoke(this, null, null),
             _ => AnadirTextoClave is not null && (_cuentaGasto.Valor is not null || _centroCoste.Valor is not null));
         _rectifica = Rectificables.FirstOrDefault(r => r.Valor == factura.IdRegistroFacturaRectificada) ?? Rectificables[0];
         _formaPago = FormasPago.FirstOrDefault(x => x.Valor == factura.IdFormaPago) ?? FormasPago[0];
         _notas = factura.Notas ?? "";
+        _conceptoFactura = factura.ConceptoFactura ?? "";
+        _conceptoAbreviado = factura.ConceptoAbreviado ?? "";
+        _razonAeat = string.IsNullOrWhiteSpace(factura.NombreProveedorAeat) ? null : factura.NombreProveedorAeat.Trim();
         // Una factura editable sin forma de pago trae la del proveedor; se guarda con lo demás.
         if (!SoloLectura)
         {
@@ -247,16 +274,106 @@ public sealed class FichaCompraVM : ModeloVista
             if (!Cambiar(ref _nif, (value ?? "").Trim().ToUpperInvariant(), "nif")) return;
             _proveedor = BuscarPorNif(_nif);
             _cuentaProveedorNueva = null;
-            Avisar(nameof(NombreProveedor), nameof(HayProveedor), nameof(AvisoProveedor), nameof(PuedeDarDeAltaProveedor), nameof(IdTerceroProveedor), nameof(Cuenta));
+            Avisar(nameof(NombreProveedor), nameof(HayProveedor), nameof(AvisoProveedor), nameof(RazonSocialAeat), nameof(PuedeDarDeAltaProveedor), nameof(IdTerceroProveedor), nameof(Cuenta), nameof(PuedeEditarNombreComercial), nameof(MarcaVies), nameof(AyudaVies));
             ProponerFormaPago();
             ProponerProducto();
+            ProponerAbreviado();
         }
     }
 
     public bool HayProveedor => _proveedor is not null;
     public int? IdTerceroProveedor => _proveedor?.IdTercero;
-    public string NombreProveedor => _proveedor?.Nombre ?? (Factura.Carpeta.Length > 0 ? $"Carpeta «{Factura.Carpeta}»" : "");
-    public string? AvisoProveedor => _nif.Length == 0 ? null : _proveedor is null ? "Ningún proveedor de la empresa tiene este NIF: dalo de alta con clic derecho en el proveedor («Dar de alta el proveedor…»)." : null;
+    public string NombreProveedor => _proveedor?.NombreCompleto ?? (Factura.Carpeta.Length > 0 ? $"Carpeta «{Factura.Carpeta}»" : "");
+
+    /// <summary>Botón junto al nombre del proveedor: ponerle el nombre comercial (compras/pantallas 2026-11-07 20:10).</summary>
+    public System.Windows.Input.ICommand NombreComercialCommand { get; }
+
+    /// <summary>Lo pone la pantalla: pide el nombre comercial del proveedor de la ficha y lo guarda en su tercero.</summary>
+    internal Func<FichaCompraVM, Task>? EditarNombreComercial
+    {
+        get => _editarNombreComercial;
+        // La pantalla lo pone después de crear la ficha: el botón tiene que enterarse (si no, solo salía tras un alta).
+        set { _editarNombreComercial = value; Avisar(nameof(PuedeEditarNombreComercial)); }
+    }
+    private Func<FichaCompraVM, Task>? _editarNombreComercial;
+
+    public bool PuedeEditarNombreComercial => !SoloLectura && _proveedor is not null && EditarNombreComercial is not null;
+
+    /// <summary>Proveedor de la ficha (para el diálogo del nombre comercial).</summary>
+    internal ProveedorFicha? ProveedorActual => _proveedor;
+
+    /// <summary>Tras cambiar un dato del proveedor: la ficha toma la lista nueva sin dejar cambios.</summary>
+    internal void ProveedoresRecargados(IReadOnlyList<ProveedorFicha> proveedores)
+    {
+        _proveedores = proveedores;
+        if (_proveedor is { } p) _proveedor = proveedores.FirstOrDefault(x => x.IdProveedor == p.IdProveedor) ?? p;
+        Avisar(nameof(NombreProveedor), nameof(MarcaVies), nameof(AyudaVies));
+    }
+    public string? AvisoProveedor => _nif.Length == 0 || _proveedor is not null ? null
+        : RazonSocialAeat is { } razon ? $"Según la AEAT, este NIF es de {razon}. Ningún proveedor de la empresa lo tiene."
+        : "Ningún proveedor de la empresa tiene este NIF.";
+
+    private string? _razonAeat;
+
+    private bool? _viesConsultado;
+
+    /// <summary>
+    /// Marca VIES junto al NIF de un proveedor comunitario (propietario 2026-11-07 20:25): «VIES», «NO VIES» o «VIES ?»
+    /// (sin verificar); null con un NIF español o sin NIF. Con proveedor, la de su ficha; sin él, la de la consulta.
+    /// </summary>
+    public string? MarcaVies
+    {
+        get
+        {
+            if (Compras.Proveedores.ServicioAltaProveedorCompra.NifComunitario(_nif) is null) return null;
+            var estado = _proveedor is not null ? _proveedor.EstadoVies switch
+            {
+                Compras.Proveedores.ServicioAltaProveedorCompra.EstadoViesSi => true,
+                Compras.Proveedores.ServicioAltaProveedorCompra.EstadoViesNo => false,
+                _ => (bool?)null
+            } : MismoNifLeido ? _viesConsultado : null;
+            return estado switch { true => "VIES", false => "NO VIES", null => "VIES ?" };
+        }
+    }
+
+    public string AyudaVies => MarcaVies switch
+    {
+        "VIES" => "Operador intracomunitario: su NIF-IVA está dado de alta en el VIES.",
+        "NO VIES" => "Su NIF-IVA no está dado de alta en el VIES: no es una operación intracomunitaria a efectos de IVA.",
+        _ => "Sin verificar en el VIES (el servicio no ha respondido): se volverá a consultar al abrir la factura."
+    };
+
+    /// <summary>Resultado del VIES para el NIF sin proveedor de la ficha (al abrirla).</summary>
+    internal void ViesConsultado(string nif, bool? vies)
+    {
+        if (!string.Equals(Nucleo.Identificacion.Nif.Normalizar(nif), Nucleo.Identificacion.Nif.Normalizar(_nif), StringComparison.OrdinalIgnoreCase)) return;
+        _viesConsultado = vies;
+        _nifLeido = nif;
+        Avisar(nameof(MarcaVies), nameof(AyudaVies));
+    }
+
+    /// <summary>
+    /// Razón social consultada en la AEAT al abrir la factura (compras/pantallas 2026-11-07 19:42): sale bajo el NIF si el
+    /// NIF de la ficha sigue siendo ese. No deja cambios: se guarda con la factura la próxima vez que se guarde.
+    /// </summary>
+    internal void RazonSocialConsultada(string nif, string razon)
+    {
+        if (!string.Equals(Nucleo.Identificacion.Nif.Normalizar(nif), Nucleo.Identificacion.Nif.Normalizar(_nif), StringComparison.OrdinalIgnoreCase)) return;
+        _razonAeat = razon.Trim();
+        _nifLeido = nif;
+        Avisar(nameof(AvisoProveedor), nameof(RazonSocialAeat), nameof(PuedeDarDeAltaProveedor));
+    }
+
+    /// <summary>
+    /// Razón social que dio la AEAT para el NIF leído (compras/pantallas 2026-11-07), solo si el NIF de la ficha es ese:
+    /// sale bajo el NIF con el botón «Dar de alta».
+    /// </summary>
+    public string? RazonSocialAeat => _razonAeat is not null && MismoNifLeido ? _razonAeat : null;
+
+    private bool MismoNifLeido => string.Equals(Nucleo.Identificacion.Nif.Normalizar(Factura.NifProveedor ?? ""), Nucleo.Identificacion.Nif.Normalizar(_nif), StringComparison.OrdinalIgnoreCase)
+        || string.Equals(Nucleo.Identificacion.Nif.Normalizar(_nifLeido ?? ""), Nucleo.Identificacion.Nif.Normalizar(_nif), StringComparison.OrdinalIgnoreCase);
+
+    private string? _nifLeido;
     public string Cuenta => _cuentaProveedorNueva is not null && _proveedor is not null ? _cuentaProveedorNueva
         : _proveedor is not null && _proveedor.IdProveedor == Factura.IdProveedor ? Factura.CuentaContableProveedor ?? "" : "";
 
@@ -278,8 +395,8 @@ public sealed class FichaCompraVM : ModeloVista
     {
         get
         {
-            if (!string.Equals(Nucleo.Identificacion.Nif.Normalizar(Factura.NifProveedor ?? ""), Nucleo.Identificacion.Nif.Normalizar(_nif), StringComparison.OrdinalIgnoreCase)) return null;
-            if (!string.IsNullOrWhiteSpace(Factura.NombreProveedorAeat)) return Factura.NombreProveedorAeat.Trim();
+            if (!MismoNifLeido) return null;
+            if (_razonAeat is not null) return _razonAeat;
             try
             {
                 using var doc = System.Text.Json.JsonDocument.Parse(string.IsNullOrWhiteSpace(Factura.Log) ? "{}" : Factura.Log);
@@ -301,7 +418,7 @@ public sealed class FichaCompraVM : ModeloVista
         _proveedor = proveedores.FirstOrDefault(p => p.IdProveedor == idProveedor);
         _cuentaProveedorNueva = cuenta;
         Marcar("proveedor");
-        Avisar(nameof(NombreProveedor), nameof(HayProveedor), nameof(AvisoProveedor), nameof(PuedeDarDeAltaProveedor), nameof(IdTerceroProveedor), nameof(Cuenta));
+        Avisar(nameof(NombreProveedor), nameof(HayProveedor), nameof(AvisoProveedor), nameof(RazonSocialAeat), nameof(PuedeDarDeAltaProveedor), nameof(IdTerceroProveedor), nameof(Cuenta), nameof(PuedeEditarNombreComercial), nameof(MarcaVies), nameof(AyudaVies));
         ProponerFormaPago();
         ProponerProducto();
     }
@@ -358,6 +475,9 @@ public sealed class FichaCompraVM : ModeloVista
         ? "La cuota la autorrepercute la empresa con el tipo general del ejercicio (intracomunitarias, importación y casos de inversión); la factura no lleva IVA."
         : "Una factura con inversión del sujeto pasivo no puede llevar IVA: deja la cuota a 0 para marcarla.";
 
+    /// <summary>Cuenta de gasto genérica que dejaba el ERP cuando no se sabía la buena: se trata como «sin cuenta».</summary>
+    internal const string CuentaGastoGenerica = "6000000";
+
     public OpcionFicha<string> CuentaGasto
     {
         get => _cuentaGasto;
@@ -387,7 +507,17 @@ public sealed class FichaCompraVM : ModeloVista
     public System.Windows.Input.ICommand AnadirTextoClaveCommand { get; }
 
     /// <summary>Lo pone la pantalla: pide el texto y lo guarda.</summary>
-    internal Func<FichaCompraVM, Task>? AnadirTextoClave { get; set; }
+    internal Func<FichaCompraVM, string?, string?, Task>? AnadirTextoClave { get; set; }
+
+    /// <summary>
+    /// Texto seleccionado en el PDF con el foco en la cuenta de gasto o en el centro de coste (propietario 2026-11-07 19:55):
+    /// abre «Añadir texto clave» con ese texto y solo la casilla de ese campo marcada.
+    /// </summary>
+    internal void AnadirTextoClaveDesdePdf(string texto, string campo)
+    {
+        if (AnadirTextoClave is null || string.IsNullOrWhiteSpace(texto)) return;
+        _ = AnadirTextoClave(this, texto, campo);
+    }
 
     /// <summary>Cuenta de gasto elegida en la ficha (código y «código · nombre»), o null.</summary>
     internal (string Codigo, string Texto)? CuentaGastoActual => _cuentaGasto.Valor is { } v ? (v, _cuentaGasto.Texto) : null;
@@ -467,6 +597,38 @@ public sealed class FichaCompraVM : ModeloVista
         if (FormasPago.FirstOrDefault(x => x.Valor == fp) is { } opcion) { _formaPago = opcion; Avisar(nameof(FormaPago)); }
     }
     public string Notas { get => _notas; set => Cambiar(ref _notas, value ?? "", "notas"); }
+
+    /// <summary>
+    /// Concepto de la factura (qué se compra), leído con la plantilla o escrito; se puede tomar del PDF como los demás campos.
+    /// Al cambiarlo, el abreviado se recalcula si no se había escrito a mano (compras 2026-11-07).
+    /// </summary>
+    public string ConceptoFactura
+    {
+        get => _conceptoFactura;
+        set
+        {
+            var anterior = _conceptoFactura;
+            if (!Cambiar(ref _conceptoFactura, (value ?? "").Trim(), "concepto")) return;
+            if (_conceptoAbreviado.Length == 0 || _conceptoAbreviado == (FacturaCompra.Abreviar(anterior) ?? ""))
+                ConceptoAbreviado = AbreviadoPropuesto(_conceptoFactura);
+        }
+    }
+
+    /// <summary>El abreviado por defecto del proveedor, si tiene; si no, el del concepto (propietario 2026-11-07 19:21).</summary>
+    private string AbreviadoPropuesto(string? concepto) =>
+        _proveedor?.ConceptoAbreviadoDefecto is { Length: > 0 } defecto ? defecto : FacturaCompra.Abreviar(concepto) ?? "";
+
+    /// <summary>Al cambiar de proveedor, su abreviado por defecto si el operador no ha escrito otro.</summary>
+    private void ProponerAbreviado()
+    {
+        if (_manuales.Contains("conceptoabreviado") || _proveedor?.ConceptoAbreviadoDefecto is not { Length: > 0 } defecto || _conceptoAbreviado == defecto) return;
+        if (_conceptoAbreviado.Length > 0 && _conceptoAbreviado != (FacturaCompra.Abreviar(_conceptoFactura) ?? "")) return;
+        _conceptoAbreviado = defecto;
+        Avisar(nameof(ConceptoAbreviado));
+    }
+
+    /// <summary>Concepto abreviado (unos 40 caracteres): va en las descripciones de los apuntes.</summary>
+    public string ConceptoAbreviado { get => _conceptoAbreviado; set => Cambiar(ref _conceptoAbreviado, (value ?? "").Trim(), "conceptoabreviado"); }
 
     // ---------- importes ----------
 
@@ -592,8 +754,9 @@ public sealed class FichaCompraVM : ModeloVista
     public bool HayAvisos => Avisos.Count > 0;
 
     public string Resumen => Factura.ExportadaAqui
-            ? (SoloLectura ? $"Exportada (asiento {Factura.IdAsientoContable}): solo se consulta." : $"Exportada (asiento {Factura.IdAsientoContable}): si la cambias, «Guardar y re-exportar» actualiza el asiento.")
-        : Factura.Contabilizada ? "Contabilizada en el ERP: solo se consulta."
+            ? (SoloLectura ? $"Exportada (asiento {Factura.IdAsientoContable}): solo se consulta." : $"Exportada (asiento {Factura.IdAsientoContable}): si cambias algo del asiento, «Guardar y re-exportar» lo actualiza; las notas y la forma de pago, con «Guardar».")
+        : Factura.Contabilizada ? (SoloLectura ? "Contabilizada en el ERP: solo se consulta."
+            : "Contabilizada en el ERP: si cambias algo del asiento, «Guardar y re-exportar» hace un contra-asiento del suyo y un asiento nuevo.")
         : _confianza.Global is { } g ? $"Reconocida con confianza {Math.Round(g * 100m):0} %{(_confianza.Fuente == "ocr" ? " (con OCR)" : "")}." : "Sin datos del reconocimiento.";
 
     // ---------- cambios ----------
@@ -630,7 +793,7 @@ public sealed class FichaCompraVM : ModeloVista
 
     /// <summary>
     /// Vuelca lo leído de nuevo del PDF («Volver a reconocer») sobre la ficha, como cambios sin guardar: el número, la
-    /// fecha, el NIF y los importes. No toca la imputación ni las notas.
+    /// fecha, el NIF, los importes y el concepto; la cuenta de gasto y el centro solo si la ficha no los tiene. No toca las notas.
     /// </summary>
     internal void AplicarLectura(FacturaCompra leida)
     {
@@ -639,6 +802,8 @@ public sealed class FichaCompraVM : ModeloVista
         _cargando = true;
         try
         {
+            _nifLeido = leida.NifProveedor;
+            if (!string.IsNullOrWhiteSpace(leida.NombreProveedorAeat)) _razonAeat = leida.NombreProveedorAeat.Trim();
             Nif = leida.NifProveedor ?? "";
             Numero = leida.NumeroFactura;
             Fecha = leida.Fecha is { } f ? Formatos.Fecha(f) : "";
@@ -650,11 +815,40 @@ public sealed class FichaCompraVM : ModeloVista
             ImporteUnico = leida.BaseImponible is { } b ? Formatos.Importe(b) : "";
             ConRetencion = (leida.ImporteRetencion ?? 0m) != 0m;
             if (leida.PorcentajeRetencion is { } p && p != 0) PorcentajeRetencion = p.ToString("0.##", Formatos.Cultura);
+            // El concepto leído sustituye al anterior; si la lectura no lo trae, se deja el que había (suele escribirse a mano).
+            if (!string.IsNullOrWhiteSpace(leida.ConceptoFactura))
+            {
+                _conceptoFactura = leida.ConceptoFactura.Trim();
+                _conceptoAbreviado = leida.ConceptoAbreviado is { Length: > 0 } ab ? ab.Trim() : AbreviadoPropuesto(_conceptoFactura);
+            }
+            else if (_conceptoAbreviado.Length == 0 && leida.ConceptoAbreviado is { Length: > 0 } defecto)
+                _conceptoAbreviado = defecto.Trim();
+            // Sin cuenta de gasto (o con la genérica 6000000), la de la lectura: textos clave o la del proveedor por defecto.
+            // Lo mismo el centro de coste. Una imputación ya elegida no se toca.
+            if ((_cuentaGasto.Valor is null || _cuentaGasto.Valor == CuentaGastoGenerica) && leida.CuentaGasto is { Length: > 0 } cg && cg != _cuentaGasto.Valor)
+            {
+                var op = _cuentasGasto.FirstOrDefault(c => c.Valor == cg);
+                if (op is null)
+                {
+                    op = new OpcionFicha<string>($"{cg} · (no está en el plan del ejercicio)", cg);
+                    _cuentasGasto = [_cuentasGasto[0], .. _cuentasGasto.Skip(1).Append(op).OrderBy(c => c.Valor, StringComparer.Ordinal)];
+                }
+                _cuentaGasto = op;
+            }
+            if (_centroCoste.Valor is null && leida.IdCentroCoste is int cc && CentrosCoste.FirstOrDefault(c => c.Valor == cc) is { } centro)
+                _centroCoste = centro;
         }
         finally { _cargando = false; }
+        Avisar(nameof(CuentasGasto), nameof(CuentaGasto), nameof(CodigoCuentaGasto), nameof(NombreCuentaGasto), nameof(CentroCoste));
+        Avisar(nameof(ConceptoFactura), nameof(ConceptoAbreviado), nameof(AvisoProveedor), nameof(RazonSocialAeat));
         SincronizarTipoRetencion();
         ProponerFormaPago();
-        if (!string.IsNullOrWhiteSpace(leida.Log)) _confianza = ConfianzaCampos.DesdeLog(leida.Log);
+        if (!string.IsNullOrWhiteSpace(leida.Log))
+        {
+            _confianza = ConfianzaCampos.DesdeLog(leida.Log);
+            // Al guardar, la factura se queda con esta lectura: si no, al volver a abrirla se veía la confianza de la primera.
+            _lectura = (leida.Confianza, leida.Fuente, leida.Log, leida.RequiereRevision);
+        }
         _manuales.Clear();
         _elegidos.Clear();
         TieneCambios = true;
@@ -678,6 +872,26 @@ public sealed class FichaCompraVM : ModeloVista
     /// <summary>Dónde eligió el operador cada campo en el visor (se pasa al guardar).</summary>
     public IReadOnlyDictionary<string, Compras.Reconocimiento.PuntoDocumento> Elegidos => _elegidos;
 
+    private IReadOnlyDictionary<string, Compras.Reconocimiento.PuntoDocumento> _puntosPlantilla = new Dictionary<string, Compras.Reconocimiento.PuntoDocumento>();
+
+    /// <summary>Dónde leen las plantillas del proveedor cada campo: el visor marca en verde esa aparición (compras/pantallas 2026-11-07).</summary>
+    public IReadOnlyDictionary<string, Compras.Reconocimiento.PuntoDocumento> PuntosPlantilla
+    {
+        get => _puntosPlantilla;
+        internal set { _puntosPlantilla = value; Avisar(nameof(PuntosPlantilla), nameof(PuntosUsados)); }
+    }
+
+    /// <summary>La aparición usada de cada campo: la elegida en el visor y, si no, la de la plantilla.</summary>
+    public IReadOnlyDictionary<string, Compras.Reconocimiento.PuntoDocumento> PuntosUsados
+    {
+        get
+        {
+            var d = new Dictionary<string, Compras.Reconocimiento.PuntoDocumento>(_puntosPlantilla, StringComparer.Ordinal);
+            foreach (var (k, v) in _elegidos) d[k] = v;
+            return d;
+        }
+    }
+
     /// <summary>La factura con lo que hay en la ficha (sin guardar).</summary>
     internal FacturaCompra Construir()
     {
@@ -689,10 +903,12 @@ public sealed class FichaCompraVM : ModeloVista
             CuentaContableProveedor = _cuentaProveedorNueva is not null && _proveedor?.IdProveedor is not null ? _cuentaProveedorNueva
                 : _proveedor is not null && _proveedor.IdProveedor == o.IdProveedor ? o.CuentaContableProveedor : null,
             NifProveedor = _nif.Length == 0 ? null : _nif,
-            NombreProveedorAeat = o.NombreProveedorAeat,
+            NombreProveedorAeat = _razonAeat ?? o.NombreProveedorAeat,
             NumeroFactura = new string(_numero.Where(char.IsAsciiLetterOrDigit).ToArray()),
             Fecha = Texto.LeerFechaHora(_fecha),
-            Concepto = o.Concepto,
+            Concepto = o.Concepto, OrigenDocumento = o.OrigenDocumento,
+            ConceptoFactura = _conceptoFactura.Length == 0 ? null : _conceptoFactura,
+            ConceptoAbreviado = _conceptoAbreviado.Length == 0 ? null : _conceptoAbreviado,
             Operacion = _operacion.Valor, Producto = _producto.Valor, InversionSujetoPasivo = _isp,
             BaseImponible = BaseCalculada, CuotaIva = CuotaCalculada, ImporteTotal = Texto.LeerDecimal(_total),
             PorcentajeRetencion = _conRetencion ? Texto.LeerDecimal(_porcentajeRetencion) : null,
@@ -707,7 +923,8 @@ public sealed class FichaCompraVM : ModeloVista
             CuentaGasto = _cuentaGasto.Valor, IdCentroCoste = _centroCoste.Valor,
             IdFormaPago = _formaPago.Valor, CuentaFormaPago = o.CuentaFormaPago,
             Notas = _notas.Length == 0 ? null : _notas,
-            Confianza = o.Confianza, RequiereRevision = o.RequiereRevision, Fuente = o.Fuente, Log = o.Log,
+            Confianza = _lectura?.Confianza ?? o.Confianza, RequiereRevision = _lectura?.RequiereRevision ?? o.RequiereRevision,
+            Fuente = _lectura?.Fuente ?? o.Fuente, Log = _lectura?.Log ?? o.Log,
             FechaHoraRegistro = o.FechaHoraRegistro, Version = o.Version, Contabilizada = o.Contabilizada, Duplicada = o.Duplicada
         };
         if (f.Concepto.Length == 0 || o.NumeroFactura.Length > 0 && f.Concepto.EndsWith(o.NumeroFactura, StringComparison.Ordinal))

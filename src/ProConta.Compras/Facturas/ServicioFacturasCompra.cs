@@ -77,12 +77,60 @@ public sealed class ServicioFacturasCompra(
         return Resultado<IReadOnlyList<PdfPendiente>>.Correcto(nuevos);
     }
 
-    /// <summary>Todos los PDF bajo las carpetas de proveedor (cada carpeta de primer nivel es un proveedor).</summary>
+    /// <summary>
+    /// Los PDF de la carpeta raíz («Proveedores», sin carpeta de proveedor) y después todos los de las carpetas de proveedor
+    /// (cada carpeta de primer nivel es un proveedor).
+    /// </summary>
     internal static IEnumerable<string> EnumerarPdf(string carpetaProveedores) =>
-        Directory.EnumerateDirectories(carpetaProveedores)
+        Directory.EnumerateFiles(carpetaProveedores, "*.pdf", new EnumerationOptions { MatchCasing = MatchCasing.CaseInsensitive })
+            .OrderBy(f => f, StringComparer.OrdinalIgnoreCase)
+            .Concat(Directory.EnumerateDirectories(carpetaProveedores)
             .OrderBy(d => d, StringComparer.OrdinalIgnoreCase)
             .SelectMany(d => Directory.EnumerateFiles(d, "*.pdf", new EnumerationOptions { RecurseSubdirectories = true, MatchCasing = MatchCasing.CaseInsensitive })
-                .OrderBy(f => f, StringComparer.OrdinalIgnoreCase));
+                .OrderBy(f => f, StringComparer.OrdinalIgnoreCase)));
+
+    /// <summary>El PDF está en la carpeta raíz: directamente en «&lt;ejercicio&gt;\Proveedores».</summary>
+    public static bool EnRaiz(string rutaPdf) =>
+        !string.IsNullOrWhiteSpace(rutaPdf) && string.Equals(Path.GetFileName(Path.GetDirectoryName(rutaPdf)), "Proveedores", StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// Mueve un PDF de la carpeta raíz a la carpeta de su proveedor (<see cref="RepositorioFacturasCompra.CarpetaProveedorAsync"/>),
+    /// creándola si no existe, y graba la ruta nueva. Sin proveedor, o si no se puede mover (abierto en otro programa, sin
+    /// permisos), el PDF se queda en la raíz y se intentará al guardar la ficha. Con otro PDF del mismo nombre en el destino,
+    /// se añade « (2)», « (3)»… Devuelve si lo ha movido.
+    /// </summary>
+    internal async Task<bool> MoverDesdeRaizAsync(FacturaCompra f, CancellationToken cancelacion = default)
+    {
+        if (f.IdRegistro <= 0 || f.IdProveedor is not int prov || !EnRaiz(f.RutaPdf) || !File.Exists(f.RutaPdf)) return false;
+        var carpeta = await bd.EjecutarAsync(s => RepositorioFacturasCompra.CarpetaProveedorAsync(s, f.Ejercicio.IdSociedad, prov), cancelacion);
+        if (carpeta is null) return false;
+        var origen = f.RutaPdf;
+        var destino = Path.Combine(Path.GetDirectoryName(origen)!, carpeta, Path.GetFileName(origen));
+        try
+        {
+            Directory.CreateDirectory(Path.GetDirectoryName(destino)!);
+            for (var n = 2; File.Exists(destino); n++)
+                destino = Path.Combine(Path.GetDirectoryName(destino)!, $"{Path.GetFileNameWithoutExtension(origen)} ({n}){Path.GetExtension(origen)}");
+            File.Move(origen, destino);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            return false;
+        }
+        try
+        {
+            await bd.EnTransaccionAsync(async s => { await RepositorioFacturasCompra.ReubicarPdfAsync(s, f.IdRegistro, destino, carpeta); return Resultado.Correcto(); }, cancelacion);
+        }
+        catch
+        {
+            // Sin la ruta grabada, el PDF vuelve a la raíz para que la factura no lo pierda.
+            File.Move(destino, origen);
+            throw;
+        }
+        f.RutaPdf = destino;
+        f.Carpeta = carpeta;
+        return true;
+    }
 
     /// <summary>Contexto del reconocimiento para un PDF: configuración de la empresa, NIF conocidos, proveedor de la carpeta e histórico.</summary>
     public Task<(ContextoProcesamiento Contexto, ProveedorCarpeta? Proveedor)> CargarContextoAsync(
@@ -94,7 +142,8 @@ public sealed class ServicioFacturasCompra(
             var historicas = await RepositorioFacturasCompra.CarpetasHistoricasAsync(s, ctx.IdSociedad);
             var alias = ResolverCarpetas(historicas, proveedores);
 
-            var elegido = ElegirCarpeta(rutaPdf, alias);
+            // En la carpeta raíz no hay carpeta de proveedor: el proveedor sale solo del NIF leído.
+            var elegido = EnRaiz(rutaPdf) ? null : ElegirCarpeta(rutaPdf, alias);
             var numeros = (IReadOnlyList<string>)[];
             var completas = 0;
             ProveedorCarpeta? proveedor = null;
@@ -111,6 +160,7 @@ public sealed class ServicioFacturasCompra(
                 Configuracion = configuracion,
                 FacturasAceptadasProveedor = completas,
                 Plantillas = carpetaPdf.Length == 0 ? [] : await RepositorioPlantillasCompra.ListarAsync(s, ctx.IdSociedad, carpetaPdf),
+                PlantillasPorNif = await RepositorioPlantillasCompra.PorNifAsync(s, ctx.IdSociedad),
                 Reconocimiento = new ContextoReconocimientoFacturaCompra
                 {
                     NifsProveedoresConocidos = proveedores.Select(p => p.Nif).Where(n => n.Length > 0).Distinct(StringComparer.OrdinalIgnoreCase).ToList(),
@@ -126,8 +176,21 @@ public sealed class ServicioFacturasCompra(
         }, cancelacion);
 
     /// <summary>Lee el PDF sin registrar nada (modo «Probar» y paso previo de <see cref="ImportarAsync"/>).</summary>
+    public Task<(FacturaReconocida Reconocida, FacturaCompra Factura)> ProbarAsync(
+        ContextoSociedadEjercicio ctx, string rutaPdf, CancellationToken cancelacion = default) => ProbarAsync(ctx, rutaPdf, altaAutomatica: false, cancelacion);
+
+    /// <summary>
+    /// Alta del proveedor al leer la factura (compras/pantallas 2026-11-07): la usan la importación y «Reconocer de nuevo»;
+    /// el modo prueba no, porque no escribe nada. Sin ella, la factura no consulta la AEAT.
+    /// </summary>
+    public Proveedores.ServicioAltaProveedorCompra? AltaProveedor { get; init; }
+
+    /// <param name="altaAutomatica">
+    /// Con un NIF sin proveedor en la empresa, consulta la razón social en la AEAT (queda en NombreProveedorAeat) y, si
+    /// aparece en el PDF, da de alta el proveedor como acreedor. Solo al importar y al reconocer de nuevo: escribe en la BD.
+    /// </param>
     public async Task<(FacturaReconocida Reconocida, FacturaCompra Factura)> ProbarAsync(
-        ContextoSociedadEjercicio ctx, string rutaPdf, CancellationToken cancelacion = default)
+        ContextoSociedadEjercicio ctx, string rutaPdf, bool altaAutomatica, CancellationToken cancelacion = default)
     {
         var (contexto, proveedor) = await CargarContextoAsync(ctx, rutaPdf, cancelacion);
         var reconocida = await reconocimiento.ReconocerAsync(rutaPdf, contexto, cancelacion);
@@ -137,9 +200,39 @@ public sealed class ServicioFacturasCompra(
         {
             var conNif = (await ProveedoresAsync(ctx, cancelacion)).Where(p => MismoNif(p.Nif, nif)).Select(p => p.IdProveedor).Distinct().ToList();
             if (conNif.Count == 1) factura.IdProveedor = conNif[0];
+            else if (conNif.Count == 0 && altaAutomatica && AltaProveedor is { } alta)
+            {
+                var (aeat, creado, _) = await alta.AltaAutomaticaAsync(ctx, nif, reconocida.Texto, reconocida.Lectura.ProveedorIdentificado, cancelacion);
+                if (aeat.Identificado && !string.IsNullOrWhiteSpace(aeat.RazonSocial)) factura.NombreProveedorAeat = aeat.RazonSocial.Trim();
+                if (creado is not null)
+                {
+                    factura.IdProveedor = creado.IdProveedor;
+                    factura.CuentaContableProveedor = creado.Cuenta;
+                }
+            }
         }
         await AsignarImputacionAsync(factura, reconocida.Texto, cancelacion);
         return (reconocida, factura);
+    }
+
+    /// <summary>
+    /// Al abrir una factura con un NIF sin proveedor (compras/pantallas 2026-11-07 20:10): consulta la razón social en la
+    /// AEAT y, si aparece en el texto del PDF, da de alta el proveedor como acreedor, como al importarla. El PDF sin texto
+    /// (escaneado) no se pasa por el OCR: solo se consulta la razón social.
+    /// </summary>
+    public async Task<(Proveedores.ResultadoNifAeat Aeat, Proveedores.ProveedorCreado? Creado)> RazonSocialYAltaAsync(ContextoSociedadEjercicio ctx, string nif,
+        string rutaPdf, string? nombreLeido, CancellationToken cancelacion = default)
+    {
+        if (AltaProveedor is not { } alta) return (Proveedores.ResultadoNifAeat.SinConsultar("Sin alta de proveedores."), null);
+        string? texto = null;
+        try
+        {
+            if (File.Exists(rutaPdf)) texto = await Task.Run(() => reconocimiento.Extraer(rutaPdf).TextoCompleto, cancelacion);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException and not ExcepcionDatos) { texto = null; }
+        if (string.IsNullOrWhiteSpace(texto)) return (await alta.ConsultarAsync(ctx, nif, nombreLeido, cancelacion), null);
+        var (aeat, creado, _) = await alta.AltaAutomaticaAsync(ctx, nif, texto, nombreLeido, cancelacion);
+        return (aeat, creado);
     }
 
     /// <summary>
@@ -163,6 +256,9 @@ public sealed class ServicioFacturasCompra(
                 factura.IdCentroCoste = porTexto.IdCentroCoste ?? (porTexto.EmpateCentro ? null : centroProveedor
                     ?? (factura.CuentaGasto is { Length: > 0 } cuenta ? await RepositorioFacturasCompra.CentroDeCuentaAsync(s, ctx, cuenta) : null));
             factura.AnadirAvisos(porTexto.Avisos);
+            // El abreviado por defecto del proveedor gana al del concepto leído (propietario 2026-11-07 19:21).
+            if (await RepositorioFacturasCompra.ConceptoAbreviadoDefectoAsync(s, ctx.IdSociedad, factura.IdProveedor) is { } abreviado)
+                factura.ConceptoAbreviado = abreviado;
             return true;
         }, cancelacion);
 
@@ -178,14 +274,17 @@ public sealed class ServicioFacturasCompra(
         FacturaCompra factura;
         try
         {
-            (_, factura) = await ProbarAsync(ctx, rutaPdf, cancelacion);
+            (_, factura) = await ProbarAsync(ctx, rutaPdf, altaAutomatica: true, cancelacion);
         }
         catch (Exception ex) when (ex is not OperationCanceledException and not ExcepcionDatos)
         {
             return new ImportacionPdf(rutaPdf, null, new Error("Compras.PdfIlegible", $"No he podido leer el PDF: {ex.Message}", Path.GetFileName(rutaPdf),
                 null, "Comprueba que el fichero se abre con un visor de PDF y que la carpeta compartida esté conectada.", ex.GetType().Name));
         }
-        return await RegistrarAsync(factura, cancelacion);
+        factura.OrigenDocumento ??= EnRaiz(rutaPdf) ? OrigenesDocumento.Raiz : OrigenesDocumento.Carpeta;
+        var registrada = await RegistrarAsync(factura, cancelacion);
+        if (registrada.Factura is { } f) await MoverDesdeRaizAsync(f, cancelacion);
+        return registrada;
     }
 
     /// <summary>Registra una factura ya leída (también la que el operador ha corregido en la pantalla).</summary>
@@ -295,6 +394,7 @@ public sealed class ServicioFacturasCompra(
         var r = await bd.EnTransaccionAsync(s => RepositorioFacturasCompra.ActualizarAsync(s, factura), cancelacion);
         if (!r.EsCorrecto) return Resultado.Fallo(r.Errores);
         factura.Version = r.Valor;
+        await MoverDesdeRaizAsync(factura, cancelacion);
         await AprenderAsync(factura, elegidos, cancelacion);
         return Resultado.Correcto();
     }
@@ -410,7 +510,8 @@ public sealed class ServicioFacturasCompra(
     internal async Task AprenderAsync(FacturaCompra factura, IReadOnlyDictionary<string, PuntoDocumento>? elegidos, CancellationToken cancelacion)
     {
         var carpeta = FacturaCompra.CarpetaDe(factura.RutaPdf);
-        if (carpeta.Length == 0 || !File.Exists(factura.RutaPdf)) return;
+        var nif = RepositorioPlantillasCompra.Clave(factura.NifProveedor);
+        if (carpeta.Length == 0 && nif is null || !File.Exists(factura.RutaPdf)) return;
         DocumentoFacturaExtraido documento;
         try { documento = reconocimiento.Extraer(factura.RutaPdf); }
         catch (Exception ex) when (ex is not OperationCanceledException and not ExcepcionDatos) { return; }
@@ -419,7 +520,7 @@ public sealed class ServicioFacturasCompra(
         var ahora = _reloj.Ahora;
         await bd.EnTransaccionAsync(async s =>
         {
-            var existentes = await RepositorioPlantillasCompra.ListarAsync(s, factura.Ejercicio.IdSociedad, carpeta);
+            var existentes = await RepositorioPlantillasCompra.DelProveedorAsync(s, factura.Ejercicio.IdSociedad, nif, carpeta);
             foreach (var (campo, valor) in valores)
             {
                 var delCampo = existentes.Where(p => p.Campo == campo).ToList();
@@ -432,17 +533,44 @@ public sealed class ServicioFacturasCompra(
                     var leido = PlantillasReconocimiento.Leer(documento, p);
                     if (leido is null) continue;
                     var vale = PlantillasReconocimiento.Coincide(campo, leido, valor) && (elegida is null || PlantillasReconocimiento.MismoSitio(p, elegida));
-                    if (vale) { await RepositorioPlantillasCompra.AcertarAsync(s, p.IdPlantilla, ahora); acertada = true; }
+                    if (vale) { await RepositorioPlantillasCompra.AcertarAsync(s, p.IdPlantilla, nif, ahora); acertada = true; }
                     else await RepositorioPlantillasCompra.BorrarAsync(s, p.IdPlantilla);
                 }
                 if (acertada || (elegida ?? PlantillasReconocimiento.Aprender(documento, campo, valor)) is not { } nueva) continue;
-                await RepositorioPlantillasCompra.InsertarAsync(s, factura.Ejercicio.IdSociedad, carpeta, nueva, ahora);
-                var sobrantes = (await RepositorioPlantillasCompra.ListarAsync(s, factura.Ejercicio.IdSociedad, carpeta))
+                await RepositorioPlantillasCompra.InsertarAsync(s, factura.Ejercicio.IdSociedad, nif, carpeta, nueva, ahora);
+                var sobrantes = (await RepositorioPlantillasCompra.DelProveedorAsync(s, factura.Ejercicio.IdSociedad, nif, carpeta))
                     .Where(p => p.Campo == campo).Skip(MaxPlantillasPorCampo).ToList();
                 foreach (var p in sobrantes) await RepositorioPlantillasCompra.BorrarAsync(s, p.IdPlantilla);
             }
             return true;
         }, cancelacion);
+    }
+
+    /// <summary>
+    /// Dónde leen en el PDF las plantillas del proveedor el valor de cada campo de la factura (compras/pantallas 2026-11-07):
+    /// el visor marca en verde esa aparición. Solo los campos cuya plantilla lee el valor que tiene la factura.
+    /// </summary>
+    public async Task<IReadOnlyDictionary<string, PuntoDocumento>> PuntosPlantillaAsync(FacturaCompra factura, CancellationToken cancelacion = default)
+    {
+        ArgumentNullException.ThrowIfNull(factura);
+        var vacio = new Dictionary<string, PuntoDocumento>();
+        var carpeta = FacturaCompra.CarpetaDe(factura.RutaPdf);
+        if (!File.Exists(factura.RutaPdf)) return vacio;
+        var plantillas = await bd.EjecutarAsync(s => RepositorioPlantillasCompra.DelProveedorAsync(s, factura.Ejercicio.IdSociedad, factura.NifProveedor, carpeta), cancelacion);
+        if (plantillas.Count == 0) return vacio;
+        DocumentoFacturaExtraido documento;
+        try { documento = reconocimiento.Extraer(factura.RutaPdf); }
+        catch (Exception ex) when (ex is not OperationCanceledException and not ExcepcionDatos) { return vacio; }
+        var puntos = new Dictionary<string, PuntoDocumento>();
+        foreach (var (campo, valor) in ValoresGuardados(factura))
+            foreach (var p in plantillas.Where(p => p.Campo == campo).OrderByDescending(p => p.Aciertos))
+                // La primera plantilla que lee el valor guardado: puede haber otra más antigua que lea en otro sitio.
+                if (PlantillasReconocimiento.LeerConPunto(documento, p) is { } leido && PlantillasReconocimiento.Coincide(campo, leido.Valor, valor))
+                {
+                    puntos[campo] = leido.Punto;
+                    break;
+                }
+        return puntos;
     }
 
     /// <summary>Valores guardados que sirven de verdad para las plantillas; en moneda extranjera, el total en esa moneda.</summary>
@@ -454,6 +582,7 @@ public sealed class ServicioFacturasCompra(
         if (f.Fecha is { } fecha) valores.Add((PlantillasReconocimiento.Fecha, fecha.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)));
         var total = f.Divisa != "EUR" ? f.ImporteTotalDivisa ?? f.ImporteTotal : f.ImporteTotal;
         if (total is { } t) valores.Add((PlantillasReconocimiento.Total, t.ToString("0.00", CultureInfo.InvariantCulture)));
+        if (!string.IsNullOrWhiteSpace(f.ConceptoFactura)) valores.Add((PlantillasReconocimiento.Concepto, f.ConceptoFactura.Trim()));
         return valores;
     }
 

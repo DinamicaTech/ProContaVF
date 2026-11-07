@@ -125,4 +125,45 @@ public sealed class AltaProveedorAccessTests : IDisposable
         Assert.True((await aeat.ConsultarAsync(_ctx, Documentos.NifProveedor, null)).Identificado);
         Assert.False((await aeat.ConsultarAsync(_ctx, "FR12345678901", null)).Consultado);
     }
+    [Fact]
+    public async Task Con_la_razon_social_de_la_aeat_en_el_pdf_se_da_de_alta_sola_como_acreedor()
+    {
+        await EmpresaAsync();
+        var servicio = Servicio(new AeatFija(new ResultadoNifAeat(true, true, "EMISOR FICTICIO SL", null)));
+        var (aeat, creado, error) = await servicio.AltaAutomaticaAsync(_ctx, Documentos.NifProveedor, "Factura de Emisor Ficticio, S.L.\nNIF ...", null);
+        Assert.Null(error);
+        Assert.True(aeat.Identificado);
+        Assert.StartsWith("410", creado!.Cuenta);
+
+        var otra = await Servicio(new AeatFija(new ResultadoNifAeat(true, true, "OTRA EMPRESA DISTINTA SA", null)))
+            .AltaAutomaticaAsync(_ctx, "B12345674", "Factura de Emisor Ficticio, S.L.", null);
+        Assert.Null(otra.Creado);
+        Assert.Equal("OTRA EMPRESA DISTINTA SA", otra.Aeat.RazonSocial);
+    }
+
+    [Fact]
+    public async Task El_alta_como_proveedor_usa_la_400()
+    {
+        await EmpresaAsync();
+        var r = await Servicio().AltaAsync(_ctx, new DatosAltaProveedor(Documentos.NifProveedor, "Emisor Ficticio S.L."), comoProveedor: true);
+        Assert.True(r.EsCorrecto, r.Error?.ToString());
+        Assert.StartsWith("400", r.Valor.Cuenta);
+        var roles = await new ServicioRoles(Bd, new CatalogoCuentasAccess(Bd)).CuentasAsync(r.Valor.IdTercero, _ctx);
+        Assert.Equal(r.Valor.Cuenta, roles.Proveedor!.Codigo);
+    }
+}
+
+/// <summary>¿La razón social de la AEAT está en el texto del PDF? (alta automática del proveedor).</summary>
+public sealed class NombreEnTextoTests
+{
+    [Theory]
+    [InlineData("EMISOR FICTICIO SL", "Emisor Ficticio, S.L. · C/ Mayor 1", true)]
+    [InlineData("EMISOR FICTICIO SOCIEDAD LIMITADA", "EMISOR FICTICIO S.L.", true)]
+    [InlineData("CONSTRUCCIONES PEÑA SA", "Construcciones Pena, S.A.", true)]
+    [InlineData("EMISOR FICTICIO SL", "Emisor Ficticios SL", false)]
+    [InlineData("EMISOR FICTICIO SL", "Ficticio Emisor SL", false)]
+    [InlineData("SL", "Cualquier SL", false)]
+    [InlineData("EMISOR FICTICIO SL", null, false)]
+    public void Compara_sin_mayusculas_acentos_puntuacion_ni_forma_juridica(string razon, string? texto, bool esperado) =>
+        Assert.Equal(esperado, ServicioAltaProveedorCompra.NombreEnTexto(razon, texto));
 }

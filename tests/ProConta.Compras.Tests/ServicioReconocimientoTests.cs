@@ -61,6 +61,29 @@ public sealed class ServicioReconocimientoTests : IDisposable
     }
 
     [Fact]
+    public async Task Con_claves_de_la_sociedad_usa_su_ocr_y_no_el_del_puesto()
+    {
+        var puesto = new OcrFijo(Texto(Completa));
+        var sociedad = new OcrFijo(Texto(Completa));
+        CredencialesOcr? usadas = null;
+        var servicio = new ServicioReconocimientoFacturaCompra(new ExtractorFijo(Texto(" ")), puesto, ocrConCredenciales: c => { usadas = c; return sociedad; });
+        var claves = new CredencialesOcr("eu-west-1", "AKIAPRUEBA", "secreto-de-prueba");
+        var ctx = new ContextoProcesamiento { Configuracion = new ConfiguracionReconocimiento { UsarOcr = true, CredencialesOcr = claves }, Reconocimiento = Contexto() };
+        var r = await servicio.ReconocerAsync(_pdf, ctx);
+        Assert.Equal(("ocr", 1, 0), (r.Fuente, sociedad.Llamadas, puesto.Llamadas));
+        Assert.Equal(claves, usadas);
+        Assert.DoesNotContain("secreto", claves.ToString());
+    }
+
+    [Fact]
+    public async Task Sin_claves_ni_perfil_el_aviso_dice_donde_guardarlas()
+    {
+        var ctx = new ContextoProcesamiento { Configuracion = new ConfiguracionReconocimiento { UsarOcr = true }, Reconocimiento = Contexto() };
+        var r = await new ServicioReconocimientoFacturaCompra(new ExtractorFijo(Texto(" ")), motivoSinOcr: "No encuentro el perfil").ReconocerAsync(_pdf, ctx);
+        Assert.Contains(r.Lectura.Advertencias, a => a.Contains("Reconocimiento de facturas de compra") && a.Contains("No encuentro el perfil"));
+    }
+
+    [Fact]
     public async Task Sin_ocr_activo_un_escaneado_queda_para_revision_sin_inventar_datos()
     {
         var r = await new ServicioReconocimientoFacturaCompra(new ExtractorFijo(Texto(" "))).ReconocerAsync(_pdf, Ctx());

@@ -23,6 +23,9 @@ public partial class VistaFacturasRecibidas : UserControl
     private const string ClaveAnchos = "compras.recibidas.anchos";
     private const double MinLista = 260, MinFicha = 420, MinVisor = 320, Paso = 40;
     private TextBox? _campoCaptura;
+
+    /// <summary>«cuenta» o «centro» si el último campo con el foco es la cuenta de gasto o el centro de coste.</summary>
+    private string? _campoClave;
     private FichaCompraVM? _fichaObservada;
     private VentanaVisor? _ventanaVisor;
     private bool _listaOculta;
@@ -31,6 +34,8 @@ public partial class VistaFacturasRecibidas : UserControl
     public VistaFacturasRecibidas()
     {
         EnfocarBusquedaCommand = new ComandoDelegado(() => { CajaBusqueda.Focus(); CajaBusqueda.SelectAll(); });
+        // Tecla fija hasta que exista el catálogo de atajos (plataforma/atajos-de-teclado), donde será «Compras.OcultarLista».
+        AlternarListaCommand = new ComandoDelegado(AlternarLista);
         InitializeComponent();
         var guardados = Leer();
         (_lista, _ficha) = (guardados?.Lista, guardados?.Ficha);
@@ -47,6 +52,7 @@ public partial class VistaFacturasRecibidas : UserControl
     }
 
     public ICommand EnfocarBusquedaCommand { get; }
+    public ICommand AlternarListaCommand { get; }
 
     private FacturasRecibidasVM? Vm => DataContext as FacturasRecibidasVM;
 
@@ -80,6 +86,22 @@ public partial class VistaFacturasRecibidas : UserControl
 
     private void BotonFiltro_Click(object sender, RoutedEventArgs e) => PopupFiltro.IsOpen = !PopupFiltro.IsOpen;
 
+    /// <summary>
+    /// La rueda baja la ficha hasta el final aunque el ratón esté sobre un campo de varias líneas o una lista: si ese
+    /// control no puede desplazarse más en ese sentido, se desplaza la ficha.
+    /// </summary>
+    private void ZonaFicha_PreviewMouseWheel(object sender, MouseWheelEventArgs e)
+    {
+        for (var d = e.OriginalSource as DependencyObject; d is not null && !ReferenceEquals(d, ZonaFicha); d = d is Visual or System.Windows.Media.Media3D.Visual3D ? VisualTreeHelper.GetParent(d) : LogicalTreeHelper.GetParent(d))
+        {
+            if (d is ScrollViewer interior && interior.ScrollableHeight > 0
+                && (e.Delta > 0 ? interior.VerticalOffset > 0 : interior.VerticalOffset < interior.ScrollableHeight))
+                return;
+        }
+        ZonaFicha.ScrollToVerticalOffset(ZonaFicha.VerticalOffset - e.Delta / 3.0);
+        e.Handled = true;
+    }
+
     // ---------- captura y resaltado ----------
 
     /// <summary>El último campo capturable con el foco recibe el texto que se selecciona en el PDF.</summary>
@@ -87,6 +109,19 @@ public partial class VistaFacturasRecibidas : UserControl
     {
         if (sender is not TextBox t) return;
         _campoCaptura = t;
+        _campoClave = null;
+        Resaltar();
+    }
+
+    /// <summary>
+    /// Foco en la cuenta de gasto o en el centro de coste (propietario 2026-11-07 19:55): el texto que se seleccione en el PDF
+    /// abre «Añadir texto clave» con ese texto y ese campo marcado, en lugar de escribirse en el campo.
+    /// </summary>
+    private void CampoClave_GotKeyboardFocus(object sender, KeyboardFocusChangedEventArgs e)
+    {
+        if (sender is not FrameworkElement { Tag: string campo }) return;
+        _campoClave = campo;
+        _campoCaptura = null;
         Resaltar();
     }
 
@@ -103,12 +138,17 @@ public partial class VistaFacturasRecibidas : UserControl
             Vm.AvisarElegido(campo);
             return;
         }
+        if (_campoClave is { } clave)
+        {
+            ficha.AnadirTextoClaveDesdePdf(seleccion.Texto, clave);
+            return;
+        }
         if (_campoCaptura is not { IsReadOnly: false, IsLoaded: true } caja) return;
         var texto = seleccion.Texto;
         var valor = activo switch
         {
             "nif" => new string(texto.Where(char.IsAsciiLetterOrDigit).ToArray()).ToUpperInvariant(),
-            "base" or "cuota" or "total" => new string(texto.Where(c => char.IsDigit(c) || c is ',' or '.' or '-').ToArray()),
+            "base" or "cuota" or "total" or "totaltipo" => new string(texto.Where(c => char.IsDigit(c) || c is ',' or '.' or '-').ToArray()),
             _ => texto.Trim()
         };
         if (valor.Length == 0) return;
@@ -129,12 +169,14 @@ public partial class VistaFacturasRecibidas : UserControl
         _fichaObservada = Vm?.Ficha;
         if (_fichaObservada is not null) _fichaObservada.PropertyChanged += AlCambiarFicha;
         _campoCaptura = null;
+        _campoClave = null;
         Resaltar();
     }
 
     private void AlCambiarFicha(object? sender, PropertyChangedEventArgs e)
     {
-        if (e.PropertyName is nameof(FichaCompraVM.Nif) or nameof(FichaCompraVM.Numero) or nameof(FichaCompraVM.Fecha) or nameof(FichaCompraVM.Total)) Resaltar();
+        if (e.PropertyName is nameof(FichaCompraVM.Nif) or nameof(FichaCompraVM.Numero) or nameof(FichaCompraVM.Fecha) or nameof(FichaCompraVM.Total)
+            or nameof(FichaCompraVM.ConceptoFactura) or nameof(FichaCompraVM.PuntosPlantilla) or nameof(FichaCompraVM.Elegidos)) Resaltar();
         // Al guardar se olvidan los sitios elegidos en el visor: se quita su marca verde.
         else if (e.PropertyName == nameof(FichaCompraVM.TieneCambios) && sender is FichaCompraVM { TieneCambios: false }) Resaltar();
     }
@@ -156,11 +198,13 @@ public partial class VistaFacturasRecibidas : UserControl
         var f = Vm?.Ficha;
         IReadOnlyList<ValorResaltado> valores = f is null ? [] :
         [
-            new("nif", f.Nif), new("numero", f.Numero), .. VariantesFecha(f.Fecha).Select(t => new ValorResaltado("fecha", t)), new("total", f.Total.Replace("€", "").Trim())
+            new("nif", f.Nif), new("numero", f.Numero), .. VariantesFecha(f.Fecha).Select(t => new ValorResaltado("fecha", t)), new("total", f.Total.Replace("€", "").Trim()),
+            new("concepto", f.ConceptoFactura)
         ];
         var activo = _campoCaptura?.Tag as string;
-        Visor.Resaltar(valores, activo);
-        _ventanaVisor?.Visor.Resaltar(valores, activo);
+        var puntos = f?.PuntosUsados;
+        Visor.Resaltar(valores, activo, puntos);
+        _ventanaVisor?.Visor.Resaltar(valores, activo, puntos);
     }
 
     private static readonly System.Globalization.CultureInfo[] CulturasFecha =
@@ -273,7 +317,9 @@ public partial class VistaFacturasRecibidas : UserControl
         e.Handled = true;
     }
 
-    private void BotonLista_Click(object sender, RoutedEventArgs e)
+    private void BotonLista_Click(object sender, RoutedEventArgs e) => AlternarLista();
+
+    private void AlternarLista()
     {
         _listaOculta = !_listaOculta;
         BotonLista.Content = _listaOculta ? "Mostrar lista" : "Ocultar lista";

@@ -73,6 +73,22 @@ public interface ICatalogoCuentas
     /// reservados de la sociedad (<see cref="BuscadorCuentas.SiguienteCodigo"/>). Null si no queda ninguno.
     /// </summary>
     Task<string?> SiguienteSubcuentaAsync(ContextoSociedadEjercicio contexto, string cuenta);
+
+    /// <summary>
+    /// Alta de una subcuenta imputable con ese código y nombre, colgada de la cuenta existente del ejercicio cuyo código es
+    /// el prefijo más largo del suyo (p. ej. 6590000 de la 659). La usan las cuentas configuradas en parámetros que aún no
+    /// existen, al usarlas por primera vez (propietario 2026-11-07 11:59).
+    /// </summary>
+    Task<Resultado<CuentaContable>> AltaSubcuentaAsync(ContextoSociedadEjercicio contexto, string codigo, string nombre) =>
+        Task.FromResult(Resultado<CuentaContable>.Fallo(new Error("Cuentas.NoDisponible", "Este catálogo no da de alta subcuentas.", $"Cuenta {codigo}")));
+
+    /// <summary>
+    /// Cambia el código de una cuenta (en todos los ejercicios de su identidad) a <paramref name="nuevoCodigo"/>, solo si
+    /// no tiene ningún apunte en ninguno: así una 410 que pasa a 400 antes de su primer asiento no deja una subcuenta sin
+    /// usar (propietario 2026-11-07 11:59). Mueve la reserva del código y cuelga la cuenta de su nuevo padre.
+    /// </summary>
+    Task<Resultado<CuentaContable>> CambiarCodigoSinApuntesAsync(ContextoSociedadEjercicio contexto, int idIdentidadContable, string nuevoCodigo) =>
+        Task.FromResult(Resultado<CuentaContable>.Fallo(new Error("Cuentas.NoDisponible", "Este catálogo no cambia códigos.", $"Cuenta {nuevoCodigo}")));
 }
 
 public static class ReglasCuenta
@@ -181,6 +197,65 @@ public sealed class CatalogoCuentasAccess(IBaseDatos bd) : ICatalogoCuentas
             var reservados = await s.ConsultarAsync("SELECT Codigo FROM CodigosContablesReservados WHERE IdSociedad = ? AND Codigo LIKE ?",
                 f => f.Texto("Codigo") ?? "", contexto.IdSociedad, like);
             return BuscadorCuentas.SiguienteCodigo(prefijo, enEjercicio.Concat(reservados).Select(c => c.Trim()));
+        });
+
+    /// <summary>Cuenta del ejercicio cuyo código es el prefijo más largo de <paramref name="codigo"/> (su padre natural).</summary>
+    private static async Task<int?> PadrePorPrefijoAsync(ISesionDatos s, int idSociedadEjercicio, string codigo)
+    {
+        for (var n = codigo.Length - 1; n >= 1; n--)
+        {
+            var id = await s.EscalarAsync("SELECT TOP 1 IdCuentaContable FROM CuentasContables WHERE IdSociedadEjercicio = ? AND Codigo = ?", idSociedadEjercicio, codigo[..n]);
+            if (id is not null and not DBNull) return Convert.ToInt32(id, System.Globalization.CultureInfo.InvariantCulture);
+        }
+        return null;
+    }
+
+    public async Task<Resultado<CuentaContable>> AltaSubcuentaAsync(ContextoSociedadEjercicio contexto, string codigo, string nombre)
+    {
+        var limpio = (codigo ?? "").Trim();
+        var padre = limpio.Length == 0 ? null : await bd.EjecutarAsync(s => PadrePorPrefijoAsync(s, contexto.IdSociedadEjercicio, limpio));
+        return await AltaAsync(contexto, new AltaCuenta(limpio, nombre, padre));
+    }
+
+    public Task<Resultado<CuentaContable>> CambiarCodigoSinApuntesAsync(ContextoSociedadEjercicio contexto, int idIdentidadContable, string nuevoCodigo) =>
+        bd.EnTransaccionAsync(async s =>
+        {
+            var codigo = (nuevoCodigo ?? "").Trim();
+            var registro = $"Cuenta {codigo}";
+            Resultado<CuentaContable> Fallo(string c, string m, string? causa = null, string? accion = null) => Resultado<CuentaContable>.Fallo(new Error(c, m, registro, causa, accion));
+            if (codigo.Length == 0 || codigo.Length > ReglasCuenta.LongitudMaximaCodigo || !codigo.All(char.IsAsciiDigit))
+                return Fallo("Cuentas.CodigoNoValido", $"El código de cuenta «{codigo}» no es válido.");
+            var cuentas = await s.ConsultarAsync("SELECT IdCuentaContable, IdSociedadEjercicio, Codigo FROM CuentasContables WHERE IdIdentidadContable = ?",
+                f => (Id: f.Entero("IdCuentaContable"), Ejercicio: f.Entero("IdSociedadEjercicio"), Codigo: f.Texto("Codigo")?.Trim() ?? ""), idIdentidadContable);
+            if (cuentas.Count == 0) return Fallo("Cuentas.NoExiste", "La cuenta que hay que cambiar no existe.");
+            foreach (var c in cuentas)
+            {
+                var apuntes = Convert.ToInt32(await s.EscalarAsync(
+                    "SELECT COUNT(*) FROM Apuntes AS ap INNER JOIN Asientos AS a ON ap.IdAsiento = a.IdAsiento WHERE a.IdSociedadEjercicio = ? AND ap.CuentaContable = ?",
+                    c.Ejercicio, c.Codigo), System.Globalization.CultureInfo.InvariantCulture);
+                if (apuntes > 0)
+                    return Fallo("Cuentas.ConApuntes", $"La cuenta {c.Codigo} ya tiene apuntes y no se le cambia el código.", "El código forma parte de sus apuntes.",
+                        "Crea una cuenta nueva con el código que quieres.");
+                if (Convert.ToInt32(await s.EscalarAsync("SELECT COUNT(*) FROM CuentasContables WHERE IdSociedadEjercicio = ? AND Codigo = ?", c.Ejercicio, codigo),
+                        System.Globalization.CultureInfo.InvariantCulture) > 0)
+                    return Fallo("Cuentas.Repetida", $"La cuenta {codigo} ya existe.", "El código es único dentro de cada ejercicio.", "Elige otro código.");
+            }
+            var reservada = await s.ConsultarPrimeroAsync("SELECT IdIdentidadContable FROM CodigosContablesReservados WHERE IdSociedad = ? AND Codigo = ?",
+                f => (int?)f.Entero("IdIdentidadContable"), contexto.IdSociedad, codigo);
+            if (reservada is int otra && otra != idIdentidadContable)
+                return Fallo("Cuentas.CodigoReservado", $"El código {codigo} ya se usó para otra cuenta de esta sociedad.", null, "Elige otro código.");
+            foreach (var c in cuentas)
+            {
+                var padre = await PadrePorPrefijoAsync(s, c.Ejercicio, codigo);
+                await s.EjecutarAsync("UPDATE CuentasContables SET Codigo = ?, IdCuentaPadre = ? WHERE IdCuentaContable = ?", codigo, padre, c.Id);
+                await s.EjecutarAsync("DELETE FROM CodigosContablesReservados WHERE IdSociedad = ? AND Codigo = ? AND IdIdentidadContable = ?", contexto.IdSociedad, c.Codigo, idIdentidadContable);
+            }
+            if (reservada is null)
+                await s.EjecutarAsync("INSERT INTO CodigosContablesReservados (IdSociedad, Codigo, IdIdentidadContable, FechaPrimeraAsignacion) VALUES (?, ?, ?, ?)",
+                    contexto.IdSociedad, codigo, idIdentidadContable, DateTime.Today);
+            var actual = await s.ConsultarPrimeroAsync($"SELECT {Columnas} FROM CuentasContables WHERE IdSociedadEjercicio = ? AND IdIdentidadContable = ?",
+                Mapear, contexto.IdSociedadEjercicio, idIdentidadContable);
+            return actual is null ? Fallo("Cuentas.NoExiste", "La cuenta no existe en este ejercicio.") : Resultado<CuentaContable>.Correcto(actual);
         });
 
     public Task<CuentaContable?> CuentaDeIdentidadAsync(ContextoSociedadEjercicio contexto, int idIdentidadContable) =>

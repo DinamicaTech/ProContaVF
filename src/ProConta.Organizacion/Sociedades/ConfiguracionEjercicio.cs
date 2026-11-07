@@ -2,7 +2,10 @@ using ProConta.Datos.Persistencia;
 
 namespace ProConta.Organizacion.Sociedades;
 
-/// <summary>Tipo de IVA predeterminado del ejercicio con su cuenta de IVA repercutido (TipoIVA1..4 y CuentaTipoIVA1..4).</summary>
+/// <summary>
+/// Tipo de IVA predeterminado del ejercicio con su cuenta de IVA repercutido (TipoIVA1..4 y CuentaIVARepercutido1..4; sin
+/// ella, la 477 con la terminación de la CuentaTipoIVA, que es la de soportado de compras: propietario 2026-11-07 11:59).
+/// </summary>
 public sealed record TipoIvaEjercicio(int Posicion, decimal Porcentaje, string? Cuenta);
 
 /// <summary>
@@ -43,9 +46,18 @@ public sealed class LectorConfiguracionEjercicio(IBaseDatos bd)
         s.ConsultarPrimeroAsync(
             "SELECT se.IdSociedadEjercicio, se.IdSociedad, se.Nombre, se.CIF, so.Nombre AS NombreSociedad, so.CIF AS CifSociedad, so.DireccionFiscal, so.CodigoPostalFiscal, so.PoblacionFiscal, so.ProvinciaFiscal, " +
             "se.FormaPagoDefecto, se.PorcentajeRetencion, se.TipoIVA1, se.TipoIVA2, se.TipoIVA3, se.TipoIVA4, " +
-            "se.CuentaTipoIVA0, se.CuentaTipoIVA1, se.CuentaTipoIVA2, se.CuentaTipoIVA3, se.CuentaTipoIVA4, se.CuentaSuplido " +
+            "se.CuentaTipoIVA0, se.CuentaTipoIVA1, se.CuentaTipoIVA2, se.CuentaTipoIVA3, se.CuentaTipoIVA4, se.CuentaSuplido, " +
+            "se.CuentaIVARepercutido0, se.CuentaIVARepercutido1, se.CuentaIVARepercutido2, se.CuentaIVARepercutido3, se.CuentaIVARepercutido4 " +
             "FROM SociedadesEjercicios AS se LEFT JOIN Sociedades AS so ON se.IdSociedad = so.IdSociedad WHERE se.IdSociedadEjercicio = ?",
             Mapear, idSociedadEjercicio);
+
+    /// <summary>La cuenta de IVA repercutido del tipo; sin ella, la 477 con la terminación de su 472 de soportado.</summary>
+    private static string? Repercutido(IFilaDatos f, int i) =>
+        f.Texto($"CuentaIVARepercutido{i}") is { } r && !string.IsNullOrWhiteSpace(r) ? r.Trim() : RepercutidoDe(f.Texto($"CuentaTipoIVA{i}"));
+
+    /// <summary>4720021 → 4770021. Una cuenta que no es 472 se queda como está (ya era de repercutido).</summary>
+    public static string? RepercutidoDe(string? soportado) =>
+        soportado?.Trim() is { Length: > 3 } c && c.StartsWith("472", StringComparison.Ordinal) ? "477" + c[3..] : soportado?.Trim();
 
     private static ConfiguracionEjercicio Mapear(IFilaDatos f)
     {
@@ -54,7 +66,7 @@ public sealed class LectorConfiguracionEjercicio(IBaseDatos bd)
         {
             if (f.EsNulo($"TipoIVA{i}")) continue;
             // SINGLE en Access: se redondea a dos decimales para que 21 no sea 20,99999.
-            tipos.Add(new TipoIvaEjercicio(i, Math.Round((decimal)f.Doble($"TipoIVA{i}"), 2), f.Texto($"CuentaTipoIVA{i}")));
+            tipos.Add(new TipoIvaEjercicio(i, Math.Round((decimal)f.Doble($"TipoIVA{i}"), 2), Repercutido(f, i)));
         }
         static string Primero(params string?[] v) => v.FirstOrDefault(x => !string.IsNullOrWhiteSpace(x))?.Trim() ?? "";
         return new ConfiguracionEjercicio(
@@ -65,7 +77,7 @@ public sealed class LectorConfiguracionEjercicio(IBaseDatos bd)
             f.EsNulo("FormaPagoDefecto") ? null : (byte?)Math.Clamp(f.Entero("FormaPagoDefecto"), 0, 255),
             f.EsNulo("PorcentajeRetencion") ? null : f.Entero("PorcentajeRetencion"),
             tipos,
-            f.Texto("CuentaTipoIVA0"),
+            Repercutido(f, 0),
             f.Texto("CuentaSuplido"),
             f.Texto("DireccionFiscal"),
             f.Texto("CodigoPostalFiscal"),

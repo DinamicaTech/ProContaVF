@@ -33,7 +33,8 @@ public sealed record ConfiguracionCompras(
 /// <param name="IdAsiento">Asiento vigente de la factura (null: no exportada).</param>
 /// <param name="IdAsientoAnulado">Asiento que anula el contra-asiento del lote vigente, si lo tiene.</param>
 /// <param name="TrimestreLote">Trimestre del libro de IVA del lote vigente (null: lote vacío).</param>
-public sealed record EstadoExportacionCompra(int Generacion, int? IdAsiento, int? IdAsientoAnulado, int? TrimestreLote, int? EjercicioLote)
+/// <param name="DelErp">Contabilizada en el ERP: <paramref name="IdAsiento"/> es su asiento del ERP, que nunca se toca.</param>
+public sealed record EstadoExportacionCompra(int Generacion, int? IdAsiento, int? IdAsientoAnulado, int? TrimestreLote, int? EjercicioLote, bool DelErp = false)
 {
     public bool Exportada => IdAsiento is not null;
 }
@@ -65,7 +66,8 @@ public sealed record ResultadoExportacionCompra(int? IdAsiento, int? IdContraAsi
 
 /// <summary>
 /// Exportación de facturas de compra a la contabilidad (compras/factura-compra/contabilizacion y compras/pantallas
-/// 2026-11-06 12:10): asiento fechado hoy en el ejercicio de hoy, libro de IVA soportado en la misma transacción,
+/// 2026-11-06 12:10 y 2026-11-07): asiento con la fecha de la factura, o el día 1 del trimestre activo si es anterior
+/// (<see cref="TrimestreContable"/>), libro de IVA soportado al trimestre de esa fecha en la misma transacción,
 /// re-exportar y deshacer con las reglas del trimestre activo:
 /// - si el lote vigente es del trimestre activo, re-exportar lo regenera y deshacer lo anula (borra el asiento);
 /// - si es de un trimestre cerrado, no se toca: se abre un lote nuevo con el contra-asiento (y el asiento nuevo al
@@ -115,20 +117,36 @@ public sealed class ContabilizadorCompras(IBaseDatos bd, IMotorAsientos motor, I
     private static string? Texto(IFilaDatos f, string campo) => f.Texto(campo) is { } t && !string.IsNullOrWhiteSpace(t) ? t.Trim() : null;
 
     /// <summary>Trimestre de una fecha (1 a 4).</summary>
-    public static int Trimestre(DateTime fecha) => (fecha.Month - 1) / 3 + 1;
+    public static int Trimestre(DateTime fecha) => TrimestreContable.De(fecha);
+
+    private static string Nombre(DateTime fecha) => TrimestreContable.De(fecha) switch { 1 => "ene-mar", 2 => "abr-jun", 3 => "jul-sep", _ => "oct-dic" };
 
     // ---------- estado ----------
 
     public Task<EstadoExportacionCompra> EstadoAsync(int idRegistro) => bd.EjecutarAsync(s => EstadoAsync(s, idRegistro));
 
+    /// <summary>
+    /// Estado de la exportación. Una factura contabilizada en el ERP (Exportada sin asiento de ProContaVF ni lote) da su
+    /// asiento del ERP como asiento vigente, marcado <see cref="EstadoExportacionCompra.DelErp"/>: re-exportarla o
+    /// deshacerla hace siempre un contra-asiento de él (compras/pantallas 2026-11-07). Null en IdAsiento si no se encuentra.
+    /// </summary>
     internal static async Task<EstadoExportacionCompra> EstadoAsync(ISesionDatos s, int idRegistro)
     {
         var fila = await s.ConsultarPrimeroAsync(
-            "SELECT IdSociedadEjercicio, GeneracionExportacion, IdAsientoContable, IdAsientoAnulado FROM FacturasCompra WHERE IdRegistro = ?",
+            "SELECT IdSociedadEjercicio, GeneracionExportacion, IdAsientoContable, IdAsientoAnulado, Exportada, NumeroFactura, CuentaContableProveedor FROM FacturasCompra WHERE IdRegistro = ?",
             f => (Ejercicio: f.EnteroNulo("IdSociedadEjercicio") ?? 0, Generacion: f.EnteroNulo("GeneracionExportacion") ?? 0,
-                Asiento: f.EnteroNulo("IdAsientoContable"), Anulado: f.EnteroNulo("IdAsientoAnulado")), idRegistro);
+                Asiento: f.EnteroNulo("IdAsientoContable"), Anulado: f.EnteroNulo("IdAsientoAnulado"), Exportada: f.Logico("Exportada"),
+                Numero: f.Texto("NumeroFactura")?.Trim(), Cuenta: f.Texto("CuentaContableProveedor")?.Trim()), idRegistro);
+        if (fila.Exportada && fila.Asiento is null && fila.Anulado is null && fila.Generacion == 0)
+        {
+            // El enlace con el asiento del ERP sale de lo grabado (número y cuenta del proveedor), no de lo que se esté editando.
+            var erp = string.IsNullOrEmpty(fila.Numero) || string.IsNullOrEmpty(fila.Cuenta) ? null
+                : await RepositorioFacturasCompra.AsientoErpAsync(s, fila.Ejercicio != 0 ? fila.Ejercicio : await RepositorioFacturasCompra.EjercicioDeRegistroAsync(s, idRegistro),
+                    fila.Numero, fila.Cuenta);
+            return new EstadoExportacionCompra(0, erp?.IdAsiento, null, null, null, DelErp: true);
+        }
         var lote = AsientoCompra.Lote(idRegistro, fila.Generacion);
-        // El trimestre del lote es el del periodo de IVA de sus registros del libro (trimestre contable al exportar).
+        // El trimestre del lote es el menor de los periodos de IVA de sus registros: si uno ya está cerrado, el lote no se toca.
         var periodos = await s.ConsultarAsync(
             "SELECT p.Numero, se.Ejercicio FROM ((Asientos AS a INNER JOIN IVASoportado AS i ON i.IdAsiento = a.IdAsiento) " +
             "INNER JOIN PeriodosIVA AS p ON p.IdPeriodoIVA = i.IdPeriodoIVA) INNER JOIN SociedadesEjercicios AS se ON se.IdSociedadEjercicio = a.IdSociedadEjercicio " +
@@ -136,22 +154,22 @@ public sealed class ContabilizadorCompras(IBaseDatos bd, IMotorAsientos motor, I
             f => (Numero: f.Entero("Numero"), Ejercicio: int.TryParse(f.Texto("Ejercicio"), NumberStyles.Integer, CultureInfo.InvariantCulture, out var e) ? e : 0),
             lote.MotorPropietario, lote.CodigoProceso, lote.ClaveEjecucion);
         return new EstadoExportacionCompra(fila.Generacion, fila.Asiento, fila.Anulado,
-            periodos.Count == 0 ? null : periodos.Max(p => p.Numero), periodos.Count == 0 ? null : periodos.Max(p => p.Ejercicio));
+            periodos.Count == 0 ? null : periodos.Min(p => p.Numero), periodos.Count == 0 ? null : periodos.Min(p => p.Ejercicio));
     }
 
     /// <summary>
-    /// El lote vigente está en un trimestre cerrado: es de otro ejercicio o de un trimestre anterior al activo.
-    /// Sin trimestre activo configurado, cuenta el trimestre de hoy.
+    /// El lote vigente está en un trimestre cerrado: es de otro ejercicio o de un trimestre anterior al activo del
+    /// ejercicio de la factura (<see cref="TrimestreContable.Activo"/>).
     /// </summary>
-    internal static bool LoteCerrado(EstadoExportacionCompra estado, ConfiguracionCompras config, DateTime hoy) =>
-        estado.TrimestreLote is int t && (estado.EjercicioLote != hoy.Year || t < (config.TrimestreActivo ?? Trimestre(hoy)));
+    internal static bool LoteCerrado(EstadoExportacionCompra estado, ConfiguracionCompras config, int ejercicio, DateTime hoy) =>
+        estado.DelErp || estado.TrimestreLote is int t && (estado.EjercicioLote != ejercicio || t < TrimestreContable.Activo(config.TrimestreActivo, ejercicio, hoy));
 
     /// <summary>El asiento vigente de la factura es de un trimestre cerrado: deshacer o re-exportar harán contra-asiento.</summary>
     public async Task<bool> TrimestreCerradoAsync(FacturaCompra f)
     {
         var estado = await EstadoAsync(f.IdRegistro);
         var config = await ConfiguracionAsync(f.Ejercicio.IdSociedadEjercicio);
-        return config is not null && LoteCerrado(estado, config, _reloj.Ahora.Date);
+        return config is not null && LoteCerrado(estado, config, f.Ejercicio.Ejercicio, _reloj.Ahora.Date);
     }
 
     // ---------- comprobar ----------
@@ -164,7 +182,9 @@ public sealed class ContabilizadorCompras(IBaseDatos bd, IMotorAsientos motor, I
         return r.Comprobacion;
     }
 
-    private sealed record Preparacion(ComprobacionExportacion Comprobacion, CuentasCompra? Cuentas, ConfiguracionCompras? Config, EstadoExportacionCompra? Estado);
+    /// <param name="PorCrear">Cuentas configuradas en parámetros que aún no existen: se crean al exportar.</param>
+    private sealed record Preparacion(ComprobacionExportacion Comprobacion, CuentasCompra? Cuentas, ConfiguracionCompras? Config, EstadoExportacionCompra? Estado,
+        IReadOnlyList<(string Codigo, string Nombre)>? PorCrear = null);
 
     private async Task<Preparacion> PrepararAsync(FacturaCompra f, OpcionesExportacion opciones)
     {
@@ -174,9 +194,9 @@ public sealed class ContabilizadorCompras(IBaseDatos bd, IMotorAsientos motor, I
 
         var ctx = f.Ejercicio;
         var hoy = _reloj.Ahora.Date;
-        if (ctx.Ejercicio != hoy.Year)
-            return Fallo(new Error("Exportar.OtroEjercicio", $"Hoy es {hoy:dd/MM/yyyy} y la factura es del ejercicio {ctx.Ejercicio}.", registro,
-                "El asiento se fecha hoy y va al ejercicio de hoy (compras/factura-compra/contabilizacion 2026-10-30).", $"Abre el ejercicio {hoy.Year} para exportarla."));
+        if (f.Fecha is { } fp && fp.Year > ctx.Ejercicio)
+            return Fallo(new Error("Exportar.EjercicioPosterior", $"La factura tiene fecha {fp:dd/MM/yyyy}, de un ejercicio posterior al {ctx.Ejercicio}.", registro,
+                "El asiento lleva la fecha de la factura (o el día 1 del trimestre activo, si es anterior), dentro del ejercicio.", $"Expórtala desde el ejercicio {fp.Year} o corrige la fecha."));
         if (f.Fecha is { } ff && ff.Date > hoy)
             return Fallo(new Error("Exportar.FechaFutura", $"La factura tiene fecha {ff:dd/MM/yyyy}, posterior a hoy.", registro, null, "Corrige la fecha."));
 
@@ -188,14 +208,14 @@ public sealed class ContabilizadorCompras(IBaseDatos bd, IMotorAsientos motor, I
             return Fallo(new Error("Exportar.Duplicada", "Esta factura está marcada como duplicada.", registro, null, "Exporta la original."));
 
         var estado = await EstadoAsync(f.IdRegistro);
-        if (f.Contabilizada && estado.IdAsiento is null)
-            return Fallo(new Error("Exportar.DelErp", "Esta factura se contabilizó en el ERP y no se cambia desde aquí.", registro,
-                "Su asiento no lo generó ProContaVF.", "Si hay que corregirla, hazlo con un asiento manual en Contabilidad."));
+        if (estado is { DelErp: true, IdAsiento: null })
+            return Fallo(SinAsientoErp(registro));
 
         var config = await ConfiguracionAsync(ctx.IdSociedadEjercicio);
         if (config is null) return Fallo(new Error("Exportar.SinEjercicio", "No encuentro la configuración del ejercicio.", registro));
         var tipoGeneral = config.TipoGeneralEfectivo;
 
+        var porCrear = new List<(string Codigo, string Nombre)>();
         async Task<string?> Cuenta(string? codigo, string que, string? campo = null, bool obligatoria = true)
         {
             if (string.IsNullOrWhiteSpace(codigo))
@@ -206,6 +226,13 @@ public sealed class ContabilizadorCompras(IBaseDatos bd, IMotorAsientos motor, I
                 return null;
             }
             var c = await cuentas.ResolverAsync(ctx, codigo.Trim());
+            // Una cuenta de los parámetros del ejercicio que no existe se crea al exportar, con el nombre de su parámetro.
+            if (!c.EsCorrecto && campo is null)
+            {
+                var nombre = que.StartsWith("cuenta de ", StringComparison.Ordinal) ? que["cuenta de ".Length..] : que;
+                porCrear.Add((codigo.Trim(), char.ToUpperInvariant(nombre[0]) + nombre[1..]));
+                return codigo.Trim();
+            }
             if (!c.EsCorrecto)
             {
                 errores.Add(new Error("Exportar.CuentaNoExiste", $"La {que} {codigo.Trim()} no existe o no admite apuntes en el ejercicio {ctx.Ejercicio}.", registro, null,
@@ -215,6 +242,8 @@ public sealed class ContabilizadorCompras(IBaseDatos bd, IMotorAsientos motor, I
             return c.Valor.Codigo;
         }
 
+        // Con proveedor pero sin su cuenta en la factura (se reconoció por el NIF), la de su ficha en este ejercicio.
+        if (string.IsNullOrWhiteSpace(f.CuentaContableProveedor) && await CuentaDeLaFichaAsync(f) is { } deFicha) f.CuentaContableProveedor = deFicha;
         var proveedor = await Cuenta(f.CuentaContableProveedor, "cuenta del proveedor", "proveedor");
         var gasto = await Cuenta(f.CuentaGasto, "cuenta de gasto", "gasto");
         var bases = AsientoCompra.Bases(f);
@@ -271,7 +300,7 @@ public sealed class ContabilizadorCompras(IBaseDatos bd, IMotorAsientos motor, I
             else redI = await Cuenta(config.RedondeoIngresos ?? ConfiguracionCompras.RedondeoIngresosDefecto, "cuenta de diferencias de redondeo (ingresos)");
         }
 
-        var cerrado = LoteCerrado(estado, config, hoy);
+        var cerrado = LoteCerrado(estado, config, ctx.Ejercicio, hoy);
         if (errores.Count > 0) return new(new ComprobacionExportacion(errores, PreguntaExportacion.Ninguna, null, cerrado, descuadre), null, config, estado);
 
         var pregunta = PreguntaExportacion.Ninguna;
@@ -286,10 +315,34 @@ public sealed class ContabilizadorCompras(IBaseDatos bd, IMotorAsientos motor, I
             pregunta = PreguntaExportacion.ProveedorOAcreedor;
             explicacion = TextoProveedorOAcreedor;
         }
+        var nombreGasto = (await cuentas.ResolverAsync(ctx, gasto!)) is { EsCorrecto: true } g ? g.Valor.Nombre : null;
         var cuentasCompra = new CuentasCompra(proveedor!, gasto!, f.IdCentroCoste, iva, retencion, autoS, autoR, importacion, suplido,
-            redG ?? "", redI ?? "", tipoGeneral ?? 0m);
-        return new(new ComprobacionExportacion([], pregunta, explicacion, cerrado, descuadre), cuentasCompra, config, estado);
+            redG ?? "", redI ?? "", tipoGeneral ?? 0m, await NombreProveedorAsync(f), nombreGasto);
+        return new(new ComprobacionExportacion([], pregunta, explicacion, cerrado, descuadre), cuentasCompra, config, estado, porCrear);
     }
+
+    /// <summary>La cuenta de acreedor (o, si no tiene, de proveedor) de la ficha del proveedor en el ejercicio de la factura.</summary>
+    private async Task<string?> CuentaDeLaFichaAsync(FacturaCompra f)
+    {
+        if (f.IdProveedor is not int id) return null;
+        var tercero = await bd.EjecutarAsync(s => s.EscalarAsync("SELECT IdTercero FROM Proveedores WHERE IdProveedor = ?", id));
+        if (tercero is null or DBNull) return null;
+        var c = await roles.CuentasAsync(Convert.ToInt32(tercero, CultureInfo.InvariantCulture), f.Ejercicio);
+        return new[] { c.Acreedor, c.Proveedor }.FirstOrDefault(x => x is { ExisteEnEjercicio: true })?.Codigo;
+    }
+
+    /// <summary>Nombre del proveedor para las descripciones: el comercial, si no la razón social (o el nombre leído, o la carpeta).</summary>
+    private Task<string?> NombreProveedorAsync(FacturaCompra f) => bd.EjecutarAsync(async s =>
+    {
+        var t = await s.ConsultarPrimeroAsync(
+            "SELECT t.NombreComercial, t.RazonSocial, t.Nombre FROM Proveedores AS p INNER JOIN Terceros AS t ON p.IdTercero = t.IdTercero WHERE p.IdProveedor = ?",
+            r => (Comercial: r.Texto("NombreComercial"), Razon: r.Texto("RazonSocial"), Nombre: r.Texto("Nombre")), f.IdProveedor ?? 0);
+        return new[] { t.Comercial, t.Razon, t.Nombre, f.NombreProveedorAeat, f.Carpeta }.FirstOrDefault(x => !string.IsNullOrWhiteSpace(x))?.Trim();
+    });
+
+    private static Error SinAsientoErp(string registro) => new("Exportar.SinAsientoErp", "No encuentro el asiento del ERP de esta factura.", registro,
+        "Lo busco por el número de factura y la cuenta del proveedor grabados, en el apunte del proveedor que lleva el documento.",
+        "Revisa el asiento en Contabilidad; si no existe, corrige la factura con un asiento manual.");
 
     public const string TextoProveedorOAcreedor =
         "Es la primera factura que se exporta de este acreedor (cuenta 410). Un proveedor (400) es quien te vende lo que forma parte de tu actividad: " +
@@ -298,7 +351,7 @@ public sealed class ContabilizadorCompras(IBaseDatos bd, IMotorAsientos motor, I
 
     /// <summary>Primera exportación de un acreedor: su cuenta es una 410 sin apuntes y no tiene otras facturas exportadas.</summary>
     private Task<bool> EsPrimeraDeAcreedorAsync(FacturaCompra f, string cuentaProveedor) =>
-        f.ExportadaAqui || !cuentaProveedor.StartsWith(CuentaAcreedores, StringComparison.Ordinal) || f.IdProveedor is null
+        f.Contabilizada || !cuentaProveedor.StartsWith(CuentaAcreedores, StringComparison.Ordinal) || f.IdProveedor is null
             ? Task.FromResult(false)
             : bd.EjecutarAsync(async s =>
             {
@@ -308,6 +361,46 @@ public sealed class ContabilizadorCompras(IBaseDatos bd, IMotorAsientos motor, I
                     f.IdProveedor, f.Ejercicio.IdSociedadEjercicio, f.IdRegistro);
                 return Convert.ToInt32(otras, CultureInfo.InvariantCulture) == 0;
             });
+
+    // ---------- propuesta ----------
+
+    /// <summary>
+    /// Asiento que generaría exportar la factura, sin grabar nada (compras/pantallas 2026-11-07): la misma fecha, cuentas y
+    /// apuntes que al exportar. Si algo impide exportarla, el mensaje lo dice y no hay asiento; si al exportar habrá que
+    /// responder algo (motivo del ajuste, proveedor o acreedor) o se crearán cuentas, el mensaje lo avisa.
+    /// </summary>
+    public async Task<(AsientoFactura? Asiento, string? Mensaje)> ProponerAsync(FacturaCompra f)
+    {
+        ArgumentNullException.ThrowIfNull(f);
+        var validacion = f.Validar();
+        if (!validacion.EsCorrecto) return (null, "Para exportarla: " + string.Join(" ", validacion.Errores.Select(e => e.Mensaje)));
+        var prep = await PrepararAsync(f, new OpcionesExportacion());
+        var comp = prep.Comprobacion;
+        if (!comp.Lista) return (null, "Aún no se puede exportar: " + string.Join(" ", comp.Errores.Select(e => e.AccionCorrectora is { } a ? $"{e.Mensaje} {a}" : e.Mensaje)));
+        var avisos = new List<string>();
+        string? motivo = null;
+        if (comp.Pregunta == PreguntaExportacion.MotivoAjuste)
+        {
+            motivo = "propuesta";
+            avisos.Add($"Descuadra {Math.Abs(comp.Descuadre):0.00} €: al exportar te pediré el motivo del ajuste.");
+        }
+        else if (comp.Pregunta == PreguntaExportacion.ProveedorOAcreedor) avisos.Add("Al exportar te preguntaré si es proveedor (400) o acreedor (410).");
+        var hoy = _reloj.Ahora.Date;
+        var config = prep.Config!;
+        var ejercicio = f.Ejercicio.Ejercicio;
+        var fecha = TrimestreContable.FechaAsiento(f.Fecha!.Value, ejercicio, TrimestreContable.Activo(config.TrimestreActivo, ejercicio, hoy));
+        if (AsientoCompra.Construir(f, f.Ejercicio, prep.Cuentas!, fecha, motivo) is not { } propuesta) return (null, AsientoCompra.ExplicarDescuadre(f));
+        var porCrear = (prep.PorCrear ?? []).ToDictionary(c => c.Codigo, c => c.Nombre, StringComparer.Ordinal);
+        if (porCrear.Count > 0) avisos.Add($"Al exportar se crea{(porCrear.Count == 1 ? "" : "n")} {string.Join(", ", porCrear.Select(c => $"{c.Key} «{c.Value}»"))}.");
+        if (prep.Estado is { Exportada: true }) avisos.Add("Ya está exportada: este sería el asiento al re-exportar.");
+        var nombres = new Dictionary<string, string?>(StringComparer.Ordinal);
+        foreach (var codigo in propuesta.Asiento.Apuntes.Select(a => a.CodigoCuenta).Distinct())
+            nombres[codigo] = porCrear.TryGetValue(codigo, out var n) ? $"{n} (se creará)"
+                : (await cuentas.ResolverAsync(f.Ejercicio, codigo)) is { EsCorrecto: true } c ? c.Valor.Nombre : null;
+        var apuntes = propuesta.Asiento.Apuntes
+            .Select(a => new ApunteFactura(a.CodigoCuenta, nombres.GetValueOrDefault(a.CodigoCuenta), a.Debe.Valor, a.Haber.Valor, a.Descripcion)).ToList();
+        return (new AsientoFactura(0, propuesta.Asiento.FechaContable, propuesta.Asiento.Descripcion, apuntes), avisos.Count == 0 ? null : string.Join(" ", avisos));
+    }
 
     // ---------- exportar ----------
 
@@ -331,6 +424,13 @@ public sealed class ContabilizadorCompras(IBaseDatos bd, IMotorAsientos motor, I
                 opciones.Masiva ? "Necesita una respuesta del operador: queda pendiente de exportar." : comp.Explicacion ?? "", registro, comp.Explicacion,
                 "Expórtala sola para responder."));
 
+        var creadas = new List<string>();
+        foreach (var (codigo, nombre) in (prep.PorCrear ?? []).Distinct())
+        {
+            var creada = await cuentas.AltaSubcuentaAsync(f.Ejercicio, codigo, nombre);
+            if (!creada.EsCorrecto) return Resultado<ResultadoExportacionCompra>.Fallo(creada.Errores);
+            creadas.Add($"{creada.Valor.Codigo} «{creada.Valor.Nombre}»");
+        }
         string? cuentaNueva = null;
         var cuentasCompra = prep.Cuentas!;
         if (opciones.EsProveedor == true && cuentasCompra.Proveedor.StartsWith(CuentaAcreedores, StringComparison.Ordinal))
@@ -344,13 +444,16 @@ public sealed class ContabilizadorCompras(IBaseDatos bd, IMotorAsientos motor, I
         }
 
         var hoy = _reloj.Ahora.Date;
-        var propuesta = AsientoCompra.Construir(f, f.Ejercicio, cuentasCompra, hoy, opciones.MotivoAjuste);
+        var config = prep.Config!;
+        var ejercicio = f.Ejercicio.Ejercicio;
+        var activo = TrimestreContable.Activo(config.TrimestreActivo, ejercicio, hoy);
+        var fecha = TrimestreContable.FechaAsiento(f.Fecha!.Value, ejercicio, activo);
+        var propuesta = AsientoCompra.Construir(f, f.Ejercicio, cuentasCompra, fecha, opciones.MotivoAjuste);
         if (propuesta is null)
             return Resultado<ResultadoExportacionCompra>.Fallo(new Error("Exportar.NecesitaMotivo", AsientoCompra.ExplicarDescuadre(f), registro));
 
         var estado = prep.Estado!;
-        var config = prep.Config!;
-        var cerrado = LoteCerrado(estado, config, hoy);
+        var cerrado = LoteCerrado(estado, config, ejercicio, hoy);
         var generacion = estado.Generacion;
         var anulado = estado.IdAsientoAnulado;
         if (cerrado)
@@ -362,7 +465,7 @@ public sealed class ContabilizadorCompras(IBaseDatos bd, IMotorAsientos motor, I
         var libros = new List<LibroCompra>();
         if (anulado is int idAnulado)
         {
-            var contra = await ContraAsync(idAnulado, f, hoy);
+            var contra = await ContraAsync(idAnulado, f, activo);
             if (!contra.EsCorrecto) return Resultado<ResultadoExportacionCompra>.Fallo(contra.Errores);
             asientos.Add(contra.Valor.Asiento);
             libros.Add(contra.Valor.Libro);
@@ -370,7 +473,6 @@ public sealed class ContabilizadorCompras(IBaseDatos bd, IMotorAsientos motor, I
         asientos.Add(propuesta.Asiento);
         libros.Add(propuesta.Libro);
 
-        var trimestre = config.TrimestreActivo ?? Trimestre(hoy);
         var lote = AsientoCompra.Lote(f.IdRegistro, generacion);
         var reexportando = estado.Exportada;
         var motivo = reexportando ? $"Re-exportar la {registro.ToLowerInvariant()}" : $"Exportar la {registro.ToLowerInvariant()}";
@@ -384,9 +486,14 @@ public sealed class ContabilizadorCompras(IBaseDatos bd, IMotorAsientos motor, I
                     if (!guardada.EsCorrecto) return Resultado.Fallo(guardada.Errores);
                     f.Version = guardada.Valor;
                 }
-                var periodo = await PeriodoAsync(s, f.Ejercicio.IdSociedadEjercicio, f.Ejercicio.Ejercicio, trimestre);
+                // Cada registro del libro va al trimestre de la fecha de su asiento.
                 for (var i = 0; i < ids.Count; i++)
+                {
+                    // El asiento del ERP puede no tener registro en el libro: su contra-asiento tampoco lo lleva.
+                    if (libros[i].Vacio) continue;
+                    var periodo = await PeriodoAsync(s, f.Ejercicio.IdSociedadEjercicio, ejercicio, TrimestreContable.De(asientos[i].FechaContable));
                     await GrabarLibroAsync(s, f, ids[i], periodo, libros[i], actor, i < ids.Count - 1);
+                }
                 await MarcarAsync(s, f.IdRegistro, true, generacion, ids[^1], anulado, _reloj.Ahora);
                 return Resultado.Correcto();
             }));
@@ -394,11 +501,14 @@ public sealed class ContabilizadorCompras(IBaseDatos bd, IMotorAsientos motor, I
         f.Contabilizada = true;
         var idAsiento = r.Valor[^1];
         int? idContra = r.Valor.Count > 1 ? r.Valor[0] : null;
-        var aviso = idContra is int ic && cerrado
-            ? $"El asiento anterior es de un trimestre cerrado: queda como estaba y he hecho el contra-asiento {ic} y el asiento nuevo {idAsiento} en el trimestre {trimestre}."
-            : reexportando ? $"Asiento {idAsiento} regenerado con los cambios." : $"Exportada: asiento {idAsiento}.";
+        var aviso = idContra is int ic && estado.DelErp
+            ? $"El asiento {estado.IdAsiento} es del ERP: queda como estaba y he hecho el contra-asiento {ic} ({Nombre(asientos[0].FechaContable)}) y el asiento nuevo {idAsiento} ({Nombre(fecha)})."
+            : idContra is int ic2 && cerrado
+            ? $"El asiento anterior es de un trimestre cerrado: queda como estaba y he hecho el contra-asiento {ic2} ({Nombre(asientos[0].FechaContable)}) y el asiento nuevo {idAsiento} ({Nombre(fecha)})."
+            : reexportando ? $"Asiento {idAsiento} actualizado con los cambios, con fecha {fecha:dd/MM/yyyy}." : $"Exportada: asiento {idAsiento}, con fecha {fecha:dd/MM/yyyy}.";
         if (propuesta.Descuadre != 0m) aviso += $" Lleva un ajuste de {Math.Abs(propuesta.Descuadre):0.00} € a la cuenta de redondeo.";
         if (cuentaNueva is not null) aviso += $" El proveedor pasa a la cuenta {cuentaNueva}.";
+        if (creadas.Count > 0) aviso += $" He creado {(creadas.Count == 1 ? "la cuenta" : "las cuentas")} {string.Join(", ", creadas)}, que estaba{(creadas.Count == 1 ? "" : "n")} en los parámetros del ejercicio.";
         return Resultado<ResultadoExportacionCompra>.Correcto(new ResultadoExportacionCompra(idAsiento, idContra, aviso, cuentaNueva));
     }
 
@@ -414,21 +524,17 @@ public sealed class ContabilizadorCompras(IBaseDatos bd, IMotorAsientos motor, I
         var registro = f.Rotulo;
         var estado = await EstadoAsync(f.IdRegistro);
         if (estado.IdAsiento is not int actual)
-            return Resultado<ResultadoExportacionCompra>.Fallo(f.Contabilizada
-                ? new Error("Deshacer.DelErp", "Esta factura se contabilizó en el ERP y no se deshace desde aquí.", registro, null, "Corrígela con un asiento manual en Contabilidad.")
-                : new Error("Deshacer.NoExportada", "La factura no está exportada.", registro));
+            return Resultado<ResultadoExportacionCompra>.Fallo(estado.DelErp ? SinAsientoErp(registro) : new Error("Deshacer.NoExportada", "La factura no está exportada.", registro));
         var config = await ConfiguracionAsync(f.Ejercicio.IdSociedadEjercicio);
         if (config is null) return Resultado<ResultadoExportacionCompra>.Fallo(new Error("Exportar.SinEjercicio", "No encuentro la configuración del ejercicio.", registro));
         var hoy = _reloj.Ahora.Date;
-        var cerrado = LoteCerrado(estado, config, hoy);
-        if (cerrado && f.Ejercicio.Ejercicio != hoy.Year)
-            return Resultado<ResultadoExportacionCompra>.Fallo(new Error("Deshacer.OtroEjercicio", $"El asiento es del ejercicio {f.Ejercicio.Ejercicio} y hoy es {hoy:dd/MM/yyyy}.", registro,
-                "El contra-asiento se fecha hoy y va al ejercicio de hoy.", "Corrígelo con un asiento manual en el ejercicio que corresponda."));
+        var ejercicio = f.Ejercicio.Ejercicio;
+        var activo = TrimestreContable.Activo(config.TrimestreActivo, ejercicio, hoy);
+        var cerrado = LoteCerrado(estado, config, ejercicio, hoy);
 
         var generacion = cerrado ? estado.Generacion + 1 : estado.Generacion;
         var anulado = cerrado ? actual : estado.IdAsientoAnulado;
         var lote = AsientoCompra.Lote(f.IdRegistro, generacion);
-        var trimestre = config.TrimestreActivo ?? Trimestre(hoy);
         var motivo = $"Deshacer la exportación de la {registro.ToLowerInvariant()}";
         if (anulado is not int idAnulado)
         {
@@ -439,38 +545,48 @@ public sealed class ContabilizadorCompras(IBaseDatos bd, IMotorAsientos motor, I
             f.Contabilizada = false;
             return Resultado<ResultadoExportacionCompra>.Correcto(new ResultadoExportacionCompra(null, null, $"Exportación deshecha: he borrado el asiento {actual}."));
         }
-        var contra = await ContraAsync(idAnulado, f, hoy);
+        var contra = await ContraAsync(idAnulado, f, activo);
         if (!contra.EsCorrecto) return Resultado<ResultadoExportacionCompra>.Fallo(contra.Errores);
         var r = await motor.ReemplazarLoteAsync(f.Ejercicio, lote, [contra.Valor.Asiento], actor, motivo, new TrabajoLote(
             Antes: BorrarLibroAsync,
             Despues: async (s, ids) =>
             {
-                var periodo = await PeriodoAsync(s, f.Ejercicio.IdSociedadEjercicio, f.Ejercicio.Ejercicio, trimestre);
-                await GrabarLibroAsync(s, f, ids[0], periodo, contra.Valor.Libro, actor, anulacion: true);
+                if (!contra.Valor.Libro.Vacio)
+                {
+                    var periodo = await PeriodoAsync(s, f.Ejercicio.IdSociedadEjercicio, ejercicio, TrimestreContable.De(contra.Valor.Asiento.FechaContable));
+                    await GrabarLibroAsync(s, f, ids[0], periodo, contra.Valor.Libro, actor, anulacion: true);
+                }
                 await MarcarAsync(s, f.IdRegistro, false, generacion, null, idAnulado, null);
                 return Resultado.Correcto();
             }));
         if (!r.EsCorrecto) return Resultado<ResultadoExportacionCompra>.Fallo(r.Errores);
         f.Contabilizada = false;
-        var texto = cerrado
-            ? $"El asiento {actual} es de un trimestre cerrado: queda como estaba y he hecho el contra-asiento {r.Valor[0]} en el trimestre {trimestre}."
+        var texto = estado.DelErp
+            ? $"El asiento {actual} es del ERP: queda como estaba y he hecho el contra-asiento {r.Valor[0]} ({Nombre(contra.Valor.Asiento.FechaContable)}). La factura vuelve a Pendientes."
+            : cerrado
+            ? $"El asiento {actual} es de un trimestre cerrado: queda como estaba y he hecho el contra-asiento {r.Valor[0]} ({Nombre(contra.Valor.Asiento.FechaContable)})."
             : $"Exportación deshecha: he quitado el asiento {actual}; queda el contra-asiento {r.Valor[0]} del asiento {idAnulado}, que es de un trimestre cerrado.";
         return Resultado<ResultadoExportacionCompra>.Correcto(new ResultadoExportacionCompra(null, r.Valor[0], texto));
     }
 
     // ---------- piezas ----------
 
-    private async Task<Resultado<(Asiento Asiento, LibroCompra Libro)>> ContraAsync(int idAsiento, FacturaCompra f, DateTime hoy)
+    /// <summary>Contra-asiento con la fecha del original, o el día 1 del trimestre activo si es anterior.</summary>
+    private async Task<Resultado<(Asiento Asiento, LibroCompra Libro)>> ContraAsync(int idAsiento, FacturaCompra f, int trimestreActivo)
     {
         var original = await motor.ObtenerAsync(idAsiento);
         if (original is null)
             return Resultado<(Asiento, LibroCompra)>.Fallo(new Error("Exportar.SinAsientoAnterior", $"No encuentro el asiento {idAsiento} de la factura.", f.Rotulo, null,
                 "Revisa el asiento en Contabilidad."));
-        var libro = await bd.EjecutarAsync(s => LeerLibroAsync(s, idAsiento));
-        return Resultado<(Asiento, LibroCompra)>.Correcto((AsientoCompra.Contra(original, f.Ejercicio, hoy, f.Rotulo), libro.Negado()));
+        var libro = await bd.EjecutarAsync(s => LeerLibroAsync(s, idAsiento, f));
+        var fecha = TrimestreContable.FechaAsiento(original.FechaContable, f.Ejercicio.Ejercicio, trimestreActivo);
+        return Resultado<(Asiento, LibroCompra)>.Correcto((AsientoCompra.Contra(original, f.Ejercicio, fecha, f.Rotulo), libro.Negado()));
     }
 
-    /// <summary>Pasa el acreedor a proveedor: siguiente subcuenta libre de la 400 con el mismo nombre, y cambia la cuenta en sus facturas pendientes.</summary>
+    /// <summary>
+    /// Pasa el acreedor a proveedor: la 410 sin apuntes cambia de código a la siguiente subcuenta libre de la 400; si tiene
+    /// apuntes, se crea esa 400 con el mismo nombre. La cuenta cambia también en sus facturas pendientes.
+    /// </summary>
     private async Task<Resultado<string>> PasarAProveedorAsync(FacturaCompra f, string cuenta410)
     {
         var ctx = f.Ejercicio;
@@ -479,15 +595,24 @@ public sealed class ContabilizadorCompras(IBaseDatos bd, IMotorAsientos motor, I
         var codigo = await cuentas.SiguienteSubcuentaAsync(ctx, CuentaProveedores);
         if (codigo is null)
             return Resultado<string>.Fallo(new Error("Exportar.SinCodigos400", "No quedan códigos libres en la cuenta 400.", f.Rotulo, null, "Asígnale la cuenta a mano en la ficha del tercero."));
-        var padre = await cuentas.ResolverAsync(ctx, CuentaProveedores);
-        var alta = await cuentas.AltaAsync(ctx, new AltaCuenta(codigo, antigua.Valor.Nombre, padre.EsCorrecto ? padre.Valor.IdCuentaContable : null));
-        if (!alta.EsCorrecto) return Resultado<string>.Fallo(alta.Errores);
+        // Sin apuntes en ningún ejercicio, la 410 cambia de código y pasa a ser la 400: no queda una subcuenta sin usar
+        // (propietario 2026-11-07 11:59). Con apuntes, se crea una 400 nueva con el mismo nombre.
+        var alta = await cuentas.CambiarCodigoSinApuntesAsync(ctx, antigua.Valor.IdIdentidadContable, codigo);
+        var renombrada = alta.EsCorrecto;
+        if (!renombrada)
+        {
+            var padre = await cuentas.ResolverAsync(ctx, CuentaProveedores);
+            alta = await cuentas.AltaAsync(ctx, new AltaCuenta(codigo, antigua.Valor.Nombre, padre.EsCorrecto ? padre.Valor.IdCuentaContable : null));
+            if (!alta.EsCorrecto) return Resultado<string>.Fallo(alta.Errores);
+        }
         var asignada = await roles.AsignarCuentaAsync(ClaseCuentaRol.Proveedor, f.IdProveedor!.Value, ctx.IdSociedad, alta.Valor.IdIdentidadContable);
         if (!asignada.EsCorrecto) return Resultado<string>.Fallo(asignada.Errores);
         await roles.AsignarCuentaAsync(ClaseCuentaRol.Acreedor, f.IdProveedor!.Value, ctx.IdSociedad, null);
         await bd.EjecutarAsync(s => s.EjecutarAsync(
-            "UPDATE FacturasCompra SET CuentaContableProveedor = ? WHERE IdProveedor = ? AND IdSociedadEjercicio = ? AND CuentaContableProveedor = ? AND Exportada = False AND IdRegistro <> ?",
-            alta.Valor.Codigo, f.IdProveedor, ctx.IdSociedadEjercicio, cuenta410, f.IdRegistro));
+            // Renombrada, el código cambia en todos los ejercicios; si no, solo en este.
+            "UPDATE FacturasCompra SET CuentaContableProveedor = ? WHERE IdProveedor = ? AND CuentaContableProveedor = ? AND Exportada = False AND IdRegistro <> ?" +
+            (renombrada ? "" : " AND IdSociedadEjercicio = " + ctx.IdSociedadEjercicio.ToString(CultureInfo.InvariantCulture)),
+            alta.Valor.Codigo, f.IdProveedor, cuenta410, f.IdRegistro));
         return Resultado<string>.Correcto(alta.Valor.Codigo);
     }
 
@@ -556,13 +681,14 @@ public sealed class ContabilizadorCompras(IBaseDatos bd, IMotorAsientos motor, I
         await s.EjecutarAsync(
             "INSERT INTO IVASoportado (IdSociedadEjercicio, IdProveedor, IdAsiento, FechaExpedicion, FechaOperacion, FechaHoraRegistroContable, IdPeriodoIVA, NumeroFactura, " +
             "NombreProveedor, IdentificacionFiscalProveedor, PaisProveedor, IdTipoOperacion, TipoBienServicio, InversionSujetoPasivo, ImporteTotalFactura, BaseImponibleTotal, " +
-            "CuotaSoportadaTotal, CuotaDevengadaAutorrepercutidaTotal, CuotaDeducibleTotal, IncluidoModelo347, Estado, Descripcion, OperadorCreacion, FechaHoraCreacion) " +
-            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            "CuotaSoportadaTotal, CuotaDevengadaAutorrepercutidaTotal, CuotaDeducibleTotal, IncluidoModelo347, Estado, Descripcion, OperadorCreacion, FechaHoraCreacion, BienInversion) " +
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
             f.Ejercicio.IdSociedadEjercicio, f.IdProveedor, idAsiento, fecha, fecha, ahora, idPeriodo, Recortar(f.NumeroFactura, 100),
             Recortar(nombreProveedor, 150), Recortar(nif, 30), pais, tipo, f.Producto == ProductoCompra.Servicios ? "SERVICIOS" : "BIENES", f.InversionSujetoPasivo,
             libro.Total, libro.Base, libro.CuotaSoportada, libro.CuotaAutorrepercutida, libro.CuotaDeducible,
-            f.Operacion == OperacionCompra.Nacional && f.ClaseRetencion != ClaseRetencion.Arrendamientos,
-            anulacion ? "ANULACION" : "REGISTRADO", anulacion ? $"Anulación de la {f.Rotulo.ToLowerInvariant()}" : f.Concepto, actor.ToString(), ahora);
+            // Modelo 347: nacionales sin retención (las que la llevan se declaran en el 190 o el 180).
+            f.Operacion == OperacionCompra.Nacional && (f.ImporteRetencion ?? 0m) == 0m,
+            anulacion ? "ANULACION" : "REGISTRADO", anulacion ? $"Anulación de la {f.Rotulo.ToLowerInvariant()}" : f.Concepto, actor.ToString(), ahora, libro.BienInversion);
         var idLibro = await s.UltimoIdAsync();
         var orden = 1;
         var calificacion = f.InversionSujetoPasivo || f.Operacion == OperacionCompra.Intracomunitaria ? "S2" : "S1";
@@ -579,11 +705,28 @@ public sealed class ContabilizadorCompras(IBaseDatos bd, IMotorAsientos motor, I
         }
     }
 
-    /// <summary>Registro del libro de un asiento, para su contra-asiento.</summary>
-    private static async Task<LibroCompra> LeerLibroAsync(ISesionDatos s, int idAsiento)
+    /// <summary>
+    /// Registro del libro de un asiento, para su contra-asiento. Los registros del ERP no suelen tener IdAsiento: si no hay
+    /// ninguno enlazado, se busca el de la factura sin asiento por su número y su proveedor en el ejercicio.
+    /// </summary>
+    private static async Task<LibroCompra> LeerLibroAsync(ISesionDatos s, int idAsiento, FacturaCompra factura)
     {
-        var cabecera = await s.ConsultarPrimeroAsync("SELECT IdIVASoportado, ImporteTotalFactura FROM IVASoportado WHERE IdAsiento = ?",
-            f => (Id: f.Entero("IdIVASoportado"), Total: f.Decimal("ImporteTotalFactura")), idAsiento);
+        var cabecera = await s.ConsultarPrimeroAsync("SELECT IdIVASoportado, ImporteTotalFactura, BienInversion FROM IVASoportado WHERE IdAsiento = ?",
+            f => (Id: f.Entero("IdIVASoportado"), Total: f.Decimal("ImporteTotalFactura"), Bien: f.Logico("BienInversion")), idAsiento);
+        var idProveedor = factura.IdProveedor ?? await RepositorioFacturasCompra.ProveedorDeErpAsync(s, factura);
+        if (cabecera.Id == 0 && idProveedor is int prov && !string.IsNullOrWhiteSpace(factura.NumeroFactura))
+            cabecera = await s.ConsultarPrimeroAsync(
+                "SELECT TOP 1 IdIVASoportado, ImporteTotalFactura, BienInversion FROM IVASoportado WHERE IdAsiento Is Null AND IdProveedor = ? AND Trim(NumeroFactura) = ? " +
+                "AND (IdSociedadEjercicio = ? OR IdSociedadEjercicio Is Null) ORDER BY IdIVASoportado",
+                f => (Id: f.Entero("IdIVASoportado"), Total: f.Decimal("ImporteTotalFactura"), Bien: f.Logico("BienInversion")),
+                prov, factura.NumeroFactura.Trim(), factura.Ejercicio.IdSociedadEjercicio);
+        // El ERP puede haber grabado el número de otra forma: el mismo proveedor, la misma fecha y el mismo total.
+        if (cabecera.Id == 0 && idProveedor is int prov2 && factura.Fecha is DateTime fecha && factura.ImporteTotal is decimal total)
+            cabecera = await s.ConsultarPrimeroAsync(
+                "SELECT TOP 1 IdIVASoportado, ImporteTotalFactura, BienInversion FROM IVASoportado WHERE IdAsiento Is Null AND IdProveedor = ? AND FechaExpedicion = ? " +
+                "AND ImporteTotalFactura = ? AND (IdSociedadEjercicio = ? OR IdSociedadEjercicio Is Null) ORDER BY IdIVASoportado",
+                f => (Id: f.Entero("IdIVASoportado"), Total: f.Decimal("ImporteTotalFactura"), Bien: f.Logico("BienInversion")),
+                prov2, fecha.Date, total, factura.Ejercicio.IdSociedadEjercicio);
         if (cabecera.Id == 0) return new LibroCompra(0m, []);
         var tramos = await s.ConsultarAsync(
             "SELECT d.TipoIVA, d.BaseImponible, d.CuotaSoportada, d.CuotaDevengadaAutorrepercutida, cs.Codigo AS CuentaS, cr.Codigo AS CuentaR " +
@@ -591,7 +734,7 @@ public sealed class ContabilizadorCompras(IBaseDatos bd, IMotorAsientos motor, I
             "LEFT JOIN CuentasContables AS cr ON d.IdCuentaIVARepercutido = cr.IdCuentaContable WHERE d.IdIVASoportado = ? ORDER BY d.Orden",
             f => new TramoLibroCompra(f.Decimal("TipoIVA"), f.Decimal("BaseImponible"), f.Decimal("CuotaSoportada"), f.Decimal("CuotaDevengadaAutorrepercutida"),
                 f.Texto("CuentaS"), f.Texto("CuentaR")), cabecera.Id);
-        return new LibroCompra(cabecera.Total, tramos);
+        return new LibroCompra(cabecera.Total, tramos, cabecera.Bien);
     }
 
     private static string? Recortar(string? texto, int maximo) => texto is null ? null : texto.Length <= maximo ? texto : texto[..maximo];

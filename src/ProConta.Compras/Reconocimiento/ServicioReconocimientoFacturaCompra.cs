@@ -13,6 +13,17 @@ public sealed class ConfiguracionReconocimiento
     public bool UsarOcr { get; init; }
     public decimal UmbralAceptacion { get; init; } = 0.9m;
     public decimal UmbralDiscrepanciaImporte { get; init; } = 0.02m;
+    /// <summary>Claves de AWS de la sociedad, ya descifradas; null si no tiene (se usa el perfil del puesto).</summary>
+    public CredencialesOcr? CredencialesOcr { get; init; }
+    /// <summary>Por qué las claves guardadas no valen (por ejemplo, no se pueden descifrar); null si valen o no hay.</summary>
+    public string? MotivoCredencialesOcr { get; init; }
+}
+
+/// <summary>Claves de AWS para el OCR (compras/reconocimiento 2026-11-07), guardadas cifradas en la configuración de la sociedad.</summary>
+public sealed record CredencialesOcr(string Region, string ClaveAcceso, string Secreto)
+{
+    /// <summary>Sin el secreto, para que no aparezca en registros ni depuración.</summary>
+    public override string ToString() => $"{ClaveAcceso} ({Region})";
 }
 
 /// <summary>Lo que el reconocimiento necesita saber del proveedor y de la sociedad, ya cargado.</summary>
@@ -24,6 +35,11 @@ public sealed class ContextoProcesamiento
     public int FacturasAceptadasProveedor { get; init; }
     /// <summary>Plantillas de campo del proveedor de la carpeta, de más a menos aciertos.</summary>
     public IReadOnlyList<PlantillaCampo> Plantillas { get; init; } = [];
+    /// <summary>
+    /// Plantillas de la empresa por NIF del proveedor (solo letras y dígitos, en mayúsculas): se aplican cuando el NIF ya
+    /// se ha leído, también a un PDF de otra carpeta o de la raíz (compras/reconocimiento 2026-11-07).
+    /// </summary>
+    public IReadOnlyDictionary<string, IReadOnlyList<PlantillaCampo>> PlantillasPorNif { get; init; } = new Dictionary<string, IReadOnlyList<PlantillaCampo>>();
 }
 
 /// <summary>Resultado final del reconocimiento de un PDF, listo para registrar o para mostrar en el modo «Probar».</summary>
@@ -53,9 +69,32 @@ public sealed class FacturaReconocida
 public sealed class ServicioReconocimientoFacturaCompra(
     IExtractorDocumentoFacturaCompra extractorLocal,
     IExtractorOcrFacturaCompra? extractorOcr = null,
-    IProveedorTiposCambioHistoricos? tiposCambio = null)
+    IProveedorTiposCambioHistoricos? tiposCambio = null,
+    string? motivoSinOcr = null,
+    Func<CredencialesOcr, IExtractorOcrFacturaCompra>? ocrConCredenciales = null)
 {
     private readonly MotorReconocimientoFacturaCompra _motor = new();
+    private readonly object _bloqueo = new();
+    private (CredencialesOcr Credenciales, IExtractorOcrFacturaCompra Extractor)? _ocrSociedad;
+
+    /// <summary>
+    /// El OCR que toca: con las claves de la sociedad si las tiene; si no, el del perfil de AWS del puesto. Se reutiliza
+    /// mientras las claves no cambien.
+    /// </summary>
+    private IExtractorOcrFacturaCompra? Ocr(ConfiguracionReconocimiento configuracion)
+    {
+        if (configuracion.CredencialesOcr is not { } c || ocrConCredenciales is null) return extractorOcr;
+        lock (_bloqueo)
+        {
+            if (_ocrSociedad is { } actual && actual.Credenciales == c) return actual.Extractor;
+            var nuevo = ocrConCredenciales(c);
+            _ocrSociedad = (c, nuevo);
+            return nuevo;
+        }
+    }
+
+    private string MotivoSinOcr(ConfiguracionReconocimiento c) =>
+        (c.MotivoCredencialesOcr ?? motivoSinOcr) is { Length: > 0 } m ? $" ({m.TrimEnd('.')})" : "";
 
     public async Task<FacturaReconocida> ReconocerAsync(string rutaPdf, ContextoProcesamiento contexto, CancellationToken cancelacion = default)
     {
@@ -74,19 +113,24 @@ public sealed class ServicioReconocimientoFacturaCompra(
 
         if (local.RequiereOcr)
         {
-            if (contexto.Configuracion.Activo && contexto.Configuracion.UsarOcr && extractorOcr is not null)
+            var ocr = Ocr(contexto.Configuracion);
+            if (contexto.Configuracion.Activo && contexto.Configuracion.UsarOcr && ocr is not null)
             {
                 razonOcr = "pdf_sin_texto_nativo";
-                documento = await extractorOcr.ExtraerAsync(rutaPdf, cancelacion).ConfigureAwait(false);
+                documento = await ocr.ExtraerAsync(rutaPdf, cancelacion).ConfigureAwait(false);
                 elegido = _motor.Reconocer(documento, contexto.Reconocimiento);
                 fuente = "ocr";
                 advertencias = [.. elegido.Advertencias, "Leído con OCR porque el PDF no tiene texto nativo."];
             }
-            else advertencias.Add("El OCR no está activo para esta sociedad: rellena los campos a mano.");
+            else advertencias.Add(contexto.Configuracion.Activo && contexto.Configuracion.UsarOcr && ocr is null
+                ? $"El PDF no tiene texto y el OCR no tiene claves de AWS{MotivoSinOcr(contexto.Configuracion)}: guárdalas en Mantenimientos › Reconocimiento de facturas de compra o rellena los campos a mano."
+                : "El OCR no está activo para esta sociedad: rellena los campos a mano.");
         }
 
         elegido.Advertencias = advertencias;
+        // Dos pasos: las de la carpeta (que pueden leer el NIF) y después las del NIF leído, que mandan.
         AplicarPlantillas(documento, elegido, contexto.Plantillas);
+        if (PlantillasDelNif(contexto, elegido.NifProveedor) is { Count: > 0 } delNif) AplicarPlantillas(documento, elegido, delNif);
 
         if (elegido.RequiereConversionDivisa)
         {
@@ -155,16 +199,28 @@ public sealed class ServicioReconocimientoFacturaCompra(
                     // Los importes solo pasan a 1 si la base y la cuota leídas cuadran con ese total.
                     if (r.BaseImponible is { } b && r.CuotaIva is { } c && b + c - (r.ImporteRetencion ?? 0m) == total) r.ConfianzaImportes = 1m;
                     break;
+                case PlantillasReconocimiento.Concepto:
+                    r.ConceptoFactura = valor; break;
                 default: continue;
             }
             aplicados.Add(grupo.Key);
         }
         if (aplicados.Count == 0) return;
-        r.CamposPlantilla = aplicados;
+        r.CamposPlantilla = [.. r.CamposPlantilla.Union(aplicados)];
         r.Advertencias = r.Advertencias.Where(a => !(aplicados.Contains(PlantillasReconocimiento.Fecha) && a.Contains("fecha de factura", StringComparison.Ordinal))
                                                  && !(aplicados.Contains(PlantillasReconocimiento.Numero) && a.Contains("número de factura", StringComparison.Ordinal))
                                                  && !(aplicados.Contains(PlantillasReconocimiento.Nif) && a.Contains("NIF del proveedor", StringComparison.Ordinal))
                                                  && !(aplicados.Contains(PlantillasReconocimiento.Total) && a.Contains("importe total", StringComparison.Ordinal))).ToList();
+    }
+
+    /// <summary>Plantillas del NIF leído (con o sin prefijo de país).</summary>
+    internal static IReadOnlyList<PlantillaCampo> PlantillasDelNif(ContextoProcesamiento contexto, string? nif)
+    {
+        var clave = new string((nif ?? "").Where(char.IsAsciiLetterOrDigit).Select(char.ToUpperInvariant).ToArray());
+        if (clave.Length == 0) return [];
+        if (contexto.PlantillasPorNif.TryGetValue(clave, out var p)) return p;
+        if (clave.Length > 9 && clave.StartsWith("ES", StringComparison.Ordinal) && contexto.PlantillasPorNif.TryGetValue(clave[2..], out p)) return p;
+        return contexto.PlantillasPorNif.TryGetValue("ES" + clave, out p) ? p : [];
     }
 
     /// <summary>50 % importes, 20 % fecha, 20 % número y 10 % NIF; el histórico aceptado suma hasta 0,08.</summary>
