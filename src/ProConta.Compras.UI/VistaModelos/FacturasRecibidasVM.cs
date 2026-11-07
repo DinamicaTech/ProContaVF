@@ -413,8 +413,9 @@ public sealed class FacturasRecibidasVM : ModeloVista, IPestanaTrabajo
             if (factura.Contabilizada) _ = CargarAsientoAsync(factura, carga);
             if (!Prueba)
             {
-                // Una exportada por ProContaVF se puede cambiar para re-exportarla; una del ERP, no (compras/pantallas 2026-11-06 12:10).
-                var soloLectura = !_puedeEditar || factura.Contabilizada && (!factura.ExportadaAqui || _s.Contabilizador is null);
+                // Una contabilizada (aquí o en el ERP) se puede cambiar: lo que no toca el asiento se guarda; lo demás, al re-exportar
+                // (compras/pantallas 2026-11-07).
+                var soloLectura = !_puedeEditar || factura.Contabilizada && _s.Contabilizador is null;
                 Ficha = new FichaCompraVM(factura, _proveedores, _cuentasGasto, _centros, _datos, soloLectura: soloLectura, tiposIva: _tiposIva, formasPago: _formasPago, tiposRetencion: _tiposRetencion);
                 return;
             }
@@ -522,19 +523,22 @@ public sealed class FacturasRecibidasVM : ModeloVista, IPestanaTrabajo
     /// <summary>Exportar, re-exportar y deshacer: con el contabilizador, permiso de edición y fuera del modo prueba.</summary>
     public bool PuedeContabilizar => _s.Contabilizador is not null && _puedeEditar && !Prueba;
 
-    /// <summary>La factura de la ficha la exportó ProContaVF.</summary>
-    public bool FichaExportada => _ficha?.Factura.ExportadaAqui == true;
+    /// <summary>La factura de la ficha está contabilizada (por ProContaVF o en el ERP).</summary>
+    public bool FichaExportada => _ficha?.Factura.Contabilizada == true;
+
+    /// <summary>Los cambios de la ficha de una contabilizada tocan su asiento: se guardan re-exportando.</summary>
+    public bool CambiosAfectanAlAsiento => _ficha is { TieneCambios: true } f && FichaExportada && FacturaCompra.AfectaAlAsiento(f.Factura, f.Construir());
 
     /// <summary>Pie de la ficha: los botones de los campos en edición y, sin cambios, Exportar o Deshacer exportación.</summary>
     public bool HayBotonesFicha => _ficha is { Editable: true } f && (f.TieneCambios || PuedeContabilizar);
 
-    public bool MostrarGuardar => _ficha is { Editable: true, TieneCambios: true } && !FichaExportada;
-    public bool MostrarGuardarYExportar => MostrarGuardar && PuedeContabilizar;
-    public bool MostrarGuardarYReexportar => _ficha is { Editable: true, TieneCambios: true } && FichaExportada && PuedeContabilizar;
+    public bool MostrarGuardar => _ficha is { Editable: true, TieneCambios: true } && !CambiosAfectanAlAsiento;
+    public bool MostrarGuardarYExportar => _ficha is { Editable: true, TieneCambios: true } && !FichaExportada && PuedeContabilizar;
+    public bool MostrarGuardarYReexportar => _ficha is { Editable: true, TieneCambios: true } && CambiosAfectanAlAsiento && PuedeContabilizar;
     public bool MostrarExportar => _ficha is { Editable: true, TieneCambios: false } && !_ficha.Factura.Contabilizada && PuedeContabilizar;
     public bool MostrarDeshacer => _ficha is { Editable: true, TieneCambios: false } && FichaExportada && PuedeContabilizar;
 
-    private void AvisarBotonesFicha() => Avisar(nameof(HayBotonesFicha), nameof(FichaExportada), nameof(MostrarGuardar), nameof(MostrarGuardarYExportar),
+    private void AvisarBotonesFicha() => Avisar(nameof(HayBotonesFicha), nameof(FichaExportada), nameof(CambiosAfectanAlAsiento), nameof(MostrarGuardar), nameof(MostrarGuardarYExportar),
         nameof(MostrarGuardarYReexportar), nameof(MostrarExportar), nameof(MostrarDeshacer));
 
     private bool PuedeExportar => PuedeContabilizar && !Ocupado && (_seleccion.Count > 1
@@ -560,7 +564,7 @@ public sealed class FacturasRecibidasVM : ModeloVista, IPestanaTrabajo
         if (_s.Contabilizador is not { } conta || _ficha is not { Editable: true } ficha) return;
         var f = ficha.Construir();
         var opciones = new OpcionesExportacion();
-        var reexportar = f.ExportadaAqui;
+        var reexportar = f.Contabilizada;
         TextoOcupado = reexportar ? "Re-exportando la factura…" : "Exportando la factura…";
         try
         {
@@ -593,8 +597,9 @@ public sealed class FacturasRecibidasVM : ModeloVista, IPestanaTrabajo
                 if (reexportar && c.TrimestreCerrado)
                 {
                     TextoOcupado = "";
-                    var seguir = _modulo.Dialogos.Preguntar("El asiento es de un trimestre cerrado",
-                        "El asiento actual no se toca: haré un contra-asiento con los datos anteriores y un asiento nuevo, los dos en el trimestre activo.", null,
+                    var seguir = _modulo.Dialogos.Preguntar(f.ExportadaEnErp ? "La factura se contabilizó en el ERP" : "El asiento es de un trimestre cerrado",
+                        (f.ExportadaEnErp ? "Su asiento del ERP no se toca" : "El asiento actual no se toca") +
+                        ": haré un contra-asiento con los datos anteriores y un asiento nuevo con los cambios, con la fecha de la factura o el día 1 del trimestre activo si es anterior.", null,
                         new OpcionMensaje("Re-exportar", "Hace el contra-asiento y el asiento nuevo", Principal: true),
                         new OpcionMensaje("Cancelar", "No cambia nada", Cancelar: true));
                     if (seguir != 0) return;
@@ -664,14 +669,17 @@ public sealed class FacturasRecibidasVM : ModeloVista, IPestanaTrabajo
     /// </summary>
     private async Task DeshacerExportacionAsync()
     {
-        if (_s.Contabilizador is not { } conta || _ficha is not { } ficha || !ficha.Factura.ExportadaAqui) return;
+        if (_s.Contabilizador is not { } conta || _ficha is not { } ficha || !ficha.Factura.Contabilizada) return;
         var f = ficha.Factura;
         try
         {
             var cerrado = await conta.TrimestreCerradoAsync(f);
             var anulado = (await conta.EstadoAsync(f.IdRegistro)).IdAsientoAnulado;
+            var estado = await conta.EstadoAsync(f.IdRegistro);
             var eleccion = _modulo.Dialogos.Preguntar("Deshacer la exportación",
-                cerrado
+                estado.DelErp
+                    ? $"La factura se contabilizó en el ERP{(estado.IdAsiento is int erp ? $" (asiento {erp})" : "")}. Ese asiento no se toca: haré un contra-asiento y la factura volverá a Pendientes."
+                    : cerrado
                     ? $"El asiento {f.IdAsientoContable} es de un trimestre cerrado y no se toca: haré un contra-asiento en el trimestre activo y la factura volverá a Pendientes."
                     : $"Borraré el asiento {f.IdAsientoContable} y su registro del libro de IVA; es del trimestre activo, así que no tiene consecuencias fiscales. La factura volverá a Pendientes."
                       + (anulado is int a ? $" Se queda el contra-asiento del asiento {a}, que es de un trimestre cerrado." : ""),
@@ -750,6 +758,8 @@ public sealed class FacturasRecibidasVM : ModeloVista, IPestanaTrabajo
             AvisarBotonesFicha();
             CommandManager.InvalidateRequerySuggested();
         }
+        // En una contabilizada, cada cambio decide si basta «Guardar» o hace falta «Guardar y re-exportar».
+        else if (FichaExportada && _ficha is { TieneCambios: true }) AvisarBotonesFicha();
     }
 
     /// <summary>Selección de la tabla (la mantiene la vista): el ámbito de las acciones del menú contextual.</summary>
@@ -791,9 +801,14 @@ public sealed class FacturasRecibidasVM : ModeloVista, IPestanaTrabajo
 
     private async Task GuardarOEnsenarAsync()
     {
-        // Una exportada no se guarda sola: sus cambios van con «Guardar y re-exportar».
-        if (_ficha is { Editable: true } && !FichaExportada)
+        // Una contabilizada se guarda sola si el cambio no toca el asiento; si lo toca, va con «Guardar y re-exportar».
+        if (_ficha is { Editable: true } && (!FichaExportada || _ficha.TieneCambios))
         {
+            if (CambiosAfectanAlAsiento)
+            {
+                ErrorFicha = "Este cambio afecta al asiento de la factura, que ya está contabilizada: usa «Guardar y re-exportar».";
+                return;
+            }
             await GuardarFichaAsync(confirmar: true);
             return;
         }

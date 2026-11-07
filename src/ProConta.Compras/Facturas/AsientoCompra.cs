@@ -37,6 +37,8 @@ public sealed record LibroCompra(decimal Total, IReadOnlyList<TramoLibroCompra> 
     public decimal CuotaAutorrepercutida => Tramos.Sum(t => t.CuotaAutorrepercutida);
     public decimal CuotaDeducible => Tramos.Sum(t => t.CuotaDeducible);
     public LibroCompra Negado() => new(-Total, [.. Tramos.Select(t => t.Negado())]);
+    /// <summary>Sin registro en el libro (un asiento del ERP sin IVA soportado grabado).</summary>
+    public bool Vacio => Total == 0m && Tramos.Count == 0;
 }
 
 /// <summary>Asiento propuesto con su registro del libro de IVA y el descuadre que hubo que ajustar.</summary>

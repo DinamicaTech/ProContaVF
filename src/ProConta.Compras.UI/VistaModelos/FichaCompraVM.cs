@@ -163,8 +163,8 @@ public sealed class FichaCompraVM : ModeloVista
         Factura = factura;
         _tiposIva = tiposIva ?? [];
         _proveedores = proveedores;
-        // Las exportadas por ProContaVF se pueden cambiar para re-exportarlas; las del ERP, no (compras/pantallas 2026-11-06 12:10).
-        SoloLectura = soloLectura || factura.Contabilizada && !factura.ExportadaAqui;
+        // Las contabilizadas (aquí o en el ERP) se pueden cambiar: lo que toca el asiento, re-exportando (compras/pantallas 2026-11-07).
+        SoloLectura = soloLectura;
         _confianza = confianza ?? ConfianzaCampos.DesdeLog(factura.Log);
 
         Operaciones = [new("Nacional", OperacionCompra.Nacional), new("Intracomunitaria", OperacionCompra.Intracomunitaria), new("Importación", OperacionCompra.Importacion)];
@@ -615,8 +615,9 @@ public sealed class FichaCompraVM : ModeloVista
     public bool HayAvisos => Avisos.Count > 0;
 
     public string Resumen => Factura.ExportadaAqui
-            ? (SoloLectura ? $"Exportada (asiento {Factura.IdAsientoContable}): solo se consulta." : $"Exportada (asiento {Factura.IdAsientoContable}): si la cambias, «Guardar y re-exportar» actualiza el asiento.")
-        : Factura.Contabilizada ? "Contabilizada en el ERP: solo se consulta."
+            ? (SoloLectura ? $"Exportada (asiento {Factura.IdAsientoContable}): solo se consulta." : $"Exportada (asiento {Factura.IdAsientoContable}): si cambias algo del asiento, «Guardar y re-exportar» lo actualiza; las notas y la forma de pago, con «Guardar».")
+        : Factura.Contabilizada ? (SoloLectura ? "Contabilizada en el ERP: solo se consulta."
+            : "Contabilizada en el ERP: si cambias algo del asiento, «Guardar y re-exportar» hace un contra-asiento del suyo y un asiento nuevo.")
         : _confianza.Global is { } g ? $"Reconocida con confianza {Math.Round(g * 100m):0} %{(_confianza.Fuente == "ocr" ? " (con OCR)" : "")}." : "Sin datos del reconocimiento.";
 
     // ---------- cambios ----------

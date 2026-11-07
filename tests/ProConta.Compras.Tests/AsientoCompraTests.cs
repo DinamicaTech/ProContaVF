@@ -146,6 +146,22 @@ public sealed class AsientoCompraTests
     }
 
     [Fact]
+    public void Las_notas_y_la_forma_de_pago_no_afectan_al_asiento_y_el_centro_de_coste_si()
+    {
+        var a = Factura(121m, (21m, 100m, 21m));
+        var b = Factura(121m, (21m, 100m, 21m));
+        b.Notas = "Revisada";
+        b.IdFormaPago = 4;
+        Assert.False(FacturaCompra.AfectaAlAsiento(a, b));
+        b.IdCentroCoste = 9;
+        Assert.True(FacturaCompra.AfectaAlAsiento(a, b));
+        var c = Factura(121m, (21m, 100m, 21m));
+        c.Fecha = c.Fecha!.Value.AddDays(1);
+        Assert.True(FacturaCompra.AfectaAlAsiento(a, c));
+        Assert.True(FacturaCompra.AfectaAlAsiento(a, Factura(242m, (21m, 200m, 42m))));
+    }
+
+    [Fact]
     public void El_asiento_lleva_la_fecha_de_la_factura_o_el_dia_1_del_trimestre_activo()
     {
         // Trimestre 3 activo, a 5 de octubre.

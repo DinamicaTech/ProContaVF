@@ -1,3 +1,4 @@
+using ProConta.Nucleo.Resultados;
 using ProConta.Compras.Facturas;
 using ProConta.Compras.Proveedores;
 using ProConta.Contabilidad.Asientos;
@@ -219,6 +220,84 @@ public sealed class ContabilizacionComprasAccessTests : IDisposable
         Assert.Equal((new DateTime(2026, 9, 20), 3), await Exportar(new DateTime(2026, 9, 20), "c"));
         Assert.Equal((new DateTime(2026, 10, 3), 4), await Exportar(new DateTime(2026, 10, 3), "d"));
         Assert.Equal((new DateTime(2026, 7, 1), 3), await Exportar(new DateTime(2026, 6, 10), "e"));
+    }
+
+    /// <summary>Marca la factura como contabilizada en el ERP, con su asiento (sin libro de IVA), como los datos migrados.</summary>
+    private async Task<int> ContabilizarEnErpAsync(FacturaCompra f)
+    {
+        var id = await Bd.EnTransaccionAsync(async s =>
+        {
+            const string asiento = "INSERT INTO Asientos (IdSociedadEjercicio, FechaContable, Descripcion, TipoAsiento, EstadoAsiento, OperadorCreacion, FechaHoraCreacion, TotalDebe, TotalHaber, Version) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+            const string apunte = "INSERT INTO Apuntes (IdAsiento, Orden, CuentaContable, ImporteDebe, ImporteHaber, TipoApunte, GeneradoAutomaticamente, NumeroDocumento, Documento) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
+            await s.EjecutarAsync(asiento, 9001, new DateTime(2026, 5, 12), "Emisor Ficticio S.L.", (byte)1, (byte)1, "erp", DateTime.Now, 176m, 176m, 1);
+            var a = await s.UltimoIdAsync();
+            await s.EjecutarAsync(apunte, a, (short)1, f.CuentaContableProveedor, null, 176m, (byte)0, false, f.NumeroFactura, f.RutaPdf);
+            await s.EjecutarAsync(apunte, a, (short)2, "6290000", 150m, null, (byte)0, false, f.NumeroFactura, null);
+            await s.EjecutarAsync(apunte, a, (short)3, "4720021", 26m, null, (byte)0, false, f.NumeroFactura, null);
+            await s.EjecutarAsync("UPDATE FacturasCompra SET Exportada = ?, Fecha = ? WHERE IdRegistro = ?", true, new DateTime(2026, 5, 12), f.IdRegistro);
+            return Resultado<int>.Correcto(a);
+        });
+        return id.Valor;
+    }
+
+    [Fact]
+    public async Task Una_del_erp_se_deshace_y_se_reexporta_con_contra_asiento_de_su_asiento_que_no_se_toca()
+    {
+        await EmpresaAsync(trimestreActivo: 3);
+        var (f, _) = await FacturaAsync();
+        var erp = await ContabilizarEnErpAsync(f);
+        var servicio = Servicio();
+        var g = await RecargarAsync(f.IdRegistro);
+        Assert.True(g.ExportadaEnErp);
+        Assert.True(await servicio.TrimestreCerradoAsync(g));
+        Assert.Equal((erp, true), ((await servicio.EstadoAsync(g.IdRegistro)).IdAsiento, (await servicio.EstadoAsync(g.IdRegistro)).DelErp));
+
+        var d = await servicio.DeshacerAsync(g, _actor);
+        Assert.True(d.EsCorrecto, d.Error?.ToString());
+        var contra = (await new MotorAsientosAccess(Bd).ObtenerAsync(d.Valor.IdContraAsiento!.Value))!;
+        Assert.Equal(new DateTime(2026, 7, 1), contra.FechaContable);
+        Assert.Equal(176m, contra.Apuntes.Single(a => a.CodigoCuenta == f.CuentaContableProveedor).Debe.Valor);
+        Assert.NotNull(await new MotorAsientosAccess(Bd).ObtenerAsync(erp));
+        Assert.Equal(0, await Contar("SELECT COUNT(*) FROM IVASoportado"));
+        var h = await RecargarAsync(f.IdRegistro);
+        Assert.False(h.Contabilizada);
+
+        // Se vuelve a exportar: el contra-asiento del ERP se queda y se añade el asiento nuevo.
+        h.Fecha = new DateTime(2026, 7, 15);
+        var r = await servicio.ExportarAsync(h, _actor, new OpcionesExportacion(EsProveedor: false));
+        Assert.True(r.EsCorrecto, r.Error?.ToString());
+        Assert.Equal(d.Valor.IdContraAsiento, r.Valor.IdContraAsiento);
+        Assert.Equal(2, await Contar("SELECT COUNT(*) FROM Asientos WHERE MotorPropietario = 'compras/factura-compra'"));
+        Assert.Equal(1, await Contar("SELECT COUNT(*) FROM IVASoportado"));
+        Assert.True((await RecargarAsync(f.IdRegistro)).ExportadaAqui);
+    }
+
+    [Fact]
+    public async Task Una_del_erp_se_reexporta_sin_deshacer_y_las_notas_se_guardan_sin_tocar_el_asiento()
+    {
+        await EmpresaAsync(trimestreActivo: 3);
+        var (f, _) = await FacturaAsync();
+        var erp = await ContabilizarEnErpAsync(f);
+        var g = await RecargarAsync(f.IdRegistro);
+
+        // Notas: se guarda sin re-exportar. Importes: no.
+        g.Notas = "Revisada";
+        Assert.True((await Bd.EnTransaccionAsync(s => RepositorioFacturasCompra.ActualizarAsync(s, g))).EsCorrecto);
+        var h = await RecargarAsync(f.IdRegistro);
+        Assert.Equal("Revisada", h.Notas);
+        h.IdCentroCoste = 3;
+        Assert.Equal("Compras.Contabilizada", (await Bd.EnTransaccionAsync(s => RepositorioFacturasCompra.ActualizarAsync(s, h))).Error!.Codigo);
+
+        var i = await RecargarAsync(f.IdRegistro);
+        i.CuentaGasto = "6290000";
+        i.Concepto = "Corregida";
+        var r = await Servicio().ExportarAsync(i, _actor);
+        Assert.True(r.EsCorrecto, r.Error?.ToString());
+        Assert.NotNull(r.Valor.IdContraAsiento);
+        Assert.Contains("es del ERP", r.Valor.Aviso);
+        Assert.NotNull(await new MotorAsientosAccess(Bd).ObtenerAsync(erp));
+        Assert.Equal(new DateTime(2026, 7, 1), (await new MotorAsientosAccess(Bd).ObtenerAsync(r.Valor.IdAsiento!.Value))!.FechaContable);
+        Assert.Equal(("Corregida", r.Valor.IdAsiento), ((await RecargarAsync(f.IdRegistro)).Concepto, (await RecargarAsync(f.IdRegistro)).IdAsientoContable));
     }
 
     [Fact]

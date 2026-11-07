@@ -77,9 +77,10 @@ internal static class RepositorioFacturasCompra
             r => (Existe: true, Exportada: r.Logico("Exportada"), Version: r.EnteroNulo("Version") ?? 0), f.IdRegistro);
         if (!estado.Existe)
             return Resultado<int>.Fallo(new Error("Compras.NoExiste", "La factura de compra ya no existe.", f.Rotulo, "Otro operador la ha borrado.", "Actualiza la lista."));
-        if (estado.Exportada && !permitirExportada)
-            return Resultado<int>.Fallo(new Error("Compras.Contabilizada", "La factura ya está contabilizada y no se cambia desde aquí.", f.Rotulo, null,
-                "Para corregirla, usa «Guardar y re-exportar» o deshaz su exportación."));
+        // Una contabilizada se guarda sin re-exportar solo si el cambio no toca el asiento (notas, forma de pago).
+        if (estado.Exportada && !permitirExportada && await CargarAsync(s, f.IdRegistro) is { } guardada && FacturaCompra.AfectaAlAsiento(guardada, f))
+            return Resultado<int>.Fallo(new Error("Compras.Contabilizada", "Este cambio afecta al asiento de la factura, que ya está contabilizada.", f.Rotulo, null,
+                "Usa «Guardar y re-exportar», que actualiza el asiento (o hace contra-asiento si es de un trimestre cerrado)."));
         if (estado.Version != f.Version)
             return Resultado<int>.Fallo(new Error("Compras.Concurrencia", "Otro operador ha cambiado esta factura mientras la tenías abierta.", f.Rotulo,
                 "Tus cambios no se han guardado para no pisar los suyos.", "Actualiza la lista y vuelve a hacer tus cambios."));
@@ -218,7 +219,7 @@ internal static class RepositorioFacturasCompra
                 Confianza = r.DecimalNulo("ConfianzaImportacion"),
                 RequiereRevision = !r.EsNulo("RequiereRevisionImportacion") && r.Logico("RequiereRevisionImportacion"),
                 FechaHoraRegistro = r.FechaNula("FechaHoraRegistro"),
-                Asiento = r.EnteroNulo("IdAsientoContable") ?? r.EnteroNulo("ASIAPU"),
+                Asiento = r.Logico("Exportada") ? r.EnteroNulo("IdAsientoContable") ?? r.EnteroNulo("ASIAPU") : null,
                 ConfianzaMinima = ConfianzaMinima(r.Texto("LOGImportacion")),
                 Version = r.EnteroNulo("Version") ?? 0
             },

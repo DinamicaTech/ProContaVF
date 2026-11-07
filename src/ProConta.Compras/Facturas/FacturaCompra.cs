@@ -66,14 +66,40 @@ public sealed class FacturaCompra
     public byte? IdFormaPago { get; set; }
     public string? Notas { get; set; }
 
-    /// <summary>Contabilizada (FacturasCompra.Exportada): ya no se edita aquí.</summary>
+    /// <summary>
+    /// Contabilizada (FacturasCompra.Exportada), aquí o en el ERP. Se edita: si el cambio afecta al asiento
+    /// (<see cref="AfectaAlAsiento"/>), con «Guardar y re-exportar»; si no, con «Guardar» (compras/pantallas 2026-11-07).
+    /// </summary>
     public bool Contabilizada { get; set; }
 
     /// <summary>Asiento vigente si la exportó ProContaVF (null: sin exportar o exportada en el ERP).</summary>
     public int? IdAsientoContable { get; set; }
 
-    /// <summary>Exportada por ProContaVF: se puede re-exportar o deshacer (las del ERP, no).</summary>
+    /// <summary>Exportada por ProContaVF (las del ERP están contabilizadas sin asiento de ProContaVF).</summary>
     public bool ExportadaAqui => Contabilizada && IdAsientoContable is not null;
+
+    /// <summary>Contabilizada en el ERP: su asiento no es de ProContaVF y nunca se toca (se anula con un contra-asiento).</summary>
+    public bool ExportadaEnErp => Contabilizada && IdAsientoContable is null;
+
+    /// <summary>
+    /// El cambio de <paramref name="antes"/> a <paramref name="despues"/> cambia el asiento o el libro de IVA: proveedor,
+    /// número, fecha, importes, cuentas, centro de coste (lo usa la prorrata del IVA), operación, producto, retención,
+    /// suplido, divisa o concepto. Las notas y la forma de pago, no (compras/pantallas 2026-11-07).
+    /// </summary>
+    public static bool AfectaAlAsiento(FacturaCompra antes, FacturaCompra despues)
+    {
+        static string? T(string? s) => string.IsNullOrWhiteSpace(s) ? null : s.Trim();
+        return antes.IdProveedor != despues.IdProveedor || T(antes.CuentaContableProveedor) != T(despues.CuentaContableProveedor)
+            || T(antes.NumeroFactura) != T(despues.NumeroFactura) || antes.Fecha?.Date != despues.Fecha?.Date
+            || antes.BaseImponible != despues.BaseImponible || antes.CuotaIva != despues.CuotaIva || antes.ImporteTotal != despues.ImporteTotal
+            || !antes.Desgloses.Select(d => (d.TipoIva, d.BaseImponible, d.CuotaIva)).SequenceEqual(despues.Desgloses.Select(d => (d.TipoIva, d.BaseImponible, d.CuotaIva)))
+            || T(antes.CuentaGasto) != T(despues.CuentaGasto) || antes.IdCentroCoste != despues.IdCentroCoste
+            || antes.Operacion != despues.Operacion || antes.Producto != despues.Producto || antes.InversionSujetoPasivo != despues.InversionSujetoPasivo
+            || antes.PorcentajeRetencion != despues.PorcentajeRetencion || antes.ImporteRetencion != despues.ImporteRetencion || antes.ClaseRetencion != despues.ClaseRetencion
+            || antes.Suplido != despues.Suplido || !string.Equals(antes.Divisa, despues.Divisa, StringComparison.OrdinalIgnoreCase)
+            || antes.ImporteTotalDivisa != despues.ImporteTotalDivisa || T(antes.Concepto) != T(despues.Concepto)
+            || antes.IdRegistroFacturaRectificada != despues.IdRegistroFacturaRectificada;
+    }
     /// <summary>Marcada como duplicada en el ERP.</summary>
     public bool Duplicada { get; set; }
 
