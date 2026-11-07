@@ -17,10 +17,12 @@ namespace ProConta.Compras.Facturas;
 /// <param name="RedondeoGastos">Diferencias de redondeo cuando falta Debe.</param>
 /// <param name="RedondeoIngresos">Diferencias de redondeo cuando sobra Debe.</param>
 /// <param name="TipoGeneral">Tipo general del ejercicio, el de la autorrepercusión y la importación.</param>
+/// <param name="NombreProveedor">Nombre del proveedor en las descripciones: el comercial si lo tiene, si no la razón social.</param>
+/// <param name="NombreGasto">Nombre de la cuenta de gasto, para la descripción de su apunte.</param>
 public sealed record CuentasCompra(
     string Proveedor, string Gasto, int? IdCentroCoste, IReadOnlyDictionary<decimal, string> IvaSoportado,
     string? Retencion, string? AutoSoportado, string? AutoRepercutido, string? Importacion, string? Suplido,
-    string RedondeoGastos, string RedondeoIngresos, decimal TipoGeneral);
+    string RedondeoGastos, string RedondeoIngresos, decimal TipoGeneral, string? NombreProveedor = null, string? NombreGasto = null);
 
 /// <summary>Un tramo del libro de IVA soportado (DesglosesIVASoportado).</summary>
 public sealed record TramoLibroCompra(decimal TipoIva, decimal Base, decimal CuotaSoportada, decimal CuotaAutorrepercutida, string? CuentaSoportado, string? CuentaRepercutido)
@@ -89,6 +91,14 @@ public static class AsientoCompra
         var descripcion = Recortar(string.IsNullOrWhiteSpace(f.Concepto) ? $"Factura de compra {numero}" : f.Concepto.Trim());
         var asiento = new Asiento(contexto, fecha, descripcion);
         var motivo = $"Contabilización de la factura de compra {numero}";
+        // Descripciones legibles desde cualquier mayor (compras/factura-compra/contabilizacion 2026-11-07):
+        // «Fra. F-2026/125 · Instalaciones García» en el proveedor y «<qué> · Instalaciones García · Fra. F-2026/125» en el resto.
+        var nombre = string.IsNullOrWhiteSpace(cuentas.NombreProveedor) ? null : cuentas.NombreProveedor.Trim();
+        var abreviado = string.IsNullOrWhiteSpace(f.ConceptoAbreviado) ? null : f.ConceptoAbreviado.Trim();
+        var fra = $"Fra. {numero}";
+        string Linea(string que, bool conConcepto = true) => Componer([que, nombre, fra], conConcepto ? abreviado : null);
+        var varios = Bases(f).Select(b => b.Tipo).Distinct().Count() > 1;
+        string Gasto(decimal tipo) => Componer([$"{abreviado ?? (string.IsNullOrWhiteSpace(cuentas.NombreGasto) ? "Gasto" : cuentas.NombreGasto.Trim())}{(varios ? $" {Pct(tipo)}" : "")}", nombre, fra], null);
 
         void Anadir(string? cuenta, decimal valor, bool alDebe, string texto, bool conProveedor = false, int? centro = null, string? motivoApunte = null)
         {
@@ -112,17 +122,17 @@ public static class AsientoCompra
 
         var tramos = new List<TramoLibroCompra>();
         var total = f.ImporteTotal ?? 0m;
-        Anadir(cuentas.Proveedor, total, false, descripcion, conProveedor: true);
+        Anadir(cuentas.Proveedor, total, false, Componer([fra, nombre], abreviado), conProveedor: true);
         if ((f.ImporteRetencion ?? 0m) != 0m)
-            Anadir(cuentas.Retencion, f.ImporteRetencion!.Value, false, $"Retención {f.PorcentajeRetencion:0.##} % · {numero}");
+            Anadir(cuentas.Retencion, f.ImporteRetencion!.Value, false, Linea($"Retención {Pct(f.PorcentajeRetencion ?? 0m)}"));
 
         if (f.Operacion == OperacionCompra.Importacion)
         {
             // Siempre al tipo general, lleve o no IVA desglosado (2026-10-31 07:46); sin 477.
             var sujeto = total + (f.ImporteRetencion ?? 0m) - (f.Suplido ?? 0m);
             var gasto = Importe.RedondearValor(sujeto / (1m + cuentas.TipoGeneral / 100m));
-            Anadir(cuentas.Gasto, gasto, true, $"Gasto · {numero}", centro: cuentas.IdCentroCoste);
-            Anadir(cuentas.Importacion, sujeto - gasto, true, $"IVA importación {cuentas.TipoGeneral:0.##} % · {numero}");
+            Anadir(cuentas.Gasto, gasto, true, Componer([abreviado ?? (string.IsNullOrWhiteSpace(cuentas.NombreGasto) ? "Gasto" : cuentas.NombreGasto.Trim()), nombre, fra], null), centro: cuentas.IdCentroCoste);
+            Anadir(cuentas.Importacion, sujeto - gasto, true, Linea($"IVA importación {Pct(cuentas.TipoGeneral)}"));
             tramos.Add(new TramoLibroCompra(cuentas.TipoGeneral, gasto, sujeto - gasto, 0m, cuentas.Importacion, null));
         }
         else
@@ -130,30 +140,30 @@ public static class AsientoCompra
             var autorrepercute = f.InversionSujetoPasivo || f.Operacion == OperacionCompra.Intracomunitaria;
             foreach (var (tipo, b, c) in Bases(f))
             {
-                Anadir(cuentas.Gasto, b, true, $"Gasto{(tipo != 0m ? $" {tipo:0.##} %" : "")} · {numero}", centro: cuentas.IdCentroCoste);
+                Anadir(cuentas.Gasto, b, true, Gasto(tipo), centro: cuentas.IdCentroCoste);
                 if (autorrepercute) continue;
-                Anadir(cuentas.IvaSoportado.TryGetValue(tipo, out var cuentaIva) ? cuentaIva : "", c, true, $"IVA {tipo:0.##} % · {numero}");
+                Anadir(cuentas.IvaSoportado.TryGetValue(tipo, out var cuentaIva) ? cuentaIva : "", c, true, Linea($"IVA soportado {Pct(tipo)}"));
                 tramos.Add(new TramoLibroCompra(tipo, b, c, 0m, cuentaIva, null));
             }
             if (autorrepercute)
             {
                 var b = Bases(f).Sum(x => x.Base);
                 var cuota = Importe.RedondearValor(b * cuentas.TipoGeneral / 100m);
-                var texto = f.InversionSujetoPasivo ? "inversión del sujeto pasivo" : "intracomunitario";
-                Anadir(cuentas.AutoSoportado, cuota, true, $"IVA {texto} {cuentas.TipoGeneral:0.##} % · {numero}");
-                Anadir(cuentas.AutoRepercutido, cuota, false, $"IVA {texto} {cuentas.TipoGeneral:0.##} % · {numero}");
+                var texto = f.InversionSujetoPasivo ? "ISP" : "intracomunitario";
+                Anadir(cuentas.AutoSoportado, cuota, true, Linea($"IVA soportado {Pct(cuentas.TipoGeneral)} ({texto})"));
+                Anadir(cuentas.AutoRepercutido, cuota, false, Linea($"IVA autorrepercutido {Pct(cuentas.TipoGeneral)} ({texto})"));
                 tramos.Add(new TramoLibroCompra(cuentas.TipoGeneral, b, 0m, cuota, cuentas.AutoSoportado, cuentas.AutoRepercutido));
             }
         }
         if ((f.Suplido ?? 0m) != 0m)
-            Anadir(cuentas.Suplido, f.Suplido!.Value, true, $"Suplidos · {numero}");
+            Anadir(cuentas.Suplido, f.Suplido!.Value, true, Linea("Suplidos"));
 
         var descuadre = asiento.TotalDebe.Valor - asiento.TotalHaber.Valor;
         if (descuadre != 0m)
         {
             var manual = Math.Abs(descuadre) > ToleranciaRedondeo;
             if (manual && string.IsNullOrWhiteSpace(motivoAjuste)) return null;
-            var texto = manual ? $"Ajuste manual: {motivoAjuste!.Trim()}" : "Ajuste de redondeo";
+            var texto = Linea(manual ? $"Ajuste manual: {motivoAjuste!.Trim()}" : "Ajuste de redondeo", conConcepto: false);
             var explicacion = manual
                 ? $"Ajuste manual de {Math.Abs(descuadre):0.00} € con motivo: {motivoAjuste!.Trim()}"
                 : $"Ajuste de redondeo de {Math.Abs(descuadre):0.00} € (hasta {ToleranciaRedondeo:0.00} € se ajusta solo).";
@@ -193,6 +203,22 @@ public static class AsientoCompra
                     partes.Add($"La cuota del {tipo:0.##} % es {c:0.00} € y a su base de {b:0.00} € le corresponden {esperada:0.00} €.");
             }
         return string.Join(" ", partes);
+    }
+
+    private static string Pct(decimal tipo) => $"{tipo:0.##}%";
+
+    /// <summary>
+    /// Une las partes con « · » y el concepto abreviado al final. Si no cabe en la descripción, se recorta primero el
+    /// concepto y luego el resto por el final.
+    /// </summary>
+    internal static string Componer(IEnumerable<string?> partes, string? concepto)
+    {
+        var fijo = string.Join(" · ", partes.Where(p => !string.IsNullOrWhiteSpace(p)));
+        if (string.IsNullOrWhiteSpace(concepto)) return Recortar(fijo);
+        var completo = $"{fijo} · {concepto.Trim()}";
+        if (completo.Length <= ReglasAsiento.LongitudDescripcion) return completo;
+        var libre = ReglasAsiento.LongitudDescripcion - fijo.Length - 3;
+        return libre >= 4 ? $"{fijo} · {concepto.Trim()[..libre].TrimEnd()}" : Recortar(fijo);
     }
 
     private static string Recortar(string texto) => texto.Length <= ReglasAsiento.LongitudDescripcion ? texto : texto[..ReglasAsiento.LongitudDescripcion];

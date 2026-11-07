@@ -100,9 +100,39 @@ public sealed class AsientoCompraTests
         var p = AsientoCompra.Construir(f, Ctx, Cuentas, Hoy, "Portes sin IVA no desglosados")!;
         var ajuste = p.Asiento.Apuntes.Last();
         Assert.Equal(("6590000", 4m), (ajuste.CodigoCuenta, ajuste.Debe.Valor));
-        Assert.Equal("Ajuste manual: Portes sin IVA no desglosados", ajuste.Descripcion);
+        Assert.Equal("Ajuste manual: Portes sin IVA no desglosados · Fra. FV1", ajuste.Descripcion);
         var cuota = Factura(121m, (21m, 100m, 25m));
         Assert.Contains("le corresponden 21", AsientoCompra.ExplicarDescuadre(cuota));
+    }
+
+    [Fact]
+    public void Las_descripciones_llevan_el_nombre_del_proveedor_y_el_numero_y_el_concepto_abreviado()
+    {
+        var f = Factura(157m, (21m, 100m, 21m), (10m, 50m, 5m));
+        f.NumeroFactura = "F2026125";
+        f.PorcentajeRetencion = 19m;
+        f.ImporteRetencion = 19m;
+        f.ClaseRetencion = ClaseRetencion.Arrendamientos;
+        var cuentas = Cuentas with { Retencion = "4751000", NombreProveedor = "Instalaciones García", NombreGasto = "Trabajos realizados por otras empresas" };
+        var a = AsientoCompra.Construir(f, Ctx, cuentas, Hoy)!.Asiento;
+        string D(string cuenta, int n = 0) => a.Apuntes.Where(x => x.CodigoCuenta == cuenta).ElementAt(n).Descripcion!;
+        Assert.Equal("Fra. F2026125 · Instalaciones García", D("4100001"));
+        Assert.Equal("Trabajos realizados por otras empresas 21% · Instalaciones García · Fra. F2026125", D("6290000"));
+        Assert.Equal("IVA soportado 21% · Instalaciones García · Fra. F2026125", D("4720021"));
+        Assert.Equal("Retención 19% · Instalaciones García · Fra. F2026125", D("4751000"));
+
+        // Con concepto abreviado: sustituye al nombre de la cuenta de gasto y va al final en el resto.
+        f.ConceptoAbreviado = "Reparación caldera";
+        a = AsientoCompra.Construir(f, Ctx, cuentas, Hoy)!.Asiento;
+        Assert.Equal("Fra. F2026125 · Instalaciones García · Reparación caldera", D("4100001"));
+        Assert.Equal("Reparación caldera 10% · Instalaciones García · Fra. F2026125", D("6290000", 1));
+        Assert.Equal("IVA soportado 10% · Instalaciones García · Fra. F2026125 · Reparación caldera", D("4720010"));
+
+        // Si no cabe, se recorta el concepto y no el nombre ni el número.
+        f.ConceptoAbreviado = new string('x', 300);
+        var largo = AsientoCompra.Construir(f, Ctx, cuentas, Hoy)!.Asiento.Apuntes.First().Descripcion!;
+        Assert.Equal(ReglasAsiento.LongitudDescripcion, largo.Length);
+        Assert.StartsWith("Fra. F2026125 · Instalaciones García · xxx", largo);
     }
 
     [Fact]

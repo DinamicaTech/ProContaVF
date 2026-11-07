@@ -313,10 +313,20 @@ public sealed class ContabilizadorCompras(IBaseDatos bd, IMotorAsientos motor, I
             pregunta = PreguntaExportacion.ProveedorOAcreedor;
             explicacion = TextoProveedorOAcreedor;
         }
+        var nombreGasto = (await cuentas.ResolverAsync(ctx, gasto!)) is { EsCorrecto: true } g ? g.Valor.Nombre : null;
         var cuentasCompra = new CuentasCompra(proveedor!, gasto!, f.IdCentroCoste, iva, retencion, autoS, autoR, importacion, suplido,
-            redG ?? "", redI ?? "", tipoGeneral ?? 0m);
+            redG ?? "", redI ?? "", tipoGeneral ?? 0m, await NombreProveedorAsync(f), nombreGasto);
         return new(new ComprobacionExportacion([], pregunta, explicacion, cerrado, descuadre), cuentasCompra, config, estado, porCrear);
     }
+
+    /// <summary>Nombre del proveedor para las descripciones: el comercial, si no la razón social (o el nombre leído, o la carpeta).</summary>
+    private Task<string?> NombreProveedorAsync(FacturaCompra f) => bd.EjecutarAsync(async s =>
+    {
+        var t = await s.ConsultarPrimeroAsync(
+            "SELECT t.NombreComercial, t.RazonSocial, t.Nombre FROM Proveedores AS p INNER JOIN Terceros AS t ON p.IdTercero = t.IdTercero WHERE p.IdProveedor = ?",
+            r => (Comercial: r.Texto("NombreComercial"), Razon: r.Texto("RazonSocial"), Nombre: r.Texto("Nombre")), f.IdProveedor ?? 0);
+        return new[] { t.Comercial, t.Razon, t.Nombre, f.NombreProveedorAeat, f.Carpeta }.FirstOrDefault(x => !string.IsNullOrWhiteSpace(x))?.Trim();
+    });
 
     private static Error SinAsientoErp(string registro) => new("Exportar.SinAsientoErp", "No encuentro el asiento del ERP de esta factura.", registro,
         "Lo busco por el número de factura y la cuenta del proveedor grabados, en el apunte del proveedor que lleva el documento.",

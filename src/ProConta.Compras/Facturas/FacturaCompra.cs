@@ -40,6 +40,15 @@ public sealed class FacturaCompra
     public string NumeroFactura { get; set; } = string.Empty;
     public DateTime? Fecha { get; set; }
     public string Concepto { get; set; } = string.Empty;
+    /// <summary>Concepto leído de la factura (qué se compra), entero (FacturasCompra.ConceptoFactura).</summary>
+    public string? ConceptoFactura { get; set; }
+    /// <summary>
+    /// Concepto abreviado (unos 40 caracteres, cortado por palabras), el que va en las descripciones de los apuntes
+    /// (FacturasCompra.ConceptoAbreviado).
+    /// </summary>
+    public string? ConceptoAbreviado { get; set; }
+    /// <summary>De dónde llegó el PDF: «carpeta» (la del proveedor), «raiz» (la carpeta raíz) o «email» (FacturasCompra.OrigenDocumento).</summary>
+    public string? OrigenDocumento { get; set; }
 
     public decimal? BaseImponible { get; set; }
     public decimal? CuotaIva { get; set; }
@@ -98,6 +107,7 @@ public sealed class FacturaCompra
             || antes.PorcentajeRetencion != despues.PorcentajeRetencion || antes.ImporteRetencion != despues.ImporteRetencion || antes.ClaseRetencion != despues.ClaseRetencion
             || antes.Suplido != despues.Suplido || !string.Equals(antes.Divisa, despues.Divisa, StringComparison.OrdinalIgnoreCase)
             || antes.ImporteTotalDivisa != despues.ImporteTotalDivisa || T(antes.Concepto) != T(despues.Concepto)
+            || T(antes.ConceptoAbreviado) != T(despues.ConceptoAbreviado)
             || antes.IdRegistroFacturaRectificada != despues.IdRegistroFacturaRectificada;
     }
     /// <summary>Marcada como duplicada en el ERP.</summary>

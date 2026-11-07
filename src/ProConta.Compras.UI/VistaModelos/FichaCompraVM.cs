@@ -721,7 +721,7 @@ public sealed class FichaCompraVM : ModeloVista
             NombreProveedorAeat = o.NombreProveedorAeat,
             NumeroFactura = new string(_numero.Where(char.IsAsciiLetterOrDigit).ToArray()),
             Fecha = Texto.LeerFechaHora(_fecha),
-            Concepto = o.Concepto,
+            Concepto = o.Concepto, ConceptoFactura = o.ConceptoFactura, ConceptoAbreviado = o.ConceptoAbreviado, OrigenDocumento = o.OrigenDocumento,
             Operacion = _operacion.Valor, Producto = _producto.Valor, InversionSujetoPasivo = _isp,
             BaseImponible = BaseCalculada, CuotaIva = CuotaCalculada, ImporteTotal = Texto.LeerDecimal(_total),
             PorcentajeRetencion = _conRetencion ? Texto.LeerDecimal(_porcentajeRetencion) : null,
