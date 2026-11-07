@@ -251,9 +251,10 @@ public sealed class FacturasRecibidasVM : ModeloVista, IPestanaTrabajo
     public bool EnPendientes => _pestanaLista == "pendientes";
     public bool EnContabilizadas => _pestanaLista == "contabilizadas";
     public bool EnTodas => _pestanaLista == "todas";
-    public string TextoPendientes => $"Pendientes ({Formatos.Recuento(_todas.Count(f => !f.Datos.Contabilizada))})";
-    public string TextoContabilizadas => $"Contabilizadas ({Formatos.Recuento(_todas.Count(f => f.Datos.Contabilizada))})";
-    public string TextoTodas => $"Todas ({Formatos.Recuento(_todas.Count)})";
+    // Los contadores de las pestañas cuentan lo que cumple los filtros (texto, rápido y criterios), sin la pestaña.
+    public string TextoPendientes => $"Pendientes ({Formatos.Recuento(_todas.Count(f => !f.Datos.Contabilizada && Cumple(f, conPestana: false)))})";
+    public string TextoContabilizadas => $"Contabilizadas ({Formatos.Recuento(_todas.Count(f => f.Datos.Contabilizada && Cumple(f, conPestana: false)))})";
+    public string TextoTodas => $"Todas ({Formatos.Recuento(_todas.Count(f => Cumple(f, conPestana: false)))})";
 
     public IReadOnlyList<OpcionCompra> OpcionesRapidas => _pestanaLista switch
     {
@@ -284,7 +285,9 @@ public sealed class FacturasRecibidasVM : ModeloVista, IPestanaTrabajo
         Filtrar();
     }
 
-    private bool Cumple(FilaCompraVM f)
+    private bool Cumple(FilaCompraVM f) => Cumple(f, conPestana: true);
+
+    private bool Cumple(FilaCompraVM f, bool conPestana)
     {
         var d = f.Datos;
         if (_relacionadasDe is int rel)
@@ -292,8 +295,8 @@ public sealed class FacturasRecibidasVM : ModeloVista, IPestanaTrabajo
             var origen = _datos.FirstOrDefault(x => x.IdRegistro == rel);
             return d.IdRegistro == rel || d.IdRegistroFacturaRectificada == rel || origen?.IdRegistroFacturaRectificada == d.IdRegistro;
         }
-        if (_pestanaLista == "pendientes" && d.Contabilizada) return false;
-        if (_pestanaLista == "contabilizadas" && !d.Contabilizada) return false;
+        if (conPestana && _pestanaLista == "pendientes" && d.Contabilizada) return false;
+        if (conPestana && _pestanaLista == "contabilizadas" && !d.Contabilizada) return false;
         if (!f.Contiene(_texto)) return false;
         var ok = _rapido.Clave switch
         {
@@ -337,7 +340,8 @@ public sealed class FacturasRecibidasVM : ModeloVista, IPestanaTrabajo
         MensajeEstado = _todas.Count == 0
             ? Prueba ? "Sal del modo prueba (clic derecho) y registra antes alguna factura." : "Pon los PDF en la carpeta de compras del ejercicio y pulsa «Buscar PDF nuevos» (clic derecho)."
             : "Cambia o quita los filtros para ver más facturas.";
-        Avisar(nameof(HayFiltros), nameof(Pie), nameof(TituloEstado), nameof(AccionEstado), nameof(ComandoEstado), nameof(TextoBotonFiltro));
+        Avisar(nameof(HayFiltros), nameof(Pie), nameof(TituloEstado), nameof(AccionEstado), nameof(ComandoEstado), nameof(TextoBotonFiltro),
+            nameof(TextoPendientes), nameof(TextoContabilizadas), nameof(TextoTodas));
         CommandManager.InvalidateRequerySuggested();
     }
 

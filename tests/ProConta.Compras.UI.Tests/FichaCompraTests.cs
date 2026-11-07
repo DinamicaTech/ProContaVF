@@ -142,6 +142,21 @@ public sealed class FichaCompraTests
         Assert.Equal("100 % plantilla", f.ConfianzaFecha.Texto);
         Assert.Equal("100 %", f.ConfianzaNumero.Texto);
         Assert.Equal("97 %", f.ConfianzaImportes.Texto);
+        // Lo que se guarda es la nueva lectura: al volver a abrirla se ve la misma confianza.
+        Assert.Equal(leida.Log, f.Construir().Log);
+    }
+
+    [Fact]
+    public void Escribir_el_total_de_un_tipo_reparte_base_e_iva()
+    {
+        var f = Ficha();
+        var d = f.Desgloses.Single(x => x.TipoValor == 21m);
+        Assert.Equal("121,00 €", d.Total);
+        d.Total = "242";
+        Assert.Equal(("200,00 €", "42,00 €"), (d.Base, d.Cuota));
+        d.Total = "100";
+        Assert.Equal(100m, d.BaseValor + d.CuotaValor);
+        Assert.Equal(("82,64 €", "17,36 €"), (d.Base, d.Cuota));
     }
 
     [Fact]

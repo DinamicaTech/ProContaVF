@@ -90,12 +90,12 @@ internal static class RepositorioFacturasCompra
             "ImporteBI = ?, ImporteIVA = ?, ImporteTotal = ?, PorcentajeRetencion = ?, ImporteRetencion = ?, InversionSujetoPasivo = ?, " +
             "Divisa = ?, ImporteTotalDivisa = ?, TipoCambioAplicado = ?, FechaTipoCambio = ?, IdRegistroFacturaRectificada = ?, " +
             "TipoOperacion = ?, TipoProducto = ?, TipoRetencion = ?, Suplido = ?, ConceptoGasto = ?, IdCentroCoste = ?, CuentaFormaPago = ?, IdFormaPago = ?, " +
-            "NotasFactura = ?, RequiereRevisionImportacion = ?, Version = ? WHERE IdRegistro = ? AND Version = ?",
+            "NotasFactura = ?, RequiereRevisionImportacion = ?, ConfianzaImportacion = ?, FuenteImportacion = ?, LOGImportacion = ?, Version = ? WHERE IdRegistro = ? AND Version = ?",
             f.IdProveedor, Nulo(f.CuentaContableProveedor), Nulo(f.NifProveedor), Nulo(f.NumeroFactura), f.Fecha?.Date, Nulo(f.Concepto),
             f.BaseImponible, f.CuotaIva, f.ImporteTotal, f.PorcentajeRetencion is { } pr ? (float)pr : null, f.ImporteRetencion, f.InversionSujetoPasivo,
             f.Divisa, f.ImporteTotalDivisa, f.TipoCambioAplicado is { } tc ? (double)tc : null, f.FechaTipoCambio?.Date, f.IdRegistroFacturaRectificada,
             (int)f.Operacion, f.Producto is { } p ? (int)p : null, f.ClaseRetencion is { } cr ? (byte)cr : null, f.Suplido,
-            Nulo(f.CuentaGasto), f.IdCentroCoste, Nulo(f.CuentaFormaPago), f.IdFormaPago, Nulo(f.Notas), f.RequiereRevision, nueva, f.IdRegistro, f.Version);
+            Nulo(f.CuentaGasto), f.IdCentroCoste, Nulo(f.CuentaFormaPago), f.IdFormaPago, Nulo(f.Notas), f.RequiereRevision, f.Confianza, Nulo(f.Fuente), Nulo(f.Log), nueva, f.IdRegistro, f.Version);
         // La forma de pago elegida pasa a ser la del proveedor por defecto (compras/pantallas 2026-11-06).
         if (f.IdFormaPago is { } fp && f.IdProveedor is { } prov)
             await s.EjecutarAsync("UPDATE CuentasProveedoresSociedad SET IdFormaPagoDefecto = ? WHERE IdProveedor = ? AND IdSociedad = ?", fp, prov, f.Ejercicio.IdSociedad);

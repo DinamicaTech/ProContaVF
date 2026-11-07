@@ -69,9 +69,30 @@ public sealed class DesgloseVM : ModeloVista
         set { if (value?.Valor is { } v) Tipo = Porcentaje(v); }
     }
 
-    public string Tipo { get => _tipo; set { if (Fijar(ref _tipo, value ?? "")) { Avisar(nameof(TipoElegido)); ProponerCuota(); _cambio(); } } }
-    public string Base { get => _base; set { if (Fijar(ref _base, Importe(value))) { ProponerCuota(); _cambio(); } } }
-    public string Cuota { get => _cuota; set { if (!_sinCuota() && Fijar(ref _cuota, Importe(value))) _cambio(); } }
+    public string Tipo { get => _tipo; set { if (Fijar(ref _tipo, value ?? "")) { Avisar(nameof(TipoElegido)); ProponerCuota(); Avisar(nameof(Total)); _cambio(); } } }
+    public string Base { get => _base; set { if (Fijar(ref _base, Importe(value))) { ProponerCuota(); Avisar(nameof(Total)); _cambio(); } } }
+    public string Cuota { get => _cuota; set { if (!_sinCuota() && Fijar(ref _cuota, Importe(value))) { Avisar(nameof(Total)); _cambio(); } } }
+
+    /// <summary>
+    /// Base + cuota del tipo. Escribir el total reparte base y cuota con el tipo de la fila (la base, redondeada a
+    /// céntimos; la cuota, el resto), para poder entrar la factura por su total (compras/pantallas 2026-11-07).
+    /// </summary>
+    public string Total
+    {
+        get => BaseValor is null && CuotaValor is null ? "" : Formatos.Importe((BaseValor ?? 0m) + (CuotaValor ?? 0m));
+        set
+        {
+            if (Texto.LeerDecimal(value) is not { } total) { Avisar(nameof(Total)); return; }
+            var tipo = _sinCuota() ? 0m : TipoValor ?? 0m;
+            var @base = Math.Round(total / (1m + tipo / 100m), 2, MidpointRounding.AwayFromZero);
+            // El IVA es el resto: base + IVA dan siempre el total escrito (si no hay reparto exacto, el céntimo va al IVA).
+            var cuota = total - @base;
+            _base = Formatos.Importe(@base);
+            _cuota = Formatos.Importe(cuota);
+            Avisar(nameof(Base), nameof(Cuota), nameof(Total));
+            _cambio();
+        }
+    }
 
     /// <summary>Lo escrito se vuelve a ver en moneda; si no es un importe, se deja tal cual para que se vea el error.</summary>
     internal static string Importe(string? texto) => Texto.LeerDecimal(texto) is { } v ? Formatos.Importe(v) : (texto ?? "").Trim();
@@ -81,7 +102,7 @@ public sealed class DesgloseVM : ModeloVista
     {
         if (CuotaValor is null or 0m) return;
         _cuota = Formatos.Importe(0m);
-        Avisar(nameof(Cuota));
+        Avisar(nameof(Cuota), nameof(Total));
     }
 
     public decimal? TipoValor => Texto.LeerDecimal(_tipo);
@@ -95,7 +116,7 @@ public sealed class DesgloseVM : ModeloVista
         if (_cuota.Length == 0 && TipoValor is { } t && BaseValor is { } b)
         {
             _cuota = Formatos.Importe(Math.Round(b * t / 100m, 2, MidpointRounding.AwayFromZero));
-            Avisar(nameof(Cuota));
+            Avisar(nameof(Cuota), nameof(Total));
         }
     }
 }
@@ -110,6 +131,8 @@ public sealed class FichaCompraVM : ModeloVista
     private IReadOnlyList<ProveedorFicha> _proveedores;
     private string? _cuentaProveedorNueva;
     private ConfianzaCampos _confianza;
+    /// <summary>Lo de «Volver a reconocer», pendiente de guardar con la factura.</summary>
+    private (decimal Confianza, string Fuente, string Log, bool RequiereRevision)? _lectura;
     private readonly HashSet<string> _manuales = new(StringComparer.Ordinal);
     private bool _cargando = true;
     private bool _tieneCambios;
@@ -654,7 +677,12 @@ public sealed class FichaCompraVM : ModeloVista
         finally { _cargando = false; }
         SincronizarTipoRetencion();
         ProponerFormaPago();
-        if (!string.IsNullOrWhiteSpace(leida.Log)) _confianza = ConfianzaCampos.DesdeLog(leida.Log);
+        if (!string.IsNullOrWhiteSpace(leida.Log))
+        {
+            _confianza = ConfianzaCampos.DesdeLog(leida.Log);
+            // Al guardar, la factura se queda con esta lectura: si no, al volver a abrirla se veía la confianza de la primera.
+            _lectura = (leida.Confianza, leida.Fuente, leida.Log, leida.RequiereRevision);
+        }
         _manuales.Clear();
         _elegidos.Clear();
         TieneCambios = true;
@@ -707,7 +735,8 @@ public sealed class FichaCompraVM : ModeloVista
             CuentaGasto = _cuentaGasto.Valor, IdCentroCoste = _centroCoste.Valor,
             IdFormaPago = _formaPago.Valor, CuentaFormaPago = o.CuentaFormaPago,
             Notas = _notas.Length == 0 ? null : _notas,
-            Confianza = o.Confianza, RequiereRevision = o.RequiereRevision, Fuente = o.Fuente, Log = o.Log,
+            Confianza = _lectura?.Confianza ?? o.Confianza, RequiereRevision = _lectura?.RequiereRevision ?? o.RequiereRevision,
+            Fuente = _lectura?.Fuente ?? o.Fuente, Log = _lectura?.Log ?? o.Log,
             FechaHoraRegistro = o.FechaHoraRegistro, Version = o.Version, Contabilizada = o.Contabilizada, Duplicada = o.Duplicada
         };
         if (f.Concepto.Length == 0 || o.NumeroFactura.Length > 0 && f.Concepto.EndsWith(o.NumeroFactura, StringComparison.Ordinal))

@@ -31,6 +31,8 @@ public partial class VistaFacturasRecibidas : UserControl
     public VistaFacturasRecibidas()
     {
         EnfocarBusquedaCommand = new ComandoDelegado(() => { CajaBusqueda.Focus(); CajaBusqueda.SelectAll(); });
+        // Tecla fija hasta que exista el catálogo de atajos (plataforma/atajos-de-teclado), donde será «Compras.OcultarLista».
+        AlternarListaCommand = new ComandoDelegado(AlternarLista);
         InitializeComponent();
         var guardados = Leer();
         (_lista, _ficha) = (guardados?.Lista, guardados?.Ficha);
@@ -47,6 +49,7 @@ public partial class VistaFacturasRecibidas : UserControl
     }
 
     public ICommand EnfocarBusquedaCommand { get; }
+    public ICommand AlternarListaCommand { get; }
 
     private FacturasRecibidasVM? Vm => DataContext as FacturasRecibidasVM;
 
@@ -108,7 +111,7 @@ public partial class VistaFacturasRecibidas : UserControl
         var valor = activo switch
         {
             "nif" => new string(texto.Where(char.IsAsciiLetterOrDigit).ToArray()).ToUpperInvariant(),
-            "base" or "cuota" or "total" => new string(texto.Where(c => char.IsDigit(c) || c is ',' or '.' or '-').ToArray()),
+            "base" or "cuota" or "total" or "totaltipo" => new string(texto.Where(c => char.IsDigit(c) || c is ',' or '.' or '-').ToArray()),
             _ => texto.Trim()
         };
         if (valor.Length == 0) return;
@@ -273,7 +276,9 @@ public partial class VistaFacturasRecibidas : UserControl
         e.Handled = true;
     }
 
-    private void BotonLista_Click(object sender, RoutedEventArgs e)
+    private void BotonLista_Click(object sender, RoutedEventArgs e) => AlternarLista();
+
+    private void AlternarLista()
     {
         _listaOculta = !_listaOculta;
         BotonLista.Content = _listaOculta ? "Mostrar lista" : "Ocultar lista";
