@@ -305,6 +305,8 @@ public static class PlantillasReconocimiento
                 if (l.Pagina != linea.Pagina || anterior.Y - l.Y > Math.Max(2.5 * Math.Max(anterior.Alto, l.Alto), 16) || l.Palabras.Any(w => EsCifraDeLinea(w.Texto))) break;
                 var k = Enumerable.Range(0, l.Palabras.Count).FirstOrDefault(j => Math.Abs(l.Palabras[j].X - x0) <= 6, -1);
                 if (k < 0 || l.Palabras.Take(k).Any(w => w.X > x0 - 40)) break;
+                // Una línea que empieza por un rótulo («ASIN: B0FK…», «Ref.: …») ya no es parte del concepto.
+                if (l.Palabras[k].Texto.TrimEnd().EndsWith(':')) break;
                 var m = TramoConcepto(l, k);
                 if (m == 0) break;
                 texto += " " + Unir(l.Palabras, k, m);

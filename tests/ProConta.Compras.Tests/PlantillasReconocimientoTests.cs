@@ -145,6 +145,7 @@ public sealed class PlantillasReconocimientoTests
             (38, 367, "C Llave de Gancho para Llave Inglesa, Herramienta de Llave de Gancho de          1   17,17 €  0%   17,17 €"),
             (38, 353, "10 Piezas, Juego de Llaves de Tensor de Amortiguador, Herramienta de"),
             (38, 340, "Reparación de Llaves Roscadas"),
+            (38, 326, "ASIN: B0FK25R5Z9"),
             (38, 300, "Total 17,17 €"));
         var agosto = Interlineado(
             (38, 399, "Descripción                                                          Cant.   P. Unitario    IVA %      Precio total"),
@@ -153,6 +154,7 @@ public sealed class PlantillasReconocimientoTests
             (38, 367, "SWAWIS 4 Piezas Juego de Cabeza Cuadrada C Llave de Gancho          1   35,53 €  0%   35,53 €"),
             (38, 354, "Ajustable 19-170mm, Acero al Cromo-Vanadio, para Amortiguadores de"),
             (38, 341, "Motocicleta"),
+            (38, 327, "ASIN: B0FCMD8XXX"),
             (38, 300, "Total 35,53 €"));
         var p = PlantillasReconocimiento.Aprender(julio, PlantillasReconocimiento.Concepto,
             "C Llave de Gancho para Llave Inglesa, Herramienta de Llave de Gancho de 10 Piezas, Juego de Llaves de Tensor de Amortiguador, Herramienta de Reparación de Llaves Roscadas");
