@@ -268,7 +268,12 @@ public sealed class ProveedorCertificadoEmpresa(IBaseDatos bd, Func<IReadOnlyLis
                 var existe = Convert.ToInt32(await s.EscalarAsync("SELECT COUNT(*) FROM VeriFactuConfiguracion WHERE IdSociedad = ?", id), CultureInfo.InvariantCulture) > 0;
                 // El número de serie se quita: manda la huella elegida aquí.
                 if (existe) await s.EjecutarAsync("UPDATE VeriFactuConfiguracion SET CertificateThumbprint = ?, CertificateSerial = Null WHERE IdSociedad = ?", huella, id);
-                else await s.EjecutarAsync("INSERT INTO VeriFactuConfiguracion (IdSociedad, CertificateThumbprint) VALUES (?, ?)", id, huella);
+                else
+                {
+                    // La clave de la maestra no siempre es autonumérica: la siguiente libre vale en los dos casos.
+                    var siguiente = Convert.ToInt32(await s.EscalarAsync("SELECT IIf(MAX(IdVeriFactuConfiguracion) Is Null, 0, MAX(IdVeriFactuConfiguracion)) + 1 FROM VeriFactuConfiguracion"), CultureInfo.InvariantCulture);
+                    await s.EjecutarAsync("INSERT INTO VeriFactuConfiguracion (IdVeriFactuConfiguracion, IdSociedad, CertificateThumbprint) VALUES (?, ?, ?)", siguiente, id, huella);
+                }
                 return true;
             });
         }
