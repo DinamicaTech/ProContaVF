@@ -230,6 +230,34 @@ Relaciones:
 - PK_CuentasPlanContable (clave primaria): IdCuentaPlanContable
 - UX_CuentasPlan_Codigo (único): IdPlanContable, Codigo
 
+## DesglosesIVASoportado
+
+- Dueño funcional: `contabilidad/procesos`
+
+| Campo | Tipo | Nulo | Por defecto | Descripción |
+|---|---|---|---|---|
+| IdDesgloseIVASoportado | COUNTER | no |  |  |
+| IdIVASoportado | LONG | no |  |  |
+| Orden | LONG | no |  |  |
+| ClaveRegimen | TEXT(10) | sí |  |  |
+| CalificacionOperacion | TEXT(30) | no |  |  |
+| CausaExencion | TEXT(10) | sí |  |  |
+| BaseImponible | CURRENCY | no |  |  |
+| TipoIVA | DECIMAL | no |  |  |
+| CuotaSoportada | CURRENCY | no |  |  |
+| CuotaDevengadaAutorrepercutida | CURRENCY | no |  |  |
+| PorcentajeDeducible | DECIMAL | no |  |  |
+| CuotaDeducible | CURRENCY | no |  |  |
+| IdCuentaIVASoportado | LONG | sí |  |  |
+| IdCuentaIVARepercutido | LONG | sí |  |  |
+
+Índices:
+- FK_DetIVAS_Cabecera: IdIVASoportado
+- PK_DesglosesIVASoportado (clave primaria): IdDesgloseIVASoportado
+
+Relaciones:
+- FK_DetIVAS_Cabecera: (IdIVASoportado) → IVASoportado (IdIVASoportado); borrado NO ACTION, actualización NO ACTION
+
 ## F_CDP
 
 - Dueño funcional: `contabilidad/centros-coste`
@@ -331,6 +359,7 @@ Relaciones:
 | Descripcion | LONGTEXT | sí |  |  |
 | OperadorCreacion | TEXT(100) | sí |  |  |
 | FechaHoraCreacion | DATETIME | no |  |  |
+| BienInversion | YESNO | no |  |  |
 
 Índices:
 - FK_IVAS_Asiento: IdAsiento
