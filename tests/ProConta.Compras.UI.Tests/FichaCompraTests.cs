@@ -168,6 +168,22 @@ public sealed class FichaCompraTests
     }
 
     [Fact]
+    public void El_abreviado_por_defecto_del_proveedor_gana_al_del_concepto_leido()
+    {
+        var conDefecto = Proveedor with { ConceptoAbreviadoDefecto = "Asesoría mensual" };
+        var f = new FichaCompraVM(Factura(), [conDefecto, ConFormaPago], [new("6000000 · Compras", "6000000")], [], [], false,
+            tiposIva: [21m, 10m, 4m], formasPago: [(3, "Transferencia")], tiposRetencion: Retenciones);
+        var leida = Factura();
+        leida.ConceptoFactura = "Asesoramiento contable del mes de agosto";
+        leida.ConceptoAbreviado = "Asesoría mensual"; // lo pone el servicio al leer
+        f.AplicarLectura(leida);
+        Assert.Equal(("Asesoramiento contable del mes de agosto", "Asesoría mensual"), (f.ConceptoFactura, f.ConceptoAbreviado));
+        // Cambiar el concepto no le quita el abreviado del proveedor.
+        f.ConceptoFactura = "Otra cosa";
+        Assert.Equal("Asesoría mensual", f.ConceptoAbreviado);
+    }
+
+    [Fact]
     public void Escribir_el_total_de_un_tipo_reparte_base_e_iva()
     {
         var f = Ficha();

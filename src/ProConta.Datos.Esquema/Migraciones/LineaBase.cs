@@ -73,6 +73,7 @@ public static class CatalogoMigraciones
         MigracionesCompras.TextosClaveCompra,
         MigracionesCompras.ExportacionCompras,
         MigracionesCompras.ComprasVentasNoviembre,
+        MigracionesCompras.ConceptoAbreviadoProveedor,
     ];
 
     /// <summary>Versión del esquema que espera esta versión del programa.</summary>

@@ -117,6 +117,10 @@ internal static class RepositorioFacturasCompra
                     Convert.ToInt32(identidad, CultureInfo.InvariantCulture), prov3, f.Ejercicio.IdSociedad);
             if (f.IdCentroCoste is { } centro)
                 await s.EjecutarAsync("UPDATE CuentasProveedoresSociedad SET IdCentroCosteDefecto = ? WHERE IdProveedor = ? AND IdSociedad = ?", centro, prov3, f.Ejercicio.IdSociedad);
+            // Sin concepto leído, el abreviado escrito a mano pasa a ser el del proveedor (propietario 2026-11-07 19:21).
+            if (Nulo(f.ConceptoFactura) is null && Nulo(f.ConceptoAbreviado) is { } abreviado)
+                await s.EjecutarAsync("UPDATE CuentasProveedoresSociedad SET ConceptoAbreviadoDefecto = ? WHERE IdProveedor = ? AND IdSociedad = ?",
+                    Recortar(abreviado.Trim(), 60), prov3, f.Ejercicio.IdSociedad);
         }
         await s.EjecutarAsync("DELETE FROM DesglosesFacturaCompra WHERE IdRegistro = ?", f.IdRegistro);
         foreach (var d in f.Desgloses)
@@ -241,18 +245,20 @@ internal static class RepositorioFacturasCompra
     public static async Task<IReadOnlyList<ProveedorFicha>> ProveedoresFichaAsync(ISesionDatos s, string idSociedad)
     {
         var filas = await s.ConsultarAsync(
-            "SELECT p.IdProveedor, p.IdTercero, t.NIF, t.Nombre, t.RazonSocial, t.NombreComercial, cps.IdFormaPagoDefecto, cps.TipoProductoDefecto FROM (CuentasProveedoresSociedad AS cps " +
+            "SELECT p.IdProveedor, p.IdTercero, t.NIF, t.Nombre, t.RazonSocial, t.NombreComercial, cps.IdFormaPagoDefecto, cps.TipoProductoDefecto, cps.ConceptoAbreviadoDefecto FROM (CuentasProveedoresSociedad AS cps " +
             "INNER JOIN Proveedores AS p ON cps.IdProveedor = p.IdProveedor) INNER JOIN Terceros AS t ON p.IdTercero = t.IdTercero WHERE cps.IdSociedad = ?",
             r => new ProveedorFicha(r.Entero("IdProveedor"), r.Entero("IdTercero"), r.Texto("NIF")?.Trim() ?? "",
                 Primero(r.Texto("NombreComercial"), r.Texto("RazonSocial"), r.Texto("Nombre")),
                 r.EnteroNulo("IdFormaPagoDefecto") is int fp ? (byte)fp : null,
-                r.EnteroNulo("TipoProductoDefecto") is int tp && Enum.IsDefined((ProductoCompra)tp) ? (ProductoCompra)tp : null), idSociedad);
+                r.EnteroNulo("TipoProductoDefecto") is int tp && Enum.IsDefined((ProductoCompra)tp) ? (ProductoCompra)tp : null,
+                Nulo(r.Texto("ConceptoAbreviadoDefecto"))), idSociedad);
         // Un proveedor puede tener varias cuentas en la empresa: uno por proveedor, con la forma de pago que tenga alguna.
         return filas.GroupBy(p => p.IdProveedor)
             .Select(g => g.First() with
             {
                 IdFormaPagoDefecto = g.Select(p => p.IdFormaPagoDefecto).FirstOrDefault(x => x is not null),
-                ProductoDefecto = g.Select(p => p.ProductoDefecto).FirstOrDefault(x => x is not null)
+                ProductoDefecto = g.Select(p => p.ProductoDefecto).FirstOrDefault(x => x is not null),
+                ConceptoAbreviadoDefecto = g.Select(p => p.ConceptoAbreviadoDefecto).FirstOrDefault(x => x is not null)
             }).ToList();
     }
 
@@ -295,6 +301,15 @@ internal static class RepositorioFacturasCompra
                 r => r.Texto("Codigo")?.Trim(), ctx.IdSociedadEjercicio, identidad);
         int? centro = filas.Select(f => f.Centro).FirstOrDefault(x => x is not null) is int c && await CentroImputableAsync(s, ctx.IdSociedad, c) ? c : null;
         return (cuenta, centro);
+    }
+
+    /// <summary>Concepto abreviado por defecto del proveedor en la empresa, o null.</summary>
+    public static async Task<string?> ConceptoAbreviadoDefectoAsync(ISesionDatos s, string idSociedad, int? idProveedor)
+    {
+        if (idProveedor is not { } prov) return null;
+        var v = await s.EscalarAsync("SELECT TOP 1 ConceptoAbreviadoDefecto FROM CuentasProveedoresSociedad WHERE IdProveedor = ? AND IdSociedad = ? AND ConceptoAbreviadoDefecto Is Not Null",
+            prov, idSociedad);
+        return v is string t && t.Trim().Length > 0 ? t.Trim() : null;
     }
 
     /// <summary>Centro de coste por defecto de una subcuenta del ejercicio (CuentasContables.IdCentroCostePredeterminado), si es imputable.</summary>
@@ -578,7 +593,8 @@ internal static class RepositorioFacturasCompra
 }
 
 /// <summary>Proveedor de la empresa tal como lo necesita la ficha: su tercero (para abrir su ficha), su NIF y su nombre.</summary>
-public sealed record ProveedorFicha(int IdProveedor, int IdTercero, string Nif, string Nombre, byte? IdFormaPagoDefecto = null, ProductoCompra? ProductoDefecto = null);
+public sealed record ProveedorFicha(int IdProveedor, int IdTercero, string Nif, string Nombre, byte? IdFormaPagoDefecto = null, ProductoCompra? ProductoDefecto = null,
+    string? ConceptoAbreviadoDefecto = null);
 
 /// <summary>Factura de compra resumida para la lista de la pantalla.</summary>
 public sealed class FilaFacturaCompra

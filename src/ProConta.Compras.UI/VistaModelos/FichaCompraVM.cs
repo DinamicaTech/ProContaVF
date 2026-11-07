@@ -276,6 +276,7 @@ public sealed class FichaCompraVM : ModeloVista
             Avisar(nameof(NombreProveedor), nameof(HayProveedor), nameof(AvisoProveedor), nameof(RazonSocialAeat), nameof(PuedeDarDeAltaProveedor), nameof(IdTerceroProveedor), nameof(Cuenta));
             ProponerFormaPago();
             ProponerProducto();
+            ProponerAbreviado();
         }
     }
 
@@ -524,8 +525,21 @@ public sealed class FichaCompraVM : ModeloVista
             var anterior = _conceptoFactura;
             if (!Cambiar(ref _conceptoFactura, (value ?? "").Trim(), "concepto")) return;
             if (_conceptoAbreviado.Length == 0 || _conceptoAbreviado == (FacturaCompra.Abreviar(anterior) ?? ""))
-                ConceptoAbreviado = FacturaCompra.Abreviar(_conceptoFactura) ?? "";
+                ConceptoAbreviado = AbreviadoPropuesto(_conceptoFactura);
         }
+    }
+
+    /// <summary>El abreviado por defecto del proveedor, si tiene; si no, el del concepto (propietario 2026-11-07 19:21).</summary>
+    private string AbreviadoPropuesto(string? concepto) =>
+        _proveedor?.ConceptoAbreviadoDefecto is { Length: > 0 } defecto ? defecto : FacturaCompra.Abreviar(concepto) ?? "";
+
+    /// <summary>Al cambiar de proveedor, su abreviado por defecto si el operador no ha escrito otro.</summary>
+    private void ProponerAbreviado()
+    {
+        if (_manuales.Contains("conceptoabreviado") || _proveedor?.ConceptoAbreviadoDefecto is not { Length: > 0 } defecto || _conceptoAbreviado == defecto) return;
+        if (_conceptoAbreviado.Length > 0 && _conceptoAbreviado != (FacturaCompra.Abreviar(_conceptoFactura) ?? "")) return;
+        _conceptoAbreviado = defecto;
+        Avisar(nameof(ConceptoAbreviado));
     }
 
     /// <summary>Concepto abreviado (unos 40 caracteres): va en las descripciones de los apuntes.</summary>
@@ -720,8 +734,10 @@ public sealed class FichaCompraVM : ModeloVista
             if (!string.IsNullOrWhiteSpace(leida.ConceptoFactura))
             {
                 _conceptoFactura = leida.ConceptoFactura.Trim();
-                _conceptoAbreviado = FacturaCompra.Abreviar(_conceptoFactura) ?? "";
+                _conceptoAbreviado = leida.ConceptoAbreviado is { Length: > 0 } ab ? ab.Trim() : AbreviadoPropuesto(_conceptoFactura);
             }
+            else if (_conceptoAbreviado.Length == 0 && leida.ConceptoAbreviado is { Length: > 0 } defecto)
+                _conceptoAbreviado = defecto.Trim();
             // Sin cuenta de gasto (o con la genérica 6000000), la de la lectura: textos clave o la del proveedor por defecto.
             // Lo mismo el centro de coste. Una imputación ya elegida no se toca.
             if ((_cuentaGasto.Valor is null || _cuentaGasto.Valor == CuentaGastoGenerica) && leida.CuentaGasto is { Length: > 0 } cg && cg != _cuentaGasto.Valor)

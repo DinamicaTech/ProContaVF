@@ -168,6 +168,16 @@ public static class MigracionesCompras
         new CrearIndice("PlantillasReconocimientoCompra", "IX_PRC_SociedadNif",
             "CREATE INDEX IX_PRC_SociedadNif ON PlantillasReconocimientoCompra (IdSociedad, NIF)"));
 
+    /// <summary>
+    /// Concepto abreviado por defecto del proveedor (propietario 2026-11-07 19:21): el que se escribe a mano en una factura
+    /// sin concepto leído; gana al abreviado del concepto leído en las facturas siguientes. Solo estructura, sin datos.
+    /// </summary>
+    public static Migracion ConceptoAbreviadoProveedor { get; } = new(
+        "20261107_1925_CONCEPTO_ABREVIADO_PROVEEDOR", 261107003,
+        "Concepto abreviado por defecto del proveedor.",
+        "compras/factura-compra",
+        new AnadirColumna("CuentasProveedoresSociedad", "ConceptoAbreviadoDefecto", "TEXT(60)"));
+
     private static PasoPersonalizado Relacion(string tabla, string columna, string nombre)
     {
         var sql = $"ALTER TABLE {tabla} ADD CONSTRAINT {nombre} FOREIGN KEY ({columna}) REFERENCES FormasPago (Id)";

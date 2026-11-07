@@ -112,6 +112,42 @@ public sealed class FacturasCompraAccessTests : IDisposable
         Assert.True(esquema.ExisteTabla("TextosClaveCompra"));
         Assert.True(esquema.ExisteColumna("CuentasProveedoresSociedad", "IdIdentidadGastoDefecto"));
         Assert.True(esquema.ExisteColumna("CuentasProveedoresSociedad", "IdCentroCosteDefecto"));
+        Assert.True(esquema.ExisteColumna("CuentasProveedoresSociedad", "ConceptoAbreviadoDefecto"));
+    }
+
+    [Fact]
+    public async Task Sin_concepto_leido_el_abreviado_escrito_pasa_a_ser_el_del_proveedor_y_gana_en_la_siguiente()
+    {
+        await EmpresaConProveedorAsync();
+        string Factura(string numero) => $"""
+            Emisor Ficticio S.L. NIF: {NifProveedor}
+            Número de factura: {numero}
+            Fecha: 10/02/2026
+            IVA 21% 100,00 21,00
+            Total factura 121,00
+            """;
+        var servicio = new ServicioFacturasCompra(Bd, new ServicioReconocimientoFacturaCompra(new ExtractorPorFichero(new Dictionary<string, string>
+        {
+            ["a.pdf"] = Factura("FV260001"),
+            ["b.pdf"] = Factura("FV260002")
+        })), _reloj);
+        var a = await servicio.ImportarAsync(_ctx, Pdf("Ficticio", "a.pdf", "a"));
+        Assert.True(a.Registrada, a.Error?.ToString());
+        var f = (await servicio.CargarAsync(a.Factura!.IdRegistro))!;
+        f.ConceptoFactura = null;
+        f.ConceptoAbreviado = "Asesoría mensual";
+        Assert.True((await servicio.GuardarAsync(f)).EsCorrecto);
+
+        var (_, leida) = await servicio.ProbarAsync(_ctx, Pdf("Ficticio", "b.pdf", "b"));
+        Assert.Equal("Asesoría mensual", leida.ConceptoAbreviado);
+
+        // Con concepto, el abreviado no cambia el del proveedor.
+        f = (await servicio.CargarAsync(a.Factura!.IdRegistro))!;
+        f.ConceptoFactura = "Asesoramiento de febrero";
+        f.ConceptoAbreviado = "Otra cosa";
+        Assert.True((await servicio.GuardarAsync(f)).EsCorrecto);
+        (_, leida) = await servicio.ProbarAsync(_ctx, Pdf("Ficticio", "b.pdf", "b"));
+        Assert.Equal("Asesoría mensual", leida.ConceptoAbreviado);
     }
 
     [Fact]

@@ -236,6 +236,9 @@ public sealed class ServicioFacturasCompra(
                 factura.IdCentroCoste = porTexto.IdCentroCoste ?? (porTexto.EmpateCentro ? null : centroProveedor
                     ?? (factura.CuentaGasto is { Length: > 0 } cuenta ? await RepositorioFacturasCompra.CentroDeCuentaAsync(s, ctx, cuenta) : null));
             factura.AnadirAvisos(porTexto.Avisos);
+            // El abreviado por defecto del proveedor gana al del concepto leído (propietario 2026-11-07 19:21).
+            if (await RepositorioFacturasCompra.ConceptoAbreviadoDefectoAsync(s, ctx.IdSociedad, factura.IdProveedor) is { } abreviado)
+                factura.ConceptoAbreviado = abreviado;
             return true;
         }, cancelacion);
 

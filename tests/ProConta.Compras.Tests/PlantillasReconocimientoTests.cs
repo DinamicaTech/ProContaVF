@@ -125,6 +125,42 @@ public sealed class PlantillasReconocimientoTests
             PlantillasReconocimiento.Leer(Maquetado(agosto), p!));
     }
 
+    /// <summary>Como una factura de Amazon: interlineado de 13 o 14 puntos con letra de 5 de alto, y líneas sueltas entre el rótulo y el concepto.</summary>
+    private static DocumentoFacturaExtraido Interlineado(params (double X, double Y, string Texto)[] lineas)
+    {
+        var palabras = new List<PalabraDocumento>();
+        foreach (var (x, y, texto) in lineas)
+            foreach (System.Text.RegularExpressions.Match m in System.Text.RegularExpressions.Regex.Matches(texto, @"\S+"))
+                palabras.Add(new PalabraDocumento { Pagina = 1, Texto = m.Value, X = x + m.Index * 4, Y = y, Ancho = m.Length * 4, Alto = 5 });
+        return new() { Ruta = @"X:\Datos\Soc\2026\Proveedores\Ficticio\factura.pdf", Paginas = [new PaginaDocumento { Numero = 1, Texto = string.Join("\n", lineas.Select(l => l.Texto)), Palabras = palabras }] };
+    }
+
+    [Fact]
+    public void El_concepto_de_varias_lineas_con_interlineado_amplio_y_lineas_sueltas_bajo_el_rotulo()
+    {
+        var julio = Interlineado(
+            (38, 398, "Descripción                                                          Cant.   P. Unitario    IVA %      Precio total"),
+            (378, 385, "(IVA excluido)                         (IVA incluido)"),
+            (464, 370, "(1)"),
+            (38, 367, "C Llave de Gancho para Llave Inglesa, Herramienta de Llave de Gancho de          1   17,17 €  0%   17,17 €"),
+            (38, 353, "10 Piezas, Juego de Llaves de Tensor de Amortiguador, Herramienta de"),
+            (38, 340, "Reparación de Llaves Roscadas"),
+            (38, 300, "Total 17,17 €"));
+        var agosto = Interlineado(
+            (38, 399, "Descripción                                                          Cant.   P. Unitario    IVA %      Precio total"),
+            (378, 385, "(IVA excluido)                         (IVA incluido)"),
+            (464, 370, "(1)"),
+            (38, 367, "SWAWIS 4 Piezas Juego de Cabeza Cuadrada C Llave de Gancho          1   35,53 €  0%   35,53 €"),
+            (38, 354, "Ajustable 19-170mm, Acero al Cromo-Vanadio, para Amortiguadores de"),
+            (38, 341, "Motocicleta"),
+            (38, 300, "Total 35,53 €"));
+        var p = PlantillasReconocimiento.Aprender(julio, PlantillasReconocimiento.Concepto,
+            "C Llave de Gancho para Llave Inglesa, Herramienta de Llave de Gancho de 10 Piezas, Juego de Llaves de Tensor de Amortiguador, Herramienta de Reparación de Llaves Roscadas");
+        Assert.NotNull(p);
+        Assert.Equal("SWAWIS 4 Piezas Juego de Cabeza Cuadrada C Llave de Gancho Ajustable 19-170mm, Acero al Cromo-Vanadio, para Amortiguadores de Motocicleta",
+            PlantillasReconocimiento.Leer(agosto, p!));
+    }
+
     [Fact]
     public void Un_concepto_sin_rotulo_que_se_repite_como_titulo_se_aprende_como_texto_fijo()
     {
