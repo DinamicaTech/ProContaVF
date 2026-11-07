@@ -90,6 +90,8 @@ public sealed class MotorAsientosAccess(IBaseDatos bd, PoliticaCuadre? politica 
             if (actual.Version != versionLeida) throw Conflicto(actual);
             var abierto = await ComprobarEjercicioAbiertoAsync(s, actual.Contexto);
             if (!abierto.EsCorrecto) return abierto;
+            var trimestre = await ComprobarTrimestreAbiertoAsync(s, actual);
+            if (!trimestre.EsCorrecto) return trimestre;
             await BorrarAsync(s, actual, actor, motivo.Trim(), Guid.NewGuid());
             await ActualizarSaldosAsync(s, actual.Contexto, actual.Apuntes.Select(a => a.CodigoCuenta));
             return Resultado.Correcto();
@@ -115,6 +117,8 @@ public sealed class MotorAsientosAccess(IBaseDatos bd, PoliticaCuadre? politica 
             foreach (var (id, i) in anteriores.Select((id, i) => (id, i)))
             {
                 var viejo = (await CargarAsync(s, id))!;
+                var trimestre = await ComprobarTrimestreAbiertoAsync(s, viejo);
+                if (!trimestre.EsCorrecto) return Resultado<IReadOnlyList<int>>.Fallo(trimestre.Errores);
                 cuentas.AddRange(viejo.Apuntes.Select(a => a.CodigoCuenta));
                 if (i < asientos.Count) reutilizados.Add(viejo);
                 else await BorrarAsync(s, viejo, actor, motivo.Trim(), idLote);
@@ -155,6 +159,8 @@ public sealed class MotorAsientosAccess(IBaseDatos bd, PoliticaCuadre? politica 
             foreach (var id in ids)
             {
                 var viejo = (await CargarAsync(s, id))!;
+                var trimestre = await ComprobarTrimestreAbiertoAsync(s, viejo);
+                if (!trimestre.EsCorrecto) return Resultado<int>.Fallo(trimestre.Errores);
                 cuentas.AddRange(viejo.Apuntes.Select(a => a.CodigoCuenta));
                 await BorrarAsync(s, viejo, actor, motivo.Trim(), idLote);
             }
@@ -192,7 +198,13 @@ public sealed class MotorAsientosAccess(IBaseDatos bd, PoliticaCuadre? politica 
                     return Resultado<Guid>.Fallo(new Error("Asientos.Automatico", $"El apunte {idApunte} es de un asiento automático y no se cambia a mano.", $"Asiento {fila.IdAsiento}",
                         "Los asientos automáticos solo los regenera el proceso que los generó.", "Corrige el documento de origen y vuelve a generar su asiento."));
                 if (fila.Cuenta == cuenta.Valor.Codigo) continue;
-                if (!anteriores.ContainsKey(fila.IdAsiento)) anteriores[fila.IdAsiento] = (await CargarAsync(s, fila.IdAsiento))!;
+                if (!anteriores.ContainsKey(fila.IdAsiento))
+                {
+                    var asiento = (await CargarAsync(s, fila.IdAsiento))!;
+                    var trimestre = await ComprobarTrimestreAbiertoAsync(s, asiento);
+                    if (!trimestre.EsCorrecto) return Resultado<Guid>.Fallo(trimestre.Errores);
+                    anteriores[fila.IdAsiento] = asiento;
+                }
                 await s.EjecutarAsync("UPDATE Apuntes SET CuentaContable = ? WHERE IdApunte = ?", cuenta.Valor.Codigo, idApunte);
                 await RegistrarCambioAsync(s, idLote, actor, motivo.Trim(), fila.IdAsiento, idApunte, fila.Orden, "MODIFICACION", "CuentaContable", fila.Cuenta, cuenta.Valor.Codigo);
                 afectadas.Add(fila.Cuenta);
@@ -221,6 +233,8 @@ public sealed class MotorAsientosAccess(IBaseDatos bd, PoliticaCuadre? politica 
         if (!reglas.EsCorrecto) return Resultado<int>.Fallo(reglas.Errores);
         var abierto = await ComprobarEjercicioAbiertoAsync(s, asiento.Contexto);
         if (!abierto.EsCorrecto) return Resultado<int>.Fallo(abierto.Errores);
+        var trimestre = await ComprobarTrimestreAbiertoAsync(s, asiento);
+        if (!trimestre.EsCorrecto) return Resultado<int>.Fallo(trimestre.Errores);
 
         var errores = new List<Error>();
         foreach (var apunte in asiento.Apuntes)
@@ -245,6 +259,8 @@ public sealed class MotorAsientosAccess(IBaseDatos bd, PoliticaCuadre? politica 
             anterior = await CargarAsync(s, asiento.IdAsiento);
             if (anterior is null) return Resultado<int>.Fallo(NoExiste(asiento.IdAsiento));
             if (manual && anterior.EsAutomatico) return Resultado<int>.Fallo(AutomaticoNoManual(anterior));
+            var trimestreAnterior = await ComprobarTrimestreAbiertoAsync(s, anterior);
+            if (!trimestreAnterior.EsCorrecto) return Resultado<int>.Fallo(trimestreAnterior.Errores);
             if (anterior.Contexto.IdSociedadEjercicio != asiento.Contexto.IdSociedadEjercicio)
                 return Resultado<int>.Fallo(new Error("Asientos.CambioEjercicio", "Un asiento no se puede mover a otro ejercicio.", asiento.ToString(),
                     "El ejercicio forma parte de la identidad del asiento.", "Bórralo y créalo en el ejercicio correcto, o usa la plantilla de rectificación."));
@@ -387,6 +403,30 @@ public sealed class MotorAsientosAccess(IBaseDatos bd, PoliticaCuadre? politica 
                 "Un ejercicio cerrado solo se puede consultar.", "Si hay que corregirlo, reabre el ejercicio con el proceso contable autorizado."))
             : Resultado.Correcto();
     }
+
+    /// <summary>
+    /// Protección del trimestre cerrado (contabilidad/procesos 2026-11-07): con un trimestre activo configurado en el
+    /// ejercicio (SociedadesEjercicios.TrimestreActivo), ningún módulo crea, cambia ni borra un asiento fechado antes de
+    /// él; se corrige con un contra-asiento en el trimestre activo. Sin trimestre configurado no se comprueba.
+    /// </summary>
+    private static async Task<Resultado> ComprobarTrimestreAbiertoAsync(ISesionDatos s, Asiento asiento)
+    {
+        var contexto = asiento.Contexto;
+        var valor = await s.EscalarAsync("SELECT TrimestreActivo FROM SociedadesEjercicios WHERE IdSociedadEjercicio = ?", contexto.IdSociedadEjercicio);
+        if (valor is null or DBNull) return Resultado.Correcto();
+        var activo = Convert.ToInt32(valor, CultureInfo.InvariantCulture);
+        if (activo is < 1 or > 4) return Resultado.Correcto();
+        var inicio = TrimestreContable.Inicio(contexto.Ejercicio, activo);
+        if (asiento.FechaContable.Date >= inicio) return Resultado.Correcto();
+        var cerrado = NombreTrimestre(TrimestreContable.De(asiento.FechaContable));
+        var registro = asiento.EsNuevo ? $"Asiento del {asiento.FechaContable:dd/MM/yyyy}" : $"Asiento {asiento.IdAsiento} del {asiento.FechaContable:dd/MM/yyyy}";
+        return Resultado.Fallo(new Error("Asientos.TrimestreCerrado",
+            $"El trimestre {cerrado} de {contexto.Ejercicio} está cerrado: sus asientos no se crean, cambian ni borran.", registro,
+            $"El trimestre activo es {NombreTrimestre(activo)}; lo de un trimestre cerrado ya puede estar en la declaración del IVA.",
+            $"Corrígelo con un contra-asiento fechado en {NombreTrimestre(activo)}."));
+    }
+
+    private static string NombreTrimestre(int t) => t switch { 1 => "ene-mar", 2 => "abr-jun", 3 => "jul-sep", _ => "oct-dic" };
 
     private static async Task<Resultado<CuentaContable>> ResolverCuentaAsync(ISesionDatos s, ContextoSociedadEjercicio contexto, string codigo)
     {

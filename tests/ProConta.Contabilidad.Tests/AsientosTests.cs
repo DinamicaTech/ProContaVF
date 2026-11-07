@@ -168,6 +168,26 @@ public sealed class MotorAsientosAccessTests : IDisposable
     }
 
     [Fact]
+    public async Task TrimestreCerradoNoSeCreaCambiaNiBorra()
+    {
+        await PrepararAsync();
+        var motor = Motor();
+        var primero = await motor.ReemplazarLoteAsync(_ctx, _lote, [Nuevo(121m, 121m, "4300001")], _actor, "Contabilizar factura");
+        Assert.True(primero.EsCorrecto);
+        await Bd.EjecutarAsync(s => s.EjecutarAsync("UPDATE SociedadesEjercicios SET TrimestreActivo = 2 WHERE IdSociedadEjercicio = 9001"));
+
+        Assert.Equal("Asientos.TrimestreCerrado", (await motor.ReemplazarLoteAsync(_ctx, _lote, [Nuevo(150m, 150m, "4300001")], _actor, "Regenerar")).Error!.Codigo);
+        Assert.Equal("Asientos.TrimestreCerrado", (await motor.EliminarLoteAsync(_ctx, _lote, _actor, "Deshacer")).Error!.Codigo);
+        Assert.Equal("Asientos.TrimestreCerrado", (await motor.GuardarManualAsync(Nuevo(1m, 1m), _actor)).Error!.Codigo);
+        Assert.Equal(1, await ContarAsync("Asientos"));
+
+        var enElActivo = Nuevo(1m, 1m);
+        enElActivo.FechaContable = new DateTime(2025, 4, 1);
+        Assert.True((await motor.GuardarManualAsync(enElActivo, _actor)).EsCorrecto);
+        Assert.Equal(2, await ContarAsync("Asientos"));
+    }
+
+    [Fact]
     public async Task LoteAutomaticoSeRegeneraSinDuplicarYRechazaEdicionManual()
     {
         await PrepararAsync();

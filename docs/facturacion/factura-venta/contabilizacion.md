@@ -20,6 +20,7 @@ Genera los asientos de las facturas de venta con el motor de contabilidad/asient
 - 2026-11-04 17:57 · Validado por el propietario (facturación de venta, PR #14).
 - 2026-11-07 12:49 · Fecha del asiento (propietario 2026-11-07 11:59): la de la factura, o el día 1 del trimestre activo del ejercicio si es anterior, como en compras (`TrimestreContable`). Sustituye a «el día en que se genera». Pendiente: que ventas respete el trimestre cerrado al regenerar y que lleve libro de IVA repercutido.
 - 2026-11-07 13:00 · IVA repercutido (propietario 2026-11-07 11:59: «Ventas debería usar una 477, no una 472»): la cuenta de cada tipo sale de CuentaIVARepercutido0..4 del ejercicio o, vacía, de la 477 con la terminación de la CuentaTipoIVA. Si no existe, la validación no lo cuenta como error y se crea al contabilizar, con el nombre «IVA repercutido del N %».
+- 2026-11-07 21:46 · Derived from contabilidad/asientos: el trimestre cerrado lo protege ya el motor de asientos; si algún día ventas regenera el asiento de una factura de un trimestre cerrado, el motor lo rechaza y habrá que hacer contra-asiento, como en compras. Queda pendiente el libro de IVA repercutido.
 
 ## Requirements
 - 2026-10-28 13:14 · Q5) b) La lógica de contabilización está dentro del propio nodo (FacturasCompra, FacturasVenta, etc.). Ya tenemos un motor para gestionar Asientos, por lo que mejor conectar este motor directamente cada nodo que ha de generar asientos
