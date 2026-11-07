@@ -198,6 +198,13 @@ public sealed class FichaCompraTests
         Assert.Equal("VENDEDOR FICTICIO SARL", f.RazonSocialAeat);
     }
 
+    [Theory]
+    [InlineData("HANNA INSTRUMENTS SL", "Hanna", "HANNA INSTRUMENTS SL (Hanna)")]
+    [InlineData("HANNA INSTRUMENTS SL", null, "HANNA INSTRUMENTS SL")]
+    [InlineData("HANNA INSTRUMENTS SL", "hanna instruments sl", "HANNA INSTRUMENTS SL")]
+    public void El_proveedor_se_ve_con_su_razon_social_y_su_nombre_comercial(string razon, string? comercial, string esperado) =>
+        Assert.Equal(esperado, (Proveedor with { RazonSocial = razon, NombreComercial = comercial }).NombreCompleto);
+
     [Fact]
     public void Escribir_el_total_de_un_tipo_reparte_base_e_iva()
     {

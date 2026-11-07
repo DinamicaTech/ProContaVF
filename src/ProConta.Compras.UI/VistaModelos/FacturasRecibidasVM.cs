@@ -501,6 +501,22 @@ public sealed class FacturasRecibidasVM : ModeloVista, IPestanaTrabajo
             tercera);
     }
 
+    /// <summary>Nombre comercial del proveedor de la ficha (compras/pantallas 2026-11-07 20:10): se guarda en su tercero.</summary>
+    private async Task EditarNombreComercialAsync(FichaCompraVM ficha)
+    {
+        if (_s.AltaProveedor is not { } alta || ficha.ProveedorActual is not { } p) return;
+        var razon = string.IsNullOrWhiteSpace(p.RazonSocial) ? p.Nombre : p.RazonSocial;
+        var guardado = _modulo.Dialogos.PedirNombreComercial(razon, p.NombreComercial, async nombre =>
+        {
+            var r = await alta.NombreComercialAsync(p.IdTercero, nombre);
+            return r.EsCorrecto ? null : r.Error!.Mensaje + (r.Error.AccionCorrectora is { } a ? " " + a : "");
+        });
+        if (!guardado) return;
+        _proveedores = await _s.Facturas.ProveedoresAsync(_s.Trabajo);
+        ficha.ProveedoresRecargados(_proveedores);
+        _modulo.Avisar("Nombre comercial guardado en la ficha del proveedor.");
+    }
+
     private readonly Dictionary<string, string?> _razonesAeat = new(StringComparer.OrdinalIgnoreCase);
 
     /// <summary>
@@ -509,21 +525,29 @@ public sealed class FacturasRecibidasVM : ModeloVista, IPestanaTrabajo
     /// </summary>
     private async Task ConsultarRazonAeatAsync(FichaCompraVM ficha)
     {
-        if (_s.AltaProveedor is not { } alta || !ficha.PuedeDarDeAltaProveedor || ficha.RazonSocialAeat is not null) return;
+        if (_s.AltaProveedor is null || !ficha.PuedeDarDeAltaProveedor) return;
         var nif = ficha.Nif;
         if (nif.Length == 0) return;
         if (!_razonesAeat.TryGetValue(nif, out var razon))
         {
             try
             {
-                var aeat = await alta.ConsultarAsync(_s.Trabajo, nif, ficha.NombreLeido);
+                // Si la razón social está en el PDF, el proveedor se da de alta como acreedor, como al importar (Ronald, 2026-11-07 20:10).
+                var (aeat, creado) = await _s.Facturas.RazonSocialYAltaAsync(_s.Trabajo, nif, ficha.Factura.RutaPdf, ficha.NombreLeido);
                 razon = aeat.Identificado && !string.IsNullOrWhiteSpace(aeat.RazonSocial) ? aeat.RazonSocial.Trim() : null;
                 // Sin certificado o sin conexión no se guarda: se vuelve a intentar al abrir otra vez la factura.
                 if (aeat.Identificado || aeat.Consultado) _razonesAeat[nif] = razon;
+                if (creado is not null)
+                {
+                    _proveedores = await _s.Facturas.ProveedoresAsync(_s.Trabajo);
+                    if (ReferenceEquals(_ficha, ficha)) ficha.ProveedorDadoDeAlta(_proveedores, creado.IdProveedor, creado.Cuenta);
+                    _modulo.Avisar($"Proveedor {creado.Nombre} dado de alta como acreedor ({creado.Cuenta}): su razón social de la AEAT está en la factura. Se guarda en la factura con los demás cambios.");
+                    return;
+                }
             }
             catch (Exception ex) when (ex is not OperationCanceledException) { return; }
         }
-        if (razon is not null) ficha.RazonSocialConsultada(nif, razon);
+        if (razon is not null && ReferenceEquals(_ficha, ficha)) ficha.RazonSocialConsultada(nif, razon);
     }
 
     /// <summary>
@@ -624,6 +648,7 @@ public sealed class FacturasRecibidasVM : ModeloVista, IPestanaTrabajo
                 if (_s.AltaProveedor is not null && _puedeEditar && !Prueba)
                 {
                     value.DarDeAltaProveedor = DarDeAltaProveedorAsync;
+                    value.EditarNombreComercial = EditarNombreComercialAsync;
                     _ = ConsultarRazonAeatAsync(value);
                 }
             }

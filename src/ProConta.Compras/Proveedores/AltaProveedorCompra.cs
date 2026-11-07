@@ -87,6 +87,22 @@ public sealed class ServicioAltaProveedorCompra(IBaseDatos bd, IRepositorioTerce
         return limpio.ToString().Split(' ', StringSplitOptions.RemoveEmptyEntries);
     }
 
+    /// <summary>
+    /// Pone el nombre comercial del tercero del proveedor (compras/pantallas 2026-11-07 20:10): el alta automática solo
+    /// trae la razón social, y muchas veces el proveedor se conoce por su nombre comercial. Vacío, lo quita.
+    /// </summary>
+    public async Task<Resultado<bool>> NombreComercialAsync(int idTercero, string? nombreComercial)
+    {
+        var t = await terceros.ObtenerAsync(idTercero);
+        if (t is null) return Resultado<bool>.Fallo(new Error("Proveedores.SinTercero", "No encuentro la ficha del proveedor.", null, null, "Vuelve a abrir la factura."));
+        var nombre = string.IsNullOrWhiteSpace(nombreComercial) ? null : nombreComercial.Trim();
+        if (nombre is { Length: > 150 }) return Resultado<bool>.Fallo(new Error("Proveedores.NombreComercialLargo", "El nombre comercial no puede pasar de 150 caracteres.", null, null, "Acórtalo."));
+        if (t.NombreComercial == nombre) return Resultado<bool>.Correcto(false);
+        t.NombreComercial = nombre;
+        var r = await terceros.GuardarAsync(t, actor);
+        return r.EsCorrecto ? Resultado<bool>.Correcto(true) : Resultado<bool>.Fallo(r.Errores);
+    }
+
     /// <summary>NIF de la factura comprobado en la AEAT; sin certificado o sin servicio, sin consultar.</summary>
     public async Task<ResultadoNifAeat> ConsultarAsync(ContextoSociedadEjercicio ctx, string nif, string? nombre, CancellationToken cancelacion = default)
     {

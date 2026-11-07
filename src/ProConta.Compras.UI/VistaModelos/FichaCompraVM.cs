@@ -204,6 +204,7 @@ public sealed class FichaCompraVM : ModeloVista
         _cuentaGasto = CuentasGasto.FirstOrDefault(c => c.Valor == factura.CuentaGasto) ?? CuentasGasto[0];
         _centroCoste = CentrosCoste.FirstOrDefault(c => c.Valor == factura.IdCentroCoste) ?? CentrosCoste[0];
         DarDeAltaProveedorCommand = new ComandoDelegado(_ => _ = DarDeAltaProveedor?.Invoke(this), _ => DarDeAltaProveedor is not null && PuedeDarDeAltaProveedor);
+        NombreComercialCommand = new ComandoDelegado(_ => _ = EditarNombreComercial?.Invoke(this), _ => PuedeEditarNombreComercial);
         AnadirTextoClaveCommand = new ComandoDelegado(_ => _ = AnadirTextoClave?.Invoke(this, null, null),
             _ => AnadirTextoClave is not null && (_cuentaGasto.Valor is not null || _centroCoste.Valor is not null));
         _rectifica = Rectificables.FirstOrDefault(r => r.Valor == factura.IdRegistroFacturaRectificada) ?? Rectificables[0];
@@ -273,7 +274,7 @@ public sealed class FichaCompraVM : ModeloVista
             if (!Cambiar(ref _nif, (value ?? "").Trim().ToUpperInvariant(), "nif")) return;
             _proveedor = BuscarPorNif(_nif);
             _cuentaProveedorNueva = null;
-            Avisar(nameof(NombreProveedor), nameof(HayProveedor), nameof(AvisoProveedor), nameof(RazonSocialAeat), nameof(PuedeDarDeAltaProveedor), nameof(IdTerceroProveedor), nameof(Cuenta));
+            Avisar(nameof(NombreProveedor), nameof(HayProveedor), nameof(AvisoProveedor), nameof(RazonSocialAeat), nameof(PuedeDarDeAltaProveedor), nameof(IdTerceroProveedor), nameof(Cuenta), nameof(PuedeEditarNombreComercial));
             ProponerFormaPago();
             ProponerProducto();
             ProponerAbreviado();
@@ -282,7 +283,26 @@ public sealed class FichaCompraVM : ModeloVista
 
     public bool HayProveedor => _proveedor is not null;
     public int? IdTerceroProveedor => _proveedor?.IdTercero;
-    public string NombreProveedor => _proveedor?.Nombre ?? (Factura.Carpeta.Length > 0 ? $"Carpeta «{Factura.Carpeta}»" : "");
+    public string NombreProveedor => _proveedor?.NombreCompleto ?? (Factura.Carpeta.Length > 0 ? $"Carpeta «{Factura.Carpeta}»" : "");
+
+    /// <summary>Botón junto al nombre del proveedor: ponerle el nombre comercial (compras/pantallas 2026-11-07 20:10).</summary>
+    public System.Windows.Input.ICommand NombreComercialCommand { get; }
+
+    /// <summary>Lo pone la pantalla: pide el nombre comercial del proveedor de la ficha y lo guarda en su tercero.</summary>
+    internal Func<FichaCompraVM, Task>? EditarNombreComercial { get; set; }
+
+    public bool PuedeEditarNombreComercial => !SoloLectura && _proveedor is not null && EditarNombreComercial is not null;
+
+    /// <summary>Proveedor de la ficha (para el diálogo del nombre comercial).</summary>
+    internal ProveedorFicha? ProveedorActual => _proveedor;
+
+    /// <summary>Tras cambiar un dato del proveedor: la ficha toma la lista nueva sin dejar cambios.</summary>
+    internal void ProveedoresRecargados(IReadOnlyList<ProveedorFicha> proveedores)
+    {
+        _proveedores = proveedores;
+        if (_proveedor is { } p) _proveedor = proveedores.FirstOrDefault(x => x.IdProveedor == p.IdProveedor) ?? p;
+        Avisar(nameof(NombreProveedor));
+    }
     public string? AvisoProveedor => _nif.Length == 0 || _proveedor is not null ? null
         : RazonSocialAeat is { } razon ? $"Según la AEAT, este NIF es de {razon}. Ningún proveedor de la empresa lo tiene."
         : "Ningún proveedor de la empresa tiene este NIF.";
@@ -355,7 +375,7 @@ public sealed class FichaCompraVM : ModeloVista
         _proveedor = proveedores.FirstOrDefault(p => p.IdProveedor == idProveedor);
         _cuentaProveedorNueva = cuenta;
         Marcar("proveedor");
-        Avisar(nameof(NombreProveedor), nameof(HayProveedor), nameof(AvisoProveedor), nameof(RazonSocialAeat), nameof(PuedeDarDeAltaProveedor), nameof(IdTerceroProveedor), nameof(Cuenta));
+        Avisar(nameof(NombreProveedor), nameof(HayProveedor), nameof(AvisoProveedor), nameof(RazonSocialAeat), nameof(PuedeDarDeAltaProveedor), nameof(IdTerceroProveedor), nameof(Cuenta), nameof(PuedeEditarNombreComercial));
         ProponerFormaPago();
         ProponerProducto();
     }

@@ -125,6 +125,42 @@ public sealed class DialogosCompras(Func<Window?> ventana) : IDialogosCompras
         return dialogo.ShowDialog() == true;
     }
 
+    public bool PedirNombreComercial(string razonSocial, string? actual, Func<string, Task<string?>> guardar)
+    {
+        var dialogo = new DialogoProConta { Title = "Nombre comercial del proveedor", Owner = ventana(), Width = 520 };
+        var texto = new TextBox { Text = actual ?? "", Width = 400, HorizontalAlignment = HorizontalAlignment.Left, MaxLength = 150,
+            ToolTip = "El nombre por el que conoces al proveedor; vacío, se quita" };
+        var error = new TextBlock { Foreground = System.Windows.Media.Brushes.Firebrick, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 10, 0, 0), Visibility = Visibility.Collapsed };
+        var panel = new StackPanel();
+        panel.Children.Add(new TextBlock { Text = $"Razón social: {razonSocial}. El nombre comercial se guarda en su ficha de Terceros y sale en las listas y en los apuntes.",
+            TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 0, 0, 12) });
+        panel.Children.Add(new TextBlock { Text = "Nombre comercial", Style = (Style)dialogo.FindResource("Texto.Seccion"), Margin = new Thickness(0, 0, 0, 4) });
+        panel.Children.Add(texto);
+        panel.Children.Add(error);
+        dialogo.Content = panel;
+        var aceptar = new Button { Content = "Guardar", Style = (Style)dialogo.FindResource("Boton.Primario"), Margin = new Thickness(8, 0, 0, 0), IsDefault = true,
+            ToolTip = "Guarda el nombre comercial en la ficha del proveedor" };
+        var cancelar = new Button { Content = "Cancelar", IsCancel = true, ToolTip = "No cambia nada" };
+        aceptar.Click += async (_, _) =>
+        {
+            aceptar.IsEnabled = false;
+            try
+            {
+                var fallo = await guardar(texto.Text.Trim());
+                if (fallo is null) dialogo.DialogResult = true;
+                else { error.Text = fallo; error.Visibility = Visibility.Visible; }
+            }
+            finally
+            {
+                aceptar.IsEnabled = true;
+            }
+        };
+        cancelar.Click += (_, _) => dialogo.DialogResult = false;
+        dialogo.Botones = new StackPanel { Orientation = Orientation.Horizontal, Children = { cancelar, aceptar } };
+        dialogo.Loaded += (_, _) => { texto.Focus(); texto.SelectAll(); };
+        return dialogo.ShowDialog() == true;
+    }
+
     public bool PedirDatosProveedor(ProConta.Compras.Proveedores.DatosAltaProveedor propuesta, string? motivo, string? urlEInforma,
         Func<ProConta.Compras.Proveedores.DatosAltaProveedor, Task<string?>> guardar)
     {

@@ -61,6 +61,9 @@ public interface IDialogosCompras
     /// confirmó. Con <paramref name="urlEInforma"/>, un botón «Buscar en eInforma» la abre en el navegador.
     /// <paramref name="guardar"/> da de alta y devuelve el error que se enseña o null. True si se dio de alta.
     /// </summary>
+    /// <summary>Nombre comercial del proveedor (compras/pantallas 2026-11-07 20:10): lo guarda con <paramref name="guardar"/>, que devuelve el error o null. True si se guardó.</summary>
+    bool PedirNombreComercial(string razonSocial, string? actual, Func<string, Task<string?>> guardar);
+
     bool PedirDatosProveedor(ProConta.Compras.Proveedores.DatosAltaProveedor propuesta, string? motivo, string? urlEInforma,
         Func<ProConta.Compras.Proveedores.DatosAltaProveedor, Task<string?>> guardar);
 

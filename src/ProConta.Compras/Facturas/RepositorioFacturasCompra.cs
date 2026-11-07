@@ -251,7 +251,7 @@ internal static class RepositorioFacturasCompra
                 Primero(r.Texto("NombreComercial"), r.Texto("RazonSocial"), r.Texto("Nombre")),
                 r.EnteroNulo("IdFormaPagoDefecto") is int fp ? (byte)fp : null,
                 r.EnteroNulo("TipoProductoDefecto") is int tp && Enum.IsDefined((ProductoCompra)tp) ? (ProductoCompra)tp : null,
-                Nulo(r.Texto("ConceptoAbreviadoDefecto"))), idSociedad);
+                Nulo(r.Texto("ConceptoAbreviadoDefecto")), Nulo(r.Texto("RazonSocial")) ?? Nulo(r.Texto("Nombre")), Nulo(r.Texto("NombreComercial"))), idSociedad);
         // Un proveedor puede tener varias cuentas en la empresa: uno por proveedor, con la forma de pago que tenga alguna.
         return filas.GroupBy(p => p.IdProveedor)
             .Select(g => g.First() with
@@ -594,7 +594,18 @@ internal static class RepositorioFacturasCompra
 
 /// <summary>Proveedor de la empresa tal como lo necesita la ficha: su tercero (para abrir su ficha), su NIF y su nombre.</summary>
 public sealed record ProveedorFicha(int IdProveedor, int IdTercero, string Nif, string Nombre, byte? IdFormaPagoDefecto = null, ProductoCompra? ProductoDefecto = null,
-    string? ConceptoAbreviadoDefecto = null);
+    string? ConceptoAbreviadoDefecto = null, string? RazonSocial = null, string? NombreComercial = null)
+{
+    /// <summary>«RAZÓN SOCIAL (NOMBRE COMERCIAL)», o solo la razón social si no hay nombre comercial o es el mismo (compras/pantallas 2026-11-07 20:10).</summary>
+    public string NombreCompleto
+    {
+        get
+        {
+            var razon = string.IsNullOrWhiteSpace(RazonSocial) ? Nombre : RazonSocial.Trim();
+            return NombreComercial is { Length: > 0 } c && !string.Equals(c.Trim(), razon, StringComparison.OrdinalIgnoreCase) ? $"{razon} ({c.Trim()})" : razon;
+        }
+    }
+}
 
 /// <summary>Factura de compra resumida para la lista de la pantalla.</summary>
 public sealed class FilaFacturaCompra

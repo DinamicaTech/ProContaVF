@@ -266,7 +266,12 @@
                             <TextBox Text="{Binding Nif, UpdateSourceTrigger=LostFocus}" Style="{StaticResource Campo.Mono}" IsReadOnly="{Binding SoloLectura}" Tag="nif"
                                      GotKeyboardFocus="Campo_GotKeyboardFocus" ToolTip="NIF del proveedor; selecciona texto en el PDF para rellenarlo" />
                           </DockPanel>
-                          <TextBlock Text="{Binding NombreProveedor}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" ToolTip="{Binding NombreProveedor}" />
+                          <DockPanel>
+                            <Button DockPanel.Dock="Right" Style="{StaticResource Boton.Icono}" pc:Iconos.Icono="{StaticResource Icono.edit}" Margin="6,0,0,0" Command="{Binding NombreComercialCommand}"
+                                    Visibility="{Binding PuedeEditarNombreComercial, Converter={StaticResource Visible}}"
+                                    ToolTip="Pon el nombre comercial del proveedor: el nombre por el que lo conoces, si no es su razón social" AutomationProperties.Name="Nombre comercial del proveedor" />
+                            <TextBlock Text="{Binding NombreProveedor}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" ToolTip="{Binding NombreProveedor}" VerticalAlignment="Center" />
+                          </DockPanel>
                           <TextBlock Text="{Binding Cuenta}" FontFamily="{StaticResource Fuente.Mono}" Style="{StaticResource Texto.Apagado}" Visibility="{Binding Cuenta, Converter={StaticResource Visible}}" />
                           <TextBlock Text="{Binding AvisoProveedor}" Foreground="{StaticResource Pincel.RojoError}" TextWrapping="Wrap" Visibility="{Binding AvisoProveedor, Converter={StaticResource Visible}}" />
                           <Button Content="Dar de alta…" Style="{StaticResource Boton.Pequeno}" HorizontalAlignment="Left" Margin="0,4,0,0" Command="{Binding DarDeAltaProveedorCommand}"

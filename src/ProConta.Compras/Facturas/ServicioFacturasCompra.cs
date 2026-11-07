@@ -216,6 +216,26 @@ public sealed class ServicioFacturasCompra(
     }
 
     /// <summary>
+    /// Al abrir una factura con un NIF sin proveedor (compras/pantallas 2026-11-07 20:10): consulta la razón social en la
+    /// AEAT y, si aparece en el texto del PDF, da de alta el proveedor como acreedor, como al importarla. El PDF sin texto
+    /// (escaneado) no se pasa por el OCR: solo se consulta la razón social.
+    /// </summary>
+    public async Task<(Proveedores.ResultadoNifAeat Aeat, Proveedores.ProveedorCreado? Creado)> RazonSocialYAltaAsync(ContextoSociedadEjercicio ctx, string nif,
+        string rutaPdf, string? nombreLeido, CancellationToken cancelacion = default)
+    {
+        if (AltaProveedor is not { } alta) return (Proveedores.ResultadoNifAeat.SinConsultar("Sin alta de proveedores."), null);
+        string? texto = null;
+        try
+        {
+            if (File.Exists(rutaPdf)) texto = await Task.Run(() => reconocimiento.Extraer(rutaPdf).TextoCompleto, cancelacion);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException and not ExcepcionDatos) { texto = null; }
+        if (string.IsNullOrWhiteSpace(texto)) return (await alta.ConsultarAsync(ctx, nif, nombreLeido, cancelacion), null);
+        var (aeat, creado, _) = await alta.AltaAutomaticaAsync(ctx, nif, texto, nombreLeido, cancelacion);
+        return (aeat, creado);
+    }
+
+    /// <summary>
     /// Cuenta de gasto y centro de coste de una factura leída (compras/pantallas 2026-11-06 17:02): primero los textos clave
     /// de la empresa que aparezcan en el contenido o en la ruta del PDF (gana el más largo; con empate no se asigna y se
     /// avisa); si no, los del proveedor por defecto; el centro, por último, el de la cuenta. Lo que ya tiene la factura no se toca.
