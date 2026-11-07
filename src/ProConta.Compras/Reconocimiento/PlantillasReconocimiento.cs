@@ -53,7 +53,11 @@ public static class PlantillasReconocimiento
     public static bool MismoSitio(PlantillaCampo a, PlantillaCampo b) =>
         a.Campo == b.Campo && a.Ancla == b.Ancla && a.Posicion == b.Posicion && a.Pagina == b.Pagina;
 
-    private static PlantillaCampo? AprenderEn(DocumentoFacturaExtraido documento, string campo, string valor, PuntoDocumento? elegido)
+    /// <summary>Como <see cref="Aprender"/> sin punto elegido, contando cada paso (para diagnosticar con la herramienta de regresión).</summary>
+    public static PlantillaCampo? AprenderConTraza(DocumentoFacturaExtraido documento, string campo, string valor, Action<string> traza) =>
+        AprenderEn(documento, campo, valor, null, traza);
+
+    private static PlantillaCampo? AprenderEn(DocumentoFacturaExtraido documento, string campo, string valor, PuntoDocumento? elegido, Action<string>? traza = null)
     {
         if (string.IsNullOrWhiteSpace(valor) || !Campos.Contains(campo)) return null;
         var lineas = Lineas(documento);
@@ -69,10 +73,13 @@ public static class PlantillasReconocimiento
                     // El concepto puede seguir en las líneas de debajo: basta con que esta línea sea su principio.
                     if (Interpretar(campo, texto) is not { } leido || !(campo == Concepto ? EsPrincipio(leido, valor) : Coincide(campo, leido, valor))) continue;
                     if (elegido is not null && !Contiene(linea.Palabras, i, n, elegido)) break;
+                    traza?.Invoke($"valor en línea {li} (p{linea.Pagina} y={linea.Y:0.#} alto={linea.Alto:0.#}) palabra {i}, {n} palabras: «{leido}»");
                     foreach (var candidata in Candidatas(lineas, li, i, n, campo))
                     {
                         // Solo vale si, aplicada a este mismo PDF, devuelve este valor (el rótulo no lleva a otro sitio).
-                        if (Leer(documento, candidata, lineas) is not { } relectura || !Coincide(campo, relectura, valor)) continue;
+                        var releida = Leer(documento, candidata, lineas);
+                        traza?.Invoke($"  candidata {candidata.Posicion} «{candidata.Ancla}» desp={candidata.DesplazamientoX:0.#}: relee «{releida}»");
+                        if (releida is not { } relectura || !Coincide(campo, relectura, valor)) continue;
                         // El concepto suele ir bajo la cabecera de una tabla; a su izquierda suele haber un código, no un rótulo.
                         var preferida = campo == Concepto ? Debajo : Derecha;
                         var puntos = (candidata.Posicion == preferida ? 100 : 50) - Ocurrencias(lineas, candidata.Ancla) * 10 + candidata.Ancla.Length / 4;
@@ -141,7 +148,7 @@ public static class PlantillasReconocimiento
         return campo switch
         {
             Nif => SinPrefijoPais(a) == SinPrefijoPais(b),
-            Concepto => string.Equals(a, b, StringComparison.CurrentCultureIgnoreCase),
+            Concepto => Normalizar(a) == Normalizar(b),
             _ => a == b
         };
     }

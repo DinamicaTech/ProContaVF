@@ -32,6 +32,11 @@ public static class Program
                 var campo = a.TryGetValue("campo", out var c) && c.Length > 0 ? c : PlantillasReconocimiento.Concepto;
                 var p = PlantillasReconocimiento.Aprender(doc, campo, valor);
                 Console.WriteLine();
+                if (p is null)
+                {
+                    Console.WriteLine("TRAZA:");
+                    PlantillasReconocimiento.AprenderConTraza(doc, campo, valor, Console.WriteLine);
+                }
                 Console.WriteLine(p is null ? "PLANTILLA: ninguna (no encuentro el valor con un rótulo que lo identifique)" : $"PLANTILLA: {p}");
                 if (p is not null) Console.WriteLine($"LEE EN ESTE: {PlantillasReconocimiento.Leer(doc, p) ?? "(nada)"}");
                 if (p is not null && a.TryGetValue("otro", out var otro)) Console.WriteLine($"LEE EN EL OTRO: {PlantillasReconocimiento.Leer(extractor.Extraer(otro), p) ?? "(nada)"}");
