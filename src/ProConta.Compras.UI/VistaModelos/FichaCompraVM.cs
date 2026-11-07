@@ -138,7 +138,7 @@ public sealed class FichaCompraVM : ModeloVista
     private bool _tieneCambios;
 
     private string _nif = "", _numero = "", _fecha = "", _total = "", _porcentajeRetencion = "", _suplido = "", _divisa = "EUR", _totalDivisa = "";
-    private string _notas = "", _importeUnico = "";
+    private string _notas = "", _importeUnico = "", _conceptoFactura = "", _conceptoAbreviado = "";
     private OpcionFicha<byte?> _formaPago;
     private bool _isp, _conRetencion;
     private ProveedorFicha? _proveedor;
@@ -209,6 +209,8 @@ public sealed class FichaCompraVM : ModeloVista
         _rectifica = Rectificables.FirstOrDefault(r => r.Valor == factura.IdRegistroFacturaRectificada) ?? Rectificables[0];
         _formaPago = FormasPago.FirstOrDefault(x => x.Valor == factura.IdFormaPago) ?? FormasPago[0];
         _notas = factura.Notas ?? "";
+        _conceptoFactura = factura.ConceptoFactura ?? "";
+        _conceptoAbreviado = factura.ConceptoAbreviado ?? "";
         // Una factura editable sin forma de pago trae la del proveedor; se guarda con lo demás.
         if (!SoloLectura)
         {
@@ -491,6 +493,25 @@ public sealed class FichaCompraVM : ModeloVista
     }
     public string Notas { get => _notas; set => Cambiar(ref _notas, value ?? "", "notas"); }
 
+    /// <summary>
+    /// Concepto de la factura (qué se compra), leído con la plantilla o escrito; se puede tomar del PDF como los demás campos.
+    /// Al cambiarlo, el abreviado se recalcula si no se había escrito a mano (compras 2026-11-07).
+    /// </summary>
+    public string ConceptoFactura
+    {
+        get => _conceptoFactura;
+        set
+        {
+            var anterior = _conceptoFactura;
+            if (!Cambiar(ref _conceptoFactura, (value ?? "").Trim(), "concepto")) return;
+            if (_conceptoAbreviado.Length == 0 || _conceptoAbreviado == (FacturaCompra.Abreviar(anterior) ?? ""))
+                ConceptoAbreviado = FacturaCompra.Abreviar(_conceptoFactura) ?? "";
+        }
+    }
+
+    /// <summary>Concepto abreviado (unos 40 caracteres): va en las descripciones de los apuntes.</summary>
+    public string ConceptoAbreviado { get => _conceptoAbreviado; set => Cambiar(ref _conceptoAbreviado, (value ?? "").Trim(), "conceptoabreviado"); }
+
     // ---------- importes ----------
 
     /// <summary>En importación no hay desglose por tipos: un solo importe (sin IVA deducible en la factura).</summary>
@@ -741,7 +762,9 @@ public sealed class FichaCompraVM : ModeloVista
             NombreProveedorAeat = o.NombreProveedorAeat,
             NumeroFactura = new string(_numero.Where(char.IsAsciiLetterOrDigit).ToArray()),
             Fecha = Texto.LeerFechaHora(_fecha),
-            Concepto = o.Concepto, ConceptoFactura = o.ConceptoFactura, ConceptoAbreviado = o.ConceptoAbreviado, OrigenDocumento = o.OrigenDocumento,
+            Concepto = o.Concepto, OrigenDocumento = o.OrigenDocumento,
+            ConceptoFactura = _conceptoFactura.Length == 0 ? null : _conceptoFactura,
+            ConceptoAbreviado = _conceptoAbreviado.Length == 0 ? null : _conceptoAbreviado,
             Operacion = _operacion.Valor, Producto = _producto.Valor, InversionSujetoPasivo = _isp,
             BaseImponible = BaseCalculada, CuotaIva = CuotaCalculada, ImporteTotal = Texto.LeerDecimal(_total),
             PorcentajeRetencion = _conRetencion ? Texto.LeerDecimal(_porcentajeRetencion) : null,

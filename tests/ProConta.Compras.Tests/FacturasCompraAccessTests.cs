@@ -317,6 +317,12 @@ public sealed class FacturasCompraAccessTests : IDisposable
         Assert.Equal((new DateTime(2026, 3, 15), 1m), (leida.Fecha!.Value, reconocida.Lectura.ConfianzaFecha));
         Assert.Contains("fecha", reconocida.Lectura.CamposPlantilla);
 
+        // El concepto se aprende como un campo más y se lee entero, con su abreviado.
+        f = (await servicio.CargarAsync(a.Factura!.IdRegistro))!;
+        f.ConceptoFactura = "Total factura 121,00";
+        Assert.True((await servicio.GuardarAsync(f)).EsCorrecto);
+        Assert.Equal(1, await Contar("SELECT COUNT(*) FROM PlantillasReconocimientoCompra WHERE NIF = ? AND Campo = ?", NifProveedor, "concepto"));
+
         // Dónde lee: en la línea 3 (la de «Emitida el»), a la derecha del rótulo.
         var puntos = await servicio.PuntosPlantillaAsync(f);
         Assert.True(puntos.TryGetValue("fecha", out var punto));

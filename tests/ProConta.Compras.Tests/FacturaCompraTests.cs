@@ -79,6 +79,14 @@ public sealed class FacturaCompraTests
     }
 
     [Theory]
+    [InlineData("Mantenimiento anual de extintores y bocas de incendio del local", "Mantenimiento anual de extintores y")]
+    [InlineData("Reparación caldera", "Reparación caldera")]
+    [InlineData("Supercalifragilisticoespialidosoextraordinariamente largo", "Supercalifragilisticoespialidosoextraord")]
+    [InlineData("  ", null)]
+    public void El_concepto_abreviado_se_corta_por_palabras_hasta_40_caracteres(string concepto, string? esperado)
+        => Assert.Equal(esperado, FacturaCompra.Abreviar(concepto));
+
+    [Theory]
     [InlineData(@"X:\Datos\Soc\2026\Proveedores\Ficticio\f.pdf", "Ficticio")]
     [InlineData(@"X:\Datos\Soc\2026\Proveedores\Ficticio\Enero\f.pdf", "Ficticio")]
     [InlineData(@"X:\Otra\Carpeta\f.pdf", "Carpeta")]

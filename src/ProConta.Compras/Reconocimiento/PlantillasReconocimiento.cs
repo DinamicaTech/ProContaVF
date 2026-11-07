@@ -14,11 +14,14 @@ public sealed record PlantillaCampo(int IdPlantilla, string Campo, int Pagina, s
 /// <summary>Aprende y aplica plantillas de campo sobre el documento extraído. No accede a la BD.</summary>
 public static class PlantillasReconocimiento
 {
-    public const string Nif = "nif", Numero = "numero", Fecha = "fecha", Total = "total";
+    public const string Nif = "nif", Numero = "numero", Fecha = "fecha", Total = "total", Concepto = "concepto";
     public const string Derecha = "derecha", Debajo = "debajo";
-    public static IReadOnlyList<string> Campos { get; } = [Nif, Numero, Fecha, Total];
+    public static IReadOnlyList<string> Campos { get; } = [Nif, Numero, Fecha, Total, Concepto];
 
-    private const int MaxPalabrasValor = 6, MaxPalabrasAncla = 3, MaxAncla = 120;
+    private const int MaxPalabrasValor = 6, MaxPalabrasConcepto = 20, MaxPalabrasAncla = 3, MaxAncla = 120;
+
+    /// <summary>Palabras que puede ocupar el valor: el concepto es texto libre (compras/reconocimiento 2026-11-07).</summary>
+    private static int MaxPalabras(string campo) => campo == Concepto ? MaxPalabrasConcepto : MaxPalabrasValor;
 
     private sealed record Linea(int Pagina, double Y, double Alto, IReadOnlyList<PalabraDocumento> Palabras);
 
@@ -50,7 +53,7 @@ public static class PlantillasReconocimiento
         {
             var linea = lineas[li];
             for (var i = 0; i < linea.Palabras.Count; i++)
-                for (var n = 1; n <= MaxPalabrasValor && i + n <= linea.Palabras.Count; n++)
+                for (var n = 1; n <= MaxPalabras(campo) && i + n <= linea.Palabras.Count; n++)
                 {
                     var texto = Unir(linea.Palabras, i, n);
                     if (Interpretar(campo, texto) is not { } leido || !Coincide(campo, leido, valor)) continue;
@@ -98,7 +101,12 @@ public static class PlantillasReconocimiento
         var a = Interpretar(campo, leido);
         var b = Interpretar(campo, guardado) ?? (campo == Numero ? MotorReconocimientoFacturaCompra.CompactarNumeroFactura(guardado) : null);
         if (a is null || b is null) return false;
-        return campo == Nif ? SinPrefijoPais(a) == SinPrefijoPais(b) : a == b;
+        return campo switch
+        {
+            Nif => SinPrefijoPais(a) == SinPrefijoPais(b),
+            Concepto => string.Equals(a, b, StringComparison.CurrentCultureIgnoreCase),
+            _ => a == b
+        };
     }
 
     /// <summary>Interpretación del texto como valor del campo; null si no lo es.</summary>
@@ -120,6 +128,9 @@ public static class PlantillasReconocimiento
             case Numero:
                 var numero = MotorReconocimientoFacturaCompra.CompactarNumeroFactura(t);
                 return numero.Length is >= 1 and <= 40 && numero.Any(char.IsDigit) ? numero : null;
+            case Concepto:
+                var libre = string.Join(' ', t.Split(' ', StringSplitOptions.RemoveEmptyEntries));
+                return libre.Length is >= 3 and <= 255 && libre.Count(char.IsLetter) >= 3 ? libre : null;
             default:
                 return null;
         }
@@ -189,6 +200,10 @@ public static class PlantillasReconocimiento
     private static (string Valor, PalabraDocumento Palabra)? LeerDerecha(Linea linea, int desde, PlantillaCampo p)
     {
         if (desde >= linea.Palabras.Count) return null;
+        // El concepto ocupa lo que quede de la línea: cada factura lo escribe con un número de palabras distinto.
+        if (p.Campo == Concepto)
+            return Interpretar(Concepto, Unir(linea.Palabras, desde, Math.Min(MaxPalabrasConcepto, linea.Palabras.Count - desde))) is { } concepto
+                ? (concepto, linea.Palabras[desde]) : null;
         if (desde + p.Palabras <= linea.Palabras.Count && Interpretar(p.Campo, Unir(linea.Palabras, desde, p.Palabras)) is { } exacto) return (exacto, linea.Palabras[desde]);
         for (var n = MaxPalabrasValor; n >= 1; n--)
             if (desde + n <= linea.Palabras.Count && Interpretar(p.Campo, Unir(linea.Palabras, desde, n)) is { } v) return (v, linea.Palabras[desde]);

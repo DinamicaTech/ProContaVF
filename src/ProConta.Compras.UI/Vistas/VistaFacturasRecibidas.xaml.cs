@@ -138,7 +138,7 @@ public partial class VistaFacturasRecibidas : UserControl
     private void AlCambiarFicha(object? sender, PropertyChangedEventArgs e)
     {
         if (e.PropertyName is nameof(FichaCompraVM.Nif) or nameof(FichaCompraVM.Numero) or nameof(FichaCompraVM.Fecha) or nameof(FichaCompraVM.Total)
-            or nameof(FichaCompraVM.PuntosPlantilla) or nameof(FichaCompraVM.Elegidos)) Resaltar();
+            or nameof(FichaCompraVM.ConceptoFactura) or nameof(FichaCompraVM.PuntosPlantilla) or nameof(FichaCompraVM.Elegidos)) Resaltar();
         // Al guardar se olvidan los sitios elegidos en el visor: se quita su marca verde.
         else if (e.PropertyName == nameof(FichaCompraVM.TieneCambios) && sender is FichaCompraVM { TieneCambios: false }) Resaltar();
     }
@@ -160,7 +160,8 @@ public partial class VistaFacturasRecibidas : UserControl
         var f = Vm?.Ficha;
         IReadOnlyList<ValorResaltado> valores = f is null ? [] :
         [
-            new("nif", f.Nif), new("numero", f.Numero), .. VariantesFecha(f.Fecha).Select(t => new ValorResaltado("fecha", t)), new("total", f.Total.Replace("€", "").Trim())
+            new("nif", f.Nif), new("numero", f.Numero), .. VariantesFecha(f.Fecha).Select(t => new ValorResaltado("fecha", t)), new("total", f.Total.Replace("€", "").Trim()),
+            new("concepto", f.ConceptoFactura)
         ];
         var activo = _campoCaptura?.Tag as string;
         var puntos = f?.PuntosUsados;

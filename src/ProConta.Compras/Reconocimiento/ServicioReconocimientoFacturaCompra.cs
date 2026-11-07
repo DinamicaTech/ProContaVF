@@ -162,6 +162,8 @@ public sealed class ServicioReconocimientoFacturaCompra(
                     // Los importes solo pasan a 1 si la base y la cuota leídas cuadran con ese total.
                     if (r.BaseImponible is { } b && r.CuotaIva is { } c && b + c - (r.ImporteRetencion ?? 0m) == total) r.ConfianzaImportes = 1m;
                     break;
+                case PlantillasReconocimiento.Concepto:
+                    r.ConceptoFactura = valor; break;
                 default: continue;
             }
             aplicados.Add(grupo.Key);

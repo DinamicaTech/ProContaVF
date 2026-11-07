@@ -99,6 +99,9 @@ internal static class RepositorioFacturasCompra
             f.Divisa, f.ImporteTotalDivisa, f.TipoCambioAplicado is { } tc ? (double)tc : null, f.FechaTipoCambio?.Date, f.IdRegistroFacturaRectificada,
             (int)f.Operacion, f.Producto is { } p ? (int)p : null, f.ClaseRetencion is { } cr ? (byte)cr : null, f.Suplido,
             Nulo(f.CuentaGasto), f.IdCentroCoste, Nulo(f.CuentaFormaPago), f.IdFormaPago, Nulo(f.Notas), Recortar(Nulo(f.ConceptoFactura), 255), Recortar(Nulo(f.ConceptoAbreviado), 60), f.RequiereRevision, f.Confianza, Nulo(f.Fuente), Nulo(f.Log), nueva, f.IdRegistro, f.Version);
+        // Las del ERP no traían el ejercicio: se graba el resuelto al cargarlas.
+        if (f.Ejercicio.IdSociedadEjercicio > 0)
+            await s.EjecutarAsync("UPDATE FacturasCompra SET IdSociedadEjercicio = ? WHERE IdRegistro = ? AND IdSociedadEjercicio Is Null", f.Ejercicio.IdSociedadEjercicio, f.IdRegistro);
         // La forma de pago elegida pasa a ser la del proveedor por defecto (compras/pantallas 2026-11-06).
         if (f.IdFormaPago is { } fp && f.IdProveedor is { } prov)
             await s.EjecutarAsync("UPDATE CuentasProveedoresSociedad SET IdFormaPagoDefecto = ? WHERE IdProveedor = ? AND IdSociedad = ?", fp, prov, f.Ejercicio.IdSociedad);

@@ -452,6 +452,18 @@
 
                       <Border Style="{StaticResource Tarjeta.Compra}">
                         <StackPanel>
+                          <TextBlock Text="Concepto" Style="{StaticResource Titulo.Tarjeta}" />
+                          <TextBlock Text="Qué se compra" Style="{StaticResource Etiqueta.Campo}" />
+                          <TextBox Text="{Binding ConceptoFactura, UpdateSourceTrigger=LostFocus}" IsReadOnly="{Binding SoloLectura}" Tag="concepto" GotKeyboardFocus="Campo_GotKeyboardFocus"
+                                   TextWrapping="Wrap" ToolTip="Concepto de la factura; selecciónalo en el PDF y la plantilla del proveedor aprenderá a leerlo" />
+                          <TextBlock Text="Abreviado (va en los apuntes)" Style="{StaticResource Etiqueta.Campo}" Margin="0,8,0,0" />
+                          <TextBox Text="{Binding ConceptoAbreviado, UpdateSourceTrigger=LostFocus}" IsReadOnly="{Binding SoloLectura}" MaxLength="60"
+                                   ToolTip="Unos 40 caracteres; sustituye al nombre de la cuenta de gasto en la descripción de su apunte" />
+                        </StackPanel>
+                      </Border>
+
+                      <Border Style="{StaticResource Tarjeta.Compra}">
+                        <StackPanel>
                           <TextBlock Text="Notas" Style="{StaticResource Titulo.Tarjeta}" />
                           <TextBox Text="{Binding Notas, UpdateSourceTrigger=LostFocus}" Style="{StaticResource Campo.Multilinea}" IsReadOnly="{Binding SoloLectura}" MinHeight="60" ToolTip="Notas de la factura" />
                         </StackPanel>

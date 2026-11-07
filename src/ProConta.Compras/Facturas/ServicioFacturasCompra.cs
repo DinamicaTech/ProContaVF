@@ -535,6 +535,7 @@ public sealed class ServicioFacturasCompra(
         if (f.Fecha is { } fecha) valores.Add((PlantillasReconocimiento.Fecha, fecha.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)));
         var total = f.Divisa != "EUR" ? f.ImporteTotalDivisa ?? f.ImporteTotal : f.ImporteTotal;
         if (total is { } t) valores.Add((PlantillasReconocimiento.Total, t.ToString("0.00", CultureInfo.InvariantCulture)));
+        if (!string.IsNullOrWhiteSpace(f.ConceptoFactura)) valores.Add((PlantillasReconocimiento.Concepto, f.ConceptoFactura.Trim()));
         return valores;
     }
 

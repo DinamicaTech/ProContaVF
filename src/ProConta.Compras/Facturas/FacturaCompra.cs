@@ -168,6 +168,8 @@ public sealed class FacturaCompra
             NumeroFactura = reconocida.NumeroFactura,
             Fecha = r.FechaFactura,
             Concepto = reconocida.Concepto,
+            ConceptoFactura = Vacio(r.ConceptoFactura),
+            ConceptoAbreviado = Abreviar(r.ConceptoFactura),
             PorcentajeRetencion = r.TipoRetencion,
             ImporteRetencion = r.ImporteRetencion,
             InversionSujetoPasivo = r.InversionSujetoPasivo,
@@ -281,6 +283,26 @@ public sealed class FacturaCompra
     }
 
     /// <summary>Primer nivel bajo la carpeta «Proveedores» (o la carpeta del PDF, si no está dentro de una).</summary>
+    /// <summary>Largo aproximado del concepto abreviado (compras 2026-11-07).</summary>
+    public const int LongitudConceptoAbreviado = 40;
+
+    /// <summary>
+    /// Concepto abreviado: el concepto cortado por palabras completas hasta <paramref name="maximo"/> caracteres (si la
+    /// primera palabra ya es más larga, se corta ella). Null si no hay concepto.
+    /// </summary>
+    public static string? Abreviar(string? concepto, int maximo = LongitudConceptoAbreviado)
+    {
+        var palabras = (concepto ?? "").Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries);
+        if (palabras.Length == 0) return null;
+        var texto = palabras[0].Length > maximo ? palabras[0][..maximo] : palabras[0];
+        foreach (var p in palabras.Skip(1))
+        {
+            if (texto.Length + 1 + p.Length > maximo) break;
+            texto += " " + p;
+        }
+        return texto.TrimEnd(',', ';', ':', '-', '.');
+    }
+
     public static string CarpetaDe(string rutaPdf)
     {
         var partes = rutaPdf.Split(['\\', '/'], StringSplitOptions.RemoveEmptyEntries);
