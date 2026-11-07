@@ -211,6 +211,7 @@ public sealed class FichaCompraVM : ModeloVista
         _notas = factura.Notas ?? "";
         _conceptoFactura = factura.ConceptoFactura ?? "";
         _conceptoAbreviado = factura.ConceptoAbreviado ?? "";
+        _razonAeat = string.IsNullOrWhiteSpace(factura.NombreProveedorAeat) ? null : factura.NombreProveedorAeat.Trim();
         // Una factura editable sin forma de pago trae la del proveedor; se guarda con lo demás.
         if (!SoloLectura)
         {
@@ -272,7 +273,7 @@ public sealed class FichaCompraVM : ModeloVista
             if (!Cambiar(ref _nif, (value ?? "").Trim().ToUpperInvariant(), "nif")) return;
             _proveedor = BuscarPorNif(_nif);
             _cuentaProveedorNueva = null;
-            Avisar(nameof(NombreProveedor), nameof(HayProveedor), nameof(AvisoProveedor), nameof(PuedeDarDeAltaProveedor), nameof(IdTerceroProveedor), nameof(Cuenta));
+            Avisar(nameof(NombreProveedor), nameof(HayProveedor), nameof(AvisoProveedor), nameof(RazonSocialAeat), nameof(PuedeDarDeAltaProveedor), nameof(IdTerceroProveedor), nameof(Cuenta));
             ProponerFormaPago();
             ProponerProducto();
         }
@@ -281,7 +282,22 @@ public sealed class FichaCompraVM : ModeloVista
     public bool HayProveedor => _proveedor is not null;
     public int? IdTerceroProveedor => _proveedor?.IdTercero;
     public string NombreProveedor => _proveedor?.Nombre ?? (Factura.Carpeta.Length > 0 ? $"Carpeta «{Factura.Carpeta}»" : "");
-    public string? AvisoProveedor => _nif.Length == 0 ? null : _proveedor is null ? "Ningún proveedor de la empresa tiene este NIF: dalo de alta con clic derecho en el proveedor («Dar de alta el proveedor…»)." : null;
+    public string? AvisoProveedor => _nif.Length == 0 || _proveedor is not null ? null
+        : RazonSocialAeat is { } razon ? $"Según la AEAT, este NIF es de {razon}. Ningún proveedor de la empresa lo tiene."
+        : "Ningún proveedor de la empresa tiene este NIF.";
+
+    private string? _razonAeat;
+
+    /// <summary>
+    /// Razón social que dio la AEAT para el NIF leído (compras/pantallas 2026-11-07), solo si el NIF de la ficha es ese:
+    /// sale bajo el NIF con el botón «Dar de alta».
+    /// </summary>
+    public string? RazonSocialAeat => _razonAeat is not null && MismoNifLeido ? _razonAeat : null;
+
+    private bool MismoNifLeido => string.Equals(Nucleo.Identificacion.Nif.Normalizar(Factura.NifProveedor ?? ""), Nucleo.Identificacion.Nif.Normalizar(_nif), StringComparison.OrdinalIgnoreCase)
+        || string.Equals(Nucleo.Identificacion.Nif.Normalizar(_nifLeido ?? ""), Nucleo.Identificacion.Nif.Normalizar(_nif), StringComparison.OrdinalIgnoreCase);
+
+    private string? _nifLeido;
     public string Cuenta => _cuentaProveedorNueva is not null && _proveedor is not null ? _cuentaProveedorNueva
         : _proveedor is not null && _proveedor.IdProveedor == Factura.IdProveedor ? Factura.CuentaContableProveedor ?? "" : "";
 
@@ -303,8 +319,8 @@ public sealed class FichaCompraVM : ModeloVista
     {
         get
         {
-            if (!string.Equals(Nucleo.Identificacion.Nif.Normalizar(Factura.NifProveedor ?? ""), Nucleo.Identificacion.Nif.Normalizar(_nif), StringComparison.OrdinalIgnoreCase)) return null;
-            if (!string.IsNullOrWhiteSpace(Factura.NombreProveedorAeat)) return Factura.NombreProveedorAeat.Trim();
+            if (!MismoNifLeido) return null;
+            if (_razonAeat is not null) return _razonAeat;
             try
             {
                 using var doc = System.Text.Json.JsonDocument.Parse(string.IsNullOrWhiteSpace(Factura.Log) ? "{}" : Factura.Log);
@@ -326,7 +342,7 @@ public sealed class FichaCompraVM : ModeloVista
         _proveedor = proveedores.FirstOrDefault(p => p.IdProveedor == idProveedor);
         _cuentaProveedorNueva = cuenta;
         Marcar("proveedor");
-        Avisar(nameof(NombreProveedor), nameof(HayProveedor), nameof(AvisoProveedor), nameof(PuedeDarDeAltaProveedor), nameof(IdTerceroProveedor), nameof(Cuenta));
+        Avisar(nameof(NombreProveedor), nameof(HayProveedor), nameof(AvisoProveedor), nameof(RazonSocialAeat), nameof(PuedeDarDeAltaProveedor), nameof(IdTerceroProveedor), nameof(Cuenta));
         ProponerFormaPago();
         ProponerProducto();
     }
@@ -684,6 +700,8 @@ public sealed class FichaCompraVM : ModeloVista
         _cargando = true;
         try
         {
+            _nifLeido = leida.NifProveedor;
+            if (!string.IsNullOrWhiteSpace(leida.NombreProveedorAeat)) _razonAeat = leida.NombreProveedorAeat.Trim();
             Nif = leida.NifProveedor ?? "";
             Numero = leida.NumeroFactura;
             Fecha = leida.Fecha is { } f ? Formatos.Fecha(f) : "";
@@ -703,7 +721,7 @@ public sealed class FichaCompraVM : ModeloVista
             }
         }
         finally { _cargando = false; }
-        Avisar(nameof(ConceptoFactura), nameof(ConceptoAbreviado));
+        Avisar(nameof(ConceptoFactura), nameof(ConceptoAbreviado), nameof(AvisoProveedor), nameof(RazonSocialAeat));
         SincronizarTipoRetencion();
         ProponerFormaPago();
         if (!string.IsNullOrWhiteSpace(leida.Log))
@@ -766,7 +784,7 @@ public sealed class FichaCompraVM : ModeloVista
             CuentaContableProveedor = _cuentaProveedorNueva is not null && _proveedor?.IdProveedor is not null ? _cuentaProveedorNueva
                 : _proveedor is not null && _proveedor.IdProveedor == o.IdProveedor ? o.CuentaContableProveedor : null,
             NifProveedor = _nif.Length == 0 ? null : _nif,
-            NombreProveedorAeat = o.NombreProveedorAeat,
+            NombreProveedorAeat = _razonAeat ?? o.NombreProveedorAeat,
             NumeroFactura = new string(_numero.Where(char.IsAsciiLetterOrDigit).ToArray()),
             Fecha = Texto.LeerFechaHora(_fecha),
             Concepto = o.Concepto, OrigenDocumento = o.OrigenDocumento,

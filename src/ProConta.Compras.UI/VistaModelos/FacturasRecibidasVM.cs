@@ -481,17 +481,28 @@ public sealed class FacturasRecibidasVM : ModeloVista, IPestanaTrabajo
     /// por la AEAT se crea directamente; si no, se piden los datos, con «Buscar en eInforma» si el PDF tampoco la trae.
     /// Queda como acreedor (410) y la ficha lo toma; se guarda en la factura con lo demás.
     /// </summary>
-    private async Task DarDeAltaProveedorAsync(FichaCompraVM ficha)
+    private Task DarDeAltaProveedorAsync(FichaCompraVM ficha) => AltaProveedorAsync(ficha, comoProveedor: false);
+
+    /// <summary>
+    /// Alta del proveedor de la ficha como acreedor (410) o, si el operador lo ha elegido al guardar, como proveedor (400).
+    /// La razón social de la AEAT que ya trae la factura se usa sin volver a consultar. Devuelve si se ha dado de alta.
+    /// </summary>
+    private async Task<bool> AltaProveedorAsync(FichaCompraVM ficha, bool comoProveedor)
     {
-        if (_s.AltaProveedor is not { } alta || !ficha.PuedeDarDeAltaProveedor) return;
+        if (_s.AltaProveedor is not { } alta || !ficha.PuedeDarDeAltaProveedor) return false;
         var nif = ficha.Nif;
         var leido = ficha.NombreLeido;
-        _modulo.Avisar($"Comprobando el NIF {nif}…");
-        var aeat = await alta.ConsultarAsync(_s.Trabajo, nif, leido);
+        ProConta.Compras.Proveedores.ResultadoNifAeat aeat;
+        if (ficha.RazonSocialAeat is { } yaAeat) aeat = new(true, true, yaAeat, null);
+        else
+        {
+            _modulo.Avisar($"Comprobando el NIF {nif}…");
+            aeat = await alta.ConsultarAsync(_s.Trabajo, nif, leido);
+        }
         ProConta.Compras.Proveedores.ProveedorCreado? creado = null;
         async Task<string?> Crear(ProConta.Compras.Proveedores.DatosAltaProveedor datos)
         {
-            var r = await alta.AltaAsync(_s.Trabajo, datos);
+            var r = await alta.AltaAsync(_s.Trabajo, datos, comoProveedor);
             if (!r.EsCorrecto) return string.Join(" ", r.Errores.Select(e => e.AccionCorrectora is { } a ? $"{e.Mensaje} {a}" : e.Mensaje));
             creado = r.Valor;
             return null;
@@ -501,20 +512,43 @@ public sealed class FacturasRecibidasVM : ModeloVista, IPestanaTrabajo
             if (await Crear(new(nif, aeat.RazonSocial!)) is { } error)
             {
                 _modulo.Dialogos.Preguntar("No he podido dar de alta el proveedor", error, null, new OpcionMensaje("Entendido", "Cierra el aviso", Principal: true));
-                return;
+                return false;
             }
         }
         else
         {
             // El botón de eInforma sale mientras la razón social esté vacía (compras/pantallas 2026-11-06 13:16).
             var url = "https://www.google.com/search?q=" + Uri.EscapeDataString($"{nif} site:einforma.com");
-            if (!_modulo.Dialogos.PedirDatosProveedor(new(nif, leido ?? ""), aeat.Motivo, url, Crear)) return;
+            if (!_modulo.Dialogos.PedirDatosProveedor(new(nif, leido ?? ""), aeat.Motivo, url, Crear)) return false;
         }
-        if (creado is null) return;
+        if (creado is null) return false;
         _proveedores = await _s.Facturas.ProveedoresAsync(_s.Trabajo);
         if (ReferenceEquals(_ficha, ficha)) ficha.ProveedorDadoDeAlta(_proveedores, creado.IdProveedor, creado.Cuenta);
         _modulo.Avisar((creado.TerceroExistente ? $"{creado.Nombre} ya estaba en Terceros: ahora es proveedor" : $"Proveedor {creado.Nombre} dado de alta")
             + $" con la cuenta {creado.Cuenta}{(aeat.Identificado ? ", con la razón social de la AEAT" : "")}. Se guarda en la factura con los demás cambios.");
+        return true;
+    }
+
+    private enum RespuestaAlta { Seguir, NoPorAhora, Cancelar }
+
+    /// <summary>
+    /// Al pulsar «Guardar» o «Guardar y exportar» con un NIF sin proveedor (compras/pantallas 2026-11-07): alta como
+    /// proveedor (400) o como acreedor (410), o «No por ahora», que guarda sin proveedor y no deja exportar. Al cambiar de
+    /// factura no se pregunta.
+    /// </summary>
+    private async Task<RespuestaAlta> PreguntarAltaProveedorAsync(FichaCompraVM ficha)
+    {
+        if (_s.AltaProveedor is null || !ficha.PuedeDarDeAltaProveedor) return RespuestaAlta.Seguir;
+        var nombre = ficha.RazonSocialAeat ?? ficha.NombreLeido;
+        var datos = new List<string> { $"NIF: {ficha.Nif}" };
+        datos.Add(ficha.RazonSocialAeat is { } r ? $"Razón social (AEAT): {r}" : nombre is { } n ? $"Nombre leído en la factura: {n}" : "Sin razón social: te la pediré al darlo de alta.");
+        var eleccion = _modulo.Dialogos.Preguntar("El proveedor no está dado de alta",
+            "Para exportar la factura, su proveedor tiene que estar dado de alta en la empresa. ¿Lo doy de alta ahora?", datos,
+            new OpcionMensaje("Alta como proveedor", "Proveedor (cuenta 400): te vende lo que forma parte de tu actividad: mercaderías, materias primas o lo que revendes o transformas."),
+            new OpcionMensaje("Alta como acreedor", "Acreedor (cuenta 410): te presta servicios o te vende otras cosas: suministros, alquileres, asesoría, reparaciones, publicidad.", Principal: true),
+            new OpcionMensaje("No por ahora", "Guarda la factura sin proveedor: no se podrá exportar hasta darlo de alta.", Cancelar: true));
+        if (eleccion is not (0 or 1)) return eleccion == 2 ? RespuestaAlta.NoPorAhora : RespuestaAlta.Cancelar;
+        return await AltaProveedorAsync(ficha, comoProveedor: eleccion == 0) ? RespuestaAlta.Seguir : RespuestaAlta.Cancelar;
     }
 
     /// <summary>Pide un texto clave con la cuenta y el centro de la ficha y lo guarda en la empresa (compras/pantallas 2026-11-06 17:02).</summary>
@@ -581,7 +615,15 @@ public sealed class FacturasRecibidasVM : ModeloVista, IPestanaTrabajo
 
     private async Task GuardarYExportarAsync()
     {
+        if (_ficha is not { } ficha) return;
+        var alta = await PreguntarAltaProveedorAsync(ficha);
+        if (alta == RespuestaAlta.Cancelar) return;
         if (!await GuardarFichaAsync()) return;
+        if (alta == RespuestaAlta.NoPorAhora)
+        {
+            _modulo.Avisar("Factura guardada sin proveedor: no se exporta hasta que lo des de alta.");
+            return;
+        }
         await ExportarFichaAsync(guardarCambios: false);
     }
 
@@ -861,6 +903,7 @@ public sealed class FacturasRecibidasVM : ModeloVista, IPestanaTrabajo
                 ErrorFicha = "Este cambio afecta al asiento de la factura, que ya está contabilizada: usa «Guardar y re-exportar».";
                 return;
             }
+            if (await PreguntarAltaProveedorAsync(_ficha) == RespuestaAlta.Cancelar) return;
             await GuardarFichaAsync(confirmar: true);
             return;
         }
@@ -1015,7 +1058,12 @@ public sealed class FacturasRecibidasVM : ModeloVista, IPestanaTrabajo
             if (fallidos.Count > 0 && !silencioso)
                 _modulo.Dialogos.Preguntar("Algunos PDF no se han podido registrar", "Estos PDF siguen en la carpeta y se volverán a intentar la próxima vez.",
                     fallidos.Select(f => $"{Path.GetFileName(f.Ruta)}: {f.Error!.Mensaje}").ToList(), new OpcionMensaje("Entendido", "Cierra el aviso", Principal: true));
-            if (registrados > 0) await CargarAsync();
+            if (registrados > 0)
+            {
+                // La importación puede haber dado de alta proveedores (alta automática con la AEAT).
+                _proveedores = await _s.Facturas.ProveedoresAsync(_s.Trabajo);
+                await CargarAsync();
+            }
             else foreach (var f in _todas) f.ComprobarPdf();
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
@@ -1045,8 +1093,16 @@ public sealed class FacturasRecibidasVM : ModeloVista, IPestanaTrabajo
         TextoOcupado = "Reconociendo el PDF…";
         try
         {
-            var (_, leida) = await _s.Facturas.ProbarAsync(_s.Trabajo, _activa.Datos.RutaPdf);
-            _ficha.AplicarLectura(leida);
+            var ficha = _ficha;
+            var (_, leida) = await _s.Facturas.ProbarAsync(_s.Trabajo, _activa.Datos.RutaPdf, altaAutomatica: !ficha.HayProveedor);
+            ficha.AplicarLectura(leida);
+            // Alta automática del proveedor (su razón social de la AEAT está en el PDF): la ficha lo toma.
+            if (leida.IdProveedor is int nuevo && !_proveedores.Any(p => p.IdProveedor == nuevo))
+            {
+                _proveedores = await _s.Facturas.ProveedoresAsync(_s.Trabajo);
+                if (ReferenceEquals(_ficha, ficha)) ficha.ProveedorDadoDeAlta(_proveedores, nuevo, leida.CuentaContableProveedor ?? "");
+                _modulo.Avisar($"Proveedor {leida.NombreProveedorAeat} dado de alta como acreedor ({leida.CuentaContableProveedor}): su razón social de la AEAT está en la factura.");
+            }
             _ = CargarPuntosPlantillaAsync(_ficha, _cargaFicha, leida);
             _modulo.Avisar("Reconocido de nuevo: revisa los campos y guarda (se guarda solo al cambiar de factura).");
         }

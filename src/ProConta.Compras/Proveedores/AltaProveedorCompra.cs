@@ -38,6 +38,54 @@ public sealed class ServicioAltaProveedorCompra(IBaseDatos bd, IRepositorioTerce
     IConsultaNifAeat? aeat, Actor actor)
 {
     public const string CuentaAcreedores = "410";
+    public const string CuentaProveedores = "400";
+
+    /// <summary>
+    /// Alta automática al leer la factura (compras/pantallas 2026-11-07): con el NIF leído se consulta la razón social en
+    /// la AEAT y, si esa razón social aparece en el texto del PDF, se da de alta como acreedor (410). Que el nombre esté en
+    /// la factura es la salvaguarda contra un NIF mal leído. Devuelve lo que dijo la AEAT y el proveedor, si se creó.
+    /// </summary>
+    public async Task<(ResultadoNifAeat Aeat, ProveedorCreado? Creado, string? Error)> AltaAutomaticaAsync(ContextoSociedadEjercicio ctx, string nif, string? textoPdf,
+        string? nombreLeido, CancellationToken cancelacion = default)
+    {
+        var aeat = await ConsultarAsync(ctx, nif, nombreLeido, cancelacion);
+        if (!aeat.Identificado || string.IsNullOrWhiteSpace(aeat.RazonSocial) || !NombreEnTexto(aeat.RazonSocial, textoPdf)) return (aeat, null, null);
+        var r = await AltaAsync(ctx, new DatosAltaProveedor(nif, aeat.RazonSocial.Trim()));
+        return r.EsCorrecto ? (aeat, r.Valor, null) : (aeat, null, string.Join(" ", r.Errores.Select(e => e.Mensaje)));
+    }
+
+    private static readonly HashSet<string> FormasJuridicas = new(StringComparer.Ordinal)
+    {
+        "SL", "SLU", "SLL", "SLNE", "SA", "SAU", "SAL", "SC", "SCP", "SCOOP", "COOP", "CB", "SRL", "SOCIEDAD", "LIMITADA", "ANONIMA", "UNIPERSONAL",
+        "LABORAL", "COOPERATIVA", "CIVIL", "PROFESIONAL", "COMUNIDAD", "BIENES", "DE", "Y", "EN"
+    };
+
+    /// <summary>
+    /// ¿La razón social está en el texto? Sin mayúsculas, acentos ni puntuación, y sin la forma jurídica («S.L.», «SL»,
+    /// «Sociedad Limitada»…): sus palabras significativas tienen que aparecer seguidas en el texto.
+    /// </summary>
+    public static bool NombreEnTexto(string razonSocial, string? texto)
+    {
+        if (string.IsNullOrWhiteSpace(texto)) return false;
+        var nombre = Palabras(razonSocial).Where(p => !FormasJuridicas.Contains(p)).ToList();
+        if (nombre.Count == 0 || string.Concat(nombre).Length < 4) return false;
+        var buscado = " " + string.Join(" ", nombre) + " ";
+        var enTexto = " " + string.Join(" ", Palabras(texto).Where(p => !FormasJuridicas.Contains(p))) + " ";
+        return enTexto.Contains(buscado, StringComparison.Ordinal);
+    }
+
+    private static IEnumerable<string> Palabras(string texto)
+    {
+        var d = texto.Normalize(System.Text.NormalizationForm.FormD);
+        var limpio = new System.Text.StringBuilder(d.Length);
+        foreach (var ch in d)
+        {
+            var cat = System.Globalization.CharUnicodeInfo.GetUnicodeCategory(ch);
+            if (cat == System.Globalization.UnicodeCategory.NonSpacingMark || ch == '.') continue;
+            limpio.Append(char.IsLetterOrDigit(ch) ? char.ToUpperInvariant(ch) : ' ');
+        }
+        return limpio.ToString().Split(' ', StringSplitOptions.RemoveEmptyEntries);
+    }
 
     /// <summary>NIF de la factura comprobado en la AEAT; sin certificado o sin servicio, sin consultar.</summary>
     public async Task<ResultadoNifAeat> ConsultarAsync(ContextoSociedadEjercicio ctx, string nif, string? nombre, CancellationToken cancelacion = default)
@@ -55,7 +103,11 @@ public sealed class ServicioAltaProveedorCompra(IBaseDatos bd, IRepositorioTerce
         }
     }
 
-    public async Task<Resultado<ProveedorCreado>> AltaAsync(ContextoSociedadEjercicio ctx, DatosAltaProveedor datos)
+    /// <summary>
+    /// Da de alta el proveedor. <paramref name="comoProveedor"/>: con su cuenta de proveedor (400) en lugar de la de
+    /// acreedor (410), cuando el operador ya lo ha decidido al guardar (compras/pantallas 2026-11-07).
+    /// </summary>
+    public async Task<Resultado<ProveedorCreado>> AltaAsync(ContextoSociedadEjercicio ctx, DatosAltaProveedor datos, bool comoProveedor = false)
     {
         Resultado<ProveedorCreado> Fallo(string codigo, string mensaje, string? accion = null) =>
             Resultado<ProveedorCreado>.Fallo(new Error(codigo, mensaje, $"Proveedor {datos.Nif}", null, accion));
@@ -113,21 +165,21 @@ public sealed class ServicioAltaProveedorCompra(IBaseDatos bd, IRepositorioTerce
         if ((actuales.Acreedor ?? actuales.Proveedor) is { ExisteEnEjercicio: true } ya)
             return Resultado<ProveedorCreado>.Correcto(new ProveedorCreado(idProveedor, idTercero, nif, nombre, ya.Codigo, existente));
 
-        var cuenta = await CuentaAcreedorAsync(ctx, nombre);
+        var cuenta = await CuentaAcreedorAsync(ctx, nombre, comoProveedor ? CuentaProveedores : CuentaAcreedores);
         if (!cuenta.EsCorrecto) return Resultado<ProveedorCreado>.Fallo(cuenta.Errores);
-        var asignada = await roles.AsignarCuentaAsync(ClaseCuentaRol.Acreedor, idProveedor, ctx.IdSociedad, cuenta.Valor.IdIdentidadContable);
+        var asignada = await roles.AsignarCuentaAsync(comoProveedor ? ClaseCuentaRol.Proveedor : ClaseCuentaRol.Acreedor, idProveedor, ctx.IdSociedad, cuenta.Valor.IdIdentidadContable);
         if (!asignada.EsCorrecto) return Resultado<ProveedorCreado>.Fallo(asignada.Errores);
         return Resultado<ProveedorCreado>.Correcto(new ProveedorCreado(idProveedor, idTercero, nif, nombre, cuenta.Valor.Codigo, existente));
     }
 
-    /// <summary>La siguiente subcuenta libre de la 410 en el ejercicio, con el nombre del proveedor, colgando de la 410 si existe.</summary>
-    private async Task<Resultado<CuentaContable>> CuentaAcreedorAsync(ContextoSociedadEjercicio ctx, string nombre)
+    /// <summary>La siguiente subcuenta libre de la 410 (o la 400) en el ejercicio, con el nombre del proveedor, colgando de ella si existe.</summary>
+    private async Task<Resultado<CuentaContable>> CuentaAcreedorAsync(ContextoSociedadEjercicio ctx, string nombre, string raiz)
     {
-        var codigo = await cuentas.SiguienteSubcuentaAsync(ctx, CuentaAcreedores);
+        var codigo = await cuentas.SiguienteSubcuentaAsync(ctx, raiz);
         if (codigo is null)
-            return Resultado<CuentaContable>.Fallo(new Error("AltaProveedor.SinCodigos", $"No quedan códigos libres en la cuenta {CuentaAcreedores}.", nombre, null,
+            return Resultado<CuentaContable>.Fallo(new Error("AltaProveedor.SinCodigos", $"No quedan códigos libres en la cuenta {raiz}.", nombre, null,
                 "Asígnale la cuenta a mano en la ficha del tercero."));
-        var padre = await cuentas.ResolverAsync(ctx, CuentaAcreedores);
+        var padre = await cuentas.ResolverAsync(ctx, raiz);
         var texto = nombre.Length > ReglasCuenta.LongitudMaximaNombre ? nombre[..ReglasCuenta.LongitudMaximaNombre] : nombre;
         return await cuentas.AltaAsync(ctx, new AltaCuenta(codigo, texto, padre.EsCorrecto ? padre.Valor.IdCuentaContable : null));
     }

@@ -176,8 +176,21 @@ public sealed class ServicioFacturasCompra(
         }, cancelacion);
 
     /// <summary>Lee el PDF sin registrar nada (modo «Probar» y paso previo de <see cref="ImportarAsync"/>).</summary>
+    public Task<(FacturaReconocida Reconocida, FacturaCompra Factura)> ProbarAsync(
+        ContextoSociedadEjercicio ctx, string rutaPdf, CancellationToken cancelacion = default) => ProbarAsync(ctx, rutaPdf, altaAutomatica: false, cancelacion);
+
+    /// <summary>
+    /// Alta del proveedor al leer la factura (compras/pantallas 2026-11-07): la usan la importación y «Reconocer de nuevo»;
+    /// el modo prueba no, porque no escribe nada. Sin ella, la factura no consulta la AEAT.
+    /// </summary>
+    public Proveedores.ServicioAltaProveedorCompra? AltaProveedor { get; init; }
+
+    /// <param name="altaAutomatica">
+    /// Con un NIF sin proveedor en la empresa, consulta la razón social en la AEAT (queda en NombreProveedorAeat) y, si
+    /// aparece en el PDF, da de alta el proveedor como acreedor. Solo al importar y al reconocer de nuevo: escribe en la BD.
+    /// </param>
     public async Task<(FacturaReconocida Reconocida, FacturaCompra Factura)> ProbarAsync(
-        ContextoSociedadEjercicio ctx, string rutaPdf, CancellationToken cancelacion = default)
+        ContextoSociedadEjercicio ctx, string rutaPdf, bool altaAutomatica, CancellationToken cancelacion = default)
     {
         var (contexto, proveedor) = await CargarContextoAsync(ctx, rutaPdf, cancelacion);
         var reconocida = await reconocimiento.ReconocerAsync(rutaPdf, contexto, cancelacion);
@@ -187,6 +200,16 @@ public sealed class ServicioFacturasCompra(
         {
             var conNif = (await ProveedoresAsync(ctx, cancelacion)).Where(p => MismoNif(p.Nif, nif)).Select(p => p.IdProveedor).Distinct().ToList();
             if (conNif.Count == 1) factura.IdProveedor = conNif[0];
+            else if (conNif.Count == 0 && altaAutomatica && AltaProveedor is { } alta)
+            {
+                var (aeat, creado, _) = await alta.AltaAutomaticaAsync(ctx, nif, reconocida.Texto, reconocida.Lectura.ProveedorIdentificado, cancelacion);
+                if (aeat.Identificado && !string.IsNullOrWhiteSpace(aeat.RazonSocial)) factura.NombreProveedorAeat = aeat.RazonSocial.Trim();
+                if (creado is not null)
+                {
+                    factura.IdProveedor = creado.IdProveedor;
+                    factura.CuentaContableProveedor = creado.Cuenta;
+                }
+            }
         }
         await AsignarImputacionAsync(factura, reconocida.Texto, cancelacion);
         return (reconocida, factura);
@@ -228,7 +251,7 @@ public sealed class ServicioFacturasCompra(
         FacturaCompra factura;
         try
         {
-            (_, factura) = await ProbarAsync(ctx, rutaPdf, cancelacion);
+            (_, factura) = await ProbarAsync(ctx, rutaPdf, altaAutomatica: true, cancelacion);
         }
         catch (Exception ex) when (ex is not OperationCanceledException and not ExcepcionDatos)
         {

@@ -269,6 +269,9 @@
                           <TextBlock Text="{Binding NombreProveedor}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" ToolTip="{Binding NombreProveedor}" />
                           <TextBlock Text="{Binding Cuenta}" FontFamily="{StaticResource Fuente.Mono}" Style="{StaticResource Texto.Apagado}" Visibility="{Binding Cuenta, Converter={StaticResource Visible}}" />
                           <TextBlock Text="{Binding AvisoProveedor}" Foreground="{StaticResource Pincel.RojoError}" TextWrapping="Wrap" Visibility="{Binding AvisoProveedor, Converter={StaticResource Visible}}" />
+                          <Button Content="Dar de alta…" Style="{StaticResource Boton.Pequeno}" HorizontalAlignment="Left" Margin="0,4,0,0" Command="{Binding DarDeAltaProveedorCommand}"
+                                  Visibility="{Binding PuedeDarDeAltaProveedor, Converter={StaticResource Visible}}"
+                                  ToolTip="Da de alta el proveedor de este NIF: con la razón social de la AEAT si la ha dado; si no, te pide los datos" />
                         </StackPanel>
                       </Border>
 
