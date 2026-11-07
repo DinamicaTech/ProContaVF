@@ -102,6 +102,52 @@ public sealed class PlantillasReconocimientoTests
     }
 
     [Fact]
+    public void El_concepto_de_varias_lineas_se_lee_entero_bajo_su_rotulo()
+    {
+        const string julio = """
+            Asesoria Ficticia
+            CONCEPTO DESCRIPCION                                          CARGOS   ABONOS
+            CUOFIS   Asesoramiento Contable-Fiscal del mes de Julio de 2026   363,00
+                     s/contrato profesional formado por ambas partes-
+            TOTAL FACTURA 363,00
+            """;
+        const string agosto = """
+            Asesoria Ficticia
+            CONCEPTO DESCRIPCION                                          CARGOS   ABONOS
+            CUOFIS   Asesoramiento Contable-Fiscal del mes de Agosto de 2026  363,00
+                     s/contrato profesional formado por ambas partes-
+            TOTAL FACTURA 363,00
+            """;
+        var p = PlantillasReconocimiento.Aprender(Maquetado(julio), PlantillasReconocimiento.Concepto,
+            "Asesoramiento Contable-Fiscal del mes de Julio de 2026 s/contrato profesional formado por ambas partes");
+        Assert.NotNull(p);
+        Assert.Equal("Asesoramiento Contable-Fiscal del mes de Agosto de 2026 s/contrato profesional formado por ambas partes",
+            PlantillasReconocimiento.Leer(Maquetado(agosto), p!));
+    }
+
+    [Fact]
+    public void Un_concepto_sin_rotulo_que_se_repite_como_titulo_se_aprende_como_texto_fijo()
+    {
+        const string julio = """
+                         Factura de llum
+            Electrica Ficticia SA
+            Periodo 11/07/2026 - 11/08/2026
+            Total 84,12 €
+            """;
+        const string agosto = """
+                         Factura de llum
+            Electrica Ficticia SA
+            Periodo 11/08/2026 - 08/09/2026
+            Total 91,40 €
+            """;
+        var p = PlantillasReconocimiento.Aprender(Maquetado(julio), PlantillasReconocimiento.Concepto, "Factura de llum");
+        Assert.NotNull(p);
+        Assert.Equal(PlantillasReconocimiento.Texto, p!.Posicion);
+        Assert.Equal("Factura de llum", PlantillasReconocimiento.Leer(Maquetado(agosto), p));
+        Assert.Null(PlantillasReconocimiento.Leer(Maquetado("Otra factura\nTotal 10,00"), p));
+    }
+
+    [Fact]
     public void Sin_el_valor_en_el_PDF_o_sin_el_rotulo_no_hay_plantilla_ni_lectura()
     {
         Assert.Null(PlantillasReconocimiento.Aprender(Maquetado(Abril), PlantillasReconocimiento.Fecha, "2026-01-01"));
