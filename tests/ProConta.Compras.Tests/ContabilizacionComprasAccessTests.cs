@@ -113,6 +113,42 @@ public sealed class ContabilizacionComprasAccessTests : IDisposable
     }
 
     [Fact]
+    public async Task La_propuesta_es_el_asiento_que_se_exportaria_sin_grabar_nada()
+    {
+        await EmpresaAsync();
+        await Bd.EjecutarAsync(s => s.EjecutarAsync("UPDATE SociedadesEjercicios SET CuentaRedondeoGastos = ? WHERE IdSociedadEjercicio = 9001", "6590000"));
+        var (f, _) = await FacturaAsync(total: 176.02m);
+        var servicio = Servicio();
+        var asientosAntes = await Contar("SELECT COUNT(*) FROM Asientos");
+
+        var (propuesta, mensaje) = await servicio.ProponerAsync(f);
+        Assert.NotNull(propuesta);
+        Assert.Equal(new DateTime(2026, 7, 10), propuesta!.Fecha);
+        Assert.Equal(propuesta.Apuntes.Sum(a => a.Debe), propuesta.Apuntes.Sum(a => a.Haber));
+        Assert.Contains(propuesta.Apuntes, a => a.Cuenta == "6590000" && a.NombreCuenta!.Contains("se creará"));
+        Assert.Contains("proveedor (400) o acreedor (410)", mensaje);
+        Assert.Contains("6590000", mensaje);
+        Assert.Equal(asientosAntes, await Contar("SELECT COUNT(*) FROM Asientos"));
+        Assert.False((await new CatalogoCuentasAccess(Bd).ResolverAsync(_ctx, "6590000")).EsCorrecto);
+        Assert.False((await RecargarAsync(f.IdRegistro)).Contabilizada);
+
+        var r = await servicio.ExportarAsync(f, _actor, new OpcionesExportacion(EsProveedor: false));
+        var exportado = (await new MotorAsientosAccess(Bd).ObtenerAsync(r.Valor.IdAsiento!.Value))!;
+        Assert.Equal(propuesta.Apuntes.Select(a => (a.Cuenta, a.Debe, a.Haber)), exportado.Apuntes.Select(a => (a.CodigoCuenta, a.Debe.Valor, a.Haber.Valor)));
+    }
+
+    [Fact]
+    public async Task Sin_lo_necesario_para_exportar_la_propuesta_dice_que_falta()
+    {
+        await EmpresaAsync();
+        var (f, _) = await FacturaAsync();
+        f.CuentaGasto = null;
+        var (propuesta, mensaje) = await Servicio().ProponerAsync(f);
+        Assert.Null(propuesta);
+        Assert.Contains("cuenta de gasto", mensaje);
+    }
+
+    [Fact]
     public async Task Pasar_a_proveedor_crea_la_400_y_exporta_con_ella()
     {
         await EmpresaAsync();

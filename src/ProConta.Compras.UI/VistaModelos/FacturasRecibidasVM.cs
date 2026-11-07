@@ -21,6 +21,19 @@ public sealed class CriterioFiltroVM(string texto, string clave, bool esOperacio
     public bool EsOperacion { get; } = esOperacion;
     public bool Marcado { get => _marcado; set { if (Fijar(ref _marcado, value)) cambio(); } }
     internal void Quitar() { _marcado = false; Avisar(nameof(Marcado)); }
+
+    private bool _visible = true;
+    /// <summary>Si se ofrece en la pestaña actual («Contabilizadas hoy» solo en Contabilizadas); oculto, no filtra.</summary>
+    public bool Visible
+    {
+        get => _visible;
+        internal set
+        {
+            if (!Fijar(ref _visible, value) || value || !_marcado) return;
+            Quitar();
+            cambio();
+        }
+    }
 }
 
 /// <summary>
@@ -68,7 +81,8 @@ public sealed class FacturasRecibidasVM : ModeloVista, IPestanaTrabajo
         [
             new("Nacionales", "nac", true, Filtrar), new("Intracomunitarias", "int", true, Filtrar), new("Extranjeras (importación)", "imp", true, Filtrar),
             new("Con retención", "ret", false, Filtrar), new("Con suplidos", "sup", false, Filtrar), new("Con inversión del sujeto pasivo", "isp", false, Filtrar),
-            new("Rectificativas y abonos", "rect", false, Filtrar), new("Recibidas por email", "email", false, Filtrar)
+            new("Rectificativas y abonos", "rect", false, Filtrar), new("Recibidas por email", "email", false, Filtrar),
+            new("Contabilizadas hoy", "hoy", false, Filtrar) { Visible = false }
         ];
         _rapido = OpcionesRapidas[0];
 
@@ -244,6 +258,7 @@ public sealed class FacturasRecibidasVM : ModeloVista, IPestanaTrabajo
             if (!Fijar(ref _pestanaLista, value)) return;
             _rapido = OpcionesRapidas[0];
             Avisar(nameof(OpcionesRapidas), nameof(FiltroRapido), nameof(EnPendientes), nameof(EnContabilizadas), nameof(EnTodas));
+            foreach (var x in Filtros.Where(x => x.Clave == "hoy")) x.Visible = EnContabilizadas;
             Filtrar();
         }
     }
@@ -311,7 +326,7 @@ public sealed class FacturasRecibidasVM : ModeloVista, IPestanaTrabajo
         if (!ok) return false;
         var ops = Filtros.Where(x => x.EsOperacion && x.Marcado).Select(x => x.Clave).ToList();
         if (ops.Count > 0 && !ops.Contains(d.Operacion switch { OperacionCompra.Intracomunitaria => "int", OperacionCompra.Importacion => "imp", _ => "nac" })) return false;
-        foreach (var x in Filtros.Where(x => !x.EsOperacion && x.Marcado))
+        foreach (var x in Filtros.Where(x => !x.EsOperacion && x.Marcado && x.Visible))
         {
             var cumple = x.Clave switch
             {
@@ -320,6 +335,8 @@ public sealed class FacturasRecibidasVM : ModeloVista, IPestanaTrabajo
                 "isp" => d.InversionSujetoPasivo,
                 "rect" => d.EsRectificativa || _datos.Any(o => o.IdRegistroFacturaRectificada == d.IdRegistro),
                 "email" => d.OrigenDocumento == OrigenesDocumento.Email,
+                // Exportadas hoy desde ProContaVF (compras/pantallas 2026-11-07): las del ERP no tienen hora de exportación.
+                "hoy" => d.Contabilizada && d.FechaHoraExportacion?.Date == DateTime.Today,
                 _ => true
             };
             if (!cumple) return false;
@@ -412,6 +429,7 @@ public sealed class FacturasRecibidasVM : ModeloVista, IPestanaTrabajo
                 return;
             }
             if (factura.Contabilizada) _ = CargarAsientoAsync(factura, carga);
+            else if (!Prueba) _ = CargarPropuestaAsync(factura, carga);
             if (!Prueba)
             {
                 // Una contabilizada (aquí o en el ERP) se puede cambiar: lo que no toca el asiento se guarda; lo demás, al re-exportar
@@ -766,6 +784,24 @@ public sealed class FacturasRecibidasVM : ModeloVista, IPestanaTrabajo
         }
     }
 
+    /// <summary>
+    /// Propuesta de asiento de una factura sin contabilizar (compras/pantallas 2026-11-07): lo que generaría exportarla,
+    /// con lo guardado; se recalcula al abrir la ficha y al guardar.
+    /// </summary>
+    private async Task CargarPropuestaAsync(FacturaCompra factura, int carga)
+    {
+        if (_s.Contabilizador is not { } conta) return;
+        try
+        {
+            var (asiento, mensaje) = await conta.ProponerAsync(factura);
+            if (carga == _cargaFicha) AsientoFicha = AsientoFacturaVM.Propuesta(asiento, mensaje);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            if (carga == _cargaFicha) AsientoFicha = new AsientoFacturaVM("Propuesta de asiento", $"No he podido calcularla: {ex.Message}", []);
+        }
+    }
+
     private void AlCambiarFicha(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
     {
         if (e.PropertyName == nameof(FichaCompraVM.TieneCambios))
@@ -911,6 +947,7 @@ public sealed class FacturasRecibidasVM : ModeloVista, IPestanaTrabajo
         ErrorFicha = null;
         ficha.Guardada(f);
         _ = CargarPuntosPlantillaAsync(ficha, _cargaFicha);
+        if (!f.Contabilizada && ReferenceEquals(Ficha, ficha)) _ = CargarPropuestaAsync(f, _cargaFicha);
         // La forma de pago guardada pasa a ser la del proveedor: se propone ya en sus otras facturas.
         if (f.IdProveedor is int prov)
             _proveedores = _proveedores.Select(p => p.IdProveedor == prov
@@ -936,7 +973,7 @@ public sealed class FacturasRecibidasVM : ModeloVista, IPestanaTrabajo
             InversionSujetoPasivo = f.InversionSujetoPasivo, Operacion = f.Operacion, Divisa = f.Divisa, IdRegistroFacturaRectificada = f.IdRegistroFacturaRectificada,
             Contabilizada = o.Contabilizada, Duplicada = o.Duplicada, RutaPdf = f.RutaPdf.Length > 0 ? f.RutaPdf : o.RutaPdf, Carpeta = f.RutaPdf.Length > 0 ? f.Carpeta : o.Carpeta, CuentaGasto = f.CuentaGasto,
             IdCentroCoste = f.IdCentroCoste, Confianza = o.Confianza, RequiereRevision = f.RequiereRevision, FechaHoraRegistro = o.FechaHoraRegistro, Asiento = o.Asiento,
-            ConfianzaMinima = o.ConfianzaMinima, Version = f.Version, OrigenDocumento = o.OrigenDocumento,
+            ConfianzaMinima = o.ConfianzaMinima, Version = f.Version, OrigenDocumento = o.OrigenDocumento, FechaHoraExportacion = o.FechaHoraExportacion,
             RutasGuardadas = f.RutaPdf != o.RutaPdf && f.RutaPdf.Length > 0 ? [f.RutaPdf] : o.RutasGuardadas
         };
         _datos = _datos.Select(d => d.IdRegistro == nueva.IdRegistro ? nueva : d).ToList();

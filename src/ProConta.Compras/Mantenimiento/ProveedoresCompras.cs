@@ -1,6 +1,7 @@
 using System.Globalization;
 using ProConta.Compras.Facturas;
 using ProConta.Compras.Integraciones;
+using ProConta.Compras.Reconocimiento;
 using ProConta.Datos.Persistencia;
 using ProConta.Mantenimiento;
 using ProConta.Nucleo.Resultados;
@@ -75,7 +76,7 @@ public sealed class ProveedorTextosClaveCompra(CatalogoTextosClaveCompra catalog
 /// compras/reconocimiento 2026-11-07): activo, VIES, OCR y las claves de AWS del OCR. El secreto se guarda cifrado
 /// (<see cref="SecretoProtegido"/>) y nunca vuelve a la pantalla: solo se sustituye o se quita.
 /// </summary>
-public sealed class ProveedorReconocimientoCompra(IBaseDatos bd) : ProveedorBase
+public sealed class ProveedorReconocimientoCompra(IBaseDatos bd, Func<CredencialesOcr?, CancellationToken, Task<(bool Correcta, string Mensaje)>>? probar = null) : ProveedorBase
 {
     private const string Tabla = "ConfiguracionReconocimientoFacturasCompra";
 
@@ -91,7 +92,10 @@ public sealed class ProveedorReconocimientoCompra(IBaseDatos bd) : ProveedorBase
     public override IReadOnlyList<string> Sinonimos => ["ocr", "textract", "aws", "amazon", "escaneado", "credenciales", "vies", "reconocimiento"];
     public override IReadOnlyList<GrupoCampos> Grupos => [new("rec", "Reconocimiento"), new("ocr", "OCR (Amazon Textract)")];
     public override IReadOnlyList<AccionMantenimiento> Acciones =>
-        [new("quitarclaves", "Quitar las claves de AWS", "Borra la clave de acceso y el secreto guardados: el OCR usará el perfil de AWS de cada equipo, si lo tiene.")];
+        [
+            new("probarclaves", "Probar el OCR", "Manda a Amazon Textract una página de prueba con las claves guardadas (o, sin ellas, con el perfil de AWS de este equipo) y dice si la lee. Cuesta lo que una página de OCR. Guarda antes los cambios.", Modifica: false),
+            new("quitarclaves", "Quitar las claves de AWS", "Borra la clave de acceso y el secreto guardados: el OCR usará el perfil de AWS de cada equipo, si lo tiene."),
+        ];
 
     public override IReadOnlyList<CampoMantenimiento> Campos =>
     [
@@ -178,6 +182,14 @@ public sealed class ProveedorReconocimientoCompra(IBaseDatos bd) : ProveedorBase
 
     public override async Task<Resultado<ResultadoAccion>> EjecutarAsync(string accion, RegistroMantenimiento registro, ContextoMantenimiento c)
     {
+        if (accion == "probarclaves")
+        {
+            var config = await bd.EjecutarAsync(s => RepositorioFacturasCompra.ConfiguracionAsync(s, c.Trabajo.IdSociedad));
+            if (config.MotivoCredencialesOcr is { } motivo) return Resultado<ResultadoAccion>.Fallo(new Error("Reconocimiento.ClavesAws", $"Las claves guardadas no valen: {motivo}.", Titulo));
+            var (correcta, mensaje) = await (probar ?? ExtractorOcrTextract.ProbarAsync)(config.CredencialesOcr, CancellationToken.None);
+            return correcta ? Resultado<ResultadoAccion>.Correcto(new ResultadoAccion(mensaje))
+                : Resultado<ResultadoAccion>.Fallo(new Error("Reconocimiento.OcrNoFunciona", mensaje, Titulo, null, "Revisa la región y las claves, y que el usuario de AWS pueda usar Textract (DetectDocumentText)."));
+        }
         if (accion != "quitarclaves") return await base.EjecutarAsync(accion, registro, c);
         await bd.EjecutarAsync(s => s.EjecutarAsync($"UPDATE {Tabla} SET ClaveAccesoAWS = Null, SecretoAWSProtegido = Null, Version = Version + 1 WHERE IdSociedad = ?", c.Trabajo.IdSociedad));
         return Resultado<ResultadoAccion>.Correcto(new ResultadoAccion("Claves de AWS quitadas: el OCR usará el perfil de AWS de cada equipo."));

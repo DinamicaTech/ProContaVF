@@ -193,7 +193,7 @@ internal static class RepositorioFacturasCompra
             "SELECT fc.IdRegistro, fc.IdProveedor, fc.NIF, fc.NumeroFactura, fc.Fecha, fc.ImporteBI, fc.ImporteIVA, fc.ImporteTotal, fc.ImporteRetencion, " +
             "fc.PorcentajeRetencion, fc.Suplido, fc.InversionSujetoPasivo, fc.TipoOperacion, fc.Divisa, fc.IdRegistroFacturaRectificada, fc.Exportada, " +
             "fc.Duplicada, fc.ArchivoOriginal, fc.Archivo, fc.Carpeta, fc.ConceptoGasto, fc.IdCentroCoste, fc.ConfianzaImportacion, " +
-            "fc.RequiereRevisionImportacion, fc.FechaHoraRegistro, fc.ASIAPU, fc.IdAsientoContable, fc.LOGImportacion, fc.Version, fc.OrigenDocumento, t.Nombre AS NombreTercero, t.RazonSocial, t.NombreComercial, fc.NombreProveedorAeat " +
+            "fc.RequiereRevisionImportacion, fc.FechaHoraRegistro, fc.ASIAPU, fc.IdAsientoContable, fc.LOGImportacion, fc.Version, fc.OrigenDocumento, fc.FechaHoraExportacion, t.Nombre AS NombreTercero, t.RazonSocial, t.NombreComercial, fc.NombreProveedorAeat " +
             "FROM (FacturasCompra AS fc LEFT JOIN Proveedores AS p ON fc.IdProveedor = p.IdProveedor) LEFT JOIN Terceros AS t ON p.IdTercero = t.IdTercero " +
             "WHERE fc.IdSociedadEjercicio = ? OR (fc.IdSociedadEjercicio Is Null AND fc.Sociedad = ? AND fc.Ejercicio = ?)",
             r => new FilaFacturaCompra
@@ -227,7 +227,8 @@ internal static class RepositorioFacturasCompra
                 Asiento = r.Logico("Exportada") ? r.EnteroNulo("IdAsientoContable") ?? r.EnteroNulo("ASIAPU") : null,
                 ConfianzaMinima = ConfianzaMinima(r.Texto("LOGImportacion")),
                 Version = r.EnteroNulo("Version") ?? 0,
-                OrigenDocumento = r.Texto("OrigenDocumento")?.Trim()
+                OrigenDocumento = r.Texto("OrigenDocumento")?.Trim(),
+                FechaHoraExportacion = r.FechaNula("FechaHoraExportacion")
             },
             ctx.IdSociedadEjercicio, ctx.IdSociedad, ctx.Ejercicio.ToString(CultureInfo.InvariantCulture));
         return filas;
@@ -607,6 +608,8 @@ public sealed class FilaFacturaCompra
     public string Carpeta { get; init; } = "";
     /// <summary>carpeta, raiz o email (<see cref="FacturaCompra.OrigenDocumento"/>).</summary>
     public string? OrigenDocumento { get; init; }
+    /// <summary>Cuándo la exportó ProContaVF por última vez (filtro «Contabilizadas hoy»); null en las del ERP.</summary>
+    public DateTime? FechaHoraExportacion { get; init; }
     public string? CuentaGasto { get; init; }
     public int? IdCentroCoste { get; init; }
     public decimal? Confianza { get; init; }

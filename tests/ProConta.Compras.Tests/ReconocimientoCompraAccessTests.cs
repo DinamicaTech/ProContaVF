@@ -1,5 +1,6 @@
 using ProConta.Compras.Facturas;
 using ProConta.Compras.Mantenimiento;
+using ProConta.Compras.Reconocimiento;
 using ProConta.Mantenimiento;
 using ProConta.Nucleo.Auditoria;
 using ProConta.Nucleo.Contexto;
@@ -41,6 +42,11 @@ public sealed class ReconocimientoCompraAccessTests : IDisposable
         var config = await bd.EjecutarAsync(s => RepositorioFacturasCompra.ConfiguracionAsync(s, "T01"));
         Assert.Equal(("eu-west-1", "AKIAPRUEBA", "secreto-de-prueba"), (config.CredencialesOcr!.Region, config.CredencialesOcr.ClaveAcceso, config.CredencialesOcr.Secreto));
         Assert.True(config.UsarOcr);
+
+        CredencialesOcr? probadas = null;
+        var conPrueba = new ProveedorReconocimientoCompra(bd, (c, _) => { probadas = c; return Task.FromResult((true, "funciona")); });
+        Assert.Equal("funciona", (await conPrueba.EjecutarAsync("probarclaves", guardado, _c)).Valor!.Mensaje);
+        Assert.Equal("secreto-de-prueba", probadas!.Secreto);
 
         await p.EjecutarAsync("quitarclaves", guardado, _c);
         config = await bd.EjecutarAsync(s => RepositorioFacturasCompra.ConfiguracionAsync(s, "T01"));

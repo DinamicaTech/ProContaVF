@@ -51,6 +51,43 @@ public sealed class ExtractorOcrTextract(IAmazonTextract cliente) : IExtractorOc
     public static ExtractorOcrTextract ConCredenciales(CredencialesOcr c) =>
         new(new AmazonTextractClient(new BasicAWSCredentials(c.ClaveAcceso, c.Secreto), RegionEndpoint.GetBySystemName(c.Region)));
 
+    /// <summary>Texto de la prueba de las claves: una página con esto se manda a Textract y tiene que volver leído.</summary>
+    public const string TextoPrueba = "PROCONTA OCR 2026";
+
+    /// <summary>
+    /// Prueba de verdad de las claves (compras/reconocimiento 2026-11-07): lee con Textract una página generada con
+    /// <see cref="TextoPrueba"/>. Cuesta lo que una página de OCR. Devuelve el mensaje para el operador.
+    /// </summary>
+    public static async Task<(bool Correcta, string Mensaje)> ProbarAsync(CredencialesOcr? credenciales, CancellationToken cancelacion = default)
+    {
+        ExtractorOcrTextract extractor;
+        string origen;
+        if (credenciales is not null) (extractor, origen) = (ConCredenciales(credenciales), $"las claves guardadas ({credenciales.ClaveAcceso}, {credenciales.Region})");
+        else if (Crear() is ({ } delPerfil, _)) (extractor, origen) = (delPerfil, "el perfil de AWS de este equipo");
+        else return (false, $"No hay claves guardadas en la empresa ni perfil de AWS en este equipo ({Crear().Motivo?.TrimEnd('.')}).");
+        var ruta = Path.Combine(Path.GetTempPath(), $"proconta-prueba-ocr-{Guid.NewGuid():N}.pdf");
+        try
+        {
+            var pdf = new UglyToad.PdfPig.Writer.PdfDocumentBuilder();
+            var fuente = pdf.AddStandard14Font(UglyToad.PdfPig.Fonts.Standard14Fonts.Standard14Font.Helvetica);
+            pdf.AddPage(UglyToad.PdfPig.Content.PageSize.A6).AddText(TextoPrueba, 18, new UglyToad.PdfPig.Core.PdfPoint(20, 200), fuente);
+            await File.WriteAllBytesAsync(ruta, pdf.Build(), cancelacion).ConfigureAwait(false);
+            var leido = (await extractor.ExtraerAsync(ruta, cancelacion).ConfigureAwait(false)).Paginas.FirstOrDefault()?.Texto ?? "";
+            return leido.Replace(" ", "").Contains(TextoPrueba.Replace(" ", ""), StringComparison.OrdinalIgnoreCase)
+                ? (true, $"El OCR funciona con {origen}: Amazon Textract ha leído «{TextoPrueba}».")
+                : (false, $"Amazon Textract responde con {origen}, pero no ha leído el texto de prueba (ha leído «{leido.Trim()}»).");
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or AmazonClientException or AmazonServiceException or IOException or ArgumentException)
+        {
+            var motivo = (ex.InnerException as AmazonServiceException)?.Message ?? ex.Message;
+            return (false, $"El OCR no funciona con {origen}: {motivo}");
+        }
+        finally
+        {
+            try { File.Delete(ruta); } catch (IOException) { }
+        }
+    }
+
     public async Task<DocumentoFacturaExtraido> ExtraerAsync(string rutaPdf, CancellationToken cancelacion)
     {
         var bytes = await File.ReadAllBytesAsync(rutaPdf, cancelacion).ConfigureAwait(false);

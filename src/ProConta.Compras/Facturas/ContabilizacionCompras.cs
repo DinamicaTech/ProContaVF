@@ -350,6 +350,46 @@ public sealed class ContabilizadorCompras(IBaseDatos bd, IMotorAsientos motor, I
                 return Convert.ToInt32(otras, CultureInfo.InvariantCulture) == 0;
             });
 
+    // ---------- propuesta ----------
+
+    /// <summary>
+    /// Asiento que generaría exportar la factura, sin grabar nada (compras/pantallas 2026-11-07): la misma fecha, cuentas y
+    /// apuntes que al exportar. Si algo impide exportarla, el mensaje lo dice y no hay asiento; si al exportar habrá que
+    /// responder algo (motivo del ajuste, proveedor o acreedor) o se crearán cuentas, el mensaje lo avisa.
+    /// </summary>
+    public async Task<(AsientoFactura? Asiento, string? Mensaje)> ProponerAsync(FacturaCompra f)
+    {
+        ArgumentNullException.ThrowIfNull(f);
+        var validacion = f.Validar();
+        if (!validacion.EsCorrecto) return (null, "Para exportarla: " + string.Join(" ", validacion.Errores.Select(e => e.Mensaje)));
+        var prep = await PrepararAsync(f, new OpcionesExportacion());
+        var comp = prep.Comprobacion;
+        if (!comp.Lista) return (null, "Aún no se puede exportar: " + string.Join(" ", comp.Errores.Select(e => e.AccionCorrectora is { } a ? $"{e.Mensaje} {a}" : e.Mensaje)));
+        var avisos = new List<string>();
+        string? motivo = null;
+        if (comp.Pregunta == PreguntaExportacion.MotivoAjuste)
+        {
+            motivo = "propuesta";
+            avisos.Add($"Descuadra {Math.Abs(comp.Descuadre):0.00} €: al exportar te pediré el motivo del ajuste.");
+        }
+        else if (comp.Pregunta == PreguntaExportacion.ProveedorOAcreedor) avisos.Add("Al exportar te preguntaré si es proveedor (400) o acreedor (410).");
+        var hoy = _reloj.Ahora.Date;
+        var config = prep.Config!;
+        var ejercicio = f.Ejercicio.Ejercicio;
+        var fecha = TrimestreContable.FechaAsiento(f.Fecha!.Value, ejercicio, TrimestreContable.Activo(config.TrimestreActivo, ejercicio, hoy));
+        if (AsientoCompra.Construir(f, f.Ejercicio, prep.Cuentas!, fecha, motivo) is not { } propuesta) return (null, AsientoCompra.ExplicarDescuadre(f));
+        var porCrear = (prep.PorCrear ?? []).ToDictionary(c => c.Codigo, c => c.Nombre, StringComparer.Ordinal);
+        if (porCrear.Count > 0) avisos.Add($"Al exportar se crea{(porCrear.Count == 1 ? "" : "n")} {string.Join(", ", porCrear.Select(c => $"{c.Key} «{c.Value}»"))}.");
+        if (prep.Estado is { Exportada: true }) avisos.Add("Ya está exportada: este sería el asiento al re-exportar.");
+        var nombres = new Dictionary<string, string?>(StringComparer.Ordinal);
+        foreach (var codigo in propuesta.Asiento.Apuntes.Select(a => a.CodigoCuenta).Distinct())
+            nombres[codigo] = porCrear.TryGetValue(codigo, out var n) ? $"{n} (se creará)"
+                : (await cuentas.ResolverAsync(f.Ejercicio, codigo)) is { EsCorrecto: true } c ? c.Valor.Nombre : null;
+        var apuntes = propuesta.Asiento.Apuntes
+            .Select(a => new ApunteFactura(a.CodigoCuenta, nombres.GetValueOrDefault(a.CodigoCuenta), a.Debe.Valor, a.Haber.Valor, a.Descripcion)).ToList();
+        return (new AsientoFactura(0, propuesta.Asiento.FechaContable, propuesta.Asiento.Descripcion, apuntes), avisos.Count == 0 ? null : string.Join(" ", avisos));
+    }
+
     // ---------- exportar ----------
 
     /// <summary>

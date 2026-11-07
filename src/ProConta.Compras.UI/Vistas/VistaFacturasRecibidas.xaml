@@ -55,7 +55,7 @@
               <ItemsControl ItemsSource="{Binding Filtros}">
                 <ItemsControl.ItemTemplate>
                   <DataTemplate>
-                    <CheckBox Content="{Binding Texto}" IsChecked="{Binding Marcado}" Margin="0,3" />
+                    <CheckBox Content="{Binding Texto}" IsChecked="{Binding Marcado}" Margin="0,3" Visibility="{Binding Visible, Converter={StaticResource Visible}}" />
                   </DataTemplate>
                 </ItemsControl.ItemTemplate>
               </ItemsControl>
@@ -475,7 +475,7 @@
             </ContentControl.ContentTemplate>
           </ContentControl>
 
-          <!-- Asiento de la factura contabilizada: solo lectura, a todo el ancho de la ficha -->
+          <!-- Asiento de la factura contabilizada o, sin contabilizar, la propuesta (sin grabar): solo lectura, a todo el ancho de la ficha -->
           <StackPanel Visibility="{Binding HayAsiento, Converter={StaticResource Visible}}">
           <Border Style="{StaticResource Tarjeta.Compra}" DataContext="{Binding AsientoFicha}">
             <StackPanel>
