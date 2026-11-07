@@ -289,7 +289,13 @@ public sealed class FichaCompraVM : ModeloVista
     public System.Windows.Input.ICommand NombreComercialCommand { get; }
 
     /// <summary>Lo pone la pantalla: pide el nombre comercial del proveedor de la ficha y lo guarda en su tercero.</summary>
-    internal Func<FichaCompraVM, Task>? EditarNombreComercial { get; set; }
+    internal Func<FichaCompraVM, Task>? EditarNombreComercial
+    {
+        get => _editarNombreComercial;
+        // La pantalla lo pone después de crear la ficha: el botón tiene que enterarse (si no, solo salía tras un alta).
+        set { _editarNombreComercial = value; Avisar(nameof(PuedeEditarNombreComercial)); }
+    }
+    private Func<FichaCompraVM, Task>? _editarNombreComercial;
 
     public bool PuedeEditarNombreComercial => !SoloLectura && _proveedor is not null && EditarNombreComercial is not null;
 

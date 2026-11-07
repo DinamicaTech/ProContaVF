@@ -206,6 +206,18 @@ public sealed class FichaCompraTests
         Assert.Equal(esperado, (Proveedor with { RazonSocial = razon, NombreComercial = comercial }).NombreCompleto);
 
     [Fact]
+    public void El_boton_del_nombre_comercial_sale_cuando_la_pantalla_pone_la_accion()
+    {
+        var f = Ficha();
+        var avisos = new List<string?>();
+        f.PropertyChanged += (_, e) => avisos.Add(e.PropertyName);
+        Assert.False(f.PuedeEditarNombreComercial);
+        f.EditarNombreComercial = _ => Task.CompletedTask;
+        Assert.True(f.PuedeEditarNombreComercial);
+        Assert.Contains(nameof(FichaCompraVM.PuedeEditarNombreComercial), avisos);
+    }
+
+    [Fact]
     public void Escribir_el_total_de_un_tipo_reparte_base_e_iva()
     {
         var f = Ficha();
