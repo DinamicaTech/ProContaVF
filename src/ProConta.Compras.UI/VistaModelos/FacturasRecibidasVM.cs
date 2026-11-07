@@ -73,6 +73,10 @@ public sealed class FacturasRecibidasVM : ModeloVista, IPestanaTrabajo
         _rapido = OpcionesRapidas[0];
 
         BuscarPdfNuevosCommand = new ComandoDelegado(() => _ = BuscarPdfNuevosAsync(), () => !Prueba && _puedeEditar && !Ocupado);
+        ExportarCommand = new ComandoDelegado(() => _ = ExportarAsync(), () => PuedeExportar);
+        GuardarYExportarCommand = new ComandoDelegado(() => _ = GuardarYExportarAsync(), () => PuedeContabilizar && _ficha is { Editable: true, TieneCambios: true } && !FichaExportada && !Ocupado);
+        GuardarYReexportarCommand = new ComandoDelegado(() => _ = ExportarFichaAsync(guardarCambios: true), () => PuedeContabilizar && _ficha is { Editable: true, TieneCambios: true } && FichaExportada && !Ocupado);
+        DeshacerExportacionCommand = new ComandoDelegado(() => _ = DeshacerExportacionAsync(), () => PuedeContabilizar && FichaExportada && _ficha is { TieneCambios: false } && _seleccion.Count <= 1 && !Ocupado);
         ReconocerCommand = new ComandoDelegado(() => _ = ReconocerDeNuevoAsync(), () => _activa is { PdfExiste: true } && (Prueba || _ficha is { Editable: true }) && !Ocupado);
         CompararTodasCommand = new ComandoDelegado(() => _ = CompararTodasAsync(), () => Prueba && Filas.Count > 0 && !Ocupado);
         // Guardar sin cambios también vale: confirma lo leído y enseña las plantillas del proveedor (compras/reconocimiento 2026-11-05 18:42).
@@ -196,6 +200,8 @@ public sealed class FacturasRecibidasVM : ModeloVista, IPestanaTrabajo
         }
         await CargarAsync();
         if (!Prueba && _puedeEditar) await BuscarPdfNuevosAsync(silencioso: true);
+        // Aviso si hoy no cae en el trimestre contable activo (compras/pantallas 2026-11-06 10:48).
+        if (!Prueba && _s.ComprobarTrimestre is { } comprobar) await comprobar();
     }
 
     /// <summary>F5: vuelve a leer los proveedores (su forma de pago por defecto puede haber cambiado) y la lista.</summary>
@@ -403,7 +409,9 @@ public sealed class FacturasRecibidasVM : ModeloVista, IPestanaTrabajo
             if (factura.Contabilizada) _ = CargarAsientoAsync(factura, carga);
             if (!Prueba)
             {
-                Ficha = new FichaCompraVM(factura, _proveedores, _cuentasGasto, _centros, _datos, soloLectura: !_puedeEditar, tiposIva: _tiposIva, formasPago: _formasPago, tiposRetencion: _tiposRetencion);
+                // Una exportada por ProContaVF se puede cambiar para re-exportarla; una del ERP, no (compras/pantallas 2026-11-06 12:10).
+                var soloLectura = !_puedeEditar || factura.Contabilizada && (!factura.ExportadaAqui || _s.Contabilizador is null);
+                Ficha = new FichaCompraVM(factura, _proveedores, _cuentasGasto, _centros, _datos, soloLectura: soloLectura, tiposIva: _tiposIva, formasPago: _formasPago, tiposRetencion: _tiposRetencion);
                 return;
             }
             // Modo prueba: se reconoce de nuevo el PDF y se compara con lo grabado; nada se guarda.
@@ -427,6 +435,47 @@ public sealed class FacturasRecibidasVM : ModeloVista, IPestanaTrabajo
         if (c is not null && c.Codigo.StartsWith('6') && _cuentasGasto.All(o => o.Valor != c.Codigo))
             _cuentasGasto = [.. _cuentasGasto.Append(new OpcionFicha<string>($"{c.Codigo} · {c.Nombre}", c.Codigo)).OrderBy(o => o.Valor, StringComparer.Ordinal)];
         return Task.FromResult(c);
+    }
+
+    /// <summary>
+    /// Alta del proveedor del NIF de la ficha (compras/pantallas 2026-11-06 12:10 y 13:16): con la razón social confirmada
+    /// por la AEAT se crea directamente; si no, se piden los datos, con «Buscar en eInforma» si el PDF tampoco la trae.
+    /// Queda como acreedor (410) y la ficha lo toma; se guarda en la factura con lo demás.
+    /// </summary>
+    private async Task DarDeAltaProveedorAsync(FichaCompraVM ficha)
+    {
+        if (_s.AltaProveedor is not { } alta || !ficha.PuedeDarDeAltaProveedor) return;
+        var nif = ficha.Nif;
+        var leido = ficha.NombreLeido;
+        _modulo.Avisar($"Comprobando el NIF {nif}…");
+        var aeat = await alta.ConsultarAsync(_s.Trabajo, nif, leido);
+        ProConta.Compras.Proveedores.ProveedorCreado? creado = null;
+        async Task<string?> Crear(ProConta.Compras.Proveedores.DatosAltaProveedor datos)
+        {
+            var r = await alta.AltaAsync(_s.Trabajo, datos);
+            if (!r.EsCorrecto) return string.Join(" ", r.Errores.Select(e => e.AccionCorrectora is { } a ? $"{e.Mensaje} {a}" : e.Mensaje));
+            creado = r.Valor;
+            return null;
+        }
+        if (aeat.Identificado)
+        {
+            if (await Crear(new(nif, aeat.RazonSocial!)) is { } error)
+            {
+                _modulo.Dialogos.Preguntar("No he podido dar de alta el proveedor", error, null, new OpcionMensaje("Entendido", "Cierra el aviso", Principal: true));
+                return;
+            }
+        }
+        else
+        {
+            // El botón de eInforma sale mientras la razón social esté vacía (compras/pantallas 2026-11-06 13:16).
+            var url = "https://www.google.com/search?q=" + Uri.EscapeDataString($"{nif} site:einforma.com");
+            if (!_modulo.Dialogos.PedirDatosProveedor(new(nif, leido ?? ""), aeat.Motivo, url, Crear)) return;
+        }
+        if (creado is null) return;
+        _proveedores = await _s.Facturas.ProveedoresAsync(_s.Trabajo);
+        if (ReferenceEquals(_ficha, ficha)) ficha.ProveedorDadoDeAlta(_proveedores, creado.IdProveedor, creado.Cuenta);
+        _modulo.Avisar((creado.TerceroExistente ? $"{creado.Nombre} ya estaba en Terceros: ahora es proveedor" : $"Proveedor {creado.Nombre} dado de alta")
+            + $" con la cuenta {creado.Cuenta}{(aeat.Identificado ? ", con la razón social de la AEAT" : "")}. Se guarda en la factura con los demás cambios.");
     }
 
     /// <summary>Pide un texto clave con la cuenta y el centro de la ficha y lo guarda en la empresa (compras/pantallas 2026-11-06 17:02).</summary>
@@ -456,10 +505,211 @@ public sealed class FacturasRecibidasVM : ModeloVista, IPestanaTrabajo
                 value.PropertyChanged += AlCambiarFicha;
                 value.BuscarCuenta = BuscarCuentaGastoAsync;
                 if (_s.TextosClave is not null && _puedeEditar && !Prueba) value.AnadirTextoClave = AnadirTextoClaveAsync;
+                if (_s.AltaProveedor is not null && _puedeEditar && !Prueba) value.DarDeAltaProveedor = DarDeAltaProveedorAsync;
             }
             Avisar(nameof(HayFicha), nameof(TieneCambios));
+            AvisarBotonesFicha();
             CommandManager.InvalidateRequerySuggested();
         }
+    }
+
+    // ---------- exportar a contabilidad ----------
+
+    /// <summary>Exportar, re-exportar y deshacer: con el contabilizador, permiso de edición y fuera del modo prueba.</summary>
+    public bool PuedeContabilizar => _s.Contabilizador is not null && _puedeEditar && !Prueba;
+
+    /// <summary>La factura de la ficha la exportó ProContaVF.</summary>
+    public bool FichaExportada => _ficha?.Factura.ExportadaAqui == true;
+
+    /// <summary>Pie de la ficha: los botones de los campos en edición y, sin cambios, Exportar o Deshacer exportación.</summary>
+    public bool HayBotonesFicha => _ficha is { Editable: true } f && (f.TieneCambios || PuedeContabilizar);
+
+    public bool MostrarGuardar => _ficha is { Editable: true, TieneCambios: true } && !FichaExportada;
+    public bool MostrarGuardarYExportar => MostrarGuardar && PuedeContabilizar;
+    public bool MostrarGuardarYReexportar => _ficha is { Editable: true, TieneCambios: true } && FichaExportada && PuedeContabilizar;
+    public bool MostrarExportar => _ficha is { Editable: true, TieneCambios: false } && !_ficha.Factura.Contabilizada && PuedeContabilizar;
+    public bool MostrarDeshacer => _ficha is { Editable: true, TieneCambios: false } && FichaExportada && PuedeContabilizar;
+
+    private void AvisarBotonesFicha() => Avisar(nameof(HayBotonesFicha), nameof(FichaExportada), nameof(MostrarGuardar), nameof(MostrarGuardarYExportar),
+        nameof(MostrarGuardarYReexportar), nameof(MostrarExportar), nameof(MostrarDeshacer));
+
+    private bool PuedeExportar => PuedeContabilizar && !Ocupado && (_seleccion.Count > 1
+        ? _seleccion.Any(f => !f.Datos.Contabilizada)
+        : _ficha is { Editable: true, TieneCambios: false } && !_ficha.Factura.Contabilizada);
+
+    private async Task GuardarYExportarAsync()
+    {
+        if (!await GuardarFichaAsync()) return;
+        await ExportarFichaAsync(guardarCambios: false);
+    }
+
+    /// <summary>«Exportar» del contextual: la factura de la ficha o, con varias seleccionadas, todas las pendientes sin preguntar.</summary>
+    private Task ExportarAsync() => _seleccion.Count > 1 ? ExportarVariasAsync() : ExportarFichaAsync(guardarCambios: false);
+
+    /// <summary>
+    /// Exporta (o re-exporta, guardando los cambios en la misma operación) la factura de la ficha. Pregunta lo que haga
+    /// falta: proveedor o acreedor en la primera de un acreedor, el motivo de un descuadre de más de 0,03 € y, al
+    /// re-exportar una de un trimestre cerrado, avisa del contra-asiento.
+    /// </summary>
+    private async Task ExportarFichaAsync(bool guardarCambios)
+    {
+        if (_s.Contabilizador is not { } conta || _ficha is not { Editable: true } ficha) return;
+        var f = ficha.Construir();
+        var opciones = new OpcionesExportacion();
+        var reexportar = f.ExportadaAqui;
+        TextoOcupado = reexportar ? "Re-exportando la factura…" : "Exportando la factura…";
+        try
+        {
+            for (var vuelta = 0; vuelta < 3; vuelta++)
+            {
+                var c = await conta.ComprobarAsync(f, opciones);
+                if (!c.Lista)
+                {
+                    MostrarErrores("No he podido exportar la factura", c.Errores);
+                    return;
+                }
+                if (c.Pregunta == PreguntaExportacion.MotivoAjuste)
+                {
+                    TextoOcupado = "";
+                    if (_modulo.Dialogos.PedirMotivoAjuste(c.Explicacion ?? "") is not { } motivo) return;
+                    opciones = opciones with { MotivoAjuste = motivo };
+                    continue;
+                }
+                if (c.Pregunta == PreguntaExportacion.ProveedorOAcreedor)
+                {
+                    TextoOcupado = "";
+                    var eleccion = _modulo.Dialogos.Preguntar("¿Proveedor o acreedor?", c.Explicacion ?? "", null,
+                        new OpcionMensaje("Dejar como acreedor (410)", "Exporta con su cuenta 410", Principal: true),
+                        new OpcionMensaje("Pasar a proveedor (400)", "Le crea una cuenta 400 con el mismo nombre y exporta con ella"),
+                        new OpcionMensaje("Cancelar", "No exporta", Cancelar: true));
+                    if (eleccion is not (0 or 1)) return;
+                    opciones = opciones with { EsProveedor = eleccion == 1 };
+                    continue;
+                }
+                if (reexportar && c.TrimestreCerrado)
+                {
+                    TextoOcupado = "";
+                    var seguir = _modulo.Dialogos.Preguntar("El asiento es de un trimestre cerrado",
+                        "El asiento actual no se toca: haré un contra-asiento con los datos anteriores y un asiento nuevo, los dos en el trimestre activo.", null,
+                        new OpcionMensaje("Re-exportar", "Hace el contra-asiento y el asiento nuevo", Principal: true),
+                        new OpcionMensaje("Cancelar", "No cambia nada", Cancelar: true));
+                    if (seguir != 0) return;
+                }
+                break;
+            }
+            TextoOcupado = reexportar ? "Re-exportando la factura…" : "Exportando la factura…";
+            var r = await conta.ExportarAsync(f, _s.Operador ?? new ProConta.Nucleo.Auditoria.Actor("ProContaVF"), opciones, guardarCambios);
+            if (!r.EsCorrecto)
+            {
+                MostrarErrores("No he podido exportar la factura", r.Errores);
+                return;
+            }
+            ErrorFicha = null;
+            _modulo.Avisar(r.Valor.Aviso);
+            if (r.Valor.CuentaProveedor is not null) _proveedores = await _s.Facturas.ProveedoresAsync(_s.Trabajo);
+            await RecargarTrasExportarAsync(f.IdRegistro);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            ErrorFicha = $"No he podido exportar la factura: {ex.Message}";
+        }
+        finally
+        {
+            TextoOcupado = "";
+        }
+    }
+
+    /// <summary>Exportación masiva: no pregunta; la que necesita respuesta (400/410 o motivo) o tiene errores queda pendiente.</summary>
+    private async Task ExportarVariasAsync()
+    {
+        if (_s.Contabilizador is not { } conta) return;
+        if (TieneCambios && !await GuardarFichaAsync()) return;
+        var filas = _seleccion.Where(x => !x.Datos.Contabilizada).ToList();
+        var hechas = 0;
+        var pendientes = new List<string>();
+        try
+        {
+            for (var i = 0; i < filas.Count; i++)
+            {
+                TextoOcupado = $"Exportando {i + 1} de {filas.Count}…";
+                var f = await _s.Facturas.CargarAsync(filas[i].IdRegistro);
+                if (f is null) continue;
+                var r = await conta.ExportarAsync(f, _s.Operador ?? new ProConta.Nucleo.Auditoria.Actor("ProContaVF"), new OpcionesExportacion(Masiva: true));
+                if (r.EsCorrecto) hechas++;
+                else pendientes.Add($"{f.Rotulo}: {string.Join(" ", r.Errores.Select(e => e.Mensaje))}");
+            }
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            pendientes.Add($"Me he parado por un error: {ex.Message}");
+        }
+        finally
+        {
+            TextoOcupado = "";
+        }
+        var texto = $"{Formatos.Plural(hechas, "factura exportada", "facturas exportadas")}.";
+        if (pendientes.Count == 0) _modulo.Avisar(texto);
+        else _modulo.Dialogos.Preguntar("Exportación de varias facturas", $"{texto} {Formatos.Plural(pendientes.Count, "queda pendiente", "quedan pendientes")}:", pendientes,
+            new OpcionMensaje("Entendido", "Cierra el aviso", Principal: true));
+        await RecargarTrasExportarAsync(_activa?.IdRegistro);
+    }
+
+    /// <summary>
+    /// «Deshacer exportación»: del trimestre activo, borra el asiento (sin consecuencias fiscales); de uno cerrado, hace
+    /// un contra-asiento en el trimestre activo. Avisa antes en los dos casos.
+    /// </summary>
+    private async Task DeshacerExportacionAsync()
+    {
+        if (_s.Contabilizador is not { } conta || _ficha is not { } ficha || !ficha.Factura.ExportadaAqui) return;
+        var f = ficha.Factura;
+        try
+        {
+            var cerrado = await conta.TrimestreCerradoAsync(f);
+            var anulado = (await conta.EstadoAsync(f.IdRegistro)).IdAsientoAnulado;
+            var eleccion = _modulo.Dialogos.Preguntar("Deshacer la exportación",
+                cerrado
+                    ? $"El asiento {f.IdAsientoContable} es de un trimestre cerrado y no se toca: haré un contra-asiento en el trimestre activo y la factura volverá a Pendientes."
+                    : $"Borraré el asiento {f.IdAsientoContable} y su registro del libro de IVA; es del trimestre activo, así que no tiene consecuencias fiscales. La factura volverá a Pendientes."
+                      + (anulado is int a ? $" Se queda el contra-asiento del asiento {a}, que es de un trimestre cerrado." : ""),
+                null,
+                new OpcionMensaje("Deshacer la exportación", cerrado ? "Hace el contra-asiento" : "Borra el asiento", Principal: true, Peligro: !cerrado),
+                new OpcionMensaje("Cancelar", "No cambia nada", Cancelar: true));
+            if (eleccion != 0) return;
+            TextoOcupado = "Deshaciendo la exportación…";
+            var r = await conta.DeshacerAsync(f, _s.Operador ?? new ProConta.Nucleo.Auditoria.Actor("ProContaVF"));
+            if (!r.EsCorrecto)
+            {
+                MostrarErrores("No he podido deshacer la exportación", r.Errores);
+                return;
+            }
+            _modulo.Avisar(r.Valor.Aviso);
+            await RecargarTrasExportarAsync(f.IdRegistro);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            ErrorFicha = $"No he podido deshacer la exportación: {ex.Message}";
+        }
+        finally
+        {
+            TextoOcupado = "";
+        }
+    }
+
+    private void MostrarErrores(string titulo, IReadOnlyList<Error> errores)
+    {
+        TextoOcupado = "";
+        ErrorFicha = string.Join(" ", errores.Select(e => e.AccionCorrectora is { } a ? $"{e.Mensaje} {a}" : e.Mensaje));
+        _modulo.Dialogos.Preguntar(titulo, errores.Count == 1 ? errores[0].Mensaje : $"Hay {errores.Count} cosas que corregir:",
+            errores.Count == 1 ? (errores[0].AccionCorrectora is { } a ? [a] : null) : [.. errores.Select(e => e.AccionCorrectora is { } x ? $"{e.Mensaje} {x}" : e.Mensaje)],
+            new OpcionMensaje("Entendido", "Cierra el aviso", Principal: true));
+    }
+
+    /// <summary>Tras exportar o deshacer: la lista (la factura cambia de pestaña) y la ficha, con su asiento.</summary>
+    private async Task RecargarTrasExportarAsync(int? idRegistro)
+    {
+        await CargarAsync(idRegistro);
+        if (_activa is not null) await AbrirFichaAsync(_activa, guardarAntes: false);
+        _modulo.FacturaCambiada(this);
     }
 
     public bool HayFicha => _ficha is not null;
@@ -493,6 +743,7 @@ public sealed class FacturasRecibidasVM : ModeloVista, IPestanaTrabajo
         if (e.PropertyName == nameof(FichaCompraVM.TieneCambios))
         {
             Avisar(nameof(TieneCambios));
+            AvisarBotonesFicha();
             CommandManager.InvalidateRequerySuggested();
         }
     }
@@ -536,7 +787,8 @@ public sealed class FacturasRecibidasVM : ModeloVista, IPestanaTrabajo
 
     private async Task GuardarOEnsenarAsync()
     {
-        if (_ficha is { Editable: true })
+        // Una exportada no se guarda sola: sus cambios van con «Guardar y re-exportar».
+        if (_ficha is { Editable: true } && !FichaExportada)
         {
             await GuardarFichaAsync(confirmar: true);
             return;
@@ -799,6 +1051,10 @@ public sealed class FacturasRecibidasVM : ModeloVista, IPestanaTrabajo
     // ---------- comandos ----------
 
     public ICommand BuscarPdfNuevosCommand { get; }
+    public ICommand ExportarCommand { get; }
+    public ICommand GuardarYExportarCommand { get; }
+    public ICommand GuardarYReexportarCommand { get; }
+    public ICommand DeshacerExportacionCommand { get; }
     public ICommand ReconocerCommand { get; }
     public ICommand CompararTodasCommand { get; }
     public ICommand GuardarCommand { get; }

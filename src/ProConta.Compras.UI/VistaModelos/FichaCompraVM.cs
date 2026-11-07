@@ -107,7 +107,8 @@ public sealed class DesgloseVM : ModeloVista
 /// </summary>
 public sealed class FichaCompraVM : ModeloVista
 {
-    private readonly IReadOnlyList<ProveedorFicha> _proveedores;
+    private IReadOnlyList<ProveedorFicha> _proveedores;
+    private string? _cuentaProveedorNueva;
     private ConfianzaCampos _confianza;
     private readonly HashSet<string> _manuales = new(StringComparer.Ordinal);
     private bool _cargando = true;
@@ -139,7 +140,8 @@ public sealed class FichaCompraVM : ModeloVista
         Factura = factura;
         _tiposIva = tiposIva ?? [];
         _proveedores = proveedores;
-        SoloLectura = soloLectura || factura.Contabilizada;
+        // Las exportadas por ProContaVF se pueden cambiar para re-exportarlas; las del ERP, no (compras/pantallas 2026-11-06 12:10).
+        SoloLectura = soloLectura || factura.Contabilizada && !factura.ExportadaAqui;
         _confianza = confianza ?? ConfianzaCampos.DesdeLog(factura.Log);
 
         Operaciones = [new("Nacional", OperacionCompra.Nacional), new("Intracomunitaria", OperacionCompra.Intracomunitaria), new("Importación", OperacionCompra.Importacion)];
@@ -178,6 +180,7 @@ public sealed class FichaCompraVM : ModeloVista
         _totalDivisa = factura.ImporteTotalDivisa is { } td ? Formatos.Numero(td) : "";
         _cuentaGasto = CuentasGasto.FirstOrDefault(c => c.Valor == factura.CuentaGasto) ?? CuentasGasto[0];
         _centroCoste = CentrosCoste.FirstOrDefault(c => c.Valor == factura.IdCentroCoste) ?? CentrosCoste[0];
+        DarDeAltaProveedorCommand = new ComandoDelegado(_ => _ = DarDeAltaProveedor?.Invoke(this), _ => DarDeAltaProveedor is not null && PuedeDarDeAltaProveedor);
         AnadirTextoClaveCommand = new ComandoDelegado(_ => _ = AnadirTextoClave?.Invoke(this),
             _ => AnadirTextoClave is not null && (_cuentaGasto.Valor is not null || _centroCoste.Valor is not null));
         _rectifica = Rectificables.FirstOrDefault(r => r.Valor == factura.IdRegistroFacturaRectificada) ?? Rectificables[0];
@@ -243,7 +246,8 @@ public sealed class FichaCompraVM : ModeloVista
         {
             if (!Cambiar(ref _nif, (value ?? "").Trim().ToUpperInvariant(), "nif")) return;
             _proveedor = BuscarPorNif(_nif);
-            Avisar(nameof(NombreProveedor), nameof(HayProveedor), nameof(AvisoProveedor));
+            _cuentaProveedorNueva = null;
+            Avisar(nameof(NombreProveedor), nameof(HayProveedor), nameof(AvisoProveedor), nameof(PuedeDarDeAltaProveedor), nameof(IdTerceroProveedor), nameof(Cuenta));
             ProponerFormaPago();
             ProponerProducto();
         }
@@ -252,8 +256,55 @@ public sealed class FichaCompraVM : ModeloVista
     public bool HayProveedor => _proveedor is not null;
     public int? IdTerceroProveedor => _proveedor?.IdTercero;
     public string NombreProveedor => _proveedor?.Nombre ?? (Factura.Carpeta.Length > 0 ? $"Carpeta «{Factura.Carpeta}»" : "");
-    public string? AvisoProveedor => _nif.Length == 0 ? null : _proveedor is null ? "Ningún proveedor de la empresa tiene este NIF: dalo de alta en Terceros." : null;
-    public string Cuenta => _proveedor is not null && _proveedor.IdProveedor == Factura.IdProveedor ? Factura.CuentaContableProveedor ?? "" : "";
+    public string? AvisoProveedor => _nif.Length == 0 ? null : _proveedor is null ? "Ningún proveedor de la empresa tiene este NIF: dalo de alta con clic derecho en el proveedor («Dar de alta el proveedor…»)." : null;
+    public string Cuenta => _cuentaProveedorNueva is not null && _proveedor is not null ? _cuentaProveedorNueva
+        : _proveedor is not null && _proveedor.IdProveedor == Factura.IdProveedor ? Factura.CuentaContableProveedor ?? "" : "";
+
+    /// <summary>«Dar de alta el proveedor…» en el menú contextual del proveedor (compras/pantallas 2026-11-06 12:10).</summary>
+    public System.Windows.Input.ICommand DarDeAltaProveedorCommand { get; }
+
+    /// <summary>Lo pone la pantalla: confirma con la AEAT o pide los datos y da de alta el proveedor.</summary>
+    internal Func<FichaCompraVM, Task>? DarDeAltaProveedor { get; set; }
+
+    /// <summary>NIF de la factura sin proveedor en la empresa: se ofrece «Dar de alta el proveedor…».</summary>
+    public bool PuedeDarDeAltaProveedor => !SoloLectura && _proveedor is null && _nif.Length > 0;
+
+    /// <summary>Nombre del proveedor que leyó el reconocimiento en el PDF, para proponerlo en el alta.</summary>
+    /// <summary>
+    /// Razón social leída de la factura (la de la AEAT o la del reconocimiento), solo si el NIF de la ficha es el leído:
+    /// con otro NIF, el nombre leído es de otra empresa y no se propone.
+    /// </summary>
+    internal string? NombreLeido
+    {
+        get
+        {
+            if (!string.Equals(Nucleo.Identificacion.Nif.Normalizar(Factura.NifProveedor ?? ""), Nucleo.Identificacion.Nif.Normalizar(_nif), StringComparison.OrdinalIgnoreCase)) return null;
+            if (!string.IsNullOrWhiteSpace(Factura.NombreProveedorAeat)) return Factura.NombreProveedorAeat.Trim();
+            try
+            {
+                using var doc = System.Text.Json.JsonDocument.Parse(string.IsNullOrWhiteSpace(Factura.Log) ? "{}" : Factura.Log);
+                return doc.RootElement.TryGetProperty("candidato", out var c) && c.ValueKind == System.Text.Json.JsonValueKind.Object
+                    && c.TryGetProperty("ProveedorIdentificado", out var n) && n.ValueKind == System.Text.Json.JsonValueKind.String && !string.IsNullOrWhiteSpace(n.GetString())
+                    ? n.GetString()!.Trim() : null;
+            }
+            catch (System.Text.Json.JsonException)
+            {
+                return null;
+            }
+        }
+    }
+
+    /// <summary>Tras dar de alta el proveedor: la ficha lo toma, con su cuenta, y queda con cambios para guardarlo en la factura.</summary>
+    internal void ProveedorDadoDeAlta(IReadOnlyList<ProveedorFicha> proveedores, int idProveedor, string cuenta)
+    {
+        _proveedores = proveedores;
+        _proveedor = proveedores.FirstOrDefault(p => p.IdProveedor == idProveedor);
+        _cuentaProveedorNueva = cuenta;
+        Marcar("proveedor");
+        Avisar(nameof(NombreProveedor), nameof(HayProveedor), nameof(AvisoProveedor), nameof(PuedeDarDeAltaProveedor), nameof(IdTerceroProveedor), nameof(Cuenta));
+        ProponerFormaPago();
+        ProponerProducto();
+    }
 
     private ProveedorFicha? BuscarPorNif(string nif)
     {
@@ -540,7 +591,9 @@ public sealed class FichaCompraVM : ModeloVista
 
     public bool HayAvisos => Avisos.Count > 0;
 
-    public string Resumen => Factura.Contabilizada ? "Contabilizada: solo se consulta."
+    public string Resumen => Factura.ExportadaAqui
+            ? (SoloLectura ? $"Exportada (asiento {Factura.IdAsientoContable}): solo se consulta." : $"Exportada (asiento {Factura.IdAsientoContable}): si la cambias, «Guardar y re-exportar» actualiza el asiento.")
+        : Factura.Contabilizada ? "Contabilizada en el ERP: solo se consulta."
         : _confianza.Global is { } g ? $"Reconocida con confianza {Math.Round(g * 100m):0} %{(_confianza.Fuente == "ocr" ? " (con OCR)" : "")}." : "Sin datos del reconocimiento.";
 
     // ---------- cambios ----------
@@ -633,7 +686,8 @@ public sealed class FichaCompraVM : ModeloVista
         {
             IdRegistro = o.IdRegistro, Ejercicio = o.Ejercicio, RutaPdf = o.RutaPdf, Md5 = o.Md5, Carpeta = o.Carpeta,
             IdProveedor = _proveedor?.IdProveedor ?? (_nif.Length == 0 ? o.IdProveedor : null),
-            CuentaContableProveedor = _proveedor is not null && _proveedor.IdProveedor == o.IdProveedor ? o.CuentaContableProveedor : null,
+            CuentaContableProveedor = _cuentaProveedorNueva is not null && _proveedor?.IdProveedor is not null ? _cuentaProveedorNueva
+                : _proveedor is not null && _proveedor.IdProveedor == o.IdProveedor ? o.CuentaContableProveedor : null,
             NifProveedor = _nif.Length == 0 ? null : _nif,
             NombreProveedorAeat = o.NombreProveedorAeat,
             NumeroFactura = new string(_numero.Where(char.IsAsciiLetterOrDigit).ToArray()),

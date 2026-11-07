@@ -124,4 +124,104 @@ public sealed class DialogosCompras(Func<Window?> ventana) : IDialogosCompras
         dialogo.Loaded += (_, _) => texto.Focus();
         return dialogo.ShowDialog() == true;
     }
+
+    public bool PedirDatosProveedor(ProConta.Compras.Proveedores.DatosAltaProveedor propuesta, string? motivo, string? urlEInforma,
+        Func<ProConta.Compras.Proveedores.DatosAltaProveedor, Task<string?>> guardar)
+    {
+        var dialogo = new DialogoProConta { Title = "Dar de alta el proveedor", Owner = ventana(), Width = 600 };
+        TextBox Campo(string texto, int max, string ayuda) => new() { Text = texto, MaxLength = max, HorizontalAlignment = HorizontalAlignment.Stretch, ToolTip = ayuda };
+        var nif = Campo(propuesta.Nif, 20, "NIF de la factura; un NIF extranjero lleva delante el código del país (FR…, DE…)");
+        var razon = Campo(propuesta.RazonSocial, 150, "Tal como figura en la factura o en el registro mercantil");
+        var comercial = Campo(propuesta.NombreComercial ?? "", 150, "Opcional");
+        var direccion = Campo(propuesta.Direccion ?? "", 255, "Opcional");
+        var telefono = Campo(propuesta.Telefono ?? "", 30, "Opcional");
+        var email = Campo(propuesta.Email ?? "", 254, "Opcional");
+        var error = new TextBlock { Foreground = System.Windows.Media.Brushes.Firebrick, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 10, 0, 0), Visibility = Visibility.Collapsed };
+        var panel = new StackPanel();
+        panel.Children.Add(new TextBlock
+        {
+            Text = (motivo is null ? "" : motivo + " ") + "Se crea como acreedor, con la siguiente subcuenta libre de la 410; la primera vez que exportes una factura suya podrás cambiarlo a proveedor (400).",
+            TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 0, 0, 12)
+        });
+        void Fila(string etiqueta, UIElement campo)
+        {
+            panel.Children.Add(new TextBlock { Text = etiqueta, Style = (Style)dialogo.FindResource("Texto.Seccion"), Margin = new Thickness(0, 8, 0, 4) });
+            panel.Children.Add(campo);
+        }
+        Fila("NIF *", nif);
+        if (urlEInforma is not null)
+        {
+            var fila = new DockPanel();
+            var buscar = new Button { Content = "Buscar en eInforma", Margin = new Thickness(8, 0, 0, 0), ToolTip = "Abre en el navegador la búsqueda del NIF en eInforma para copiar la razón social" };
+            buscar.Click += (_, _) => Abrir(urlEInforma);
+            // Solo cuando falta la razón social: si la trae la factura o se escribe, sobra.
+            void Mostrar() => buscar.Visibility = string.IsNullOrWhiteSpace(razon.Text) ? Visibility.Visible : Visibility.Collapsed;
+            razon.TextChanged += (_, _) => Mostrar();
+            Mostrar();
+            DockPanel.SetDock(buscar, Dock.Right);
+            fila.Children.Add(buscar);
+            fila.Children.Add(razon);
+            Fila("Razón social *", fila);
+        }
+        else Fila("Razón social *", razon);
+        Fila("Nombre comercial", comercial);
+        Fila("Dirección", direccion);
+        Fila("Teléfono", telefono);
+        Fila("Email", email);
+        panel.Children.Add(error);
+        dialogo.Content = panel;
+        var aceptar = new Button { Content = "Dar de alta", Style = (Style)dialogo.FindResource("Boton.Primario"), Margin = new Thickness(8, 0, 0, 0), IsDefault = true,
+            ToolTip = "Crea el proveedor y su cuenta de acreedor" };
+        var cancelar = new Button { Content = "Cancelar", IsCancel = true, ToolTip = "No crea nada" };
+        void Error(string mensaje) { error.Text = mensaje; error.Visibility = Visibility.Visible; }
+        aceptar.Click += async (_, _) =>
+        {
+            if (string.IsNullOrWhiteSpace(nif.Text)) { Error("Escribe el NIF."); nif.Focus(); return; }
+            if (string.IsNullOrWhiteSpace(razon.Text)) { Error("Escribe la razón social."); razon.Focus(); return; }
+            aceptar.IsEnabled = false;
+            try
+            {
+                var fallo = await guardar(new ProConta.Compras.Proveedores.DatosAltaProveedor(nif.Text.Trim(), razon.Text.Trim(), comercial.Text, direccion.Text, telefono.Text, email.Text));
+                if (fallo is null) dialogo.DialogResult = true;
+                else Error(fallo);
+            }
+            finally
+            {
+                aceptar.IsEnabled = true;
+            }
+        };
+        cancelar.Click += (_, _) => dialogo.DialogResult = false;
+        dialogo.Botones = new StackPanel { Orientation = Orientation.Horizontal, Children = { cancelar, aceptar } };
+        dialogo.Loaded += (_, _) => (string.IsNullOrWhiteSpace(razon.Text) ? razon : (UIElement)aceptar).Focus();
+        return dialogo.ShowDialog() == true;
+    }
+
+    public string? PedirMotivoAjuste(string explicacion)
+    {
+        var dialogo = new DialogoProConta { Title = "El asiento no cuadra", Owner = ventana(), Width = 560 };
+        var motivo = new TextBox { MaxLength = 200, HorizontalAlignment = HorizontalAlignment.Stretch, ToolTip = "Va en el concepto del apunte de ajuste y queda en el registro del asiento" };
+        var error = new TextBlock { Foreground = System.Windows.Media.Brushes.Firebrick, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 10, 0, 0), Visibility = Visibility.Collapsed };
+        var panel = new StackPanel();
+        panel.Children.Add(new TextBlock { Text = explicacion, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 0, 0, 8) });
+        panel.Children.Add(new TextBlock
+        {
+            Text = "Corrige las cuotas en la ficha o, si la factura es así, exporta con un ajuste manual a la cuenta de redondeo escribiendo el motivo.",
+            TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 0, 0, 12)
+        });
+        panel.Children.Add(new TextBlock { Text = "Motivo del ajuste *", Style = (Style)dialogo.FindResource("Texto.Seccion"), Margin = new Thickness(0, 0, 0, 4) });
+        panel.Children.Add(motivo);
+        panel.Children.Add(error);
+        dialogo.Content = panel;
+        var aceptar = new Button { Content = "Exportar con el ajuste", Style = (Style)dialogo.FindResource("Boton.Primario"), Margin = new Thickness(8, 0, 0, 0), IsDefault = true };
+        var cancelar = new Button { Content = "Cancelar", IsCancel = true, ToolTip = "No exporta; puedes corregir la ficha" };
+        aceptar.Click += (_, _) =>
+        {
+            if (string.IsNullOrWhiteSpace(motivo.Text)) { error.Text = "Escribe el motivo."; error.Visibility = Visibility.Visible; motivo.Focus(); return; }
+            dialogo.DialogResult = true;
+        };
+        cancelar.Click += (_, _) => dialogo.DialogResult = false;
+        dialogo.Botones = new StackPanel { Orientation = Orientation.Horizontal, Children = { cancelar, aceptar } };
+        dialogo.Loaded += (_, _) => motivo.Focus();
+        return dialogo.ShowDialog() == true ? motivo.Text.Trim() : null;
+    }
 }

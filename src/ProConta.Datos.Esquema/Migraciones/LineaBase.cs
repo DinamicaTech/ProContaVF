@@ -71,6 +71,7 @@ public static class CatalogoMigraciones
         MigracionesCompras.ProductoDefectoProveedor,
         MigracionesContabilidad.DescripcionCuentas,
         MigracionesCompras.TextosClaveCompra,
+        MigracionesCompras.ExportacionCompras,
     ];
 
     /// <summary>Versión del esquema que espera esta versión del programa.</summary>

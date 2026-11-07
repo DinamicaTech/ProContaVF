@@ -33,6 +33,19 @@ public static class ProveedoresOrganizacion
         new("TipoIVA4", "Tipo de IVA 4 (%)", TipoCampo.Porcentaje) { Grupo = "impuestos", Ancho = "xs" },
     ];
 
+    /// <summary>Solo en Ejercicios: el tipo general es del ejercicio (compras/pantallas 2026-11-06 12:10).</summary>
+    internal static CampoMantenimiento TipoGeneral() =>
+        new("TipoIVAGeneral", "Tipo de IVA general (%)", TipoCampo.Porcentaje) { Grupo = "impuestos", Ancho = "xs", Sinonimos = ["iva general", "21"],
+            Ayuda = "El de la autorrepercusión (inversión del sujeto pasivo e intracomunitarias) y el de la importación en las compras. Vacío: el más alto de los tipos de IVA." };
+
+    /// <summary>Cuentas de compras que solo tiene el ejercicio (compras/factura-compra/contabilizacion).</summary>
+    internal static IEnumerable<CampoMantenimiento> CuentasCompras() =>
+    [
+        Cuenta("CuentaIVAImportacion", "Cuenta de IVA de importación", ayuda: "IVA soportado en importaciones (4724001 en el ERP): el importe de la factura se desglosa al tipo general."),
+        Cuenta("CuentaRedondeoGastos", "Cuenta de diferencias de redondeo · gastos", ayuda: "Cuando a un asiento de compra le falta Debe (hasta 0,03 €, o más con motivo). Vacía: 6590000.", sinonimos: ["redondeo"]),
+        Cuenta("CuentaRedondeoIngresos", "Cuenta de diferencias de redondeo · ingresos", ayuda: "Cuando a un asiento de compra le sobra Debe. Vacía: 7590000.", sinonimos: ["redondeo"]),
+    ];
+
     internal static IEnumerable<CampoMantenimiento> Cuentas() =>
     [
         Cuenta("CuentaTipoIVA0", "Cuenta del tipo de IVA 0", ayuda: "IVA repercutido de las líneas al 0 %."),
@@ -123,7 +136,8 @@ public static class ProveedoresOrganizacion
             new("NumIVSDuplicados", "Número de IVS duplicados", TipoCampo.Entero) { Grupo = "pred", Pendiente = true, Ancho = "xs" },
             .. Impuestos(),
             new("PorcentajeProrrataAñoAnterior", "Prorrata del año anterior (%)", TipoCampo.Porcentaje) { Grupo = "impuestos", Ancho = "xs", Sinonimos = ["prorrata"] },
-            .. Cuentas(),
+            TipoGeneral(),
+            .. Cuentas(), .. CuentasCompras(),
             Ruta("RutaFacturasAExportar", "Carpeta de facturas a exportar"), Ruta("RutaFacturasExportadas", "Carpeta de facturas exportadas"),
             Ruta("RutaFacturasDuplicadas", "Carpeta de facturas duplicadas"), Ruta("BDFacturasVenta", "Base de datos de facturas de venta"),
             Ruta("BDERPGestion", "Base de datos del ERP de gestión"), Ruta("BDExportacion", "Base de datos de exportación"),

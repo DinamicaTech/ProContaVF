@@ -1,0 +1,144 @@
+using ProConta.Compras.Facturas;
+using ProConta.Contabilidad.Asientos;
+using ProConta.Nucleo.Contexto;
+
+namespace ProConta.Compras.Tests;
+
+/// <summary>Asiento de una factura de compra sin BD (compras/factura-compra/contabilizacion).</summary>
+public sealed class AsientoCompraTests
+{
+    private static readonly ContextoSociedadEjercicio Ctx = new("T01", 9001, 2026);
+    private static readonly DateTime Hoy = new(2026, 11, 7);
+
+    private static readonly CuentasCompra Cuentas = new("4100001", "6290000", 3,
+        new Dictionary<decimal, string> { [21m] = "4720021", [10m] = "4720010", [0m] = "4720001" },
+        Retencion: null, AutoSoportado: null, AutoRepercutido: null, Importacion: "4724001", Suplido: "5550010",
+        RedondeoGastos: "6590000", RedondeoIngresos: "7590000", TipoGeneral: 21m);
+
+    private static FacturaCompra Factura(decimal total, params (decimal Tipo, decimal Base, decimal Cuota)[] desgloses)
+    {
+        var f = new FacturaCompra
+        {
+            IdRegistro = 5, Ejercicio = Ctx, RutaPdf = @"X:\f.pdf", Md5 = new string('a', 32), IdProveedor = 7, CuentaContableProveedor = "4100001",
+            NumeroFactura = "FV1", Fecha = new DateTime(2026, 10, 2), Concepto = "Ficticio S.L. Fact: FV1", ImporteTotal = total,
+            BaseImponible = desgloses.Sum(d => d.Base), CuotaIva = desgloses.Sum(d => d.Cuota), CuentaGasto = "6290000", IdCentroCoste = 3
+        };
+        short orden = 1;
+        foreach (var d in desgloses) f.Desgloses.Add(new DesgloseFacturaCompra(orden++, d.Tipo, d.Base, d.Cuota));
+        return f;
+    }
+
+    private static IEnumerable<(string Cuenta, decimal Debe, decimal Haber)> Lineas(Asiento a) =>
+        a.Apuntes.Select(x => (x.CodigoCuenta, x.Debe.Valor, x.Haber.Valor));
+
+    [Fact]
+    public void Nacional_con_dos_tipos_y_retencion_de_alquiler()
+    {
+        var f = Factura(157m, (21m, 100m, 21m), (10m, 50m, 5m));
+        f.PorcentajeRetencion = 19m;
+        f.ImporteRetencion = 19m;
+        f.ClaseRetencion = ClaseRetencion.Arrendamientos;
+        var p = AsientoCompra.Construir(f, Ctx, Cuentas with { Retencion = "4751000" }, Hoy)!;
+        Assert.Equal(Hoy, p.Asiento.FechaContable);
+        Assert.Equal(
+            [("4100001", 0m, 157m), ("4751000", 0m, 19m), ("6290000", 100m, 0m), ("4720021", 21m, 0m), ("6290000", 50m, 0m), ("4720010", 5m, 0m)],
+            Lineas(p.Asiento));
+        Assert.All(p.Asiento.Apuntes.Where(a => a.CodigoCuenta == "6290000"), a => Assert.Equal(3, a.IdCentroCoste));
+        Assert.Equal(7, p.Asiento.Apuntes[0].IdProveedor);
+        Assert.Equal((150m, 26m, 0m), (p.Libro.Base, p.Libro.CuotaSoportada, p.Libro.CuotaAutorrepercutida));
+        Assert.True(ReglasAsiento.ValidarYCuadrar(p.Asiento, PoliticaCuadre.Estricta).EsCorrecto);
+    }
+
+    [Fact]
+    public void Inversion_del_sujeto_pasivo_autorrepercute_el_tipo_general_en_soportado_y_repercutido()
+    {
+        var f = Factura(1000m, (0m, 1000m, 0m));
+        f.InversionSujetoPasivo = true;
+        var p = AsientoCompra.Construir(f, Ctx, Cuentas with { AutoSoportado = "4721021", AutoRepercutido = "4771021" }, Hoy)!;
+        Assert.Equal([("4100001", 0m, 1000m), ("6290000", 1000m, 0m), ("4721021", 210m, 0m), ("4771021", 0m, 210m)], Lineas(p.Asiento));
+        Assert.Equal((1000m, 0m, 210m, 210m), (p.Libro.Base, p.Libro.CuotaSoportada, p.Libro.CuotaAutorrepercutida, p.Libro.CuotaDeducible));
+    }
+
+    [Fact]
+    public void Intracomunitaria_va_a_472_y_477_al_tipo_general()
+    {
+        var f = Factura(200m, (0m, 200m, 0m));
+        f.Operacion = OperacionCompra.Intracomunitaria;
+        var p = AsientoCompra.Construir(f, Ctx, Cuentas with { AutoSoportado = "4720221", AutoRepercutido = "4770221" }, Hoy)!;
+        Assert.Equal([("4100001", 0m, 200m), ("6290000", 200m, 0m), ("4720221", 42m, 0m), ("4770221", 0m, 42m)], Lineas(p.Asiento));
+    }
+
+    [Fact]
+    public void Importacion_desglosa_el_total_al_tipo_general_sin_477()
+    {
+        var f = Factura(121m, (0m, 121m, 0m));
+        f.Operacion = OperacionCompra.Importacion;
+        var p = AsientoCompra.Construir(f, Ctx, Cuentas, Hoy)!;
+        Assert.Equal([("4100001", 0m, 121m), ("6290000", 100m, 0m), ("4724001", 21m, 0m)], Lineas(p.Asiento));
+        Assert.Equal((100m, 21m), (p.Libro.Base, p.Libro.CuotaSoportada));
+    }
+
+    [Fact]
+    public void Un_descuadre_de_hasta_tres_centimos_se_ajusta_a_la_cuenta_de_redondeo()
+    {
+        // 100 + 21,02 = 121,02 frente a un total de 121: sobra Debe → ingresos por redondeo.
+        var p = AsientoCompra.Construir(Factura(121m, (21m, 100m, 21.02m)), Ctx, Cuentas, Hoy)!;
+        Assert.Equal(0.02m, p.Descuadre);
+        Assert.Equal(("7590000", 0m, 0.02m), Lineas(p.Asiento).Last());
+        Assert.Equal(p.Asiento.TotalDebe, p.Asiento.TotalHaber);
+        var falta = AsientoCompra.Construir(Factura(121.03m, (21m, 100m, 21m)), Ctx, Cuentas, Hoy)!;
+        Assert.Equal(("6590000", 0.03m, 0m), Lineas(falta.Asiento).Last());
+    }
+
+    [Fact]
+    public void Un_descuadre_mayor_solo_se_ajusta_con_motivo_y_se_explica()
+    {
+        var f = Factura(125m, (21m, 100m, 21m));
+        Assert.Null(AsientoCompra.Construir(f, Ctx, Cuentas, Hoy));
+        Assert.False(f.Cuadra);
+        Assert.Contains("Faltan 4,00", AsientoCompra.ExplicarDescuadre(f).Replace('.', ','));
+        var p = AsientoCompra.Construir(f, Ctx, Cuentas, Hoy, "Portes sin IVA no desglosados")!;
+        var ajuste = p.Asiento.Apuntes.Last();
+        Assert.Equal(("6590000", 4m), (ajuste.CodigoCuenta, ajuste.Debe.Valor));
+        Assert.Equal("Ajuste manual: Portes sin IVA no desglosados", ajuste.Descripcion);
+        var cuota = Factura(121m, (21m, 100m, 25m));
+        Assert.Contains("le corresponden 21", AsientoCompra.ExplicarDescuadre(cuota));
+    }
+
+    [Fact]
+    public void Un_abono_pasa_los_importes_al_lado_contrario()
+    {
+        var p = AsientoCompra.Construir(Factura(-121m, (21m, -100m, -21m)), Ctx, Cuentas, Hoy)!;
+        Assert.Equal([("4100001", 121m, 0m), ("6290000", 0m, 100m), ("4720021", 0m, 21m)], Lineas(p.Asiento));
+    }
+
+    [Fact]
+    public void El_contra_asiento_cambia_debe_y_haber_y_el_libro_se_niega()
+    {
+        var p = AsientoCompra.Construir(Factura(121m, (21m, 100m, 21m)), Ctx, Cuentas, Hoy)!;
+        var contra = AsientoCompra.Contra(p.Asiento, Ctx, Hoy, "Factura de compra FV1");
+        Assert.Equal([("4100001", 121m, 0m), ("6290000", 0m, 100m), ("4720021", 0m, 21m)], Lineas(contra));
+        Assert.Equal(TipoAsiento.Rectificacion, contra.Tipo);
+        Assert.Equal((-121m, -100m, -21m), (p.Libro.Negado().Total, p.Libro.Negado().Base, p.Libro.Negado().CuotaSoportada));
+    }
+
+    [Fact]
+    public void Cada_contra_asiento_de_un_trimestre_cerrado_abre_otro_lote()
+    {
+        Assert.Equal("5", AsientoCompra.Lote(5, 0).ClaveEjecucion);
+        Assert.Equal("5.2", AsientoCompra.Lote(5, 2).ClaveEjecucion);
+        Assert.Equal("compras/factura-compra", AsientoCompra.Lote(5, 0).MotorPropietario);
+    }
+
+    [Fact]
+    public void El_trimestre_cerrado_se_compara_con_el_trimestre_activo()
+    {
+        var config = new ConfiguracionCompras(new Dictionary<decimal, string>(), null, [4m, 10m, 21m, 5m], 3, null, null, null, null, null, null, null, null, null, null, null, null);
+        Assert.Equal(21m, config.TipoGeneralEfectivo);
+        Assert.True(ContabilizadorCompras.LoteCerrado(new EstadoExportacionCompra(0, 1, null, 2, 2026), config, Hoy));
+        Assert.False(ContabilizadorCompras.LoteCerrado(new EstadoExportacionCompra(0, 1, null, 3, 2026), config, Hoy));
+        Assert.True(ContabilizadorCompras.LoteCerrado(new EstadoExportacionCompra(0, 1, null, 4, 2025), config, Hoy));
+        Assert.False(ContabilizadorCompras.LoteCerrado(new EstadoExportacionCompra(0, null, null, null, null), config, Hoy));
+        Assert.Equal(19m, (config with { TipoGeneral = 19m }).TipoGeneralEfectivo);
+    }
+}

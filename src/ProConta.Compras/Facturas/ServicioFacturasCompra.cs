@@ -386,14 +386,16 @@ public sealed class ServicioFacturasCompra(
 
     /// <summary>
     /// Asiento de la factura, si está contabilizada. Las del ERP se encuentran por el apunte del proveedor con su número de
-    /// factura y la ruta del PDF; las de ProContaVF se enlazarán al contabilizarlas (entrega 3).
+    /// factura y la ruta del PDF; las de ProContaVF, por FacturasCompra.IdAsientoContable.
     /// </summary>
     public Task<AsientoFactura?> AsientoAsync(ContextoSociedadEjercicio ctx, FacturaCompra factura, CancellationToken cancelacion = default)
     {
         ArgumentNullException.ThrowIfNull(factura);
+        var idSe = factura.Ejercicio.IdSociedadEjercicio > 0 ? factura.Ejercicio.IdSociedadEjercicio : ctx.IdSociedadEjercicio;
+        if (factura.IdAsientoContable is int propio)
+            return bd.EjecutarAsync(s => RepositorioFacturasCompra.AsientoPorIdAsync(s, idSe, propio), cancelacion);
         if (!factura.Contabilizada || string.IsNullOrWhiteSpace(factura.NumeroFactura) || string.IsNullOrWhiteSpace(factura.CuentaContableProveedor))
             return Task.FromResult<AsientoFactura?>(null);
-        var idSe = factura.Ejercicio.IdSociedadEjercicio > 0 ? factura.Ejercicio.IdSociedadEjercicio : ctx.IdSociedadEjercicio;
         return bd.EjecutarAsync(s => RepositorioFacturasCompra.AsientoErpAsync(s, idSe, factura.NumeroFactura.Trim(), factura.CuentaContableProveedor.Trim()), cancelacion);
     }
 

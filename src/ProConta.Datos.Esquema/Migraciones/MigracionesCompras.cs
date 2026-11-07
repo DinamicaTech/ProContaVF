@@ -129,6 +129,23 @@ public static class MigracionesCompras
         new AnadirColumna("CuentasProveedoresSociedad", "IdIdentidadGastoDefecto", "LONG"),
         new AnadirColumna("CuentasProveedoresSociedad", "IdCentroCosteDefecto", "LONG"));
 
+    /// <summary>
+    /// Exportación de compras a la contabilidad (compras/factura-compra/contabilizacion, entrega 3): en la factura, el
+    /// asiento vigente, el que anula su contra-asiento y el número de lote; en el ejercicio, el tipo de IVA general, la
+    /// cuenta de IVA de importación y las de diferencias de redondeo. Solo estructura, sin datos.
+    /// </summary>
+    public static Migracion ExportacionCompras { get; } = new(
+        "20261107_0100_EXPORTACION_COMPRAS", 261107001,
+        "Exportación de facturas de compra: asiento y lote de la factura; tipo de IVA general y cuentas de importación y redondeo del ejercicio.",
+        "compras/factura-compra",
+        new AnadirColumna("FacturasCompra", "IdAsientoContable", "LONG"),
+        new AnadirColumna("FacturasCompra", "IdAsientoAnulado", "LONG"),
+        new AnadirColumna("FacturasCompra", "GeneracionExportacion", "LONG"),
+        new AnadirColumna("SociedadesEjercicios", "TipoIVAGeneral", "SINGLE"),
+        new AnadirColumna("SociedadesEjercicios", "CuentaIVAImportacion", "TEXT(10)"),
+        new AnadirColumna("SociedadesEjercicios", "CuentaRedondeoGastos", "TEXT(10)"),
+        new AnadirColumna("SociedadesEjercicios", "CuentaRedondeoIngresos", "TEXT(10)"));
+
     private static PasoPersonalizado Relacion(string tabla, string columna, string nombre)
     {
         var sql = $"ALTER TABLE {tabla} ADD CONSTRAINT {nombre} FOREIGN KEY ({columna}) REFERENCES FormasPago (Id)";
