@@ -161,7 +161,7 @@ public static class AsientoCompra
         return new PropuestaAsientoCompra(asiento, new LibroCompra(total, tramos), descuadre);
     }
 
-    /// <summary>Contra-asiento de otro: los mismos apuntes con Debe y Haber cambiados, fechado hoy (2026-11-06 12:10).</summary>
+    /// <summary>Contra-asiento de otro: los mismos apuntes con Debe y Haber cambiados, con la fecha que se le pase (la del original o el día 1 del trimestre activo).</summary>
     public static Asiento Contra(Asiento original, ContextoSociedadEjercicio contexto, DateTime fecha, string rotulo)
     {
         var contra = new Asiento(contexto, fecha, Recortar($"Anulación de {original.Descripcion}")) { Tipo = TipoAsiento.Rectificacion };

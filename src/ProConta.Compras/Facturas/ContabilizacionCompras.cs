@@ -65,7 +65,8 @@ public sealed record ResultadoExportacionCompra(int? IdAsiento, int? IdContraAsi
 
 /// <summary>
 /// Exportación de facturas de compra a la contabilidad (compras/factura-compra/contabilizacion y compras/pantallas
-/// 2026-11-06 12:10): asiento fechado hoy en el ejercicio de hoy, libro de IVA soportado en la misma transacción,
+/// 2026-11-06 12:10 y 2026-11-07): asiento con la fecha de la factura, o el día 1 del trimestre activo si es anterior
+/// (<see cref="TrimestreContable"/>), libro de IVA soportado al trimestre de esa fecha en la misma transacción,
 /// re-exportar y deshacer con las reglas del trimestre activo:
 /// - si el lote vigente es del trimestre activo, re-exportar lo regenera y deshacer lo anula (borra el asiento);
 /// - si es de un trimestre cerrado, no se toca: se abre un lote nuevo con el contra-asiento (y el asiento nuevo al
@@ -115,7 +116,9 @@ public sealed class ContabilizadorCompras(IBaseDatos bd, IMotorAsientos motor, I
     private static string? Texto(IFilaDatos f, string campo) => f.Texto(campo) is { } t && !string.IsNullOrWhiteSpace(t) ? t.Trim() : null;
 
     /// <summary>Trimestre de una fecha (1 a 4).</summary>
-    public static int Trimestre(DateTime fecha) => (fecha.Month - 1) / 3 + 1;
+    public static int Trimestre(DateTime fecha) => TrimestreContable.De(fecha);
+
+    private static string Nombre(DateTime fecha) => TrimestreContable.De(fecha) switch { 1 => "ene-mar", 2 => "abr-jun", 3 => "jul-sep", _ => "oct-dic" };
 
     // ---------- estado ----------
 
@@ -128,7 +131,7 @@ public sealed class ContabilizadorCompras(IBaseDatos bd, IMotorAsientos motor, I
             f => (Ejercicio: f.EnteroNulo("IdSociedadEjercicio") ?? 0, Generacion: f.EnteroNulo("GeneracionExportacion") ?? 0,
                 Asiento: f.EnteroNulo("IdAsientoContable"), Anulado: f.EnteroNulo("IdAsientoAnulado")), idRegistro);
         var lote = AsientoCompra.Lote(idRegistro, fila.Generacion);
-        // El trimestre del lote es el del periodo de IVA de sus registros del libro (trimestre contable al exportar).
+        // El trimestre del lote es el menor de los periodos de IVA de sus registros: si uno ya está cerrado, el lote no se toca.
         var periodos = await s.ConsultarAsync(
             "SELECT p.Numero, se.Ejercicio FROM ((Asientos AS a INNER JOIN IVASoportado AS i ON i.IdAsiento = a.IdAsiento) " +
             "INNER JOIN PeriodosIVA AS p ON p.IdPeriodoIVA = i.IdPeriodoIVA) INNER JOIN SociedadesEjercicios AS se ON se.IdSociedadEjercicio = a.IdSociedadEjercicio " +
@@ -136,22 +139,22 @@ public sealed class ContabilizadorCompras(IBaseDatos bd, IMotorAsientos motor, I
             f => (Numero: f.Entero("Numero"), Ejercicio: int.TryParse(f.Texto("Ejercicio"), NumberStyles.Integer, CultureInfo.InvariantCulture, out var e) ? e : 0),
             lote.MotorPropietario, lote.CodigoProceso, lote.ClaveEjecucion);
         return new EstadoExportacionCompra(fila.Generacion, fila.Asiento, fila.Anulado,
-            periodos.Count == 0 ? null : periodos.Max(p => p.Numero), periodos.Count == 0 ? null : periodos.Max(p => p.Ejercicio));
+            periodos.Count == 0 ? null : periodos.Min(p => p.Numero), periodos.Count == 0 ? null : periodos.Min(p => p.Ejercicio));
     }
 
     /// <summary>
-    /// El lote vigente está en un trimestre cerrado: es de otro ejercicio o de un trimestre anterior al activo.
-    /// Sin trimestre activo configurado, cuenta el trimestre de hoy.
+    /// El lote vigente está en un trimestre cerrado: es de otro ejercicio o de un trimestre anterior al activo del
+    /// ejercicio de la factura (<see cref="TrimestreContable.Activo"/>).
     /// </summary>
-    internal static bool LoteCerrado(EstadoExportacionCompra estado, ConfiguracionCompras config, DateTime hoy) =>
-        estado.TrimestreLote is int t && (estado.EjercicioLote != hoy.Year || t < (config.TrimestreActivo ?? Trimestre(hoy)));
+    internal static bool LoteCerrado(EstadoExportacionCompra estado, ConfiguracionCompras config, int ejercicio, DateTime hoy) =>
+        estado.TrimestreLote is int t && (estado.EjercicioLote != ejercicio || t < TrimestreContable.Activo(config.TrimestreActivo, ejercicio, hoy));
 
     /// <summary>El asiento vigente de la factura es de un trimestre cerrado: deshacer o re-exportar harán contra-asiento.</summary>
     public async Task<bool> TrimestreCerradoAsync(FacturaCompra f)
     {
         var estado = await EstadoAsync(f.IdRegistro);
         var config = await ConfiguracionAsync(f.Ejercicio.IdSociedadEjercicio);
-        return config is not null && LoteCerrado(estado, config, _reloj.Ahora.Date);
+        return config is not null && LoteCerrado(estado, config, f.Ejercicio.Ejercicio, _reloj.Ahora.Date);
     }
 
     // ---------- comprobar ----------
@@ -174,9 +177,9 @@ public sealed class ContabilizadorCompras(IBaseDatos bd, IMotorAsientos motor, I
 
         var ctx = f.Ejercicio;
         var hoy = _reloj.Ahora.Date;
-        if (ctx.Ejercicio != hoy.Year)
-            return Fallo(new Error("Exportar.OtroEjercicio", $"Hoy es {hoy:dd/MM/yyyy} y la factura es del ejercicio {ctx.Ejercicio}.", registro,
-                "El asiento se fecha hoy y va al ejercicio de hoy (compras/factura-compra/contabilizacion 2026-10-30).", $"Abre el ejercicio {hoy.Year} para exportarla."));
+        if (f.Fecha is { } fp && fp.Year > ctx.Ejercicio)
+            return Fallo(new Error("Exportar.EjercicioPosterior", $"La factura tiene fecha {fp:dd/MM/yyyy}, de un ejercicio posterior al {ctx.Ejercicio}.", registro,
+                "El asiento lleva la fecha de la factura (o el día 1 del trimestre activo, si es anterior), dentro del ejercicio.", $"Expórtala desde el ejercicio {fp.Year} o corrige la fecha."));
         if (f.Fecha is { } ff && ff.Date > hoy)
             return Fallo(new Error("Exportar.FechaFutura", $"La factura tiene fecha {ff:dd/MM/yyyy}, posterior a hoy.", registro, null, "Corrige la fecha."));
 
@@ -271,7 +274,7 @@ public sealed class ContabilizadorCompras(IBaseDatos bd, IMotorAsientos motor, I
             else redI = await Cuenta(config.RedondeoIngresos ?? ConfiguracionCompras.RedondeoIngresosDefecto, "cuenta de diferencias de redondeo (ingresos)");
         }
 
-        var cerrado = LoteCerrado(estado, config, hoy);
+        var cerrado = LoteCerrado(estado, config, ctx.Ejercicio, hoy);
         if (errores.Count > 0) return new(new ComprobacionExportacion(errores, PreguntaExportacion.Ninguna, null, cerrado, descuadre), null, config, estado);
 
         var pregunta = PreguntaExportacion.Ninguna;
@@ -344,13 +347,16 @@ public sealed class ContabilizadorCompras(IBaseDatos bd, IMotorAsientos motor, I
         }
 
         var hoy = _reloj.Ahora.Date;
-        var propuesta = AsientoCompra.Construir(f, f.Ejercicio, cuentasCompra, hoy, opciones.MotivoAjuste);
+        var config = prep.Config!;
+        var ejercicio = f.Ejercicio.Ejercicio;
+        var activo = TrimestreContable.Activo(config.TrimestreActivo, ejercicio, hoy);
+        var fecha = TrimestreContable.FechaAsiento(f.Fecha!.Value, ejercicio, activo);
+        var propuesta = AsientoCompra.Construir(f, f.Ejercicio, cuentasCompra, fecha, opciones.MotivoAjuste);
         if (propuesta is null)
             return Resultado<ResultadoExportacionCompra>.Fallo(new Error("Exportar.NecesitaMotivo", AsientoCompra.ExplicarDescuadre(f), registro));
 
         var estado = prep.Estado!;
-        var config = prep.Config!;
-        var cerrado = LoteCerrado(estado, config, hoy);
+        var cerrado = LoteCerrado(estado, config, ejercicio, hoy);
         var generacion = estado.Generacion;
         var anulado = estado.IdAsientoAnulado;
         if (cerrado)
@@ -362,7 +368,7 @@ public sealed class ContabilizadorCompras(IBaseDatos bd, IMotorAsientos motor, I
         var libros = new List<LibroCompra>();
         if (anulado is int idAnulado)
         {
-            var contra = await ContraAsync(idAnulado, f, hoy);
+            var contra = await ContraAsync(idAnulado, f, activo);
             if (!contra.EsCorrecto) return Resultado<ResultadoExportacionCompra>.Fallo(contra.Errores);
             asientos.Add(contra.Valor.Asiento);
             libros.Add(contra.Valor.Libro);
@@ -370,7 +376,6 @@ public sealed class ContabilizadorCompras(IBaseDatos bd, IMotorAsientos motor, I
         asientos.Add(propuesta.Asiento);
         libros.Add(propuesta.Libro);
 
-        var trimestre = config.TrimestreActivo ?? Trimestre(hoy);
         var lote = AsientoCompra.Lote(f.IdRegistro, generacion);
         var reexportando = estado.Exportada;
         var motivo = reexportando ? $"Re-exportar la {registro.ToLowerInvariant()}" : $"Exportar la {registro.ToLowerInvariant()}";
@@ -384,9 +389,12 @@ public sealed class ContabilizadorCompras(IBaseDatos bd, IMotorAsientos motor, I
                     if (!guardada.EsCorrecto) return Resultado.Fallo(guardada.Errores);
                     f.Version = guardada.Valor;
                 }
-                var periodo = await PeriodoAsync(s, f.Ejercicio.IdSociedadEjercicio, f.Ejercicio.Ejercicio, trimestre);
+                // Cada registro del libro va al trimestre de la fecha de su asiento.
                 for (var i = 0; i < ids.Count; i++)
+                {
+                    var periodo = await PeriodoAsync(s, f.Ejercicio.IdSociedadEjercicio, ejercicio, TrimestreContable.De(asientos[i].FechaContable));
                     await GrabarLibroAsync(s, f, ids[i], periodo, libros[i], actor, i < ids.Count - 1);
+                }
                 await MarcarAsync(s, f.IdRegistro, true, generacion, ids[^1], anulado, _reloj.Ahora);
                 return Resultado.Correcto();
             }));
@@ -395,8 +403,8 @@ public sealed class ContabilizadorCompras(IBaseDatos bd, IMotorAsientos motor, I
         var idAsiento = r.Valor[^1];
         int? idContra = r.Valor.Count > 1 ? r.Valor[0] : null;
         var aviso = idContra is int ic && cerrado
-            ? $"El asiento anterior es de un trimestre cerrado: queda como estaba y he hecho el contra-asiento {ic} y el asiento nuevo {idAsiento} en el trimestre {trimestre}."
-            : reexportando ? $"Asiento {idAsiento} regenerado con los cambios." : $"Exportada: asiento {idAsiento}.";
+            ? $"El asiento anterior es de un trimestre cerrado: queda como estaba y he hecho el contra-asiento {ic} ({Nombre(asientos[0].FechaContable)}) y el asiento nuevo {idAsiento} ({Nombre(fecha)})."
+            : reexportando ? $"Asiento {idAsiento} actualizado con los cambios, con fecha {fecha:dd/MM/yyyy}." : $"Exportada: asiento {idAsiento}, con fecha {fecha:dd/MM/yyyy}.";
         if (propuesta.Descuadre != 0m) aviso += $" Lleva un ajuste de {Math.Abs(propuesta.Descuadre):0.00} € a la cuenta de redondeo.";
         if (cuentaNueva is not null) aviso += $" El proveedor pasa a la cuenta {cuentaNueva}.";
         return Resultado<ResultadoExportacionCompra>.Correcto(new ResultadoExportacionCompra(idAsiento, idContra, aviso, cuentaNueva));
@@ -420,15 +428,13 @@ public sealed class ContabilizadorCompras(IBaseDatos bd, IMotorAsientos motor, I
         var config = await ConfiguracionAsync(f.Ejercicio.IdSociedadEjercicio);
         if (config is null) return Resultado<ResultadoExportacionCompra>.Fallo(new Error("Exportar.SinEjercicio", "No encuentro la configuración del ejercicio.", registro));
         var hoy = _reloj.Ahora.Date;
-        var cerrado = LoteCerrado(estado, config, hoy);
-        if (cerrado && f.Ejercicio.Ejercicio != hoy.Year)
-            return Resultado<ResultadoExportacionCompra>.Fallo(new Error("Deshacer.OtroEjercicio", $"El asiento es del ejercicio {f.Ejercicio.Ejercicio} y hoy es {hoy:dd/MM/yyyy}.", registro,
-                "El contra-asiento se fecha hoy y va al ejercicio de hoy.", "Corrígelo con un asiento manual en el ejercicio que corresponda."));
+        var ejercicio = f.Ejercicio.Ejercicio;
+        var activo = TrimestreContable.Activo(config.TrimestreActivo, ejercicio, hoy);
+        var cerrado = LoteCerrado(estado, config, ejercicio, hoy);
 
         var generacion = cerrado ? estado.Generacion + 1 : estado.Generacion;
         var anulado = cerrado ? actual : estado.IdAsientoAnulado;
         var lote = AsientoCompra.Lote(f.IdRegistro, generacion);
-        var trimestre = config.TrimestreActivo ?? Trimestre(hoy);
         var motivo = $"Deshacer la exportación de la {registro.ToLowerInvariant()}";
         if (anulado is not int idAnulado)
         {
@@ -439,13 +445,13 @@ public sealed class ContabilizadorCompras(IBaseDatos bd, IMotorAsientos motor, I
             f.Contabilizada = false;
             return Resultado<ResultadoExportacionCompra>.Correcto(new ResultadoExportacionCompra(null, null, $"Exportación deshecha: he borrado el asiento {actual}."));
         }
-        var contra = await ContraAsync(idAnulado, f, hoy);
+        var contra = await ContraAsync(idAnulado, f, activo);
         if (!contra.EsCorrecto) return Resultado<ResultadoExportacionCompra>.Fallo(contra.Errores);
         var r = await motor.ReemplazarLoteAsync(f.Ejercicio, lote, [contra.Valor.Asiento], actor, motivo, new TrabajoLote(
             Antes: BorrarLibroAsync,
             Despues: async (s, ids) =>
             {
-                var periodo = await PeriodoAsync(s, f.Ejercicio.IdSociedadEjercicio, f.Ejercicio.Ejercicio, trimestre);
+                var periodo = await PeriodoAsync(s, f.Ejercicio.IdSociedadEjercicio, ejercicio, TrimestreContable.De(contra.Valor.Asiento.FechaContable));
                 await GrabarLibroAsync(s, f, ids[0], periodo, contra.Valor.Libro, actor, anulacion: true);
                 await MarcarAsync(s, f.IdRegistro, false, generacion, null, idAnulado, null);
                 return Resultado.Correcto();
@@ -453,21 +459,23 @@ public sealed class ContabilizadorCompras(IBaseDatos bd, IMotorAsientos motor, I
         if (!r.EsCorrecto) return Resultado<ResultadoExportacionCompra>.Fallo(r.Errores);
         f.Contabilizada = false;
         var texto = cerrado
-            ? $"El asiento {actual} es de un trimestre cerrado: queda como estaba y he hecho el contra-asiento {r.Valor[0]} en el trimestre {trimestre}."
+            ? $"El asiento {actual} es de un trimestre cerrado: queda como estaba y he hecho el contra-asiento {r.Valor[0]} ({Nombre(contra.Valor.Asiento.FechaContable)})."
             : $"Exportación deshecha: he quitado el asiento {actual}; queda el contra-asiento {r.Valor[0]} del asiento {idAnulado}, que es de un trimestre cerrado.";
         return Resultado<ResultadoExportacionCompra>.Correcto(new ResultadoExportacionCompra(null, r.Valor[0], texto));
     }
 
     // ---------- piezas ----------
 
-    private async Task<Resultado<(Asiento Asiento, LibroCompra Libro)>> ContraAsync(int idAsiento, FacturaCompra f, DateTime hoy)
+    /// <summary>Contra-asiento con la fecha del original, o el día 1 del trimestre activo si es anterior.</summary>
+    private async Task<Resultado<(Asiento Asiento, LibroCompra Libro)>> ContraAsync(int idAsiento, FacturaCompra f, int trimestreActivo)
     {
         var original = await motor.ObtenerAsync(idAsiento);
         if (original is null)
             return Resultado<(Asiento, LibroCompra)>.Fallo(new Error("Exportar.SinAsientoAnterior", $"No encuentro el asiento {idAsiento} de la factura.", f.Rotulo, null,
                 "Revisa el asiento en Contabilidad."));
         var libro = await bd.EjecutarAsync(s => LeerLibroAsync(s, idAsiento));
-        return Resultado<(Asiento, LibroCompra)>.Correcto((AsientoCompra.Contra(original, f.Ejercicio, hoy, f.Rotulo), libro.Negado()));
+        var fecha = TrimestreContable.FechaAsiento(original.FechaContable, f.Ejercicio.Ejercicio, trimestreActivo);
+        return Resultado<(Asiento, LibroCompra)>.Correcto((AsientoCompra.Contra(original, f.Ejercicio, fecha, f.Rotulo), libro.Negado()));
     }
 
     /// <summary>Pasa el acreedor a proveedor: siguiente subcuenta libre de la 400 con el mismo nombre, y cambia la cuenta en sus facturas pendientes.</summary>

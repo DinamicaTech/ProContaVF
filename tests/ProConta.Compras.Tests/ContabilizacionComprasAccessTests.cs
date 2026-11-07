@@ -100,7 +100,8 @@ public sealed class ContabilizacionComprasAccessTests : IDisposable
         Assert.True(g.Contabilizada);
         Assert.Equal(r.Valor.IdAsiento, g.IdAsientoContable);
         var asiento = (await new MotorAsientosAccess(Bd).ObtenerAsync(r.Valor.IdAsiento!.Value))!;
-        Assert.Equal(new DateTime(2026, 8, 20), asiento.FechaContable);
+        // La fecha de la factura (10/07), que es del trimestre activo; no la de hoy.
+        Assert.Equal(new DateTime(2026, 7, 10), asiento.FechaContable);
         Assert.Equal(176m, asiento.TotalDebe.Valor);
         Assert.Equal("compras/factura-compra", asiento.Lote!.MotorPropietario);
         Assert.Equal(1, await Contar("SELECT COUNT(*) FROM IVASoportado WHERE IdAsiento = ?", r.Valor.IdAsiento));
@@ -132,13 +133,16 @@ public sealed class ContabilizacionComprasAccessTests : IDisposable
         await EmpresaAsync();
         var (f, _) = await FacturaAsync();
         var servicio = Servicio();
-        Assert.True((await servicio.ExportarAsync(f, _actor, new OpcionesExportacion(EsProveedor: false))).EsCorrecto);
+        var primera = await servicio.ExportarAsync(f, _actor, new OpcionesExportacion(EsProveedor: false));
+        Assert.True(primera.EsCorrecto);
 
         var g = await RecargarAsync(f.IdRegistro);
         g.Concepto = "Concepto cambiado";
         var r = await servicio.ExportarAsync(g, _actor, guardarCambios: true);
         Assert.True(r.EsCorrecto, r.Error?.ToString());
         Assert.Null(r.Valor.IdContraAsiento);
+        // Se modifica el mismo asiento: conserva su número.
+        Assert.Equal(primera.Valor.IdAsiento, r.Valor.IdAsiento);
         Assert.Equal(1, await Contar("SELECT COUNT(*) FROM Asientos WHERE MotorPropietario = 'compras/factura-compra'"));
         Assert.Equal(1, await Contar("SELECT COUNT(*) FROM IVASoportado"));
         var h = await RecargarAsync(f.IdRegistro);
@@ -175,12 +179,17 @@ public sealed class ContabilizacionComprasAccessTests : IDisposable
         Assert.NotNull(await new MotorAsientosAccess(Bd).ObtenerAsync(original));
         Assert.Equal(3, await Contar("SELECT COUNT(*) FROM Asientos WHERE MotorPropietario = 'compras/factura-compra'"));
         Assert.Equal(-176m, Convert.ToDecimal(await Bd.EjecutarAsync(s => s.EscalarAsync("SELECT ImporteTotalFactura FROM IVASoportado WHERE IdAsiento = ?", r.Valor.IdContraAsiento))));
+        // El contra-asiento y el nuevo van al día 1 del trimestre activo (la factura es del 10/07) y su IVA, al cuarto.
+        Assert.Equal(new DateTime(2026, 10, 1), (await new MotorAsientosAccess(Bd).ObtenerAsync(r.Valor.IdContraAsiento!.Value))!.FechaContable);
+        Assert.Equal(new DateTime(2026, 10, 1), (await new MotorAsientosAccess(Bd).ObtenerAsync(r.Valor.IdAsiento!.Value))!.FechaContable);
+        Assert.Equal(4, await Contar("SELECT p.Numero FROM IVASoportado AS i INNER JOIN PeriodosIVA AS p ON i.IdPeriodoIVA = p.IdPeriodoIVA WHERE i.IdAsiento = ?", r.Valor.IdContraAsiento));
 
         // Re-exportar de nuevo en el cuarto trimestre regenera el contra-asiento y el asiento nuevo, sin añadir más.
         var h = await RecargarAsync(f.IdRegistro);
         h.Concepto = "Otra vez";
         var otra = await servicio.ExportarAsync(h, _actor, guardarCambios: true);
         Assert.True(otra.EsCorrecto, otra.Error?.ToString());
+        Assert.Equal((r.Valor.IdContraAsiento, r.Valor.IdAsiento), (otra.Valor.IdContraAsiento, otra.Valor.IdAsiento));
         Assert.Equal(3, await Contar("SELECT COUNT(*) FROM Asientos WHERE MotorPropietario = 'compras/factura-compra'"));
         Assert.Equal(3, await Contar("SELECT COUNT(*) FROM IVASoportado"));
 
@@ -190,6 +199,26 @@ public sealed class ContabilizacionComprasAccessTests : IDisposable
         Assert.Equal(2, await Contar("SELECT COUNT(*) FROM Asientos WHERE MotorPropietario = 'compras/factura-compra'"));
         Assert.Equal(0m, Convert.ToDecimal(await Bd.EjecutarAsync(s => s.EscalarAsync("SELECT SUM(ImporteTotalFactura) FROM IVASoportado"))));
         Assert.False((await RecargarAsync(f.IdRegistro)).Contabilizada);
+    }
+
+    [Fact]
+    public async Task El_libro_de_iva_va_al_trimestre_de_la_fecha_del_asiento()
+    {
+        await EmpresaAsync(trimestreActivo: 3);
+        _reloj = new RelojFijo(new DateTime(2026, 10, 5, 9, 0, 0));
+        var servicio = Servicio();
+        async Task<(DateTime Fecha, int Trimestre)> Exportar(DateTime fecha, string letra)
+        {
+            var (f, _) = await FacturaAsync(md5Letra: letra);
+            f.Fecha = fecha;
+            var r = await servicio.ExportarAsync(f, _actor, new OpcionesExportacion(EsProveedor: false));
+            Assert.True(r.EsCorrecto, r.Error?.ToString());
+            var a = (await new MotorAsientosAccess(Bd).ObtenerAsync(r.Valor.IdAsiento!.Value))!;
+            return (a.FechaContable, await Contar("SELECT p.Numero FROM IVASoportado AS i INNER JOIN PeriodosIVA AS p ON i.IdPeriodoIVA = p.IdPeriodoIVA WHERE i.IdAsiento = ?", a.IdAsiento));
+        }
+        Assert.Equal((new DateTime(2026, 9, 20), 3), await Exportar(new DateTime(2026, 9, 20), "c"));
+        Assert.Equal((new DateTime(2026, 10, 3), 4), await Exportar(new DateTime(2026, 10, 3), "d"));
+        Assert.Equal((new DateTime(2026, 7, 1), 3), await Exportar(new DateTime(2026, 6, 10), "e"));
     }
 
     [Fact]

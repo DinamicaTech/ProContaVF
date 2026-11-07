@@ -172,7 +172,7 @@
                   ToolTip="Guarda los cambios y regenera el asiento; si es de un trimestre cerrado, hace contra-asiento y asiento nuevo en el trimestre activo"
                   Visibility="{Binding MostrarGuardarYReexportar, Converter={StaticResource Visible}}" />
           <Button Content="Exportar" Style="{StaticResource Boton.Primario}" Command="{Binding ExportarCommand}"
-                  ToolTip="Genera el asiento de la factura (fechado hoy) y su registro del libro de IVA soportado"
+                  ToolTip="Genera el asiento de la factura (con su fecha, o el día 1 del trimestre activo si es anterior) y su registro del libro de IVA soportado"
                   Visibility="{Binding MostrarExportar, Converter={StaticResource Visible}}" />
           <Button Content="Deshacer exportación" Command="{Binding DeshacerExportacionCommand}"
                   ToolTip="Del trimestre activo, borra el asiento; de uno cerrado, hace un contra-asiento en el trimestre activo"

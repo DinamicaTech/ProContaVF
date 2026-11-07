@@ -131,14 +131,31 @@ public sealed class AsientoCompraTests
     }
 
     [Fact]
-    public void El_trimestre_cerrado_se_compara_con_el_trimestre_activo()
+    public void El_trimestre_cerrado_se_compara_con_el_trimestre_activo_del_ejercicio_de_la_factura()
     {
         var config = new ConfiguracionCompras(new Dictionary<decimal, string>(), null, [4m, 10m, 21m, 5m], 3, null, null, null, null, null, null, null, null, null, null, null, null);
         Assert.Equal(21m, config.TipoGeneralEfectivo);
-        Assert.True(ContabilizadorCompras.LoteCerrado(new EstadoExportacionCompra(0, 1, null, 2, 2026), config, Hoy));
-        Assert.False(ContabilizadorCompras.LoteCerrado(new EstadoExportacionCompra(0, 1, null, 3, 2026), config, Hoy));
-        Assert.True(ContabilizadorCompras.LoteCerrado(new EstadoExportacionCompra(0, 1, null, 4, 2025), config, Hoy));
-        Assert.False(ContabilizadorCompras.LoteCerrado(new EstadoExportacionCompra(0, null, null, null, null), config, Hoy));
+        Assert.True(ContabilizadorCompras.LoteCerrado(new EstadoExportacionCompra(0, 1, null, 2, 2026), config, 2026, Hoy));
+        Assert.False(ContabilizadorCompras.LoteCerrado(new EstadoExportacionCompra(0, 1, null, 3, 2026), config, 2026, Hoy));
+        Assert.False(ContabilizadorCompras.LoteCerrado(new EstadoExportacionCompra(0, 1, null, 4, 2026), config, 2026, Hoy));
+        Assert.True(ContabilizadorCompras.LoteCerrado(new EstadoExportacionCompra(0, 1, null, 4, 2025), config, 2026, Hoy));
+        Assert.False(ContabilizadorCompras.LoteCerrado(new EstadoExportacionCompra(0, null, null, null, null), config, 2026, Hoy));
+        // En enero se puede seguir con el ejercicio anterior: cuenta su trimestre activo, no el año de hoy.
+        Assert.False(ContabilizadorCompras.LoteCerrado(new EstadoExportacionCompra(0, 1, null, 3, 2025), config, 2025, new DateTime(2026, 1, 8)));
         Assert.Equal(19m, (config with { TipoGeneral = 19m }).TipoGeneralEfectivo);
+    }
+
+    [Fact]
+    public void El_asiento_lleva_la_fecha_de_la_factura_o_el_dia_1_del_trimestre_activo()
+    {
+        // Trimestre 3 activo, a 5 de octubre.
+        Assert.Equal(new DateTime(2026, 9, 20), TrimestreContable.FechaAsiento(new DateTime(2026, 9, 20), 2026, 3));
+        Assert.Equal(new DateTime(2026, 10, 3), TrimestreContable.FechaAsiento(new DateTime(2026, 10, 3), 2026, 3));
+        Assert.Equal(new DateTime(2026, 7, 1), TrimestreContable.FechaAsiento(new DateTime(2026, 6, 10), 2026, 3));
+        // Una factura del año anterior, con el primer trimestre activo, va al 1 de enero.
+        Assert.Equal(new DateTime(2026, 1, 1), TrimestreContable.FechaAsiento(new DateTime(2025, 12, 28), 2026, 1));
+        Assert.Equal(4, TrimestreContable.Activo(null, 2025, new DateTime(2026, 1, 8)));
+        Assert.Equal(3, TrimestreContable.Activo(3, 2026, Hoy));
+        Assert.Equal(4, TrimestreContable.Activo(null, 2026, Hoy));
     }
 }

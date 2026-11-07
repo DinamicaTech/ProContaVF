@@ -29,9 +29,13 @@ public static class AsientoVenta
 
     public static IdentidadLote Lote(int idFactura) => new(MotorPropietario, CodigoProceso, idFactura.ToString(System.Globalization.CultureInfo.InvariantCulture));
 
-    /// <summary>Fecha del asiento: el día en que se genera si cae en el ejercicio; si no, la fecha de la factura.</summary>
-    public static DateTime Fecha(FacturaVenta f, int ejercicio, DateTime hoy) =>
-        hoy.Year == ejercicio ? hoy.Date : (f.FechaFactura ?? new DateTime(ejercicio, 12, 31)).Date;
+    /// <summary>
+    /// Fecha del asiento (propietario 2026-11-07 11:59, igual que en compras): la de la factura, o el día 1 del trimestre
+    /// activo si es anterior (<see cref="TrimestreContable.FechaAsiento"/>). Sin fecha de factura, hoy si cae en el ejercicio.
+    /// </summary>
+    public static DateTime Fecha(FacturaVenta f, int ejercicio, int? trimestreActivo, DateTime hoy) =>
+        TrimestreContable.FechaAsiento(f.FechaFactura ?? (hoy.Year == ejercicio ? hoy.Date : new DateTime(ejercicio, 12, 31)), ejercicio,
+            TrimestreContable.Activo(trimestreActivo, ejercicio, hoy));
 
     public static Asiento Construir(FacturaVenta f, ContextoSociedadEjercicio contexto, CuentasVenta cuentas, DateTime fecha)
     {
@@ -197,7 +201,8 @@ public sealed class ContabilizadorVentas(IBaseDatos bd, IMotorAsientos motor, IC
         if (cuentasVenta is null)
             return Resultado<int>.Fallo(incidencias.Select(i => new Error(i.Codigo, i.Mensaje, registro, null,
                 i.Accion is null ? "Corrígelo y vuelve a contabilizar la factura." : null)));
-        var asiento = AsientoVenta.Construir(f, contexto, cuentasVenta, AsientoVenta.Fecha(f, contexto.Ejercicio, _reloj.Ahora));
+        var activo = await new ServicioTrimestreActivo(bd, _reloj).ObtenerAsync(contexto.IdSociedadEjercicio);
+        var asiento = AsientoVenta.Construir(f, contexto, cuentasVenta, AsientoVenta.Fecha(f, contexto.Ejercicio, activo, _reloj.Ahora));
         var lote = await motor.ReemplazarLoteAsync(contexto, AsientoVenta.Lote(f.IdFactura), [asiento], actor,
             f.IdAsientoContable is null ? $"Validación de la factura {f.NumeroFactura}" : $"Regenerar el asiento de la factura {f.NumeroFactura}");
         if (!lote.EsCorrecto) return Resultado<int>.Fallo(lote.Errores);
