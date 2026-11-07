@@ -117,7 +117,9 @@ public partial class VentanaPrincipal : Window
         _facturacion = new ModuloFacturacion(serviciosFacturacion, _area, new DialogosFacturacion(apoyo, () => this), _terceros.AbrirFicha);
 
         // Compras (compras/pantallas): facturas recibidas y su modo «Probar».
-        var reconocimiento = new ServicioReconocimientoFacturaCompra(new ExtractorPdfPig(), null, new TiposCambioFrankfurter(Http));
+        // OCR con Textract si el puesto tiene el perfil de AWS (compras/reconocimiento 2026-11-07); sin él, los escaneados se rellenan a mano.
+        var (ocr, sinOcr) = ExtractorOcrTextract.Crear();
+        var reconocimiento = new ServicioReconocimientoFacturaCompra(new ExtractorPdfPig(), ocr, new TiposCambioFrankfurter(Http), sinOcr);
         var serviciosCompras = new ServiciosCompras(new ServicioFacturasCompra(bd, reconocimiento), cuentas, new CatalogoCentrosCosteAccess(bd), contexto.Contexto,
             contexto.RazonSocial, () => autorizador.PuedeAsync(Acciones.FacturasEditar),
             async () => (await new LectorConfiguracionEjercicio(bd).ObtenerAsync(contexto.Contexto.IdSociedadEjercicio))?.TiposIva.Select(t => t.Porcentaje).ToList() ?? [],

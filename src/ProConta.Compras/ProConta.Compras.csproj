@@ -9,6 +9,8 @@
   <ItemGroup>
     <!-- Texto del PDF con la posición de cada palabra (aprobada en compras/reconocimiento 2026-11-05 11:24). -->
     <PackageReference Include="PdfPig" Version="0.1.11" />
+    <!-- OCR de los PDF sin texto nativo con Amazon Textract (aprobada por el propietario el 2026-11-07). -->
+    <PackageReference Include="AWSSDK.Textract" Version="4.0.100.19" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\ProConta.Nucleo\ProConta.Nucleo.csproj" />

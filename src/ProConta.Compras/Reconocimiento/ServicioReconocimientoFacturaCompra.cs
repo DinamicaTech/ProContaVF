@@ -58,7 +58,8 @@ public sealed class FacturaReconocida
 public sealed class ServicioReconocimientoFacturaCompra(
     IExtractorDocumentoFacturaCompra extractorLocal,
     IExtractorOcrFacturaCompra? extractorOcr = null,
-    IProveedorTiposCambioHistoricos? tiposCambio = null)
+    IProveedorTiposCambioHistoricos? tiposCambio = null,
+    string? motivoSinOcr = null)
 {
     private readonly MotorReconocimientoFacturaCompra _motor = new();
 
@@ -87,7 +88,9 @@ public sealed class ServicioReconocimientoFacturaCompra(
                 fuente = "ocr";
                 advertencias = [.. elegido.Advertencias, "Leído con OCR porque el PDF no tiene texto nativo."];
             }
-            else advertencias.Add("El OCR no está activo para esta sociedad: rellena los campos a mano.");
+            else advertencias.Add(contexto.Configuracion.Activo && contexto.Configuracion.UsarOcr && extractorOcr is null
+                ? $"El PDF no tiene texto y este equipo no tiene el OCR configurado{(motivoSinOcr is null ? "" : $" ({motivoSinOcr.TrimEnd('.')})")}: rellena los campos a mano."
+                : "El OCR no está activo para esta sociedad: rellena los campos a mano.");
         }
 
         elegido.Advertencias = advertencias;
