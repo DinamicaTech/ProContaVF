@@ -21,6 +21,9 @@ public static class PlantillasReconocimiento
     private const int MaxPalabrasValor = 6, MaxPalabrasConcepto = 20, MaxPalabrasAncla = 3, MaxAncla = 120;
 
     /// <summary>Palabras que puede ocupar el valor: el concepto es texto libre (compras/reconocimiento 2026-11-07).</summary>
+    /// <summary>Distancia máxima entre el rótulo y el valor de debajo: el concepto puede estar unas filas por debajo de la cabecera de la tabla.</summary>
+    private static double Alcance(string campo, double alto) => campo == Concepto ? Math.Max(8 * alto, 90) : Math.Max(3 * alto, 30);
+
     private static int MaxPalabras(string campo) => campo == Concepto ? MaxPalabrasConcepto : MaxPalabrasValor;
 
     private sealed record Linea(int Pagina, double Y, double Alto, IReadOnlyList<PalabraDocumento> Palabras);
@@ -129,11 +132,29 @@ public static class PlantillasReconocimiento
                 var numero = MotorReconocimientoFacturaCompra.CompactarNumeroFactura(t);
                 return numero.Length is >= 1 and <= 40 && numero.Any(char.IsDigit) ? numero : null;
             case Concepto:
-                var libre = string.Join(' ', t.Split(' ', StringSplitOptions.RemoveEmptyEntries));
+                // Sin los importes del final: si se marca la línea entera («Fibra 600 Mb 45,00 € 21 %»), el concepto es el texto.
+                var trozos = t.Split(' ', StringSplitOptions.RemoveEmptyEntries).ToList();
+                for (var cifras = false; trozos.Count > 0; trozos.RemoveAt(trozos.Count - 1))
+                {
+                    // Un número entero solo se quita si va antes de otra cifra («21 %»): «Línea 2» se queda como está.
+                    if (EsCifraDeLinea(trozos[^1])) cifras = true;
+                    else if (!(cifras && trozos[^1].All(char.IsDigit))) break;
+                }
+                var libre = string.Join(' ', trozos).Trim(':', ';', ',', '-');
                 return libre.Length is >= 3 and <= 255 && libre.Count(char.IsLetter) >= 3 ? libre : null;
             default:
                 return null;
         }
+    }
+
+    /// <summary>¿Es un importe, un porcentaje o un símbolo de moneda («45,00», «45,00€», «21%», «€»)? Corta el concepto.</summary>
+    private static bool EsCifraDeLinea(string palabra)
+    {
+        var t = palabra.Trim();
+        if (t is "€" or "%" or "EUR" or "eur") return true;
+        var sinSimbolos = t.TrimEnd('€', '%').TrimStart('€').Trim();
+        if (sinSimbolos.Length == 0 || !sinSimbolos.Any(char.IsDigit) || sinSimbolos.Any(char.IsLetter)) return false;
+        return t.Contains('€') || t.Contains('%') || Regex.IsMatch(sinSimbolos, @"^-?[\d.]*\d[.,]\d{1,4}$");
     }
 
     private static string SinPrefijoPais(string nif) =>
@@ -155,7 +176,7 @@ public static class PlantillasReconocimiento
                 yield return new PlantillaCampo(0, campo, linea.Pagina, ancla, Derecha, n, linea.Palabras[inicio].X, linea.Y, 0, 0);
         }
         // Rótulo en la línea de encima, en la misma columna.
-        for (var arriba = li - 1; arriba >= 0 && lineas[arriba].Pagina == linea.Pagina && lineas[arriba].Y - linea.Y <= Math.Max(3 * linea.Alto, 30); arriba--)
+        for (var arriba = li - 1; arriba >= 0 && lineas[arriba].Pagina == linea.Pagina && lineas[arriba].Y - linea.Y <= Alcance(campo, linea.Alto); arriba--)
         {
             var palabras = lineas[arriba].Palabras;
             var cerca = Enumerable.Range(0, palabras.Count)
@@ -200,10 +221,24 @@ public static class PlantillasReconocimiento
     private static (string Valor, PalabraDocumento Palabra)? LeerDerecha(Linea linea, int desde, PlantillaCampo p)
     {
         if (desde >= linea.Palabras.Count) return null;
-        // El concepto ocupa lo que quede de la línea: cada factura lo escribe con un número de palabras distinto.
+        // El concepto ocupa lo que quede de la línea hasta el primer importe o un hueco grande (la columna siguiente de una
+        // tabla): cada factura lo escribe con un número de palabras distinto (compras/reconocimiento 2026-11-07).
         if (p.Campo == Concepto)
-            return Interpretar(Concepto, Unir(linea.Palabras, desde, Math.Min(MaxPalabrasConcepto, linea.Palabras.Count - desde))) is { } concepto
-                ? (concepto, linea.Palabras[desde]) : null;
+        {
+            var n = 0;
+            while (desde + n < linea.Palabras.Count && n < MaxPalabrasConcepto)
+            {
+                var w = linea.Palabras[desde + n];
+                if (EsCifraDeLinea(w.Texto)) break;
+                if (n > 0)
+                {
+                    var previa = linea.Palabras[desde + n - 1];
+                    if (w.X - (previa.X + previa.Ancho) > Math.Max(2.5 * Math.Max(w.Alto, linea.Alto), 12)) break;
+                }
+                n++;
+            }
+            return n > 0 && Interpretar(Concepto, Unir(linea.Palabras, desde, n)) is { } concepto ? (concepto, linea.Palabras[desde]) : null;
+        }
         if (desde + p.Palabras <= linea.Palabras.Count && Interpretar(p.Campo, Unir(linea.Palabras, desde, p.Palabras)) is { } exacto) return (exacto, linea.Palabras[desde]);
         for (var n = MaxPalabrasValor; n >= 1; n--)
             if (desde + n <= linea.Palabras.Count && Interpretar(p.Campo, Unir(linea.Palabras, desde, n)) is { } v) return (v, linea.Palabras[desde]);
@@ -213,7 +248,7 @@ public static class PlantillasReconocimiento
     private static (string Valor, PalabraDocumento Palabra)? LeerDebajo(IReadOnlyList<Linea> lineas, int li, double x, PlantillaCampo p)
     {
         var ancla = lineas[li];
-        for (var abajo = li + 1; abajo < lineas.Count && lineas[abajo].Pagina == ancla.Pagina && ancla.Y - lineas[abajo].Y <= Math.Max(3 * ancla.Alto, 30); abajo++)
+        for (var abajo = li + 1; abajo < lineas.Count && lineas[abajo].Pagina == ancla.Pagina && ancla.Y - lineas[abajo].Y <= Alcance(p.Campo, ancla.Alto); abajo++)
         {
             var palabras = lineas[abajo].Palabras;
             var k = Enumerable.Range(0, palabras.Count).Where(j => Math.Abs(palabras[j].X - x) <= 15).OrderBy(j => Math.Abs(palabras[j].X - x)).FirstOrDefault(-1);

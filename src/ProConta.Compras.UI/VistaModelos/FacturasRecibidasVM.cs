@@ -432,11 +432,11 @@ public sealed class FacturasRecibidasVM : ModeloVista, IPestanaTrabajo
     }
 
     /// <summary>Dónde leen las plantillas cada campo, para marcar en verde esas apariciones en el visor; sin bloquear la ficha.</summary>
-    private async Task CargarPuntosPlantillaAsync(FichaCompraVM ficha, int carga)
+    private async Task CargarPuntosPlantillaAsync(FichaCompraVM ficha, int carga, FacturaCompra? valores = null)
     {
         try
         {
-            var puntos = await _s.Facturas.PuntosPlantillaAsync(ficha.Factura);
+            var puntos = await _s.Facturas.PuntosPlantillaAsync(valores ?? ficha.Factura);
             if (carga == _cargaFicha && ReferenceEquals(Ficha, ficha)) ficha.PuntosPlantilla = puntos;
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
@@ -1010,6 +1010,7 @@ public sealed class FacturasRecibidasVM : ModeloVista, IPestanaTrabajo
         {
             var (_, leida) = await _s.Facturas.ProbarAsync(_s.Trabajo, _activa.Datos.RutaPdf);
             _ficha.AplicarLectura(leida);
+            _ = CargarPuntosPlantillaAsync(_ficha, _cargaFicha, leida);
             _modulo.Avisar("Reconocido de nuevo: revisa los campos y guarda (se guarda solo al cambiar de factura).");
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
@@ -1037,6 +1038,7 @@ public sealed class FacturasRecibidasVM : ModeloVista, IPestanaTrabajo
             if (carga != _cargaFicha) return;
             Ficha = new FichaCompraVM(leida, _proveedores, _cuentasGasto, _centros, _datos, soloLectura: true, ConfianzaCampos.DesdeLog(reconocida.Log), _tiposIva, _formasPago, _tiposRetencion);
             Comparacion = ServicioFacturasCompra.Comparar(grabada, leida);
+            _ = CargarPuntosPlantillaAsync(Ficha, carga);
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {

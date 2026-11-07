@@ -141,17 +141,20 @@ function marcar() {
   if (primero) primero.scrollIntoView({ block: "center", behavior: "smooth" });
 }
 
-// Distancia en pantalla del centro de un trozo de texto al punto del PDF (en su página), o Infinity si es de otra página.
+// Distancia en pantalla de un trozo de texto al punto del PDF (en su página): 0 si el punto cae dentro del trozo, si no la
+// distancia a su borde; Infinity si es de otra página. Con el centro fallaba en los trozos largos («Fecha factura: 13/08/2026»).
 function distancia(span, p) {
   const div = span.closest(".pagina");
   if (!div || Number(div.dataset.pagina) !== p.pagina || !vistas[p.pagina]) return Infinity;
   const [vx, vy] = vistas[p.pagina].convertToViewportPoint(p.x, p.y);
   const r = span.getBoundingClientRect(), d = div.getBoundingClientRect();
-  return Math.hypot(r.left - d.left + r.width / 2 - vx, r.top - d.top + r.height / 2 - vy);
+  const izq = r.left - d.left, arr = r.top - d.top;
+  const dx = Math.max(izq - vx, 0, vx - (izq + r.width)), dy = Math.max(arr - vy, 0, vy - (arr + r.height));
+  return Math.hypot(dx, dy);
 }
 
 // En verde la aparición usada de cada campo (compras/pantallas 2026-11-07): la más cercana a su punto, si lo hay y cae
-// cerca (40 px); si no, la única aparición. Con varias y sin punto, quedan todas en ámbar para elegir con un clic.
+// cerca (20 px del trozo); si no, la única aparición. Con varias y sin punto, quedan todas en ámbar para elegir con un clic.
 function marcarUsadas() {
   const grupos = {};
   contenedor.querySelectorAll(".textLayer span.origen").forEach((s) => {
@@ -170,7 +173,7 @@ function marcarUsadas() {
         const d = Math.min(...spans.map((s) => distancia(s, p)));
         if (d < mejor) { mejor = d; elegido = g; }
       }
-      if (mejor > 40) elegido = null;
+      if (mejor > 20) elegido = null;
     }
     if (!elegido && lista.length === 1) elegido = lista[0][0];
     if (elegido) grupos[campo][elegido].forEach((s) => s.classList.add("elegido"));

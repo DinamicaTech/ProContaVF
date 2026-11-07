@@ -71,6 +71,36 @@ public sealed class PlantillasReconocimientoTests
         Assert.Equal("FV26077", PlantillasReconocimiento.Leer(Maquetado(b), numero));
     }
 
+    private const string ConceptoMarzo = """
+        Proveedor Ficticio
+        Concepto                         Importe    IVA
+        Cuota Fusion Total Plus 600Mb    45,00 €    21 %
+        """;
+    private const string ConceptoAbril = """
+        Proveedor Ficticio
+        Concepto                         Importe    IVA
+        Cuota Fusion Total Plus 1Gb      55,00 €    21 %
+        """;
+
+    [Theory]
+    [InlineData("Cuota Fusion Total Plus 600Mb")]
+    [InlineData("Cuota Fusion Total Plus 600Mb 45,00 € 21 %")] // la línea entera marcada en el visor
+    public void El_concepto_se_lee_hasta_el_primer_importe_de_la_linea(string valor)
+    {
+        var p = PlantillasReconocimiento.Aprender(Maquetado(ConceptoMarzo), PlantillasReconocimiento.Concepto, valor);
+        Assert.NotNull(p);
+        Assert.Equal(("concepto", PlantillasReconocimiento.Debajo), (p!.Ancla, p.Posicion));
+        Assert.Equal("Cuota Fusion Total Plus 1Gb", PlantillasReconocimiento.Leer(Maquetado(ConceptoAbril), p));
+    }
+
+    [Fact]
+    public void El_concepto_se_corta_en_un_hueco_grande_y_conserva_el_numero_final()
+    {
+        var p = PlantillasReconocimiento.Aprender(Maquetado("Concepto\nLinea movil 2        Datos 10 GB"), PlantillasReconocimiento.Concepto, "Linea movil 2");
+        Assert.NotNull(p);
+        Assert.Equal("Linea movil 3", PlantillasReconocimiento.Leer(Maquetado("Concepto\nLinea movil 3        Datos 20 GB"), p));
+    }
+
     [Fact]
     public void Sin_el_valor_en_el_PDF_o_sin_el_rotulo_no_hay_plantilla_ni_lectura()
     {

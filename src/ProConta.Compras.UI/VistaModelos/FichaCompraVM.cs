@@ -695,8 +695,15 @@ public sealed class FichaCompraVM : ModeloVista
             ImporteUnico = leida.BaseImponible is { } b ? Formatos.Importe(b) : "";
             ConRetencion = (leida.ImporteRetencion ?? 0m) != 0m;
             if (leida.PorcentajeRetencion is { } p && p != 0) PorcentajeRetencion = p.ToString("0.##", Formatos.Cultura);
+            // El concepto leído sustituye al anterior; si la lectura no lo trae, se deja el que había (suele escribirse a mano).
+            if (!string.IsNullOrWhiteSpace(leida.ConceptoFactura))
+            {
+                _conceptoFactura = leida.ConceptoFactura.Trim();
+                _conceptoAbreviado = FacturaCompra.Abreviar(_conceptoFactura) ?? "";
+            }
         }
         finally { _cargando = false; }
+        Avisar(nameof(ConceptoFactura), nameof(ConceptoAbreviado));
         SincronizarTipoRetencion();
         ProponerFormaPago();
         if (!string.IsNullOrWhiteSpace(leida.Log))

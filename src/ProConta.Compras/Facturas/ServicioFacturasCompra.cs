@@ -518,9 +518,10 @@ public sealed class ServicioFacturasCompra(
         var puntos = new Dictionary<string, PuntoDocumento>();
         foreach (var (campo, valor) in ValoresGuardados(factura))
             foreach (var p in plantillas.Where(p => p.Campo == campo).OrderByDescending(p => p.Aciertos))
-                if (PlantillasReconocimiento.LeerConPunto(documento, p) is { } leido)
+                // La primera plantilla que lee el valor guardado: puede haber otra más antigua que lea en otro sitio.
+                if (PlantillasReconocimiento.LeerConPunto(documento, p) is { } leido && PlantillasReconocimiento.Coincide(campo, leido.Valor, valor))
                 {
-                    if (PlantillasReconocimiento.Coincide(campo, leido.Valor, valor)) puntos[campo] = leido.Punto;
+                    puntos[campo] = leido.Punto;
                     break;
                 }
         return puntos;
