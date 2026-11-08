@@ -2,6 +2,28 @@
 
 # Diccionario de datos · contabilidad
 
+## Actividades
+
+- Dueño funcional: `contabilidad/procesos`
+
+| Campo | Tipo | Nulo | Por defecto | Descripción |
+|---|---|---|---|---|
+| IdActividad | COUNTER | no |  |  |
+| IdSociedad | TEXT(3) | no |  |  |
+| Codigo | TEXT(10) | no |  |  |
+| Nombre | TEXT(100) | no |  |  |
+| Deducible | BYTE | no |  |  |
+| SerieCuentaIva | TEXT(4) | sí |  |  |
+| Activa | YESNO | no |  |  |
+
+Índices:
+- FK_Actividades_Sociedad: IdSociedad
+- PK_Actividades (clave primaria): IdActividad
+- UX_Actividades_SociedadCodigo (único): IdSociedad, Codigo
+
+Relaciones:
+- FK_Actividades_Sociedad: (IdSociedad) → Sociedades (IdSociedad); borrado NO ACTION, actualización NO ACTION
+
 ## Apuntes
 
 - Dueño funcional: `contabilidad/asientos`
@@ -100,8 +122,10 @@ Relaciones:
 | RutaJerarquica | TEXT(255) | no |  | Ruta materializada de identidades para consultar descendientes sin recursividad. |
 | RutaOrden | TEXT(255) | no |  | Ruta materializada de órdenes para mostrar el árbol con ORDER BY. |
 | IdCentroCosteRaiz | LONG | sí |  |  |
+| IdActividad | LONG | sí |  |  |
 
 Índices:
+- FK_CentrosCoste_Actividad: IdActividad
 - FK_CentrosCoste_Padre: IdCentroCostePadre
 - FK_CentrosCoste_Sociedades: IdSociedad
 - IX_CentrosCoste_Raiz: IdCentroCosteRaiz
@@ -111,6 +135,7 @@ Relaciones:
 - UX_CentrosCoste_Ruta (único): IdSociedad, RutaJerarquica
 
 Relaciones:
+- FK_CentrosCoste_Actividad: (IdActividad) → Actividades (IdActividad); borrado NO ACTION, actualización NO ACTION
 - FK_CentrosCoste_Padre: (IdCentroCostePadre) → CentrosCoste (IdCentroCoste); borrado NO ACTION, actualización NO ACTION
 - FK_CentrosCoste_Sociedades: (IdSociedad) → Sociedades (IdSociedad); borrado NO ACTION, actualización NO ACTION
 

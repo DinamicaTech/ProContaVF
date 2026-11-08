@@ -2,12 +2,12 @@
 
 # Diccionario de datos
 
-Esquema versión 30 (Actualizada); 121 tablas. SHA-256 de la BD de origen: `43FD1CF055E1670467B660974D27302BF294EED0F4593FB1CE65B964C240CB9F`.
+Esquema versión 31 (Actualizada); 122 tablas. SHA-256 de la BD de origen: `F2EB738F61129220F808CB26CAE23E796FC7A484151AF1A9D779104664069F5F`.
 
 | Área | Tablas |
 |---|---|
 | [compras](compras.md) | ConfiguracionReconocimientoFacturasCompra, DesglosesFacturaCompra, FacturasCompra, PlantillasReconocimientoCompra, TextosClaveCompra |
-| [contabilidad](contabilidad.md) | Apuntes, Asientos, CentrosCoste, CodigosContablesReservados, ConfiguracionesContables, ConfiguracionesContablesCuentaBancaria, CuentasContables, CuentasContablesLegacy, CuentasPlanContable, DesglosesIVASoportado, F_CDP, F_DEP, IdentidadesContables, IVARepercutido, IVASoportado, ModelosBalance, NodosBalance, PeriodosIVA, PlanesContables, PresentacionesTributarias, RegistroCambiosApuntes, ReglasCuentasBalance, RelacionesAsientos, RelacionesCalculoBalance, RevisionesAsientos, TiposCuentaContable |
+| [contabilidad](contabilidad.md) | Actividades, Apuntes, Asientos, CentrosCoste, CodigosContablesReservados, ConfiguracionesContables, ConfiguracionesContablesCuentaBancaria, CuentasContables, CuentasContablesLegacy, CuentasPlanContable, DesglosesIVASoportado, F_CDP, F_DEP, IdentidadesContables, IVARepercutido, IVASoportado, ModelosBalance, NodosBalance, PeriodosIVA, PlanesContables, PresentacionesTributarias, RegistroCambiosApuntes, ReglasCuentasBalance, RelacionesAsientos, RelacionesCalculoBalance, RevisionesAsientos, TiposCuentaContable |
 | [correo](correo.md) | AdjuntosMailDispatcher, ConfiguracionCorreo, ConfiguracionMailDispatcher, EnviosCorreo, PlantillasCorreo, ProcesamientosMailDispatcher, TiposCorreo |
 | [creative-lab](creative-lab.md) | Activos, ActivosInversiones, ConversacionesIA, CotizacionesInstrumentoFinanciero, CuentasActivo, DetallesLoteAmortizacionActivo, ImportacionesActivos, Inmuebles, InstrumentosFinancieros, LotesAmortizacionActivo, MensajesConversacionIA, OperacionesInversion, PlanesAmortizacionActivo, PlantillasCuentasActivo, TiposActivo |
 | [datos](datos.md) | LogMigracionesEsquema, VersionesEsquema |
