@@ -255,17 +255,27 @@ public sealed class ContabilizadorCompras(IBaseDatos bd, IMotorAsientos motor, I
                 errores.Add(new Error("Exportar.SinTipoGeneral", "El ejercicio no tiene tipo de IVA general ni tipos de IVA.", registro, null,
                     "Configura el tipo general en Parámetros y tablas › Ejercicios."));
         }
+        // Actividad del centro de coste (contabilidad/procesos 2026-11-08): su serie de 472 sustituye a la general y, si no
+        // deduce el IVA, el IVA va al gasto y no hacen falta cuentas de IVA soportado.
+        var actividad = f.IdCentroCoste is int idCentro ? await ActividadDelCentroAsync(idCentro) : null;
+        var noDeducible = actividad is { Deducible: 0 };
+        string? Serie(string? cuenta, string sufijo) => actividad?.Serie is { } serie && cuenta is not null ? serie + sufijo : cuenta;
+        string Cola(string? cuenta, int n = 3) => cuenta is { } c && c.Length >= n ? c[^n..] : "";
+        string QueActividad(string que) => actividad?.Serie is null ? que : $"{que} de {actividad.Nombre}";
         if (f.Operacion == OperacionCompra.Importacion)
-            importacion = await Cuenta(config.Importacion, "cuenta de IVA de importación");
+        {
+            if (!noDeducible) importacion = await Cuenta(Serie(config.Importacion, "4" + ((int)(tipoGeneral ?? 0m)).ToString("00", CultureInfo.InvariantCulture)), QueActividad("cuenta de IVA de importación"));
+        }
         else if (f.InversionSujetoPasivo)
         {
-            autoS = await Cuenta(config.IspSoportado, "cuenta de IVA soportado por inversión del sujeto pasivo");
+            if (!noDeducible) autoS = await Cuenta(Serie(config.IspSoportado, "3" + Cola(config.IspSoportado, 2)), QueActividad("cuenta de IVA soportado por inversión del sujeto pasivo"));
             autoR = await Cuenta(config.IspRepercutido, "cuenta de IVA repercutido por inversión del sujeto pasivo");
         }
         else if (f.Operacion == OperacionCompra.Intracomunitaria)
         {
             var servicios = f.Producto == ProductoCompra.Servicios;
-            autoS = await Cuenta(servicios ? config.IntraSoportadoServicios : config.IntraSoportadoBienes, $"cuenta de IVA intracomunitario soportado de {(servicios ? "servicios" : "bienes")}");
+            var intra = servicios ? config.IntraSoportadoServicios : config.IntraSoportadoBienes;
+            if (!noDeducible) autoS = await Cuenta(Serie(intra, Cola(intra)), QueActividad($"cuenta de IVA intracomunitario soportado de {(servicios ? "servicios" : "bienes")}"));
             autoR = await Cuenta(servicios ? config.IntraRepercutidoServicios : config.IntraRepercutidoBienes, $"cuenta de IVA intracomunitario repercutido de {(servicios ? "servicios" : "bienes")}");
         }
         else
@@ -279,7 +289,9 @@ public sealed class ContabilizadorCompras(IBaseDatos bd, IMotorAsientos motor, I
                         "Añade el desglose por tipo en la ficha."));
                     continue;
                 }
-                if (await Cuenta(config.IvaSoportado.TryGetValue(tipo, out var c) ? c : null, $"cuenta de IVA soportado del {tipo:0.##} %") is { } cc) iva[tipo] = cc;
+                if (noDeducible) continue;
+                var general = config.IvaSoportado.TryGetValue(tipo, out var c) ? c : null;
+                if (await Cuenta(Serie(general, Cola(general)), QueActividad($"cuenta de IVA soportado del {tipo:0.##} %")) is { } cc) iva[tipo] = cc;
             }
         }
         if ((f.ImporteRetencion ?? 0m) != 0m)
@@ -317,9 +329,36 @@ public sealed class ContabilizadorCompras(IBaseDatos bd, IMotorAsientos motor, I
         }
         var nombreGasto = (await cuentas.ResolverAsync(ctx, gasto!)) is { EsCorrecto: true } g ? g.Valor.Nombre : null;
         var cuentasCompra = new CuentasCompra(proveedor!, gasto!, f.IdCentroCoste, iva, retencion, autoS, autoR, importacion, suplido,
-            redG ?? "", redI ?? "", tipoGeneral ?? 0m, await NombreProveedorAsync(f), nombreGasto);
+            redG ?? "", redI ?? "", tipoGeneral ?? 0m, await NombreProveedorAsync(f), nombreGasto, noDeducible);
         return new(new ComprobacionExportacion([], pregunta, explicacion, cerrado, descuadre), cuentasCompra, config, estado, porCrear);
     }
+
+    /// <summary>Actividad a efectos de IVA de un centro de coste: la suya o la del nodo más cercano por encima que la tenga.</summary>
+    internal sealed record ActividadIva(string Codigo, string Nombre, byte Deducible, string? Serie);
+
+    /// <summary>
+    /// La actividad del centro o, si no tiene, la del nodo más cercano por encima (contabilidad/procesos 2026-11-08). Una
+    /// actividad inactiva no cuenta. Null si ningún nodo tiene actividad: se usan las cuentas generales del ejercicio.
+    /// </summary>
+    internal Task<ActividadIva?> ActividadDelCentroAsync(int idCentroCoste) => bd.EjecutarAsync(async s =>
+    {
+        int? id = idCentroCoste;
+        for (var nivel = 0; id is int actual && nivel < 20; nivel++)
+        {
+            var fila = await s.ConsultarPrimeroAsync(
+                "SELECT c.IdCentroCostePadre, a.Codigo, a.Nombre, a.Deducible, a.SerieCuentaIva, a.Activa FROM CentrosCoste AS c " +
+                "LEFT JOIN Actividades AS a ON c.IdActividad = a.IdActividad WHERE c.IdCentroCoste = ?",
+                f => (Padre: f.EnteroNulo("IdCentroCostePadre"), Codigo: f.Texto("Codigo"), Nombre: f.Texto("Nombre"),
+                    Deducible: f.EsNulo("Deducible") ? (byte)2 : Convert.ToByte(f.Valor("Deducible"), CultureInfo.InvariantCulture),
+                    Serie: f.Texto("SerieCuentaIva"), Activa: !f.EsNulo("Activa") && f.Logico("Activa"), Existe: true), actual);
+            if (!fila.Existe) return null;
+            if (fila.Codigo is not null && fila.Activa)
+                return new ActividadIva(fila.Codigo.Trim(), (fila.Nombre ?? fila.Codigo).Trim(), fila.Deducible,
+                    string.IsNullOrWhiteSpace(fila.Serie) ? null : fila.Serie.Trim());
+            id = fila.Padre;
+        }
+        return null;
+    });
 
     /// <summary>La cuenta de acreedor (o, si no tiene, de proveedor) de la ficha del proveedor en el ejercicio de la factura.</summary>
     private async Task<string?> CuentaDeLaFichaAsync(FacturaCompra f)
@@ -701,7 +740,7 @@ public sealed class ContabilizadorCompras(IBaseDatos bd, IMotorAsientos motor, I
                 "INSERT INTO DesglosesIVASoportado (IdIVASoportado, Orden, ClaveRegimen, CalificacionOperacion, CausaExencion, BaseImponible, TipoIVA, CuotaSoportada, " +
                 "CuotaDevengadaAutorrepercutida, PorcentajeDeducible, CuotaDeducible, IdCuentaIVASoportado, IdCuentaIVARepercutido) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                 idLibro, orden++, clave, t.TipoIva == 0m && t.CuotaAutorrepercutida == 0m ? "N1" : calificacion, null, t.Base, t.TipoIva, t.CuotaSoportada,
-                t.CuotaAutorrepercutida, 100m, t.CuotaDeducible, idS is null or DBNull ? null : idS, idR is null or DBNull ? null : idR);
+                t.CuotaAutorrepercutida, t.PorcentajeDeducible, t.CuotaDeducible, idS is null or DBNull ? null : idS, idR is null or DBNull ? null : idR);
         }
     }
 
@@ -729,11 +768,11 @@ public sealed class ContabilizadorCompras(IBaseDatos bd, IMotorAsientos motor, I
                 prov2, fecha.Date, total, factura.Ejercicio.IdSociedadEjercicio);
         if (cabecera.Id == 0) return new LibroCompra(0m, []);
         var tramos = await s.ConsultarAsync(
-            "SELECT d.TipoIVA, d.BaseImponible, d.CuotaSoportada, d.CuotaDevengadaAutorrepercutida, cs.Codigo AS CuentaS, cr.Codigo AS CuentaR " +
+            "SELECT d.TipoIVA, d.BaseImponible, d.CuotaSoportada, d.CuotaDevengadaAutorrepercutida, d.PorcentajeDeducible, cs.Codigo AS CuentaS, cr.Codigo AS CuentaR " +
             "FROM (DesglosesIVASoportado AS d LEFT JOIN CuentasContables AS cs ON d.IdCuentaIVASoportado = cs.IdCuentaContable) " +
             "LEFT JOIN CuentasContables AS cr ON d.IdCuentaIVARepercutido = cr.IdCuentaContable WHERE d.IdIVASoportado = ? ORDER BY d.Orden",
             f => new TramoLibroCompra(f.Decimal("TipoIVA"), f.Decimal("BaseImponible"), f.Decimal("CuotaSoportada"), f.Decimal("CuotaDevengadaAutorrepercutida"),
-                f.Texto("CuentaS"), f.Texto("CuentaR")), cabecera.Id);
+                f.Texto("CuentaS"), f.Texto("CuentaR"), Deducible: f.EsNulo("PorcentajeDeducible") || f.Decimal("PorcentajeDeducible") > 0m), cabecera.Id);
         return new LibroCompra(cabecera.Total, tramos, cabecera.Bien);
     }
 

@@ -54,6 +54,7 @@ Código: `src/ProConta.Datos.Esquema` (diagnóstico, migraciones idempotentes, a
 - 2026-11-07 19:25 · Versión 28 = `20261107_1925_CONCEPTO_ABREVIADO_PROVEEDOR` (orden 261107003, de compras/factura-compra): CuentasProveedoresSociedad.ConceptoAbreviadoDefecto (TEXT(60)). Solo estructura, sin datos.
 - 2026-11-07 19:59 · Versión 29 = `20261107_2000_BIEN_INVERSION_IVA_SOPORTADO` (orden 261107004, de contabilidad/procesos): IVASoportado.BienInversion (YESNO). Solo estructura, sin datos.
 - 2026-11-07 20:29 · Versión 30 = `20261107_2030_VIES_PROVEEDOR` (orden 261107005, de terceros/roles): Proveedores.EstadoVies (TEXT(10): «VIES», «NO VIES» o vacío = sin verificar) y Proveedores.FechaVies (DATETIME). Solo estructura, sin datos.
+- 2026-11-08 10:08 · Versión 31 = `20261108_0930_ACTIVIDADES_IVA` (orden 261108001, de contabilidad/procesos): tabla Actividades (IdActividad, IdSociedad, Codigo TEXT(10) único por sociedad, Nombre TEXT(100), Deducible BYTE 0 no deducible / 1 por prorrata / 2 100 % deducible, SerieCuentaIva TEXT(4), Activa) y CentrosCoste.IdActividad (LONG, relación FK_CentrosCoste_Actividad). En `DuenosTablas`, Actividades es de contabilidad/procesos. Solo estructura, sin datos.
 
 ## Requirements
 - 2026-10-28 12:28 · es importante que haya un nodo especializado en mantener la estructura de la base de datos para poder actualizar el modelo cuando se actualice una instalación en producción, por lo tanto, cualquier nodo que quiera modificar la estructura de la Base de Datos ha de comunicarlo o pasar a través del nodo de mantenimiento de estructura de BD.

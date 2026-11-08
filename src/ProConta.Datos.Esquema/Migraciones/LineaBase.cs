@@ -76,6 +76,7 @@ public static class CatalogoMigraciones
         MigracionesCompras.ConceptoAbreviadoProveedor,
         MigracionesCompras.BienInversionIvaSoportado,
         MigracionesCompras.ViesProveedor,
+        MigracionesContabilidad.ActividadesIva,
     ];
 
     /// <summary>Versión del esquema que espera esta versión del programa.</summary>

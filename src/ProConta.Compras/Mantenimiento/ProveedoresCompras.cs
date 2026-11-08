@@ -12,8 +12,133 @@ namespace ProConta.Compras.Mantenimiento;
 public static class ProveedoresCompras
 {
     public static IReadOnlyList<IProveedorMantenimiento> Todos(IBaseDatos bd) =>
-        [new ProveedorTextosClaveCompra(new CatalogoTextosClaveCompra(bd)), new ProveedorReconocimientoCompra(bd), new ProveedorCertificadoEmpresa(bd)];
+        [new ProveedorTextosClaveCompra(new CatalogoTextosClaveCompra(bd)), new ProveedorReconocimientoCompra(bd), new ProveedorCertificadoEmpresa(bd),
+         new ProveedorActividades(bd), new ProveedorActividadCentros(bd)];
 }
+
+/// <summary>
+/// Actividades a efectos de IVA de la empresa (Actividades, contabilidad/procesos 2026-11-08; en el ERP, CategoriasIVA): si
+/// su IVA soportado es deducible y la serie de cuentas 472 a la que va. La tabla es de contabilidad; el mantenimiento se
+/// publica aquí porque compras es quien la usa al exportar.
+/// </summary>
+public sealed class ProveedorActividades : ProveedorTablaAccess
+{
+    public ProveedorActividades(IBaseDatos bd) : base(bd, "actividades", "Actividades (IVA)", "Catálogos",
+        "Actividades de la empresa a efectos de IVA: si su IVA soportado es deducible y a qué serie de la 472 va. Cada centro de coste puede tener la suya.",
+        AmbitoMantenimiento.Sociedad, "actividad", "Actividades", "IdActividad", ClaveNueva.Autonumerica,
+        [
+            new("Codigo", "Código", TipoCampo.Codigo) { Obligatorio = true, Longitud = 10, Ancho = "s" },
+            new("Nombre", "Nombre") { Obligatorio = true, Longitud = 100, Ancho = "l", Ayuda = "Por ejemplo «Alquileres turísticos»." },
+            new("Deducible", "IVA soportado deducible", TipoCampo.Lista) { Obligatorio = true, Ancho = "m", Sinonimos = ["deducible", "prorrata", "exento"],
+                Opciones = [new OpcionCampo((byte)2, "100 % deducible"), new OpcionCampo((byte)1, "Por prorrata"), new OpcionCampo((byte)0, "No deducible")],
+                Ayuda = "No deducible: el IVA de sus compras va al gasto. Por prorrata: por ahora se deduce entero en la 472 de la actividad; la regularización (4729) se hará al cierre." },
+            new("SerieCuentaIva", "Serie de la 472", TipoCampo.Codigo) { Longitud = 4, Ancho = "xs", Sinonimos = ["472", "4725", "4726", "4727", "4728"],
+                Ayuda = "Cuatro cifras, por ejemplo 4728. El IVA va a la serie con la terminación de la cuenta general (4720021 → 4728021; intracomunitario x121 y x221, inversión del sujeto pasivo x321, importación x421). Vacía: las cuentas generales del ejercicio." },
+            new("Activa", "Activa", TipoCampo.Logico) { Ayuda = "Una actividad inactiva no se aplica: sus centros usan las cuentas generales." },
+        ],
+        [new("Codigo", "Código", 70), new("Nombre", "Nombre"), new("SerieCuentaIva", "Serie", 60), new("Activa", "Activa", 60)])
+    {
+        ColumnaAmbito = "IdSociedad";
+        Orden = "Codigo";
+        Usos = [new UsoRegistro("CentrosCoste", "IdActividad", "centros de coste")];
+        Alias = ["actividad", "categoria de iva", "prorrata", "deducible", "472"];
+        Titular = r => r.EsNuevo ? "Nueva actividad" : $"{r.Texto("Codigo")} · {r.Texto("Nombre")}";
+        Reglas = r => r.Texto("SerieCuentaIva") is { } serie && (serie.Length != 4 || !serie.StartsWith("472", StringComparison.Ordinal) || !serie.All(char.IsAsciiDigit))
+            ? [new ErrorCampo("SerieCuentaIva", "La serie son cuatro cifras que empiezan por 472, por ejemplo 4728.")] : [];
+        AntesDeGuardar = async (s, r, c) =>
+        {
+            var repetidas = Convert.ToInt32(await s.EscalarAsync("SELECT COUNT(*) FROM Actividades WHERE IdSociedad = ? AND Codigo = ? AND IdActividad <> ?",
+                c.Trabajo.IdSociedad, r.Texto("Codigo") ?? "", r.Clave is null ? -1 : Convert.ToInt32(r.Clave, CultureInfo.InvariantCulture)), CultureInfo.InvariantCulture);
+            return repetidas > 0 ? new Error("Actividades.Repetida", $"Ya hay una actividad con el código {r.Texto("Codigo")}.", null, null, "Usa otro código.") : null;
+        };
+    }
+
+    public override async Task<RegistroMantenimiento> NuevoAsync(ContextoMantenimiento contexto)
+    {
+        var r = await base.NuevoAsync(contexto);
+        r["Deducible"] = (byte)2;
+        r["Activa"] = true;
+        return r;
+    }
+}
+
+/// <summary>
+/// Actividad de cada centro de coste de la empresa (CentrosCoste.IdActividad, contabilidad/procesos 2026-11-08): la heredan
+/// los centros que cuelgan de él y no tienen otra. No da de alta ni borra centros: solo asigna la actividad.
+/// </summary>
+public sealed class ProveedorActividadCentros(IBaseDatos bd) : ProveedorBase
+{
+    private IReadOnlyList<OpcionCampo> _actividades = [];
+
+    public override string Clave => "actividadcentros";
+    public override string Titulo => "Actividad de los centros de coste";
+    public override string Categoria => "Catálogos";
+    public override string Finalidad => "Qué actividad (a efectos de IVA) tiene cada centro de coste. Los centros sin actividad propia usan la del centro del que cuelgan.";
+    public override AmbitoMantenimiento Ambito => AmbitoMantenimiento.Sociedad;
+    public override bool PermiteAlta => false;
+    public override bool PermiteBaja => false;
+    public override string NombreRegistro => "centro de coste";
+    public override IReadOnlyList<string> Sinonimos => ["centro de coste", "departamento", "actividad", "472", "prorrata"];
+
+    public override IReadOnlyList<CampoMantenimiento> Campos =>
+    [
+        new("Ruta", "Centro de coste", TipoCampo.Codigo) { SoloLectura = true, Ancho = "m" },
+        new("Nombre", "Nombre") { SoloLectura = true, Ancho = "l" },
+        new("IdActividad", "Actividad", TipoCampo.Lista) { Opciones = _actividades, Ancho = "l",
+            Ayuda = "Vacía: la del centro del que cuelga (o, si ninguno la tiene, las cuentas de IVA generales del ejercicio)." },
+        new("Aplica", "Actividad que se aplica") { SoloLectura = true, Ancho = "l" },
+    ];
+
+    public override IReadOnlyList<ColumnaLista> Columnas => [new("Ruta", "Centro", 110), new("Nombre", "Nombre"), new("Aplica", "Actividad que se aplica")];
+
+    public override string TituloRegistro(RegistroMantenimiento r) => $"{r.Texto("Ruta")} · {r.Texto("Nombre")}";
+
+    private sealed record Fila(int Id, int? Padre, string Ruta, string Nombre, int? IdActividad);
+
+    public override async Task<IReadOnlyList<RegistroMantenimiento>> ListarAsync(ContextoMantenimiento c)
+    {
+        var (actividades, centros) = await bd.EjecutarAsync(async s =>
+        {
+            var a = await s.ConsultarAsync("SELECT IdActividad, Codigo, Nombre, Activa FROM Actividades WHERE IdSociedad = ? ORDER BY Codigo",
+                f => (Id: f.Entero("IdActividad"), Texto: $"{f.Texto("Codigo")?.Trim()} · {f.Texto("Nombre")?.Trim()}{(f.Logico("Activa") ? "" : " (inactiva)")}"),
+                c.Trabajo.IdSociedad);
+            var cc = await s.ConsultarAsync("SELECT IdCentroCoste, IdCentroCostePadre, RutaJerarquica, Nombre, IdActividad FROM CentrosCoste WHERE IdSociedad = ? ORDER BY RutaOrden",
+                f => new Fila(f.Entero("IdCentroCoste"), f.EnteroNulo("IdCentroCostePadre"), f.Texto("RutaJerarquica") ?? "", f.Texto("Nombre") ?? "", f.EnteroNulo("IdActividad")),
+                c.Trabajo.IdSociedad);
+            return (a, cc);
+        });
+        _actividades = [new OpcionCampo(null, "La del centro del que cuelga"), .. actividades.Select(x => new OpcionCampo(x.Id, x.Texto))];
+        var textos = actividades.ToDictionary(x => x.Id, x => x.Texto);
+        var porId = centros.ToDictionary(x => x.Id);
+        string Aplica(Fila f)
+        {
+            for (var (actual, nivel) = (f, 0); nivel < 20; nivel++)
+            {
+                if (actual.IdActividad is int id && textos.TryGetValue(id, out var t))
+                    return ReferenceEquals(actual, f) ? t : $"{t} (de {actual.Ruta})";
+                if (actual.Padre is not int p || !porId.TryGetValue(p, out var padre)) break;
+                actual = padre;
+            }
+            return "Sin actividad: cuentas generales";
+        }
+        return [.. centros.Select(f => new RegistroMantenimiento(f.Id, new Dictionary<string, object?>
+        {
+            ["Ruta"] = f.Ruta, ["Nombre"] = f.Nombre, ["IdActividad"] = f.IdActividad, ["Aplica"] = Aplica(f),
+        }))];
+    }
+
+    public override async Task<Resultado<RegistroMantenimiento>> GuardarAsync(RegistroMantenimiento r, ContextoMantenimiento c)
+    {
+        var id = Convert.ToInt32(r.Clave, CultureInfo.InvariantCulture);
+        var actividad = r.Entero("IdActividad");
+        var filas = await bd.EjecutarAsync(s => s.EjecutarAsync("UPDATE CentrosCoste SET IdActividad = ? WHERE IdCentroCoste = ? AND IdSociedad = ?",
+            actividad, id, c.Trabajo.IdSociedad));
+        if (filas == 0) return Resultado<RegistroMantenimiento>.Fallo(new Error("CentrosCoste.NoExiste", "El centro de coste ya no existe en esta empresa.", null, null, "Actualiza la lista."));
+        var guardado = (await ListarAsync(c)).First(x => Convert.ToInt32(x.Clave, CultureInfo.InvariantCulture) == id);
+        return Resultado<RegistroMantenimiento>.Correcto(guardado);
+    }
+}
+
 
 /// <summary>
 /// Textos clave de compras de la empresa de trabajo (TextosClaveCompra, compras/pantallas 2026-11-06 17:02): el texto que se

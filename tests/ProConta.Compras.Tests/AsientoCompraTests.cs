@@ -60,6 +60,27 @@ public sealed class AsientoCompraTests
     }
 
     [Fact]
+    public void Actividad_sin_IVA_deducible_lleva_la_cuota_al_gasto_y_al_libro_sin_deducir()
+    {
+        var f = Factura(121m, (21m, 100m, 21m));
+        var p = AsientoCompra.Construir(f, Ctx, Cuentas with { IvaNoDeducible = true }, Hoy)!;
+        Assert.Equal([("4100001", 0m, 121m), ("6290000", 121m, 0m)], Lineas(p.Asiento));
+        Assert.Equal((100m, 21m, 0m), (p.Libro.Base, p.Libro.CuotaSoportada, p.Libro.CuotaDeducible));
+        Assert.Equal(0m, Assert.Single(p.Libro.Tramos).PorcentajeDeducible);
+        Assert.True(ReglasAsiento.ValidarYCuadrar(p.Asiento, PoliticaCuadre.Estricta).EsCorrecto);
+    }
+
+    [Fact]
+    public void Inversion_del_sujeto_pasivo_sin_IVA_deducible_autorrepercute_contra_el_gasto()
+    {
+        var f = Factura(1000m, (0m, 1000m, 0m));
+        f.InversionSujetoPasivo = true;
+        var p = AsientoCompra.Construir(f, Ctx, Cuentas with { AutoRepercutido = "4771021", IvaNoDeducible = true }, Hoy)!;
+        Assert.Equal([("4100001", 0m, 1000m), ("6290000", 1000m, 0m), ("6290000", 210m, 0m), ("4771021", 0m, 210m)], Lineas(p.Asiento));
+        Assert.Equal((210m, 0m), (p.Libro.CuotaAutorrepercutida, p.Libro.CuotaDeducible));
+    }
+
+    [Fact]
     public void Intracomunitaria_va_a_472_y_477_al_tipo_general()
     {
         var f = Factura(200m, (0m, 200m, 0m));
