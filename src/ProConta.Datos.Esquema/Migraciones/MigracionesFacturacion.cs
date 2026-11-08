@@ -186,4 +186,15 @@ public static class MigracionesFacturacion
         new AnadirColumna("Facturas", "CodigoPostalEmisor", "TEXT(20)"),
         new AnadirColumna("Facturas", "PoblacionEmisor", "TEXT(100)"),
         new AnadirColumna("Facturas", "ProvinciaEmisor", "TEXT(100)"));
+
+    /// <summary>
+    /// Deshacer la exportación contable de las ventas (facturacion/factura-venta/contabilizacion 2026-11-08): en la factura,
+    /// el asiento que anula su contra-asiento y el número de lote, como en compras. Solo añade columnas.
+    /// </summary>
+    public static Migracion ExportacionVentas { get; } = new(
+        "20261108_1200_EXPORTACION_VENTAS", 261108002,
+        "Deshacer la exportación contable de las facturas de venta: asiento anulado y número de lote de la factura.",
+        "facturacion/factura-venta",
+        new AnadirColumna("Facturas", "IdAsientoAnulado", "LONG"),
+        new AnadirColumna("Facturas", "GeneracionExportacion", "LONG"));
 }

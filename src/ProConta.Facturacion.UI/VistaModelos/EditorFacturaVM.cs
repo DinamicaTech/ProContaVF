@@ -59,6 +59,9 @@ public sealed class EditorFacturaVM : ModeloVista, IPestanaTrabajo, INotifyDataE
     private ConfiguracionEjercicio? _config;
     private IReadOnlyList<decimal> _tiposIva = [21m, 10m, 4m, 0m];
     private IReadOnlyList<OpcionCentroCoste> _centros = [SinCentro];
+    private IReadOnlyDictionary<int, string> _seriesPorCentro = new Dictionary<int, string>();
+    private bool _validadaModificable;
+    private int? _idClienteCongelado;
     private static readonly OpcionCentroCoste SinCentro = new(null, "Sin centro");
     private string _fechaFactura = "", _fechaOperacion = "", _periodoDesde = "", _periodoHasta = "", _diaPago = "", _retencion = "";
     private FacturaProgramada? _p;
@@ -77,8 +80,8 @@ public sealed class EditorFacturaVM : ModeloVista, IPestanaTrabajo, INotifyDataE
         RectificarCommand = new ComandoDelegado(() => _ = RectificarAsync(), () => PuedeRectificar);
         PdfCommand = new ComandoDelegado(() => _ = PdfAsync(), () => _p is null && !_f.EsNueva && !_cargando);
         BuscarClienteCommand = new ComandoDelegado(() => _ = BuscarClienteAsync(), () => EditableCliente);
-        AsignarCuentaClienteCommand = new ComandoDelegado(() => _ = AsignarCuentaAsync(ClaseCuentaRol.Cliente), () => _cliente is not null && _puedeEditar && EsBorrador);
-        AsignarCuentaRetencionCommand = new ComandoDelegado(() => _ = AsignarCuentaAsync(ClaseCuentaRol.Retencion), () => _cliente is not null && _puedeEditar && EsBorrador);
+        AsignarCuentaClienteCommand = new ComandoDelegado(() => _ = AsignarCuentaAsync(ClaseCuentaRol.Cliente), () => _cliente is not null && Editable);
+        AsignarCuentaRetencionCommand = new ComandoDelegado(() => _ = AsignarCuentaAsync(ClaseCuentaRol.Retencion), () => _cliente is not null && Editable);
         AbrirFichaCommand = new ComandoDelegado(() => { if (_cliente is not null) _modulo.AbrirFichaTercero(_cliente.IdTercero); }, () => _cliente is not null);
         AnadirLineaCommand = new ComandoDelegado(() => _ = AnadirLineaAsync(), () => EditableLineas);
         QuitarLineaCommand = new ComandoDelegado(p => { if (p is LineaFacturaVM l) QuitarLinea(l); }, _ => EditableLineas);
@@ -106,7 +109,7 @@ public sealed class EditorFacturaVM : ModeloVista, IPestanaTrabajo, INotifyDataE
 
     public IReadOnlyList<string> DescribirCambios() => !TieneCambios ? []
         : _p is not null ? [$"{Titulo}: cambios en la programada"]
-        : [$"{_f.Rotulo}: {(EsBorrador ? "cambios en el borrador" : "notas internas")}"];
+        : [$"{_f.Rotulo}: {(EsBorrador ? "cambios en el borrador" : _validadaModificable ? "cambios en la factura" : "notas internas")}"];
 
     Task<bool> IPestanaTrabajo.GuardarAsync() => GuardarAsync();
 
@@ -119,7 +122,9 @@ public sealed class EditorFacturaVM : ModeloVista, IPestanaTrabajo, INotifyDataE
     public bool EsBorrador => _f.EsBorrador;
     public bool EsRectificativa => _f.EsRectificativa;
     public bool EsValidada => !_f.EsBorrador;
-    public bool Editable => EsBorrador && _puedeEditar;
+    public bool Editable => (EsBorrador || _validadaModificable) && _puedeEditar;
+    /// <summary>Se muestran los datos actuales del cliente: es un borrador o se ha cambiado el cliente de una validada, aún sin guardar.</summary>
+    private bool ClienteSinCongelar => EsBorrador || _f.IdCliente != _idClienteCongelado;
     public bool SoloLectura => !Editable;
     public bool EditableCliente => Editable && !_f.EsRectificativa;
     public bool EditableLineas => Editable && !_f.EsRectificativa;
@@ -127,9 +132,11 @@ public sealed class EditorFacturaVM : ModeloVista, IPestanaTrabajo, INotifyDataE
     public bool NotasSoloLectura => !EditableNotas;
     public bool PuedeGuardar => TieneCambios && _puedeEditar;
     public bool PuedeRectificar => _puedeRectificar && _f.Estado == EstadoFactura.Validada && !_f.EsRectificativa && !_cargando;
-    public string TextoGuardar => EsBorrador ? "Guardar" : "Guardar notas";
+    public string TextoGuardar => Editable ? "Guardar" : "Guardar notas";
     public string AyudaGuardar => _p is not null ? "Guarda la programada; los cambios solo afectan a las facturas que se generen después (Ctrl+G)"
-        : EsBorrador ? "Guarda el borrador sin numerarlo (Ctrl+G)" : "Guarda las notas internas (Ctrl+G)";
+        : EsBorrador ? "Guarda el borrador sin numerarlo (Ctrl+G)"
+        : _validadaModificable ? "Guarda los cambios de la factura; si afectan al asiento, antes avisa de cómo se deshace su exportación (Ctrl+G)"
+        : "Guarda las notas internas (Ctrl+G)";
     public string TextoEliminar => _p is not null ? "Eliminar programada" : EsRectificativa ? "Eliminar rectificativa" : "Eliminar borrador";
     public string AyudaEliminar => _p is not null ? "Borra la programada si aún no ha generado ninguna factura; si ya tiene, páusala" : "Borra el borrador; no consume número";
     public string AyudaDuplicar => _p is not null ? "Crea otra programada igual, pausada y sin facturas generadas" : "Crea otro borrador con el mismo cliente y líneas, sin número ni fechas";
@@ -155,7 +162,8 @@ public sealed class EditorFacturaVM : ModeloVista, IPestanaTrabajo, INotifyDataE
     /// <summary>Banda de solo lectura: factura validada o perfil de consulta.</summary>
     public string? MotivoSoloLectura =>
         _cargando ? null
-        : !EsBorrador ? "Una factura validada no se modifica: su número, cliente, importes y líneas quedan fijos. Solo puedes cambiar sus notas internas. Para corregirla, crea una rectificativa."
+        : !EsBorrador && _validadaModificable && _puedeEditar ? null
+        : !EsBorrador ? "Esta factura ya se ha enviado a VeriFactu o está rectificada: solo puedes cambiar sus notas internas. Para corregirla, crea una rectificativa."
         : !_puedeEditar ? "Tu perfil es de consulta: puedes ver el borrador pero no cambiarlo."
         : null;
 
@@ -163,14 +171,14 @@ public sealed class EditorFacturaVM : ModeloVista, IPestanaTrabajo, INotifyDataE
         ? "Las cantidades van en negativo: la rectificativa anula por completo a la original. El cliente y las líneas son los de la original y no se cambian; puedes ajustar la descripción, las fechas y las notas."
         : null;
 
-    public string TextoCabeceraCliente => _p is not null ? "cada factura generada copia sus datos al validarse" : EsBorrador ? "los datos se copian a la factura al validarla" : "datos copiados al validar; los cambios posteriores en Terceros no la alteran";
+    public string TextoCabeceraCliente => _p is not null ? "cada factura generada copia sus datos al validarse" : EsBorrador ? "los datos se copian a la factura al validarla" : ClienteSinCongelar ? "los datos se copian a la factura al guardar" : "datos copiados al validar; los cambios posteriores en Terceros no la alteran";
 
     // ---------- cliente ----------
 
     public bool HayCliente => _cliente is not null || !_f.Cliente.EstaVacia;
-    public string NombreCliente => EsBorrador ? _cliente?.Nombre ?? "" : NombreClienteFactura ?? _cliente?.Nombre ?? "";
-    public string NifCliente => EsBorrador ? _cliente?.Nif ?? "Sin NIF" : _f.Cliente.Nif ?? "";
-    public string DomicilioCliente => EsBorrador ? _cliente?.Domicilio ?? "" : _f.Cliente.DomicilioEnUnaLinea;
+    public string NombreCliente => ClienteSinCongelar ? _cliente?.Nombre ?? "" : NombreClienteFactura ?? _cliente?.Nombre ?? "";
+    public string NifCliente => ClienteSinCongelar ? _cliente?.Nif ?? "Sin NIF" : _f.Cliente.Nif ?? "";
+    public string DomicilioCliente => ClienteSinCongelar ? _cliente?.Domicilio ?? "" : _f.Cliente.DomicilioEnUnaLinea;
     public string TextoBuscarCliente => _cliente is null ? "Buscar cliente… (F3)" : "Cambiar cliente…";
     public string CuentaCliente => _cuentaCliente is null ? $"Sin cuenta en {_s.Trabajo.IdSociedad}" : Rotulo(_cuentaCliente);
     public bool FaltaCuentaCliente => _cliente is not null && _cuentaCliente is not { ExisteEnEjercicio: true };
@@ -198,7 +206,7 @@ public sealed class EditorFacturaVM : ModeloVista, IPestanaTrabajo, INotifyDataE
         set { if (value is not null && value.IdSerie != _f.IdSerie) { _f.IdSerie = value.IdSerie; Cambio(); } }
     }
 
-    public bool PuedeCambiarSerie => Editable && !_f.EsRectificativa;
+    public bool PuedeCambiarSerie => Editable && EsBorrador && !_f.EsRectificativa;
 
     public TipoFacturaAeat? TipoFactura
     {
@@ -505,10 +513,11 @@ public sealed class EditorFacturaVM : ModeloVista, IPestanaTrabajo, INotifyDataE
                 _cuentaCliente?.EnEjercicio?.Codigo ?? "¿430?",
                 _cuentaRetencion?.EnEjercicio?.Codigo ?? "¿473?",
                 iva,
-                string.IsNullOrWhiteSpace(_config?.CuentaSuplido) ? "¿suplidos?" : _config!.CuentaSuplido);
+                string.IsNullOrWhiteSpace(_config?.CuentaSuplido) ? "¿suplidos?" : _config!.CuentaSuplido,
+                _seriesPorCentro);
             var copia = _f.Clonar();
             foreach (var l in copia.Lineas.Where(l => !l.EsSuplido && string.IsNullOrWhiteSpace(l.CuentaContable))) l.CuentaContable = "¿ingreso?";
-            var asiento = AsientoVenta.Construir(copia, _s.Trabajo, cuentas, DateTime.Today);
+            var asiento = AsientoVenta.Construir(copia, _s.Trabajo, cuentas, DateTime.Today, ClienteSinCongelar ? _cliente?.NombreAsiento : null);
             return asiento.Apuntes.Select(a => new ApunteVistaPrevia(a.CodigoCuenta, a.Descripcion ?? "",
                 a.Debe.EsCero ? "" : Formatos.Numero(a.Debe.Valor), a.Haber.EsCero ? "" : Formatos.Numero(a.Haber.Valor), a.CodigoCuenta.StartsWith('¿'))).ToList();
         }
@@ -609,6 +618,7 @@ public sealed class EditorFacturaVM : ModeloVista, IPestanaTrabajo, INotifyDataE
             _veriFactuActivo = await _s.Facturas.VeriFactuActivoAsync();
             _config = await _s.Configuracion.ObtenerAsync(_s.Trabajo.IdSociedadEjercicio);
             _tiposIva = await _s.Apoyo.TiposIvaAsync();
+            _seriesPorCentro = await _s.Apoyo.SeriesPorCentroAsync(_s.Trabajo.IdSociedad);
             var centros = await _s.CentrosCoste.ListarAsync(_s.Trabajo.IdSociedad);
             _centros = [SinCentro, .. centros.Where(c => c.EstaActivo && c.EsImputable).Select(c => new OpcionCentroCoste(c.IdCentroCoste, $"{c.Codigo.Trim()} · {c.Nombre.Trim()}"))];
             Rellenar(Series, await _s.Facturas.SeriesAsync(_s.Trabajo.IdSociedadEjercicio));
@@ -637,6 +647,8 @@ public sealed class EditorFacturaVM : ModeloVista, IPestanaTrabajo, INotifyDataE
     {
         _f = f.Clonar();
         _p?.CambiarPlantilla(_f);
+        _idClienteCongelado = f.IdCliente;
+        _validadaModificable = _p is null && !f.EsBorrador && await _s.Facturas.SePuedeModificarAsync(f);
         _cliente = f.IdCliente is int c ? await _s.Apoyo.ClienteAsync(c) : null;
         await CargarCuentasAsync();
         _fechaFactura = Texto.Fecha(f.FechaFactura);
@@ -801,6 +813,33 @@ public sealed class EditorFacturaVM : ModeloVista, IPestanaTrabajo, INotifyDataE
             _modulo.Avisar($"Programada {rp.Programada!.Rotulo} {(nueva ? "creada" : "guardada")}" +
                            (rp.Programada.Activa ? rp.Programada.ProximaCalculada is { } pr ? $": próxima emisión el {Formatos.Fecha(pr)}." : "." : ", pausada: no genera facturas hasta que la reanudes."));
             _modulo.ProgramadaCambiada(rp.Programada.IdFacturaProgramada);
+            return true;
+        }
+        if (!EsBorrador && _validadaModificable)
+        {
+            // Si el cambio afecta al asiento, antes se avisa de cómo se deshace su exportación (propietario 2026-11-08).
+            var plan = await _s.Facturas.PlanGuardarValidadaAsync(_f);
+            if (plan.Modo != ModoDeshacerVenta.NoExportada)
+            {
+                var opcion = _modulo.Dialogos.Preguntar("Deshacer la exportación contable",
+                    $"Este cambio afecta al asiento de la factura. Antes de guardar se deshará su exportación: {plan.Explicacion}. Después se generará el asiento con los datos nuevos.", null,
+                    new OpcionMensaje("Guardar", "Deshace la exportación, guarda y genera el asiento nuevo", Principal: true),
+                    new OpcionMensaje("Cancelar", "No guarda nada", Cancelar: true));
+                if (opcion != 0) { GuardadoFallido = true; return false; }
+            }
+            var antes = await _s.Facturas.ObtenerAsync(_f.IdFactura);
+            var g = await _s.Facturas.GuardarValidadaAsync(_f, _s.Actor);
+            if (!g.EsCorrecto) { MostrarErrores("No se ha guardado la factura", g.Errores); GuardadoFallido = true; return false; }
+            var aviso = $"{g.Valor.Rotulo} guardada.";
+            // El PDF archivado debe coincidir con la factura: se vuelve a crear si cambió algo de lo que sale en él.
+            if ((antes is null || AsientoVenta.HuellaDocumento(antes) != AsientoVenta.HuellaDocumento(g.Valor)) && await _s.Facturas.TienePdfArchivadoAsync(g.Valor.IdFactura))
+            {
+                var pdf = await _s.Pdf.ObtenerAsync(g.Valor.IdFactura, _s.Actor, regenerar: true);
+                aviso += pdf.EsCorrecto ? " PDF actualizado." : " No se ha podido actualizar el PDF: regenéralo desde el listado.";
+            }
+            await RecargarAsync(g.Valor.IdFactura);
+            _modulo.Avisar(aviso);
+            _modulo.FacturaCambiada(g.Valor.IdFactura);
             return true;
         }
         if (!EsBorrador)

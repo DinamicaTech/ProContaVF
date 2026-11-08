@@ -89,6 +89,170 @@ public sealed class FacturasAccessTests : IDisposable
         return r.Valor;
     }
 
+    private async Task<FacturaVenta> ValidadaAsync(ServicioFacturas servicio)
+    {
+        var b = await BorradorAsync(servicio);
+        var v = await servicio.ValidarAsync(b.IdFactura, b.Version, _actor);
+        Assert.True(v.Validada && v.Contabilizada, string.Join(" ", v.Incidencias.Select(i => i.Mensaje)));
+        return v.Factura!;
+    }
+
+    private Task TrimestreActivoAsync(int trimestre) =>
+        Bd.EjecutarAsync(s => s.EjecutarAsync("UPDATE SociedadesEjercicios SET TrimestreActivo = ? WHERE IdSociedadEjercicio = ?", (byte)trimestre, 9001));
+
+    private Task<int> AsientosDe(int idFactura) =>
+        Contar("SELECT COUNT(*) FROM Asientos WHERE MotorPropietario = ? AND ClaveEjecucion LIKE ?", AsientoVenta.MotorPropietario, idFactura + "%");
+
+    [Fact]
+    public async Task La_factura_congela_el_nombre_formateado_y_el_pdf_sigue_con_la_razon_social()
+    {
+        await PrepararAsync();
+        var repo = new RepositorioTercerosAccess(Bd, _reloj);
+        var t = (await repo.ObtenerAsync(_idTercero))!;
+        t.NombreComercial = "Inquilina";
+        Assert.True((await repo.GuardarAsync(t, _actor)).EsCorrecto);
+        var servicio = Servicio();
+        var f = await ValidadaAsync(servicio);
+        Assert.Equal("Inquilina", f.Cliente.Nombre);
+        Assert.Equal("Inquilina Sintética SL", f.Cliente.NombreVisible);
+        var asiento = await Bd.EjecutarAsync(s => s.EscalarAsync("SELECT Descripcion FROM Asientos WHERE IdAsiento = ?", f.IdAsientoContable));
+        Assert.Equal("Fra. F20260001 - Inquilina - Alquiler del local, marzo 2026", asiento);
+    }
+
+    [Fact]
+    public async Task El_iva_va_a_la_477_de_la_actividad_del_centro_y_crea_la_subcuenta()
+    {
+        await PrepararAsync();
+        await Bd.EjecutarAsync(s => s.EjecutarAsync("INSERT INTO Actividades (IdSociedad, Codigo, Nombre, Deducible, SerieCuentaIva, Activa) VALUES (?, ?, ?, ?, ?, ?)", "T01", "TUR", "Turístico", (byte)1, "4728", true));
+        var idActividad = await Contar("SELECT MAX(IdActividad) FROM Actividades");
+        var centros = new ProConta.Contabilidad.CentrosCoste.CatalogoCentrosCosteAccess(Bd);
+        var padre = (await centros.AltaAsync("T01", "3", "Alquileres", esImputable: false)).Valor.IdCentroCoste;
+        var hijo = (await centros.AltaAsync("T01", "318", "Piso 318", padre)).Valor.IdCentroCoste;
+        await Bd.EjecutarAsync(s => s.EjecutarAsync("UPDATE CentrosCoste SET IdActividad = ? WHERE IdCentroCoste = ?", idActividad, padre));
+
+        var servicio = Servicio();
+        var b = await BorradorAsync(servicio);
+        b.Lineas[0].IdCentroCoste = hijo;
+        b.Lineas[0].TipoIva = 21m;
+        b.Lineas[0].Recalcular();
+        var otra = new LineaFacturaVenta { Nombre = "Sin actividad", PrecioUnitario = 100m, TipoIva = 21m, CuentaContable = "7520001" };
+        otra.Recalcular();
+        b.AnadirLinea(otra);
+        b = (await servicio.GuardarBorradorAsync(b, _actor)).Valor;
+        var v = await servicio.ValidarAsync(b.IdFactura, b.Version, _actor);
+        Assert.True(v.Validada && v.Contabilizada, string.Join(" ", v.Incidencias.Select(i => i.Mensaje)) + string.Join(" ", (v.ErrorContabilizacion ?? []).Select(e => e.Mensaje)));
+        var (cuenta, _) = (await Cuentas.ResolverAsync(_ctx, "4778021"), 0);
+        Assert.True(cuenta.EsCorrecto);
+        Assert.Equal("IVA repercutido del 21 % de Turístico", cuenta.Valor.Nombre);
+        var a = await new MotorAsientosAccess(Bd, reloj: _reloj).ObtenerAsync(v.Factura!.IdAsientoContable!.Value);
+        Invariantes.Asiento(a!);
+        Assert.Equal(210m, a!.Apuntes.Single(x => x.CodigoCuenta == "4778021").Haber.Valor);
+        Assert.Equal(21m, a.Apuntes.Single(x => x.CodigoCuenta == "4770021").Haber.Valor);
+    }
+
+    [Fact]
+    public async Task Deshacer_en_el_trimestre_activo_borra_el_asiento()
+    {
+        await PrepararAsync();
+        var servicio = Servicio();
+        var f = await ValidadaAsync(servicio);
+        Assert.Equal(ModoDeshacerVenta.BorrarAsiento, (await servicio.PlanDeshacerAsync(f)).Modo);
+        var r = await servicio.DeshacerExportacionAsync(f.IdFactura, _actor);
+        Assert.True(r.EsCorrecto, r.Error?.ToString());
+        Assert.Null((await servicio.ObtenerAsync(f.IdFactura))!.IdAsientoContable);
+        Assert.Equal(0, await AsientosDe(f.IdFactura));
+        Assert.True((await servicio.ContabilizarAsync(f.IdFactura, _actor)).EsCorrecto);
+        Assert.Equal(1, await AsientosDe(f.IdFactura));
+    }
+
+    [Fact]
+    public async Task Deshacer_de_un_trimestre_cerrado_hace_contra_asiento_y_conserva_el_original()
+    {
+        await PrepararAsync();
+        var servicio = Servicio();
+        var f = await ValidadaAsync(servicio);
+        var original = f.IdAsientoContable!.Value;
+        await TrimestreActivoAsync(2);
+        Assert.Equal(ModoDeshacerVenta.ContraAsiento, (await servicio.PlanDeshacerAsync(f)).Modo);
+        Assert.True((await servicio.DeshacerExportacionAsync(f.IdFactura, _actor)).EsCorrecto);
+        Assert.Null((await servicio.ObtenerAsync(f.IdFactura))!.IdAsientoContable);
+        Assert.Equal(2, await AsientosDe(f.IdFactura));
+        Assert.Equal(1, await Contar("SELECT COUNT(*) FROM Asientos WHERE IdAsiento = ?", original));
+
+        // Volver a contabilizar conserva el contra-asiento; deshacer otra vez solo quita el asiento nuevo.
+        Assert.True((await servicio.ContabilizarAsync(f.IdFactura, _actor)).EsCorrecto);
+        Assert.Equal(3, await AsientosDe(f.IdFactura));
+        Assert.True((await servicio.DeshacerExportacionAsync(f.IdFactura, _actor)).EsCorrecto);
+        Assert.Equal(2, await AsientosDe(f.IdFactura));
+    }
+
+    [Fact]
+    public async Task Una_factura_enviada_a_VeriFactu_no_se_modifica_ni_se_deshace()
+    {
+        await PrepararAsync();
+        var servicio = Servicio();
+        var f = await ValidadaAsync(servicio);
+        await Bd.EjecutarAsync(s => s.EjecutarAsync("UPDATE Facturas SET SinVeriFactu = False WHERE IdFactura = ?", f.IdFactura));
+        await Bd.EjecutarAsync(s => s.EjecutarAsync("INSERT INTO VeriFactuEnvios (IdFactura, TipoRegistro, NumeroIntento, Entorno) VALUES (?, ?, ?, ?)", f.IdFactura, "ALTA", (short)1, "PRUEBAS"));
+        f = (await servicio.ObtenerAsync(f.IdFactura))!;
+        Assert.False(await servicio.SePuedeModificarAsync(f));
+        Assert.Equal("Facturas.EnviadaVeriFactu", (await servicio.DeshacerExportacionAsync(f.IdFactura, _actor)).Error!.Codigo);
+        f.Descripcion = "Cambio";
+        Assert.Equal("Facturas.NoModificable", (await servicio.GuardarValidadaAsync(f, _actor)).Error!.Codigo);
+    }
+
+    [Fact]
+    public async Task Modificar_una_validada_regenera_el_asiento_con_el_mismo_numero_y_sin_duplicar()
+    {
+        await PrepararAsync();
+        var servicio = Servicio();
+        var f = await ValidadaAsync(servicio);
+        var numero = f.NumeroFactura;
+        var asiento = f.IdAsientoContable;
+
+        // Las notas no afectan al asiento.
+        f.NotasInternas = "Nota";
+        Assert.Equal(ModoDeshacerVenta.NoExportada, (await servicio.PlanGuardarValidadaAsync(f)).Modo);
+        var g = await servicio.GuardarValidadaAsync(f, _actor);
+        Assert.True(g.EsCorrecto, g.Error?.ToString());
+        Assert.Equal(asiento, g.Valor.IdAsientoContable);
+
+        // Los importes sí: mismo número de factura, importes nuevos y un solo asiento.
+        f = g.Valor;
+        f.Lineas[0].PrecioUnitario = 2000m;
+        f.Lineas[0].Recalcular();
+        Assert.Equal(ModoDeshacerVenta.BorrarAsiento, (await servicio.PlanGuardarValidadaAsync(f)).Modo);
+        g = await servicio.GuardarValidadaAsync(f, _actor);
+        Assert.True(g.EsCorrecto, g.Error?.ToString());
+        Assert.Equal(numero, g.Valor.NumeroFactura);
+        Assert.Equal(EstadoFactura.Validada, g.Valor.Estado);
+        Assert.Equal(1, await AsientosDe(f.IdFactura));
+        var a = await new MotorAsientosAccess(Bd, reloj: _reloj).ObtenerAsync(g.Valor.IdAsientoContable!.Value);
+        Invariantes.Asiento(a!);
+        Assert.Equal(g.Valor.Totales.ImporteTotal.Valor, a!.Apuntes.Single(x => x.CodigoCuenta == "4300001").Debe.Valor);
+
+        // En un trimestre cerrado: el original se queda, con su contra-asiento y uno nuevo.
+        await TrimestreActivoAsync(2);
+        f = g.Valor;
+        f.Descripcion = "Otra descripción";
+        Assert.Equal(ModoDeshacerVenta.ContraAsiento, (await servicio.PlanGuardarValidadaAsync(f)).Modo);
+        g = await servicio.GuardarValidadaAsync(f, _actor);
+        Assert.True(g.EsCorrecto, g.Error?.ToString());
+        Assert.Equal(3, await AsientosDe(f.IdFactura));
+    }
+
+    [Fact]
+    public async Task La_fecha_de_una_validada_debe_seguir_el_orden_de_la_serie()
+    {
+        await PrepararAsync();
+        var servicio = Servicio();
+        var primera = await ValidadaAsync(servicio);
+        await ValidadaAsync(servicio);
+        primera.FechaFactura = primera.FechaFactura!.Value.AddDays(5);
+        var g = await servicio.GuardarValidadaAsync(primera, _actor);
+        Assert.Equal("Facturas.FechaPosteriorSerie", g.Error!.Codigo);
+    }
+
     [Fact]
     public async Task BorradorNuevoConFechasDeHoyYLineasConFechaCentroYOrden()
     {

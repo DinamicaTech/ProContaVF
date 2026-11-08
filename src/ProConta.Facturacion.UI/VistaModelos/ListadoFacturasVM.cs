@@ -53,6 +53,7 @@ public sealed class FilaFacturaVM(FilaFactura datos, Func<int, Task<FacturaVenta
     public string Origen => Datos.EsRectificativa ? "Rectificativa" : Datos.EsProgramada ? "Programada" : "Manual";
     public string Asiento => Datos.EsBorrador ? "" : Datos.IdAsientoContable is null ? "Sin asiento" : "Contabilizada";
     public bool SinAsiento => !Datos.EsBorrador && Datos.IdAsientoContable is null;
+    public bool ConAsiento => !Datos.EsBorrador && Datos.IdAsientoContable is not null;
     public string? Relacion => Datos.NumeroRectificada is { } o ? $"Rectifica a {o}" + (Datos.MotivoRectificacion is { } m ? $" · Motivo: {m}" : "")
         : Datos.NumeroRectificativa is { } r ? $"Rectificada por {r}" : null;
 }
@@ -108,6 +109,7 @@ public sealed class ListadoFacturasVM : ModeloVista, IPestanaTrabajo
         AbrirCommand = new ComandoDelegado(() => { if (Ambito.Count == 1) _modulo.AbrirFactura(Ambito[0].Datos.IdFactura); }, () => Ambito.Count == 1);
         ValidarCommand = new ComandoDelegado(() => _ = ValidarAsync(), () => _puedeValidar && Ambito.Any(f => f.Datos.EsBorrador));
         ContabilizarCommand = new ComandoDelegado(() => _ = ContabilizarAsync(), () => _puedeValidar && Ambito.Any(f => f.SinAsiento));
+        DeshacerExportacionCommand = new ComandoDelegado(() => _ = DeshacerExportacionAsync(), () => _puedeValidar && Ambito.Any(f => f.ConAsiento));
         DuplicarCommand = new ComandoDelegado(() => _ = DuplicarAsync(), () => _puedeEditar && Ambito.Count > 0);
         RectificarCommand = new ComandoDelegado(() => _ = RectificarAsync(), () => _puedeRectificar && Ambito is [{ Datos: { Estado: EstadoFactura.Validada, EsRectificativa: false } }]);
         EliminarCommand = new ComandoDelegado(() => _ = EliminarAsync(), () => _puedeEditar && Ambito.Any(f => f.Datos.EsBorrador));
@@ -266,7 +268,7 @@ public sealed class ListadoFacturasVM : ModeloVista, IPestanaTrabajo
     public void CambiarSeleccion(IReadOnlyList<FilaFacturaVM> seleccion)
     {
         _seleccion = seleccion;
-        Avisar(nameof(Pie), nameof(AvisoSeleccion), nameof(TextoValidar), nameof(TextoContabilizar), nameof(TextoDuplicar), nameof(TextoEliminar), nameof(TextoPdf), nameof(TextoRegenerarPdf));
+        Avisar(nameof(Pie), nameof(AvisoSeleccion), nameof(TextoValidar), nameof(TextoContabilizar), nameof(TextoDeshacerExportacion),nameof(TextoDuplicar), nameof(TextoEliminar), nameof(TextoPdf), nameof(TextoRegenerarPdf));
         CommandManager.InvalidateRequerySuggested();
     }
 
@@ -276,6 +278,7 @@ public sealed class ListadoFacturasVM : ModeloVista, IPestanaTrabajo
     private static string ConCuenta(string texto, int n) => n > 1 ? $"{texto} ({n})" : texto;
     public string TextoValidar => ConCuenta("Validar…", Ambito.Count(f => f.Datos.EsBorrador));
     public string TextoContabilizar => ConCuenta("Contabilizar", Ambito.Count(f => f.SinAsiento));
+    public string TextoDeshacerExportacion => ConCuenta("Deshacer exportación contable", Ambito.Count(f => f.ConAsiento));
     public string TextoPdf => Ambito.All(f => f.Datos.EsBorrador) ? ConCuenta("Proforma en PDF", Ambito.Count) : ConCuenta("PDF", Ambito.Count);
     public string TextoRegenerarPdf => ConCuenta("Regenerar PDF", Ambito.Count(f => !f.Datos.EsBorrador));
 
@@ -392,6 +395,7 @@ public sealed class ListadoFacturasVM : ModeloVista, IPestanaTrabajo
     public ICommand AbrirCommand { get; }
     public ICommand ValidarCommand { get; }
     public ICommand ContabilizarCommand { get; }
+    public ICommand DeshacerExportacionCommand { get; }
     public ICommand DuplicarCommand { get; }
     public ICommand RectificarCommand { get; }
     public ICommand EliminarCommand { get; }
@@ -446,6 +450,32 @@ public sealed class ListadoFacturasVM : ModeloVista, IPestanaTrabajo
         if (!r.Validada) problemas.Add($"{b.Numero}: {string.Join(" ", r.Incidencias.Select(i => i.Mensaje))}");
         else if (!r.Contabilizada) problemas.Add($"{r.Factura!.NumeroFactura}: validada pero sin asiento. {string.Join(" ", (r.ErrorContabilizacion ?? []).Select(e => e.Mensaje))}");
         else correctas.Add(r.Factura!.NumeroFactura!);
+    }
+
+    /// <summary>
+    /// «Deshacer exportación contable»: avisa de lo que hará con cada factura (borrar el asiento o hacer un contra-asiento).
+    /// Las enviadas a VeriFactu se quedan como están y se informa de ellas.
+    /// </summary>
+    private async Task DeshacerExportacionAsync()
+    {
+        var conAsiento = Ambito.Where(f => f.ConAsiento).ToList();
+        var planes = new List<string>();
+        foreach (var f in conAsiento) planes.Add($"{f.Numero}: {(await _s.Facturas.PlanDeshacerAsync(f.Datos.IdFactura)).Explicacion}.");
+        var opcion = _modulo.Dialogos.Preguntar("Deshacer la exportación contable",
+            "Las facturas quedarán sin asiento y podrás volver a contabilizarlas. No se puede deshacer si ya se han enviado a VeriFactu.", planes,
+            new OpcionMensaje("Deshacer la exportación", "Borra el asiento o hace el contra-asiento de cada factura", Principal: true, Peligro: true),
+            new OpcionMensaje("Cancelar", "No cambia nada", Cancelar: true));
+        if (opcion != 0) return;
+        var correctas = new List<string>();
+        var problemas = new List<string>();
+        foreach (var f in conAsiento)
+        {
+            var r = await _s.Facturas.DeshacerExportacionAsync(f.Datos.IdFactura, _s.Actor);
+            if (r.EsCorrecto) correctas.Add(f.Numero);
+            else problemas.Add($"{f.Numero}: {string.Join(" ", r.Errores.Select(e => e.Mensaje + (e.AccionCorrectora is { } a ? " " + a : "")))}");
+        }
+        await CargarAsync(_activa?.Datos.IdFactura);
+        Informar("Exportación deshecha", correctas, problemas);
     }
 
     private async Task ContabilizarAsync()

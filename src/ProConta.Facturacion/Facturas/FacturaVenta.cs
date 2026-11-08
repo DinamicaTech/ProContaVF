@@ -50,6 +50,9 @@ public sealed record InstantaneaCliente(
     /// <summary>Nombre que se muestra: la razón social o, si no hay, el nombre.</summary>
     public string NombreVisible => (string.IsNullOrWhiteSpace(RazonSocial) ? Nombre : RazonSocial)?.Trim() ?? "";
 
+    /// <summary>Nombre para los apuntes: el congelado en Facturas.Nombre (comercial, o nombre y primer apellido) o, si no hay, el visible.</summary>
+    public string NombreAsiento => string.IsNullOrWhiteSpace(Nombre) ? NombreVisible : Nombre.Trim();
+
     public string DomicilioEnUnaLinea =>
         string.Join(" · ", new[] { Direccion, string.Join(" ", new[] { CodigoPostal, Poblacion }.Where(x => !string.IsNullOrWhiteSpace(x))),
             string.IsNullOrWhiteSpace(Provincia) ? null : $"({Provincia})" }.Where(x => !string.IsNullOrWhiteSpace(x)));

@@ -84,12 +84,13 @@
         <pc:VistaEstado Estado="{Binding Estado}" Titulo="{Binding TituloEstado}" Mensaje="{Binding MensajeEstado}" TextoAccion="{Binding AccionEstado}" ComandoAccion="{Binding ComandoEstado}">
           <pc:VistaEstado.ContextMenu>
             <ContextMenu>
-              <MenuItem Header="Abrir" Command="{Binding AbrirCommand}" InputGestureText="Intro" ToolTip="Abre la factura: un borrador se puede editar y una validada se ve en solo lectura (solo con una seleccionada)" />
+              <MenuItem Header="Abrir" Command="{Binding AbrirCommand}" InputGestureText="Intro" ToolTip="Abre la factura: se puede editar si es un borrador o una validada sin enviar a VeriFactu (solo con una seleccionada)" />
               <MenuItem Header="Programar…" Command="{Binding ProgramarCommand}" ToolTip="Crea una factura programada nueva con el cliente, las condiciones y las líneas de esta factura (solo con una seleccionada)" />
               <MenuItem Header="Rectificar…" Command="{Binding RectificarCommand}" ToolTip="Crea un borrador rectificativo que anula por completo la factura (solo con una validada seleccionada)" />
               <Separator />
               <MenuItem Header="{Binding TextoValidar}" Command="{Binding ValidarCommand}" ToolTip="Valida los borradores seleccionados: número, datos del cliente y asiento" />
               <MenuItem Header="{Binding TextoContabilizar}" Command="{Binding ContabilizarCommand}" ToolTip="Genera el asiento de las facturas validadas seleccionadas que no lo tienen" />
+              <MenuItem Header="{Binding TextoDeshacerExportacion}" Command="{Binding DeshacerExportacionCommand}" ToolTip="Quita el asiento de las facturas seleccionadas: lo borra si es del trimestre activo o posterior y hace un contra-asiento si es de uno cerrado. No se puede con las enviadas a VeriFactu" />
               <MenuItem Header="{Binding TextoDuplicar}" Command="{Binding DuplicarCommand}" ToolTip="Crea un borrador con el cliente y las líneas de cada factura seleccionada" />
               <MenuItem Header="{Binding TextoEliminar}" Command="{Binding EliminarCommand}" ToolTip="Borra los borradores seleccionados; no consumen número" />
               <Separator />

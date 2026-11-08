@@ -262,6 +262,102 @@ public class AsientoVentaTests
     }
 
     [Fact]
+    public void LasDescripcionesSiguenElFormatoDeCadaApunte()
+    {
+        var f = Factura();
+        f.Cliente = InstantaneaCliente.Vacia with { Nombre = "Inquilina", RazonSocial = "Inquilina Fiscal SL" };
+        var a = AsientoVenta.Construir(f, Ctx, Cuentas, new DateTime(2026, 3, 2));
+        string Texto(string cuenta) => a.Apuntes.Single(x => x.CodigoCuenta == cuenta).Descripcion!;
+        Assert.Equal("Fra. F20260001 - Inquilina - Alquiler", a.Descripcion);
+        Assert.Equal("Fra. F20260001 - Inquilina - Alquiler", Texto("4300001"));
+        Assert.Equal("Retención 19 % - Inquilina - Fra. F20260001 - Alquiler", Texto("4735079"));
+        Assert.Equal("L - Inquilina - Fra. F20260001", Texto("7520001"));
+        Assert.Equal("IVA repercutido 21 % - Inquilina - Fra. F20260001 - Alquiler", Texto("4770021"));
+        Assert.Equal("Suplidos - Inquilina - Fra. F20260001 - Alquiler", Texto("5550001"));
+    }
+
+    [Fact]
+    public void LaRectificativaUsaFraRect()
+    {
+        var r = new FacturaVenta { IdFactura = 6, IdCliente = 3, NumeroFactura = "R20260001", TipoFactura = "R4", Descripcion = "Rect" };
+        foreach (var l in Factura().Lineas) r.AnadirLinea(l.Copiar(invertir: true));
+        r.Cliente = InstantaneaCliente.Vacia with { Nombre = "Inquilina" };
+        var a = AsientoVenta.Construir(r, Ctx, Cuentas, new DateTime(2026, 3, 5));
+        Assert.Equal("FraRect. R20260001 - Inquilina - Rect", a.Apuntes.Single(x => x.CodigoCuenta == "4300001").Descripcion);
+    }
+
+    [Fact]
+    public void Varias_lineas_en_la_misma_cuenta_llevan_la_descripcion_de_la_primera()
+    {
+        var f = new FacturaVenta { IdFactura = 5, IdCliente = 3, NumeroFactura = "F1", Descripcion = "D" };
+        foreach (var nombre in new[] { "Primera", "Segunda" })
+        {
+            var l = new LineaFacturaVenta { Nombre = nombre, PrecioUnitario = 10m, TipoIva = 21m, CuentaContable = "7520001" };
+            l.Recalcular();
+            f.AnadirLinea(l);
+        }
+        f.Cliente = InstantaneaCliente.Vacia with { Nombre = "C" };
+        var a = AsientoVenta.Construir(f, Ctx, Cuentas, new DateTime(2026, 3, 2));
+        Assert.Equal("Primera - C - Fra. F1", a.Apuntes.Single(x => x.CodigoCuenta == "7520001").Descripcion);
+    }
+
+    [Fact]
+    public void Al_recortar_solo_se_corta_la_descripcion_y_se_ven_cliente_y_numero()
+    {
+        var f = Factura();
+        f.Descripcion = new string('x', 400) + "\r\n fin";
+        f.Lineas[0].Nombre = new string('y', 400);
+        f.Cliente = InstantaneaCliente.Vacia with { Nombre = "Cliente largo SL" };
+        var a = AsientoVenta.Construir(f, Ctx, Cuentas, new DateTime(2026, 3, 2));
+        foreach (var apunte in a.Apuntes)
+        {
+            Assert.True(apunte.Descripcion!.Length <= ReglasAsiento.LongitudDescripcion);
+            Assert.Contains("Cliente largo SL", apunte.Descripcion);
+            Assert.Contains("Fra. F20260001", apunte.Descripcion);
+        }
+        Assert.EndsWith(" - Cliente largo SL - Fra. F20260001", a.Apuntes.Single(x => x.CodigoCuenta == "7520001").Descripcion);
+        Assert.StartsWith("Fra. F20260001 - Cliente largo SL - xxx", a.Apuntes.Single(x => x.CodigoCuenta == "4300001").Descripcion);
+    }
+
+    [Fact]
+    public void El_iva_se_reparte_por_la_477_de_la_actividad_de_cada_linea()
+    {
+        var f = new FacturaVenta { IdFactura = 5, IdCliente = 3, NumeroFactura = "F1", Descripcion = "Reparto" };
+        foreach (var (precio, iva, centro) in new[] { (100m, 21m, (int?)1), (200m, 21m, 2), (300m, 21m, 3), (400m, 21m, null), (50m, 10m, 1) })
+        {
+            var l = new LineaFacturaVenta { Nombre = "L", PrecioUnitario = precio, TipoIva = iva, CuentaContable = "7520001", IdCentroCoste = centro };
+            l.Recalcular();
+            f.AnadirLinea(l);
+        }
+        // Centro 1 turístico, 2 locales; 3 y las líneas sin centro, la cuenta general.
+        var cuentas = Cuentas with { SeriesPorCentro = new Dictionary<int, string> { [1] = "4728", [2] = "4727" } };
+        var a = AsientoVenta.Construir(f, Ctx, cuentas, new DateTime(2026, 3, 2));
+        Invariantes.Asiento(a);
+        Assert.True(ReglasAsiento.ValidarYCuadrar(a, PoliticaCuadre.Estricta).EsCorrecto);
+        Assert.Equal(21m, a.Apuntes.Single(x => x.CodigoCuenta == "4778021").Haber.Valor);
+        Assert.Equal(42m, a.Apuntes.Single(x => x.CodigoCuenta == "4777021").Haber.Valor);
+        Assert.Equal(147m, a.Apuntes.Single(x => x.CodigoCuenta == "4770021").Haber.Valor);
+        Assert.Equal(5m, a.Apuntes.Single(x => x.CodigoCuenta == "4778010").Haber.Valor);
+    }
+
+    [Theory]
+    [InlineData("4770021", "4728", "4778021")]
+    [InlineData("4770021", "4720", "4770021")]
+    [InlineData("4770010", "4722", "4772010")]
+    [InlineData("¿IVA 21 %?", "4728", "¿IVA 21 %?")]
+    public void La_477_de_la_actividad_cambia_el_2_por_el_7_y_conserva_la_terminacion(string general, string serie, string esperada) =>
+        Assert.Equal(esperada, AsientoVenta.CuentaIvaActividad(general, serie));
+
+    [Theory]
+    [InlineData(true, "Ana", "Ruiz", "Comercial", "Razón", "Ana Ruiz Gil", "Ana Ruiz")]
+    [InlineData(true, null, null, null, null, "Ana Ruiz Gil", "Ana Ruiz Gil")]
+    [InlineData(false, null, null, "Comercial", "Razón SL", "Razón SL", "Comercial")]
+    [InlineData(false, null, null, " ", "Razón SL", "Otro", "Razón SL")]
+    [InlineData(false, null, null, null, null, "Otro", "Otro")]
+    public void El_nombre_del_cliente_depende_de_su_tipo(bool fisica, string? nombre, string? apellido, string? comercial, string? razon, string? general, string esperado) =>
+        Assert.Equal(esperado, Instantaneas.NombreCliente(fisica, nombre, apellido, comercial, razon, general));
+
+    [Fact]
     public void FechaDelAsientoEsLaDeLaFacturaSalvoQueSeaAnteriorAlTrimestreActivo()
     {
         var f = Factura();

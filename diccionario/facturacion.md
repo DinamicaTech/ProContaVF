@@ -200,6 +200,8 @@ Relaciones:
 | CodigoPostalEmisor | TEXT(20) | sí |  |  |
 | PoblacionEmisor | TEXT(100) | sí |  |  |
 | ProvinciaEmisor | TEXT(100) | sí |  |  |
+| IdAsientoAnulado | LONG | sí |  |  |
+| GeneracionExportacion | LONG | sí |  |  |
 
 Índices:
 - EstadosFacturaFacturas: EstadoFactura

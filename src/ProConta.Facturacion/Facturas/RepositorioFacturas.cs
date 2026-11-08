@@ -160,6 +160,38 @@ internal static class RepositorioFacturas
         await InsertarLineasAsync(s, f);
     }
 
+    /// <summary>
+    /// Guarda una factura validada aún sin enviar a VeriFactu (facturacion/factura-venta 2026-11-08): cabecera, cliente
+    /// congelado y líneas, con concurrencia optimista. El número, la serie y el emisor no cambian.
+    /// </summary>
+    public static async Task ActualizarValidadaAsync(ISesionDatos s, FacturaVenta f)
+    {
+        var t = f.Totales;
+        await s.ActualizarConVersionAsync(
+            "UPDATE Facturas SET IdCliente = ?, FechaFactura = ?, FechaOperacion = ?, FechaInicioValidez = ?, FechaFinValidez = ?, FormaDePago = ?, DiaDePago = ?, " +
+            "Descripcion = ?, NotasInternas = ?, BaseImponible = ?, IVA = ?, ImporteBruto = ?, TipoRetencion = ?, Retencion = ?, ImporteTotal = ?, TipoFactura = ?, " +
+            "CIF = ?, Nombre = ?, RazonSocial = ?, PaisCliente = ?, TipoIdentificacionCliente = ?, DireccionCliente = ?, CodigoPostalCliente = ?, PoblacionCliente = ?, " +
+            "ProvinciaCliente = ?, EmailCliente = ?, Historial = ?, MotivoRectificacion = ?, Version = Version + 1 WHERE IdFactura = ? AND Version = ? AND EstadoFactura = ?",
+            f.Rotulo,
+            f.IdCliente, f.FechaFactura, f.FechaOperacion, f.FechaInicioValidez, f.FechaFinValidez, f.FormaDePago, f.DiaDePago,
+            f.Descripcion ?? "", Nulo(f.NotasInternas), t.BaseImponible, t.Iva, t.ImporteBruto, (float)f.TipoRetencion, t.Retencion, t.ImporteTotal, f.TipoFactura,
+            Nulo(f.Cliente.Nif), Nulo(f.Cliente.Nombre), Nulo(f.Cliente.RazonSocial), Nulo(f.Cliente.Pais), f.Cliente.TipoIdentificacion, Nulo(f.Cliente.Direccion),
+            Nulo(f.Cliente.CodigoPostal), Nulo(f.Cliente.Poblacion), Nulo(f.Cliente.Provincia), Nulo(f.Cliente.Email),
+            f.Historial, Nulo(f.MotivoRectificacion), f.IdFactura, f.Version, (byte)EstadoFactura.Validada);
+        f.Version++;
+        await s.EjecutarAsync("DELETE FROM LineasFactura WHERE IdFactura = ?", f.IdFactura);
+        await InsertarLineasAsync(s, f);
+    }
+
+    /// <summary>La factura tiene algún registro o intento de envío a VeriFactu.</summary>
+    public static async Task<bool> TieneEnvioVeriFactuAsync(ISesionDatos s, int idFactura) =>
+        Convert.ToInt32(await s.EscalarAsync("SELECT COUNT(*) FROM VeriFactuEnvios WHERE IdFactura = ?", idFactura), System.Globalization.CultureInfo.InvariantCulture) > 0;
+
+    /// <summary>Fecha más próxima de las facturas de la serie numeradas antes y después de esta.</summary>
+    public static async Task<(DateTime? Anterior, DateTime? Siguiente)> FechasVecinasAsync(ISesionDatos s, int idSerie, string numero) =>
+        (await s.EscalarAsync("SELECT MAX(FechaFactura) FROM Facturas WHERE IdSerie = ? AND NumeroFactura IS NOT NULL AND NumeroFactura < ?", idSerie, numero) is DateTime a ? a : null,
+         await s.EscalarAsync("SELECT MIN(FechaFactura) FROM Facturas WHERE IdSerie = ? AND NumeroFactura IS NOT NULL AND NumeroFactura > ?", idSerie, numero) is DateTime b ? b : null);
+
     private static async Task InsertarLineasAsync(ISesionDatos s, FacturaVenta f)
     {
         f.Renumerar();
