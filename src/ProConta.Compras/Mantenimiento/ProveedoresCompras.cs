@@ -35,9 +35,12 @@ public sealed class ProveedorActividades : ProveedorTablaAccess
             new("SerieCuentaIva", "Serie de la 472", TipoCampo.Codigo) { Longitud = 4, Ancho = "xs", Sinonimos = ["472", "4725", "4726", "4727", "4728"],
                 Ayuda = "Cuatro cifras, por ejemplo 4728. El IVA va a la serie con la terminación de la cuenta general (4720021 → 4728021; intracomunitario x121 y x221, inversión del sujeto pasivo x321, importación x421). Vacía: las cuentas generales del ejercicio." },
             new("Activa", "Activa", TipoCampo.Logico) { Ayuda = "Una actividad inactiva no se aplica: sus centros usan las cuentas generales." },
+            new(CampoSubcuentas, "Subcuentas de IVA en este ejercicio", TipoCampo.TextoLargo) { SoloLectura = true, Ancho = "f",
+                Ayuda = "Las subcuentas del ejercicio de trabajo que empiezan por la serie: las que ya había y las que se crean al exportar." },
         ],
         [new("Codigo", "Código", 70), new("Nombre", "Nombre"), new("SerieCuentaIva", "Serie", 60), new("Activa", "Activa", 60)])
     {
+        _bd = bd;
         ColumnaAmbito = "IdSociedad";
         Orden = "Codigo";
         Usos = [new UsoRegistro("CentrosCoste", "IdActividad", "centros de coste")];
@@ -52,6 +55,36 @@ public sealed class ProveedorActividades : ProveedorTablaAccess
             return repetidas > 0 ? new Error("Actividades.Repetida", $"Ya hay una actividad con el código {r.Texto("Codigo")}.", null, null, "Usa otro código.") : null;
         };
     }
+
+    private const string CampoSubcuentas = "Subcuentas";
+
+    private readonly IBaseDatos _bd;
+
+    /// <summary>Lista las actividades con las subcuentas de su serie en el ejercicio de trabajo (propietario 2026-11-08 09:34).</summary>
+    public override Task<IReadOnlyList<RegistroMantenimiento>> ListarAsync(ContextoMantenimiento c) => _bd.EjecutarAsync(async s =>
+    {
+        var filas = await s.ConsultarAsync(
+            "SELECT IdActividad, Codigo, Nombre, Deducible, SerieCuentaIva, Activa FROM Actividades WHERE IdSociedad = ? ORDER BY Codigo",
+            f => new RegistroMantenimiento(f.Entero("IdActividad"), new Dictionary<string, object?>
+            {
+                ["Codigo"] = f.Texto("Codigo")?.Trim(), ["Nombre"] = f.Texto("Nombre")?.Trim(),
+                ["Deducible"] = f.EsNulo("Deducible") ? null : Convert.ToByte(f.Valor("Deducible"), CultureInfo.InvariantCulture),
+                ["SerieCuentaIva"] = f.Texto("SerieCuentaIva")?.Trim(), ["Activa"] = f.Logico("Activa"),
+            }), c.Trabajo.IdSociedad);
+        foreach (var r in filas)
+        {
+            if (r.Texto("SerieCuentaIva") is not { Length: 4 } serie)
+            {
+                r[CampoSubcuentas] = "Sin serie: usa las cuentas de IVA generales del ejercicio.";
+                continue;
+            }
+            var cuentas = await s.ConsultarAsync(
+                "SELECT Codigo, Nombre FROM CuentasContables WHERE IdSociedadEjercicio = ? AND Codigo LIKE ? AND Codigo <> ? ORDER BY Codigo",
+                f => $"{f.Texto("Codigo")?.Trim()}  {f.Texto("Nombre")?.Trim()}", c.Trabajo.IdSociedadEjercicio, serie + "%", serie);
+            r[CampoSubcuentas] = cuentas.Count == 0 ? $"Aún no hay subcuentas {serie} en este ejercicio: se crean al exportar." : string.Join(Environment.NewLine, cuentas);
+        }
+        return (IReadOnlyList<RegistroMantenimiento>)filas;
+    });
 
     public override async Task<RegistroMantenimiento> NuevoAsync(ContextoMantenimiento contexto)
     {
