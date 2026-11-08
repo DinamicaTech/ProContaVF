@@ -227,7 +227,7 @@ public sealed class FacturasRecibidasVM : ModeloVista, IPestanaTrabajo
     }
 
     /// <summary>Vuelve a leer la lista, conservando la factura activa (sus cambios se guardan antes).</summary>
-    internal async Task CargarAsync(int? idActiva = null)
+    internal async Task CargarAsync(int? idActiva = null, int? posicionSiFalta = null)
     {
         if (TieneCambios && !await GuardarFichaAsync()) return;
         var id = idActiva ?? _activa?.IdRegistro;
@@ -244,7 +244,7 @@ public sealed class FacturasRecibidasVM : ModeloVista, IPestanaTrabajo
             return;
         }
         Avisar(nameof(TextoPendientes), nameof(TextoContabilizadas), nameof(TextoTodas));
-        Filtrar(id);
+        Filtrar(id, posicionSiFalta);
     }
 
     // ---------- pestañas de la lista, filtros y búsqueda ----------
@@ -346,13 +346,18 @@ public sealed class FacturasRecibidasVM : ModeloVista, IPestanaTrabajo
 
     private void Filtrar() => Filtrar(null);
 
-    private void Filtrar(int? id)
+    /// <summary>
+    /// Rellena la lista y elige la activa: la de <paramref name="id"/>; si ya no está en la pestaña (se acaba de exportar o
+    /// de deshacer), la que ha ocupado su sitio, <paramref name="posicionSiFalta"/>; y si no, la primera.
+    /// </summary>
+    private void Filtrar(int? id, int? posicionSiFalta = null)
     {
         id ??= _activa?.IdRegistro;
         Filas.Clear();
         foreach (var f in _todas.Where(Cumple).OrderBy(f => f.Carpeta, StringComparer.CurrentCultureIgnoreCase).ThenBy(f => f.Fichero, StringComparer.CurrentCultureIgnoreCase))
             Filas.Add(f);
-        var nueva = Filas.FirstOrDefault(f => f.IdRegistro == id) ?? Filas.FirstOrDefault();
+        var nueva = Filas.FirstOrDefault(f => f.IdRegistro == id)
+            ?? (posicionSiFalta is int p && Filas.Count > 0 ? Filas[Math.Clamp(p, 0, Filas.Count - 1)] : Filas.FirstOrDefault());
         if (!ReferenceEquals(nueva, _activa)) Activa = nueva;
         Estado = Filas.Count == 0 ? EstadoVista.Vacio : EstadoVista.Contenido;
         MensajeEstado = _todas.Count == 0
@@ -889,7 +894,9 @@ public sealed class FacturasRecibidasVM : ModeloVista, IPestanaTrabajo
     /// <summary>Tras exportar o deshacer: la lista (la factura cambia de pestaña) y la ficha, con su asiento.</summary>
     private async Task RecargarTrasExportarAsync(int? idRegistro)
     {
-        await CargarAsync(idRegistro);
+        // Si la factura sale de la pestaña, se queda la que ocupa su sitio, no la primera (compras/pantallas 2026-11-07).
+        var fila = Filas.FirstOrDefault(f => f.IdRegistro == idRegistro);
+        await CargarAsync(idRegistro, fila is null ? null : Filas.IndexOf(fila));
         if (_activa is not null) await AbrirFichaAsync(_activa, guardarAntes: false);
         _modulo.FacturaCambiada(this);
     }

@@ -15,6 +15,29 @@
 Índices:
 - PK_FormasPago (clave primaria): Id
 
+## FormasPagoSociedad
+
+- Dueño funcional: `organizacion/formas-pago`
+
+| Campo | Tipo | Nulo | Por defecto | Descripción |
+|---|---|---|---|---|
+| IdFormaPagoSociedad | COUNTER | no |  |  |
+| IdFormaPago | BYTE | no |  |  |
+| IdSociedad | TEXT(3) | no |  |  |
+| IdIdentidadContable | LONG | sí |  |  |
+
+Índices:
+- FK_FPS_FormaPago: IdFormaPago
+- FK_FPS_Identidad: IdIdentidadContable
+- FK_FPS_Sociedad: IdSociedad
+- PK_FormasPagoSociedad (clave primaria): IdFormaPagoSociedad
+- UX_FPS_SociedadForma (único): IdSociedad, IdFormaPago
+
+Relaciones:
+- FK_FPS_FormaPago: (IdFormaPago) → FormasPago (Id); borrado NO ACTION, actualización NO ACTION
+- FK_FPS_Identidad: (IdIdentidadContable) → IdentidadesContables (IdIdentidadContable); borrado NO ACTION, actualización NO ACTION
+- FK_FPS_Sociedad: (IdSociedad) → Sociedades (IdSociedad); borrado NO ACTION, actualización NO ACTION
+
 ## Sociedades
 
 - Dueño funcional: `organizacion/sociedades-ejercicios`
@@ -57,6 +80,11 @@
 | CuentaRetencionAlquileres | TEXT(10) | sí |  | Cuenta contable para retenciones de alquileres. |
 | CuentaPeriodificacionVentas | TEXT(10) | sí |  | Cuenta contable utilizada para periodificar ingresos por ventas. |
 | Cuenta570Tesoreria | TEXT(10) | sí |  | Cuenta contable 570 utilizada para movimientos de caja o tesorería. |
+| DireccionFiscal | TEXT(255) | sí |  |  |
+| CodigoPostalFiscal | TEXT(20) | sí |  |  |
+| PoblacionFiscal | TEXT(100) | sí |  |  |
+| ProvinciaFiscal | TEXT(100) | sí |  |  |
+| RutaDocumentos | TEXT(255) | sí |  |  |
 
 Índices:
 - IX_Empresas_CIF: CIF
@@ -111,6 +139,15 @@
 | Cuenta570Tesoreria | TEXT(10) | sí |  |  |
 | PorcentajeProrrataAñoAnterior | SINGLE | sí |  |  |
 | EjercicioCerrado | YESNO | no | No |  |
+| TipoIVAGeneral | SINGLE | sí |  |  |
+| CuentaIVAImportacion | TEXT(10) | sí |  |  |
+| CuentaRedondeoGastos | TEXT(10) | sí |  |  |
+| CuentaRedondeoIngresos | TEXT(10) | sí |  |  |
+| CuentaIVARepercutido0 | TEXT(10) | sí |  |  |
+| CuentaIVARepercutido1 | TEXT(10) | sí |  |  |
+| CuentaIVARepercutido2 | TEXT(10) | sí |  |  |
+| CuentaIVARepercutido3 | TEXT(10) | sí |  |  |
+| CuentaIVARepercutido4 | TEXT(10) | sí |  |  |
 
 Índices:
 - FK_Sociedades_SociedadesEjercicios: IdSociedad
@@ -118,4 +155,21 @@
 
 Relaciones:
 - FK_Sociedades_SociedadesEjercicios: (IdSociedad) → Sociedades (IdSociedad); borrado NO ACTION, actualización NO ACTION
+
+## TiposRetencion
+
+- Dueño funcional: `organizacion/sociedades-ejercicios`
+
+| Campo | Tipo | Nulo | Por defecto | Descripción |
+|---|---|---|---|---|
+| IdTipoRetencion | COUNTER | no |  |  |
+| Porcentaje | DECIMAL | no |  |  |
+| Descripcion | TEXT(100) | no |  |  |
+| Clase | BYTE | no |  |  |
+| VigenteDesde | DATETIME | sí |  |  |
+| VigenteHasta | DATETIME | sí |  |  |
+| Activo | YESNO | no |  |  |
+
+Índices:
+- PK_TiposRetencion (clave primaria): IdTipoRetencion
 

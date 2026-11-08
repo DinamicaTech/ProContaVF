@@ -93,6 +93,24 @@ Relaciones:
 - PK_OperadoresSeguridad (clave primaria): IdOperador
 - UX_OperadoresSeguridad_Nombre (único): Nombre
 
+## PermisosAccionesGrupo
+
+- Dueño funcional: `seguridad/permisos`
+
+| Campo | Tipo | Nulo | Por defecto | Descripción |
+|---|---|---|---|---|
+| IdPermisoAccion | COUNTER | no |  |  |
+| CodigoAccion | TEXT(60) | no |  |  |
+| IdGrupoOperadores | LONG | no |  |  |
+
+Índices:
+- FK_PermisosAcciones_Grupo: IdGrupoOperadores
+- PK_PermisosAccionesGrupo (clave primaria): IdPermisoAccion
+- UX_PermisosAcciones_AccionGrupo (único): CodigoAccion, IdGrupoOperadores
+
+Relaciones:
+- FK_PermisosAcciones_Grupo: (IdGrupoOperadores) → GruposOperadores (IdGrupoOperadores); borrado NO ACTION, actualización NO ACTION
+
 ## PreferenciasAccesoEjercicio
 
 - Dueño funcional: `seguridad/acceso`

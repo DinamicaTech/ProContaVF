@@ -127,6 +127,71 @@ public sealed class ContabilizacionComprasAccessTests : IDisposable
 
     }
 
+    /// <summary>Centro «3» con la actividad dada (serie y deducible) y su hijo imputable «3/318», sin actividad propia.</summary>
+    private async Task<(int Padre, int Hijo)> CentrosConActividadAsync(string? serie, byte deducible)
+    {
+        await Bd.EjecutarAsync(s => s.EjecutarAsync("INSERT INTO Actividades (IdSociedad, Codigo, Nombre, Deducible, SerieCuentaIva, Activa) VALUES (?, ?, ?, ?, ?, ?)",
+            "T01", "TUR", "Alquileres turísticos", deducible, serie, true));
+        var idActividad = await Contar("SELECT MAX(IdActividad) FROM Actividades");
+        var centros = new ProConta.Contabilidad.CentrosCoste.CatalogoCentrosCosteAccess(Bd);
+        var padre = (await centros.AltaAsync("T01", "3", "Alquileres", esImputable: false)).Valor.IdCentroCoste;
+        var hijo = (await centros.AltaAsync("T01", "318", "Piso 318", padre)).Valor.IdCentroCoste;
+        await Bd.EjecutarAsync(s => s.EjecutarAsync("UPDATE CentrosCoste SET IdActividad = ? WHERE IdCentroCoste = ?", idActividad, padre));
+        return (padre, hijo);
+    }
+
+    [Fact]
+    public async Task El_iva_va_a_la_serie_472_de_la_actividad_heredada_del_centro_y_crea_sus_subcuentas()
+    {
+        await EmpresaAsync();
+        var (_, hijo) = await CentrosConActividadAsync("4728", 2);
+        var (f, _) = await FacturaAsync();
+        f.IdCentroCoste = hijo;
+        var r = await Servicio().ExportarAsync(f, _actor, new OpcionesExportacion(EsProveedor: false));
+        Assert.True(r.EsCorrecto, r.Error?.ToString());
+        var asiento = (await new MotorAsientosAccess(Bd).ObtenerAsync(r.Valor.IdAsiento!.Value))!;
+        Assert.Contains(asiento.Apuntes, a => a.CodigoCuenta == "4728021" && a.Debe.Valor == 21m);
+        Assert.Contains(asiento.Apuntes, a => a.CodigoCuenta == "4728010" && a.Debe.Valor == 5m);
+        Assert.DoesNotContain(asiento.Apuntes, a => a.CodigoCuenta.StartsWith("4720", StringComparison.Ordinal));
+        Assert.Equal(26m, Convert.ToDecimal(await Bd.EjecutarAsync(s => s.EscalarAsync("SELECT CuotaDeducibleTotal FROM IVASoportado WHERE IdAsiento = ?", r.Valor.IdAsiento))));
+    }
+
+    [Fact]
+    public async Task La_inversion_del_sujeto_pasivo_autorrepercute_en_la_472_y_la_477_de_la_actividad()
+    {
+        await EmpresaAsync();
+        await Bd.EjecutarAsync(s => s.EjecutarAsync("UPDATE SociedadesEjercicios SET TipoIVAGeneral = 21, CuentaIVAInversionSujetoPasivoSoportado = ?, " +
+            "CuentaIVAInversionSujetoPasivoRepercutido = ? WHERE IdSociedadEjercicio = 9001", "4721021", "4771021"));
+        var (_, hijo) = await CentrosConActividadAsync("4728", 2);
+        var (f, _) = await FacturaAsync(total: 150m);
+        f.IdCentroCoste = hijo;
+        f.InversionSujetoPasivo = true;
+        f.Desgloses.Clear();
+        f.Desgloses.Add(new DesgloseFacturaCompra(1, 0m, 150m, 0m));
+        f.CuotaIva = 0m;
+        var r = await Servicio().ExportarAsync(f, _actor, new OpcionesExportacion(EsProveedor: false));
+        Assert.True(r.EsCorrecto, r.Error?.ToString());
+        var asiento = (await new MotorAsientosAccess(Bd).ObtenerAsync(r.Valor.IdAsiento!.Value))!;
+        Assert.Contains(asiento.Apuntes, a => a.CodigoCuenta == "4728321" && a.Debe.Valor == 31.5m);
+        Assert.Contains(asiento.Apuntes, a => a.CodigoCuenta == "4778321" && a.Haber.Valor == 31.5m);
+    }
+
+    [Fact]
+    public async Task Con_una_actividad_sin_iva_deducible_el_iva_va_al_gasto()
+    {
+        await EmpresaAsync();
+        var (_, hijo) = await CentrosConActividadAsync("4726", 0);
+        var (f, _) = await FacturaAsync();
+        f.IdCentroCoste = hijo;
+        var r = await Servicio().ExportarAsync(f, _actor, new OpcionesExportacion(EsProveedor: false));
+        Assert.True(r.EsCorrecto, r.Error?.ToString());
+        var asiento = (await new MotorAsientosAccess(Bd).ObtenerAsync(r.Valor.IdAsiento!.Value))!;
+        Assert.DoesNotContain(asiento.Apuntes, a => a.CodigoCuenta.StartsWith("472", StringComparison.Ordinal));
+        Assert.Equal(176m, asiento.Apuntes.Where(a => a.CodigoCuenta == "6290000").Sum(a => a.Debe.Valor));
+        Assert.Equal(0m, Convert.ToDecimal(await Bd.EjecutarAsync(s => s.EscalarAsync("SELECT CuotaDeducibleTotal FROM IVASoportado WHERE IdAsiento = ?", r.Valor.IdAsiento))));
+        Assert.Equal(26m, Convert.ToDecimal(await Bd.EjecutarAsync(s => s.EscalarAsync("SELECT CuotaSoportadaTotal FROM IVASoportado WHERE IdAsiento = ?", r.Valor.IdAsiento))));
+    }
+
     [Fact]
     public async Task La_propuesta_es_el_asiento_que_se_exportaria_sin_grabar_nada()
     {

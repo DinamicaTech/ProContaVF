@@ -19,15 +19,23 @@ namespace ProConta.Compras.Facturas;
 /// <param name="TipoGeneral">Tipo general del ejercicio, el de la autorrepercusión y la importación.</param>
 /// <param name="NombreProveedor">Nombre del proveedor en las descripciones: el comercial si lo tiene, si no la razón social.</param>
 /// <param name="NombreGasto">Nombre de la cuenta de gasto, para la descripción de su apunte.</param>
+/// <param name="IvaNoDeducible">
+/// La actividad del centro de coste no deduce el IVA (Actividades.Deducible = 0, contabilidad/procesos 2026-11-08): el
+/// IVA soportado va al gasto y en el libro consta sin cuota deducible.
+/// </param>
 public sealed record CuentasCompra(
     string Proveedor, string Gasto, int? IdCentroCoste, IReadOnlyDictionary<decimal, string> IvaSoportado,
     string? Retencion, string? AutoSoportado, string? AutoRepercutido, string? Importacion, string? Suplido,
-    string RedondeoGastos, string RedondeoIngresos, decimal TipoGeneral, string? NombreProveedor = null, string? NombreGasto = null);
+    string RedondeoGastos, string RedondeoIngresos, decimal TipoGeneral, string? NombreProveedor = null, string? NombreGasto = null,
+    bool IvaNoDeducible = false);
 
 /// <summary>Un tramo del libro de IVA soportado (DesglosesIVASoportado).</summary>
-public sealed record TramoLibroCompra(decimal TipoIva, decimal Base, decimal CuotaSoportada, decimal CuotaAutorrepercutida, string? CuentaSoportado, string? CuentaRepercutido)
+/// <param name="Deducible">False en una actividad sin IVA deducible: el tramo va al libro con el 0 % deducible.</param>
+public sealed record TramoLibroCompra(decimal TipoIva, decimal Base, decimal CuotaSoportada, decimal CuotaAutorrepercutida, string? CuentaSoportado, string? CuentaRepercutido,
+    bool Deducible = true)
 {
-    public decimal CuotaDeducible => CuotaSoportada + CuotaAutorrepercutida;
+    public decimal CuotaDeducible => Deducible ? CuotaSoportada + CuotaAutorrepercutida : 0m;
+    public decimal PorcentajeDeducible => Deducible ? 100m : 0m;
     public TramoLibroCompra Negado() => this with { Base = -Base, CuotaSoportada = -CuotaSoportada, CuotaAutorrepercutida = -CuotaAutorrepercutida };
 }
 
@@ -132,17 +140,38 @@ public static class AsientoCompra
             // Siempre al tipo general, lleve o no IVA desglosado (2026-10-31 07:46); sin 477.
             var sujeto = total + (f.ImporteRetencion ?? 0m) - (f.Suplido ?? 0m);
             var gasto = Importe.RedondearValor(sujeto / (1m + cuentas.TipoGeneral / 100m));
-            Anadir(cuentas.Gasto, gasto, true, Componer([abreviado ?? (string.IsNullOrWhiteSpace(cuentas.NombreGasto) ? "Gasto" : cuentas.NombreGasto.Trim()), nombre, fra], null), centro: cuentas.IdCentroCoste);
-            Anadir(cuentas.Importacion, sujeto - gasto, true, Linea($"IVA importación {Pct(cuentas.TipoGeneral)}"));
-            tramos.Add(new TramoLibroCompra(cuentas.TipoGeneral, gasto, sujeto - gasto, 0m, cuentas.Importacion, null));
+            var textoGasto = Componer([abreviado ?? (string.IsNullOrWhiteSpace(cuentas.NombreGasto) ? "Gasto" : cuentas.NombreGasto.Trim()), nombre, fra], null);
+            if (cuentas.IvaNoDeducible)
+            {
+                // Sin IVA deducible, todo el importe es gasto (el IVA de importación no se deduce).
+                Anadir(cuentas.Gasto, sujeto, true, textoGasto, centro: cuentas.IdCentroCoste);
+                tramos.Add(new TramoLibroCompra(cuentas.TipoGeneral, gasto, sujeto - gasto, 0m, null, null, Deducible: false));
+            }
+            else
+            {
+                Anadir(cuentas.Gasto, gasto, true, textoGasto, centro: cuentas.IdCentroCoste);
+                Anadir(cuentas.Importacion, sujeto - gasto, true, Linea($"IVA importación {Pct(cuentas.TipoGeneral)}"));
+                tramos.Add(new TramoLibroCompra(cuentas.TipoGeneral, gasto, sujeto - gasto, 0m, cuentas.Importacion, null));
+            }
         }
         else
         {
             var autorrepercute = f.InversionSujetoPasivo || f.Operacion == OperacionCompra.Intracomunitaria;
             foreach (var (tipo, b, c) in Bases(f))
             {
+                if (autorrepercute)
+                {
+                    Anadir(cuentas.Gasto, b, true, Gasto(tipo), centro: cuentas.IdCentroCoste);
+                    continue;
+                }
+                if (cuentas.IvaNoDeducible)
+                {
+                    // IVA no deducible: forma parte del gasto (contabilidad/procesos 2026-11-08).
+                    Anadir(cuentas.Gasto, b + c, true, Gasto(tipo), centro: cuentas.IdCentroCoste);
+                    tramos.Add(new TramoLibroCompra(tipo, b, c, 0m, null, null, Deducible: false));
+                    continue;
+                }
                 Anadir(cuentas.Gasto, b, true, Gasto(tipo), centro: cuentas.IdCentroCoste);
-                if (autorrepercute) continue;
                 Anadir(cuentas.IvaSoportado.TryGetValue(tipo, out var cuentaIva) ? cuentaIva : "", c, true, Linea($"IVA soportado {Pct(tipo)}"));
                 tramos.Add(new TramoLibroCompra(tipo, b, c, 0m, cuentaIva, null));
             }
@@ -151,9 +180,14 @@ public static class AsientoCompra
                 var b = Bases(f).Sum(x => x.Base);
                 var cuota = Importe.RedondearValor(b * cuentas.TipoGeneral / 100m);
                 var texto = f.InversionSujetoPasivo ? "ISP" : "intracomunitario";
-                Anadir(cuentas.AutoSoportado, cuota, true, Linea($"IVA soportado {Pct(cuentas.TipoGeneral)} ({texto})"));
+                // Sin IVA deducible, el lado soportado de la autorrepercusión es más gasto; el repercutido se declara igual.
+                if (cuentas.IvaNoDeducible)
+                    Anadir(cuentas.Gasto, cuota, true, Linea($"IVA no deducible {Pct(cuentas.TipoGeneral)} ({texto})"), centro: cuentas.IdCentroCoste);
+                else
+                    Anadir(cuentas.AutoSoportado, cuota, true, Linea($"IVA soportado {Pct(cuentas.TipoGeneral)} ({texto})"));
                 Anadir(cuentas.AutoRepercutido, cuota, false, Linea($"IVA autorrepercutido {Pct(cuentas.TipoGeneral)} ({texto})"));
-                tramos.Add(new TramoLibroCompra(cuentas.TipoGeneral, b, 0m, cuota, cuentas.AutoSoportado, cuentas.AutoRepercutido));
+                tramos.Add(new TramoLibroCompra(cuentas.TipoGeneral, b, 0m, cuota, cuentas.IvaNoDeducible ? null : cuentas.AutoSoportado, cuentas.AutoRepercutido,
+                    Deducible: !cuentas.IvaNoDeducible));
             }
         }
         if ((f.Suplido ?? 0m) != 0m)

@@ -10,6 +10,7 @@ Repensar la gestión de activos: empezó para inmuebles y se ha convertido en ac
 
 ## Decisions
 - 2026-10-28 13:30 · Creado en la carga inicial de requisitos.
+- 2026-11-08 10:12 · Derived from contabilidad/procesos (propietario 2026-11-08 09:12): Inmuebles pasará a Activos; PlantillasInmuebles (cuentas de 5 cifras, p. ej. 62550 seguros → 62550XX por activo de los tipos 1 a 5) genera las más de 20 subcuentas de cada activo con descripción uniforme, y CuentasInmuebles materializa las generadas (cambiar la descripción en la plantilla las actualiza todas y dice en qué subcuenta va, p. ej., la amortización de cada activo). El Departamento/SubDepartamento del inmueble pasa a ser su centro de coste del árbol nuevo; la actividad a efectos de IVA (Actividades, versión 31) la hereda de ese centro, así que un activo no necesita actividad propia. Las series 472 son por actividad, no por activo: no chocan con las subcuentas por activo. Al rediseñar: que el activo apunte a su centro de coste y que, en compras, una cuenta de gasto de un activo proponga su centro (y con él su actividad).
 
 ## Requirements
 - 2026-10-28 12:28 · From sources/01_ESPECIFICACION_FUNCIONAL.docx § 20 RF-ACT-01..05: activos e inversiones

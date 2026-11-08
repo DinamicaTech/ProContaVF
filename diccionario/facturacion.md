@@ -21,6 +21,8 @@
 | TipoIVA | DOUBLE | sí |  | Porcentaje de IVA predeterminado al insertar el concepto en una factura. |
 | Activo | YESNO | no | True | Indica si el concepto puede utilizarse en nuevas facturas. |
 | Notas | LONGTEXT | sí |  | Observaciones internas sobre el concepto, no visibles para el cliente. |
+| IdSociedad | TEXT(3) | sí |  |  |
+| IdIdentidadContable | LONG | sí |  |  |
 
 Índices:
 - FK_Conceptos_TiposConcepto: IdTipoConcepto
@@ -29,6 +31,7 @@
 - IX_Conceptos_IdSociedad: IdSociedadEjercicio
 - IX_Conceptos_IdTipoConcepto: IdTipoConcepto
 - IX_Conceptos_Nombre: Nombre
+- IX_Conceptos_Sociedad: IdSociedad
 - PK_Conceptos (clave primaria): IdConcepto
 
 Relaciones:
@@ -185,6 +188,18 @@ Relaciones:
 | IdFacturaProgramada | LONG | sí |  | Programacion concreta que origino la factura; vacio para facturas creadas manualmente. |
 | IdLoteFacturaProgramada | LONG | sí |  | Lote durante el cual se genero la factura; vacio para facturas creadas manualmente. |
 | FechaProgramadaOrigen | DATETIME | sí |  | Fecha prevista de la ocurrencia procesada. Junto con IdFacturaProgramada evita generar dos veces la misma factura. |
+| DireccionCliente | TEXT(255) | sí |  |  |
+| CodigoPostalCliente | TEXT(20) | sí |  |  |
+| PoblacionCliente | TEXT(100) | sí |  |  |
+| ProvinciaCliente | TEXT(100) | sí |  |  |
+| EmailCliente | TEXT(254) | sí |  |  |
+| SinVeriFactu | YESNO | no | False |  |
+| Version | LONG | no | 0 |  |
+| MotivoRectificacion | TEXT(255) | sí |  |  |
+| DireccionEmisor | TEXT(255) | sí |  |  |
+| CodigoPostalEmisor | TEXT(20) | sí |  |  |
+| PoblacionEmisor | TEXT(100) | sí |  |  |
+| ProvinciaEmisor | TEXT(100) | sí |  |  |
 
 Índices:
 - EstadosFacturaFacturas: EstadoFactura
@@ -241,7 +256,6 @@ Relaciones:
 | TipoFactura | TEXT(2) | no | "F1" | Tipo fiscal de las facturas generadas, definido en TiposFactura. |
 | FechaInicio | DATETIME | no |  | Fecha desde la que puede ejecutarse la programacion. |
 | FechaFin | DATETIME | sí |  | Fecha final opcional; despues de ella no se generan nuevas facturas. |
-| Periodicidad | TEXT(12) | no | "MENSUAL" | Frecuencia: MENSUAL, TRIMESTRAL, SEMESTRAL, ANUAL o PUNTUAL. |
 | DiaEmision | BYTE | sí |  | Dia preferente del mes para generar la factura, de 1 a 31. |
 | ProximaFechaEmision | DATETIME | no |  | Siguiente fecha programada pendiente de generar. |
 | FechaUltimaGeneracion | DATETIME | sí |  | Fecha y hora de la ultima generacion completada. |
@@ -255,6 +269,13 @@ Relaciones:
 | OperadorAlta | TEXT(30) | sí |  | Usuario u operador que creo la programacion. |
 | Historial | LONGTEXT | sí |  | Registro acumulativo de cambios, ejecuciones y errores. |
 | EnviarPorEmail | YESNO | no | False | Indica si, después de validar y generar el PDF, el proceso automático debe enviarlo al cliente. False significa que no se espera ningún envío y no constituye una incidencia. |
+| PeriodoDesde | DATETIME | sí |  |  |
+| PeriodoHasta | DATETIME | sí |  |  |
+| NumeroRepeticiones | LONG | sí |  |  |
+| FacturasGeneradas | LONG | no | 0 |  |
+| AlGenerar | TEXT(10) | no | 'BORRADOR' |  |
+| Version | LONG | no | 0 |  |
+| Periodicidad | TEXT(15) | no | 'MENSUAL' |  |
 
 Índices:
 - FK_Clientes_FacturasProgramadas: IdCliente
@@ -371,7 +392,7 @@ Relaciones:
 | EsSuplido | YESNO | no | False | Indica que la línea corresponde a un suplido y requiere tratamiento separado de la base imponible ordinaria. |
 | ImporteTotal | CURRENCY | no | 0 | Importe total congelado de la línea: base imponible más IVA y, en su caso, recargo. |
 | Nombre | TEXT(255) | sí |  | Descripción abreviada y visible que encabeza la línea de factura; se copia del concepto y queda congelada. |
-| CuentaContable | TEXT(7) | sí |  | Cuenta contable de venta copiada del concepto y congelada para la exportación contable. |
+| CuentaContable | TEXT(30) | sí |  | Cuenta contable de venta copiada del concepto y congelada para la exportación contable. |
 | IdDepartamento | LONG | sí |  | Departamento analítico copiado del concepto y congelado para la exportación contable. |
 | IdCentroCoste | LONG | sí |  | Centro de coste copiado del concepto y congelado para la exportación contable. |
 
@@ -412,7 +433,7 @@ Relaciones:
 | TipoIVA | DOUBLE | no | 21 | Porcentaje de IVA aplicable. |
 | TipoRecargoEquivalencia | DOUBLE | no | 0 | Porcentaje de recargo de equivalencia aplicable. |
 | EsSuplido | YESNO | no | False | Indica si la linea corresponde a un suplido. |
-| CuentaContable | TEXT(7) | sí |  | Cuenta de ventas que se copiara a la linea de factura. |
+| CuentaContable | TEXT(30) | sí |  | Cuenta de ventas que se copiara a la linea de factura. |
 | IdDepartamento | LONG | sí |  | Departamento analitico asociado. |
 | IdCentroCoste | LONG | sí |  | Centro de coste analitico asociado. |
 | Activa | YESNO | no | True | Indica si la linea se copiara en nuevas facturas. |

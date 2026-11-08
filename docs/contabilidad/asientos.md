@@ -21,6 +21,7 @@ Motor común que valida y guarda asientos como agregado atómico con cuadre, aud
 - 2026-11-01 09:31 · Validado por el propietario (desarrollos base).
 - 2026-11-07 00:19 · El motor admite un trabajo del área dueña del lote dentro de la misma transacción (TrabajoLote: antes de borrar los asientos del lote y después de grabar los nuevos), para que compras grabe el libro de IVA y la marca de la factura con el asiento; si ese trabajo falla, no se guarda nada.
 - 2026-11-07 12:49 · Regenerar un lote (`ReemplazarLoteAsync`) reutiliza en orden los asientos que ya tiene: cambian sus apuntes y su versión, no su número (el registro de cambios queda en el mismo asiento); solo se borran los que sobran y se crean los que faltan. Antes se borraban y se creaban todos.
+- 2026-11-07 21:46 · Trimestre cerrado (decisión del propietario, 2026-11-07, a propuesta de compras): el motor de asientos, por el que pasan todos los módulos, no crea, cambia ni borra un asiento fechado antes del trimestre activo del ejercicio (SociedadesEjercicios.TrimestreActivo), igual que ya protegía el ejercicio cerrado y en la misma transacción. El error Asientos.TrimestreCerrado pide corregirlo con un contra-asiento en el trimestre activo. Sin trimestre activo configurado no se comprueba. Compras ya trabajaba así; ventas fecha sus asientos en el trimestre activo y el futuro diario manual lo tendrá de serie.
 
 ## Requirements
 - 2026-10-28 12:28 · From sources/01_ESPECIFICACION_FUNCIONAL.docx § 15 RF-ASI-01..03: agregado atómico, cuadre, automáticos regenerables por su lote
