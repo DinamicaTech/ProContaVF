@@ -21,11 +21,25 @@ public static class Instantaneas
             : (t.Direccion, t.CodigoPostal, t.Poblacion, t.Provincia, t.Pais);
         return new InstantaneaCliente(
             Recortar(t.Nif?.Trim().ToUpperInvariant(), 25),
-            Recortar(t.Nombre, 150),
+            Recortar(NombreCliente(t.TipoPersona == TipoPersona.Fisica, t.NombrePersona, t.PrimerApellido, t.NombreComercial, t.RazonSocial, t.Nombre), 150),
             Recortar(string.IsNullOrWhiteSpace(t.RazonSocial) ? t.Nombre : t.RazonSocial, 200),
             PaisIso(pais),
             TipoIdentificacionAeat(t.TipoIdentificacion),
             Recortar(direccion, 255), Recortar(cp, 20), Recortar(poblacion, 100), Recortar(provincia, 100), Recortar(t.Email, 254));
+    }
+
+    /// <summary>
+    /// Nombre del cliente que se congela en Facturas.Nombre y que llevan los apuntes (propietario 2026-11-08): persona
+    /// física, nombre y primer apellido; el resto, nombre comercial o, si no tiene, razón social. Sin esos datos, el nombre
+    /// general del tercero. La razón social se congela aparte: es la que sale en el PDF.
+    /// </summary>
+    public static string NombreCliente(bool personaFisica, string? nombrePersona, string? primerApellido, string? nombreComercial, string? razonSocial, string? nombre)
+    {
+        static string? Dato(string? v) => string.IsNullOrWhiteSpace(v) ? null : v.Trim();
+        var propio = personaFisica
+            ? Dato(string.Join(' ', new[] { Dato(nombrePersona), Dato(primerApellido) }.Where(x => x is not null)))
+            : Dato(nombreComercial) ?? Dato(razonSocial);
+        return propio ?? Dato(nombre) ?? Dato(razonSocial) ?? "";
     }
 
     /// <summary>

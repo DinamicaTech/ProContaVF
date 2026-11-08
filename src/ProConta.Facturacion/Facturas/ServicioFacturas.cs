@@ -212,7 +212,119 @@ public sealed class ServicioFacturas
         }
     }
 
-    /// <summary>Notas internas: lo único que se puede cambiar en una factura numerada (RF-FAC-07).</summary>
+    // ---------- factura validada sin enviar a VeriFactu ----------
+
+    /// <summary>
+    /// Una factura numerada se puede modificar o deshacer su exportación mientras no se haya enviado a VeriFactu: marcada
+    /// «sin VeriFactu» o sin ningún registro de envío (facturacion/factura-venta 2026-11-08).
+    /// </summary>
+    public Task<bool> EnviadaAVeriFactuAsync(FacturaVenta f) =>
+        f.SinVeriFactu ? Task.FromResult(false) : _bd.EjecutarAsync(s => RepositorioFacturas.TieneEnvioVeriFactuAsync(s, f.IdFactura));
+
+    /// <summary>La factura está validada, sin rectificar y sin enviar a VeriFactu: se puede modificar cualquier campo o línea.</summary>
+    public async Task<bool> SePuedeModificarAsync(FacturaVenta f) =>
+        f.NumeroFactura is not null && f.Estado == EstadoFactura.Validada && !await EnviadaAVeriFactuAsync(f);
+
+    /// <summary>Si guardar estos cambios afecta al asiento vigente, lo que se hará con él; si no, «NoExportada».</summary>
+    public async Task<PlanDeshacerVenta> PlanGuardarValidadaAsync(FacturaVenta f)
+    {
+        var actual = await ObtenerAsync(f.IdFactura);
+        return actual is null || actual.IdAsientoContable is null || AsientoVenta.Huella(actual) == AsientoVenta.Huella(f)
+            ? new PlanDeshacerVenta(ModoDeshacerVenta.NoExportada, null)
+            : await _contabilizador.PlanDeshacerAsync(actual);
+    }
+
+    /// <summary>
+    /// Guarda una factura validada sin enviar a VeriFactu. El número y la serie no cambian y la fecha debe seguir el orden
+    /// de la serie. Si el cambio afecta al asiento, el asiento se regenera en la misma transacción: se sustituye o, si es de
+    /// un trimestre cerrado, se hace su contra-asiento y uno nuevo. Si no tenía asiento, sigue sin él.
+    /// </summary>
+    public async Task<Resultado<FacturaVenta>> GuardarValidadaAsync(FacturaVenta factura, Actor actor)
+    {
+        if (!await _autorizador.PuedeAsync(Acciones.FacturasEditar)) return SinPermiso<FacturaVenta>("editar facturas", factura.Rotulo);
+        var actual = await ObtenerAsync(factura.IdFactura);
+        if (actual is null) return Resultado<FacturaVenta>.Fallo(new Error("Facturas.NoExiste", "La factura ya no existe.", factura.Rotulo));
+        if (actual.Version != factura.Version)
+            return Resultado<FacturaVenta>.Fallo(new Error("Facturas.Conflicto", "Otro operador ha cambiado esta factura después de abrirla.", factura.Rotulo, null, "Vuelve a abrirla y repite el cambio."));
+        if (!await SePuedeModificarAsync(actual))
+            return Resultado<FacturaVenta>.Fallo(new Error("Facturas.NoModificable", "Esta factura ya no se puede modificar.", factura.Rotulo,
+                actual.Estado == EstadoFactura.Validada ? "Ya se ha enviado a VeriFactu." : "Está rectificada o pendiente de rectificación.",
+                "Corrígela con una rectificativa."));
+
+        var f = factura.Clonar();
+        f.IdSerie = actual.IdSerie;
+        if (f.EsRectificativa)
+        {
+            f.IdCliente = actual.IdCliente;
+            f.TipoRetencion = actual.TipoRetencion;
+            f.Lineas.Clear();
+            f.Lineas.AddRange(actual.Lineas);
+        }
+        foreach (var l in f.Lineas) l.Nombre = l.Nombre.Trim();
+        InstantaneaCliente? nuevoCliente = null;
+        if (f.IdCliente != actual.IdCliente && f.IdCliente is int idCliente && await TerceroDeClienteAsync(idCliente) is { } tercero)
+            nuevoCliente = Instantaneas.DeTercero(tercero);
+        f.Cliente = f.IdCliente == actual.IdCliente ? actual.Cliente : nuevoCliente ?? InstantaneaCliente.Vacia;
+
+        var errores = (await ComprobarAsync(f)).Where(i => !i.EsAviso).ToList();
+        if (errores.Count > 0)
+            return Resultado<FacturaVenta>.Fallo(errores.Select(i => new Error(i.Codigo, i.Mensaje, f.Rotulo)));
+
+        var regenerar = actual.IdAsientoContable is not null && AsientoVenta.Huella(actual) != AsientoVenta.Huella(f);
+        f.Anotar(_reloj.Ahora, actor.Nombre, regenerar ? "Modificada después de validar; asiento regenerado" : "Modificada después de validar");
+        try
+        {
+            if (regenerar)
+            {
+                var asiento = await _contabilizador.ContabilizarAsync(f, actor, s => RepositorioFacturas.ActualizarValidadaAsync(s, f));
+                if (!asiento.EsCorrecto) return Resultado<FacturaVenta>.Fallo(asiento.Errores);
+            }
+            else
+            {
+                await _bd.EnTransaccionAsync(async s => { await RepositorioFacturas.ActualizarValidadaAsync(s, f); return true; });
+            }
+        }
+        catch (ExcepcionDatos ex)
+        {
+            return Resultado<FacturaVenta>.Fallo(ex.Error);
+        }
+        return Resultado<FacturaVenta>.Correcto((await ObtenerAsync(f.IdFactura))!);
+    }
+
+    /// <summary>La factura tiene un PDF archivado (Facturas.PDFFactura).</summary>
+    public async Task<bool> TienePdfArchivadoAsync(int idFactura) =>
+        await _bd.EjecutarAsync(s => s.EscalarAsync("SELECT PDFFactura FROM Facturas WHERE IdFactura = ?", idFactura)) is string ruta && !string.IsNullOrWhiteSpace(ruta);
+
+    /// <summary>Lo que hará deshacer la exportación de la factura, para avisar antes.</summary>
+    public Task<PlanDeshacerVenta> PlanDeshacerAsync(FacturaVenta f) => _contabilizador.PlanDeshacerAsync(f);
+
+    /// <inheritdoc cref="PlanDeshacerAsync(FacturaVenta)"/>
+    public async Task<PlanDeshacerVenta> PlanDeshacerAsync(int idFactura) =>
+        await ObtenerAsync(idFactura) is { } f ? await _contabilizador.PlanDeshacerAsync(f) : new PlanDeshacerVenta(ModoDeshacerVenta.NoExportada, null);
+
+    /// <summary>
+    /// «Deshacer exportación contable» (propietario 2026-11-08): del trimestre activo o posterior borra el asiento; de uno
+    /// cerrado hace un contra-asiento. La factura queda sin asiento. No se puede si ya se ha enviado a VeriFactu.
+    /// </summary>
+    public async Task<Resultado<string>> DeshacerExportacionAsync(int idFactura, Actor actor)
+    {
+        if (!await _autorizador.PuedeAsync(Acciones.FacturasValidar)) return SinPermiso<string>("deshacer la exportación contable", FacturaVenta.RotuloBorrador(idFactura));
+        var f = await ObtenerAsync(idFactura);
+        if (f is null) return Resultado<string>.Fallo(new Error("Facturas.NoExiste", "La factura ya no existe.", FacturaVenta.RotuloBorrador(idFactura)));
+        if (await EnviadaAVeriFactuAsync(f))
+            return Resultado<string>.Fallo(new Error("Facturas.EnviadaVeriFactu", "Esta factura ya se ha enviado a VeriFactu, así que no se puede deshacer su exportación.", f.Rotulo, null,
+                "Corrígela con una rectificativa."));
+        try
+        {
+            return await _contabilizador.DeshacerAsync(f, actor);
+        }
+        catch (ExcepcionDatos ex)
+        {
+            return Resultado<string>.Fallo(ex.Error);
+        }
+    }
+
+    /// <summary>Notas internas de una factura numerada que ya no se puede modificar (RF-FAC-07).</summary>
     public async Task<Resultado> GuardarNotasAsync(int idFactura, string? notas, int versionLeida, Actor actor)
     {
         if (!await _autorizador.PuedeAsync(Acciones.FacturasEditar)) return SinPermiso<bool>("editar facturas", FacturaVenta.RotuloBorrador(idFactura));
@@ -250,7 +362,8 @@ public sealed class ServicioFacturas
         }
         var abierto = await _sociedades.ComprobarEjercicioAbiertoAsync(ejercicio.Contexto);
         if (!abierto.EsCorrecto) r.Add(new(abierto.Error!.Codigo, abierto.Error.Mensaje));
-        if (await VeriFactuActivoAsync())
+        var numerada = f.NumeroFactura is not null;
+        if (!numerada && await VeriFactuActivoAsync())
             r.Add(new("Facturas.VeriFactuNoDisponible", "VeriFactu está activado, pero aún no está disponible en esta versión, así que no se puede validar sin dejar la factura fuera de la AEAT. Desactívalo en Configuración › Parámetros y tablas › Configuración general para seguir validando sin VeriFactu."));
         var configuracion = await new LectorConfiguracionEjercicio(_bd).ObtenerAsync(f.IdSociedadEjercicio);
         if (string.IsNullOrWhiteSpace(configuracion?.DireccionEmisor))
@@ -261,6 +374,15 @@ public sealed class ServicioFacturas
         var fecha = (f.FechaFactura ?? _reloj.Ahora).Date;
         var conFecha = f.Clonar();
         conFecha.FechaFactura = fecha;
+        if (numerada)
+        {
+            // Ya tiene número: su fecha debe seguir el orden de la serie, sin adelantar a la anterior ni pasar a la siguiente.
+            var (anterior, siguiente) = await _bd.EjecutarAsync(s => RepositorioFacturas.FechasVecinasAsync(s, f.IdSerie, f.NumeroFactura!));
+            ultimaFecha = anterior;
+            conFecha.Estado = EstadoFactura.Borrador;
+            if (siguiente is { } sig && fecha > sig.Date)
+                r.Add(new("Facturas.FechaPosteriorSerie", $"La fecha de factura ({fecha:dd/MM/yyyy}) es posterior a la de la siguiente factura numerada de la serie ({sig:dd/MM/yyyy}). Usa esa fecha o una anterior.", "FechaFactura"));
+        }
         r.AddRange(ReglasFactura.ValidarParaEmision(conFecha, ultimaFecha));
 
         if (fecha.Year != ejercicio.Ejercicio)
@@ -269,7 +391,7 @@ public sealed class ServicioFacturas
             r.Add(new("Facturas.SerieNoValida", "La serie de la factura no es de su ejercicio. Elige otra en la cabecera.", "IdSerie"));
         else if (serie.EsRectificativa != f.EsRectificativa)
             r.Add(new("Facturas.SerieNoValida", f.EsRectificativa ? "Una rectificativa se numera en la serie de rectificativas." : "La serie de rectificativas solo numera rectificativas. Elige una serie normal.", "IdSerie"));
-        else if (serie.Agotada)
+        else if (serie.Agotada && !numerada)
             r.Add(new("Facturas.SerieAgotada", $"La serie {serie.Prefijo.Trim()} ha llegado al final de su rango ({serie.RangoHasta}). Amplía el rango o crea otra serie en Parámetros y tablas › Series de facturación.", "IdSerie"));
 
         if (f.IdCliente is int idCliente && !f.EsRectificativa)

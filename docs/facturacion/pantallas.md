@@ -38,6 +38,7 @@ Listados filtrables de facturas y de programaciones, en pantallas separadas, con
 - 2026-11-05 10:40 · Validado por el propietario (Facturas programadas y menú contextual, PR #16).
 - 2026-11-05 11:20 · Sin VeriFactu y PDF (matiza la decisión 2026-11-05 10:20 en lo que sigue; el resto sigue en vigor): con el parámetro desactivado, Facturas no muestra la columna ni el filtro de VeriFactu ni «Enviar pendientes a VeriFactu», y el editor no muestra «Enviar a VeriFactu» ni la marca «Sin VeriFactu»; los avisos de validar ya no hablan de pruebas. El contextual de Facturas activa «PDF» (con un borrador, «Proforma en PDF»): con una seleccionada lo abre, y con varias los archiva y avisa dónde; «Regenerar PDF» lo vuelve a crear. El editor lleva el mismo botón y guarda antes los cambios de un borrador. «Enviar» sigue desactivado con su motivo.
 - 2026-11-05 11:25 · Validados por el propietario el PDF y las pantallas sin VeriFactu (PR #18).
+- 2026-11-08 11:45 · Derived from facturacion/factura-venta/contabilizacion: el menú contextual del listado tiene «Deshacer exportación contable», con aviso de lo que hará con cada factura. El editor permite cambiar una validada sin enviar a VeriFactu, salvo su serie, y al guardar un cambio que afecta al asiento avisa de que antes se deshará su exportación (borrando el asiento o con contra-asiento) y de que se generará uno nuevo.
 
 ## Requirements
 - 2026-10-28 12:28 · From sources/01_ESPECIFICACION_FUNCIONAL.docx § 10 RF-FAC-10: listado, selección, proforma, contadores

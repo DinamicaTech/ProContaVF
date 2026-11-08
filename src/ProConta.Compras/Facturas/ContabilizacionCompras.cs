@@ -1,5 +1,6 @@
 using System.Globalization;
 using ProConta.Contabilidad.Asientos;
+using ProConta.Contabilidad.CentrosCoste;
 using ProConta.Contabilidad.Cuentas;
 using ProConta.Datos.Persistencia;
 using ProConta.Nucleo.Auditoria;
@@ -257,7 +258,7 @@ public sealed class ContabilizadorCompras(IBaseDatos bd, IMotorAsientos motor, I
         }
         // Actividad del centro de coste (contabilidad/procesos 2026-11-08): su serie de 472 sustituye a la general y, si no
         // deduce el IVA, el IVA va al gasto y no hacen falta cuentas de IVA soportado.
-        var actividad = f.IdCentroCoste is int idCentro ? await ActividadDelCentroAsync(idCentro) : null;
+        var actividad = f.IdCentroCoste is int idCentro ? (await new LectorActividadesIva(bd).PorCentroAsync(ctx.IdSociedad)).GetValueOrDefault(idCentro) : null;
         var noDeducible = actividad is { Deducible: 0 };
         string? Serie(string? cuenta, string sufijo) => actividad?.Serie is { } serie && cuenta is not null ? serie + sufijo : cuenta;
         // La 477 de la actividad sale de su serie de la 472 con el 2 cambiado por el 7 (4728 → 4778; propietario 2026-11-08 09:40).
@@ -335,33 +336,6 @@ public sealed class ContabilizadorCompras(IBaseDatos bd, IMotorAsientos motor, I
             redG ?? "", redI ?? "", tipoGeneral ?? 0m, await NombreProveedorAsync(f), nombreGasto, noDeducible);
         return new(new ComprobacionExportacion([], pregunta, explicacion, cerrado, descuadre), cuentasCompra, config, estado, porCrear);
     }
-
-    /// <summary>Actividad a efectos de IVA de un centro de coste: la suya o la del nodo más cercano por encima que la tenga.</summary>
-    internal sealed record ActividadIva(string Codigo, string Nombre, byte Deducible, string? Serie);
-
-    /// <summary>
-    /// La actividad del centro o, si no tiene, la del nodo más cercano por encima (contabilidad/procesos 2026-11-08). Una
-    /// actividad inactiva no cuenta. Null si ningún nodo tiene actividad: se usan las cuentas generales del ejercicio.
-    /// </summary>
-    internal Task<ActividadIva?> ActividadDelCentroAsync(int idCentroCoste) => bd.EjecutarAsync(async s =>
-    {
-        int? id = idCentroCoste;
-        for (var nivel = 0; id is int actual && nivel < 20; nivel++)
-        {
-            var fila = await s.ConsultarPrimeroAsync(
-                "SELECT c.IdCentroCostePadre, a.Codigo, a.Nombre, a.Deducible, a.SerieCuentaIva, a.Activa FROM CentrosCoste AS c " +
-                "LEFT JOIN Actividades AS a ON c.IdActividad = a.IdActividad WHERE c.IdCentroCoste = ?",
-                f => (Padre: f.EnteroNulo("IdCentroCostePadre"), Codigo: f.Texto("Codigo"), Nombre: f.Texto("Nombre"),
-                    Deducible: f.EsNulo("Deducible") ? (byte)2 : Convert.ToByte(f.Valor("Deducible"), CultureInfo.InvariantCulture),
-                    Serie: f.Texto("SerieCuentaIva"), Activa: !f.EsNulo("Activa") && f.Logico("Activa"), Existe: true), actual);
-            if (!fila.Existe) return null;
-            if (fila.Codigo is not null && fila.Activa)
-                return new ActividadIva(fila.Codigo.Trim(), (fila.Nombre ?? fila.Codigo).Trim(), fila.Deducible,
-                    string.IsNullOrWhiteSpace(fila.Serie) ? null : fila.Serie.Trim());
-            id = fila.Padre;
-        }
-        return null;
-    });
 
     /// <summary>La cuenta de acreedor (o, si no tiene, de proveedor) de la ficha del proveedor en el ejercicio de la factura.</summary>
     private async Task<string?> CuentaDeLaFichaAsync(FacturaCompra f)

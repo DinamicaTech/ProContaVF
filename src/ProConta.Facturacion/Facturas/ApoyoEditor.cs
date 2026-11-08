@@ -6,7 +6,7 @@ using ProConta.Terceros.Roles;
 namespace ProConta.Facturacion.Facturas;
 
 /// <summary>Cliente que se puede elegir en una factura: su rol Cliente con los datos actuales del tercero.</summary>
-public sealed record ClienteElegible(int IdCliente, int IdTercero, string Nombre, string? Nif, string Domicilio, bool Activo)
+public sealed record ClienteElegible(int IdCliente, int IdTercero, string Nombre, string? Nif, string Domicilio, bool Activo, string? NombreAsiento = null)
 {
     public string Rotulo => string.IsNullOrWhiteSpace(Nif) ? Nombre : $"{Nombre} · {Nif}";
 }
@@ -24,7 +24,7 @@ public sealed record TipoFacturaAeat(string Codigo, string Descripcion, bool EsR
 public sealed class ApoyoEditorFacturas(IBaseDatos bd, ServicioRoles roles)
 {
     private const string SqlClientes =
-        "SELECT c.IdCliente, c.IdTercero, c.Activo, t.Nombre, t.RazonSocial, t.NIF, t.Direccion, t.CodigoPostal, t.Poblacion " +
+        "SELECT c.IdCliente, c.IdTercero, c.Activo, t.Nombre, t.RazonSocial, t.NIF, t.Direccion, t.CodigoPostal, t.Poblacion, t.TipoPersona, t.NombrePersona, t.PrimerApellido, t.NombreComercial " +
         "FROM Clientes AS c INNER JOIN Terceros AS t ON c.IdTercero = t.IdTercero ";
 
     /// <summary>Clientes cuyo nombre, razón social o NIF contienen el texto, o cuyo Id es ese número; los activos primero. Máximo 50.</summary>
@@ -42,6 +42,11 @@ public sealed class ApoyoEditorFacturas(IBaseDatos bd, ServicioRoles roles)
 
     public Task<ClienteElegible?> ClienteAsync(int idCliente) =>
         bd.EjecutarAsync(s => s.ConsultarPrimeroAsync(SqlClientes + "WHERE c.IdCliente = ?", Mapear, idCliente));
+
+    /// <summary>Serie de 472 de la actividad de cada centro de coste de la sociedad, para la vista previa del asiento.</summary>
+    public async Task<IReadOnlyDictionary<int, string>> SeriesPorCentroAsync(string idSociedad) =>
+        (await new ProConta.Contabilidad.CentrosCoste.LectorActividadesIva(bd).PorCentroAsync(idSociedad))
+            .Where(a => a.Value.Serie is { Length: 4 }).ToDictionary(a => a.Key, a => a.Value.Serie!);
 
     /// <summary>Cuentas del cliente y de retención del rol Cliente en la sociedad de trabajo.</summary>
     public async Task<(CuentaRol? Cliente, CuentaRol? Retencion)> CuentasClienteAsync(int idCliente, ContextoSociedadEjercicio contexto)
@@ -78,6 +83,8 @@ public sealed class ApoyoEditorFacturas(IBaseDatos bd, ServicioRoles roles)
         var nombre = (string.IsNullOrWhiteSpace(razon) ? f.Texto("Nombre") : razon)?.Trim() ?? "";
         var domicilio = string.Join(" · ", new[] { f.Texto("Direccion"), string.Join(" ", new[] { f.Texto("CodigoPostal"), f.Texto("Poblacion") }.Where(x => !string.IsNullOrWhiteSpace(x)).Select(x => x!.Trim())) }
             .Where(x => !string.IsNullOrWhiteSpace(x)).Select(x => x!.Trim()));
-        return new ClienteElegible(f.Entero("IdCliente"), f.Entero("IdTercero"), nombre, f.Texto("NIF")?.Trim(), domicilio, f.EsNulo("Activo") || f.Logico("Activo"));
+        var fisica = string.Equals(f.Texto("TipoPersona")?.Trim(), "FISICA", StringComparison.OrdinalIgnoreCase);
+        return new ClienteElegible(f.Entero("IdCliente"), f.Entero("IdTercero"), nombre, f.Texto("NIF")?.Trim(), domicilio, f.EsNulo("Activo") || f.Logico("Activo"),
+            Instantaneas.NombreCliente(fisica, f.Texto("NombrePersona"), f.Texto("PrimerApellido"), f.Texto("NombreComercial"), razon, f.Texto("Nombre")));
     }
 }
