@@ -33,6 +33,7 @@ Genera los asientos de las facturas de venta con el motor de contabilidad/asient
 - 2026-11-01 17:18 · Me parece perfecto
 - 2026-11-01 17:18 · answer: cuentas del asiento → Debe la cuenta del cliente en la sociedad y su cuenta de retención (por cliente y sociedad, en terceros/roles); Haber el ingreso por la cuenta de cada línea, el IVA por las cuentas del ejercicio según el tipo y los suplidos a CuentaSuplido; la rectificativa con importes en negativo
 - 2026-11-04 17:57 · Ok, validado
+- 2026-11-08 10:41 · Derived from contabilidad/procesos (propietario 2026-11-08 09:40): IVA repercutido por actividad. Cada línea de la factura de venta tiene su centro de coste; su actividad (Actividades, la del centro o la heredada) da la 477: la serie de la actividad con el 2 cambiado por el 7 (4728 → 4778) y la terminación de la 477 general del tipo (4770021 → 4778021). Si una factura mezcla actividades, el IVA de cada tipo se reparte por actividad. Sin actividad o sin serie, la 477 general como hasta ahora. La subcuenta que no exista se crea al contabilizar. Es la base para calcular la prorrata por actividad. El propietario revisará también la descripción de los apuntes de ventas.
 
 ## Hand-over
 - 2026-11-01 18:15 · Hecho con pruebas sin BD (lados, rectificativa, suplidos) y contra Access. Pendiente: ejecutar las pruebas Access en el equipo del propietario.

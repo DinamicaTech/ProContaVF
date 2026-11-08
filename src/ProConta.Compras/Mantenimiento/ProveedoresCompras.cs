@@ -33,10 +33,10 @@ public sealed class ProveedorActividades : ProveedorTablaAccess
                 Opciones = [new OpcionCampo((byte)2, "100 % deducible"), new OpcionCampo((byte)1, "Por prorrata"), new OpcionCampo((byte)0, "No deducible")],
                 Ayuda = "No deducible: el IVA de sus compras va al gasto. Por prorrata: por ahora se deduce entero en la 472 de la actividad; la regularización (4729) se hará al cierre." },
             new("SerieCuentaIva", "Serie de la 472", TipoCampo.Codigo) { Longitud = 4, Ancho = "xs", Sinonimos = ["472", "4725", "4726", "4727", "4728"],
-                Ayuda = "Cuatro cifras, por ejemplo 4728. El IVA va a la serie con la terminación de la cuenta general (4720021 → 4728021; intracomunitario x121 y x221, inversión del sujeto pasivo x321, importación x421). Vacía: las cuentas generales del ejercicio." },
+                Ayuda = "Cuatro cifras, por ejemplo 4728. El IVA va a la serie con la terminación de la cuenta general (4720021 → 4728021; intracomunitario x121 y x221, inversión del sujeto pasivo x321, importación x421). Su IVA repercutido va a la 477 con el 2 cambiado por el 7 (4728 → 4778). Vacía: las cuentas generales del ejercicio." },
             new("Activa", "Activa", TipoCampo.Logico) { Ayuda = "Una actividad inactiva no se aplica: sus centros usan las cuentas generales." },
             new(CampoSubcuentas, "Subcuentas de IVA en este ejercicio", TipoCampo.TextoLargo) { SoloLectura = true, Ancho = "f",
-                Ayuda = "Las subcuentas del ejercicio de trabajo que empiezan por la serie: las que ya había y las que se crean al exportar." },
+                Ayuda = "Las subcuentas del ejercicio de trabajo de la serie (472…) y de su 477 (el 2 cambiado por el 7): las que ya había y las que se crean al contabilizar." },
         ],
         [new("Codigo", "Código", 70), new("Nombre", "Nombre"), new("SerieCuentaIva", "Serie", 60), new("Activa", "Activa", 60)])
     {
@@ -78,10 +78,12 @@ public sealed class ProveedorActividades : ProveedorTablaAccess
                 r[CampoSubcuentas] = "Sin serie: usa las cuentas de IVA generales del ejercicio.";
                 continue;
             }
+            // La 477 de la actividad es su serie con el 2 cambiado por el 7 (4728 → 4778).
+            var repercutido = "477" + serie[3];
             var cuentas = await s.ConsultarAsync(
-                "SELECT Codigo, Nombre FROM CuentasContables WHERE IdSociedadEjercicio = ? AND Codigo LIKE ? AND Codigo <> ? ORDER BY Codigo",
-                f => $"{f.Texto("Codigo")?.Trim()}  {f.Texto("Nombre")?.Trim()}", c.Trabajo.IdSociedadEjercicio, serie + "%", serie);
-            r[CampoSubcuentas] = cuentas.Count == 0 ? $"Aún no hay subcuentas {serie} en este ejercicio: se crean al exportar." : string.Join(Environment.NewLine, cuentas);
+                "SELECT Codigo, Nombre FROM CuentasContables WHERE IdSociedadEjercicio = ? AND (Codigo LIKE ? OR Codigo LIKE ?) AND Codigo <> ? AND Codigo <> ? ORDER BY Codigo",
+                f => $"{f.Texto("Codigo")?.Trim()}  {f.Texto("Nombre")?.Trim()}", c.Trabajo.IdSociedadEjercicio, serie + "%", repercutido + "%", serie, repercutido);
+            r[CampoSubcuentas] = cuentas.Count == 0 ? $"Aún no hay subcuentas {serie} ni {repercutido} en este ejercicio: se crean al contabilizar." : string.Join(Environment.NewLine, cuentas);
         }
         return (IReadOnlyList<RegistroMantenimiento>)filas;
     });

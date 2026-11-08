@@ -260,6 +260,8 @@ public sealed class ContabilizadorCompras(IBaseDatos bd, IMotorAsientos motor, I
         var actividad = f.IdCentroCoste is int idCentro ? await ActividadDelCentroAsync(idCentro) : null;
         var noDeducible = actividad is { Deducible: 0 };
         string? Serie(string? cuenta, string sufijo) => actividad?.Serie is { } serie && cuenta is not null ? serie + sufijo : cuenta;
+        // La 477 de la actividad sale de su serie de la 472 con el 2 cambiado por el 7 (4728 → 4778; propietario 2026-11-08 09:40).
+        string? Serie477(string? cuenta, string sufijo) => actividad?.Serie is { Length: 4 } serie && cuenta is not null ? "477" + serie[3] + sufijo : cuenta;
         string Cola(string? cuenta, int n = 3) => cuenta is { } c && c.Length >= n ? c[^n..] : "";
         string QueActividad(string que) => actividad?.Serie is null ? que : $"{que} de {actividad.Nombre}";
         if (f.Operacion == OperacionCompra.Importacion)
@@ -269,14 +271,15 @@ public sealed class ContabilizadorCompras(IBaseDatos bd, IMotorAsientos motor, I
         else if (f.InversionSujetoPasivo)
         {
             if (!noDeducible) autoS = await Cuenta(Serie(config.IspSoportado, "3" + Cola(config.IspSoportado, 2)), QueActividad("cuenta de IVA soportado por inversión del sujeto pasivo"));
-            autoR = await Cuenta(config.IspRepercutido, "cuenta de IVA repercutido por inversión del sujeto pasivo");
+            autoR = await Cuenta(Serie477(config.IspRepercutido, "3" + Cola(config.IspRepercutido, 2)), QueActividad("cuenta de IVA repercutido por inversión del sujeto pasivo"));
         }
         else if (f.Operacion == OperacionCompra.Intracomunitaria)
         {
             var servicios = f.Producto == ProductoCompra.Servicios;
             var intra = servicios ? config.IntraSoportadoServicios : config.IntraSoportadoBienes;
             if (!noDeducible) autoS = await Cuenta(Serie(intra, Cola(intra)), QueActividad($"cuenta de IVA intracomunitario soportado de {(servicios ? "servicios" : "bienes")}"));
-            autoR = await Cuenta(servicios ? config.IntraRepercutidoServicios : config.IntraRepercutidoBienes, $"cuenta de IVA intracomunitario repercutido de {(servicios ? "servicios" : "bienes")}");
+            var intraR = servicios ? config.IntraRepercutidoServicios : config.IntraRepercutidoBienes;
+            autoR = await Cuenta(Serie477(intraR, Cola(intraR)), QueActividad($"cuenta de IVA intracomunitario repercutido de {(servicios ? "servicios" : "bienes")}"));
         }
         else
         {

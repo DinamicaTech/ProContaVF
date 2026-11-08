@@ -157,6 +157,26 @@ public sealed class ContabilizacionComprasAccessTests : IDisposable
     }
 
     [Fact]
+    public async Task La_inversion_del_sujeto_pasivo_autorrepercute_en_la_472_y_la_477_de_la_actividad()
+    {
+        await EmpresaAsync();
+        await Bd.EjecutarAsync(s => s.EjecutarAsync("UPDATE SociedadesEjercicios SET TipoIVAGeneral = 21, CuentaIVAInversionSujetoPasivoSoportado = ?, " +
+            "CuentaIVAInversionSujetoPasivoRepercutido = ? WHERE IdSociedadEjercicio = 9001", "4721021", "4771021"));
+        var (_, hijo) = await CentrosConActividadAsync("4728", 2);
+        var (f, _) = await FacturaAsync(total: 150m);
+        f.IdCentroCoste = hijo;
+        f.InversionSujetoPasivo = true;
+        f.Desgloses.Clear();
+        f.Desgloses.Add(new DesgloseFacturaCompra(1, 0m, 150m, 0m));
+        f.CuotaIva = 0m;
+        var r = await Servicio().ExportarAsync(f, _actor, new OpcionesExportacion(EsProveedor: false));
+        Assert.True(r.EsCorrecto, r.Error?.ToString());
+        var asiento = (await new MotorAsientosAccess(Bd).ObtenerAsync(r.Valor.IdAsiento!.Value))!;
+        Assert.Contains(asiento.Apuntes, a => a.CodigoCuenta == "4728321" && a.Debe.Valor == 31.5m);
+        Assert.Contains(asiento.Apuntes, a => a.CodigoCuenta == "4778321" && a.Haber.Valor == 31.5m);
+    }
+
+    [Fact]
     public async Task Con_una_actividad_sin_iva_deducible_el_iva_va_al_gasto()
     {
         await EmpresaAsync();
