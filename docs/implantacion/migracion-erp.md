@@ -67,7 +67,7 @@ Origen: la copia materializada de ProcontaEstructura.accdb. Destino: el dicciona
 
 | Grupo | Tablas de origen | Motivo |
 |---|---|---|
-| Países, monedas y cambios | `CodigosPais`, `Paises`, `PaisesMonedas`, `PrefijosVIES`, `Monedas`, `CambioEuroDolar`, `CambioEuroLibra` | La factura de compra ya guarda su moneda y el cambio del día, y el NIF intracomunitario se comprueba en VIES (pendiente de confirmar con compras, M-06). |
+| Países, monedas y cambios | `CodigosPais`, `Paises`, `PaisesMonedas`, `PrefijosVIES`, `Monedas`, `CambioEuroDolar`, `CambioEuroLibra` | Compras no las usa: el cambio se consulta al BCE a la fecha de la factura (FacturasCompra.TipoCambioAplicado y FechaTipoCambio), los países de la UE y el VIES están en el código (Proveedores.EstadoVies) y la moneda sale del PDF o se elige en la ficha (M-06). |
 | Inspección de IVA | `InspeccionIVAActividades`, `InspeccionIVAEquivalenciasCuentasGasto`, `InspeccionIVANacionalidades`, `InspeccionIVATiposDeGasto` | Automatismo puntual de una inspección, no trasladable. |
 | Mayores y cálculos derivados | `MayorClientesDepor2012`, `MayorClientesDepor2013`, `MayorClientesDepor2014`, `MayorClientesDepor2015`, `MayorClientesDepor2016`, `MayorClientesDepor2017`, `MayorClientesDepor2018`, `MayorClientesDepor2019`, `MayorClientesDepor2020`, `MayorClientesDepor2021`, `MayorClientesDepor2022`, `MayorClientesDepor2023`, `MayorClientesDepor2024`, `CuadreMayor`, `SaldoClientesCalculado`, `SaldoClientesCalculadoFacturas`, `BalancesIVACalculado`, `BalancesIVAs4` | Los saca el motor de informes. |
 | Copias | `FacturasCompra1`, `FacturasProgramadas1`, `FMAE2023Backup`, `FMAE2024AntesCambioF_MAE`, `FPRO2024AntesCambioF_PRO`, `N43Lineas2`, `N43LineasBAK`, `N43LineasBak2` | Copias. |
@@ -78,7 +78,7 @@ Origen: la copia materializada de ProcontaEstructura.accdb. Destino: el dicciona
 Recuento: 74 tablas en los 25 bloques, 44 sin dueño y 17 de ContaSol, 135 en total (más `TiposConceptosCaja`, añadida al origen después del inventario).
 
 ## Hand-over
-En pausa hasta que esté el importador de ContaSol (decisión 2026-11-10 13:06). Hecho: mapa con los campos y transformaciones acordados con el propietario el 2026-11-10, copia materializada de la BD y relaciones del ERP. Pendiente al retomarlo: el cotejo de M-12 (suma de líneas frente al total de cada factura) sobre la copia, confirmar M-06 con compras, definir el destino exacto de los campos de F_NOM cuando existan las tablas de nóminas, y después implementar el borrador.
+En pausa hasta que esté el importador de ContaSol (decisión 2026-11-10 13:06). Hecho: mapa con los campos y transformaciones acordados con el propietario el 2026-11-10, copia materializada de la BD y relaciones del ERP. Pendiente al retomarlo: el cotejo de M-12 (suma de líneas frente al total de cada factura) sobre la copia, definir el destino exacto de los campos de F_NOM cuando existan las tablas de nóminas, y después implementar el borrador.
 
 ## Requirements
 - 2026-10-28 12:28 · From sources/01_ESPECIFICACION_FUNCIONAL.docx § 26.1 RF-ERP-01..05: migración única, coordinador, clasificación ContaSol, preservación
@@ -126,7 +126,7 @@ En pausa hasta que esté el importador de ContaSol (decisión 2026-11-10 13:06).
 - 2026-11-10 13:06 · answer: M-03 → F_NOM con todos sus campos con información, AliasCamposF_NOM y PlantillasApuntes (al motor común de plantillas); F_NOM_ALIAS y CamposF_NOM no
 - 2026-11-10 13:06 · answer: M-04 → no se migra el fraccionamiento
 - 2026-11-10 13:06 · answer: M-05 → no se migra nada de seguridad; se hace desde cero
-- 2026-11-10 13:06 · answer: M-06 → no se migran, si compras ya resuelve moneda, cambio y VIES (se confirma con compras)
+- 2026-11-10 13:06 · answer: M-06 → no se migran, si compras ya resuelve moneda, cambio y VIES; confirmado por compras el 2026-11-10 13:11 (ninguna de las seis tablas se usa)
 - 2026-11-10 13:06 · answer: M-07 → no se migra
 - 2026-11-10 13:06 · answer: M-08 → no se migran; los saca el motor de informes
 - 2026-11-10 13:06 · answer: M-09 → no se migran
