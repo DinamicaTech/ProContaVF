@@ -231,19 +231,12 @@ public static class PlanificadorContaSol
         var enlaces = origen.Apuntes.Where(a => a.CodigoIva != 0 && a.TipoIva is "S" or "R")
             .GroupBy(a => (Soportado: a.TipoIva == "S", a.CodigoIva))
             .ToDictionary(g => g.Key, g => g.Select(a => Clave(a.Diario, a.Asiento, ':')).Distinct().ToList());
-        var importados = asientos.Select(a => a.Clave).ToHashSet(StringComparer.Ordinal);
+        var fechaAsiento = asientos.ToDictionary(a => a.Clave, a => a.Fecha, StringComparer.Ordinal);
         var registros = new List<RegistroIvaPlan>();
         foreach (var r in origen.RegistrosIva.OrderBy(r => r.Soportado ? 0 : 1).ThenBy(r => r.Codigo))
         {
             var tabla = r.Soportado ? "F_IVS" : "F_IVR";
             var clave = r.Codigo.ToString(CultureInfo.InvariantCulture);
-            var fechaRegistro = r.FechaRegistro.Year == ejercicio ? r.FechaRegistro : (r.FechaFactura is { } ff && ff.Year == ejercicio ? ff : DateTime.MinValue);
-            if (fechaRegistro == DateTime.MinValue)
-            {
-                Anotar(tabla, clave, "FEC", "ContaSol.IvaFueraDeEjercicio", Severidad.Bloqueante,
-                    $"El registro {clave} del libro de IVA {(r.Soportado ? "soportado" : "repercutido")} no tiene fecha del ejercicio {ejercicio}: no se importa. Corrige la fecha en ContaSol.");
-                continue;
-            }
             string? claveAsiento = null;
             if (enlaces.TryGetValue((r.Soportado, r.Codigo), out var candidatos))
             {
@@ -251,7 +244,7 @@ public static class PlanificadorContaSol
                 if (candidatos.Count > 1)
                     Anotar(tabla, clave, "CIVAPU", "ContaSol.IvaVariosAsientos", Severidad.Advertencia,
                         $"El registro de IVA {clave} aparece en varios asientos ({string.Join(", ", candidatos)}): lo enlazo con el primero.");
-                if (!importados.Contains(claveAsiento))
+                if (!fechaAsiento.ContainsKey(claveAsiento))
                 {
                     Anotar(tabla, clave, "CIVAPU", "ContaSol.IvaAsientoNoImportado", Severidad.Advertencia,
                         $"El asiento {claveAsiento} del registro de IVA {clave} no se importa (ver su incidencia): el registro queda sin asiento.");
@@ -261,6 +254,21 @@ public static class PlanificadorContaSol
             else
                 Anotar(tabla, clave, "CIVAPU", "ContaSol.IvaSinAsiento", Severidad.Advertencia,
                     $"Ningún asiento de F_APU apunta al registro de IVA {clave}: lo importo sin asiento.");
+
+            // Fecha de registro: la de F_IVS/F_IVR; si no es del ejercicio, la de la factura; si tampoco, la de su asiento.
+            var fechaRegistro = r.FechaRegistro.Year == ejercicio ? r.FechaRegistro
+                : r.FechaFactura is { } ff && ff.Year == ejercicio ? ff
+                : claveAsiento is not null ? fechaAsiento[claveAsiento] : DateTime.MinValue;
+            if (fechaRegistro == DateTime.MinValue)
+            {
+                Anotar(tabla, clave, "FEC", "ContaSol.IvaFueraDeEjercicio", Severidad.Bloqueante,
+                    $"El registro {clave} del libro de IVA {(r.Soportado ? "soportado" : "repercutido")} no tiene fecha del ejercicio {ejercicio} ni asiento: no se importa. Corrige la fecha en ContaSol.",
+                    r.FechaRegistro == DateTime.MinValue ? null : r.FechaRegistro.ToString("dd/MM/yyyy", CultureInfo.InvariantCulture));
+                continue;
+            }
+            if (r.FechaRegistro.Year != ejercicio)
+                Anotar(tabla, clave, "FEC", "ContaSol.IvaFechaCorregida", Severidad.Advertencia,
+                    $"El registro {clave} del libro de IVA tiene fecha {(r.FechaRegistro == DateTime.MinValue ? "vacía" : r.FechaRegistro.ToString("dd/MM/yyyy", CultureInfo.InvariantCulture))}, que no es de {ejercicio}: lo registro el {fechaRegistro:dd/MM/yyyy} (fecha de la factura o de su asiento).");
 
             var tramos = new List<TramoPlan>();
             var intracomunitaria = r.Soportado && r.TipoOperacion == 1;

@@ -197,6 +197,8 @@ public sealed class ImportadorContaSol(IBaseDatos bd, IMotorAsientos motor, ICat
         private string Sociedad => plan.Empresa.Codigo;
         private DateTime Ahora => imp._reloj.Ahora;
 
+        private static string? Vacio(string? texto) => string.IsNullOrWhiteSpace(texto) ? null : texto.Trim();
+
         public async Task<ResumenEjercicio> ImportarAsync()
         {
             var estado = EstadosImportacion.Fallida;
@@ -217,10 +219,11 @@ public sealed class ImportadorContaSol(IBaseDatos bd, IMotorAsientos motor, ICat
                 Anotar("importacion", null, null, null, "ContaSol.Cancelada", Severidad.Advertencia,
                     "Has cancelado la importación: lo grabado hasta ahora se conserva y la siguiente importación de este ejercicio sigue desde ahí sin duplicar.");
             }
-            catch (Exception ex) when (_idImportacion != 0)
+            catch (Exception ex)
             {
-                Anotar("importacion", null, null, null, "ContaSol.Fallo", Severidad.Bloqueante,
-                    $"La importación se ha detenido por un error: {ex.Message}. Lo grabado hasta ahora se conserva; corrige la causa y vuelve a importar este ejercicio, que sigue sin duplicar.");
+                Anotar("importacion", null, null, null, "ContaSol.Fallo", Severidad.Bloqueante, _idImportacion == 0
+                    ? $"No he podido preparar la importación de este ejercicio (empresa, ejercicio o registro de la importación): {ex.Message}. No se ha grabado nada."
+                    : $"La importación se ha detenido por un error: {ex.Message}. Lo grabado hasta ahora se conserva; corrige la causa y vuelve a importar este ejercicio, que sigue sin duplicar.");
             }
             var resumen = new ResumenEjercicio(plan.Ejercicio, plan.Origen.Ruta, _idImportacion, estado, plan.Centros.Count, plan.Cuentas.Count, _grabados, _sinCambios, _borrados,
                 plan.Apuntes, plan.Registros.Count, _terceros, _incidencias);
@@ -277,14 +280,14 @@ public sealed class ImportadorContaSol(IBaseDatos bd, IMotorAsientos motor, ICat
                 if (Convert.ToInt32(await s.EscalarAsync("SELECT COUNT(*) FROM Sociedades WHERE IdSociedad = ?", Sociedad), CultureInfo.InvariantCulture) == 0)
                 {
                     await s.EjecutarAsync("INSERT INTO Sociedades (IdSociedad, Nombre, CIF) VALUES (?, ?, ?)", Sociedad,
-                        PlanificadorContaSol.Recortar(empresa.Nombre, 255) ?? Sociedad, PlanificadorContaSol.Recortar(empresa.Nif, 10) ?? "");
+                        PlanificadorContaSol.Recortar(empresa.Nombre, 255) is { Length: > 0 } nombre ? nombre : Sociedad, Vacio(PlanificadorContaSol.Recortar(empresa.Nif, 10)));
                     Anotar("preparacion", "F_EMP", Sociedad, null, "ContaSol.EmpresaCreada", Severidad.Informativa, $"He dado de alta la empresa {Sociedad} ({empresa.Nombre}).");
                 }
                 var id = await s.EscalarAsync("SELECT IdSociedadEjercicio FROM SociedadesEjercicios WHERE IdSociedad = ? AND Ejercicio = ?", Sociedad, anio);
                 if (id is null or DBNull)
                 {
                     await s.EjecutarAsync("INSERT INTO SociedadesEjercicios (IdSociedad, Ejercicio, Nombre, CIF, Activa, EjercicioCerrado) VALUES (?, ?, ?, ?, ?, ?)",
-                        Sociedad, anio, PlanificadorContaSol.Recortar(empresa.Nombre, 255), PlanificadorContaSol.Recortar(empresa.Nif, 10), true, false);
+                        Sociedad, anio, Vacio(PlanificadorContaSol.Recortar(empresa.Nombre, 255)), Vacio(PlanificadorContaSol.Recortar(empresa.Nif, 10)), true, false);
                     id = await s.UltimoIdAsync();
                     Anotar("preparacion", "F_EMP", Sociedad, "EJEEMP", "ContaSol.EjercicioCreado", Severidad.Informativa, $"He dado de alta el ejercicio {anio} de la empresa {Sociedad}.");
                 }
@@ -428,17 +431,25 @@ public sealed class ImportadorContaSol(IBaseDatos bd, IMotorAsientos motor, ICat
         {
             if (plan.Terceros.Count == 0) return (0, 0);
             // Terceros ya importados de ContaSol en cualquier ejercicio de la sociedad, por código: (ejercicio, IdTercero, NIF).
-            var historico = await _bd.EjecutarAsync(s => s.ConsultarAsync(
-                "SELECT m.TipoEntidad, m.ClaveOrigen, se.Ejercicio, IIF(m.TipoEntidad = 'CLIENTE', c.IdTercero, p.IdTercero) AS IdTercero, t.Nif " +
-                "FROM ((((MapasIdentidadContaSol AS m INNER JOIN ImportacionesContaSol AS i ON m.IdImportacionContaSol = i.IdImportacionContaSol) " +
-                "INNER JOIN SociedadesEjercicios AS se ON i.IdSociedadEjercicio = se.IdSociedadEjercicio) " +
-                "LEFT JOIN Clientes AS c ON (m.IdDestino = c.IdCliente AND m.TipoEntidad = 'CLIENTE')) " +
-                "LEFT JOIN Proveedores AS p ON (m.IdDestino = p.IdProveedor AND m.TipoEntidad = 'PROVEEDOR')) " +
-                "LEFT JOIN Terceros AS t ON t.IdTercero = IIF(m.TipoEntidad = 'CLIENTE', c.IdTercero, p.IdTercero) " +
+            // (Access no admite condiciones constantes ni expresiones en un LEFT JOIN: se cruzan en memoria.)
+            var mapasTerceros = await _bd.EjecutarAsync(s => s.ConsultarAsync(
+                "SELECT m.TipoEntidad, m.ClaveOrigen, m.IdDestino, se.Ejercicio FROM (MapasIdentidadContaSol AS m INNER JOIN ImportacionesContaSol AS i ON m.IdImportacionContaSol = i.IdImportacionContaSol) " +
+                "INNER JOIN SociedadesEjercicios AS se ON i.IdSociedadEjercicio = se.IdSociedadEjercicio " +
                 "WHERE se.IdSociedad = ? AND i.VersionImportador = ? AND m.TipoEntidad IN ('CLIENTE', 'PROVEEDOR')",
-                f => (Tipo: f.Texto("TipoEntidad") ?? "", Codigo: f.Texto("ClaveOrigen") ?? "", Ejercicio: int.TryParse(f.Texto("Ejercicio"), out var e) ? e : 0,
-                    IdTercero: f.EnteroNulo("IdTercero"), Nif: PlanificadorContaSol.NormalizarNif(f.Texto("Nif"))),
+                f => (Tipo: f.Texto("TipoEntidad") ?? "", Codigo: f.Texto("ClaveOrigen") ?? "", Id: f.Entero("IdDestino"),
+                    Ejercicio: int.TryParse(f.Texto("Ejercicio"), out var e) ? e : 0),
                 Sociedad, VersionImportador));
+            var terceroDeCliente = (await _bd.EjecutarAsync(s => s.ConsultarAsync("SELECT IdCliente, IdTercero FROM Clientes", f => (Id: f.Entero("IdCliente"), Tercero: f.Entero("IdTercero")))))
+                .ToDictionary(x => x.Id, x => x.Tercero);
+            var terceroDeProveedor = (await _bd.EjecutarAsync(s => s.ConsultarAsync("SELECT IdProveedor, IdTercero FROM Proveedores", f => (Id: f.Entero("IdProveedor"), Tercero: f.Entero("IdTercero")))))
+                .ToDictionary(x => x.Id, x => x.Tercero);
+            var nifDeTercero = (await _bd.EjecutarAsync(s => s.ConsultarAsync("SELECT IdTercero, Nif FROM Terceros", f => (Id: f.Entero("IdTercero"), Nif: PlanificadorContaSol.NormalizarNif(f.Texto("Nif"))))))
+                .ToDictionary(x => x.Id, x => x.Nif);
+            var historico = mapasTerceros.Select(m =>
+            {
+                int? idTercero = (m.Tipo == TiposMapa.Cliente ? terceroDeCliente : terceroDeProveedor).TryGetValue(m.Id, out var t) ? t : null;
+                return (m.Tipo, m.Codigo, m.Ejercicio, IdTercero: idTercero, Nif: idTercero is int x && nifDeTercero.TryGetValue(x, out var n) ? n : "");
+            }).ToList();
             var porNif = (await _bd.EjecutarAsync(s => s.ConsultarAsync("SELECT IdTercero, Nif FROM Terceros WHERE Nif IS NOT NULL",
                     f => (Id: f.Entero("IdTercero"), Nif: PlanificadorContaSol.NormalizarNif(f.Texto("Nif"))))))
                 .Where(t => t.Nif.Length > 0).GroupBy(t => t.Nif).ToDictionary(g => g.Key, g => g.Min(t => t.Id), StringComparer.Ordinal);
@@ -454,7 +465,7 @@ public sealed class ImportadorContaSol(IBaseDatos bd, IMotorAsientos motor, ICat
                 var tipo = t.Origen.EsCliente ? TiposMapa.Cliente : TiposMapa.Proveedor;
                 var codigo = t.Origen.Codigo;
                 // 1) El mismo código ya importado con el mismo titular; 2) un tercero con el mismo NIF; 3) uno nuevo.
-                var mismo = historico.Where(h => h.Codigo == codigo && h.IdTercero is not null && PlanificadorContaSol.MismoTitular(h.Nif, t.Nif))
+                var mismo = historico.Where(h => h.Tipo == tipo && h.Codigo == codigo && h.IdTercero is not null && PlanificadorContaSol.MismoTitular(h.Nif, t.Nif))
                     .OrderByDescending(h => h.Ejercicio).Select(h => h.IdTercero).FirstOrDefault();
                 var idTercero = mismo ?? (t.Nif.Length > 0 && porNif.TryGetValue(t.Nif, out var porElNif) ? porElNif : (int?)null);
                 if (idTercero is null)
@@ -479,7 +490,7 @@ public sealed class ImportadorContaSol(IBaseDatos bd, IMotorAsientos motor, ICat
                 Mapear(tipo, codigo, rol.Valor);
                 _terceros++;
                 // La cuenta va al titular más reciente: solo si ningún ejercicio posterior ya importado usa el código con otro titular.
-                var posterior = historico.Any(h => h.Codigo == codigo && h.Ejercicio > plan.Ejercicio && h.IdTercero != idTercero);
+                var posterior = historico.Any(h => h.Tipo == tipo && h.Codigo == codigo && h.Ejercicio > plan.Ejercicio && h.IdTercero != idTercero);
                 if (posterior || !identidades.TryGetValue(codigo, out var identidad)) continue;
                 var asignada = await _bd.EnTransaccionAsync(async s =>
                 {

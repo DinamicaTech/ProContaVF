@@ -173,8 +173,11 @@ public sealed class MotorAsientosAccessTests : IDisposable
         await PrepararAsync();
         var motor = Motor();
         var cerrado = new ContextoSociedadEjercicio("T01", 9000, 2024);
+        // Las cuentas se dan de alta con el ejercicio abierto y luego se cierra.
+        await Bd.EjecutarAsync(s => s.EjecutarAsync("UPDATE SociedadesEjercicios SET EjercicioCerrado = False WHERE IdSociedadEjercicio = 9000"));
         foreach (var (codigo, nombre) in new[] { ("5720001", "Banco sintético"), ("7000001", "Ventas sintéticas") })
             Assert.True((await Cuentas().AltaAsync(cerrado, new AltaCuenta(codigo, nombre))).EsCorrecto);
+        await Bd.EjecutarAsync(s => s.EjecutarAsync("UPDATE SociedadesEjercicios SET EjercicioCerrado = True WHERE IdSociedadEjercicio = 9000"));
         var externo = new OpcionesLote(LibroExterno: true);
         var importador = new IdentidadLote(OpcionesLote.MotorImportadorContaSol, "CONTASOL", "T01/2024/1:5");
         Assert.Equal("Asientos.EjercicioCerrado", (await motor.ReemplazarLoteAsync(cerrado, importador, [Nuevo(1m, 1m, ctx: cerrado)], _actor, "Importar")).Error!.Codigo);

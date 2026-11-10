@@ -150,3 +150,25 @@ public sealed class PlanificadorTests
     [Fact]
     public void NifSeNormaliza() => Assert.Equal("B12345674", PlanificadorContaSol.NormalizarNif(" b-12.345.674 "));
 }
+
+public sealed class PlanificadorIvaFechasTests
+{
+    [Fact]
+    public void RegistroConFechaDeOtroAnoTomaLaDeSuAsiento()
+    {
+        var apuntes = new[]
+        {
+            new ApunteContaSol(1, 5, 1, new DateTime(2026, 1, 15), "6000001", 100m, true, "Compra", null, 0, 0, null, 0),
+            new ApunteContaSol(1, 5, 2, new DateTime(2026, 1, 15), "4000001", 100m, false, "Compra", null, 0, 0, "S", 9),
+        };
+        var iva = new RegistroIvaContaSol(true, 9, new DateTime(2025, 12, 30), new DateTime(2025, 12, 28), null, "4000001", "F-9", "Proveedor", "B12345674", 100m, [], 100m, 0, false, 100m, null);
+        var sinAsiento = iva with { Codigo = 10 };
+        var origen = new OrigenContaSol("s.accdb", "00", new EmpresaContaSol("T01", "", "S", 2026), [], [],
+            [new("6000001", "Compras", null, 0, 0), new("4000001", "Proveedor", null, 0, 0)], apuntes, [], [iva, sinAsiento], [], new Dictionary<string, decimal>());
+        var plan = PlanificadorContaSol.Planificar(origen, 2022);
+        var r = Assert.Single(plan.Registros);
+        Assert.Equal(new DateTime(2026, 1, 15), r.FechaRegistro);
+        Assert.Contains(plan.Incidencias, i => i.Codigo == "ContaSol.IvaFechaCorregida" && i.Clave == "9");
+        Assert.Contains(plan.Incidencias, i => i.Codigo == "ContaSol.IvaFueraDeEjercicio" && i.Clave == "10");
+    }
+}
