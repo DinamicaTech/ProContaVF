@@ -7,13 +7,21 @@ threads:
   - 2026-11-10 18:30 · Construir el importador de ContaSol | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GPr8kimJRCay1zwqBem5TDJ
 ---
 ## Summary
-Importación reutilizable de ContaSol por ejercicio para nuevos usuarios: inspección y simulación previas, orden por fases, reanudación y conciliación.
-**Aceptación:** la de spec § 26.
+Importación reutilizable de ContaSol por ejercicio (una BD de ContaSol por ejercicio, varias en una sola BD de ProContaVF): simulación previa, fases en orden (centros, cuentas, terceros, asientos, IVA, conciliación), reimportación sin duplicar, incidencias y mapas de identidad para la migración del ERP. Código: `src/ProConta.Implantacion/ContaSol` y la pestaña «Importar ContaSol» en Configuración.
+**Aceptación:** en una BD nueva de pruebas se importan los 9 ejercicios (2018–2026); repetir la importación no duplica nada; todos los asientos cuadran; el saldo de cada cuenta coincide con ContaSol (F_SAL, salvo las diferencias del propio ContaSol que se anotan); no quedan incidencias bloqueantes sin explicar.
 
 ## Decisions
 - 2026-10-28 13:30 · Creado en la carga inicial de requisitos.
 
 - 2026-11-10 13:06 · Se construye antes que la migración del ERP, que usa sus datos (cuentas F_MAE, centros F_CDP/F_DEP, asientos F_APU, libro F_IVS) y los enlaza por MapasIdentidadContaSol; ContaSol no usa nada del ERP.
+- 2026-11-10 18:40 · Tablas: se importan F_DEP/F_CDP (centros de coste, «DEP/SUB»), F_MAE (plan contable), F_APU con F_OAS (asientos y sus notas), F_IVS/F_IVR (libros de IVA) y F_CLI/F_PRO (terceros); F_EMP y F_SAL solo sirven de control; F_DIA, F_347, F_349, F_EFC, F_EFP y F_BAN no se importan (F_BAN ya está en F_MAE). No se leen los campos con el mismo valor en todas las filas; una referencia rota queda nula con incidencia.
+- 2026-11-10 18:40 · Varios ejercicios: cada BD de ContaSol es una ejecución de ImportacionesContaSol (versión del importador «2») con sus fases, incidencias y mapas; se importan en orden de ejercicio. Una cuenta es la misma identidad contable en todos los ejercicios si tiene el mismo código (CodigosContablesReservados: un código, una identidad), con el nombre de cada año; la empresa y el ejercicio se crean si faltan y una empresa con otro CIF bloquea.
+- 2026-11-10 18:40 · Asientos: un lote automático del importador por asiento de ContaSol (MotorPropietario «implantacion/importador-contasol», clave «empresa/ejercicio/DIA:ASI»), admitido en ejercicios cerrados y trimestres anteriores (contabilidad/asientos, OpcionesLote.LibroExterno). Reimportar: el asiento sin cambios no se toca (conserva su Id), el cambiado se sustituye y el que ya no está en ContaSol se borra. Importe = IMEAPU en euros; negativo, en positivo al lado contrario; las líneas a cero no se importan; descuadrado, con fecha fuera del ejercicio o sin cuenta no se importa (bloqueante). Asiento 1 = apertura, 20000 = cierre, «Regularización de cuentas» = regularización. Una cuenta con apuntes que no está en F_MAE se crea con nombre provisional (advertencia).
+- 2026-11-10 18:40 · IVA: cada registro de F_IVS/F_IVR se enlaza con su asiento por F_APU.CIVAPU y TIVAPU ('S'/'R'); conserva su Id al reimportar (se actualiza por el mapa) y se borra si ya no está en ContaSol. BA0 = no sujeto/exento (N1/E1), TIP 1 = intracomunitaria autorrepercutida (S2, clave 09), resto S1; deducible = cuota × PDE / 100.
+- 2026-11-10 18:40 · Terceros: solo los clientes (F_CLI) y proveedores (F_PRO) con apuntes en los últimos cinco ejercicios (hoy, 2022–2026), sin contar apertura ni cierre. Mismo código y mismo NIF (o el mismo con ES delante o la letra añadida) = el mismo tercero; si no, uno con ese NIF o uno nuevo. Una subcuenta que cambia de titular (otro NIF, también dentro de 2022–2026) sigue siendo la misma cuenta; cada titular es un tercero distinto y la cuenta queda asignada solo al más reciente (propietario, 2026-11-10 18:15). Las subcuentas 41x son de acreedor.
+- 2026-11-10 18:40 · Conciliación al final de cada ejercicio: recuento de asientos, cuadre y saldo por cuenta contra ContaSol; una diferencia es bloqueante. Las diferencias de F_SAL con los propios apuntes de ContaSol son advertencias (se sigue a los apuntes).
+- 2026-11-10 18:40 · Mapas para la migración del ERP: MapasContaSol.LeerAsync(sociedad, ejercicio, tipo) da el mapa de la última importación válida del ejercicio; tipos CENTRO («DEP» o «DEP/SUB»), CUENTA (código), ASIENTO («DIA:ASI»), IVA_SOPORTADO/IVA_REPERCUTIDO (código de registro) y CLIENTE/PROVEEDOR (código de subcuenta → IdCliente/IdProveedor), los mismos formatos que la importación anterior de 2026-08-22.
+- 2026-11-10 18:40 · Pantalla «Importar ContaSol» en Configuración: tabla de BD elegidas y tabla de incidencias; en el menú contextual, Añadir BD, Quitar, Simular (lee y comprueba sin escribir), Importar (pide confirmación y el permiso de editar Parámetros y tablas) y Cancelar (lo grabado se conserva y la siguiente importación sigue sin duplicar). Un ejercicio con una importación anterior de otra versión con asientos manuales bloquea: se importa en una BD nueva.
 
 ## Requirements
 - 2026-10-28 12:28 · From sources/01_ESPECIFICACION_FUNCIONAL.docx § 26.2 RF-CS-01..05: origen intacto, orden, apuntes, reanudación, conciliación
@@ -33,3 +41,7 @@ Importación reutilizable de ContaSol por ejercicio para nuevos usuarios: inspec
 - 2026-11-10 18:06 · 1- Ok
 - 2026-11-10 18:06 · 2- Ok
 - 2026-11-10 18:06 · 3- Trátalos como titulares distintos
+- 2026-11-10 18:15 · A
+
+## Hand-over
+- 2026-11-10 19:00 · Hecho: lector, planificador, importador, mapas, pestaña, pruebas sin BD (planificador) y con Access (ContaSol sintético: dos ejercicios, reimportación, ejercicio cerrado, cuenta reasignada, empresa distinta). Pendiente: ejecutar las pruebas con Access en el equipo del propietario, importar 2018–2026 en una BD nueva (copia de la estructura) y revisar la conciliación con el propietario.

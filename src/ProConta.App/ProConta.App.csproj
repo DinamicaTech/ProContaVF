@@ -17,5 +17,6 @@
     <ProjectReference Include="..\ProConta.Facturacion.UI\ProConta.Facturacion.UI.csproj" />
     <ProjectReference Include="..\ProConta.Mantenimiento.UI\ProConta.Mantenimiento.UI.csproj" />
     <ProjectReference Include="..\ProConta.Compras.UI\ProConta.Compras.UI.csproj" />
+    <ProjectReference Include="..\ProConta.Implantacion\ProConta.Implantacion.csproj" />
   </ItemGroup>
 </Project>
