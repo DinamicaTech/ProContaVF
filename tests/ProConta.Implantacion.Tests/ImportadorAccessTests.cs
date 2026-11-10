@@ -100,6 +100,10 @@ public sealed class ImportadorAccessTests : IDisposable
         Assert.Equal(0, await ContarAsync("SELECT COUNT(*) FROM Asientos WHERE TotalDebe <> TotalHaber"));
         Assert.Equal(1, await ContarAsync("SELECT COUNT(*) FROM Asientos WHERE IdSociedadEjercicio = 9000 AND TipoAsiento = ?", (byte)TipoAsiento.Apertura));
 
+        // Caché de saldos recalculada al final de la fase de asientos.
+        Assert.Equal(1000, await ContarAsync("SELECT SaldoActual FROM CuentasContables WHERE IdSociedadEjercicio = 9000 AND Codigo = '5720001'"));
+        Assert.Equal(-121, await ContarAsync("SELECT SaldoActual FROM CuentasContables WHERE IdSociedadEjercicio = 9000 AND Codigo = '4000001'"));
+
         // Negativo al lado contrario y centro de coste del apunte.
         Assert.Equal(1, await ContarAsync("SELECT COUNT(*) FROM Apuntes AS ap INNER JOIN Asientos AS a ON ap.IdAsiento = a.IdAsiento WHERE a.IdSociedadEjercicio = 9000 AND ap.CuentaContable = '4000001' AND ap.ImporteHaber = 121"));
         Assert.Equal(1, await ContarAsync("SELECT COUNT(*) FROM Apuntes AS ap INNER JOIN CentrosCoste AS c ON ap.IdCentroCoste = c.IdCentroCoste WHERE c.RutaJerarquica = '3/318'"));

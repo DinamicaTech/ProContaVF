@@ -225,6 +225,12 @@ public sealed class ImportadorContaSol(IBaseDatos bd, IMotorAsientos motor, ICat
                     ? $"No he podido preparar la importación de este ejercicio (empresa, ejercicio o registro de la importación): {ex.Message}. No se ha grabado nada."
                     : $"La importación se ha detenido por un error: {ex.Message}. Lo grabado hasta ahora se conserva; corrige la causa y vuelve a importar este ejercicio, que sigue sin duplicar.");
             }
+            try { await RecalcularSaldosAsync(); }
+            catch (Exception ex)
+            {
+                Anotar("asientos", null, null, null, "ContaSol.SaldosSinRecalcular", Severidad.Advertencia,
+                    $"No he podido recalcular los saldos de las cuentas del ejercicio: {ex.Message}. Vuelve a importar el ejercicio para recalcularlos.");
+            }
             var resumen = new ResumenEjercicio(plan.Ejercicio, plan.Origen.Ruta, _idImportacion, estado, plan.Centros.Count, plan.Cuentas.Count, _grabados, _sinCambios, _borrados,
                 plan.Apuntes, plan.Registros.Count, _terceros, _incidencias);
             if (_idImportacion != 0) await CerrarAsync(resumen);
@@ -546,7 +552,8 @@ public sealed class ImportadorContaSol(IBaseDatos bd, IMotorAsientos motor, ICat
 
         private async Task<(int, int)> ImportarAsientosAsync()
         {
-            var opciones = new OpcionesLote(LibroExterno: true);
+            // Los saldos de las cuentas se recalculan una sola vez al final de la fase (con un recálculo por asiento, la carga crece al cuadrado).
+            var opciones = new OpcionesLote(LibroExterno: true, DiferirSaldos: true);
             var motivo = $"Importación de ContaSol {plan.Ejercicio} ({Path.GetFileName(plan.Origen.Ruta)})";
             var claves = new HashSet<string>(StringComparer.Ordinal);
             int hechos = 0, omitidos = 0;
@@ -590,6 +597,7 @@ public sealed class ImportadorContaSol(IBaseDatos bd, IMotorAsientos motor, ICat
                 }
                 _mapas[(TiposMapa.Asiento, p.Clave)] = grabado.Valor[0];
                 _grabados++;
+                _saldosPendientes = true;
             }
             Avanzar("asientos", hechos, plan.Asientos.Count);
             // Los asientos que el importador grabó antes y ya no están en ContaSol se borran.
@@ -601,6 +609,7 @@ public sealed class ImportadorContaSol(IBaseDatos bd, IMotorAsientos motor, ICat
                 if (borrado.EsCorrecto)
                 {
                     _borrados += borrado.Valor;
+                    _saldosPendientes = true;
                     Anotar("asientos", "F_APU", clave, null, "ContaSol.AsientoBorrado", Severidad.Informativa,
                         $"He borrado el asiento {id} ({clave}), importado antes, porque ya no está en ContaSol.");
                 }
@@ -608,6 +617,7 @@ public sealed class ImportadorContaSol(IBaseDatos bd, IMotorAsientos motor, ICat
                     Anotar("asientos", "F_APU", clave, null, "ContaSol.AsientoNoBorrado", Severidad.Bloqueante,
                         $"El asiento {id} ({clave}) ya no está en ContaSol, pero no he podido borrarlo: {borrado.Error!.TextoOperador()}");
             }
+            await RecalcularSaldosAsync();
             return (_grabados, omitidos);
         }
 
@@ -619,6 +629,16 @@ public sealed class ImportadorContaSol(IBaseDatos bd, IMotorAsientos motor, ICat
                 await s.EjecutarAsync("UPDATE IVASoportado SET IdAsiento = NULL WHERE IdAsiento = ?", a);
                 await s.EjecutarAsync("UPDATE IVARepercutido SET IdAsiento = NULL WHERE IdAsiento = ?", a);
             }
+        }
+
+        private bool _saldosPendientes;
+
+        /// <summary>Caché de saldos de las cuentas del ejercicio, una vez por ejecución (también si se cancela o falla a medias).</summary>
+        private async Task RecalcularSaldosAsync()
+        {
+            if (!_saldosPendientes) return;
+            await imp._motor.RecalcularSaldosAsync(_ctx);
+            _saldosPendientes = false;
         }
 
         private IdentidadLote Lote(string clave) =>

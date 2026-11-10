@@ -27,7 +27,9 @@ public sealed record TrabajoLote(
 /// admite en ejercicios cerrados y en trimestres anteriores al activo. El resto de reglas (cuadre, cuentas, centros, fecha
 /// dentro del ejercicio, auditoría) se aplican igual.
 /// </summary>
-public sealed record OpcionesLote(bool LibroExterno = false)
+/// <see cref="DiferirSaldos"/>: no recalcula la caché de saldos de las cuentas en cada lote; quien la pide llama a
+/// <see cref="IMotorAsientos.RecalcularSaldosAsync"/> al terminar (cargas masivas: el importador de ContaSol graba miles de lotes).
+public sealed record OpcionesLote(bool LibroExterno = false, bool DiferirSaldos = false)
 {
     public static readonly OpcionesLote Normal = new();
 
@@ -67,6 +69,9 @@ public interface IMotorAsientos
     Task<Resultado<Guid>> CambiarCuentaApuntesAsync(ContextoSociedadEjercicio contexto, IReadOnlyCollection<int> idsApunte, string nuevaCuenta, Actor actor, string motivo);
 
     Task<IReadOnlyList<CambioApunte>> RegistroCambiosAsync(int idAsiento);
+
+    /// <summary>Recalcula la caché de saldo y número de apuntes de todas las cuentas del ejercicio (tras lotes con <see cref="OpcionesLote.DiferirSaldos"/>).</summary>
+    Task RecalcularSaldosAsync(ContextoSociedadEjercicio contexto);
 }
 
 public sealed class MotorAsientosAccess(IBaseDatos bd, PoliticaCuadre? politica = null, IReloj? reloj = null) : IMotorAsientos
@@ -117,6 +122,7 @@ public sealed class MotorAsientosAccess(IBaseDatos bd, PoliticaCuadre? politica 
         bd.EnTransaccionAsync(async s =>
         {
             var externo = (opciones ?? OpcionesLote.Normal).LibroExterno;
+            var diferir = (opciones ?? OpcionesLote.Normal).DiferirSaldos;
             var error = ValidarLote(lote, motivo) ?? ValidarExterno(lote, externo) ?? asientos.Where(a => a.Contexto != contexto).Select(a => new Error("Asientos.LoteOtroEjercicio",
                 "Todos los asientos del lote deben ser del mismo ejercicio.", a.ToString(), "El lote es de un ejercicio.", "Genera un lote por ejercicio.")).FirstOrDefault();
             if (error is not null) return Resultado<IReadOnlyList<int>>.Fallo(error);
@@ -147,7 +153,7 @@ public sealed class MotorAsientosAccess(IBaseDatos bd, PoliticaCuadre? politica 
                 asiento.IdAsiento = i < reutilizados.Count ? reutilizados[i].IdAsiento : 0;
                 if (i < reutilizados.Count) asiento.Version = reutilizados[i].Version;
                 asiento.Lote = lote;
-                var guardado = await GuardarInternoAsync(s, asiento, actor, motivo.Trim(), idLote, manual: false, externo);
+                var guardado = await GuardarInternoAsync(s, asiento, actor, motivo.Trim(), idLote, manual: false, externo, diferir);
                 if (guardado.EsCorrecto) nuevos.Add(guardado.Valor);
                 else errores.AddRange(guardado.Errores);
             }
@@ -157,7 +163,7 @@ public sealed class MotorAsientosAccess(IBaseDatos bd, PoliticaCuadre? politica 
                 var hecho = await despues(s, nuevos);
                 if (!hecho.EsCorrecto) return Resultado<IReadOnlyList<int>>.Fallo(hecho.Errores);
             }
-            await ActualizarSaldosAsync(s, contexto, cuentas);
+            if (!diferir) await ActualizarSaldosAsync(s, contexto, cuentas);
             return Resultado<IReadOnlyList<int>>.Correcto(nuevos);
         });
 
@@ -187,7 +193,7 @@ public sealed class MotorAsientosAccess(IBaseDatos bd, PoliticaCuadre? politica 
                 var hecho = await despues(s, []);
                 if (!hecho.EsCorrecto) return Resultado<int>.Fallo(hecho.Errores);
             }
-            await ActualizarSaldosAsync(s, contexto, cuentas);
+            if (!(opciones ?? OpcionesLote.Normal).DiferirSaldos) await ActualizarSaldosAsync(s, contexto, cuentas);
             return Resultado<int>.Correcto(ids.Count);
         });
 
@@ -245,7 +251,7 @@ public sealed class MotorAsientosAccess(IBaseDatos bd, PoliticaCuadre? politica 
             idAsiento));
 
     /// <summary>Valida y guarda un asiento dentro de la transacción en curso. Devuelve su IdAsiento.</summary>
-    private async Task<Resultado<int>> GuardarInternoAsync(ISesionDatos s, Asiento asiento, Actor actor, string motivo, Guid idLote, bool manual, bool externo = false)
+    private async Task<Resultado<int>> GuardarInternoAsync(ISesionDatos s, Asiento asiento, Actor actor, string motivo, Guid idLote, bool manual, bool externo = false, bool diferirSaldos = false)
     {
         var reglas = ReglasAsiento.ValidarYCuadrar(asiento, _politica);
         if (!reglas.EsCorrecto) return Resultado<int>.Fallo(reglas.Errores);
@@ -318,7 +324,8 @@ public sealed class MotorAsientosAccess(IBaseDatos bd, PoliticaCuadre? politica 
         await RegistrarDiferenciasAsync(s, idLote, actor, motivo, id, anterior, asiento);
         await RevisionAsync(s, id, anterior is null ? (manual ? OperacionRevision.Alta : OperacionRevision.Lote) : OperacionRevision.Modificacion, motivo, actor,
             anterior, (await CargarAsync(s, id))!);
-        await ActualizarSaldosAsync(s, asiento.Contexto, asiento.Apuntes.Select(a => a.CodigoCuenta).Concat(anterior?.Apuntes.Select(a => a.CodigoCuenta) ?? []));
+        if (!diferirSaldos)
+            await ActualizarSaldosAsync(s, asiento.Contexto, asiento.Apuntes.Select(a => a.CodigoCuenta).Concat(anterior?.Apuntes.Select(a => a.CodigoCuenta) ?? []));
         return Resultado<int>.Correcto(id);
     }
 
@@ -393,6 +400,29 @@ public sealed class MotorAsientosAccess(IBaseDatos bd, PoliticaCuadre? politica 
             Vencimiento = x.FechaVencimiento?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture), x.IdCentroCoste, Tipo = x.Tipo.ToString()
         })
     });
+
+    public async Task RecalcularSaldosAsync(ContextoSociedadEjercicio contexto)
+    {
+        var saldos = (await bd.EjecutarAsync(s => s.ConsultarAsync(
+                "SELECT ap.CuentaContable, SUM(IIF(ap.ImporteDebe IS NULL, 0, ap.ImporteDebe)) - SUM(IIF(ap.ImporteHaber IS NULL, 0, ap.ImporteHaber)) AS Saldo, COUNT(*) AS N " +
+                "FROM Apuntes AS ap INNER JOIN Asientos AS a ON ap.IdAsiento = a.IdAsiento WHERE a.IdSociedadEjercicio = ? GROUP BY ap.CuentaContable",
+                f => (Cuenta: (f.Texto("CuentaContable") ?? "").Trim(), Saldo: f.DecimalNulo("Saldo") ?? 0m, N: f.Entero("N")), contexto.IdSociedadEjercicio)))
+            .ToDictionary(x => x.Cuenta, x => (x.Saldo, x.N), StringComparer.Ordinal);
+        var codigos = await bd.EjecutarAsync(s => s.ConsultarAsync("SELECT Codigo FROM CuentasContables WHERE IdSociedadEjercicio = ?",
+            f => (f.Texto("Codigo") ?? "").Trim(), contexto.IdSociedadEjercicio));
+        // Por tandas: las transacciones de Access tienen un límite de bloqueos.
+        foreach (var tanda in codigos.Chunk(150))
+            await bd.EnTransaccionAsync(async s =>
+            {
+                foreach (var codigo in tanda)
+                {
+                    var (saldo, n) = saldos.GetValueOrDefault(codigo);
+                    await s.EjecutarAsync("UPDATE CuentasContables SET SaldoActual = SaldoInicial + ?, NumeroApuntes = ? WHERE IdSociedadEjercicio = ? AND Codigo = ?",
+                        saldo, n, contexto.IdSociedadEjercicio, codigo);
+                }
+                return true;
+            });
+    }
 
     /// <summary>Recalcula la caché de saldo y número de apuntes de las cuentas afectadas, en la misma transacción.</summary>
     private static async Task ActualizarSaldosAsync(ISesionDatos s, ContextoSociedadEjercicio contexto, IEnumerable<string> codigos)
