@@ -158,8 +158,8 @@ public sealed class ServicioCorreo
         {
             // Un corte a mitad de transmisión: no consta si salió, así que no se reintenta solo.
             var abandonados = await s.ConsultarAsync(
-                "SELECT m.IdMensajeCorreo FROM MensajesCorreo AS m WHERE m.Estado = ? AND EXISTS (SELECT 1 FROM IntentosMensajeCorreo AS i WHERE i.IdMensajeCorreo = m.IdMensajeCorreo " +
-                "AND i.Resultado = 'EnCurso' AND i.Inicio < ?)", f => f.Entero("IdMensajeCorreo"), nameof(EstadoMensaje.EnProceso), ahora - ProcesoAbandonado);
+                "SELECT DISTINCT i.IdMensajeCorreo FROM IntentosMensajeCorreo AS i INNER JOIN MensajesCorreo AS m ON i.IdMensajeCorreo = m.IdMensajeCorreo " +
+                "WHERE i.Resultado = 'EnCurso' AND i.Inicio < ? AND m.Estado = 'EnProceso'", f => f.Entero("IdMensajeCorreo"), ahora - ProcesoAbandonado);
             foreach (var id in abandonados)
             {
                 await s.EjecutarAsync("UPDATE IntentosMensajeCorreo SET Resultado = ?, Fin = ?, Detalle = ? WHERE IdMensajeCorreo = ? AND Resultado = 'EnCurso'",

@@ -71,10 +71,14 @@ public interface IPruebaPop3
 /// </summary>
 public sealed class TransporteSmtpMailKit : ITransporteSmtp
 {
+    /// <summary>Solo para las pruebas con un servidor local: acepta su certificado. En el programa es null (validación normal).</summary>
+    internal System.Net.Security.RemoteCertificateValidationCallback? ValidacionCertificado { get; init; }
+
     public async Task<ResultadoTransmision> EnviarAsync(CuentaCorreo cuenta, MensajeTransmision mensaje, CancellationToken cancelacion = default)
     {
         using var mime = CrearMime(mensaje);
-        using var cliente = new ClienteSmtpConEvidencia { Timeout = Math.Max(10, cuenta.TiempoEsperaSegundos) * 1000 };
+        using var cliente = new ClienteSmtpConEvidencia { Timeout = Math.Max(1, cuenta.TiempoEsperaSegundos) * 1000 };
+        if (ValidacionCertificado is not null) cliente.ServerCertificateValidationCallback = ValidacionCertificado;
         var total = mensaje.Destinatarios.Select(d => d.Direccion.ToLowerInvariant()).Distinct().Count();
         var fase = "Conexión";
         try
@@ -146,7 +150,8 @@ public sealed class TransporteSmtpMailKit : ITransporteSmtp
     {
         if (string.IsNullOrWhiteSpace(cuenta.ServidorSmtp)) return new(false, "Falta el servidor SMTP.", "Escríbelo en la cuenta de correo y guarda.");
         if (string.IsNullOrEmpty(cuenta.Contrasena)) return new(false, "No hay contraseña guardada (o no se puede leer).", "Escribe la contraseña en la cuenta de correo y guarda.");
-        using var cliente = new SmtpClient { Timeout = Math.Max(10, cuenta.TiempoEsperaSegundos) * 1000 };
+        using var cliente = new SmtpClient { Timeout = Math.Max(1, cuenta.TiempoEsperaSegundos) * 1000 };
+        if (ValidacionCertificado is not null) cliente.ServerCertificateValidationCallback = ValidacionCertificado;
         try
         {
             await cliente.ConnectAsync(cuenta.ServidorSmtp.Trim(), cuenta.PuertoSmtp, Opcion(cuenta.SeguridadSmtp), cancelacion);
