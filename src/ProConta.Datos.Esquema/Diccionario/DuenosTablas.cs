@@ -44,6 +44,8 @@ public static class DuenosTablas
             "IncidenciasImportacionBancaria", "LotesImportacionBancaria");
         Asignar("correo", "correo", "ConfiguracionCorreo", "PlantillasCorreo", "TiposCorreo", "EnviosCorreo",
             "ConfiguracionMailDispatcher", "ProcesamientosMailDispatcher", "AdjuntosMailDispatcher");
+        Asignar("correo", "correo/envio", "CuentasCorreo", "LotesCorreo", "MensajesCorreo", "DestinatariosMensajeCorreo", "AdjuntosMensajeCorreo",
+            "IntentosMensajeCorreo", "TurnosCorreo");
         Asignar("implantacion", "implantacion/importador-contasol", "ImportacionesContaSol", "FasesImportacionContaSol",
             "IncidenciasImportacionContaSol", "MapasIdentidadContaSol");
         Asignar("creative-lab", "creative-lab/activos", "Activos", "ActivosInversiones", "CotizacionesInstrumentoFinanciero", "CuentasActivo",

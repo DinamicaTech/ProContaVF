@@ -1,3 +1,4 @@
+using ProConta.Nucleo.Seguridad;
 using ProConta.Compras.Facturas;
 using ProConta.Compras.Integraciones;
 

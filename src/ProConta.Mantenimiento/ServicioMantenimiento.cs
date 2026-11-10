@@ -102,6 +102,8 @@ public sealed class ProveedorConfiguracionGeneral(IBaseDatos bd) : ProveedorTabl
         new("EndpointIPC", "Dirección del servicio IPC") { Grupo = "ubi", Longitud = 255, Ancho = "l", Sinonimos = ["endpoint", "url"] },
         new("EndpointIRAV", "Dirección del servicio IRAV") { Grupo = "ubi", Longitud = 255, Ancho = "l", Sinonimos = ["endpoint", "url"] },
         new("EmailIncidencias", "Correo para incidencias", TipoCampo.Email) { Grupo = "ubi", Longitud = 255, Ancho = "l", Sinonimos = ["email", "correo"], Ayuda = "Recibe los resúmenes de incidencias de los procesos. Vacío: no se envían avisos." },
+        new("CorreoDesviarA", "Desviar todo el correo a", TipoCampo.Email) { Grupo = "ubi", Longitud = 254, Ancho = "l", Sinonimos = ["pruebas", "desvio", "correo", "email"],
+            Ayuda = "Solo para una BD de pruebas: con una dirección, todo correo que envíe ProContaVF sale únicamente a ella, con los destinatarios reales anotados. Vacío, el correo va a sus destinatarios." },
         new("OcultarListaOperadoresAcceso", "Ocultar la lista de operadores al entrar", TipoCampo.Logico) { Grupo = "ubi" },
         new("VeriFactuActivo", "Activar VeriFactu", TipoCampo.Logico) { Grupo = "sis", Sinonimos = ["verifactu", "aeat"], Ayuda = "Desactivado, las facturas se validan sin comunicarse a la AEAT y sin QR. Las validadas así no se envían después. VeriFactu aún no está disponible en esta versión: activado, validar se detiene y lo explica." },
         new("FechaModificacion", "Modificado el", TipoCampo.Fecha) { Grupo = "ubi", SoloLectura = true },

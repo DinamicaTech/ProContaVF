@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Correo (docs/correo.md): cuentas por ejercicio, cola durable de salida con intentos y lotes, transporte SMTP con MailKit. -->
+  <PropertyGroup>
+    <OutputType>Library</OutputType>
+    <RootNamespace>ProConta.Correo</RootNamespace>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);CS1591;CS1573</NoWarn>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\ProConta.Nucleo\ProConta.Nucleo.csproj" />
+    <ProjectReference Include="..\ProConta.Datos.Persistencia\ProConta.Datos.Persistencia.csproj" />
+    <ProjectReference Include="..\ProConta.Mantenimiento\ProConta.Mantenimiento.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- MailKit y MimeKit (MIT), aprobadas por el propietario (correo 2026-11-10 19:40). -->
+    <PackageReference Include="MailKit" Version="4.17.0" />
+  </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="ProConta.Correo.Tests" />
+  </ItemGroup>
+</Project>
