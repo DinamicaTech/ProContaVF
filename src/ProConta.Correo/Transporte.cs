@@ -272,10 +272,13 @@ public static class TextoPlano
 {
     public static string DeHtml(string html)
     {
-        var t = System.Text.RegularExpressions.Regex.Replace(html, @"<\s*(br|/p|/div|/li|/h\d)\s*/?>", "\n", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+        // Un párrafo termina en línea en blanco (así vuelve a ser párrafo al pasar de texto a HTML); un salto o un punto de lista, en salto.
+        var t = System.Text.RegularExpressions.Regex.Replace(html, @"<\s*(/p|/div|/h\d|/ul|/ol)\s*>", "\n\n", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+        t = System.Text.RegularExpressions.Regex.Replace(t, @"<\s*(br|/li)\s*/?>", "\n", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
         t = System.Text.RegularExpressions.Regex.Replace(t, @"<\s*li[^>]*>", "• ", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
         t = System.Text.RegularExpressions.Regex.Replace(t, "<[^>]+>", "");
         t = System.Net.WebUtility.HtmlDecode(t);
+        t = System.Text.RegularExpressions.Regex.Replace(t, @"[ \t]*\n[ \t]*", "\n");
         return System.Text.RegularExpressions.Regex.Replace(t, @"\n{3,}", "\n\n").Trim();
     }
 }

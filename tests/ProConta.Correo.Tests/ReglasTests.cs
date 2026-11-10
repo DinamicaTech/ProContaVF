@@ -1,3 +1,4 @@
+using System.IO;
 namespace ProConta.Correo.Tests;
 
 /// <summary>Reglas sin BD: direcciones, mensaje, reintentos, desvío y plantillas.</summary>
@@ -74,5 +75,5 @@ public sealed class ReglasTests
 
     [Fact]
     public void Texto_plano_de_html() =>
-        Assert.Equal("Hola:\nTe enviamos la factura.\n• uno", TextoPlano.DeHtml("<p>Hola:</p><p>Te enviamos la factura.</p><ul><li>uno</li></ul>"));
+        Assert.Equal("Hola:\n\nTe enviamos la factura.\n\n• uno", TextoPlano.DeHtml("<p>Hola:</p><p>Te enviamos la factura.</p><ul><li>uno</li></ul>"));
 }
