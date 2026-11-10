@@ -91,3 +91,4 @@ Código: `src/ProConta.Datos.Esquema` (diagnóstico, migraciones idempotentes, a
 
 ## Hand-over
 - 2026-11-01 09:30 · Hecho: diagnóstico, actualizador con copia verificada, comprobación previa y parámetros, registro de intentos, migraciones idempotentes (catálogo en la versión 7), diccionario en `diccionario/`, copia sin datos y la maestra 0.24 del desarrollo anterior registrada como referencia estructural. Pendiente: «crear la maestra desde cero» se cubre con `copia-estructura` (estructura de la versión 1 sin datos), no con DDL desde cero; script de instalación en el servidor (plataforma/entrega); descripciones de campo que faltan en la maestra actual (se pueden tomar de la referencia 0.24).
+- 2026-11-10 19:40 · Derived from correo/envio: tablas CuentasCorreo, LotesCorreo, MensajesCorreo, DestinatariosMensajeCorreo, AdjuntosMensajeCorreo, IntentosMensajeCorreo y TurnosCorreo, y la columna Configuracion.CorreoDesviarA.

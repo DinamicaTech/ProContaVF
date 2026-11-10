@@ -38,7 +38,8 @@ Listados filtrables de facturas y de programaciones, en pantallas separadas, con
 - 2026-11-05 10:40 · Validado por el propietario (Facturas programadas y menú contextual, PR #16).
 - 2026-11-05 11:20 · Sin VeriFactu y PDF (matiza la decisión 2026-11-05 10:20 en lo que sigue; el resto sigue en vigor): con el parámetro desactivado, Facturas no muestra la columna ni el filtro de VeriFactu ni «Enviar pendientes a VeriFactu», y el editor no muestra «Enviar a VeriFactu» ni la marca «Sin VeriFactu»; los avisos de validar ya no hablan de pruebas. El contextual de Facturas activa «PDF» (con un borrador, «Proforma en PDF»): con una seleccionada lo abre, y con varias los archiva y avisa dónde; «Regenerar PDF» lo vuelve a crear. El editor lleva el mismo botón y guarda antes los cambios de un borrador. «Enviar» sigue desactivado con su motivo.
 - 2026-11-05 11:25 · Validados por el propietario el PDF y las pantallas sin VeriFactu (PR #18).
-- 2026-11-08 11:45 · Derived from facturacion/factura-venta/contabilizacion: el menú contextual del listado tiene «Deshacer exportación contable», con aviso de lo que hará con cada factura. El editor permite cambiar una validada sin enviar a VeriFactu, salvo su serie, y al guardar un cambio que afecta al asiento avisa de que antes se deshará su exportación (borrando el asiento o con contra-asiento) y de que se generará uno nuevo.
+
+- 2026-11-08 11:45 · Derived from facturacion/factura-venta/contabilizacion: el menú contextual del listado tiene «Deshacer exportación contable», con aviso de lo que hará con cada factura. El editor permite cambiar una validada sin enviar a VeriFactu, salvo su serie, y al guardar un cambio que afecta al asiento avisa de que antes se deshará su exportación (borrando el asiento o con contra-asiento) y de que se generará uno nuevo.
 
 ## Requirements
 - 2026-10-28 12:28 · From sources/01_ESPECIFICACION_FUNCIONAL.docx § 10 RF-FAC-10: listado, selección, proforma, contadores
@@ -81,3 +82,4 @@ Listados filtrables de facturas y de programaciones, en pantallas separadas, con
 - 2026-11-04 18:50 · Hecho: sección de programadas, Generar, Programar y el modo programada del editor (compila; probado con los modelos de servicio contra Access). Pendiente: revisión en pantalla y validación del propietario.
 - 2026-11-04 21:50 · Hecho: Facturas programadas como pantalla propia con su detalle, revisada en pantalla con la copia de pruebas junto con «Ver sus facturas» y «Programar…». Pendiente: la validación del propietario.
 - 2026-11-05 10:40 · Hecho y validado: Facturas programadas, y selección múltiple y menú contextual en las dos pantallas.
+- 2026-11-10 19:40 · Derived from correo/pantallas: «Enviar por correo…» en el menú contextual de Facturas; con una factura validada abre el compositor con su PDF, la plantilla y los destinatarios del cliente; con varias, las envía en un lote sin abrir ventanas y muestra el resumen al final.

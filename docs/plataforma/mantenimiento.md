@@ -42,3 +42,4 @@ Pantalla genérica y extensible (CFG-MANT) para parámetros únicos y coleccione
 
 ## Hand-over
 - 2026-11-01 18:15 · Hecho: contrato, servicio, proveedores y pantalla, con pruebas sin BD (validación, búsqueda, permisos, solo consulta) y contra Access (series y conceptos). Pendiente: probar la pantalla en el equipo del propietario; Correo, VeriFactu y Ubicación de datos llegan con sus nodos.
+- 2026-11-10 19:40 · Derived from correo/envio: proveedores «Cuenta de correo» (por ejercicio, con contraseña cifrada y las acciones «Probar envío» y «Probar recepción») y «Plantillas de correo» (por empresa y tipo), y el parámetro general «Desviar todo el correo a».
