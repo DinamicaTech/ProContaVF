@@ -1,0 +1,421 @@
+<title>Editor de borrador ProConta</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;700&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Prototipo de la pestaña «Borrador» del contenedor: barra de demostración arriba, ventana con
+   cabecera, cuerpo en dos columnas (datos y líneas | totales y asiento) y barra de acciones al pie.
+   Mismos tokens que sources/maquetas/Facturas (aspecto claro único, como el programa WPF). */
+:root{
+  --navy:#14213A;--navy2:#22314F;--navy3:#1B2A47;--ink:#16213A;--mut:#646A78;--txt2:#3B4252;
+  --or:#F4A259;--or2:#D9622B;
+  --bg:#F1EEE7;--bg2:#FBFAF7;--card:#FFFFFF;--ln:#ECE8DE;--ln2:#F3F0E9;--ln3:#E1DDD2;--inb:#D9D5CB;--inbg:#FFFFFF;--ro:#F6F4EF;
+  --blue:#1D5C8C;--blueb:#E3ECF6;--green:#1E6B45;--greenb:#E2F0E8;--red:#B42318;--redb:#FDF1EF;
+  --amb:#8A4410;--ambb:#FFEBD6;--pur:#5B3F86;--purb:#ECE6F3;--demo:#232427;--demotx:#E6E6E6;--demoy:#FFD54A;--white:#FFFFFF;
+  --fs:'IBM Plex Sans',system-ui,sans-serif;--fm:'IBM Plex Mono',ui-monospace,monospace;--fd:'Bricolage Grotesque','IBM Plex Sans',sans-serif;
+  color-scheme:light;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;font-family:var(--fs);font-size:13px;color:var(--ink);background:var(--bg);display:flex;flex-direction:column;overflow:hidden}
+button,input,select,textarea{font:inherit;color:inherit}
+.mono{font-family:var(--fm)}.tn{font-variant-numeric:tabular-nums}.mut{color:var(--mut)}
+:focus-visible{outline:2px solid var(--or);outline-offset:1px}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+
+#demo{flex:none;display:flex;flex-wrap:wrap;align-items:center;gap:6px 14px;padding-block:7px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));background:var(--demo);color:var(--demotx);font-size:12px;border-bottom:3px dashed var(--demoy)}
+#demo .dtag{font-family:var(--fm);font-weight:600;font-size:11px;letter-spacing:.08em;background:var(--demoy);color:var(--demo);padding:2px 7px;border-radius:4px}
+#demo label{display:inline-flex;align-items:center;gap:6px}
+#demo select,#demo button{height:26px;border-radius:6px;border:1px solid #4A4B50;background:#2F3034;color:#F0F0F0;padding:0 8px;font-size:12px;cursor:pointer}
+#demo .dnote{color:#A9A9A9;font-size:11.5px}
+
+#win{flex:1 1 auto;min-height:0;display:flex;flex-direction:column}
+.titlebar{height:40px;flex:none;background:var(--navy);color:var(--white);display:flex;align-items:center;gap:12px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.brand{font-family:var(--fd);font-weight:700;font-size:15px;display:flex;align-items:center;gap:8px}
+.brand i{width:18px;height:18px;border-radius:5px;background:var(--or);display:inline-block}
+.ctx{font-size:12px;color:#C9D2E3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ctx b{color:var(--white);font-weight:600}
+.ctabs{height:34px;flex:none;background:var(--navy3);display:flex;align-items:flex-end;gap:2px;padding:0 8px;overflow-x:auto}
+.ctab{height:28px;border-radius:8px 8px 0 0;color:#AEB8CC;padding:0 14px;display:inline-flex;align-items:center;gap:7px;font-size:12.5px;white-space:nowrap}
+.ctab.on{background:var(--bg);color:var(--navy);font-weight:600}
+.ctab .dot{width:7px;height:7px;border-radius:50%;background:var(--or2)}
+
+.head{flex:none;background:var(--card);border-bottom:1px solid var(--ln);display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;padding-block:10px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.head h1{margin:0;font-family:var(--fd);font-size:19px;font-weight:600;text-wrap:balance}
+.head .sub{font-size:12px;color:var(--mut)}
+.pill{height:22px;padding:0 9px;border-radius:6px;font-size:11.5px;font-weight:600;display:inline-flex;align-items:center;gap:5px;white-space:nowrap}
+.p-bor{background:var(--ln2);color:var(--txt2);border:1px solid var(--ln3)}
+.p-val{background:var(--greenb);color:var(--green)}
+.p-rpe{background:var(--ambb);color:var(--amb)}
+.p-rec{background:var(--purb);color:var(--pur)}
+.tagline{height:22px;padding:0 8px;border-radius:6px;border:1px dashed var(--amb);color:var(--amb);font-size:11.5px;display:inline-flex;align-items:center;gap:5px}
+.grow{flex:1 1 auto}
+
+.body{flex:1 1 auto;min-height:0;overflow:auto;padding-block:14px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.cols{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:14px;align-items:start;max-width:2200px}
+@media (max-width:1100px){.cols{grid-template-columns:minmax(0,1fr)}}
+.stack{display:flex;flex-direction:column;gap:14px;min-width:0}
+.card{background:var(--card);border:1px solid var(--ln);border-radius:10px;padding:12px 14px;min-width:0}
+.card h2{margin:0 0 10px;font-size:13.5px;font-weight:600;display:flex;align-items:center;gap:8px}
+.card h2 .mut{font-weight:400;font-size:12px}
+
+.summary{background:var(--redb);border:1px solid #F0C9C2;border-radius:10px;padding:10px 14px;color:var(--red)}
+.summary.warn{background:var(--ambb);border-color:#F2D2AE;color:var(--amb)}
+.summary b{display:block;margin-bottom:4px}
+.summary ul{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:2px}
+.summary a{color:inherit;text-decoration:underline;cursor:pointer}
+
+.fgrid{display:flex;flex-wrap:wrap;gap:10px 14px;align-items:flex-end}
+.f{display:flex;flex-direction:column;gap:3px;min-width:0}
+.f label{font-size:11.5px;color:var(--mut)}
+.inp{height:28px;border:1px solid var(--inb);border-radius:6px;background:var(--inbg);padding:0 8px;font-size:12.5px;min-width:0}
+textarea.inp{height:auto;padding:6px 8px;resize:vertical}
+.inp:focus{border-color:var(--blue);outline:none;box-shadow:0 0 0 2px var(--blueb)}
+.inp[readonly],.inp:disabled{background:var(--ro);color:var(--txt2)}
+.inp.err{border-color:var(--red);box-shadow:0 0 0 1px var(--red) inset}
+.inp.r{text-align:right;font-variant-numeric:tabular-nums}
+.w-date{width:108px}.w-num{width:80px}.w-pct{width:64px}.w-serie{width:240px}.w-tipo{width:250px}.w-fp{width:200px}.w-dia{width:56px}
+.cli{display:flex;flex-wrap:wrap;gap:10px 18px;align-items:flex-start}
+.cli .who{min-width:220px;flex:1 1 260px}
+.cli .who b{font-size:14px}
+.cli .acc{display:grid;grid-template-columns:auto auto;gap:3px 10px;font-size:12px;align-items:center}
+.cli .acc .k{color:var(--mut)}
+.miss{color:var(--red);display:inline-flex;gap:6px;align-items:center}
+.lnk{border:0;background:none;color:var(--blue);padding:0;cursor:pointer;text-decoration:underline;font-size:12px}
+.snap{font-size:11.5px;color:var(--mut)}
+
+.btn{height:28px;padding:0 11px;border-radius:7px;border:1px solid var(--ln3);background:var(--card);font-size:12.5px;font-weight:500;cursor:pointer;display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+.btn:hover{background:var(--bg2)}
+.btn.pri{background:var(--navy);border-color:var(--navy);color:var(--white)}
+.btn.pri:hover{background:var(--navy2)}
+.btn.cta{background:var(--or);border-color:var(--or);color:var(--navy);font-weight:600}
+.btn.danger{color:var(--red);border-color:#EBC7C0}
+.btn.ghost{border-color:transparent;background:transparent;color:var(--blue)}
+.btn[aria-disabled="true"]{opacity:.45;cursor:not-allowed}
+.btn.sm{height:24px;padding:0 8px;font-size:12px}
+
+.tw{overflow-x:auto;border:1px solid var(--ln);border-radius:8px}
+table.l{border-collapse:separate;border-spacing:0;width:100%;min-width:1180px;table-layout:fixed}
+.l th{background:var(--bg2);text-align:left;font-size:11.5px;font-weight:600;color:var(--mut);height:28px;padding:0 6px;border-bottom:1px solid var(--ln);white-space:nowrap}
+.l th.r,.l td.r{text-align:right}
+.l td{padding:3px 4px;border-bottom:1px solid var(--ln2);vertical-align:top;background:var(--card)}
+.l td .inp{width:100%;height:26px}
+.l td.calc{padding:7px 6px;font-variant-numeric:tabular-nums;font-size:12.5px}
+.l tr.sup td{background:#FBF8F2}
+.l .desc{margin-top:3px;height:auto;min-height:26px}
+.l td.c{text-align:center;padding-top:7px}
+.lfoot{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:8px}
+.lock{display:flex;gap:8px;align-items:center;background:var(--ln2);border:1px solid var(--ln3);border-radius:8px;padding:8px 12px;color:var(--txt2);font-size:12.5px;margin-bottom:10px}
+
+.tot{display:grid;grid-template-columns:1fr auto;gap:5px 10px;font-size:12.5px}
+.tot .v{text-align:right;font-variant-numeric:tabular-nums;font-family:var(--fm);font-size:12.5px}
+.tot .big{font-size:15px;font-weight:600;padding-top:6px;border-top:1px solid var(--ln)}
+.ivab{margin-top:10px;font-size:12px}
+.ivab table{width:100%;border-collapse:collapse}
+.ivab th{font-weight:600;color:var(--mut);text-align:right;font-size:11px;padding:2px 0}
+.ivab th:first-child,.ivab td:first-child{text-align:left}
+.ivab td{text-align:right;font-family:var(--fm);font-size:11.5px;padding:2px 0}
+.asi{width:100%;border-collapse:collapse;font-size:11.5px}
+.asi th{color:var(--mut);font-weight:600;text-align:left;padding:3px 8px 3px 0;font-size:11px}
+.asi td{padding:3px 8px 3px 0;border-top:1px solid var(--ln2)}
+.asi .r{text-align:right;font-family:var(--fm)}
+.hist{font-size:11.5px;color:var(--txt2);display:flex;flex-direction:column;gap:3px}
+
+.foot{flex:none;background:var(--card);border-top:1px solid var(--ln);display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding-block:8px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.chg{font-size:12px;color:var(--or2);display:inline-flex;align-items:center;gap:6px}
+.chg i{width:7px;height:7px;border-radius:50%;background:var(--or2)}
+.statusbar{height:24px;flex:none;background:var(--card);border-top:1px solid var(--ln);display:flex;align-items:center;gap:14px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));font-size:11.5px;color:var(--mut);white-space:nowrap;overflow:hidden}
+
+.veil{position:fixed;inset:0;background:rgba(20,33,58,.35);display:flex;align-items:center;justify-content:center;padding:16px;z-index:20}
+.dlg{background:var(--card);border-radius:12px;box-shadow:0 20px 60px rgba(0,0,0,.25);width:min(560px,100%);max-height:90vh;overflow:auto;padding:18px 20px;display:flex;flex-direction:column;gap:12px}
+.dlg h3{margin:0;font-family:var(--fd);font-size:17px;font-weight:600}
+.dlg p{margin:0;line-height:1.45}
+.dlg .btns{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:8px}
+.dlg ul{margin:0;padding-left:18px;line-height:1.5}
+.pick{display:flex;flex-direction:column;border:1px solid var(--ln);border-radius:8px;overflow:hidden}
+.pick button{border:0;border-bottom:1px solid var(--ln2);background:var(--card);text-align:left;padding:8px 10px;cursor:pointer;display:grid;grid-template-columns:1fr auto;gap:2px 10px}
+.pick button:hover,.pick button:focus-visible{background:var(--act,#FFF3E6)}
+.pick .s{font-size:11.5px;color:var(--mut)}
+.toast{position:fixed;right:max(16px,env(safe-area-inset-right,0px));bottom:calc(36px + env(safe-area-inset-bottom,0px));background:var(--navy);color:var(--white);padding:9px 14px;border-radius:8px;font-size:12.5px;max-width:420px;z-index:30;box-shadow:0 8px 24px rgba(0,0,0,.2)}
+</style>
+
+<div id="demo">
+  <span class="dtag">DEMO</span>
+  <label for="esc">Escenario
+    <select id="esc">
+      <option value="nuevo">Borrador recién creado (vacío)</option>
+      <option value="normal" selected>Borrador con líneas (alquiler + IBI + suplido)</option>
+      <option value="sincuenta">Cliente sin cuenta de retención</option>
+      <option value="cero">Borrador a cero (aviso)</option>
+      <option value="rect">Borrador rectificativo (R4)</option>
+      <option value="val">Factura validada (solo lectura)</option>
+    </select>
+  </label>
+  <label for="perm">Operador
+    <select id="perm"><option value="full">Completo</option><option value="ro">Solo consulta</option></select>
+  </label>
+  <button type="button" id="reset" title="Vuelve a los datos de ejemplo del escenario elegido">Restablecer</button>
+  <span class="dnote">Datos ficticios. Validar, crear cuentas y asientos están simulados: no se escribe nada.</span>
+</div>
+
+<div id="win">
+  <div class="titlebar"><span class="brand"><i></i>ProContaVF</span><span class="ctx">Sociedad <b>RIB · Ribera Gestión</b> · Ejercicio <b>2026</b> · Operador <b>ronald</b></span></div>
+  <div class="ctabs"><span class="ctab">Inicio</span><span class="ctab">Facturas emitidas</span><span class="ctab on" id="tabname"><span class="dot" id="tabdot" hidden></span><span id="tabtxt">Borrador</span></span></div>
+  <div class="head" id="head"></div>
+  <div class="body"><div id="sum"></div><div class="cols"><div class="stack" id="main"></div><div class="stack" id="side"></div></div></div>
+  <div class="foot" id="foot"></div>
+  <div class="statusbar"><span>BD C:\ProConta\ProConta.accdb</span><span>Esquema v10</span><span>ProContaVF 0.4.0</span><span id="sb"></span></div>
+</div>
+<div id="layer"></div>
+
+<script>
+'use strict';
+const r2=x=>{const s=x<0?-1:1;return s*Math.round(Math.abs(x)*100+1e-9)/100;};
+const eur=x=>(x<0?'−':'')+Math.abs(x).toLocaleString('es-ES',{minimumFractionDigits:2,maximumFractionDigits:2})+' €';
+const num=x=>Number(x).toLocaleString('es-ES',{minimumFractionDigits:2,maximumFractionDigits:2});
+const pnum=s=>{if(typeof s==='number')return s;s=String(s).replace(/€/g,'').trim();if(!s)return 0;if(/\.\d{1,2}$/.test(s)&&!s.includes(','))return parseFloat(s.replace(/\s/g,''));return parseFloat(s.replace(/\./g,'').replace(',','.').replace(/\s/g,''));};
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const $=id=>document.getElementById(id);
+
+const CLIENTES=[
+ {id:125,n:'Eramprunya Serveis, S.L.',nif:'B65432109',dom:'C/ Major 14, 2º · 08850 Gavà (Barcelona)',email:'admin@eramprunya.example',c430:'4300125',ret:'4735079',retN:'Retención IRPF Local Eramprunya'},
+ {id:131,n:'Marta Soler Puig',nif:'38123456K',dom:'Av. Diagonal 410, 5º 1ª · 08037 Barcelona',email:'marta.soler@example.com',c430:'4300131',ret:null},
+ {id:140,n:'Academia Nexo, S.C.P.',nif:'J08765432',dom:'Rambla Nova 22 · 43001 Tarragona',email:'',c430:null,ret:null},
+];
+const CONCEPTOS=[
+ {id:4754,n:'Alquiler local Eramprunya',d:'Renta mensual del local de C/ Major 14',p:1850,iva:21,cta:'7520001'},
+ {id:12,n:'Repercusión IBI',d:'Parte proporcional del IBI del ejercicio',p:0,iva:21,cta:'7520002'},
+ {id:13,n:'Gastos de comunidad',d:'Cuota de comunidad repercutida',p:85,iva:21,cta:'7520003'},
+ {id:30,n:'Tasa de basuras (suplido)',d:'Pagada en nombre del cliente',p:64.2,iva:0,cta:'5550001',sup:true},
+ {id:41,n:'Limpieza piso turístico',d:'Servicio de limpieza tras la estancia',p:45,iva:21,cta:'7050001'},
+];
+const SERIES=[{id:1,t:'F 2026 · Facturas 2026 (predeterminada)'},{id:2,t:'A 2026 · Alquileres 2026'}];
+const TIPOS=[['F1','F1 · Factura completa'],['F2','F2 · Simplificada'],['R4','R4 · Rectificativa (resto)'],['R5','R5 · Rectificativa de simplificada']];
+const FP=['Transferencia','Domiciliación SEPA','Efectivo','Indefinida'];
+const IVACTA={21:'4770021',10:'4770010',4:'4770004',0:'4770000'};
+
+let S,E0,perm='full';
+function ln(cid,over={}){const c=CONCEPTOS.find(x=>x.id===cid);return Object.assign({cid,n:c.n,d:c.d,q:1,p:c.p,dp:0,di:0,iva:c.iva,sup:!!c.sup,cta:c.cta,tot:null},over);}
+function escenario(k){
+  const base={k,num:null,estado:'Borrador',serie:1,tipo:'F1',cli:125,ff:'',fo:'',pd:'2026-11-01',ph:'2026-11-30',fp:'Transferencia',dia:5,ret:19,desc:'Alquiler del local de C/ Major 14, noviembre de 2026',notas:'',lineas:[ln(4754),ln(12,{p:42.37}),ln(30)],orig:null,hist:['01/11/2026 16:02 · ronald · Creado el borrador B-0007']};
+  if(k==='nuevo')Object.assign(base,{cli:null,desc:'',ret:0,lineas:[],pd:'',ph:'',hist:['01/11/2026 16:30 · ronald · Creado el borrador B-0008']});
+  if(k==='sincuenta')Object.assign(base,{cli:131,desc:'Alquiler vivienda Diagonal 410, noviembre de 2026'});
+  if(k==='cero')Object.assign(base,{ret:0,desc:'Regularización sin importe',lineas:[ln(13,{p:0})]});
+  if(k==='rect')Object.assign(base,{tipo:'R4',serie:3,orig:'F 2026/0041',desc:'Rectificación completa de la factura F 2026/0041 (cambio solicitado por el cliente)',lineas:[ln(4754,{q:-1}),ln(12,{q:-1,p:42.37}),ln(30,{q:-1})],hist:['01/11/2026 16:10 · ronald · Creado como rectificativa de F 2026/0041; la original pasa a «Rectificación pendiente»']});
+  if(k==='val')Object.assign(base,{estado:'Validada',num:'F 2026/0056',ff:'2026-11-01',notas:'Avisado por teléfono el 01/11.',hist:['01/11/2026 16:02 · ronald · Creado el borrador B-0007','01/11/2026 16:20 · ronald · Validada con el número F 2026/0056 (sin VeriFactu)','01/11/2026 16:20 · ronald · Asiento 1.127 generado']});
+  return base;
+}
+function load(k){S=escenario(k);E0=JSON.stringify(S);render();}
+
+function calcLinea(l){
+  let base;
+  if(l.tot!=null){const t=pnum(l.tot);base=l.sup?r2(t):r2(t/(1+l.iva/100));const cuota=l.sup?0:r2(t-base);return{base,cuota,total:r2(base+cuota)};}
+  base=r2(l.q*l.p*(1-l.dp/100)-l.di);const cuota=l.sup?0:r2(base*l.iva/100);return{base,cuota,total:r2(base+cuota)};
+}
+function totales(){
+  let base=0,iva=0,sup=0;const porIva={};
+  for(const l of S.lineas){const c=calcLinea(l);if(l.sup)sup+=c.base;else{base+=c.base;iva+=c.cuota;const k=l.iva;porIva[k]=porIva[k]||{b:0,c:0};porIva[k].b+=c.base;porIva[k].c+=c.cuota;}}
+  base=r2(base);iva=r2(iva);sup=r2(sup);const bruto=r2(base+iva+sup);const ret=r2(base*S.ret/100);return{base,iva,sup,bruto,ret,total:r2(bruto-ret),porIva};
+}
+const cli=()=>CLIENTES.find(c=>c.id===S.cli);
+const editable=()=>S.estado==='Borrador'&&perm==='full';
+const dirty=()=>JSON.stringify(S)!==E0;
+const isR=()=>S.tipo==='R4'||S.tipo==='R5';
+
+function validar(){
+  const errs=[],warns=[];const c=cli();const t=totales();
+  if(!c)errs.push(['f-cli','Falta el cliente. Elige uno con «Buscar cliente» (F3).']);
+  else{
+    if(!c.c430)errs.push(['f-cli',`${c.n} no tiene cuenta de cliente en esta sociedad. Asígnale una para poder contabilizar la factura.`,'c430']);
+    if(S.ret>0&&!c.ret)errs.push(['f-cli',`La factura tiene una retención del ${S.ret} % y ${c.n} no tiene cuenta de retención en esta sociedad.`,'ret']);
+  }
+  if(!S.desc.trim())errs.push(['f-desc','Falta la descripción general. Es la que se comunica a la AEAT: resume qué se factura.']);
+  if(!S.lineas.length)errs.push(['f-add','La factura no tiene líneas. Añade al menos una con «Añadir línea».']);
+  if(S.pd&&S.ph&&S.pd>S.ph)errs.push(['f-ph','El periodo facturado termina antes de empezar. Revisa las fechas «Desde» y «Hasta».']);
+  if(S.ret<0||S.ret>100)errs.push(['f-ret','La retención debe estar entre 0 y 100 %.']);
+  S.lineas.forEach((l,i)=>{if(!l.n.trim())errs.push([`l${i}-n`,`La línea ${i+1} no tiene nombre.`]);if(l.dp<0||l.dp>100)errs.push([`l${i}-dp`,`El descuento de la línea ${i+1} debe estar entre 0 y 100 %.`]);if(!l.cta)errs.push([`l${i}-cta`,`La línea ${i+1} no tiene cuenta de ingreso.`]);});
+  if(S.lineas.length&&t.total===0)warns.push('El total de la factura es 0,00 €. Comprueba que no falte ningún precio o línea; si es correcto, confirma la validación.');
+  return{errs,warns};
+}
+
+function head(){
+  const st=S.estado;const pill=st==='Borrador'?'p-bor':st==='Validada'?'p-val':st==='Rectificación pendiente'?'p-rpe':'p-rec';
+  const name=S.num?S.num:(S.k==='nuevo'?'Borrador B-0008':'Borrador B-0007');
+  $('tabtxt').textContent=name;$('tabdot').hidden=!dirty();
+  const c=cli();
+  $('head').innerHTML=`<h1>${esc(name)}</h1><span class="pill ${pill}" title="Estado de la factura">${esc(st)}</span>
+   ${isR()?`<span class="pill p-rpe" title="Esta factura rectifica por completo a la original, con los importes en negativo">Rectifica a ${esc(S.orig)}</span>`:''}
+   ${st==='Validada'?`<span class="tagline" title="La validación se ha hecho con el paso provisional: esta factura no se ha enviado a la AEAT. Solo vale en la BD de pruebas.">Sin VeriFactu</span>`:''}
+   <span class="sub">${c?esc(c.n):'Sin cliente'} · ${S.ff?fecha(S.ff):'Fecha al validar'}</span><span class="grow"></span>
+   ${btn('Volver a Facturas emitidas','back','ghost sm',null,'Vuelve al listado sin cerrar esta pestaña')}`;
+}
+const fecha=s=>s?s.split('-').reverse().join('/'):'';
+function btn(t,act,cls='',why=null,tip=''){return `<button type="button" class="btn ${cls}" data-act="${act}" ${why?`aria-disabled="true" title="${esc(why)}"`:tip?`title="${esc(tip)}"`:''}>${esc(t)}</button>`;}
+
+let lastV=null;
+function summary(){
+  const v=lastV;if(!v||(!v.errs.length&&!v.warns.length)){$('sum').innerHTML='';return;}
+  $('sum').innerHTML=(v.errs.length?`<div class="summary" role="alert" style="margin-bottom:14px"><b>No puedo validar: hay ${v.errs.length===1?'un dato que corregir':v.errs.length+' datos que corregir'}</b><ul>${v.errs.map(e=>`<li>${esc(e[1])} <a data-go="${e[0]}">Ir al campo</a>${e[2]?` · <button type="button" class="lnk" data-act="asig-${e[2]}">Asignar cuenta…</button>`:''}</li>`).join('')}</ul></div>`:'')
+   +(v.warns.length&&!v.errs.length?`<div class="summary warn" style="margin-bottom:14px"><b>Aviso</b><ul>${v.warns.map(w=>`<li>${esc(w)}</li>`).join('')}</ul></div>`:'');
+}
+
+function main(){
+  const ed=editable();const ro=ed?'':'readonly';const dis=ed?'':'disabled';const c=cli();
+  const errIds=new Set((lastV?.errs||[]).map(e=>e[0]));const ec=id=>errIds.has(id)?' err':'';
+  const tipC=id=>{const e=(lastV?.errs||[]).find(x=>x[0]===id);return e?` title="${esc(e[1])}"`:'';};
+  let h='';
+  if(!ed&&S.estado!=='Borrador')h+=`<div class="lock" role="note">🔒 Una factura validada no se modifica: su número, cliente, importes y líneas quedan fijos. Solo puedes cambiar sus notas internas. Para corregirla, crea una rectificativa.</div>`;
+  else if(perm==='ro')h+=`<div class="lock" role="note">🔒 Tu perfil es de consulta: puedes ver el borrador pero no cambiarlo.</div>`;
+  // Cliente
+  h+=`<div class="card"><h2>Cliente <span class="mut">${S.estado==='Borrador'?'los datos se copian a la factura al validarla':'datos copiados al validar; los cambios posteriores en Terceros no la alteran'}</span></h2>
+   <div class="cli"><div class="who">${c?`<b>${esc(c.n)}</b><div class="mono">${esc(c.nif)}</div><div>${esc(c.dom)}</div><div class="mut">${c.email?esc(c.email):'Sin email de envío de facturas'}</div>`:'<span class="mut">Aún no hay cliente.</span>'}
+   ${ed?`<div style="margin-top:6px"><button type="button" class="btn sm${ec('f-cli')}" id="f-cli" data-act="pickcli" title="Busca el cliente por nombre, NIF o Id (F3)"${tipC('f-cli')}>${c?'Cambiar cliente…':'Buscar cliente… (F3)'}</button></div>`:''}</div>
+   ${c?`<div class="acc"><span class="k">Cuenta del cliente</span><span>${c.c430?`<span class="mono">${c.c430}</span>`:`<span class="miss">Sin cuenta en RIB</span> ${ed?'<button type="button" class="lnk" data-act="asig-c430" title="Asigna o crea la cuenta 430 del cliente en esta sociedad">Asignar…</button>':''}`}</span>
+   <span class="k">Cuenta de retención</span><span>${c.ret?`<span class="mono" title="${esc(c.retN||'')}">${c.ret}</span>`:`<span class="${S.ret>0?'miss':'mut'}">Sin cuenta${S.ret>0?' (hace falta: hay retención)':''}</span> ${ed?'<button type="button" class="lnk" data-act="asig-ret" title="Asigna o crea la cuenta de retención (473) del cliente en esta sociedad">Asignar…</button>':''}`}</span>
+   <span class="k">Abrir</span><span><button type="button" class="lnk" data-act="ficha" title="Abre la ficha del tercero en otra pestaña">Ficha del tercero</button></span></div>`:''}
+   </div></div>`;
+  // Datos
+  h+=`<div class="card"><h2>Datos de la factura</h2><div class="fgrid">
+   <div class="f"><label for="f-serie">Serie</label><select class="inp w-serie" id="f-serie" ${dis||(isR()?'disabled':'')} title="${isR()?'Las rectificativas usan la serie rectificativa de la sociedad':'Serie con la que se numerará al validar'}">${isR()?'<option>R 2026 · Rectificativas 2026</option>':SERIES.map(s=>`<option value="${s.id}" ${s.id==S.serie?'selected':''}>${esc(s.t)}</option>`).join('')}</select></div>
+   <div class="f"><label for="f-tipo">Tipo</label><select class="inp w-tipo" id="f-tipo" ${dis||(isR()?'disabled':'')} title="Tipo de factura para la AEAT">${TIPOS.filter(t=>isR()?t[0][0]==='R':t[0][0]==='F').map(t=>`<option value="${t[0]}" ${t[0]==S.tipo?'selected':''}>${esc(t[1])}</option>`).join('')}</select></div>
+   <div class="f"><label for="f-num">Número</label><input class="inp w-serie mono" id="f-num" readonly value="${esc(S.num||'Se asigna al validar')}" title="El número lo asigna el programa al validar, nunca a mano"></div>
+   <div class="f"><label for="f-ff">Fecha de factura</label><input class="inp w-date" id="f-ff" ${ro} value="${S.ff?fecha(S.ff):''}" placeholder="Al validar" title="Fecha de expedición; si la dejas vacía se pone la de hoy al validar. No puede ser anterior a la última factura de la serie."></div>
+   <div class="f"><label for="f-fo">Fecha de operación</label><input class="inp w-date" id="f-fo" ${ro} value="${fecha(S.fo)}" placeholder="dd/mm/aaaa" title="Solo si la operación se hizo en una fecha distinta de la de la factura"></div>
+   <div class="f"><label for="f-pd">Periodo desde</label><input class="inp w-date${ec('f-ph')}" id="f-pd" ${ro} value="${fecha(S.pd)}" placeholder="dd/mm/aaaa" title="Primer día del periodo facturado"></div>
+   <div class="f"><label for="f-ph">Hasta</label><input class="inp w-date${ec('f-ph')}" id="f-ph" ${ro} value="${fecha(S.ph)}" placeholder="dd/mm/aaaa" title="Último día del periodo facturado; no puede ser anterior al primero"${tipC('f-ph')}></div>
+   <div class="f"><label for="f-fp">Forma de pago</label><select class="inp w-fp" id="f-fp" ${dis} title="Forma de pago pactada">${FP.map(f=>`<option ${f==S.fp?'selected':''}>${f}</option>`).join('')}</select></div>
+   <div class="f"><label for="f-dia">Día de pago</label><input class="inp w-dia r" id="f-dia" ${ro} value="${S.dia}" title="Día del mes previsto para el pago; 0 si no hay día fijo"></div>
+   <div class="f"><label for="f-ret">Retención %</label><input class="inp w-pct r${ec('f-ret')}" id="f-ret" ${ro} value="${num(S.ret)}" title="Porcentaje de retención IRPF sobre la base (sin suplidos); 0 si no hay"></div>
+   <div class="f" style="flex:1 1 100%"><label for="f-desc">Descripción general</label><textarea class="inp${ec('f-desc')}" id="f-desc" rows="2" ${ro} title="Qué se factura, en una frase. Va a la AEAT y encabeza el PDF."${tipC('f-desc')}>${esc(S.desc)}</textarea></div>
+   <div class="f" style="flex:1 1 100%"><label for="f-notas">Notas internas</label><textarea class="inp" id="f-notas" rows="2" ${perm==='full'?'':'readonly'} title="Solo para uso interno: no salen en la factura ni van a la AEAT. Se pueden cambiar también en una factura validada.">${esc(S.notas)}</textarea></div>
+  </div></div>`;
+  // Lineas
+  h+=`<div class="card"><h2>Líneas <span class="mut">${S.lineas.length} · los importes se recalculan al escribir</span></h2>
+   ${isR()?'<div class="lock">Las cantidades van en negativo: la rectificativa anula por completo a la original. Los precios y los tipos se mantienen.</div>':''}
+   <div class="tw"><table class="l"><colgroup><col style="width:30px"><col style="width:300px"><col style="width:70px"><col style="width:100px"><col style="width:62px"><col style="width:84px"><col style="width:96px"><col style="width:62px"><col style="width:84px"><col style="width:56px"><col style="width:92px"><col style="width:104px"><col style="width:${ed?34:0}px"></colgroup>
+   <thead><tr><th>#</th><th>Concepto y descripción</th><th class="r">Cantidad</th><th class="r">Precio</th><th class="r">Dto. %</th><th class="r">Dto. €</th><th class="r">Base</th><th class="r">IVA %</th><th class="r">Cuota</th><th title="Suplido: fuera de IVA y retención">Supl.</th><th>Cuenta</th><th class="r" title="Puedes escribir aquí el total con IVA y el programa calcula la base">Total</th><th></th></tr></thead><tbody>`;
+  if(!S.lineas.length)h+=`<tr><td colspan="13" style="padding:16px;text-align:center" class="mut">Sin líneas. Añade la primera con «Añadir línea» o eligiendo un concepto.</td></tr>`;
+  S.lineas.forEach((l,i)=>{const c=calcLinea(l);
+   h+=`<tr class="${l.sup?'sup':''}"><td class="calc mut">${i+1}</td>
+    <td><input class="inp${ec(`l${i}-n`)}" id="l${i}-n" data-l="${i}" data-k="n" ${ro} value="${esc(l.n)}" title="Nombre visible de la línea; se copia del concepto y lo puedes cambiar"><textarea class="inp desc" rows="1" data-l="${i}" data-k="d" ${ro} title="Descripción ampliada que sale debajo del nombre">${esc(l.d)}</textarea></td>
+    <td><input class="inp r" data-l="${i}" data-k="q" ${ro} value="${String(l.q).replace('.',',')}" title="Unidades facturadas"></td>
+    <td><input class="inp r" data-l="${i}" data-k="p" ${ro} value="${num(l.p)} €" title="Precio por unidad antes de descuentos"></td>
+    <td><input class="inp r${ec(`l${i}-dp`)}" id="l${i}-dp" data-l="${i}" data-k="dp" ${ro} value="${num(l.dp)}" title="Descuento en porcentaje; se aplica antes que el descuento fijo"></td>
+    <td><input class="inp r" data-l="${i}" data-k="di" ${ro} value="${num(l.di)} €" title="Descuento fijo en euros, después del porcentaje"></td>
+    <td class="calc r" title="Base imponible de la línea, redondeada a céntimos">${eur(c.base)}</td>
+    <td><select class="inp" data-l="${i}" data-k="iva" ${dis||(l.sup?'disabled':'')} title="${l.sup?'Un suplido no lleva IVA':'Tipo de IVA de la línea'}">${[21,10,4,0].map(v=>`<option value="${v}" ${v==l.iva?'selected':''}>${v}</option>`).join('')}</select></td>
+    <td class="calc r">${eur(c.cuota)}</td>
+    <td class="c"><input type="checkbox" data-l="${i}" data-k="sup" ${dis} ${l.sup?'checked':''} title="Suplido: importe pagado en nombre del cliente; va al total pero no lleva IVA ni retención"></td>
+    <td><input class="inp mono${ec(`l${i}-cta`)}" id="l${i}-cta" data-l="${i}" data-k="cta" ${ro} value="${esc(l.cta)}" title="Cuenta de ingreso (o de suplidos) de la línea; viene del concepto"></td>
+    <td><input class="inp r" data-l="${i}" data-k="tot" ${ro} value="${num(c.total)} €" title="Total con IVA. Si lo escribes, se calcula la base y la cuota conservando este total"></td>
+    <td>${ed?`<button type="button" class="btn sm ghost" data-act="del-${i}" title="Quita la línea ${i+1}">✕</button>`:''}</td></tr>`;});
+  h+=`</tbody></table></div>`;
+  if(ed)h+=`<div class="lfoot"><button type="button" class="btn sm${ec('f-add')}" id="f-add" data-act="addline" title="Añade una línea eligiendo un concepto del catálogo de la sociedad">Añadir línea…</button><span class="mut" style="font-size:12px">Elegir un concepto copia su nombre, descripción, precio, IVA y cuenta; cambiar después el concepto en el catálogo no toca esta línea.</span></div>`;
+  h+=`</div>`;
+  $('main').innerHTML=h;
+}
+
+function side(){
+  const t=totales();const c=cli();
+  let h=`<div class="card"><h2>Totales</h2><div class="tot">
+   <span>Base imponible</span><span class="v">${eur(t.base)}</span>
+   <span>IVA</span><span class="v">${eur(t.iva)}</span>
+   <span title="Fuera de IVA y retención">Suplidos</span><span class="v">${eur(t.sup)}</span>
+   <span>Importe bruto</span><span class="v">${eur(t.bruto)}</span>
+   <span>Retención ${num(S.ret)} %</span><span class="v">${eur(-t.ret)}</span>
+   <span class="big">Total a cobrar</span><span class="v big">${eur(t.total)}</span></div>
+   ${Object.keys(t.porIva).length?`<div class="ivab"><table><thead><tr><th>IVA</th><th>Base</th><th>Cuota</th></tr></thead><tbody>${Object.entries(t.porIva).sort((a,b)=>b[0]-a[0]).map(([k,v])=>`<tr><td>${k} %</td><td>${num(r2(v.b))}</td><td>${num(r2(v.c))}</td></tr>`).join('')}</tbody></table></div>`:''}
+  </div>`;
+  // Asiento
+  const ap=[];if(c&&S.lineas.length){
+    ap.push([c.c430||'¿430?',`Cliente ${c.n}`,t.total,0]);
+    if(t.ret)ap.push([c.ret||'¿473?','Retención',t.ret,0]);
+    const porC={};S.lineas.forEach(l=>{const b=calcLinea(l).base;porC[l.cta]=(porC[l.cta]||0)+b;});
+    Object.entries(porC).forEach(([k,v])=>ap.push([k,k.startsWith('555')?'Suplidos':'Ingreso',0,r2(v)]));
+    Object.entries(t.porIva).forEach(([k,v])=>{if(r2(v.c))ap.push([IVACTA[k],`IVA repercutido ${k} %`,0,r2(v.c)]);});
+  }
+  h+=`<div class="card"><h2>Asiento <span class="mut">${S.estado==='Validada'?'generado al validar · nº 1.127':'se generará al validar'}</span></h2>
+   ${ap.length?`<table class="asi"><thead><tr><th>Cuenta</th><th>Concepto</th><th class="r">Debe</th><th class="r">Haber</th></tr></thead><tbody>${ap.map(a=>`<tr><td class="mono" ${a[0].startsWith('¿')?'style="color:var(--red)"':''}>${esc(a[0])}</td><td>${esc(a[1])}</td><td class="r">${a[2]?num(a[2]):''}</td><td class="r">${a[3]?num(a[3]):''}</td></tr>`).join('')}</tbody></table>`:'<span class="mut" style="font-size:12px">Elige el cliente y añade líneas para ver el asiento.</span>'}
+   <p class="snap" style="margin:8px 0 0">Un asiento por factura, con fecha del día en que se genera. Si la factura se vuelve a contabilizar, se sustituye: nunca se duplica.</p></div>`;
+  h+=`<div class="card"><h2>Historial</h2><div class="hist">${S.hist.map(x=>`<span>${esc(x)}</span>`).join('')}</div></div>`;
+  $('side').innerHTML=h;
+}
+
+function foot(){
+  const ed=editable();const n=dirty();const noP=perm!=='full'?'Tu perfil es de consulta':null;
+  let h='';
+  if(S.estado==='Borrador'){
+    h+=btn('Guardar','save','pri',noP||(!n?'No hay cambios que guardar':null),'Guarda el borrador sin numerarlo (Ctrl+G)')+btn('Descartar','discard','',noP||(!n?'No hay cambios':null),'Vuelve a lo último guardado')
+     +(n?`<span class="chg"><i></i>Cambios sin guardar</span>`:'')+'<span class="grow"></span>'
+     +btn('Duplicar','dup','',noP,'Crea otro borrador con el mismo cliente y líneas, sin número ni fechas')
+     +btn(isR()?'Eliminar rectificativa':'Eliminar borrador','delete','danger',noP,isR()?'Borra este borrador y la original vuelve a «Validada»':'Borra el borrador; no consume número')
+     +btn('Validar…','validate','cta',noP,'Comprueba los datos, asigna el número, copia los datos del cliente y genera el asiento');
+  }else{
+    h+=btn('Guardar notas','save','pri',noP||(!n?'No hay cambios en las notas':null),'Guarda las notas internas (Ctrl+G)')+(n?`<span class="chg"><i></i>Notas sin guardar</span>`:'')+'<span class="grow"></span>'
+     +btn('Duplicar','dup','',noP,'Crea un borrador nuevo con el mismo cliente y líneas')
+     +btn('PDF','pdf','','Llega con el desarrollo del PDF')
+     +btn('Enviar a VeriFactu','vf','','Llega con el desarrollo de VeriFactu')
+     +btn('Rectificar…','rect','cta',noP,'Crea un borrador rectificativo R4 que anula esta factura por completo');
+  }
+  $('foot').innerHTML=h;
+}
+function render(){head();summary();main();side();foot();$('sb').textContent=S.estado==='Borrador'?'Borrador sin número':'Factura validada';}
+
+function toast(t){const d=document.createElement('div');d.className='toast';d.textContent=t;document.body.appendChild(d);setTimeout(()=>d.remove(),3800);}
+function dialog(html){$('layer').innerHTML=`<div class="veil" id="veil"><div class="dlg" role="dialog" aria-modal="true">${html}</div></div>`;const f=$('layer').querySelector('button,input');f&&f.focus();}
+function close(){$('layer').innerHTML='';}
+
+const parseDate=s=>{const m=String(s).trim().match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);return m?`${m[3]}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`:'';};
+document.addEventListener('change',e=>{
+  const el=e.target;if(el.closest('#demo')){if(el.id==='esc'){lastV=null;load(el.value);}if(el.id==='perm'){perm=el.value;render();}return;}
+  if(el.dataset.l!=null){const l=S.lineas[+el.dataset.l];const k=el.dataset.k;
+    if(k==='n'||k==='d'||k==='cta')l[k]=el.value;
+    else if(k==='sup'){l.sup=el.checked;if(l.sup)l.iva=0;}
+    else if(k==='iva')l.iva=+el.value;
+    else if(k==='tot'){l.tot=el.value;const c=calcLinea(l);l.tot=null;l.dp=0;l.di=0;l.q=l.q||1;l.p=Math.round(c.base/l.q*10000)/10000;}
+    else l[k]=pnum(el.value)||0;
+    if(k!=='tot')l.tot=null;render();return;}
+  const map={'f-serie':v=>S.serie=+v,'f-tipo':v=>S.tipo=v,'f-ff':v=>S.ff=parseDate(v),'f-fo':v=>S.fo=parseDate(v),'f-pd':v=>S.pd=parseDate(v),'f-ph':v=>S.ph=parseDate(v),'f-fp':v=>S.fp=v,'f-dia':v=>S.dia=+v||0,'f-ret':v=>S.ret=pnum(v)||0,'f-desc':v=>S.desc=v,'f-notas':v=>S.notas=v};
+  if(map[el.id]){map[el.id](el.value);if(lastV)lastV=validar();render();}
+});
+document.addEventListener('click',e=>{
+  const g=e.target.closest('[data-go]');if(g){const t=$(g.dataset.go);t&&t.focus();return;}
+  const b=e.target.closest('[data-act]');if(!b)return;
+  if(b.closest('#veil')&&b.getAttribute('aria-disabled')!=='true'){}
+  if(b.getAttribute('aria-disabled')==='true'){toast(b.title);return;}
+  const a=b.dataset.act;
+  if(a==='back'||a==='ficha')return toast(a==='back'?'Volvería al listado de Facturas emitidas.':'Abriría la ficha del tercero en otra pestaña.');
+  if(a==='save'){E0=JSON.stringify(S);render();return toast(S.estado==='Borrador'?'Borrador guardado. Sigue sin número.':'Notas guardadas.');}
+  if(a==='discard'){S=JSON.parse(E0);lastV=null;render();return toast('Cambios descartados.');}
+  if(a==='addline'){const used=new Set();return dialog(`<h3>Añadir línea</h3><p class="mut">Conceptos activos de RIB · Ribera Gestión</p><div class="pick">${CONCEPTOS.map(c=>`<button type="button" data-act="pickc-${c.id}"><span><b>${esc(c.n)}</b></span><span class="mono s">${c.cta}</span><span class="s">${esc(c.d)}</span><span class="s">${c.sup?'Suplido':eur(c.p)+' · IVA '+c.iva+' %'}</span></button>`).join('')}</div><div class="btns"><button type="button" class="btn" data-act="close">Cancelar</button></div>`);}
+  if(a.startsWith('pickc-')){S.lineas.push(ln(+a.slice(6),isR()?{q:-1}:{}));close();if(lastV)lastV=validar();render();return;}
+  if(a.startsWith('del-')){S.lineas.splice(+a.slice(4),1);if(lastV)lastV=validar();render();return;}
+  if(a==='pickcli')return dialog(`<h3>Buscar cliente</h3><input class="inp" id="q" placeholder="Nombre, NIF o Id" title="Escribe para filtrar"><div class="pick">${CLIENTES.map(c=>`<button type="button" data-act="pickcl-${c.id}"><b>${esc(c.n)}</b><span class="mono s">${c.nif}</span><span class="s">${esc(c.dom)}</span><span class="s">Id ${c.id}</span></button>`).join('')}</div><div class="btns"><button type="button" class="btn" data-act="close">Cancelar</button></div>`);
+  if(a.startsWith('pickcl-')){S.cli=+a.slice(7);close();if(lastV)lastV=validar();render();return;}
+  if(a==='asig-c430'||a==='asig-ret'){const c=cli();const r=a==='asig-ret';const prop=r?'473'+String(c.id).padStart(4,'0'):'430'+String(c.id).padStart(4,'0');
+    return dialog(`<h3>${r?'Cuenta de retención':'Cuenta del cliente'} de ${esc(c.n)}</h3><p>Se guarda en el rol Cliente para la sociedad RIB y vale en todos sus ejercicios.</p><div class="f"><label for="cta">Cuenta</label><input class="inp mono" id="cta" value="${prop}" style="width:160px" title="Escribe una cuenta existente o una nueva"></div><p class="mut">La ${prop} aún no existe en 2026. Al aceptar la creo con el nombre «${esc((r?'Retención IRPF ':'')+c.n)}».</p><div class="btns"><button type="button" class="btn" data-act="close">Cancelar</button><button type="button" class="btn pri" data-act="${r?'okret':'ok430'}">Crear y asignar</button></div>`);}
+  if(a==='okret'||a==='ok430'){const c=cli();const v=$('cta').value;if(a==='okret'){c.ret=v;c.retN='Retención IRPF '+c.n;}else c.c430=v;close();if(lastV)lastV=validar();render();return toast(`Cuenta ${v} creada y asignada a ${c.n}.`);}
+  if(a==='close')return close();
+  if(a==='validate'){lastV=validar();render();
+    if(lastV.errs.length){const f=$(lastV.errs[0][0]);f&&f.focus();return;}
+    const t=totales();
+    return dialog(`<h3>Validar la factura</h3><p>Se asignará el siguiente número de la serie <b>${isR()?'R 2026':SERIES.find(s=>s.id==S.serie).t.split(' · ')[0]}</b> con fecha <b>${S.ff?fecha(S.ff):'01/11/2026'}</b>, se copiarán los datos del cliente y se generará el asiento. Después no se podrá cambiar.</p>
+     <ul><li>Cliente: ${esc(cli().n)}</li><li>Total a cobrar: <b>${eur(t.total)}</b></li>${isR()?`<li>La original ${esc(S.orig)} pasará a «Rectificada».</li>`:''}</ul>
+     ${lastV.warns.length?`<div class="summary warn"><b>Aviso</b>${esc(lastV.warns[0])}</div>`:''}
+     <p class="tagline" style="align-self:flex-start">Sin VeriFactu: paso provisional, solo para la BD de pruebas</p>
+     <div class="btns"><button type="button" class="btn" data-act="close">Cancelar</button><button type="button" class="btn cta" data-act="okval">${lastV.warns.length?'Validar con total cero':'Validar'}</button></div>`);}
+  if(a==='okval'){close();S.estado='Validada';S.num=isR()?'R 2026/0002':'F 2026/0056';if(!S.ff)S.ff='2026-11-01';S.hist.push(`01/11/2026 16:40 · ronald · Validada con el número ${S.num} (sin VeriFactu)`,'01/11/2026 16:40 · ronald · Asiento 1.127 generado');E0=JSON.stringify(S);lastV=null;render();return toast(`Factura ${S.num} validada y contabilizada.`);}
+  if(a==='dup')return toast('Crearía un borrador nuevo en 2026 con la serie predeterminada, el mismo cliente y las mismas líneas; sin número, sin fecha de operación y con el mismo periodo.');
+  if(a==='delete')return dialog(`<h3>${isR()?'Eliminar la rectificativa':'Eliminar el borrador'}</h3><p>${isR()?`Se borra este borrador y la factura ${esc(S.orig)} vuelve a «Validada», todo a la vez.`:'Se borra el borrador y sus líneas. No consume número.'}</p><div class="btns"><button type="button" class="btn" data-act="close">Cancelar</button><button type="button" class="btn danger" data-act="okdel">Eliminar</button></div>`);
+  if(a==='okdel'){close();return toast('Borraría el borrador y cerraría la pestaña.');}
+  if(a==='rect')return dialog(`<h3>Rectificar ${esc(S.num)}</h3><p>Se crea un borrador rectificativo R4 en la serie R 2026 con las mismas líneas y las cantidades en negativo. Mientras sea borrador, ${esc(S.num)} queda en «Rectificación pendiente»; al validarlo pasa a «Rectificada». Si eliminas el borrador, vuelve a «Validada».</p><div class="f"><label for="mot">Motivo</label><input class="inp" id="mot" placeholder="Por ejemplo: cambio solicitado por el cliente" title="Queda en el historial de las dos facturas"></div><div class="btns"><button type="button" class="btn" data-act="close">Cancelar</button><button type="button" class="btn cta" data-act="okrect">Crear rectificativa</button></div>`);
+  if(a==='okrect'){close();$('esc').value='rect';lastV=null;load('rect');return toast('Borrador rectificativo creado. La original queda en «Rectificación pendiente».');}
+  if(a==='pdf'||a==='vf')return toast(b.title);
+});
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape'&&$('veil'))close();
+  if(e.ctrlKey&&(e.key==='g'||e.key==='s')){e.preventDefault();const s=document.querySelector('[data-act=save]');s&&s.click();}
+  if(e.key==='F3'&&editable()){e.preventDefault();document.querySelector('[data-act=pickcli]')?.click();}
+});
+$('reset').addEventListener('click',()=>{lastV=null;load($('esc').value);});
+load('normal');
+</script>

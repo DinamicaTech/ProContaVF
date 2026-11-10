@@ -35,6 +35,20 @@ public static class CampoImporte
         }
     }
 
+    /// <summary>Solo selecciona todo el texto al entrar, sin formatear en moneda (estilo Campo.Numero).</summary>
+    public static readonly DependencyProperty SeleccionarAlEntrarProperty =
+        DependencyProperty.RegisterAttached("SeleccionarAlEntrar", typeof(bool), typeof(CampoImporte), new PropertyMetadata(false, AlCambiarSeleccion));
+
+    public static bool GetSeleccionarAlEntrar(DependencyObject o) => (bool)o.GetValue(SeleccionarAlEntrarProperty);
+    public static void SetSeleccionarAlEntrar(DependencyObject o, bool v) => o.SetValue(SeleccionarAlEntrarProperty, v);
+
+    private static void AlCambiarSeleccion(DependencyObject d, DependencyPropertyChangedEventArgs e)
+    {
+        if (d is not TextBox t) return;
+        if ((bool)e.NewValue) t.GotKeyboardFocus += AlEntrar;
+        else t.GotKeyboardFocus -= AlEntrar;
+    }
+
     private static void AlCargar(object sender, RoutedEventArgs e) => Formatear((TextBox)sender);
 
     private static void AlSalir(object sender, KeyboardFocusChangedEventArgs e) => Formatear((TextBox)sender);

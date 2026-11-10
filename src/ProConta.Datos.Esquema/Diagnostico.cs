@@ -117,6 +117,9 @@ public static class DiagnosticadorEsquema
         var version = LineaBase.Version;
         var huecoEncontrado = false;
         var pendientes = new List<Migracion>();
+        // Pasos que una migración posterior ya aplicada deshizo a propósito: no se exigen.
+        var retirados = catalogo.Where(m => aplicadas.Contains(m.Id)).SelectMany(m => m.Retira)
+            .Select(r => (Id: r.IdMigracion.ToUpperInvariant(), r.DescripcionPaso)).ToHashSet();
         foreach (var migracion in catalogo)
         {
             if (aplicadas.Contains(migracion.Id))
@@ -126,7 +129,7 @@ public static class DiagnosticadorEsquema
                 else
                     version++;
                 foreach (var paso in migracion.Pasos)
-                    if (!await paso.YaAplicadoAsync(sesion, esquema))
+                    if (!retirados.Contains((migracion.Id.ToUpperInvariant(), paso.Descripcion)) && !await paso.YaAplicadoAsync(sesion, esquema))
                         parciales.Add($"{migracion.Id} consta como aplicada pero no está hecho «{paso.Descripcion}»");
             }
             else

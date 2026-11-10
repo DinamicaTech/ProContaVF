@@ -81,13 +81,14 @@ Relaciones:
 | IdCliente | LONG | no |  |  |
 | IdSociedad | TEXT(3) | no |  |  |
 | IdIdentidadContable | LONG | no |  |  |
+| Clase | TEXT(10) | no | 'CLIENTE' |  |
 
 Índices:
 - FK_CCS_Cliente: IdCliente
 - FK_CCS_Identidad: IdIdentidadContable
 - FK_CCS_Sociedad: IdSociedad
 - PK_CuentasClientesSociedad (clave primaria): IdCuentaClienteSociedad
-- UX_CCS_ClienteSociedad (único): IdCliente, IdSociedad
+- UX_CCS_ClienteSociedadClase (único): IdCliente, IdSociedad, Clase
 
 Relaciones:
 - FK_CCS_Cliente: (IdCliente) → Clientes (IdCliente); borrado NO ACTION, actualización NO ACTION
@@ -105,8 +106,14 @@ Relaciones:
 | IdSociedad | TEXT(3) | no |  |  |
 | Clase | TEXT(10) | no |  |  |
 | IdIdentidadContable | LONG | no |  |  |
+| IdFormaPagoDefecto | BYTE | sí |  |  |
+| TipoProductoDefecto | BYTE | sí |  |  |
+| IdIdentidadGastoDefecto | LONG | sí |  |  |
+| IdCentroCosteDefecto | LONG | sí |  |  |
+| ConceptoAbreviadoDefecto | TEXT(60) | sí |  |  |
 
 Índices:
+- FK_CPS_FormaPagoDefecto: IdFormaPagoDefecto
 - FK_CPS_Identidad: IdIdentidadContable
 - FK_CPS_Proveedor: IdProveedor
 - FK_CPS_Sociedad: IdSociedad
@@ -114,6 +121,7 @@ Relaciones:
 - UX_CPS_ProveedorSociedadClase (único): IdProveedor, IdSociedad, Clase
 
 Relaciones:
+- FK_CPS_FormaPagoDefecto: (IdFormaPagoDefecto) → FormasPago (Id); borrado NO ACTION, actualización NO ACTION
 - FK_CPS_Identidad: (IdIdentidadContable) → IdentidadesContables (IdIdentidadContable); borrado NO ACTION, actualización NO ACTION
 - FK_CPS_Proveedor: (IdProveedor) → Proveedores (IdProveedor); borrado NO ACTION, actualización NO ACTION
 - FK_CPS_Sociedad: (IdSociedad) → Sociedades (IdSociedad); borrado NO ACTION, actualización NO ACTION
@@ -275,6 +283,8 @@ Relaciones:
 | Activo | YESNO | no |  |  |
 | IdTercero | LONG | no |  | Contrato TERCEROS_VF_1: tipo ACE 3, longitud 0, obligatorio True. FK a Terceros.IdTercero; una identidad por origen sin fusiones. |
 | NotasProveedor | LONGTEXT | sí |  | Contrato TERCEROS_VF_1: tipo ACE 130, longitud 0, obligatorio False. |
+| EstadoVies | TEXT(10) | sí |  |  |
+| FechaVies | DATETIME | sí |  |  |
 
 Índices:
 - FK_Proveedores_Terceros: IdTercero

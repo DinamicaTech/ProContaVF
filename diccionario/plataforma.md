@@ -40,6 +40,7 @@
 | EndpointIRAV | TEXT(255) | sí |  | Endpoint oficial del INE usado para consultar el IRAV. |
 | EmailIncidencias | TEXT(255) | sí |  | Dirección que recibe resúmenes de incidencias de procesos desacoplados. Si está vacía, no se intentan enviar avisos automáticos. |
 | OcultarListaOperadoresAcceso | YESNO | no | No |  |
+| VeriFactuActivo | YESNO | no | No |  |
 
 Índices:
 - PK_Configuracion (clave primaria): IdConfiguracion

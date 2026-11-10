@@ -4,6 +4,7 @@ depends_on: [datos/esquema, datos/persistencia]
 threads:
   - 2026-10-28 12:30 · Carga de requisitos | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GRNMH95h9tnQp4dmEPHmw1w
   - 2026-10-31 18:55 · Desarrollos base | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GPQZwFm28U4vq3sQdopN45C
+  - 2026-11-05 11:24 · Construir facturas de compra | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GEbtcX2Z7baM2yhwHY2wJXj
 ---
 ## Summary
 Catálogo de formas de pago, del que cuelgan las cuentas de proveedor/acreedor de terceros/roles. Tabla propia y muy simplificada: Id (código conservado del ERP), Descripcion y SEPA (domiciliación SEPA). Contrato `ICatalogoFormasPago` (src/ProConta.Organizacion/FormasPago): listar, obtener, alta, modificación y baja restringida por uso.
@@ -18,6 +19,7 @@ Catálogo de formas de pago, del que cuelgan las cuentas de proveedor/acreedor d
 - 2026-10-31 19:02 · SEPA validado por el propietario: solo 110 «Recibo domiciliado» y 125 «Domiciliación proveedor».
 - 2026-10-31 19:02 · El código 1, que usan 2 facturas y la forma de pago por defecto de las sociedades y sus ejercicios, se da de alta como «Indefinida» (SEPA no) y se restauran las relaciones de Facturas.FormaDePago y Contratos.FormaDePago con FormasPago (migración 20261031_1910_FORMA_PAGO_INDEFINIDA, con comprobación previa de que no quedan códigos sin forma de pago). Sustituye a la decisión 19:55 de no recrearlas.
 - 2026-11-01 09:31 · Validado por el propietario (desarrollos base).
+- 2026-11-06 12:35 · La subcuenta de cada forma de pago es de cada empresa: tabla FormasPagoSociedad (IdFormaPago, IdSociedad, IdIdentidadContable), que guarda la identidad contable y muestra el código del ejercicio de trabajo, como los conceptos. Solo se escribe con `CatalogoFormasPagoSociedad`: listar todas las formas de pago con su subcuenta y asignar por código (la cuenta tiene que existir en el ejercicio y admitir apuntes; vacía quita la asignación). Mantenimiento «Cuentas de las formas de pago» (Empresas y ejercicios, ámbito empresa), sin alta ni baja: las formas de pago se crean y borran en «Formas de pago». La baja de una forma de pago también se rechaza si la usan FormasPagoSociedad, facturas de compra o la forma de pago por defecto de proveedores.
 
 ## Requirements
 - 2026-10-28 12:28 · From sources/01_ESPECIFICACION_FUNCIONAL.docx § 29 P-02: propietario de formas de pago
@@ -29,6 +31,10 @@ Catálogo de formas de pago, del que cuelgan las cuentas de proveedor/acreedor d
 - 2026-10-31 19:02 · answer: SEPA solo para 110 «Recibo domiciliado» y 125 «Domiciliación proveedor» → sí
 - 2026-10-31 19:02 · 2. Alta como 'indefinida'
 - 2026-10-31 19:02 · answer: código 1 sin forma de pago → darlo de alta como «Indefinida»
+- 2026-11-01 17:20 · Derived from plataforma/mantenimiento: proveedor de Formas de pago para la pantalla genérica.
+- 2026-11-06 12:24 · Q1. En el ERP, FormasPago tiene un campo IdAgrupacion, que apunta a la tabla Agrupaciones que contiene subcuenta contable, centro de coste, departamento, etc., pero, efectivamente, lo correcto es FormasPagoSociedad para esta información. Ok a FacturasCompra.IdFormaPago. Ok a la forma de pago por defecto.
+- 2026-11-06 12:35 · Derived from compras: subcuenta de la forma de pago por empresa, para la contabilización de las facturas recibidas (entrega 3).
 
 ## Hand-over
 - 2026-10-31 19:10 · Hecho: migraciones (tabla propia, código 1 «Indefinida» y relaciones restauradas), contrato y pruebas. Pendiente: el proveedor declarativo para plataforma/mantenimiento.
+- 2026-11-06 12:35 · Hecho: FormasPagoSociedad (versión 20), su catálogo y su mantenimiento. Pendiente de probar en el equipo.

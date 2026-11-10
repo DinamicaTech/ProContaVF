@@ -1,0 +1,598 @@
+using System.Collections.ObjectModel;
+using System.Windows.Input;
+using ProConta.Facturacion.Facturas;
+using ProConta.Facturacion.Programadas;
+using ProConta.Seguridad.Permisos;
+using ProConta.UI.Base.Comandos;
+using ProConta.UI.Base.Contenedor;
+using ProConta.UI.Base.Controles;
+using ProConta.UI.Base.Formato;
+using ProConta.UI.Base.Modelos;
+
+namespace ProConta.Facturacion.UI.VistaModelos;
+
+/// <summary>Fila del listado: la factura y sus líneas desplegables.</summary>
+public sealed class FilaFacturaVM(FilaFactura datos, Func<int, Task<FacturaVenta?>> cargar) : ModeloVista
+{
+    private bool _desplegada;
+    private IReadOnlyList<LineaDetalle> _lineas = [];
+
+    /// <summary>Líneas desplegadas bajo la fila (solo lectura); se leen al desplegar.</summary>
+    public bool Desplegada
+    {
+        get => _desplegada;
+        set
+        {
+            if (!Fijar(ref _desplegada, value) || !value || _lineas.Count > 0) return;
+            _ = LeerLineasAsync();
+        }
+    }
+
+    public IReadOnlyList<LineaDetalle> Lineas { get => _lineas; private set => Fijar(ref _lineas, value); }
+
+    private async Task LeerLineasAsync()
+    {
+        if (await cargar(Datos.IdFactura) is { } f) Lineas = f.Lineas.Select(l => new LineaDetalle(l)).ToList();
+    }
+
+    public FilaFactura Datos { get; } = datos;
+
+    public string Numero => Datos.Rotulo;
+    public string Fecha => Datos.FechaFactura is { } f ? Formatos.Fecha(f) : "";
+    public DateTime? FechaOrden => Datos.FechaFactura;
+    public string Cliente => Datos.Cliente;
+    public string? Nif => Datos.Nif;
+    public string Descripcion => Datos.Descripcion;
+    public string Serie => Datos.PrefijoSerie ?? "";
+    public decimal Base => Datos.BaseImponible;
+    public decimal Total => Datos.ImporteTotal;
+    public string TextoBase => Formatos.Importe(Datos.BaseImponible);
+    public string TextoTotal => Formatos.Importe(Datos.ImporteTotal);
+    public string Estado => Datos.TextoEstado;
+    public string VeriFactu => Datos.TextoVeriFactu;
+    public string Origen => Datos.EsRectificativa ? "Rectificativa" : Datos.EsProgramada ? "Programada" : "Manual";
+    public string Asiento => Datos.EsBorrador ? "" : Datos.IdAsientoContable is null ? "Sin asiento" : "Contabilizada";
+    public bool SinAsiento => !Datos.EsBorrador && Datos.IdAsientoContable is null;
+    public bool ConAsiento => !Datos.EsBorrador && Datos.IdAsientoContable is not null;
+    public string? Relacion => Datos.NumeroRectificada is { } o ? $"Rectifica a {o}" + (Datos.MotivoRectificacion is { } m ? $" · Motivo: {m}" : "")
+        : Datos.NumeroRectificativa is { } r ? $"Rectificada por {r}" : null;
+}
+
+/// <summary>Opción de un filtro desplegable.</summary>
+public sealed record OpcionFiltro(string Texto, string? Valor)
+{
+    public override string ToString() => Texto;
+}
+
+/// <summary>
+/// Pantalla Facturas (facturacion/pantallas): listado filtrable con selección múltiple y detalle de la fila activa. Todas
+/// las acciones están en el menú contextual: Abrir, Programar y Rectificar son de una sola factura; las demás actúan sobre
+/// las seleccionadas a las que les correspondan.
+/// </summary>
+public sealed class ListadoFacturasVM : ModeloVista, IPestanaTrabajo
+{
+    private readonly ModuloFacturacion _modulo;
+    private readonly ServiciosFacturacion _s;
+    private List<FilaFacturaVM> _todas = [];
+    private object? _vista;
+    private EstadoVista _estado = EstadoVista.Cargando;
+    private string _mensajeEstado = "";
+    private FilaFacturaVM? _activa;
+    private FacturaVenta? _detalle;
+    private string _texto = "";
+    private OpcionFiltro _filtroEstado, _filtroVeriFactu, _filtroSerie, _filtroOrigen;
+    private string _desde = "", _hasta = "";
+    private bool _puedeEditar, _puedeValidar, _puedeRectificar;
+    private int _cargas;
+    private int? _filtroProgramada;
+    private IReadOnlyList<FilaFacturaVM> _seleccion = [];
+    private bool _veriFactuActivo;
+
+    internal ListadoFacturasVM(ModuloFacturacion modulo)
+    {
+        _modulo = modulo;
+        _s = modulo.Servicios;
+        OpcionesEstado =
+        [
+            new("Todos los estados", null), new("Borrador", nameof(EstadoFactura.Borrador)), new("Validada", nameof(EstadoFactura.Validada)),
+            new("Rectificación pendiente", nameof(EstadoFactura.RectificacionPendiente)), new("Rectificada", nameof(EstadoFactura.Rectificada))
+        ];
+        OpcionesVeriFactu = [new("VeriFactu: todas", null), new("No aplica", "No aplica"), new("Sin VeriFactu", "Sin VeriFactu"), new("Pendiente", "Pendiente")];
+        OpcionesOrigen = [new("Todos los orígenes", null), new("Manual", "Manual"), new("Programada", "Programada"), new("Rectificativa", "Rectificativa")];
+        OpcionesSerie.Add(new("Todas las series", null));
+        _filtroEstado = OpcionesEstado[0];
+        _filtroVeriFactu = OpcionesVeriFactu[0];
+        _filtroOrigen = OpcionesOrigen[0];
+        _filtroSerie = OpcionesSerie[0];
+
+        NuevaCommand = new ComandoDelegado(_modulo.NuevaFactura, () => _puedeEditar);
+        AbrirCommand = new ComandoDelegado(() => { if (Ambito.Count == 1) _modulo.AbrirFactura(Ambito[0].Datos.IdFactura); }, () => Ambito.Count == 1);
+        ValidarCommand = new ComandoDelegado(() => _ = ValidarAsync(), () => _puedeValidar && Ambito.Any(f => f.Datos.EsBorrador));
+        ContabilizarCommand = new ComandoDelegado(() => _ = ContabilizarAsync(), () => _puedeValidar && Ambito.Any(f => f.SinAsiento));
+        DeshacerExportacionCommand = new ComandoDelegado(() => _ = DeshacerExportacionAsync(), () => _puedeValidar && Ambito.Any(f => f.ConAsiento));
+        DuplicarCommand = new ComandoDelegado(() => _ = DuplicarAsync(), () => _puedeEditar && Ambito.Count > 0);
+        RectificarCommand = new ComandoDelegado(() => _ = RectificarAsync(), () => _puedeRectificar && Ambito is [{ Datos: { Estado: EstadoFactura.Validada, EsRectificativa: false } }]);
+        EliminarCommand = new ComandoDelegado(() => _ = EliminarAsync(), () => _puedeEditar && Ambito.Any(f => f.Datos.EsBorrador));
+        PdfCommand = new ComandoDelegado(() => _ = PdfAsync(false), () => Ambito.Count > 0);
+        RegenerarPdfCommand = new ComandoDelegado(() => _ = PdfAsync(true), () => _puedeEditar && Ambito.Any(f => !f.Datos.EsBorrador));
+        RefrescarCommand = new ComandoDelegado(() => _ = CargarAsync(_activa?.Datos.IdFactura));
+        LimpiarFiltrosCommand = new ComandoDelegado(LimpiarFiltros, () => HayFiltros);
+
+        VerTodasCommand = new ComandoDelegado(() => FiltrarPorProgramada(null), () => _filtroProgramada is not null);
+        ProgramarCommand = new ComandoDelegado(() => { if (Ambito.Count == 1) _modulo.ProgramarDesde(Ambito[0].Datos.IdFactura); }, () => _puedeEditar && Ambito.Count == 1);
+    }
+
+    // ---------- pestaña ----------
+
+    public string Titulo => "Facturas emitidas";
+    public string Ayuda => $"Facturas y borradores de {_s.RazonSocial} en {_s.Trabajo.Ejercicio}";
+    public string Icono => "doc";
+    public bool TieneCambios => false;
+    public bool GuardadoFallido => false;
+    public object Vista => _vista ??= new Vistas.VistaListadoFacturas { DataContext = this };
+    public IReadOnlyList<string> DescribirCambios() => [];
+    public Task<bool> GuardarAsync() => Task.FromResult(true);
+    public void Descartar() { }
+    public void AlCerrar() => _modulo.ListadoCerrado();
+
+    // ---------- estado ----------
+
+    public EstadoVista Estado { get => _estado; private set => Fijar(ref _estado, value); }
+    public string TituloEstado => Estado switch
+    {
+        EstadoVista.Vacio => _todas.Count == 0 ? "Aún no hay facturas en este ejercicio" : "Ninguna factura cumple los filtros",
+        EstadoVista.Error => "No he podido leer las facturas",
+        EstadoVista.Cargando => "Leyendo facturas…",
+        _ => ""
+    };
+    public string MensajeEstado { get => _mensajeEstado; private set => Fijar(ref _mensajeEstado, value); }
+    public string? AccionEstado => Estado switch
+    {
+        EstadoVista.Vacio when _todas.Count == 0 => _puedeEditar ? "Nueva factura" : null,
+        EstadoVista.Vacio => "Quitar filtros",
+        EstadoVista.Error => "Reintentar",
+        _ => null
+    };
+    public ICommand? ComandoEstado => Estado switch
+    {
+        EstadoVista.Vacio when _todas.Count == 0 => NuevaCommand,
+        EstadoVista.Vacio => LimpiarFiltrosCommand,
+        EstadoVista.Error => RefrescarCommand,
+        _ => null
+    };
+
+    // ---------- filtros ----------
+
+    public IReadOnlyList<OpcionFiltro> OpcionesEstado { get; }
+    public IReadOnlyList<OpcionFiltro> OpcionesVeriFactu { get; }
+    public IReadOnlyList<OpcionFiltro> OpcionesOrigen { get; }
+    public ObservableCollection<OpcionFiltro> OpcionesSerie { get; } = [];
+
+    public string Texto { get => _texto; set { if (Fijar(ref _texto, value ?? "")) Filtrar(); } }
+    public OpcionFiltro FiltroEstado { get => _filtroEstado; set { if (value is not null && Fijar(ref _filtroEstado, value)) Filtrar(); } }
+    public OpcionFiltro FiltroVeriFactu { get => _filtroVeriFactu; set { if (value is not null && Fijar(ref _filtroVeriFactu, value)) Filtrar(); } }
+    public OpcionFiltro FiltroSerie { get => _filtroSerie; set { if (value is not null && Fijar(ref _filtroSerie, value)) Filtrar(); } }
+    public OpcionFiltro FiltroOrigen { get => _filtroOrigen; set { if (value is not null && Fijar(ref _filtroOrigen, value)) Filtrar(); } }
+
+    public string Desde
+    {
+        get => _desde;
+        set { _desde = value ?? ""; Avisar(); Avisar(nameof(ErrorFechas)); Filtrar(); }
+    }
+
+    public string Hasta
+    {
+        get => _hasta;
+        set { _hasta = value ?? ""; Avisar(); Avisar(nameof(ErrorFechas)); Filtrar(); }
+    }
+
+    public string? ErrorFechas =>
+        !VistaModelos.Texto.LeerFecha(_desde, out _) || !VistaModelos.Texto.LeerFecha(_hasta, out _) ? "Escribe las fechas como dd/mm/aaaa." : null;
+
+    public bool HayFiltros => _texto.Length > 0 || _filtroProgramada is not null || _filtroEstado.Valor is not null || _filtroVeriFactu.Valor is not null || _filtroSerie.Valor is not null
+                              || _filtroOrigen.Valor is not null || _desde.Length > 0 || _hasta.Length > 0;
+
+    private void LimpiarFiltros()
+    {
+        _texto = ""; _desde = ""; _hasta = "";
+        _filtroProgramada = null;
+        _filtroEstado = OpcionesEstado[0];
+        _filtroVeriFactu = OpcionesVeriFactu[0];
+        _filtroSerie = OpcionesSerie[0];
+        _filtroOrigen = OpcionesOrigen[0];
+        Avisar(nameof(Texto), nameof(Desde), nameof(Hasta), nameof(FiltroEstado), nameof(FiltroVeriFactu), nameof(FiltroSerie), nameof(FiltroOrigen), nameof(ErrorFechas),
+            nameof(FiltroProgramada), nameof(HayFiltroProgramada));
+        Filtrar();
+    }
+
+    private bool Cumple(FilaFacturaVM f)
+    {
+        var d = f.Datos;
+        if (_filtroProgramada is int p && d.IdFacturaProgramada != p) return false;
+        if (!d.Contiene(_texto)) return false;
+        if (_filtroEstado.Valor is { } e && d.Estado.ToString() != e) return false;
+        if (_filtroVeriFactu.Valor is { } v && d.TextoVeriFactu != v) return false;
+        if (_filtroSerie.Valor is { } s && f.Serie != s) return false;
+        if (_filtroOrigen.Valor is { } o && f.Origen != o) return false;
+        if (VistaModelos.Texto.LeerFecha(_desde, out var desde) && desde is { } dd && (d.FechaFactura is null || d.FechaFactura.Value.Date < dd)) return false;
+        if (VistaModelos.Texto.LeerFecha(_hasta, out var hasta) && hasta is { } hh && (d.FechaFactura is null || d.FechaFactura.Value.Date > hh)) return false;
+        return true;
+    }
+
+    private void Filtrar()
+    {
+        var id = _activa?.Datos.IdFactura;
+        Filas.Clear();
+        foreach (var f in _todas.Where(Cumple)) Filas.Add(f);
+        Activa = Filas.FirstOrDefault(f => f.Datos.IdFactura == id) ?? Filas.FirstOrDefault();
+        Estado = _todas.Count == 0 || Filas.Count == 0 ? EstadoVista.Vacio : EstadoVista.Contenido;
+        MensajeEstado = _todas.Count == 0 ? "Crea la primera con «Nueva factura»." : "Cambia o quita los filtros para ver más facturas.";
+        Avisar(nameof(HayFiltros), nameof(Pie), nameof(TituloEstado), nameof(AccionEstado), nameof(ComandoEstado));
+        CommandManager.InvalidateRequerySuggested();
+    }
+
+    // ---------- filtro por programada ----------
+
+    /// <summary>Programada por la que se filtran las facturas («Ver sus facturas»).</summary>
+    public string? FiltroProgramada => _filtroProgramada is int id ? $"Solo las facturas de {FacturaProgramada.RotuloDe(id)}" : null;
+    public bool HayFiltroProgramada => _filtroProgramada is not null;
+
+    /// <summary>Filtra por una programada («Ver sus facturas» de Facturas programadas), o quita el filtro con null.</summary>
+    internal void FiltrarPorProgramada(int? id)
+    {
+        _filtroProgramada = id;
+        Avisar(nameof(FiltroProgramada), nameof(HayFiltroProgramada));
+        Filtrar();
+    }
+
+    // ---------- filas, activa, selección y ámbito ----------
+
+    public ObservableCollection<FilaFacturaVM> Filas { get; } = [];
+
+    /// <summary>Fila activa: la que se ve en el detalle (barra naranja en la maqueta).</summary>
+    public FilaFacturaVM? Activa
+    {
+        get => _activa;
+        set
+        {
+            if (!Fijar(ref _activa, value)) return;
+            Avisar(nameof(HayActiva), nameof(AvisoSeleccion), nameof(TextoPdf), nameof(TextoRegenerarPdf));
+            _ = CargarDetalleAsync(value);
+            CommandManager.InvalidateRequerySuggested();
+        }
+    }
+
+    public bool HayActiva => _activa is not null;
+
+    /// <summary>Selección de la tabla (la mantiene la vista): el ámbito de las acciones del menú contextual.</summary>
+    public void CambiarSeleccion(IReadOnlyList<FilaFacturaVM> seleccion)
+    {
+        _seleccion = seleccion;
+        Avisar(nameof(Pie), nameof(AvisoSeleccion), nameof(TextoValidar), nameof(TextoContabilizar), nameof(TextoDeshacerExportacion),nameof(TextoDuplicar), nameof(TextoEliminar), nameof(TextoPdf), nameof(TextoRegenerarPdf));
+        CommandManager.InvalidateRequerySuggested();
+    }
+
+    /// <summary>Ámbito de las acciones: las seleccionadas (nunca hay filas seleccionadas que no se vean) o, si no hay, la activa.</summary>
+    public IReadOnlyList<FilaFacturaVM> Ambito => _seleccion.Count > 0 ? _seleccion : _activa is null ? [] : [_activa];
+
+    private static string ConCuenta(string texto, int n) => n > 1 ? $"{texto} ({n})" : texto;
+    public string TextoValidar => ConCuenta("Validar…", Ambito.Count(f => f.Datos.EsBorrador));
+    public string TextoContabilizar => ConCuenta("Contabilizar", Ambito.Count(f => f.SinAsiento));
+    public string TextoDeshacerExportacion => ConCuenta("Deshacer exportación contable", Ambito.Count(f => f.ConAsiento));
+    public string TextoPdf => Ambito.All(f => f.Datos.EsBorrador) ? ConCuenta("Proforma en PDF", Ambito.Count) : ConCuenta("PDF", Ambito.Count);
+    public string TextoRegenerarPdf => ConCuenta("Regenerar PDF", Ambito.Count(f => !f.Datos.EsBorrador));
+
+    /// <summary>Parámetro general «Activar VeriFactu»: desactivado, lo de VeriFactu no se ve.</summary>
+    public bool VeriFactuActivo { get => _veriFactuActivo; private set => Fijar(ref _veriFactuActivo, value); }
+    public string TextoDuplicar => ConCuenta("Duplicar", Ambito.Count);
+    public string TextoEliminar => ConCuenta("Eliminar borrador", Ambito.Count(f => f.Datos.EsBorrador));
+
+    /// <summary>Con varias seleccionadas, deja claro de cuál es el detalle.</summary>
+    public string? AvisoSeleccion => _seleccion.Count > 1 && _activa is not null ? $"{_seleccion.Count} facturas seleccionadas. El detalle es de {_activa.Numero}." : null;
+
+    public string Pie
+    {
+        get
+        {
+            var total = Filas.Sum(f => f.Total);
+            var texto = $"{Formatos.Plural(Filas.Count, "factura", "facturas")} · total {Formatos.Importe(total)}";
+            if (Filas.Count != _todas.Count) texto += $" (de {Formatos.Recuento(_todas.Count)})";
+            return _seleccion.Count > 1 ? $"{texto} · {_seleccion.Count} seleccionadas · {Formatos.Importe(_seleccion.Sum(f => f.Total))}" : texto;
+        }
+    }
+
+    // ---------- detalle ----------
+
+    public FacturaVenta? Detalle { get => _detalle; private set { if (Fijar(ref _detalle, value)) AvisarDetalle(); } }
+    public bool HayDetalle => _detalle is not null;
+    public string DetalleTitulo => _detalle?.Rotulo ?? "";
+    public string DetalleEstado => _detalle is null ? "" : TextosEstado.Texto(_detalle.Estado);
+    public string DetalleCliente => _detalle is null ? "" : _detalle.Cliente.EstaVacia ? _activa?.Cliente ?? "" : _detalle.Cliente.NombreVisible;
+    public string DetalleNif => _detalle?.Cliente.Nif ?? _activa?.Nif ?? "";
+    public string DetalleDomicilio => _detalle?.Cliente.DomicilioEnUnaLinea ?? "";
+    public string DetalleFechas => _detalle is null ? "" :
+        string.Join(" · ", new[]
+        {
+            _detalle.FechaFactura is { } f ? $"Fecha {Formatos.Fecha(f)}" : "Sin fecha",
+            _detalle.FechaInicioValidez is { } d && _detalle.FechaFinValidez is { } h ? $"Periodo {Formatos.Fecha(d)} – {Formatos.Fecha(h)}" : null,
+            _detalle.TipoFactura
+        }.Where(x => x is not null));
+    public string DetalleDescripcion => _detalle?.Descripcion ?? "";
+    public string? DetalleNotas => string.IsNullOrWhiteSpace(_detalle?.NotasInternas) ? null : _detalle!.NotasInternas;
+    public string? DetalleRelacion => _activa?.Relacion;
+    public IReadOnlyList<LineaDetalle> DetalleLineas => _detalle?.Lineas.Select(l => new LineaDetalle(l)).ToList() ?? [];
+    public string DetalleBase => _detalle is null ? "" : Formatos.Importe(_detalle.Totales.BaseImponible.Valor);
+    public string DetalleIva => _detalle is null ? "" : Formatos.Importe(_detalle.Totales.Iva.Valor);
+
+    /// <summary>Una fila de IVA por cada tipo de la factura («IVA 21 %»), con su cuota; «IVA» si no hay líneas con IVA.</summary>
+    public IReadOnlyList<FilaResumen> DetalleIvas
+    {
+        get
+        {
+            if (_detalle is null) return [];
+            var filas = CalculoFactura.Desglose(_detalle.Lineas)
+                .Select(d => new FilaResumen($"IVA {VistaModelos.Texto.Porcentaje(d.TipoIva)} %", Formatos.Importe((d.CuotaIva + d.CuotaRecargo).Valor))).ToList();
+            return filas.Count > 0 ? filas : [new FilaResumen("IVA", DetalleIva)];
+        }
+    }
+
+    public string DetalleTextoRetencion => _detalle is { TipoRetencion: > 0m } d ? $"Retención {VistaModelos.Texto.Porcentaje(d.TipoRetencion)} %" : "Retención";
+    public string DetalleRetencion => _detalle is null ? "" : Formatos.Importe(-_detalle.Totales.Retencion.Valor);
+    public string DetalleTotal => _detalle is null ? "" : Formatos.Importe(_detalle.Totales.ImporteTotal.Valor);
+    public string DetalleAsiento => _detalle is null ? "" : _detalle.EsBorrador ? "Se generará al validar" : _detalle.IdAsientoContable is int a ? $"Asiento generado (id {a})" : "Sin asiento: usa «Contabilizar»";
+    public IReadOnlyList<string> DetalleHistorial => _detalle?.LineasHistorial.Reverse().Take(8).ToList() ?? [];
+
+    private void AvisarDetalle() =>
+        Avisar(nameof(HayDetalle), nameof(DetalleTitulo), nameof(DetalleEstado), nameof(DetalleCliente), nameof(DetalleNif), nameof(DetalleDomicilio), nameof(DetalleFechas),
+            nameof(DetalleDescripcion), nameof(DetalleNotas), nameof(DetalleRelacion), nameof(DetalleLineas), nameof(DetalleBase), nameof(DetalleIva), nameof(DetalleIvas), nameof(DetalleTextoRetencion), nameof(DetalleRetencion),
+            nameof(DetalleTotal), nameof(DetalleAsiento), nameof(DetalleHistorial));
+
+    private async Task CargarDetalleAsync(FilaFacturaVM? fila)
+    {
+        if (fila is null) { Detalle = null; return; }
+        var f = await _s.Facturas.ObtenerAsync(fila.Datos.IdFactura);
+        if (ReferenceEquals(_activa, fila)) Detalle = f;
+    }
+
+    // ---------- carga ----------
+
+    public async Task CargarAsync(int? idActiva = null)
+    {
+        var carga = ++_cargas;
+        if (_todas.Count == 0) Estado = EstadoVista.Cargando;
+        try
+        {
+            _puedeEditar = await _s.Facturas.PuedeAsync(Acciones.FacturasEditar);
+            _puedeValidar = await _s.Facturas.PuedeAsync(Acciones.FacturasValidar);
+            _puedeRectificar = await _s.Facturas.PuedeAsync(Acciones.FacturasRectificar);
+            VeriFactuActivo = await _s.Facturas.VeriFactuActivoAsync();
+            var filas = await _s.Consulta.ListarAsync(_s.Trabajo.IdSociedadEjercicio);
+            if (carga != _cargas) return;
+            var activa = idActiva ?? _activa?.Datos.IdFactura;
+            _todas = filas.Select(f => new FilaFacturaVM(f, _s.Facturas.ObtenerAsync)).ToList();
+            var seriePrevia = _filtroSerie.Valor;
+            OpcionesSerie.Clear();
+            OpcionesSerie.Add(new("Todas las series", null));
+            foreach (var p in _todas.Select(f => f.Serie).Where(p => p.Length > 0).Distinct().Order(StringComparer.Ordinal)) OpcionesSerie.Add(new(p, p));
+            _filtroSerie = OpcionesSerie.FirstOrDefault(o => o.Valor == seriePrevia) ?? OpcionesSerie[0];
+            Avisar(nameof(FiltroSerie));
+            _activa = null;
+            Filtrar();
+            if (activa is int id && Filas.FirstOrDefault(f => f.Datos.IdFactura == id) is { } fila) Activa = fila;
+            else _ = CargarDetalleAsync(_activa);
+        }
+        catch (Exception ex)
+        {
+            Estado = EstadoVista.Error;
+            MensajeEstado = ex.Message;
+            Avisar(nameof(TituloEstado), nameof(AccionEstado), nameof(ComandoEstado));
+        }
+    }
+
+    // ---------- acciones ----------
+
+    public ICommand NuevaCommand { get; }
+    public ICommand AbrirCommand { get; }
+    public ICommand ValidarCommand { get; }
+    public ICommand ContabilizarCommand { get; }
+    public ICommand DeshacerExportacionCommand { get; }
+    public ICommand DuplicarCommand { get; }
+    public ICommand RectificarCommand { get; }
+    public ICommand EliminarCommand { get; }
+    public ICommand PdfCommand { get; }
+    public ICommand RegenerarPdfCommand { get; }
+    public ICommand RefrescarCommand { get; }
+    public ICommand LimpiarFiltrosCommand { get; }
+
+    public string MotivoVeriFactu => "VeriFactu aún no está disponible en esta versión.";
+    public string MotivoEnviar => "Llega con el envío por correo.";
+    public ICommand VerTodasCommand { get; }
+    public ICommand ProgramarCommand { get; }
+
+
+    /// <summary>Valida los borradores del ámbito, uno a uno; los que tienen total cero se confirman aparte.</summary>
+    private async Task ValidarAsync()
+    {
+        var borradores = Ambito.Where(f => f.Datos.EsBorrador).ToList();
+        if (borradores.Count == 0) return;
+        var opcion = _modulo.Dialogos.Preguntar(borradores.Count == 1 ? $"Validar {borradores[0].Numero}" : $"Validar {borradores.Count} borradores",
+            "Cada borrador recibe el siguiente número de su serie, se copian los datos del cliente y se genera su asiento. Después no se podrán cambiar.",
+            borradores.Select(b => $"{b.Numero} · {b.Cliente} · {b.TextoTotal}").ToList(),
+            new OpcionMensaje("Cancelar", "No valida nada", Cancelar: true),
+            new OpcionMensaje("Validar", "Numera y contabiliza", Principal: true));
+        if (opcion != 1) return;
+
+        var correctas = new List<string>();
+        var problemas = new List<string>();
+        var ceros = new List<FilaFacturaVM>();
+        foreach (var b in borradores)
+        {
+            var r = await _s.Facturas.ValidarAsync(b.Datos.IdFactura, b.Datos.Version, _s.Actor);
+            if (r.SoloAvisos && r.Incidencias.All(i => i.Codigo == Incidencia.ImporteCero)) { ceros.Add(b); continue; }
+            Anotar(b, r, correctas, problemas);
+        }
+        if (ceros.Count > 0 && _modulo.Dialogos.Preguntar("Facturas con total cero",
+                $"{Formatos.Plural(ceros.Count, "borrador tiene", "borradores tienen")} total 0,00 €. Comprueba que no falte ningún precio o línea; si es correcto, valídalos igualmente.",
+                ceros.Select(c => $"{c.Numero} · {c.Cliente}").ToList(),
+                new OpcionMensaje("No validarlos", "Los deja como borradores", Cancelar: true),
+                new OpcionMensaje("Validar con total cero", "Los numera igualmente", Principal: true)) == 1)
+            foreach (var b in ceros)
+                Anotar(b, await _s.Facturas.ValidarAsync(b.Datos.IdFactura, b.Datos.Version, _s.Actor, aceptarAvisos: true), correctas, problemas);
+        else
+            problemas.AddRange(ceros.Select(c => $"{c.Numero}: no validado (total cero)."));
+
+        await CargarAsync(_activa?.Datos.IdFactura);
+        Informar(correctas.Count == 1 ? $"Validada {correctas[0]}" : $"{Formatos.Plural(correctas.Count, "factura validada", "facturas validadas")}", correctas, problemas);
+    }
+
+    private static void Anotar(FilaFacturaVM b, ResultadoValidacion r, List<string> correctas, List<string> problemas)
+    {
+        if (!r.Validada) problemas.Add($"{b.Numero}: {string.Join(" ", r.Incidencias.Select(i => i.Mensaje))}");
+        else if (!r.Contabilizada) problemas.Add($"{r.Factura!.NumeroFactura}: validada pero sin asiento. {string.Join(" ", (r.ErrorContabilizacion ?? []).Select(e => e.Mensaje))}");
+        else correctas.Add(r.Factura!.NumeroFactura!);
+    }
+
+    /// <summary>
+    /// «Deshacer exportación contable»: avisa de lo que hará con cada factura (borrar el asiento o hacer un contra-asiento).
+    /// Las enviadas a VeriFactu se quedan como están y se informa de ellas.
+    /// </summary>
+    private async Task DeshacerExportacionAsync()
+    {
+        var conAsiento = Ambito.Where(f => f.ConAsiento).ToList();
+        var planes = new List<string>();
+        foreach (var f in conAsiento) planes.Add($"{f.Numero}: {(await _s.Facturas.PlanDeshacerAsync(f.Datos.IdFactura)).Explicacion}.");
+        var opcion = _modulo.Dialogos.Preguntar("Deshacer la exportación contable",
+            "Las facturas quedarán sin asiento y podrás volver a contabilizarlas. No se puede deshacer si ya se han enviado a VeriFactu.", planes,
+            new OpcionMensaje("Deshacer la exportación", "Borra el asiento o hace el contra-asiento de cada factura", Principal: true, Peligro: true),
+            new OpcionMensaje("Cancelar", "No cambia nada", Cancelar: true));
+        if (opcion != 0) return;
+        var correctas = new List<string>();
+        var problemas = new List<string>();
+        foreach (var f in conAsiento)
+        {
+            var r = await _s.Facturas.DeshacerExportacionAsync(f.Datos.IdFactura, _s.Actor);
+            if (r.EsCorrecto) correctas.Add(f.Numero);
+            else problemas.Add($"{f.Numero}: {string.Join(" ", r.Errores.Select(e => e.Mensaje + (e.AccionCorrectora is { } a ? " " + a : "")))}");
+        }
+        await CargarAsync(_activa?.Datos.IdFactura);
+        Informar("Exportación deshecha", correctas, problemas);
+    }
+
+    private async Task ContabilizarAsync()
+    {
+        var pendientes = Ambito.Where(f => f.SinAsiento).ToList();
+        var correctas = new List<string>();
+        var problemas = new List<string>();
+        foreach (var f in pendientes)
+        {
+            var r = await _s.Facturas.ContabilizarAsync(f.Datos.IdFactura, _s.Actor);
+            if (r.EsCorrecto) correctas.Add(f.Numero);
+            else problemas.Add($"{f.Numero}: {string.Join(" ", r.Errores.Select(e => e.Mensaje + (e.AccionCorrectora is { } a ? " " + a : "")))}");
+        }
+        await CargarAsync(_activa?.Datos.IdFactura);
+        Informar($"{Formatos.Plural(correctas.Count, "factura contabilizada", "facturas contabilizadas")}", correctas, problemas);
+    }
+
+    private void Informar(string titulo, List<string> correctas, List<string> problemas)
+    {
+        if (problemas.Count == 0) { _modulo.Avisar(titulo + (correctas.Count > 1 ? $": {string.Join(", ", correctas)}" : ".")); return; }
+        _modulo.Dialogos.Preguntar(correctas.Count == 0 ? "No se ha podido completar" : titulo,
+            correctas.Count == 0 ? "Ninguna factura se ha completado. Revisa lo siguiente:" : $"Hechas: {string.Join(", ", correctas)}. Las demás necesitan revisión:",
+            problemas, new OpcionMensaje("Entendido", "Cierra el aviso", Principal: true, Cancelar: true));
+    }
+
+    private async Task DuplicarAsync()
+    {
+        var filas = Ambito.ToList();
+        var creadas = new List<FacturaVenta>();
+        var problemas = new List<string>();
+        foreach (var f in filas)
+        {
+            var r = await _s.Facturas.DuplicarAsync(f.Datos.IdFactura, _s.Trabajo, _s.Actor);
+            if (r.EsCorrecto) creadas.Add(r.Valor);
+            else problemas.Add($"{f.Numero}: {string.Join(" ", r.Errores.Select(e => e.Mensaje))}");
+        }
+        if (creadas.Count > 0) await CargarAsync(creadas[^1].IdFactura);
+        if (creadas.Count == 1 && problemas.Count == 0) { _modulo.AbrirFactura(creadas[0].IdFactura); return; }
+        Informar($"{Formatos.Plural(creadas.Count, "borrador creado", "borradores creados")}", creadas.Select(f => f.Rotulo).ToList(), problemas);
+    }
+
+    /// <summary>
+    /// PDF de las seleccionadas: una se abre; varias se archivan y se avisa dónde. Con <paramref name="regenerar"/> vuelve a
+    /// crear las ya archivadas. Los borradores salen como proforma y solo se abren si son uno.
+    /// </summary>
+    private async Task PdfAsync(bool regenerar)
+    {
+        var filas = regenerar ? Ambito.Where(f => !f.Datos.EsBorrador).ToList() : Ambito.ToList();
+        var hechos = new List<ProConta.Facturacion.Documentos.PdfFactura>();
+        var numeros = new List<string>();
+        var problemas = new List<string>();
+        foreach (var f in filas)
+        {
+            var r = await _s.Pdf.ObtenerAsync(f.Datos.IdFactura, _s.Actor, regenerar);
+            if (r.EsCorrecto) { hechos.Add(r.Valor); numeros.Add(f.Numero); }
+            else problemas.Add($"{f.Numero}: {string.Join(" ", r.Errores.Select(e => e.Mensaje + (e.AccionCorrectora is { } a ? " " + a : "")))}");
+        }
+        _ = CargarDetalleAsync(_activa);
+        if (hechos.Count == 1 && problemas.Count == 0) { _modulo.Dialogos.AbrirArchivo(hechos[0].Ruta); return; }
+        var carpeta = hechos.Where(h => !h.EsProforma).Select(h => System.IO.Path.GetDirectoryName(h.Ruta)).FirstOrDefault();
+        Informar($"{Formatos.Plural(hechos.Count, "PDF listo", "PDF listos")}" + (carpeta is null ? "" : $" en {carpeta}"), numeros, problemas);
+    }
+
+    private async Task RectificarAsync()
+    {
+        if (_activa is null) return;
+        var fila = _activa;
+        var tipo = ReglasFactura.TipoRectificativaDe(fila.Datos.TipoFactura);
+        var motivo = _modulo.Dialogos.PedirMotivoRectificacion(fila.Numero,
+                $"Se crea un borrador rectificativo {tipo} en la serie de rectificativas con las mismas líneas y las cantidades en negativo. Mientras sea borrador, {fila.Numero} queda en «Rectificación pendiente»; al validarlo pasa a «Rectificada». Si eliminas el borrador, vuelve a «Validada».");
+        if (motivo is null) return;
+        var r = await _s.Facturas.CrearRectificativaAsync(fila.Datos.IdFactura, motivo, _s.Trabajo, _s.Actor);
+        if (!r.EsCorrecto) { Error("No se ha creado la rectificativa", r.Errores); return; }
+        await CargarAsync(r.Valor.IdFactura);
+        _modulo.AbrirFactura(r.Valor.IdFactura);
+    }
+
+    private async Task EliminarAsync()
+    {
+        var filas = Ambito.Where(f => f.Datos.EsBorrador).ToList();
+        if (filas.Count == 0) return;
+        var hayRectificativa = filas.Any(f => f.Datos.EsRectificativa);
+        var mensaje = filas.Count == 1 && hayRectificativa
+            ? $"Se borra este borrador y la factura {filas[0].Datos.NumeroRectificada} vuelve a «Validada», todo a la vez."
+            : "Se borran los borradores y sus líneas. No consumen número." + (hayRectificativa ? " La factura original de una rectificativa vuelve a «Validada»." : "");
+        if (_modulo.Dialogos.Preguntar(filas.Count == 1 ? $"Eliminar {filas[0].Numero}" : $"Eliminar {filas.Count} borradores", mensaje,
+                filas.Count == 1 ? null : filas.Select(f => $"{f.Numero} · {f.Cliente} · {f.TextoTotal}").ToList(),
+                new OpcionMensaje("Cancelar", "No borra nada", Cancelar: true), new OpcionMensaje("Eliminar", "Borra los borradores", Peligro: true)) != 1) return;
+        var hechas = new List<string>();
+        var problemas = new List<string>();
+        foreach (var f in filas)
+        {
+            var r = await _s.Facturas.EliminarBorradorAsync(f.Datos.IdFactura, f.Datos.Version, _s.Actor);
+            if (r.EsCorrecto) hechas.Add(f.Numero);
+            else problemas.Add($"{f.Numero}: {string.Join(" ", r.Errores.Select(e => e.Mensaje))}");
+        }
+        await CargarAsync();
+        Informar(hechas.Count == 1 ? $"{hechas[0]} eliminado" : $"{hechas.Count} borradores eliminados", hechas, problemas);
+    }
+
+    private void Error(string titulo, IReadOnlyList<ProConta.Nucleo.Resultados.Error> errores) =>
+        _modulo.Dialogos.Preguntar(titulo, errores.Count == 1 ? errores[0].Mensaje + (errores[0].AccionCorrectora is { } a ? " " + a : "") : "Revisa lo siguiente:",
+            errores.Count == 1 ? null : errores.Select(e => e.Mensaje).ToList(), new OpcionMensaje("Entendido", "Cierra el aviso", Principal: true, Cancelar: true));
+}
+
+/// <summary>Línea del desplegable de detalle (solo lectura).</summary>
+public sealed record LineaDetalle(LineaFacturaVenta Linea)
+{
+    public string Nombre => Linea.Nombre;
+    public string Descripcion => Linea.Descripcion;
+    public string Cantidad => Texto.Cantidad(Linea.Cantidad);
+    public string Precio => Texto.Precio(Linea.PrecioUnitario);
+    public string Base => Formatos.Numero(Linea.BaseImponible.Valor);
+    public string Iva => Linea.EsSuplido ? "Suplido" : $"{Texto.Porcentaje(Linea.TipoIva)} %";
+    public string Total => Formatos.Numero(Linea.ImporteTotal.Valor);
+    public string Cuenta => Linea.CuentaContable ?? "";
+}
+
+/// <summary>Fila del resumen de importes del detalle (texto e importe).</summary>
+public sealed record FilaResumen(string Texto, string Importe);

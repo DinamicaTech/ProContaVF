@@ -199,12 +199,15 @@
     <Setter Property="Template">
       <Setter.Value>
         <ControlTemplate TargetType="pc:DialogoProConta">
+          <Grid>
           <AdornerDecorator>
           <Border Margin="30,20,30,40" Background="White" CornerRadius="{StaticResource Radio.Dialogo}" Effect="{StaticResource Sombra.Dialogo}">
             <DockPanel>
               <DockPanel x:Name="PART_Cabecera" DockPanel.Dock="Top" Margin="18,14,10,10" Background="Transparent">
                 <Button DockPanel.Dock="Right" Style="{StaticResource Boton.Icono}" pc:Iconos.Icono="{StaticResource Icono.x}" IsCancel="True"
                         Command="{Binding CerrarCommand, RelativeSource={RelativeSource TemplatedParent}}" ToolTip="Cerrar sin hacer cambios (Esc)" AutomationProperties.Name="Cerrar" />
+                <Button x:Name="PART_Maximizar" DockPanel.Dock="Right" Style="{StaticResource Boton.Icono}" pc:Iconos.Icono="{StaticResource Icono.layout}" Margin="0,0,4,0" Visibility="Collapsed"
+                        Command="{Binding MaximizarCommand, RelativeSource={RelativeSource TemplatedParent}}" ToolTip="Maximizar o restaurar (también doble clic en el título)" AutomationProperties.Name="Maximizar o restaurar" />
                 <TextBlock Text="{TemplateBinding Title}" FontSize="16" FontWeight="SemiBold" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
               </DockPanel>
               <Border DockPanel.Dock="Bottom" BorderBrush="{StaticResource Pincel.Linea}" BorderThickness="0,1,0,0" Padding="18,12">
@@ -214,6 +217,16 @@
             </DockPanel>
           </Border>
           </AdornerDecorator>
+          <!-- Asa para cambiar el tamaño (la ventana no tiene borde de Windows): esquina inferior derecha de la tarjeta. -->
+          <Thumb x:Name="PART_Asa" Width="16" Height="16" Margin="0,0,32,42" HorizontalAlignment="Right" VerticalAlignment="Bottom" Cursor="SizeNWSE" Visibility="Collapsed"
+                 ToolTip="Arrastra para cambiar el tamaño">
+            <Thumb.Template>
+              <ControlTemplate TargetType="Thumb">
+                <Border Background="Transparent"><Path Data="M 14,4 L 4,14 M 14,9 L 9,14" Stroke="{StaticResource Pincel.Apagado}" StrokeThickness="1.2" /></Border>
+              </ControlTemplate>
+            </Thumb.Template>
+          </Thumb>
+          </Grid>
         </ControlTemplate>
       </Setter.Value>
     </Setter>

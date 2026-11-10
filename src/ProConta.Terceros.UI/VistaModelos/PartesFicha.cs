@@ -351,7 +351,13 @@ public sealed class CuentaRolVM : ParteFicha
     public override object Modelo => this;
     protected override IEnumerable<string> CamposConError => [nameof(Codigo)];
 
-    public string Titulo => Clase switch { ClaseCuentaRol.Cliente => "Cuenta contable", ClaseCuentaRol.Proveedor => "Cuenta de proveedor", _ => "Cuenta de acreedor" };
+    public string Titulo => Clase switch
+    {
+        ClaseCuentaRol.Cliente => "Cuenta contable",
+        ClaseCuentaRol.Retencion => "Cuenta de retención",
+        ClaseCuentaRol.Proveedor => "Cuenta de proveedor",
+        _ => "Cuenta de acreedor"
+    };
     public string AyudaCodigo => $"Código de la {ServicioRoles.Describir(Clase)} en {Ficha.NombreSociedad}. Vale para todos sus ejercicios; al salir del campo compruebo que existe en el ejercicio {Ficha.Ejercicio}";
 
     public string Codigo { get => _codigo; set => Fijar(ref _codigo, value?.Trim() ?? ""); }
@@ -428,7 +434,7 @@ public sealed class CuentaRolVM : ParteFicha
 
     private async Task CrearNuevaAsync(string codigo)
     {
-        var nombre = Recortar(Ficha.NombreParaCuenta(), ReglasCuenta.LongitudMaximaNombre);
+        var nombre = Recortar((Clase == ClaseCuentaRol.Retencion ? "Retención IRPF " : "") + Ficha.NombreParaCuenta(), ReglasCuenta.LongitudMaximaNombre);
         var opcion = Ficha.Dialogos.Preguntar($"Crear la cuenta {codigo}",
             $"Creo ahora la cuenta {codigo} «{nombre}» en el ejercicio {Ficha.Ejercicio} de {Ficha.NombreSociedad} y la asigno como {ServicioRoles.Describir(Clase)}. " +
             "La cuenta queda creada aunque después descartes los cambios de la ficha.", null,

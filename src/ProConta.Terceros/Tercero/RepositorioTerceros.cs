@@ -341,22 +341,29 @@ public sealed class RepositorioTercerosAccess(IBaseDatos bd, IReloj? reloj = nul
     private static async Task<Error?> GuardarCuentasAsync(ISesionDatos s, Tercero t, Historial h)
     {
         if (t.CuentasRoles is not { } cuentas) return null;
-        foreach (var clase in new[] { ClaseCuentaRol.Cliente, ClaseCuentaRol.Proveedor, ClaseCuentaRol.Acreedor })
+        foreach (var clase in new[] { ClaseCuentaRol.Cliente, ClaseCuentaRol.Retencion, ClaseCuentaRol.Proveedor, ClaseCuentaRol.Acreedor })
         {
             var deseada = cuentas.De(clase);
-            int? idRol = clase == ClaseCuentaRol.Cliente ? t.Roles.Cliente?.IdCliente : t.Roles.Proveedor?.IdProveedor;
+            var deCliente = ServicioRoles.EsDeCliente(clase);
+            int? idRol = deCliente ? t.Roles.Cliente?.IdCliente : t.Roles.Proveedor?.IdProveedor;
             if (idRol is null)
             {
                 if (deseada is null) continue;
-                return new Error("Roles.CuentaSinRol", $"No puedo guardar la {ServicioRoles.Describir(clase)} porque el tercero no tiene el rol {(clase == ClaseCuentaRol.Cliente ? "Cliente" : "Proveedor")}.",
+                return new Error("Roles.CuentaSinRol", $"No puedo guardar la {ServicioRoles.Describir(clase)} porque el tercero no tiene el rol {(deCliente ? "Cliente" : "Proveedor")}.",
                     null, "Solo los clientes y los proveedores tienen cuenta.", "Activa el rol en la pestaña Roles o quita la cuenta.");
             }
             var actual = await ServicioRoles.IdentidadAsignadaAsync(s, clase, idRol.Value, cuentas.IdSociedad);
             if (actual == deseada) continue;
             var error = await ServicioRoles.AsignarCuentaAsync(s, clase, idRol.Value, cuentas.IdSociedad, deseada);
             if (error is not null) return error;
-            var campo = clase switch { ClaseCuentaRol.Cliente => "CuentaCliente", ClaseCuentaRol.Proveedor => "CuentaProveedor", _ => "CuentaAcreedor" };
-            await h.Anotar(clase == ClaseCuentaRol.Cliente ? "Cliente" : "Proveedor", idRol.Value, "MODIFICACION", $"{campo} {cuentas.IdSociedad}",
+            var campo = clase switch
+            {
+                ClaseCuentaRol.Cliente => "CuentaCliente",
+                ClaseCuentaRol.Retencion => "CuentaRetencion",
+                ClaseCuentaRol.Proveedor => "CuentaProveedor",
+                _ => "CuentaAcreedor"
+            };
+            await h.Anotar(deCliente ? "Cliente" : "Proveedor", idRol.Value, "MODIFICACION", $"{campo} {cuentas.IdSociedad}",
                 await DescribirIdentidadAsync(s, actual), await DescribirIdentidadAsync(s, deseada));
         }
         return null;

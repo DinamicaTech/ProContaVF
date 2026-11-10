@@ -16,9 +16,9 @@ public static class DuenosTablas
     {
         Asignar("datos", "datos/esquema", "VersionesEsquema", "LogMigracionesEsquema");
         Asignar("plataforma", "plataforma/mantenimiento", "Configuracion", "AliasCamposConfiguracion");
-        Asignar("organizacion", "organizacion/sociedades-ejercicios", "Sociedades", "SociedadesEjercicios");
-        Asignar("organizacion", "organizacion/formas-pago", "FormasPago");
-        Asignar("seguridad", "seguridad/permisos", "GruposOperadores", "OperadoresGrupos", "AccesoSociedadesGrupo", "RestriccionesReportsGrupo");
+        Asignar("organizacion", "organizacion/sociedades-ejercicios", "Sociedades", "SociedadesEjercicios", "TiposRetencion");
+        Asignar("organizacion", "organizacion/formas-pago", "FormasPago", "FormasPagoSociedad");
+        Asignar("seguridad", "seguridad/permisos", "GruposOperadores", "OperadoresGrupos", "AccesoSociedadesGrupo", "RestriccionesReportsGrupo", "PermisosAccionesGrupo");
         Asignar("seguridad", "seguridad/acceso", "OperadoresSeguridad", "AuditoriaSeguridad", "PreferenciasAccesoOperador", "PreferenciasAccesoEjercicio");
         Asignar("terceros", "terceros/tercero", "Terceros", "HistorialTerceros", "MapasOrigenTerceros", "DomiciliosTercero");
         Asignar("terceros", "terceros/roles", "Clientes", "Proveedores", "CuentasClientesSociedad", "CuentasProveedoresSociedad");
@@ -28,7 +28,7 @@ public static class DuenosTablas
             "CuentasContablesLegacy", "CuentasPlanContable", "PlanesContables", "TiposCuentaContable");
         Asignar("contabilidad", "contabilidad/centros-coste", "CentrosCoste", "F_CDP", "F_DEP");
         Asignar("contabilidad", "contabilidad/asientos", "Asientos", "Apuntes", "RelacionesAsientos", "RevisionesAsientos", "RegistroCambiosApuntes");
-        Asignar("contabilidad", "contabilidad/procesos", "ConfiguracionesContables", "ConfiguracionesContablesCuentaBancaria", "PeriodosIVA", "IVARepercutido", "IVASoportado");
+        Asignar("contabilidad", "contabilidad/procesos", "ConfiguracionesContables", "ConfiguracionesContablesCuentaBancaria", "PeriodosIVA", "IVARepercutido", "IVASoportado", "DesglosesIVASoportado", "Actividades");
         Asignar("contabilidad", "contabilidad/modelos-tributarios", "PresentacionesTributarias");
         Asignar("contabilidad", "contabilidad/balances", "ModelosBalance", "NodosBalance", "ReglasCuentasBalance", "RelacionesCalculoBalance");
         Asignar("facturacion", "facturacion/factura-venta", "Facturas", "LineasFactura", "DesglosesIVARepercutido", "SeriesFacturacion",
@@ -37,7 +37,8 @@ public static class DuenosTablas
         Asignar("facturacion", "facturacion/contratos", "Contratos", "LineasContrato", "EstadoContratoTerceros");
         Asignar("facturacion", "facturacion/programadas", "FacturasProgramadas", "FacturasProgramadasBak", "LineasFacturasProgramadas", "LotesFacturasProgramadas");
         Asignar("facturacion", "facturacion/verifactu", "VeriFactuConfiguracion", "VeriFactuEnvios", "VeriFactuLotesEnvio", "VeriFactuRespuestas");
-        Asignar("compras", "compras/factura-compra", "FacturasCompra", "DesglosesIVASoportado");
+        Asignar("compras", "compras/factura-compra", "FacturasCompra", "DesglosesFacturaCompra", "TextosClaveCompra");
+        Asignar("compras", "compras/reconocimiento", "ConfiguracionReconocimientoFacturasCompra", "PlantillasReconocimientoCompra");
         Asignar("norma43", "norma43", "Bancos", "EntidadesFinancieras", "CuentasBancarias", "ExtractosBancarios", "LineasExtractoBancario",
             "ComplementosLineaExtractoBancario", "ContabilizacionesLineaExtracto", "ImputacionesLineaExtractoBancario",
             "IncidenciasImportacionBancaria", "LotesImportacionBancaria");

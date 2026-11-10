@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Pantallas de compras (docs/compras/pantallas.md): Facturas recibidas y su modo «Probar», en pestañas del contenedor. -->
+  <PropertyGroup>
+    <OutputType>Library</OutputType>
+    <UseWPF>true</UseWPF>
+    <RootNamespace>ProConta.Compras.UI</RootNamespace>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);CS1591;CS1573</NoWarn>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\ProConta.UI.Base\ProConta.UI.Base.csproj" />
+    <ProjectReference Include="..\ProConta.Compras\ProConta.Compras.csproj" />
+    <ProjectReference Include="..\ProConta.Contabilidad\ProConta.Contabilidad.csproj" />
+    <ProjectReference Include="..\ProConta.Contabilidad.UI\ProConta.Contabilidad.UI.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- Visor del PDF con WebView2 (aprobado por el propietario el 2026-11-05: compras/pantallas). -->
+    <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.4191.47" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- Visor con PDF.js (aprobado por el propietario el 2026-11-05): se sirve desde la carpeta Visor junto al programa. -->
+    <Content Include="Visor\**\*" CopyToOutputDirectory="PreserveNewest" LinkBase="Visor" />
+  </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="ProConta.Compras.Tests" />
+    <InternalsVisibleTo Include="ProConta.Compras.UI.Tests" />
+  </ItemGroup>
+</Project>

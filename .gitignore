@@ -11,3 +11,9 @@ obj/
 *.user
 .vs/
 TestResults/
+
+# Facturas reales del ERP para la paridad: datos de clientes, nunca en el repositorio
+ERP/
+
+# Credenciales locales (no subir nunca)
+AmazonWS.txt

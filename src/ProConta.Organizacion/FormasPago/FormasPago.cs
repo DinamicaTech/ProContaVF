@@ -30,6 +30,9 @@ public sealed class CatalogoFormasPagoAccess(IBaseDatos bd) : ICatalogoFormasPag
         ("Contratos", "FormaDePago", "contratos"),
         ("Sociedades", "FormaPagoDefecto", "sociedades (forma de pago por defecto)"),
         ("SociedadesEjercicios", "FormaPagoDefecto", "ejercicios de sociedad (forma de pago por defecto)"),
+        ("FormasPagoSociedad", "IdFormaPago", "empresas (subcuenta de la forma de pago)"),
+        ("FacturasCompra", "IdFormaPago", "facturas de compra"),
+        ("CuentasProveedoresSociedad", "IdFormaPagoDefecto", "proveedores (forma de pago por defecto)"),
     ];
 
     public Task<IReadOnlyList<FormaPago>> ListarAsync() =>

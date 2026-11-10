@@ -4,10 +4,19 @@
   </Configurations>
   <Folder Name="/src/">
     <Project Path="src/ProConta.App/ProConta.App.csproj" />
+    <Project Path="src/ProConta.Compras/ProConta.Compras.csproj" />
+    <Project Path="src/ProConta.Compras.Regresion/ProConta.Compras.Regresion.csproj" />
     <Project Path="src/ProConta.Contabilidad/ProConta.Contabilidad.csproj" />
+    <Project Path="src/ProConta.Contabilidad.UI/ProConta.Contabilidad.UI.csproj" />
     <Project Path="src/ProConta.Datos.Esquema.Consola/ProConta.Datos.Esquema.Consola.csproj" />
     <Project Path="src/ProConta.Datos.Esquema/ProConta.Datos.Esquema.csproj" />
     <Project Path="src/ProConta.Datos.Persistencia/ProConta.Datos.Persistencia.csproj" />
+    <Project Path="src/ProConta.Informes/ProConta.Informes.csproj" />
+    <Project Path="src/ProConta.Facturacion/ProConta.Facturacion.csproj" />
+    <Project Path="src/ProConta.Facturacion.UI/ProConta.Facturacion.UI.csproj" />
+    <Project Path="src/ProConta.Compras.UI/ProConta.Compras.UI.csproj" />
+    <Project Path="src/ProConta.Mantenimiento/ProConta.Mantenimiento.csproj" />
+    <Project Path="src/ProConta.Mantenimiento.UI/ProConta.Mantenimiento.UI.csproj" />
     <Project Path="src/ProConta.Nucleo/ProConta.Nucleo.csproj" />
     <Project Path="src/ProConta.Organizacion/ProConta.Organizacion.csproj" />
     <Project Path="src/ProConta.Plataforma.Configuracion/ProConta.Plataforma.Configuracion.csproj" />
@@ -18,8 +27,11 @@
     <Project Path="src/ProConta.UI.Muestra/ProConta.UI.Muestra.csproj" />
   </Folder>
   <Folder Name="/tests/">
+    <Project Path="tests/ProConta.Compras.Tests/ProConta.Compras.Tests.csproj" />
+    <Project Path="tests/ProConta.Compras.UI.Tests/ProConta.Compras.UI.Tests.csproj" />
     <Project Path="tests/ProConta.Contabilidad.Tests/ProConta.Contabilidad.Tests.csproj" />
     <Project Path="tests/ProConta.Datos.Tests/ProConta.Datos.Tests.csproj" />
+    <Project Path="tests/ProConta.Facturacion.Tests/ProConta.Facturacion.Tests.csproj" />
     <Project Path="tests/ProConta.Nucleo.Tests/ProConta.Nucleo.Tests.csproj" />
     <Project Path="tests/ProConta.Organizacion.Tests/ProConta.Organizacion.Tests.csproj" />
     <Project Path="tests/ProConta.Plataforma.Configuracion.Tests/ProConta.Plataforma.Configuracion.Tests.csproj" />

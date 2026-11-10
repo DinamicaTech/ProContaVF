@@ -25,4 +25,38 @@ public static class MigracionesContabilidad
             "CREATE INDEX IX_RegistroCambiosApuntes_Lote ON RegistroCambiosApuntes (IdLote)"),
         new CrearIndice("RegistroCambiosApuntes", "IX_RegistroCambiosApuntes_Asiento",
             "CREATE INDEX IX_RegistroCambiosApuntes_Asiento ON RegistroCambiosApuntes (IdAsiento)"));
+
+    /// <summary>Descripción de la cuenta (contabilidad/cuenta-contable 2026-11-06): la NEXMAE del ERP, que trae su migración.</summary>
+    public static Migracion DescripcionCuentas { get; } = new(
+        "20261106_1810_DESCRIPCION_CUENTAS", 261106005,
+        "Descripción opcional de las cuentas contables.",
+        "contabilidad/cuenta-contable",
+        new AnadirColumna("CuentasContables", "Descripcion", "TEXT(255)"));
+
+    /// <summary>
+    /// Actividades a efectos de IVA (propietario 2026-11-08 09:01; en el ERP, CategoriasIVA): por empresa, con su código,
+    /// nombre, si el IVA soportado es deducible (0 no, 1 por prorrata, 2 al 100 %) y la serie de cuentas 472 de su IVA
+    /// soportado (4725, 4726…). Cada centro de coste puede tener su actividad, y la heredan los que cuelgan de él: sustituye
+    /// a la n:m CategoriasIVAPorDepartamento del ERP. Solo estructura, sin datos.
+    /// </summary>
+    public static Migracion ActividadesIva { get; } = new(
+        "20261108_0930_ACTIVIDADES_IVA", 261108001,
+        "Actividades a efectos de IVA (deducibilidad y serie de la 472) y actividad de cada centro de coste.",
+        "contabilidad/procesos",
+        new CrearTabla("Actividades",
+            "CREATE TABLE Actividades (IdActividad COUNTER CONSTRAINT PK_Actividades PRIMARY KEY, " +
+            "IdSociedad TEXT(3) NOT NULL CONSTRAINT FK_Actividades_Sociedad REFERENCES Sociedades (IdSociedad), " +
+            "Codigo TEXT(10) NOT NULL, Nombre TEXT(100) NOT NULL, Deducible BYTE NOT NULL, SerieCuentaIva TEXT(4), Activa YESNO NOT NULL)"),
+        new CrearIndice("Actividades", "UX_Actividades_SociedadCodigo",
+            "CREATE UNIQUE INDEX UX_Actividades_SociedadCodigo ON Actividades (IdSociedad, Codigo)"),
+        new AnadirColumna("CentrosCoste", "IdActividad", "LONG"),
+        RelacionActividad());
+
+    private static PasoPersonalizado RelacionActividad()
+    {
+        const string sql = "ALTER TABLE CentrosCoste ADD CONSTRAINT FK_CentrosCoste_Actividad FOREIGN KEY (IdActividad) REFERENCES Actividades (IdActividad)";
+        return new PasoPersonalizado("Relacionar CentrosCoste.IdActividad con Actividades", sql,
+            (_, e) => Task.FromResult(MigracionesOrganizacion.TieneRelacion(e, "CentrosCoste", "FK_CentrosCoste_Actividad")),
+            (s, _) => s.EjecutarAsync(sql));
+    }
 }

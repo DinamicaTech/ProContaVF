@@ -1,17 +1,24 @@
 ---
 title: Reglas globales
 depends_on: []
+threads:
+  - 2026-11-01 19:06 · Añadir reglas de dominio del proyecto | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5G67NUPbFyc2J9xUVbLzSKV9
 ---
 ## Summary
 Las reglas que sigue todo hilo cuando trabaja en un nodo de este proyecto. Los prompts que copia la página apuntan aquí en lugar de repetirlas.
 Las "CVP rules" las escribe Claude Visual Project y las reemplaza "Update rules"; las "Project rules" son propias de este proyecto y la página nunca las cambia.
+Las Project rules incluyen las reglas del dominio: importes en decimal con redondeo documentado, invariantes contables en las pruebas, sin datos reales en el repositorio, paridad con ProConta y zona horaria Europe/Madrid.
 
 ## Decisions
 - 2026-10-28 12:30 · Creado por Claude Visual Project con su versión de reglas 10.
 - 2026-10-31 08:37 · Excepción a la regla CVP "Regression tests": las pruebas no se ejecutan en GitHub en cada PR ni de forma programada, sino en local (ver architecture 2026-10-31 08:37).
+- 2026-11-01 19:06 · Se añaden a Project rules las reglas del dominio del apartado 5 de la propuesta CVP v14: Money, Accounting invariants, Real data, Parity with ProConta y Time zone. Ajustes: la numeración sin huecos aplica a las facturas validadas de cada serie (los borradores no tienen número); el cuadre de la factura incluye retención y suplidos; la paridad se queda en unas cuantas pruebas unitarias contra valores conocidos de ProConta y se afinará en el borrador global-rules/paridad-proconta. El resto de la propuesta (CVP v14) va en el repositorio de CVP.
+- 2026-11-04 23:55 · [replaced by 2026-11-05 10:55] La línea «Claude project» apunta al proyecto de Claude nuevo (chan_0125B72VaQBNxehpdTjp4Nvp), al que se trasladaron los hilos desde el anterior; acordado con el propietario en el hilo «Diseñar atajos de teclado».
+- 2026-11-05 10:20 · Se añade a Project rules la regla «Menú contextual», a petición del propietario (ver facturacion/pantallas 2026-11-05 10:20).
+- 2026-11-05 10:55 · La línea «Claude project» apunta al proyecto ProContaVF (chan_01SQZ7PCqQx2V9FyGTmZCe5G), donde se vuelve a trabajar desde el 2026-11-04.
 
 ## CVP rules
-<!-- cvp-rules 13 begin · Written by Claude Visual Project ("Update rules" in the page). Do not edit: an update replaces everything up to the end marker. Add your own rules under ## Project rules. -->
+<!-- cvp-rules 14 begin · Written by Claude Visual Project ("Update rules" in the page). Do not edit: an update replaces everything up to the end marker. Add your own rules under ## Project rules. -->
 These rules apply to every thread that works on a node of this project. The prompt that starts the thread names the node it starts from (for a new sub-task, the new node it proposes), the files to read and the task. Paths are relative to the docs folder unless they say otherwise.
 
 **Reading.** Read the node file in full. For its ancestors and dependencies, read only the Summary and Decisions blocks; open them in full only if needed. Ignore every decision marked "[replaced by ...]": a later decision overrides it.
@@ -60,6 +67,8 @@ Once confirmed, the change is atomic: do all of it in this thread and one branch
 - **No dead ends in errors.** Every error message tells the user everything that helps: why it happened and how to fix it, and when possible it offers the fix itself (a button, a link or the corrected value), so that the user is never left at a dead end.
 - **Hand-over.** If a thread stops before finishing, or grows long, it writes in its node what it did and what is left, so that another thread can go on without reading the conversation.
 
+**Claude project.** The line `- Claude project: <link>` under ## Project rules names the Claude project whose chat starts this project's threads (its address, https://claude.ai/code/project/<id>, without "?thread=…"); the page opens that chat to start new threads. If the line is missing and you can tell the address of the Claude project you are in, add it. If it names a different Claude project from yours, tell the owner and change it only with their OK: the project may have moved to another Claude project.
+
 **Thread link.** If you can tell the link to this thread, add it to the `threads` list in the front matter of the node you work on, as a line `  - YYYY-MM-DD HH:MM · <short title> | <link>`, with the date and time you add it, like a decision line. Only there: `threads` lists the conversations that worked on a node, and the page opens the last one. A thread that creates many nodes at once (a requirements load, a new project) does not add its link to the nodes it creates; their "Created in…" decision is enough, and each one gets its own thread when someone starts working on it.
 <!-- cvp-rules end -->
 
@@ -67,3 +76,14 @@ Once confirmed, the change is atomic: do all of it in this thread and one branch
 <!-- Rules of this project for every thread, added by its people or by threads with the owner's OK. -->
 - Working docs are written in Spanish.
 - Las pruebas automáticas se ejecutan en local, no en GitHub: cada hilo ejecuta las pruebas sin BD antes de abrir su PR y las pruebas contra Access en el equipo del propietario, contra la BD de pruebas, antes de pedir la validación. Prevalece sobre la parte "run on every pull request and on a schedule" de la regla CVP "Regression tests".
+- **Money.** Amounts are always `decimal`, never `double`. Rounding is explicit and documented in the node that owns it: per line or per total, and to how many decimals.
+- **Accounting invariants.** Every accounting test checks the invariants that apply: debits equal credits; taxable bases plus taxes, minus withholding, plus suplidos, equal the invoice total; validated invoices have no gaps in their numbering within each series (drafts have no number).
+- **Real data.** No real customer data and no `.accdb` or `.mdb` files in the repository. Test copies hold invented data only.
+- **Parity with ProConta.** Fiscal features (VeriFactu, models 303 and 390, prorrata) are covered by a few unit tests that compare their result with known ProConta values.
+- **Time zone.** Europe/Madrid: dated lines in the docs use local time in that zone, not UTC.
+- **Menú contextual.** En las pantallas de listado, las acciones van en el menú contextual siempre que se pueda, para dejar la pantalla más limpia y homogeneizar la forma de trabajar: selección múltiple con Ctrl o Mayús, opciones exclusivas de selección simple o múltiple, y sin botones de acción salvo «Nueva…» en la cabecera.
+- Claude project: https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G
+
+## Requirements
+- 2026-11-01 17:56 · Te parece bien aplicar el punto 5 de este documento a este proyecto ?
+- 2026-11-01 17:57 · Ok, abre un hilo.

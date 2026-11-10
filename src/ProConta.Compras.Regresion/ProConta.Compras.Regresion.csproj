@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Regresión del reconocimiento de facturas de compra sobre el corpus real (compras/reconocimiento).
+       Lee los PDF y las facturas grabadas fuera del repositorio y escribe un TXT tabulado. -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>ProConta.Compras.Regresion</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\ProConta.Compras\ProConta.Compras.csproj" />
+  </ItemGroup>
+</Project>

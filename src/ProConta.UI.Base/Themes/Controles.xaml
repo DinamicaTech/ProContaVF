@@ -221,13 +221,6 @@
             <Trigger Property="Content" Value="">
               <Setter TargetName="Ico" Property="Margin" Value="0" />
             </Trigger>
-            <Trigger Property="IsMouseOver" Value="True">
-              <Setter TargetName="Fondo" Property="Background" Value="{Binding (pc:Aspecto.FondoEncima), RelativeSource={RelativeSource TemplatedParent}}" />
-              <Setter TargetName="Fondo" Property="BorderBrush" Value="{Binding (pc:Aspecto.BordeEncima), RelativeSource={RelativeSource TemplatedParent}}" />
-            </Trigger>
-            <Trigger Property="IsPressed" Value="True">
-              <Setter TargetName="Fondo" Property="Background" Value="{Binding (pc:Aspecto.FondoPulsado), RelativeSource={RelativeSource TemplatedParent}}" />
-            </Trigger>
             <Trigger Property="IsEnabled" Value="False">
               <Setter Property="Opacity" Value="0.5" />
               <Setter Property="Cursor" Value="Arrow" />
@@ -236,7 +229,18 @@
         </ControlTemplate>
       </Setter.Value>
     </Setter>
+    <Style.Triggers>
+      <Trigger Property="IsMouseOver" Value="True">
+        <Setter Property="Background" Value="{StaticResource Pincel.Hover}" />
+        <Setter Property="BorderBrush" Value="{StaticResource Pincel.HoverBorde}" />
+      </Trigger>
+      <Trigger Property="IsPressed" Value="True">
+        <Setter Property="Background" Value="{StaticResource Pincel.Fondo}" />
+      </Trigger>
+    </Style.Triggers>
   </Style>
+  <!-- El fondo al pasar el ratón y al pulsar va en los disparadores del estilo (cada estilo pone el suyo), no en la plantilla:
+       el enlace de la plantilla a Aspecto.FondoEncima se quedaba vacío y el botón principal se volvía blanco sobre blanco. -->
   <Style TargetType="Button" BasedOn="{StaticResource Boton}" />
   <Style TargetType="RepeatButton" BasedOn="{StaticResource Boton}" />
 
@@ -247,6 +251,15 @@
     <Setter Property="pc:Aspecto.FondoEncima" Value="{StaticResource Pincel.Marino2}" />
     <Setter Property="pc:Aspecto.BordeEncima" Value="{StaticResource Pincel.Marino2}" />
     <Setter Property="pc:Aspecto.FondoPulsado" Value="{StaticResource Pincel.Marino}" />
+    <Style.Triggers>
+      <Trigger Property="IsMouseOver" Value="True">
+        <Setter Property="Background" Value="{StaticResource Pincel.Marino2}" />
+        <Setter Property="BorderBrush" Value="{StaticResource Pincel.Marino2}" />
+      </Trigger>
+      <Trigger Property="IsPressed" Value="True">
+        <Setter Property="Background" Value="{StaticResource Pincel.Marino}" />
+      </Trigger>
+    </Style.Triggers>
   </Style>
   <Style x:Key="Boton.Peligro" TargetType="Button" BasedOn="{StaticResource Boton}">
     <Setter Property="Foreground" Value="{StaticResource Pincel.Rojo}" />
@@ -368,6 +381,12 @@
     <Setter Property="TextAlignment" Value="Right" />
     <Setter Property="Typography.NumeralAlignment" Value="Tabular" />
     <Setter Property="pc:CampoImporte.Activo" Value="True" />
+  </Style>
+  <!-- Cantidades, porcentajes, días y precios con más de dos decimales: alineados a la derecha, sin «€» ni redondeo a dos decimales. -->
+  <Style x:Key="Campo.Numero" TargetType="TextBox" BasedOn="{StaticResource Campo}">
+    <Setter Property="TextAlignment" Value="Right" />
+    <Setter Property="Typography.NumeralAlignment" Value="Tabular" />
+    <Setter Property="pc:CampoImporte.SeleccionarAlEntrar" Value="True" />
   </Style>
   <Style x:Key="Campo.Mono" TargetType="TextBox" BasedOn="{StaticResource Campo}">
     <Setter Property="FontFamily" Value="{StaticResource Fuente.Mono}" />
@@ -597,7 +616,7 @@
             <Border x:Name="Anillo" Margin="-3" CornerRadius="10" BorderThickness="3" BorderBrush="{StaticResource Pincel.Foco}" Visibility="Collapsed" />
             <Border x:Name="Fondo" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="{StaticResource Radio.Campo}" />
             <ContentPresenter x:Name="Contenido" Margin="{TemplateBinding Padding}" VerticalAlignment="Center" IsHitTestVisible="False"
-                              Content="{TemplateBinding SelectionBoxItem}" ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}" ContentStringFormat="{TemplateBinding SelectionBoxItemStringFormat}" />
+                              Content="{TemplateBinding SelectionBoxItem}" ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}" ContentTemplateSelector="{TemplateBinding ItemTemplateSelector}" ContentStringFormat="{TemplateBinding SelectionBoxItemStringFormat}" />
             <TextBox x:Name="PART_EditableTextBox" Visibility="Collapsed" Margin="2,0,24,0" BorderThickness="0" Background="Transparent" IsReadOnly="{TemplateBinding IsReadOnly}" />
             <ToggleButton Style="{StaticResource Combo.Boton}" IsChecked="{Binding IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}" />
             <Popup x:Name="PART_Popup" Placement="Bottom" VerticalOffset="4" AllowsTransparency="True" Focusable="False" PopupAnimation="Fade"
@@ -654,6 +673,12 @@
             <Trigger Property="IsSelected" Value="True">
               <Setter TargetName="F" Property="Background" Value="{StaticResource Pincel.Seleccion}" />
               <Setter Property="FontWeight" Value="Medium" />
+            </Trigger>
+            <!-- Con el teclado (ComboFiltro), el elemento con el foco es el que Enter elige: se ve resaltado. -->
+            <Trigger Property="IsKeyboardFocused" Value="True">
+              <Setter TargetName="F" Property="Background" Value="{StaticResource Pincel.Hover}" />
+              <Setter TargetName="F" Property="BorderBrush" Value="{StaticResource Pincel.Foco}" />
+              <Setter TargetName="F" Property="BorderThickness" Value="1" />
             </Trigger>
           </ControlTemplate.Triggers>
         </ControlTemplate>
