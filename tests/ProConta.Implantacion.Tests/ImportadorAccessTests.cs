@@ -130,7 +130,8 @@ public sealed class ImportadorAccessTests : IDisposable
         Assert.Equal(asientos, await ContarAsync("SELECT COUNT(*) FROM Asientos"));
         Assert.Equal(1, await ContarAsync("SELECT COUNT(*) FROM IVASoportado"));
         Assert.Equal(idIva, (await mapas.LeerAsync("T01", 2024, TiposMapa.IvaSoportado))["7"]);
-        Assert.Equal(2, await ContarAsync("SELECT COUNT(*) FROM Terceros"));
+        // Cliente antiguo, cliente nuevo de la subcuenta reasignada y proveedor.
+        Assert.Equal(3, await ContarAsync("SELECT COUNT(*) FROM Terceros"));
         Assert.Equal(1, await ContarAsync("SELECT COUNT(*) FROM CuentasClientesSociedad AS c INNER JOIN CodigosContablesReservados AS r ON c.IdIdentidadContable = r.IdIdentidadContable WHERE r.Codigo = '4300001' AND c.IdCliente = ?", clientes2025["4300001"]));
     }
 
