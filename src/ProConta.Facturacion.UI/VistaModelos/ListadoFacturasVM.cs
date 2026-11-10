@@ -115,6 +115,9 @@ public sealed class ListadoFacturasVM : ModeloVista, IPestanaTrabajo
         EliminarCommand = new ComandoDelegado(() => _ = EliminarAsync(), () => _puedeEditar && Ambito.Any(f => f.Datos.EsBorrador));
         PdfCommand = new ComandoDelegado(() => _ = PdfAsync(false), () => Ambito.Count > 0);
         RegenerarPdfCommand = new ComandoDelegado(() => _ = PdfAsync(true), () => _puedeEditar && Ambito.Any(f => !f.Datos.EsBorrador));
+        EnviarCorreoCommand = new ComandoDelegado(() => _ = EnviarCorreoAsync(), () => _modulo.Correo is not null && Ambito.Any(f => !f.Datos.EsBorrador));
+        VerCorreoCommand = new ComandoDelegado(() => { if (Ambito is [var f]) _modulo.Correo?.AbrirRegistro("Factura", f.Datos.IdFactura, f.Numero); },
+            () => _modulo.Correo is not null && Ambito.Count == 1);
         RefrescarCommand = new ComandoDelegado(() => _ = CargarAsync(_activa?.Datos.IdFactura));
         LimpiarFiltrosCommand = new ComandoDelegado(LimpiarFiltros, () => HayFiltros);
 
@@ -256,7 +259,7 @@ public sealed class ListadoFacturasVM : ModeloVista, IPestanaTrabajo
         set
         {
             if (!Fijar(ref _activa, value)) return;
-            Avisar(nameof(HayActiva), nameof(AvisoSeleccion), nameof(TextoPdf), nameof(TextoRegenerarPdf));
+            Avisar(nameof(HayActiva), nameof(AvisoSeleccion), nameof(TextoPdf), nameof(TextoRegenerarPdf), nameof(TextoEnviarCorreo));
             _ = CargarDetalleAsync(value);
             CommandManager.InvalidateRequerySuggested();
         }
@@ -268,7 +271,7 @@ public sealed class ListadoFacturasVM : ModeloVista, IPestanaTrabajo
     public void CambiarSeleccion(IReadOnlyList<FilaFacturaVM> seleccion)
     {
         _seleccion = seleccion;
-        Avisar(nameof(Pie), nameof(AvisoSeleccion), nameof(TextoValidar), nameof(TextoContabilizar), nameof(TextoDeshacerExportacion),nameof(TextoDuplicar), nameof(TextoEliminar), nameof(TextoPdf), nameof(TextoRegenerarPdf));
+        Avisar(nameof(Pie), nameof(AvisoSeleccion), nameof(TextoValidar), nameof(TextoContabilizar), nameof(TextoDeshacerExportacion),nameof(TextoDuplicar), nameof(TextoEliminar), nameof(TextoEnviarCorreo), nameof(TextoPdf), nameof(TextoRegenerarPdf));
         CommandManager.InvalidateRequerySuggested();
     }
 
@@ -405,7 +408,24 @@ public sealed class ListadoFacturasVM : ModeloVista, IPestanaTrabajo
     public ICommand LimpiarFiltrosCommand { get; }
 
     public string MotivoVeriFactu => "VeriFactu aún no está disponible en esta versión.";
-    public string MotivoEnviar => "Llega con el envío por correo.";
+    public ICommand EnviarCorreoCommand { get; }
+    public ICommand VerCorreoCommand { get; }
+    public string TextoEnviarCorreo => ConCuenta("Enviar por correo…", Ambito.Count(f => !f.Datos.EsBorrador));
+
+    /// <summary>«Enviar por correo…»: una validada abre el compositor; varias se envían en un lote con resumen al final.</summary>
+    private async Task EnviarCorreoAsync()
+    {
+        var validadas = Ambito.Where(f => !f.Datos.EsBorrador).Select(f => (f.Datos.IdFactura, f.Numero)).ToList();
+        try
+        {
+            await _modulo.EnviarPorCorreoAsync(validadas, $"Envío de {validadas.Count} facturas");
+        }
+        catch (Exception ex)
+        {
+            _modulo.Dialogos.Preguntar("No se ha podido enviar", $"Ha fallado el envío por correo: {ex.Message} Lo que ya se hubiera enviado consta en Correo › Correo enviado; revísalo antes de repetir.", null,
+                new OpcionMensaje("Entendido", "Cierra el aviso", Principal: true, Cancelar: true));
+        }
+    }
     public ICommand VerTodasCommand { get; }
     public ICommand ProgramarCommand { get; }
 

@@ -77,6 +77,12 @@ public sealed class ModuloFacturacion
         _abrirFichaTercero = abrirFichaTercero;
     }
 
+    /// <summary>Correo común (correo/pantallas): compositor, lotes con resumen y registro. Null, el envío no está disponible.</summary>
+    public ProConta.Correo.IEnvioCorreoInteractivo? Correo { get; set; }
+
+    /// <summary>Prepara el correo de una factura validada (PDF, destinatarios y plantilla).</summary>
+    public ProConta.Facturacion.Documentos.PreparadorCorreoFacturas? CorreoFacturas { get; set; }
+
     internal ServiciosFacturacion Servicios => _s;
     internal IDialogosFacturacion Dialogos => _dialogos;
     internal void Avisar(string texto) => _anfitrion.Avisar(texto);
@@ -202,4 +208,36 @@ public sealed class ModuloFacturacion
     }
 
     internal void AbrirFichaTercero(int idTercero) => _abrirFichaTercero(idTercero);
+
+    /// <summary>
+    /// Envía por correo facturas validadas (facturacion/pantallas 2026-11-10 19:40): con una abre el compositor con su PDF, la
+    /// plantilla y los destinatarios del cliente; con varias, las envía en un lote sin abrir ventanas y muestra el resumen.
+    /// </summary>
+    internal async Task EnviarPorCorreoAsync(IReadOnlyList<(int IdFactura, string Rotulo)> facturas, string descripcionLote)
+    {
+        if (Correo is null || CorreoFacturas is null || facturas.Count == 0) return;
+        if (facturas.Count == 1)
+        {
+            var r = await CorreoFacturas.PrepararAsync(facturas[0].IdFactura, _s.Actor);
+            if (!r.EsCorrecto)
+            {
+                _dialogos.Preguntar($"No puedo preparar el correo de {facturas[0].Rotulo}", r.Error!.Mensaje + (r.Error.AccionCorrectora is { } a ? " " + a : ""), null,
+                    new ProConta.UI.Base.Controles.OpcionMensaje("Entendido", "Cierra el aviso", Principal: true, Cancelar: true));
+                return;
+            }
+            var aviso = r.Valor.AvisoDestinatarios is { } e ? e.Mensaje + (e.AccionCorrectora is { } c ? " " + c : "") : null;
+            await Correo.ComponerAsync(r.Valor.Mensaje, aviso);
+            return;
+        }
+        var lote = facturas.Select(f => new ProConta.Correo.PreparacionLote(f.Rotulo, async () =>
+        {
+            var r = await CorreoFacturas.PrepararAsync(f.IdFactura, _s.Actor);
+            if (!r.EsCorrecto) return ProConta.Nucleo.Resultados.Resultado<ProConta.Correo.MensajeNuevo>.Fallo(r.Errores);
+            // En un lote no hay compositor: sin destinatarios elegibles, la factura queda sin enviar con su motivo.
+            if (r.Valor.AvisoDestinatarios is { } aviso && r.Valor.Mensaje.Destinatarios.Count == 0)
+                return ProConta.Nucleo.Resultados.Resultado<ProConta.Correo.MensajeNuevo>.Fallo(aviso);
+            return ProConta.Nucleo.Resultados.Resultado<ProConta.Correo.MensajeNuevo>.Correcto(r.Valor.Mensaje);
+        })).ToList();
+        await Correo.EnviarLoteAsync(_s.Trabajo.IdSociedadEjercicio, descripcionLote, "Facturas", lote);
+    }
 }

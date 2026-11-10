@@ -235,7 +235,7 @@ public sealed class ListadoProgramadasVM : ModeloVista, IPestanaTrabajo
     } : "El de la fecha de inicio";
     public string DetalleFinal => D is null ? "" : ReglasProgramada.TextoFinal(D);
     public string DetalleGenera => D is null ? "" : D.AlGenerar == AlGenerar.Validar ? "Una factura validada" : "Un borrador";
-    public string DetalleEnvio => D is null ? "" : D.EnviarPorEmail ? "Por correo, cuando esté disponible" : "No se envía";
+    public string DetalleEnvio => D is null ? "" : D.EnviarPorEmail ? "Por correo, al generarla validada (con su PDF)" : "No se envía";
 
     public string DetalleProximas
     {
@@ -438,6 +438,9 @@ public sealed class ListadoProgramadasVM : ModeloVista, IPestanaTrabajo
             var lote = r.Valor;
             await CargarAsync();
             _modulo.FacturaCambiada();
+            // Las validadas de programadas con «Enviar por email» salen en un lote de correo, con su resumen al final.
+            var aEnviar = lote.Facturas.Where(f => f.Validada && f.EnviarPorEmail).Select(f => (f.IdFactura, f.Rotulo)).ToList();
+            if (aEnviar.Count > 0 && _modulo.Correo is not null) await _modulo.EnviarPorCorreoAsync(aEnviar, $"Facturas programadas · lote {lote.IdLote}");
             var creadas = lote.Facturas.Select(f => $"{f.Programada} · {Formatos.Fecha(f.Vencimiento)} → {(f.Validada ? f.Rotulo : f.Rotulo + " (borrador)")}").ToList();
             var titulo = lote.Facturas.Count == 0 ? "No se ha creado ninguna factura" : $"Lote {lote.IdLote}: {Formatos.Plural(lote.Facturas.Count, "factura creada", "facturas creadas")}";
             if (lote.SinIncidencias)

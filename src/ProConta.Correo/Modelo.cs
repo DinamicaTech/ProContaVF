@@ -122,3 +122,25 @@ public static class TiposContenido
         _ => "application/octet-stream",
     };
 }
+
+/// <summary>
+/// Lo que el correo ofrece a las pantallas de otras áreas (facturas, terceros): componer un mensaje en el compositor común,
+/// enviar un lote sin abrir una ventana por mensaje con el resumen al final, y abrir el registro de correo enviado.
+/// </summary>
+public interface IEnvioCorreoInteractivo
+{
+    /// <summary>Abre el compositor modal con el mensaje preparado; true si se ha enviado o ha quedado en la cola.</summary>
+    Task<bool> ComponerAsync(MensajeNuevo borrador, string? aviso = null);
+
+    /// <summary>
+    /// Prepara y envía cada mensaje en un lote, sin abrir el compositor, y al terminar muestra el resumen del lote. Los que no
+    /// se han podido preparar (por ejemplo, un cliente sin email) aparecen en el resumen con su motivo.
+    /// </summary>
+    Task EnviarLoteAsync(int idSociedadEjercicio, string descripcion, string origen, IReadOnlyList<PreparacionLote> mensajes);
+
+    /// <summary>Abre el registro de correo enviado, opcionalmente filtrado por un origen (una factura, un tercero).</summary>
+    void AbrirRegistro(string? tipoOrigen = null, int? idOrigen = null, string? referencia = null);
+}
+
+/// <summary>Un mensaje de un lote: con qué se reconoce y cómo se prepara (null o error si no se puede).</summary>
+public sealed record PreparacionLote(string Referencia, Func<Task<Nucleo.Resultados.Resultado<MensajeNuevo>>> Preparar);

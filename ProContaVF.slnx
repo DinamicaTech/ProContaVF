@@ -8,6 +8,7 @@
     <Project Path="src/ProConta.Compras.Regresion/ProConta.Compras.Regresion.csproj" />
     <Project Path="src/ProConta.Contabilidad/ProConta.Contabilidad.csproj" />
     <Project Path="src/ProConta.Correo/ProConta.Correo.csproj" />
+    <Project Path="src/ProConta.Correo.UI/ProConta.Correo.UI.csproj" />
     <Project Path="src/ProConta.Contabilidad.UI/ProConta.Contabilidad.UI.csproj" />
     <Project Path="src/ProConta.Datos.Esquema.Consola/ProConta.Datos.Esquema.Consola.csproj" />
     <Project Path="src/ProConta.Datos.Esquema/ProConta.Datos.Esquema.csproj" />

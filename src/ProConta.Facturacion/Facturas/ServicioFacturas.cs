@@ -672,7 +672,8 @@ public sealed class ServicioFacturas
 
     // ---------- utilidades ----------
 
-    private async Task<Tercero?> TerceroDeClienteAsync(int idCliente)
+    /// <summary>El tercero del cliente (con sus datos de contacto actuales); null si ya no existe.</summary>
+    public async Task<Tercero?> TerceroDeClienteAsync(int idCliente)
     {
         var idTercero = await _bd.EjecutarAsync(s => Instantaneas.TerceroDelClienteAsync(s, idCliente));
         return idTercero is int id ? await _terceros.ObtenerAsync(id) : null;
