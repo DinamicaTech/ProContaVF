@@ -24,6 +24,7 @@ Programaciones con cadencia y ancla de día, generación por lotes idempotente p
 - 2026-11-04 18:50 · Envío (RF-PRO-05): EnviarPorEmail se guarda por programada y lo usará el envío automático cuando exista correo/envio; hoy no se envía nada.
 - 2026-11-04 18:50 · Datos del ERP en la BD actual: las programadas que vienen del ERP tienen el periodo en FechaInicio/FechaFin y no tienen PeriodoDesde/Hasta; aquí aparecen sin periodo (sus facturas saldrían sin periodo) y FacturasGeneradas a 0. Su conversión (periodo, facturas ya emitidas y próxima emisión) corresponde a implantacion/migracion-erp cuando se regenere la BD.
 - 2026-11-05 10:40 · Validado por el propietario (facturación programada, PR #16).
+- 2026-11-10 20:05 · Hecho: al generar programadas, las facturas validadas cuya programada tiene «Enviar por email» salen en un lote de correo con su PDF y se muestra el resumen del lote; las generadas como borrador se envían después desde Facturas.
 
 ## Requirements
 - 2026-10-28 12:28 · From sources/01_ESPECIFICACION_FUNCIONAL.docx § 12 RF-PRO-01..06: programaciones, anclas, lotes, concurrencia, envío, duplicado

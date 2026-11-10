@@ -40,6 +40,7 @@ Listados filtrables de facturas y de programaciones, en pantallas separadas, con
 - 2026-11-05 11:25 · Validados por el propietario el PDF y las pantallas sin VeriFactu (PR #18).
 
 - 2026-11-08 11:45 · Derived from facturacion/factura-venta/contabilizacion: el menú contextual del listado tiene «Deshacer exportación contable», con aviso de lo que hará con cada factura. El editor permite cambiar una validada sin enviar a VeriFactu, salvo su serie, y al guardar un cambio que afecta al asiento avisa de que antes se deshará su exportación (borrando el asiento o con contra-asiento) y de que se generará uno nuevo.
+- 2026-11-10 20:05 · Hecho: «Enviar por correo…» y «Ver su correo» en el menú contextual de Facturas (`ModuloFacturacion.EnviarPorCorreoAsync`), con el correo preparado por `PreparadorCorreoFacturas` (src/ProConta.Facturacion/Documentos/CorreoFacturas.cs): solo facturas validadas, su PDF archivado, los emails del cliente marcados para facturas (o el congelado en la factura) y la plantilla «Factura» de la empresa.
 
 ## Requirements
 - 2026-10-28 12:28 · From sources/01_ESPECIFICACION_FUNCIONAL.docx § 10 RF-FAC-10: listado, selección, proforma, contadores

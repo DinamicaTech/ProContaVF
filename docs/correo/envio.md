@@ -8,7 +8,7 @@ threads:
   - 2026-11-10 19:40 · Desarrollar envío y recepción de correo | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GT4mx65rhF9fy8aRE77SaGH
 ---
 ## Summary
-Cuentas de correo por sociedad y ejercicio, transporte SMTP con evidencia por destinatario y cola durable con intentos, reintentos, lotes y estados que distinguen aceptación, aceptación en parte, fallo e incertidumbre. La procesa la aplicación mientras está abierta, y los adjuntos enviados se conservan como copia inmutable.
+Cuentas de correo por sociedad y ejercicio, transporte SMTP con evidencia por destinatario y cola durable con intentos, reintentos, lotes y estados que distinguen aceptación, aceptación en parte, fallo e incertidumbre. La procesa la aplicación mientras está abierta, y los adjuntos enviados se conservan como copia inmutable. Código: `src/ProConta.Correo` (`ServicioCorreo`, `TransporteSmtpMailKit`, `CoordinadorCorreo`, `RepositorioCuentasCorreo`, `ServicioPlantillasCorreo`, `ProveedoresCorreo`), migración `20261110_1940_CORREO_SALIENTE` y pruebas en `tests/ProConta.Correo.Tests`.
 **Aceptación:** la de spec § 22.
 
 ## Decisions
@@ -22,6 +22,7 @@ Cuentas de correo por sociedad y ejercicio, transporte SMTP con evidencia por de
 - 2026-11-10 19:40 · Cola durable: cada mensaje se guarda con su Message-ID, destinatarios, contenido y adjuntos antes de conectar con el servidor; la aplicación procesa la cola mientras está abierta (ver correo 2026-11-10 19:40) y, con varias sesiones, una sola la procesa gracias a un turno con caducidad en la BD. Los procesos de más de un correo crean un lote sin abrir ninguna ventana por mensaje y muestran un resumen al final.
 - 2026-11-10 19:40 · Adjuntos (Q5): cada adjunto enviado se guarda como copia inmutable con su huella SHA-256 en la carpeta de documentos de la empresa (`<RutaDocumentos>\<ejercicio>\Correo\<mensaje>\`), y la BD guarda su ruta relativa; pasará al motor documental cuando exista. Nunca se modifica el documento original.
 - 2026-11-10 19:40 · Desvío de pruebas: parámetro general «Desviar todo el correo a» (Configuracion.CorreoDesviarA); con valor, todo mensaje sale solo a esa dirección, con los destinatarios reales anotados en el propio mensaje y en el registro, y las pantallas lo avisan. En la BD de pruebas se pone a la dirección del propietario.
+- 2026-11-10 20:05 · Hecho (entrega 1): esquema (versión 33), cuenta de correo en Parámetros y tablas con «Probar envío» y «Probar recepción», plantillas de correo por empresa, cola durable con turno entre sesiones, reintentos, reenvío, cancelación y resolución de inciertos, desvío de pruebas y transporte SMTP con resultado por destinatario y clasificación por fase. El cifrado de secretos pasa a `ProConta.Nucleo.Seguridad.SecretoProtegido`, compartido con compras. Pruebas: 26 sin BD (con un servidor SMTP local: aceptado, aceptado en parte, rechazo temporal y definitivo, corte tras el contenido = incierto, contraseña mala, sin cifrado no se envía la contraseña) y 14 contra Access. Pendiente de validar con la cuenta real de pruebas.
 
 ## Requirements
 - 2026-10-28 12:28 · From sources/01_ESPECIFICACION_FUNCIONAL.docx § 22 RF-COR-04..07: cuentas y secretos, coordinador saliente, reintento/reenvío, no duplicar transporte

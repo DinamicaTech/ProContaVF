@@ -2,13 +2,13 @@
 
 # Diccionario de datos
 
-Esquema versión 32 (Actualizada); 122 tablas. SHA-256 de la BD de origen: `6B97B57A6D26B9F4FEC38EFB54879926BFA2F2E84A2121F2FFC9FD7DB7092FA8`.
+Esquema versión 33 (Actualizada); 129 tablas. SHA-256 de la BD de origen: `A6CC24684CEC173E200B48B6F0E7EAFEA99EED7D279501D9CEDDD3BCCD0BF78F`.
 
 | Área | Tablas |
 |---|---|
 | [compras](compras.md) | ConfiguracionReconocimientoFacturasCompra, DesglosesFacturaCompra, FacturasCompra, PlantillasReconocimientoCompra, TextosClaveCompra |
 | [contabilidad](contabilidad.md) | Actividades, Apuntes, Asientos, CentrosCoste, CodigosContablesReservados, ConfiguracionesContables, ConfiguracionesContablesCuentaBancaria, CuentasContables, CuentasContablesLegacy, CuentasPlanContable, DesglosesIVASoportado, F_CDP, F_DEP, IdentidadesContables, IVARepercutido, IVASoportado, ModelosBalance, NodosBalance, PeriodosIVA, PlanesContables, PresentacionesTributarias, RegistroCambiosApuntes, ReglasCuentasBalance, RelacionesAsientos, RelacionesCalculoBalance, RevisionesAsientos, TiposCuentaContable |
-| [correo](correo.md) | AdjuntosMailDispatcher, ConfiguracionCorreo, ConfiguracionMailDispatcher, EnviosCorreo, PlantillasCorreo, ProcesamientosMailDispatcher, TiposCorreo |
+| [correo](correo.md) | AdjuntosMailDispatcher, AdjuntosMensajeCorreo, ConfiguracionCorreo, ConfiguracionMailDispatcher, CuentasCorreo, DestinatariosMensajeCorreo, EnviosCorreo, IntentosMensajeCorreo, LotesCorreo, MensajesCorreo, PlantillasCorreo, ProcesamientosMailDispatcher, TiposCorreo, TurnosCorreo |
 | [creative-lab](creative-lab.md) | Activos, ActivosInversiones, ConversacionesIA, CotizacionesInstrumentoFinanciero, CuentasActivo, DetallesLoteAmortizacionActivo, ImportacionesActivos, Inmuebles, InstrumentosFinancieros, LotesAmortizacionActivo, MensajesConversacionIA, OperacionesInversion, PlanesAmortizacionActivo, PlantillasCuentasActivo, TiposActivo |
 | [datos](datos.md) | LogMigracionesEsquema, VersionesEsquema |
 | [facturacion](facturacion.md) | Conceptos, Contratos, DesglosesIVARepercutido, EstadoContratoTerceros, EstadosFactura, Facturas, FacturasProgramadas, FacturasProgramadasBak, LineasContrato, LineasFactura, LineasFacturasProgramadas, LotesExportacionContable, LotesFacturasProgramadas, SeriesFacturacion, TiposConcepto, TiposDeIVA, TiposFactura, TiposOperacion, VeriFactuConfiguracion, VeriFactuEnvios, VeriFactuLotesEnvio, VeriFactuRespuestas |

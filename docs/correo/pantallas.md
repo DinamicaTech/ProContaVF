@@ -7,7 +7,7 @@ threads:
   - 2026-11-10 19:40 · Desarrollar envío y recepción de correo | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GT4mx65rhF9fy8aRE77SaGH
 ---
 ## Summary
-Compositor individual modal (Para, CC, CCO, asunto, cuerpo y adjuntos) y registro de correo enviado, desde el menú o como resumen modal filtrado por lote, con su detalle de solo lectura, los adjuntos tal como se enviaron y las acciones en el menú contextual. Los correos recibidos se añaden al registro con la recepción.
+Compositor individual modal (Para, CC, CCO, asunto, cuerpo y adjuntos) y registro de correo enviado, desde el menú o como resumen modal filtrado por lote, con su detalle de solo lectura, los adjuntos tal como se enviaron y las acciones en el menú contextual. Los correos recibidos se añaden al registro con la recepción. Código: `src/ProConta.Correo.UI` (`CompositorCorreoVM` y `VentanaCompositorCorreo`, `RegistroCorreoVM` y `VistaRegistroCorreo`, `VentanaResumenCorreo`, `ModuloCorreo`, que implementa `IEnvioCorreoInteractivo` para las demás áreas).
 **Aceptación:** diez mensajes no abren diez modales; cancelar no envía.
 
 ## Decisions
@@ -15,6 +15,7 @@ Compositor individual modal (Para, CC, CCO, asunto, cuerpo y adjuntos) y registr
 - 2026-11-10 19:40 · Una sola factura (o un tercero) abre el compositor; un proceso de más de un correo (varias facturas, programadas) crea un lote sin abrir el compositor por mensaje y, al terminar, muestra su resumen: el registro de correo filtrado por ese lote, en ventana modal.
 - 2026-11-10 19:40 · Registro de correo (menú Correo › Correo enviado): tabla filtrable de los mensajes con su estado, detalle de solo lectura con remitente, Para, CC y CCO, asunto, cuerpo, adjuntos (se abren tal como se enviaron), Message-ID, intentos y origen. Las acciones (reintentar, reenviar, dar por enviado o no enviado un incierto, cancelar pendientes, abrir adjunto, abrir origen) van en el menú contextual, según la regla «Menú contextual»; la maqueta de lotes las tenía en botones y se adapta.
 - 2026-11-10 19:40 · Fuera de esta versión, con el OK del propietario: pausa de lotes, borradores guardados entre sesiones y avisos de entrega o rebote. El compositor solo conserva el borrador mientras está abierto.
+- 2026-11-10 20:05 · Hecho (entrega 1): compositor modal (Para, CC y CCO con error junto a cada campo, asunto, texto plano que se envía también como HTML sencillo, adjuntos que se ven y se quitan; aviso de variables de plantilla sin rellenar y del desvío de pruebas; tras enviar muestra aceptado, en la cola con su reintento, fallido o incierto), registro «Correo enviado» en el menú Correo con filtros, detalle de solo lectura, adjuntos que se abren tal como se enviaron e intentos, y el mismo registro como resumen modal de un lote o del correo de una factura. El editor del texto es de texto plano: negrita, cursiva y listas quedan para más adelante.
 
 ## Requirements
 - 2026-10-28 12:28 · From sources/01_ESPECIFICACION_FUNCIONAL.docx § 22 RF-COR-01..03: compositor y registro de lotes

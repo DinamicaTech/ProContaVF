@@ -26,6 +26,29 @@
 Relaciones:
 - FK_AdjuntoMail_Proceso: (IdProcesamientoMail) → ProcesamientosMailDispatcher (IdProcesamientoMail); borrado NO ACTION, actualización NO ACTION
 
+## AdjuntosMensajeCorreo
+
+- Dueño funcional: `correo/envio`
+
+| Campo | Tipo | Nulo | Por defecto | Descripción |
+|---|---|---|---|---|
+| IdAdjuntoMensaje | COUNTER | no |  |  |
+| IdMensajeCorreo | LONG | no |  |  |
+| Ordinal | SHORT | no |  |  |
+| Nombre | TEXT(255) | no |  |  |
+| TipoContenido | TEXT(100) | no |  |  |
+| TamanoBytes | LONG | no |  |  |
+| Huella | TEXT(64) | no |  |  |
+| RutaRelativa | TEXT(255) | no |  |  |
+
+Índices:
+- FK_AdjuntosMensaje_Mensaje: IdMensajeCorreo
+- PK_AdjuntosMensajeCorreo (clave primaria): IdAdjuntoMensaje
+- UX_AdjuntosMensaje_Ordinal (único): IdMensajeCorreo, Ordinal
+
+Relaciones:
+- FK_AdjuntosMensaje_Mensaje: (IdMensajeCorreo) → MensajesCorreo (IdMensajeCorreo); borrado NO ACTION, actualización NO ACTION
+
 ## ConfiguracionCorreo
 
 - Dueño funcional: `correo`
@@ -102,6 +125,63 @@ Relaciones:
 Relaciones:
 - FK_ConfigMail_SociedadEjercicio: (IdSociedadEjercicio) → SociedadesEjercicios (IdSociedadEjercicio); borrado NO ACTION, actualización NO ACTION
 
+## CuentasCorreo
+
+- Dueño funcional: `correo/envio`
+
+| Campo | Tipo | Nulo | Por defecto | Descripción |
+|---|---|---|---|---|
+| IdCuentaCorreo | COUNTER | no |  |  |
+| IdSociedadEjercicio | LONG | no |  |  |
+| Activa | YESNO | no |  |  |
+| Direccion | TEXT(254) | no |  |  |
+| NombreVisible | TEXT(150) | sí |  |  |
+| Usuario | TEXT(254) | sí |  |  |
+| SecretoProtegido | LONGTEXT | sí |  |  |
+| ResponderA | TEXT(254) | sí |  |  |
+| ServidorSmtp | TEXT(255) | sí |  |  |
+| PuertoSmtp | LONG | no |  |  |
+| SeguridadSmtp | TEXT(15) | no |  |  |
+| ServidorPop3 | TEXT(255) | sí |  |  |
+| PuertoPop3 | LONG | no |  |  |
+| SeguridadPop3 | TEXT(15) | no |  |  |
+| EliminarTrasProcesar | YESNO | no |  |  |
+| IntervaloRecepcionMinutos | LONG | no |  |  |
+| TiempoEsperaSegundos | LONG | no |  |  |
+| Version | LONG | no |  |  |
+| FechaModificacion | DATETIME | sí |  |  |
+| OperadorModificacion | TEXT(30) | sí |  |  |
+
+Índices:
+- FK_CuentasCorreo_SociedadEjercicio: IdSociedadEjercicio
+- PK_CuentasCorreo (clave primaria): IdCuentaCorreo
+- UX_CuentasCorreo_SociedadEjercicio (único): IdSociedadEjercicio
+
+Relaciones:
+- FK_CuentasCorreo_SociedadEjercicio: (IdSociedadEjercicio) → SociedadesEjercicios (IdSociedadEjercicio); borrado NO ACTION, actualización NO ACTION
+
+## DestinatariosMensajeCorreo
+
+- Dueño funcional: `correo/envio`
+
+| Campo | Tipo | Nulo | Por defecto | Descripción |
+|---|---|---|---|---|
+| IdDestinatarioMensaje | COUNTER | no |  |  |
+| IdMensajeCorreo | LONG | no |  |  |
+| Tipo | TEXT(4) | no |  |  |
+| Direccion | TEXT(254) | no |  |  |
+| Nombre | TEXT(150) | sí |  |  |
+| Resultado | TEXT(15) | no |  |  |
+| RespuestaServidor | TEXT(255) | sí |  |  |
+
+Índices:
+- FK_DestinatariosMensaje_Mensaje: IdMensajeCorreo
+- IX_DestinatariosMensaje_Mensaje: IdMensajeCorreo
+- PK_DestinatariosMensajeCorreo (clave primaria): IdDestinatarioMensaje
+
+Relaciones:
+- FK_DestinatariosMensaje_Mensaje: (IdMensajeCorreo) → MensajesCorreo (IdMensajeCorreo); borrado NO ACTION, actualización NO ACTION
+
 ## EnviosCorreo
 
 - Dueño funcional: `correo`
@@ -152,6 +232,103 @@ Relaciones:
 - FK_EnviosCorreo_PlantillasCorreo: (IdPlantillaCorreo) → PlantillasCorreo (IdPlantillaCorreo); borrado NO ACTION, actualización NO ACTION
 - FK_EnviosCorreo_TiposCorreo: (TipoCorreo) → TiposCorreo (TipoCorreo); borrado NO ACTION, actualización NO ACTION
 - FK_Sociedades_EnviosCorreo: (IdSociedad) → Sociedades (IdSociedad); borrado NO ACTION, actualización NO ACTION
+
+## IntentosMensajeCorreo
+
+- Dueño funcional: `correo/envio`
+
+| Campo | Tipo | Nulo | Por defecto | Descripción |
+|---|---|---|---|---|
+| IdIntentoMensaje | COUNTER | no |  |  |
+| IdMensajeCorreo | LONG | no |  |  |
+| Numero | LONG | no |  |  |
+| Inicio | DATETIME | no |  |  |
+| Fin | DATETIME | sí |  |  |
+| Resultado | TEXT(20) | no |  |  |
+| Fase | TEXT(20) | sí |  |  |
+| RespuestaServidor | TEXT(255) | sí |  |  |
+| Detalle | LONGTEXT | sí |  |  |
+| Operador | TEXT(30) | sí |  |  |
+
+Índices:
+- FK_IntentosMensaje_Mensaje: IdMensajeCorreo
+- PK_IntentosMensajeCorreo (clave primaria): IdIntentoMensaje
+- UX_IntentosMensaje_Numero (único): IdMensajeCorreo, Numero
+
+Relaciones:
+- FK_IntentosMensaje_Mensaje: (IdMensajeCorreo) → MensajesCorreo (IdMensajeCorreo); borrado NO ACTION, actualización NO ACTION
+
+## LotesCorreo
+
+- Dueño funcional: `correo/envio`
+
+| Campo | Tipo | Nulo | Por defecto | Descripción |
+|---|---|---|---|---|
+| IdLoteCorreo | COUNTER | no |  |  |
+| IdSociedadEjercicio | LONG | no |  |  |
+| Descripcion | TEXT(255) | no |  |  |
+| Origen | TEXT(30) | no |  |  |
+| FechaCreacion | DATETIME | no |  |  |
+| Operador | TEXT(30) | no |  |  |
+
+Índices:
+- FK_LotesCorreo_SociedadEjercicio: IdSociedadEjercicio
+- PK_LotesCorreo (clave primaria): IdLoteCorreo
+
+Relaciones:
+- FK_LotesCorreo_SociedadEjercicio: (IdSociedadEjercicio) → SociedadesEjercicios (IdSociedadEjercicio); borrado NO ACTION, actualización NO ACTION
+
+## MensajesCorreo
+
+- Dueño funcional: `correo/envio`
+
+| Campo | Tipo | Nulo | Por defecto | Descripción |
+|---|---|---|---|---|
+| IdMensajeCorreo | COUNTER | no |  |  |
+| IdSociedadEjercicio | LONG | no |  |  |
+| IdCuentaCorreo | LONG | sí |  |  |
+| IdLoteCorreo | LONG | sí |  |  |
+| TipoCorreo | TEXT(20) | no |  |  |
+| TipoOrigen | TEXT(20) | sí |  |  |
+| IdOrigen | LONG | sí |  |  |
+| ReferenciaOrigen | TEXT(150) | sí |  |  |
+| MessageId | TEXT(255) | no |  |  |
+| Remitente | TEXT(254) | no |  |  |
+| NombreRemitente | TEXT(150) | sí |  |  |
+| ResponderA | TEXT(254) | sí |  |  |
+| Asunto | TEXT(255) | no |  |  |
+| CuerpoHtml | LONGTEXT | sí |  |  |
+| CuerpoTexto | LONGTEXT | sí |  |  |
+| Estado | TEXT(20) | no |  |  |
+| NumeroIntentos | LONG | no |  |  |
+| ProximoIntento | DATETIME | sí |  |  |
+| FechaCreacion | DATETIME | no |  |  |
+| FechaAceptacion | DATETIME | sí |  |  |
+| Operador | TEXT(30) | no |  |  |
+| IdMensajeOriginal | LONG | sí |  |  |
+| DesviadoA | TEXT(254) | sí |  |  |
+| UltimoError | LONGTEXT | sí |  |  |
+| ResueltoPor | TEXT(30) | sí |  |  |
+| FechaResolucion | DATETIME | sí |  |  |
+| MotivoResolucion | TEXT(255) | sí |  |  |
+| Version | LONG | no |  |  |
+
+Índices:
+- FK_MensajesCorreo_Cuenta: IdCuentaCorreo
+- FK_MensajesCorreo_Lote: IdLoteCorreo
+- FK_MensajesCorreo_SociedadEjercicio: IdSociedadEjercicio
+- FK_MensajesCorreo_Tipo: TipoCorreo
+- IX_MensajesCorreo_Cola: Estado, ProximoIntento
+- IX_MensajesCorreo_Origen: TipoOrigen, IdOrigen
+- IX_MensajesCorreo_SociedadEjercicio: IdSociedadEjercicio, FechaCreacion
+- PK_MensajesCorreo (clave primaria): IdMensajeCorreo
+- UX_MensajesCorreo_MessageId (único): MessageId
+
+Relaciones:
+- FK_MensajesCorreo_Cuenta: (IdCuentaCorreo) → CuentasCorreo (IdCuentaCorreo); borrado NO ACTION, actualización NO ACTION
+- FK_MensajesCorreo_Lote: (IdLoteCorreo) → LotesCorreo (IdLoteCorreo); borrado NO ACTION, actualización NO ACTION
+- FK_MensajesCorreo_SociedadEjercicio: (IdSociedadEjercicio) → SociedadesEjercicios (IdSociedadEjercicio); borrado NO ACTION, actualización NO ACTION
+- FK_MensajesCorreo_Tipo: (TipoCorreo) → TiposCorreo (TipoCorreo); borrado NO ACTION, actualización NO ACTION
 
 ## PlantillasCorreo
 
@@ -223,4 +400,17 @@ Relaciones:
 
 Índices:
 - PK_TiposCorreo (clave primaria): TipoCorreo
+
+## TurnosCorreo
+
+- Dueño funcional: `correo/envio`
+
+| Campo | Tipo | Nulo | Por defecto | Descripción |
+|---|---|---|---|---|
+| Clave | TEXT(30) | no |  |  |
+| Propietario | TEXT(100) | no |  |  |
+| CaducaEn | DATETIME | no |  |  |
+
+Índices:
+- PK_TurnosCorreo (clave primaria): Clave
 
