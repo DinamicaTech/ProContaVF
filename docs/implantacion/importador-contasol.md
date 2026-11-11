@@ -1,6 +1,5 @@
 ---
 title: Importador de ContaSol
-status: draft
 depends_on: [contabilidad/asientos, terceros/roles]
 threads:
   - 2026-10-28 12:30 · Carga de requisitos | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GRNMH95h9tnQp4dmEPHmw1w
@@ -45,3 +44,4 @@ Importación reutilizable de ContaSol por ejercicio (una BD de ContaSol por ejer
 
 ## Hand-over
 - 2026-11-11 11:30 · Validado en el equipo del propietario sobre una BD nueva (copia-estructura de la maestra + actualizar): los 9 ejercicios 2018–2026 importados sin bloqueantes ni descuadres (12.849 asientos, 35.481 apuntes, 2.634 + 1.749 registros de IVA, 435 terceros) en 16 minutos; la reimportación no duplica (todo «sin cambios», 4 minutos). Pruebas con Access: Implantacion 19/19, Contabilidad 26/26. Advertencias a revisar con el propietario: 124 SaldoDistintoEnOrigen en 2018 (F_SAL de ContaSol no cuadra con sus apuntes), 12 TipoOperacionDesconocido en 2021 (importados como operación interior), 49 IvaFechaCorregida (2021 y 2026). Pendiente menor: en 2026 el coste por asiento sube (~200 ms frente a ~60 ms).
+- 2026-11-11 12:00 · El propietario valida el importador («Importador ok»). Punto de partida para la migración del ERP: una BD nueva de pruebas con la importación completa 2018–2026 (una sola importación por ejercicio). El ERP enlaza con lo importado mediante `MapasContaSol.LeerAsync`, que lee los mapas de la última importación válida de cada ejercicio; el enlace es por asiento (clave «DIA:ASI»), no por apunte.
