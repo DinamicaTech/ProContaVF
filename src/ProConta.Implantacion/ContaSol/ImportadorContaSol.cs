@@ -1,8 +1,8 @@
 using System.Globalization;
-using System.Text;
 using ProConta.Contabilidad.Asientos;
 using ProConta.Contabilidad.CentrosCoste;
 using ProConta.Datos.Persistencia;
+using ProConta.Datos.Persistencia.Access;
 using ProConta.Nucleo.Auditoria;
 using ProConta.Nucleo.Contexto;
 using ProConta.Nucleo.Identificacion;
@@ -66,8 +66,8 @@ public static class TiposMapa
 /// Importador de ContaSol (implantacion/importador-contasol): importa cada ejercicio de ContaSol (una BD por ejercicio) en la
 /// única BD de ProContaVF, en orden de ejercicio. Cada ejercicio es una ejecución de ImportacionesContaSol con sus fases,
 /// incidencias y mapas de identidad. Repetir la importación de un ejercicio sustituye lo importado antes sin duplicar: los
-/// asientos son lotes automáticos del importador (uno por asiento de ContaSol, así su número no cambia al reimportar), los
-/// asientos sin cambios no se tocan y los que ya no están en ContaSol se borran. Una cuenta es la misma en todos los ejercicios
+/// asientos se graban en carga masiva por el motor (IMotorAsientos.CargarLibroExternoAsync, una clave por asiento de ContaSol),
+/// los asientos sin cambios no se tocan y los que ya no están en ContaSol se borran. Una cuenta es la misma en todos los ejercicios
 /// si tiene el mismo código (reserva histórica de códigos); un cliente o proveedor de ContaSol es el mismo tercero entre
 /// ejercicios si conserva el NIF, y otro tercero si la subcuenta ha cambiado de titular (la cuenta queda en el más reciente).
 /// </summary>
@@ -251,12 +251,6 @@ public sealed class ImportadorContaSol(IBaseDatos bd, IMotorAsientos motor, ICat
                     ? $"No he podido preparar la importación de este ejercicio (empresa, ejercicio o registro de la importación): {ex.Message}. No se ha grabado nada."
                     : $"La importación se ha detenido por un error: {ex.Message}. Lo grabado hasta ahora se conserva; corrige la causa y vuelve a importar este ejercicio, que sigue sin duplicar.");
             }
-            try { await RecalcularSaldosAsync(); }
-            catch (Exception ex)
-            {
-                Anotar("asientos", null, null, null, "ContaSol.SaldosSinRecalcular", Severidad.Advertencia,
-                    $"No he podido recalcular los saldos de las cuentas del ejercicio: {ex.Message}. Vuelve a importar el ejercicio para recalcularlos.");
-            }
             var resumen = new ResumenEjercicio(plan.Ejercicio, plan.Origen.Ruta, _idImportacion, estado, plan.Centros.Count, plan.Cuentas.Count, _grabados, _sinCambios, _borrados,
                 plan.Apuntes, plan.Registros.Count, _terceros, _incidencias);
             if (_idImportacion != 0) await CerrarAsync(resumen);
@@ -288,16 +282,15 @@ public sealed class ImportadorContaSol(IBaseDatos bd, IMotorAsientos motor, ICat
             _mapasPendientes.Add((tipo, clave, id));
         }
 
+        /// <summary>Los mapas pendientes, en bloque (INSERT … SELECT desde un fichero temporal, por tandas).</summary>
         private async Task GrabarMapasAsync()
         {
-            foreach (var trozo in _mapasPendientes.Chunk(TamanoLote))
-                await _bd.EnTransaccionAsync(async s =>
-                {
-                    foreach (var (tipo, clave, id) in trozo)
-                        await s.EjecutarAsync("INSERT INTO MapasIdentidadContaSol (IdImportacionContaSol, TipoEntidad, ClaveOrigen, IdDestino) VALUES (?, ?, ?, ?)",
-                            _idImportacion, tipo, clave, id);
-                    return true;
-                });
+            if (_mapasPendientes.Count == 0) return;
+            using var carga = new CargaMasivaAccess();
+            await carga.InsertarAsync(_bd, "INSERT INTO MapasIdentidadContaSol (IdImportacionContaSol, TipoEntidad, ClaveOrigen, IdDestino)",
+                $"{CargaMasivaAccess.Literal(_idImportacion)}, t.Tipo, t.Clave, t.Id",
+                [new("Tipo", TipoCarga.Texto), new("Clave", TipoCarga.Texto), new("Id", TipoCarga.Entero)],
+                _mapasPendientes.Select(m => new object?[] { m.Tipo, m.Clave, m.Id }), cancelacion: CancellationToken.None);
             _mapasPendientes.Clear();
         }
 
@@ -576,99 +569,53 @@ public sealed class ImportadorContaSol(IBaseDatos bd, IMotorAsientos motor, ICat
 
         // ---------- asientos ----------
 
+        /// <summary>
+        /// Asientos del ejercicio en carga masiva (implantacion/importador-contasol 2026-11-11 13:00): el motor valida en memoria y
+        /// graba con INSERT … SELECT; los asientos sin cambios se conservan, los cambiados se sustituyen y los que ya no están en
+        /// ContaSol se borran. Un asiento rechazado no se graba (bloqueante) y, si ya estaba importado, se conserva el anterior.
+        /// </summary>
         private async Task<(int, int)> ImportarAsientosAsync()
         {
-            // Los saldos de las cuentas se recalculan una sola vez al final de la fase (con un recálculo por asiento, la carga crece al cuadrado).
-            var opciones = new OpcionesLote(LibroExterno: true, DiferirSaldos: true);
             var motivo = $"Importación de ContaSol {plan.Ejercicio} ({Path.GetFileName(plan.Origen.Ruta)})";
-            var claves = new HashSet<string>(StringComparer.Ordinal);
-            int hechos = 0, omitidos = 0;
-            // Asientos que el importador ya tiene en el ejercicio, por su lote.
-            var existentes = (await _bd.EjecutarAsync(s => s.ConsultarAsync(
-                    "SELECT IdAsiento, ClaveEjecucion FROM Asientos WHERE EsAutomatico = True AND MotorPropietario = ? AND CodigoProceso = ? AND IdSociedadEjercicio = ?",
-                    f => (Id: f.Entero("IdAsiento"), Clave: f.Texto("ClaveEjecucion") ?? ""), OpcionesLote.MotorImportadorContaSol, CodigoProceso, _ctx.IdSociedadEjercicio)))
-                .GroupBy(a => a.Clave, StringComparer.Ordinal).ToDictionary(g => g.Key, g => g.Min(a => a.Id), StringComparer.Ordinal);
-            foreach (var p in plan.Asientos)
+            var origen = plan.Asientos.ToDictionary(p => Clave(p.Clave), StringComparer.Ordinal);
+            Avanzar("asientos", 0, plan.Asientos.Count);
+            var cargado = await imp._motor.CargarLibroExternoAsync(_ctx, OpcionesLote.MotorImportadorContaSol, CodigoProceso,
+                [.. plan.Asientos.Select(p => new AsientoExterno(Clave(p.Clave), Construir(p)))], actor, motivo, DesligarIvaAsync, cancelacion);
+            if (!cargado.EsCorrecto)
             {
-                cancelacion.ThrowIfCancellationRequested();
-                if (++hechos % 25 == 0) Avanzar("asientos", hechos, plan.Asientos.Count);
-                var lote = Lote(p.Clave);
-                claves.Add(lote.ClaveEjecucion);
-                var asiento = Construir(p);
-                if (existentes.TryGetValue(lote.ClaveEjecucion, out var id))
-                {
-                    var actual = await imp._motor.ObtenerAsync(id);
-                    if (actual is not null && Igual(actual, asiento))
-                    {
-                        Mapear(TiposMapa.Asiento, p.Clave, id);
-                        _sinCambios++;
-                        continue;
-                    }
-                }
-                var mapa = new List<int>();
-                var grabado = await imp._motor.ReemplazarLoteAsync(_ctx, lote, [asiento], actor, motivo, new TrabajoLote(Antes: DesligarIvaAsync, Despues: async (s, ids) =>
-                {
-                    // El mapa se graba con el asiento: si se interrumpe, la siguiente ejecución sabe qué hay.
-                    await s.EjecutarAsync("INSERT INTO MapasIdentidadContaSol (IdImportacionContaSol, TipoEntidad, ClaveOrigen, IdDestino) VALUES (?, ?, ?, ?)",
-                        _idImportacion, TiposMapa.Asiento, p.Clave, ids[0]);
-                    mapa.Add(ids[0]);
-                    return Resultado.Correcto();
-                }), opciones);
-                if (!grabado.EsCorrecto)
-                {
-                    omitidos++;
-                    Anotar("asientos", "F_APU", p.Clave, null, "ContaSol.AsientoNoGrabado", Severidad.Bloqueante,
-                        $"No he podido grabar el asiento {p.Numero} del {p.Fecha:dd/MM/yyyy}: {string.Join(" ", grabado.Errores.Select(e => e.TextoOperador()))}");
-                    continue;
-                }
-                _mapas[(TiposMapa.Asiento, p.Clave)] = grabado.Valor[0];
-                _grabados++;
-                _saldosPendientes = true;
+                Anotar("asientos", "F_APU", null, null, "ContaSol.AsientosNoGrabados", Severidad.Bloqueante,
+                    $"No he podido grabar los asientos de {plan.Ejercicio}: {string.Join(" ", cargado.Errores.Select(e => e.TextoOperador()))}");
+                return (0, plan.Asientos.Count);
             }
-            Avanzar("asientos", hechos, plan.Asientos.Count);
-            // Los asientos que el importador grabó antes y ya no están en ContaSol se borran.
-            foreach (var (clave, id) in existentes.Where(e => !claves.Contains(e.Key)))
+            var r = cargado.Valor;
+            foreach (var (clave, id) in r.Ids) Mapear(TiposMapa.Asiento, origen[clave].Clave, id);
+            foreach (var (clave, errores) in r.Rechazados)
             {
-                cancelacion.ThrowIfCancellationRequested();
-                var borrado = await imp._motor.EliminarLoteAsync(_ctx, new IdentidadLote(OpcionesLote.MotorImportadorContaSol, CodigoProceso, clave), actor,
-                    $"{motivo}: el asiento ya no está en ContaSol", new TrabajoLote(Antes: DesligarIvaAsync), opciones);
-                if (borrado.EsCorrecto)
-                {
-                    _borrados += borrado.Valor;
-                    _saldosPendientes = true;
-                    Anotar("asientos", "F_APU", clave, null, "ContaSol.AsientoBorrado", Severidad.Informativa,
-                        $"He borrado el asiento {id} ({clave}), importado antes, porque ya no está en ContaSol.");
-                }
-                else
-                    Anotar("asientos", "F_APU", clave, null, "ContaSol.AsientoNoBorrado", Severidad.Bloqueante,
-                        $"El asiento {id} ({clave}) ya no está en ContaSol, pero no he podido borrarlo: {borrado.Error!.TextoOperador()}");
+                var p = origen[clave];
+                Anotar("asientos", "F_APU", p.Clave, null, "ContaSol.AsientoNoGrabado", Severidad.Bloqueante,
+                    $"No he podido grabar el asiento {p.Numero} del {p.Fecha:dd/MM/yyyy}: {string.Join(" ", errores.Select(e => e.TextoOperador()))}");
             }
-            await RecalcularSaldosAsync();
-            return (_grabados, omitidos);
+            foreach (var (clave, id) in r.Borrados)
+                Anotar("asientos", "F_APU", clave, null, "ContaSol.AsientoBorrado", Severidad.Informativa,
+                    $"He borrado el asiento {id} ({clave}), importado antes, porque ya no está en ContaSol.");
+            _grabados = r.Grabados;
+            _sinCambios = r.SinCambios;
+            _borrados = r.Borrados.Count;
+            Avanzar("asientos", plan.Asientos.Count, plan.Asientos.Count);
+            return (_grabados, r.Rechazados.Count);
         }
 
         /// <summary>Los registros de IVA dejan de apuntar a los asientos que se van a borrar; la fase de IVA los vuelve a enlazar.</summary>
         private static async Task DesligarIvaAsync(ISesionDatos s, IReadOnlyList<int> ids)
         {
-            foreach (var a in ids)
-            {
-                await s.EjecutarAsync("UPDATE IVASoportado SET IdAsiento = NULL WHERE IdAsiento = ?", a);
-                await s.EjecutarAsync("UPDATE IVARepercutido SET IdAsiento = NULL WHERE IdAsiento = ?", a);
-            }
+            if (ids.Count == 0) return;
+            var lista = string.Join(", ", ids.Select(i => i.ToString(CultureInfo.InvariantCulture)));
+            await s.EjecutarAsync($"UPDATE IVASoportado SET IdAsiento = NULL WHERE IdAsiento IN ({lista})");
+            await s.EjecutarAsync($"UPDATE IVARepercutido SET IdAsiento = NULL WHERE IdAsiento IN ({lista})");
         }
 
-        private bool _saldosPendientes;
-
-        /// <summary>Caché de saldos de las cuentas del ejercicio, una vez por ejecución (también si se cancela o falla a medias).</summary>
-        private async Task RecalcularSaldosAsync()
-        {
-            if (!_saldosPendientes) return;
-            await imp._motor.RecalcularSaldosAsync(_ctx);
-            _saldosPendientes = false;
-        }
-
-        private IdentidadLote Lote(string clave) =>
-            new(OpcionesLote.MotorImportadorContaSol, CodigoProceso, $"{Sociedad}/{plan.Ejercicio}/{clave}");
+        /// <summary>Clave de ejecución del asiento: «empresa/ejercicio/DIA:ASI».</summary>
+        private string Clave(string clave) => $"{Sociedad}/{plan.Ejercicio}/{clave}";
 
         private Asiento Construir(AsientoPlan p)
         {
@@ -681,21 +628,6 @@ public sealed class ImportadorContaSol(IBaseDatos bd, IMotorAsientos motor, ICat
                 a.Apuntes.Add(apunte);
             }
             return a;
-        }
-
-        /// <summary>El asiento grabado es igual al de ContaSol: no hace falta reescribirlo (ni su revisión ni su versión).</summary>
-        private static bool Igual(Asiento actual, Asiento nuevo) => Huella(actual) == Huella(nuevo);
-
-        private static string Huella(Asiento a)
-        {
-            var sb = new StringBuilder();
-            sb.Append(a.FechaContable.ToString("yyyyMMdd", CultureInfo.InvariantCulture)).Append('|').Append(a.Descripcion.Trim()).Append('|').Append((int)a.Tipo).Append('|')
-                .Append(a.Notas?.Trim()).Append('\n');
-            foreach (var x in a.Apuntes.Where(x => x.Tipo == TipoApunte.Ordinario))
-                sb.Append(x.CodigoCuenta.Trim()).Append('|').Append(x.Debe.Valor.ToString("0.00", CultureInfo.InvariantCulture)).Append('|')
-                    .Append(x.Haber.Valor.ToString("0.00", CultureInfo.InvariantCulture)).Append('|').Append(x.Descripcion?.Trim()).Append('|')
-                    .Append(x.NumeroDocumento?.Trim()).Append('|').Append(x.IdCentroCoste).Append('\n');
-            return sb.ToString();
         }
 
         // ---------- libros de IVA ----------

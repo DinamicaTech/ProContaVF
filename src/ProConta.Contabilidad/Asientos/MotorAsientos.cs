@@ -72,9 +72,33 @@ public interface IMotorAsientos
 
     /// <summary>Recalcula la caché de saldo y número de apuntes de todas las cuentas del ejercicio (tras lotes con <see cref="OpcionesLote.DiferirSaldos"/>).</summary>
     Task RecalcularSaldosAsync(ContextoSociedadEjercicio contexto);
+
+    /// <summary>
+    /// Carga masiva de un libro externo ya cerrado (contabilidad/asientos 2026-11-11 13:00): graba de una vez todos los asientos
+    /// del ejercicio de ese motor y proceso, uno por clave de ejecución. Valida en memoria lo mismo que un lote; conserva los
+    /// asientos sin cambios, sustituye los cambiados y borra los de claves que ya no vienen. Un asiento que no pasa la validación
+    /// no se graba y, si ya estaba, se conserva. <paramref name="antesDeBorrar"/> recibe, en la transacción, los asientos que se van a borrar.
+    /// </summary>
+    Task<Resultado<ResultadoCargaLibro>> CargarLibroExternoAsync(ContextoSociedadEjercicio contexto, string motorPropietario, string codigoProceso,
+        IReadOnlyList<AsientoExterno> asientos, Actor actor, string motivo, Func<ISesionDatos, IReadOnlyList<int>, Task>? antesDeBorrar = null,
+        CancellationToken cancelacion = default);
 }
 
-public sealed class MotorAsientosAccess(IBaseDatos bd, PoliticaCuadre? politica = null, IReloj? reloj = null) : IMotorAsientos
+/// <summary>Un asiento de un libro externo con su clave de ejecución (la del documento de origen).</summary>
+public sealed record AsientoExterno(string ClaveEjecucion, Asiento Asiento);
+
+/// <summary>
+/// Resultado de <see cref="IMotorAsientos.CargarLibroExternoAsync"/>: el IdAsiento de cada clave grabada o sin cambios, los
+/// asientos borrados (clave e Id) y los errores de cada clave rechazada.
+/// </summary>
+public sealed record ResultadoCargaLibro(
+    IReadOnlyDictionary<string, int> Ids,
+    int Grabados,
+    int SinCambios,
+    IReadOnlyList<(string Clave, int IdAsiento)> Borrados,
+    IReadOnlyDictionary<string, IReadOnlyList<Error>> Rechazados);
+
+public sealed partial class MotorAsientosAccess(IBaseDatos bd, PoliticaCuadre? politica = null, IReloj? reloj = null) : IMotorAsientos
 {
     private enum OperacionRevision : byte { Alta = 0, Modificacion = 1, Baja = 2, Lote = 3 }
 
@@ -271,8 +295,7 @@ public sealed class MotorAsientosAccess(IBaseDatos bd, PoliticaCuadre? politica 
                 var fila = await s.ConsultarPrimeroAsync("SELECT IdSociedad, EstaActivo, EsImputable FROM CentrosCoste WHERE IdCentroCoste = ?",
                     f => (Sociedad: f.Texto("IdSociedad"), Activo: f.Logico("EstaActivo"), Imputable: f.Logico("EsImputable")), centro);
                 if (!string.Equals(fila.Sociedad, asiento.Contexto.IdSociedad, StringComparison.OrdinalIgnoreCase) || !fila.Activo || !fila.Imputable)
-                    errores.Add(new Error("Asientos.CentroNoValido", $"El centro de coste del apunte {apunte.Orden} no admite apuntes.", $"{asiento}, apunte {apunte.Orden}",
-                        "No existe en esta sociedad, está inactivo o agrupa otros centros.", "Elige un centro de coste activo e imputable."));
+                    errores.Add(CentroNoValido(asiento, apunte));
             }
         }
         if (errores.Count > 0) return Resultado<int>.Fallo(errores);
@@ -482,12 +505,18 @@ public sealed class MotorAsientosAccess(IBaseDatos bd, PoliticaCuadre? politica 
         var cuenta = await s.ConsultarPrimeroAsync(
             "SELECT IdCuentaContable, IdIdentidadContable, IdSociedadEjercicio, IdCuentaPadre, Codigo, Nombre, EstaActiva, EstaBloqueada, EsImputable, IdCentroCostePredeterminado, SaldoInicial, SaldoActual, NumeroApuntes, Descripcion FROM CuentasContables WHERE IdSociedadEjercicio = ? AND Codigo = ?",
             CatalogoCuentasAccess.Mapear, contexto.IdSociedadEjercicio, texto);
-        if (cuenta is null)
-            return Resultado<CuentaContable>.Fallo(new Error("Cuentas.NoExiste", $"No existe la cuenta {texto} en el ejercicio {contexto.Ejercicio}.", $"Cuenta {texto}",
-                "No hay ninguna cuenta con ese código exacto en este ejercicio.", "Revisa el código o da de alta la cuenta en este ejercicio."));
+        if (cuenta is null) return Resultado<CuentaContable>.Fallo(CuentaNoExiste(texto, contexto));
         var admite = ReglasCuenta.AdmiteApuntes(cuenta);
         return admite.EsCorrecto ? Resultado<CuentaContable>.Correcto(cuenta) : Resultado<CuentaContable>.Fallo(admite.Errores);
     }
+
+    private static Error CuentaNoExiste(string codigo, ContextoSociedadEjercicio contexto) =>
+        new("Cuentas.NoExiste", $"No existe la cuenta {codigo} en el ejercicio {contexto.Ejercicio}.", $"Cuenta {codigo}",
+            "No hay ninguna cuenta con ese código exacto en este ejercicio.", "Revisa el código o da de alta la cuenta en este ejercicio.");
+
+    private static Error CentroNoValido(Asiento asiento, Apunte apunte) =>
+        new("Asientos.CentroNoValido", $"El centro de coste del apunte {apunte.Orden} no admite apuntes.", $"{asiento}, apunte {apunte.Orden}",
+            "No existe en esta sociedad, está inactivo o agrupa otros centros.", "Elige un centro de coste activo e imputable.");
 
     private static Task<IReadOnlyList<int>> IdsDelLoteAsync(ISesionDatos s, ContextoSociedadEjercicio contexto, IdentidadLote lote) =>
         s.ConsultarAsync(
