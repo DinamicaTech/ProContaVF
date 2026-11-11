@@ -1,10 +1,10 @@
 using System.Security.Cryptography;
 using System.Text;
 
-namespace ProConta.Compras.Integraciones;
+namespace ProConta.Nucleo.Seguridad;
 
 /// <summary>
-/// Cifrado de los secretos que se guardan en la BD (compras/reconocimiento 2026-11-07: claves de AWS de la sociedad).
+/// Cifrado de los secretos que se guardan en la BD (claves de AWS de compras/reconocimiento 2026-11-07 y contraseñas de las cuentas de correo, correo/envio 2026-11-10).
 /// AES-GCM con una clave del programa, para que cualquier puesto con ProContaVF las lea sin configurar nada.
 /// </summary>
 /// <remarks>

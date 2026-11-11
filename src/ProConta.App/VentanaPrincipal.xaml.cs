@@ -12,6 +12,10 @@ using ProConta.Compras.UI.Vistas;
 using ProConta.Contabilidad.Asientos;
 using ProConta.Contabilidad.CentrosCoste;
 using ProConta.Contabilidad.Cuentas;
+using ProConta.Correo;
+using ProConta.Correo.Mantenimiento;
+using ProConta.Correo.UI.VistaModelos;
+using ProConta.Correo.UI.Vistas;
 using ProConta.Facturacion.Conceptos;
 using ProConta.Facturacion.Documentos;
 using ProConta.Facturacion.Facturas;
@@ -61,6 +65,8 @@ public partial class VentanaPrincipal : Window
     private readonly ModuloTerceros _terceros;
     private readonly ModuloFacturacion _facturacion;
     private readonly ModuloCompras _compras;
+    private readonly ModuloCorreo _correo;
+    private readonly CoordinadorCorreo _coordinadorCorreo;
     private static readonly System.Net.Http.HttpClient Http = new() { Timeout = TimeSpan.FromSeconds(15) };
     private readonly Func<PantallaMantenimientoVM> _crearMantenimiento;
     private PantallaMantenimientoVM? _mantenimiento;
@@ -124,7 +130,9 @@ public partial class VentanaPrincipal : Window
         var reconocimiento = new ServicioReconocimientoFacturaCompra(new ExtractorPdfPig(), ocr, new TiposCambioFrankfurter(Http), sinOcr, ExtractorOcrTextract.ConCredenciales);
         var altaProveedor = new ProConta.Compras.Proveedores.ServicioAltaProveedorCompra(bd, new ProConta.Terceros.RepositorioTercerosAccess(bd), new ProConta.Terceros.Roles.ServicioRoles(bd, cuentas), cuentas,
             new ProConta.Compras.Integraciones.ConsultaNifAeatVNif(bd), new Actor(sesion.NombreOperador), new ProConta.Compras.Integraciones.ConsultaViesRest(Http));
-        var serviciosCompras = new ServiciosCompras(new ServicioFacturasCompra(bd, reconocimiento) { AltaProveedor = altaProveedor }, cuentas, new CatalogoCentrosCosteAccess(bd), contexto.Contexto,
+        var facturasCompra = new ServicioFacturasCompra(bd, reconocimiento) { AltaProveedor = altaProveedor };
+        var contabilizadorCompras = new ContabilizadorCompras(bd, new MotorAsientosAccess(bd), cuentas, roles);
+        var serviciosCompras = new ServiciosCompras(facturasCompra, cuentas, new CatalogoCentrosCosteAccess(bd), contexto.Contexto,
             contexto.RazonSocial, () => autorizador.PuedeAsync(Acciones.FacturasEditar),
             async () => (await new LectorConfiguracionEjercicio(bd).ObtenerAsync(contexto.Contexto.IdSociedadEjercicio))?.TiposIva.Select(t => t.Porcentaje).ToList() ?? [],
             async () => (await new ProConta.Organizacion.FormasPago.CatalogoFormasPagoAccess(bd).ListarAsync()).Select(f => (f.Id, f.Descripcion)).ToList(),
@@ -132,14 +140,40 @@ public partial class VentanaPrincipal : Window
                 .Select(t => new TipoRetencionCompra(t.Porcentaje, t.Descripcion, t.Clase == 2 ? ClaseRetencion.Arrendamientos : ClaseRetencion.Profesionales)).ToList(),
             new CatalogoTextosClaveCompra(bd),
             altaProveedor,
-            new ContabilizadorCompras(bd, new MotorAsientosAccess(bd), cuentas, roles),
+            contabilizadorCompras,
             new Actor(sesion.NombreOperador),
             ComprobarTrimestreAlEntrarAsync);
         _compras = new ModuloCompras(serviciosCompras, _area, new DialogosCompras(() => this), _terceros.AbrirFicha);
 
+        // Correo (correo/envio y correo/pantallas): cola durable procesada mientras la aplicación está abierta, compositor común,
+        // lotes con resumen y registro de correo enviado. Facturas y Terceros lo usan sin duplicar transporte ni historial.
+        var servicioCorreo = new ServicioCorreo(bd, new TransporteSmtpMailKit());
+        _coordinadorCorreo = new CoordinadorCorreo(servicioCorreo, t => Dispatcher.BeginInvoke(() => Avisar(t)));
+        _correo = new ModuloCorreo(servicioCorreo, _coordinadorCorreo, new ContextoCorreo(contexto.Contexto, contexto.RazonSocial, new Actor(sesion.NombreOperador), Avisar),
+            _area, new DialogosCorreo(() => this), () => this)
+        {
+            AbrirOrigen = (tipo, id) =>
+            {
+                if (tipo == "Factura") _facturacion.AbrirFactura(id);
+                else if (tipo == "Tercero") _terceros.AbrirFicha(id);
+            },
+        };
+        _facturacion.Correo = _correo;
+        _facturacion.CorreoFacturas = new PreparadorCorreoFacturas(facturas, serviciosFacturacion.Pdf, new ServicioPlantillasCorreo(bd), sociedades);
+        _terceros.EnviarEmail = (direccion, idTercero, nombre) => _correo.ComponerAsync(new MensajeNuevo
+        {
+            IdSociedadEjercicio = contexto.Contexto.IdSociedadEjercicio, TipoCorreo = TiposCorreo.Otro, TipoOrigen = idTercero > 0 ? "Tercero" : null,
+            IdOrigen = idTercero > 0 ? idTercero : null, ReferenciaOrigen = nombre, Destinatarios = [new Destinatario(TipoDestinatario.Para, direccion, nombre)],
+        });
+        // Recepción (correo/recepcion): el buzón POP3 de cada cuenta activa se mira mientras la aplicación está abierta.
+        _coordinadorCorreo.Recepcion = new ServicioRecepcionCorreo(bd, new ClientePop3MailKit(), servicioCorreo, new ProcesadorFacturasCompraCorreo(bd, facturasCompra, contabilizadorCompras));
+        _coordinadorCorreo.Iniciar();
+        Closed += async (_, _) => await _coordinadorCorreo.DisposeAsync();
+        _ = AvisarDesvioCorreoAsync(servicioCorreo);
+
         var mantenimiento = new ServicioMantenimiento(
             new IProveedorMantenimiento[] { new ProveedorConfiguracionGeneral(bd) }.Concat(ProveedoresOrganizacion.Todos(bd)).Concat(ProveedoresFacturacion.Todos(bd, cuentas))
-                .Concat(ProConta.Compras.Mantenimiento.ProveedoresCompras.Todos(bd)),
+                .Concat(ProConta.Compras.Mantenimiento.ProveedoresCompras.Todos(bd)).Concat(ProveedoresCorreo.Todos(bd)),
             () => autorizador.PuedeAsync(Acciones.MantenimientoEditar));
         var contextoMantenimiento = new ContextoMantenimiento(contexto.Contexto, contexto.RazonSocial, new Actor(sesion.NombreOperador));
         _crearMantenimiento = () => new PantallaMantenimientoVM(mantenimiento, contextoMantenimiento,
@@ -161,6 +195,7 @@ public partial class VentanaPrincipal : Window
         var abrirParametros = new ComandoDelegado(AbrirParametros);
         var abrirRecibidas = new ComandoDelegado(_compras.AbrirRecibidas);
         var abrirContaSol = new ComandoDelegado(AbrirImportacionContaSol);
+        var abrirCorreo = new ComandoDelegado(() => _correo.AbrirRegistro());
         Navegacion.ItemsSource = new[]
         {
             new OpcionNavegacion("Inicio", Icono("layout"), true, false, "Página de inicio", irAInicio),
@@ -171,6 +206,9 @@ public partial class VentanaPrincipal : Window
             new OpcionNavegacion("Facturas emitidas", null, true, false, "Listado de facturas y borradores del ejercicio, con su detalle y acciones", abrirFacturas, EsHija: true),
             new OpcionNavegacion("Compras", Icono("scan"), true, false, "Facturas de compra: los PDF de la carpeta de proveedores, su revisión y el modo prueba del reconocimiento", abrirRecibidas),
             new OpcionNavegacion("Facturas recibidas", null, true, false, "Facturas de compra del ejercicio reconocidas de sus PDF: revisión, corrección y registro (y el modo prueba, en el menú contextual)", abrirRecibidas, EsHija: true),
+            new OpcionNavegacion("Correo", Icono("mail"), true, false, "Correo enviado por ProContaVF: estado de cada mensaje, contenido, adjuntos e intentos", abrirCorreo),
+            new OpcionNavegacion("Correo enviado", null, true, false, "Registro común del correo enviado (facturas y demás), con reintentos y reenvíos en el menú contextual", abrirCorreo, EsHija: true),
+            new OpcionNavegacion("Correo recibido", null, true, false, "Correo que llega a la cuenta del ejercicio: facturas de compra importadas, documentos en espera y remitentes no autorizados", new ComandoDelegado(() => _correo.AbrirRecibido()), EsHija: true),
             new OpcionNavegacion("Contabilidad", Icono("book"), false, false, proxima),
             new OpcionNavegacion("Bancos", Icono("bank"), false, false, proxima),
             new OpcionNavegacion("Nóminas", Icono("coin"), false, false, proxima),
@@ -330,6 +368,18 @@ public partial class VentanaPrincipal : Window
         {
             Avisar($"No he podido comprobar el trimestre activo: {ex.Message}");
         }
+    }
+
+    /// <summary>Con el desvío de pruebas activo, la barra de estado lo dice siempre (correo/envio 2026-11-10 19:40).</summary>
+    private async Task AvisarDesvioCorreoAsync(ServicioCorreo correo)
+    {
+        try
+        {
+            if (await correo.DesvioAsync() is not { } desvio) return;
+            TextoDatos.Text += $" · correo desviado a {desvio}";
+            TextoDatos.ToolTip = $"{TextoDatos.ToolTip}{Environment.NewLine}Correo de pruebas: todo lo que se envía sale solo a {desvio} (Parámetros y tablas › Configuración general).";
+        }
+        catch (Exception) { /* sin la columna o sin configuración: no hay desvío que avisar */ }
     }
 
     private void Avisar(string texto)

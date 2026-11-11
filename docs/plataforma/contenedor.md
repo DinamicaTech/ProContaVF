@@ -25,6 +25,8 @@ Aplicación principal (UI-PRINCIPAL): cabecera con empresa, ejercicio y operador
 - 2026-11-01 15:48 · Validado por el propietario (pantalla de Terceros y revisión 1).
 - 2026-11-03 10:02 · Salir con cambios pendientes: la pregunta y el cierre se hacen después de terminar el evento de cierre de la ventana. Antes, «Salir sin guardar» cerraba la ventana mientras se estaba cerrando y la app terminaba con una excepción.
 - 2026-11-07 12:44 · Menú principal (petición del propietario, 2026-11-07 11:59): «Facturación» pasa a «Ventas» y su entrada «Facturas» a «Facturas emitidas» (también el título de la pestaña).
+- 2026-11-10 20:05 · Hecho: área «Correo» en la navegación con «Correo enviado», proceso de la cola de correo mientras la aplicación está abierta (se detiene al cerrar) y aviso permanente en la barra de estado cuando el correo está desviado a la dirección de pruebas.
+- 2026-11-11 11:00 · Hecho: «Correo recibido» en el área Correo de la navegación, y la cola de entrada (buzones POP3) procesada por la aplicación mientras está abierta, junto con la de salida.
 
 ## Requirements
 - 2026-10-28 12:28 · From sources/01_ESPECIFICACION_FUNCIONAL.docx § 6 RF-UI-01, 04, 05, 07: contenedor, avisos técnicos discretos, ciclo de vida de fichas y rendimiento
@@ -44,3 +46,4 @@ Aplicación principal (UI-PRINCIPAL): cabecera con empresa, ejercicio y operador
 ## Hand-over
 - 2026-10-31 19:30 · Hecho: ejecutable con arranque, primer administrador, acceso y ventana principal; revisado renderizando las ventanas fuera de pantalla contra una copia de la maestra en la versión 6. Pendiente (próximas entregas): búsqueda «Ir a», pestañas de pantallas con cambios pendientes, cambio de sociedad o ejercicio sin volver a entrar, franja de iconos por debajo de 150 px y posición del separador guardada por operador, barra de título propia de la maqueta, doble pantalla y el resto del catálogo de atajos.
 - 2026-11-01 10:46 · Hecho: pestañas de trabajo con cambios pendientes y la entrada de Terceros. Pendiente: cambio de sociedad y ejercicio sin salir y búsqueda de pantallas y acciones.
+- 2026-11-10 19:40 · Derived from correo/pantallas: área «Correo» en la navegación con «Correo enviado» (registro común), y aviso en la barra de estado cuando el correo está desviado a la dirección de pruebas.

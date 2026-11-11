@@ -18,7 +18,7 @@ public sealed record ResultadoProgramada(FacturaProgramada? Programada, IReadOnl
 public sealed record ProgramadaPendiente(FacturaProgramada Programada, string Cliente, IReadOnlyList<DateTime> Vencimientos);
 
 /// <summary>Factura creada por un lote: su vencimiento y si se ha validado.</summary>
-public sealed record FacturaGenerada(int IdFactura, string Programada, DateTime Vencimiento, string Rotulo, bool Validada);
+public sealed record FacturaGenerada(int IdFactura, string Programada, DateTime Vencimiento, string Rotulo, bool Validada, bool EnviarPorEmail = false);
 
 /// <summary>
 /// Resultado de un lote (RF-PRO-03, 04): lo creado y las incidencias de cada programada, que no detienen a las demás.
@@ -415,7 +415,7 @@ public sealed class ServicioProgramadas
                     incidencias.Add($"{p.Rotulo}: {v.Factura!.NumeroFactura} validada sin asiento. {string.Join(" ", (v.ErrorContabilizacion ?? []).Select(e => e.Mensaje))} Contabilízala desde Facturas.");
                 if (v.Validada) creada = v.Factura!;
             }
-            generadas.Add(new FacturaGenerada(creada.IdFactura, p.Rotulo, vencimiento, creada.Rotulo, validada));
+            generadas.Add(new FacturaGenerada(creada.IdFactura, p.Rotulo, vencimiento, creada.Rotulo, validada, p.EnviarPorEmail));
         }
     }
 

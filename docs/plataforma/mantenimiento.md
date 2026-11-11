@@ -22,6 +22,8 @@ Pantalla genérica y extensible (CFG-MANT) para parámetros únicos y coleccione
 - 2026-11-01 18:15 · Las tablas sencillas no tienen columna de versión: si dos operadores cambian el mismo registro a la vez, gana el último que guarda. Las que tienen invariantes (series, conceptos, formas de pago) pasan por su servicio tipado.
 - 2026-11-04 17:57 · Validado por el propietario (facturación de venta, PR #14).
 - 2026-11-05 11:20 · Configuración general añade «Activar VeriFactu» (facturacion/verifactu), y Empresas, domicilio fiscal, código postal, población, provincia y carpeta de documentos (facturacion/factura-venta).
+- 2026-11-10 20:05 · Hecho: proveedores «Cuenta de correo» y «Plantillas de correo» (categoría Correo, en `src/ProConta.Correo/Mantenimiento.cs`) y el parámetro general «Desviar todo el correo a».
+- 2026-11-11 11:00 · Hecho: proveedor «Remitentes autorizados» (categoría Correo, por ejercicio); uno nuevo nace activo y con permiso para enviar documentos.
 
 ## Requirements
 - 2026-10-28 12:28 · From sources/01_ESPECIFICACION_FUNCIONAL.docx § 8 RF-MAN-01..05: pantalla por proveedores, editores, servicios tipados para datos con invariantes, catálogo conocido
@@ -42,3 +44,4 @@ Pantalla genérica y extensible (CFG-MANT) para parámetros únicos y coleccione
 
 ## Hand-over
 - 2026-11-01 18:15 · Hecho: contrato, servicio, proveedores y pantalla, con pruebas sin BD (validación, búsqueda, permisos, solo consulta) y contra Access (series y conceptos). Pendiente: probar la pantalla en el equipo del propietario; Correo, VeriFactu y Ubicación de datos llegan con sus nodos.
+- 2026-11-10 19:40 · Derived from correo/envio: proveedores «Cuenta de correo» (por ejercicio, con contraseña cifrada y las acciones «Probar envío» y «Probar recepción») y «Plantillas de correo» (por empresa y tipo), y el parámetro general «Desviar todo el correo a».

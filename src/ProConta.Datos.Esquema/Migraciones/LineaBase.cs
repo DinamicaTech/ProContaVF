@@ -78,6 +78,8 @@ public static class CatalogoMigraciones
         MigracionesCompras.ViesProveedor,
         MigracionesContabilidad.ActividadesIva,
         MigracionesFacturacion.ExportacionVentas,
+        MigracionesCorreo.CorreoSaliente,
+        MigracionesCorreo.CorreoRecepcion,
     ];
 
     /// <summary>Versión del esquema que espera esta versión del programa.</summary>

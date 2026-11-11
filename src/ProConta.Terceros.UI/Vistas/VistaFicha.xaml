@@ -360,7 +360,8 @@
                           <ComboBox Grid.Column="5" Margin="10,0,0,0" ItemsSource="{Binding DataContext.OpcionesGrupo, RelativeSource={RelativeSource AncestorType=UserControl}}" SelectedItem="{Binding Grupo}"
                                     ToolTip="Persona de contacto a la que pertenece esta dirección; «General» si es de la organización" />
                           <StackPanel Grid.Column="6" Orientation="Horizontal" Margin="8,0,0,0">
-                            <Button Style="{StaticResource Boton.Icono}" pc:Iconos.Icono="{StaticResource Icono.send}" IsEnabled="False" ToolTipService.ShowOnDisabled="True"
+                            <Button Style="{StaticResource Boton.Icono}" pc:Iconos.Icono="{StaticResource Icono.send}" ToolTipService.ShowOnDisabled="True"
+                                    Command="{Binding DataContext.EnviarEmailCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}"
                                     ToolTip="{Binding DataContext.AyudaEnviarEmail, RelativeSource={RelativeSource AncestorType=UserControl}}" AutomationProperties.Name="Enviar email" />
                             <Button Style="{StaticResource Boton.Icono}" pc:Iconos.Icono="{StaticResource Icono.trash}" Command="{Binding QuitarCommand}" ToolTip="Quita esta dirección (al guardar la ficha)" />
                           </StackPanel>

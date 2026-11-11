@@ -18,5 +18,6 @@
     <ProjectReference Include="..\ProConta.Mantenimiento.UI\ProConta.Mantenimiento.UI.csproj" />
     <ProjectReference Include="..\ProConta.Compras.UI\ProConta.Compras.UI.csproj" />
     <ProjectReference Include="..\ProConta.Implantacion\ProConta.Implantacion.csproj" />
+    <ProjectReference Include="..\ProConta.Correo.UI\ProConta.Correo.UI.csproj" />
   </ItemGroup>
 </Project>

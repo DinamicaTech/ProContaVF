@@ -41,6 +41,7 @@
 | EmailIncidencias | TEXT(255) | sí |  | Dirección que recibe resúmenes de incidencias de procesos desacoplados. Si está vacía, no se intentan enviar avisos automáticos. |
 | OcultarListaOperadoresAcceso | YESNO | no | No |  |
 | VeriFactuActivo | YESNO | no | No |  |
+| CorreoDesviarA | TEXT(254) | sí |  |  |
 
 Índices:
 - PK_Configuracion (clave primaria): IdConfiguracion

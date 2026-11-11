@@ -1,0 +1,116 @@
+<UserControl x:Class="ProConta.Correo.UI.Vistas.VistaCompositorCorreo"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:pc="urn:proconta-ui">
+  <UserControl.Resources>
+    <ResourceDictionary>
+      <ResourceDictionary.MergedDictionaries>
+        <ResourceDictionary Source="Recursos.xaml" />
+      </ResourceDictionary.MergedDictionaries>
+    </ResourceDictionary>
+  </UserControl.Resources>
+
+  <DockPanel>
+    <!-- Contexto fijado al preparar el mensaje: un cambio de empresa activa no lo altera. -->
+    <StackPanel DockPanel.Dock="Top" Margin="0,0,0,10">
+      <TextBlock Style="{StaticResource Texto.Apagado}" TextWrapping="Wrap">
+        <Run Text="De: " /><Run Text="{Binding Remitente, Mode=OneWay}" FontWeight="SemiBold" /><Run Text=" · " /><Run Text="{Binding Contexto, Mode=OneWay}" />
+      </TextBlock>
+      <pc:Nota Tipo="Aviso" Margin="0,8,0,0" Visibility="{Binding Desvio, Converter={StaticResource Visible}}"
+               ToolTip="Parámetro general «Desviar todo el correo a» (Parámetros y tablas › Configuración general)">
+        <TextBlock TextWrapping="Wrap"><Run Text="Correo de pruebas: saldrá solo a " /><Run Text="{Binding Desvio, Mode=OneWay}" FontWeight="SemiBold" /><Run Text=", con los destinatarios reales anotados." /></TextBlock>
+      </pc:Nota>
+      <pc:Nota Tipo="Aviso" Margin="0,8,0,0" Visibility="{Binding AvisoDestinatarios, Converter={StaticResource Visible}}">
+        <TextBlock Text="{Binding AvisoDestinatarios}" TextWrapping="Wrap" />
+      </pc:Nota>
+    </StackPanel>
+
+    <!-- Resultado del envío o resumen de lo que falta -->
+    <StackPanel DockPanel.Dock="Bottom" Margin="0,10,0,0">
+      <DockPanel Margin="0,0,0,6">
+        <Button DockPanel.Dock="Right" Content="Añadir adjunto…" Command="{Binding AnadirAdjuntoCommand}" Style="{StaticResource Boton.Enlace}"
+                ToolTip="Adjunta uno o varios ficheros de este equipo; se envía una copia exacta y el original no cambia" />
+        <TextBlock Text="{Binding TotalAdjuntos}" Style="{StaticResource Etiqueta.Campo}" VerticalAlignment="Center" />
+      </DockPanel>
+      <ItemsControl ItemsSource="{Binding Adjuntos}" Focusable="False">
+        <ItemsControl.ItemTemplate>
+          <DataTemplate>
+            <Border Style="{StaticResource Tarjeta}" Padding="10,4" Margin="0,0,0,4">
+              <DockPanel>
+                <Button DockPanel.Dock="Right" Content="Quitar" Style="{StaticResource Boton.Enlace}" Margin="10,0,0,0"
+                        Command="{Binding DataContext.QuitarAdjuntoCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}"
+                        IsEnabled="{Binding DataContext.Editable, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                        ToolTip="Quita el adjunto de este mensaje; el documento original no cambia" />
+                <Button DockPanel.Dock="Right" Content="Ver" Style="{StaticResource Boton.Enlace}"
+                        Command="{Binding DataContext.VerAdjuntoCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}"
+                        ToolTip="Abre el adjunto con el programa predeterminado de Windows, tal como saldrá" />
+                <TextBlock Text="{Binding Tamano}" DockPanel.Dock="Right" Style="{StaticResource Texto.Apagado}" Margin="10,0" VerticalAlignment="Center" />
+                <TextBlock Text="{Binding Nombre}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" ToolTip="{Binding Nombre}" />
+              </DockPanel>
+            </Border>
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+      <pc:Nota Tipo="Error" Visibility="{Binding ResumenErrores, Converter={StaticResource Visible}}">
+        <TextBlock Text="{Binding ResumenErrores}" TextWrapping="Wrap" />
+      </pc:Nota>
+      <pc:Nota Tipo="{Binding TipoResultado}" Margin="0,6,0,0" Visibility="{Binding Resultado, Converter={StaticResource Visible}}">
+        <TextBlock Text="{Binding Resultado}" TextWrapping="Wrap" />
+      </pc:Nota>
+    </StackPanel>
+
+    <Grid IsEnabled="{Binding Editable}">
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="56" />
+        <ColumnDefinition Width="*" />
+        <ColumnDefinition Width="Auto" />
+      </Grid.ColumnDefinitions>
+      <Grid.RowDefinitions>
+        <RowDefinition Height="Auto" />
+        <RowDefinition Height="Auto" />
+        <RowDefinition Height="Auto" />
+        <RowDefinition Height="Auto" />
+        <RowDefinition Height="*" MinHeight="140" />
+        <RowDefinition Height="Auto" />
+      </Grid.RowDefinitions>
+
+      <TextBlock Text="Para" Style="{StaticResource Etiqueta.Campo}" VerticalAlignment="Top" Margin="0,8,0,0" />
+      <StackPanel Grid.Column="1" Margin="0,0,0,8">
+        <TextBox x:Name="CampoPara" Text="{Binding Para, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource Campo}" AutomationProperties.Name="Para"
+                 ToolTip="Direcciones de los destinatarios principales, separadas por «;». Obligatorio" />
+        <TextBlock Text="{Binding ErrorPara}" Style="{StaticResource Error.Campo}" Visibility="{Binding ErrorPara, Converter={StaticResource Visible}}" />
+      </StackPanel>
+      <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Top" Margin="8,6,0,0">
+        <Button Content="CC" Command="{Binding MostrarCcCommand}" Style="{StaticResource Boton.Enlace}" Margin="0,0,8,0"
+                ToolTip="Añade el campo de copia: los destinatarios en copia se ven entre sí (Ctrl+Mayús+C)" />
+        <Button Content="CCO" Command="{Binding MostrarCcoCommand}" Style="{StaticResource Boton.Enlace}"
+                ToolTip="Añade el campo de copia oculta: nadie ve a quién va en copia oculta (Ctrl+Mayús+B)" />
+      </StackPanel>
+
+      <TextBlock Grid.Row="1" Text="CC" Style="{StaticResource Etiqueta.Campo}" VerticalAlignment="Top" Margin="0,8,0,0" Visibility="{Binding MostrarCc, Converter={StaticResource Visible}}" />
+      <StackPanel Grid.Row="1" Grid.Column="1" Margin="0,0,0,8" Visibility="{Binding MostrarCc, Converter={StaticResource Visible}}">
+        <TextBox Text="{Binding Cc, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource Campo}" AutomationProperties.Name="CC"
+                 ToolTip="Direcciones en copia, separadas por «;»: reciben el mensaje y los demás lo ven" />
+        <TextBlock Text="{Binding ErrorCc}" Style="{StaticResource Error.Campo}" Visibility="{Binding ErrorCc, Converter={StaticResource Visible}}" />
+      </StackPanel>
+
+      <TextBlock Grid.Row="2" Text="CCO" Style="{StaticResource Etiqueta.Campo}" VerticalAlignment="Top" Margin="0,8,0,0" Visibility="{Binding MostrarCco, Converter={StaticResource Visible}}" />
+      <StackPanel Grid.Row="2" Grid.Column="1" Margin="0,0,0,8" Visibility="{Binding MostrarCco, Converter={StaticResource Visible}}">
+        <TextBox Text="{Binding Cco, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource Campo}" AutomationProperties.Name="CCO"
+                 ToolTip="Direcciones en copia oculta, separadas por «;»: reciben el mensaje sin que nadie lo sepa" />
+        <TextBlock Text="{Binding ErrorCco}" Style="{StaticResource Error.Campo}" Visibility="{Binding ErrorCco, Converter={StaticResource Visible}}" />
+      </StackPanel>
+
+      <TextBlock Grid.Row="3" Text="Asunto" Style="{StaticResource Etiqueta.Campo}" VerticalAlignment="Top" Margin="0,8,0,0" />
+      <StackPanel Grid.Row="3" Grid.Column="1" Grid.ColumnSpan="2" Margin="0,0,0,8">
+        <TextBox Text="{Binding Asunto, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource Campo}" MaxLength="255" AutomationProperties.Name="Asunto"
+                 ToolTip="Asunto del mensaje (hasta 255 caracteres). Obligatorio" />
+        <TextBlock Text="{Binding ErrorAsunto}" Style="{StaticResource Error.Campo}" Visibility="{Binding ErrorAsunto, Converter={StaticResource Visible}}" />
+      </StackPanel>
+
+      <TextBox Grid.Row="4" Grid.ColumnSpan="3" Text="{Binding Cuerpo, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource Campo.Multilinea}"
+               AutomationProperties.Name="Texto del mensaje" ToolTip="Texto del mensaje. Una línea en blanco separa párrafos" />
+      <TextBlock Grid.Row="5" Grid.ColumnSpan="3" Text="{Binding AvisoPlantilla}" Style="{StaticResource Error.Campo}" Visibility="{Binding AvisoPlantilla, Converter={StaticResource Visible}}" />
+    </Grid>
+  </DockPanel>
+</UserControl>

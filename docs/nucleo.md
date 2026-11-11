@@ -6,7 +6,7 @@ threads:
   - 2026-10-31 18:02 · Desarrollos base | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GPQZwFm28U4vq3sQdopN45C
 ---
 ## Summary
-Tipos compartidos por todas las áreas, en la biblioteca `src/ProConta.Nucleo`: NIF y su validación (`Identificacion/Nif`), importes Decimal con redondeo monetario (`Importes/Importe`), contexto sociedad/ejercicio (`Contexto/ContextoSociedadEjercicio`), resultado con errores recuperables (`Resultados/Resultado` y `Error`: registro afectado, causa y acción correctora) y auditoría (`Auditoria`: actor, instante, operación, contexto y correlación). No contiene reglas de negocio de ningún área.
+Tipos compartidos por todas las áreas, en la biblioteca `src/ProConta.Nucleo`: NIF y su validación (`Identificacion/Nif`), importes Decimal con redondeo monetario (`Importes/Importe`), contexto sociedad/ejercicio (`Contexto/ContextoSociedadEjercicio`), resultado con errores recuperables (`Resultados/Resultado` y `Error`: registro afectado, causa y acción correctora) y auditoría (`Auditoria`: actor, instante, operación, contexto y correlación), y el cifrado de los secretos que se guardan en la BD (`Seguridad/SecretoProtegido`). No contiene reglas de negocio de ningún área.
 **Aceptación:** la biblioteca compila, la usan al menos dos áreas y sus pruebas cubren validación de NIF y redondeo.
 
 ## Decisions
@@ -17,6 +17,7 @@ Tipos compartidos por todas las áreas, en la biblioteca `src/ProConta.Nucleo`: 
 2026-10-31 18:02 · Los errores recuperables se devuelven como `Resultado`/`Resultado<T>` con uno o varios `Error` (código estable, mensaje en primera persona, registro afectado, causa, acción correctora y detalle técnico sin secretos); las excepciones quedan para fallos de programación o técnicos.
 2026-10-31 18:02 · La auditoría se expresa con `MarcaAuditoria` (actor, instante local, operación, contexto, correlación) y un reloj inyectable (`IReloj`) para las pruebas.
 - 2026-11-01 09:31 · Validado por el propietario (desarrollos base).
+- 2026-11-10 20:05 · `SecretoProtegido` pasa de compras a `ProConta.Nucleo.Seguridad`: lo usan las claves de AWS de compras y las contraseñas de las cuentas de correo (correo/envio 2026-11-10 19:40). No cambia el formato guardado.
 
 ## Requirements
 - 2026-10-28 12:28 · From sources/01_ESPECIFICACION_FUNCIONAL.docx § 27 RF-TEC-02: convenciones de código (adaptadas a C# en architecture)

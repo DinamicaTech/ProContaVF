@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Pantallas de correo (docs/correo/pantallas.md): compositor individual, registro de correo enviado y resumen de lotes. -->
+  <PropertyGroup>
+    <OutputType>Library</OutputType>
+    <UseWPF>true</UseWPF>
+    <RootNamespace>ProConta.Correo.UI</RootNamespace>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);CS1591;CS1573</NoWarn>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\ProConta.UI.Base\ProConta.UI.Base.csproj" />
+    <ProjectReference Include="..\ProConta.Correo\ProConta.Correo.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="ProConta.Correo.Tests" />
+  </ItemGroup>
+</Project>
