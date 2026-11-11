@@ -1,4 +1,4 @@
-using ProConta.Contabilidad.Cuentas;
+﻿using ProConta.Contabilidad.Cuentas;
 using ProConta.Datos.Persistencia;
 using ProConta.Facturacion.Conceptos;
 using ProConta.Facturacion.Facturas;
@@ -40,7 +40,7 @@ public class MantenimientoGenericoTests
     {
         var s = Servicio();
         var r = s.Buscar("retencion");
-        Assert.Contains(r, x => x.Campo?.Clave == "CuentaRetencionIRPF" && x.Proveedor.Clave == "ejercicios");
+        Assert.Contains(r, x => x.Campo?.Clave == "CuentaRetencionServicios" && x.Proveedor.Clave == "ejercicios");
         Assert.Equal("series", s.Buscar("numeración").First().Proveedor.Clave);
         Assert.Empty(s.Buscar("   "));
     }

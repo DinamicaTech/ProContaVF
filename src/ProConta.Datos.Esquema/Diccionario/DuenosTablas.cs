@@ -1,4 +1,4 @@
-namespace ProConta.Datos.Esquema.Diccionario;
+﻿namespace ProConta.Datos.Esquema.Diccionario;
 
 /// <summary>Dueño funcional de una tabla: el área del diccionario y el nodo de docs que la escribe.</summary>
 public sealed record DuenoTabla(string Area, string Nodo);
@@ -41,7 +41,7 @@ public static class DuenosTablas
         Asignar("compras", "compras/reconocimiento", "ConfiguracionReconocimientoFacturasCompra", "PlantillasReconocimientoCompra");
         Asignar("norma43", "norma43", "Bancos", "EntidadesFinancieras", "CuentasBancarias", "ExtractosBancarios", "LineasExtractoBancario",
             "ComplementosLineaExtractoBancario", "ContabilizacionesLineaExtracto", "ImputacionesLineaExtractoBancario",
-            "IncidenciasImportacionBancaria", "LotesImportacionBancaria");
+            "IncidenciasImportacionBancaria", "LotesImportacionBancaria", "PalabrasClaveBancarias");
         Asignar("correo", "correo", "ConfiguracionCorreo", "PlantillasCorreo", "TiposCorreo", "EnviosCorreo",
             "ConfiguracionMailDispatcher", "ProcesamientosMailDispatcher", "AdjuntosMailDispatcher");
         Asignar("correo", "correo/envio", "CuentasCorreo", "LotesCorreo", "MensajesCorreo", "DestinatariosMensajeCorreo", "AdjuntosMensajeCorreo",
@@ -49,6 +49,7 @@ public static class DuenosTablas
         Asignar("correo", "correo/recepcion", "MensajesRecibidosCorreo", "AdjuntosRecibidosCorreo", "RemitentesAutorizadosCorreo");
         Asignar("implantacion", "implantacion/importador-contasol", "ImportacionesContaSol", "FasesImportacionContaSol",
             "IncidenciasImportacionContaSol", "MapasIdentidadContaSol");
+        Asignar("implantacion", "implantacion/migracion-erp", "MigracionesERP", "IncidenciasMigracionERP", "MapasIdentidadERP");
         Asignar("creative-lab", "creative-lab/activos", "Activos", "ActivosInversiones", "CotizacionesInstrumentoFinanciero", "CuentasActivo",
             "DetallesLoteAmortizacionActivo", "ImportacionesActivos", "InstrumentosFinancieros", "LotesAmortizacionActivo",
             "OperacionesInversion", "PlanesAmortizacionActivo", "PlantillasCuentasActivo", "TiposActivo", "Inmuebles");

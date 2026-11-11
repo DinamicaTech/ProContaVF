@@ -2,7 +2,7 @@
 
 # Diccionario de datos
 
-Esquema versión 35 (Actualizada); 132 tablas. SHA-256 de la BD de origen: `A6CC24684CEC173E200B48B6F0E7EAFEA99EED7D279501D9CEDDD3BCCD0BF78F`.
+Esquema versión 40 (Actualizada); 136 tablas. SHA-256 de la BD de origen: `17226AA53C24F51601594BB39823863C1EB9D88AE51BCD0B283CC222C8B578F4`.
 
 | Área | Tablas |
 |---|---|
@@ -12,8 +12,8 @@ Esquema versión 35 (Actualizada); 132 tablas. SHA-256 de la BD de origen: `A6CC
 | [creative-lab](creative-lab.md) | Activos, ActivosInversiones, ConversacionesIA, CotizacionesInstrumentoFinanciero, CuentasActivo, DetallesLoteAmortizacionActivo, ImportacionesActivos, Inmuebles, InstrumentosFinancieros, LotesAmortizacionActivo, MensajesConversacionIA, OperacionesInversion, PlanesAmortizacionActivo, PlantillasCuentasActivo, TiposActivo |
 | [datos](datos.md) | LogMigracionesEsquema, VersionesEsquema |
 | [facturacion](facturacion.md) | Conceptos, Contratos, DesglosesIVARepercutido, EstadoContratoTerceros, EstadosFactura, Facturas, FacturasProgramadas, FacturasProgramadasBak, LineasContrato, LineasFactura, LineasFacturasProgramadas, LotesExportacionContable, LotesFacturasProgramadas, SeriesFacturacion, TiposConcepto, TiposDeIVA, TiposFactura, TiposOperacion, VeriFactuConfiguracion, VeriFactuEnvios, VeriFactuLotesEnvio, VeriFactuRespuestas |
-| [implantacion](implantacion.md) | FasesImportacionContaSol, ImportacionesContaSol, IncidenciasImportacionContaSol, MapasIdentidadContaSol |
-| [norma43](norma43.md) | Bancos, ComplementosLineaExtractoBancario, ContabilizacionesLineaExtracto, CuentasBancarias, EntidadesFinancieras, ExtractosBancarios, ImputacionesLineaExtractoBancario, IncidenciasImportacionBancaria, LineasExtractoBancario, LotesImportacionBancaria |
+| [implantacion](implantacion.md) | FasesImportacionContaSol, ImportacionesContaSol, IncidenciasImportacionContaSol, IncidenciasMigracionERP, MapasIdentidadContaSol, MapasIdentidadERP, MigracionesERP |
+| [norma43](norma43.md) | Bancos, ComplementosLineaExtractoBancario, ContabilizacionesLineaExtracto, CuentasBancarias, EntidadesFinancieras, ExtractosBancarios, ImputacionesLineaExtractoBancario, IncidenciasImportacionBancaria, LineasExtractoBancario, LotesImportacionBancaria, PalabrasClaveBancarias |
 | [organizacion](organizacion.md) | FormasPago, FormasPagoSociedad, Sociedades, SociedadesEjercicios, TiposRetencion |
 | [plataforma](plataforma.md) | AliasCamposConfiguracion, Configuracion |
 | [seguridad](seguridad.md) | AccesoSociedadesGrupo, AuditoriaSeguridad, GruposOperadores, OperadoresGrupos, OperadoresSeguridad, PermisosAccionesGrupo, PreferenciasAccesoEjercicio, PreferenciasAccesoOperador, RestriccionesReportsGrupo |

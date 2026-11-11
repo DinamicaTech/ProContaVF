@@ -1,4 +1,4 @@
-using System.Globalization;
+﻿using System.Globalization;
 using System.Text;
 using ProConta.Compras.Reconocimiento;
 using ProConta.Datos.Persistencia;
@@ -37,11 +37,12 @@ public sealed class ServicioFacturasCompra(
     public async Task<Resultado<string>> CarpetaComprasAsync(ContextoSociedadEjercicio ctx, CancellationToken cancelacion = default)
     {
         var (nombre, raiz) = await bd.EjecutarAsync(s => RepositorioFacturasCompra.EmpresaAsync(s, ctx.IdSociedad), cancelacion);
-        if (string.IsNullOrWhiteSpace(raiz))
+        var relativa = await bd.EjecutarAsync(s => RepositorioFacturasCompra.CarpetaComprasEjercicioAsync(s, ctx.IdSociedadEjercicio), cancelacion);
+        // Una carpeta de ejercicio absoluta no necesita la carpeta de documentos de la empresa.
+        if (CarpetaEjercicio(string.IsNullOrWhiteSpace(raiz) ? null : RaizEmpresa(raiz), relativa, ctx.Ejercicio) is not { } carpeta)
             return Resultado<string>.Fallo(new Error("Compras.SinCarpetaDocumentos",
                 $"La empresa {nombre ?? ctx.IdSociedad} no tiene carpeta de documentos, y es donde busco los PDF de compra.", ctx.ToString(), null,
                 "Escríbela en Configuración › Parámetros y tablas › Empresas (grupo «Rutas y bases de datos») y vuelve a buscar los PDF."));
-        var carpeta = Path.Combine(RaizEmpresa(raiz), ctx.Ejercicio.ToString(CultureInfo.InvariantCulture), "Proveedores");
         if (!Directory.Exists(carpeta))
             return Resultado<string>.Fallo(new Error("Compras.CarpetaNoExiste", $"No encuentro la carpeta de compras. Ruta intentada: {carpeta}.", ctx.ToString(),
                 "La carpeta no existe o la unidad compartida no está conectada.", "Comprueba que la carpeta compartida esté conectada o crea la carpeta del ejercicio."));
@@ -57,6 +58,22 @@ public sealed class ServicioFacturasCompra(
         var ruta = rutaDocumentos.Trim();
         return Path.IsPathFullyQualified(ruta) ? ruta : Path.GetFullPath(Path.Combine(Path.GetDirectoryName(Path.GetFullPath(bd.Ruta)) ?? string.Empty, ruta));
     }
+
+    /// <summary>
+    /// Carpeta de compras de un ejercicio (compras/factura-compra 2026-11-11 17:33): la carpeta de documentos de la empresa más la
+    /// carpeta de facturas de compra del ejercicio (por defecto «&lt;año&gt;\Proveedores»); si esta es una ruta completa, se usa tal cual.
+    /// </summary>
+    /// <remarks>Null si la carpeta del ejercicio es relativa y la empresa no tiene carpeta de documentos.</remarks>
+    public static string? CarpetaEjercicio(string? raizEmpresa, string? carpetaCompras, int ejercicio)
+    {
+        var c = string.IsNullOrWhiteSpace(carpetaCompras) ? Path.Combine(ejercicio.ToString(CultureInfo.InvariantCulture), "Proveedores") : carpetaCompras.Trim();
+        if (Path.IsPathFullyQualified(c)) return c;
+        return string.IsNullOrWhiteSpace(raizEmpresa) ? null : Path.Combine(raizEmpresa, c);
+    }
+
+    /// <summary>Ruta de un PDF guardado: si es completa, tal cual; si no (la migración del ERP las guarda así), dentro de la carpeta del ejercicio.</summary>
+    public static string Resolver(string guardada, string? carpetaEjercicio) =>
+        Path.IsPathFullyQualified(guardada) || string.IsNullOrWhiteSpace(carpetaEjercicio) ? guardada : Path.Combine(carpetaEjercicio, guardada);
 
     /// <summary>PDF de las carpetas de proveedor cuyo MD5 no está registrado, en orden de carpeta y fichero.</summary>
     public async Task<Resultado<IReadOnlyList<PdfPendiente>>> BuscarPdfNuevosAsync(ContextoSociedadEjercicio ctx, CancellationToken cancelacion = default)
@@ -324,7 +341,7 @@ public sealed class ServicioFacturasCompra(
             var f = await RepositorioFacturasCompra.CargarAsync(s, idRegistro);
             if (f is null || f.RutasGuardadas.Count == 0) return f;
             var raiz = await RaizAsync(s, f.Ejercicio.IdSociedad);
-            f.RutaPdf = LocalizarPdf(f.RutasGuardadas, raiz);
+            f.RutaPdf = LocalizarPdf(f.RutasGuardadas, raiz, await CarpetaAsync(s, raiz, f.Ejercicio));
             return f;
         }, cancelacion);
 
@@ -334,7 +351,8 @@ public sealed class ServicioFacturasCompra(
         {
             var filas = await RepositorioFacturasCompra.ListarAsync(s, ctx);
             var raiz = await RaizAsync(s, ctx.IdSociedad);
-            foreach (var f in filas.Where(f => f.RutasGuardadas.Count > 0)) f.RutaPdf = LocalizarPdf(f.RutasGuardadas, raiz);
+            var carpeta = await CarpetaAsync(s, raiz, ctx);
+            foreach (var f in filas.Where(f => f.RutasGuardadas.Count > 0)) f.RutaPdf = LocalizarPdf(f.RutasGuardadas, raiz, carpeta);
             return filas;
         }, cancelacion);
 
@@ -344,15 +362,20 @@ public sealed class ServicioFacturasCompra(
         return string.IsNullOrWhiteSpace(raiz) ? null : RaizEmpresa(raiz);
     }
 
+    private static async Task<string?> CarpetaAsync(ISesionDatos s, string? raiz, ContextoSociedadEjercicio ctx) =>
+        CarpetaEjercicio(raiz, await RepositorioFacturasCompra.CarpetaComprasEjercicioAsync(s, ctx.IdSociedadEjercicio), ctx.Ejercicio);
+
     /// <summary>
-    /// PDF de una factura ya registrada: la primera ruta grabada que exista; si ninguna existe (el ERP guardaba rutas
+    /// PDF de una factura ya registrada: la primera ruta grabada que exista (una ruta sin unidad, dentro de la carpeta de compras
+    /// del ejercicio, <paramref name="carpetaEjercicio"/>); si ninguna existe (el ERP guardaba rutas
     /// completas de unidades que han cambiado, p. ej. D:\SynologyBox\2025\Proveedores\…), la misma factura dentro de la
     /// carpeta de la empresa: lo que va desde «&lt;ejercicio&gt;\Proveedores\» se busca en «&lt;raíz&gt;\&lt;ejercicio&gt;\Proveedores\».
     /// No cambia lo grabado. Sin ninguna, la primera ruta grabada (la fila sale como «PDF no encontrado»).
     /// </summary>
-    internal static string LocalizarPdf(IReadOnlyList<string> guardadas, string? raiz)
+    internal static string LocalizarPdf(IReadOnlyList<string> guardadas, string? raiz, string? carpetaEjercicio = null)
     {
         if (guardadas.Count == 0) return string.Empty;
+        guardadas = guardadas.Select(g => Resolver(g, carpetaEjercicio)).ToList();
         if (guardadas.FirstOrDefault(File.Exists) is { } existente) return existente;
         if (raiz is not null)
             foreach (var ruta in guardadas)

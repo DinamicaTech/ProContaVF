@@ -148,6 +148,7 @@ Relaciones:
 | CuentaIVARepercutido2 | TEXT(10) | sí |  |  |
 | CuentaIVARepercutido3 | TEXT(10) | sí |  |  |
 | CuentaIVARepercutido4 | TEXT(10) | sí |  |  |
+| CarpetaFacturasCompra | TEXT(255) | sí |  |  |
 
 Índices:
 - FK_Sociedades_SociedadesEjercicios: IdSociedad

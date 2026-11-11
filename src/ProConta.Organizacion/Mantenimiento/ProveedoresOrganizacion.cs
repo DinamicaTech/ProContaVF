@@ -1,4 +1,4 @@
-using System.Globalization;
+﻿using System.Globalization;
 using ProConta.Datos.Persistencia;
 using ProConta.Mantenimiento;
 using ProConta.Nucleo.Resultados;
@@ -25,7 +25,6 @@ public static class ProveedoresOrganizacion
 
     internal static IEnumerable<CampoMantenimiento> Impuestos() =>
     [
-        new("TipoRetencion", "Tipo de retención", TipoCampo.Entero) { Grupo = "impuestos", Pendiente = true, Ancho = "xs", Ayuda = "Código numérico del ERP; el catálogo al que remite aún no está confirmado." },
         new("PorcentajeRetencion", "Porcentaje de retención", TipoCampo.Entero) { Grupo = "impuestos", Minimo = 0, Maximo = 100, Ancho = "xs", Ayuda = "Se guarda como número entero.", Sinonimos = ["irpf", "retencion"] },
         new("TipoIVA1", "Tipo de IVA 1 (%)", TipoCampo.Porcentaje) { Grupo = "impuestos", Ancho = "xs", Ayuda = "Su cuenta de IVA repercutido es «Cuenta del tipo de IVA 1»." },
         new("TipoIVA2", "Tipo de IVA 2 (%)", TipoCampo.Porcentaje) { Grupo = "impuestos", Ancho = "xs" },
@@ -58,9 +57,7 @@ public static class ProveedoresOrganizacion
         Cuenta("CuentaIVARepercutido2", "Cuenta de IVA repercutido del tipo 2", ayuda: "Vacía: la 477 con la terminación de la de soportado.", sinonimos: ["iva repercutido"]),
         Cuenta("CuentaIVARepercutido3", "Cuenta de IVA repercutido del tipo 3", ayuda: "Vacía: la 477 con la terminación de la de soportado.", sinonimos: ["iva repercutido"]),
         Cuenta("CuentaIVARepercutido4", "Cuenta de IVA repercutido del tipo 4", ayuda: "Vacía: la 477 con la terminación de la de soportado.", sinonimos: ["iva repercutido"]),
-        Cuenta("CuentaSuplidoIVA", "Cuenta de suplido con IVA", 255),
         Cuenta("CuentaSuplido", "Cuenta de suplido", 255, "La contabilización de ventas la usa en las líneas suplidas sin cuenta propia."),
-        Cuenta("CuentaRetencionIRPF", "Cuenta de retención IRPF", ayuda: "En las ventas la retención va a la cuenta de retención de cada cliente (pestaña Roles de su ficha).", sinonimos: ["irpf"]),
         Cuenta("CuentaRetencionServicios", "Cuenta de retención de servicios"),
         Cuenta("CuentaRetencionAlquileres", "Cuenta de retención de alquileres"),
         Cuenta("CuentaIVAIntracomunitarioRepercutidoServicios", "Cuenta de IVA intracomunitario repercutido · servicios"),
@@ -69,15 +66,11 @@ public static class ProveedoresOrganizacion
         Cuenta("CuentaIVAIntracomunitarioSoportadoBienes", "Cuenta de IVA intracomunitario soportado · bienes"),
         Cuenta("CuentaIVAInversionSujetoPasivoRepercutido", "Cuenta de IVA por inversión del sujeto pasivo · repercutido"),
         Cuenta("CuentaIVAInversionSujetoPasivoSoportado", "Cuenta de IVA por inversión del sujeto pasivo · soportado"),
-        Cuenta("Cuenta113ParaCuadres", "Cuenta 113 para cuadres") with { Pendiente = true },
-        Cuenta("CuentaPeriodificacionVentas", "Cuenta de periodificación de ventas"),
-        Cuenta("Cuenta570Tesoreria", "Cuenta 570 de tesorería"),
     ];
 
     private static IEnumerable<CampoMantenimiento> Predeterminados() =>
     [
         new("FormaPagoDefecto", "Forma de pago predeterminada (código)", TipoCampo.Entero) { Grupo = "pred", Ancho = "xs", Minimo = 0, Maximo = 255, Ayuda = "Código de Formas de pago que se propone en las facturas nuevas." },
-        new("Usuario", "Usuario (código)", TipoCampo.Entero) { Grupo = "pred", Ancho = "xs", Pendiente = true },
     ];
 
     public static ProveedorTablaAccess Empresas(IBaseDatos bd) => new(bd, "sociedades", "Empresas", "Empresas y ejercicios",
@@ -92,9 +85,13 @@ public static class ProveedoresOrganizacion
             new("PoblacionFiscal", "Población") { Grupo = "ident", Longitud = 100 },
             new("ProvinciaFiscal", "Provincia") { Grupo = "ident", Longitud = 100 },
             .. Predeterminados(), .. Impuestos(), .. Cuentas(),
-            Ruta("RutaDocumentos", "Carpeta de documentos") with { Ayuda = "Raíz de los documentos de la empresa. Los PDF de las facturas van a <carpeta>\\<ejercicio>\\FacturasVenta\\<número>-<razón social>.pdf" },
-            Ruta("RutaFacturasExportadas", "Carpeta de facturas exportadas"), Ruta("RutaFacturasDuplicadas", "Carpeta de facturas duplicadas"),
-            Ruta("BDFacturasVenta", "Base de datos de facturas de venta"), Ruta("BDERPGestion", "Base de datos del ERP de gestión"), Ruta("BDExportacion", "Base de datos de exportación"),
+            Ruta("RutaDocumentos", "Carpeta de documentos") with
+            {
+                Ayuda = "Ruta base de los documentos de la empresa (en pruebas, por ejemplo, D:\\SynologyBox\\SynologyDrive). Los PDF de las facturas de venta van a " +
+                    "<carpeta>\\<ejercicio>\\FacturasVenta\\<número>-<razón social>.pdf y los de compra se buscan en <carpeta>\\<carpeta de facturas de compra del ejercicio>.",
+                Sinonimos = ["ruta base", "raiz", "pdf", "proveedores"],
+            },
+            // Los campos del ERP que no usa ningún proceso no se muestran; sus columnas siguen en la BD (propietario 2026-11-11 17:34 y 18:08).
         ],
         [new("IdSociedad", "Código", 64), new("Nombre", "Nombre"), new("CIF", "CIF", 96)])
     {
@@ -139,14 +136,17 @@ public static class ProveedoresOrganizacion
             new("Activa", "Activo", TipoCampo.Logico) { Grupo = "ident", Ayuda = "Se ofrece al elegir el ejercicio de trabajo. No indica si está cerrado." },
             new("EjercicioCerrado", "Cerrado", TipoCampo.Logico) { Grupo = "ident", SoloLectura = true, Ayuda = "Lo cambia el proceso de cierre de contabilidad, no este mantenimiento." },
             .. Predeterminados(),
-            new("NumIVSDuplicados", "Número de IVS duplicados", TipoCampo.Entero) { Grupo = "pred", Pendiente = true, Ancho = "xs" },
             .. Impuestos(),
-            new("PorcentajeProrrataAñoAnterior", "Prorrata del año anterior (%)", TipoCampo.Porcentaje) { Grupo = "impuestos", Ancho = "xs", Sinonimos = ["prorrata"] },
             TipoGeneral(),
             .. Cuentas(), .. CuentasCompras(),
-            Ruta("RutaFacturasAExportar", "Carpeta de facturas a exportar"), Ruta("RutaFacturasExportadas", "Carpeta de facturas exportadas"),
-            Ruta("RutaFacturasDuplicadas", "Carpeta de facturas duplicadas"), Ruta("BDFacturasVenta", "Base de datos de facturas de venta"),
-            Ruta("BDERPGestion", "Base de datos del ERP de gestión"), Ruta("BDExportacion", "Base de datos de exportación"),
+            // Los campos del ERP que no usa ningún proceso no se muestran; sus columnas siguen en la BD hasta terminar la migración
+            // del ERP (propietario 2026-11-11 17:34 y 18:08).
+            Ruta("CarpetaFacturasCompra", "Carpeta de facturas de compra") with
+            {
+                Ayuda = "Dónde se buscan los PDF de compra de este ejercicio, dentro de la carpeta de documentos de la empresa (Empresas › Carpeta de documentos, la ruta base), por ejemplo 2026\\Proveedores. " +
+                    "Vacía: <año>\\Proveedores. Una ruta completa (con unidad) se usa tal cual.",
+                Sinonimos = ["proveedores", "pdf", "compras"],
+            },
         ],
         [new("Ejercicio", "Ejercicio", 76), new("Nombre", "Nombre"), new("Activa", "Activo", 60), new("EjercicioCerrado", "Cerrado", 66)])
     {

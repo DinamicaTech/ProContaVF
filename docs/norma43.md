@@ -11,9 +11,11 @@ Importación y consulta de extractos bancarios Norma 43: lectura, validación, p
 
 ## Decisions
 - 2026-10-28 13:30 · Creado en la carga inicial de requisitos.
+- 2026-11-11 15:05 · Palabras clave de asignación de cuentas (PalabrasClaveBancarias, esquema v37): palabra clave y segunda palabra (Y lógico) por entidad y sentido, cuenta (identidad contable) y Especial (5 = remesa de recibos que se explota); cada imputación de una línea guarda la palabra clave que la asignó (IdPalabraClaveBancaria). Las carga la migración del ERP desde N43PalabrasClave; el motor de asignación aún no las usa.
 
 ## Requirements
 - 2026-10-28 12:28 · From sources/01_ESPECIFICACION_FUNCIONAL.docx § 19 RF-N43-01, 02, 04: motor, reversión, selección y límites de consulta
 - 2026-10-28 12:28 · From sources/traspaso-2026-10-03/referencias/Norma43/docs/: motor anterior
 - 2026-10-28 12:39 · A7) b (de momento no trabajaremos tesorería)
 - 2026-10-28 12:28 · draft: Implementar la importación Norma 43 con idempotencia y reversión.
+- 2026-11-11 15:05 · Derived from implantacion/migracion-erp: guardar las palabras clave de N43PalabrasClave (PalabraClave, PalabraClave2, CuentaContable, Especial) y la palabra clave que asignó cada línea.

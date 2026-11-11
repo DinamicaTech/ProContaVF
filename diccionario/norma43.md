@@ -176,6 +176,7 @@ Relaciones:
 | Estado | TEXT(20) | no |  |  |
 | Concepto | LONGTEXT | sí |  |  |
 | IdCentroCoste | LONG | sí |  |  |
+| IdPalabraClaveBancaria | LONG | sí |  |  |
 
 Índices:
 - FK_Imputaciones_Identidad: IdIdentidadContable
@@ -273,4 +274,30 @@ Relaciones:
 
 Relaciones:
 - FK_LotesBanco_Sociedad: (IdSociedad) → Sociedades (IdSociedad); borrado NO ACTION, actualización NO ACTION
+
+## PalabrasClaveBancarias
+
+- Dueño funcional: `norma43`
+
+| Campo | Tipo | Nulo | Por defecto | Descripción |
+|---|---|---|---|---|
+| IdPalabraClaveBancaria | COUNTER | no |  |  |
+| IdSociedad | TEXT(3) | no |  |  |
+| Entidad | TEXT(4) | sí |  |  |
+| Sentido | TEXT(1) | sí |  |  |
+| PalabraClave | TEXT(255) | no |  |  |
+| PalabraClave2 | TEXT(255) | sí |  |  |
+| IdIdentidadContable | LONG | sí |  |  |
+| Especial | LONG | sí |  |  |
+| Activa | YESNO | no |  |  |
+
+Índices:
+- FK_PalabrasClaveBancarias_Identidad: IdIdentidadContable
+- FK_PalabrasClaveBancarias_Sociedad: IdSociedad
+- IX_PalabrasClaveBancarias_Sociedad: IdSociedad, Entidad
+- PK_PalabrasClaveBancarias (clave primaria): IdPalabraClaveBancaria
+
+Relaciones:
+- FK_PalabrasClaveBancarias_Identidad: (IdIdentidadContable) → IdentidadesContables (IdIdentidadContable); borrado NO ACTION, actualización NO ACTION
+- FK_PalabrasClaveBancarias_Sociedad: (IdSociedad) → Sociedades (IdSociedad); borrado NO ACTION, actualización NO ACTION
 
