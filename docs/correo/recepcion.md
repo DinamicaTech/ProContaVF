@@ -1,6 +1,5 @@
 ---
 title: Recepción de correo
-status: draft
 depends_on: [correo/envio, compras/reconocimiento, norma43, nominas]
 threads:
   - 2026-10-28 12:30 · Carga de requisitos | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GRNMH95h9tnQp4dmEPHmw1w
@@ -23,6 +22,7 @@ Mail Dispatcher: mira el buzón POP3 de la cuenta de cada ejercicio mientras la 
 - 2026-11-11 11:00 · Remitentes: solo se procesa el correo de los remitentes autorizados y activos del ejercicio (Parámetros y tablas › Remitentes autorizados), con permisos separados para enviar documentos a importar y para pedir informes; sin remitentes, no se procesa nada. Lo de un remitente no autorizado se guarda sin procesar ni responder y se conserva en el servidor; tras autorizarlo, «Volver a procesar». Las respuestas automáticas, los avisos del servidor de correo y el correo de la propia cuenta se ignoran.
 - 2026-11-11 11:00 · Adjuntos: PDF → factura de compra (compras/reconocimiento); fichero Norma 43 (registros de 80 caracteres que empiezan por 11) y Excel de nóminas → «en espera» hasta que existan norma43 y nominas; sin documentos, el asunto se toma como comando de informe y queda «en espera» hasta informes/reporting. Lo «en espera» o con incidencia se conserva en el servidor; un mensaje se borra solo cuando está procesado entero y su respuesta ha sido aceptada.
 - 2026-11-11 11:00 · Hecho (entrega 2): esquema v34, recepción POP3 cifrada, procesado, respuesta y borrado, pantalla «Correo recibido» (menú Correo) con «Mirar el buzón ahora», «Volver a procesar» y el mensaje original y sus adjuntos, y el mantenimiento de remitentes. Pruebas: 9 contra Access (factura procesada, respondida y borrada; sondeos repetidos sin duplicar; no autorizado; Norma 43 y nóminas en espera; fallo y nuevo proceso; respuesta incierta que impide borrar; respuestas automáticas; corte antes de responder; comando en espera). Pendiente de validar con la cuenta real de pruebas.
+- 2026-11-11 11:15 · Validado por el propietario con la cuenta de pruebas: la factura recibida aparece en Facturas recibidas; el mensaje quedó procesado, respondido y borrado del servidor. No se contabilizó sola porque su primera exportación pedía elegir entre proveedor y acreedor, que en la exportación masiva queda para el operador. El nodo deja de ser borrador; Norma 43, nóminas y comandos se conectan cuando existan sus motores.
 
 ## Requirements
 - 2026-10-28 12:28 · From sources/01_ESPECIFICACION_FUNCIONAL.docx § 23 RF-DIS-01..07: dispatcher, protocolo, flujo de factura recibida, hitos, comandos
@@ -36,3 +36,4 @@ Mail Dispatcher: mira el buzón POP3 de la cuenta de cada ejercicio mientras la 
 - 2026-11-10 19:26 · answer: Q2 factura recibida → A, pero la idea es que una vez copiada la factura a la raiz, el importador de facturas de compre la procese y si consigue una fiabilidad del 95% en todos los campos de importación, la importe y contabilice. En cualquier caso, se responderá al remitente indicando si se ha procesado la factura, los campos reconocidos y, en caso de haberse generado, el asiento contable
 - 2026-11-10 19:26 · Ok a remitentes autorizados
 - 2026-11-10 19:26 · En la cuenta POP3, borrado del servidor una vez descargado y procesado el correo.
+- 2026-11-11 11:08 · Ok, prueba realizada. La factura ha llegado y aparece en facturas recibidas.
