@@ -96,7 +96,9 @@
               <Separator />
               <MenuItem Header="{Binding TextoPdf}" Command="{Binding PdfCommand}" ToolTip="Abre el PDF de la factura y lo archiva si aún no lo está; con varias, los archiva todos. Un borrador sale como proforma, sin número ni validez fiscal" />
               <MenuItem Header="{Binding TextoRegenerarPdf}" Command="{Binding RegenerarPdfCommand}" ToolTip="Vuelve a crear el PDF de las facturas numeradas con la plantilla actual y sus datos congelados; el número y los importes no cambian" />
-              <MenuItem Header="Enviar" IsEnabled="False" ToolTip="{Binding MotivoEnviar}" />
+              <MenuItem Header="{Binding TextoEnviarCorreo}" Command="{Binding EnviarCorreoCommand}" pc:Iconos.Icono="{StaticResource Icono.send}"
+                        ToolTip="Envía por correo las facturas validadas seleccionadas con su PDF: con una, abre el compositor para revisarla; con varias, las envía sin abrir ventanas y al final muestra el resumen" />
+              <MenuItem Header="Ver su correo" Command="{Binding VerCorreoCommand}" ToolTip="Muestra los correos enviados de esta factura, con su estado, contenido y adjuntos (solo con una seleccionada)" />
               <MenuItem Header="Enviar pendientes a VeriFactu" IsEnabled="False" ToolTip="{Binding MotivoVeriFactu}" Visibility="{Binding VeriFactuActivo, Converter={StaticResource Visible}}" />
               <Separator />
               <MenuItem Header="Nueva factura" Command="{Binding NuevaCommand}" ToolTip="Abre un borrador nuevo sin número en su pestaña" />

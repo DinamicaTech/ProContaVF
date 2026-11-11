@@ -28,6 +28,12 @@ public sealed class ModuloTerceros
         _s = servicios with { Geografia = () => _geografia ??= servicios.Geografia() };
     }
 
+    /// <summary>
+    /// «Enviar email» de una dirección de la ficha (dirección, tercero y su nombre): lo conecta el contenedor con el
+    /// compositor común de correo; null, el botón no está disponible.
+    /// </summary>
+    public Func<string, int, string, Task>? EnviarEmail { get; set; }
+
     public int NumeroFichas => _fichas.Count;
 
     public IReadOnlySet<int> IdsAbiertos() => _fichas.Where(f => f.Clave > 0).Select(f => f.Clave).ToHashSet();

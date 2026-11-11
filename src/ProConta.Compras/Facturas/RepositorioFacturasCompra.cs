@@ -511,7 +511,7 @@ internal static class RepositorioFacturasCompra
     {
         if (string.IsNullOrWhiteSpace(claveAcceso)) return (null, null);
         if (string.IsNullOrWhiteSpace(region)) return (null, "las claves de AWS guardadas no dicen la región");
-        if (Integraciones.SecretoProtegido.Desproteger(secretoProtegido) is not { Length: > 0 } secreto)
+        if (ProConta.Nucleo.Seguridad.SecretoProtegido.Desproteger(secretoProtegido) is not { Length: > 0 } secreto)
             return (null, "no puedo descifrar el secreto de AWS guardado: vuelve a escribirlo");
         return (new CredencialesOcr(region.Trim(), claveAcceso.Trim(), secreto), null);
     }

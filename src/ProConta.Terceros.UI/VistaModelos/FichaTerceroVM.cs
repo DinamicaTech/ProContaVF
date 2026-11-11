@@ -54,6 +54,8 @@ public sealed class FichaTerceroVM : Observable, IPestanaTrabajo, INotifyDataErr
         ElegirTipoCommand = new ComandoDelegado(p => TipoPersonaTexto = p as string ?? "");
         AnadirDomicilioCommand = new ComandoDelegado(AnadirDomicilio);
         AnadirEmailCommand = new ComandoDelegado(() => AnadirDato(TipoDatoContacto.Email));
+        EnviarEmailCommand = new ComandoDelegado(p => { if (p is DatoContactoVM d) _ = EnviarEmailAsync(d); },
+            p => _modulo?.EnviarEmail is not null && p is DatoContactoVM { EsEmail: true } d && d.Valor.Trim() is { Length: > 2 } v && v.Contains('@') && !v.Contains(' '));
         AnadirTelefonoCommand = new ComandoDelegado(() => AnadirDato(TipoDatoContacto.Telefono));
         PasarEmailPrincipalCommand = new ComandoDelegado(PasarEmailPrincipal, () => MostrarEmailAntiguo);
         PasarTelefonoPrincipalCommand = new ComandoDelegado(PasarTelefonoPrincipal, () => MostrarTelefonoAntiguo && TelefonoAntiguoValido);
@@ -487,7 +489,25 @@ public sealed class FichaTerceroVM : Observable, IPestanaTrabajo, INotifyDataErr
         foreach (var d in Emails.Concat(Telefonos)) d.RefrescarGrupo();
     }
 
-    public string AyudaEnviarEmail => "Enviar un email a esta dirección llegará con el módulo de correo; de momento no está disponible.";
+    public string AyudaEnviarEmail => _modulo?.EnviarEmail is null
+        ? "Enviar un email no está disponible en esta pantalla."
+        : "Abre el compositor de correo con esta dirección en «Para», con la cuenta de correo del ejercicio de trabajo";
+
+    /// <summary>Botón «Enviar email» de una dirección: abre el compositor común (correo/pantallas 2026-11-10 19:40).</summary>
+    public System.Windows.Input.ICommand EnviarEmailCommand { get; }
+
+    private async Task EnviarEmailAsync(DatoContactoVM d)
+    {
+        if (_modulo?.EnviarEmail is not { } enviar) return;
+        try
+        {
+            await enviar(d.Valor.Trim(), Clave, Titulo);
+        }
+        catch (Exception ex)
+        {
+            _modulo.Avisar($"No he podido abrir el compositor de correo: {ex.Message}");
+        }
+    }
 
     // ---------- relaciones ----------
     public ObservableCollection<RelacionVM> Relaciones { get; } = [];

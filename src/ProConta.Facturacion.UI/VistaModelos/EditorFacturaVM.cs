@@ -463,7 +463,7 @@ public sealed class EditorFacturaVM : ModeloVista, IPestanaTrabajo, INotifyDataE
         : _p.FacturasGeneradas == 0 ? "Aún no ha generado ninguna factura."
         : $"Ha generado {Formatos.Plural(_p.FacturasGeneradas, "factura", "facturas")}" + (_p.FechaUltimaGeneracion is { } u ? $"; la última, el {Formatos.Fecha(u)}." : ".");
 
-    public string MotivoEnvio => "El envío por correo llegará con su propio desarrollo: de momento se guarda la preferencia y no se envía nada.";
+    public string MotivoEnvio => "Al generarla validada, la factura se envía por correo con su PDF a los emails del cliente marcados para facturas, en un lote con resumen al final. Si se genera como borrador, se envía después desde Facturas con «Enviar por correo…».";
 
     private void CargarCamposProgramacion()
     {
