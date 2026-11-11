@@ -52,6 +52,23 @@ public static class MigracionesContabilidad
         new AnadirColumna("CentrosCoste", "IdActividad", "LONG"),
         RelacionActividad());
 
+    /// <summary>
+    /// Modelo PGC Pymes 2008 de los balances (contabilidad/balances 2026-11-11): la maestra lo trae en ModelosBalance, NodosBalance
+    /// y ReglasCuentasBalance (lo sembró la migración heredada 20260822_001_BALANCES_PGC_PYMES_2008), pero las BD hechas con
+    /// copia-estructura antes de esta versión las dejaron vacías. Si las tres tablas están vacías, carga la misma semilla que la
+    /// maestra, con sus mismos identificadores (Semillas/*.tsv); si ya tienen datos no toca nada.
+    /// </summary>
+    public static Migracion EsquemaBalances { get; } = new(
+        "20261111_1430_ESQUEMA_BALANCES_PGC_PYMES_2008", 261111010,
+        "Modelo PGC Pymes 2008 de los balances de situación y de pérdidas y ganancias, si las tablas de balances están vacías.",
+        "contabilidad/balances",
+        new PasoPersonalizado(
+            "Cargar el modelo PGC Pymes 2008 de los balances",
+            "INSERT INTO ModelosBalance, NodosBalance, ReglasCuentasBalance <- Semillas (2 modelos, 89 nodos, 139 reglas de la maestra) si las tres están vacías; " +
+            SemillaBalances.Huella,
+            async (s, _) => await SemillaBalances.HayModeloAsync(s),
+            async (s, _) => await SemillaBalances.CargarAsync(s)));
+
     private static PasoPersonalizado RelacionActividad()
     {
         const string sql = "ALTER TABLE CentrosCoste ADD CONSTRAINT FK_CentrosCoste_Actividad FOREIGN KEY (IdActividad) REFERENCES Actividades (IdActividad)";

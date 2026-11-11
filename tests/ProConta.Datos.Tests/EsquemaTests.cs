@@ -286,4 +286,33 @@ public sealed class EsquemaAccessTests : IDisposable
         Assert.Contains("| SEPA | YESNO |", organizacion);
         Assert.False(File.Exists(Path.Combine(carpeta, "sin-dueno.md")), "Hay tablas de la maestra sin dueño funcional en DuenosTablas.");
     }
+
+    [Fact]
+    public async Task LaCopiaConservaElModeloDeBalancesYLaSemillaLoRecargaIgualSiEstaVacio()
+    {
+        // La copia de la maestra conserva el modelo (es un catálogo): la migración lo encuentra hecho.
+        var leer = () => _copia.Bd().EjecutarAsync(async s => (
+            Modelos: Convert.ToInt32(await s.EscalarAsync("SELECT COUNT(*) FROM ModelosBalance")),
+            Nodos: Convert.ToInt32(await s.EscalarAsync("SELECT COUNT(*) FROM NodosBalance")),
+            Reglas: Convert.ToInt32(await s.EscalarAsync("SELECT COUNT(*) FROM ReglasCuentasBalance")),
+            Firma: string.Join("|", await s.ConsultarAsync(
+                "SELECT r.IdReglaCuentaBalance, r.PrefijoCuenta, r.Multiplicador, n.Codigo, n.Nombre FROM ReglasCuentasBalance AS r INNER JOIN NodosBalance AS n ON r.IdNodoBalance = n.IdNodoBalance ORDER BY r.IdReglaCuentaBalance",
+                f => $"{f.Entero("IdReglaCuentaBalance")}:{f.Texto("PrefijoCuenta")}:{f.Valor("Multiplicador")}:{f.Texto("Codigo")}:{f.Texto("Nombre")}"))));
+        var maestra = await leer();
+        Assert.Equal((SemillaBalances.Modelos, SemillaBalances.Nodos, SemillaBalances.Reglas), (maestra.Modelos, maestra.Nodos, maestra.Reglas));
+        Assert.True(await _copia.Bd().EjecutarAsync(s => SemillaBalances.HayModeloAsync(s)));
+
+        // Una BD hecha con la copia-estructura anterior las dejó vacías: la semilla deja exactamente lo de la maestra.
+        await _copia.Bd().EjecutarAsync(async s =>
+        {
+            foreach (var tabla in new[] { "RelacionesCalculoBalance", "ReglasCuentasBalance", "NodosBalance", "ModelosBalance" })
+                await s.EjecutarAsync($"DELETE FROM {tabla}");
+            return true;
+        });
+        Assert.False(await _copia.Bd().EjecutarAsync(s => SemillaBalances.HayModeloAsync(s)));
+        var paso = MigracionesContabilidad.EsquemaBalances.Pasos.Single();
+        await _copia.Bd().EnTransaccionAsync(async s => { await paso.AplicarAsync(s, ContextoMigracion.Vacio); return true; });
+        Assert.Equal(maestra, await leer());
+        Assert.True(await _copia.Bd().EjecutarAsync(s => paso.YaAplicadoAsync(s, s.LeerEsquema())));
+    }
 }

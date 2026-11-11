@@ -6,6 +6,7 @@ threads:
   - 2026-10-29 10:15 · Validar prototipos de pantallas principales | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GGPu88XoVeXWyHsuxbrF2kK
   - 2026-10-31 19:30 · Desarrollos base | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GPQZwFm28U4vq3sQdopN45C
   - 2026-11-01 10:46 · Desarrollar la pantalla de Terceros | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GVR2rh2hJF6h9BMYjKSu8jn
+  - 2026-11-11 15:00 · Generar balances en Excel | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GRuPaDaEwyqkxbhZeBADiWX
 ---
 ## Summary
 Aplicación principal (UI-PRINCIPAL): cabecera con empresa, ejercicio y operador, navegación lateral plegable, búsqueda de pantallas y acciones, área de trabajo con pestañas y gestión de cambios pendientes al cambiar de ficha o contexto. Primera versión en `src/ProConta.App` (ejecutable ProContaVF.exe; `ejecutar.cmd` en la raíz): arranque con resolución de la BD y comprobación del esquema, asistente del primer administrador, pantalla de acceso y ventana principal con la cabecera, la navegación (solo Inicio activo), la pestaña Inicio y la barra de estado con la BD, la versión del esquema y la versión del programa.
@@ -27,6 +28,7 @@ Aplicación principal (UI-PRINCIPAL): cabecera con empresa, ejercicio y operador
 - 2026-11-07 12:44 · Menú principal (petición del propietario, 2026-11-07 11:59): «Facturación» pasa a «Ventas» y su entrada «Facturas» a «Facturas emitidas» (también el título de la pestaña).
 - 2026-11-10 20:05 · Hecho: área «Correo» en la navegación con «Correo enviado», proceso de la cola de correo mientras la aplicación está abierta (se detiene al cerrar) y aviso permanente en la barra de estado cuando el correo está desviado a la dirección de pruebas.
 - 2026-11-11 11:00 · Hecho: «Correo recibido» en el área Correo de la navegación, y la cola de entrada (buzones POP3) procesada por la aplicación mientras está abierta, junto con la de salida.
+- 2026-11-11 15:00 · Hecho: área «Informes» en la navegación con «Balance de situación» y «Pérdidas y ganancias» del ejercicio de trabajo; cada opción genera el libro Excel, lo abre y deja en la barra de estado los totales y las cuentas sin clasificar.
 
 ## Requirements
 - 2026-10-28 12:28 · From sources/01_ESPECIFICACION_FUNCIONAL.docx § 6 RF-UI-01, 04, 05, 07: contenedor, avisos técnicos discretos, ciclo de vida de fichas y rendimiento
@@ -42,6 +44,7 @@ Aplicación principal (UI-PRINCIPAL): cabecera con empresa, ejercicio y operador
 - 2026-11-01 10:46 · Derived from terceros/pantallas: pestañas de ficha con cambios pendientes y límite de fichas abiertas.
 - 2026-11-01 17:20 · Derived from facturacion/pantallas y plataforma/mantenimiento: entradas de menú de Facturas emitidas y de Parámetros y tablas.
 - 2026-11-04 23:55 · Derived from plataforma/atajos-de-teclado: un único punto de escucha de teclado en la ventana principal (primero el campo con foco, después la pestaña activa y por último las operativas globales); si la operativa no se puede ejecutar, la barra de estado dice por qué y cómo conseguirlo; los menús fijos, menús contextuales, cinta y búsqueda de acciones se construyen desde el catálogo de operativas con su atajo visible; y una ayuda de teclado con los atajos de la pantalla activa y los globales.
+- 2026-11-11 15:00 · Derived from contabilidad/balances: área «Informes» en la navegación con «Balance de situación» y «Pérdidas y ganancias».
 
 ## Hand-over
 - 2026-10-31 19:30 · Hecho: ejecutable con arranque, primer administrador, acceso y ventana principal; revisado renderizando las ventanas fuera de pantalla contra una copia de la maestra en la versión 6. Pendiente (próximas entregas): búsqueda «Ir a», pestañas de pantallas con cambios pendientes, cambio de sociedad o ejercicio sin volver a entrar, franja de iconos por debajo de 150 px y posición del separador guardada por operador, barra de título propia de la maqueta, doble pantalla y el resto del catálogo de atajos.
