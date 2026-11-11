@@ -106,6 +106,8 @@ public sealed class ProveedorConfiguracionGeneral(IBaseDatos bd) : ProveedorTabl
             Ayuda = "Solo para una BD de pruebas: con una dirección, todo correo que envíe ProContaVF sale únicamente a ella, con los destinatarios reales anotados. Vacío, el correo va a sus destinatarios." },
         new("OcultarListaOperadoresAcceso", "Ocultar la lista de operadores al entrar", TipoCampo.Logico) { Grupo = "ubi" },
         new("VeriFactuActivo", "Activar VeriFactu", TipoCampo.Logico) { Grupo = "sis", Sinonimos = ["verifactu", "aeat"], Ayuda = "Desactivado, las facturas se validan sin comunicarse a la AEAT y sin QR. Las validadas así no se envían después. VeriFactu aún no está disponible en esta versión: activado, validar se detiene y lo explica." },
+        new("UmbralCuadreMayor", "Umbral para reiniciar el cuadre del Mayor", TipoCampo.Importe) { Grupo = "con", Ancho = "s", Sinonimos = ["cuadre", "mayor", "umbral", "tolerancia"],
+            Ayuda = "«Reiniciar el cuadre» del Mayor marca como cuadradas las cuentas con un saldo de hasta este importe, positivo o negativo. Vacío: 0,05 €." },
         new("FechaModificacion", "Modificado el", TipoCampo.Fecha) { Grupo = "ubi", SoloLectura = true },
         new("OperadorModificacion", "Modificado por") { Grupo = "ubi", SoloLectura = true },
     ],
@@ -114,8 +116,8 @@ public sealed class ProveedorConfiguracionGeneral(IBaseDatos bd) : ProveedorTabl
     public override Cardinalidad Cardinalidad => Cardinalidad.Unico;
     public override bool PermiteAlta => false;
     public override bool PermiteBaja => false;
-    public override IReadOnlyList<string> Sinonimos => ["sistema informatico", "nif", "version", "instalacion", "incidencias", "endpoint"];
-    public override IReadOnlyList<GrupoCampos> Grupos => [new("sis", "Identificación del sistema"), new("ubi", "Ubicaciones e integraciones")];
+    public override IReadOnlyList<string> Sinonimos => ["sistema informatico", "nif", "version", "instalacion", "incidencias", "endpoint", "cuadre"];
+    public override IReadOnlyList<GrupoCampos> Grupos => [new("sis", "Identificación del sistema"), new("ubi", "Ubicaciones e integraciones"), new("con", "Contabilidad")];
     public override string TituloRegistro(RegistroMantenimiento r) => "Configuración general";
 
     /// <summary>La única fila; si aún no existe, un registro nuevo que se crea al guardar.</summary>

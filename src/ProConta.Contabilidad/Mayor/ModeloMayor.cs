@@ -19,7 +19,7 @@ public enum VistaMayor
 }
 
 /// <summary>Una línea de un asiento: lo que hace falta para decidir la contrapartida de los apuntes de la vista.</summary>
-public sealed record LineaContrapartida(int IdAsiento, int Orden, string Cuenta, decimal Debe, decimal Haber)
+public sealed record LineaContrapartida(int IdAsiento, int Orden, string Cuenta, decimal Debe, decimal Haber, int IdApunte = 0)
 {
     public decimal Importe => Debe - Haber;
 }
@@ -31,7 +31,7 @@ public sealed record LineaContrapartida(int IdAsiento, int Orden, string Cuenta,
 public sealed record ApunteMayor(
     int IdApunte, int IdAsiento, int Orden, int IdSociedadEjercicio, int Ejercicio, DateTime Fecha, byte TipoAsiento,
     string Cuenta, decimal Debe, decimal Haber, string Concepto, string? Documento, string? Notas,
-    DateTime? FechaDocumento, DateTime? GrabadoEl, DateTime? ModificadoEl)
+    DateTime? FechaDocumento, DateTime? GrabadoEl, DateTime? ModificadoEl, bool Punteado = false, bool EsAutomatico = false)
 {
     public decimal Importe => Debe - Haber;
     public bool EsApertura => TipoAsiento == TiposAsientoMayor.Apertura;
@@ -73,7 +73,9 @@ public sealed record DatosMayor(
 /// <param name="Saldo">Saldo con la apertura del primer ejercicio elegido.</param>
 /// <param name="Apuntes">Apuntes del periodo (con la apertura del primer ejercicio, sin cierres).</param>
 /// <param name="EsSubcuenta">Admite apuntes (imputable); las cuentas de grupo muestran todas sus subcuentas.</param>
-public sealed record CuentaMayor(string Codigo, string Nombre, decimal SaldoSinApertura, decimal Saldo, int Apuntes, bool EsSubcuenta)
+/// <param name="Cuadre">Si está cuadrada en los ejercicios elegidos; <paramref name="AyudaCuadre"/> dice cuándo, quién y con qué comentario.</param>
+public sealed record CuentaMayor(string Codigo, string Nombre, decimal SaldoSinApertura, decimal Saldo, int Apuntes, bool EsSubcuenta,
+    EstadoCuadre Cuadre = EstadoCuadre.SinMovimientos, string? AyudaCuadre = null)
 {
     public string Etiqueta => Nombre.Length > 0 ? $"{Codigo} {Nombre}" : Codigo;
 }
@@ -104,6 +106,23 @@ public sealed record AsientoMayor(
 
 /// <summary>Línea de un asiento para la ventana de solo lectura.</summary>
 public sealed record LineaAsientoMayor(int Orden, string Cuenta, string NombreCuenta, string Concepto, string? Documento, decimal Debe, decimal Haber);
+
+/// <summary>
+/// Cuenta marcada como cuadrada en un ejercicio (tabla CuadresCuentas, contabilidad/mayor 2026-11-11 20:05), con el saldo que
+/// tenía la cuenta en ese ejercicio al marcarla: si después cambia, la cuenta vuelve a estar sin cuadrar.
+/// </summary>
+public sealed record CuadreCuenta(int IdSociedadEjercicio, string Cuenta, decimal Saldo, string? Comentario, string Operador, DateTime FechaHora);
+
+/// <summary>Estado del cuadre de una cuenta en los ejercicios elegidos.</summary>
+public enum EstadoCuadre
+{
+    /// <summary>Sin movimientos en los ejercicios elegidos: no hay nada que cuadrar.</summary>
+    SinMovimientos,
+    /// <summary>Marcada como cuadrada en todos los ejercicios elegidos con movimientos, con el mismo saldo que al marcarla.</summary>
+    Cuadrada,
+    /// <summary>Algún ejercicio con movimientos sin marcar, o con un saldo distinto del que tenía al marcarla.</summary>
+    NoCuadrada
+}
 
 /// <summary>Cambio de un apunte del registro de cambios (RegistroCambiosApuntes), para el historial del apunte.</summary>
 public sealed record CambioApunteMayor(DateTime FechaHora, string Operador, string Motivo, string Operacion, string Campo, string? Antes, string? Despues, string Lote);

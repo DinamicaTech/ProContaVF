@@ -32,10 +32,8 @@ public sealed class DialogosMayor(Func<Window?> propietario) : IDialogosMayor
         filtros.Children.Add(Casilla("Con movimientos", nameof(SelectorCuentasVM.ConMovimientos), "Solo las cuentas con algún apunte en los ejercicios elegidos"));
         filtros.Children.Add(Casilla("Con saldo", nameof(SelectorCuentasVM.ConSaldo), "Saldo distinto de cero en los ejercicios elegidos, con la apertura"));
         filtros.Children.Add(Casilla("Con saldo sin la apertura", nameof(SelectorCuentasVM.ConSaldoSinApertura), "Los movimientos del periodo no netean a cero, sin contar la apertura"));
-        var noCuadradas = new CheckBox { Content = "No cuadradas", IsEnabled = false, VerticalAlignment = VerticalAlignment.Center,
-            ToolTip = "Llega con el cuadre, en la próxima entrega del Mayor: ocultará las cuentas marcadas como cuadradas" };
-        ToolTipService.SetShowOnDisabled(noCuadradas, true);
-        filtros.Children.Add(noCuadradas);
+        filtros.Children.Add(Casilla("No cuadradas", nameof(SelectorCuentasVM.NoCuadradas),
+            "Solo las cuentas con movimientos que no están cuadradas en algún ejercicio elegido: sin marcar, o marcadas con un saldo que después ha cambiado"));
         var estado = new TextBlock { Margin = new Thickness(0, 8, 0, 8), Foreground = (Brush)d.FindResource("Pincel.Apagado"), TextWrapping = TextWrapping.Wrap };
         estado.SetBinding(TextBlock.TextProperty, new Binding(nameof(SelectorCuentasVM.Estado)));
 
@@ -63,6 +61,11 @@ public sealed class DialogosMayor(Func<Window?> propietario) : IDialogosMayor
         tabla.Columns.Add(Col("Saldo", nameof(CuentaSelectorVM.Saldo), 130, "sal", "Texto.Celda.Importe", importe, true));
         tabla.Columns.Add(Col("Apuntes", nameof(CuentaSelectorVM.Apuntes), 80, "apu", "Texto.Celda.Importe", null, true));
         tabla.Columns.Add(Col("Tipo", nameof(CuentaSelectorVM.Tipo), 70, "tipo", "Texto.Celda"));
+        var cuadre = Col("Cuadre", nameof(CuentaSelectorVM.Cuadre), 100, "cua", "Texto.Celda");
+        var estiloCuadre = new Style(typeof(TextBlock), (Style)d.FindResource("Texto.Celda"));
+        estiloCuadre.Setters.Add(new Setter(FrameworkElement.ToolTipProperty, new Binding(nameof(CuentaSelectorVM.AyudaCuadre))));
+        cuadre.ElementStyle = estiloCuadre;
+        tabla.Columns.Add(cuadre);
 
         var corto = new Button { Style = (Style)d.FindResource("Boton.Enlace"), Margin = new Thickness(0, 0, 0, 8), HorizontalAlignment = HorizontalAlignment.Left,
             ToolTip = "Muestra juntas todas las subcuentas que empiezan por ese código (mayor de grupo)" };
@@ -225,6 +228,74 @@ public sealed class DialogosMayor(Func<Window?> propietario) : IDialogosMayor
         cerrar.Click += (_, _) => d.DialogResult = false;
         d.Botones = cerrar;
         d.ShowDialog();
+    }
+
+    public (string Valor, string Motivo)? PedirTexto(string titulo, string explicacion, string etiqueta, string? inicial, int longitud, bool pideMotivo, bool valorObligatorio)
+    {
+        var d = new DialogoProConta { Title = titulo, Owner = propietario(), Width = 620, SizeToContent = SizeToContent.Height };
+        var panel = new StackPanel();
+        panel.Children.Add(new TextBlock { Text = explicacion, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 0, 0, 12) });
+        panel.Children.Add(new TextBlock { Text = etiqueta, FontWeight = FontWeights.SemiBold, Margin = new Thickness(0, 0, 0, 4) });
+        var valor = new TextBox { Text = inicial ?? "", MaxLength = longitud, ToolTip = $"{etiqueta}: hasta {longitud} caracteres" + (valorObligatorio ? "" : "; vacío para quitarlo") };
+        panel.Children.Add(valor);
+        TextBox? motivo = null;
+        if (pideMotivo)
+        {
+            panel.Children.Add(new TextBlock { Text = "Motivo", FontWeight = FontWeights.SemiBold, Margin = new Thickness(0, 12, 0, 4) });
+            motivo = new TextBox { MaxLength = 255, ToolTip = "Por qué haces el cambio: queda en el historial del apunte con tu nombre y la fecha" };
+            panel.Children.Add(motivo);
+        }
+        var aviso = new TextBlock { Foreground = (Brush)d.FindResource("Pincel.RojoError"), TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 8, 0, 0), Visibility = Visibility.Collapsed };
+        panel.Children.Add(aviso);
+        d.Content = panel;
+        var aceptar = new Button { Content = "Guardar", Style = (Style)d.FindResource("Boton.Primario"), IsDefault = true, Margin = new Thickness(8, 0, 0, 0), ToolTip = "Guarda el cambio" };
+        var cancelar = new Button { Content = "Cancelar", IsCancel = true, ToolTip = "Cierra sin cambiar nada" };
+        aceptar.Click += (_, _) =>
+        {
+            if (valorObligatorio && string.IsNullOrWhiteSpace(valor.Text)) { aviso.Text = $"Escribe {etiqueta.ToLowerInvariant()}."; aviso.Visibility = Visibility.Visible; valor.Focus(); return; }
+            if (motivo is not null && string.IsNullOrWhiteSpace(motivo.Text)) { aviso.Text = "Escribe el motivo: queda en el historial del apunte."; aviso.Visibility = Visibility.Visible; motivo.Focus(); return; }
+            d.DialogResult = true;
+        };
+        cancelar.Click += (_, _) => d.DialogResult = false;
+        d.Botones = new StackPanel { Orientation = Orientation.Horizontal, Children = { cancelar, aceptar } };
+        d.Loaded += (_, _) => { valor.Focus(); valor.SelectAll(); };
+        return d.ShowDialog() == true ? (valor.Text.Trim(), motivo?.Text.Trim() ?? "") : null;
+    }
+
+    public string? PedirMotivo(string titulo, string explicacion)
+    {
+        var d = new DialogoProConta { Title = titulo, Owner = propietario(), Width = 620, SizeToContent = SizeToContent.Height };
+        var panel = new StackPanel();
+        panel.Children.Add(new TextBlock { Text = explicacion, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 0, 0, 12) });
+        panel.Children.Add(new TextBlock { Text = "Motivo", FontWeight = FontWeights.SemiBold, Margin = new Thickness(0, 0, 0, 4) });
+        var motivo = new TextBox { MaxLength = 255, ToolTip = "Por qué haces el cambio: queda en el historial del apunte con tu nombre y la fecha" };
+        panel.Children.Add(motivo);
+        var aviso = new TextBlock { Foreground = (Brush)d.FindResource("Pincel.RojoError"), Text = "Escribe el motivo: queda en el historial del apunte.", Margin = new Thickness(0, 8, 0, 0), Visibility = Visibility.Collapsed };
+        panel.Children.Add(aviso);
+        d.Content = panel;
+        var aceptar = new Button { Content = "Cambiar", Style = (Style)d.FindResource("Boton.Primario"), IsDefault = true, Margin = new Thickness(8, 0, 0, 0), ToolTip = "Guarda el cambio con este motivo" };
+        var cancelar = new Button { Content = "Cancelar", IsCancel = true, ToolTip = "Cierra sin cambiar nada" };
+        aceptar.Click += (_, _) => { if (string.IsNullOrWhiteSpace(motivo.Text)) { aviso.Visibility = Visibility.Visible; motivo.Focus(); } else d.DialogResult = true; };
+        cancelar.Click += (_, _) => d.DialogResult = false;
+        d.Botones = new StackPanel { Orientation = Orientation.Horizontal, Children = { cancelar, aceptar } };
+        d.Loaded += (_, _) => motivo.Focus();
+        return d.ShowDialog() == true ? motivo.Text.Trim() : null;
+    }
+
+    public bool? ConfirmarReinicio(string explicacion)
+    {
+        var d = new DialogoProConta { Title = "Reiniciar el cuadre", Owner = propietario(), Width = 640, SizeToContent = SizeToContent.Height };
+        var panel = new StackPanel();
+        panel.Children.Add(new TextBlock { Text = explicacion, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 0, 0, 12) });
+        var desmarcar = new CheckBox { Content = "Desmarcar antes las demás cuentas", ToolTip = "Quita la marca de cuadrada de las cuentas de esos ejercicios con un saldo mayor que el umbral, aunque las marcaras a mano" };
+        panel.Children.Add(desmarcar);
+        d.Content = panel;
+        var aceptar = new Button { Content = "Reiniciar", Style = (Style)d.FindResource("Boton.Primario"), IsDefault = true, Margin = new Thickness(8, 0, 0, 0), ToolTip = "Marca como cuadradas las cuentas con saldo dentro del umbral" };
+        var cancelar = new Button { Content = "Cancelar", IsCancel = true, ToolTip = "Cierra sin cambiar nada" };
+        aceptar.Click += (_, _) => d.DialogResult = true;
+        cancelar.Click += (_, _) => d.DialogResult = false;
+        d.Botones = new StackPanel { Orientation = Orientation.Horizontal, Children = { cancelar, aceptar } };
+        return d.ShowDialog() == true ? desmarcar.IsChecked == true : null;
     }
 
     public void Error(string titulo, string mensaje) =>

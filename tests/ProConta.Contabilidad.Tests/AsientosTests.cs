@@ -214,6 +214,60 @@ public sealed class MotorAsientosAccessTests : IDisposable
     }
 
     [Fact]
+    public async Task ElPunteoYElNumeroDeFacturaDelMayorValenEnAutomaticosYSeConservanAlRegenerar()
+    {
+        await PrepararAsync();
+        var motor = Motor();
+        var id = (await motor.ReemplazarLoteAsync(_ctx, _lote, [Nuevo(121m, 121m, "4300001")], _actor, "Contabilizar factura")).Valor[0];
+        var ap = (await motor.ObtenerAsync(id))!.Apuntes;
+        Assert.True((await motor.PuntearApuntesAsync([ap[0].IdApunte], true, _actor)).EsCorrecto);
+        Assert.True((await motor.AsignarNumeroDocumentoAsync([ap[1].IdApunte], "F2025-7", _actor, "Factura del cobro")).EsCorrecto);
+        Assert.Equal("Asientos.Automatico", (await motor.CambiarConceptoApuntesAsync([ap[0].IdApunte], "Otro", _actor, "intento")).Error!.Codigo);
+
+        // Regenerar con los mismos importes: punteo y número se conservan (el proceso no trae número).
+        await motor.ReemplazarLoteAsync(_ctx, _lote, [Nuevo(121m, 121m, "4300001")], _actor, "Regenerar factura");
+        var tras = (await motor.ObtenerAsync(id))!.Apuntes;
+        Assert.True(tras[0].Punteado);
+        Assert.Equal("F2025-7", tras[1].NumeroDocumento);
+
+        // Con otro importe el apunte es otro: el punteo se pierde y lo dice el registro de cambios.
+        await motor.ReemplazarLoteAsync(_ctx, _lote, [Nuevo(150m, 150m, "4300001")], _actor, "Regenerar con otro importe");
+        Assert.False((await motor.ObtenerAsync(id))!.Apuntes[0].Punteado);
+        var registro = await motor.RegistroCambiosAsync(id);
+        Assert.Contains(registro, c => c.Campo == "Punteado" && c.ValorAntiguo == "No" && c.ValorNuevo == "Sí");
+        Assert.Contains(registro, c => c.Campo == "Punteado" && c.ValorAntiguo == "Sí" && c.ValorNuevo == "No" && c.Motivo == "Regenerar con otro importe");
+        Assert.Contains(registro, c => c.Campo == "NumeroDocumento" && c.ValorNuevo == "F2025-7" && c.Motivo == "Factura del cobro");
+    }
+
+    [Fact]
+    public async Task ElConceptoSeCambiaEnManualesConMotivoYElPunteoSeHaceTambienEnCerrados()
+    {
+        await PrepararAsync();
+        var motor = Motor();
+        var asiento = (await motor.GuardarManualAsync(Nuevo(10m, 10m), _actor)).Valor;
+        var idApunte = asiento.Apuntes[0].IdApunte;
+        Assert.Equal("Asientos.SinMotivo", (await motor.CambiarConceptoApuntesAsync([idApunte], "Cobro en efectivo", _actor, " ")).Error!.Codigo);
+        Assert.True((await motor.CambiarConceptoApuntesAsync([idApunte], "Cobro en efectivo", _actor, "Concepto más claro")).EsCorrecto);
+        var leido = (await motor.ObtenerAsync(asiento.IdAsiento))!;
+        Assert.Equal("Cobro en efectivo", leido.Apuntes[0].Descripcion);
+        Assert.Equal(2, leido.Version);
+
+        // Guardar el asiento a mano conserva el punteo del apunte que no cambia.
+        Assert.True((await motor.PuntearApuntesAsync([idApunte], true, _actor)).EsCorrecto);
+        leido.Notas = "Nota nueva";
+        leido.Apuntes[0].Punteado = false;
+        Assert.True((await motor.GuardarManualAsync(leido, _actor, "Añadir nota")).EsCorrecto);
+        Assert.True((await motor.ObtenerAsync(asiento.IdAsiento))!.Apuntes[0].Punteado);
+
+        // El punteo no cambia la contabilidad: vale con el ejercicio cerrado, el concepto no.
+        await Bd.EjecutarAsync(s => s.EjecutarAsync("UPDATE SociedadesEjercicios SET EjercicioCerrado = True WHERE IdSociedadEjercicio = 9001"));
+        var otro = (await motor.ObtenerAsync(asiento.IdAsiento))!.Apuntes[0].IdApunte;
+        Assert.True((await motor.PuntearApuntesAsync([otro], false, _actor)).EsCorrecto);
+        Assert.Equal("Asientos.EjercicioCerrado", (await motor.CambiarConceptoApuntesAsync([otro], "x", _actor, "motivo")).Error!.Codigo);
+        Assert.Equal("Asientos.ApunteNoEncontrado", (await motor.PuntearApuntesAsync([999999], true, _actor)).Error!.Codigo);
+    }
+
+    [Fact]
     public async Task LoteAutomaticoSeRegeneraSinDuplicarYRechazaEdicionManual()
     {
         await PrepararAsync();

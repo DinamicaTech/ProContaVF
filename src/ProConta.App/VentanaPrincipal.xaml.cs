@@ -111,7 +111,8 @@ public partial class VentanaPrincipal : Window
 
         // Mayor (contabilidad/mayor): pestaña Contabilidad › Mayor y el mismo control embebido en la ficha de terceros.
         _mayor = new ProConta.Contabilidad.UI.Mayor.ModuloMayor(
-            new ProConta.Contabilidad.UI.Mayor.ContextoMayor(new ProConta.Contabilidad.Mayor.FuenteMayorAccess(bd), contexto.Contexto.IdSociedad, ejercicio, contexto.RazonSocial),
+            new ProConta.Contabilidad.UI.Mayor.ContextoMayor(new ProConta.Contabilidad.Mayor.FuenteMayorAccess(bd), contexto.Contexto.IdSociedad, ejercicio, contexto.RazonSocial,
+                new MotorAsientosAccess(bd), new Actor(sesion.NombreOperador)),
             _area, new ProConta.Contabilidad.UI.Mayor.DialogosMayor(() => this));
         _terceros.MayorEmbebido = cuentas => _mayor.CrearEmbebido(cuentas);
 

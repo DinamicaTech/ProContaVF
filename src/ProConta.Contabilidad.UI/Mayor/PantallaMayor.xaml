@@ -53,6 +53,8 @@
             <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
               <TextBlock Text="Cargando…" Style="{StaticResource Texto.Apagado}" VerticalAlignment="Center" Margin="0,0,10,0"
                          Visibility="{Binding Ocupado, Converter={StaticResource Visible}}" />
+              <pc:Etiqueta Content="{Binding TextoCuadre}" ToolTip="{Binding AyudaCuadre}" Margin="0,0,10,0" VerticalAlignment="Center"
+                           Visibility="{Binding TextoCuadre, Converter={StaticResource Visible}}" />
               <Button x:Name="BotonEjercicios" Content="{Binding TextoEjercicios}" pc:Iconos.Icono="{StaticResource Icono.cal}" Click="BotonEjercicios_Click"
                       ToolTip="Ejercicios cuyos apuntes se muestran: puedes marcar varios. La apertura de un ejercicio que sigue a otro de la vista no suma: el saldo continúa." />
               <Popup x:Name="PopupEjercicios" PlacementTarget="{Binding ElementName=BotonEjercicios}" Placement="Bottom" StaysOpen="False" AllowsTransparency="True"
@@ -119,8 +121,8 @@
                              ToolTip="Agrupa por cuenta, fecha, factura y lado: una factura con varias líneas de la misma cuenta sale en una sola fila" />
               </StackPanel>
             </Border>
-            <CheckBox Content="Solo no punteados" Margin="14,0,0,0" VerticalAlignment="Center" IsEnabled="False" ToolTipService.ShowOnDisabled="True"
-                      ToolTip="Llega con el punteo, en la próxima entrega del Mayor: mostrará solo los apuntes sin puntear" />
+            <CheckBox Content="Solo no punteados" Margin="14,0,0,0" VerticalAlignment="Center" IsChecked="{Binding SoloNoPunteados}"
+                      ToolTip="Oculta las filas punteadas (F4 puntea o quita el punteo de la selección). El saldo pasa a ser parcial" />
             <Grid Width="300" Margin="14,0,0,0" VerticalAlignment="Center">
               <TextBox Text="{Binding Texto, UpdateSourceTrigger=PropertyChanged, Delay=250}" Padding="28,0,6,0" AutomationProperties.Name="Filtrar el mayor"
                        ToolTip="Filtra por concepto o documento (contiene), número de asiento o importe exacto con decimales (600,00). El saldo pasa a ser parcial" />
@@ -248,6 +250,15 @@
                   </DataTemplate>
                 </DataGridTemplateColumn.CellTemplate>
               </DataGridTemplateColumn>
+              <DataGridTextColumn Header="Punteo" Binding="{Binding TextoPunteo}" Width="64" pc:TablaProConta.Clave="pun" pc:TablaProConta.RutaExportar="TextoPunteo"
+                                  pc:TablaProConta.Ayuda="✓: punteado; ½: en las vistas agrupadas, solo algunos de sus apuntes. F4 puntea o quita el punteo de la selección">
+                <DataGridTextColumn.ElementStyle>
+                  <Style TargetType="TextBlock" BasedOn="{StaticResource Texto.Celda}">
+                    <Setter Property="HorizontalAlignment" Value="Center" />
+                    <Setter Property="ToolTip" Value="{Binding AyudaPunteo}" />
+                  </Style>
+                </DataGridTextColumn.ElementStyle>
+              </DataGridTextColumn>
               <DataGridTextColumn Header="Contrapartida" Binding="{Binding Contrapartida}" Width="104" pc:TablaProConta.Clave="cp">
                 <DataGridTextColumn.ElementStyle>
                   <Style TargetType="TextBlock" BasedOn="{StaticResource Texto.Celda.Mono}">

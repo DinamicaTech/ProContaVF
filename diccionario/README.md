@@ -2,12 +2,12 @@
 
 # Diccionario de datos
 
-Esquema versión 40 (Actualizada); 136 tablas. SHA-256 de la BD de origen: `17226AA53C24F51601594BB39823863C1EB9D88AE51BCD0B283CC222C8B578F4`.
+Esquema versión 41 (Actualizada); 137 tablas. SHA-256 de la BD de origen: `1D470B96A551D50CD6F4F064314138CAC6CB539B2EC59195CAC15EC850CCDEB8`.
 
 | Área | Tablas |
 |---|---|
 | [compras](compras.md) | ConfiguracionReconocimientoFacturasCompra, DesglosesFacturaCompra, FacturasCompra, PlantillasReconocimientoCompra, TextosClaveCompra |
-| [contabilidad](contabilidad.md) | Actividades, Apuntes, Asientos, CentrosCoste, CodigosContablesReservados, ConfiguracionesContables, ConfiguracionesContablesCuentaBancaria, CuentasContables, CuentasContablesLegacy, CuentasPlanContable, DesglosesIVASoportado, F_CDP, F_DEP, IdentidadesContables, IVARepercutido, IVASoportado, ModelosBalance, NodosBalance, PeriodosIVA, PlanesContables, PresentacionesTributarias, RegistroCambiosApuntes, ReglasCuentasBalance, RelacionesAsientos, RelacionesCalculoBalance, RevisionesAsientos, TiposCuentaContable |
+| [contabilidad](contabilidad.md) | Actividades, Apuntes, Asientos, CentrosCoste, CodigosContablesReservados, ConfiguracionesContables, ConfiguracionesContablesCuentaBancaria, CuadresCuentas, CuentasContables, CuentasContablesLegacy, CuentasPlanContable, DesglosesIVASoportado, F_CDP, F_DEP, IdentidadesContables, IVARepercutido, IVASoportado, ModelosBalance, NodosBalance, PeriodosIVA, PlanesContables, PresentacionesTributarias, RegistroCambiosApuntes, ReglasCuentasBalance, RelacionesAsientos, RelacionesCalculoBalance, RevisionesAsientos, TiposCuentaContable |
 | [correo](correo.md) | AdjuntosMailDispatcher, AdjuntosMensajeCorreo, AdjuntosRecibidosCorreo, ConfiguracionCorreo, ConfiguracionMailDispatcher, CuentasCorreo, DestinatariosMensajeCorreo, EnviosCorreo, IntentosMensajeCorreo, LotesCorreo, MensajesCorreo, MensajesRecibidosCorreo, PlantillasCorreo, ProcesamientosMailDispatcher, RemitentesAutorizadosCorreo, TiposCorreo, TurnosCorreo |
 | [creative-lab](creative-lab.md) | Activos, ActivosInversiones, ConversacionesIA, CotizacionesInstrumentoFinanciero, CuentasActivo, DetallesLoteAmortizacionActivo, ImportacionesActivos, Inmuebles, InstrumentosFinancieros, LotesAmortizacionActivo, MensajesConversacionIA, OperacionesInversion, PlanesAmortizacionActivo, PlantillasCuentasActivo, TiposActivo |
 | [datos](datos.md) | LogMigracionesEsquema, VersionesEsquema |
