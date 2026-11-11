@@ -1,6 +1,5 @@
 ---
 title: Balances
-status: draft
 depends_on: [contabilidad/asientos, informes/reporting, informes/excel, plataforma/contenedor, datos/esquema]
 threads:
   - 2026-10-28 12:30 · Carga de requisitos | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GRNMH95h9tnQp4dmEPHmw1w
@@ -32,3 +31,4 @@ Hechos el balance de situación y la cuenta de pérdidas y ganancias del ejercic
 - 2026-11-11 14:23 · Estos dos informes aparecerán dentro del menú 'Informes'
 - 2026-11-11 14:31 · Ok, adelante con todo
 - 2026-11-11 16:35 · Ok a Completar el esquema
+- 2026-11-11 16:51 · im-presionante, cuadra al céntimo :-)
