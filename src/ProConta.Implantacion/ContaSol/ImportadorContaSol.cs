@@ -121,8 +121,20 @@ public sealed class ImportadorContaSol(IBaseDatos bd, IMotorAsientos motor, ICat
                 "Cada ejercicio se importa de una sola BD.", "Quita una de las dos de la lista.")));
 
         var conDestino = new List<PlanEjercicio>();
-        foreach (var plan in planes.OrderBy(p => p.Empresa.Codigo, StringComparer.Ordinal).ThenBy(p => p.Ejercicio))
+        foreach (var original in planes.OrderBy(p => p.Empresa.Codigo, StringComparer.Ordinal).ThenBy(p => p.Ejercicio))
+        {
+            // Los ejercicios antiguos de ContaSol pueden no tener el NIF de la empresa (2018–2020): se toma el de otro ejercicio de la misma empresa.
+            var plan = original;
+            if (plan.Empresa.Nif.Trim().Length == 0
+                && planes.Where(p => p.Empresa.Codigo == plan.Empresa.Codigo && p.Empresa.Nif.Trim().Length > 0).OrderByDescending(p => p.Ejercicio).FirstOrDefault() is { } conNif)
+                plan = plan with
+                {
+                    Origen = plan.Origen with { Empresa = plan.Empresa with { Nif = conNif.Empresa.Nif.Trim() } },
+                    Incidencias = [.. plan.Incidencias, new Incidencia(PlanificadorContaSol.FaseInspeccion, "F_EMP", plan.Empresa.Codigo, "NIFEMP", "ContaSol.EmpresaSinNif",
+                        Severidad.Informativa, $"La BD de {plan.Ejercicio} no tiene el NIF de la empresa: uso el de {conNif.Ejercicio}, {conNif.Empresa.Nif.Trim()}.")],
+                };
             conDestino.Add(plan with { Incidencias = [.. plan.Incidencias, .. await ComprobarDestinoAsync(plan)] });
+        }
         return Resultado<IReadOnlyList<PlanEjercicio>>.Correcto(conDestino);
     }
 
@@ -133,6 +145,10 @@ public sealed class ImportadorContaSol(IBaseDatos bd, IMotorAsientos motor, ICat
             var lista = new List<Incidencia>();
             var empresa = plan.Empresa;
             var cif = await s.ConsultarPrimeroAsync("SELECT CIF FROM Sociedades WHERE IdSociedad = ?", f => f.Texto("CIF") ?? "", empresa.Codigo);
+            if (cif is null && empresa.Nif.Trim().Length == 0)
+                lista.Add(new Incidencia("destino", "F_EMP", empresa.Codigo, "NIFEMP", "ContaSol.EmpresaSinNif", Severidad.Bloqueante,
+                    $"La empresa {empresa.Codigo} no existe en ProContaVF y la BD de ContaSol de {empresa.Ejercicio} no tiene su NIF, que hace falta para darla de alta. " +
+                    "Importa también un ejercicio que lo tenga (o escríbelo en los datos de la empresa en ContaSol)."));
             if (cif is not null && cif.Trim().Length > 0 && empresa.Nif.Trim().Length > 0
                 && PlanificadorContaSol.NormalizarNif(cif) != PlanificadorContaSol.NormalizarNif(empresa.Nif))
                 lista.Add(new Incidencia("destino", "F_EMP", empresa.Codigo, "NIFEMP", "ContaSol.EmpresaDistinta", Severidad.Bloqueante,
@@ -174,9 +190,13 @@ public sealed class ImportadorContaSol(IBaseDatos bd, IMotorAsientos motor, ICat
             if (plan.Incidencias.Any(i => i.Severidad == Severidad.Bloqueante && i.Fase == "destino"))
             {
                 resumenes.Add(new ResumenEjercicio(plan.Ejercicio, plan.Origen.Ruta, 0, EstadosImportacion.Fallida, 0, 0, 0, 0, 0, 0, 0, 0, plan.Incidencias));
+                progreso?.Report(new ProgresoImportacion(plan.Ejercicio, "fin", 1, 1, $"{plan.Ejercicio}: no se importa. " +
+                    string.Join(" ", plan.Incidencias.Where(i => i.Severidad == Severidad.Bloqueante && i.Fase == "destino").Select(i => i.Explicacion))));
                 continue;
             }
-            resumenes.Add(await new Ejecucion(this, plan, actor, progreso, cancelacion).ImportarAsync());
+            var resumen = await new Ejecucion(this, plan, actor, progreso, cancelacion).ImportarAsync();
+            resumenes.Add(resumen);
+            progreso?.Report(new ProgresoImportacion(plan.Ejercicio, "fin", 1, 1, $"{resumen.Estado} · {resumen.Texto}"));
             if (cancelacion.IsCancellationRequested) break;
         }
         return resumenes;
