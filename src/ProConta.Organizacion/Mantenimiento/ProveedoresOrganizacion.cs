@@ -92,9 +92,15 @@ public static class ProveedoresOrganizacion
             new("PoblacionFiscal", "Población") { Grupo = "ident", Longitud = 100 },
             new("ProvinciaFiscal", "Provincia") { Grupo = "ident", Longitud = 100 },
             .. Predeterminados(), .. Impuestos(), .. Cuentas(),
-            Ruta("RutaDocumentos", "Carpeta de documentos") with { Ayuda = "Raíz de los documentos de la empresa. Los PDF de las facturas van a <carpeta>\\<ejercicio>\\FacturasVenta\\<número>-<razón social>.pdf" },
+            Ruta("RutaDocumentos", "Carpeta de documentos") with
+            {
+                Ayuda = "Ruta base de los documentos de la empresa (en pruebas, por ejemplo, D:\\SynologyBox\\SynologyDrive). Los PDF de las facturas de venta van a " +
+                    "<carpeta>\\<ejercicio>\\FacturasVenta\\<número>-<razón social>.pdf y los de compra se buscan en <carpeta>\\<carpeta de facturas de compra del ejercicio>.",
+                Sinonimos = ["ruta base", "raiz", "pdf", "proveedores"],
+            },
+            // «Base de datos de facturas de venta» era del ERP y no la usa nada: no se muestra (propietario 2026-11-11 17:34).
             Ruta("RutaFacturasExportadas", "Carpeta de facturas exportadas"), Ruta("RutaFacturasDuplicadas", "Carpeta de facturas duplicadas"),
-            Ruta("BDFacturasVenta", "Base de datos de facturas de venta"), Ruta("BDERPGestion", "Base de datos del ERP de gestión"), Ruta("BDExportacion", "Base de datos de exportación"),
+            Ruta("BDERPGestion", "Base de datos del ERP de gestión"), Ruta("BDExportacion", "Base de datos de exportación"),
         ],
         [new("IdSociedad", "Código", 64), new("Nombre", "Nombre"), new("CIF", "CIF", 96)])
     {
@@ -148,7 +154,7 @@ public static class ProveedoresOrganizacion
             // (las columnas siguen en la BD hasta terminar la migración del ERP; propietario 2026-11-11 17:33).
             Ruta("CarpetaFacturasCompra", "Carpeta de facturas de compra") with
             {
-                Ayuda = "Dónde se buscan los PDF de compra de este ejercicio, dentro de la carpeta de documentos de la empresa (por ejemplo 2026\\Proveedores). " +
+                Ayuda = "Dónde se buscan los PDF de compra de este ejercicio, dentro de la carpeta de documentos de la empresa (Empresas › Carpeta de documentos, la ruta base), por ejemplo 2026\\Proveedores. " +
                     "Vacía: <año>\\Proveedores. Una ruta completa (con unidad) se usa tal cual.",
                 Sinonimos = ["proveedores", "pdf", "compras"],
             },
