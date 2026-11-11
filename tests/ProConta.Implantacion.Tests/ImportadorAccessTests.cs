@@ -100,6 +100,11 @@ public sealed class ImportadorAccessTests : IDisposable
         Assert.Equal(0, await ContarAsync("SELECT COUNT(*) FROM Asientos WHERE TotalDebe <> TotalHaber"));
         Assert.Equal(1, await ContarAsync("SELECT COUNT(*) FROM Asientos WHERE IdSociedadEjercicio = 9000 AND TipoAsiento = ?", (byte)TipoAsiento.Apertura));
 
+        // Carga masiva: textos con acentos, una revisión por asiento y un ALTA por apunte en el registro de cambios.
+        Assert.Equal(3, await ContarAsync("SELECT COUNT(*) FROM Apuntes WHERE Descripcion = 'Compra sintética'"));
+        Assert.Equal(5, await ContarAsync("SELECT COUNT(*) FROM RevisionesAsientos"));
+        Assert.Equal(await ContarAsync("SELECT COUNT(*) FROM Apuntes"), await ContarAsync("SELECT COUNT(*) FROM RegistroCambiosApuntes WHERE Operacion = 'ALTA'"));
+
         // Caché de saldos recalculada al final de la fase de asientos.
         Assert.Equal(1000, await ContarAsync("SELECT SaldoActual FROM CuentasContables WHERE IdSociedadEjercicio = 9000 AND Codigo = '5720001'"));
         Assert.Equal(-121, await ContarAsync("SELECT SaldoActual FROM CuentasContables WHERE IdSociedadEjercicio = 9000 AND Codigo = '4000001'"));
@@ -128,7 +133,9 @@ public sealed class ImportadorAccessTests : IDisposable
 
         // Repetir: nada cambia y no se duplica.
         var asientos = await ContarAsync("SELECT COUNT(*) FROM Asientos");
+        var idsAntes = await mapas.LeerAsync("T01", 2024, TiposMapa.Asiento);
         var segunda = await ImportarAsync(r2024, r2025);
+        Assert.Equal(idsAntes.OrderBy(m => m.Key), (await mapas.LeerAsync("T01", 2024, TiposMapa.Asiento)).OrderBy(m => m.Key));
         Assert.All(segunda, r => Assert.Equal(0, r.AsientosGrabados));
         Assert.Equal(5, segunda.Sum(r => r.AsientosSinCambios));
         Assert.Equal(asientos, await ContarAsync("SELECT COUNT(*) FROM Asientos"));
@@ -151,6 +158,8 @@ public sealed class ImportadorAccessTests : IDisposable
         Assert.Equal(242, await ContarAsync("SELECT SUM(TotalDebe) FROM Asientos WHERE TipoAsiento <> ?", (byte)TipoAsiento.Apertura));
         // El registro de IVA sigue (está en F_IVS) pero ya sin asiento.
         Assert.Equal(1, await ContarAsync("SELECT COUNT(*) FROM IVASoportado WHERE IdAsiento IS NULL"));
+        // Las bajas quedan en el registro de cambios: la venta cambiada y la compra que ya no está.
+        Assert.Equal(2, await ContarAsync("SELECT COUNT(*) FROM RegistroCambiosApuntes WHERE Operacion = 'BAJA' AND Campo = 'Asiento'"));
     }
 
     [Fact]
