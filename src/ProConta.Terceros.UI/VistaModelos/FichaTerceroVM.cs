@@ -173,6 +173,31 @@ public sealed class FichaTerceroVM : Observable, IPestanaTrabajo, INotifyDataErr
         CuentaProveedor.Cargar(await De(ClaseCuentaRol.Proveedor));
         CuentaAcreedor.Cargar(await De(ClaseCuentaRol.Acreedor));
         CuentaRetencion.Cargar(await De(ClaseCuentaRol.Retencion));
+        ActualizarMayor();
+    }
+
+    // ---------- pestaña Contabilidad: el Mayor embebido (contabilidad/mayor) ----------
+    private object? _mayor;
+    private string? _cuentasMayor;
+
+    /// <summary>Mayor de las cuentas del tercero (cliente, proveedor y acreedor): el mismo control que Contabilidad › Mayor, sin recientes.</summary>
+    public object? MayorContabilidad => _mayor;
+    public bool HayMayor => _mayor is not null;
+    public string TituloSinMayor => _modulo?.MayorEmbebido is null ? "El Mayor no está disponible aquí" : "Este tercero no tiene cuentas contables";
+    public string MensajeSinMayor => _modulo?.MayorEmbebido is null
+        ? "Abre la ficha desde el programa para ver el Mayor de sus cuentas."
+        : "Asígnale su cuenta de cliente, proveedor o acreedor en la pestaña Roles y guarda la ficha: aquí verás su mayor, todas juntas o una a una.";
+
+    /// <summary>Crea (o rehace si cambian sus cuentas) el Mayor embebido; sus datos se leen al abrir la pestaña.</summary>
+    private void ActualizarMayor()
+    {
+        if (_modulo?.MayorEmbebido is not { } crear) return;
+        var codigos = new[] { CuentaCliente, CuentaProveedor, CuentaAcreedor }.Select(c => c.Codigo).Where(c => c.Length > 0).Distinct().ToList();
+        var clave = string.Join("|", codigos);
+        if (clave == _cuentasMayor) return;
+        _cuentasMayor = clave;
+        _mayor = codigos.Count == 0 ? null : crear(codigos);
+        Avisar(nameof(MayorContabilidad), nameof(HayMayor), nameof(TituloSinMayor), nameof(MensajeSinMayor));
     }
 
     /// <summary>Rehace las partes editables a partir de la copia de trabajo.</summary>

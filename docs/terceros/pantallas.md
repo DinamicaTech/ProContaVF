@@ -7,7 +7,7 @@ threads:
   - 2026-11-01 09:55 · Desarrollar la pantalla de Terceros | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GVR2rh2hJF6h9BMYjKSu8jn
 ---
 ## Summary
-Buscador multicriterio y ficha de terceros en pestañas del contenedor, con sus diez pestañas en el orden de la maqueta (identidad, contacto, roles, perfiles, notas, historial y los huecos de otras áreas). Primera versión en `src/ProConta.Terceros.UI`, abierta desde «Datos maestros › Terceros»: buscador con filtros y coincidencia, ficha con barra de Guardar/Descartar al pie, errores en el campo y en el resumen, y huecos explícitos para Ventas, Compras, Contabilidad y Documentos hasta que lleguen sus áreas.
+Buscador multicriterio y ficha de terceros en pestañas del contenedor, con sus diez pestañas en el orden de la maqueta (identidad, contacto, roles, perfiles, notas, historial y los huecos de otras áreas). Primera versión en `src/ProConta.Terceros.UI`, abierta desde «Datos maestros › Terceros»: buscador con filtros y coincidencia, ficha con barra de Guardar/Descartar al pie, errores en el campo y en el resumen, y huecos explícitos para Ventas, Compras y Documentos hasta que lleguen sus áreas. La pestaña Contabilidad muestra el Mayor embebido de las cuentas del tercero (contabilidad/mayor).
 **Aceptación:** la de spec § 7; guardar un tercero no modifica una factura emitida.
 
 ## Decisions
@@ -31,6 +31,8 @@ Buscador multicriterio y ficha de terceros en pestañas del contenedor, con sus 
 - 2026-11-01 15:48 · Validado por el propietario (pantalla de Terceros y revisión 1).
 - 2026-11-10 20:05 · Hecho: el botón «Enviar email» de cada email de la ficha abre el compositor común con esa dirección (`ModuloTerceros.EnviarEmail`, que conecta el contenedor).
 
+- 2026-11-11 18:30 · La pestaña Contabilidad de la ficha muestra el Mayor embebido (el mismo control que Contabilidad › Mayor) con las cuentas de cliente, proveedor y acreedor del tercero, todas juntas o una a una, sin recientes ni selector; lo que sale de esas cuentas (contrapartidas, buscar una factura en todas las cuentas, «Abrir en el Mayor») se abre en la pestaña del Mayor. Sin cuentas asignadas, explica que se asignan en la pestaña Roles. El contenedor lo conecta con `ModuloTerceros.MayorEmbebido`; los datos se leen al abrir la pestaña (contabilidad/mayor 2026-11-11 18:30).
+
 ## Requirements
 - 2026-10-28 12:28 · From sources/01_ESPECIFICACION_FUNCIONAL.docx § 7 RF-TER-05, 09, 11, 15: comportamiento del domicilio, pastilla de destinatarios, búsqueda modal, pestaña Ventas
 - 2026-10-28 12:28 · From sources/01_ESPECIFICACION_FUNCIONAL.docx § 3 RF-ARQ-03: la pestaña aloja componentes del propietario
@@ -53,6 +55,8 @@ Buscador multicriterio y ficha de terceros en pestañas del contenedor, con sus 
 - 2026-11-01 12:49 · Los checks Envíos de facturas y Comunic. Administrativas ocupan dos líneas, cosa que hace que los labels de esa fila de campos estén separados de los campos, cosa que rompe la harmonía visual. Se puede poner perfectamente 'Env.Fact' y 'Com.Adm.' y poner el texto completo en el tooltip del label. Así cabe todo en una sola línea.
 - 2026-11-01 15:48 · Por lo demás, todo ok.
 - 2026-11-01 17:20 · Derived from terceros/roles: cuenta de retención del cliente en la pestaña Roles.
+
+- 2026-11-11 18:30 · Derived from contabilidad/mayor: la pestaña Contabilidad muestra el Mayor embebido, filtrado por las cuentas del tercero y sin panel de recientes; lo que sale de sus cuentas abre una pestaña del Mayor.
 
 ## Hand-over
 - 2026-11-01 10:46 · Hecho: buscador, ficha completa con sus diez pestañas, motores y pruebas (147 sin BD y 204 con Access, todas superadas), compilado en `C:\Docs\Codigo\ProContaVF-build` con la BD de prueba `capturas-terceros\prueba-terceros.accdb` (operador «capturas» sin contraseña) y capturas a 2560×1440 en la misma carpeta. Pendiente: validación del propietario (cuadros de mensaje, arrastre de perfiles y foco tras el CP, que solo se comprueban a mano); la BD real está en la versión 1 del esquema y necesita el ActualizadorEsquema (con `--origen-formas-pago`) antes de abrirla con esta versión; Ventas, Compras, Contabilidad y Documentos llegan con sus áreas.
