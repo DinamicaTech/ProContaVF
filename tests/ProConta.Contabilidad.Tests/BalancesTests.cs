@@ -209,7 +209,8 @@ public sealed class GeneradorBalancesAccessTests : IDisposable
         // En situación todo el grupo 6 y 7 va al resultado del ejercicio: Debe = Haber, así que el activo cuadra con el pasivo.
         Assert.Empty(situacion.SinClasificar);
         Assert.Equal(totales[0].Importe, totales[1].Importe);
-        Assert.Equal(870m, situacion.Filas.Where(f => f.Subtitulo == "VII. Resultado del ejercicio").Sum(f => f.Importe));
+        // El resultado en situación incluye también la 699, que pérdidas y ganancias no clasifica: 870 − 5.
+        Assert.Equal(865m, situacion.Filas.Where(f => f.Subtitulo == "VII. Resultado del ejercicio").Sum(f => f.Importe));
         Assert.Equal("572 Bancos", situacion.Filas.First(f => f.CuentaContable == "5720001").Cuenta);
     }
 }

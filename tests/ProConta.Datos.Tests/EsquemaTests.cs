@@ -306,8 +306,12 @@ public sealed class EsquemaAccessTests : IDisposable
         // Una BD hecha con la copia-estructura anterior las dejó vacías: la semilla deja exactamente lo de la maestra.
         await _copia.Bd().EjecutarAsync(async s =>
         {
-            foreach (var tabla in new[] { "RelacionesCalculoBalance", "ReglasCuentasBalance", "NodosBalance", "ModelosBalance" })
-                await s.EjecutarAsync($"DELETE FROM {tabla}");
+            await s.EjecutarAsync("DELETE FROM RelacionesCalculoBalance");
+            await s.EjecutarAsync("DELETE FROM ReglasCuentasBalance");
+            // NodosBalance se referencia a sí misma (IdNodoPadre): primero las hojas.
+            for (var nivel = 3; nivel >= 0; nivel--)
+                await s.EjecutarAsync("DELETE FROM NodosBalance WHERE Nivel = ?", (byte)nivel);
+            await s.EjecutarAsync("DELETE FROM ModelosBalance");
             return true;
         });
         Assert.False(await _copia.Bd().EjecutarAsync(s => SemillaBalances.HayModeloAsync(s)));

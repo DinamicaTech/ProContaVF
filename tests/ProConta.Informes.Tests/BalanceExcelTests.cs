@@ -93,7 +93,7 @@ public sealed class BalanceExcelTests : IDisposable
         var pivot = Parte(ruta, "pivotTables/pivotTable");
         var cache = Parte(ruta, "pivotCacheDefinition");
         var campos = cache.Descendants(X + "cacheField").ToList();
-        var indice = campos.FindIndex(c => (string)c.Attribute("name") == "Titulo");
+        var indice = campos.FindIndex(c => (string?)c.Attribute("name") == "Titulo");
         var compartidos = campos[indice].Element(X + "sharedItems")!.Elements().Select(e => (string)e.Attribute("v")!).ToList();
         var campoPivot = pivot.Descendants(X + "pivotField").ElementAt(indice);
         var orden = campoPivot.Element(X + "items")!.Elements(X + "item").Where(i => i.Attribute("x") is not null)
