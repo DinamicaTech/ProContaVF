@@ -286,4 +286,46 @@ public sealed class EsquemaAccessTests : IDisposable
         Assert.Contains("| SEPA | YESNO |", organizacion);
         Assert.False(File.Exists(Path.Combine(carpeta, "sin-dueno.md")), "Hay tablas de la maestra sin dueño funcional en DuenosTablas.");
     }
+
+    [Fact]
+    public async Task LaCopiaConservaElModeloDeBalancesYLaSemillaLoRecargaIgualSiEstaVacio()
+    {
+        // La copia de la maestra conserva el modelo (es un catálogo): la migración lo encuentra hecho.
+        var leer = () => _copia.Bd().EjecutarAsync(async s => (
+            Modelos: Convert.ToInt32(await s.EscalarAsync("SELECT COUNT(*) FROM ModelosBalance")),
+            Nodos: Convert.ToInt32(await s.EscalarAsync("SELECT COUNT(*) FROM NodosBalance")),
+            Reglas: Convert.ToInt32(await s.EscalarAsync("SELECT COUNT(*) FROM ReglasCuentasBalance")),
+            Firma: string.Join("|", await s.ConsultarAsync(
+                "SELECT r.PrefijoCuenta, r.Multiplicador, r.Prioridad, n.Codigo, n.Nombre FROM ReglasCuentasBalance AS r INNER JOIN NodosBalance AS n ON r.IdNodoBalance = n.IdNodoBalance ORDER BY n.Codigo, r.PrefijoCuenta",
+                f => $"{f.Texto("PrefijoCuenta")}:{f.Valor("Multiplicador")}:{f.Valor("Prioridad")}:{f.Texto("Codigo")}:{f.Texto("Nombre")}"))));
+        var maestra = await leer();
+        var completas = MigracionesContabilidad.ReglasBalancesContaSol.Length;
+        Assert.Equal((SemillaBalances.Modelos, SemillaBalances.Nodos, SemillaBalances.Reglas + completas), (maestra.Modelos, maestra.Nodos, maestra.Reglas));
+        Assert.True(await _copia.Bd().EjecutarAsync(s => SemillaBalances.HayModeloAsync(s)));
+
+        // Una BD hecha con la copia-estructura anterior las dejó vacías: la semilla deja exactamente lo de la maestra.
+        await _copia.Bd().EjecutarAsync(async s =>
+        {
+            await s.EjecutarAsync("DELETE FROM RelacionesCalculoBalance");
+            await s.EjecutarAsync("DELETE FROM ReglasCuentasBalance");
+            // NodosBalance se referencia a sí misma (IdNodoPadre): primero las hojas.
+            for (var nivel = 3; nivel >= 0; nivel--)
+                await s.EjecutarAsync("DELETE FROM NodosBalance WHERE Nivel = ?", (byte)nivel);
+            await s.EjecutarAsync("DELETE FROM ModelosBalance");
+            return true;
+        });
+        Assert.False(await _copia.Bd().EjecutarAsync(s => SemillaBalances.HayModeloAsync(s)));
+        var paso = MigracionesContabilidad.EsquemaBalances.Pasos.Single();
+        var reglas = MigracionesContabilidad.ReglasBalancesCompletas.Pasos.Single();
+        await _copia.Bd().EnTransaccionAsync(async s => { await paso.AplicarAsync(s, ContextoMigracion.Vacio); return true; });
+        Assert.Equal((SemillaBalances.Modelos, SemillaBalances.Nodos, SemillaBalances.Reglas), ((await leer()).Modelos, (await leer()).Nodos, (await leer()).Reglas));
+        Assert.True(await _copia.Bd().EjecutarAsync(s => paso.YaAplicadoAsync(s, s.LeerEsquema())));
+        Assert.False(await _copia.Bd().EjecutarAsync(s => reglas.YaAplicadoAsync(s, s.LeerEsquema())));
+
+        // Las reglas de las cuentas de ContaSol se añaden una vez: repetir el paso no duplica nada.
+        for (var i = 0; i < 2; i++)
+            await _copia.Bd().EnTransaccionAsync(async s => { await reglas.AplicarAsync(s, ContextoMigracion.Vacio); return true; });
+        Assert.Equal(maestra, await leer());
+        Assert.True(await _copia.Bd().EjecutarAsync(s => reglas.YaAplicadoAsync(s, s.LeerEsquema())));
+    }
 }

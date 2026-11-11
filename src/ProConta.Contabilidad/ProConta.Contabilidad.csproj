@@ -11,4 +11,7 @@
     <ProjectReference Include="..\ProConta.Datos.Persistencia\ProConta.Datos.Persistencia.csproj" />
     <ProjectReference Include="..\ProConta.Organizacion\ProConta.Organizacion.csproj" />
   </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="ProConta.Contabilidad.Tests" />
+  </ItemGroup>
 </Project>

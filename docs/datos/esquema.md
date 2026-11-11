@@ -7,6 +7,7 @@ threads:
   - 2026-10-31 18:40 · Desarrollos base | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GPQZwFm28U4vq3sQdopN45C
   - 2026-11-01 10:46 · Desarrollar la pantalla de Terceros | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GVR2rh2hJF6h9BMYjKSu8jn
   - 2026-11-05 11:24 · Construir facturas de compra | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GEbtcX2Z7baM2yhwHY2wJXj
+  - 2026-11-11 15:00 · Generar balances en Excel | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GRuPaDaEwyqkxbhZeBADiWX
 ---
 ## Summary
 Único dueño del DDL: versiona la maestra, actualiza instalaciones en producción con respaldo y diagnóstico, y publica el diccionario de datos (tablas, campos, tipos, longitudes, índices, relaciones y dueño funcional de cada tabla) que leen los demás nodos. Cada área pide aquí sus cambios de estructura con una línea "Derived from".
@@ -60,6 +61,8 @@ Código: `src/ProConta.Datos.Esquema` (diagnóstico, migraciones idempotentes, a
 - 2026-11-11 11:00 · Hecho: migración `20261111_1100_CORREO_RECEPCION` (versión 34 del esquema), pedida por correo/recepcion: MensajesRecibidosCorreo, AdjuntosRecibidosCorreo y RemitentesAutorizadosCorreo.
 
 - 2026-11-11 11:35 · Versión 35 = `20261111_1300_LIBRO_IVA_REPERCUTIDO` (orden 261111002, de facturacion/factura-venta): IVARepercutido.IdFactura (LONG) con el índice IX_IVAR_Factura, para enlazar cada registro del libro con su factura, también los del ERP sin asiento de ProContaVF. Solo estructura, sin datos.
+- 2026-11-11 15:00 · Migración 20261111_1430_ESQUEMA_BALANCES_PGC_PYMES_2008 (pedida por contabilidad/balances): si ModelosBalance, NodosBalance y ReglasCuentasBalance están vacías, carga el modelo PGC Pymes 2008 exactamente como está en la maestra, con sus identificadores (semillas incrustadas en `src/ProConta.Datos.Esquema/Semillas/*.tsv`); si ya tienen datos, no toca nada. La copia-estructura conserva desde ahora esas tablas y RelacionesCalculoBalance, porque son un catálogo normativo sin datos de negocio.
+- 2026-11-11 15:40 · Migración 20261111_1540_REGLAS_BALANCES_CONTASOL (pedida por contabilidad/balances): añade al modelo PGC Pymes 2008 las reglas de las cuentas de ContaSol que no clasificaba, buscando el nodo por su código; las que ya estén (por prefijo y modelo) no se tocan.
 
 ## Requirements
 - 2026-10-28 12:28 · es importante que haya un nodo especializado en mantener la estructura de la base de datos para poder actualizar el modelo cuando se actualice una instalación en producción, por lo tanto, cualquier nodo que quiera modificar la estructura de la Base de Datos ha de comunicarlo o pasar a través del nodo de mantenimiento de estructura de BD.
@@ -94,6 +97,7 @@ Código: `src/ProConta.Datos.Esquema` (diagnóstico, migraciones idempotentes, a
 - 2026-11-06 13:42 · Derived from compras: tabla TiposRetencion para el desplegable de retención de las facturas recibidas y producto por defecto del proveedor (CuentasProveedoresSociedad.TipoProductoDefecto).
 
 - 2026-11-11 11:35 · Derived from facturacion/factura-venta/contabilizacion: enlazar cada registro del libro de IVA repercutido con su factura de venta (IVARepercutido.IdFactura, con índice).
+- 2026-11-11 15:00 · Derived from contabilidad/balances: cargar el modelo PGC Pymes 2008 de los balances en las BD que lo tienen vacío y conservarlo en la copia-estructura.
 ## Hand-over
 - 2026-11-01 09:30 · Hecho: diagnóstico, actualizador con copia verificada, comprobación previa y parámetros, registro de intentos, migraciones idempotentes (catálogo en la versión 7), diccionario en `diccionario/`, copia sin datos y la maestra 0.24 del desarrollo anterior registrada como referencia estructural. Pendiente: «crear la maestra desde cero» se cubre con `copia-estructura` (estructura de la versión 1 sin datos), no con DDL desde cero; script de instalación en el servidor (plataforma/entrega); descripciones de campo que faltan en la maestra actual (se pueden tomar de la referencia 0.24).
 - 2026-11-10 19:40 · Derived from correo/envio: tablas CuentasCorreo, LotesCorreo, MensajesCorreo, DestinatariosMensajeCorreo, AdjuntosMensajeCorreo, IntentosMensajeCorreo y TurnosCorreo, y la columna Configuracion.CorreoDesviarA.

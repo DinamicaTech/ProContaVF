@@ -20,6 +20,7 @@ using ProConta.Facturacion.Conceptos;
 using ProConta.Facturacion.Documentos;
 using ProConta.Facturacion.Facturas;
 using ProConta.Informes;
+using ProConta.Informes.Excel;
 using ProConta.Facturacion.Programadas;
 using ProConta.Facturacion.Mantenimiento;
 using ProConta.Facturacion.UI.VistaModelos;
@@ -196,6 +197,11 @@ public partial class VentanaPrincipal : Window
         var abrirRecibidas = new ComandoDelegado(_compras.AbrirRecibidas);
         var abrirContaSol = new ComandoDelegado(AbrirImportacionContaSol);
         var abrirCorreo = new ComandoDelegado(() => _correo.AbrirRegistro());
+        // Informes (contabilidad/balances e informes/excel): cada opción genera el libro Excel con su tabla dinámica y lo abre.
+        _balances = new ProConta.Contabilidad.Balances.GeneradorBalances(bd);
+        _razonSocial = contexto.RazonSocial;
+        var balanceSituacion = new ComandoDelegado(() => _ = GenerarBalanceAsync(ProConta.Contabilidad.Balances.TipoBalance.Situacion));
+        var balancePyG = new ComandoDelegado(() => _ = GenerarBalanceAsync(ProConta.Contabilidad.Balances.TipoBalance.PerdidasYGanancias));
         Navegacion.ItemsSource = new[]
         {
             new OpcionNavegacion("Inicio", Icono("layout"), true, false, "Página de inicio", irAInicio),
@@ -212,7 +218,13 @@ public partial class VentanaPrincipal : Window
             new OpcionNavegacion("Contabilidad", Icono("book"), false, false, proxima),
             new OpcionNavegacion("Bancos", Icono("bank"), false, false, proxima),
             new OpcionNavegacion("Nóminas", Icono("coin"), false, false, proxima),
-            new OpcionNavegacion("Informes", Icono("xls"), false, false, proxima),
+            new OpcionNavegacion("Informes", Icono("xls"), true, false, "Informes del ejercicio de trabajo en Excel, con tabla dinámica", balanceSituacion),
+            new OpcionNavegacion("Balance de situación", null, true, false,
+                "Genera en Excel el balance de situación del ejercicio de trabajo (PGC Pymes 2008): tabla dinámica por bloque, apartado, título, cuenta y subcuenta, con los meses en columnas y filtros por centro de coste y departamento, y lo abre",
+                balanceSituacion, EsHija: true),
+            new OpcionNavegacion("Pérdidas y ganancias", null, true, false,
+                "Genera en Excel la cuenta de pérdidas y ganancias del ejercicio de trabajo (PGC Pymes 2008), sin la regularización ni el cierre: tabla dinámica por apartado, título, cuenta y subcuenta, con los meses en columnas y filtros por centro de coste y departamento, y la abre",
+                balancePyG, EsHija: true),
             new OpcionNavegacion("Configuración", Icono("gear"), true, false, "Parámetros y tablas: empresas, ejercicios, series, conceptos, formas de pago…", abrirParametros),
             new OpcionNavegacion("Parámetros y tablas", null, true, false, "Mantenimiento de las tablas y los parámetros de la aplicación, con buscador", abrirParametros, EsHija: true),
             new OpcionNavegacion("Importar ContaSol", null, true, false, "Importa la contabilidad de ContaSol por ejercicios (una BD por ejercicio), con simulación previa", abrirContaSol, EsHija: true),
@@ -380,6 +392,51 @@ public partial class VentanaPrincipal : Window
             TextoDatos.ToolTip = $"{TextoDatos.ToolTip}{Environment.NewLine}Correo de pruebas: todo lo que se envía sale solo a {desvio} (Parámetros y tablas › Configuración general).";
         }
         catch (Exception) { /* sin la columna o sin configuración: no hay desvío que avisar */ }
+    }
+
+    private readonly ProConta.Contabilidad.Balances.GeneradorBalances _balances;
+    private readonly string _razonSocial;
+    private bool _generandoBalance;
+
+    /// <summary>
+    /// Genera el balance del ejercicio de trabajo, lo guarda en Documentos\ProContaVF\Informes y lo abre con Excel. En la barra de
+    /// estado dice los totales (activo y patrimonio neto y pasivo, o el resultado) y si hay cuentas sin clasificar.
+    /// </summary>
+    private async Task GenerarBalanceAsync(ProConta.Contabilidad.Balances.TipoBalance tipo)
+    {
+        if (_generandoBalance) { Avisar("Ya estoy generando un balance: espera a que se abra en Excel."); return; }
+        _generandoBalance = true;
+        var nombre = tipo == ProConta.Contabilidad.Balances.TipoBalance.Situacion ? "balance de situación" : "balance de pérdidas y ganancias";
+        Avisar($"Generando el {nombre} del ejercicio {_ejercicioTrabajo.Ejercicio}…");
+        var anterior = Cursor;
+        Cursor = Cursors.Wait;
+        try
+        {
+            var balance = await Task.Run(() => _balances.GenerarAsync(tipo, _ejercicioTrabajo, _razonSocial));
+            var carpeta = System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "ProContaVF", "Informes");
+            System.IO.Directory.CreateDirectory(carpeta);
+            var ruta = System.IO.Path.Combine(carpeta, ExportadorBalanceExcel.NombreFichero(tipo, _ejercicioTrabajo.Ejercicio, DateTime.Now));
+            await Task.Run(() => ExportadorBalanceExcel.Exportar(balance, ruta));
+            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(ruta) { UseShellExecute = true });
+            var es = System.Globalization.CultureInfo.GetCultureInfo("es-ES");
+            var totales = tipo == ProConta.Contabilidad.Balances.TipoBalance.Situacion
+                ? string.Join(" · ", balance.TotalesPorBloque.Select(t => $"{t.Bloque.ToLower(es)} {t.Importe.ToString("N2", es)} €"))
+                : $"resultado {balance.Total.ToString("N2", es)} €";
+            var sin = balance.SinClasificar.Count == 0 ? "" :
+                $" · {balance.SinClasificar.Count} cuentas sin clasificar ({string.Join(", ", balance.SinClasificar.Take(5).Select(c => c.Cuenta))}{(balance.SinClasificar.Count > 5 ? "…" : "")}): mira la hoja SinClasificar";
+            Avisar($"{char.ToUpper(nombre[0], es)}{nombre[1..]} {_ejercicioTrabajo.Ejercicio} abierto en Excel: {totales}{sin}.");
+        }
+        catch (Exception ex)
+        {
+            ServicioMensajes.Preguntar(this, $"No he podido generar el {nombre}", ex.Message,
+                ex is InvalidOperationException ? null : [$"Detalle técnico: {ex.GetType().Name}"],
+                new OpcionMensaje("Cerrar", "Vuelve a la pantalla anterior", Principal: true, Cancelar: true));
+        }
+        finally
+        {
+            Cursor = anterior;
+            _generandoBalance = false;
+        }
     }
 
     private void Avisar(string texto)

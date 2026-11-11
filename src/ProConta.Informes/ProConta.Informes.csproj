@@ -1,5 +1,5 @@
 <Project Sdk="Microsoft.NET.Sdk">
-  <!-- Motor de informes (docs/informes/reporting.md): de momento, el PDF de factura con FastReport de código abierto (MIT). -->
+  <!-- Motor de informes (docs/informes/reporting.md): el PDF de factura con FastReport de código abierto (MIT) y los informes en tablas dinámicas Excel con ClosedXML (MIT, docs/informes/excel.md). -->
   <PropertyGroup>
     <OutputType>Library</OutputType>
     <RootNamespace>ProConta.Informes</RootNamespace>
@@ -9,6 +9,10 @@
   <ItemGroup>
     <PackageReference Include="FastReport.OpenSource" Version="2026.2.3" />
     <PackageReference Include="FastReport.OpenSource.Export.PdfSimple" Version="2026.2.3" />
+    <PackageReference Include="ClosedXML" Version="0.105.0" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\ProConta.Contabilidad\ProConta.Contabilidad.csproj" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="Plantillas\*.frx" CopyToOutputDirectory="PreserveNewest" />

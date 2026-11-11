@@ -11,6 +11,9 @@
     <ProjectReference Include="..\ProConta.Datos.Persistencia\ProConta.Datos.Persistencia.csproj" />
   </ItemGroup>
   <ItemGroup>
+    <EmbeddedResource Include="Semillas\*.tsv" LogicalName="ProConta.Datos.Esquema.Semillas.%(Filename).tsv" />
+  </ItemGroup>
+  <ItemGroup>
     <InternalsVisibleTo Include="ProConta.Datos.Tests" />
   </ItemGroup>
 </Project>
