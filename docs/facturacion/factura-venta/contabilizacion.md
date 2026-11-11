@@ -1,15 +1,16 @@
 ---
 title: Contabilización de ventas
-depends_on: [facturacion/factura-venta, contabilidad/asientos, contabilidad/cuenta-contable]
+depends_on: [facturacion/factura-venta, contabilidad/asientos, contabilidad/cuenta-contable, contabilidad/modelos-tributarios, implantacion/migracion-erp]
 threads:
   - 2026-10-28 12:30 · Carga de requisitos | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GRNMH95h9tnQp4dmEPHmw1w
   - 2026-10-31 16:58 · Cerrar preguntas pendientes del proyecto | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5G7UyrP5eDJV4Ds6CCBozdbu
   - 2026-11-01 17:20 · Construir facturación de venta | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GCSSp6rAPiW3SbbKR5GnpnG
   - 2026-11-08 11:45 · Cambiar descripción de apuntes de venta | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5G72aNafeb6miixV2TqqwfNs
+  - 2026-11-11 11:35 · Implementar libro de IVA repercutido | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GUYWz9tKX16quFPFB5dJb9B
 ---
 ## Summary
-Genera los asientos de las facturas de venta con el motor de contabilidad/asientos, reparte el IVA por la 477 de la actividad de cada línea y deshace la exportación borrando el asiento o, en un trimestre cerrado, con contra-asiento; la lógica de contabilización vive aquí, no en contabilidad. Código: `ContabilizadorVentas` y `AsientoVenta` (src/ProConta.Facturacion/Facturas/ContabilizacionVentas.cs).
-**Aceptación:** factura validada genera su asiento cuadrado; regenerar no duplica; deshacer deja la factura sin asiento y se puede volver a contabilizar.
+Genera los asientos de las facturas de venta con el motor de contabilidad/asientos y, en la misma transacción, su registro del libro de IVA repercutido (IVARepercutido y DesglosesIVARepercutido, desglosado por tipo y por la 477 de la actividad de cada línea, también las exentas, para la prorrata); deshace la exportación borrando asiento y registro o, en un trimestre cerrado, con contra-asiento y registro de anulación; la lógica de contabilización vive aquí, no en contabilidad. Código: `ContabilizadorVentas` y `AsientoVenta` (src/ProConta.Facturacion/Facturas/ContabilizacionVentas.cs).
+**Aceptación:** factura validada genera su asiento cuadrado y su registro del libro, cuyo desglose suma su cabecera y cuadra con los apuntes de IVA; regenerar no duplica ni asiento ni registro; deshacer deja la factura sin asiento y se puede volver a contabilizar.
 
 ## Decisions
 - 2026-10-28 13:30 · Creado en la carga inicial de requisitos.
@@ -31,6 +32,12 @@ Genera los asientos de las facturas de venta con el motor de contabilidad/asient
 - 2026-11-08 12:00 · Recargo de equivalencia: fuera de esta versión (propietario 2026-11-08 12:00). El editor no permite ponerlo y la sociedad, por ser una SL, no está en ese régimen. El rechazo al validar una línea con recargo se mantiene como protección para datos que lleguen del ERP.
 - 2026-11-08 12:02 · Validado por el propietario (descripciones, 477 por actividad, deshacer la exportación y modificar validadas, PR #28).
 
+- 2026-11-11 11:35 · Libro de IVA repercutido (propietario 2026-11-08 12:04): al contabilizar, en la misma transacción que el asiento, se graba un registro en IVARepercutido (con IdFactura e IdAsiento, Estado REGISTRADO, tipo de operación REPERCUTIDO_0, cliente, NIF y país congelados, total de la factura, base sin suplidos, cuota y recargo) y su desglose en DesglosesIVARepercutido: una fila por régimen, calificación, tipo de IVA y 477 de la actividad de las líneas no suplidas. Las exentas también tienen fila, con su base y la 477 del 0 % de su actividad (4776001, 4777001…, que se crea si falta), aunque no lleven apunte. Calificación: S1, S2, N1 o N2; en una exenta, su causa (E1 a E6), como el importador de ContaSol. Rectificativas en negativo. Incluido en el 347 si no lleva retención, como en compras y en el ERP. Regenerar sustituye el registro; deshacer en el trimestre activo o posterior lo borra con el asiento; en un trimestre cerrado, el contra-asiento lleva el registro de anulación (Estado ANULACION, en negativo, en el trimestre de su fecha). Si el asiento anulado no tiene registro (anterior a este cambio, o del ERP sin enlazar), el contra-asiento tampoco lo lleva; el del ERP se busca por IdAsiento, IdFactura o número.
+- 2026-11-11 11:35 · Periodo de IVA (propietario 2026-11-11, punto 1a): el registro va al trimestre de la fecha de su asiento, como en compras. Una factura de un trimestre ya cerrado queda en el libro del trimestre activo con su fecha real; se avisa al operador al contabilizar desde el listado, se anota en su historial y en la descripción del registro, para que el gestor decida si hace falta una complementaria. Diferencia con compras: el IVA de una venta se declara en el periodo de devengo, así que el 303 debe señalar estos registros.
+- 2026-11-11 11:35 · Diferencias con el libro de compras: varias actividades por factura (una fila por 477, porque en ventas el centro va por línea); fila también para las exentas, que son las que necesita la prorrata; sin deducibilidad ni bien de inversión; las rectificativas van en negativo aunque el asiento cambie de lado; la autorrepercusión de intracomunitarias e inversión del sujeto pasivo sigue en el libro de compras, sin factura ficticia.
+- 2026-11-11 11:35 · Una factura de un año anterior al de su ejercicio no se contabiliza (propietario 2026-11-11, punto 3a): el error explica que las del ERP ya tienen su asiento en la contabilidad de ese año y que, si de verdad falta, se contabiliza desde el ejercicio de su fecha.
+- 2026-11-11 11:35 · Facturas con asiento y sin registro: en los datos reales del ERP (copia de ProcontaEstructura del 2026-11-10) no hay ninguna en 2026; solo las validadas con ProContaVF antes de este cambio, que son de pruebas porque ProContaVF aún no se usa en real. No se construye nada para ellas: las facturas del ERP llegan con su asiento y su registro enlazados por la migración, y las posteriores al 01/10/2026 se contabilizan en ProContaVF con su registro (propietario 2026-11-11 12:15, revisión del detalle de incidencias).
+- 2026-11-11 12:16 · Validado por el propietario (libro de IVA repercutido, PR #33).
 ## Requirements
 - 2026-10-28 13:14 · Q5) b) La lógica de contabilización está dentro del propio nodo (FacturasCompra, FacturasVenta, etc.). Ya tenemos un motor para gestionar Asientos, por lo que mejor conectar este motor directamente cada nodo que ha de generar asientos
 - 2026-10-28 12:28 · draft: Contabilizar las facturas de venta emitidas mediante el motor de contabilidad/asientos.
@@ -62,5 +69,20 @@ Genera los asientos de las facturas de venta con el motor de contabilidad/asient
 - 2026-11-08 11:58 · Ok a generar un nuevo hilo para el libro de IVA repercutido
 - 2026-11-08 12:00 · Ok a 'fuera de esta versión' para el recargo de equivalencia.
 
+- 2026-11-08 12:04 · Implementar el libro de IVA repercutido de las facturas de venta (tablas IVARepercutido y DesglosesIVARepercutido), en la misma transacción que el asiento:
+- 2026-11-08 12:04 · Un registro por factura contabilizada, con su desglose por tipo de IVA y por la cuenta 477 de cada actividad (4778021, 4777021...), para poder calcular la prorrata por actividad.
+- 2026-11-08 12:04 · Regenerar el asiento sustituye el registro, sin duplicarlo.
+- 2026-11-08 12:04 · Deshacer la exportación borra el registro si el asiento es del trimestre activo o posterior. Si es de un trimestre cerrado, el contra-asiento lleva su registro de anulación.
+- 2026-11-08 12:04 · Tomar como referencia el libro de IVA soportado de compras (periodo de IVA, anulación con contra-asiento) y señalar en qué debe diferir.
+- 2026-11-08 12:04 · Resolver qué pasa con las facturas que ya tienen asiento pero no registro en el libro.
+- 2026-11-08 12:04 · Primero envíame el desglose, con el impacto en los modelos 303 y 390 y en la prorrata, y espera mi confirmación.
+- 2026-11-11 11:16 · 1. a
+- 2026-11-11 11:16 · answer: venta con fecha de un trimestre cerrado → (a) al libro del trimestre activo, con su fecha real, aviso al operador y señalada en el 303
+- 2026-11-11 11:16 · 2. Si me das un detalle de las incidencias del 2026, las reviso primero una por una. Ten en cuenta que he actualizado ProcontaEstructura a la fecha más reciente para tener datos actuales.
+- 2026-11-11 11:16 · 3. a
+- 2026-11-11 11:16 · answer: facturas de años anteriores a su ejercicio → (a) no se contabilizan, con un error que lo explica
+- 2026-11-11 11:16 · 4. PR #12 ya debería estar cerrado
+
+- 2026-11-11 12:16 · Ok al PR
 ## Hand-over
-- 2026-11-08 11:45 · Pendiente en este nodo: el libro de IVA repercutido (IVARepercutido y DesglosesIVARepercutido), que debe recoger las 477 por actividad y anularse al deshacer; irá en un hilo aparte.
+- 2026-11-11 12:20 · Hecho: libro de IVA repercutido al contabilizar, regenerar y deshacer, y bloqueo de las facturas de años anteriores. Las respuestas del propietario al detalle de incidencias de 2026 (C:\Docs\ProContaVF-validacion\incidencias-ventas-2026.csv, fuera del repositorio porque lleva datos reales) están en implantacion/migracion-erp. Nada pendiente en este nodo.

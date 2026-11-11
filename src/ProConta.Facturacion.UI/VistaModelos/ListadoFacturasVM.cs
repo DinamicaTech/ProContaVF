@@ -503,14 +503,20 @@ public sealed class ListadoFacturasVM : ModeloVista, IPestanaTrabajo
         var pendientes = Ambito.Where(f => f.SinAsiento).ToList();
         var correctas = new List<string>();
         var problemas = new List<string>();
+        var avisos = new List<string>();
         foreach (var f in pendientes)
         {
-            var r = await _s.Facturas.ContabilizarAsync(f.Datos.IdFactura, _s.Actor);
+            var r = await _s.Facturas.ContabilizarAsync(f.Datos.IdFactura, _s.Actor, aviso => avisos.Add($"{f.Numero}: {aviso}"));
             if (r.EsCorrecto) correctas.Add(f.Numero);
             else problemas.Add($"{f.Numero}: {string.Join(" ", r.Errores.Select(e => e.Mensaje + (e.AccionCorrectora is { } a ? " " + a : "")))}");
         }
         await CargarAsync(_activa?.Datos.IdFactura);
         Informar($"{Formatos.Plural(correctas.Count, "factura contabilizada", "facturas contabilizadas")}", correctas, problemas);
+        // Decisión del propietario del 2026-11-11 (1a): la de un trimestre cerrado va al libro del activo, y se avisa.
+        if (avisos.Count > 0)
+            _modulo.Dialogos.Preguntar("Facturas de un trimestre cerrado",
+                "Están contabilizadas, pero su registro del libro de IVA va al trimestre activo, porque el suyo ya está cerrado:", avisos,
+                new OpcionMensaje("Entendido", "Cierra el aviso", Principal: true, Cancelar: true));
     }
 
     private void Informar(string titulo, List<string> correctas, List<string> problemas)

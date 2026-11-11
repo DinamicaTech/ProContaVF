@@ -514,13 +514,14 @@ public sealed class ServicioFacturas
         return new ResultadoValidacion(final, incidencias, errorAsiento);
     }
 
-    /// <summary>Vuelve a generar el asiento de una factura validada (por ejemplo, tras corregir una cuenta). No duplica.</summary>
-    public async Task<Resultado<int>> ContabilizarAsync(int idFactura, Actor actor)
+    /// <summary>Vuelve a generar el asiento de una factura validada (por ejemplo, tras corregir una cuenta), con su registro del libro de IVA. No duplica.</summary>
+    /// <param name="avisar">Recibe el aviso de una factura de un trimestre cerrado, que va al libro del trimestre activo.</param>
+    public async Task<Resultado<int>> ContabilizarAsync(int idFactura, Actor actor, Action<string>? avisar = null)
     {
         if (!await _autorizador.PuedeAsync(Acciones.FacturasValidar)) return SinPermiso<int>("contabilizar facturas", FacturaVenta.RotuloBorrador(idFactura));
         var f = await ObtenerAsync(idFactura);
         if (f is null) return Resultado<int>.Fallo(new Error("Facturas.NoExiste", "La factura ya no existe.", FacturaVenta.RotuloBorrador(idFactura)));
-        return await _contabilizador.ContabilizarAsync(f, actor);
+        return await _contabilizador.ContabilizarAsync(f, actor, avisar: avisar);
     }
 
     // ---------- duplicar y rectificar ----------
