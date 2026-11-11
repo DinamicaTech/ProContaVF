@@ -1,6 +1,5 @@
 ---
 title: Factura de compra
-status: draft
 depends_on: [datos/esquema, datos/persistencia, nucleo, terceros/tercero]
 threads:
   - 2026-10-28 12:30 · Carga de requisitos | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GRNMH95h9tnQp4dmEPHmw1w
@@ -22,6 +21,7 @@ Ente FacturaCompra con sus desgloses: inserción atómica, MD5 compatible del PD
 - 2026-11-05 18:00 · Datos que edita la pantalla, en las columnas que ya tenía FacturasCompra: tipo de operación (TipoOperacion: 0 nacional, 1 intracomunitaria, 2 importación), tipo de producto (TipoProducto: 1 servicios, 2 bienes), clase de retención (TipoRetencion: 1 profesionales, 2 arrendamientos; los códigos se han deducido de los datos del ERP), suplido, cuenta de gasto (ConceptoGasto), forma de pago (CuentaFormaPago) y notas (NotasFactura); el centro de coste va en la columna nueva IdCentroCoste (versión 18). Una factura cuadra si base + IVA − retención + suplido = total, y está lista con proveedor, número, fecha e importes que cuadran.
 - 2026-11-05 18:00 · Guardar desde la pantalla solo vale para facturas sin contabilizar y comprueba la versión: si otro operador la cambió mientras tanto, no se pisa y se le pide actualizar. Los desgloses se sustituyen enteros en la misma transacción. Una factura lista deja de pedir revisión.
 - 2026-11-06 19:59 · Textos clave de compras (versión 25 del esquema, ver datos/esquema): tabla TextosClaveCompra por empresa (texto único por empresa, identidad contable de la cuenta de gasto y centro de coste, cada uno opcional, al menos uno). Los escribe solo CatalogoTextosClaveCompra; las reglas de coincidencia son ReglasTextosClave. La cuenta y el centro por defecto del proveedor van en CuentasProveedoresSociedad.IdIdentidadGastoDefecto e IdCentroCosteDefecto (ver terceros/roles).
+- 2026-11-11 17:37 · Validado por el propietario (PR #19 a #27 fusionadas; compras cerrado el 2026-11-08): el nodo pasa a estable.
 
 ## Requirements
 - 2026-10-28 12:28 · Y, por supuesto, hay que encapsular los diferentes 'entes' que aparecen en el proyecto (CuentaContable, Tercero -> Cliente/Proveedor/Asociacion/Particular..., FacturaCompra, FacturaVenta, etc.).
