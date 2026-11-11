@@ -1,3 +1,5 @@
+using ProConta.Datos.Persistencia;
+
 namespace ProConta.Datos.Esquema.Migraciones;
 
 /// <summary>Migraciones pedidas por los nodos de contabilidad (docs/datos/esquema.md, Requirements).</summary>
@@ -51,6 +53,83 @@ public static class MigracionesContabilidad
             "CREATE UNIQUE INDEX UX_Actividades_SociedadCodigo ON Actividades (IdSociedad, Codigo)"),
         new AnadirColumna("CentrosCoste", "IdActividad", "LONG"),
         RelacionActividad());
+
+    /// <summary>
+    /// Modelo PGC Pymes 2008 de los balances (contabilidad/balances 2026-11-11): la maestra lo trae en ModelosBalance, NodosBalance
+    /// y ReglasCuentasBalance (lo sembró la migración heredada 20260822_001_BALANCES_PGC_PYMES_2008), pero las BD hechas con
+    /// copia-estructura antes de esta versión las dejaron vacías. Si las tres tablas están vacías, carga la misma semilla que la
+    /// maestra, con sus mismos identificadores (Semillas/*.tsv); si ya tienen datos no toca nada.
+    /// </summary>
+    public static Migracion EsquemaBalances { get; } = new(
+        "20261111_1430_ESQUEMA_BALANCES_PGC_PYMES_2008", 261111010,
+        "Modelo PGC Pymes 2008 de los balances de situación y de pérdidas y ganancias, si las tablas de balances están vacías.",
+        "contabilidad/balances",
+        new PasoPersonalizado(
+            "Cargar el modelo PGC Pymes 2008 de los balances",
+            "INSERT INTO ModelosBalance, NodosBalance, ReglasCuentasBalance <- Semillas (2 modelos, 89 nodos, 139 reglas de la maestra) si las tres están vacías; " +
+            SemillaBalances.Huella,
+            async (s, _) => await SemillaBalances.HayModeloAsync(s),
+            async (s, _) => await SemillaBalances.CargarAsync(s)));
+
+    /// <summary>
+    /// Cuentas con apuntes en la contabilidad importada de ContaSol (2018–2026) que el modelo PGC Pymes 2008 de la maestra no
+    /// clasificaba (contabilidad/balances 2026-11-11): su sitio según el modelo oficial. En situación, además, todo el grupo 6
+    /// y 7 va al resultado del ejercicio con la prioridad más baja, como las cuentas 6 y 7 que ya estaban una a una.
+    /// </summary>
+    internal static readonly (string Modelo, string Nodo, string Prefijo, short Multiplicador)[] ReglasBalancesContaSol =
+    [
+        ("PGC_PYMES_2008_SITUACION", "ACT.A.2.002", "211", 1),
+        ("PGC_PYMES_2008_SITUACION", "ACT.A.4.004", "240", 1),
+        ("PGC_PYMES_2008_SITUACION", "ACT.B.4.015", "542", 1),
+        ("PGC_PYMES_2008_SITUACION", "ACT.B.4.015", "545", 1),
+        ("PGC_PYMES_2008_SITUACION", "ACT.B.4.015", "552", 1),
+        ("PGC_PYMES_2008_SITUACION", "PNP.A.3.S.024", "119", -1),
+        ("PGC_PYMES_2008_SITUACION", "PNP.B.2.039", "171", -1),
+        ("PGC_PYMES_2008_SITUACION", "PNP.B.3.040", "163", -1),
+        ("PGC_PYMES_2008_SITUACION", "PNP.A.7.S.032", "6", -1),
+        ("PGC_PYMES_2008_SITUACION", "PNP.A.7.S.032", "7", -1),
+        ("PGC_PYMES_2008_PYG", "PYG.A.5.063", "754", -1),
+        ("PGC_PYMES_2008_PYG", "PYG.A.11.070", "771", -1),
+        ("PGC_PYMES_2008_PYG", "PYG.B.13.b.075", "760", -1),
+        ("PGC_PYMES_2008_PYG", "PYG.B.17.079", "666", -1),
+    ];
+
+    /// <summary>Añade las reglas de <see cref="ReglasBalancesContaSol"/> que falten en el modelo (por prefijo); las que ya estén no se tocan.</summary>
+    public static Migracion ReglasBalancesCompletas { get; } = new(
+        "20261111_1540_REGLAS_BALANCES_CONTASOL", 261111011,
+        "Reglas del modelo PGC Pymes 2008 para las cuentas de ContaSol que no clasificaba (163, 171, 119, 211, 240, 542, 545, 552, 754, 760, 666, 771 y el grupo 6 y 7 en situación).",
+        "contabilidad/balances",
+        new PasoPersonalizado(
+            "Añadir al modelo PGC Pymes 2008 las reglas de las cuentas de ContaSol",
+            "INSERT INTO ReglasCuentasBalance (prefijo y nodo por código del modelo, prioridad = longitud del prefijo) si el modelo no tiene regla de ese prefijo: " +
+            string.Join(", ", ReglasBalancesContaSol.Select(r => $"{r.Modelo}/{r.Nodo}/{r.Prefijo}*{r.Multiplicador}")),
+            async (s, _) =>
+            {
+                foreach (var r in ReglasBalancesContaSol)
+                    if (await ReglaBalanceAsync(s, r.Modelo, r.Prefijo) == 0) return false;
+                return true;
+            },
+            async (s, _) =>
+            {
+                foreach (var r in ReglasBalancesContaSol)
+                {
+                    if (await ReglaBalanceAsync(s, r.Modelo, r.Prefijo) > 0) continue;
+                    var nodo = await s.EscalarAsync(
+                        "SELECT n.IdNodoBalance FROM NodosBalance AS n INNER JOIN ModelosBalance AS m ON n.IdModeloBalance = m.IdModeloBalance WHERE m.Codigo = ? AND n.Codigo = ?",
+                        r.Modelo, r.Nodo)
+                        ?? throw new InvalidOperationException(
+                            $"El modelo de balance {r.Modelo} no tiene el nodo {r.Nodo} de la maestra, así que no sé dónde poner las cuentas {r.Prefijo}*. " +
+                            "Si se modificó el modelo a mano, añade esa regla en ReglasCuentasBalance o restaura el modelo de la maestra.");
+                    await s.EjecutarAsync(
+                        "INSERT INTO ReglasCuentasBalance (IdNodoBalance, TipoCoincidencia, PrefijoCuenta, EsInclusion, Multiplicador, Prioridad, Descripcion) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                        Convert.ToInt32(nodo, System.Globalization.CultureInfo.InvariantCulture), (byte)2, r.Prefijo, true, r.Multiplicador, (short)r.Prefijo.Length,
+                        $"Regla de presentación {r.Prefijo}* (cuentas de ContaSol)");
+                }
+            }));
+
+    private static async Task<int> ReglaBalanceAsync(ISesionDatos s, string modelo, string prefijo) => Convert.ToInt32(await s.EscalarAsync(
+        "SELECT COUNT(*) FROM (ReglasCuentasBalance AS r INNER JOIN NodosBalance AS n ON r.IdNodoBalance = n.IdNodoBalance) INNER JOIN ModelosBalance AS m ON n.IdModeloBalance = m.IdModeloBalance " +
+        "WHERE m.Codigo = ? AND r.PrefijoCuenta = ?", modelo, prefijo), System.Globalization.CultureInfo.InvariantCulture);
 
     private static PasoPersonalizado RelacionActividad()
     {

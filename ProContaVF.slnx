@@ -39,6 +39,7 @@
     <Project Path="tests/ProConta.Datos.Tests/ProConta.Datos.Tests.csproj" />
     <Project Path="tests/ProConta.Facturacion.Tests/ProConta.Facturacion.Tests.csproj" />
     <Project Path="tests/ProConta.Implantacion.Tests/ProConta.Implantacion.Tests.csproj" />
+    <Project Path="tests/ProConta.Informes.Tests/ProConta.Informes.Tests.csproj" />
     <Project Path="tests/ProConta.Nucleo.Tests/ProConta.Nucleo.Tests.csproj" />
     <Project Path="tests/ProConta.Organizacion.Tests/ProConta.Organizacion.Tests.csproj" />
     <Project Path="tests/ProConta.Plataforma.Configuracion.Tests/ProConta.Plataforma.Configuracion.Tests.csproj" />

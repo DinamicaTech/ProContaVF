@@ -81,6 +81,8 @@ public static class CatalogoMigraciones
         MigracionesCorreo.CorreoSaliente,
         MigracionesCorreo.CorreoRecepcion,
         MigracionesFacturacion.LibroIvaRepercutido,
+        MigracionesContabilidad.EsquemaBalances,
+        MigracionesContabilidad.ReglasBalancesCompletas,
         MigracionesImplantacion.MigracionErp,
         MigracionesNorma43.PalabrasClave,
     ];

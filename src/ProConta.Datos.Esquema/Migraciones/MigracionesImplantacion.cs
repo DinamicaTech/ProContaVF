@@ -10,7 +10,7 @@ public static class MigracionesImplantacion
     /// importador de ContaSol. Repetir la migración lee los mapas de la ejecución anterior para no duplicar.
     /// </summary>
     public static Migracion MigracionErp { get; } = new(
-        "20261111_1500_MIGRACION_ERP", 261111010,
+        "20261111_1500_MIGRACION_ERP", 261111012,
         "Migración del ERP: ejecuciones, incidencias y mapas de identidad.",
         "implantacion/migracion-erp",
         new CrearTabla("MigracionesERP",
@@ -43,7 +43,7 @@ public static class MigracionesNorma43
     /// guarda la palabra clave que la asignó.
     /// </summary>
     public static Migracion PalabrasClave { get; } = new(
-        "20261111_1510_PALABRAS_CLAVE_N43", 261111011,
+        "20261111_1510_PALABRAS_CLAVE_N43", 261111013,
         "Norma 43: palabras clave de asignación de cuentas y palabra clave de cada imputación.",
         "norma43",
         new CrearTabla("PalabrasClaveBancarias",
