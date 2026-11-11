@@ -113,6 +113,11 @@ internal sealed partial class EjecucionErp
             var id = p.E("IdPersona")!.Value;
             var clave = Txt(id);
             if (id == 0) { Excluir(Fase1, "Personas", clave, "La persona 0 («USUARIO DESCONOCIDO») es un comodín del ERP: no se migra.", Severidad.Informativa); continue; }
+            if (ReglasErp.EsInmueblePersona(id))
+            {
+                Excluir(Fase1, "Personas", clave, $"La persona {id} «{p.T("Nombre")}» es un inmueble que el ERP guardaba como persona: no es un tercero (va como activo).", Severidad.Informativa);
+                continue;
+            }
             var cuenta = Cuenta430(p);
             if (p.E("IdAgrupacion") is int ag && !_agrupaciones.ContainsKey(ag))
                 ClaveNula(Fase1, "Personas", clave, "IdAgrupacion", ag, $"La agrupación {ag} de la persona {id} no existe: queda sin subcuenta.");
@@ -293,6 +298,11 @@ internal sealed partial class EjecucionErp
         {
             var id = p.E("IdPersona")!.Value;
             if (p.E("IdPersonaTutor") is not int tutor || tutor == 0 || tutor == id || Mapa(TiposErp.Persona, Txt(id)) is not int idTercero) continue;
+            if (ReglasErp.EsInmueblePersona(tutor))
+            {
+                Anotar(Fase1, "Personas", Txt(id), "IdPersonaTutor", "Erp.TutorInmueble", Severidad.Informativa, $"El tutor de la persona {id} es el inmueble {tutor}, que no se migra como tercero: queda sin ese vínculo.", Txt(tutor));
+                continue;
+            }
             if (Mapa(TiposErp.Persona, Txt(tutor)) is not int idTutor)
             {
                 ClaveNula(Fase1, "Personas", Txt(id), "IdPersonaTutor", tutor, $"El tutor {tutor} de la persona {id} no existe en el ERP: la ficha queda sin ese vínculo.");

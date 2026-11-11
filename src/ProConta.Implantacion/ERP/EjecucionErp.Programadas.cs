@@ -34,12 +34,6 @@ internal sealed partial class EjecucionErp
             int? idCliente = null;
             if (p.E("IdCliente") is int pc && (idCliente = Mapa(TiposErp.Cliente, Txt(pc))) is null)
                 ClaveNula(Fase3, "FacturasProgramadas", clave, "IdCliente", pc, $"El cliente {pc} de la programada {id} no está en Personas: queda sin cliente.");
-            string? beneficiario = null;
-            if (p.E("IdBeneficiario") is int pb)
-            {
-                if (_personas.TryGetValue(pb, out var per)) beneficiario = $"Beneficiario en el ERP: {pb} {per.T("Nombre")}.";
-                else ClaveNula(Fase3, "FacturasProgramadas", clave, "IdBeneficiario", pb, $"El beneficiario {pb} de la programada {id} no está en Personas: queda sin beneficiario.");
-            }
             var meses = p.E("PeriodicidadMeses") ?? 1;
             var periodicidad = Periodicidad.Todas.FirstOrDefault(x => x.Meses == meses && !x.EsPuntual);
             if (periodicidad is null)
@@ -76,7 +70,7 @@ internal sealed partial class EjecucionErp
                 lineas.Add((linea, idConcepto));
             }
 
-            var notas = ReglasErp.UnirNotas(p.T("Notas"), p.T("NotasInternas"), beneficiario,
+            var notas = ReglasErp.UnirNotas(p.T("Notas"), p.T("NotasInternas"),
                 p.T("Referencia1") is { } ipc ? $"Revisión del IPC (ERP, Referencia1): {ipc}." : null,
                 p.F("FechaPrimerVencimiento") is DateTime pv ? $"Primer vencimiento en el ERP: {pv:dd/MM/yyyy} (el día de pago se pone a mano)." : null,
                 $"Programada {id} del ERP.");

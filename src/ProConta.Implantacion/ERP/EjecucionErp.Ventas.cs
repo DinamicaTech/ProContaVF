@@ -48,8 +48,8 @@ internal sealed partial class EjecucionErp
             est.Leidas++;
             var id = c.E("IdCategoria") ?? 0;
             var (codigo, serie) = CodigosActividad.TryGetValue(id, out var x) ? x : ($"CAT{id}", null);
-            // T-Innova es deducible al 100 % aunque el ERP diga 1 (contabilidad/procesos 2026-11-08).
-            var deducible = id == 2 ? (byte)2 : (byte)Math.Clamp(c.E("Deducible") ?? 2, 0, 2);
+            // T-Innova (contabilidad/procesos 2026-11-08) y Alquiler Locales (propietario 2026-11-11 17:19) son deducibles al 100 % aunque el ERP diga 1.
+            var deducible = id is 2 or 4 ? (byte)2 : (byte)Math.Clamp(c.E("Deducible") ?? 2, 0, 2);
             var idActividad = await Grabar(codigo, ReglasErp.Recortar(c.T("Descripcion"), 100) ?? codigo, deducible, serie);
             porCategoria[id] = idActividad;
             Mapear(TiposErp.Actividad, Txt(id), idActividad);
@@ -88,6 +88,13 @@ internal sealed partial class EjecucionErp
         var activos = o.Tabla("ConceptosCaja").Where(c => c.B("Activo")).ToList();
         est.Leidas = o.Tabla("ConceptosCaja").Count;
         est.Excluidas += est.Leidas - activos.Count;
+        // 413 y 4752 son obsoletos (propietario 2026-11-11 17:19): no pasan al catálogo; las líneas que los usan conservan su cuenta y su centro.
+        foreach (var c in activos.Where(c => c.E("Id") is int id && ReglasErp.ConceptosObsoletos.Contains(id)).ToList())
+        {
+            activos.Remove(c);
+            var lineas = o.Tabla("LineasFacturaVenta").Count(l => l.E("IdConcepto") == c.E("Id"));
+            Excluir(Fase2, "ConceptosCaja", Txt(c.E("Id")), $"El concepto {c.E("Id")} «{c.T("Descripcion")}» es obsoleto: no se migra al catálogo. Sus {lineas} líneas de factura se migran sin concepto, con su cuenta y su centro de coste.", Severidad.Informativa);
+        }
         Anotar(Fase2, "ConceptosCaja", null, "Activo", "Erp.Excluido", Severidad.Informativa, $"{est.Leidas - activos.Count} conceptos inactivos del ERP no se migran (solo los activos).");
 
         // Tipos con algún concepto activo.
@@ -204,13 +211,7 @@ internal sealed partial class EjecucionErp
                 if (idCliente is null) ClaveNula(Fase2, "FacturasVenta", clave, "IdCliente", pc, $"El cliente {pc} de la factura {numero} no está en Personas: la factura queda sin cliente (conserva el NIF y el nombre).");
             }
             f.IdCliente = idCliente;
-            var beneficiario = fv.E("IdBeneficiario") is int pb ? pb : (int?)null;
-            string? textoBeneficiario = null;
-            if (beneficiario is int b)
-            {
-                if (_personas.TryGetValue(b, out var pers)) textoBeneficiario = $"Beneficiario en el ERP: {b} {pers.T("Nombre")}.";
-                else ClaveNula(Fase2, "FacturasVenta", clave, "IdBeneficiario", b, $"El beneficiario {b} de la factura {numero} no está en Personas: queda sin beneficiario.");
-            }
+            // IdBeneficiario no se migra: el inmueble se sabe por el centro de coste de la primera línea (propietario 2026-11-11 17:19).
 
             // Líneas: el centro de cada una sale de su concepto; la que no tiene, el de la primera línea de la factura que lo tenga.
             var transformadas = new List<LineaTransformada>();
@@ -257,7 +258,7 @@ internal sealed partial class EjecucionErp
                     $"La retención de la factura {numero} es {retenciones.Sum(r => r.ImporteRetencion):0.00} € en el ERP y {totales.Retencion.Valor:0.00} € con el {f.TipoRetencion:0.##} % sobre la base.");
 
             f.Descripcion = ReglasErp.Recortar(fv.T("Descripcion"), 255) ?? f.Lineas.Select(l => l.Descripcion).FirstOrDefault(x => !string.IsNullOrWhiteSpace(x)) ?? $"Factura {numero}";
-            f.NotasInternas = ReglasErp.UnirNotas(fv.T("Notas"), fv.T("NotasInternas"), textoBeneficiario);
+            f.NotasInternas = ReglasErp.UnirNotas(fv.T("Notas"), fv.T("NotasInternas"));
 
             // Asiento (DOCAPU = número) y registro del libro (FACIVR = número) importados de ContaSol, salvo las aún no contabilizadas.
             int? idAsiento = null, idRegistro = null;
@@ -291,6 +292,7 @@ internal sealed partial class EjecucionErp
         // Series: una por ejercicio, sin prefijo, que continúa la numeración del ERP.
         foreach (var g in preparadas.GroupBy(p => p.Anio))
             _series[g.Key] = await SerieAsync(g.Key, g.Min(p => p.Numero), g.Max(p => p.Numero));
+        await SerieRectificativaAsync(UltimoEjercicio);
 
         var ahora = Ahora;
         var filas = preparadas.Select(p =>
@@ -384,6 +386,21 @@ internal sealed partial class EjecucionErp
         }
         Mapear(TiposErp.Serie, Txt(anio), id);
         return id;
+    }
+
+    /// <summary>
+    /// Serie de rectificativas del ejercicio en curso, como la creó el propietario en la copia erp-02 (2026-11-11): prefijo R y la
+    /// misma numeración que las facturas normales. Si el ejercicio ya tiene una serie rectificativa, no se toca.
+    /// </summary>
+    private async Task SerieRectificativaAsync(int anio)
+    {
+        if (!_ejercicios.TryGetValue(anio, out var ej) || !_series.TryGetValue(anio, out var normal)) return;
+        if (Convert.ToInt32(await _bd.EjecutarAsync(s => s.EscalarAsync("SELECT COUNT(*) FROM SeriesFacturacion WHERE IdSociedadEjercicio = ? AND EsRectificativa = True", ej.Id)), CultureInfo.InvariantCulture) > 0) return;
+        var (desde, hasta) = (await ConsultarAsync("SELECT RangoDesde, RangoHasta FROM SeriesFacturacion WHERE IdSerie = ?", f => (f.Entero("RangoDesde"), f.Entero("RangoHasta")), normal)).First();
+        var id = await InsertarAsync("INSERT INTO SeriesFacturacion (IdSociedadEjercicio, Descripcion, RangoDesde, RangoHasta, Prefijo, UltimoNumero, EsRectificativa, EsPredeterminada) VALUES (?, ?, ?, ?, ?, ?, True, False)",
+            ej.Id, $"Facturas {anio} Rectificativas", desde, hasta, "R", null);
+        Mapear(TiposErp.Serie, $"R{anio}", id);
+        Anotar(Fase2, "FacturasVenta", $"R{anio}", null, "Erp.SerieCreada", Severidad.Informativa, $"He creado la serie de rectificativas de {anio}: prefijo R, del {desde} al {hasta}.");
     }
 
     // ---------- libro de IVA repercutido ----------

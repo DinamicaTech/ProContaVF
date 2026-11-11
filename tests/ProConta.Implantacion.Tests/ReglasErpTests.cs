@@ -99,6 +99,17 @@ public sealed class ReglasErpTests
         Assert.Equal(grupo, ReglasErp.Agrupacion(id, tipo, iva));
 
     [Fact]
+    public void Conceptos_obsoletos_e_inmuebles_guardados_como_personas_no_se_migran()
+    {
+        Assert.Contains(413, ReglasErp.ConceptosObsoletos);
+        Assert.Contains(4752, ReglasErp.ConceptosObsoletos);
+        Assert.True(ReglasErp.EsInmueblePersona(100));
+        Assert.True(ReglasErp.EsInmueblePersona(125));
+        Assert.False(ReglasErp.EsInmueblePersona(99));
+        Assert.False(ReglasErp.EsInmueblePersona(4300001));
+    }
+
+    [Fact]
     public void Los_tipos_de_contacto_del_erp()
     {
         Assert.Equal(TipoDatoContacto.Email, ReglasErp.TipoContacto(5, null).Tipo);

@@ -18,6 +18,9 @@ internal sealed partial class EjecucionErp
         [4] = ("TECNICO", "Activo técnico", "MATERIAL", true),
         [5] = ("PARKING", "Parking", "INMUEBLE", true),
         [6] = ("INVERSION", "Inversión financiera", "FINANCIERO", false),
+        // Sin fila en TiposInmueble del ERP; nombres del propietario (2026-11-11 17:19).
+        [7] = ("TURISTICO", "Piso turístico", "INMUEBLE", true),
+        [9] = ("PARTICULAR", "Piso particular (Marta)", "INMUEBLE", true),
     };
 
     private async Task ActivosAsync()
@@ -45,14 +48,15 @@ internal sealed partial class EjecucionErp
         // Tipos usados por inmuebles o plantillas que no están en TiposInmueble: se crean para no perder sus activos.
         foreach (var idErp in o.Tabla("Inmuebles").Select(i => i.E("Tipo")).Concat(o.Tabla("PlantillasInmuebles").Select(p => p.E("Tipo"))).OfType<int>().Distinct().Where(t => !tipoDe.ContainsKey(t)).Order())
         {
-            var codigo = $"ERP{idErp}";
-            var nombre = idErp == 7 ? "Piso turístico (tipo 7 del ERP)" : $"Tipo {idErp} del ERP";
+            var conocido = TiposActivoErp.TryGetValue(idErp, out var x);
+            var (codigo, nombre, categoria, amort) = conocido ? x : ($"ERP{idErp}", $"Tipo {idErp} del ERP", "INMUEBLE", true);
             if (!tipos.TryGetValue(codigo, out var tipo))
-                tipos[codigo] = tipo = (await InsertarAsync("INSERT INTO TiposActivo (Codigo, Nombre, Categoria, EsAmortizablePredeterminado, EstaActivo) VALUES (?, ?, ?, True, True)", codigo, nombre, "INMUEBLE"), true);
+                tipos[codigo] = tipo = (await InsertarAsync("INSERT INTO TiposActivo (Codigo, Nombre, Categoria, EsAmortizablePredeterminado, EstaActivo) VALUES (?, ?, ?, ?, True)", codigo, nombre, categoria, amort), amort);
+            else await EjecutarAsync("UPDATE TiposActivo SET Nombre = ? WHERE IdTipoActivo = ?", nombre, tipo.Id);
             tipoDe[idErp] = tipo;
             Mapear(TiposErp.TipoActivo, Txt(idErp), tipo.Id);
-            Anotar(Fase6, "TiposInmueble", Txt(idErp), "IdTipo", "Erp.TipoInmuebleSinDescripcion", Severidad.Advertencia,
-                $"El tipo de inmueble {idErp} lo usan inmuebles o plantillas pero no está en TiposInmueble: he creado el tipo de activo {codigo} «{nombre}»; revisa su nombre.");
+            Anotar(Fase6, "TiposInmueble", Txt(idErp), "IdTipo", conocido ? "Erp.TipoActivoCreado" : "Erp.TipoInmuebleSinDescripcion", conocido ? Severidad.Informativa : Severidad.Advertencia,
+                $"El tipo de inmueble {idErp} no está en TiposInmueble del ERP: he creado el tipo de activo {codigo} «{nombre}»{(conocido ? "" : "; revisa su nombre")}.");
         }
 
         // Plantillas de cuentas: Id dentro de cada tipo; la subcuenta XXXXX genera una por activo.

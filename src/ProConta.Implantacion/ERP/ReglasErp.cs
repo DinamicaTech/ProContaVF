@@ -24,6 +24,12 @@ public static class ReglasErp
     /// <summary>Factura ficticia que marca el inicio de la numeración del ejercicio 2026 (propietario 2026-11-11 12:15): no se migra.</summary>
     public const int FacturaFicticia = 83000;
 
+    /// <summary>Conceptos del ERP obsoletos que no pasan al catálogo (propietario 2026-11-11 17:19).</summary>
+    public static readonly IReadOnlySet<int> ConceptosObsoletos = new HashSet<int> { 413, 4752 };
+
+    /// <summary>Personas del ERP que son inmuebles (ya van como activos), no terceros (propietario 2026-11-11 17:19).</summary>
+    public static bool EsInmueblePersona(int idPersona) => idPersona is >= 100 and <= 125;
+
     /// <summary>Las facturas de esta fecha en adelante aún no están contabilizadas en el ERP: entran sin asiento ni registro del libro.</summary>
     public static readonly DateTime InicioSinContabilizar = new(2026, 10, 1);
 
