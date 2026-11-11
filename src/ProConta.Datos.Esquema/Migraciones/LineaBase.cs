@@ -82,6 +82,7 @@ public static class CatalogoMigraciones
         MigracionesCorreo.CorreoRecepcion,
         MigracionesFacturacion.LibroIvaRepercutido,
         MigracionesContabilidad.EsquemaBalances,
+        MigracionesContabilidad.ReglasBalancesCompletas,
     ];
 
     /// <summary>Versión del esquema que espera esta versión del programa.</summary>

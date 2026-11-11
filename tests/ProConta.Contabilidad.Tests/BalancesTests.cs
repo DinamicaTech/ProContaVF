@@ -168,7 +168,7 @@ public sealed class GeneradorBalancesAccessTests : IDisposable
         foreach (var (codigo, nombre) in new[]
                  {
                      ("1000000", "Capital sintético"), ("5720001", "Banco sintético"), ("7000001", "Ventas sintéticas"), ("4300001", "Cliente sintético"),
-                     ("6290001", "Otros servicios"), ("4770021", "IVA repercutido 21"), ("6660014", "Pérdidas en participaciones sintéticas"),
+                     ("6290001", "Otros servicios"), ("4770021", "IVA repercutido 21"), ("6660014", "Pérdidas en participaciones sintéticas"), ("6990001", "Cuenta sintética sin regla"),
                  })
             Assert.True((await cuentas.AltaAsync(_ctx, new AltaCuenta(codigo, nombre))).EsCorrecto);
         Assert.True((await cuentas.AltaAsync(_ctx, new AltaCuenta("572", "Bancos", EsImputable: false))).EsCorrecto);
@@ -184,6 +184,7 @@ public sealed class GeneradorBalancesAccessTests : IDisposable
         await Asiento(4, "Venta", Apunte.AlDebe("4300001", 1210m), Apunte.AlHaber("7000001", 1000m), Apunte.AlHaber("4770021", 210m));
         await Asiento(6, "Servicio", Apunte.AlDebe("6290001", 100m), Apunte.AlHaber("5720001", 100m));
         await Asiento(7, "Pérdida en participaciones", Apunte.AlDebe("6660014", 30m), Apunte.AlHaber("5720001", 30m));
+        await Asiento(8, "Gasto sin regla en pérdidas y ganancias", Apunte.AlDebe("6990001", 5m), Apunte.AlHaber("5720001", 5m));
     }
 
     [Fact]
@@ -194,19 +195,21 @@ public sealed class GeneradorBalancesAccessTests : IDisposable
 
         var pyg = await generador.GenerarAsync(TipoBalance.PerdidasYGanancias, _ctx, "Sociedad sintética");
         Assert.Equal("Pérdidas y ganancias PGC Pymes 2008", pyg.Modelo.Nombre);
-        Assert.Equal(900m, pyg.Total);
+        Assert.Equal(870m, pyg.Total);
         Assert.Equal("1. Importe neto de la cifra de negocios.", pyg.Filas.Single(f => f.CuentaContable == "7000001").Titulo);
         Assert.Equal("7000001 Ventas sintéticas", pyg.Filas.Single(f => f.CuentaContable == "7000001").Subcuenta);
-        // La 666 no está en el modelo de pérdidas y ganancias de la maestra: se avisa, no se pierde en silencio.
-        Assert.Equal(("6660014", 30m), (pyg.SinClasificar.Single().Cuenta, pyg.SinClasificar.Single().Saldo));
+        // La 666 la añadió la migración de las cuentas de ContaSol; la 699 no tiene regla: se avisa, no se pierde en silencio.
+        Assert.StartsWith("17. Deterioro", pyg.Filas.Single(f => f.CuentaContable == "6660014").Titulo);
+        Assert.Equal(("6990001", 5m), (pyg.SinClasificar.Single().Cuenta, pyg.SinClasificar.Single().Saldo));
 
         var situacion = await generador.GenerarAsync(TipoBalance.Situacion, _ctx, "Sociedad sintética");
         var totales = situacion.TotalesPorBloque;
         Assert.Equal(["ACTIVO", "PATRIMONIO NETO Y PASIVO"], totales.Select(t => t.Bloque));
-        Assert.Equal(2080m, totales[0].Importe);
-        // Debe = Haber en todo el ejercicio: lo que no cuadra entre los dos bloques es exactamente el saldo sin clasificar (la 666).
-        Assert.Equal(30m, situacion.SinClasificar.Single(s => s.Cuenta == "6660014").Saldo);
-        Assert.Equal(totales[0].Importe + situacion.SinClasificar.Sum(s => s.Saldo), totales[1].Importe);
+        Assert.Equal(2075m, totales[0].Importe);
+        // En situación todo el grupo 6 y 7 va al resultado del ejercicio: Debe = Haber, así que el activo cuadra con el pasivo.
+        Assert.Empty(situacion.SinClasificar);
+        Assert.Equal(totales[0].Importe, totales[1].Importe);
+        Assert.Equal(870m, situacion.Filas.Where(f => f.Subtitulo == "VII. Resultado del ejercicio").Sum(f => f.Importe));
         Assert.Equal("572 Bancos", situacion.Filas.First(f => f.CuentaContable == "5720001").Cuenta);
     }
 }

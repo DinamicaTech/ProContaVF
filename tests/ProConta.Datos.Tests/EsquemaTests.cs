@@ -296,10 +296,11 @@ public sealed class EsquemaAccessTests : IDisposable
             Nodos: Convert.ToInt32(await s.EscalarAsync("SELECT COUNT(*) FROM NodosBalance")),
             Reglas: Convert.ToInt32(await s.EscalarAsync("SELECT COUNT(*) FROM ReglasCuentasBalance")),
             Firma: string.Join("|", await s.ConsultarAsync(
-                "SELECT r.IdReglaCuentaBalance, r.PrefijoCuenta, r.Multiplicador, n.Codigo, n.Nombre FROM ReglasCuentasBalance AS r INNER JOIN NodosBalance AS n ON r.IdNodoBalance = n.IdNodoBalance ORDER BY r.IdReglaCuentaBalance",
-                f => $"{f.Entero("IdReglaCuentaBalance")}:{f.Texto("PrefijoCuenta")}:{f.Valor("Multiplicador")}:{f.Texto("Codigo")}:{f.Texto("Nombre")}"))));
+                "SELECT r.PrefijoCuenta, r.Multiplicador, r.Prioridad, n.Codigo, n.Nombre FROM ReglasCuentasBalance AS r INNER JOIN NodosBalance AS n ON r.IdNodoBalance = n.IdNodoBalance ORDER BY n.Codigo, r.PrefijoCuenta",
+                f => $"{f.Texto("PrefijoCuenta")}:{f.Valor("Multiplicador")}:{f.Valor("Prioridad")}:{f.Texto("Codigo")}:{f.Texto("Nombre")}"))));
         var maestra = await leer();
-        Assert.Equal((SemillaBalances.Modelos, SemillaBalances.Nodos, SemillaBalances.Reglas), (maestra.Modelos, maestra.Nodos, maestra.Reglas));
+        var completas = MigracionesContabilidad.ReglasBalancesContaSol.Length;
+        Assert.Equal((SemillaBalances.Modelos, SemillaBalances.Nodos, SemillaBalances.Reglas + completas), (maestra.Modelos, maestra.Nodos, maestra.Reglas));
         Assert.True(await _copia.Bd().EjecutarAsync(s => SemillaBalances.HayModeloAsync(s)));
 
         // Una BD hecha con la copia-estructura anterior las dejó vacías: la semilla deja exactamente lo de la maestra.
@@ -311,8 +312,16 @@ public sealed class EsquemaAccessTests : IDisposable
         });
         Assert.False(await _copia.Bd().EjecutarAsync(s => SemillaBalances.HayModeloAsync(s)));
         var paso = MigracionesContabilidad.EsquemaBalances.Pasos.Single();
+        var reglas = MigracionesContabilidad.ReglasBalancesCompletas.Pasos.Single();
         await _copia.Bd().EnTransaccionAsync(async s => { await paso.AplicarAsync(s, ContextoMigracion.Vacio); return true; });
-        Assert.Equal(maestra, await leer());
+        Assert.Equal((SemillaBalances.Modelos, SemillaBalances.Nodos, SemillaBalances.Reglas), ((await leer()).Modelos, (await leer()).Nodos, (await leer()).Reglas));
         Assert.True(await _copia.Bd().EjecutarAsync(s => paso.YaAplicadoAsync(s, s.LeerEsquema())));
+        Assert.False(await _copia.Bd().EjecutarAsync(s => reglas.YaAplicadoAsync(s, s.LeerEsquema())));
+
+        // Las reglas de las cuentas de ContaSol se añaden una vez: repetir el paso no duplica nada.
+        for (var i = 0; i < 2; i++)
+            await _copia.Bd().EnTransaccionAsync(async s => { await reglas.AplicarAsync(s, ContextoMigracion.Vacio); return true; });
+        Assert.Equal(maestra, await leer());
+        Assert.True(await _copia.Bd().EjecutarAsync(s => reglas.YaAplicadoAsync(s, s.LeerEsquema())));
     }
 }

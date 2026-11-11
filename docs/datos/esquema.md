@@ -62,6 +62,7 @@ Código: `src/ProConta.Datos.Esquema` (diagnóstico, migraciones idempotentes, a
 
 - 2026-11-11 11:35 · Versión 35 = `20261111_1300_LIBRO_IVA_REPERCUTIDO` (orden 261111002, de facturacion/factura-venta): IVARepercutido.IdFactura (LONG) con el índice IX_IVAR_Factura, para enlazar cada registro del libro con su factura, también los del ERP sin asiento de ProContaVF. Solo estructura, sin datos.
 - 2026-11-11 15:00 · Migración 20261111_1430_ESQUEMA_BALANCES_PGC_PYMES_2008 (pedida por contabilidad/balances): si ModelosBalance, NodosBalance y ReglasCuentasBalance están vacías, carga el modelo PGC Pymes 2008 exactamente como está en la maestra, con sus identificadores (semillas incrustadas en `src/ProConta.Datos.Esquema/Semillas/*.tsv`); si ya tienen datos, no toca nada. La copia-estructura conserva desde ahora esas tablas y RelacionesCalculoBalance, porque son un catálogo normativo sin datos de negocio.
+- 2026-11-11 15:40 · Migración 20261111_1540_REGLAS_BALANCES_CONTASOL (pedida por contabilidad/balances): añade al modelo PGC Pymes 2008 las reglas de las cuentas de ContaSol que no clasificaba, buscando el nodo por su código; las que ya estén (por prefijo y modelo) no se tocan.
 
 ## Requirements
 - 2026-10-28 12:28 · es importante que haya un nodo especializado en mantener la estructura de la base de datos para poder actualizar el modelo cuando se actualice una instalación en producción, por lo tanto, cualquier nodo que quiera modificar la estructura de la Base de Datos ha de comunicarlo o pasar a través del nodo de mantenimiento de estructura de BD.
