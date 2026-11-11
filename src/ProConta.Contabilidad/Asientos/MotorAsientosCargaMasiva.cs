@@ -99,15 +99,18 @@ public sealed partial class MotorAsientosAccess
         var operador = actor.ToString();
         var idLote = Guid.NewGuid().ToString();
         var cambios = false;
-        using var carga = new CargaMasivaAccess();
         try
         {
+            if (aBorrar.Count == 0 && aGrabar.Count == 0)
+                return Resultado<ResultadoCargaLibro>.Correcto(new ResultadoCargaLibro(ids, 0, validos.Count, borrados, rechazados));
+            cambios = true;
+            using var carga = new CargaMasivaAccess(bd.Ruta);
+
             // 3) Bajas: su registro de cambios y luego los asientos, por tandas.
             if (aBorrar.Count > 0)
             {
-                cambios = true;
                 await RegistrarCambiosAsync(carga, idLote, ahora, operador, motivo, aBorrar.SelectMany(a => a.Apuntes
-                    .Select(x => new object?[] { a.IdAsiento, x.IdApunte, x.Orden, "BAJA", "Apunte", ResumenGrabado(x), null })
+                    .Select(x => new object?[] { a.IdAsiento, x.IdApunte, (short)x.Orden, "BAJA", "Apunte", ResumenGrabado(x), null })
                     .Append([a.IdAsiento, null, null, "BAJA", "Asiento", $"{a.Fecha:yyyy-MM-dd} {a.Descripcion} ({motorPropietario}/{codigoProceso}/{a.Clave})", null])), cancelacion);
                 foreach (var tanda in aBorrar.Select(a => a.IdAsiento).Chunk(IdsPorBorrado))
                 {
@@ -125,57 +128,36 @@ public sealed partial class MotorAsientosAccess
                 }
             }
 
-            // 4) Altas: cabeceras, sus Id por la clave, y después apuntes, revisión y registro de cambios.
+            // 4) Altas: cabeceras (con su Id), apuntes, revisión y registro de cambios.
             if (aGrabar.Count > 0)
             {
-                cambios = true;
-                var op = CargaMasivaAccess.Literal(operador);
-                var momento = CargaMasivaAccess.Literal(ahora);
-                await carga.InsertarAsync(bd,
-                    "INSERT INTO Asientos (IdSociedadEjercicio, FechaContable, Descripcion, TipoAsiento, Notas, EstadoAsiento, OperadorCreacion, FechaHoraCreacion, " +
-                    "OperadorContabilizacion, FechaHoraContabilizacion, TotalDebe, TotalHaber, Version, EsAutomatico, MotorPropietario, CodigoProceso, ClaveEjecucion)",
-                    $"{CargaMasivaAccess.Literal(contexto.IdSociedadEjercicio)}, {CargaMasivaAccess.Fecha("t.Fecha")}, t.Descripcion, t.Tipo, t.Notas, {(byte)EstadoAsiento.Contabilizado}, " +
-                    $"{op}, {momento}, {op}, {momento}, {CargaMasivaAccess.Importe("t.TotalDebe")}, {CargaMasivaAccess.Importe("t.TotalHaber")}, 1, True, " +
-                    $"{CargaMasivaAccess.Literal(motorPropietario)}, {CargaMasivaAccess.Literal(codigoProceso)}, t.Clave",
-                    [new("Clave", TipoCarga.Texto), new("Fecha", TipoCarga.Texto), new("Descripcion", TipoCarga.Texto), new("Tipo", TipoCarga.Entero),
-                        new("Notas", TipoCarga.TextoLargo), new("TotalDebe", TipoCarga.Texto), new("TotalHaber", TipoCarga.Texto)],
-                    aGrabar.Select(x => new object?[] { x.ClaveEjecucion, x.Asiento.FechaContable, x.Asiento.Descripcion.Trim(), (int)x.Asiento.Tipo, x.Asiento.Notas,
-                        x.Asiento.TotalDebe.Valor, x.Asiento.TotalHaber.Valor }), cancelacion: cancelacion);
-
-                var conservados = grabados.Keys.Except(aBorrar.Select(a => a.IdAsiento)).ToHashSet();
-                var nuevos = (await bd.EjecutarAsync(s => s.ConsultarAsync(
-                        "SELECT IdAsiento, ClaveEjecucion FROM Asientos WHERE EsAutomatico = True AND MotorPropietario = ? AND CodigoProceso = ? AND IdSociedadEjercicio = ?",
-                        f => (Id: f.Entero("IdAsiento"), Clave: f.Texto("ClaveEjecucion") ?? ""), motorPropietario, codigoProceso, contexto.IdSociedadEjercicio), cancelacion))
-                    .Where(a => !conservados.Contains(a.Id)).GroupBy(a => a.Clave, StringComparer.Ordinal).ToDictionary(g => g.Key, g => g.Max(a => a.Id), StringComparer.Ordinal);
-                foreach (var x in aGrabar)
+                var nuevos = await carga.InsertarAsync("Asientos",
+                    ["IdSociedadEjercicio", "FechaContable", "Descripcion", "TipoAsiento", "Notas", "EstadoAsiento", "OperadorCreacion", "FechaHoraCreacion",
+                        "OperadorContabilizacion", "FechaHoraContabilizacion", "TotalDebe", "TotalHaber", "Version", "EsAutomatico", "MotorPropietario", "CodigoProceso", "ClaveEjecucion"],
+                    aGrabar.Select(x => new object?[] { contexto.IdSociedadEjercicio, x.Asiento.FechaContable, x.Asiento.Descripcion.Trim(), (byte)x.Asiento.Tipo, x.Asiento.Notas,
+                        (byte)EstadoAsiento.Contabilizado, operador, ahora, operador, ahora, x.Asiento.TotalDebe.Valor, x.Asiento.TotalHaber.Valor, 1, true, motorPropietario,
+                        codigoProceso, x.ClaveEjecucion }), "IdAsiento", cancelacion: cancelacion);
+                for (var i = 0; i < aGrabar.Count; i++)
                 {
-                    x.Asiento.IdAsiento = nuevos.TryGetValue(x.ClaveEjecucion, out var id) ? id
-                        : throw new InvalidOperationException($"No encuentro el asiento recién grabado de la clave {x.ClaveEjecucion}.");
-                    x.Asiento.Version = 1;
-                    ids[x.ClaveEjecucion] = id;
+                    aGrabar[i].Asiento.IdAsiento = nuevos[i];
+                    aGrabar[i].Asiento.Version = 1;
+                    ids[aGrabar[i].ClaveEjecucion] = nuevos[i];
                 }
 
-                await carga.InsertarAsync(bd,
-                    "INSERT INTO Apuntes (IdAsiento, Orden, CuentaContable, ImporteDebe, ImporteHaber, Descripcion, NumeroDocumento, IdCliente, IdProveedor, FechaVencimiento, " +
-                    "IdCentroCoste, TipoApunte, GeneradoAutomaticamente, MotivoGeneracion)",
-                    $"t.IdAsiento, t.Orden, t.Cuenta, {CargaMasivaAccess.Importe("t.Debe")}, {CargaMasivaAccess.Importe("t.Haber")}, t.Descripcion, t.Documento, t.IdCliente, " +
-                    $"t.IdProveedor, {CargaMasivaAccess.Fecha("t.Vencimiento")}, t.IdCentro, t.Tipo, IIF(t.Generado = 1, True, False), t.MotivoGeneracion",
-                    [new("IdAsiento", TipoCarga.Entero), new("Orden", TipoCarga.Entero), new("Cuenta", TipoCarga.Texto), new("Debe", TipoCarga.Texto), new("Haber", TipoCarga.Texto),
-                        new("Descripcion", TipoCarga.Texto), new("Documento", TipoCarga.Texto), new("IdCliente", TipoCarga.Entero), new("IdProveedor", TipoCarga.Entero),
-                        new("Vencimiento", TipoCarga.Texto), new("IdCentro", TipoCarga.Entero), new("Tipo", TipoCarga.Entero), new("Generado", TipoCarga.Entero),
-                        new("MotivoGeneracion", TipoCarga.Texto)],
-                    aGrabar.SelectMany(x => x.Asiento.Apuntes.Select(a => new object?[] { x.Asiento.IdAsiento, a.Orden, a.CodigoCuenta, a.Debe.EsCero ? null : a.Debe.Valor,
-                        a.Haber.EsCero ? null : a.Haber.Valor, a.Descripcion, a.NumeroDocumento, a.IdCliente, a.IdProveedor, a.FechaVencimiento, a.IdCentroCoste, (int)a.Tipo,
+                await carga.InsertarAsync("Apuntes",
+                    ["IdAsiento", "Orden", "CuentaContable", "ImporteDebe", "ImporteHaber", "Descripcion", "NumeroDocumento", "IdCliente", "IdProveedor", "FechaVencimiento",
+                        "IdCentroCoste", "TipoApunte", "GeneradoAutomaticamente", "MotivoGeneracion"],
+                    aGrabar.SelectMany(x => x.Asiento.Apuntes.Select(a => new object?[] { x.Asiento.IdAsiento, (short)a.Orden, a.CodigoCuenta, a.Debe.EsCero ? null : a.Debe.Valor,
+                        a.Haber.EsCero ? null : a.Haber.Valor, a.Descripcion, a.NumeroDocumento, a.IdCliente, a.IdProveedor, a.FechaVencimiento, a.IdCentroCoste, (byte)a.Tipo,
                         a.GeneradoAutomaticamente, a.MotivoGeneracion })), cancelacion: cancelacion);
 
-                await carga.InsertarAsync(bd,
-                    "INSERT INTO RevisionesAsientos (IdAsiento, NumeroRevision, TipoOperacion, Motivo, Operador, FechaHora, ContenidoAnterior, ContenidoPosterior)",
-                    $"t.IdAsiento, 1, {(byte)OperacionRevision.Lote}, {CargaMasivaAccess.Literal(motivo)}, {op}, {momento}, NULL, t.Contenido",
-                    [new("IdAsiento", TipoCarga.Entero), new("Contenido", TipoCarga.TextoLargo)],
-                    aGrabar.Select(x => new object?[] { x.Asiento.IdAsiento, Instantanea(x.Asiento) }), cancelacion: cancelacion);
+                await carga.InsertarAsync("RevisionesAsientos",
+                    ["IdAsiento", "NumeroRevision", "TipoOperacion", "Motivo", "Operador", "FechaHora", "ContenidoAnterior", "ContenidoPosterior"],
+                    aGrabar.Select(x => new object?[] { x.Asiento.IdAsiento, 1, (byte)OperacionRevision.Lote, motivo, operador, ahora, null, Instantanea(x.Asiento) }),
+                    cancelacion: cancelacion);
 
                 await RegistrarCambiosAsync(carga, idLote, ahora, operador, motivo, aGrabar.SelectMany(x => x.Asiento.Apuntes
-                    .Select(a => new object?[] { x.Asiento.IdAsiento, null, a.Orden, "ALTA", "Apunte", null, Resumen(a) })), cancelacion);
+                    .Select(a => new object?[] { x.Asiento.IdAsiento, null, (short)a.Orden, "ALTA", "Apunte", null, Resumen(a) })), cancelacion);
             }
         }
         finally
@@ -186,15 +168,11 @@ public sealed partial class MotorAsientosAccess
         return Resultado<ResultadoCargaLibro>.Correcto(new ResultadoCargaLibro(ids, aGrabar.Count, validos.Count - aGrabar.Count, borrados, rechazados));
     }
 
-    private Task<int> RegistrarCambiosAsync(CargaMasivaAccess carga, string idLote, DateTime ahora, string operador, string motivo, IEnumerable<object?[]> filas,
-        CancellationToken cancelacion) =>
-        carga.InsertarAsync(bd,
-            "INSERT INTO RegistroCambiosApuntes (IdLote, FechaHora, Operador, Motivo, IdAsiento, IdApunte, Orden, Operacion, Campo, ValorAntiguo, ValorNuevo)",
-            $"{CargaMasivaAccess.Literal(idLote)}, {CargaMasivaAccess.Literal(ahora)}, {CargaMasivaAccess.Literal(operador)}, {CargaMasivaAccess.Literal(motivo)}, " +
-            "t.IdAsiento, t.IdApunte, t.Orden, t.Operacion, t.Campo, t.Antiguo, t.Nuevo",
-            [new("IdAsiento", TipoCarga.Entero), new("IdApunte", TipoCarga.Entero), new("Orden", TipoCarga.Entero), new("Operacion", TipoCarga.Texto),
-                new("Campo", TipoCarga.Texto), new("Antiguo", TipoCarga.TextoLargo), new("Nuevo", TipoCarga.TextoLargo)],
-            filas, cancelacion: cancelacion);
+    private static Task<IReadOnlyList<int>> RegistrarCambiosAsync(CargaMasivaAccess carga, string idLote, DateTime ahora, string operador, string motivo,
+        IEnumerable<object?[]> filas, CancellationToken cancelacion) =>
+        carga.InsertarAsync("RegistroCambiosApuntes",
+            ["IdLote", "FechaHora", "Operador", "Motivo", "IdAsiento", "IdApunte", "Orden", "Operacion", "Campo", "ValorAntiguo", "ValorNuevo"],
+            filas.Select(f => (object?[])[idLote, ahora, operador, motivo, .. f]), cancelacion: cancelacion);
 
     private async Task<Dictionary<int, AsientoGrabado>> LeerGrabadosAsync(ContextoSociedadEjercicio contexto, string motor, string proceso, CancellationToken cancelacion)
     {

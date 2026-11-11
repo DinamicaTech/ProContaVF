@@ -282,15 +282,13 @@ public sealed class ImportadorContaSol(IBaseDatos bd, IMotorAsientos motor, ICat
             _mapasPendientes.Add((tipo, clave, id));
         }
 
-        /// <summary>Los mapas pendientes, en bloque (INSERT … SELECT desde un fichero temporal, por tandas).</summary>
+        /// <summary>Los mapas pendientes, en bloque (carga masiva por tandas).</summary>
         private async Task GrabarMapasAsync()
         {
             if (_mapasPendientes.Count == 0) return;
-            using var carga = new CargaMasivaAccess();
-            await carga.InsertarAsync(_bd, "INSERT INTO MapasIdentidadContaSol (IdImportacionContaSol, TipoEntidad, ClaveOrigen, IdDestino)",
-                $"{CargaMasivaAccess.Literal(_idImportacion)}, t.Tipo, t.Clave, t.Id",
-                [new("Tipo", TipoCarga.Texto), new("Clave", TipoCarga.Texto), new("Id", TipoCarga.Entero)],
-                _mapasPendientes.Select(m => new object?[] { m.Tipo, m.Clave, m.Id }), cancelacion: CancellationToken.None);
+            using (var carga = new CargaMasivaAccess(_bd.Ruta))
+                await carga.InsertarAsync("MapasIdentidadContaSol", ["IdImportacionContaSol", "TipoEntidad", "ClaveOrigen", "IdDestino"],
+                    _mapasPendientes.Select(m => new object?[] { _idImportacion, m.Tipo, m.Clave, m.Id }));
             _mapasPendientes.Clear();
         }
 
