@@ -37,6 +37,7 @@ Genera los asientos de las facturas de venta con el motor de contabilidad/asient
 - 2026-11-11 11:35 · Diferencias con el libro de compras: varias actividades por factura (una fila por 477, porque en ventas el centro va por línea); fila también para las exentas, que son las que necesita la prorrata; sin deducibilidad ni bien de inversión; las rectificativas van en negativo aunque el asiento cambie de lado; la autorrepercusión de intracomunitarias e inversión del sujeto pasivo sigue en el libro de compras, sin factura ficticia.
 - 2026-11-11 11:35 · Una factura de un año anterior al de su ejercicio no se contabiliza (propietario 2026-11-11, punto 3a): el error explica que las del ERP ya tienen su asiento en la contabilidad de ese año y que, si de verdad falta, se contabiliza desde el ejercicio de su fecha.
 - 2026-11-11 11:35 · Facturas con asiento y sin registro: en los datos reales del ERP (copia de ProcontaEstructura del 2026-11-10) no hay ninguna en 2026; solo las validadas con ProContaVF antes de este cambio, que son de pruebas porque ProContaVF aún no se usa en real. No se construye nada para ellas: las facturas del ERP llegan con su asiento y su registro enlazados por la migración, y las posteriores al 01/10/2026 se contabilizan en ProContaVF con su registro (propietario 2026-11-11 12:15, revisión del detalle de incidencias).
+- 2026-11-11 12:16 · Validado por el propietario (libro de IVA repercutido, PR #33).
 ## Requirements
 - 2026-10-28 13:14 · Q5) b) La lógica de contabilización está dentro del propio nodo (FacturasCompra, FacturasVenta, etc.). Ya tenemos un motor para gestionar Asientos, por lo que mejor conectar este motor directamente cada nodo que ha de generar asientos
 - 2026-10-28 12:28 · draft: Contabilizar las facturas de venta emitidas mediante el motor de contabilidad/asientos.
@@ -82,5 +83,6 @@ Genera los asientos de las facturas de venta con el motor de contabilidad/asient
 - 2026-11-11 11:16 · answer: facturas de años anteriores a su ejercicio → (a) no se contabilizan, con un error que lo explica
 - 2026-11-11 11:16 · 4. PR #12 ya debería estar cerrado
 
+- 2026-11-11 12:16 · Ok al PR
 ## Hand-over
 - 2026-11-11 12:20 · Hecho: libro de IVA repercutido al contabilizar, regenerar y deshacer, y bloqueo de las facturas de años anteriores. Las respuestas del propietario al detalle de incidencias de 2026 (C:\Docs\ProContaVF-validacion\incidencias-ventas-2026.csv, fuera del repositorio porque lleva datos reales) están en implantacion/migracion-erp. Nada pendiente en este nodo.
