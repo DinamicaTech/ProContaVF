@@ -64,6 +64,7 @@ public partial class VentanaPrincipal : Window
     private double _anchoNavegacion = 228;
     private readonly AreaTrabajo _area;
     private readonly ModuloTerceros _terceros;
+    private readonly ProConta.Contabilidad.UI.Mayor.ModuloMayor _mayor;
     private readonly ModuloFacturacion _facturacion;
     private readonly ModuloCompras _compras;
     private readonly ModuloCorreo _correo;
@@ -107,6 +108,12 @@ public partial class VentanaPrincipal : Window
             new RepositorioTercerosAccess(bd), new BuscadorTerceros(bd), new CatalogoPerfilesAccess(bd), new ServicioRoles(bd, cuentas), cuentas,
             () => new FuenteGeografiaAccess(bd).CargarAsync(), contexto.Contexto, contexto.RazonSocial, new Actor(sesion.NombreOperador));
         _terceros = new ModuloTerceros(servicios, _area, new DialogosTerceros(servicios));
+
+        // Mayor (contabilidad/mayor): pestaña Contabilidad › Mayor y el mismo control embebido en la ficha de terceros.
+        _mayor = new ProConta.Contabilidad.UI.Mayor.ModuloMayor(
+            new ProConta.Contabilidad.UI.Mayor.ContextoMayor(new ProConta.Contabilidad.Mayor.FuenteMayorAccess(bd), contexto.Contexto.IdSociedad, ejercicio, contexto.RazonSocial),
+            _area, new ProConta.Contabilidad.UI.Mayor.DialogosMayor(() => this));
+        _terceros.MayorEmbebido = cuentas => _mayor.CrearEmbebido(cuentas);
 
         // Facturación de venta (facturacion/pantallas) y Parámetros y tablas (plataforma/mantenimiento).
         var roles = new ServicioRoles(bd, cuentas);
@@ -197,6 +204,7 @@ public partial class VentanaPrincipal : Window
         var abrirRecibidas = new ComandoDelegado(_compras.AbrirRecibidas);
         var abrirContaSol = new ComandoDelegado(AbrirImportacionContaSol);
         var abrirCorreo = new ComandoDelegado(() => _correo.AbrirRegistro());
+        var abrirMayor = new ComandoDelegado(() => _mayor.Abrir());
         // Informes (contabilidad/balances e informes/excel): cada opción genera el libro Excel con su tabla dinámica y lo abre.
         _balances = new ProConta.Contabilidad.Balances.GeneradorBalances(bd);
         _razonSocial = contexto.RazonSocial;
@@ -215,7 +223,10 @@ public partial class VentanaPrincipal : Window
             new OpcionNavegacion("Correo", Icono("mail"), true, false, "Correo enviado por ProContaVF: estado de cada mensaje, contenido, adjuntos e intentos", abrirCorreo),
             new OpcionNavegacion("Correo enviado", null, true, false, "Registro común del correo enviado (facturas y demás), con reintentos y reenvíos en el menú contextual", abrirCorreo, EsHija: true),
             new OpcionNavegacion("Correo recibido", null, true, false, "Correo que llega a la cuenta del ejercicio: facturas de compra importadas, documentos en espera y remitentes no autorizados", new ComandoDelegado(() => _correo.AbrirRecibido()), EsHija: true),
-            new OpcionNavegacion("Contabilidad", Icono("book"), false, false, proxima),
+            new OpcionNavegacion("Contabilidad", Icono("book"), true, false, "Contabilidad: el Mayor de cualquier cuenta, con varios ejercicios, vistas y filtros", abrirMayor),
+            new OpcionNavegacion("Mayor", null, true, false,
+                "Mayor de una o varias cuentas (o de un código corto) en los ejercicios que elijas: vistas Normal, Compacto, Solo pendientes y Agrupar 700, filtros, asiento e historial de cada apunte",
+                abrirMayor, EsHija: true),
             new OpcionNavegacion("Bancos", Icono("bank"), false, false, proxima),
             new OpcionNavegacion("Nóminas", Icono("coin"), false, false, proxima),
             new OpcionNavegacion("Informes", Icono("xls"), true, false, "Informes del ejercicio de trabajo en Excel, con tabla dinámica", balanceSituacion),

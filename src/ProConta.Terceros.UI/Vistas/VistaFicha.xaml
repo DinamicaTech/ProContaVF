@@ -718,10 +718,13 @@
           <pc:VistaEstado Estado="Vacio" Titulo="Compras llega con el desarrollo de compras"
                           Mensaje="Aquí verás las facturas recibidas del proveedor, con su estado de contabilización y el acceso a cada factura y a su PDF." />
         </TabItem>
-        <TabItem ToolTip="Mayor de las cuentas del tercero (llega con el Mayor de contabilidad)">
+        <TabItem ToolTip="Mayor de las cuentas del tercero (cliente, proveedor y acreedor), todas juntas o una a una; lo que sale de ellas se abre en la pestaña del Mayor">
           <TabItem.Header><ContentControl ContentTemplate="{StaticResource CabeceraPestana}" Content="{Binding Cabeceras[6]}" /></TabItem.Header>
-          <pc:VistaEstado Estado="Vacio" Titulo="Contabilidad llega con el Mayor de contabilidad"
-                          Mensaje="Aquí verás el Mayor de las cuentas del tercero (cliente, proveedor y acreedor), todas juntas o una a una, con sus filtros; lo que salga de ellas se abrirá en una pestaña del Mayor." />
+          <Grid>
+            <ContentControl Content="{Binding MayorContabilidad}" Visibility="{Binding HayMayor, Converter={StaticResource Visible}}" Margin="12,10" />
+            <pc:VistaEstado Estado="Vacio" Titulo="{Binding TituloSinMayor}" Mensaje="{Binding MensajeSinMayor}"
+                            Visibility="{Binding HayMayor, Converter={StaticResource Visible}, ConverterParameter=invertir}" />
+          </Grid>
         </TabItem>
 
         <!-- ===================== Notas ===================== -->

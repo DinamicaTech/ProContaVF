@@ -34,6 +34,12 @@ public sealed class ModuloTerceros
     /// </summary>
     public Func<string, int, string, Task>? EnviarEmail { get; set; }
 
+    /// <summary>
+    /// Mayor embebido de la pestaña Contabilidad (contabilidad/mayor): crea el control con las cuentas del tercero. Lo conecta el
+    /// contenedor; null, la pestaña explica que el Mayor no está disponible.
+    /// </summary>
+    public Func<IReadOnlyList<string>, object>? MayorEmbebido { get; set; }
+
     public int NumeroFichas => _fichas.Count;
 
     public IReadOnlySet<int> IdsAbiertos() => _fichas.Where(f => f.Clave > 0).Select(f => f.Clave).ToHashSet();
