@@ -8,6 +8,7 @@ using ProConta.Nucleo.Contexto;
 using ProConta.Nucleo.Identificacion;
 using ProConta.Nucleo.Resultados;
 using ProConta.Terceros;
+using ProConta.Terceros.Contactos;
 using ProConta.Terceros.Roles;
 
 namespace ProConta.Implantacion.ContaSol;
@@ -556,10 +557,14 @@ public sealed class ImportadorContaSol(IBaseDatos bd, IMotorAsientos motor, ICat
                 CodigoPostal = PlanificadorContaSol.Recortar(o.CodigoPostal, 10),
                 Poblacion = PlanificadorContaSol.Recortar(o.Poblacion, 100),
                 Provincia = PlanificadorContaSol.Recortar(o.Provincia, 100),
-                Telefono = PlanificadorContaSol.Recortar(o.Telefono, 50),
-                Email = o.Email is { Length: <= 254 } e && e.Contains('@') ? e : null,
                 Notas = $"Importado de ContaSol: {(o.EsCliente ? "cliente" : "proveedor")} {o.Codigo}.",
             };
+            // Email y teléfono van a la lista de datos de contacto, no a la ficha antigua (terceros/contactos, migración 20261101_1300).
+            foreach (var email in (o.Email ?? "").Split([';', ',', ' ', '\t', '\r', '\n'], StringSplitOptions.RemoveEmptyEntries).Select(e => e.Trim())
+                         .Where(e => e.IndexOf('@') > 0 && !e.EndsWith('@') && e.Length <= 254).Distinct(StringComparer.OrdinalIgnoreCase))
+                tercero.DatosContacto.Add(new DatoContacto { Tipo = TipoDatoContacto.Email, Etiqueta = "Principal", Valor = email });
+            if (o.Telefono?.Trim() is { Length: > 0 and <= 254 } telefono && telefono.Count(char.IsAsciiDigit) >= 6)
+                tercero.DatosContacto.Add(new DatoContacto { Tipo = TipoDatoContacto.Telefono, Etiqueta = "Principal", Valor = telefono });
             if (o.EsCliente) tercero.Roles.Cliente = new RolCliente { Activo = true };
             else tercero.Roles.Proveedor = new RolProveedor { Activo = true };
             return tercero;

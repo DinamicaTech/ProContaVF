@@ -59,8 +59,8 @@ public sealed class ContaSolSintetico
                 await s.EjecutarAsync("INSERT INTO F_APU (DIAAPU, FECAPU, ASIAPU, ORDAPU, CUEAPU, IMEAPU, CONAPU, [D-HAPU], DEPAPU, SUBAPU, TIVAPU, CIVAPU) VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                     a.Fecha, a.Asiento, a.Orden, a.Cuenta, (double)a.Importe, a.Concepto, a.Debe ? "D" : "H", a.Dep, a.Sub, a.TipoIva ?? "", a.CodigoIva);
             foreach (var t in Terceros)
-                await s.EjecutarAsync(t.Cliente ? "INSERT INTO F_CLI (CODCLI, NOMCLI, CIFCLI) VALUES (?, ?, ?)" : "INSERT INTO F_PRO (CODPRO, NOMPRO, CIFPRO) VALUES (?, ?, ?)",
-                    t.Codigo, t.Nombre, t.Nif);
+                await s.EjecutarAsync(t.Cliente ? "INSERT INTO F_CLI (CODCLI, NOMCLI, CIFCLI, TELCLI, EMACLI) VALUES (?, ?, ?, ?, ?)" : "INSERT INTO F_PRO (CODPRO, NOMPRO, CIFPRO, TELPRO, EMAPRO) VALUES (?, ?, ?, ?, ?)",
+                    t.Codigo, t.Nombre, t.Nif, "600 000 000", $"a{t.Codigo}@ejemplo.invalid; b{t.Codigo}@ejemplo.invalid");
             foreach (var r in IvaSoportado)
                 await s.EjecutarAsync("INSERT INTO F_IVS (CODIVS, FECIVS, FFAIVS, CUEIVS, FACIVS, NOMIVS, CIFIVS, BA0IVS, BA1IVS, PI1IVS, CI1IVS, TOTIVS, TIPIVS, [347IVS], PDEIVS) " +
                                       "VALUES (?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?, 0, 1, 100)",

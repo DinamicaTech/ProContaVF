@@ -124,6 +124,10 @@ public sealed class ImportadorAccessTests : IDisposable
         var idAsientoCompra = (await mapas.LeerAsync("T01", 2024, TiposMapa.Asiento))["1:3"];
         Assert.Equal(1, await ContarAsync("SELECT COUNT(*) FROM IVASoportado WHERE IdIVASoportado = ? AND IdAsiento = ?", idIva, idAsientoCompra));
 
+        // Email y teléfono en la lista de datos de contacto, nunca en la ficha antigua (lo exige la migración 20261101_1300).
+        Assert.Equal(0, await ContarAsync("SELECT COUNT(*) FROM Terceros WHERE Email IS NOT NULL OR Telefono IS NOT NULL"));
+        Assert.Equal(3 * await ContarAsync("SELECT COUNT(*) FROM Terceros"), await ContarAsync("SELECT COUNT(*) FROM DatosContacto"));
+
         // Subcuenta reasignada: dos terceros y la cuenta solo en el más reciente.
         var clientes = await mapas.LeerAsync("T01", 2024, TiposMapa.Cliente);
         var clientes2025 = await mapas.LeerAsync("T01", 2025, TiposMapa.Cliente);
