@@ -146,6 +146,10 @@ public sealed class PantallaComprasTests
         Assert.Equal(Path.Combine(@"D:\Docs", "2026", "Proveedores"), ServicioFacturasCompra.CarpetaEjercicio(@"D:\Docs", "  ", 2026));
         Assert.Equal(Path.Combine(@"D:\Docs", @"Compras\2025"), ServicioFacturasCompra.CarpetaEjercicio(@"D:\Docs", @"Compras\2025", 2025));
         Assert.Equal(@"E:\Otra\Proveedores", ServicioFacturasCompra.CarpetaEjercicio(@"D:\Docs", @"E:\Otra\Proveedores", 2025));
+        // Sin carpeta de documentos: la del ejercicio vale si es absoluta (con o sin barra final); si es relativa no hay carpeta.
+        Assert.Equal(@"E:\Otra\2026\Proveedores\", ServicioFacturasCompra.CarpetaEjercicio(null, @"E:\Otra\2026\Proveedores\", 2026));
+        Assert.Null(ServicioFacturasCompra.CarpetaEjercicio(null, null, 2026));
+        Assert.Null(ServicioFacturasCompra.CarpetaEjercicio("", @"2026\Proveedores", 2026));
     }
 
     [Fact]
@@ -166,6 +170,8 @@ public sealed class PantallaComprasTests
             var pdf = Path.Combine(Directory.CreateDirectory(Path.Combine(carpetaEjercicio, "Acme")).FullName, "f.pdf");
             File.WriteAllText(pdf, "%PDF");
             Assert.Equal(pdf, ServicioFacturasCompra.LocalizarPdf([@"Acme\f.pdf"], raiz, carpetaEjercicio));
+            // Carpeta del ejercicio absoluta con barra final y sin carpeta de documentos en la empresa.
+            Assert.Equal(pdf, ServicioFacturasCompra.LocalizarPdf([@"Acme\f.pdf"], null, ServicioFacturasCompra.CarpetaEjercicio(null, carpetaEjercicio + @"\", 2025)));
             Assert.Equal(Path.Combine(carpetaEjercicio, @"Acme\otro.pdf"), ServicioFacturasCompra.LocalizarPdf([@"Acme\otro.pdf"], raiz, carpetaEjercicio));
         }
         finally { Directory.Delete(raiz, recursive: true); }

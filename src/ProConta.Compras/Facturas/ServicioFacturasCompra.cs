@@ -37,12 +37,12 @@ public sealed class ServicioFacturasCompra(
     public async Task<Resultado<string>> CarpetaComprasAsync(ContextoSociedadEjercicio ctx, CancellationToken cancelacion = default)
     {
         var (nombre, raiz) = await bd.EjecutarAsync(s => RepositorioFacturasCompra.EmpresaAsync(s, ctx.IdSociedad), cancelacion);
-        if (string.IsNullOrWhiteSpace(raiz))
+        var relativa = await bd.EjecutarAsync(s => RepositorioFacturasCompra.CarpetaComprasEjercicioAsync(s, ctx.IdSociedadEjercicio), cancelacion);
+        // Una carpeta de ejercicio absoluta no necesita la carpeta de documentos de la empresa.
+        if (CarpetaEjercicio(string.IsNullOrWhiteSpace(raiz) ? null : RaizEmpresa(raiz), relativa, ctx.Ejercicio) is not { } carpeta)
             return Resultado<string>.Fallo(new Error("Compras.SinCarpetaDocumentos",
                 $"La empresa {nombre ?? ctx.IdSociedad} no tiene carpeta de documentos, y es donde busco los PDF de compra.", ctx.ToString(), null,
                 "Escríbela en Configuración › Parámetros y tablas › Empresas (grupo «Rutas y bases de datos») y vuelve a buscar los PDF."));
-        var relativa = await bd.EjecutarAsync(s => RepositorioFacturasCompra.CarpetaComprasEjercicioAsync(s, ctx.IdSociedadEjercicio), cancelacion);
-        var carpeta = CarpetaEjercicio(RaizEmpresa(raiz), relativa, ctx.Ejercicio);
         if (!Directory.Exists(carpeta))
             return Resultado<string>.Fallo(new Error("Compras.CarpetaNoExiste", $"No encuentro la carpeta de compras. Ruta intentada: {carpeta}.", ctx.ToString(),
                 "La carpeta no existe o la unidad compartida no está conectada.", "Comprueba que la carpeta compartida esté conectada o crea la carpeta del ejercicio."));
@@ -63,10 +63,12 @@ public sealed class ServicioFacturasCompra(
     /// Carpeta de compras de un ejercicio (compras/factura-compra 2026-11-11 17:33): la carpeta de documentos de la empresa más la
     /// carpeta de facturas de compra del ejercicio (por defecto «&lt;año&gt;\Proveedores»); si esta es una ruta completa, se usa tal cual.
     /// </summary>
-    public static string CarpetaEjercicio(string raizEmpresa, string? carpetaCompras, int ejercicio)
+    /// <remarks>Null si la carpeta del ejercicio es relativa y la empresa no tiene carpeta de documentos.</remarks>
+    public static string? CarpetaEjercicio(string? raizEmpresa, string? carpetaCompras, int ejercicio)
     {
         var c = string.IsNullOrWhiteSpace(carpetaCompras) ? Path.Combine(ejercicio.ToString(CultureInfo.InvariantCulture), "Proveedores") : carpetaCompras.Trim();
-        return Path.IsPathFullyQualified(c) ? c : Path.Combine(raizEmpresa, c);
+        if (Path.IsPathFullyQualified(c)) return c;
+        return string.IsNullOrWhiteSpace(raizEmpresa) ? null : Path.Combine(raizEmpresa, c);
     }
 
     /// <summary>Ruta de un PDF guardado: si es completa, tal cual; si no (la migración del ERP las guarda así), dentro de la carpeta del ejercicio.</summary>
@@ -361,7 +363,7 @@ public sealed class ServicioFacturasCompra(
     }
 
     private static async Task<string?> CarpetaAsync(ISesionDatos s, string? raiz, ContextoSociedadEjercicio ctx) =>
-        raiz is null ? null : CarpetaEjercicio(raiz, await RepositorioFacturasCompra.CarpetaComprasEjercicioAsync(s, ctx.IdSociedadEjercicio), ctx.Ejercicio);
+        CarpetaEjercicio(raiz, await RepositorioFacturasCompra.CarpetaComprasEjercicioAsync(s, ctx.IdSociedadEjercicio), ctx.Ejercicio);
 
     /// <summary>
     /// PDF de una factura ya registrada: la primera ruta grabada que exista (una ruta sin unidad, dentro de la carpeta de compras
