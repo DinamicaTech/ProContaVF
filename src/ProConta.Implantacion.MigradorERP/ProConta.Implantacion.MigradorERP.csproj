@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Ejecutable de la migración del ERP (docs/implantacion/migracion-erp.md): ensayo sobre copias de la BD con ContaSol importado. -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>ProConta.Implantacion.MigradorERP</RootNamespace>
+    <AssemblyName>MigradorERP</AssemblyName>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\ProConta.Implantacion\ProConta.Implantacion.csproj" />
+  </ItemGroup>
+</Project>

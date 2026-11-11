@@ -78,6 +78,32 @@ Relaciones:
 Relaciones:
 - FK_Incidencias_Importacion: (IdImportacionContaSol) → ImportacionesContaSol (IdImportacionContaSol); borrado NO ACTION, actualización NO ACTION
 
+## IncidenciasMigracionERP
+
+- Dueño funcional: `implantacion/migracion-erp`
+
+| Campo | Tipo | Nulo | Por defecto | Descripción |
+|---|---|---|---|---|
+| IdIncidenciaMigracionERP | COUNTER | no |  |  |
+| IdMigracionERP | LONG | no |  |  |
+| Fase | TEXT(50) | sí |  |  |
+| TablaOrigen | TEXT(100) | sí |  |  |
+| ClaveOrigen | TEXT(150) | sí |  |  |
+| CampoOrigen | TEXT(100) | sí |  |  |
+| Codigo | TEXT(50) | no |  |  |
+| Severidad | TEXT(15) | no |  |  |
+| Explicacion | LONGTEXT | no |  |  |
+| ValorOriginal | LONGTEXT | sí |  |  |
+| Estado | TEXT(15) | no |  |  |
+
+Índices:
+- FK_IncidenciasMigracionERP_Migracion: IdMigracionERP
+- IX_IncidenciasMigracionERP_Migracion: IdMigracionERP, Codigo
+- PK_IncidenciasMigracionERP (clave primaria): IdIncidenciaMigracionERP
+
+Relaciones:
+- FK_IncidenciasMigracionERP_Migracion: (IdMigracionERP) → MigracionesERP (IdMigracionERP); borrado NO ACTION, actualización NO ACTION
+
 ## MapasIdentidadContaSol
 
 - Dueño funcional: `implantacion/importador-contasol`
@@ -97,4 +123,50 @@ Relaciones:
 
 Relaciones:
 - FK_Mapas_Importacion: (IdImportacionContaSol) → ImportacionesContaSol (IdImportacionContaSol); borrado NO ACTION, actualización NO ACTION
+
+## MapasIdentidadERP
+
+- Dueño funcional: `implantacion/migracion-erp`
+
+| Campo | Tipo | Nulo | Por defecto | Descripción |
+|---|---|---|---|---|
+| IdMapaIdentidadERP | COUNTER | no |  |  |
+| IdMigracionERP | LONG | no |  |  |
+| TipoEntidad | TEXT(30) | no |  |  |
+| ClaveOrigen | TEXT(150) | no |  |  |
+| IdDestino | LONG | no |  |  |
+
+Índices:
+- FK_MapasIdentidadERP_Migracion: IdMigracionERP
+- PK_MapasIdentidadERP (clave primaria): IdMapaIdentidadERP
+- UX_MapasIdentidadERP_Clave (único): IdMigracionERP, TipoEntidad, ClaveOrigen
+
+Relaciones:
+- FK_MapasIdentidadERP_Migracion: (IdMigracionERP) → MigracionesERP (IdMigracionERP); borrado NO ACTION, actualización NO ACTION
+
+## MigracionesERP
+
+- Dueño funcional: `implantacion/migracion-erp`
+
+| Campo | Tipo | Nulo | Por defecto | Descripción |
+|---|---|---|---|---|
+| IdMigracionERP | COUNTER | no |  |  |
+| IdSociedad | TEXT(3) | no |  |  |
+| RutaOrigen | TEXT(255) | no |  |  |
+| HuellaOrigen | TEXT(64) | no |  |  |
+| RutaDirecciones | TEXT(255) | sí |  |  |
+| HuellaDirecciones | TEXT(64) | sí |  |  |
+| VersionMigrador | TEXT(10) | no |  |  |
+| FechaHoraInicio | DATETIME | no |  |  |
+| FechaHoraFin | DATETIME | sí |  |  |
+| Operador | TEXT(100) | sí |  |  |
+| Estado | TEXT(20) | no |  |  |
+| Resumen | LONGTEXT | sí |  |  |
+
+Índices:
+- FK_MigracionesERP_Sociedad: IdSociedad
+- PK_MigracionesERP (clave primaria): IdMigracionERP
+
+Relaciones:
+- FK_MigracionesERP_Sociedad: (IdSociedad) → Sociedades (IdSociedad); borrado NO ACTION, actualización NO ACTION
 

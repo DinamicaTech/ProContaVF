@@ -1,5 +1,5 @@
 <Project Sdk="Microsoft.NET.Sdk">
-  <!-- Implantación: importador de ContaSol por ejercicio (docs/implantacion/importador-contasol.md). -->
+  <!-- Implantación: importador de ContaSol por ejercicio (docs/implantacion/importador-contasol.md) y migración del ERP (docs/implantacion/migracion-erp.md). -->
   <PropertyGroup>
     <OutputType>Library</OutputType>
     <RootNamespace>ProConta.Implantacion</RootNamespace>
@@ -15,5 +15,6 @@
     <ProjectReference Include="..\ProConta.Contabilidad\ProConta.Contabilidad.csproj" />
     <ProjectReference Include="..\ProConta.Organizacion\ProConta.Organizacion.csproj" />
     <ProjectReference Include="..\ProConta.Terceros\ProConta.Terceros.csproj" />
+    <ProjectReference Include="..\ProConta.Facturacion\ProConta.Facturacion.csproj" />
   </ItemGroup>
 </Project>
