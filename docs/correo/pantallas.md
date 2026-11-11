@@ -1,6 +1,5 @@
 ---
 title: Pantallas de correo
-status: draft
 depends_on: [correo/envio, plataforma/contenedor, plataforma/ui-base]
 threads:
   - 2026-10-28 12:30 · Carga de requisitos | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GRNMH95h9tnQp4dmEPHmw1w
@@ -16,6 +15,7 @@ Compositor individual modal (Para, CC, CCO, asunto, cuerpo y adjuntos) y registr
 - 2026-11-10 19:40 · Registro de correo (menú Correo › Correo enviado): tabla filtrable de los mensajes con su estado, detalle de solo lectura con remitente, Para, CC y CCO, asunto, cuerpo, adjuntos (se abren tal como se enviaron), Message-ID, intentos y origen. Las acciones (reintentar, reenviar, dar por enviado o no enviado un incierto, cancelar pendientes, abrir adjunto, abrir origen) van en el menú contextual, según la regla «Menú contextual»; la maqueta de lotes las tenía en botones y se adapta.
 - 2026-11-10 19:40 · Fuera de esta versión, con el OK del propietario: pausa de lotes, borradores guardados entre sesiones y avisos de entrega o rebote. El compositor solo conserva el borrador mientras está abierto.
 - 2026-11-10 20:05 · Hecho (entrega 1): compositor modal (Para, CC y CCO con error junto a cada campo, asunto, texto plano que se envía también como HTML sencillo, adjuntos que se ven y se quitan; aviso de variables de plantilla sin rellenar y del desvío de pruebas; tras enviar muestra aceptado, en la cola con su reintento, fallido o incierto), registro «Correo enviado» en el menú Correo con filtros, detalle de solo lectura, adjuntos que se abren tal como se enviaron e intentos, y el mismo registro como resumen modal de un lote o del correo de una factura. El editor del texto es de texto plano: negrita, cursiva y listas quedan para más adelante.
+- 2026-11-11 10:46 · Validado por el propietario con la cuenta de pruebas (correo recibido): el nodo deja de ser borrador.
 
 ## Requirements
 - 2026-10-28 12:28 · From sources/01_ESPECIFICACION_FUNCIONAL.docx § 22 RF-COR-01..03: compositor y registro de lotes
@@ -24,3 +24,4 @@ Compositor individual modal (Para, CC, CCO, asunto, cuerpo y adjuntos) y registr
 - 2026-11-10 19:26 · hay que poder consultar los emails enviados y poder acceder a los adjuntos si los hubiesen
 - 2026-11-10 19:26 · Ok al envio 'ciego' de lotes de facturas con un resumen al final de los envíos
 - 2026-11-10 19:26 · En contextual
+- 2026-11-11 10:45 · Ok, pruebas realizadas. Correo recibido. Todo ok.
