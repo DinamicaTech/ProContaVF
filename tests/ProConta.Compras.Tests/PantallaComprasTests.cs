@@ -140,6 +140,38 @@ public sealed class PantallaComprasTests
         Assert.Null(ServicioFacturasCompra.Reubicar(guardada, Path.GetTempPath()));
 
     [Fact]
+    public void La_carpeta_de_compras_del_ejercicio_va_dentro_de_la_carpeta_de_documentos()
+    {
+        Assert.Equal(Path.Combine(@"D:\Docs", "2026", "Proveedores"), ServicioFacturasCompra.CarpetaEjercicio(@"D:\Docs", null, 2026));
+        Assert.Equal(Path.Combine(@"D:\Docs", "2026", "Proveedores"), ServicioFacturasCompra.CarpetaEjercicio(@"D:\Docs", "  ", 2026));
+        Assert.Equal(Path.Combine(@"D:\Docs", @"Compras\2025"), ServicioFacturasCompra.CarpetaEjercicio(@"D:\Docs", @"Compras\2025", 2025));
+        Assert.Equal(@"E:\Otra\Proveedores", ServicioFacturasCompra.CarpetaEjercicio(@"D:\Docs", @"E:\Otra\Proveedores", 2025));
+    }
+
+    [Fact]
+    public void Una_ruta_guardada_sin_unidad_se_resuelve_en_la_carpeta_del_ejercicio()
+    {
+        Assert.Equal(Path.Combine(@"D:\Docs\2026\Proveedores", @"Acme\f.pdf"), ServicioFacturasCompra.Resolver(@"Acme\f.pdf", @"D:\Docs\2026\Proveedores"));
+        Assert.Equal(@"Z:\Antigua\f.pdf", ServicioFacturasCompra.Resolver(@"Z:\Antigua\f.pdf", @"D:\Docs\2026\Proveedores"));
+        Assert.Equal(@"Acme\f.pdf", ServicioFacturasCompra.Resolver(@"Acme\f.pdf", null));
+    }
+
+    [Fact]
+    public void LocalizarPdf_encuentra_la_ruta_relativa_de_la_migracion()
+    {
+        var raiz = Directory.CreateTempSubdirectory("compras-relativa").FullName;
+        try
+        {
+            var carpetaEjercicio = Path.Combine(raiz, "2025", "Proveedores");
+            var pdf = Path.Combine(Directory.CreateDirectory(Path.Combine(carpetaEjercicio, "Acme")).FullName, "f.pdf");
+            File.WriteAllText(pdf, "%PDF");
+            Assert.Equal(pdf, ServicioFacturasCompra.LocalizarPdf([@"Acme\f.pdf"], raiz, carpetaEjercicio));
+            Assert.Equal(Path.Combine(carpetaEjercicio, @"Acme\otro.pdf"), ServicioFacturasCompra.LocalizarPdf([@"Acme\otro.pdf"], raiz, carpetaEjercicio));
+        }
+        finally { Directory.Delete(raiz, recursive: true); }
+    }
+
+    [Fact]
     public void LocalizarPdf_prefiere_la_grabada_y_si_no_la_reubicada()
     {
         var raiz = Directory.CreateTempSubdirectory("compras-raiz").FullName;

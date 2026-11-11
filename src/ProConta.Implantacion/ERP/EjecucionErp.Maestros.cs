@@ -1,4 +1,4 @@
-using System.Globalization;
+﻿using System.Globalization;
 using ProConta.Implantacion.ContaSol;
 using ProConta.Nucleo.Identificacion;
 using ProConta.Terceros;
@@ -55,8 +55,9 @@ internal sealed partial class EjecucionErp
         {
             var erp = sociedades.FirstOrDefault(x => x.T("Codigo") == Sociedad && x.E("Ejercicio") == anio);
             var nombre = erp?.T("Nombre") ?? $"{_ejercicios.Values.OrderByDescending(v => v.Id).Select(v => v.Nombre).FirstOrDefault()?.Split(' ')[0] ?? Sociedad} {anio}";
-            var id = await InsertarAsync("INSERT INTO SociedadesEjercicios (IdSociedad, Ejercicio, Nombre, CIF, Activa, EjercicioCerrado) VALUES (?, ?, ?, ?, ?, ?)",
-                Sociedad, anio.ToString(CultureInfo.InvariantCulture), ReglasErp.Recortar(nombre, 255), ReglasErp.Recortar(cifSociedad, 10), true, true);
+            var id = await InsertarAsync("INSERT INTO SociedadesEjercicios (IdSociedad, Ejercicio, Nombre, CIF, Activa, EjercicioCerrado, CarpetaFacturasCompra) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                Sociedad, anio.ToString(CultureInfo.InvariantCulture), ReglasErp.Recortar(nombre, 255), ReglasErp.Recortar(cifSociedad, 10), true, true,
+                Path.Combine(anio.ToString(CultureInfo.InvariantCulture), "Proveedores"));
             Anotar(Fase1, "Sociedades", anio.ToString(CultureInfo.InvariantCulture), "Ejercicio", "Erp.EjercicioCreado", Severidad.Informativa,
                 $"He dado de alta el ejercicio {anio} (cerrado) para las facturas del ERP de ese año, que ContaSol no tiene.");
         }

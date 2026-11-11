@@ -21,6 +21,7 @@ Sociedad permanente y su instancia por ejercicio (SociedadEjercicio), con consul
 - 2026-11-07 00:19 · Derived from compras/factura-compra/contabilizacion: en Ejercicios, «Tipo de IVA general (%)» (vacío: el más alto de los tipos de IVA), «Cuenta de IVA de importación» y las cuentas de diferencias de redondeo de gastos y de ingresos (vacías: 6590000 y 7590000, compras/pantallas 2026-11-05 20:29). Las cuentas de IVA por tipo (CuentaTipoIVA0..4) son, en los datos del ERP, de IVA soportado (472); ventas las usa como repercutido: pendiente de decidir.
 - 2026-11-07 00:38 · Derived from compras/pantallas: ServicioTrimestreActivo lee y cambia SociedadesEjercicios.TrimestreActivo (activar el siguiente, reactivar el anterior con las reglas de compras/pantallas 2026-11-06 12:10).
 - 2026-11-07 13:00 · Cuentas de IVA del ejercicio (propietario 2026-11-07 11:59): CuentaTipoIVA0..4 son las de IVA soportado (472) que usa compras; ventas usa las nuevas CuentaIVARepercutido0..4 y, si están vacías, la 477 con la misma terminación (4720021 → 4770021). En la migración del ERP hay que rellenarlas.
+- 2026-11-11 17:33 · Parámetros › Ejercicios muestra «Carpeta de facturas de compra» (compras/factura-compra 2026-11-11 17:33) y deja de mostrar «Base de datos de facturas de venta» y «Carpeta de facturas a exportar», que eran del ERP y no las usa nada; sus columnas siguen en la BD hasta terminar la migración del ERP.
 
 ## Requirements
 - 2026-10-28 12:28 · From sources/01_ESPECIFICACION_FUNCIONAL.docx § 3 RF-ARQ-04: propietario de Sociedades/SociedadesEjercicios
@@ -36,3 +37,4 @@ Sociedad permanente y su instancia por ejercicio (SociedadEjercicio), con consul
 
 ## Hand-over
 - 2026-10-31 18:55 · Hecho: contrato y servicio sobre Access, migración de EjercicioCerrado y pruebas (contexto válido e inválido, ejercicio cerrado). Pendiente: apertura de ejercicio nuevo y cierre/reapertura (contabilidad/procesos), unicidad (IdSociedad, Ejercicio) y unicidad del NIF de sociedad (la maestra tiene dos sociedades con el mismo NIF, una de pruebas), y la regla de propagación de la razón social a los ejercicios.
+- 2026-11-11 17:33 · Derived from compras/factura-compra: campo «Carpeta de facturas de compra» en cada ejercicio, relativo a la carpeta de documentos de la empresa, por defecto «<año>\Proveedores».

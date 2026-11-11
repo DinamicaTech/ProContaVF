@@ -1,4 +1,4 @@
-using System.Globalization;
+﻿using System.Globalization;
 using ProConta.Implantacion.ContaSol;
 using ProConta.Nucleo.Identificacion;
 using ProConta.Nucleo.Importes;
@@ -44,6 +44,7 @@ internal sealed partial class EjecucionErp
                 f => (Id: f.Entero("IdProveedor"), Nif: Nif.Normalizar(f.Texto("NIF")))))
             .Where(x => x.Nif.Length > 0).GroupBy(x => x.Nif).Where(g => g.Select(x => x.Id).Distinct().Count() == 1).ToDictionary(g => g.Key, g => g.First().Id);
 
+        var carpetasErp = await CarpetasComprasAsync();
         var preparadas = new List<(Fila Erp, object?[] Valores, List<object?[]> Desgloses, int? Proveedor)>();
         var campos = copiar.Concat(["IdSociedadEjercicio", "IdProveedor", "IdRegistroIVA", "IdAsientoContable", "IdCentroCoste", "Divisa", "ImporteTotalDivisa", "Duplicada",
             "RequiereRevisionImportacion", "FuenteImportacion", "Version"]).ToList();
@@ -58,13 +59,18 @@ internal sealed partial class EjecucionErp
 
             var valores = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
             foreach (var col in copiar) valores[col] = c.Valor(col);
-            // Ruta del PDF relativa a la raíz configurable.
+            // Ruta del PDF relativa a la carpeta de compras del ERP de su ejercicio (compras/factura-compra 2026-11-11 17:33).
             if (c.T("Archivo") is { } archivo)
             {
-                var relativa = ReglasErp.RutaRelativa(archivo, op.RaizDocumentos);
+                var carpetaErp = carpetasErp.GetValueOrDefault(anio);
+                var relativa = carpetaErp is null ? null : ReglasErp.RutaRelativa(archivo, carpetaErp);
                 if (relativa is null)
-                    Anotar(Fase4, "FacturasCompra", clave, "Archivo", "Erp.RutaFueraDeRaiz", Severidad.Advertencia,
-                        $"El PDF de la factura de compra {idErp} no está bajo la raíz {op.RaizDocumentos}: conservo la ruta completa.", archivo);
+                {
+                    Anotar(Fase4, "FacturasCompra", clave, "Archivo", "Erp.RutaFueraDeCarpeta", Severidad.Advertencia,
+                        $"El PDF de la factura de compra {idErp} no está en la carpeta de compras del ERP de {anio} ({carpetaErp ?? "sin carpeta"}): conservo la ruta completa.", archivo);
+                    Est(Fase4, "FacturasCompra (PDF con ruta completa)").Cargadas++;
+                }
+                else Est(Fase4, "FacturasCompra (PDF con ruta relativa)").Cargadas++;
                 valores["Archivo"] = relativa ?? archivo;
             }
             // Proveedor por su cuenta (mapa de ContaSol) o, si no, por el NIF.
@@ -141,6 +147,34 @@ internal sealed partial class EjecucionErp
 
         await DefectosProveedorAsync(preparadas.Where(p => p.Proveedor is not null).Select(p => (p.Erp, p.Proveedor!.Value)).ToList());
         await TextosClaveAsync();
+    }
+
+    /// <summary>
+    /// Carpeta de compras del ERP de cada ejercicio (Sociedades.RutaFacturasAExportar, p. ej. D:\SynologyBox\2026\Proveedores) y el
+    /// parámetro nuevo de cada ejercicio: esa carpeta relativa a la raíz de documentos (2026\Proveedores). La carpeta de documentos
+    /// de la empresa no la pone la migración: la pone el propietario.
+    /// </summary>
+    private async Task<Dictionary<int, string>> CarpetasComprasAsync()
+    {
+        var r = new Dictionary<int, string>();
+        var est = Est(Fase4, "Sociedades (carpeta de compras del ejercicio)");
+        foreach (var s in o.Tabla("Sociedades").Where(s => s.B("Activa") && s.T("Codigo") == Sociedad))
+        {
+            if (s.E("Ejercicio") is not int anio || s.T("RutaFacturasAExportar") is not { } carpeta) continue;
+            est.Leidas++;
+            r[anio] = carpeta.TrimEnd('\\', '/');
+            if (!_ejercicios.TryGetValue(anio, out var ej)) continue;
+            var relativa = ReglasErp.RutaRelativa(carpeta.TrimEnd('\\', '/'), op.RaizDocumentos);
+            if (relativa is null)
+            {
+                Anotar(Fase4, "Sociedades", Txt(anio), "RutaFacturasAExportar", "Erp.CarpetaFueraDeRaiz", Severidad.Advertencia,
+                    $"La carpeta de compras del ERP de {anio} ({carpeta}) no está bajo {op.RaizDocumentos}: dejo el parámetro del ejercicio por defecto ({anio}\\Proveedores).", carpeta);
+                continue;
+            }
+            await EjecutarAsync("UPDATE SociedadesEjercicios SET CarpetaFacturasCompra = ? WHERE IdSociedadEjercicio = ?", relativa, ej.Id);
+            est.Cargadas++;
+        }
+        return r;
     }
 
     /// <summary>Producto, cuenta de gasto y centro por defecto del proveedor: los de su última factura (compras 2026-11-06).</summary>

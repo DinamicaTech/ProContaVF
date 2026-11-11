@@ -1,4 +1,4 @@
-using System.Globalization;
+﻿using System.Globalization;
 using ProConta.Datos.Persistencia;
 using ProConta.Mantenimiento;
 using ProConta.Nucleo.Resultados;
@@ -144,8 +144,15 @@ public static class ProveedoresOrganizacion
             new("PorcentajeProrrataAñoAnterior", "Prorrata del año anterior (%)", TipoCampo.Porcentaje) { Grupo = "impuestos", Ancho = "xs", Sinonimos = ["prorrata"] },
             TipoGeneral(),
             .. Cuentas(), .. CuentasCompras(),
-            Ruta("RutaFacturasAExportar", "Carpeta de facturas a exportar"), Ruta("RutaFacturasExportadas", "Carpeta de facturas exportadas"),
-            Ruta("RutaFacturasDuplicadas", "Carpeta de facturas duplicadas"), Ruta("BDFacturasVenta", "Base de datos de facturas de venta"),
+            // «Carpeta de facturas a exportar» y «Base de datos de facturas de venta» eran del ERP y no las usa nada: no se muestran
+            // (las columnas siguen en la BD hasta terminar la migración del ERP; propietario 2026-11-11 17:33).
+            Ruta("CarpetaFacturasCompra", "Carpeta de facturas de compra") with
+            {
+                Ayuda = "Dónde se buscan los PDF de compra de este ejercicio, dentro de la carpeta de documentos de la empresa (por ejemplo 2026\\Proveedores). " +
+                    "Vacía: <año>\\Proveedores. Una ruta completa (con unidad) se usa tal cual.",
+                Sinonimos = ["proveedores", "pdf", "compras"],
+            },
+            Ruta("RutaFacturasExportadas", "Carpeta de facturas exportadas"), Ruta("RutaFacturasDuplicadas", "Carpeta de facturas duplicadas"),
             Ruta("BDERPGestion", "Base de datos del ERP de gestión"), Ruta("BDExportacion", "Base de datos de exportación"),
         ],
         [new("Ejercicio", "Ejercicio", 76), new("Nombre", "Nombre"), new("Activa", "Activo", 60), new("EjercicioCerrado", "Cerrado", 66)])
