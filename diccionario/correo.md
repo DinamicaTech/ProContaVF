@@ -49,6 +49,33 @@ Relaciones:
 Relaciones:
 - FK_AdjuntosMensaje_Mensaje: (IdMensajeCorreo) → MensajesCorreo (IdMensajeCorreo); borrado NO ACTION, actualización NO ACTION
 
+## AdjuntosRecibidosCorreo
+
+- Dueño funcional: `correo/recepcion`
+
+| Campo | Tipo | Nulo | Por defecto | Descripción |
+|---|---|---|---|---|
+| IdAdjuntoRecibido | COUNTER | no |  |  |
+| IdMensajeRecibido | LONG | no |  |  |
+| Ordinal | SHORT | no |  |  |
+| Nombre | TEXT(255) | no |  |  |
+| TamanoBytes | LONG | no |  |  |
+| Huella | TEXT(64) | no |  |  |
+| RutaRelativa | TEXT(255) | no |  |  |
+| Tipo | TEXT(20) | no |  |  |
+| Estado | TEXT(20) | no |  |  |
+| IdFacturaCompra | LONG | sí |  |  |
+| IdAsiento | LONG | sí |  |  |
+| Detalle | LONGTEXT | sí |  |  |
+
+Índices:
+- FK_AdjuntosRecibidos_Mensaje: IdMensajeRecibido
+- PK_AdjuntosRecibidosCorreo (clave primaria): IdAdjuntoRecibido
+- UX_AdjuntosRecibidos_Ordinal (único): IdMensajeRecibido, Ordinal
+
+Relaciones:
+- FK_AdjuntosRecibidos_Mensaje: (IdMensajeRecibido) → MensajesRecibidosCorreo (IdMensajeRecibido); borrado NO ACTION, actualización NO ACTION
+
 ## ConfiguracionCorreo
 
 - Dueño funcional: `correo`
@@ -330,6 +357,46 @@ Relaciones:
 - FK_MensajesCorreo_SociedadEjercicio: (IdSociedadEjercicio) → SociedadesEjercicios (IdSociedadEjercicio); borrado NO ACTION, actualización NO ACTION
 - FK_MensajesCorreo_Tipo: (TipoCorreo) → TiposCorreo (TipoCorreo); borrado NO ACTION, actualización NO ACTION
 
+## MensajesRecibidosCorreo
+
+- Dueño funcional: `correo/recepcion`
+
+| Campo | Tipo | Nulo | Por defecto | Descripción |
+|---|---|---|---|---|
+| IdMensajeRecibido | COUNTER | no |  |  |
+| IdCuentaCorreo | LONG | no |  |  |
+| IdSociedadEjercicio | LONG | no |  |  |
+| Uidl | TEXT(255) | no |  |  |
+| MessageId | TEXT(255) | sí |  |  |
+| Remitente | TEXT(254) | sí |  |  |
+| NombreRemitente | TEXT(150) | sí |  |  |
+| Asunto | TEXT(255) | sí |  |  |
+| FechaMensaje | DATETIME | sí |  |  |
+| FechaRecepcion | DATETIME | no |  |  |
+| TamanoBytes | LONG | no |  |  |
+| Huella | TEXT(64) | no |  |  |
+| RutaEml | TEXT(255) | no |  |  |
+| Estado | TEXT(25) | no |  |  |
+| Resumen | LONGTEXT | sí |  |  |
+| IdMensajeRespuesta | LONG | sí |  |  |
+| EliminadoServidor | YESNO | no |  |  |
+| FechaEliminacion | DATETIME | sí |  |  |
+| FechaProceso | DATETIME | sí |  |  |
+| Version | LONG | no |  |  |
+
+Índices:
+- FK_MensajesRecibidos_Cuenta: IdCuentaCorreo
+- FK_MensajesRecibidos_Respuesta: IdMensajeRespuesta
+- FK_MensajesRecibidos_SociedadEjercicio: IdSociedadEjercicio
+- IX_MensajesRecibidos_SociedadEjercicio: IdSociedadEjercicio, FechaRecepcion
+- PK_MensajesRecibidosCorreo (clave primaria): IdMensajeRecibido
+- UX_MensajesRecibidos_CuentaUidl (único): IdCuentaCorreo, Uidl
+
+Relaciones:
+- FK_MensajesRecibidos_Cuenta: (IdCuentaCorreo) → CuentasCorreo (IdCuentaCorreo); borrado NO ACTION, actualización NO ACTION
+- FK_MensajesRecibidos_Respuesta: (IdMensajeRespuesta) → MensajesCorreo (IdMensajeCorreo); borrado NO ACTION, actualización NO ACTION
+- FK_MensajesRecibidos_SociedadEjercicio: (IdSociedadEjercicio) → SociedadesEjercicios (IdSociedadEjercicio); borrado NO ACTION, actualización NO ACTION
+
 ## PlantillasCorreo
 
 - Dueño funcional: `correo`
@@ -386,6 +453,28 @@ Relaciones:
 
 Relaciones:
 - FK_ProcesamientoMail_Config: (IdConfiguracionMail) → ConfiguracionMailDispatcher (IdConfiguracionMail); borrado NO ACTION, actualización NO ACTION
+
+## RemitentesAutorizadosCorreo
+
+- Dueño funcional: `correo/recepcion`
+
+| Campo | Tipo | Nulo | Por defecto | Descripción |
+|---|---|---|---|---|
+| IdRemitenteAutorizado | COUNTER | no |  |  |
+| IdSociedadEjercicio | LONG | no |  |  |
+| Direccion | TEXT(254) | no |  |  |
+| Nombre | TEXT(150) | sí |  |  |
+| PuedeImportar | YESNO | no |  |  |
+| PuedePedirInformes | YESNO | no |  |  |
+| Activo | YESNO | no |  |  |
+
+Índices:
+- FK_Remitentes_SociedadEjercicio: IdSociedadEjercicio
+- PK_RemitentesAutorizadosCorreo (clave primaria): IdRemitenteAutorizado
+- UX_Remitentes_EjercicioDireccion (único): IdSociedadEjercicio, Direccion
+
+Relaciones:
+- FK_Remitentes_SociedadEjercicio: (IdSociedadEjercicio) → SociedadesEjercicios (IdSociedadEjercicio); borrado NO ACTION, actualización NO ACTION
 
 ## TiposCorreo
 

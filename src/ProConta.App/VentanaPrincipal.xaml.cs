@@ -128,7 +128,9 @@ public partial class VentanaPrincipal : Window
         var reconocimiento = new ServicioReconocimientoFacturaCompra(new ExtractorPdfPig(), ocr, new TiposCambioFrankfurter(Http), sinOcr, ExtractorOcrTextract.ConCredenciales);
         var altaProveedor = new ProConta.Compras.Proveedores.ServicioAltaProveedorCompra(bd, new ProConta.Terceros.RepositorioTercerosAccess(bd), new ProConta.Terceros.Roles.ServicioRoles(bd, cuentas), cuentas,
             new ProConta.Compras.Integraciones.ConsultaNifAeatVNif(bd), new Actor(sesion.NombreOperador), new ProConta.Compras.Integraciones.ConsultaViesRest(Http));
-        var serviciosCompras = new ServiciosCompras(new ServicioFacturasCompra(bd, reconocimiento) { AltaProveedor = altaProveedor }, cuentas, new CatalogoCentrosCosteAccess(bd), contexto.Contexto,
+        var facturasCompra = new ServicioFacturasCompra(bd, reconocimiento) { AltaProveedor = altaProveedor };
+        var contabilizadorCompras = new ContabilizadorCompras(bd, new MotorAsientosAccess(bd), cuentas, roles);
+        var serviciosCompras = new ServiciosCompras(facturasCompra, cuentas, new CatalogoCentrosCosteAccess(bd), contexto.Contexto,
             contexto.RazonSocial, () => autorizador.PuedeAsync(Acciones.FacturasEditar),
             async () => (await new LectorConfiguracionEjercicio(bd).ObtenerAsync(contexto.Contexto.IdSociedadEjercicio))?.TiposIva.Select(t => t.Porcentaje).ToList() ?? [],
             async () => (await new ProConta.Organizacion.FormasPago.CatalogoFormasPagoAccess(bd).ListarAsync()).Select(f => (f.Id, f.Descripcion)).ToList(),
@@ -136,7 +138,7 @@ public partial class VentanaPrincipal : Window
                 .Select(t => new TipoRetencionCompra(t.Porcentaje, t.Descripcion, t.Clase == 2 ? ClaseRetencion.Arrendamientos : ClaseRetencion.Profesionales)).ToList(),
             new CatalogoTextosClaveCompra(bd),
             altaProveedor,
-            new ContabilizadorCompras(bd, new MotorAsientosAccess(bd), cuentas, roles),
+            contabilizadorCompras,
             new Actor(sesion.NombreOperador),
             ComprobarTrimestreAlEntrarAsync);
         _compras = new ModuloCompras(serviciosCompras, _area, new DialogosCompras(() => this), _terceros.AbrirFicha);
@@ -161,6 +163,8 @@ public partial class VentanaPrincipal : Window
             IdSociedadEjercicio = contexto.Contexto.IdSociedadEjercicio, TipoCorreo = TiposCorreo.Otro, TipoOrigen = idTercero > 0 ? "Tercero" : null,
             IdOrigen = idTercero > 0 ? idTercero : null, ReferenciaOrigen = nombre, Destinatarios = [new Destinatario(TipoDestinatario.Para, direccion, nombre)],
         });
+        // Recepción (correo/recepcion): el buzón POP3 de cada cuenta activa se mira mientras la aplicación está abierta.
+        _coordinadorCorreo.Recepcion = new ServicioRecepcionCorreo(bd, new ClientePop3MailKit(), servicioCorreo, new ProcesadorFacturasCompraCorreo(bd, facturasCompra, contabilizadorCompras));
         _coordinadorCorreo.Iniciar();
         Closed += async (_, _) => await _coordinadorCorreo.DisposeAsync();
         _ = AvisarDesvioCorreoAsync(servicioCorreo);
@@ -195,6 +199,7 @@ public partial class VentanaPrincipal : Window
             new OpcionNavegacion("Facturas recibidas", null, true, false, "Facturas de compra del ejercicio reconocidas de sus PDF: revisión, corrección y registro (y el modo prueba, en el menú contextual)", abrirRecibidas, EsHija: true),
             new OpcionNavegacion("Correo", Icono("mail"), true, false, "Correo enviado por ProContaVF: estado de cada mensaje, contenido, adjuntos e intentos", abrirCorreo),
             new OpcionNavegacion("Correo enviado", null, true, false, "Registro común del correo enviado (facturas y demás), con reintentos y reenvíos en el menú contextual", abrirCorreo, EsHija: true),
+            new OpcionNavegacion("Correo recibido", null, true, false, "Correo que llega a la cuenta del ejercicio: facturas de compra importadas, documentos en espera y remitentes no autorizados", new ComandoDelegado(() => _correo.AbrirRecibido()), EsHija: true),
             new OpcionNavegacion("Contabilidad", Icono("book"), false, false, proxima),
             new OpcionNavegacion("Bancos", Icono("bank"), false, false, proxima),
             new OpcionNavegacion("Nóminas", Icono("coin"), false, false, proxima),

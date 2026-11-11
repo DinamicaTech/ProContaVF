@@ -186,17 +186,17 @@ public sealed class ServicioCorreo
     /// Turno de la cola en TurnosCorreo: lo toma si está libre o caducado, o lo renueva si ya es suyo. Con varias sesiones
     /// abiertas, solo una procesa a la vez.
     /// </summary>
-    public Task<bool> TomarTurnoAsync() =>
+    public Task<bool> TomarTurnoAsync(string clave = ClaveTurno) =>
         _bd.EjecutarAsync(async s =>
         {
             var ahora = _reloj.Ahora;
             var n = await s.EjecutarAsync("UPDATE TurnosCorreo SET Propietario = ?, CaducaEn = ? WHERE Clave = ? AND (Propietario = ? OR CaducaEn < ?)",
-                Propietario, ahora + DuracionTurno, ClaveTurno, Propietario, ahora);
+                Propietario, ahora + DuracionTurno, clave, Propietario, ahora);
             if (n > 0) return true;
-            if (await s.EscalarAsync("SELECT COUNT(*) FROM TurnosCorreo WHERE Clave = ?", ClaveTurno) is { } c && Convert.ToInt32(c, CultureInfo.InvariantCulture) > 0) return false;
+            if (await s.EscalarAsync("SELECT COUNT(*) FROM TurnosCorreo WHERE Clave = ?", clave) is { } c && Convert.ToInt32(c, CultureInfo.InvariantCulture) > 0) return false;
             try
             {
-                await s.EjecutarAsync("INSERT INTO TurnosCorreo (Clave, Propietario, CaducaEn) VALUES (?, ?, ?)", ClaveTurno, Propietario, ahora + DuracionTurno);
+                await s.EjecutarAsync("INSERT INTO TurnosCorreo (Clave, Propietario, CaducaEn) VALUES (?, ?, ?)", clave, Propietario, ahora + DuracionTurno);
                 return true;
             }
             catch (ExcepcionDatos)
@@ -206,8 +206,8 @@ public sealed class ServicioCorreo
         });
 
     /// <summary>Suelta el turno al cerrar la sesión, para que otra lo tome sin esperar a que caduque.</summary>
-    public Task SoltarTurnoAsync() =>
-        _bd.EjecutarAsync(s => s.EjecutarAsync("DELETE FROM TurnosCorreo WHERE Clave = ? AND Propietario = ?", ClaveTurno, Propietario));
+    public Task SoltarTurnoAsync(string clave = ClaveTurno) =>
+        _bd.EjecutarAsync(s => s.EjecutarAsync("DELETE FROM TurnosCorreo WHERE Clave = ? AND Propietario = ?", clave, Propietario));
 
     /// <summary>Toma el mensaje (pendiente → en proceso) y lo transmite; null si no estaba pendiente.</summary>
     private async Task<ResultadoEnvio?> ProcesarUnoAsync(int id, CancellationToken cancelacion)
@@ -478,7 +478,7 @@ public sealed class ServicioCorreo
                 ResueltoPor = f.Texto("ResueltoPor"),
                 FechaResolucion = f.FechaNula("FechaResolucion"),
                 MotivoResolucion = f.Texto("MotivoResolucion"),
-                RaizDocumentos = f.Texto("RutaDocumentos"),
+                RaizDocumentos = f.Texto("RutaDocumentos") is { } raiz && !string.IsNullOrWhiteSpace(raiz) ? RaizDocumentos(raiz, _bd.Ruta) : null,
             }, id));
         if (d is null) return null;
         return await _bd.EjecutarAsync(async s =>
@@ -491,7 +491,7 @@ public sealed class ServicioCorreo
                 "SELECT IdAdjuntoMensaje, Ordinal, Nombre, TipoContenido, TamanoBytes, Huella, RutaRelativa FROM AdjuntosMensajeCorreo WHERE IdMensajeCorreo = ? ORDER BY Ordinal",
                 f => new AdjuntoRegistrado(f.Entero("IdAdjuntoMensaje"), f.Entero("Ordinal"), f.Texto("Nombre") ?? "", f.Texto("TipoContenido") ?? "application/octet-stream",
                     f.Entero("TamanoBytes"), f.Texto("Huella") ?? "", f.Texto("RutaRelativa") ?? "",
-                    string.IsNullOrWhiteSpace(d.RaizDocumentos) ? null : Path.Combine(d.RaizDocumentos.Trim(), f.Texto("RutaRelativa") ?? "")), id);
+                    d.RaizDocumentos is null ? null : Path.Combine(d.RaizDocumentos, f.Texto("RutaRelativa") ?? "")), id);
             d.HistorialIntentos = await s.ConsultarAsync(
                 "SELECT Numero, Inicio, Fin, Resultado, Fase, RespuestaServidor, Detalle FROM IntentosMensajeCorreo WHERE IdMensajeCorreo = ? ORDER BY Numero",
                 f => new IntentoRegistrado(f.Entero("Numero"), f.Fecha("Inicio"), f.FechaNula("Fin"), f.Texto("Resultado") ?? "", f.Texto("Fase"), f.Texto("RespuestaServidor"), f.Texto("Detalle")), id);
@@ -515,7 +515,17 @@ public sealed class ServicioCorreo
         if (string.IsNullOrWhiteSpace(fila.Raiz))
             return (null, fila.Ejercicio, new Error("Correo.SinCarpetaDocumentos", $"La empresa {fila.Nombre} no tiene carpeta de documentos, y es donde se guarda la copia de los adjuntos enviados.", null, null,
                 "Escríbela en Configuración › Parámetros y tablas › Empresas (grupo «Rutas y bases de datos») y vuelve a enviar."));
-        return (fila.Raiz.Trim(), fila.Ejercicio.Trim(), null);
+        return (RaizDocumentos(fila.Raiz, _bd.Ruta), fila.Ejercicio.Trim(), null);
+    }
+
+    /// <summary>
+    /// Carpeta de documentos de la empresa: Sociedades.RutaDocumentos tal cual si es una ruta completa; si es relativa, dentro de
+    /// la carpeta que contiene la BD (como en compras/reconocimiento 2026-11-05 11:24).
+    /// </summary>
+    public static string RaizDocumentos(string rutaDocumentos, string rutaBd)
+    {
+        var ruta = rutaDocumentos.Trim();
+        return Path.IsPathFullyQualified(ruta) ? ruta : Path.GetFullPath(Path.Combine(Path.GetDirectoryName(Path.GetFullPath(rutaBd)) ?? string.Empty, ruta));
     }
 
     internal static string CodigoTipo(TipoDestinatario t) => t switch { TipoDestinatario.Para => "PARA", TipoDestinatario.Cc => "CC", _ => "CCO" };

@@ -23,6 +23,7 @@ Pantalla genérica y extensible (CFG-MANT) para parámetros únicos y coleccione
 - 2026-11-04 17:57 · Validado por el propietario (facturación de venta, PR #14).
 - 2026-11-05 11:20 · Configuración general añade «Activar VeriFactu» (facturacion/verifactu), y Empresas, domicilio fiscal, código postal, población, provincia y carpeta de documentos (facturacion/factura-venta).
 - 2026-11-10 20:05 · Hecho: proveedores «Cuenta de correo» y «Plantillas de correo» (categoría Correo, en `src/ProConta.Correo/Mantenimiento.cs`) y el parámetro general «Desviar todo el correo a».
+- 2026-11-11 11:00 · Hecho: proveedor «Remitentes autorizados» (categoría Correo, por ejercicio); uno nuevo nace activo y con permiso para enviar documentos.
 
 ## Requirements
 - 2026-10-28 12:28 · From sources/01_ESPECIFICACION_FUNCIONAL.docx § 8 RF-MAN-01..05: pantalla por proveedores, editores, servicios tipados para datos con invariantes, catálogo conocido
