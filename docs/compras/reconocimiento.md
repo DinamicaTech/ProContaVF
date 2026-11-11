@@ -1,6 +1,5 @@
 ---
 title: Reconocimiento de facturas de compra
-status: draft
 depends_on: [compras/factura-compra, terceros/tercero]
 threads:
   - 2026-10-28 12:30 · Carga de requisitos | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GRNMH95h9tnQp4dmEPHmw1w
@@ -30,6 +29,7 @@ Motor que reconoce los campos de un PDF de compra (texto nativo y OCR, proveedor
 - 2026-11-05 18:42 · Plantillas por proveedor (acordado con el propietario: afinar el aprendizaje sin añadir reglas al código): guardar una factura revisada enseña. Para NIF, número, fecha y total, el valor guardado es el bueno: cada plantilla de la carpeta del proveedor que en ese PDF lee el valor bueno suma un acierto, la que lee otro se descarta y, si ninguna lo lee, se aprende una nueva con el rótulo que precede al valor en la misma línea (o en la de encima, en tablas), su página, su posición y cuántas palabras ocupa; solo vale si, aplicada a ese PDF, devuelve ese valor. Hasta 5 plantillas por proveedor y campo (formatos distintos). Al reconocer, el campo que encuentra una plantilla sale con confianza 1 y marcado «plantilla»; los importes solo suben a 1 si la base y la cuota cuadran con el total de la plantilla. En moneda extranjera se aprende el total en esa moneda. Si no se puede leer el PDF, se guarda igual y no se aprende.
 - 2026-11-05 19:55 · Si el CIF leído en el PDF no es el registrado para la carpeta, la factura queda con el proveedor del CIF del PDF (el emisor real, que es el que lleva el libro de IVA soportado), con el aviso «difiere del CIF registrado». Motivo del propietario: los PDF se copian a mano a las carpetas y se pueden archivar en la equivocada.
 - 2026-11-11 11:00 · Hecho: `ProcesadorFacturasCompraCorreo` copia el PDF recibido a la raíz de Proveedores, lo reconoce, lo registra con origen «email» y lo mueve a su proveedor (como el escaneo); si los cuatro campos (NIF, número, fecha e importes) alcanzan el 95 % de confianza, tiene proveedor y no pide revisión, lo contabiliza con la exportación masiva; si no, queda en Facturas recibidas para revisar. Un PDF ya registrado (mismo MD5) no crea otra factura. Devuelve los campos con su confianza y el asiento para la respuesta. Pruebas de la regla del 95 %.
+- 2026-11-11 17:37 · Validado por el propietario (PR #19 a #27 fusionadas; compras cerrado el 2026-11-08): el nodo pasa a estable.
 
 ## Requirements
 - 2026-10-28 12:28 · Quizá la parte más importante es el módulo de FacturasCompra ya que se ha hecho un entrenamiento algo laborioso para afinar el reconocimiento automático de los campos de facturas de compra (PDF).
