@@ -1,6 +1,5 @@
 ---
 title: Factura de compra
-status: draft
 depends_on: [datos/esquema, datos/persistencia, nucleo, terceros/tercero]
 threads:
   - 2026-10-28 12:30 · Carga de requisitos | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GRNMH95h9tnQp4dmEPHmw1w
@@ -23,6 +22,7 @@ Ente FacturaCompra con sus desgloses: inserción atómica, MD5 compatible del PD
 - 2026-11-05 18:00 · Guardar desde la pantalla solo vale para facturas sin contabilizar y comprueba la versión: si otro operador la cambió mientras tanto, no se pisa y se le pide actualizar. Los desgloses se sustituyen enteros en la misma transacción. Una factura lista deja de pedir revisión.
 - 2026-11-06 19:59 · Textos clave de compras (versión 25 del esquema, ver datos/esquema): tabla TextosClaveCompra por empresa (texto único por empresa, identidad contable de la cuenta de gasto y centro de coste, cada uno opcional, al menos uno). Los escribe solo CatalogoTextosClaveCompra; las reglas de coincidencia son ReglasTextosClave. La cuenta y el centro por defecto del proveedor van en CuentasProveedoresSociedad.IdIdentidadGastoDefecto e IdCentroCosteDefecto (ver terceros/roles).
 - 2026-11-11 17:33 · Carpeta de facturas de compra por ejercicio (aprobado por el propietario el 2026-11-11 17:33, a partir de la pregunta 2 de la migración del ERP): SociedadesEjercicios.CarpetaFacturasCompra (esquema v40), relativa a la carpeta de documentos de la empresa (Sociedades.RutaDocumentos), por defecto «<año>\Proveedores» (vacía vale lo mismo; una ruta con unidad se usa tal cual). Compras busca ahí los PDF nuevos y resuelve un PDF guardado como carpeta de documentos + carpeta del ejercicio + ruta guardada; si la ruta guardada es absoluta, se usa tal cual. Los PDF nuevos se siguen guardando con su ruta completa.
+- 2026-11-11 17:37 · Validado por el propietario (PR #19 a #27 fusionadas; compras cerrado el 2026-11-08): el nodo pasa a estable.
 
 ## Requirements
 - 2026-10-28 12:28 · Y, por supuesto, hay que encapsular los diferentes 'entes' que aparecen en el proyecto (CuentaContable, Tercero -> Cliente/Proveedor/Asociacion/Particular..., FacturaCompra, FacturaVenta, etc.).

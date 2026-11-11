@@ -1,6 +1,5 @@
 ---
 title: Contabilización de compras
-status: draft
 depends_on: [compras/factura-compra, contabilidad/asientos, contabilidad/cuenta-contable]
 threads:
   - 2026-10-28 12:30 · Carga de requisitos | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GRNMH95h9tnQp4dmEPHmw1w
@@ -35,6 +34,7 @@ Genera los asientos de las facturas de compra con el motor de contabilidad/asien
 - 2026-11-07 13:00 · Hecho (cuentas): al pasar un acreedor a proveedor, si su 410 no tiene apuntes en ningún ejercicio, cambia de código a la siguiente 400 libre (misma identidad contable, en todos sus ejercicios, con la reserva del código movida), y el rol pasa de acreedor a proveedor; si tiene apuntes, se crea una 400 nueva como antes. Las cuentas de los parámetros del ejercicio (redondeo, importación, IVA, retención, inversión del sujeto pasivo, intracomunitarias, suplidos) que no existen se crean al exportar, con el nombre de su parámetro y colgadas de la cuenta del prefijo más largo, y el aviso lo dice. Sustituye a «sugerir configurar 6690000/7690000»: los valores por defecto 6590000/7590000 se quedan y se crean al usarse.
 - 2026-11-08 10:08 · Hecho (472 por actividad, decisión del propietario 2026-11-08): al exportar se busca la actividad del centro de coste de la factura (la suya o la heredada). Con serie, el IVA soportado va a la serie con la terminación de la cuenta general: por tipo, las tres últimas cifras de CuentaTipoIVA (4720021 → 4728021); intracomunitario, las de su cuenta (x121 bienes, x221 servicios); inversión del sujeto pasivo, x3 + las dos últimas (x321); importación, x4 + el tipo general (x421). Si la subcuenta no existe, se crea al exportar como las de los parámetros. Sin IVA deducible, la cuota (y el lado soportado de la autorrepercusión, o todo el IVA de importación) va al gasto con su centro, y el libro de IVA la registra con el 0 % deducible. Sin actividad, como antes, las cuentas generales del ejercicio. Necesita la versión 31 del esquema.
 - 2026-11-08 10:41 · 477 por actividad (propietario 2026-11-08 09:40): en la inversión del sujeto pasivo y las intracomunitarias, el lado repercutido de la autorrepercusión va a la 477 de la actividad del centro: su serie con el 2 cambiado por el 7 y la misma terminación que el soportado (4728321 / 4778321; 4778121 y 4778221 en las intracomunitarias). La ficha de «Actividades (IVA)» enseña las subcuentas de las dos series. Ventas hará lo mismo con su IVA repercutido (ver facturacion/factura-venta/contabilizacion).
+- 2026-11-11 17:37 · Validado por el propietario (PR #19 a #27 fusionadas; compras cerrado el 2026-11-08): el nodo pasa a estable.
 
 ## Requirements
 - 2026-10-28 12:28 · From sources/01_ESPECIFICACION_FUNCIONAL.docx § 14 RF-COM-07: contabilización de compra, contrato incompleto
