@@ -212,7 +212,7 @@ public sealed class MayorVM : ModeloVista
     public string TotalHaber => Formatos.Importe(_sesion.Resultado.TotalHaber);
     public decimal Saldo => _sesion.Resultado.Saldo;
     public string TotalSaldo => Formatos.Saldo(Saldo);
-    public char GrupoSaldo => ReglaSaldo.GrupoComun(_sesion.Resultado.Filas.Select(f => f.Cuenta)) ?? '0';
+    public string GrupoSaldo => ReglaSaldo.ClaveComun(_sesion.Resultado.Filas.Select(f => f.Cuenta)) ?? "0";
     public string AyudaSaldo => ReglaSaldo.Descripcion(Saldo) + (_sesion.Resultado.EsParcial ? " de lo que se ve (saldo parcial)" : " de todas las filas de la vista");
     public string TextoSeleccion { get => _textoSeleccion; private set => Fijar(ref _textoSeleccion, value); }
     public bool HayCerrados => _sesion.HayCerrados;

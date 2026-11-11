@@ -234,9 +234,9 @@ public sealed class MayorTests
         await s.VerCuentasAsync(["4300001", "5720001"]);
         var fechas = s.Resultado.Filas.Select(f => f.Fecha).ToList();
         Assert.Equal(fechas.OrderBy(x => x), fechas);
-        Assert.All(s.Resultado.Filas, f => Assert.Equal('0', f.GrupoSaldo));
+        Assert.All(s.Resultado.Filas, f => Assert.Equal("0", f.GrupoSaldo));
         await s.VerCuentasAsync(["4300001"]);
-        Assert.All(s.Resultado.Filas, f => Assert.Equal('4', f.GrupoSaldo));
+        Assert.All(s.Resultado.Filas, f => Assert.Equal("43", f.GrupoSaldo));
     }
 
     [Theory]

@@ -29,7 +29,7 @@ public sealed class FilaMayorVM(FilaMayor f, string cabeceraEjercicio)
     public DateTime? GrabadoEl => Fila.GrabadoEl;
     public DateTime? ModificadoEl => Fila.ModificadoEl;
     public int Ejercicio => Fila.Ejercicio;
-    public char GrupoSaldo => Fila.GrupoSaldo;
+    public string GrupoSaldo => Fila.GrupoSaldo;
     public bool EsApertura => Fila.EsApertura;
     public bool AperturaContinua => Fila.AperturaContinua;
     public bool HayAvisoApertura => Fila.AvisoApertura is not null;

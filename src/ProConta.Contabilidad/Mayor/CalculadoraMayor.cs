@@ -111,8 +111,8 @@ public sealed class FilaMayor
     public required IReadOnlyList<int> IdsApunte { get; init; }
     /// <summary>Asientos de la fila (para verlos).</summary>
     public required IReadOnlyList<int> IdsAsiento { get; init; }
-    /// <summary>Grupo del PGC para el color del saldo: el común de las cuentas de la vista, o '0' si se mezclan.</summary>
-    public char GrupoSaldo { get; internal set; } = '0';
+    /// <summary>Clave del color del saldo: «43» (clientes y deudores), el grupo común de las cuentas de la vista, o «0» si se mezclan.</summary>
+    public string GrupoSaldo { get; internal set; } = "0";
 
     public decimal Importe => Debe - Haber;
     public string FacturaNormalizada => Facturas.Normalizar(Documento);
@@ -188,7 +188,7 @@ public static class CalculadoraMayor
         }
 
         // Saldo acumulado en orden de fecha sobre lo que se ve; una apertura que continúa enseña el saldo que traía.
-        var grupo = Formato.GrupoComun(filas.Select(f => f.Cuenta)) ?? '0';
+        var grupo = Formato.GrupoComun(filas.Select(f => f.Cuenta)) ?? "0";
         decimal saldo = 0m, debe = 0m, haber = 0m;
         var numero = 0;
         foreach (var f in filas)
@@ -381,15 +381,21 @@ internal static class Formato
         return CultureInfo.ReadOnly(c);
     }
 
-    public static char? GrupoComun(IEnumerable<string> cuentas)
+    /// <summary>
+    /// Clave del color del saldo de un conjunto de cuentas (la misma regla que ReglaSaldo.ClaveComun):
+    /// «43» si todas son de clientes o deudores (43 y 44), el grupo si todas son del mismo grupo y null si se mezclan.
+    /// </summary>
+    public static string? GrupoComun(IEnumerable<string> cuentas)
     {
         char? g = null;
+        bool? cobro = null;
         foreach (var c in cuentas)
         {
             if (string.IsNullOrEmpty(c)) continue;
-            if (g is null) g = c[0];
-            else if (g != c[0]) return null;
+            var esCobro = c.StartsWith("43", StringComparison.Ordinal) || c.StartsWith("44", StringComparison.Ordinal);
+            if (g is null) { g = c[0]; cobro = esCobro; }
+            else if (g != c[0] || cobro != esCobro) return null;
         }
-        return g;
+        return g is null ? null : cobro == true ? "43" : g.Value.ToString();
     }
 }
