@@ -169,7 +169,7 @@
         </Border>
 
         <pc:VistaEstado Estado="{Binding Estado}" Titulo="{Binding TituloEstado}" Mensaje="{Binding MensajeEstado}" TextoAccion="{Binding AccionEstado}" ComandoAccion="{Binding ComandoEstado}">
-          <pc:TablaProConta x:Name="Tabla" ClavePreferencias="mayor" IsReadOnly="True" SelectionMode="Extended" SelectionUnit="FullRow"
+          <pc:TablaProConta x:Name="Tabla" ClavePreferencias="mayor" IsReadOnly="True" SelectionMode="Extended" SelectionUnit="FullRow" IsSynchronizedWithCurrentItem="False"
                             BorderBrush="{StaticResource Pincel.Linea}" BorderThickness="0,1,0,0" AutomationProperties.Name="Apuntes del mayor"
                             VirtualizingPanel.IsVirtualizingWhenGrouping="True" VirtualizingPanel.VirtualizationMode="Recycling"
                             SelectionChanged="Tabla_SelectionChanged" MouseDoubleClick="Tabla_DobleClic" PreviewKeyDown="Tabla_Tecla"

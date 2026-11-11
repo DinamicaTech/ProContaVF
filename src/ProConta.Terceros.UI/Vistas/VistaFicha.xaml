@@ -721,7 +721,7 @@
         <TabItem ToolTip="Mayor de las cuentas del tercero (cliente, proveedor y acreedor), todas juntas o una a una; lo que sale de ellas se abre en la pestaña del Mayor">
           <TabItem.Header><ContentControl ContentTemplate="{StaticResource CabeceraPestana}" Content="{Binding Cabeceras[6]}" /></TabItem.Header>
           <Grid>
-            <ContentControl Content="{Binding MayorContabilidad}" Visibility="{Binding HayMayor, Converter={StaticResource Visible}}" Margin="12,10" />
+            <ContentControl Content="{Binding MayorContabilidad}" FontWeight="Normal" Visibility="{Binding HayMayor, Converter={StaticResource Visible}}" Margin="12,10" />
             <pc:VistaEstado Estado="Vacio" Titulo="{Binding TituloSinMayor}" Mensaje="{Binding MensajeSinMayor}"
                             Visibility="{Binding HayMayor, Converter={StaticResource Visible}, ConverterParameter=invertir}" />
           </Grid>
