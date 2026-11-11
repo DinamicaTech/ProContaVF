@@ -181,8 +181,14 @@ public sealed class ImportadorContaSol(IBaseDatos bd, IMotorAsientos motor, ICat
     /// afectados, y su ejecución queda «con incidencias»; una bloqueante del destino (otra empresa, importación de otra versión)
     /// impide importarlo.
     /// </summary>
-    public async Task<IReadOnlyList<ResumenEjercicio>> ImportarAsync(IReadOnlyList<PlanEjercicio> planes, Actor actor, IProgress<ProgresoImportacion>? progreso = null,
-        CancellationToken cancelacion = default)
+    public Task<IReadOnlyList<ResumenEjercicio>> ImportarAsync(IReadOnlyList<PlanEjercicio> planes, Actor actor, IProgress<ProgresoImportacion>? progreso = null,
+        CancellationToken cancelacion = default) =>
+        // Una conexión abierta durante toda la importación: sin ella, cada transacción (una por asiento) abre el fichero
+        // en frío, y ese coste crece con el tamaño de la BD (2025 tardaba 34 minutos). La conexión no hace nada más.
+        _bdDestino.EjecutarAsync(_ => ImportarTodoAsync(planes, actor, progreso, cancelacion), cancelacion);
+
+    private async Task<IReadOnlyList<ResumenEjercicio>> ImportarTodoAsync(IReadOnlyList<PlanEjercicio> planes, Actor actor, IProgress<ProgresoImportacion>? progreso,
+        CancellationToken cancelacion)
     {
         var resumenes = new List<ResumenEjercicio>();
         foreach (var plan in planes.OrderBy(p => p.Empresa.Codigo, StringComparer.Ordinal).ThenBy(p => p.Ejercicio))
