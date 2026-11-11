@@ -111,6 +111,7 @@ public static class ExportadorBalanceExcel
         pt.SetShowGrandTotalsRows(true).SetShowGrandTotalsColumns(true);
         pt.SetRowHeaderCaption("Etiquetas de fila").SetColumnHeaderCaption("Mes");
         ws.Column(1).Width = 70;
+        ws.Columns(2, 15).Width = 15; // 12 meses + total general: caben importes de 7 cifras sin «########».
     }
 
     /// <summary>Los niveles de fila con su subtotal arriba, como en el libro anterior: cada apartado, título y cuenta muestra su suma.</summary>
