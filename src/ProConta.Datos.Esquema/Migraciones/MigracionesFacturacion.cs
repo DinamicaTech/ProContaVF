@@ -197,4 +197,15 @@ public static class MigracionesFacturacion
         "facturacion/factura-venta",
         new AnadirColumna("Facturas", "IdAsientoAnulado", "LONG"),
         new AnadirColumna("Facturas", "GeneracionExportacion", "LONG"));
+
+    /// <summary>
+    /// Libro de IVA repercutido de las ventas (facturacion/factura-venta/contabilizacion 2026-11-11): cada registro enlaza
+    /// con su factura, también los del ERP, que no tienen asiento de ProContaVF. Solo añade la columna y su índice.
+    /// </summary>
+    public static Migracion LibroIvaRepercutido { get; } = new(
+        "20261111_1300_LIBRO_IVA_REPERCUTIDO", 261111002,
+        "Enlace de cada registro del libro de IVA repercutido con su factura de venta.",
+        "facturacion/factura-venta",
+        new AnadirColumna("IVARepercutido", "IdFactura", "LONG"),
+        new CrearIndice("IVARepercutido", "IX_IVAR_Factura", "CREATE INDEX IX_IVAR_Factura ON IVARepercutido (IdFactura)"));
 }

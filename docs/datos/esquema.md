@@ -59,6 +59,8 @@ Código: `src/ProConta.Datos.Esquema` (diagnóstico, migraciones idempotentes, a
 - 2026-11-10 20:05 · Hecho: migración `20261110_1940_CORREO_SALIENTE` (versión 33 del esquema), pedida por correo/envio: CuentasCorreo, LotesCorreo, MensajesCorreo, DestinatariosMensajeCorreo, AdjuntosMensajeCorreo, IntentosMensajeCorreo, TurnosCorreo y Configuracion.CorreoDesviarA.
 - 2026-11-11 11:00 · Hecho: migración `20261111_1100_CORREO_RECEPCION` (versión 34 del esquema), pedida por correo/recepcion: MensajesRecibidosCorreo, AdjuntosRecibidosCorreo y RemitentesAutorizadosCorreo.
 
+- 2026-11-11 11:35 · Versión 35 = `20261111_1300_LIBRO_IVA_REPERCUTIDO` (orden 261111002, de facturacion/factura-venta): IVARepercutido.IdFactura (LONG) con el índice IX_IVAR_Factura, para enlazar cada registro del libro con su factura, también los del ERP sin asiento de ProContaVF. Solo estructura, sin datos.
+
 ## Requirements
 - 2026-10-28 12:28 · es importante que haya un nodo especializado en mantener la estructura de la base de datos para poder actualizar el modelo cuando se actualice una instalación en producción, por lo tanto, cualquier nodo que quiera modificar la estructura de la Base de Datos ha de comunicarlo o pasar a través del nodo de mantenimiento de estructura de BD.
 - 2026-10-28 12:28 · From sources/01_ESPECIFICACION_FUNCIONAL.docx § 25 RF-ESQ-01..06: evolución reproducible con versiones, diagnóstico, respaldo, maestra limpia separada de actualización e importación
@@ -91,6 +93,7 @@ Código: `src/ProConta.Datos.Esquema` (diagnóstico, migraciones idempotentes, a
 - 2026-11-06 12:35 · Derived from organizacion/formas-pago y compras: tabla FormasPagoSociedad (subcuenta de cada forma de pago por empresa, por identidad contable), forma de pago de la factura de compra (FacturasCompra.IdFormaPago) y forma de pago por defecto del proveedor (CuentasProveedoresSociedad.IdFormaPagoDefecto).
 - 2026-11-06 13:42 · Derived from compras: tabla TiposRetencion para el desplegable de retención de las facturas recibidas y producto por defecto del proveedor (CuentasProveedoresSociedad.TipoProductoDefecto).
 
+- 2026-11-11 11:35 · Derived from facturacion/factura-venta/contabilizacion: enlazar cada registro del libro de IVA repercutido con su factura de venta (IVARepercutido.IdFactura, con índice).
 ## Hand-over
 - 2026-11-01 09:30 · Hecho: diagnóstico, actualizador con copia verificada, comprobación previa y parámetros, registro de intentos, migraciones idempotentes (catálogo en la versión 7), diccionario en `diccionario/`, copia sin datos y la maestra 0.24 del desarrollo anterior registrada como referencia estructural. Pendiente: «crear la maestra desde cero» se cubre con `copia-estructura` (estructura de la versión 1 sin datos), no con DDL desde cero; script de instalación en el servidor (plataforma/entrega); descripciones de campo que faltan en la maestra actual (se pueden tomar de la referencia 0.24).
 - 2026-11-10 19:40 · Derived from correo/envio: tablas CuentasCorreo, LotesCorreo, MensajesCorreo, DestinatariosMensajeCorreo, AdjuntosMensajeCorreo, IntentosMensajeCorreo y TurnosCorreo, y la columna Configuracion.CorreoDesviarA.

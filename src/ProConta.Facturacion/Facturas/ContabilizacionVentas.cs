@@ -28,6 +28,28 @@ public sealed record CuentasVenta(string Cliente, string? Retencion, IReadOnlyDi
 }
 
 /// <summary>
+/// Una fila del desglose del libro de IVA repercutido (DesglosesIVARepercutido): régimen, calificación, tipo y 477 de la
+/// actividad. Las líneas exentas también tienen fila, con la 477 del 0 % de su actividad aunque no lleven apunte: son las
+/// que necesita la prorrata.
+/// </summary>
+/// <param name="Calificacion">S1, S2, N1 o N2; en una exenta, su causa (E1 a E6), como el importador de ContaSol.</param>
+public sealed record TramoLibroVenta(string ClaveRegimen, string Calificacion, string? CausaExencion, decimal TipoIva, decimal Base, decimal Cuota,
+    decimal TipoRecargo, decimal CuotaRecargo, string? Cuenta)
+{
+    public TramoLibroVenta Negado() => this with { Base = -Base, Cuota = -Cuota, CuotaRecargo = -CuotaRecargo };
+}
+
+/// <summary>Registro del libro de IVA repercutido de una factura: total de la factura y su desglose.</summary>
+public sealed record LibroVenta(decimal Total, IReadOnlyList<TramoLibroVenta> Tramos)
+{
+    public decimal Base => Tramos.Sum(t => t.Base);
+    public decimal Cuota => Tramos.Sum(t => t.Cuota);
+    public decimal Recargo => Tramos.Sum(t => t.CuotaRecargo);
+    public LibroVenta Negado() => new(-Total, [.. Tramos.Select(t => t.Negado())]);
+    public bool Vacio => Total == 0m && Tramos.Count == 0;
+}
+
+/// <summary>
 /// Asiento de una factura de venta (facturacion/factura-venta/contabilizacion), sin BD: Debe cliente por el total y
 /// retención; Haber ingresos por cuenta de línea (y centro de coste), IVA por tipo y suplidos. Los importes negativos
 /// (rectificativas) van en positivo al lado contrario, porque el motor de asientos no admite negativos.
@@ -160,6 +182,35 @@ public static class AsientoVenta
     }
 
     private static string Recortar(string texto, int maximo) => texto.Length <= maximo ? texto : texto[..maximo];
+
+    /// <summary>Calificación del libro: la causa de exención si la línea es exenta (E1 a E6); si no, su calificación (S1, S2, N1, N2).</summary>
+    public static string Calificacion(LineaFacturaVenta l) =>
+        !string.IsNullOrWhiteSpace(l.CausaExencion) ? l.CausaExencion.Trim()
+        : string.IsNullOrWhiteSpace(l.CalificacionOperacion) ? "S1" : l.CalificacionOperacion.Trim();
+
+    /// <summary>
+    /// Registro del libro de IVA repercutido (facturacion/factura-venta/contabilizacion 2026-11-11), sin BD: una fila por
+    /// régimen, calificación, tipo y 477 de la actividad de las líneas no suplidas. Las cuotas suman las de las líneas, igual
+    /// que los apuntes de IVA del asiento. En una rectificativa los importes van en negativo, como en sus líneas.
+    /// </summary>
+    public static LibroVenta Libro(FacturaVenta f, CuentasVenta cuentas) =>
+        new(f.Totales.ImporteTotal.Valor, f.Lineas.Where(l => !l.EsSuplido)
+            .GroupBy(l => (Clave: string.IsNullOrWhiteSpace(l.ClaveRegimen) ? "01" : l.ClaveRegimen.Trim(), Calificacion: Calificacion(l),
+                Causa: string.IsNullOrWhiteSpace(l.CausaExencion) ? null : l.CausaExencion.Trim(), l.TipoIva, l.TipoRecargo, Cuenta: cuentas.CuentaIva(l)))
+            .OrderByDescending(g => g.Key.TipoIva).ThenBy(g => g.Key.Calificacion, StringComparer.Ordinal).ThenBy(g => g.Key.Cuenta, StringComparer.Ordinal)
+            .Select(g => new TramoLibroVenta(g.Key.Clave, g.Key.Calificacion, g.Key.Causa, g.Key.TipoIva,
+                Importe.Sumar(g.Select(l => l.BaseImponible)).Valor, Importe.Sumar(g.Select(l => l.CuotaIva)).Valor,
+                g.Key.TipoRecargo, Importe.Sumar(g.Select(l => l.CuotaRecargo)).Valor, string.IsNullOrWhiteSpace(g.Key.Cuenta) ? null : g.Key.Cuenta))
+            .ToList());
+
+    /// <summary>
+    /// Aviso de la decisión del propietario del 2026-11-11 (punto 1a): una factura de un trimestre ya cerrado se registra
+    /// en el libro del trimestre de su asiento, el activo; su fecha real queda en el registro. Null si coinciden.
+    /// </summary>
+    public static string? AvisoTrimestre(DateTime? fechaFactura, DateTime fechaAsiento) =>
+        fechaFactura is not DateTime ff || (ff.Year == fechaAsiento.Year && TrimestreContable.De(ff) == TrimestreContable.De(fechaAsiento)) ? null
+        : $"Es del {TrimestreContable.De(ff)}T de {ff.Year}, que está cerrado: queda en el libro del {TrimestreContable.De(fechaAsiento)}T de {fechaAsiento.Year}. " +
+          "Si ese 303 ya se presentó, coméntalo con tu gestor por si hay que hacer una complementaria.";
 }
 
 /// <summary>
@@ -240,10 +291,12 @@ public sealed class ContabilizadorVentas(IBaseDatos bd, IMotorAsientos motor, IC
         // IVA de cada tipo por la 477 de la actividad de cada línea (propietario 2026-11-08 09:40). La subcuenta del ejercicio
         // que aún no existe no es un error: se crea al contabilizar (propietario 2026-11-07 11:59).
         var conIva = f.Lineas.Where(l => !l.EsSuplido && !l.CuotaIva.EsCero).ToList();
-        IReadOnlyDictionary<int, ActividadIva> actividades = conIva.Any(l => l.IdCentroCoste is not null)
+        // Las exentas no llevan apunte, pero su 477 del 0 % de la actividad va al libro de IVA (para la prorrata).
+        var sinCuota = f.Lineas.Where(l => !l.EsSuplido && l.CuotaIva.EsCero).ToList();
+        IReadOnlyDictionary<int, ActividadIva> actividades = conIva.Concat(sinCuota).Any(l => l.IdCentroCoste is not null)
             ? await new LectorActividadesIva(bd).PorCentroAsync(contexto.IdSociedad) : new Dictionary<int, ActividadIva>();
         var series = new Dictionary<int, string>();
-        foreach (var centro in conIva.Select(l => l.IdCentroCoste).OfType<int>().Distinct())
+        foreach (var centro in conIva.Concat(sinCuota).Select(l => l.IdCentroCoste).OfType<int>().Distinct())
             if (actividades.TryGetValue(centro, out var a) && a.Serie is { Length: 4 } serie) series[centro] = serie;
 
         var iva = new Dictionary<decimal, string>();
@@ -271,6 +324,19 @@ public sealed class ContabilizadorVentas(IBaseDatos bd, IMotorAsientos motor, IC
             await Comprobar(codigo, $"cuenta de IVA del {l.TipoIva:0.##} %", null);
         }
 
+        // La 477 de las líneas sin cuota solo se usa en el libro: si el ejercicio no tiene cuenta de ese tipo o no se puede
+        // crear, el desglose queda sin cuenta y no impide contabilizar.
+        foreach (var l in sinCuota)
+        {
+            if (config.CuentaIva(l.TipoIva) is not { } general) continue;
+            iva.TryAdd(l.TipoIva, general);
+            var serieLinea = l.IdCentroCoste is int c && series.TryGetValue(c, out var sc) ? sc : null;
+            var codigo = serieLinea is null ? general : AsientoVenta.CuentaIvaActividad(general, serieLinea);
+            if (!comprobadas.Add(codigo) || !crearCuentasIva || (await cuentas.ResolverAsync(contexto, codigo)).EsCorrecto) continue;
+            await cuentas.AltaSubcuentaAsync(contexto, codigo,
+                $"IVA repercutido del {l.TipoIva:0.##} %{(serieLinea is null ? "" : " de " + actividades[l.IdCentroCoste!.Value].Nombre)}");
+        }
+
         string? suplido = null;
         foreach (var l in f.Lineas.Where(l => l.EsSuplido && !l.ImporteTotal.EsCero))
         {
@@ -289,11 +355,14 @@ public sealed class ContabilizadorVentas(IBaseDatos bd, IMotorAsientos motor, IC
     }
 
     /// <summary>
-    /// Genera (o regenera) el asiento de una factura numerada y guarda su IdAsientoContable. Regenerar sustituye el
-    /// asiento anterior del lote de la factura, nunca lo duplica.
+    /// Genera (o regenera) el asiento de una factura numerada y, en la misma transacción, su registro del libro de IVA
+    /// repercutido, y guarda su IdAsientoContable. Regenerar sustituye el asiento y el registro anteriores del lote de la
+    /// factura, nunca los duplica. Una factura de un año anterior al de su ejercicio no se contabiliza (propietario
+    /// 2026-11-11, punto 3a).
     /// </summary>
     /// <param name="enLaTransaccion">Cambios de la factura que se guardan junto con su asiento: o todo o nada.</param>
-    public async Task<Resultado<int>> ContabilizarAsync(FacturaVenta f, Actor actor, Func<ISesionDatos, Task>? enLaTransaccion = null)
+    /// <param name="avisar">Recibe el aviso de una factura de un trimestre cerrado que va al libro del trimestre activo.</param>
+    public async Task<Resultado<int>> ContabilizarAsync(FacturaVenta f, Actor actor, Func<ISesionDatos, Task>? enLaTransaccion = null, Action<string>? avisar = null)
     {
         var registro = f.Rotulo;
         if (f.NumeroFactura is null || f.Estado is EstadoFactura.Borrador)
@@ -303,6 +372,11 @@ public sealed class ContabilizadorVentas(IBaseDatos bd, IMotorAsientos motor, IC
         if (ejercicio is null)
             return Resultado<int>.Fallo(new Error("Contabilizacion.SinEjercicio", "No encuentro el ejercicio de la factura.", registro));
         var contexto = ejercicio.Contexto;
+        if (f.FechaFactura is DateTime ff && ff.Year < contexto.Ejercicio)
+            return Resultado<int>.Fallo(new Error("Contabilizacion.EjercicioAnterior",
+                $"La factura es del {ff:dd/MM/yyyy}, de un año anterior al ejercicio {contexto.Ejercicio} en el que está.", registro,
+                "Una factura se contabiliza en el ejercicio de su fecha; las de años anteriores que vienen del ERP ya tienen su asiento en la contabilidad de ese año.",
+                $"Si de verdad le falta el asiento, contabilízala desde el ejercicio {ff.Year}."));
         var (cuentasVenta, incidencias) = await ResolverAsync(f, contexto, crearCuentasIva: true);
         if (cuentasVenta is null)
             return Resultado<int>.Fallo(incidencias.Select(i => new Error(i.Codigo, i.Mensaje, registro, null,
@@ -315,25 +389,46 @@ public sealed class ContabilizadorVentas(IBaseDatos bd, IMotorAsientos motor, IC
         var generacion = cerrado ? estado.Generacion + 1 : estado.Generacion;
         var anulado = cerrado ? estado.Vigente : estado.Anulado;
         var asientos = new List<Asiento>();
+        var libros = new List<(LibroVenta Libro, bool Anulacion)>();
         if (anulado is int idAnulado)
         {
             var contra = await ContraAsync(idAnulado, f, contexto, trimestre);
             if (!contra.EsCorrecto) return Resultado<int>.Fallo(contra.Errores);
-            asientos.Add(contra.Valor);
+            asientos.Add(contra.Valor.Asiento);
+            libros.Add((contra.Valor.Libro, true));
         }
-        asientos.Add(AsientoVenta.Construir(f, contexto, cuentasVenta, AsientoVenta.Fecha(f, contexto.Ejercicio, activo, _reloj.Ahora)));
+        var fecha = AsientoVenta.Fecha(f, contexto.Ejercicio, activo, _reloj.Ahora);
+        asientos.Add(AsientoVenta.Construir(f, contexto, cuentasVenta, fecha));
+        libros.Add((AsientoVenta.Libro(f, cuentasVenta), false));
+        var aviso = AsientoVenta.AvisoTrimestre(f.FechaFactura, fecha);
+        if (aviso is not null) f.Anotar(_reloj.Ahora, actor.Nombre, $"Libro de IVA: {aviso}");
         var ahora = _reloj.Ahora;
         var lote = await motor.ReemplazarLoteAsync(contexto, AsientoVenta.Lote(f.IdFactura, generacion), asientos, actor,
             estado.Vigente is null ? $"Validación de la factura {f.NumeroFactura}" : $"Regenerar el asiento de la factura {f.NumeroFactura}",
-            new TrabajoLote(Despues: async (s, ids) =>
-            {
-                if (enLaTransaccion is not null) await enLaTransaccion(s);
-                await s.EjecutarAsync("UPDATE Facturas SET IdAsientoContable = ?, IdAsientoAnulado = ?, GeneracionExportacion = ?, FechaExportacionContable = ? WHERE IdFactura = ?",
-                    ids[^1], anulado, generacion, ahora, f.IdFactura);
-                return Resultado.Correcto();
-            }));
+            new TrabajoLote(
+                Antes: BorrarLibroAsync,
+                Despues: async (s, ids) =>
+                {
+                    if (enLaTransaccion is not null) await enLaTransaccion(s);
+                    for (var i = 0; i < ids.Count; i++)
+                    {
+                        // El asiento anulado puede no tener registro (anterior al libro de ventas): su contra-asiento tampoco lo lleva.
+                        if (libros[i].Libro.Vacio) continue;
+                        var periodo = await PeriodoIvaAsync(s, contexto.IdSociedadEjercicio, contexto.Ejercicio, TrimestreContable.De(asientos[i].FechaContable));
+                        await GrabarLibroAsync(s, f, contexto, ids[i], periodo, libros[i].Libro, libros[i].Anulacion, actor, ahora,
+                            libros[i].Anulacion ? null : aviso);
+                    }
+                    if (aviso is null)
+                        await s.EjecutarAsync("UPDATE Facturas SET IdAsientoContable = ?, IdAsientoAnulado = ?, GeneracionExportacion = ?, FechaExportacionContable = ? WHERE IdFactura = ?",
+                            ids[^1], anulado, generacion, ahora, f.IdFactura);
+                    else
+                        await s.EjecutarAsync("UPDATE Facturas SET IdAsientoContable = ?, IdAsientoAnulado = ?, GeneracionExportacion = ?, FechaExportacionContable = ?, Historial = ? WHERE IdFactura = ?",
+                            ids[^1], anulado, generacion, ahora, f.Historial, f.IdFactura);
+                    return Resultado.Correcto();
+                }));
         if (!lote.EsCorrecto) return Resultado<int>.Fallo(lote.Errores);
         f.IdAsientoContable = lote.Valor[^1];
+        if (aviso is not null) avisar?.Invoke(aviso);
         return Resultado<int>.Correcto(lote.Valor[^1]);
     }
 
@@ -370,22 +465,35 @@ public sealed class ContabilizadorVentas(IBaseDatos bd, IMotorAsientos motor, IC
         var motivo = $"Deshacer la exportación de la factura {f.NumeroFactura}";
         var texto = cerrado ? $"Exportación deshecha con contra-asiento del asiento {vigente}, de un trimestre cerrado" : $"Exportación deshecha: asiento {vigente} borrado";
         f.Anotar(_reloj.Ahora, actor.Nombre, texto);
-        var marcar = new TrabajoLote(Despues: async (s, _) =>
-        {
-            await s.EjecutarAsync("UPDATE Facturas SET IdAsientoContable = NULL, IdAsientoAnulado = ?, GeneracionExportacion = ?, FechaExportacionContable = NULL, Historial = ? WHERE IdFactura = ?",
-                anulado, generacion, f.Historial, f.IdFactura);
-            return Resultado.Correcto();
-        });
+        Task Marcar(ISesionDatos s) => s.EjecutarAsync(
+            "UPDATE Facturas SET IdAsientoContable = NULL, IdAsientoAnulado = ?, GeneracionExportacion = ?, FechaExportacionContable = NULL, Historial = ? WHERE IdFactura = ?",
+            anulado, generacion, f.Historial, f.IdFactura);
         if (anulado is int idAnulado)
         {
+            // El contra-asiento lleva el registro de anulación del libro, en negativo y en el trimestre de su fecha.
             var contra = await ContraAsync(idAnulado, f, contexto, activo);
             if (!contra.EsCorrecto) return Resultado<string>.Fallo(contra.Errores);
-            var r = await motor.ReemplazarLoteAsync(contexto, lote, [contra.Valor], actor, motivo, marcar);
+            var ahora = _reloj.Ahora;
+            var r = await motor.ReemplazarLoteAsync(contexto, lote, [contra.Valor.Asiento], actor, motivo, new TrabajoLote(
+                Antes: BorrarLibroAsync,
+                Despues: async (s, ids) =>
+                {
+                    if (!contra.Valor.Libro.Vacio)
+                    {
+                        var periodo = await PeriodoIvaAsync(s, contexto.IdSociedadEjercicio, contexto.Ejercicio, TrimestreContable.De(contra.Valor.Asiento.FechaContable));
+                        await GrabarLibroAsync(s, f, contexto, ids[0], periodo, contra.Valor.Libro, true, actor, ahora, null);
+                    }
+                    await Marcar(s);
+                    return Resultado.Correcto();
+                }));
             if (!r.EsCorrecto) return Resultado<string>.Fallo(r.Errores);
         }
         else
         {
-            var r = await motor.EliminarLoteAsync(contexto, lote, actor, motivo, marcar);
+            // Trimestre activo o posterior: se borran el asiento y su registro del libro, sin rastro fiscal.
+            var r = await motor.EliminarLoteAsync(contexto, lote, actor, motivo, new TrabajoLote(
+                Antes: BorrarLibroAsync,
+                Despues: async (s, _) => { await Marcar(s); return Resultado.Correcto(); }));
             if (!r.EsCorrecto) return Resultado<string>.Fallo(r.Errores);
         }
         f.IdAsientoContable = null;
@@ -413,14 +521,105 @@ public sealed class ContabilizadorVentas(IBaseDatos bd, IMotorAsientos motor, IC
         return asientos.Any(a => TrimestreContable.De(a.Fecha) < trimestreActivo);
     }
 
-    /// <summary>Contra-asiento con la fecha del original, o el día 1 del trimestre activo si es anterior.</summary>
-    private async Task<Resultado<Asiento>> ContraAsync(int idAsiento, FacturaVenta f, ContextoSociedadEjercicio contexto, int trimestreActivo)
+    /// <summary>
+    /// Contra-asiento con la fecha del original, o el día 1 del trimestre activo si es anterior, y su registro de anulación
+    /// del libro: el del asiento anulado en negativo (vacío si el asiento no tiene registro).
+    /// </summary>
+    private async Task<Resultado<(Asiento Asiento, LibroVenta Libro)>> ContraAsync(int idAsiento, FacturaVenta f, ContextoSociedadEjercicio contexto, int trimestreActivo)
     {
         var original = await motor.ObtenerAsync(idAsiento);
         if (original is null)
-            return Resultado<Asiento>.Fallo(new Error("Contabilizacion.SinAsientoAnterior", $"No encuentro el asiento {idAsiento} de la factura.", f.Rotulo, null, "Revisa el asiento en Contabilidad."));
-        return Resultado<Asiento>.Correcto(AsientoVenta.Contra(original, contexto, TrimestreContable.FechaAsiento(original.FechaContable, contexto.Ejercicio, trimestreActivo), f.NumeroFactura ?? f.Rotulo));
+            return Resultado<(Asiento, LibroVenta)>.Fallo(new Error("Contabilizacion.SinAsientoAnterior", $"No encuentro el asiento {idAsiento} de la factura.", f.Rotulo, null, "Revisa el asiento en Contabilidad."));
+        var libro = await bd.EjecutarAsync(s => LeerLibroAsync(s, idAsiento, f));
+        var contra = AsientoVenta.Contra(original, contexto, TrimestreContable.FechaAsiento(original.FechaContable, contexto.Ejercicio, trimestreActivo), f.NumeroFactura ?? f.Rotulo);
+        return Resultado<(Asiento, LibroVenta)>.Correcto((contra, libro.Negado()));
     }
+
+    // ---------- libro de IVA repercutido ----------
+
+    /// <summary>Antes de borrar los asientos de un lote, se quitan sus registros del libro de IVA (los referencian).</summary>
+    private static async Task BorrarLibroAsync(ISesionDatos s, IReadOnlyList<int> idsAsiento)
+    {
+        foreach (var id in idsAsiento)
+            foreach (var r in await s.ConsultarAsync("SELECT IdIVARepercutido FROM IVARepercutido WHERE IdAsiento = ?", f => f.Entero("IdIVARepercutido"), id))
+            {
+                await s.EjecutarAsync("DELETE FROM DesglosesIVARepercutido WHERE IdIVARepercutido = ?", r);
+                await s.EjecutarAsync("DELETE FROM IVARepercutido WHERE IdIVARepercutido = ?", r);
+            }
+    }
+
+    /// <summary>Periodo de IVA del trimestre en el ejercicio; si aún no existe, se crea abierto (como en compras).</summary>
+    internal static async Task<int> PeriodoIvaAsync(ISesionDatos s, int idSociedadEjercicio, int ejercicio, int trimestre)
+    {
+        var id = await s.EscalarAsync("SELECT IdPeriodoIVA FROM PeriodosIVA WHERE IdSociedadEjercicio = ? AND Numero = ?", idSociedadEjercicio, (byte)trimestre);
+        if (id is not null and not DBNull) return Convert.ToInt32(id, System.Globalization.CultureInfo.InvariantCulture);
+        var inicio = new DateTime(ejercicio, (trimestre - 1) * 3 + 1, 1);
+        await s.EjecutarAsync("INSERT INTO PeriodosIVA (IdSociedadEjercicio, Numero, FechaInicio, FechaFin, Estado) VALUES (?, ?, ?, ?, ?)",
+            idSociedadEjercicio, (byte)trimestre, inicio, inicio.AddMonths(3).AddDays(-1), "ABIERTO");
+        return await s.UltimoIdAsync();
+    }
+
+    /// <summary>Código del catálogo técnico TiposOperacion para las ventas (el del importador de ContaSol).</summary>
+    internal const string CodigoTipoRepercutido = "REPERCUTIDO_0";
+
+    private static async Task GrabarLibroAsync(ISesionDatos s, FacturaVenta f, ContextoSociedadEjercicio contexto, int idAsiento, int idPeriodo, LibroVenta libro,
+        bool anulacion, Actor actor, DateTime ahora, string? aviso)
+    {
+        var tipo = await s.EscalarAsync("SELECT IdTipoOperacion FROM TiposOperacion WHERE Codigo = ?", CodigoTipoRepercutido);
+        if (tipo is null or DBNull) throw new InvalidOperationException($"Falta el tipo de operación «{CodigoTipoRepercutido}» en TiposOperacion.");
+        var expedicion = (f.FechaFactura ?? ahora).Date;
+        var descripcion = anulacion ? $"Anulación de la factura {f.NumeroFactura}"
+            : aviso is null ? f.Descripcion : string.IsNullOrWhiteSpace(f.Descripcion) ? aviso : $"{f.Descripcion.Trim()} · {aviso}";
+        await s.EjecutarAsync(
+            "INSERT INTO IVARepercutido (IdSociedadEjercicio, IdCliente, IdAsiento, FechaExpedicion, FechaOperacion, FechaHoraRegistroContable, IdPeriodoIVA, NumeroFactura, " +
+            "NombreCliente, IdentificacionFiscalCliente, PaisCliente, IdTipoOperacion, ImporteTotalFactura, BaseImponibleTotal, CuotaRepercutidaTotal, RecargoEquivalenciaTotal, " +
+            "IncluidoModelo347, Estado, Descripcion, OperadorCreacion, FechaHoraCreacion, IdFactura) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            contexto.IdSociedadEjercicio, f.IdCliente, idAsiento, expedicion, (f.FechaOperacion ?? expedicion).Date, ahora, idPeriodo, Recortar(f.NumeroFactura, 100),
+            Recortar(f.Cliente.NombreVisible, 150), Recortar(f.Cliente.Nif, 30), Recortar(f.Cliente.Pais, 3), Convert.ToInt32(tipo, System.Globalization.CultureInfo.InvariantCulture),
+            libro.Total, libro.Base, libro.Cuota, libro.Recargo,
+            // Modelo 347: las facturas sin retención, como en compras y en el ERP (las que la llevan se declaran en el 180 o el 190).
+            f.TipoRetencion == 0m,
+            anulacion ? "ANULACION" : "REGISTRADO", descripcion, actor.ToString(), ahora, f.IdFactura);
+        var idLibro = await s.UltimoIdAsync();
+        var orden = 1;
+        foreach (var t in libro.Tramos)
+        {
+            var idCuenta = t.Cuenta is null ? null
+                : await s.EscalarAsync("SELECT IdCuentaContable FROM CuentasContables WHERE IdSociedadEjercicio = ? AND Codigo = ?", contexto.IdSociedadEjercicio, t.Cuenta);
+            await s.EjecutarAsync(
+                "INSERT INTO DesglosesIVARepercutido (IdIVARepercutido, Orden, ClaveRegimen, CalificacionOperacion, CausaExencion, BaseImponible, TipoIVA, CuotaRepercutida, " +
+                "TipoRecargoEquivalencia, CuotaRecargoEquivalencia, IdCuentaIVARepercutido) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                idLibro, orden++, t.ClaveRegimen, t.Calificacion, t.CausaExencion, t.Base, t.TipoIva, t.Cuota, t.TipoRecargo, t.CuotaRecargo,
+                idCuenta is null or DBNull ? null : idCuenta);
+        }
+    }
+
+    /// <summary>
+    /// Registro del libro de un asiento, para su anulación. Sin registro enlazado con el asiento (un asiento del ERP), el de
+    /// la factura sin asiento: por IdFactura o, si no lo tiene, por número en el ejercicio. Vacío si no hay ninguno.
+    /// </summary>
+    private static async Task<LibroVenta> LeerLibroAsync(ISesionDatos s, int idAsiento, FacturaVenta f)
+    {
+        static (int Id, decimal Total) Cabecera(IFilaDatos r) => (r.Entero("IdIVARepercutido"), r.Decimal("ImporteTotalFactura"));
+        var cabecera = await s.ConsultarPrimeroAsync("SELECT IdIVARepercutido, ImporteTotalFactura FROM IVARepercutido WHERE IdAsiento = ? AND Estado <> 'ANULACION'", Cabecera, idAsiento);
+        if (cabecera.Id == 0)
+            cabecera = await s.ConsultarPrimeroAsync("SELECT TOP 1 IdIVARepercutido, ImporteTotalFactura FROM IVARepercutido WHERE IdAsiento Is Null AND IdFactura = ? ORDER BY IdIVARepercutido",
+                Cabecera, f.IdFactura);
+        if (cabecera.Id == 0 && !string.IsNullOrWhiteSpace(f.NumeroFactura))
+            cabecera = await s.ConsultarPrimeroAsync(
+                "SELECT TOP 1 IdIVARepercutido, ImporteTotalFactura FROM IVARepercutido WHERE IdAsiento Is Null AND Trim(NumeroFactura) = ? AND IdSociedadEjercicio = ? ORDER BY IdIVARepercutido",
+                Cabecera, f.NumeroFactura.Trim(), f.IdSociedadEjercicio);
+        if (cabecera.Id == 0) return new LibroVenta(0m, []);
+        var tramos = await s.ConsultarAsync(
+            "SELECT d.ClaveRegimen, d.CalificacionOperacion, d.CausaExencion, d.TipoIVA, d.BaseImponible, d.CuotaRepercutida, d.TipoRecargoEquivalencia, d.CuotaRecargoEquivalencia, " +
+            "c.Codigo FROM DesglosesIVARepercutido AS d LEFT JOIN CuentasContables AS c ON d.IdCuentaIVARepercutido = c.IdCuentaContable WHERE d.IdIVARepercutido = ? ORDER BY d.Orden",
+            r => new TramoLibroVenta(r.Texto("ClaveRegimen")?.Trim() ?? "01", r.Texto("CalificacionOperacion")?.Trim() ?? "S1", r.Texto("CausaExencion")?.Trim(),
+                r.Decimal("TipoIVA"), r.Decimal("BaseImponible"), r.Decimal("CuotaRepercutida"), r.EsNulo("TipoRecargoEquivalencia") ? 0m : r.Decimal("TipoRecargoEquivalencia"),
+                r.EsNulo("CuotaRecargoEquivalencia") ? 0m : r.Decimal("CuotaRecargoEquivalencia"), r.Texto("Codigo")?.Trim()), cabecera.Id);
+        return new LibroVenta(cabecera.Total, tramos);
+    }
+
+    private static string? Recortar(string? texto, int maximo) => texto is null ? null : texto.Length <= maximo ? texto : texto[..maximo];
 }
 
 /// <summary>Cómo se deshace la exportación contable de una factura de venta.</summary>

@@ -186,6 +186,163 @@ public sealed class FacturasAccessTests : IDisposable
         Assert.Equal(2, await AsientosDe(f.IdFactura));
     }
 
+    private sealed record RegistroLibro(int Id, int? IdAsiento, int? IdFactura, byte Trimestre, string Estado, decimal Total, decimal Base, decimal Cuota, string? Descripcion);
+
+    private Task<IReadOnlyList<RegistroLibro>> LibroDe(int idFactura) => Bd.EjecutarAsync(s => s.ConsultarAsync(
+        "SELECT r.IdIVARepercutido, r.IdAsiento, r.IdFactura, p.Numero, r.Estado, r.ImporteTotalFactura, r.BaseImponibleTotal, r.CuotaRepercutidaTotal, r.Descripcion " +
+        "FROM IVARepercutido AS r INNER JOIN PeriodosIVA AS p ON p.IdPeriodoIVA = r.IdPeriodoIVA WHERE r.IdFactura = ? ORDER BY r.IdIVARepercutido",
+        f => new RegistroLibro(f.Entero("IdIVARepercutido"), f.EnteroNulo("IdAsiento"), f.EnteroNulo("IdFactura"), Convert.ToByte(f.Valor("Numero")), f.Texto("Estado")!,
+            f.Decimal("ImporteTotalFactura"), f.Decimal("BaseImponibleTotal"), f.Decimal("CuotaRepercutidaTotal"), f.Texto("Descripcion")), idFactura));
+
+    private Task<IReadOnlyList<(string? Cuenta, string Calificacion, decimal Tipo, decimal Base, decimal Cuota)>> DesgloseDe(int idRegistro) => Bd.EjecutarAsync(s => s.ConsultarAsync(
+        "SELECT c.Codigo, d.CalificacionOperacion, d.TipoIVA, d.BaseImponible, d.CuotaRepercutida FROM DesglosesIVARepercutido AS d " +
+        "LEFT JOIN CuentasContables AS c ON d.IdCuentaIVARepercutido = c.IdCuentaContable WHERE d.IdIVARepercutido = ? ORDER BY d.Orden",
+        f => (f.Texto("Codigo"), f.Texto("CalificacionOperacion")!, f.Decimal("TipoIVA"), f.Decimal("BaseImponible"), f.Decimal("CuotaRepercutida")), idRegistro));
+
+    /// <summary>Actividad «Locales» (serie 4727) en el centro 3/304, la cuenta del 0 % del ejercicio (4720001 → 4770001) y una factura con tres líneas.</summary>
+    private async Task<FacturaVenta> ValidadaConActividadAsync(ServicioFacturas servicio)
+    {
+        await Bd.EjecutarAsync(s => s.EjecutarAsync("UPDATE SociedadesEjercicios SET CuentaTipoIVA0 = ? WHERE IdSociedadEjercicio = ?", "4720001", 9001));
+        await Bd.EjecutarAsync(s => s.EjecutarAsync("INSERT INTO Actividades (IdSociedad, Codigo, Nombre, Deducible, SerieCuentaIva, Activa) VALUES (?, ?, ?, ?, ?, ?)", "T01", "LOC", "Locales", (byte)1, "4727", true));
+        var idActividad = await Contar("SELECT MAX(IdActividad) FROM Actividades");
+        var centros = new ProConta.Contabilidad.CentrosCoste.CatalogoCentrosCosteAccess(Bd);
+        var padre = (await centros.AltaAsync("T01", "3", "Alquileres", esImputable: false)).Valor.IdCentroCoste;
+        var local = (await centros.AltaAsync("T01", "304", "Local", padre)).Valor.IdCentroCoste;
+        await Bd.EjecutarAsync(s => s.EjecutarAsync("UPDATE CentrosCoste SET IdActividad = ? WHERE IdCentroCoste = ?", idActividad, local));
+
+        var b = await BorradorAsync(servicio);
+        b.Lineas[0].IdCentroCoste = local;
+        b.Lineas[0].Recalcular();
+        var sinCentro = new LineaFacturaVenta { Nombre = "Sin actividad", PrecioUnitario = 100m, TipoIva = 21m, CuentaContable = "7520001" };
+        sinCentro.Recalcular();
+        b.AnadirLinea(sinCentro);
+        var exenta = new LineaFacturaVenta { Nombre = "Exenta", PrecioUnitario = 400m, TipoIva = 0m, CausaExencion = "E1", IdCentroCoste = local, CuentaContable = "7520001" };
+        exenta.Recalcular();
+        b.AnadirLinea(exenta);
+        b = (await servicio.GuardarBorradorAsync(b, _actor)).Valor;
+        var v = await servicio.ValidarAsync(b.IdFactura, b.Version, _actor);
+        Assert.True(v.Validada && v.Contabilizada, string.Join(" ", v.Incidencias.Select(i => i.Mensaje)) + string.Join(" ", (v.ErrorContabilizacion ?? []).Select(e => e.Mensaje)));
+        return v.Factura!;
+    }
+
+    [Fact]
+    public async Task El_libro_de_iva_recoge_cada_factura_con_su_desglose_por_477_de_la_actividad_y_las_exentas()
+    {
+        await PrepararAsync();
+        var servicio = Servicio();
+        var f = await ValidadaConActividadAsync(servicio);
+
+        var libro = Assert.Single(await LibroDe(f.IdFactura));
+        Assert.Equal((f.IdAsientoContable, (byte)1, "REGISTRADO"), (libro.IdAsiento, libro.Trimestre, libro.Estado));
+        Assert.Equal((1500m, 231m, f.Totales.ImporteTotal.Valor), (libro.Base, libro.Cuota, libro.Total));
+        var desglose = await DesgloseDe(libro.Id);
+        Assert.Equal(3, desglose.Count);
+        Assert.Contains(("4777021", "S1", 21m, 1000m, 210m), desglose);
+        Assert.Contains(("4770021", "S1", 21m, 100m, 21m), desglose);
+        Assert.Contains(("4777001", "E1", 0m, 400m, 0m), desglose);
+        Assert.Equal(libro.Base, desglose.Sum(d => d.Base));
+        Assert.Equal(libro.Cuota, desglose.Sum(d => d.Cuota));
+        // La 477 del 0 % de la actividad se crea, pero no lleva apunte; las demás cuadran con el asiento.
+        Assert.True((await Cuentas.ResolverAsync(_ctx, "4777001")).EsCorrecto);
+        var a = (await new MotorAsientosAccess(Bd, reloj: _reloj).ObtenerAsync(f.IdAsientoContable!.Value))!;
+        Invariantes.Asiento(a);
+        Assert.DoesNotContain(a.Apuntes, x => x.CodigoCuenta == "4777001");
+        foreach (var d in desglose.Where(d => d.Cuota != 0m))
+            Assert.Equal(d.Cuota, a.Apuntes.Where(x => x.CodigoCuenta == d.Cuenta).Sum(x => x.Haber.Valor - x.Debe.Valor));
+    }
+
+    [Fact]
+    public async Task Regenerar_sustituye_el_registro_y_en_un_trimestre_cerrado_lleva_su_anulacion()
+    {
+        await PrepararAsync();
+        var servicio = Servicio();
+        var f = await ValidadaAsync(servicio);
+        var primero = Assert.Single(await LibroDe(f.IdFactura));
+
+        // Trimestre activo: regenerar sustituye el registro, sin duplicarlo.
+        f.Lineas[0].PrecioUnitario = 2000m;
+        f.Lineas[0].Recalcular();
+        var g = await servicio.GuardarValidadaAsync(f, _actor);
+        Assert.True(g.EsCorrecto, g.Error?.ToString());
+        var segundo = Assert.Single(await LibroDe(f.IdFactura));
+        Assert.NotEqual(primero.Id, segundo.Id);
+        Assert.Equal((2000m, 420m, g.Valor.IdAsientoContable), (segundo.Base, segundo.Cuota, segundo.IdAsiento));
+
+        // Trimestre cerrado: el registro del 1T se queda, su anulación y el nuevo van al 2T, con el aviso en el nuevo.
+        await TrimestreActivoAsync(2);
+        f = g.Valor;
+        f.Lineas[0].PrecioUnitario = 3000m;
+        f.Lineas[0].Recalcular();
+        g = await servicio.GuardarValidadaAsync(f, _actor);
+        Assert.True(g.EsCorrecto, g.Error?.ToString());
+        var libro = await LibroDe(f.IdFactura);
+        Assert.Equal(3, libro.Count);
+        Assert.Equal((segundo.Id, "REGISTRADO", (byte)1), (libro[0].Id, libro[0].Estado, libro[0].Trimestre));
+        Assert.Equal(("ANULACION", (byte)2, -2000m, -420m), (libro[1].Estado, libro[1].Trimestre, libro[1].Base, libro[1].Cuota));
+        Assert.Equal(("REGISTRADO", (byte)2, 3000m, g.Valor.IdAsientoContable), (libro[2].Estado, libro[2].Trimestre, libro[2].Base, libro[2].IdAsiento));
+        Assert.Contains("1T de 2026", libro[2].Descripcion);
+        Assert.Equal(3000m, libro.Sum(r => r.Base));
+    }
+
+    [Fact]
+    public async Task Deshacer_borra_el_registro_en_el_trimestre_activo_y_lo_anula_en_uno_cerrado()
+    {
+        await PrepararAsync();
+        var servicio = Servicio();
+        var f = await ValidadaAsync(servicio);
+        Assert.True((await servicio.DeshacerExportacionAsync(f.IdFactura, _actor)).EsCorrecto);
+        Assert.Empty(await LibroDe(f.IdFactura));
+
+        Assert.True((await servicio.ContabilizarAsync(f.IdFactura, _actor)).EsCorrecto);
+        await TrimestreActivoAsync(2);
+        Assert.True((await servicio.DeshacerExportacionAsync(f.IdFactura, _actor)).EsCorrecto);
+        var libro = await LibroDe(f.IdFactura);
+        Assert.Equal(new[] { "REGISTRADO", "ANULACION" }, libro.Select(r => r.Estado));
+        Assert.Equal(0m, libro.Sum(r => r.Base));
+        Assert.Equal(0m, libro.Sum(r => r.Total));
+
+        // Volver a contabilizar y deshacer en el 2T: el registro nuevo se borra y la anulación se queda.
+        var avisos = new List<string>();
+        Assert.True((await servicio.ContabilizarAsync(f.IdFactura, _actor, avisos.Add)).EsCorrecto);
+        Assert.Single(avisos);
+        Assert.Equal(3, (await LibroDe(f.IdFactura)).Count);
+        Assert.True((await servicio.DeshacerExportacionAsync(f.IdFactura, _actor)).EsCorrecto);
+        Assert.Equal(new[] { "REGISTRADO", "ANULACION" }, (await LibroDe(f.IdFactura)).Select(r => r.Estado));
+    }
+
+    [Fact]
+    public async Task El_contra_asiento_de_un_asiento_sin_registro_no_lleva_anulacion()
+    {
+        await PrepararAsync();
+        var servicio = Servicio();
+        var f = await ValidadaAsync(servicio);
+        // Factura contabilizada antes de que existiera el libro de ventas.
+        await Bd.EjecutarAsync(async s =>
+        {
+            await s.EjecutarAsync("DELETE FROM DesglosesIVARepercutido WHERE IdIVARepercutido IN (SELECT IdIVARepercutido FROM IVARepercutido WHERE IdFactura = ?)", f.IdFactura);
+            await s.EjecutarAsync("DELETE FROM IVARepercutido WHERE IdFactura = ?", f.IdFactura);
+            return 0;
+        });
+        await TrimestreActivoAsync(2);
+        Assert.True((await servicio.DeshacerExportacionAsync(f.IdFactura, _actor)).EsCorrecto);
+        Assert.Empty(await LibroDe(f.IdFactura));
+    }
+
+    [Fact]
+    public async Task Una_factura_de_un_año_anterior_a_su_ejercicio_no_se_contabiliza()
+    {
+        await PrepararAsync();
+        var servicio = Servicio();
+        var f = await ValidadaAsync(servicio);
+        Assert.True((await servicio.DeshacerExportacionAsync(f.IdFactura, _actor)).EsCorrecto);
+        await Bd.EjecutarAsync(s => s.EjecutarAsync("UPDATE Facturas SET FechaFactura = ? WHERE IdFactura = ?", new DateTime(2019, 5, 3), f.IdFactura));
+        var r = await servicio.ContabilizarAsync(f.IdFactura, _actor);
+        Assert.False(r.EsCorrecto);
+        Assert.Equal("Contabilizacion.EjercicioAnterior", r.Error!.Codigo);
+        Assert.Equal(0, await AsientosDe(f.IdFactura));
+        Assert.Empty(await LibroDe(f.IdFactura));
+    }
+
     [Fact]
     public async Task Una_factura_enviada_a_VeriFactu_no_se_modifica_ni_se_deshace()
     {

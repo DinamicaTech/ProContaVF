@@ -337,6 +337,7 @@ Relaciones:
 | Descripcion | LONGTEXT | sí |  |  |
 | OperadorCreacion | TEXT(100) | sí |  |  |
 | FechaHoraCreacion | DATETIME | no |  |  |
+| IdFactura | LONG | sí |  |  |
 
 Índices:
 - FK_IVAR_Asiento: IdAsiento
@@ -344,6 +345,7 @@ Relaciones:
 - FK_IVAR_Ejercicio: IdSociedadEjercicio
 - FK_IVAR_Periodo: IdPeriodoIVA
 - FK_IVAR_Tipo: IdTipoOperacion
+- IX_IVAR_Factura: IdFactura
 - PK_IVARepercutido (clave primaria): IdIVARepercutido
 
 Relaciones:

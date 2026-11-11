@@ -80,6 +80,7 @@ public static class CatalogoMigraciones
         MigracionesFacturacion.ExportacionVentas,
         MigracionesCorreo.CorreoSaliente,
         MigracionesCorreo.CorreoRecepcion,
+        MigracionesFacturacion.LibroIvaRepercutido,
     ];
 
     /// <summary>Versión del esquema que espera esta versión del programa.</summary>
