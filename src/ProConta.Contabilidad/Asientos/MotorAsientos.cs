@@ -22,6 +22,22 @@ public sealed record TrabajoLote(
     Func<ISesionDatos, IReadOnlyList<int>, Task<Resultado>>? Despues = null);
 
 /// <summary>
+/// Opciones de un lote automático. <see cref="LibroExterno"/>: el lote copia un libro contable externo ya cerrado en su
+/// origen (el importador de ContaSol, implantacion/importador-contasol 2026-11-10), no edita la contabilidad; por eso se
+/// admite en ejercicios cerrados y en trimestres anteriores al activo. El resto de reglas (cuadre, cuentas, centros, fecha
+/// dentro del ejercicio, auditoría) se aplican igual.
+/// </summary>
+/// <see cref="DiferirSaldos"/>: no recalcula la caché de saldos de las cuentas en cada lote; quien la pide llama a
+/// <see cref="IMotorAsientos.RecalcularSaldosAsync"/> al terminar (cargas masivas: el importador de ContaSol graba miles de lotes).
+public sealed record OpcionesLote(bool LibroExterno = false, bool DiferirSaldos = false)
+{
+    public static readonly OpcionesLote Normal = new();
+
+    /// <summary>Motor propietario de los lotes del importador de ContaSol, el único que puede pedir <see cref="LibroExterno"/>.</summary>
+    public const string MotorImportadorContaSol = "implantacion/importador-contasol";
+}
+
+/// <summary>
 /// Motor común de asientos: la única vía para crear, modificar o borrar asientos y apuntes. Valida el
 /// agregado completo (cuadre, cuentas, centros, fecha y ejercicio abierto) dentro de la transacción en
 /// que lo guarda, mantiene la caché de saldos de las cuentas afectadas, registra cada revisión
@@ -43,15 +59,19 @@ public interface IMotorAsientos
     /// regenerar no duplica, y si uno falla no se guarda ninguno.
     /// </summary>
     Task<Resultado<IReadOnlyList<int>>> ReemplazarLoteAsync(ContextoSociedadEjercicio contexto, IdentidadLote lote, IReadOnlyList<Asiento> asientos, Actor actor, string motivo,
-        TrabajoLote? enLaTransaccion = null);
+        TrabajoLote? enLaTransaccion = null, OpcionesLote? opciones = null);
 
     /// <summary>Borra los asientos de un lote automático; devuelve cuántos.</summary>
-    Task<Resultado<int>> EliminarLoteAsync(ContextoSociedadEjercicio contexto, IdentidadLote lote, Actor actor, string motivo, TrabajoLote? enLaTransaccion = null);
+    Task<Resultado<int>> EliminarLoteAsync(ContextoSociedadEjercicio contexto, IdentidadLote lote, Actor actor, string motivo, TrabajoLote? enLaTransaccion = null,
+        OpcionesLote? opciones = null);
 
     /// <summary>Cambia de cuenta varios apuntes manuales en una operación (mismo IdLote en el registro).</summary>
     Task<Resultado<Guid>> CambiarCuentaApuntesAsync(ContextoSociedadEjercicio contexto, IReadOnlyCollection<int> idsApunte, string nuevaCuenta, Actor actor, string motivo);
 
     Task<IReadOnlyList<CambioApunte>> RegistroCambiosAsync(int idAsiento);
+
+    /// <summary>Recalcula la caché de saldo y número de apuntes de todas las cuentas del ejercicio (tras lotes con <see cref="OpcionesLote.DiferirSaldos"/>).</summary>
+    Task RecalcularSaldosAsync(ContextoSociedadEjercicio contexto);
 }
 
 public sealed class MotorAsientosAccess(IBaseDatos bd, PoliticaCuadre? politica = null, IReloj? reloj = null) : IMotorAsientos
@@ -98,13 +118,15 @@ public sealed class MotorAsientosAccess(IBaseDatos bd, PoliticaCuadre? politica 
         });
 
     public Task<Resultado<IReadOnlyList<int>>> ReemplazarLoteAsync(ContextoSociedadEjercicio contexto, IdentidadLote lote, IReadOnlyList<Asiento> asientos, Actor actor, string motivo,
-        TrabajoLote? enLaTransaccion = null) =>
+        TrabajoLote? enLaTransaccion = null, OpcionesLote? opciones = null) =>
         bd.EnTransaccionAsync(async s =>
         {
-            var error = ValidarLote(lote, motivo) ?? asientos.Where(a => a.Contexto != contexto).Select(a => new Error("Asientos.LoteOtroEjercicio",
+            var externo = (opciones ?? OpcionesLote.Normal).LibroExterno;
+            var diferir = (opciones ?? OpcionesLote.Normal).DiferirSaldos;
+            var error = ValidarLote(lote, motivo) ?? ValidarExterno(lote, externo) ?? asientos.Where(a => a.Contexto != contexto).Select(a => new Error("Asientos.LoteOtroEjercicio",
                 "Todos los asientos del lote deben ser del mismo ejercicio.", a.ToString(), "El lote es de un ejercicio.", "Genera un lote por ejercicio.")).FirstOrDefault();
             if (error is not null) return Resultado<IReadOnlyList<int>>.Fallo(error);
-            var abierto = await ComprobarEjercicioAbiertoAsync(s, contexto);
+            var abierto = await ComprobarEjercicioAbiertoAsync(s, contexto, externo);
             if (!abierto.EsCorrecto) return Resultado<IReadOnlyList<int>>.Fallo(abierto.Errores);
 
             var idLote = Guid.NewGuid();
@@ -117,7 +139,7 @@ public sealed class MotorAsientosAccess(IBaseDatos bd, PoliticaCuadre? politica 
             foreach (var (id, i) in anteriores.Select((id, i) => (id, i)))
             {
                 var viejo = (await CargarAsync(s, id))!;
-                var trimestre = await ComprobarTrimestreAbiertoAsync(s, viejo);
+                var trimestre = externo ? Resultado.Correcto() : await ComprobarTrimestreAbiertoAsync(s, viejo);
                 if (!trimestre.EsCorrecto) return Resultado<IReadOnlyList<int>>.Fallo(trimestre.Errores);
                 cuentas.AddRange(viejo.Apuntes.Select(a => a.CodigoCuenta));
                 if (i < asientos.Count) reutilizados.Add(viejo);
@@ -131,7 +153,7 @@ public sealed class MotorAsientosAccess(IBaseDatos bd, PoliticaCuadre? politica 
                 asiento.IdAsiento = i < reutilizados.Count ? reutilizados[i].IdAsiento : 0;
                 if (i < reutilizados.Count) asiento.Version = reutilizados[i].Version;
                 asiento.Lote = lote;
-                var guardado = await GuardarInternoAsync(s, asiento, actor, motivo.Trim(), idLote, manual: false);
+                var guardado = await GuardarInternoAsync(s, asiento, actor, motivo.Trim(), idLote, manual: false, externo, diferir);
                 if (guardado.EsCorrecto) nuevos.Add(guardado.Valor);
                 else errores.AddRange(guardado.Errores);
             }
@@ -141,16 +163,18 @@ public sealed class MotorAsientosAccess(IBaseDatos bd, PoliticaCuadre? politica 
                 var hecho = await despues(s, nuevos);
                 if (!hecho.EsCorrecto) return Resultado<IReadOnlyList<int>>.Fallo(hecho.Errores);
             }
-            await ActualizarSaldosAsync(s, contexto, cuentas);
+            if (!diferir) await ActualizarSaldosAsync(s, contexto, cuentas);
             return Resultado<IReadOnlyList<int>>.Correcto(nuevos);
         });
 
-    public Task<Resultado<int>> EliminarLoteAsync(ContextoSociedadEjercicio contexto, IdentidadLote lote, Actor actor, string motivo, TrabajoLote? enLaTransaccion = null) =>
+    public Task<Resultado<int>> EliminarLoteAsync(ContextoSociedadEjercicio contexto, IdentidadLote lote, Actor actor, string motivo, TrabajoLote? enLaTransaccion = null,
+        OpcionesLote? opciones = null) =>
         bd.EnTransaccionAsync(async s =>
         {
-            var error = ValidarLote(lote, motivo);
+            var externo = (opciones ?? OpcionesLote.Normal).LibroExterno;
+            var error = ValidarLote(lote, motivo) ?? ValidarExterno(lote, externo);
             if (error is not null) return Resultado<int>.Fallo(error);
-            var abierto = await ComprobarEjercicioAbiertoAsync(s, contexto);
+            var abierto = await ComprobarEjercicioAbiertoAsync(s, contexto, externo);
             if (!abierto.EsCorrecto) return Resultado<int>.Fallo(abierto.Errores);
             var idLote = Guid.NewGuid();
             var ids = await IdsDelLoteAsync(s, contexto, lote);
@@ -159,7 +183,7 @@ public sealed class MotorAsientosAccess(IBaseDatos bd, PoliticaCuadre? politica 
             foreach (var id in ids)
             {
                 var viejo = (await CargarAsync(s, id))!;
-                var trimestre = await ComprobarTrimestreAbiertoAsync(s, viejo);
+                var trimestre = externo ? Resultado.Correcto() : await ComprobarTrimestreAbiertoAsync(s, viejo);
                 if (!trimestre.EsCorrecto) return Resultado<int>.Fallo(trimestre.Errores);
                 cuentas.AddRange(viejo.Apuntes.Select(a => a.CodigoCuenta));
                 await BorrarAsync(s, viejo, actor, motivo.Trim(), idLote);
@@ -169,7 +193,7 @@ public sealed class MotorAsientosAccess(IBaseDatos bd, PoliticaCuadre? politica 
                 var hecho = await despues(s, []);
                 if (!hecho.EsCorrecto) return Resultado<int>.Fallo(hecho.Errores);
             }
-            await ActualizarSaldosAsync(s, contexto, cuentas);
+            if (!(opciones ?? OpcionesLote.Normal).DiferirSaldos) await ActualizarSaldosAsync(s, contexto, cuentas);
             return Resultado<int>.Correcto(ids.Count);
         });
 
@@ -227,13 +251,13 @@ public sealed class MotorAsientosAccess(IBaseDatos bd, PoliticaCuadre? politica 
             idAsiento));
 
     /// <summary>Valida y guarda un asiento dentro de la transacción en curso. Devuelve su IdAsiento.</summary>
-    private async Task<Resultado<int>> GuardarInternoAsync(ISesionDatos s, Asiento asiento, Actor actor, string motivo, Guid idLote, bool manual)
+    private async Task<Resultado<int>> GuardarInternoAsync(ISesionDatos s, Asiento asiento, Actor actor, string motivo, Guid idLote, bool manual, bool externo = false, bool diferirSaldos = false)
     {
         var reglas = ReglasAsiento.ValidarYCuadrar(asiento, _politica);
         if (!reglas.EsCorrecto) return Resultado<int>.Fallo(reglas.Errores);
-        var abierto = await ComprobarEjercicioAbiertoAsync(s, asiento.Contexto);
+        var abierto = await ComprobarEjercicioAbiertoAsync(s, asiento.Contexto, externo);
         if (!abierto.EsCorrecto) return Resultado<int>.Fallo(abierto.Errores);
-        var trimestre = await ComprobarTrimestreAbiertoAsync(s, asiento);
+        var trimestre = externo ? Resultado.Correcto() : await ComprobarTrimestreAbiertoAsync(s, asiento);
         if (!trimestre.EsCorrecto) return Resultado<int>.Fallo(trimestre.Errores);
 
         var errores = new List<Error>();
@@ -259,7 +283,7 @@ public sealed class MotorAsientosAccess(IBaseDatos bd, PoliticaCuadre? politica 
             anterior = await CargarAsync(s, asiento.IdAsiento);
             if (anterior is null) return Resultado<int>.Fallo(NoExiste(asiento.IdAsiento));
             if (manual && anterior.EsAutomatico) return Resultado<int>.Fallo(AutomaticoNoManual(anterior));
-            var trimestreAnterior = await ComprobarTrimestreAbiertoAsync(s, anterior);
+            var trimestreAnterior = externo ? Resultado.Correcto() : await ComprobarTrimestreAbiertoAsync(s, anterior);
             if (!trimestreAnterior.EsCorrecto) return Resultado<int>.Fallo(trimestreAnterior.Errores);
             if (anterior.Contexto.IdSociedadEjercicio != asiento.Contexto.IdSociedadEjercicio)
                 return Resultado<int>.Fallo(new Error("Asientos.CambioEjercicio", "Un asiento no se puede mover a otro ejercicio.", asiento.ToString(),
@@ -300,7 +324,8 @@ public sealed class MotorAsientosAccess(IBaseDatos bd, PoliticaCuadre? politica 
         await RegistrarDiferenciasAsync(s, idLote, actor, motivo, id, anterior, asiento);
         await RevisionAsync(s, id, anterior is null ? (manual ? OperacionRevision.Alta : OperacionRevision.Lote) : OperacionRevision.Modificacion, motivo, actor,
             anterior, (await CargarAsync(s, id))!);
-        await ActualizarSaldosAsync(s, asiento.Contexto, asiento.Apuntes.Select(a => a.CodigoCuenta).Concat(anterior?.Apuntes.Select(a => a.CodigoCuenta) ?? []));
+        if (!diferirSaldos)
+            await ActualizarSaldosAsync(s, asiento.Contexto, asiento.Apuntes.Select(a => a.CodigoCuenta).Concat(anterior?.Apuntes.Select(a => a.CodigoCuenta) ?? []));
         return Resultado<int>.Correcto(id);
     }
 
@@ -376,6 +401,29 @@ public sealed class MotorAsientosAccess(IBaseDatos bd, PoliticaCuadre? politica 
         })
     });
 
+    public async Task RecalcularSaldosAsync(ContextoSociedadEjercicio contexto)
+    {
+        var saldos = (await bd.EjecutarAsync(s => s.ConsultarAsync(
+                "SELECT ap.CuentaContable, SUM(IIF(ap.ImporteDebe IS NULL, 0, ap.ImporteDebe)) - SUM(IIF(ap.ImporteHaber IS NULL, 0, ap.ImporteHaber)) AS Saldo, COUNT(*) AS N " +
+                "FROM Apuntes AS ap INNER JOIN Asientos AS a ON ap.IdAsiento = a.IdAsiento WHERE a.IdSociedadEjercicio = ? GROUP BY ap.CuentaContable",
+                f => (Cuenta: (f.Texto("CuentaContable") ?? "").Trim(), Saldo: f.DecimalNulo("Saldo") ?? 0m, N: f.Entero("N")), contexto.IdSociedadEjercicio)))
+            .ToDictionary(x => x.Cuenta, x => (x.Saldo, x.N), StringComparer.Ordinal);
+        var codigos = await bd.EjecutarAsync(s => s.ConsultarAsync("SELECT Codigo FROM CuentasContables WHERE IdSociedadEjercicio = ?",
+            f => (f.Texto("Codigo") ?? "").Trim(), contexto.IdSociedadEjercicio));
+        // Por tandas: las transacciones de Access tienen un límite de bloqueos.
+        foreach (var tanda in codigos.Chunk(150))
+            await bd.EnTransaccionAsync(async s =>
+            {
+                foreach (var codigo in tanda)
+                {
+                    var (saldo, n) = saldos.GetValueOrDefault(codigo);
+                    await s.EjecutarAsync("UPDATE CuentasContables SET SaldoActual = SaldoInicial + ?, NumeroApuntes = ? WHERE IdSociedadEjercicio = ? AND Codigo = ?",
+                        saldo, n, contexto.IdSociedadEjercicio, codigo);
+                }
+                return true;
+            });
+    }
+
     /// <summary>Recalcula la caché de saldo y número de apuntes de las cuentas afectadas, en la misma transacción.</summary>
     private static async Task ActualizarSaldosAsync(ISesionDatos s, ContextoSociedadEjercicio contexto, IEnumerable<string> codigos)
     {
@@ -391,14 +439,14 @@ public sealed class MotorAsientosAccess(IBaseDatos bd, PoliticaCuadre? politica 
     }
 
     /// <summary>Protección del ejercicio cerrado en la propia transacción, no solo en pantalla (RF-ASI-03).</summary>
-    private static async Task<Resultado> ComprobarEjercicioAbiertoAsync(ISesionDatos s, ContextoSociedadEjercicio contexto)
+    private static async Task<Resultado> ComprobarEjercicioAbiertoAsync(ISesionDatos s, ContextoSociedadEjercicio contexto, bool externo = false)
     {
         var fila = await s.ConsultarPrimeroAsync("SELECT IdSociedad, Ejercicio, EjercicioCerrado FROM SociedadesEjercicios WHERE IdSociedadEjercicio = ?",
             f => (Sociedad: f.Texto("IdSociedad"), Ejercicio: f.Texto("Ejercicio"), Cerrado: f.Logico("EjercicioCerrado")), contexto.IdSociedadEjercicio);
         if (!string.Equals(fila.Sociedad, contexto.IdSociedad, StringComparison.OrdinalIgnoreCase) || fila.Ejercicio != contexto.Ejercicio.ToString(CultureInfo.InvariantCulture))
             return Resultado.Fallo(new Error("Asientos.ContextoNoValido", "El ejercicio de trabajo no es válido.", contexto.ToString(),
                 "No existe o no corresponde a la sociedad.", "Vuelve a elegir la empresa y el ejercicio."));
-        return fila.Cerrado
+        return fila.Cerrado && !externo
             ? Resultado.Fallo(new Error("Asientos.EjercicioCerrado", $"El ejercicio {contexto.Ejercicio} está cerrado y no admite cambios en sus asientos.", contexto.ToString(),
                 "Un ejercicio cerrado solo se puede consultar.", "Si hay que corregirlo, reabre el ejercicio con el proceso contable autorizado."))
             : Resultado.Correcto();
@@ -490,6 +538,14 @@ public sealed class MotorAsientosAccess(IBaseDatos bd, PoliticaCuadre? politica 
             ? new Error("Asientos.LoteSinIdentidad", "El lote automático no tiene motor, proceso o clave.", lote.ToString(),
                 "Sin identidad completa no se pueden regenerar sus asientos.", "Indica el motor, el proceso y la clave del documento de origen.")
             : string.IsNullOrWhiteSpace(motivo) ? SinMotivo(lote.ToString()) : null;
+
+    /// <summary>Solo el importador de ContaSol puede grabar un libro externo en periodos cerrados.</summary>
+    private static Error? ValidarExterno(IdentidadLote lote, bool externo) =>
+        externo && !string.Equals(lote.MotorPropietario, OpcionesLote.MotorImportadorContaSol, StringComparison.Ordinal)
+            ? new Error("Asientos.LibroExternoNoPermitido", "Este lote no puede grabarse en un periodo cerrado.", lote.ToString(),
+                "Solo los asientos importados de ContaSol, copia de un libro ya cerrado, se admiten en ejercicios y trimestres cerrados.",
+                "Fecha el asiento en el trimestre activo o reabre el periodo con el proceso contable autorizado.")
+            : null;
 
     private static Error SinMotivo(string registro) =>
         new("Asientos.SinMotivo", "Hay que indicar el motivo de la operación.", registro, "Toda modificación queda registrada con su motivo.", "Escribe el motivo.");

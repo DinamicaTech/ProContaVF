@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Ejecutable del importador de ContaSol, para validarlo y para implantaciones sin abrir la aplicación (docs/implantacion/importador-contasol.md). -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>ProConta.Implantacion.Consola</RootNamespace>
+    <AssemblyName>ImportadorContaSol</AssemblyName>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\ProConta.Implantacion\ProConta.Implantacion.csproj" />
+  </ItemGroup>
+</Project>

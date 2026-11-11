@@ -168,6 +168,32 @@ public sealed class MotorAsientosAccessTests : IDisposable
     }
 
     [Fact]
+    public async Task LibroExternoSeAdmiteEnEjercicioYTrimestreCerradosSoloParaElImportador()
+    {
+        await PrepararAsync();
+        var motor = Motor();
+        var cerrado = new ContextoSociedadEjercicio("T01", 9000, 2024);
+        // Las cuentas se dan de alta con el ejercicio abierto y luego se cierra.
+        await Bd.EjecutarAsync(s => s.EjecutarAsync("UPDATE SociedadesEjercicios SET EjercicioCerrado = False WHERE IdSociedadEjercicio = 9000"));
+        // Códigos propios: la reserva histórica no deja dar de alta en 2024 los de 2025 como cuentas nuevas.
+        foreach (var (codigo, nombre) in new[] { ("5720002", "Banco sintético 2024"), ("7000002", "Ventas sintéticas 2024") })
+            Assert.True((await Cuentas().AltaAsync(cerrado, new AltaCuenta(codigo, nombre))).EsCorrecto);
+        await Bd.EjecutarAsync(s => s.EjecutarAsync("UPDATE SociedadesEjercicios SET EjercicioCerrado = True WHERE IdSociedadEjercicio = 9000"));
+        Asiento EnCerrado() => Nuevo(1m, 1m, "5720002", "7000002", cerrado);
+        var externo = new OpcionesLote(LibroExterno: true);
+        var importador = new IdentidadLote(OpcionesLote.MotorImportadorContaSol, "CONTASOL", "T01/2024/1:5");
+        Assert.Equal("Asientos.EjercicioCerrado", (await motor.ReemplazarLoteAsync(cerrado, importador, [EnCerrado()], _actor, "Importar")).Error!.Codigo);
+        Assert.Equal("Asientos.LibroExternoNoPermitido", (await motor.ReemplazarLoteAsync(cerrado, _lote, [EnCerrado()], _actor, "Importar", opciones: externo)).Error!.Codigo);
+        Assert.True((await motor.ReemplazarLoteAsync(cerrado, importador, [EnCerrado()], _actor, "Importar", opciones: externo)).EsCorrecto);
+
+        await Bd.EjecutarAsync(s => s.EjecutarAsync("UPDATE SociedadesEjercicios SET TrimestreActivo = 2 WHERE IdSociedadEjercicio = 9001"));
+        var trimestre = importador with { ClaveEjecucion = "T01/2025/1:5" };
+        Assert.True((await motor.ReemplazarLoteAsync(_ctx, trimestre, [Nuevo(2m, 2m)], _actor, "Importar", opciones: externo)).EsCorrecto);
+        Assert.True((await motor.EliminarLoteAsync(_ctx, trimestre, _actor, "Ya no está en ContaSol", opciones: externo)).EsCorrecto);
+        Assert.Equal(1, await ContarAsync("Asientos"));
+    }
+
+    [Fact]
     public async Task TrimestreCerradoNoSeCreaCambiaNiBorra()
     {
         await PrepararAsync();

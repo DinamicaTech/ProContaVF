@@ -70,6 +70,8 @@ public partial class VentanaPrincipal : Window
     private static readonly System.Net.Http.HttpClient Http = new() { Timeout = TimeSpan.FromSeconds(15) };
     private readonly Func<PantallaMantenimientoVM> _crearMantenimiento;
     private PantallaMantenimientoVM? _mantenimiento;
+    private readonly Func<PestanaImportarContaSol> _crearImportacionContaSol;
+    private PestanaImportarContaSol? _importacionContaSol;
     private readonly DispatcherTimer _borrarAviso;
     private bool _saliendo;
 
@@ -178,6 +180,12 @@ public partial class VentanaPrincipal : Window
             (titulo, mensaje, detalles, opciones) => ServicioMensajes.Preguntar(this, titulo, mensaje, detalles, opciones),
             Avisar, vm => new VistaMantenimiento(vm));
 
+        // Importar ContaSol (implantacion/importador-contasol): una pestaña, en Configuración.
+        var importadorContaSol = new ProConta.Implantacion.ContaSol.ImportadorContaSol(bd, new MotorAsientosAccess(bd), new CatalogoCentrosCosteAccess(bd),
+            new RepositorioTercerosAccess(bd), roles);
+        _crearImportacionContaSol = () => new PestanaImportarContaSol(importadorContaSol, new Actor(sesion.NombreOperador),
+            () => autorizador.PuedeAsync(Acciones.MantenimientoEditar), () => this, Avisar);
+
         const string proxima = "Aún no está disponible en esta versión: llegará con las pantallas de su área.";
         Geometry? Icono(string clave) => TryFindResource("Icono." + clave) as Geometry;
         var irAInicio = new ComandoDelegado(() => _area.Activar(_area.Lista[0].Pantalla));
@@ -186,6 +194,7 @@ public partial class VentanaPrincipal : Window
         var abrirProgramadas = new ComandoDelegado(_facturacion.AbrirProgramadas);
         var abrirParametros = new ComandoDelegado(AbrirParametros);
         var abrirRecibidas = new ComandoDelegado(_compras.AbrirRecibidas);
+        var abrirContaSol = new ComandoDelegado(AbrirImportacionContaSol);
         var abrirCorreo = new ComandoDelegado(() => _correo.AbrirRegistro());
         Navegacion.ItemsSource = new[]
         {
@@ -206,6 +215,7 @@ public partial class VentanaPrincipal : Window
             new OpcionNavegacion("Informes", Icono("xls"), false, false, proxima),
             new OpcionNavegacion("Configuración", Icono("gear"), true, false, "Parámetros y tablas: empresas, ejercicios, series, conceptos, formas de pago…", abrirParametros),
             new OpcionNavegacion("Parámetros y tablas", null, true, false, "Mantenimiento de las tablas y los parámetros de la aplicación, con buscador", abrirParametros, EsHija: true),
+            new OpcionNavegacion("Importar ContaSol", null, true, false, "Importa la contabilidad de ContaSol por ejercicios (una BD por ejercicio), con simulación previa", abrirContaSol, EsHija: true),
         };
         RefrescarEstado();
     }
@@ -225,6 +235,18 @@ public partial class VentanaPrincipal : Window
         _mantenimiento = _crearMantenimiento();
         _area.Abrir(_mantenimiento);
         _ = _mantenimiento.IniciarAsync();
+    }
+
+    /// <summary>Abre (o activa) la pestaña Importar ContaSol.</summary>
+    private void AbrirImportacionContaSol()
+    {
+        if (_importacionContaSol is not null && _area.Pestanas.Contains(_importacionContaSol))
+        {
+            _area.Activar(_importacionContaSol);
+            return;
+        }
+        _importacionContaSol = _crearImportacionContaSol();
+        _area.Abrir(_importacionContaSol);
     }
 
     internal ModuloFacturacion Facturacion => _facturacion;
