@@ -164,3 +164,4 @@ Recuento: 74 tablas en los 25 bloques, 44 sin dueño y 17 de ContaSol, 135 en to
 - 2026-11-11 17:19 · 7. No, realmente deberían ser activos pero el ERP no gestiona activos. Ya los borro yo, no te preocupes.
 - 2026-11-11 17:33 · Lo más sencillo para poder acceder a las facturas de compra es un parámetro en SociedadEjercicio (o EjercicioSociedad?) para indicar la ruta donde se encuentran las facturas de compra, siendo el valor por defecto \<año>\Proveedores. Así, para las pruebas apunto a mi unidad d:\... y cuando lo pase a producción, solo he de cambiar la ruta base.
 - 2026-11-11 17:33 · A nivel de migración, habrá que pasar las rutas absolutas a relativas que coincidan con el prefijo de su ejercicio (que habrá que actualizar para cada ejercicio). Si alguna ruta absoluta no coincide con la ruta del ejercicio, no se modifica.
+- 2026-11-11 17:34 · Ok y sí, quita esos dos campos.

@@ -35,3 +35,5 @@ Ente FacturaCompra con sus desgloses: inserción atómica, MD5 compatible del PD
 - 2026-11-05 11:18 · P8 a
 - 2026-11-05 11:18 · answer: facturas antiguas → la migración del esquema solo crea la estructura nueva; su traslado va en la migración del ERP
 - 2026-11-11 17:33 · Derived from implantacion/migracion-erp: resolver las rutas de los PDF guardadas sin unidad (las de la migración del ERP) contra la carpeta de documentos de la empresa más la carpeta de facturas de compra del ejercicio.
+- 2026-11-11 17:33 · Lo más sencillo para poder acceder a las facturas de compra es un parámetro en SociedadEjercicio (o EjercicioSociedad?) para indicar la ruta donde se encuentran las facturas de compra, siendo el valor por defecto \<año>\Proveedores. Así, para las pruebas apunto a mi unidad d:\... y cuando lo pase a producción, solo he de cambiar la ruta base.
+- 2026-11-11 17:34 · Ok y sí, quita esos dos campos.
