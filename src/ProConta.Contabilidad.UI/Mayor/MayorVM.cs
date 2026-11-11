@@ -170,8 +170,22 @@ public sealed class MayorVM : ModeloVista
     {
         0 => "Sin ejercicios",
         1 => "Ejercicio " + _sesion.Elegidos[0].Ejercicio,
-        _ => "Ejercicios " + string.Join(", ", _sesion.Elegidos.Select(e => e.Ejercicio)),
+        _ => "Ejercicios " + TextoAnios(_sesion.Elegidos.Select(e => e.Ejercicio).ToList()),
     };
+
+    /// <summary>Años en tramos: «2018–2026», «2019, 2021–2023».</summary>
+    internal static string TextoAnios(IReadOnlyList<int> anios)
+    {
+        var partes = new List<string>();
+        for (var i = 0; i < anios.Count;)
+        {
+            var j = i;
+            while (j + 1 < anios.Count && anios[j + 1] == anios[j] + 1) j++;
+            partes.Add(j - i >= 2 ? $"{anios[i]}–{anios[j]}" : string.Join(", ", anios.Skip(i).Take(j - i + 1)));
+            i = j + 1;
+        }
+        return string.Join(", ", partes);
+    }
 
     public string TextoCerrados => string.Join(", ", _sesion.Elegidos.Where(e => e.Cerrado).Select(e => e.Ejercicio)) is { Length: > 0 } c
         ? (c.Contains(',') ? $"Los ejercicios {c} están cerrados: sus apuntes son de solo consulta." : $"El ejercicio {c} está cerrado: sus apuntes son de solo consulta.")
