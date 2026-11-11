@@ -22,6 +22,7 @@ public sealed class ModuloCorreo : IEnvioCorreoInteractivo
     private readonly IDialogosCorreo _dialogos;
     private readonly Func<Window?> _ventana;
     private RegistroCorreoVM? _registro;
+    private CorreoRecibidoVM? _recibido;
 
     public ModuloCorreo(ServicioCorreo servicio, CoordinadorCorreo coordinador, ContextoCorreo contexto, IAnfitrionPestanas anfitrion, IDialogosCorreo dialogos, Func<Window?> ventana)
     {
@@ -31,13 +32,29 @@ public sealed class ModuloCorreo : IEnvioCorreoInteractivo
         _anfitrion = anfitrion;
         _dialogos = dialogos;
         _ventana = ventana;
-        _coordinador.Procesados += (_, _) => Application.Current?.Dispatcher.BeginInvoke(() => _ = _registro?.CargarAsync());
+        _coordinador.Procesados += (_, _) => Application.Current?.Dispatcher.BeginInvoke(() => { _ = _registro?.CargarAsync(); _ = _recibido?.CargarAsync(); });
     }
 
     /// <summary>Abre (o activa) el origen de un mensaje: lo conectan las áreas (Factura → su editor).</summary>
     public Action<string, int>? AbrirOrigen { get; set; }
 
     public ServicioCorreo Servicio => _servicio;
+
+    /// <summary>Abre (o activa) la pestaña «Correo recibido»; sin recepción configurada en esta sesión, no hace nada.</summary>
+    public void AbrirRecibido()
+    {
+        if (_coordinador.Recepcion is not { } recepcion) return;
+        if (_recibido is not null)
+        {
+            _anfitrion.Activar(_recibido);
+            _ = _recibido.CargarAsync();
+            return;
+        }
+        _recibido = new CorreoRecibidoVM(recepcion, _dialogos, _contexto, _coordinador.RecibirAhoraAsync,
+            id => AbrirRegistro("CorreoRecibido", id, "la respuesta"), () => _recibido = null);
+        _anfitrion.Abrir(_recibido);
+        _ = _recibido.CargarAsync();
+    }
 
     public void AbrirRegistro(string? tipoOrigen = null, int? idOrigen = null, string? referencia = null)
     {

@@ -1,0 +1,129 @@
+<UserControl x:Class="ProConta.Correo.UI.Vistas.VistaCorreoRecibido"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:pc="urn:proconta-ui"
+             Background="White">
+  <UserControl.Resources>
+    <ResourceDictionary>
+      <ResourceDictionary.MergedDictionaries>
+        <ResourceDictionary Source="Recursos.xaml" />
+      </ResourceDictionary.MergedDictionaries>
+    </ResourceDictionary>
+  </UserControl.Resources>
+  <UserControl.InputBindings>
+    <KeyBinding Key="F5" Command="{Binding RefrescarCommand}" />
+  </UserControl.InputBindings>
+
+  <DockPanel>
+    <Border DockPanel.Dock="Top" BorderBrush="{StaticResource Pincel.Linea}" BorderThickness="0,0,0,1" Padding="14,8">
+      <StackPanel Orientation="Horizontal">
+        <TextBlock Text="Correo recibido" Style="{StaticResource Texto.TituloPantalla}" VerticalAlignment="Center" Margin="0,0,14,0" />
+        <Grid Width="360" VerticalAlignment="Center">
+          <TextBox Text="{Binding Texto, UpdateSourceTrigger=PropertyChanged, Delay=200}" Padding="28,0,6,0"
+                   ToolTip="Busca en el remitente y el asunto" AutomationProperties.Name="Buscar correo recibido" />
+          <Path Style="{StaticResource Icono.Trazo14}" Data="{StaticResource Icono.search}" HorizontalAlignment="Left" Margin="9,0,0,0" VerticalAlignment="Center" IsHitTestVisible="False" />
+        </Grid>
+      </StackPanel>
+    </Border>
+
+    <Border DockPanel.Dock="Bottom" Style="{StaticResource Barra.Pie}">
+      <DockPanel>
+        <TextBlock DockPanel.Dock="Right" Text="Clic derecho: acciones · el buzón se mira solo mientras la aplicación está abierta" Style="{StaticResource Texto.Apagado}" VerticalAlignment="Center" />
+        <TextBlock Text="{Binding Resumen}" FontWeight="SemiBold" VerticalAlignment="Center" />
+      </DockPanel>
+    </Border>
+
+    <Grid>
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="*" MinWidth="420" />
+        <ColumnDefinition Width="Auto" />
+        <ColumnDefinition Width="480" MinWidth="320" />
+      </Grid.ColumnDefinitions>
+
+      <pc:VistaEstado Estado="{Binding Estado}" Titulo="{Binding TituloEstado}" Mensaje="{Binding MensajeEstado}" TextoAccion="Actualizar" ComandoAccion="{Binding RefrescarCommand}">
+        <pc:VistaEstado.ContextMenu>
+          <ContextMenu>
+            <MenuItem Header="Mirar el buzón ahora" Command="{Binding RecibirAhoraCommand}"
+                      ToolTip="Descarga y procesa ya el correo nuevo de todas las cuentas, sin esperar a su intervalo" />
+            <MenuItem Header="Volver a procesar" Command="{Binding ReprocesarCommand}"
+                      ToolTip="Para un mensaje con incidencia, de un remitente que ya has autorizado o en espera: vuelve a procesar lo que falló y responde de nuevo al remitente. Lo ya registrado no se repite" />
+            <Separator />
+            <MenuItem Header="Abrir el mensaje original" Command="{Binding AbrirOriginalCommand}" ToolTip="Abre la copia .eml del mensaje tal como llegó, con el programa de correo de Windows" />
+            <MenuItem Header="Ver la respuesta enviada" Command="{Binding VerRespuestaCommand}" ToolTip="Muestra la respuesta enviada al remitente en el registro de correo enviado" />
+            <Separator />
+            <MenuItem Header="Actualizar" Command="{Binding RefrescarCommand}" InputGestureText="F5" ToolTip="Vuelve a leer el registro de correo recibido" />
+          </ContextMenu>
+        </pc:VistaEstado.ContextMenu>
+        <pc:TablaProConta ItemsSource="{Binding Filas}" SelectedItem="{Binding Activa}" ClavePreferencias="correo.recibido" TituloExportacion="Correo recibido"
+                          IsReadOnly="True" SelectionMode="Single" AutomationProperties.Name="Correo recibido">
+          <pc:TablaProConta.Columns>
+            <DataGridTextColumn Header="Recibido" Binding="{Binding Fecha}" SortMemberPath="FechaOrden" Width="118" ElementStyle="{StaticResource Texto.Celda.Mono}" pc:TablaProConta.Clave="fecha" />
+            <DataGridTemplateColumn Header="Estado" Width="170" SortMemberPath="Estado" pc:TablaProConta.Clave="estado">
+              <DataGridTemplateColumn.CellTemplate>
+                <DataTemplate>
+                  <TextBlock Text="{Binding Estado}" ToolTip="{Binding AyudaEstado}">
+                    <TextBlock.Style>
+                      <Style TargetType="TextBlock" BasedOn="{StaticResource Texto.Celda}">
+                        <Style.Triggers>
+                          <DataTrigger Binding="{Binding ConIncidencia}" Value="True">
+                            <Setter Property="Foreground" Value="{StaticResource Pincel.RojoError}" />
+                            <Setter Property="FontWeight" Value="SemiBold" />
+                          </DataTrigger>
+                        </Style.Triggers>
+                      </Style>
+                    </TextBlock.Style>
+                  </TextBlock>
+                </DataTemplate>
+              </DataGridTemplateColumn.CellTemplate>
+            </DataGridTemplateColumn>
+            <DataGridTextColumn Header="De" Binding="{Binding De}" Width="220" ElementStyle="{StaticResource Texto.Celda}" pc:TablaProConta.Clave="de" />
+            <DataGridTextColumn Header="Asunto" Binding="{Binding Asunto}" Width="*" MinWidth="160" ElementStyle="{StaticResource Texto.Celda}" pc:TablaProConta.Clave="asunto" />
+            <DataGridTextColumn Header="Adj." Binding="{Binding Adjuntos}" Width="46" ElementStyle="{StaticResource Texto.Celda.Importe}" pc:TablaProConta.Clave="adjuntos" />
+            <DataGridTextColumn Header="Servidor" Binding="{Binding Servidor}" Width="100" ElementStyle="{StaticResource Texto.Celda}" pc:TablaProConta.Clave="servidor" pc:TablaProConta.OcultaDeFabrica="True" />
+          </pc:TablaProConta.Columns>
+        </pc:TablaProConta>
+      </pc:VistaEstado>
+
+      <GridSplitter Grid.Column="1" Width="5" HorizontalAlignment="Center" VerticalAlignment="Stretch" Background="{StaticResource Pincel.Linea}" ResizeBehavior="PreviousAndNext"
+                    ToolTip="Arrastra para repartir el ancho entre el registro y el detalle" />
+
+      <ScrollViewer Grid.Column="2" VerticalScrollBarVisibility="Auto" Background="{StaticResource Pincel.Fondo}">
+        <StackPanel Margin="16,14">
+          <TextBlock Text="Elige un mensaje para ver su detalle." Style="{StaticResource Texto.Apagado}" Visibility="{Binding HayDetalle, Converter={StaticResource Visible}, ConverterParameter=invertir}" />
+          <StackPanel Visibility="{Binding HayDetalle, Converter={StaticResource Visible}}">
+            <TextBlock Text="{Binding Detalle.Asunto}" Style="{StaticResource Texto.Titulo}" TextWrapping="Wrap" />
+            <TextBlock Text="{Binding DetalleEstado}" FontWeight="SemiBold" Margin="0,4,0,0" />
+            <pc:Nota Tipo="Info" Margin="0,8,0,10" Visibility="{Binding Detalle.Resumen, Converter={StaticResource Visible}}">
+              <TextBlock Text="{Binding Detalle.Resumen}" TextWrapping="Wrap" />
+            </pc:Nota>
+            <Border Style="{StaticResource Tarjeta.Correo}">
+              <TextBlock Text="{Binding DetalleDatos}" TextWrapping="Wrap" FontSize="{StaticResource Letra.Pequena}" />
+            </Border>
+            <Border Style="{StaticResource Tarjeta.Correo}">
+              <StackPanel>
+                <TextBlock Text="Adjuntos" Style="{StaticResource Etiqueta.Campo}" />
+                <TextBlock Text="Sin adjuntos." Style="{StaticResource Texto.Apagado}" Visibility="{Binding SinAdjuntos, Converter={StaticResource Visible}}" />
+                <ItemsControl ItemsSource="{Binding DetalleAdjuntos}">
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                      <StackPanel Margin="0,4,0,6">
+                        <DockPanel>
+                          <Button DockPanel.Dock="Right" Content="Abrir" Style="{StaticResource Boton.Enlace}"
+                                  Command="{Binding DataContext.AbrirAdjuntoCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding Adjunto}"
+                                  ToolTip="Abre la copia del adjunto tal como llegó" />
+                          <TextBlock Text="{Binding Nombre}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                        </DockPanel>
+                        <TextBlock Text="{Binding Estado}" Style="{StaticResource Texto.Apagado}" />
+                        <TextBlock Text="{Binding Detalle}" TextWrapping="Wrap" FontSize="{StaticResource Letra.Pequena}" />
+                      </StackPanel>
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+              </StackPanel>
+            </Border>
+          </StackPanel>
+        </StackPanel>
+      </ScrollViewer>
+    </Grid>
+  </DockPanel>
+</UserControl>

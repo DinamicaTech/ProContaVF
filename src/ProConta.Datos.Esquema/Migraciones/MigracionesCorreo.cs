@@ -66,4 +66,40 @@ public static class MigracionesCorreo
         new CrearTabla("TurnosCorreo",
             "CREATE TABLE TurnosCorreo (Clave TEXT(30) NOT NULL CONSTRAINT PK_TurnosCorreo PRIMARY KEY, Propietario TEXT(100) NOT NULL, CaducaEn DATETIME NOT NULL)"),
         new AnadirColumna("Configuracion", "CorreoDesviarA", "TEXT(254)"));
+
+    /// <summary>
+    /// Correo recibido (correo/recepcion 2026-11-11): cada mensaje del buzón POP3 de la cuenta, identificado por cuenta + UIDL,
+    /// con su copia .eml y sus hitos (procesado, respuesta enviada, borrado del servidor) para reanudar sin duplicar; sus
+    /// adjuntos con el tipo reconocido, su estado y lo que generaron (factura de compra, asiento), y los remitentes autorizados
+    /// de cada ejercicio, con permisos separados para importar y para pedir informes.
+    /// </summary>
+    public static Migracion CorreoRecepcion { get; } = new(
+        "20261111_1100_CORREO_RECEPCION", 261111001,
+        "Correo recibido: mensajes del buzón POP3 con sus hitos, adjuntos con su resultado y remitentes autorizados por ejercicio.",
+        "correo/recepcion",
+        new CrearTabla("MensajesRecibidosCorreo",
+            "CREATE TABLE MensajesRecibidosCorreo (IdMensajeRecibido COUNTER CONSTRAINT PK_MensajesRecibidosCorreo PRIMARY KEY, " +
+            "IdCuentaCorreo LONG NOT NULL CONSTRAINT FK_MensajesRecibidos_Cuenta REFERENCES CuentasCorreo (IdCuentaCorreo), " +
+            "IdSociedadEjercicio LONG NOT NULL CONSTRAINT FK_MensajesRecibidos_SociedadEjercicio REFERENCES SociedadesEjercicios (IdSociedadEjercicio), " +
+            "Uidl TEXT(255) NOT NULL, MessageId TEXT(255), Remitente TEXT(254), NombreRemitente TEXT(150), Asunto TEXT(255), FechaMensaje DATETIME, " +
+            "FechaRecepcion DATETIME NOT NULL, TamanoBytes LONG NOT NULL, Huella TEXT(64) NOT NULL, RutaEml TEXT(255) NOT NULL, Estado TEXT(25) NOT NULL, " +
+            "Resumen LONGTEXT, IdMensajeRespuesta LONG CONSTRAINT FK_MensajesRecibidos_Respuesta REFERENCES MensajesCorreo (IdMensajeCorreo), " +
+            "EliminadoServidor YESNO NOT NULL, FechaEliminacion DATETIME, FechaProceso DATETIME, Version LONG NOT NULL)"),
+        new CrearIndice("MensajesRecibidosCorreo", "UX_MensajesRecibidos_CuentaUidl",
+            "CREATE UNIQUE INDEX UX_MensajesRecibidos_CuentaUidl ON MensajesRecibidosCorreo (IdCuentaCorreo, Uidl)"),
+        new CrearIndice("MensajesRecibidosCorreo", "IX_MensajesRecibidos_SociedadEjercicio",
+            "CREATE INDEX IX_MensajesRecibidos_SociedadEjercicio ON MensajesRecibidosCorreo (IdSociedadEjercicio, FechaRecepcion)"),
+        new CrearTabla("AdjuntosRecibidosCorreo",
+            "CREATE TABLE AdjuntosRecibidosCorreo (IdAdjuntoRecibido COUNTER CONSTRAINT PK_AdjuntosRecibidosCorreo PRIMARY KEY, " +
+            "IdMensajeRecibido LONG NOT NULL CONSTRAINT FK_AdjuntosRecibidos_Mensaje REFERENCES MensajesRecibidosCorreo (IdMensajeRecibido), " +
+            "Ordinal SHORT NOT NULL, Nombre TEXT(255) NOT NULL, TamanoBytes LONG NOT NULL, Huella TEXT(64) NOT NULL, RutaRelativa TEXT(255) NOT NULL, " +
+            "Tipo TEXT(20) NOT NULL, Estado TEXT(20) NOT NULL, IdFacturaCompra LONG, IdAsiento LONG, Detalle LONGTEXT)"),
+        new CrearIndice("AdjuntosRecibidosCorreo", "UX_AdjuntosRecibidos_Ordinal",
+            "CREATE UNIQUE INDEX UX_AdjuntosRecibidos_Ordinal ON AdjuntosRecibidosCorreo (IdMensajeRecibido, Ordinal)"),
+        new CrearTabla("RemitentesAutorizadosCorreo",
+            "CREATE TABLE RemitentesAutorizadosCorreo (IdRemitenteAutorizado COUNTER CONSTRAINT PK_RemitentesAutorizadosCorreo PRIMARY KEY, " +
+            "IdSociedadEjercicio LONG NOT NULL CONSTRAINT FK_Remitentes_SociedadEjercicio REFERENCES SociedadesEjercicios (IdSociedadEjercicio), " +
+            "Direccion TEXT(254) NOT NULL, Nombre TEXT(150), PuedeImportar YESNO NOT NULL, PuedePedirInformes YESNO NOT NULL, Activo YESNO NOT NULL)"),
+        new CrearIndice("RemitentesAutorizadosCorreo", "UX_Remitentes_EjercicioDireccion",
+            "CREATE UNIQUE INDEX UX_Remitentes_EjercicioDireccion ON RemitentesAutorizadosCorreo (IdSociedadEjercicio, Direccion)"));
 }

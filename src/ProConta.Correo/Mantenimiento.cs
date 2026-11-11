@@ -9,7 +9,29 @@ namespace ProConta.Correo.Mantenimiento;
 public static class ProveedoresCorreo
 {
     public static IEnumerable<IProveedorMantenimiento> Todos(IBaseDatos bd, ITransporteSmtp? smtp = null, IPruebaPop3? pop3 = null) =>
-        [new ProveedorCuentaCorreo(bd, smtp ?? new TransporteSmtpMailKit(), pop3 ?? new PruebaPop3MailKit()), CrearPlantillas(bd)];
+        [new ProveedorCuentaCorreo(bd, smtp ?? new TransporteSmtpMailKit(), pop3 ?? new PruebaPop3MailKit()), CrearPlantillas(bd), CrearRemitentes(bd)];
+
+    /// <summary>
+    /// Remitentes autorizados del ejercicio (correo/recepcion 2026-11-10 19:40): solo el correo que envían ellos a la cuenta del
+    /// ejercicio se procesa y se responde, con permisos separados para enviar documentos a importar y para pedir informes.
+    /// </summary>
+    public static ProveedorTablaAccess CrearRemitentes(IBaseDatos bd) => new ProveedorRemitentes(bd, "remitentescorreo", "Remitentes autorizados", "Correo",
+        "Quién puede enviar documentos (facturas de compra, extractos, nóminas) o pedir informes por correo a la cuenta de este ejercicio. Lo que envía cualquier otro se guarda sin procesar.",
+        AmbitoMantenimiento.Ejercicio, "remitente", "RemitentesAutorizadosCorreo", "IdRemitenteAutorizado", ClaveNueva.Autonumerica,
+        [
+            new("Direccion", "Dirección", TipoCampo.Email) { Obligatorio = true, Longitud = 254, Ancho = "l", Ayuda = "Dirección desde la que escribe (la del remitente del correo)." },
+            new("Nombre", "Nombre") { Longitud = 150, Ancho = "l", Ayuda = "Para reconocerlo en la lista y en las respuestas." },
+            new("PuedeImportar", "Puede enviar documentos para importar", TipoCampo.Logico) { Ayuda = "Sus facturas de compra se registran (y se contabilizan si se leen bien); sus extractos y nóminas, cuando lleguen esos módulos." },
+            new("PuedePedirInformes", "Puede pedir informes", TipoCampo.Logico) { Ayuda = "Puede escribir un comando en el asunto (por ejemplo «MAYOR 4300001 PDF») cuando los informes por correo estén disponibles." },
+            new("Activo", "Activo", TipoCampo.Logico) { Ayuda = "Desactivado, su correo se guarda sin procesar, como el de cualquier remitente no autorizado." },
+        ],
+        [new("Direccion", "Dirección"), new("Nombre", "Nombre")])
+    {
+        ColumnaAmbito = "IdSociedadEjercicio",
+        Orden = "Direccion",
+        Alias = ["remitente", "autorizado", "correo", "email", "buzon", "recepcion"],
+        Titular = r => r.EsNuevo ? "Remitente nuevo" : r.Texto("Nombre") ?? r.Texto("Direccion") ?? "Remitente",
+    };
 
     /// <summary>Plantillas de asunto y cuerpo por empresa y tipo de correo (PlantillasCorreo).</summary>
     public static ProveedorTablaAccess CrearPlantillas(IBaseDatos bd) => new(bd, "plantillascorreo", "Plantillas de correo", "Correo",
@@ -34,6 +56,20 @@ public static class ProveedoresCorreo
         Alias = ["plantilla", "correo", "email", "asunto", "mensaje"],
         Titular = r => r.EsNuevo ? "Plantilla nueva" : $"Plantilla de {(r.Texto("TipoCorreo") == TiposCorreo.Factura ? "factura" : (r.Texto("TipoCorreo") ?? "correo").ToLowerInvariant())}",
     };
+}
+
+/// <summary>Remitentes autorizados: uno nuevo nace activo y con permiso para enviar documentos.</summary>
+internal sealed class ProveedorRemitentes(IBaseDatos bd, string clave, string titulo, string categoria, string finalidad, AmbitoMantenimiento ambito,
+    string nombreRegistro, string tabla, string columnaClave, ClaveNueva claveNueva, IReadOnlyList<CampoMantenimiento> campos, IReadOnlyList<ColumnaLista> columnas)
+    : ProveedorTablaAccess(bd, clave, titulo, categoria, finalidad, ambito, nombreRegistro, tabla, columnaClave, claveNueva, campos, columnas)
+{
+    public override async Task<RegistroMantenimiento> NuevoAsync(ContextoMantenimiento contexto)
+    {
+        var r = await base.NuevoAsync(contexto);
+        r["Activo"] = true;
+        r["PuedeImportar"] = true;
+        return r;
+    }
 }
 
 /// <summary>
