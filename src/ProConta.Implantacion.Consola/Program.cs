@@ -14,6 +14,7 @@ using ProConta.Terceros.Roles;
 
 Console.OutputEncoding = Encoding.UTF8;
 var simular = args.Contains("--simular", StringComparer.OrdinalIgnoreCase);
+var medir = args.Contains("--medir", StringComparer.OrdinalIgnoreCase);
 var iInforme = Array.FindIndex(args, a => a.Equals("--informe", StringComparison.OrdinalIgnoreCase));
 var informe = iInforme >= 0 && iInforme + 1 < args.Length ? args[iInforme + 1] : null;
 var posicionales = args.Where((a, i) => !a.StartsWith("--", StringComparison.Ordinal) && (iInforme < 0 || i != iInforme + 1)).ToList();
@@ -21,14 +22,15 @@ if (posicionales.Count < 2)
 {
     Console.WriteLine("""
         Uso:
-          ImportadorContaSol <bd de ProContaVF> <bd de ContaSol>... [--simular] [--informe <fichero md>]
+          ImportadorContaSol <bd de ProContaVF> <bd de ContaSol>... [--simular] [--medir] [--informe <fichero md>]
               Importa cada BD de ContaSol (una por ejercicio) en la BD de ProContaVF, en orden de ejercicio.
               --simular: solo lee y comprueba, sin escribir.  --informe: escribe el resumen y las incidencias en un md.
         """);
     return 2;
 }
 
-IBaseDatos bd = new BaseDatosAccess(posicionales[0]);
+var medida = medir ? new ProConta.Implantacion.Consola.BaseDatosMedida(new BaseDatosAccess(posicionales[0])) : null;
+IBaseDatos bd = medida ?? (IBaseDatos)new BaseDatosAccess(posicionales[0]);
 var cuentas = new CatalogoCuentasAccess(bd);
 var importador = new ImportadorContaSol(bd, new MotorAsientosAccess(bd), new CatalogoCentrosCosteAccess(bd), new RepositorioTercerosAccess(bd), new ServicioRoles(bd, cuentas));
 var ultimo = "";
@@ -75,6 +77,12 @@ foreach (var f in filas)
     md.Append('\n');
 }
 Console.WriteLine($"Tiempo: {DateTime.Now - inicio:hh\\:mm\\:ss}");
+if (medida is not null)
+{
+    var texto = medida.Informe(DateTime.Now - inicio);
+    Console.WriteLine(texto);
+    md.Append("\n## Medidas\n\n```\n").Append(texto).Append("\n```\n");
+}
 if (informe is not null) await File.WriteAllTextAsync(informe, md.ToString());
 var codigo = filas.Any(f => f.Estado is EstadosImportacion.Fallida) ? 1 : 0;
 BaseDatosAccess.TerminarProceso(codigo);
