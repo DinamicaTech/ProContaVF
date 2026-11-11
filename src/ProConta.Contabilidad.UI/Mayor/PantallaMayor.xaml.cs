@@ -54,6 +54,8 @@ public partial class PantallaMayor : UserControl
     {
         if (_vm is null) return;
         var anterior = Tabla.ItemsSource is ICollectionView v ? v.SortDescriptions.ToList() : [];
+        // Tras puntear o numerar se vuelve a leer la vista: la selección se conserva por la clave de la fila.
+        var seleccion = Seleccionadas().Select(f => f.Fila.Clave).ToHashSet(StringComparer.Ordinal);
         var vista = new ListCollectionView(_vm.Filas.ToList());
         foreach (var s in anterior) vista.SortDescriptions.Add(s);
         if (anterior.Count == 0) vista.GroupDescriptions.Add(new PropertyGroupDescription(nameof(FilaMayorVM.CabeceraEjercicio)));
@@ -63,6 +65,10 @@ public partial class PantallaMayor : UserControl
             var s = anterior.FirstOrDefault(x => x.PropertyName == c.SortMemberPath);
             c.SortDirection = s.PropertyName is null ? null : s.Direction;
         }
+        if (seleccion.Count == 0) return;
+        var volver = _vm.Filas.Where(f => seleccion.Contains(f.Fila.Clave)).ToList();
+        foreach (var f in volver) Tabla.SelectedItems.Add(f);
+        if (volver.Count > 0) Tabla.ScrollIntoView(volver[0]);
     }
 
     private void AjustarAgrupacion()

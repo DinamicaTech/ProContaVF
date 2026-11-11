@@ -53,8 +53,10 @@
             <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
               <TextBlock Text="Cargando…" Style="{StaticResource Texto.Apagado}" VerticalAlignment="Center" Margin="0,0,10,0"
                          Visibility="{Binding Ocupado, Converter={StaticResource Visible}}" />
-              <pc:Etiqueta Content="{Binding TextoCuadre}" ToolTip="{Binding AyudaCuadre}" Margin="0,0,10,0" VerticalAlignment="Center"
-                           Visibility="{Binding TextoCuadre, Converter={StaticResource Visible}}" />
+              <Border BorderBrush="{StaticResource Pincel.Linea3}" BorderThickness="1" CornerRadius="10" Padding="10,3" Margin="0,0,10,0" VerticalAlignment="Center"
+                      Background="{StaticResource Pincel.Fondo2}" ToolTip="{Binding AyudaCuadre}" Visibility="{Binding TextoCuadre, Converter={StaticResource Visible}}">
+                <TextBlock Text="{Binding TextoCuadre}" FontSize="{StaticResource Letra.Pequena}" Foreground="{StaticResource Pincel.Texto2}" />
+              </Border>
               <Button x:Name="BotonEjercicios" Content="{Binding TextoEjercicios}" pc:Iconos.Icono="{StaticResource Icono.cal}" Click="BotonEjercicios_Click"
                       ToolTip="Ejercicios cuyos apuntes se muestran: puedes marcar varios. La apertura de un ejercicio que sigue a otro de la vista no suma: el saldo continúa." />
               <Popup x:Name="PopupEjercicios" PlacementTarget="{Binding ElementName=BotonEjercicios}" Placement="Bottom" StaysOpen="False" AllowsTransparency="True"
