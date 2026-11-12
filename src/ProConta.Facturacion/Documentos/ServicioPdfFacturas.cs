@@ -196,6 +196,11 @@ public sealed class ServicioPdfFacturas
         {
             return Resultado<PdfFactura>.Fallo(ex.Error);
         }
+        catch (ErrorMotorPdf ex)
+        {
+            return Resultado<PdfFactura>.Fallo(new Error("Facturas.PdfSinMotor", ex.Message, f.Rotulo,
+                "El PDF se genera con el componente WebView2 de Microsoft Edge, y en este equipo falta o no ha arrancado.", "Instala WebView2 desde " + ConversorHtmlPdf.UrlInstalador + " y vuelve a generar el PDF. La factura no cambia."));
+        }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or FileNotFoundException)
         {
             return Resultado<PdfFactura>.Fallo(new Error("Facturas.PdfNoGuardado", $"No he podido crear el PDF de {f.Rotulo}: {ex.Message}", f.Rotulo,

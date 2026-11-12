@@ -1,14 +1,17 @@
 <Project Sdk="Microsoft.NET.Sdk">
-  <!-- Motor de informes (docs/informes/reporting.md): el PDF de factura con FastReport de código abierto (MIT) y los informes en tablas dinámicas Excel con ClosedXML (MIT, docs/informes/excel.md). -->
+  <!-- Motor de informes (docs/informes/reporting.md): el PDF de factura con FastReport de código abierto (MIT), exportado a HTML y convertido con WebView2, y los informes en tablas dinámicas Excel con ClosedXML (MIT, docs/informes/excel.md). -->
   <PropertyGroup>
     <OutputType>Library</OutputType>
+    <!-- WPF solo para el hilo y la ventana invisible de WebView2 que convierte el HTML en PDF. -->
+    <UseWPF>true</UseWPF>
     <RootNamespace>ProConta.Informes</RootNamespace>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <NoWarn>$(NoWarn);CS1591;CS1573</NoWarn>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="FastReport.OpenSource" Version="2026.2.3" />
-    <PackageReference Include="FastReport.OpenSource.Export.PdfSimple" Version="2026.2.3" />
+    <!-- PDF con texto real: FastReport exporta a HTML y WebView2 lo imprime a PDF (informes/reporting, 2026-11-12 15:19). -->
+    <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.4191.47" />
     <PackageReference Include="ClosedXML" Version="0.105.0" />
   </ItemGroup>
   <ItemGroup>
