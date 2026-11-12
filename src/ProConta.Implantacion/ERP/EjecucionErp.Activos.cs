@@ -212,7 +212,7 @@ internal sealed partial class EjecucionErp
             var clave = $"{inm}:{linea}";
             if (Mapa(TiposErp.Activo, Txt(inm)) is not int activo || !tipoDeActivo.TryGetValue(inm, out var idTipo)) { estCu.Excluidas++; continue; } // inversión o inmueble excluido
             if (!plantillaDe.TryGetValue((idTipo, linea), out var plantilla))
-            { Excluir(Fase6, "CuentasInmuebles", clave, $"La cuenta {c.T("Cuenta")} del inmueble {inm} es de la línea {linea}, que su tipo de activo no tiene en la plantilla."); continue; }
+            { Excluir(Fase6, "CuentasInmuebles", clave, $"La cuenta {c.T("Cuenta")} del inmueble {inm} es de la línea {linea}, que no está en PlantillasInmuebles para su tipo: no se migra.", Severidad.Informativa); continue; }
             if (Identidad(c.T("Cuenta")) is not int identidad) { Excluir(Fase6, "CuentasInmuebles", clave, $"La cuenta {c.T("Cuenta")} del inmueble {inm} no está en el plan contable importado de ContaSol."); continue; }
             filas.Add([activo, plantilla, identidad, ahora]);
         }

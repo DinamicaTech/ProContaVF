@@ -87,6 +87,7 @@ Origen: la copia materializada de ProcontaEstructura.accdb. Destino: el dicciona
 
 Recuento: 74 tablas en los 25 bloques, 44 sin dueño y 17 de ContaSol, 135 en total (más `TiposConceptosCaja`, añadida al origen después del inventario).
 - 2026-11-12 10:30 · Fase 6 rehecha para el modelo de activos (derivado de activos, fase 1): escribe TiposSubcuentaActivo, PlantillasSubcuentasActivo, SubcuentasActivo, ActivosInmuebles y PlanesAmortizacionActivo en vez de PlantillasCuentasActivo y CuentasActivo (obsoletas), Activos.IdCentroCoste y EsAjeno en vez de IdDepartamento/IdSubDepartamento, y no carga las inversiones financieras. Repetirla borra antes lo que cargó la ejecución anterior en esas tablas. Exige la BD destino con el esquema de esta versión (tipos del PGC dados de alta).
+- 2026-11-12 10:55 · Las subcuentas de CuentasInmuebles cuya línea no está en PlantillasInmuebles para el tipo de su inmueble no se migran (propietario): en la erp-05 son 30, todas con saldo 0 (fianzas 2600xxx antiguas y cuentas de los pisos turísticos de líneas de otro tipo); el informe las anota como informativas.
 
 ## Hand-over
 - 2026-11-11 15:15 · Ejecutada sobre copias de ProConta-contasol-v2g rehecha con el importador corregido (erp-01, repetida sobre sí misma, y erp-02 nueva): mismo resultado en las dos (44 recuentos y sumas iguales, mismo informe), origen y v2g sin cambios, 1 min 25 s por ejecución. Informes en C:\Docs\ProContaVF-validacion\informe-migracion-erp-01.md y -02.md (fuera de Git: llevan datos reales). Pendiente de validar con el propietario: las «Dudas» del informe (beneficiario sin campo, rutas relativas de los PDF que compras aún no resuelve, serie rectificativa por ejercicio, tipos de inmueble 7 y 9, deducibilidad de Alquiler Locales, conceptos obsoletos, inmuebles guardados como personas). Nóminas no se migran (quedan para el módulo de nóminas).
@@ -169,3 +170,4 @@ Recuento: 74 tablas en los 25 bloques, 44 sin dueño y 17 de ContaSol, 135 en to
 - 2026-11-11 17:34 · Ok y sí, quita esos dos campos.
 - 2026-11-11 18:08 · Sí, quita todo lo que no se use.
 - 2026-11-12 10:30 · Derived from activos: migrar los activos del ERP al modelo nuevo (tipos del PGC, catálogo de tipos de subcuenta con rol, plantillas por tipo con prefijos corregidos, subcuentas reales conservadas, ficha del inmueble, plan de amortización, centro de coste único y piso particular como activo ajeno) y dejar las inversiones financieras para su segunda fase.
+- 2026-11-12 10:55 · No se migran, no existen en PlantillasInmuebles por lo que no deberían estar en CuentasInmuebles
