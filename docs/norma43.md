@@ -1,6 +1,5 @@
 ---
 title: Norma 43
-status: draft
 depends_on: [datos/esquema, datos/persistencia]
 threads:
   - 2026-10-28 12:30 · Carga de requisitos | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GRNMH95h9tnQp4dmEPHmw1w
@@ -8,7 +7,7 @@ threads:
 ---
 ## Summary
 Importación y consulta de extractos bancarios Norma 43: lectura, validación, persistencia idempotente por contenido, consulta y reversión auditada. No es la tesorería completa.
-Hecho el motor (pendiente de validar): `LectorCuaderno43` (lectura y cuadre del cuaderno 43, sin BD), `ServicioImportacionN43` (analizar, importar en una transacción con detección de solapes por contenido y alta de cuentas al vuelo, revertir), `ConsultaBancos` (saldos y lotes) y `ProcesadorExtractosCorreo` (adjuntos recibidos por correo) en `src/ProConta.Norma43`; migración `20261112_1700_REVERSION_LOTES_N43` (esquema 44); pruebas en `tests/ProConta.Norma43.Tests`. La pantalla está en norma43/bancos.
+Hecho el motor (validado el 2026-11-12): `LectorCuaderno43` (lectura y cuadre del cuaderno 43, sin BD), `ServicioImportacionN43` (analizar, importar en una transacción con detección de solapes por contenido y alta de cuentas al vuelo, revertir), `ConsultaBancos` (saldos y lotes) y `ProcesadorExtractosCorreo` (adjuntos recibidos por correo) en `src/ProConta.Norma43`; migración `20261112_1700_REVERSION_LOTES_N43` (esquema 44); pruebas en `tests/ProConta.Norma43.Tests`. La pantalla está en norma43/bancos.
 **Aceptación:** reimportar el mismo archivo no duplica; revertir algo contabilizado se bloquea.
 
 ## Decisions
@@ -23,6 +22,7 @@ Hecho el motor (pendiente de validar): `LectorCuaderno43` (lectura y cuadre del 
 - 2026-11-12 18:10 · Hecho, pendiente de validar por el propietario: lector, importación, reversión, consulta y extractos por correo según las decisiones de las 16:50, con 27 pruebas (lector sin BD; importación, solapes, alta de cuentas, reversión, Bancos y correo contra Access). Convenciones: Formato NORMA43 y VersionEsquema CUADERNO43 en los lotes de ficheros (ERP en los migrados); estados IMPORTADO y REVERTIDO; Sentido D (cargo) o H (abono) con el importe en positivo; SaldoFinal del extracto con signo (acreedor positivo) y SaldoInicial sin signo con su SentidoSaldoInicial; divisa ISO alfabética (978 → EUR); ConceptoCompleto según la decisión de las 19:40; las advertencias de la lectura se guardan en IncidenciasImportacionBancaria (Severidad ADVERTENCIA). Quien lea LineasExtractoBancario debe excluir los lotes con Estado REVERTIDO.
 - 2026-11-12 18:30 · Solapes por contenido: además del hash, cada movimiento se compara con los ya importados de la misma cuenta bancaria (en las fechas de operación o de valor del fichero) por fecha valor, sentido, importe, concepto común y propio, documento y referencias, sin espacios ni ceros a la izquierda, contando repeticiones (el fichero no tiene clave y puede traer dos movimientos idénticos el mismo día: solo están importados si en la BD hay tantos como en el fichero). Si todos coinciden, el fichero ya está importado y no se hace nada; si coincide alguno, se rechaza el fichero entero con el aviso de la cuenta, las fechas y el lote con que se solapa. No entran en la clave la fecha de operación ni el concepto completo: la migración del ERP guardaba la fecha valor como fecha de operación en las líneas en que no coinciden (corregido en implantacion/migracion-erp 2026-11-12 19:10; la clave sigue sin ella para valer también con las copias migradas antes). Comprobado en una copia con el histórico del ERP: los 12 extractos reales de la carpeta local que ya estaban en el ERP salen como ya importados (con la fecha de operación en la clave, el 90 % de sus movimientos coincidía y se habrían rechazado como solape).
 - 2026-11-12 19:40 · ConceptoCompleto: las 76 posiciones de texto de cada registro 23 seguidas, sin separador (las palabras siguen de una mitad a otra y de un registro al siguiente), con los espacios repetidos del relleno reducidos a uno. Validado con los extractos reales del primer semestre de 2026 (12 ficheros, 691 movimientos) contra N43Cabeceras y N43Lineas del ERP: cada cabecera coincide en cuenta, periodo, saldos inicial y final, número y total de cargos y abonos, y cada movimiento en fechas, sentido, importe, conceptos común y propio, documento y referencias; reimportarlos no duplica nada. Los conceptos difieren solo por defectos del ERP, que no se reproducen: antepone referencias con un punto, pierde el último carácter de cada registro 23, lee mal los acentos (UTF-8 como Windows-1252) y omite parte del texto.
+- 2026-11-12 20:17 · Validado por el propietario (importación, solapes, reversión, extractos por correo y cuadre con el ERP del primer semestre de 2026, PR #52): deja de ser borrador.
 
 ## Requirements
 - 2026-10-28 12:28 · From sources/01_ESPECIFICACION_FUNCIONAL.docx § 19 RF-N43-01, 02, 04: motor, reversión, selección y límites de consulta
@@ -35,3 +35,4 @@ Hecho el motor (pendiente de validar): `LectorCuaderno43` (lectura y cuadre del 
 - 2026-11-12 16:47 · P3. Si la cuenta no existe en la sociedad, mostrar un aviso y dar la opción de darla de alta en ese momento para poder continuar con la importación
 - 2026-11-12 16:47 · P4. Ok, lo haremos en un nuevo hilo
 - 2026-11-12 19:18 · Tienes los ficheros N43 de los dos primeros trimestres del 2026 ? Lo ideal es que hagas una importación y lo cuadres con N43Cabeceras y N43Lineas, así ya lo dejamos validado.
+- 2026-11-12 20:17 · Ok, con eso ya tenemos esta fase validada.
