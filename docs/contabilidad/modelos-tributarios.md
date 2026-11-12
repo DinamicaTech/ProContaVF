@@ -1,7 +1,7 @@
 ---
 title: Modelos tributarios
 status: draft
-depends_on: [contabilidad/asientos]
+depends_on: [contabilidad/asientos, informes/reporting]
 threads:
   - 2026-10-28 12:30 · Carga de requisitos | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GRNMH95h9tnQp4dmEPHmw1w
   - 2026-10-31 16:58 · Cerrar preguntas pendientes del proyecto | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5G7UyrP5eDJV4Ds6CCBozdbu
@@ -13,6 +13,7 @@ Cálculo trazable y borrador de los modelos 303 y 390, separado de la presentaci
 ## Decisions
 - 2026-10-28 13:30 · Creado en la carga inicial de requisitos.
 - 2026-10-31 16:54 · Primeros modelos: 303 y 390 (cálculo trazable y borrador). Después de la Versión Mínima Viable: reproducir en PDF el modelo oficial rellenado (con las plantillas oficiales si se encuentran, o a partir de los PDF resultantes de presentar un modelo) y generar el fichero de intercambio con la AEAT para presentarlo.
+- 2026-11-12 15:19 · El borrador de cada modelo se presenta en PDF con sus casillas, con una plantilla .frx y el motor de informes/reporting (2026-11-12 15:19); la copia exacta del modelo oficial y el fichero de presentación siguen en el borrador hijo `presentacion`. Habrá más modelos además del 303 y el 390; se irán ampliando.
 
 ## Requirements
 - 2026-10-28 12:28 · From sources/01_ESPECIFICACION_FUNCIONAL.docx § 16 RF-MOD-01, 02: cálculo, borrador y plantillas por año
@@ -22,3 +23,5 @@ Cálculo trazable y borrador de los modelos 303 y 390, separado de la presentaci
 - 2026-10-31 16:54 · Al margen de poder pre-visualizar un modelo tributario, creo que hay un formato de intercambio (XML supongo) con la agencia tributaria para presentar un modelo. Todo esto para después de la Versión Mínima Viable (VMV), que no será muy mínima tampoco
 - 2026-10-31 16:54 · answer: qué modelos primero → (a) 303 y 390; la reproducción del PDF oficial rellenado y la presentación por fichero de intercambio con la AEAT quedan para después de la Versión Mínima Viable
 - 2026-11-11 11:35 · Derived from facturacion/factura-venta/contabilizacion: el IVA devengado del 303 y el 390 sale de IVARepercutido y DesglosesIVARepercutido (todos los registros del periodo, también los de anulación en negativo) más la autorrepercusión de DesglosesIVASoportado. Las rectificativas van a las casillas de modificación de bases y cuotas (14 y 15 del 303); las anulaciones de deshacer restan en su tipo. Las exentas (calificación E1 a E6) y no sujetas (N1, N2) van a sus casillas de operaciones exentas y al volumen de operaciones (confirmar los números de casilla con las instrucciones de la AEAT). Señalar los registros cuya fecha de expedición es de un trimestre anterior al de su periodo, por si hace falta una complementaria, y no ofrecer presentación si hay facturas del periodo con asiento y sin registro.
+- 2026-11-12 13:11 · Ok a los modelos (hay algunos más, pero ya iremos ampliando)
+- 2026-11-12 15:19 · Derived from informes: PDF borrador del 303 y del 390 con sus casillas, con plantilla .frx y el motor de informes/reporting.
