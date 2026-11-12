@@ -1,6 +1,5 @@
 ---
 title: Mayor
-status: draft
 depends_on: [contabilidad/asientos]
 threads:
   - 2026-10-28 12:30 · Carga de requisitos | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GRNMH95h9tnQp4dmEPHmw1w
@@ -50,6 +49,8 @@ Se construye en dos entregas. La primera (consulta, sin cambiar la BD) está en 
 
 - 2026-11-12 11:00 · Cuadre (CuadresCuentas): solo se cuadra el ejercicio de trabajo, esté o no en la vista. Cada cuenta tiene la casilla «Cuenta cuadrada» (guarda el saldo que tenía al marcarla) y unas notas largas, un memo que puede ir acumulando la historia de varios ejercicios; si el de trabajo aún no tiene cuadre, se ven las notas del último anterior y se guardan en él al aceptar. Rojo: ni notas ni casilla; ámbar: notas sin la casilla, o casilla con un saldo que ha cambiado desde que se marcó (con el aviso); verde: casilla con el mismo saldo. Se ve y se cambia en el pie de la pantalla, en lugar de la ayuda «Doble clic: ver el asiento…» (que pasa a la ayuda del recuento): un botón con el color del estado y la primera línea de las notas que abre el diálogo de cuadre (cuenta, casilla, notas, saldo y última modificación). Con varias cuentas en la vista el pie solo resume cuántas están cuadradas, en curso y sin cuadrar. «Reiniciar el cuadre» no está en el Mayor: afecta a todas las subcuentas y va en los procesos contables (contabilidad/procesos). Su lógica queda hecha y probada en `CuadresMayor.Reiniciar` y `SesionMayor.ReiniciarCuadreAsync`: marca las subcuentas con movimientos y saldo de hasta ±umbral (Configuración general, vacío = 0,05 €) y, si se pide, quita antes la casilla de todas; nunca borra notas. El selector tiene la columna Cuadre (Cuadrada, En curso, Sin cuadrar) y «No cuadradas» deja las sin cuadrar o en curso. Las marcas son del Mayor y no pasan por el motor de asientos.
 
+- 2026-11-12 10:20 · Validado por el propietario (PR 1 y PR 2 fusionadas): el nodo deja de ser borrador. Pendiente, con sus nodos: nuevo asiento manual (contabilidad/pantallas), asistente de corrección (contabilidad/plantillas-asiento), Norma 43 (norma43/pantallas) y reiniciar el cuadre (contabilidad/procesos/reiniciar-cuadre).
+
 ## Requirements
 - 2026-10-28 12:28 · From sources/01_ESPECIFICACION_FUNCIONAL.docx § 15 RF-MAY-01: mayor reutilizable con servicios compartidos
 - 2026-10-28 12:28 · From docs/README.md (descripción del propietario): mayor 'vitaminado'
@@ -81,6 +82,8 @@ Se construye en dos entregas. La primera (consulta, sin cambiar la BD) está en 
 - 2026-11-12 09:40 · Q3- Ok. Reiniciar cuadre solo demarcar los flags, no borra textos
 
 - 2026-11-12 09:57 · Reiniciar cuadre, viendo que afecta a todos las subcuentas, irá en procesos contables, por lo que lo quitamos del mayor.
+
+- 2026-11-12 10:15 · Ok, fusiona
 
 ## Hand-over
 - 2026-11-11 18:30 · PR 1 (consulta y pantalla, rama `claude/project-thread-gihi37`). Hecho: servicio en `src/ProConta.Contabilidad/Mayor` (`SesionMayor`, `CalculadoraMayor`, `SelectorCuentasMayor`, `FuenteMayorAccess`, `FuenteMayorMemoria`), pantalla en `src/ProConta.Contabilidad.UI/Mayor` (`PantallaMayor`, `MayorVM`, `SelectorCuentasVM`, `DialogosMayor`, `ImpresionMayor`, `ModuloMayor` con la pestaña), navegación Contabilidad › Mayor en el contenedor y la pestaña Contabilidad de la ficha de terceros. Pruebas: `tests/ProConta.Contabilidad.Tests/MayorTests.cs` (sin BD: vistas, saldos, apertura, contrapartida, Solo pendientes, Debe = Haber, una carga por vista, error de carga y la aceptación embebido = completo) y `MayorAccessTests.cs` (Access sintético y, con `PROCONTA_BD_MAYOR` apuntando a una copia, el rendimiento de un banco grande). Capturas en `C:\Docs\ProContaVF-validacion\mayor-01\` (el mismo control dibujado fuera de pantalla, porque no hubo permiso para controlar la pantalla; falta mirarlo en la aplicación) con la copia `ProConta-mayor-01.accdb` (de la erp-03).
