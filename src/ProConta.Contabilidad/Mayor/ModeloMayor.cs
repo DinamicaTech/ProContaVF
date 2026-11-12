@@ -19,7 +19,7 @@ public enum VistaMayor
 }
 
 /// <summary>Una línea de un asiento: lo que hace falta para decidir la contrapartida de los apuntes de la vista.</summary>
-public sealed record LineaContrapartida(int IdAsiento, int Orden, string Cuenta, decimal Debe, decimal Haber)
+public sealed record LineaContrapartida(int IdAsiento, int Orden, string Cuenta, decimal Debe, decimal Haber, int IdApunte = 0)
 {
     public decimal Importe => Debe - Haber;
 }
@@ -31,7 +31,7 @@ public sealed record LineaContrapartida(int IdAsiento, int Orden, string Cuenta,
 public sealed record ApunteMayor(
     int IdApunte, int IdAsiento, int Orden, int IdSociedadEjercicio, int Ejercicio, DateTime Fecha, byte TipoAsiento,
     string Cuenta, decimal Debe, decimal Haber, string Concepto, string? Documento, string? Notas,
-    DateTime? FechaDocumento, DateTime? GrabadoEl, DateTime? ModificadoEl)
+    DateTime? FechaDocumento, DateTime? GrabadoEl, DateTime? ModificadoEl, bool Punteado = false, bool EsAutomatico = false)
 {
     public decimal Importe => Debe - Haber;
     public bool EsApertura => TipoAsiento == TiposAsientoMayor.Apertura;
@@ -73,7 +73,9 @@ public sealed record DatosMayor(
 /// <param name="Saldo">Saldo con la apertura del primer ejercicio elegido.</param>
 /// <param name="Apuntes">Apuntes del periodo (con la apertura del primer ejercicio, sin cierres).</param>
 /// <param name="EsSubcuenta">Admite apuntes (imputable); las cuentas de grupo muestran todas sus subcuentas.</param>
-public sealed record CuentaMayor(string Codigo, string Nombre, decimal SaldoSinApertura, decimal Saldo, int Apuntes, bool EsSubcuenta)
+/// <param name="Cuadre">Si está cuadrada en los ejercicios elegidos; <paramref name="AyudaCuadre"/> dice cuándo, quién y con qué comentario.</param>
+public sealed record CuentaMayor(string Codigo, string Nombre, decimal SaldoSinApertura, decimal Saldo, int Apuntes, bool EsSubcuenta,
+    EstadoCuadre Cuadre = EstadoCuadre.SinMovimientos, string? AyudaCuadre = null)
 {
     public string Etiqueta => Nombre.Length > 0 ? $"{Codigo} {Nombre}" : Codigo;
 }
@@ -104,6 +106,33 @@ public sealed record AsientoMayor(
 
 /// <summary>Línea de un asiento para la ventana de solo lectura.</summary>
 public sealed record LineaAsientoMayor(int Orden, string Cuenta, string NombreCuenta, string Concepto, string? Documento, decimal Debe, decimal Haber);
+
+/// <summary>
+/// Cuadre de una cuenta en un ejercicio (tabla CuadresCuentas, contabilidad/mayor 2026-11-12): la casilla «Cuadrada» con el
+/// saldo que tenía la cuenta al marcarla, y las notas (un memo que puede acumular la historia de varios ejercicios).
+/// </summary>
+public sealed record CuadreCuenta(int IdSociedadEjercicio, string Cuenta, bool Cuadrada, decimal? Saldo, string? Notas, string Operador, DateTime FechaHora);
+
+/// <summary>Estado del cuadre de una cuenta en el ejercicio de trabajo (rojo, ámbar o verde).</summary>
+public enum EstadoCuadre
+{
+    /// <summary>Sin movimientos ni notas: no hay nada que cuadrar.</summary>
+    SinMovimientos,
+    /// <summary>Rojo: ni notas ni casilla.</summary>
+    SinCuadrar,
+    /// <summary>Ámbar: con notas y sin la casilla, o con la casilla pero el saldo ha cambiado desde que se marcó.</summary>
+    EnCurso,
+    /// <summary>Verde: con la casilla y el mismo saldo que al marcarla.</summary>
+    Cuadrada
+}
+
+/// <summary>Cuadre de una cuenta tal como se ve: estado, notas (las del ejercicio de trabajo o, si no tiene, las del último anterior) y aviso.</summary>
+/// <param name="Heredadas">Las notas vienen de un ejercicio anterior: el de trabajo aún no tiene cuadre.</param>
+/// <param name="Aviso">Por qué está en ámbar aunque se marcó como cuadrada (el saldo ha cambiado).</param>
+public sealed record VistaCuadre(string Cuenta, EstadoCuadre Estado, string? Notas, bool Heredadas, CuadreCuenta? Registro, decimal Saldo, string? Aviso)
+{
+    public static VistaCuadre Vacia(string cuenta) => new(cuenta, EstadoCuadre.SinMovimientos, null, false, null, 0m, null);
+}
 
 /// <summary>Cambio de un apunte del registro de cambios (RegistroCambiosApuntes), para el historial del apunte.</summary>
 public sealed record CambioApunteMayor(DateTime FechaHora, string Operador, string Motivo, string Operacion, string Campo, string? Antes, string? Despues, string Lote);

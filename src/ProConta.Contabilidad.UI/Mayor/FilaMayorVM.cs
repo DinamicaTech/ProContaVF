@@ -33,6 +33,10 @@ public sealed class FilaMayorVM(FilaMayor f, string cabeceraEjercicio)
     public bool EsApertura => Fila.EsApertura;
     public bool AperturaContinua => Fila.AperturaContinua;
     public bool HayAvisoApertura => Fila.AvisoApertura is not null;
+    public bool Punteado => Fila.Punteado;
+    public string TextoPunteo => Fila.Punteado ? "✓" : Fila.PunteoParcial ? "½" : "";
+    public string AyudaPunteo => Fila.Punteado ? (Fila.NumeroApuntes > 1 ? "Todos sus apuntes están punteados" : "Punteado") + " · F4: quitar el punteo"
+        : Fila.PunteoParcial ? $"Solo algunos de sus {Fila.NumeroApuntes} apuntes están punteados · F4: puntearlos todos" : "Sin puntear · F4: puntear";
 
     public string AyudaFecha => Fila.NumeroApuntes > 1
         ? $"Fecha contable del primer apunte de los {Fila.NumeroApuntes} que resume esta fila"

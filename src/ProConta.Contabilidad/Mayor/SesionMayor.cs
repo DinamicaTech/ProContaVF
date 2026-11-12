@@ -17,6 +17,18 @@ public interface IFuenteMayor
 
     /// <summary>Cambios guardados de un apunte (por su id o, en asientos regenerados, por su orden dentro del asiento).</summary>
     Task<IReadOnlyList<CambioApunteMayor>> HistorialAsync(int idAsiento, int idApunte, int orden, CancellationToken cancelacion = default);
+
+    /// <summary>Cuentas marcadas como cuadradas en esos ejercicios (CuadresCuentas).</summary>
+    Task<IReadOnlyList<CuadreCuenta>> CuadresAsync(IReadOnlyList<EjercicioMayor> ejercicios, CancellationToken cancelacion = default);
+
+    /// <summary>
+    /// Guarda los cuadres indicados (sustituye el de la misma cuenta y ejercicio) en una sola transacción. Son del propio Mayor
+    /// (no cambian apuntes), así que no pasan por el motor de asientos.
+    /// </summary>
+    Task GuardarCuadresAsync(IReadOnlyList<CuadreCuenta> cuadres, CancellationToken cancelacion = default);
+
+    /// <summary>Umbral de «Reiniciar el cuadre» (Configuración general, vacío = 0,05 €).</summary>
+    Task<decimal> UmbralCuadreAsync(CancellationToken cancelacion = default);
 }
 
 /// <summary>Tipo de una etiqueta de filtro de la vista.</summary>
@@ -91,6 +103,7 @@ public sealed class SesionMayor(IFuenteMayor fuente, string idSociedad)
         if (elegidos.Count == 0) elegidos = Ejercicios.Where(e => e.Ejercicio == ejercicioTrabajo).ToList();
         if (elegidos.Count == 0 && Ejercicios.Count > 0) elegidos = [Ejercicios[^1]];
         Elegidos = elegidos;
+        Trabajo = Ejercicios.FirstOrDefault(e => e.Ejercicio == ejercicioTrabajo);
         await CargarCatalogoAsync(c);
     }
 
@@ -108,8 +121,57 @@ public sealed class SesionMayor(IFuenteMayor fuente, string idSociedad)
     private async Task CargarCatalogoAsync(CancellationToken c)
     {
         var (sumas, plan) = await fuente.CuentasAsync(Elegidos, c);
-        Catalogo = SelectorCuentasMayor.Catalogo(sumas, plan, Elegidos);
+        // El cuadre es del ejercicio de trabajo, esté o no en la vista; las notas se heredan de los anteriores.
+        var sumasTrabajo = Trabajo is null ? [] : Elegidos.Contains(Trabajo) ? sumas : (await fuente.CuentasAsync([Trabajo], c)).Sumas;
+        var cuadres = await fuente.CuadresAsync(Ejercicios, c);
+        Cuadre = new ContextoCuadre(Trabajo, Ejercicios, Trabajo is null ? new Dictionary<string, (decimal, int)>() : CuadresMayor.SaldosDe(sumasTrabajo, Trabajo.IdSociedadEjercicio), cuadres);
+        Catalogo = SelectorCuentasMayor.Catalogo(sumas, plan, Elegidos, Cuadre);
     }
+
+    /// <summary>Ejercicio de trabajo: el único que se cuadra.</summary>
+    public EjercicioMayor? Trabajo { get; private set; }
+
+    /// <summary>Cuadres de la sociedad y saldos del ejercicio de trabajo.</summary>
+    public ContextoCuadre Cuadre { get; private set; } = ContextoCuadre.Vacio;
+
+    /// <summary>Vuelve a leer el selector (saldos y cuadres) tras un cambio, sin tocar la vista.</summary>
+    public Task RefrescarCatalogoAsync(CancellationToken c = default) => CargarCatalogoAsync(c);
+
+    /// <summary>
+    /// Cuadre de la vista: el de su cuenta si es una sola subcuenta (se puede editar); si no, el resumen de las subcuentas de la
+    /// vista (solo se ve).
+    /// </summary>
+    public (VistaCuadre? Cuenta, EstadoCuadre Estado, string? Resumen) CuadreDeLaVista()
+    {
+        if (_cuentas.Count == 1 && _busqueda is null && SelectorCuentasMayor.EsExacta(_cuentas[0], Catalogo))
+        {
+            var v = CuadresMayor.Ver(_cuentas[0], Cuadre);
+            return (v, v.Estado, CuadresMayor.Ayuda(v, Trabajo));
+        }
+        var (estado, resumen) = CuadresMayor.Resumen(CuentasDeLaVista().Select(x => CuadresMayor.Ver(x.Codigo, Cuadre)));
+        return (null, estado, resumen);
+    }
+
+    /// <summary>Guarda el cuadre de una subcuenta en el ejercicio de trabajo (casilla y notas).</summary>
+    public async Task GuardarCuadreAsync(string cuenta, bool cuadrada, string? notas, string operador, DateTime ahora, CancellationToken c = default)
+    {
+        await fuente.GuardarCuadresAsync([CuadresMayor.Guardar(cuenta, Cuadre, cuadrada, notas, operador, ahora)], c);
+        await CargarCatalogoAsync(c);
+    }
+
+    /// <summary>Reinicia el cuadre del ejercicio de trabajo con el umbral de la configuración; devuelve los cuadres guardados.</summary>
+    public async Task<(int Cambiados, decimal Umbral)> ReiniciarCuadreAsync(bool desmarcarResto, string operador, DateTime ahora, CancellationToken c = default)
+    {
+        var umbral = await fuente.UmbralCuadreAsync(c);
+        var subcuentas = Catalogo.Where(x => x.EsSubcuenta).Select(x => x.Codigo).Union(Cuadre.SaldosTrabajo.Keys).ToList();
+        var cambios = CuadresMayor.Reiniciar(Cuadre, subcuentas, umbral, desmarcarResto, operador, ahora);
+        if (cambios.Count > 0) await fuente.GuardarCuadresAsync(cambios, c);
+        await CargarCatalogoAsync(c);
+        return (cambios.Count, umbral);
+    }
+
+    /// <summary>Umbral de «Reiniciar el cuadre» de la configuración.</summary>
+    public Task<decimal> UmbralCuadreAsync(CancellationToken c = default) => fuente.UmbralCuadreAsync(c);
 
     /// <summary>Muestra el mayor de unas cuentas (una, varias = mayor combinado, o un código corto). Quita los filtros.</summary>
     public async Task VerCuentasAsync(IReadOnlyList<string> cuentas, CancellationToken c = default)
@@ -166,6 +228,27 @@ public sealed class SesionMayor(IFuenteMayor fuente, string idSociedad)
         Recalcular();
     }
 
+    /// <summary>
+    /// Tras puntear por el motor, cambia la marca en los datos ya leídos y recalcula, sin volver a leer la BD: el punteo no
+    /// cambia importes ni saldos (F4 inmediato).
+    /// </summary>
+    public void AplicarPunteo(IReadOnlyCollection<int> idsApunte, bool punteado)
+    {
+        var ids = idsApunte.ToHashSet();
+        Datos = Datos with { Apuntes = Datos.Apuntes.Select(a => ids.Contains(a.IdApunte) ? a with { Punteado = punteado } : a).ToList() };
+        Recalcular();
+    }
+
+    /// <summary>«Solo no punteados»: oculta las filas punteadas (el saldo pasa a ser parcial).</summary>
+    public bool SoloNoPunteados { get; private set; }
+
+    public void FiltrarNoPunteados(bool solo)
+    {
+        if (solo == SoloNoPunteados) return;
+        SoloNoPunteados = solo;
+        Recalcular();
+    }
+
     public void FiltrarTexto(string? texto)
     {
         _texto = string.IsNullOrWhiteSpace(texto) ? null : texto.Trim();
@@ -207,7 +290,7 @@ public sealed class SesionMayor(IFuenteMayor fuente, string idSociedad)
 
     public void Recalcular() =>
         Resultado = CalculadoraMayor.Calcular(Datos, Elegidos, new OpcionesMayor(Vista, _filtroFacturas.Count > 0 ? _filtroFacturas.ToList() : null, _texto,
-            _quitadas.Count > 0 ? new HashSet<string>(_quitadas, StringComparer.Ordinal) : null));
+            _quitadas.Count > 0 ? new HashSet<string>(_quitadas, StringComparer.Ordinal) : null, SoloNoPunteados));
 
     /// <summary>Subcuentas de la vista (las del catálogo que entran por código exacto o corto), en orden.</summary>
     public IReadOnlyList<CuentaMayor> CuentasDeLaVista()
