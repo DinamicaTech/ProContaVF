@@ -51,3 +51,4 @@ En debate desde 2026-11-11. Respuestas del propietario (Q1–Q7): primera versi�
 - 2026-11-12 09:47 · answer: Q10 líneas comunes → (a) catálogo TiposSubcuentaActivo; al añadir una línea se elige o se escribe y se crea por dentro
 - 2026-11-12 09:47 · answer: Q11 piso particular → activo ajeno a la sociedad, solo informativo: sin subcuentas, centro ni amortización
 - 2026-11-12 09:47 · answer: Q12 retenciones → (a) línea con rol libre; facturación sigue con la cuenta del cliente
+- 2026-11-12 09:54 · Ok a todo. El Rol que tenga un texto algo más descriptivo.
