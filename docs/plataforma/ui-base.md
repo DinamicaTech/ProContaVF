@@ -6,6 +6,7 @@ threads:
   - 2026-10-29 10:15 · Validar prototipos de pantallas principales | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GGPu88XoVeXWyHsuxbrF2kK
   - 2026-11-01 10:46 · Desarrollar la pantalla de Terceros | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GVR2rh2hJF6h9BMYjKSu8jn
   - 2026-11-05 11:24 · Construir facturas de compra | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GEbtcX2Z7baM2yhwHY2wJXj
+  - 2026-11-12 10:45 · Terminar el Mayor reutilizable | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GUQTbt5iUykqVQuUQnN1twN
   - 2026-11-11 19:20 · Terminar el Mayor en local | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GUQTbt5iUykqVQuUQnN1twN
 ---
 ## Summary
@@ -54,6 +55,8 @@ Dirigió la validación de los prototipos HTML de las pantallas principales (con
 - 2026-11-06 19:36 · Botones: el fondo al pasar el ratón y al pulsar lo ponen los disparadores de cada estilo (gris claro en los normales, marino oscuro en el principal), no la plantilla: el enlace de la plantilla a Aspecto.FondoEncima se quedaba vacío y el botón principal se veía blanco sobre blanco con el ratón encima. `DialogoProConta`: el título se arrastra al mover con el botón pulsado (no al pulsar), para que llegue el doble clic que maximiza.
 - 2026-11-06 19:59 · ComboFiltro: si el combo tiene menú contextual propio, también sale al pulsar con el botón derecho sobre su texto (la caja editable enseñaba el suyo de Cortar, Copiar y Pegar).
 
+- 2026-11-12 10:45 · Ancho de las columnas de todas las tablas (`TablaProConta`), completa el criterio global de 2026-10-31 09:58: entre los títulos se ve una línea divisoria y el separador tiene una zona de 10 px para cogerlo. Arrastrarlo cambia solo esa columna, que sigue al ratón, y desplaza las demás (si no caben, barra horizontal); no hay ancho mínimo (8 px, para que no desaparezca: ocultarla es otra opción), y una columna nunca se estrecha sola para caber en la ventana. Doble clic en el separador: la columna a su contenido. «Ajustar todas al contenido» mide el texto de todas las filas (hasta 5.000), no solo las pintadas: primero las columnas de contenido fijo (fechas, códigos, importes, textos cortos) a su contenido; después el espacio que queda se reparte entre las de contenido variable (las proporcionales, como el concepto, y las que piden más de 320 px, como las notas): si sobra, cada una recibe lo que pide más una parte del sobrante; si no cabe, a partes iguales, y la que pide menos que su parte se queda con lo que pide. Ninguna baja del ancho de su título.
+
 ## Requirements
 - 2026-10-28 12:28 · From sources/01_ESPECIFICACION_FUNCIONAL.docx § 6 RF-UI-02, 03, 06: look and feel de las maquetas con estilos compartidos, campos del ancho de su contenido, accesibilidad y mensajes
 - 2026-10-28 12:28 · From sources/traspaso-2026-10-03/referencias/Facturacion/docs/contratos/UI-BASE.md: contrato anterior
@@ -85,6 +88,9 @@ Dirigió la validación de los prototipos HTML de las pantallas principales (con
 - 2026-11-11 19:14 · Ok. No hace falta lanzar pruebas específicas para este cambio, ya lo verificamos más adelante.
 - 2026-11-01 10:46 · Derived from plataforma/contenedor: contrato común de pestaña de trabajo y servicio de mensajes.
 - 2026-11-04 23:55 · Derived from plataforma/atajos-de-teclado: las entradas de menú, menú contextual y botones de cinta muestran el atajo de su operativa leído del catálogo, sin escribirlo a mano, y su tooltip lo incluye («Exportar a contabilidad · Ctrl+E»).
+
+- 2026-11-12 09:32 · Modificar el ancho de las columnas no va del todo fino. Primero cuesta encontrar visualmente la línea divisoria entre columnas (bueno, de hecho, la la puedo ver, he de mover el ratón hasta encontrarla). No me deja hacer más estrecha la columna Documento. A partir de Debe, no me deja modificar el ancho de ninguna columna. Hay un tamaño mínimo de ancho por debajo del cual no me deja dimensionar (no puedo hacer más estrecha la columna Asiento, por ejemplo) (realmente, no debería haber ancho mínimo). Ajustar todas al contenido deja recortadas casi todas las columnas y sobre-dimensionada la columna concepto (lo normal, al ajustar al contenido, es ajustar primero las columnas con contenido de tamaño fijo (incluyendo importes) y luego repartir el exceso entre las que tienen contenido variable, como Concepto y Notas)). Esto afecta a todas las grids, por lo que supongo que habrá que corregirlo de base.
+- 2026-11-12 09:40 · Ok a una PR aparte para las columnas
 
 ## Hand-over
 - 2026-10-29 10:20 · Hecho: acceso al lienzo confirmado, decisión HTML frente a WPF, desglose acordado y requisitos derivados en cada nodo de pantalla. Mayor antiguo exportado y analizado (`sources/proconta-antiguo/mayor/ANALISIS-FUNCIONAL.md`). Pendiente: validar los prototipos en el orden acordado, crear los de importación de compras y Mayor, y después la biblioteca WPF con su pantalla de muestra.
