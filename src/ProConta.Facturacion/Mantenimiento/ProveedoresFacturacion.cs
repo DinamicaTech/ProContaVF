@@ -31,10 +31,10 @@ public static class ProveedoresFacturacion
         "Clasificación de los conceptos facturables (alquiler, suministros, servicios…).", AmbitoMantenimiento.Compartido, "tipo de concepto",
         "TiposConcepto", "IdTipoConcepto", ClaveNueva.Siguiente,
         [
-            new("IdTipoConcepto", "Código", TipoCampo.Entero) { SoloLectura = true, Ancho = "xs" },
-            new("Descripcion", "Descripción") { Obligatorio = true, Longitud = 80, Ancho = "l" },
+            new("IdTipoConcepto", "Código", TipoCampo.Entero) { Ayuda = "Número que identifica el tipo de concepto. Se asigna al crearlo.", SoloLectura = true, Ancho = "xs" },
+            new("Descripcion", "Descripción") { Ayuda = "Nombre del tipo de concepto (por ejemplo «Alquiler»), el que se elige en cada concepto.", Obligatorio = true, Longitud = 80, Ancho = "l" },
             new("Activo", "Activo", TipoCampo.Logico) { Ayuda = "Solo los activos se ofrecen al crear o cambiar conceptos." },
-            new("Notas", "Notas", TipoCampo.TextoLargo) { Ancho = "f" },
+            new("Notas", "Notas", TipoCampo.TextoLargo) { Ayuda = "Comentarios internos sobre el tipo de concepto; no salen en ninguna factura.", Ancho = "f" },
         ],
         [new("IdTipoConcepto", "Código", 70, Derecha: true), new("Descripcion", "Descripción"), new("Activo", "Activo", 60)])
     {
@@ -49,7 +49,7 @@ public static class ProveedoresFacturacion
         "TiposDeIVA", "Id", ClaveNueva.Autonumerica,
         [
             new("Valor", "Porcentaje", TipoCampo.Porcentaje) { Obligatorio = true, Ancho = "xs", Ayuda = "Por ejemplo 21 para el 21 %.", Sinonimos = ["porcentaje", "tipo"] },
-            new("Descripcion", "Descripción") { Obligatorio = true, Longitud = 100, Ancho = "l" },
+            new("Descripcion", "Descripción") { Ayuda = "Nombre del tipo de IVA que se ve en los desplegables (por ejemplo «General»).", Obligatorio = true, Longitud = 100, Ancho = "l" },
             new("Activo", "Activo", TipoCampo.Logico) { Ayuda = "Solo los activos se ofrecen en conceptos y líneas." },
         ],
         [new("Valor", "%", 60, Derecha: true), new("Descripcion", "Descripción"), new("Activo", "Activo", 60)])
@@ -69,9 +69,9 @@ public static class ProveedoresFacturacion
         "Códigos de tipo de factura (F1…F3, R1…R5) y si son rectificativas.", AmbitoMantenimiento.Compartido, "tipo de factura",
         "TiposFactura", "TipoFactura", ClaveNueva.Escrita,
         [
-            new("TipoFactura", "Código", TipoCampo.Codigo) { SoloAlta = true, Ancho = "xs" },
-            new("Descripcion", "Descripción") { Ancho = "f" },
-            new("EsRectificativa", "Rectificativa", TipoCampo.Logico),
+            new("TipoFactura", "Código", TipoCampo.Codigo) { Ayuda = "Código de la AEAT del tipo de factura: F1 a F3 para las ordinarias, R1 a R5 para las rectificativas.", SoloAlta = true, Ancho = "xs" },
+            new("Descripcion", "Descripción") { Ayuda = "Qué significa el código según la AEAT (factura completa, simplificada, rectificativa…).", Ancho = "f" },
+            new("EsRectificativa", "Rectificativa", TipoCampo.Logico) { Ayuda = "Marcado en R1 a R5: el tipo corrige otra factura ya emitida." },
         ],
         [new("TipoFactura", "Código", 64), new("Descripcion", "Descripción"), new("EsRectificativa", "Rectif.", 60)])
     {
@@ -85,11 +85,11 @@ public static class ProveedoresFacturacion
         "Estados del ciclo de una factura: borrador, pendiente de validar, validada, rectificación pendiente y rectificada.", AmbitoMantenimiento.Compartido, "estado",
         "EstadosFactura", "IdEstado", ClaveNueva.Escrita,
         [
-            new("IdEstado", "Código", TipoCampo.Entero) { SoloAlta = true, Ancho = "xs" },
-            new("Nombre", "Nombre") { Ancho = "m" },
-            new("Descripcion", "Descripción") { Ancho = "f" },
-            new("EsModificable", "Se puede modificar", TipoCampo.Logico),
-            new("EsTerminal", "Es final", TipoCampo.Logico),
+            new("IdEstado", "Código", TipoCampo.Entero) { Ayuda = "Número interno del estado de la factura.", SoloAlta = true, Ancho = "xs" },
+            new("Nombre", "Nombre") { Ayuda = "Nombre del estado que se ve en la lista de facturas.", Ancho = "m" },
+            new("Descripcion", "Descripción") { Ayuda = "Qué significa el estado y en qué momento del ciclo de la factura está.", Ancho = "f" },
+            new("EsModificable", "Se puede modificar", TipoCampo.Logico) { Ayuda = "Marcado, una factura en este estado aún se puede editar; sin marcar, ya no se toca (solo se rectifica)." },
+            new("EsTerminal", "Es final", TipoCampo.Logico) { Ayuda = "Marcado, el estado cierra el ciclo de la factura: no pasa a ningún otro." },
         ],
         [new("IdEstado", "Código", 64, Derecha: true), new("Nombre", "Nombre"), new("EsModificable", "Modif.", 60), new("EsTerminal", "Final", 60)])
     {
@@ -115,10 +115,10 @@ public sealed class ProveedorSeries(ServicioSeries servicio) : ProveedorBase
 
     public override IReadOnlyList<CampoMantenimiento> Campos { get; } =
     [
-        new("Descripcion", "Descripción") { Grupo = "id", Obligatorio = true, Longitud = 100, Ancho = "l" },
+        new("Descripcion", "Descripción") { Ayuda = "Nombre de la serie para reconocerla en las listas (por ejemplo «Facturas de alquiler»).", Grupo = "id", Obligatorio = true, Longitud = 100, Ancho = "l" },
         new("Prefijo", "Prefijo", TipoCampo.Codigo) { Grupo = "id", Obligatorio = true, Longitud = 20, Ancho = "s", Ayuda = "Va delante del número: F2026 da F20260001. No se cambia cuando la serie ya tiene facturas." },
-        new("RangoDesde", "Desde el número", TipoCampo.Entero) { Grupo = "num", Obligatorio = true, Minimo = 1, Ancho = "s" },
-        new("RangoHasta", "Hasta el número", TipoCampo.Entero) { Grupo = "num", Obligatorio = true, Minimo = 1, Ancho = "s" },
+        new("RangoDesde", "Desde el número", TipoCampo.Entero) { Ayuda = "Primer número que puede usar la serie. Cada factura validada toma el siguiente al último usado.", Grupo = "num", Obligatorio = true, Minimo = 1, Ancho = "s" },
+        new("RangoHasta", "Hasta el número", TipoCampo.Entero) { Ayuda = "Último número que puede usar la serie. Al llegar a él, no se validan más facturas en ella.", Grupo = "num", Obligatorio = true, Minimo = 1, Ancho = "s" },
         new("UltimoNumero", "Último número emitido", TipoCampo.Entero) { Grupo = "num", SoloLectura = true, Ancho = "s", Ayuda = "Lo actualiza Facturación al numerar. Aquí solo se consulta." },
         new("EsRectificativa", "Serie de facturas rectificativas", TipoCampo.Logico) { Grupo = "uso", Ayuda = "Solo puede haber una por ejercicio." },
         new("EsPredeterminada", "Serie predeterminada del ejercicio", TipoCampo.Logico) { Grupo = "uso", Ayuda = "Se propone en las facturas nuevas. Marcarla quita la marca a la anterior." },
@@ -204,14 +204,14 @@ public sealed class ProveedorConceptos(CatalogoConceptos catalogo) : ProveedorBa
     [
         new("Nombre", "Nombre") { Grupo = "con", Obligatorio = true, Longitud = CatalogoConceptos.LongitudNombre, Ancho = "l", Ayuda = "Encabezado de la línea en la factura." },
         new("Descripcion", "Descripción", TipoCampo.TextoLargo) { Grupo = "con", Ancho = "f", Ayuda = "Texto que aparece debajo del nombre en la factura." },
-        new("IdTipoConcepto", "Tipo de concepto", TipoCampo.Lista) { Grupo = "con", Opciones = _tipos, Ancho = "m" },
+        new("IdTipoConcepto", "Tipo de concepto", TipoCampo.Lista) { Ayuda = "Clasificación del concepto (alquiler, suministros, servicios…). Los tipos se mantienen en «Tipos de concepto».", Grupo = "con", Opciones = _tipos, Ancho = "m" },
         new("Activo", "Activo", TipoCampo.Logico) { Grupo = "con", Ayuda = "Solo los activos se ofrecen al añadir líneas." },
-        new("PrecioUnitario", "Precio unitario", TipoCampo.Importe) { Grupo = "fac", Ancho = "s" },
-        new("TipoIVA", "IVA (%)", TipoCampo.Porcentaje) { Grupo = "fac", Ancho = "xs" },
+        new("PrecioUnitario", "Precio unitario", TipoCampo.Importe) { Ayuda = "Precio sin IVA que se propone al añadir el concepto a una factura; se puede cambiar en cada línea.", Grupo = "fac", Ancho = "s" },
+        new("TipoIVA", "IVA (%)", TipoCampo.Porcentaje) { Ayuda = "Porcentaje de IVA que se propone al añadir el concepto a una factura; se puede cambiar en cada línea.", Grupo = "fac", Ancho = "xs" },
         new("CuentaVenta", "Cuenta de venta", TipoCampo.Cuenta) { Grupo = "con2", Longitud = 30, Ancho = "s", Sinonimos = ["cuenta", "ingreso", "70"],
             Ayuda = "Código en el ejercicio de trabajo. Se guarda su identidad contable, así vale en los demás ejercicios aunque cambie el código." },
-        new("NombreCuentaVenta", "Nombre de la cuenta") { Grupo = "con2", SoloLectura = true, Ancho = "l" },
-        new("Notas", "Notas internas", TipoCampo.TextoLargo) { Grupo = "con", Ancho = "f" },
+        new("NombreCuentaVenta", "Nombre de la cuenta") { Ayuda = "Nombre de la cuenta de venta en el ejercicio de trabajo, para comprobar que es la buena. Se rellena solo.", Grupo = "con2", SoloLectura = true, Ancho = "l" },
+        new("Notas", "Notas internas", TipoCampo.TextoLargo) { Ayuda = "Comentarios internos sobre el concepto; no salen en la factura.", Grupo = "con", Ancho = "f" },
     ];
 
     public override IReadOnlyList<ColumnaLista> Columnas =>

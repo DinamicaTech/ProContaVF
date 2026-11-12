@@ -28,7 +28,7 @@ public sealed class ProveedorActividades : ProveedorTablaAccess
         "Actividades de la empresa a efectos de IVA: si su IVA soportado es deducible y a qué serie de la 472 va. Cada centro de coste puede tener la suya.",
         AmbitoMantenimiento.Sociedad, "actividad", "Actividades", "IdActividad", ClaveNueva.Autonumerica,
         [
-            new("Codigo", "Código", TipoCampo.Codigo) { Obligatorio = true, Longitud = 10, Ancho = "s" },
+            new("Codigo", "Código", TipoCampo.Codigo) { Ayuda = "Código corto de la actividad (por ejemplo ALQTUR), el que se ve en las listas y en los centros de coste.", Obligatorio = true, Longitud = 10, Ancho = "s" },
             new("Nombre", "Nombre") { Obligatorio = true, Longitud = 100, Ancho = "l", Ayuda = "Por ejemplo «Alquileres turísticos»." },
             new("Deducible", "IVA soportado deducible", TipoCampo.Lista) { Obligatorio = true, Ancho = "m", Sinonimos = ["deducible", "prorrata", "exento"],
                 Opciones = [new OpcionCampo((byte)2, "100 % deducible"), new OpcionCampo((byte)1, "Por prorrata"), new OpcionCampo((byte)0, "No deducible")],
@@ -118,11 +118,11 @@ public sealed class ProveedorActividadCentros(IBaseDatos bd) : ProveedorBase
 
     public override IReadOnlyList<CampoMantenimiento> Campos =>
     [
-        new("Ruta", "Centro de coste", TipoCampo.Codigo) { SoloLectura = true, Ancho = "m" },
-        new("Nombre", "Nombre") { SoloLectura = true, Ancho = "l" },
+        new("Ruta", "Centro de coste", TipoCampo.Codigo) { Ayuda = "Código completo del centro de coste, con los de los que cuelga. Los centros se crean en Contabilidad.", SoloLectura = true, Ancho = "m" },
+        new("Nombre", "Nombre") { Ayuda = "Nombre del centro de coste. Se cambia en Contabilidad.", SoloLectura = true, Ancho = "l" },
         new("IdActividad", "Actividad", TipoCampo.Lista) { Opciones = _actividades, Ancho = "l",
             Ayuda = "Vacía: la del centro del que cuelga (o, si ninguno la tiene, las cuentas de IVA generales del ejercicio)." },
-        new("Aplica", "Actividad que se aplica") { SoloLectura = true, Ancho = "l" },
+        new("Aplica", "Actividad que se aplica") { Ayuda = "La actividad que se usa de verdad: la propia o, si no tiene, la heredada del centro del que cuelga. Se calcula sola.", SoloLectura = true, Ancho = "l" },
     ];
 
     public override IReadOnlyList<ColumnaLista> Columnas => [new("Ruta", "Centro", 110), new("Nombre", "Nombre"), new("Aplica", "Actividad que se aplica")];
@@ -198,7 +198,7 @@ public sealed class ProveedorTextosClaveCompra(CatalogoTextosClaveCompra catalog
             Ayuda = "Se busca sin distinguir mayúsculas ni acentos. Si coinciden varios textos, gana el más largo; si empatan, no se asigna nada y la factura avisa." },
         new("Cuenta", "Cuenta de gasto", TipoCampo.Cuenta) { Longitud = 30, Ancho = "s", Sinonimos = ["cuenta", "gasto", "6"],
             Ayuda = "Subcuenta del ejercicio de trabajo. Se guarda su identidad contable, así vale en los demás ejercicios aunque cambie el código. Vacía, el texto no asigna cuenta." },
-        new("NombreCuenta", "Nombre de la cuenta") { SoloLectura = true, Ancho = "l" },
+        new("NombreCuenta", "Nombre de la cuenta") { Ayuda = "Nombre de la cuenta de gasto en el ejercicio de trabajo, para comprobar que es la buena. Se rellena solo.", SoloLectura = true, Ancho = "l" },
         new("IdCentroCoste", "Centro de coste", TipoCampo.Lista) { Opciones = _centros, Ancho = "l", Ayuda = "Vacío, el texto no asigna centro de coste." },
     ];
 
@@ -260,8 +260,8 @@ public sealed class ProveedorReconocimientoCompra(IBaseDatos bd, Func<Credencial
 
     public override IReadOnlyList<CampoMantenimiento> Campos =>
     [
-        new("Activo", "Reconocer los PDF de compra", TipoCampo.Logico) { Grupo = "rec" },
-        new("SociedadTieneVies", "La empresa está en el VIES", TipoCampo.Logico) { Grupo = "rec", Sinonimos = ["vies", "intracomunitario"] },
+        new("Activo", "Reconocer los PDF de compra", TipoCampo.Logico) { Ayuda = "Marcado, los PDF de compra se leen solos y se proponen como facturas recibidas; sin marcar, se rellenan a mano.", Grupo = "rec" },
+        new("SociedadTieneVies", "La empresa está en el VIES", TipoCampo.Logico) { Ayuda = "Marcado, la empresa está dada de alta en el censo VIES y sus compras a otros países de la UE se tratan como intracomunitarias.", Grupo = "rec", Sinonimos = ["vies", "intracomunitario"] },
         new("UmbralAceptacion", "Confianza mínima para aceptar", TipoCampo.Decimal) { Grupo = "rec", Obligatorio = true, Minimo = 0m, Maximo = 1m, Ancho = "s",
             Ayuda = "Entre 0 y 1. Por debajo, la factura queda para revisar." },
         new("UmbralDiscrepanciaImporte", "Descuadre de importes admitido", TipoCampo.Importe) { Grupo = "rec", Obligatorio = true, Minimo = 0m, Ancho = "s",
@@ -274,7 +274,7 @@ public sealed class ProveedorReconocimientoCompra(IBaseDatos bd, Func<Credencial
             Ayuda = "De un usuario de AWS que solo pueda usar Textract (DetectDocumentText). Vacía, cada equipo usa su perfil de AWS «proconta-textract»." },
         new("SecretoAWS", "Clave secreta (Secret access key)", TipoCampo.Secreto) { Grupo = "ocr", Longitud = 128, Ancho = "l", Sinonimos = ["secret", "secreto"],
             Ayuda = "Se guarda cifrada y no se vuelve a mostrar. Déjala vacía para conservar la guardada." },
-        new("EstadoSecreto", "Clave secreta guardada") { Grupo = "ocr", SoloLectura = true, Ancho = "s" },
+        new("EstadoSecreto", "Clave secreta guardada") { Ayuda = "Dice si hay una clave secreta de AWS guardada, sin mostrarla. Se cambia en «Clave secreta».", Grupo = "ocr", SoloLectura = true, Ancho = "s" },
     ];
 
     public override IReadOnlyList<ColumnaLista> Columnas => [new("ClaveAccesoAWS", "Clave de acceso")];
@@ -391,7 +391,7 @@ public sealed class ProveedorCertificadoEmpresa(IBaseDatos bd, Func<IReadOnlyLis
     [
         new("Huella", "Certificado", TipoCampo.Lista) { Opciones = _opciones, Ancho = "f",
             Ayuda = "Certificados instalados en Windows (del equipo o de tu usuario) con clave privada y sin caducar. Si no sale, instálalo en este equipo (doble clic en el .pfx) y vuelve a abrir esta pantalla." },
-        new("HuellaGuardada", "Huella guardada", TipoCampo.Codigo) { SoloLectura = true, Ancho = "l" },
+        new("HuellaGuardada", "Huella guardada", TipoCampo.Codigo) { Ayuda = "Huella del certificado que se usa ahora, para comprobar cuál es. Cambia al elegir otro en «Certificado».", SoloLectura = true, Ancho = "l" },
     ];
 
     public override IReadOnlyList<ColumnaLista> Columnas => [new("HuellaGuardada", "Huella")];

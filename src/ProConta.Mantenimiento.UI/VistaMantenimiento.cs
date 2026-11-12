@@ -324,7 +324,10 @@ public sealed class VistaMantenimiento : UserControl
         foreach (var g in _vm.Grupos)
         {
             var campos = new WrapPanel { Margin = new Thickness(0, 6, 0, 6) };
-            foreach (var c in g.Campos) campos.Children.Add(Campo(c));
+            var etiquetas = new List<TextBlock>();
+            foreach (var c in g.Campos) campos.Children.Add(Campo(c, etiquetas));
+            // Tras cada colocación (con la letra del tema ya aplicada y al cambiar el ancho, que reparte los campos en otras filas).
+            campos.SizeChanged += (_, e) => { if (e.WidthChanged) IgualarAlturaEtiquetas(campos, etiquetas); };
             if (varios)
                 _editor.Children.Add(new Expander { Header = new TextBlock { Text = g.Titulo, Style = (Style)FindResource("Texto.Seccion") }, IsExpanded = true, Content = campos, Margin = new Thickness(0, 6, 0, 0) });
             else
@@ -333,17 +336,45 @@ public sealed class VistaMantenimiento : UserControl
         if (_vm.CampoEnfocado is string enfocar && _controles.TryGetValue(enfocar, out var ctl)) Dispatcher.BeginInvoke(DispatcherPriority.Input, () => ctl.Focus());
     }
 
-    private FrameworkElement Campo(CampoEdicionVM c)
+    /// <summary>
+    /// Las etiquetas largas pasan a dos líneas en vez de cortarse (plataforma/mantenimiento 2026-11-12). Todas las del grupo
+    /// de una misma fila se bajan hasta la altura de la más alta, así sus editores quedan alineados.
+    /// </summary>
+    private static void IgualarAlturaEtiquetas(WrapPanel panel, List<TextBlock> etiquetas)
+    {
+        var medidas = new List<(TextBlock Etiqueta, double Fila, double Alto)>();
+        foreach (var e in etiquetas)
+        {
+            if (e.Parent is not FrameworkElement bloque) continue;
+            e.MaxHeight = Math.Ceiling(e.FontFamily.LineSpacing * e.FontSize * 2) + 1;
+            e.Padding = new Thickness(0);
+            e.Measure(new Size(e.MaxWidth, double.PositiveInfinity));
+            medidas.Add((e, Math.Round(bloque.TranslatePoint(new Point(0, 0), panel).Y), e.DesiredSize.Height));
+        }
+        foreach (var fila in medidas.GroupBy(m => m.Fila))
+        {
+            var alto = fila.Max(m => m.Alto);
+            foreach (var m in fila) m.Etiqueta.Padding = new Thickness(0, alto - m.Alto, 0, 0);
+        }
+    }
+
+    private FrameworkElement Campo(CampoEdicionVM c, List<TextBlock> etiquetas)
     {
         var ancho = Anchos.TryGetValue(c.Definicion.Ancho, out var a) ? a : Anchos["m"];
         var bloque = new StackPanel { Width = ancho, Margin = new Thickness(0, 0, 16, 10), DataContext = c };
-        var etiqueta = new TextBlock { Text = c.Etiqueta + (c.Pendiente ? " · por confirmar" : ""), Foreground = (Brush)FindResource("Pincel.Texto2"), Margin = new Thickness(0, 0, 0, 3), TextTrimming = TextTrimming.CharacterEllipsis };
-        etiqueta.SetBinding(ToolTipProperty, nameof(CampoEdicionVM.Ayuda));
+        // Hasta dos líneas: más allá se corta, y la ayuda (al pasar el ratón) la muestra entera.
+        var etiqueta = new TextBlock
+        {
+            Text = c.Etiqueta + (c.Pendiente ? " · por confirmar" : ""), Foreground = (Brush)FindResource("Pincel.Texto2"), Margin = new Thickness(0, 0, 0, 3),
+            TextWrapping = TextWrapping.Wrap, TextTrimming = TextTrimming.CharacterEllipsis, MaxWidth = ancho, VerticalAlignment = VerticalAlignment.Bottom,
+        };
+        etiqueta.SetBinding(ToolTipProperty, nameof(CampoEdicionVM.AyudaEtiqueta));
+        etiquetas.Add(etiqueta);
         Control control;
         switch (c.Tipo)
         {
             case TipoCampo.Logico:
-                var cb = new CheckBox { Content = c.Definicion.Etiqueta, IsEnabled = !c.SoloLectura };
+                var cb = new CheckBox { Content = new TextBlock { Text = c.Definicion.Etiqueta, TextWrapping = TextWrapping.Wrap }, IsEnabled = !c.SoloLectura };
                 cb.SetBinding(System.Windows.Controls.Primitives.ToggleButton.IsCheckedProperty, new Binding(nameof(CampoEdicionVM.Marcado)) { Mode = BindingMode.TwoWay, ValidatesOnNotifyDataErrors = true });
                 etiqueta.Text = " ";
                 control = cb;
