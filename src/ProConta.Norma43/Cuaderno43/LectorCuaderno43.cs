@@ -23,13 +23,18 @@ public sealed record MovimientoN43(
     int Ordinal, int Linea, string? OficinaOrigen, DateTime FechaOperacion, DateTime FechaValor, string? ConceptoComun, string? ConceptoPropio,
     string Sentido, decimal Importe, string? Documento, string? Referencia1, string? Referencia2, string Texto, IReadOnlyList<ComplementoN43> Complementos)
 {
-    /// <summary>Los conceptos de los registros 23 unidos por espacios (nulo si no hay ninguno).</summary>
+    /// <summary>
+    /// El texto de los registros 23 seguido, tal como lo escribe el banco (nulo si no hay ninguno): las 76 posiciones de cada
+    /// registro se concatenan sin separador, porque las palabras siguen de una mitad a otra y de un registro al siguiente
+    /// («MA» + «NDATO»), y después los espacios repetidos de relleno se dejan en uno.
+    /// </summary>
     public string? ConceptoCompleto
     {
         get
         {
-            var partes = Complementos.Where(c => c.Tipo == "23").SelectMany(c => new[] { c.Concepto1, c.Concepto2 }).Where(t => !string.IsNullOrWhiteSpace(t)).ToList();
-            return partes.Count == 0 ? null : string.Join(" ", partes);
+            var texto = string.Concat(Complementos.Where(c => c.Tipo == "23").Select(c => c.Texto.Length >= 80 ? c.Texto.Substring(4, 76) : c.Texto[4..]));
+            var limpio = System.Text.RegularExpressions.Regex.Replace(texto, " {2,}", " ").Trim();
+            return limpio.Length == 0 ? null : limpio;
         }
     }
 

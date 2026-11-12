@@ -128,4 +128,19 @@ public sealed class LectorCuaderno43Tests
         Assert.Equal(ServicioImportacionN43.ClaveMovimiento(D1, "D", 1m, "02", "099", "0000000123", " AB", null),
             ServicioImportacionN43.ClaveMovimiento(D1, "D", 1.00m, "2", "99", "123", "AB", ""));
     }
+
+    [Fact]
+    public void El_concepto_sigue_de_una_mitad_a_otra_y_de_un_registro_al_siguiente_sin_cortar_palabras()
+    {
+        // Las 76 posiciones de cada registro 23 van seguidas: «MA» + «NDATO», y el relleno de espacios queda en uno.
+        var t1 = "RECIBO DE LA EMPRESA FICTICIA SA NUM 1 REF MA".PadLeft(76);
+        var t2 = "NDATO 0001 FIN".PadRight(76);
+        var registros = new FicheroSintetico().Cuenta("0049", "1500", "0012345678", D1, D2, 0m, "X", new Mov(D1, 1m, true, "A")).Registros().ToList();
+        registros[2] = "2301" + t1;
+        registros.Insert(3, "2302" + t2);
+        registros[^1] = registros[^1][..20] + "000006" + registros[^1][26..];
+        var f = LectorCuaderno43.Leer(Encoding.ASCII.GetBytes(string.Join("\r\n", registros)));
+        Assert.True(f.EsValido, string.Join(" ", f.Incidencias.Select(i => i.Texto)));
+        Assert.Equal("RECIBO DE LA EMPRESA FICTICIA SA NUM 1 REF MANDATO 0001 FIN", f.Extractos[0].Movimientos[0].ConceptoCompleto);
+    }
 }
