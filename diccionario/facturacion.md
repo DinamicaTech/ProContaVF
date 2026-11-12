@@ -35,6 +35,7 @@
 - PK_Conceptos (clave primaria): IdConcepto
 
 Relaciones:
+- FK_Conceptos_F_DEP: (IdDepartamento) → F_DEP (CODDEP); borrado NO ACTION, actualización NO ACTION
 - FK_Conceptos_TiposConcepto: (IdTipoConcepto) → TiposConcepto (IdTipoConcepto); borrado NO ACTION, actualización NO ACTION
 - FK_SociedadesEjercicios_Conceptos: (IdSociedadEjercicio) → SociedadesEjercicios (IdSociedadEjercicio); borrado NO ACTION, actualización NO ACTION
 
@@ -79,6 +80,7 @@ Relaciones:
 Relaciones:
 - FK_Contratos_Clientes: (IdCliente) → Clientes (IdCliente); borrado NO ACTION, actualización NO ACTION
 - FK_FormasPago_Contratos: (FormaDePago) → FormasPago (Id); borrado NO ACTION, actualización NO ACTION
+- FK_Inmuebles_Contratos: (IdInmueble) → Inmuebles (Id); borrado NO ACTION, actualización NO ACTION
 - FK_Sociedades_Contratos: (IdSociedad) → Sociedades (IdSociedad); borrado NO ACTION, actualización NO ACTION
 
 ## DesglosesIVARepercutido
