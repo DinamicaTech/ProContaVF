@@ -30,6 +30,7 @@ public static class DuenosTablas
         Asignar("contabilidad", "contabilidad/asientos", "Asientos", "Apuntes", "RelacionesAsientos", "RevisionesAsientos", "RegistroCambiosApuntes");
         Asignar("contabilidad", "contabilidad/procesos", "ConfiguracionesContables", "ConfiguracionesContablesCuentaBancaria", "PeriodosIVA", "IVARepercutido", "IVASoportado", "DesglosesIVASoportado", "Actividades");
         Asignar("contabilidad", "contabilidad/modelos-tributarios", "PresentacionesTributarias");
+        Asignar("contabilidad", "contabilidad/mayor", "CuadresCuentas");
         Asignar("contabilidad", "contabilidad/balances", "ModelosBalance", "NodosBalance", "ReglasCuentasBalance", "RelacionesCalculoBalance");
         Asignar("facturacion", "facturacion/factura-venta", "Facturas", "LineasFactura", "DesglosesIVARepercutido", "SeriesFacturacion",
             "TiposFactura", "EstadosFactura", "TiposOperacion", "TiposDeIVA", "LotesExportacionContable");

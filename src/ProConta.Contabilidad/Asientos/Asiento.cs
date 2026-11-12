@@ -56,6 +56,11 @@ public sealed class Apunte
     public TipoApunte Tipo { get; internal set; } = TipoApunte.Ordinario;
     public bool GeneradoAutomaticamente { get; set; }
     public string? MotivoGeneracion { get; set; }
+    /// <summary>
+    /// Punteado en el Mayor (contabilidad/mayor 2026-11-11 20:05). Solo lo cambia <see cref="IMotorAsientos.PuntearApuntesAsync"/>;
+    /// al guardar o regenerar el asiento se conserva en el apunte que sigue en el mismo orden con la misma cuenta e importe.
+    /// </summary>
+    public bool Punteado { get; set; }
 
     public static Apunte AlDebe(string cuenta, decimal importe, string? descripcion = null) =>
         new() { CodigoCuenta = cuenta, Debe = Importe.Redondear(importe), Descripcion = descripcion };

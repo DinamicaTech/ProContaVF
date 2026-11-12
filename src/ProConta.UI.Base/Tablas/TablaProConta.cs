@@ -96,6 +96,7 @@ public class TablaProConta : DataGrid
     public event EventHandler? OrdenFilasCambiado;
 
     private readonly Dictionary<DataGridColumn, DataGridLength> _anchosFabrica = new();
+    private readonly Dictionary<DataGridColumn, double> _minimosFabrica = new();
     private List<DataGridColumn> _ordenFabrica = new();
     private ConfiguracionColumnas? _cfg;
     private bool _aplicando;
@@ -116,29 +117,52 @@ public class TablaProConta : DataGrid
         _guardarAnchos = new DispatcherTimer(TimeSpan.FromMilliseconds(400), DispatcherPriority.Background, (_, _) => { _guardarAnchos!.Stop(); GuardarAnchos(); }, Dispatcher);
         _guardarAnchos.Stop();
         Loaded += (_, _) => Iniciar();
-        // Mientras el operador arrastra un separador de cabecera se liberan los mínimos; al soltar se vuelven a fijar.
-        AddHandler(Thumb.DragStartedEvent, new DragStartedEventHandler((_, e) => { if (EsSeparadorCabecera(e.OriginalSource)) LiberarMinimos(); }));
-        AddHandler(Thumb.DragCompletedEvent, new DragCompletedEventHandler((_, e) => { if (EsSeparadorCabecera(e.OriginalSource)) FijarMinimos(); }));
+        // Separadores de la cabecera propios (plataforma/ui-base 2026-11-12): arrastrar cambia solo esa columna y desplaza las
+        // demás (si no caben, barra horizontal), sin anchos mínimos; doble clic ajusta la columna a su contenido.
+        AddHandler(Thumb.DragStartedEvent, new DragStartedEventHandler(EmpezarArrastre));
+        AddHandler(Thumb.DragDeltaEvent, new DragDeltaEventHandler(ArrastrarSeparador));
+        AddHandler(Thumb.DragCompletedEvent, new DragCompletedEventHandler((_, e) => { if (ColumnaDelSeparador(e.OriginalSource) is not null) _arrastre = null; }));
+        AddHandler(Control.MouseDoubleClickEvent, new MouseButtonEventHandler(DobleClicSeparador));
     }
 
-    private const double MinimoArrastre = 24;
+    /// <summary>Ancho más pequeño al que se puede llevar una columna (para que no desaparezca: ocultarla es otra opción).</summary>
+    public const double AnchoMinimo = 8;
 
-    private static bool EsSeparadorCabecera(object o) => o is Thumb { TemplatedParent: DataGridColumnHeader };
-
-    /// <summary>
-    /// Criterio global: una columna de ancho fijo nunca se estrecha sola para caber en la ventana (recortaría
-    /// fechas e importes). Si no caben todas, aparece la barra horizontal. Su ancho mínimo es su ancho actual.
-    /// </summary>
-    private void FijarMinimos()
+    /// <summary>La columna cuyo borde derecho es el separador (el izquierdo de una cabecera es el derecho de la anterior visible).</summary>
+    private DataGridColumn? ColumnaDelSeparador(object origen)
     {
-        foreach (var c in Columns)
-            if (c.Width.IsAbsolute) c.MinWidth = c.Width.Value;
+        if (origen is not Thumb { TemplatedParent: DataGridColumnHeader { Column: { } col } } pinza) return null;
+        if (pinza.Name == "PinzaDerecha") return col;
+        if (pinza.Name != "PinzaIzquierda") return null;
+        return Columns.Where(c => c.Visibility == Visibility.Visible && c.DisplayIndex < col.DisplayIndex).OrderByDescending(c => c.DisplayIndex).FirstOrDefault();
     }
 
-    private void LiberarMinimos()
+    private (DataGridColumn Columna, double Ancho, double X)? _arrastre;
+
+    private void EmpezarArrastre(object sender, DragStartedEventArgs e)
     {
-        foreach (var c in Columns)
-            if (c.Width.IsAbsolute || c.Width.IsAuto || c.Width.IsSizeToCells || c.Width.IsSizeToHeader) c.MinWidth = Math.Min(c.MinWidth, MinimoArrastre);
+        if (ColumnaDelSeparador(e.OriginalSource) is not { } col) return;
+        e.Handled = true;
+        _arrastre = (col, col.ActualWidth, Mouse.GetPosition(this).X);
+    }
+
+    /// <summary>El ancho sigue al ratón desde donde empezó el arrastre (no a la suma de cambios, que se adelanta al dibujo).</summary>
+    private void ArrastrarSeparador(object sender, DragDeltaEventArgs e)
+    {
+        if (ColumnaDelSeparador(e.OriginalSource) is null || _arrastre is not { } a) return;
+        e.Handled = true;
+        var nuevo = Math.Max(AnchoMinimo, a.Ancho + Mouse.GetPosition(this).X - a.X);
+        a.Columna.MinWidth = Math.Min(a.Columna.MinWidth, nuevo);
+        a.Columna.Width = new DataGridLength(nuevo);
+    }
+
+    private void DobleClicSeparador(object sender, MouseButtonEventArgs e)
+    {
+        if (ColumnaDelSeparador(e.OriginalSource) is not { } col) return;
+        e.Handled = true;
+        var ancho = MedirColumna(col);
+        col.MinWidth = Math.Min(col.MinWidth, ancho);
+        col.Width = new DataGridLength(ancho);
     }
 
     private IPreferenciasOperador Prefs => Preferencias ?? PreferenciasOperador.Actual;
@@ -161,6 +185,7 @@ public class TablaProConta : DataGrid
         foreach (var c in Columns)
         {
             _anchosFabrica[c] = c.Width;
+            _minimosFabrica[c] = c.MinWidth;
             DependencyPropertyDescriptor.FromProperty(DataGridColumn.WidthProperty, typeof(DataGridColumn))
                 .AddValueChanged(c, (_, _) => { if (!_aplicando) { _guardarAnchos.Stop(); _guardarAnchos.Start(); } });
         }
@@ -177,15 +202,15 @@ public class TablaProConta : DataGrid
         {
             var res = DisposicionColumnas.Resolver(Definiciones(), _cfg);
             var porClave = _ordenFabrica.ToDictionary(ClaveDe, StringComparer.Ordinal);
-            LiberarMinimos();
             foreach (var r in res)
             {
                 var col = porClave[r.Definicion.Clave];
                 col.DisplayIndex = r.Posicion;
                 col.Visibility = r.Visible ? Visibility.Visible : Visibility.Collapsed;
                 col.Width = r.Ancho is { } w ? new DataGridLength(w) : _anchosFabrica[col];
+                // Sin mínimos impuestos: el de fábrica de la columna, salvo que el operador la haya dejado más estrecha.
+                col.MinWidth = Math.Min(_minimosFabrica.GetValueOrDefault(col, col.MinWidth), col.Width.IsAbsolute ? col.Width.Value : double.MaxValue);
             }
-            FijarMinimos();
         }
         finally { _aplicando = false; }
     }
@@ -295,18 +320,157 @@ public class TablaProConta : DataGrid
         Aviso?.Invoke(this, "Columnas restablecidas: orden, visibles y anchos de fábrica.");
     }
 
-    /// <summary>Ajusta el ancho de todas las columnas visibles de ancho fijo a su contenido y lo guarda.</summary>
+    /// <summary>
+    /// «Ajustar todas al contenido» (plataforma/ui-base 2026-11-12): primero las columnas de contenido fijo (fechas, códigos,
+    /// importes, textos cortos) a su contenido, midiendo todas las filas y no solo las pintadas; después el espacio que sobra
+    /// se reparte entre las de contenido variable (las de ancho proporcional, como el concepto, y las de textos largos, como
+    /// las notas), en proporción a lo que piden. Si no caben, las variables se quedan en el ancho de su título y sale la barra.
+    /// </summary>
     public void AjustarTodasAlContenido()
     {
-        var fijas = Columns.Where(c => c.Visibility == Visibility.Visible && !c.Width.IsStar).ToList();
-        foreach (var c in fijas) c.MinWidth = MinimoArrastre;
-        foreach (var c in fijas) c.Width = new DataGridLength(1, DataGridLengthUnitType.SizeToCells);
-        Dispatcher.BeginInvoke(DispatcherPriority.Loaded, new Action(() =>
+        var visibles = Columns.Where(c => c.Visibility == Visibility.Visible).ToList();
+        if (visibles.Count == 0) return;
+        var pedido = visibles.ToDictionary(c => c, MedirColumna);
+        bool Proporcional(DataGridColumn c) => c.Width.IsStar || _anchosFabrica.GetValueOrDefault(c).IsStar;
+        var variables = visibles.Where(c => Proporcional(c) || pedido[c] > AnchoTextoLargo).ToList();
+        var fijas = visibles.Except(variables).ToList();
+        foreach (var c in fijas)
         {
-            foreach (var c in fijas) c.Width = new DataGridLength(Math.Clamp(c.ActualWidth, 48, 640));
-            FijarMinimos();
-            GuardarAnchos();
-        }));
+            c.MinWidth = Math.Min(c.MinWidth, pedido[c]);
+            c.Width = new DataGridLength(pedido[c]);
+        }
+        var filas = HeadersVisibility.HasFlag(DataGridHeadersVisibility.Row) ? RowHeaderActualWidth : 0;
+        var disponible = Math.Max(0, (ActualWidth > 0 ? ActualWidth : 1200) - 24 - filas - fijas.Sum(c => pedido[c]));
+        var anchos = RepartirVariables(variables.Select(c => (pedido[c], MedirTitulo(c))).ToList(), disponible);
+        for (var i = 0; i < variables.Count; i++)
+        {
+            var c = variables[i];
+            var ancho = anchos[i];
+            c.MinWidth = Math.Min(c.MinWidth, ancho);
+            // Las proporcionales siguen siéndolo, con ese peso, para seguir llenando la ventana al cambiar su tamaño.
+            c.Width = Proporcional(c) ? new DataGridLength(ancho, DataGridLengthUnitType.Star) : new DataGridLength(ancho);
+        }
+        GuardarAnchos();
+        Aviso?.Invoke(this, "Columnas ajustadas al contenido. «Restablecer columnas» vuelve a los anchos de fábrica.");
+    }
+
+    /// <summary>
+    /// Reparto del espacio que dejan las columnas fijas entre las variables. Si sobra, cada una recibe lo que pide más una parte
+    /// del sobrante en proporción a lo que pide. Si no cabe, a partes iguales: la que pide menos que su parte se queda con lo
+    /// que pide y lo que deja se reparte entre las demás (así un concepto corto no se queda recortado porque unas notas sean muy
+    /// largas); nunca menos que el título.
+    /// </summary>
+    public static IReadOnlyList<double> RepartirVariables(IReadOnlyList<(double Pedido, double Titulo)> variables, double disponible)
+    {
+        var total = variables.Sum(v => v.Pedido);
+        if (total <= disponible)
+            return variables.Select(v => Math.Floor(total <= 0 ? v.Titulo : v.Pedido + (disponible - total) * v.Pedido / total)).ToList();
+        var anchos = new double[variables.Count];
+        var resto = Math.Max(0, disponible);
+        var orden = Enumerable.Range(0, variables.Count).OrderBy(i => variables[i].Pedido).ToList();
+        for (var k = 0; k < orden.Count; k++)
+        {
+            var i = orden[k];
+            var parte = resto / (orden.Count - k);
+            var ancho = Math.Max(variables[i].Titulo, Math.Min(variables[i].Pedido, parte));
+            anchos[i] = Math.Floor(ancho);
+            resto = Math.Max(0, resto - ancho);
+        }
+        return anchos;
+    }
+
+    /// <summary>A partir de este ancho de contenido una columna se trata como de texto variable al ajustar.</summary>
+    private const double AnchoTextoLargo = 320;
+
+    /// <summary>Filas que se miden como mucho al ajustar (con más, las primeras).</summary>
+    private const int FilasMedidas = 5000;
+
+    /// <summary>Ancho que pide una columna: el mayor entre su título y el texto de sus celdas en todas las filas (hasta <see cref="FilasMedidas"/>).</summary>
+    public double MedirColumna(DataGridColumn c)
+    {
+        var texto = TextoDe(c);
+        var (familia, tamano, peso) = LetraDe(c);
+        var tipo = new Typeface(familia, FontStyles.Normal, peso, FontStretches.Normal);
+        var ppp = VisualTreeHelper.GetDpi(this).PixelsPerDip;
+        var medidos = new Dictionary<string, double>(StringComparer.Ordinal);
+        double maximo = 0;
+        foreach (var fila in Items.Cast<object>().Where(o => o != CollectionView.NewItemPlaceholder).Take(FilasMedidas))
+        {
+            string? s;
+            try { s = texto(fila); } catch (Exception) { s = null; }
+            if (string.IsNullOrEmpty(s)) continue;
+            if (!medidos.TryGetValue(s, out var w))
+                medidos[s] = w = new FormattedText(s, Formato.Formatos.Cultura, FlowDirection.LeftToRight, tipo, tamano, Brushes.Black, ppp).WidthIncludingTrailingWhitespace;
+            if (w > maximo) maximo = w;
+        }
+        return Math.Ceiling(Math.Max(MedirTitulo(c), maximo + 24));
+    }
+
+    /// <summary>Ancho del título de la columna con su relleno y el sitio de la flecha de orden.</summary>
+    private double MedirTitulo(DataGridColumn c)
+    {
+        var tamano = TryFindResource("Letra.Secundaria") is double d ? d : FontSize;
+        var ft = new FormattedText(TituloDe(c), Formato.Formatos.Cultura, FlowDirection.LeftToRight,
+            new Typeface(FontFamily, FontStyles.Normal, FontWeights.SemiBold, FontStretches.Normal), tamano, Brushes.Black, VisualTreeHelper.GetDpi(this).PixelsPerDip);
+        return Math.Ceiling(ft.WidthIncludingTrailingWhitespace + 34);
+    }
+
+    /// <summary>Letra de las celdas de la columna: la de su estilo de celda (o los estilos en que se basa), o la de la tabla.</summary>
+    private (FontFamily Familia, double Tamano, FontWeight Peso) LetraDe(DataGridColumn c)
+    {
+        FontFamily? familia = null;
+        double? tamano = null;
+        FontWeight? peso = null;
+        for (var estilo = (c as DataGridBoundColumn)?.ElementStyle; estilo is not null; estilo = estilo.BasedOn)
+            foreach (var s in estilo.Setters.OfType<Setter>())
+            {
+                if (s.Property == TextBlock.FontFamilyProperty && s.Value is FontFamily f) familia ??= f;
+                else if (s.Property == TextBlock.FontSizeProperty && s.Value is double t) tamano ??= t;
+                else if (s.Property == TextBlock.FontWeightProperty && s.Value is FontWeight w) peso ??= w;
+            }
+        return (familia ?? FontFamily, tamano ?? FontSize, peso ?? FontWeights.Normal);
+    }
+
+    /// <summary>Texto que pinta la celda de una fila: el valor de su Binding con su conversor, o el valor exportable con el formato de ProConta.</summary>
+    private static Func<object, string?> TextoDe(DataGridColumn c)
+    {
+        if (c is DataGridBoundColumn { Binding: Binding b } && !string.IsNullOrEmpty(b.Path?.Path))
+        {
+            var leer = Lector(b.Path.Path);
+            return fila =>
+            {
+                var v = leer(fila);
+                if (b.Converter is { } conv) v = conv.Convert(v!, typeof(string), b.ConverterParameter, Formato.Formatos.Cultura);
+                else if (!string.IsNullOrEmpty(b.StringFormat)) v = string.Format(Formato.Formatos.Cultura, b.StringFormat.Contains('{') ? b.StringFormat : "{0:" + b.StringFormat + "}", v);
+                return Formatear(v);
+            };
+        }
+        var lector = LectorDe(c);
+        return fila => Formatear(lector(fila));
+    }
+
+    private static string? Formatear(object? v) => v switch
+    {
+        null => null,
+        decimal d => Formato.Formatos.Importe(d),
+        DateTime f => Formato.Formatos.Fecha(f),
+        DateOnly f => Formato.Formatos.Fecha(f),
+        _ => v.ToString(),
+    };
+
+    private static Func<object, object?> Lector(string ruta)
+    {
+        var partes = ruta.Split('.');
+        return fila =>
+        {
+            object? v = fila;
+            foreach (var p in partes)
+            {
+                if (v is null) return null;
+                v = v.GetType().GetProperty(p, BindingFlags.Public | BindingFlags.Instance)?.GetValue(v);
+            }
+            return v;
+        };
     }
 
     // ---------- menú contextual de la cabecera ----------

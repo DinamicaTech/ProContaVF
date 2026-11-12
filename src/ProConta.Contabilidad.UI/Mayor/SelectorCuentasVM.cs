@@ -14,6 +14,9 @@ public sealed class CuentaSelectorVM(CuentaMayor c)
     public decimal Saldo => Cuenta.Saldo;
     public int Apuntes => Cuenta.Apuntes;
     public string Tipo => Cuenta.EsSubcuenta ? "" : "Grupo";
+    /// <summary>Cuadre del ejercicio de trabajo: «Cuadrada», «En curso», «Sin cuadrar» o vacío si no tiene movimientos; la ayuda dice de cada ejercicio cuándo y quién la marcó.</summary>
+    public string Cuadre => CuadresMayor.Texto(Cuenta.Cuadre);
+    public string? AyudaCuadre => Cuenta.AyudaCuadre;
 }
 
 /// <summary>
@@ -25,7 +28,7 @@ public sealed class SelectorCuentasVM : ModeloVista
 {
     private readonly IReadOnlyList<CuentaMayor> _catalogo;
     private string _texto = "";
-    private bool _soloSubcuentas, _conMovimientos, _conSaldo, _conSaldoSinApertura;
+    private bool _soloSubcuentas, _conMovimientos, _conSaldo, _conSaldoSinApertura, _noCuadradas;
     private IReadOnlyList<CuentaSelectorVM> _resultados = [];
 
     public SelectorCuentasVM(IReadOnlyList<CuentaMayor> catalogo, FiltroCuentasMayor filtro, string ejercicios)
@@ -35,6 +38,7 @@ public sealed class SelectorCuentasVM : ModeloVista
         _conMovimientos = filtro.ConMovimientos;
         _conSaldo = filtro.ConSaldo;
         _conSaldoSinApertura = filtro.ConSaldoSinApertura;
+        _noCuadradas = filtro.NoCuadradas;
         Ejercicios = ejercicios;
         Filtrar();
     }
@@ -47,8 +51,9 @@ public sealed class SelectorCuentasVM : ModeloVista
     public bool ConMovimientos { get => _conMovimientos; set { if (Fijar(ref _conMovimientos, value)) Filtrar(); } }
     public bool ConSaldo { get => _conSaldo; set { if (Fijar(ref _conSaldo, value)) Filtrar(); } }
     public bool ConSaldoSinApertura { get => _conSaldoSinApertura; set { if (Fijar(ref _conSaldoSinApertura, value)) Filtrar(); } }
+    public bool NoCuadradas { get => _noCuadradas; set { if (Fijar(ref _noCuadradas, value)) Filtrar(); } }
 
-    public FiltroCuentasMayor Filtro => new(_soloSubcuentas, _conMovimientos, _conSaldo, _conSaldoSinApertura);
+    public FiltroCuentasMayor Filtro => new(_soloSubcuentas, _conMovimientos, _conSaldo, _conSaldoSinApertura, NoCuadradas: _noCuadradas);
 
     public IReadOnlyList<CuentaSelectorVM> Resultados { get => _resultados; private set => Fijar(ref _resultados, value); }
 

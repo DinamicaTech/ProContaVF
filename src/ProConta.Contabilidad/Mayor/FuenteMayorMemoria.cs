@@ -3,10 +3,10 @@ namespace ProConta.Contabilidad.Mayor;
 /// <summary>Un asiento en memoria para <see cref="FuenteMayorMemoria"/>.</summary>
 public sealed record AsientoMemoria(
     int IdAsiento, int IdSociedadEjercicio, DateTime Fecha, string Descripcion, IReadOnlyList<ApunteMemoria> Apuntes,
-    byte Tipo = 0, string? Notas = null, DateTime? FechaDocumento = null, DateTime? GrabadoEl = null, DateTime? ModificadoEl = null);
+    byte Tipo = 0, string? Notas = null, DateTime? FechaDocumento = null, DateTime? GrabadoEl = null, DateTime? ModificadoEl = null, bool EsAutomatico = false);
 
 /// <summary>Un apunte en memoria (el id se asigna al añadir el asiento si es 0).</summary>
-public sealed record ApunteMemoria(string Cuenta, decimal Debe, decimal Haber, string? Concepto = null, string? Documento = null, int IdApunte = 0);
+public sealed record ApunteMemoria(string Cuenta, decimal Debe, decimal Haber, string? Concepto = null, string? Documento = null, int IdApunte = 0, bool Punteado = false);
 
 /// <summary>
 /// Fuente del Mayor en memoria: misma semántica que la de Access (sin cierres, cuentas exactas o por prefijo, facturas en todas
@@ -86,10 +86,10 @@ public sealed class FuenteMayorMemoria(string idSociedad) : IFuenteMayor
                 if (!entra) continue;
                 conApuntes.Add(a.IdAsiento);
                 apuntes.Add(new ApunteMayor(p.IdApunte, a.IdAsiento, i + 1, a.IdSociedadEjercicio, Anio(a.IdSociedadEjercicio), a.Fecha, a.Tipo, p.Cuenta,
-                    p.Debe, p.Haber, p.Concepto ?? a.Descripcion, p.Documento, a.Notas, a.FechaDocumento, a.GrabadoEl, a.ModificadoEl));
+                    p.Debe, p.Haber, p.Concepto ?? a.Descripcion, p.Documento, a.Notas, a.FechaDocumento, a.GrabadoEl, a.ModificadoEl, p.Punteado, a.EsAutomatico));
             }
         var lineas = asientos.Where(a => conApuntes.Contains(a.IdAsiento))
-            .SelectMany(a => a.Apuntes.Select((p, i) => new LineaContrapartida(a.IdAsiento, i + 1, p.Cuenta, p.Debe, p.Haber))).ToList();
+            .SelectMany(a => a.Apuntes.Select((p, i) => new LineaContrapartida(a.IdAsiento, i + 1, p.Cuenta, p.Debe, p.Haber, p.IdApunte))).ToList();
         var nombres = new Dictionary<string, string>(StringComparer.Ordinal);
         foreach (var p in _plan.Where(p => ids.Contains(p.IdSociedadEjercicio)).OrderBy(p => Anio(p.IdSociedadEjercicio))) nombres[p.Codigo] = p.Nombre;
         return Task.FromResult(new DatosMayor(apuntes, lineas, nombres));
@@ -107,4 +107,35 @@ public sealed class FuenteMayorMemoria(string idSociedad) : IFuenteMayor
 
     public Task<IReadOnlyList<CambioApunteMayor>> HistorialAsync(int idAsiento, int idApunte, int orden, CancellationToken cancelacion = default) =>
         Task.FromResult<IReadOnlyList<CambioApunteMayor>>(_cambios.Where(c => c.IdAsiento == idAsiento && c.IdApunte == idApunte).Select(c => c.Cambio).ToList());
+
+    private readonly List<CuadreCuenta> _cuadres = [];
+
+    /// <summary>Umbral de «Reiniciar el cuadre» que devuelve la fuente.</summary>
+    public decimal Umbral { get; set; } = CuadresMayor.UmbralPredeterminado;
+
+    public IReadOnlyList<CuadreCuenta> CuadresGuardados => _cuadres;
+
+    public Task<IReadOnlyList<CuadreCuenta>> CuadresAsync(IReadOnlyList<EjercicioMayor> ejercicios, CancellationToken cancelacion = default)
+    {
+        var ids = ejercicios.Select(e => e.IdSociedadEjercicio).ToHashSet();
+        return Task.FromResult<IReadOnlyList<CuadreCuenta>>(_cuadres.Where(c => ids.Contains(c.IdSociedadEjercicio)).ToList());
+    }
+
+    public Task GuardarCuadresAsync(IReadOnlyList<CuadreCuenta> cuadres, CancellationToken cancelacion = default)
+    {
+        var fuera = cuadres.Select(m => (m.IdSociedadEjercicio, m.Cuenta)).ToHashSet();
+        _cuadres.RemoveAll(c => fuera.Contains((c.IdSociedadEjercicio, c.Cuenta)));
+        _cuadres.AddRange(cuadres);
+        return Task.CompletedTask;
+    }
+
+    public Task<decimal> UmbralCuadreAsync(CancellationToken cancelacion = default) => Task.FromResult(Umbral);
+
+    /// <summary>Puntea en memoria (las pruebas simulan lo que haría el motor de asientos).</summary>
+    public void Puntear(IEnumerable<int> idsApunte, bool punteado)
+    {
+        var ids = idsApunte.ToHashSet();
+        for (var i = 0; i < _asientos.Count; i++)
+            _asientos[i] = _asientos[i] with { Apuntes = _asientos[i].Apuntes.Select(p => ids.Contains(p.IdApunte) ? p with { Punteado = punteado } : p).ToList() };
+    }
 }

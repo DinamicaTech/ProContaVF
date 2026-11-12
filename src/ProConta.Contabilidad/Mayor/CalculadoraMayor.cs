@@ -67,10 +67,12 @@ public sealed record ImporteCuenta(string Cuenta, decimal Importe);
 /// <param name="FiltroFacturas">Solo las filas de estos números de factura normalizados (en las cuentas de la vista).</param>
 /// <param name="Texto">Filtro libre: concepto o documento que contiene el texto, número de asiento o importe exacto.</param>
 /// <param name="Quitadas">Claves de las filas quitadas de la vista con Supr.</param>
+/// <param name="SoloNoPunteados">Oculta las filas cuyos apuntes están todos punteados.</param>
 public sealed record OpcionesMayor(
-    VistaMayor Vista = VistaMayor.Normal, IReadOnlyCollection<string>? FiltroFacturas = null, string? Texto = null, IReadOnlySet<string>? Quitadas = null)
+    VistaMayor Vista = VistaMayor.Normal, IReadOnlyCollection<string>? FiltroFacturas = null, string? Texto = null, IReadOnlySet<string>? Quitadas = null,
+    bool SoloNoPunteados = false)
 {
-    public bool HayFiltros => FiltroFacturas is { Count: > 0 } || !string.IsNullOrWhiteSpace(Texto);
+    public bool HayFiltros => FiltroFacturas is { Count: > 0 } || !string.IsNullOrWhiteSpace(Texto) || SoloNoPunteados;
 }
 
 /// <summary>Una fila del Mayor: un apunte (vista Normal) o un grupo de apuntes (las demás vistas).</summary>
@@ -113,6 +115,14 @@ public sealed class FilaMayor
     public required IReadOnlyList<int> IdsAsiento { get; init; }
     /// <summary>Clave del color del saldo: «43» (clientes y deudores), el grupo común de las cuentas de la vista, o «0» si se mezclan.</summary>
     public string GrupoSaldo { get; internal set; } = "0";
+    /// <summary>Todos los apuntes de la fila están punteados.</summary>
+    public bool Punteado { get; init; }
+    /// <summary>Algunos apuntes de la fila están punteados y otros no (vistas agrupadas).</summary>
+    public bool PunteoParcial { get; init; }
+    /// <summary>Algún apunte de la fila es de un asiento automático: su concepto y su cuenta no se cambian desde el Mayor.</summary>
+    public bool EsAutomatico { get; init; }
+    /// <summary>Apuntes de la contrapartida (las líneas de la cuenta de destino, si es una sola), para «Cambiar la contrapartida».</summary>
+    public IReadOnlyList<int> IdsApunteContrapartida { get; init; } = [];
 
     public decimal Importe => Debe - Haber;
     public string FacturaNormalizada => Facturas.Normalizar(Documento);
@@ -177,6 +187,8 @@ public static class CalculadoraMayor
         }
         if (!string.IsNullOrWhiteSpace(opciones.Texto))
             filas = filas.Where(f => CumpleTexto(f, opciones.Texto!)).ToList();
+        if (opciones.SoloNoPunteados)
+            filas = filas.Where(f => !f.Punteado).ToList();
         var ocultas = antes - filas.Count;
 
         var quitadas = 0;
@@ -295,6 +307,11 @@ public static class CalculadoraMayor
             ModificadoEl = a.ModificadoEl,
             IdsApunte = [a.IdApunte],
             IdsAsiento = [a.IdAsiento],
+            Punteado = a.Punteado,
+            EsAutomatico = a.EsAutomatico,
+            IdsApunteContrapartida = candidatas.Count == 1
+                ? asiento.Where(l => l.Orden != a.Orden && l.Cuenta == candidatas[0] && l.IdApunte != 0).Select(l => l.IdApunte).ToList()
+                : [],
         };
     }
 
@@ -348,6 +365,9 @@ public static class CalculadoraMayor
                 ModificadoEl = g.Select(a => a.ModificadoEl).Where(f => f is not null).Max(),
                 IdsApunte = g.Select(a => a.IdApunte).ToList(),
                 IdsAsiento = g.Select(a => a.IdAsiento).Distinct().ToList(),
+                Punteado = g.All(a => a.Punteado),
+                PunteoParcial = g.Any(a => a.Punteado) && !g.All(a => a.Punteado),
+                EsAutomatico = g.Any(a => a.EsAutomatico),
             });
         }
         return filas;
@@ -361,6 +381,7 @@ public static class CalculadoraMayor
         Contrapartida = f.Contrapartida, NombreContrapartida = f.NombreContrapartida, CuentasContrapartida = f.CuentasContrapartida,
         DetalleContrapartida = f.DetalleContrapartida, Notas = f.Notas, FechaDocumento = f.FechaDocumento, GrabadoEl = f.GrabadoEl,
         ModificadoEl = f.ModificadoEl, IdsApunte = f.IdsApunte, IdsAsiento = f.IdsAsiento,
+        Punteado = f.Punteado, PunteoParcial = f.PunteoParcial, EsAutomatico = f.EsAutomatico, IdsApunteContrapartida = f.IdsApunteContrapartida,
     };
 
     internal static string Importe(decimal v) =>

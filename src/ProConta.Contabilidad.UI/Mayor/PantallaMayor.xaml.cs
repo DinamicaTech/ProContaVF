@@ -54,6 +54,11 @@ public partial class PantallaMayor : UserControl
     {
         if (_vm is null) return;
         var anterior = Tabla.ItemsSource is ICollectionView v ? v.SortDescriptions.ToList() : [];
+        // Tras puntear o numerar se vuelve a leer la vista: la selección se conserva por la clave de la fila.
+        var seleccion = Seleccionadas().Select(f => f.Fila.Clave).ToHashSet(StringComparer.Ordinal);
+        var actual = (Tabla.CurrentItem as FilaMayorVM)?.Fila.Clave;
+        var columnaActual = Tabla.CurrentColumn;
+        var teniaFoco = Tabla.IsKeyboardFocusWithin;
         var vista = new ListCollectionView(_vm.Filas.ToList());
         foreach (var s in anterior) vista.SortDescriptions.Add(s);
         if (anterior.Count == 0) vista.GroupDescriptions.Add(new PropertyGroupDescription(nameof(FilaMayorVM.CabeceraEjercicio)));
@@ -63,6 +68,24 @@ public partial class PantallaMayor : UserControl
             var s = anterior.FirstOrDefault(x => x.PropertyName == c.SortMemberPath);
             c.SortDirection = s.PropertyName is null ? null : s.Direction;
         }
+        if (seleccion.Count == 0) return;
+        var volver = _vm.Filas.Where(f => seleccion.Contains(f.Fila.Clave)).ToList();
+        foreach (var f in volver) Tabla.SelectedItems.Add(f);
+        if (volver.Count == 0) return;
+        var foco = volver.FirstOrDefault(f => f.Fila.Clave == actual) ?? volver[0];
+        Tabla.ScrollIntoView(foco);
+        if (!teniaFoco) return;
+        // El foco vuelve a la celda en que estaba, para poder encadenar F4.
+        Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Loaded, new Action(() =>
+        {
+            var columna = columnaActual ?? Tabla.Columns.FirstOrDefault(c => c.Visibility == Visibility.Visible);
+            if (columna is null) return;
+            Tabla.CurrentCell = new DataGridCellInfo(foco, columna);
+            Tabla.UpdateLayout();
+            if (Tabla.ItemContainerGenerator.ContainerFromItem(foco) is DataGridRow fila &&
+                columna.GetCellContent(fila)?.Parent is DataGridCell celda) celda.Focus();
+            else Tabla.Focus();
+        }));
     }
 
     private void AjustarAgrupacion()
@@ -120,6 +143,16 @@ public partial class PantallaMayor : UserControl
             _ = _vm.VerAsientoAsync(f);
             e.Handled = true;
         }
+        else if (e.Key == Key.F4 && _vm.PuedeEscribir && Seleccionadas() is { Count: > 0 } puntear)
+        {
+            _ = _vm.PuntearAsync(puntear, !puntear.All(x => x.Punteado));
+            e.Handled = true;
+        }
+        else if (e.Key == Key.N && Keyboard.Modifiers == ModifierKeys.Control && _vm.PuedeEscribir && Seleccionadas() is { Count: > 0 } numerar)
+        {
+            _ = _vm.AsignarNumeroAsync(numerar);
+            e.Handled = true;
+        }
     }
 
     // ---------- menú contextual de las filas ----------
@@ -157,17 +190,29 @@ public partial class PantallaMayor : UserControl
             "Llega con las pantallas de Norma 43: buscará el importe de la selección en las líneas del extracto de la cuenta"));
         menu.Items.Add(new Separator());
 
-        const string entrega2 = "Llega en la próxima entrega del Mayor (punteo, numeración y cuadre), que guarda el cambio por el motor de asientos con su historial";
-        menu.Items.Add(Proxima("Puntear", "Icono.check", entrega2, "F4"));
-        menu.Items.Add(Proxima("Asignar número de factura…", "Icono.doc", entrega2, "Ctrl+N"));
-        menu.Items.Add(Proxima("Cambiar el concepto…", "Icono.edit", entrega2));
-        menu.Items.Add(Proxima("Cambiar la subcuenta del apunte…", "Icono.swap", entrega2));
-        menu.Items.Add(Proxima("Cambiar la contrapartida…", "Icono.swap", entrega2));
+        var escribe = _vm.PuedeEscribir;
+        var soloConsulta = _vm.PorQueSoloConsulta;
+        var todosPunteados = sel.All(f => f.Punteado);
+        menu.Items.Add(Opcion(todosPunteados ? "Quitar el punteo" : "Puntear", "Icono.check", () => _ = _vm.PuntearAsync(sel, !todosPunteados), "F4",
+            todosPunteados ? "Quita el punteo de los apuntes de la selección" : "Puntea los apuntes de la selección (también en asientos automáticos y en ejercicios cerrados); queda en su historial",
+            escribe, soloConsulta));
+        menu.Items.Add(Opcion("Asignar número de factura…", "Icono.doc", () => _ = _vm.AsignarNumeroAsync(sel), "Ctrl+N",
+            "Pone el número de factura a los apuntes de la selección, para que se agrupen con su factura; también en automáticos y cerrados", escribe, soloConsulta));
+        var automaticos = sel.Any(f => f.Fila.EsAutomatico);
+        var cerrados = sel.Any(f => f.Fila.EjercicioCerrado);
+        var porQueNoCambiar = !escribe ? soloConsulta : automaticos ? MayorVM.MotivoAutomatico : cerrados ? "Hay filas de un ejercicio cerrado: sus apuntes son de solo consulta" : null;
+        menu.Items.Add(Opcion("Cambiar el concepto…", "Icono.edit", () => _ = _vm.CambiarConceptoAsync(sel), null,
+            "Cambia el concepto de los apuntes manuales de la selección, con su motivo en el historial", porQueNoCambiar is null, porQueNoCambiar));
+        menu.Items.Add(Opcion("Cambiar la subcuenta del apunte…", "Icono.swap", () => _ = _vm.CambiarCuentaAsync(sel), null,
+            "Pasa los apuntes manuales de la selección a otra subcuenta, con su motivo en el historial", porQueNoCambiar is null, porQueNoCambiar));
+        var contrapartida = una is not null && una.Fila.IdsApunteContrapartida.Count > 0;
+        menu.Items.Add(Opcion(contrapartida ? $"Cambiar la contrapartida {una!.Contrapartida}…" : "Cambiar la contrapartida…", "Icono.swap",
+            () => _ = _vm.CambiarContrapartidaAsync(una!), null, "Pasa la línea de la contrapartida de este asiento a otra subcuenta, con su motivo en el historial",
+            porQueNoCambiar is null && contrapartida,
+            porQueNoCambiar ?? (una is null ? "Elige una sola fila" : "Esta fila no tiene una contrapartida única: ábrela con «Ver asiento»")));
         menu.Items.Add(new Separator());
         menu.Items.Add(Proxima("Nuevo asiento manual…", "Icono.plus", "Llega con el diario de asientos (pantallas de contabilidad): abrirá un asiento nuevo con la cuenta y el importe de la selección"));
         menu.Items.Add(Proxima("Asistente de corrección…", "Icono.wand", "Llega con las plantillas de asiento: propondrá el asiento de corrección (inverso, contra-apunte, cambio de cuenta…) con su IVA"));
-        menu.Items.Add(Proxima("Marcar la cuenta como cuadrada…", "Icono.check", entrega2));
-        menu.Items.Add(Proxima("Reiniciar el cuadre…", "Icono.undo", entrega2));
         menu.Items.Add(new Separator());
         menu.Items.Add(Opcion("Quitar de la vista", "Icono.hide", () => _vm.Quitar(sel), "Supr",
             "Quita las filas solo de la vista (no se borra nada) y recalcula el saldo; se recuperan quitando la etiqueta"));
@@ -252,6 +297,8 @@ public partial class PantallaMayor : UserControl
     // ---------- ejercicios ----------
 
     private void BotonEjercicios_Click(object sender, RoutedEventArgs e) => PopupEjercicios.IsOpen = true;
+
+    private void Cuadre_Click(object sender, RoutedEventArgs e) => _ = _vm?.EditarCuadreAsync();
 
     private void PopupEjercicios_Closed(object? sender, EventArgs e) => _vm?.AplicarEjerciciosCommand.Execute(null);
 

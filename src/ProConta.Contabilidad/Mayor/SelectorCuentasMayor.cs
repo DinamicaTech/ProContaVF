@@ -8,7 +8,9 @@ namespace ProConta.Contabilidad.Mayor;
 /// <param name="ConSaldo">Saldo distinto de cero, con la apertura.</param>
 /// <param name="ConSaldoSinApertura">Saldo de los movimientos del periodo distinto de cero, sin la apertura.</param>
 /// <param name="Texto">Código que empieza por el texto, o descripción que lo contiene (sin distinguir mayúsculas ni acentos).</param>
-public sealed record FiltroCuentasMayor(bool SoloSubcuentas = true, bool ConMovimientos = true, bool ConSaldo = false, bool ConSaldoSinApertura = false, string? Texto = null);
+/// <param name="NoCuadradas">Solo las que están sin cuadrar o en curso en el ejercicio de trabajo.</param>
+public sealed record FiltroCuentasMayor(bool SoloSubcuentas = true, bool ConMovimientos = true, bool ConSaldo = false, bool ConSaldoSinApertura = false, string? Texto = null,
+    bool NoCuadradas = false);
 
 /// <summary>
 /// Catálogo del selector: cada cuenta del plan de los ejercicios elegidos (y las que tienen apuntes sin estar en el plan) con
@@ -17,8 +19,10 @@ public sealed record FiltroCuentasMayor(bool SoloSubcuentas = true, bool ConMovi
 /// </summary>
 public static class SelectorCuentasMayor
 {
-    public static IReadOnlyList<CuentaMayor> Catalogo(IEnumerable<SumaCuenta> sumas, IEnumerable<PlanCuenta> plan, IReadOnlyList<EjercicioMayor> elegidos)
+    public static IReadOnlyList<CuentaMayor> Catalogo(IEnumerable<SumaCuenta> sumas, IEnumerable<PlanCuenta> plan, IReadOnlyList<EjercicioMayor> elegidos,
+        ContextoCuadre? cuadre = null)
     {
+        cuadre ??= ContextoCuadre.Vacio;
         var anioDe = elegidos.ToDictionary(e => e.IdSociedadEjercicio, e => e.Ejercicio);
         var anios = elegidos.Select(e => e.Ejercicio).ToHashSet();
         var cuentas = new Dictionary<string, (string Nombre, bool Imputable, int Anio)>(StringComparer.Ordinal);
@@ -44,11 +48,14 @@ public static class SelectorCuentasMayor
             var x = saldos.GetValueOrDefault(c.Key);
             if (!c.Value.Imputable)
             {
-                // Una cuenta de grupo resume sus subcuentas.
-                var hijas = saldos.Where(h => h.Key.Length > c.Key.Length && h.Key.StartsWith(c.Key, StringComparison.Ordinal)).Select(h => h.Value).ToList();
-                x = (hijas.Sum(h => h.SinApertura), hijas.Sum(h => h.Saldo), hijas.Sum(h => h.Apuntes));
+                // Una cuenta de grupo resume el cuadre de sus subcuentas.
+                var hijas = saldos.Where(h => h.Key.Length > c.Key.Length && h.Key.StartsWith(c.Key, StringComparison.Ordinal)).ToList();
+                x = (hijas.Sum(h => h.Value.SinApertura), hijas.Sum(h => h.Value.Saldo), hijas.Sum(h => h.Value.Apuntes));
+                var (estado, resumen) = CuadresMayor.Resumen(hijas.Select(h => CuadresMayor.Ver(h.Key, cuadre)));
+                return new CuentaMayor(c.Key, c.Value.Nombre, x.SinApertura, x.Saldo, x.Apuntes, false, estado, resumen);
             }
-            return new CuentaMayor(c.Key, c.Value.Nombre, x.SinApertura, x.Saldo, x.Apuntes, c.Value.Imputable);
+            var v = CuadresMayor.Ver(c.Key, cuadre);
+            return new CuentaMayor(c.Key, c.Value.Nombre, x.SinApertura, x.Saldo, x.Apuntes, true, v.Estado, CuadresMayor.Ayuda(v, cuadre.Trabajo));
         }).ToList();
     }
 
@@ -63,6 +70,7 @@ public static class SelectorCuentasMayor
             (!f.ConMovimientos || c.Apuntes > 0) &&
             (!f.ConSaldo || Math.Round(c.Saldo, 2) != 0) &&
             (!f.ConSaldoSinApertura || Math.Round(c.SaldoSinApertura, 2) != 0) &&
+            (!f.NoCuadradas || c.Cuadre is EstadoCuadre.SinCuadrar or EstadoCuadre.EnCurso) &&
             (t.Length == 0 || c.Codigo.StartsWith(t, StringComparison.Ordinal) || ci.IndexOf(c.Nombre, t, op) >= 0)).ToList();
     }
 

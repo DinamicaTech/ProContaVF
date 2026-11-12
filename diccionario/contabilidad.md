@@ -47,6 +47,7 @@ Relaciones:
 | GeneradoAutomaticamente | YESNO | no |  |  |
 | MotivoGeneracion | TEXT(255) | sí |  |  |
 | DiferenciaOrigen | CURRENCY | sí |  | Descuadre previo que justificó un ajuste automático. |
+| Punteado | YESNO | no | No |  |
 
 Índices:
 - FK_Apuntes_Asientos: IdAsiento
@@ -198,6 +199,29 @@ Relaciones:
 Relaciones:
 - FK_ConfigBanco_Cuenta: (IdCuentaBancaria) → CuentasBancarias (IdCuentaBancaria); borrado NO ACTION, actualización NO ACTION
 - FK_ConfigBanco_Identidad: (IdIdentidadContableBanco) → IdentidadesContables (IdIdentidadContable); borrado NO ACTION, actualización NO ACTION
+
+## CuadresCuentas
+
+- Dueño funcional: `contabilidad/mayor`
+
+| Campo | Tipo | Nulo | Por defecto | Descripción |
+|---|---|---|---|---|
+| IdCuadreCuenta | COUNTER | no |  |  |
+| IdSociedadEjercicio | LONG | no |  |  |
+| CuentaContable | TEXT(20) | no |  |  |
+| Cuadrada | YESNO | no |  |  |
+| Saldo | CURRENCY | sí |  |  |
+| Notas | LONGTEXT | sí |  |  |
+| Operador | TEXT(30) | no |  |  |
+| FechaHora | DATETIME | no |  |  |
+
+Índices:
+- FK_CuadresCuentas_SociedadEjercicio: IdSociedadEjercicio
+- PK_CuadresCuentas (clave primaria): IdCuadreCuenta
+- UX_CuadresCuentas_EjercicioCuenta (único): IdSociedadEjercicio, CuentaContable
+
+Relaciones:
+- FK_CuadresCuentas_SociedadEjercicio: (IdSociedadEjercicio) → SociedadesEjercicios (IdSociedadEjercicio); borrado NO ACTION, actualización NO ACTION
 
 ## CuentasContables
 

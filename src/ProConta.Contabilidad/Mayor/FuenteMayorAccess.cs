@@ -63,8 +63,8 @@ public sealed class FuenteMayorAccess(IBaseDatos bd) : IFuenteMayor
                     if (fecha is { } d && (!fechasFactura.TryGetValue(id, out var otra) || d < otra)) fechasFactura[id] = d.Date;
 
             var apuntes = await s.ConsultarAsync(
-                "SELECT p.IdApunte, p.IdAsiento, p.Orden, p.CuentaContable, p.ImporteDebe, p.ImporteHaber, p.Descripcion, p.NumeroDocumento, " +
-                "a.IdSociedadEjercicio, a.FechaContable, a.TipoAsiento, a.Descripcion AS DescripcionAsiento, a.Notas, a.FechaHoraCreacion, a.FechaHoraModificacion " + desde,
+                "SELECT p.IdApunte, p.IdAsiento, p.Orden, p.CuentaContable, p.ImporteDebe, p.ImporteHaber, p.Descripcion, p.NumeroDocumento, p.Punteado, " +
+                "a.IdSociedadEjercicio, a.FechaContable, a.TipoAsiento, a.Descripcion AS DescripcionAsiento, a.Notas, a.FechaHoraCreacion, a.FechaHoraModificacion, a.EsAutomatico " + desde,
                 f =>
                 {
                     var idAsiento = f.Entero("IdAsiento");
@@ -76,7 +76,8 @@ public sealed class FuenteMayorAccess(IBaseDatos bd) : IFuenteMayor
                         f.DecimalNulo("ImporteDebe") ?? 0m, f.DecimalNulo("ImporteHaber") ?? 0m, concepto.Trim(),
                         f.Texto("NumeroDocumento")?.Trim() is { Length: > 0 } doc ? doc : null,
                         f.Texto("Notas")?.Trim() is { Length: > 0 } n ? n : null,
-                        fechasFactura.TryGetValue(idAsiento, out var fd) ? fd : null, f.FechaNula("FechaHoraCreacion"), f.FechaNula("FechaHoraModificacion"));
+                        fechasFactura.TryGetValue(idAsiento, out var fd) ? fd : null, f.FechaNula("FechaHoraCreacion"), f.FechaNula("FechaHoraModificacion"),
+                        !f.EsNulo("Punteado") && f.Logico("Punteado"), !f.EsNulo("EsAutomatico") && f.Logico("EsAutomatico"));
                 },
                 parametros);
             if (solicitud.BuscaFacturas)
@@ -90,10 +91,10 @@ public sealed class FuenteMayorAccess(IBaseDatos bd) : IFuenteMayor
 
             // Todas las líneas de esos asientos, con una sola consulta: la de los apuntes, como tabla derivada.
             var lineas = await s.ConsultarAsync(
-                "SELECT q.IdAsiento, q.Orden, q.CuentaContable, q.ImporteDebe, q.ImporteHaber FROM Apuntes AS q INNER JOIN " +
+                "SELECT q.IdApunte, q.IdAsiento, q.Orden, q.CuentaContable, q.ImporteDebe, q.ImporteHaber FROM Apuntes AS q INNER JOIN " +
                 $"(SELECT DISTINCT p.IdAsiento {desde}) AS x ON q.IdAsiento = x.IdAsiento",
                 f => new LineaContrapartida(f.Entero("IdAsiento"), f.EsNulo("Orden") ? 0 : Convert.ToInt32(f.Valor("Orden"), CultureInfo.InvariantCulture),
-                    (f.Texto("CuentaContable") ?? "").Trim(), f.DecimalNulo("ImporteDebe") ?? 0m, f.DecimalNulo("ImporteHaber") ?? 0m),
+                    (f.Texto("CuentaContable") ?? "").Trim(), f.DecimalNulo("ImporteDebe") ?? 0m, f.DecimalNulo("ImporteHaber") ?? 0m, f.Entero("IdApunte")),
                 parametros);
 
             var nombres = new Dictionary<string, string>(StringComparer.Ordinal);
@@ -133,6 +134,32 @@ public sealed class FuenteMayorAccess(IBaseDatos bd) : IFuenteMayor
                 f => new CambioApunteMayor(f.Fecha("FechaHora"), f.Texto("Operador") ?? "", f.Texto("Motivo") ?? "", f.Texto("Operacion") ?? "", f.Texto("Campo") ?? "",
                     f.Texto("ValorAntiguo"), f.Texto("ValorNuevo"), f.Texto("IdLote") ?? ""),
                 idAsiento, idApunte, orden)).ToList(), cancelacion);
+
+    public Task<IReadOnlyList<CuadreCuenta>> CuadresAsync(IReadOnlyList<EjercicioMayor> ejercicios, CancellationToken cancelacion = default) =>
+        bd.EjecutarAsync(async s => ejercicios.Count == 0 ? (IReadOnlyList<CuadreCuenta>)[] : (await s.ConsultarAsync(
+            $"SELECT IdSociedadEjercicio, CuentaContable, Cuadrada, Saldo, Notas, Operador, FechaHora FROM CuadresCuentas WHERE IdSociedadEjercicio IN ({ListaIds(ejercicios)})",
+            f => new CuadreCuenta(f.Entero("IdSociedadEjercicio"), (f.Texto("CuentaContable") ?? "").Trim(), !f.EsNulo("Cuadrada") && f.Logico("Cuadrada"),
+                f.DecimalNulo("Saldo"), f.Texto("Notas"), f.Texto("Operador") ?? "", f.Fecha("FechaHora")))).ToList(), cancelacion);
+
+    public Task GuardarCuadresAsync(IReadOnlyList<CuadreCuenta> cuadres, CancellationToken cancelacion = default) =>
+        bd.EnTransaccionAsync(async s =>
+        {
+            foreach (var m in cuadres)
+            {
+                await s.EjecutarAsync("DELETE FROM CuadresCuentas WHERE IdSociedadEjercicio = ? AND CuentaContable = ?", m.IdSociedadEjercicio, m.Cuenta);
+                await s.EjecutarAsync("INSERT INTO CuadresCuentas (IdSociedadEjercicio, CuentaContable, Cuadrada, Saldo, Notas, Operador, FechaHora) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                    m.IdSociedadEjercicio, m.Cuenta, m.Cuadrada, m.Saldo is decimal x ? Math.Round(x, 2) : null, string.IsNullOrWhiteSpace(m.Notas) ? null : m.Notas,
+                    m.Operador.Length > 30 ? m.Operador[..30] : m.Operador, m.FechaHora);
+            }
+            return true;
+        });
+
+    public Task<decimal> UmbralCuadreAsync(CancellationToken cancelacion = default) =>
+        bd.EjecutarAsync(async s =>
+        {
+            var v = await s.EscalarAsync("SELECT TOP 1 UmbralCuadreMayor FROM Configuracion ORDER BY IdConfiguracion");
+            return v is null or DBNull ? CuadresMayor.UmbralPredeterminado : Math.Abs(Convert.ToDecimal(v, CultureInfo.InvariantCulture));
+        }, cancelacion);
 
     private static async Task<IReadOnlyList<PlanCuenta>> LeerPlanAsync(ISesionDatos s, string en) =>
         (await s.ConsultarAsync($"SELECT Codigo, Nombre, EsImputable, IdSociedadEjercicio FROM CuentasContables WHERE IdSociedadEjercicio IN ({en})",

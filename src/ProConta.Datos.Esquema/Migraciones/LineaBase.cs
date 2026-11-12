@@ -86,6 +86,7 @@ public static class CatalogoMigraciones
         MigracionesImplantacion.MigracionErp,
         MigracionesNorma43.PalabrasClave,
         MigracionesCompras.CarpetaFacturasCompra,
+        MigracionesContabilidad.PunteoCuadreMayor,
     ];
 
     /// <summary>Versión del esquema que espera esta versión del programa.</summary>

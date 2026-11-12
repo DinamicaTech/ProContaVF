@@ -10,7 +10,10 @@ using ProConta.UI.Base.Preferencias;
 namespace ProConta.Contabilidad.UI.Mayor;
 
 /// <summary>Lo que necesita una pantalla del Mayor: la fuente, la sociedad y el ejercicio de trabajo.</summary>
-public sealed record ContextoMayor(IFuenteMayor Fuente, string IdSociedad, int EjercicioTrabajo, string RazonSocial);
+/// <param name="Motor">Motor de asientos para las acciones que cambian apuntes (punteo, número de factura, concepto y cuenta); sin él, el Mayor es de solo consulta.</param>
+/// <param name="Actor">Operador que firma los cambios y las marcas de cuadre.</param>
+public sealed record ContextoMayor(IFuenteMayor Fuente, string IdSociedad, int EjercicioTrabajo, string RazonSocial,
+    ProConta.Contabilidad.Asientos.IMotorAsientos? Motor = null, ProConta.Nucleo.Auditoria.Actor? Actor = null);
 
 /// <summary>Diálogos del Mayor (los implementa <see cref="DialogosMayor"/>; las pruebas pueden sustituirlos).</summary>
 public interface IDialogosMayor
@@ -20,6 +23,15 @@ public interface IDialogosMayor
     void VerAsiento(AsientoMayor asiento, Action<string> abrirMayor);
     void VerHistorial(FilaMayor fila, IReadOnlyList<CambioApunteMayor> cambios);
     void Error(string titulo, string mensaje);
+
+    /// <summary>Pide un texto (número de factura, concepto o comentario) y, si <paramref name="pideMotivo"/>, el motivo. Null si se cancela.</summary>
+    (string Valor, string Motivo)? PedirTexto(string titulo, string explicacion, string etiqueta, string? inicial, int longitud, bool pideMotivo, bool valorObligatorio);
+
+    /// <summary>Pide el motivo de un cambio; null si se cancela.</summary>
+    string? PedirMotivo(string titulo, string explicacion);
+
+    /// <summary>Cuadre de una cuenta: casilla «Cuenta cuadrada» y notas. Null si se cancela.</summary>
+    (bool Cuadrada, string Notas)? EditarCuadre(string cuenta, bool cuadrada, string? notas, string informacion);
 }
 
 /// <summary>Cuenta de la lista de recientes del operador.</summary>
@@ -373,7 +385,8 @@ public sealed class MayorVM : ModeloVista
         TextoSeleccion = "";
         Avisar(nameof(Titulo), nameof(TextoCuenta), nameof(AyudaCuenta), nameof(TextoEjercicios), nameof(TextoCerrados), nameof(HayCerrados),
             nameof(Vista), nameof(EsNormal), nameof(EsCompacto), nameof(EsSoloPendientes), nameof(EsAgrupar700), nameof(HayFiltros), nameof(AvisoParcial),
-            nameof(TextoRecuento), nameof(TotalDebe), nameof(TotalHaber), nameof(Saldo), nameof(TotalSaldo), nameof(GrupoSaldo), nameof(AyudaSaldo), nameof(CuentasFijas));
+            nameof(TextoRecuento), nameof(TotalDebe), nameof(TotalHaber), nameof(Saldo), nameof(TotalSaldo), nameof(GrupoSaldo), nameof(AyudaSaldo), nameof(CuentasFijas),
+            nameof(TextoCuadre), nameof(AyudaCuadre), nameof(ColorCuadre), nameof(PuedeEditarCuadre), nameof(SoloNoPunteados));
         CommandManager.InvalidateRequerySuggested();
     }
 
@@ -515,6 +528,195 @@ public sealed class MayorVM : ModeloVista
         {
             _dialogos.Error("No he podido leer el historial", $"La base de datos ha respondido: {ex.Message} Vuelve a intentarlo en un momento.");
         }
+    }
+
+    // ---------- acciones que cambian apuntes (por el motor de asientos) y cuadre ----------
+
+    /// <summary>Hay motor y operador: las acciones de punteo, numeración, concepto, cuenta y cuadre están disponibles.</summary>
+    public bool PuedeEscribir => _ctx.Motor is not null && _ctx.Actor is not null;
+    public string PorQueSoloConsulta => "Este Mayor es de solo consulta: se ha abierto sin el motor de asientos.";
+
+    /// <summary>«Solo no punteados»: oculta las filas punteadas.</summary>
+    public bool SoloNoPunteados
+    {
+        get => _sesion.SoloNoPunteados;
+        set { if (value != _sesion.SoloNoPunteados) { _sesion.FiltrarNoPunteados(value); Avisar(nameof(SoloNoPunteados)); Refrescar(); } }
+    }
+
+    private static IReadOnlyList<int> Apuntes(IEnumerable<FilaMayorVM> filas) => filas.SelectMany(f => f.Fila.IdsApunte).Distinct().ToList();
+
+    /// <summary>Puntea (o despuntea) los apuntes de las filas; también en automáticos y en ejercicios cerrados.</summary>
+    public async Task PuntearAsync(IReadOnlyList<FilaMayorVM> filas, bool punteado)
+    {
+        if (!PuedeEscribir || filas.Count == 0) return;
+        var ids = Apuntes(filas);
+        if (await Escribir(punteado ? "No he podido puntear" : "No he podido quitar el punteo", () => _ctx.Motor!.PuntearApuntesAsync(ids, punteado, _ctx.Actor!), catalogo: false,
+                recargar: false))
+        {
+            // El punteo no cambia importes: se aplica sobre lo ya leído, sin volver a cargar la vista.
+            _sesion.AplicarPunteo(ids, punteado);
+            Refrescar();
+            _avisar($"{Formatos.Plural(ids.Count, "apunte", "apuntes")} {(punteado ? "punteado" : "sin puntear")}{(ids.Count == 1 ? "" : "s")}.");
+        }
+    }
+
+    /// <summary>Pone el número de factura a los apuntes de las filas (también en automáticos y cerrados; se conserva al regenerar el lote).</summary>
+    public async Task AsignarNumeroAsync(IReadOnlyList<FilaMayorVM> filas)
+    {
+        if (!PuedeEscribir || filas.Count == 0) return;
+        var ids = Apuntes(filas);
+        // Si solo una fila tiene número, ese número pasa a las demás sin preguntar (propietario, 2026-11-12).
+        var conNumero = filas.Where(f => !string.IsNullOrWhiteSpace(f.Fila.Documento)).ToList();
+        var numeros = conNumero.Select(f => f.Fila.Documento!.Trim()).Distinct(StringComparer.Ordinal).ToList();
+        if (filas.Count > 1 && conNumero.Count == 1)
+        {
+            var origen = conNumero[0];
+            var motivoCopia = $"Mismo número que el apunte {origen.Fila.Orden} del asiento {origen.Fila.IdAsiento}";
+            if (await Escribir("No he podido poner el número de factura", () => _ctx.Motor!.AsignarNumeroDocumentoAsync(ids, numeros[0], _ctx.Actor!, motivoCopia), catalogo: false))
+                _avisar($"Factura {numeros[0]} en {Formatos.Plural(ids.Count, "apunte", "apuntes")}.");
+            return;
+        }
+        var propuesto = numeros.FirstOrDefault(n => !n.StartsWith("0000", StringComparison.Ordinal));
+        var actuales = filas.Select(f => f.Fila.Documento?.Trim() ?? "").Distinct().ToList();
+        var asientos = filas.SelectMany(f => f.Fila.IdsAsiento).Distinct().Count();
+        var explicacion = $"Pondrás este número de factura en {Formatos.Plural(ids.Count, "apunte", "apuntes")} de {Formatos.Plural(asientos, "asiento", "asientos")}" +
+                          (actuales.Count > 1 ? $", que ahora tienen {actuales.Count} números distintos." : actuales[0].Length > 0 ? $", que ahora tienen el {actuales[0]}." : ", que ahora no tienen número.") +
+                          " Así se agrupan con su factura en las vistas Compacto y Solo pendientes. En los asientos automáticos también se puede, y se conserva si se regenera el asiento.";
+        if (_dialogos.PedirTexto("Asignar número de factura", explicacion, "Número de factura", propuesto, 100, pideMotivo: true, valorObligatorio: false) is not { } r) return;
+        if (await Escribir("No he podido poner el número de factura", () => _ctx.Motor!.AsignarNumeroDocumentoAsync(ids, r.Valor, _ctx.Actor!, r.Motivo), catalogo: false))
+            _avisar(r.Valor.Length == 0 ? $"Número de factura quitado de {Formatos.Plural(ids.Count, "apunte", "apuntes")}." : $"Factura {r.Valor} en {Formatos.Plural(ids.Count, "apunte", "apuntes")}.");
+    }
+
+    /// <summary>Cambia el concepto de los apuntes de las filas (solo manuales y en periodos abiertos).</summary>
+    public async Task CambiarConceptoAsync(IReadOnlyList<FilaMayorVM> filas)
+    {
+        if (!PuedeEscribir || filas.Count == 0) return;
+        if (filas.Any(f => f.Fila.EsAutomatico)) { _dialogos.Error("No se puede cambiar el concepto", MotivoAutomatico); return; }
+        var ids = Apuntes(filas);
+        var actuales = filas.Select(f => f.Fila.Concepto).Distinct().ToList();
+        if (_dialogos.PedirTexto("Cambiar el concepto", $"Nuevo concepto para {Formatos.Plural(ids.Count, "apunte", "apuntes")}. Vacío: el apunte usará el concepto de su asiento.",
+                "Concepto", actuales.Count == 1 ? actuales[0] : null, 255, pideMotivo: true, valorObligatorio: false) is not { } r) return;
+        if (await Escribir("No he podido cambiar el concepto", () => _ctx.Motor!.CambiarConceptoApuntesAsync(ids, r.Valor, _ctx.Actor!, r.Motivo), catalogo: false))
+            _avisar($"Concepto cambiado en {Formatos.Plural(ids.Count, "apunte", "apuntes")}.");
+    }
+
+    /// <summary>Cambia la subcuenta de los apuntes de las filas (solo manuales), eligiéndola en el selector.</summary>
+    public Task CambiarCuentaAsync(IReadOnlyList<FilaMayorVM> filas) =>
+        CambiarCuentaDe(filas, f => f.Fila.IdsApunte, "Cambiar la subcuenta del apunte", "la subcuenta");
+
+    /// <summary>Cambia la cuenta de la contrapartida de una fila (sus líneas de esa cuenta), eligiéndola en el selector.</summary>
+    public Task CambiarContrapartidaAsync(FilaMayorVM fila) =>
+        CambiarCuentaDe([fila], f => f.Fila.IdsApunteContrapartida, "Cambiar la contrapartida", "la contrapartida");
+
+    public const string MotivoAutomatico = "Hay apuntes de asientos automáticos (facturas, importaciones…): su concepto y su cuenta se cambian en el documento de origen, " +
+                                           "porque al regenerar su asiento el cambio se perdería. Sí puedes puntearlos y ponerles número de factura.";
+
+    private async Task CambiarCuentaDe(IReadOnlyList<FilaMayorVM> filas, Func<FilaMayorVM, IReadOnlyList<int>> ids, string titulo, string que)
+    {
+        if (!PuedeEscribir || filas.Count == 0) return;
+        if (filas.Any(f => f.Fila.EsAutomatico)) { _dialogos.Error($"No se puede cambiar {que}", MotivoAutomatico); return; }
+        var porEjercicio = filas.GroupBy(f => _sesion.Elegidos.First(e => e.IdSociedadEjercicio == f.Fila.IdSociedadEjercicio))
+            .Select(g => (Ejercicio: g.Key, Ids: g.SelectMany(ids).Distinct().ToList())).Where(x => x.Ids.Count > 0).ToList();
+        if (porEjercicio.Count == 0) { _dialogos.Error($"No se puede cambiar {que}", "La fila no tiene una contrapartida única: ábrela con «Ver asiento» y cambia la línea que quieras desde el diario."); return; }
+        var selector = NuevoSelector();
+        selector.SoloSubcuentas = true;
+        var codigo = _dialogos.ElegirCuenta(selector, $"{titulo}: elige la subcuenta nueva");
+        if (codigo is null) return;
+        if (!SelectorCuentasMayor.EsExacta(codigo, _sesion.Catalogo)) { _dialogos.Error("Elige una subcuenta", $"{codigo} es un código de grupo: los apuntes van siempre a una subcuenta que admite apuntes."); return; }
+        var n = porEjercicio.Sum(x => x.Ids.Count);
+        var motivo = _dialogos.PedirMotivo(titulo, $"Pasarás {Formatos.Plural(n, "apunte", "apuntes")} a la cuenta {codigo} {_sesion.Nombre(codigo)}. El cambio queda en el historial del apunte con su motivo.");
+        if (motivo is null) return;
+        var bien = true;
+        foreach (var (ej, lista) in porEjercicio)
+        {
+            var contexto = new ProConta.Nucleo.Contexto.ContextoSociedadEjercicio(_ctx.IdSociedad, ej.IdSociedadEjercicio, ej.Ejercicio);
+            bien &= await Escribir($"No he podido cambiar {que}", () => _ctx.Motor!.CambiarCuentaApuntesAsync(contexto, lista, codigo, _ctx.Actor!, motivo), catalogo: true);
+            if (!bien) break;
+        }
+        if (bien) _avisar($"{Formatos.Plural(n, "apunte pasado", "apuntes pasados")} a la cuenta {codigo}.");
+    }
+
+    // ---------- cuadre (pie de la pantalla, solo el ejercicio de trabajo) ----------
+
+    private EstadoCuadre EstadoCuadreActual => _sesion.Cuentas.Count == 0 ? EstadoCuadre.SinMovimientos : _sesion.CuadreDeLaVista().Estado;
+
+    /// <summary>Estado para el color del pie: «verde», «ambar», «rojo» o vacío.</summary>
+    public string ColorCuadre => EstadoCuadreActual switch { EstadoCuadre.Cuadrada => "verde", EstadoCuadre.EnCurso => "ambar", EstadoCuadre.SinCuadrar => "rojo", _ => "" };
+
+    /// <summary>Texto del pie: la primera línea de las notas del cuadre, «Sin cuadrar», o el resumen de un mayor combinado.</summary>
+    public string TextoCuadre
+    {
+        get
+        {
+            if (_sesion.Cuentas.Count == 0 || _sesion.Trabajo is null) return "";
+            var (cuenta, estado, resumen) = _sesion.CuadreDeLaVista();
+            if (cuenta is null) return estado == EstadoCuadre.SinMovimientos ? "" : $"Cuadre {_sesion.Trabajo.Ejercicio}: {resumen}";
+            var primera = cuenta.Notas?.Split('\n').Select(x => x.Trim()).FirstOrDefault(x => x.Length > 0);
+            var prefijo = $"Cuadre {_sesion.Trabajo.Ejercicio} · {CuadresMayor.Texto(estado == EstadoCuadre.SinMovimientos ? EstadoCuadre.SinCuadrar : estado).ToLowerInvariant()}";
+            return primera is null ? prefijo : $"{prefijo}: {primera}" + (cuenta.Aviso is null ? "" : " · el saldo ha cambiado");
+        }
+    }
+
+    public string? AyudaCuadre
+    {
+        get
+        {
+            if (_sesion.Cuentas.Count == 0) return null;
+            var (cuenta, _, resumen) = _sesion.CuadreDeLaVista();
+            var accion = PuedeEditarCuadre ? "Clic: ver o cambiar el cuadre de la cuenta" : "Para cambiar el cuadre, abre una sola subcuenta";
+            return (resumen ?? (cuenta is null ? "" : $"Sin cuadrar en {_sesion.Trabajo?.Ejercicio}")) + Environment.NewLine + accion;
+        }
+    }
+
+    /// <summary>El cuadre se edita con una sola subcuenta en la vista.</summary>
+    public bool PuedeEditarCuadre => PuedeEscribir && _sesion.Trabajo is not null && _sesion.CuadreDeLaVista().Cuenta is not null;
+
+    /// <summary>Abre el diálogo de cuadre de la cuenta de la vista (casilla «Cuenta cuadrada» y notas) y lo guarda.</summary>
+    public async Task EditarCuadreAsync()
+    {
+        if (!PuedeEditarCuadre || _sesion.CuadreDeLaVista().Cuenta is not { } v) return;
+        var cuenta = v.Cuenta;
+        var info = new List<string> { $"Saldo en {_sesion.Trabajo!.Ejercicio}: {Formatos.Importe(v.Saldo)}" };
+        if (v.Aviso is not null) info.Add(v.Aviso);
+        if (v.Registro is { } r) info.Add($"Última modificación: {r.FechaHora:dd/MM/yyyy HH:mm} por {r.Operador}");
+        if (v.Heredadas) info.Add("Las notas vienen del ejercicio anterior: se guardan en este al aceptar.");
+        var resultado = _dialogos.EditarCuadre($"{cuenta} {_sesion.Nombre(cuenta)}", v.Registro?.Cuadrada == true && v.Aviso is null, v.Notas, string.Join(Environment.NewLine, info));
+        if (resultado is null) return;
+        try
+        {
+            await _sesion.GuardarCuadreAsync(cuenta, resultado.Value.Cuadrada, resultado.Value.Notas, _ctx.Actor!.Nombre, DateTime.Now);
+            _avisar(resultado.Value.Cuadrada ? $"{cuenta} cuadrada en {_sesion.Trabajo.Ejercicio}." : $"Cuadre de {cuenta} guardado.");
+            AvisarCuadre();
+        }
+        catch (Exception ex) { _dialogos.Error("No he podido guardar el cuadre", $"La base de datos ha respondido: {ex.Message} Vuelve a intentarlo en un momento."); }
+    }
+
+    private void AvisarCuadre() => Avisar(nameof(TextoCuadre), nameof(AyudaCuadre), nameof(ColorCuadre), nameof(PuedeEditarCuadre));
+
+    /// <summary>Hace un cambio por el motor y, si sale bien, vuelve a leer la vista (y el selector si cambian saldos); si no, explica por qué.</summary>
+    private async Task<bool> Escribir(string titulo, Func<Task<ProConta.Nucleo.Resultados.Resultado<Guid>>> cambio, bool catalogo, bool recargar = true)
+    {
+        try
+        {
+            var r = await cambio();
+            if (!r.EsCorrecto)
+            {
+                _dialogos.Error(titulo, string.Join(Environment.NewLine + Environment.NewLine, r.Errores.Select(e => e.TextoOperador())));
+                return false;
+            }
+        }
+        catch (Exception ex)
+        {
+            _dialogos.Error(titulo, $"La base de datos ha respondido: {ex.Message} No se ha guardado nada. Vuelve a cargar la vista (F5) y repite el cambio.");
+            return false;
+        }
+        if (!recargar) return true;
+        await Ejecutar(async () =>
+        {
+            if (catalogo) await _sesion.RefrescarCatalogoAsync();
+            await _sesion.CargarAsync();
+        });
+        return true;
     }
 
     /// <summary>Texto que describe la vista para imprimir o exportar: cuentas, ejercicios, vista y filtros.</summary>
