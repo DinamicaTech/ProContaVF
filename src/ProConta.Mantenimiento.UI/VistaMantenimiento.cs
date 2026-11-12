@@ -419,10 +419,41 @@ public sealed class VistaMantenimiento : UserControl
         System.Windows.Automation.AutomationProperties.SetName(control, c.Definicion.Etiqueta);
         _controles[c.Clave] = control;
         bloque.Children.Add(etiqueta);
-        bloque.Children.Add(control);
+        if (c.EsCuenta && control is TextBox cuenta)
+            bloque.Children.Add(CampoCuenta(c, cuenta));
+        else
+            bloque.Children.Add(control);
         if (c.Bloqueo is string motivo)
             bloque.Children.Add(new TextBlock { Text = motivo, FontSize = (double)FindResource("Letra.Pequena"), Foreground = (Brush)FindResource("Pincel.Apagado"), TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 2, 0, 0) });
         return bloque;
+    }
+
+    /// <summary>
+    /// Campo de cuenta (plataforma/mantenimiento 2026-11-12): no se escribe; la cuenta se elige siempre en el buscador de
+    /// cuentas del ejercicio, con «Crear subcuenta». Lo abren la lupa, el clic en el campo, Intro, Espacio y F4; Supr lo vacía.
+    /// </summary>
+    private FrameworkElement CampoCuenta(CampoEdicionVM c, TextBox texto)
+    {
+        var buscar = new Button { Style = (Style)FindResource("Boton.Icono"), Margin = new Thickness(4, 0, 0, 0), Command = c.BuscarCuentaCommand, Focusable = false };
+        Iconos.SetIcono(buscar, (Geometry)FindResource("Icono.search"));
+        buscar.SetBinding(ToolTipProperty, nameof(CampoEdicionVM.AyudaBuscarCuenta));
+        System.Windows.Automation.AutomationProperties.SetName(buscar, $"Buscar {c.Definicion.Etiqueta}");
+        DockPanel.SetDock(buscar, Dock.Right);
+        texto.IsReadOnly = true;
+        if (c.PuedeBuscarCuenta)
+        {
+            texto.Cursor = Cursors.Hand;
+            texto.PreviewMouseLeftButtonUp += (_, e) => { e.Handled = true; _ = c.BuscarCuentaAsync(); };
+            texto.PreviewKeyDown += (_, e) =>
+            {
+                if (e.Key is Key.F4 or Key.Enter or Key.Space) { e.Handled = true; _ = c.BuscarCuentaAsync(); }
+                else if (e.Key is Key.Delete or Key.Back) { e.Handled = true; c.VaciarCuenta(); }
+            };
+        }
+        var fila = new DockPanel { LastChildFill = true };
+        fila.Children.Add(buscar);
+        fila.Children.Add(texto);
+        return fila;
     }
 
     private void EnfocarPrimerCampo()

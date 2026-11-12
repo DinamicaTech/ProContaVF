@@ -196,7 +196,7 @@ public sealed class ProveedorTextosClaveCompra(CatalogoTextosClaveCompra catalog
     [
         new("Texto", "Texto clave") { Obligatorio = true, Longitud = ReglasTextosClave.LongitudMaxima, Ancho = "l",
             Ayuda = "Se busca sin distinguir mayúsculas ni acentos. Si coinciden varios textos, gana el más largo; si empatan, no se asigna nada y la factura avisa." },
-        new("Cuenta", "Cuenta de gasto", TipoCampo.Cuenta) { Longitud = 30, Ancho = "s", Sinonimos = ["cuenta", "gasto", "6"],
+        new("Cuenta", "Cuenta de gasto", TipoCampo.Cuenta) { Longitud = 30, Ancho = "s", Sinonimos = ["cuenta", "gasto", "6"], GruposCuenta = Facturas.FacturaCompra.GruposCuentaGasto,
             Ayuda = "Subcuenta del ejercicio de trabajo. Se guarda su identidad contable, así vale en los demás ejercicios aunque cambie el código. Vacía, el texto no asigna cuenta." },
         new("NombreCuenta", "Nombre de la cuenta") { Ayuda = "Nombre de la cuenta de gasto en el ejercicio de trabajo, para comprobar que es la buena. Se rellena solo.", SoloLectura = true, Ancho = "l" },
         new("IdCentroCoste", "Centro de coste", TipoCampo.Lista) { Opciones = _centros, Ancho = "l", Ayuda = "Vacío, el texto no asigna centro de coste." },

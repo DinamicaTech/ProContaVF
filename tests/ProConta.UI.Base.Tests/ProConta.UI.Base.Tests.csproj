@@ -14,5 +14,6 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\src\ProConta.UI.Base\ProConta.UI.Base.csproj" />
+    <ProjectReference Include="..\..\src\ProConta.Mantenimiento.UI\ProConta.Mantenimiento.UI.csproj" />
   </ItemGroup>
 </Project>
