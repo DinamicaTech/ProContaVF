@@ -1,5 +1,6 @@
+using System.IO;
 using FastReport;
-using FastReport.Export.PdfSimple;
+using FastReport.Export.Html;
 
 namespace ProConta.Informes;
 
@@ -46,8 +47,9 @@ public interface IGeneradorPdfFactura
 /// <summary>
 /// Generador con FastReport (informes/reporting): las plantillas .frx de la carpeta Plantillas junto al programa se pueden
 /// editar con FastReport Designer sin recompilar, y solo reciben el modelo: nunca leen Access ni calculan importes.
+/// FastReport prepara y pagina el informe, lo exporta a HTML y WebView2 lo pasa a PDF con texto real (2026-11-12 15:19).
 /// </summary>
-public sealed class GeneradorPdfFastReport(string? carpetaPlantillas = null) : IGeneradorPdfFactura
+public sealed class GeneradorPdfFastReport(string? carpetaPlantillas = null, ConversorHtmlPdf? conversor = null) : IGeneradorPdfFactura
 {
     private readonly string _carpeta = carpetaPlantillas ?? Path.Combine(AppContext.BaseDirectory, "Plantillas");
 
@@ -62,9 +64,29 @@ public sealed class GeneradorPdfFastReport(string? carpetaPlantillas = null) : I
         informe.RegisterData(resumen.ToList(), "Resumen");
         foreach (var fuente in new[] { "Factura", "Lineas", "Resumen" }) informe.GetDataSource(fuente).Enabled = true;
         informe.Prepare();
+        return MotorPdf.Generar(informe, conversor ?? ConversorHtmlPdf.Compartido);
+    }
+}
+
+/// <summary>Motor PDF único de los informes: un informe de FastReport ya preparado › HTML › PDF con WebView2.</summary>
+public static class MotorPdf
+{
+    /// <summary>Exporta el informe preparado a una sola página HTML (capas e imágenes incrustadas) y la convierte en PDF.</summary>
+    public static byte[] Generar(Report informe, ConversorHtmlPdf conversor) => conversor.Convertir(Html(informe), Pagina(informe));
+
+    /// <summary>El HTML tal como lo exporta FastReport, con las imágenes incrustadas (sirve también de salida HTML).</summary>
+    public static string Html(Report informe)
+    {
+        using var html = new HTMLExport { SinglePage = true, Navigator = false, EmbedPictures = true, Layers = true, SubFolder = false, Wysiwyg = true, Print = false };
         using var salida = new MemoryStream();
-        using var pdf = new PDFSimpleExport();
-        informe.Export(pdf, salida);
-        return salida.ToArray();
+        informe.Export(html, salida);
+        return System.Text.Encoding.UTF8.GetString(salida.ToArray());
+    }
+
+    /// <summary>Tamaño y márgenes de la primera página de la plantilla, en milímetros.</summary>
+    public static PaginaPdf Pagina(Report informe)
+    {
+        var p = informe.Pages.OfType<ReportPage>().FirstOrDefault() ?? throw new InvalidOperationException("La plantilla no tiene ninguna página.");
+        return new PaginaPdf(p.PaperWidth, p.PaperHeight, p.TopMargin, p.RightMargin, p.BottomMargin, p.LeftMargin);
     }
 }

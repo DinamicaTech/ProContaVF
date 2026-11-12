@@ -40,6 +40,6 @@ Motor común que valida y guarda asientos como agregado atómico con cuadre, aud
 
 - 2026-11-11 20:30 · Derived from contabilidad/mayor: puntear y poner número de factura en cualquier apunte (también automáticos y periodos cerrados), cambiar el concepto de los manuales y conservar punteo y número al regenerar el lote.
 - 2026-11-12 11:15 · Derived from contabilidad/plantillas-asiento: guardar la plantilla con la que se creó un asiento y la relación entre el asiento de origen y su corrección, y grabar en una transacción los varios asientos que propone una plantilla con un IdLote común.
-
+- 2026-11-12 16:20 · Derived from informes: proveedor de filas del Diario (apuntes contabilizados del ejercicio, por fechas) para el catálogo de informes.
 ## Hand-over
 - 2026-10-31 19:15 · Hecho: motor, migración y 10 pruebas (reglas y cuadre sin BD; desequilibrado no persiste, alta y modificación con motivo, revisión, registro y saldos, conflicto de versión, ejercicio cerrado, cuentas y centros no válidos, lote regenerado sin duplicar y atómico, automático rechaza edición manual, cambio de cuenta masivo con un IdLote, borrado). Pendiente: anulación y rectificación (las ofrecerá contabilidad/plantillas-asiento sobre este motor), relaciones entre asientos (RelacionesAsientos), periodos protegidos además del ejercicio cerrado, la vía interna de cierre y reapertura (contabilidad/procesos) y la consulta del mayor (contabilidad/mayor).
