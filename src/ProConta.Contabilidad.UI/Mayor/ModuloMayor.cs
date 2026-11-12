@@ -46,6 +46,29 @@ public sealed class PestanaMayor : IPestanaTrabajo
 public sealed class ModuloMayor(ContextoMayor contexto, IAnfitrionPestanas anfitrion, IDialogosMayor dialogos)
 {
     private PestanaMayor? _pestana;
+    private Asientos.ModuloAsientos? _asientos;
+
+    /// <summary>
+    /// Pantalla de asiento manual para «Nuevo asiento manual…», «Asistente de corrección…» y «Modificar el asiento…» del menú del Mayor;
+    /// después de guardar, el Mayor abierto se refresca.
+    /// </summary>
+    public Asientos.ModuloAsientos? Asientos
+    {
+        get => _asientos;
+        set
+        {
+            _asientos = value;
+            if (value is not null) value.Guardado += ids => { if (_pestana is not null) _ = _pestana.Modelo.RefrescarAsync(); };
+        }
+    }
+
+    private void Conectar(MayorVM vm)
+    {
+        if (_asientos is not { } a) return;
+        vm.NuevoAsiento = (cuenta, importe) => _ = a.AbrirNuevoAsync(cuenta, importe);
+        vm.AsistenteCorreccion = id => _ = a.AbrirCorreccionAsync(id);
+        vm.ModificarAsiento = id => _ = a.AbrirModificarAsync(id);
+    }
 
     /// <summary>Abre la pestaña del Mayor (vacía o con unas cuentas).</summary>
     public void Abrir(IReadOnlyList<string>? cuentas = null)
@@ -53,6 +76,7 @@ public sealed class ModuloMayor(ContextoMayor contexto, IAnfitrionPestanas anfit
         if (_pestana is null)
         {
             var vm = new MayorVM(contexto, dialogos, anfitrion.Avisar);
+            Conectar(vm);
             _pestana = new PestanaMayor(vm, () => _pestana = null);
             anfitrion.Abrir(_pestana);
         }
@@ -81,6 +105,7 @@ public sealed class ModuloMayor(ContextoMayor contexto, IAnfitrionPestanas anfit
             AbrirEnMayor = c => Abrir(c),
             BuscarEnMayor = BuscarFacturas,
         };
+        Conectar(vm);
         return new PantallaMayor { DataContext = vm };
     }
 }

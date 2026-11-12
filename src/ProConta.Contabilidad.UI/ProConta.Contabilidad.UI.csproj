@@ -13,5 +13,6 @@
   </ItemGroup>
   <ItemGroup>
     <InternalsVisibleTo Include="ProConta.Compras.UI.Tests" />
+    <InternalsVisibleTo Include="ProConta.Contabilidad.UI.Tests" />
   </ItemGroup>
 </Project>

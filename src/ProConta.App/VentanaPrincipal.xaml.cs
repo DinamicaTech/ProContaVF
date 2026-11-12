@@ -65,6 +65,7 @@ public partial class VentanaPrincipal : Window
     private readonly AreaTrabajo _area;
     private readonly ModuloTerceros _terceros;
     private readonly ProConta.Contabilidad.UI.Mayor.ModuloMayor _mayor;
+    private readonly ProConta.Contabilidad.UI.Asientos.ModuloAsientos _asientos;
     private readonly ModuloFacturacion _facturacion;
     private readonly ModuloCompras _compras;
     private readonly ModuloCorreo _correo;
@@ -115,6 +116,11 @@ public partial class VentanaPrincipal : Window
                 new MotorAsientosAccess(bd), new Actor(sesion.NombreOperador)),
             _area, new ProConta.Contabilidad.UI.Mayor.DialogosMayor(() => this));
         _terceros.MayorEmbebido = cuentas => _mayor.CrearEmbebido(cuentas);
+        // Asiento manual (contabilidad/pantallas y contabilidad/plantillas-asiento): nuevo, asistente de corrección y modificar, desde el menú y el Mayor.
+        _asientos = new ProConta.Contabilidad.UI.Asientos.ModuloAsientos(
+            () => new ProConta.Contabilidad.UI.Asientos.FuenteAsientoManualAccess(bd, contexto.Contexto, new Actor(sesion.NombreOperador)), _area,
+            new ProConta.Contabilidad.UI.Asientos.DialogosAsiento(cuentas, new CatalogoCentrosCosteAccess(bd), contexto.Contexto, () => this));
+        _mayor.Asientos = _asientos;
 
         // Facturación de venta (facturacion/pantallas) y Parámetros y tablas (plataforma/mantenimiento).
         var roles = new ServicioRoles(bd, cuentas);
@@ -230,6 +236,9 @@ public partial class VentanaPrincipal : Window
             new OpcionNavegacion("Mayor", null, true, false,
                 "Mayor de una o varias cuentas (o de un código corto) en los ejercicios que elijas: vistas Normal, Compacto, Solo pendientes y Agrupar 700, filtros, asiento e historial de cada apunte",
                 abrirMayor, EsHija: true),
+            new OpcionNavegacion("Asiento manual", null, true, false,
+                "Asiento nuevo hecho a mano o desde una plantilla, con su vista previa; para corregir un apunte, ábrelo desde el Mayor con «Asistente de corrección…»",
+                new ComandoDelegado(() => _ = _asientos.AbrirNuevoAsync()), EsHija: true),
             new OpcionNavegacion("Bancos", Icono("bank"), false, false, proxima),
             new OpcionNavegacion("Nóminas", Icono("coin"), false, false, proxima),
             new OpcionNavegacion("Informes", Icono("xls"), true, false, "Informes del ejercicio de trabajo en Excel, con tabla dinámica", balanceSituacion),

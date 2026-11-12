@@ -211,8 +211,27 @@ public partial class PantallaMayor : UserControl
             porQueNoCambiar is null && contrapartida,
             porQueNoCambiar ?? (una is null ? "Elige una sola fila" : "Esta fila no tiene una contrapartida única: ábrela con «Ver asiento»")));
         menu.Items.Add(new Separator());
-        menu.Items.Add(Proxima("Nuevo asiento manual…", "Icono.plus", "Llega con el diario de asientos (pantallas de contabilidad): abrirá un asiento nuevo con la cuenta y el importe de la selección"));
-        menu.Items.Add(Proxima("Asistente de corrección…", "Icono.wand", "Llega con las plantillas de asiento: propondrá el asiento de corrección (inverso, contra-apunte, cambio de cuenta…) con su IVA"));
+        var cuentasSel = sel.Select(f => f.Cuenta).Distinct().ToList();
+        var importeSel = sel.Sum(f => f.Debe - f.Haber);
+        menu.Items.Add(Opcion("Nuevo asiento manual…", "Icono.plus", () => _vm.NuevoAsiento!(cuentasSel.Count == 1 ? cuentasSel[0] : null, importeSel), null,
+            cuentasSel.Count == 1
+                ? $"Abre un asiento nuevo con la cuenta {cuentasSel[0]} y {Formatos.Importe(Math.Abs(importeSel))} al lado contrario, para dejar a cero la selección; añade la contrapartida"
+                : "Abre un asiento nuevo con el importe de la selección; elige tú las cuentas",
+            escribe && _vm.NuevoAsiento is not null, !escribe ? soloConsulta : "Esta pantalla no puede crear asientos"));
+        var unApunte = una is not null && una.Fila.NumeroApuntes == 1;
+        menu.Items.Add(Opcion("Asistente de corrección…", "Icono.wand", () => _vm.AsistenteCorreccion!(una!.Fila.IdsApunte[0]), null,
+            "Propone el asiento que corrige este apunte con una plantilla (anular, rehacer con otra cuenta, pasar saldo, ajustar contra la 113, pagar por tesorería o por un socio), con su vista previa",
+            escribe && unApunte && _vm.AsistenteCorreccion is not null,
+            !escribe ? soloConsulta : una is null ? "Elige una sola fila" : !unApunte ? "Esta fila resume varios apuntes: pasa a la vista Normal y elige uno" : "Esta pantalla no puede crear asientos"));
+        var modificable = una is not null && !una.Fila.EsAutomatico && !una.Fila.EjercicioCerrado && una.Fila.Ejercicio == _vm.EjercicioTrabajo;
+        menu.Items.Add(Opcion("Modificar el asiento…", "Icono.edit", () => _vm.ModificarAsiento!(una!.Asiento), null,
+            "Abre el asiento de esta fila en la pantalla de asiento manual para cambiarlo, con su motivo en el historial",
+            escribe && modificable && _vm.ModificarAsiento is not null,
+            !escribe ? soloConsulta : una is null ? "Elige una sola fila"
+            : una.Fila.EsAutomatico ? MayorVM.MotivoAutomatico
+            : una.Fila.EjercicioCerrado ? "El asiento es de un ejercicio cerrado: solo se consulta"
+            : una.Fila.Ejercicio != _vm.EjercicioTrabajo ? $"El asiento es del ejercicio {una.Fila.Ejercicio}: cámbialo con ese ejercicio de trabajo, o corrígelo aquí con «Asistente de corrección…»"
+            : "Esta pantalla no puede modificar asientos"));
         menu.Items.Add(new Separator());
         menu.Items.Add(Opcion("Quitar de la vista", "Icono.hide", () => _vm.Quitar(sel), "Supr",
             "Quita las filas solo de la vista (no se borra nada) y recalcula el saldo; se recuperan quitando la etiqueta"));
