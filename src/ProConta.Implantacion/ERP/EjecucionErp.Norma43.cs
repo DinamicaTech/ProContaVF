@@ -172,7 +172,11 @@ internal sealed partial class EjecucionErp
 
     private static decimal ImporteLinea(Fila l) => l.D("ImporteEuros") ?? ReglasErp.ImporteN43(l.T("Importe")) ?? 0m;
 
-    private static DateTime? LineaFecha(Fila l) => l.F("Fecha") ?? ReglasErp.FechaN43(l.T("FechaOperacion"));
+    /// <summary>
+    /// Fecha de operación de la línea: la del registro 22 (FechaOperacion, AAMMDD). El campo Fecha del ERP es la fecha valor
+    /// (en las 641 líneas de la copia del ERP con fechas distintas coincide siempre con FechaValor), así que solo se usa si falta.
+    /// </summary>
+    private static DateTime? LineaFecha(Fila l) => ReglasErp.FechaN43(l.T("FechaOperacion")) ?? l.F("Fecha");
 
     /// <summary>Cuentas de origen: N43EntidadesBancarias → CuentasBancarias y su configuración contable (572, 555 puente y 555 split).</summary>
     private async Task<Dictionary<(string, string, string), int>> CuentasBancariasAsync()
