@@ -6,4 +6,13 @@
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <NoWarn>$(NoWarn);CS1591;CS1573</NoWarn>
   </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\ProConta.Nucleo\ProConta.Nucleo.csproj" />
+    <ProjectReference Include="..\ProConta.Datos.Persistencia\ProConta.Datos.Persistencia.csproj" />
+    <ProjectReference Include="..\ProConta.Contabilidad\ProConta.Contabilidad.csproj" />
+    <ProjectReference Include="..\ProConta.Mantenimiento\ProConta.Mantenimiento.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="ProConta.Activos.Tests" />
+  </ItemGroup>
 </Project>

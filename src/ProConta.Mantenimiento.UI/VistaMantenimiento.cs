@@ -301,6 +301,12 @@ public sealed class VistaMantenimiento : UserControl
             var b = new Button { Content = a.Texto, ToolTip = a.Ayuda, Margin = new Thickness(8, 0, 0, 0), Command = _vm.AccionCommand, CommandParameter = a.Clave, Style = (Style)FindResource("Boton.Pequeno") };
             _acciones.Children.Add(b);
         }
+        // Las acciones sobre el registro también van en el menú contextual de la lista (criterio de UI del propietario 2026-11-05).
+        if (_vm.Acciones.Count == 0) { _tabla.ContextMenu = null; return; }
+        var menu = new ContextMenu();
+        foreach (var a in _vm.Acciones)
+            menu.Items.Add(new MenuItem { Header = a.Texto, ToolTip = a.Ayuda, Command = _vm.AccionCommand, CommandParameter = a.Clave });
+        _tabla.ContextMenu = menu;
     }
 
     private void ProgramarReconstruccion()
@@ -353,6 +359,12 @@ public sealed class VistaMantenimiento : UserControl
                 var combo = new ComboBox { ItemsSource = c.Opciones, DisplayMemberPath = nameof(OpcionCampo.Texto), IsEnabled = !c.SoloLectura };
                 combo.SetBinding(System.Windows.Controls.Primitives.Selector.SelectedItemProperty, new Binding(nameof(CampoEdicionVM.Opcion)) { Mode = BindingMode.TwoWay, ValidatesOnNotifyDataErrors = true });
                 control = combo;
+                break;
+            case TipoCampo.ListaAbierta:
+                // Se elige una opción o se escribe una nueva: el texto pasa al modelo, que lo convierte en la opción que coincide.
+                var abierta = new ComboBox { ItemsSource = c.Opciones, DisplayMemberPath = nameof(OpcionCampo.Texto), IsEditable = true, IsTextSearchEnabled = true, IsEnabled = !c.SoloLectura };
+                abierta.SetBinding(ComboBox.TextProperty, new Binding(nameof(CampoEdicionVM.Texto)) { Mode = BindingMode.TwoWay, UpdateSourceTrigger = UpdateSourceTrigger.PropertyChanged, ValidatesOnNotifyDataErrors = true });
+                control = abierta;
                 break;
             default:
                 var estilo = c.Tipo switch

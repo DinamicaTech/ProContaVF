@@ -38,6 +38,12 @@ public enum TipoCampo
     Logico,
     /// <summary>Lista cerrada de <see cref="CampoMantenimiento.Opciones"/>.</summary>
     Lista,
+    /// <summary>
+    /// Lista abierta: se elige una de las <see cref="CampoMantenimiento.Opciones"/> o se escribe un texto nuevo. El valor es el de la
+    /// opción cuyo texto coincide con lo escrito (sin distinguir mayúsculas) o, si ninguna coincide, el texto escrito, y el
+    /// proveedor decide qué hacer con él (plataforma/mantenimiento 2026-11-12 11:45).
+    /// </summary>
+    ListaAbierta,
     /// <summary>Código de cuenta contable (se comprueba en el ejercicio de trabajo si el proveedor lo pide).</summary>
     Cuenta,
     Ruta,
@@ -77,11 +83,18 @@ public sealed record CampoMantenimiento(string Clave, string Etiqueta, TipoCampo
 /// <summary>Columna de la lista de registros.</summary>
 public sealed record ColumnaLista(string Clave, string Titulo, double Ancho = 0, bool Derecha = false);
 
-/// <summary>Acción propia de un proveedor sobre el registro activo (Duplicar, Ver uso…).</summary>
-public sealed record AccionMantenimiento(string Clave, string Texto, string Ayuda, bool Modifica = true);
+/// <summary>
+/// Acción propia de un proveedor sobre el registro activo (Duplicar, Ver uso…). Con <paramref name="ConPropuesta"/>, la pantalla
+/// pide antes la propuesta (<see cref="IProveedorMantenimiento.ProponerAsync"/>), la muestra y solo ejecuta si el operador confirma.
+/// </summary>
+public sealed record AccionMantenimiento(string Clave, string Texto, string Ayuda, bool Modifica = true, bool ConPropuesta = false);
 
 /// <summary>Resultado de una acción: un mensaje, el registro que hay que abrir (por ejemplo la copia) y un detalle opcional.</summary>
-public sealed record ResultadoAccion(string Mensaje, object? ClaveAbrir = null, IReadOnlyList<string>? Detalle = null);
+public sealed record ResultadoAccion(string Mensaje, object? ClaveAbrir = null, IReadOnlyList<string>? Detalle = null)
+{
+    /// <summary>En una propuesta: no hay nada que hacer, así que la pantalla solo informa y no pide confirmación.</summary>
+    public bool NadaQueHacer { get; init; }
+}
 
 public sealed record ErrorCampo(string? Campo, string Mensaje);
 
@@ -185,6 +198,11 @@ public interface IProveedorMantenimiento
     Task<Resultado<RegistroMantenimiento>> GuardarAsync(RegistroMantenimiento registro, ContextoMantenimiento contexto);
     Task<Resultado> EliminarAsync(RegistroMantenimiento registro, ContextoMantenimiento contexto);
     Task<Resultado<ResultadoAccion>> EjecutarAsync(string accion, RegistroMantenimiento registro, ContextoMantenimiento contexto);
+
+    /// <summary>Qué hará una acción con propuesta, sin cambiar nada: el mensaje y el detalle que confirma el operador.</summary>
+    Task<Resultado<ResultadoAccion>> ProponerAsync(string accion, RegistroMantenimiento registro, ContextoMantenimiento contexto) =>
+        Task.FromResult(Resultado<ResultadoAccion>.Correcto(new ResultadoAccion($"¿Ejecuto «{Acciones.FirstOrDefault(a => a.Clave == accion)?.Texto ?? accion}»?")));
+
     string TituloRegistro(RegistroMantenimiento registro);
     string? SubtituloRegistro(RegistroMantenimiento registro);
 }
@@ -222,6 +240,9 @@ public abstract class ProveedorBase : IProveedorMantenimiento
 
     public virtual Task<Resultado<ResultadoAccion>> EjecutarAsync(string accion, RegistroMantenimiento registro, ContextoMantenimiento contexto) =>
         Task.FromResult(Resultado<ResultadoAccion>.Fallo(new Error("Mantenimiento.AccionDesconocida", $"La acción «{accion}» no existe en {Titulo}.")));
+
+    public virtual Task<Resultado<ResultadoAccion>> ProponerAsync(string accion, RegistroMantenimiento registro, ContextoMantenimiento contexto) =>
+        Task.FromResult(Resultado<ResultadoAccion>.Correcto(new ResultadoAccion($"¿Ejecuto «{Acciones.FirstOrDefault(a => a.Clave == accion)?.Texto ?? accion}»?")));
 
     public virtual string TituloRegistro(RegistroMantenimiento r) =>
         r.EsNuevo ? $"Nuevo {NombreRegistro}" : r.Texto(Columnas.FirstOrDefault()?.Clave ?? "") ?? $"{NombreRegistro} {r.Clave}";
