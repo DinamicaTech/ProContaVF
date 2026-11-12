@@ -89,6 +89,7 @@ public static class CatalogoMigraciones
         MigracionesContabilidad.PunteoCuadreMayor,
         MigracionesActivos.Estructura,
         MigracionesContabilidad.PlantillasAsiento,
+        MigracionesNorma43.ReversionLotes,
     ];
 
     /// <summary>Versión del esquema que espera esta versión del programa.</summary>

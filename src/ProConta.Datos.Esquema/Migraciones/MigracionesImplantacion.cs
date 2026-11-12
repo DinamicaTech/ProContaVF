@@ -55,4 +55,19 @@ public static class MigracionesNorma43
         new CrearIndice("PalabrasClaveBancarias", "IX_PalabrasClaveBancarias_Sociedad",
             "CREATE INDEX IX_PalabrasClaveBancarias_Sociedad ON PalabrasClaveBancarias (IdSociedad, Entidad)"),
         new AnadirColumna("ImputacionesLineaExtractoBancario", "IdPalabraClaveBancaria", "LONG"));
+
+    /// <summary>
+    /// Reversión auditada de los lotes de extractos (norma43 2026-11-12): fecha y hora, operador y motivo, nulos mientras el
+    /// lote no se haya revertido (definición de la maestra de referencia, manifiesto 20260929_007). El índice por cuenta y
+    /// fecha de los extractos acelera la detección de movimientos ya importados.
+    /// </summary>
+    public static Migracion ReversionLotes { get; } = new(
+        "20261112_1700_REVERSION_LOTES_N43", 261112010,
+        "Norma 43: reversión auditada de los lotes importados y búsqueda de extractos por cuenta y fecha.",
+        "norma43",
+        new AnadirColumna("LotesImportacionBancaria", "FechaHoraReversion", "DATETIME"),
+        new AnadirColumna("LotesImportacionBancaria", "OperadorReversion", "TEXT(100)"),
+        new AnadirColumna("LotesImportacionBancaria", "MotivoReversion", "LONGTEXT"),
+        new CrearIndice("ExtractosBancarios", "IX_Extractos_CuentaFechas",
+            "CREATE INDEX IX_Extractos_CuentaFechas ON ExtractosBancarios (IdCuentaBancaria, FechaInicio, FechaFin)"));
 }
