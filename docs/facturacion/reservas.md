@@ -13,7 +13,7 @@ Modelo genérico de ventas registradas antes de facturar (nombre por decidir: Ve
 ## Decisions
 - 2026-10-28 13:30 · Creado en la carga inicial de requisitos.
 - 2026-10-31 16:54 · Este nodo se redefine como un modelo genérico de ventas registradas antes de facturar (nombre por decidir: VentasDiferidas, Albaranes, VentasExternas…), que se facturan y contabilizan después de forma masiva; las reservas de pisos turísticos son su caso principal. Lo que hace hoy la capa del accdb (factura por plataforma, mes y piso, una línea por reserva, sin IVA, solo meses cerrados) es la referencia, pero no se copia tal cual (resuelve P-07).
-- 2026-10-31 16:54 · El inmueble de cada venta se resuelve con un mapa explícito propio hasta que se formalicen los activos (creative-lab/activos).
+- 2026-10-31 16:54 · El inmueble de cada venta se resuelve con un mapa explícito propio hasta que se formalicen los activos (activos).
 
 ## Requirements
 - 2026-10-28 12:28 · From sources/01_ESPECIFICACION_FUNCIONAL.docx § 13 RF-RES-01..03: reservas de alojamiento
