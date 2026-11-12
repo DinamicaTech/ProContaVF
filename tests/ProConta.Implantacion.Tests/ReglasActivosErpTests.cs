@@ -52,10 +52,10 @@ public sealed class ReglasActivosErpTests
     }
 
     [Theory]
-    [InlineData(262900, 239000, 0.195, 51265.50)]   // coste de compra por el % de construcción
-    [InlineData(null, 6109, 1.0, 6109.00)]           // sin coste: el valor de compra
-    [InlineData(6640, 6640, null, 6640.00)]          // sin % de construcción: todo amortizable
-    [InlineData(1000, 1000, 1.5, 1000.00)]           // % fuera de 0–1: se ignora
+    [InlineData(262900.0, 239000.0, 0.195, 51265.50)]   // coste de compra por el % de construcción
+    [InlineData(null, 6109.0, 1.0, 6109.00)]           // sin coste: el valor de compra
+    [InlineData(6640.0, 6640.0, null, 6640.00)]          // sin % de construcción: todo amortizable
+    [InlineData(1000.0, 1000.0, 1.5, 1000.00)]           // % fuera de 0–1: se ignora
     public void La_base_amortizable_es_el_coste_por_el_porcentaje_de_construccion(double? coste, double? valor, double? pct, double esperado) =>
         Assert.Equal((decimal)esperado, EjecucionErp.BaseAmortizable((decimal?)coste, (decimal?)valor, (decimal?)pct));
 

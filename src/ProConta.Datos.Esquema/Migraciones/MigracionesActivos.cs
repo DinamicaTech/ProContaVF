@@ -5,6 +5,21 @@ namespace ProConta.Datos.Esquema.Migraciones;
 /// <summary>Migraciones pedidas por el nodo activos (docs/activos.md).</summary>
 public static class MigracionesActivos
 {
+    /// <summary>Tipos de activo según el PGC (activos, decisión 2026-11-12 09:47).</summary>
+    public static readonly (string Codigo, string Nombre, string Categoria)[] TiposPgc =
+    [
+        ("VIVIENDA", "Vivienda", "INMUEBLE"),
+        ("LOCAL", "Local", "INMUEBLE"),
+        ("PARKING", "Parking", "INMUEBLE"),
+        ("TURISTICO", "Piso turístico", "INMUEBLE"),
+        ("VEHICULO", "Vehículo", "MOVIL"),
+        ("INSTALACION", "Instalación técnica", "MATERIAL"),
+        ("APLICACION", "Aplicación informática", "INTANGIBLE"),
+    ];
+
+    /// <summary>Tipos heredados que los del PGC sustituyen: quedan inactivos (los activos antiguos los conservan).</summary>
+    public static readonly string[] TiposSustituidos = ["INMUEBLE", "TECNICO"];
+
     /// <summary>
     /// Fase 1 del módulo de activos (activos, decisiones 2026-11-11 18:21 y 2026-11-12 09:47 y 10:00):
     /// <list type="bullet">
@@ -69,21 +84,6 @@ public static class MigracionesActivos
         new AnadirColumna("PlanesAmortizacionActivo", "PorcentajeAnual", "DECIMAL(9,6)"),
         new CrearIndice("PlanesAmortizacionActivo", "IX_PlanesAmortizacionActivo_Activo",
             "CREATE INDEX IX_PlanesAmortizacionActivo_Activo ON PlanesAmortizacionActivo (IdActivo)"));
-
-    /// <summary>Tipos de activo según el PGC (activos, decisión 2026-11-12 09:47).</summary>
-    public static readonly (string Codigo, string Nombre, string Categoria)[] TiposPgc =
-    [
-        ("VIVIENDA", "Vivienda", "INMUEBLE"),
-        ("LOCAL", "Local", "INMUEBLE"),
-        ("PARKING", "Parking", "INMUEBLE"),
-        ("TURISTICO", "Piso turístico", "INMUEBLE"),
-        ("VEHICULO", "Vehículo", "MOVIL"),
-        ("INSTALACION", "Instalación técnica", "MATERIAL"),
-        ("APLICACION", "Aplicación informática", "INTANGIBLE"),
-    ];
-
-    /// <summary>Tipos heredados que los del PGC sustituyen: quedan inactivos (los activos antiguos los conservan).</summary>
-    public static readonly string[] TiposSustituidos = ["INMUEBLE", "TECNICO"];
 
     private static async Task<bool> TiposPgcCompletosAsync(ISesionDatos s)
     {
