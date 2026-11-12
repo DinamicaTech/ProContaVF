@@ -8,7 +8,7 @@ threads:
 ---
 ## Summary
 Módulo de activos de cada sociedad: inmuebles (vivienda, local, parking, piso turístico), vehículos, instalaciones técnicas y aplicaciones informáticas, cada uno con su centro de coste hoja propio, sus subcuentas generadas por plantilla, su plan de amortización y su baja o venta. Los activos ajenos a la sociedad (p. ej. el piso particular) son solo informativos. Las inversiones financieras (ETFs) quedan fuera, para una segunda fase en el laboratorio.
-Es un borrador: el diseño está acordado (Decisions 2026-11-11 18:21 y 2026-11-12 09:47 y 10:00) y se construye por fases (línea draft: en Requirements). Fase 1 (esquema y migración del ERP) hecha el 2026-11-12, pendiente de validar; código en `src/ProConta.Activos` (roles y tipos) y la migración `MigracionesActivos`. Salió del laboratorio (antes creative-lab/activos) el 2026-11-12.
+Es un borrador: el diseño está acordado (Decisions 2026-11-11 18:21 y 2026-11-12 09:47 y 10:00) y se construye por fases (línea draft: en Requirements). Fase 1 (esquema y migración del ERP) validada por el propietario el 2026-11-12 (PR #44); siguen las fases 2 a 6; código en `src/ProConta.Activos` (roles y tipos) y la migración `MigracionesActivos`. Salió del laboratorio (antes creative-lab/activos) el 2026-11-12.
 
 ## Decisions
 - 2026-10-28 13:30 · Creado en la carga inicial de requisitos.
@@ -18,6 +18,7 @@ Es un borrador: el diseño está acordado (Decisions 2026-11-11 18:21 y 2026-11-
 - 2026-11-12 10:00 · Los roles fijos se muestran con un texto descriptivo (propietario 2026-11-12 09:54): «Valor del bien (se amortiza)», «Terreno (no se amortiza)», «Amortización acumulada», «Gasto por amortización», «Ingreso por alquiler» y, para el resto, «Otra cuenta del activo (no la usa ningún proceso)». El código interno (ACTIVO, TERRENO, AMORTIZACION_ACUMULADA, GASTO_AMORTIZACION, INGRESO_ALQUILER, LIBRE) no se enseña al operador.
 - 2026-11-12 10:00 · Leaves the lab: draft. Pasa a nodo de primer nivel `activos` (propietario 2026-11-12 09:58, opción «Módulo propio»): tiene ficha, pantallas y procesos propios y lo usan contabilidad, facturación y compras. Las tablas siguen asignadas a `creative-lab/activos` en DuenosTablas (src/ProConta.Datos.Esquema/Diccionario) hasta que se construya: la primera fase las reasigna a `activos` y regenera el diccionario.
 - 2026-11-12 10:30 · Fase 1 (propietario 2026-11-12 10:19, «A. Ok B. Ok C. Ok D. Ok»): migración del esquema 20261112_1030_ACTIVOS_ESTRUCTURA (tipos del PGC; TiposSubcuentaActivo con Nombre único, Descripcion y Rol; PlantillasSubcuentasActivo con tipo de activo, tipo de subcuenta, prefijo y orden, única por tipo de activo y tipo de subcuenta; SubcuentasActivo; ActivosInmuebles; Activos.IdCentroCoste y EsAjeno; PlanesAmortizacionActivo.PorcentajeAnual), aditiva: PlantillasCuentasActivo, CuentasActivo y Activos.IdDepartamento/IdSubDepartamento quedan obsoletos. Los códigos de rol y sus textos y los códigos de tipo viven en el proyecto `ProConta.Activos` (RolesSubcuentaActivo, TiposActivoPgc). Migración del ERP adaptada (ver implantacion/migracion-erp 2026-11-12 10:30). Las inversiones financieras no se migran y sus tablas pasan a la idea creative-lab/inversiones-financieras (A, B). Los activos migrados que comparten centro de coste lo conservan; «un centro propio» se aplica a las altas nuevas (C). «Ajeno» es una marca del activo, no un tipo (D).
+- 2026-11-12 10:58 · Fase 1 validada por el propietario (ensayo ProConta-erp-05: 30 activos, 96 líneas de plantilla, 591 subcuentas, 18 inversiones fuera y 30 subcuentas de líneas inexistentes no migradas). El nodo sigue en borrador hasta terminar las fases 2 a 6.
 
 ## Requirements
 - 2026-10-28 12:28 · From sources/01_ESPECIFICACION_FUNCIONAL.docx § 20 RF-ACT-01..05: activos e inversiones
@@ -61,3 +62,4 @@ Es un borrador: el diseño está acordado (Decisions 2026-11-11 18:21 y 2026-11-
 - 2026-11-12 10:30 · answer: B inversiones del ERP → no se migran hasta la segunda fase
 - 2026-11-12 10:30 · answer: C activos migrados que comparten centro → lo conservan; un centro propio solo en las altas nuevas
 - 2026-11-12 10:30 · answer: D activo ajeno → marca del activo, no un tipo
+- 2026-11-12 10:58 · Fase 1 Ok
