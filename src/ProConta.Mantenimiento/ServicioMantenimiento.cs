@@ -14,7 +14,7 @@ public sealed record ResultadoBusqueda(IProveedorMantenimiento Proveedor, CampoM
 /// </summary>
 public sealed class ServicioMantenimiento(IEnumerable<IProveedorMantenimiento> proveedores, Func<Task<bool>> puedeEditar)
 {
-    public static readonly IReadOnlyList<string> Categorias = ["General", "Empresas y ejercicios", "Facturación", "Integraciones", "Catálogos"];
+    public static readonly IReadOnlyList<string> Categorias = ["General", "Empresas y ejercicios", "Facturación", "Activos", "Integraciones", "Catálogos"];
 
     public IReadOnlyList<IProveedorMantenimiento> Proveedores { get; } = proveedores.ToList();
 
@@ -65,6 +65,15 @@ public sealed class ServicioMantenimiento(IEnumerable<IProveedorMantenimiento> p
         if (a is null) return Resultado<ResultadoAccion>.Fallo(new Error("Mantenimiento.AccionDesconocida", $"La acción «{accion}» no existe en {p.Titulo}."));
         if (a.Modifica && await Bloqueo(p, r, a.Texto.ToLowerInvariant()) is Error e) return Resultado<ResultadoAccion>.Fallo(e);
         return await p.EjecutarAsync(accion, r, c);
+    }
+
+    /// <summary>Propuesta de una acción (qué hará, sin cambiar nada), con las mismas comprobaciones que al ejecutarla.</summary>
+    public async Task<Resultado<ResultadoAccion>> ProponerAsync(IProveedorMantenimiento p, string accion, RegistroMantenimiento r, ContextoMantenimiento c)
+    {
+        var a = p.Acciones.FirstOrDefault(x => x.Clave == accion);
+        if (a is null) return Resultado<ResultadoAccion>.Fallo(new Error("Mantenimiento.AccionDesconocida", $"La acción «{accion}» no existe en {p.Titulo}."));
+        if (a.Modifica && await Bloqueo(p, r, a.Texto.ToLowerInvariant()) is Error e) return Resultado<ResultadoAccion>.Fallo(e);
+        return await p.ProponerAsync(accion, r, c);
     }
 
     private async Task<Error?> Bloqueo(IProveedorMantenimiento p, RegistroMantenimiento r, string verbo)

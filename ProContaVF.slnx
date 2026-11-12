@@ -33,6 +33,7 @@
     <Project Path="src/ProConta.UI.Muestra/ProConta.UI.Muestra.csproj" />
   </Folder>
   <Folder Name="/tests/">
+    <Project Path="tests/ProConta.Activos.Tests/ProConta.Activos.Tests.csproj" />
     <Project Path="tests/ProConta.Compras.Tests/ProConta.Compras.Tests.csproj" />
     <Project Path="tests/ProConta.Compras.UI.Tests/ProConta.Compras.UI.Tests.csproj" />
     <Project Path="tests/ProConta.Contabilidad.Tests/ProConta.Contabilidad.Tests.csproj" />

@@ -24,6 +24,7 @@ Pantalla genérica y extensible (CFG-MANT) para parámetros únicos y coleccione
 - 2026-11-05 11:20 · Configuración general añade «Activar VeriFactu» (facturacion/verifactu), y Empresas, domicilio fiscal, código postal, población, provincia y carpeta de documentos (facturacion/factura-venta).
 - 2026-11-10 20:05 · Hecho: proveedores «Cuenta de correo» y «Plantillas de correo» (categoría Correo, en `src/ProConta.Correo/Mantenimiento.cs`) y el parámetro general «Desviar todo el correo a».
 - 2026-11-11 11:00 · Hecho: proveedor «Remitentes autorizados» (categoría Correo, por ejercicio); uno nuevo nace activo y con permiso para enviar documentos.
+- 2026-11-12 11:45 · Para los proveedores de activos (activos 2026-11-12 11:45): categoría «Activos»; tipo de campo «lista abierta» (desplegable en el que también se escribe: el valor es la opción elegida o el texto escrito, y el proveedor decide qué hacer con un texto nuevo); acciones con propuesta (el proveedor calcula primero qué hará, la pantalla lo muestra y solo ejecuta si el operador confirma; si no hay nada que hacer, solo informa); y las acciones del proveedor también en el menú contextual de la lista (criterio de UI del propietario 2026-11-05).
 
 ## Requirements
 - 2026-10-28 12:28 · From sources/01_ESPECIFICACION_FUNCIONAL.docx § 8 RF-MAN-01..05: pantalla por proveedores, editores, servicios tipados para datos con invariantes, catálogo conocido
@@ -41,6 +42,7 @@ Pantalla genérica y extensible (CFG-MANT) para parámetros únicos y coleccione
 - 2026-11-04 17:57 · Ok, validado
 - 2026-11-04 23:55 · Derived from plataforma/atajos-de-teclado: acoger el proveedor «Atajos de teclado» (un `IProveedorMantenimiento` de ámbito global): lista de operativas con id, texto, tecla por defecto y tecla asignada, captura de la tecla pulsándola, aviso de conflicto con la corrección propuesta y restaurar valores por defecto.
 - 2026-11-05 11:20 · Derived from facturacion/verifactu: casilla «Activar VeriFactu» en Configuración general; y de facturacion/factura-venta: domicilio fiscal y carpeta de documentos en Empresas.
+- 2026-11-12 11:45 · Derived from activos: categoría «Activos» con los proveedores «Tipos de activo», «Tipos de subcuenta» y «Plantillas de subcuentas»; desplegable en el que se elige o se escribe (al añadir una línea de plantilla, un nombre nuevo crea el tipo de subcuenta por dentro) y acciones con propuesta y confirmación («Generar subcuentas», «Borrar subcuentas sin apuntes»).
 
 ## Hand-over
 - 2026-11-01 18:15 · Hecho: contrato, servicio, proveedores y pantalla, con pruebas sin BD (validación, búsqueda, permisos, solo consulta) y contra Access (series y conceptos). Pendiente: probar la pantalla en el equipo del propietario; Correo, VeriFactu y Ubicación de datos llegan con sus nodos.

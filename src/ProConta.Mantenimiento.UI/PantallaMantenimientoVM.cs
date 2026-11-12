@@ -58,6 +58,8 @@ public sealed class CampoEdicionVM : ModeloVista, INotifyDataErrorInfo
             : definicion.SoloAlta && !registro.EsNuevo ? "Se fija al crear el registro y ya no se cambia." : null;
         if (definicion.Tipo == TipoCampo.Logico) _marcado = valor is true;
         else if (definicion.Tipo == TipoCampo.Lista) _opcion = Opciones.FirstOrDefault(o => Equals(Normalizar(o.Valor), Normalizar(valor))) ?? Opciones.FirstOrDefault(o => o.Valor is null);
+        else if (definicion.Tipo == TipoCampo.ListaAbierta)
+            _texto = valor is null ? "" : Opciones.FirstOrDefault(o => Equals(Normalizar(o.Valor), Normalizar(valor)))?.Texto ?? Convert.ToString(valor, CultureInfo.CurrentCulture) ?? "";
         else _texto = PantallaMantenimientoVM.Formatear(definicion, valor);
     }
 
@@ -73,7 +75,8 @@ public sealed class CampoEdicionVM : ModeloVista, INotifyDataErrorInfo
     public string Ayuda => string.Join(Environment.NewLine, new[]
     {
         Error, Bloqueo, Definicion.Ayuda, Definicion.Pendiente ? "Significado pendiente de confirmar." : null,
-        Definicion.Longitud is int l && Tipo is not (TipoCampo.Logico or TipoCampo.Lista) ? $"Hasta {l} caracteres." : null
+        Definicion.Longitud is int l && Tipo is not (TipoCampo.Logico or TipoCampo.Lista or TipoCampo.ListaAbierta) ? $"Hasta {l} caracteres." : null,
+        Tipo == TipoCampo.ListaAbierta ? "Elige una opción o escribe una nueva." : null
     }.Where(x => !string.IsNullOrWhiteSpace(x)));
 
     public string Texto
@@ -96,6 +99,8 @@ public sealed class CampoEdicionVM : ModeloVista, INotifyDataErrorInfo
                 else { _errorFormato = $"{Definicion.Etiqueta}: escribe la fecha como dd/mm/aaaa."; v = t; }
             }
             else if (Tipo is TipoCampo.TextoLargo) v = string.IsNullOrWhiteSpace(_texto) ? null : _texto;
+            else if (t.Length > 0 && Tipo is TipoCampo.ListaAbierta)
+                v = Opciones.FirstOrDefault(o => string.Equals(o.Texto.Trim(), t, StringComparison.CurrentCultureIgnoreCase)) is { } elegida ? elegida.Valor : t;
             _pantalla.Cambiar(Clave, v);
         }
     }
@@ -522,6 +527,25 @@ public sealed class PantallaMantenimientoVM : ModeloVista, IPestanaTrabajo
         var accion = _proveedor.Acciones.FirstOrDefault(a => a.Clave == clave);
         if (accion is null) return;
         if (accion.Modifica && TieneCambios && !await ResolverCambiosAsync(accion.Texto)) return;
+        if (_edicion is null) return;
+        if (accion.ConPropuesta)
+        {
+            // Primero la propuesta: qué hará, sin cambiar nada; solo se ejecuta si el operador la confirma.
+            var p = await _servicio.ProponerAsync(_proveedor, clave, _edicion, _contexto);
+            if (!p.EsCorrecto)
+            {
+                _preguntar(accion.Texto, p.Error!.TextoOperador(), null, [new OpcionMensaje("Entendido", "Cierra el aviso", Principal: true, Cancelar: true)]);
+                return;
+            }
+            if (p.Valor.NadaQueHacer)
+            {
+                _preguntar(accion.Texto, p.Valor.Mensaje, p.Valor.Detalle, [new OpcionMensaje("Entendido", "Cierra el aviso", Principal: true, Cancelar: true)]);
+                return;
+            }
+            if (_preguntar(accion.Texto, p.Valor.Mensaje, p.Valor.Detalle,
+                    [new OpcionMensaje("Confirmar", "Hace lo que dice la propuesta", Principal: true), new OpcionMensaje("Cancelar", "Vuelve sin cambiar nada", Cancelar: true)]) != 0)
+                return;
+        }
         var r = await _servicio.EjecutarAsync(_proveedor, clave, _edicion, _contexto);
         if (!r.EsCorrecto)
         {
@@ -534,7 +558,11 @@ public sealed class PantallaMantenimientoVM : ModeloVista, IPestanaTrabajo
             await CargarAsync(_proveedor, r.Valor.ClaveAbrir);
         }
         else
+        {
             _preguntar(accion.Texto, r.Valor.Mensaje, r.Valor.Detalle, [new OpcionMensaje("Entendido", "Cierra el aviso", Principal: true, Cancelar: true)]);
+            // Una acción que modifica puede cambiar lo que muestra la lista (recuentos, estados): se vuelve a leer.
+            if (accion.Modifica) await CargarAsync(_proveedor, _original?.Clave);
+        }
     }
 
     /// <summary>Antes de salir del registro con cambios: guardar, descartar o seguir editando. true si se puede seguir.</summary>
@@ -560,7 +588,7 @@ public sealed class PantallaMantenimientoVM : ModeloVista, IPestanaTrabajo
     internal static string Formatear(CampoMantenimiento? c, object? v)
     {
         if (v is null || c?.Tipo == TipoCampo.Secreto) return "";
-        if (c?.Tipo == TipoCampo.Lista) return c.Opciones?.FirstOrDefault(o => Equals(Convert.ToString(o.Valor, CultureInfo.InvariantCulture), Convert.ToString(v, CultureInfo.InvariantCulture)))?.Texto ?? Convert.ToString(v, Formatos.Cultura) ?? "";
+        if (c?.Tipo is TipoCampo.Lista or TipoCampo.ListaAbierta) return c.Opciones?.FirstOrDefault(o => Equals(Convert.ToString(o.Valor, CultureInfo.InvariantCulture), Convert.ToString(v, CultureInfo.InvariantCulture)))?.Texto ?? Convert.ToString(v, Formatos.Cultura) ?? "";
         return v switch
         {
             bool b => b ? "Sí" : "",
