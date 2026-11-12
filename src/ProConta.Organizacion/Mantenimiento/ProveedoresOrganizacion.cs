@@ -40,6 +40,11 @@ public static class ProveedoresOrganizacion
     /// <summary>Cuentas de compras que solo tiene el ejercicio (compras/factura-compra/contabilizacion).</summary>
     internal static IEnumerable<CampoMantenimiento> CuentasCompras() =>
     [
+        Cuenta("CuentaIVARepercutido0", "Cuenta de IVA repercutido del tipo 0", ayuda: "Ventas al 0 %. Vacía: la 477 con la terminación de la de soportado (4720001 → 4770001).", sinonimos: ["iva repercutido"]),
+        Cuenta("CuentaIVARepercutido1", "Cuenta de IVA repercutido del tipo 1", ayuda: "La usa la contabilización de ventas. Vacía: la 477 con la terminación de la de soportado.", sinonimos: ["iva repercutido"]),
+        Cuenta("CuentaIVARepercutido2", "Cuenta de IVA repercutido del tipo 2", ayuda: "Vacía: la 477 con la terminación de la de soportado.", sinonimos: ["iva repercutido"]),
+        Cuenta("CuentaIVARepercutido3", "Cuenta de IVA repercutido del tipo 3", ayuda: "Vacía: la 477 con la terminación de la de soportado.", sinonimos: ["iva repercutido"]),
+        Cuenta("CuentaIVARepercutido4", "Cuenta de IVA repercutido del tipo 4", ayuda: "Vacía: la 477 con la terminación de la de soportado.", sinonimos: ["iva repercutido"]),
         Cuenta("CuentaIVAImportacion", "Cuenta de IVA de importación", ayuda: "IVA soportado en importaciones (4724001 en el ERP): el importe de la factura se desglosa al tipo general."),
         Cuenta("CuentaRedondeoGastos", "Cuenta de diferencias de redondeo · gastos", ayuda: "Cuando a un asiento de compra le falta Debe (hasta 0,03 €, o más con motivo). Vacía: 6590000.", sinonimos: ["redondeo"]),
         Cuenta("CuentaRedondeoIngresos", "Cuenta de diferencias de redondeo · ingresos", ayuda: "Cuando a un asiento de compra le sobra Debe. Vacía: 7590000. Si no existe, se crea al usarla.", sinonimos: ["redondeo"]),
@@ -64,11 +69,6 @@ public static class ProveedoresOrganizacion
         Cuenta("CuentaTipoIVA2", "Cuenta de IVA soportado del tipo 2", sinonimos: ["iva soportado"]),
         Cuenta("CuentaTipoIVA3", "Cuenta de IVA soportado del tipo 3", sinonimos: ["iva soportado"]),
         Cuenta("CuentaTipoIVA4", "Cuenta de IVA soportado del tipo 4", sinonimos: ["iva soportado"]),
-        Cuenta("CuentaIVARepercutido0", "Cuenta de IVA repercutido del tipo 0", ayuda: "Ventas al 0 %. Vacía: la 477 con la terminación de la de soportado (4720001 → 4770001).", sinonimos: ["iva repercutido"]),
-        Cuenta("CuentaIVARepercutido1", "Cuenta de IVA repercutido del tipo 1", ayuda: "La usa la contabilización de ventas. Vacía: la 477 con la terminación de la de soportado.", sinonimos: ["iva repercutido"]),
-        Cuenta("CuentaIVARepercutido2", "Cuenta de IVA repercutido del tipo 2", ayuda: "Vacía: la 477 con la terminación de la de soportado.", sinonimos: ["iva repercutido"]),
-        Cuenta("CuentaIVARepercutido3", "Cuenta de IVA repercutido del tipo 3", ayuda: "Vacía: la 477 con la terminación de la de soportado.", sinonimos: ["iva repercutido"]),
-        Cuenta("CuentaIVARepercutido4", "Cuenta de IVA repercutido del tipo 4", ayuda: "Vacía: la 477 con la terminación de la de soportado.", sinonimos: ["iva repercutido"]),
         Cuenta("CuentaSuplido", "Cuenta de suplido", 255, "La contabilización de ventas la usa en las líneas suplidas sin cuenta propia."),
         Cuenta("CuentaRetencionServicios", "Cuenta de retención de servicios"),
         Cuenta("CuentaRetencionAlquileres", "Cuenta de retención de alquileres"),
