@@ -30,11 +30,8 @@ public interface IDialogosMayor
     /// <summary>Pide el motivo de un cambio; null si se cancela.</summary>
     string? PedirMotivo(string titulo, string explicacion);
 
-    /// <summary>Cuadre de una cuenta: casilla «Cuenta cuadrada» y notas. Null si se cancela; Reiniciar si se pide «Reiniciar el cuadre».</summary>
-    (bool Cuadrada, string Notas, bool Reiniciar)? EditarCuadre(string cuenta, bool cuadrada, string? notas, string informacion);
-
-    /// <summary>Confirma «Reiniciar el cuadre»: null si se cancela; si no, si hay que desmarcar antes las demás cuentas.</summary>
-    bool? ConfirmarReinicio(string explicacion);
+    /// <summary>Cuadre de una cuenta: casilla «Cuenta cuadrada» y notas. Null si se cancela.</summary>
+    (bool Cuadrada, string Notas)? EditarCuadre(string cuenta, bool cuadrada, string? notas, string informacion);
 }
 
 /// <summary>Cuenta de la lista de recientes del operador.</summary>
@@ -687,30 +684,11 @@ public sealed class MayorVM : ModeloVista
         if (resultado is null) return;
         try
         {
-            if (resultado.Value.Reiniciar) { await ReiniciarCuadreAsync(); return; }
             await _sesion.GuardarCuadreAsync(cuenta, resultado.Value.Cuadrada, resultado.Value.Notas, _ctx.Actor!.Nombre, DateTime.Now);
             _avisar(resultado.Value.Cuadrada ? $"{cuenta} cuadrada en {_sesion.Trabajo.Ejercicio}." : $"Cuadre de {cuenta} guardado.");
             AvisarCuadre();
         }
         catch (Exception ex) { _dialogos.Error("No he podido guardar el cuadre", $"La base de datos ha respondido: {ex.Message} Vuelve a intentarlo en un momento."); }
-    }
-
-    /// <summary>Reinicia el cuadre del ejercicio de trabajo: quita, si se pide, las casillas (no las notas) y marca las cuentas dentro del umbral.</summary>
-    public async Task ReiniciarCuadreAsync()
-    {
-        if (!PuedeEscribir || _sesion.Trabajo is null) return;
-        try
-        {
-            var umbral = await _sesion.UmbralCuadreAsync();
-            var desmarcar = _dialogos.ConfirmarReinicio(
-                $"Marcaré como cuadradas, en {_sesion.Trabajo.Ejercicio}, todas las subcuentas con movimientos y un saldo de hasta ±{Formatos.Importe(umbral)}. " +
-                "Las notas no se tocan. El umbral se cambia en Configuración › Parámetros y tablas › General (grupo «Contabilidad»).");
-            if (desmarcar is null) return;
-            var (cambiados, _) = await _sesion.ReiniciarCuadreAsync(desmarcar.Value, _ctx.Actor!.Nombre, DateTime.Now);
-            _avisar($"Cuadre de {_sesion.Trabajo.Ejercicio} reiniciado: {Formatos.Plural(cambiados, "cuenta cambiada", "cuentas cambiadas")}.");
-            AvisarCuadre();
-        }
-        catch (Exception ex) { _dialogos.Error("No he podido reiniciar el cuadre", $"La base de datos ha respondido: {ex.Message} Vuelve a intentarlo en un momento."); }
     }
 
     private void AvisarCuadre() => Avisar(nameof(TextoCuadre), nameof(AyudaCuadre), nameof(ColorCuadre), nameof(PuedeEditarCuadre));

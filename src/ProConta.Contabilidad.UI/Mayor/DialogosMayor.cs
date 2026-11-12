@@ -282,7 +282,7 @@ public sealed class DialogosMayor(Func<Window?> propietario) : IDialogosMayor
         return d.ShowDialog() == true ? motivo.Text.Trim() : null;
     }
 
-    public (bool Cuadrada, string Notas, bool Reiniciar)? EditarCuadre(string cuenta, bool cuadrada, string? notas, string informacion)
+    public (bool Cuadrada, string Notas)? EditarCuadre(string cuenta, bool cuadrada, string? notas, string informacion)
     {
         var d = new DialogoProConta { Title = "Cuadre de la cuenta", Owner = propietario(), Width = 820, Height = 600, MinWidth = 520, MinHeight = 380,
             SizeToContent = SizeToContent.Manual, Redimensionable = true };
@@ -306,33 +306,13 @@ public sealed class DialogosMayor(Func<Window?> propietario) : IDialogosMayor
         cuerpo.Children.Add(pie);
         cuerpo.Children.Add(texto);
         d.Content = cuerpo;
-        var reiniciar = false;
-        var enlace = new Button { Content = "Reiniciar el cuadre…", Style = (Style)d.FindResource("Boton.Enlace"), VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 24, 0),
-            ToolTip = "Marca como cuadradas todas las subcuentas con saldo dentro del umbral en el ejercicio de trabajo (las notas no se tocan)" };
-        enlace.Click += (_, _) => { reiniciar = true; d.DialogResult = true; };
         var guardar = new Button { Content = "Guardar", Style = (Style)d.FindResource("Boton.Primario"), Margin = new Thickness(8, 0, 0, 0), ToolTip = "Guarda la casilla y las notas del cuadre" };
         var cancelar = new Button { Content = "Cancelar", IsCancel = true, ToolTip = "Cierra sin cambiar el cuadre" };
         guardar.Click += (_, _) => d.DialogResult = true;
         cancelar.Click += (_, _) => d.DialogResult = false;
-        d.Botones = new StackPanel { Orientation = Orientation.Horizontal, Children = { enlace, cancelar, guardar } };
+        d.Botones = new StackPanel { Orientation = Orientation.Horizontal, Children = { cancelar, guardar } };
         d.Loaded += (_, _) => { texto.Focus(); texto.CaretIndex = texto.Text.Length; };
-        return d.ShowDialog() == true ? (casilla.IsChecked == true, texto.Text, reiniciar) : null;
-    }
-
-    public bool? ConfirmarReinicio(string explicacion)
-    {
-        var d = new DialogoProConta { Title = "Reiniciar el cuadre", Owner = propietario(), Width = 640, SizeToContent = SizeToContent.Height };
-        var panel = new StackPanel();
-        panel.Children.Add(new TextBlock { Text = explicacion, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 0, 0, 12) });
-        var desmarcar = new CheckBox { Content = "Quitar antes la casilla «Cuadrada» de todas las cuentas", ToolTip = "Desmarca todas las cuentas del ejercicio de trabajo antes de marcar las de saldo dentro del umbral. Las notas se conservan" };
-        panel.Children.Add(desmarcar);
-        d.Content = panel;
-        var aceptar = new Button { Content = "Reiniciar", Style = (Style)d.FindResource("Boton.Primario"), IsDefault = true, Margin = new Thickness(8, 0, 0, 0), ToolTip = "Marca como cuadradas las cuentas con saldo dentro del umbral" };
-        var cancelar = new Button { Content = "Cancelar", IsCancel = true, ToolTip = "Cierra sin cambiar nada" };
-        aceptar.Click += (_, _) => d.DialogResult = true;
-        cancelar.Click += (_, _) => d.DialogResult = false;
-        d.Botones = new StackPanel { Orientation = Orientation.Horizontal, Children = { cancelar, aceptar } };
-        return d.ShowDialog() == true ? desmarcar.IsChecked == true : null;
+        return d.ShowDialog() == true ? (casilla.IsChecked == true, texto.Text) : null;
     }
 
     public void Error(string titulo, string mensaje) =>
