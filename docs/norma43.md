@@ -1,9 +1,10 @@
 ---
 title: Norma 43
 status: draft
-depends_on: [datos/esquema, datos/persistencia]
+depends_on: [datos/esquema, datos/persistencia, correo/recepcion, norma43/bancos]
 threads:
   - 2026-10-28 12:30 · Carga de requisitos | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GRNMH95h9tnQp4dmEPHmw1w
+  - 2026-11-12 16:28 · Importar extractos Norma 43 | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GSwSSQpRLu74C8SixB5rybA
 ---
 ## Summary
 Importación y consulta de extractos bancarios Norma 43: lectura, validación, persistencia idempotente por contenido, consulta y reversión auditada. No es la tesorería completa.
@@ -12,6 +13,12 @@ Importación y consulta de extractos bancarios Norma 43: lectura, validación, p
 ## Decisions
 - 2026-10-28 13:30 · Creado en la carga inicial de requisitos.
 - 2026-11-11 15:05 · Palabras clave de asignación de cuentas (PalabrasClaveBancarias, esquema v37): palabra clave y segunda palabra (Y lógico) por entidad y sentido, cuenta (identidad contable) y Especial (5 = remesa de recibos que se explota); cada imputación de una línea guarda la palabra clave que la asignó (IdPalabraClaveBancaria). Las carga la migración del ERP desde N43PalabrasClave; el motor de asignación aún no las usa.
+- 2026-11-12 16:50 · Importación (reparto acordado con el propietario en el hilo «Importar extractos Norma 43»): un lector puro del cuaderno 43 (registros 11, 22, 23, 24, 33 y 88, sin BD); validación del cuadre (lo declarado por el banco frente a lo calculado, saldo inicial más movimientos igual al final, número de registros del 88), con incidencias de error que rechazan el fichero y de advertencia que no; y persistencia del lote completo en una transacción, idempotente por sociedad, formato y SHA-256 del contenido. Código en `src/ProConta.Norma43`.
+- 2026-11-12 16:50 · Solapes por contenido: además del hash, cada movimiento se compara con los ya importados de la misma cuenta bancaria por fecha de operación, fecha de valor, sentido, importe, concepto común y propio, documento, referencias y concepto completo, contando repeticiones (el fichero no tiene clave y puede traer dos movimientos idénticos el mismo día: solo están importados si en la BD hay tantos como en el fichero). Si todos coinciden, el fichero ya está importado y no se hace nada; si coincide alguno, se rechaza el fichero entero con el aviso de la cuenta, las fechas y el lote con que se solapa.
+- 2026-11-12 16:50 · La sociedad se deduce de la cuenta bancaria del extracto (entidad, oficina, cuenta y divisa). Si no existe en la sociedad activa, se avisa y se ofrece darla de alta en ese momento para seguir; si no se da de alta, el fichero no se importa. Una cuenta de otra sociedad se rechaza siempre.
+- 2026-11-12 16:50 · Reversión auditada: el lote pasa a REVERTIDO con fecha, operador y motivo, sin borrar filas; se bloquea si el lote es de otra sociedad, si alguna línea tiene imputaciones no descartadas o contabilizaciones. Reimportar el contenido de un lote revertido lo reactiva (mismo lote, sin duplicar) y limpia los datos de la reversión. Los movimientos de lotes revertidos no cuentan para los solapes.
+- 2026-11-12 16:50 · Sin fecha de corte por cuenta: el ERP no vuelve a importar Norma 43; la migración del ERP se ejecuta por última vez antes de poner ProContaVF en producción (noviembre de 2026) y desde entonces solo importa ProContaVF.
+- 2026-11-12 16:50 · Fuera de este nodo, en borradores propios: la asignación automática de cuentas con palabras clave (norma43/asignacion-cuentas) y la explosión de remesas (norma43/remesas). La consulta de cuentas, lotes e importación manual está en norma43/bancos; los adjuntos recibidos por correo pasan al mismo motor (correo/recepcion).
 
 ## Requirements
 - 2026-10-28 12:28 · From sources/01_ESPECIFICACION_FUNCIONAL.docx § 19 RF-N43-01, 02, 04: motor, reversión, selección y límites de consulta
@@ -19,3 +26,7 @@ Importación y consulta de extractos bancarios Norma 43: lectura, validación, p
 - 2026-10-28 12:39 · A7) b (de momento no trabajaremos tesorería)
 - 2026-10-28 12:28 · draft: Implementar la importación Norma 43 con idempotencia y reversión.
 - 2026-11-11 15:05 · Derived from implantacion/migracion-erp: guardar las palabras clave de N43PalabrasClave (PalabraClave, PalabraClave2, CuentaContable, Especial) y la palabra clave que asignó cada línea.
+- 2026-11-12 16:47 · P1. Ok, también sirve por si volvemos a descargar el fichero y, por lo que sea, varía el hash, o bajamos un fichero con un rango de fechas más amplio que incluye líneas N43 que se han importado (en este caso, se rechazaría la importación de todo el fichero). Lo único es que no hay una clave primaria en el fichero N43 y nos podemos encontrar con dos filas idénticas dentro del mismo fichero N43 (el mimo movimiento, concepto, fecha e importe)
+- 2026-11-12 16:47 · P2. Fecha de corte. Mi idea es no volver a importar con el ERP y poner en producción ProContaVF este mes.
+- 2026-11-12 16:47 · P3. Si la cuenta no existe en la sociedad, mostrar un aviso y dar la opción de darla de alta en ese momento para poder continuar con la importación
+- 2026-11-12 16:47 · P4. Ok, lo haremos en un nuevo hilo

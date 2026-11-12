@@ -37,3 +37,4 @@ Mail Dispatcher: mira el buzón POP3 de la cuenta de cada ejercicio mientras la 
 - 2026-11-10 19:26 · Ok a remitentes autorizados
 - 2026-11-10 19:26 · En la cuenta POP3, borrado del servidor una vez descargado y procesado el correo.
 - 2026-11-11 11:08 · Ok, prueba realizada. La factura ha llegado y aparece en facturas recibidas.
+- 2026-11-12 16:50 · Derived from norma43: pasar los adjuntos Norma 43 recibidos al motor de importación de extractos (el mismo que usa la pantalla Bancos) y responder al remitente con el resultado: importado, ya importado, solape o cuenta bancaria desconocida.
