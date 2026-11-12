@@ -81,7 +81,7 @@ public static class ProveedoresOrganizacion
 
     private static IEnumerable<CampoMantenimiento> Predeterminados() =>
     [
-        new("FormaPagoDefecto", "Forma de pago predeterminada", TipoCampo.Entero) { Grupo = "pred", Ancho = "xs", Minimo = 0, Maximo = 255, Ayuda = "Código de Formas de pago que se propone en las facturas nuevas." },
+        new("FormaPagoDefecto", "Forma de pago predeterminada", TipoCampo.Referencia) { Grupo = "pred", Ancho = "m", Referencia = "formaspago", Ayuda = "Forma de pago que se propone en las facturas nuevas." },
     ];
 
     public static ProveedorTablaAccess Empresas(IBaseDatos bd) => new(bd, "sociedades", "Empresas", "Empresas y ejercicios",

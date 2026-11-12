@@ -62,6 +62,12 @@ public sealed class CampoEdicionVM : ModeloVista, INotifyDataErrorInfo
             _texto = valor is null ? "" : Opciones.FirstOrDefault(o => Equals(Normalizar(o.Valor), Normalizar(valor)))?.Texto ?? Convert.ToString(valor, CultureInfo.CurrentCulture) ?? "";
         else _texto = PantallaMantenimientoVM.Formatear(definicion, valor);
         BuscarCuentaCommand = new ComandoDelegado(() => _ = BuscarCuentaAsync(), () => PuedeBuscarCuenta);
+        ElegirReferenciaCommand = new ComandoDelegado(() => _ = ElegirReferenciaAsync(), () => PuedeElegirReferencia);
+        if (definicion.Tipo == TipoCampo.Referencia)
+        {
+            _valorReferencia = valor;
+            if (valor is not null && Opciones.Count == 0) _ = MostrarReferenciaAsync(valor);
+        }
     }
 
     public CampoMantenimiento Definicion { get; }
@@ -76,9 +82,10 @@ public sealed class CampoEdicionVM : ModeloVista, INotifyDataErrorInfo
     public string Ayuda => string.Join(Environment.NewLine, new[]
     {
         Error, Bloqueo, Definicion.Ayuda, Definicion.Pendiente ? "Significado pendiente de confirmar." : null,
-        Definicion.Longitud is int l && !SoloLectura && !EsCuenta && Tipo is not (TipoCampo.Logico or TipoCampo.Lista or TipoCampo.ListaAbierta) ? $"Hasta {l} caracteres." : null,
+        Definicion.Longitud is int l && !SoloLectura && !EsCuenta && Tipo != TipoCampo.Referencia && Tipo is not (TipoCampo.Logico or TipoCampo.Lista or TipoCampo.ListaAbierta) ? $"Hasta {l} caracteres." : null,
         Tipo == TipoCampo.ListaAbierta ? "Elige una opción o escribe una nueva." : null,
-        PuedeBuscarCuenta ? "Clic, Intro, F4 o la lupa: elegir la cuenta o crear una subcuenta. Supr la quita." : null
+        PuedeBuscarCuenta ? "Clic, Intro, F4 o la lupa: elegir la cuenta o crear una subcuenta. Supr la quita." : null,
+        PuedeElegirReferencia ? $"Clic, Intro, F4 o la lupa: elegir en «{ProveedorReferencia!.Titulo}» o dar de alta uno nuevo. Supr lo quita." : null
     }.Where(x => !string.IsNullOrWhiteSpace(x)));
 
     /// <summary>Ayuda de la etiqueta: el nombre completo (por si no cabe en dos líneas) y la ayuda del campo.</summary>
@@ -131,6 +138,41 @@ public sealed class CampoEdicionVM : ModeloVista, INotifyDataErrorInfo
 
     /// <summary>Supr en un campo de cuenta: lo deja vacío.</summary>
     public void VaciarCuenta() { if (PuedeBuscarCuenta) Texto = ""; }
+
+    // ---------- referencias a otros mantenimientos 1:N (plataforma/mantenimiento 2026-11-12) ----------
+    private object? _valorReferencia;
+    /// <summary>El mantenimiento al que apunta el campo; sin él (o sin selector), el campo se muestra pero no se elige.</summary>
+    public IProveedorMantenimiento? ProveedorReferencia => Tipo == TipoCampo.Referencia ? _pantalla.ProveedorDe(Definicion) : null;
+    public bool EsReferencia => ProveedorReferencia is not null;
+    public bool PuedeElegirReferencia => EsReferencia && !SoloLectura && _pantalla.ElegirRegistro is not null;
+    public ICommand ElegirReferenciaCommand { get; }
+    public string AyudaElegirReferencia => ProveedorReferencia is { } p ? $"Abre «{p.Titulo}» para elegir uno o dar de alta uno nuevo" : "";
+
+    /// <summary>Abre la tabla a la que apunta el campo para elegir un registro (o crearlo); cancelar no cambia nada.</summary>
+    public async Task ElegirReferenciaAsync()
+    {
+        if (!PuedeElegirReferencia) return;
+        var proveedor = ProveedorReferencia!;
+        var elegido = await _pantalla.ElegirRegistro!(proveedor, _valorReferencia);
+        if (elegido is null) return;
+        FijarReferencia(elegido.Clave, proveedor.TituloRegistro(elegido));
+    }
+
+    /// <summary>Supr en un campo de referencia: lo deja vacío.</summary>
+    public void VaciarReferencia() { if (PuedeElegirReferencia) FijarReferencia(null, ""); }
+
+    private void FijarReferencia(object? clave, string texto)
+    {
+        _valorReferencia = clave;
+        Fijar(ref _texto, texto, nameof(Texto));
+        _pantalla.Cambiar(Clave, clave);
+    }
+
+    private async Task MostrarReferenciaAsync(object valor)
+    {
+        var titulo = await _pantalla.TituloReferenciaAsync(Definicion, valor);
+        if (titulo is not null && Equals(_valorReferencia, valor)) Fijar(ref _texto, titulo, nameof(Texto));
+    }
 
     public bool Marcado
     {
@@ -193,6 +235,52 @@ public sealed class PantallaMantenimientoVM : ModeloVista, IPestanaTrabajo
 
     /// <summary>Buscador de cuentas para los campos de cuenta; sin él, se escriben a mano.</summary>
     public ISelectorCuentas? Cuentas { get; init; }
+
+    /// <summary>
+    /// Selector de un registro de otro mantenimiento 1:N para los campos <see cref="TipoCampo.Referencia"/>: recibe el
+    /// mantenimiento y la clave actual y devuelve el registro elegido (o el creado), o null si se cancela. Lo pone la vista.
+    /// </summary>
+    public Func<IProveedorMantenimiento, object?, Task<RegistroMantenimiento?>>? ElegirRegistro { get; set; }
+
+    /// <summary>La pantalla hace de selector de un mantenimiento: sin navegación, con «Elegir» (lo usa el selector de referencias).</summary>
+    public bool ModoSeleccion { get; init; }
+
+    internal ServicioMantenimiento Servicio => _servicio;
+    internal Func<string, string, IReadOnlyList<string>?, OpcionMensaje[], int> Preguntar => _preguntar;
+    internal Action<string> AvisarOperador => _avisar;
+    internal IProveedorMantenimiento? ProveedorDe(CampoMantenimiento c) => c.Referencia is string k ? _servicio.Proveedor(k) : null;
+
+    private readonly Dictionary<string, IReadOnlyList<RegistroMantenimiento>> _referencias = new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>Título del registro al que apunta un campo de referencia (lo que se ve en el campo), o null si no se encuentra.</summary>
+    internal async Task<string?> TituloReferenciaAsync(CampoMantenimiento c, object valor)
+    {
+        if (ProveedorDe(c) is not { } p) return null;
+        try
+        {
+            if (!_referencias.TryGetValue(p.Clave, out var registros)) _referencias[p.Clave] = registros = await p.ListarAsync(_contexto);
+            var r = registros.FirstOrDefault(x => string.Equals(Convert.ToString(x.Clave, CultureInfo.InvariantCulture), Convert.ToString(valor, CultureInfo.InvariantCulture), StringComparison.OrdinalIgnoreCase));
+            return r is null ? $"{valor} (no existe)" : p.TituloRegistro(r);
+        }
+        catch (Exception ex) when (ex is Datos.Persistencia.ExcepcionDatos or InvalidOperationException) { return null; }
+    }
+
+    /// <summary>Tras elegir en un selector (donde se pudo crear o renombrar), los títulos se vuelven a leer.</summary>
+    internal void OlvidarReferencias() => _referencias.Clear();
+
+    /// <summary>Abre el selector en el registro <paramref name="clave"/> (o en el primero).</summary>
+    public async Task IniciarSeleccionAsync(object? clave)
+    {
+        _puedeEditar = await _servicio.PuedeEditarAsync();
+        if (_servicio.Proveedores.FirstOrDefault() is { } p) await CargarAsync(p, clave);
+    }
+
+    /// <summary>El registro que se elige al pulsar «Elegir»: el seleccionado, una vez resueltos los cambios sin guardar.</summary>
+    public async Task<RegistroMantenimiento?> RegistroElegidoAsync()
+    {
+        if (!await ResolverCambiosAsync("Elegir")) return null;
+        return _seleccionada?.Registro is { EsNuevo: false } r ? r : null;
+    }
     internal ContextoMantenimiento Contexto => _contexto;
 
     public PantallaMantenimientoVM(ServicioMantenimiento servicio, ContextoMantenimiento contexto, Func<string, string, IReadOnlyList<string>?, OpcionMensaje[], int> preguntar,
@@ -619,7 +707,7 @@ public sealed class PantallaMantenimientoVM : ModeloVista, IPestanaTrabajo
     internal static string Formatear(CampoMantenimiento? c, object? v)
     {
         if (v is null || c?.Tipo == TipoCampo.Secreto) return "";
-        if (c?.Tipo is TipoCampo.Lista or TipoCampo.ListaAbierta) return c.Opciones?.FirstOrDefault(o => Equals(Convert.ToString(o.Valor, CultureInfo.InvariantCulture), Convert.ToString(v, CultureInfo.InvariantCulture)))?.Texto ?? Convert.ToString(v, Formatos.Cultura) ?? "";
+        if (c?.Tipo is TipoCampo.Lista or TipoCampo.ListaAbierta or TipoCampo.Referencia) return c.Opciones?.FirstOrDefault(o => Equals(Convert.ToString(o.Valor, CultureInfo.InvariantCulture), Convert.ToString(v, CultureInfo.InvariantCulture)))?.Texto ?? Convert.ToString(v, Formatos.Cultura) ?? "";
         return v switch
         {
             bool b => b ? "Sí" : "",

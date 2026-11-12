@@ -204,7 +204,7 @@ public sealed class ProveedorConceptos(CatalogoConceptos catalogo) : ProveedorBa
     [
         new("Nombre", "Nombre") { Grupo = "con", Obligatorio = true, Longitud = CatalogoConceptos.LongitudNombre, Ancho = "l", Ayuda = "Encabezado de la línea en la factura." },
         new("Descripcion", "Descripción", TipoCampo.TextoLargo) { Grupo = "con", Ancho = "f", Ayuda = "Texto que aparece debajo del nombre en la factura." },
-        new("IdTipoConcepto", "Tipo de concepto", TipoCampo.Lista) { Ayuda = "Clasificación del concepto (alquiler, suministros, servicios…). Los tipos se mantienen en «Tipos de concepto».", Grupo = "con", Opciones = _tipos, Ancho = "m" },
+        new("IdTipoConcepto", "Tipo de concepto", TipoCampo.Referencia) { Referencia = "tiposconcepto", Ayuda = "Clasificación del concepto (alquiler, suministros, servicios…). Los tipos se mantienen en «Tipos de concepto».", Grupo = "con", Opciones = _tipos, Ancho = "m" },
         new("Activo", "Activo", TipoCampo.Logico) { Grupo = "con", Ayuda = "Solo los activos se ofrecen al añadir líneas." },
         new("PrecioUnitario", "Precio unitario", TipoCampo.Importe) { Ayuda = "Precio sin IVA que se propone al añadir el concepto a una factura; se puede cambiar en cada línea.", Grupo = "fac", Ancho = "s" },
         new("TipoIVA", "IVA (%)", TipoCampo.Porcentaje) { Ayuda = "Porcentaje de IVA que se propone al añadir el concepto a una factura; se puede cambiar en cada línea.", Grupo = "fac", Ancho = "xs" },

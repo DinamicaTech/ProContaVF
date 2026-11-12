@@ -52,7 +52,12 @@ public enum TipoCampo
     /// <summary>
     /// Clave o contraseña: se escribe sin verse y nunca se muestra lo guardado; vacío, se conserva lo que hubiera.
     /// </summary>
-    Secreto
+    Secreto,
+    /// <summary>
+    /// Clave de un registro de otro mantenimiento 1:N (<see cref="CampoMantenimiento.Referencia"/>): no se escribe, se elige
+    /// en el selector de esa tabla, desde el que también se da de alta (plataforma/mantenimiento 2026-11-12).
+    /// </summary>
+    Referencia
 }
 
 public sealed record OpcionCampo(object? Valor, string Texto);
@@ -85,6 +90,8 @@ public sealed record CampoMantenimiento(string Clave, string Etiqueta, TipoCampo
     public IReadOnlyList<string> GruposCuenta { get; init; } = [];
     /// <summary>Solo en <see cref="TipoCampo.Cuenta"/>: false si el campo admite cuentas de cualquier nivel (por ejemplo, un prefijo).</summary>
     public bool SoloSubcuentas { get; init; } = true;
+    /// <summary>Solo en <see cref="TipoCampo.Referencia"/>: clave del mantenimiento 1:N al que apunta (por ejemplo «formaspago»).</summary>
+    public string? Referencia { get; init; }
 }
 
 /// <summary>Columna de la lista de registros.</summary>

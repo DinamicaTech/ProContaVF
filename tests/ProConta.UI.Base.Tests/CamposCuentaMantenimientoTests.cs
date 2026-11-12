@@ -56,6 +56,68 @@ public class CamposCuentaMantenimientoTests
         Assert.Equal("4720001", campo.Texto);
     }
 
+    private sealed class Tipos : ProveedorBase
+    {
+        public override string Clave => "tipos";
+        public override string Titulo => "Tipos";
+        public override string Categoria => "General";
+        public override string Finalidad => "Tabla 1:N de prueba.";
+        public override AmbitoMantenimiento Ambito => AmbitoMantenimiento.Compartido;
+        public override string NombreRegistro => "tipo";
+        public override IReadOnlyList<CampoMantenimiento> Campos => [new("Nombre", "Nombre") { Ayuda = "Nombre del tipo." }];
+        public override IReadOnlyList<ColumnaLista> Columnas => [new("Nombre", "Nombre")];
+        public override string TituloRegistro(RegistroMantenimiento r) => r.Texto("Nombre") ?? "";
+        public override Task<IReadOnlyList<RegistroMantenimiento>> ListarAsync(ContextoMantenimiento contexto) =>
+            Task.FromResult<IReadOnlyList<RegistroMantenimiento>>([new RegistroMantenimiento((byte)1, new Dictionary<string, object?> { ["Nombre"] = "Transferencia" }),
+                new RegistroMantenimiento((byte)2, new Dictionary<string, object?> { ["Nombre"] = "Recibo" })]);
+        public override Task<Resultado<RegistroMantenimiento>> GuardarAsync(RegistroMantenimiento registro, ContextoMantenimiento contexto) =>
+            Task.FromResult(Resultado<RegistroMantenimiento>.Correcto(registro));
+    }
+
+    private sealed class ConReferencia : ProveedorBase
+    {
+        public override string Clave => "conreferencia";
+        public override string Titulo => "Con referencia";
+        public override string Categoria => "General";
+        public override string Finalidad => "Prueba de referencias.";
+        public override AmbitoMantenimiento Ambito => AmbitoMantenimiento.Compartido;
+        public override string NombreRegistro => "registro";
+        public override IReadOnlyList<CampoMantenimiento> Campos => [new("IdTipo", "Tipo", TipoCampo.Referencia) { Referencia = "tipos", Ayuda = "Tipo de prueba." }];
+        public override IReadOnlyList<ColumnaLista> Columnas => [new("IdTipo", "Tipo")];
+        public override Task<IReadOnlyList<RegistroMantenimiento>> ListarAsync(ContextoMantenimiento contexto) =>
+            Task.FromResult<IReadOnlyList<RegistroMantenimiento>>([new RegistroMantenimiento(1, new Dictionary<string, object?> { ["IdTipo"] = 2 })]);
+        public override Task<Resultado<RegistroMantenimiento>> GuardarAsync(RegistroMantenimiento registro, ContextoMantenimiento contexto) =>
+            Task.FromResult(Resultado<RegistroMantenimiento>.Correcto(registro));
+    }
+
+    [Fact]
+    public async Task LaReferenciaMuestraElTituloYSeEligeEnSuTabla()
+    {
+        var pantalla = new PantallaMantenimientoVM(new ServicioMantenimiento([new ConReferencia(), new Tipos()], () => Task.FromResult(true)), Ctx, (_, _, _, _) => 0, _ => { }, _ => new object());
+        IProveedorMantenimiento? abierto = null;
+        object? claveActual = null;
+        pantalla.ElegirRegistro = async (p, clave) =>
+        {
+            abierto = p; claveActual = clave;
+            return (await p.ListarAsync(Ctx))[0];
+        };
+        await pantalla.IniciarAsync("conreferencia");
+        var campo = pantalla.Grupos.SelectMany(g => g.Campos).Single();
+        for (var i = 0; i < 20 && campo.Texto != "Recibo"; i++) await Task.Delay(10);
+        Assert.Equal("Recibo", campo.Texto);
+        Assert.True(campo.PuedeElegirReferencia);
+        Assert.DoesNotContain("caracteres", campo.Ayuda);
+
+        await campo.ElegirReferenciaAsync();
+        Assert.Equal("tipos", abierto!.Clave);
+        Assert.Equal(2, claveActual);
+        Assert.Equal("Transferencia", campo.Texto);
+        Assert.True(pantalla.TieneCambios);
+
+        campo.VaciarReferencia();
+        Assert.Equal("", campo.Texto);
+    }
+
     [Fact]
     public async Task CancelarNoCambiaYSuprVacia()
     {

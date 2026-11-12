@@ -51,7 +51,9 @@ public sealed class VistaMantenimiento : UserControl
         };
         _tabla.SetBinding(ItemsControl.ItemsSourceProperty, new Binding(nameof(vm.Registros)));
         _tabla.SetBinding(System.Windows.Controls.Primitives.Selector.SelectedItemProperty, new Binding(nameof(vm.Seleccionada)) { Mode = BindingMode.TwoWay });
-        _tabla.PreviewKeyDown += (_, e) => { if (e.Key == Key.Enter) { EnfocarPrimerCampo(); e.Handled = true; } };
+        _tabla.PreviewKeyDown += (_, e) => { if (e.Key == Key.Enter) { if (vm.ModoSeleccion) FilaActivada?.Invoke(this, EventArgs.Empty); else EnfocarPrimerCampo(); e.Handled = true; } };
+        _tabla.MouseDoubleClick += (_, e) => { if (vm.ModoSeleccion && e.OriginalSource is FrameworkElement { DataContext: FilaRegistro }) FilaActivada?.Invoke(this, EventArgs.Empty); };
+        vm.ElegirRegistro ??= ElegirRegistroAsync;
 
         Content = Componer();
         InputBindings.Add(new KeyBinding(new ComandoDelegado(() => { _busqueda.Focus(); _busqueda.SelectAll(); }), Key.K, ModifierKeys.Control));
@@ -114,6 +116,7 @@ public sealed class VistaMantenimiento : UserControl
         nav.Children.Add(contenedorNav);
         var bordeNav = new Border { BorderBrush = (Brush)FindResource("Pincel.Linea"), BorderThickness = new Thickness(0, 0, 1, 0), Child = nav };
         DockPanel.SetDock(bordeNav, Dock.Left);
+        if (_vm.ModoSeleccion) bordeNav.Visibility = Visibility.Collapsed;
         raiz.Children.Add(bordeNav);
 
         // ----- cabecera -----
@@ -420,7 +423,9 @@ public sealed class VistaMantenimiento : UserControl
         _controles[c.Clave] = control;
         bloque.Children.Add(etiqueta);
         if (c.EsCuenta && control is TextBox cuenta)
-            bloque.Children.Add(CampoCuenta(c, cuenta));
+            bloque.Children.Add(CampoSelector(c, cuenta, c.BuscarCuentaCommand, nameof(CampoEdicionVM.AyudaBuscarCuenta), c.PuedeBuscarCuenta, c.BuscarCuentaAsync, c.VaciarCuenta));
+        else if (c.EsReferencia && control is TextBox referencia)
+            bloque.Children.Add(CampoSelector(c, referencia, c.ElegirReferenciaCommand, nameof(CampoEdicionVM.AyudaElegirReferencia), c.PuedeElegirReferencia, c.ElegirReferenciaAsync, c.VaciarReferencia));
         else
             bloque.Children.Add(control);
         if (c.Bloqueo is string motivo)
@@ -429,31 +434,69 @@ public sealed class VistaMantenimiento : UserControl
     }
 
     /// <summary>
-    /// Campo de cuenta (plataforma/mantenimiento 2026-11-12): no se escribe; la cuenta se elige siempre en el buscador de
-    /// cuentas del ejercicio, con «Crear subcuenta». Lo abren la lupa, el clic en el campo, Intro, Espacio y F4; Supr lo vacía.
+    /// Campo que no se escribe y se elige en un selector (plataforma/mantenimiento 2026-11-12, propietario 12:16): las cuentas
+    /// en el buscador de cuentas del ejercicio (con «Crear subcuenta») y las referencias a otra tabla 1:N en esa tabla (con
+    /// su alta). Lo abren la lupa, el clic en el campo, Intro, Espacio y F4; Supr lo vacía.
     /// </summary>
-    private FrameworkElement CampoCuenta(CampoEdicionVM c, TextBox texto)
+    private FrameworkElement CampoSelector(CampoEdicionVM c, TextBox texto, ICommand abrir, string propiedadAyuda, bool editable, Func<Task> abrirAsync, Action vaciar)
     {
-        var buscar = new Button { Style = (Style)FindResource("Boton.Icono"), Margin = new Thickness(4, 0, 0, 0), Command = c.BuscarCuentaCommand, Focusable = false };
+        var buscar = new Button { Style = (Style)FindResource("Boton.Icono"), Margin = new Thickness(4, 0, 0, 0), Command = abrir, Focusable = false };
         Iconos.SetIcono(buscar, (Geometry)FindResource("Icono.search"));
-        buscar.SetBinding(ToolTipProperty, nameof(CampoEdicionVM.AyudaBuscarCuenta));
-        System.Windows.Automation.AutomationProperties.SetName(buscar, $"Buscar {c.Definicion.Etiqueta}");
+        buscar.SetBinding(ToolTipProperty, propiedadAyuda);
+        System.Windows.Automation.AutomationProperties.SetName(buscar, $"Elegir {c.Definicion.Etiqueta}");
         DockPanel.SetDock(buscar, Dock.Right);
         texto.IsReadOnly = true;
-        if (c.PuedeBuscarCuenta)
+        if (editable)
         {
             texto.Cursor = Cursors.Hand;
-            texto.PreviewMouseLeftButtonUp += (_, e) => { e.Handled = true; _ = c.BuscarCuentaAsync(); };
+            texto.PreviewMouseLeftButtonUp += (_, e) => { e.Handled = true; _ = abrirAsync(); };
             texto.PreviewKeyDown += (_, e) =>
             {
-                if (e.Key is Key.F4 or Key.Enter or Key.Space) { e.Handled = true; _ = c.BuscarCuentaAsync(); }
-                else if (e.Key is Key.Delete or Key.Back) { e.Handled = true; c.VaciarCuenta(); }
+                if (e.Key is Key.F4 or Key.Enter or Key.Space) { e.Handled = true; _ = abrirAsync(); }
+                else if (e.Key is Key.Delete or Key.Back) { e.Handled = true; vaciar(); }
             };
         }
         var fila = new DockPanel { LastChildFill = true };
         fila.Children.Add(buscar);
         fila.Children.Add(texto);
         return fila;
+    }
+
+    /// <summary>En modo selección: doble clic o Intro en una fila de la lista.</summary>
+    public event EventHandler? FilaActivada;
+
+    /// <summary>
+    /// Selector de un registro de otra tabla 1:N (plataforma/mantenimiento 2026-11-12): la misma pantalla con solo ese
+    /// mantenimiento, donde también se crea o se corrige el registro, y «Elegir» (o doble clic) para llevarlo al campo.
+    /// </summary>
+    private async Task<RegistroMantenimiento?> ElegirRegistroAsync(IProveedorMantenimiento proveedor, object? clave)
+    {
+        var vm = new PantallaMantenimientoVM(new ServicioMantenimiento([proveedor], _vm.Servicio.PuedeEditarAsync), _vm.Contexto, _vm.Preguntar, _vm.AvisarOperador, x => new VistaMantenimiento(x))
+            { ModoSeleccion = true, Cuentas = _vm.Cuentas };
+        var vista = new VistaMantenimiento(vm);
+        var dialogo = new DialogoProConta
+        {
+            Title = $"Elegir en «{proveedor.Titulo}»", Owner = Window.GetWindow(this), Width = 1180, Height = 700, MinWidth = 700, MinHeight = 400,
+            SizeToContent = SizeToContent.Manual, Redimensionable = true, Content = vista,
+        };
+        RegistroMantenimiento? elegido = null;
+        async Task Elegir()
+        {
+            if (await vm.RegistroElegidoAsync() is not { } r) return;
+            elegido = r;
+            dialogo.DialogResult = true;
+        }
+        var elegir = new Button { Content = "Elegir", Style = (Style)FindResource("Boton.Primario"), Margin = new Thickness(8, 0, 0, 0),
+            ToolTip = $"Lleva al campo el registro seleccionado (también doble clic o Intro en la lista). Para uno nuevo, «Nuevo», rellénalo y «Guardar»" };
+        var cancelar = new Button { Content = "Cancelar", IsCancel = true, ToolTip = "Cierra sin cambiar el campo" };
+        elegir.Click += async (_, _) => await Elegir();
+        cancelar.Click += (_, _) => dialogo.DialogResult = false;
+        vista.FilaActivada += async (_, _) => await Elegir();
+        dialogo.Botones = new StackPanel { Orientation = Orientation.Horizontal, Children = { cancelar, elegir } };
+        dialogo.Loaded += async (_, _) => await vm.IniciarSeleccionAsync(clave);
+        var aceptado = dialogo.ShowDialog() == true;
+        _vm.OlvidarReferencias();
+        return aceptado ? elegido : null;
     }
 
     private void EnfocarPrimerCampo()

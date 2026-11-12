@@ -320,7 +320,7 @@ public sealed class ProveedorPlantillasSubcuentasActivo(IBaseDatos bd, Generador
 
     public override IReadOnlyList<CampoMantenimiento> Campos =>
     [
-        new("IdTipoActivo", "Tipo de activo", TipoCampo.Lista) { Ayuda = "Tipo de activo al que pertenece la línea: sus activos tendrán la subcuenta que genera.", Obligatorio = true, Opciones = _tiposActivo, Ancho = "m" },
+        new("IdTipoActivo", "Tipo de activo", TipoCampo.Referencia) { Referencia = "activos.tipos", Ayuda = "Tipo de activo al que pertenece la línea: sus activos tendrán la subcuenta que genera.", Obligatorio = true, Opciones = _tiposActivo, Ancho = "m" },
         new("TipoSubcuenta", "Tipo de subcuenta", TipoCampo.ListaAbierta) { Obligatorio = true, Opciones = _tiposSubcuenta, Longitud = ReglasSubcuentaActivo.LongitudMaximaNombre, Ancho = "l",
             Ayuda = "Elige uno del catálogo o escribe un nombre nuevo (con [TOKEN] donde va el nombre del activo): se crea en «Tipos de subcuenta de activo» con rol «Otra cuenta del activo»." },
         new("Rol", "Rol") { SoloLectura = true, Ancho = "l", Ayuda = "El del tipo de subcuenta; se cambia en «Tipos de subcuenta de activo»." },
