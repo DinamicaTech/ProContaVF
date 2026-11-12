@@ -35,6 +35,7 @@ Sociedad permanente y su instancia por ejercicio (SociedadEjercicio), con consul
 - 2026-11-05 11:24 · Derived from compras: cada sociedad tiene el nombre de su carpeta raíz dentro de la carpeta de datos donde está la BD compartida; sus facturas de compra están en `<carpeta de datos>\<carpeta de la sociedad>\<ejercicio>\Proveedores\<carpeta del proveedor>`.
 - 2026-11-06 13:36 · 3. Ok. No me suena que en el ERP haya una tabla de tipos de retención, por lo que podemos hacerlo desde cero.
 - 2026-11-06 13:42 · Derived from compras: catálogo de tipos de retención vigentes con su descripción para la ficha de facturas recibidas.
+- 2026-11-12 11:15 · Derived from contabilidad/plantillas-asiento: volver a mostrar en Parámetros › Empresas la cuenta 113 para cuadres y la cuenta 570 de tesorería, que usan las plantillas de corrección.
 
 ## Hand-over
 - 2026-10-31 18:55 · Hecho: contrato y servicio sobre Access, migración de EjercicioCerrado y pruebas (contexto válido e inválido, ejercicio cerrado). Pendiente: apertura de ejercicio nuevo y cierre/reapertura (contabilidad/procesos), unicidad (IdSociedad, Ejercicio) y unicidad del NIF de sociedad (la maestra tiene dos sociedades con el mismo NIF, una de pruebas), y la regla de propagación de la razón social a los ejercicios.
