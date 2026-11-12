@@ -90,12 +90,12 @@ public sealed class ProveedorTiposActivo(IBaseDatos bd, GeneradorSubcuentasActiv
     [
         new("Codigo", "Código", TipoCampo.Codigo) { Obligatorio = true, Longitud = 30, Ancho = "s", SoloAlta = true,
             Ayuda = "En mayúsculas y sin espacios, por ejemplo VIVIENDA. No se cambia después de crearlo." },
-        new("Nombre", "Nombre") { Obligatorio = true, Longitud = 100, Ancho = "l" },
-        new("Categoria", "Categoría", TipoCampo.Lista) { Obligatorio = true, Opciones = Categorias, Ancho = "m" },
+        new("Nombre", "Nombre") { Ayuda = "Nombre del tipo de activo que se ve al dar de alta un activo (por ejemplo «Vivienda»).", Obligatorio = true, Longitud = 100, Ancho = "l" },
+        new("Categoria", "Categoría", TipoCampo.Lista) { Ayuda = "Clase de activo según el Plan General Contable a la que pertenece el tipo.", Obligatorio = true, Opciones = Categorias, Ancho = "m" },
         new("EsAmortizablePredeterminado", "Amortizable por defecto", TipoCampo.Logico) { Ayuda = "Los activos nuevos de este tipo nacen amortizables." },
         new("EstaActivo", "Activo", TipoCampo.Logico) { Ayuda = "Un tipo inactivo no se ofrece para activos nuevos; los que ya lo tienen lo conservan." },
-        new("Lineas", "Líneas de plantilla", TipoCampo.Entero) { SoloLectura = true, Ancho = "xs" },
-        new("Activos", "Activos de esta empresa", TipoCampo.Entero) { SoloLectura = true, Ancho = "xs" },
+        new("Lineas", "Líneas de plantilla", TipoCampo.Entero) { Ayuda = "Cuántas líneas tiene este tipo de activo en «Plantillas de subcuentas». Se calcula solo.", SoloLectura = true, Ancho = "xs" },
+        new("Activos", "Activos de esta empresa", TipoCampo.Entero) { Ayuda = "Cuántos activos de la empresa de trabajo son de este tipo. Se calcula solo.", SoloLectura = true, Ancho = "xs" },
     ];
 
     public override IReadOnlyList<ColumnaLista> Columnas =>
@@ -217,7 +217,7 @@ public sealed class ProveedorTiposSubcuentaActivo(IBaseDatos bd) : ProveedorBase
         new("Rol", "Rol", TipoCampo.Lista) { Obligatorio = true, Opciones = Roles, Ancho = "l",
             Ayuda = "Para qué la usan los procesos (amortización, baja, facturación). En la plantilla de cada tipo de activo, cada rol fijo solo puede estar una vez." },
         new("EstaActivo", "Activo", TipoCampo.Logico) { Ayuda = "Un tipo inactivo no se ofrece al añadir líneas de plantilla; las líneas que ya lo usan siguen igual." },
-        new("Lineas", "Líneas de plantilla", TipoCampo.Entero) { SoloLectura = true, Ancho = "xs" },
+        new("Lineas", "Líneas de plantilla", TipoCampo.Entero) { Ayuda = "En cuántas líneas de «Plantillas de subcuentas» se usa este tipo de subcuenta. Se calcula solo.", SoloLectura = true, Ancho = "xs" },
     ];
 
     public override IReadOnlyList<ColumnaLista> Columnas =>
@@ -320,7 +320,7 @@ public sealed class ProveedorPlantillasSubcuentasActivo(IBaseDatos bd, Generador
 
     public override IReadOnlyList<CampoMantenimiento> Campos =>
     [
-        new("IdTipoActivo", "Tipo de activo", TipoCampo.Lista) { Obligatorio = true, Opciones = _tiposActivo, Ancho = "m" },
+        new("IdTipoActivo", "Tipo de activo", TipoCampo.Lista) { Ayuda = "Tipo de activo al que pertenece la línea: sus activos tendrán la subcuenta que genera.", Obligatorio = true, Opciones = _tiposActivo, Ancho = "m" },
         new("TipoSubcuenta", "Tipo de subcuenta", TipoCampo.ListaAbierta) { Obligatorio = true, Opciones = _tiposSubcuenta, Longitud = ReglasSubcuentaActivo.LongitudMaximaNombre, Ancho = "l",
             Ayuda = "Elige uno del catálogo o escribe un nombre nuevo (con [TOKEN] donde va el nombre del activo): se crea en «Tipos de subcuenta de activo» con rol «Otra cuenta del activo»." },
         new("Rol", "Rol") { SoloLectura = true, Ancho = "l", Ayuda = "El del tipo de subcuenta; se cambia en «Tipos de subcuenta de activo»." },
@@ -328,7 +328,7 @@ public sealed class ProveedorPlantillasSubcuentasActivo(IBaseDatos bd, Generador
             Ayuda = "Cuenta de la que cuelgan las subcuentas, por ejemplo 2810 o 21800. Cambiarlo no recodifica las subcuentas que ya existen." },
         new("Orden", "Orden", TipoCampo.Entero) { Minimo = 0, Maximo = 32767, Ancho = "xs", Ayuda = "Vacío: después de la última línea del tipo de activo." },
         new("EstaActiva", "Activa", TipoCampo.Logico) { Ayuda = "Una línea inactiva no genera subcuentas; las que ya generó se quedan." },
-        new("Subcuentas", "Subcuentas generadas (todas las empresas)", TipoCampo.Entero) { SoloLectura = true, Ancho = "xs" },
+        new("Subcuentas", "Subcuentas generadas (todas las empresas)", TipoCampo.Entero) { Ayuda = "Cuántas subcuentas ha generado ya esta línea, sumando todas las empresas. Se calcula solo.", SoloLectura = true, Ancho = "xs" },
     ];
 
     public override IReadOnlyList<ColumnaLista> Columnas =>

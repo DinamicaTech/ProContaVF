@@ -25,11 +25,11 @@ public static class ProveedoresOrganizacion
 
     internal static IEnumerable<CampoMantenimiento> Impuestos() =>
     [
-        new("PorcentajeRetencion", "Porcentaje de retención", TipoCampo.Entero) { Grupo = "impuestos", Minimo = 0, Maximo = 100, Ancho = "xs", Ayuda = "Se guarda como número entero.", Sinonimos = ["irpf", "retencion"] },
-        new("TipoIVA1", "Tipo de IVA 1 (%)", TipoCampo.Porcentaje) { Grupo = "impuestos", Ancho = "xs", Ayuda = "Su cuenta de IVA repercutido es «Cuenta del tipo de IVA 1»." },
-        new("TipoIVA2", "Tipo de IVA 2 (%)", TipoCampo.Porcentaje) { Grupo = "impuestos", Ancho = "xs" },
-        new("TipoIVA3", "Tipo de IVA 3 (%)", TipoCampo.Porcentaje) { Grupo = "impuestos", Ancho = "xs" },
-        new("TipoIVA4", "Tipo de IVA 4 (%)", TipoCampo.Porcentaje) { Grupo = "impuestos", Ancho = "xs" },
+        new("PorcentajeRetencion", "Porcentaje de retención", TipoCampo.Entero) { Grupo = "impuestos", Minimo = 0, Maximo = 100, Ancho = "xs", Ayuda = "Porcentaje de retención de IRPF predeterminado, en número entero (por ejemplo 19 para el 19 %).", Sinonimos = ["irpf", "retencion"] },
+        new("TipoIVA1", "Tipo de IVA 1 (%)", TipoCampo.Porcentaje) { Grupo = "impuestos", Ancho = "xs", Ayuda = "Por ejemplo 21. Sus cuentas son las de IVA soportado y repercutido del tipo 1 (grupo Cuentas)." },
+        new("TipoIVA2", "Tipo de IVA 2 (%)", TipoCampo.Porcentaje) { Ayuda = "Segundo porcentaje de IVA (por ejemplo 10). Sus cuentas son las de IVA soportado y repercutido del tipo 2.", Grupo = "impuestos", Ancho = "xs" },
+        new("TipoIVA3", "Tipo de IVA 3 (%)", TipoCampo.Porcentaje) { Ayuda = "Tercer porcentaje de IVA (por ejemplo 4). Sus cuentas son las de IVA soportado y repercutido del tipo 3.", Grupo = "impuestos", Ancho = "xs" },
+        new("TipoIVA4", "Tipo de IVA 4 (%)", TipoCampo.Porcentaje) { Ayuda = "Cuarto porcentaje de IVA, si se usa. Sus cuentas son las de IVA soportado y repercutido del tipo 4.", Grupo = "impuestos", Ancho = "xs" },
     ];
 
     /// <summary>Solo en Ejercicios: el tipo general es del ejercicio (compras/pantallas 2026-11-06 12:10).</summary>
@@ -40,37 +40,37 @@ public static class ProveedoresOrganizacion
     /// <summary>Cuentas de compras que solo tiene el ejercicio (compras/factura-compra/contabilizacion).</summary>
     internal static IEnumerable<CampoMantenimiento> CuentasCompras() =>
     [
-        Cuenta("CuentaIVAImportacion", "Cuenta de IVA de importación", ayuda: "IVA soportado en importaciones (4724001 en el ERP): el importe de la factura se desglosa al tipo general."),
-        Cuenta("CuentaRedondeoGastos", "Cuenta de diferencias de redondeo · gastos", ayuda: "Cuando a un asiento de compra le falta Debe (hasta 0,03 €, o más con motivo). Vacía: 6590000.", sinonimos: ["redondeo"]),
-        Cuenta("CuentaRedondeoIngresos", "Cuenta de diferencias de redondeo · ingresos", ayuda: "Cuando a un asiento de compra le sobra Debe. Vacía: 7590000. Si no existe, se crea al usarla.", sinonimos: ["redondeo"]),
+        Cuenta("CuentaIVAImportacion", "IVA de importación", ayuda: "IVA soportado en importaciones (4724001 en el ERP): el importe de la factura se desglosa al tipo general."),
+        Cuenta("CuentaRedondeoGastos", "Diferencias de redondeo · gastos", ayuda: "Cuando a un asiento de compra le falta Debe (hasta 0,03 €, o más con motivo). Vacía: 6590000.", sinonimos: ["redondeo"]),
+        Cuenta("CuentaRedondeoIngresos", "Diferencias de redondeo · ingresos", ayuda: "Cuando a un asiento de compra le sobra Debe. Vacía: 7590000. Si no existe, se crea al usarla.", sinonimos: ["redondeo"]),
     ];
 
     internal static IEnumerable<CampoMantenimiento> Cuentas() =>
     [
-        Cuenta("CuentaTipoIVA0", "Cuenta de IVA soportado del tipo 0", ayuda: "IVA soportado (472) de las compras al 0 %.", sinonimos: ["iva soportado"]),
-        Cuenta("CuentaTipoIVA1", "Cuenta de IVA soportado del tipo 1", ayuda: "La usa la exportación de compras para el porcentaje del tipo de IVA 1.", sinonimos: ["iva soportado"]),
-        Cuenta("CuentaTipoIVA2", "Cuenta de IVA soportado del tipo 2", sinonimos: ["iva soportado"]),
-        Cuenta("CuentaTipoIVA3", "Cuenta de IVA soportado del tipo 3", sinonimos: ["iva soportado"]),
-        Cuenta("CuentaTipoIVA4", "Cuenta de IVA soportado del tipo 4", sinonimos: ["iva soportado"]),
-        Cuenta("CuentaIVARepercutido0", "Cuenta de IVA repercutido del tipo 0", ayuda: "Ventas al 0 %. Vacía: la 477 con la terminación de la de soportado (4720001 → 4770001).", sinonimos: ["iva repercutido"]),
-        Cuenta("CuentaIVARepercutido1", "Cuenta de IVA repercutido del tipo 1", ayuda: "La usa la contabilización de ventas. Vacía: la 477 con la terminación de la de soportado.", sinonimos: ["iva repercutido"]),
-        Cuenta("CuentaIVARepercutido2", "Cuenta de IVA repercutido del tipo 2", ayuda: "Vacía: la 477 con la terminación de la de soportado.", sinonimos: ["iva repercutido"]),
-        Cuenta("CuentaIVARepercutido3", "Cuenta de IVA repercutido del tipo 3", ayuda: "Vacía: la 477 con la terminación de la de soportado.", sinonimos: ["iva repercutido"]),
-        Cuenta("CuentaIVARepercutido4", "Cuenta de IVA repercutido del tipo 4", ayuda: "Vacía: la 477 con la terminación de la de soportado.", sinonimos: ["iva repercutido"]),
-        Cuenta("CuentaSuplido", "Cuenta de suplido", 255, "La contabilización de ventas la usa en las líneas suplidas sin cuenta propia."),
-        Cuenta("CuentaRetencionServicios", "Cuenta de retención de servicios"),
-        Cuenta("CuentaRetencionAlquileres", "Cuenta de retención de alquileres"),
-        Cuenta("CuentaIVAIntracomunitarioRepercutidoServicios", "Cuenta de IVA intracomunitario repercutido · servicios"),
-        Cuenta("CuentaIVAIntracomunitarioRepercutidoBienes", "Cuenta de IVA intracomunitario repercutido · bienes"),
-        Cuenta("CuentaIVAIntracomunitarioSoportadoServicios", "Cuenta de IVA intracomunitario soportado · servicios"),
-        Cuenta("CuentaIVAIntracomunitarioSoportadoBienes", "Cuenta de IVA intracomunitario soportado · bienes"),
-        Cuenta("CuentaIVAInversionSujetoPasivoRepercutido", "Cuenta de IVA por inversión del sujeto pasivo · repercutido"),
-        Cuenta("CuentaIVAInversionSujetoPasivoSoportado", "Cuenta de IVA por inversión del sujeto pasivo · soportado"),
+        Cuenta("CuentaTipoIVA0", "IVA soportado del tipo 0", ayuda: "IVA soportado (472) de las compras al 0 %.", sinonimos: ["iva soportado"]),
+        Cuenta("CuentaTipoIVA1", "IVA soportado del tipo 1", ayuda: "IVA soportado (472) de las compras al tipo de IVA 1. La usa la exportación de compras para el porcentaje del tipo de IVA 1.", sinonimos: ["iva soportado"]),
+        Cuenta("CuentaTipoIVA2", "IVA soportado del tipo 2", ayuda: "IVA soportado (472) de las compras al tipo de IVA 2.", sinonimos: ["iva soportado"]),
+        Cuenta("CuentaTipoIVA3", "IVA soportado del tipo 3", ayuda: "IVA soportado (472) de las compras al tipo de IVA 3.", sinonimos: ["iva soportado"]),
+        Cuenta("CuentaTipoIVA4", "IVA soportado del tipo 4", ayuda: "IVA soportado (472) de las compras al tipo de IVA 4.", sinonimos: ["iva soportado"]),
+        Cuenta("CuentaIVARepercutido0", "IVA repercutido del tipo 0", ayuda: "Ventas al 0 %. Vacía: la 477 con la terminación de la de soportado (4720001 → 4770001).", sinonimos: ["iva repercutido"]),
+        Cuenta("CuentaIVARepercutido1", "IVA repercutido del tipo 1", ayuda: "La usa la contabilización de ventas. Vacía: la 477 con la terminación de la de soportado.", sinonimos: ["iva repercutido"]),
+        Cuenta("CuentaIVARepercutido2", "IVA repercutido del tipo 2", ayuda: "IVA repercutido (477) de las ventas al tipo de IVA 2. Vacía: la 477 con la terminación de la de soportado.", sinonimos: ["iva repercutido"]),
+        Cuenta("CuentaIVARepercutido3", "IVA repercutido del tipo 3", ayuda: "IVA repercutido (477) de las ventas al tipo de IVA 3. Vacía: la 477 con la terminación de la de soportado.", sinonimos: ["iva repercutido"]),
+        Cuenta("CuentaIVARepercutido4", "IVA repercutido del tipo 4", ayuda: "IVA repercutido (477) de las ventas al tipo de IVA 4. Vacía: la 477 con la terminación de la de soportado.", sinonimos: ["iva repercutido"]),
+        Cuenta("CuentaSuplido", "Suplido", 255, "La contabilización de ventas la usa en las líneas suplidas sin cuenta propia."),
+        Cuenta("CuentaRetencionServicios", "Retención de servicios", ayuda: "Retenciones de IRPF practicadas a profesionales (4751, modelo 111)."),
+        Cuenta("CuentaRetencionAlquileres", "Retención de alquileres", ayuda: "Retenciones de IRPF practicadas en los alquileres (4751, modelo 115)."),
+        Cuenta("CuentaIVAIntracomunitarioRepercutidoServicios", "IVA intracomunitario repercutido · servicios", ayuda: "IVA que se autorrepercute (477) al comprar servicios a otro país de la UE."),
+        Cuenta("CuentaIVAIntracomunitarioRepercutidoBienes", "IVA intracomunitario repercutido · bienes", ayuda: "IVA que se autorrepercute (477) al comprar bienes a otro país de la UE."),
+        Cuenta("CuentaIVAIntracomunitarioSoportadoServicios", "IVA intracomunitario soportado · servicios", ayuda: "IVA soportado deducible (472) de las compras de servicios a otro país de la UE."),
+        Cuenta("CuentaIVAIntracomunitarioSoportadoBienes", "IVA intracomunitario soportado · bienes", ayuda: "IVA soportado deducible (472) de las compras de bienes a otro país de la UE."),
+        Cuenta("CuentaIVAInversionSujetoPasivoRepercutido", "IVA por inversión del sujeto pasivo · repercutido", ayuda: "IVA que se autorrepercute (477) en las compras con inversión del sujeto pasivo."),
+        Cuenta("CuentaIVAInversionSujetoPasivoSoportado", "IVA por inversión del sujeto pasivo · soportado", ayuda: "IVA soportado deducible (472) de las compras con inversión del sujeto pasivo."),
     ];
 
     private static IEnumerable<CampoMantenimiento> Predeterminados() =>
     [
-        new("FormaPagoDefecto", "Forma de pago predeterminada (código)", TipoCampo.Entero) { Grupo = "pred", Ancho = "xs", Minimo = 0, Maximo = 255, Ayuda = "Código de Formas de pago que se propone en las facturas nuevas." },
+        new("FormaPagoDefecto", "Forma de pago predeterminada", TipoCampo.Entero) { Grupo = "pred", Ancho = "xs", Minimo = 0, Maximo = 255, Ayuda = "Código de Formas de pago que se propone en las facturas nuevas." },
     ];
 
     public static ProveedorTablaAccess Empresas(IBaseDatos bd) => new(bd, "sociedades", "Empresas", "Empresas y ejercicios",
@@ -78,12 +78,12 @@ public static class ProveedoresOrganizacion
         "Sociedades", "IdSociedad", ClaveNueva.Escrita,
         [
             new("IdSociedad", "Código", TipoCampo.Codigo) { Grupo = "ident", Obligatorio = true, SoloAlta = true, Longitud = 3, Ancho = "xs", Ayuda = "Tres caracteres. Se fija al crear la empresa." },
-            new("Nombre", "Nombre") { Grupo = "ident", Obligatorio = true, Longitud = 255, Ancho = "l" },
+            new("Nombre", "Nombre") { Ayuda = "Razón social de la empresa: sale como emisor en las facturas si el ejercicio no tiene un nombre propio.", Grupo = "ident", Obligatorio = true, Longitud = 255, Ancho = "l" },
             new("CIF", "CIF", TipoCampo.Codigo) { Grupo = "ident", Obligatorio = true, Longitud = 10, Ancho = "s", Sinonimos = ["nif"], Ayuda = "Es el NIF que figura como emisor en las facturas si el ejercicio no tiene uno propio." },
             new("DireccionFiscal", "Domicilio fiscal") { Grupo = "ident", Longitud = 255, Ancho = "l", Sinonimos = ["direccion", "domicilio"], Ayuda = "Sale en las facturas como domicilio del emisor y es obligatorio para validarlas. Se congela en cada factura al validarla." },
-            new("CodigoPostalFiscal", "Código postal") { Grupo = "ident", Longitud = 20, Ancho = "xs" },
-            new("PoblacionFiscal", "Población") { Grupo = "ident", Longitud = 100 },
-            new("ProvinciaFiscal", "Provincia") { Grupo = "ident", Longitud = 100 },
+            new("CodigoPostalFiscal", "Código postal") { Ayuda = "Código postal del domicilio fiscal; sale en las facturas como parte de la dirección del emisor.", Grupo = "ident", Longitud = 20, Ancho = "xs" },
+            new("PoblacionFiscal", "Población") { Ayuda = "Población del domicilio fiscal; sale en las facturas como parte de la dirección del emisor.", Grupo = "ident", Longitud = 100 },
+            new("ProvinciaFiscal", "Provincia") { Ayuda = "Provincia del domicilio fiscal; sale en las facturas como parte de la dirección del emisor.", Grupo = "ident", Longitud = 100 },
             .. Predeterminados(), .. Impuestos(), .. Cuentas(),
             Ruta("RutaDocumentos", "Carpeta de documentos") with
             {
@@ -111,7 +111,7 @@ public static class ProveedoresOrganizacion
         [
             new("Porcentaje", "Porcentaje", TipoCampo.Porcentaje) { Obligatorio = true, Ancho = "xs", Ayuda = "Por ejemplo 15 para el 15 %." },
             new("Descripcion", "Descripción") { Obligatorio = true, Longitud = 100, Ancho = "l", Ayuda = "Sale junto al porcentaje en el desplegable de la factura." },
-            new("Clase", "Clase", TipoCampo.Lista) { Obligatorio = true, Ancho = "m",
+            new("Clase", "Clase", TipoCampo.Lista) { Ayuda = "Modelo en el que se declara la retención: 111 para actividades y profesionales, 115 para arrendamientos.", Obligatorio = true, Ancho = "m",
                 Opciones = [new OpcionCampo((byte)1, "Actividades y profesionales (modelo 111)"), new OpcionCampo((byte)2, "Arrendamientos (modelo 115)")] },
             new("VigenteDesde", "Vigente desde", TipoCampo.Fecha) { Ancho = "s", Ayuda = "Vacía: sin límite. Los tipos cambian por ley; da de alta el nuevo con su fecha en vez de cambiar el antiguo." },
             new("VigenteHasta", "Vigente hasta", TipoCampo.Fecha) { Ancho = "s", Ayuda = "Vacía: sin límite." },
@@ -173,7 +173,7 @@ public sealed class ProveedorFormasPago(IBaseDatos bd, ICatalogoFormasPago catal
     "FormasPago", "Id", ClaveNueva.Siguiente,
     [
         new("Id", "Código", TipoCampo.Entero) { SoloLectura = true, Ancho = "xs", Ayuda = "Se asigna al crear la forma de pago." },
-        new("Descripcion", "Descripción") { Obligatorio = true, Longitud = CatalogoFormasPagoAccess.LongitudDescripcion, Ancho = "l" },
+        new("Descripcion", "Descripción") { Ayuda = "Nombre de la forma de pago tal como sale en las facturas y en los desplegables (por ejemplo «Transferencia a 30 días»).", Obligatorio = true, Longitud = CatalogoFormasPagoAccess.LongitudDescripcion, Ancho = "l" },
         new("SEPA", "Domiciliación SEPA", TipoCampo.Logico) { Ayuda = "Se cobra por recibo domiciliado." },
     ],
     [new("Id", "Código", 64, Derecha: true), new("Descripcion", "Descripción"), new("SEPA", "SEPA", 60)])
@@ -221,10 +221,10 @@ public sealed class ProveedorFormasPagoSociedad(CatalogoFormasPagoSociedad catal
 
     public override IReadOnlyList<CampoMantenimiento> Campos =>
     [
-        new("Descripcion", "Forma de pago") { SoloLectura = true, Ancho = "l" },
+        new("Descripcion", "Forma de pago") { Ayuda = "La forma de pago a la que se asigna la subcuenta. Se crea y se renombra en «Formas de pago».", SoloLectura = true, Ancho = "l" },
         new("Cuenta", "Subcuenta", TipoCampo.Cuenta) { Longitud = 30, Ancho = "s", Sinonimos = ["cuenta", "572", "banco"],
             Ayuda = "Código en el ejercicio de trabajo. Se guarda su identidad contable, así vale en los demás ejercicios aunque cambie el código. Vacía, la forma de pago no tiene subcuenta en esta empresa." },
-        new("NombreCuenta", "Nombre de la cuenta") { SoloLectura = true, Ancho = "l" },
+        new("NombreCuenta", "Nombre de la cuenta") { Ayuda = "Nombre de la subcuenta en el ejercicio de trabajo, para comprobar que es la buena. Se rellena solo.", SoloLectura = true, Ancho = "l" },
     ];
 
     public override IReadOnlyList<ColumnaLista> Columnas => [new("Descripcion", "Forma de pago"), new("Cuenta", "Subcuenta", 90), new("NombreCuenta", "Nombre de la cuenta")];

@@ -75,9 +75,12 @@ public sealed class CampoEdicionVM : ModeloVista, INotifyDataErrorInfo
     public string Ayuda => string.Join(Environment.NewLine, new[]
     {
         Error, Bloqueo, Definicion.Ayuda, Definicion.Pendiente ? "Significado pendiente de confirmar." : null,
-        Definicion.Longitud is int l && Tipo is not (TipoCampo.Logico or TipoCampo.Lista or TipoCampo.ListaAbierta) ? $"Hasta {l} caracteres." : null,
+        Definicion.Longitud is int l && !SoloLectura && Tipo is not (TipoCampo.Logico or TipoCampo.Lista or TipoCampo.ListaAbierta) ? $"Hasta {l} caracteres." : null,
         Tipo == TipoCampo.ListaAbierta ? "Elige una opción o escribe una nueva." : null
     }.Where(x => !string.IsNullOrWhiteSpace(x)));
+
+    /// <summary>Ayuda de la etiqueta: el nombre completo (por si no cabe en dos líneas) y la ayuda del campo.</summary>
+    public string AyudaEtiqueta => string.IsNullOrEmpty(Ayuda) ? Definicion.Etiqueta : Definicion.Etiqueta + Environment.NewLine + Ayuda;
 
     public string Texto
     {
@@ -129,7 +132,7 @@ public sealed class CampoEdicionVM : ModeloVista, INotifyDataErrorInfo
     internal void RefrescarError()
     {
         foreach (var p in new[] { nameof(Texto), nameof(Marcado), nameof(Opcion) }) ErrorsChanged?.Invoke(this, new DataErrorsChangedEventArgs(p));
-        Avisar(nameof(Error), nameof(TieneError), nameof(Ayuda));
+        Avisar(nameof(Error), nameof(TieneError), nameof(Ayuda), nameof(AyudaEtiqueta));
     }
 
     private static object? Normalizar(object? v) => v switch { null => null, IConvertible c and not string => Convert.ToDecimal(c, CultureInfo.InvariantCulture), _ => v };
