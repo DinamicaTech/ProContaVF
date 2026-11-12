@@ -137,19 +137,20 @@ public sealed class FuenteMayorAccess(IBaseDatos bd) : IFuenteMayor
 
     public Task<IReadOnlyList<CuadreCuenta>> CuadresAsync(IReadOnlyList<EjercicioMayor> ejercicios, CancellationToken cancelacion = default) =>
         bd.EjecutarAsync(async s => ejercicios.Count == 0 ? (IReadOnlyList<CuadreCuenta>)[] : (await s.ConsultarAsync(
-            $"SELECT IdSociedadEjercicio, CuentaContable, Saldo, Comentario, Operador, FechaHora FROM CuadresCuentas WHERE IdSociedadEjercicio IN ({ListaIds(ejercicios)})",
-            f => new CuadreCuenta(f.Entero("IdSociedadEjercicio"), (f.Texto("CuentaContable") ?? "").Trim(), f.DecimalNulo("Saldo") ?? 0m, f.Texto("Comentario"),
-                f.Texto("Operador") ?? "", f.Fecha("FechaHora")))).ToList(), cancelacion);
+            $"SELECT IdSociedadEjercicio, CuentaContable, Cuadrada, Saldo, Notas, Operador, FechaHora FROM CuadresCuentas WHERE IdSociedadEjercicio IN ({ListaIds(ejercicios)})",
+            f => new CuadreCuenta(f.Entero("IdSociedadEjercicio"), (f.Texto("CuentaContable") ?? "").Trim(), !f.EsNulo("Cuadrada") && f.Logico("Cuadrada"),
+                f.DecimalNulo("Saldo"), f.Texto("Notas"), f.Texto("Operador") ?? "", f.Fecha("FechaHora")))).ToList(), cancelacion);
 
-    public Task GuardarCuadresAsync(IReadOnlyList<CuadreCuenta> marcar, IReadOnlyList<(int IdSociedadEjercicio, string Cuenta)> quitar, CancellationToken cancelacion = default) =>
+    public Task GuardarCuadresAsync(IReadOnlyList<CuadreCuenta> cuadres, CancellationToken cancelacion = default) =>
         bd.EnTransaccionAsync(async s =>
         {
-            foreach (var (ej, cuenta) in quitar.Concat(marcar.Select(m => (m.IdSociedadEjercicio, m.Cuenta))).Distinct())
-                await s.EjecutarAsync("DELETE FROM CuadresCuentas WHERE IdSociedadEjercicio = ? AND CuentaContable = ?", ej, cuenta);
-            foreach (var m in marcar)
-                await s.EjecutarAsync("INSERT INTO CuadresCuentas (IdSociedadEjercicio, CuentaContable, Saldo, Comentario, Operador, FechaHora) VALUES (?, ?, ?, ?, ?, ?)",
-                    m.IdSociedadEjercicio, m.Cuenta, Math.Round(m.Saldo, 2), string.IsNullOrWhiteSpace(m.Comentario) ? null : m.Comentario.Trim(),
+            foreach (var m in cuadres)
+            {
+                await s.EjecutarAsync("DELETE FROM CuadresCuentas WHERE IdSociedadEjercicio = ? AND CuentaContable = ?", m.IdSociedadEjercicio, m.Cuenta);
+                await s.EjecutarAsync("INSERT INTO CuadresCuentas (IdSociedadEjercicio, CuentaContable, Cuadrada, Saldo, Notas, Operador, FechaHora) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                    m.IdSociedadEjercicio, m.Cuenta, m.Cuadrada, m.Saldo is decimal x ? Math.Round(x, 2) : null, string.IsNullOrWhiteSpace(m.Notas) ? null : m.Notas,
                     m.Operador.Length > 30 ? m.Operador[..30] : m.Operador, m.FechaHora);
+            }
             return true;
         });
 

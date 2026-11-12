@@ -108,20 +108,30 @@ public sealed record AsientoMayor(
 public sealed record LineaAsientoMayor(int Orden, string Cuenta, string NombreCuenta, string Concepto, string? Documento, decimal Debe, decimal Haber);
 
 /// <summary>
-/// Cuenta marcada como cuadrada en un ejercicio (tabla CuadresCuentas, contabilidad/mayor 2026-11-11 20:05), con el saldo que
-/// tenía la cuenta en ese ejercicio al marcarla: si después cambia, la cuenta vuelve a estar sin cuadrar.
+/// Cuadre de una cuenta en un ejercicio (tabla CuadresCuentas, contabilidad/mayor 2026-11-12): la casilla «Cuadrada» con el
+/// saldo que tenía la cuenta al marcarla, y las notas (un memo que puede acumular la historia de varios ejercicios).
 /// </summary>
-public sealed record CuadreCuenta(int IdSociedadEjercicio, string Cuenta, decimal Saldo, string? Comentario, string Operador, DateTime FechaHora);
+public sealed record CuadreCuenta(int IdSociedadEjercicio, string Cuenta, bool Cuadrada, decimal? Saldo, string? Notas, string Operador, DateTime FechaHora);
 
-/// <summary>Estado del cuadre de una cuenta en los ejercicios elegidos.</summary>
+/// <summary>Estado del cuadre de una cuenta en el ejercicio de trabajo (rojo, ámbar o verde).</summary>
 public enum EstadoCuadre
 {
-    /// <summary>Sin movimientos en los ejercicios elegidos: no hay nada que cuadrar.</summary>
+    /// <summary>Sin movimientos ni notas: no hay nada que cuadrar.</summary>
     SinMovimientos,
-    /// <summary>Marcada como cuadrada en todos los ejercicios elegidos con movimientos, con el mismo saldo que al marcarla.</summary>
-    Cuadrada,
-    /// <summary>Algún ejercicio con movimientos sin marcar, o con un saldo distinto del que tenía al marcarla.</summary>
-    NoCuadrada
+    /// <summary>Rojo: ni notas ni casilla.</summary>
+    SinCuadrar,
+    /// <summary>Ámbar: con notas y sin la casilla, o con la casilla pero el saldo ha cambiado desde que se marcó.</summary>
+    EnCurso,
+    /// <summary>Verde: con la casilla y el mismo saldo que al marcarla.</summary>
+    Cuadrada
+}
+
+/// <summary>Cuadre de una cuenta tal como se ve: estado, notas (las del ejercicio de trabajo o, si no tiene, las del último anterior) y aviso.</summary>
+/// <param name="Heredadas">Las notas vienen de un ejercicio anterior: el de trabajo aún no tiene cuadre.</param>
+/// <param name="Aviso">Por qué está en ámbar aunque se marcó como cuadrada (el saldo ha cambiado).</param>
+public sealed record VistaCuadre(string Cuenta, EstadoCuadre Estado, string? Notas, bool Heredadas, CuadreCuenta? Registro, decimal Saldo, string? Aviso)
+{
+    public static VistaCuadre Vacia(string cuenta) => new(cuenta, EstadoCuadre.SinMovimientos, null, false, null, 0m, null);
 }
 
 /// <summary>Cambio de un apunte del registro de cambios (RegistroCambiosApuntes), para el historial del apunte.</summary>

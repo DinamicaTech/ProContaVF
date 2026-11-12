@@ -209,8 +209,9 @@ Relaciones:
 | IdCuadreCuenta | COUNTER | no |  |  |
 | IdSociedadEjercicio | LONG | no |  |  |
 | CuentaContable | TEXT(20) | no |  |  |
-| Saldo | CURRENCY | no |  |  |
-| Comentario | TEXT(255) | sí |  |  |
+| Cuadrada | YESNO | no |  |  |
+| Saldo | CURRENCY | sí |  |  |
+| Notas | LONGTEXT | sí |  |  |
 | Operador | TEXT(30) | no |  |  |
 | FechaHora | DATETIME | no |  |  |
 

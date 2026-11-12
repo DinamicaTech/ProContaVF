@@ -33,7 +33,7 @@ public sealed class DialogosMayor(Func<Window?> propietario) : IDialogosMayor
         filtros.Children.Add(Casilla("Con saldo", nameof(SelectorCuentasVM.ConSaldo), "Saldo distinto de cero en los ejercicios elegidos, con la apertura"));
         filtros.Children.Add(Casilla("Con saldo sin la apertura", nameof(SelectorCuentasVM.ConSaldoSinApertura), "Los movimientos del periodo no netean a cero, sin contar la apertura"));
         filtros.Children.Add(Casilla("No cuadradas", nameof(SelectorCuentasVM.NoCuadradas),
-            "Solo las cuentas con movimientos que no están cuadradas en algún ejercicio elegido: sin marcar, o marcadas con un saldo que después ha cambiado"));
+            "Solo las cuentas sin cuadrar o en curso en el ejercicio de trabajo (sin la casilla «Cuadrada», o con un saldo que ha cambiado desde que se marcó)"));
         var estado = new TextBlock { Margin = new Thickness(0, 8, 0, 8), Foreground = (Brush)d.FindResource("Pincel.Apagado"), TextWrapping = TextWrapping.Wrap };
         estado.SetBinding(TextBlock.TextProperty, new Binding(nameof(SelectorCuentasVM.Estado)));
 
@@ -282,12 +282,49 @@ public sealed class DialogosMayor(Func<Window?> propietario) : IDialogosMayor
         return d.ShowDialog() == true ? motivo.Text.Trim() : null;
     }
 
+    public (bool Cuadrada, string Notas, bool Reiniciar)? EditarCuadre(string cuenta, bool cuadrada, string? notas, string informacion)
+    {
+        var d = new DialogoProConta { Title = "Cuadre de la cuenta", Owner = propietario(), Width = 820, Height = 600, MinWidth = 520, MinHeight = 380,
+            SizeToContent = SizeToContent.Manual, Redimensionable = true };
+        var cab = new StackPanel { Margin = new Thickness(0, 0, 0, 10) };
+        cab.Children.Add(new TextBlock { Text = cuenta, FontWeight = FontWeights.SemiBold, FontSize = (double)d.FindResource("Letra.Destacada"), TextWrapping = TextWrapping.Wrap });
+        var casilla = new CheckBox { Content = "Cuenta cuadrada", IsChecked = cuadrada, Margin = new Thickness(0, 12, 0, 0),
+            ToolTip = "Marcada, el cuadre sale en verde y guarda el saldo de ahora: si después cambia, vuelve a ámbar. Sin marcar, con notas sale en ámbar y sin notas en rojo" };
+        cab.Children.Add(casilla);
+        cab.Children.Add(new TextBlock { Text = "Notas", FontWeight = FontWeights.SemiBold, Margin = new Thickness(0, 14, 0, 4) });
+        var pie = new TextBlock { Text = informacion, Foreground = (Brush)d.FindResource("Pincel.Apagado"), TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 8, 0, 0) };
+        var texto = new TextBox
+        {
+            Text = notas ?? "", AcceptsReturn = true, AcceptsTab = false, TextWrapping = TextWrapping.Wrap, VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
+            VerticalContentAlignment = VerticalAlignment.Top, VerticalAlignment = VerticalAlignment.Stretch, Height = double.NaN, MinHeight = 160, Padding = new Thickness(8, 6, 8, 6),
+            ToolTip = "Lo que explica el saldo de la cuenta. Se conserva de un ejercicio a otro: puedes ir añadiendo la historia de cada año (Intro: nueva línea)",
+        };
+        var cuerpo = new DockPanel();
+        DockPanel.SetDock(cab, Dock.Top);
+        DockPanel.SetDock(pie, Dock.Bottom);
+        cuerpo.Children.Add(cab);
+        cuerpo.Children.Add(pie);
+        cuerpo.Children.Add(texto);
+        d.Content = cuerpo;
+        var reiniciar = false;
+        var enlace = new Button { Content = "Reiniciar el cuadre…", Style = (Style)d.FindResource("Boton.Enlace"), VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 24, 0),
+            ToolTip = "Marca como cuadradas todas las subcuentas con saldo dentro del umbral en el ejercicio de trabajo (las notas no se tocan)" };
+        enlace.Click += (_, _) => { reiniciar = true; d.DialogResult = true; };
+        var guardar = new Button { Content = "Guardar", Style = (Style)d.FindResource("Boton.Primario"), Margin = new Thickness(8, 0, 0, 0), ToolTip = "Guarda la casilla y las notas del cuadre" };
+        var cancelar = new Button { Content = "Cancelar", IsCancel = true, ToolTip = "Cierra sin cambiar el cuadre" };
+        guardar.Click += (_, _) => d.DialogResult = true;
+        cancelar.Click += (_, _) => d.DialogResult = false;
+        d.Botones = new StackPanel { Orientation = Orientation.Horizontal, Children = { enlace, cancelar, guardar } };
+        d.Loaded += (_, _) => { texto.Focus(); texto.CaretIndex = texto.Text.Length; };
+        return d.ShowDialog() == true ? (casilla.IsChecked == true, texto.Text, reiniciar) : null;
+    }
+
     public bool? ConfirmarReinicio(string explicacion)
     {
         var d = new DialogoProConta { Title = "Reiniciar el cuadre", Owner = propietario(), Width = 640, SizeToContent = SizeToContent.Height };
         var panel = new StackPanel();
         panel.Children.Add(new TextBlock { Text = explicacion, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 0, 0, 12) });
-        var desmarcar = new CheckBox { Content = "Desmarcar antes las demás cuentas", ToolTip = "Quita la marca de cuadrada de las cuentas de esos ejercicios con un saldo mayor que el umbral, aunque las marcaras a mano" };
+        var desmarcar = new CheckBox { Content = "Quitar antes la casilla «Cuadrada» de todas las cuentas", ToolTip = "Desmarca todas las cuentas del ejercicio de trabajo antes de marcar las de saldo dentro del umbral. Las notas se conservan" };
         panel.Children.Add(desmarcar);
         d.Content = panel;
         var aceptar = new Button { Content = "Reiniciar", Style = (Style)d.FindResource("Boton.Primario"), IsDefault = true, Margin = new Thickness(8, 0, 0, 0), ToolTip = "Marca como cuadradas las cuentas con saldo dentro del umbral" };

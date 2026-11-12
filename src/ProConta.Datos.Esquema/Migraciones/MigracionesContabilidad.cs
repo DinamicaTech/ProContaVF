@@ -31,7 +31,7 @@ public static class MigracionesContabilidad
     /// <summary>
     /// Punteo y cuadre del Mayor (contabilidad/mayor 2026-11-11 20:05): la marca de punteado de cada apunte (la cambia el motor
     /// de asientos, también en automáticos y periodos cerrados, y se conserva al regenerar el lote), los cuadres por cuenta y
-    /// ejercicio con el saldo con que se marcaron, su comentario, operador y fecha, y el umbral de «Reiniciar el cuadre» en la
+    /// ejercicio (casilla «Cuadrada» con el saldo con que se marcó, notas largas, operador y fecha), y el umbral de «Reiniciar el cuadre» en la
     /// configuración general (vacío = 0,05 €). Solo estructura, sin datos.
     /// </summary>
     public static Migracion PunteoCuadreMayor { get; } = new(
@@ -42,7 +42,7 @@ public static class MigracionesContabilidad
         new CrearTabla("CuadresCuentas",
             "CREATE TABLE CuadresCuentas (IdCuadreCuenta COUNTER CONSTRAINT PK_CuadresCuentas PRIMARY KEY, " +
             "IdSociedadEjercicio LONG NOT NULL CONSTRAINT FK_CuadresCuentas_SociedadEjercicio REFERENCES SociedadesEjercicios (IdSociedadEjercicio), " +
-            "CuentaContable TEXT(20) NOT NULL, Saldo CURRENCY NOT NULL, Comentario TEXT(255), Operador TEXT(30) NOT NULL, FechaHora DATETIME NOT NULL)"),
+            "CuentaContable TEXT(20) NOT NULL, Cuadrada YESNO NOT NULL, Saldo CURRENCY, Notas LONGTEXT, Operador TEXT(30) NOT NULL, FechaHora DATETIME NOT NULL)"),
         new CrearIndice("CuadresCuentas", "UX_CuadresCuentas_EjercicioCuenta",
             "CREATE UNIQUE INDEX UX_CuadresCuentas_EjercicioCuenta ON CuadresCuentas (IdSociedadEjercicio, CuentaContable)"),
         new AnadirColumna("Configuracion", "UmbralCuadreMayor", "CURRENCY"));

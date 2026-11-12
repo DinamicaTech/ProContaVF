@@ -22,10 +22,10 @@ public interface IFuenteMayor
     Task<IReadOnlyList<CuadreCuenta>> CuadresAsync(IReadOnlyList<EjercicioMayor> ejercicios, CancellationToken cancelacion = default);
 
     /// <summary>
-    /// Guarda las marcas de cuadre indicadas (sustituye la de la misma cuenta y ejercicio) y quita las de <paramref name="quitar"/>,
-    /// en una sola transacción. Son del propio Mayor (no cambian apuntes), así que no pasan por el motor de asientos.
+    /// Guarda los cuadres indicados (sustituye el de la misma cuenta y ejercicio) en una sola transacción. Son del propio Mayor
+    /// (no cambian apuntes), así que no pasan por el motor de asientos.
     /// </summary>
-    Task GuardarCuadresAsync(IReadOnlyList<CuadreCuenta> marcar, IReadOnlyList<(int IdSociedadEjercicio, string Cuenta)> quitar, CancellationToken cancelacion = default);
+    Task GuardarCuadresAsync(IReadOnlyList<CuadreCuenta> cuadres, CancellationToken cancelacion = default);
 
     /// <summary>Umbral de «Reiniciar el cuadre» (Configuración general, vacío = 0,05 €).</summary>
     Task<decimal> UmbralCuadreAsync(CancellationToken cancelacion = default);
@@ -103,6 +103,7 @@ public sealed class SesionMayor(IFuenteMayor fuente, string idSociedad)
         if (elegidos.Count == 0) elegidos = Ejercicios.Where(e => e.Ejercicio == ejercicioTrabajo).ToList();
         if (elegidos.Count == 0 && Ejercicios.Count > 0) elegidos = [Ejercicios[^1]];
         Elegidos = elegidos;
+        Trabajo = Ejercicios.FirstOrDefault(e => e.Ejercicio == ejercicioTrabajo);
         await CargarCatalogoAsync(c);
     }
 
@@ -120,58 +121,53 @@ public sealed class SesionMayor(IFuenteMayor fuente, string idSociedad)
     private async Task CargarCatalogoAsync(CancellationToken c)
     {
         var (sumas, plan) = await fuente.CuentasAsync(Elegidos, c);
-        Cuadres = await fuente.CuadresAsync(Elegidos, c);
-        _sumas = sumas;
-        Catalogo = SelectorCuentasMayor.Catalogo(sumas, plan, Elegidos, Cuadres);
+        // El cuadre es del ejercicio de trabajo, esté o no en la vista; las notas se heredan de los anteriores.
+        var sumasTrabajo = Trabajo is null ? [] : Elegidos.Contains(Trabajo) ? sumas : (await fuente.CuentasAsync([Trabajo], c)).Sumas;
+        var cuadres = await fuente.CuadresAsync(Ejercicios, c);
+        Cuadre = new ContextoCuadre(Trabajo, Ejercicios, Trabajo is null ? new Dictionary<string, (decimal, int)>() : CuadresMayor.SaldosDe(sumasTrabajo, Trabajo.IdSociedadEjercicio), cuadres);
+        Catalogo = SelectorCuentasMayor.Catalogo(sumas, plan, Elegidos, Cuadre);
     }
 
-    private IReadOnlyList<SumaCuenta> _sumas = [];
+    /// <summary>Ejercicio de trabajo: el único que se cuadra.</summary>
+    public EjercicioMayor? Trabajo { get; private set; }
 
-    /// <summary>Marcas de cuadre de los ejercicios elegidos.</summary>
-    public IReadOnlyList<CuadreCuenta> Cuadres { get; private set; } = [];
-
-    /// <summary>Saldo de cada cuenta en cada ejercicio elegido (el que se guarda al marcarla como cuadrada).</summary>
-    public IReadOnlyDictionary<(string Cuenta, int IdSociedadEjercicio), (decimal Saldo, int Apuntes)> SaldosPorEjercicio() =>
-        SelectorCuentasMayor.SaldosPorEjercicio(_sumas);
+    /// <summary>Cuadres de la sociedad y saldos del ejercicio de trabajo.</summary>
+    public ContextoCuadre Cuadre { get; private set; } = ContextoCuadre.Vacio;
 
     /// <summary>Vuelve a leer el selector (saldos y cuadres) tras un cambio, sin tocar la vista.</summary>
     public Task RefrescarCatalogoAsync(CancellationToken c = default) => CargarCatalogoAsync(c);
 
-    /// <summary>Estado del cuadre de las subcuentas de la vista, para la cabecera y el menú.</summary>
-    public EstadoCuadre CuadreDeLaVista()
+    /// <summary>
+    /// Cuadre de la vista: el de su cuenta si es una sola subcuenta (se puede editar); si no, el resumen de las subcuentas de la
+    /// vista (solo se ve).
+    /// </summary>
+    public (VistaCuadre? Cuenta, EstadoCuadre Estado, string? Resumen) CuadreDeLaVista()
     {
-        var estados = CuentasDeLaVista().Select(x => x.Cuadre).Where(e => e != EstadoCuadre.SinMovimientos).ToList();
-        return estados.Count == 0 ? EstadoCuadre.SinMovimientos : estados.All(e => e == EstadoCuadre.Cuadrada) ? EstadoCuadre.Cuadrada : EstadoCuadre.NoCuadrada;
+        if (_cuentas.Count == 1 && _busqueda is null && SelectorCuentasMayor.EsExacta(_cuentas[0], Catalogo))
+        {
+            var v = CuadresMayor.Ver(_cuentas[0], Cuadre);
+            return (v, v.Estado, CuadresMayor.Ayuda(v, Trabajo));
+        }
+        var (estado, resumen) = CuadresMayor.Resumen(CuentasDeLaVista().Select(x => CuadresMayor.Ver(x.Codigo, Cuadre)));
+        return (null, estado, resumen);
     }
 
-    /// <summary>Marca como cuadradas unas subcuentas en los ejercicios elegidos con movimientos; devuelve cuántas marcas guarda.</summary>
-    public async Task<int> MarcarCuadradasAsync(IReadOnlyCollection<string> cuentas, string? comentario, string operador, DateTime ahora, CancellationToken c = default)
+    /// <summary>Guarda el cuadre de una subcuenta en el ejercicio de trabajo (casilla y notas).</summary>
+    public async Task GuardarCuadreAsync(string cuenta, bool cuadrada, string? notas, string operador, DateTime ahora, CancellationToken c = default)
     {
-        var marcas = CuadresMayor.Marcas(cuentas, Elegidos, SaldosPorEjercicio(), comentario, operador, ahora);
-        if (marcas.Count > 0) await fuente.GuardarCuadresAsync(marcas, [], c);
+        await fuente.GuardarCuadresAsync([CuadresMayor.Guardar(cuenta, Cuadre, cuadrada, notas, operador, ahora)], c);
         await CargarCatalogoAsync(c);
-        return marcas.Count;
     }
 
-    /// <summary>Quita la marca de cuadre de unas subcuentas en los ejercicios elegidos; devuelve cuántas quita.</summary>
-    public async Task<int> DesmarcarCuadradasAsync(IReadOnlyCollection<string> cuentas, CancellationToken c = default)
-    {
-        var ids = Elegidos.Select(e => e.IdSociedadEjercicio).ToHashSet();
-        var quitar = Cuadres.Where(x => ids.Contains(x.IdSociedadEjercicio) && cuentas.Contains(x.Cuenta)).Select(x => (x.IdSociedadEjercicio, x.Cuenta)).ToList();
-        if (quitar.Count > 0) await fuente.GuardarCuadresAsync([], quitar, c);
-        await CargarCatalogoAsync(c);
-        return quitar.Count;
-    }
-
-    /// <summary>Reinicia el cuadre de los ejercicios elegidos con el umbral de la configuración; devuelve las marcas puestas y quitadas.</summary>
-    public async Task<(int Marcadas, int Quitadas, decimal Umbral)> ReiniciarCuadreAsync(bool desmarcarResto, string operador, DateTime ahora, CancellationToken c = default)
+    /// <summary>Reinicia el cuadre del ejercicio de trabajo con el umbral de la configuración; devuelve los cuadres guardados.</summary>
+    public async Task<(int Cambiados, decimal Umbral)> ReiniciarCuadreAsync(bool desmarcarResto, string operador, DateTime ahora, CancellationToken c = default)
     {
         var umbral = await fuente.UmbralCuadreAsync(c);
-        var subcuentas = Catalogo.Where(x => x.EsSubcuenta).Select(x => x.Codigo).ToList();
-        var (marcar, quitar) = CuadresMayor.Reiniciar(Elegidos, SaldosPorEjercicio(), subcuentas, Cuadres, umbral, desmarcarResto, operador, ahora);
-        if (marcar.Count > 0 || quitar.Count > 0) await fuente.GuardarCuadresAsync(marcar, quitar, c);
+        var subcuentas = Catalogo.Where(x => x.EsSubcuenta).Select(x => x.Codigo).Union(Cuadre.SaldosTrabajo.Keys).ToList();
+        var cambios = CuadresMayor.Reiniciar(Cuadre, subcuentas, umbral, desmarcarResto, operador, ahora);
+        if (cambios.Count > 0) await fuente.GuardarCuadresAsync(cambios, c);
         await CargarCatalogoAsync(c);
-        return (marcar.Count, quitar.Count, umbral);
+        return (cambios.Count, umbral);
     }
 
     /// <summary>Umbral de «Reiniciar el cuadre» de la configuración.</summary>
@@ -229,6 +225,17 @@ public sealed class SesionMayor(IFuenteMayor fuente, string idSociedad)
         if (vista == Vista) return;
         Vista = vista;
         _quitadas.Clear(); // las claves de fila cambian de una vista a otra
+        Recalcular();
+    }
+
+    /// <summary>
+    /// Tras puntear por el motor, cambia la marca en los datos ya leídos y recalcula, sin volver a leer la BD: el punteo no
+    /// cambia importes ni saldos (F4 inmediato).
+    /// </summary>
+    public void AplicarPunteo(IReadOnlyCollection<int> idsApunte, bool punteado)
+    {
+        var ids = idsApunte.ToHashSet();
+        Datos = Datos with { Apuntes = Datos.Apuntes.Select(a => ids.Contains(a.IdApunte) ? a with { Punteado = punteado } : a).ToList() };
         Recalcular();
     }
 

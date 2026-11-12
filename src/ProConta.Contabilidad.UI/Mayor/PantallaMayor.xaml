@@ -53,10 +53,6 @@
             <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
               <TextBlock Text="Cargando…" Style="{StaticResource Texto.Apagado}" VerticalAlignment="Center" Margin="0,0,10,0"
                          Visibility="{Binding Ocupado, Converter={StaticResource Visible}}" />
-              <Border BorderBrush="{StaticResource Pincel.Linea3}" BorderThickness="1" CornerRadius="10" Padding="10,3" Margin="0,0,10,0" VerticalAlignment="Center"
-                      Background="{StaticResource Pincel.Fondo2}" ToolTip="{Binding AyudaCuadre}" Visibility="{Binding TextoCuadre, Converter={StaticResource Visible}}">
-                <TextBlock Text="{Binding TextoCuadre}" FontSize="{StaticResource Letra.Pequena}" Foreground="{StaticResource Pincel.Texto2}" />
-              </Border>
               <Button x:Name="BotonEjercicios" Content="{Binding TextoEjercicios}" pc:Iconos.Icono="{StaticResource Icono.cal}" Click="BotonEjercicios_Click"
                       ToolTip="Ejercicios cuyos apuntes se muestran: puedes marcar varios. La apertura de un ejercicio que sigue a otro de la vista no suma: el saldo continúa." />
               <Popup x:Name="PopupEjercicios" PlacementTarget="{Binding ElementName=BotonEjercicios}" Placement="Bottom" StaysOpen="False" AllowsTransparency="True"
@@ -153,10 +149,35 @@
         <!-- Pie con totales (siempre sobre todas las filas de la vista) y la selección -->
         <Border DockPanel.Dock="Bottom" Style="{StaticResource Barra.Pie}" CornerRadius="0,0,12,12">
           <DockPanel>
-            <TextBlock DockPanel.Dock="Right" Style="{StaticResource Texto.Apagado}" VerticalAlignment="Center"
-                       Text="Doble clic: ver el asiento · en la contrapartida: su mayor · clic derecho: acciones · Supr: quitar de la vista" />
+            <!-- Cuadre del ejercicio de trabajo: rojo sin notas ni casilla, ámbar con notas, verde con la casilla (contabilidad/mayor 2026-11-12) -->
+            <Button DockPanel.Dock="Right" Click="Cuadre_Click" ToolTip="{Binding AyudaCuadre}" ToolTipService.ShowOnDisabled="True" MaxWidth="900" Margin="12,0,0,0"
+                    IsEnabled="{Binding PuedeEditarCuadre}" Visibility="{Binding TextoCuadre, Converter={StaticResource Visible}}" Cursor="Hand">
+              <Button.Template>
+                <ControlTemplate TargetType="Button">
+                  <Border x:Name="Fondo" CornerRadius="6" Padding="10,3" BorderThickness="1" Background="{StaticResource Pincel.RojoSuave}" BorderBrush="{StaticResource Pincel.RojoBorde}">
+                    <TextBlock x:Name="Texto" Text="{Binding TextoCuadre}" TextTrimming="CharacterEllipsis" Foreground="{StaticResource Pincel.Rojo}" FontWeight="SemiBold" />
+                  </Border>
+                  <ControlTemplate.Triggers>
+                    <DataTrigger Binding="{Binding ColorCuadre}" Value="ambar">
+                      <Setter TargetName="Fondo" Property="Background" Value="{StaticResource Pincel.AvisoSuave}" />
+                      <Setter TargetName="Fondo" Property="BorderBrush" Value="{StaticResource Pincel.AvisoBorde}" />
+                      <Setter TargetName="Texto" Property="Foreground" Value="{StaticResource Pincel.Aviso}" />
+                    </DataTrigger>
+                    <DataTrigger Binding="{Binding ColorCuadre}" Value="verde">
+                      <Setter TargetName="Fondo" Property="Background" Value="{StaticResource Pincel.VerdeSuave}" />
+                      <Setter TargetName="Fondo" Property="BorderBrush" Value="{StaticResource Pincel.VerdeBorde}" />
+                      <Setter TargetName="Texto" Property="Foreground" Value="{StaticResource Pincel.Verde}" />
+                    </DataTrigger>
+                    <Trigger Property="IsMouseOver" Value="True">
+                      <Setter TargetName="Texto" Property="TextDecorations" Value="Underline" />
+                    </Trigger>
+                  </ControlTemplate.Triggers>
+                </ControlTemplate>
+              </Button.Template>
+            </Button>
             <StackPanel Orientation="Horizontal">
-              <TextBlock Text="{Binding TextoRecuento}" Margin="0,0,18,0" VerticalAlignment="Center" />
+              <TextBlock Text="{Binding TextoRecuento}" Margin="0,0,18,0" VerticalAlignment="Center"
+                         ToolTip="Doble clic: ver el asiento · en la contrapartida: su mayor · clic derecho: acciones · F4: puntear · Ctrl+N: número de factura · Supr: quitar de la vista" />
               <TextBlock Margin="0,0,18,0" VerticalAlignment="Center">Debe <Run Text="{Binding TotalDebe, Mode=OneWay}" FontWeight="SemiBold" Foreground="{StaticResource Pincel.Tinta}" /></TextBlock>
               <TextBlock Margin="0,0,18,0" VerticalAlignment="Center">Haber <Run Text="{Binding TotalHaber, Mode=OneWay}" FontWeight="SemiBold" Foreground="{StaticResource Pincel.Tinta}" /></TextBlock>
               <TextBlock VerticalAlignment="Center" ToolTip="{Binding AyudaSaldo}">Saldo <Run Text="{Binding TotalSaldo, Mode=OneWay}" FontWeight="SemiBold">

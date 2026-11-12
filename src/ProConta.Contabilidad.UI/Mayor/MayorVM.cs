@@ -30,6 +30,9 @@ public interface IDialogosMayor
     /// <summary>Pide el motivo de un cambio; null si se cancela.</summary>
     string? PedirMotivo(string titulo, string explicacion);
 
+    /// <summary>Cuadre de una cuenta: casilla «Cuenta cuadrada» y notas. Null si se cancela; Reiniciar si se pide «Reiniciar el cuadre».</summary>
+    (bool Cuadrada, string Notas, bool Reiniciar)? EditarCuadre(string cuenta, bool cuadrada, string? notas, string informacion);
+
     /// <summary>Confirma «Reiniciar el cuadre»: null si se cancela; si no, si hay que desmarcar antes las demás cuentas.</summary>
     bool? ConfirmarReinicio(string explicacion);
 }
@@ -386,7 +389,7 @@ public sealed class MayorVM : ModeloVista
         Avisar(nameof(Titulo), nameof(TextoCuenta), nameof(AyudaCuenta), nameof(TextoEjercicios), nameof(TextoCerrados), nameof(HayCerrados),
             nameof(Vista), nameof(EsNormal), nameof(EsCompacto), nameof(EsSoloPendientes), nameof(EsAgrupar700), nameof(HayFiltros), nameof(AvisoParcial),
             nameof(TextoRecuento), nameof(TotalDebe), nameof(TotalHaber), nameof(Saldo), nameof(TotalSaldo), nameof(GrupoSaldo), nameof(AyudaSaldo), nameof(CuentasFijas),
-            nameof(TextoCuadre), nameof(AyudaCuadre), nameof(SoloNoPunteados));
+            nameof(TextoCuadre), nameof(AyudaCuadre), nameof(ColorCuadre), nameof(PuedeEditarCuadre), nameof(SoloNoPunteados));
         CommandManager.InvalidateRequerySuggested();
     }
 
@@ -550,8 +553,14 @@ public sealed class MayorVM : ModeloVista
     {
         if (!PuedeEscribir || filas.Count == 0) return;
         var ids = Apuntes(filas);
-        if (await Escribir(punteado ? "No he podido puntear" : "No he podido quitar el punteo", () => _ctx.Motor!.PuntearApuntesAsync(ids, punteado, _ctx.Actor!), catalogo: false))
+        if (await Escribir(punteado ? "No he podido puntear" : "No he podido quitar el punteo", () => _ctx.Motor!.PuntearApuntesAsync(ids, punteado, _ctx.Actor!), catalogo: false,
+                recargar: false))
+        {
+            // El punteo no cambia importes: se aplica sobre lo ya leído, sin volver a cargar la vista.
+            _sesion.AplicarPunteo(ids, punteado);
+            Refrescar();
             _avisar($"{Formatos.Plural(ids.Count, "apunte", "apuntes")} {(punteado ? "punteado" : "sin puntear")}{(ids.Count == 1 ? "" : "s")}.");
+        }
     }
 
     /// <summary>Pone el número de factura a los apuntes de las filas (también en automáticos y cerrados; se conserva al regenerar el lote).</summary>
@@ -559,12 +568,24 @@ public sealed class MayorVM : ModeloVista
     {
         if (!PuedeEscribir || filas.Count == 0) return;
         var ids = Apuntes(filas);
+        // Si solo una fila tiene número, ese número pasa a las demás sin preguntar (propietario, 2026-11-12).
+        var conNumero = filas.Where(f => !string.IsNullOrWhiteSpace(f.Fila.Documento)).ToList();
+        var numeros = conNumero.Select(f => f.Fila.Documento!.Trim()).Distinct(StringComparer.Ordinal).ToList();
+        if (filas.Count > 1 && conNumero.Count == 1)
+        {
+            var origen = conNumero[0];
+            var motivoCopia = $"Mismo número que el apunte {origen.Fila.Orden} del asiento {origen.Fila.IdAsiento}";
+            if (await Escribir("No he podido poner el número de factura", () => _ctx.Motor!.AsignarNumeroDocumentoAsync(ids, numeros[0], _ctx.Actor!, motivoCopia), catalogo: false))
+                _avisar($"Factura {numeros[0]} en {Formatos.Plural(ids.Count, "apunte", "apuntes")}.");
+            return;
+        }
+        var propuesto = numeros.FirstOrDefault(n => !n.StartsWith("0000", StringComparison.Ordinal));
         var actuales = filas.Select(f => f.Fila.Documento?.Trim() ?? "").Distinct().ToList();
         var asientos = filas.SelectMany(f => f.Fila.IdsAsiento).Distinct().Count();
         var explicacion = $"Pondrás este número de factura en {Formatos.Plural(ids.Count, "apunte", "apuntes")} de {Formatos.Plural(asientos, "asiento", "asientos")}" +
                           (actuales.Count > 1 ? $", que ahora tienen {actuales.Count} números distintos." : actuales[0].Length > 0 ? $", que ahora tienen el {actuales[0]}." : ", que ahora no tienen número.") +
                           " Así se agrupan con su factura en las vistas Compacto y Solo pendientes. En los asientos automáticos también se puede, y se conserva si se regenera el asiento.";
-        if (_dialogos.PedirTexto("Asignar número de factura", explicacion, "Número de factura", actuales.Count == 1 ? actuales[0] : null, 100, pideMotivo: true, valorObligatorio: false) is not { } r) return;
+        if (_dialogos.PedirTexto("Asignar número de factura", explicacion, "Número de factura", propuesto, 100, pideMotivo: true, valorObligatorio: false) is not { } r) return;
         if (await Escribir("No he podido poner el número de factura", () => _ctx.Motor!.AsignarNumeroDocumentoAsync(ids, r.Valor, _ctx.Actor!, r.Motivo), catalogo: false))
             _avisar(r.Valor.Length == 0 ? $"Número de factura quitado de {Formatos.Plural(ids.Count, "apunte", "apuntes")}." : $"Factura {r.Valor} en {Formatos.Plural(ids.Count, "apunte", "apuntes")}.");
     }
@@ -618,78 +639,84 @@ public sealed class MayorVM : ModeloVista
         if (bien) _avisar($"{Formatos.Plural(n, "apunte pasado", "apuntes pasados")} a la cuenta {codigo}.");
     }
 
-    /// <summary>Marca como cuadradas las subcuentas de las filas (o de la vista) en los ejercicios elegidos, con un comentario.</summary>
-    public async Task MarcarCuadradaAsync(IReadOnlyList<FilaMayorVM> filas)
+    // ---------- cuadre (pie de la pantalla, solo el ejercicio de trabajo) ----------
+
+    private EstadoCuadre EstadoCuadreActual => _sesion.Cuentas.Count == 0 ? EstadoCuadre.SinMovimientos : _sesion.CuadreDeLaVista().Estado;
+
+    /// <summary>Estado para el color del pie: «verde», «ambar», «rojo» o vacío.</summary>
+    public string ColorCuadre => EstadoCuadreActual switch { EstadoCuadre.Cuadrada => "verde", EstadoCuadre.EnCurso => "ambar", EstadoCuadre.SinCuadrar => "rojo", _ => "" };
+
+    /// <summary>Texto del pie: la primera línea de las notas del cuadre, «Sin cuadrar», o el resumen de un mayor combinado.</summary>
+    public string TextoCuadre
     {
-        if (!PuedeEscribir) return;
-        var cuentas = CuentasDe(filas);
-        if (cuentas.Count == 0) return;
-        var texto = cuentas.Count == 1 ? $"la cuenta {cuentas[0]}" : $"{cuentas.Count} cuentas";
-        if (_dialogos.PedirTexto("Marcar como cuadrada", $"Marcarás {texto} como cuadrada en {TextoEjercicios.ToLowerInvariant()}, con el saldo que tiene ahora en cada ejercicio. " +
-                "Si después entra o cambia algún apunte y el saldo varía, volverá a salir como «Sin cuadrar».", "Comentario (opcional)", null, 255, pideMotivo: false, valorObligatorio: false) is not { } r) return;
-        try
+        get
         {
-            var n = await _sesion.MarcarCuadradasAsync(cuentas, r.Valor, _ctx.Actor!.Nombre, DateTime.Now);
-            _avisar(n == 0 ? "Las cuentas no tienen movimientos en los ejercicios elegidos: no hay nada que cuadrar." : $"{Formatos.Plural(n, "cuadre guardado", "cuadres guardados")} ({texto}).");
-            Avisar(nameof(TextoCuadre), nameof(AyudaCuadre));
+            if (_sesion.Cuentas.Count == 0 || _sesion.Trabajo is null) return "";
+            var (cuenta, estado, resumen) = _sesion.CuadreDeLaVista();
+            if (cuenta is null) return estado == EstadoCuadre.SinMovimientos ? "" : $"Cuadre {_sesion.Trabajo.Ejercicio}: {resumen}";
+            var primera = cuenta.Notas?.Split('\n').Select(x => x.Trim()).FirstOrDefault(x => x.Length > 0);
+            var prefijo = $"Cuadre {_sesion.Trabajo.Ejercicio} · {CuadresMayor.Texto(estado == EstadoCuadre.SinMovimientos ? EstadoCuadre.SinCuadrar : estado).ToLowerInvariant()}";
+            return primera is null ? prefijo : $"{prefijo}: {primera}" + (cuenta.Aviso is null ? "" : " · el saldo ha cambiado");
         }
-        catch (Exception ex) { _dialogos.Error("No he podido marcar la cuenta", $"La base de datos ha respondido: {ex.Message} Vuelve a intentarlo en un momento."); }
     }
 
-    /// <summary>Quita la marca de cuadrada de las subcuentas de las filas (o de la vista) en los ejercicios elegidos.</summary>
-    public async Task DesmarcarCuadradaAsync(IReadOnlyList<FilaMayorVM> filas)
-    {
-        if (!PuedeEscribir) return;
-        var cuentas = CuentasDe(filas);
-        try
-        {
-            var n = await _sesion.DesmarcarCuadradasAsync(cuentas);
-            _avisar(n == 0 ? "Esas cuentas no estaban marcadas como cuadradas en los ejercicios elegidos." : $"{Formatos.Plural(n, "marca de cuadre quitada", "marcas de cuadre quitadas")}.");
-            Avisar(nameof(TextoCuadre), nameof(AyudaCuadre));
-        }
-        catch (Exception ex) { _dialogos.Error("No he podido quitar la marca", $"La base de datos ha respondido: {ex.Message} Vuelve a intentarlo en un momento."); }
-    }
-
-    /// <summary>Reinicia el cuadre de los ejercicios elegidos: marca como cuadradas las cuentas con saldo dentro del umbral.</summary>
-    public async Task ReiniciarCuadreAsync()
-    {
-        if (!PuedeEscribir) return;
-        try
-        {
-            var umbral = await _sesion.UmbralCuadreAsync();
-            var desmarcar = _dialogos.ConfirmarReinicio(
-                $"Marcaré como cuadradas, en {TextoEjercicios.ToLowerInvariant()}, todas las subcuentas con movimientos y un saldo de hasta ±{Formatos.Importe(umbral)} que aún no lo estén. " +
-                "El umbral se cambia en Configuración › Parámetros y tablas › General (grupo «Contabilidad»).");
-            if (desmarcar is null) return;
-            var (marcadas, quitadas, _) = await _sesion.ReiniciarCuadreAsync(desmarcar.Value, _ctx.Actor!.Nombre, DateTime.Now);
-            _avisar($"Cuadre reiniciado: {Formatos.Plural(marcadas, "cuenta marcada", "cuentas marcadas")}" + (desmarcar.Value ? $" y {Formatos.Plural(quitadas, "desmarcada", "desmarcadas")}." : "."));
-            Avisar(nameof(TextoCuadre), nameof(AyudaCuadre));
-        }
-        catch (Exception ex) { _dialogos.Error("No he podido reiniciar el cuadre", $"La base de datos ha respondido: {ex.Message} Vuelve a intentarlo en un momento."); }
-    }
-
-    /// <summary>Subcuentas de las filas; sin filas, las de la vista.</summary>
-    private IReadOnlyList<string> CuentasDe(IReadOnlyList<FilaMayorVM> filas) =>
-        (filas.Count > 0 ? filas.Select(f => f.Fila.Cuenta) : _sesion.CuentasDeLaVista().Select(c => c.Codigo)).Distinct(StringComparer.Ordinal).ToList();
-
-    /// <summary>Estado del cuadre de la vista, para la cabecera: «Cuadrada», «Sin cuadrar» o vacío.</summary>
-    public string TextoCuadre => _sesion.Cuentas.Count == 0 ? "" : _sesion.CuadreDeLaVista() switch { EstadoCuadre.Cuadrada => "Cuadrada", EstadoCuadre.NoCuadrada => "Sin cuadrar", _ => "" };
     public string? AyudaCuadre
     {
         get
         {
-            var cuentas = _sesion.CuentasDeLaVista().Where(c => c.AyudaCuadre is not null).ToList();
-            return cuentas.Count switch
-            {
-                0 => null,
-                1 => cuentas[0].AyudaCuadre,
-                _ => string.Join(Environment.NewLine, cuentas.Take(12).Select(c => $"{c.Codigo}: {(c.Cuadre == EstadoCuadre.Cuadrada ? "cuadrada" : "sin cuadrar")}")) + (cuentas.Count > 12 ? $"{Environment.NewLine}y {cuentas.Count - 12} más" : ""),
-            };
+            if (_sesion.Cuentas.Count == 0) return null;
+            var (cuenta, _, resumen) = _sesion.CuadreDeLaVista();
+            var accion = PuedeEditarCuadre ? "Clic: ver o cambiar el cuadre de la cuenta" : "Para cambiar el cuadre, abre una sola subcuenta";
+            return (resumen ?? (cuenta is null ? "" : $"Sin cuadrar en {_sesion.Trabajo?.Ejercicio}")) + Environment.NewLine + accion;
         }
     }
 
+    /// <summary>El cuadre se edita con una sola subcuenta en la vista.</summary>
+    public bool PuedeEditarCuadre => PuedeEscribir && _sesion.Trabajo is not null && _sesion.CuadreDeLaVista().Cuenta is not null;
+
+    /// <summary>Abre el diálogo de cuadre de la cuenta de la vista (casilla «Cuenta cuadrada» y notas) y lo guarda.</summary>
+    public async Task EditarCuadreAsync()
+    {
+        if (!PuedeEditarCuadre || _sesion.CuadreDeLaVista().Cuenta is not { } v) return;
+        var cuenta = v.Cuenta;
+        var info = new List<string> { $"Saldo en {_sesion.Trabajo!.Ejercicio}: {Formatos.Importe(v.Saldo)}" };
+        if (v.Aviso is not null) info.Add(v.Aviso);
+        if (v.Registro is { } r) info.Add($"Última modificación: {r.FechaHora:dd/MM/yyyy HH:mm} por {r.Operador}");
+        if (v.Heredadas) info.Add("Las notas vienen del ejercicio anterior: se guardan en este al aceptar.");
+        var resultado = _dialogos.EditarCuadre($"{cuenta} {_sesion.Nombre(cuenta)}", v.Registro?.Cuadrada == true && v.Aviso is null, v.Notas, string.Join(Environment.NewLine, info));
+        if (resultado is null) return;
+        try
+        {
+            if (resultado.Value.Reiniciar) { await ReiniciarCuadreAsync(); return; }
+            await _sesion.GuardarCuadreAsync(cuenta, resultado.Value.Cuadrada, resultado.Value.Notas, _ctx.Actor!.Nombre, DateTime.Now);
+            _avisar(resultado.Value.Cuadrada ? $"{cuenta} cuadrada en {_sesion.Trabajo.Ejercicio}." : $"Cuadre de {cuenta} guardado.");
+            AvisarCuadre();
+        }
+        catch (Exception ex) { _dialogos.Error("No he podido guardar el cuadre", $"La base de datos ha respondido: {ex.Message} Vuelve a intentarlo en un momento."); }
+    }
+
+    /// <summary>Reinicia el cuadre del ejercicio de trabajo: quita, si se pide, las casillas (no las notas) y marca las cuentas dentro del umbral.</summary>
+    public async Task ReiniciarCuadreAsync()
+    {
+        if (!PuedeEscribir || _sesion.Trabajo is null) return;
+        try
+        {
+            var umbral = await _sesion.UmbralCuadreAsync();
+            var desmarcar = _dialogos.ConfirmarReinicio(
+                $"Marcaré como cuadradas, en {_sesion.Trabajo.Ejercicio}, todas las subcuentas con movimientos y un saldo de hasta ±{Formatos.Importe(umbral)}. " +
+                "Las notas no se tocan. El umbral se cambia en Configuración › Parámetros y tablas › General (grupo «Contabilidad»).");
+            if (desmarcar is null) return;
+            var (cambiados, _) = await _sesion.ReiniciarCuadreAsync(desmarcar.Value, _ctx.Actor!.Nombre, DateTime.Now);
+            _avisar($"Cuadre de {_sesion.Trabajo.Ejercicio} reiniciado: {Formatos.Plural(cambiados, "cuenta cambiada", "cuentas cambiadas")}.");
+            AvisarCuadre();
+        }
+        catch (Exception ex) { _dialogos.Error("No he podido reiniciar el cuadre", $"La base de datos ha respondido: {ex.Message} Vuelve a intentarlo en un momento."); }
+    }
+
+    private void AvisarCuadre() => Avisar(nameof(TextoCuadre), nameof(AyudaCuadre), nameof(ColorCuadre), nameof(PuedeEditarCuadre));
+
     /// <summary>Hace un cambio por el motor y, si sale bien, vuelve a leer la vista (y el selector si cambian saldos); si no, explica por qué.</summary>
-    private async Task<bool> Escribir(string titulo, Func<Task<ProConta.Nucleo.Resultados.Resultado<Guid>>> cambio, bool catalogo)
+    private async Task<bool> Escribir(string titulo, Func<Task<ProConta.Nucleo.Resultados.Resultado<Guid>>> cambio, bool catalogo, bool recargar = true)
     {
         try
         {
@@ -705,6 +732,7 @@ public sealed class MayorVM : ModeloVista
             _dialogos.Error(titulo, $"La base de datos ha respondido: {ex.Message} No se ha guardado nada. Vuelve a cargar la vista (F5) y repite el cambio.");
             return false;
         }
+        if (!recargar) return true;
         await Ejecutar(async () =>
         {
             if (catalogo) await _sesion.RefrescarCatalogoAsync();

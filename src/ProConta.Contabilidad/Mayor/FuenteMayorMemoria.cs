@@ -121,11 +121,11 @@ public sealed class FuenteMayorMemoria(string idSociedad) : IFuenteMayor
         return Task.FromResult<IReadOnlyList<CuadreCuenta>>(_cuadres.Where(c => ids.Contains(c.IdSociedadEjercicio)).ToList());
     }
 
-    public Task GuardarCuadresAsync(IReadOnlyList<CuadreCuenta> marcar, IReadOnlyList<(int IdSociedadEjercicio, string Cuenta)> quitar, CancellationToken cancelacion = default)
+    public Task GuardarCuadresAsync(IReadOnlyList<CuadreCuenta> cuadres, CancellationToken cancelacion = default)
     {
-        var fuera = quitar.Concat(marcar.Select(m => (m.IdSociedadEjercicio, m.Cuenta))).ToHashSet();
+        var fuera = cuadres.Select(m => (m.IdSociedadEjercicio, m.Cuenta)).ToHashSet();
         _cuadres.RemoveAll(c => fuera.Contains((c.IdSociedadEjercicio, c.Cuenta)));
-        _cuadres.AddRange(marcar);
+        _cuadres.AddRange(cuadres);
         return Task.CompletedTask;
     }
 

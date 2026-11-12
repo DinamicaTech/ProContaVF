@@ -14,8 +14,8 @@ public sealed class CuentaSelectorVM(CuentaMayor c)
     public decimal Saldo => Cuenta.Saldo;
     public int Apuntes => Cuenta.Apuntes;
     public string Tipo => Cuenta.EsSubcuenta ? "" : "Grupo";
-    /// <summary>«Cuadrada», «Sin cuadrar» o vacío si no tiene movimientos; la ayuda dice de cada ejercicio cuándo y quién la marcó.</summary>
-    public string Cuadre => Cuenta.Cuadre switch { EstadoCuadre.Cuadrada => "Cuadrada", EstadoCuadre.NoCuadrada => "Sin cuadrar", _ => "" };
+    /// <summary>Cuadre del ejercicio de trabajo: «Cuadrada», «En curso», «Sin cuadrar» o vacío si no tiene movimientos; la ayuda dice de cada ejercicio cuándo y quién la marcó.</summary>
+    public string Cuadre => CuadresMayor.Texto(Cuenta.Cuadre);
     public string? AyudaCuadre => Cuenta.AyudaCuadre;
 }
 

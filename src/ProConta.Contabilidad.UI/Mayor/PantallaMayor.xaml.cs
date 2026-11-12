@@ -56,6 +56,9 @@ public partial class PantallaMayor : UserControl
         var anterior = Tabla.ItemsSource is ICollectionView v ? v.SortDescriptions.ToList() : [];
         // Tras puntear o numerar se vuelve a leer la vista: la selección se conserva por la clave de la fila.
         var seleccion = Seleccionadas().Select(f => f.Fila.Clave).ToHashSet(StringComparer.Ordinal);
+        var actual = (Tabla.CurrentItem as FilaMayorVM)?.Fila.Clave;
+        var columnaActual = Tabla.CurrentColumn;
+        var teniaFoco = Tabla.IsKeyboardFocusWithin;
         var vista = new ListCollectionView(_vm.Filas.ToList());
         foreach (var s in anterior) vista.SortDescriptions.Add(s);
         if (anterior.Count == 0) vista.GroupDescriptions.Add(new PropertyGroupDescription(nameof(FilaMayorVM.CabeceraEjercicio)));
@@ -68,7 +71,21 @@ public partial class PantallaMayor : UserControl
         if (seleccion.Count == 0) return;
         var volver = _vm.Filas.Where(f => seleccion.Contains(f.Fila.Clave)).ToList();
         foreach (var f in volver) Tabla.SelectedItems.Add(f);
-        if (volver.Count > 0) Tabla.ScrollIntoView(volver[0]);
+        if (volver.Count == 0) return;
+        var foco = volver.FirstOrDefault(f => f.Fila.Clave == actual) ?? volver[0];
+        Tabla.ScrollIntoView(foco);
+        if (!teniaFoco) return;
+        // El foco vuelve a la celda en que estaba, para poder encadenar F4.
+        Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Loaded, new Action(() =>
+        {
+            var columna = columnaActual ?? Tabla.Columns.FirstOrDefault(c => c.Visibility == Visibility.Visible);
+            if (columna is null) return;
+            Tabla.CurrentCell = new DataGridCellInfo(foco, columna);
+            Tabla.UpdateLayout();
+            if (Tabla.ItemContainerGenerator.ContainerFromItem(foco) is DataGridRow fila &&
+                columna.GetCellContent(fila)?.Parent is DataGridCell celda) celda.Focus();
+            else Tabla.Focus();
+        }));
     }
 
     private void AjustarAgrupacion()
@@ -196,14 +213,6 @@ public partial class PantallaMayor : UserControl
         menu.Items.Add(new Separator());
         menu.Items.Add(Proxima("Nuevo asiento manual…", "Icono.plus", "Llega con el diario de asientos (pantallas de contabilidad): abrirá un asiento nuevo con la cuenta y el importe de la selección"));
         menu.Items.Add(Proxima("Asistente de corrección…", "Icono.wand", "Llega con las plantillas de asiento: propondrá el asiento de corrección (inverso, contra-apunte, cambio de cuenta…) con su IVA"));
-        var cuentasSel = sel.Select(f => f.Cuenta).Distinct().ToList();
-        var deCuentas = cuentasSel.Count == 1 ? $"la cuenta {cuentasSel[0]}" : $"las {cuentasSel.Count} cuentas de la selección";
-        menu.Items.Add(Opcion("Marcar como cuadrada…", "Icono.check", () => _ = _vm.MarcarCuadradaAsync(sel), null,
-            $"Marca {deCuentas} como cuadrada en los ejercicios de la vista, con el saldo de cada ejercicio y un comentario", escribe, soloConsulta));
-        menu.Items.Add(Opcion("Quitar la marca de cuadrada", "Icono.undo", () => _ = _vm.DesmarcarCuadradaAsync(sel), null,
-            $"Quita la marca de cuadrada de {deCuentas} en los ejercicios de la vista", escribe, soloConsulta));
-        menu.Items.Add(Opcion("Reiniciar el cuadre…", "Icono.undo", () => _ = _vm.ReiniciarCuadreAsync(), null,
-            "Marca como cuadradas todas las subcuentas con saldo dentro del umbral (Parámetros y tablas) en los ejercicios de la vista", escribe, soloConsulta));
         menu.Items.Add(new Separator());
         menu.Items.Add(Opcion("Quitar de la vista", "Icono.hide", () => _vm.Quitar(sel), "Supr",
             "Quita las filas solo de la vista (no se borra nada) y recalcula el saldo; se recuperan quitando la etiqueta"));
@@ -288,6 +297,8 @@ public partial class PantallaMayor : UserControl
     // ---------- ejercicios ----------
 
     private void BotonEjercicios_Click(object sender, RoutedEventArgs e) => PopupEjercicios.IsOpen = true;
+
+    private void Cuadre_Click(object sender, RoutedEventArgs e) => _ = _vm?.EditarCuadreAsync();
 
     private void PopupEjercicios_Closed(object? sender, EventArgs e) => _vm?.AplicarEjerciciosCommand.Execute(null);
 
