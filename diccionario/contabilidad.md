@@ -529,7 +529,7 @@ Relaciones:
 | Descripcion | LONGTEXT | sí |  | Explicación para el usuario de qué asiento genera y cuándo usarla. |
 | Tipo | TEXT(10) | no |  | USUARIO: se ofrece en el asiento manual y en el Mayor. SISTEMA: solo la ejecuta su proceso (p. ej. la nómina). |
 | IdSociedad | TEXT(3) | sí |  | Empresa a la que pertenece; vacío = todas las empresas. |
-| Origen | TEXT(10) | no |  | Qué necesita para generar el asiento: NINGUNO, APUNTE (un apunte y su asiento) o PROCESO (registros de un proceso). |
+| Origen | TEXT(10) | no |  | Qué necesita: NINGUNO, ASIENTO (un asiento entero), APUNTE (un apunte), SUBCUENTA (una subcuenta y su saldo) o PROCESO (registros de un proceso). |
 | ClaveProceso | TEXT(50) | sí |  | Con origen PROCESO, el proceso que la ejecuta (p. ej. nominas). |
 | ReglaFecha | TEXT(20) | no |  | TRIMESTRE_ACTIVO: primer día del trimestre activo o la fecha del origen si es posterior. FECHA_ORIGEN: la fecha del origen. |
 | AgruparPorCuenta | YESNO | no |  | Sí: suma en una línea los importes de la misma cuenta y genera un solo asiento para todos los registros del proceso. |
@@ -537,6 +537,7 @@ Relaciones:
 | MotivoPropuesto | TEXT(255) | sí |  | Texto que se propone como motivo del cambio (el motivo es obligatorio al ejecutar). |
 | Ejemplo | LONGTEXT | sí |  | Ejemplo ficticio en JSON (origen y datos de entrada) del que sale la vista previa de la plantilla. |
 | Orden | SHORT | no |  | Orden en que se ofrece la plantilla en las listas. |
+| Clase | TEXT(12) | sí |  | CORRECCION: corrige un asiento, un apunte o una subcuenta desde el Mayor. GUIA: explicación y asiento de ejemplo. ASISTENTE: pide datos y propone un asiento. PROCESO: la ejecuta un proceso. |
 
 Índices:
 - FK_PlantillasAsiento_Sociedad: IdSociedad
