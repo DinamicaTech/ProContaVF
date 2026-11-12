@@ -125,7 +125,7 @@ public sealed class LectorCuaderno43Tests
     [Fact]
     public void La_clave_de_contenido_ignora_espacios_y_ceros_a_la_izquierda()
     {
-        Assert.Equal(ServicioImportacionN43.ClaveMovimiento(D1, D1, "D", 1m, "02", "099", "0000000123", " AB", null),
-            ServicioImportacionN43.ClaveMovimiento(D1, D1, "D", 1.00m, "2", "99", "123", "AB", ""));
+        Assert.Equal(ServicioImportacionN43.ClaveMovimiento(D1, "D", 1m, "02", "099", "0000000123", " AB", null),
+            ServicioImportacionN43.ClaveMovimiento(D1, "D", 1.00m, "2", "99", "123", "AB", ""));
     }
 }

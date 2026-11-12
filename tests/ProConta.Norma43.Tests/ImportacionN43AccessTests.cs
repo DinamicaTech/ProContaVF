@@ -115,6 +115,21 @@ public sealed class ImportacionN43AccessTests : IDisposable
     }
 
     [Fact]
+    public async Task Detecta_lo_migrado_del_erp_aunque_guardara_la_fecha_valor_como_fecha_de_operacion()
+    {
+        await EmpresaAsync();
+        var movs = new[] { new Mov(new(2026, 11, 2), 50m, true, "RECIBO CON VALOR POSTERIOR", Valor: new DateTime(2026, 11, 5)), M(3, 10m, false, "ABONO") };
+        var bytes = Fichero(Nov, new(2026, 11, 7), 100m, movs).Bytes();
+        Assert.Equal(VeredictoImportacion.Importable, (await Servicio.ImportarAsync(_ctx, bytes, "erp.n43", null, _actor)).Veredicto);
+        // Como en la migración del ERP: otro hash (sin el fichero real) y la fecha valor en la fecha de operación.
+        await Bd.EjecutarAsync(s => s.EjecutarAsync("UPDATE LotesImportacionBancaria SET HashSha256Contenido = 'ERP-N43-LOTE-1', VersionEsquema = 'ERP'"));
+        await Bd.EjecutarAsync(s => s.EjecutarAsync("UPDATE LineasExtractoBancario SET FechaOperacion = FechaValor"));
+        var r = await Servicio.ImportarAsync(_ctx, bytes, "erp.n43", null, _actor);
+        Assert.Equal(VeredictoImportacion.YaImportado, r.Veredicto);
+        Assert.Equal(2, await LineasAsync());
+    }
+
+    [Fact]
     public async Task Un_fichero_descuadrado_no_escribe_nada()
     {
         await EmpresaAsync();

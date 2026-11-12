@@ -14,6 +14,7 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\src\ProConta.Norma43\ProConta.Norma43.csproj" />
+    <ProjectReference Include="..\..\src\ProConta.Norma43.UI\ProConta.Norma43.UI.csproj" />
     <ProjectReference Include="..\..\src\ProConta.Contabilidad\ProConta.Contabilidad.csproj" />
     <ProjectReference Include="..\..\src\ProConta.Datos.Esquema\ProConta.Datos.Esquema.csproj" />
     <ProjectReference Include="..\ProConta.Pruebas.Access\ProConta.Pruebas.Access.csproj" />

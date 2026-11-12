@@ -68,6 +68,7 @@ public partial class VentanaPrincipal : Window
     private readonly ModuloFacturacion _facturacion;
     private readonly ModuloCompras _compras;
     private readonly ModuloCorreo _correo;
+    private readonly ProConta.Norma43.UI.VistaModelos.ModuloBancos _bancos;
     private readonly CoordinadorCorreo _coordinadorCorreo;
     private static readonly System.Net.Http.HttpClient Http = new() { Timeout = TimeSpan.FromSeconds(15) };
     private readonly Func<PantallaMantenimientoVM> _crearMantenimiento;
@@ -175,7 +176,13 @@ public partial class VentanaPrincipal : Window
             IdOrigen = idTercero > 0 ? idTercero : null, ReferenciaOrigen = nombre, Destinatarios = [new Destinatario(TipoDestinatario.Para, direccion, nombre)],
         });
         // Recepción (correo/recepcion): el buzón POP3 de cada cuenta activa se mira mientras la aplicación está abierta.
-        _coordinadorCorreo.Recepcion = new ServicioRecepcionCorreo(bd, new ClientePop3MailKit(), servicioCorreo, new ProcesadorFacturasCompraCorreo(bd, facturasCompra, contabilizadorCompras));
+        // Bancos (norma43 y norma43/bancos): cuentas, saldos y extractos Norma 43; los recibidos por correo usan el mismo motor.
+        var importacionN43 = new ProConta.Norma43.Importacion.ServicioImportacionN43(bd);
+        _bancos = new ProConta.Norma43.UI.VistaModelos.ModuloBancos(importacionN43, new ProConta.Norma43.Importacion.ConsultaBancos(bd),
+            new ProConta.Norma43.UI.VistaModelos.ContextoBancos(contexto.Contexto, contexto.RazonSocial, new Actor(sesion.NombreOperador), Avisar), _area,
+            new ProConta.Norma43.UI.Vistas.DialogosBancos(() => this));
+        _coordinadorCorreo.Recepcion = new ServicioRecepcionCorreo(bd, new ClientePop3MailKit(), servicioCorreo, new ProcesadorFacturasCompraCorreo(bd, facturasCompra, contabilizadorCompras),
+            extractos: new ProConta.Norma43.Importacion.ProcesadorExtractosCorreo(importacionN43));
         _coordinadorCorreo.Iniciar();
         Closed += async (_, _) => await _coordinadorCorreo.DisposeAsync();
         _ = AvisarDesvioCorreoAsync(servicioCorreo);
@@ -230,7 +237,9 @@ public partial class VentanaPrincipal : Window
             new OpcionNavegacion("Mayor", null, true, false,
                 "Mayor de una o varias cuentas (o de un código corto) en los ejercicios que elijas: vistas Normal, Compacto, Solo pendientes y Agrupar 700, filtros, asiento e historial de cada apunte",
                 abrirMayor, EsHija: true),
-            new OpcionNavegacion("Bancos", Icono("bank"), false, false, proxima),
+            new OpcionNavegacion("Bancos", Icono("bank"), true, false,
+                "Cuentas bancarias de la sociedad: saldo según el banco y según su 572, movimientos, extractos Norma 43 importados, «Importar N43» y reversión de lotes",
+                new ComandoDelegado(() => _bancos.Abrir())),
             new OpcionNavegacion("Nóminas", Icono("coin"), false, false, proxima),
             new OpcionNavegacion("Informes", Icono("xls"), true, false, "Informes del ejercicio de trabajo en Excel, con tabla dinámica", balanceSituacion),
             new OpcionNavegacion("Balance de situación", null, true, false,

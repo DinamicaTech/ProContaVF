@@ -1,0 +1,176 @@
+<UserControl x:Class="ProConta.Norma43.UI.Vistas.VistaBancos"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:pc="urn:proconta-ui"
+             Background="White">
+  <UserControl.Resources>
+    <pc:VisibleSiConverter x:Key="Visible" />
+    <Style x:Key="Etiqueta.Campo" TargetType="TextBlock">
+      <Setter Property="FontSize" Value="{StaticResource Letra.Pequena}" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+      <Setter Property="Foreground" Value="{StaticResource Pincel.Texto2}" />
+      <Setter Property="Margin" Value="0,0,0,4" />
+    </Style>
+    <Style x:Key="Tarjeta.Bancos" TargetType="Border" BasedOn="{StaticResource Tarjeta}">
+      <Setter Property="Padding" Value="14,12" />
+      <Setter Property="Margin" Value="0,0,0,12" />
+    </Style>
+    <ContextMenu x:Key="Menu.Cuentas">
+      <MenuItem Header="Importar N43…" Command="{Binding ImportarCommand}"
+                ToolTip="Elige un fichero Norma 43 (cuaderno 43) descargado del banco e impórtalo. Si ya está importado no se duplica; si se solapa con lo importado, no se importa nada" />
+      <Separator />
+      <MenuItem Header="Actualizar" Command="{Binding RefrescarCommand}" InputGestureText="F5" ToolTip="Vuelve a leer las cuentas, sus saldos y sus extractos" />
+    </ContextMenu>
+    <ContextMenu x:Key="Menu.Lotes">
+      <MenuItem Header="Revertir lote…" Command="{Binding RevertirCommand}"
+                ToolTip="Deja los movimientos del lote fuera de las líneas bancarias y de los saldos, sin borrar nada, con tu nombre, la hora y el motivo. No se puede si sus líneas tienen cuenta asignada o asiento" />
+      <MenuItem Header="Abrir el fichero original" Command="{Binding AbrirFicheroCommand}"
+                ToolTip="Abre el fichero desde el que se importó el lote, si sigue en la misma carpeta" />
+      <Separator />
+      <MenuItem Header="Importar N43…" Command="{Binding ImportarCommand}" ToolTip="Elige un fichero Norma 43 descargado del banco e impórtalo" />
+      <MenuItem Header="Actualizar" Command="{Binding RefrescarCommand}" InputGestureText="F5" ToolTip="Vuelve a leer las cuentas, sus saldos y sus extractos" />
+    </ContextMenu>
+  </UserControl.Resources>
+  <UserControl.InputBindings>
+    <KeyBinding Key="F5" Command="{Binding RefrescarCommand}" />
+  </UserControl.InputBindings>
+
+  <DockPanel>
+    <Border DockPanel.Dock="Top" BorderBrush="{StaticResource Pincel.Linea}" BorderThickness="0,0,0,1" Padding="14,8">
+      <DockPanel>
+        <Button DockPanel.Dock="Right" Content="Importar N43…" Style="{StaticResource Boton.Primario}" Command="{Binding ImportarCommand}"
+                pc:Iconos.Icono="{StaticResource Icono.dl}" AutomationProperties.Name="Importar N43"
+                ToolTip="Elige un fichero Norma 43 (cuaderno 43) descargado del banco e impórtalo. Si trae una cuenta que no existe, te ofrece darla de alta para seguir" />
+        <TextBlock Text="Bancos" Style="{StaticResource Texto.TituloPantalla}" VerticalAlignment="Center" />
+      </DockPanel>
+    </Border>
+
+    <Border DockPanel.Dock="Bottom" Style="{StaticResource Barra.Pie}">
+      <DockPanel>
+        <TextBlock DockPanel.Dock="Right" Text="Clic derecho: acciones · saldo del banco = saldo final del último extracto importado" Style="{StaticResource Texto.Apagado}" VerticalAlignment="Center" />
+        <TextBlock Text="{Binding Resumen}" FontWeight="SemiBold" VerticalAlignment="Center" />
+      </DockPanel>
+    </Border>
+
+    <Grid>
+      <Grid.RowDefinitions>
+        <RowDefinition Height="*" MinHeight="140" />
+        <RowDefinition Height="Auto" />
+        <RowDefinition Height="1.3*" MinHeight="160" />
+      </Grid.RowDefinitions>
+
+      <pc:VistaEstado Estado="{Binding Estado}" Titulo="{Binding TituloEstado}" Mensaje="{Binding MensajeEstado}" TextoAccion="Importar N43…" ComandoAccion="{Binding ImportarCommand}"
+                      ContextMenu="{StaticResource Menu.Cuentas}">
+        <pc:TablaProConta ItemsSource="{Binding Cuentas}" SelectedItem="{Binding Cuenta}" ClavePreferencias="norma43.bancos.cuentas" TituloExportacion="Cuentas bancarias"
+                          IsReadOnly="True" SelectionMode="Single" AutomationProperties.Name="Cuentas bancarias">
+          <pc:TablaProConta.Columns>
+            <DataGridTextColumn Header="Banco" Binding="{Binding Nombre}" Width="220" ElementStyle="{StaticResource Texto.Celda}" pc:TablaProConta.Clave="nombre" />
+            <DataGridTextColumn Header="Cuenta" Binding="{Binding Ccc}" Width="170" ElementStyle="{StaticResource Texto.Celda.Mono}" pc:TablaProConta.Clave="ccc" />
+            <DataGridTextColumn Header="IBAN" Binding="{Binding Iban}" Width="210" ElementStyle="{StaticResource Texto.Celda.Mono}" pc:TablaProConta.Clave="iban" pc:TablaProConta.OcultaDeFabrica="True" />
+            <DataGridTextColumn Header="Cuenta contable" Binding="{Binding Contable}" Width="*" MinWidth="160" ElementStyle="{StaticResource Texto.Celda}" pc:TablaProConta.Clave="contable" />
+            <DataGridTextColumn Header="Saldo banco" Binding="{Binding SaldoBanco}" SortMemberPath="SaldoBancoOrden" Width="120" ElementStyle="{StaticResource Texto.Celda.Importe}" pc:TablaProConta.Clave="saldo-banco" />
+            <DataGridTextColumn Header="A fecha" Binding="{Binding FechaSaldo}" Width="86" ElementStyle="{StaticResource Texto.Celda.Mono}" pc:TablaProConta.Clave="fecha-saldo" />
+            <DataGridTextColumn Header="Saldo contable" Binding="{Binding SaldoContable}" SortMemberPath="SaldoContableOrden" Width="120" ElementStyle="{StaticResource Texto.Celda.Importe}" pc:TablaProConta.Clave="saldo-contable" />
+            <DataGridTemplateColumn Header="Diferencia" Width="110" SortMemberPath="Diferencia" pc:TablaProConta.Clave="diferencia">
+              <DataGridTemplateColumn.CellTemplate>
+                <DataTemplate>
+                  <TextBlock Text="{Binding Diferencia}" ToolTip="{Binding AyudaDiferencia}">
+                    <TextBlock.Style>
+                      <Style TargetType="TextBlock" BasedOn="{StaticResource Texto.Celda.Importe}">
+                        <Style.Triggers>
+                          <DataTrigger Binding="{Binding Descuadrada}" Value="True">
+                            <Setter Property="Foreground" Value="{StaticResource Pincel.RojoError}" />
+                            <Setter Property="FontWeight" Value="SemiBold" />
+                          </DataTrigger>
+                        </Style.Triggers>
+                      </Style>
+                    </TextBlock.Style>
+                  </TextBlock>
+                </DataTemplate>
+              </DataGridTemplateColumn.CellTemplate>
+            </DataGridTemplateColumn>
+            <DataGridTextColumn Header="Movim." Binding="{Binding Movimientos}" SortMemberPath="MovimientosOrden" Width="70" ElementStyle="{StaticResource Texto.Celda.Importe}" pc:TablaProConta.Clave="movimientos" />
+            <DataGridTextColumn Header="Último" Binding="{Binding Ultimo}" SortMemberPath="UltimoOrden" Width="86" ElementStyle="{StaticResource Texto.Celda.Mono}" pc:TablaProConta.Clave="ultimo" />
+            <DataGridTextColumn Header="Lotes" Binding="{Binding Lotes}" Width="54" ElementStyle="{StaticResource Texto.Celda.Importe}" pc:TablaProConta.Clave="lotes" />
+          </pc:TablaProConta.Columns>
+        </pc:TablaProConta>
+      </pc:VistaEstado>
+
+      <GridSplitter Grid.Row="1" Height="5" HorizontalAlignment="Stretch" VerticalAlignment="Center" Background="{StaticResource Pincel.Linea}" ResizeBehavior="PreviousAndNext"
+                    ToolTip="Arrastra para repartir el alto entre las cuentas y sus extractos" />
+
+      <Grid Grid.Row="2">
+        <Grid.ColumnDefinitions>
+          <ColumnDefinition Width="*" MinWidth="420" />
+          <ColumnDefinition Width="Auto" />
+          <ColumnDefinition Width="420" MinWidth="300" />
+        </Grid.ColumnDefinitions>
+        <DockPanel ContextMenu="{StaticResource Menu.Lotes}">
+          <TextBlock DockPanel.Dock="Top" Text="{Binding TituloLotes}" Style="{StaticResource Texto.Seccion}" Margin="14,10,14,6" />
+          <TextBlock DockPanel.Dock="Top" Text="Esta cuenta aún no tiene extractos importados." Style="{StaticResource Texto.Apagado}" Margin="14,0,14,6"
+                     Visibility="{Binding SinLotes, Converter={StaticResource Visible}}" />
+          <pc:TablaProConta ItemsSource="{Binding Lotes}" SelectedItem="{Binding Lote}" ClavePreferencias="norma43.bancos.lotes" TituloExportacion="Extractos importados"
+                            IsReadOnly="True" SelectionMode="Single" AutomationProperties.Name="Extractos importados">
+            <pc:TablaProConta.Columns>
+              <DataGridTextColumn Header="Periodo" Binding="{Binding Periodo}" SortMemberPath="PeriodoOrden" Width="170" ElementStyle="{StaticResource Texto.Celda.Mono}" pc:TablaProConta.Clave="periodo" />
+              <DataGridTemplateColumn Header="Estado" Width="90" SortMemberPath="Estado" pc:TablaProConta.Clave="estado">
+                <DataGridTemplateColumn.CellTemplate>
+                  <DataTemplate>
+                    <TextBlock Text="{Binding Estado}" ToolTip="{Binding AyudaEstado}">
+                      <TextBlock.Style>
+                        <Style TargetType="TextBlock" BasedOn="{StaticResource Texto.Celda}">
+                          <Style.Triggers>
+                            <DataTrigger Binding="{Binding Revertido}" Value="True">
+                              <Setter Property="Foreground" Value="{StaticResource Pincel.Texto2}" />
+                              <Setter Property="FontStyle" Value="Italic" />
+                            </DataTrigger>
+                          </Style.Triggers>
+                        </Style>
+                      </TextBlock.Style>
+                    </TextBlock>
+                  </DataTemplate>
+                </DataGridTemplateColumn.CellTemplate>
+              </DataGridTemplateColumn>
+              <DataGridTextColumn Header="Fichero" Binding="{Binding Fichero}" Width="*" MinWidth="160" ElementStyle="{StaticResource Texto.Celda}" pc:TablaProConta.Clave="fichero" />
+              <DataGridTextColumn Header="Origen" Binding="{Binding Origen}" Width="120" ElementStyle="{StaticResource Texto.Celda}" pc:TablaProConta.Clave="origen" />
+              <DataGridTextColumn Header="Movim." Binding="{Binding Movimientos}" SortMemberPath="MovimientosOrden" Width="70" ElementStyle="{StaticResource Texto.Celda.Importe}" pc:TablaProConta.Clave="movimientos" />
+              <DataGridTextColumn Header="Avisos" Binding="{Binding Avisos}" Width="60" ElementStyle="{StaticResource Texto.Celda.Importe}" pc:TablaProConta.Clave="avisos" />
+              <DataGridTextColumn Header="Importado" Binding="{Binding Importado}" SortMemberPath="ImportadoOrden" Width="118" ElementStyle="{StaticResource Texto.Celda.Mono}" pc:TablaProConta.Clave="importado" />
+            </pc:TablaProConta.Columns>
+          </pc:TablaProConta>
+        </DockPanel>
+
+        <GridSplitter Grid.Column="1" Width="5" HorizontalAlignment="Center" VerticalAlignment="Stretch" Background="{StaticResource Pincel.Linea}" ResizeBehavior="PreviousAndNext"
+                      ToolTip="Arrastra para repartir el ancho entre los extractos y su detalle" />
+
+        <ScrollViewer Grid.Column="2" VerticalScrollBarVisibility="Auto" Background="{StaticResource Pincel.Fondo}">
+          <StackPanel Margin="16,14">
+            <TextBlock Text="Elige un extracto para ver su detalle." Style="{StaticResource Texto.Apagado}" Visibility="{Binding HayLote, Converter={StaticResource Visible}, ConverterParameter=invertir}" />
+            <StackPanel Visibility="{Binding HayLote, Converter={StaticResource Visible}}">
+              <TextBlock Text="{Binding Lote.Fichero}" Style="{StaticResource Texto.Titulo}" TextWrapping="Wrap" />
+              <Border Style="{StaticResource Tarjeta.Bancos}" Margin="0,8,0,12">
+                <TextBlock Text="{Binding DetalleLote}" TextWrapping="Wrap" FontSize="{StaticResource Letra.Pequena}" />
+              </Border>
+              <Border Style="{StaticResource Tarjeta.Bancos}">
+                <StackPanel>
+                  <TextBlock Text="Incidencias de la lectura" Style="{StaticResource Etiqueta.Campo}" />
+                  <TextBlock Text="Ninguna: el fichero llegó completo y cuadrado." Style="{StaticResource Texto.Apagado}" Visibility="{Binding SinIncidencias, Converter={StaticResource Visible}}" />
+                  <ItemsControl ItemsSource="{Binding Incidencias}">
+                    <ItemsControl.ItemTemplate>
+                      <DataTemplate>
+                        <StackPanel Margin="0,4,0,6">
+                          <TextBlock Text="{Binding Mensaje}" TextWrapping="Wrap" FontSize="{StaticResource Letra.Pequena}" />
+                          <TextBlock Text="{Binding Registro}" Style="{StaticResource Texto.Mono}" FontSize="{StaticResource Letra.Pequena}" Foreground="{StaticResource Pincel.Texto2}" TextTrimming="CharacterEllipsis" />
+                        </StackPanel>
+                      </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                  </ItemsControl>
+                </StackPanel>
+              </Border>
+            </StackPanel>
+          </StackPanel>
+        </ScrollViewer>
+      </Grid>
+    </Grid>
+  </DockPanel>
+</UserControl>

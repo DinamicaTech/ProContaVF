@@ -249,14 +249,17 @@ public sealed class ServicioImportacionN43
         }
         var desde = e.Movimientos.Min(m => m.FechaOperacion);
         var hasta = e.Movimientos.Max(m => m.FechaOperacion);
+        var valorDesde = e.Movimientos.Min(m => m.FechaValor);
+        var valorHasta = e.Movimientos.Max(m => m.FechaValor);
         var importadas = await s.ConsultarAsync(
             "SELECT l.FechaOperacion, l.FechaValor, l.Sentido, l.Importe, l.ConceptoComun, l.ConceptoPropio, l.Documento, l.Referencia1, l.Referencia2, " +
             $"lo.IdLoteImportacionBancaria, lo.NombreFichero FROM {desdeLotes} " +
-            "WHERE e.IdCuentaBancaria = ? AND l.FechaOperacion >= ? AND l.FechaOperacion <= ? AND lo.Estado <> ? AND lo.IdLoteImportacionBancaria <> ?",
-            f => (Clave: ClaveMovimiento(f.Fecha("FechaOperacion"), f.Fecha("FechaValor"), f.Texto("Sentido"), f.Decimal("Importe"), f.Texto("ConceptoComun"),
+            "WHERE e.IdCuentaBancaria = ? AND ((l.FechaOperacion >= ? AND l.FechaOperacion <= ?) OR (l.FechaValor >= ? AND l.FechaValor <= ?)) " +
+            "AND lo.Estado <> ? AND lo.IdLoteImportacionBancaria <> ?",
+            f => (Clave: ClaveMovimiento(f.Fecha("FechaValor"), f.Texto("Sentido"), f.Decimal("Importe"), f.Texto("ConceptoComun"),
                     f.Texto("ConceptoPropio"), f.Texto("Documento"), f.Texto("Referencia1"), f.Texto("Referencia2")),
                 Lote: (f.Entero("IdLoteImportacionBancaria"), f.Texto("NombreFichero") ?? "")),
-            idCuenta, desde, hasta, EstadoRevertido, excluirLote);
+            idCuenta, desde, hasta, valorDesde, valorHasta, EstadoRevertido, excluirLote);
         var enBd = importadas.GroupBy(x => x.Clave).ToDictionary(g => g.Key, g => g.ToList());
         var coinciden = 0;
         var lotes = new HashSet<(int, string)>();
@@ -270,13 +273,18 @@ public sealed class ServicioImportacionN43
     }
 
     internal static string ClaveMovimiento(MovimientoN43 m) =>
-        ClaveMovimiento(m.FechaOperacion, m.FechaValor, m.Sentido, m.Importe, m.ConceptoComun, m.ConceptoPropio, m.Documento, m.Referencia1, m.Referencia2);
+        ClaveMovimiento(m.FechaValor, m.Sentido, m.Importe, m.ConceptoComun, m.ConceptoPropio, m.Documento, m.Referencia1, m.Referencia2);
 
-    /// <summary>Clave de contenido de un movimiento: fechas, sentido, importe, conceptos y referencias, sin espacios ni ceros a la izquierda.</summary>
-    internal static string ClaveMovimiento(DateTime operacion, DateTime valor, string? sentido, decimal importe, string? comun, string? propio, string? documento, string? ref1, string? ref2)
+    /// <summary>
+    /// Clave de contenido de un movimiento: fecha valor, sentido, importe, conceptos y referencias, sin espacios ni ceros a la
+    /// izquierda. No usa la fecha de operación porque la migración del ERP guardó la fecha valor como fecha de operación en las
+    /// líneas en que no coinciden (comprobado con extractos reales el 2026-11-12), ni el concepto completo, que el ERP guardaba
+    /// a su manera.
+    /// </summary>
+    internal static string ClaveMovimiento(DateTime valor, string? sentido, decimal importe, string? comun, string? propio, string? documento, string? ref1, string? ref2)
     {
         static string N(string? t) => (t ?? "").Trim().TrimStart('0');
-        return string.Join("|", operacion.ToString("yyyyMMdd", CultureInfo.InvariantCulture), valor.ToString("yyyyMMdd", CultureInfo.InvariantCulture), (sentido ?? "").Trim(),
+        return string.Join("|", valor.ToString("yyyyMMdd", CultureInfo.InvariantCulture), (sentido ?? "").Trim(),
             importe.ToString("0.00", CultureInfo.InvariantCulture), N(comun), N(propio), N(documento), N(ref1), N(ref2));
     }
 
