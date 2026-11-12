@@ -1,0 +1,166 @@
+[
+  {
+    "nombre": "Anular asiento",
+    "descripcion": "Deja sin efecto un asiento sin borrarlo: genera otro con los mismos apuntes y el Debe y el Haber intercambiados. No vale para asientos de facturas (se corrigen desde la factura) ni para asientos automáticos.",
+    "tipo": "USUARIO",
+    "origen": "APUNTE",
+    "reglaFecha": "TRIMESTRE_ACTIVO",
+    "orden": 1,
+    "datos": [],
+    "lineas": [
+      { "asiento": 1, "orden": 1, "porCadaApunte": true, "cuenta": "Cuenta", "lado": "CONTRARIO", "importe": "Importe", "concepto": "\"Anulación: \" & Concepto", "centro": "Centro" }
+    ],
+    "ejemplo": {
+      "ejercicio": 2026, "trimestreActivo": 2,
+      "cuentas": { "6220001": "Reparaciones y conservación", "5720001": "Banco Ejemplo" },
+      "asiento": { "fecha": "2026-02-10", "descripcion": "Reparación de la caldera (ejemplo)", "apuntes": [
+        { "cuenta": "6220001", "debe": 242.00, "concepto": "Reparación caldera Ejemplo, S.L.", "documento": "F-2026-015" },
+        { "cuenta": "5720001", "haber": 242.00, "concepto": "Reparación caldera Ejemplo, S.L.", "documento": "F-2026-015" } ] },
+      "apunte": 1
+    }
+  },
+  {
+    "nombre": "Anular y rehacer con otra cuenta",
+    "descripcion": "Corrige un asiento hecho con una cuenta equivocada sin tocarlo: lo anula (Debe y Haber intercambiados) y lo vuelve a hacer igual, pero con la cuenta nueva en lugar de la del apunte. Genera dos asientos. No vale para asientos de facturas ni para asientos automáticos.",
+    "tipo": "USUARIO",
+    "origen": "APUNTE",
+    "reglaFecha": "TRIMESTRE_ACTIVO",
+    "orden": 2,
+    "datos": [
+      { "nombre": "NuevaCuenta", "etiqueta": "Nueva cuenta", "tipo": "CUENTA", "ayuda": "Cuenta que sustituye a la del apunte en el asiento rehecho." }
+    ],
+    "lineas": [
+      { "asiento": 1, "orden": 1, "porCadaApunte": true, "cuenta": "Cuenta", "lado": "CONTRARIO", "importe": "Importe", "concepto": "\"Anulación: \" & Concepto", "centro": "Centro" },
+      { "asiento": 2, "orden": 1, "porCadaApunte": true, "cuenta": "Si(EsApunteOrigen; NuevaCuenta; Cuenta)", "lado": "MISMO", "importe": "Importe", "concepto": "\"Rehecho: \" & Concepto", "centro": "Centro" }
+    ],
+    "ejemplo": {
+      "ejercicio": 2026, "trimestreActivo": 2,
+      "cuentas": { "6220001": "Reparaciones y conservación", "6290001": "Otros servicios", "5720001": "Banco Ejemplo" },
+      "asiento": { "fecha": "2026-02-10", "descripcion": "Reparación de la caldera (ejemplo)", "apuntes": [
+        { "cuenta": "6220001", "debe": 242.00, "concepto": "Reparación caldera Ejemplo, S.L.", "documento": "F-2026-015" },
+        { "cuenta": "5720001", "haber": 242.00, "concepto": "Reparación caldera Ejemplo, S.L.", "documento": "F-2026-015" } ] },
+      "apunte": 1,
+      "datos": { "NuevaCuenta": "6290001" }
+    }
+  },
+  {
+    "nombre": "Pasar saldo a otra cuenta",
+    "descripcion": "Pasa el saldo de la cuenta del apunte a otra cuenta por el importe que indiques: la cuenta del apunte va al lado contrario y la cuenta nueva al mismo lado que el apunte. Un importe negativo invierte los dos lados.",
+    "tipo": "USUARIO",
+    "origen": "APUNTE",
+    "reglaFecha": "TRIMESTRE_ACTIVO",
+    "orden": 3,
+    "datos": [
+      { "nombre": "NuevaCuenta", "etiqueta": "Nueva cuenta", "tipo": "CUENTA", "ayuda": "Cuenta que recibe el saldo." },
+      { "nombre": "ImporteTraspaso", "etiqueta": "Importe a traspasar", "tipo": "IMPORTE", "valorPropuesto": "Importe", "ayuda": "Se propone el importe del apunte." }
+    ],
+    "lineas": [
+      { "asiento": 1, "orden": 1, "cuenta": "Cuenta", "lado": "CONTRARIO", "importe": "ImporteTraspaso", "concepto": "\"Traspaso de saldo: \" & Concepto" },
+      { "asiento": 1, "orden": 2, "cuenta": "NuevaCuenta", "lado": "MISMO", "importe": "ImporteTraspaso", "concepto": "\"Traspaso de saldo: \" & Concepto" }
+    ],
+    "ejemplo": {
+      "ejercicio": 2026, "trimestreActivo": 2,
+      "cuentas": { "4300001": "Cliente Ejemplo A", "4300002": "Cliente Ejemplo B", "1290000": "Resultado del ejercicio" },
+      "asiento": { "fecha": "2026-01-01", "descripcion": "Asiento de apertura (ejemplo)", "apuntes": [
+        { "cuenta": "4300001", "debe": 500.00, "concepto": "Saldo inicial Cliente Ejemplo A" },
+        { "cuenta": "1290000", "haber": 500.00 } ] },
+      "apunte": 1,
+      "datos": { "NuevaCuenta": "4300002" }
+    }
+  },
+  {
+    "nombre": "Ajustar saldo inicial contra la 113",
+    "descripcion": "Para un saldo inicial que debería ser 0 y no sabemos por qué no lo es: lleva el importe de la cuenta contra la cuenta 113 de cuadres de la empresa (Parámetros › Empresas). En positivo va al Haber de la cuenta; en negativo, al Debe.",
+    "tipo": "USUARIO",
+    "origen": "APUNTE",
+    "reglaFecha": "TRIMESTRE_ACTIVO",
+    "orden": 4,
+    "datos": [
+      { "nombre": "ImporteAjuste", "etiqueta": "Importe del ajuste", "tipo": "IMPORTE", "valorPropuesto": "Si(Lado = \"D\"; Importe; -Importe)",
+        "ayuda": "Si el saldo de la contabilidad es mayor que el real, en positivo (irá al Haber); si es menor, en negativo (irá al Debe)." }
+    ],
+    "lineas": [
+      { "asiento": 1, "orden": 1, "cuenta": "Cuenta", "lado": "SIGNO", "importe": "ImporteAjuste", "concepto": "\"Regularización saldo inicial\"" },
+      { "asiento": 1, "orden": 2, "cuenta": "CuentaCuadres", "lado": "D", "importe": "ImporteAjuste", "concepto": "\"Regularización saldo inicial cliente \" & Cuenta" }
+    ],
+    "ejemplo": {
+      "ejercicio": 2026, "trimestreActivo": 2, "cuentaCuadres": "1130000",
+      "cuentas": { "4300003": "Cliente Ejemplo C", "1130000": "Reservas voluntarias", "1290000": "Resultado del ejercicio" },
+      "asiento": { "fecha": "2026-01-01", "descripcion": "Asiento de apertura (ejemplo)", "apuntes": [
+        { "cuenta": "4300003", "debe": 150.00, "concepto": "Saldo inicial Cliente Ejemplo C" },
+        { "cuenta": "1290000", "haber": 150.00 } ] },
+      "apunte": 1
+    }
+  },
+  {
+    "nombre": "Pago por tesorería",
+    "descripcion": "Paga (o cobra) por caja el importe del apunte: la cuenta del apunte va al lado contrario y la cuenta 570 de tesorería de la empresa (Parámetros › Empresas) al mismo lado.",
+    "tipo": "USUARIO",
+    "origen": "APUNTE",
+    "reglaFecha": "TRIMESTRE_ACTIVO",
+    "motivoPropuesto": "Pasamos pago a caja/tesorería",
+    "orden": 5,
+    "datos": [
+      { "nombre": "ImportePago", "etiqueta": "Importe del pago", "tipo": "IMPORTE", "valorPropuesto": "Importe", "ayuda": "Se propone el importe del apunte." }
+    ],
+    "lineas": [
+      { "asiento": 1, "orden": 1, "cuenta": "Cuenta", "lado": "CONTRARIO", "importe": "ImportePago", "concepto": "\"Pago por tesorería: \" & Concepto" },
+      { "asiento": 1, "orden": 2, "cuenta": "CuentaTesoreria", "lado": "MISMO", "importe": "ImportePago", "concepto": "\"Pago por tesorería: \" & Concepto" }
+    ],
+    "ejemplo": {
+      "ejercicio": 2026, "trimestreActivo": 2, "cuentaTesoreria": "5700000",
+      "cuentas": { "6280001": "Suministros", "4720021": "IVA soportado 21 %", "4000001": "Suministros Ejemplo, S.A.", "5700000": "Caja" },
+      "asiento": { "fecha": "2026-05-06", "descripcion": "Factura F-77 Suministros Ejemplo, S.A. (ejemplo)", "libroIva": true, "apuntes": [
+        { "cuenta": "6280001", "debe": 100.00, "documento": "F-77" },
+        { "cuenta": "4720021", "debe": 21.00, "documento": "F-77" },
+        { "cuenta": "4000001", "haber": 121.00, "documento": "F-77" } ] },
+      "apunte": 3
+    }
+  },
+  {
+    "nombre": "Pago por un socio",
+    "descripcion": "Una factura de la empresa pagada con dinero de un socio: la cuenta del apunte va al lado contrario y la subcuenta 551 del socio que elijas (se propone la última usada) al mismo lado.",
+    "tipo": "USUARIO",
+    "origen": "APUNTE",
+    "reglaFecha": "TRIMESTRE_ACTIVO",
+    "motivoPropuesto": "Pasamos pago deuda con socios",
+    "orden": 6,
+    "datos": [
+      { "nombre": "CuentaSocio", "etiqueta": "Cuenta del socio", "tipo": "CUENTA", "filtroCuenta": "551", "valorPropuesto": "UltimaUsada()",
+        "ayuda": "Subcuenta 551 del socio que ha pagado; el buscador solo ofrece las 551." },
+      { "nombre": "ImportePago", "etiqueta": "Importe del pago", "tipo": "IMPORTE", "valorPropuesto": "Importe", "ayuda": "Se propone el importe del apunte." }
+    ],
+    "lineas": [
+      { "asiento": 1, "orden": 1, "cuenta": "Cuenta", "lado": "CONTRARIO", "importe": "ImportePago", "concepto": "\"Pago por un socio: \" & Concepto" },
+      { "asiento": 1, "orden": 2, "cuenta": "CuentaSocio", "lado": "MISMO", "importe": "ImportePago", "concepto": "\"Pagado por socio: \" & Concepto" }
+    ],
+    "ejemplo": {
+      "ejercicio": 2026, "trimestreActivo": 2,
+      "cuentas": { "6280001": "Suministros", "4720021": "IVA soportado 21 %", "4000001": "Suministros Ejemplo, S.A.", "5510001": "Socio Ejemplo, cuenta corriente" },
+      "asiento": { "fecha": "2026-05-06", "descripcion": "Factura F-77 Suministros Ejemplo, S.A. (ejemplo)", "libroIva": true, "apuntes": [
+        { "cuenta": "6280001", "debe": 100.00, "documento": "F-77" },
+        { "cuenta": "4720021", "debe": 21.00, "documento": "F-77" },
+        { "cuenta": "4000001", "haber": 121.00, "documento": "F-77" } ] },
+      "apunte": 3,
+      "ultimasCuentas": { "CuentaSocio": "5510001" }
+    }
+  },
+  {
+    "nombre": "Nómina",
+    "descripcion": "Contabiliza las nóminas de un mes: un asiento por trabajador (o uno solo si agrupa por cuenta), con fórmulas sobre los importes de la nómina. Es una plantilla de sistema: la ejecuta el proceso de nóminas y no se usa a mano. Sus líneas se cargarán desde la plantilla de nóminas del ERP (PlantillasApuntes) cuando se construya nóminas.",
+    "tipo": "SISTEMA",
+    "origen": "PROCESO",
+    "claveProceso": "nominas",
+    "reglaFecha": "FECHA_ORIGEN",
+    "orden": 100,
+    "datos": [],
+    "lineas": [],
+    "ejemplo": {
+      "ejercicio": 2026,
+      "cuentas": { "4650001": "Trabajador Ejemplo", "6400000": "Sueldos y salarios", "6420000": "Seguridad Social a cargo de la empresa", "4751000": "HP acreedora por retenciones", "4760000": "Organismos de la Seguridad Social" },
+      "registros": [
+        { "clave": "Trabajador Ejemplo", "fecha": "2026-01-31", "campos": { "CuentaTrabajador": "4650001", "Bruto": 2000.00, "SSEmp": 640.00, "SSTrab": 127.00, "IRPF111": 300.00, "Neto": 1573.00 } }
+      ]
+    }
+  }
+]

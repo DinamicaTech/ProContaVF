@@ -27,6 +27,8 @@ public static class ProveedoresOrganizacion
         _ when clave.Contains("Repercutido") => ["477"],
         _ when clave.StartsWith("CuentaTipoIVA") || clave.Contains("Soportado") || clave == "CuentaIVAImportacion" => ["472"],
         _ when clave.StartsWith("CuentaRetencion") => ["475"],
+        "Cuenta113ParaCuadres" => ["113"],
+        "Cuenta570Tesoreria" => ["57"],
         "CuentaRedondeoGastos" => ["6"],
         "CuentaRedondeoIngresos" => ["7"],
         _ => [],
@@ -51,9 +53,26 @@ public static class ProveedoresOrganizacion
     /// <summary>Cuentas de compras que solo tiene el ejercicio (compras/factura-compra/contabilizacion).</summary>
     internal static IEnumerable<CampoMantenimiento> CuentasCompras() =>
     [
+        Cuenta("CuentaIVARepercutido0", "IVA repercutido del tipo 0", ayuda: "Ventas al 0 %. Vacía: la 477 con la terminación de la de soportado (4720001 → 4770001).", sinonimos: ["iva repercutido"]),
+        Cuenta("CuentaIVARepercutido1", "IVA repercutido del tipo 1", ayuda: "La usa la contabilización de ventas. Vacía: la 477 con la terminación de la de soportado.", sinonimos: ["iva repercutido"]),
+        Cuenta("CuentaIVARepercutido2", "IVA repercutido del tipo 2", ayuda: "IVA repercutido (477) de las ventas al tipo de IVA 2. Vacía: la 477 con la terminación de la de soportado.", sinonimos: ["iva repercutido"]),
+        Cuenta("CuentaIVARepercutido3", "IVA repercutido del tipo 3", ayuda: "IVA repercutido (477) de las ventas al tipo de IVA 3. Vacía: la 477 con la terminación de la de soportado.", sinonimos: ["iva repercutido"]),
+        Cuenta("CuentaIVARepercutido4", "IVA repercutido del tipo 4", ayuda: "IVA repercutido (477) de las ventas al tipo de IVA 4. Vacía: la 477 con la terminación de la de soportado.", sinonimos: ["iva repercutido"]),
         Cuenta("CuentaIVAImportacion", "IVA de importación", ayuda: "IVA soportado en importaciones (4724001 en el ERP): el importe de la factura se desglosa al tipo general."),
         Cuenta("CuentaRedondeoGastos", "Diferencias de redondeo · gastos", ayuda: "Cuando a un asiento de compra le falta Debe (hasta 0,03 €, o más con motivo). Vacía: 6590000.", sinonimos: ["redondeo"]),
         Cuenta("CuentaRedondeoIngresos", "Diferencias de redondeo · ingresos", ayuda: "Cuando a un asiento de compra le sobra Debe. Vacía: 7590000. Si no existe, se crea al usarla.", sinonimos: ["redondeo"]),
+    ];
+
+    /// <summary>
+    /// Cuentas de la empresa que usan las plantillas de corrección de asientos (contabilidad/plantillas-asiento 2026-11-12 11:15;
+    /// organizacion/sociedades-ejercicios 2026-11-12): solo en Empresas.
+    /// </summary>
+    internal static IEnumerable<CampoMantenimiento> CuentasCorreccion() =>
+    [
+        Cuenta("Cuenta113ParaCuadres", "Cuadres (113)", ayuda: "La usa la plantilla «Ajustar saldo inicial contra la 113» como contrapartida del ajuste (reservas voluntarias).",
+            sinonimos: ["113", "cuadres", "reservas"]),
+        Cuenta("Cuenta570Tesoreria", "Tesorería (570)", ayuda: "La usa la plantilla «Pago por tesorería» como cuenta de caja contra la que se paga.",
+            sinonimos: ["570", "caja", "tesoreria"]),
     ];
 
     internal static IEnumerable<CampoMantenimiento> Cuentas() =>
@@ -63,11 +82,6 @@ public static class ProveedoresOrganizacion
         Cuenta("CuentaTipoIVA2", "IVA soportado del tipo 2", ayuda: "IVA soportado (472) de las compras al tipo de IVA 2.", sinonimos: ["iva soportado"]),
         Cuenta("CuentaTipoIVA3", "IVA soportado del tipo 3", ayuda: "IVA soportado (472) de las compras al tipo de IVA 3.", sinonimos: ["iva soportado"]),
         Cuenta("CuentaTipoIVA4", "IVA soportado del tipo 4", ayuda: "IVA soportado (472) de las compras al tipo de IVA 4.", sinonimos: ["iva soportado"]),
-        Cuenta("CuentaIVARepercutido0", "IVA repercutido del tipo 0", ayuda: "Ventas al 0 %. Vacía: la 477 con la terminación de la de soportado (4720001 → 4770001).", sinonimos: ["iva repercutido"]),
-        Cuenta("CuentaIVARepercutido1", "IVA repercutido del tipo 1", ayuda: "La usa la contabilización de ventas. Vacía: la 477 con la terminación de la de soportado.", sinonimos: ["iva repercutido"]),
-        Cuenta("CuentaIVARepercutido2", "IVA repercutido del tipo 2", ayuda: "IVA repercutido (477) de las ventas al tipo de IVA 2. Vacía: la 477 con la terminación de la de soportado.", sinonimos: ["iva repercutido"]),
-        Cuenta("CuentaIVARepercutido3", "IVA repercutido del tipo 3", ayuda: "IVA repercutido (477) de las ventas al tipo de IVA 3. Vacía: la 477 con la terminación de la de soportado.", sinonimos: ["iva repercutido"]),
-        Cuenta("CuentaIVARepercutido4", "IVA repercutido del tipo 4", ayuda: "IVA repercutido (477) de las ventas al tipo de IVA 4. Vacía: la 477 con la terminación de la de soportado.", sinonimos: ["iva repercutido"]),
         Cuenta("CuentaSuplido", "Suplido", 255, "La contabilización de ventas la usa en las líneas suplidas sin cuenta propia."),
         Cuenta("CuentaRetencionServicios", "Retención de servicios", ayuda: "Retenciones de IRPF practicadas a profesionales (4751, modelo 111)."),
         Cuenta("CuentaRetencionAlquileres", "Retención de alquileres", ayuda: "Retenciones de IRPF practicadas en los alquileres (4751, modelo 115)."),
@@ -95,7 +109,7 @@ public static class ProveedoresOrganizacion
             new("CodigoPostalFiscal", "Código postal") { Ayuda = "Código postal del domicilio fiscal; sale en las facturas como parte de la dirección del emisor.", Grupo = "ident", Longitud = 20, Ancho = "xs" },
             new("PoblacionFiscal", "Población") { Ayuda = "Población del domicilio fiscal; sale en las facturas como parte de la dirección del emisor.", Grupo = "ident", Longitud = 100 },
             new("ProvinciaFiscal", "Provincia") { Ayuda = "Provincia del domicilio fiscal; sale en las facturas como parte de la dirección del emisor.", Grupo = "ident", Longitud = 100 },
-            .. Predeterminados(), .. Impuestos(), .. Cuentas(),
+            .. Predeterminados(), .. Impuestos(), .. Cuentas(), .. CuentasCorreccion(),
             Ruta("RutaDocumentos", "Carpeta de documentos") with
             {
                 Ayuda = "Ruta base de los documentos de la empresa (en pruebas, por ejemplo, D:\\SynologyBox\\SynologyDrive). Los PDF de las facturas de venta van a " +

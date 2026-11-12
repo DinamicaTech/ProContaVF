@@ -88,6 +88,7 @@ public static class CatalogoMigraciones
         MigracionesCompras.CarpetaFacturasCompra,
         MigracionesContabilidad.PunteoCuadreMayor,
         MigracionesActivos.Estructura,
+        MigracionesContabilidad.PlantillasAsiento,
     ];
 
     /// <summary>Versión del esquema que espera esta versión del programa.</summary>
