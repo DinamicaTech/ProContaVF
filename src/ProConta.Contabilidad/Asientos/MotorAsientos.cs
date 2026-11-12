@@ -51,6 +51,13 @@ public interface IMotorAsientos
     /// <summary>Alta o modificación de un asiento manual. Modificar exige motivo; un asiento automático se rechaza.</summary>
     Task<Resultado<Asiento>> GuardarManualAsync(Asiento asiento, Actor actor, string? motivo = null);
 
+    /// <summary>
+    /// Alta de varios asientos manuales nuevos en una sola transacción y con un IdLote común en el registro de cambios (los que propone
+    /// una plantilla, contabilidad/plantillas-asiento 2026-11-12 11:15): si uno falla, no se guarda ninguno. Con <paramref name="opciones"/>
+    /// se graba también la relación de cada asiento nuevo con el de origen (RelacionesAsientos) y se puntean los apuntes indicados.
+    /// </summary>
+    Task<Resultado<IReadOnlyList<int>>> GuardarManualesAsync(IReadOnlyList<Asiento> asientos, Actor actor, string motivo, OpcionesAltaManual? opciones = null);
+
     /// <summary>Borra un asiento manual (con la versión leída y motivo).</summary>
     Task<Resultado> EliminarManualAsync(int idAsiento, int versionLeida, Actor actor, string motivo);
 
@@ -100,6 +107,16 @@ public interface IMotorAsientos
         CancellationToken cancelacion = default);
 }
 
+/// <summary>
+/// Opciones de <see cref="IMotorAsientos.GuardarManualesAsync"/>: el asiento de origen con que se relacionan los nuevos (TipoRelacion en
+/// RelacionesAsientos, p. ej. «CORRECCION») y los apuntes ya grabados que quedan punteados (el apunte de origen) con el mismo IdLote.
+/// </summary>
+public sealed record OpcionesAltaManual(int? IdAsientoOrigen = null, string TipoRelacion = OpcionesAltaManual.RelacionCorreccion,
+    IReadOnlyCollection<int>? PuntearApuntes = null)
+{
+    public const string RelacionCorreccion = "CORRECCION";
+}
+
 /// <summary>Un asiento de un libro externo con su clave de ejecución (la del documento de origen).</summary>
 public sealed record AsientoExterno(string ClaveEjecucion, Asiento Asiento);
 
@@ -122,7 +139,7 @@ public sealed partial class MotorAsientosAccess(IBaseDatos bd, PoliticaCuadre? p
     private readonly IReloj _reloj = reloj ?? RelojSistema.Instancia;
 
     private const string ColumnasAsiento =
-        "IdAsiento, IdSociedadEjercicio, FechaContable, Descripcion, TipoAsiento, Notas, EstadoAsiento, Version, EsAutomatico, MotorPropietario, CodigoProceso, ClaveEjecucion";
+        "IdAsiento, IdSociedadEjercicio, FechaContable, Descripcion, TipoAsiento, Notas, EstadoAsiento, Version, EsAutomatico, MotorPropietario, CodigoProceso, ClaveEjecucion, IdPlantillaAsiento";
     private const string ColumnasApunte =
         "IdApunte, IdAsiento, Orden, CuentaContable, ImporteDebe, ImporteHaber, Descripcion, NumeroDocumento, IdCliente, IdProveedor, FechaVencimiento, IdCentroCoste, TipoApunte, GeneradoAutomaticamente, MotivoGeneracion, Punteado";
 
@@ -138,6 +155,47 @@ public sealed partial class MotorAsientosAccess(IBaseDatos bd, PoliticaCuadre? p
             var idLote = Guid.NewGuid();
             var guardado = await GuardarInternoAsync(s, asiento, actor, motivo?.Trim() ?? "Alta manual", idLote, manual: true);
             return guardado.EsCorrecto ? Resultado<Asiento>.Correcto((await CargarAsync(s, guardado.Valor))!) : Resultado<Asiento>.Fallo(guardado.Errores);
+        });
+
+    public Task<Resultado<IReadOnlyList<int>>> GuardarManualesAsync(IReadOnlyList<Asiento> asientos, Actor actor, string motivo, OpcionesAltaManual? opciones = null) =>
+        bd.EnTransaccionAsync(async s =>
+        {
+            if (string.IsNullOrWhiteSpace(motivo)) return Resultado<IReadOnlyList<int>>.Fallo(SinMotivo("Asientos nuevos"));
+            if (asientos.Count == 0)
+                return Resultado<IReadOnlyList<int>>.Fallo(new Error("Asientos.SinAsientos", "No hay ningún asiento que guardar.", null, null, "Añade al menos un asiento."));
+            foreach (var a in asientos)
+            {
+                if (a.EsAutomatico) return Resultado<IReadOnlyList<int>>.Fallo(AutomaticoNoManual(a));
+                if (!a.EsNuevo)
+                    return Resultado<IReadOnlyList<int>>.Fallo(new Error("Asientos.NoEsNuevo", "Esta operación solo da de alta asientos nuevos.", a.ToString(),
+                        "El asiento ya existe.", "Para modificarlo, ábrelo y guárdalo con su motivo."));
+            }
+            var idLote = Guid.NewGuid();
+            var texto = motivo.Trim();
+            var ids = new List<int>();
+            var errores = new List<Error>();
+            foreach (var asiento in asientos)
+            {
+                var guardado = await GuardarInternoAsync(s, asiento, actor, texto, idLote, manual: true);
+                if (guardado.EsCorrecto) ids.Add(guardado.Valor);
+                else errores.AddRange(guardado.Errores);
+            }
+            if (errores.Count > 0) return Resultado<IReadOnlyList<int>>.Fallo(errores);
+            if (opciones?.IdAsientoOrigen is int origen)
+                foreach (var id in ids)
+                    await s.EjecutarAsync("INSERT INTO RelacionesAsientos (IdAsientoOrigen, IdAsientoDestino, TipoRelacion, Motivo) VALUES (?, ?, ?, ?)",
+                        origen, id, opciones.TipoRelacion, texto);
+            if (opciones?.PuntearApuntes is { Count: > 0 } puntear)
+            {
+                var leidos = await LeerApuntesAsync(s, puntear);
+                if (!leidos.EsCorrecto) return Resultado<IReadOnlyList<int>>.Fallo(leidos.Errores);
+                foreach (var a in leidos.Valor.Where(a => !a.Punteado))
+                {
+                    await s.EjecutarAsync("UPDATE Apuntes SET Punteado = ? WHERE IdApunte = ?", true, a.IdApunte);
+                    await RegistrarCambioAsync(s, idLote, actor, texto, a.IdAsiento, a.IdApunte, a.Orden, "MODIFICACION", "Punteado", "No", "Sí");
+                }
+            }
+            return Resultado<IReadOnlyList<int>>.Correcto(ids);
         });
 
     public Task<Resultado> EliminarManualAsync(int idAsiento, int versionLeida, Actor actor, string motivo) =>
@@ -458,11 +516,11 @@ public sealed partial class MotorAsientosAccess(IBaseDatos bd, PoliticaCuadre? p
         {
             await s.EjecutarAsync(
                 "INSERT INTO Asientos (IdSociedadEjercicio, FechaContable, Descripcion, TipoAsiento, Notas, EstadoAsiento, OperadorCreacion, FechaHoraCreacion, " +
-                "OperadorContabilizacion, FechaHoraContabilizacion, TotalDebe, TotalHaber, Version, EsAutomatico, MotorPropietario, CodigoProceso, ClaveEjecucion) " +
-                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                "OperadorContabilizacion, FechaHoraContabilizacion, TotalDebe, TotalHaber, Version, EsAutomatico, MotorPropietario, CodigoProceso, ClaveEjecucion, IdPlantillaAsiento) " +
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                 asiento.Contexto.IdSociedadEjercicio, asiento.FechaContable, asiento.Descripcion.Trim(), (byte)asiento.Tipo, asiento.Notas, (byte)EstadoAsiento.Contabilizado,
                 actor.ToString(), ahora, actor.ToString(), ahora, asiento.TotalDebe, asiento.TotalHaber, 1, asiento.EsAutomatico,
-                asiento.Lote?.MotorPropietario, asiento.Lote?.CodigoProceso, asiento.Lote?.ClaveEjecucion);
+                asiento.Lote?.MotorPropietario, asiento.Lote?.CodigoProceso, asiento.Lote?.ClaveEjecucion, asiento.IdPlantilla);
             id = await s.UltimoIdAsync();
         }
         else
@@ -680,6 +738,7 @@ public sealed partial class MotorAsientosAccess(IBaseDatos bd, PoliticaCuadre? p
                     Estado = (EstadoAsiento)f.Entero("EstadoAsiento"),
                     Version = f.Entero("Version"),
                     Lote = f.Logico("EsAutomatico") ? new IdentidadLote(f.Texto("MotorPropietario") ?? "", f.Texto("CodigoProceso") ?? "", f.Texto("ClaveEjecucion") ?? "") : null,
+                    IdPlantilla = f.EnteroNulo("IdPlantillaAsiento"),
                 };
             }, idAsiento);
         if (cabecera is null) return null;

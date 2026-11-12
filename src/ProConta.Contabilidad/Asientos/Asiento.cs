@@ -90,6 +90,9 @@ public sealed class Asiento
     public string? Notas { get; set; }
     public List<Apunte> Apuntes { get; } = [];
 
+    /// <summary>Plantilla de asiento con la que se creó (Asientos.IdPlantillaAsiento, contabilidad/plantillas-asiento); null si no se usó ninguna.</summary>
+    public int? IdPlantilla { get; set; }
+
     /// <summary>Lote propietario si es automático; null si es manual.</summary>
     public IdentidadLote? Lote { get; internal set; }
 

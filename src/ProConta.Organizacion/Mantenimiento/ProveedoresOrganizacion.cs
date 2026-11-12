@@ -45,6 +45,18 @@ public static class ProveedoresOrganizacion
         Cuenta("CuentaRedondeoIngresos", "Cuenta de diferencias de redondeo · ingresos", ayuda: "Cuando a un asiento de compra le sobra Debe. Vacía: 7590000. Si no existe, se crea al usarla.", sinonimos: ["redondeo"]),
     ];
 
+    /// <summary>
+    /// Cuentas de la empresa que usan las plantillas de corrección de asientos (contabilidad/plantillas-asiento 2026-11-12 11:15;
+    /// organizacion/sociedades-ejercicios 2026-11-12): solo en Empresas.
+    /// </summary>
+    internal static IEnumerable<CampoMantenimiento> CuentasCorreccion() =>
+    [
+        Cuenta("Cuenta113ParaCuadres", "Cuenta 113 para cuadres", ayuda: "La usa la plantilla «Ajustar saldo inicial contra la 113» como contrapartida del ajuste (reservas voluntarias).",
+            sinonimos: ["113", "cuadres", "reservas"]),
+        Cuenta("Cuenta570Tesoreria", "Cuenta 570 de tesorería", ayuda: "La usa la plantilla «Pago por tesorería» como cuenta de caja contra la que se paga.",
+            sinonimos: ["570", "caja", "tesoreria"]),
+    ];
+
     internal static IEnumerable<CampoMantenimiento> Cuentas() =>
     [
         Cuenta("CuentaTipoIVA0", "Cuenta de IVA soportado del tipo 0", ayuda: "IVA soportado (472) de las compras al 0 %.", sinonimos: ["iva soportado"]),
@@ -84,7 +96,7 @@ public static class ProveedoresOrganizacion
             new("CodigoPostalFiscal", "Código postal") { Grupo = "ident", Longitud = 20, Ancho = "xs" },
             new("PoblacionFiscal", "Población") { Grupo = "ident", Longitud = 100 },
             new("ProvinciaFiscal", "Provincia") { Grupo = "ident", Longitud = 100 },
-            .. Predeterminados(), .. Impuestos(), .. Cuentas(),
+            .. Predeterminados(), .. Impuestos(), .. Cuentas(), .. CuentasCorreccion(),
             Ruta("RutaDocumentos", "Carpeta de documentos") with
             {
                 Ayuda = "Ruta base de los documentos de la empresa (en pruebas, por ejemplo, D:\\SynologyBox\\SynologyDrive). Los PDF de las facturas de venta van a " +

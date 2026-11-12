@@ -10,12 +10,14 @@ namespace ProConta.Datos.Esquema;
 
 /// <summary>Resultado de una actualización.</summary>
 /// <param name="CopiaSeguridad">Copia hecha antes de cambiar nada; null si no hacía falta actualizar.</param>
+/// <param name="Avisos">Lo que no ha impedido actualizar pero conviene saber (p. ej. descripciones de campo que no se han podido escribir).</param>
 public sealed record InformeActualizacion(
     string RutaBd,
     int VersionInicial,
     int VersionFinal,
     IReadOnlyList<string> Aplicadas,
-    string? CopiaSeguridad);
+    string? CopiaSeguridad,
+    IReadOnlyList<string>? Avisos = null);
 
 /// <summary>
 /// Aplica a una instalación las migraciones pendientes del catálogo (RF-ESQ-01/02): abre la BD en
@@ -78,16 +80,20 @@ public sealed class ActualizadorEsquema
         if (!copia.EsCorrecto) return Resultado<InformeActualizacion>.Fallo(copia.Errores);
 
         var aplicadas = new List<string>();
+        var avisos = new List<string>();
         foreach (var migracion in diagnostico.Pendientes)
         {
             var aplicada = await AplicarAsync(exclusiva, migracion, copia.Valor);
             if (!aplicada.EsCorrecto) return Resultado<InformeActualizacion>.Fallo(aplicada.Errores);
             aplicadas.Add(migracion.Id);
+            // Las descripciones de campo se escriben con DAO, con la BD ya cerrada por OLE DB (cada sesión abre y cierra su conexión).
+            if (EscritorDescripciones.Escribir(exclusiva.Ruta, migracion.Descripciones) is { } motivo)
+                avisos.Add($"{migracion.Id}: no he podido escribir las descripciones de sus tablas y campos ({motivo}). La estructura está bien; solo faltan en el diccionario.");
         }
 
         var final = await DiagnosticadorEsquema.DiagnosticarAsync(exclusiva, _catalogo);
         if (!final.EsCompatible) return Resultado<InformeActualizacion>.Fallo(final.ComoError()!);
-        return Resultado<InformeActualizacion>.Correcto(new(exclusiva.Ruta, diagnostico.VersionBd, final.VersionBd, aplicadas, copia.Valor));
+        return Resultado<InformeActualizacion>.Correcto(new(exclusiva.Ruta, diagnostico.VersionBd, final.VersionBd, aplicadas, copia.Valor, avisos));
     }
 
     private async Task<Resultado> AplicarAsync(IBaseDatos bd, Migracion migracion, string copia)

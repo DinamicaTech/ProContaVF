@@ -2,13 +2,13 @@
 
 # Diccionario de datos
 
-Esquema versión 42 (Actualizada); 141 tablas. SHA-256 de la BD de origen: `A6CC24684CEC173E200B48B6F0E7EAFEA99EED7D279501D9CEDDD3BCCD0BF78F`.
+Esquema versión 43 (Actualizada); 144 tablas. SHA-256 de la BD de origen: `E9C9A2A43E9B9925B2821680D4A7D103DCC5F410F64D4F5485AFE18660BFF985`.
 
 | Área | Tablas |
 |---|---|
 | [activos](activos.md) | Activos, ActivosInmuebles, CuentasActivo, DetallesLoteAmortizacionActivo, Inmuebles, LotesAmortizacionActivo, PlanesAmortizacionActivo, PlantillasCuentasActivo, PlantillasSubcuentasActivo, SubcuentasActivo, TiposActivo, TiposSubcuentaActivo |
 | [compras](compras.md) | ConfiguracionReconocimientoFacturasCompra, DesglosesFacturaCompra, FacturasCompra, PlantillasReconocimientoCompra, TextosClaveCompra |
-| [contabilidad](contabilidad.md) | Actividades, Apuntes, Asientos, CentrosCoste, CodigosContablesReservados, ConfiguracionesContables, ConfiguracionesContablesCuentaBancaria, CuadresCuentas, CuentasContables, CuentasContablesLegacy, CuentasPlanContable, DesglosesIVASoportado, F_CDP, F_DEP, IdentidadesContables, IVARepercutido, IVASoportado, ModelosBalance, NodosBalance, PeriodosIVA, PlanesContables, PresentacionesTributarias, RegistroCambiosApuntes, ReglasCuentasBalance, RelacionesAsientos, RelacionesCalculoBalance, RevisionesAsientos, TiposCuentaContable |
+| [contabilidad](contabilidad.md) | Actividades, Apuntes, Asientos, CentrosCoste, CodigosContablesReservados, ConfiguracionesContables, ConfiguracionesContablesCuentaBancaria, CuadresCuentas, CuentasContables, CuentasContablesLegacy, CuentasPlanContable, DesglosesIVASoportado, F_CDP, F_DEP, IdentidadesContables, IVARepercutido, IVASoportado, ModelosBalance, NodosBalance, PeriodosIVA, PlanesContables, PlantillasAsiento, PlantillasAsientoDatos, PlantillasAsientoLineas, PresentacionesTributarias, RegistroCambiosApuntes, ReglasCuentasBalance, RelacionesAsientos, RelacionesCalculoBalance, RevisionesAsientos, TiposCuentaContable |
 | [correo](correo.md) | AdjuntosMailDispatcher, AdjuntosMensajeCorreo, AdjuntosRecibidosCorreo, ConfiguracionCorreo, ConfiguracionMailDispatcher, CuentasCorreo, DestinatariosMensajeCorreo, EnviosCorreo, IntentosMensajeCorreo, LotesCorreo, MensajesCorreo, MensajesRecibidosCorreo, PlantillasCorreo, ProcesamientosMailDispatcher, RemitentesAutorizadosCorreo, TiposCorreo, TurnosCorreo |
 | [creative-lab](creative-lab.md) | ActivosInversiones, ConversacionesIA, CotizacionesInstrumentoFinanciero, ImportacionesActivos, InstrumentosFinancieros, MensajesConversacionIA, OperacionesInversion |
 | [datos](datos.md) | LogMigracionesEsquema, VersionesEsquema |

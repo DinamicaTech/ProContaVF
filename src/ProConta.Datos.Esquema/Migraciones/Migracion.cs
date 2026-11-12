@@ -46,6 +46,12 @@ public sealed class Migracion
     /// </summary>
     public IReadOnlyList<(string IdMigracion, string DescripcionPaso)> Retira { get; init; } = [];
 
+    /// <summary>
+    /// Descripciones de las tablas y campos que crea (la propiedad Description de Access, que recoge el diccionario). El actualizador
+    /// las escribe con DAO al terminar la migración; no forman parte del hash.
+    /// </summary>
+    public IReadOnlyList<DescripcionEsquema> Descripciones { get; init; } = [];
+
     /// <summary>SHA-256 de la definición: identifica la migración aplicada aunque cambie su texto descriptivo.</summary>
     public string Hash { get; }
 
