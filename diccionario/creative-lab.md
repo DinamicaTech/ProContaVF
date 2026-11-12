@@ -2,47 +2,9 @@
 
 # Diccionario de datos · creative-lab
 
-## Activos
-
-- Dueño funcional: `creative-lab/activos`
-
-| Campo | Tipo | Nulo | Por defecto | Descripción |
-|---|---|---|---|---|
-| IdActivo | COUNTER | no |  |  |
-| IdSociedad | TEXT(10) | no |  |  |
-| IdTipoActivo | LONG | no |  |  |
-| Codigo | TEXT(40) | no |  |  |
-| Nombre | TEXT(255) | no |  |  |
-| AliasActivo | TEXT(100) | sí |  |  |
-| Descripcion | LONGTEXT | sí |  |  |
-| FechaAdquisicion | DATETIME | sí |  |  |
-| FechaAlta | DATETIME | no |  |  |
-| FechaBaja | DATETIME | sí |  |  |
-| Estado | BYTE | no |  |  |
-| EsAmortizable | YESNO | no |  |  |
-| CosteAdquisicionActual | CURRENCY | no |  | Caché reconstruible desde operaciones y movimientos capitalizables; no es la fuente primaria. |
-| AmortizacionAcumulada | CURRENCY | no |  | Caché del saldo oficial de la identidad contable con rol AMORTIZACION_ACUMULADA. |
-| DeterioroAcumulado | CURRENCY | no |  |  |
-| ValorContable | CURRENCY | no |  | Coste menos amortización y deterioro; valor materializado para consulta y reporting. |
-| ValorActual | CURRENCY | sí |  |  |
-| ResultadoNoRealizado | CURRENCY | sí |  |  |
-| FechaUltimaValoracion | DATETIME | sí |  |  |
-| FechaHoraUltimoCalculo | DATETIME | sí |  |  |
-| EstadoCalculo | BYTE | no |  |  |
-| IdDepartamento | LONG | sí |  |  |
-| IdSubDepartamento | LONG | sí |  |  |
-| IdFacturaCompra | LONG | sí |  |  |
-| ReferenciaMigracion | TEXT(100) | sí |  |  |
-| Version | LONG | no |  | Control de concurrencia optimista; aumenta en cada modificación. |
-
-Índices:
-- IX_Activos_SociedadEstado: IdSociedad, Estado
-- PK_Activos (clave primaria): IdActivo
-- UX_Activos_SociedadCodigo (único): IdSociedad, Codigo
-
 ## ActivosInversiones
 
-- Dueño funcional: `creative-lab/activos`
+- Dueño funcional: `creative-lab/inversiones-financieras`
 
 | Campo | Tipo | Nulo | Por defecto | Descripción |
 |---|---|---|---|---|
@@ -72,7 +34,7 @@
 
 ## CotizacionesInstrumentoFinanciero
 
-- Dueño funcional: `creative-lab/activos`
+- Dueño funcional: `creative-lab/inversiones-financieras`
 
 | Campo | Tipo | Nulo | Por defecto | Descripción |
 |---|---|---|---|---|
@@ -88,43 +50,9 @@
 - PK_CotizacionesInstrumento (clave primaria): IdCotizacionInstrumento
 - UX_CotizacionesInstrumento_Fecha (único): IdInstrumentoFinanciero, FechaCotizacion
 
-## CuentasActivo
-
-- Dueño funcional: `creative-lab/activos`
-
-| Campo | Tipo | Nulo | Por defecto | Descripción |
-|---|---|---|---|---|
-| IdCuentaActivo | COUNTER | no |  |  |
-| IdActivo | LONG | no |  |  |
-| IdPlantillaCuentaActivo | LONG | no |  |  |
-| IdIdentidadContable | LONG | no |  |  |
-| FechaHoraCreacion | DATETIME | no |  |  |
-
-Índices:
-- PK_CuentasActivo (clave primaria): IdCuentaActivo
-- UX_CuentasActivo_Plantilla (único): IdActivo, IdPlantillaCuentaActivo
-
-## DetallesLoteAmortizacionActivo
-
-- Dueño funcional: `creative-lab/activos`
-
-| Campo | Tipo | Nulo | Por defecto | Descripción |
-|---|---|---|---|---|
-| IdDetalleLoteAmortizacion | COUNTER | no |  |  |
-| IdLoteAmortizacion | LONG | no |  |  |
-| IdActivo | LONG | no |  |  |
-| Importe | CURRENCY | no |  |  |
-| IdAsiento | LONG | sí |  |  |
-| Estado | TEXT(20) | no |  |  |
-| Incidencia | LONGTEXT | sí |  |  |
-
-Índices:
-- PK_DetallesLoteAmortizacion (clave primaria): IdDetalleLoteAmortizacion
-- UX_DetallesLoteAmortizacion_Activo (único): IdLoteAmortizacion, IdActivo
-
 ## ImportacionesActivos
 
-- Dueño funcional: `creative-lab/activos`
+- Dueño funcional: `creative-lab/inversiones-financieras`
 
 | Campo | Tipo | Nulo | Por defecto | Descripción |
 |---|---|---|---|---|
@@ -143,14 +71,9 @@
 - PK_ImportacionesActivos (clave primaria): IdImportacionActivo
 - UX_ImportacionesActivos_Huella (único): TipoOrigen, IdSociedad, HuellaOrigen
 
-## Inmuebles
-
-- Dueño funcional: `creative-lab/activos`
-- Tabla **vinculada** a otro fichero: su estructura no se lee desde la maestra.
-
 ## InstrumentosFinancieros
 
-- Dueño funcional: `creative-lab/activos`
+- Dueño funcional: `creative-lab/inversiones-financieras`
 
 | Campo | Tipo | Nulo | Por defecto | Descripción |
 |---|---|---|---|---|
@@ -168,24 +91,6 @@
 Índices:
 - PK_InstrumentosFinancieros (clave primaria): IdInstrumentoFinanciero
 - UX_InstrumentosFinancieros_Isin (único): Isin
-
-## LotesAmortizacionActivo
-
-- Dueño funcional: `creative-lab/activos`
-
-| Campo | Tipo | Nulo | Por defecto | Descripción |
-|---|---|---|---|---|
-| IdLoteAmortizacion | COUNTER | no |  |  |
-| IdSociedad | TEXT(10) | no |  |  |
-| FechaDesde | DATETIME | no |  |  |
-| FechaHasta | DATETIME | no |  |  |
-| Estado | TEXT(20) | no |  |  |
-| IdLoteProceso | TEXT(100) | no |  |  |
-| FechaHoraCreacion | DATETIME | no |  |  |
-
-Índices:
-- PK_LotesAmortizacionActivo (clave primaria): IdLoteAmortizacion
-- UX_LotesAmortizacionActivo_Proceso (único): IdLoteProceso
 
 ## MensajesConversacionIA
 
@@ -206,7 +111,7 @@
 
 ## OperacionesInversion
 
-- Dueño funcional: `creative-lab/activos`
+- Dueño funcional: `creative-lab/inversiones-financieras`
 
 | Campo | Tipo | Nulo | Por defecto | Descripción |
 |---|---|---|---|---|
@@ -226,58 +131,4 @@
 Índices:
 - PK_OperacionesInversion (clave primaria): IdOperacionInversion
 - UX_OperacionesInversion_Referencia (único): IdActivo, ReferenciaExterna
-
-## PlanesAmortizacionActivo
-
-- Dueño funcional: `creative-lab/activos`
-
-| Campo | Tipo | Nulo | Por defecto | Descripción |
-|---|---|---|---|---|
-| IdPlanAmortizacion | COUNTER | no |  |  |
-| IdActivo | LONG | no |  |  |
-| FechaInicio | DATETIME | no |  |  |
-| BaseAmortizable | CURRENCY | no |  |  |
-| ValorResidual | CURRENCY | no |  |  |
-| VidaUtilMeses | LONG | no |  |  |
-| Metodo | TEXT(20) | no |  |  |
-| EstaActivo | YESNO | no |  |  |
-
-Índices:
-- PK_PlanesAmortizacionActivo (clave primaria): IdPlanAmortizacion
-
-## PlantillasCuentasActivo
-
-- Dueño funcional: `creative-lab/activos`
-
-| Campo | Tipo | Nulo | Por defecto | Descripción |
-|---|---|---|---|---|
-| IdPlantillaCuentaActivo | COUNTER | no |  |  |
-| IdTipoActivo | LONG | no |  |  |
-| RolCuenta | TEXT(40) | no |  | Finalidad semántica de la cuenta; evita deducir funciones a partir del prefijo contable. |
-| PrefijoCuenta | TEXT(20) | no |  |  |
-| PlantillaNombre | TEXT(255) | no |  |  |
-| Orden | SHORT | no |  |  |
-| EsObligatoria | YESNO | no |  |  |
-| EstaActiva | YESNO | no |  |  |
-
-Índices:
-- PK_PlantillasCuentasActivo (clave primaria): IdPlantillaCuentaActivo
-- UX_PlantillasCuentasActivo_Rol (único): IdTipoActivo, RolCuenta
-
-## TiposActivo
-
-- Dueño funcional: `creative-lab/activos`
-
-| Campo | Tipo | Nulo | Por defecto | Descripción |
-|---|---|---|---|---|
-| IdTipoActivo | COUNTER | no |  |  |
-| Codigo | TEXT(30) | no |  |  |
-| Nombre | TEXT(100) | no |  |  |
-| Categoria | TEXT(30) | no |  |  |
-| EsAmortizablePredeterminado | YESNO | no |  |  |
-| EstaActivo | YESNO | no |  |  |
-
-Índices:
-- PK_TiposActivo (clave primaria): IdTipoActivo
-- UX_TiposActivo_Codigo (único): Codigo
 

@@ -23,6 +23,7 @@
     <Project Path="src/ProConta.Mantenimiento/ProConta.Mantenimiento.csproj" />
     <Project Path="src/ProConta.Mantenimiento.UI/ProConta.Mantenimiento.UI.csproj" />
     <Project Path="src/ProConta.Nucleo/ProConta.Nucleo.csproj" />
+    <Project Path="src/ProConta.Activos/ProConta.Activos.csproj" />
     <Project Path="src/ProConta.Organizacion/ProConta.Organizacion.csproj" />
     <Project Path="src/ProConta.Plataforma.Configuracion/ProConta.Plataforma.Configuracion.csproj" />
     <Project Path="src/ProConta.Seguridad/ProConta.Seguridad.csproj" />
