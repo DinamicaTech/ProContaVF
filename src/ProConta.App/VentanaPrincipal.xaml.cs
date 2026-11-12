@@ -188,7 +188,8 @@ public partial class VentanaPrincipal : Window
         var contextoMantenimiento = new ContextoMantenimiento(contexto.Contexto, contexto.RazonSocial, new Actor(sesion.NombreOperador));
         _crearMantenimiento = () => new PantallaMantenimientoVM(mantenimiento, contextoMantenimiento,
             (titulo, mensaje, detalles, opciones) => ServicioMensajes.Preguntar(this, titulo, mensaje, detalles, opciones),
-            Avisar, vm => new VistaMantenimiento(vm));
+            Avisar, vm => new VistaMantenimiento(vm))
+        { Cuentas = new SelectorCuentasMantenimiento(cuentas, new CatalogoCentrosCosteAccess(bd), () => this) };
 
         // Importar ContaSol (implantacion/importador-contasol): una pestaña, en Configuración.
         var importadorContaSol = new ProConta.Implantacion.ContaSol.ImportadorContaSol(bd, new MotorAsientosAccess(bd), new CatalogoCentrosCosteAccess(bd),

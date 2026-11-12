@@ -324,7 +324,7 @@ public sealed class ProveedorPlantillasSubcuentasActivo(IBaseDatos bd, Generador
         new("TipoSubcuenta", "Tipo de subcuenta", TipoCampo.ListaAbierta) { Obligatorio = true, Opciones = _tiposSubcuenta, Longitud = ReglasSubcuentaActivo.LongitudMaximaNombre, Ancho = "l",
             Ayuda = "Elige uno del catálogo o escribe un nombre nuevo (con [TOKEN] donde va el nombre del activo): se crea en «Tipos de subcuenta de activo» con rol «Otra cuenta del activo»." },
         new("Rol", "Rol") { SoloLectura = true, Ancho = "l", Ayuda = "El del tipo de subcuenta; se cambia en «Tipos de subcuenta de activo»." },
-        new("Prefijo", "Prefijo", TipoCampo.Cuenta) { Obligatorio = true, Longitud = 7, Ancho = "s",
+        new("Prefijo", "Prefijo", TipoCampo.Cuenta) { Obligatorio = true, Longitud = 7, Ancho = "s", SoloSubcuentas = false,
             Ayuda = "Cuenta de la que cuelgan las subcuentas, por ejemplo 2810 o 21800. Cambiarlo no recodifica las subcuentas que ya existen." },
         new("Orden", "Orden", TipoCampo.Entero) { Minimo = 0, Maximo = 32767, Ancho = "xs", Ayuda = "Vacío: después de la última línea del tipo de activo." },
         new("EstaActiva", "Activa", TipoCampo.Logico) { Ayuda = "Una línea inactiva no genera subcuentas; las que ya generó se quedan." },

@@ -19,7 +19,18 @@ public static class ProveedoresOrganizacion
         [new("ident", "Identificación"), new("pred", "Valores predeterminados"), new("impuestos", "Impuestos y retenciones"), new("cuentas", "Cuentas"), new("rutas", "Rutas y bases de datos")];
 
     private static CampoMantenimiento Cuenta(string clave, string etiqueta, int longitud = 10, string? ayuda = null, params string[] sinonimos) =>
-        new(clave, etiqueta, TipoCampo.Cuenta) { Grupo = "cuentas", Longitud = longitud, Ancho = "s", Ayuda = ayuda, Sinonimos = sinonimos };
+        new(clave, etiqueta, TipoCampo.Cuenta) { Grupo = "cuentas", Longitud = longitud, Ancho = "s", Ayuda = ayuda, Sinonimos = sinonimos, GruposCuenta = GruposDe(clave) };
+
+    /// <summary>Grupos a los que se limita el buscador de cada cuenta (plataforma/mantenimiento 2026-11-12); se puede quitar el filtro.</summary>
+    private static IReadOnlyList<string> GruposDe(string clave) => clave switch
+    {
+        _ when clave.Contains("Repercutido") => ["477"],
+        _ when clave.StartsWith("CuentaTipoIVA") || clave.Contains("Soportado") || clave == "CuentaIVAImportacion" => ["472"],
+        _ when clave.StartsWith("CuentaRetencion") => ["475"],
+        "CuentaRedondeoGastos" => ["6"],
+        "CuentaRedondeoIngresos" => ["7"],
+        _ => [],
+    };
 
     private static CampoMantenimiento Ruta(string clave, string etiqueta) => new(clave, etiqueta, TipoCampo.Ruta) { Grupo = "rutas", Longitud = 255, Ancho = "l" };
 
@@ -222,7 +233,7 @@ public sealed class ProveedorFormasPagoSociedad(CatalogoFormasPagoSociedad catal
     public override IReadOnlyList<CampoMantenimiento> Campos =>
     [
         new("Descripcion", "Forma de pago") { Ayuda = "La forma de pago a la que se asigna la subcuenta. Se crea y se renombra en «Formas de pago».", SoloLectura = true, Ancho = "l" },
-        new("Cuenta", "Subcuenta", TipoCampo.Cuenta) { Longitud = 30, Ancho = "s", Sinonimos = ["cuenta", "572", "banco"],
+        new("Cuenta", "Subcuenta", TipoCampo.Cuenta) { Longitud = 30, Ancho = "s", Sinonimos = ["cuenta", "572", "banco"], GruposCuenta = ["57", "431"],
             Ayuda = "Código en el ejercicio de trabajo. Se guarda su identidad contable, así vale en los demás ejercicios aunque cambie el código. Vacía, la forma de pago no tiene subcuenta en esta empresa." },
         new("NombreCuenta", "Nombre de la cuenta") { Ayuda = "Nombre de la subcuenta en el ejercicio de trabajo, para comprobar que es la buena. Se rellena solo.", SoloLectura = true, Ancho = "l" },
     ];

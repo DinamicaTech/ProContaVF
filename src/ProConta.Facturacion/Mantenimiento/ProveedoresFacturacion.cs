@@ -208,7 +208,7 @@ public sealed class ProveedorConceptos(CatalogoConceptos catalogo) : ProveedorBa
         new("Activo", "Activo", TipoCampo.Logico) { Grupo = "con", Ayuda = "Solo los activos se ofrecen al añadir líneas." },
         new("PrecioUnitario", "Precio unitario", TipoCampo.Importe) { Ayuda = "Precio sin IVA que se propone al añadir el concepto a una factura; se puede cambiar en cada línea.", Grupo = "fac", Ancho = "s" },
         new("TipoIVA", "IVA (%)", TipoCampo.Porcentaje) { Ayuda = "Porcentaje de IVA que se propone al añadir el concepto a una factura; se puede cambiar en cada línea.", Grupo = "fac", Ancho = "xs" },
-        new("CuentaVenta", "Cuenta de venta", TipoCampo.Cuenta) { Grupo = "con2", Longitud = 30, Ancho = "s", Sinonimos = ["cuenta", "ingreso", "70"],
+        new("CuentaVenta", "Cuenta de venta", TipoCampo.Cuenta) { Grupo = "con2", Longitud = 30, Ancho = "s", Sinonimos = ["cuenta", "ingreso", "70"], GruposCuenta = ["7"],
             Ayuda = "Código en el ejercicio de trabajo. Se guarda su identidad contable, así vale en los demás ejercicios aunque cambie el código." },
         new("NombreCuentaVenta", "Nombre de la cuenta") { Ayuda = "Nombre de la cuenta de venta en el ejercicio de trabajo, para comprobar que es la buena. Se rellena solo.", Grupo = "con2", SoloLectura = true, Ancho = "l" },
         new("Notas", "Notas internas", TipoCampo.TextoLargo) { Ayuda = "Comentarios internos sobre el concepto; no salen en la factura.", Grupo = "con", Ancho = "f" },

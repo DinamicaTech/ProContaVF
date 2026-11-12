@@ -61,6 +61,7 @@ public sealed class CampoEdicionVM : ModeloVista, INotifyDataErrorInfo
         else if (definicion.Tipo == TipoCampo.ListaAbierta)
             _texto = valor is null ? "" : Opciones.FirstOrDefault(o => Equals(Normalizar(o.Valor), Normalizar(valor)))?.Texto ?? Convert.ToString(valor, CultureInfo.CurrentCulture) ?? "";
         else _texto = PantallaMantenimientoVM.Formatear(definicion, valor);
+        BuscarCuentaCommand = new ComandoDelegado(() => _ = BuscarCuentaAsync(), () => PuedeBuscarCuenta);
     }
 
     public CampoMantenimiento Definicion { get; }
@@ -75,8 +76,9 @@ public sealed class CampoEdicionVM : ModeloVista, INotifyDataErrorInfo
     public string Ayuda => string.Join(Environment.NewLine, new[]
     {
         Error, Bloqueo, Definicion.Ayuda, Definicion.Pendiente ? "Significado pendiente de confirmar." : null,
-        Definicion.Longitud is int l && !SoloLectura && Tipo is not (TipoCampo.Logico or TipoCampo.Lista or TipoCampo.ListaAbierta) ? $"Hasta {l} caracteres." : null,
-        Tipo == TipoCampo.ListaAbierta ? "Elige una opción o escribe una nueva." : null
+        Definicion.Longitud is int l && !SoloLectura && !EsCuenta && Tipo is not (TipoCampo.Logico or TipoCampo.Lista or TipoCampo.ListaAbierta) ? $"Hasta {l} caracteres." : null,
+        Tipo == TipoCampo.ListaAbierta ? "Elige una opción o escribe una nueva." : null,
+        PuedeBuscarCuenta ? "Clic, Intro, F4 o la lupa: elegir la cuenta o crear una subcuenta. Supr la quita." : null
     }.Where(x => !string.IsNullOrWhiteSpace(x)));
 
     /// <summary>Ayuda de la etiqueta: el nombre completo (por si no cabe en dos líneas) y la ayuda del campo.</summary>
@@ -107,6 +109,28 @@ public sealed class CampoEdicionVM : ModeloVista, INotifyDataErrorInfo
             _pantalla.Cambiar(Clave, v);
         }
     }
+
+    // ---------- campos de cuenta (plataforma/mantenimiento 2026-11-12) ----------
+    /// <summary>Con buscador de cuentas, el campo no se escribe: se elige siempre en el buscador (propietario 2026-11-12 12:16).</summary>
+    public bool EsCuenta => Tipo == TipoCampo.Cuenta && _pantalla.Cuentas is not null;
+    public bool PuedeBuscarCuenta => EsCuenta && !SoloLectura;
+    public ICommand BuscarCuentaCommand { get; }
+
+    public string AyudaBuscarCuenta =>
+        $"Busca la cuenta en el plan del ejercicio {_pantalla.Contexto.Trabajo.Ejercicio}" +
+        (Definicion.GruposCuenta.Count == 0 ? "" : $" (empieza en {string.Join(", ", Definicion.GruposCuenta)}; se puede quitar el filtro)") +
+        (Definicion.SoloSubcuentas ? " o crea una subcuenta nueva." : ".");
+
+    /// <summary>Abre el buscador de cuentas y pone en el campo la cuenta elegida o creada; cancelar no cambia nada.</summary>
+    public async Task BuscarCuentaAsync()
+    {
+        if (!PuedeBuscarCuenta) return;
+        var codigo = await _pantalla.Cuentas!.ElegirAsync(Definicion, _texto.Trim(), _pantalla.Contexto);
+        if (codigo is not null) Texto = codigo;
+    }
+
+    /// <summary>Supr en un campo de cuenta: lo deja vacío.</summary>
+    public void VaciarCuenta() { if (PuedeBuscarCuenta) Texto = ""; }
 
     public bool Marcado
     {
@@ -166,6 +190,10 @@ public sealed class PantallaMantenimientoVM : ModeloVista, IPestanaTrabajo
     private Dictionary<string, string> _errores = new(StringComparer.OrdinalIgnoreCase);
     private string? _errorGeneral;
     private bool _puedeEditar;
+
+    /// <summary>Buscador de cuentas para los campos de cuenta; sin él, se escriben a mano.</summary>
+    public ISelectorCuentas? Cuentas { get; init; }
+    internal ContextoMantenimiento Contexto => _contexto;
 
     public PantallaMantenimientoVM(ServicioMantenimiento servicio, ContextoMantenimiento contexto, Func<string, string, IReadOnlyList<string>?, OpcionMensaje[], int> preguntar,
         Action<string> avisar, Func<PantallaMantenimientoVM, object> crearVista)

@@ -78,6 +78,13 @@ public sealed record CampoMantenimiento(string Clave, string Etiqueta, TipoCampo
     public string Ancho { get; init; } = "m";
     /// <summary>Otras palabras con las que se encuentra en la búsqueda (Ctrl+K).</summary>
     public IReadOnlyList<string> Sinonimos { get; init; } = [];
+    /// <summary>
+    /// Solo en <see cref="TipoCampo.Cuenta"/>: grupos o prefijos (472, 57, 6…) a los que se limita el buscador de cuentas al
+    /// abrirlo; el operador puede quitar el filtro. Vacío: todo el plan.
+    /// </summary>
+    public IReadOnlyList<string> GruposCuenta { get; init; } = [];
+    /// <summary>Solo en <see cref="TipoCampo.Cuenta"/>: false si el campo admite cuentas de cualquier nivel (por ejemplo, un prefijo).</summary>
+    public bool SoloSubcuentas { get; init; } = true;
 }
 
 /// <summary>Columna de la lista de registros.</summary>
@@ -100,6 +107,16 @@ public sealed record ErrorCampo(string? Campo, string Mensaje);
 
 /// <summary>Contexto de trabajo que fija el contenedor.</summary>
 public sealed record ContextoMantenimiento(ContextoSociedadEjercicio Trabajo, string RazonSocial, Actor Actor);
+
+/// <summary>
+/// Buscador de cuentas para los campos <see cref="TipoCampo.Cuenta"/> (plataforma/mantenimiento 2026-11-12): lo pone el
+/// contenedor con el plan de cuentas del ejercicio de trabajo. Con él, la cuenta solo se elige en el buscador; sin él, se escribe.
+/// </summary>
+public interface ISelectorCuentas
+{
+    /// <summary>Abre el buscador (con «Crear subcuenta») y devuelve el código elegido o creado; null si se cancela.</summary>
+    Task<string?> ElegirAsync(CampoMantenimiento campo, string? texto, ContextoMantenimiento contexto);
+}
 
 /// <summary>
 /// Registro que edita la pantalla: valores por clave de campo, más lo que el proveedor bloquea y por qué (por ejemplo,
