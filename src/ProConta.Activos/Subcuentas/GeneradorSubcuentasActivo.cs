@@ -69,7 +69,7 @@ public sealed class GeneradorSubcuentasActivo(IBaseDatos bd, ICatalogoCuentas cu
                     operaciones.Add(new(AccionSubcuenta.Crear, activo, linea, nombre, null));
                 else if (a.IdCuentaContable is null)
                     operaciones.Add(new(AccionSubcuenta.AltaEnEjercicio, activo, linea, nombre, a));
-                else if (!string.Equals((a.Nombre ?? "").Trim(), nombre, StringComparison.Ordinal))
+                else if (!ReglasSubcuentaActivo.MismoNombre(a.Nombre, nombre))
                     operaciones.Add(new(AccionSubcuenta.Renombrar, activo, linea, nombre, a));
             }
         }
@@ -142,13 +142,16 @@ public sealed class GeneradorSubcuentasActivo(IBaseDatos bd, ICatalogoCuentas cu
             foreach (var sub in subcuentas)
             {
                 var cuentasIdentidad = await s.ConsultarAsync(
-                    "SELECT c.Codigo, c.Nombre, c.SaldoInicial FROM CuentasContables AS c INNER JOIN SociedadesEjercicios AS se ON c.IdSociedadEjercicio = se.IdSociedadEjercicio " +
+                    "SELECT c.IdSociedadEjercicio, c.Codigo, c.Nombre, c.SaldoInicial FROM CuentasContables AS c INNER JOIN SociedadesEjercicios AS se ON c.IdSociedadEjercicio = se.IdSociedadEjercicio " +
                     "WHERE c.IdIdentidadContable = ? ORDER BY se.Ejercicio DESC",
-                    f => (Codigo: f.Texto("Codigo")?.Trim(), Nombre: f.Texto("Nombre")?.Trim(), Inicial: f.Decimal("SaldoInicial")), sub.Identidad);
+                    f => (Ejercicio: f.Entero("IdSociedadEjercicio"), Codigo: f.Texto("Codigo")?.Trim(), Nombre: f.Texto("Nombre")?.Trim(), Inicial: f.Decimal("SaldoInicial")), sub.Identidad);
                 if (cuentasIdentidad.Any(c => c.Inicial != 0m)) continue;
-                var apuntes = Convert.ToInt32(await s.EscalarAsync(
-                    "SELECT COUNT(*) FROM (Apuntes AS ap INNER JOIN Asientos AS a ON ap.IdAsiento = a.IdAsiento) INNER JOIN CuentasContables AS c " +
-                    "ON (a.IdSociedadEjercicio = c.IdSociedadEjercicio AND ap.CuentaContable = c.Codigo) WHERE c.IdIdentidadContable = ?", sub.Identidad), CultureInfo.InvariantCulture);
+                // Los apuntes guardan el código: se cuentan los de cada cuenta de la identidad en su ejercicio.
+                var apuntes = 0;
+                foreach (var c in cuentasIdentidad)
+                    apuntes += Convert.ToInt32(await s.EscalarAsync(
+                        "SELECT COUNT(*) FROM Apuntes AS ap INNER JOIN Asientos AS a ON ap.IdAsiento = a.IdAsiento WHERE a.IdSociedadEjercicio = ? AND ap.CuentaContable = ?",
+                        c.Ejercicio, c.Codigo ?? ""), CultureInfo.InvariantCulture);
                 if (apuntes > 0) continue;
                 var ultima = cuentasIdentidad.FirstOrDefault();
                 sinApuntes.Add(new SubcuentaSinApuntes(sub.Id, sub.Identidad, sub.Activo, ultima.Codigo, ultima.Nombre));

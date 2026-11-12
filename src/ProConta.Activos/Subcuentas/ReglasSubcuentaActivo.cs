@@ -33,6 +33,13 @@ public static partial class ReglasSubcuentaActivo
         return nombre.Length <= LongitudMaximaNombre ? nombre : nombre[..LongitudMaximaNombre].TrimEnd();
     }
 
+    /// <summary>
+    /// Mismo nombre salvo espacios repetidos o en los extremos: un nombre de activo con un espacio doble no obliga a renombrar sus
+    /// subcuentas (ensayo de la fase 2 en la erp-06).
+    /// </summary>
+    public static bool MismoNombre(string? actual, string? nuevo) =>
+        string.Equals(Espacios().Replace((actual ?? "").Trim(), " "), Espacios().Replace((nuevo ?? "").Trim(), " "), StringComparison.Ordinal);
+
     /// <summary>Parecido entre dos nombres (1 iguales, 0 nada en común), sin distinguir mayúsculas ni acentos.</summary>
     public static double Parecido(string? a, string? b)
     {

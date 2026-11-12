@@ -46,7 +46,7 @@ public sealed class ReglasSubcuentasTests
         var actuales = new[]
         {
             new SubcuentaActual(1, 100, 500, 900, "2210001", "Construcción Piso A"),
-            new SubcuentaActual(1, 101, 501, 901, "2820001", "Amort. acumulada Piso A "),
+            new SubcuentaActual(1, 101, 501, 901, "2820001", "Amort.  acumulada Piso A "),
         };
         Assert.Empty(GeneradorSubcuentasActivo.Planificar([Piso, Ajeno], [Valor, Amort], actuales));
     }
