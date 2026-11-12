@@ -55,7 +55,7 @@
                 <ComboBox ItemsSource="{Binding Plantillas}" SelectedItem="{Binding Plantilla}" DisplayMemberPath="Texto" Width="320" AutomationProperties.Name="Plantilla"
                           ToolTip="Punto de partida del asiento: «Sin plantilla» para hacerlo a mano, o una plantilla que propone los apuntes (después los puedes cambiar)" />
               </StackPanel>
-              <Button Content="Aplicar" Command="{Binding AplicarCommand}" Style="{StaticResource Boton}" VerticalAlignment="Bottom" Margin="12,0,0,0"
+              <Button Content="{Binding TextoAplicar}" Command="{Binding AplicarCommand}" Style="{StaticResource Boton}" VerticalAlignment="Bottom" Margin="12,0,0,0"
                       pc:Iconos.Icono="{StaticResource Icono.wand}" ToolTip="{Binding AyudaAplicar}" ToolTipService.ShowOnDisabled="True"
                       Visibility="{Binding HayPlantilla, Converter={StaticResource Visible}}" />
             </StackPanel>
@@ -161,8 +161,12 @@
                     <StackPanel>
                       <TextBlock Text="Descripción *" Style="{StaticResource Etiqueta.Campo}" />
                       <TextBox Text="{Binding Descripcion, UpdateSourceTrigger=PropertyChanged}" Width="560" MaxLength="255" Style="{StaticResource Campo}" IsReadOnly="{Binding SoloLectura}"
-                               ToolTip="Descripción del asiento (hasta 255 caracteres); las líneas nuevas toman de aquí su concepto si la anterior no tiene" />
+                               ToolTip="Descripción del asiento (hasta 255 caracteres); es el concepto de las líneas que no has cambiado a mano, y si la cambias, cambia en ellas" />
                     </StackPanel>
+                    <Button Content="Quitar este asiento" Style="{StaticResource Boton.Pequeno}" VerticalAlignment="Bottom" Margin="16,0,0,0"
+                            Command="{Binding DataContext.QuitarBloqueCommand, ElementName=Raiz}" CommandParameter="{Binding}"
+                            Visibility="{Binding PuedeQuitarse, Converter={StaticResource Visible}}"
+                            ToolTip="Quita este asiento de la pantalla (por ejemplo, el paso de una guía que aún no toca); no se graba nada hasta Guardar" />
                   </WrapPanel>
 
                   <!-- Cabecera de la rejilla -->
@@ -173,7 +177,7 @@
                     <TextBlock Text="#" Style="{StaticResource Cabecera.Linea}" />
                     <TextBlock Grid.Column="1" Text="Cuenta" Style="{StaticResource Cabecera.Linea}" ToolTip="Subcuenta del apunte (F3: buscador)" />
                     <TextBlock Grid.Column="2" Text="Nombre de la cuenta" Style="{StaticResource Cabecera.Linea}" />
-                    <TextBlock Grid.Column="3" Text="Concepto" Style="{StaticResource Cabecera.Linea}" ToolTip="Concepto del apunte; una línea nueva copia el de la anterior" />
+                    <TextBlock Grid.Column="3" Text="Concepto" Style="{StaticResource Cabecera.Linea}" ToolTip="Concepto del apunte: la descripción del asiento, salvo que lo cambies en la línea" />
                     <TextBlock Grid.Column="4" Text="Debe" Style="{StaticResource Cabecera.Linea}" HorizontalAlignment="Right" />
                     <TextBlock Grid.Column="5" Text="Haber" Style="{StaticResource Cabecera.Linea}" HorizontalAlignment="Right" />
                     <TextBlock Grid.Column="6" Text="Centro de coste" Style="{StaticResource Cabecera.Linea}" ToolTip="Analítica del apunte (solo centros activos e imputables)" />
@@ -221,7 +225,7 @@
                           <TextBlock x:Name="Nombre" Grid.Column="2" Text="{Binding NombreCuenta}" VerticalAlignment="Center" Margin="4,0" TextTrimming="CharacterEllipsis"
                                      ToolTip="{Binding AyudaCuenta}" Style="{StaticResource Texto.Apagado}" />
                           <TextBox Grid.Column="3" Margin="2,0" Text="{Binding Concepto, UpdateSourceTrigger=PropertyChanged}" MaxLength="255" Style="{StaticResource Campo}" IsReadOnly="{Binding SoloLectura}"
-                                   ToolTip="Concepto del apunte (hasta 255 caracteres); vacío, el del asiento" />
+                                   ToolTip="Concepto del apunte (hasta 255 caracteres): es la descripción del asiento hasta que lo cambias aquí" />
                           <TextBox x:Name="Debe" Grid.Column="4" Margin="2,0" Text="{Binding Debe, UpdateSourceTrigger=LostFocus}" Style="{StaticResource Campo.Importe}" IsReadOnly="{Binding SoloLectura}"
                                    ToolTip="{Binding AyudaImporte}" AutomationProperties.Name="Debe" />
                           <TextBox x:Name="Haber" Grid.Column="5" Margin="2,0" Text="{Binding Haber, UpdateSourceTrigger=LostFocus}" Style="{StaticResource Campo.Importe}" IsReadOnly="{Binding SoloLectura}"
@@ -254,7 +258,7 @@
                     </Grid.ColumnDefinitions>
                     <Button Grid.ColumnSpan="3" Content="Añadir línea" HorizontalAlignment="Left" Style="{StaticResource Boton.Pequeno}" pc:Iconos.Icono="{StaticResource Icono.plus}"
                             Command="{Binding DataContext.AnadirLineaCommand, ElementName=Raiz}" CommandParameter="{Binding}"
-                            ToolTip="Añade una línea al final, con el concepto y el documento de la anterior" />
+                            ToolTip="Añade una línea al final, con la descripción del asiento como concepto y el documento de la anterior" />
                     <TextBlock Grid.Column="3" Text="Totales" FontWeight="SemiBold" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="4,0" />
                     <TextBlock Grid.Column="4" Text="{Binding TotalDebe}" Style="{StaticResource Texto.Importe}" Margin="4,0" VerticalAlignment="Center" ToolTip="Suma del Debe del asiento" />
                     <TextBlock Grid.Column="5" Text="{Binding TotalHaber}" Style="{StaticResource Texto.Importe}" Margin="4,0" VerticalAlignment="Center" ToolTip="Suma del Haber del asiento" />

@@ -127,8 +127,11 @@ public sealed class MayorVM : ModeloVista
     /// </summary>
     public Action<string?, decimal>? NuevoAsiento { get; set; }
 
-    /// <summary>Abre el asistente de corrección con un apunte como origen (solo plantillas de origen Apunte).</summary>
-    public Action<int>? AsistenteCorreccion { get; set; }
+    /// <summary>
+    /// Abre el asistente de corrección con un apunte (y su cuenta) como origen, o solo con una subcuenta si la selección es de varias filas de una
+    /// misma cuenta: las correcciones de asiento y de apunte necesitan el apunte; las de subcuenta, solo la cuenta.
+    /// </summary>
+    public Action<int?, string?>? AsistenteCorreccion { get; set; }
 
     /// <summary>Abre un asiento manual del ejercicio de trabajo para modificarlo.</summary>
     public Action<int>? ModificarAsiento { get; set; }

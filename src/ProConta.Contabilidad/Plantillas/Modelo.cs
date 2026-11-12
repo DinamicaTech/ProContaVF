@@ -6,15 +6,26 @@ namespace ProConta.Contabilidad.Plantillas;
 /// <summary>Usuario: se ofrece en el asiento manual y en el asistente del Mayor. Sistema: solo la ejecuta su proceso (p. ej. la nómina).</summary>
 public enum TipoPlantilla { Usuario, Sistema }
 
+/// <summary>
+/// Para qué sirve la plantilla (contabilidad/plantillas-asiento 2026-11-12 20:11): corrige un asiento, un apunte o una subcuenta desde el
+/// Mayor; es una guía (explicación y asiento de ejemplo, que se puede usar como base pidiendo las subcuentas y el importe); es un asistente
+/// que pide unos datos y propone un asiento complejo (aún sin construir); o la ejecuta un proceso (la nómina).
+/// </summary>
+public enum ClasePlantilla { Correccion, Guia, Asistente, Proceso }
+
 /// <summary>Qué necesita la plantilla para generar el asiento.</summary>
 public enum OrigenPlantilla
 {
-    /// <summary>Nada: solo sus datos de entrada (un asiento manual desde cero).</summary>
+    /// <summary>Nada: solo sus datos de entrada (una guía o un asistente en el asiento manual).</summary>
     Ninguno,
-    /// <summary>Un apunte (y su asiento), p. ej. desde el Mayor.</summary>
+    /// <summary>Un apunte, p. ej. desde el Mayor (pagar por caja la deuda de una factura).</summary>
     Apunte,
     /// <summary>Uno o varios registros de un proceso, con su clave (p. ej. «nominas»).</summary>
     Proceso,
+    /// <summary>Un asiento entero (desde cualquiera de sus apuntes): anular, rehacer.</summary>
+    Asiento,
+    /// <summary>Una subcuenta con su saldo en el ejercicio y su saldo de apertura: pasar el saldo, ajustar el saldo inicial.</summary>
+    Subcuenta,
 }
 
 /// <summary>Fecha de los asientos propuestos (siempre editable antes de ejecutar).</summary>
@@ -61,8 +72,12 @@ public sealed record PlantillaAsiento(
     bool Activa = true,
     string? MotivoPropuesto = null,
     string? Ejemplo = null,
-    int Orden = 0)
+    int Orden = 0,
+    ClasePlantilla Clase = ClasePlantilla.Correccion)
 {
+    /// <summary>Necesita un apunte (y su asiento) del Mayor.</summary>
+    public bool ParteDeUnApunte => Origen is OrigenPlantilla.Apunte or OrigenPlantilla.Asiento;
+
     /// <summary>Reproduce el asiento de origen (anular, rehacer): no vale para asientos automáticos ni de facturas.</summary>
     public bool ReproduceElAsiento => Lineas.Any(l => l.PorCadaApunte);
 
@@ -87,6 +102,12 @@ public sealed record OrigenApunte(Asiento Asiento, int OrdenApunte, bool TieneLi
     public Apunte Apunte => Asiento.Apuntes.FirstOrDefault(a => a.Orden == OrdenApunte)
         ?? throw new InvalidOperationException($"El asiento no tiene el apunte {OrdenApunte}.");
 }
+
+/// <summary>
+/// Una subcuenta del ejercicio de trabajo con su saldo (Debe − Haber de todo el ejercicio) y su saldo de apertura (el saldo inicial y los
+/// asientos de apertura), para las plantillas de origen Subcuenta.
+/// </summary>
+public sealed record OrigenSubcuenta(string Cuenta, string Nombre, decimal Saldo, decimal SaldoApertura) : OrigenEjecucion;
 
 /// <summary>Uno o varios registros de un proceso (p. ej. las nóminas de un mes), cada uno con sus campos.</summary>
 public sealed record OrigenProceso(string ClaveProceso, IReadOnlyList<RegistroProceso> Registros) : OrigenEjecucion;

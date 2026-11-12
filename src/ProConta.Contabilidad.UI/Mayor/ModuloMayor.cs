@@ -66,7 +66,7 @@ public sealed class ModuloMayor(ContextoMayor contexto, IAnfitrionPestanas anfit
     {
         if (_asientos is not { } a) return;
         vm.NuevoAsiento = (cuenta, importe) => _ = a.AbrirNuevoAsync(cuenta, importe);
-        vm.AsistenteCorreccion = id => _ = a.AbrirCorreccionAsync(id);
+        vm.AsistenteCorreccion = (id, cuenta) => _ = a.AbrirCorreccionAsync(id, cuenta);
         vm.ModificarAsiento = id => _ = a.AbrirModificarAsync(id);
     }
 

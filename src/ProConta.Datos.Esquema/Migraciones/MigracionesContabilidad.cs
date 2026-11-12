@@ -131,6 +131,31 @@ public static class MigracionesContabilidad
         new("Asientos", "IdPlantillaAsiento", "Plantilla de asiento con la que se creó el asiento; vacío si no se usó ninguna."),
     ];
 
+    /// <summary>
+    /// Clases de plantilla y orígenes de las correcciones (contabilidad/plantillas-asiento 2026-11-12 20:11): PlantillasAsiento.Clase (CORRECCION,
+    /// GUIA, ASISTENTE o PROCESO); las seis correcciones pasan a origen ASIENTO (anular, rehacer), APUNTE (pagos) o SUBCUENTA (pasar el saldo,
+    /// ajustar el saldo inicial), con sus datos y ejemplos nuevos; la «Nómina» es de PROCESO; y se da de alta la guía «Pasar un cliente de cobro
+    /// dudoso a incobrable» (Semillas/PlantillasAsientoCatalogo.json).
+    /// </summary>
+    public static Migracion ClasesPlantillasAsiento { get; } = new(
+        "20261112_2015_CLASES_PLANTILLAS_ASIENTO", 261112003,
+        "Clases de plantilla de asiento (corrección, guía, asistente y proceso), orígenes Asiento y Subcuenta en las correcciones y la guía de cobro dudoso.",
+        "contabilidad/plantillas-asiento",
+        new AnadirColumna("PlantillasAsiento", "Clase", "TEXT(12)"),
+        new PasoPersonalizado(
+            "Poner al día el catálogo de plantillas de asiento (clases, orígenes y guía de cobro dudoso)",
+            "UPDATE/INSERT PlantillasAsiento, PlantillasAsientoDatos, PlantillasAsientoLineas <- Semillas/PlantillasAsientoCatalogo.json (las comunes del catálogo, por nombre); " +
+            SemillaPlantillasAsiento.HuellaCatalogo,
+            SemillaPlantillasAsiento.CatalogoAlDiaAsync,
+            async (s, _) => await SemillaPlantillasAsiento.ActualizarCatalogoAsync(s)))
+    {
+        Descripciones =
+        [
+            new("PlantillasAsiento", "Clase", "CORRECCION: corrige un asiento, un apunte o una subcuenta desde el Mayor. GUIA: explicación y asiento de ejemplo. ASISTENTE: pide datos y propone un asiento. PROCESO: la ejecuta un proceso."),
+            new("PlantillasAsiento", "Origen", "Qué necesita: NINGUNO, ASIENTO (un asiento entero), APUNTE (un apunte), SUBCUENTA (una subcuenta y su saldo) o PROCESO (registros de un proceso)."),
+        ],
+    };
+
     private static PasoPersonalizado RelacionPlantillaAsiento()
     {
         const string sql = "ALTER TABLE Asientos ADD CONSTRAINT FK_Asientos_PlantillaAsiento FOREIGN KEY (IdPlantillaAsiento) REFERENCES PlantillasAsiento (IdPlantillaAsiento)";

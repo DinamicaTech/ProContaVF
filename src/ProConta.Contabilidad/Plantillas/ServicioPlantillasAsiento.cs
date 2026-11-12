@@ -16,7 +16,7 @@ namespace ProConta.Contabilidad.Plantillas;
 public sealed class ServicioPlantillasAsiento(IBaseDatos bd, IMotorAsientos motor, ICatalogoCuentas cuentas)
 {
     private const string Columnas =
-        "IdPlantillaAsiento, Nombre, Descripcion, Tipo, IdSociedad, Origen, ClaveProceso, ReglaFecha, AgruparPorCuenta, Activa, MotivoPropuesto, Ejemplo, Orden";
+        "IdPlantillaAsiento, Nombre, Descripcion, Tipo, IdSociedad, Origen, ClaveProceso, ReglaFecha, AgruparPorCuenta, Activa, MotivoPropuesto, Ejemplo, Orden, Clase";
 
     public ServicioPlantillasAsiento(IBaseDatos bd) : this(bd, new MotorAsientosAccess(bd), new CatalogoCuentasAccess(bd)) { }
 
@@ -98,6 +98,30 @@ public sealed class ServicioPlantillasAsiento(IBaseDatos bd, IMotorAsientos moto
             Convert.ToInt32(await s.EscalarAsync("SELECT COUNT(*) FROM IVARepercutido WHERE IdAsiento = ?", asiento.IdAsiento), CultureInfo.InvariantCulture));
         return Resultado<OrigenApunte>.Correcto(new OrigenApunte(asiento, fila.Orden, iva > 0));
     }
+
+    /// <summary>
+    /// Origen a partir de una subcuenta del ejercicio de trabajo: su nombre, su saldo (saldo inicial y todos los apuntes del ejercicio, Debe − Haber)
+    /// y su saldo de apertura (saldo inicial y asientos de apertura).
+    /// </summary>
+    public async Task<Resultado<OrigenSubcuenta>> OrigenSubcuentaAsync(ContextoSociedadEjercicio contexto, string cuenta)
+    {
+        var resuelta = await cuentas.ResolverAsync(contexto, cuenta);
+        if (!resuelta.EsCorrecto) return Resultado<OrigenSubcuenta>.Fallo(resuelta.Errores);
+        var c = resuelta.Valor;
+        var (movimientos, apertura) = await bd.EjecutarAsync(async s =>
+        {
+            var todos = await s.EscalarAsync(
+                "SELECT SUM(IIf(ap.ImporteDebe Is Null, 0, ap.ImporteDebe) - IIf(ap.ImporteHaber Is Null, 0, ap.ImporteHaber)) FROM Apuntes AS ap INNER JOIN Asientos AS a ON ap.IdAsiento = a.IdAsiento " +
+                "WHERE a.IdSociedadEjercicio = ? AND ap.CuentaContable = ?", contexto.IdSociedadEjercicio, c.Codigo);
+            var deApertura = await s.EscalarAsync(
+                "SELECT SUM(IIf(ap.ImporteDebe Is Null, 0, ap.ImporteDebe) - IIf(ap.ImporteHaber Is Null, 0, ap.ImporteHaber)) FROM Apuntes AS ap INNER JOIN Asientos AS a ON ap.IdAsiento = a.IdAsiento " +
+                "WHERE a.IdSociedadEjercicio = ? AND ap.CuentaContable = ? AND a.TipoAsiento = ?", contexto.IdSociedadEjercicio, c.Codigo, (byte)TipoAsiento.Apertura);
+            return (Decimal(todos), Decimal(deApertura));
+        });
+        return Resultado<OrigenSubcuenta>.Correcto(new OrigenSubcuenta(c.Codigo, c.Nombre, c.SaldoInicial + movimientos, c.SaldoInicial + apertura));
+    }
+
+    private static decimal Decimal(object? v) => v is null or DBNull ? 0m : Convert.ToDecimal(v, CultureInfo.InvariantCulture);
 
     /// <summary>Valores propuestos de los datos de entrada (para rellenar el formulario de la plantilla).</summary>
     public async Task<IReadOnlyDictionary<string, string?>> ValoresPropuestosAsync(ContextoSociedadEjercicio contexto, PlantillaAsiento plantilla, OrigenEjecucion origen) =>
@@ -195,7 +219,7 @@ public sealed class ServicioPlantillasAsiento(IBaseDatos bd, IMotorAsientos moto
         var p = await s.ConsultarPrimeroAsync($"SELECT {Columnas} FROM PlantillasAsiento WHERE IdPlantillaAsiento = ?", f => new PlantillaAsiento(
             f.Entero("IdPlantillaAsiento"), f.Texto("Nombre") ?? "", f.Texto("Descripcion") ?? "", PlantillasJson.Tipo(f.Texto("Tipo")), PlantillasJson.Origen(f.Texto("Origen")),
             [], [], f.Texto("IdSociedad"), f.Texto("ClaveProceso"), PlantillasJson.Regla(f.Texto("ReglaFecha")), f.Logico("AgruparPorCuenta"), f.Logico("Activa"),
-            f.Texto("MotivoPropuesto"), f.Texto("Ejemplo"), f.Entero("Orden")), id);
+            f.Texto("MotivoPropuesto"), f.Texto("Ejemplo"), f.Entero("Orden"), PlantillasJson.Clase(f.Texto("Clase"), PlantillasJson.Tipo(f.Texto("Tipo")))), id);
         if (p is null) return null;
         var datos = await s.ConsultarAsync(
             "SELECT Orden, Nombre, Etiqueta, Tipo, ValorPropuesto, FiltroCuenta, Ayuda, Obligatorio FROM PlantillasAsientoDatos WHERE IdPlantillaAsiento = ? ORDER BY Orden",

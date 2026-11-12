@@ -1,5 +1,8 @@
 using System.ComponentModel;
 using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Media;
+using ProConta.UI.Base.Formato;
 using ProConta.Contabilidad.CentrosCoste;
 using ProConta.Contabilidad.Cuentas;
 using ProConta.Nucleo.Contexto;
@@ -62,6 +65,37 @@ public sealed class DialogosAsiento(ICatalogoCuentas cuentas, ICatalogoCentrosCo
 
     public void Error(string titulo, string mensaje) =>
         ServicioMensajes.Preguntar(propietario(), titulo, mensaje, null, new OpcionMensaje("Entendido", "Cierra el aviso", Principal: true, Cancelar: true));
+
+    public decimal? PedirImporte(string titulo, string explicacion)
+    {
+        var d = new DialogoProConta { Title = titulo, Owner = propietario(), Width = 560, SizeToContent = SizeToContent.Height };
+        var panel = new StackPanel();
+        panel.Children.Add(new TextBlock { Text = explicacion, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 0, 0, 12) });
+        var valor = new TextBox { Width = 160, HorizontalAlignment = HorizontalAlignment.Left, Style = (Style)d.FindResource("Campo.Importe"),
+            ToolTip = "Importe en euros: escribe solo el número (la coma es el decimal), por ejemplo 1.210,00" };
+        panel.Children.Add(valor);
+        var aviso = new TextBlock { Foreground = (Brush)d.FindResource("Pincel.RojoError"), TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 8, 0, 0), Visibility = Visibility.Collapsed };
+        panel.Children.Add(aviso);
+        d.Content = panel;
+        decimal leido = 0m;
+        var aceptar = new Button { Content = "Aceptar", Style = (Style)d.FindResource("Boton.Primario"), IsDefault = true, Margin = new Thickness(8, 0, 0, 0), ToolTip = "Usa este importe" };
+        var cancelar = new Button { Content = "Cancelar", IsCancel = true, ToolTip = "Vuelve sin rellenar la rejilla" };
+        aceptar.Click += (_, _) =>
+        {
+            if (!Formatos.LeerImporte(valor.Text, out leido) || leido == 0m)
+            {
+                aviso.Text = "Escribe un importe distinto de 0, por ejemplo 1210,00.";
+                aviso.Visibility = Visibility.Visible;
+                valor.Focus();
+                return;
+            }
+            d.DialogResult = true;
+        };
+        cancelar.Click += (_, _) => d.DialogResult = false;
+        d.Botones = new StackPanel { Orientation = Orientation.Horizontal, Children = { cancelar, aceptar } };
+        d.Loaded += (_, _) => valor.Focus();
+        return d.ShowDialog() == true ? leido : null;
+    }
 }
 
 /// <summary>
@@ -77,7 +111,8 @@ public sealed class ModuloAsientos(Func<IFuenteAsientoManual> fuente, IAnfitrion
     public Task AbrirNuevoAsync(string? cuenta = null, decimal? importe = null) =>
         AbrirAsync(async vm => { await vm.IniciarNuevoAsync(cuenta, importe); return ProConta.Nucleo.Resultados.Resultado.Correcto(); });
 
-    public Task AbrirCorreccionAsync(int idApunte) => AbrirAsync(vm => vm.IniciarCorreccionAsync(idApunte));
+    /// <summary>Asistente de corrección: con un apunte (y su cuenta), o solo con una subcuenta si la selección del Mayor es de varias filas de una cuenta.</summary>
+    public Task AbrirCorreccionAsync(int? idApunte, string? cuenta) => AbrirAsync(vm => vm.IniciarCorreccionAsync(idApunte, cuenta));
 
     public Task AbrirModificarAsync(int idAsiento)
     {

@@ -26,6 +26,9 @@ public interface IFuenteAsientoManual
 
     Task<Resultado<OrigenApunte>> OrigenApunteAsync(int idApunte);
 
+    /// <summary>Una subcuenta del ejercicio de trabajo con su saldo y su saldo de apertura (correcciones de origen Subcuenta).</summary>
+    Task<Resultado<OrigenSubcuenta>> OrigenSubcuentaAsync(string cuenta);
+
     Task<Asiento?> AsientoAsync(int idAsiento);
 
     /// <summary>Graba una propuesta de plantilla (corrección de un apunte o varios asientos): relación con el origen, IdLote común y punteo.</summary>
@@ -51,6 +54,7 @@ public sealed class FuenteAsientoManualAccess(IBaseDatos bd, ContextoSociedadEje
     public Task<EntornoSociedad> EntornoAsync(PlantillaAsiento? plantilla = null) => _plantillas.EntornoAsync(contexto, plantilla);
     public Task<IReadOnlyList<CentroCoste>> CentrosAsync() => _centros.ListarAsync(contexto.IdSociedad);
     public Task<Resultado<OrigenApunte>> OrigenApunteAsync(int idApunte) => _plantillas.OrigenApunteAsync(idApunte);
+    public Task<Resultado<OrigenSubcuenta>> OrigenSubcuentaAsync(string cuenta) => _plantillas.OrigenSubcuentaAsync(contexto, cuenta);
     public Task<Asiento?> AsientoAsync(int idAsiento) => _motor.ObtenerAsync(idAsiento);
     public Task<Resultado<IReadOnlyList<int>>> EjecutarPlantillaAsync(PropuestaPlantilla propuesta, string motivo) => _plantillas.EjecutarAsync(propuesta, motivo, actor);
     public Task<Resultado<IReadOnlyList<int>>> GuardarNuevosAsync(IReadOnlyList<Asiento> asientos, string motivo) => _motor.GuardarManualesAsync(asientos, actor, motivo);
@@ -62,6 +66,9 @@ public interface IDialogosAsiento
 {
     /// <summary>Buscador común de cuentas del ejercicio, limitado a <paramref name="grupos"/> y con «Crear subcuenta»: el código elegido, o null.</summary>
     (string Codigo, string Nombre)? ElegirCuenta(string? texto, IReadOnlyList<string> grupos, string titulo);
+
+    /// <summary>Pide un importe en euros (la coma es el decimal); null si se cancela.</summary>
+    decimal? PedirImporte(string titulo, string explicacion);
 
     void Error(string titulo, string mensaje);
 }

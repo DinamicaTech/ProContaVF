@@ -28,6 +28,7 @@ public sealed class AsientoManualAccessTests : IDisposable
     {
         public readonly List<string> Errores = [];
         public (string Codigo, string Nombre)? ElegirCuenta(string? texto, IReadOnlyList<string> grupos, string titulo) => null;
+        public decimal? PedirImporte(string titulo, string explicacion) => null;
         public void Error(string titulo, string mensaje) => Errores.Add(mensaje);
     }
 

@@ -219,10 +219,14 @@ public partial class PantallaMayor : UserControl
                 : "Abre un asiento nuevo con el importe de la selección; elige tú las cuentas",
             escribe && _vm.NuevoAsiento is not null, !escribe ? soloConsulta : "Esta pantalla no puede crear asientos"));
         var unApunte = una is not null && una.Fila.NumeroApuntes == 1;
-        menu.Items.Add(Opcion("Asistente de corrección…", "Icono.wand", () => _vm.AsistenteCorreccion!(una!.Fila.IdsApunte[0]), null,
-            "Propone el asiento que corrige este apunte con una plantilla (anular, rehacer con otra cuenta, pasar saldo, ajustar contra la 113, pagar por tesorería o por un socio), con su vista previa",
-            escribe && unApunte && _vm.AsistenteCorreccion is not null,
-            !escribe ? soloConsulta : una is null ? "Elige una sola fila" : !unApunte ? "Esta fila resume varios apuntes: pasa a la vista Normal y elige uno" : "Esta pantalla no puede crear asientos"));
+        var unaCuenta = cuentasSel.Count == 1;
+        menu.Items.Add(Opcion("Asistente de corrección…", "Icono.wand",
+            () => _vm.AsistenteCorreccion!(unApunte ? una!.Fila.IdsApunte[0] : null, unaCuenta ? cuentasSel[0] : null), null,
+            unApunte
+                ? "Propone el asiento que corrige este apunte, su asiento o el saldo de su subcuenta con una plantilla (anular, rehacer con otra cuenta, pagar por tesorería o por un socio, pasar el saldo, ajustar contra la 113), con su vista previa"
+                : "Propone el asiento que corrige el saldo de esta subcuenta con una plantilla (pasar el saldo a otra cuenta, ajustar el saldo inicial contra la 113), con su vista previa",
+            escribe && (unApunte || unaCuenta) && _vm.AsistenteCorreccion is not null,
+            !escribe ? soloConsulta : !unaCuenta ? "Elige un apunte, o filas de una sola cuenta" : "Esta pantalla no puede crear asientos"));
         var modificable = una is not null && !una.Fila.EsAutomatico && !una.Fila.EjercicioCerrado && una.Fila.Ejercicio == _vm.EjercicioTrabajo;
         menu.Items.Add(Opcion("Modificar el asiento…", "Icono.edit", () => _vm.ModificarAsiento!(una!.Asiento), null,
             "Abre el asiento de esta fila en la pantalla de asiento manual para cambiarlo, con su motivo en el historial",

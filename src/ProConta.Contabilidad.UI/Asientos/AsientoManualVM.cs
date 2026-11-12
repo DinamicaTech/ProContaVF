@@ -94,6 +94,7 @@ public sealed class LineaAsientoVM : ModeloVista
     private readonly BloqueAsientoVM _bloque;
     private string _cuenta = "";
     private string _concepto = "";
+    private bool _conceptoPropio;
     private string _documento = "";
     private string _debe = "";
     private string _haber = "";
@@ -135,7 +136,39 @@ public sealed class LineaAsientoVM : ModeloVista
         ? "Subcuenta del apunte: escribe el código (629.1 vale por 6290001), o F3 o la lupa para el buscador (con «Crear subcuenta»)"
         : _cuenta.Length == 0 ? "Falta la cuenta de este apunte: F3 o la lupa abre el buscador" : $"La cuenta {_cuenta} no existe en este ejercicio: búscala con F3 o la lupa, o créala desde el buscador";
 
-    public string Concepto { get => _concepto; set { if (Fijar(ref _concepto, value ?? "")) _bloque.Cambiado(); } }
+    /// <summary>
+    /// Concepto del apunte. Mientras no se cambia a mano, sigue a la descripción del asiento (contabilidad/plantillas-asiento 2026-11-12 20:11):
+    /// si cambia la descripción, cambia en las líneas no tocadas. Escribirlo a mano (distinto de la descripción) lo deja fijo.
+    /// </summary>
+    public string Concepto
+    {
+        get => _concepto;
+        set
+        {
+            var texto = value ?? "";
+            _conceptoPropio = texto != _bloque.Descripcion;
+            if (Fijar(ref _concepto, texto)) _bloque.Cambiado();
+        }
+    }
+
+    /// <summary>El concepto sigue a la descripción del asiento (no se ha escrito a mano).</summary>
+    public bool ConceptoHeredado => !_conceptoPropio;
+
+    /// <summary>Pone el concepto desde una plantilla o un asiento grabado: queda fijo salvo que coincida con la descripción.</summary>
+    internal void PonerConcepto(string? texto, bool heredado)
+    {
+        _concepto = texto ?? "";
+        _conceptoPropio = !heredado;
+        Avisar(nameof(Concepto));
+    }
+
+    /// <summary>La descripción del asiento ha cambiado: la línea que la hereda la sigue.</summary>
+    internal void DescripcionCambiada(string descripcion)
+    {
+        if (_conceptoPropio || _concepto == descripcion) return;
+        _concepto = descripcion;
+        Avisar(nameof(Concepto));
+    }
     public string Documento { get => _documento; set { if (Fijar(ref _documento, value ?? "")) _bloque.Cambiado(); } }
 
     public string Debe { get => _debe; set => FijarImporte(value, debe: true); }
@@ -223,7 +256,19 @@ public sealed class BloqueAsientoVM : ModeloVista
     public bool SoloLectura => Vm.SoloLectura;
 
     public string Fecha { get => _fecha; set { if (Fijar(ref _fecha, value ?? "")) { Avisar(nameof(FechaValida), nameof(AyudaFecha)); Vm.Recalcular(); } } }
-    public string Descripcion { get => _descripcion; set { if (Fijar(ref _descripcion, value ?? "")) Vm.Recalcular(); } }
+    public string Descripcion
+    {
+        get => _descripcion;
+        set
+        {
+            if (!Fijar(ref _descripcion, value ?? "")) return;
+            foreach (var l in Lineas) l.DescripcionCambiada(_descripcion);
+            Vm.Recalcular();
+        }
+    }
+
+    /// <summary>Se ve «Quitar este asiento» cuando la pantalla tiene varios (p. ej. una guía de dos pasos en la que aún no toca el segundo).</summary>
+    public bool PuedeQuitarse => Vm.Bloques.Count > 1 && !Vm.SoloLectura;
 
     internal DateTime? FechaLeida => DateTime.TryParseExact(_fecha.Trim(), ["d/M/yyyy", "dd/MM/yyyy", "d/M/yy", "dd/MM/yy"], Formatos.Cultura, DateTimeStyles.None, out var f) ? f.Date : null;
 
@@ -253,7 +298,7 @@ public sealed class BloqueAsientoVM : ModeloVista
         Cambiado();
     }
 
-    internal void AvisarTitulo() => Avisar(nameof(Titulo), nameof(SoloLectura));
+    internal void AvisarTitulo() => Avisar(nameof(Titulo), nameof(SoloLectura), nameof(PuedeQuitarse));
     internal void AvisarFecha() => Avisar(nameof(FechaValida), nameof(AyudaFecha));
 }
 
@@ -281,6 +326,8 @@ public sealed class AsientoManualVM : ModeloVista
     private string? _errorGuardado;
     private Asiento? _original;
     private OrigenApunte? _origen;
+    private OrigenSubcuenta? _subcuenta;
+    private bool _vistaConEjemplo;
     private PlantillaAsiento? _aplicada;
     private IReadOnlyDictionary<string, string?> _datosAplicados = new Dictionary<string, string?>();
     private bool _cargando = true;
@@ -301,6 +348,7 @@ public sealed class AsientoManualVM : ModeloVista
         InvertirLineaCommand = new ComandoDelegado(p => { if (p is LineaAsientoVM l) Invertir(l); }, _ => !SoloLectura);
         CuadrarConLineaCommand = new ComandoDelegado(p => { if (p is LineaAsientoVM l) CuadrarCon(l); }, _ => !SoloLectura);
         BuscarCuentaLineaCommand = new ComandoDelegado(p => { if (p is LineaAsientoVM l) BuscarCuentaLinea(l); }, _ => !SoloLectura);
+        QuitarBloqueCommand = new ComandoDelegado(p => { if (p is BloqueAsientoVM b) QuitarBloque(b); }, _ => !SoloLectura && Bloques.Count > 1);
     }
 
     public ContextoSociedadEjercicio Contexto => _fuente.Contexto;
@@ -326,6 +374,8 @@ public sealed class AsientoManualVM : ModeloVista
         ModoAsientoManual.Correccion when _origen is { } o =>
             $"Apunte {o.Apunte.Orden} del asiento {o.Asiento.IdAsiento} ({Formatos.Fecha(o.Asiento.FechaContable)}): {o.Apunte.CodigoCuenta} · " +
             $"{(o.Apunte.Debe.EsCero ? "Haber " + Formatos.Importe(o.Apunte.Haber) : "Debe " + Formatos.Importe(o.Apunte.Debe))} · {o.Apunte.Descripcion ?? o.Asiento.Descripcion}",
+        ModoAsientoManual.Correccion when _subcuenta is { } s =>
+            $"Subcuenta {s.Cuenta} {s.Nombre} · saldo en el ejercicio {Formatos.Importe(s.Saldo)} · saldo de apertura {Formatos.Importe(s.SaldoApertura)}",
         ModoAsientoManual.Modificar when _original is { } a => $"{Formatos.Fecha(a.FechaContable)} · {a.Descripcion}",
         _ => $"Ejercicio {Contexto.Ejercicio}",
     };
@@ -361,16 +411,23 @@ public sealed class AsientoManualVM : ModeloVista
 
     public IReadOnlyList<AsientoPrevioVM> VistaPrevia { get => _vistaPrevia; private set => Fijar(ref _vistaPrevia, value); }
     public string? ErrorVistaPrevia { get => _errorVistaPrevia; private set => Fijar(ref _errorVistaPrevia, value); }
-    public string TextoVistaPrevia => _origen is not null || _plantilla?.Plantilla?.Origen == OrigenPlantilla.Ninguno
-        ? "Vista previa con tus datos: así quedaría el asiento antes de cambiar nada en la rejilla."
-        : "Vista previa con el ejemplo de la plantilla (datos ficticios): con un apunte real se abre desde el Mayor con «Asistente de corrección…».";
+    public string TextoVistaPrevia => _vistaConEjemplo
+        ? "Ejemplo de la plantilla, con subcuentas e importes ficticios: con «Usar como base» te pido las tuyas y el importe."
+        : "Vista previa con tus datos: así quedaría el asiento antes de cambiar nada en la rejilla.";
+
+    /// <summary>Una guía (o un asistente) no corrige nada: se usa como base pidiendo sus subcuentas y su importe.</summary>
+    public bool EsGuia => _plantilla?.Plantilla is { Origen: OrigenPlantilla.Ninguno };
+    public string TextoAplicar => EsGuia ? "Usar como base" : "Aplicar";
 
     public bool PuedeAplicar => !SoloLectura && PorQueNoAplicar is null;
-    public string AyudaAplicar => PorQueNoAplicar ?? "Copia los asientos de la vista previa a la rejilla; allí los puedes cambiar antes de guardar";
+    public string AyudaAplicar => PorQueNoAplicar ?? (EsGuia
+        ? "Te pido las subcuentas que falten (con el buscador, filtrado por su cuenta) y el importe, y relleno la rejilla; nunca uso las subcuentas del ejemplo"
+        : "Copia los asientos de la vista previa a la rejilla; allí los puedes cambiar antes de guardar");
 
     private string? PorQueNoAplicar => _plantilla?.Plantilla is not { } p ? "Elige primero una plantilla"
-        : p.Origen == OrigenPlantilla.Apunte && _origen is null ? "Esta plantilla corrige un apunte: ábrela desde el Mayor, con el apunte elegido, con «Asistente de corrección…»"
-        : _errorVistaPrevia is { } e ? "La plantilla no puede proponer el asiento: " + e
+        : p.ParteDeUnApunte && _origen is null ? "Esta plantilla corrige un apunte o su asiento: ábrela desde el Mayor, con el apunte elegido, con «Asistente de corrección…»"
+        : p.Origen == OrigenPlantilla.Subcuenta && _subcuenta is null ? "Esta plantilla corrige el saldo de una subcuenta: ábrela desde el Mayor, con filas de esa cuenta, con «Asistente de corrección…»"
+        : p.Origen != OrigenPlantilla.Ninguno && _errorVistaPrevia is { } e ? "La plantilla no puede proponer el asiento: " + e
         : null;
 
     public ICommand AplicarCommand { get; }
@@ -387,6 +444,7 @@ public sealed class AsientoManualVM : ModeloVista
     public ICommand InvertirLineaCommand { get; }
     public ICommand CuadrarConLineaCommand { get; }
     public ICommand BuscarCuentaLineaCommand { get; }
+    public ICommand QuitarBloqueCommand { get; }
 
     // ---------- pie ----------
 
@@ -428,7 +486,7 @@ public sealed class AsientoManualVM : ModeloVista
     public async Task IniciarNuevoAsync(string? cuenta = null, decimal? importe = null)
     {
         Modo = ModoAsientoManual.Nuevo;
-        await CargarComunAsync(OrigenPlantilla.Ninguno, todas: true);
+        await CargarComunAsync(EsDeAsientoManual);
         var bloque = NuevoBloque(1, FechaPropuesta(DateTime.Today), "");
         if (!string.IsNullOrWhiteSpace(cuenta))
         {
@@ -443,14 +501,29 @@ public sealed class AsientoManualVM : ModeloVista
         Terminar();
     }
 
-    /// <summary>Corrección de un apunte (asistente del Mayor): solo plantillas de origen Apunte; la rejilla empieza vacía hasta aplicar una.</summary>
-    public async Task<Resultado> IniciarCorreccionAsync(int idApunte)
+    /// <summary>
+    /// Asistente de corrección del Mayor: con un apunte, las correcciones de su asiento, del apunte y de su subcuenta; con solo una cuenta (varias
+    /// filas de ella), las de subcuenta. La rejilla empieza vacía hasta aplicar una.
+    /// </summary>
+    public async Task<Resultado> IniciarCorreccionAsync(int? idApunte, string? cuenta = null)
     {
         Modo = ModoAsientoManual.Correccion;
-        var origen = await _fuente.OrigenApunteAsync(idApunte);
-        if (!origen.EsCorrecto) return Resultado.Fallo(origen.Errores);
-        _origen = origen.Valor;
-        await CargarComunAsync(OrigenPlantilla.Apunte, todas: false);
+        if (idApunte is int id)
+        {
+            var origen = await _fuente.OrigenApunteAsync(id);
+            if (!origen.EsCorrecto) return Resultado.Fallo(origen.Errores);
+            _origen = origen.Valor;
+            cuenta ??= _origen.Apunte.CodigoCuenta;
+        }
+        if (!string.IsNullOrWhiteSpace(cuenta))
+        {
+            var sub = await _fuente.OrigenSubcuentaAsync(cuenta.Trim());
+            if (sub.EsCorrecto) _subcuenta = sub.Valor;
+            else if (_origen is null) return Resultado.Fallo(sub.Errores);
+        }
+        if (_origen is null && _subcuenta is null)
+            return Resultado.Fallo(new Error("Plantillas.SinOrigen", "No sé qué corregir.", null, "Falta el apunte o la subcuenta.", "Elige un apunte, o filas de una sola cuenta, en el Mayor."));
+        await CargarComunAsync(p => p.Clase == ClasePlantilla.Correccion && (p.ParteDeUnApunte ? _origen is not null : p.Origen == OrigenPlantilla.Subcuenta && _subcuenta is not null));
         var bloque = NuevoBloque(1, FechaPropuesta(DateTime.Today), "");
         NuevaLinea(bloque);
         NuevaLinea(bloque);
@@ -469,7 +542,7 @@ public sealed class AsientoManualVM : ModeloVista
             return Resultado.Fallo(new Error("Asientos.NoExiste", $"El asiento {idAsiento} ya no existe.", $"Asiento {idAsiento}", "Otra persona lo ha borrado.",
                 "Vuelve a cargar el Mayor."));
         _original = asiento;
-        await CargarComunAsync(OrigenPlantilla.Ninguno, todas: true);
+        await CargarComunAsync(EsDeAsientoManual);
         if (asiento.EsAutomatico)
         {
             SoloLectura = true;
@@ -485,7 +558,7 @@ public sealed class AsientoManualVM : ModeloVista
         {
             var l = NuevaLinea(bloque);
             l.Cuenta = a.CodigoCuenta;
-            l.Concepto = a.Descripcion ?? "";
+            l.PonerConcepto(a.Descripcion ?? asiento.Descripcion, heredado: string.IsNullOrEmpty(a.Descripcion) || a.Descripcion == asiento.Descripcion);
             l.Documento = a.NumeroDocumento ?? "";
             l.PonerImportes(a.Debe.Valor, a.Haber.Valor);
             l.PonerCentro(a.IdCentroCoste);
@@ -505,14 +578,17 @@ public sealed class AsientoManualVM : ModeloVista
         _ => $"Este asiento es automático (lo generó {lote}): se corrige desde el proceso que lo generó, no a mano.",
     };
 
-    private async Task CargarComunAsync(OrigenPlantilla origen, bool todas)
+    /// <summary>En el asiento manual «puro» no se ofrece ninguna corrección: solo guías y asistentes (contabilidad/plantillas-asiento 2026-11-12 20:11).</summary>
+    private static bool EsDeAsientoManual(PlantillaAsiento p) => p.Clase is ClasePlantilla.Guia or ClasePlantilla.Asistente && p.Origen == OrigenPlantilla.Ninguno;
+
+    private async Task CargarComunAsync(Func<PlantillaAsiento, bool> ofrecer)
     {
         _entorno = await _fuente.EntornoAsync();
         _cuentas = new Dictionary<string, string>(_entorno.Cuentas ?? new Dictionary<string, string>(), StringComparer.OrdinalIgnoreCase);
         var centros = (await _fuente.CentrosAsync()).Where(c => c.EstaActivo && c.EsImputable).OrderBy(c => c.RutaJerarquica, StringComparer.Ordinal);
         Centros = [new OpcionCentroVM(null), .. centros.Select(c => new OpcionCentroVM(c))];
-        var plantillas = await _fuente.PlantillasAsync(todas ? null : origen);
-        foreach (var p in plantillas.Where(p => p.Tipo == TipoPlantilla.Usuario && p.Activa)) Plantillas.Add(new OpcionPlantillaVM(p));
+        var plantillas = await _fuente.PlantillasAsync();
+        foreach (var p in plantillas.Where(p => p.Tipo == TipoPlantilla.Usuario && p.Activa && ofrecer(p))) Plantillas.Add(new OpcionPlantillaVM(p));
         _plantilla = Plantillas[0];
         Avisar(nameof(Centros), nameof(Plantilla));
     }
@@ -560,12 +636,13 @@ public sealed class AsientoManualVM : ModeloVista
         {
             _entornoPlantilla = p.Datos.Any(d => (d.ValorPropuesto ?? "").Contains("UltimaUsada", StringComparison.OrdinalIgnoreCase))
                 ? await _fuente.EntornoAsync(p) : _entorno;
-            var propuestos = _origen is not null ? MotorPlantillas.ValoresPropuestos(p, _origen, _entornoPlantilla) : EjemploDe(p)?.Datos;
+            // Nunca se proponen los datos del ejemplo (sus subcuentas son ficticias): solo los valores propuestos de la plantilla con el origen real.
+            var propuestos = MotorPlantillas.ValoresPropuestos(p, OrigenDe(p), _entornoPlantilla);
             foreach (var d in p.Datos.OrderBy(d => d.Orden))
                 Datos.Add(new DatoPlantillaVM(this, d, propuestos is not null && propuestos.TryGetValue(d.Nombre, out var v) ? v : null));
             if (MotivoObligatorio && _motivo.Trim().Length == 0 && p.MotivoPropuesto is { } m) { _motivo = m; Avisar(nameof(Motivo)); }
         }
-        Avisar(nameof(HayDatos), nameof(TextoVistaPrevia));
+        Avisar(nameof(HayDatos), nameof(EsGuia), nameof(TextoAplicar));
         CalcularVistaPrevia();
     }
 
@@ -583,9 +660,17 @@ public sealed class AsientoManualVM : ModeloVista
     {
         if (_plantilla?.Plantilla is not { } p) { VistaPrevia = []; ErrorVistaPrevia = null; Recalcular(cambio: false); return; }
         var r = Proponer(p);
+        _vistaConEjemplo = false;
+        if (!r.EsCorrecto && p.Origen == OrigenPlantilla.Ninguno && EjemploDe(p) is { } ej)
+        {
+            // Una guía sin sus subcuentas todavía: se enseña su ejemplo ficticio.
+            r = MotorPlantillas.Proponer(p, ej.Origen, ej.Datos, ej.Entorno);
+            _vistaConEjemplo = r.EsCorrecto;
+        }
+        Avisar(nameof(TextoVistaPrevia));
         if (r.EsCorrecto)
         {
-            var nombres = _origen is not null || p.Origen == OrigenPlantilla.Ninguno ? _cuentas : EjemploDe(p)?.Entorno.Cuentas;
+            var nombres = _vistaConEjemplo ? EjemploDe(p)?.Entorno.Cuentas : _cuentas;
             VistaPrevia = r.Valor.Asientos.Select(a => new AsientoPrevioVM(
                 (r.Valor.Asientos.Count > 1 ? $"Asiento {a.NumeroAsiento} · " : "") + $"{Formatos.Fecha(a.Fecha)} · {a.Descripcion}",
                 a.Apuntes.Select(x => new ApuntePrevioVM(x.Cuenta, nombres?.GetValueOrDefault(x.Cuenta) ?? x.NombreCuentaNueva ?? "", x.Concepto ?? "",
@@ -605,18 +690,35 @@ public sealed class AsientoManualVM : ModeloVista
     private Resultado<PropuestaPlantilla> Proponer(PlantillaAsiento p)
     {
         var datos = Datos.ToDictionary(d => d.Dato.Nombre, d => d.ValorParaFormulas, StringComparer.OrdinalIgnoreCase);
-        if (_origen is not null || p.Origen == OrigenPlantilla.Ninguno)
-            return MotorPlantillas.Proponer(p, _origen ?? OrigenEjecucion.Ninguno, datos, _entornoPlantilla ?? _entorno);
-        if (EjemploDe(p) is not { } ej)
-            return Resultado<PropuestaPlantilla>.Fallo(new Error("Plantillas.SinEjemplo", $"La plantilla «{p.Nombre}» no tiene ejemplo para la vista previa.", p.ToString(),
-                "Su ejemplo está vacío o no se puede leer.", "Ábrela desde el Mayor con un apunte real, o añádele un ejemplo en el mantenimiento de plantillas."));
-        return MotorPlantillas.Proponer(p, ej.Origen, datos, ej.Entorno);
+        return MotorPlantillas.Proponer(p, OrigenDe(p), datos, _entornoPlantilla ?? _entorno);
     }
 
     /// <summary>Copia los asientos que propone la plantilla a la rejilla (sustituye lo que hubiera).</summary>
+    /// <summary>El origen con que se ejecuta la plantilla: el apunte (y su asiento), la subcuenta o nada.</summary>
+    private OrigenEjecucion OrigenDe(PlantillaAsiento p) => p.ParteDeUnApunte ? (OrigenEjecucion?)_origen ?? OrigenEjecucion.Ninguno
+        : p.Origen == OrigenPlantilla.Subcuenta ? (OrigenEjecucion?)_subcuenta ?? OrigenEjecucion.Ninguno
+        : OrigenEjecucion.Ninguno;
+
+    /// <summary>
+    /// «Aplicar» (o «Usar como base» en una guía): en una guía, antes pide con el buscador común, filtrado por su cuenta, cada subcuenta que falte
+    /// y después el importe; cancelar cualquiera de ellos no cambia la rejilla. Después copia los asientos propuestos a la rejilla.
+    /// </summary>
     public void Aplicar()
     {
         if (!PuedeAplicar || _plantilla?.Plantilla is not { } p) return;
+        if (EsGuia)
+        {
+            foreach (var d in Datos.Where(d => d.EsCuenta && d.Valor.Trim().Length == 0).ToList())
+            {
+                if (ElegirCuenta(null, d.Dato.FiltroCuenta is { Length: > 0 } f ? [f] : [], d.Dato.Etiqueta) is not { } c) return;
+                d.Valor = c;
+            }
+            foreach (var d in Datos.Where(d => d.EsImporte && d.Valor.Trim().Length == 0).ToList())
+            {
+                if (_dialogos.PedirImporte(d.Dato.Etiqueta, d.Dato.Ayuda ?? d.Dato.Etiqueta) is not { } importe) return;
+                d.Valor = Formatos.Numero(importe);
+            }
+        }
         var r = Proponer(p);
         if (!r.EsCorrecto) { ErrorVistaPrevia = r.Error!.TextoOperador(); return; }
         _aplicada = p;
@@ -630,7 +732,7 @@ public sealed class AsientoManualVM : ModeloVista
                 var l = NuevaLinea(b, copiarAnterior: false);
                 l.NombreCuentaNueva = x.NombreCuentaNueva;
                 l.Cuenta = x.Cuenta;
-                l.Concepto = x.Concepto ?? "";
+                l.PonerConcepto(x.Concepto ?? a.Descripcion, heredado: x.Concepto is null || x.Concepto == a.Descripcion);
                 l.Documento = x.Documento ?? "";
                 l.PonerImportes(x.Debe, x.Haber);
                 l.PonerCentro(x.IdCentroCoste);
@@ -680,11 +782,8 @@ public sealed class AsientoManualVM : ModeloVista
         var l = new LineaAsientoVM(b);
         l.PonerCentro(null);
         var anterior = posicion is int p && p > 0 ? b.Lineas[p - 1] : b.Lineas.LastOrDefault();
-        if (copiarAnterior)
-        {
-            l.Concepto = anterior?.Concepto is { Length: > 0 } c ? c : b.Descripcion;
-            l.Documento = anterior?.Documento is { Length: > 0 } d ? d : _documento;
-        }
+        l.PonerConcepto(b.Descripcion, heredado: true);
+        if (copiarAnterior) l.Documento = anterior?.Documento is { Length: > 0 } d ? d : _documento;
         if (posicion is int i && i < b.Lineas.Count) b.Lineas.Insert(i, l);
         else b.Lineas.Add(l);
         return l;
@@ -712,11 +811,20 @@ public sealed class AsientoManualVM : ModeloVista
         var copia = NuevaLinea(l.Bloque, copiarAnterior: false, posicion: l.Bloque.Lineas.IndexOf(l) + 1);
         copia.NombreCuentaNueva = l.NombreCuentaNueva;
         copia.Cuenta = l.Cuenta;
-        copia.Concepto = l.Concepto;
+        copia.PonerConcepto(l.Concepto, heredado: l.ConceptoHeredado);
         copia.Documento = l.Documento;
         copia.PonerImportes(l.ValorDebe, l.ValorHaber);
         copia.Centro = l.Centro;
         l.Bloque.Renumerar();
+        Marcar();
+    }
+
+    /// <summary>Quita un asiento de la pantalla (no se graba nada hasta Guardar); siempre queda al menos uno.</summary>
+    public void QuitarBloque(BloqueAsientoVM b)
+    {
+        if (SoloLectura || Bloques.Count < 2) return;
+        Bloques.Remove(b);
+        Renumerar();
         Marcar();
     }
 
@@ -792,11 +900,13 @@ public sealed class AsientoManualVM : ModeloVista
                 var m = await _fuente.ModificarAsync(a, motivo);
                 r = m.EsCorrecto ? Resultado<IReadOnlyList<int>>.Correcto([m.Valor.IdAsiento]) : Resultado<IReadOnlyList<int>>.Fallo(m.Errores);
             }
-            else if (_aplicada is not null && (_origen is not null || Bloques.Count > 1 || Bloques.SelectMany(x => x.Lineas).Any(l => l.NombreCuentaNueva is not null)))
+            else if (_aplicada is not null && (Modo == ModoAsientoManual.Correccion || Bloques.SelectMany(x => x.Lineas).Any(l => l.NombreCuentaNueva is not null)))
             {
+                // Corrección (relación con el asiento de origen y punteo si hay apunte) o subcuentas «?» por crear: por el servicio de plantillas.
+                var deApunte = _aplicada.ParteDeUnApunte ? _origen : null;
                 var propuesta = new PropuestaPlantilla(_aplicada, Contexto, Bloques.Select(Propuesto).ToList(), _datosAplicados,
-                    _origen?.Asiento.IdAsiento, _origen?.Apunte.IdApunte);
-                r = await _fuente.EjecutarPlantillaAsync(propuesta, motivo);
+                    deApunte?.Asiento.IdAsiento, deApunte?.Apunte.IdApunte);
+                r = await _fuente.EjecutarPlantillaAsync(propuesta, motivo.Length > 0 ? motivo : $"Alta con la plantilla «{_aplicada.Nombre}»");
             }
             else
             {

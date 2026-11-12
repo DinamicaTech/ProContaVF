@@ -13,7 +13,7 @@ public class AsientoManualVMTests
 {
     private static readonly ContextoSociedadEjercicio Ctx = new("T01", 1, 2026);
     private static readonly IReadOnlyList<PlantillaAsiento> Catalogo =
-        PlantillasJson.LeerCatalogo(SemillaPlantillasAsiento.Json).Select((p, i) => p with { IdPlantilla = i + 1 }).ToList();
+        PlantillasJson.LeerCatalogo(SemillaPlantillasAsiento.JsonCatalogo).Select((p, i) => p with { IdPlantilla = i + 1 }).ToList();
 
     /// <summary>Fuente en memoria: cuentas del ejercicio, trimestre activo 2, un asiento manual (1) y uno automático (2); anota lo que se grabaría.</summary>
     private sealed class Fuente : IFuenteAsientoManual
@@ -34,6 +34,8 @@ public class AsientoManualVMTests
             {
                 ["6220001"] = "Reparaciones", ["6290001"] = "Otros servicios", ["5720001"] = "Banco", ["4000001"] = "Proveedor sintético", ["5700000"] = "Caja",
                 ["1130000"] = "Reservas voluntarias", ["5510001"] = "Socio sintético", ["4720021"] = "IVA soportado",
+                ["4300001"] = "Cliente sintético", ["4300002"] = "Otro cliente sintético", ["4360001"] = "Cliente sintético (dudoso cobro)",
+                ["6940000"] = "Deterioro", ["4900000"] = "Corrección de valor", ["6500000"] = "Incobrables", ["7940000"] = "Reversión",
             },
             plantilla?.Nombre == "Pago por un socio" ? new Dictionary<string, string> { ["CuentaSocio"] = "5510001" } : null));
 
@@ -45,6 +47,9 @@ public class AsientoManualVMTests
             var a = Asiento(1, new DateTime(2026, 2, 10), "Reparación sintética", ("6220001", 242m, 0m), ("5720001", 0m, 242m));
             return Task.FromResult(Resultado<OrigenApunte>.Correcto(new OrigenApunte(a, 1)));
         }
+
+        public Task<Resultado<OrigenSubcuenta>> OrigenSubcuentaAsync(string cuenta) =>
+            Task.FromResult(Resultado<OrigenSubcuenta>.Correcto(new OrigenSubcuenta(cuenta, "Subcuenta sintética", 300m, 120m)));
 
         public Task<Asiento?> AsientoAsync(int idAsiento) => Task.FromResult<Asiento?>(idAsiento switch
         {
@@ -97,8 +102,17 @@ public class AsientoManualVMTests
     private sealed class Dialogos : IDialogosAsiento
     {
         public (string Codigo, string Nombre)? Cuenta { get; set; }
+        /// <summary>Cuentas que devuelve el buscador por orden, con los grupos con que se abrió; vacía, devuelve <see cref="Cuenta"/>.</summary>
+        public readonly Queue<(string Codigo, string Nombre)?> Cuentas = new();
+        public readonly List<string> Grupos = [];
+        public decimal? Importe { get; set; }
         public readonly List<string> Errores = [];
-        public (string Codigo, string Nombre)? ElegirCuenta(string? texto, IReadOnlyList<string> grupos, string titulo) => Cuenta;
+        public (string Codigo, string Nombre)? ElegirCuenta(string? texto, IReadOnlyList<string> grupos, string titulo)
+        {
+            Grupos.Add(string.Join(",", grupos));
+            return Cuentas.Count > 0 ? Cuentas.Dequeue() : Cuenta;
+        }
+        public decimal? PedirImporte(string titulo, string explicacion) => Importe;
         public void Error(string titulo, string mensaje) => Errores.Add(mensaje);
     }
 
@@ -122,8 +136,8 @@ public class AsientoManualVMTests
         var (vm, _, _) = Crear();
         await vm.IniciarNuevoAsync();
         Assert.Equal("Sin plantilla", vm.Plantilla!.Texto);
-        Assert.Equal(["Sin plantilla", "Anular asiento", "Anular y rehacer con otra cuenta", "Pasar saldo a otra cuenta", "Ajustar saldo inicial contra la 113",
-            "Pago por tesorería", "Pago por un socio"], vm.Plantillas.Select(p => p.Texto));
+        // En el asiento manual «puro» no sale ninguna corrección: solo las guías.
+        Assert.Equal(["Sin plantilla", "Pasar un cliente de cobro dudoso a incobrable"], vm.Plantillas.Select(p => p.Texto));
         Assert.DoesNotContain(vm.Plantillas, p => p.Plantilla?.Tipo == TipoPlantilla.Sistema);
         Assert.False(vm.TieneCambios);
         Assert.Single(vm.Bloques);
@@ -142,7 +156,7 @@ public class AsientoManualVMTests
         b.Lineas[1].Concepto = "Reparación sintética";
         b.Lineas[1].Documento = "F-9";
         vm.AnadirLinea(b);
-        Assert.Equal(("Reparación sintética", "F-9"), (b.Lineas[2].Concepto, b.Lineas[2].Documento)); // la línea nueva copia concepto y documento de la anterior
+        Assert.Equal(("Gasto de prueba", "F-9"), (b.Lineas[2].Concepto, b.Lineas[2].Documento)); // concepto: la descripción; documento: el de la anterior
         Assert.False(vm.PuedeGuardar);
         Assert.Contains("10,00", vm.AyudaGuardar);
         Assert.Contains("Haber", vm.AyudaGuardar);
@@ -202,21 +216,85 @@ public class AsientoManualVMTests
     }
 
     [Fact]
-    public async Task Sin_apunte_las_plantillas_de_correccion_se_ven_con_su_ejemplo_pero_no_se_aplican()
+    public async Task La_guia_ensena_su_ejemplo_y_al_usarla_como_base_pide_las_subcuentas_y_el_importe()
+    {
+        var (vm, fuente, dialogos) = Crear();
+        await vm.IniciarNuevoAsync();
+        vm.Plantilla = vm.Plantillas.Single(p => p.Texto == "Pasar un cliente de cobro dudoso a incobrable");
+        await Task.Yield();
+        Assert.True(vm.EsGuia);
+        Assert.Equal("Usar como base", vm.TextoAplicar);
+        Assert.Contains("436", vm.DescripcionPlantilla);
+        Assert.All(vm.Datos, d => Assert.Equal("", d.Valor)); // nunca las subcuentas del ejemplo
+        Assert.Equal(2, vm.VistaPrevia.Count);
+        Assert.Contains("ficticios", vm.TextoVistaPrevia);
+        Assert.True(vm.PuedeAplicar, vm.AyudaAplicar);
+        Assert.False(vm.TieneCambios); // elegir plantilla no es un cambio
+
+        // Cancelar el buscador a medias no toca la rejilla.
+        dialogos.Cuentas.Enqueue(("4300001", "Cliente sintético"));
+        dialogos.Cuentas.Enqueue(null);
+        vm.Aplicar();
+        Assert.Single(vm.Bloques);
+        Assert.Equal("4300001", vm.Datos[0].Valor);
+
+        foreach (var c in new[] { "4360001", "6940000", "4900000", "6500000", "7940000" }) dialogos.Cuentas.Enqueue((c, c));
+        dialogos.Importe = 1210m;
+        vm.Aplicar();
+        Assert.Equal(["430", "436", "436", "694", "490", "650", "794"], dialogos.Grupos); // cada subcuenta, con el buscador filtrado por su cuenta
+        Assert.Equal(2, vm.Bloques.Count);
+        Assert.All(vm.Bloques, b => Assert.True(b.Cuadrado));
+        Assert.Equal([("4360001", 1210m, 0m), ("4300001", 0m, 1210m), ("6940000", 1210m, 0m), ("4900000", 0m, 1210m)],
+            vm.Bloques[0].Lineas.Select(l => (l.Cuenta, l.ValorDebe, l.ValorHaber)));
+
+        // El incobrable aún no toca: se quita su asiento y se guarda el otro.
+        Assert.True(vm.Bloques[1].PuedeQuitarse);
+        vm.QuitarBloque(vm.Bloques[1]);
+        Assert.Single(vm.Bloques);
+        Assert.True(await vm.GuardarAsync(), vm.AyudaGuardar);
+        var (asientos, _) = Assert.Single(fuente.Nuevos);
+        Assert.Equal(Catalogo.Single(p => p.Clase == ClasePlantilla.Guia).IdPlantilla, Assert.Single(asientos).IdPlantilla);
+    }
+
+    [Fact]
+    public async Task El_concepto_de_las_lineas_sigue_a_la_descripcion_mientras_no_se_toque()
+    {
+        var (vm, _, _) = Crear();
+        await vm.IniciarNuevoAsync();
+        var b = vm.Bloques[0];
+        b.Descripcion = "Alquiler de marzo";
+        Assert.All(b.Lineas, l => Assert.Equal("Alquiler de marzo", l.Concepto));
+        b.Lineas[1].Concepto = "Fianza";
+        b.Descripcion = "Alquiler de abril";
+        Assert.Equal(["Alquiler de abril", "Fianza"], b.Lineas.Select(l => l.Concepto));
+        vm.AnadirLinea(b);
+        Assert.Equal("Alquiler de abril", b.Lineas[2].Concepto);
+    }
+
+    [Fact]
+    public async Task Con_filas_de_una_sola_cuenta_el_asistente_solo_ofrece_las_correcciones_de_subcuenta()
     {
         var (vm, fuente, _) = Crear();
-        await vm.IniciarNuevoAsync();
-        vm.Plantilla = vm.Plantillas.Single(p => p.Texto == "Anular asiento");
+        Assert.True((await vm.IniciarCorreccionAsync(null, "4300001")).EsCorrecto);
+        Assert.Equal(["Sin plantilla", "Pasar saldo a otra cuenta", "Ajustar saldo inicial contra la 113"], vm.Plantillas.Select(p => p.Texto));
+        Assert.Contains("saldo en el ejercicio", vm.Subtitulo);
+        vm.Plantilla = vm.Plantillas[1];
         await Task.Yield();
-        Assert.True(vm.HayPlantilla);
-        Assert.False(string.IsNullOrWhiteSpace(vm.DescripcionPlantilla));
-        var previo = Assert.Single(vm.VistaPrevia);
-        Assert.Contains("ejemplo", vm.TextoVistaPrevia);
-        Assert.Equal(["6220001", "5720001"], previo.Apuntes.Select(a => a.Cuenta));
-        Assert.False(vm.PuedeAplicar);
-        Assert.Contains("Asistente de corrección", vm.AyudaAplicar);
-        Assert.False(vm.TieneCambios); // elegir plantilla no es un cambio
-        Assert.Equal(0, fuente.Escrituras);
+        Assert.Equal("300,00", vm.Datos.Single(d => d.Dato.Nombre == "ImporteTraspaso").Valor); // se propone el saldo de la subcuenta
+        vm.Datos.Single(d => d.Dato.Nombre == "NuevaCuenta").Valor = "4300002";
+        vm.Aplicar();
+        Assert.Equal([("4300001", 0m, 300m), ("4300002", 300m, 0m)], vm.Bloques[0].Lineas.Select(l => (l.Cuenta, l.ValorDebe, l.ValorHaber)));
+        vm.Plantilla = vm.Plantillas[2];
+        await Task.Yield();
+        Assert.Equal("120,00", vm.Datos.Single().Valor); // el ajuste propone el saldo de apertura
+        vm.Plantilla = vm.Plantillas[1];
+        await Task.Yield();
+        vm.Datos.Single(d => d.Dato.Nombre == "NuevaCuenta").Valor = "4300002";
+        vm.Aplicar();
+        vm.Motivo = "Cliente duplicado";
+        Assert.True(await vm.GuardarAsync(), vm.AyudaGuardar);
+        var (propuesta, _) = Assert.Single(fuente.Ejecutadas);
+        Assert.Null(propuesta.IdApunteOrigen); // de subcuenta: sin relación ni punteo de un apunte
     }
 
     [Fact]
@@ -225,7 +303,8 @@ public class AsientoManualVMTests
         var (vm, fuente, _) = Crear();
         Assert.True((await vm.IniciarCorreccionAsync(11)).EsCorrecto);
         Assert.Equal(ModoAsientoManual.Correccion, vm.Modo);
-        Assert.Equal(6, vm.Plantillas.Count - 1); // solo las de origen Apunte
+        Assert.Equal(6, vm.Plantillas.Count - 1); // con un apunte: las de su asiento, las del apunte y las de su subcuenta
+        Assert.DoesNotContain(vm.Plantillas, p => p.Plantilla?.Clase == ClasePlantilla.Guia);
         vm.Plantilla = vm.Plantillas.Single(p => p.Texto == "Anular y rehacer con otra cuenta");
         await Task.Yield();
         Assert.False(vm.PuedeAplicar); // falta la nueva cuenta
