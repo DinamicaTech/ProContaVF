@@ -351,7 +351,8 @@ internal sealed partial class EjecucionErp(MigradorErp m, OrigenErp o, OpcionesM
     {
         if (_anteriores.Count == 0) return;
         var activos = Anteriores(TiposErp.Activo).ToList();
-        await BorrarAsync("CuentasActivo", "IdActivo", activos);
+        foreach (var t in new[] { "SubcuentasActivo", "CuentasActivo", "ActivosInmuebles", "PlanesAmortizacionActivo" })
+            await BorrarAsync(t, "IdActivo", activos);
         await BorrarAsync("Activos", "IdActivo", activos);
 
         var lineas = Anteriores(TiposErp.LineaN43).ToList();

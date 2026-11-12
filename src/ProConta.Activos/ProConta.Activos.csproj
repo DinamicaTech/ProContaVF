@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Activos: inmuebles y bienes amortizables, plantillas de subcuentas, amortización y baja (docs/activos.md). -->
+  <PropertyGroup>
+    <OutputType>Library</OutputType>
+    <RootNamespace>ProConta.Activos</RootNamespace>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);CS1591;CS1573</NoWarn>
+  </PropertyGroup>
+</Project>

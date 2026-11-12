@@ -51,9 +51,11 @@ public static class DuenosTablas
         Asignar("implantacion", "implantacion/importador-contasol", "ImportacionesContaSol", "FasesImportacionContaSol",
             "IncidenciasImportacionContaSol", "MapasIdentidadContaSol");
         Asignar("implantacion", "implantacion/migracion-erp", "MigracionesERP", "IncidenciasMigracionERP", "MapasIdentidadERP");
-        Asignar("creative-lab", "creative-lab/activos", "Activos", "ActivosInversiones", "CotizacionesInstrumentoFinanciero", "CuentasActivo",
-            "DetallesLoteAmortizacionActivo", "ImportacionesActivos", "InstrumentosFinancieros", "LotesAmortizacionActivo",
-            "OperacionesInversion", "PlanesAmortizacionActivo", "PlantillasCuentasActivo", "TiposActivo", "Inmuebles");
+        Asignar("activos", "activos", "Activos", "TiposActivo", "TiposSubcuentaActivo", "PlantillasSubcuentasActivo", "SubcuentasActivo",
+            "ActivosInmuebles", "PlanesAmortizacionActivo", "LotesAmortizacionActivo", "DetallesLoteAmortizacionActivo",
+            "PlantillasCuentasActivo", "CuentasActivo", "Inmuebles");
+        Asignar("creative-lab", "creative-lab/inversiones-financieras", "ActivosInversiones", "CotizacionesInstrumentoFinanciero",
+            "ImportacionesActivos", "InstrumentosFinancieros", "OperacionesInversion");
         Asignar("creative-lab", "creative-lab/asistente-ia", "ConversacionesIA", "MensajesConversacionIA");
     }
 
