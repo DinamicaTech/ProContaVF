@@ -120,7 +120,7 @@ public sealed class ProveedorActividadCentros(IBaseDatos bd) : ProveedorBase
     [
         new("Ruta", "Centro de coste", TipoCampo.Codigo) { Ayuda = "Código completo del centro de coste, con los de los que cuelga. Los centros se crean en Contabilidad.", SoloLectura = true, Ancho = "m" },
         new("Nombre", "Nombre") { Ayuda = "Nombre del centro de coste. Se cambia en Contabilidad.", SoloLectura = true, Ancho = "l" },
-        new("IdActividad", "Actividad", TipoCampo.Lista) { Opciones = _actividades, Ancho = "l",
+        new("IdActividad", "Actividad", TipoCampo.Referencia) { Referencia = "actividades", Opciones = _actividades, Ancho = "l",
             Ayuda = "Vacía: la del centro del que cuelga (o, si ninguno la tiene, las cuentas de IVA generales del ejercicio)." },
         new("Aplica", "Actividad que se aplica") { Ayuda = "La actividad que se usa de verdad: la propia o, si no tiene, la heredada del centro del que cuelga. Se calcula sola.", SoloLectura = true, Ancho = "l" },
     ];

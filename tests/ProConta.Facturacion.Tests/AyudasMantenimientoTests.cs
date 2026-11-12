@@ -25,6 +25,18 @@ public class AyudasMantenimientoTests
         Assert.True(sinAyuda.Count == 0, $"{sinAyuda.Count} campos sin ayuda:\n" + string.Join("\n", sinAyuda));
     }
 
+    /// <summary>Cada clave foránea a una tabla 1:N apunta a un mantenimiento que existe y que es una lista (2026-11-12).</summary>
+    [Fact]
+    public void LasReferenciasApuntanAMantenimientos1N()
+    {
+        var todos = Todos();
+        var malas = todos.SelectMany(p => p.Campos.Where(c => c.Tipo == TipoCampo.Referencia)
+                .Where(c => todos.FirstOrDefault(x => x.Clave == c.Referencia) is not { Cardinalidad: Cardinalidad.Lista })
+                .Select(c => $"{p.Titulo} › {c.Etiqueta} → {c.Referencia ?? "(sin referencia)"}")).ToList();
+        Assert.True(malas.Count == 0, "Referencias sin mantenimiento 1:N:\n" + string.Join("\n", malas));
+        Assert.Contains(todos.SelectMany(p => p.Campos), c => c.Clave == "FormaPagoDefecto" && c.Referencia == "formaspago");
+    }
+
     [Fact]
     public void LaAyudaNoRepiteLaEtiqueta()
     {
