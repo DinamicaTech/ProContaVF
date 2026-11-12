@@ -129,7 +129,7 @@ public class ProveedorTablaAccess : ProveedorBase
         TipoCampo.Entero => r.Entero(c.Clave),
         TipoCampo.Importe => r.Decimal(c.Clave),
         TipoCampo.Decimal or TipoCampo.Porcentaje => r.Decimal(c.Clave) is decimal d ? (double)d : null,
-        TipoCampo.Lista => r[c.Clave] switch { null => null, string s when s.Length == 0 => null, var o => o },
+        TipoCampo.Lista or TipoCampo.Referencia => r[c.Clave] switch { null => null, string s when s.Length == 0 => null, var o => o },
         TipoCampo.Fecha => r[c.Clave] as DateTime?,
         TipoCampo.TextoLargo => r[c.Clave] is string s && !string.IsNullOrWhiteSpace(s) ? s : null,
         _ => r.Texto(c.Clave)

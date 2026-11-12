@@ -182,12 +182,14 @@ public partial class VentanaPrincipal : Window
 
         var mantenimiento = new ServicioMantenimiento(
             new IProveedorMantenimiento[] { new ProveedorConfiguracionGeneral(bd) }.Concat(ProveedoresOrganizacion.Todos(bd)).Concat(ProveedoresFacturacion.Todos(bd, cuentas))
-                .Concat(ProConta.Compras.Mantenimiento.ProveedoresCompras.Todos(bd)).Concat(ProveedoresCorreo.Todos(bd)),
+                .Concat(ProConta.Compras.Mantenimiento.ProveedoresCompras.Todos(bd)).Concat(ProveedoresCorreo.Todos(bd))
+                .Concat(ProConta.Activos.Mantenimiento.ProveedoresActivos.Todos(bd, cuentas)),
             () => autorizador.PuedeAsync(Acciones.MantenimientoEditar));
         var contextoMantenimiento = new ContextoMantenimiento(contexto.Contexto, contexto.RazonSocial, new Actor(sesion.NombreOperador));
         _crearMantenimiento = () => new PantallaMantenimientoVM(mantenimiento, contextoMantenimiento,
             (titulo, mensaje, detalles, opciones) => ServicioMensajes.Preguntar(this, titulo, mensaje, detalles, opciones),
-            Avisar, vm => new VistaMantenimiento(vm));
+            Avisar, vm => new VistaMantenimiento(vm))
+        { Cuentas = new SelectorCuentasMantenimiento(cuentas, new CatalogoCentrosCosteAccess(bd), () => this) };
 
         // Importar ContaSol (implantacion/importador-contasol): una pestaña, en Configuración.
         var importadorContaSol = new ProConta.Implantacion.ContaSol.ImportadorContaSol(bd, new MotorAsientosAccess(bd), new CatalogoCentrosCosteAccess(bd),

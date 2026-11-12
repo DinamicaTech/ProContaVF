@@ -289,10 +289,10 @@ public static class MotorPlantillas
     {
         if (linea.Cuenta.Contains("CuentaCuadres", StringComparison.OrdinalIgnoreCase))
             return new Error("Plantillas.SinCuentaCuadres", "La empresa no tiene configurada la cuenta 113 para cuadres.", $"{p}, {donde}",
-                $"La plantilla «{p.Nombre}» la usa como contrapartida.", "Configúrala en Parámetros › Empresas › Cuentas › «Cuenta 113 para cuadres» y vuelve a intentarlo.");
+                $"La plantilla «{p.Nombre}» la usa como contrapartida.", "Configúrala en Parámetros › Empresas › Cuentas › «Cuadres (113)» y vuelve a intentarlo.");
         if (linea.Cuenta.Contains("CuentaTesoreria", StringComparison.OrdinalIgnoreCase))
             return new Error("Plantillas.SinCuentaTesoreria", "La empresa no tiene configurada la cuenta 570 de tesorería.", $"{p}, {donde}",
-                $"La plantilla «{p.Nombre}» paga contra ella.", "Configúrala en Parámetros › Empresas › Cuentas › «Cuenta 570 de tesorería» y vuelve a intentarlo.");
+                $"La plantilla «{p.Nombre}» paga contra ella.", "Configúrala en Parámetros › Empresas › Cuentas › «Tesorería (570)» y vuelve a intentarlo.");
         return new Error("Plantillas.CuentaVacia", $"La línea {linea.Orden} del asiento {linea.NumeroAsiento} de «{p.Nombre}» no da ninguna cuenta.", $"{p}, {donde}",
             $"Su fórmula de cuenta «{linea.Cuenta}» sale vacía con estos datos.", "Rellena el dato de cuenta que pide la plantilla, o corrige su fórmula de cuenta.");
     }

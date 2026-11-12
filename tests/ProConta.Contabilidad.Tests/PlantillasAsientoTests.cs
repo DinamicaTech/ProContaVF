@@ -223,7 +223,7 @@ public class MotorPlantillasTests
         var t = PlantillasJson.LeerEjemplo(P("Pago por tesorería").Ejemplo!);
         var r2 = MotorPlantillas.Proponer(P("Pago por tesorería"), t.Origen, null, t.Entorno with { CuentaTesoreria = null });
         Assert.Equal("Plantillas.SinCuentaTesoreria", r2.Error!.Codigo);
-        Assert.Contains("Cuenta 570 de tesorería", r2.Error.AccionCorrectora);
+        Assert.Contains("Tesorería (570)", r2.Error.AccionCorrectora);
     }
 
     [Fact]
