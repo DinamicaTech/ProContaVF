@@ -226,9 +226,10 @@ public sealed class FichaAccessTests : IDisposable
         // El código es único entre los trabajadores de la sociedad.
         var otro = new Tercero { TipoPersona = TipoPersona.Fisica, NombrePersona = "Luis", PrimerApellido = "Sintético" };
         otro.Roles.Empleado = new RolEmpleado("T01") { CodigoTrabajador = "000123" };
-        Assert.Equal("Empleados.CodigoRepetido", (await Repo.GuardarAsync(otro, _actor)).Error!.Codigo);
+        Assert.Equal("Empleados.CodigoRepetido", (await Repo.GuardarAsync(otro.Clonar(), _actor)).Error!.Codigo); // la ficha guarda siempre una copia
         otro.Roles.Empleado.CodigoTrabajador = new string('9', 31);
-        Assert.Equal("Empleados.CodigoLargo", (await Repo.GuardarAsync(otro, _actor)).Error!.Codigo);
+        Assert.Equal("Empleados.CodigoLargo", (await Repo.GuardarAsync(otro.Clonar(), _actor)).Error!.Codigo);
+        Assert.Equal(1, await Contar("SELECT COUNT(*) FROM Terceros"));
 
         // Cambiar el código deja historial; darlo de baja lo desactiva en la sociedad, pero se sigue reconociendo por el código.
         t.Roles.Empleado.CodigoTrabajador = "000124";
