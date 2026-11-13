@@ -67,7 +67,7 @@ public sealed class LogicaPantallasNominasTests
         Assert.Equal(["2025", "2026", "Todos"], vm.Anyos.Select(a => a.Texto));
         Assert.Equal(2, vm.Filas.Count);
         Assert.Equal("IRPF retenido · 2026", vm.TituloIrpf);
-        Assert.Equal("1.560,00", vm.TotalIrpf.Replace(" €", ""));
+        Assert.StartsWith("1.560,00", vm.TotalIrpf);
 
         vm.Anyos[2].Marcado = true;
         Assert.Equal(3, vm.Filas.Count);

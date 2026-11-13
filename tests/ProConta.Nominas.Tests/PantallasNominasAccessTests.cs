@@ -157,14 +157,19 @@ public sealed class PantallasNominasAccessTests : IDisposable
 
     // ---------- recibido por correo ----------
 
-    /// <summary>Un adjunto recibido de verdad en la BD (la importación lo enlaza por clave ajena).</summary>
+    private int? _cuentaCorreo;
+
+    /// <summary>Un adjunto recibido de verdad en la BD (la importación lo enlaza por clave ajena): una cuenta por ejercicio, un mensaje por adjunto.</summary>
     private Task<int> AdjuntoAsync(string nombre) => Bd.EnTransaccionAsync(async s =>
     {
-        await s.EjecutarAsync("INSERT INTO CuentasCorreo (IdSociedadEjercicio, Activa, Direccion, PuertoSmtp, SeguridadSmtp, PuertoPop3, SeguridadPop3, EliminarTrasProcesar, " +
-            "IntervaloRecepcionMinutos, TiempoEsperaSegundos, Version) VALUES (9001, True, 'nominas@example.invalid', 587, 'StartTls', 995, 'Ssl', False, 15, 30, 1)");
-        var cuenta = await s.UltimoIdAsync();
+        if (_cuentaCorreo is null)
+        {
+            await s.EjecutarAsync("INSERT INTO CuentasCorreo (IdSociedadEjercicio, Activa, Direccion, PuertoSmtp, SeguridadSmtp, PuertoPop3, SeguridadPop3, EliminarTrasProcesar, " +
+                "IntervaloRecepcionMinutos, TiempoEsperaSegundos, Version) VALUES (9001, True, 'nominas@example.invalid', 587, 'StartTls', 995, 'Ssl', False, 15, 30, 1)");
+            _cuentaCorreo = await s.UltimoIdAsync();
+        }
         await s.EjecutarAsync("INSERT INTO MensajesRecibidosCorreo (IdCuentaCorreo, IdSociedadEjercicio, Uidl, FechaRecepcion, TamanoBytes, Huella, RutaEml, Estado, " +
-            "EliminadoServidor, Version) VALUES (?, 9001, 'u1', ?, 100, 'h', 'correo\\u1.eml', 'Procesando', False, 1)", cuenta, new DateTime(2026, 10, 31, 9, 0, 0));
+            "EliminadoServidor, Version) VALUES (?, 9001, ?, ?, 100, 'h', ?, 'Procesando', False, 1)", _cuentaCorreo, "u-" + nombre, new DateTime(2026, 10, 31, 9, 0, 0), "correo\\" + nombre + ".eml");
         var mensaje = await s.UltimoIdAsync();
         await s.EjecutarAsync("INSERT INTO AdjuntosRecibidosCorreo (IdMensajeRecibido, Ordinal, Nombre, TamanoBytes, Huella, RutaRelativa, Tipo, Estado) " +
             "VALUES (?, 1, ?, 100, 'h', ?, 'Nomina', 'Pendiente')", mensaje, nombre, "correo\\" + nombre);
