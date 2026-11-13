@@ -93,6 +93,8 @@ public static class ValidacionFicha
             if (r.FechaInicio is { } i && r.FechaFin is { } f && f < i)
                 errores.Add(new(PestanaFicha.Contacto, r, "TextoHasta", $"La relación con {Otro(t, r)} termina antes de empezar: revisa las fechas."));
         }
+        if (t.Roles.Empleado?.CodigoTrabajador is { Length: > 30 })
+            errores.Add(new(PestanaFicha.Roles, t, "CodigoTrabajador", "El código del trabajador tiene más de 30 caracteres: escribe el que usa la gestoría."));
         return errores;
     }
 

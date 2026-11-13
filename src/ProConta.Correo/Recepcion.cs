@@ -162,6 +162,20 @@ public interface IProcesadorExtractoBancarioRecibido
     Task<ResultadoExtractoRecibido> ProcesarAsync(ContextoSociedadEjercicio contexto, string ruta, string nombre, Actor actor, CancellationToken cancelacion = default);
 }
 
+/// <summary>Lo que ha pasado con un Excel de nóminas recibido por correo.</summary>
+public sealed record ResultadoNominasRecibidas(EstadoAdjuntoRecibido Estado, int? IdAsiento, string Explicacion);
+
+/// <summary>
+/// Importa un Excel de nóminas recibido por correo (lo implementa nominas, correo/recepcion 2026-11-13): el mismo motor que
+/// «Importar fichero…» de la pantalla Nóminas, y lo contabiliza si no queda nada por resolver. Repetirlo con el mismo fichero
+/// no duplica nada.
+/// </summary>
+public interface IProcesadorNominasRecibidas
+{
+    Task<ResultadoNominasRecibidas> ProcesarAsync(ContextoSociedadEjercicio contexto, string ruta, string nombre, int idAdjunto, Actor actor,
+        CancellationToken cancelacion = default);
+}
+
 /// <summary>Contenido funcional de un MIME recibido.</summary>
 public sealed record MensajeLeido(string? MessageId, string? Remitente, string? NombreRemitente, string? Asunto, DateTime? Fecha, bool EsAutomatico,
     IReadOnlyList<(string Nombre, byte[] Contenido)> Adjuntos);
@@ -227,18 +241,20 @@ public sealed class ServicioRecepcionCorreo
     private readonly ServicioCorreo _correo;
     private readonly IProcesadorFacturaCompraRecibida? _facturas;
     private readonly IProcesadorExtractoBancarioRecibido? _extractos;
+    private readonly IProcesadorNominasRecibidas? _nominas;
     private readonly IReloj _reloj;
     private readonly Actor _actor = Actor.Proceso("correo-entrante");
     private readonly Dictionary<int, DateTime> _ultimoSondeo = [];
 
     public ServicioRecepcionCorreo(IBaseDatos bd, IClientePop3 pop3, ServicioCorreo correo, IProcesadorFacturaCompraRecibida? facturas, IReloj? reloj = null,
-        IProcesadorExtractoBancarioRecibido? extractos = null)
+        IProcesadorExtractoBancarioRecibido? extractos = null, IProcesadorNominasRecibidas? nominas = null)
     {
         _bd = bd;
         _pop3 = pop3;
         _correo = correo;
         _facturas = facturas;
         _extractos = extractos;
+        _nominas = nominas;
         _reloj = reloj ?? RelojSistema.Instancia;
     }
 
@@ -428,7 +444,17 @@ public sealed class ServicioRecepcionCorreo
                     return (EstadoAdjuntoRecibido.Error, null, null, $"No he podido importar el extracto: {ex.Message}");
                 }
             case TipoAdjuntoRecibido.Nomina:
-                return (EstadoAdjuntoRecibido.MotorPendiente, null, null, "Fichero de nóminas: la importación de nóminas aún no está en ProContaVF; el fichero se conserva hasta entonces.");
+                if (_nominas is null) return (EstadoAdjuntoRecibido.MotorPendiente, null, null, "Fichero de nóminas: la importación de nóminas no está disponible en esta sesión; el fichero se conserva hasta entonces.");
+                if (a.RutaCompleta is null || !File.Exists(a.RutaCompleta)) return (EstadoAdjuntoRecibido.Error, null, null, $"No encuentro la copia del adjunto en {a.RutaCompleta ?? a.RutaRelativa}.");
+                try
+                {
+                    var r = await _nominas.ProcesarAsync(ctx, a.RutaCompleta, a.Nombre, a.IdAdjunto, _actor, cancelacion);
+                    return (r.Estado, null, r.IdAsiento, r.Explicacion);
+                }
+                catch (Exception ex) when (ex is not OperationCanceledException)
+                {
+                    return (EstadoAdjuntoRecibido.Error, null, null, $"No he podido importar las nóminas: {ex.Message}");
+                }
             default:
                 return (EstadoAdjuntoRecibido.NoReconocido, null, null, "No es un documento que ProContaVF procese.");
         }

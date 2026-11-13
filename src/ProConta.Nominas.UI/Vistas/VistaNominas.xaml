@@ -1,0 +1,254 @@
+<UserControl x:Class="ProConta.Nominas.UI.Vistas.VistaNominas"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:pc="urn:proconta-ui"
+             Background="White" AllowDrop="True" DragOver="AlArrastrar" Drop="AlSoltar">
+  <UserControl.Resources>
+    <pc:VisibleSiConverter x:Key="Visible" />
+    <Style x:Key="Celda.Origen" TargetType="TextBlock" BasedOn="{StaticResource Texto.Celda}">
+      <Setter Property="ToolTip" Value="{Binding AyudaOrigen}" />
+    </Style>
+    <Style x:Key="Celda.Paga" TargetType="TextBlock" BasedOn="{StaticResource Texto.Celda}">
+      <Setter Property="ToolTip" Value="{Binding AyudaTipoPaga}" />
+    </Style>
+    <Style x:Key="Celda.Trabajador" TargetType="TextBlock" BasedOn="{StaticResource Texto.Celda}">
+      <Setter Property="ToolTip" Value="{Binding AyudaTrabajador}" />
+    </Style>
+    <Style x:Key="Celda.Cuadre" TargetType="TextBlock" BasedOn="{StaticResource Texto.Celda.Importe}">
+      <Setter Property="ToolTip" Value="{Binding AyudaCuadre}" />
+      <Setter Property="Foreground" Value="{StaticResource Pincel.Verde}" />
+      <Style.Triggers>
+        <DataTrigger Binding="{Binding Cuadra}" Value="False">
+          <Setter Property="Foreground" Value="{StaticResource Pincel.RojoError}" />
+          <Setter Property="FontWeight" Value="SemiBold" />
+        </DataTrigger>
+      </Style.Triggers>
+    </Style>
+    <Style x:Key="Fila.Periodo" TargetType="DataGridRow" BasedOn="{StaticResource Tabla.Fila}">
+      <Style.Triggers>
+        <DataTrigger Binding="{Binding Antigua}" Value="True">
+          <Setter Property="Foreground" Value="{StaticResource Pincel.Texto2}" />
+          <Setter Property="FontStyle" Value="Italic" />
+        </DataTrigger>
+      </Style.Triggers>
+    </Style>
+    <!-- Pastilla del estado del periodo -->
+    <DataTemplate x:Key="Plantilla.Estado">
+      <Border x:Name="Pastilla" CornerRadius="{StaticResource Radio.Pastilla}" Padding="8,1" HorizontalAlignment="Left" VerticalAlignment="Center"
+              Background="{StaticResource Pincel.Fondo}" ToolTip="{Binding AyudaEstado}">
+        <TextBlock x:Name="Texto" Text="{Binding Estado}" FontSize="{StaticResource Letra.Pequena}" FontWeight="SemiBold" Foreground="{StaticResource Pincel.Texto2}" />
+      </Border>
+      <DataTemplate.Triggers>
+        <DataTrigger Binding="{Binding ClaseEstado}" Value="CONTABILIZADA">
+          <Setter TargetName="Pastilla" Property="Background" Value="{StaticResource Pincel.VerdeSuave}" />
+          <Setter TargetName="Texto" Property="Foreground" Value="{StaticResource Pincel.Verde}" />
+        </DataTrigger>
+        <DataTrigger Binding="{Binding ClaseEstado}" Value="PENDIENTE">
+          <Setter TargetName="Pastilla" Property="Background" Value="{StaticResource Pincel.AzulSuave}" />
+          <Setter TargetName="Texto" Property="Foreground" Value="{StaticResource Pincel.Azul}" />
+        </DataTrigger>
+        <DataTrigger Binding="{Binding ClaseEstado}" Value="INCIDENCIAS">
+          <Setter TargetName="Pastilla" Property="Background" Value="{StaticResource Pincel.AvisoSuave}" />
+          <Setter TargetName="Texto" Property="Foreground" Value="{StaticResource Pincel.Aviso}" />
+        </DataTrigger>
+      </DataTemplate.Triggers>
+    </DataTemplate>
+    <ContextMenu x:Key="Menu.Periodos">
+      <MenuItem Header="Contabilizar" Command="{Binding ContabilizarCommand}" ToolTip="{Binding AyudaContabilizar}" ToolTipService.ShowOnDisabled="True" InputGestureText="Ctrl+E" />
+      <MenuItem Header="Deshacer la contabilización…" Command="{Binding DeshacerCommand}" ToolTip="{Binding AyudaDeshacer}" ToolTipService.ShowOnDisabled="True" />
+      <MenuItem Header="Reemplazar con otro fichero…" Command="{Binding ReemplazarCommand}" ToolTip="{Binding AyudaReemplazar}" ToolTipService.ShowOnDisabled="True" />
+      <Separator />
+      <MenuItem Header="Ver los asientos" Command="{Binding VerAsientosCommand}" ToolTip="Abre los asientos de los periodos elegidos (doble clic en una nómina: el suyo)" ToolTipService.ShowOnDisabled="True" />
+      <MenuItem Header="Abrir el correo de origen" Command="{Binding AbrirCorreoCommand}" ToolTip="Abre la pantalla de correo recibido, donde está el mensaje con el Excel (solo si llegó por correo)" ToolTipService.ShowOnDisabled="True" />
+      <Separator />
+      <MenuItem Header="Importar fichero…" Command="{Binding ImportarCommand}" ToolTip="Elige el Excel de nóminas de la gestoría e impórtalo (también puedes soltarlo en la pantalla)" />
+      <MenuItem Header="Exportar a Excel" Click="ExportarPeriodos_Click" ToolTip="Guarda en Excel la lista de periodos que se ve, con las mismas columnas" />
+      <MenuItem Header="Actualizar" Command="{Binding RefrescarCommand}" InputGestureText="F5" ToolTip="Vuelve a leer las nóminas del ejercicio" />
+    </ContextMenu>
+    <ContextMenu x:Key="Menu.Nominas">
+      <MenuItem Header="Abrir la ficha del empleado" Command="{Binding AbrirFichaCommand}" ToolTip="Abre la ficha del tercero, en su pestaña Nóminas. Si no se puede, primero resuelve el trabajador" ToolTipService.ShowOnDisabled="True" />
+      <MenuItem Header="Ver el asiento" Command="{Binding VerAsientoCommand}" InputGestureText="Doble clic" ToolTip="Abre el asiento de la nómina (si ya está contabilizada)" ToolTipService.ShowOnDisabled="True" />
+      <MenuItem Header="Resolver trabajador…" Command="{Binding ResolverCommand}" ToolTip="Asigna la nómina a un tercero existente o da de alta el empleado (solo si no se ha reconocido)" ToolTipService.ShowOnDisabled="True" />
+      <Separator />
+      <MenuItem Header="Exportar a Excel" Click="ExportarNominas_Click" ToolTip="Guarda en Excel las nóminas del periodo, con las mismas columnas" />
+    </ContextMenu>
+  </UserControl.Resources>
+  <UserControl.InputBindings>
+    <KeyBinding Key="F5" Command="{Binding RefrescarCommand}" />
+    <KeyBinding Key="E" Modifiers="Ctrl" Command="{Binding ContabilizarCommand}" />
+  </UserControl.InputBindings>
+
+  <DockPanel>
+    <!-- Cabecera -->
+    <Border DockPanel.Dock="Top" BorderBrush="{StaticResource Pincel.Linea}" BorderThickness="0,0,0,1" Padding="14,8">
+      <DockPanel>
+        <Button DockPanel.Dock="Right" Content="Importar fichero…" Style="{StaticResource Boton.Primario}" Command="{Binding ImportarCommand}" pc:Iconos.Icono="{StaticResource Icono.xls}"
+                AutomationProperties.Name="Importar fichero" VerticalAlignment="Center"
+                ToolTip="Elige el Excel de nóminas de la gestoría e impórtalo. También puedes soltarlo en esta pantalla; los que llegan por correo se importan solos" />
+        <TextBlock DockPanel.Dock="Right" Text="Suelta aquí el Excel de la gestoría" Style="{StaticResource Texto.Apagado}" VerticalAlignment="Center" Margin="0,0,12,0" />
+        <StackPanel Orientation="Horizontal">
+          <TextBlock Text="Nóminas" Style="{StaticResource Texto.TituloPantalla}" VerticalAlignment="Center" Margin="0,0,12,0" />
+          <TextBlock Text="{Binding Subtitulo}" Style="{StaticResource Texto.Apagado}" VerticalAlignment="Center" />
+        </StackPanel>
+      </DockPanel>
+    </Border>
+
+    <!-- Filtros -->
+    <Border DockPanel.Dock="Top" BorderBrush="{StaticResource Pincel.Linea}" BorderThickness="0,0,0,1" Padding="14,7">
+      <StackPanel>
+        <StackPanel Orientation="Horizontal">
+          <TextBlock Text="Resumen por periodo" Style="{StaticResource Texto.Seccion}" VerticalAlignment="Center" Margin="0,0,14,0" />
+          <Border Style="{StaticResource Segmentado}" Margin="0,0,14,0" VerticalAlignment="Center">
+            <StackPanel Orientation="Horizontal">
+              <RadioButton Style="{StaticResource Segmento}" Content="Todas" IsChecked="{Binding FiltroTodas}" ToolTip="Todos los periodos del ejercicio" />
+              <RadioButton Style="{StaticResource Segmento}" Content="Pendientes" IsChecked="{Binding FiltroPendientes}" ToolTip="Periodos sin contabilizar: pendientes o con trabajadores sin resolver" />
+              <RadioButton Style="{StaticResource Segmento}" Content="Contabilizadas" IsChecked="{Binding FiltroContabilizadas}" ToolTip="Periodos con sus asientos generados" />
+            </StackPanel>
+          </Border>
+          <CheckBox Content="Ver versiones reemplazadas" IsChecked="{Binding VerAntiguas}" VerticalAlignment="Center"
+                    ToolTip="Muestra también las versiones sustituidas por otra del mismo periodo y las importaciones deshechas (en cursiva, solo consulta)" />
+        </StackPanel>
+        <pc:Nota Tipo="Aviso" Margin="0,8,0,0" Visibility="{Binding HayIncidencia, Converter={StaticResource Visible}}">
+          <DockPanel>
+            <Button DockPanel.Dock="Right" Content="Resolver…" Style="{StaticResource Boton.Pequeno}" Command="{Binding ResolverPrimeroCommand}" Margin="12,0,0,0" VerticalAlignment="Center"
+                    ToolTip="Resuelve uno a uno los trabajadores sin reconocer de ese periodo y, al terminar, te ofrece contabilizarlo" />
+            <TextBlock Text="{Binding TextoIncidencia}" TextWrapping="Wrap" VerticalAlignment="Center" />
+          </DockPanel>
+        </pc:Nota>
+      </StackPanel>
+    </Border>
+
+    <!-- Pie -->
+    <Border DockPanel.Dock="Bottom" Style="{StaticResource Barra.Pie}">
+      <DockPanel>
+        <TextBlock DockPanel.Dock="Right" Style="{StaticResource Texto.Apagado}" VerticalAlignment="Center"
+                   Text="Clic derecho: acciones · Ctrl o Mayús: varios periodos · Doble clic en una nómina: su asiento" />
+        <TextBlock Text="{Binding Resumen}" FontWeight="SemiBold" VerticalAlignment="Center" />
+      </DockPanel>
+    </Border>
+
+    <Grid>
+      <Grid.RowDefinitions>
+        <RowDefinition Height="*" MinHeight="150" />
+        <RowDefinition Height="Auto" />
+        <RowDefinition Height="1.2*" MinHeight="170" />
+      </Grid.RowDefinitions>
+
+      <pc:VistaEstado Estado="{Binding Estado}" Titulo="{Binding TituloEstado}" Mensaje="{Binding MensajeEstado}" TextoAccion="Importar fichero…" ComandoAccion="{Binding ImportarCommand}"
+                      ContextMenu="{StaticResource Menu.Periodos}">
+        <pc:TablaProConta x:Name="TablaPeriodos" ItemsSource="{Binding Importaciones}" ClavePreferencias="nominas.periodos" TituloExportacion="Nóminas por periodo"
+                          IsReadOnly="True" SelectionMode="Extended" SelectionUnit="FullRow" AutomationProperties.Name="Periodos de nóminas"
+                          RowStyle="{StaticResource Fila.Periodo}" ContextMenu="{StaticResource Menu.Periodos}"
+                          SelectionChanged="Periodos_SelectionChanged" PreviewMouseRightButtonDown="Periodos_PreviewMouseRightButtonDown">
+          <pc:TablaProConta.Columns>
+            <DataGridTemplateColumn Header="Periodo" SortMemberPath="PeriodoOrden" Width="150" pc:TablaProConta.Clave="periodo" pc:TablaProConta.RutaExportar="Periodo"
+                                    pc:TablaProConta.Ayuda="Mes de la nómina; «v2», «v3»… si es otra versión del fichero de ese mes">
+              <DataGridTemplateColumn.CellTemplate>
+                <DataTemplate>
+                  <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="8,0">
+                    <TextBlock Text="{Binding Periodo}" />
+                    <Border Background="{StaticResource Pincel.Fondo}" CornerRadius="{StaticResource Radio.Pequeno}" Padding="5,0" Margin="6,0,0,0"
+                            Visibility="{Binding Version, Converter={StaticResource Visible}}" ToolTip="Versión del fichero de este periodo y paga">
+                      <TextBlock Text="{Binding Version}" FontSize="{StaticResource Letra.Pequena}" Style="{StaticResource Texto.Mono}" />
+                    </Border>
+                  </StackPanel>
+                </DataTemplate>
+              </DataGridTemplateColumn.CellTemplate>
+            </DataGridTemplateColumn>
+            <DataGridTextColumn Header="Tipo de paga" Binding="{Binding TipoPaga}" Width="110" ElementStyle="{StaticResource Celda.Paga}" pc:TablaProConta.Clave="paga" />
+            <DataGridTextColumn Header="Fecha" Binding="{Binding Fecha}" SortMemberPath="FechaOrden" Width="92" ElementStyle="{StaticResource Texto.Celda.Mono}" pc:TablaProConta.Clave="fecha"
+                                pc:TablaProConta.Ayuda="Fecha de la nómina: la de cobro del fichero o, si no viene, el último día del periodo. Es la fecha de sus asientos" />
+            <DataGridTextColumn Header="Origen" Binding="{Binding Origen}" Width="90" ElementStyle="{StaticResource Celda.Origen}" pc:TablaProConta.Clave="origen" />
+            <DataGridTextColumn Header="Trab." Binding="{Binding Trabajadores}" SortMemberPath="TrabajadoresOrden" Width="56" ElementStyle="{StaticResource Texto.Celda.Importe}"
+                                HeaderStyle="{StaticResource Tabla.Cabecera.Derecha}" pc:TablaProConta.Clave="trabajadores" pc:TablaProConta.Ayuda="Número de nóminas (trabajadores) del periodo" />
+            <DataGridTextColumn Header="Bruto" Binding="{Binding Bruto}" SortMemberPath="BrutoOrden" Width="108" ElementStyle="{StaticResource Texto.Celda.Importe}"
+                                HeaderStyle="{StaticResource Tabla.Cabecera.Derecha}" pc:TablaProConta.Clave="bruto" />
+            <DataGridTextColumn Header="SS empresa" Binding="{Binding SSEmp}" SortMemberPath="SSEmpOrden" Width="104" ElementStyle="{StaticResource Texto.Celda.Importe}"
+                                HeaderStyle="{StaticResource Tabla.Cabecera.Derecha}" pc:TablaProConta.Clave="ssemp" />
+            <DataGridTextColumn Header="IRPF" Binding="{Binding Irpf}" SortMemberPath="IrpfOrden" Width="96" ElementStyle="{StaticResource Texto.Celda.Importe}"
+                                HeaderStyle="{StaticResource Tabla.Cabecera.Derecha}" pc:TablaProConta.Clave="irpf" />
+            <DataGridTextColumn Header="Neto" Binding="{Binding Neto}" SortMemberPath="NetoOrden" Width="108" ElementStyle="{StaticResource Texto.Celda.Importe}"
+                                HeaderStyle="{StaticResource Tabla.Cabecera.Derecha}" pc:TablaProConta.Clave="neto" />
+            <DataGridTextColumn Header="Coste empresa" Binding="{Binding Coste}" SortMemberPath="CosteOrden" Width="112" ElementStyle="{StaticResource Texto.Celda.Importe}"
+                                HeaderStyle="{StaticResource Tabla.Cabecera.Derecha}" pc:TablaProConta.Clave="coste" />
+            <DataGridTemplateColumn Header="Estado" SortMemberPath="Estado" Width="140" CellTemplate="{StaticResource Plantilla.Estado}" pc:TablaProConta.Clave="estado" pc:TablaProConta.RutaExportar="Estado" />
+            <DataGridTextColumn Header="Asientos" Binding="{Binding Asientos}" Width="*" MinWidth="70" ElementStyle="{StaticResource Texto.Celda.Importe}"
+                                HeaderStyle="{StaticResource Tabla.Cabecera.Derecha}" pc:TablaProConta.Clave="asientos" pc:TablaProConta.Ayuda="Número de asientos generados por el periodo" />
+          </pc:TablaProConta.Columns>
+        </pc:TablaProConta>
+      </pc:VistaEstado>
+
+      <GridSplitter Grid.Row="1" Height="5" HorizontalAlignment="Stretch" VerticalAlignment="Center" Background="{StaticResource Pincel.Linea}" ResizeBehavior="PreviousAndNext"
+                    ToolTip="Arrastra para repartir el alto entre los periodos y sus nóminas" />
+
+      <!-- Detalle del periodo -->
+      <DockPanel Grid.Row="2">
+        <Border DockPanel.Dock="Top" Padding="14,8,14,6">
+          <DockPanel>
+            <TextBlock DockPanel.Dock="Right" Text="Clic derecho: ficha del empleado, ver asiento, resolver" Style="{StaticResource Texto.Apagado}" VerticalAlignment="Center" />
+            <TextBlock Text="{Binding TituloDetalle}" Style="{StaticResource Texto.Seccion}" VerticalAlignment="Center" />
+          </DockPanel>
+        </Border>
+        <Border DockPanel.Dock="Bottom" BorderBrush="{StaticResource Pincel.Linea}" BorderThickness="0,1,0,0" Padding="14,6" Visibility="{Binding HayActual, Converter={StaticResource Visible}}">
+          <StackPanel>
+            <WrapPanel>
+              <TextBlock Text="Total" FontWeight="SemiBold" Margin="0,0,16,0" />
+              <TextBlock Text="Bruto " Style="{StaticResource Texto.Apagado}" />
+              <TextBlock Text="{Binding TotalBruto}" Style="{StaticResource Texto.Importe}" FontWeight="SemiBold" Margin="0,0,16,0" />
+              <TextBlock Text="IRPF " Style="{StaticResource Texto.Apagado}" />
+              <TextBlock Text="{Binding TotalIrpf}" Style="{StaticResource Texto.Importe}" FontWeight="SemiBold" Margin="0,0,16,0" />
+              <TextBlock Text="Neto " Style="{StaticResource Texto.Apagado}" />
+              <TextBlock Text="{Binding TotalNeto}" Style="{StaticResource Texto.Importe}" FontWeight="SemiBold" Margin="0,0,16,0" />
+              <TextBlock Text="Coste empresa " Style="{StaticResource Texto.Apagado}" />
+              <TextBlock Text="{Binding TotalCoste}" Style="{StaticResource Texto.Importe}" FontWeight="SemiBold" />
+            </WrapPanel>
+            <TextBlock Text="{Binding PieDetalle}" Style="{StaticResource Texto.Apagado}" TextWrapping="Wrap" Margin="0,3,0,0" />
+          </StackPanel>
+        </Border>
+        <pc:TablaProConta x:Name="TablaNominas" ItemsSource="{Binding Nominas}" SelectedItem="{Binding Nomina}" ClavePreferencias="nominas.detalle" TituloExportacion="Nóminas del periodo"
+                          IsReadOnly="True" SelectionMode="Single" AutomationProperties.Name="Nóminas del periodo" HorizontalScrollBarVisibility="Auto"
+                          ContextMenu="{StaticResource Menu.Nominas}" MouseDoubleClick="Nominas_MouseDoubleClick">
+          <pc:TablaProConta.Columns>
+            <DataGridTemplateColumn Header="Trabajador" SortMemberPath="Trabajador" Width="*" MinWidth="220" pc:TablaProConta.Clave="trabajador" pc:TablaProConta.RutaExportar="Trabajador">
+              <DataGridTemplateColumn.CellTemplate>
+                <DataTemplate>
+                  <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="8,0" ToolTip="{Binding AyudaTrabajador}">
+                    <Border Background="{StaticResource Pincel.AvisoSuave}" CornerRadius="{StaticResource Radio.Pastilla}" Padding="7,0" Margin="0,0,6,0"
+                            Visibility="{Binding SinResolver, Converter={StaticResource Visible}}">
+                      <TextBlock Text="Sin resolver" FontSize="{StaticResource Letra.Pequena}" FontWeight="SemiBold" Foreground="{StaticResource Pincel.Aviso}" />
+                    </Border>
+                    <TextBlock Text="{Binding Trabajador}" />
+                  </StackPanel>
+                </DataTemplate>
+              </DataGridTemplateColumn.CellTemplate>
+            </DataGridTemplateColumn>
+            <DataGridTextColumn Header="Código" Binding="{Binding Codigo}" Width="80" ElementStyle="{StaticResource Texto.Celda.Mono}" pc:TablaProConta.Clave="codigo"
+                                pc:TablaProConta.Ayuda="Código del trabajador en la gestoría" />
+            <DataGridTextColumn Header="Cuenta 465" Binding="{Binding Cuenta}" Width="92" ElementStyle="{StaticResource Texto.Celda.Mono}" pc:TablaProConta.Clave="cuenta"
+                                pc:TablaProConta.Ayuda="Cuenta de remuneraciones pendientes del empleado en el ejercicio" />
+            <DataGridTextColumn Header="Bruto" Binding="{Binding Bruto}" SortMemberPath="BrutoOrden" Width="100" ElementStyle="{StaticResource Texto.Celda.Importe}"
+                                HeaderStyle="{StaticResource Tabla.Cabecera.Derecha}" pc:TablaProConta.Clave="bruto" />
+            <DataGridTextColumn Header="Dto. especie" Binding="{Binding DtoEspecie}" Width="96" ElementStyle="{StaticResource Texto.Celda.Importe}"
+                                HeaderStyle="{StaticResource Tabla.Cabecera.Derecha}" pc:TablaProConta.Clave="especie" pc:TablaProConta.Ayuda="Descuento por retribución en especie" />
+            <DataGridTextColumn Header="SS empresa" Binding="{Binding SSEmp}" Width="96" ElementStyle="{StaticResource Texto.Celda.Importe}"
+                                HeaderStyle="{StaticResource Tabla.Cabecera.Derecha}" pc:TablaProConta.Clave="ssemp" />
+            <DataGridTextColumn Header="Cuotas obreras" Binding="{Binding CuotasObreras}" Width="104" ElementStyle="{StaticResource Texto.Celda.Importe}"
+                                HeaderStyle="{StaticResource Tabla.Cabecera.Derecha}" pc:TablaProConta.Clave="cuotas" pc:TablaProConta.Ayuda="Seguridad Social a cargo del trabajador" />
+            <DataGridTextColumn Header="Autónomo" Binding="{Binding Autonomo}" Width="92" ElementStyle="{StaticResource Texto.Celda.Importe}"
+                                HeaderStyle="{StaticResource Tabla.Cabecera.Derecha}" pc:TablaProConta.Clave="autonomo" pc:TablaProConta.Ayuda="Cuota de autónomo descontada" />
+            <DataGridTextColumn Header="IRPF" Binding="{Binding Irpf}" Width="92" ElementStyle="{StaticResource Texto.Celda.Importe}"
+                                HeaderStyle="{StaticResource Tabla.Cabecera.Derecha}" pc:TablaProConta.Clave="irpf" />
+            <DataGridTextColumn Header="Neto" Binding="{Binding Neto}" SortMemberPath="NetoOrden" Width="100" ElementStyle="{StaticResource Texto.Celda.Importe}"
+                                HeaderStyle="{StaticResource Tabla.Cabecera.Derecha}" pc:TablaProConta.Clave="neto" />
+            <DataGridTextColumn Header="Coste empresa" Binding="{Binding Coste}" Width="108" ElementStyle="{StaticResource Texto.Celda.Importe}"
+                                HeaderStyle="{StaticResource Tabla.Cabecera.Derecha}" pc:TablaProConta.Clave="coste" />
+            <DataGridTextColumn Header="Cuadre" Binding="{Binding Cuadre}" Width="70" ElementStyle="{StaticResource Celda.Cuadre}"
+                                HeaderStyle="{StaticResource Tabla.Cabecera.Derecha}" pc:TablaProConta.Clave="cuadre" pc:TablaProConta.Ayuda="✓ si el neto cuadra con el bruto menos las deducciones; si no, la diferencia" />
+            <DataGridTextColumn Header="Asiento" Binding="{Binding Asiento}" Width="72" ElementStyle="{StaticResource Texto.Celda.Importe}"
+                                HeaderStyle="{StaticResource Tabla.Cabecera.Derecha}" pc:TablaProConta.Clave="asiento" pc:TablaProConta.Ayuda="Asiento de la nómina. Doble clic: verlo" />
+          </pc:TablaProConta.Columns>
+        </pc:TablaProConta>
+      </DockPanel>
+    </Grid>
+  </DockPanel>
+</UserControl>

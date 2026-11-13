@@ -71,6 +71,24 @@ public class CambiosFichaTests
     }
 
     [Fact]
+    public void ElRolEmpleadoSuCodigoYSu465SeCuentanEnRoles()
+    {
+        var original = Base();
+        original.CuentasRoles = new CuentasRolesFicha("T01");
+        var editada = original.Clonar();
+        editada.Roles.Empleado = new RolEmpleado("T01") { CodigoTrabajador = "000123" };
+        editada.CuentasRoles!.Empleado = 77;
+        var cambios = CambiosFicha.Comparar(original, editada);
+        Assert.Contains(cambios, c => c.Pestana == PestanaFicha.Roles && c.Descripcion == "Rol Empleado activado");
+        Assert.Contains(cambios, c => c.Pestana == PestanaFicha.Roles && c.Descripcion.StartsWith("Empleado · Código en la gestoría"));
+        Assert.Contains(cambios, c => c.Pestana == PestanaFicha.Roles && c.Descripcion == "Cuenta 465 del empleado");
+
+        var deBaja = editada.Clonar();
+        deBaja.Roles.Empleado!.Activo = false;
+        Assert.Contains(CambiosFicha.Comparar(editada, deBaja), c => c.Descripcion == "Rol Empleado desactivado");
+    }
+
+    [Fact]
     public void DeshacerAManoElCambioLoQuitaDeLaLista()
     {
         var original = Base();

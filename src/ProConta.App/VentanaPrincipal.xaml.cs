@@ -71,6 +71,7 @@ public partial class VentanaPrincipal : Window
     private readonly ModuloCorreo _correo;
     private readonly ProConta.Norma43.UI.VistaModelos.ModuloBancos _bancos;
     private readonly ProConta.Norma43.UI.VistaModelos.ModuloLineasN43 _lineasN43;
+    private readonly ProConta.Nominas.UI.VistaModelos.ModuloNominas _nominas;
     private readonly CoordinadorCorreo _coordinadorCorreo;
     private static readonly System.Net.Http.HttpClient Http = new() { Timeout = TimeSpan.FromSeconds(15) };
     private readonly Func<PantallaMantenimientoVM> _crearMantenimiento;
@@ -197,8 +198,24 @@ public partial class VentanaPrincipal : Window
                 VerAsiento = id => _mayor.VerAsientoAsync(id),
             },
             _area, new ProConta.Norma43.UI.Vistas.DialogosLineasN43(cuentas, () => this));
+        // Nóminas (nominas y nominas/pantallas): pantalla por periodo, pestaña Nóminas de la ficha del empleado y Excel recibidos por correo.
+        var importacionNominas = new ProConta.Nominas.Importacion.ServicioImportacionNominas(bd);
+        var contabilizacionNominas = new ProConta.Nominas.Contabilizacion.ServicioContabilizacionNominas(bd);
+        var consultaNominas = new ProConta.Nominas.Consulta.ConsultaNominas(bd);
+        var contextoNominas = new ProConta.Nominas.UI.VistaModelos.ContextoNominas(contexto.Contexto, contexto.RazonSocial, new Actor(sesion.NombreOperador), Avisar)
+        {
+            AbrirFicha = id => _terceros.AbrirFicha(id, ProConta.Terceros.UI.Logica.PestanaFicha.Nominas),
+            VerAsiento = id => _mayor.VerAsientoAsync(id),
+            AbrirCorreoRecibido = () => _correo.AbrirRecibido(),
+        };
+        _nominas = new ProConta.Nominas.UI.VistaModelos.ModuloNominas(
+            new ProConta.Nominas.UI.VistaModelos.ServiciosNominas(consultaNominas, importacionNominas, contabilizacionNominas,
+                new ProConta.Terceros.Roles.ServicioEmpleados(bd, cuentas, new RepositorioTercerosAccess(bd), new Actor(sesion.NombreOperador))),
+            contextoNominas, _area, new ProConta.Nominas.UI.Vistas.DialogosNominas(() => this));
+        _terceros.NominasEmbebidas = idTercero => ProConta.Nominas.UI.VistaModelos.NominasEmpleadoVM.CrearAsync(consultaNominas, contextoNominas, idTercero, id => _nominas.Abrir(id));
         _coordinadorCorreo.Recepcion = new ServicioRecepcionCorreo(bd, new ClientePop3MailKit(), servicioCorreo, new ProcesadorFacturasCompraCorreo(bd, facturasCompra, contabilizadorCompras),
-            extractos: new ProConta.Norma43.Importacion.ProcesadorExtractosCorreo(importacionN43));
+            extractos: new ProConta.Norma43.Importacion.ProcesadorExtractosCorreo(importacionN43),
+            nominas: new ProConta.Nominas.Correo.ProcesadorNominasCorreo(importacionNominas, contabilizacionNominas));
         _coordinadorCorreo.Iniciar();
         Closed += async (_, _) => await _coordinadorCorreo.DisposeAsync();
         _ = AvisarDesvioCorreoAsync(servicioCorreo);
@@ -220,7 +237,6 @@ public partial class VentanaPrincipal : Window
         _crearImportacionContaSol = () => new PestanaImportarContaSol(importadorContaSol, new Actor(sesion.NombreOperador),
             () => autorizador.PuedeAsync(Acciones.MantenimientoEditar), () => this, Avisar);
 
-        const string proxima = "Aún no está disponible en esta versión: llegará con las pantallas de su área.";
         Geometry? Icono(string clave) => TryFindResource("Icono." + clave) as Geometry;
         var irAInicio = new ComandoDelegado(() => _area.Activar(_area.Lista[0].Pantalla));
         var abrirTerceros = new ComandoDelegado(_terceros.AbrirBuscador);
@@ -265,7 +281,9 @@ public partial class VentanaPrincipal : Window
             new OpcionNavegacion("Líneas N43", null, true, false,
                 "Movimientos bancarios importados: su cuenta de destino, asiento y palabras clave, con filtros y todas las acciones en el menú contextual",
                 new ComandoDelegado(() => _lineasN43.Abrir()), EsHija: true),
-            new OpcionNavegacion("Nóminas", Icono("coin"), false, false, proxima),
+            new OpcionNavegacion("Nóminas", Icono("coin"), true, false,
+                "Nóminas del ejercicio por mes y paga: importar el Excel de la gestoría (o el que llega por correo), resolver trabajadores, contabilizar, deshacer y reemplazar",
+                new ComandoDelegado(() => _nominas.Abrir())),
             new OpcionNavegacion("Informes", Icono("xls"), true, false, "Informes del ejercicio de trabajo en Excel, con tabla dinámica", balanceSituacion),
             new OpcionNavegacion("Balance de situación", null, true, false,
                 "Genera en Excel el balance de situación del ejercicio de trabajo (PGC Pymes 2008): tabla dinámica por bloque, apartado, título, cuenta y subcuenta, con los meses en columnas y filtros por centro de coste y departamento, y lo abre",

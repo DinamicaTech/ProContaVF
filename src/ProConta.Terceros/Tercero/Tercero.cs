@@ -191,6 +191,8 @@ public sealed class Tercero
             if (contacto.Cargo is { Length: > 100 }) errores.Add(new Error("Roles.CargoLargo", "El cargo del contacto tiene más de 100 caracteres.", registro, "No cabe.", "Acórtalo."));
             if (contacto.Departamento is { Length: > 100 }) errores.Add(new Error("Roles.DepartamentoLargo", "El departamento del contacto tiene más de 100 caracteres.", registro, "No cabe.", "Acórtalo."));
         }
+        if (Roles.Empleado?.CodigoTrabajador is { Length: > 30 })
+            errores.Add(new Error("Empleados.CodigoLargo", "El código del trabajador tiene más de 30 caracteres.", registro, "No cabe.", "Escribe el código que usa la gestoría."));
         foreach (var grupo in ContactosLibres.Where(g => string.IsNullOrWhiteSpace(g.Nombre)))
             errores.Add(new Error("Contactos.SinNombre", "Un contacto libre no tiene nombre.", registro,
                 "El nombre de la persona de contacto es obligatorio.", "Escribe su nombre o quita el contacto."));

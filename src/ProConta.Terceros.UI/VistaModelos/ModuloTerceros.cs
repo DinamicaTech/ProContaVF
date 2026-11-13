@@ -40,6 +40,12 @@ public sealed class ModuloTerceros
     /// </summary>
     public Func<IReadOnlyList<string>, object>? MayorEmbebido { get; set; }
 
+    /// <summary>
+    /// Pestaña Nóminas (nominas/pantallas): crea su contenido para el tercero si es empleado de la sociedad activa, o null (la
+    /// pestaña no se ve). Lo conecta el contenedor.
+    /// </summary>
+    public Func<int, Task<object?>>? NominasEmbebidas { get; set; }
+
     public int NumeroFichas => _fichas.Count;
 
     public IReadOnlySet<int> IdsAbiertos() => _fichas.Where(f => f.Clave > 0).Select(f => f.Clave).ToHashSet();
@@ -60,10 +66,15 @@ public sealed class ModuloTerceros
 
     internal void BuscadorCerrado() => _buscador = null;
 
-    public void AbrirFicha(int idTercero)
+    public void AbrirFicha(int idTercero) => AbrirFicha(idTercero, null);
+
+    /// <param name="pestana">Pestaña en la que se abre la ficha (null, la que tuviera).</param>
+    public void AbrirFicha(int idTercero, PestanaFicha? pestana)
     {
         var ficha = Preparar(idTercero);
-        if (ficha is not null) _ = ficha.CargarAsync(idTercero);
+        if (ficha is null) return;
+        if (pestana is { } p) ficha.PestanaActiva = (int)p;
+        _ = ficha.CargarAsync(idTercero);
     }
 
     /// <param name="rol">«cliente», «proveedor», «contacto» o null (tercero sin rol).</param>
