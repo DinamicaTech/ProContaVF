@@ -86,7 +86,35 @@ public sealed class ServicioImportacionNominas(IBaseDatos bd, IReloj? reloj = nu
 
     private readonly IReloj _reloj = reloj ?? RelojSistema.Instancia;
 
-    public static string Huella(byte[] contenido) => Convert.ToHexString(SHA256.HashData(contenido));
+    /// <summary>
+    /// Huella del contenido de la hoja, no de los bytes del fichero: el mismo Excel guardado otra vez (con otra fecha
+    /// de guardado o en otro formato) da la misma huella y sale como «ya importado». Si no se puede leer, la de los bytes.
+    /// </summary>
+    public static string Huella(byte[] contenido)
+    {
+        var (filas, error) = LectorExcelNominas.LeerCeldas(contenido);
+        if (error is not null) return Convert.ToHexString(SHA256.HashData(contenido));
+        var sb = new System.Text.StringBuilder();
+        var lineas = filas.Select(f =>
+        {
+            var celdas = f.Select(Celda).ToList();
+            while (celdas.Count > 0 && celdas[^1].Length == 0) celdas.RemoveAt(celdas.Count - 1);
+            return string.Join("\u001F", celdas);
+        }).ToList();
+        while (lineas.Count > 0 && lineas[^1].Length == 0) lineas.RemoveAt(lineas.Count - 1);
+        foreach (var l in lineas) sb.Append(l).Append('\u001E');
+        return Convert.ToHexString(SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(sb.ToString())));
+
+        static string Celda(object? v) => v switch
+        {
+            null => "",
+            string t => t.Trim(),
+            DateTime d => d.ToString("O", System.Globalization.CultureInfo.InvariantCulture),
+            double n => Math.Round((decimal)n, 6).ToString(System.Globalization.CultureInfo.InvariantCulture),
+            IFormattable f => f.ToString(null, System.Globalization.CultureInfo.InvariantCulture),
+            _ => v.ToString()?.Trim() ?? "",
+        };
+    }
 
     /// <summary>Lee el fichero y dice qué pasaría al importarlo, sin escribir nada.</summary>
     public Task<AnalisisNominas> AnalizarAsync(ContextoSociedadEjercicio ctx, byte[] contenido, IReadOnlyList<AliasNuevo>? alias = null) =>
