@@ -162,6 +162,31 @@ public sealed class ImportadorAccessTests : IDisposable
         Assert.Equal(2, await ContarAsync("SELECT COUNT(*) FROM RegistroCambiosApuntes WHERE Operacion = 'BAJA' AND Campo = 'Asiento'"));
     }
 
+    /// <summary>
+    /// Subcuentas del 0 % con terminación 000 (organizacion/sociedades-ejercicios 2026-11-13 20:55) y parada de todos los
+    /// ejercicios si la antigua del 16 % (4770000) tiene apuntes en alguno.
+    /// </summary>
+    [Fact]
+    public async Task ElIvaDelCeroSeImportaEn000YLaAntiguaDel16ConApuntesDetieneTodo()
+    {
+        var conCero = Ejercicio2024();
+        conCero.Cuentas.AddRange([("4770001", "IVA repercutido 0"), ("4720000", "IVA soportado 16")]);
+        conCero.Asiento(4, new DateTime(2024, 6, 1), "Venta exenta", ("4300001", 50m, 0m), ("7000001", 0m, 50m), ("4770001", 0m, 0m));
+        var r = Assert.Single(await ImportarAsync(await conCero.CrearAsync(_carpeta)));
+        Assert.True(r.Bloqueantes == 0, string.Join(Environment.NewLine, r.Incidencias.Where(i => i.Severidad == Severidad.Bloqueante).Select(i => i.Explicacion)));
+        Assert.Equal(1, await ContarAsync("SELECT COUNT(*) FROM CuentasContables WHERE Codigo = '4770000'"));
+        Assert.Equal(0, await ContarAsync("SELECT COUNT(*) FROM CuentasContables WHERE Codigo IN ('4770001', '4720000')"));
+
+        var con16 = Ejercicio2025();
+        con16.Asiento(3, new DateTime(2025, 4, 1), "Venta al 16 % mal contabilizada", ("4300001", 116m, 0m), ("7000001", 0m, 100m), ("4770000", 0m, 16m));
+        var otro = Ejercicio2024();
+        var resultado = await ImportarAsync(await con16.CrearAsync(_carpeta), await otro.CrearAsync(_carpeta));
+        Assert.All(resultado, x => Assert.Equal(EstadosImportacion.Fallida, x.Estado));
+        var parada = Assert.Single(resultado.SelectMany(x => x.Incidencias), i => i.Codigo == IvaCeroContaSol.CodigoIva16ConApuntes);
+        Assert.Contains("ejercicio 2025, la cuenta 4770000 tiene 1 apunte", parada.Explicacion);
+        Assert.Equal(0, await ContarAsync("SELECT COUNT(*) FROM SociedadesEjercicios WHERE Ejercicio = '2025'"));
+    }
+
     [Fact]
     public async Task OtraEmpresaConElMismoCodigoNoSeImporta()
     {

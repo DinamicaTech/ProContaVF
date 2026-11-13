@@ -106,12 +106,13 @@ public sealed class OrganizacionAccessTests : IDisposable
         Assert.True((await catalogo.ObtenerAsync(alta.Valor.Id))!.Sepa);
 
         await DatosSinteticos.SociedadAsync(bd, "T01", "Sociedad sintética");
-        await bd.EjecutarAsync(s => s.EjecutarAsync("UPDATE Sociedades SET FormaPagoDefecto = ? WHERE IdSociedad = ?", (int)alta.Valor.Id, "T01"));
+        await DatosSinteticos.EjercicioAsync(bd, 9001, "T01", 2026);
+        await bd.EjecutarAsync(s => s.EjecutarAsync("UPDATE SociedadesEjercicios SET FormaPagoDefecto = ? WHERE IdSociedadEjercicio = ?", (int)alta.Valor.Id, 9001));
         var enUso = await catalogo.BajaAsync(alta.Valor.Id);
         Assert.Equal("FormasPago.EnUso", enUso.Error!.Codigo);
-        Assert.Contains("1 sociedades", enUso.Error.Causa);
+        Assert.Contains("1 ejercicios de sociedad", enUso.Error.Causa);
 
-        await bd.EjecutarAsync(s => s.EjecutarAsync("UPDATE Sociedades SET FormaPagoDefecto = NULL"));
+        await bd.EjecutarAsync(s => s.EjecutarAsync("UPDATE SociedadesEjercicios SET FormaPagoDefecto = NULL"));
         Assert.True((await catalogo.BajaAsync(alta.Valor.Id)).EsCorrecto);
         Assert.Null(await catalogo.ObtenerAsync(alta.Valor.Id));
     }

@@ -463,19 +463,20 @@ public sealed class ContabilizacionComprasAccessTests : IDisposable
     }
 
     [Fact]
-    public async Task Sin_cuenta_de_gasto_o_con_la_cuenta_de_iva_sin_configurar_no_exporta_nada()
+    public async Task Sin_cuenta_de_gasto_o_con_un_tipo_de_iva_sin_cuenta_calculable_no_exporta_nada()
     {
         await EmpresaAsync();
         var (f, _) = await FacturaAsync();
         f.CuentaGasto = null;
-        f.Desgloses.Add(new DesgloseFacturaCompra(3, 4m, 10m, 0.4m));
+        // La cuenta de IVA se calcula (4720 + porcentaje con tres cifras): un tipo con decimales no la tiene.
+        f.Desgloses.Add(new DesgloseFacturaCompra(3, 5.5m, 10m, 0.55m));
         f.BaseImponible = 160m;
-        f.CuotaIva = 26.4m;
-        f.ImporteTotal = 186.4m;
+        f.CuotaIva = 26.55m;
+        f.ImporteTotal = 186.55m;
         var c = await Servicio().ComprobarAsync(f);
         Assert.False(c.Lista);
         Assert.Contains(c.Errores, e => e.Mensaje.Contains("cuenta de gasto"));
-        Assert.Contains(c.Errores, e => e.Mensaje.Contains("IVA soportado del 4"));
+        Assert.Contains(c.Errores, e => e.Codigo == "Exportar.TipoSinCuenta" && e.Mensaje.Contains("5,5 %"));
         Assert.False((await Servicio().ExportarAsync(f, _actor, new OpcionesExportacion(EsProveedor: false))).EsCorrecto);
         Assert.Equal(0, await Contar("SELECT COUNT(*) FROM Asientos"));
     }

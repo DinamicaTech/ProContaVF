@@ -320,8 +320,9 @@ public sealed class ImportadorContaSol(IBaseDatos bd, IMotorAsientos motor, ICat
                 var id = await s.EscalarAsync("SELECT IdSociedadEjercicio FROM SociedadesEjercicios WHERE IdSociedad = ? AND Ejercicio = ?", Sociedad, anio);
                 if (id is null or DBNull)
                 {
-                    await s.EjecutarAsync("INSERT INTO SociedadesEjercicios (IdSociedad, Ejercicio, Nombre, CIF, Activa, EjercicioCerrado) VALUES (?, ?, ?, ?, ?, ?)",
-                        Sociedad, anio, Vacio(PlanificadorContaSol.Recortar(empresa.Nombre, 255)), Vacio(PlanificadorContaSol.Recortar(empresa.Nif, 10)), true, false);
+                    // Sin CIF: el emisor es siempre la empresa (organizacion/sociedades-ejercicios 2026-11-13 20:55).
+                    await s.EjecutarAsync("INSERT INTO SociedadesEjercicios (IdSociedad, Ejercicio, Nombre, Activa, EjercicioCerrado) VALUES (?, ?, ?, ?, ?)",
+                        Sociedad, anio, Vacio(PlanificadorContaSol.Recortar(empresa.Nombre, 255)), true, false);
                     id = await s.UltimoIdAsync();
                     Anotar("preparacion", "F_EMP", Sociedad, "EJEEMP", "ContaSol.EjercicioCreado", Severidad.Informativa, $"He dado de alta el ejercicio {anio} de la empresa {Sociedad}.");
                 }
