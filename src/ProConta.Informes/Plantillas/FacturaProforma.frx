@@ -113,8 +113,8 @@
         <TextObject Name="EtTotal" Left="495.12" Top="143.62" Width="132.28" Height="37.8" Text="TOTAL" Font="Segoe UI Semibold, 8pt" TextFill.Color="255, 255, 255" VertAlign="Center" WordWrap="false" Padding="0, 0, 0, 0" PrintOn="LastPage, SinglePage"/>
         <TextObject Name="Total" Left="566.93" Top="143.62" Width="158.74" Height="37.8" Text="[Factura.Total]" Font="Segoe UI Semibold, 12.5pt" TextFill.Color="255, 255, 255" HorzAlign="Right" VertAlign="Center" WordWrap="false" Padding="0, 0, 0, 0" PrintOn="LastPage, SinglePage"/>
         <TextObject Name="LineaPie" Left="56.69" Top="200.31" Width="680.31" Height="3.78" Border.Lines="Top" Border.Color="230, 224, 216" Border.Width="0.94"/>
-        <TextObject Name="PieEmisor" Left="56.69" Top="207.87" Width="529.13" Height="15.12" Text="[Factura.PieEmisor]" Font="Segoe UI, 6.8pt" TextFill.Color="138, 127, 116" WordWrap="false" Padding="0, 0, 0, 0"/>
-        <TextObject Name="Pagina" Left="585.83" Top="207.87" Width="151.18" Height="15.12" Text="Proforma sin validez fiscal · Página [Page] de [TotalPages#]" Font="Segoe UI, 6.8pt" TextFill.Color="138, 127, 116" HorzAlign="Right" WordWrap="false" Padding="0, 0, 0, 0"/>
+        <TextObject Name="PieEmisor" Left="56.69" Top="207.87" Width="434.65" Height="15.12" Text="[Factura.PieEmisor]" Font="Segoe UI, 6.8pt" TextFill.Color="138, 127, 116" WordWrap="false" Padding="0, 0, 0, 0"/>
+        <TextObject Name="Pagina" Left="491.34" Top="207.87" Width="245.67" Height="15.12" Text="Proforma sin validez fiscal · Página [Page] de [TotalPages#]" Font="Segoe UI, 6.8pt" TextFill.Color="138, 127, 116" HorzAlign="Right" WordWrap="false" Padding="0, 0, 0, 0"/>
     </PageFooterBand>
   </ReportPage>
 </Report>
