@@ -243,9 +243,12 @@ public sealed class ServicioContabilizacionNominas(IBaseDatos bd, IMotorAsientos
         var cerrado = originales.Any(a => a.FechaContable.Date < inicioActivo);
         var motivoLimpio = motivo.Trim();
 
+        // Las nóminas apuntan a sus asientos: se desenlazan antes de borrarlos (Antes) y la importación vuelve a pendiente al final (Despues).
+        async Task Desenlazar(ISesionDatos s, IReadOnlyList<int> _) =>
+            await s.EjecutarAsync("UPDATE Nominas SET IdAsiento = NULL WHERE IdImportacionNomina = ?", idImportacion);
+
         async Task<Resultado> Pendiente(ISesionDatos s)
         {
-            await s.EjecutarAsync("UPDATE Nominas SET IdAsiento = NULL WHERE IdImportacionNomina = ?", idImportacion);
             var n = await s.EjecutarAsync(
                 "UPDATE ImportacionesNomina SET Estado = ?, FechaHoraEstado = ?, OperadorEstado = ?, MotivoEstado = ? WHERE IdImportacionNomina = ? AND Estado = ?",
                 ServicioImportacionNominas.EstadoPendiente, Ahora(), Recortar(actor.ToString(), 100), motivoLimpio, idImportacion, ServicioImportacionNominas.EstadoContabilizada);
@@ -255,7 +258,7 @@ public sealed class ServicioContabilizacionNominas(IBaseDatos bd, IMotorAsientos
 
         if (propios && !cerrado)
         {
-            var borrado = await motor.EliminarLoteAsync(ctx, lotes[0]!, actor, motivoLimpio, new TrabajoLote(Despues: async (s, _) => await Pendiente(s)));
+            var borrado = await motor.EliminarLoteAsync(ctx, lotes[0]!, actor, motivoLimpio, new TrabajoLote(Antes: Desenlazar, Despues: async (s, _) => await Pendiente(s)));
             return borrado.EsCorrecto
                 ? Resultado<ResultadoDeshacerNominas>.Correcto(new(idImportacion, false, ids, [], null))
                 : Resultado<ResultadoDeshacerNominas>.Fallo(borrado.Errores);
@@ -270,7 +273,7 @@ public sealed class ServicioContabilizacionNominas(IBaseDatos bd, IMotorAsientos
             return Resultado<ResultadoDeshacerNominas>.Fallo(new Error("Nominas.SinAsientos", "No encuentro los asientos de estas nóminas.", registro,
                 "Se han borrado fuera de ProContaVF.", "Revisa el Mayor; si ya no existen, vuelve a importar el fichero."));
         var r = await motor.ReemplazarLoteAsync(ctx, LoteAnulacion(idImportacion, numero), anulaciones, actor, $"Anular las nóminas de la importación {idImportacion}: {motivoLimpio}",
-            new TrabajoLote(Despues: async (s, _) => await Pendiente(s)));
+            new TrabajoLote(Antes: Desenlazar, Despues: async (s, _) => await Pendiente(s)));
         return r.EsCorrecto
             ? Resultado<ResultadoDeshacerNominas>.Correcto(new(idImportacion, true, ids, r.Valor, anulaciones[0].FechaContable))
             : Resultado<ResultadoDeshacerNominas>.Fallo(r.Errores);

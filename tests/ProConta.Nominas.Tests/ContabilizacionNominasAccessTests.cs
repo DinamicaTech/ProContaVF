@@ -182,7 +182,7 @@ public sealed class ContabilizacionNominasAccessTests : IDisposable
 
         // Saldo cero en cada cuenta entre el original y su anulación.
         var saldos = await Bd.EjecutarAsync(s => s.ConsultarAsync(
-            "SELECT p.CuentaContable, SUM(p.ImporteDebe - p.ImporteHaber) AS Saldo FROM Apuntes AS p INNER JOIN Asientos AS a ON p.IdAsiento = a.IdAsiento " +
+            "SELECT p.CuentaContable, SUM(IIf(p.ImporteDebe Is Null, 0, p.ImporteDebe) - IIf(p.ImporteHaber Is Null, 0, p.ImporteHaber)) AS Saldo FROM Apuntes AS p INNER JOIN Asientos AS a ON p.IdAsiento = a.IdAsiento " +
             "WHERE a.MotorPropietario = 'nominas' GROUP BY p.CuentaContable", f => f.Decimal("Saldo")));
         Assert.All(saldos, x => Assert.Equal(0m, x));
 

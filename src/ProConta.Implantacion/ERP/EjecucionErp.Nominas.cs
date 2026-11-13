@@ -87,7 +87,7 @@ internal sealed partial class EjecucionErp
             var idImportacion = await InsertarAsync(
                 "INSERT INTO ImportacionesNomina (IdSociedadEjercicio, NombreFichero, Huella, Origen, TextoPaga, TipoPaga, PeriodoDesde, PeriodoHasta, FechaNomina, Estado, " +
                 "Incidencias, FechaHoraImportacion, Operador, FechaHoraEstado, OperadorEstado, MotivoEstado) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                ctx.IdSociedadEjercicio, null, huella, OrigenNominas.Migracion.ToString().ToUpperInvariant(), "Migrado de ProConta antiguo (F_NOM)", g.Key.Tipo,
+                ctx.IdSociedadEjercicio, $"F_NOM {g.Key.Fecha:yyyy-MM-dd} {g.Key.Tipo}", huella, OrigenNominas.Migracion.ToString().ToUpperInvariant(), "Migrado de ProConta antiguo (F_NOM)", g.Key.Tipo,
                 desde, desde.AddMonths(1).AddDays(-1), g.Key.Fecha, ServicioImportacionNominas.EstadoContabilizada,
                 sinAsiento.Count == 0 ? null : string.Join("\n", sinAsiento), Ahora, Operador, Ahora, Operador, "Histórico de ProConta antiguo, contabilizado en ContaSol.");
             Mapear(TiposErp.ImportacionNomina, huella, idImportacion);
@@ -256,7 +256,7 @@ internal sealed partial class EjecucionErp
         if (!propuesta.EsCorrecto) return "la plantilla no genera el asiento (" + string.Join(" ", propuesta.Errores.Select(e => e.Mensaje)) + ")";
         var esperado = Sumar(propuesta.Valor.Asientos.SelectMany(a => a.Apuntes).Select(a => (a.Cuenta, a.Debe - a.Haber)));
         var real = Sumar(await ConsultarAsync("SELECT CuentaContable, ImporteDebe, ImporteHaber FROM Apuntes WHERE IdAsiento = ?",
-            r => ((r.Texto("CuentaContable") ?? "").Trim(), r.Decimal("ImporteDebe") - r.Decimal("ImporteHaber")), idAsiento));
+            r => ((r.Texto("CuentaContable") ?? "").Trim(), (r.DecimalNulo("ImporteDebe") ?? 0m) - (r.DecimalNulo("ImporteHaber") ?? 0m)), idAsiento));
         var cuentas = esperado.Keys.Union(real.Keys).Order(StringComparer.Ordinal).ToList();
         var distintas = cuentas.Where(c => esperado.GetValueOrDefault(c) != real.GetValueOrDefault(c)).ToList();
         return distintas.Count == 0 ? null : string.Join("; ", distintas.Select(c =>
