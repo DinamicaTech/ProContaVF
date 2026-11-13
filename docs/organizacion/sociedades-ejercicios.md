@@ -38,6 +38,7 @@ Sociedad permanente y su instancia por ejercicio (SociedadEjercicio), con consul
 - 2026-11-06 13:36 · 3. Ok. No me suena que en el ERP haya una tabla de tipos de retención, por lo que podemos hacerlo desde cero.
 - 2026-11-06 13:42 · Derived from compras: catálogo de tipos de retención vigentes con su descripción para la ficha de facturas recibidas.
 - 2026-11-12 11:15 · Derived from contabilidad/plantillas-asiento: volver a mostrar en Parámetros › Empresas la cuenta 113 para cuadres y la cuenta 570 de tesorería, que usan las plantillas de corrección.
+- 2026-11-13 12:05 · Derived from contabilidad/procesos: confirmar la liquidación de IVA de un trimestre activa el trimestre siguiente (contabilidad/procesos/liquidacion-iva), y el ejercicio siguiente lo crea el proceso contabilidad/procesos/nuevo-ejercicio, que el cierre (contabilidad/procesos/cierre-ejercicio) exige como condición previa.
 
 ## Hand-over
 - 2026-10-31 18:55 · Hecho: contrato y servicio sobre Access, migración de EjercicioCerrado y pruebas (contexto válido e inválido, ejercicio cerrado). Pendiente: apertura de ejercicio nuevo y cierre/reapertura (contabilidad/procesos), unicidad (IdSociedad, Ejercicio) y unicidad del NIF de sociedad (la maestra tiene dos sociedades con el mismo NIF, una de pruebas), y la regla de propagación de la razón social a los ejercicios.

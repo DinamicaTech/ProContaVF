@@ -4,10 +4,11 @@ status: idea
 depends_on: [contabilidad/plantillas-asiento]
 ---
 ## Summary
-Plantillas «asistente» que piden unos datos básicos y proponen un asiento complejo, como el reparto de dividendos. Queda por decidir cómo programar plantillas de esa complejidad con el motor de plantillas de asiento (recorrer las subcuentas de un grupo, el porcentaje de participación de cada socio).
+Plantillas «asistente» que piden unos datos básicos y proponen un asiento complejo. El reparto de dividendos, que la originó, pasa a ser el proceso contabilidad/procesos/aplicacion-resultado. Queda por decidir cómo programar plantillas de esa complejidad con el motor de plantillas de asiento (recorrer las subcuentas de un grupo, el porcentaje de participación de cada socio).
 
 ## Decisions
 - 2026-11-12 20:11 · Creado como idea en el laboratorio, a petición del propietario, al definir las clases de plantilla de contabilidad/plantillas-asiento (la clase Asistente existe, pero los asistentes complejos quedan aparcados aquí).
+- 2026-11-13 12:05 · El reparto de dividendos sale de esta idea: será un proceso contable (contabilidad/procesos/aplicacion-resultado, propietario 2026-11-13 11:52, P4 A). La idea sigue para otros asistentes complejos.
 
 ## Requirements
 - 2026-11-12 20:11 · idea: Plantillas asistente que piden unos datos básicos y proponen un asiento complejo, por ejemplo «Reparto de dividendos»: pide el importe total, calcula el IRPF, selecciona las cuentas de todos los socios y pinta la propuesta de asiento; queda por decidir cómo programar plantillas de esta complejidad (recorrer subcuentas de un grupo, participación de cada socio).

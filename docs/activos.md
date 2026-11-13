@@ -72,3 +72,4 @@ Es un borrador: el diseño está acordado (Decisions 2026-11-11 18:21 y 2026-11-
 - 2026-11-12 11:42 · answer: fase 2 D cambio de prefijo → las subcuentas existentes conservan su código
 - 2026-11-12 11:42 · answer: fase 2 E activos ajenos → no se les genera nada
 - 2026-11-12 12:36 · Ok. Cierra este PR  fusiona. Luego te volveré a abrir para trabajar la pantalla de Activos.
+- 2026-11-13 12:05 · Derived from contabilidad/procesos: el proceso de amortización (fase 4) se lanza desde la pantalla «Procesos contables», con el marco común de propuesta, confirmación y lote regenerable, y aparece en el estado del ejercicio antes del cierre (contabilidad/procesos/cierre-ejercicio).
