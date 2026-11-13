@@ -12,6 +12,7 @@ public enum PestanaFicha
     Perfiles,
     Ventas,
     Compras,
+    Nominas,
     Contabilidad,
     Notas,
     Documentos,

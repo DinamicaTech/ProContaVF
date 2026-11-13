@@ -160,6 +160,7 @@ public sealed class FichaTerceroVM : Observable, IPestanaTrabajo, INotifyDataErr
         _cargando = false;
         Modificado();
         Estado = EstadoVista.Contenido;
+        _ = ActualizarNominasAsync();
         if (_historialCargado) await CargarHistorialAsync();
     }
 
@@ -198,6 +199,26 @@ public sealed class FichaTerceroVM : Observable, IPestanaTrabajo, INotifyDataErr
         _cuentasMayor = clave;
         _mayor = codigos.Count == 0 ? null : crear(codigos);
         Avisar(nameof(MayorContabilidad), nameof(HayMayor), nameof(TituloSinMayor), nameof(MensajeSinMayor));
+    }
+
+    // ---------- pestaña Nóminas (nominas/pantallas): solo si el tercero es empleado de la sociedad activa ----------
+    private object? _nominas;
+
+    /// <summary>Contenido de la pestaña Nóminas (lo crea el módulo de nóminas); null si el tercero no es empleado de la sociedad.</summary>
+    public object? NominasEmpleado => _nominas;
+    public bool HayNominas => _nominas is not null;
+
+    private async Task ActualizarNominasAsync()
+    {
+        if (_modulo?.NominasEmbebidas is not { } crear || T.EsNuevo) return;
+        var id = T.IdTercero;
+        object? vista;
+        try { vista = await crear(id); }
+        catch { vista = null; }
+        if (T.IdTercero != id) return;
+        _nominas = vista;
+        Avisar(nameof(NominasEmpleado), nameof(HayNominas));
+        if (_nominas is null && PestanaActiva == (int)PestanaFicha.Nominas) PestanaActiva = (int)PestanaFicha.Identidad;
     }
 
     /// <summary>Rehace las partes editables a partir de la copia de trabajo.</summary>
@@ -795,7 +816,7 @@ public sealed class FichaTerceroVM : Observable, IPestanaTrabajo, INotifyDataErr
         Avisar(nameof(Marcas), nameof(Cabeceras));
     }
 
-    private static readonly string[] _nombresPestanas = ["Identidad", "Contacto", "Roles", "Perfiles", "Ventas", "Compras", "Contabilidad", "Notas", "Documentos", "Historial"];
+    private static readonly string[] _nombresPestanas = ["Identidad", "Contacto", "Roles", "Perfiles", "Ventas", "Compras", "Nóminas", "Contabilidad", "Notas", "Documentos", "Historial"];
 
     /// <summary>Título, número (perfiles, movimientos) y marca de cada pestaña.</summary>
     public IReadOnlyList<CabeceraPestana> Cabeceras

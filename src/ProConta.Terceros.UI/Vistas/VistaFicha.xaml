@@ -718,8 +718,13 @@
           <pc:VistaEstado Estado="Vacio" Titulo="Compras llega con el desarrollo de compras"
                           Mensaje="Aquí verás las facturas recibidas del proveedor, con su estado de contabilización y el acceso a cada factura y a su PDF." />
         </TabItem>
-        <TabItem ToolTip="Mayor de las cuentas del tercero (cliente, proveedor y acreedor), todas juntas o una a una; lo que sale de ellas se abre en la pestaña del Mayor">
+        <TabItem ToolTip="Nóminas del empleado en la sociedad activa: código en la gestoría, cuenta 465, totales del año y cada nómina con su asiento"
+                 Visibility="{Binding HayNominas, Converter={StaticResource Visible}}">
           <TabItem.Header><ContentControl ContentTemplate="{StaticResource CabeceraPestana}" Content="{Binding Cabeceras[6]}" /></TabItem.Header>
+          <ContentControl Content="{Binding NominasEmpleado}" FontWeight="Normal" />
+        </TabItem>
+        <TabItem ToolTip="Mayor de las cuentas del tercero (cliente, proveedor y acreedor), todas juntas o una a una; lo que sale de ellas se abre en la pestaña del Mayor">
+          <TabItem.Header><ContentControl ContentTemplate="{StaticResource CabeceraPestana}" Content="{Binding Cabeceras[7]}" /></TabItem.Header>
           <Grid>
             <ContentControl Content="{Binding MayorContabilidad}" FontWeight="Normal" Visibility="{Binding HayMayor, Converter={StaticResource Visible}}" Margin="12,10" />
             <pc:VistaEstado Estado="Vacio" Titulo="{Binding TituloSinMayor}" Mensaje="{Binding MensajeSinMayor}"
@@ -729,7 +734,7 @@
 
         <!-- ===================== Notas ===================== -->
         <TabItem ToolTip="Notas y notas internas del tercero">
-          <TabItem.Header><ContentControl ContentTemplate="{StaticResource CabeceraPestana}" Content="{Binding Cabeceras[7]}" /></TabItem.Header>
+          <TabItem.Header><ContentControl ContentTemplate="{StaticResource CabeceraPestana}" Content="{Binding Cabeceras[8]}" /></TabItem.Header>
           <StackPanel Margin="18,16" HorizontalAlignment="Left">
             <ContentControl Content="{Binding}" ContentTemplate="{StaticResource ResumenErrores}" />
             <TextBlock Text="Notas" Style="{StaticResource Etiqueta.Campo}" />
@@ -742,14 +747,14 @@
         </TabItem>
 
         <TabItem ToolTip="Documentos del tercero (llega con el motor documental)">
-          <TabItem.Header><ContentControl ContentTemplate="{StaticResource CabeceraPestana}" Content="{Binding Cabeceras[8]}" /></TabItem.Header>
+          <TabItem.Header><ContentControl ContentTemplate="{StaticResource CabeceraPestana}" Content="{Binding Cabeceras[9]}" /></TabItem.Header>
           <pc:VistaEstado Estado="Vacio" Titulo="Documentos llega con el motor documental"
                           Mensaje="Aquí verás los documentos del tercero: los automáticos (facturas emitidas y recibidas, justificantes de pago) y los ficheros que añadas arrastrándolos, con su tipo y descripción." />
         </TabItem>
 
         <!-- ===================== Historial ===================== -->
         <TabItem ToolTip="Cambios guardados de la ficha: fecha, operador, sección, campo, antes y después">
-          <TabItem.Header><ContentControl ContentTemplate="{StaticResource CabeceraPestana}" Content="{Binding Cabeceras[9]}" /></TabItem.Header>
+          <TabItem.Header><ContentControl ContentTemplate="{StaticResource CabeceraPestana}" Content="{Binding Cabeceras[10]}" /></TabItem.Header>
           <DockPanel Margin="0">
             <Border DockPanel.Dock="Bottom" Style="{StaticResource Barra.Pie}">
               <StackPanel Orientation="Horizontal">

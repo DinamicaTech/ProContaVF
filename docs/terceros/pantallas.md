@@ -32,6 +32,7 @@ Buscador multicriterio y ficha de terceros en pestañas del contenedor, con sus 
 - 2026-11-10 20:05 · Hecho: el botón «Enviar email» de cada email de la ficha abre el compositor común con esa dirección (`ModuloTerceros.EnviarEmail`, que conecta el contenedor).
 
 - 2026-11-11 18:30 · La pestaña Contabilidad de la ficha muestra el Mayor embebido (el mismo control que Contabilidad › Mayor) con las cuentas de cliente, proveedor y acreedor del tercero, todas juntas o una a una, sin recientes ni selector; lo que sale de esas cuentas (contrapartidas, buscar una factura en todas las cuentas, «Abrir en el Mayor») se abre en la pestaña del Mayor. Sin cuentas asignadas, explica que se asignan en la pestaña Roles. El contenedor lo conecta con `ModuloTerceros.MayorEmbebido`; los datos se leen al abrir la pestaña (contabilidad/mayor 2026-11-11 18:30).
+- 2026-11-13 15:37 · Pestaña «Nóminas» (nominas/pantallas, PR 3) entre Compras y Contabilidad: solo se ve si el tercero es empleado de la sociedad activa; su contenido lo crea el módulo de nóminas y lo conecta el contenedor con `ModuloTerceros.NominasEmbebidas`, como el Mayor. `ModuloTerceros.AbrirFicha(id, pestaña)` abre la ficha en una pestaña concreta. La edición del código y la 465 en Roles queda pendiente.
 
 ## Requirements
 - 2026-10-28 12:28 · From sources/01_ESPECIFICACION_FUNCIONAL.docx § 7 RF-TER-05, 09, 11, 15: comportamiento del domicilio, pastilla de destinatarios, búsqueda modal, pestaña Ventas
