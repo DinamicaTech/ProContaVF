@@ -150,6 +150,18 @@ public interface IProcesadorFacturaCompraRecibida
     Task<ResultadoFacturaRecibida> ProcesarAsync(ContextoSociedadEjercicio contexto, string rutaPdf, string nombre, Actor actor, CancellationToken cancelacion = default);
 }
 
+/// <summary>Lo que ha pasado con un extracto Norma 43 recibido por correo.</summary>
+public sealed record ResultadoExtractoRecibido(EstadoAdjuntoRecibido Estado, string Explicacion);
+
+/// <summary>
+/// Importa un extracto Norma 43 recibido por correo (lo implementa norma43, correo/recepcion 2026-11-12): el mismo motor que
+/// «Importar N43» de la pantalla Bancos. Repetirlo con el mismo fichero no duplica nada.
+/// </summary>
+public interface IProcesadorExtractoBancarioRecibido
+{
+    Task<ResultadoExtractoRecibido> ProcesarAsync(ContextoSociedadEjercicio contexto, string ruta, string nombre, Actor actor, CancellationToken cancelacion = default);
+}
+
 /// <summary>Contenido funcional de un MIME recibido.</summary>
 public sealed record MensajeLeido(string? MessageId, string? Remitente, string? NombreRemitente, string? Asunto, DateTime? Fecha, bool EsAutomatico,
     IReadOnlyList<(string Nombre, byte[] Contenido)> Adjuntos);
@@ -214,16 +226,19 @@ public sealed class ServicioRecepcionCorreo
     private readonly IClientePop3 _pop3;
     private readonly ServicioCorreo _correo;
     private readonly IProcesadorFacturaCompraRecibida? _facturas;
+    private readonly IProcesadorExtractoBancarioRecibido? _extractos;
     private readonly IReloj _reloj;
     private readonly Actor _actor = Actor.Proceso("correo-entrante");
     private readonly Dictionary<int, DateTime> _ultimoSondeo = [];
 
-    public ServicioRecepcionCorreo(IBaseDatos bd, IClientePop3 pop3, ServicioCorreo correo, IProcesadorFacturaCompraRecibida? facturas, IReloj? reloj = null)
+    public ServicioRecepcionCorreo(IBaseDatos bd, IClientePop3 pop3, ServicioCorreo correo, IProcesadorFacturaCompraRecibida? facturas, IReloj? reloj = null,
+        IProcesadorExtractoBancarioRecibido? extractos = null)
     {
         _bd = bd;
         _pop3 = pop3;
         _correo = correo;
         _facturas = facturas;
+        _extractos = extractos;
         _reloj = reloj ?? RelojSistema.Instancia;
     }
 
@@ -401,7 +416,17 @@ public sealed class ServicioRecepcionCorreo
                     return (EstadoAdjuntoRecibido.Error, null, null, $"No he podido procesar la factura: {ex.Message}");
                 }
             case TipoAdjuntoRecibido.Norma43:
-                return (EstadoAdjuntoRecibido.MotorPendiente, null, null, "Extracto Norma 43: la importación de extractos aún no está en ProContaVF; el fichero se conserva hasta entonces.");
+                if (_extractos is null) return (EstadoAdjuntoRecibido.MotorPendiente, null, null, "Extracto Norma 43: la importación de extractos no está disponible en esta sesión; el fichero se conserva hasta entonces.");
+                if (a.RutaCompleta is null || !File.Exists(a.RutaCompleta)) return (EstadoAdjuntoRecibido.Error, null, null, $"No encuentro la copia del adjunto en {a.RutaCompleta ?? a.RutaRelativa}.");
+                try
+                {
+                    var r = await _extractos.ProcesarAsync(ctx, a.RutaCompleta, a.Nombre, _actor, cancelacion);
+                    return (r.Estado, null, null, r.Explicacion);
+                }
+                catch (Exception ex) when (ex is not OperationCanceledException)
+                {
+                    return (EstadoAdjuntoRecibido.Error, null, null, $"No he podido importar el extracto: {ex.Message}");
+                }
             case TipoAdjuntoRecibido.Nomina:
                 return (EstadoAdjuntoRecibido.MotorPendiente, null, null, "Fichero de nóminas: la importación de nóminas aún no está en ProContaVF; el fichero se conserva hasta entonces.");
             default:

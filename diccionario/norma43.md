@@ -153,6 +153,7 @@ Relaciones:
 Índices:
 - FK_Extractos_Cuenta: IdCuentaBancaria
 - FK_Extractos_Lote: IdLoteImportacionBancaria
+- IX_Extractos_CuentaFechas: IdCuentaBancaria, FechaInicio, FechaFin
 - PK_ExtractosBancarios (clave primaria): IdExtractoBancario
 - UX_ExtractosBanco_Ordinal (único): IdLoteImportacionBancaria, OrdinalExtracto
 
@@ -266,6 +267,9 @@ Relaciones:
 | NumeroMovimientos | LONG | no |  |  |
 | NumeroErrores | LONG | no |  |  |
 | NumeroAdvertencias | LONG | no |  |  |
+| FechaHoraReversion | DATETIME | sí |  |  |
+| OperadorReversion | TEXT(100) | sí |  |  |
+| MotivoReversion | LONGTEXT | sí |  |  |
 
 Índices:
 - FK_LotesBanco_Sociedad: IdSociedad

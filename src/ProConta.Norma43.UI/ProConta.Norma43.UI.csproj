@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Pantalla Bancos (docs/norma43/bancos.md): cuentas bancarias con sus saldos y lotes, importación y reversión de extractos Norma 43. -->
+  <PropertyGroup>
+    <OutputType>Library</OutputType>
+    <UseWPF>true</UseWPF>
+    <RootNamespace>ProConta.Norma43.UI</RootNamespace>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);CS1591;CS1573</NoWarn>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\ProConta.UI.Base\ProConta.UI.Base.csproj" />
+    <ProjectReference Include="..\ProConta.Norma43\ProConta.Norma43.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="ProConta.Norma43.Tests" />
+  </ItemGroup>
+</Project>
