@@ -78,11 +78,15 @@ public sealed class ImportacionNominasAccessTests : IDisposable
         Assert.Equal(3, (await Empleados.ListarAsync(_ctx)).Select(e => e.Cuenta).Distinct().Count());
         Assert.Equal("Eva", (await new RepositorioTercerosAccess(Bd).ObtenerAsync((await Empleados.ListarAsync(_ctx)).First(e => e.CodigoTrabajador == "000903").IdTercero))!.NombrePersona);
 
+        // Uno de ellos está de baja en la sociedad (rol Empleado desactivado en la ficha): se sigue reconociendo, con aviso.
+        await Bd.EjecutarAsync(s => s.EjecutarAsync("UPDATE EmpleadosSociedad SET Activo = False WHERE CodigoTrabajador = '000903'"));
         var noviembre = ResumenSintetico.Octubre();
         noviembre.Periodo = "DEL 01/11/2026 AL 30/11/2026";
         var n = await ImportarAsync(noviembre, "noviembre.xlsx");
         Assert.Equal(ServicioImportacionNominas.EstadoPendiente, n.Estado);
         Assert.Equal(0, await ContarAsync("SELECT COUNT(*) FROM Nominas WHERE IdImportacionNomina = ? AND IdEmpleado IS NULL", n.IdImportacion));
+        Assert.Single(n.Analisis.DeBaja);
+        Assert.Contains("de baja en la sociedad", n.Explicacion);
     }
 
     [Fact]

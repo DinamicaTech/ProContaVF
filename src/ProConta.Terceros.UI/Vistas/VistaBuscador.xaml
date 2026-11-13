@@ -77,6 +77,9 @@
           <CheckBox IsChecked="{Binding Contactos}" VerticalAlignment="Center" Margin="0,0,14,0" ToolTip="Solo los terceros con el rol Contacto activo (se suma a los otros roles marcados)">
             <TextBlock><Run Text="Contactos" /><Run Text=" " /><Run Text="{Binding RecuentoContactos, Mode=OneWay}" Foreground="{StaticResource Pincel.Apagado}" /></TextBlock>
           </CheckBox>
+          <CheckBox IsChecked="{Binding Empleados}" VerticalAlignment="Center" Margin="0,0,14,0" ToolTip="Solo los terceros con el rol Empleado (en alguna sociedad; se suma a los otros roles marcados)">
+            <TextBlock><Run Text="Empleados" /><Run Text=" " /><Run Text="{Binding RecuentoEmpleados, Mode=OneWay}" Foreground="{StaticResource Pincel.Apagado}" /></TextBlock>
+          </CheckBox>
           <ComboBox ItemsSource="{Binding PerfilesDisponibles}" SelectedItem="{Binding PerfilElegido}" DisplayMemberPath="Nombre" Width="220" VerticalAlignment="Center" Margin="0,0,14,0"
                     ToolTip="Solo los terceros que tienen asignado este perfil" />
           <CheckBox Content="Incluir inactivos" IsChecked="{Binding IncluirInactivos}" VerticalAlignment="Center" ToolTip="Muestra también los terceros desactivados" />
@@ -143,6 +146,7 @@
                       <DataTemplate.Triggers>
                         <DataTrigger Binding="{Binding Rol}" Value="Proveedor"><Setter TargetName="Pastilla" Property="Style" Value="{StaticResource Insignia.Proveedor}" /></DataTrigger>
                         <DataTrigger Binding="{Binding Rol}" Value="Contacto"><Setter TargetName="Pastilla" Property="Style" Value="{StaticResource Insignia.Contacto}" /></DataTrigger>
+                        <DataTrigger Binding="{Binding Rol}" Value="Empleado"><Setter TargetName="Pastilla" Property="Style" Value="{StaticResource Insignia.Empleado}" /></DataTrigger>
                         <DataTrigger Binding="{Binding Activo}" Value="False"><Setter TargetName="Pastilla" Property="Opacity" Value="0.45" /></DataTrigger>
                       </DataTemplate.Triggers>
                     </DataTemplate>

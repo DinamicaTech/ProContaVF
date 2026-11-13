@@ -80,7 +80,9 @@ public static class CambiosFicha
         Campo(PestanaFicha.Roles, "Contacto · Cargo", original.Roles.Contacto?.Cargo, actual.Roles.Contacto?.Cargo);
         Campo(PestanaFicha.Roles, "Contacto · Departamento", original.Roles.Contacto?.Departamento, actual.Roles.Contacto?.Departamento);
         Campo(PestanaFicha.Roles, "Contacto · Notas", original.Roles.Contacto?.Notas, actual.Roles.Contacto?.Notas);
-        foreach (var clase in new[] { ClaseCuentaRol.Cliente, ClaseCuentaRol.Retencion, ClaseCuentaRol.Proveedor, ClaseCuentaRol.Acreedor })
+        Rol(cambios, "Empleado", original.Roles.Empleado?.Activo, actual.Roles.Empleado?.Activo);
+        Campo(PestanaFicha.Roles, "Empleado · Código en la gestoría", original.Roles.Empleado?.CodigoTrabajador, actual.Roles.Empleado?.CodigoTrabajador);
+        foreach (var clase in new[] { ClaseCuentaRol.Cliente, ClaseCuentaRol.Retencion, ClaseCuentaRol.Proveedor, ClaseCuentaRol.Acreedor, ClaseCuentaRol.Empleado })
             if (original.CuentasRoles?.De(clase) != actual.CuentasRoles?.De(clase))
                 cambios.Add(new(PestanaFicha.Roles, Mayuscula(ServicioRoles.Describir(clase))));
 

@@ -78,7 +78,7 @@
               <TextBlock Text="{Binding PrimeraNomina}" Style="{StaticResource Texto.Mono}" FontWeight="SemiBold" />
             </StackPanel>
           </WrapPanel>
-          <TextBlock Text="El código y la cuenta 465 se asignan al resolver el trabajador en la pantalla Nóminas." Style="{StaticResource Texto.Apagado}" Margin="0,8,0,0" TextWrapping="Wrap" />
+          <TextBlock Text="El código en la gestoría y la cuenta 465 se cambian en la pestaña Roles." Style="{StaticResource Texto.Apagado}" Margin="0,8,0,0" TextWrapping="Wrap" />
         </StackPanel>
       </DockPanel>
     </Border>

@@ -59,6 +59,7 @@ Buscador multicriterio y ficha de terceros en pestañas del contenedor, con sus 
 
 - 2026-11-11 18:30 · Derived from contabilidad/mayor: la pestaña Contabilidad muestra el Mayor embebido, filtrado por las cuentas del tercero y sin panel de recientes; lo que sale de sus cuentas abre una pestaña del Mayor.
 - 2026-11-13 11:05 · Derived from nominas: pestaña «Nóminas» en la ficha del tercero, solo con el rol Empleado (maqueta sources/maquetas/Nominas/); el código de trabajador y la cuenta 465 se editan en Roles.
+- 2026-11-13 15:48 · Derived from nominas/pantallas: sección «Empleado en <sociedad>» en la pestaña Roles (Activar/Desactivar, IdEmpleado, «Código en la gestoría» y cuenta 465 con «Crear la siguiente 465 libre»), insignia «Empleado · código» en la cabecera de la ficha e insignia «Emp» y filtro Empleados en el buscador.
 
 ## Hand-over
 - 2026-11-01 10:46 · Hecho: buscador, ficha completa con sus diez pestañas, motores y pruebas (147 sin BD y 204 con Access, todas superadas), compilado en `C:\Docs\Codigo\ProContaVF-build` con la BD de prueba `capturas-terceros\prueba-terceros.accdb` (operador «capturas» sin contraseña) y capturas a 2560×1440 en la misma carpeta. Pendiente: validación del propietario (cuadros de mensaje, arrastre de perfiles y foco tras el CP, que solo se comprueban a mano); la BD real está en la versión 1 del esquema y necesita el ActualizadorEsquema (con `--origen-formas-pago`) antes de abrirla con esta versión; Ventas, Compras, Contabilidad y Documentos llegan con sus áreas.

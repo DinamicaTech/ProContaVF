@@ -44,12 +44,19 @@ public sealed record AnalisisNominas(VeredictoNominas Veredicto, FicheroNominas 
 {
     public IReadOnlyList<TrabajadorFichero> SinResolver => Trabajadores.Where(t => !t.Resolucion.Resuelto).ToList();
 
+    /// <summary>Trabajadores reconocidos que están de baja en la sociedad (rol Empleado desactivado): se importan, con aviso.</summary>
+    public IReadOnlyList<string> DeBaja { get; init; } = [];
+
+    /// <summary>Aviso de los trabajadores de baja, o vacío.</summary>
+    public string AvisoDeBaja => DeBaja.Count == 0 ? "" :
+        $" Aviso: {string.Join(", ", DeBaja)} {(DeBaja.Count == 1 ? "está" : "están")} de baja en la sociedad; comprueba que sea un finiquito o un atraso (si vuelve a trabajar, reactiva su rol Empleado en la ficha).";
+
     /// <summary>Explicación para el operador: qué pasa y qué hacer.</summary>
     public string Explicacion => Veredicto switch
     {
         VeredictoNominas.Importable => $"{Describir(Fichero)}: {Fichero.Filas.Count} nómina(s) listas para importar" +
             (SinResolver.Count > 0 ? $"; {SinResolver.Count} trabajador(es) sin reconocer, que habrá que resolver antes de contabilizar." : ".") +
-            (Fichero.Advertencias.Count > 0 ? " Advertencias: " + string.Join(" ", Fichero.Advertencias) : ""),
+            (Fichero.Advertencias.Count > 0 ? " Advertencias: " + string.Join(" ", Fichero.Advertencias) : "") + AvisoDeBaja,
         VeredictoNominas.YaImportado => $"Este fichero ya está importado (importación {IdImportacionExistente}): no se ha hecho nada.",
         VeredictoNominas.CabecerasSinAlias => "No sé qué es " + string.Join(", ", Fichero.SinAlias.Select(c => $"«{c.Cabecera}»" + (c.Ejemplo is null ? "" : $" (p. ej. {c.Ejemplo})"))) +
             ". Di a qué campo corresponde cada columna, o que se ignore; se recordará para la sociedad.",
@@ -68,7 +75,8 @@ public sealed record ResultadoImportacionNominas(VeredictoNominas Veredicto, int
 
     public string Explicacion => Veredicto == VeredictoNominas.Importable
         ? $"Importadas {Analisis.Fichero.Filas.Count} nómina(s) de {AnalisisNominas.Describir(Analisis.Fichero)} (importación {IdImportacion})." +
-          (Estado == ServicioImportacionNominas.EstadoIncidencias ? $" Quedan {Analisis.SinResolver.Count} trabajador(es) por resolver antes de contabilizar." : "")
+          (Estado == ServicioImportacionNominas.EstadoIncidencias ? $" Quedan {Analisis.SinResolver.Count} trabajador(es) por resolver antes de contabilizar." : "") +
+          Analisis.AvisoDeBaja
         : Analisis.Explicacion;
 }
 
@@ -229,6 +237,11 @@ public sealed class ServicioImportacionNominas(IBaseDatos bd, IReloj? reloj = nu
         var trabajadores = new List<TrabajadorFichero>();
         foreach (var f in fichero.Filas)
             trabajadores.Add(new(f, await ServicioEmpleados.BuscarAsync(s, ctx.IdSociedad, f.CodigoTrabajador, f.Nif, f.Nombre)));
+        var deBaja = new List<string>();
+        foreach (var t in trabajadores.Where(t => t.Resolucion.IdEmpleado is not null))
+            if (await s.ConsultarPrimeroAsync("SELECT Activo FROM EmpleadosSociedad WHERE IdEmpleado = ? AND IdSociedad = ?", f => (bool?)f.Logico("Activo"),
+                    t.Resolucion.IdEmpleado, ctx.IdSociedad) == false)
+                deBaja.Add(t.Fila.Nombre);
 
         if (fichero.Mes is DateTime mes)
         {
@@ -241,7 +254,7 @@ public sealed class ServicioImportacionNominas(IBaseDatos bd, IReloj? reloj = nu
                 return A(VeredictoNominas.OtraVersion, otra, $"Ya hay nóminas de {AnalisisNominas.Describir(fichero)} importadas de «{vigente.Nombre}» (importación {otra}) " +
                     "y este fichero trae otro contenido. Si es una corrección de la gestoría, reemplaza la versión anterior; si no, no hace falta importarlo.", trabajadores);
         }
-        return A(VeredictoNominas.Importable, t: trabajadores);
+        return A(VeredictoNominas.Importable, t: trabajadores) with { DeBaja = deBaja };
     }
 
     private async Task<(int Id, string Estado)> EscribirAsync(ISesionDatos s, ContextoSociedadEjercicio ctx, byte[] contenido, string nombreFichero, OrigenNominas origen,
