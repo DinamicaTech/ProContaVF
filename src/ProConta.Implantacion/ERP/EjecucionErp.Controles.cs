@@ -71,7 +71,7 @@ internal sealed partial class EjecucionErp
                  {
                      (TiposErp.Persona, "Terceros", "IdTercero"), (TiposErp.Cliente, "Clientes", "IdCliente"), (TiposErp.Concepto, "Conceptos", "IdConcepto"),
                      (TiposErp.Factura, "Facturas", "IdFactura"), (TiposErp.Programada, "FacturasProgramadas", "IdFacturaProgramada"), (TiposErp.Compra, "FacturasCompra", "IdRegistro"),
-                     (TiposErp.ExtractoN43, "ExtractosBancarios", "IdExtractoBancario"), (TiposErp.LineaN43, "LineasExtractoBancario", "IdLineaExtractoBancario"), (TiposErp.Activo, "Activos", "IdActivo"),
+                     (TiposErp.ExtractoN43, "ExtractosBancarios", "IdExtractoBancario"), (TiposErp.LineaN43, "LineasExtractoBancario", "IdLineaExtractoBancario"), (TiposErp.Activo, "Activos", "IdActivo"), (TiposErp.ImportacionNomina, "ImportacionesNomina", "IdImportacionNomina"), (TiposErp.Empleado, "Empleados", "IdEmpleado"),
                  })
         {
             var n = Convert.ToInt32(await _bd.EjecutarAsync(s => s.EscalarAsync($"SELECT COUNT(*) FROM {tabla} AS t WHERE t.{campo} IN (SELECT IdDestino FROM MapasIdentidadERP WHERE IdMigracionERP = ? AND TipoEntidad = ?)", _idMigracion, tipo)), CultureInfo.InvariantCulture);
@@ -80,8 +80,8 @@ internal sealed partial class EjecucionErp
         }
         _r.Controles.Add(new SeccionControl("Filas en ProContaVF", ["Tabla", "De esta migración", "Total en la tabla"], recuentos));
 
-        _r.Controles.Add(new SeccionControl("Tablas que no se migran (decisión del propietario)", ["Tabla", "Filas en el ERP"],
+        _r.Controles.Add(new SeccionControl("Tablas que no se migran", ["Tabla", "Filas en el ERP"],
             o.NoMigradas.Select(x => (IReadOnlyList<string>)[x.Key, Txt(x.Value)]).ToList(),
-            "Nóminas (F_NOM, alias y PlantillasApuntes) no se migran: quedan para el módulo de nóminas (decisión del propietario 2026-11-11)."));
+            "F_NOM_ALIAS y CamposF_NOM no se migran: el lector de nóminas nuevo ya reconoce las cabeceras y los campos de la gestoría (nominas 2026-11-13)."));
     }
 }

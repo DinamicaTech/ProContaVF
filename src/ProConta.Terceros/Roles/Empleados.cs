@@ -85,9 +85,10 @@ public sealed class ServicioEmpleados(IBaseDatos bd, ICatalogoCuentas cuentas, I
 
     /// <summary>
     /// Da al tercero el rol Empleado en la sociedad con su código de trabajador (si lo trae el Excel) y, si aún no tiene cuenta
-    /// 465 en la sociedad, le crea la siguiente libre con su nombre. Repetirlo no duplica nada.
+    /// 465 en la sociedad, le crea la siguiente libre con su nombre. Repetirlo no duplica nada. <paramref name="idIdentidad465"/>: la cuenta
+    /// 465 que ya tiene el trabajador (la migración de nóminas usa la de ProConta antiguo) en lugar de crear una nueva.
     /// </summary>
-    public async Task<Resultado<EmpleadoSociedad>> AsignarAsync(ContextoSociedadEjercicio ctx, int idTercero, string? codigoTrabajador)
+    public async Task<Resultado<EmpleadoSociedad>> AsignarAsync(ContextoSociedadEjercicio ctx, int idTercero, string? codigoTrabajador, int? idIdentidad465 = null)
     {
         var tercero = await terceros.ObtenerAsync(idTercero);
         if (tercero is null)
@@ -116,7 +117,13 @@ public sealed class ServicioEmpleados(IBaseDatos bd, ICatalogoCuentas cuentas, I
                 await s.EjecutarAsync("UPDATE EmpleadosSociedad SET CodigoTrabajador = ?, Activo = True WHERE IdEmpleadoSociedad = ?", codigo ?? fila.Codigo, idFila);
             else
                 await s.EjecutarAsync("INSERT INTO EmpleadosSociedad (IdEmpleado, IdSociedad, CodigoTrabajador, Activo) VALUES (?, ?, ?, ?)", id, ctx.IdSociedad, codigo, true);
-            return (id!.Value, fila.Identidad);
+            var identidadFila = fila.Identidad;
+            if (identidadFila is null && idIdentidad465 is int dada)
+            {
+                await s.EjecutarAsync("UPDATE EmpleadosSociedad SET IdIdentidadContable = ? WHERE IdEmpleado = ? AND IdSociedad = ?", dada, id, ctx.IdSociedad);
+                identidadFila = dada;
+            }
+            return (id!.Value, identidadFila);
         });
 
         var cuenta = identidad is int i ? await cuentas.CuentaDeIdentidadAsync(ctx, i) ?? await cuentas.UltimaCuentaDeIdentidadAsync(i) : null;
@@ -136,7 +143,8 @@ public sealed class ServicioEmpleados(IBaseDatos bd, ICatalogoCuentas cuentas, I
     /// Da de alta al trabajador del Excel como tercero (persona física) con el rol Empleado, su código y una cuenta 465 nueva.
     /// El nombre «APELLIDOS, NOMBRE» de la gestoría se guarda como nombre y apellidos.
     /// </summary>
-    public async Task<Resultado<EmpleadoSociedad>> AltaAsync(ContextoSociedadEjercicio ctx, string nombreOrigen, string? nif, string? codigoTrabajador)
+    public async Task<Resultado<EmpleadoSociedad>> AltaAsync(ContextoSociedadEjercicio ctx, string nombreOrigen, string? nif, string? codigoTrabajador,
+        int? idIdentidad465 = null)
     {
         var (nombre, apellido1, apellido2) = PartirNombre(nombreOrigen);
         if (nombre.Length == 0)
@@ -152,7 +160,7 @@ public sealed class ServicioEmpleados(IBaseDatos bd, ICatalogoCuentas cuentas, I
         };
         var guardado = await terceros.GuardarAsync(t, actor);
         if (!guardado.EsCorrecto) return Resultado<EmpleadoSociedad>.Fallo(guardado.Errores);
-        return await AsignarAsync(ctx, guardado.Valor.IdTercero, codigoTrabajador);
+        return await AsignarAsync(ctx, guardado.Valor.IdTercero, codigoTrabajador, idIdentidad465);
     }
 
     /// <summary>«NAVARRO GIL, LUCIA» → (Lucía…, Navarro, Gil); sin coma, todo el texto es el nombre.</summary>
@@ -189,7 +197,7 @@ public sealed class ServicioEmpleados(IBaseDatos bd, ICatalogoCuentas cuentas, I
     }
 
     /// <summary>Palabras significativas de un nombre: sin acentos ni puntuación, en mayúsculas y de más de dos letras.</summary>
-    internal static HashSet<string> Palabras(string? texto)
+    public static HashSet<string> Palabras(string? texto)
     {
         var d = (texto ?? "").Normalize(NormalizationForm.FormD);
         var sb = new StringBuilder(d.Length);
