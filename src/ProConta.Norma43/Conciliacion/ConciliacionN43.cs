@@ -215,10 +215,11 @@ public sealed class ServicioConciliacionN43(IBaseDatos bd, IMotorAsientos motor,
         var fecha = TrimestreContable.FechaAsiento(fechaMovimiento, ctx.Ejercicio, TrimestreContable.Activo(ej.TrimestreActivo, ctx.Ejercicio, hoy));
         if (fecha != fechaMovimiento) avisos.Add($"El movimiento es de un trimestre cerrado: el asiento va al {fecha:dd/MM/yyyy}, primer día del trimestre activo.");
         if (regenera) avisos.Add($"Ya está contabilizado en el asiento {l.IdAsiento}: contabilizarlo otra vez lo sustituye.");
+        var banco572 = cuentaBanco!;
         var registros = imputaciones.Select((i, n) => new RegistroProceso($"{l.Id}.{n + 1}", fechaMovimiento, new Dictionary<string, object?>
         {
-            ["CuentaBanco"] = cuentaBanco!.Codigo,
-            ["NombreBanco"] = cuentaBanco.Nombre,
+            ["CuentaBanco"] = banco572.Codigo,
+            ["NombreBanco"] = banco572.Nombre,
             ["Contrapartida"] = i.Cuenta,
             ["NombreContrapartida"] = i.NombreCuenta,
             ["Importe"] = i.ImporteFirmado,
@@ -232,13 +233,13 @@ public sealed class ServicioConciliacionN43(IBaseDatos bd, IMotorAsientos motor,
         if (!propuesta.EsCorrecto)
         {
             errores.AddRange(propuesta.Errores);
-            return Fin(ctx, cuentaBanco.Codigo, imp: imputaciones, regenera: regenera);
+            return Fin(ctx, banco572.Codigo, imp: imputaciones, regenera: regenera);
         }
         if (propuesta.Valor.Asientos.Count != 1)
         {
             errores.Add(new Error("Conciliacion.PlantillaNoValida", $"La plantilla «{plantilla.Nombre}» genera {propuesta.Valor.Asientos.Count} asientos para un movimiento.", registro,
                 "Cada movimiento se contabiliza en un único asiento.", "Corrige la plantilla en el mantenimiento de plantillas (un solo número de asiento y agrupar por cuenta)."));
-            return Fin(ctx, cuentaBanco.Codigo, imp: imputaciones, regenera: regenera);
+            return Fin(ctx, banco572.Codigo, imp: imputaciones, regenera: regenera);
         }
         var documento = DocumentoBanco(l.Documento);
         var asiento = propuesta.Valor.Asientos[0] with
@@ -246,12 +247,12 @@ public sealed class ServicioConciliacionN43(IBaseDatos bd, IMotorAsientos motor,
             Descripcion = DescripcionAsiento(l),
             Apuntes = propuesta.Valor.Asientos[0].Apuntes.Select(a => a with { Documento = a.Documento ?? documento }).ToList(),
         };
-        if (ErrorBanco(asiento, cuentaBanco.Codigo, l.Sentido == Abono ? l.Importe : -l.Importe, registro) is { } eb)
+        if (ErrorBanco(asiento, banco572.Codigo, l.Sentido == Abono ? l.Importe : -l.Importe, registro) is { } eb)
         {
             errores.Add(eb);
-            return Fin(ctx, cuentaBanco.Codigo, imp: imputaciones, regenera: regenera);
+            return Fin(ctx, banco572.Codigo, imp: imputaciones, regenera: regenera);
         }
-        return Fin(ctx, cuentaBanco.Codigo, asiento, imputaciones, regenera);
+        return Fin(ctx, banco572.Codigo, asiento, imputaciones, regenera);
     }
 
     /// <summary>
