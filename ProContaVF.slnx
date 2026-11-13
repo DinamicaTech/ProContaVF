@@ -24,6 +24,7 @@
     <Project Path="src/ProConta.Mantenimiento.UI/ProConta.Mantenimiento.UI.csproj" />
     <Project Path="src/ProConta.Norma43/ProConta.Norma43.csproj" />
     <Project Path="src/ProConta.Norma43.UI/ProConta.Norma43.UI.csproj" />
+    <Project Path="src/ProConta.Nominas/ProConta.Nominas.csproj" />
     <Project Path="src/ProConta.Nucleo/ProConta.Nucleo.csproj" />
     <Project Path="src/ProConta.Activos/ProConta.Activos.csproj" />
     <Project Path="src/ProConta.Organizacion/ProConta.Organizacion.csproj" />
@@ -46,6 +47,7 @@
     <Project Path="tests/ProConta.Implantacion.Tests/ProConta.Implantacion.Tests.csproj" />
     <Project Path="tests/ProConta.Informes.Tests/ProConta.Informes.Tests.csproj" />
     <Project Path="tests/ProConta.Norma43.Tests/ProConta.Norma43.Tests.csproj" />
+    <Project Path="tests/ProConta.Nominas.Tests/ProConta.Nominas.Tests.csproj" />
     <Project Path="tests/ProConta.Nucleo.Tests/ProConta.Nucleo.Tests.csproj" />
     <Project Path="tests/ProConta.Organizacion.Tests/ProConta.Organizacion.Tests.csproj" />
     <Project Path="tests/ProConta.Plataforma.Configuracion.Tests/ProConta.Plataforma.Configuracion.Tests.csproj" />
