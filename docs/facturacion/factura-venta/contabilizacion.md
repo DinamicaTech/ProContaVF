@@ -84,5 +84,7 @@ Genera los asientos de las facturas de venta con el motor de contabilidad/asient
 - 2026-11-11 11:16 · 4. PR #12 ya debería estar cerrado
 
 - 2026-11-11 12:16 · Ok al PR
+2026-11-13 20:55 · Derived from organizacion/sociedades-ejercicios: la cuenta de IVA repercutido de un tipo se calcula: 477, el cuarto dígito de la serie de la actividad del centro (sin actividad, 0) y el porcentaje con tres cifras (4770021, 4778021, 4770000). Desaparecen CuentaIVARepercutido0..4 y CuentaTipoIVA0..4 del ejercicio.
+
 ## Hand-over
 - 2026-11-11 12:20 · Hecho: libro de IVA repercutido al contabilizar, regenerar y deshacer, y bloqueo de las facturas de años anteriores. Las respuestas del propietario al detalle de incidencias de 2026 (C:\Docs\ProContaVF-validacion\incidencias-ventas-2026.csv, fuera del repositorio porque lleva datos reales) están en implantacion/migracion-erp. Nada pendiente en este nodo.
