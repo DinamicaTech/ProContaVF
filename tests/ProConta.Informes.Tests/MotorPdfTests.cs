@@ -45,7 +45,7 @@ public sealed class MotorPdfTests
 
     [Theory]
     [InlineData(PlantillaFactura.Factura, 6, 1)]
-    [InlineData(PlantillaFactura.Factura, 60, 2)]
+    [InlineData(PlantillaFactura.Factura, 40, 2)]
     [InlineData(PlantillaFactura.Proforma, 6, 1)]
     public void LaFacturaSaleConTextoRealYLaMismaPaginacion(PlantillaFactura plantilla, int lineas, int paginas)
     {
@@ -101,7 +101,7 @@ public sealed class MotorPdfTests
         var con = new GeneradorPdfFastReport().Generar(PlantillaFactura.Factura, completa, Lineas(3), Resumen);
         var sin = new GeneradorPdfFastReport().Generar(PlantillaFactura.Factura, Datos, Lineas(3), Resumen);
         Assert.True(Regex.Matches(Latin1(con), @"/Subtype\s*/Image").Count >= 2, "Faltan el logo o el QR en el PDF");
-        Assert.Equal(0, Regex.Matches(Latin1(sin), @"/Subtype\s*/Image").Count);
+        Assert.Empty(Regex.Matches(Latin1(sin), @"/Subtype\s*/Image"));
         Guardar("factura-logo-qr.pdf", con);
     }
 

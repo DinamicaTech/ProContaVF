@@ -40,7 +40,7 @@
         <Column Name="Importes" DataType="System.String"/>
     </BusinessObjectDataSource>
   </Dictionary>
-  <ReportPage Name="Page1" PaperWidth="210" PaperHeight="297" LeftMargin="0" RightMargin="0" TopMargin="0" BottomMargin="0">
+  <ReportPage Name="Page1" PaperWidth="210" PaperHeight="297" LeftMargin="0" RightMargin="0" TopMargin="0" BottomMargin="0" TitleBeforeHeader="false">
     <PageHeaderBand Name="Franja" Width="793.7" Height="45.35">
       <TextObject Name="Franja0" Left="0" Top="0" Width="158.74" Height="8.31" Fill.Color="230, 90, 12"/>
       <TextObject Name="Franja1" Left="158.74" Top="0" Width="158.74" Height="8.31" Fill.Color="236, 135, 11"/>
@@ -71,12 +71,12 @@
         <BarcodeObject Name="Qr" Left="617.95" Top="136.06" Width="113.39" Height="113.39" Text="[Factura.QrUrl]" ShowText="false" AutoSize="false" Barcode="QR Code" Barcode.ErrorCorrection="M"/>
         <TextObject Name="QrVeriFactu" Left="604.72" Top="251.34" Width="139.84" Height="14.36" Text="VERI*FACTU" Font="Segoe UI Semibold, 7.2pt" TextFill.Color="43, 43, 43" HorzAlign="Center" Padding="0, 0, 0, 0"/>
         <TextObject Name="QrLeyenda" Left="604.72" Top="265.32" Width="139.84" Height="24.19" Text="Factura verificable en la sede electrónica de la AEAT" Font="Segoe UI, 6.2pt" TextFill.Color="90, 85, 80" HorzAlign="Center" Padding="0, 0, 0, 0"/>
-        <LineObject Name="LineaMeta1" Left="56.69" Top="298.58" Width="680.31" Height="0" Border.Color="230, 224, 216" Border.Width="0.94"/>
+        <TextObject Name="LineaMeta1" Left="56.69" Top="298.58" Width="680.31" Height="3.78" Border.Lines="Top" Border.Color="230, 224, 216" Border.Width="0.94"/>
         <TextObject Name="EtDescripcion" Left="56.69" Top="306.14" Width="226.77" Height="13.61" Text="DESCRIPCIÓN" Font="Segoe UI, 6.4pt" TextFill.Color="138, 127, 116" Padding="0, 0, 0, 0"/>
         <TextObject Name="Descripcion" Left="56.69" Top="321.26" Width="483.78" Height="36.28" Text="[Factura.Descripcion]&#13;&#10;[Factura.Rectifica]" Font="Segoe UI, 8.6pt" TextFill.Color="43, 43, 43" LineHeight="16.25" Padding="0, 0, 0, 0"/>
         <TextObject Name="EtPeriodo" Left="566.93" Top="306.14" Width="170.08" Height="13.61" Text="PERIODO" Font="Segoe UI, 6.4pt" TextFill.Color="138, 127, 116" HorzAlign="Right" Padding="0, 0, 0, 0"/>
         <TextObject Name="Periodo" Left="548.03" Top="321.26" Width="188.98" Height="36.28" Text="[Factura.Periodo]&#13;&#10;[Factura.FechaOperacion]" Font="Segoe UI, 8.6pt" TextFill.Color="43, 43, 43" HorzAlign="Right" LineHeight="16.25" Padding="0, 0, 0, 0"/>
-        <LineObject Name="LineaMeta2" Left="56.69" Top="360.94" Width="680.31" Height="0" Border.Color="230, 224, 216" Border.Width="0.94"/>
+        <TextObject Name="LineaMeta2" Left="56.69" Top="360.94" Width="680.31" Height="3.78" Border.Lines="Top" Border.Color="230, 224, 216" Border.Width="0.94"/>
     </ReportTitleBand>
     <DataBand Name="BandaLineas" Top="461.1" Width="793.7" Height="23.43" CanGrow="true" CanShrink="true" DataSource="Lineas">
       <TextObject Name="FondoLinea" Left="56.69" Top="0" Width="680.31" Height="23.43" GrowToBottom="true" Border.Lines="Bottom" Border.Color="236, 231, 224"><Highlight><Condition Expression="[Lineas.Iva] == &quot;Supl.&quot;" Fill.Color="250, 248, 245" ApplyFill="true" ApplyTextFill="false"/></Highlight></TextObject>
@@ -99,24 +99,22 @@
         <TextObject Name="CabTotal" Left="676.54" Top="0" Width="52.91" Height="26.46" Text="TOTAL" Font="Segoe UI Semibold, 7pt" TextFill.Color="255, 255, 255" HorzAlign="Right" VertAlign="Center" WordWrap="false" Padding="0, 0, 0, 0"/>
       </DataHeaderBand>
     </DataBand>
-    <ReportSummaryBand Name="BandaTotales" Top="491.34" Width="793.7" Height="196.54" PrintAtBottom="true">
-      <LineObject Name="LineaTotales" Left="56.69" Top="0" Width="680.31" Height="0" Border.Color="51, 48, 45" Border.Width="1.89"/>
-        <TextObject Name="CajaPago" Left="56.69" Top="15.12" Width="396.85" Height="166.3" Fill.Color="250, 248, 245"/>
-        <TextObject Name="EtPago" Left="71.81" Top="26.46" Width="302.36" Height="13.61" Text="FORMA DE PAGO" Font="Segoe UI, 6.4pt" TextFill.Color="138, 127, 116" Padding="0, 0, 0, 0"/>
-        <TextObject Name="FormaPago" Left="71.81" Top="41.57" Width="370.39" Height="18.9" Text="[Factura.FormaPago]" Font="Segoe UI Semibold, 9pt" TextFill.Color="43, 43, 43" Padding="0, 0, 0, 0"/>
-        <TextObject Name="EtCuenta" Left="71.81" Top="66.14" Width="302.36" Height="13.61" Text="[Factura.PagoEtiqueta]" Font="Segoe UI, 6.4pt" TextFill.Color="138, 127, 116" Padding="0, 0, 0, 0"/>
-        <TextObject Name="PagoCuenta" Left="71.81" Top="80.88" Width="370.39" Height="22.68" Text="[Factura.PagoCuenta]" Font="Segoe UI Semibold, 10.5pt" TextFill.Color="43, 43, 43" WordWrap="false" Padding="0, 0, 0, 0"/>
-        <TextObject Name="PagoDetalle" Left="71.81" Top="105.83" Width="370.39" Height="68.03" Text="[Factura.PagoDetalle]" Font="Segoe UI, 8.6pt" TextFill.Color="43, 43, 43" LineHeight="16.25" Padding="0, 0, 0, 0"/>
-        <TextObject Name="TotEtiquetas" Left="487.56" Top="15.12" Width="166.3" Height="124.72" Text="[Totales.Etiquetas]" Font="Segoe UI, 8.6pt" TextFill.Color="43, 43, 43" HorzAlign="Left" VertAlign="Bottom" LineHeight="18.14" Padding="0, 0, 0, 0"/>
-        <TextObject Name="TotImportes" Left="642.52" Top="15.12" Width="86.93" Height="124.72" Text="[Totales.Importes]" Font="Segoe UI, 8.6pt" TextFill.Color="43, 43, 43" HorzAlign="Right" VertAlign="Bottom" LineHeight="18.14" WordWrap="false" Padding="0, 0, 0, 0"/>
-        <TextObject Name="CajaTotal" Left="483.78" Top="143.62" Width="253.23" Height="37.8" Fill.Color="236, 122, 11"/>
-        <TextObject Name="EtTotal" Left="495.12" Top="143.62" Width="132.28" Height="37.8" Text="TOTAL A PAGAR" Font="Segoe UI Semibold, 8pt" TextFill.Color="255, 255, 255" VertAlign="Center" WordWrap="false" Padding="0, 0, 0, 0"/>
-        <TextObject Name="Total" Left="566.93" Top="143.62" Width="158.74" Height="37.8" Text="[Factura.Total]" Font="Segoe UI Semibold, 12.5pt" TextFill.Color="255, 255, 255" HorzAlign="Right" VertAlign="Center" WordWrap="false" Padding="0, 0, 0, 0"/>
-    </ReportSummaryBand>
-    <PageFooterBand Name="Pie" Top="699.21" Width="793.7" Height="49.13">
-      <LineObject Name="LineaPie" Left="56.69" Top="3.78" Width="680.31" Height="0" Border.Color="230, 224, 216" Border.Width="0.94"/>
-        <TextObject Name="PieEmisor" Left="56.69" Top="11.34" Width="529.13" Height="15.12" Text="[Factura.PieEmisor]" Font="Segoe UI, 6.8pt" TextFill.Color="138, 127, 116" WordWrap="false" Padding="0, 0, 0, 0"/>
-        <TextObject Name="Pagina" Left="585.83" Top="11.34" Width="151.18" Height="15.12" Text="Página [Page] de [TotalPages#]" Font="Segoe UI, 6.8pt" TextFill.Color="138, 127, 116" HorzAlign="Right" WordWrap="false" Padding="0, 0, 0, 0"/>
+    <PageFooterBand Name="Pie" Top="510.24" Width="793.7" Height="245.67">
+      <TextObject Name="LineaTotales" Left="56.69" Top="0" Width="680.31" Height="3.78" Border.Lines="Top" Border.Color="51, 48, 45" Border.Width="1.89" PrintOn="LastPage, SinglePage"/>
+        <TextObject Name="CajaPago" Left="56.69" Top="15.12" Width="396.85" Height="166.3" Fill.Color="250, 248, 245" PrintOn="LastPage, SinglePage"/>
+        <TextObject Name="EtPago" Left="71.81" Top="26.46" Width="302.36" Height="13.61" Text="FORMA DE PAGO" Font="Segoe UI, 6.4pt" TextFill.Color="138, 127, 116" Padding="0, 0, 0, 0" PrintOn="LastPage, SinglePage"/>
+        <TextObject Name="FormaPago" Left="71.81" Top="41.57" Width="370.39" Height="18.9" Text="[Factura.FormaPago]" Font="Segoe UI Semibold, 9pt" TextFill.Color="43, 43, 43" Padding="0, 0, 0, 0" PrintOn="LastPage, SinglePage"/>
+        <TextObject Name="EtCuenta" Left="71.81" Top="66.14" Width="302.36" Height="13.61" Text="[Factura.PagoEtiqueta]" Font="Segoe UI, 6.4pt" TextFill.Color="138, 127, 116" Padding="0, 0, 0, 0" PrintOn="LastPage, SinglePage"/>
+        <TextObject Name="PagoCuenta" Left="71.81" Top="80.88" Width="370.39" Height="22.68" Text="[Factura.PagoCuenta]" Font="Segoe UI Semibold, 10.5pt" TextFill.Color="43, 43, 43" WordWrap="false" Padding="0, 0, 0, 0" PrintOn="LastPage, SinglePage"/>
+        <TextObject Name="PagoDetalle" Left="71.81" Top="105.83" Width="370.39" Height="68.03" Text="[Factura.PagoDetalle]" Font="Segoe UI, 8.6pt" TextFill.Color="43, 43, 43" LineHeight="16.25" Padding="0, 0, 0, 0" PrintOn="LastPage, SinglePage"/>
+        <TextObject Name="TotEtiquetas" Left="487.56" Top="15.12" Width="166.3" Height="124.72" Text="[Totales.Etiquetas]" Font="Segoe UI, 8.6pt" TextFill.Color="43, 43, 43" HorzAlign="Left" VertAlign="Bottom" LineHeight="18.14" Padding="0, 0, 0, 0" PrintOn="LastPage, SinglePage"/>
+        <TextObject Name="TotImportes" Left="642.52" Top="15.12" Width="86.93" Height="124.72" Text="[Totales.Importes]" Font="Segoe UI, 8.6pt" TextFill.Color="43, 43, 43" HorzAlign="Right" VertAlign="Bottom" LineHeight="18.14" WordWrap="false" Padding="0, 0, 0, 0" PrintOn="LastPage, SinglePage"/>
+        <TextObject Name="CajaTotal" Left="483.78" Top="143.62" Width="253.23" Height="37.8" Fill.Color="236, 122, 11" PrintOn="LastPage, SinglePage"/>
+        <TextObject Name="EtTotal" Left="495.12" Top="143.62" Width="132.28" Height="37.8" Text="TOTAL A PAGAR" Font="Segoe UI Semibold, 8pt" TextFill.Color="255, 255, 255" VertAlign="Center" WordWrap="false" Padding="0, 0, 0, 0" PrintOn="LastPage, SinglePage"/>
+        <TextObject Name="Total" Left="566.93" Top="143.62" Width="158.74" Height="37.8" Text="[Factura.Total]" Font="Segoe UI Semibold, 12.5pt" TextFill.Color="255, 255, 255" HorzAlign="Right" VertAlign="Center" WordWrap="false" Padding="0, 0, 0, 0" PrintOn="LastPage, SinglePage"/>
+        <TextObject Name="LineaPie" Left="56.69" Top="200.31" Width="680.31" Height="3.78" Border.Lines="Top" Border.Color="230, 224, 216" Border.Width="0.94"/>
+        <TextObject Name="PieEmisor" Left="56.69" Top="207.87" Width="529.13" Height="15.12" Text="[Factura.PieEmisor]" Font="Segoe UI, 6.8pt" TextFill.Color="138, 127, 116" WordWrap="false" Padding="0, 0, 0, 0"/>
+        <TextObject Name="Pagina" Left="585.83" Top="207.87" Width="151.18" Height="15.12" Text="Página [Page] de [TotalPages#]" Font="Segoe UI, 6.8pt" TextFill.Color="138, 127, 116" HorzAlign="Right" WordWrap="false" Padding="0, 0, 0, 0"/>
     </PageFooterBand>
   </ReportPage>
 </Report>
