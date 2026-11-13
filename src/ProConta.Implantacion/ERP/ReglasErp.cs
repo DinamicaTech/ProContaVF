@@ -55,6 +55,21 @@ public static class ReglasErp
     }
 
     /// <summary>
+    /// Razón social de la empresa en un año: la de ese año o, si no la hay, la del año más cercano (a igual distancia, el
+    /// posterior). Null si no hay ninguna.
+    /// </summary>
+    public static string? RazonSocialDelAnio(IReadOnlyDictionary<int, string> porAnio, int anio) =>
+        porAnio.TryGetValue(anio, out var propia) ? propia
+        : porAnio.Count == 0 ? null
+        : porAnio[porAnio.Keys.OrderBy(a => Math.Abs(a - anio)).ThenByDescending(a => a).First()];
+
+    /// <summary>
+    /// Prorrata del año anterior en porcentaje (14 = 14 %; organizacion/sociedades-ejercicios 2026-11-13 22:45). El ERP la
+    /// guarda en tanto por uno (0,14): un valor de 0 a 1 se multiplica por 100; uno mayor ya es un porcentaje. Dos decimales.
+    /// </summary>
+    public static decimal ProrrataEnPorcentaje(decimal valor) => Math.Round(valor is >= 0m and <= 1m ? valor * 100m : valor, 2);
+
+    /// <summary>
     /// Valores que la migración escribe en el ejercicio: los no vacíos del ERP. La cuenta de suplidos es CuentaSuplido o, si está
     /// vacía, la «Cuenta de suplido con IVA» del ERP (5550002; propietario 2026-11-13 20:40). Los porcentajes (SINGLE) se
     /// redondean a 4 decimales para no arrastrar el error del tipo de coma flotante.
@@ -78,7 +93,8 @@ public static class ReglasErp
             {
                 case "FormaPagoDefecto" when erp.E(origen) is int fp and >= 0 and <= 255: r.Add((campo, fp)); break;
                 case "TrimestreActivo" when erp.E(origen) is int t and >= 1 and <= 4: r.Add((campo, t)); break;
-                case "TipoIVAGeneral" or "PorcentajeProrrataAñoAnterior" when erp.D(origen) is decimal d: r.Add((campo, (float)Math.Round(d, 4))); break;
+                case "TipoIVAGeneral" when erp.D(origen) is decimal d: r.Add((campo, (float)Math.Round(d, 4))); break;
+                case "PorcentajeProrrataAñoAnterior" when erp.D(origen) is decimal d: r.Add((campo, (float)ProrrataEnPorcentaje(d))); break;
             }
         }
         return r;

@@ -115,18 +115,6 @@ public static class AsientoVenta
         TrimestreContable.FechaAsiento(f.FechaFactura ?? (hoy.Year == ejercicio ? hoy.Date : new DateTime(ejercicio, 12, 31)), ejercicio,
             TrimestreContable.Activo(trimestreActivo, ejercicio, hoy));
 
-    /// <summary>
-    /// La 477 de una actividad a partir de una 477 general ya conocida (facturacion/factura-venta/contabilizacion 2026-11-08): su
-    /// serie de la 472 con el 2 cambiado por el 7 y la terminación de la general (serie 4728 y 4770021 → 4778021). Solo la usa la
-    /// migración del ERP, donde la 477 general sale de los asientos históricos; las facturas de ProContaVF calculan la cuenta con
-    /// <see cref="CuentasIva"/>.
-    /// </summary>
-    public static string CuentaIvaActividad(string general, string serie)
-    {
-        var g = general.Trim();
-        return serie is { Length: 4 } && g.Length >= 3 && g.All(char.IsAsciiDigit) ? "477" + serie[3] + g[^3..] : g;
-    }
-
     private const string Separador = " - ";
 
     /// <summary>

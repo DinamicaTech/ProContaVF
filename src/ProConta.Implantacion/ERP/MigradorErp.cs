@@ -80,6 +80,9 @@ internal sealed partial class EjecucionErp(MigradorErp m, OrigenErp o, OpcionesM
     private readonly List<(string Tipo, string Clave, int Id)> _pendientes = [];
     private readonly Dictionary<(int Anio, string Tipo), IReadOnlyDictionary<string, int>> _mapasCs = [];
     private readonly Dictionary<int, (int Id, string? Nombre)> _ejercicios = [];
+
+    /// <summary>Razón social de la empresa por año: el Nombre de los ejercicios importados de ContaSol (su F_EMP.DENEMP).</summary>
+    private readonly Dictionary<int, string> _razonesSociales = [];
     private readonly Dictionary<string, int> _centros = new(StringComparer.Ordinal);
     private readonly Dictionary<string, int> _identidades = new(StringComparer.Ordinal);
     private int _idMigracion;

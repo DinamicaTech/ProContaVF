@@ -299,14 +299,14 @@ internal sealed partial class EjecucionErp
         {
             var f = p.Factura;
             var t = f.Totales;
-            // El emisor es siempre la empresa (organizacion/sociedades-ejercicios 2026-11-13 20:55).
+            // Emisor histórico: la razón social que tenía la empresa ese año (la del F_EMP de ContaSol de ese ejercicio); el NIF, el de la empresa.
             var dir = p.Erp.E("IdCliente") is int pd && direcciones.TryGetValue(pd, out var d) ? d : null;
             var rect = p.Rectificada.Length > 0;
             return new object?[]
             {
                 _ejercicios[p.Anio].Id, _series[p.Anio], Txt(p.Numero), f.IdCliente, ReglasErp.Recortar(p.Erp.T("NIF"), 20), ReglasErp.Recortar(p.Erp.T("NombreCliente"), 255),
                 dir?.Pais?.ToUpperInvariant() is "ESPAÑA" or "ESPANA" ? "ES" : null,
-                ReglasErp.Recortar(emisor.Cif, 20), ReglasErp.Recortar(emisor.Nombre, 255), emisor.Dir, emisor.Cp, emisor.Pob, emisor.Prov,
+                ReglasErp.Recortar(emisor.Cif, 20), ReglasErp.Recortar(ReglasErp.RazonSocialDelAnio(_razonesSociales, p.Anio) ?? emisor.Nombre, 255), emisor.Dir, emisor.Cp, emisor.Pob, emisor.Prov,
                 f.FechaFactura, f.FechaInicioValidez, f.FechaFinValidez, f.FechaFactura, f.FechaFactura, f.Descripcion, f.NotasInternas,
                 t.BaseImponible.Valor, t.Iva.Valor, t.ImporteBruto.Valor, (float)f.TipoRetencion, t.Retencion.Valor, t.ImporteTotal.Valor,
                 rect ? "R4" : "F1", rect ? "I" : null, (byte)EstadoFactura.Validada, p.IdAsiento, p.IdAsiento is null ? null : p.FechaAsiento,
@@ -456,23 +456,29 @@ internal sealed partial class EjecucionErp
                 Anotar(Fase2, "F_IVR", Txt(p.Numero), "FECIVR", "Erp.LibroAlTrimestreDelAsiento", Severidad.Informativa,
                     $"El registro del libro de la factura {p.Numero} pasa al {tri}T de {p.Anio}, el de la fecha de su asiento ({nf:dd/MM/yyyy}).", reg.Fecha.ToString("dd/MM/yyyy", CultureInfo.InvariantCulture));
             }
-            // Reparto por actividad: cada tipo del registro, entre las 477 de las líneas de ese tipo.
-            var cuentaGeneral = p.IdAsiento is int ia && general.TryGetValue(ia, out var g) ? g : generalAnio.GetValueOrDefault(p.Anio);
+            // Reparto por actividad con la regla de la contabilización nueva (CuentasIva, organizacion/sociedades-ejercicios
+            // 2026-11-13 20:55): cada tipo del registro, entre las 477 de sus líneas (477 + dígito de la serie + porcentaje con tres
+            // cifras; exentas en 000). La 477 histórica del asiento solo queda para un tipo con decimales, que no tiene cuenta calculable.
+            var cuentaHistorica = p.IdAsiento is int ia && general.TryGetValue(ia, out var g) ? g : generalAnio.GetValueOrDefault(p.Anio);
             var filas = new List<object?[]>();
-            if (cuentaGeneral is null)
-                Anotar(Fase2, "F_IVR", Txt(p.Numero), null, "Erp.SinCuentaIva", Severidad.Advertencia, $"No sé la 477 de {p.Anio} de la factura {p.Numero}: su registro del libro se queda sin repartir por actividad.");
-            else if (desgloses.TryGetValue(idReg, out var tramos))
+            if (desgloses.TryGetValue(idReg, out var tramos))
             {
                 var orden = 1;
                 foreach (var grupo in tramos.GroupBy(t => t.Tipo))
                 {
+                    if ((CuentasIva.Repercutido(grupo.Key) ?? cuentaHistorica) is not { } cuentaTipo)
+                    {
+                        Anotar(Fase2, "F_IVR", Txt(p.Numero), "TipoIVA", "Erp.SinCuentaIva", Severidad.Advertencia,
+                            $"El tramo del {grupo.Key:0.##} % de la factura {p.Numero} no tiene cuenta: {CuentasIva.MotivoSinCuenta(grupo.Key)} Se queda sin repartir por actividad.");
+                        continue;
+                    }
                     var b = grupo.Sum(t => t.Base);
                     var c = grupo.Sum(t => t.Cuota);
                     var primero = grupo.First();
                     var partes = p.Factura.Lineas.Where(l => !l.EsSuplido && l.TipoIva == grupo.Key && l.Cantidad != 0m)
-                        .Select(l => (Cuenta: l.IdCentroCoste is int cc && actividades.TryGetValue(cc, out var act) && act.Serie is { Length: 4 } serie
-                            ? AsientoVenta.CuentaIvaActividad(cuentaGeneral, serie) : cuentaGeneral, Base: l.BaseImponible.Valor)).ToList();
-                    var reparto = ReglasErp.Repartir(b, c, partes.Count > 0 ? partes : [(cuentaGeneral, b)]);
+                        .Select(l => (Cuenta: l.IdCentroCoste is int cc && actividades.TryGetValue(cc, out var act)
+                            && CuentasIva.Repercutido(grupo.Key, act.Serie) is { } deActividad ? deActividad : cuentaTipo, Base: l.BaseImponible.Valor)).ToList();
+                    var reparto = ReglasErp.Repartir(b, c, partes.Count > 0 ? partes : [(cuentaTipo, b)]);
                     foreach (var (cuenta, baseParte, cuotaParte) in reparto)
                     {
                         if (!cuentasIva.TryGetValue((ctx.IdSociedadEjercicio, cuenta), out var idCuenta))

@@ -46,7 +46,7 @@ public static class ProveedoresOrganizacion
     /// <summary>Prorrata del año anterior, que usará el cálculo de la prorrata (organizacion/sociedades-ejercicios 2026-11-13 20:55).</summary>
     internal static CampoMantenimiento ProrrataAnterior() =>
         new("PorcentajeProrrataAñoAnterior", "Prorrata del año anterior (%)", TipoCampo.Porcentaje) { Grupo = "impuestos", Ancho = "xs", Sinonimos = ["prorrata"],
-            Ayuda = "Porcentaje de prorrata definitivo del año anterior, que se aplica de forma provisional en este ejercicio (por ejemplo 85)." };
+            Ayuda = "Porcentaje de prorrata definitivo del año anterior, que se aplica de forma provisional en este ejercicio, en porcentaje: 14 es el 14 %." };
 
     /// <summary>Cuentas de compras que solo tiene el ejercicio (compras/factura-compra/contabilizacion).</summary>
     internal static IEnumerable<CampoMantenimiento> CuentasCompras() =>

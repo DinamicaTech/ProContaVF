@@ -77,6 +77,27 @@ public sealed class LimpiezaEjerciciosTests
         Assert.StartsWith("No importo ningún ejercicio", IvaCeroContaSol.MotivoParada(plan.Incidencias));
     }
 
+    [Theory]
+    [InlineData("0.14", "14")]
+    [InlineData("0.155", "15.5")]
+    [InlineData("1", "100")]
+    [InlineData("0", "0")]
+    [InlineData("85", "85")]
+    public void La_prorrata_del_ERP_pasa_de_tanto_por_uno_a_porcentaje(string erp, string esperada) =>
+        Assert.Equal(decimal.Parse(esperada, System.Globalization.CultureInfo.InvariantCulture),
+            ReglasErp.ProrrataEnPorcentaje(decimal.Parse(erp, System.Globalization.CultureInfo.InvariantCulture)));
+
+    [Fact]
+    public void El_emisor_de_cada_factura_migrada_es_la_razon_social_de_su_anio_o_la_del_mas_cercano()
+    {
+        var razones = new Dictionary<int, string> { [2018] = "Antigua SL", [2022] = "Antigua SL", [2023] = "Nueva SL", [2026] = "Nueva SL" };
+        Assert.Equal("Antigua SL", ReglasErp.RazonSocialDelAnio(razones, 2018));
+        Assert.Equal("Antigua SL", ReglasErp.RazonSocialDelAnio(razones, 2010));
+        Assert.Equal("Nueva SL", ReglasErp.RazonSocialDelAnio(razones, 2023));
+        Assert.Equal("Antigua SL", ReglasErp.RazonSocialDelAnio(razones, 2020));
+        Assert.Null(ReglasErp.RazonSocialDelAnio(new Dictionary<int, string>(), 2020));
+    }
+
     [Fact]
     public void El_ejercicio_que_no_esta_en_el_ERP_copia_la_configuracion_del_mas_cercano()
     {
@@ -102,7 +123,7 @@ public sealed class LimpiezaEjerciciosTests
         Assert.Equal("5550002", v["CuentaSuplido"]);
         Assert.Equal(1, v["FormaPagoDefecto"]);
         Assert.Equal(3, v["TrimestreActivo"]);
-        Assert.Equal(0.15f, v["PorcentajeProrrataAñoAnterior"]);
+        Assert.Equal(15f, v["PorcentajeProrrataAñoAnterior"]);
         Assert.Equal("4721021", v["CuentaIVAInversionSujetoPasivoSoportado"]);
         Assert.Equal("4720121", v["CuentaIVAIntracomunitarioSoportadoBienes"]);
         // Lo que el ERP no tiene se queda vacío (no se escribe), y las columnas eliminadas no se migran.
