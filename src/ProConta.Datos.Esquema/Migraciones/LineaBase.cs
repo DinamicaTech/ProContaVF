@@ -91,6 +91,7 @@ public static class CatalogoMigraciones
         MigracionesContabilidad.PlantillasAsiento,
         MigracionesContabilidad.ClasesPlantillasAsiento,
         MigracionesNorma43.ReversionLotes,
+        MigracionesConciliacionN43.Conciliacion,
     ];
 
     /// <summary>Versión del esquema que espera esta versión del programa.</summary>
