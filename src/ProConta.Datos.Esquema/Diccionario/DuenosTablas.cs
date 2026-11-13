@@ -21,7 +21,8 @@ public static class DuenosTablas
         Asignar("seguridad", "seguridad/permisos", "GruposOperadores", "OperadoresGrupos", "AccesoSociedadesGrupo", "RestriccionesReportsGrupo", "PermisosAccionesGrupo");
         Asignar("seguridad", "seguridad/acceso", "OperadoresSeguridad", "AuditoriaSeguridad", "PreferenciasAccesoOperador", "PreferenciasAccesoEjercicio");
         Asignar("terceros", "terceros/tercero", "Terceros", "HistorialTerceros", "MapasOrigenTerceros", "DomiciliosTercero");
-        Asignar("terceros", "terceros/roles", "Clientes", "Proveedores", "CuentasClientesSociedad", "CuentasProveedoresSociedad");
+        Asignar("terceros", "terceros/roles", "Clientes", "Proveedores", "CuentasClientesSociedad", "CuentasProveedoresSociedad",
+            "Empleados", "EmpleadosSociedad");
         Asignar("terceros", "terceros/contactos", "Contactos", "ContactosLibresTercero", "DatosContacto", "RelacionesContactos");
         Asignar("terceros", "terceros/perfiles-notas", "Perfiles", "PerfilesTerceros");
         Asignar("contabilidad", "contabilidad/cuenta-contable", "CuentasContables", "IdentidadesContables", "CodigosContablesReservados",
@@ -50,6 +51,7 @@ public static class DuenosTablas
         Asignar("correo", "correo/envio", "CuentasCorreo", "LotesCorreo", "MensajesCorreo", "DestinatariosMensajeCorreo", "AdjuntosMensajeCorreo",
             "IntentosMensajeCorreo", "TurnosCorreo");
         Asignar("correo", "correo/recepcion", "MensajesRecibidosCorreo", "AdjuntosRecibidosCorreo", "RemitentesAutorizadosCorreo");
+        Asignar("nominas", "nominas", "AliasCamposNomina", "ImportacionesNomina", "Nominas");
         Asignar("implantacion", "implantacion/importador-contasol", "ImportacionesContaSol", "FasesImportacionContaSol",
             "IncidenciasImportacionContaSol", "MapasIdentidadContaSol");
         Asignar("implantacion", "implantacion/migracion-erp", "MigracionesERP", "IncidenciasMigracionERP", "MapasIdentidadERP");
