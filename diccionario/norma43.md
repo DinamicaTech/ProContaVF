@@ -53,22 +53,47 @@ Relaciones:
 Relaciones:
 - FK_Complementos_Linea: (IdLineaExtractoBancario) → LineasExtractoBancario (IdLineaExtractoBancario); borrado NO ACTION, actualización NO ACTION
 
+## ConceptosN43
+
+- Dueño funcional: `norma43/conciliacion`
+- Tipos de movimiento bancario: traduce cada línea N43 (concepto común, sentido, texto, entidad y cuenta de destino) a su tipo y a la frase de la descripción del asiento.
+
+| Campo | Tipo | Nulo | Por defecto | Descripción |
+|---|---|---|---|---|
+| IdConceptoN43 | COUNTER | no |  |  |
+| CodigoConcepto | TEXT(2) | sí |  | Concepto común de la AEB (registro 22 del cuaderno 43, 00-99); vacío = cualquiera. |
+| Sentido | TEXT(1) | sí |  | D cargo, H abono; vacío = los dos. |
+| Entidad | TEXT(4) | sí |  | Código de la entidad bancaria del extracto (0049 Santander, 2100 La Caixa…); vacío = cualquiera. |
+| PatronTexto | TEXT(100) | sí |  | Texto que debe contener el concepto del banco, con * como comodín (sin distinguir mayúsculas); vacío = cualquiera. |
+| PrefijoCuenta | TEXT(12) | sí |  | Prefijo de la cuenta de destino (la imputación), p. ej. 465 para las nóminas; vacío = cualquiera. |
+| Prioridad | SHORT | no |  | Gana la regla aplicable de mayor prioridad (AEB 100, excepciones 150-210, por cuenta 300). |
+| Concepto | TEXT(120) | no |  | Nombre oficial del concepto común de la AEB. |
+| ConceptoReducido | TEXT(40) | no |  | Tipo de movimiento que se muestra en la rejilla (Recibo, Transferencia, Tarjeta…). |
+| Frase | TEXT(60) | no |  | Principio de la descripción del asiento («Recibo de», «Transferencia a»…), seguido del nombre. |
+| NombreDe | TEXT(15) | no |  | Qué nombre sigue a la frase: CONTRAPARTIDA (el tercero de la cuenta o la cuenta) o BANCO (la cuenta bancaria). |
+| Activo | YESNO | no |  | Si la regla se aplica. |
+
+Índices:
+- PK_ConceptosN43 (clave primaria): IdConceptoN43
+
 ## ContabilizacionesLineaExtracto
 
 - Dueño funcional: `norma43`
+- Asiento de cada movimiento bancario (línea N43) contabilizado: uno por línea.
 
 | Campo | Tipo | Nulo | Por defecto | Descripción |
 |---|---|---|---|---|
 | IdContabilizacionLineaExtracto | COUNTER | no |  |  |
-| IdLineaExtractoBancario | LONG | no |  |  |
-| IdAsiento | LONG | no |  |  |
-| Estado | TEXT(20) | no |  |  |
-| VersionProceso | LONG | no |  |  |
-| FechaHora | DATETIME | no |  |  |
-| Operador | TEXT(100) | sí |  |  |
+| IdLineaExtractoBancario | LONG | no |  | Movimiento bancario contabilizado (LineasExtractoBancario). |
+| IdAsiento | LONG | no |  | Asiento del movimiento: de ProContaVF (lote norma43/conciliacion, LINEA_N43, Id de la línea) o, en lo migrado del ERP, el de ContaSol. |
+| Estado | TEXT(20) | no |  | CONTABILIZADA mientras el asiento existe. Deshacer la contabilización borra la fila. |
+| VersionProceso | LONG | no |  | Versión de las reglas que generaron el asiento: 1 migrado del ERP, 2 conciliación de ProContaVF. |
+| FechaHora | DATETIME | no |  | Cuándo se contabilizó (o se migró). |
+| Operador | TEXT(100) | sí |  | Quién lo contabilizó (ERP en lo migrado). |
 
 Índices:
 - FK_Contabilizaciones_Linea: IdLineaExtractoBancario
+- IX_Contabilizaciones_Asiento: IdAsiento
 - PK_ContabilizacionesLineaExtracto (clave primaria): IdContabilizacionLineaExtracto
 
 Relaciones:

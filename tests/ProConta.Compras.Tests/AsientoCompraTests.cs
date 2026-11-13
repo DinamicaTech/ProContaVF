@@ -184,7 +184,7 @@ public sealed class AsientoCompraTests
     [Fact]
     public void El_trimestre_cerrado_se_compara_con_el_trimestre_activo_del_ejercicio_de_la_factura()
     {
-        var config = new ConfiguracionCompras(new Dictionary<decimal, string>(), null, [4m, 10m, 21m, 5m], 3, null, null, null, null, null, null, null, null, null, null, null, null);
+        var config = new ConfiguracionCompras(null, [4m, 10m, 21m, 5m], 3, null, null, null, null, null, null, null, null, null, null, null, null);
         Assert.Equal(21m, config.TipoGeneralEfectivo);
         Assert.True(ContabilizadorCompras.LoteCerrado(new EstadoExportacionCompra(0, 1, null, 2, 2026), config, 2026, Hoy));
         Assert.False(ContabilizadorCompras.LoteCerrado(new EstadoExportacionCompra(0, 1, null, 3, 2026), config, 2026, Hoy));

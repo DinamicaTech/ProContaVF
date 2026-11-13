@@ -73,7 +73,7 @@ public sealed class PlanificadorTests
     {
         var apuntes = new[]
         {
-            Ap(5, 1, "6000001", 100m, true), Ap(5, 2, "4720000", 21m, true, tipoIva: "S", codigoIva: 3), Ap(5, 3, "4000001", 121m, false),
+            Ap(5, 1, "6000001", 100m, true), Ap(5, 2, "4720021", 21m, true, tipoIva: "S", codigoIva: 3), Ap(5, 3, "4000001", 121m, false),
         };
         var iva = new RegistroIvaContaSol(true, 3, new DateTime(2024, 5, 2), new DateTime(2024, 4, 30), null, "4000001", "F-1", "Proveedor uno", "B12345674", 0m,
             [new TramoIvaContaSol(100m, 21m, 21m)], 121m, 0, true, 50m, null);

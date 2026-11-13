@@ -39,7 +39,7 @@ public sealed class ImportadorAccessTests : IDisposable
     private static readonly (string, string)[] Plan =
     [
         ("100", "Capital"), ("1000000", "Capital social"), ("400", "Proveedores"), ("4000001", "Proveedor sintético"), ("430", "Clientes"), ("4300001", "Cliente sintético"),
-        ("472", "IVA soportado"), ("4720000", "IVA soportado 21"), ("477", "IVA repercutido"), ("4770000", "IVA repercutido 21"), ("572", "Bancos"), ("5720001", "Banco sintético"),
+        ("472", "IVA soportado"), ("4720021", "IVA soportado 21"), ("477", "IVA repercutido"), ("4770021", "IVA repercutido 21"), ("572", "Bancos"), ("5720001", "Banco sintético"),
         ("600", "Compras"), ("6000001", "Compras sintéticas"), ("700", "Ventas"), ("7000001", "Ventas sintéticas"),
     ];
 
@@ -50,11 +50,11 @@ public sealed class ImportadorAccessTests : IDisposable
         o.Centros.Add((3, 0, "Inmuebles"));
         o.Centros.Add((3, 318, "Local sintético"));
         o.Asiento(1, new DateTime(2024, 1, 1), "Asiento de apertura", ("5720001", 1000m, 0m), ("1000000", 0m, 1000m));
-        o.Asiento(2, new DateTime(2024, 2, 1), "Venta sintética", ("4300001", venta * 1.21m, 0m), ("7000001", 0m, venta), ("4770000", 0m, venta * 0.21m));
+        o.Asiento(2, new DateTime(2024, 2, 1), "Venta sintética", ("4300001", venta * 1.21m, 0m), ("7000001", 0m, venta), ("4770021", 0m, venta * 0.21m));
         if (conCompra)
         {
             o.Apuntes.Add(new ContaSolSintetico.Linea(3, 1, new DateTime(2024, 4, 2), "6000001", 100m, true, "Compra sintética", Dep: 3, Sub: 318));
-            o.Apuntes.Add(new ContaSolSintetico.Linea(3, 2, new DateTime(2024, 4, 2), "4720000", 21m, true, "Compra sintética", TipoIva: "S", CodigoIva: 7));
+            o.Apuntes.Add(new ContaSolSintetico.Linea(3, 2, new DateTime(2024, 4, 2), "4720021", 21m, true, "Compra sintética", TipoIva: "S", CodigoIva: 7));
             o.Apuntes.Add(new ContaSolSintetico.Linea(3, 3, new DateTime(2024, 4, 2), "4000001", -121m, true, "Compra sintética"));
         }
         o.IvaSoportado.Add((7, new DateTime(2024, 4, 2), "4000001", "A11111111", 100m, 21m, 21m));
@@ -68,7 +68,7 @@ public sealed class ImportadorAccessTests : IDisposable
         var o = new ContaSolSintetico { Ejercicio = 2025 };
         o.Cuentas.AddRange(Plan);
         o.Asiento(1, new DateTime(2025, 1, 1), "Asiento de apertura", ("5720001", 1000m, 0m), ("1000000", 0m, 1000m));
-        o.Asiento(2, new DateTime(2025, 3, 1), "Venta a la nueva titular", ("4300001", 242m, 0m), ("7000001", 0m, 200m), ("4770000", 0m, 42m));
+        o.Asiento(2, new DateTime(2025, 3, 1), "Venta a la nueva titular", ("4300001", 242m, 0m), ("7000001", 0m, 200m), ("4770021", 0m, 42m));
         // La subcuenta 4300001 ha cambiado de titular (otro NIF).
         o.Terceros.Add((true, "4300001", "Cliente nuevo", "A33333333"));
         return o;
@@ -160,6 +160,31 @@ public sealed class ImportadorAccessTests : IDisposable
         Assert.Equal(1, await ContarAsync("SELECT COUNT(*) FROM IVASoportado WHERE IdAsiento IS NULL"));
         // Las bajas quedan en el registro de cambios: la venta cambiada y la compra que ya no está.
         Assert.Equal(2, await ContarAsync("SELECT COUNT(*) FROM RegistroCambiosApuntes WHERE Operacion = 'BAJA' AND Campo = 'Asiento'"));
+    }
+
+    /// <summary>
+    /// Subcuentas del 0 % con terminación 000 (organizacion/sociedades-ejercicios 2026-11-13 20:55) y parada de todos los
+    /// ejercicios si la antigua del 16 % (4770000) tiene apuntes en alguno.
+    /// </summary>
+    [Fact]
+    public async Task ElIvaDelCeroSeImportaEn000YLaAntiguaDel16ConApuntesDetieneTodo()
+    {
+        var conCero = Ejercicio2024();
+        conCero.Cuentas.AddRange([("4770001", "IVA repercutido 0"), ("4720000", "IVA soportado 16")]);
+        conCero.Asiento(4, new DateTime(2024, 6, 1), "Venta exenta", ("4300001", 50m, 0m), ("7000001", 0m, 50m), ("4770001", 0m, 0m));
+        var r = Assert.Single(await ImportarAsync(await conCero.CrearAsync(_carpeta)));
+        Assert.True(r.Bloqueantes == 0, string.Join(Environment.NewLine, r.Incidencias.Where(i => i.Severidad == Severidad.Bloqueante).Select(i => i.Explicacion)));
+        Assert.Equal(1, await ContarAsync("SELECT COUNT(*) FROM CuentasContables WHERE Codigo = '4770000'"));
+        Assert.Equal(0, await ContarAsync("SELECT COUNT(*) FROM CuentasContables WHERE Codigo IN ('4770001', '4720000')"));
+
+        var con16 = Ejercicio2025();
+        con16.Asiento(3, new DateTime(2025, 4, 1), "Venta al 16 % mal contabilizada", ("4300001", 116m, 0m), ("7000001", 0m, 100m), ("4770000", 0m, 16m));
+        var otro = Ejercicio2024();
+        var resultado = await ImportarAsync(await con16.CrearAsync(_carpeta), await otro.CrearAsync(_carpeta));
+        Assert.All(resultado, x => Assert.Equal(EstadosImportacion.Fallida, x.Estado));
+        var parada = Assert.Single(resultado.SelectMany(x => x.Incidencias), i => i.Codigo == IvaCeroContaSol.CodigoIva16ConApuntes);
+        Assert.Contains("ejercicio 2025, la cuenta 4770000 tiene 1 apunte", parada.Explicacion);
+        Assert.Equal(0, await ContarAsync("SELECT COUNT(*) FROM SociedadesEjercicios WHERE Ejercicio = '2025'"));
     }
 
     [Fact]

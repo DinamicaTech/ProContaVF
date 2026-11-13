@@ -32,6 +32,8 @@ internal sealed partial class EjecucionErp
     {
         var est = Est(Fase1, "Sociedades");
         var sociedades = o.Tabla("Sociedades");
+        // El emisor es siempre la empresa (organizacion/sociedades-ejercicios 2026-11-13 20:55): el CIF del ERP se compara con el suyo.
+        var cifSociedad = (await ConsultarAsync("SELECT CIF FROM Sociedades WHERE IdSociedad = ?", f => f.Texto("CIF"), Sociedad)).FirstOrDefault();
         est.Leidas = sociedades.Count;
         foreach (var s in sociedades)
         {
@@ -44,24 +46,98 @@ internal sealed partial class EjecucionErp
                 est.Cargadas++;
                 Mapear(TiposErp.Ejercicio, clave, e.Id);
                 var cif = Nif.Normalizar(s.T("CIF"));
-                if (cif.Length > 0 && e.Cif is { } c && Nif.Normalizar(c) != cif)
-                    Anotar(Fase1, "Sociedades", clave, "CIF", "Erp.CifDistinto", Severidad.Advertencia, $"El ejercicio {anio} tiene el CIF {c} en ProContaVF y {cif} en el ERP.");
+                if (cif.Length > 0 && cifSociedad is { } c && Nif.Normalizar(c) != cif)
+                    Anotar(Fase1, "Sociedades", clave, "CIF", "Erp.CifDistinto", Severidad.Advertencia, $"La empresa tiene el CIF {c} en ProContaVF y el ejercicio {anio} tiene {cif} en el ERP.");
             }
             else Excluir(Fase1, "Sociedades", clave, $"El ejercicio {anio} activo en el ERP no está en ProContaVF (no se importó de ContaSol).");
         }
         // Un ejercicio por año con datos (P-13): los anteriores a ContaSol se crean cerrados, solo para colgar las facturas.
-        var cifSociedad = (await ConsultarAsync("SELECT CIF FROM Sociedades WHERE IdSociedad = ?", f => f.Texto("CIF"), Sociedad)).FirstOrDefault();
         foreach (var anio in AniosConDatos().Where(a => !_ejercicios.ContainsKey(a)))
         {
             var erp = sociedades.FirstOrDefault(x => x.T("Codigo") == Sociedad && x.E("Ejercicio") == anio);
             var nombre = erp?.T("Nombre") ?? $"{_ejercicios.Values.OrderByDescending(v => v.Id).Select(v => v.Nombre).FirstOrDefault()?.Split(' ')[0] ?? Sociedad} {anio}";
-            var id = await InsertarAsync("INSERT INTO SociedadesEjercicios (IdSociedad, Ejercicio, Nombre, CIF, Activa, EjercicioCerrado, CarpetaFacturasCompra) VALUES (?, ?, ?, ?, ?, ?, ?)",
-                Sociedad, anio.ToString(CultureInfo.InvariantCulture), ReglasErp.Recortar(nombre, 255), ReglasErp.Recortar(cifSociedad, 10), true, true,
+            var id = await InsertarAsync("INSERT INTO SociedadesEjercicios (IdSociedad, Ejercicio, Nombre, Activa, EjercicioCerrado, CarpetaFacturasCompra) VALUES (?, ?, ?, ?, ?, ?)",
+                Sociedad, anio.ToString(CultureInfo.InvariantCulture), ReglasErp.Recortar(nombre, 255), true, true,
                 Path.Combine(anio.ToString(CultureInfo.InvariantCulture), "Proveedores"));
             Anotar(Fase1, "Sociedades", anio.ToString(CultureInfo.InvariantCulture), "Ejercicio", "Erp.EjercicioCreado", Severidad.Informativa,
                 $"He dado de alta el ejercicio {anio} (cerrado) para las facturas del ERP de ese año, que ContaSol no tiene.");
         }
         await CargarEjerciciosAsync();
+        await ConfiguracionEjerciciosAsync();
+        await RazonesSocialesAsync();
+        await TiposIvaHistoricosAsync();
+    }
+
+    /// <summary>
+    /// Razón social de la empresa por año para el emisor de las facturas migradas (organizacion/sociedades-ejercicios 2026-11-13
+    /// 21:55): el ERP solo tiene etiquetas por año («DINAMICA 2023») y la razón social de hoy (F_EMP), así que sale del Nombre de
+    /// los ejercicios importados de ContaSol, que es su F_EMP.DENEMP. La de los años sin ContaSol (2008–2017) es la del ejercicio
+    /// de ContaSol más cercano. La del más reciente pasa a ser el Nombre de la empresa, que es el emisor de las facturas nuevas.
+    /// </summary>
+    private async Task RazonesSocialesAsync()
+    {
+        _razonesSociales.Clear();
+        foreach (var (anio, nombre) in await ConsultarAsync(
+                     "SELECT se.Ejercicio, se.Nombre FROM SociedadesEjercicios AS se WHERE se.IdSociedad = ? AND se.Nombre IS NOT NULL " +
+                     "AND EXISTS (SELECT 1 FROM ImportacionesContaSol AS i WHERE i.IdSociedadEjercicio = se.IdSociedadEjercicio)",
+                     f => (Anio: int.TryParse(f.Texto("Ejercicio"), out var a) ? a : 0, Nombre: (f.Texto("Nombre") ?? "").Trim()), Sociedad))
+            if (anio > 0 && nombre.Length > 0) _razonesSociales[anio] = nombre;
+        if (_razonesSociales.Count == 0)
+        {
+            Anotar(Fase1, "Sociedades", Sociedad, "Nombre", "Erp.SinRazonSocialAnual", Severidad.Advertencia,
+                "No hay ejercicios importados de ContaSol con su razón social: las facturas migradas llevan como emisor el nombre de la empresa.");
+            return;
+        }
+        var reciente = _razonesSociales.MaxBy(r => r.Key);
+        var actual = (await ConsultarAsync("SELECT Nombre FROM Sociedades WHERE IdSociedad = ?", f => f.Texto("Nombre"), Sociedad)).FirstOrDefault()?.Trim();
+        if (!string.Equals(actual, reciente.Value, StringComparison.Ordinal))
+        {
+            await EjecutarAsync("UPDATE Sociedades SET Nombre = ? WHERE IdSociedad = ?", ReglasErp.Recortar(reciente.Value, 255), Sociedad);
+            Anotar(Fase1, "Sociedades", Sociedad, "Nombre", "Erp.RazonSocialEmpresa", Severidad.Informativa,
+                $"La empresa se llamaba «{actual}» en ProContaVF; le pongo «{reciente.Value}», la razón social de {reciente.Key} en ContaSol, que es la que sale como emisor en las facturas nuevas.", actual);
+        }
+    }
+
+    /// <summary>Los tipos de IVA del 16 % y del 18 % ya no se aplican: se dejan inactivos en TiposDeIVA, sin borrarlos (2026-11-13 22:45).</summary>
+    private async Task TiposIvaHistoricosAsync()
+    {
+        var n = await EjecutarAsync("UPDATE TiposDeIVA SET Activo = False WHERE Activo = True AND (Valor = 16 OR Valor = 18)");
+        if (n > 0)
+            Anotar(Fase1, "TiposDeIVA", null, "Activo", "Erp.TiposIvaHistoricos", Severidad.Informativa,
+                $"He dejado inactivos {n} tipos de IVA históricos (16 % y 18 %): no se ofrecen en las facturas, pero se conservan.");
+    }
+
+    /// <summary>
+    /// Configuración que queda en cada ejercicio (organizacion/sociedades-ejercicios 2026-11-13 20:55), leída de la tabla Sociedades
+    /// del ERP (una fila por empresa y ejercicio). El ejercicio que no está en el ERP (2008–2017) copia la del más cercano que la
+    /// tenga. Solo se escriben los valores que el ERP tiene: un campo vacío en el origen no borra el de ProContaVF, así que repetir
+    /// la migración deja lo mismo.
+    /// </summary>
+    private async Task ConfiguracionEjerciciosAsync()
+    {
+        var est = Est(Fase1, "Sociedades (configuración del ejercicio)");
+        var origen = o.Tabla("Sociedades").Where(s => s.B("Activa") && s.T("Codigo") == Sociedad && s.E("Ejercicio") is not null)
+            .GroupBy(s => s.E("Ejercicio")!.Value).ToDictionary(g => g.Key, g => g.First());
+        est.Leidas = origen.Count;
+        foreach (var (anio, ej) in _ejercicios.OrderBy(e => e.Key))
+        {
+            if (ReglasErp.ConfiguracionDeEjercicio(origen, anio) is not { } fuente) continue;
+            var valores = ReglasErp.ValoresConfiguracionEjercicio(fuente.Fila);
+            if (valores.Count == 0) continue;
+            await EjecutarAsync($"UPDATE SociedadesEjercicios SET {string.Join(", ", valores.Select(v => $"[{v.Campo}] = ?"))} WHERE IdSociedadEjercicio = ?",
+                [.. valores.Select(v => v.Valor), ej.Id]);
+            est.Cargadas++;
+            if (fuente.Anio != anio)
+                Anotar(Fase1, "Sociedades", Txt(anio), "Ejercicio", "Erp.ConfiguracionCopiada", Severidad.Informativa,
+                    $"El ejercicio {anio} no está en el ERP: le copio la configuración (cuentas, forma de pago, trimestre activo y prorrata) del {fuente.Anio}.");
+        }
+        // IVA de importación (propietario 2026-11-13 23:23): solo el ejercicio en curso (el más reciente) trabaja con la 4724021; los
+        // anteriores se quedan como vienen (vacíos) y el histórico de ContaSol sigue en la 4724001. No pisa una cuenta ya puesta.
+        if (_ejercicios.Count > 0 && _ejercicios.MaxBy(e => e.Key) is var (ultimo, ejUltimo)
+            && await EjecutarAsync("UPDATE SociedadesEjercicios SET CuentaIVAImportacion = ? WHERE IdSociedadEjercicio = ? AND (CuentaIVAImportacion IS NULL OR CuentaIVAImportacion = '')",
+                ReglasErp.CuentaIvaImportacionEjercicioEnCurso, ejUltimo.Id) > 0)
+            Anotar(Fase1, "Sociedades", Txt(ultimo), "CuentaIVAImportacion", "Erp.CuentaIvaImportacion", Severidad.Informativa,
+                $"El ejercicio {ultimo} usa la {ReglasErp.CuentaIvaImportacionEjercicioEnCurso} como cuenta de IVA de importación; los anteriores se quedan sin ella, como en el ERP.");
     }
 
     private void FormasPago()

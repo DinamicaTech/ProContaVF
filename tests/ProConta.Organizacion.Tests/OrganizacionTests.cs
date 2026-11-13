@@ -106,12 +106,13 @@ public sealed class OrganizacionAccessTests : IDisposable
         Assert.True((await catalogo.ObtenerAsync(alta.Valor.Id))!.Sepa);
 
         await DatosSinteticos.SociedadAsync(bd, "T01", "Sociedad sintética");
-        await bd.EjecutarAsync(s => s.EjecutarAsync("UPDATE Sociedades SET FormaPagoDefecto = ? WHERE IdSociedad = ?", (int)alta.Valor.Id, "T01"));
+        await DatosSinteticos.EjercicioAsync(bd, 9001, "T01", 2026);
+        await bd.EjecutarAsync(s => s.EjecutarAsync("UPDATE SociedadesEjercicios SET FormaPagoDefecto = ? WHERE IdSociedadEjercicio = ?", (int)alta.Valor.Id, 9001));
         var enUso = await catalogo.BajaAsync(alta.Valor.Id);
         Assert.Equal("FormasPago.EnUso", enUso.Error!.Codigo);
-        Assert.Contains("1 sociedades", enUso.Error.Causa);
+        Assert.Contains("1 ejercicios de sociedad", enUso.Error.Causa);
 
-        await bd.EjecutarAsync(s => s.EjecutarAsync("UPDATE Sociedades SET FormaPagoDefecto = NULL"));
+        await bd.EjecutarAsync(s => s.EjecutarAsync("UPDATE SociedadesEjercicios SET FormaPagoDefecto = NULL"));
         Assert.True((await catalogo.BajaAsync(alta.Valor.Id)).EsCorrecto);
         Assert.Null(await catalogo.ObtenerAsync(alta.Valor.Id));
     }
@@ -204,17 +205,5 @@ public class TrimestreActivoTests
         Assert.True(ServicioTrimestreActivo.PuedeReactivar(4, 2026, new DateTime(2026, 10, 15)));
         Assert.False(ServicioTrimestreActivo.PuedeReactivar(4, 2026, new DateTime(2026, 9, 10)));
         Assert.False(ServicioTrimestreActivo.PuedeReactivar(1, 2026, new DateTime(2026, 1, 15)));
-    }
-}
-
-public class CuentasIvaRepercutidoTests
-{
-    [Fact]
-    public void Sin_cuenta_de_repercutido_las_ventas_usan_la_477_con_la_terminacion_de_la_472()
-    {
-        Assert.Equal("4770021", LectorConfiguracionEjercicio.RepercutidoDe("4720021"));
-        Assert.Equal("4770001", LectorConfiguracionEjercicio.RepercutidoDe(" 4720001 "));
-        Assert.Equal("4770010", LectorConfiguracionEjercicio.RepercutidoDe("4770010"));
-        Assert.Null(LectorConfiguracionEjercicio.RepercutidoDe(null));
     }
 }
