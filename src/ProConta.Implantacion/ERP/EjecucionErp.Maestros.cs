@@ -131,6 +131,13 @@ internal sealed partial class EjecucionErp
                 Anotar(Fase1, "Sociedades", Txt(anio), "Ejercicio", "Erp.ConfiguracionCopiada", Severidad.Informativa,
                     $"El ejercicio {anio} no está en el ERP: le copio la configuración (cuentas, forma de pago, trimestre activo y prorrata) del {fuente.Anio}.");
         }
+        // IVA de importación (propietario 2026-11-13 23:23): solo el ejercicio en curso (el más reciente) trabaja con la 4724021; los
+        // anteriores se quedan como vienen (vacíos) y el histórico de ContaSol sigue en la 4724001. No pisa una cuenta ya puesta.
+        if (_ejercicios.Count > 0 && _ejercicios.MaxBy(e => e.Key) is var (ultimo, ejUltimo)
+            && await EjecutarAsync("UPDATE SociedadesEjercicios SET CuentaIVAImportacion = ? WHERE IdSociedadEjercicio = ? AND (CuentaIVAImportacion IS NULL OR CuentaIVAImportacion = '')",
+                ReglasErp.CuentaIvaImportacionEjercicioEnCurso, ejUltimo.Id) > 0)
+            Anotar(Fase1, "Sociedades", Txt(ultimo), "CuentaIVAImportacion", "Erp.CuentaIvaImportacion", Severidad.Informativa,
+                $"El ejercicio {ultimo} usa la {ReglasErp.CuentaIvaImportacionEjercicioEnCurso} como cuenta de IVA de importación; los anteriores se quedan sin ella, como en el ERP.");
     }
 
     private void FormasPago()

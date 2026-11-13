@@ -99,6 +99,10 @@ public sealed class LimpiezaEjerciciosTests
     }
 
     [Fact]
+    public void El_IVA_de_importacion_del_ejercicio_en_curso_es_la_4724_mas_el_21_con_tres_cifras() =>
+        Assert.Equal("4724" + ProConta.Contabilidad.CentrosCoste.CuentasIva.Terminacion(21m), ReglasErp.CuentaIvaImportacionEjercicioEnCurso);
+
+    [Fact]
     public void El_ejercicio_que_no_esta_en_el_ERP_copia_la_configuracion_del_mas_cercano()
     {
         var porAnio = new Dictionary<int, Fila> { [2018] = Fila.De(("Ejercicio", 2018)), [2019] = Fila.De(("Ejercicio", 2019)), [2026] = Fila.De(("Ejercicio", 2026)) };

@@ -40,6 +40,9 @@ public static class ReglasErp
         ("PorcentajeProrrataAñoAnterior", "PorcentajeProrrataAñoAnterior"),
     ];
 
+    /// <summary>Cuenta de IVA de importación del ejercicio en curso (propietario 2026-11-13 23:23): 4724 + el 21 % con tres cifras.</summary>
+    public const string CuentaIvaImportacionEjercicioEnCurso = "4724021";
+
     private static readonly HashSet<string> CamposNumericos = ["FormaPagoDefecto", "TrimestreActivo", "TipoIVAGeneral", "PorcentajeProrrataAñoAnterior"];
 
     /// <summary>
