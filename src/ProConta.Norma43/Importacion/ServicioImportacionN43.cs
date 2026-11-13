@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Security.Cryptography;
 using ProConta.Datos.Persistencia;
+using ProConta.Norma43.Asignacion;
 using ProConta.Norma43.Cuaderno43;
 using ProConta.Nucleo.Auditoria;
 using ProConta.Nucleo.Contexto;
@@ -71,17 +72,20 @@ public sealed record AnalisisN43(
 }
 
 /// <summary>Resultado de una importación.</summary>
-public sealed record ResultadoImportacionN43(VeredictoImportacion Veredicto, int? IdLote, AnalisisN43 Analisis)
+/// <remarks><paramref name="Asignacion"/>: lo que hizo el motor de palabras clave con las líneas del lote (null si no se importó nada).</remarks>
+public sealed record ResultadoImportacionN43(VeredictoImportacion Veredicto, int? IdLote, AnalisisN43 Analisis, ResultadoAsignacionN43? Asignacion = null)
 {
     /// <summary>True si al terminar el contenido del fichero está en la BD (importado ahora, reactivado o ya estaba).</summary>
     public bool Hecho => Veredicto is VeredictoImportacion.Importable or VeredictoImportacion.Reactivable or VeredictoImportacion.YaImportado;
     public string Explicacion => Veredicto switch
     {
         VeredictoImportacion.Importable => $"Importado el lote {IdLote}: {Analisis.Fichero.Extractos.Count} extracto(s) y {Analisis.Fichero.NumeroMovimientos} movimiento(s)" +
-            (Analisis.Fichero.Advertencias.Any() ? $", con {Analisis.Fichero.Advertencias.Count()} advertencia(s) guardadas en el lote." : "."),
-        VeredictoImportacion.Reactivable => $"Reactivado el lote {IdLote}, que se había revertido: no se ha duplicado nada.",
+            (Analisis.Fichero.Advertencias.Any() ? $", con {Analisis.Fichero.Advertencias.Count()} advertencia(s) guardadas en el lote." : ".") + TextoAsignacion,
+        VeredictoImportacion.Reactivable => $"Reactivado el lote {IdLote}, que se había revertido: no se ha duplicado nada." + TextoAsignacion,
         _ => Analisis.Explicacion,
     };
+
+    private string TextoAsignacion => Asignacion is { Revisadas: > 0 } a ? " Palabras clave: " + a.Texto : "";
 }
 
 /// <summary>
@@ -128,7 +132,8 @@ public sealed class ServicioImportacionN43
                 case VeredictoImportacion.Reactivable:
                     await s.EjecutarAsync("UPDATE LotesImportacionBancaria SET Estado = ?, FechaHoraReversion = NULL, OperadorReversion = NULL, MotivoReversion = NULL " +
                         "WHERE IdLoteImportacionBancaria = ?", EstadoImportado, analisis.IdLoteExistente!.Value);
-                    return new ResultadoImportacionN43(analisis.Veredicto, analisis.IdLoteExistente, analisis);
+                    var reasignadas = await AsignadorCuentasN43.AsignarAsync(s, contexto.IdSociedad, analisis.IdLoteExistente, escribir: true, incluirAsignadas: false, cancelacion);
+                    return new ResultadoImportacionN43(analisis.Veredicto, analisis.IdLoteExistente, analisis, reasignadas);
                 case VeredictoImportacion.Importable:
                     foreach (var alta in altas ?? [])
                     {
@@ -138,7 +143,9 @@ public sealed class ServicioImportacionN43
                         cuentas[clave] = await AltaCuentaAsync(s, contexto.IdSociedad, alta);
                     }
                     var id = await EscribirLoteAsync(s, contexto, contenido, nombreFichero, rutaOrigen, analisis, cuentas, cancelacion);
-                    return new ResultadoImportacionN43(analisis.Veredicto, id, analisis);
+                    // Tras importar, las líneas nuevas toman la cuenta de su palabra clave (norma43/asignacion-cuentas), en la misma transacción.
+                    var asignacion = await AsignadorCuentasN43.AsignarAsync(s, contexto.IdSociedad, id, escribir: true, incluirAsignadas: false, cancelacion);
+                    return new ResultadoImportacionN43(analisis.Veredicto, id, analisis, asignacion);
                 default:
                     return new ResultadoImportacionN43(analisis.Veredicto, analisis.IdLoteExistente, analisis);
             }

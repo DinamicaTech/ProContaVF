@@ -1,15 +1,24 @@
 ---
 title: Asignación automática de cuentas
-status: draft
 depends_on: [norma43]
+threads:
+  - 2026-11-13 08:30 · Asignar cuentas a líneas Norma 43 | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5G5nN12ec6rRKfBbGRD6AK9u
 ---
 ## Summary
 Asigna la cuenta de destino a las líneas importadas con las palabras clave bancarias (PalabrasClaveBancarias), guardando en cada imputación la palabra clave que la asignó.
-**Aceptación:** por acordar en su hilo.
+Hecho y validado por el propietario el 2026-11-13 (PR #55): `ReglasPalabrasClave` (elección de la palabra clave, sin BD) y `AsignadorCuentasN43` (asignar, simular) en `src/ProConta.Norma43/Asignacion`; `ServicioImportacionN43` lo lanza tras importar o reactivar un lote, en la misma transacción. Sin cambios de esquema. Pruebas en `tests/ProConta.Norma43.Tests` (ReglasPalabrasClaveTests y AsignacionN43AccessTests).
+**Aceptación:** al reimportar con ProContaVF los extractos reales del primer semestre de 2026 sobre una copia, las líneas que el ERP asignó por palabra clave reciben la misma cuenta salvo las diferencias explicadas (Decisions 2026-11-13 09:00); nunca se pisa una cuenta ya puesta; repetir la asignación no cambia nada.
 
 ## Decisions
 - 2026-11-12 16:50 · Creado como borrador hijo de `norma43` en el hilo «Importar extractos Norma 43» (el propietario: «P4. Ok, lo haremos en un nuevo hilo»).
+- 2026-11-13 09:00 · Regla de encaje (ANALISIS-FUNCIONAL §6.1 paso 2, sin sus defectos 13 y 14): una palabra clave activa de la sociedad encaja con una línea si es de la misma entidad (o no tiene), del mismo sentido (o no tiene) y el texto de la línea (concepto completo, referencias y documento) contiene la palabra clave y, si la tiene, la segunda (Y lógico). El sentido de la palabra clave es el de la 572 (§10.2): D se aplica a los abonos (línea H) y H a los cargos (línea D); comprobado con las 4.120 líneas que el ERP asignó por palabra clave. La comparación no distingue mayúsculas, acentos, espacios ni signos (solo letras y cifras) y repara los acentos leídos mal por el ERP; el asterisco es un comodín, con los trozos en orden (el ERP lo usaba, p. ej. «TGSS. COTIZACION*nombre»). Sin fecha mínima.
+- 2026-11-13 09:00 · Si encajan varias, gana la más concreta: con segunda palabra, después la de la entidad, después la de más letras. Si empatan con cuentas distintas, la línea queda sin asignar (ambigua) para el operador; en el ERP la elección era arbitraria.
+- 2026-11-13 09:00 · Escritura: una imputación por línea con Rol CONTRAPARTIDA, ImporteFirmado positivo en cargos y negativo en abonos, Origen PALABRA_CLAVE, Estado CONFIRMADA, Concepto el concepto completo, IdPalabraClaveBancaria, y sin centro de coste ni confianza (la misma convención que la migración del ERP, acordada con el hilo de norma43/conciliacion, que lee estas imputaciones). Una palabra clave sin cuenta no escribe nada. Las palabras clave de remesa (Especial 5) ponen su cuenta como las demás, como hacía el ERP; la explosión es de norma43/remesas.
+- 2026-11-13 09:00 · Validación (copia ProConta-norma43-asig-02 de ProConta-norma43-01; validador de un solo uso fuera del repositorio): se borraron de la copia los 1.204 movimientos migrados del ERP de 2026 y se reimportaron con ProContaVF los 12 extractos reales del primer semestre (691 movimientos, todos casan con los del ERP). De las 484 líneas que el ERP asignó por palabra clave, 478 reciben la misma cuenta; 486 de los 691 movimientos quedan con cuenta (uno de ellos no la tenía en el ERP). Las 6 diferencias: 2 cuotas de comunidad que el ERP tenía cruzadas (el motor da a cada una la palabra que aparece en su concepto), 2 remesas FATIR cuya cuenta en el ERP no es la de su palabra clave (movidas después a mano o al explotarlas), 1 recibo del parking en que encajan dos palabras clave con cuentas distintas y el motor elige la más larga, y 1 IBI ambiguo por dos palabras clave iguales salvo un espacio («FRACCIO-CL SANT MARIA 92» y «FRACCIO -CL SANT MARIA 92») con cuentas distintas. Sobre todo el histórico (6.707 líneas, 0,4 s) el motor elige la misma palabra que el ERP en 4.040 de 4.120; las cuentas distintas son sobre todo palabras clave cuya cuenta cambió después de asignarse (el ERP no arrastraba las líneas antiguas).
+- 2026-11-13 09:00 · Nunca se pisa nada: solo se tratan líneas sin imputación viva (Estado distinto de DESCARTADA), sin asiento (ContabilizacionesLineaExtracto con Estado distinto de ANULADA) y de lotes no revertidos. Tras importar o reactivar un lote se tratan solo sus líneas; `AsignarAsync` sin lote trata toda la sociedad (el «Asignar IdPalabraClave» del ERP, para la pantalla de líneas) y `SimularAsync` dice qué haría sin escribir.
+- 2026-11-13 09:27 · Validado por el propietario (reglas de encaje y desempate, remesas con su cuenta, comodín, sin fecha mínima y las 6 diferencias con el ERP explicadas): deja de ser borrador.
 
 ## Requirements
 - 2026-11-12 16:47 · P4. Ok, lo haremos en un nuevo hilo
 - 2026-11-12 16:47 · draft: Asignar automáticamente la cuenta de destino a las líneas importadas con las palabras clave bancarias.
+- 2026-11-13 09:27 · Ok a todo
