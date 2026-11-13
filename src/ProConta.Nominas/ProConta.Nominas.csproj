@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Nóminas: lectura del Excel de la gestoría, importación idempotente y, más adelante, contabilización con la plantilla de sistema «Nómina» (docs/nominas.md). -->
+  <PropertyGroup>
+    <OutputType>Library</OutputType>
+    <RootNamespace>ProConta.Nominas</RootNamespace>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);CS1591;CS1573</NoWarn>
+  </PropertyGroup>
+  <ItemGroup>
+    <!-- ExcelDataReader (MIT, solo lectura): lee el .xls antiguo (Excel 97-2003) de la gestoría, que ClosedXML no abre (propietario 2026-11-13 10:07). -->
+    <PackageReference Include="ExcelDataReader" Version="3.7.0" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\ProConta.Nucleo\ProConta.Nucleo.csproj" />
+    <ProjectReference Include="..\ProConta.Datos.Persistencia\ProConta.Datos.Persistencia.csproj" />
+    <ProjectReference Include="..\ProConta.Contabilidad\ProConta.Contabilidad.csproj" />
+    <ProjectReference Include="..\ProConta.Terceros\ProConta.Terceros.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="ProConta.Nominas.Tests" />
+  </ItemGroup>
+</Project>

@@ -93,6 +93,7 @@ public static class CatalogoMigraciones
         MigracionesNorma43.ReversionLotes,
         MigracionesConciliacionN43.Conciliacion,
         MigracionesConciliacionN43.Conceptos,
+        MigracionesNominas.Importacion,
     ];
 
     /// <summary>Versión del esquema que espera esta versión del programa.</summary>

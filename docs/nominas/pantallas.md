@@ -12,8 +12,10 @@ Importación, mapeo de columnas, resolución de empleados y revisión de la cont
 ## Decisions
 - 2026-10-28 13:30 · Creado en la carga inicial de requisitos.
 - 2026-10-29 17:45 · Referencia funcional: la lista «Resumen Nóminas» de `frmNominas` (importar, exportar a contabilidad, deshacer, refrescar, doble clic a los asientos del mes), en `sources/proconta-antiguo/nominas/ANALISIS-FUNCIONAL.md` § 1-3 y 6.
+- 2026-11-13 11:05 · Maqueta validada por el propietario (2026-11-13 10:42) en sources/maquetas/Nominas/proconta-nominas.html: gestión de nóminas por mes y paga con estado y detalle por trabajador, acciones en el menú contextual (importar, resolver trabajador, contabilizar, deshacer, reemplazar) y pestaña «Nóminas» de la ficha del tercero.
 
 ## Requirements
 - 2026-10-28 12:28 · From sources/01_ESPECIFICACION_FUNCIONAL.docx § 18 RF-NOM-01: mapeo y resolución con selección manual
 - 2026-10-28 12:28 · draft: Construir la pantalla de importación de nóminas.
 - 2026-10-29 17:45 · Derived from nominas: la pantalla parte del fichero Excel (o del recibido por correo), no del portapapeles, y ofrece lo que hoy hace «Resumen Nóminas» (sources/proconta-antiguo/nominas/ANALISIS-FUNCIONAL.md § 1-3, 6).
+- 2026-11-13 10:07 · Puedes preparar las maquetas de la pantalla de gestión de nóminas y la de nómina de un tercero para validarlas ?
