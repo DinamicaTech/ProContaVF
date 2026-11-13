@@ -70,6 +70,7 @@ public partial class VentanaPrincipal : Window
     private readonly ModuloCompras _compras;
     private readonly ModuloCorreo _correo;
     private readonly ProConta.Norma43.UI.VistaModelos.ModuloBancos _bancos;
+    private readonly ProConta.Norma43.UI.VistaModelos.ModuloLineasN43 _lineasN43;
     private readonly CoordinadorCorreo _coordinadorCorreo;
     private static readonly System.Net.Http.HttpClient Http = new() { Timeout = TimeSpan.FromSeconds(15) };
     private readonly Func<PantallaMantenimientoVM> _crearMantenimiento;
@@ -187,6 +188,15 @@ public partial class VentanaPrincipal : Window
         _bancos = new ProConta.Norma43.UI.VistaModelos.ModuloBancos(importacionN43, new ProConta.Norma43.Importacion.ConsultaBancos(bd),
             new ProConta.Norma43.UI.VistaModelos.ContextoBancos(contexto.Contexto, contexto.RazonSocial, new Actor(sesion.NombreOperador), Avisar), _area,
             new ProConta.Norma43.UI.Vistas.DialogosBancos(() => this));
+        // Líneas N43 (norma43/pantallas): rejilla de movimientos con su cuenta, asiento y palabras clave; abre el Mayor y el asiento.
+        _lineasN43 = new ProConta.Norma43.UI.VistaModelos.ModuloLineasN43(new ProConta.Norma43.Lineas.ConsultaLineasN43(bd), new ProConta.Norma43.Lineas.ServicioLineasN43(bd),
+            new ProConta.Norma43.Conciliacion.ServicioConciliacionN43(bd), new ProConta.Norma43.Asignacion.AsignadorCuentasN43(bd),
+            new ProConta.Norma43.UI.VistaModelos.ContextoLineasN43(contexto.Contexto, contexto.RazonSocial, new Actor(sesion.NombreOperador), Avisar)
+            {
+                AbrirMayor = (cuentasMayor, anios) => _mayor.Abrir(cuentasMayor, anios),
+                VerAsiento = id => _mayor.VerAsientoAsync(id),
+            },
+            _area, new ProConta.Norma43.UI.Vistas.DialogosLineasN43(cuentas, () => this));
         _coordinadorCorreo.Recepcion = new ServicioRecepcionCorreo(bd, new ClientePop3MailKit(), servicioCorreo, new ProcesadorFacturasCompraCorreo(bd, facturasCompra, contabilizadorCompras),
             extractos: new ProConta.Norma43.Importacion.ProcesadorExtractosCorreo(importacionN43));
         _coordinadorCorreo.Iniciar();
@@ -249,6 +259,12 @@ public partial class VentanaPrincipal : Window
             new OpcionNavegacion("Bancos", Icono("bank"), true, false,
                 "Cuentas bancarias de la sociedad: saldo según el banco y según su 572, movimientos, extractos Norma 43 importados, «Importar N43» y reversión de lotes",
                 new ComandoDelegado(() => _bancos.Abrir())),
+            new OpcionNavegacion("Cuentas bancarias", null, true, false,
+                "Cuentas bancarias de la sociedad: saldos según el banco y según su 572, extractos importados, «Importar N43» y reversión de lotes",
+                new ComandoDelegado(() => _bancos.Abrir()), EsHija: true),
+            new OpcionNavegacion("Líneas N43", null, true, false,
+                "Movimientos bancarios importados: su cuenta de destino, asiento y palabras clave, con filtros y todas las acciones en el menú contextual",
+                new ComandoDelegado(() => _lineasN43.Abrir()), EsHija: true),
             new OpcionNavegacion("Nóminas", Icono("coin"), false, false, proxima),
             new OpcionNavegacion("Informes", Icono("xls"), true, false, "Informes del ejercicio de trabajo en Excel, con tabla dinámica", balanceSituacion),
             new OpcionNavegacion("Balance de situación", null, true, false,
