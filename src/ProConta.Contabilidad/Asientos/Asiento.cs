@@ -145,6 +145,43 @@ public static class ReglasAsiento
     /// <summary>La primera cuenta fiscal del trimestre de la lista, o null si no hay ninguna: con ella, el asiento afecta a un trimestre fiscal.</summary>
     public static string? AfectaTrimestreFiscal(IEnumerable<string?> cuentas) => cuentas.FirstOrDefault(EsCuentaFiscalTrimestre)?.Trim();
 
+    /// <summary>Prefijo de las retenciones practicadas: un asiento que la lleva no admite ni el cambio de subcuenta 4XX en un trimestre cerrado.</summary>
+    public const string PrefijoRetenciones = "4751";
+
+    /// <summary>
+    /// Si se puede pasar un apunte de la subcuenta <paramref name="anterior"/> a <paramref name="nueva"/> en un trimestre cerrado
+    /// (contabilidad/asientos 2026-11-13 10:50): las dos del mismo grupo 4XX de terceros (los tres primeros dígitos iguales, p. ej. 430 → 430)
+    /// y ninguna fiscal. Que el asiento no lleve la 4751 lo comprueba quien llama.
+    /// </summary>
+    public static bool EsCambioDeSubcuentaDeTercero(string? anterior, string? nueva)
+    {
+        var a = anterior?.Trim() ?? "";
+        var n = nueva?.Trim() ?? "";
+        return a.Length >= 3 && n.Length >= 3 && a[0] == '4' && string.Equals(a[..3], n[..3], StringComparison.Ordinal)
+            && !EsCuentaFiscalTrimestre(a) && !EsCuentaFiscalTrimestre(n);
+    }
+
+    /// <summary>
+    /// Si el cambio de <paramref name="anterior"/> a <paramref name="nuevo"/> no tiene efecto fiscal y se admite en un trimestre cerrado
+    /// (contabilidad/asientos 2026-11-13 10:50): misma fecha, mismos apuntes en el mismo orden con los mismos importes, lado y centro de
+    /// coste, y la misma cuenta salvo un cambio de subcuenta del mismo grupo 4XX de terceros si el asiento no lleva la 4751. Pueden cambiar
+    /// la descripción, las notas y el concepto, el documento, el cliente o proveedor y el vencimiento de los apuntes.
+    /// </summary>
+    public static bool EsCambioSinEfectoFiscal(Asiento anterior, Asiento nuevo)
+    {
+        if (anterior.FechaContable.Date != nuevo.FechaContable.Date || anterior.Apuntes.Count != nuevo.Apuntes.Count) return false;
+        var conRetenciones = anterior.Apuntes.Concat(nuevo.Apuntes).Any(a => a.CodigoCuenta.Trim().StartsWith(PrefijoRetenciones, StringComparison.Ordinal));
+        foreach (var (v, n) in anterior.Apuntes.OrderBy(a => a.Orden).Zip(nuevo.Apuntes))
+        {
+            if (v.Debe.Valor != n.Debe.Valor || v.Haber.Valor != n.Haber.Valor || v.IdCentroCoste != n.IdCentroCoste) return false;
+            var cuentaV = v.CodigoCuenta.Trim();
+            var cuentaN = n.CodigoCuenta.Trim();
+            if (string.Equals(cuentaV, cuentaN, StringComparison.Ordinal)) continue;
+            if (conRetenciones || !EsCambioDeSubcuentaDeTercero(cuentaV, cuentaN)) return false;
+        }
+        return true;
+    }
+
     /// <summary>
     /// Valida y, si la política lo permite, cuadra el asiento con un apunte de ajuste visible.
     /// Numera los apuntes en orden. No toca la BD.

@@ -237,11 +237,16 @@ public sealed partial class MotorAsientosAccess(IBaseDatos bd, PoliticaCuadre? p
             foreach (var (id, i) in anteriores.Select((id, i) => (id, i)))
             {
                 var viejo = (await CargarAsync(s, id))!;
+                cuentas.AddRange(viejo.Apuntes.Select(a => a.CodigoCuenta));
+                // El que se reutiliza lo comprueba GuardarInterno comparándolo con el nuevo (un cambio sin efecto fiscal se admite).
+                if (i < asientos.Count)
+                {
+                    reutilizados.Add(viejo);
+                    continue;
+                }
                 var trimestre = externo ? Resultado.Correcto() : await ComprobarTrimestreAbiertoAsync(s, viejo);
                 if (!trimestre.EsCorrecto) return Resultado<IReadOnlyList<int>>.Fallo(trimestre.Errores);
-                cuentas.AddRange(viejo.Apuntes.Select(a => a.CodigoCuenta));
-                if (i < asientos.Count) reutilizados.Add(viejo);
-                else await BorrarAsync(s, viejo, actor, motivo.Trim(), idLote);
+                await BorrarAsync(s, viejo, actor, motivo.Trim(), idLote);
             }
             var nuevos = new List<int>();
             var errores = new List<Error>();
@@ -323,9 +328,16 @@ public sealed partial class MotorAsientosAccess(IBaseDatos bd, PoliticaCuadre? p
                 if (!anteriores.ContainsKey(fila.IdAsiento))
                 {
                     var asiento = (await CargarAsync(s, fila.IdAsiento))!;
-                    var trimestre = await ComprobarTrimestreAbiertoAsync(s, asiento, cuenta.Valor.Codigo);
-                    if (!trimestre.EsCorrecto) return Resultado<Guid>.Fallo(trimestre.Errores);
                     anteriores[fila.IdAsiento] = asiento;
+                }
+                // En un trimestre cerrado solo se admite pasar a otra subcuenta del mismo grupo 4XX de terceros si el asiento no lleva
+                // la 4751 (contabilidad/asientos 2026-11-13 10:50).
+                var deTercero = ReglasAsiento.EsCambioDeSubcuentaDeTercero(fila.Cuenta, cuenta.Valor.Codigo)
+                    && !anteriores[fila.IdAsiento].Apuntes.Any(a => a.CodigoCuenta.Trim().StartsWith(ReglasAsiento.PrefijoRetenciones, StringComparison.Ordinal));
+                if (!deTercero)
+                {
+                    var trimestre = await ComprobarTrimestreAbiertoAsync(s, anteriores[fila.IdAsiento], cuenta.Valor.Codigo);
+                    if (!trimestre.EsCorrecto) return Resultado<Guid>.Fallo(trimestre.Errores);
                 }
                 await s.EjecutarAsync("UPDATE Apuntes SET CuentaContable = ? WHERE IdApunte = ?", cuenta.Valor.Codigo, idApunte);
                 await RegistrarCambioAsync(s, idLote, actor, motivo.Trim(), fila.IdAsiento, idApunte, fila.Orden, "MODIFICACION", "CuentaContable", fila.Cuenta, cuenta.Valor.Codigo);
@@ -423,10 +435,9 @@ public sealed partial class MotorAsientosAccess(IBaseDatos bd, PoliticaCuadre? p
                 if (!cambiados.ContainsKey(a.IdAsiento))
                 {
                     var asiento = (await CargarAsync(s, a.IdAsiento))!;
+                    // El concepto no tiene efecto fiscal: se cambia también en un trimestre cerrado (contabilidad/asientos 2026-11-13 10:50).
                     var abierto = await ComprobarEjercicioAbiertoAsync(s, asiento.Contexto);
                     if (!abierto.EsCorrecto) return Resultado<Guid>.Fallo(abierto.Errores);
-                    var trimestre = await ComprobarTrimestreAbiertoAsync(s, asiento);
-                    if (!trimestre.EsCorrecto) return Resultado<Guid>.Fallo(trimestre.Errores);
                     cambiados[a.IdAsiento] = asiento;
                 }
                 await s.EjecutarAsync("UPDATE Apuntes SET Descripcion = ? WHERE IdApunte = ?", nuevo, a.IdApunte);
@@ -478,8 +489,6 @@ public sealed partial class MotorAsientosAccess(IBaseDatos bd, PoliticaCuadre? p
         if (!reglas.EsCorrecto) return Resultado<int>.Fallo(reglas.Errores);
         var abierto = await ComprobarEjercicioAbiertoAsync(s, asiento.Contexto, externo);
         if (!abierto.EsCorrecto) return Resultado<int>.Fallo(abierto.Errores);
-        var trimestre = externo ? Resultado.Correcto() : await ComprobarTrimestreAbiertoAsync(s, asiento);
-        if (!trimestre.EsCorrecto) return Resultado<int>.Fallo(trimestre.Errores);
 
         var errores = new List<Error>();
         foreach (var apunte in asiento.Apuntes)
@@ -503,11 +512,21 @@ public sealed partial class MotorAsientosAccess(IBaseDatos bd, PoliticaCuadre? p
             anterior = await CargarAsync(s, asiento.IdAsiento);
             if (anterior is null) return Resultado<int>.Fallo(NoExiste(asiento.IdAsiento));
             if (manual && anterior.EsAutomatico) return Resultado<int>.Fallo(AutomaticoNoManual(anterior));
-            var trimestreAnterior = externo ? Resultado.Correcto() : await ComprobarTrimestreAbiertoAsync(s, anterior);
-            if (!trimestreAnterior.EsCorrecto) return Resultado<int>.Fallo(trimestreAnterior.Errores);
             if (anterior.Contexto.IdSociedadEjercicio != asiento.Contexto.IdSociedadEjercicio)
                 return Resultado<int>.Fallo(new Error("Asientos.CambioEjercicio", "Un asiento no se puede mover a otro ejercicio.", asiento.ToString(),
                     "El ejercicio forma parte de la identidad del asiento.", "Bórralo y créalo en el ejercicio correcto, o usa la plantilla de rectificación."));
+        }
+        // Trimestre cerrado (contabilidad/asientos 2026-11-13 10:50): se comprueban el asiento anterior y el nuevo, salvo que el cambio no
+        // tenga efecto fiscal (solo textos, documento o la subcuenta de un tercero del mismo grupo 4XX).
+        if (!externo && (anterior is null || !ReglasAsiento.EsCambioSinEfectoFiscal(anterior, asiento)))
+        {
+            var trimestre = await ComprobarTrimestreAbiertoAsync(s, asiento);
+            if (!trimestre.EsCorrecto) return Resultado<int>.Fallo(trimestre.Errores);
+            if (anterior is not null)
+            {
+                var trimestreAnterior = await ComprobarTrimestreAbiertoAsync(s, anterior);
+                if (!trimestreAnterior.EsCorrecto) return Resultado<int>.Fallo(trimestreAnterior.Errores);
+            }
         }
 
         var ahora = _reloj.Ahora;
