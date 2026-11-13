@@ -132,6 +132,20 @@ public static class ReglasAsiento
     public const int LongitudDescripcion = 255;
 
     /// <summary>
+    /// Cuentas fiscales del trimestre (contabilidad/asientos 2026-11-13 09:45), por prefijo de código: las de los modelos 303 (472, 477,
+    /// 4700, 4750), 111 (4751, 640, 623) y 115 (4751, 621). Un asiento con algún apunte en ellas no se crea, cambia ni borra en un
+    /// trimestre cerrado; el resto (bancos, clientes, proveedores, amortizaciones…) sí, porque no altera las declaraciones presentadas.
+    /// </summary>
+    public static readonly IReadOnlyList<string> CuentasFiscalesTrimestre = ["472", "477", "4700", "4750", "4751", "640", "623", "621"];
+
+    /// <summary>Si la cuenta es fiscal del trimestre (<see cref="CuentasFiscalesTrimestre"/>).</summary>
+    public static bool EsCuentaFiscalTrimestre(string? codigo) =>
+        !string.IsNullOrWhiteSpace(codigo) && CuentasFiscalesTrimestre.Any(p => codigo.Trim().StartsWith(p, StringComparison.Ordinal));
+
+    /// <summary>La primera cuenta fiscal del trimestre de la lista, o null si no hay ninguna: con ella, el asiento afecta a un trimestre fiscal.</summary>
+    public static string? AfectaTrimestreFiscal(IEnumerable<string?> cuentas) => cuentas.FirstOrDefault(EsCuentaFiscalTrimestre)?.Trim();
+
+    /// <summary>
     /// Valida y, si la política lo permite, cuadra el asiento con un apunte de ajuste visible.
     /// Numera los apuntes en orden. No toca la BD.
     /// </summary>

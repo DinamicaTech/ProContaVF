@@ -212,7 +212,11 @@ public sealed class ServicioConciliacionN43(IBaseDatos bd, IMotorAsientos motor,
         if (errores.Count > 0) return Fin(ctx, cuentaBanco?.Codigo, imp: imputaciones, regenera: regenera);
 
         // La plantilla da los apuntes (un registro por imputación, agrupando el banco); la fecha la fija la conciliación.
-        var fecha = TrimestreContable.FechaAsiento(fechaMovimiento, ctx.Ejercicio, TrimestreContable.Activo(ej.TrimestreActivo, ctx.Ejercicio, hoy));
+        // Fecha (norma43/conciliacion 2026-11-13 09:45): la del movimiento aunque sea de un trimestre cerrado, porque el asiento de banco no
+        // toca el IVA ni las retenciones; solo si lleva una cuenta fiscal del trimestre (p. ej. imputado a la 640) va al trimestre activo.
+        var fecha = ReglasAsiento.AfectaTrimestreFiscal(imputaciones.Select(i => i.Cuenta)) is null
+            ? fechaMovimiento
+            : TrimestreContable.FechaAsiento(fechaMovimiento, ctx.Ejercicio, TrimestreContable.Activo(ej.TrimestreActivo, ctx.Ejercicio, hoy));
         if (fecha != fechaMovimiento) avisos.Add($"El movimiento es de un trimestre cerrado: el asiento va al {fecha:dd/MM/yyyy}, primer día del trimestre activo.");
         if (regenera) avisos.Add($"Ya está contabilizado en el asiento {l.IdAsiento}: contabilizarlo otra vez lo sustituye.");
         var banco572 = cuentaBanco!;

@@ -197,20 +197,61 @@ public sealed class MotorAsientosAccessTests : IDisposable
     public async Task TrimestreCerradoNoSeCreaCambiaNiBorra()
     {
         await PrepararAsync();
+        Assert.True((await Cuentas().AltaAsync(_ctx, new AltaCuenta("4770001", "IVA repercutido sintético"))).EsCorrecto);
         var motor = Motor();
-        var primero = await motor.ReemplazarLoteAsync(_ctx, _lote, [Nuevo(121m, 121m, "4300001")], _actor, "Contabilizar factura");
+        // Asientos con una cuenta fiscal del trimestre (477): los protege el trimestre cerrado.
+        var primero = await motor.ReemplazarLoteAsync(_ctx, _lote, [Nuevo(121m, 121m, "4300001", "4770001")], _actor, "Contabilizar factura");
         Assert.True(primero.EsCorrecto);
         await Bd.EjecutarAsync(s => s.EjecutarAsync("UPDATE SociedadesEjercicios SET TrimestreActivo = 2 WHERE IdSociedadEjercicio = 9001"));
 
+        // Ni regenerarlo quitándole la cuenta fiscal: se mira también el asiento anterior.
         Assert.Equal("Asientos.TrimestreCerrado", (await motor.ReemplazarLoteAsync(_ctx, _lote, [Nuevo(150m, 150m, "4300001")], _actor, "Regenerar")).Error!.Codigo);
         Assert.Equal("Asientos.TrimestreCerrado", (await motor.EliminarLoteAsync(_ctx, _lote, _actor, "Deshacer")).Error!.Codigo);
-        Assert.Equal("Asientos.TrimestreCerrado", (await motor.GuardarManualAsync(Nuevo(1m, 1m), _actor)).Error!.Codigo);
+        var manual = await motor.GuardarManualAsync(Nuevo(1m, 1m, "5720001", "4770001"), _actor);
+        Assert.Equal("Asientos.TrimestreCerrado", manual.Error!.Codigo);
+        Assert.Contains("4770001", manual.Error.Mensaje);
         Assert.Equal(1, await ContarAsync("Asientos"));
 
-        var enElActivo = Nuevo(1m, 1m);
+        var enElActivo = Nuevo(1m, 1m, "5720001", "4770001");
         enElActivo.FechaContable = new DateTime(2025, 4, 1);
         Assert.True((await motor.GuardarManualAsync(enElActivo, _actor)).EsCorrecto);
         Assert.Equal(2, await ContarAsync("Asientos"));
+    }
+
+    [Fact]
+    public async Task TrimestreCerradoAdmiteAsientosSinCuentasFiscalesPeroNoPonerlesUna()
+    {
+        await PrepararAsync();
+        Assert.True((await Cuentas().AltaAsync(_ctx, new AltaCuenta("4720001", "IVA soportado sintético"))).EsCorrecto);
+        var motor = Motor();
+        await Bd.EjecutarAsync(s => s.EjecutarAsync("UPDATE SociedadesEjercicios SET TrimestreActivo = 2 WHERE IdSociedadEjercicio = 9001"));
+
+        // Banco contra cliente en marzo (trimestre cerrado): se crea, se regenera y se borra.
+        Assert.True((await motor.ReemplazarLoteAsync(_ctx, _lote, [Nuevo(121m, 121m, "5720001", "4300001")], _actor, "Cobro")).EsCorrecto);
+        Assert.True((await motor.ReemplazarLoteAsync(_ctx, _lote, [Nuevo(150m, 150m, "5720001", "4300001")], _actor, "Regenerar")).EsCorrecto);
+        Assert.True((await motor.EliminarLoteAsync(_ctx, _lote, _actor, "Deshacer")).EsCorrecto);
+
+        var alta = await motor.GuardarManualAsync(Nuevo(10m, 10m, "6290001", "5720001"), _actor);
+        Assert.True(alta.EsCorrecto, alta.Error?.ToString());
+        var asiento = alta.Valor;
+        asiento.Apuntes[0].Debe = Nucleo.Importes.Importe.Redondear(12m);
+        asiento.Apuntes[1].Haber = Nucleo.Importes.Importe.Redondear(12m);
+        var cambiado = await motor.GuardarManualAsync(asiento, _actor, "Corregir importe");
+        Assert.True(cambiado.EsCorrecto, cambiado.Error?.ToString());
+
+        // Ponerle una cuenta fiscal en un trimestre cerrado, no: ni cambiando la cuenta de un apunte ni guardándolo.
+        var gasto = cambiado.Valor.Apuntes[0];
+        var cambioCuenta = await motor.CambiarCuentaApuntesAsync(_ctx, [gasto.IdApunte], "4720001", _actor, "Reclasificar");
+        Assert.Equal("Asientos.TrimestreCerrado", cambioCuenta.Error!.Codigo);
+        Assert.Contains("4720001", cambioCuenta.Error.Mensaje);
+        Assert.Equal("6290001", (await motor.ObtenerAsync(asiento.IdAsiento))!.Apuntes[0].CodigoCuenta);
+        var conIva = (await motor.ObtenerAsync(asiento.IdAsiento))!;
+        conIva.Apuntes[0].CodigoCuenta = "4720001";
+        Assert.Equal("Asientos.TrimestreCerrado", (await motor.GuardarManualAsync(conIva, _actor, "Reclasificar")).Error!.Codigo);
+
+        var vigente = (await motor.ObtenerAsync(asiento.IdAsiento))!;
+        Assert.True((await motor.EliminarManualAsync(vigente.IdAsiento, vigente.Version, _actor, "Sobra")).EsCorrecto);
+        Assert.Equal(0, await ContarAsync("Asientos"));
     }
 
     [Fact]

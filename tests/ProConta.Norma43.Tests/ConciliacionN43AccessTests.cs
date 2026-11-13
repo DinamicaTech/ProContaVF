@@ -151,10 +151,30 @@ public sealed class ConciliacionN43AccessTests : IDisposable
     }
 
     [Fact]
-    public async Task Un_movimiento_de_un_trimestre_cerrado_va_al_primer_dia_del_trimestre_activo()
+    public async Task Un_movimiento_de_un_trimestre_cerrado_conserva_su_fecha_y_se_puede_deshacer()
     {
         var ids = await PrepararAsync(M(3, 10, 45m, true, "CUOTA MARZO"));
         await ImputarAsync(ids[0], "6290001", 45m);
+        await Bd.EjecutarAsync(s => s.EjecutarAsync("UPDATE SociedadesEjercicios SET TrimestreActivo = ? WHERE IdSociedadEjercicio = 9001", (byte)2));
+
+        // Banco contra una cuenta no fiscal: no toca el IVA ni las retenciones del trimestre cerrado.
+        var p = Assert.Single(await Servicio.ProponerAsync("T01", ids));
+        Assert.True(p.Contabilizable, Errores(p));
+        Assert.Equal(new DateTime(2026, 3, 10), p.Asiento!.Fecha);
+        Assert.Empty(p.Avisos);
+        Assert.Equal(1, (await Servicio.ContabilizarAsync([p], _actor)).Hechas);
+        Assert.Equal(1, (await Servicio.DeshacerAsync("T01", ids, _actor, "Probar")).Hechas);
+        Assert.Equal(0, await ContarAsync("SELECT COUNT(*) FROM Asientos"));
+    }
+
+    [Fact]
+    public async Task Un_movimiento_de_un_trimestre_cerrado_con_cuenta_fiscal_va_al_primer_dia_del_trimestre_activo()
+    {
+        var ids = await PrepararAsync(M(3, 10, 1500m, true, "NOMINA MARZO"));
+        var c = await new CatalogoCuentasAccess(Bd).AltaAsync(_ctx, new AltaCuenta("6400000", "Sueldos ficticios"));
+        Assert.True(c.EsCorrecto, c.Error?.ToString());
+        _identidades["6400000"] = c.Valor.IdIdentidadContable;
+        await ImputarAsync(ids[0], "6400000", 1500m);
         await Bd.EjecutarAsync(s => s.EjecutarAsync("UPDATE SociedadesEjercicios SET TrimestreActivo = ? WHERE IdSociedadEjercicio = 9001", (byte)2));
 
         var p = Assert.Single(await Servicio.ProponerAsync("T01", ids));

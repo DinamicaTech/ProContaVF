@@ -323,7 +323,7 @@ public sealed partial class MotorAsientosAccess(IBaseDatos bd, PoliticaCuadre? p
                 if (!anteriores.ContainsKey(fila.IdAsiento))
                 {
                     var asiento = (await CargarAsync(s, fila.IdAsiento))!;
-                    var trimestre = await ComprobarTrimestreAbiertoAsync(s, asiento);
+                    var trimestre = await ComprobarTrimestreAbiertoAsync(s, asiento, cuenta.Valor.Codigo);
                     if (!trimestre.EsCorrecto) return Resultado<Guid>.Fallo(trimestre.Errores);
                     anteriores[fila.IdAsiento] = asiento;
                 }
@@ -675,12 +675,16 @@ public sealed partial class MotorAsientosAccess(IBaseDatos bd, PoliticaCuadre? p
     }
 
     /// <summary>
-    /// Protección del trimestre cerrado (contabilidad/procesos 2026-11-07): con un trimestre activo configurado en el
+    /// Protección del trimestre cerrado (contabilidad/asientos 2026-11-13 09:45): con un trimestre activo configurado en el
     /// ejercicio (SociedadesEjercicios.TrimestreActivo), ningún módulo crea, cambia ni borra un asiento fechado antes de
-    /// él; se corrige con un contra-asiento en el trimestre activo. Sin trimestre configurado no se comprueba.
+    /// él si lleva alguna cuenta fiscal del trimestre (<see cref="ReglasAsiento.CuentasFiscalesTrimestre"/>), ni le pone una
+    /// (<paramref name="cuentaNueva"/>); se corrige con un contra-asiento en el trimestre activo. Los asientos sin cuentas
+    /// fiscales (bancos, amortizaciones…) sí se tocan. Sin trimestre configurado no se comprueba.
     /// </summary>
-    private static async Task<Resultado> ComprobarTrimestreAbiertoAsync(ISesionDatos s, Asiento asiento)
+    private static async Task<Resultado> ComprobarTrimestreAbiertoAsync(ISesionDatos s, Asiento asiento, string? cuentaNueva = null)
     {
+        var fiscal = ReglasAsiento.AfectaTrimestreFiscal(asiento.Apuntes.Select(a => a.CodigoCuenta).Append(cuentaNueva));
+        if (fiscal is null) return Resultado.Correcto();
         var contexto = asiento.Contexto;
         var valor = await s.EscalarAsync("SELECT TrimestreActivo FROM SociedadesEjercicios WHERE IdSociedadEjercicio = ?", contexto.IdSociedadEjercicio);
         if (valor is null or DBNull) return Resultado.Correcto();
@@ -691,8 +695,8 @@ public sealed partial class MotorAsientosAccess(IBaseDatos bd, PoliticaCuadre? p
         var cerrado = NombreTrimestre(TrimestreContable.De(asiento.FechaContable));
         var registro = asiento.EsNuevo ? $"Asiento del {asiento.FechaContable:dd/MM/yyyy}" : $"Asiento {asiento.IdAsiento} del {asiento.FechaContable:dd/MM/yyyy}";
         return Resultado.Fallo(new Error("Asientos.TrimestreCerrado",
-            $"El trimestre {cerrado} de {contexto.Ejercicio} está cerrado: sus asientos no se crean, cambian ni borran.", registro,
-            $"El trimestre activo es {NombreTrimestre(activo)}; lo de un trimestre cerrado ya puede estar en la declaración del IVA.",
+            $"El trimestre {cerrado} de {contexto.Ejercicio} está cerrado y el asiento lleva la cuenta fiscal {fiscal}: no se crea, cambia ni borra.", registro,
+            $"El trimestre activo es {NombreTrimestre(activo)}; lo que toca la cuenta {fiscal} en un trimestre cerrado ya puede estar en su declaración (IVA o retenciones).",
             $"Corrígelo con un contra-asiento fechado en {NombreTrimestre(activo)}."));
     }
 
