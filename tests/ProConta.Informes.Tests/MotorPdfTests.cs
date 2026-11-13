@@ -106,6 +106,29 @@ public sealed class MotorPdfTests
     }
 
     /// <summary>
+    /// La segunda factura de una sesión lleva el logo igual que la primera: el mismo generador (y el conversor WebView2
+    /// compartido) no arrastran nada entre exportaciones.
+    /// </summary>
+    [Fact]
+    public void ElLogoSaleEnDosFacturasSeguidasDelMismoGenerador()
+    {
+        using var bitmap = new Bitmap(300, 60);
+        using (var g = Graphics.FromImage(bitmap)) { g.Clear(Color.White); g.FillEllipse(Brushes.Orange, 5, 5, 50, 50); }
+        using var png = new MemoryStream();
+        bitmap.Save(png, System.Drawing.Imaging.ImageFormat.Png);
+        var conLogo = new DatosFacturaPdf
+        {
+            Numero = Datos.Numero, Fecha = Datos.Fecha, EmisorNombre = Datos.EmisorNombre, EmisorNif = Datos.EmisorNif, EmisorDomicilio = Datos.EmisorDomicilio,
+            ClienteNombre = Datos.ClienteNombre, ClienteNif = Datos.ClienteNif, ClienteDomicilio = Datos.ClienteDomicilio, Total = Datos.Total, Logo = png.ToArray()
+        };
+        var generador = new GeneradorPdfFastReport();
+        var primera = generador.Generar(PlantillaFactura.Factura, conLogo, Lineas(3), Resumen);
+        var segunda = generador.Generar(PlantillaFactura.Factura, conLogo, Lineas(3), Resumen);
+        Assert.NotEmpty(Regex.Matches(Latin1(primera), @"/Subtype\s*/Image"));
+        Assert.NotEmpty(Regex.Matches(Latin1(segunda), @"/Subtype\s*/Image"));
+    }
+
+    /// <summary>
     /// Muestras del diseño para revisarlo a ojo (se guardan si PROCONTA_PDF_PRUEBA indica una carpeta): transferencia sin
     /// VeriFactu, recibo con VeriFactu, proforma y una factura larga. El logo sale de PROCONTA_LOGO_PRUEBA si existe.
     /// </summary>
@@ -113,7 +136,8 @@ public sealed class MotorPdfTests
     public void MuestrasDelDiseno()
     {
         var rutaLogo = Environment.GetEnvironmentVariable("PROCONTA_LOGO_PRUEBA");
-        var logo = !string.IsNullOrEmpty(rutaLogo) && File.Exists(rutaLogo) ? File.ReadAllBytes(rutaLogo) : null;
+        Assert.True(string.IsNullOrEmpty(rutaLogo) || File.Exists(rutaLogo), $"PROCONTA_LOGO_PRUEBA apunta a un fichero que no existe: {rutaLogo}");
+        var logo = !string.IsNullOrEmpty(rutaLogo) ? File.ReadAllBytes(rutaLogo) : null;
         DatosFacturaPdf Muestra(string titulo, string numero, string aviso, string forma, string etiqueta, string cuenta, string detalle, string qr) => new()
         {
             Titulo = titulo, Aviso = aviso, Numero = numero, Fecha = "03/08/2026", Periodo = "01/08/2026 – 31/08/2026",
