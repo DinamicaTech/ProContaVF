@@ -179,7 +179,7 @@ public sealed class ImportadorContaSol(IBaseDatos bd, IMotorAsientos motor, ICat
     /// <summary>
     /// Importa los planes en orden de ejercicio. Un plan con incidencias bloqueantes se importa igualmente sin los registros
     /// afectados, y su ejecución queda «con incidencias»; una bloqueante del destino (otra empresa, importación de otra versión)
-    /// impide importarlo.
+    /// impide importarlo, y apuntes en una antigua cuenta del IVA al 16 % (<see cref="IvaCeroContaSol"/>) impiden importar todos.
     /// </summary>
     public Task<IReadOnlyList<ResumenEjercicio>> ImportarAsync(IReadOnlyList<PlanEjercicio> planes, Actor actor, IProgress<ProgresoImportacion>? progreso = null,
         CancellationToken cancelacion = default) =>
@@ -191,6 +191,17 @@ public sealed class ImportadorContaSol(IBaseDatos bd, IMotorAsientos motor, ICat
         CancellationToken cancelacion)
     {
         var resumenes = new List<ResumenEjercicio>();
+        // Apuntes en una antigua cuenta del IVA al 16 % (4720000/4770000) en cualquier ejercicio: no se importa ninguno (2026-11-13 20:55).
+        var parada = planes.SelectMany(p => p.Incidencias).Where(i => i.Codigo == IvaCeroContaSol.CodigoIva16ConApuntes).ToList();
+        if (parada.Count > 0)
+        {
+            foreach (var plan in planes.OrderBy(p => p.Empresa.Codigo, StringComparer.Ordinal).ThenBy(p => p.Ejercicio))
+            {
+                resumenes.Add(new ResumenEjercicio(plan.Ejercicio, plan.Origen.Ruta, 0, EstadosImportacion.Fallida, 0, 0, 0, 0, 0, 0, 0, 0, plan.Incidencias));
+                progreso?.Report(new ProgresoImportacion(plan.Ejercicio, "fin", 1, 1, $"{plan.Ejercicio}: no se importa. {IvaCeroContaSol.MotivoParada(parada)}"));
+            }
+            return resumenes;
+        }
         foreach (var plan in planes.OrderBy(p => p.Empresa.Codigo, StringComparer.Ordinal).ThenBy(p => p.Ejercicio))
         {
             if (plan.Incidencias.Any(i => i.Severidad == Severidad.Bloqueante && i.Fase == "destino"))
@@ -309,8 +320,9 @@ public sealed class ImportadorContaSol(IBaseDatos bd, IMotorAsientos motor, ICat
                 var id = await s.EscalarAsync("SELECT IdSociedadEjercicio FROM SociedadesEjercicios WHERE IdSociedad = ? AND Ejercicio = ?", Sociedad, anio);
                 if (id is null or DBNull)
                 {
-                    await s.EjecutarAsync("INSERT INTO SociedadesEjercicios (IdSociedad, Ejercicio, Nombre, CIF, Activa, EjercicioCerrado) VALUES (?, ?, ?, ?, ?, ?)",
-                        Sociedad, anio, Vacio(PlanificadorContaSol.Recortar(empresa.Nombre, 255)), Vacio(PlanificadorContaSol.Recortar(empresa.Nif, 10)), true, false);
+                    // Sin CIF: el emisor es siempre la empresa (organizacion/sociedades-ejercicios 2026-11-13 20:55).
+                    await s.EjecutarAsync("INSERT INTO SociedadesEjercicios (IdSociedad, Ejercicio, Nombre, Activa, EjercicioCerrado) VALUES (?, ?, ?, ?, ?)",
+                        Sociedad, anio, Vacio(PlanificadorContaSol.Recortar(empresa.Nombre, 255)), true, false);
                     id = await s.UltimoIdAsync();
                     Anotar("preparacion", "F_EMP", Sociedad, "EJEEMP", "ContaSol.EjercicioCreado", Severidad.Informativa, $"He dado de alta el ejercicio {anio} de la empresa {Sociedad}.");
                 }

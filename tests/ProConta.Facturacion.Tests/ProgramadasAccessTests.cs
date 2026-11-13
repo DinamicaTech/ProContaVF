@@ -43,8 +43,8 @@ public sealed class ProgramadasAccessTests : IDisposable
     {
         await DatosSinteticos.EjercicioAsync(Bd, id, "T01", anio);
         await Bd.EjecutarAsync(s => s.EjecutarAsync(
-            "UPDATE SociedadesEjercicios SET Nombre = ?, CIF = ?, TipoIVA1 = ?, CuentaTipoIVA1 = ?, CuentaSuplido = ? WHERE IdSociedadEjercicio = ?",
-            $"Sociedad sintética SL ({anio})", "B12345674", 21f, "4770021", "5550001", id));
+            "UPDATE SociedadesEjercicios SET Nombre = ?, CuentaSuplido = ? WHERE IdSociedadEjercicio = ?",
+            $"Sociedad sintética SL ({anio})", "5550001", id));
         await Bd.EjecutarAsync(s => s.EjecutarAsync(
             "INSERT INTO SeriesFacturacion (IdSociedadEjercicio, Descripcion, RangoDesde, RangoHasta, Prefijo, EsRectificativa, EsPredeterminada) VALUES (?, ?, ?, ?, ?, ?, ?)",
             id, $"Facturas {anio}", 1, 99999, $"F{anio}", false, true));

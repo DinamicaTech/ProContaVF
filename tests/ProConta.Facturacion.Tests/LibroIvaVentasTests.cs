@@ -13,7 +13,7 @@ public class LibroIvaVentasTests
 
     // Centro 18 = actividad con serie 4727 (locales); centro 26 = serie 4726 (viviendas).
     private static readonly CuentasVenta Cuentas = new("4300001", "4735079",
-        new Dictionary<decimal, string> { [21m] = "4770021", [0m] = "4770001" }, "5550001",
+        new Dictionary<decimal, string> { [21m] = "4770021", [0m] = "4770000" }, "5550001",
         new Dictionary<int, string> { [18] = "4727", [26] = "4726" });
 
     private static LineaFacturaVenta Linea(decimal precio, decimal iva, int? centro, string? causa = null, bool suplido = false)
@@ -41,7 +41,7 @@ public class LibroIvaVentasTests
         Assert.Equal((1500m, 315m, "S1"), (locales.Base, locales.Cuota, locales.Calificacion));
         var general = libro.Tramos.Single(t => t.Cuenta == "4770021");
         Assert.Equal((200m, 42m), (general.Base, general.Cuota));
-        var exenta = libro.Tramos.Single(t => t.Cuenta == "4776001");
+        var exenta = libro.Tramos.Single(t => t.Cuenta == "4776000");
         Assert.Equal((900m, 0m, "E1", "E1"), (exenta.Base, exenta.Cuota, exenta.Calificacion, exenta.CausaExencion));
 
         // El suplido queda fuera de la base; el total es el de la factura. La cuota de cada 477 es la del asiento.
@@ -52,7 +52,7 @@ public class LibroIvaVentasTests
         var asiento = AsientoVenta.Construir(f, Ctx, Cuentas, new DateTime(2026, 3, 1));
         foreach (var t in libro.Tramos.Where(t => t.Cuota != 0m))
             Assert.Equal(t.Cuota, asiento.Apuntes.Where(a => a.CodigoCuenta == t.Cuenta).Sum(a => a.Haber.Valor - a.Debe.Valor));
-        Assert.DoesNotContain(asiento.Apuntes, a => a.CodigoCuenta == "4776001");
+        Assert.DoesNotContain(asiento.Apuntes, a => a.CodigoCuenta == "4776000");
     }
 
     [Fact]

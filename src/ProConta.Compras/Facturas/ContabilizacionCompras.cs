@@ -11,12 +11,13 @@ using ProConta.Terceros.Roles;
 namespace ProConta.Compras.Facturas;
 
 /// <summary>
-/// Cuentas y tipos de compras del ejercicio (SociedadesEjercicios, organizacion/sociedades-ejercicios): IVA soportado
-/// por tipo, retenciones, autorrepercusión, importación, suplidos, redondeo, tipo general y trimestre activo. El IVA
-/// soportado de cada tipo es CuentaTipoIVA0..4, que en los datos del ERP son cuentas 472 (4720021 para el 21 %).
+/// Cuentas y tipos de compras del ejercicio (SociedadesEjercicios, organizacion/sociedades-ejercicios): retenciones,
+/// autorrepercusión, importación, suplidos, redondeo, tipo general y trimestre activo. Los tipos de IVA son los activos del
+/// catálogo TiposDeIVA y la cuenta de IVA soportado de cada tipo no se configura: la calcula <see cref="CuentasIva"/> (serie de
+/// la actividad o 4720, más el porcentaje con tres cifras; 2026-11-13 20:55).
 /// </summary>
 public sealed record ConfiguracionCompras(
-    IReadOnlyDictionary<decimal, string> IvaSoportado, decimal? TipoGeneral, IReadOnlyList<decimal> Tipos, int? TrimestreActivo,
+    decimal? TipoGeneral, IReadOnlyList<decimal> Tipos, int? TrimestreActivo,
     string? RetencionServicios, string? RetencionAlquileres,
     string? IspSoportado, string? IspRepercutido,
     string? IntraSoportadoBienes, string? IntraSoportadoServicios, string? IntraRepercutidoBienes, string? IntraRepercutidoServicios,
@@ -25,7 +26,7 @@ public sealed record ConfiguracionCompras(
     public const string RedondeoGastosDefecto = "6590000";
     public const string RedondeoIngresosDefecto = "7590000";
 
-    /// <summary>El tipo general configurado o, sin configurar, el más alto de los tipos del ejercicio (2026-11-06 12:10).</summary>
+    /// <summary>El tipo general configurado o, sin configurar, el más alto de los tipos de IVA activos del catálogo (2026-11-06 12:10).</summary>
     public decimal? TipoGeneralEfectivo => TipoGeneral is > 0m ? TipoGeneral : Tipos.Count > 0 ? Tipos.Max() : null;
 }
 
@@ -86,34 +87,24 @@ public sealed class ContabilizadorCompras(IBaseDatos bd, IMotorAsientos motor, I
 
     public Task<ConfiguracionCompras?> ConfiguracionAsync(int idSociedadEjercicio) => bd.EjecutarAsync(s => ConfiguracionAsync(s, idSociedadEjercicio));
 
-    internal static Task<ConfiguracionCompras?> ConfiguracionAsync(ISesionDatos s, int idSociedadEjercicio) =>
-        s.ConsultarPrimeroAsync(
-            "SELECT TipoIVA1, TipoIVA2, TipoIVA3, TipoIVA4, TipoIVAGeneral, TrimestreActivo, " +
-            "CuentaTipoIVA0, CuentaTipoIVA1, CuentaTipoIVA2, CuentaTipoIVA3, CuentaTipoIVA4, " +
+    internal static async Task<ConfiguracionCompras?> ConfiguracionAsync(ISesionDatos s, int idSociedadEjercicio)
+    {
+        var tipos = await CatalogoTiposIva.ActivosAsync(s);
+        return await s.ConsultarPrimeroAsync(
+            "SELECT TipoIVAGeneral, TrimestreActivo, " +
             "CuentaRetencionServicios, CuentaRetencionAlquileres, CuentaIVAInversionSujetoPasivoSoportado, CuentaIVAInversionSujetoPasivoRepercutido, " +
             "CuentaIVAIntracomunitarioSoportadoBienes, CuentaIVAIntracomunitarioSoportadoServicios, CuentaIVAIntracomunitarioRepercutidoBienes, " +
             "CuentaIVAIntracomunitarioRepercutidoServicios, CuentaIVAImportacion, CuentaSuplido, CuentaRedondeoGastos, CuentaRedondeoIngresos " +
             "FROM SociedadesEjercicios WHERE IdSociedadEjercicio = ?",
-            f =>
-            {
-                var iva = new Dictionary<decimal, string>();
-                var tipos = new List<decimal>();
-                if (Texto(f, "CuentaTipoIVA0") is { } cero) iva[0m] = cero;
-                for (var i = 1; i <= 4; i++)
-                {
-                    if (f.EsNulo($"TipoIVA{i}")) continue;
-                    var tipo = Math.Round((decimal)f.Doble($"TipoIVA{i}"), 2);
-                    tipos.Add(tipo);
-                    if (Texto(f, $"CuentaTipoIVA{i}") is { } c) iva.TryAdd(tipo, c);
-                }
-                return new ConfiguracionCompras(iva, f.EsNulo("TipoIVAGeneral") ? null : Math.Round((decimal)f.Doble("TipoIVAGeneral"), 2), tipos,
-                    f.EsNulo("TrimestreActivo") ? null : f.Entero("TrimestreActivo"),
-                    Texto(f, "CuentaRetencionServicios"), Texto(f, "CuentaRetencionAlquileres"),
-                    Texto(f, "CuentaIVAInversionSujetoPasivoSoportado"), Texto(f, "CuentaIVAInversionSujetoPasivoRepercutido"),
-                    Texto(f, "CuentaIVAIntracomunitarioSoportadoBienes"), Texto(f, "CuentaIVAIntracomunitarioSoportadoServicios"),
-                    Texto(f, "CuentaIVAIntracomunitarioRepercutidoBienes"), Texto(f, "CuentaIVAIntracomunitarioRepercutidoServicios"),
-                    Texto(f, "CuentaIVAImportacion"), Texto(f, "CuentaSuplido"), Texto(f, "CuentaRedondeoGastos"), Texto(f, "CuentaRedondeoIngresos"));
-            }, idSociedadEjercicio);
+            f => new ConfiguracionCompras(f.EsNulo("TipoIVAGeneral") ? null : Math.Round((decimal)f.Doble("TipoIVAGeneral"), 2), tipos,
+                f.EsNulo("TrimestreActivo") ? null : f.Entero("TrimestreActivo"),
+                Texto(f, "CuentaRetencionServicios"), Texto(f, "CuentaRetencionAlquileres"),
+                Texto(f, "CuentaIVAInversionSujetoPasivoSoportado"), Texto(f, "CuentaIVAInversionSujetoPasivoRepercutido"),
+                Texto(f, "CuentaIVAIntracomunitarioSoportadoBienes"), Texto(f, "CuentaIVAIntracomunitarioSoportadoServicios"),
+                Texto(f, "CuentaIVAIntracomunitarioRepercutidoBienes"), Texto(f, "CuentaIVAIntracomunitarioRepercutidoServicios"),
+                Texto(f, "CuentaIVAImportacion"), Texto(f, "CuentaSuplido"), Texto(f, "CuentaRedondeoGastos"), Texto(f, "CuentaRedondeoIngresos")),
+            idSociedadEjercicio);
+    }
 
     private static string? Texto(IFilaDatos f, string campo) => f.Texto(campo) is { } t && !string.IsNullOrWhiteSpace(t) ? t.Trim() : null;
 
@@ -294,8 +285,13 @@ public sealed class ContabilizadorCompras(IBaseDatos bd, IMotorAsientos motor, I
                     continue;
                 }
                 if (noDeducible) continue;
-                var general = config.IvaSoportado.TryGetValue(tipo, out var c) ? c : null;
-                if (await Cuenta(Serie(general, Cola(general)), QueActividad($"cuenta de IVA soportado del {tipo:0.##} %")) is { } cc) iva[tipo] = cc;
+                // Cuenta calculada (2026-11-13 20:55): serie de la actividad (o 4720) más el porcentaje con tres cifras.
+                if (CuentasIva.Soportado(tipo, actividad?.Serie) is not { } calculada)
+                {
+                    errores.Add(new Error("Exportar.TipoSinCuenta", CuentasIva.MotivoSinCuenta(tipo), "iva", null, "Corrige el desglose de IVA en la ficha."));
+                    continue;
+                }
+                if (await Cuenta(calculada, QueActividad($"cuenta de IVA soportado del {tipo:0.##} %")) is { } cc) iva[tipo] = cc;
             }
         }
         if ((f.ImporteRetencion ?? 0m) != 0m)
