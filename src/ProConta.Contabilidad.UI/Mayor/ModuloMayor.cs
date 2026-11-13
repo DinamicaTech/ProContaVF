@@ -84,6 +84,23 @@ public sealed class ModuloMayor(ContextoMayor contexto, IAnfitrionPestanas anfit
         if (cuentas is { Count: > 0 }) _ = _pestana.Modelo.VerCuentasAsync(cuentas);
     }
 
+    /// <summary>Abre la pestaña del Mayor con unas cuentas en los ejercicios indicados (desde las líneas N43).</summary>
+    public void Abrir(IReadOnlyList<string> cuentas, IReadOnlyList<int> ejercicios)
+    {
+        Abrir();
+        _ = _pestana!.Modelo.VerCuentasAsync(cuentas, ejercicios);
+    }
+
+    /// <summary>
+    /// Muestra un asiento en el diálogo del asiento del Mayor sin abrir la pestaña; sus cuentas abren el Mayor. Lo usan otras pantallas
+    /// (líneas N43) para ver el asiento de una línea.
+    /// </summary>
+    public Task VerAsientoAsync(int idAsiento)
+    {
+        var vm = new MayorVM(contexto, dialogos, anfitrion.Avisar, []) { AbrirEnMayor = c => Abrir(c) };
+        return vm.VerAsientoAsync(idAsiento);
+    }
+
     /// <summary>Abre la pestaña del Mayor buscando unas facturas en todas las cuentas.</summary>
     public void BuscarFacturas(IReadOnlyList<string> documentos)
     {

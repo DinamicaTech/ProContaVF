@@ -283,6 +283,41 @@ public sealed class MayorVM : ModeloVista
         return Ejecutar(() => _sesion.VerCuentasAsync(cuentas));
     }
 
+    /// <summary>
+    /// Muestra unas cuentas en unos ejercicios concretos (p. ej. desde las líneas N43, con los ejercicios filtrados allí). Los años que la
+    /// sociedad no tiene se ignoran; si no queda ninguno, se mantienen los ejercicios elegidos. No cambia los ejercicios guardados del operador.
+    /// </summary>
+    public async Task VerCuentasAsync(IReadOnlyList<string> cuentas, IReadOnlyList<int>? anios)
+    {
+        if (!_iniciado) await IniciarAsync();
+        var validos = (anios ?? []).Where(a => _sesion.Ejercicios.Any(e => e.Ejercicio == a)).Distinct().ToList();
+        if (validos.Count > 0 && !validos.ToHashSet().SetEquals(_sesion.Elegidos.Select(e => e.Ejercicio)))
+        {
+            await Ejecutar(() => _sesion.ElegirEjerciciosAsync(validos));
+            foreach (var e in Ejercicios) e.Marcado = _sesion.Elegidos.Contains(e.Ejercicio);
+        }
+        await VerCuentasAsync(cuentas);
+    }
+
+    /// <summary>Abre el asiento indicado en el diálogo del asiento (con enlace al Mayor de cada cuenta).</summary>
+    public async Task VerAsientoAsync(int idAsiento)
+    {
+        try
+        {
+            var a = await _ctx.Fuente.AsientoAsync(idAsiento);
+            if (a is null)
+            {
+                _dialogos.Error("El asiento ya no existe", $"El asiento {idAsiento} se ha borrado o regenerado. Actualiza la lista (F5) para ver cómo está ahora.");
+                return;
+            }
+            _dialogos.VerAsiento(a, c => _ = IrACuentaAsync(c));
+        }
+        catch (Exception ex)
+        {
+            _dialogos.Error("No he podido abrir el asiento", $"La base de datos ha respondido: {ex.Message} Vuelve a intentarlo en un momento.");
+        }
+    }
+
     /// <summary>Busca facturas en todas las cuentas; en el embebido, en una pestaña del Mayor.</summary>
     public Task BuscarFacturasAsync(IReadOnlyList<string> documentos)
     {

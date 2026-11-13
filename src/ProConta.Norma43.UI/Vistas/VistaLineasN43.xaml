@@ -1,0 +1,249 @@
+<UserControl x:Class="ProConta.Norma43.UI.Vistas.VistaLineasN43"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:pc="urn:proconta-ui"
+             Background="White">
+  <UserControl.Resources>
+    <pc:VisibleSiConverter x:Key="Visible" />
+    <Style x:Key="Etiqueta.Campo" TargetType="TextBlock">
+      <Setter Property="FontSize" Value="{StaticResource Letra.Pequena}" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+      <Setter Property="Foreground" Value="{StaticResource Pincel.Texto2}" />
+      <Setter Property="Margin" Value="0,10,0,3" />
+    </Style>
+    <Style x:Key="Etiqueta.Filtro" TargetType="TextBlock" BasedOn="{StaticResource Texto.Apagado}">
+      <Setter Property="VerticalAlignment" Value="Center" />
+      <Setter Property="Margin" Value="0,0,6,0" />
+    </Style>
+    <Style x:Key="Celda.Concepto" TargetType="TextBlock" BasedOn="{StaticResource Texto.Celda}">
+      <Setter Property="ToolTip" Value="{Binding AyudaConcepto}" />
+    </Style>
+    <Style x:Key="Celda.Origen" TargetType="TextBlock" BasedOn="{StaticResource Texto.Celda.Mono}">
+      <Setter Property="ToolTip" Value="{Binding AyudaOrigen}" />
+    </Style>
+    <Style x:Key="Celda.OrigenNombre" TargetType="TextBlock" BasedOn="{StaticResource Texto.Celda}">
+      <Setter Property="ToolTip" Value="{Binding AyudaOrigen}" />
+    </Style>
+    <Style x:Key="Celda.Destino" TargetType="TextBlock" BasedOn="{StaticResource Texto.Celda.Mono}">
+      <Setter Property="ToolTip" Value="{Binding AyudaDestino}" />
+    </Style>
+    <Style x:Key="Celda.DestinoNombre" TargetType="TextBlock" BasedOn="{StaticResource Texto.Celda}">
+      <Setter Property="ToolTip" Value="{Binding AyudaDestino}" />
+    </Style>
+    <Style x:Key="Celda.Importe" TargetType="TextBlock" BasedOn="{StaticResource Texto.Celda.Importe}">
+      <Setter Property="ToolTip" Value="{Binding AyudaImporte}" />
+      <Style.Triggers>
+        <DataTrigger Binding="{Binding EsCargo}" Value="True">
+          <Setter Property="Foreground" Value="{StaticResource Pincel.RojoSaldo}" />
+        </DataTrigger>
+      </Style.Triggers>
+    </Style>
+    <Style x:Key="Celda.Estado" TargetType="TextBlock" BasedOn="{StaticResource Texto.Celda}">
+      <Setter Property="ToolTip" Value="{Binding AyudaEstado}" />
+      <Style.Triggers>
+        <DataTrigger Binding="{Binding EstadoDatos}" Value="SinCuenta">
+          <Setter Property="Foreground" Value="{StaticResource Pincel.RojoError}" />
+        </DataTrigger>
+        <DataTrigger Binding="{Binding EstadoDatos}" Value="ConCuenta">
+          <Setter Property="Foreground" Value="{StaticResource Pincel.Aviso}" />
+          <Setter Property="FontWeight" Value="SemiBold" />
+        </DataTrigger>
+        <DataTrigger Binding="{Binding EstadoDatos}" Value="Contabilizada">
+          <Setter Property="Foreground" Value="{StaticResource Pincel.Verde}" />
+        </DataTrigger>
+        <DataTrigger Binding="{Binding EstadoDatos}" Value="ContabilizadaErp">
+          <Setter Property="Foreground" Value="{StaticResource Pincel.Texto2}" />
+        </DataTrigger>
+        <DataTrigger Binding="{Binding SoloLectura}" Value="True">
+          <Setter Property="FontStyle" Value="Italic" />
+        </DataTrigger>
+      </Style.Triggers>
+    </Style>
+    <ContextMenu x:Key="Menu.Lineas">
+      <MenuItem Header="{Binding AccionAsignar.Texto}" Command="{Binding AccionAsignar.Comando}" ToolTip="{Binding AccionAsignar.Ayuda}" InputGestureText="F2" />
+      <MenuItem Header="{Binding AccionReasignar.Texto}" Command="{Binding AccionReasignar.Comando}" ToolTip="{Binding AccionReasignar.Ayuda}" />
+      <MenuItem Header="{Binding AccionPalabras.Texto}" Command="{Binding AccionPalabras.Comando}" ToolTip="{Binding AccionPalabras.Ayuda}" InputGestureText="Ctrl+K" />
+      <MenuItem Header="{Binding AccionTraspaso.Texto}" Command="{Binding AccionTraspaso.Comando}" ToolTip="{Binding AccionTraspaso.Ayuda}" />
+      <Separator />
+      <MenuItem Header="{Binding AccionContabilizar.Texto}" Command="{Binding AccionContabilizar.Comando}" ToolTip="{Binding AccionContabilizar.Ayuda}" InputGestureText="Ctrl+E" />
+      <MenuItem Header="{Binding AccionVerAsiento.Texto}" Command="{Binding AccionVerAsiento.Comando}" ToolTip="{Binding AccionVerAsiento.Ayuda}" InputGestureText="Doble clic" />
+      <MenuItem Header="{Binding AccionTextos.Texto}" Command="{Binding AccionTextos.Comando}" ToolTip="{Binding AccionTextos.Ayuda}" />
+      <MenuItem Header="{Binding AccionDeshacer.Texto}" Command="{Binding AccionDeshacer.Comando}" ToolTip="{Binding AccionDeshacer.Ayuda}" />
+      <Separator />
+      <MenuItem Header="Exportar a Excel" Click="Exportar_Click"
+                ToolTip="Guarda en Excel todas las líneas que se ven (con los filtros puestos), con las mismas columnas y en el mismo orden" />
+      <MenuItem Header="Actualizar" Command="{Binding RefrescarCommand}" InputGestureText="F5" ToolTip="Vuelve a leer las líneas de los ejercicios marcados" />
+    </ContextMenu>
+  </UserControl.Resources>
+  <UserControl.InputBindings>
+    <KeyBinding Key="F5" Command="{Binding RefrescarCommand}" />
+    <KeyBinding Key="F2" Command="{Binding AccionAsignar.Comando}" />
+    <KeyBinding Key="E" Modifiers="Ctrl" Command="{Binding AccionContabilizar.Comando}" />
+    <KeyBinding Key="K" Modifiers="Ctrl" Command="{Binding AccionPalabras.Comando}" />
+    <KeyBinding Key="F" Modifiers="Ctrl" Command="{Binding EnfocarBusquedaCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" />
+  </UserControl.InputBindings>
+
+  <DockPanel>
+    <!-- Cabecera: título y ejercicios -->
+    <Border DockPanel.Dock="Top" BorderBrush="{StaticResource Pincel.Linea}" BorderThickness="0,0,0,1" Padding="14,8">
+      <StackPanel Orientation="Horizontal">
+        <TextBlock Text="Líneas N43" Style="{StaticResource Texto.TituloPantalla}" VerticalAlignment="Center" Margin="0,0,18,0" />
+        <Menu VerticalAlignment="Center" Background="Transparent">
+          <MenuItem ItemsSource="{Binding Ejercicios}" AutomationProperties.Name="Ejercicios"
+                    ToolTip="Ejercicios cuyas líneas se ven (puedes marcar varios). Las de ejercicios cerrados se ven en cursiva y solo se consultan">
+            <MenuItem.Header>
+              <StackPanel Orientation="Horizontal">
+                <Path Style="{StaticResource Icono.Trazo14}" Data="{StaticResource Icono.cal}" Margin="0,0,6,0" VerticalAlignment="Center" />
+                <TextBlock Text="{Binding TextoEjercicios}" FontWeight="SemiBold" VerticalAlignment="Center" />
+                <TextBlock Text=" ▾" VerticalAlignment="Center" Foreground="{StaticResource Pincel.Texto2}" />
+              </StackPanel>
+            </MenuItem.Header>
+            <MenuItem.ItemContainerStyle>
+              <Style TargetType="MenuItem" BasedOn="{StaticResource {x:Type MenuItem}}">
+                <Setter Property="Header" Value="{Binding Texto}" />
+                <Setter Property="IsCheckable" Value="True" />
+                <Setter Property="IsChecked" Value="{Binding Marcado, Mode=TwoWay}" />
+                <Setter Property="StaysOpenOnClick" Value="True" />
+                <Setter Property="ToolTip" Value="{Binding Ayuda}" />
+              </Style>
+            </MenuItem.ItemContainerStyle>
+          </MenuItem>
+        </Menu>
+      </StackPanel>
+    </Border>
+
+    <!-- Filtros -->
+    <Border DockPanel.Dock="Top" BorderBrush="{StaticResource Pincel.Linea}" BorderThickness="0,0,0,1" Padding="14,7">
+      <StackPanel>
+        <WrapPanel>
+          <ComboBox Width="150" Margin="0,0,10,0" ItemsSource="{Binding Estados}" SelectedItem="{Binding EstadoFiltro}" DisplayMemberPath="Texto" AutomationProperties.Name="Estado"
+                    ToolTip="Estado de las líneas: pendientes, sin cuenta, por contabilizar o contabilizadas">
+            <ComboBox.ItemContainerStyle>
+              <Style TargetType="ComboBoxItem" BasedOn="{StaticResource {x:Type ComboBoxItem}}">
+                <Setter Property="ToolTip" Value="{Binding Ayuda}" />
+              </Style>
+            </ComboBox.ItemContainerStyle>
+          </ComboBox>
+          <ComboBox Width="290" Margin="0,0,10,0" ItemsSource="{Binding Bancos}" SelectedItem="{Binding BancoFiltro}" DisplayMemberPath="Texto" AutomationProperties.Name="Cuenta bancaria"
+                    ToolTip="Cuenta bancaria de las líneas">
+            <ComboBox.ItemContainerStyle>
+              <Style TargetType="ComboBoxItem" BasedOn="{StaticResource {x:Type ComboBoxItem}}">
+                <Setter Property="ToolTip" Value="{Binding Ayuda}" />
+              </Style>
+            </ComboBox.ItemContainerStyle>
+          </ComboBox>
+          <Grid Width="300" Margin="0,0,10,0">
+            <TextBox x:Name="CajaBusqueda" Text="{Binding TextoFiltro, UpdateSourceTrigger=PropertyChanged, Delay=250}" Padding="28,0,6,0" AutomationProperties.Name="Buscar texto"
+                     ToolTip="Busca en el concepto, las referencias, el documento, el tipo, el banco y las cuentas (código o nombre); varias palabras deben aparecer todas (Ctrl+F)" />
+            <Path Style="{StaticResource Icono.Trazo14}" Data="{StaticResource Icono.search}" HorizontalAlignment="Left" Margin="9,0,0,0" VerticalAlignment="Center" IsHitTestVisible="False" />
+          </Grid>
+          <TextBlock Text="Importe" Style="{StaticResource Etiqueta.Filtro}" />
+          <TextBox Width="110" Margin="0,0,14,0" Text="{Binding ImporteFiltro, UpdateSourceTrigger=PropertyChanged, Delay=300}" Style="{StaticResource Campo.Numero}" AutomationProperties.Name="Importe"
+                   ToolTip="Importe exacto del movimiento, sin signo (sirve para cargos y abonos): por ejemplo 1234,56" />
+          <TextBlock Text="Desde" Style="{StaticResource Etiqueta.Filtro}" />
+          <TextBox Width="100" Margin="0,0,10,0" Text="{Binding DesdeTexto, UpdateSourceTrigger=LostFocus}" Style="{StaticResource Campo.Mono}" AutomationProperties.Name="Desde"
+                   ToolTip="Fecha de operación desde (dd/mm/aaaa); se aplica al salir del campo" />
+          <TextBlock Text="Hasta" Style="{StaticResource Etiqueta.Filtro}" />
+          <TextBox Width="100" Margin="0,0,10,0" Text="{Binding HastaTexto, UpdateSourceTrigger=LostFocus}" Style="{StaticResource Campo.Mono}" AutomationProperties.Name="Hasta"
+                   ToolTip="Fecha de operación hasta (dd/mm/aaaa); se aplica al salir del campo" />
+          <TextBlock Text="{Binding ErrorFechas}" Foreground="{StaticResource Pincel.RojoError}" VerticalAlignment="Center" Margin="0,0,10,0" />
+          <TextBlock Text="Importe no válido: escribe solo el número, p. ej. 1234,56" Foreground="{StaticResource Pincel.RojoError}" VerticalAlignment="Center"
+                     Visibility="{Binding ImporteNoValido, Converter={StaticResource Visible}}" />
+        </WrapPanel>
+        <DockPanel Margin="0,6,0,0" Visibility="{Binding HayFichas, Converter={StaticResource Visible}}">
+          <Button DockPanel.Dock="Right" Style="{StaticResource Boton.Enlace}" Content="Quitar todos" Command="{Binding QuitarFiltrosCommand}" VerticalAlignment="Center"
+                  ToolTip="Quita todos los filtros (los ejercicios marcados no cambian)" />
+          <TextBlock Text="Filtros:" Style="{StaticResource Etiqueta.Filtro}" />
+          <ItemsControl ItemsSource="{Binding Fichas}">
+            <ItemsControl.ItemsPanel>
+              <ItemsPanelTemplate>
+                <WrapPanel />
+              </ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+            <ItemsControl.ItemTemplate>
+              <DataTemplate>
+                <pc:Etiqueta Content="{Binding Texto}" ToolTip="{Binding Ayuda}" ComandoQuitar="{Binding Quitar}" AyudaQuitar="{Binding Ayuda}" Margin="0,0,6,0" VerticalAlignment="Center" />
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </DockPanel>
+      </StackPanel>
+    </Border>
+
+    <!-- Pie -->
+    <Border DockPanel.Dock="Bottom" Style="{StaticResource Barra.Pie}">
+      <DockPanel>
+        <TextBlock DockPanel.Dock="Right" Style="{StaticResource Texto.Apagado}" VerticalAlignment="Center"
+                   Text="Clic derecho: acciones · Ctrl o Mayús: varias · Doble clic: asiento (en una cuenta: su Mayor)" />
+        <TextBlock Text="{Binding Resumen}" FontWeight="SemiBold" VerticalAlignment="Center" />
+      </DockPanel>
+    </Border>
+
+    <Grid>
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="*" MinWidth="500" />
+        <ColumnDefinition Width="Auto" />
+        <ColumnDefinition Width="400" MinWidth="280" />
+      </Grid.ColumnDefinitions>
+
+      <pc:VistaEstado Estado="{Binding Estado}" Titulo="{Binding TituloEstado}" Mensaje="{Binding MensajeEstado}" TextoAccion="{Binding TextoAccionEstado}"
+                      ComandoAccion="{Binding QuitarFiltrosCommand}" ContextMenu="{StaticResource Menu.Lineas}">
+        <pc:TablaProConta x:Name="Tabla" ItemsSource="{Binding Filas}" SelectedItem="{Binding Actual}" ClavePreferencias="norma43.lineas" TituloExportacion="Líneas N43"
+                          IsReadOnly="True" SelectionMode="Extended" SelectionUnit="FullRow" AutomationProperties.Name="Líneas bancarias Norma 43"
+                          HorizontalScrollBarVisibility="Auto" ContextMenu="{StaticResource Menu.Lineas}"
+                          SelectionChanged="Tabla_SelectionChanged" MouseDoubleClick="Tabla_MouseDoubleClick" PreviewMouseRightButtonDown="Tabla_PreviewMouseRightButtonDown">
+          <pc:TablaProConta.Columns>
+            <DataGridTextColumn Header="Fecha" Binding="{Binding Fecha}" SortMemberPath="FechaOrden" Width="86" ElementStyle="{StaticResource Texto.Celda.Mono}" pc:TablaProConta.Clave="fecha"
+                                pc:TablaProConta.Ayuda="Fecha de operación del movimiento" />
+            <DataGridTextColumn Header="Fecha valor" Binding="{Binding FechaValor}" SortMemberPath="FechaValorOrden" Width="86" ElementStyle="{StaticResource Texto.Celda.Mono}" pc:TablaProConta.Clave="fecha-valor"
+                                pc:TablaProConta.Ayuda="Fecha valor: la del asiento salvo que sea del año anterior a la de operación" />
+            <DataGridTextColumn Header="Cuenta origen" Binding="{Binding CuentaOrigen}" Width="84" ElementStyle="{StaticResource Celda.Origen}" pc:TablaProConta.Clave="cuenta-origen"
+                                pc:TablaProConta.Ayuda="La 572 del banco en el ejercicio de la línea. Doble clic: su Mayor" />
+            <DataGridTextColumn Header="Descripción cuenta origen" Binding="{Binding NombreCuentaOrigen}" Width="190" ElementStyle="{StaticResource Celda.OrigenNombre}" pc:TablaProConta.Clave="desc-origen" />
+            <DataGridTextColumn Header="Concepto" Binding="{Binding Concepto}" Width="*" MinWidth="260" ElementStyle="{StaticResource Celda.Concepto}" pc:TablaProConta.Clave="concepto"
+                                pc:TablaProConta.Ayuda="Concepto completo del banco; las referencias, en su tooltip" />
+            <DataGridTextColumn Header="Tipo" Binding="{Binding Tipo}" Width="100" ElementStyle="{StaticResource Texto.Celda}" pc:TablaProConta.Clave="tipo"
+                                pc:TablaProConta.Ayuda="Tipo de movimiento según los conceptos N43 (Recibo, Transferencia, Tarjeta…); vacío si ninguna regla encaja" />
+            <DataGridTextColumn Header="Importe" Binding="{Binding Importe}" SortMemberPath="ImporteOrden" Width="112" ElementStyle="{StaticResource Celda.Importe}" pc:TablaProConta.Clave="importe"
+                                HeaderStyle="{StaticResource Tabla.Cabecera.Derecha}" pc:TablaProConta.Ayuda="Positivo si entra dinero (abono), negativo y en rojo si sale (cargo)" />
+            <DataGridTextColumn Header="Cuenta destino" Binding="{Binding CuentaDestino}" Width="84" ElementStyle="{StaticResource Celda.Destino}" pc:TablaProConta.Clave="cuenta-destino"
+                                pc:TablaProConta.Ayuda="Contrapartida del asiento («Varias» si está repartida). Doble clic: su Mayor" />
+            <DataGridTextColumn Header="Descripción cuenta destino" Binding="{Binding NombreCuentaDestino}" Width="200" ElementStyle="{StaticResource Celda.DestinoNombre}" pc:TablaProConta.Clave="desc-destino" />
+            <DataGridTextColumn Header="Documento" Binding="{Binding Documento}" Width="96" ElementStyle="{StaticResource Texto.Celda.Mono}" pc:TablaProConta.Clave="documento" />
+            <DataGridTextColumn Header="Estado" Binding="{Binding Estado}" Width="124" ElementStyle="{StaticResource Celda.Estado}" pc:TablaProConta.Clave="estado" />
+            <DataGridTextColumn Header="Asiento" Binding="{Binding Asiento}" SortMemberPath="AsientoOrden" Width="70" ElementStyle="{StaticResource Texto.Celda.Importe}" pc:TablaProConta.Clave="asiento"
+                                HeaderStyle="{StaticResource Tabla.Cabecera.Derecha}" pc:TablaProConta.Ayuda="Número del asiento. Doble clic en la línea: verlo" />
+          </pc:TablaProConta.Columns>
+        </pc:TablaProConta>
+      </pc:VistaEstado>
+
+      <GridSplitter Grid.Column="1" Width="5" HorizontalAlignment="Center" VerticalAlignment="Stretch" Background="{StaticResource Pincel.Linea}" ResizeBehavior="PreviousAndNext"
+                    ToolTip="Arrastra para repartir el ancho entre las líneas y su detalle" />
+
+      <!-- Detalle de la línea -->
+      <ScrollViewer Grid.Column="2" VerticalScrollBarVisibility="Auto" Background="{StaticResource Pincel.Fondo}">
+        <StackPanel Margin="16,14">
+          <TextBlock Text="Elige una línea para ver su detalle." Style="{StaticResource Texto.Apagado}" Visibility="{Binding HayActual, Converter={StaticResource Visible}, ConverterParameter=invertir}" />
+          <StackPanel Visibility="{Binding HayActual, Converter={StaticResource Visible}}">
+            <TextBlock Text="{Binding Actual.Importe}" Style="{StaticResource Texto.Titulo}" ToolTip="{Binding Actual.AyudaImporte}" />
+            <TextBlock Text="{Binding DetalleFechas}" Style="{StaticResource Texto.Apagado}" TextWrapping="Wrap" Margin="0,2,0,0" />
+            <TextBlock Text="Estado" Style="{StaticResource Etiqueta.Campo}" />
+            <TextBlock Text="{Binding Actual.AyudaEstado}" TextWrapping="Wrap" />
+            <TextBlock Text="Banco" Style="{StaticResource Etiqueta.Campo}" />
+            <TextBlock Text="{Binding Actual.AyudaOrigen}" TextWrapping="Wrap" />
+            <TextBlock Text="Tipo" Style="{StaticResource Etiqueta.Campo}" />
+            <TextBlock Text="{Binding Actual.Tipo}" TextWrapping="Wrap" ToolTip="Tipo de movimiento según los conceptos N43" />
+            <TextBlock Text="Concepto completo" Style="{StaticResource Etiqueta.Campo}" />
+            <TextBox Text="{Binding Actual.AyudaConcepto, Mode=OneWay}" IsReadOnly="True" TextWrapping="Wrap" Style="{StaticResource Campo.Multilinea}" MinHeight="60"
+                     ToolTip="Concepto del banco tal cual, con sus referencias: puedes seleccionarlo y copiarlo" />
+            <TextBlock Text="Documento" Style="{StaticResource Etiqueta.Campo}" />
+            <TextBlock Text="{Binding Actual.Documento}" Style="{StaticResource Texto.Mono}" />
+            <TextBlock Text="Cuenta de destino" Style="{StaticResource Etiqueta.Campo}" />
+            <TextBlock Text="{Binding DetalleDestinos}" TextWrapping="Wrap" />
+            <TextBlock Text="Doble clic en la línea: su asiento (o el que generaría). Clic derecho: acciones." Style="{StaticResource Texto.Apagado}" TextWrapping="Wrap" Margin="0,14,0,0" />
+          </StackPanel>
+        </StackPanel>
+      </ScrollViewer>
+    </Grid>
+  </DockPanel>
+</UserControl>

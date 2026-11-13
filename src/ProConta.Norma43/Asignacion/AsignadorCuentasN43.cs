@@ -64,9 +64,30 @@ public sealed class AsignadorCuentasN43
     public Task<ResultadoAsignacionN43> SimularAsync(ContextoSociedadEjercicio contexto, int? idLote = null, bool incluirAsignadas = false, CancellationToken cancelacion = default) =>
         _bd.EjecutarAsync(s => AsignarAsync(s, contexto.IdSociedad, idLote, escribir: false, incluirAsignadas, cancelacion), cancelacion);
 
+    /// <summary>
+    /// «Reasignar por palabras clave» de la pantalla de líneas N43 (norma43/pantallas) sobre unas líneas concretas: a las que no tienen
+    /// asiento se les vuelve a buscar palabra clave. Las imputaciones que puso antes el motor (Origen PALABRA_CLAVE) se descartan y se vuelve a
+    /// elegir con las palabras clave de ahora (p. ej. después de crear o corregir una); las puestas a mano, por un traspaso o por la migración
+    /// del ERP no se tocan, ni las líneas contabilizadas o de lotes revertidos.
+    /// </summary>
+    public Task<ResultadoAsignacionN43> ReasignarLineasAsync(ContextoSociedadEjercicio contexto, IReadOnlyCollection<int> ids, CancellationToken cancelacion = default)
+    {
+        ArgumentNullException.ThrowIfNull(ids);
+        if (ids.Count == 0) return Task.FromResult(ResultadoAsignacionN43.Vacio);
+        return _bd.EnTransaccionAsync(async s =>
+        {
+            var conAsiento = await IdsAsync(s, "SELECT DISTINCT IdLineaExtractoBancario FROM ContabilizacionesLineaExtracto WHERE Estado <> 'ANULADA'");
+            foreach (var bloque in ids.Where(i => !conAsiento.Contains(i)).Distinct().Chunk(300))
+                await s.EjecutarAsync(
+                    "UPDATE ImputacionesLineaExtractoBancario SET Estado = 'DESCARTADA' WHERE Estado <> 'DESCARTADA' AND Origen = ? " +
+                    $"AND IdLineaExtractoBancario IN ({string.Join(",", bloque)})", Origen);
+            return await AsignarAsync(s, contexto.IdSociedad, null, escribir: true, incluirAsignadas: false, cancelacion, ids.ToHashSet());
+        }, cancelacion);
+    }
+
     /// <summary>Pasada del motor dentro de una sesión ya abierta (la importación la lanza en su propia transacción).</summary>
     internal static async Task<ResultadoAsignacionN43> AsignarAsync(ISesionDatos s, string idSociedad, int? idLote, bool escribir, bool incluirAsignadas,
-        CancellationToken cancelacion = default)
+        CancellationToken cancelacion = default, IReadOnlySet<int>? soloLineas = null)
     {
         var palabras = await PalabrasAsync(s, idSociedad);
 
@@ -79,6 +100,7 @@ public sealed class AsignadorCuentasN43
         var lineas = await s.ConsultarAsync(sql + " ORDER BY l.IdLineaExtractoBancario", f => new LineaN43ParaAsignar(
             f.Entero("IdLineaExtractoBancario"), f.Texto("Entidad") ?? "", f.Texto("Sentido") ?? "", f.Decimal("Importe"), f.Texto("ConceptoCompleto"),
             f.Texto("Documento"), f.Texto("Referencia1"), f.Texto("Referencia2")), [.. parametros]);
+        if (soloLineas is not null) lineas = lineas.Where(l => soloLineas.Contains(l.IdLinea)).ToList();
         if (lineas.Count == 0) return ResultadoAsignacionN43.Vacio;
 
         if (!incluirAsignadas)
