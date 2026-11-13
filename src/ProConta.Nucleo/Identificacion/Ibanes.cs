@@ -28,15 +28,18 @@ public static class Ibanes
 
     /// <summary>El IBAN de cuatro en cuatro («ES12 2100 …»).</summary>
     public static string? Agrupar(string? iban) =>
-        Normalizar(iban) is { } t ? string.Join(" ", Enumerable.Range(0, (t.Length + 3) / 4).Select(i => t.Substring(i * 4, Math.Min(4, t.Length - i * 4)))) : null;
+        Normalizar(iban) is { } t ? DeCuatroEnCuatro(t) : null;
 
     /// <summary>El IBAN enmascarado, con el país y los cuatro últimos dígitos a la vista («ES** **** **** **** **** 8356»).</summary>
     public static string? Enmascarar(string? iban)
     {
         if (Normalizar(iban) is not { Length: > 8 } t) return null;
-        var oculto = t[..2] + new string('*', t.Length - 6) + t[^4..];
-        return Agrupar(oculto);
+        // Sin pasar por Agrupar: Normalizar quitaría los asteriscos.
+        return DeCuatroEnCuatro(t[..2] + new string('*', t.Length - 6) + t[^4..]);
     }
+
+    private static string DeCuatroEnCuatro(string t) =>
+        string.Join(" ", Enumerable.Range(0, (t.Length + 3) / 4).Select(i => t.Substring(i * 4, Math.Min(4, t.Length - i * 4))));
 
     /// <summary>IBAN español a partir del CCC (entidad, oficina, dígito de control y cuenta): calcula los dígitos de control del país.</summary>
     public static string? DesdeCcc(string? entidad, string? oficina, string? control, string? cuenta)
