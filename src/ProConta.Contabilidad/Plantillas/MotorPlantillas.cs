@@ -16,7 +16,7 @@ public static class MotorPlantillas
     public static readonly IReadOnlySet<string> NombresReservados = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
     {
         "Cuenta", "NombreCuenta", "Lado", "Importe", "Debe", "Haber", "Concepto", "Documento", "Fecha", "Centro", "EsApunteOrigen",
-        "DescripcionAsiento", "CuentaCuadres", "CuentaTesoreria", "Ejercicio", "Clave", "Y", "O", "No", "Verdadero", "Falso",
+        "DescripcionAsiento", "CuentaCuadres", "CuentaTesoreria", "Ejercicio", "Clave", "Saldo", "SaldoApertura", "Y", "O", "No", "Verdadero", "Falso",
     };
 
     private const int LongitudConcepto = 255;
@@ -40,7 +40,7 @@ public static class MotorPlantillas
             var donde = $"asiento {l.NumeroAsiento}, línea {l.Orden}";
             foreach (var f in new[] { l.Cuenta, l.Importe, l.Concepto, l.Centro, l.Condicion, EsLadoFijo(l.Lado) ? null : l.Lado })
                 if (Formula.Validar(f) is { } e) errores.Add(ErrorDeFormula(p, donde, e));
-            if (l.PorCadaApunte && p.Origen != OrigenPlantilla.Apunte)
+            if (l.PorCadaApunte && !p.ParteDeUnApunte)
                 errores.Add(new Error("Plantillas.LineaSinApunte", $"La línea {l.Orden} del asiento {l.NumeroAsiento} se repite por cada apunte, pero la plantilla «{p.Nombre}» no parte de un apunte.",
                     p.ToString(), "Solo con origen Apunte hay un asiento de origen cuyos apuntes recorrer.", "Cambia el origen a Apunte o quita «por cada apunte» de la línea."));
         }
@@ -155,9 +155,13 @@ public static class MotorPlantillas
                 "Elige otra plantilla o vuelve a activarla en el mantenimiento de plantillas.");
         switch (p.Origen)
         {
-            case OrigenPlantilla.Apunte when origen is not OrigenApunte:
-                return new Error("Plantillas.FaltaApunte", $"La plantilla «{p.Nombre}» parte de un apunte.", p.ToString(), "Corrige o reparte un apunte que ya existe.",
+            case OrigenPlantilla.Apunte or OrigenPlantilla.Asiento when origen is not OrigenApunte:
+                return new Error("Plantillas.FaltaApunte", $"La plantilla «{p.Nombre}» parte de {(p.Origen == OrigenPlantilla.Asiento ? "un asiento" : "un apunte")}.", p.ToString(),
+                    p.Origen == OrigenPlantilla.Asiento ? "Corrige un asiento que ya existe." : "Corrige o reparte un apunte que ya existe.",
                     "Ábrela desde el Mayor: elige el apunte y usa «Asistente de corrección…».");
+            case OrigenPlantilla.Subcuenta when origen is not OrigenSubcuenta:
+                return new Error("Plantillas.FaltaSubcuenta", $"La plantilla «{p.Nombre}» parte de una subcuenta y de su saldo.", p.ToString(), "Corrige el saldo de una subcuenta que ya existe.",
+                    "Ábrela desde el Mayor: elige filas de una sola cuenta y usa «Asistente de corrección…».");
             case OrigenPlantilla.Proceso when origen is not OrigenProceso op || !string.Equals(op.ClaveProceso, p.ClaveProceso, StringComparison.OrdinalIgnoreCase):
                 return new Error("Plantillas.OtroProceso", $"La plantilla «{p.Nombre}» es del proceso «{p.ClaveProceso}».", p.ToString(),
                     "Solo la ejecuta ese proceso con sus registros.", "Contabiliza desde ese proceso.");
@@ -268,7 +272,7 @@ public static class MotorPlantillas
                 return new Error("Plantillas.CuentaNoExiste", $"No existe la cuenta {cuenta} en el ejercicio {entorno.Contexto.Ejercicio}.", $"{p}, {donde}",
                     "La pide esta línea de la plantilla.", $"Da de alta la cuenta {cuenta} en Cuentas contables, o corrige la plantilla.");
 
-            var lado = Lado(linea.Lado, entornoLinea, fila.Apunte);
+            var lado = Lado(linea.Lado, entornoLinea, fila.Apunte is { } ap ? !ap.Debe.EsCero : LadoDeCampos(fila.Campos));
             if (lado is null)
                 return new Error("Plantillas.LadoNoValido", $"No sé a qué lado va la línea {linea.Orden} del asiento {linea.NumeroAsiento} de «{p.Nombre}».", $"{p}, {donde}",
                     $"El lado «{linea.Lado}» no es D, H, SIGNO, MISMO ni CONTRARIO (MISMO y CONTRARIO necesitan un apunte de origen).",
@@ -297,11 +301,14 @@ public static class MotorPlantillas
             $"Su fórmula de cuenta «{linea.Cuenta}» sale vacía con estos datos.", "Rellena el dato de cuenta que pide la plantilla, o corrige su fórmula de cuenta.");
     }
 
-    /// <summary>true = Debe. MISMO y CONTRARIO son relativos al apunte del que sale la línea.</summary>
-    private static bool? Lado(string lado, IEntornoFormula entorno, Apunte? apunte)
+    /// <summary>Lado del origen según su campo Lado (el del saldo de una subcuenta), o null si no tiene.</summary>
+    private static bool? LadoDeCampos(IReadOnlyDictionary<string, ValorFormula> campos) =>
+        campos.TryGetValue("Lado", out var l) ? l.ComoTexto() switch { "D" => true, "H" => false, _ => null } : null;
+
+    /// <summary>true = Debe. MISMO y CONTRARIO son relativos al apunte (o al saldo de la subcuenta) del que sale la línea.</summary>
+    private static bool? Lado(string lado, IEntornoFormula entorno, bool? origenAlDebe)
     {
         var texto = EsLadoFijo(lado) ? lado.Trim() : Formula.Evaluar(lado, entorno).ComoTexto().Trim();
-        var origenAlDebe = apunte is null ? (bool?)null : !apunte.Debe.EsCero;
         return texto.ToUpperInvariant() switch
         {
             "D" or "DEBE" => true,
@@ -333,6 +340,23 @@ public static class MotorPlantillas
     private static Dictionary<string, ValorFormula> CamposOrigen(OrigenEjecucion origen, EntornoSociedad entorno, Apunte? apunteFila)
     {
         var campos = new Dictionary<string, ValorFormula>(StringComparer.OrdinalIgnoreCase);
+        if (origen is OrigenSubcuenta sc)
+        {
+            // La subcuenta: su saldo con signo (Debe − Haber), su lado y su importe sin signo; el concepto es su nombre.
+            campos["Cuenta"] = ValorFormula.Texto(sc.Cuenta);
+            campos["NombreCuenta"] = ValorFormula.Texto(sc.Nombre);
+            campos["Saldo"] = ValorFormula.Numero(sc.Saldo);
+            campos["SaldoApertura"] = ValorFormula.Numero(sc.SaldoApertura);
+            campos["Lado"] = ValorFormula.Texto(sc.Saldo >= 0m ? "D" : "H");
+            campos["Importe"] = ValorFormula.Numero(Math.Abs(sc.Saldo));
+            campos["Debe"] = ValorFormula.Numero(sc.Saldo > 0m ? sc.Saldo : 0m);
+            campos["Haber"] = ValorFormula.Numero(sc.Saldo < 0m ? -sc.Saldo : 0m);
+            campos["Concepto"] = ValorFormula.Texto(sc.Nombre.Length > 0 ? sc.Nombre : sc.Cuenta);
+            campos["Documento"] = ValorFormula.Texto("");
+            campos["Centro"] = ValorFormula.Vacio;
+            campos["EsApunteOrigen"] = ValorFormula.Logico(false);
+            return campos;
+        }
         if (origen is not OrigenApunte oa) return campos;
         var deOrigen = oa.Apunte;
         Rellenar(campos, "", apunteFila ?? deOrigen, oa.Asiento, entorno);

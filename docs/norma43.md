@@ -7,7 +7,7 @@ threads:
 ---
 ## Summary
 Importación y consulta de extractos bancarios Norma 43: lectura, validación, persistencia idempotente por contenido, consulta y reversión auditada. No es la tesorería completa.
-Hecho el motor (validado el 2026-11-12): `LectorCuaderno43` (lectura y cuadre del cuaderno 43, sin BD), `ServicioImportacionN43` (analizar, importar en una transacción con detección de solapes por contenido y alta de cuentas al vuelo, revertir), `ConsultaBancos` (saldos y lotes) y `ProcesadorExtractosCorreo` (adjuntos recibidos por correo) en `src/ProConta.Norma43`; migración `20261112_1700_REVERSION_LOTES_N43` (esquema 44); pruebas en `tests/ProConta.Norma43.Tests`. La pantalla está en norma43/bancos.
+Hecho el motor (validado el 2026-11-12): `LectorCuaderno43` (lectura y cuadre del cuaderno 43, sin BD), `ServicioImportacionN43` (analizar, importar en una transacción con detección de solapes por contenido y alta de cuentas al vuelo, revertir), `ConsultaBancos` (saldos y lotes) y `ProcesadorExtractosCorreo` (adjuntos recibidos por correo) en `src/ProConta.Norma43`; migración `20261112_1700_REVERSION_LOTES_N43` (esquema 45); pruebas en `tests/ProConta.Norma43.Tests`. La pantalla está en norma43/bancos.
 **Aceptación:** reimportar el mismo archivo no duplica; revertir algo contabilizado se bloquea.
 
 ## Decisions

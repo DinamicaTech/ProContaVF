@@ -89,6 +89,7 @@ public static class CatalogoMigraciones
         MigracionesContabilidad.PunteoCuadreMayor,
         MigracionesActivos.Estructura,
         MigracionesContabilidad.PlantillasAsiento,
+        MigracionesContabilidad.ClasesPlantillasAsiento,
         MigracionesNorma43.ReversionLotes,
     ];
 

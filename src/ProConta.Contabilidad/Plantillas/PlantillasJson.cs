@@ -47,7 +47,8 @@ public static class PlantillasJson
         !e.TryGetProperty("activa", out var ac) || ac.GetBoolean(),
         Texto(e, "motivoPropuesto"),
         e.TryGetProperty("ejemplo", out var ej) ? ej.GetRawText() : null,
-        e.TryGetProperty("orden", out var or) ? or.GetInt32() : 0);
+        e.TryGetProperty("orden", out var or) ? or.GetInt32() : 0,
+        Clase(Texto(e, "clase"), Tipo(Texto(e, "tipo"))));
 
     /// <summary>
     /// Lee el ejemplo de una plantilla: ejercicio y trimestre activo, cuentas de la empresa (113, 570), nombres de cuentas, asiento de
@@ -82,6 +83,12 @@ public static class PlantillasJson
             if (a.TryGetProperty("automatico", out var au) && au.GetBoolean()) asiento.Lote = new IdentidadLote("ejemplo", "ejemplo", "ejemplo");
             origen = new OrigenApunte(asiento, e.TryGetProperty("apunte", out var ap) ? ap.GetInt32() : 1, a.TryGetProperty("libroIva", out var iva) && iva.GetBoolean());
         }
+        else if (e.TryGetProperty("subcuenta", out var sc))
+        {
+            var codigo = Texto(sc, "cuenta") ?? "";
+            origen = new OrigenSubcuenta(codigo, cuentas?.GetValueOrDefault(codigo) ?? Texto(sc, "nombre") ?? "",
+                sc.TryGetProperty("saldo", out var sa) ? sa.GetDecimal() : 0m, sc.TryGetProperty("saldoApertura", out var ap) ? ap.GetDecimal() : 0m);
+        }
         else if (e.TryGetProperty("registros", out var registros))
         {
             origen = new OrigenProceso(Texto(e, "claveProceso") ?? "nominas", registros.EnumerateArray().Select(r => new RegistroProceso(
@@ -108,10 +115,29 @@ public static class PlantillasJson
     public static OrigenPlantilla Origen(string? texto) => texto?.ToUpperInvariant() switch
     {
         "APUNTE" => OrigenPlantilla.Apunte,
+        "ASIENTO" => OrigenPlantilla.Asiento,
+        "SUBCUENTA" => OrigenPlantilla.Subcuenta,
         "PROCESO" => OrigenPlantilla.Proceso,
         _ => OrigenPlantilla.Ninguno,
     };
     public static string Codigo(OrigenPlantilla o) => o.ToString().ToUpperInvariant();
+
+    /// <summary>Clase de la plantilla; sin columna (BD anterior a la v44), la de sistema es de proceso y el resto de corrección.</summary>
+    public static ClasePlantilla Clase(string? texto, TipoPlantilla tipo) => texto?.ToUpperInvariant() switch
+    {
+        "GUIA" => ClasePlantilla.Guia,
+        "ASISTENTE" => ClasePlantilla.Asistente,
+        "PROCESO" => ClasePlantilla.Proceso,
+        "CORRECCION" => ClasePlantilla.Correccion,
+        _ => tipo == TipoPlantilla.Sistema ? ClasePlantilla.Proceso : ClasePlantilla.Correccion,
+    };
+    public static string Codigo(ClasePlantilla c) => c switch
+    {
+        ClasePlantilla.Guia => "GUIA",
+        ClasePlantilla.Asistente => "ASISTENTE",
+        ClasePlantilla.Proceso => "PROCESO",
+        _ => "CORRECCION",
+    };
 
     public static ReglaFecha Regla(string? texto) =>
         string.Equals(texto, "FECHA_ORIGEN", StringComparison.OrdinalIgnoreCase) ? ReglaFecha.FechaOrigen : ReglaFecha.TrimestreActivo;

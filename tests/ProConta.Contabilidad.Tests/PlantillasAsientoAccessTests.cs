@@ -60,10 +60,14 @@ public sealed class PlantillasAsientoAccessTests : IDisposable
     {
         await PrepararAsync();
         var usuario = await Servicio().ListarAsync("T01");
-        Assert.Equal(["Anular asiento", "Anular y rehacer con otra cuenta", "Pasar saldo a otra cuenta", "Ajustar saldo inicial contra la 113", "Pago por tesorería", "Pago por un socio"],
+        Assert.Equal(["Anular asiento", "Anular y rehacer con otra cuenta", "Pasar saldo a otra cuenta", "Ajustar saldo inicial contra la 113", "Pago por tesorería", "Pago por un socio",
+            "Pasar un cliente de cobro dudoso a incobrable"],
             usuario.Select(p => p.Nombre));
         Assert.All(usuario, p => Assert.Equal(TipoPlantilla.Usuario, p.Tipo));
-        Assert.Equal(6, (await Servicio().ListarAsync("T01", origen: OrigenPlantilla.Apunte)).Count);
+        Assert.Equal(2, (await Servicio().ListarAsync("T01", origen: OrigenPlantilla.Apunte)).Count);
+        Assert.Equal(2, (await Servicio().ListarAsync("T01", origen: OrigenPlantilla.Asiento)).Count);
+        Assert.Equal(2, (await Servicio().ListarAsync("T01", origen: OrigenPlantilla.Subcuenta)).Count);
+        Assert.Equal(ClasePlantilla.Guia, usuario.Single(p => p.Nombre.StartsWith("Pasar un cliente")).Clase);
 
         var nomina = await Servicio().DeProcesoAsync("nominas", "T01");
         Assert.NotNull(nomina);
@@ -135,7 +139,9 @@ public sealed class PlantillasAsientoAccessTests : IDisposable
         await PrepararAsync(cuenta113: null);
         var origen = await AsientoOrigenAsync("4300003", "1290000", 150m, "Saldo inicial");
         var apunte = (await Servicio().OrigenApunteAsync(origen.Apuntes[0].IdApunte)).Valor;
-        var ajuste = await Servicio().ProponerAsync(_ctx, await PlantillaAsync("Ajustar saldo inicial contra la 113"), apunte, null);
+        var subcuenta = await Servicio().OrigenSubcuentaAsync(_ctx, "4300003");
+        Assert.Equal((150m, 0m), (subcuenta.Valor.Saldo, subcuenta.Valor.SaldoApertura)); // el asiento de prueba no es de apertura
+        var ajuste = await Servicio().ProponerAsync(_ctx, await PlantillaAsync("Ajustar saldo inicial contra la 113"), subcuenta.Valor, new Dictionary<string, string?> { ["ImporteAjuste"] = "150" });
         Assert.Equal("Plantillas.SinCuentaCuadres", ajuste.Error!.Codigo);
         Assert.Contains("Parámetros › Empresas", ajuste.Error.AccionCorrectora);
 
