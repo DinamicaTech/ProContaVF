@@ -18,7 +18,7 @@ public static class MigracionesConciliacionN43
     private const string EjemploPlantilla =
         "{\"ejercicio\":2026,\"cuentas\":{\"5720001\":\"Banco Ejemplo\",\"6280001\":\"Suministros\",\"4300001\":\"Cliente Ejemplo, S.L.\"}," +
         "\"registros\":[{\"clave\":\"1.1\",\"fecha\":\"2026-03-02\",\"campos\":{\"CuentaBanco\":\"5720001\",\"NombreBanco\":\"Banco Ejemplo\",\"Contrapartida\":\"6280001\"," +
-        "\"NombreContrapartida\":\"Suministros\",\"Importe\":120.50,\"Sentido\":\"D\",\"Concepto\":\"RECIBO LUZ EJEMPLO\"}}]}";
+        "\"NombreContrapartida\":\"Suministros\",\"Importe\":120.50,\"Sentido\":\"D\",\"Concepto\":\"RECIBO LUZ EJEMPLO\",\"Centro\":null,\"Documento\":null}}]}";
 
     /// <summary>Líneas de la plantilla: (orden, cuenta, lado, importe, concepto, centro).</summary>
     private static readonly (short Orden, string Cuenta, string Lado, string Importe, string Concepto, string? Centro)[] Lineas =
@@ -40,7 +40,7 @@ public static class MigracionesConciliacionN43
         new PasoPersonalizado(
             "Dar de alta la plantilla de sistema «Movimiento bancario (Norma 43)»",
             "INSERT PlantillasAsiento (" + NombrePlantilla + ", SISTEMA, PROCESO " + ClaveProceso + ", FECHA_ORIGEN, agrupar) + PlantillasAsientoLineas " +
-            string.Join("; ", Lineas.Select(l => $"{l.Orden} {l.Cuenta} {l.Lado} {l.Importe} {l.Concepto} {l.Centro}")),
+            string.Join("; ", Lineas.Select(l => $"{l.Orden} {l.Cuenta} {l.Lado} {l.Importe} {l.Concepto} {l.Centro}")) + "; ejemplo " + EjemploPlantilla,
             async (s, e) => e.Tabla("PlantillasAsiento") is not null && await IdPlantillaAsync(s) is not null,
             async (s, _) => await CargarPlantillaAsync(s)))
     {
