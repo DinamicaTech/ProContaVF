@@ -44,6 +44,7 @@ public static class DuenosTablas
         Asignar("norma43", "norma43", "Bancos", "EntidadesFinancieras", "CuentasBancarias", "ExtractosBancarios", "LineasExtractoBancario",
             "ComplementosLineaExtractoBancario", "ContabilizacionesLineaExtracto", "ImputacionesLineaExtractoBancario",
             "IncidenciasImportacionBancaria", "LotesImportacionBancaria", "PalabrasClaveBancarias");
+        Asignar("norma43", "norma43/conciliacion", "ConceptosN43");
         Asignar("correo", "correo", "ConfiguracionCorreo", "PlantillasCorreo", "TiposCorreo", "EnviosCorreo",
             "ConfiguracionMailDispatcher", "ProcesamientosMailDispatcher", "AdjuntosMailDispatcher");
         Asignar("correo", "correo/envio", "CuentasCorreo", "LotesCorreo", "MensajesCorreo", "DestinatariosMensajeCorreo", "AdjuntosMensajeCorreo",

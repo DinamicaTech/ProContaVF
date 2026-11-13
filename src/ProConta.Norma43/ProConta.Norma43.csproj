@@ -1,5 +1,5 @@
 <Project Sdk="Microsoft.NET.Sdk">
-  <!-- Norma 43: lectura del cuaderno 43, importación idempotente, reversión auditada y consultas de Bancos (docs/norma43.md). -->
+  <!-- Norma 43: lectura del cuaderno 43, importación idempotente, reversión auditada, consultas de Bancos (docs/norma43.md) y conciliación (docs/norma43/conciliacion.md). -->
   <PropertyGroup>
     <OutputType>Library</OutputType>
     <RootNamespace>ProConta.Norma43</RootNamespace>
@@ -10,6 +10,7 @@
     <ProjectReference Include="..\ProConta.Nucleo\ProConta.Nucleo.csproj" />
     <ProjectReference Include="..\ProConta.Datos.Persistencia\ProConta.Datos.Persistencia.csproj" />
     <ProjectReference Include="..\ProConta.Correo\ProConta.Correo.csproj" />
+    <ProjectReference Include="..\ProConta.Contabilidad\ProConta.Contabilidad.csproj" />
   </ItemGroup>
   <ItemGroup>
     <InternalsVisibleTo Include="ProConta.Norma43.Tests" />
