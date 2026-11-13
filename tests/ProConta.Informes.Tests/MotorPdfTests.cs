@@ -85,6 +85,27 @@ public sealed class MotorPdfTests
     }
 
     [Fact]
+    public void LaFacturaLlevaElLogoYElQrSoloSiLosTiene()
+    {
+        using var bitmap = new Bitmap(300, 60);
+        using (var g = Graphics.FromImage(bitmap)) { g.Clear(Color.White); g.FillEllipse(Brushes.Orange, 5, 5, 50, 50); }
+        using var png = new MemoryStream();
+        bitmap.Save(png, System.Drawing.Imaging.ImageFormat.Png);
+        var completa = new DatosFacturaPdf
+        {
+            Numero = Datos.Numero, Fecha = Datos.Fecha, EmisorNombre = Datos.EmisorNombre, EmisorNif = Datos.EmisorNif, EmisorDomicilio = Datos.EmisorDomicilio,
+            ClienteNombre = Datos.ClienteNombre, ClienteNif = Datos.ClienteNif, ClienteDomicilio = Datos.ClienteDomicilio, Total = Datos.Total,
+            Descripcion = Datos.Descripcion, Logo = png.ToArray(), FormaPago = "Transferencia bancaria", PagoEtiqueta = "INGRESAR EN LA CUENTA",
+            PagoCuenta = "ES12 0000 0000 0000 0000 0000", QrUrl = "https://prewww2.aeat.es/wlpl/TIKE-CONT/ValidarQR?nif=B12345674&numserie=F26-000123"
+        };
+        var con = new GeneradorPdfFastReport().Generar(PlantillaFactura.Factura, completa, Lineas(3), Resumen);
+        var sin = new GeneradorPdfFastReport().Generar(PlantillaFactura.Factura, Datos, Lineas(3), Resumen);
+        Assert.True(Regex.Matches(Latin1(con), @"/Subtype\s*/Image").Count >= 2, "Faltan el logo o el QR en el PDF");
+        Assert.Equal(0, Regex.Matches(Latin1(sin), @"/Subtype\s*/Image").Count);
+        Guardar("factura-logo-qr.pdf", con);
+    }
+
+    [Fact]
     public void SinWebView2ElErrorDiceComoInstalarlo()
     {
         var vacia = Directory.CreateTempSubdirectory("procontavf-sin-webview2-");

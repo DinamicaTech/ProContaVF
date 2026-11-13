@@ -36,13 +36,13 @@ public static class ConstructorPdfFactura
     {
         var proforma = f.NumeroFactura is null;
         var t = f.Totales;
-        var periodo = f.FechaInicioValidez is not null || f.FechaFinValidez is not null ? $"Periodo: {Fecha(f.FechaInicioValidez)} – {Fecha(f.FechaFinValidez)}" : "";
-        var pago = Lineas(string.IsNullOrWhiteSpace(formaPago) ? null : $"Forma de pago: {formaPago.Trim()}", f.DiaDePago is byte d and > 0 ? $"Día de pago: {d}" : null).Replace(Environment.NewLine, " · ");
+        var periodo = f.FechaInicioValidez is not null || f.FechaFinValidez is not null ? $"{Fecha(f.FechaInicioValidez)} – {Fecha(f.FechaFinValidez)}" : "";
+        var pago = string.Join(" · ", new[] { string.IsNullOrWhiteSpace(formaPago) ? null : formaPago.Trim(), f.DiaDePago is byte d and > 0 ? $"día de pago {d}" : null }.Where(x => x is not null));
         var datos = new DatosFacturaPdf
         {
             Titulo = proforma ? "FACTURA PROFORMA" : f.EsRectificativa ? "FACTURA RECTIFICATIVA" : "FACTURA",
             Aviso = proforma ? "Documento informativo sin validez fiscal" : "",
-            Numero = proforma ? $"Sin número ({FacturaVenta.RotuloBorrador(f.IdFactura)})" : $"Número: {f.NumeroFactura}",
+            Numero = proforma ? FacturaVenta.RotuloBorrador(f.IdFactura) : f.NumeroFactura!,
             Fecha = Fecha(f.FechaFactura ?? (proforma ? DateTime.Today : null)),
             FechaOperacion = f.FechaOperacion is { } o && o.Date != f.FechaFactura?.Date ? $"Fecha de operación: {Fecha(o)}" : "",
             Periodo = periodo,
@@ -63,13 +63,14 @@ public static class ConstructorPdfFactura
             // muestran la cantidad y el precio que le corresponden, sin descuentos. Base y total son siempre los guardados.
             var v = Programadas.LineasProgramada.DesdeLineaFactura(l);
             return new LineaFacturaPdf(
-                Lineas(l.Nombre, l.Descripcion, l.Fecha is { } x ? $"Fecha: {Fecha(x)}" : null),
+                (l.Nombre ?? "").Trim(),
                 Numero(v.Cantidad),
                 Numero(v.PrecioUnitario, "#,##0.00##"),
                 string.Join(" ", new[] { v.DescuentoPorcentaje != 0m ? Numero(v.DescuentoPorcentaje) + " %" : null, v.DescuentoImporte != 0m ? Euros(v.DescuentoImporte) : null }.Where(y => y is not null)),
                 Numero(l.BaseImponible.Valor, "N2"),
                 l.EsSuplido ? "Supl." : Numero(l.TipoIva) + " %",
-                Numero(l.ImporteTotal.Valor, "N2"));
+                Numero(l.ImporteTotal.Valor, "N2"),
+                Lineas(l.Descripcion, l.Fecha is { } x ? $"Fecha: {Fecha(x)}" : null));
         }).ToList();
         var resumen = new List<ResumenFacturaPdf> { new("Base imponible", Euros(t.BaseImponible.Valor)) };
         foreach (var d2 in CalculoFactura.Desglose(f.Lineas))
