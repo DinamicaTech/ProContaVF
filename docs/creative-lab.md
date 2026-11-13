@@ -13,3 +13,4 @@ Sale del laboratorio cuando el propietario lo decide: se convierte en borrador o
 - 2026-11-12 10:00 · La idea «Activos» (creative-lab/activos) sale del laboratorio como borrador: ahora es el nodo de primer nivel `activos`. Las inversiones financieras (ETFs) siguen en el laboratorio para una segunda fase, todavía sin nodo propio.
 - 2026-11-12 10:30 · Nueva idea creative-lab/inversiones-financieras: la segunda fase de activos (ETFs y fondos), con las tablas heredadas de inversiones.
 - 2026-11-12 20:25 · Nueva idea creative-lab/asistentes-plantillas-asiento: plantillas asistente que proponen asientos complejos (p. ej. el reparto de dividendos), aparcadas desde contabilidad/plantillas-asiento.
+- 2026-11-13 11:40 · Nueva idea creative-lab/sincronizacion-contasol: mantener ContaSol al día y en solo lectura desde ProContaVF mientras la gestoría se acostumbra.
