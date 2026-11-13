@@ -25,9 +25,31 @@ public sealed record FiltroLineasN43(
     string? Texto = null,
     decimal? Importe = null,
     DateTime? Desde = null,
-    DateTime? Hasta = null)
+    DateTime? Hasta = null,
+    bool ImporteConDecimales = false)
 {
     public static readonly FiltroLineasN43 Ninguno = new();
+
+    /// <summary>Margen de la búsqueda por importe cuando se escriben decimales (norma43/pantallas 2026-11-13 13:20).</summary>
+    public const decimal MargenImporte = 0.50m;
+
+    /// <summary>
+    /// Búsqueda por importe, sin signo (cargo o abono): si se escribe sin decimales, encajan los importes con esa parte entera
+    /// (100 encuentra de 100,00 a 100,99); si se escriben decimales, los que están a ±0,50 € (100,30 encuentra de 99,80 a 100,80).
+    /// </summary>
+    public static bool CumpleImporte(decimal buscado, bool conDecimales, decimal importe)
+    {
+        var b = Math.Abs(buscado);
+        var i = Math.Abs(importe);
+        return conDecimales ? Math.Abs(i - b) <= MargenImporte : Math.Truncate(i) == Math.Truncate(b);
+    }
+
+    /// <summary>True si el texto escrito en el filtro de importe lleva parte decimal (coma, o punto seguido de una o dos cifras al final).</summary>
+    public static bool TieneDecimales(string? texto)
+    {
+        var t = (texto ?? "").Replace("€", "").Trim();
+        return t.Contains(',') || System.Text.RegularExpressions.Regex.IsMatch(t, @"\.\d{1,2}$");
+    }
 
     private static readonly CultureInfo Es = CultureInfo.GetCultureInfo("es-ES");
 
@@ -46,7 +68,7 @@ public sealed record FiltroLineasN43(
         if (!estado) return false;
         if (IdCuentaBancaria is int c && l.IdCuentaBancaria != c) return false;
         // El importe se compara sin signo (cargo o abono), al céntimo.
-        if (Importe is decimal i && Math.Round(Math.Abs(i), 2) != Math.Round(l.Importe, 2)) return false;
+        if (Importe is decimal i && !CumpleImporte(i, ImporteConDecimales, l.Importe)) return false;
         if (Desde is DateTime d && l.FechaOperacion < d.Date) return false;
         if (Hasta is DateTime h && l.FechaOperacion > h.Date) return false;
         if (!string.IsNullOrWhiteSpace(Texto) && !CumpleTexto(l, Texto)) return false;
@@ -71,7 +93,10 @@ public sealed record FiltroLineasN43(
         if (Estado != FiltroEstadoN43.Todas) r.Add(("estado", "Estado: " + TextoEstado(Estado)));
         if (IdCuentaBancaria is int c) r.Add(("banco", "Banco: " + (nombreBanco?.Invoke(c) ?? c.ToString(CultureInfo.InvariantCulture))));
         if (!string.IsNullOrWhiteSpace(Texto)) r.Add(("texto", $"Texto: «{Texto.Trim()}»"));
-        if (Importe is decimal i) r.Add(("importe", "Importe: " + Math.Abs(i).ToString("N2", Es) + " €"));
+        if (Importe is decimal i)
+            r.Add(("importe", ImporteConDecimales
+                ? $"Importe: {Math.Abs(i).ToString("N2", Es)} € ± {MargenImporte.ToString("N2", Es)} €"
+                : $"Importe: {Math.Truncate(Math.Abs(i)).ToString("N0", Es)},xx €"));
         if (Desde is DateTime d) r.Add(("desde", "Desde " + d.ToString("dd/MM/yyyy", Es)));
         if (Hasta is DateTime h) r.Add(("hasta", "Hasta " + h.ToString("dd/MM/yyyy", Es)));
         return r;
@@ -83,7 +108,7 @@ public sealed record FiltroLineasN43(
         "estado" => this with { Estado = FiltroEstadoN43.Todas },
         "banco" => this with { IdCuentaBancaria = null },
         "texto" => this with { Texto = null },
-        "importe" => this with { Importe = null },
+        "importe" => this with { Importe = null, ImporteConDecimales = false },
         "desde" => this with { Desde = null },
         "hasta" => this with { Hasta = null },
         _ => this,

@@ -292,7 +292,8 @@ public sealed class LineasN43VM : ModeloVista, IPestanaTrabajo
     }
 
     public FiltroLineasN43 Filtro => new(_estadoFiltro.Valor, _bancoFiltro.Valor, string.IsNullOrWhiteSpace(_textoFiltro) ? null : _textoFiltro.Trim(),
-        Formatos.LeerImporte(_importeFiltro, out var i) && _importeFiltro.Trim().Length > 0 ? i : null, _desde, _hasta);
+        Formatos.LeerImporte(_importeFiltro, out var i) && _importeFiltro.Trim().Length > 0 ? i : null, _desde, _hasta,
+        FiltroLineasN43.TieneDecimales(_importeFiltro));
 
     /// <summary>Ids seleccionados, también los que el filtro oculta (vuelven a verse seleccionados al quitarlo).</summary>
     public IReadOnlySet<int> IdsSeleccionados => _seleccion;

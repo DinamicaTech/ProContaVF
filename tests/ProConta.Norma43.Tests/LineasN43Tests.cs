@@ -44,11 +44,43 @@ public sealed class LineasN43Tests
 
         var todas = new FiltroLineasN43(FiltroEstadoN43.SinCuenta, 1, "luz", 10m, new DateTime(2026, 1, 1), new DateTime(2026, 12, 31));
         Assert.Equal(["estado", "banco", "texto", "importe", "desde", "hasta"], todas.Fichas(_ => "Banco uno").Select(x => x.Clave));
-        Assert.Equal("Importe: 10,00 €", todas.Fichas().Single(x => x.Clave == "importe").Texto);
+        Assert.Equal("Importe: 10,xx €", todas.Fichas().Single(x => x.Clave == "importe").Texto);
+        Assert.Equal("Importe: 10,30 € ± 0,50 €", (todas with { Importe = 10.30m, ImporteConDecimales = true }).Fichas().Single(x => x.Clave == "importe").Texto);
         var sinTexto = todas.Sin("texto");
         Assert.Null(sinTexto.Texto);
         Assert.Equal(todas with { Texto = null }, sinTexto);
         Assert.Empty(FiltroLineasN43.Ninguno.Fichas());
+    }
+
+    [Fact]
+    public void El_importe_sin_decimales_busca_la_parte_entera_y_con_decimales_un_margen_de_50_centimos()
+    {
+        // Sin decimales: la parte entera, sin signo.
+        Assert.True(FiltroLineasN43.CumpleImporte(100m, false, 100.99m));
+        Assert.True(FiltroLineasN43.CumpleImporte(-100m, false, 100.00m));
+        Assert.False(FiltroLineasN43.CumpleImporte(100m, false, 101.00m));
+        Assert.False(FiltroLineasN43.CumpleImporte(100m, false, 99.99m));
+        // Con decimales: ±0,50 €, bordes incluidos.
+        Assert.True(FiltroLineasN43.CumpleImporte(100.30m, true, 99.80m));
+        Assert.True(FiltroLineasN43.CumpleImporte(100.30m, true, 100.80m));
+        Assert.False(FiltroLineasN43.CumpleImporte(100.30m, true, 100.81m));
+        Assert.False(FiltroLineasN43.CumpleImporte(100.30m, true, 99.79m));
+        // Qué cuenta como «con decimales» en lo que se escribe.
+        Assert.False(FiltroLineasN43.TieneDecimales("100"));
+        Assert.False(FiltroLineasN43.TieneDecimales("1.234"));
+        Assert.True(FiltroLineasN43.TieneDecimales("100,00 €"));
+        Assert.True(FiltroLineasN43.TieneDecimales("100,3"));
+        Assert.True(FiltroLineasN43.TieneDecimales("100.30"));
+
+        var vm = Pantalla(L(1, 100.20m), L(2, 100.90m), L(3, 101.10m), L(4, 99.60m));
+        vm.ImporteFiltro = "100";
+        Assert.Equal([1, 2], vm.Filas.Select(f => f.Id));
+        vm.ImporteFiltro = "101,00";
+        Assert.Equal([2, 3], vm.Filas.Select(f => f.Id));
+        vm.ImporteFiltro = "-101,00 €";
+        Assert.Equal([2, 3], vm.Filas.Select(f => f.Id));
+        vm.ImporteFiltro = "100,10";
+        Assert.Equal([1, 4], vm.Filas.Select(f => f.Id));
     }
 
     // ---------- acciones ----------

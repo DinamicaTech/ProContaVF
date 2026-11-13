@@ -139,7 +139,7 @@
           </Grid>
           <TextBlock Text="Importe" Style="{StaticResource Etiqueta.Filtro}" />
           <TextBox Width="110" Margin="0,0,14,0" Text="{Binding ImporteFiltro, UpdateSourceTrigger=PropertyChanged, Delay=300}" Style="{StaticResource Campo.Numero}" AutomationProperties.Name="Importe"
-                   ToolTip="Importe exacto del movimiento, sin signo (sirve para cargos y abonos): por ejemplo 1234,56" />
+                   ToolTip="Importe del movimiento, sin signo (cargos y abonos). Sin decimales busca por la parte entera (100 encuentra de 100,00 a 100,99); con decimales, con un margen de ±0,50 € (100,30 encuentra de 99,80 a 100,80)" />
           <TextBlock Text="Desde" Style="{StaticResource Etiqueta.Filtro}" />
           <TextBox Width="100" Margin="0,0,10,0" Text="{Binding DesdeTexto, UpdateSourceTrigger=LostFocus}" Style="{StaticResource Campo.Mono}" AutomationProperties.Name="Desde"
                    ToolTip="Fecha de operación desde (dd/mm/aaaa); se aplica al salir del campo" />
