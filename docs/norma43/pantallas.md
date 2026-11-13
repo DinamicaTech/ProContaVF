@@ -71,4 +71,4 @@ Hecha la PR 1, pendiente de validar: pestaña «Líneas N43» (menú Bancos › 
 - 2026-11-13 10:50 · Derived from norma43/conciliacion: columna «Tipo» (ConceptosN43.ConceptoReducido) calculada con ServicioConciliacionN43.TiposAsync.
 - 2026-11-13 12:15 · PR1 - Ok
 - 2026-11-13 12:15 · PR2 - En un nuevo nodo con su propio hilo. Podemos esperar a PR1 para pasarlo a desarrollo.
-- 2026-11-13 12:15 · PR3 - ... nuevo nodo y a la espera de PR1 y PR2
+- 2026-11-13 12:15 · PR3- Lo mismo que PR3, nuevo nodo y a la espera de PR1 y PR2
