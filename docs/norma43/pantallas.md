@@ -21,6 +21,7 @@ Tabla densa de líneas bancarias con filtros, detalle y acciones (también las d
 - 2026-10-29 17:38 · El propietario valida el prototipo de la pantalla de líneas N43 (rondas 1 a 3, lienzo versión 20) como referencia para su UI WPF.
 - 2026-10-31 09:40 · El doble clic en una subcuenta abre el Mayor del prototipo (lienzo versión 28) con los ejercicios marcados en las líneas; desaparece el mayor provisional. Asignar un número de factura desde el Mayor lo escribe también en la línea bancaria vinculada.
 
+- 2026-11-13 10:50 · Columna «Tipo» en la rejilla de líneas N43 (pedida en norma43/conciliacion): el ConceptoReducido de ConceptosN43 (Recibo, Transferencia, Tarjeta…), calculado al vuelo con `ServicioConciliacionN43.TiposAsync` (no se guarda en la línea); vacía si ninguna regla encaja. La rejilla aún no existe: la pondrá quien la construya.
 ## Requirements
 - 2026-10-28 12:28 · From sources/01_ESPECIFICACION_FUNCIONAL.docx § 19 RF-N43-03, 04: pantalla fiel a maqueta, selección explícita
 - 2026-10-28 12:28 · From sources/traspaso-2026-10-03/referencias/Norma43/docs/ENTREGA_VISUAL_LINEAS_BANCARIAS_20261001.md: entrega visual anterior
@@ -51,3 +52,5 @@ Tabla densa de líneas bancarias con filtros, detalle y acciones (también las d
 - 2026-10-29 17:08 · Asumo que las columnas serán redimensionables y se podrán desplazar horizontalmente.
 - 2026-10-29 17:08 · No veo las opciones de 'Buscar por importe' (sería un contextual que hace lo que hay en el formulario frmN43BusquedaPorImporte) ni la de 'Movimientos similares', que ejecuta el formulario frmMovimientosN43Similares. Ambas funcionalidades se merecen un nodo propio por debajo de Norma43
 - 2026-10-29 17:38 · Ok a todo
+- 2026-11-13 10:19 · El tipo es una información interesante. La añadimos a la grid de movimientos N43.
+- 2026-11-13 10:50 · Derived from norma43/conciliacion: columna «Tipo» (ConceptosN43.ConceptoReducido) calculada con ServicioConciliacionN43.TiposAsync.
