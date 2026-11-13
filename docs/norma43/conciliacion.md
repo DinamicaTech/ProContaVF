@@ -1,6 +1,5 @@
 ---
 title: Conciliación bancaria asistida
-status: draft
 depends_on: [norma43, contabilidad/asientos, terceros/roles]
 threads:
   - 2026-10-28 12:30 · Carga de requisitos | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GRNMH95h9tnQp4dmEPHmw1w
@@ -49,3 +48,4 @@ Hecho el motor, sin pantalla (pendiente de validar): `ServicioConciliacionN43` e
 - 2026-11-13 10:42 · En un principio, no está previsto exportar nada a ContaSol (mantener un sincronismo ProcontaVF - ContaSol no tengo claro que sea viable, aunque sería muy interesante)
 - 2026-11-13 10:48 · Actualmente, F_APU.DOCAPU es el número de documento (número de factura de venta o de compra)
 - 2026-11-13 10:49 · Ok
+- 2026-11-13 12:07 · Ok, ya puedes fusionar
