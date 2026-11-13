@@ -4,7 +4,7 @@ using System.Text;
 namespace ProConta.Norma43.Tests;
 
 /// <summary>Movimiento inventado para un fichero de prueba; <c>cargo</c> = clave 1 (debe).</summary>
-public sealed record Mov(DateTime Fecha, decimal Importe, bool Cargo, string Concepto, string Documento = "0000000000", string Ref1 = "", string Ref2 = "", DateTime? Valor = null);
+public sealed record Mov(DateTime Fecha, decimal Importe, bool Cargo, string Concepto, string Documento = "0000000000", string Ref1 = "", string Ref2 = "", DateTime? Valor = null, string Comun = "02");
 
 /// <summary>
 /// Genera ficheros Norma 43 sintéticos (cuaderno 43, registros de 80 posiciones) con datos inventados, cuadrados por defecto.
@@ -33,7 +33,7 @@ public sealed class FicheroSintetico
             r.Add(Linea($"11{c.Entidad}{c.Oficina}{c.Cuenta}{F(c.Desde)}{F(c.Hasta)}{(c.SaldoInicial < 0 ? "1" : "2")}{I(c.SaldoInicial)}9783{c.Nombre,-26}   "));
             foreach (var m in c.Movs)
             {
-                r.Add(Linea($"22    {c.Oficina}{F(m.Fecha)}{F(m.Valor ?? m.Fecha)}02099{(m.Cargo ? "1" : "2")}{I(m.Importe)}{m.Documento,10}{m.Ref1,-12}{m.Ref2,-16}"));
+                r.Add(Linea($"22    {c.Oficina}{F(m.Fecha)}{F(m.Valor ?? m.Fecha)}{m.Comun}099{(m.Cargo ? "1" : "2")}{I(m.Importe)}{m.Documento,10}{m.Ref1,-12}{m.Ref2,-16}"));
                 var concepto = m.Concepto.PadRight(76);
                 r.Add(Linea($"2301{concepto[..38]}{concepto.Substring(38, 38)}"));
             }

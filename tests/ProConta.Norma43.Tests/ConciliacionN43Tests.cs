@@ -27,7 +27,7 @@ public sealed class ConciliacionN43Tests
         new("1", new DateTime(2026, 3, 2), new Dictionary<string, object?>
         {
             ["CuentaBanco"] = "5720017", ["NombreBanco"] = "Banco Ejemplo", ["Contrapartida"] = contrapartida, ["NombreContrapartida"] = nombre,
-            ["Importe"] = importe, ["Concepto"] = "TEXTO DEL BANCO", ["Centro"] = centro,
+            ["Importe"] = importe, ["Concepto"] = "Recibo de Telefonía Ejemplo", ["Centro"] = centro,
         });
 
     private static AsientoPropuesto Proponer(params RegistroProceso[] registros)
@@ -39,11 +39,11 @@ public sealed class ConciliacionN43Tests
     }
 
     [Fact]
-    public void Un_cargo_va_al_haber_del_banco_y_al_debe_de_la_contrapartida_con_los_conceptos_del_erp()
+    public void Un_cargo_va_al_haber_del_banco_y_al_debe_de_la_contrapartida_con_la_descripcion_corta_en_los_dos()
     {
         var a = Proponer(Registro("4100220", "Telefonía Ejemplo", 109.35m, 20));
         Assert.True(a.Cuadrado);
-        Assert.Equal([("5720017", 0m, 109.35m, "Pago a Telefonía Ejemplo", (int?)null), ("4100220", 109.35m, 0m, "Pago desde Banco Ejemplo", (int?)20)],
+        Assert.Equal([("5720017", 0m, 109.35m, "Recibo de Telefonía Ejemplo", (int?)null), ("4100220", 109.35m, 0m, "Recibo de Telefonía Ejemplo", (int?)20)],
             a.Apuntes.Select(x => (x.Cuenta, x.Debe, x.Haber, x.Concepto, x.IdCentroCoste)));
     }
 
@@ -51,7 +51,7 @@ public sealed class ConciliacionN43Tests
     public void Un_abono_va_al_debe_del_banco_y_al_haber_de_la_contrapartida()
     {
         var a = Proponer(Registro("4300003", "Cliente Ejemplo", -1887.60m));
-        Assert.Equal([("5720017", 1887.60m, 0m, "Cobro de Cliente Ejemplo"), ("4300003", 0m, 1887.60m, "Ingreso en Banco Ejemplo")],
+        Assert.Equal([("5720017", 1887.60m, 0m, "Recibo de Telefonía Ejemplo"), ("4300003", 0m, 1887.60m, "Recibo de Telefonía Ejemplo")],
             a.Apuntes.Select(x => (x.Cuenta, x.Debe, x.Haber, x.Concepto)));
     }
 

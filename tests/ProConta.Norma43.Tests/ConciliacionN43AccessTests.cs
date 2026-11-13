@@ -30,7 +30,18 @@ public sealed class ConciliacionN43AccessTests : IDisposable
         public DateTime Ahora => ahora;
     }
 
-    private static Mov M(int mes, int dia, decimal importe, bool cargo, string concepto) => new(new DateTime(2026, mes, dia), importe, cargo, concepto);
+    private static Mov M(int mes, int dia, decimal importe, bool cargo, string concepto, string comun = "02") =>
+        new(new DateTime(2026, mes, dia), importe, cargo, concepto, Comun: comun);
+
+    /// <summary>Cliente inventado de la sociedad T01 vinculado a la cuenta (su nombre va en la descripción del asiento).</summary>
+    private Task ClienteAsync(string cuenta, string nombre) => Bd.EjecutarAsync(async s =>
+    {
+        await s.EjecutarAsync("INSERT INTO Terceros (Nombre, Activo, Version) VALUES (?, ?, ?)", nombre, true, 0);
+        var tercero = await s.UltimoIdAsync();
+        await s.EjecutarAsync("INSERT INTO Clientes (IdCliente, IdTercero, Activo) VALUES (?, ?, ?)", tercero, tercero, true);
+        return await s.EjecutarAsync("INSERT INTO CuentasClientesSociedad (IdCliente, IdSociedad, IdIdentidadContable, Clase) VALUES (?, ?, ?, ?)",
+            tercero, "T01", _identidades[cuenta], "CLIENTE");
+    });
 
     /// <summary>Sociedad T01 con su ejercicio 2026, unas cuentas, la cuenta bancaria con su 572 y un extracto importado; devuelve los Id de sus líneas en orden.</summary>
     private async Task<int[]> PrepararAsync(params Mov[] movs)
@@ -74,14 +85,16 @@ public sealed class ConciliacionN43AccessTests : IDisposable
     [Fact]
     public async Task Un_cargo_con_cuenta_genera_el_asiento_del_banco_contra_la_cuenta_y_volver_a_contabilizar_no_duplica()
     {
-        var ids = await PrepararAsync(M(11, 2, 120.50m, true, "RECIBO LUZ FICTICIA"));
+        var ids = await PrepararAsync(M(11, 2, 120.50m, true, ".COR RECIBO LUZ FICTICIA", comun: "03"));
         await ImputarAsync(ids[0], "6280001", 120.50m);
 
         var p = Assert.Single(await Servicio.ProponerAsync("T01", ids));
         Assert.True(p.Contabilizable, Errores(p));
         Assert.Equal(new DateTime(2026, 11, 2), p.Asiento!.Fecha);
-        Assert.Equal("RECIBO LUZ FICTICIA", p.Asiento.Descripcion);
-        Assert.Equal([("5720001", 0m, 120.50m, "Pago a Suministros ficticios"), ("6280001", 120.50m, 0m, "Pago desde Banco ficticio")],
+        // Tipo y descripción corta de ConceptosN43 (03 cargo: recibo); sin tercero, el nombre de la cuenta; los dos apuntes la llevan.
+        Assert.Equal("Recibo", p.Tipo);
+        Assert.Equal("Recibo de Suministros ficticios", p.Asiento.Descripcion);
+        Assert.Equal([("5720001", 0m, 120.50m, "Recibo de Suministros ficticios"), ("6280001", 120.50m, 0m, "Recibo de Suministros ficticios")],
             p.Asiento.Apuntes.Select(a => (a.Cuenta, a.Debe, a.Haber, a.Concepto)));
         // Proponer no graba nada.
         Assert.Equal(0, await ContarAsync("SELECT COUNT(*) FROM Asientos"));
@@ -93,6 +106,7 @@ public sealed class ConciliacionN43AccessTests : IDisposable
         Assert.Equal(asiento.TotalDebe, asiento.TotalHaber);
         Assert.Equal(ServicioConciliacionN43.Lote(ids[0]), asiento.Lote);
         Assert.NotNull(asiento.IdPlantilla);
+        Assert.Equal(".COR RECIBO LUZ FICTICIA", asiento.Notas);
         Assert.Equal(1, await ContarAsync("SELECT COUNT(*) FROM ContabilizacionesLineaExtracto WHERE IdLineaExtractoBancario = ? AND IdAsiento = ? AND Estado = 'CONTABILIZADA'", ids[0], idAsiento));
 
         // Con otra cuenta, contabilizar otra vez sustituye el asiento con el mismo número.
@@ -107,18 +121,73 @@ public sealed class ConciliacionN43AccessTests : IDisposable
         Assert.Equal(1, await ContarAsync("SELECT COUNT(*) FROM Apuntes WHERE CuentaContable = '6290001' AND ImporteDebe = 120.5"));
     }
 
+    private sealed class FacturasFijas(Dictionary<int, IReadOnlyList<FacturaEnlazadaN43>> facturas) : IFacturasLineaN43
+    {
+        public Task<IReadOnlyDictionary<int, IReadOnlyList<FacturaEnlazadaN43>>> FacturasAsync(IReadOnlyCollection<int> idsLineas) =>
+            Task.FromResult<IReadOnlyDictionary<int, IReadOnlyList<FacturaEnlazadaN43>>>(facturas);
+    }
+
+    private ServicioConciliacionN43 ConFacturas(Dictionary<int, IReadOnlyList<FacturaEnlazadaN43>> facturas) =>
+        new(Bd, new MotorAsientosAccess(Bd), new ServicioPlantillasAsiento(Bd), new RelojFijo(new DateTime(2026, 11, 13, 10, 0, 0)), new FacturasFijas(facturas));
+
+    [Fact]
+    public async Task Actualizar_textos_pone_la_factura_enlazada_en_el_mismo_asiento_aunque_el_trimestre_este_cerrado()
+    {
+        var ids = await PrepararAsync(M(3, 10, 974m, false, "Recibo SEPA Contrato Alquiler ficticio", comun: "15"));
+        await ClienteAsync("4300001", "INQUILINO FICTICIO");
+        await ImputarAsync(ids[0], "4300001", -974m);
+        var idAsiento = (await Servicio.ContabilizarLineasAsync("T01", ids, _actor)).Asientos[ids[0]];
+        await Bd.EjecutarAsync(s => s.EjecutarAsync("UPDATE SociedadesEjercicios SET TrimestreActivo = ? WHERE IdSociedadEjercicio = 9001", (byte)2));
+
+        // Se enlaza una factura después: el asiento del trimestre cerrado se actualiza (mismo número, misma fecha), solo en sus textos.
+        var servicio = ConFacturas(new() { [ids[0]] = [new FacturaEnlazadaN43("083050", "Alquiler mensual Calle Inventada 03/2026")] });
+        var r = await servicio.ActualizarTextosAsync("T01", ids, _actor);
+        Assert.Empty(r.Rechazadas);
+        Assert.Equal(idAsiento, r.Asientos[ids[0]]);
+        var asiento = (await new MotorAsientosAccess(Bd).ObtenerAsync(idAsiento))!;
+        Assert.Equal(new DateTime(2026, 3, 10), asiento.FechaContable);
+        Assert.Equal("Domiciliación de INQUILINO FICTICIO", asiento.Descripcion);
+        Assert.All(asiento.Apuntes, a => Assert.Equal(("Domiciliación de INQUILINO FICTICIO · Alquiler mensual Calle Inventada 03/2026", "083050"),
+            (a.Descripcion, a.NumeroDocumento)));
+        Assert.True(await ContarAsync("SELECT COUNT(*) FROM RegistroCambiosApuntes WHERE IdAsiento = ? AND Campo = 'NumeroDocumento'", idAsiento) > 0);
+
+        // Si las cuentas ya no son las del asiento, no se tocan los textos: hay que volver a contabilizar.
+        await Bd.EjecutarAsync(s => s.EjecutarAsync("UPDATE ImputacionesLineaExtractoBancario SET IdIdentidadContable = ?", _identidades["6290001"]));
+        Assert.Equal("Conciliacion.AsientoDistinto", (await servicio.ActualizarTextosAsync("T01", ids, _actor)).Rechazadas[ids[0]][0].Codigo);
+
+        // En un ejercicio cerrado no se actualiza y se dice.
+        await Bd.EjecutarAsync(s => s.EjecutarAsync("UPDATE ImputacionesLineaExtractoBancario SET IdIdentidadContable = ?", _identidades["4300001"]));
+        await Bd.EjecutarAsync(s => s.EjecutarAsync("UPDATE SociedadesEjercicios SET EjercicioCerrado = True WHERE IdSociedadEjercicio = 9001"));
+        Assert.Equal("Conciliacion.EjercicioCerrado", (await servicio.ActualizarTextosAsync("T01", ids, _actor)).Rechazadas[ids[0]][0].Codigo);
+    }
+
+    [Fact]
+    public async Task El_tipo_de_cada_movimiento_se_calcula_al_vuelo_para_la_rejilla()
+    {
+        var ids = await PrepararAsync(M(11, 2, 50m, true, ".COMPRA EN TIENDA FICTICIA TARJ. :*0000", comun: "00"), M(11, 3, 70m, true, "SIN CLASIFICAR", comun: "00"),
+            M(11, 4, 650m, true, "TRANSFERENCIA FICTICIA", comun: "04"));
+        var c = await new CatalogoCuentasAccess(Bd).AltaAsync(_ctx, new AltaCuenta("4650001", "Remuneración pendiente ficticia"));
+        _identidades["4650001"] = c.Valor.IdIdentidadContable;
+        await ImputarAsync(ids[2], "4650001", 650m);
+        var tipos = await Servicio.TiposAsync(ids);
+        Assert.Equal(("Tarjeta", (string?)null, "Nómina"), (tipos[ids[0]], tipos[ids[1]], tipos[ids[2]]));
+    }
+
     [Fact]
     public async Task Un_abono_va_al_debe_del_banco_y_un_reparto_agrupa_el_banco_en_un_apunte()
     {
-        var ids = await PrepararAsync(M(11, 3, 2500m, false, "TRANSFERENCIA CLIENTE INVENTADO"), M(11, 4, 100m, true, "COMPRA REPARTIDA"));
+        var ids = await PrepararAsync(M(11, 3, 2500m, false, "TRANSFERENCIA CLIENTE INVENTADO", comun: "04"), M(11, 4, 100m, true, "COMPRA REPARTIDA", comun: "12"));
+        await ClienteAsync("4300001", "CLIENTE INVENTADO DE PRUEBA, S.L.");
         await ImputarAsync(ids[0], "4300001", -2500m);
         await ImputarAsync(ids[1], "6280001", 60m);
         await ImputarAsync(ids[1], "6290001", 40m, estado: "PROPUESTA");
 
         var ps = await Servicio.ProponerAsync("T01", ids);
         Assert.All(ps, p => Assert.True(p.Contabilizable, Errores(p)));
-        Assert.Equal([("5720001", 2500m, 0m, "Cobro de Cliente inventado"), ("4300001", 0m, 2500m, "Ingreso en Banco ficticio")],
+        // El nombre es el del tercero de la cuenta; un reparto lleva el primero y « y otras».
+        Assert.Equal([("5720001", 2500m, 0m, "Transferencia de CLIENTE INVENTADO DE PRUEBA, S.L."), ("4300001", 0m, 2500m, "Transferencia de CLIENTE INVENTADO DE PRUEBA, S.L.")],
             ps[0].Asiento!.Apuntes.Select(a => (a.Cuenta, a.Debe, a.Haber, a.Concepto)));
+        Assert.Equal("Pago con tarjeta a Suministros ficticios y otras", ps[1].Asiento!.Descripcion);
         Assert.Equal([("5720001", 0m, 100m), ("6280001", 60m, 0m), ("6290001", 40m, 0m)], ps[1].Asiento!.Apuntes.Select(a => (a.Cuenta, a.Debe, a.Haber)));
 
         var r = await Servicio.ContabilizarAsync(ps, _actor);

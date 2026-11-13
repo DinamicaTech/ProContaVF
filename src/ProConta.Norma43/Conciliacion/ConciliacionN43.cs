@@ -34,7 +34,8 @@ public sealed record PropuestaLineaN43(
     IReadOnlyList<string> Avisos,
     int? IdAsientoActual = null,
     bool Regenera = false,
-    int? IdPlantilla = null)
+    int? IdPlantilla = null,
+    string? Tipo = null)
 {
     public bool Contabilizable => Errores.Count == 0 && Asiento is not null && Contexto is not null;
 
@@ -58,11 +59,16 @@ public sealed record ResultadoConciliacionN43(IReadOnlyDictionary<int, int> Asie
 /// lote automático propio de la línea: contabilizarla otra vez lo sustituye con el mismo número, y deshacer lo borra. Las líneas
 /// contabilizadas en el ERP (su asiento es de ContaSol) no se tocan.
 /// </summary>
-public sealed class ServicioConciliacionN43(IBaseDatos bd, IMotorAsientos motor, ServicioPlantillasAsiento plantillas, IReloj? reloj = null)
+public sealed class ServicioConciliacionN43(IBaseDatos bd, IMotorAsientos motor, ServicioPlantillasAsiento plantillas, IReloj? reloj = null,
+    IFacturasLineaN43? facturas = null)
 {
     public ServicioConciliacionN43(IBaseDatos bd) : this(bd, new MotorAsientosAccess(bd), new ServicioPlantillasAsiento(bd)) { }
 
     private readonly IReloj _reloj = reloj ?? RelojSistema.Instancia;
+    private readonly IFacturasLineaN43 _facturas = facturas ?? SinFacturasEnlazadas.Instancia;
+
+    /// <summary>Longitud del número de documento de un apunte.</summary>
+    private const int LongitudDocumento = 100;
 
     /// <summary>Motor propietario de los asientos de la conciliación.</summary>
     public const string MotorPropietario = "norma43/conciliacion";
@@ -92,9 +98,7 @@ public sealed class ServicioConciliacionN43(IBaseDatos bd, IMotorAsientos motor,
     {
         ArgumentNullException.ThrowIfNull(idsLineas);
         var lineas = await LeerLineasAsync(idsLineas);
-        var plantilla = await plantillas.DeProcesoAsync(ClaveProceso, idSociedad) ?? PlantillaConciliacionN43.Predeterminada;
-        var ejercicios = new Dictionary<int, EjercicioConciliacion?>();
-        var hoy = _reloj.Ahora.Date;
+        var contexto = await ContextoPropuestaAsync(idSociedad, idsLineas);
         var r = new List<PropuestaLineaN43>();
         foreach (var id in idsLineas)
         {
@@ -103,21 +107,57 @@ public sealed class ServicioConciliacionN43(IBaseDatos bd, IMotorAsientos motor,
                 r.Add(SinLinea(id));
                 continue;
             }
-            r.Add(await ProponerLineaAsync(idSociedad, l, plantilla, ejercicios, hoy));
+            r.Add(await ProponerLineaAsync(idSociedad, l, contexto));
         }
         return r;
     }
 
-    private async Task<PropuestaLineaN43> ProponerLineaAsync(string idSociedad, LineaLeida l, PlantillaAsiento plantilla,
-        Dictionary<int, EjercicioConciliacion?> ejercicios, DateTime hoy)
+    /// <summary>Lo que comparten las propuestas de una llamada: plantilla, reglas de tipo, facturas enlazadas y cachés.</summary>
+    private sealed record ContextoPropuesta(PlantillaAsiento Plantilla, IReadOnlyList<ConceptoN43> Conceptos, IReadOnlyDictionary<int, IReadOnlyList<FacturaEnlazadaN43>> Facturas,
+        Dictionary<int, EjercicioConciliacion?> Ejercicios, Dictionary<int, string?> Terceros, DateTime Hoy);
+
+    private async Task<ContextoPropuesta> ContextoPropuestaAsync(string idSociedad, IReadOnlyCollection<int> idsLineas) => new(
+        await plantillas.DeProcesoAsync(ClaveProceso, idSociedad) ?? PlantillaConciliacionN43.Predeterminada,
+        await ReglasConceptoN43.LeerAsync(bd), await _facturas.FacturasAsync(idsLineas), [], [], _reloj.Ahora.Date);
+
+    /// <summary>
+    /// Tipo de cada movimiento (ConceptosN43.ConceptoReducido; norma43/conciliacion 2026-11-13 10:50) para la rejilla de líneas N43: se
+    /// calcula al vuelo con el código, el sentido, la entidad, el texto y la cuenta de la primera imputación. Sin regla, vacío.
+    /// </summary>
+    public async Task<IReadOnlyDictionary<int, string?>> TiposAsync(IReadOnlyCollection<int> idsLineas)
     {
+        ArgumentNullException.ThrowIfNull(idsLineas);
+        var lineas = await LeerLineasAsync(idsLineas);
+        var conceptos = await ReglasConceptoN43.LeerAsync(bd);
+        var codigos = new Dictionary<int, string?>();
+        var r = new Dictionary<int, string?>();
+        foreach (var l in lineas.Values)
+        {
+            string? cuenta = null;
+            if (l.Imputaciones.FirstOrDefault() is { } i)
+            {
+                if (!codigos.TryGetValue(i.IdIdentidad, out cuenta)) codigos[i.IdIdentidad] = cuenta = await UltimoCodigoAsync(i.IdIdentidad);
+            }
+            r[l.Id] = ReglasConceptoN43.Elegir(conceptos, Movimiento(l, cuenta))?.ConceptoReducido;
+        }
+        return r;
+    }
+
+    private static MovimientoConceptoN43 Movimiento(LineaLeida l, string? cuentaDestino) => new(l.ConceptoComun, l.Sentido, l.Entidad, l.Concepto, cuentaDestino);
+
+    private async Task<PropuestaLineaN43> ProponerLineaAsync(string idSociedad, LineaLeida l, ContextoPropuesta cp)
+    {
+        var plantilla = cp.Plantilla;
+        var ejercicios = cp.Ejercicios;
+        var hoy = cp.Hoy;
         var errores = new List<Error>();
         var avisos = new List<string>();
+        string? tipo = null;
         var registro = $"Movimiento del {l.FechaOperacion:dd/MM/yyyy} de {l.Importe.ToString("N2", CultureInfo.GetCultureInfo("es-ES"))} €";
         PropuestaLineaN43 Fin(ContextoSociedadEjercicio? ctx = null, string? banco = null, AsientoPropuesto? asiento = null, IReadOnlyList<ImputacionConciliada>? imp = null,
             bool regenera = false) =>
             new(l.Id, l.FechaOperacion, l.FechaValor, l.Sentido, l.Importe, l.Concepto, banco, ctx, asiento, imp ?? [], errores, avisos, l.IdAsiento, regenera,
-                plantilla.IdPlantilla > 0 ? plantilla.IdPlantilla : null);
+                plantilla.IdPlantilla > 0 ? plantilla.IdPlantilla : null, tipo ?? ReglasConceptoN43.Elegir(cp.Conceptos, Movimiento(l, null))?.ConceptoReducido);
 
         if (!string.Equals(l.IdSociedad, idSociedad, StringComparison.OrdinalIgnoreCase))
         {
@@ -220,6 +260,19 @@ public sealed class ServicioConciliacionN43(IBaseDatos bd, IMotorAsientos motor,
         if (fecha != fechaMovimiento) avisos.Add($"El movimiento es de un trimestre cerrado: el asiento va al {fecha:dd/MM/yyyy}, primer día del trimestre activo.");
         if (regenera) avisos.Add($"Ya está contabilizado en el asiento {l.IdAsiento}: contabilizarlo otra vez lo sustituye.");
         var banco572 = cuentaBanco!;
+
+        // Textos (norma43/conciliacion 2026-11-13 10:50): tipo y frase de ConceptosN43 (con la cuenta de la primera imputación), nombre del
+        // tercero de la cuenta (o la cuenta) y, si hay facturas enlazadas, su descripción abreviada o sus números en el concepto y su número
+        // en el documento de los apuntes.
+        var regla = ReglasConceptoN43.Elegir(cp.Conceptos, Movimiento(l, imputaciones[0].Cuenta));
+        tipo = regla?.ConceptoReducido;
+        var nombres = new List<string>();
+        foreach (var i in imputaciones)
+            if ((await NombreTerceroAsync(idSociedad, i.IdIdentidadContable, cp.Terceros) ?? i.NombreCuenta) is { Length: > 0 } nombre) nombres.Add(nombre);
+        var descripcion = Descripcion(regla, l.Sentido, nombres, l.NombreCuentaBancaria ?? banco572.Nombre);
+        var enlazadas = cp.Facturas.GetValueOrDefault(l.Id) ?? [];
+        var concepto = ConceptoConFacturas(descripcion, enlazadas);
+        var documento = DocumentoFacturas(enlazadas) ?? DocumentoBanco(l.Documento);
         var registros = imputaciones.Select((i, n) => new RegistroProceso($"{l.Id}.{n + 1}", fechaMovimiento, new Dictionary<string, object?>
         {
             ["CuentaBanco"] = banco572.Codigo,
@@ -228,9 +281,9 @@ public sealed class ServicioConciliacionN43(IBaseDatos bd, IMotorAsientos motor,
             ["NombreContrapartida"] = i.NombreCuenta,
             ["Importe"] = i.ImporteFirmado,
             ["Sentido"] = l.Sentido,
-            ["Concepto"] = ConceptoApunte(l, i),
+            ["Concepto"] = concepto,
             ["Centro"] = i.IdCentroCoste,
-            ["Documento"] = DocumentoBanco(l.Documento),
+            ["Documento"] = documento,
         })).ToList();
         var entorno = new EntornoSociedad(ctx, TrimestreActivo: ej.TrimestreActivo);
         var propuesta = MotorPlantillas.Proponer(plantilla, new OrigenProceso(ClaveProceso, registros), null, entorno, fecha);
@@ -245,10 +298,9 @@ public sealed class ServicioConciliacionN43(IBaseDatos bd, IMotorAsientos motor,
                 "Cada movimiento se contabiliza en un único asiento.", "Corrige la plantilla en el mantenimiento de plantillas (un solo número de asiento y agrupar por cuenta)."));
             return Fin(ctx, banco572.Codigo, imp: imputaciones, regenera: regenera);
         }
-        var documento = DocumentoBanco(l.Documento);
         var asiento = propuesta.Valor.Asientos[0] with
         {
-            Descripcion = DescripcionAsiento(l),
+            Descripcion = descripcion,
             Apuntes = propuesta.Valor.Asientos[0].Apuntes.Select(a => a with { Documento = a.Documento ?? documento }).ToList(),
         };
         if (ErrorBanco(asiento, banco572.Codigo, l.Sentido == Abono ? l.Importe : -l.Importe, registro) is { } eb)
@@ -269,20 +321,60 @@ public sealed class ServicioConciliacionN43(IBaseDatos bd, IMotorAsientos motor,
 
     private static DateTime FechaMovimiento(LineaLeida l) => FechaMovimiento(l.FechaOperacion, l.FechaValor);
 
-    /// <summary>Descripción del asiento: el concepto completo del banco (o un texto genérico si viene vacío).</summary>
-    internal static string DescripcionAsiento(LineaLeida l)
+    /// <summary>
+    /// Descripción corta del asiento (norma43/conciliacion 2026-11-13 10:50): la frase de su tipo y el nombre (el de la contrapartida o, si la
+    /// regla lo dice, el del banco); si el movimiento está repartido, el primer nombre y « y otras». Sin regla, «Pago a» o «Cobro de».
+    /// </summary>
+    public static string Descripcion(ConceptoN43? regla, string sentido, IReadOnlyList<string> nombres, string? nombreBanco)
     {
-        var texto = string.IsNullOrWhiteSpace(l.Concepto) ? (l.Sentido == Cargo ? "Cargo bancario" : "Abono bancario") : l.Concepto.Trim();
-        return texto.Length <= ReglasAsiento.LongitudDescripcion ? texto : texto[..ReglasAsiento.LongitudDescripcion];
+        var frase = regla?.Frase is { Length: > 0 } f ? f : ReglasConceptoN43.FraseSinTipo(sentido);
+        var nombre = regla?.NombreDe == NombreConceptoN43.Banco ? nombreBanco
+            : nombres.Count switch { 0 => null, 1 => nombres[0], _ => nombres[0] + " y otras" };
+        return Recortar(string.IsNullOrWhiteSpace(nombre) ? frase : $"{frase} {nombre.Trim()}", ReglasAsiento.LongitudDescripcion);
     }
+
+    /// <summary>
+    /// Concepto de los dos apuntes: la descripción corta y, si la línea tiene facturas enlazadas, « · » y la descripción abreviada de la
+    /// factura (o su número si no tiene) o, con varias, « · Fras. » y sus números. Se recorta el final, nunca el principio.
+    /// </summary>
+    public static string ConceptoConFacturas(string descripcion, IReadOnlyList<FacturaEnlazadaN43> facturas)
+    {
+        var sufijo = facturas.Count switch
+        {
+            0 => "",
+            1 => " · " + (facturas[0].DescripcionAbreviada is { Length: > 0 } d ? d.Trim() : $"Fra. {facturas[0].Numero}"),
+            _ => " · Fras. " + string.Join(", ", facturas.Select(x => x.Numero)),
+        };
+        return Recortar(descripcion + sufijo, ReglasAsiento.LongitudDescripcion);
+    }
+
+    /// <summary>Documento de los apuntes si hay facturas enlazadas: sus números.</summary>
+    public static string? DocumentoFacturas(IReadOnlyList<FacturaEnlazadaN43> facturas) =>
+        facturas.Count == 0 ? null : Recortar(string.Join(", ", facturas.Select(x => x.Numero)), LongitudDocumento);
+
+    private static string Recortar(string texto, int longitud) => texto.Length <= longitud ? texto : texto[..longitud].TrimEnd();
 
     /// <summary>Documento del banco para los apuntes (el número de recibo en las remesas); nada si viene vacío o a ceros.</summary>
     internal static string? DocumentoBanco(string? documento) =>
         string.IsNullOrWhiteSpace(documento) || documento.Trim().All(c => c == '0') ? null : documento.Trim();
 
-    /// <summary>Texto del banco de una imputación (campo Concepto de la plantilla): el suyo, si no el concepto completo del movimiento.</summary>
-    private static string ConceptoApunte(LineaLeida l, ImputacionConciliada i) =>
-        !string.IsNullOrWhiteSpace(i.Concepto) ? i.Concepto.Trim() : DescripcionAsiento(l);
+    /// <summary>Nombre del tercero (cliente o proveedor de la sociedad) de la cuenta, si la cuenta es de un tercero.</summary>
+    private Task<string?> NombreTerceroAsync(string idSociedad, int idIdentidad, Dictionary<int, string?> cache)
+    {
+        if (cache.TryGetValue(idIdentidad, out var n)) return Task.FromResult(n);
+        return bd.EjecutarAsync(async s =>
+        {
+            var nombre = await s.EscalarAsync(
+                "SELECT TOP 1 t.Nombre FROM (CuentasClientesSociedad AS c INNER JOIN Clientes AS x ON c.IdCliente = x.IdCliente) INNER JOIN Terceros AS t ON x.IdTercero = t.IdTercero " +
+                "WHERE c.IdIdentidadContable = ? AND c.IdSociedad = ? ORDER BY c.IdCuentaClienteSociedad", idIdentidad, idSociedad)
+                ?? await s.EscalarAsync(
+                "SELECT TOP 1 t.Nombre FROM (CuentasProveedoresSociedad AS c INNER JOIN Proveedores AS x ON c.IdProveedor = x.IdProveedor) INNER JOIN Terceros AS t ON x.IdTercero = t.IdTercero " +
+                "WHERE c.IdIdentidadContable = ? AND c.IdSociedad = ? ORDER BY c.IdCuentaProveedorSociedad", idIdentidad, idSociedad);
+            var texto = nombre is string t && !string.IsNullOrWhiteSpace(t) ? t.Trim() : null;
+            cache[idIdentidad] = texto;
+            return texto;
+        });
+    }
 
     /// <summary>
     /// El asiento lleva el movimiento entero en la cuenta del banco: la suma de sus apuntes (Debe − Haber) es el importe del movimiento con
@@ -347,7 +439,8 @@ public sealed class ServicioConciliacionN43(IBaseDatos bd, IMotorAsientos motor,
     {
         var propuesta = p.Asiento!;
         if (ErrorBanco(propuesta, p.CuentaBanco ?? "", p.ImporteBanco, p.Rotulo) is { } eb) return Resultado<int>.Fallo(eb);
-        var asiento = new Asiento(p.Contexto!, propuesta.Fecha, propuesta.Descripcion) { IdPlantilla = p.IdPlantilla };
+        // Notas del asiento: el texto completo del movimiento N43 (norma43/conciliacion 2026-11-13 10:50).
+        var asiento = new Asiento(p.Contexto!, propuesta.Fecha, propuesta.Descripcion) { IdPlantilla = p.IdPlantilla, Notas = p.Concepto };
         foreach (var x in propuesta.Apuntes)
         {
             var apunte = x.AlDebe ? Apunte.AlDebe(x.Cuenta, x.Importe, x.Concepto) : Apunte.AlHaber(x.Cuenta, x.Importe, x.Concepto);
@@ -368,6 +461,83 @@ public sealed class ServicioConciliacionN43(IBaseDatos bd, IMotorAsientos motor,
             }));
         return r.EsCorrecto ? Resultado<int>.Correcto(r.Valor[0]) : Resultado<int>.Fallo(r.Errores);
     }
+
+    // ---------- actualizar textos ----------
+
+    /// <summary>
+    /// Vuelve a calcular la descripción, las notas, el concepto y el documento de los asientos de las líneas ya contabilizadas por
+    /// ProContaVF (norma43/conciliacion 2026-11-13 10:50), p. ej. al enlazar una factura o cambiar su descripción abreviada o su número.
+    /// Es el mismo asiento, con sus fechas, cuentas e importes; el motor lo registra con su motivo y lo admite también en un trimestre
+    /// cerrado, porque no tiene efecto fiscal. Las líneas del ERP no se tocan; en un ejercicio cerrado no se actualiza y se dice. Si la
+    /// propuesta ya no lleva las mismas cuentas e importes, no se toca: hay que volver a contabilizar la línea.
+    /// </summary>
+    public async Task<ResultadoConciliacionN43> ActualizarTextosAsync(string idSociedad, IReadOnlyCollection<int> idsLineas, Actor actor, string? motivo = null)
+    {
+        ArgumentNullException.ThrowIfNull(idsLineas);
+        var hechas = new Dictionary<int, int>();
+        var rechazadas = new Dictionary<int, IReadOnlyList<Error>>();
+        var lineas = await LeerLineasAsync(idsLineas);
+        var cp = await ContextoPropuestaAsync(idSociedad, idsLineas);
+        foreach (var id in idsLineas)
+        {
+            if (!lineas.TryGetValue(id, out var l) || !string.Equals(l.IdSociedad, idSociedad, StringComparison.OrdinalIgnoreCase))
+            {
+                rechazadas[id] = SinLinea(id).Errores;
+                continue;
+            }
+            var registro = $"Movimiento del {l.FechaOperacion:dd/MM/yyyy} de {l.Importe.ToString("N2", CultureInfo.GetCultureInfo("es-ES"))} €";
+            if (l.IdAsiento is not int idAsiento || !l.AsientoEsDeLaLinea)
+            {
+                rechazadas[id] = [l.IdAsiento is null
+                    ? new Error("Conciliacion.NoContabilizada", "Este movimiento no está contabilizado.", registro, null, "Contabilízalo primero.")
+                    : new Error("Conciliacion.ContabilizadaFuera", $"El asiento {l.IdAsiento} de este movimiento no lo generó ProContaVF.", registro,
+                        "Se contabilizó en el ERP (o en ContaSol) y sus textos no se regeneran desde aquí.", "Si hay que cambiarlos, hazlo desde el Mayor.")];
+                continue;
+            }
+            var actual = await motor.ObtenerAsync(idAsiento);
+            if (actual is null)
+            {
+                rechazadas[id] = [new Error("Conciliacion.NoContabilizada", "El asiento de este movimiento ya no existe.", registro, null, "Vuelve a contabilizarlo.")];
+                continue;
+            }
+            if (await EjercicioCerradoAsync(actual.Contexto.IdSociedadEjercicio))
+            {
+                rechazadas[id] = [new Error("Conciliacion.EjercicioCerrado", $"El ejercicio {actual.Contexto.Ejercicio} está cerrado: no actualizo los textos del asiento {idAsiento}.",
+                    registro, "Un ejercicio cerrado no admite cambios en sus asientos.", "Si hace falta, reabre el ejercicio con el proceso contable autorizado.")];
+                continue;
+            }
+            var p = await ProponerLineaAsync(idSociedad, l, cp);
+            if (p.Asiento is null)
+            {
+                rechazadas[id] = p.Errores;
+                continue;
+            }
+            // Mismos apuntes (cuenta, lado e importe) en el mismo orden: solo cambian los textos.
+            var nuevos = p.Asiento.Apuntes;
+            if (nuevos.Count != actual.Apuntes.Count || nuevos.Zip(actual.Apuntes).Any(x =>
+                    x.First.Cuenta != x.Second.CodigoCuenta.Trim() || x.First.Debe != x.Second.Debe.Valor || x.First.Haber != x.Second.Haber.Valor))
+            {
+                rechazadas[id] = [new Error("Conciliacion.AsientoDistinto", $"El asiento {idAsiento} ya no lleva las cuentas o importes que tocan.", registro,
+                    "Han cambiado las cuentas asignadas al movimiento después de contabilizarlo.", "Vuelve a contabilizar el movimiento para regenerar el asiento.")];
+                continue;
+            }
+            actual.Descripcion = p.Asiento.Descripcion;
+            actual.Notas = l.Concepto;
+            foreach (var (apunte, nuevo) in actual.Apuntes.Zip(nuevos))
+            {
+                apunte.Descripcion = nuevo.Concepto;
+                apunte.NumeroDocumento = nuevo.Documento;
+            }
+            var r = await motor.ReemplazarLoteAsync(actual.Contexto, Lote(id), [actual], actor,
+                string.IsNullOrWhiteSpace(motivo) ? $"Actualizar los textos del movimiento bancario {id}" : motivo.Trim());
+            if (r.EsCorrecto) hechas[id] = r.Valor[0];
+            else rechazadas[id] = r.Errores;
+        }
+        return new ResultadoConciliacionN43(hechas, rechazadas);
+    }
+
+    private Task<bool> EjercicioCerradoAsync(int idSociedadEjercicio) => bd.EjecutarAsync(async s =>
+        await s.EscalarAsync("SELECT EjercicioCerrado FROM SociedadesEjercicios WHERE IdSociedadEjercicio = ?", idSociedadEjercicio) is bool b && b);
 
     // ---------- deshacer ----------
 
@@ -429,7 +599,7 @@ public sealed class ServicioConciliacionN43(IBaseDatos bd, IMotorAsientos motor,
     internal sealed record LineaLeida(
         int Id, string IdSociedad, bool LoteRevertido, int? IdCuentaBancaria, string Ccc, DateTime FechaOperacion, DateTime FechaValor, string Sentido, decimal Importe,
         string? Documento, string? Concepto, int? IdAsiento, bool AsientoEsDeLaLinea, int? IdSociedadEjercicioAsiento, int? EjercicioAsiento,
-        IReadOnlyList<ImputacionLeida> Imputaciones);
+        IReadOnlyList<ImputacionLeida> Imputaciones, string? ConceptoComun = null, string? Entidad = null, string? NombreCuentaBancaria = null);
 
     private sealed record EjercicioConciliacion(ContextoSociedadEjercicio Contexto, bool Cerrado, int? TrimestreActivo);
 
@@ -443,12 +613,15 @@ public sealed class ServicioConciliacionN43(IBaseDatos bd, IMotorAsientos motor,
             var lista = string.Join(",", bloque.Select(i => i.ToString(CultureInfo.InvariantCulture)));
             var filas = await s.ConsultarAsync(
                 "SELECT l.IdLineaExtractoBancario, lo.IdSociedad, lo.Estado, e.IdCuentaBancaria, e.Entidad, e.Oficina, e.Cuenta, l.FechaOperacion, l.FechaValor, l.Sentido, " +
-                "l.Importe, l.Documento, l.ConceptoCompleto FROM (LineasExtractoBancario AS l INNER JOIN ExtractosBancarios AS e ON l.IdExtractoBancario = e.IdExtractoBancario) " +
-                $"INNER JOIN LotesImportacionBancaria AS lo ON e.IdLoteImportacionBancaria = lo.IdLoteImportacionBancaria WHERE l.IdLineaExtractoBancario IN ({lista})",
+                "l.Importe, l.Documento, l.ConceptoCompleto, l.ConceptoComun, cb.Nombre AS NombreCuentaBancaria " +
+                "FROM ((LineasExtractoBancario AS l INNER JOIN ExtractosBancarios AS e ON l.IdExtractoBancario = e.IdExtractoBancario) " +
+                "INNER JOIN LotesImportacionBancaria AS lo ON e.IdLoteImportacionBancaria = lo.IdLoteImportacionBancaria) " +
+                $"LEFT JOIN CuentasBancarias AS cb ON e.IdCuentaBancaria = cb.IdCuentaBancaria WHERE l.IdLineaExtractoBancario IN ({lista})",
                 f => (Id: f.Entero("IdLineaExtractoBancario"), Sociedad: (f.Texto("IdSociedad") ?? "").Trim(), Revertido: f.Texto("Estado") == ServicioImportacionN43.EstadoRevertido,
                     Cuenta: f.EnteroNulo("IdCuentaBancaria"), Ccc: $"{f.Texto("Entidad")} {f.Texto("Oficina")} {f.Texto("Cuenta")}",
                     Operacion: f.Fecha("FechaOperacion").Date, Valor: f.Fecha("FechaValor").Date, Sentido: (f.Texto("Sentido") ?? "").Trim(), Importe: f.Decimal("Importe"),
-                    Documento: Limpio(f.Texto("Documento")), Concepto: Limpio(f.Texto("ConceptoCompleto"))));
+                    Documento: Limpio(f.Texto("Documento")), Concepto: Limpio(f.Texto("ConceptoCompleto")), Comun: Limpio(f.Texto("ConceptoComun")),
+                    Entidad: Limpio(f.Texto("Entidad")), NombreBanco: Limpio(f.Texto("NombreCuentaBancaria"))));
             var imputaciones = (await s.ConsultarAsync(
                     "SELECT IdLineaExtractoBancario, IdIdentidadContable, ImporteFirmado, Concepto, IdCentroCoste FROM ImputacionesLineaExtractoBancario " +
                     $"WHERE Estado <> 'DESCARTADA' AND IdLineaExtractoBancario IN ({lista}) ORDER BY IdImputacionLineaExtractoBancario",
@@ -470,7 +643,7 @@ public sealed class ServicioConciliacionN43(IBaseDatos bd, IMotorAsientos motor,
             {
                 var c = contabilizadas.GetValueOrDefault(f.Id);
                 r[f.Id] = new LineaLeida(f.Id, f.Sociedad, f.Revertido, f.Cuenta, f.Ccc, f.Operacion, f.Valor, f.Sentido, f.Importe, f.Documento, f.Concepto,
-                    c.Linea == 0 || !c.Existe ? null : c.Asiento, c.Propio, c.Ej, c.Anio, imputaciones[f.Id].ToList());
+                    c.Linea == 0 || !c.Existe ? null : c.Asiento, c.Propio, c.Ej, c.Anio, imputaciones[f.Id].ToList(), f.Comun, f.Entidad, f.NombreBanco);
             }
         }
         return r;
