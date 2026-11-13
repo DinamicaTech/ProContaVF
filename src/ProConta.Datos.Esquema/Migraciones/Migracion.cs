@@ -111,6 +111,30 @@ public sealed class AnadirColumna(string tabla, string columna, string definicio
 }
 
 /// <summary>
+/// Elimina una columna si existe, con sus datos. Antes quita los índices (salvo la clave primaria) que la usan, porque Access
+/// no deja borrar una columna indexada, y las relaciones de esta tabla hacia otras que la usan. Una columna de la clave primaria
+/// o a la que apunten relaciones de otras tablas no se quita así: el paso falla con el error de Access y la migración se queda
+/// sin aplicar.
+/// </summary>
+public sealed class QuitarColumna(string tabla, string columna) : PasoMigracion
+{
+    public override string Descripcion => $"Quitar {tabla}.{columna}";
+    public override string Firma => $"ALTER TABLE [{tabla}] DROP COLUMN [{columna}]";
+    public override Task<bool> YaAplicadoAsync(ISesionDatos sesion, EsquemaFisico esquema) =>
+        Task.FromResult(esquema.Tabla(tabla) is not null && !esquema.ExisteColumna(tabla, columna));
+    public override async Task AplicarAsync(ISesionDatos sesion, ContextoMigracion contexto)
+    {
+        var t = sesion.LeerEsquema().Tabla(tabla);
+        if (t?.Columna(columna) is null) return;
+        foreach (var relacion in t.Relaciones.Where(r => r.Columnas.Contains(columna, StringComparer.OrdinalIgnoreCase)))
+            await sesion.EjecutarAsync($"ALTER TABLE [{tabla}] DROP CONSTRAINT [{relacion.Nombre}]");
+        foreach (var indice in t.Indices.Where(i => !i.EsClavePrimaria && i.Columnas.Contains(columna, StringComparer.OrdinalIgnoreCase)))
+            await sesion.EjecutarAsync($"DROP INDEX [{indice.Nombre}] ON [{tabla}]");
+        await sesion.EjecutarAsync(Firma);
+    }
+}
+
+/// <summary>
 /// Añade una columna obligatoria con valor por defecto a una tabla con filas: Access deja a null las
 /// filas existentes aunque la columna sea NOT NULL, así que se añade, se rellena y después se exige.
 /// Si la columna ya existe pero admite nulos (intento anterior a medias), se completa.

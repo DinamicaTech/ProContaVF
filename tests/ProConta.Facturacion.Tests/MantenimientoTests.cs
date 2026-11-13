@@ -114,8 +114,20 @@ public sealed class MantenimientoAccessTests : IDisposable
         }
         var empresa = (await Servicio().Proveedor("sociedades")!.ListarAsync(Ctx)).Single(r => r.Texto("IdSociedad") == "T01");
         Assert.Equal(("1130000", "5700000"), (empresa.Texto("Cuenta113ParaCuadres"), empresa.Texto("Cuenta570Tesoreria")));
-        Assert.Contains(Servicio().Proveedor("ejercicios")!.Campos, c => c.Clave == "CuentaIVARepercutido1");
-        Assert.DoesNotContain(Servicio().Proveedor("sociedades")!.Campos, c => c.Clave.StartsWith("CuentaIVARepercutido", StringComparison.Ordinal));
+        // Solo los campos que quedan en cada tabla (organizacion/sociedades-ejercicios 2026-11-13 20:55).
+        Assert.Equal(["IdSociedad", "Nombre", "CIF", "DireccionFiscal", "CodigoPostalFiscal", "PoblacionFiscal", "ProvinciaFiscal",
+            "Cuenta113ParaCuadres", "Cuenta570Tesoreria", "RutaDocumentos"], Servicio().Proveedor("sociedades")!.Campos.Select(c => c.Clave).ToArray());
+        Assert.Equal(new[] { "Ejercicio", "Nombre", "TrimestreActivo", "Activa", "EjercicioCerrado", "FormaPagoDefecto", "TipoIVAGeneral", "PorcentajeProrrataAñoAnterior",
+            "CuentaSuplido", "CuentaRetencionServicios", "CuentaRetencionAlquileres", "CuentaIVAIntracomunitarioRepercutidoServicios", "CuentaIVAIntracomunitarioRepercutidoBienes",
+            "CuentaIVAIntracomunitarioSoportadoServicios", "CuentaIVAIntracomunitarioSoportadoBienes", "CuentaIVAInversionSujetoPasivoRepercutido",
+            "CuentaIVAInversionSujetoPasivoSoportado", "CuentaIVAImportacion", "CuentaRedondeoGastos", "CuentaRedondeoIngresos", "CarpetaFacturasCompra" }.Order(),
+            Servicio().Proveedor("ejercicios")!.Campos.Select(c => c.Clave).Order());
+        await Bd.EjecutarAsync(x => x.EjecutarAsync("UPDATE SociedadesEjercicios SET CuentaSuplido = '5550002', PorcentajeProrrataAñoAnterior = 0.14 WHERE IdSociedadEjercicio = 9001"));
+        var ejercicio = (await Servicio().Proveedor("ejercicios")!.ListarAsync(Ctx)).Single(r => r.Texto("Ejercicio") == "2026");
+        Assert.Equal("5550002", ejercicio.Texto("CuentaSuplido"));
+        var eliminadas = await Bd.EjecutarAsync(x => Task.FromResult(x.LeerEsquema()));
+        Assert.DoesNotContain(eliminadas.Tabla("SociedadesEjercicios")!.Columnas, c => c.Nombre is "CIF" or "TipoIVA1" or "CuentaTipoIVA0" or "CuentaIVARepercutido0" or "Usuario");
+        Assert.DoesNotContain(eliminadas.Tabla("Sociedades")!.Columnas, c => c.Nombre is "FormaPagoDefecto" or "CuentaSuplido" or "TipoIVA1" or "BDExportacion");
     }
 
     /// <summary>

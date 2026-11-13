@@ -15,8 +15,10 @@ public static class ProveedoresOrganizacion
     public static IEnumerable<IProveedorMantenimiento> Todos(IBaseDatos bd) =>
         [Empresas(bd), Ejercicios(bd), new ProveedorFormasPago(bd, new CatalogoFormasPagoAccess(bd)), new ProveedorFormasPagoSociedad(new CatalogoFormasPagoSociedad(bd)), TiposRetencion(bd)];
 
-    internal static IReadOnlyList<GrupoCampos> GruposEmpresa =>
-        [new("ident", "Identificación"), new("pred", "Valores predeterminados"), new("impuestos", "Impuestos y retenciones"), new("cuentas", "Cuentas"), new("rutas", "Rutas y bases de datos")];
+    internal static IReadOnlyList<GrupoCampos> GruposEmpresa => [new("ident", "Identificación"), new("cuentas", "Cuentas"), new("rutas", "Rutas")];
+
+    internal static IReadOnlyList<GrupoCampos> GruposEjercicio =>
+        [new("ident", "Identificación"), new("pred", "Valores predeterminados"), new("impuestos", "Impuestos"), new("cuentas", "Cuentas"), new("rutas", "Rutas")];
 
     private static CampoMantenimiento Cuenta(string clave, string etiqueta, int longitud = 10, string? ayuda = null, params string[] sinonimos) =>
         new(clave, etiqueta, TipoCampo.Cuenta) { Grupo = "cuentas", Longitud = longitud, Ancho = "s", Ayuda = ayuda, Sinonimos = sinonimos, GruposCuenta = GruposDe(clave) };
@@ -25,7 +27,7 @@ public static class ProveedoresOrganizacion
     private static IReadOnlyList<string> GruposDe(string clave) => clave switch
     {
         _ when clave.Contains("Repercutido") => ["477"],
-        _ when clave.StartsWith("CuentaTipoIVA") || clave.Contains("Soportado") || clave == "CuentaIVAImportacion" => ["472"],
+        _ when clave.Contains("Soportado") || clave == "CuentaIVAImportacion" => ["472"],
         _ when clave.StartsWith("CuentaRetencion") => ["475"],
         "Cuenta113ParaCuadres" => ["113"],
         "Cuenta570Tesoreria" => ["57"],
@@ -36,28 +38,19 @@ public static class ProveedoresOrganizacion
 
     private static CampoMantenimiento Ruta(string clave, string etiqueta) => new(clave, etiqueta, TipoCampo.Ruta) { Grupo = "rutas", Longitud = 255, Ancho = "l" };
 
-    internal static IEnumerable<CampoMantenimiento> Impuestos() =>
-    [
-        new("PorcentajeRetencion", "Porcentaje de retención", TipoCampo.Entero) { Grupo = "impuestos", Minimo = 0, Maximo = 100, Ancho = "xs", Ayuda = "Porcentaje de retención de IRPF predeterminado, en número entero (por ejemplo 19 para el 19 %).", Sinonimos = ["irpf", "retencion"] },
-        new("TipoIVA1", "Tipo de IVA 1 (%)", TipoCampo.Porcentaje) { Grupo = "impuestos", Ancho = "xs", Ayuda = "Por ejemplo 21. Sus cuentas son las de IVA soportado y repercutido del tipo 1 (grupo Cuentas)." },
-        new("TipoIVA2", "Tipo de IVA 2 (%)", TipoCampo.Porcentaje) { Ayuda = "Segundo porcentaje de IVA (por ejemplo 10). Sus cuentas son las de IVA soportado y repercutido del tipo 2.", Grupo = "impuestos", Ancho = "xs" },
-        new("TipoIVA3", "Tipo de IVA 3 (%)", TipoCampo.Porcentaje) { Ayuda = "Tercer porcentaje de IVA (por ejemplo 4). Sus cuentas son las de IVA soportado y repercutido del tipo 3.", Grupo = "impuestos", Ancho = "xs" },
-        new("TipoIVA4", "Tipo de IVA 4 (%)", TipoCampo.Porcentaje) { Ayuda = "Cuarto porcentaje de IVA, si se usa. Sus cuentas son las de IVA soportado y repercutido del tipo 4.", Grupo = "impuestos", Ancho = "xs" },
-    ];
-
     /// <summary>Solo en Ejercicios: el tipo general es del ejercicio (compras/pantallas 2026-11-06 12:10).</summary>
     internal static CampoMantenimiento TipoGeneral() =>
         new("TipoIVAGeneral", "Tipo de IVA general (%)", TipoCampo.Porcentaje) { Grupo = "impuestos", Ancho = "xs", Sinonimos = ["iva general", "21"],
-            Ayuda = "El de la autorrepercusión (inversión del sujeto pasivo e intracomunitarias) y el de la importación en las compras. Vacío: el más alto de los tipos de IVA." };
+            Ayuda = "El de la autorrepercusión (inversión del sujeto pasivo e intracomunitarias) y el de la importación en las compras. Vacío: el más alto de los tipos de IVA activos (Catálogos › Tipos de IVA)." };
+
+    /// <summary>Prorrata del año anterior, que usará el cálculo de la prorrata (organizacion/sociedades-ejercicios 2026-11-13 20:55).</summary>
+    internal static CampoMantenimiento ProrrataAnterior() =>
+        new("PorcentajeProrrataAñoAnterior", "Prorrata del año anterior (%)", TipoCampo.Porcentaje) { Grupo = "impuestos", Ancho = "xs", Sinonimos = ["prorrata"],
+            Ayuda = "Porcentaje de prorrata definitivo del año anterior, que se aplica de forma provisional en este ejercicio (por ejemplo 85)." };
 
     /// <summary>Cuentas de compras que solo tiene el ejercicio (compras/factura-compra/contabilizacion).</summary>
     internal static IEnumerable<CampoMantenimiento> CuentasCompras() =>
     [
-        Cuenta("CuentaIVARepercutido0", "IVA repercutido del tipo 0", ayuda: "Ventas al 0 %. Vacía: la 477 con la terminación de la de soportado (4720001 → 4770001).", sinonimos: ["iva repercutido"]),
-        Cuenta("CuentaIVARepercutido1", "IVA repercutido del tipo 1", ayuda: "La usa la contabilización de ventas. Vacía: la 477 con la terminación de la de soportado.", sinonimos: ["iva repercutido"]),
-        Cuenta("CuentaIVARepercutido2", "IVA repercutido del tipo 2", ayuda: "IVA repercutido (477) de las ventas al tipo de IVA 2. Vacía: la 477 con la terminación de la de soportado.", sinonimos: ["iva repercutido"]),
-        Cuenta("CuentaIVARepercutido3", "IVA repercutido del tipo 3", ayuda: "IVA repercutido (477) de las ventas al tipo de IVA 3. Vacía: la 477 con la terminación de la de soportado.", sinonimos: ["iva repercutido"]),
-        Cuenta("CuentaIVARepercutido4", "IVA repercutido del tipo 4", ayuda: "IVA repercutido (477) de las ventas al tipo de IVA 4. Vacía: la 477 con la terminación de la de soportado.", sinonimos: ["iva repercutido"]),
         Cuenta("CuentaIVAImportacion", "IVA de importación", ayuda: "IVA soportado en importaciones (4724001 en el ERP): el importe de la factura se desglosa al tipo general."),
         Cuenta("CuentaRedondeoGastos", "Diferencias de redondeo · gastos", ayuda: "Cuando a un asiento de compra le falta Debe (hasta 0,03 €, o más con motivo). Vacía: 6590000.", sinonimos: ["redondeo"]),
         Cuenta("CuentaRedondeoIngresos", "Diferencias de redondeo · ingresos", ayuda: "Cuando a un asiento de compra le sobra Debe. Vacía: 7590000. Si no existe, se crea al usarla.", sinonimos: ["redondeo"]),
@@ -77,12 +70,7 @@ public static class ProveedoresOrganizacion
 
     internal static IEnumerable<CampoMantenimiento> Cuentas() =>
     [
-        Cuenta("CuentaTipoIVA0", "IVA soportado del tipo 0", ayuda: "IVA soportado (472) de las compras al 0 %.", sinonimos: ["iva soportado"]),
-        Cuenta("CuentaTipoIVA1", "IVA soportado del tipo 1", ayuda: "IVA soportado (472) de las compras al tipo de IVA 1. La usa la exportación de compras para el porcentaje del tipo de IVA 1.", sinonimos: ["iva soportado"]),
-        Cuenta("CuentaTipoIVA2", "IVA soportado del tipo 2", ayuda: "IVA soportado (472) de las compras al tipo de IVA 2.", sinonimos: ["iva soportado"]),
-        Cuenta("CuentaTipoIVA3", "IVA soportado del tipo 3", ayuda: "IVA soportado (472) de las compras al tipo de IVA 3.", sinonimos: ["iva soportado"]),
-        Cuenta("CuentaTipoIVA4", "IVA soportado del tipo 4", ayuda: "IVA soportado (472) de las compras al tipo de IVA 4.", sinonimos: ["iva soportado"]),
-        Cuenta("CuentaSuplido", "Suplido", 255, "La contabilización de ventas la usa en las líneas suplidas sin cuenta propia."),
+        Cuenta("CuentaSuplido", "Suplido", 255, "La usan las ventas en las líneas suplidas sin cuenta propia y las compras para el importe suplido (por ejemplo 5550002)."),
         Cuenta("CuentaRetencionServicios", "Retención de servicios", ayuda: "Retenciones de IRPF practicadas a profesionales (4751, modelo 111)."),
         Cuenta("CuentaRetencionAlquileres", "Retención de alquileres", ayuda: "Retenciones de IRPF practicadas en los alquileres (4751, modelo 115)."),
         Cuenta("CuentaIVAIntracomunitarioRepercutidoServicios", "IVA intracomunitario repercutido · servicios", ayuda: "IVA que se autorrepercute (477) al comprar servicios a otro país de la UE."),
@@ -99,24 +87,23 @@ public static class ProveedoresOrganizacion
     ];
 
     public static ProveedorTablaAccess Empresas(IBaseDatos bd) => new(bd, "sociedades", "Empresas", "Empresas y ejercicios",
-        "Datos de cada empresa: identificación, valores predeterminados, impuestos, cuentas y rutas.", AmbitoMantenimiento.Compartido, "empresa",
+        "Datos de cada empresa: identificación y domicilio del emisor de las facturas, cuentas de las plantillas de asiento y carpeta de documentos.", AmbitoMantenimiento.Compartido, "empresa",
         "Sociedades", "IdSociedad", ClaveNueva.Escrita,
         [
             new("IdSociedad", "Código", TipoCampo.Codigo) { Grupo = "ident", Obligatorio = true, SoloAlta = true, Longitud = 3, Ancho = "xs", Ayuda = "Tres caracteres. Se fija al crear la empresa." },
-            new("Nombre", "Nombre") { Ayuda = "Razón social de la empresa: sale como emisor en las facturas si el ejercicio no tiene un nombre propio.", Grupo = "ident", Obligatorio = true, Longitud = 255, Ancho = "l" },
-            new("CIF", "CIF", TipoCampo.Codigo) { Grupo = "ident", Obligatorio = true, Longitud = 10, Ancho = "s", Sinonimos = ["nif"], Ayuda = "Es el NIF que figura como emisor en las facturas si el ejercicio no tiene uno propio." },
+            new("Nombre", "Nombre") { Ayuda = "Razón social de la empresa: es el nombre del emisor en todas sus facturas.", Grupo = "ident", Obligatorio = true, Longitud = 255, Ancho = "l" },
+            new("CIF", "CIF", TipoCampo.Codigo) { Grupo = "ident", Obligatorio = true, Longitud = 10, Ancho = "s", Sinonimos = ["nif"], Ayuda = "NIF de la empresa: es el NIF del emisor en todas sus facturas." },
             new("DireccionFiscal", "Domicilio fiscal") { Grupo = "ident", Longitud = 255, Ancho = "l", Sinonimos = ["direccion", "domicilio"], Ayuda = "Sale en las facturas como domicilio del emisor y es obligatorio para validarlas. Se congela en cada factura al validarla." },
             new("CodigoPostalFiscal", "Código postal") { Ayuda = "Código postal del domicilio fiscal; sale en las facturas como parte de la dirección del emisor.", Grupo = "ident", Longitud = 20, Ancho = "xs" },
             new("PoblacionFiscal", "Población") { Ayuda = "Población del domicilio fiscal; sale en las facturas como parte de la dirección del emisor.", Grupo = "ident", Longitud = 100 },
             new("ProvinciaFiscal", "Provincia") { Ayuda = "Provincia del domicilio fiscal; sale en las facturas como parte de la dirección del emisor.", Grupo = "ident", Longitud = 100 },
-            .. Predeterminados(), .. Impuestos(), .. Cuentas(), .. CuentasCorreccion(),
+            .. CuentasCorreccion(),
             Ruta("RutaDocumentos", "Carpeta de documentos") with
             {
                 Ayuda = "Ruta base de los documentos de la empresa (en pruebas, por ejemplo, D:\\SynologyBox\\SynologyDrive). Los PDF de las facturas de venta van a " +
                     "<carpeta>\\<ejercicio>\\FacturasVenta\\<número>-<razón social>.pdf y los de compra se buscan en <carpeta>\\<carpeta de facturas de compra del ejercicio>.",
                 Sinonimos = ["ruta base", "raiz", "pdf", "proveedores"],
             },
-            // Los campos del ERP que no usa ningún proceso no se muestran; sus columnas siguen en la BD (propietario 2026-11-11 17:34 y 18:08).
         ],
         [new("IdSociedad", "Código", 64), new("Nombre", "Nombre"), new("CIF", "CIF", 96)])
     {
@@ -150,22 +137,20 @@ public static class ProveedoresOrganizacion
     };
 
     public static ProveedorTablaAccess Ejercicios(IBaseDatos bd) => new(bd, "ejercicios", "Ejercicios", "Empresas y ejercicios",
-        "Ejercicios de la empresa de trabajo con sus valores, impuestos, cuentas y rutas.", AmbitoMantenimiento.Sociedad, "ejercicio",
+        "Ejercicios de la empresa de trabajo con su forma de pago predeterminada, tipo de IVA general, prorrata, cuentas y carpeta de compras.", AmbitoMantenimiento.Sociedad, "ejercicio",
         "SociedadesEjercicios", "IdSociedadEjercicio", ClaveNueva.Autonumerica,
         [
             new("Ejercicio", "Ejercicio", TipoCampo.Codigo) { Grupo = "ident", Obligatorio = true, Longitud = 4, Ancho = "xs", Ayuda = "Cuatro cifras, por ejemplo 2026.", Sinonimos = ["año"] },
-            new("Nombre", "Nombre") { Grupo = "ident", Longitud = 255, Ancho = "l", Ayuda = "Nombre del emisor en las facturas de este ejercicio; vacío, el de la empresa." },
-            new("CIF", "CIF", TipoCampo.Codigo) { Grupo = "ident", Longitud = 10, Ancho = "s", Ayuda = "NIF del emisor en las facturas de este ejercicio; vacío, el de la empresa." },
+            new("Nombre", "Nombre") { Grupo = "ident", Longitud = 255, Ancho = "l",
+                Ayuda = "Etiqueta del ejercicio en el selector (por ejemplo «DINAMICA 2026»). No sale en las facturas: el emisor es siempre la empresa (Empresas › Nombre y CIF)." },
             new("TrimestreActivo", "Trimestre activo", TipoCampo.Entero) { Grupo = "ident", Minimo = 1, Maximo = 4, Ancho = "xs", Sinonimos = ["trimestre"], SoloLectura = true,
                 Ayuda = "Se cambia desde el aviso del trimestre de Compras, con el permiso «Cambiar el trimestre activo»." },
             new("Activa", "Activo", TipoCampo.Logico) { Grupo = "ident", Ayuda = "Se ofrece al elegir el ejercicio de trabajo. No indica si está cerrado." },
             new("EjercicioCerrado", "Cerrado", TipoCampo.Logico) { Grupo = "ident", SoloLectura = true, Ayuda = "Lo cambia el proceso de cierre de contabilidad, no este mantenimiento." },
             .. Predeterminados(),
-            .. Impuestos(),
             TipoGeneral(),
+            ProrrataAnterior(),
             .. Cuentas(), .. CuentasCompras(),
-            // Los campos del ERP que no usa ningún proceso no se muestran; sus columnas siguen en la BD hasta terminar la migración
-            // del ERP (propietario 2026-11-11 17:34 y 18:08).
             Ruta("CarpetaFacturasCompra", "Carpeta de facturas de compra") with
             {
                 Ayuda = "Dónde se buscan los PDF de compra de este ejercicio, dentro de la carpeta de documentos de la empresa (Empresas › Carpeta de documentos, la ruta base), por ejemplo 2026\\Proveedores. " +
@@ -177,8 +162,8 @@ public static class ProveedoresOrganizacion
     {
         ColumnaAmbito = "IdSociedad",
         Orden = "Ejercicio DESC",
-        GruposCampos = GruposEmpresa,
-        Alias = ["ejercicio", "año", "trimestre", "prorrata", "cuentas de iva"],
+        GruposCampos = GruposEjercicio,
+        Alias = ["ejercicio", "año", "trimestre", "prorrata", "suplido", "retencion"],
         Usos = [new("SeriesFacturacion", "IdSociedadEjercicio", "series"), new("Facturas", "IdSociedadEjercicio", "facturas"),
             new("CuentasContables", "IdSociedadEjercicio", "cuentas contables"), new("Asientos", "IdSociedadEjercicio", "asientos")],
         Titular = r => r.EsNuevo ? "Nuevo ejercicio" : r.Texto("Nombre") ?? $"Ejercicio {r.Texto("Ejercicio")}",

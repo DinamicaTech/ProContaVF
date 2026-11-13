@@ -45,10 +45,11 @@ public sealed class ContabilizacionComprasAccessTests : IDisposable
     {
         await DatosSinteticos.SociedadAsync(Bd, "T01", "Sociedad sintética", NifSociedad);
         await DatosSinteticos.EjercicioAsync(Bd, 9001, "T01", 2026);
+        // Los tipos salen del catálogo TiposDeIVA y las cuentas de IVA soportado se calculan (4720 + porcentaje).
+        await DatosSinteticos.TiposIvaAsync(Bd, 21m, 10m);
         await Bd.EjecutarAsync(s => s.EjecutarAsync(
-            "UPDATE SociedadesEjercicios SET TipoIVA1 = ?, TipoIVA2 = ?, CuentaTipoIVA1 = ?, CuentaTipoIVA2 = ?, TrimestreActivo = ?, " +
-            "CuentaRedondeoGastos = ?, CuentaRedondeoIngresos = ? WHERE IdSociedadEjercicio = ?",
-            21f, 10f, "4720021", "4720010", trimestreActivo, "6690000", "7690000", 9001));
+            "UPDATE SociedadesEjercicios SET TrimestreActivo = ?, CuentaRedondeoGastos = ?, CuentaRedondeoIngresos = ? WHERE IdSociedadEjercicio = ?",
+            trimestreActivo, "6690000", "7690000", 9001));
         var cuentas = new CatalogoCuentasAccess(Bd);
         foreach (var (codigo, nombre, imputable) in new[]
         {

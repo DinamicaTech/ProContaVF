@@ -39,7 +39,7 @@ public sealed class ImportadorAccessTests : IDisposable
     private static readonly (string, string)[] Plan =
     [
         ("100", "Capital"), ("1000000", "Capital social"), ("400", "Proveedores"), ("4000001", "Proveedor sintético"), ("430", "Clientes"), ("4300001", "Cliente sintético"),
-        ("472", "IVA soportado"), ("4720000", "IVA soportado 21"), ("477", "IVA repercutido"), ("4770000", "IVA repercutido 21"), ("572", "Bancos"), ("5720001", "Banco sintético"),
+        ("472", "IVA soportado"), ("4720021", "IVA soportado 21"), ("477", "IVA repercutido"), ("4770021", "IVA repercutido 21"), ("572", "Bancos"), ("5720001", "Banco sintético"),
         ("600", "Compras"), ("6000001", "Compras sintéticas"), ("700", "Ventas"), ("7000001", "Ventas sintéticas"),
     ];
 
@@ -50,11 +50,11 @@ public sealed class ImportadorAccessTests : IDisposable
         o.Centros.Add((3, 0, "Inmuebles"));
         o.Centros.Add((3, 318, "Local sintético"));
         o.Asiento(1, new DateTime(2024, 1, 1), "Asiento de apertura", ("5720001", 1000m, 0m), ("1000000", 0m, 1000m));
-        o.Asiento(2, new DateTime(2024, 2, 1), "Venta sintética", ("4300001", venta * 1.21m, 0m), ("7000001", 0m, venta), ("4770000", 0m, venta * 0.21m));
+        o.Asiento(2, new DateTime(2024, 2, 1), "Venta sintética", ("4300001", venta * 1.21m, 0m), ("7000001", 0m, venta), ("4770021", 0m, venta * 0.21m));
         if (conCompra)
         {
             o.Apuntes.Add(new ContaSolSintetico.Linea(3, 1, new DateTime(2024, 4, 2), "6000001", 100m, true, "Compra sintética", Dep: 3, Sub: 318));
-            o.Apuntes.Add(new ContaSolSintetico.Linea(3, 2, new DateTime(2024, 4, 2), "4720000", 21m, true, "Compra sintética", TipoIva: "S", CodigoIva: 7));
+            o.Apuntes.Add(new ContaSolSintetico.Linea(3, 2, new DateTime(2024, 4, 2), "4720021", 21m, true, "Compra sintética", TipoIva: "S", CodigoIva: 7));
             o.Apuntes.Add(new ContaSolSintetico.Linea(3, 3, new DateTime(2024, 4, 2), "4000001", -121m, true, "Compra sintética"));
         }
         o.IvaSoportado.Add((7, new DateTime(2024, 4, 2), "4000001", "A11111111", 100m, 21m, 21m));
@@ -68,7 +68,7 @@ public sealed class ImportadorAccessTests : IDisposable
         var o = new ContaSolSintetico { Ejercicio = 2025 };
         o.Cuentas.AddRange(Plan);
         o.Asiento(1, new DateTime(2025, 1, 1), "Asiento de apertura", ("5720001", 1000m, 0m), ("1000000", 0m, 1000m));
-        o.Asiento(2, new DateTime(2025, 3, 1), "Venta a la nueva titular", ("4300001", 242m, 0m), ("7000001", 0m, 200m), ("4770000", 0m, 42m));
+        o.Asiento(2, new DateTime(2025, 3, 1), "Venta a la nueva titular", ("4300001", 242m, 0m), ("7000001", 0m, 200m), ("4770021", 0m, 42m));
         // La subcuenta 4300001 ha cambiado de titular (otro NIF).
         o.Terceros.Add((true, "4300001", "Cliente nuevo", "A33333333"));
         return o;

@@ -47,9 +47,11 @@ public sealed class FacturasAccessTests : IDisposable
         await DatosSinteticos.SociedadAsync(Bd, "T01", "Sociedad sintética SL");
         await Bd.EjecutarAsync(s => s.EjecutarAsync("UPDATE Sociedades SET DireccionFiscal = ?, CodigoPostalFiscal = ?, PoblacionFiscal = ? WHERE IdSociedad = ?", "Calle Sintética 1", "08001", "Barcelona", "T01"));
         await DatosSinteticos.EjercicioAsync(Bd, 9001, "T01", 2026);
+        // El Nombre del ejercicio es solo su etiqueta: el emisor es la empresa. Las cuentas de IVA se calculan (4770 + porcentaje).
+        await DatosSinteticos.TiposIvaAsync(Bd, 21m, 10m, 0m);
         await Bd.EjecutarAsync(s => s.EjecutarAsync(
-            "UPDATE SociedadesEjercicios SET Nombre = ?, CIF = ?, TipoIVA1 = ?, CuentaTipoIVA1 = ?, TipoIVA2 = ?, CuentaTipoIVA2 = ?, CuentaSuplido = ? WHERE IdSociedadEjercicio = ?",
-            "Sociedad sintética SL (2026)", "B12345674", 21f, "4770021", 10f, "4770010", "5550001", 9001));
+            "UPDATE SociedadesEjercicios SET Nombre = ?, CuentaSuplido = ? WHERE IdSociedadEjercicio = ?",
+            "Sociedad sintética SL (2026)", "5550001", 9001));
         await Bd.EjecutarAsync(async s =>
         {
             foreach (var (tipo, descripcion, rect) in new[] { ("F1", "Factura", false), ("F2", "Simplificada", false), ("R4", "Rectificativa (resto)", true), ("R5", "Rectificativa simplificada", true) })
@@ -199,10 +201,9 @@ public sealed class FacturasAccessTests : IDisposable
         "LEFT JOIN CuentasContables AS c ON d.IdCuentaIVARepercutido = c.IdCuentaContable WHERE d.IdIVARepercutido = ? ORDER BY d.Orden",
         f => (f.Texto("Codigo"), f.Texto("CalificacionOperacion")!, f.Decimal("TipoIVA"), f.Decimal("BaseImponible"), f.Decimal("CuotaRepercutida")), idRegistro));
 
-    /// <summary>Actividad «Locales» (serie 4727) en el centro 3/304, la cuenta del 0 % del ejercicio (4720001 → 4770001) y una factura con tres líneas.</summary>
+    /// <summary>Actividad «Locales» (serie 4727) en el centro 3/304 y una factura con tres líneas; la 477 del 0 % de la actividad es la 4777000.</summary>
     private async Task<FacturaVenta> ValidadaConActividadAsync(ServicioFacturas servicio)
     {
-        await Bd.EjecutarAsync(s => s.EjecutarAsync("UPDATE SociedadesEjercicios SET CuentaTipoIVA0 = ? WHERE IdSociedadEjercicio = ?", "4720001", 9001));
         await Bd.EjecutarAsync(s => s.EjecutarAsync("INSERT INTO Actividades (IdSociedad, Codigo, Nombre, Deducible, SerieCuentaIva, Activa) VALUES (?, ?, ?, ?, ?, ?)", "T01", "LOC", "Locales", (byte)1, "4727", true));
         var idActividad = await Contar("SELECT MAX(IdActividad) FROM Actividades");
         var centros = new ProConta.Contabilidad.CentrosCoste.CatalogoCentrosCosteAccess(Bd);
@@ -239,14 +240,14 @@ public sealed class FacturasAccessTests : IDisposable
         Assert.Equal(3, desglose.Count);
         Assert.Contains(("4777021", "S1", 21m, 1000m, 210m), desglose);
         Assert.Contains(("4770021", "S1", 21m, 100m, 21m), desglose);
-        Assert.Contains(("4777001", "E1", 0m, 400m, 0m), desglose);
+        Assert.Contains(("4777000", "E1", 0m, 400m, 0m), desglose);
         Assert.Equal(libro.Base, desglose.Sum(d => d.Base));
         Assert.Equal(libro.Cuota, desglose.Sum(d => d.Cuota));
         // La 477 del 0 % de la actividad se crea, pero no lleva apunte; las demás cuadran con el asiento.
-        Assert.True((await Cuentas.ResolverAsync(_ctx, "4777001")).EsCorrecto);
+        Assert.True((await Cuentas.ResolverAsync(_ctx, "4777000")).EsCorrecto);
         var a = (await new MotorAsientosAccess(Bd, reloj: _reloj).ObtenerAsync(f.IdAsientoContable!.Value))!;
         Invariantes.Asiento(a);
-        Assert.DoesNotContain(a.Apuntes, x => x.CodigoCuenta == "4777001");
+        Assert.DoesNotContain(a.Apuntes, x => x.CodigoCuenta == "4777000");
         foreach (var d in desglose.Where(d => d.Cuota != 0m))
             Assert.Equal(d.Cuota, a.Apuntes.Where(x => x.CodigoCuenta == d.Cuenta).Sum(x => x.Haber.Valor - x.Debe.Valor));
     }
@@ -464,8 +465,9 @@ public sealed class FacturasAccessTests : IDisposable
         Assert.True(f.SinVeriFactu);
         Assert.Equal("B87654323", f.Cliente.Nif);
         Assert.Equal("ES", f.Cliente.Pais);
-        // El emisor es el nombre del ejercicio (puede cambiar de un año a otro), no el de la sociedad.
-        Assert.Equal("Sociedad sintética SL (2026)", f.NombreEmisor);
+        // El emisor es siempre la empresa (Sociedades.Nombre y CIF), no la etiqueta del ejercicio (2026-11-13 20:55).
+        Assert.Equal("Sociedad sintética SL", f.NombreEmisor);
+        Assert.Equal("B12345674", f.NifEmisor);
         Assert.NotNull(f.IdAsientoContable);
 
         // Regenerar el asiento no lo duplica.

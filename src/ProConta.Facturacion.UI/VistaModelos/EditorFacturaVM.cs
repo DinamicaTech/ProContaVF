@@ -508,7 +508,7 @@ public sealed class EditorFacturaVM : ModeloVista, IPestanaTrabajo, INotifyDataE
         {
             if (!HayCliente || _f.Lineas.Count == 0) return [];
             var iva = new Dictionary<decimal, string>();
-            foreach (var d in CalculoFactura.Desglose(_f.Lineas)) iva[d.TipoIva] = _config?.CuentaIva(d.TipoIva) ?? $"¿IVA {Texto.Porcentaje(d.TipoIva)} %?";
+            foreach (var d in CalculoFactura.Desglose(_f.Lineas)) iva[d.TipoIva] = CuentasIva.Repercutido(d.TipoIva) ?? $"¿IVA {Texto.Porcentaje(d.TipoIva)} %?";
             var cuentas = new CuentasVenta(
                 _cuentaCliente?.EnEjercicio?.Codigo ?? "¿430?",
                 _cuentaRetencion?.EnEjercicio?.Codigo ?? "¿473?",

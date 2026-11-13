@@ -96,6 +96,11 @@ public static class PlanificadorContaSol
             incidencias.Add(new Incidencia(FaseInspeccion, tabla, clave, campo, codigo, sev, texto, valor));
         var ejercicio = origen.Empresa.Ejercicio;
 
+        // ---------- IVA del 0 %: terminación 000 y sin las antiguas del 16 % (organizacion/sociedades-ejercicios 2026-11-13 20:55) ----------
+        var (renombrado, incidenciasIvaCero) = IvaCeroContaSol.Aplicar(origen);
+        origen = renombrado;
+        incidencias.AddRange(incidenciasIvaCero);
+
         // ---------- centros de coste: F_DEP (raíces) y F_CDP (hijos) ----------
         var centros = new Dictionary<string, CentroPlan>(StringComparer.Ordinal);
         foreach (var d in origen.Departamentos.Where(d => d.Codigo != 0).OrderBy(d => d.Codigo))

@@ -79,7 +79,7 @@ internal sealed partial class EjecucionErp(MigradorErp m, OrigenErp o, OpcionesM
     private readonly Dictionary<(string Tipo, string Clave), int> _mapas = [];
     private readonly List<(string Tipo, string Clave, int Id)> _pendientes = [];
     private readonly Dictionary<(int Anio, string Tipo), IReadOnlyDictionary<string, int>> _mapasCs = [];
-    private readonly Dictionary<int, (int Id, string? Nombre, string? Cif)> _ejercicios = [];
+    private readonly Dictionary<int, (int Id, string? Nombre)> _ejercicios = [];
     private readonly Dictionary<string, int> _centros = new(StringComparer.Ordinal);
     private readonly Dictionary<string, int> _identidades = new(StringComparer.Ordinal);
     private int _idMigracion;
@@ -296,9 +296,9 @@ internal sealed partial class EjecucionErp(MigradorErp m, OrigenErp o, OpcionesM
     private async Task CargarEjerciciosAsync()
     {
         _ejercicios.Clear();
-        foreach (var e in await ConsultarAsync("SELECT IdSociedadEjercicio, Ejercicio, Nombre, CIF FROM SociedadesEjercicios WHERE IdSociedad = ?",
-                     f => (Id: f.Entero("IdSociedadEjercicio"), Anio: int.TryParse(f.Texto("Ejercicio"), out var a) ? a : 0, Nombre: f.Texto("Nombre"), Cif: f.Texto("CIF")), Sociedad))
-            if (e.Anio > 0) _ejercicios[e.Anio] = (e.Id, e.Nombre, e.Cif);
+        foreach (var e in await ConsultarAsync("SELECT IdSociedadEjercicio, Ejercicio, Nombre FROM SociedadesEjercicios WHERE IdSociedad = ?",
+                     f => (Id: f.Entero("IdSociedadEjercicio"), Anio: int.TryParse(f.Texto("Ejercicio"), out var a) ? a : 0, Nombre: f.Texto("Nombre")), Sociedad))
+            if (e.Anio > 0) _ejercicios[e.Anio] = (e.Id, e.Nombre);
     }
 
     private async Task CargarCentrosAsync()

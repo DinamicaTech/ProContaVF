@@ -206,15 +206,3 @@ public class TrimestreActivoTests
         Assert.False(ServicioTrimestreActivo.PuedeReactivar(1, 2026, new DateTime(2026, 1, 15)));
     }
 }
-
-public class CuentasIvaRepercutidoTests
-{
-    [Fact]
-    public void Sin_cuenta_de_repercutido_las_ventas_usan_la_477_con_la_terminacion_de_la_472()
-    {
-        Assert.Equal("4770021", LectorConfiguracionEjercicio.RepercutidoDe("4720021"));
-        Assert.Equal("4770001", LectorConfiguracionEjercicio.RepercutidoDe(" 4720001 "));
-        Assert.Equal("4770010", LectorConfiguracionEjercicio.RepercutidoDe("4770010"));
-        Assert.Null(LectorConfiguracionEjercicio.RepercutidoDe(null));
-    }
-}

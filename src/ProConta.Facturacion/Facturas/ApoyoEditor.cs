@@ -1,4 +1,5 @@
 using System.Globalization;
+using ProConta.Contabilidad.CentrosCoste;
 using ProConta.Datos.Persistencia;
 using ProConta.Nucleo.Contexto;
 using ProConta.Terceros.Roles;
@@ -60,9 +61,7 @@ public sealed class ApoyoEditorFacturas(IBaseDatos bd, ServicioRoles roles)
     /// <summary>Porcentajes de IVA activos, de mayor a menor; si la tabla está vacía, 21, 10, 4 y 0.</summary>
     public async Task<IReadOnlyList<decimal>> TiposIvaAsync()
     {
-        var tipos = await bd.EjecutarAsync(s => s.ConsultarAsync("SELECT Valor FROM TiposDeIVA WHERE Activo = True",
-            f => Math.Round((decimal)f.Doble("Valor"), 2)));
-        var lista = tipos.Distinct().OrderByDescending(v => v).ToList();
+        var lista = await CatalogoTiposIva.ActivosAsync(bd);
         return lista.Count > 0 ? lista : [21m, 10m, 4m, 0m];
     }
 

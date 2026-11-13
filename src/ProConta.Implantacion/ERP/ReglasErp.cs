@@ -21,6 +21,69 @@ public sealed record LineaTransformada(LineaFacturaVenta? Linea, decimal? TipoRe
 /// </summary>
 public static class ReglasErp
 {
+    /// <summary>
+    /// Campos de configuración que quedan en SociedadesEjercicios y su columna en la tabla Sociedades del ERP
+    /// (organizacion/sociedades-ejercicios 2026-11-13 20:55). Los que el ERP no tiene (tipo general, importación y redondeo) se
+    /// leen si aparecen; si no, se quedan vacíos.
+    /// </summary>
+    public static readonly IReadOnlyList<(string Campo, string Origen)> CamposConfiguracionEjercicio =
+    [
+        ("FormaPagoDefecto", "FormaPagoDefecto"), ("TrimestreActivo", "TrimestreActivo"), ("TipoIVAGeneral", "TipoIVAGeneral"),
+        ("CuentaSuplido", "CuentaSuplido"), ("CuentaRetencionServicios", "CuentaRetencionServicios"), ("CuentaRetencionAlquileres", "CuentaRetencionAlquileres"),
+        ("CuentaIVAIntracomunitarioRepercutidoServicios", "CuentaIVAIntracomunitarioRepercutidoServicios"),
+        ("CuentaIVAIntracomunitarioRepercutidoBienes", "CuentaIVAIntracomunitarioRepercutidoBienes"),
+        ("CuentaIVAIntracomunitarioSoportadoServicios", "CuentaIVAIntracomunitarioSoportadoServicios"),
+        ("CuentaIVAIntracomunitarioSoportadoBienes", "CuentaIVAIntracomunitarioSoportadoBienes"),
+        ("CuentaIVAInversionSujetoPasivoRepercutido", "CuentaIVAInversionSujetoPasivoRepercutido"),
+        ("CuentaIVAInversionSujetoPasivoSoportado", "CuentaIVAInversionSujetoPasivoSoportado"),
+        ("CuentaIVAImportacion", "CuentaIVAImportacion"), ("CuentaRedondeoGastos", "CuentaRedondeoGastos"), ("CuentaRedondeoIngresos", "CuentaRedondeoIngresos"),
+        ("PorcentajeProrrataAñoAnterior", "PorcentajeProrrataAñoAnterior"),
+    ];
+
+    private static readonly HashSet<string> CamposNumericos = ["FormaPagoDefecto", "TrimestreActivo", "TipoIVAGeneral", "PorcentajeProrrataAñoAnterior"];
+
+    /// <summary>
+    /// Fila del ERP de la que sale la configuración de un ejercicio: la suya o, si el ERP no tiene ese ejercicio, la del más
+    /// cercano (a igual distancia, el posterior). Null si el ERP no tiene ninguna.
+    /// </summary>
+    public static (int Anio, Fila Fila)? ConfiguracionDeEjercicio(IReadOnlyDictionary<int, Fila> porAnio, int anio)
+    {
+        if (porAnio.TryGetValue(anio, out var propia)) return (anio, propia);
+        if (porAnio.Count == 0) return null;
+        var cercano = porAnio.Keys.OrderBy(a => Math.Abs(a - anio)).ThenByDescending(a => a).First();
+        return (cercano, porAnio[cercano]);
+    }
+
+    /// <summary>
+    /// Valores que la migración escribe en el ejercicio: los no vacíos del ERP. La cuenta de suplidos es CuentaSuplido o, si está
+    /// vacía, la «Cuenta de suplido con IVA» del ERP (5550002; propietario 2026-11-13 20:40). Los porcentajes (SINGLE) se
+    /// redondean a 4 decimales para no arrastrar el error del tipo de coma flotante.
+    /// </summary>
+    public static IReadOnlyList<(string Campo, object Valor)> ValoresConfiguracionEjercicio(Fila erp)
+    {
+        var r = new List<(string, object)>();
+        foreach (var (campo, origen) in CamposConfiguracionEjercicio)
+        {
+            if (campo == "CuentaSuplido")
+            {
+                if ((erp.T("CuentaSuplido") ?? erp.T("CuentaSuplidoIVA")) is { } suplido) r.Add((campo, Recortar(suplido, 255)!));
+                continue;
+            }
+            if (!CamposNumericos.Contains(campo))
+            {
+                if (erp.T(origen) is { } texto) r.Add((campo, Recortar(texto, 10)!));
+                continue;
+            }
+            switch (campo)
+            {
+                case "FormaPagoDefecto" when erp.E(origen) is int fp and >= 0 and <= 255: r.Add((campo, fp)); break;
+                case "TrimestreActivo" when erp.E(origen) is int t and >= 1 and <= 4: r.Add((campo, t)); break;
+                case "TipoIVAGeneral" or "PorcentajeProrrataAñoAnterior" when erp.D(origen) is decimal d: r.Add((campo, (float)Math.Round(d, 4))); break;
+            }
+        }
+        return r;
+    }
+
     /// <summary>Factura ficticia que marca el inicio de la numeración del ejercicio 2026 (propietario 2026-11-11 12:15): no se migra.</summary>
     public const int FacturaFicticia = 83000;
 

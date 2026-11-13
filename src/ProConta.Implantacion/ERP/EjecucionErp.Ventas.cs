@@ -299,14 +299,14 @@ internal sealed partial class EjecucionErp
         {
             var f = p.Factura;
             var t = f.Totales;
-            var (_, nombreEj, cifEj) = _ejercicios[p.Anio];
+            // El emisor es siempre la empresa (organizacion/sociedades-ejercicios 2026-11-13 20:55).
             var dir = p.Erp.E("IdCliente") is int pd && direcciones.TryGetValue(pd, out var d) ? d : null;
             var rect = p.Rectificada.Length > 0;
             return new object?[]
             {
                 _ejercicios[p.Anio].Id, _series[p.Anio], Txt(p.Numero), f.IdCliente, ReglasErp.Recortar(p.Erp.T("NIF"), 20), ReglasErp.Recortar(p.Erp.T("NombreCliente"), 255),
                 dir?.Pais?.ToUpperInvariant() is "ESPAÑA" or "ESPANA" ? "ES" : null,
-                ReglasErp.Recortar(cifEj ?? emisor.Cif, 20), ReglasErp.Recortar(nombreEj ?? emisor.Nombre, 255), emisor.Dir, emisor.Cp, emisor.Pob, emisor.Prov,
+                ReglasErp.Recortar(emisor.Cif, 20), ReglasErp.Recortar(emisor.Nombre, 255), emisor.Dir, emisor.Cp, emisor.Pob, emisor.Prov,
                 f.FechaFactura, f.FechaInicioValidez, f.FechaFinValidez, f.FechaFactura, f.FechaFactura, f.Descripcion, f.NotasInternas,
                 t.BaseImponible.Valor, t.Iva.Valor, t.ImporteBruto.Valor, (float)f.TipoRetencion, t.Retencion.Valor, t.ImporteTotal.Valor,
                 rect ? "R4" : "F1", rect ? "I" : null, (byte)EstadoFactura.Validada, p.IdAsiento, p.IdAsiento is null ? null : p.FechaAsiento,
