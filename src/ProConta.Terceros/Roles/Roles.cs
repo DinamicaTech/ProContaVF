@@ -19,6 +19,8 @@ public sealed class RolCliente
     public int? IdCliente { get; internal set; }
     public bool Activo { get; set; } = true;
     public string? Notas { get; set; }
+    /// <summary>IBAN del cliente para los recibos domiciliados, sin espacios (facturacion/factura-venta 2026-11-13 12:13).</summary>
+    public string? Iban { get; set; }
     internal RolCliente Clonar() => (RolCliente)MemberwiseClone();
 }
 

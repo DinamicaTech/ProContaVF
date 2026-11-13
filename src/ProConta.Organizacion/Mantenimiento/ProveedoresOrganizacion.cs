@@ -87,7 +87,7 @@ public static class ProveedoresOrganizacion
     ];
 
     public static ProveedorTablaAccess Empresas(IBaseDatos bd) => new(bd, "sociedades", "Empresas", "Empresas y ejercicios",
-        "Datos de cada empresa: identificación y domicilio del emisor de las facturas, cuentas de las plantillas de asiento y carpeta de documentos.", AmbitoMantenimiento.Compartido, "empresa",
+        "Datos de cada empresa: identificación, domicilio y teléfono del emisor de las facturas, logo, cuentas de las plantillas de asiento y carpeta de documentos.", AmbitoMantenimiento.Compartido, "empresa",
         "Sociedades", "IdSociedad", ClaveNueva.Escrita,
         [
             new("IdSociedad", "Código", TipoCampo.Codigo) { Grupo = "ident", Obligatorio = true, SoloAlta = true, Longitud = 3, Ancho = "xs", Ayuda = "Tres caracteres. Se fija al crear la empresa." },
@@ -97,12 +97,19 @@ public static class ProveedoresOrganizacion
             new("CodigoPostalFiscal", "Código postal") { Ayuda = "Código postal del domicilio fiscal; sale en las facturas como parte de la dirección del emisor.", Grupo = "ident", Longitud = 20, Ancho = "xs" },
             new("PoblacionFiscal", "Población") { Ayuda = "Población del domicilio fiscal; sale en las facturas como parte de la dirección del emisor.", Grupo = "ident", Longitud = 100 },
             new("ProvinciaFiscal", "Provincia") { Ayuda = "Provincia del domicilio fiscal; sale en las facturas como parte de la dirección del emisor.", Grupo = "ident", Longitud = 100 },
+            new("Telefono", "Teléfono") { Ayuda = "Teléfono de la empresa; sale en sus facturas debajo del domicilio. Vacío: no sale.", Grupo = "ident", Longitud = 30, Ancho = "s", Sinonimos = ["telefono", "tel"] },
             .. CuentasCorreccion(),
             Ruta("RutaDocumentos", "Carpeta de documentos") with
             {
                 Ayuda = "Ruta base de los documentos de la empresa (en pruebas, por ejemplo, D:\\SynologyBox\\SynologyDrive). Los PDF de las facturas de venta van a " +
                     "<carpeta>\\<ejercicio>\\FacturasVenta\\<número>-<razón social>.pdf y los de compra se buscan en <carpeta>\\<carpeta de facturas de compra del ejercicio>.",
                 Sinonimos = ["ruta base", "raiz", "pdf", "proveedores"],
+            },
+            Ruta("Logo", "Logo de las facturas") with
+            {
+                Ayuda = "Fichero JPG o PNG con el logo que sale arriba a la izquierda en las facturas y proformas. Si la ruta es relativa (por ejemplo, Logos\\logo.jpg), " +
+                    "se busca dentro de la carpeta de documentos. Vacío o si no se encuentra: en su lugar sale el nombre de la empresa.",
+                Sinonimos = ["logotipo", "imagen", "marca"],
             },
         ],
         [new("IdSociedad", "Código", 64), new("Nombre", "Nombre"), new("CIF", "CIF", 96)])
@@ -222,12 +229,15 @@ public sealed class ProveedorFormasPagoSociedad(CatalogoFormasPagoSociedad catal
     public override string Clave => "formaspagosociedad";
     public override string Titulo => "Cuentas de las formas de pago";
     public override string Categoria => "Empresas y ejercicios";
-    public override string Finalidad => "Subcuenta de tesorería o de efectos que usa cada forma de pago en la empresa de trabajo.";
+    public override string Finalidad => "Subcuenta de tesorería o de efectos y cuenta bancaria de cobro de cada forma de pago en la empresa de trabajo.";
+
+    /// <summary>Cuentas bancarias de la empresa de trabajo, leídas al listar: son las opciones del campo «Cuenta bancaria».</summary>
+    private IReadOnlyList<CuentaBancariaEmpresa> _bancos = [];
     public override AmbitoMantenimiento Ambito => AmbitoMantenimiento.Sociedad;
     public override bool PermiteAlta => false;
     public override bool PermiteBaja => false;
     public override string NombreRegistro => "forma de pago";
-    public override IReadOnlyList<string> Sinonimos => ["forma de pago", "cuenta de pago", "banco", "caja", "572", "tesoreria"];
+    public override IReadOnlyList<string> Sinonimos => ["forma de pago", "cuenta de pago", "banco", "caja", "572", "tesoreria", "iban", "transferencia"];
 
     public override IReadOnlyList<CampoMantenimiento> Campos =>
     [
@@ -235,19 +245,26 @@ public sealed class ProveedorFormasPagoSociedad(CatalogoFormasPagoSociedad catal
         new("Cuenta", "Subcuenta", TipoCampo.Cuenta) { Longitud = 30, Ancho = "s", Sinonimos = ["cuenta", "572", "banco"], GruposCuenta = ["57", "431"],
             Ayuda = "Código en el ejercicio de trabajo. Se guarda su identidad contable, así vale en los demás ejercicios aunque cambie el código. Vacía, la forma de pago no tiene subcuenta en esta empresa." },
         new("NombreCuenta", "Nombre de la cuenta") { Ayuda = "Nombre de la subcuenta en el ejercicio de trabajo, para comprobar que es la buena. Se rellena solo.", SoloLectura = true, Ancho = "l" },
+        new("CuentaBancaria", "Cuenta bancaria de cobro", TipoCampo.Lista) { Ancho = "l", Sinonimos = ["iban", "transferencia", "banco"],
+            Opciones = [new OpcionCampo(null, "(sin cuenta bancaria)"), .. _bancos.Select(b => new OpcionCampo(b.IdCuentaBancaria, b.Activa ? b.Texto : b.Texto + " (inactiva)"))],
+            Ayuda = "Cuenta de la empresa en la que se cobra esta forma de pago: su IBAN sale entero en las facturas para que el cliente pague por transferencia. " +
+                "Vacía en las que no se cobran en una cuenta (por ejemplo, metálico o recibo domiciliado). Las cuentas se dan de alta en Bancos." },
     ];
 
-    public override IReadOnlyList<ColumnaLista> Columnas => [new("Descripcion", "Forma de pago"), new("Cuenta", "Subcuenta", 90), new("NombreCuenta", "Nombre de la cuenta")];
+    public override IReadOnlyList<ColumnaLista> Columnas => [new("Descripcion", "Forma de pago"), new("Cuenta", "Subcuenta", 90), new("NombreCuenta", "Nombre de la cuenta"), new("CuentaBancaria", "Cuenta bancaria de cobro")];
 
     public override string TituloRegistro(RegistroMantenimiento r) => r.Texto("Descripcion") ?? $"Forma de pago {r.Clave}";
     public override string? SubtituloRegistro(RegistroMantenimiento r) => $"Código {r.Clave}";
 
-    public override async Task<IReadOnlyList<RegistroMantenimiento>> ListarAsync(ContextoMantenimiento c) =>
-        (await catalogo.ListarAsync(c.Trabajo)).Select(AsRegistro).ToList();
+    public override async Task<IReadOnlyList<RegistroMantenimiento>> ListarAsync(ContextoMantenimiento c)
+    {
+        _bancos = await catalogo.CuentasBancariasAsync(c.Trabajo.IdSociedad);
+        return (await catalogo.ListarAsync(c.Trabajo)).Select(AsRegistro).ToList();
+    }
 
     private static RegistroMantenimiento AsRegistro(FormaPagoSociedad x) => new(x.IdFormaPago, new Dictionary<string, object?>
     {
-        ["Descripcion"] = x.Descripcion, ["Cuenta"] = x.Cuenta,
+        ["Descripcion"] = x.Descripcion, ["Cuenta"] = x.Cuenta, ["CuentaBancaria"] = x.IdCuentaBancaria, ["_CuentaBancariaOriginal"] = x.IdCuentaBancaria,
         ["NombreCuenta"] = x.Cuenta is null ? null : x.CuentaEnEjercicio ? x.NombreCuenta : $"{x.NombreCuenta} (no existe en este ejercicio)",
         ["_CuentaOriginal"] = x.Cuenta,
     });
@@ -261,6 +278,13 @@ public sealed class ProveedorFormasPagoSociedad(CatalogoFormasPagoSociedad catal
         {
             var g = await catalogo.AsignarAsync(id, cuenta, c.Trabajo);
             if (!g.EsCorrecto) return Resultado<RegistroMantenimiento>.Fallo(g.Errores);
+        }
+        var banco = r["CuentaBancaria"] is null ? (int?)null : Convert.ToInt32(r["CuentaBancaria"], CultureInfo.InvariantCulture);
+        var bancoOriginal = r["_CuentaBancariaOriginal"] is null ? (int?)null : Convert.ToInt32(r["_CuentaBancariaOriginal"], CultureInfo.InvariantCulture);
+        if (banco != bancoOriginal)
+        {
+            var b = await catalogo.AsignarCuentaBancariaAsync(id, banco, c.Trabajo);
+            if (!b.EsCorrecto) return Resultado<RegistroMantenimiento>.Fallo(b.Errores);
         }
         var guardado = (await catalogo.ListarAsync(c.Trabajo)).First(x => x.IdFormaPago == id);
         return Resultado<RegistroMantenimiento>.Correcto(AsRegistro(guardado));

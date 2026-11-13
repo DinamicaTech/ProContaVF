@@ -4,6 +4,7 @@ using ProConta.Facturacion.Facturas;
 using ProConta.Informes;
 using ProConta.Nucleo.Auditoria;
 using ProConta.Nucleo.Contexto;
+using ProConta.Nucleo.Identificacion;
 using ProConta.Nucleo.Resultados;
 using ProConta.Organizacion.Sociedades;
 using ProConta.Seguridad.Permisos;
@@ -32,8 +33,9 @@ public static class ConstructorPdfFactura
         Lineas(direccion, string.Join(" ", new[] { codigoPostal, poblacion }.Where(x => !string.IsNullOrWhiteSpace(x)).Select(x => x!.Trim())), provincia);
 
     public static (DatosFacturaPdf Datos, IReadOnlyList<LineaFacturaPdf> Lineas, IReadOnlyList<ResumenFacturaPdf> Resumen) Construir(
-        FacturaVenta f, InstantaneaCliente cliente, string nombreEmisor, string nifEmisor, DomicilioEmisor emisor, string? formaPago)
+        FacturaVenta f, InstantaneaCliente cliente, string nombreEmisor, string nifEmisor, DomicilioEmisor emisor, string? formaPago, PresentacionPdf? presentacion = null)
     {
+        var p = presentacion ?? PresentacionPdf.Vacia;
         var proforma = f.NumeroFactura is null;
         var t = f.Totales;
         var periodo = f.FechaInicioValidez is not null || f.FechaFinValidez is not null ? $"{Fecha(f.FechaInicioValidez)} – {Fecha(f.FechaFinValidez)}" : "";
@@ -54,7 +56,12 @@ public static class ConstructorPdfFactura
             ClienteNombre = cliente.NombreVisible,
             ClienteNif = cliente.Nif ?? "",
             ClienteDomicilio = Domicilio(cliente.Direccion, cliente.CodigoPostal, cliente.Poblacion, cliente.Provincia),
+            EmisorContacto = string.IsNullOrWhiteSpace(p.Telefono) ? "" : $"Tel. {p.Telefono.Trim()}",
+            Logo = p.Logo,
             FormaPago = pago,
+            PagoEtiqueta = p.Pago?.Etiqueta ?? "",
+            PagoCuenta = p.Pago?.Cuenta ?? "",
+            PagoDetalle = p.Pago?.Detalle ?? "",
             Total = Euros(t.ImporteTotal.Valor)
         };
         var lineas = f.Lineas.Select(l =>
@@ -84,6 +91,20 @@ public static class ConstructorPdfFactura
     }
 
     /// <summary>
+    /// Bloque de pago (facturacion/factura-venta 2026-11-13 12:13): con domiciliación SEPA, la cuenta del cliente enmascarada; si
+    /// no, y la forma de pago tiene cuenta bancaria de cobro en la empresa, su IBAN entero para la transferencia. Sin ninguna de
+    /// las dos, solo sale la forma de pago.
+    /// </summary>
+    public static BloquePagoPdf? BloquePago(bool sepa, string? ibanCliente, string? ibanEmpresa, string? numeroFactura)
+    {
+        if (sepa)
+            return Ibanes.Enmascarar(ibanCliente) is { } oculto ? new BloquePagoPdf("SE CARGARÁ EN SU CUENTA", oculto, "") : null;
+        if (Ibanes.Agrupar(ibanEmpresa) is not { } iban) return null;
+        return new BloquePagoPdf("INGRESAR EN LA CUENTA", iban,
+            numeroFactura is null ? "Indique el número de factura en el concepto de la transferencia." : $"Indique «{numeroFactura}» en el concepto de la transferencia.");
+    }
+
+    /// <summary>
     /// Ruta del PDF relativa a la carpeta de documentos de la sociedad: &lt;ejercicio&gt;\FacturasVenta\&lt;número&gt;-&lt;razón
     /// social del cliente&gt;.pdf, sin los caracteres que Windows no admite en un nombre de fichero.
     /// </summary>
@@ -100,6 +121,15 @@ public static class ConstructorPdfFactura
         var limpio = new string(texto.Select(c => invalidos.Contains(c) ? ' ' : c).ToArray());
         return string.Join(" ", limpio.Split(' ', StringSplitOptions.RemoveEmptyEntries)).TrimEnd('.', ' ');
     }
+}
+
+/// <summary>Rótulo, cuenta y aviso del bloque de pago de la factura.</summary>
+public sealed record BloquePagoPdf(string Etiqueta, string Cuenta, string Detalle);
+
+/// <summary>Lo que sale en la factura además de sus datos: el teléfono y el logo de la empresa y el bloque de pago.</summary>
+public sealed record PresentacionPdf(string? Telefono, byte[]? Logo, BloquePagoPdf? Pago)
+{
+    public static readonly PresentacionPdf Vacia = new(null, null, null);
 }
 
 /// <summary>PDF listo para abrir: su ruta completa; una proforma es un fichero temporal que no se archiva.</summary>
@@ -144,9 +174,9 @@ public sealed class ServicioPdfFacturas
         try
         {
             var soc = await _bd.EjecutarAsync(s => s.ConsultarPrimeroAsync(
-                "SELECT Nombre, CIF, DireccionFiscal, CodigoPostalFiscal, PoblacionFiscal, ProvinciaFiscal, RutaDocumentos FROM Sociedades WHERE IdSociedad = ?",
+                "SELECT Nombre, CIF, DireccionFiscal, CodigoPostalFiscal, PoblacionFiscal, ProvinciaFiscal, RutaDocumentos, Telefono, Logo FROM Sociedades WHERE IdSociedad = ?",
                 r => (Nombre: r.Texto("Nombre") ?? "", Nif: r.Texto("CIF") ?? "", Domicilio: new DomicilioEmisor(r.Texto("DireccionFiscal"), r.Texto("CodigoPostalFiscal"), r.Texto("PoblacionFiscal"), r.Texto("ProvinciaFiscal")),
-                    Raiz: r.Texto("RutaDocumentos")), ejercicio.IdSociedad));
+                    Raiz: r.Texto("RutaDocumentos"), Telefono: r.Texto("Telefono"), Logo: r.Texto("Logo")), ejercicio.IdSociedad));
             if (soc == default) return Resultado<PdfFactura>.Fallo(new Error("Facturas.SinSociedad", "La sociedad de la factura no existe.", f.Rotulo));
 
             var proforma = f.NumeroFactura is null;
@@ -168,11 +198,13 @@ public sealed class ServicioPdfFacturas
 
             var cliente = proforma && f.IdCliente is int idCliente ? await _facturas.InstantaneaClienteAsync(idCliente) ?? f.Cliente : f.Cliente;
             var congelado = f.DireccionEmisor is not null ? new DomicilioEmisor(f.DireccionEmisor, f.CodigoPostalEmisor, f.PoblacionEmisor, f.ProvinciaEmisor) : soc.Domicilio;
-            var formaPago = f.FormaDePago is byte fp
-                ? await _bd.EjecutarAsync(s => s.ConsultarPrimeroAsync("SELECT Descripcion FROM FormasPago WHERE Id = ?", r => r.Texto("Descripcion"), fp))
-                : null;
+            var forma = f.FormaDePago is byte fp
+                ? await _bd.EjecutarAsync(s => s.ConsultarPrimeroAsync("SELECT Descripcion, SEPA FROM FormasPago WHERE Id = ?", r => (Descripcion: r.Texto("Descripcion"), Sepa: r.Logico("SEPA")), (int)fp))
+                : default;
+            var bloque = await BloquePagoAsync(f, ejercicio.IdSociedad, forma.Sepa);
+            var presentacion = new PresentacionPdf(soc.Telefono, LeerLogo(soc.Logo, soc.Raiz), bloque);
             var (datos, lineas, resumen) = ConstructorPdfFactura.Construir(f, cliente,
-                string.IsNullOrWhiteSpace(f.NombreEmisor) ? ejercicio.RazonSocial : f.NombreEmisor!, string.IsNullOrWhiteSpace(f.NifEmisor) ? soc.Nif : f.NifEmisor!, congelado, formaPago);
+                string.IsNullOrWhiteSpace(f.NombreEmisor) ? ejercicio.RazonSocial : f.NombreEmisor!, string.IsNullOrWhiteSpace(f.NifEmisor) ? soc.Nif : f.NifEmisor!, congelado, forma.Descripcion, presentacion);
             var bytes = await Task.Run(() => _generador.Generar(proforma ? PlantillaFactura.Proforma : PlantillaFactura.Factura, datos, lineas, resumen));
 
             if (proforma)
@@ -206,6 +238,37 @@ public sealed class ServicioPdfFacturas
         {
             return Resultado<PdfFactura>.Fallo(new Error("Facturas.PdfNoGuardado", $"No he podido crear el PDF de {f.Rotulo}: {ex.Message}", f.Rotulo,
                 "La carpeta no existe, no se puede escribir en ella o el PDF está abierto en otro programa.", "Comprueba la carpeta de documentos de la empresa, cierra el PDF si está abierto y repite. La factura no cambia."));
+        }
+    }
+
+    /// <summary>Cuenta del bloque de pago: la del cliente (domiciliación) o la de cobro de la forma de pago en la empresa.</summary>
+    private Task<BloquePagoPdf?> BloquePagoAsync(FacturaVenta f, string idSociedad, bool sepa) =>
+        _bd.EjecutarAsync(async s =>
+        {
+            string? ibanCliente = null, ibanEmpresa = null;
+            if (sepa && f.IdCliente is int idCliente)
+                ibanCliente = await s.EscalarAsync("SELECT IBAN FROM Clientes WHERE IdCliente = ?", idCliente) as string;
+            if (!sepa && f.FormaDePago is byte fp)
+                ibanEmpresa = await s.EscalarAsync("SELECT b.Iban FROM FormasPagoSociedad AS fps INNER JOIN CuentasBancarias AS b ON fps.IdCuentaBancaria = b.IdCuentaBancaria " +
+                    "WHERE fps.IdSociedad = ? AND fps.IdFormaPago = ?", idSociedad, (int)fp) as string;
+            return ConstructorPdfFactura.BloquePago(sepa, ibanCliente, ibanEmpresa, f.NumeroFactura);
+        });
+
+    /// <summary>
+    /// El logo de la empresa (Sociedades.Logo): una ruta relativa se busca en su carpeta de documentos. Si no está o no se puede
+    /// leer, la factura sale con el nombre de la empresa en su lugar: un logo perdido no impide hacer facturas.
+    /// </summary>
+    private static byte[]? LeerLogo(string? logo, string? raiz)
+    {
+        if (string.IsNullOrWhiteSpace(logo)) return null;
+        try
+        {
+            var ruta = Path.IsPathRooted(logo.Trim()) || string.IsNullOrWhiteSpace(raiz) ? logo.Trim() : Path.Combine(raiz.Trim(), logo.Trim());
+            return File.Exists(ruta) ? File.ReadAllBytes(ruta) : null;
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentException or NotSupportedException)
+        {
+            return null;
         }
     }
 }

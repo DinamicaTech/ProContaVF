@@ -637,6 +637,20 @@ public sealed class FichaTerceroVM : Observable, IPestanaTrabajo, INotifyDataErr
     private static string EstadoRol(int? id, bool activo) => activo ? "" : id is null ? "Rol no activo." : $"Rol desactivado (conserva su Id {id}).";
 
     public string? NotasCliente { get => T.Roles.Cliente?.Notas; set { if (T.Roles.Cliente is { } c && value != c.Notas) { c.Notas = value; Avisar(); CambiadoAqui(nameof(NotasCliente)); } } }
+    /// <summary>IBAN del cliente para los recibos domiciliados: se muestra de cuatro en cuatro y se guarda sin espacios.</summary>
+    public string? IbanCliente
+    {
+        get => T.Roles.Cliente?.Iban is { } i ? Nucleo.Identificacion.Ibanes.Agrupar(i) : null;
+        set
+        {
+            if (T.Roles.Cliente is not { } c) return;
+            var nuevo = Nucleo.Identificacion.Ibanes.Normalizar(value);
+            if (nuevo == Nucleo.Identificacion.Ibanes.Normalizar(c.Iban)) return;
+            c.Iban = nuevo;
+            Avisar();
+            CambiadoAqui(nameof(IbanCliente));
+        }
+    }
     public string? NotasProveedor { get => T.Roles.Proveedor?.Notas; set { if (T.Roles.Proveedor is { } p && value != p.Notas) { p.Notas = value; Avisar(); CambiadoAqui(nameof(NotasProveedor)); } } }
     public string? Cargo { get => T.Roles.Contacto?.Cargo; set { if (T.Roles.Contacto is { } c && value != c.Cargo) { c.Cargo = value; Avisar(); CambiadoAqui(nameof(Cargo)); } } }
     public string? Departamento { get => T.Roles.Contacto?.Departamento; set { if (T.Roles.Contacto is { } c && value != c.Departamento) { c.Departamento = value; Avisar(); CambiadoAqui(nameof(Departamento)); } } }
@@ -680,7 +694,7 @@ public sealed class FichaTerceroVM : Observable, IPestanaTrabajo, INotifyDataErr
     }
 
     private void AvisarRoles() => Avisar(nameof(ClienteActivo), nameof(ProveedorActivo), nameof(ContactoActivo), nameof(IdCliente), nameof(IdProveedor), nameof(IdContacto),
-        nameof(EstadoCliente), nameof(EstadoProveedor), nameof(EstadoContacto), nameof(NotasCliente), nameof(NotasProveedor), nameof(Cargo), nameof(Departamento),
+        nameof(EstadoCliente), nameof(EstadoProveedor), nameof(EstadoContacto), nameof(NotasCliente), nameof(IbanCliente), nameof(NotasProveedor), nameof(Cargo), nameof(Departamento),
         nameof(NotasContacto), nameof(Insignias), nameof(EmpleadoActivo), nameof(IdEmpleado), nameof(EstadoEmpleado), nameof(CodigoTrabajador));
 
     internal void FijarCuenta(ClaseCuentaRol clase, int? identidad)
@@ -840,7 +854,7 @@ public sealed class FichaTerceroVM : Observable, IPestanaTrabajo, INotifyDataErr
     {
         _errores = ValidacionFicha.Revisar(T, Domicilios).Concat(Partes().SelectMany(p => p.ErroresPropios())).Concat(_erroresGuardado).ToList();
         foreach (var p in Partes()) p.RefrescarErrores();
-        foreach (var c in new[] { "TipoPersona", nameof(NombrePersona), nameof(RazonSocial), nameof(Nif), nameof(NombreAntiguo), nameof(EmailPrincipal) })
+        foreach (var c in new[] { "TipoPersona", nameof(NombrePersona), nameof(RazonSocial), nameof(Nif), nameof(NombreAntiguo), nameof(EmailPrincipal), nameof(IbanCliente) })
             ErrorsChanged?.Invoke(this, new DataErrorsChangedEventArgs(c));
         if (_intentoGuardar) RellenarResumen();
         Avisar(nameof(Marcas), nameof(Cabeceras));
@@ -998,6 +1012,7 @@ public sealed class FichaTerceroVM : Observable, IPestanaTrabajo, INotifyDataErr
             "Tercero.SinNombre" => new(PestanaFicha.Identidad, T, T.TipoPersona == TipoPersona.Fisica ? nameof(NombrePersona) : "Nombre", texto),
             "Tercero.SinRazonSocial" => new(PestanaFicha.Identidad, T, nameof(RazonSocial), texto),
             "Tercero.EmailLargo" => new(PestanaFicha.Contacto, T, "Email", texto),
+            "Tercero.IbanNoValido" => new(PestanaFicha.Roles, T, nameof(IbanCliente), texto),
             var c when c.StartsWith("NIF.", StringComparison.Ordinal) => new(PestanaFicha.Identidad, T, nameof(Nif), texto),
             var c when c.StartsWith("Contactos.", StringComparison.Ordinal) || c.StartsWith("Relaciones.", StringComparison.Ordinal) => new(PestanaFicha.Contacto, new object(), "", texto),
             var c when c.StartsWith("Perfiles.", StringComparison.Ordinal) => new(PestanaFicha.Perfiles, new object(), "", texto),

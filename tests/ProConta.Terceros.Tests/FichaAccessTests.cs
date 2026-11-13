@@ -129,6 +129,20 @@ public sealed class FichaAccessTests : IDisposable
     }
 
     [Fact]
+    public async Task ElIbanDelClienteSeValidaYSeGuardaSinEspacios()
+    {
+        // IBAN sintéticos: dígitos de control calculados sobre una cuenta inventada.
+        var t = Juridica("Sintética SL");
+        t.Roles.Cliente = new RolCliente { Iban = "ES88 0049 1500 0500 1234 5678" };
+        Assert.Equal("Tercero.IbanNoValido", (await Repo.GuardarAsync(t, _actor)).Error!.Codigo);
+
+        t.Roles.Cliente.Iban = "es87 0049 1500 0500 1234 5678";
+        var guardado = await Guardar(t);
+        Assert.Equal("ES8700491500050012345678", await Bd.EjecutarAsync(s => s.EscalarAsync("SELECT IBAN FROM Clientes WHERE IdTercero = ?", guardado.IdTercero)) as string);
+        Assert.Equal("ES8700491500050012345678", (await Repo.ObtenerAsync(guardado.IdTercero))!.Roles.Cliente!.Iban);
+    }
+
+    [Fact]
     public async Task UnErrorNoDejaNadaAMedias()
     {
         var catalogo = new CatalogoPerfilesAccess(Bd);

@@ -74,6 +74,8 @@ public static class ValidacionFicha
             errores.Add(new(PestanaFicha.Identidad, t, "RazonSocial", "Escribe la razón social."));
         if (t.TipoPersona is null && string.IsNullOrWhiteSpace(t.Nombre))
             errores.Add(new(PestanaFicha.Identidad, t, "Nombre", "Escribe el nombre del tercero."));
+        if (t.Roles.Cliente is { Activo: true, Iban: { } iban } && !string.IsNullOrWhiteSpace(iban) && !Nucleo.Identificacion.Ibanes.EsValido(iban))
+            errores.Add(new(PestanaFicha.Roles, t, "IbanCliente", "El IBAN no es válido: revisa los dígitos (uno español tiene ES y 22 cifras) o déjalo vacío."));
         foreach (var d in domicilios)
         {
             if (ErrorCodigoPostal(d.Pais, d.CodigoPostal, d.Etiqueta) is { } cp) errores.Add(new(PestanaFicha.Identidad, d, "CodigoPostal", cp));

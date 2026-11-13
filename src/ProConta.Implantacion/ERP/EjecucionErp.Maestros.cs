@@ -20,6 +20,7 @@ internal sealed partial class EjecucionErp
         FormasPago();
         await TercerosAsync();
         await RetencionesClienteAsync();
+        await IbanClientesAsync();
     }
 
     /// <summary>Años con datos del ERP (ventas, compras y Norma 43).</summary>
@@ -429,6 +430,37 @@ internal sealed partial class EjecucionErp
             var r = await m.Roles.AsignarCuentaAsync(ClaseCuentaRol.Retencion, idCliente, Sociedad, identidad);
             if (r.EsCorrecto) Est(Fase1, "Retenciones de cliente (M-11)").Cargadas++;
             else Anotar(Fase1, "ConceptosCaja", Txt(persona), null, "Erp.RetencionNoAsignada", Severidad.Advertencia, r.Error!.TextoOperador());
+        }
+    }
+
+    /// <summary>
+    /// IBAN de los clientes (facturacion/factura-venta 2026-11-13 11:58): de DatosBancarios del ERP, una fila por persona, para
+    /// el recibo domiciliado del PDF. Se compone con país, entidad, oficina, control y cuenta; si no cuadra, el cliente queda sin IBAN.
+    /// </summary>
+    private async Task IbanClientesAsync()
+    {
+        var datos = o.Tabla("DatosBancarios");
+        if (datos.Count == 0) return;
+        var est = Est(Fase1, "DatosBancarios (IBAN de clientes)");
+        est.Leidas = datos.Count;
+        foreach (var d in datos)
+        {
+            var persona = d.E("IdPersona");
+            var clave = Txt(persona ?? d.E("Id"));
+            if (persona is null || Mapa(TiposErp.Cliente, Txt(persona)) is not int idCliente)
+            {
+                Excluir(Fase1, "DatosBancarios", clave, $"La cuenta bancaria de la persona {persona} no es de un cliente migrado: no se migra.", Severidad.Informativa);
+                continue;
+            }
+            var iban = ReglasErp.IbanDatosBancarios(d.T("PaisIBAN"), d.T("Entidad"), d.T("Oficina"), d.T("DigitoControl"), d.T("Cuenta"));
+            if (iban is null)
+            {
+                Anotar(Fase1, "DatosBancarios", clave, "Cuenta", "Erp.IbanNoValido", Severidad.Advertencia,
+                    $"La cuenta bancaria del cliente de la persona {persona} ({d.T("PaisIBAN")} {d.T("Entidad")} {d.T("Oficina")} {d.T("DigitoControl")} {d.T("Cuenta")}) no forma un IBAN válido: el cliente queda sin IBAN; escríbelo en su ficha.");
+                continue;
+            }
+            await EjecutarAsync("UPDATE Clientes SET IBAN = ? WHERE IdCliente = ?", iban, idCliente);
+            est.Cargadas++;
         }
     }
 
