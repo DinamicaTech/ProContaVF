@@ -87,7 +87,7 @@ public class FormulasPlantillaTests
 /// <summary>Catálogo inicial y motor de plantillas sin BD (contabilidad/plantillas-asiento, aceptación).</summary>
 public class MotorPlantillasTests
 {
-    private static readonly IReadOnlyList<PlantillaAsiento> _catalogo = PlantillasJson.LeerCatalogo(SemillaPlantillasAsiento.Json);
+    private static readonly IReadOnlyList<PlantillaAsiento> _catalogo = PlantillasJson.LeerCatalogo(SemillaPlantillasAsiento.JsonCatalogo);
 
     private static PlantillaAsiento P(string nombre) => _catalogo.Single(p => p.Nombre == nombre);
 
@@ -104,14 +104,22 @@ public class MotorPlantillasTests
     }
 
     [Fact]
-    public void ElCatalogoInicialTieneSeisPlantillasDeUsuarioYLaNominaDeSistemaConUnSoloNombreCadaUna()
+    public void ElCatalogoTieneSeisCorreccionesUnaGuiaYLaNominaDeSistemaConUnSoloNombreCadaUna()
     {
         Assert.Equal(
             ["Anular asiento", "Anular y rehacer con otra cuenta", "Pasar saldo a otra cuenta", "Ajustar saldo inicial contra la 113", "Pago por tesorería",
-             "Pago por un socio", "Nómina"],
+             "Pago por un socio", "Pasar un cliente de cobro dudoso a incobrable", "Nómina"],
             _catalogo.Select(p => p.Nombre));
         Assert.Equal(_catalogo.Count, _catalogo.Select(p => p.Nombre).Distinct().Count());
-        Assert.All(_catalogo.Take(6), p => Assert.Equal((TipoPlantilla.Usuario, OrigenPlantilla.Apunte), (p.Tipo, p.Origen)));
+        Assert.Equal(
+            [OrigenPlantilla.Asiento, OrigenPlantilla.Asiento, OrigenPlantilla.Subcuenta, OrigenPlantilla.Subcuenta, OrigenPlantilla.Apunte, OrigenPlantilla.Apunte],
+            _catalogo.Take(6).Select(p => p.Origen));
+        Assert.All(_catalogo.Take(6), p => Assert.Equal((TipoPlantilla.Usuario, ClasePlantilla.Correccion), (p.Tipo, p.Clase)));
+        var guia = P("Pasar un cliente de cobro dudoso a incobrable");
+        Assert.Equal((TipoPlantilla.Usuario, ClasePlantilla.Guia, OrigenPlantilla.Ninguno), (guia.Tipo, guia.Clase, guia.Origen));
+        Assert.Equal(ClasePlantilla.Proceso, P("Nómina").Clase);
+        // La semilla de la versión 43 no cambia: sigue con las seis de origen Apunte y la nómina.
+        Assert.Equal(7, PlantillasJson.LeerCatalogo(SemillaPlantillasAsiento.Json).Count);
         var nomina = P("Nómina");
         Assert.Equal((TipoPlantilla.Sistema, OrigenPlantilla.Proceso, "nominas", 0), (nomina.Tipo, nomina.Origen, nomina.ClaveProceso, nomina.Lineas.Count));
         Assert.All(_catalogo, p => Assert.True(MotorPlantillas.Validar(p).EsCorrecto, p.Nombre));
@@ -145,8 +153,31 @@ public class MotorPlantillasTests
     public void PasarSaldoLlevaLaCuentaAlLadoContrarioYLaNuevaAlMismoLado()
     {
         var a = Assert.Single(Vista("Pasar saldo a otra cuenta").Asientos);
-        Assert.Equal([("4300001", 0m, 500m, "Traspaso de saldo: Saldo inicial Cliente Ejemplo A"), ("4300002", 500m, 0m, "Traspaso de saldo: Saldo inicial Cliente Ejemplo A")], Lineas(a));
+        Assert.Equal([("4300001", 0m, 500m, "Traspaso de saldo: Cliente Ejemplo A"), ("4300002", 500m, 0m, "Traspaso de saldo: Cliente Ejemplo A")], Lineas(a));
+
+        // Un saldo acreedor se pasa al revés: la subcuenta al Debe y la nueva al Haber.
+        var p = P("Pasar saldo a otra cuenta");
+        var ej = PlantillasJson.LeerEjemplo(p.Ejemplo!);
+        var acreedor = MotorPlantillas.Proponer(p, new OrigenSubcuenta("4300001", "Cliente Ejemplo A", -80m, 0m), ej.Datos, ej.Entorno);
+        Assert.Equal([("4300001", 80m, 0m, "Traspaso de saldo: Cliente Ejemplo A"), ("4300002", 0m, 80m, "Traspaso de saldo: Cliente Ejemplo A")], Lineas(acreedor.Valor.Asientos[0]));
+        Assert.Equal("Plantillas.FaltaSubcuenta", MotorPlantillas.Proponer(p, OrigenEjecucion.Ninguno, ej.Datos, ej.Entorno).Error!.Codigo);
         Assert.Equal(new DateTime(2026, 4, 1), a.Fecha);
+    }
+
+    [Fact]
+    public void LaGuiaDeCobroDudosoProponeSusDosAsientosConLasSubcuentasQueSeDan()
+    {
+        var v = Vista("Pasar un cliente de cobro dudoso a incobrable");
+        Assert.Equal(2, v.Asientos.Count);
+        Assert.Equal([("4360001", 1210m, 0m, "Cliente de dudoso cobro"), ("4300001", 0m, 1210m, "Cliente de dudoso cobro"),
+            ("6940000", 1210m, 0m, "Deterioro por cliente de dudoso cobro"), ("4900000", 0m, 1210m, "Deterioro por cliente de dudoso cobro")], Lineas(v.Asientos[0]));
+        Assert.Equal([("6500000", 1210m, 0m, "Crédito incobrable"), ("4360001", 0m, 1210m, "Crédito incobrable"),
+            ("4900000", 1210m, 0m, "Reversión del deterioro"), ("7940000", 0m, 1210m, "Reversión del deterioro")], Lineas(v.Asientos[1]));
+        var guia = P("Pasar un cliente de cobro dudoso a incobrable");
+        Assert.Equal(["430", "436", "694", "490", "650", "794"], guia.Datos.Where(d => d.Tipo == TipoDato.Cuenta).Select(d => d.FiltroCuenta));
+        // Sin las subcuentas no se propone nada: nunca se toman las del ejemplo.
+        var sin = MotorPlantillas.Proponer(guia, OrigenEjecucion.Ninguno, null, PlantillasJson.LeerEjemplo(guia.Ejemplo!).Entorno);
+        Assert.Equal("Plantillas.FaltaDato", sin.Error!.Codigo);
     }
 
     [Fact]

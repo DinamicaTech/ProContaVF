@@ -1,0 +1,284 @@
+<UserControl x:Class="ProConta.Contabilidad.UI.Asientos.PantallaAsientoManual"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:pc="urn:proconta-ui"
+             x:Name="Raiz"
+             Background="White">
+  <UserControl.Resources>
+    <pc:VisibleSiConverter x:Key="Visible" />
+    <Style x:Key="Cabecera.Linea" TargetType="TextBlock" BasedOn="{StaticResource Texto.Apagado}">
+      <Setter Property="FontSize" Value="{StaticResource Letra.Pequena}" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+      <Setter Property="Margin" Value="4,0" />
+    </Style>
+    <Style x:Key="Etiqueta.Campo" TargetType="TextBlock" BasedOn="{StaticResource Texto.Apagado}">
+      <Setter Property="FontSize" Value="{StaticResource Letra.Pequena}" />
+      <Setter Property="Margin" Value="0,0,0,3" />
+    </Style>
+  </UserControl.Resources>
+  <UserControl.InputBindings>
+    <KeyBinding Key="G" Modifiers="Ctrl" Command="{Binding GuardarCommand}" />
+  </UserControl.InputBindings>
+
+  <DockPanel>
+    <!-- Pie: error del último guardado, Guardar y Cancelar -->
+    <Border DockPanel.Dock="Bottom" BorderBrush="{StaticResource Pincel.Linea}" BorderThickness="0,1,0,0" Padding="20,10">
+      <DockPanel>
+        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+          <Button Content="Cancelar" Command="{Binding CancelarCommand}" Style="{StaticResource Boton}" Margin="0,0,8,0" IsCancel="False"
+                  ToolTip="Cierra sin guardar: no se graba nada" />
+          <Button Content="Guardar" Command="{Binding GuardarCommand}" Style="{StaticResource Boton.Primario}"
+                  ToolTip="{Binding AyudaGuardar}" ToolTipService.ShowOnDisabled="True" />
+        </StackPanel>
+        <TextBlock Text="{Binding ErrorGuardado}" Foreground="{StaticResource Pincel.RojoError}" TextWrapping="Wrap" VerticalAlignment="Center" Margin="0,0,16,0"
+                   Visibility="{Binding ErrorGuardado, Converter={StaticResource Visible}}" />
+        <TextBlock Text="{Binding AyudaGuardar}" Style="{StaticResource Texto.Apagado}" TextWrapping="Wrap" VerticalAlignment="Center" Margin="0,0,16,0"
+                   Visibility="{Binding ErrorGuardado, Converter={StaticResource Visible}, ConverterParameter=invertir}" />
+      </DockPanel>
+    </Border>
+
+    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto">
+      <StackPanel Margin="20,16" MaxWidth="1600" HorizontalAlignment="Left">
+        <!-- Título -->
+        <TextBlock Text="{Binding Titulo}" Style="{StaticResource Texto.TituloPantalla}" />
+        <TextBlock Text="{Binding Subtitulo}" Style="{StaticResource Texto.Apagado}" Margin="0,2,0,12" TextWrapping="Wrap" />
+        <pc:Nota Tipo="Aviso" Margin="0,0,0,12" Visibility="{Binding SoloLectura, Converter={StaticResource Visible}}">
+          <TextBlock Text="{Binding AvisoSoloLectura}" TextWrapping="Wrap" />
+        </pc:Nota>
+
+        <!-- Plantilla -->
+        <Border Style="{StaticResource Tarjeta}" Margin="0,0,0,12" Padding="14" Visibility="{Binding SoloLectura, Converter={StaticResource Visible}, ConverterParameter=invertir}">
+          <StackPanel>
+            <StackPanel Orientation="Horizontal">
+              <StackPanel>
+                <TextBlock Text="Plantilla" Style="{StaticResource Etiqueta.Campo}" />
+                <ComboBox ItemsSource="{Binding Plantillas}" SelectedItem="{Binding Plantilla}" DisplayMemberPath="Texto" Width="320" AutomationProperties.Name="Plantilla"
+                          ToolTip="Punto de partida del asiento: «Sin plantilla» para hacerlo a mano, o una plantilla que propone los apuntes (después los puedes cambiar)" />
+              </StackPanel>
+              <Button Content="{Binding TextoAplicar}" Command="{Binding AplicarCommand}" Style="{StaticResource Boton}" VerticalAlignment="Bottom" Margin="12,0,0,0"
+                      pc:Iconos.Icono="{StaticResource Icono.wand}" ToolTip="{Binding AyudaAplicar}" ToolTipService.ShowOnDisabled="True"
+                      Visibility="{Binding HayPlantilla, Converter={StaticResource Visible}}" />
+            </StackPanel>
+            <TextBlock Text="{Binding DescripcionPlantilla}" TextWrapping="Wrap" Margin="0,8,0,0" MaxWidth="900" HorizontalAlignment="Left"
+                       Visibility="{Binding HayPlantilla, Converter={StaticResource Visible}}" />
+
+            <!-- Datos de entrada -->
+            <ItemsControl ItemsSource="{Binding Datos}" Margin="0,10,0,0" Focusable="False" Visibility="{Binding HayDatos, Converter={StaticResource Visible}}">
+              <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate>
+              </ItemsControl.ItemsPanel>
+              <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                  <StackPanel Margin="0,0,20,6">
+                    <TextBlock Text="{Binding Etiqueta}" Style="{StaticResource Etiqueta.Campo}" ToolTip="{Binding Ayuda}" />
+                    <StackPanel Orientation="Horizontal">
+                      <TextBox x:Name="Valor" Text="{Binding Valor, UpdateSourceTrigger=PropertyChanged, Delay=300}" ToolTip="{Binding Ayuda}" Width="140" Style="{StaticResource Campo}">
+                        <TextBox.InputBindings>
+                          <KeyBinding Key="F3" Command="{Binding BuscarCuentaCommand}" />
+                        </TextBox.InputBindings>
+                      </TextBox>
+                      <Button Style="{StaticResource Boton.Icono}" Width="26" Height="26" Margin="4,0,0,0" pc:Iconos.Icono="{StaticResource Icono.search}"
+                              Command="{Binding BuscarCuentaCommand}" ToolTip="Abre el buscador de cuentas (F3)" Visibility="{Binding EsCuenta, Converter={StaticResource Visible}}" />
+                      <TextBlock Text="{Binding NombreCuenta}" Style="{StaticResource Texto.Apagado}" VerticalAlignment="Center" Margin="8,0,0,0" MaxWidth="260"
+                                 TextTrimming="CharacterEllipsis" ToolTip="{Binding NombreCuenta}" />
+                    </StackPanel>
+                  </StackPanel>
+                  <DataTemplate.Triggers>
+                    <DataTrigger Binding="{Binding EsImporte}" Value="True">
+                      <Setter TargetName="Valor" Property="Style" Value="{StaticResource Campo.Numero}" />
+                    </DataTrigger>
+                    <DataTrigger Binding="{Binding EsCuenta}" Value="True">
+                      <Setter TargetName="Valor" Property="Style" Value="{StaticResource Campo.Mono}" />
+                    </DataTrigger>
+                  </DataTemplate.Triggers>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+
+            <!-- Vista previa -->
+            <StackPanel Margin="0,8,0,0" Visibility="{Binding HayPlantilla, Converter={StaticResource Visible}}">
+              <TextBlock Text="Vista previa" Style="{StaticResource Texto.Seccion}" />
+              <TextBlock Text="{Binding TextoVistaPrevia}" Style="{StaticResource Texto.Apagado}" FontSize="{StaticResource Letra.Pequena}" Margin="0,2,0,6" TextWrapping="Wrap" />
+              <pc:Nota Tipo="Error" Visibility="{Binding ErrorVistaPrevia, Converter={StaticResource Visible}}" MaxWidth="900" HorizontalAlignment="Left">
+                <TextBlock Text="{Binding ErrorVistaPrevia}" TextWrapping="Wrap" />
+              </pc:Nota>
+              <ItemsControl ItemsSource="{Binding VistaPrevia}" Focusable="False">
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate>
+                    <StackPanel Margin="0,0,0,8">
+                      <TextBlock Text="{Binding Titulo}" FontWeight="SemiBold" Margin="0,0,0,2" />
+                      <ItemsControl ItemsSource="{Binding Apuntes}" Focusable="False">
+                        <ItemsControl.ItemTemplate>
+                          <DataTemplate>
+                            <Grid>
+                              <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="80" /><ColumnDefinition Width="220" /><ColumnDefinition Width="380" /><ColumnDefinition Width="110" /><ColumnDefinition Width="110" />
+                              </Grid.ColumnDefinitions>
+                              <TextBlock Text="{Binding Cuenta}" Style="{StaticResource Texto.Mono}" />
+                              <TextBlock Grid.Column="1" Text="{Binding Nombre}" TextTrimming="CharacterEllipsis" ToolTip="{Binding Nombre}" Style="{StaticResource Texto.Apagado}" />
+                              <TextBlock Grid.Column="2" Text="{Binding Concepto}" TextTrimming="CharacterEllipsis" ToolTip="{Binding Concepto}" />
+                              <TextBlock Grid.Column="3" Text="{Binding Debe}" HorizontalAlignment="Right" ToolTip="Debe" />
+                              <TextBlock Grid.Column="4" Text="{Binding Haber}" HorizontalAlignment="Right" ToolTip="Haber" />
+                            </Grid>
+                          </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                      </ItemsControl>
+                    </StackPanel>
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+            </StackPanel>
+          </StackPanel>
+        </Border>
+
+        <!-- Documento y motivo -->
+        <WrapPanel Margin="0,0,0,12">
+          <StackPanel Margin="0,0,20,0">
+            <TextBlock Text="Documento" Style="{StaticResource Etiqueta.Campo}" />
+            <TextBox Text="{Binding Documento, UpdateSourceTrigger=PropertyChanged}" Width="160" MaxLength="50" Style="{StaticResource Campo.Mono}" IsReadOnly="{Binding SoloLectura}"
+                     ToolTip="Número de documento (factura, recibo…) que se propone en las líneas nuevas; cada línea puede llevar el suyo" />
+          </StackPanel>
+          <StackPanel>
+            <TextBlock Text="{Binding EtiquetaMotivo}" Style="{StaticResource Etiqueta.Campo}" />
+            <TextBox Text="{Binding Motivo, UpdateSourceTrigger=PropertyChanged}" Width="640" MaxLength="500" Style="{StaticResource Campo}" IsReadOnly="{Binding SoloLectura}"
+                     ToolTip="{Binding AyudaMotivo}" />
+          </StackPanel>
+        </WrapPanel>
+
+        <!-- Asientos -->
+        <ItemsControl ItemsSource="{Binding Bloques}" Focusable="False">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate>
+              <Border Style="{StaticResource Tarjeta}" Margin="0,0,0,12" Padding="14">
+                <StackPanel>
+                  <WrapPanel>
+                    <TextBlock Text="{Binding Titulo}" Style="{StaticResource Texto.Seccion}" VerticalAlignment="Bottom" Margin="0,0,20,6" />
+                    <StackPanel Margin="0,0,16,0">
+                      <TextBlock Text="Fecha *" Style="{StaticResource Etiqueta.Campo}" />
+                      <TextBox x:Name="Fecha" Text="{Binding Fecha, UpdateSourceTrigger=PropertyChanged}" Width="100" Style="{StaticResource Campo}" IsReadOnly="{Binding SoloLectura}"
+                               ToolTip="{Binding AyudaFecha}" />
+                    </StackPanel>
+                    <StackPanel>
+                      <TextBlock Text="Descripción *" Style="{StaticResource Etiqueta.Campo}" />
+                      <TextBox Text="{Binding Descripcion, UpdateSourceTrigger=PropertyChanged}" Width="560" MaxLength="255" Style="{StaticResource Campo}" IsReadOnly="{Binding SoloLectura}"
+                               ToolTip="Descripción del asiento (hasta 255 caracteres); es el concepto de las líneas que no has cambiado a mano, y si la cambias, cambia en ellas" />
+                    </StackPanel>
+                    <Button Content="Quitar este asiento" Style="{StaticResource Boton.Pequeno}" VerticalAlignment="Bottom" Margin="16,0,0,0"
+                            Command="{Binding DataContext.QuitarBloqueCommand, ElementName=Raiz}" CommandParameter="{Binding}"
+                            Visibility="{Binding PuedeQuitarse, Converter={StaticResource Visible}}"
+                            ToolTip="Quita este asiento de la pantalla (por ejemplo, el paso de una guía que aún no toca); no se graba nada hasta Guardar" />
+                  </WrapPanel>
+
+                  <!-- Cabecera de la rejilla -->
+                  <Grid Margin="0,12,0,4">
+                    <Grid.ColumnDefinitions>
+                      <ColumnDefinition Width="28" /><ColumnDefinition Width="120" /><ColumnDefinition Width="200" /><ColumnDefinition Width="340" /><ColumnDefinition Width="110" /><ColumnDefinition Width="110" /><ColumnDefinition Width="200" /><ColumnDefinition Width="120" />
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Text="#" Style="{StaticResource Cabecera.Linea}" />
+                    <TextBlock Grid.Column="1" Text="Cuenta" Style="{StaticResource Cabecera.Linea}" ToolTip="Subcuenta del apunte (F3: buscador)" />
+                    <TextBlock Grid.Column="2" Text="Nombre de la cuenta" Style="{StaticResource Cabecera.Linea}" />
+                    <TextBlock Grid.Column="3" Text="Concepto" Style="{StaticResource Cabecera.Linea}" ToolTip="Concepto del apunte: la descripción del asiento, salvo que lo cambies en la línea" />
+                    <TextBlock Grid.Column="4" Text="Debe" Style="{StaticResource Cabecera.Linea}" HorizontalAlignment="Right" />
+                    <TextBlock Grid.Column="5" Text="Haber" Style="{StaticResource Cabecera.Linea}" HorizontalAlignment="Right" />
+                    <TextBlock Grid.Column="6" Text="Centro de coste" Style="{StaticResource Cabecera.Linea}" ToolTip="Analítica del apunte (solo centros activos e imputables)" />
+                    <TextBlock Grid.Column="7" Text="Documento" Style="{StaticResource Cabecera.Linea}" ToolTip="Número de documento del apunte; una línea nueva copia el de la anterior" />
+                  </Grid>
+                  <Rectangle Height="1" Fill="{StaticResource Pincel.Linea}" Margin="0,0,0,4" />
+
+                  <!-- Líneas -->
+                  <ItemsControl ItemsSource="{Binding Lineas}" Focusable="False">
+                    <ItemsControl.ItemTemplate>
+                      <DataTemplate>
+                        <Grid Margin="0,2" Background="Transparent" Tag="{Binding DataContext, ElementName=Raiz}">
+                          <Grid.ContextMenu>
+                            <ContextMenu>
+                              <MenuItem Header="Insertar una línea debajo" Command="{Binding PlacementTarget.Tag.InsertarLineaCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}" CommandParameter="{Binding}"
+                                        ToolTip="Añade una línea vacía debajo de esta, con su concepto y su documento" />
+                              <MenuItem Header="Duplicar la línea" Command="{Binding PlacementTarget.Tag.DuplicarLineaCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}" CommandParameter="{Binding}"
+                                        ToolTip="Copia esta línea (cuenta, concepto, importes, centro y documento) justo debajo" />
+                              <MenuItem Header="Invertir Debe y Haber" Command="{Binding PlacementTarget.Tag.InvertirLineaCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}" CommandParameter="{Binding}"
+                                        ToolTip="Pasa el importe de esta línea al lado contrario" />
+                              <MenuItem Header="Cuadrar con esta línea" Command="{Binding PlacementTarget.Tag.CuadrarConLineaCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}" CommandParameter="{Binding}"
+                                        ToolTip="Pone en esta línea el importe que falta para que el Debe y el Haber del asiento coincidan" />
+                              <MenuItem Header="Buscar la cuenta…" Command="{Binding PlacementTarget.Tag.BuscarCuentaLineaCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}" CommandParameter="{Binding}"
+                                        InputGestureText="F3" ToolTip="Abre el buscador de cuentas del ejercicio, con «Crear subcuenta»" />
+                              <Separator />
+                              <MenuItem Header="Borrar la línea" Command="{Binding PlacementTarget.Tag.BorrarLineaCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}" CommandParameter="{Binding}"
+                                        ToolTip="Quita esta línea del asiento (no se graba nada hasta Guardar)" />
+                            </ContextMenu>
+                          </Grid.ContextMenu>
+                          <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="28" /><ColumnDefinition Width="120" /><ColumnDefinition Width="200" /><ColumnDefinition Width="340" /><ColumnDefinition Width="110" /><ColumnDefinition Width="110" /><ColumnDefinition Width="200" /><ColumnDefinition Width="120" />
+                          </Grid.ColumnDefinitions>
+                          <TextBlock Text="{Binding Numero}" Style="{StaticResource Texto.Apagado}" VerticalAlignment="Center" Margin="4,0" ToolTip="Número de la línea; botón derecho para sus acciones" />
+                          <DockPanel Grid.Column="1" Margin="2,0">
+                            <Button DockPanel.Dock="Right" Style="{StaticResource Boton.Icono}" Width="24" Height="24" Margin="2,0,0,0" pc:Iconos.Icono="{StaticResource Icono.search}"
+                                    Command="{Binding DataContext.BuscarCuentaLineaCommand, ElementName=Raiz}" CommandParameter="{Binding}" ToolTip="Abre el buscador de cuentas (F3)"
+                                    IsEnabled="{Binding Editable}" />
+                            <TextBox x:Name="Cuenta" Text="{Binding Cuenta, UpdateSourceTrigger=LostFocus}" Style="{StaticResource Campo.Mono}" IsReadOnly="{Binding SoloLectura}"
+                                     ToolTip="{Binding AyudaCuenta}" AutomationProperties.Name="Cuenta">
+                              <TextBox.InputBindings>
+                                <KeyBinding Key="F3" Command="{Binding DataContext.BuscarCuentaLineaCommand, ElementName=Raiz}" CommandParameter="{Binding}" />
+                              </TextBox.InputBindings>
+                            </TextBox>
+                          </DockPanel>
+                          <TextBlock x:Name="Nombre" Grid.Column="2" Text="{Binding NombreCuenta}" VerticalAlignment="Center" Margin="4,0" TextTrimming="CharacterEllipsis"
+                                     ToolTip="{Binding AyudaCuenta}" Style="{StaticResource Texto.Apagado}" />
+                          <TextBox Grid.Column="3" Margin="2,0" Text="{Binding Concepto, UpdateSourceTrigger=PropertyChanged}" MaxLength="255" Style="{StaticResource Campo}" IsReadOnly="{Binding SoloLectura}"
+                                   ToolTip="Concepto del apunte (hasta 255 caracteres): es la descripción del asiento hasta que lo cambias aquí" />
+                          <TextBox x:Name="Debe" Grid.Column="4" Margin="2,0" Text="{Binding Debe, UpdateSourceTrigger=LostFocus}" Style="{StaticResource Campo.Importe}" IsReadOnly="{Binding SoloLectura}"
+                                   ToolTip="{Binding AyudaImporte}" AutomationProperties.Name="Debe" />
+                          <TextBox x:Name="Haber" Grid.Column="5" Margin="2,0" Text="{Binding Haber, UpdateSourceTrigger=LostFocus}" Style="{StaticResource Campo.Importe}" IsReadOnly="{Binding SoloLectura}"
+                                   ToolTip="{Binding AyudaImporte}" AutomationProperties.Name="Haber" />
+                          <ComboBox Grid.Column="6" Margin="2,0" ItemsSource="{Binding Centros}" SelectedItem="{Binding Centro}" DisplayMemberPath="Texto"
+                                    IsEnabled="{Binding Editable}"
+                                    ToolTip="Centro de coste del apunte (analítica); «Sin centro» si no lleva" />
+                          <TextBox Grid.Column="7" Margin="2,0" Text="{Binding Documento, UpdateSourceTrigger=PropertyChanged}" MaxLength="50" Style="{StaticResource Campo.Mono}" IsReadOnly="{Binding SoloLectura}"
+                                   ToolTip="Número de documento del apunte (factura, recibo…)" />
+                        </Grid>
+                        <DataTemplate.Triggers>
+                          <DataTrigger Binding="{Binding CuentaValida}" Value="False">
+                            <Setter TargetName="Cuenta" Property="BorderBrush" Value="{StaticResource Pincel.RojoBorde}" />
+                            <Setter TargetName="Nombre" Property="Foreground" Value="{StaticResource Pincel.RojoError}" />
+                          </DataTrigger>
+                          <DataTrigger Binding="{Binding ImporteValido}" Value="False">
+                            <Setter TargetName="Debe" Property="BorderBrush" Value="{StaticResource Pincel.RojoBorde}" />
+                            <Setter TargetName="Haber" Property="BorderBrush" Value="{StaticResource Pincel.RojoBorde}" />
+                          </DataTrigger>
+                        </DataTemplate.Triggers>
+                      </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                  </ItemsControl>
+
+                  <!-- Añadir línea y totales, en las columnas de la rejilla -->
+                  <Rectangle Height="1" Fill="{StaticResource Pincel.Linea}" Margin="0,6,0,6" />
+                  <Grid>
+                    <Grid.ColumnDefinitions>
+                      <ColumnDefinition Width="28" /><ColumnDefinition Width="120" /><ColumnDefinition Width="200" /><ColumnDefinition Width="340" /><ColumnDefinition Width="110" /><ColumnDefinition Width="110" /><ColumnDefinition Width="320" />
+                    </Grid.ColumnDefinitions>
+                    <Button Grid.ColumnSpan="3" Content="Añadir línea" HorizontalAlignment="Left" Style="{StaticResource Boton.Pequeno}" pc:Iconos.Icono="{StaticResource Icono.plus}"
+                            Command="{Binding DataContext.AnadirLineaCommand, ElementName=Raiz}" CommandParameter="{Binding}"
+                            ToolTip="Añade una línea al final, con la descripción del asiento como concepto y el documento de la anterior" />
+                    <TextBlock Grid.Column="3" Text="Totales" FontWeight="SemiBold" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="4,0" />
+                    <TextBlock Grid.Column="4" Text="{Binding TotalDebe}" Style="{StaticResource Texto.Importe}" Margin="4,0" VerticalAlignment="Center" ToolTip="Suma del Debe del asiento" />
+                    <TextBlock Grid.Column="5" Text="{Binding TotalHaber}" Style="{StaticResource Texto.Importe}" Margin="4,0" VerticalAlignment="Center" ToolTip="Suma del Haber del asiento" />
+                    <TextBlock x:Name="Descuadre" Grid.Column="6" Text="{Binding TextoDescuadre}" Margin="12,0,0,0" VerticalAlignment="Center" FontWeight="SemiBold"
+                               Foreground="{StaticResource Pincel.Verde}" ToolTip="{Binding AyudaDescuadre}" />
+                  </Grid>
+                </StackPanel>
+              </Border>
+              <DataTemplate.Triggers>
+                <DataTrigger Binding="{Binding Cuadrado}" Value="False">
+                  <Setter TargetName="Descuadre" Property="Foreground" Value="{StaticResource Pincel.RojoError}" />
+                </DataTrigger>
+                <DataTrigger Binding="{Binding FechaValida}" Value="False">
+                  <Setter TargetName="Fecha" Property="BorderBrush" Value="{StaticResource Pincel.RojoBorde}" />
+                </DataTrigger>
+              </DataTemplate.Triggers>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+      </StackPanel>
+    </ScrollViewer>
+  </DockPanel>
+</UserControl>

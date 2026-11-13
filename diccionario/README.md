@@ -2,7 +2,7 @@
 
 # Diccionario de datos
 
-Esquema versión 43 (Actualizada); 144 tablas. SHA-256 de la BD de origen: `E9C9A2A43E9B9925B2821680D4A7D103DCC5F410F64D4F5485AFE18660BFF985`.
+Esquema versión 44 (Actualizada); 144 tablas. SHA-256 de la BD de origen: `962C5BB1165F4512597B2BA33B3DA1CA3379F250AE2C74624055EC4FF9CF6088`.
 
 | Área | Tablas |
 |---|---|

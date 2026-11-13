@@ -121,6 +121,24 @@ public sealed class MayorVM : ModeloVista
     /// <summary>Abre la pestaña del Mayor buscando unas facturas en todas las cuentas (embebido).</summary>
     public Action<IReadOnlyList<string>>? BuscarEnMayor { get; set; }
 
+    /// <summary>
+    /// Abre la pantalla de asiento manual con una cuenta y el importe (Debe − Haber) de la selección (contabilidad/plantillas-asiento, PR 2);
+    /// lo fija el contenedor. Sin él, «Nuevo asiento manual…» sale desactivado.
+    /// </summary>
+    public Action<string?, decimal>? NuevoAsiento { get; set; }
+
+    /// <summary>
+    /// Abre el asistente de corrección con un apunte (y su cuenta) como origen, o solo con una subcuenta si la selección es de varias filas de una
+    /// misma cuenta: las correcciones de asiento y de apunte necesitan el apunte; las de subcuenta, solo la cuenta.
+    /// </summary>
+    public Action<int?, string?>? AsistenteCorreccion { get; set; }
+
+    /// <summary>Abre un asiento manual del ejercicio de trabajo para modificarlo.</summary>
+    public Action<int>? ModificarAsiento { get; set; }
+
+    /// <summary>Ejercicio de trabajo (el único en que se crean y cambian asientos desde el Mayor).</summary>
+    public int EjercicioTrabajo => _ctx.EjercicioTrabajo;
+
     public SesionMayor Sesion => _sesion;
 
     /// <summary>Aviso breve en la barra de estado del contenedor.</summary>
