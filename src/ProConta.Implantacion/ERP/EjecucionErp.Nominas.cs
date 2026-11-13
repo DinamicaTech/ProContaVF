@@ -106,18 +106,19 @@ internal sealed partial class EjecucionErp
             });
             est.Cargadas += filas.Count;
 
-            // Paridad: la plantilla con los importes de F_NOM frente al asiento de ContaSol.
-            foreach (var x in filas)
+            // Paridad: la plantilla con los importes de F_NOM frente al asiento de ContaSol. Si ProConta antiguo juntó varias nóminas en
+            // un asiento (p. ej. enero–junio de 2023), se compara la suma de sus propuestas con ese asiento.
+            foreach (var g2 in filas.GroupBy(x => x.Asiento))
             {
-                if (plantilla is null || x.Asiento is not int idAsiento) { paridad.SinComparar++; continue; }
-                var diferencia = await DiferenciaParidadAsync(plantilla, ctx, x.Nomina, idAsiento);
-                if (diferencia is null) paridad.Iguales++;
-                else
-                {
-                    paridad.Distintas++;
-                    Anotar(Fase7, "F_NOM", $"{x.Nomina.Codigo} {x.Nomina.Fecha:yyyy-MM-dd}", null, "Nominas.Paridad", Severidad.Advertencia,
-                        $"La plantilla «Nómina» no reproduce el asiento {idAsiento} de {x.Nomina.Fila.T("Trabajador")} del {x.Nomina.Fecha:dd/MM/yyyy}: {diferencia}");
-                }
+                if (plantilla is null || g2.Key is not int idAsiento) { paridad.SinComparar += g2.Count(); continue; }
+                var juntas = g2.Select(x => x.Nomina).ToList();
+                var diferencia = await DiferenciaParidadAsync(plantilla, ctx, juntas, idAsiento);
+                if (diferencia is null) { paridad.Iguales += juntas.Count; continue; }
+                paridad.Distintas += juntas.Count;
+                var quienes = string.Join(", ", juntas.Select(n => n.Fila.T("Trabajador") ?? n.Codigo));
+                Anotar(Fase7, "F_NOM", string.Join(" ", juntas.Select(n => $"{n.Codigo} {n.Fecha:yyyy-MM-dd}")), null, "Nominas.Paridad", Severidad.Advertencia,
+                    $"La plantilla «Nómina» no reproduce el asiento {idAsiento} del {juntas[0].Fecha:dd/MM/yyyy} " +
+                    (juntas.Count == 1 ? $"de {quienes}" : $"que junta {juntas.Count} nóminas ({quienes})") + $": {diferencia}");
             }
         }
         Anotar(Fase7, "F_NOM", null, null, "Nominas.ParidadResumen", Severidad.Informativa,
@@ -247,14 +248,19 @@ internal sealed partial class EjecucionErp
     // ---------- paridad ----------
 
     /// <summary>Diferencias entre lo que propone la plantilla con los importes de F_NOM y el asiento de ContaSol (cuentas, lados e importes), o null si coinciden.</summary>
-    private async Task<string?> DiferenciaParidadAsync(PlantillaAsiento plantilla, Nucleo.Contexto.ContextoSociedadEjercicio ctx, NominaErp x, int idAsiento)
+    private async Task<string?> DiferenciaParidadAsync(PlantillaAsiento plantilla, Nucleo.Contexto.ContextoSociedadEjercicio ctx, IReadOnlyList<NominaErp> nominas, int idAsiento)
     {
-        var f = x.Fila;
-        var importes = CamposNomina.Importes.ToDictionary(c => c.Nombre, c => f.Dec(ColumnasFNom.GetValueOrDefault(c.Nombre, c.Nombre)), StringComparer.OrdinalIgnoreCase);
-        var registro = PlantillaNomina.Registro(new NominaContable(x.Codigo, f.T("Trabajador") ?? x.Codigo, f.T("CuentaContable") ?? "", x.Fecha, importes, x.Codigo, f.T("DNI"), x.Tipo));
-        var propuesta = MotorPlantillas.Proponer(plantilla, new OrigenProceso(PlantillaNomina.ClaveProceso, [registro]), null, new EntornoSociedad(ctx), x.Fecha);
-        if (!propuesta.EsCorrecto) return "la plantilla no genera el asiento (" + string.Join(" ", propuesta.Errores.Select(e => e.Mensaje)) + ")";
-        var esperado = Sumar(propuesta.Valor.Asientos.SelectMany(a => a.Apuntes).Select(a => (a.Cuenta, a.Debe - a.Haber)));
+        var propuestos = new List<(string Cuenta, decimal Saldo)>();
+        foreach (var x in nominas)
+        {
+            var f = x.Fila;
+            var importes = CamposNomina.Importes.ToDictionary(c => c.Nombre, c => f.Dec(ColumnasFNom.GetValueOrDefault(c.Nombre, c.Nombre)), StringComparer.OrdinalIgnoreCase);
+            var registro = PlantillaNomina.Registro(new NominaContable(x.Codigo, f.T("Trabajador") ?? x.Codigo, f.T("CuentaContable") ?? "", x.Fecha, importes, x.Codigo, f.T("DNI"), x.Tipo));
+            var propuesta = MotorPlantillas.Proponer(plantilla, new OrigenProceso(PlantillaNomina.ClaveProceso, [registro]), null, new EntornoSociedad(ctx), x.Fecha);
+            if (!propuesta.EsCorrecto) return "la plantilla no genera el asiento (" + string.Join(" ", propuesta.Errores.Select(e => e.Mensaje)) + ")";
+            propuestos.AddRange(propuesta.Valor.Asientos.SelectMany(a => a.Apuntes).Select(a => (a.Cuenta, a.Debe - a.Haber)));
+        }
+        var esperado = Sumar(propuestos);
         var real = Sumar(await ConsultarAsync("SELECT CuentaContable, ImporteDebe, ImporteHaber FROM Apuntes WHERE IdAsiento = ?",
             r => ((r.Texto("CuentaContable") ?? "").Trim(), (r.DecimalNulo("ImporteDebe") ?? 0m) - (r.DecimalNulo("ImporteHaber") ?? 0m)), idAsiento));
         var cuentas = esperado.Keys.Union(real.Keys).Order(StringComparer.Ordinal).ToList();
