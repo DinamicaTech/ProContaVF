@@ -108,7 +108,8 @@ public sealed class FilaLineaN43VM(LineaN43 datos) : ModeloVista
         ? "Sin cuenta: asígnala con «Asignar cuenta…» (F2) o crea una palabra clave (Ctrl+K)"
         : string.Join("\n", _datos.Destinos.Select(d => $"{d.Cuenta ?? "(no existe en el ejercicio)"} · {d.Nombre} · {Formatos.Importe(Math.Abs(d.ImporteFirmado))} · {Origen(d)}"))
           + "\nDoble clic: su Mayor";
-    public string Documento => _datos.Documento ?? "";
+    /// <summary>Documento del banco; vacío si viene a ceros (no aporta nada).</summary>
+    public string Documento => _datos.Documento is { } d && d.Trim().Any(c => c != '0') ? d : "";
     public string Estado => FiltroLineasN43.TextoEstado(_datos.Estado);
     public EstadoLineaN43 EstadoDatos => _datos.Estado;
     public string AyudaEstado => _datos.Estado switch

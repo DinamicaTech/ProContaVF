@@ -58,6 +58,7 @@ public sealed class PalabrasClaveN43VM : ModeloVista
     public string Cabecera => $"{Linea.Rotulo} · {Linea.NombreBanco} · {(Linea.EsCargo ? "cargo" : "abono")}";
     public ObservableCollection<PalabraExistenteN43VM> Existentes { get; } = [];
     public bool SinExistentes => Existentes.Count == 0;
+    /// <summary>Se ha creado o corregido alguna palabra clave: la pantalla ofrece aplicarlas. Borrar no cuenta (las líneas conservan su cuenta).</summary>
     public bool HuboCambios { get; private set; }
 
     public bool Editando => _editando is not null;
@@ -156,7 +157,6 @@ public sealed class PalabrasClaveN43VM : ModeloVista
                 new OpcionMensaje("Cancelar", "No cambia nada", Principal: true, Cancelar: true)) != 0) return false;
         var r = await _servicio.BorrarPalabraAsync(_idSociedad, p.Datos.Id);
         if (!r.EsCorrecto) { Error = string.Join(" ", r.Errores.Select(x => x.TextoOperador())); return false; }
-        HuboCambios = true;
         Mensaje = r.Valor;
         Avisar(nameof(Mensaje));
         if (_editando == p.Datos.Id) Nueva();

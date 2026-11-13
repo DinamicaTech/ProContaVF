@@ -193,24 +193,24 @@
                           HorizontalScrollBarVisibility="Auto" ContextMenu="{StaticResource Menu.Lineas}"
                           SelectionChanged="Tabla_SelectionChanged" MouseDoubleClick="Tabla_MouseDoubleClick" PreviewMouseRightButtonDown="Tabla_PreviewMouseRightButtonDown">
           <pc:TablaProConta.Columns>
-            <DataGridTextColumn Header="Fecha" Binding="{Binding Fecha}" SortMemberPath="FechaOrden" Width="86" ElementStyle="{StaticResource Texto.Celda.Mono}" pc:TablaProConta.Clave="fecha"
+            <DataGridTextColumn Header="Fecha" Binding="{Binding Fecha}" SortMemberPath="FechaOrden" Width="98" ElementStyle="{StaticResource Texto.Celda.Mono}" pc:TablaProConta.Clave="fecha"
                                 pc:TablaProConta.Ayuda="Fecha de operación del movimiento" />
-            <DataGridTextColumn Header="Fecha valor" Binding="{Binding FechaValor}" SortMemberPath="FechaValorOrden" Width="86" ElementStyle="{StaticResource Texto.Celda.Mono}" pc:TablaProConta.Clave="fecha-valor"
+            <DataGridTextColumn Header="Fecha valor" Binding="{Binding FechaValor}" SortMemberPath="FechaValorOrden" Width="98" ElementStyle="{StaticResource Texto.Celda.Mono}" pc:TablaProConta.Clave="fecha-valor"
                                 pc:TablaProConta.Ayuda="Fecha valor: la del asiento salvo que sea del año anterior a la de operación" />
-            <DataGridTextColumn Header="Cuenta origen" Binding="{Binding CuentaOrigen}" Width="84" ElementStyle="{StaticResource Celda.Origen}" pc:TablaProConta.Clave="cuenta-origen"
+            <DataGridTextColumn Header="Cuenta origen" Binding="{Binding CuentaOrigen}" Width="108" ElementStyle="{StaticResource Celda.Origen}" pc:TablaProConta.Clave="cuenta-origen"
                                 pc:TablaProConta.Ayuda="La 572 del banco en el ejercicio de la línea. Doble clic: su Mayor" />
             <DataGridTextColumn Header="Descripción cuenta origen" Binding="{Binding NombreCuentaOrigen}" Width="190" ElementStyle="{StaticResource Celda.OrigenNombre}" pc:TablaProConta.Clave="desc-origen" />
             <DataGridTextColumn Header="Concepto" Binding="{Binding Concepto}" Width="*" MinWidth="260" ElementStyle="{StaticResource Celda.Concepto}" pc:TablaProConta.Clave="concepto"
                                 pc:TablaProConta.Ayuda="Concepto completo del banco; las referencias, en su tooltip" />
-            <DataGridTextColumn Header="Tipo" Binding="{Binding Tipo}" Width="100" ElementStyle="{StaticResource Texto.Celda}" pc:TablaProConta.Clave="tipo"
+            <DataGridTextColumn Header="Tipo" Binding="{Binding Tipo}" Width="150" ElementStyle="{StaticResource Texto.Celda}" pc:TablaProConta.Clave="tipo"
                                 pc:TablaProConta.Ayuda="Tipo de movimiento según los conceptos N43 (Recibo, Transferencia, Tarjeta…); vacío si ninguna regla encaja" />
             <DataGridTextColumn Header="Importe" Binding="{Binding Importe}" SortMemberPath="ImporteOrden" Width="112" ElementStyle="{StaticResource Celda.Importe}" pc:TablaProConta.Clave="importe"
                                 HeaderStyle="{StaticResource Tabla.Cabecera.Derecha}" pc:TablaProConta.Ayuda="Positivo si entra dinero (abono), negativo y en rojo si sale (cargo)" />
-            <DataGridTextColumn Header="Cuenta destino" Binding="{Binding CuentaDestino}" Width="84" ElementStyle="{StaticResource Celda.Destino}" pc:TablaProConta.Clave="cuenta-destino"
+            <DataGridTextColumn Header="Cuenta destino" Binding="{Binding CuentaDestino}" Width="108" ElementStyle="{StaticResource Celda.Destino}" pc:TablaProConta.Clave="cuenta-destino"
                                 pc:TablaProConta.Ayuda="Contrapartida del asiento («Varias» si está repartida). Doble clic: su Mayor" />
             <DataGridTextColumn Header="Descripción cuenta destino" Binding="{Binding NombreCuentaDestino}" Width="200" ElementStyle="{StaticResource Celda.DestinoNombre}" pc:TablaProConta.Clave="desc-destino" />
             <DataGridTextColumn Header="Documento" Binding="{Binding Documento}" Width="96" ElementStyle="{StaticResource Texto.Celda.Mono}" pc:TablaProConta.Clave="documento" />
-            <DataGridTextColumn Header="Estado" Binding="{Binding Estado}" Width="124" ElementStyle="{StaticResource Celda.Estado}" pc:TablaProConta.Clave="estado" />
+            <DataGridTextColumn Header="Estado" Binding="{Binding Estado}" Width="160" ElementStyle="{StaticResource Celda.Estado}" pc:TablaProConta.Clave="estado" />
             <DataGridTextColumn Header="Asiento" Binding="{Binding Asiento}" SortMemberPath="AsientoOrden" Width="70" ElementStyle="{StaticResource Texto.Celda.Importe}" pc:TablaProConta.Clave="asiento"
                                 HeaderStyle="{StaticResource Tabla.Cabecera.Derecha}" pc:TablaProConta.Ayuda="Número del asiento. Doble clic en la línea: verlo" />
           </pc:TablaProConta.Columns>
