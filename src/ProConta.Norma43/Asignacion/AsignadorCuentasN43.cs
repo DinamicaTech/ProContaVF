@@ -6,8 +6,8 @@ namespace ProConta.Norma43.Asignacion;
 /// <summary>Lo que el motor decide para una línea.</summary>
 public sealed record AsignacionLineaN43(int IdLinea, EleccionPalabra Eleccion)
 {
-    /// <summary>True si la línea recibe cuenta: hay palabra clave, no es de remesa y tiene cuenta.</summary>
-    public bool RecibeCuenta => Eleccion.Palabra is { EsRemesa: false, IdIdentidadContable: not null };
+    /// <summary>True si la línea recibe cuenta: hay palabra clave y tiene cuenta.</summary>
+    public bool RecibeCuenta => Eleccion.Palabra is { IdIdentidadContable: not null };
 }
 
 /// <summary>Resumen de una pasada del motor.</summary>
@@ -23,8 +23,8 @@ public sealed record ResultadoAsignacionN43(IReadOnlyList<AsignacionLineaN43> Li
     /// <summary>Líneas en que encajan varias palabras clave igual de concretas con cuentas distintas: se dejan para el operador.</summary>
     public int Ambiguas => Lineas.Count(l => l.Eleccion.Resultado == ResultadoBusqueda.Ambigua);
     /// <summary>Líneas cuya palabra clave aún no tiene cuenta.</summary>
-    public int PalabraSinCuenta => Lineas.Count(l => l.Eleccion.Palabra is { EsRemesa: false, IdIdentidadContable: null });
-    /// <summary>Líneas de remesas de recibos: se identifican pero esperan a que se exploten (norma43/remesas).</summary>
+    public int PalabraSinCuenta => Lineas.Count(l => l.Eleccion.Palabra is { IdIdentidadContable: null });
+    /// <summary>Líneas de remesas de recibos (incluidas en las asignadas si su palabra tiene cuenta): quedan pendientes de explotar (norma43/remesas).</summary>
     public int Remesas => Lineas.Count(l => l.Eleccion.Palabra is { EsRemesa: true });
 
     /// <summary>Resumen para el operador.</summary>
@@ -33,14 +33,14 @@ public sealed record ResultadoAsignacionN43(IReadOnlyList<AsignacionLineaN43> Li
         : $"{Asignadas} de {Revisadas} línea(s) sin cuenta la han recibido por palabra clave" +
           (Ambiguas > 0 ? $"; {Ambiguas} encajan con varias palabras clave de cuentas distintas y se dejan sin asignar" : "") +
           (PalabraSinCuenta > 0 ? $"; {PalabraSinCuenta} tienen una palabra clave sin cuenta" : "") +
-          (Remesas > 0 ? $"; {Remesas} son remesas de recibos pendientes de explotar" : "") + ".";
+          (Remesas > 0 ? $"; {Remesas} son remesas de recibos, pendientes de explotar" : "") + ".";
 }
 
 /// <summary>
 /// Motor de asignación automática de cuentas a las líneas de extractos Norma 43 con las palabras clave bancarias
 /// (norma43/asignacion-cuentas). Revisa las líneas de la sociedad (o de un lote) que no tienen imputación viva ni asiento y
 /// que no son de lotes revertidos, elige la palabra clave más concreta (<see cref="ReglasPalabrasClave"/>) y, si tiene cuenta
-/// y no es de remesa, escribe la imputación de contrapartida con la palabra clave que la asignó. Nunca toca una línea que ya
+/// (también las de remesa, como hacía el ERP), escribe la imputación de contrapartida con la palabra clave que la asignó. Nunca toca una línea que ya
 /// tiene cuenta (puesta a mano, migrada o asignada antes), así que se puede repetir sin efectos.
 /// </summary>
 public sealed class AsignadorCuentasN43

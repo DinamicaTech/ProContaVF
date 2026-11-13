@@ -78,13 +78,22 @@ public sealed class ReglasPalabrasClaveTests
         Assert.False(ReglasPalabrasClave.Encaja(P(1, " - "), Cargo("CUALQUIER COSA")));
 
     [Fact]
-    public void Las_remesas_y_las_palabras_sin_cuenta_no_ponen_cuenta()
+    public void El_asterisco_es_un_comodin_con_orden()
     {
-        var remesa = new AsignacionLineaN43(1, ReglasPalabrasClave.Elegir(Abono("REMESA RECIBOS"), [P(1, "remesa", sentido: "D", especial: ReglasPalabrasClave.EspecialRemesa)]));
+        var p = P(1, "TGSS. COTIZACION*PERSONA INVENTADA");
+        Assert.True(ReglasPalabrasClave.Encaja(p, Cargo("COR TGSS. COTIZACION 005 AUTONOMOS PERIODO 02/2026 PERSONA INVENTADA")));
+        Assert.False(ReglasPalabrasClave.Encaja(p, Cargo("PERSONA INVENTADA TGSS. COTIZACION")));
+        Assert.Equal(new[] { "TGSSCOTIZACION", "PERSONAINVENTADA" }, ReglasPalabrasClave.Trozos(p.PalabraClave));
+    }
+
+    [Fact]
+    public void Las_remesas_ponen_su_cuenta_y_las_palabras_sin_cuenta_no()
+    {
+        var remesa = new AsignacionLineaN43(1, ReglasPalabrasClave.Elegir(Abono("REMESA RECIBOS"), [P(1, "remesa", sentido: "D", cuenta: 572, especial: ReglasPalabrasClave.EspecialRemesa)]));
         var sinCuenta = new AsignacionLineaN43(2, ReglasPalabrasClave.Elegir(Cargo("CUOTA NUEVA"), [P(2, "cuota nueva", cuenta: null)]));
         var normal = new AsignacionLineaN43(3, ReglasPalabrasClave.Elegir(Cargo("CUOTA NUEVA"), [P(3, "cuota nueva", cuenta: 100)]));
         var r = new ResultadoAsignacionN43([remesa, sinCuenta, normal]);
-        Assert.Equal((1, 1, 1, 3), (r.Asignadas, r.Remesas, r.PalabraSinCuenta, r.Revisadas));
+        Assert.Equal((2, 1, 1, 3), (r.Asignadas, r.Remesas, r.PalabraSinCuenta, r.Revisadas));
     }
 
     [Fact]

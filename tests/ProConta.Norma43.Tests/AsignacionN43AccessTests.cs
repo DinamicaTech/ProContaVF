@@ -143,27 +143,29 @@ public sealed class AsignacionN43AccessTests : IDisposable
     }
 
     [Fact]
-    public async Task Ambiguas_remesas_palabras_sin_cuenta_y_lotes_revertidos_no_reciben_cuenta()
+    public async Task Ambiguas_palabras_sin_cuenta_y_lotes_revertidos_no_reciben_cuenta_y_las_remesas_si()
     {
         await EmpresaAsync();
         await PalabraAsync("luz", "H", _luz);
         await PalabraAsync("fic", "H", _gimnasio);
-        await PalabraAsync("cliente inventado", "D", null, especial: ReglasPalabrasClave.EspecialRemesa);
+        await PalabraAsync("cliente inventado", "D", _cliente, especial: ReglasPalabrasClave.EspecialRemesa);
         await PalabraAsync("cafeteria", "H", null);
 
         var r = await Servicio.ImportarAsync(_ctx, Fichero(Nov, new(2026, 11, 7), 1000m, Semana1), "semana1.n43", null, _actor);
 
-        Assert.Equal((3, 0, 1, 1, 1), (r.Asignacion!.Revisadas, r.Asignacion.Asignadas, r.Asignacion.Ambiguas, r.Asignacion.Remesas, r.Asignacion.PalabraSinCuenta));
-        Assert.Equal(0, await ContarAsync("SELECT COUNT(*) FROM ImputacionesLineaExtractoBancario"));
+        Assert.Equal((3, 1, 1, 1, 1), (r.Asignacion!.Revisadas, r.Asignacion.Asignadas, r.Asignacion.Ambiguas, r.Asignacion.Remesas, r.Asignacion.PalabraSinCuenta));
+        Assert.Equal(_cliente, await ContarAsync("SELECT IdIdentidadContable FROM ImputacionesLineaExtractoBancario"));
 
+        // Para revertir hay que descartar antes la imputación de la remesa.
+        await Bd.EjecutarAsync(s => s.EjecutarAsync("UPDATE ImputacionesLineaExtractoBancario SET Estado = 'DESCARTADA'"));
         Assert.True((await Servicio.RevertirAsync(_ctx, r.IdLote!.Value, _actor, "Prueba")).EsCorrecto);
         await PalabraAsync("cafeteria", "H", _gimnasio, palabra2: "cafeteria");
         Assert.Equal(0, (await Asignador.AsignarAsync(_ctx)).Revisadas);
         // Al reactivar el lote revertido, sus líneas pasan otra vez por el motor.
         var otra = await Servicio.ImportarAsync(_ctx, Fichero(Nov, new(2026, 11, 7), 1000m, Semana1), "semana1.n43", null, _actor);
         Assert.Equal(VeredictoImportacion.Reactivable, otra.Veredicto);
-        Assert.Equal(1, otra.Asignacion!.Asignadas);
-        Assert.Equal(_gimnasio, await ContarAsync("SELECT IdIdentidadContable FROM ImputacionesLineaExtractoBancario"));
+        Assert.Equal(2, otra.Asignacion!.Asignadas);
+        Assert.Equal(_gimnasio, await ContarAsync("SELECT IdIdentidadContable FROM ImputacionesLineaExtractoBancario WHERE Estado = 'CONFIRMADA' AND Concepto = 'CAFETERIA'"));
     }
 
     [Fact]
