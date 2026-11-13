@@ -106,6 +106,7 @@ internal sealed partial class EjecucionErp(MigradorErp m, OrigenErp o, OpcionesM
             await FaseAsync("4 compras", ComprasAsync);
             await FaseAsync("5 norma43", Norma43Async);
             await FaseAsync("6 activos", ActivosAsync);
+            await FaseAsync("7 nominas", NominasAsync);
             await FaseAsync("controles", ControlesAsync);
             _r.Estado = _r.Incidencias.Any(i => i.Severidad == Severidad.Bloqueante) ? EstadosImportacion.ConIncidencias : EstadosImportacion.Completada;
         }
@@ -344,12 +345,16 @@ internal sealed partial class EjecucionErp(MigradorErp m, OrigenErp o, OpcionesM
 
     /// <summary>
     /// Repetir la migración no duplica: antes de cargar, se borra lo que cargó la ejecución anterior en orden inverso de
-    /// dependencias (activos, Norma 43, compras, programadas y facturas). Los terceros, los conceptos, las actividades y los
+    /// dependencias (nóminas migradas, activos, Norma 43, compras, programadas y facturas). Los terceros, los conceptos, las actividades y los
     /// catálogos no se borran: se actualizan por sus mapas.
     /// </summary>
     private async Task LimpiarAnteriorAsync()
     {
         if (_anteriores.Count == 0) return;
+        var nominas = Anteriores(TiposErp.ImportacionNomina).ToList();
+        await BorrarAsync("Nominas", "IdImportacionNomina", nominas);
+        await BorrarAsync("ImportacionesNomina", "IdImportacionNomina", nominas);
+
         var activos = Anteriores(TiposErp.Activo).ToList();
         foreach (var t in new[] { "SubcuentasActivo", "CuentasActivo", "ActivosInmuebles", "PlanesAmortizacionActivo" })
             await BorrarAsync(t, "IdActivo", activos);
@@ -409,4 +414,6 @@ public static class TiposErp
     public const string TipoActivo = "TIPO_ACTIVO";
     public const string PlantillaActivo = "PLANTILLA_ACTIVO";
     public const string Activo = "ACTIVO";
+    public const string Empleado = "EMPLEADO";
+    public const string ImportacionNomina = "IMPORTACION_NOMINA";
 }
