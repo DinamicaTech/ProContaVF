@@ -37,8 +37,8 @@
           </Grid>
           <ComboBox Width="160" Margin="10,0,0,0" VerticalAlignment="Center" ItemsSource="{Binding OpcionesEjercicio}" SelectedItem="{Binding FiltroEjercicio}"
                     ToolTip="Solo las ventas con fecha de entrada en ese ejercicio" />
-          <ComboBox Width="150" Margin="10,0,0,0" VerticalAlignment="Center" ItemsSource="{Binding OpcionesEstado}" SelectedItem="{Binding FiltroEstado}"
-                    ToolTip="Pendientes de facturar, en un borrador, facturadas, anuladas o con un cambio de Avaibook que no se ha podido aplicar" />
+          <ComboBox Width="220" Margin="10,0,0,0" VerticalAlignment="Center" ItemsSource="{Binding OpcionesEstado}" SelectedItem="{Binding FiltroEstado}"
+                    ToolTip="Pendientes de facturar; pendientes de meses cerrados (entrada anterior al mes en curso: lo que se factura al cerrar el mes); en un borrador, facturadas, anuladas o con un cambio de Avaibook que no se ha podido aplicar" />
           <ComboBox Width="150" Margin="10,0,0,0" VerticalAlignment="Center" ItemsSource="{Binding OpcionesOrigen}" SelectedItem="{Binding FiltroOrigen}" ToolTip="Solo las ventas de este origen" />
           <ComboBox Width="230" Margin="10,0,0,0" VerticalAlignment="Center" ItemsSource="{Binding OpcionesActivo}" SelectedItem="{Binding FiltroActivo}" ToolTip="Solo las ventas de este activo relacionado" />
           <Button Style="{StaticResource Boton.Enlace}" Content="Limpiar filtros" Command="{Binding LimpiarFiltrosCommand}" VerticalAlignment="Center" Margin="10,0,0,0"

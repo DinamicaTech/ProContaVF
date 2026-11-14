@@ -54,6 +54,9 @@ public sealed class FilaVentaVM(VentaPorFacturar datos, string origen, string cl
 /// </summary>
 public sealed class ListadoVentasVM : ModeloVista, IPestanaTrabajo
 {
+    /// <summary>Valor del filtro «Pendientes de meses cerrados» (propietario 2026-11-14 19:59).</summary>
+    private const string MesesCerrados = "MesesCerrados";
+
     private readonly ModuloFacturacion _modulo;
     private readonly ServiciosFacturacion _s;
     private readonly ServicioVentas _ventas;
@@ -80,7 +83,7 @@ public sealed class ListadoVentasVM : ModeloVista, IPestanaTrabajo
         _modulo = modulo;
         _s = modulo.Servicios;
         _ventas = ventas;
-        OpcionesEstado = [new("Todos los estados", null), new("Pendientes", nameof(EstadoVenta.Pendiente)), new("En borrador", nameof(EstadoVenta.EnBorrador)),
+        OpcionesEstado = [new("Todos los estados", null), new("Pendientes", nameof(EstadoVenta.Pendiente)), new("Pendientes de meses cerrados", MesesCerrados), new("En borrador", nameof(EstadoVenta.EnBorrador)),
             new("Facturadas", nameof(EstadoVenta.Facturada)), new("Anuladas", nameof(EstadoVenta.Anulada)), new("Con incidencia", "Incidencia")];
         _filtroEstado = OpcionesEstado[1];
         // Por defecto, las ventas con entrada en el ejercicio de trabajo.
@@ -177,7 +180,14 @@ public sealed class ListadoVentasVM : ModeloVista, IPestanaTrabajo
 
     private bool Cumple(FilaVentaVM f) =>
         f.Contiene(_texto)
-        && (_filtroEstado.Valor switch { null => true, "Incidencia" => f.TieneIncidencia, var e => f.Datos.Estado.ToString() == e })
+        && (_filtroEstado.Valor switch
+        {
+            null => true,
+            "Incidencia" => f.TieneIncidencia,
+            // Pendientes con entrada anterior al mes en curso: lo que «Facturar todo» puede facturar sin tocar el mes abierto.
+            MesesCerrados => f.Datos.Estado == EstadoVenta.Pendiente && f.Fecha < new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1),
+            var e => f.Datos.Estado.ToString() == e
+        })
         && (_filtroOrigen.Id is not int o || f.Datos.IdOrigenVenta == o)
         && (_filtroActivo.Id is not int p || f.Datos.IdActivo == p)
         && (_filtroEjercicio.Id is not int e2 || f.Fecha.Year == e2);
