@@ -1,0 +1,574 @@
+<title>ProConta Diario (Opus)</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* Maqueta de ProContaVF: pantalla Diario (tabla Apuntes) dentro del contenedor de escritorio.
+   Tokens copiados de sources/maquetas (aspecto único y claro, como la aplicación de escritorio).
+   Layout: cabecera con acciones generales, barra de filtros, franja de integridad, rejilla + panel de detalle a la derecha, barra de selección al pie. */
+:root{
+  --navy:#14213A;--navy2:#22314F;--navy3:#1B2A47;--ink:#16213A;--mut:#646A78;--mut2:#7A8090;--txt2:#3B4252;
+  --or:#F4A259;--or2:#D9622B;--or3:#B4481F;--bg:#F1EEE7;--bg2:#FBFAF7;--card:#FFFFFF;--ln:#ECE8DE;--ln2:#F3F0E9;--ln3:#E1DDD2;
+  --inb:#E4E1D8;--inbg:#FAF9F6;--blue:#1D5C8C;--blueb:#E3ECF6;--green:#1E6B45;--greenb:#E2F0E8;--red:#B42318;--redb:#FDF1EF;
+  --amb:#8A4410;--ambb:#FFEBD6;--pur:#5B3F86;--purb:#ECE6F3;--act:#FFF3E6;--selb:#E8F0F9;--grp:#F6F3EC;--white:#FFFFFF;--demo:#C9CED8;--demob:#3A4A6A;
+  --f-ui:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;--f-mono:"IBM Plex Mono",ui-monospace,Consolas,monospace;
+  --f-disp:"Bricolage Grotesque","IBM Plex Sans",system-ui,sans-serif;
+  color-scheme:light;
+}
+[hidden]{display:none!important}
+html,body{height:100%}
+body{background:var(--bg);color:var(--ink);font:14px/1.45 var(--f-ui);margin:0}
+*{box-sizing:border-box}
+button,input,select{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--or2);outline-offset:1px}
+.gut{padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.demo{background:var(--ink);color:var(--demo);display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding-block:8px;font-size:13px;border-bottom:2px dashed var(--or)}
+.demo b{background:var(--or);color:var(--ink);font:600 11px var(--f-mono);padding:2px 7px;border-radius:3px;letter-spacing:.06em}
+.demo button{background:var(--navy2);border:1px solid var(--demob);color:var(--white);border-radius:6px;padding:4px 10px;cursor:pointer}
+.demo span{opacity:.85}
+.top{background:var(--navy);color:var(--white);display:flex;align-items:center;gap:14px;padding-block:10px;flex-wrap:wrap}
+.logo{font:700 17px var(--f-disp);display:flex;gap:8px;align-items:center}
+.logo i{width:20px;height:20px;border-radius:5px;background:var(--or);display:inline-block}
+.ctx{border:1px solid var(--demob);border-radius:6px;padding:3px 10px;font-size:13px;color:var(--demo)}
+.top .op{margin-left:auto;font-size:13px;color:var(--demo)}
+.tabs{background:var(--navy3);display:flex;gap:2px;padding-top:6px;overflow-x:auto}
+.tab{background:transparent;border:0;color:var(--demo);padding:7px 14px;border-radius:7px 7px 0 0;white-space:nowrap;font-size:13.5px}
+.tab[aria-selected=true]{background:var(--bg);color:var(--ink);font-weight:600}
+main{padding-block:16px;display:flex;flex-direction:column;gap:12px;min-width:0}
+.ph{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.ph h1{font:600 22px var(--f-disp);margin:0}
+.ph .sub{color:var(--mut);font-size:13px}
+.ph .sp{margin-left:auto;display:flex;gap:8px;flex-wrap:wrap}
+.btn{border:1px solid var(--inb);background:var(--card);border-radius:7px;padding:6px 12px;cursor:pointer;font-weight:500;font-size:13.5px;white-space:nowrap}
+.btn.pri{background:var(--navy);color:var(--white);border-color:var(--navy)}
+.btn.dan{background:var(--red);color:var(--white);border-color:var(--red)}
+.btn.sm{padding:3px 9px;font-size:12.5px}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn kbd,.menu kbd{font:500 11px var(--f-mono);color:var(--mut2);margin-left:6px}
+.btn.pri kbd{color:var(--demo)}
+.card{background:var(--card);border:1px solid var(--ln);border-radius:10px;min-width:0}
+.filters{display:flex;gap:8px;flex-wrap:wrap;align-items:center;padding:12px 14px}
+.filters label{font-size:12px;color:var(--mut);display:flex;gap:6px;align-items:center}
+.seg{display:inline-flex;background:var(--ln2);border-radius:7px;padding:2px;flex-wrap:wrap}
+.seg button{border:0;background:transparent;padding:4px 10px;border-radius:6px;cursor:pointer;font-size:13px;color:var(--txt2)}
+.seg button[aria-pressed=true]{background:var(--card);box-shadow:0 1px 2px rgba(20,33,58,.12);color:var(--ink);font-weight:500}
+.inp{border:1px solid var(--inb);background:var(--inbg);border-radius:7px;padding:5px 10px;font-size:13px}
+.inp.search{width:230px;max-width:100%}
+.inp.date{width:128px}
+.pick{border:1px solid var(--inb);background:var(--inbg);border-radius:7px;padding:5px 10px;font-size:13px;cursor:pointer;display:inline-flex;gap:6px;align-items:center}
+.pick .tag{margin-left:2px}
+.chk{display:inline-flex;gap:5px;align-items:center;font-size:13px;color:var(--txt2);cursor:pointer}
+.chips{display:flex;gap:6px;flex-wrap:wrap;padding:0 14px 12px}
+.chip{display:inline-flex;gap:6px;align-items:center;background:var(--act);color:var(--or3);border:1px solid #F3D3B5;border-radius:999px;padding:1px 4px 1px 10px;font-size:12px}
+.chip button{border:0;background:transparent;cursor:pointer;color:var(--or3);padding:0 4px;font-size:13px;line-height:1}
+.strip{display:flex;gap:8px;flex-wrap:wrap}
+.st{display:inline-flex;gap:8px;align-items:center;border-radius:8px;padding:6px 10px;font-size:12.5px}
+.st.ok{background:var(--greenb);color:var(--green)}
+.st.wa{background:var(--ambb);color:var(--amb)}
+.st.in{background:var(--blueb);color:var(--blue)}
+.st a{color:inherit;font-weight:600;cursor:pointer;text-decoration:underline}
+.work{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:12px;align-items:start}
+@media (max-width:1100px){.work{grid-template-columns:minmax(0,1fr)}}
+.gridcard>header{display:flex;align-items:center;gap:10px;padding:10px 14px;flex-wrap:wrap;border-bottom:1px solid var(--ln)}
+.gridcard>header .n{color:var(--mut);font-size:13px}
+.gridcard>header .sp{margin-left:auto;display:flex;gap:8px;align-items:center}
+.tw{overflow:auto;max-height:560px}
+table{border-collapse:collapse;width:100%;font-size:13px}
+thead th{position:sticky;top:0;background:var(--card);z-index:1;font-weight:600;color:var(--mut);text-align:left;padding:7px 8px;border-bottom:1px solid var(--ln);white-space:nowrap;font-size:12px;cursor:pointer;user-select:none}
+thead th .ar{color:var(--or2)}
+td{padding:6px 8px;border-bottom:1px solid var(--ln2);white-space:nowrap}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
+td.mono{font-family:var(--f-mono);font-size:12.5px}
+td.wrap{white-space:normal;min-width:180px}
+td.c,th.c{text-align:center}
+td.dim{color:var(--mut)}
+tbody tr{cursor:default;user-select:none}
+tbody tr:hover{background:var(--bg2)}
+tbody tr.sel,tbody tr.sel:hover{background:var(--selb)}
+tbody tr.act{box-shadow:inset 3px 0 0 var(--or)}
+tbody tr.g td{background:var(--grp);border-bottom:1px solid var(--ln);font-weight:500}
+tbody tr.g.sel td{background:var(--selb)}
+tbody tr.l td:first-child{padding-left:26px}
+tbody tr.l.sel td{background:#F1F6FC}
+tbody tr.ap td{color:var(--mut2);font-style:italic}
+tfoot td{position:sticky;bottom:0;font-weight:600;border-top:1px solid var(--ln3);border-bottom:0;background:var(--bg2);font-variant-numeric:tabular-nums}
+.pill{display:inline-flex;align-items:center;gap:5px;border-radius:999px;padding:0 8px;font-size:11.5px;font-weight:500;white-space:nowrap}
+.pill::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
+.o-man{background:var(--purb);color:var(--pur)}
+.o-ven{background:var(--greenb);color:var(--green)}
+.o-com{background:var(--ambb);color:var(--amb)}
+.o-ban{background:var(--blueb);color:var(--blue)}
+.o-nom{background:#E6F2F1;color:#14615C}
+.o-otr{background:var(--ln2);color:var(--mut)}
+.tag{font:500 11.5px var(--f-mono);color:var(--mut);background:var(--ln2);border-radius:4px;padding:1px 6px}
+.ico{font:600 11px var(--f-mono);border-radius:4px;padding:0 5px;display:inline-block}
+.i-lock{background:var(--redb);color:var(--red)}
+.i-auto{background:var(--ln2);color:var(--mut)}
+.i-p{color:var(--green);font-weight:700}
+.i-rel{background:var(--purb);color:var(--pur)}
+.selbar{display:flex;gap:16px;flex-wrap:wrap;align-items:center;padding:8px 14px;border-top:1px solid var(--ln);font-size:12.5px;color:var(--mut);background:var(--bg2);border-radius:0 0 10px 10px}
+.selbar b{color:var(--ink);font-variant-numeric:tabular-nums}
+.selbar .sp{margin-left:auto}
+/* panel de detalle (ficha) */
+.side{display:flex;flex-direction:column}
+.side>header{padding:12px 14px 8px;border-bottom:1px solid var(--ln)}
+.side>header h2{margin:0;font:600 17px var(--f-disp);display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.side>header p{margin:3px 0 0;color:var(--mut);font-size:12.5px}
+.side .sb{padding:12px 14px;display:flex;flex-direction:column;gap:12px}
+.side h3{margin:0;font-size:11.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--mut);font-weight:600}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;font-size:13px}
+.kv dt{color:var(--mut)}
+.kv dd{margin:0;min-width:0}
+.fld{display:flex;flex-direction:column;gap:3px;font-size:12px;color:var(--mut)}
+.fld input,.fld textarea{border:1px solid var(--inb);background:var(--inbg);border-radius:7px;padding:5px 8px;font-size:13px;color:var(--ink);width:100%}
+.fld textarea{min-height:52px;resize:vertical}
+.fld input:disabled,.fld textarea:disabled{background:var(--ln2);color:var(--mut)}
+.mini{width:100%;font-size:12px}
+.mini td{padding:3px 4px}
+.hist{display:flex;flex-direction:column;gap:6px;font-size:12.5px}
+.hist div{border-left:2px solid var(--ln3);padding-left:8px}
+.hist small{color:var(--mut);display:block}
+.side>footer{display:flex;gap:8px;justify-content:flex-end;padding:10px 14px;border-top:1px solid var(--ln)}
+.lnk{color:var(--blue);cursor:pointer;text-decoration:underline;background:none;border:0;padding:0;font-size:13px}
+.big{font:600 19px var(--f-disp);font-variant-numeric:tabular-nums}
+/* menú contextual */
+.menu{position:fixed;z-index:50;background:var(--card);border:1px solid var(--ln3);border-radius:8px;box-shadow:0 8px 24px rgba(20,33,58,.18);padding:4px;width:310px;max-width:calc(100vw - 32px);max-height:calc(100vh - 16px);overflow:auto}
+.menu button{display:flex;flex-wrap:wrap;width:100%;text-align:left;border:0;background:transparent;padding:5px 10px;border-radius:5px;cursor:pointer;font-size:13px;column-gap:10px}
+.menu button:hover:not(:disabled){background:var(--act)}
+.menu button:disabled{color:var(--mut2);cursor:not-allowed}
+.menu button kbd{margin-left:auto}
+.menu button em{flex-basis:100%;font-style:normal;font-size:11.5px;color:var(--mut2)}
+.menu hr{border:0;border-top:1px solid var(--ln);margin:4px 0}
+.menu .t{font-size:11.5px;color:var(--mut);padding:4px 10px}
+/* diálogos */
+.scrim{position:fixed;inset:0;background:rgba(20,33,58,.38);z-index:60;display:flex;align-items:center;justify-content:center;padding:16px}
+.dlg{background:var(--card);border-radius:12px;box-shadow:0 18px 50px rgba(20,33,58,.3);width:min(560px,100%);max-height:calc(100% - 32px);display:flex;flex-direction:column}
+.dlg.rs{resize:both;overflow:hidden;width:min(640px,100%);height:min(520px,100%);min-width:320px;min-height:300px;max-width:100%;max-height:100%}
+.dlg>header{padding:16px 18px 6px}
+.dlg>header h3{margin:0;font:600 18px var(--f-disp)}
+.dlg>header p{margin:4px 0 0;color:var(--mut);font-size:13px}
+.dlg .body{padding:10px 18px;overflow:auto;display:flex;flex-direction:column;gap:12px;flex:1;min-height:0}
+.dlg>footer{padding:12px 18px;border-top:1px solid var(--ln);display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;align-items:center}
+.dlg>footer .hint{margin-right:auto}
+.warn{background:var(--redb);color:var(--red);border-radius:8px;padding:9px 12px;font-size:13px}
+.info{background:var(--blueb);color:var(--blue);border-radius:8px;padding:9px 12px;font-size:13px}
+.hint{color:var(--mut);font-size:12.5px}
+.selt{border:1px solid var(--ln);border-radius:8px;overflow:auto;flex:1;min-height:0}
+.selt td{padding:5px 8px}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(18px + env(safe-area-inset-bottom,0px));background:var(--navy);color:var(--white);padding:9px 16px;border-radius:8px;font-size:13px;z-index:70;box-shadow:0 8px 24px rgba(20,33,58,.25);max-width:calc(100vw - 32px)}
+.status{background:var(--card);border-top:1px solid var(--ln);display:flex;gap:16px;flex-wrap:wrap;font-size:12px;color:var(--mut);padding-block:6px}
+.notes{background:var(--card);border:1px dashed var(--or2);border-radius:10px;padding:12px 14px;font-size:13px;color:var(--txt2)}
+.notes h3{margin:0 0 6px;font:600 14px var(--f-ui);color:var(--or3)}
+.notes ul{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:3px}
+.notes code{font:12px var(--f-mono);background:var(--ln2);padding:0 4px;border-radius:3px}
+@media (max-width:640px){.top .op{display:none}.ph .sp{margin-left:0}.inp.search{width:100%}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div class="demo gut"><b>MAQUETA · OPUS</b><span>Clic para seleccionar; Ctrl o Mayús para varios; clic derecho para las acciones; doble clic abre el asiento. Datos inventados.</span>
+  <button id="dm-menu" type="button" title="Abre el menú contextual sobre la selección actual">Ver menú contextual</button>
+  <button id="dm-sel" type="button" title="Abre el selector de subcuentas del filtro Cuenta">Selector de subcuentas</button>
+  <button id="dm-err" type="button" title="Muestra el aviso que sale al intentar cambiar un asiento fiscal de un trimestre cerrado">Aviso de trimestre cerrado</button>
+</div>
+<div class="top gut"><span class="logo"><i></i>ProContaVF</span><span class="ctx">Apartamentos Mirador SL · Ejercicio 2026</span><span class="op">Ronald</span></div>
+<div class="tabs gut" role="tablist"><span class="tab">Inicio</span><span class="tab">Mayor</span><span class="tab" aria-selected="true">Diario</span><span class="tab">Ventas por facturar</span><span class="tab">Bancos</span></div>
+
+<main class="gut">
+  <div class="ph">
+    <h1>Diario</h1><span class="sub">Apuntes del ejercicio, por orden de asiento</span>
+    <div class="sp">
+      <button class="btn pri" id="b-nuevo" type="button" title="Abre la pantalla de asiento manual con un asiento en blanco (Ins)">Nuevo asiento<kbd>Ins</kbd></button>
+      <button class="btn" id="b-renum" type="button" title="Vuelve a numerar los asientos del ejercicio por fecha y cierra los huecos de la numeración">Renumerar…</button>
+      <button class="btn" id="b-libro" type="button" title="Imprime o exporta el libro Diario oficial del periodo filtrado (PDF o Excel)">Libro Diario…</button>
+    </div>
+  </div>
+
+  <section class="card">
+    <div class="filters">
+      <label for="f-ej">Ejercicio <select id="f-ej" class="inp" title="Ejercicio que se consulta"><option>2026</option><option>2025</option></select></label>
+      <div class="seg" id="f-per" role="group" aria-label="Periodo" title="Periodo de fechas contables">
+        <button type="button" data-p="año">Año</button><button type="button" data-p="1">1T</button><button type="button" data-p="2">2T</button><button type="button" data-p="3">3T</button><button type="button" data-p="4">4T</button><button type="button" data-p="mes" aria-pressed="true">Noviembre</button>
+      </div>
+      <input id="f-des" class="inp date" type="date" value="2026-11-01" title="Desde la fecha contable" aria-label="Desde">
+      <input id="f-has" class="inp date" type="date" value="2026-11-30" title="Hasta la fecha contable" aria-label="Hasta">
+      <button class="pick" id="f-cta" type="button" title="Muestra solo los asientos que tocan las subcuentas elegidas">Cuenta: <span id="f-cta-t">todas</span></button>
+      <select id="f-ori" class="inp" title="Origen del asiento: quién lo generó">
+        <option value="">Todos los orígenes</option><option>Manual</option><option>Ventas</option><option>Compras</option><option>Banco</option><option>Nóminas</option><option>Amortización</option><option>Liquidación IVA</option><option>Apertura</option>
+      </select>
+      <input id="f-txt" class="inp search" type="search" placeholder="Concepto, documento, nº o importe" title="Busca en concepto y documento; un número entero busca el asiento, un número con decimales busca el importe (Ctrl+F)">
+      <label class="chk" title="Oculta los apuntes ya punteados"><input type="checkbox" id="f-np"> Sin puntear</label>
+    </div>
+    <div class="chips" id="chips"></div>
+  </section>
+
+  <div class="strip" id="strip"></div>
+
+  <div class="work">
+    <section class="card gridcard">
+      <header>
+        <div class="seg" id="vista" role="group" aria-label="Vista">
+          <button type="button" data-v="asi" aria-pressed="true" title="Un bloque por asiento con sus apuntes debajo; se seleccionan asientos completos">Por asiento</button>
+          <button type="button" data-v="apu" title="Una fila por apunte, ordenable por cualquier columna; se seleccionan apuntes sueltos">Apuntes</button>
+        </div>
+        <span class="n" id="cnt"></span>
+        <div class="sp"><button class="btn sm" id="b-cols" type="button" title="Elige qué columnas se ven y en qué orden; la elección se guarda por operador">Columnas…</button></div>
+      </header>
+      <div class="tw" id="tw"><table id="tbl"><thead id="th"></thead><tbody id="tb"></tbody><tfoot id="tf"></tfoot></table></div>
+      <div class="selbar" id="selbar"></div>
+    </section>
+    <aside class="card side" id="side"></aside>
+  </div>
+
+  <div class="notes">
+    <h3>Notas de la maqueta</h3>
+    <ul>
+      <li>Cabecera solo con acciones generales: <b>Nuevo asiento</b>, <b>Renumerar…</b> y <b>Libro Diario…</b>. Todo lo que actúa sobre filas va en el menú contextual, que cambia según sean asientos (vista «Por asiento») o apuntes (vista «Apuntes»).</li>
+      <li>Las opciones desactivadas del menú dicen por qué en una segunda línea (automático, trimestre cerrado, selección múltiple…), para no dejar callejones sin salida.</li>
+      <li>El panel derecho es la ficha del asiento activo: textos editables con <b>Guardar</b> y <b>Cancelar</b> al pie; con varias filas muestra la suma de la selección.</li>
+      <li>Nada nuevo en el motor salvo <code>CambiarFecha</code>, <code>Renumerar</code> y <code>Duplicar</code>; el resto (punteo, documento, concepto, subcuenta, borrar, corrección) ya existe para el Mayor.</li>
+    </ul>
+  </div>
+</main>
+<div class="status gut"><span>Sociedad: Apartamentos Mirador SL</span><span>Ejercicio 2026 abierto · trimestre activo 4T</span><span>BD de pruebas</span></div>
+
+<div id="menu" class="menu" hidden role="menu"></div>
+<div id="dlgw"></div>
+<div id="toast" class="toast" hidden></div>
+
+<script>
+const CTAS={
+ '1000000':'Capital social','1130000':'Reservas voluntarias','1700001':'Préstamo Banco Sabadell','2110001':'Construcciones · edificio Mirador','2810001':'Amort. acum. construcciones',
+ '4100003':'Limpiezas Sol y Mar SL','4100007':'Inmobiliaria Puerto SL','4300001':'Clientes · Booking','4300002':'Clientes · Airbnb','4650000':'Remuneraciones pendientes de pago',
+ '4720021':'H.P. IVA soportado 21%','4750000':'H.P. acreedora por IVA','4751111':'H.P. retenciones IRPF (111)','4751115':'H.P. retenciones alquileres (115)','4760000':'Seguridad Social acreedora',
+ '4770010':'H.P. IVA repercutido 10%','5720001':'Banco Sabadell ·· 4417','6210000':'Arrendamientos y cánones','6220001':'Reparaciones y conservación','6260000':'Servicios bancarios',
+ '6290000':'Otros servicios','6400000':'Sueldos y salarios','6420000':'Seguridad Social a cargo de la empresa','6810000':'Amortización del inmovilizado material','7050001':'Prestación de servicios · alojamiento'};
+const FISCAL=c=>/^(472|477|4750|4751)/.test(c);
+const ORI={Manual:'o-man',Ventas:'o-ven',Compras:'o-com',Banco:'o-ban','Nóminas':'o-nom'};
+const L=(c,con,d,h,o={})=>({c,con,d,h,doc:o.doc||'',cc:o.cc||'',p:!!o.p});
+let ASI=[
+ {n:1,f:'2026-01-01',desc:'Asiento de apertura',o:'Apertura',auto:true,grab:'2026-01-02',mod:'',op:'Proceso nuevo ejercicio',lines:[L('2110001','Apertura',120000,0),L('5720001','Apertura',18450,0),L('1000000','Apertura',0,3000),L('1130000','Apertura',0,37450),L('1700001','Apertura',0,98000)]},
+ {n:241,f:'2026-09-30',desc:'Liquidación de IVA 3T (modelo 303)',o:'Liquidación IVA',auto:true,grab:'2026-10-14',mod:'',op:'Ronald',src:'Modelo 303 · 3T 2026',lines:[L('4770010','IVA 3T',2140,0),L('4720021','IVA 3T',0,980),L('4750000','IVA 3T a ingresar',0,1160)]},
+ {n:286,f:'2026-11-03',desc:'Factura V-2026-0412 · reserva 31/10–02/11',o:'Ventas',auto:true,grab:'2026-11-03',mod:'',op:'Ronald',src:'Factura V-2026-0412',lines:[L('4300001','Reserva BK-88213',330,0,{doc:'V-2026-0412',p:true}),L('7050001','Reserva BK-88213',0,300,{doc:'V-2026-0412',cc:'APT-2B'}),L('4770010','IVA 10%',0,30,{doc:'V-2026-0412'})]},
+ {n:287,f:'2026-11-03',desc:'Factura 1187 · Limpiezas Sol y Mar',o:'Compras',auto:true,grab:'2026-11-04',mod:'',op:'Ronald',src:'Factura recibida 1187',lines:[L('6220001','Limpieza octubre',450,0,{doc:'1187',cc:'COMUN'}),L('4720021','IVA 21%',94.5,0,{doc:'1187'}),L('4100003','Limpieza octubre',0,544.5,{doc:'1187',p:true})]},
+ {n:288,f:'2026-11-05',desc:'Cobro Booking · liquidación semana 44',o:'Banco',auto:true,grab:'2026-11-06',mod:'',op:'Ronald',src:'Movimiento N43 · 05/11 · 330,00',lines:[L('5720001','Booking BV liquidación',330,0,{p:true}),L('4300001','Booking BV liquidación',0,330,{doc:'V-2026-0412',p:true})]},
+ {n:289,f:'2026-11-07',desc:'Nóminas de octubre',o:'Nóminas',auto:true,grab:'2026-11-07',mod:'',op:'Ronald',src:'Remesa de nóminas 10/2026',lines:[L('6400000','Nóminas 10/2026',1850,0),L('6420000','S.S. empresa 10/2026',592,0),L('4751111','IRPF 10/2026',0,222),L('4760000','S.S. 10/2026',0,709.5),L('4650000','Líquido 10/2026',0,1510.5)]},
+ {n:291,f:'2026-11-10',desc:'Comisión mantenimiento cuenta',o:'Manual',auto:false,grab:'2026-11-10',mod:'2026-11-12',op:'Ronald',notas:'El banco la cobra el día 10 de cada mes.',lines:[L('6260000','Comisión mantenimiento',12.5,0),L('5720001','Comisión mantenimiento',0,12.5,{p:true})],
+  hist:[['12/11 18:02','Ronald','Concepto: «Comision» → «Comisión mantenimiento»','Error de escritura']]},
+ {n:292,f:'2026-11-10',desc:'Pago Limpiezas Sol y Mar · fra. 1187',o:'Banco',auto:true,grab:'2026-11-11',mod:'',op:'Ronald',src:'Movimiento N43 · 10/11 · −544,50',lines:[L('4100003','Transferencia fra. 1187',544.5,0,{doc:'1187',p:true}),L('5720001','Transferencia fra. 1187',0,544.5,{p:true})]},
+ {n:293,f:'2026-11-12',desc:'Factura V-2026-0413 · reserva 08/11–11/11',o:'Ventas',auto:true,grab:'2026-11-12',mod:'',op:'Ronald',src:'Factura V-2026-0413',lines:[L('4300002','Reserva AB-HMQ3',495,0,{doc:'V-2026-0413'}),L('7050001','Reserva AB-HMQ3',0,450,{doc:'V-2026-0413',cc:'APT-1A'}),L('4770010','IVA 10%',0,45,{doc:'V-2026-0413'})]},
+ {n:294,f:'2026-11-12',desc:'Factura 2026/11 · alquiler local',o:'Compras',auto:true,grab:'2026-11-12',mod:'',op:'Ronald',src:'Factura recibida 2026/11',lines:[L('6210000','Alquiler noviembre',800,0,{doc:'2026/11',cc:'COMUN'}),L('4720021','IVA 21%',168,0,{doc:'2026/11'}),L('4751115','Retención 19%',0,152,{doc:'2026/11'}),L('4100007','Alquiler noviembre',0,816,{doc:'2026/11'})]},
+ {n:295,f:'2026-11-14',desc:'Reclasificación limpieza a otros servicios',o:'Manual',auto:false,grab:'2026-11-14',mod:'',op:'Ronald',rel:287,notas:'Corrección del asiento 287 con la plantilla «Cambiar de cuenta».',lines:[L('6290000','Reclasificación fra. 1187',450,0,{doc:'1187',cc:'COMUN'}),L('6220001','Reclasificación fra. 1187',0,450,{doc:'1187',cc:'COMUN'})]},
+ {n:296,f:'2026-11-14',desc:'Amortización de noviembre',o:'Amortización',auto:true,grab:'2026-11-14',mod:'',op:'Ronald',src:'Cuadro de amortización · 11/2026',lines:[L('6810000','Amortización 11/2026',250,0),L('2810001','Amortización 11/2026',0,250)]},
+];
+const ACT_Q=4;
+const qOf=f=>Math.ceil(+f.slice(5,7)/3);
+const fisLock=a=>qOf(a.f)<ACT_Q&&a.lines.some(l=>FISCAL(l.c));
+const eur0=v=>{const s=Math.abs(v).toFixed(2).split('.');return (v<-0.004?'−':'')+s[0].replace(/\B(?=(\d{3})+(?!\d))/g,'.')+','+s[1]};
+const eur=v=>v?eur0(v):'';
+const fd=f=>f.slice(8,10)+'/'+f.slice(5,7)+'/'+f.slice(0,4);
+const $=id=>document.getElementById(id);
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+let vista='asi', sel=new Set(), act=null, anchor=null, ctaF=[], sortK='n', sortD=1, editing=null;
+
+function filtered(){
+  const des=$('f-des').value||'0000', has=$('f-has').value||'9999', ori=$('f-ori').value, t=$('f-txt').value.trim().toLowerCase(), np=$('f-np').checked;
+  const out=[];
+  for(const a of ASI){
+    if(a.f<des||a.f>has) continue;
+    if(ori&&a.o!==ori) continue;
+    if(ctaF.length&&!a.lines.some(l=>ctaF.includes(l.c))) continue;
+    let lines=a.lines.map((l,i)=>({...l,i}));
+    if(np) lines=lines.filter(l=>!l.p);
+    if(t){
+      const num=t.replace(/\./g,'').replace(',','.');
+      if(/^\d+$/.test(t)){ if(String(a.n)!==t && !a.desc.toLowerCase().includes(t) && !lines.some(l=>l.doc.toLowerCase().includes(t))) continue; }
+      else if(/^\d+[.,]\d{1,2}$/.test(t)){ const v=+num; lines=lines.filter(l=>l.d===v||l.h===v); }
+      else if(!a.desc.toLowerCase().includes(t)) lines=lines.filter(l=>l.con.toLowerCase().includes(t)||l.doc.toLowerCase().includes(t));
+    }
+    if(!lines.length) continue;
+    out.push({a,lines});
+  }
+  return out;
+}
+
+function lockIcons(a){
+  let s='';
+  if(fisLock(a)) s+='<span class="ico i-lock" title="Trimestre cerrado con cuentas fiscales: solo se pueden cambiar los textos">3T</span> ';
+  if(a.auto) s+='<span class="ico i-auto" title="Asiento automático: su importe y sus cuentas se cambian desde su origen ('+esc(a.src||a.o)+')">A</span> ';
+  if(a.rel) s+='<span class="ico i-rel" title="Corrige el asiento '+a.rel+'">↺'+a.rel+'</span>';
+  return s;
+}
+const pill=o=>'<span class="pill '+(ORI[o]||'o-otr')+'">'+esc(o)+'</span>';
+
+const COLS_APU=[['n','Asiento','num'],['f','Fecha',''],['o','Origen',''],['c','Subcuenta',''],['cd','Descripción',''],['con','Concepto',''],['doc','Documento',''],['d','Debe','num'],['h','Haber','num'],['cc','C. coste',''],['p','P','c'],['x','','']];
+
+function render(){
+  const rows=filtered();
+  const th=$('th'), tb=$('tb'), tf=$('tf');
+  let D=0,H=0,nl=0;
+  rows.forEach(r=>r.lines.forEach(l=>{D+=l.d;H+=l.h;nl++}));
+  $('cnt').textContent=rows.length+' asientos · '+nl+' apuntes';
+  let html='';
+  if(vista==='asi'){
+    th.innerHTML='<tr><th class="num" title="Número de asiento">Asiento</th><th>Fecha</th><th>Subcuenta</th><th>Descripción</th><th>Concepto</th><th>Documento</th><th class="num">Debe</th><th class="num">Haber</th><th>C. coste</th><th class="c" title="Punteado">P</th></tr>';
+    for(const {a,lines} of rows){
+      const id=String(a.n), s=sel.has(id)?' sel':'', ac=act===id?' act':'';
+      const dd=a.lines.reduce((x,l)=>x+l.d,0);
+      html+='<tr class="g'+s+ac+(a.o==='Apertura'?' ap':'')+'" data-id="'+id+'"><td class="num mono">'+a.n+'</td><td>'+fd(a.f)+'</td><td colspan="4">'+pill(a.o)+' &nbsp;'+esc(a.desc)+' &nbsp;'+lockIcons(a)+'</td><td class="num">'+eur(dd)+'</td><td class="num">'+eur(dd)+'</td><td></td><td></td></tr>';
+      for(const l of lines){
+        html+='<tr class="l'+s+'" data-id="'+id+'"><td></td><td></td><td class="mono">'+l.c+'</td><td class="dim">'+esc(CTAS[l.c]||'')+'</td><td>'+esc(l.con)+'</td><td class="mono">'+esc(l.doc)+'</td><td class="num">'+eur(l.d)+'</td><td class="num">'+eur(l.h)+'</td><td class="mono dim">'+esc(l.cc)+'</td><td class="c">'+(l.p?'<span class="i-p" title="Punteado">✓</span>':'')+'</td></tr>';
+      }
+    }
+    tf.innerHTML='<tr><td colspan="6">Total de lo visible</td><td class="num">'+eur0(D)+'</td><td class="num">'+eur0(H)+'</td><td colspan="2"></td></tr>';
+  }else{
+    th.innerHTML='<tr>'+COLS_APU.map(([k,t,c])=>'<th class="'+c+'" data-k="'+k+'" title="Ordenar por '+(t||'bloqueo')+'">'+t+(sortK===k?' <span class="ar">'+(sortD>0?'▲':'▼')+'</span>':'')+'</th>').join('')+'</tr>';
+    let flat=[];
+    rows.forEach(({a,lines})=>lines.forEach(l=>flat.push({a,l,id:a.n+'-'+l.i})));
+    const val=(r,k)=>({n:r.a.n,f:r.a.f+String(r.a.n).padStart(5,'0'),o:r.a.o,c:r.l.c,cd:CTAS[r.l.c]||'',con:r.l.con,doc:r.l.doc,d:r.l.d,h:r.l.h,cc:r.l.cc,p:r.l.p?1:0,x:r.a.auto?1:0}[k]);
+    flat.sort((x,y)=>{const a=val(x,sortK),b=val(y,sortK);return (a<b?-1:a>b?1:(x.a.n-y.a.n)||(x.l.i-y.l.i))*sortD});
+    for(const r of flat){
+      const s=sel.has(r.id)?' sel':'', ac=act===r.id?' act':'';
+      html+='<tr class="'+s+ac+(r.a.o==='Apertura'?' ap':'')+'" data-id="'+r.id+'"><td class="num mono">'+r.a.n+'</td><td>'+fd(r.a.f)+'</td><td>'+pill(r.a.o)+'</td><td class="mono">'+r.l.c+'</td><td class="dim">'+esc(CTAS[r.l.c]||'')+'</td><td>'+esc(r.l.con)+'</td><td class="mono">'+esc(r.l.doc)+'</td><td class="num">'+eur(r.l.d)+'</td><td class="num">'+eur(r.l.h)+'</td><td class="mono dim">'+esc(r.l.cc)+'</td><td class="c">'+(r.l.p?'<span class="i-p" title="Punteado">✓</span>':'')+'</td><td>'+lockIcons(r.a)+'</td></tr>';
+    }
+    tf.innerHTML='<tr><td colspan="7">Total de lo visible</td><td class="num">'+eur0(D)+'</td><td class="num">'+eur0(H)+'</td><td colspan="3"></td></tr>';
+    th.querySelectorAll('th').forEach(h=>h.onclick=()=>{const k=h.dataset.k;if(sortK===k)sortD=-sortD;else{sortK=k;sortD=1}render()});
+  }
+  tb.innerHTML=html||'<tr><td colspan="12" class="dim" style="padding:20px;text-align:center">Ningún apunte cumple los filtros. <button class="lnk" type="button" onclick="clearF()">Quitar los filtros</button></td></tr>';
+  tb.querySelectorAll('tr[data-id]').forEach(tr=>{
+    tr.onmousedown=e=>{if(e.button===0)click(tr.dataset.id,e)};
+    tr.ondblclick=()=>openAsiento(asiOf(tr.dataset.id));
+    tr.oncontextmenu=e=>{e.preventDefault();if(!sel.has(tr.dataset.id)){sel=new Set([tr.dataset.id]);act=tr.dataset.id;anchor=act;render()}menu(e.clientX,e.clientY)};
+  });
+  renderChips(); renderStrip(rows,D,H); renderSel(); renderSide();
+}
+function visibleIds(){return [...$('tb').querySelectorAll('tr[data-id]')].map(t=>t.dataset.id).filter((v,i,a)=>a.indexOf(v)===i)}
+function click(id,e){
+  if(e.shiftKey&&anchor){const ids=visibleIds();let i=ids.indexOf(anchor),j=ids.indexOf(id);if(i>j)[i,j]=[j,i];if(!e.ctrlKey)sel=new Set();ids.slice(i,j+1).forEach(x=>sel.add(x))}
+  else if(e.ctrlKey||e.metaKey){sel.has(id)?sel.delete(id):sel.add(id);anchor=id}
+  else{sel=new Set([id]);anchor=id}
+  act=id;editing=null;render();
+}
+const asiOf=id=>ASI.find(a=>a.n===+String(id).split('-')[0]);
+function selItems(){ // [{a,l|null}]
+  return [...sel].map(id=>{const a=asiOf(id);if(!a)return null;const p=String(id).split('-');return {a,l:p.length>1?a.lines[+p[1]]:null}}).filter(Boolean);
+}
+function selLines(){const it=selItems();return vista==='asi'?it.flatMap(x=>x.a.lines.map(l=>({a:x.a,l}))):it}
+function selAsis(){return [...new Set(selItems().map(x=>x.a))]}
+
+function renderChips(){
+  const c=[];
+  if(ctaF.length) c.push(['Cuenta: '+ctaF.join(', '),()=>{ctaF=[];$('f-cta-t').textContent='todas'}]);
+  if($('f-ori').value) c.push(['Origen: '+$('f-ori').value,()=>$('f-ori').value='']);
+  if($('f-txt').value) c.push(['Texto: «'+$('f-txt').value+'»',()=>$('f-txt').value='']);
+  if($('f-np').checked) c.push(['Sin puntear',()=>$('f-np').checked=false]);
+  const el=$('chips'); el.innerHTML=''; el.hidden=!c.length;
+  c.forEach(([t,f])=>{const s=document.createElement('span');s.className='chip';s.innerHTML=esc(t)+'<button type="button" title="Quitar este filtro" aria-label="Quitar">×</button>';s.querySelector('button').onclick=()=>{f();render()};el.appendChild(s)});
+  if(c.length){const b=document.createElement('button');b.className='lnk';b.type='button';b.textContent='Quitar todos';b.onclick=clearF;el.appendChild(b)}
+}
+function clearF(){ctaF=[];$('f-cta-t').textContent='todas';$('f-ori').value='';$('f-txt').value='';$('f-np').checked=false;render()}
+function gaps(){const ns=ASI.filter(a=>a.n>1).map(a=>a.n).sort((a,b)=>a-b);const g=[];for(let i=1;i<ns.length;i++)for(let k=ns[i-1]+1;k<ns[i];k++)if(ns[i]-ns[i-1]<10)g.push(k);return g}
+function renderStrip(rows,D,H){
+  const g=gaps(), parcial=ctaF.length||$('f-txt').value||$('f-np').checked;
+  let s='';
+  s+=Math.abs(D-H)<.005?'<span class="st ok" title="La suma del Debe coincide con la del Haber en todos los asientos visibles">✓ Cuadrado · Debe = Haber = '+eur0(D)+'</span>':'<span class="st wa">Descuadre de '+eur0(D-H)+' en lo visible</span>';
+  if(parcial) s+='<span class="st in" title="Con un filtro de cuenta, texto o punteo se ven solo algunos apuntes de cada asiento: los totales son de lo que se ve">Totales parciales: hay apuntes ocultos por los filtros</span>';
+  if(g.length) s+='<span class="st wa" title="Números de asiento que faltan porque se borraron asientos">Hueco en la numeración: '+g.join(', ')+' · <a id="st-ren">Renumerar…</a></span>';
+  s+='<span class="st in" title="Los asientos con IVA o retenciones fechados antes del 1/10/2026 solo admiten cambios de textos">Trimestre activo 4T · 3T cerrado para cuentas fiscales</span>';
+  $('strip').innerHTML=s; const r=$('st-ren'); if(r) r.onclick=dlgRenum;
+}
+function renderSel(){
+  const ls=selLines(); const el=$('selbar');
+  if(!ls.length){el.innerHTML='<span>Sin selección. Clic en una fila; Ctrl+clic o Mayús+clic para varias; Ctrl+A selecciona todo.</span>';return}
+  const D=ls.reduce((x,r)=>x+r.l.d,0),H=ls.reduce((x,r)=>x+r.l.h,0);
+  el.innerHTML='<span>Selección: <b>'+(vista==='asi'?sel.size+' asiento'+(sel.size>1?'s':''):sel.size+' apunte'+(sel.size>1?'s':''))+'</b></span><span>Debe <b>'+eur0(D)+'</b></span><span>Haber <b>'+eur0(H)+'</b></span><span>Saldo <b>'+eur0(D-H)+'</b></span><span class="sp"><button class="btn sm" type="button" id="cp-saldo" title="Copia el saldo de la selección al portapapeles">Copiar saldo</button></span>';
+  $('cp-saldo').onclick=()=>copy(eur0(D-H));
+}
+function copy(t){try{navigator.clipboard.writeText(t).then(()=>toast('Copiado: '+t),()=>toast('No se pudo copiar; selecciona el texto a mano'))}catch(e){toast('No se pudo copiar')}}
+
+/* ficha lateral */
+function renderSide(){
+  const el=$('side'); const as=selAsis();
+  if(!as.length){el.innerHTML='<header><h2>Sin selección</h2><p>Elige un asiento para ver su ficha, su origen y su historial.</p></header>';return}
+  if(sel.size>1){
+    const ls=selLines(), D=ls.reduce((x,r)=>x+r.l.d,0),H=ls.reduce((x,r)=>x+r.l.h,0), cs=[...new Set(ls.map(r=>r.l.c))];
+    el.innerHTML='<header><h2>'+sel.size+' '+(vista==='asi'?'asientos':'apuntes')+' seleccionados</h2><p>De '+as.length+' asiento'+(as.length>1?'s':'')+', '+as.filter(a=>!a.auto).length+' manual'+(as.filter(a=>!a.auto).length===1?'':'es')+'</p></header><div class="sb"><dl class="kv"><dt>Debe</dt><dd class="big">'+eur0(D)+'</dd><dt>Haber</dt><dd class="big">'+eur0(H)+'</dd><dt>Saldo</dt><dd class="big">'+eur0(D-H)+'</dd></dl><div><h3>Subcuentas</h3><table class="mini">'+cs.map(c=>{const x=ls.filter(r=>r.l.c===c);return '<tr><td class="mono">'+c+'</td><td>'+esc(CTAS[c])+'</td><td class="num">'+eur0(x.reduce((s,r)=>s+r.l.d-r.l.h,0))+'</td></tr>'}).join('')+'</table></div><p class="hint">Clic derecho para actuar sobre toda la selección: puntear, asignar documento, ver en el Mayor…</p></div>';
+    return;
+  }
+  const a=as[0], lock=fisLock(a), ed=editing===a.n;
+  const relBy=ASI.find(x=>x.rel===a.n);
+  el.innerHTML='<header><h2>Asiento '+a.n+' '+pill(a.o)+'</h2><p>'+fd(a.f)+' · '+(a.auto?'automático':'manual')+(lock?' · 3T cerrado (solo textos)':'')+'</p></header>'+
+  '<div class="sb">'+
+   '<label class="fld">Descripción del asiento<input id="e-desc" value="'+esc(a.desc)+'"'+(ed?'':' disabled')+' title="Texto del asiento; se puede cambiar aunque sea automático o de un trimestre cerrado"></label>'+
+   '<label class="fld">Notas<textarea id="e-not"'+(ed?'':' disabled')+' title="Notas internas del asiento; no salen en el libro Diario">'+esc(a.notas||'')+'</textarea></label>'+
+   (ed?'':'<button class="lnk" type="button" id="e-go" title="Habilita la edición de la descripción y las notas">Editar los textos</button>')+
+   '<dl class="kv">'+
+    (a.src?'<dt>Origen</dt><dd><button class="lnk" type="button" id="go-src" title="Abre el documento que generó este asiento">'+esc(a.src)+'</button></dd>':'')+
+    (a.rel?'<dt>Corrige a</dt><dd><button class="lnk" type="button" data-go="'+a.rel+'">Asiento '+a.rel+'</button></dd>':'')+
+    (relBy?'<dt>Corregido por</dt><dd><button class="lnk" type="button" data-go="'+relBy.n+'">Asiento '+relBy.n+'</button></dd>':'')+
+    '<dt>Grabado el</dt><dd>'+fd(a.grab)+' · '+esc(a.op)+'</dd>'+
+    '<dt>Modificado el</dt><dd>'+(a.mod?fd(a.mod):'—')+'</dd>'+
+   '</dl>'+
+   '<div><h3>Historial de cambios</h3><div class="hist">'+((a.hist||[]).map(h=>'<div>'+esc(h[2])+'<small>'+esc(h[0])+' · '+esc(h[1])+' · '+esc(h[3])+'</small></div>').join('')||'<span class="hint">Sin cambios desde que se grabó.</span>')+'</div></div>'+
+  '</div>'+
+  '<footer><button class="btn" type="button" id="e-can"'+(ed?'':' disabled')+' title="Descarta los cambios de los textos">Cancelar</button><button class="btn pri" type="button" id="e-ok"'+(ed?'':' disabled')+' title="Guarda los textos con el motor de asientos y deja el cambio en el historial">Guardar</button></footer>';
+  const go=$('e-go'); if(go) go.onclick=()=>{editing=a.n;renderSide();$('e-desc').focus()};
+  $('e-can').onclick=()=>{editing=null;renderSide()};
+  $('e-ok').onclick=()=>{const nd=$('e-desc').value.trim();if(!nd){toast('La descripción no puede quedar vacía: escribe un texto o pulsa Cancelar');return}
+    const old=a.desc;a.desc=nd;a.notas=$('e-not').value;a.mod='2026-11-14';(a.hist=a.hist||[]).unshift(['14/11 20:15','Ronald',old!==nd?'Descripción: «'+old+'» → «'+nd+'»':'Notas modificadas','Edición desde el Diario']);editing=null;render();toast('Asiento '+a.n+' guardado')};
+  const s=$('go-src'); if(s) s.onclick=()=>toast('Abriría: '+a.src);
+  el.querySelectorAll('[data-go]').forEach(b=>b.onclick=()=>goAsi(+b.dataset.go));
+}
+function goAsi(n){$('f-des').value='2026-01-01';$('f-has').value='2026-12-31';setPer('año');const id=vista==='asi'?String(n):n+'-0';sel=new Set([id]);act=id;anchor=id;render();const tr=$('tb').querySelector('tr[data-id="'+id+'"]');if(tr)tr.scrollIntoView({block:'center'})}
+
+/* menú contextual */
+function menu(x,y){
+  const it=selItems(); if(!it.length){toast('Selecciona antes alguna fila');return}
+  const as=selAsis(), one=as.length===1, ls=selLines();
+  const anyAuto=as.some(a=>a.auto), anyLock=as.some(fisLock), allP=ls.every(r=>r.l.p);
+  const cs=[...new Set(ls.map(r=>r.l.c))];
+  const why=(c,t)=>c?t:false;
+  const head=vista==='asi'?(as.length+' asiento'+(as.length>1?'s':'')):(it.length+' apunte'+(it.length>1?'s':'')+' de '+as.length+' asiento'+(as.length>1?'s':''));
+  const I=[
+   ['t',head],
+   ['Abrir el asiento','Intro',why(!one,'Solo con un asiento seleccionado'),()=>openAsiento(as[0])],
+   ['Ir al origen',null,why(!one,'Solo con un asiento seleccionado')||why(!as[0].src,'Asiento manual: no tiene documento de origen'),()=>toast('Abriría: '+as[0].src)],
+   ['Ver en el Mayor'+(cs.length>1?' ('+cs.length+' subcuentas)':''),'Ctrl+M',false,()=>toast('Abre el Mayor combinado de '+cs.join(', ')+' en el ejercicio 2026')],
+   ['hr'],
+   [allP?'Quitar el punteo':'Puntear','F4',false,()=>{ls.forEach(r=>r.l.p=!allP);render();toast(ls.length+' apunte'+(ls.length>1?'s':'')+(allP?' sin punteo':' punteados'))}],
+   ['Asignar número de documento…','Ctrl+N',false,()=>dlgTexto('doc',ls)],
+   ['Cambiar el concepto…',null,why(anyAuto,'Hay asientos automáticos: su concepto se cambia desde su origen'),()=>dlgTexto('con',ls)],
+   ['Cambiar la subcuenta…',null,why(anyAuto,'Hay asientos automáticos: la cuenta se cambia desde su origen')||why(anyLock,'Trimestre cerrado con cuentas fiscales: usa el asistente de corrección'),()=>dlgSub(ls)],
+   ['Cambiar la fecha…',null,why(anyAuto,'Hay asientos automáticos: su fecha la decide su origen')||why(anyLock,'Trimestre cerrado con cuentas fiscales'),()=>dlgFecha(as)],
+   ['hr'],
+   ['Duplicar como asiento nuevo…',null,why(!one,'Solo con un asiento seleccionado'),()=>toast('Abre la pantalla de asiento manual con una copia del '+as[0].n+' fechada hoy')],
+   ['Asistente de corrección…',null,why(!one,'Solo con un asiento seleccionado'),()=>toast('Abre el asistente de corrección (plantillas) sobre el asiento '+as[0].n)],
+   ['Borrar '+(as.length>1?'los asientos…':'el asiento…'),'Supr',why(anyAuto,'Hay asientos automáticos: se borran anulando su origen')||why(anyLock,'Trimestre cerrado con cuentas fiscales'),()=>dlgBorrar(as)],
+   ['hr'],
+   ['Historial de cambios',null,why(!one,'Solo con un asiento seleccionado'),()=>{toast('Historial en la ficha de la derecha');}],
+   ['Copiar','Ctrl+C',false,()=>copy(ls.map(r=>[r.a.n,fd(r.a.f),r.l.c,r.l.con,r.l.doc,eur(r.l.d),eur(r.l.h)].join('\t')).join('\n'))],
+   ['Exportar la selección a Excel',null,false,()=>toast('Exportaría '+ls.length+' apuntes a Excel')],
+  ];
+  const m=$('menu'); m.innerHTML='';
+  for(const r of I){
+    if(r[0]==='hr'){m.appendChild(document.createElement('hr'));continue}
+    if(r[0]==='t'){const d=document.createElement('div');d.className='t';d.textContent=r[1];m.appendChild(d);continue}
+    const b=document.createElement('button');b.type='button';b.setAttribute('role','menuitem');
+    b.innerHTML=esc(r[0])+(r[1]?'<kbd>'+r[1]+'</kbd>':'')+(r[2]?'<em>'+esc(r[2])+'</em>':'');
+    b.disabled=!!r[2]; b.onclick=()=>{hideMenu();r[3]()}; m.appendChild(b);
+  }
+  m.hidden=false;
+  const w=m.offsetWidth,h=m.offsetHeight;
+  m.style.left=Math.max(8,Math.min(x,innerWidth-w-8))+'px'; m.style.top=Math.max(8,Math.min(y,innerHeight-h-8))+'px';
+}
+function hideMenu(){$('menu').hidden=true}
+document.addEventListener('mousedown',e=>{if(!$('menu').contains(e.target))hideMenu()});
+
+/* diálogos */
+function dlg(html,cls){const w=$('dlgw');w.innerHTML='<div class="scrim"><div class="dlg '+(cls||'')+'" role="dialog" aria-modal="true">'+html+'</div></div>';w.querySelector('.scrim').onmousedown=e=>{if(e.target.classList.contains('scrim'))closeDlg()};w.querySelectorAll('[data-x]').forEach(b=>b.onclick=closeDlg);return w}
+function closeDlg(){$('dlgw').innerHTML=''}
+function dlgTexto(kind,ls){
+  const isDoc=kind==='doc', vals=[...new Set(ls.map(r=>isDoc?r.l.doc:r.l.con).filter(Boolean))];
+  const prop=isDoc?(vals.find(v=>!v.startsWith('0000'))||''):(vals[0]||'');
+  dlg('<header><h3>'+(isDoc?'Asignar número de documento':'Cambiar el concepto')+'</h3><p>'+ls.length+' apunte'+(ls.length>1?'s':'')+' de '+[...new Set(ls.map(r=>r.a.n))].join(', ')+'</p></header><div class="body">'+
+   (vals.length>1?'<div class="info">Los apuntes tienen ahora valores distintos: '+vals.map(esc).join(' · ')+'. Se propone el primero.</div>':'')+
+   '<label class="fld">'+(isDoc?'Número de documento':'Concepto nuevo')+'<input id="d-v" value="'+esc(prop)+'"></label>'+
+   '<label class="fld">Motivo (queda en el historial)<input id="d-m" placeholder="Opcional"></label></div>'+
+   '<footer><span class="hint">Pasa por el motor de asientos con un mismo IdLote</span><button class="btn" type="button" data-x>Cancelar</button><button class="btn pri" type="button" id="d-ok">Guardar</button></footer>');
+  $('d-v').focus();$('d-v').select();
+  $('d-ok').onclick=()=>{const v=$('d-v').value.trim();if(!isDoc&&!v){toast('El concepto no puede quedar vacío');return}ls.forEach(r=>{if(isDoc)r.l.doc=v;else r.l.con=v});closeDlg();render();toast(ls.length+' apunte'+(ls.length>1?'s':'')+' actualizados')};
+}
+function dlgSub(ls,onPick){
+  const multi=!ls&&!onPick;
+  const list=Object.keys(CTAS).sort();
+  const sal={};ASI.forEach(a=>a.lines.forEach(l=>sal[l.c]=(sal[l.c]||0)+l.d-l.h));
+  const chosen=new Set(multi?ctaF:[]);
+  dlg('<header><h3>'+(multi?'Filtrar por subcuentas':'Cambiar la subcuenta')+'</h3><p>'+(multi?'Solo subcuentas. Ctrl+clic para elegir varias. La ventana se puede redimensionar desde la esquina.':ls.length+' apunte'+(ls.length>1?'s':'')+' pasarán a la subcuenta que elijas.')+'</p></header>'+
+   '<div class="body"><input id="s-q" class="inp" placeholder="Código que empieza por… o descripción que contiene…" title="Busca por el principio del código o por cualquier parte de la descripción, sin distinguir mayúsculas ni acentos">'+
+   '<div class="selt"><table><thead><tr><th>Subcuenta</th><th>Descripción</th><th class="num">Saldo 2026</th></tr></thead><tbody id="s-b"></tbody></table></div>'+
+   (multi?'':'<label class="fld">Motivo (queda en el historial)<input id="s-m" placeholder="Opcional"></label>')+'</div>'+
+   '<footer><span class="hint" id="s-n"></span><button class="btn" type="button" data-x>Cancelar</button><button class="btn pri" type="button" id="s-ok">'+(multi?'Aplicar':'Cambiar')+'</button></footer>','rs');
+  const norm=s=>s.normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase();
+  const draw=()=>{const q=norm($('s-q').value.trim());
+    $('s-b').innerHTML=list.filter(c=>!q||c.startsWith(q)||norm(CTAS[c]).includes(q)).map(c=>'<tr data-c="'+c+'" class="'+(chosen.has(c)?'sel':'')+'"><td class="mono">'+c+'</td><td>'+esc(CTAS[c])+'</td><td class="num">'+eur0(sal[c]||0)+'</td></tr>').join('');
+    $('s-b').querySelectorAll('tr').forEach(tr=>{tr.onclick=e=>{const c=tr.dataset.c;if(multi&&(e.ctrlKey||e.metaKey)){chosen.has(c)?chosen.delete(c):chosen.add(c)}else{chosen.clear();chosen.add(c)}draw()};tr.ondblclick=()=>$('s-ok').click()});
+    $('s-n').textContent=chosen.size?chosen.size+' elegida'+(chosen.size>1?'s':''):'Ninguna elegida';};
+  $('s-q').oninput=draw;draw();$('s-q').focus();
+  $('s-ok').onclick=()=>{
+    if(multi){ctaF=[...chosen];$('f-cta-t').textContent=ctaF.length?ctaF.length===1?ctaF[0]:ctaF.length+' subcuentas':'todas';closeDlg();render();return}
+    const c=[...chosen][0];if(!c){toast('Elige una subcuenta de la lista');return}
+    ls.forEach(r=>r.l.c=c);closeDlg();render();toast(ls.length+' apunte'+(ls.length>1?'s':'')+' pasados a '+c);
+  };
+}
+function dlgFecha(as){
+  dlg('<header><h3>Cambiar la fecha</h3><p>Asientos '+as.map(a=>a.n).join(', ')+'</p></header><div class="body"><label class="fld">Fecha contable nueva<input id="fe-v" type="date" value="'+as[0].f+'" min="2026-01-01" max="2026-12-31"></label><div class="hint">Debe caer en el ejercicio 2026. Si lleva IVA o retenciones, no puede ser anterior al 1/10/2026 (trimestre activo 4T). El número de asiento no cambia; usa Renumerar… para reordenar.</div><label class="fld">Motivo (obligatorio)<input id="fe-m"></label></div><footer><button class="btn" type="button" data-x>Cancelar</button><button class="btn pri" type="button" id="fe-ok">Cambiar</button></footer>');
+  $('fe-ok').onclick=()=>{const v=$('fe-v').value;if(!$('fe-m').value.trim()){toast('Escribe el motivo: queda en el historial del asiento');$('fe-m').focus();return}
+    if(v<'2026-10-01'&&as.some(a=>a.lines.some(l=>FISCAL(l.c)))){closeDlg();dlgLock(as[0]);return}
+    as.forEach(a=>{a.f=v;a.mod='2026-11-14'});closeDlg();render();toast('Fecha cambiada a '+fd(v))};
+}
+function dlgBorrar(as){
+  dlg('<header><h3>Borrar '+(as.length>1?as.length+' asientos':'el asiento '+as[0].n)+'</h3><p>'+as.map(a=>a.n+' · '+esc(a.desc)).join('<br>')+'</p></header><div class="body"><div class="warn">El asiento desaparece del Diario y deja un hueco en la numeración. Su contenido queda en el historial de revisiones y se puede consultar, pero no se recupera desde aquí.</div><label class="fld">Motivo (obligatorio)<input id="bo-m"></label></div><footer><button class="btn" type="button" data-x>Cancelar</button><button class="btn dan" type="button" id="bo-ok">Borrar</button></footer>');
+  $('bo-m').focus();
+  $('bo-ok').onclick=()=>{if(!$('bo-m').value.trim()){toast('Escribe el motivo del borrado');return}ASI=ASI.filter(a=>!as.includes(a));sel.clear();act=null;closeDlg();render();toast('Borrado. El hueco aparece arriba con la opción de renumerar')};
+}
+function dlgRenum(){
+  const ord=[...ASI].sort((a,b)=>a.f<b.f?-1:a.f>b.f?1:a.n-b.n);
+  // propuesta: apertura = 1; el resto consecutivo desde el primero de la muestra (la maqueta no carga los asientos 2-240)
+  let po=0,pn=0; const map=ord.map((a,i)=>{const nw=i===0?1:pn+(a.n-po>=10?a.n-po:1);po=a.n;pn=nw;return [a.n,nw]}).filter(([o,nw])=>o!==nw);
+  dlg('<header><h3>Renumerar asientos</h3><p>Ejercicio 2026 · por fecha contable, la apertura primero</p></header><div class="body">'+
+   (map.length?'<div class="info">'+map.length+' asiento'+(map.length>1?'s':'')+' cambian de número y se cierra'+(gaps().length>1?'n los huecos ':' el hueco ')+gaps().join(', ')+'.</div><div class="selt" style="max-height:220px"><table><thead><tr><th class="num">Ahora</th><th class="num">Pasa a</th><th>Fecha</th><th>Descripción</th></tr></thead><tbody>'+map.map(([o,nw])=>{const a=ASI.find(x=>x.n===o);return '<tr><td class="num mono">'+o+'</td><td class="num mono"><b>'+nw+'</b></td><td>'+fd(a.f)+'</td><td>'+esc(a.desc)+'</td></tr>'}).join('')+'</tbody></table></div>':'<div class="info">La numeración ya es correlativa por fecha: no hay nada que cambiar.</div>')+
+   '<div class="hint">Solo en ejercicios abiertos. Los asientos de trimestres cerrados también se renumeran: el número no tiene efecto fiscal. Queda una revisión por asiento con el número anterior.</div></div>'+
+   '<footer><button class="btn" type="button" data-x>Cancelar</button><button class="btn pri" type="button" id="rn-ok"'+(map.length?'':' disabled')+'>Renumerar</button></footer>');
+  $('rn-ok').onclick=()=>{const m=new Map(map);ASI.forEach(a=>{if(a.rel&&m.has(a.rel))a.rel=m.get(a.rel)});ASI.forEach(a=>{if(m.has(a.n))a.n=m.get(a.n)});ASI.sort((a,b)=>a.n-b.n);sel.clear();act=null;closeDlg();render();toast(map.length+' asientos renumerados')};
+}
+function dlgLock(a){
+  dlg('<header><h3>No se puede cambiar el asiento '+a.n+'</h3><p>'+esc(a.desc)+' · '+fd(a.f)+'</p></header><div class="body"><div class="warn">El asiento es del 3T, que ya está cerrado, y lleva cuentas de IVA o retenciones (4770010, 4720021, 4750000). Cambiar su importe, su cuenta o su fecha alteraría un modelo ya presentado.</div><div>Puedes hacer una de estas cosas:</div><ul style="margin:0;padding-left:18px;display:flex;flex-direction:column;gap:4px"><li><b>Corregirlo en el trimestre activo</b> con el asistente de corrección: crea un asiento fechado hoy que lo compensa.</li><li><b>Cambiar solo los textos</b> (descripción, concepto, documento, notas): eso sí está permitido.</li><li>Si de verdad hay que rectificar el 3T, reabrirlo cambiando el trimestre activo en Parámetros del ejercicio.</li></ul></div><footer><button class="btn" type="button" data-x>Cerrar</button><button class="btn" type="button" id="lk-t">Editar los textos</button><button class="btn pri" type="button" id="lk-c">Asistente de corrección…</button></footer>');
+  $('lk-t').onclick=()=>{closeDlg();goAsi(a.n);editing=a.n;renderSide()};
+  $('lk-c').onclick=()=>{closeDlg();toast('Abre el asistente de corrección sobre el asiento '+a.n+' con fecha 14/11/2026')};
+}
+function openAsiento(a){if(!a)return;toast((a.auto?'Abre en consulta el asiento ':'Abre en la pantalla de asiento manual el asiento ')+a.n+(a.auto?' (automático: se modifica desde '+(a.src||a.o)+')':''))}
+let tt;function toast(t){const e=$('toast');e.textContent=t;e.hidden=false;clearTimeout(tt);tt=setTimeout(()=>e.hidden=true,3200)}
+
+/* filtros y vista */
+function setPer(p){$('f-per').querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.p===p))}
+$('f-per').querySelectorAll('button').forEach(b=>b.onclick=()=>{const p=b.dataset.p;setPer(p);
+  const r={año:['01-01','12-31'],1:['01-01','03-31'],2:['04-01','06-30'],3:['07-01','09-30'],4:['10-01','12-31'],mes:['11-01','11-30']}[p];
+  $('f-des').value='2026-'+r[0];$('f-has').value='2026-'+r[1];render()});
+['f-des','f-has'].forEach(i=>$(i).onchange=()=>{setPer('');render()});
+['f-ori','f-np'].forEach(i=>$(i).onchange=render);
+$('f-txt').oninput=render;
+$('f-cta').onclick=()=>dlgSub(null);
+$('vista').querySelectorAll('button').forEach(b=>b.onclick=()=>{
+  const v=b.dataset.v; if(v===vista)return;
+  // conserva la selección: asientos ↔ todos sus apuntes
+  const ns=new Set();
+  if(v==='apu') sel.forEach(id=>{const a=asiOf(id);a&&a.lines.forEach((l,i)=>ns.add(a.n+'-'+i))});
+  else sel.forEach(id=>ns.add(String(id).split('-')[0]));
+  sel=ns; act=act?(v==='apu'?String(act).split('-')[0]+'-0':String(act).split('-')[0]):null; anchor=act; vista=v;
+  $('vista').querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed',x===b)); render();});
+$('b-nuevo').onclick=()=>toast('Abre la pantalla de asiento manual con un asiento en blanco fechado hoy');
+$('b-renum').onclick=dlgRenum;
+$('b-libro').onclick=()=>dlg('<header><h3>Libro Diario</h3><p>Del '+fd($('f-des').value)+' al '+fd($('f-has').value)+'</p></header><div class="body"><label class="chk"><input type="radio" name="lf" checked> PDF para imprimir o archivar (formato legal: nº, fecha, subcuenta, concepto, debe, haber y sumas y sigue por página)</label><label class="chk"><input type="radio" name="lf"> Excel con una fila por apunte</label><label class="chk"><input type="checkbox" checked> Incluir el asiento de apertura</label><label class="chk"><input type="checkbox"> Solo lo filtrado (cuenta, origen, texto)</label></div><footer><button class="btn" type="button" data-x>Cancelar</button><button class="btn pri" type="button" data-x onclick="toast(\'Generaría el libro Diario\')">Generar</button></footer>');
+$('b-cols').onclick=()=>dlg('<header><h3>Columnas</h3><p>Se guardan por operador, como en el Mayor</p></header><div class="body">'+['Asiento','Fecha','Origen','Subcuenta','Descripción','Concepto','Documento','Debe','Haber','Centro de coste','Punteado','Bloqueos'].map(c=>'<label class="chk"><input type="checkbox" checked> '+c+'</label>').join('')+['Fecha del documento','Grabado el','Modificado el','Operador'].map(c=>'<label class="chk"><input type="checkbox"> '+c+' <span class="hint">(oculta de fábrica)</span></label>').join('')+'</div><footer><button class="btn" type="button" data-x>Cancelar</button><button class="btn pri" type="button" data-x>Aplicar</button></footer>');
+$('dm-menu').onclick=e=>{if(!sel.size){const id=vista==='asi'?'286':'286-0';sel=new Set([id]);act=id;render()}const r=$('tw').getBoundingClientRect();menu(r.left+120,r.top+60)};
+$('dm-sel').onclick=()=>dlgSub(null);
+$('dm-err').onclick=()=>dlgLock(ASI.find(a=>a.n===241));
+
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape'){hideMenu();closeDlg();return}
+  if($('dlgw').innerHTML||/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName)) return;
+  const ids=visibleIds();
+  if(e.key==='ArrowDown'||e.key==='ArrowUp'){e.preventDefault();let i=ids.indexOf(act);i=Math.max(0,Math.min(ids.length-1,i+(e.key==='ArrowDown'?1:-1)));click(ids[i],{shiftKey:e.shiftKey,ctrlKey:false});return}
+  if(e.ctrlKey&&e.key.toLowerCase()==='a'){e.preventDefault();sel=new Set(ids);render();return}
+  if(e.ctrlKey&&e.key.toLowerCase()==='f'){e.preventDefault();$('f-txt').focus();return}
+  if(e.key==='Insert'){$('b-nuevo').click();return}
+  if(!sel.size) return;
+  if(e.key==='F4'){e.preventDefault();const ls=selLines(),allP=ls.every(r=>r.l.p);ls.forEach(r=>r.l.p=!allP);render();return}
+  if(e.key==='Enter'){openAsiento(asiOf(act));return}
+  if(e.key==='Delete'){const as=selAsis();if(as.some(a=>a.auto||fisLock(a)))toast('Hay asientos automáticos o del trimestre cerrado en la selección: no se pueden borrar desde aquí');else dlgBorrar(as);return}
+  if(e.ctrlKey&&e.key.toLowerCase()==='n'){e.preventDefault();dlgTexto('doc',selLines());return}
+  if(e.ctrlKey&&e.key.toLowerCase()==='m'){e.preventDefault();toast('Abre el Mayor de las subcuentas seleccionadas');return}
+});
+sel=new Set(['291']);act='291';anchor='291';
+render();
+</script>
