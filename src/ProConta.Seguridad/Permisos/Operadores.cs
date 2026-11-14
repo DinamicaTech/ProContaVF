@@ -53,7 +53,6 @@ internal static class AuditoriaSeguridad
 public sealed class ServicioOperadores(IBaseDatos bd, IReloj? reloj = null)
 {
     public const string GrupoAdministradores = "ADMINISTRADORES";
-    public const int LongitudMinimaContrasena = 8;
 
     private readonly IReloj _reloj = reloj ?? RelojSistema.Instancia;
 
@@ -91,12 +90,13 @@ public sealed class ServicioOperadores(IBaseDatos bd, IReloj? reloj = null)
     /// <summary>
     /// Crea el primer administrador cuando no hay ningún operador (la maestra no trae operadores por
     /// defecto). Crea el grupo ADMINISTRADORES si falta. Si ya hay operadores, no hace nada.
+    /// La contraseña es opcional y sin requisitos de longitud ni complejidad: vacía, el operador no tiene contraseña.
     /// </summary>
-    public Task<Resultado<Operador>> CrearPrimerAdministradorAsync(string nombre, string contrasena) =>
+    public Task<Resultado<Operador>> CrearPrimerAdministradorAsync(string nombre, string? contrasena) =>
         bd.EnTransaccionAsync(async s =>
         {
             var texto = (nombre ?? "").Trim();
-            var error = ValidarNombre(texto) ?? ValidarContrasena(contrasena);
+            var error = ValidarNombre(texto);
             if (error is not null) return Resultado<Operador>.Fallo(error);
             if (Convert.ToInt32(await s.EscalarAsync("SELECT COUNT(*) FROM OperadoresSeguridad")) > 0)
                 return Resultado<Operador>.Fallo(new Error("Seguridad.YaHayOperadores",
@@ -104,10 +104,10 @@ public sealed class ServicioOperadores(IBaseDatos bd, IReloj? reloj = null)
                     "Solo se ofrece cuando la base de datos no tiene ningún operador.",
                     "Entra con un operador existente; un administrador puede dar de alta otros."));
 
-            var credencial = HashContrasena.Crear(contrasena);
+            var credencial = CredencialDe(contrasena);
             await s.EjecutarAsync(
                 "INSERT INTO OperadoresSeguridad (Nombre, Activo, HashPassword, SaltPassword, IteracionesPassword, PasswordTemporal, FechaHoraPassword) VALUES (?, ?, ?, ?, ?, ?, ?)",
-                texto, true, credencial.Hash, credencial.Salt, credencial.Iteraciones, false, _reloj.Ahora);
+                texto, true, (object?)credencial?.Hash ?? DBNull.Value, (object?)credencial?.Salt ?? DBNull.Value, (object?)credencial?.Iteraciones ?? DBNull.Value, false, credencial is null ? DBNull.Value : _reloj.Ahora);
             var id = await s.UltimoIdAsync();
 
             var grupo = await s.ConsultarPrimeroAsync("SELECT IdGrupoOperadores FROM GruposOperadores WHERE Codigo = ?", f => (int?)f.Entero("IdGrupoOperadores"), GrupoAdministradores);
@@ -122,20 +122,21 @@ public sealed class ServicioOperadores(IBaseDatos bd, IReloj? reloj = null)
             return Resultado<Operador>.Correcto(new Operador(id, texto, null, true, credencial, false));
         });
 
-    /// <summary>Cambia la contraseña de un operador (la guarda como hash).</summary>
-    public Task<Resultado> EstablecerContrasenaAsync(int idOperador, string contrasena, Actor actor) =>
+    /// <summary>
+    /// Cambia la contraseña de un operador (la guarda como hash). Sin requisitos de longitud ni complejidad;
+    /// vacía, le quita la contraseña y el operador entra con la contraseña vacía.
+    /// </summary>
+    public Task<Resultado> EstablecerContrasenaAsync(int idOperador, string? contrasena, Actor actor) =>
         bd.EnTransaccionAsync(async s =>
         {
-            var error = ValidarContrasena(contrasena);
-            if (error is not null) return Resultado.Fallo(error);
-            var credencial = HashContrasena.Crear(contrasena);
+            var credencial = CredencialDe(contrasena);
             var filas = await s.EjecutarAsync(
                 "UPDATE OperadoresSeguridad SET HashPassword = ?, SaltPassword = ?, IteracionesPassword = ?, PasswordTemporal = ?, FechaHoraPassword = ? WHERE IdOperador = ?",
-                credencial.Hash, credencial.Salt, credencial.Iteraciones, false, _reloj.Ahora, idOperador);
+                (object?)credencial?.Hash ?? DBNull.Value, (object?)credencial?.Salt ?? DBNull.Value, (object?)credencial?.Iteraciones ?? DBNull.Value, false, credencial is null ? DBNull.Value : _reloj.Ahora, idOperador);
             if (filas == 0)
                 return Resultado.Fallo(new Error("Seguridad.OperadorInexistente", "El operador ya no existe.", $"Operador {idOperador}",
                     "Se ha borrado mientras se editaba.", "Vuelve a cargar la lista de operadores."));
-            await AuditoriaSeguridad.RegistrarAsync(s, _reloj, "CONTRASENA_CAMBIADA", idOperador.ToString(), actor.Nombre, "CORRECTO");
+            await AuditoriaSeguridad.RegistrarAsync(s, _reloj, credencial is null ? "CONTRASENA_QUITADA" : "CONTRASENA_CAMBIADA", idOperador.ToString(), actor.Nombre, "CORRECTO");
             return Resultado.Correcto();
         });
 
@@ -161,9 +162,10 @@ public sealed class ServicioOperadores(IBaseDatos bd, IReloj? reloj = null)
                 "Debe tener entre 1 y 100 caracteres.", "Escribe el nombre con el que entrará el administrador.")
             : null;
 
-    private static Error? ValidarContrasena(string? contrasena) =>
-        (contrasena ?? "").Length < LongitudMinimaContrasena
-            ? new Error("Seguridad.ContrasenaCorta", $"La contraseña debe tener al menos {LongitudMinimaContrasena} caracteres.", null,
-                "Es demasiado corta.", "Elige una contraseña más larga; una frase corta es fácil de recordar.")
-            : null;
+    /// <summary>
+    /// Criterio de seguridad/permisos (2026-11-14): la contraseña no es obligatoria ni tiene requisitos de
+    /// longitud o complejidad («a» vale). Vacía = sin credencial.
+    /// </summary>
+    private static Credencial? CredencialDe(string? contrasena) =>
+        string.IsNullOrEmpty(contrasena) ? null : HashContrasena.Crear(contrasena);
 }

@@ -15,12 +15,14 @@ Pantalla de acceso compacta en cuatro fases y mantenimiento de operadores y grup
 - 2026-10-31 19:30 · Pantalla de acceso con el aspecto de la propuesta «Dividida» de la maqueta (960×640, franja azul con «Vas a trabajar en» sociedad, ejercicio y operador, y la versión), sin marco, movible desde las zonas libres, con «Salir» visible. El orden de los campos sigue RF-SEG-01 y seguridad/acceso, no el de la maqueta (que pedía primero la sociedad): Operador y Contraseña y solo entonces Sociedad (las autorizadas, con la última elegida propuesta) y Ejercicio (los cerrados marcados «cerrado»), «Entrar». «Entrar con otro operador» vuelve a la identificación. Intro avanza, Esc sale.
 - 2026-10-31 19:30 · [replaced by seguridad/acceso 2026-11-01 09:30] El operador se escribe (no se elige de una lista), para no mostrar los nombres de los operadores antes de autenticar. Los errores aparecen en un recuadro con mensaje, causa y qué hacer, y nunca dicen qué dato ha fallado.
 - 2026-11-01 09:30 · La pantalla de acceso sigue el flujo y el parámetro de la lista de operadores de seguridad/acceso (decisiones 2026-11-01 09:30): botón «Entrar» desde el principio, bloque de sociedad y ejercicio oculto hasta identificarse y foco en «Entrar» al aparecer.
+- 2026-11-14 20:06 · Asistente del primer administrador: el campo se llama «Contraseña (opcional)» y su ayuda dice que puede quedar vacía y que cualquier contraseña vale; ya no se avisa de un mínimo de caracteres (criterio de seguridad/permisos 2026-11-14 20:06).
 
 ## Requirements
 - 2026-10-28 12:28 · From sources/01_ESPECIFICACION_FUNCIONAL.docx § 5 RF-ACC-01: login compacto sin marco, movible, opción Salir, icono por fase
 - 2026-10-28 12:28 · From sources/maquetas/acceso-proconta.html: maqueta de Acceso
 - 2026-10-28 12:28 · draft: Construir la pantalla de acceso según la maqueta y el mantenimiento de operadores.
 - 2026-10-31 17:53 · Derived from architecture: la pantalla de acceso del contenedor y el asistente del primer administrador.
+- 2026-11-14 20:06 · Derived from seguridad/permisos: la contraseña es opcional y sin requisitos de longitud ni complejidad, así que las pantallas no piden un mínimo de caracteres.
 
 ## Hand-over
 - 2026-11-01 09:30 · Hecho: pantalla de acceso con el flujo acordado el 01/11 y asistente del primer administrador. Pendiente: mantenimiento de operadores y grupos; icono por fase.
