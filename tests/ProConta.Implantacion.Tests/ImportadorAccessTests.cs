@@ -1,6 +1,7 @@
 using ProConta.Contabilidad.Asientos;
 using ProConta.Contabilidad.CentrosCoste;
 using ProConta.Contabilidad.Cuentas;
+using ProConta.Datos.Esquema.Migraciones;
 using ProConta.Datos.Persistencia;
 using ProConta.Implantacion.ContaSol;
 using ProConta.Nucleo.Auditoria;
@@ -144,6 +145,24 @@ public sealed class ImportadorAccessTests : IDisposable
         // Cliente antiguo, cliente nuevo de la subcuenta reasignada y proveedor.
         Assert.Equal(3, await ContarAsync("SELECT COUNT(*) FROM Terceros"));
         Assert.Equal(1, await ContarAsync("SELECT COUNT(*) FROM CuentasClientesSociedad AS c INNER JOIN CodigosContablesReservados AS r ON c.IdIdentidadContable = r.IdIdentidadContable WHERE r.Codigo = '4300001' AND c.IdCliente = ?", clientes2025["4300001"]));
+    }
+
+    [Fact]
+    public async Task ElEmailYElTelefonoDeContaSolVanALaListaDeContactos()
+    {
+        // Antes solo iban a Terceros.Email y Telefono, y la comprobación de la migración 20261101_1300 dejaba la BD como parcial.
+        await DatosSinteticos.SociedadAsync(Bd, "T01", "Sociedad sintética");
+        await DatosSinteticos.EjercicioAsync(Bd, 9000, "T01", 2024);
+        var o = Ejercicio2024();
+        o.ContactosTerceros["4300001"] = ("96 000 00 01", "cliente@ejemplo.test; facturas@ejemplo.test");
+        o.ContactosTerceros["4000001"] = ("", "proveedor@ejemplo.test");
+        var r = await ImportarAsync(await o.CrearAsync(_carpeta));
+        Assert.Equal(0, r.Single().Bloqueantes);
+
+        Assert.Empty(await Bd.EjecutarAsync(MigracionesTerceros.PlanContactoFichaAntiguaAsync));
+        Assert.Equal(4, await ContarAsync("SELECT COUNT(*) FROM DatosContacto WHERE Etiqueta = 'Principal' AND Activo = True"));
+        Assert.Equal(1, await ContarAsync("SELECT COUNT(*) FROM DatosContacto WHERE Tipo = 'TELEFONO' AND Valor = '96 000 00 01'"));
+        Assert.Equal(1, await ContarAsync("SELECT COUNT(*) FROM DatosContacto WHERE Tipo = 'EMAIL' AND Valor = 'proveedor@ejemplo.test'"));
     }
 
     [Fact]

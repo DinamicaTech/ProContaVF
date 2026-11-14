@@ -1,6 +1,7 @@
 using System.Globalization;
 using ProConta.Contabilidad.Asientos;
 using ProConta.Nucleo.Importes;
+using ProConta.Terceros.Contactos;
 using ProConta.Terceros.Roles;
 
 namespace ProConta.Implantacion.ContaSol;
@@ -376,6 +377,28 @@ public static class PlanificadorContaSol
         if (x == y) return true;
         var (corto, largo) = x.Length <= y.Length ? (x, y) : (y, x);
         return largo.Length == corto.Length + 1 && (largo.StartsWith(corto, StringComparison.Ordinal) || largo.EndsWith(corto, StringComparison.Ordinal));
+    }
+
+    /// <summary>
+    /// Datos de contacto de la ficha de un tercero de ContaSol (terceros/contactos): cada email del campo de email (separados por
+    /// «;», «,» o espacios; con «@» que no esté al principio ni al final; sin repetir, sin distinguir mayúsculas) y el teléfono si
+    /// tiene 6 cifras o más. Son las mismas reglas que la migración 20261101_1300_CONTACTO_FICHA_ANTIGUA, para que un tercero
+    /// importado ya cumpla su comprobación y no deje la BD como «migración parcial».
+    /// </summary>
+    public static IReadOnlyList<(TipoDatoContacto Tipo, string Valor)> ContactosDeFicha(string? email, string? telefono)
+    {
+        var datos = new List<(TipoDatoContacto, string)>();
+        var vistos = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var e in (email ?? "").Replace(";", " ").Replace(",", " ").Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries))
+        {
+            var v = e.Trim();
+            var arroba = v.IndexOf('@');
+            if (arroba <= 0 || arroba == v.Length - 1 || v.Length > 254 || !vistos.Add(v.ToLowerInvariant())) continue;
+            datos.Add((TipoDatoContacto.Email, v));
+        }
+        var tel = telefono?.Trim();
+        if (tel is { Length: > 0 and <= 254 } && tel.Count(char.IsAsciiDigit) >= 6) datos.Add((TipoDatoContacto.Telefono, tel));
+        return datos;
     }
 
     private static string Clave(int dep) => dep.ToString(CultureInfo.InvariantCulture);
