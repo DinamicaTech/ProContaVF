@@ -3,6 +3,7 @@ using ProConta.Facturacion.Conceptos;
 using ProConta.Facturacion.Documentos;
 using ProConta.Facturacion.Facturas;
 using ProConta.Facturacion.Programadas;
+using ProConta.Facturacion.Ventas;
 using ProConta.Nucleo.Auditoria;
 using ProConta.Nucleo.Contexto;
 using ProConta.Organizacion.FormasPago;
@@ -53,6 +54,15 @@ public interface IDialogosFacturacion
     /// con <paramref name="soloMarcadas"/>, solo esas. <paramref name="pendientes"/> lee las de una fecha. Null si se cancela.
     /// </summary>
     (DateTime Hasta, IReadOnlyList<int> Ids)? ElegirProgramadasAGenerar(DateTime hasta, Func<DateTime, Task<IReadOnlyList<ProgramadaPendiente>>> pendientes, IReadOnlySet<int>? soloMarcadas = null);
+
+    /// <summary>
+    /// «Facturar ventas…»: hasta qué fecha de entrada y si se validan las facturas, viendo antes qué facturas saldrían
+    /// (<paramref name="previsualizar"/>). Null si se cancela.
+    /// </summary>
+    (DateTime Hasta, bool Validar)? ElegirFacturacionVentas(DateTime hasta, bool soloSeleccionadas, Func<DateTime, Task<IReadOnlyList<GrupoVentas>>> previsualizar);
+
+    /// <summary>Fechas de entrada de las reservas que se importan de Avaibook; null si se cancela.</summary>
+    (DateTime Desde, DateTime Hasta)? ElegirFechasImportacion(DateTime desde, DateTime hasta);
 }
 
 /// <summary>
@@ -68,6 +78,7 @@ public sealed class ModuloFacturacion
     private readonly List<EditorFacturaVM> _editores = [];
     private ListadoFacturasVM? _listado;
     private ListadoProgramadasVM? _programadas;
+    private ListadoVentasVM? _ventas;
 
     public ModuloFacturacion(ServiciosFacturacion servicios, IAnfitrionPestanas anfitrion, IDialogosFacturacion dialogos, Action<int> abrirFichaTercero)
     {
@@ -82,6 +93,12 @@ public sealed class ModuloFacturacion
 
     /// <summary>Prepara el correo de una factura validada (PDF, destinatarios y plantilla).</summary>
     public ProConta.Facturacion.Documentos.PreparadorCorreoFacturas? CorreoFacturas { get; set; }
+
+    /// <summary>Ventas por facturar (facturacion/reservas). Null, la pantalla no está disponible.</summary>
+    public ServicioVentas? Ventas { get; set; }
+
+    /// <summary>Importación de reservas de Avaibook. Null, no se ofrece «Importar de Avaibook…».</summary>
+    public ImportadorAvaibook? Avaibook { get; set; }
 
     internal ServiciosFacturacion Servicios => _s;
     internal IDialogosFacturacion Dialogos => _dialogos;
@@ -118,6 +135,23 @@ public sealed class ModuloFacturacion
     }
 
     internal void ProgramadasCerrado() => _programadas = null;
+
+    /// <summary>Abre (o activa) la pestaña Ventas por facturar.</summary>
+    public void AbrirVentas()
+    {
+        if (Ventas is null) return;
+        if (_ventas is not null)
+        {
+            _anfitrion.Activar(_ventas);
+            if (!_ventas.TieneCambios) _ = _ventas.CargarAsync();
+            return;
+        }
+        _ventas = new ListadoVentasVM(this, Ventas);
+        _anfitrion.Abrir(_ventas);
+        _ = _ventas.CargarAsync();
+    }
+
+    internal void VentasCerrado() => _ventas = null;
 
     /// <summary>«Ver sus facturas»: abre Facturas filtrada por la programada.</summary>
     internal void VerFacturasDeProgramada(int idProgramada)
@@ -190,7 +224,12 @@ public sealed class ModuloFacturacion
     }
 
     /// <summary>El editor guardó, validó o borró: el listado se refresca si está abierto.</summary>
-    internal void FacturaCambiada(int? idActiva = null) => _ = _listado?.CargarAsync(idActiva);
+    internal void FacturaCambiada(int? idActiva = null)
+    {
+        _ = _listado?.CargarAsync(idActiva);
+        // Borrar o validar un borrador cambia el estado de sus ventas por facturar.
+        if (_ventas is { TieneCambios: false } v) _ = v.CargarAsync();
+    }
 
     /// <summary>El editor guardó o borró una programada: su listado se refresca si está abierto.</summary>
     internal void ProgramadaCambiada(int? idProgramada = null) => _ = _programadas?.CargarAsync(idProgramada);

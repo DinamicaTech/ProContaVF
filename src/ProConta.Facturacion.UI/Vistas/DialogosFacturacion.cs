@@ -305,4 +305,134 @@ public sealed class DialogosFacturacion(ApoyoEditorFacturas apoyo, Func<Window?>
         dialogo.Loaded += async (_, _) => await LeerAsync();
         return dialogo.ShowDialog() == true ? (leida, filas.Where(f => f.Marcada).Select(f => f.Datos.Programada.IdFacturaProgramada).ToList()) : null;
     }
+
+    public (DateTime Hasta, bool Validar)? ElegirFacturacionVentas(DateTime hasta, bool soloSeleccionadas, Func<DateTime, Task<IReadOnlyList<ProConta.Facturacion.Ventas.GrupoVentas>>> previsualizar)
+    {
+        var dialogo = new DialogoProConta { Title = soloSeleccionadas ? "Facturar las ventas seleccionadas" : "Facturar ventas", Owner = Propietario, Width = 1040, Height = 660, SizeToContent = SizeToContent.Manual };
+        var apagado = (Brush)dialogo.FindResource("Pincel.Apagado");
+        var rojo = (Brush)dialogo.FindResource("Pincel.RojoError");
+        var fecha = new TextBox { Text = Texto.Fecha(hasta), Width = 110, Style = (Style)dialogo.FindResource("Campo"),
+            ToolTip = "Se facturan las ventas pendientes con fecha de entrada hasta este día (dd/mm/aaaa). Por defecto, el último día del mes anterior: solo meses cerrados." };
+        var leer = new Button { Content = "Ver facturas", Margin = new Thickness(8, 0, 0, 0), ToolTip = "Vuelve a calcular qué facturas saldrían con esa fecha" };
+        var validar = new CheckBox { Content = "Validarlas al crearlas", Margin = new Thickness(16, 0, 0, 0), VerticalAlignment = VerticalAlignment.Center,
+            ToolTip = "Marcado, cada factura se numera, se valida y se contabiliza al crearla. Sin marcar, quedan como borradores para revisarlas y validarlas desde Facturas." };
+        var estado = new TextBlock { Margin = new Thickness(0, 8, 0, 8), Foreground = apagado, TextWrapping = TextWrapping.Wrap };
+        var lista = new ListBox { HorizontalContentAlignment = HorizontalAlignment.Stretch };
+        var facturar = new Button { Content = "Facturar", Style = (Style)dialogo.FindResource("Boton.Primario"), Margin = new Thickness(8, 0, 0, 0),
+            ToolTip = "Crea una factura por cliente, mes y piso con las ventas pendientes; lo que tenga problemas se queda pendiente y se explica" };
+        lista.ItemTemplate = PlantillaCodigo.Crear(o =>
+        {
+            var g = (ProConta.Facturacion.Ventas.GrupoVentas)o!;
+            var fila = new Grid { Margin = new Thickness(0, 3, 0, 3) };
+            foreach (var ancho in new[] { 90d, double.NaN, 140d })
+                fila.ColumnDefinitions.Add(new ColumnDefinition { Width = double.IsNaN(ancho) ? new GridLength(1, GridUnitType.Star) : new GridLength(ancho) });
+            var mes = new TextBlock { Text = g.Clave is { } k ? k.PrimerDia.ToString("MM/yyyy", Formatos.Cultura) : Formatos.Fecha(g.Ventas[0].FechaReferencia), FontFamily = (FontFamily)dialogo.FindResource("Fuente.Mono") };
+            var texto = new StackPanel();
+            texto.Children.Add(new TextBlock { Text = $"{g.Cliente} · {g.Piso}", FontWeight = FontWeights.SemiBold, TextTrimming = TextTrimming.CharacterEllipsis });
+            texto.Children.Add(new TextBlock
+            {
+                Text = g.Facturable
+                    ? Formatos.Plural(g.Ventas.Count, "venta", "ventas") + ": " + string.Join(" · ", g.Ventas.Take(12).Select(v => $"{Formatos.Fecha(v.FechaReferencia)} {Formatos.Importe(v.Importe)}")) + (g.Ventas.Count > 12 ? " …" : "")
+                    : $"{g.Ventas[0].Rotulo}: {g.Problema}",
+                Foreground = g.Facturable ? apagado : rojo, TextWrapping = TextWrapping.Wrap
+            });
+            var total = new TextBlock { Text = g.Facturable ? Formatos.Importe(g.Total) : "No se factura", HorizontalAlignment = HorizontalAlignment.Right };
+            if (!g.Facturable) total.Foreground = apagado;
+            Grid.SetColumn(texto, 1);
+            Grid.SetColumn(total, 2);
+            fila.Children.Add(mes);
+            fila.Children.Add(texto);
+            fila.Children.Add(total);
+            return fila;
+        });
+
+        var leida = hasta.Date;
+        IReadOnlyList<ProConta.Facturacion.Ventas.GrupoVentas> grupos = [];
+        async Task LeerAsync()
+        {
+            if (!Texto.LeerFecha(fecha.Text, out var d) || d is not { } f) { estado.Text = "Escribe la fecha como dd/mm/aaaa."; return; }
+            leida = f.Date;
+            fecha.Text = Texto.Fecha(leida);
+            estado.Text = "Calculando…";
+            grupos = await previsualizar(leida);
+            lista.ItemsSource = grupos;
+            var buenos = grupos.Where(g => g.Facturable).ToList();
+            var malos = grupos.Count - buenos.Count;
+            estado.Text = grupos.Count == 0
+                ? $"No hay ventas pendientes con entrada hasta el {Formatos.Fecha(leida)}."
+                : $"Saldrían {Formatos.Plural(buenos.Count, "factura", "facturas")} con {Formatos.Plural(buenos.Sum(g => g.Ventas.Count), "venta", "ventas")} ({Formatos.Importe(buenos.Sum(g => g.Total))}), con fecha de hoy y el periodo de su mes." +
+                  (malos > 0 ? $" {Formatos.Plural(malos, "venta no se puede facturar todavía", "ventas no se pueden facturar todavía")}: se quedan pendientes (en rojo, el motivo)." : "");
+            facturar.IsEnabled = buenos.Count > 0;
+            facturar.Content = buenos.Count == 0 ? "Facturar" : $"Crear {Formatos.Plural(buenos.Count, "factura", "facturas")}";
+        }
+        leer.Click += async (_, _) => await LeerAsync();
+        fecha.KeyDown += async (_, e) => { if (e.Key == Key.Enter) { e.Handled = true; await LeerAsync(); } };
+
+        var cabecera = new StackPanel { Orientation = Orientation.Horizontal };
+        cabecera.Children.Add(new TextBlock { Text = "Facturar las ventas con entrada hasta el", VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 8, 0) });
+        cabecera.Children.Add(fecha);
+        cabecera.Children.Add(leer);
+        cabecera.Children.Add(validar);
+        var cuerpo = new DockPanel();
+        DockPanel.SetDock(cabecera, Dock.Top);
+        DockPanel.SetDock(estado, Dock.Top);
+        cuerpo.Children.Add(cabecera);
+        cuerpo.Children.Add(estado);
+        cuerpo.Children.Add(lista);
+        dialogo.Content = cuerpo;
+
+        var cancelar = new Button { Content = "Cancelar", IsCancel = true, ToolTip = "No crea ninguna factura" };
+        cancelar.Click += (_, _) => dialogo.DialogResult = false;
+        facturar.Click += (_, _) => { if (grupos.Any(g => g.Facturable)) dialogo.DialogResult = true; };
+        dialogo.Botones = new StackPanel { Orientation = Orientation.Horizontal, Children = { cancelar, facturar } };
+        dialogo.Loaded += async (_, _) => await LeerAsync();
+        return dialogo.ShowDialog() == true ? (leida, validar.IsChecked == true) : null;
+    }
+
+    public (DateTime Desde, DateTime Hasta)? ElegirFechasImportacion(DateTime desde, DateTime hasta)
+    {
+        var dialogo = new DialogoProConta { Title = "Importar reservas de Avaibook", Owner = Propietario, Width = 620 };
+        var cajaDesde = new TextBox { Text = Texto.Fecha(desde), Width = 110, Style = (Style)dialogo.FindResource("Campo"), ToolTip = "Primera fecha de entrada que se importa (dd/mm/aaaa)" };
+        var cajaHasta = new TextBox { Text = Texto.Fecha(hasta), Width = 110, Style = (Style)dialogo.FindResource("Campo"), ToolTip = "Última fecha de entrada que se importa (dd/mm/aaaa)" };
+        var aviso = new TextBlock { Foreground = (Brush)dialogo.FindResource("Pincel.RojoError"), Visibility = Visibility.Collapsed, Margin = new Thickness(0, 6, 0, 0), TextWrapping = TextWrapping.Wrap };
+        var panel = new StackPanel();
+        panel.Children.Add(new TextBlock
+        {
+            Text = "Se leen de Avaibook las reservas confirmadas y canceladas con entrada entre las dos fechas. Las nuevas entran como pendientes de facturar; las ya importadas se actualizan si siguen pendientes, " +
+                   "y las canceladas se anulan. Una venta ya facturada no se toca: si cambia en Avaibook, queda una incidencia. Repetir la importación no duplica nada.",
+            TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 0, 0, 12)
+        });
+        var fila = new StackPanel { Orientation = Orientation.Horizontal };
+        fila.Children.Add(new TextBlock { Text = "Entradas del", VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 8, 0) });
+        fila.Children.Add(cajaDesde);
+        fila.Children.Add(new TextBlock { Text = "al", VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(8, 0, 8, 0) });
+        fila.Children.Add(cajaHasta);
+        panel.Children.Add(fila);
+        panel.Children.Add(aviso);
+        dialogo.Content = panel;
+        DateTime? d1 = null, d2 = null;
+        var importar = new Button { Content = "Importar", Style = (Style)dialogo.FindResource("Boton.Primario"), Margin = new Thickness(8, 0, 0, 0), IsDefault = true,
+            ToolTip = "Lee las reservas de Avaibook y las guarda como ventas por facturar" };
+        var cancelar = new Button { Content = "Cancelar", IsCancel = true, ToolTip = "No importa nada" };
+        importar.Click += (_, _) =>
+        {
+            if (!Texto.LeerFecha(cajaDesde.Text, out d1) || d1 is null || !Texto.LeerFecha(cajaHasta.Text, out d2) || d2 is null)
+            {
+                aviso.Text = "Escribe las dos fechas como dd/mm/aaaa.";
+                aviso.Visibility = Visibility.Visible;
+                return;
+            }
+            if (d2 < d1)
+            {
+                aviso.Text = "La segunda fecha es anterior a la primera.";
+                aviso.Visibility = Visibility.Visible;
+                return;
+            }
+            dialogo.DialogResult = true;
+        };
+        cancelar.Click += (_, _) => dialogo.DialogResult = false;
+        dialogo.Botones = new StackPanel { Orientation = Orientation.Horizontal, Children = { cancelar, importar } };
+        dialogo.Loaded += (_, _) => cajaDesde.Focus();
+        return dialogo.ShowDialog() == true ? (d1!.Value, d2!.Value) : null;
+    }
 }

@@ -141,6 +141,11 @@ public partial class VentanaPrincipal : Window
             new ServicioProgramadas(bd, sociedades, facturas, autorizador),
             new ServicioPdfFacturas(bd, facturas, sociedades, new GeneradorPdfFastReport(), autorizador));
         _facturacion = new ModuloFacturacion(serviciosFacturacion, _area, new DialogosFacturacion(apoyo, () => this), _terceros.AbrirFicha);
+        // Ventas por facturar (facturacion/reservas): reservas de Avaibook y altas manuales que se facturan por mes, cliente y piso.
+        var ventas = new ProConta.Facturacion.Ventas.ServicioVentas(bd, sociedades, facturas, serviciosFacturacion.Conceptos, autorizador);
+        var clienteAvaibook = new ProConta.Facturacion.Ventas.ClienteAvaibookHttp(Http);
+        _facturacion.Ventas = ventas;
+        _facturacion.Avaibook = new ProConta.Facturacion.Ventas.ImportadorAvaibook(bd, ventas, clienteAvaibook, autorizador);
 
         // Compras (compras/pantallas): facturas recibidas y su modo «Probar».
         // OCR con Textract si el puesto tiene el perfil de AWS (compras/reconocimiento 2026-11-07); sin él, los escaneados se rellenan a mano.
@@ -221,7 +226,7 @@ public partial class VentanaPrincipal : Window
         _ = AvisarDesvioCorreoAsync(servicioCorreo);
 
         var mantenimiento = new ServicioMantenimiento(
-            new IProveedorMantenimiento[] { new ProveedorConfiguracionGeneral(bd) }.Concat(ProveedoresOrganizacion.Todos(bd)).Concat(ProveedoresFacturacion.Todos(bd, cuentas))
+            new IProveedorMantenimiento[] { new ProveedorConfiguracionGeneral(bd) }.Concat(ProveedoresOrganizacion.Todos(bd)).Concat(ProveedoresFacturacion.Todos(bd, cuentas)).Concat(ProConta.Facturacion.Ventas.ProveedoresVentas.Todos(bd, ventas, clienteAvaibook))
                 .Concat(ProConta.Compras.Mantenimiento.ProveedoresCompras.Todos(bd)).Concat(ProveedoresCorreo.Todos(bd))
                 .Concat(ProConta.Activos.Mantenimiento.ProveedoresActivos.Todos(bd, cuentas)),
             () => autorizador.PuedeAsync(Acciones.MantenimientoEditar));
@@ -242,6 +247,7 @@ public partial class VentanaPrincipal : Window
         var abrirTerceros = new ComandoDelegado(_terceros.AbrirBuscador);
         var abrirFacturas = new ComandoDelegado(_facturacion.AbrirListado);
         var abrirProgramadas = new ComandoDelegado(_facturacion.AbrirProgramadas);
+        var abrirVentas = new ComandoDelegado(_facturacion.AbrirVentas);
         var abrirParametros = new ComandoDelegado(AbrirParametros);
         var abrirRecibidas = new ComandoDelegado(_compras.AbrirRecibidas);
         var abrirContaSol = new ComandoDelegado(AbrirImportacionContaSol);
@@ -260,6 +266,7 @@ public partial class VentanaPrincipal : Window
             new OpcionNavegacion("Ventas", Icono("doc"), true, false, "Facturas de venta: emitidas y borradores", abrirFacturas),
             new OpcionNavegacion("Facturas programadas", null, true, false, "Facturas que se generan solas en cada vencimiento: su programación, sus líneas y la generación por lotes", abrirProgramadas, EsHija: true),
             new OpcionNavegacion("Facturas emitidas", null, true, false, "Listado de facturas y borradores del ejercicio, con su detalle y acciones", abrirFacturas, EsHija: true),
+            new OpcionNavegacion("Ventas por facturar", null, true, false, "Reservas de Avaibook y otras ventas registradas antes de facturarlas: importación, ficha y «Facturar ventas…» por mes, cliente y piso", abrirVentas, EsHija: true),
             new OpcionNavegacion("Compras", Icono("scan"), true, false, "Facturas de compra: los PDF de la carpeta de proveedores, su revisión y el modo prueba del reconocimiento", abrirRecibidas),
             new OpcionNavegacion("Facturas recibidas", null, true, false, "Facturas de compra del ejercicio reconocidas de sus PDF: revisión, corrección y registro (y el modo prueba, en el menú contextual)", abrirRecibidas, EsHija: true),
             new OpcionNavegacion("Correo", Icono("mail"), true, false, "Correo enviado por ProContaVF: estado de cada mensaje, contenido, adjuntos e intentos", abrirCorreo),
