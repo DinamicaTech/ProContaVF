@@ -182,4 +182,15 @@ public sealed class ReglasErpTests
         Assert.True(f.B("B"));
         Assert.Null(f.E("NoExiste"));
     }
+
+    [Fact]
+    public void El_iban_de_datos_bancarios_se_compone_con_el_pais_y_el_ccc()
+    {
+        // Cuentas inventadas con dígitos de control calculados.
+        Assert.Equal("ES8700491500050012345678", ReglasErp.IbanDatosBancarios("ES87", "0049", "1500", "05", "0012345678"));
+        Assert.Equal("ES8700491500050012345678", ReglasErp.IbanDatosBancarios("ES87", "49", "1500", "5", "12345678"));
+        Assert.Equal("ES8700491500050012345678", ReglasErp.IbanDatosBancarios(null, "0049", "1500", "05", "0012345678"));
+        Assert.Null(ReglasErp.IbanDatosBancarios("ES88", "0049", "1500", "05", "0012345678"));
+        Assert.Null(ReglasErp.IbanDatosBancarios("ES87", null, null, null, null));
+    }
 }

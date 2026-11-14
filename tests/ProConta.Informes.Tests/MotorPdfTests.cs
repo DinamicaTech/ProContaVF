@@ -45,7 +45,7 @@ public sealed class MotorPdfTests
 
     [Theory]
     [InlineData(PlantillaFactura.Factura, 6, 1)]
-    [InlineData(PlantillaFactura.Factura, 60, 2)]
+    [InlineData(PlantillaFactura.Factura, 40, 2)]
     [InlineData(PlantillaFactura.Proforma, 6, 1)]
     public void LaFacturaSaleConTextoRealYLaMismaPaginacion(PlantillaFactura plantilla, int lineas, int paginas)
     {
@@ -82,6 +82,93 @@ public sealed class MotorPdfTests
         var pdf = MotorPdf.Generar(informe, ConversorHtmlPdf.Compartido);
         Assert.True(Regex.Matches(Latin1(pdf), @"/Subtype\s*/Image").Count >= 2, "Faltan el logo o el QR en el PDF");
         Guardar("imagenes.pdf", pdf);
+    }
+
+    [Fact]
+    public void LaFacturaLlevaElLogoYElQrSoloSiLosTiene()
+    {
+        using var bitmap = new Bitmap(300, 60);
+        using (var g = Graphics.FromImage(bitmap)) { g.Clear(Color.White); g.FillEllipse(Brushes.Orange, 5, 5, 50, 50); }
+        using var png = new MemoryStream();
+        bitmap.Save(png, System.Drawing.Imaging.ImageFormat.Png);
+        var completa = new DatosFacturaPdf
+        {
+            Numero = Datos.Numero, Fecha = Datos.Fecha, EmisorNombre = Datos.EmisorNombre, EmisorNif = Datos.EmisorNif, EmisorDomicilio = Datos.EmisorDomicilio,
+            ClienteNombre = Datos.ClienteNombre, ClienteNif = Datos.ClienteNif, ClienteDomicilio = Datos.ClienteDomicilio, Total = Datos.Total,
+            Descripcion = Datos.Descripcion, Logo = png.ToArray(), FormaPago = "Transferencia bancaria", PagoEtiqueta = "INGRESAR EN LA CUENTA",
+            PagoCuenta = "ES12 0000 0000 0000 0000 0000", QrUrl = "https://prewww2.aeat.es/wlpl/TIKE-CONT/ValidarQR?nif=B12345674&numserie=F26-000123"
+        };
+        var con = new GeneradorPdfFastReport().Generar(PlantillaFactura.Factura, completa, Lineas(3), Resumen);
+        var sin = new GeneradorPdfFastReport().Generar(PlantillaFactura.Factura, Datos, Lineas(3), Resumen);
+        Assert.True(Regex.Matches(Latin1(con), @"/Subtype\s*/Image").Count >= 2, "Faltan el logo o el QR en el PDF");
+        Assert.Empty(Regex.Matches(Latin1(sin), @"/Subtype\s*/Image"));
+        Guardar("factura-logo-qr.pdf", con);
+    }
+
+    /// <summary>
+    /// La segunda factura de una sesión lleva el logo igual que la primera: el mismo generador (y el conversor WebView2
+    /// compartido) no arrastran nada entre exportaciones.
+    /// </summary>
+    [Fact]
+    public void ElLogoSaleEnDosFacturasSeguidasDelMismoGenerador()
+    {
+        using var bitmap = new Bitmap(300, 60);
+        using (var g = Graphics.FromImage(bitmap)) { g.Clear(Color.White); g.FillEllipse(Brushes.Orange, 5, 5, 50, 50); }
+        using var png = new MemoryStream();
+        bitmap.Save(png, System.Drawing.Imaging.ImageFormat.Png);
+        var conLogo = new DatosFacturaPdf
+        {
+            Numero = Datos.Numero, Fecha = Datos.Fecha, EmisorNombre = Datos.EmisorNombre, EmisorNif = Datos.EmisorNif, EmisorDomicilio = Datos.EmisorDomicilio,
+            ClienteNombre = Datos.ClienteNombre, ClienteNif = Datos.ClienteNif, ClienteDomicilio = Datos.ClienteDomicilio, Total = Datos.Total, Logo = png.ToArray()
+        };
+        var generador = new GeneradorPdfFastReport();
+        var primera = generador.Generar(PlantillaFactura.Factura, conLogo, Lineas(3), Resumen);
+        var segunda = generador.Generar(PlantillaFactura.Factura, conLogo, Lineas(3), Resumen);
+        Assert.NotEmpty(Regex.Matches(Latin1(primera), @"/Subtype\s*/Image"));
+        Assert.NotEmpty(Regex.Matches(Latin1(segunda), @"/Subtype\s*/Image"));
+    }
+
+    /// <summary>
+    /// Muestras del diseño para revisarlo a ojo (se guardan si PROCONTA_PDF_PRUEBA indica una carpeta): transferencia sin
+    /// VeriFactu, recibo con VeriFactu, proforma y una factura larga. El logo sale de PROCONTA_LOGO_PRUEBA si existe.
+    /// </summary>
+    [Fact]
+    public void MuestrasDelDiseno()
+    {
+        var rutaLogo = Environment.GetEnvironmentVariable("PROCONTA_LOGO_PRUEBA");
+        Assert.True(string.IsNullOrEmpty(rutaLogo) || File.Exists(rutaLogo), $"PROCONTA_LOGO_PRUEBA apunta a un fichero que no existe: {rutaLogo}");
+        var logo = !string.IsNullOrEmpty(rutaLogo) ? File.ReadAllBytes(rutaLogo) : null;
+        DatosFacturaPdf Muestra(string titulo, string numero, string aviso, string forma, string etiqueta, string cuenta, string detalle, string qr) => new()
+        {
+            Titulo = titulo, Aviso = aviso, Numero = numero, Fecha = "03/08/2026", Periodo = "01/08/2026 – 31/08/2026",
+            Descripcion = "08AGO01 · Alquiler de agosto de 2026", EmisorNombre = "Sociedad sintética, S.L.", EmisorNif = "B12345674",
+            EmisorDomicilio = "Calle Inventada, 1\r\n08000 Barcelona", EmisorContacto = "Tel. 600 000 000", Logo = logo,
+            ClienteNombre = "COMERCIAL EJEMPLO, S.L.", ClienteNif = "B00000000", ClienteDomicilio = "Calle Mayor, 12, 3.º 2.ª\r\n08850 Gavà\r\nBarcelona",
+            FormaPago = forma, PagoEtiqueta = etiqueta, PagoCuenta = cuenta, PagoDetalle = detalle, QrUrl = qr, Total = "797,40 €"
+        };
+        List<LineaFacturaPdf> lineas =
+        [
+            new("Alquiler local 18 BJ 1A", "1", "750,00", "", "750,00", "21 %", "907,50", "Alquiler del local en Avenida Inventada 18 Bajos 1a - 08850 Gavà (Barcelona)"),
+            new("Suministro de agua", "1", "32,40", "", "32,40", "Supl.", "32,40", "Factura del 2.º bimestre, pagada por cuenta del cliente")
+        ];
+        List<ResumenFacturaPdf> resumen = [new("Base imponible", "750,00 €"), new("IVA 21 % sobre 750,00 €", "157,50 €"), new("Suplidos", "32,40 €"), new("Retención 19 %", "-142,50 €")];
+        var transferencia = Muestra("FACTURA", "083204", "", "Transferencia bancaria · día de pago 5", "INGRESAR EN LA CUENTA", "ES12 0000 0000 0000 0000 0000",
+            "Banco sintético\r\nIndique el número de factura en el concepto", "");
+        var recibo = Muestra("FACTURA", "083204", "", "Recibo domiciliado · día de pago 5", "SE CARGARÁ EN SU CUENTA", "ES** **** **** **** **** 8356",
+            "Banco sintético", "https://prewww2.aeat.es/wlpl/TIKE-CONT/ValidarQR?nif=B12345674&numserie=083204&fecha=03-08-2026&importe=797.40");
+        var proforma = Muestra("FACTURA PROFORMA", "Borrador B-0007", "Documento informativo sin validez fiscal", "Transferencia bancaria", "INGRESAR EN LA CUENTA",
+            "ES12 0000 0000 0000 0000 0000", "Banco sintético", "");
+        var g = new GeneradorPdfFastReport();
+        var a = g.Generar(PlantillaFactura.Factura, transferencia, lineas, resumen);
+        var b = g.Generar(PlantillaFactura.Factura, recibo, lineas, resumen);
+        var c = g.Generar(PlantillaFactura.Proforma, proforma, lineas, resumen);
+        var larga = g.Generar(PlantillaFactura.Factura, transferencia, Enumerable.Range(1, 40).SelectMany(_ => lineas).ToList(), resumen);
+        Assert.All(new[] { a, b, c }, p => Assert.Equal(1, Paginas(p)));
+        Assert.True(Paginas(larga) >= 2);
+        Guardar("muestra-A-transferencia.pdf", a);
+        Guardar("muestra-B-verifactu-recibo.pdf", b);
+        Guardar("muestra-C-proforma.pdf", c);
+        Guardar("muestra-D-larga.pdf", larga);
     }
 
     [Fact]

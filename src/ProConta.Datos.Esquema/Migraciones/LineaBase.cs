@@ -95,6 +95,7 @@ public static class CatalogoMigraciones
         MigracionesConciliacionN43.Conceptos,
         MigracionesNominas.Importacion,
         MigracionesOrganizacion.LimpiezaSociedadesEjercicios,
+        MigracionesFacturacion.DatosPagoFactura,
         MigracionesVentas.VentasPorFacturar,
     ];
 

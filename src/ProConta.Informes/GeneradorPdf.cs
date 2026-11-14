@@ -18,15 +18,35 @@ public sealed class DatosFacturaPdf
     public string EmisorNombre { get; init; } = "";
     public string EmisorNif { get; init; } = "";
     public string EmisorDomicilio { get; init; } = "";
+    /// <summary>Teléfono y correo de la empresa, en una línea (vacío: no sale).</summary>
+    public string EmisorContacto { get; init; } = "";
+    /// <summary>Logo de la empresa (JPG o PNG); sin logo, en su lugar sale el nombre de la empresa.</summary>
+    public byte[]? Logo { get; init; }
     public string ClienteNombre { get; init; } = "";
     public string ClienteNif { get; init; } = "";
     public string ClienteDomicilio { get; init; } = "";
+    /// <summary>Forma de pago y día de pago, en una línea («Recibo domiciliado · día de pago 5»).</summary>
     public string FormaPago { get; init; } = "";
+    /// <summary>Rótulo de la cuenta: «Ingresar en la cuenta» (transferencia) o «Se cargará en su cuenta» (recibo).</summary>
+    public string PagoEtiqueta { get; init; } = "";
+    /// <summary>IBAN: el de la empresa entero en una transferencia; el del cliente enmascarado en un recibo.</summary>
+    public string PagoCuenta { get; init; } = "";
+    /// <summary>Banco y avisos del pago (por ejemplo, que se indique el número de factura en el concepto).</summary>
+    public string PagoDetalle { get; init; } = "";
+    /// <summary>URL del QR tributario de VeriFactu; vacía mientras VeriFactu esté desactivado, y entonces no sale el QR.</summary>
+    public string QrUrl { get; init; } = "";
     public string Total { get; init; } = "";
+
+    /// <summary>Pie de página: nombre, NIF y domicilio del emisor en una línea.</summary>
+    public string PieEmisor => string.Join(" · ", new[] { EmisorNombre, string.IsNullOrWhiteSpace(EmisorNif) ? "" : $"NIF {EmisorNif}",
+        string.Join(", ", EmisorDomicilio.Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)) }.Where(x => x.Length > 0));
 }
 
-/// <summary>Línea de la factura, con sus importes ya formateados.</summary>
-public sealed record LineaFacturaPdf(string Concepto, string Cantidad, string Precio, string Descuento, string Base, string Iva, string Total);
+/// <summary>Línea de la factura, con sus importes ya formateados: el concepto en negrita y su detalle (descripción, fecha) debajo.</summary>
+public sealed record LineaFacturaPdf(string Concepto, string Cantidad, string Precio, string Descuento, string Base, string Iva, string Total, string Detalle = "");
+
+/// <summary>Resumen de importes en dos textos de varias líneas, para la zona fija del pie de la factura.</summary>
+public sealed record TotalesFacturaPdf(string Etiquetas, string Importes);
 
 /// <summary>Fila del resumen (base, cuotas por tipo, suplidos, retención); el total va aparte.</summary>
 public sealed record ResumenFacturaPdf(string Etiqueta, string Importe);
@@ -49,7 +69,7 @@ public interface IGeneradorPdfFactura
 /// editar con FastReport Designer sin recompilar, y solo reciben el modelo: nunca leen Access ni calculan importes.
 /// FastReport prepara y pagina el informe, lo exporta a HTML y WebView2 lo pasa a PDF con texto real (2026-11-12 15:19).
 /// </summary>
-public sealed class GeneradorPdfFastReport(string? carpetaPlantillas = null, ConversorHtmlPdf? conversor = null) : IGeneradorPdfFactura
+public sealed partial class GeneradorPdfFastReport(string? carpetaPlantillas = null, ConversorHtmlPdf? conversor = null) : IGeneradorPdfFactura
 {
     private readonly string _carpeta = carpetaPlantillas ?? Path.Combine(AppContext.BaseDirectory, "Plantillas");
 
@@ -61,10 +81,46 @@ public sealed class GeneradorPdfFastReport(string? carpetaPlantillas = null, Con
         informe.Load(ruta);
         informe.RegisterData(new[] { datos }, "Factura");
         informe.RegisterData(lineas.ToList(), "Lineas");
-        informe.RegisterData(resumen.ToList(), "Resumen");
-        foreach (var fuente in new[] { "Factura", "Lineas", "Resumen" }) informe.GetDataSource(fuente).Enabled = true;
+        informe.RegisterData(new[] { new TotalesFacturaPdf(string.Join("\r\n", resumen.Select(r => r.Etiqueta)), string.Join("\r\n", resumen.Select(r => r.Importe))) }, "Totales");
+        foreach (var fuente in new[] { "Factura", "Lineas", "Totales" }) informe.GetDataSource(fuente).Enabled = true;
+        AjustarDiseno(informe, datos);
         informe.Prepare();
         return MotorPdf.Generar(informe, conversor ?? ConversorHtmlPdf.Compartido);
+    }
+}
+
+public sealed partial class GeneradorPdfFastReport
+{
+    /// <summary>
+    /// Partes opcionales del diseño (facturacion/factura-venta 2026-11-13): el logo o, sin logo, el nombre de la empresa; el QR
+    /// de VeriFactu solo con su URL, y entonces el recuadro del cliente se estrecha para dejarle sitio; los rótulos sin dato no salen.
+    /// Si una plantilla sustituida por el usuario no tiene alguno de esos objetos, se deja como está.
+    /// </summary>
+    private static void AjustarDiseno(Report informe, DatosFacturaPdf datos)
+    {
+        T? Objeto<T>(string nombre) where T : ComponentBase => informe.FindObject(nombre) as T;
+        void Ocultar(params string[] nombres) { foreach (var n in nombres) if (Objeto<ComponentBase>(n) is { } o) o.Visible = false; }
+
+        if (datos.Logo is { Length: > 0 } logo && Objeto<PictureObject>("Logo") is { } imagen)
+        {
+            using var flujo = new MemoryStream(logo);
+            using var leida = System.Drawing.Image.FromStream(flujo);
+            imagen.Image = new System.Drawing.Bitmap(leida);
+            Ocultar("LogoTexto");
+        }
+        else Ocultar("Logo");
+
+        if (string.IsNullOrWhiteSpace(datos.QrUrl)) Ocultar("EtQr", "Qr", "QrVeriFactu", "QrLeyenda");
+        else
+        {
+            var ancho = FastReport.Utils.Units.Millimeters;
+            if (Objeto<TextObject>("CajaCliente") is { } caja) caja.Width = 74 * ancho;
+            foreach (var n in new[] { "ClienteNombre", "ClienteDatos" }) if (Objeto<TextObject>(n) is { } t) t.Width = 66 * ancho;
+        }
+
+        if (string.IsNullOrWhiteSpace(datos.Periodo)) Ocultar("EtPeriodo");
+        if (string.IsNullOrWhiteSpace(datos.PagoCuenta)) Ocultar("EtCuenta");
+        if (string.IsNullOrWhiteSpace(datos.FormaPago) && string.IsNullOrWhiteSpace(datos.PagoCuenta)) Ocultar("EtPago");
     }
 }
 

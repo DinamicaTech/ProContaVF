@@ -25,6 +25,7 @@
 | IdFormaPago | BYTE | no |  |  |
 | IdSociedad | TEXT(3) | no |  |  |
 | IdIdentidadContable | LONG | sí |  |  |
+| IdCuentaBancaria | LONG | sí |  | Cuenta bancaria de la empresa (CuentasBancarias) en la que se cobra esta forma de pago; su IBAN sale en las facturas, por ejemplo en las transferencias. |
 
 Índices:
 - FK_FPS_FormaPago: IdFormaPago
@@ -55,6 +56,8 @@ Relaciones:
 | PoblacionFiscal | TEXT(100) | sí |  |  |
 | ProvinciaFiscal | TEXT(100) | sí |  |  |
 | RutaDocumentos | TEXT(255) | sí |  |  |
+| Telefono | TEXT(30) | sí |  | Teléfono de la empresa; sale en sus facturas junto al domicilio del emisor. |
+| Logo | TEXT(255) | sí |  | Fichero JPG o PNG del logo que sale en las facturas; si la ruta es relativa, dentro de RutaDocumentos. Vacío: sale el nombre de la empresa. |
 
 Índices:
 - IX_Empresas_CIF: CIF

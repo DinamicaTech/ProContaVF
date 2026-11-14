@@ -16,6 +16,7 @@
 | FechaAlta | DATETIME | sí | Date() | Fecha de alta del cliente en la aplicación. Valor predeterminado: fecha actual. |
 | IdTercero | LONG | no |  | Contrato TERCEROS_VF_1: tipo ACE 3, longitud 0, obligatorio True. FK a Terceros.IdTercero; una identidad por origen sin fusiones. |
 | Activo | YESNO | no |  | Contrato TERCEROS_VF_1: tipo ACE 11, longitud 0, obligatorio True. True inicial para clientes existentes; estado operativo nuevo del rol. |
+| IBAN | TEXT(34) | sí |  | IBAN del cliente, sin espacios, para los recibos domiciliados; en la factura sale enmascarado (solo los cuatro últimos dígitos). |
 
 Índices:
 - FK_Clientes_Contratos: IdContrato

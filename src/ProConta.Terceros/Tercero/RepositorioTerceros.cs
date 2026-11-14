@@ -187,19 +187,21 @@ public sealed class RepositorioTercerosAccess(IBaseDatos bd, IReloj? reloj = nul
     {
         if (t.Roles.Cliente is { } cliente)
         {
-            var db = await s.ConsultarPrimeroAsync("SELECT IdCliente, Activo, Notas FROM Clientes WHERE IdTercero = ?",
-                f => new FilaRol(f.Entero("IdCliente"), f.Logico("Activo"), f.Texto("Notas")), t.IdTercero);
+            var db = await s.ConsultarPrimeroAsync("SELECT IdCliente, Activo, Notas, IBAN FROM Clientes WHERE IdTercero = ?",
+                f => new FilaRol(f.Entero("IdCliente"), f.Logico("Activo"), f.Texto("Notas"), Iban: f.Texto("IBAN")), t.IdTercero);
+            var iban = Nucleo.Identificacion.Ibanes.Normalizar(cliente.Iban);
             if (db is null && cliente.Activo)
             {
                 cliente.IdCliente = await ServicioRoles.AsegurarClienteAsync(s, t.IdTercero);
                 if (Vacio(cliente.Notas) is { } n) await s.EjecutarAsync("UPDATE Clientes SET Notas = ? WHERE IdCliente = ?", n, cliente.IdCliente);
+                if (iban is not null) await s.EjecutarAsync("UPDATE Clientes SET IBAN = ? WHERE IdCliente = ?", iban, cliente.IdCliente);
                 await h.Anotar("Cliente", cliente.IdCliente.Value, "ALTA", "IdCliente", null, cliente.IdCliente.ToString());
             }
             else if (db is not null)
             {
                 cliente.IdCliente = db.Id;
-                await s.EjecutarAsync("UPDATE Clientes SET Activo = ?, Notas = ? WHERE IdCliente = ?", cliente.Activo, Vacio(cliente.Notas), db.Id);
-                await AnotarRolAsync(h, "Cliente", db, cliente.Activo, ("Notas", db.Notas, cliente.Notas));
+                await s.EjecutarAsync("UPDATE Clientes SET Activo = ?, Notas = ?, IBAN = ? WHERE IdCliente = ?", cliente.Activo, Vacio(cliente.Notas), iban, db.Id);
+                await AnotarRolAsync(h, "Cliente", db, cliente.Activo, ("Notas", db.Notas, cliente.Notas), ("IBAN", db.Iban, iban));
             }
         }
         if (t.Roles.Proveedor is { } proveedor)
@@ -240,7 +242,7 @@ public sealed class RepositorioTercerosAccess(IBaseDatos bd, IReloj? reloj = nul
         }
     }
 
-    private sealed record FilaRol(int Id, bool Activo, string? Notas, string? Cargo = null, string? Departamento = null);
+    private sealed record FilaRol(int Id, bool Activo, string? Notas, string? Cargo = null, string? Departamento = null, string? Iban = null);
 
     /// <summary>
     /// Rol Empleado en su sociedad (nominas 2026-11-13): darlo crea Empleados y EmpleadosSociedad; quitarlo deja la fila de la sociedad
@@ -481,8 +483,8 @@ public sealed class RepositorioTercerosAccess(IBaseDatos bd, IReloj? reloj = nul
                 ContactoLibre = f.EnteroNulo("IdContactoLibre") is int g && grupos.TryGetValue(g, out var grupo) ? grupo : null,
             }, idTercero));
 
-        t.Roles.Cliente = await s.ConsultarPrimeroAsync("SELECT IdCliente, Activo, Notas FROM Clientes WHERE IdTercero = ?",
-            f => new RolCliente { IdCliente = f.Entero("IdCliente"), Activo = f.Logico("Activo"), Notas = f.Texto("Notas") }, idTercero);
+        t.Roles.Cliente = await s.ConsultarPrimeroAsync("SELECT IdCliente, Activo, Notas, IBAN FROM Clientes WHERE IdTercero = ?",
+            f => new RolCliente { IdCliente = f.Entero("IdCliente"), Activo = f.Logico("Activo"), Notas = f.Texto("Notas"), Iban = f.Texto("IBAN") }, idTercero);
         t.Roles.Proveedor = await s.ConsultarPrimeroAsync("SELECT IdProveedor, Activo, NotasProveedor FROM Proveedores WHERE IdTercero = ?",
             f => new RolProveedor { IdProveedor = f.Entero("IdProveedor"), Activo = f.Logico("Activo"), Notas = f.Texto("NotasProveedor") }, idTercero);
         t.Roles.Contacto = await s.ConsultarPrimeroAsync("SELECT IdContacto, Activo, Cargo, Departamento, NotasContacto FROM Contactos WHERE IdTercero = ?",

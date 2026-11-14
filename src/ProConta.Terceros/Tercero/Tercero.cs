@@ -164,6 +164,10 @@ public sealed class Tercero
             var validado = Nucleo.Identificacion.Nif.Validar(nif);
             if (!validado.EsCorrecto) errores.Add(validado.Error! with { RegistroAfectado = registro });
         }
+        if (Roles.Cliente is { Iban: { } iban } && !string.IsNullOrWhiteSpace(iban) && !Nucleo.Identificacion.Ibanes.EsValido(iban))
+            errores.Add(new Error("Tercero.IbanNoValido", $"El IBAN «{iban.Trim()}» del cliente no es válido.", registro,
+                "No tiene el formato de un IBAN o sus dígitos de control no cuadran (un IBAN español tiene 24 caracteres: ES, 2 dígitos de control y los 20 del CCC).",
+                "Revísalo con el documento del banco o déjalo vacío."));
         if (Email is { Length: > 254 })
             errores.Add(new Error("Tercero.EmailLargo", "El email tiene más de 254 caracteres.", registro, "No cabe en la ficha.", "Revisa la dirección."));
 

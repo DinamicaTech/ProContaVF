@@ -8,6 +8,7 @@ using ProConta.Nucleo.Contexto;
 using ProConta.Nucleo.Identificacion;
 using ProConta.Nucleo.Resultados;
 using ProConta.Terceros;
+using ProConta.Terceros.Contactos;
 using ProConta.Terceros.Roles;
 
 namespace ProConta.Implantacion.ContaSol;
@@ -572,6 +573,9 @@ public sealed class ImportadorContaSol(IBaseDatos bd, IMotorAsientos motor, ICat
                 Email = o.Email is { Length: <= 254 } e && e.Contains('@') ? e : null,
                 Notas = $"Importado de ContaSol: {(o.EsCliente ? "cliente" : "proveedor")} {o.Codigo}.",
             };
+            // El email y el teléfono van también a la lista de datos de contacto, como los dejaría la migración de la ficha antigua.
+            foreach (var (tipo, valor) in PlanificadorContaSol.ContactosDeFicha(tercero.Email, tercero.Telefono))
+                tercero.DatosContacto.Add(new DatoContacto { Tipo = tipo, Etiqueta = "Principal", Valor = valor, Activo = true });
             if (o.EsCliente) tercero.Roles.Cliente = new RolCliente { Activo = true };
             else tercero.Roles.Proveedor = new RolProveedor { Activo = true };
             return tercero;

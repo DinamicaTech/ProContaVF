@@ -32,6 +32,7 @@ Roles opcionales de una identidad (Cliente, Proveedor, Contacto) con IDs funcion
 - 2026-11-06 13:42 · CuentasProveedoresSociedad.TipoProductoDefecto (versión 23): producto por defecto del proveedor en la empresa (1 servicios, 2 bienes). Lo fija compras al guardar una factura recibida y se propone en sus facturas nuevas.
 - 2026-11-06 19:59 · CuentasProveedoresSociedad.IdIdentidadGastoDefecto e IdCentroCosteDefecto (versión 25): cuenta de gasto (por su identidad contable) y centro de coste por defecto del proveedor en la empresa. Los fija compras al guardar una factura recibida y se proponen en sus facturas nuevas cuando ningún texto clave los asigna.
 - 2026-11-06 23:59 · Compras da de alta proveedores desde la factura de compra (compras/pantallas, bloque 3): tercero nuevo con el rol Proveedor y la cuenta de acreedor (410) en la empresa, o el rol para el único tercero que ya tenga ese NIF.
+- 2026-11-13 23:46 · El rol Cliente gana el IBAN para los recibos domiciliados (Clientes.IBAN, TEXT 34): se guarda sin espacios y en mayúsculas, se muestra de cuatro en cuatro en la pestaña Roles de la ficha y se valida (dígitos de control y 24 caracteres si es español; error «Tercero.IbanNoValido»). Cambiarlo queda en el historial. El PDF de factura lo enseña enmascarado (facturacion/factura-venta 2026-11-13 23:46).
 
 ## Requirements
 - 2026-10-28 12:28 · From sources/01_ESPECIFICACION_FUNCIONAL.docx § 7 RF-TER-03, 04: roles idempotentes y cuentas por rol y sociedad/ejercicio
@@ -57,6 +58,7 @@ Roles opcionales de una identidad (Cliente, Proveedor, Contacto) con IDs funcion
 - 2026-11-06 13:36 · 2. Ok, el proveedor tendrá un TipoProducto por defecto. En la migración de datos, se podrá asignar este valor en función de la última factura de cada proveedor.
 - 2026-11-13 11:05 · Derived from nominas: rol Empleado (tablas Empleados y EmpleadosSociedad) con el código del trabajador en la gestoría y su cuenta 465 por sociedad; búsqueda por código o por NIF de un empleado existente, candidatos por NIF o nombre parecido, y alta como persona física desde la nómina.
 - 2026-11-13 15:48 · Derived from nominas/pantallas: el rol Empleado se activa, desactiva (de baja en la sociedad, se sigue reconociendo por su código) y edita en la ficha, con su código en la gestoría (único en la sociedad, hasta 30 caracteres) y su cuenta 465; los cambios quedan en el historial (entidad Empleado) y solo valen para lo que se importe o contabilice después.
+- 2026-11-13 23:46 · Derived from facturacion/factura-venta: IBAN del cliente para el recibo domiciliado de la factura.
 
 ## Hand-over
 - 2026-10-31 19:05 · Hecho: roles y cuentas por ejercicio, con pruebas (rol idempotente sin duplicar identidad, cuentas distintas por ejercicio, cuenta de otro ejercicio rechazada). Pendiente, porque necesita columnas nuevas y lo pedirá compras: distinguir cuenta de proveedor y de acreedor (decisión 2026-10-31 16:54), valores por defecto del proveedor (tipo de operación, producto, retención, país, forma de pago, cuenta de gasto, moneda) y su actualización desde la factura (decisiones 2026-10-29 18:14 y 2026-10-31 07:46), y la carpeta de PDF del proveedor.
