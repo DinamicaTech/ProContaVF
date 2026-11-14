@@ -245,14 +245,14 @@ tr.dim td{color:var(--mut2)}
           <li>En la cabecera solo hay acciones generales: Nuevo asiento, Exportar (PDF o Excel de lo filtrado), Asientos borrados y Columnas. Lo que actúa sobre apuntes va en el clic derecho.</li>
           <li>La ficha deja cambiar concepto, documento, vencimiento, centro y punteo de cualquier apunte, también de los automáticos, con Guardar y Cancelar al pie.</li>
           <li>Un asiento manual se puede eliminar si no lo impide el trimestre cerrado: pide el motivo y queda una copia consultable en «Asientos borrados».</li>
+          <li>Los asientos automáticos se corrigen con «Modificar el asiento…»: cuentas e importes, salvo la 572; en ventas y compras, solo las subcuentas que no son de IVA, porque los importes y el IVA van con el libro de IVA. Regenerar el origen deshace el cambio, sin aviso.</li>
           <li>El buscador de subcuentas solo lista subcuentas, con la descripción en la segunda columna, y la ventana se redimensiona desde su esquina.</li>
         </ul>
       </div>
       <div>
         <h3>Pendiente de decidir</h3>
         <ol>
-          <li>Corregir cuentas e importes de un asiento automático (salvo la 572): la maqueta lo deja con «Modificar el asiento…» y lo marca «modificado a mano». Falta acordar qué pasa con el libro de IVA y si el origen lo vuelve a generar.</li>
-          <li>Trabajar con dos ejercicios a la vez y modificar el anterior si no está cerrado.</li>
+          <li>Trabajar con dos ejercicios a la vez y modificar el anterior si no está cerrado, avisando de que la apertura queda desactualizada (propuesto, sin confirmar).</li>
         </ol>
       </div>
     </aside>
@@ -365,7 +365,7 @@ const COLS=[
 COLS.forEach(c=>c.on=c.def?1:0);
 const S={per:"ej",desde:"2026-01-01",hasta:"2026-12-31",q:"",cta:"",origen:"",punteo:"",cc:"",vista:"asiento",plegados:new Set(),mes:false,sel:new Set(),ancla:null,sk:null,sd:1,rows:[]};
 const vis=()=>COLS.filter(c=>c.on);
-const bloq=l=>(l.a.cerrado&&l.a.fiscal?'<span title="Trimestre cerrado con cuentas de IVA o retenciones: no se cambian cuentas ni importes, ni se borra">🔒</span>':"")+(l.a.auto&&/^572/.test(l.cta)?'<span title="Apunte de banco de un asiento automático: su cuenta y su importe no se cambian">🏦</span>':"");
+const bloq=l=>(l.a.cerrado&&l.a.fiscal?'<span title="Trimestre cerrado con cuentas de IVA o retenciones: no se cambian cuentas ni importes, ni se borra">🔒</span>':"")+(l.a.auto&&/^572/.test(l.cta)?'<span title="Apunte de banco de un asiento automático: su cuenta y su importe no se cambian">🏦</span>':"")+(/Ventas|Compras/.test(l.a.origen)&&/^Factura/.test(l.a.desc)?'<span title="Va con el libro de IVA de la factura: el importe (y la cuenta, si es de IVA) se corrige en la factura">🧾</span>':"");
 const contra=l=>{const o=l.a.lines.filter(x=>x!==l&&(l.d?x.h:x.d)&&!/^(472|477)/.test(x.cta));const u=[...new Set(o.map(x=>x.cta))];return u.length===1?u[0]:u.length?"Varias":"—";};
 const lineFilter=()=>S.q||S.cta||S.punteo||S.cc;
 function matchLine(l){
@@ -437,7 +437,7 @@ function render(){
       const td=a.lines.reduce((s,l)=>s+l.d,0);mD+=td;mH+=td;mN++;tD+=td;tH+=td;nL+=a.lines.length;
       const pl=S.plegados.has(a.n),all=a.lines.every(l=>S.sel.has(l.id));
       const car=`<button class="car" title="${pl?"Desplegar":"Plegar"} los apuntes de este asiento" aria-label="${pl?"Desplegar":"Plegar"}">${pl?"▸":"▾"}</button>`;
-      const txt=(hayN?"":car+a.n+" · ")+`<span class="d">${esc(a.desc)}</span> <span class="pill o-${a.origen}" title="${a.auto?"Asiento automático de "+a.origen+": la cuenta y los importes se cambian con «Modificar el asiento…», salvo los de la 572":"Asiento manual"}">${a.origen}</span>${a.cerrado&&a.fiscal?' <span class="lock" title="Trimestre cerrado con cuentas de IVA o retenciones: no se cambian cuentas ni importes, ni se borra">🔒 trimestre cerrado</span>':""}${a.mod&&a.auto?' <span class="lock" title="Asiento automático cambiado a mano">✎ modificado a mano</span>':""}${lf&&hits.length<a.lines.length?` <span class="lock">${hits.length} de ${a.lines.length} cumplen el filtro</span>`:""}`;
+      const txt=(hayN?"":car+a.n+" · ")+`<span class="d">${esc(a.desc)}</span> <span class="pill o-${a.origen}" title="${a.auto?"Asiento automático de "+a.origen+": la cuenta y los importes se cambian con «Modificar el asiento…», salvo los de la 572"+(/Ventas|Compras/.test(a.origen)?" y las líneas de IVA y los importes de la factura":""):"Asiento manual"}">${a.origen}</span>${a.cerrado&&a.fiscal?' <span class="lock" title="Trimestre cerrado con cuentas de IVA o retenciones: no se cambian cuentas ni importes, ni se borra">🔒 trimestre cerrado</span>':""}${a.mod&&a.auto?' <span class="lock" title="Asiento automático cambiado a mano">✎ modificado a mano</span>':""}${lf&&hits.length<a.lines.length?` <span class="lock">${hits.length} de ${a.lines.length} cumplen el filtro</span>`:""}`;
       h+=resumen("g"+(all?" sel":""),`data-as="${a.n}"`,k=>k==="n"?`<td>${car}${a.n}</td>`:k==="fecha"?`<td>${fdate(a.fecha)}</td>`:k==="d"||k==="h"?`<td class="num">${fmt(td)}</td>`:null,txt);
       if(!pl)for(const l of a.lines)h+=row(l,true,lf?(hits.includes(l)?"hit":"dim"):"");
     }
@@ -491,7 +491,7 @@ function ficha(){
     (a.ref?`<dt>Origen</dt><dd><button class="lnk" data-act="origen" title="Abre el documento que generó este asiento">${esc(a.ref)}</button></dd>`:"")+
     (a.plantilla?`<dt>Plantilla</dt><dd>${esc(a.plantilla)}</dd>`:"")+(a.motivo?`<dt>Motivo</dt><dd>${esc(a.motivo)}</dd>`:"")+
     `<dt>Grabado el</dt><dd>${fdate(a.creado)} · ${a.auto?"Sistema":"Ronald"}</dd>`+(a.mod?`<dt>Modificado el</dt><dd>${fdate(a.mod)} · Ronald</dd>`:"")+`</dl>`;
-  if(a.auto)h+=`<div class="info">Asiento automático de ${a.origen} (${esc(a.ref)}). Concepto, documento, vencimiento, centro y punteo se cambian aquí. Cuentas e importes, con «Modificar el asiento…», salvo los apuntes de la 572.${a.mod?" Ya se ha modificado a mano: si su origen lo vuelve a generar, se te avisará antes.":""}</div>`;
+  if(a.auto)h+=`<div class="info">Asiento automático de ${a.origen} (${esc(a.ref)}). Concepto, documento, vencimiento, centro y punteo se cambian aquí. Cuentas e importes, con «Modificar el asiento…», salvo los apuntes de la 572.${/Ventas|Compras/.test(a.origen)?" Las líneas de IVA y los importes no: van con el libro de IVA y se corrigen en la factura.":""}${a.mod?" Ya se ha modificado a mano: si regeneras su origen, el cambio se pierde.":""}</div>`;
   h+=`<div class="mini"><h3>Apuntes · Debe ${fmt(td)} = Haber ${fmt(td)}</h3><div class="tw2"><table><thead><tr><th>Cuenta</th><th>Nombre</th><th class="num">Debe</th><th class="num">Haber</th></tr></thead><tbody>`+
     a.lines.map(l=>`<tr data-pick="${l.id}" class="${S.sel.has(l.id)?"sel":""}" title="${esc(l.concepto)}"><td class="mono">${l.cta}</td><td>${esc(CTAS[l.cta])}</td><td class="num">${l.d?fmt(l.d):""}</td><td class="num">${l.h?fmt(l.h):""}</td></tr>`).join("")+`</tbody></table></div></div>`;
   if(one){
@@ -545,12 +545,12 @@ function ctx(e){
   else{const id=+r.dataset.id;if(!S.sel.has(id)){S.sel=new Set([id]);S.ancla=id;render();}}
   const sl=[...S.sel].map(i=>LBY.get(i)),as=[...new Set(sl.map(l=>l.a))],a1=as.length===1?as[0]:null,l1=sl.length===1?sl[0]:null;
   const ctas=[...new Set(sl.map(l=>l.cta))],man=as.every(a=>!a.auto),blq=as.some(a=>a.cerrado&&a.fiscal);
-  const noMod=blq?"Trimestre cerrado con cuentas de IVA o retenciones":"",banco=sl.some(l=>l.a.auto&&/^572/.test(l.cta));
+  const noMod=blq?"Trimestre cerrado con cuentas de IVA o retenciones":"",banco=sl.some(l=>l.a.auto&&/^572/.test(l.cta)),ivaFac=sl.some(l=>/Ventas|Compras/.test(l.a.origen)&&/^(472|477|4751)/.test(l.cta));
   const allP=sl.every(l=>l.p),it=[];
   const add=(t,fn,o)=>it.push(Object.assign({t,fn},o||{}));
   it.push({head:sl.length===1?`Apunte ${l1.orden} del asiento ${l1.a.n} · ${l1.cta}`:`${sl.length} apuntes de ${as.length} asiento${as.length===1?"":"s"}`});
   add(a1?"Abrir el asiento "+a1.n:"Abrir el asiento",()=>abrir(a1),{dis:!a1,s:a1?"Doble clic":"Solo con un asiento"});
-  add("Modificar el asiento…",()=>toast("Abre el asiento "+a1.n+" para modificarlo en la pantalla de asiento",a1.auto?"Automático de "+a1.origen+": se cambian cuentas e importes, salvo los apuntes de la 572. Pide el motivo y queda marcado como modificado a mano.":"Pide el motivo del cambio y solo guarda si cuadra."),{dis:!a1||!!noMod,s:!a1?"Solo con un asiento":noMod});
+  add("Modificar el asiento…",()=>toast("Abre el asiento "+a1.n+" para modificarlo en la pantalla de asiento",a1.auto?(/Ventas|Compras/.test(a1.origen)?"Factura de "+a1.origen+": se cambian las subcuentas de gasto, ingreso o tercero; las líneas de IVA y los importes se corrigen en la factura. Pide el motivo.":"Automático de "+a1.origen+": se cambian cuentas e importes, salvo los apuntes de la 572. Pide el motivo."):"Pide el motivo del cambio y solo guarda si cuadra."),{dis:!a1||!!noMod,s:!a1?"Solo con un asiento":noMod});
   add("Asistente de corrección…",()=>toast("Abre el asistente de corrección con este apunte","Ofrece las plantillas de corrección que encajan: anular y rehacer, cambiar la subcuenta, etc."),{dis:!l1,s:l1?"":"Solo con un apunte"});
   add("Usar como base de un asiento nuevo",()=>toast("Abre un asiento nuevo con las mismas cuentas e importes que el asiento "+a1.n,"Con la fecha de hoy y sin guardar hasta que lo confirmes."),{dis:!a1,s:a1?"":"Solo con un asiento"});
   it.push({hr:1});
@@ -562,7 +562,7 @@ function ctx(e){
   add(allP?"Quitar el punteo":"Puntear",()=>{sl.forEach(l=>l.p=!allP);render();toast((allP?"Punteo quitado de ":"Punteados ")+sl.length+" apunte"+(sl.length===1?"":"s"));},{s:"F4"});
   add("Asignar número de factura…",()=>pedir("Número de factura","Se pone en los "+sl.length+" apuntes seleccionados. También vale en asientos automáticos y periodos cerrados.",`<input class="inp" id="p-v" value="${esc(l1?l1.doc:"")}" style="width:14em" title="Número de factura o documento">`,v=>{sl.forEach(l=>l.doc=v);render();toast("Número de factura cambiado en "+sl.length+" apunte"+(sl.length===1?"":"s"),v||"(vacío)");}),{s:"Ctrl+N"});
   add("Cambiar el concepto…",()=>pedir("Concepto","Se cambia en los "+sl.length+" apuntes seleccionados.",`<input class="inp" id="p-v" value="${esc(l1?l1.concepto:"")}" style="width:100%" title="Descripción del apunte">`,v=>{sl.forEach(l=>l.concepto=v);render();toast("Concepto cambiado en "+sl.length+" apunte"+(sl.length===1?"":"s"));}));
-  add("Cambiar la subcuenta…",()=>selector(c=>{sl.forEach(l=>l.cta=c);render();toast("Subcuenta cambiada a "+c+" "+CTAS[c],"En la aplicación lo hace el motor de asientos y queda en el historial.");}),{dis:!!noMod||banco||ctas.length>1,s:noMod||(banco?"Apunte de banco de un asiento automático":ctas.length>1?"Los apuntes son de cuentas distintas":"")});
+  add("Cambiar la subcuenta…",()=>selector(c=>{sl.forEach(l=>l.cta=c);render();toast("Subcuenta cambiada a "+c+" "+CTAS[c],"En la aplicación lo hace el motor de asientos y queda en el historial.");}),{dis:!!noMod||banco||ivaFac||ctas.length>1,s:noMod||(banco?"Apunte de banco de un asiento automático":ivaFac?"Línea de IVA de una factura: se corrige en la factura":ctas.length>1?"Los apuntes son de cuentas distintas":"")});
   add("Asignar centro de coste…",()=>pedir("Centro de coste","Se asigna a los "+sl.length+" apuntes seleccionados.",`<select class="inp" id="p-v" title="Centro de coste"><option value="">Sin centro</option>${CCS.map(c=>`<option>${c}</option>`).join("")}</select>`,v=>{sl.forEach(l=>l.cc=v);render();toast("Centro de coste asignado",v||"Sin centro");}));
   it.push({hr:1});
   add("Filtrar por esta cuenta",()=>{S.cta=l1.cta;syncInputs();render();},{dis:!l1,s:l1?"":"Solo con un apunte"});
