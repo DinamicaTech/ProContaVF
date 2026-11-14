@@ -55,6 +55,9 @@ public sealed class LectorErp
     /// <summary>Tablas de nóminas que se migran si existen (fase 7, nominas 2026-11-13): sin ellas la fase no carga nada.</summary>
     public static readonly IReadOnlyList<string> TablasNominasMigradas = ["F_NOM", "AliasCamposF_NOM", "PlantillasApuntes"];
 
+    /// <summary>Tablas de reservas que se migran si existen (fase 8, facturacion/reservas 2026-11-14): sin ellas la fase no carga nada.</summary>
+    public static readonly IReadOnlyList<string> TablasReservasMigradas = ["ReservasPisosTuristicos"];
+
     /// <summary>Tablas de nóminas que no se migran y que el informe nombra con sus filas: el lector nuevo ya reconoce las cabeceras y los campos.</summary>
     public static readonly IReadOnlyList<string> TablasNominas = ["F_NOM_ALIAS", "CamposF_NOM"];
 
@@ -100,7 +103,7 @@ public sealed class LectorErp
             return Resultado<OrigenErp>.Fallo(new Error("Erp.NoReconocida", "Esta BD no tiene las tablas del ERP que sé migrar.", ruta,
                 $"Faltan: {string.Join(", ", faltan)}.", "Elige la copia materializada ProcontaEstructura.accdb."));
         var tablas = new Dictionary<string, IReadOnlyList<Fila>>(StringComparer.OrdinalIgnoreCase);
-        foreach (var t in TablasMigradas.Concat(TablasNominasMigradas.Where(existentes.Contains)))
+        foreach (var t in TablasMigradas.Concat(TablasNominasMigradas.Where(existentes.Contains)).Concat(TablasReservasMigradas.Where(existentes.Contains)))
         {
             cancelacion.ThrowIfCancellationRequested();
             tablas[t] = Consultar(cn, $"SELECT * FROM [{t}]");

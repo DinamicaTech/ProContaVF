@@ -110,6 +110,7 @@ internal sealed partial class EjecucionErp(MigradorErp m, OrigenErp o, OpcionesM
             await FaseAsync("5 norma43", Norma43Async);
             await FaseAsync("6 activos", ActivosAsync);
             await FaseAsync("7 nominas", NominasAsync);
+            await FaseAsync("8 reservas", ReservasAsync);
             await FaseAsync("controles", ControlesAsync);
             _r.Estado = _r.Incidencias.Any(i => i.Severidad == Severidad.Bloqueante) ? EstadosImportacion.ConIncidencias : EstadosImportacion.Completada;
         }
