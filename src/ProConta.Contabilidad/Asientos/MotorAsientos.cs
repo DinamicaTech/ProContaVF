@@ -58,8 +58,32 @@ public interface IMotorAsientos
     /// </summary>
     Task<Resultado<IReadOnlyList<int>>> GuardarManualesAsync(IReadOnlyList<Asiento> asientos, Actor actor, string motivo, OpcionesAltaManual? opciones = null);
 
-    /// <summary>Borra un asiento manual (con la versión leída y motivo).</summary>
+    /// <summary>
+    /// Borra un asiento manual (con la versión leída y motivo) y deja su copia en AsientosBorrados y ApuntesBorrados, con la fecha,
+    /// el operador y el motivo del borrado (contabilidad/diario 2026-11-14 21:50). El número del asiento no se reutiliza.
+    /// </summary>
     Task<Resultado> EliminarManualAsync(int idAsiento, int versionLeida, Actor actor, string motivo);
+
+    /// <summary>Copias de los asientos manuales borrados de unos ejercicios, del más reciente al más antiguo, con sus apuntes.</summary>
+    Task<IReadOnlyList<AsientoBorrado>> AsientosBorradosAsync(IReadOnlyCollection<int> idsSociedadEjercicio);
+
+    /// <summary>
+    /// Corrección a mano de un asiento automático (contabilidad/diario 2026-11-14 21:50): cambia sus cuentas e importes con motivo, salvo
+    /// los apuntes de la 572 y, si lleva libro de IVA, la fecha, los importes y las líneas de IVA y retención
+    /// (<see cref="ReglasAsiento.ValidarCorreccionAutomatico"/>). El asiento sigue siendo de su lote y queda marcado como corregido a mano;
+    /// regenerar el lote lo sustituye sin avisar. Se aplican el cuadre, el ejercicio cerrado y el trimestre cerrado como en cualquier asiento.
+    /// </summary>
+    Task<Resultado<Asiento>> CorregirAutomaticoAsync(Asiento asiento, Actor actor, string motivo);
+
+    /// <summary>Si el asiento lleva libro de IVA (una fila en IVARepercutido o IVASoportado): factura de venta o de compra.</summary>
+    Task<bool> TieneLibroIvaAsync(int idAsiento);
+
+    /// <summary>
+    /// Cambia el concepto, el documento, el vencimiento, el centro de coste o el punteo de unos apuntes en una operación (un IdLote en el
+    /// registro de cambios), también en asientos automáticos y en trimestres cerrados, porque no tienen efecto contable directo
+    /// (contabilidad/diario 2026-11-14 21:50). En un ejercicio cerrado solo se admiten el documento y el punteo. Todo salvo el punteo pide motivo.
+    /// </summary>
+    Task<Resultado<Guid>> CambiarDatosApuntesAsync(IReadOnlyCollection<int> idsApunte, CambioDatosApunte cambio, Actor actor, string? motivo = null);
 
     /// <summary>
     /// Sustituye todos los asientos de un lote automático por los indicados, en una sola transacción:
@@ -72,7 +96,10 @@ public interface IMotorAsientos
     Task<Resultado<int>> EliminarLoteAsync(ContextoSociedadEjercicio contexto, IdentidadLote lote, Actor actor, string motivo, TrabajoLote? enLaTransaccion = null,
         OpcionesLote? opciones = null);
 
-    /// <summary>Cambia de cuenta varios apuntes manuales en una operación (mismo IdLote en el registro).</summary>
+    /// <summary>
+    /// Cambia de cuenta varios apuntes en una operación (mismo IdLote en el registro). En los asientos automáticos no se cambian los
+    /// apuntes de la 572 ni, con libro de IVA, las líneas de IVA y retención, y el asiento queda marcado como corregido a mano.
+    /// </summary>
     Task<Resultado<Guid>> CambiarCuentaApuntesAsync(ContextoSociedadEjercicio contexto, IReadOnlyCollection<int> idsApunte, string nuevaCuenta, Actor actor, string motivo);
 
     /// <summary>
@@ -88,7 +115,7 @@ public interface IMotorAsientos
     /// </summary>
     Task<Resultado<Guid>> AsignarNumeroDocumentoAsync(IReadOnlyCollection<int> idsApunte, string? numero, Actor actor, string motivo);
 
-    /// <summary>Cambia el concepto de apuntes manuales (vacío: el del asiento). Nunca en automáticos ni en periodos cerrados.</summary>
+    /// <summary>Cambia el concepto de unos apuntes (vacío: el del asiento), también en automáticos; nunca en un ejercicio cerrado.</summary>
     Task<Resultado<Guid>> CambiarConceptoApuntesAsync(IReadOnlyCollection<int> idsApunte, string? concepto, Actor actor, string motivo);
 
     Task<IReadOnlyList<CambioApunte>> RegistroCambiosAsync(int idAsiento);
@@ -117,6 +144,35 @@ public sealed record OpcionesAltaManual(int? IdAsientoOrigen = null, string Tipo
     public const string RelacionCorreccion = "CORRECCION";
 }
 
+/// <summary>
+/// Lo que cambia <see cref="IMotorAsientos.CambiarDatosApuntesAsync"/>: solo los campos con su «Cambia…» a true (o <see cref="Punteado"/>
+/// con valor). Un texto vacío quita el concepto (queda el del asiento) o el documento; un vencimiento o centro null los quita.
+/// </summary>
+public sealed record CambioDatosApunte
+{
+    public bool CambiaConcepto { get; init; }
+    public string? Concepto { get; init; }
+    public bool CambiaDocumento { get; init; }
+    public string? Documento { get; init; }
+    public bool CambiaVencimiento { get; init; }
+    public DateTime? Vencimiento { get; init; }
+    public bool CambiaCentro { get; init; }
+    public int? IdCentroCoste { get; init; }
+    public bool? Punteado { get; init; }
+
+    /// <summary>True si solo cambia el punteo: no pide motivo ni cambia la versión del asiento.</summary>
+    public bool SoloPunteo => !CambiaConcepto && !CambiaDocumento && !CambiaVencimiento && !CambiaCentro;
+    public bool Vacio => SoloPunteo && Punteado is null;
+}
+
+/// <summary>Apunte de un asiento borrado (tabla ApuntesBorrados).</summary>
+public sealed record ApunteBorrado(int IdApunte, int Orden, string Cuenta, decimal Debe, decimal Haber, string? Concepto, string? Documento,
+    DateTime? Vencimiento, int? IdCentroCoste, bool Punteado);
+
+/// <summary>Copia de un asiento manual borrado (tabla AsientosBorrados) con sus apuntes, quién lo borró, cuándo y por qué.</summary>
+public sealed record AsientoBorrado(int IdAsiento, int IdSociedadEjercicio, DateTime Fecha, string Descripcion, string? Notas, decimal TotalDebe,
+    DateTime FechaHoraBorrado, string Operador, string Motivo, string? OperadorCreacion, DateTime? FechaHoraCreacion, IReadOnlyList<ApunteBorrado> Apuntes);
+
 /// <summary>Un asiento de un libro externo con su clave de ejecución (la del documento de origen).</summary>
 public sealed record AsientoExterno(string ClaveEjecucion, Asiento Asiento);
 
@@ -139,7 +195,7 @@ public sealed partial class MotorAsientosAccess(IBaseDatos bd, PoliticaCuadre? p
     private readonly IReloj _reloj = reloj ?? RelojSistema.Instancia;
 
     private const string ColumnasAsiento =
-        "IdAsiento, IdSociedadEjercicio, FechaContable, Descripcion, TipoAsiento, Notas, EstadoAsiento, Version, EsAutomatico, MotorPropietario, CodigoProceso, ClaveEjecucion, IdPlantillaAsiento";
+        "IdAsiento, IdSociedadEjercicio, FechaContable, Descripcion, TipoAsiento, Notas, EstadoAsiento, Version, EsAutomatico, MotorPropietario, CodigoProceso, ClaveEjecucion, IdPlantillaAsiento, CorregidoAMano";
     private const string ColumnasApunte =
         "IdApunte, IdAsiento, Orden, CuentaContable, ImporteDebe, ImporteHaber, Descripcion, NumeroDocumento, IdCliente, IdProveedor, FechaVencimiento, IdCentroCoste, TipoApunte, GeneradoAutomaticamente, MotivoGeneracion, Punteado";
 
@@ -210,6 +266,7 @@ public sealed partial class MotorAsientosAccess(IBaseDatos bd, PoliticaCuadre? p
             if (!abierto.EsCorrecto) return abierto;
             var trimestre = await ComprobarTrimestreAbiertoAsync(s, actual);
             if (!trimestre.EsCorrecto) return trimestre;
+            await CopiarBorradoAsync(s, actual, actor, motivo.Trim());
             await BorrarAsync(s, actual, actor, motivo.Trim(), Guid.NewGuid());
             await ActualizarSaldosAsync(s, actual.Contexto, actual.Apuntes.Select(a => a.CodigoCuenta));
             return Resultado.Correcto();
@@ -312,6 +369,7 @@ public sealed partial class MotorAsientosAccess(IBaseDatos bd, PoliticaCuadre? p
             var idLote = Guid.NewGuid();
             var afectadas = new HashSet<string>(StringComparer.Ordinal) { cuenta.Valor.Codigo };
             var anteriores = new Dictionary<int, Asiento>();
+            var libroIva = new Dictionary<int, bool>();
             foreach (var idApunte in idsApunte.Distinct())
             {
                 var fila = await s.ConsultarPrimeroAsync(
@@ -321,10 +379,16 @@ public sealed partial class MotorAsientosAccess(IBaseDatos bd, PoliticaCuadre? p
                 if (fila.IdAsiento == 0 || fila.Ejercicio != contexto.IdSociedadEjercicio)
                     return Resultado<Guid>.Fallo(new Error("Asientos.ApunteNoEncontrado", $"El apunte {idApunte} no existe en este ejercicio.", $"Apunte {idApunte}",
                         "Se ha borrado o es de otro ejercicio.", "Vuelve a cargar los apuntes."));
-                if (fila.Automatico)
-                    return Resultado<Guid>.Fallo(new Error("Asientos.Automatico", $"El apunte {idApunte} es de un asiento automático y no se cambia a mano.", $"Asiento {fila.IdAsiento}",
-                        "Los asientos automáticos solo los regenera el proceso que los generó.", "Corrige el documento de origen y vuelve a generar su asiento."));
                 if (fila.Cuenta == cuenta.Valor.Codigo) continue;
+                if (fila.Automatico)
+                {
+                    // Corrección de un automático (contabilidad/diario 2026-11-14 21:50): ni la 572 ni, con libro de IVA, las líneas de IVA.
+                    if (!libroIva.TryGetValue(fila.IdAsiento, out var conLibro)) libroIva[fila.IdAsiento] = conLibro = await TieneLibroIvaAsync(s, fila.IdAsiento);
+                    var bloqueo = ReglasAsiento.BloqueoCuentaAutomatico(fila.Cuenta, conLibro) ?? ReglasAsiento.BloqueoCuentaAutomatico(cuenta.Valor.Codigo, conLibro);
+                    if (bloqueo is not null)
+                        return Resultado<Guid>.Fallo(new Error("Asientos.ApunteBloqueado", $"El apunte {fila.Orden} del asiento {fila.IdAsiento} no se puede pasar de {fila.Cuenta} a {cuenta.Valor.Codigo}.",
+                            $"Asiento {fila.IdAsiento}", bloqueo, "Cambia solo los apuntes que no son de banco ni de IVA; el resto se corrige en su origen."));
+                }
                 if (!anteriores.ContainsKey(fila.IdAsiento))
                 {
                     var asiento = (await CargarAsync(s, fila.IdAsiento))!;
@@ -345,8 +409,8 @@ public sealed partial class MotorAsientosAccess(IBaseDatos bd, PoliticaCuadre? p
             }
             foreach (var (idAsiento, anterior) in anteriores)
             {
-                await s.EjecutarAsync("UPDATE Asientos SET Version = Version + 1, OperadorModificacion = ?, FechaHoraModificacion = ? WHERE IdAsiento = ?",
-                    actor.ToString(), _reloj.Ahora, idAsiento);
+                await s.EjecutarAsync("UPDATE Asientos SET Version = Version + 1, OperadorModificacion = ?, FechaHoraModificacion = ?, CorregidoAMano = ? WHERE IdAsiento = ?",
+                    actor.ToString(), _reloj.Ahora, anterior.EsAutomatico, idAsiento);
                 await RevisionAsync(s, idAsiento, OperacionRevision.Modificacion, motivo.Trim(), actor, anterior, (await CargarAsync(s, idAsiento))!);
             }
             await ActualizarSaldosAsync(s, contexto, afectadas);
@@ -354,7 +418,8 @@ public sealed partial class MotorAsientosAccess(IBaseDatos bd, PoliticaCuadre? p
         });
 
     /// <summary>Lo que hace falta de un apunte para las operaciones del Mayor.</summary>
-    private sealed record ApunteOperacion(int IdApunte, int IdAsiento, int Orden, string? Descripcion, string? Documento, bool Punteado, bool Automatico);
+    private sealed record ApunteOperacion(int IdApunte, int IdAsiento, int Orden, string? Descripcion, string? Documento, bool Punteado, bool Automatico,
+        DateTime? Vencimiento = null, int? IdCentroCoste = null);
 
     private static async Task<Resultado<IReadOnlyList<ApunteOperacion>>> LeerApuntesAsync(ISesionDatos s, IReadOnlyCollection<int> idsApunte)
     {
@@ -362,18 +427,18 @@ public sealed partial class MotorAsientosAccess(IBaseDatos bd, PoliticaCuadre? p
         foreach (var idApunte in idsApunte.Distinct())
         {
             var fila = await s.ConsultarPrimeroAsync(
-                "SELECT ap.IdApunte, ap.IdAsiento, ap.Orden, ap.Descripcion, ap.NumeroDocumento, ap.Punteado, a.EsAutomatico FROM Apuntes AS ap " +
+                "SELECT ap.IdApunte, ap.IdAsiento, ap.Orden, ap.Descripcion, ap.NumeroDocumento, ap.Punteado, ap.FechaVencimiento, ap.IdCentroCoste, a.EsAutomatico FROM Apuntes AS ap " +
                 "INNER JOIN Asientos AS a ON ap.IdAsiento = a.IdAsiento WHERE ap.IdApunte = ?",
                 f => new ApunteOperacion(f.Entero("IdApunte"), f.Entero("IdAsiento"), f.Entero("Orden"), f.Texto("Descripcion"), f.Texto("NumeroDocumento"),
-                    !f.EsNulo("Punteado") && f.Logico("Punteado"), !f.EsNulo("EsAutomatico") && f.Logico("EsAutomatico")),
+                    !f.EsNulo("Punteado") && f.Logico("Punteado"), !f.EsNulo("EsAutomatico") && f.Logico("EsAutomatico"), f.FechaNula("FechaVencimiento"), f.EnteroNulo("IdCentroCoste")),
                 idApunte);
             if (fila is null)
                 return Resultado<IReadOnlyList<ApunteOperacion>>.Fallo(new Error("Asientos.ApunteNoEncontrado", $"El apunte {idApunte} ya no existe.", $"Apunte {idApunte}",
-                    "Se ha borrado, o su asiento se ha regenerado después de cargar el Mayor.", "Vuelve a cargar el Mayor y repite la operación."));
+                    "Se ha borrado, o su asiento se ha regenerado después de cargar la pantalla.", "Vuelve a cargar los apuntes y repite la operación."));
             lista.Add(fila);
         }
         return lista.Count == 0
-            ? Resultado<IReadOnlyList<ApunteOperacion>>.Fallo(new Error("Asientos.SinApuntes", "No hay ningún apunte elegido.", "Mayor", null, "Elige una o varias filas."))
+            ? Resultado<IReadOnlyList<ApunteOperacion>>.Fallo(new Error("Asientos.SinApuntes", "No hay ningún apunte elegido.", "Apuntes", null, "Elige una o varias filas."))
             : Resultado<IReadOnlyList<ApunteOperacion>>.Correcto(lista);
     }
 
@@ -415,36 +480,160 @@ public sealed partial class MotorAsientosAccess(IBaseDatos bd, PoliticaCuadre? p
         });
 
     public Task<Resultado<Guid>> CambiarConceptoApuntesAsync(IReadOnlyCollection<int> idsApunte, string? concepto, Actor actor, string motivo) =>
+        CambiarDatosApuntesAsync(idsApunte, new CambioDatosApunte { CambiaConcepto = true, Concepto = concepto }, actor, motivo);
+
+    public Task<Resultado<Guid>> CambiarDatosApuntesAsync(IReadOnlyCollection<int> idsApunte, CambioDatosApunte cambio, Actor actor, string? motivo = null) =>
         bd.EnTransaccionAsync(async s =>
         {
-            if (string.IsNullOrWhiteSpace(motivo)) return Resultado<Guid>.Fallo(SinMotivo("Cambio de concepto"));
-            var nuevo = string.IsNullOrWhiteSpace(concepto) ? null : concepto.Trim();
-            if (nuevo is { Length: > 255 })
-                return Resultado<Guid>.Fallo(new Error("Asientos.ConceptoLargo", "El concepto tiene más de 255 caracteres.", nuevo[..30] + "…",
+            if (cambio.Vacio)
+                return Resultado<Guid>.Fallo(new Error("Asientos.SinCambios", "No hay ningún cambio que guardar.", "Apuntes", null, "Cambia algún dato del apunte."));
+            if (!cambio.SoloPunteo && string.IsNullOrWhiteSpace(motivo)) return Resultado<Guid>.Fallo(SinMotivo("Cambio de datos del apunte"));
+            var concepto = string.IsNullOrWhiteSpace(cambio.Concepto) ? null : cambio.Concepto.Trim();
+            if (cambio.CambiaConcepto && concepto is { Length: > 255 })
+                return Resultado<Guid>.Fallo(new Error("Asientos.ConceptoLargo", "El concepto tiene más de 255 caracteres.", concepto[..30] + "…",
                     "El concepto del apunte admite hasta 255 caracteres.", "Acórtalo."));
+            var documento = string.IsNullOrWhiteSpace(cambio.Documento) ? null : cambio.Documento.Trim();
+            if (cambio.CambiaDocumento && documento is { Length: > 100 })
+                return Resultado<Guid>.Fallo(new Error("Asientos.DocumentoLargo", "El número de factura tiene más de 100 caracteres.", documento[..20] + "…",
+                    "El documento del apunte admite hasta 100 caracteres.", "Acórtalo: basta con el número de la factura."));
+            var vencimiento = cambio.Vencimiento?.Date;
             var leidos = await LeerApuntesAsync(s, idsApunte);
             if (!leidos.EsCorrecto) return Resultado<Guid>.Fallo(leidos.Errores);
-            if (leidos.Valor.FirstOrDefault(a => a.Automatico) is { } auto)
-                return Resultado<Guid>.Fallo(new Error("Asientos.Automatico", $"El apunte {auto.Orden} del asiento {auto.IdAsiento} es de un asiento automático y su concepto no se cambia a mano.",
-                    $"Asiento {auto.IdAsiento}", "Los asientos automáticos los regenera el proceso que los generó, y el cambio se perdería.",
-                    "Corrige el concepto en el documento de origen (la factura) y vuelve a generar su asiento."));
+
+            (string? Sociedad, bool Activo, bool Imputable) centro = default;
+            if (cambio.CambiaCentro && cambio.IdCentroCoste is int idCentro)
+                centro = await s.ConsultarPrimeroAsync("SELECT IdSociedad, EstaActivo, EsImputable FROM CentrosCoste WHERE IdCentroCoste = ?",
+                    f => ((string?)f.Texto("IdSociedad"), f.Logico("EstaActivo"), f.Logico("EsImputable")), idCentro);
+
             var idLote = Guid.NewGuid();
+            var texto = string.IsNullOrWhiteSpace(motivo) ? (cambio.Punteado == true ? "Punteo" : "Despunteo") : motivo.Trim();
             var cambiados = new Dictionary<int, Asiento>();
-            foreach (var a in leidos.Valor.Where(a => !string.Equals(a.Descripcion?.Trim(), nuevo, StringComparison.Ordinal)))
+            var revisados = new Dictionary<int, Asiento>();
+            static string? Dia(DateTime? d) => d?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+            foreach (var a in leidos.Valor)
             {
-                if (!cambiados.ContainsKey(a.IdAsiento))
+                var conceptoCambia = cambio.CambiaConcepto && !string.Equals(a.Descripcion?.Trim(), concepto, StringComparison.Ordinal);
+                var documentoCambia = cambio.CambiaDocumento && !string.Equals(a.Documento?.Trim(), documento, StringComparison.Ordinal);
+                var vencimientoCambia = cambio.CambiaVencimiento && a.Vencimiento?.Date != vencimiento;
+                var centroCambia = cambio.CambiaCentro && a.IdCentroCoste != cambio.IdCentroCoste;
+                var punteoCambia = cambio.Punteado is bool p && p != a.Punteado;
+                if (conceptoCambia || documentoCambia || vencimientoCambia || centroCambia)
                 {
-                    var asiento = (await CargarAsync(s, a.IdAsiento))!;
-                    // El concepto no tiene efecto fiscal: se cambia también en un trimestre cerrado (contabilidad/asientos 2026-11-13 10:50).
-                    var abierto = await ComprobarEjercicioAbiertoAsync(s, asiento.Contexto);
-                    if (!abierto.EsCorrecto) return Resultado<Guid>.Fallo(abierto.Errores);
+                    if (!revisados.TryGetValue(a.IdAsiento, out var asiento))
+                    {
+                        asiento = (await CargarAsync(s, a.IdAsiento))!;
+                        revisados[a.IdAsiento] = asiento;
+                    }
+                    if (conceptoCambia || vencimientoCambia || centroCambia)
+                    {
+                        // Sin efecto fiscal: también en un trimestre cerrado (contabilidad/asientos 2026-11-14 23:30); nunca en un ejercicio cerrado.
+                        var abierto = await ComprobarEjercicioAbiertoAsync(s, asiento.Contexto);
+                        if (!abierto.EsCorrecto) return Resultado<Guid>.Fallo(abierto.Errores);
+                    }
+                    if (centroCambia && cambio.IdCentroCoste is not null
+                        && (!string.Equals(centro.Sociedad, asiento.Contexto.IdSociedad, StringComparison.OrdinalIgnoreCase) || !centro.Activo || !centro.Imputable))
+                        return Resultado<Guid>.Fallo(new Error("Asientos.CentroNoValido", $"El centro de coste elegido no admite apuntes.", $"Asiento {a.IdAsiento}, apunte {a.Orden}",
+                            "No existe en esta sociedad, está inactivo o agrupa otros centros.", "Elige un centro de coste activo e imputable."));
                     cambiados[a.IdAsiento] = asiento;
                 }
-                await s.EjecutarAsync("UPDATE Apuntes SET Descripcion = ? WHERE IdApunte = ?", nuevo, a.IdApunte);
-                await RegistrarCambioAsync(s, idLote, actor, motivo.Trim(), a.IdAsiento, a.IdApunte, a.Orden, "MODIFICACION", "Descripcion", a.Descripcion, nuevo);
+                if (conceptoCambia)
+                {
+                    await s.EjecutarAsync("UPDATE Apuntes SET Descripcion = ? WHERE IdApunte = ?", concepto, a.IdApunte);
+                    await RegistrarCambioAsync(s, idLote, actor, texto, a.IdAsiento, a.IdApunte, a.Orden, "MODIFICACION", "Descripcion", a.Descripcion, concepto);
+                }
+                if (documentoCambia)
+                {
+                    await s.EjecutarAsync("UPDATE Apuntes SET NumeroDocumento = ? WHERE IdApunte = ?", documento, a.IdApunte);
+                    await RegistrarCambioAsync(s, idLote, actor, texto, a.IdAsiento, a.IdApunte, a.Orden, "MODIFICACION", "NumeroDocumento", a.Documento, documento);
+                }
+                if (vencimientoCambia)
+                {
+                    await s.EjecutarAsync("UPDATE Apuntes SET FechaVencimiento = ? WHERE IdApunte = ?", vencimiento, a.IdApunte);
+                    await RegistrarCambioAsync(s, idLote, actor, texto, a.IdAsiento, a.IdApunte, a.Orden, "MODIFICACION", "FechaVencimiento", Dia(a.Vencimiento), Dia(vencimiento));
+                }
+                if (centroCambia)
+                {
+                    await s.EjecutarAsync("UPDATE Apuntes SET IdCentroCoste = ? WHERE IdApunte = ?", cambio.IdCentroCoste, a.IdApunte);
+                    await RegistrarCambioAsync(s, idLote, actor, texto, a.IdAsiento, a.IdApunte, a.Orden, "MODIFICACION", "IdCentroCoste",
+                        a.IdCentroCoste?.ToString(CultureInfo.InvariantCulture), cambio.IdCentroCoste?.ToString(CultureInfo.InvariantCulture));
+                }
+                if (punteoCambia)
+                {
+                    await s.EjecutarAsync("UPDATE Apuntes SET Punteado = ? WHERE IdApunte = ?", cambio.Punteado!.Value, a.IdApunte);
+                    await RegistrarCambioAsync(s, idLote, actor, texto, a.IdAsiento, a.IdApunte, a.Orden, "MODIFICACION", "Punteado", a.Punteado ? "Sí" : "No", cambio.Punteado.Value ? "Sí" : "No");
+                }
             }
-            await CerrarModificacionAsync(s, cambiados, actor, motivo.Trim());
+            await CerrarModificacionAsync(s, cambiados, actor, texto);
             return Resultado<Guid>.Correcto(idLote);
+        });
+
+    public Task<Resultado<Asiento>> CorregirAutomaticoAsync(Asiento asiento, Actor actor, string motivo) =>
+        bd.EnTransaccionAsync(async s =>
+        {
+            if (string.IsNullOrWhiteSpace(motivo)) return Resultado<Asiento>.Fallo(SinMotivo(asiento.ToString()));
+            if (asiento.EsNuevo) return Resultado<Asiento>.Fallo(NoExiste(0));
+            var anterior = await CargarAsync(s, asiento.IdAsiento);
+            if (anterior is null) return Resultado<Asiento>.Fallo(NoExiste(asiento.IdAsiento));
+            if (!anterior.EsAutomatico)
+                return Resultado<Asiento>.Fallo(new Error("Asientos.NoEsAutomatico", "Este asiento es manual: se modifica como cualquier asiento manual.", anterior.ToString(),
+                    "La corrección a mano es solo para los asientos automáticos.", "Ábrelo con «Modificar el asiento…»."));
+            asiento.Lote = anterior.Lote;
+            var reglas = ReglasAsiento.ValidarCorreccionAutomatico(anterior, asiento, await TieneLibroIvaAsync(s, asiento.IdAsiento));
+            if (!reglas.EsCorrecto) return Resultado<Asiento>.Fallo(reglas.Errores);
+            var guardado = await GuardarInternoAsync(s, asiento, actor, motivo.Trim(), Guid.NewGuid(), manual: true, correccion: true);
+            return guardado.EsCorrecto ? Resultado<Asiento>.Correcto((await CargarAsync(s, guardado.Valor))!) : Resultado<Asiento>.Fallo(guardado.Errores);
+        });
+
+    public Task<bool> TieneLibroIvaAsync(int idAsiento) => bd.EjecutarAsync(s => TieneLibroIvaAsync(s, idAsiento));
+
+    private static async Task<bool> TieneLibroIvaAsync(ISesionDatos s, int idAsiento)
+    {
+        foreach (var tabla in new[] { "IVARepercutido", "IVASoportado" })
+            if (Convert.ToInt32(await s.EscalarAsync($"SELECT COUNT(*) FROM {tabla} WHERE IdAsiento = ?", idAsiento), CultureInfo.InvariantCulture) > 0) return true;
+        return false;
+    }
+
+    /// <summary>Copia el asiento y sus apuntes a AsientosBorrados y ApuntesBorrados antes de borrarlo (contabilidad/diario 2026-11-14 21:50).</summary>
+    private async Task CopiarBorradoAsync(ISesionDatos s, Asiento asiento, Actor actor, string motivo)
+    {
+        var alta = await s.ConsultarPrimeroAsync(
+            "SELECT OperadorCreacion, FechaHoraCreacion, OperadorModificacion, FechaHoraModificacion FROM Asientos WHERE IdAsiento = ?",
+            f => (OpC: f.Texto("OperadorCreacion"), FC: f.FechaNula("FechaHoraCreacion"), OpM: f.Texto("OperadorModificacion"), FM: f.FechaNula("FechaHoraModificacion")),
+            asiento.IdAsiento);
+        await s.EjecutarAsync(
+            "INSERT INTO AsientosBorrados (IdAsiento, IdSociedadEjercicio, FechaContable, Descripcion, TipoAsiento, Notas, OperadorCreacion, FechaHoraCreacion, " +
+            "OperadorModificacion, FechaHoraModificacion, TotalDebe, TotalHaber, Version, IdPlantillaAsiento, FechaHoraBorrado, OperadorBorrado, MotivoBorrado) " +
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            asiento.IdAsiento, asiento.Contexto.IdSociedadEjercicio, asiento.FechaContable, asiento.Descripcion, (byte)asiento.Tipo, asiento.Notas, alta.OpC, alta.FC,
+            alta.OpM, alta.FM, asiento.TotalDebe, asiento.TotalHaber, asiento.Version, asiento.IdPlantilla, _reloj.Ahora, actor.ToString(), motivo);
+        var id = await s.UltimoIdAsync();
+        foreach (var a in asiento.Apuntes)
+            await s.EjecutarAsync(
+                "INSERT INTO ApuntesBorrados (IdAsientoBorrado, IdApunte, IdAsiento, Orden, CuentaContable, ImporteDebe, ImporteHaber, Descripcion, NumeroDocumento, " +
+                "IdCliente, IdProveedor, FechaVencimiento, IdCentroCoste, TipoApunte, Punteado) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                id, a.IdApunte, asiento.IdAsiento, (short)a.Orden, a.CodigoCuenta, a.Debe.EsCero ? null : a.Debe, a.Haber.EsCero ? null : a.Haber, a.Descripcion, a.NumeroDocumento,
+                a.IdCliente, a.IdProveedor, a.FechaVencimiento, a.IdCentroCoste, (byte)a.Tipo, a.Punteado);
+    }
+
+    public Task<IReadOnlyList<AsientoBorrado>> AsientosBorradosAsync(IReadOnlyCollection<int> idsSociedadEjercicio) =>
+        bd.EjecutarAsync(async s =>
+        {
+            if (idsSociedadEjercicio.Count == 0) return (IReadOnlyList<AsientoBorrado>)[];
+            var en = string.Join(", ", idsSociedadEjercicio.Distinct().Select(i => i.ToString(CultureInfo.InvariantCulture)));
+            var apuntes = (await s.ConsultarAsync(
+                "SELECT p.IdAsientoBorrado, p.IdApunte, p.Orden, p.CuentaContable, p.ImporteDebe, p.ImporteHaber, p.Descripcion, p.NumeroDocumento, p.FechaVencimiento, p.IdCentroCoste, p.Punteado " +
+                $"FROM ApuntesBorrados AS p INNER JOIN AsientosBorrados AS b ON p.IdAsientoBorrado = b.IdAsientoBorrado WHERE b.IdSociedadEjercicio IN ({en})",
+                f => (Id: f.Entero("IdAsientoBorrado"), Apunte: new ApunteBorrado(f.Entero("IdApunte"), f.Entero("Orden"), (f.Texto("CuentaContable") ?? "").Trim(),
+                    f.DecimalNulo("ImporteDebe") ?? 0m, f.DecimalNulo("ImporteHaber") ?? 0m, f.Texto("Descripcion"), f.Texto("NumeroDocumento"),
+                    f.FechaNula("FechaVencimiento"), f.EnteroNulo("IdCentroCoste"), !f.EsNulo("Punteado") && f.Logico("Punteado")))))
+                .ToLookup(x => x.Id, x => x.Apunte);
+            var borrados = await s.ConsultarAsync(
+                "SELECT IdAsientoBorrado, IdAsiento, IdSociedadEjercicio, FechaContable, Descripcion, Notas, TotalDebe, FechaHoraBorrado, OperadorBorrado, MotivoBorrado, " +
+                $"OperadorCreacion, FechaHoraCreacion FROM AsientosBorrados WHERE IdSociedadEjercicio IN ({en})",
+                f => new AsientoBorrado(f.Entero("IdAsiento"), f.Entero("IdSociedadEjercicio"), f.Fecha("FechaContable").Date, f.Texto("Descripcion") ?? "", f.Texto("Notas"),
+                    f.DecimalNulo("TotalDebe") ?? 0m, f.Fecha("FechaHoraBorrado"), f.Texto("OperadorBorrado") ?? "", f.Texto("MotivoBorrado") ?? "",
+                    f.Texto("OperadorCreacion"), f.FechaNula("FechaHoraCreacion"), apuntes[f.Entero("IdAsientoBorrado")].OrderBy(a => a.Orden).ToList()));
+            return (IReadOnlyList<AsientoBorrado>)borrados.OrderByDescending(b => b.FechaHoraBorrado).ThenByDescending(b => b.IdAsiento).ToList();
         });
 
     /// <summary>Tras cambiar apuntes sueltos: nueva versión, autor y fecha del cambio y revisión de cada asiento tocado.</summary>
@@ -483,7 +672,8 @@ public sealed partial class MotorAsientosAccess(IBaseDatos bd, PoliticaCuadre? p
             idAsiento));
 
     /// <summary>Valida y guarda un asiento dentro de la transacción en curso. Devuelve su IdAsiento.</summary>
-    private async Task<Resultado<int>> GuardarInternoAsync(ISesionDatos s, Asiento asiento, Actor actor, string motivo, Guid idLote, bool manual, bool externo = false, bool diferirSaldos = false)
+    private async Task<Resultado<int>> GuardarInternoAsync(ISesionDatos s, Asiento asiento, Actor actor, string motivo, Guid idLote, bool manual, bool externo = false, bool diferirSaldos = false,
+        bool correccion = false)
     {
         var reglas = ReglasAsiento.ValidarYCuadrar(asiento, _politica);
         if (!reglas.EsCorrecto) return Resultado<int>.Fallo(reglas.Errores);
@@ -511,7 +701,7 @@ public sealed partial class MotorAsientosAccess(IBaseDatos bd, PoliticaCuadre? p
         {
             anterior = await CargarAsync(s, asiento.IdAsiento);
             if (anterior is null) return Resultado<int>.Fallo(NoExiste(asiento.IdAsiento));
-            if (manual && anterior.EsAutomatico) return Resultado<int>.Fallo(AutomaticoNoManual(anterior));
+            if (manual && anterior.EsAutomatico && !correccion) return Resultado<int>.Fallo(AutomaticoNoManual(anterior));
             if (anterior.Contexto.IdSociedadEjercicio != asiento.Contexto.IdSociedadEjercicio)
                 return Resultado<int>.Fallo(new Error("Asientos.CambioEjercicio", "Un asiento no se puede mover a otro ejercicio.", asiento.ToString(),
                     "El ejercicio forma parte de la identidad del asiento.", "Bórralo y créalo en el ejercicio correcto, o usa la plantilla de rectificación."));
@@ -547,10 +737,11 @@ public sealed partial class MotorAsientosAccess(IBaseDatos bd, PoliticaCuadre? p
             id = asiento.IdAsiento;
             await s.ActualizarConVersionAsync(
                 "UPDATE Asientos SET FechaContable = ?, Descripcion = ?, TipoAsiento = ?, Notas = ?, OperadorModificacion = ?, FechaHoraModificacion = ?, " +
-                "TotalDebe = ?, TotalHaber = ?, Version = Version + 1 WHERE IdAsiento = ? AND Version = ?",
+                "TotalDebe = ?, TotalHaber = ?, CorregidoAMano = ?, Version = Version + 1 WHERE IdAsiento = ? AND Version = ?",
                 asiento.ToString(),
                 asiento.FechaContable, asiento.Descripcion.Trim(), (byte)asiento.Tipo, asiento.Notas, actor.ToString(), ahora,
-                asiento.TotalDebe, asiento.TotalHaber, id, asiento.Version);
+                // La marca solo la pone la corrección a mano de un automático; regenerar el lote la quita (contabilidad/diario 2026-11-14).
+                asiento.TotalDebe, asiento.TotalHaber, correccion, id, asiento.Version);
             await s.EjecutarAsync("DELETE FROM Apuntes WHERE IdAsiento = ?", id);
         }
 
@@ -762,6 +953,7 @@ public sealed partial class MotorAsientosAccess(IBaseDatos bd, PoliticaCuadre? p
                     Version = f.Entero("Version"),
                     Lote = f.Logico("EsAutomatico") ? new IdentidadLote(f.Texto("MotorPropietario") ?? "", f.Texto("CodigoProceso") ?? "", f.Texto("ClaveEjecucion") ?? "") : null,
                     IdPlantilla = f.EnteroNulo("IdPlantillaAsiento"),
+                    CorregidoAMano = !f.EsNulo("CorregidoAMano") && f.Logico("CorregidoAMano"),
                 };
             }, idAsiento);
         if (cabecera is null) return null;
@@ -807,8 +999,9 @@ public sealed partial class MotorAsientosAccess(IBaseDatos bd, PoliticaCuadre? p
         new("Asientos.NoExiste", "El asiento ya no existe.", $"Asiento {idAsiento}", "Otra persona lo ha borrado.", "Vuelve a cargar los asientos.");
 
     private static Error AutomaticoNoManual(Asiento asiento) =>
-        new("Asientos.Automatico", "Este asiento es automático y no se puede cambiar a mano.", asiento.ToString(),
-            $"Lo generó {asiento.Lote} y solo ese proceso lo regenera.", "Corrige el documento de origen y vuelve a generar su asiento.");
+        new("Asientos.Automatico", "Este asiento es automático y no se cambia ni se borra como uno manual.", asiento.ToString(),
+            $"Lo generó {asiento.Lote} y solo ese proceso lo regenera o lo borra.",
+            "Corrige el documento de origen y vuelve a generar su asiento; para corregir cuentas o importes a mano, usa «Modificar el asiento…» del Diario.");
 
     private static ConflictoConcurrenciaException Conflicto(Asiento asiento) =>
         new(new Error("Datos.ConflictoVersion",

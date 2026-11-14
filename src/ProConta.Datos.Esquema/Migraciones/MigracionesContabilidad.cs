@@ -263,6 +263,75 @@ public static class MigracionesContabilidad
                 }
             }));
 
+    /// <summary>
+    /// Diario (contabilidad/diario 2026-11-14 21:50): copia de los asientos manuales borrados (AsientosBorrados y ApuntesBorrados, con
+    /// la fecha, el operador y el motivo del borrado), consultable desde la pantalla, y la marca de asiento automático corregido a mano
+    /// (Asientos.CorregidoAMano), que el motor quita al regenerar el lote. Solo añade.
+    /// </summary>
+    public static Migracion DiarioAsientosBorrados { get; } = new(
+        "20261114_2200_DIARIO_ASIENTOS_BORRADOS", 261114030,
+        "Copia de los asientos manuales borrados, con su motivo, y marca de asiento automático corregido a mano.",
+        "contabilidad/diario",
+        new CrearTabla("AsientosBorrados",
+            "CREATE TABLE AsientosBorrados (IdAsientoBorrado COUNTER CONSTRAINT PK_AsientosBorrados PRIMARY KEY, IdAsiento LONG NOT NULL, " +
+            "IdSociedadEjercicio LONG NOT NULL, FechaContable DATETIME NOT NULL, Descripcion TEXT(255) NOT NULL, TipoAsiento BYTE NOT NULL, Notas LONGTEXT, " +
+            "OperadorCreacion TEXT(100), FechaHoraCreacion DATETIME, OperadorModificacion TEXT(100), FechaHoraModificacion DATETIME, " +
+            "TotalDebe CURRENCY NOT NULL, TotalHaber CURRENCY NOT NULL, Version LONG NOT NULL, IdPlantillaAsiento LONG, " +
+            "FechaHoraBorrado DATETIME NOT NULL, OperadorBorrado TEXT(100) NOT NULL, MotivoBorrado LONGTEXT NOT NULL)"),
+        new CrearIndice("AsientosBorrados", "IX_AsientosBorrados_Ejercicio",
+            "CREATE INDEX IX_AsientosBorrados_Ejercicio ON AsientosBorrados (IdSociedadEjercicio, FechaHoraBorrado)"),
+        new CrearIndice("AsientosBorrados", "IX_AsientosBorrados_Asiento",
+            "CREATE INDEX IX_AsientosBorrados_Asiento ON AsientosBorrados (IdAsiento)"),
+        new CrearTabla("ApuntesBorrados",
+            "CREATE TABLE ApuntesBorrados (IdApunteBorrado COUNTER CONSTRAINT PK_ApuntesBorrados PRIMARY KEY, " +
+            "IdAsientoBorrado LONG NOT NULL CONSTRAINT FK_ApuntesBorrados_AsientoBorrado REFERENCES AsientosBorrados (IdAsientoBorrado), " +
+            "IdApunte LONG NOT NULL, IdAsiento LONG NOT NULL, Orden SHORT NOT NULL, CuentaContable TEXT(20) NOT NULL, ImporteDebe CURRENCY, ImporteHaber CURRENCY, " +
+            "Descripcion TEXT(255), NumeroDocumento TEXT(100), IdCliente LONG, IdProveedor LONG, FechaVencimiento DATETIME, IdCentroCoste LONG, " +
+            "TipoApunte BYTE NOT NULL, Punteado YESNO NOT NULL)"),
+        new AnadirColumna("Asientos", "CorregidoAMano", "YESNO NOT NULL DEFAULT No"))
+    {
+        Descripciones =
+        [
+            new("AsientosBorrados", null, "Copia de los asientos manuales eliminados, con cuándo, quién y por qué. Solo se consulta (Diario › «Asientos borrados…»)."),
+            new("AsientosBorrados", "IdAsientoBorrado", "Identificador de la copia."),
+            new("AsientosBorrados", "IdAsiento", "Número que tenía el asiento (Asientos.IdAsiento); no se reutiliza."),
+            new("AsientosBorrados", "IdSociedadEjercicio", "Sociedad y ejercicio del asiento."),
+            new("AsientosBorrados", "FechaContable", "Fecha contable que tenía."),
+            new("AsientosBorrados", "Descripcion", "Descripción que tenía."),
+            new("AsientosBorrados", "TipoAsiento", "Tipo de asiento que tenía."),
+            new("AsientosBorrados", "Notas", "Notas que tenía."),
+            new("AsientosBorrados", "OperadorCreacion", "Quién lo grabó."),
+            new("AsientosBorrados", "FechaHoraCreacion", "Cuándo se grabó."),
+            new("AsientosBorrados", "OperadorModificacion", "Quién lo cambió por última vez."),
+            new("AsientosBorrados", "FechaHoraModificacion", "Cuándo se cambió por última vez."),
+            new("AsientosBorrados", "TotalDebe", "Total del Debe."),
+            new("AsientosBorrados", "TotalHaber", "Total del Haber."),
+            new("AsientosBorrados", "Version", "Versión que tenía al borrarlo."),
+            new("AsientosBorrados", "IdPlantillaAsiento", "Plantilla con la que se creó, si la hubo."),
+            new("AsientosBorrados", "FechaHoraBorrado", "Cuándo se borró."),
+            new("AsientosBorrados", "OperadorBorrado", "Quién lo borró."),
+            new("AsientosBorrados", "MotivoBorrado", "Motivo que se dio al borrarlo (obligatorio)."),
+            new("ApuntesBorrados", null, "Apuntes de los asientos de AsientosBorrados, tal como estaban al borrarlos."),
+            new("ApuntesBorrados", "IdApunteBorrado", "Identificador de la copia."),
+            new("ApuntesBorrados", "IdAsientoBorrado", "Asiento borrado al que pertenece."),
+            new("ApuntesBorrados", "IdApunte", "Identificador que tenía el apunte (Apuntes.IdApunte)."),
+            new("ApuntesBorrados", "IdAsiento", "Número del asiento que lo contenía."),
+            new("ApuntesBorrados", "Orden", "Orden dentro del asiento."),
+            new("ApuntesBorrados", "CuentaContable", "Subcuenta."),
+            new("ApuntesBorrados", "ImporteDebe", "Importe al Debe."),
+            new("ApuntesBorrados", "ImporteHaber", "Importe al Haber."),
+            new("ApuntesBorrados", "Descripcion", "Concepto del apunte."),
+            new("ApuntesBorrados", "NumeroDocumento", "Número de factura o documento."),
+            new("ApuntesBorrados", "IdCliente", "Cliente del apunte."),
+            new("ApuntesBorrados", "IdProveedor", "Proveedor del apunte."),
+            new("ApuntesBorrados", "FechaVencimiento", "Vencimiento."),
+            new("ApuntesBorrados", "IdCentroCoste", "Centro de coste."),
+            new("ApuntesBorrados", "TipoApunte", "Ordinario o ajuste de redondeo."),
+            new("ApuntesBorrados", "Punteado", "Si estaba punteado."),
+            new("Asientos", "CorregidoAMano", "Asiento automático cuyas cuentas o importes se han corregido a mano; se quita al regenerar su origen."),
+        ],
+    };
+
     private static async Task<int> ReglaBalanceAsync(ISesionDatos s, string modelo, string prefijo) => Convert.ToInt32(await s.EscalarAsync(
         "SELECT COUNT(*) FROM (ReglasCuentasBalance AS r INNER JOIN NodosBalance AS n ON r.IdNodoBalance = n.IdNodoBalance) INNER JOIN ModelosBalance AS m ON n.IdModeloBalance = m.IdModeloBalance " +
         "WHERE m.Codigo = ? AND r.PrefijoCuenta = ?", modelo, prefijo), System.Globalization.CultureInfo.InvariantCulture);

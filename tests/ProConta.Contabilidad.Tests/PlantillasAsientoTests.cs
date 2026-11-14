@@ -384,6 +384,10 @@ public class MotorPlantillasTests
         public Task<Resultado<Guid>> AsignarNumeroDocumentoAsync(IReadOnlyCollection<int> idsApunte, string? numero, Actor actor, string motivo) => No<Task<Resultado<Guid>>>();
         public Task<Resultado<Guid>> CambiarConceptoApuntesAsync(IReadOnlyCollection<int> idsApunte, string? concepto, Actor actor, string motivo) => No<Task<Resultado<Guid>>>();
         public Task<IReadOnlyList<CambioApunte>> RegistroCambiosAsync(int idAsiento) => No<Task<IReadOnlyList<CambioApunte>>>();
+        public Task<IReadOnlyList<AsientoBorrado>> AsientosBorradosAsync(IReadOnlyCollection<int> idsSociedadEjercicio) => No<Task<IReadOnlyList<AsientoBorrado>>>();
+        public Task<Resultado<Asiento>> CorregirAutomaticoAsync(Asiento asiento, Actor actor, string motivo) => No<Task<Resultado<Asiento>>>();
+        public Task<bool> TieneLibroIvaAsync(int idAsiento) => No<Task<bool>>();
+        public Task<Resultado<Guid>> CambiarDatosApuntesAsync(IReadOnlyCollection<int> idsApunte, CambioDatosApunte cambio, Actor actor, string? motivo = null) => No<Task<Resultado<Guid>>>();
         public Task RecalcularSaldosAsync(ContextoSociedadEjercicio contexto) => No<Task>();
         public Task<Resultado<ResultadoCargaLibro>> CargarLibroExternoAsync(ContextoSociedadEjercicio contexto, string motorPropietario, string codigoProceso,
             IReadOnlyList<AsientoExterno> asientos, Actor actor, string motivo, Func<ISesionDatos, IReadOnlyList<int>, Task>? antesDeBorrar = null,

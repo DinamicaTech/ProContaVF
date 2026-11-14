@@ -97,6 +97,12 @@ public sealed class Asiento
     public IdentidadLote? Lote { get; internal set; }
 
     public bool EsAutomatico => Lote is not null;
+
+    /// <summary>
+    /// Asiento automático cuyas cuentas o importes se han corregido a mano (Asientos.CorregidoAMano, contabilidad/diario 2026-11-14);
+    /// regenerar su lote sustituye el asiento y quita la marca.
+    /// </summary>
+    public bool CorregidoAMano { get; internal set; }
     public int Version { get; internal set; }
     public bool EsNuevo => IdAsiento == 0;
 
@@ -163,9 +169,10 @@ public static class ReglasAsiento
 
     /// <summary>
     /// Si el cambio de <paramref name="anterior"/> a <paramref name="nuevo"/> no tiene efecto fiscal y se admite en un trimestre cerrado
-    /// (contabilidad/asientos 2026-11-13 10:50): misma fecha, mismos apuntes en el mismo orden con los mismos importes, lado y centro de
-    /// coste, y la misma cuenta salvo un cambio de subcuenta del mismo grupo 4XX de terceros si el asiento no lleva la 4751. Pueden cambiar
-    /// la descripción, las notas y el concepto, el documento, el cliente o proveedor y el vencimiento de los apuntes.
+    /// (contabilidad/asientos 2026-11-14 23:30): misma fecha, mismos apuntes en el mismo orden con los mismos importes y lado, y la misma
+    /// cuenta salvo un cambio de subcuenta del mismo grupo 4XX de terceros si el asiento no lleva la 4751. Pueden cambiar la descripción,
+    /// las notas y el concepto, el documento, el cliente o proveedor, el vencimiento y el centro de coste de los apuntes (el centro solo
+    /// cuenta para la prorrata, que se calcula a final de año).
     /// </summary>
     public static bool EsCambioSinEfectoFiscal(Asiento anterior, Asiento nuevo)
     {
@@ -173,13 +180,76 @@ public static class ReglasAsiento
         var conRetenciones = anterior.Apuntes.Concat(nuevo.Apuntes).Any(a => a.CodigoCuenta.Trim().StartsWith(PrefijoRetenciones, StringComparison.Ordinal));
         foreach (var (v, n) in anterior.Apuntes.OrderBy(a => a.Orden).Zip(nuevo.Apuntes))
         {
-            if (v.Debe.Valor != n.Debe.Valor || v.Haber.Valor != n.Haber.Valor || v.IdCentroCoste != n.IdCentroCoste) return false;
+            if (v.Debe.Valor != n.Debe.Valor || v.Haber.Valor != n.Haber.Valor) return false;
             var cuentaV = v.CodigoCuenta.Trim();
             var cuentaN = n.CodigoCuenta.Trim();
             if (string.Equals(cuentaV, cuentaN, StringComparison.Ordinal)) continue;
             if (conRetenciones || !EsCambioDeSubcuentaDeTercero(cuentaV, cuentaN)) return false;
         }
         return true;
+    }
+
+    /// <summary>Prefijo de las cuentas de banco: en un asiento automático sus apuntes no se cambian a mano (contabilidad/diario 2026-11-14 21:50).</summary>
+    public const string PrefijoBanco = "572";
+
+    /// <summary>
+    /// Líneas de IVA y retención de una factura, por prefijo: en un asiento con libro de IVA no se cambian a mano, se corrigen en la
+    /// factura para que el 303 siga cuadrando con la contabilidad (contabilidad/diario 2026-11-14 21:50).
+    /// </summary>
+    public static readonly IReadOnlyList<string> CuentasIvaFactura = ["472", "477", "4751"];
+
+    public static bool EsCuentaBanco(string? codigo) => (codigo ?? "").Trim().StartsWith(PrefijoBanco, StringComparison.Ordinal);
+
+    public static bool EsCuentaIvaFactura(string? codigo) =>
+        !string.IsNullOrWhiteSpace(codigo) && CuentasIvaFactura.Any(p => codigo.Trim().StartsWith(p, StringComparison.Ordinal));
+
+    /// <summary>
+    /// Por qué no se puede cambiar a mano la cuenta o el importe de un apunte de un asiento automático, o null si se puede: el apunte de
+    /// banco (572) nunca; con libro de IVA, tampoco las líneas de IVA y retención. Lo usan el motor y las pantallas (columna «Bloqueos»).
+    /// </summary>
+    public static string? BloqueoCuentaAutomatico(string? cuenta, bool conLibroIva) =>
+        EsCuentaBanco(cuenta) ? "Es el apunte de banco (572) de un asiento automático: su cuenta y su importe no se cambian a mano."
+        : conLibroIva && EsCuentaIvaFactura(cuenta) ? "Es una línea de IVA o de retención de una factura: se corrige en la factura, para que el libro de IVA siga cuadrando."
+        : null;
+
+    /// <summary>
+    /// Reglas de la corrección a mano de un asiento automático (contabilidad/diario 2026-11-14 21:50): los apuntes de la 572 quedan como
+    /// estaban (misma cuenta e importe, ninguno nuevo ni quitado) y, si el asiento lleva libro de IVA (factura de venta o de compra),
+    /// tampoco cambian la fecha, el número de apuntes, los importes ni las líneas de IVA y retención: solo las subcuentas de gasto,
+    /// ingreso o tercero, y nunca a una cuenta de IVA. No toca la BD.
+    /// </summary>
+    public static Resultado ValidarCorreccionAutomatico(Asiento anterior, Asiento nuevo, bool conLibroIva)
+    {
+        var registro = anterior.ToString();
+        static IEnumerable<string> Huella(Asiento a) =>
+            a.Apuntes.Where(x => EsCuentaBanco(x.CodigoCuenta)).Select(x => $"{x.CodigoCuenta.Trim()}|{x.Debe.Valor}|{x.Haber.Valor}").OrderBy(x => x, StringComparer.Ordinal);
+
+        if (!Huella(anterior).SequenceEqual(Huella(nuevo)))
+            return Resultado.Fallo(new Error("Asientos.BancoAutomatico", "Los apuntes de banco (572) de un asiento automático no se cambian a mano.", registro,
+                "Has cambiado, añadido o quitado un apunte de la 572; ese apunte lo fija el movimiento del banco.",
+                "Deja los apuntes de la 572 como estaban y corrige solo las demás cuentas o importes."));
+        if (!conLibroIva) return Resultado.Correcto();
+
+        if (anterior.FechaContable.Date != nuevo.FechaContable.Date)
+            return Resultado.Fallo(new Error("Asientos.FacturaConLibroIva", "La fecha del asiento de una factura no se cambia a mano.", registro,
+                "El asiento va con el libro de IVA de su factura, y la fecha decide el periodo del IVA.", "Corrige la fecha en la factura y vuelve a contabilizarla."));
+        var viejos = anterior.Apuntes.OrderBy(a => a.Orden).ToList();
+        if (viejos.Count != nuevo.Apuntes.Count)
+            return Resultado.Fallo(new Error("Asientos.FacturaConLibroIva", "En el asiento de una factura no se añaden ni se quitan apuntes a mano.", registro,
+                "El asiento va con el libro de IVA de su factura.", "Cambia solo las subcuentas de gasto, ingreso o tercero; el resto se corrige en la factura."));
+        foreach (var (v, n) in viejos.Zip(nuevo.Apuntes))
+        {
+            if (v.Debe.Valor != n.Debe.Valor || v.Haber.Valor != n.Haber.Valor)
+                return Resultado.Fallo(new Error("Asientos.FacturaConLibroIva", $"El importe del apunte {v.Orden} no se cambia a mano: es de una factura.", registro,
+                    "Los importes van con el libro de IVA de la factura, y el modelo 303 debe cuadrar con la contabilidad.", "Corrige el importe en la factura y vuelve a contabilizarla."));
+            var cuentaV = v.CodigoCuenta.Trim();
+            var cuentaN = n.CodigoCuenta.Trim();
+            if (string.Equals(cuentaV, cuentaN, StringComparison.Ordinal)) continue;
+            if (EsCuentaIvaFactura(cuentaV) || EsCuentaIvaFactura(cuentaN))
+                return Resultado.Fallo(new Error("Asientos.FacturaConLibroIva", $"La cuenta del apunte {v.Orden} no se cambia a mano: es una línea de IVA o de retención de una factura.", registro,
+                    $"Pasaría de {cuentaV} a {cuentaN}; las líneas de IVA y retención van con el libro de IVA.", "Corrige el IVA o la retención en la factura y vuelve a contabilizarla."));
+        }
+        return Resultado.Correcto();
     }
 
     /// <summary>
