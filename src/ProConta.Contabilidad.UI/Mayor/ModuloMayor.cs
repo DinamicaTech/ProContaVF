@@ -67,7 +67,7 @@ public sealed class ModuloMayor(ContextoMayor contexto, IAnfitrionPestanas anfit
         if (_asientos is not { } a) return;
         vm.NuevoAsiento = (cuenta, importe) => _ = a.AbrirNuevoAsync(cuenta, importe);
         vm.AsistenteCorreccion = (id, cuenta) => _ = a.AbrirCorreccionAsync(id, cuenta);
-        vm.ModificarAsiento = id => _ = a.AbrirModificarAsync(id);
+        vm.ModificarAsiento = id => _ = a.AbrirModificarAsync(id, corregirAutomatico: true);
     }
 
     /// <summary>Abre la pestaña del Mayor (vacía o con unas cuentas).</summary>

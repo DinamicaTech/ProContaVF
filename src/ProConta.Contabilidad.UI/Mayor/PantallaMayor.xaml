@@ -53,6 +53,10 @@
             <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
               <TextBlock Text="Cargando…" Style="{StaticResource Texto.Apagado}" VerticalAlignment="Center" Margin="0,0,10,0"
                          Visibility="{Binding Ocupado, Converter={StaticResource Visible}}" />
+              <Button Content="Imprimir…" pc:Iconos.Icono="{StaticResource Icono.print}" Click="Imprimir_Click" Margin="0,0,8,0"
+                      ToolTip="Imprime la vista con sus cuentas, ejercicios, filtros, columnas visibles y totales (Ctrl+P). Con «Microsoft Print to PDF» sale un PDF" />
+              <Button Content="Excel" pc:Iconos.Icono="{StaticResource Icono.xls}" Click="Exportar_Click" Margin="0,0,8,0"
+                      ToolTip="Exporta a Excel todas las filas de la vista con las columnas visibles, en el mismo orden" />
               <Button x:Name="BotonEjercicios" Content="{Binding TextoEjercicios}" pc:Iconos.Icono="{StaticResource Icono.cal}" Click="BotonEjercicios_Click"
                       ToolTip="Ejercicios cuyos apuntes se muestran: puedes marcar varios. La apertura de un ejercicio que sigue a otro de la vista no suma: el saldo continúa." />
               <Popup x:Name="PopupEjercicios" PlacementTarget="{Binding ElementName=BotonEjercicios}" Placement="Bottom" StaysOpen="False" AllowsTransparency="True"

@@ -200,11 +200,15 @@ public partial class PantallaMayor : UserControl
             "Pone el número de factura a los apuntes de la selección, para que se agrupen con su factura; también en automáticos y cerrados", escribe, soloConsulta));
         var automaticos = sel.Any(f => f.Fila.EsAutomatico);
         var cerrados = sel.Any(f => f.Fila.EjercicioCerrado);
-        var porQueNoCambiar = !escribe ? soloConsulta : automaticos ? MayorVM.MotivoAutomatico : cerrados ? "Hay filas de un ejercicio cerrado: sus apuntes son de solo consulta" : null;
+        var porQueNoCambiar = !escribe ? soloConsulta : cerrados ? "Hay filas de un ejercicio cerrado: sus apuntes son de solo consulta" : null;
+        // El apunte de banco de un asiento automático no cambia de cuenta; las líneas de IVA de una factura las rechaza el motor con su porqué.
+        var bancoAutomatico = sel.Any(f => f.Fila.EsAutomatico && ProConta.Contabilidad.Asientos.ReglasAsiento.EsCuentaBanco(f.Cuenta)) ? MayorVM.MotivoBancoAutomatico : null;
         menu.Items.Add(Opcion("Cambiar el concepto…", "Icono.edit", () => _ = _vm.CambiarConceptoAsync(sel), null,
-            "Cambia el concepto de los apuntes manuales de la selección, con su motivo en el historial", porQueNoCambiar is null, porQueNoCambiar));
+            "Cambia el concepto de los apuntes de la selección, también de asientos automáticos (si se regenera su origen, vuelve el original), con su motivo en el historial",
+            porQueNoCambiar is null, porQueNoCambiar));
         menu.Items.Add(Opcion("Cambiar la subcuenta del apunte…", "Icono.swap", () => _ = _vm.CambiarCuentaAsync(sel), null,
-            "Pasa los apuntes manuales de la selección a otra subcuenta, con su motivo en el historial", porQueNoCambiar is null, porQueNoCambiar));
+            "Pasa los apuntes de la selección a otra subcuenta, con su motivo en el historial" + (automaticos ? ". Los de asientos automáticos quedan marcados como modificados a mano: regenerar su origen deshace el cambio" : ""),
+            (porQueNoCambiar ?? bancoAutomatico) is null, porQueNoCambiar ?? bancoAutomatico));
         var contrapartida = una is not null && una.Fila.IdsApunteContrapartida.Count > 0;
         menu.Items.Add(Opcion(contrapartida ? $"Cambiar la contrapartida {una!.Contrapartida}…" : "Cambiar la contrapartida…", "Icono.swap",
             () => _ = _vm.CambiarContrapartidaAsync(una!), null, "Pasa la línea de la contrapartida de este asiento a otra subcuenta, con su motivo en el historial",
@@ -227,12 +231,13 @@ public partial class PantallaMayor : UserControl
                 : "Propone el asiento que corrige el saldo de esta subcuenta con una plantilla (pasar el saldo a otra cuenta, ajustar el saldo inicial contra la 113), con su vista previa",
             escribe && (unApunte || unaCuenta) && _vm.AsistenteCorreccion is not null,
             !escribe ? soloConsulta : !unaCuenta ? "Elige un apunte, o filas de una sola cuenta" : "Esta pantalla no puede crear asientos"));
-        var modificable = una is not null && !una.Fila.EsAutomatico && !una.Fila.EjercicioCerrado && una.Fila.Ejercicio == _vm.EjercicioTrabajo;
+        var modificable = una is not null && !una.Fila.EjercicioCerrado && una.Fila.Ejercicio == _vm.EjercicioTrabajo;
         menu.Items.Add(Opcion("Modificar el asiento…", "Icono.edit", () => _vm.ModificarAsiento!(una!.Asiento), null,
-            "Abre el asiento de esta fila en la pantalla de asiento manual para cambiarlo, con su motivo en el historial",
+            una is { Fila.EsAutomatico: true }
+                ? "Abre el asiento automático de esta fila para corregir sus cuentas e importes, salvo los apuntes de la 572 y, en las facturas, el IVA y los importes; pide el motivo"
+                : "Abre el asiento de esta fila en la pantalla de asiento manual para cambiarlo, con su motivo en el historial",
             escribe && modificable && _vm.ModificarAsiento is not null,
             !escribe ? soloConsulta : una is null ? "Elige una sola fila"
-            : una.Fila.EsAutomatico ? MayorVM.MotivoAutomatico
             : una.Fila.EjercicioCerrado ? "El asiento es de un ejercicio cerrado: solo se consulta"
             : una.Fila.Ejercicio != _vm.EjercicioTrabajo ? $"El asiento es del ejercicio {una.Fila.Ejercicio}: cámbialo con ese ejercicio de trabajo, o corrígelo aquí con «Asistente de corrección…»"
             : "Esta pantalla no puede modificar asientos"));
@@ -240,8 +245,15 @@ public partial class PantallaMayor : UserControl
         menu.Items.Add(Opcion("Quitar de la vista", "Icono.hide", () => _vm.Quitar(sel), "Supr",
             "Quita las filas solo de la vista (no se borra nada) y recalcula el saldo; se recuperan quitando la etiqueta"));
         menu.Items.Add(Opcion("Copiar las filas", "Icono.copy", () => ApplicationCommands.Copy.Execute(null, Tabla), "Ctrl+C", "Copia las filas seleccionadas para pegarlas en Excel"));
-        menu.Items.Add(Opcion("Exportar a Excel", "Icono.xls", () => Tabla.ExportarAExcel(), null, "Exporta todas las filas de la vista con las columnas visibles, en el mismo orden"));
-        menu.Items.Add(Opcion("Imprimir la vista…", "Icono.print", Imprimir, "Ctrl+P", "Imprime la vista con sus cuentas, ejercicios, filtros, columnas visibles y totales"));
+    }
+
+    // Imprimir y exportar no actúan sobre las filas seleccionadas: son botones de la cabecera (contabilidad/mayor 2026-11-14 21:50).
+    private void Imprimir_Click(object sender, RoutedEventArgs e) => Imprimir();
+
+    private void Exportar_Click(object sender, RoutedEventArgs e)
+    {
+        if (Tabla.Items.Count == 0) { _vm?.Aviso("No hay filas que exportar: elige una cuenta o quita los filtros."); return; }
+        Tabla.ExportarAExcel();
     }
 
     private MenuItem IrAContrapartida(FilaMayorVM? una)

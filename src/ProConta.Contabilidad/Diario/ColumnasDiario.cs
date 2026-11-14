@@ -1,5 +1,4 @@
 using System.Globalization;
-using System.Net;
 using System.Text;
 
 namespace ProConta.Contabilidad.Diario;
@@ -83,7 +82,8 @@ public static class ExportacionDiario
     /// </summary>
     public static string Html(CabeceraExportacionDiario cabecera, IReadOnlyList<ColumnaDiario> columnas, VistaDiario vista, IReadOnlyList<ApunteDiario>? ordenLista = null)
     {
-        static string E(string? t) => WebUtility.HtmlEncode(t ?? "");
+        // Solo lo que rompe el HTML: el documento va en UTF-8, así que los acentos y «·» se dejan como están.
+        static string E(string? t) => (t ?? "").Replace("&", "&amp;").Replace("<", "&lt;").Replace(">", "&gt;").Replace("\"", "&quot;");
         var sb = new StringBuilder();
         sb.Append("<!doctype html><html lang=\"es\"><head><meta charset=\"utf-8\"><title>Diario</title><style>")
           .Append("body{font:8.5pt 'Segoe UI',Arial,sans-serif;color:#16213A;margin:0}h1{font-size:14pt;margin:0 0 2pt}p{margin:0 0 6pt;color:#3B4252}")
