@@ -39,6 +39,7 @@ public static class DuenosTablas
         Asignar("facturacion", "facturacion/conceptos", "Conceptos", "TiposConcepto");
         Asignar("facturacion", "facturacion/contratos", "Contratos", "LineasContrato", "EstadoContratoTerceros");
         Asignar("facturacion", "facturacion/programadas", "FacturasProgramadas", "FacturasProgramadasBak", "LineasFacturasProgramadas", "LotesFacturasProgramadas");
+        Asignar("facturacion", "facturacion/reservas", "OrigenesVenta", "VentasPorFacturar", "AlojamientosAvaibook", "ConexionesAvaibook");
         Asignar("facturacion", "facturacion/verifactu", "VeriFactuConfiguracion", "VeriFactuEnvios", "VeriFactuLotesEnvio", "VeriFactuRespuestas");
         Asignar("compras", "compras/factura-compra", "FacturasCompra", "DesglosesFacturaCompra", "TextosClaveCompra");
         Asignar("compras", "compras/reconocimiento", "ConfiguracionReconocimientoFacturasCompra", "PlantillasReconocimientoCompra");

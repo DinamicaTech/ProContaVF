@@ -95,6 +95,7 @@ public static class CatalogoMigraciones
         MigracionesConciliacionN43.Conceptos,
         MigracionesNominas.Importacion,
         MigracionesOrganizacion.LimpiezaSociedadesEjercicios,
+        MigracionesVentas.VentasPorFacturar,
     ];
 
     /// <summary>Versión del esquema que espera esta versión del programa.</summary>

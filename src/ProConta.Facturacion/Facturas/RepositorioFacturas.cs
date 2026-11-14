@@ -238,6 +238,8 @@ internal static class RepositorioFacturas
 
     public static async Task BorrarAsync(ISesionDatos s, int idFactura)
     {
+        // Las ventas por facturar del borrador vuelven a pendientes en la misma transacción (facturacion/reservas 2026-11-14 11:45).
+        await Ventas.RepositorioVentas.LiberarDeFacturaAsync(s, idFactura);
         await s.EjecutarAsync("DELETE FROM LineasFactura WHERE IdFactura = ?", idFactura);
         await s.EjecutarAsync("DELETE FROM Facturas WHERE IdFactura = ?", idFactura);
     }
