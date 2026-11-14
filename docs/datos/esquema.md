@@ -111,6 +111,7 @@ Código: `src/ProConta.Datos.Esquema` (diagnóstico, migraciones idempotentes, a
 - 2026-11-12 11:15 · Derived from contabilidad/plantillas-asiento: tablas de plantillas de asiento (cabecera, datos de entrada y líneas) con su catálogo inicial; sustituyen a PlantillasApuntes del ERP.
 - 2026-11-13 11:05 · Derived from nominas: tablas Empleados, EmpleadosSociedad, AliasCamposNomina, ImportacionesNomina y Nominas (migración 20261113_1100_NOMINAS_IMPORTACION).
 - 2026-11-13 20:55 · Derived from organizacion/sociedades-ejercicios: una migración que elimina de SociedadesEjercicios y de Sociedades las columnas que ya no se usan (lista en organizacion/sociedades-ejercicios 2026-11-13 20:55). Cambia el formato de datos con el OK del propietario (2026-11-13 20:37).
+- 2026-11-14 11:45 · Derived from facturacion/reservas: tablas OrigenesVenta, VentasPorFacturar, AlojamientosAvaibook y ConexionesAvaibook (migración 20261114_1200_VENTAS_POR_FACTURAR).
 
 ## Hand-over
 - 2026-11-01 09:30 · Hecho: diagnóstico, actualizador con copia verificada, comprobación previa y parámetros, registro de intentos, migraciones idempotentes (catálogo en la versión 7), diccionario en `diccionario/`, copia sin datos y la maestra 0.24 del desarrollo anterior registrada como referencia estructural. Pendiente: «crear la maestra desde cero» se cubre con `copia-estructura` (estructura de la versión 1 sin datos), no con DDL desde cero; script de instalación en el servidor (plataforma/entrega); descripciones de campo que faltan en la maestra actual (se pueden tomar de la referencia 0.24).

@@ -74,6 +74,7 @@ Listados filtrables de facturas y de programaciones, en pantallas separadas, con
 - 2026-11-05 10:15 · Añade un filtro: Activas vencidas (Próxima <= hoy()), que será el procedimiento habitual para facturar programadas
 - 2026-11-05 10:15 · Sí, en la pantalla de facturas también con menú contextual. La idea es siempre añadir opciones contextuales donde podamos para dejar la pantalla más limpia y homogeneizar la forma de trabajar.
 - 2026-11-05 11:20 · Derived from facturacion/factura-venta y facturacion/verifactu: PDF y proforma en Facturas y en el editor, y ocultar VeriFactu con el parámetro desactivado.
+- 2026-11-14 11:45 · Derived from facturacion/reservas: pantalla «Ventas por facturar» (listado con filtros de estado, origen, piso y fechas; acciones en el menú contextual: Nueva…, Editar, Anular, Facturar ventas…, Importar de Avaibook…, Ver factura) y ficha de la venta con Guardar/Cancelar al pie.
 
 ## Hand-over
 - 2026-11-01 18:15 · Hecho: las dos pantallas compiladas y en el menú. Pendiente: probarlas en el equipo del propietario y validarlas contra la maqueta; el motivo de la rectificación y la doble pantalla quedan por decidir.
