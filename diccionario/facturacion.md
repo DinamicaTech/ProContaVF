@@ -575,6 +575,9 @@ Relaciones:
 | TipoIva | DECIMAL | sí |  | IVA de la línea (%) cuando no está exenta; vacío, el del concepto. |
 | IdCliente | LONG | sí |  | Cliente al que se facturan esas ventas (la plataforma) si la venta no lleva el suyo. |
 | Activa | YESNO | no |  | Si la regla se aplica. |
+| Agrupar | TEXT(12) | no | 'MENSUAL' | Cada cuánto se agrupan sus ventas en una factura: NO (una por venta), SEMANAL, QUINCENAL, MENSUAL, TRIMESTRAL o ANUAL, por la fecha de referencia. |
+| SepararPorActivo | YESNO | no | Yes | Si se hace una factura por activo relacionado; si no, una por origen y periodo con todos sus activos. |
+| AlFacturar | TEXT(10) | no | 'BORRADOR' | Qué crea «Facturar todo»: BORRADOR, o VALIDAR (factura numerada, validada y contabilizada). |
 
 Índices:
 - FK_ReglasVenta_Activo: IdActivo

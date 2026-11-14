@@ -1,3 +1,5 @@
+using ProConta.Datos.Persistencia;
+
 namespace ProConta.Datos.Esquema.Migraciones;
 
 /// <summary>Migraciones pedidas por facturacion/reservas (ventas por facturar).</summary>
@@ -72,7 +74,16 @@ public static class MigracionesVentas
         "Reglas de venta: agrupación de las ventas en facturas, separación por activo y borrador o factura validada.",
         "facturacion/reservas",
         new AnadirColumnaObligatoria("ReglasVenta", "Agrupar", "TEXT(12)", "'MENSUAL'"),
-        new AnadirColumnaObligatoria("ReglasVenta", "SepararPorActivo", "YESNO", "True"),
+        // Access deja a «No» las filas existentes al añadir un YESNO (nunca a null), así que el «Sí» por defecto se pone a mano en el mismo paso.
+        new PasoPersonalizado(
+            "Añadir ReglasVenta.SepararPorActivo (sí por defecto, también en las reglas que ya hay)",
+            "ALTER TABLE [ReglasVenta] ADD COLUMN [SepararPorActivo] YESNO NOT NULL DEFAULT Yes; UPDATE [ReglasVenta] SET [SepararPorActivo] = True",
+            (_, e) => Task.FromResult(e.ExisteColumna("ReglasVenta", "SepararPorActivo")),
+            async (s, _) =>
+            {
+                await s.EjecutarAsync("ALTER TABLE [ReglasVenta] ADD COLUMN [SepararPorActivo] YESNO NOT NULL DEFAULT Yes");
+                await s.EjecutarAsync("UPDATE [ReglasVenta] SET [SepararPorActivo] = True");
+            }),
         new AnadirColumnaObligatoria("ReglasVenta", "AlFacturar", "TEXT(10)", "'BORRADOR'"))
     {
         Descripciones =
