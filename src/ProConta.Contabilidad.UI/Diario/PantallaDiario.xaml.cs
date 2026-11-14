@@ -125,5 +125,16 @@ public partial class PantallaDiario : UserControl
         }
     }
 
+    /// <summary>La lista de apuntes de la ficha tiene su barra; cuando llega a su tope, la rueda sigue moviendo la ficha entera.</summary>
+    private void ApuntesFicha_Rueda(object sender, MouseWheelEventArgs e)
+    {
+        if (sender is not ScrollViewer lista) return;
+        var arriba = e.Delta > 0 && lista.VerticalOffset <= 0;
+        var abajo = e.Delta < 0 && lista.VerticalOffset >= lista.ScrollableHeight;
+        if (!arriba && !abajo) return;
+        e.Handled = true;
+        (lista.Parent as UIElement)?.RaiseEvent(new MouseWheelEventArgs(e.MouseDevice, e.Timestamp, e.Delta) { RoutedEvent = MouseWheelEvent, Source = sender });
+    }
+
     private void Columnas_Click(object sender, RoutedEventArgs e) => DialogosDiario.Columnas(Window.GetWindow(this), Tabla, ColumnasDiario.Todas);
 }

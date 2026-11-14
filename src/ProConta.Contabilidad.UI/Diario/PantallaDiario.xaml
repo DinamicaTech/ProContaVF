@@ -134,12 +134,12 @@
           </Border>
           <StackPanel Orientation="Horizontal" Margin="0,0,10,4">
             <TextBlock Text="Desde" Style="{StaticResource Etiqueta.Filtro}" />
-            <TextBox Width="100" Text="{Binding DesdeTexto, UpdateSourceTrigger=LostFocus}" Style="{StaticResource Campo.Mono}" AutomationProperties.Name="Desde"
+            <TextBox Width="112" Text="{Binding DesdeTexto, UpdateSourceTrigger=LostFocus}" Style="{StaticResource Campo.Mono}" AutomationProperties.Name="Desde"
                      ToolTip="Primera fecha contable que se muestra (dd/mm/aaaa), del ejercicio de trabajo o del anterior; se aplica al salir del campo" />
           </StackPanel>
           <StackPanel Orientation="Horizontal" Margin="0,0,10,4">
             <TextBlock Text="Hasta" Style="{StaticResource Etiqueta.Filtro}" />
-            <TextBox Width="100" Text="{Binding HastaTexto, UpdateSourceTrigger=LostFocus}" Style="{StaticResource Campo.Mono}" AutomationProperties.Name="Hasta"
+            <TextBox Width="112" Text="{Binding HastaTexto, UpdateSourceTrigger=LostFocus}" Style="{StaticResource Campo.Mono}" AutomationProperties.Name="Hasta"
                      ToolTip="Última fecha contable que se muestra (dd/mm/aaaa); se aplica al salir del campo" />
           </StackPanel>
           <Grid Width="280" Margin="0,0,10,4">
@@ -244,7 +244,7 @@
                             SelectionChanged="Tabla_SelectionChanged" MouseDoubleClick="Tabla_MouseDoubleClick" PreviewMouseRightButtonDown="Tabla_PreviewMouseRightButtonDown"
                             PreviewKeyDown="Tabla_PreviewKeyDown">
             <pc:TablaProConta.Columns>
-              <DataGridTemplateColumn Header="Asiento" SortMemberPath="AsientoOrden" Width="92" pc:TablaProConta.Clave="asiento" pc:TablaProConta.RutaExportar="AsientoOrden"
+              <DataGridTemplateColumn Header="Asiento" SortMemberPath="AsientoOrden" Width="96" pc:TablaProConta.Clave="asiento" pc:TablaProConta.RutaExportar="AsientoOrden"
                                       pc:TablaProConta.Ayuda="Número del asiento (Asientos.IdAsiento): fijo, no cambia al grabar otros asientos; los huecos son asientos borrados">
                 <DataGridTemplateColumn.CellTemplate>
                   <DataTemplate>
@@ -257,11 +257,11 @@
                   </DataTemplate>
                 </DataGridTemplateColumn.CellTemplate>
               </DataGridTemplateColumn>
-              <DataGridTextColumn Header="Id apunte" Binding="{Binding IdApunte}" SortMemberPath="IdApunteOrden" Width="80" ElementStyle="{StaticResource Texto.Celda.Importe}" pc:TablaProConta.Clave="id-apunte"
+              <DataGridTextColumn Header="Id apunte" Binding="{Binding IdApunte}" SortMemberPath="IdApunteOrden" Width="96" ElementStyle="{StaticResource Texto.Celda.Importe}" pc:TablaProConta.Clave="id-apunte"
                                   HeaderStyle="{StaticResource Tabla.Cabecera.Derecha}" pc:TablaProConta.Ayuda="Identificador del apunte (Apuntes.IdApunte)" />
-              <DataGridTextColumn Header="Fecha" Binding="{Binding Fecha}" SortMemberPath="FechaOrden" Width="94" ElementStyle="{StaticResource Texto.Celda.Mono}" pc:TablaProConta.Clave="fecha"
+              <DataGridTextColumn Header="Fecha" Binding="{Binding Fecha}" SortMemberPath="FechaOrden" Width="108" ElementStyle="{StaticResource Texto.Celda.Mono}" pc:TablaProConta.Clave="fecha"
                                   pc:TablaProConta.Ayuda="Fecha contable: decide el periodo y el trimestre de IVA" />
-              <DataGridTextColumn Header="Origen" Binding="{Binding Origen}" SortMemberPath="OrigenOrden" Width="84" ElementStyle="{StaticResource Celda.Origen}" pc:TablaProConta.Clave="origen"
+              <DataGridTextColumn Header="Origen" Binding="{Binding Origen}" SortMemberPath="OrigenOrden" Width="96" ElementStyle="{StaticResource Celda.Origen}" pc:TablaProConta.Clave="origen"
                                   pc:TablaProConta.Ayuda="Módulo que generó el asiento. Los que no son «Manual» son automáticos" />
               <DataGridTextColumn Header="Subcuenta" Binding="{Binding Cuenta}" Width="92" ElementStyle="{StaticResource Texto.Celda.Mono}" pc:TablaProConta.Clave="cuenta"
                                   pc:TablaProConta.Ayuda="Subcuenta del apunte" />
@@ -277,21 +277,21 @@
                                   HeaderStyle="{StaticResource Tabla.Cabecera.Derecha}" pc:TablaProConta.Ayuda="Importe al Haber" />
               <DataGridTextColumn Header="Centro de coste" Binding="{Binding Centro}" Width="150" ElementStyle="{StaticResource Texto.Celda}" pc:TablaProConta.Clave="centro"
                                   pc:TablaProConta.Ayuda="Centro de coste del apunte" />
-              <DataGridTextColumn Header="Punteado" Binding="{Binding Punteado}" SortMemberPath="PunteadoOrden" Width="78" ElementStyle="{StaticResource Celda.Punteado}" pc:TablaProConta.Clave="punteado"
+              <DataGridTextColumn Header="Punteado" Binding="{Binding Punteado}" SortMemberPath="PunteadoOrden" Width="92" ElementStyle="{StaticResource Celda.Punteado}" pc:TablaProConta.Clave="punteado"
                                   pc:TablaProConta.Ayuda="Punteado: apunte ya revisado (F4)" />
-              <DataGridTextColumn Header="Bloqueos" Binding="{Binding Bloqueos}" Width="78" ElementStyle="{StaticResource Celda.Bloqueos}" pc:TablaProConta.Clave="bloqueos"
+              <DataGridTextColumn Header="Bloqueos" Binding="{Binding Bloqueos}" Width="92" ElementStyle="{StaticResource Celda.Bloqueos}" pc:TablaProConta.Clave="bloqueos"
                                   pc:TablaProConta.Ayuda="Qué no se puede cambiar del apunte y por qué: 🔒 periodo cerrado, 🏦 banco de un asiento automático, 🧾 factura con libro de IVA. Pasa el ratón por el icono" />
               <DataGridTextColumn Header="Orden" Binding="{Binding Orden}" SortMemberPath="OrdenOrden" Width="64" ElementStyle="{StaticResource Texto.Celda.Importe}" pc:TablaProConta.Clave="orden"
                                   HeaderStyle="{StaticResource Tabla.Cabecera.Derecha}" pc:TablaProConta.OcultaDeFabrica="True" pc:TablaProConta.Ayuda="Orden del apunte dentro de su asiento" />
               <DataGridTextColumn Header="Contrapartida" Binding="{Binding Contrapartida}" Width="104" ElementStyle="{StaticResource Celda.Contrapartida}" pc:TablaProConta.Clave="contrapartida"
                                   pc:TablaProConta.OcultaDeFabrica="True" pc:TablaProConta.Ayuda="Cuenta del lado contrario del mismo asiento, sin contar el IVA. «Varias» si hay más de una" />
-              <DataGridTextColumn Header="Vencimiento" Binding="{Binding Vencimiento}" SortMemberPath="VencimientoOrden" Width="98" ElementStyle="{StaticResource Texto.Celda.Mono}" pc:TablaProConta.Clave="vencimiento"
+              <DataGridTextColumn Header="Vencimiento" Binding="{Binding Vencimiento}" SortMemberPath="VencimientoOrden" Width="112" ElementStyle="{StaticResource Texto.Celda.Mono}" pc:TablaProConta.Clave="vencimiento"
                                   pc:TablaProConta.OcultaDeFabrica="True" pc:TablaProConta.Ayuda="Fecha de vencimiento del apunte" />
-              <DataGridTextColumn Header="Fecha del documento" Binding="{Binding FechaDocumento}" SortMemberPath="FechaDocumentoOrden" Width="140" ElementStyle="{StaticResource Texto.Celda.Mono}"
+              <DataGridTextColumn Header="Fecha del documento" Binding="{Binding FechaDocumento}" SortMemberPath="FechaDocumentoOrden" Width="160" ElementStyle="{StaticResource Texto.Celda.Mono}"
                                   pc:TablaProConta.Clave="fecha-documento" pc:TablaProConta.OcultaDeFabrica="True" pc:TablaProConta.Ayuda="Fecha de expedición de la factura del libro de IVA del asiento" />
-              <DataGridTextColumn Header="Grabado el" Binding="{Binding Grabado}" SortMemberPath="GrabadoOrden" Width="98" ElementStyle="{StaticResource Texto.Celda.Mono}" pc:TablaProConta.Clave="grabado"
+              <DataGridTextColumn Header="Grabado el" Binding="{Binding Grabado}" SortMemberPath="GrabadoOrden" Width="108" ElementStyle="{StaticResource Texto.Celda.Mono}" pc:TablaProConta.Clave="grabado"
                                   pc:TablaProConta.OcultaDeFabrica="True" pc:TablaProConta.Ayuda="Día del alta del asiento. No cambia nunca" />
-              <DataGridTextColumn Header="Modificado el" Binding="{Binding Modificado}" SortMemberPath="ModificadoOrden" Width="104" ElementStyle="{StaticResource Texto.Celda.Mono}" pc:TablaProConta.Clave="modificado"
+              <DataGridTextColumn Header="Modificado el" Binding="{Binding Modificado}" SortMemberPath="ModificadoOrden" Width="118" ElementStyle="{StaticResource Texto.Celda.Mono}" pc:TablaProConta.Clave="modificado"
                                   pc:TablaProConta.OcultaDeFabrica="True" pc:TablaProConta.Ayuda="Último cambio del asiento" />
               <DataGridTextColumn Header="Operador" Binding="{Binding Operador}" Width="120" ElementStyle="{StaticResource Texto.Celda}" pc:TablaProConta.Clave="operador"
                                   pc:TablaProConta.OcultaDeFabrica="True" pc:TablaProConta.Ayuda="Quién grabó el asiento" />
@@ -359,8 +359,7 @@
                     <Grid Margin="0,1">
                       <Grid.ColumnDefinitions><ColumnDefinition Width="128" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
                       <TextBlock Text="{Binding Etiqueta}" Style="{StaticResource Texto.Apagado}" />
-                      <TextBox Grid.Column="1" Text="{Binding Valor, Mode=OneWay}" IsReadOnly="True" BorderThickness="0" Background="Transparent" Padding="0" TextWrapping="Wrap"
-                               ToolTip="Se puede seleccionar y copiar" />
+                      <TextBlock Grid.Column="1" Text="{Binding Valor}" TextWrapping="Wrap" />
                     </Grid>
                   </DataTemplate>
                 </ItemsControl.ItemTemplate>
@@ -370,6 +369,7 @@
               </pc:Nota>
 
               <TextBlock Text="{Binding TotalesFicha}" Style="{StaticResource Titulo.Bloque}" />
+              <ScrollViewer VerticalScrollBarVisibility="Auto" MaxHeight="230" PreviewMouseWheel="ApuntesFicha_Rueda">
               <ItemsControl ItemsSource="{Binding ApuntesFicha}">
                 <ItemsControl.ItemTemplate>
                   <DataTemplate>
@@ -403,6 +403,7 @@
                   </DataTemplate>
                 </ItemsControl.ItemTemplate>
               </ItemsControl>
+              </ScrollViewer>
 
               <!-- Edición rápida del apunte seleccionado -->
               <StackPanel Visibility="{Binding HayEdicion, Converter={StaticResource Visible}}">
@@ -417,7 +418,7 @@
                   <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
                   <StackPanel Margin="0,0,14,0">
                     <TextBlock Text="Vencimiento" Style="{StaticResource Etiqueta.Campo}" />
-                    <TextBox Text="{Binding EdVencimiento, UpdateSourceTrigger=PropertyChanged}" Width="100" HorizontalAlignment="Left" Style="{StaticResource Campo.Mono}" IsEnabled="{Binding TextosEditables}"
+                    <TextBox Text="{Binding EdVencimiento, UpdateSourceTrigger=PropertyChanged}" Width="112" HorizontalAlignment="Left" Style="{StaticResource Campo.Mono}" IsEnabled="{Binding TextosEditables}"
                              AutomationProperties.Name="Vencimiento" ToolTip="Fecha de vencimiento del apunte (dd/mm/aaaa); vacía la quita" ToolTipService.ShowOnDisabled="True" />
                   </StackPanel>
                   <StackPanel Grid.Column="1">
