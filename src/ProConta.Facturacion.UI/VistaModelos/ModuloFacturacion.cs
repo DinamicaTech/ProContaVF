@@ -56,10 +56,10 @@ public interface IDialogosFacturacion
     (DateTime Hasta, IReadOnlyList<int> Ids)? ElegirProgramadasAGenerar(DateTime hasta, Func<DateTime, Task<IReadOnlyList<ProgramadaPendiente>>> pendientes, IReadOnlySet<int>? soloMarcadas = null);
 
     /// <summary>
-    /// «Facturar ventas…»: hasta qué fecha de entrada y si se validan las facturas, viendo antes qué facturas saldrían
-    /// (<paramref name="previsualizar"/>). Null si se cancela.
+    /// «Facturar todo»: enseña las facturas que saldrían (y las ventas que no se pueden facturar, con su motivo) y pide una
+    /// sola confirmación. Devuelve si se confirma.
     /// </summary>
-    (DateTime Hasta, bool Validar)? ElegirFacturacionVentas(DateTime hasta, bool soloSeleccionadas, Func<DateTime, Task<IReadOnlyList<GrupoVentas>>> previsualizar);
+    bool ConfirmarFacturacionVentas(string titulo, IReadOnlyList<GrupoVentas> grupos);
 
     /// <summary>Fechas de entrada de las reservas que se importan de Avaibook; null si se cancela.</summary>
     (DateTime Desde, DateTime Hasta)? ElegirFechasImportacion(DateTime desde, DateTime hasta);
@@ -99,6 +99,9 @@ public sealed class ModuloFacturacion
 
     /// <summary>Importación de reservas de Avaibook. Null, no se ofrece «Importar de Avaibook…».</summary>
     public ImportadorAvaibook? Avaibook { get; set; }
+
+    /// <summary>Abre Parámetros y tablas en la tabla indicada por su clave («reglasventa», «alojamientosavaibook»…). Null, no se ofrece.</summary>
+    public Action<string>? AbrirParametros { get; set; }
 
     internal ServiciosFacturacion Servicios => _s;
     internal IDialogosFacturacion Dialogos => _dialogos;

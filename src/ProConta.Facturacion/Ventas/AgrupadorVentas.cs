@@ -7,18 +7,20 @@ namespace ProConta.Facturacion.Ventas;
 /// <summary>Activo relacionado de una venta (el piso de una reserva): nombre y centro de coste que hereda la línea.</summary>
 public sealed record ActivoVenta(int IdActivo, string Nombre, int? IdCentroCoste);
 
-/// <summary>Clave de una factura de ventas: cliente, mes de la fecha de referencia y activo (facturacion/reservas 2026-11-14 11:45).</summary>
-public sealed record ClaveFacturaVentas(int IdCliente, int Anio, int Mes, int? IdActivo)
-{
-    public DateTime PrimerDia => new(Anio, Mes, 1);
-    public DateTime UltimoDia => PrimerDia.AddMonths(1).AddDays(-1);
-}
+/// <summary>
+/// Clave de una factura de ventas (facturacion/reservas 2026-11-14 17:15): cliente, origen, periodo de la agrupación de su
+/// regla y, si la regla separa por activo, el activo. Sin agrupar, además la propia venta.
+/// </summary>
+public sealed record ClaveFacturaVentas(int IdCliente, int IdOrigenVenta, DateTime Desde, DateTime Hasta, int? IdActivo, int? IdVenta = null);
 
 /// <summary>Grupo de ventas que van en una misma factura, o el motivo por el que no se puede facturar.</summary>
-public sealed record GrupoVentas(ClaveFacturaVentas? Clave, string Cliente, string Activo, IReadOnlyList<VentaPorFacturar> Ventas, string? Problema)
+public sealed record GrupoVentas(ClaveFacturaVentas? Clave, string Cliente, string Origen, string Activo, string Periodo, bool Validar, IReadOnlyList<VentaPorFacturar> Ventas, string? Problema)
 {
     public decimal Total => Ventas.Sum(v => v.Importe);
     public bool Facturable => Problema is null && Clave is not null;
+
+    /// <summary>«Airbnb · enero 2026 · Cádiz 3»: la descripción de la factura.</summary>
+    public string Descripcion => string.Join(" · ", new[] { Origen, Periodo, Clave?.IdActivo is null ? "" : Activo }.Where(t => t.Length > 0));
 }
 
 /// <summary>
@@ -36,8 +38,8 @@ public sealed record DatosVentas(IReadOnlyDictionary<int, OrigenVenta> Origenes,
     IReadOnlyDictionary<int, ActivoVenta> Activos, IReadOnlyDictionary<int, Concepto> Conceptos);
 
 /// <summary>
-/// Reglas puras de «Facturar ventas…»: resuelve cada venta con su regla, agrupa las pendientes por cliente, mes de la fecha
-/// de referencia y activo, y construye la línea de cada venta conservando su importe exacto.
+/// Reglas puras de «Facturar todo»: resuelve cada venta con su regla, agrupa las pendientes por cliente, origen, periodo de
+/// la agrupación de la regla y (si la regla lo pide) activo, y construye la línea de cada venta conservando su importe exacto.
 /// </summary>
 public static class AgrupadorVentas
 {
@@ -56,23 +58,34 @@ public static class AgrupadorVentas
     public static IReadOnlyList<GrupoVentas> Agrupar(IEnumerable<VentaPorFacturar> ventas, DatosVentas d)
     {
         var r = new List<GrupoVentas>();
-        var facturables = new List<(VentaPorFacturar Venta, ClaveFacturaVentas Clave)>();
+        var facturables = new List<(VentaPorFacturar Venta, ClaveFacturaVentas Clave, PeriodoVentas Periodo, bool Validar)>();
+        string NombreOrigen(int id) => d.Origenes.TryGetValue(id, out var o) ? o.Nombre : $"Origen {id}";
+        string NombreActivo(int? id) => id is int a && d.Activos.TryGetValue(a, out var act) ? act.Nombre : "Sin activo";
         foreach (var v in ventas.Where(v => v.Estado == EstadoVenta.Pendiente))
         {
             var res = Resolver(v, d.Reglas);
+            var agrupar = res.Regla?.Agrupar ?? AgrupacionVentas.Mensual;
+            var periodo = AgrupacionVentas.Periodo(agrupar, v.FechaReferencia, v.FechaFin);
             var problema = Problema(v, res, d);
             if (problema is not null)
             {
-                r.Add(new GrupoVentas(null, res.IdCliente is int c && d.Clientes.TryGetValue(c, out var nc) ? nc : "Sin cliente",
-                    v.IdActivo is int a && d.Activos.TryGetValue(a, out var act) ? act.Nombre : "Sin activo", [v], problema));
+                r.Add(new GrupoVentas(null, res.IdCliente is int c && d.Clientes.TryGetValue(c, out var nc) ? nc : "Sin cliente", NombreOrigen(v.IdOrigenVenta),
+                    NombreActivo(v.IdActivo), periodo.Texto, false, [v], problema));
                 continue;
             }
-            facturables.Add((v, new ClaveFacturaVentas(res.IdCliente!.Value, v.FechaReferencia.Year, v.FechaReferencia.Month, v.IdActivo)));
+            var sinAgrupar = AgrupacionVentas.Normalizar(agrupar) == AgrupacionVentas.No;
+            var porActivo = sinAgrupar || (res.Regla?.SepararPorActivo ?? true);
+            facturables.Add((v, new ClaveFacturaVentas(res.IdCliente!.Value, v.IdOrigenVenta, periodo.Desde, periodo.Hasta, porActivo ? v.IdActivo : null, sinAgrupar ? v.IdVentaPorFacturar : null),
+                periodo, res.Regla?.ValidaAlFacturar ?? false));
         }
-        foreach (var g in facturables.GroupBy(x => x.Clave).OrderBy(g => g.Key.Anio).ThenBy(g => g.Key.Mes).ThenBy(g => g.Key.IdCliente).ThenBy(g => g.Key.IdActivo))
-            r.Add(new GrupoVentas(g.Key, d.Clientes.TryGetValue(g.Key.IdCliente, out var n) ? n : $"Cliente {g.Key.IdCliente}",
-                g.Key.IdActivo is int a && d.Activos.TryGetValue(a, out var act) ? act.Nombre : "Sin activo",
-                g.Select(x => x.Venta).OrderBy(v => v.FechaReferencia).ThenBy(v => v.IdVentaPorFacturar).ToList(), null));
+        foreach (var g in facturables.GroupBy(x => x.Clave).OrderBy(g => g.Key.Desde).ThenBy(g => g.Key.IdOrigenVenta).ThenBy(g => g.Key.IdCliente).ThenBy(g => g.Key.IdActivo).ThenBy(g => g.Key.IdVenta))
+        {
+            var lista = g.Select(x => x.Venta).OrderBy(v => v.FechaReferencia).ThenBy(v => v.IdVentaPorFacturar).ToList();
+            var activos = lista.Select(v => v.IdActivo).Distinct().ToList();
+            // Con varias reglas en un mismo grupo (activos sin separar), se valida solo si todas lo piden.
+            r.Add(new GrupoVentas(g.Key, d.Clientes.TryGetValue(g.Key.IdCliente, out var n) ? n : $"Cliente {g.Key.IdCliente}", NombreOrigen(g.Key.IdOrigenVenta),
+                g.Key.IdActivo is not null || activos.Count == 1 ? NombreActivo(activos[0]) : $"{activos.Count} activos", g.First().Periodo.Texto, g.All(x => x.Validar), lista, null));
+        }
         return r;
     }
 
@@ -97,15 +110,6 @@ public static class AgrupadorVentas
         if (v.Importe == 0m)
             return "Tiene importe 0,00 €: corrígelo o anúlala.";
         return null;
-    }
-
-    /// <summary>Descripción de la factura: origen, mes y activo («Airbnb · enero 2026 · Cádiz 3»).</summary>
-    public static string DescripcionFactura(GrupoVentas g, IReadOnlyDictionary<int, OrigenVenta> origenes)
-    {
-        var nombresOrigen = g.Ventas.Select(v => origenes.TryGetValue(v.IdOrigenVenta, out var o) ? o.Nombre : null).Where(n => n is not null).Distinct().ToList();
-        var quien = nombresOrigen.Count == 1 ? nombresOrigen[0] : "Ventas";
-        var mes = g.Clave!.PrimerDia.ToString("MMMM yyyy", Es);
-        return g.Clave.IdActivo is null ? $"{quien} · {mes}" : $"{quien} · {mes} · {g.Activo}";
     }
 
     /// <summary>

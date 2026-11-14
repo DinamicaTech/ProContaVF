@@ -146,6 +146,7 @@ public partial class VentanaPrincipal : Window
         var clienteAvaibook = new ProConta.Facturacion.Ventas.ClienteAvaibookHttp(Http);
         _facturacion.Ventas = ventas;
         _facturacion.Avaibook = new ProConta.Facturacion.Ventas.ImportadorAvaibook(bd, ventas, clienteAvaibook, autorizador);
+        _facturacion.AbrirParametros = clave => AbrirParametros(clave);
 
         // Compras (compras/pantallas): facturas recibidas y su modo «Probar».
         // OCR con Textract si el puesto tiene el perfil de AWS (compras/reconocimiento 2026-11-07); sin él, los escaneados se rellenan a mano.
@@ -248,7 +249,7 @@ public partial class VentanaPrincipal : Window
         var abrirFacturas = new ComandoDelegado(_facturacion.AbrirListado);
         var abrirProgramadas = new ComandoDelegado(_facturacion.AbrirProgramadas);
         var abrirVentas = new ComandoDelegado(_facturacion.AbrirVentas);
-        var abrirParametros = new ComandoDelegado(AbrirParametros);
+        var abrirParametros = new ComandoDelegado(() => AbrirParametros());
         var abrirRecibidas = new ComandoDelegado(_compras.AbrirRecibidas);
         var abrirContaSol = new ComandoDelegado(AbrirImportacionContaSol);
         var abrirCorreo = new ComandoDelegado(() => _correo.AbrirRegistro());
@@ -310,16 +311,18 @@ public partial class VentanaPrincipal : Window
     public ICommand CerrarActivaCommand { get; }
 
     /// <summary>Abre (o activa) la pestaña Parámetros y tablas.</summary>
-    private void AbrirParametros()
+    /// <param name="clave">Tabla que se abre dentro (por ejemplo «reglasventa»); null, la primera o la que estuviera.</param>
+    private void AbrirParametros(string? clave = null)
     {
         if (_mantenimiento is not null && _area.Pestanas.Contains(_mantenimiento))
         {
             _area.Activar(_mantenimiento);
+            if (clave is not null) _ = _mantenimiento.IrAAsync(clave);
             return;
         }
         _mantenimiento = _crearMantenimiento();
         _area.Abrir(_mantenimiento);
-        _ = _mantenimiento.IniciarAsync();
+        _ = _mantenimiento.IniciarAsync(clave);
     }
 
     /// <summary>Abre (o activa) la pestaña Importar ContaSol.</summary>

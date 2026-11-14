@@ -71,10 +71,10 @@ public sealed class ClienteAvaibookHttp(HttpClient http) : IClienteAvaibook
             var cuerpo = await respuesta.Content.ReadAsStringAsync(cancelacion);
             if (respuesta.StatusCode is HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden)
                 return Resultado<IReadOnlyList<ReservaAvaibook>>.Fallo(new Error("Avaibook.TokenNoValido", "Avaibook no acepta el token.", null,
-                    "El token no es el de producción, ha caducado o se ha borrado en Avaibook.", "Copia la clave «owner» de app.avaibook.com › API y pégala en Parámetros y tablas › Conexión con Avaibook."));
+                    "El token no es el de producción, ha caducado o se ha borrado en Avaibook.", "Copia la clave «owner» de app.avaibook.com › API y pégala en Parámetros y tablas › Integraciones › Avaibook · Conexión."));
             if (!respuesta.IsSuccessStatusCode)
                 return Resultado<IReadOnlyList<ReservaAvaibook>>.Fallo(new Error("Avaibook.Error", $"Avaibook ha respondido {(int)respuesta.StatusCode} ({respuesta.ReasonPhrase}).", null, null,
-                    "Vuelve a intentarlo en unos minutos; si sigue, revisa la dirección de la API en Parámetros y tablas › Conexión con Avaibook.", Recortar(cuerpo, 500)));
+                    "Vuelve a intentarlo en unos minutos; si sigue, revisa la dirección de la API en Parámetros y tablas › Integraciones › Avaibook · Conexión.", Recortar(cuerpo, 500)));
             return Resultado<IReadOnlyList<ReservaAvaibook>>.Correcto(Leer(cuerpo));
         }
         catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)
@@ -134,11 +134,39 @@ public sealed class ClienteAvaibookHttp(HttpClient http) : IClienteAvaibook
 /// <summary>Conexión de una sociedad con Avaibook (el token solo se descifra en memoria).</summary>
 public sealed record ConexionAvaibook(string IdSociedad, bool Activa, string Direccion, string? Token, DateTime? ImportarDesde, DateTime? UltimaImportacion, string? ResumenUltimaImportacion);
 
-/// <summary>Resultado de una importación de Avaibook (sin datos personales).</summary>
+/// <summary>
+/// Resultado de una importación de Avaibook (sin datos personales). <paramref name="Omitidas"/> son las que no entran sin que
+/// haya nada que hacer (sin confirmar, canceladas antes de importarse); <paramref name="Incidencias"/>, lo que pide una acción
+/// del operador; <paramref name="OrigenesNuevos"/>, los portales dados de alta en esta importación;
+/// <paramref name="SinRegla"/>, cuántas ventas pendientes no tienen regla de venta que les dé cliente y concepto.
+/// </summary>
 public sealed record ResultadoImportacionAvaibook(int Leidas, int Nuevas, int Actualizadas, int Anuladas, int SinCambios, int Omitidas, IReadOnlyList<string> Incidencias)
 {
-    public string Resumen =>
-        $"{Leidas} reservas leídas: {Nuevas} nuevas, {Actualizadas} actualizadas, {Anuladas} anuladas, {SinCambios} sin cambios, {Omitidas} omitidas; {Incidencias.Count} incidencias.";
+    public IReadOnlyList<string> OrigenesNuevos { get; init; } = [];
+    public IReadOnlyList<string> Informacion { get; init; } = [];
+    public IReadOnlyList<string> SinRegla { get; init; } = [];
+    public int AlojamientosSinActivo { get; init; }
+
+    public string Resumen
+    {
+        get
+        {
+            static string N(int n, string uno, string varios) => n == 1 ? $"1 {uno}" : $"{n} {varios}";
+            var partes = new List<string>();
+            if (Nuevas > 0) partes.Add(N(Nuevas, "nueva", "nuevas"));
+            if (Actualizadas > 0) partes.Add(N(Actualizadas, "actualizada", "actualizadas"));
+            if (Anuladas > 0) partes.Add(N(Anuladas, "anulada por cancelación", "anuladas por cancelación"));
+            if (SinCambios > 0) partes.Add(N(SinCambios, "que ya estaba y no ha cambiado", "que ya estaban y no han cambiado"));
+            if (Omitidas > 0) partes.Add(N(Omitidas, "que no entra", "que no entran"));
+            return $"{N(Leidas, "reserva leída", "reservas leídas")} de Avaibook" + (partes.Count == 0 ? "." : ": " + string.Join(", ", partes) + ".");
+        }
+    }
+
+    /// <summary>¿Queda algo por hacer en Reglas de venta para poder facturar lo importado?</summary>
+    public bool FaltanReglas => SinRegla.Count > 0;
+
+    /// <summary>¿Queda algún alojamiento por vincular con su activo?</summary>
+    public bool FaltanAlojamientos => AlojamientosSinActivo > 0;
 }
 
 /// <summary>
@@ -183,10 +211,10 @@ public sealed class ImportadorAvaibook
         var conexion = await ConexionAsync(idSociedad);
         if (conexion is null || !conexion.Activa)
             return Resultado<ResultadoImportacionAvaibook>.Fallo(new Error("Avaibook.SinConexion", "La sociedad no tiene la conexión con Avaibook activa.", null, null,
-                "Dala de alta en Parámetros y tablas › Conexión con Avaibook, con el token de la API."));
+                "Dala de alta en Parámetros y tablas › Integraciones › Avaibook · Conexión, con el token de la API."));
         if (string.IsNullOrWhiteSpace(conexion.Token))
             return Resultado<ResultadoImportacionAvaibook>.Fallo(new Error("Avaibook.SinToken", "Falta el token de Avaibook (o el guardado no se puede leer en este equipo).", null, null,
-                "Escríbelo en Parámetros y tablas › Conexión con Avaibook."));
+                "Escríbelo en Parámetros y tablas › Integraciones › Avaibook · Conexión."));
 
         var hoy = _reloj.Ahora.Date;
         var inicio = (desde ?? conexion.ImportarDesde ?? new DateTime(hoy.Year - 1, 1, 1)).Date;
@@ -210,10 +238,12 @@ public sealed class ImportadorAvaibook
     /// <summary>Aplica una lista de reservas leídas de Avaibook a las ventas de la sociedad (sin red; lo usan las pruebas).</summary>
     public async Task<ResultadoImportacionAvaibook> AplicarAsync(string idSociedad, IReadOnlyList<ReservaAvaibook> reservas, Actor actor)
     {
-        var origenes = await _ventas.OrigenesAsync(idSociedad);
+        var origenes = (await _ventas.OrigenesAsync(idSociedad)).ToList();
         var directa = origenes.FirstOrDefault(o => o.EsDirecta && o.Activo);
         var incidencias = new List<string>();
-        int nuevas = 0, actualizadas = 0, anuladas = 0, sinCambios = 0, omitidas = 0;
+        var informacion = new List<string>();
+        var origenesNuevos = new List<string>();
+        int nuevas = 0, actualizadas = 0, anuladas = 0, sinCambios = 0, omitidas = 0, sinConfirmar = 0, canceladas = 0, delErpReconocidas = 0, sinAlojamiento = 0;
 
         await _bd.EnTransaccionAsync(async s =>
         {
@@ -232,9 +262,18 @@ public sealed class ImportadorAvaibook
 
             foreach (var r in reservas.OrderBy(x => x.CheckIn))
             {
-                if (!r.Firme) { omitidas++; continue; }
+                if (!r.Firme) { omitidas++; sinConfirmar++; continue; }
                 var origen = origenes.FirstOrDefault(o => o.Activo && o.Reconoce(r.PartnerName))
                              ?? (string.Equals(r.Origin, "PARTNER", StringComparison.OrdinalIgnoreCase) ? null : directa);
+                // Un portal que aún no es origen de venta se da de alta solo (facturacion/reservas 2026-11-14 17:15): sus reservas
+                // entran pendientes y quedan a falta de su regla de venta.
+                if (origen is null && !string.IsNullOrWhiteSpace(r.PartnerName) && !origenes.Any(o => o.Reconoce(r.PartnerName)))
+                {
+                    var nuevo = OrigenNuevo(idSociedad, r.PartnerName, origenes);
+                    origen = nuevo with { IdOrigenVenta = await RepositorioVentas.InsertarOrigenAsync(s, nuevo) };
+                    origenes.Add(origen);
+                    origenesNuevos.Add(origen.Nombre);
+                }
                 existentes.TryGetValue(r.Clave, out var venta);
 
                 if (venta is not null)
@@ -274,15 +313,16 @@ public sealed class ImportadorAvaibook
 
                 if (origen is null)
                 {
-                    omitidas++;
-                    incidencias.Add($"Reserva {r.Clave} ({r.CheckIn:dd/MM/yyyy}): llega de «{r.PartnerName ?? r.Origin}», que no es ningún origen de venta. Añade ese texto a un origen en Parámetros y tablas › Orígenes de venta y vuelve a importar.");
+                    var texto = r.PartnerName ?? r.Origin ?? "sin origen";
+                    if (sinPiso.Add("origen:" + texto))
+                        incidencias.Add($"Hay reservas de «{texto}», un origen de venta que está inactivo o que no puedo reconocer (la primera, del {r.CheckIn:dd/MM/yyyy}): no se han importado. Actívalo o añade ese texto a un origen en Parámetros y tablas › Orígenes de venta y vuelve a importar.");
                     continue;
                 }
                 if (r.AccommodationId is not string idAloj || !alojamientos.TryGetValue(idAloj, out var aloj) || aloj.IdActivo is null || !aloj.Activo)
                 {
-                    omitidas++;
+                    sinAlojamiento++;
                     if (r.AccommodationId is string idA && sinPiso.Add(idA) && !(alojamientos.TryGetValue(idA, out var al) && !al.Activo))
-                        incidencias.Add($"El alojamiento «{r.AccommodationName}» ({idA}) de Avaibook no tiene activo relacionado: sus reservas no se han importado. Asígnaselo en Parámetros y tablas › Alojamientos de Avaibook y vuelve a importar.");
+                        incidencias.Add($"El alojamiento «{r.AccommodationName}» ({idA}) de Avaibook no tiene activo relacionado: sus reservas no se han importado. Asígnaselo en Parámetros y tablas › Integraciones › Avaibook · Alojamientos y vuelve a importar.");
                     continue;
                 }
                 // Una reserva ya cargada desde el ERP (mismo origen, fecha de entrada e importe) es la misma venta.
@@ -290,9 +330,10 @@ public sealed class ImportadorAvaibook
                 {
                     delErp.Remove(erp);
                     sinCambios++;
+                    delErpReconocidas++;
                     continue;
                 }
-                if (r.Cancelada) { omitidas++; continue; }
+                if (r.Cancelada) { omitidas++; canceladas++; continue; }
 
                 var nueva = new VentaPorFacturar
                 {
@@ -310,7 +351,49 @@ public sealed class ImportadorAvaibook
             }
             return 0;
         });
-        return new ResultadoImportacionAvaibook(reservas.Count, nuevas, actualizadas, anuladas, sinCambios, omitidas, incidencias);
+        if (sinConfirmar > 0) informacion.Add($"{sinConfirmar} {(sinConfirmar == 1 ? "no entra porque aún no está confirmada" : "no entran porque aún no están confirmadas")} en Avaibook (pendiente de pago o de tu aceptación): {(sinConfirmar == 1 ? "entrará" : "entrarán")} sola{(sinConfirmar == 1 ? "" : "s")} al confirmarse.");
+        if (canceladas > 0) informacion.Add($"{canceladas} {(canceladas == 1 ? "no entra porque ya estaba cancelada" : "no entran porque ya estaban canceladas")} cuando se {(canceladas == 1 ? "ha leído" : "han leído")}: no hay nada que facturar.");
+        if (delErpReconocidas > 0) informacion.Add($"{delErpReconocidas} {(delErpReconocidas == 1 ? "es una reserva que ya venía del ERP" : "son reservas que ya venían del ERP")} (mismo origen, fecha de entrada e importe): no se {(delErpReconocidas == 1 ? "duplica" : "duplican")}.");
+        if (sinAlojamiento > 0) informacion.Add($"{sinAlojamiento} {(sinAlojamiento == 1 ? "espera" : "esperan")} a que su alojamiento tenga activo relacionado.");
+
+        // Lo importado que aún no se puede facturar por falta de regla (cliente o concepto), por origen y activo.
+        var (datos, _) = await _ventas.DatosAsync(idSociedad);
+        var pendientes = await _bd.EjecutarAsync(s => RepositorioVentas.PendientesAsync(s, idSociedad));
+        var sinRegla = pendientes.Where(v => v.Fuente == FuenteVenta.Avaibook)
+            .Select(v => (Venta: v, Res: AgrupadorVentas.Resolver(v, datos.Reglas)))
+            .Where(x => x.Res.IdCliente is null || x.Res.IdConcepto is null)
+            .GroupBy(x => (x.Venta.IdOrigenVenta, x.Venta.IdActivo))
+            .Select(g =>
+            {
+                var origen = datos.Origenes.TryGetValue(g.Key.IdOrigenVenta, out var o) ? o.Nombre : $"origen {g.Key.IdOrigenVenta}";
+                var activo = g.Key.IdActivo is int a && datos.Activos.TryGetValue(a, out var act) ? act.Nombre : "sin activo";
+                var falta = string.Join(" y ", new[] { g.Any(x => x.Res.IdCliente is null) ? "cliente" : null, g.Any(x => x.Res.IdConcepto is null) ? "concepto" : null }.Where(t => t is not null));
+                return $"{origen} · {activo}: {g.Count()} {(g.Count() == 1 ? "venta pendiente" : "ventas pendientes")} sin {falta}.";
+            }).ToList();
+        var alojamientosSinActivo = (await _ventas.AlojamientosAsync(idSociedad)).Count(a => a.Activo && a.IdActivo is null);
+        return new ResultadoImportacionAvaibook(reservas.Count, nuevas, actualizadas, anuladas, sinCambios, omitidas + sinAlojamiento, incidencias)
+        {
+            OrigenesNuevos = origenesNuevos, Informacion = informacion, SinRegla = sinRegla, AlojamientosSinActivo = alojamientosSinActivo,
+        };
+    }
+
+    /// <summary>
+    /// Origen para un portal que llega por primera vez: el nombre es el texto de Avaibook sin la coletilla técnica
+    /// («Vrbo [XML]» → «Vrbo») y el código, sus letras y cifras en mayúsculas, sin repetir uno que ya exista.
+    /// </summary>
+    internal static OrigenVenta OrigenNuevo(string idSociedad, string partnerName, IReadOnlyList<OrigenVenta> existentes)
+    {
+        var texto = partnerName.Trim();
+        var corchete = texto.IndexOf('[', StringComparison.Ordinal);
+        var nombre = (corchete > 0 ? texto[..corchete] : texto).Trim();
+        if (nombre.Length == 0) nombre = texto;
+        if (nombre.Length > 60) nombre = nombre[..60];
+        var codigo = new string(nombre.ToUpperInvariant().Where(char.IsAsciiLetterOrDigit).ToArray());
+        if (codigo.Length == 0) codigo = "ORIGEN";
+        if (codigo.Length > 17) codigo = codigo[..17];
+        var libre = codigo;
+        for (var n = 2; existentes.Any(o => string.Equals(o.Codigo, libre, StringComparison.OrdinalIgnoreCase)); n++) libre = $"{codigo}{n}";
+        return new OrigenVenta(0, idSociedad, libre, nombre, texto.Length <= 255 ? texto : texto[..255], false, true);
     }
 
     private static void Copiar(ReservaAvaibook r, VentaPorFacturar v, OrigenVenta? origen, IReadOnlyDictionary<string, AlojamientoAvaibook> alojamientos)

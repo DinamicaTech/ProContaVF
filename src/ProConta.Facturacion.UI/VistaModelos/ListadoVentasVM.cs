@@ -49,7 +49,8 @@ public sealed class FilaVentaVM(VentaPorFacturar datos, string origen, string cl
 /// Pantalla «Ventas por facturar» (facturacion/pantallas, derivado de facturacion/reservas 2026-11-14 11:45): listado
 /// filtrable de las ventas de la sociedad y, a la derecha, la ficha de la activa, editable mientras está pendiente, con
 /// Guardar/Cancelar al pie. El concepto, el IVA y el cliente de cada venta salen de su regla de venta salvo que la ficha
-/// ponga otros. Selección múltiple y acciones en el menú contextual; solo «Nueva venta» en la cabecera.
+/// ponga otros. Las acciones sobre las ventas seleccionadas van en el menú contextual; las generales («Importar de
+/// Avaibook…», «Facturar todo» y «Nueva venta»), en la cabecera (propietario 2026-11-14 17:03).
 /// </summary>
 public sealed class ListadoVentasVM : ModeloVista, IPestanaTrabajo
 {
@@ -66,6 +67,7 @@ public sealed class ListadoVentasVM : ModeloVista, IPestanaTrabajo
     private OpcionFiltro _filtroEstado;
     private OpcionVenta _filtroOrigen = new(null, "Todos los orígenes");
     private OpcionVenta _filtroActivo = new(null, "Todos los activos");
+    private OpcionVenta _filtroEjercicio;
     private bool _puedeEditar;
     private int _cargas;
     private IReadOnlyDictionary<int, string> _clientes = new Dictionary<int, string>();
@@ -81,6 +83,10 @@ public sealed class ListadoVentasVM : ModeloVista, IPestanaTrabajo
         OpcionesEstado = [new("Todos los estados", null), new("Pendientes", nameof(EstadoVenta.Pendiente)), new("En borrador", nameof(EstadoVenta.EnBorrador)),
             new("Facturadas", nameof(EstadoVenta.Facturada)), new("Anuladas", nameof(EstadoVenta.Anulada)), new("Con incidencia", "Incidencia")];
         _filtroEstado = OpcionesEstado[1];
+        // Por defecto, las ventas con entrada en el ejercicio de trabajo.
+        _filtroEjercicio = new OpcionVenta(_s.Trabajo.Ejercicio, _s.Trabajo.Ejercicio.ToString(Formatos.Cultura));
+        OpcionesEjercicio.Add(new OpcionVenta(null, "Todos los ejercicios"));
+        OpcionesEjercicio.Add(_filtroEjercicio);
 
         NuevaCommand = new ComandoDelegado(Nueva, () => _puedeEditar);
         GuardarCommand = new ComandoDelegado(() => _ = GuardarFichaAsync(), () => _puedeEditar && FichaEditable && FichaCambiada);
@@ -90,8 +96,8 @@ public sealed class ListadoVentasVM : ModeloVista, IPestanaTrabajo
         AnularCommand = new ComandoDelegado(() => _ = AnularAsync(true), () => _puedeEditar && AAnular.Count > 0);
         ReactivarCommand = new ComandoDelegado(() => _ = AnularAsync(false), () => _puedeEditar && AReactivar.Count > 0);
         EliminarCommand = new ComandoDelegado(() => _ = EliminarAsync(), () => _puedeEditar && AEliminar.Count > 0);
-        FacturarSeleccionadasCommand = new ComandoDelegado(() => _ = FacturarAsync(AFacturar.Select(f => f.Id).ToHashSet()), () => _puedeEditar && AFacturar.Count > 0);
-        FacturarCommand = new ComandoDelegado(() => _ = FacturarAsync(null), () => _puedeEditar);
+        FacturarSeleccionadasCommand = new ComandoDelegado(() => _ = FacturarAsync(AFacturar, seleccion: true), () => _puedeEditar && AFacturar.Count > 0);
+        FacturarTodoCommand = new ComandoDelegado(() => _ = FacturarAsync(Filas.ToList(), seleccion: false), () => _puedeEditar && Filas.Any(f => f.Datos.Estado == EstadoVenta.Pendiente));
         ImportarCommand = new ComandoDelegado(() => _ = ImportarAsync(), () => _puedeEditar && _modulo.Avaibook is not null);
         VerFacturaCommand = new ComandoDelegado(() => { if (Ambito is [{ Datos.IdFactura: int id }]) _modulo.AbrirFactura(id); }, () => Ambito is [{ Datos.IdFactura: not null }]);
         RefrescarCommand = new ComandoDelegado(() => _ = CargarAsync());
@@ -117,7 +123,7 @@ public sealed class ListadoVentasVM : ModeloVista, IPestanaTrabajo
     public EstadoVista Estado { get => _estado; private set => Fijar(ref _estado, value); }
     public string TituloEstado => Estado switch
     {
-        EstadoVista.Vacio => _todas.Count == 0 ? "Aún no hay ventas por facturar en esta sociedad" : HayFiltros ? "Ninguna venta cumple los filtros" : "No hay ventas pendientes de facturar",
+        EstadoVista.Vacio => _todas.Count == 0 ? "Aún no hay ventas por facturar en esta sociedad" : HayFiltros ? "Ninguna venta cumple los filtros" : $"No hay ventas pendientes de facturar en {_s.Trabajo.Ejercicio}",
         EstadoVista.Error => "No he podido leer las ventas por facturar",
         EstadoVista.Cargando => "Leyendo ventas por facturar…",
         _ => ""
@@ -145,12 +151,18 @@ public sealed class ListadoVentasVM : ModeloVista, IPestanaTrabajo
     public IReadOnlyList<OpcionFiltro> OpcionesEstado { get; }
     public ObservableCollection<OpcionVenta> OpcionesOrigen { get; } = [];
     public ObservableCollection<OpcionVenta> OpcionesActivo { get; } = [];
+    public ObservableCollection<OpcionVenta> OpcionesEjercicio { get; } = [];
     public string Texto { get => _texto; set { if (Fijar(ref _texto, value ?? "")) Filtrar(); } }
     public OpcionFiltro FiltroEstado { get => _filtroEstado; set { if (value is not null && Fijar(ref _filtroEstado, value)) Filtrar(); } }
     public OpcionVenta FiltroOrigen { get => _filtroOrigen; set { if (value is not null && Fijar(ref _filtroOrigen, value)) Filtrar(); } }
     public OpcionVenta FiltroActivo { get => _filtroActivo; set { if (value is not null && Fijar(ref _filtroActivo, value)) Filtrar(); } }
 
-    public bool HayFiltros => _texto.Length > 0 || _filtroEstado != OpcionesEstado[1] || _filtroOrigen.Id is not null || _filtroActivo.Id is not null;
+    /// <summary>Ejercicio de la fecha de entrada (year(fecha de entrada) = ejercicio); null, todos.</summary>
+    public OpcionVenta FiltroEjercicio { get => _filtroEjercicio; set { if (value is not null && Fijar(ref _filtroEjercicio, value)) Filtrar(); } }
+
+    private bool EjercicioPorDefecto => _filtroEjercicio.Id is int e && e == _s.Trabajo.Ejercicio;
+
+    public bool HayFiltros => _texto.Length > 0 || _filtroEstado != OpcionesEstado[1] || _filtroOrigen.Id is not null || _filtroActivo.Id is not null || !EjercicioPorDefecto;
 
     private void LimpiarFiltros()
     {
@@ -158,7 +170,8 @@ public sealed class ListadoVentasVM : ModeloVista, IPestanaTrabajo
         _filtroEstado = OpcionesEstado[1];
         _filtroOrigen = OpcionesOrigen.FirstOrDefault() ?? _filtroOrigen;
         _filtroActivo = OpcionesActivo.FirstOrDefault() ?? _filtroActivo;
-        Avisar(nameof(Texto), nameof(FiltroEstado), nameof(FiltroOrigen), nameof(FiltroActivo));
+        _filtroEjercicio = OpcionesEjercicio.FirstOrDefault(o => o.Id is int e && e == _s.Trabajo.Ejercicio) ?? _filtroEjercicio;
+        Avisar(nameof(Texto), nameof(FiltroEstado), nameof(FiltroOrigen), nameof(FiltroActivo), nameof(FiltroEjercicio));
         Filtrar();
     }
 
@@ -166,7 +179,8 @@ public sealed class ListadoVentasVM : ModeloVista, IPestanaTrabajo
         f.Contiene(_texto)
         && (_filtroEstado.Valor switch { null => true, "Incidencia" => f.TieneIncidencia, var e => f.Datos.Estado.ToString() == e })
         && (_filtroOrigen.Id is not int o || f.Datos.IdOrigenVenta == o)
-        && (_filtroActivo.Id is not int p || f.Datos.IdActivo == p);
+        && (_filtroActivo.Id is not int p || f.Datos.IdActivo == p)
+        && (_filtroEjercicio.Id is not int e2 || f.Fecha.Year == e2);
 
     private void Filtrar()
     {
@@ -178,7 +192,7 @@ public sealed class ListadoVentasVM : ModeloVista, IPestanaTrabajo
         MensajeEstado = _todas.Count == 0
             ? "Importa las reservas de Avaibook o da de alta una venta con «Nueva venta»."
             : HayFiltros ? "Cambia o quita los filtros para ver más ventas." : "Las demás ya están facturadas, en borrador o anuladas.";
-        Avisar(nameof(HayFiltros), nameof(Pie), nameof(TituloEstado), nameof(AccionEstado), nameof(ComandoEstado));
+        Avisar(nameof(HayFiltros), nameof(Pie), nameof(TituloEstado), nameof(AccionEstado), nameof(ComandoEstado), nameof(TextoFacturarTodo));
         CommandManager.InvalidateRequerySuggested();
     }
 
@@ -218,6 +232,9 @@ public sealed class ListadoVentasVM : ModeloVista, IPestanaTrabajo
     public string TextoReactivar => ConCuenta("Reactivar", AReactivar.Count);
     public string TextoEliminar => ConCuenta("Eliminar", AEliminar.Count);
     public string TextoFacturarSeleccionadas => ConCuenta("Facturar las seleccionadas…", AFacturar.Count);
+
+    /// <summary>«Facturar todo (27)»: las pendientes de la lista filtrada.</summary>
+    public string TextoFacturarTodo => Filas.Count(f => f.Datos.Estado == EstadoVenta.Pendiente) is var n and > 0 ? $"Facturar todo ({n})" : "Facturar todo";
 
     public string Pie
     {
@@ -468,7 +485,11 @@ public sealed class ListadoVentasVM : ModeloVista, IPestanaTrabajo
             Rellenar(OpcionesActivo, [new OpcionVenta(null, "Todos los activos"), .. activos.Where(a => ventas.Any(v => v.IdActivo == a.IdActivo)).Select(a => new OpcionVenta(a.IdActivo, a.Nombre))]);
             _filtroOrigen = OpcionesOrigen.FirstOrDefault(o => Equals(o.Id, _filtroOrigen.Id)) ?? OpcionesOrigen[0];
             _filtroActivo = OpcionesActivo.FirstOrDefault(o => Equals(o.Id, _filtroActivo.Id)) ?? OpcionesActivo[0];
-            Avisar(nameof(FiltroOrigen), nameof(FiltroActivo));
+            var ejercicios = ventas.Select(v => v.FechaReferencia.Year).Append(_s.Trabajo.Ejercicio).Distinct().OrderByDescending(x => x).ToList();
+            var elegido = _filtroEjercicio.Id as int?;
+            Rellenar(OpcionesEjercicio, [new OpcionVenta(null, "Todos los ejercicios"), .. ejercicios.Select(x => new OpcionVenta(x, x.ToString(Formatos.Cultura)))]);
+            _filtroEjercicio = OpcionesEjercicio.FirstOrDefault(o => Equals(o.Id, elegido)) ?? OpcionesEjercicio.First(o => o.Id is int x && x == _s.Trabajo.Ejercicio);
+            Avisar(nameof(FiltroOrigen), nameof(FiltroActivo), nameof(FiltroEjercicio));
             Rellenar(FichaOrigenes, [new OpcionVenta(null, "Elige el origen"), .. _origenes.Where(o => o.Activo).Select(o => new OpcionVenta(o.IdOrigenVenta, o.Nombre))]);
             Rellenar(FichaActivos, [new OpcionVenta(null, "Sin activo"), .. activos.Select(a => new OpcionVenta(a.IdActivo, a.Nombre))]);
             Rellenar(FichaIvas, [new OpcionVenta(null, "El de la regla"), new("E1", "E1 · Exenta art. 20 (alquiler sin servicios de hostelería)"), new("E2", "E2 · Exenta art. 21"),
@@ -481,7 +502,8 @@ public sealed class ListadoVentasVM : ModeloVista, IPestanaTrabajo
             if (idActiva is not null && conservada is not null && !Cumple(conservada))
             {
                 _filtroEstado = OpcionesEstado[0];
-                Avisar(nameof(FiltroEstado));
+                _filtroEjercicio = OpcionesEjercicio.FirstOrDefault(o => o.Id is int x && x == conservada.Fecha.Year) ?? OpcionesEjercicio[0];
+                Avisar(nameof(FiltroEstado), nameof(FiltroEjercicio));
             }
             FichaCambiada = false;
             _activa = null;
@@ -513,7 +535,7 @@ public sealed class ListadoVentasVM : ModeloVista, IPestanaTrabajo
     public ICommand AnularCommand { get; }
     public ICommand ReactivarCommand { get; }
     public ICommand EliminarCommand { get; }
-    public ICommand FacturarCommand { get; }
+    public ICommand FacturarTodoCommand { get; }
     public ICommand FacturarSeleccionadasCommand { get; }
     public ICommand ImportarCommand { get; }
     public ICommand VerFacturaCommand { get; }
@@ -563,25 +585,46 @@ public sealed class ListadoVentasVM : ModeloVista, IPestanaTrabajo
         Informar(hechas.Count == 1 ? $"{hechas[0]} eliminada." : $"{hechas.Count} ventas eliminadas.", "No se ha eliminado", hechas, problemas);
     }
 
-    /// <summary>«Facturar ventas…»: elige el mes y si se validan, crea las facturas y resume lo creado y lo que no se ha podido facturar.</summary>
-    private async Task FacturarAsync(IReadOnlySet<int>? soloVentas)
+    /// <summary>
+    /// «Facturar todo» (y «Facturar las seleccionadas»): enseña las facturas que saldrán según las reglas de venta, pide una
+    /// confirmación, las crea y resume lo creado y lo que no se ha podido facturar.
+    /// </summary>
+    private async Task FacturarAsync(IReadOnlyList<FilaVentaVM> filas, bool seleccion)
     {
         if (FichaCambiada && !await GuardarFichaAsync()) return;
+        var ids = filas.Where(f => f.Datos.Estado == EstadoVenta.Pendiente).Select(f => f.Id).ToHashSet();
+        if (ids.Count == 0)
+        {
+            Aviso("No hay nada que facturar", seleccion ? "Ninguna de las ventas seleccionadas está pendiente." : "En la lista no hay ventas pendientes. Cambia los filtros (estado, ejercicio, origen o activo) si esperabas alguna.", null);
+            return;
+        }
         try
         {
-            var hasta = soloVentas is null ? _ventas.HastaPropuesto : _todas.Where(f => soloVentas.Contains(f.Id)).Max(f => f.Fecha);
-            var eleccion = _modulo.Dialogos.ElegirFacturacionVentas(hasta, soloVentas is not null, h => _ventas.PrevisualizarAsync(_s.Trabajo.IdSociedad, h, soloVentas));
-            if (eleccion is not { } e) return;
-            var r = await _ventas.FacturarAsync(_s.Trabajo.IdSociedad, e.Hasta, e.Validar, _s.Actor, soloVentas);
+            var grupos = await _ventas.PrevisualizarAsync(_s.Trabajo.IdSociedad, ids);
+            if (grupos.Any(g => !g.Facturable) && grupos.All(g => !g.Facturable) && _modulo.AbrirParametros is { } abrir)
+            {
+                // Nada se puede facturar todavía: lo normal es que falten las reglas de venta; se ofrece ir a ponerlas.
+                if (_modulo.Dialogos.Preguntar("Aún no se puede facturar", "Ninguna de estas ventas se puede facturar todavía. Revisa lo siguiente:",
+                        grupos.Select(g => $"{g.Ventas[0].Rotulo} ({g.Origen} · {g.Activo}): {g.Problema}").Distinct().ToList(),
+                        new OpcionMensaje("Cerrar", "Cierra el aviso", Cancelar: true),
+                        new OpcionMensaje("Abrir Reglas de venta", "Abre Parámetros y tablas › Reglas de venta para poner el concepto, el IVA y el cliente", Principal: true)) == 1)
+                    abrir("reglasventa");
+                return;
+            }
+            if (!_modulo.Dialogos.ConfirmarFacturacionVentas(seleccion ? "Facturar las ventas seleccionadas" : "Facturar todo", grupos)) return;
+            var r = await _ventas.FacturarAsync(_s.Trabajo.IdSociedad, _s.Actor, ids);
             if (!r.EsCorrecto) { Aviso("No se han creado las facturas", Errores(r), null); return; }
             await CargarAsync();
             _modulo.FacturaCambiada();
             var res = r.Valor;
+            var validadas = res.Facturas.Count(f => f.Validada);
+            var borradores = res.Facturas.Count - validadas;
             var titulo = res.Facturas.Count == 0 ? "No se ha creado ninguna factura" : Formatos.Plural(res.Facturas.Count, "factura creada", "facturas creadas");
-            var lineas = res.Facturas.Select(f => $"{f.Rotulo} · {f.Cliente} · {f.Activo} · {f.Mes:MM/yyyy} · {Formatos.Plural(f.Ventas, "venta", "ventas")} · {Formatos.Importe(f.Total)}").ToList();
+            var lineas = res.Facturas.Select(f => $"{f.Rotulo} · {f.Descripcion} · {f.Cliente} · {Formatos.Plural(f.Ventas, "venta", "ventas")} · {Formatos.Importe(f.Total)}").ToList();
             if (res.SinIncidencias)
             {
-                _modulo.Avisar($"{titulo}. Las ves en Facturas{(e.Validar ? "" : "; los borradores se validan con «Validar…»")}.");
+                _modulo.Avisar($"{titulo} ({Formatos.Importe(res.Facturas.Sum(f => f.Total))}). Las ves en Facturas" +
+                               (borradores > 0 ? $"; {(borradores == 1 ? "el borrador se valida" : "los borradores se validan")} con «Validar…»." : "."));
                 return;
             }
             Aviso(titulo, res.Facturas.Count == 0 ? "No se ha podido facturar ninguna venta. Revisa lo siguiente:" : "Lo creado ya está guardado; lo demás necesita revisión:",
@@ -593,14 +636,21 @@ public sealed class ListadoVentasVM : ModeloVista, IPestanaTrabajo
         }
     }
 
-    /// <summary>«Importar de Avaibook…»: elige las fechas de entrada e importa; resume lo importado y las incidencias.</summary>
+    /// <summary>
+    /// «Importar de Avaibook…»: elige las fechas de entrada e importa. Si todo ha entrado y se puede facturar, basta un aviso;
+    /// si queda algo por hacer (vincular un alojamiento, crear una regla de venta), lo dice y ofrece abrir esa pantalla.
+    /// </summary>
     private async Task ImportarAsync()
     {
         if (_modulo.Avaibook is not { } importador) return;
+        if (FichaCambiada && !await GuardarFichaAsync()) return;
         var conexion = await importador.ConexionAsync(_s.Trabajo.IdSociedad);
         if (conexion is null || !conexion.Activa || string.IsNullOrWhiteSpace(conexion.Token))
         {
-            Aviso("Falta la conexión con Avaibook", "Para importar, guarda antes el token de Avaibook en Parámetros y tablas › Conexión con Avaibook (la clave «owner» de app.avaibook.com › API).", null);
+            if (_modulo.Dialogos.Preguntar("Falta la conexión con Avaibook", "Para importar, guarda antes el token de Avaibook (la clave «owner» de app.avaibook.com › API) en Parámetros y tablas › Integraciones › Avaibook · Conexión.", null,
+                    new OpcionMensaje("Cerrar", "Cierra el aviso", Cancelar: true),
+                    new OpcionMensaje("Abrir la conexión", "Abre Parámetros y tablas › Integraciones › Avaibook · Conexión", Principal: true)) == 1)
+                _modulo.AbrirParametros?.Invoke("conexionavaibook");
             return;
         }
         var hoy = DateTime.Today;
@@ -614,13 +664,41 @@ public sealed class ListadoVentasVM : ModeloVista, IPestanaTrabajo
             if (!r.EsCorrecto) { Aviso("No se ha importado", Errores(r), null); return; }
             await CargarAsync();
             var res = r.Valor;
-            if (res.Incidencias.Count == 0) { _modulo.Avisar($"Avaibook: {res.Resumen}"); return; }
-            Aviso("Importación de Avaibook", res.Resumen, res.Incidencias);
+            var (queHacer, destino) = PasoSiguiente(res);
+            if (queHacer is null && res.Incidencias.Count == 0) { _modulo.Avisar(res.Resumen + (res.Informacion.Count > 0 ? " " + string.Join(" ", res.Informacion) : "")); return; }
+            var detalles = new List<string>();
+            if (res.OrigenesNuevos.Count > 0)
+                detalles.Add($"{(res.OrigenesNuevos.Count == 1 ? "Origen nuevo" : "Orígenes nuevos")}: {string.Join(", ", res.OrigenesNuevos)}. Lo he dado de alta y sus reservas han entrado como pendientes.");
+            detalles.AddRange(res.SinRegla.Select(t => "Falta regla de venta · " + t));
+            detalles.AddRange(res.Incidencias);
+            detalles.AddRange(res.Informacion);
+            var mensaje = res.Resumen + (queHacer is null ? " Revisa lo siguiente:" : " Qué te queda por hacer: " + queHacer);
+            if (destino is { } d && _modulo.AbrirParametros is { } abrir)
+            {
+                if (_modulo.Dialogos.Preguntar("Importación de Avaibook", mensaje, detalles,
+                        new OpcionMensaje("Cerrar", "Cierra el aviso; lo importado ya está guardado", Cancelar: true),
+                        new OpcionMensaje(d.Boton, d.Ayuda, Principal: true)) == 1)
+                    abrir(d.Clave);
+                return;
+            }
+            Aviso("Importación de Avaibook", mensaje, detalles);
         }
         catch (Exception ex)
         {
             Aviso("No se ha podido importar", $"Ha fallado la importación de Avaibook: {ex.Message} Vuelve a intentarlo; lo importado ya está guardado y no se duplica.", [ex.ToString()]);
         }
+    }
+
+    /// <summary>Lo primero que queda por hacer tras importar y la pantalla donde se hace (nada, si todo está listo para facturar).</summary>
+    internal static (string? QueHacer, (string Clave, string Boton, string Ayuda)? Destino) PasoSiguiente(ResultadoImportacionAvaibook r)
+    {
+        if (r.FaltanAlojamientos)
+            return ($"vincula {(r.AlojamientosSinActivo == 1 ? "el alojamiento" : "los alojamientos")} de Avaibook con su activo relacionado y vuelve a importar.",
+                ("alojamientosavaibook", "Abrir Alojamientos", "Abre Parámetros y tablas › Integraciones › Avaibook · Alojamientos"));
+        if (r.FaltanReglas)
+            return ("crea su regla de venta (concepto, IVA y cliente) para poder facturarlas; no hace falta volver a importar.",
+                ("reglasventa", "Abrir Reglas de venta", "Abre Parámetros y tablas › Reglas de venta para poner el concepto, el IVA y el cliente"));
+        return (null, null);
     }
 
     private void Informar(string aviso, string tituloFallo, IReadOnlyList<string> hechas, IReadOnlyList<string> problemas)

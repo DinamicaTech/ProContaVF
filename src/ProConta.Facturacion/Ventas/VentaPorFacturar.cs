@@ -108,8 +108,15 @@ public sealed record AlojamientoAvaibook(int IdAlojamientoAvaibook, string IdSoc
 /// Regla de venta (facturacion/reservas 2026-11-14 14:20): concepto, IVA y cliente que se aplican al facturar las ventas de
 /// un origen y un activo relacionado. Sin activo, vale para todos los activos del origen que no tengan regla propia.
 /// </summary>
-public sealed record ReglaVenta(int IdReglaVenta, string IdSociedad, int IdOrigenVenta, int? IdActivo, int? IdConcepto, string? CausaExencion, decimal? TipoIva, int? IdCliente, bool Activa)
+public sealed record ReglaVenta(int IdReglaVenta, string IdSociedad, int IdOrigenVenta, int? IdActivo, int? IdConcepto, string? CausaExencion, decimal? TipoIva, int? IdCliente, bool Activa,
+    string Agrupar = AgrupacionVentas.Mensual, bool SepararPorActivo = true, string AlFacturar = ReglaVenta.Borrador)
 {
+    public const string Borrador = "BORRADOR";
+    public const string Validar = "VALIDAR";
+
+    /// <summary>«Facturar todo» valida y contabiliza las facturas de esta regla en vez de dejarlas en borrador.</summary>
+    public bool ValidaAlFacturar => string.Equals(AlFacturar, Validar, StringComparison.OrdinalIgnoreCase);
+
     /// <summary>La regla que corresponde a un origen y un activo: la del activo o, si no hay, la general del origen.</summary>
     public static ReglaVenta? Para(IEnumerable<ReglaVenta> reglas, int idOrigen, int? idActivo)
     {
@@ -121,5 +128,60 @@ public sealed record ReglaVenta(int IdReglaVenta, string IdSociedad, int IdOrige
             if (r.IdActivo is null) general ??= r;
         }
         return general;
+    }
+}
+
+/// <summary>Periodo de una factura de ventas: sus fechas y cómo se nombra en la descripción.</summary>
+public sealed record PeriodoVentas(DateTime Desde, DateTime Hasta, string Texto);
+
+/// <summary>
+/// Cada cuánto se agrupan las ventas de una regla en una factura (facturacion/reservas 2026-11-14 17:15), por la fecha de
+/// referencia de la venta: semanas de lunes a domingo, quincenas del 1 al 15 y del 16 al fin de mes, meses, trimestres y
+/// años naturales. Sin agrupar, cada venta va en su factura con el periodo de la propia venta.
+/// </summary>
+public static class AgrupacionVentas
+{
+    public const string No = "NO";
+    public const string Semanal = "SEMANAL";
+    public const string Quincenal = "QUINCENAL";
+    public const string Mensual = "MENSUAL";
+    public const string Trimestral = "TRIMESTRAL";
+    public const string Anual = "ANUAL";
+
+    public static readonly IReadOnlyList<(string Codigo, string Texto)> Todas =
+        [(No, "No agrupar (una factura por venta)"), (Semanal, "Semanales"), (Quincenal, "Quincenales"), (Mensual, "Mensuales"), (Trimestral, "Trimestrales"), (Anual, "Anuales")];
+
+    private static readonly System.Globalization.CultureInfo Es = System.Globalization.CultureInfo.GetCultureInfo("es-ES");
+
+    public static string Normalizar(string? codigo) =>
+        Todas.FirstOrDefault(t => string.Equals(t.Codigo, codigo?.Trim(), StringComparison.OrdinalIgnoreCase)).Codigo ?? Mensual;
+
+    /// <summary>Periodo al que pertenece una venta según la agrupación.</summary>
+    public static PeriodoVentas Periodo(string? agrupar, DateTime fecha, DateTime? fechaFin = null)
+    {
+        var d = fecha.Date;
+        switch (Normalizar(agrupar))
+        {
+            case No:
+                var fin = fechaFin is DateTime f && f.Date > d ? f.Date : d;
+                return new(d, fin, fin > d ? $"{d:dd/MM/yyyy} – {fin:dd/MM/yyyy}" : d.ToString("dd/MM/yyyy", Es));
+            case Semanal:
+                var lunes = d.AddDays(-(((int)d.DayOfWeek + 6) % 7));
+                return new(lunes, lunes.AddDays(6), $"semana del {lunes:dd/MM/yyyy} al {lunes.AddDays(6):dd/MM/yyyy}");
+            case Quincenal:
+                var mes = new DateTime(d.Year, d.Month, 1);
+                return d.Day <= 15
+                    ? new(mes, mes.AddDays(14), $"1.ª quincena de {mes.ToString("MMMM yyyy", Es)}")
+                    : new(mes.AddDays(15), mes.AddMonths(1).AddDays(-1), $"2.ª quincena de {mes.ToString("MMMM yyyy", Es)}");
+            case Trimestral:
+                var t = (d.Month - 1) / 3;
+                var inicio = new DateTime(d.Year, t * 3 + 1, 1);
+                return new(inicio, inicio.AddMonths(3).AddDays(-1), $"{t + 1}.º trimestre de {d.Year}");
+            case Anual:
+                return new(new DateTime(d.Year, 1, 1), new DateTime(d.Year, 12, 31), $"año {d.Year}");
+            default:
+                var m = new DateTime(d.Year, d.Month, 1);
+                return new(m, m.AddMonths(1).AddDays(-1), m.ToString("MMMM yyyy", Es));
+        }
     }
 }

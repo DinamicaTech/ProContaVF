@@ -9,8 +9,8 @@ using ProConta.Nucleo.Seguridad;
 namespace ProConta.Facturacion.Ventas;
 
 /// <summary>
-/// Proveedores de Parámetros y tablas para las ventas por facturar (facturacion/reservas): Orígenes de venta, Reglas de
-/// venta, Alojamientos de Avaibook y Conexión con Avaibook.
+/// Proveedores de Parámetros y tablas para las ventas por facturar (facturacion/reservas): Orígenes de venta y Reglas de
+/// venta en Facturación, y la conexión y los alojamientos de Avaibook en Integraciones.
 /// </summary>
 public static class ProveedoresVentas
 {
@@ -130,10 +130,22 @@ public sealed class ProveedorReglasVenta : ProveedorTablaAccess
         new("TipoIva", "IVA (%)", TipoCampo.Porcentaje) { Ancho = "xs", Ayuda = "IVA de la línea si es «Sujeta» (por ejemplo 10). El importe de la venta es lo que paga el huésped, IVA incluido. Vacío, el IVA del concepto." },
         new("IdCliente", "Cliente al que se factura", TipoCampo.Lista) { Opciones = _clientes, Ancho = "l",
             Ayuda = "Cliente por defecto de esas ventas (la plataforma). Una venta puede llevar otro si el huésped pide la factura a su nombre." },
+        new("Agrupar", "Agrupar ventas", TipoCampo.Lista) { Obligatorio = true, Grupo = "fac", Opciones = Agrupaciones, Ancho = "m",
+            Ayuda = "Cada cuánto junta «Facturar todo» las ventas en una factura, por su fecha de entrada: semanas de lunes a domingo, quincenas (1–15 y 16–fin de mes), meses, trimestres o años naturales. «No agrupar» hace una factura por venta." },
+        new("SepararPorActivo", "Separar facturas por activo", TipoCampo.Logico) { Grupo = "fac",
+            Ayuda = "Marcado, una factura por activo relacionado en cada periodo. Sin marcar, una sola factura del origen con las ventas de todos sus activos (en una regla general del origen)." },
+        new("AlFacturar", "Al facturar", TipoCampo.Lista) { Obligatorio = true, Grupo = "fac", Opciones = AlFacturarOpciones, Ancho = "m",
+            Ayuda = "«Borrador» deja las facturas sin número para revisarlas y validarlas desde Facturas. «Facturar y exportar» las numera, las valida y genera su asiento al momento." },
         new("Activa", "Activa", TipoCampo.Logico) { Ayuda = "Sin marcar, la regla no se aplica." },
     ];
 
-    public override IReadOnlyList<ColumnaLista> Columnas => [new("IdOrigenVenta", "Origen", 110), new("IdActivo", "Activo relacionado"), new("CausaExencion", "Exención", 80), new("TipoIva", "IVA", 56, true), new("Activa", "Activa", 56)];
+    public override IReadOnlyList<GrupoCampos> Grupos => [new("fac", "Cómo se facturan")];
+
+    private static readonly IReadOnlyList<OpcionCampo> Agrupaciones = AgrupacionVentas.Todas.Select(a => new OpcionCampo(a.Codigo, a.Texto)).ToList();
+    private static readonly IReadOnlyList<OpcionCampo> AlFacturarOpciones = [new(ReglaVenta.Borrador, "Borrador"), new(ReglaVenta.Validar, "Facturar y exportar")];
+
+    public override IReadOnlyList<ColumnaLista> Columnas => [new("IdOrigenVenta", "Origen", 110), new("IdActivo", "Activo relacionado"), new("CausaExencion", "Exención", 80), new("TipoIva", "IVA", 56, true),
+        new("Agrupar", "Agrupar", 100), new("AlFacturar", "Al facturar", 110), new("Activa", "Activa", 56)];
 
     public override async Task<IReadOnlyList<RegistroMantenimiento>> ListarAsync(ContextoMantenimiento c)
     {
@@ -147,7 +159,10 @@ public sealed class ProveedorReglasVenta : ProveedorTablaAccess
     }
 
     public override Task<RegistroMantenimiento> NuevoAsync(ContextoMantenimiento c) =>
-        Task.FromResult(new RegistroMantenimiento(null, new Dictionary<string, object?> { ["Activa"] = true, ["CausaExencion"] = "E1" }));
+        Task.FromResult(new RegistroMantenimiento(null, new Dictionary<string, object?>
+        {
+            ["Activa"] = true, ["CausaExencion"] = "E1", ["Agrupar"] = AgrupacionVentas.Mensual, ["SepararPorActivo"] = true, ["AlFacturar"] = ReglaVenta.Borrador,
+        }));
 }
 
 /// <summary>Alojamientos de Avaibook de la empresa y el activo relacionado de sus reservas.</summary>
@@ -156,7 +171,7 @@ public sealed class ProveedorAlojamientosAvaibook : ProveedorTablaAccess
     private readonly ServicioVentas _ventas;
     private IReadOnlyList<OpcionCampo> _activos = [];
 
-    public ProveedorAlojamientosAvaibook(IBaseDatos bd, ServicioVentas ventas) : base(bd, "alojamientosavaibook", "Alojamientos de Avaibook", "Facturación",
+    public ProveedorAlojamientosAvaibook(IBaseDatos bd, ServicioVentas ventas) : base(bd, "alojamientosavaibook", "Avaibook · Alojamientos", "Integraciones",
         "Cada alojamiento de Avaibook con el activo de la empresa al que corresponden sus reservas: así la importación sabe de qué piso es cada una.", AmbitoMantenimiento.Sociedad, "alojamiento",
         "AlojamientosAvaibook", "IdAlojamientoAvaibook", ClaveNueva.Autonumerica, [], [])
     {
@@ -204,8 +219,8 @@ public sealed class ProveedorConexionAvaibook(IBaseDatos bd, IClienteAvaibook av
     private const string Tabla = "ConexionesAvaibook";
 
     public override string Clave => "conexionavaibook";
-    public override string Titulo => "Conexión con Avaibook";
-    public override string Categoria => "Facturación";
+    public override string Titulo => "Avaibook · Conexión";
+    public override string Categoria => "Integraciones";
     public override string Finalidad => "Token de la API de Avaibook con que se importan las reservas como ventas por facturar.";
     public override AmbitoMantenimiento Ambito => AmbitoMantenimiento.Sociedad;
     public override Cardinalidad Cardinalidad => Cardinalidad.Unico;

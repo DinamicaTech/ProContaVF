@@ -15,10 +15,10 @@ public sealed record ResultadoVenta(VentaPorFacturar? Venta, IReadOnlyList<Incid
     public bool Guardada => Venta is not null;
 }
 
-/// <summary>Factura creada por «Facturar ventas…».</summary>
-public sealed record FacturaDeVentas(int IdFactura, string Rotulo, string Cliente, string Activo, DateTime Mes, int Ventas, decimal Total, bool Validada);
+/// <summary>Factura creada por «Facturar todo».</summary>
+public sealed record FacturaDeVentas(int IdFactura, string Rotulo, string Cliente, string Descripcion, int Ventas, decimal Total, bool Validada);
 
-/// <summary>Resultado de «Facturar ventas…»: las facturas creadas y lo que no se ha podido facturar (no detiene a los demás grupos).</summary>
+/// <summary>Resultado de «Facturar todo»: las facturas creadas y lo que no se ha podido facturar (no detiene a los demás grupos).</summary>
 public sealed record ResultadoFacturarVentas(IReadOnlyList<FacturaDeVentas> Facturas, IReadOnlyList<string> Incidencias)
 {
     public bool SinIncidencias => Incidencias.Count == 0;
@@ -26,7 +26,7 @@ public sealed record ResultadoFacturarVentas(IReadOnlyList<FacturaDeVentas> Fact
 
 /// <summary>
 /// Servicio de las ventas por facturar (facturacion/reservas): alta y edición manual, anulación, borrado de las manuales y
-/// «Facturar ventas…». Los permisos son los de las facturas: FACTURAS.EDITAR (validar las creadas lo comprueba el servicio
+/// «Facturar todo». Los permisos son los de las facturas: FACTURAS.EDITAR (validar las creadas lo comprueba el servicio
 /// de facturas con FACTURAS.VALIDAR).
 /// </summary>
 public sealed class ServicioVentas
@@ -229,9 +229,6 @@ public sealed class ServicioVentas
 
     // ---------- facturación ----------
 
-    /// <summary>Último día del último mes cerrado (el mes anterior al de hoy): la fecha que propone «Facturar ventas…».</summary>
-    public DateTime HastaPropuesto => new DateTime(_reloj.Ahora.Year, _reloj.Ahora.Month, 1).AddDays(-1);
-
     /// <summary>Catálogos para resolver y agrupar las ventas de la sociedad, con los conceptos en el ejercicio de hoy (el de las facturas).</summary>
     public async Task<(DatosVentas Datos, SociedadEjercicio? Ejercicio)> DatosAsync(string idSociedad)
     {
@@ -243,10 +240,11 @@ public sealed class ServicioVentas
     }
 
     /// <summary>
-    /// Qué haría «Facturar ventas…» hasta <paramref name="hasta"/>: los grupos (una factura cada uno) y las ventas que no se
-    /// pueden facturar con su motivo. No cambia nada.
+    /// Qué haría «Facturar todo» con las ventas pendientes indicadas (todas si no se indican; con <paramref name="hasta"/>, solo
+    /// las de fecha de referencia hasta ese día): los grupos (una factura cada uno) y las ventas que no se pueden facturar con
+    /// su motivo. No cambia nada.
     /// </summary>
-    public async Task<IReadOnlyList<GrupoVentas>> PrevisualizarAsync(string idSociedad, DateTime hasta, IReadOnlySet<int>? soloVentas = null)
+    public async Task<IReadOnlyList<GrupoVentas>> PrevisualizarAsync(string idSociedad, IReadOnlySet<int>? soloVentas = null, DateTime? hasta = null)
     {
         var (d, _) = await DatosAsync(idSociedad);
         var pendientes = await _bd.EjecutarAsync(s => RepositorioVentas.PendientesAsync(s, idSociedad, hasta));
@@ -254,13 +252,15 @@ public sealed class ServicioVentas
     }
 
     /// <summary>
-    /// «Facturar ventas…» (facturacion/reservas 2026-11-14 11:45): una factura por cliente, mes de la fecha de referencia y
-    /// activo con las ventas pendientes hasta <paramref name="hasta"/>, con fecha de hoy, en la serie predeterminada del
-    /// ejercicio de hoy. Cada factura y el enlace de sus ventas se guardan en una sola transacción: si otra sesión ya ha
-    /// facturado alguna de sus ventas, no se crea esa factura. Con <paramref name="validar"/>, cada factura pasa después por
-    /// la validación normal; si no se puede validar, queda en borrador y se avisa.
+    /// «Facturar todo» (facturacion/reservas 2026-11-14 17:15): factura las ventas pendientes indicadas según su regla de
+    /// venta: una factura por cliente, origen, periodo (el de la agrupación de la regla) y, si la regla separa por activo,
+    /// activo; con fecha de hoy, en la serie predeterminada del ejercicio de hoy. Cada factura y el enlace de sus ventas se
+    /// guardan en una sola transacción: si otra sesión ya ha facturado alguna de sus ventas, no se crea esa factura. Las
+    /// reglas que piden «facturar y exportar» pasan después cada factura por la validación normal (número, instantánea, paso
+    /// fiscal y asiento); si no se puede validar, queda en borrador y se avisa. <paramref name="validar"/> impone lo mismo a
+    /// todas, diga lo que diga su regla.
     /// </summary>
-    public async Task<Resultado<ResultadoFacturarVentas>> FacturarAsync(string idSociedad, DateTime hasta, bool validar, Actor actor, IReadOnlySet<int>? soloVentas = null)
+    public async Task<Resultado<ResultadoFacturarVentas>> FacturarAsync(string idSociedad, Actor actor, IReadOnlySet<int>? soloVentas = null, DateTime? hasta = null, bool? validar = null)
     {
         if (!await _autorizador.PuedeAsync(Acciones.FacturasEditar)) return SinPermiso<ResultadoFacturarVentas>("facturar ventas", null);
         var (d, ejercicio) = await DatosAsync(idSociedad);
@@ -281,17 +281,17 @@ public sealed class ServicioVentas
             var borrador = await _facturas.NuevoBorradorAsync(ejercicio.Contexto);
             if (!borrador.EsCorrecto)
             {
-                incidencias.Add($"{g.Cliente} · {g.Activo} · {g.Clave!.PrimerDia:MM/yyyy}: {string.Join(" ", borrador.Errores.Select(e => e.TextoOperador()))}");
+                incidencias.Add($"{g.Descripcion}: {string.Join(" ", borrador.Errores.Select(e => e.TextoOperador()))}");
                 continue;
             }
             var propuesta = await _facturas.PropuestaClienteAsync(g.Clave!.IdCliente, idSociedad);
             FacturaVenta f = borrador.Valor;
             f.IdCliente = g.Clave.IdCliente;
             f.FechaFactura = hoy;
-            f.FechaOperacion = g.Clave.UltimoDia < hoy ? g.Clave.UltimoDia : hoy;
-            f.FechaInicioValidez = g.Clave.PrimerDia;
-            f.FechaFinValidez = g.Clave.UltimoDia;
-            f.Descripcion = AgrupadorVentas.DescripcionFactura(g, d.Origenes);
+            f.FechaOperacion = g.Clave.Hasta < hoy ? g.Clave.Hasta : hoy;
+            f.FechaInicioValidez = g.Clave.Desde;
+            f.FechaFinValidez = g.Clave.Hasta;
+            f.Descripcion = g.Descripcion;
             if (propuesta?.FormaDePago is byte forma) f.FormaDePago = forma;
             if (propuesta?.DiaDePago is byte dia) f.DiaDePago = dia;
             f.TipoRetencion = 0m;
@@ -301,7 +301,7 @@ public sealed class ServicioVentas
                 f.AnadirLinea(AgrupadorVentas.Linea(v, res, d.Conceptos[res.IdConcepto!.Value], v.IdActivo is int a ? d.Activos[a] : null, d.Origenes.GetValueOrDefault(v.IdOrigenVenta)));
             }
             var ahora = _reloj.Ahora;
-            f.Anotar(ahora, actor.Nombre, $"Creada por «Facturar ventas…» con {g.Ventas.Count} {(g.Ventas.Count == 1 ? "venta" : "ventas")} ({string.Join(", ", g.Ventas.Select(v => v.IdVentaPorFacturar))})");
+            f.Anotar(ahora, actor.Nombre, $"Creada por «Facturar todo» con {g.Ventas.Count} {(g.Ventas.Count == 1 ? "venta" : "ventas")} ({string.Join(", ", g.Ventas.Select(v => v.IdVentaPorFacturar))})");
             try
             {
                 var idFactura = await _bd.EnTransaccionAsync(async s =>
@@ -314,7 +314,7 @@ public sealed class ServicioVentas
                 });
                 var rotulo = FacturaVenta.RotuloBorrador(idFactura);
                 var validada = false;
-                if (validar)
+                if (validar ?? g.Validar)
                 {
                     var leida = await _facturas.ObtenerAsync(idFactura);
                     var r = await _facturas.ValidarAsync(idFactura, leida!.Version, actor, aceptarAvisos: true);
@@ -326,13 +326,13 @@ public sealed class ServicioVentas
                             incidencias.Add($"{rotulo} validada sin asiento: {string.Join(" ", (r.ErrorContabilizacion ?? []).Select(e => e.Mensaje))} Contabilízala desde Facturas.");
                     }
                     else
-                        incidencias.Add($"{rotulo} ({g.Cliente} · {g.Activo}) creado pero no validado; queda como borrador. {string.Join(" ", r.Incidencias.Select(i => i.Mensaje))}");
+                        incidencias.Add($"{rotulo} ({g.Descripcion}) creado pero no validado; queda como borrador. {string.Join(" ", r.Incidencias.Select(i => i.Mensaje))}");
                 }
-                creadas.Add(new FacturaDeVentas(idFactura, rotulo, g.Cliente, g.Activo, g.Clave.PrimerDia, g.Ventas.Count, g.Total, validada));
+                creadas.Add(new FacturaDeVentas(idFactura, rotulo, g.Cliente, g.Descripcion, g.Ventas.Count, g.Total, validada));
             }
             catch (ExcepcionDatos ex)
             {
-                incidencias.Add($"{g.Cliente} · {g.Activo} · {g.Clave.PrimerDia:MM/yyyy}: no se ha creado la factura. {ex.Error.Mensaje} Actualiza la lista y vuelve a facturar si hace falta.");
+                incidencias.Add($"{g.Descripcion}: no se ha creado la factura. {ex.Error.Mensaje} Actualiza la lista y vuelve a facturar si hace falta.");
             }
         }
         return Resultado<ResultadoFacturarVentas>.Correcto(new ResultadoFacturarVentas(creadas, incidencias));

@@ -85,7 +85,7 @@ public sealed class VentasAccessTests : IDisposable
         var origen = (await servicio.OrigenesAsync("T01")).Single(o => o.Codigo == codigo);
         // La regla general del origen: concepto, exenta E1 y la plataforma como cliente.
         if (conCliente)
-            await Bd.EjecutarAsync(s => s.EjecutarAsync("INSERT INTO ReglasVenta (IdSociedad, IdOrigenVenta, IdConcepto, CausaExencion, IdCliente, Activa) VALUES ('T01', ?, ?, 'E1', ?, True)",
+            await Bd.EjecutarAsync(s => s.EjecutarAsync("INSERT INTO ReglasVenta (IdSociedad, IdOrigenVenta, IdConcepto, CausaExencion, IdCliente, Activa, Agrupar, SepararPorActivo, AlFacturar) VALUES ('T01', ?, ?, 'E1', ?, True, 'MENSUAL', True, 'BORRADOR')",
                 origen.IdOrigenVenta, _idConcepto, _idPlataforma));
         return origen;
     }
@@ -126,11 +126,12 @@ public sealed class VentasAccessTests : IDisposable
         await VentaAsync(servicio, airbnb, new DateTime(2026, 1, 25), 450m, 2, cliente: _idHuesped);
         await VentaAsync(servicio, airbnb, new DateTime(2026, 2, 3), 500m);   // mes en curso: no entra hasta el 31/01
 
-        var previa = await servicio.PrevisualizarAsync("T01", servicio.HastaPropuesto);
-        Assert.Equal(new DateTime(2026, 1, 31), servicio.HastaPropuesto);
+        var enero = new DateTime(2026, 1, 31);
+        var previa = await servicio.PrevisualizarAsync("T01", hasta: enero);
         Assert.Equal(2, previa.Count);
+        Assert.Equal(3, (await servicio.PrevisualizarAsync("T01")).Count);
 
-        var r = await servicio.FacturarAsync("T01", servicio.HastaPropuesto, validar: false, _actor);
+        var r = await servicio.FacturarAsync("T01", _actor, hasta: enero);
         Assert.True(r.EsCorrecto, r.Error?.ToString());
         Assert.True(r.Valor.SinIncidencias, string.Join(" | ", r.Valor.Incidencias));
         Assert.Equal(2, r.Valor.Facturas.Count);
@@ -150,7 +151,7 @@ public sealed class VentasAccessTests : IDisposable
         Assert.Equal(4, await Contar("SELECT COUNT(*) FROM VentasPorFacturar WHERE IdFactura IS NOT NULL"));
 
         // Repetir no crea nada más.
-        var otra = await servicio.FacturarAsync("T01", servicio.HastaPropuesto, validar: false, _actor);
+        var otra = await servicio.FacturarAsync("T01", _actor, hasta: enero);
         Assert.Empty(otra.Valor.Facturas);
         Assert.Equal(2, await Contar("SELECT COUNT(*) FROM Facturas"));
         Assert.Equal(EstadoVenta.EnBorrador, (await servicio.ListarAsync("T01")).First(v => v.Importe == 1391m).Estado);
@@ -163,12 +164,12 @@ public sealed class VentasAccessTests : IDisposable
         var servicio = Servicio();
         var airbnb = await OrigenAsync(servicio, "AIRBNB");
         await VentaAsync(servicio, airbnb, new DateTime(2026, 1, 2), 1391m, 11);
-        var r = await servicio.FacturarAsync("T01", new DateTime(2026, 1, 31), validar: false, _actor);
+        var r = await servicio.FacturarAsync("T01", _actor);
         var factura = (await Facturas().ObtenerAsync(r.Valor.Facturas[0].IdFactura))!;
         Assert.True((await Facturas().EliminarBorradorAsync(factura.IdFactura, factura.Version, _actor)).EsCorrecto);
         var venta = (await servicio.ListarAsync("T01")).Single();
         Assert.Equal(EstadoVenta.Pendiente, venta.Estado);
-        Assert.Single((await servicio.FacturarAsync("T01", new DateTime(2026, 1, 31), validar: false, _actor)).Valor.Facturas);
+        Assert.Single((await servicio.FacturarAsync("T01", _actor)).Valor.Facturas);
     }
 
     [Fact]
@@ -178,8 +179,12 @@ public sealed class VentasAccessTests : IDisposable
         var servicio = Servicio();
         var airbnb = await OrigenAsync(servicio, "AIRBNB");
         var v = await VentaAsync(servicio, airbnb, new DateTime(2026, 1, 2), 1391m, 11);
-        var r = await servicio.FacturarAsync("T01", new DateTime(2026, 1, 31), validar: true, _actor);
+        // La regla pide «facturar y exportar»: «Facturar todo» valida y contabiliza sin preguntar.
+        await Bd.EjecutarAsync(s => s.EjecutarAsync("UPDATE ReglasVenta SET AlFacturar = 'VALIDAR' WHERE IdOrigenVenta = ?", airbnb.IdOrigenVenta));
+        var r = await servicio.FacturarAsync("T01", _actor);
         Assert.True(r.Valor.Facturas[0].Validada, string.Join(" | ", r.Valor.Incidencias));
+        Assert.True(r.Valor.SinIncidencias, string.Join(" | ", r.Valor.Incidencias));
+        Assert.NotNull((await Facturas().ObtenerAsync(r.Valor.Facturas[0].IdFactura))!.IdAsientoContable);
         Assert.StartsWith("F2026", r.Valor.Facturas[0].Rotulo);
         var leida = (await servicio.ObtenerAsync(v.IdVentaPorFacturar))!;
         Assert.Equal(EstadoVenta.Facturada, leida.Estado);
@@ -229,6 +234,7 @@ public sealed class VentasAccessTests : IDisposable
         var primera = await importador.AplicarAsync("T01", [Reserva("A1", "Airbnb", new DateTime(2026, 1, 2), 11, 1391m)], _actor);
         Assert.Equal(0, primera.Nuevas);
         Assert.Contains(primera.Incidencias, i => i.Contains("no tiene activo relacionado"));
+        Assert.True(primera.FaltanAlojamientos);
         Assert.Equal(1, await Contar("SELECT COUNT(*) FROM AlojamientosAvaibook WHERE IdExterno = '377813'"));
 
         // Con el alojamiento asignado (activo sintético) entra pendiente.
@@ -237,6 +243,9 @@ public sealed class VentasAccessTests : IDisposable
         var reservas = new[] { Reserva("A1", "Airbnb", new DateTime(2026, 1, 2), 11, 1391m), Reserva("A2", "Airbnb", new DateTime(2026, 1, 13), 7, 822m) };
         var segunda = await importador.AplicarAsync("T01", reservas, _actor);
         Assert.Equal(2, segunda.Nuevas);
+        Assert.False(segunda.FaltanAlojamientos);
+        Assert.False(segunda.FaltanReglas);
+        Assert.Empty(segunda.Incidencias);
         var tercera = await importador.AplicarAsync("T01", reservas, _actor);
         Assert.Equal(0, tercera.Nuevas);
         Assert.Equal(2, tercera.SinCambios);
@@ -248,7 +257,7 @@ public sealed class VentasAccessTests : IDisposable
         Assert.Equal(EstadoVenta.Anulada, (await servicio.ListarAsync("T01")).Single(v => v.IdExterno == "A2").Estado);
 
         // Facturada y cambia en Avaibook: no se toca, queda la incidencia.
-        var f = await servicio.FacturarAsync("T01", new DateTime(2026, 1, 31), validar: false, _actor);
+        var f = await servicio.FacturarAsync("T01", _actor);
         Assert.Single(f.Valor.Facturas);
         var cambio = await importador.AplicarAsync("T01", [reservas[0] with { TotalAmount = 1500m }], _actor);
         Assert.Single(cambio.Incidencias);
@@ -277,13 +286,46 @@ public sealed class VentasAccessTests : IDisposable
 
         // La regla pasa de exenta al 10 %: la venta ya importada se factura al 10 % sin tocarla.
         await Bd.EjecutarAsync(s => s.EjecutarAsync("UPDATE ReglasVenta SET CausaExencion = NULL, TipoIva = 10 WHERE IdOrigenVenta = ?", airbnb.IdOrigenVenta));
-        var f = await servicio.FacturarAsync("T01", new DateTime(2026, 1, 31), validar: false, _actor);
+        var f = await servicio.FacturarAsync("T01", _actor);
         Assert.True(f.Valor.SinIncidencias, string.Join(" | ", f.Valor.Incidencias));
         var factura = (await Facturas().ObtenerAsync(f.Valor.Facturas[0].IdFactura))!;
         Assert.Equal(1100m, factura.Totales.ImporteTotal.Valor);
         Assert.Equal(1000m, factura.Totales.BaseImponible.Valor);
         Assert.Equal(100m, factura.Totales.Iva.Valor);
         Assert.Null(factura.Lineas[0].CausaExencion);
+    }
+
+    [Fact]
+    public async Task UnPortalNuevoEntraSoloYQuedaAFaltaDeSuRegla()
+    {
+        await PrepararAsync();
+        var servicio = Servicio();
+        await OrigenAsync(servicio, "AIRBNB");
+        var idActivo = await ActivoAsync();
+        await Bd.EjecutarAsync(s => s.EjecutarAsync("INSERT INTO AlojamientosAvaibook (IdSociedad, IdExterno, IdActivo, Activo) VALUES ('T01', '377813', ?, True)", idActivo));
+        var importador = new ImportadorAvaibook(Bd, servicio, new SinRed(), reloj: _reloj);
+        var reservas = new[]
+        {
+            Reserva("V1", "Vrbo [XML]", new DateTime(2026, 1, 12), 3, 400m), Reserva("V2", "Vrbo [XML]", new DateTime(2026, 1, 22), 2, 250m),
+            Reserva("A1", "Airbnb", new DateTime(2026, 1, 2), 11, 1391m), Reserva("P1", "Airbnb", new DateTime(2026, 3, 2), 2, 100m, estado: "PENDING_PAYMENT"),
+        };
+        var r = await importador.AplicarAsync("T01", reservas, _actor);
+        Assert.Equal(3, r.Nuevas);
+        Assert.Equal(["Vrbo"], r.OrigenesNuevos);
+        Assert.Empty(r.Incidencias);
+        Assert.True(r.FaltanReglas);
+        Assert.Contains(r.SinRegla, t => t.StartsWith("Vrbo · Piso sintético: 2 ventas pendientes sin cliente y concepto"));
+        Assert.Contains(r.Informacion, t => t.Contains("aún no está confirmada"));
+        Assert.Contains(await servicio.OrigenesAsync("T01"), o => o.Codigo == "VRBO" && o.TextosImportacion == "Vrbo [XML]");
+
+        // Repetir no crea otro origen ni duplica; sin regla, las de Vrbo se quedan pendientes y las de Airbnb se facturan.
+        var otra = await importador.AplicarAsync("T01", reservas, _actor);
+        Assert.Empty(otra.OrigenesNuevos);
+        Assert.Equal(0, otra.Nuevas);
+        var f = await servicio.FacturarAsync("T01", _actor);
+        Assert.Single(f.Valor.Facturas);
+        Assert.Equal(2, f.Valor.Incidencias.Count);
+        Assert.All(f.Valor.Incidencias, i => Assert.Contains("Reglas de venta", i));
     }
 
     [Fact]

@@ -83,7 +83,7 @@ internal sealed partial class EjecucionErp
                 Sociedad, codigo, nombre, textos, codigo == "DIRECTA");
             // La regla general del origen nace con el cliente de la persona del ERP; el concepto y el IVA los pone el operador.
             if (cliente is not null)
-                await InsertarAsync("INSERT INTO ReglasVenta (IdSociedad, IdOrigenVenta, IdCliente, CausaExencion, Activa) VALUES (?, ?, ?, 'E1', True)", Sociedad, r[texto], cliente);
+                await InsertarAsync("INSERT INTO ReglasVenta (IdSociedad, IdOrigenVenta, IdCliente, CausaExencion, Activa, Agrupar, SepararPorActivo, AlFacturar) VALUES (?, ?, ?, 'E1', True, 'MENSUAL', True, 'BORRADOR')", Sociedad, r[texto], cliente);
             Anotar(Fase8, "OrigenesVenta", codigo, "IdCliente", cliente is null ? "Erp.OrigenSinCliente" : "Erp.OrigenCreado", cliente is null ? Severidad.Advertencia : Severidad.Informativa,
                 cliente is null ? $"He creado el origen de venta «{nombre}» sin regla de venta: ponle el cliente, el concepto y el IVA en Parámetros y tablas › Reglas de venta antes de facturar sus reservas."
                                 : $"He creado el origen de venta «{nombre}» y su regla de venta con el cliente de la persona «{texto}» del ERP (exenta E1); ponle el concepto en Parámetros y tablas › Reglas de venta.");

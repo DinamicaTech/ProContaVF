@@ -114,12 +114,79 @@ public sealed class VentasTests
 
         Assert.All(grupos, g => Assert.True(g.Facturable, g.Problema));
         Assert.Equal(5, grupos.Count);
-        var enero = grupos.Single(g => g.Clave == new ClaveFacturaVentas(57, 2026, 1, 18));
+        var enero = grupos.Single(g => g.Clave == new ClaveFacturaVentas(57, 1, new DateTime(2026, 1, 1), new DateTime(2026, 1, 31), 18));
         Assert.Equal(3, enero.Ventas.Count);
         Assert.Equal(2551m, enero.Total);
+        Assert.False(enero.Validar);
         Assert.Single(grupos, g => g.Clave!.IdCliente == 99);
         Assert.Single(grupos, g => g.Clave!.IdCliente == 58);
-        Assert.Equal("Airbnb · enero 2026 · Castelldefels 133", AgrupadorVentas.DescripcionFactura(enero, Origenes));
+        Assert.Equal("Airbnb · enero 2026 · Castelldefels 133", enero.Descripcion);
+    }
+
+    [Theory]
+    [InlineData(AgrupacionVentas.Semanal, "2026-01-14", "2026-01-12", "2026-01-18", "semana del 12/01/2026 al 18/01/2026")]
+    [InlineData(AgrupacionVentas.Semanal, "2026-01-18", "2026-01-12", "2026-01-18", "semana del 12/01/2026 al 18/01/2026")]
+    [InlineData(AgrupacionVentas.Quincenal, "2026-02-15", "2026-02-01", "2026-02-15", "1.ª quincena de febrero 2026")]
+    [InlineData(AgrupacionVentas.Quincenal, "2026-02-16", "2026-02-16", "2026-02-28", "2.ª quincena de febrero 2026")]
+    [InlineData(AgrupacionVentas.Mensual, "2026-12-31", "2026-12-01", "2026-12-31", "diciembre 2026")]
+    [InlineData(AgrupacionVentas.Trimestral, "2026-05-20", "2026-04-01", "2026-06-30", "2.º trimestre de 2026")]
+    [InlineData(AgrupacionVentas.Anual, "2026-05-20", "2026-01-01", "2026-12-31", "año 2026")]
+    [InlineData("cualquier cosa", "2026-05-20", "2026-05-01", "2026-05-31", "mayo 2026")]
+    public void CadaAgrupacionDaSuPeriodo(string agrupar, string fecha, string desde, string hasta, string texto)
+    {
+        var p = AgrupacionVentas.Periodo(agrupar, DateTime.Parse(fecha, System.Globalization.CultureInfo.InvariantCulture));
+        Assert.Equal((DateTime.Parse(desde, System.Globalization.CultureInfo.InvariantCulture), DateTime.Parse(hasta, System.Globalization.CultureInfo.InvariantCulture), texto), (p.Desde, p.Hasta, p.Texto));
+    }
+
+    [Fact]
+    public void UnTrimestreMensualPorOrigenYActivoDaDoceFacturas()
+    {
+        // Dos orígenes × dos activos × tres meses, varias reservas en cada uno: 12 facturas.
+        var ventas = new List<VentaPorFacturar>();
+        foreach (var origen in new[] { 1, 2 })
+            foreach (var activo in new[] { 18, 19 })
+                for (var mes = 7; mes <= 9; mes++)
+                    foreach (var dia in new[] { 3, 12, 25 })
+                        ventas.Add(Venta(origen, new DateTime(2026, mes, dia), 300m, activo: activo));
+        var grupos = AgrupadorVentas.Agrupar(ventas, Datos());
+        Assert.Equal(12, grupos.Count);
+        Assert.All(grupos, g => Assert.Equal(3, g.Ventas.Count));
+    }
+
+    [Fact]
+    public void LaReglaDecideLaAgrupacionSiSeSeparaPorActivoYSiSeValida()
+    {
+        var ventas = new[]
+        {
+            Venta(1, new DateTime(2026, 7, 3), 300m, activo: 18), Venta(1, new DateTime(2026, 8, 12), 300m, activo: 19), Venta(1, new DateTime(2026, 9, 25), 300m, activo: 18),
+        };
+        // Trimestral, sin separar por activo y «facturar y exportar»: una sola factura validada con los dos activos.
+        ReglaVenta[] trimestral = [Reglas[0] with { Agrupar = AgrupacionVentas.Trimestral, SepararPorActivo = false, AlFacturar = ReglaVenta.Validar }];
+        var uno = Assert.Single(AgrupadorVentas.Agrupar(ventas, Datos(trimestral)));
+        Assert.Equal(3, uno.Ventas.Count);
+        Assert.True(uno.Validar);
+        Assert.Null(uno.Clave!.IdActivo);
+        Assert.Equal("Airbnb · 3.º trimestre de 2026", uno.Descripcion);
+        Assert.Equal((new DateTime(2026, 7, 1), new DateTime(2026, 9, 30)), (uno.Clave.Desde, uno.Clave.Hasta));
+
+        // Sin agrupar: una factura por venta, con el periodo de la propia estancia.
+        ReglaVenta[] sinAgrupar = [Reglas[0] with { Agrupar = AgrupacionVentas.No, SepararPorActivo = false }];
+        var sueltas = AgrupadorVentas.Agrupar(ventas, Datos(sinAgrupar));
+        Assert.Equal(3, sueltas.Count);
+        Assert.Equal("Airbnb · 03/07/2026 – 06/07/2026 · Castelldefels 133", sueltas[0].Descripcion);
+
+        // Anual separando por activo: dos facturas.
+        ReglaVenta[] anual = [Reglas[0] with { Agrupar = AgrupacionVentas.Anual }];
+        Assert.Equal(2, AgrupadorVentas.Agrupar(ventas, Datos(anual)).Count);
+    }
+
+    [Fact]
+    public void UnPortalNuevoSeDaDeAltaConNombreLimpioYCodigoLibre()
+    {
+        var vrbo = ImportadorAvaibook.OrigenNuevo("T01", "Vrbo [XML]", [Airbnb, Booking, Directa]);
+        Assert.Equal(("VRBO", "Vrbo", "Vrbo [XML]", false, true), (vrbo.Codigo, vrbo.Nombre, vrbo.TextosImportacion, vrbo.EsDirecta, vrbo.Activo));
+        Assert.True(vrbo.Reconoce("Vrbo [XML]"));
+        Assert.Equal("AIRBNB2", ImportadorAvaibook.OrigenNuevo("T01", "Airbnb!", [Airbnb]).Codigo);
     }
 
     [Fact]

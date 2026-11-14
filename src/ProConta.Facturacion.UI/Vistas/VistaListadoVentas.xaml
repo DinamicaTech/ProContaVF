@@ -21,6 +21,10 @@
     <Border DockPanel.Dock="Top" BorderBrush="{StaticResource Pincel.Linea}" BorderThickness="0,0,0,1" Padding="14,8">
       <DockPanel>
         <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+          <Button Content="Importar de Avaibook…" Command="{Binding ImportarCommand}" Margin="0,0,8,0"
+                  ToolTip="Lee de Avaibook las reservas entre dos fechas de entrada y las guarda como ventas por facturar, sin duplicar" />
+          <Button Content="{Binding TextoFacturarTodo}" Command="{Binding FacturarTodoCommand}" Margin="0,0,8,0"
+                  ToolTip="Factura las ventas pendientes de la lista (con los filtros puestos) según sus reglas de venta: enseña antes las facturas que saldrán y pide confirmación" />
           <Button Content="Nueva venta" Command="{Binding NuevaCommand}" Style="{StaticResource Boton.Primario}" pc:Iconos.Icono="{StaticResource Icono.plus}"
                   ToolTip="Da de alta a mano una venta para facturarla después (una reserva directa, un servicio…)" />
         </StackPanel>
@@ -31,12 +35,14 @@
                      ToolTip="Busca en origen, cliente, activo, concepto, referencia, descripción, huésped, notas y factura (Ctrl+F)" AutomationProperties.Name="Buscar ventas" />
             <Path Style="{StaticResource Icono.Trazo14}" Data="{StaticResource Icono.search}" HorizontalAlignment="Left" Margin="9,0,0,0" VerticalAlignment="Center" IsHitTestVisible="False" />
           </Grid>
+          <ComboBox Width="160" Margin="10,0,0,0" VerticalAlignment="Center" ItemsSource="{Binding OpcionesEjercicio}" SelectedItem="{Binding FiltroEjercicio}"
+                    ToolTip="Solo las ventas con fecha de entrada en ese ejercicio" />
           <ComboBox Width="150" Margin="10,0,0,0" VerticalAlignment="Center" ItemsSource="{Binding OpcionesEstado}" SelectedItem="{Binding FiltroEstado}"
                     ToolTip="Pendientes de facturar, en un borrador, facturadas, anuladas o con un cambio de Avaibook que no se ha podido aplicar" />
           <ComboBox Width="150" Margin="10,0,0,0" VerticalAlignment="Center" ItemsSource="{Binding OpcionesOrigen}" SelectedItem="{Binding FiltroOrigen}" ToolTip="Solo las ventas de este origen" />
           <ComboBox Width="230" Margin="10,0,0,0" VerticalAlignment="Center" ItemsSource="{Binding OpcionesActivo}" SelectedItem="{Binding FiltroActivo}" ToolTip="Solo las ventas de este activo relacionado" />
           <Button Style="{StaticResource Boton.Enlace}" Content="Limpiar filtros" Command="{Binding LimpiarFiltrosCommand}" VerticalAlignment="Center" Margin="10,0,0,0"
-                  Visibility="{Binding HayFiltros, Converter={StaticResource Visible}}" ToolTip="Vacía la búsqueda y vuelve a mostrar las pendientes de todos los orígenes y activos" />
+                  Visibility="{Binding HayFiltros, Converter={StaticResource Visible}}" ToolTip="Vacía la búsqueda y vuelve a mostrar las pendientes del ejercicio de trabajo, de todos los orígenes y activos" />
         </WrapPanel>
       </DockPanel>
     </Border>
@@ -66,15 +72,12 @@
           <ContextMenu>
             <MenuItem Header="Ver su factura" Command="{Binding VerFacturaCommand}" ToolTip="Abre el borrador o la factura en que está la venta (solo con una seleccionada)" />
             <Separator />
-            <MenuItem Header="{Binding TextoFacturarSeleccionadas}" Command="{Binding FacturarSeleccionadasCommand}" ToolTip="Factura solo las seleccionadas pendientes: una factura por cliente, mes y activo" />
-            <MenuItem Header="Facturar ventas…" Command="{Binding FacturarCommand}" ToolTip="Elige hasta qué fecha de entrada: crea una factura por cliente, mes y activo con las ventas pendientes" />
-            <MenuItem Header="Importar de Avaibook…" Command="{Binding ImportarCommand}" ToolTip="Lee las reservas de Avaibook entre dos fechas de entrada y las guarda como ventas por facturar, sin duplicar" />
+            <MenuItem Header="{Binding TextoFacturarSeleccionadas}" Command="{Binding FacturarSeleccionadasCommand}" ToolTip="Factura solo las seleccionadas pendientes, según sus reglas de venta" />
             <Separator />
             <MenuItem Header="{Binding TextoAnular}" Command="{Binding AnularCommand}" ToolTip="Deja fuera de la facturación las seleccionadas pendientes (por ejemplo, una reserva cancelada)" />
             <MenuItem Header="{Binding TextoReactivar}" Command="{Binding ReactivarCommand}" ToolTip="Devuelve a pendientes las seleccionadas anuladas" />
             <MenuItem Header="{Binding TextoEliminar}" Command="{Binding EliminarCommand}" ToolTip="Borra las seleccionadas dadas de alta a mano que no están facturadas (las importadas se anulan, no se borran)" />
             <Separator />
-            <MenuItem Header="Nueva venta" Command="{Binding NuevaCommand}" ToolTip="Da de alta a mano una venta para facturarla después" />
             <MenuItem Header="Actualizar" Command="{Binding RefrescarCommand}" InputGestureText="F5" ToolTip="Vuelve a leer las ventas" />
           </ContextMenu>
         </pc:VistaEstado.ContextMenu>

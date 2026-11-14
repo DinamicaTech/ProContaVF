@@ -62,6 +62,27 @@ public static class MigracionesVentas
         Descripciones = Descripciones,
     };
 
+    /// <summary>
+    /// Cómo se facturan las ventas de cada regla (facturacion/reservas 2026-11-14 17:15): cada cuánto se agrupan en una factura
+    /// (NO, SEMANAL, QUINCENAL, MENSUAL, TRIMESTRAL o ANUAL), si se separa una factura por activo y si «Facturar todo» deja
+    /// borradores o facturas validadas y contabilizadas. Solo añade columnas, con lo que se hacía hasta ahora por defecto.
+    /// </summary>
+    public static Migracion ReglasVentaAgrupacion { get; } = new(
+        "20261114_1715_REGLAS_VENTA_AGRUPACION", 261114020,
+        "Reglas de venta: agrupación de las ventas en facturas, separación por activo y borrador o factura validada.",
+        "facturacion/reservas",
+        new AnadirColumnaObligatoria("ReglasVenta", "Agrupar", "TEXT(12)", "'MENSUAL'"),
+        new AnadirColumnaObligatoria("ReglasVenta", "SepararPorActivo", "YESNO", "True"),
+        new AnadirColumnaObligatoria("ReglasVenta", "AlFacturar", "TEXT(10)", "'BORRADOR'"))
+    {
+        Descripciones =
+        [
+            new("ReglasVenta", "Agrupar", "Cada cuánto se agrupan sus ventas en una factura: NO (una por venta), SEMANAL, QUINCENAL, MENSUAL, TRIMESTRAL o ANUAL, por la fecha de referencia."),
+            new("ReglasVenta", "SepararPorActivo", "Si se hace una factura por activo relacionado; si no, una por origen y periodo con todos sus activos."),
+            new("ReglasVenta", "AlFacturar", "Qué crea «Facturar todo»: BORRADOR, o VALIDAR (factura numerada, validada y contabilizada)."),
+        ],
+    };
+
     internal static IReadOnlyList<DescripcionEsquema> Descripciones =>
     [
         new("OrigenesVenta", null, "Origen de las ventas por facturar de una sociedad (Airbnb, Booking, directa…) y cómo se reconoce al importar."),

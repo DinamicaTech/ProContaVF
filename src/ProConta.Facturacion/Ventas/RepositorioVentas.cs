@@ -67,10 +67,10 @@ internal static class RepositorioVentas
             _ => s.ConsultarAsync($"SELECT {Columnas} FROM {Desde} WHERE v.IdSociedad = ? ORDER BY v.FechaReferencia DESC, v.IdVentaPorFacturar DESC", Mapear, idSociedad),
         };
 
-    /// <summary>Ventas pendientes de facturar (sin factura, no anuladas ni facturadas fuera) con fecha de referencia hasta el día indicado.</summary>
-    public static Task<IReadOnlyList<VentaPorFacturar>> PendientesAsync(ISesionDatos s, string idSociedad, DateTime hasta) =>
+    /// <summary>Ventas pendientes de facturar (sin factura, no anuladas ni facturadas fuera); con <paramref name="hasta"/>, solo las de fecha de referencia hasta ese día.</summary>
+    public static Task<IReadOnlyList<VentaPorFacturar>> PendientesAsync(ISesionDatos s, string idSociedad, DateTime? hasta = null) =>
         s.ConsultarAsync($"SELECT {Columnas} FROM {Desde} WHERE v.IdSociedad = ? AND v.IdFactura IS NULL AND v.Anulada = False AND v.FacturadaFuera = False " +
-                         "AND v.FechaReferencia < ? ORDER BY v.FechaReferencia, v.IdVentaPorFacturar", Mapear, idSociedad, hasta.Date.AddDays(1));
+                         "AND v.FechaReferencia < ? ORDER BY v.FechaReferencia, v.IdVentaPorFacturar", Mapear, idSociedad, (hasta ?? new DateTime(9000, 1, 1)).Date.AddDays(1));
 
     public static Task<IReadOnlyList<VentaPorFacturar>> PorExternoAsync(ISesionDatos s, string idSociedad, string fuente) =>
         s.ConsultarAsync($"SELECT {Columnas} FROM {Desde} WHERE v.IdSociedad = ? AND v.Fuente = ? AND v.IdExterno IS NOT NULL", Mapear, idSociedad, fuente);
@@ -144,16 +144,17 @@ internal static class RepositorioVentas
     }
 
     internal static ReglaVenta MapearRegla(IFilaDatos r) => new(r.Entero("IdReglaVenta"), (r.Texto("IdSociedad") ?? "").Trim(), r.Entero("IdOrigenVenta"), r.EnteroNulo("IdActivo"),
-        r.EnteroNulo("IdConcepto"), Vacio(r.Texto("CausaExencion")), r.DecimalNulo("TipoIva"), r.EnteroNulo("IdCliente"), r.Logico("Activa"));
+        r.EnteroNulo("IdConcepto"), Vacio(r.Texto("CausaExencion")), r.DecimalNulo("TipoIva"), r.EnteroNulo("IdCliente"), r.Logico("Activa"),
+        AgrupacionVentas.Normalizar(r.Texto("Agrupar")), r.Logico("SepararPorActivo"), (r.Texto("AlFacturar") ?? ReglaVenta.Borrador).Trim());
 
     public static Task<IReadOnlyList<ReglaVenta>> ReglasAsync(ISesionDatos s, string idSociedad) =>
-        s.ConsultarAsync("SELECT IdReglaVenta, IdSociedad, IdOrigenVenta, IdActivo, IdConcepto, CausaExencion, TipoIva, IdCliente, Activa FROM ReglasVenta WHERE IdSociedad = ? ORDER BY IdReglaVenta",
+        s.ConsultarAsync("SELECT IdReglaVenta, IdSociedad, IdOrigenVenta, IdActivo, IdConcepto, CausaExencion, TipoIva, IdCliente, Activa, Agrupar, SepararPorActivo, AlFacturar FROM ReglasVenta WHERE IdSociedad = ? ORDER BY IdReglaVenta",
             MapearRegla, idSociedad);
 
     public static async Task<int> InsertarReglaAsync(ISesionDatos s, ReglaVenta r)
     {
-        await s.EjecutarAsync("INSERT INTO ReglasVenta (IdSociedad, IdOrigenVenta, IdActivo, IdConcepto, CausaExencion, TipoIva, IdCliente, Activa) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-            r.IdSociedad, r.IdOrigenVenta, r.IdActivo, r.IdConcepto, Vacio(r.CausaExencion), r.TipoIva, r.IdCliente, r.Activa);
+        await s.EjecutarAsync("INSERT INTO ReglasVenta (IdSociedad, IdOrigenVenta, IdActivo, IdConcepto, CausaExencion, TipoIva, IdCliente, Activa, Agrupar, SepararPorActivo, AlFacturar) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            r.IdSociedad, r.IdOrigenVenta, r.IdActivo, r.IdConcepto, Vacio(r.CausaExencion), r.TipoIva, r.IdCliente, r.Activa, AgrupacionVentas.Normalizar(r.Agrupar), r.SepararPorActivo, r.AlFacturar);
         return await s.UltimoIdAsync();
     }
 
