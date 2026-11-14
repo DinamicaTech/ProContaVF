@@ -8,7 +8,7 @@ threads:
   - 2026-11-04 14:15 · Revisión visual de facturación de venta | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GJ1hUmWghpJQT8AjYb4rrpj
 ---
 ## Summary
-Listados filtrables de facturas y de programaciones, en pantallas separadas, con selección explícita, ficha de factura y acciones contextuales. Código: `src/ProConta.Facturacion.UI` (`ListadoFacturasVM` y `VistaListadoFacturas`, `ListadoProgramadasVM` y `VistaListadoProgramadas`, `EditorFacturaVM` y `VistaEditorFactura`, `DialogosFacturacion`), en el menú Facturación › Facturas y Facturación › Facturas programadas. Las programadas se editan con el mismo editor (casilla «Periódica» y pestaña «Programación»).
+Listados filtrables de facturas y de programaciones, en pantallas separadas, con selección explícita, ficha de factura y acciones contextuales. Código: `src/ProConta.Facturacion.UI` (`ListadoFacturasVM` y `VistaListadoFacturas`, `ListadoProgramadasVM` y `VistaListadoProgramadas`, `EditorFacturaVM` y `VistaEditorFactura`, `DialogosFacturacion`), en el menú Facturación › Facturas y Facturación › Facturas programadas; `ListadoVentasVM` y `VistaListadoVentas` en Ventas › Ventas por facturar. Las programadas se editan con el mismo editor (casilla «Periódica» y pestaña «Programación»).
 **Aceptación:** comparación con la maqueta; selección, fila activa y universo filtrado no se confunden.
 
 ## Decisions
@@ -41,6 +41,7 @@ Listados filtrables de facturas y de programaciones, en pantallas separadas, con
 
 - 2026-11-08 11:45 · Derived from facturacion/factura-venta/contabilizacion: el menú contextual del listado tiene «Deshacer exportación contable», con aviso de lo que hará con cada factura. El editor permite cambiar una validada sin enviar a VeriFactu, salvo su serie, y al guardar un cambio que afecta al asiento avisa de que antes se deshará su exportación (borrando el asiento o con contra-asiento) y de que se generará uno nuevo.
 - 2026-11-10 20:05 · Hecho: «Enviar por correo…» y «Ver su correo» en el menú contextual de Facturas (`ModuloFacturacion.EnviarPorCorreoAsync`), con el correo preparado por `PreparadorCorreoFacturas` (src/ProConta.Facturacion/Documentos/CorreoFacturas.cs): solo facturas validadas, su PDF archivado, los emails del cliente marcados para facturas (o el congelado en la factura) y la plantilla «Factura» de la empresa.
+- 2026-11-14 13:00 · Ventas por facturar (facturacion/reservas): menú Ventas › Ventas por facturar. Listado con búsqueda y filtros de estado (por defecto, pendientes), origen y piso; a la derecha, la ficha de la venta activa, editable solo si está pendiente, con Guardar/Cancelar al pie (Ctrl+S); el cliente propio se elige con «Elegir…». Menú contextual: Ver su factura, Facturar las seleccionadas…, Facturar ventas… (diálogo con la fecha de entrada hasta la que se factura, por defecto el último día del mes anterior, la lista de facturas que saldrían con lo que no se puede facturar en rojo y la casilla «Validarlas al crearlas»), Importar de Avaibook… (fechas de entrada), Anular, Reactivar, Eliminar (solo manuales), Nueva venta y Actualizar.
 
 ## Requirements
 - 2026-10-28 12:28 · From sources/01_ESPECIFICACION_FUNCIONAL.docx § 10 RF-FAC-10: listado, selección, proforma, contadores
@@ -74,7 +75,7 @@ Listados filtrables de facturas y de programaciones, en pantallas separadas, con
 - 2026-11-05 10:15 · Añade un filtro: Activas vencidas (Próxima <= hoy()), que será el procedimiento habitual para facturar programadas
 - 2026-11-05 10:15 · Sí, en la pantalla de facturas también con menú contextual. La idea es siempre añadir opciones contextuales donde podamos para dejar la pantalla más limpia y homogeneizar la forma de trabajar.
 - 2026-11-05 11:20 · Derived from facturacion/factura-venta y facturacion/verifactu: PDF y proforma en Facturas y en el editor, y ocultar VeriFactu con el parámetro desactivado.
-- 2026-11-14 11:45 · Derived from facturacion/reservas: pantalla «Ventas por facturar» (listado con filtros de estado, origen, piso y fechas; acciones en el menú contextual: Nueva…, Editar, Anular, Facturar ventas…, Importar de Avaibook…, Ver factura) y ficha de la venta con Guardar/Cancelar al pie.
+- 2026-11-14 11:45 · Derived from facturacion/reservas: pantalla «Ventas por facturar» (listado con filtros de estado, origen, piso y fechas; acciones en el menú contextual: Ver su factura, Facturar las seleccionadas…, Facturar ventas…, Importar de Avaibook…, Anular, Reactivar, Eliminar, Nueva venta y Actualizar; «Nueva venta» también en la cabecera) y, a la derecha, la ficha de la venta activa, editable mientras está pendiente, con Guardar/Cancelar al pie.
 
 ## Hand-over
 - 2026-11-01 18:15 · Hecho: las dos pantallas compiladas y en el menú. Pendiente: probarlas en el equipo del propietario y validarlas contra la maqueta; el motivo de la rectificación y la doble pantalla quedan por decidir.
