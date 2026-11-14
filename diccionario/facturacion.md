@@ -5,7 +5,7 @@
 ## AlojamientosAvaibook
 
 - Dueño funcional: `facturacion/reservas`
-- Alojamiento de Avaibook de una sociedad y el piso (activo) y concepto con que se importan sus reservas.
+- Alojamiento de Avaibook de una sociedad y el activo al que corresponden sus reservas.
 
 | Campo | Tipo | Nulo | Por defecto | Descripción |
 |---|---|---|---|---|
@@ -13,9 +13,7 @@
 | IdSociedad | TEXT(3) | no |  | Sociedad. |
 | IdExterno | TEXT(40) | no |  | Identificador del alojamiento en Avaibook (accommodationId). |
 | Nombre | TEXT(255) | sí |  | Nombre del alojamiento en Avaibook. |
-| IdActivo | LONG | sí |  | Piso (activo) de las reservas; vacío, sus reservas no se importan. |
-| IdConcepto | LONG | sí |  | Concepto de la línea de factura de sus reservas. |
-| CausaExencion | TEXT(2) | sí |  | Causa de exención de sus reservas (E1 para el alquiler sin servicios de hostelería). |
+| IdActivo | LONG | sí |  | Activo relacionado de sus reservas; vacío, sus reservas no se importan. |
 | Activo | YESNO | no |  | Si se importan sus reservas. |
 
 Índices:
@@ -545,7 +543,7 @@ Relaciones:
 ## OrigenesVenta
 
 - Dueño funcional: `facturacion/reservas`
-- Origen de las ventas por facturar de una sociedad (Airbnb, Booking, directa…): a quién se factura y cómo se reconoce al importar.
+- Origen de las ventas por facturar de una sociedad (Airbnb, Booking, directa…) y cómo se reconoce al importar.
 
 | Campo | Tipo | Nulo | Por defecto | Descripción |
 |---|---|---|---|---|
@@ -553,18 +551,42 @@ Relaciones:
 | IdSociedad | TEXT(3) | no |  | Sociedad del origen. |
 | Codigo | TEXT(20) | no |  | Código corto del origen, único en la sociedad (AIRBNB, BOOKING, DIRECTA). |
 | Nombre | TEXT(60) | no |  | Nombre del origen en las pantallas y en la descripción de la factura. |
-| IdCliente | LONG | sí |  | Cliente al que se facturan sus ventas (la plataforma); vacío, cada venta lleva su cliente. |
 | TextosImportacion | TEXT(255) | sí |  | Textos con los que llega en una importación (partnerName de Avaibook), separados por punto y coma. |
 | EsDirecta | YESNO | no |  | Origen de las reservas que no vienen de un portal (alta propia en Avaibook, motor de reservas). |
 | Activo | YESNO | no |  | Solo los activos se ofrecen al dar de alta ventas. |
 
 Índices:
-- FK_OrigenesVenta_Cliente: IdCliente
 - PK_OrigenesVenta (clave primaria): IdOrigenVenta
 - UX_OrigenesVenta_SociedadCodigo (único): IdSociedad, Codigo
 
+## ReglasVenta
+
+- Dueño funcional: `facturacion/reservas`
+- Regla de venta: lo que se propone al facturar las ventas de un origen y un activo (concepto, IVA y cliente).
+
+| Campo | Tipo | Nulo | Por defecto | Descripción |
+|---|---|---|---|---|
+| IdReglaVenta | COUNTER | no |  | Identificador de la regla. |
+| IdSociedad | TEXT(3) | no |  | Sociedad. |
+| IdOrigenVenta | LONG | no |  | Origen de las ventas a las que se aplica. |
+| IdActivo | LONG | sí |  | Activo relacionado de las ventas a las que se aplica; vacío, todos los del origen que no tengan regla propia. |
+| IdConcepto | LONG | sí |  | Concepto de la línea de factura (nombre y cuenta de venta). |
+| CausaExencion | TEXT(2) | sí |  | Causa de exención (E1…E6); vacía, sujeta con el IVA de TipoIva. |
+| TipoIva | DECIMAL | sí |  | IVA de la línea (%) cuando no está exenta; vacío, el del concepto. |
+| IdCliente | LONG | sí |  | Cliente al que se facturan esas ventas (la plataforma) si la venta no lleva el suyo. |
+| Activa | YESNO | no |  | Si la regla se aplica. |
+
+Índices:
+- FK_ReglasVenta_Activo: IdActivo
+- FK_ReglasVenta_Cliente: IdCliente
+- FK_ReglasVenta_Origen: IdOrigenVenta
+- IX_ReglasVenta_OrigenActivo: IdSociedad, IdOrigenVenta, IdActivo
+- PK_ReglasVenta (clave primaria): IdReglaVenta
+
 Relaciones:
-- FK_OrigenesVenta_Cliente: (IdCliente) → Clientes (IdCliente); borrado NO ACTION, actualización NO ACTION
+- FK_ReglasVenta_Activo: (IdActivo) → Activos (IdActivo); borrado NO ACTION, actualización NO ACTION
+- FK_ReglasVenta_Cliente: (IdCliente) → Clientes (IdCliente); borrado NO ACTION, actualización NO ACTION
+- FK_ReglasVenta_Origen: (IdOrigenVenta) → OrigenesVenta (IdOrigenVenta); borrado NO ACTION, actualización NO ACTION
 
 ## SeriesFacturacion
 
@@ -663,17 +685,17 @@ Relaciones:
 |---|---|---|---|---|
 | IdVentaPorFacturar | COUNTER | no |  | Identificador de la venta. |
 | IdSociedad | TEXT(3) | no |  | Sociedad de la venta. |
-| IdOrigenVenta | LONG | no |  | Origen de la venta; da el cliente al que se factura si la venta no lleva el suyo. |
-| IdCliente | LONG | sí |  | Cliente propio de la venta (el huésped que pide factura); vacío, el del origen. |
-| IdActivo | LONG | sí |  | Piso (activo) de la venta; agrupa las facturas y da el centro de coste de la línea. |
-| IdConcepto | LONG | sí |  | Concepto de la línea de factura (nombre, cuenta e IVA). |
+| IdOrigenVenta | LONG | no |  | Origen de la venta; con su activo decide la regla de venta (concepto, IVA y cliente por defecto). |
+| IdCliente | LONG | sí |  | Cliente propio de la venta (el huésped que pide factura); vacío, el de su regla de venta. |
+| IdActivo | LONG | sí |  | Activo relacionado (el piso de la reserva); agrupa las facturas y da el centro de coste de la línea. |
+| IdConcepto | LONG | sí |  | Concepto propio de la venta; vacío, el de su regla de venta. |
 | FechaReferencia | DATETIME | no |  | Fecha que decide el mes en que se factura: la de entrada del huésped. |
 | FechaFin | DATETIME | sí |  | Fecha final (la de salida del huésped). |
 | Cantidad | DECIMAL | no |  | Cantidad de la línea (noches). |
 | Importe | CURRENCY | no |  | Importe total que se factura: lo que paga el huésped, comisión incluida. |
 | Comision | CURRENCY | sí |  | Comisión de la plataforma; no entra en la factura emitida. |
-| TipoIva | DECIMAL | sí |  | IVA de la línea (%); vacío, el del concepto. |
-| CausaExencion | TEXT(2) | sí |  | Causa de exención de la línea (E1…E6); vacía, sujeta y no exenta. |
+| TipoIva | DECIMAL | sí |  | IVA propio de la venta (%); vacío (y sin causa de exención), el de su regla de venta. |
+| CausaExencion | TEXT(2) | sí |  | Causa de exención propia de la venta (E1…E6); vacía (y sin IVA), la de su regla de venta. |
 | Descripcion | TEXT(255) | sí |  | Descripción de la línea de factura. |
 | Referencia | TEXT(60) | sí |  | Referencia externa (código de la reserva en la plataforma). |
 | Titular | TEXT(150) | sí |  | Nombre del huésped o titular. Dato personal: no sale en informes ni diagnósticos. |
