@@ -209,7 +209,7 @@
       <Grid.ColumnDefinitions>
         <ColumnDefinition Width="*" MinWidth="520" />
         <ColumnDefinition Width="Auto" />
-        <ColumnDefinition Width="420" MinWidth="300" />
+        <ColumnDefinition Width="400" MinWidth="300" />
       </Grid.ColumnDefinitions>
 
       <DockPanel>
@@ -244,7 +244,7 @@
                             SelectionChanged="Tabla_SelectionChanged" MouseDoubleClick="Tabla_MouseDoubleClick" PreviewMouseRightButtonDown="Tabla_PreviewMouseRightButtonDown"
                             PreviewKeyDown="Tabla_PreviewKeyDown">
             <pc:TablaProConta.Columns>
-              <DataGridTemplateColumn Header="Asiento" SortMemberPath="AsientoOrden" Width="96" pc:TablaProConta.Clave="asiento" pc:TablaProConta.RutaExportar="AsientoOrden"
+              <DataGridTemplateColumn Header="Asiento" SortMemberPath="AsientoOrden" Width="96" MinWidth="84" pc:TablaProConta.Clave="asiento" pc:TablaProConta.RutaExportar="AsientoOrden"
                                       pc:TablaProConta.Ayuda="Número del asiento (Asientos.IdAsiento): fijo, no cambia al grabar otros asientos; los huecos son asientos borrados">
                 <DataGridTemplateColumn.CellTemplate>
                   <DataTemplate>
@@ -257,29 +257,29 @@
                   </DataTemplate>
                 </DataGridTemplateColumn.CellTemplate>
               </DataGridTemplateColumn>
-              <DataGridTextColumn Header="Id apunte" Binding="{Binding IdApunte}" SortMemberPath="IdApunteOrden" Width="96" ElementStyle="{StaticResource Texto.Celda.Importe}" pc:TablaProConta.Clave="id-apunte"
+              <DataGridTextColumn Header="Id apunte" Binding="{Binding IdApunte}" SortMemberPath="IdApunteOrden" Width="96" MinWidth="92" ElementStyle="{StaticResource Texto.Celda.Importe}" pc:TablaProConta.Clave="id-apunte"
                                   HeaderStyle="{StaticResource Tabla.Cabecera.Derecha}" pc:TablaProConta.Ayuda="Identificador del apunte (Apuntes.IdApunte)" />
-              <DataGridTextColumn Header="Fecha" Binding="{Binding Fecha}" SortMemberPath="FechaOrden" Width="108" ElementStyle="{StaticResource Texto.Celda.Mono}" pc:TablaProConta.Clave="fecha"
+              <DataGridTextColumn Header="Fecha" Binding="{Binding Fecha}" SortMemberPath="FechaOrden" Width="108" MinWidth="100" ElementStyle="{StaticResource Texto.Celda.Mono}" pc:TablaProConta.Clave="fecha"
                                   pc:TablaProConta.Ayuda="Fecha contable: decide el periodo y el trimestre de IVA" />
-              <DataGridTextColumn Header="Origen" Binding="{Binding Origen}" SortMemberPath="OrigenOrden" Width="96" ElementStyle="{StaticResource Celda.Origen}" pc:TablaProConta.Clave="origen"
+              <DataGridTextColumn Header="Origen" Binding="{Binding Origen}" SortMemberPath="OrigenOrden" Width="96" MinWidth="80" ElementStyle="{StaticResource Celda.Origen}" pc:TablaProConta.Clave="origen"
                                   pc:TablaProConta.Ayuda="Módulo que generó el asiento. Los que no son «Manual» son automáticos" />
-              <DataGridTextColumn Header="Subcuenta" Binding="{Binding Cuenta}" Width="92" ElementStyle="{StaticResource Texto.Celda.Mono}" pc:TablaProConta.Clave="cuenta"
+              <DataGridTextColumn Header="Subcuenta" Binding="{Binding Cuenta}" Width="96" MinWidth="90" ElementStyle="{StaticResource Texto.Celda.Mono}" pc:TablaProConta.Clave="cuenta"
                                   pc:TablaProConta.Ayuda="Subcuenta del apunte" />
-              <DataGridTextColumn Header="Descripción" Binding="{Binding NombreCuenta}" Width="200" ElementStyle="{StaticResource Texto.Celda}" pc:TablaProConta.Clave="nombre"
+              <DataGridTextColumn Header="Descripción" Binding="{Binding NombreCuenta}" Width="200" MinWidth="90" ElementStyle="{StaticResource Texto.Celda}" pc:TablaProConta.Clave="nombre"
                                   pc:TablaProConta.Ayuda="Descripción de la subcuenta" />
-              <DataGridTextColumn Header="Concepto" Binding="{Binding Concepto}" Width="*" MinWidth="240" ElementStyle="{StaticResource Celda.Concepto}" pc:TablaProConta.Clave="concepto"
+              <DataGridTextColumn Header="Concepto" Binding="{Binding Concepto}" Width="*" MinWidth="180" ElementStyle="{StaticResource Celda.Concepto}" pc:TablaProConta.Clave="concepto"
                                   pc:TablaProConta.SiempreVisible="True" pc:TablaProConta.Ayuda="Descripción del apunte; en la línea de cada asiento, la descripción del asiento" />
-              <DataGridTextColumn Header="Documento" Binding="{Binding Documento}" Width="112" ElementStyle="{StaticResource Texto.Celda.Mono}" pc:TablaProConta.Clave="documento"
+              <DataGridTextColumn Header="Documento" Binding="{Binding Documento}" Width="112" MinWidth="88" ElementStyle="{StaticResource Texto.Celda.Mono}" pc:TablaProConta.Clave="documento"
                                   pc:TablaProConta.Ayuda="Número de factura o de documento del apunte" />
-              <DataGridTextColumn Header="Debe" Binding="{Binding Debe}" SortMemberPath="DebeOrden" Width="108" ElementStyle="{StaticResource Texto.Celda.Importe}" pc:TablaProConta.Clave="debe"
+              <DataGridTextColumn Header="Debe" Binding="{Binding Debe}" SortMemberPath="DebeOrden" Width="108" MinWidth="96" ElementStyle="{StaticResource Texto.Celda.Importe}" pc:TablaProConta.Clave="debe"
                                   HeaderStyle="{StaticResource Tabla.Cabecera.Derecha}" pc:TablaProConta.Ayuda="Importe al Debe" />
-              <DataGridTextColumn Header="Haber" Binding="{Binding Haber}" SortMemberPath="HaberOrden" Width="108" ElementStyle="{StaticResource Texto.Celda.Importe}" pc:TablaProConta.Clave="haber"
+              <DataGridTextColumn Header="Haber" Binding="{Binding Haber}" SortMemberPath="HaberOrden" Width="108" MinWidth="96" ElementStyle="{StaticResource Texto.Celda.Importe}" pc:TablaProConta.Clave="haber"
                                   HeaderStyle="{StaticResource Tabla.Cabecera.Derecha}" pc:TablaProConta.Ayuda="Importe al Haber" />
-              <DataGridTextColumn Header="Centro de coste" Binding="{Binding Centro}" Width="150" ElementStyle="{StaticResource Texto.Celda}" pc:TablaProConta.Clave="centro"
+              <DataGridTextColumn Header="Centro de coste" Binding="{Binding Centro}" Width="150" MinWidth="90" ElementStyle="{StaticResource Texto.Celda}" pc:TablaProConta.Clave="centro"
                                   pc:TablaProConta.Ayuda="Centro de coste del apunte" />
-              <DataGridTextColumn Header="Punteado" Binding="{Binding Punteado}" SortMemberPath="PunteadoOrden" Width="92" ElementStyle="{StaticResource Celda.Punteado}" pc:TablaProConta.Clave="punteado"
+              <DataGridTextColumn Header="Punteado" Binding="{Binding Punteado}" SortMemberPath="PunteadoOrden" Width="92" MinWidth="92" ElementStyle="{StaticResource Celda.Punteado}" pc:TablaProConta.Clave="punteado"
                                   pc:TablaProConta.Ayuda="Punteado: apunte ya revisado (F4)" />
-              <DataGridTextColumn Header="Bloqueos" Binding="{Binding Bloqueos}" Width="92" ElementStyle="{StaticResource Celda.Bloqueos}" pc:TablaProConta.Clave="bloqueos"
+              <DataGridTextColumn Header="Bloqueos" Binding="{Binding Bloqueos}" Width="92" MinWidth="90" ElementStyle="{StaticResource Celda.Bloqueos}" pc:TablaProConta.Clave="bloqueos"
                                   pc:TablaProConta.Ayuda="Qué no se puede cambiar del apunte y por qué: 🔒 periodo cerrado, 🏦 banco de un asiento automático, 🧾 factura con libro de IVA. Pasa el ratón por el icono" />
               <DataGridTextColumn Header="Orden" Binding="{Binding Orden}" SortMemberPath="OrdenOrden" Width="64" ElementStyle="{StaticResource Texto.Celda.Importe}" pc:TablaProConta.Clave="orden"
                                   HeaderStyle="{StaticResource Tabla.Cabecera.Derecha}" pc:TablaProConta.OcultaDeFabrica="True" pc:TablaProConta.Ayuda="Orden del apunte dentro de su asiento" />
