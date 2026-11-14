@@ -45,6 +45,9 @@
         <pc:Nota Tipo="Aviso" Margin="0,0,0,12" Visibility="{Binding SoloLectura, Converter={StaticResource Visible}}">
           <TextBlock Text="{Binding AvisoSoloLectura}" TextWrapping="Wrap" />
         </pc:Nota>
+        <pc:Nota Tipo="Info" Margin="0,0,0,12" Visibility="{Binding HayAvisoCorreccion, Converter={StaticResource Visible}}">
+          <TextBlock Text="{Binding AvisoCorreccion}" TextWrapping="Wrap" />
+        </pc:Nota>
 
         <!-- Plantilla -->
         <Border Style="{StaticResource Tarjeta}" Margin="0,0,0,12" Padding="14" Visibility="{Binding SoloLectura, Converter={StaticResource Visible}, ConverterParameter=invertir}">
@@ -155,7 +158,7 @@
                     <TextBlock Text="{Binding Titulo}" Style="{StaticResource Texto.Seccion}" VerticalAlignment="Bottom" Margin="0,0,20,6" />
                     <StackPanel Margin="0,0,16,0">
                       <TextBlock Text="Fecha *" Style="{StaticResource Etiqueta.Campo}" />
-                      <TextBox x:Name="Fecha" Text="{Binding Fecha, UpdateSourceTrigger=PropertyChanged}" Width="100" Style="{StaticResource Campo}" IsReadOnly="{Binding SoloLectura}"
+                      <TextBox x:Name="Fecha" Text="{Binding Fecha, UpdateSourceTrigger=PropertyChanged}" Width="100" Style="{StaticResource Campo}" IsReadOnly="{Binding FechaSoloLectura}"
                                ToolTip="{Binding AyudaFecha}" />
                     </StackPanel>
                     <StackPanel>
@@ -214,8 +217,8 @@
                           <DockPanel Grid.Column="1" Margin="2,0">
                             <Button DockPanel.Dock="Right" Style="{StaticResource Boton.Icono}" Width="24" Height="24" Margin="2,0,0,0" pc:Iconos.Icono="{StaticResource Icono.search}"
                                     Command="{Binding DataContext.BuscarCuentaLineaCommand, ElementName=Raiz}" CommandParameter="{Binding}" ToolTip="Abre el buscador de cuentas (F3)"
-                                    IsEnabled="{Binding Editable}" />
-                            <TextBox x:Name="Cuenta" Text="{Binding Cuenta, UpdateSourceTrigger=LostFocus}" Style="{StaticResource Campo.Mono}" IsReadOnly="{Binding SoloLectura}"
+                                    IsEnabled="{Binding CuentaEditable}" />
+                            <TextBox x:Name="Cuenta" Text="{Binding Cuenta, UpdateSourceTrigger=LostFocus}" Style="{StaticResource Campo.Mono}" IsReadOnly="{Binding CuentaSoloLectura}"
                                      ToolTip="{Binding AyudaCuenta}" AutomationProperties.Name="Cuenta">
                               <TextBox.InputBindings>
                                 <KeyBinding Key="F3" Command="{Binding DataContext.BuscarCuentaLineaCommand, ElementName=Raiz}" CommandParameter="{Binding}" />
@@ -226,9 +229,9 @@
                                      ToolTip="{Binding AyudaCuenta}" Style="{StaticResource Texto.Apagado}" />
                           <TextBox Grid.Column="3" Margin="2,0" Text="{Binding Concepto, UpdateSourceTrigger=PropertyChanged}" MaxLength="255" Style="{StaticResource Campo}" IsReadOnly="{Binding SoloLectura}"
                                    ToolTip="Concepto del apunte (hasta 255 caracteres): es la descripción del asiento hasta que lo cambias aquí" />
-                          <TextBox x:Name="Debe" Grid.Column="4" Margin="2,0" Text="{Binding Debe, UpdateSourceTrigger=LostFocus}" Style="{StaticResource Campo.Importe}" IsReadOnly="{Binding SoloLectura}"
+                          <TextBox x:Name="Debe" Grid.Column="4" Margin="2,0" Text="{Binding Debe, UpdateSourceTrigger=LostFocus}" Style="{StaticResource Campo.Importe}" IsReadOnly="{Binding ImporteSoloLectura}"
                                    ToolTip="{Binding AyudaImporte}" AutomationProperties.Name="Debe" />
-                          <TextBox x:Name="Haber" Grid.Column="5" Margin="2,0" Text="{Binding Haber, UpdateSourceTrigger=LostFocus}" Style="{StaticResource Campo.Importe}" IsReadOnly="{Binding SoloLectura}"
+                          <TextBox x:Name="Haber" Grid.Column="5" Margin="2,0" Text="{Binding Haber, UpdateSourceTrigger=LostFocus}" Style="{StaticResource Campo.Importe}" IsReadOnly="{Binding ImporteSoloLectura}"
                                    ToolTip="{Binding AyudaImporte}" AutomationProperties.Name="Haber" />
                           <ComboBox Grid.Column="6" Margin="2,0" ItemsSource="{Binding Centros}" SelectedItem="{Binding Centro}" DisplayMemberPath="Texto"
                                     IsEnabled="{Binding Editable}"

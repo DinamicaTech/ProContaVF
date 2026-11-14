@@ -111,6 +111,21 @@ public sealed class LineaAsientoVM : ModeloVista
     public bool SoloLectura => Vm.SoloLectura;
     public bool Editable => !Vm.SoloLectura;
 
+    /// <summary>El apunte grabado del que viene la línea (al modificar un asiento): conserva lo que la rejilla no enseña (vencimiento, cliente y proveedor).</summary>
+    internal Apunte? Original { get; set; }
+
+    /// <summary>
+    /// Al corregir un asiento automático (contabilidad/diario 2026-11-14 21:50): por qué no se cambia la cuenta de esta línea (apunte de la
+    /// 572 o línea de IVA de una factura) o su importe (además, todos los de una factura). Null: se puede.
+    /// </summary>
+    internal string? BloqueoCuenta { get; set; }
+    internal string? BloqueoImporte { get; set; }
+    public bool CuentaSoloLectura => Vm.SoloLectura || BloqueoCuenta is not null;
+    public bool CuentaEditable => !CuentaSoloLectura;
+    public bool ImporteSoloLectura => Vm.SoloLectura || BloqueoImporte is not null;
+    /// <summary>La línea tiene algo bloqueado: se ve apagada y su ayuda dice por qué.</summary>
+    public bool Bloqueada => BloqueoCuenta is not null || BloqueoImporte is not null;
+
     /// <summary>Si la línea viene de una plantilla con una cuenta «?» que no existe: el nombre con que se creará al guardar.</summary>
     internal string? NombreCuentaNueva { get; set; }
 
@@ -119,6 +134,7 @@ public sealed class LineaAsientoVM : ModeloVista
         get => _cuenta;
         set
         {
+            if (BloqueoCuenta is not null) { Avisar(); return; }
             var texto = (value ?? "").Trim();
             // «629.1» se completa a 6290001 si esa subcuenta existe (como en el resto de pantallas).
             if (texto.Contains('.') && BuscadorCuentas.ExpandirPunto(texto) is { } expandida && Vm.NombreCuenta(expandida) is not null) texto = expandida;
@@ -132,7 +148,9 @@ public sealed class LineaAsientoVM : ModeloVista
     /// <summary>La cuenta existe en el ejercicio (o se creará al guardar, si viene de una plantilla con «?»). Vacía cuenta como válida si la línea no tiene importe.</summary>
     public bool CuentaValida => _cuenta.Length == 0 ? !TieneImporte : Vm.NombreCuenta(_cuenta) is not null || NombreCuentaNueva is not null;
 
-    public string AyudaCuenta => CuentaValida
+    public string AyudaCuenta => BloqueoCuenta ?? AyudaCuentaLibre;
+
+    private string AyudaCuentaLibre => CuentaValida
         ? "Subcuenta del apunte: escribe el código (629.1 vale por 6290001), o F3 o la lupa para el buscador (con «Crear subcuenta»)"
         : _cuenta.Length == 0 ? "Falta la cuenta de este apunte: F3 o la lupa abre el buscador" : $"La cuenta {_cuenta} no existe en este ejercicio: búscala con F3 o la lupa, o créala desde el buscador";
 
@@ -180,7 +198,9 @@ public sealed class LineaAsientoVM : ModeloVista
     /// <summary>Sin cuenta ni importe: no se graba (aunque lleve el concepto o el documento copiados de la anterior).</summary>
     public bool Vacia => _cuenta.Length == 0 && !TieneImporte;
 
-    public string AyudaImporte => _importeValido
+    public string AyudaImporte => BloqueoImporte ?? AyudaImporteLibre;
+
+    private string AyudaImporteLibre => _importeValido
         ? "Importe en euros (la coma es el decimal); poner importe en un lado borra el del otro. Menú contextual: invertir o «Cuadrar con esta línea»"
         : "Este importe no se entiende: escribe solo el número, por ejemplo 121,50";
 
@@ -203,6 +223,7 @@ public sealed class LineaAsientoVM : ModeloVista
 
     private void FijarImporte(string? texto, bool debe)
     {
+        if (BloqueoImporte is not null) { Avisar(nameof(Debe), nameof(Haber)); return; }
         var t = (texto ?? "").Trim();
         decimal valor = 0m;
         var valido = t.Length == 0 || Formatos.LeerImporte(t, out valor);
@@ -232,7 +253,8 @@ public sealed class LineaAsientoVM : ModeloVista
 
     internal void AvisarNumero() => Avisar(nameof(Numero));
     internal void AvisarCuenta() => Avisar(nameof(NombreCuenta), nameof(CuentaValida), nameof(AyudaCuenta));
-    internal void AvisarSoloLectura() => Avisar(nameof(SoloLectura), nameof(Editable));
+    internal void AvisarSoloLectura() => Avisar(nameof(SoloLectura), nameof(Editable), nameof(CuentaSoloLectura), nameof(CuentaEditable), nameof(ImporteSoloLectura),
+        nameof(Bloqueada), nameof(AyudaCuenta), nameof(AyudaImporte));
 }
 
 /// <summary>Un asiento de la pantalla: fecha, descripción, líneas y totales. Una plantilla puede proponer varios (se guardan juntos).</summary>
@@ -254,6 +276,8 @@ public sealed class BloqueAsientoVM : ModeloVista
     public string Titulo => Vm.Bloques.Count > 1 ? $"Asiento {Numero} de {Vm.Bloques.Count}" : "Asiento";
     public ObservableCollection<LineaAsientoVM> Lineas { get; } = [];
     public bool SoloLectura => Vm.SoloLectura;
+    /// <summary>La fecha no se cambia en solo lectura ni en el asiento de una factura (va con su libro de IVA).</summary>
+    public bool FechaSoloLectura => Vm.SoloLectura || Vm.LineasFijas;
 
     public string Fecha { get => _fecha; set { if (Fijar(ref _fecha, value ?? "")) { Avisar(nameof(FechaValida), nameof(AyudaFecha)); Vm.Recalcular(); } } }
     public string Descripcion
@@ -298,7 +322,7 @@ public sealed class BloqueAsientoVM : ModeloVista
         Cambiado();
     }
 
-    internal void AvisarTitulo() => Avisar(nameof(Titulo), nameof(SoloLectura), nameof(PuedeQuitarse));
+    internal void AvisarTitulo() => Avisar(nameof(Titulo), nameof(SoloLectura), nameof(PuedeQuitarse), nameof(FechaSoloLectura));
     internal void AvisarFecha() => Avisar(nameof(FechaValida), nameof(AyudaFecha));
 }
 
@@ -331,6 +355,8 @@ public sealed class AsientoManualVM : ModeloVista
     private PlantillaAsiento? _aplicada;
     private IReadOnlyDictionary<string, string?> _datosAplicados = new Dictionary<string, string?>();
     private bool _cargando = true;
+    private bool _correccionAutomatico;
+    private bool _conLibroIva;
 
     public AsientoManualVM(IFuenteAsientoManual fuente, IDialogosAsiento dialogos)
     {
@@ -341,13 +367,13 @@ public sealed class AsientoManualVM : ModeloVista
         AplicarCommand = new ComandoDelegado(Aplicar, () => PuedeAplicar);
         GuardarCommand = new ComandoDelegado(() => _ = GuardarAsync(), () => PuedeGuardar);
         CancelarCommand = new ComandoDelegado(() => Cancelado?.Invoke());
-        AnadirLineaCommand = new ComandoDelegado(p => AnadirLinea(p as BloqueAsientoVM ?? Bloques.FirstOrDefault()), _ => !SoloLectura);
-        InsertarLineaCommand = new ComandoDelegado(p => { if (p is LineaAsientoVM l) InsertarDespues(l); }, _ => !SoloLectura);
-        DuplicarLineaCommand = new ComandoDelegado(p => { if (p is LineaAsientoVM l) Duplicar(l); }, _ => !SoloLectura);
-        BorrarLineaCommand = new ComandoDelegado(p => { if (p is LineaAsientoVM l) Borrar(l); }, _ => !SoloLectura);
-        InvertirLineaCommand = new ComandoDelegado(p => { if (p is LineaAsientoVM l) Invertir(l); }, _ => !SoloLectura);
-        CuadrarConLineaCommand = new ComandoDelegado(p => { if (p is LineaAsientoVM l) CuadrarCon(l); }, _ => !SoloLectura);
-        BuscarCuentaLineaCommand = new ComandoDelegado(p => { if (p is LineaAsientoVM l) BuscarCuentaLinea(l); }, _ => !SoloLectura);
+        AnadirLineaCommand = new ComandoDelegado(p => AnadirLinea(p as BloqueAsientoVM ?? Bloques.FirstOrDefault()), _ => !SoloLectura && !LineasFijas);
+        InsertarLineaCommand = new ComandoDelegado(p => { if (p is LineaAsientoVM l) InsertarDespues(l); }, _ => !SoloLectura && !LineasFijas);
+        DuplicarLineaCommand = new ComandoDelegado(p => { if (p is LineaAsientoVM l) Duplicar(l); }, p => !SoloLectura && !LineasFijas && p is not LineaAsientoVM { BloqueoCuenta: not null });
+        BorrarLineaCommand = new ComandoDelegado(p => { if (p is LineaAsientoVM l) Borrar(l); }, p => !SoloLectura && !LineasFijas && p is not LineaAsientoVM { Bloqueada: true });
+        InvertirLineaCommand = new ComandoDelegado(p => { if (p is LineaAsientoVM l) Invertir(l); }, p => !SoloLectura && p is not LineaAsientoVM { BloqueoImporte: not null });
+        CuadrarConLineaCommand = new ComandoDelegado(p => { if (p is LineaAsientoVM l) CuadrarCon(l); }, p => !SoloLectura && p is not LineaAsientoVM { BloqueoImporte: not null });
+        BuscarCuentaLineaCommand = new ComandoDelegado(p => { if (p is LineaAsientoVM l) BuscarCuentaLinea(l); }, p => !SoloLectura && p is not LineaAsientoVM { BloqueoCuenta: not null });
         QuitarBloqueCommand = new ComandoDelegado(p => { if (p is BloqueAsientoVM b) QuitarBloque(b); }, _ => !SoloLectura && Bloques.Count > 1);
     }
 
@@ -380,9 +406,17 @@ public sealed class AsientoManualVM : ModeloVista
         _ => $"Ejercicio {Contexto.Ejercicio}",
     };
 
-    /// <summary>Un asiento automático se abre en solo lectura: se corrige desde su módulo.</summary>
+    /// <summary>Un asiento automático se abre en solo lectura salvo que se abra para corregirlo a mano (<see cref="IniciarModificarAsync"/>).</summary>
     public bool SoloLectura { get; private set; }
     public string? AvisoSoloLectura { get; private set; }
+
+    /// <summary>Se está corrigiendo a mano un asiento automático (contabilidad/diario 2026-11-14 21:50).</summary>
+    public bool CorrigeAutomatico => _correccionAutomatico && !SoloLectura;
+    /// <summary>Asiento de una factura (con libro de IVA) en corrección: ni se añaden ni se quitan líneas, ni cambian la fecha y los importes.</summary>
+    public bool LineasFijas => CorrigeAutomatico && _conLibroIva;
+    /// <summary>Qué se puede cambiar y qué no al corregir un automático, y que regenerar su origen deshace el cambio.</summary>
+    public string? AvisoCorreccion { get; private set; }
+    public bool HayAvisoCorreccion => CorrigeAutomatico && AvisoCorreccion is not null;
 
     public string Motivo { get => _motivo; set { if (Fijar(ref _motivo, value ?? "")) Recalcular(); } }
     public bool MotivoObligatorio => Modo != ModoAsientoManual.Nuevo;
@@ -533,8 +567,41 @@ public sealed class AsientoManualVM : ModeloVista
         return Resultado.Correcto();
     }
 
-    /// <summary>Modificación de un asiento que ya existe; uno automático se abre en solo lectura.</summary>
-    public async Task<Resultado> IniciarModificarAsync(int idAsiento)
+    /// <summary>
+    /// Asiento nuevo con las mismas cuentas, conceptos, importes y centros que otro («Usar como base de un asiento nuevo» del Diario), con
+    /// la fecha propuesta de hoy; no se graba nada hasta Guardar.
+    /// </summary>
+    public async Task<Resultado> IniciarNuevoDesdeAsync(int idAsiento)
+    {
+        Modo = ModoAsientoManual.Nuevo;
+        var asiento = await _fuente.AsientoAsync(idAsiento);
+        if (asiento is null)
+            return Resultado.Fallo(new Error("Asientos.NoExiste", $"El asiento {idAsiento} ya no existe.", $"Asiento {idAsiento}", "Otra persona lo ha borrado.", "Vuelve a cargar los asientos."));
+        await CargarComunAsync(EsDeAsientoManual);
+        var bloque = NuevoBloque(1, FechaPropuesta(DateTime.Today), asiento.Descripcion);
+        foreach (var a in asiento.Apuntes.OrderBy(a => a.Orden))
+        {
+            var l = NuevaLinea(bloque, copiarAnterior: false);
+            l.Cuenta = a.CodigoCuenta;
+            l.PonerConcepto(a.Descripcion ?? asiento.Descripcion, heredado: string.IsNullOrEmpty(a.Descripcion) || a.Descripcion == asiento.Descripcion);
+            l.Documento = a.NumeroDocumento ?? "";
+            l.PonerImportes(a.Debe.Valor, a.Haber.Valor);
+            l.PonerCentro(a.IdCentroCoste);
+        }
+        Bloques.Add(bloque);
+        Terminar();
+        // Es un asiento sin guardar: cerrar la pestaña pregunta antes de perderlo.
+        _cambios = true;
+        Avisar(nameof(TieneCambios));
+        return Resultado.Correcto();
+    }
+
+    /// <summary>
+    /// Modificación de un asiento que ya existe. Uno automático se abre en solo lectura, salvo con <paramref name="corregirAutomatico"/>
+    /// («Modificar el asiento…» del Diario y del Mayor): entonces se cambian sus cuentas e importes con motivo, con los apuntes de la 572
+    /// bloqueados y, si lleva libro de IVA, también la fecha, los importes, las líneas de IVA y el número de líneas.
+    /// </summary>
+    public async Task<Resultado> IniciarModificarAsync(int idAsiento, bool corregirAutomatico = false)
     {
         Modo = ModoAsientoManual.Modificar;
         var asiento = await _fuente.AsientoAsync(idAsiento);
@@ -542,26 +609,43 @@ public sealed class AsientoManualVM : ModeloVista
             return Resultado.Fallo(new Error("Asientos.NoExiste", $"El asiento {idAsiento} ya no existe.", $"Asiento {idAsiento}", "Otra persona lo ha borrado.",
                 "Vuelve a cargar el Mayor."));
         _original = asiento;
-        await CargarComunAsync(EsDeAsientoManual);
-        if (asiento.EsAutomatico)
-        {
-            SoloLectura = true;
-            AvisoSoloLectura = AvisoAutomatico(asiento.Lote!);
-        }
-        else if (asiento.Contexto.IdSociedadEjercicio != Contexto.IdSociedadEjercicio)
+        _correccionAutomatico = corregirAutomatico && asiento.EsAutomatico;
+        // Al corregir un automático no se ofrecen plantillas: sustituirían sus líneas.
+        await CargarComunAsync(p => !_correccionAutomatico && EsDeAsientoManual(p));
+        if (asiento.Contexto.IdSociedadEjercicio != Contexto.IdSociedadEjercicio)
         {
             SoloLectura = true;
             AvisoSoloLectura = $"Este asiento es del ejercicio {asiento.Contexto.Ejercicio} y estás trabajando en {Contexto.Ejercicio}: ábrelo con ese ejercicio de trabajo para cambiarlo.";
         }
+        else if (asiento.EsAutomatico && !_correccionAutomatico)
+        {
+            SoloLectura = true;
+            AvisoSoloLectura = AvisoAutomatico(asiento.Lote!);
+        }
+        if (CorrigeAutomatico)
+        {
+            _conLibroIva = await _fuente.TieneLibroIvaAsync(idAsiento);
+            AvisoCorreccion = (_conLibroIva
+                    ? "Asiento automático de una factura: puedes cambiar las subcuentas de gasto, ingreso o tercero. La fecha, los importes y las líneas de IVA y retención van con el libro de IVA y se corrigen en la factura."
+                    : "Asiento automático: puedes cambiar sus cuentas e importes, salvo los apuntes de la 572 (banco).")
+                + " El motivo es obligatorio. Si después regeneras su origen, este cambio se pierde sin avisar.";
+        }
         var bloque = NuevoBloque(1, asiento.FechaContable, asiento.Descripcion);
         foreach (var a in asiento.Apuntes.OrderBy(a => a.Orden))
         {
-            var l = NuevaLinea(bloque);
+            var l = NuevaLinea(bloque, copiarAnterior: false);
             l.Cuenta = a.CodigoCuenta;
             l.PonerConcepto(a.Descripcion ?? asiento.Descripcion, heredado: string.IsNullOrEmpty(a.Descripcion) || a.Descripcion == asiento.Descripcion);
             l.Documento = a.NumeroDocumento ?? "";
             l.PonerImportes(a.Debe.Valor, a.Haber.Valor);
             l.PonerCentro(a.IdCentroCoste);
+            l.Original = a;
+            if (CorrigeAutomatico)
+            {
+                l.BloqueoCuenta = ReglasAsiento.BloqueoCuentaAutomatico(a.CodigoCuenta, _conLibroIva);
+                l.BloqueoImporte = ReglasAsiento.EsCuentaBanco(a.CodigoCuenta) ? l.BloqueoCuenta
+                    : _conLibroIva ? "El importe es de una factura: va con su libro de IVA y se corrige en la factura." : null;
+            }
         }
         Bloques.Add(bloque);
         _motivo = "";
@@ -599,7 +683,7 @@ public sealed class AsientoManualVM : ModeloVista
         _cargando = false;
         _cambios = false;
         Avisar(nameof(Titulo), nameof(Subtitulo), nameof(SoloLectura), nameof(AvisoSoloLectura), nameof(MotivoObligatorio), nameof(EtiquetaMotivo), nameof(AyudaMotivo),
-            nameof(TieneCambios), nameof(Motivo));
+            nameof(TieneCambios), nameof(Motivo), nameof(CorrigeAutomatico), nameof(LineasFijas), nameof(AvisoCorreccion), nameof(HayAvisoCorreccion));
         foreach (var l in Bloques.SelectMany(b => b.Lineas)) l.AvisarSoloLectura();
         Recalcular(cambio: false);
     }
@@ -791,6 +875,7 @@ public sealed class AsientoManualVM : ModeloVista
 
     public void AnadirLinea(BloqueAsientoVM? b)
     {
+        if (LineasFijas) return;
         if (SoloLectura || b is null) return;
         NuevaLinea(b);
         b.Renumerar();
@@ -799,6 +884,7 @@ public sealed class AsientoManualVM : ModeloVista
 
     public void InsertarDespues(LineaAsientoVM l)
     {
+        if (LineasFijas) return;
         if (SoloLectura) return;
         NuevaLinea(l.Bloque, posicion: l.Bloque.Lineas.IndexOf(l) + 1);
         l.Bloque.Renumerar();
@@ -807,6 +893,7 @@ public sealed class AsientoManualVM : ModeloVista
 
     public void Duplicar(LineaAsientoVM l)
     {
+        if (LineasFijas || l.BloqueoCuenta is not null) return;
         if (SoloLectura) return;
         var copia = NuevaLinea(l.Bloque, copiarAnterior: false, posicion: l.Bloque.Lineas.IndexOf(l) + 1);
         copia.NombreCuentaNueva = l.NombreCuentaNueva;
@@ -830,6 +917,7 @@ public sealed class AsientoManualVM : ModeloVista
 
     public void Borrar(LineaAsientoVM l)
     {
+        if (LineasFijas || l.Bloqueada) return;
         if (SoloLectura) return;
         var b = l.Bloque;
         b.Lineas.Remove(l);
@@ -841,7 +929,7 @@ public sealed class AsientoManualVM : ModeloVista
     /// <summary>Pasa el importe de la línea al lado contrario.</summary>
     public void Invertir(LineaAsientoVM l)
     {
-        if (SoloLectura) return;
+        if (SoloLectura || l.BloqueoImporte is not null) return;
         l.PonerImportes(l.ValorHaber, l.ValorDebe);
         Marcar();
     }
@@ -849,7 +937,7 @@ public sealed class AsientoManualVM : ModeloVista
     /// <summary>Pone en esta línea el importe que hace cuadrar el asiento (al lado que falte).</summary>
     public void CuadrarCon(LineaAsientoVM l)
     {
-        if (SoloLectura) return;
+        if (SoloLectura || l.BloqueoImporte is not null) return;
         var resto = l.Bloque.Lineas.Where(x => x != l).Sum(x => x.ValorDebe - x.ValorHaber);
         l.PonerImportes(resto < 0 ? -resto : 0m, resto > 0 ? resto : 0m);
         Marcar();
@@ -897,7 +985,7 @@ public sealed class AsientoManualVM : ModeloVista
                 a.Notas = motivo.Length > 0 ? motivo : a.Notas;
                 a.Apuntes.Clear();
                 a.Apuntes.AddRange(Apuntes(b));
-                var m = await _fuente.ModificarAsync(a, motivo);
+                var m = a.EsAutomatico ? await _fuente.CorregirAutomaticoAsync(a, motivo) : await _fuente.ModificarAsync(a, motivo);
                 r = m.EsCorrecto ? Resultado<IReadOnlyList<int>>.Correcto([m.Valor.IdAsiento]) : Resultado<IReadOnlyList<int>>.Fallo(m.Errores);
             }
             else if (_aplicada is not null && (Modo == ModoAsientoManual.Correccion || Bloques.SelectMany(x => x.Lineas).Any(l => l.NombreCuentaNueva is not null)))
@@ -956,6 +1044,16 @@ public sealed class AsientoManualVM : ModeloVista
             var x = l.ValorDebe != 0m ? Apunte.AlDebe(l.Cuenta, l.ValorDebe, Nulo(l.Concepto)) : Apunte.AlHaber(l.Cuenta, l.ValorHaber, Nulo(l.Concepto));
             x.NumeroDocumento = Nulo(l.Documento);
             x.IdCentroCoste = l.Centro?.Centro?.IdCentroCoste;
+            if (l.Original is { } o)
+            {
+                // Lo que la rejilla no enseña se conserva del apunte grabado; el cliente o proveedor, solo si la cuenta sigue siendo la suya.
+                x.FechaVencimiento = o.FechaVencimiento;
+                if (string.Equals(o.CodigoCuenta.Trim(), l.Cuenta, StringComparison.Ordinal))
+                {
+                    x.IdCliente = o.IdCliente;
+                    x.IdProveedor = o.IdProveedor;
+                }
+            }
             return x;
         });
 

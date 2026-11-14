@@ -21,7 +21,17 @@ public class AsientoManualVMTests
         public readonly List<(PropuestaPlantilla Propuesta, string Motivo)> Ejecutadas = [];
         public readonly List<(IReadOnlyList<Asiento> Asientos, string Motivo)> Nuevos = [];
         public readonly List<(Asiento Asiento, string Motivo)> Modificados = [];
-        public int Escrituras => Ejecutadas.Count + Nuevos.Count + Modificados.Count;
+        public readonly List<(Asiento Asiento, string Motivo)> Corregidos = [];
+        public bool ConLibroIva { get; init; }
+        public int Escrituras => Ejecutadas.Count + Nuevos.Count + Modificados.Count + Corregidos.Count;
+
+        public Task<Resultado<Asiento>> CorregirAutomaticoAsync(Asiento asiento, string motivo)
+        {
+            Corregidos.Add((asiento, motivo));
+            return Task.FromResult(Resultado<Asiento>.Correcto(asiento));
+        }
+
+        public Task<bool> TieneLibroIvaAsync(int idAsiento) => Task.FromResult(ConLibroIva);
         public int? Trimestre { get; init; } = 2;
 
         public ContextoSociedadEjercicio Contexto => Ctx;
