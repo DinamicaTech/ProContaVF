@@ -5,10 +5,11 @@ threads:
   - 2026-10-28 12:30 · Carga de requisitos | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GRNMH95h9tnQp4dmEPHmw1w
 ---
 ## Summary
-Contabilidad automatizada: cuentas, centros de coste, motor común de asientos, mayor, balances, procesos de cierre e impuestos, modelos tributarios. Las áreas que generan asientos usan el motor de asientos directamente.
+Contabilidad automatizada: cuentas, centros de coste, motor común de asientos, diario, mayor, balances, procesos de cierre e impuestos, modelos tributarios. Las áreas que generan asientos usan el motor de asientos directamente.
 
 ## Decisions
 - 2026-10-28 13:30 · Creado en la carga inicial de requisitos.
+- 2026-11-14 21:50 · Nuevo hijo contabilidad/diario: pantalla Diario sobre Asientos y Apuntes (maqueta elegida, implementación pendiente).
 
 ## Requirements
 - 2026-10-28 12:28 · From sources/traspaso-2026-10-03/referencias/ContaSol/docs/: modelo contable e IVA propuestos

@@ -1,0 +1,670 @@
+<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>body{margin:0}[hidden]{display:none!important}</style></head><body><title>ProConta Diario (Fable)</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* Maqueta de ProContaVF: contenedor de escritorio (barra azul marino, pestañas) con la pantalla Diario:
+   filtros arriba, rejilla de apuntes a la izquierda y ficha del asiento a la derecha.
+   Tokens copiados de sources/maquetas (aspecto único y claro, como la aplicación de escritorio). */
+:root{
+  --navy:#14213A;--navy2:#22314F;--navy3:#1B2A47;--ink:#16213A;--mut:#646A78;--mut2:#7A8090;--txt2:#3B4252;
+  --or:#F4A259;--or2:#D9622B;--or3:#B4481F;--bg:#F1EEE7;--bg2:#FBFAF7;--card:#FFFFFF;--ln:#ECE8DE;--ln2:#F3F0E9;--ln3:#E1DDD2;
+  --inb:#E4E1D8;--inbg:#FAF9F6;--blue:#1D5C8C;--blueb:#E3ECF6;--green:#1E6B45;--greenb:#E2F0E8;--red:#B42318;--redb:#FDF1EF;
+  --amb:#8A4410;--ambb:#FFEBD6;--pur:#5B3F86;--purb:#ECE6F3;--act:#FFF3E6;--selb:#E8F0F9;--hit:#FFF8D9;--white:#FFFFFF;
+  --f-ui:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;--f-mono:"IBM Plex Mono",ui-monospace,Consolas,monospace;
+  --f-disp:"Bricolage Grotesque","IBM Plex Sans",system-ui,sans-serif;
+  color-scheme:light;
+}
+[hidden]{display:none!important}
+html,body{height:100%}
+body{background:var(--bg);color:var(--ink);font:14px/1.45 var(--f-ui);margin:0}
+*{box-sizing:border-box}
+button,input,select{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--or2);outline-offset:1px}
+.demo{background:var(--ink);color:#C9CED8;display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding-block:8px;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));font-size:13px;border-bottom:2px dashed var(--or)}
+.demo b{background:var(--or);color:var(--ink);font:600 11px var(--f-mono);padding:2px 7px;border-radius:3px;letter-spacing:.06em}
+.demo button{background:var(--navy2);border:1px solid #3A4A6A;color:#E6E9EF;border-radius:6px;padding:4px 10px;cursor:pointer}
+.app{display:flex;flex-direction:column}
+.top{background:var(--navy);color:#fff;display:flex;align-items:center;gap:14px;padding-block:10px;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));flex-wrap:wrap}
+.logo{font:700 17px var(--f-disp);display:flex;gap:8px;align-items:center}
+.logo i{width:20px;height:20px;border-radius:5px;background:var(--or);display:inline-block}
+.ctx{border:1px solid #3A4A6A;border-radius:6px;padding:3px 10px;font-size:13px;color:#DCE1EA}
+.top .op{margin-left:auto;font-size:13px;color:#C9CED8}
+.tabs{background:var(--navy3);display:flex;gap:2px;padding-top:6px;overflow-x:auto;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.tab{background:transparent;border:0;color:#C9CED8;padding:7px 14px;border-radius:7px 7px 0 0;cursor:pointer;white-space:nowrap;font-size:13.5px}
+.tab[aria-selected=true]{background:var(--bg);color:var(--ink);font-weight:600}
+main{padding-block:16px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:12px;min-width:0}
+.ph{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.ph h1{font:600 22px var(--f-disp);margin:0}
+.ph .sub{color:var(--mut);font-size:13px}
+.ph .sp{margin-left:auto}
+.btn{border:1px solid var(--inb);background:var(--card);border-radius:7px;padding:6px 12px;cursor:pointer;font-weight:500;font-size:13.5px;white-space:nowrap}
+.btn.pri{background:var(--navy);color:#fff;border-color:var(--navy)}
+.btn.dan{background:var(--red);color:#fff;border-color:var(--red)}
+.btn.sm{padding:3px 9px;font-size:12.5px}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.card{background:var(--card);border:1px solid var(--ln);border-radius:10px;min-width:0}
+.card>header{display:flex;align-items:center;gap:10px;padding:11px 14px;flex-wrap:wrap}
+.card>header h2{font:600 15px var(--f-ui);margin:0}
+.card>header .n{color:var(--mut);font-size:13px}
+.filters{display:flex;gap:8px 10px;flex-wrap:wrap;padding:11px 14px;align-items:center}
+.filters label{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;color:var(--mut)}
+.seg{display:inline-flex;background:var(--ln2);border-radius:7px;padding:2px}
+.seg button{border:0;background:transparent;padding:4px 10px;border-radius:6px;cursor:pointer;font-size:13px;color:var(--txt2)}
+.seg button[aria-pressed=true]{background:var(--card);box-shadow:0 1px 2px rgba(20,33,58,.12);color:var(--ink);font-weight:500}
+.inp{border:1px solid var(--inb);background:var(--inbg);border-radius:7px;padding:5px 9px;font-size:13px;color:var(--ink)}
+.inp:disabled{background:var(--ln2);color:var(--mut)}
+.inp.w-date{width:9.2em}.inp.w-q{width:17em;max-width:100%}.inp.w-cta{width:7.5em;font-family:var(--f-mono)}
+.cta-box{display:inline-flex}
+.cta-box .inp{border-radius:7px 0 0 7px;border-right:0}
+.cta-box button{border:1px solid var(--inb);background:var(--card);border-radius:0 7px 7px 0;padding:0 8px;cursor:pointer}
+.chips{display:flex;gap:6px;flex-wrap:wrap;padding:0 14px 10px;align-items:center}
+.chip{display:inline-flex;gap:6px;align-items:center;background:var(--blueb);color:var(--blue);border-radius:999px;padding:1px 4px 1px 10px;font-size:12px}
+.chip button{border:0;background:transparent;cursor:pointer;color:inherit;padding:0 5px;font-size:14px;line-height:1}
+.work{display:grid;grid-template-columns:minmax(0,1fr) 380px;gap:12px;align-items:start}
+@media (max-width:1150px){.work{grid-template-columns:minmax(0,1fr)}}
+.bar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;padding:9px 14px;border-bottom:1px solid var(--ln)}
+.bar .sp{margin-left:auto}
+.tw{overflow:auto;max-height:64vh;min-height:260px}
+table{border-collapse:collapse;width:100%;font-size:13px}
+th{font-weight:600;color:var(--mut);text-align:left;padding:7px 9px;border-bottom:1px solid var(--ln);white-space:nowrap;font-size:12px;position:sticky;top:0;background:var(--card);z-index:2;user-select:none}
+th.srt{cursor:pointer}
+td{padding:5px 9px;border-bottom:1px solid var(--ln2);white-space:nowrap;max-width:26em;overflow:hidden;text-overflow:ellipsis}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
+td.mono{font-family:var(--f-mono);font-size:12.5px}
+td.c{text-align:center}
+tbody tr{cursor:default}
+tbody tr:hover{background:var(--bg2)}
+tbody tr.hit{background:var(--hit)}
+tbody tr.sel,tbody tr.sel:hover{background:var(--selb)}
+tbody tr.sel td:first-child{box-shadow:inset 3px 0 0 var(--or2)}
+tr.g td{background:var(--bg2);border-top:1px solid var(--ln3);border-bottom:1px solid var(--ln);font-weight:600;padding-block:6px}
+tr.g.sel td{background:var(--selb)}
+tr.g .d{font-weight:400;color:var(--txt2)}
+tr.g .car{border:0;background:transparent;cursor:pointer;width:20px;padding:0;color:var(--mut)}
+tr.m td{background:var(--ln2);color:var(--txt2);font-weight:600;font-size:12.5px}
+tr.dim td{color:var(--mut2)}
+.empty{padding:36px 16px;text-align:center;color:var(--mut)}
+.empty b{display:block;color:var(--ink);font-size:15px;margin-bottom:4px}
+.pill{display:inline-flex;align-items:center;gap:5px;border-radius:999px;padding:0 8px;font-size:11.5px;font-weight:500;vertical-align:1px}
+.o-Manual{background:var(--ambb);color:var(--amb)}.o-Ventas{background:var(--greenb);color:var(--green)}
+.o-Compras{background:var(--purb);color:var(--pur)}.o-Bancos{background:var(--blueb);color:var(--blue)}
+.o-Nóminas{background:var(--ln2);color:var(--txt2)}.o-Procesos{background:var(--ln3);color:var(--ink)}
+.lock{color:var(--mut2);font-size:12px;font-weight:400}
+.pt{color:var(--green);font-weight:700}
+.foot{display:flex;gap:6px 18px;flex-wrap:wrap;padding:9px 14px;color:var(--mut);font-size:12.5px;border-top:1px solid var(--ln)}
+.foot b{color:var(--ink);font-variant-numeric:tabular-nums}
+.foot .selinfo{margin-left:auto;color:var(--blue)}
+.foot .selinfo b{color:var(--blue)}
+.ok{color:var(--green);font-weight:600}.bad{color:var(--red);font-weight:600}
+.hint{color:var(--mut);font-size:12.5px}
+/* ficha */
+.ficha{position:sticky;top:8px;display:flex;flex-direction:column;max-height:calc(100vh - 16px)}
+@media (max-width:1150px){.ficha{position:static;max-height:none}}
+.ficha .body{padding:0 14px 12px;display:flex;flex-direction:column;gap:12px;overflow:auto}
+.ficha h3{font:600 12px var(--f-ui);text-transform:uppercase;letter-spacing:.06em;color:var(--mut);margin:0 0 6px}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:3px 12px;font-size:13px;margin:0}
+.kv dt{color:var(--mut)}.kv dd{margin:0;min-width:0;overflow-wrap:anywhere}
+.info{background:var(--blueb);color:var(--blue);border-radius:8px;padding:8px 11px;font-size:12.5px}
+.warn{background:var(--redb);color:var(--red);border-radius:8px;padding:9px 12px;font-size:13px}
+.lnk{color:var(--blue);cursor:pointer;text-decoration:underline;background:none;border:0;padding:0;font-size:inherit}
+.mini td,.mini th{padding:4px 6px;font-size:12.5px}
+.mini th{position:static}
+.mini .tw2{overflow-x:auto;border:1px solid var(--ln);border-radius:8px}
+.form{display:grid;grid-template-columns:auto 1fr;gap:6px 10px;align-items:center;font-size:13px}
+.form label{color:var(--mut)}
+.form .inp{width:100%}
+.ficha>footer{display:flex;gap:8px;justify-content:flex-end;padding:10px 14px;border-top:1px solid var(--ln)}
+.hist{margin:0;padding:0;list-style:none;font-size:12.5px;display:flex;flex-direction:column;gap:4px}
+.hist time{color:var(--mut);font-family:var(--f-mono);font-size:12px}
+/* menú contextual */
+.menu{position:fixed;z-index:50;background:var(--card);border:1px solid var(--ln3);border-radius:8px;box-shadow:0 8px 24px rgba(20,33,58,.18);padding:4px;min-width:290px;max-width:calc(100vw - 32px);max-height:calc(100vh - 16px);overflow:auto}
+.menu button{display:flex;width:100%;text-align:left;border:0;background:transparent;padding:5px 10px;border-radius:5px;cursor:pointer;font-size:13px;gap:10px}
+.menu button:hover:not(:disabled){background:var(--act)}
+.menu button:disabled{color:var(--mut2);cursor:not-allowed}
+.menu button.dan:not(:disabled){color:var(--red)}
+.menu button small{margin-left:auto;color:var(--mut2);font-size:11.5px;text-align:right}
+.menu hr{border:0;border-top:1px solid var(--ln);margin:4px 0}
+.menu .t{font-size:11.5px;color:var(--mut);padding:4px 10px}
+/* diálogos */
+.scrim{position:fixed;inset:0;background:rgba(20,33,58,.38);z-index:60;display:flex;align-items:center;justify-content:center;padding:16px}
+.dlg{background:var(--card);border-radius:12px;box-shadow:0 18px 50px rgba(20,33,58,.3);width:min(520px,100%);max-width:100%;max-height:100%;display:flex;flex-direction:column;min-width:min(320px,100%);min-height:200px}
+.dlg.rs{resize:both;overflow:hidden;width:min(640px,100%);height:min(520px,100%)}
+.dlg>header{padding:16px 18px 6px}
+.dlg>header h3{margin:0;font:600 18px var(--f-disp)}
+.dlg>header p{margin:4px 0 0;color:var(--mut);font-size:13px}
+.dlg .body{padding:10px 18px;overflow:auto;display:flex;flex-direction:column;gap:10px;flex:1;min-height:0}
+.dlg>footer{padding:12px 18px;border-top:1px solid var(--ln);display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;align-items:center}
+.opt{display:flex;gap:10px;align-items:flex-start;border:1px solid var(--ln);border-radius:8px;padding:9px 12px;cursor:pointer}
+.opt:has(input:checked){border-color:var(--or2);background:var(--act)}
+.opt small{display:block;color:var(--mut)}
+.colist{display:flex;flex-direction:column;gap:7px}
+.colist label{display:flex;gap:8px;align-items:center;cursor:pointer}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(18px + env(safe-area-inset-bottom,0px));z-index:70;background:var(--ink);color:#fff;border-radius:9px;padding:10px 14px;font-size:13px;max-width:min(640px,calc(100vw - 32px));box-shadow:0 8px 24px rgba(20,33,58,.3);user-select:text}
+.toast small{display:block;color:#C9CED8}
+.notes{background:var(--card);border:1px dashed var(--or2);border-radius:10px;padding:12px 14px;font-size:13px;color:var(--txt2);display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:14px 28px}
+.notes h3{margin:0 0 6px;font:600 14px var(--f-ui);color:var(--or3)}
+.notes ul,.notes ol{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:4px;max-width:65ch}
+@media (max-width:640px){.ph .sp{margin-left:0}.top .op{display:none}}
+</style>
+
+<div class="demo" role="region" aria-label="Controles de la maqueta">
+  <b>MAQUETA</b><span>No forma parte de ProConta · datos ficticios · versión Fable</span>
+  <button id="d-auto" title="Selecciona un apunte de un asiento automático para ver qué se puede hacer y qué no">Ejemplo: apunte automático</button>
+  <button id="d-manual" title="Selecciona un apunte de un asiento manual, que sí se puede modificar">Ejemplo: apunte manual</button>
+  <button id="d-multi" title="Selecciona varios apuntes de asientos distintos para ver el menú de selección múltiple">Ejemplo: selección múltiple</button>
+  <button id="d-vacio" title="Aplica un filtro que no devuelve nada">Ejemplo: sin resultados</button>
+</div>
+
+<div class="app">
+  <div class="top">
+    <span class="logo"><i></i>ProConta</span>
+    <span class="ctx" title="Sociedad y ejercicio de trabajo">Ribera Gestión · Ejercicio 2026</span>
+    <span class="ctx" title="Trimestre activo: los anteriores están cerrados para las cuentas de IVA y retenciones">Trimestre activo 4T</span>
+    <span class="op">Operador <b>Ronald</b></span>
+  </div>
+  <div class="tabs" role="tablist">
+    <button class="tab" role="tab" aria-selected="false" title="Inicio">Inicio</button>
+    <button class="tab" role="tab" aria-selected="false" title="Contabilidad › Mayor">Mayor</button>
+    <button class="tab" role="tab" aria-selected="true" title="Contabilidad › Diario">Diario</button>
+  </div>
+
+  <main>
+    <div class="ph">
+      <h1>Diario</h1>
+      <span class="sub">Todos los apuntes del ejercicio, por asiento o en lista</span>
+      <button class="btn sp" id="b-cols" title="Elige qué columnas se ven. La elección se guarda por operador">Columnas…</button>
+      <button class="btn" id="b-borr" title="Consulta los asientos eliminados, con el motivo, quién y cuándo">Asientos borrados…</button>
+      <button class="btn" id="b-print" title="Exporta a PDF o a Excel todas las filas que cumplen el filtro, con las columnas que se ven">Exportar…</button>
+      <button class="btn pri" id="b-nuevo" title="Abre la pantalla de asiento manual en una pestaña nueva (a mano o con una guía)">+ Nuevo asiento</button>
+    </div>
+
+    <section class="card" aria-label="Filtros">
+      <div class="filters">
+        <div class="seg" role="group" aria-label="Periodo" id="seg-per">
+          <button data-p="ej" aria-pressed="true" title="Todo el ejercicio 2026">Ejercicio</button>
+          <button data-p="1" aria-pressed="false" title="1 de enero a 31 de marzo">1T</button>
+          <button data-p="2" aria-pressed="false" title="1 de abril a 30 de junio">2T</button>
+          <button data-p="3" aria-pressed="false" title="1 de julio a 30 de septiembre">3T</button>
+          <button data-p="4" aria-pressed="false" title="1 de octubre a 31 de diciembre">4T</button>
+        </div>
+        <label>Desde <input class="inp w-date" type="date" id="f-desde" title="Primera fecha contable que se muestra"></label>
+        <label>Hasta <input class="inp w-date" type="date" id="f-hasta" title="Última fecha contable que se muestra"></label>
+        <input class="inp w-q" id="f-q" type="search" placeholder="Buscar: texto, documento, importe, nº" title="Busca en la descripción del asiento, el concepto, el documento, la cuenta y los importes. Con # delante busca el número de asiento: #125">
+        <label>Cuenta
+          <span class="cta-box"><input class="inp w-cta" id="f-cta" placeholder="430…" title="Subcuenta exacta o principio del código: 430 muestra todas las 430. F3 abre el buscador de subcuentas"><button id="b-cta" title="Buscar una subcuenta (F3)" aria-label="Buscar una subcuenta">⌕</button></span>
+        </label>
+        <label>Origen
+          <select class="inp" id="f-origen" title="Módulo que generó el asiento">
+            <option value="">Todos</option><option>Manual</option><option>Ventas</option><option>Compras</option><option>Bancos</option><option>Nóminas</option><option>Procesos</option>
+          </select>
+        </label>
+        <label>Punteo
+          <select class="inp" id="f-punteo" title="Apuntes marcados como revisados">
+            <option value="">Todos</option><option value="n">Sin puntear</option><option value="s">Punteados</option>
+          </select>
+        </label>
+        <label>Centro
+          <select class="inp" id="f-cc" title="Centro de coste del apunte"><option value="">Todos</option></select>
+        </label>
+      </div>
+      <div class="chips" id="chips" hidden></div>
+    </section>
+
+    <div class="work">
+      <section class="card" aria-label="Apuntes">
+        <div class="bar">
+          <div class="seg" role="group" aria-label="Vista" id="seg-vista">
+            <button data-v="asiento" aria-pressed="true" title="Cada asiento completo, con sus apuntes debajo, como el libro Diario">Por asiento</button>
+            <button data-v="lista" aria-pressed="false" title="Solo los apuntes que cumplen el filtro, en una lista que se puede ordenar por cualquier columna">Lista de apuntes</button>
+          </div>
+          <button class="btn sm" id="b-exp" title="Despliega los apuntes de todos los asientos">Desplegar todo</button>
+          <button class="btn sm" id="b-col" title="Deja solo la línea de cabecera de cada asiento">Plegar todo</button>
+          <label class="hint" title="Añade una línea con los totales de cada mes"><input type="checkbox" id="c-mes"> Totales por mes</label>
+          <span class="hint sp">Doble clic: abrir el asiento · clic derecho: acciones sobre la selección</span>
+        </div>
+        <div class="tw" id="tw" tabindex="0" aria-label="Rejilla de apuntes">
+          <table id="tb"><thead></thead><tbody></tbody></table>
+          <div class="empty" id="empty" hidden><b>Ningún apunte cumple el filtro</b><span id="empty-why"></span><br><br><button class="btn" id="b-limpiar2" title="Quita todos los filtros y vuelve al ejercicio completo">Quitar los filtros</button></div>
+        </div>
+        <div class="foot" id="foot"></div>
+      </section>
+
+      <aside class="card ficha" aria-label="Ficha del asiento" id="ficha"></aside>
+    </div>
+
+    <aside class="notes">
+      <div>
+        <h3>Qué valida esta maqueta</h3>
+        <ul>
+          <li>Dos vistas de la misma tabla. «Por asiento» enseña los asientos completos y resalta los apuntes que cumplen el filtro. «Lista de apuntes» enseña solo los que lo cumplen y se ordena por cualquier columna.</li>
+          <li>El número de asiento es Asientos.IdAsiento: fijo, en orden de alta y con huecos (los asientos borrados). La columna «Id apunte» es Apuntes.IdApunte.</li>
+          <li>En la cabecera solo hay acciones generales: Nuevo asiento, Exportar (PDF o Excel de lo filtrado), Asientos borrados y Columnas. Lo que actúa sobre apuntes va en el clic derecho.</li>
+          <li>La ficha deja cambiar concepto, documento, vencimiento, centro y punteo de cualquier apunte, también de los automáticos, con Guardar y Cancelar al pie.</li>
+          <li>Un asiento manual se puede eliminar si no lo impide el trimestre cerrado: pide el motivo y queda una copia consultable en «Asientos borrados».</li>
+          <li>Los asientos automáticos se corrigen con «Modificar el asiento…»: cuentas e importes, salvo la 572; en ventas y compras, solo las subcuentas que no son de IVA, porque los importes y el IVA van con el libro de IVA. Regenerar el origen deshace el cambio, sin aviso.</li>
+          <li>El buscador de subcuentas solo lista subcuentas, con la descripción en la segunda columna, y la ventana se redimensiona desde su esquina.</li>
+        </ul>
+      </div>
+      <div>
+        <h3>Pendiente de decidir</h3>
+        <ol>
+          <li>Trabajar con dos ejercicios a la vez y modificar el anterior si no está cerrado, avisando de que la apertura queda desactualizada (propuesto, sin confirmar).</li>
+        </ol>
+      </div>
+    </aside>
+  </main>
+</div>
+
+<div class="menu" id="menu" hidden role="menu"></div>
+<div class="scrim" id="scrim" hidden><div class="dlg" id="dlg" role="dialog" aria-modal="true"></div></div>
+<div class="toast" id="toast" hidden role="status"></div>
+
+<script>
+"use strict";
+/* ---------- datos ficticios ---------- */
+const CTAS={
+ "1000001":"Capital social","1130001":"Reservas voluntarias","1700001":"Préstamo Sabadell a largo plazo","2170001":"Equipos informáticos","2810001":"Amortización acumulada de equipos",
+ "4000003":"Suministros Llevant SL","4000008":"Limpiezas Costa Brava SL","4100002":"Vila Assessors SLP",
+ "4300001":"Huéspedes de plataformas","4300012":"Hotel Mirador SL","4300027":"Marta Soler Puig",
+ "4650902":"Remuneraciones pendientes · Joan Pujol","4720021":"IVA soportado 21 %","4750001":"Hacienda acreedora por IVA","4751001":"Hacienda acreedora por retenciones","4760001":"Seguridad Social acreedora","4770021":"IVA repercutido 21 %",
+ "5550001":"Partidas pendientes de aplicación","5720001":"Banco Sabadell c/c","5720002":"CaixaBank c/c",
+ "6230001":"Servicios profesionales","6250001":"Primas de seguros","6260001":"Servicios bancarios","6280001":"Suministros","6290001":"Limpieza de apartamentos","6400001":"Sueldos y salarios","6420001":"Seguridad Social a cargo de la empresa","6620001":"Intereses de préstamos","6810001":"Amortización del inmovilizado",
+ "7050001":"Gestión de alquiler turístico","7050002":"Servicios de limpieza y recepción"
+};
+const SALDOS={};
+const CCS=["APT · Mar Blau","APT · Sol i Vent","EST · Estructura"];
+const MESES=["enero","febrero","marzo","abril","mayo","junio","julio","agosto","septiembre","octubre","noviembre","diciembre"];
+const HOY="2026-11-14";
+const p2=n=>String(n).padStart(2,"0");
+const iso=(m,d)=>"2026-"+p2(m)+"-"+p2(Math.min(d,[31,28,31,30,31,30,31,31,30,31,30,31][m-1]));
+const fdate=s=>s.slice(8)+"/"+s.slice(5,7)+"/"+s.slice(0,4);
+const fmt=c=>c==null||c===0&&false?"":(c/100).toLocaleString("de-DE",{minimumFractionDigits:2,maximumFractionDigits:2});
+const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+let AS=[],uid=0;const GAP=[],BORR=[];
+function asiento(fecha,desc,origen,ref,lines,extra){
+  const a=Object.assign({fecha,desc,origen,auto:origen!=="Manual",ref,creado:fecha,hist:[]},extra||{});
+  a.lines=lines.map((l,i)=>({id:++uid,a,orden:i+1,cta:l[0],d:l[1]||0,h:l[2]||0,concepto:l[3]||desc,doc:l[4]||"",cc:l[5]||"",venc:l[6]||"",p:false}));
+  AS.push(a);return a;
+}
+(function gen(){
+  asiento("2026-01-01","Asiento de apertura","Procesos","Proceso: Apertura del ejercicio",[["5720001",1840000],["4300012",320000,0,"Saldo inicial","F25-0118"],["2170001",900000],["4000003",0,210000,"Saldo inicial","A-9912"],["2810001",0,250000],["1000001",0,300000],["1130001",0,2300000]]);
+  const cli=["4300012","4300027","4300001"],prov=[["4000003","6280001","Suministros Llevant","SL"],["4000008","6290001","Limpiezas Costa Brava","LC"]];
+  let nf=0,ivaR=0,ivaS=0;
+  for(let m=1;m<=11;m++){
+    const dias=m===11?[3,12]:[3,12,21];
+    dias.forEach((d,i)=>{
+      nf++;const doc="F26-"+String(nf).padStart(4,"0"),c=cli[(m+i)%3],base=(42000+((m*37+i*53)%29)*3100),iva=Math.round(base*.21),cc=CCS[(m+i)%2];
+      const ing=i===1?"7050002":"7050001";
+      asiento(iso(m,d),"Factura "+doc+" · "+CTAS[c],"Ventas","Factura "+doc,[[c,base+iva,0,"Factura "+doc,doc,"",iso(m,d+15>28?28:d+15)],[ing,0,base,"Factura "+doc,doc,cc],["4770021",0,iva,"IVA 21 % · "+doc,doc]]);
+      ivaR+=iva;
+      if(!(m===11&&i===1)) asiento(iso(m,d+6),"Cobro "+doc+" · "+CTAS[c],"Bancos","Línea bancaria del "+fdate(iso(m,d+6))+" · Sabadell",[["5720001",base+iva,0,"Transferencia recibida "+CTAS[c],doc],[c,0,base+iva,"Cobro "+doc,doc]]);
+    });
+    [5,18].forEach((d,i)=>{
+      if(m===11&&i===1)return;
+      const pr=prov[i],doc=pr[3]+"-"+(2600+m*7+i),base=18500+((m*29+i*41)%17)*1250,iva=Math.round(base*.21),cc=i?CCS[m%2]:CCS[2];
+      asiento(iso(m,d),"Factura de compra "+doc+" · "+pr[2],"Compras","Factura de compra "+doc,[[pr[1],base,0,pr[2]+" "+doc,doc,cc],["4720021",iva,0,"IVA 21 % · "+doc,doc],[pr[0],0,base+iva,"Factura "+doc,doc,"",iso(m,d+20>28?28:d+20)]]);
+      ivaS+=iva;
+      if(m<11) asiento(iso(m,25+i),"Pago "+doc+" · "+pr[2],"Bancos","Línea bancaria del "+fdate(iso(m,25+i))+" · Sabadell",[[pr[0],base+iva,0,"Pago "+doc,doc],["5720001",0,base+iva,"Recibo domiciliado "+pr[2],doc]]);
+    });
+    asiento(iso(m,15),"Comisión de mantenimiento","Bancos","Línea bancaria del "+fdate(iso(m,15))+" · CaixaBank",[["6260001",1250,0,"Comisión de mantenimiento","",CCS[2]],["5720002",0,1250,"Comisión de mantenimiento"]]);
+    if(m<11){
+      asiento(iso(m,28),"Nómina de "+MESES[m-1]+" · Joan Pujol","Nóminas","Nómina de "+MESES[m-1]+" de 2026",[["6400001",210000,0,"Sueldo bruto "+MESES[m-1],"",CCS[2]],["6420001",66000,0,"Seguridad Social empresa "+MESES[m-1],"",CCS[2]],["4751001",0,31000,"Retención IRPF "+MESES[m-1]],["4760001",0,79000,"Cuotas Seguridad Social "+MESES[m-1]],["4650902",0,166000,"Neto a pagar "+MESES[m-1]]]);
+      asiento(iso(m,30),"Pago de la nómina de "+MESES[m-1],"Bancos","Línea bancaria del "+fdate(iso(m,30))+" · Sabadell",[["4650902",166000,0,"Pago nómina "+MESES[m-1]],["5720001",0,166000,"Transferencia nómina Joan Pujol"]]);
+    }
+    if(m%3===0&&m<11){
+      const q=m/3;
+      asiento(iso(m,31),"Amortización del "+q+"T","Procesos","Proceso: Amortizaciones "+q+"T",[["6810001",45000,0,"Amortización equipos "+q+"T","",CCS[2]],["2810001",0,45000,"Amortización equipos "+q+"T"]]);
+      asiento(iso(m,31),"Liquidación del IVA del "+q+"T","Procesos","Proceso: Liquidación del IVA "+q+"T",[["4770021",ivaR,0,"IVA repercutido "+q+"T","303-"+q+"T"],["4720021",0,ivaS,"IVA soportado "+q+"T","303-"+q+"T"],["4750001",0,ivaR-ivaS,"IVA a ingresar "+q+"T","303-"+q+"T"]]);
+      ivaR=0;ivaS=0;
+    }
+  }
+  asiento("2026-01-15","Seguro anual de responsabilidad civil","Manual","",[["6250001",84000,0,"Póliza RC 2026","POL-55120",CCS[2]],["5720002",0,84000,"Recibo póliza RC 2026","POL-55120"]],{plantilla:"Guía: gasto pagado por banco"});
+  asiento("2026-04-10","Cuota del préstamo de abril","Manual","",[["1700001",52000,0,"Amortización de capital","PR-0412"],["6620001",7300,0,"Intereses de abril","PR-0412",CCS[2]],["5720001",0,59300,"Cuota préstamo abril","PR-0412"]]);
+  asiento("2026-07-22","Corrección de cobro aplicado a otro cliente","Manual","",[["4300012",96800,0,"Anula cobro aplicado por error","F26-0019"],["4300027",0,96800,"Cobro F26-0019 aplicado al cliente correcto","F26-0019"]],{plantilla:"Corrección: cambiar la subcuenta del cobro",motivo:"El cobro del 18/07 se aplicó a Hotel Mirador y era de Marta Soler.",mod:"2026-07-23",hist:[["2026-07-23 09:12","Ronald","Concepto del apunte 2: «Cobro F26-0019» → «Cobro F26-0019 aplicado al cliente correcto»"]]});
+  asiento("2026-11-05","Ingreso sin identificar en CaixaBank","Manual","",[["5720002",35000,0,"Ingreso en efectivo sin referencia"],["5550001",0,35000,"Pendiente de identificar"]],{motivo:"A la espera de que el banco diga quién lo ingresó."});
+  let id=0;AS.forEach((a,i)=>{id+=(i===57||i===112)?2:1;a.n=id;if(i===57)GAP.push(id-1);});
+  AS.sort((x,y)=>x.fecha<y.fecha?-1:x.fecha>y.fecha?1:x.n-y.n);
+  AS.forEach((a,i)=>{a.cerrado=a.fecha<"2026-10-01";a.fiscal=a.lines.some(l=>/^(472|477|475)/.test(l.cta));
+    a.lines.forEach(l=>{l.p=a.fecha<"2026-07-01"&&/^(43|40|57)/.test(l.cta);SALDOS[l.cta]=(SALDOS[l.cta]||0)+l.d-l.h;});
+    if(!a.hist.length||a.hist[0][2]!=="Alta del asiento")a.hist.unshift([a.creado+" 10:0"+(a.n%10),a.auto?"Sistema":"Ronald","Alta del asiento"]);});
+})();
+const LBY=new Map();AS.forEach(a=>a.lines.forEach(l=>LBY.set(l.id,l)));
+const ASN=new Map(AS.map(a=>[a.n,a]));
+/* un asiento borrado de ejemplo, que explica uno de los huecos de la numeración */
+BORR.push({n:GAP[0],fecha:"2026-05-18",desc:"Factura de compra LC-2635 · Limpiezas Costa Brava",origen:"Manual",borrado:"2026-05-20 11:42",op:"Ronald",motivo:"Grabada a mano por error: la factura ya entró por Compras.",
+  lines:[["6290001",26000,0,"Limpiezas Costa Brava LC-2635","LC-2635"],["4720021",5460,0,"IVA 21 % · LC-2635","LC-2635"],["4000008",0,31460,"Factura LC-2635","LC-2635"]]});
+
+/* ---------- estado ---------- */
+const $=s=>document.querySelector(s);
+const COLS=[
+ {k:"n",t:"Asiento",def:1,tip:"Número del asiento (Asientos.IdAsiento): fijo, no cambia al grabar otros asientos; los huecos son asientos borrados"},
+ {k:"id",t:"Id apunte",def:1,tip:"Identificador del apunte (Apuntes.IdApunte)"},
+ {k:"fecha",t:"Fecha",def:1,tip:"Fecha contable: decide el periodo y el trimestre de IVA"},
+ {k:"origen",t:"Origen",def:1,tip:"Módulo que generó el asiento. Los que no son «Manual» son automáticos"},
+ {k:"cta",t:"Subcuenta",def:1,tip:"Subcuenta del apunte"},
+ {k:"nom",t:"Descripción",def:1,tip:"Descripción de la subcuenta"},
+ {k:"concepto",t:"Concepto",def:1,tip:"Descripción del apunte"},
+ {k:"doc",t:"Documento",def:1,tip:"Número de factura o de documento del apunte"},
+ {k:"d",t:"Debe",def:1,num:1,tip:"Importe al Debe"},
+ {k:"h",t:"Haber",def:1,num:1,tip:"Importe al Haber"},
+ {k:"cc",t:"Centro de coste",def:1,tip:"Centro de coste del apunte"},
+ {k:"p",t:"Punteado",def:1,c:1,tip:"Punteado: apunte ya revisado"},
+ {k:"bloq",t:"Bloqueos",def:1,c:1,tip:"Qué no se puede cambiar del apunte y por qué. Pasa el ratón por el icono"},
+ {k:"orden",t:"Orden",tip:"Orden del apunte dentro de su asiento"},
+ {k:"contra",t:"Contrapartida",tip:"Cuenta del lado contrario del mismo asiento, sin contar el IVA. «Varias» si hay más de una"},
+ {k:"venc",t:"Vencimiento",tip:"Fecha de vencimiento del apunte"},
+ {k:"fdoc",t:"Fecha del documento",tip:"Fecha de expedición de la factura del libro de IVA del asiento"},
+ {k:"grab",t:"Grabado el",tip:"Día del alta del asiento. No cambia nunca"},
+ {k:"mod",t:"Modificado el",tip:"Último cambio del asiento"},
+ {k:"op",t:"Operador",tip:"Quién grabó el asiento"}
+];
+COLS.forEach(c=>c.on=c.def?1:0);
+const S={per:"ej",desde:"2026-01-01",hasta:"2026-12-31",q:"",cta:"",origen:"",punteo:"",cc:"",vista:"asiento",plegados:new Set(),mes:false,sel:new Set(),ancla:null,sk:null,sd:1,rows:[]};
+const vis=()=>COLS.filter(c=>c.on);
+const bloq=l=>(l.a.cerrado&&l.a.fiscal?'<span title="Trimestre cerrado con cuentas de IVA o retenciones: no se cambian cuentas ni importes, ni se borra">🔒</span>':"")+(l.a.auto&&/^572/.test(l.cta)?'<span title="Apunte de banco de un asiento automático: su cuenta y su importe no se cambian">🏦</span>':"")+(/Ventas|Compras/.test(l.a.origen)&&/^Factura/.test(l.a.desc)?'<span title="Va con el libro de IVA de la factura: el importe (y la cuenta, si es de IVA) se corrige en la factura">🧾</span>':"");
+const contra=l=>{const o=l.a.lines.filter(x=>x!==l&&(l.d?x.h:x.d)&&!/^(472|477)/.test(x.cta));const u=[...new Set(o.map(x=>x.cta))];return u.length===1?u[0]:u.length?"Varias":"—";};
+const lineFilter=()=>S.q||S.cta||S.punteo||S.cc;
+function matchLine(l){
+  if(S.cta&&!l.cta.startsWith(S.cta))return false;
+  if(S.punteo&&(S.punteo==="s")!==l.p)return false;
+  if(S.cc&&l.cc!==S.cc)return false;
+  if(S.q){const q=S.q.toLowerCase().trim();
+    if(q[0]==="#")return String(l.a.n)===q.slice(1);
+    const hay=[l.a.desc,l.concepto,l.doc,l.cta,CTAS[l.cta],fmt(l.d||l.h),((l.d||l.h)/100).toFixed(2).replace(".",",")].join(" ").toLowerCase();
+    if(!hay.includes(q))return false;}
+  return true;
+}
+function filtrar(){
+  const out=[];
+  for(const a of AS){
+    if(a.fecha<S.desde||a.fecha>S.hasta)continue;
+    if(S.origen&&a.origen!==S.origen)continue;
+    const hits=a.lines.filter(matchLine);
+    if(hits.length)out.push({a,hits});
+  }
+  return out;
+}
+
+/* ---------- rejilla ---------- */
+function cell(c,l,grouped){
+  const a=l.a;
+  switch(c.k){
+    case "n":return grouped?"":a.n;
+    case "fecha":return grouped?"":fdate(a.fecha);
+    case "orden":return l.orden;
+    case "cta":return l.cta;
+    case "nom":return esc(CTAS[l.cta]);
+    case "concepto":return esc(l.concepto);
+    case "doc":return esc(l.doc);
+    case "d":return l.d?fmt(l.d):"";
+    case "h":return l.h?fmt(l.h):"";
+    case "contra":return contra(l);
+    case "cc":return esc(l.cc);
+    case "venc":return l.venc?fdate(l.venc):"";
+    case "origen":return grouped?"":`<span class="pill o-${a.origen}">${a.origen}</span>`;
+    case "grab":return fdate(a.creado);
+    case "id":return l.id;
+    case "bloq":return bloq(l);
+    case "fdoc":return /Ventas|Compras/.test(a.origen)&&/^Factura/.test(a.desc)?fdate(a.fecha):"";
+    case "mod":return a.mod?fdate(a.mod):"";
+    case "op":return a.auto?"Sistema":"Ronald";
+    case "p":return l.p?'<span class="pt" title="Punteado">✓</span>':"";
+  }
+}
+const sortVal=(k,l)=>k==="n"?l.a.n:k==="fecha"?l.a.fecha+String(l.a.n).padStart(6,"0"):k==="d"?l.d:k==="h"?l.h:k==="nom"?CTAS[l.cta]:k==="origen"?l.a.origen:k==="p"?+l.p:k==="contra"?contra(l):k==="grab"?l.a.creado:l[k];
+function render(){
+  const cols=vis(),res=filtrar(),lf=lineFilter(),g=S.vista==="asiento";
+  const resumen=(cls,attrs,special,texto)=>{let out="",run=0,usado=false;
+    const flush=()=>{if(run){out+=`<td colspan="${run}">${usado?"":texto}</td>`;usado=true;run=0;}};
+    cols.forEach(c=>{const v=special(c.k);if(v==null)run++;else{flush();out+=v;}});flush();
+    if(!usado)out=out.replace("</td>"," "+texto+"</td>");
+    return `<tr class="${cls}" ${attrs}>${out}</tr>`;};
+  const hayN=cols.some(c=>c.k==="n");
+  $("#tb thead").innerHTML="<tr>"+cols.map(c=>`<th class="${c.num?"num":""}${!g?" srt":""}" data-k="${c.k}" title="${esc(c.tip)}${!g?". Clic para ordenar":""}">${c.t}${!g&&S.sk===c.k?(S.sd>0?" ▲":" ▼"):""}</th>`).join("")+"</tr>";
+  let h="";S.rows=[];let tD=0,tH=0,nA=res.length,nL=0;
+  const tdc=c=>`class="${c.num?"num":""}${c.k==="cta"||c.k==="doc"?" mono":""}${c.c?" c":""}"`;
+  const row=(l,grouped,cls)=>{S.rows.push(l.id);return `<tr data-id="${l.id}" class="${cls||""}${S.sel.has(l.id)?" sel":""}">`+cols.map(c=>`<td ${tdc(c)}>${cell(c,l,grouped)}</td>`).join("")+"</tr>";};
+  if(g){
+    let mesAct=null,mD=0,mH=0,mN=0;
+    const cierraMes=()=>{if(S.mes&&mesAct!==null)h+=resumen("m","",k=>k==="d"?`<td class="num">${fmt(mD)}</td>`:k==="h"?`<td class="num">${fmt(mH)}</td>`:null,`Total de ${MESES[mesAct]} · ${mN} asiento${mN===1?"":"s"}`);};
+    for(const {a,hits} of res){
+      const m=+a.fecha.slice(5,7)-1;
+      if(m!==mesAct){cierraMes();mesAct=m;mD=mH=mN=0;}
+      const td=a.lines.reduce((s,l)=>s+l.d,0);mD+=td;mH+=td;mN++;tD+=td;tH+=td;nL+=a.lines.length;
+      const pl=S.plegados.has(a.n),all=a.lines.every(l=>S.sel.has(l.id));
+      const car=`<button class="car" title="${pl?"Desplegar":"Plegar"} los apuntes de este asiento" aria-label="${pl?"Desplegar":"Plegar"}">${pl?"▸":"▾"}</button>`;
+      const txt=(hayN?"":car+a.n+" · ")+`<span class="d">${esc(a.desc)}</span> <span class="pill o-${a.origen}" title="${a.auto?"Asiento automático de "+a.origen+": la cuenta y los importes se cambian con «Modificar el asiento…», salvo los de la 572"+(/Ventas|Compras/.test(a.origen)?" y las líneas de IVA y los importes de la factura":""):"Asiento manual"}">${a.origen}</span>${a.cerrado&&a.fiscal?' <span class="lock" title="Trimestre cerrado con cuentas de IVA o retenciones: no se cambian cuentas ni importes, ni se borra">🔒 trimestre cerrado</span>':""}${a.mod&&a.auto?' <span class="lock" title="Asiento automático cambiado a mano">✎ modificado a mano</span>':""}${lf&&hits.length<a.lines.length?` <span class="lock">${hits.length} de ${a.lines.length} cumplen el filtro</span>`:""}`;
+      h+=resumen("g"+(all?" sel":""),`data-as="${a.n}"`,k=>k==="n"?`<td>${car}${a.n}</td>`:k==="fecha"?`<td>${fdate(a.fecha)}</td>`:k==="d"||k==="h"?`<td class="num">${fmt(td)}</td>`:null,txt);
+      if(!pl)for(const l of a.lines)h+=row(l,true,lf?(hits.includes(l)?"hit":"dim"):"");
+    }
+    cierraMes();
+  }else{
+    let ls=res.flatMap(r=>r.hits);
+    if(S.sk)ls.sort((x,y)=>{const a=sortVal(S.sk,x),b=sortVal(S.sk,y);return (a<b?-1:a>b?1:0)*S.sd;});
+    for(const l of ls){h+=row(l,false);tD+=l.d;tH+=l.h;}
+    nL=ls.length;
+  }
+  $("#tb tbody").innerHTML=h;
+  $("#tb").hidden=!nL;$("#empty").hidden=!!nL;
+  if(!nL)$("#empty-why").textContent="No hay apuntes entre el "+fdate(S.desde)+" y el "+fdate(S.hasta)+" con los filtros puestos. Quita alguno o amplía el periodo.";
+  $("#b-exp").hidden=$("#b-col").hidden=!g;$("#c-mes").parentElement.hidden=!g;
+  // limpiar selección que ya no se ve
+  for(const id of [...S.sel])if(!S.rows.includes(id)&&!(g&&S.plegados.has(LBY.get(id).a.n)&&res.some(r=>r.a===LBY.get(id).a)))S.sel.delete(id);
+  const dif=tD-tH;
+  let f=`<span>${nA} asiento${nA===1?"":"s"} · <b>${nL}</b> apuntes</span><span>Debe <b>${fmt(tD)}</b></span><span>Haber <b>${fmt(tH)}</b></span>`+
+    (g?'<span class="ok" title="Los asientos se muestran completos y todos cuadran">Cuadrado</span>':`<span title="Debe menos Haber de los apuntes filtrados">Saldo <b>${fmt(dif)}</b></span>`);
+  const sl=[...S.sel].map(i=>LBY.get(i));
+  if(sl.length){const sd=sl.reduce((s,l)=>s+l.d,0),sh=sl.reduce((s,l)=>s+l.h,0),na=new Set(sl.map(l=>l.a)).size;
+    f+=`<span class="selinfo" title="Suma de los apuntes seleccionados">Selección: <b>${sl.length}</b> apunte${sl.length===1?"":"s"} de ${na} asiento${na===1?"":"s"} · Debe <b>${fmt(sd)}</b> · Haber <b>${fmt(sh)}</b> · Diferencia <b>${fmt(sd-sh)}</b></span>`;}
+  $("#foot").innerHTML=f;
+  chips();ficha();
+}
+function chips(){
+  const c=[];
+  if(S.q)c.push(["q","Buscar: "+S.q]);if(S.cta)c.push(["cta","Cuenta: "+S.cta+(CTAS[S.cta]?" "+CTAS[S.cta]:"…")]);
+  if(S.origen)c.push(["origen","Origen: "+S.origen]);if(S.punteo)c.push(["punteo",S.punteo==="s"?"Punteados":"Sin puntear"]);if(S.cc)c.push(["cc","Centro: "+S.cc]);
+  const el=$("#chips");el.hidden=!c.length;
+  el.innerHTML=c.map(x=>`<span class="chip">${esc(x[1])}<button data-x="${x[0]}" title="Quitar este filtro" aria-label="Quitar este filtro">×</button></span>`).join("")+(c.length?'<button class="btn sm" id="b-limpiar" title="Quita todos los filtros y vuelve al ejercicio completo">Quitar los filtros</button>':"");
+}
+function syncInputs(){$("#f-q").value=S.q;$("#f-cta").value=S.cta;$("#f-origen").value=S.origen;$("#f-punteo").value=S.punteo;$("#f-cc").value=S.cc;$("#f-desde").value=S.desde;$("#f-hasta").value=S.hasta;
+  document.querySelectorAll("#seg-per button").forEach(b=>b.setAttribute("aria-pressed",b.dataset.p===S.per));
+  document.querySelectorAll("#seg-vista button").forEach(b=>b.setAttribute("aria-pressed",b.dataset.v===S.vista));}
+function limpiar(){Object.assign(S,{per:"ej",desde:"2026-01-01",hasta:"2026-12-31",q:"",cta:"",origen:"",punteo:"",cc:""});syncInputs();render();}
+
+/* ---------- ficha ---------- */
+let editing=null;
+function ficha(){
+  const sl=[...S.sel].map(i=>LBY.get(i)),el=$("#ficha"),as=[...new Set(sl.map(l=>l.a))];
+  if(!sl.length){el.innerHTML='<header><h2>Ficha del asiento</h2></header><div class="body"><p class="hint" style="margin:0">Selecciona un apunte para ver aquí su asiento completo, de dónde viene y su historial. Con Ctrl o Mayús seleccionas varios y abajo ves su suma.</p></div>';return;}
+  if(as.length>1){
+    const by={};sl.forEach(l=>{(by[l.cta]=by[l.cta]||[0,0,0]);by[l.cta][0]+=l.d;by[l.cta][1]+=l.h;by[l.cta][2]++;});
+    el.innerHTML=`<header><h2>${sl.length} apuntes de ${as.length} asientos</h2></header><div class="body"><div class="mini"><h3>Suma por cuenta</h3><div class="tw2"><table><thead><tr><th>Cuenta</th><th>Nombre</th><th class="num">Debe</th><th class="num">Haber</th><th class="num">Saldo</th></tr></thead><tbody>`+
+      Object.keys(by).sort().map(c=>`<tr><td class="mono">${c}</td><td>${esc(CTAS[c])}</td><td class="num">${fmt(by[c][0])}</td><td class="num">${fmt(by[c][1])}</td><td class="num">${fmt(by[c][0]-by[c][1])}</td></tr>`).join("")+
+      `</tbody></table></div></div><p class="hint" style="margin:0">El clic derecho ofrece lo que se puede hacer con varios apuntes a la vez: puntear, asignar el número de factura, asignar centro de coste o copiar.</p></div>`;return;}
+  const a=as[0],one=sl.length===1?sl[0]:null,td=a.lines.reduce((s,l)=>s+l.d,0);
+  let h=`<header><h2>Asiento ${a.n}</h2><span class="pill o-${a.origen}">${a.origen}</span>${a.cerrado?'<span class="lock" title="Trimestre cerrado">🔒 cerrado</span>':""}</header><div class="body">`;
+  h+=`<dl class="kv"><dt>Fecha</dt><dd>${fdate(a.fecha)}</dd><dt>Descripción</dt><dd>${esc(a.desc)}</dd>`+
+    (a.ref?`<dt>Origen</dt><dd><button class="lnk" data-act="origen" title="Abre el documento que generó este asiento">${esc(a.ref)}</button></dd>`:"")+
+    (a.plantilla?`<dt>Plantilla</dt><dd>${esc(a.plantilla)}</dd>`:"")+(a.motivo?`<dt>Motivo</dt><dd>${esc(a.motivo)}</dd>`:"")+
+    `<dt>Grabado el</dt><dd>${fdate(a.creado)} · ${a.auto?"Sistema":"Ronald"}</dd>`+(a.mod?`<dt>Modificado el</dt><dd>${fdate(a.mod)} · Ronald</dd>`:"")+`</dl>`;
+  if(a.auto)h+=`<div class="info">Asiento automático de ${a.origen} (${esc(a.ref)}). Concepto, documento, vencimiento, centro y punteo se cambian aquí. Cuentas e importes, con «Modificar el asiento…», salvo los apuntes de la 572.${/Ventas|Compras/.test(a.origen)?" Las líneas de IVA y los importes no: van con el libro de IVA y se corrigen en la factura.":""}${a.mod?" Ya se ha modificado a mano: si regeneras su origen, el cambio se pierde.":""}</div>`;
+  h+=`<div class="mini"><h3>Apuntes · Debe ${fmt(td)} = Haber ${fmt(td)}</h3><div class="tw2"><table><thead><tr><th>Cuenta</th><th>Nombre</th><th class="num">Debe</th><th class="num">Haber</th></tr></thead><tbody>`+
+    a.lines.map(l=>`<tr data-pick="${l.id}" class="${S.sel.has(l.id)?"sel":""}" title="${esc(l.concepto)}"><td class="mono">${l.cta}</td><td>${esc(CTAS[l.cta])}</td><td class="num">${l.d?fmt(l.d):""}</td><td class="num">${l.h?fmt(l.h):""}</td></tr>`).join("")+`</tbody></table></div></div>`;
+  if(one){
+    const dis="";
+    h+=`<div><h3>Apunte ${one.orden} · ${one.cta}</h3><div class="form">
+      <label for="e-con">Concepto</label><input class="inp" id="e-con" value="${esc(one.concepto)}"${dis||' title="Descripción del apunte"'}>
+      <label for="e-doc">Documento</label><input class="inp" id="e-doc" value="${esc(one.doc)}" title="Número de factura o de documento. Se conserva aunque el asiento se regenere">
+      <label for="e-ven">Vencimiento</label><input class="inp" id="e-ven" type="date" value="${one.venc}"${dis||' title="Fecha de vencimiento del apunte"'}>
+      <label for="e-cc">Centro</label><select class="inp" id="e-cc"${dis||' title="Centro de coste del apunte"'}><option value="">Sin centro</option>${CCS.map(c=>`<option${c===one.cc?" selected":""}>${c}</option>`).join("")}</select>
+      <label for="e-p">Punteado</label><span><input type="checkbox" id="e-p"${one.p?" checked":""} title="Marca el apunte como revisado"></span>
+    </div><p class="hint" style="margin:6px 0 0">La cuenta y los importes se cambian con «Modificar el asiento…» del clic derecho. Al guardar se pide el motivo.</p></div>`;
+  }
+  h+=`<div><h3>Historial de cambios</h3><ul class="hist">${a.hist.map(x=>`<li><time>${fdate(x[0].slice(0,10))} ${x[0].slice(11)}</time> · ${x[1]} · ${esc(x[2])}</li>`).join("")}</ul></div></div>`;
+  if(one)h+=`<footer><button class="btn" id="e-cancel" disabled title="Descarta los cambios de esta ficha">Cancelar</button><button class="btn pri" id="e-save" disabled title="No hay cambios que guardar">Guardar</button></footer>`;
+  el.innerHTML=h;editing=one;
+}
+$("#ficha").addEventListener("input",()=>{const s=$("#e-save");if(s){s.disabled=false;s.title="Guarda los cambios del apunte por el motor de asientos, que los anota en el historial";$("#e-cancel").disabled=false;}});
+$("#ficha").addEventListener("click",e=>{
+  const pk=e.target.closest("[data-pick]");if(pk){S.sel=new Set([+pk.dataset.pick]);S.ancla=+pk.dataset.pick;render();return;}
+  if(e.target.dataset.act==="origen"){toast("Abre el origen del asiento en su pantalla",LBY.get([...S.sel][0]).a.ref);return;}
+  if(e.target.id==="e-cancel"){ficha();return;}
+  if(e.target.id==="e-save"&&editing){const l=editing,ch=[];
+    const set=(k,v,n)=>{if(l[k]!==v){ch.push(n);l[k]=v;}};
+    set("concepto",$("#e-con").value,"concepto");set("doc",$("#e-doc").value,"documento");set("venc",$("#e-ven").value,"vencimiento");set("cc",$("#e-cc").value,"centro de coste");set("p",$("#e-p").checked,"punteo");
+    if(ch.length){l.a.hist.push([HOY+" 20:30","Ronald","Apunte "+l.orden+": cambia "+ch.join(", ")]);l.a.mod=HOY;}
+    render();toast("Apunte guardado","Cambios: "+(ch.join(", ")||"ninguno"));}
+});
+
+/* ---------- selección ---------- */
+function pick(id,e){
+  if(e.shiftKey&&S.ancla!=null){const i=S.rows.indexOf(S.ancla),j=S.rows.indexOf(id);if(i>=0&&j>=0){const r=S.rows.slice(Math.min(i,j),Math.max(i,j)+1);if(!(e.ctrlKey||e.metaKey))S.sel.clear();r.forEach(x=>S.sel.add(x));render();return;}}
+  if(e.ctrlKey||e.metaKey){S.sel.has(id)?S.sel.delete(id):S.sel.add(id);}else{S.sel=new Set([id]);}
+  S.ancla=id;render();
+}
+function pickAs(n,e){const ids=ASN.get(n).lines.map(l=>l.id);
+  if(e.ctrlKey||e.metaKey){const all=ids.every(i=>S.sel.has(i));ids.forEach(i=>all?S.sel.delete(i):S.sel.add(i));}else S.sel=new Set(ids);
+  S.ancla=ids[0];render();}
+$("#tb tbody").addEventListener("click",e=>{
+  const g=e.target.closest("tr.g");
+  if(g){const n=+g.dataset.as;if(e.target.closest(".car")){S.plegados.has(n)?S.plegados.delete(n):S.plegados.add(n);render();}else pickAs(n,e);return;}
+  const r=e.target.closest("tr[data-id]");if(r)pick(+r.dataset.id,e);
+});
+$("#tb tbody").addEventListener("dblclick",e=>{const r=e.target.closest("tr[data-id],tr.g");if(!r||e.target.closest(".car"))return;const a=r.dataset.as?ASN.get(+r.dataset.as):LBY.get(+r.dataset.id).a;abrir(a);});
+$("#tb thead").addEventListener("click",e=>{const th=e.target.closest("th");if(!th||S.vista!=="lista")return;const k=th.dataset.k;if(S.sk===k)S.sd=-S.sd;else{S.sk=k;S.sd=1;}render();});
+const abrir=a=>toast("Abre el asiento "+a.n+" en la pantalla de asiento, en una pestaña nueva",a.auto?"Solo lectura: es automático de "+a.origen+".":"Editable: es un asiento manual.");
+
+/* ---------- menú contextual ---------- */
+function ctx(e){
+  const r=e.target.closest("tr[data-id],tr.g");if(!r)return;e.preventDefault();
+  if(r.dataset.as){const ids=ASN.get(+r.dataset.as).lines.map(l=>l.id);if(!ids.every(i=>S.sel.has(i))){S.sel=new Set(ids);render();}}
+  else{const id=+r.dataset.id;if(!S.sel.has(id)){S.sel=new Set([id]);S.ancla=id;render();}}
+  const sl=[...S.sel].map(i=>LBY.get(i)),as=[...new Set(sl.map(l=>l.a))],a1=as.length===1?as[0]:null,l1=sl.length===1?sl[0]:null;
+  const ctas=[...new Set(sl.map(l=>l.cta))],man=as.every(a=>!a.auto),blq=as.some(a=>a.cerrado&&a.fiscal);
+  const noMod=blq?"Trimestre cerrado con cuentas de IVA o retenciones":"",banco=sl.some(l=>l.a.auto&&/^572/.test(l.cta)),ivaFac=sl.some(l=>/Ventas|Compras/.test(l.a.origen)&&/^(472|477|4751)/.test(l.cta));
+  const allP=sl.every(l=>l.p),it=[];
+  const add=(t,fn,o)=>it.push(Object.assign({t,fn},o||{}));
+  it.push({head:sl.length===1?`Apunte ${l1.orden} del asiento ${l1.a.n} · ${l1.cta}`:`${sl.length} apuntes de ${as.length} asiento${as.length===1?"":"s"}`});
+  add(a1?"Abrir el asiento "+a1.n:"Abrir el asiento",()=>abrir(a1),{dis:!a1,s:a1?"Doble clic":"Solo con un asiento"});
+  add("Modificar el asiento…",()=>toast("Abre el asiento "+a1.n+" para modificarlo en la pantalla de asiento",a1.auto?(/Ventas|Compras/.test(a1.origen)?"Factura de "+a1.origen+": se cambian las subcuentas de gasto, ingreso o tercero; las líneas de IVA y los importes se corrigen en la factura. Pide el motivo.":"Automático de "+a1.origen+": se cambian cuentas e importes, salvo los apuntes de la 572. Pide el motivo."):"Pide el motivo del cambio y solo guarda si cuadra."),{dis:!a1||!!noMod,s:!a1?"Solo con un asiento":noMod});
+  add("Asistente de corrección…",()=>toast("Abre el asistente de corrección con este apunte","Ofrece las plantillas de corrección que encajan: anular y rehacer, cambiar la subcuenta, etc."),{dis:!l1,s:l1?"":"Solo con un apunte"});
+  add("Usar como base de un asiento nuevo",()=>toast("Abre un asiento nuevo con las mismas cuentas e importes que el asiento "+a1.n,"Con la fecha de hoy y sin guardar hasta que lo confirmes."),{dis:!a1,s:a1?"":"Solo con un asiento"});
+  it.push({hr:1});
+  add(ctas.length===1?"Ver el Mayor de "+ctas[0]:"Ver el Mayor de las "+ctas.length+" cuentas",()=>toast("Abre el Mayor"+(ctas.length>1?" combinado":"")+" de "+ctas.join(", "),"En una pestaña nueva, con el mismo periodo."));
+  const ct=l1?contra(l1):"";
+  add(l1&&ct!=="Varias"&&ct!=="—"?"Ir a la contrapartida ("+ct+")":"Ir a la contrapartida",()=>{const o=l1.a.lines.find(x=>x.cta===ct);S.sel=new Set([o.id]);S.ancla=o.id;render();},{dis:!l1||ct==="Varias"||ct==="—",s:!l1?"Solo con un apunte":ct==="Varias"?"Tiene varias: mira la ficha":""});
+  add(a1&&a1.ref?"Abrir el origen: "+a1.ref:"Abrir el origen",()=>toast("Abre el origen del asiento en su pantalla",a1.ref),{dis:!a1||!a1.ref,s:!a1?"Solo con un asiento":!a1.ref?"Asiento manual, sin origen":""});
+  it.push({hr:1});
+  add(allP?"Quitar el punteo":"Puntear",()=>{sl.forEach(l=>l.p=!allP);render();toast((allP?"Punteo quitado de ":"Punteados ")+sl.length+" apunte"+(sl.length===1?"":"s"));},{s:"F4"});
+  add("Asignar número de factura…",()=>pedir("Número de factura","Se pone en los "+sl.length+" apuntes seleccionados. También vale en asientos automáticos y periodos cerrados.",`<input class="inp" id="p-v" value="${esc(l1?l1.doc:"")}" style="width:14em" title="Número de factura o documento">`,v=>{sl.forEach(l=>l.doc=v);render();toast("Número de factura cambiado en "+sl.length+" apunte"+(sl.length===1?"":"s"),v||"(vacío)");}),{s:"Ctrl+N"});
+  add("Cambiar el concepto…",()=>pedir("Concepto","Se cambia en los "+sl.length+" apuntes seleccionados.",`<input class="inp" id="p-v" value="${esc(l1?l1.concepto:"")}" style="width:100%" title="Descripción del apunte">`,v=>{sl.forEach(l=>l.concepto=v);render();toast("Concepto cambiado en "+sl.length+" apunte"+(sl.length===1?"":"s"));}));
+  add("Cambiar la subcuenta…",()=>selector(c=>{sl.forEach(l=>l.cta=c);render();toast("Subcuenta cambiada a "+c+" "+CTAS[c],"En la aplicación lo hace el motor de asientos y queda en el historial.");}),{dis:!!noMod||banco||ivaFac||ctas.length>1,s:noMod||(banco?"Apunte de banco de un asiento automático":ivaFac?"Línea de IVA de una factura: se corrige en la factura":ctas.length>1?"Los apuntes son de cuentas distintas":"")});
+  add("Asignar centro de coste…",()=>pedir("Centro de coste","Se asigna a los "+sl.length+" apuntes seleccionados.",`<select class="inp" id="p-v" title="Centro de coste"><option value="">Sin centro</option>${CCS.map(c=>`<option>${c}</option>`).join("")}</select>`,v=>{sl.forEach(l=>l.cc=v);render();toast("Centro de coste asignado",v||"Sin centro");}));
+  it.push({hr:1});
+  add("Filtrar por esta cuenta",()=>{S.cta=l1.cta;syncInputs();render();},{dis:!l1,s:l1?"":"Solo con un apunte"});
+  add("Filtrar por este documento",()=>{S.q=l1.doc;syncInputs();render();},{dis:!l1||!l1.doc,s:!l1?"Solo con un apunte":!l1.doc?"El apunte no tiene documento":""});
+  add("Buscar este importe",()=>{S.q=fmt(l1.d||l1.h);syncInputs();render();},{dis:!l1,s:l1?"":"Solo con un apunte"});
+  add("Copiar las filas",()=>{const tx=sl.map(l=>[l.a.n,fdate(l.a.fecha),l.cta,CTAS[l.cta],l.concepto,l.doc,fmt(l.d),fmt(l.h)].join("\t")).join("\n");(navigator.clipboard?navigator.clipboard.writeText(tx):Promise.reject()).then(()=>toast(sl.length+" fila"+(sl.length===1?"":"s")+" en el portapapeles","Se pegan en Excel con sus columnas."),()=>toast("Aquí no se puede copiar","En la aplicación las filas van al portapapeles separadas por tabuladores."));},{s:"Ctrl+C"});
+  it.push({hr:1});
+  add(as.length===1?"Eliminar el asiento "+as[0].n+"…":"Eliminar los "+as.length+" asientos…",()=>borrar(as),{dan:1,dis:!man||!!noMod,s:!man?"Los automáticos se borran desde su origen":noMod});
+  const m=$("#menu");
+  m.innerHTML=it.map((x,i)=>x.hr?"<hr>":x.head?`<div class="t">${esc(x.head)}</div>`:`<button role="menuitem" data-i="${i}" class="${x.dan?"dan":""}"${x.dis?" disabled":""}>${esc(x.t)}${x.s?`<small>${esc(x.s)}</small>`:""}</button>`).join("");
+  m.hidden=false;m._it=it;
+  const w=m.offsetWidth,hh=m.offsetHeight;m.style.left=Math.max(8,Math.min(e.clientX,innerWidth-w-8))+"px";m.style.top=Math.max(8,Math.min(e.clientY,innerHeight-hh-8))+"px";
+}
+$("#tb tbody").addEventListener("contextmenu",ctx);
+$("#menu").addEventListener("click",e=>{const b=e.target.closest("button");if(!b||b.disabled)return;const it=$("#menu")._it[+b.dataset.i];$("#menu").hidden=true;it.fn();});
+document.addEventListener("mousedown",e=>{if(!(e.target.closest&&e.target.closest("#menu")))$("#menu").hidden=true;});
+window.addEventListener("scroll",e=>{if(e.target!==$("#menu"))$("#menu").hidden=true;},true);
+
+/* ---------- diálogos ---------- */
+let tamSel=null;
+function dlg(html,cls){const d=$("#dlg");if(d.classList.contains("rs"))tamSel=[d.style.width||d.offsetWidth+"px",d.style.height||d.offsetHeight+"px"];d.className="dlg"+(cls?" "+cls:"");d.style.width=d.style.height="";if(cls==="rs"&&tamSel){d.style.width=tamSel[0];d.style.height=tamSel[1];}d.innerHTML=html;$("#scrim").hidden=false;const f=d.querySelector("input,select,button");if(f)f.focus();}
+const cerrar=()=>{const d=$("#dlg");if(d.classList.contains("rs"))tamSel=[d.offsetWidth+"px",d.offsetHeight+"px"];$("#scrim").hidden=true;};
+$("#scrim").addEventListener("mousedown",e=>{if(e.target.id==="scrim")cerrar();});
+function pedir(tit,desc,field,ok){
+  dlg(`<header><h3>${tit}</h3><p>${desc}</p></header><div class="body">${field}</div><footer><button class="btn" id="p-no" title="Cierra sin cambiar nada">Cancelar</button><button class="btn pri" id="p-ok" title="Aplica el cambio a la selección">Aplicar</button></footer>`);
+  $("#p-no").onclick=cerrar;$("#p-ok").onclick=()=>{const v=$("#p-v").value;cerrar();ok(v);};
+  $("#p-v").onkeydown=e=>{if(e.key==="Enter")$("#p-ok").click();};
+}
+function borrar(as){
+  dlg(`<header><h3>Eliminar ${as.length===1?"el asiento "+as[0].n:as.length+" asientos"}</h3><p>Se borran completos, con todos sus apuntes. Queda una copia en «Asientos borrados», con el motivo, quién y cuándo. Los números no se reutilizan.</p></header><div class="body"><div class="warn">${as.map(a=>`<div>Asiento ${a.n} · ${fdate(a.fecha)} · ${esc(a.desc)} · ${fmt(a.lines.reduce((s,l)=>s+l.d,0))} €</div>`).join("")}</div><label class="hint" for="p-mot">Motivo (obligatorio)</label><textarea class="inp" id="p-mot" rows="3" style="width:100%;resize:vertical" title="Por qué se borra. Queda en el registro de asientos borrados"></textarea></div><footer><button class="btn" id="p-no" title="Cierra sin borrar nada">Cancelar</button><button class="btn dan" id="p-ok" disabled title="Escribe el motivo para poder eliminar">Eliminar</button></footer>`);
+  const mot=$("#p-mot");mot.focus();mot.oninput=()=>{const v=!mot.value.trim();$("#p-ok").disabled=v;$("#p-ok").title=v?"Escribe el motivo para poder eliminar":"Borra los asientos indicados y guarda su copia";};
+  $("#p-no").onclick=cerrar;$("#p-ok").onclick=()=>{const m=mot.value.trim();cerrar();as.forEach(a=>{BORR.push({n:a.n,fecha:a.fecha,desc:a.desc,origen:a.origen,borrado:HOY+" 20:45",op:"Ronald",motivo:m,lines:a.lines.map(l=>[l.cta,l.d,l.h,l.concepto,l.doc])});a.lines.forEach(l=>LBY.delete(l.id));ASN.delete(a.n);AS.splice(AS.indexOf(a),1);});S.sel.clear();render();toast(as.length===1?"Asiento eliminado":as.length+" asientos eliminados","Su copia está en «Asientos borrados…», en la cabecera.");};
+}
+function verBorrados(){
+  const fila=b=>`<tr data-b="${b.n}"><td>${b.n}</td><td>${fdate(b.fecha)}</td><td>${esc(b.desc)}</td><td class="num">${fmt(b.lines.reduce((s,l)=>s+l[1],0))}</td><td>${fdate(b.borrado.slice(0,10))} ${b.borrado.slice(11)}</td><td>${esc(b.op)}</td><td title="${esc(b.motivo)}">${esc(b.motivo)}</td></tr>`;
+  dlg(`<header><h3>Asientos borrados</h3><p>Copia de los asientos eliminados (AsientosBorrados y ApuntesBorrados). Solo se consultan. Clic en uno para ver sus apuntes.</p></header><div class="body"><div style="overflow:auto;border:1px solid var(--ln);border-radius:8px;min-height:90px"><table id="bo-tb"><thead><tr><th title="Número que tenía el asiento">Asiento</th><th title="Fecha contable que tenía">Fecha</th><th>Descripción</th><th class="num" title="Total del Debe">Importe</th><th title="Cuándo se borró">Borrado el</th><th title="Quién lo borró">Operador</th><th title="Motivo que se dio al borrarlo">Motivo</th></tr></thead><tbody>${BORR.slice().sort((x,y)=>x.borrado<y.borrado?1:-1).map(fila).join("")||'<tr><td colspan="7" class="hint">No se ha borrado ningún asiento en este ejercicio.</td></tr>'}</tbody></table></div><div id="bo-det" class="mini"></div></div><footer><button class="btn pri" id="p-no" title="Cierra la consulta">Cerrar</button></footer>`,"rs");
+  $("#p-no").onclick=cerrar;
+  $("#bo-tb tbody").onclick=e=>{const r=e.target.closest("tr[data-b]");if(!r)return;const b=BORR.find(x=>x.n===+r.dataset.b);$("#bo-tb tbody").querySelectorAll("tr").forEach(x=>x.classList.toggle("sel",x===r));
+    $("#bo-det").innerHTML=`<h3>Apuntes del asiento ${b.n}</h3><div class="tw2"><table><thead><tr><th>Subcuenta</th><th>Descripción</th><th>Concepto</th><th>Documento</th><th class="num">Debe</th><th class="num">Haber</th></tr></thead><tbody>${b.lines.map(l=>`<tr><td class="mono">${l[0]}</td><td>${esc(CTAS[l[0]])}</td><td>${esc(l[3])}</td><td class="mono">${esc(l[4])}</td><td class="num">${l[1]?fmt(l[1]):""}</td><td class="num">${l[2]?fmt(l[2]):""}</td></tr>`).join("")}</tbody></table></div>`;};
+}
+function selector(ok){
+  dlg(`<header><h3>Buscar una subcuenta</h3><p>Solo subcuentas. Escribe parte del código o del nombre. Doble clic o Intro para elegir.</p></header><div class="body"><div style="display:flex;gap:8px;flex-wrap:wrap"><input class="inp" id="s-q" type="search" placeholder="Código o nombre" style="flex:1;min-width:10em" title="Filtra por el principio del código o por cualquier parte del nombre. 629.1 equivale a 6290001"><button class="btn" id="s-new" title="Da de alta una subcuenta nueva sin salir de aquí">Crear subcuenta…</button></div><div style="overflow:auto;flex:1;min-height:0;border:1px solid var(--ln);border-radius:8px"><table id="s-tb"><thead><tr><th title="Código de la subcuenta">Subcuenta</th><th title="Nombre de la subcuenta">Descripción</th><th class="num" title="Saldo del ejercicio de trabajo">Saldo</th></tr></thead><tbody></tbody></table></div><span class="hint">La ventana se puede agrandar arrastrando su esquina inferior derecha. El tamaño se recuerda.</span></div><footer><button class="btn" id="p-no" title="Cierra sin elegir">Cancelar</button><button class="btn pri" id="p-ok" disabled title="Elige una subcuenta de la lista">Aceptar</button></footer>`,"rs");
+  let cur=null;
+  const fill=()=>{let q=$("#s-q").value.toLowerCase().trim();const m=q.match(/^(\d+)\.(\d+)$/);if(m)q=m[1]+m[2].padStart(7-m[1].length,"0");
+    const ks=Object.keys(CTAS).sort().filter(c=>c.startsWith(q)||CTAS[c].toLowerCase().includes(q));if(!ks.includes(cur))cur=ks.length===1?ks[0]:null;
+    $("#s-tb tbody").innerHTML=ks.map(c=>`<tr data-c="${c}" class="${c===cur?"sel":""}"><td class="mono">${c}</td><td>${esc(CTAS[c])}</td><td class="num">${fmt(SALDOS[c]||0)}</td></tr>`).join("")||'<tr><td colspan="3" class="hint">Ninguna subcuenta coincide. Puedes crearla con «Crear subcuenta…».</td></tr>';
+    $("#p-ok").disabled=!cur;};
+  fill();$("#s-q").oninput=fill;$("#s-q").onkeydown=e=>{if(e.key==="Enter"&&cur)$("#p-ok").click();};
+  $("#s-tb tbody").onclick=e=>{const r=e.target.closest("tr[data-c]");if(r){cur=r.dataset.c;fill();}};
+  $("#s-tb tbody").ondblclick=e=>{const r=e.target.closest("tr[data-c]");if(r){cur=r.dataset.c;$("#p-ok").click();}};
+  $("#s-new").onclick=()=>toast("Abre el alta de subcuenta","Es el mismo alta al vuelo que ya usa el asiento manual.");
+  $("#p-no").onclick=cerrar;$("#p-ok").onclick=()=>{cerrar();ok(cur);};
+}
+$("#b-cta").onclick=()=>selector(c=>{S.cta=c;syncInputs();render();});
+$("#b-cols").onclick=()=>{
+  dlg(`<header><h3>Columnas</h3><p>Se guardan por operador, como en el Mayor.</p></header><div class="body"><div class="colist">${COLS.map((c,i)=>`<label title="${esc(c.tip)}"><input type="checkbox" data-i="${i}"${c.on?" checked":""}> ${c.t}${c.def?"":' <span class="hint">(oculta de fábrica)</span>'}</label>`).join("")}</div></div><footer><button class="btn" id="p-def" style="margin-right:auto" title="Vuelve a las columnas de fábrica">De fábrica</button><button class="btn" id="p-no" title="Cierra sin cambiar las columnas">Cancelar</button><button class="btn pri" id="p-ok" title="Aplica la elección y la guarda para este operador">Aplicar</button></footer>`);
+  const chk=()=>[...$("#dlg").querySelectorAll("input[data-i]")];
+  const val=()=>{const n=chk().filter(x=>x.checked).length;$("#p-ok").disabled=!n;$("#p-ok").title=n?"Aplica la elección y la guarda para este operador":"Marca al menos una columna";};
+  chk().forEach(x=>x.onchange=val);
+  $("#p-def").onclick=()=>{chk().forEach(x=>x.checked=!!COLS[+x.dataset.i].def);val();};
+  $("#p-no").onclick=cerrar;$("#p-ok").onclick=()=>{chk().forEach(x=>{COLS[+x.dataset.i].on=x.checked?1:0;});if(S.sk&&!vis().some(c=>c.k===S.sk))S.sk=null;cerrar();render();};
+};
+$("#b-borr").onclick=verBorrados;
+$("#b-print").onclick=()=>{
+  dlg(`<header><h3>Exportar</h3><p>Todas las filas que cumplen el filtro (${fdate(S.desde)} a ${fdate(S.hasta)}), con las columnas que se ven y sus totales, de una vez.</p></header><div class="body">
+   <label class="opt"><input type="radio" name="pf" value="PDF" checked><span><b>PDF</b><small>Para imprimir o enviar a la gestoría. En la vista «Por asiento» sale cada asiento completo.</small></span></label>
+   <label class="opt"><input type="radio" name="pf" value="Excel"><span><b>Excel</b><small>Una fila por apunte, con todas las columnas, para trabajar los datos.</small></span></label></div>
+   <footer><button class="btn" id="p-no" title="Cierra sin generar nada">Cancelar</button><button class="btn pri" id="p-ok" title="Genera el fichero con lo filtrado">Generar</button></footer>`);
+  $("#p-no").onclick=cerrar;$("#p-ok").onclick=()=>{const f=$("#dlg input[name=pf]:checked").value;cerrar();toast("Genera el Diario filtrado en "+f,"En la aplicación se abre el fichero al terminar.");};
+};
+$("#b-nuevo").onclick=()=>toast("Abre la pantalla de asiento manual en una pestaña nueva","Con «Sin plantilla» o con una guía. Al guardar, el asiento aparece aquí.");
+let tt;function toast(a,b){const t=$("#toast");t.innerHTML=esc(a)+(b?`<small>${esc(b)}</small>`:"");t.hidden=false;clearTimeout(tt);tt=setTimeout(()=>t.hidden=true,4500);}
+
+/* ---------- filtros y teclado ---------- */
+$("#seg-per").onclick=e=>{const b=e.target.closest("button");if(!b)return;S.per=b.dataset.p;const q=+S.per;
+  if(S.per==="ej"){S.desde="2026-01-01";S.hasta="2026-12-31";}else{S.desde=iso(q*3-2,1);S.hasta=iso(q*3,31);}syncInputs();render();};
+$("#seg-vista").onclick=e=>{const b=e.target.closest("button");if(!b)return;S.vista=b.dataset.v;syncInputs();render();};
+[["#f-q","q"],["#f-cta","cta"],["#f-origen","origen"],["#f-punteo","punteo"],["#f-cc","cc"]].forEach(([s,k])=>$(s).addEventListener("input",e=>{S[k]=e.target.value.trim();render();}));
+["desde","hasta"].forEach(k=>$("#f-"+k).addEventListener("change",e=>{if(e.target.value){S[k]=e.target.value;S.per="";syncInputs();render();}}));
+$("#chips").onclick=e=>{if(e.target.id==="b-limpiar")return limpiar();const x=e.target.dataset.x;if(x){S[x]="";syncInputs();render();}};
+$("#b-limpiar2").onclick=limpiar;
+$("#b-exp").onclick=()=>{S.plegados.clear();render();};
+$("#b-col").onclick=()=>{AS.forEach(a=>S.plegados.add(a.n));render();};
+$("#c-mes").onchange=e=>{S.mes=e.target.checked;render();};
+document.addEventListener("keydown",e=>{
+  if(e.key==="Escape"){if(!$("#menu").hidden)$("#menu").hidden=true;else if(!$("#scrim").hidden)cerrar();else if(S.sel.size&&!/INPUT|SELECT/.test(document.activeElement.tagName)){S.sel.clear();render();}return;}
+  if(e.key==="F3"){e.preventDefault();if($("#scrim").hidden)$("#b-cta").click();return;}
+  if(!$("#scrim").hidden||/INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName))return;
+  if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==="a"){e.preventDefault();S.sel=new Set(S.rows);render();}
+  else if(e.key==="F4"&&S.sel.size){e.preventDefault();const sl=[...S.sel].map(i=>LBY.get(i)),all=sl.every(l=>l.p);sl.forEach(l=>l.p=!all);render();}
+});
+/* ---------- ejemplos de la barra de maqueta ---------- */
+const first=f=>AS.find(f);
+$("#d-auto").onclick=()=>{limpiar();const a=first(a=>a.origen==="Ventas"&&a.fecha>"2026-10-01");S.plegados.clear();S.sel=new Set([a.lines[0].id]);render();scrollSel();};
+$("#d-manual").onclick=()=>{limpiar();const a=first(a=>a.origen==="Manual"&&a.fecha>"2026-10-01");S.sel=new Set([a.lines[1].id]);render();scrollSel();};
+$("#d-multi").onclick=()=>{limpiar();S.vista="lista";S.cta="4300012";syncInputs();render();S.sel=new Set(S.rows.slice(1,5));render();scrollSel();};
+$("#d-vacio").onclick=()=>{limpiar();S.q="zzz";S.origen="Nóminas";syncInputs();render();};
+function scrollSel(){const r=$("#tb tbody tr.sel");if(r){const tw=$("#tw");tw.scrollTop=Math.max(0,r.offsetTop-80);}}
+
+$("#f-cc").insertAdjacentHTML("beforeend",CCS.map(c=>`<option>${c}</option>`).join(""));
+syncInputs();
+{const a=first(a=>a.origen==="Manual"&&a.fecha>"2026-07-01");S.sel=new Set([a.lines[0].id]);S.ancla=a.lines[0].id;}
+render();scrollSel();
+</script>
+</body></html>
