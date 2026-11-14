@@ -7,7 +7,7 @@ threads:
 ## Summary
 Las reglas que sigue todo hilo cuando trabaja en un nodo de este proyecto. Los prompts que copia la página apuntan aquí en lugar de repetirlas.
 Las "CVP rules" las escribe Claude Visual Project y las reemplaza "Update rules"; las "Project rules" son propias de este proyecto y la página nunca las cambia.
-Las Project rules incluyen las reglas del dominio: importes en decimal con redondeo documentado, invariantes contables en las pruebas, sin datos reales en el repositorio, paridad con ProConta y zona horaria Europe/Madrid.
+Las Project rules incluyen el criterio del menú contextual y de las integraciones, y las reglas del dominio: importes en decimal con redondeo documentado, invariantes contables en las pruebas, sin datos reales en el repositorio, paridad con ProConta y zona horaria Europe/Madrid.
 
 ## Decisions
 - 2026-10-28 12:30 · Creado por Claude Visual Project con su versión de reglas 10.
@@ -16,6 +16,7 @@ Las Project rules incluyen las reglas del dominio: importes en decimal con redon
 - 2026-11-04 23:55 · [replaced by 2026-11-05 10:55] La línea «Claude project» apunta al proyecto de Claude nuevo (chan_0125B72VaQBNxehpdTjp4Nvp), al que se trasladaron los hilos desde el anterior; acordado con el propietario en el hilo «Diseñar atajos de teclado».
 - 2026-11-05 10:20 · Se añade a Project rules la regla «Menú contextual», a petición del propietario (ver facturacion/pantallas 2026-11-05 10:20).
 - 2026-11-05 10:55 · La línea «Claude project» apunta al proyecto ProContaVF (chan_01SQZ7PCqQx2V9FyGTmZCe5G), donde se vuelve a trabajar desde el 2026-11-04.
+- 2026-11-14 19:55 · La regla «Menú contextual» de Project rules se precisa a petición del propietario (facturacion/reservas 2026-11-14 17:15): el menú contextual es para las acciones que afectan directamente a los objetos seleccionados; las acciones generales van en la cabecera. Sustituye en eso a la redacción del 2026-11-05 10:20 («sin botones de acción salvo «Nueva…»»). Se añade la regla «Integraciones».
 
 ## CVP rules
 <!-- cvp-rules 14 begin · Written by Claude Visual Project ("Update rules" in the page). Do not edit: an update replaces everything up to the end marker. Add your own rules under ## Project rules. -->
@@ -81,9 +82,13 @@ Once confirmed, the change is atomic: do all of it in this thread and one branch
 - **Real data.** No real customer data and no `.accdb` or `.mdb` files in the repository. Test copies hold invented data only.
 - **Parity with ProConta.** Fiscal features (VeriFactu, models 303 and 390, prorrata) are covered by a few unit tests that compare their result with known ProConta values.
 - **Time zone.** Europe/Madrid: dated lines in the docs use local time in that zone, not UTC.
-- **Menú contextual.** En las pantallas de listado, las acciones van en el menú contextual siempre que se pueda, para dejar la pantalla más limpia y homogeneizar la forma de trabajar: selección múltiple con Ctrl o Mayús, opciones exclusivas de selección simple o múltiple, y sin botones de acción salvo «Nueva…» en la cabecera.
+- **Menú contextual.** En las pantallas de listado, las acciones que actúan sobre los objetos seleccionados van en el menú contextual, para dejar la pantalla más limpia y homogeneizar la forma de trabajar: selección múltiple con Ctrl o Mayús y opciones exclusivas de selección simple o múltiple. Un menú contextual solo tiene sentido si el objeto seleccionado se ve afectado directamente por la acción: las acciones generales, que no actúan sobre uno o varios objetos de la lista («Nueva…», «Importar…», «Facturar todo»), van como botones en la cabecera.
+- **Integraciones.** La conexión con cada plataforma externa se configura en Parámetros y tablas, bajo la rama «Integraciones», con una entrada por plataforma («Avaibook · Conexión»…), para tener todas las integraciones en un solo sitio.
 - Claude project: https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G
 
 ## Requirements
 - 2026-11-01 17:56 · Te parece bien aplicar el punto 5 de este documento a este proyecto ?
 - 2026-11-01 17:57 · Ok, abre un hilo.
+- 2026-11-14 17:03 · Sí, al no ser una acción que se ejecute sobre uno o varios objetos 'reserva / ventas por facturar', no debería estar en el contextual.
+- 2026-11-14 17:03 · La configuración de Avaibook quizá estaría mejor en una rama 'Integraciones\Avaibook' dentro de la pantalla de configuración. De esa forma, organizaremos en una sola rama las integraciones con plataformas externas.
+- 2026-11-14 19:51 · Sí, un menú contextual solo tiene sentido si el objeto seleccionado se ve afectado directamente por esa acción.
