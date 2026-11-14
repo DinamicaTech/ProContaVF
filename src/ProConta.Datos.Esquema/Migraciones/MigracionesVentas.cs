@@ -7,7 +7,7 @@ public static class MigracionesVentas
     /// Ventas por facturar (facturacion/reservas 2026-11-14): orígenes de venta por sociedad (con el cliente al que se factura
     /// y los textos con que llegan en las importaciones), las ventas sin factura (reservas de Avaibook, altas manuales y
     /// reservas del ERP ya facturadas), los alojamientos de Avaibook con su piso y concepto, y la conexión con Avaibook por
-    /// sociedad (token cifrado). Solo crea tablas.
+    /// sociedad (token cifrado). Solo crea tablas. No llevan relación con Sociedades: Access no admite más índices en esa tabla.
     /// </summary>
     public static Migracion VentasPorFacturar { get; } = new(
         "20261114_1200_VENTAS_POR_FACTURAR", 261114010,
@@ -15,7 +15,7 @@ public static class MigracionesVentas
         "facturacion/reservas",
         new CrearTabla("OrigenesVenta",
             "CREATE TABLE OrigenesVenta (IdOrigenVenta COUNTER CONSTRAINT PK_OrigenesVenta PRIMARY KEY, " +
-            "IdSociedad TEXT(3) NOT NULL CONSTRAINT FK_OrigenesVenta_Sociedad REFERENCES Sociedades (IdSociedad), " +
+            "IdSociedad TEXT(3) NOT NULL, " +
             "Codigo TEXT(20) NOT NULL, Nombre TEXT(60) NOT NULL, " +
             "IdCliente LONG CONSTRAINT FK_OrigenesVenta_Cliente REFERENCES Clientes (IdCliente), " +
             "TextosImportacion TEXT(255), EsDirecta YESNO NOT NULL, Activo YESNO NOT NULL)"),
@@ -23,7 +23,7 @@ public static class MigracionesVentas
             "CREATE UNIQUE INDEX UX_OrigenesVenta_SociedadCodigo ON OrigenesVenta (IdSociedad, Codigo)"),
         new CrearTabla("VentasPorFacturar",
             "CREATE TABLE VentasPorFacturar (IdVentaPorFacturar COUNTER CONSTRAINT PK_VentasPorFacturar PRIMARY KEY, " +
-            "IdSociedad TEXT(3) NOT NULL CONSTRAINT FK_VentasPorFacturar_Sociedad REFERENCES Sociedades (IdSociedad), " +
+            "IdSociedad TEXT(3) NOT NULL, " +
             "IdOrigenVenta LONG NOT NULL CONSTRAINT FK_VentasPorFacturar_Origen REFERENCES OrigenesVenta (IdOrigenVenta), " +
             "IdCliente LONG CONSTRAINT FK_VentasPorFacturar_Cliente REFERENCES Clientes (IdCliente), " +
             "IdActivo LONG CONSTRAINT FK_VentasPorFacturar_Activo REFERENCES Activos (IdActivo), " +
@@ -41,15 +41,14 @@ public static class MigracionesVentas
             "CREATE INDEX IX_VentasPorFacturar_Factura ON VentasPorFacturar (IdFactura)"),
         new CrearTabla("AlojamientosAvaibook",
             "CREATE TABLE AlojamientosAvaibook (IdAlojamientoAvaibook COUNTER CONSTRAINT PK_AlojamientosAvaibook PRIMARY KEY, " +
-            "IdSociedad TEXT(3) NOT NULL CONSTRAINT FK_AlojamientosAvaibook_Sociedad REFERENCES Sociedades (IdSociedad), " +
+            "IdSociedad TEXT(3) NOT NULL, " +
             "IdExterno TEXT(40) NOT NULL, Nombre TEXT(255), " +
             "IdActivo LONG CONSTRAINT FK_AlojamientosAvaibook_Activo REFERENCES Activos (IdActivo), " +
             "IdConcepto LONG, CausaExencion TEXT(2), Activo YESNO NOT NULL)"),
         new CrearIndice("AlojamientosAvaibook", "UX_AlojamientosAvaibook_SociedadExterno",
             "CREATE UNIQUE INDEX UX_AlojamientosAvaibook_SociedadExterno ON AlojamientosAvaibook (IdSociedad, IdExterno)"),
         new CrearTabla("ConexionesAvaibook",
-            "CREATE TABLE ConexionesAvaibook (IdSociedad TEXT(3) NOT NULL CONSTRAINT PK_ConexionesAvaibook PRIMARY KEY " +
-            "CONSTRAINT FK_ConexionesAvaibook_Sociedad REFERENCES Sociedades (IdSociedad), " +
+            "CREATE TABLE ConexionesAvaibook (IdSociedad TEXT(3) NOT NULL CONSTRAINT PK_ConexionesAvaibook PRIMARY KEY, " +
             "Activa YESNO NOT NULL, Direccion TEXT(255) NOT NULL, SecretoProtegido LONGTEXT, ImportarDesde DATETIME, " +
             "UltimaImportacion DATETIME, OperadorUltimaImportacion TEXT(100), ResumenUltimaImportacion LONGTEXT)"))
     {
