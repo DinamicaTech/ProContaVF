@@ -314,6 +314,12 @@ public sealed class PantallaMantenimientoVM : ModeloVista, IPestanaTrabajo
         if (p is not null) await AbrirAsync(p, null);
     }
 
+    /// <summary>Con la pantalla ya abierta, cambia a la tabla de esa clave (si hay cambios sin guardar, pregunta antes).</summary>
+    public async Task IrAAsync(string clave)
+    {
+        if (_servicio.Proveedor(clave) is { } p) await AbrirAsync(p, null);
+    }
+
     // ---------- IPestanaTrabajo ----------
     public string Titulo => "Parámetros y tablas";
     public string Ayuda => TieneCambios ? $"Parámetros y tablas auxiliares · cambios sin guardar en {_proveedor?.Titulo}" : "Parámetros y tablas auxiliares: configuración, empresas, ejercicios, series, conceptos y catálogos";

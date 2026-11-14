@@ -96,6 +96,8 @@ public static class CatalogoMigraciones
         MigracionesNominas.Importacion,
         MigracionesOrganizacion.LimpiezaSociedadesEjercicios,
         MigracionesFacturacion.DatosPagoFactura,
+        MigracionesVentas.VentasPorFacturar,
+        MigracionesVentas.ReglasVentaAgrupacion,
     ];
 
     /// <summary>Versión del esquema que espera esta versión del programa.</summary>
