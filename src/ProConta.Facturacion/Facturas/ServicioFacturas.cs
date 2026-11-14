@@ -407,6 +407,18 @@ public sealed class ServicioFacturas
                     r.Add(new("Facturas.ClienteSinNif", $"El cliente {tercero.Nombre} no tiene NIF, que es obligatorio en una factura completa. Escríbelo en su ficha.", "Cliente", Accion: "AbrirFichaCliente"));
                 if (string.IsNullOrWhiteSpace(tercero.RazonSocial) && string.IsNullOrWhiteSpace(tercero.Nombre))
                     r.Add(new("Facturas.ClienteSinNombre", "El cliente no tiene nombre ni razón social. Complétalo en su ficha.", "Cliente", Accion: "AbrirFichaCliente"));
+                if (f.FormaDePago is byte fp)
+                {
+                    var pago = await _bd.EjecutarAsync(async s =>
+                    {
+                        var forma = await s.ConsultarPrimeroAsync("SELECT Descripcion, SEPA FROM FormasPago WHERE Id = ?", x => (Descripcion: x.Texto("Descripcion"), Sepa: x.Logico("SEPA")), (int)fp);
+                        var iban = forma.Sepa ? await s.EscalarAsync("SELECT IBAN FROM Clientes WHERE IdCliente = ?", idCliente) as string : null;
+                        var cuenta = !forma.Sepa ? await s.EscalarAsync("SELECT fps.IdCuentaBancaria FROM FormasPagoSociedad AS fps INNER JOIN CuentasBancarias AS b ON fps.IdCuentaBancaria = b.IdCuentaBancaria " +
+                            "WHERE fps.IdSociedad = ? AND fps.IdFormaPago = ?", ejercicio.IdSociedad, (int)fp) : null;
+                        return (forma.Descripcion, forma.Sepa, Iban: iban, Cuenta: cuenta is not null and not DBNull);
+                    });
+                    r.AddRange(ReglasFactura.AvisosPago(pago.Descripcion, pago.Sepa, !string.IsNullOrWhiteSpace(pago.Iban), pago.Cuenta, tercero.Nombre));
+                }
             }
         }
 

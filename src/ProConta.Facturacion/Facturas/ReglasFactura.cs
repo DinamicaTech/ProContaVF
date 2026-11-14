@@ -124,5 +124,23 @@ public static class ReglasFactura
     }
 
     /// <summary>Tipo de la rectificativa (decisión histórica): R5 si la original es simplificada (F2), R4 en el resto.</summary>
+    /// <summary>
+    /// Avisos del bloque de pago del PDF (facturacion/factura-venta 2026-11-13 11:58): una transferencia sin cuenta de cobro
+    /// configurada en la empresa, o un recibo domiciliado de un cliente sin IBAN, harían una factura sin dónde pagar.
+    /// </summary>
+    public static IReadOnlyList<Incidencia> AvisosPago(string? formaPago, bool sepa, bool tieneIbanCliente, bool tieneCuentaEmpresa, string nombreCliente)
+    {
+        if (string.IsNullOrWhiteSpace(formaPago)) return [];
+        if (sepa)
+            return tieneIbanCliente ? [] : [new("Facturas.ReciboSinIban", $"La forma de pago es «{formaPago.Trim()}», pero el cliente {nombreCliente} no tiene IBAN: la factura saldrá sin la cuenta en la que se cargará. Escríbelo en su ficha (pestaña Roles).", "FormaPago", EsAviso: true, Accion: "AbrirFichaCliente")];
+        return EsTransferencia(formaPago) && !tieneCuentaEmpresa
+            ? [new("Facturas.TransferenciaSinCuenta", $"La forma de pago es «{formaPago.Trim()}», pero la empresa no tiene una cuenta bancaria asignada a ella: la factura saldrá sin la cuenta en la que ingresar. Asígnala en Parámetros y tablas › Cuentas de las formas de pago.", "FormaPago", EsAviso: true)]
+            : [];
+    }
+
+    /// <summary>Una forma de pago es transferencia si lo dice su nombre (también con la errata «Trasferencia» del ERP).</summary>
+    public static bool EsTransferencia(string formaPago) =>
+        formaPago.Contains("transf", StringComparison.OrdinalIgnoreCase) || formaPago.Contains("trasf", StringComparison.OrdinalIgnoreCase);
+
     public static string TipoRectificativaDe(string tipoOriginal) => tipoOriginal == "F2" ? "R5" : "R4";
 }

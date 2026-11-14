@@ -208,4 +208,27 @@ public static class MigracionesFacturacion
         "facturacion/factura-venta",
         new AnadirColumna("IVARepercutido", "IdFactura", "LONG"),
         new CrearIndice("IVARepercutido", "IX_IVAR_Factura", "CREATE INDEX IX_IVAR_Factura ON IVARepercutido (IdFactura)"));
+
+    /// <summary>
+    /// Datos de pago y de presentación de la factura (facturacion/factura-venta 2026-11-13 12:13): el logo y el teléfono de la
+    /// empresa, la cuenta bancaria en la que se cobra cada forma de pago en cada empresa (la que sale en las transferencias) y el
+    /// IBAN de cada cliente (el que sale enmascarado en los recibos domiciliados). Solo añade columnas.
+    /// </summary>
+    public static Migracion DatosPagoFactura { get; } = new(
+        "20261113_2345_DATOS_PAGO_FACTURA", 261113030,
+        "Logo y teléfono de la empresa, cuenta bancaria de cada forma de pago en cada empresa e IBAN del cliente, para la factura.",
+        "facturacion/factura-venta",
+        new AnadirColumna("Sociedades", "Telefono", "TEXT(30)"),
+        new AnadirColumna("Sociedades", "Logo", "TEXT(255)"),
+        new AnadirColumna("FormasPagoSociedad", "IdCuentaBancaria", "LONG"),
+        new AnadirColumna("Clientes", "IBAN", "TEXT(34)"))
+    {
+        Descripciones =
+        [
+            new("Sociedades", "Telefono", "Teléfono de la empresa; sale en sus facturas junto al domicilio del emisor."),
+            new("Sociedades", "Logo", "Fichero JPG o PNG del logo que sale en las facturas; si la ruta es relativa, dentro de RutaDocumentos. Vacío: sale el nombre de la empresa."),
+            new("FormasPagoSociedad", "IdCuentaBancaria", "Cuenta bancaria de la empresa (CuentasBancarias) en la que se cobra esta forma de pago; su IBAN sale en las facturas, por ejemplo en las transferencias."),
+            new("Clientes", "IBAN", "IBAN del cliente, sin espacios, para los recibos domiciliados; en la factura sale enmascarado (solo los cuatro últimos dígitos)."),
+        ],
+    };
 }

@@ -1,5 +1,6 @@
 using System.Globalization;
 using ProConta.Facturacion.Facturas;
+using ProConta.Nucleo.Identificacion;
 using ProConta.Nucleo.Importes;
 using ProConta.Terceros.Contactos;
 
@@ -238,6 +239,19 @@ public static class ReglasErp
     }
 
     /// <summary>Número de factura del ERP (Id) como texto, para Facturas.NumeroFactura y los enlaces por DOCAPU/FACIVR.</summary>
+    /// <summary>
+    /// IBAN de una fila de DatosBancarios del ERP: PaisIBAN trae el país y sus dígitos de control («ES05») y el resto es el CCC.
+    /// Sin dígitos de país se calculan; si el resultado no es un IBAN válido, null.
+    /// </summary>
+    public static string? IbanDatosBancarios(string? paisIban, string? entidad, string? oficina, string? control, string? cuenta)
+    {
+        static string Ceros(string? t, int n) => (t ?? "").Trim().PadLeft(n, '0');
+        var (e, o, c, k) = (Ceros(entidad, 4), Ceros(oficina, 4), Ceros(control, 2), Ceros(cuenta, 10));
+        var pais = Ibanes.Normalizar(paisIban);
+        var iban = pais is { Length: 4 } ? Ibanes.Normalizar(pais + e + o + c + k) : Ibanes.DesdeCcc(e, o, c, k);
+        return Ibanes.EsValido(iban) ? iban : null;
+    }
+
     public static string Numero(int id) => id.ToString(CultureInfo.InvariantCulture);
 
     public static string? Recortar(string? texto, int maximo) =>

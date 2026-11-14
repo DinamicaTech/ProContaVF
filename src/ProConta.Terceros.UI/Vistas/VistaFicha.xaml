@@ -553,6 +553,10 @@
                   <StackPanel Margin="14,0,14,12" Visibility="{Binding ClienteActivo, Converter={StaticResource Visible}}">
                     <ContentControl Content="{Binding CuentaCliente}" ContentTemplate="{StaticResource FilaCuenta}" />
                     <ContentControl Content="{Binding CuentaRetencion}" ContentTemplate="{StaticResource FilaCuenta}" />
+                    <TextBlock Text="IBAN para recibos domiciliados" Style="{StaticResource Etiqueta.Campo}" />
+                    <TextBox Text="{Binding IbanCliente, ValidatesOnNotifyDataErrors=True}" Tag="IbanCliente" Width="300" MaxLength="42" HorizontalAlignment="Left"
+                             Style="{StaticResource Campo.Mono}" Margin="0,0,0,10"
+                             ToolTip="Cuenta del cliente en la que se cargan los recibos domiciliados (ES y 22 dígitos). En sus facturas sale enmascarada, con solo los cuatro últimos dígitos. Vacío si no paga por recibo." />
                     <TextBlock Text="Notas del cliente" Style="{StaticResource Etiqueta.Campo}" />
                     <TextBox Text="{Binding NotasCliente, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource Campo.Multilinea}" Width="760" Height="64" HorizontalAlignment="Left"
                              ToolTip="Observaciones del rol Cliente (se guardan con la ficha)" />

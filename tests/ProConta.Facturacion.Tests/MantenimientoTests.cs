@@ -115,8 +115,8 @@ public sealed class MantenimientoAccessTests : IDisposable
         var empresa = (await Servicio().Proveedor("sociedades")!.ListarAsync(Ctx)).Single(r => r.Texto("IdSociedad") == "T01");
         Assert.Equal(("1130000", "5700000"), (empresa.Texto("Cuenta113ParaCuadres"), empresa.Texto("Cuenta570Tesoreria")));
         // Solo los campos que quedan en cada tabla (organizacion/sociedades-ejercicios 2026-11-13 20:55).
-        Assert.Equal(["IdSociedad", "Nombre", "CIF", "DireccionFiscal", "CodigoPostalFiscal", "PoblacionFiscal", "ProvinciaFiscal",
-            "Cuenta113ParaCuadres", "Cuenta570Tesoreria", "RutaDocumentos"], Servicio().Proveedor("sociedades")!.Campos.Select(c => c.Clave).ToArray());
+        Assert.Equal(["IdSociedad", "Nombre", "CIF", "DireccionFiscal", "CodigoPostalFiscal", "PoblacionFiscal", "ProvinciaFiscal", "Telefono",
+            "Cuenta113ParaCuadres", "Cuenta570Tesoreria", "RutaDocumentos", "Logo"], Servicio().Proveedor("sociedades")!.Campos.Select(c => c.Clave).ToArray());
         Assert.Equal(new[] { "Ejercicio", "Nombre", "TrimestreActivo", "Activa", "EjercicioCerrado", "FormaPagoDefecto", "TipoIVAGeneral", "PorcentajeProrrataAñoAnterior",
             "CuentaSuplido", "CuentaRetencionServicios", "CuentaRetencionAlquileres", "CuentaIVAIntracomunitarioRepercutidoServicios", "CuentaIVAIntracomunitarioRepercutidoBienes",
             "CuentaIVAIntracomunitarioSoportadoServicios", "CuentaIVAIntracomunitarioSoportadoBienes", "CuentaIVAInversionSujetoPasivoRepercutido",
