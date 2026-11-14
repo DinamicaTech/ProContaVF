@@ -4,48 +4,113 @@ using ProConta.Facturacion.Ventas;
 
 namespace ProConta.Facturacion.Tests;
 
-/// <summary>Reglas sin BD de las ventas por facturar (facturacion/reservas): agrupación, líneas exactas y lectura de Avaibook.</summary>
+/// <summary>Reglas sin BD de las ventas por facturar (facturacion/reservas): reglas de venta, agrupación, líneas exactas y lectura de Avaibook.</summary>
 public sealed class VentasTests
 {
-    private static readonly OrigenVenta Airbnb = new(1, "T01", "AIRBNB", "Airbnb", 57, "Airbnb", false, true);
-    private static readonly OrigenVenta Booking = new(2, "T01", "BOOKING", "Booking", 58, "Booking.com;Booking", false, true);
-    private static readonly OrigenVenta Directa = new(3, "T01", "DIRECTA", "Directa", null, null, true, true);
+    private static readonly OrigenVenta Airbnb = new(1, "T01", "AIRBNB", "Airbnb", "Airbnb", false, true);
+    private static readonly OrigenVenta Booking = new(2, "T01", "BOOKING", "Booking", "Booking.com;Booking", false, true);
+    private static readonly OrigenVenta Directa = new(3, "T01", "DIRECTA", "Directa", null, true, true);
     private static readonly Dictionary<int, OrigenVenta> Origenes = new() { [1] = Airbnb, [2] = Booking, [3] = Directa };
     private static readonly Dictionary<int, string> Clientes = new() { [57] = "CLIENTES AIRBNB", [58] = "CLIENTES BOOKING", [99] = "Huésped que pide factura" };
     private static readonly Dictionary<int, ActivoVenta> Activos = new() { [18] = new(18, "Castelldefels 133", 34), [19] = new(19, "Cádiz 3", 35) };
     private static readonly Concepto Alquiler = new(10, "T01", null, "Alquiler turístico", null, 1, "7520002", "Alquiler turístico", true, null, 3, 0m, 0m, true, null);
-    private static readonly Dictionary<int, Concepto> Conceptos = new() { [10] = Alquiler };
+    private static readonly Concepto Otro = new(11, "T01", null, "Alquiler de temporada", null, 2, "7520003", "Alquiler de temporada", true, null, null, 0m, 21m, true, null);
+    private static readonly Dictionary<int, Concepto> Conceptos = new() { [10] = Alquiler, [11] = Otro };
+
+    /// <summary>Airbnb y Booking exentos (E1) con su plataforma como cliente; Directa no tiene regla.</summary>
+    private static readonly ReglaVenta[] Reglas =
+    [
+        new(1, "T01", 1, null, 10, "E1", null, 57, true),
+        new(2, "T01", 2, null, 10, "E1", null, 58, true),
+    ];
+
+    private static DatosVentas Datos(IReadOnlyList<ReglaVenta>? reglas = null) => new(Origenes, reglas ?? Reglas, Clientes, Activos, Conceptos);
 
     private static int _id;
 
-    private static VentaPorFacturar Venta(int origen, DateTime entrada, decimal importe, int noches = 3, int? piso = 18, int? cliente = null) => new VentaPorFacturar
+    /// <summary>Venta como la deja la importación: solo origen, activo, fechas e importe; lo demás lo pone la regla.</summary>
+    private static VentaPorFacturar Venta(int origen, DateTime entrada, decimal importe, int noches = 3, int? activo = 18, int? cliente = null) => new VentaPorFacturar
     {
         IdSociedad = "T01",
         IdOrigenVenta = origen,
         IdCliente = cliente,
-        IdActivo = piso,
-        IdConcepto = 10,
+        IdActivo = activo,
         FechaReferencia = entrada,
         FechaFin = entrada.AddDays(noches),
         Cantidad = noches,
         Importe = importe,
-        CausaExencion = "E1",
     }.ConId(++_id);
 
+    private static LineaFacturaVenta Linea(VentaPorFacturar v, IReadOnlyList<ReglaVenta>? reglas = null)
+    {
+        var res = AgrupadorVentas.Resolver(v, reglas ?? Reglas);
+        return AgrupadorVentas.Linea(v, res, Conceptos[res.IdConcepto!.Value], v.IdActivo is int a ? Activos[a] : null, Origenes[v.IdOrigenVenta]);
+    }
+
     [Fact]
-    public void AgrupaPorClienteMesYPisoConUnaLineaPorVenta()
+    public void LaReglaPoneConceptoIvaYClienteSinTocarLaVenta()
+    {
+        var v = Venta(1, new DateTime(2026, 1, 2), 1391m, 11);
+        var res = AgrupadorVentas.Resolver(v, Reglas);
+        Assert.Equal(57, res.IdCliente);
+        Assert.Equal(10, res.IdConcepto);
+        Assert.Equal("E1", res.CausaExencion);
+        Assert.Equal("Exenta E1", res.TextoIva);
+        Assert.Null(v.IdConcepto);
+        Assert.Null(v.IdCliente);
+    }
+
+    [Fact]
+    public void LaReglaDelActivoGanaALaGeneralDelOrigen()
+    {
+        ReglaVenta[] reglas = [.. Reglas, new(3, "T01", 1, 19, 11, null, 10m, 99, true), new(4, "T01", 1, 18, 11, null, 21m, 99, false)];
+        var cadiz = AgrupadorVentas.Resolver(Venta(1, new DateTime(2026, 1, 2), 100m, activo: 19), reglas);
+        Assert.Equal((99, 11, null, 10m), (cadiz.IdCliente, cadiz.IdConcepto, cadiz.CausaExencion, cadiz.TipoIva));
+        // La regla del activo 18 está inactiva: vale la general.
+        var castelldefels = AgrupadorVentas.Resolver(Venta(1, new DateTime(2026, 1, 2), 100m, activo: 18), reglas);
+        Assert.Equal((57, 10, "E1"), (castelldefels.IdCliente, castelldefels.IdConcepto, castelldefels.CausaExencion));
+        Assert.Null(ReglaVenta.Para(reglas, 3, 18));
+    }
+
+    [Fact]
+    public void LoPropioDeLaVentaGanaALaRegla()
+    {
+        var v = Venta(1, new DateTime(2026, 1, 2), 1100m, 4, cliente: 99);
+        v.IdConcepto = 11;
+        v.TipoIva = 10m;
+        var res = AgrupadorVentas.Resolver(v, Reglas);
+        Assert.Equal((99, 11, null, 10m), (res.IdCliente, res.IdConcepto, res.CausaExencion, res.TipoIva));
+    }
+
+    [Fact]
+    public void CambiarElIvaDeLaReglaValeParaLoPendiente()
+    {
+        // El 01/12/2026 el alquiler turístico pasa de exento al 10 %: basta cambiar la regla; las ventas ya importadas no se tocan.
+        var v = Venta(1, new DateTime(2026, 12, 5), 1100m, 4);
+        Assert.Equal(1100m, Linea(v).BaseImponible.Valor);
+        ReglaVenta[] alDiez = [Reglas[0] with { CausaExencion = null, TipoIva = 10m }, Reglas[1]];
+        var l = Linea(v, alDiez);
+        Assert.Null(l.CausaExencion);
+        Assert.Equal(10m, l.TipoIva);
+        Assert.Equal(1100m, l.ImporteTotal.Valor);
+        Assert.Equal(1000m, l.BaseImponible.Valor);
+        Assert.Equal(100m, l.CuotaIva.Valor);
+    }
+
+    [Fact]
+    public void AgrupaPorClienteMesYActivoConUnaLineaPorVenta()
     {
         var ventas = new[]
         {
             Venta(1, new DateTime(2026, 1, 2), 1391m, 11),
             Venta(1, new DateTime(2026, 1, 13), 822m, 7),
             Venta(1, new DateTime(2026, 1, 21), 338m),
-            Venta(2, new DateTime(2026, 1, 18), 272.8m, 2, piso: 19),
+            Venta(2, new DateTime(2026, 1, 18), 272.8m, 2, activo: 19),
             Venta(1, new DateTime(2026, 2, 1), 500m),                 // otro mes
-            Venta(1, new DateTime(2026, 1, 25), 300m, piso: 19),      // otro piso
+            Venta(1, new DateTime(2026, 1, 25), 300m, activo: 19),    // otro activo
             Venta(1, new DateTime(2026, 1, 26), 450m, cliente: 99),   // el huésped pide factura a su nombre
         };
-        var grupos = AgrupadorVentas.Agrupar(ventas, Origenes, Clientes, Activos, Conceptos);
+        var grupos = AgrupadorVentas.Agrupar(ventas, Datos());
 
         Assert.All(grupos, g => Assert.True(g.Facturable, g.Problema));
         Assert.Equal(5, grupos.Count);
@@ -58,16 +123,16 @@ public sealed class VentasTests
     }
 
     [Fact]
-    public void SinClienteNiConceptoNoSeFacturaYDiceQueCorregir()
+    public void SinReglaNoSeFacturaYDiceDondeConfigurarla()
     {
-        var sinCliente = Venta(3, new DateTime(2026, 1, 5), 2000m);
+        var directa = Venta(3, new DateTime(2026, 1, 5), 2000m);
         var sinConcepto = Venta(1, new DateTime(2026, 1, 6), 100m);
-        sinConcepto.IdConcepto = null;
-        var grupos = AgrupadorVentas.Agrupar([sinCliente, sinConcepto], Origenes, Clientes, Activos, Conceptos);
+        ReglaVenta[] reglas = [Reglas[0] with { IdConcepto = null }];
+        var grupos = AgrupadorVentas.Agrupar([directa, sinConcepto], Datos(reglas));
         Assert.Equal(2, grupos.Count);
         Assert.All(grupos, g => Assert.False(g.Facturable));
-        Assert.Contains(grupos, g => g.Problema!.Contains("No tiene cliente"));
-        Assert.Contains(grupos, g => g.Problema!.Contains("No tiene concepto"));
+        Assert.Contains(grupos, g => g.Problema!.Contains("No tiene cliente") && g.Problema.Contains("Reglas de venta"));
+        Assert.Contains(grupos, g => g.Problema!.Contains("No tiene concepto") && g.Problema.Contains("Airbnb y Castelldefels 133"));
     }
 
     [Fact]
@@ -77,7 +142,7 @@ public sealed class VentasTests
         anulada.Anulada = true;
         var erp = Venta(1, new DateTime(2026, 1, 3), 100m);
         erp.FacturadaFuera = true;
-        Assert.Empty(AgrupadorVentas.Agrupar([anulada, erp], Origenes, Clientes, Activos, Conceptos));
+        Assert.Empty(AgrupadorVentas.Agrupar([anulada, erp], Datos()));
     }
 
     [Theory]
@@ -88,8 +153,7 @@ public sealed class VentasTests
     [InlineData(2000, 1500)]
     public void LaLineaConservaElImporteExactoDeLaVenta(decimal importe, int noches)
     {
-        var v = Venta(1, new DateTime(2026, 1, 2), importe, noches);
-        var l = AgrupadorVentas.Linea(v, Alquiler, Activos[18], Airbnb);
+        var l = Linea(Venta(1, new DateTime(2026, 1, 2), importe, noches));
         Assert.Equal(importe, l.ImporteTotal.Valor);
         Assert.Equal(importe, l.BaseImponible.Valor);
         Assert.Equal(0m, l.TipoIva);
@@ -100,25 +164,27 @@ public sealed class VentasTests
     }
 
     [Fact]
-    public void ConIvaElTotalEsLoQuePagaElHuesped()
+    public void SinIvaEnLaReglaValeElDelConcepto()
     {
-        var v = Venta(1, new DateTime(2026, 1, 2), 1100m, 4);
-        v.CausaExencion = null;
-        v.TipoIva = 10m;
-        var l = AgrupadorVentas.Linea(v, Alquiler, null, Airbnb);
-        Assert.Equal(1100m, l.ImporteTotal.Valor);
+        ReglaVenta[] reglas = [new(1, "T01", 1, null, 11, null, null, 57, true)];
+        var l = Linea(Venta(1, new DateTime(2026, 1, 2), 1210m), reglas);
+        Assert.Equal(21m, l.TipoIva);
         Assert.Equal(1000m, l.BaseImponible.Valor);
-        Assert.Equal(100m, l.CuotaIva.Valor);
+        Assert.Equal("El del concepto", AgrupadorVentas.Resolver(Venta(1, new DateTime(2026, 1, 2), 1m), reglas).TextoIva);
     }
 
     [Fact]
     public void LaFacturaCuadra()
     {
         var ventas = new[] { Venta(1, new DateTime(2026, 1, 2), 1391m, 11), Venta(1, new DateTime(2026, 1, 13), 822m, 7), Venta(1, new DateTime(2026, 1, 30), 238m, 2) };
-        var f = new FacturaVenta();
-        foreach (var v in ventas) f.AnadirLinea(AgrupadorVentas.Linea(v, Alquiler, Activos[18], Airbnb));
-        Assert.Equal(2451m, f.Totales.ImporteTotal.Valor);
-        Assert.Equal(f.Totales.BaseImponible.Valor + f.Totales.Iva.Valor - f.Totales.Retencion.Valor + f.Totales.Suplidos.Valor, f.Totales.ImporteTotal.Valor);
+        ReglaVenta[] alDiez = [Reglas[0] with { CausaExencion = null, TipoIva = 10m }];
+        foreach (var reglas in new[] { Reglas, alDiez })
+        {
+            var f = new FacturaVenta();
+            foreach (var v in ventas) f.AnadirLinea(Linea(v, reglas));
+            Assert.Equal(2451m, f.Totales.ImporteTotal.Valor);
+            Assert.Equal(f.Totales.BaseImponible.Valor + f.Totales.Iva.Valor - f.Totales.Retencion.Valor + f.Totales.Suplidos.Valor, f.Totales.ImporteTotal.Valor);
+        }
     }
 
     [Fact]

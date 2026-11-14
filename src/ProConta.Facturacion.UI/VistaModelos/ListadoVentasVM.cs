@@ -10,14 +10,14 @@ using ProConta.UI.Base.Modelos;
 
 namespace ProConta.Facturacion.UI.VistaModelos;
 
-/// <summary>Opción de una lista de la ficha (origen, piso, concepto, tratamiento del IVA); Id null es «sin elegir».</summary>
+/// <summary>Opción de una lista de la ficha (origen, activo, concepto, IVA); Id null es «sin elegir».</summary>
 public sealed record OpcionVenta(object? Id, string Texto)
 {
     public override string ToString() => Texto;
 }
 
 /// <summary>Fila del listado de ventas por facturar.</summary>
-public sealed class FilaVentaVM(VentaPorFacturar datos, string origen, string cliente, string piso) : ModeloVista
+public sealed class FilaVentaVM(VentaPorFacturar datos, string origen, string cliente, string activo, string concepto, string iva) : ModeloVista
 {
     public VentaPorFacturar Datos { get; } = datos;
     public int Id => Datos.IdVentaPorFacturar;
@@ -26,7 +26,9 @@ public sealed class FilaVentaVM(VentaPorFacturar datos, string origen, string cl
     public string Salida => Datos.FechaFin is DateTime f ? Formatos.Fecha(f) : "";
     public string Origen { get; } = origen;
     public string Cliente { get; } = cliente;
-    public string Piso { get; } = piso;
+    public string Activo { get; } = activo;
+    public string Concepto { get; } = concepto;
+    public string Iva { get; } = iva;
     public string Referencia => Datos.Referencia ?? "";
     public decimal Cantidad => Datos.Cantidad;
     public string TextoCantidad => Texto.Cantidad(Datos.Cantidad);
@@ -39,14 +41,15 @@ public sealed class FilaVentaVM(VentaPorFacturar datos, string origen, string cl
     public bool TieneIncidencia => !string.IsNullOrWhiteSpace(Datos.Incidencia);
 
     public bool Contiene(string texto) =>
-        string.IsNullOrWhiteSpace(texto) || new[] { Origen, Cliente, Piso, Datos.Referencia, Datos.Descripcion, Datos.Titular, Datos.Notas, Factura, Id.ToString(Formatos.Cultura) }
+        string.IsNullOrWhiteSpace(texto) || new[] { Origen, Cliente, Activo, Concepto, Datos.Referencia, Datos.Descripcion, Datos.Titular, Datos.Notas, Factura, Id.ToString(Formatos.Cultura) }
             .Any(c => c?.Contains(texto.Trim(), StringComparison.CurrentCultureIgnoreCase) == true);
 }
 
 /// <summary>
 /// Pantalla «Ventas por facturar» (facturacion/pantallas, derivado de facturacion/reservas 2026-11-14 11:45): listado
 /// filtrable de las ventas de la sociedad y, a la derecha, la ficha de la activa, editable mientras está pendiente, con
-/// Guardar/Cancelar al pie. Selección múltiple y acciones en el menú contextual; solo «Nueva venta» en la cabecera.
+/// Guardar/Cancelar al pie. El concepto, el IVA y el cliente de cada venta salen de su regla de venta salvo que la ficha
+/// ponga otros. Selección múltiple y acciones en el menú contextual; solo «Nueva venta» en la cabecera.
 /// </summary>
 public sealed class ListadoVentasVM : ModeloVista, IPestanaTrabajo
 {
@@ -62,11 +65,13 @@ public sealed class ListadoVentasVM : ModeloVista, IPestanaTrabajo
     private string _texto = "";
     private OpcionFiltro _filtroEstado;
     private OpcionVenta _filtroOrigen = new(null, "Todos los orígenes");
-    private OpcionVenta _filtroPiso = new(null, "Todos los pisos");
+    private OpcionVenta _filtroActivo = new(null, "Todos los activos");
     private bool _puedeEditar;
     private int _cargas;
     private IReadOnlyDictionary<int, string> _clientes = new Dictionary<int, string>();
     private IReadOnlyList<OrigenVenta> _origenes = [];
+    private IReadOnlyList<ReglaVenta> _reglas = [];
+    private IReadOnlyDictionary<int, string> _nombresConcepto = new Dictionary<int, string>();
 
     internal ListadoVentasVM(ModuloFacturacion modulo, ServicioVentas ventas)
     {
@@ -81,7 +86,7 @@ public sealed class ListadoVentasVM : ModeloVista, IPestanaTrabajo
         GuardarCommand = new ComandoDelegado(() => _ = GuardarFichaAsync(), () => _puedeEditar && FichaEditable && FichaCambiada);
         CancelarCommand = new ComandoDelegado(CancelarFicha, () => FichaCambiada);
         ElegirClienteCommand = new ComandoDelegado(ElegirCliente, () => FichaEditable);
-        QuitarClienteCommand = new ComandoDelegado(() => { _fIdCliente = null; FichaCliente = "Del origen"; Cambio(); }, () => FichaEditable && _fIdCliente is not null);
+        QuitarClienteCommand = new ComandoDelegado(() => { _fIdCliente = null; FichaCliente = "El de la regla"; Cambio(); }, () => FichaEditable && _fIdCliente is not null);
         AnularCommand = new ComandoDelegado(() => _ = AnularAsync(true), () => _puedeEditar && AAnular.Count > 0);
         ReactivarCommand = new ComandoDelegado(() => _ = AnularAsync(false), () => _puedeEditar && AReactivar.Count > 0);
         EliminarCommand = new ComandoDelegado(() => _ = EliminarAsync(), () => _puedeEditar && AEliminar.Count > 0);
@@ -139,21 +144,21 @@ public sealed class ListadoVentasVM : ModeloVista, IPestanaTrabajo
 
     public IReadOnlyList<OpcionFiltro> OpcionesEstado { get; }
     public ObservableCollection<OpcionVenta> OpcionesOrigen { get; } = [];
-    public ObservableCollection<OpcionVenta> OpcionesPiso { get; } = [];
+    public ObservableCollection<OpcionVenta> OpcionesActivo { get; } = [];
     public string Texto { get => _texto; set { if (Fijar(ref _texto, value ?? "")) Filtrar(); } }
     public OpcionFiltro FiltroEstado { get => _filtroEstado; set { if (value is not null && Fijar(ref _filtroEstado, value)) Filtrar(); } }
     public OpcionVenta FiltroOrigen { get => _filtroOrigen; set { if (value is not null && Fijar(ref _filtroOrigen, value)) Filtrar(); } }
-    public OpcionVenta FiltroPiso { get => _filtroPiso; set { if (value is not null && Fijar(ref _filtroPiso, value)) Filtrar(); } }
+    public OpcionVenta FiltroActivo { get => _filtroActivo; set { if (value is not null && Fijar(ref _filtroActivo, value)) Filtrar(); } }
 
-    public bool HayFiltros => _texto.Length > 0 || _filtroEstado != OpcionesEstado[1] || _filtroOrigen.Id is not null || _filtroPiso.Id is not null;
+    public bool HayFiltros => _texto.Length > 0 || _filtroEstado != OpcionesEstado[1] || _filtroOrigen.Id is not null || _filtroActivo.Id is not null;
 
     private void LimpiarFiltros()
     {
         _texto = "";
         _filtroEstado = OpcionesEstado[1];
         _filtroOrigen = OpcionesOrigen.FirstOrDefault() ?? _filtroOrigen;
-        _filtroPiso = OpcionesPiso.FirstOrDefault() ?? _filtroPiso;
-        Avisar(nameof(Texto), nameof(FiltroEstado), nameof(FiltroOrigen), nameof(FiltroPiso));
+        _filtroActivo = OpcionesActivo.FirstOrDefault() ?? _filtroActivo;
+        Avisar(nameof(Texto), nameof(FiltroEstado), nameof(FiltroOrigen), nameof(FiltroActivo));
         Filtrar();
     }
 
@@ -161,7 +166,7 @@ public sealed class ListadoVentasVM : ModeloVista, IPestanaTrabajo
         f.Contiene(_texto)
         && (_filtroEstado.Valor switch { null => true, "Incidencia" => f.TieneIncidencia, var e => f.Datos.Estado.ToString() == e })
         && (_filtroOrigen.Id is not int o || f.Datos.IdOrigenVenta == o)
-        && (_filtroPiso.Id is not int p || f.Datos.IdActivo == p);
+        && (_filtroActivo.Id is not int p || f.Datos.IdActivo == p);
 
     private void Filtrar()
     {
@@ -230,18 +235,20 @@ public sealed class ListadoVentasVM : ModeloVista, IPestanaTrabajo
 
     private VentaPorFacturar? _ficha;
     private bool _fichaCambiada;
-    private OpcionVenta? _fOrigen, _fPiso, _fConcepto, _fCausa;
+    private OpcionVenta? _fOrigen, _fActivo, _fConcepto, _fIva;
     private int? _fIdCliente;
     private string _fCliente = "", _fFecha = "", _fSalida = "", _fCantidad = "", _fImporte = "", _fComision = "", _fReferencia = "", _fTitular = "", _fDescripcion = "", _fNotas = "";
     private string? _fError;
     private bool _cargandoFicha;
 
     public ObservableCollection<OpcionVenta> FichaOrigenes { get; } = [];
-    public ObservableCollection<OpcionVenta> FichaPisos { get; } = [];
+    public ObservableCollection<OpcionVenta> FichaActivos { get; } = [];
     public ObservableCollection<OpcionVenta> FichaConceptos { get; } = [];
-    public IReadOnlyList<OpcionVenta> FichaCausas { get; } =
-        [new(null, "Sujeta y no exenta (IVA del concepto)"), new("E1", "E1 · Exenta art. 20 (alquiler sin servicios de hostelería)"), new("E2", "E2 · Exenta art. 21"),
-         new("E3", "E3 · Exenta art. 22"), new("E4", "E4 · Exenta arts. 23 y 24"), new("E5", "E5 · Exenta art. 25"), new("E6", "E6 · Exenta por otros")];
+    /// <summary>IVA propio de la venta: null es «el de la regla»; «E1»…«E6», exenta; «S:10», sujeta al 10 %.</summary>
+    public ObservableCollection<OpcionVenta> FichaIvas { get; } = [];
+
+    private static string? ClaveIva(VentaPorFacturar v) =>
+        !string.IsNullOrWhiteSpace(v.CausaExencion) ? v.CausaExencion.Trim() : v.TipoIva is decimal t ? "S:" + t.ToString("0.####", System.Globalization.CultureInfo.InvariantCulture) : null;
 
     public bool HayFicha => _ficha is not null;
     public bool FichaEditable => _ficha is not null && (_ficha.EsNueva || _ficha.EsEditable) && _puedeEditar;
@@ -264,14 +271,29 @@ public sealed class ListadoVentasVM : ModeloVista, IPestanaTrabajo
         _ => _ficha.EsNueva ? "Alta manual" : $"Alta manual de {_ficha.OperadorAlta} el {Formatos.Fecha(_ficha.FechaAlta)}"
     };
 
-    public OpcionVenta? FichaOrigen { get => _fOrigen; set { if (Fijar(ref _fOrigen, value)) { Avisar(nameof(FichaClienteOrigen)); Cambio(); } } }
+    public OpcionVenta? FichaOrigen { get => _fOrigen; set { if (Fijar(ref _fOrigen, value)) { Avisar(nameof(FichaClienteOrigen), nameof(FichaRegla)); Cambio(); } } }
     public string FichaCliente { get => _fCliente; private set => Fijar(ref _fCliente, value); }
-    public string FichaClienteOrigen => _fOrigen?.Id is int o && _origenes.FirstOrDefault(x => x.IdOrigenVenta == o) is { } origen
-        ? origen.IdCliente is int c ? $"Sin cliente propio se factura a {_clientes.GetValueOrDefault(c, $"cliente {c}")}, el del origen." : "Su origen no tiene cliente: elige uno."
-        : "";
-    public OpcionVenta? FichaPiso { get => _fPiso; set { if (Fijar(ref _fPiso, value)) Cambio(); } }
+    private ReglaVenta? ReglaFicha => _fOrigen?.Id is int o ? ReglaVenta.Para(_reglas, o, _fActivo?.Id as int?) : null;
+    public string FichaClienteOrigen => _fOrigen?.Id is not int ? ""
+        : ReglaFicha?.IdCliente is int c ? $"Sin cliente propio se factura a {_clientes.GetValueOrDefault(c, $"cliente {c}")}, el de su regla de venta."
+        : "Su regla de venta no tiene cliente: elige uno aquí o ponlo en Parámetros y tablas › Reglas de venta.";
+
+    /// <summary>Lo que la regla de venta del origen y activo de la ficha pondrá al facturar.</summary>
+    public string FichaRegla
+    {
+        get
+        {
+            if (_fOrigen?.Id is not int) return "";
+            if (ReglaFicha is not { } r) return "No hay regla de venta para este origen y activo: créala en Parámetros y tablas › Reglas de venta, o elige aquí concepto, IVA y cliente.";
+            var concepto = r.IdConcepto is int c ? _nombresConcepto.GetValueOrDefault(c, $"concepto {c}") : "sin concepto";
+            var iva = r.CausaExencion is not null ? $"exenta {r.CausaExencion}" : r.TipoIva is decimal t ? $"IVA {VistaModelos.Texto.Porcentaje(t)} %" : "IVA del concepto";
+            return $"Regla de venta{(r.IdActivo is null ? " (general del origen)" : "")}: {concepto} · {iva}.";
+        }
+    }
+
+    public OpcionVenta? FichaActivo { get => _fActivo; set { if (Fijar(ref _fActivo, value)) { Avisar(nameof(FichaClienteOrigen), nameof(FichaRegla)); Cambio(); } } }
     public OpcionVenta? FichaConcepto { get => _fConcepto; set { if (Fijar(ref _fConcepto, value)) Cambio(); } }
-    public OpcionVenta? FichaCausa { get => _fCausa; set { if (Fijar(ref _fCausa, value)) Cambio(); } }
+    public OpcionVenta? FichaIva { get => _fIva; set { if (Fijar(ref _fIva, value)) Cambio(); } }
     public string FichaFecha { get => _fFecha; set { if (Fijar(ref _fFecha, value ?? "")) Cambio(); } }
     public string FichaSalida { get => _fSalida; set { if (Fijar(ref _fSalida, value ?? "")) Cambio(); } }
     public string FichaCantidad { get => _fCantidad; set { if (Fijar(ref _fCantidad, value ?? "")) Cambio(); } }
@@ -298,11 +320,14 @@ public sealed class ListadoVentasVM : ModeloVista, IPestanaTrabajo
         if (v is not null)
         {
             _fOrigen = Buscar(FichaOrigenes, v.IdOrigenVenta == 0 ? null : v.IdOrigenVenta);
-            _fPiso = Buscar(FichaPisos, v.IdActivo);
+            _fActivo = Buscar(FichaActivos, v.IdActivo);
             _fConcepto = Buscar(FichaConceptos, v.IdConcepto);
-            _fCausa = Buscar(FichaCausas, string.IsNullOrWhiteSpace(v.CausaExencion) ? null : v.CausaExencion.Trim());
+            // Un IVA propio que no está entre los tipos habituales se añade para no perderlo.
+            if (ClaveIva(v) is string clave && !FichaIvas.Any(o => Equals(o.Id, clave)))
+                FichaIvas.Add(new OpcionVenta(clave, $"Sujeta al {VistaModelos.Texto.Porcentaje(v.TipoIva ?? 0m)} %"));
+            _fIva = Buscar(FichaIvas, ClaveIva(v));
             _fIdCliente = v.IdCliente;
-            _fCliente = v.IdCliente is int c ? _clientes.GetValueOrDefault(c, $"Cliente {c}") : "Del origen";
+            _fCliente = v.IdCliente is int c ? _clientes.GetValueOrDefault(c, $"Cliente {c}") : "El de la regla";
             _fFecha = Formatos.Fecha(v.FechaReferencia);
             _fSalida = v.FechaFin is DateTime f ? Formatos.Fecha(f) : "";
             _fCantidad = VistaModelos.Texto.Cantidad(v.Cantidad);
@@ -317,7 +342,7 @@ public sealed class ListadoVentasVM : ModeloVista, IPestanaTrabajo
         _cargandoFicha = false;
         FichaCambiada = v is not null && v.EsNueva;
         Avisar(nameof(HayFicha), nameof(FichaEditable), nameof(FichaSoloLectura), nameof(FichaTitulo), nameof(FichaEstado), nameof(FichaAviso), nameof(FichaError), nameof(FichaFuente),
-            nameof(FichaOrigen), nameof(FichaCliente), nameof(FichaClienteOrigen), nameof(FichaPiso), nameof(FichaConcepto), nameof(FichaCausa), nameof(FichaFecha), nameof(FichaSalida),
+            nameof(FichaOrigen), nameof(FichaCliente), nameof(FichaClienteOrigen), nameof(FichaRegla), nameof(FichaActivo), nameof(FichaConcepto), nameof(FichaIva), nameof(FichaFecha), nameof(FichaSalida),
             nameof(FichaCantidad), nameof(FichaImporte), nameof(FichaComision), nameof(FichaReferencia), nameof(FichaTitular), nameof(FichaDescripcion), nameof(FichaNotas));
     }
 
@@ -368,9 +393,11 @@ public sealed class ListadoVentasVM : ModeloVista, IPestanaTrabajo
         }
         v.IdOrigenVenta = _fOrigen?.Id as int? ?? 0;
         v.IdCliente = _fIdCliente;
-        v.IdActivo = _fPiso?.Id as int?;
+        v.IdActivo = _fActivo?.Id as int?;
         v.IdConcepto = _fConcepto?.Id as int?;
-        v.CausaExencion = _fCausa?.Id as string;
+        var iva = _fIva?.Id as string;
+        v.CausaExencion = iva is not null && !iva.StartsWith("S:", StringComparison.Ordinal) ? iva : null;
+        v.TipoIva = iva is not null && iva.StartsWith("S:", StringComparison.Ordinal) ? decimal.Parse(iva[2..], System.Globalization.CultureInfo.InvariantCulture) : null;
         v.FechaReferencia = fecha.Value;
         v.FechaFin = salida;
         v.Cantidad = cantidad;
@@ -416,25 +443,38 @@ public sealed class ListadoVentasVM : ModeloVista, IPestanaTrabajo
             _origenes = await _ventas.OrigenesAsync(sociedad);
             var activos = await _ventas.ActivosAsync(sociedad);
             var conceptos = await _s.Conceptos.ListarAsync(_s.Trabajo);
+            var reglas = await _ventas.ReglasAsync(sociedad);
+            var tiposIva = await _s.Apoyo.TiposIvaAsync();
             _clientes = await _ventas.NombresClientesAsync();
             var ventas = await _ventas.ListarAsync(sociedad);
             if (carga != _cargas) return;
 
+            _reglas = reglas;
+            _nombresConcepto = conceptos.ToDictionary(x => x.IdConcepto, x => x.Nombre);
             var nombresOrigen = _origenes.ToDictionary(o => o.IdOrigenVenta, o => o.Nombre);
             var nombresActivo = activos.ToDictionary(a => a.IdActivo, a => a.Nombre);
-            _todas = ventas.Select(v => new FilaVentaVM(v, nombresOrigen.GetValueOrDefault(v.IdOrigenVenta, $"Origen {v.IdOrigenVenta}"),
-                    AgrupadorVentas.ClienteEfectivo(v, _origenes.ToDictionary(o => o.IdOrigenVenta)) is int c ? _clientes.GetValueOrDefault(c, $"Cliente {c}") : "Sin cliente",
-                    v.IdActivo is int a ? nombresActivo.GetValueOrDefault(a, $"Activo {a}") : ""))
-                .ToList();
+            // Cada fila enseña lo que se facturará: lo propio de la venta o lo de su regla (las ya facturadas en el ERP, solo lo suyo).
+            _todas = ventas.Select(v =>
+            {
+                var res = AgrupadorVentas.Resolver(v, v.FacturadaFuera ? [] : reglas);
+                return new FilaVentaVM(v, nombresOrigen.GetValueOrDefault(v.IdOrigenVenta, $"Origen {v.IdOrigenVenta}"),
+                    res.IdCliente is int c ? _clientes.GetValueOrDefault(c, $"Cliente {c}") : v.FacturadaFuera ? "" : "Sin cliente",
+                    v.IdActivo is int a ? nombresActivo.GetValueOrDefault(a, $"Activo {a}") : "",
+                    res.IdConcepto is int k ? _nombresConcepto.GetValueOrDefault(k, $"Concepto {k}") : v.FacturadaFuera ? "" : "Sin concepto",
+                    v.FacturadaFuera ? "" : res.TextoIva);
+            }).ToList();
 
             Rellenar(OpcionesOrigen, [new OpcionVenta(null, "Todos los orígenes"), .. _origenes.Select(o => new OpcionVenta(o.IdOrigenVenta, o.Nombre))]);
-            Rellenar(OpcionesPiso, [new OpcionVenta(null, "Todos los pisos"), .. activos.Where(a => ventas.Any(v => v.IdActivo == a.IdActivo)).Select(a => new OpcionVenta(a.IdActivo, a.Nombre))]);
+            Rellenar(OpcionesActivo, [new OpcionVenta(null, "Todos los activos"), .. activos.Where(a => ventas.Any(v => v.IdActivo == a.IdActivo)).Select(a => new OpcionVenta(a.IdActivo, a.Nombre))]);
             _filtroOrigen = OpcionesOrigen.FirstOrDefault(o => Equals(o.Id, _filtroOrigen.Id)) ?? OpcionesOrigen[0];
-            _filtroPiso = OpcionesPiso.FirstOrDefault(o => Equals(o.Id, _filtroPiso.Id)) ?? OpcionesPiso[0];
-            Avisar(nameof(FiltroOrigen), nameof(FiltroPiso));
+            _filtroActivo = OpcionesActivo.FirstOrDefault(o => Equals(o.Id, _filtroActivo.Id)) ?? OpcionesActivo[0];
+            Avisar(nameof(FiltroOrigen), nameof(FiltroActivo));
             Rellenar(FichaOrigenes, [new OpcionVenta(null, "Elige el origen"), .. _origenes.Where(o => o.Activo).Select(o => new OpcionVenta(o.IdOrigenVenta, o.Nombre))]);
-            Rellenar(FichaPisos, [new OpcionVenta(null, "Sin piso"), .. activos.Select(a => new OpcionVenta(a.IdActivo, a.Nombre))]);
-            Rellenar(FichaConceptos, [new OpcionVenta(null, "Elige el concepto"), .. conceptos.Where(x => x.Activo).Select(x => new OpcionVenta(x.IdConcepto, x.CuentaVenta is null ? x.Nombre : $"{x.Nombre} ({x.CuentaVenta})"))]);
+            Rellenar(FichaActivos, [new OpcionVenta(null, "Sin activo"), .. activos.Select(a => new OpcionVenta(a.IdActivo, a.Nombre))]);
+            Rellenar(FichaIvas, [new OpcionVenta(null, "El de la regla"), new("E1", "E1 · Exenta art. 20 (alquiler sin servicios de hostelería)"), new("E2", "E2 · Exenta art. 21"),
+                new("E3", "E3 · Exenta art. 22"), new("E4", "E4 · Exenta arts. 23 y 24"), new("E5", "E5 · Exenta art. 25"), new("E6", "E6 · Exenta por otros"),
+                .. tiposIva.Where(t => t > 0m).OrderBy(t => t).Select(t => new OpcionVenta("S:" + t.ToString("0.####", System.Globalization.CultureInfo.InvariantCulture), $"Sujeta al {VistaModelos.Texto.Porcentaje(t)} %"))]);
+            Rellenar(FichaConceptos, [new OpcionVenta(null, "El de la regla"), .. conceptos.Where(x => x.Activo).Select(x => new OpcionVenta(x.IdConcepto, x.CuentaVenta is null ? x.Nombre : $"{x.Nombre} ({x.CuentaVenta})"))]);
 
             var activa = idActiva ?? _activa?.Id;
             var conservada = _todas.FirstOrDefault(f => f.Id == activa);
@@ -538,7 +578,7 @@ public sealed class ListadoVentasVM : ModeloVista, IPestanaTrabajo
             _modulo.FacturaCambiada();
             var res = r.Valor;
             var titulo = res.Facturas.Count == 0 ? "No se ha creado ninguna factura" : Formatos.Plural(res.Facturas.Count, "factura creada", "facturas creadas");
-            var lineas = res.Facturas.Select(f => $"{f.Rotulo} · {f.Cliente} · {f.Piso} · {f.Mes:MM/yyyy} · {Formatos.Plural(f.Ventas, "venta", "ventas")} · {Formatos.Importe(f.Total)}").ToList();
+            var lineas = res.Facturas.Select(f => $"{f.Rotulo} · {f.Cliente} · {f.Activo} · {f.Mes:MM/yyyy} · {Formatos.Plural(f.Ventas, "venta", "ventas")} · {Formatos.Importe(f.Total)}").ToList();
             if (res.SinIncidencias)
             {
                 _modulo.Avisar($"{titulo}. Las ves en Facturas{(e.Validar ? "" : "; los borradores se validan con «Validar…»")}.");

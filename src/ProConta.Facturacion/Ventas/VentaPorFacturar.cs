@@ -19,7 +19,8 @@ public static class FuenteVenta
 
 /// <summary>
 /// Venta registrada antes de facturarla (facturacion/reservas): una reserva de un piso turístico, un servicio… Se factura
-/// después con «Facturar ventas…» al cliente propio o, si no lo tiene, al de su origen.
+/// después con «Facturar ventas…»: el concepto, el IVA y el cliente salen de la regla de venta de su origen y activo, salvo los
+/// que la venta lleve propios.
 /// </summary>
 public sealed class VentaPorFacturar
 {
@@ -86,8 +87,8 @@ public sealed class VentaPorFacturar
     };
 }
 
-/// <summary>Origen de ventas de una sociedad: a quién se factura y con qué textos se reconoce al importar.</summary>
-public sealed record OrigenVenta(int IdOrigenVenta, string IdSociedad, string Codigo, string Nombre, int? IdCliente, string? TextosImportacion, bool EsDirecta, bool Activo)
+/// <summary>Origen de ventas de una sociedad y con qué textos se reconoce al importar.</summary>
+public sealed record OrigenVenta(int IdOrigenVenta, string IdSociedad, string Codigo, string Nombre, string? TextosImportacion, bool EsDirecta, bool Activo)
 {
     /// <summary>Textos de importación, sin espacios sobrantes.</summary>
     public IReadOnlyList<string> Textos =>
@@ -100,5 +101,25 @@ public sealed record OrigenVenta(int IdOrigenVenta, string IdSociedad, string Co
          || string.Equals(Nombre, texto.Trim(), StringComparison.OrdinalIgnoreCase));
 }
 
-/// <summary>Alojamiento de Avaibook y el piso y concepto con que se importan sus reservas.</summary>
-public sealed record AlojamientoAvaibook(int IdAlojamientoAvaibook, string IdSociedad, string IdExterno, string? Nombre, int? IdActivo, int? IdConcepto, string? CausaExencion, bool Activo);
+/// <summary>Alojamiento de Avaibook y el activo relacionado de sus reservas.</summary>
+public sealed record AlojamientoAvaibook(int IdAlojamientoAvaibook, string IdSociedad, string IdExterno, string? Nombre, int? IdActivo, bool Activo);
+
+/// <summary>
+/// Regla de venta (facturacion/reservas 2026-11-14 14:20): concepto, IVA y cliente que se aplican al facturar las ventas de
+/// un origen y un activo relacionado. Sin activo, vale para todos los activos del origen que no tengan regla propia.
+/// </summary>
+public sealed record ReglaVenta(int IdReglaVenta, string IdSociedad, int IdOrigenVenta, int? IdActivo, int? IdConcepto, string? CausaExencion, decimal? TipoIva, int? IdCliente, bool Activa)
+{
+    /// <summary>La regla que corresponde a un origen y un activo: la del activo o, si no hay, la general del origen.</summary>
+    public static ReglaVenta? Para(IEnumerable<ReglaVenta> reglas, int idOrigen, int? idActivo)
+    {
+        ReglaVenta? general = null;
+        foreach (var r in reglas)
+        {
+            if (!r.Activa || r.IdOrigenVenta != idOrigen) continue;
+            if (r.IdActivo is int a && a == idActivo) return r;
+            if (r.IdActivo is null) general ??= r;
+        }
+        return general;
+    }
+}

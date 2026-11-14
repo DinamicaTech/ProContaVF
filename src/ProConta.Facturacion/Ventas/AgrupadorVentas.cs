@@ -4,10 +4,10 @@ using ProConta.Facturacion.Facturas;
 
 namespace ProConta.Facturacion.Ventas;
 
-/// <summary>Piso (activo) de una venta: nombre y centro de coste que hereda la línea.</summary>
+/// <summary>Activo relacionado de una venta (el piso de una reserva): nombre y centro de coste que hereda la línea.</summary>
 public sealed record ActivoVenta(int IdActivo, string Nombre, int? IdCentroCoste);
 
-/// <summary>Clave de una factura de ventas: cliente, mes de la fecha de referencia y piso (facturacion/reservas 2026-11-14 11:45).</summary>
+/// <summary>Clave de una factura de ventas: cliente, mes de la fecha de referencia y activo (facturacion/reservas 2026-11-14 11:45).</summary>
 public sealed record ClaveFacturaVentas(int IdCliente, int Anio, int Mes, int? IdActivo)
 {
     public DateTime PrimerDia => new(Anio, Mes, 1);
@@ -15,60 +15,81 @@ public sealed record ClaveFacturaVentas(int IdCliente, int Anio, int Mes, int? I
 }
 
 /// <summary>Grupo de ventas que van en una misma factura, o el motivo por el que no se puede facturar.</summary>
-public sealed record GrupoVentas(ClaveFacturaVentas? Clave, string Cliente, string Piso, IReadOnlyList<VentaPorFacturar> Ventas, string? Problema)
+public sealed record GrupoVentas(ClaveFacturaVentas? Clave, string Cliente, string Activo, IReadOnlyList<VentaPorFacturar> Ventas, string? Problema)
 {
     public decimal Total => Ventas.Sum(v => v.Importe);
     public bool Facturable => Problema is null && Clave is not null;
 }
 
 /// <summary>
-/// Reglas puras de «Facturar ventas…»: agrupa las ventas pendientes por cliente efectivo (el propio de la venta o el de su
-/// origen), mes de la fecha de referencia y piso, y construye la línea de cada venta conservando su importe exacto.
+/// Lo que se factura de una venta una vez aplicada su regla (facturacion/reservas 2026-11-14 14:20): cada dato es el propio
+/// de la venta o, si no lo lleva, el de la regla de su origen y activo; el IVA, si tampoco lo da la regla, el del concepto.
+/// </summary>
+public sealed record VentaResuelta(int? IdCliente, int? IdConcepto, string? CausaExencion, decimal? TipoIva, ReglaVenta? Regla)
+{
+    /// <summary>«Exenta E1», «10 %» o «El del concepto».</summary>
+    public string TextoIva => CausaExencion is not null ? $"Exenta {CausaExencion}" : TipoIva is decimal t ? $"{t:0.##} %" : "El del concepto";
+}
+
+/// <summary>Catálogos con los que se resuelven y agrupan las ventas.</summary>
+public sealed record DatosVentas(IReadOnlyDictionary<int, OrigenVenta> Origenes, IReadOnlyList<ReglaVenta> Reglas, IReadOnlyDictionary<int, string> Clientes,
+    IReadOnlyDictionary<int, ActivoVenta> Activos, IReadOnlyDictionary<int, Concepto> Conceptos);
+
+/// <summary>
+/// Reglas puras de «Facturar ventas…»: resuelve cada venta con su regla, agrupa las pendientes por cliente, mes de la fecha
+/// de referencia y activo, y construye la línea de cada venta conservando su importe exacto.
 /// </summary>
 public static class AgrupadorVentas
 {
     private static readonly CultureInfo Es = CultureInfo.GetCultureInfo("es-ES");
 
-    /// <summary>Cliente al que se factura la venta: el suyo o, si no tiene, el de su origen.</summary>
-    public static int? ClienteEfectivo(VentaPorFacturar v, IReadOnlyDictionary<int, OrigenVenta> origenes) =>
-        v.IdCliente ?? (origenes.TryGetValue(v.IdOrigenVenta, out var o) ? o.IdCliente : null);
+    /// <summary>Aplica a la venta la regla de su origen y activo. El IVA propio de la venta (causa o tipo) sustituye entero al de la regla.</summary>
+    public static VentaResuelta Resolver(VentaPorFacturar v, IEnumerable<ReglaVenta> reglas)
+    {
+        var regla = ReglaVenta.Para(reglas, v.IdOrigenVenta, v.IdActivo);
+        var ivaPropio = !string.IsNullOrWhiteSpace(v.CausaExencion) || v.TipoIva is not null;
+        var causa = ivaPropio ? v.CausaExencion : regla?.CausaExencion;
+        return new VentaResuelta(v.IdCliente ?? regla?.IdCliente, v.IdConcepto ?? regla?.IdConcepto, string.IsNullOrWhiteSpace(causa) ? null : causa.Trim(),
+            ivaPropio ? v.TipoIva : regla?.TipoIva, regla);
+    }
 
-    public static IReadOnlyList<GrupoVentas> Agrupar(IEnumerable<VentaPorFacturar> ventas, IReadOnlyDictionary<int, OrigenVenta> origenes,
-        IReadOnlyDictionary<int, string> clientes, IReadOnlyDictionary<int, ActivoVenta> activos, IReadOnlyDictionary<int, Concepto> conceptos)
+    public static IReadOnlyList<GrupoVentas> Agrupar(IEnumerable<VentaPorFacturar> ventas, DatosVentas d)
     {
         var r = new List<GrupoVentas>();
         var facturables = new List<(VentaPorFacturar Venta, ClaveFacturaVentas Clave)>();
         foreach (var v in ventas.Where(v => v.Estado == EstadoVenta.Pendiente))
         {
-            var problema = Problema(v, origenes, activos, conceptos, out var idCliente);
+            var res = Resolver(v, d.Reglas);
+            var problema = Problema(v, res, d);
             if (problema is not null)
             {
-                r.Add(new GrupoVentas(null, idCliente is int c && clientes.TryGetValue(c, out var nc) ? nc : "Sin cliente",
-                    v.IdActivo is int a && activos.TryGetValue(a, out var act) ? act.Nombre : "Sin piso", [v], problema));
+                r.Add(new GrupoVentas(null, res.IdCliente is int c && d.Clientes.TryGetValue(c, out var nc) ? nc : "Sin cliente",
+                    v.IdActivo is int a && d.Activos.TryGetValue(a, out var act) ? act.Nombre : "Sin activo", [v], problema));
                 continue;
             }
-            facturables.Add((v, new ClaveFacturaVentas(idCliente!.Value, v.FechaReferencia.Year, v.FechaReferencia.Month, v.IdActivo)));
+            facturables.Add((v, new ClaveFacturaVentas(res.IdCliente!.Value, v.FechaReferencia.Year, v.FechaReferencia.Month, v.IdActivo)));
         }
         foreach (var g in facturables.GroupBy(x => x.Clave).OrderBy(g => g.Key.Anio).ThenBy(g => g.Key.Mes).ThenBy(g => g.Key.IdCliente).ThenBy(g => g.Key.IdActivo))
-            r.Add(new GrupoVentas(g.Key, clientes.TryGetValue(g.Key.IdCliente, out var n) ? n : $"Cliente {g.Key.IdCliente}",
-                g.Key.IdActivo is int a && activos.TryGetValue(a, out var act) ? act.Nombre : "Sin piso",
+            r.Add(new GrupoVentas(g.Key, d.Clientes.TryGetValue(g.Key.IdCliente, out var n) ? n : $"Cliente {g.Key.IdCliente}",
+                g.Key.IdActivo is int a && d.Activos.TryGetValue(a, out var act) ? act.Nombre : "Sin activo",
                 g.Select(x => x.Venta).OrderBy(v => v.FechaReferencia).ThenBy(v => v.IdVentaPorFacturar).ToList(), null));
         return r;
     }
 
-    private static string? Problema(VentaPorFacturar v, IReadOnlyDictionary<int, OrigenVenta> origenes, IReadOnlyDictionary<int, ActivoVenta> activos,
-        IReadOnlyDictionary<int, Concepto> conceptos, out int? idCliente)
+    private static string? Problema(VentaPorFacturar v, VentaResuelta res, DatosVentas d)
     {
-        idCliente = ClienteEfectivo(v, origenes);
-        var origen = origenes.TryGetValue(v.IdOrigenVenta, out var o) ? o.Nombre : $"origen {v.IdOrigenVenta}";
-        if (idCliente is null)
-            return $"No tiene cliente y su origen ({origen}) tampoco: ponle el cliente a la venta o al origen en Parámetros y tablas › Orígenes de venta.";
-        if (v.IdActivo is int a && !activos.ContainsKey(a))
-            return "Su piso ya no existe en Activos: elige otro en la venta.";
-        if (v.IdConcepto is not int c || !conceptos.TryGetValue(c, out var concepto))
-            return v.IdConcepto is null
-                ? "No tiene concepto: elige uno en la venta (o en el alojamiento de Avaibook) para saber la cuenta de venta."
-                : "Su concepto ya no existe: elige otro en la venta.";
+        var origen = d.Origenes.TryGetValue(v.IdOrigenVenta, out var o) ? o.Nombre : $"origen {v.IdOrigenVenta}";
+        var activo = v.IdActivo is int ia && d.Activos.TryGetValue(ia, out var av) ? av.Nombre : null;
+        var donde = activo is null ? $"el origen {origen}" : $"{origen} y {activo}";
+        const string enReglas = "en Parámetros y tablas › Reglas de venta";
+        if (v.IdActivo is int a && !d.Activos.ContainsKey(a))
+            return "Su activo relacionado ya no existe en Activos: elige otro en la venta.";
+        if (res.IdCliente is null)
+            return $"No tiene cliente: ponlo en la regla de {donde} ({enReglas}) o elige uno en la venta.";
+        if (res.IdConcepto is not int c)
+            return $"No tiene concepto: ponlo en la regla de {donde} ({enReglas}) o elige uno en la venta.";
+        if (!d.Conceptos.TryGetValue(c, out var concepto))
+            return $"Su concepto ya no existe: cámbialo en la regla de {donde} ({enReglas}) o en la venta.";
         if (string.IsNullOrWhiteSpace(concepto.CuentaVenta))
             return $"El concepto «{concepto.Nombre}» no tiene cuenta de venta: pónsela en Parámetros y tablas › Conceptos.";
         if (!concepto.CuentaEnEjercicio)
@@ -78,21 +99,21 @@ public static class AgrupadorVentas
         return null;
     }
 
-    /// <summary>Descripción de la factura: origen o cliente, mes y piso («Reservas Airbnb · enero 2026 · Cádiz 3»).</summary>
+    /// <summary>Descripción de la factura: origen, mes y activo («Airbnb · enero 2026 · Cádiz 3»).</summary>
     public static string DescripcionFactura(GrupoVentas g, IReadOnlyDictionary<int, OrigenVenta> origenes)
     {
         var nombresOrigen = g.Ventas.Select(v => origenes.TryGetValue(v.IdOrigenVenta, out var o) ? o.Nombre : null).Where(n => n is not null).Distinct().ToList();
         var quien = nombresOrigen.Count == 1 ? nombresOrigen[0] : "Ventas";
         var mes = g.Clave!.PrimerDia.ToString("MMMM yyyy", Es);
-        return g.Clave.IdActivo is null ? $"{quien} · {mes}" : $"{quien} · {mes} · {g.Piso}";
+        return g.Clave.IdActivo is null ? $"{quien} · {mes}" : $"{quien} · {mes} · {g.Activo}";
     }
 
     /// <summary>
-    /// Línea de la factura para una venta: el concepto da nombre, cuenta e IVA (salvo que la venta lleve el suyo); el piso, el
-    /// centro de coste. La cantidad son las noches y el total se fija con el importe de la venta, así que la factura suma
-    /// exactamente lo que pagaron los huéspedes (el precio es base ÷ cantidad con 4 decimales).
+    /// Línea de la factura para una venta: el concepto da nombre y cuenta; el IVA es el resuelto (venta, regla o concepto); el
+    /// activo, el centro de coste. La cantidad son las noches y el total se fija con el importe de la venta (IVA incluido),
+    /// así que la factura suma exactamente lo que pagaron los huéspedes (el precio es base ÷ cantidad con 4 decimales).
     /// </summary>
-    public static LineaFacturaVenta Linea(VentaPorFacturar v, Concepto concepto, ActivoVenta? activo, OrigenVenta? origen)
+    public static LineaFacturaVenta Linea(VentaPorFacturar v, VentaResuelta res, Concepto concepto, ActivoVenta? activo, OrigenVenta? origen)
     {
         var l = new LineaFacturaVenta
         {
@@ -101,13 +122,12 @@ public static class AgrupadorVentas
             Descripcion = string.IsNullOrWhiteSpace(v.Descripcion) ? DescripcionLinea(v, origen) : v.Descripcion.Trim(),
             Fecha = v.FechaReferencia.Date,
             Cantidad = v.Cantidad > 0m ? v.Cantidad : 1m,
-            TipoIva = v.TipoIva ?? concepto.TipoIva ?? 0m,
-            CausaExencion = string.IsNullOrWhiteSpace(v.CausaExencion) ? null : v.CausaExencion.Trim(),
+            TipoIva = res.CausaExencion is not null ? 0m : res.TipoIva ?? concepto.TipoIva ?? 0m,
+            CausaExencion = res.CausaExencion,
             CuentaContable = concepto.CuentaVenta,
             IdDepartamento = concepto.IdDepartamento,
             IdCentroCoste = activo?.IdCentroCoste ?? concepto.IdCentroCoste,
         };
-        if (l.CausaExencion is not null) l.TipoIva = 0m;
         l.FijarTotal(v.Importe);
         return l;
     }

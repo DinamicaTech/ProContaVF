@@ -16,7 +16,7 @@ public sealed record ResultadoVenta(VentaPorFacturar? Venta, IReadOnlyList<Incid
 }
 
 /// <summary>Factura creada por «Facturar ventas…».</summary>
-public sealed record FacturaDeVentas(int IdFactura, string Rotulo, string Cliente, string Piso, DateTime Mes, int Ventas, decimal Total, bool Validada);
+public sealed record FacturaDeVentas(int IdFactura, string Rotulo, string Cliente, string Activo, DateTime Mes, int Ventas, decimal Total, bool Validada);
 
 /// <summary>Resultado de «Facturar ventas…»: las facturas creadas y lo que no se ha podido facturar (no detiene a los demás grupos).</summary>
 public sealed record ResultadoFacturarVentas(IReadOnlyList<FacturaDeVentas> Facturas, IReadOnlyList<string> Incidencias)
@@ -58,8 +58,8 @@ public sealed class ServicioVentas
         _bd.EjecutarAsync(s => RepositorioVentas.ListarAsync(s, idSociedad, desde, hasta));
 
     /// <summary>
-    /// Orígenes de la sociedad. Si aún no tiene ninguno, crea los habituales (Airbnb, Booking y Directa) sin cliente, para que
-    /// el operador les ponga el suyo en Parámetros y tablas › Orígenes de venta.
+    /// Orígenes de la sociedad. Si aún no tiene ninguno, crea los habituales (Airbnb, Booking y Directa); el concepto, el IVA
+    /// y el cliente de cada uno se ponen en Parámetros y tablas › Reglas de venta.
     /// </summary>
     public Task<IReadOnlyList<OrigenVenta>> OrigenesAsync(string idSociedad) =>
         _bd.EnTransaccionAsync(async s =>
@@ -72,15 +72,19 @@ public sealed class ServicioVentas
 
     public static IReadOnlyList<OrigenVenta> OrigenesIniciales(string idSociedad) =>
     [
-        new(0, idSociedad, "AIRBNB", "Airbnb", null, "Airbnb", false, true),
-        new(0, idSociedad, "BOOKING", "Booking", null, "Booking.com;Booking", false, true),
-        new(0, idSociedad, "DIRECTA", "Directa", null, null, true, true),
+        new(0, idSociedad, "AIRBNB", "Airbnb", "Airbnb", false, true),
+        new(0, idSociedad, "BOOKING", "Booking", "Booking.com;Booking", false, true),
+        new(0, idSociedad, "DIRECTA", "Directa", null, true, true),
     ];
 
     public Task<IReadOnlyList<AlojamientoAvaibook>> AlojamientosAsync(string idSociedad) =>
         _bd.EjecutarAsync(s => RepositorioVentas.AlojamientosAsync(s, idSociedad));
 
-    /// <summary>Activos propios de la sociedad (no ajenos), para elegir el piso de una venta.</summary>
+    /// <summary>Reglas de venta de la sociedad (concepto, IVA y cliente por origen y activo).</summary>
+    public Task<IReadOnlyList<ReglaVenta>> ReglasAsync(string idSociedad) =>
+        _bd.EjecutarAsync(s => RepositorioVentas.ReglasAsync(s, idSociedad));
+
+    /// <summary>Activos propios de la sociedad (no ajenos), para elegir el activo relacionado de una venta.</summary>
     public Task<IReadOnlyList<ActivoVenta>> ActivosAsync(string idSociedad) =>
         _bd.EjecutarAsync(s => s.ConsultarAsync(
             "SELECT IdActivo, Nombre, Codigo, IdCentroCoste FROM Activos WHERE IdSociedad = ? AND EsAjeno = False ORDER BY Nombre",
@@ -112,15 +116,19 @@ public sealed class ServicioVentas
         var r = new List<Incidencia>();
         var origenes = await OrigenesAsync(v.IdSociedad);
         var origen = origenes.FirstOrDefault(o => o.IdOrigenVenta == v.IdOrigenVenta);
+        var res = AgrupadorVentas.Resolver(v, await ReglasAsync(v.IdSociedad));
         if (origen is null) r.Add(new("Ventas.SinOrigen", "Elige el origen de la venta (Airbnb, Booking, Directa…).", "IdOrigenVenta"));
-        else if (origen.IdCliente is null && v.IdCliente is null)
-            r.Add(new("Ventas.SinCliente", $"El origen «{origen.Nombre}» no tiene cliente: elige el cliente al que se factura esta venta (o pónselo al origen en Parámetros y tablas › Orígenes de venta).", "IdCliente"));
+        else if (res.IdCliente is null)
+            r.Add(new("Ventas.SinCliente", $"No hay regla de venta con cliente para «{origen.Nombre}» y este activo: elige el cliente al que se factura esta venta (o ponlo en Parámetros y tablas › Reglas de venta).", "IdCliente"));
         if (v.FechaReferencia == default) r.Add(new("Ventas.SinFecha", "Escribe la fecha de la venta (en una reserva, la de entrada): decide el mes en que se factura.", "FechaReferencia"));
         if (v.FechaFin is DateTime fin && fin.Date < v.FechaReferencia.Date)
             r.Add(new("Ventas.FechasAlReves", "La fecha final es anterior a la de entrada. Corrígela.", "FechaFin"));
         if (v.Cantidad <= 0m) r.Add(new("Ventas.CantidadNoValida", "La cantidad (noches) debe ser mayor que cero.", "Cantidad"));
         if (v.Importe == 0m) r.Add(new("Ventas.SinImporte", "Escribe el importe que se factura (lo que paga el huésped, comisión incluida).", "Importe"));
-        if (v.IdConcepto is null) r.Add(new("Ventas.SinConcepto", "Elige el concepto: da el nombre, la cuenta de venta y el IVA de la línea de factura.", "IdConcepto"));
+        if (origen is not null && res.IdConcepto is null)
+            r.Add(new("Ventas.SinConcepto", $"No hay regla de venta con concepto para «{origen.Nombre}» y este activo: elige el concepto de esta venta (o ponlo en Parámetros y tablas › Reglas de venta).", "IdConcepto"));
+        if (!string.IsNullOrWhiteSpace(v.CausaExencion) && v.TipoIva is > 0m)
+            r.Add(new("Ventas.ExentaConIva", "Una venta exenta no lleva IVA: quita la causa de exención o el porcentaje.", "TipoIva"));
         if (!string.IsNullOrWhiteSpace(v.CausaExencion) && v.CausaExencion.Trim() is not ("E1" or "E2" or "E3" or "E4" or "E5" or "E6"))
             r.Add(new("Ventas.CausaNoValida", "La causa de exención debe ser E1 a E6, o quedar vacía si la venta no está exenta.", "CausaExencion"));
         return r;
@@ -224,16 +232,14 @@ public sealed class ServicioVentas
     /// <summary>Último día del último mes cerrado (el mes anterior al de hoy): la fecha que propone «Facturar ventas…».</summary>
     public DateTime HastaPropuesto => new DateTime(_reloj.Ahora.Year, _reloj.Ahora.Month, 1).AddDays(-1);
 
-    private sealed record Datos(IReadOnlyDictionary<int, OrigenVenta> Origenes, IReadOnlyDictionary<int, string> Clientes, IReadOnlyDictionary<int, ActivoVenta> Activos,
-        IReadOnlyDictionary<int, Concepto> Conceptos, SociedadEjercicio? Ejercicio);
-
-    private async Task<Datos> DatosAsync(string idSociedad)
+    /// <summary>Catálogos para resolver y agrupar las ventas de la sociedad, con los conceptos en el ejercicio de hoy (el de las facturas).</summary>
+    public async Task<(DatosVentas Datos, SociedadEjercicio? Ejercicio)> DatosAsync(string idSociedad)
     {
         var hoy = _reloj.Ahora.Date;
         var ejercicio = (await _sociedades.ListarEjerciciosAsync(idSociedad)).FirstOrDefault(e => e.Ejercicio == hoy.Year);
         var conceptos = ejercicio is null ? [] : await _conceptos.ListarAsync(ejercicio.Contexto);
-        return new Datos((await OrigenesAsync(idSociedad)).ToDictionary(o => o.IdOrigenVenta), await NombresClientesAsync(),
-            (await ActivosAsync(idSociedad)).ToDictionary(a => a.IdActivo), conceptos.ToDictionary(c => c.IdConcepto), ejercicio);
+        return (new DatosVentas((await OrigenesAsync(idSociedad)).ToDictionary(o => o.IdOrigenVenta), await ReglasAsync(idSociedad), await NombresClientesAsync(),
+            (await ActivosAsync(idSociedad)).ToDictionary(a => a.IdActivo), conceptos.ToDictionary(c => c.IdConcepto)), ejercicio);
     }
 
     /// <summary>
@@ -242,14 +248,14 @@ public sealed class ServicioVentas
     /// </summary>
     public async Task<IReadOnlyList<GrupoVentas>> PrevisualizarAsync(string idSociedad, DateTime hasta, IReadOnlySet<int>? soloVentas = null)
     {
-        var d = await DatosAsync(idSociedad);
+        var (d, _) = await DatosAsync(idSociedad);
         var pendientes = await _bd.EjecutarAsync(s => RepositorioVentas.PendientesAsync(s, idSociedad, hasta));
-        return AgrupadorVentas.Agrupar(soloVentas is null ? pendientes : pendientes.Where(v => soloVentas.Contains(v.IdVentaPorFacturar)), d.Origenes, d.Clientes, d.Activos, d.Conceptos);
+        return AgrupadorVentas.Agrupar(soloVentas is null ? pendientes : pendientes.Where(v => soloVentas.Contains(v.IdVentaPorFacturar)), d);
     }
 
     /// <summary>
     /// «Facturar ventas…» (facturacion/reservas 2026-11-14 11:45): una factura por cliente, mes de la fecha de referencia y
-    /// piso con las ventas pendientes hasta <paramref name="hasta"/>, con fecha de hoy, en la serie predeterminada del
+    /// activo con las ventas pendientes hasta <paramref name="hasta"/>, con fecha de hoy, en la serie predeterminada del
     /// ejercicio de hoy. Cada factura y el enlace de sus ventas se guardan en una sola transacción: si otra sesión ya ha
     /// facturado alguna de sus ventas, no se crea esa factura. Con <paramref name="validar"/>, cada factura pasa después por
     /// la validación normal; si no se puede validar, queda en borrador y se avisa.
@@ -257,25 +263,25 @@ public sealed class ServicioVentas
     public async Task<Resultado<ResultadoFacturarVentas>> FacturarAsync(string idSociedad, DateTime hasta, bool validar, Actor actor, IReadOnlySet<int>? soloVentas = null)
     {
         if (!await _autorizador.PuedeAsync(Acciones.FacturasEditar)) return SinPermiso<ResultadoFacturarVentas>("facturar ventas", null);
-        var d = await DatosAsync(idSociedad);
+        var (d, ejercicio) = await DatosAsync(idSociedad);
         var hoy = _reloj.Ahora.Date;
-        if (d.Ejercicio is null)
+        if (ejercicio is null)
             return Resultado<ResultadoFacturarVentas>.Fallo(new Error("Ventas.SinEjercicio", $"La sociedad no tiene el ejercicio {hoy.Year}, que es donde van las facturas de hoy.", null, null, "Créalo en Parámetros y tablas › Ejercicios."));
-        if (d.Ejercicio.Cerrado)
+        if (ejercicio.Cerrado)
             return Resultado<ResultadoFacturarVentas>.Fallo(new Error("Ventas.EjercicioCerrado", $"El ejercicio {hoy.Year} está cerrado y no admite facturas nuevas."));
 
         var pendientes = await _bd.EjecutarAsync(s => RepositorioVentas.PendientesAsync(s, idSociedad, hasta));
-        var grupos = AgrupadorVentas.Agrupar(soloVentas is null ? pendientes : pendientes.Where(v => soloVentas.Contains(v.IdVentaPorFacturar)), d.Origenes, d.Clientes, d.Activos, d.Conceptos);
+        var grupos = AgrupadorVentas.Agrupar(soloVentas is null ? pendientes : pendientes.Where(v => soloVentas.Contains(v.IdVentaPorFacturar)), d);
         var incidencias = grupos.Where(g => !g.Facturable)
             .Select(g => $"{g.Ventas[0].Rotulo} ({g.Ventas[0].FechaReferencia:dd/MM/yyyy}, {g.Ventas[0].Importe:N2} €): {g.Problema}").ToList();
         var creadas = new List<FacturaDeVentas>();
 
         foreach (var g in grupos.Where(g => g.Facturable))
         {
-            var borrador = await _facturas.NuevoBorradorAsync(d.Ejercicio.Contexto);
+            var borrador = await _facturas.NuevoBorradorAsync(ejercicio.Contexto);
             if (!borrador.EsCorrecto)
             {
-                incidencias.Add($"{g.Cliente} · {g.Piso} · {g.Clave!.PrimerDia:MM/yyyy}: {string.Join(" ", borrador.Errores.Select(e => e.TextoOperador()))}");
+                incidencias.Add($"{g.Cliente} · {g.Activo} · {g.Clave!.PrimerDia:MM/yyyy}: {string.Join(" ", borrador.Errores.Select(e => e.TextoOperador()))}");
                 continue;
             }
             var propuesta = await _facturas.PropuestaClienteAsync(g.Clave!.IdCliente, idSociedad);
@@ -290,7 +296,10 @@ public sealed class ServicioVentas
             if (propuesta?.DiaDePago is byte dia) f.DiaDePago = dia;
             f.TipoRetencion = 0m;
             foreach (var v in g.Ventas)
-                f.AnadirLinea(AgrupadorVentas.Linea(v, d.Conceptos[v.IdConcepto!.Value], v.IdActivo is int a ? d.Activos[a] : null, d.Origenes.GetValueOrDefault(v.IdOrigenVenta)));
+            {
+                var res = AgrupadorVentas.Resolver(v, d.Reglas);
+                f.AnadirLinea(AgrupadorVentas.Linea(v, res, d.Conceptos[res.IdConcepto!.Value], v.IdActivo is int a ? d.Activos[a] : null, d.Origenes.GetValueOrDefault(v.IdOrigenVenta)));
+            }
             var ahora = _reloj.Ahora;
             f.Anotar(ahora, actor.Nombre, $"Creada por «Facturar ventas…» con {g.Ventas.Count} {(g.Ventas.Count == 1 ? "venta" : "ventas")} ({string.Join(", ", g.Ventas.Select(v => v.IdVentaPorFacturar))})");
             try
@@ -317,13 +326,13 @@ public sealed class ServicioVentas
                             incidencias.Add($"{rotulo} validada sin asiento: {string.Join(" ", (r.ErrorContabilizacion ?? []).Select(e => e.Mensaje))} Contabilízala desde Facturas.");
                     }
                     else
-                        incidencias.Add($"{rotulo} ({g.Cliente} · {g.Piso}) creado pero no validado; queda como borrador. {string.Join(" ", r.Incidencias.Select(i => i.Mensaje))}");
+                        incidencias.Add($"{rotulo} ({g.Cliente} · {g.Activo}) creado pero no validado; queda como borrador. {string.Join(" ", r.Incidencias.Select(i => i.Mensaje))}");
                 }
-                creadas.Add(new FacturaDeVentas(idFactura, rotulo, g.Cliente, g.Piso, g.Clave.PrimerDia, g.Ventas.Count, g.Total, validada));
+                creadas.Add(new FacturaDeVentas(idFactura, rotulo, g.Cliente, g.Activo, g.Clave.PrimerDia, g.Ventas.Count, g.Total, validada));
             }
             catch (ExcepcionDatos ex)
             {
-                incidencias.Add($"{g.Cliente} · {g.Piso} · {g.Clave.PrimerDia:MM/yyyy}: no se ha creado la factura. {ex.Error.Mensaje} Actualiza la lista y vuelve a facturar si hace falta.");
+                incidencias.Add($"{g.Cliente} · {g.Activo} · {g.Clave.PrimerDia:MM/yyyy}: no se ha creado la factura. {ex.Error.Mensaje} Actualiza la lista y vuelve a facturar si hace falta.");
             }
         }
         return Resultado<ResultadoFacturarVentas>.Correcto(new ResultadoFacturarVentas(creadas, incidencias));

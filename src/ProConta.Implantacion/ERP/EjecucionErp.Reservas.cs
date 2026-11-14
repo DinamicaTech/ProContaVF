@@ -6,8 +6,8 @@ namespace ProConta.Implantacion.ERP;
 // sociedad, como ventas ya facturadas en el ERP (FacturadaFuera) si tienen IdFactura, sin enlazarlas a la factura migrada (su
 // IdFactura no es fiable); las que no lo tienen quedan pendientes de facturar. El importe es lo que pagó el huésped: hasta 11/2025
 // el ERP guardaba en ImporteBruto lo del huésped y en ImporteNeto lo liquidado; desde 12/2025, al revés, así que se toma el mayor.
-// El piso no se asigna (el ERP lo guarda como texto libre): queda en las notas. Los orígenes se crean si faltan, con el cliente
-// de la persona del ERP que se llama como el origen (como hacía el ERP).
+// El activo no se asigna (el ERP lo guarda como texto libre): queda en las notas. Los orígenes se crean si faltan, con una regla de
+// venta general con el cliente de la persona del ERP que se llama como el origen (como hacía el ERP).
 internal sealed partial class EjecucionErp
 {
     private const string Fase8 = "8 reservas";
@@ -58,7 +58,7 @@ internal sealed partial class EjecucionErp
             est.Cargadas++;
             if (!facturada)
                 Anotar(Fase8, "ReservasPisosTuristicos", clave, "IdFactura", "Erp.ReservaSinFacturar", Severidad.Informativa,
-                    $"La reserva {id} del {entrada:dd/MM/yyyy} no estaba facturada en el ERP: queda pendiente de facturar (asígnale el piso y el concepto).");
+                    $"La reserva {id} del {entrada:dd/MM/yyyy} no estaba facturada en el ERP: queda pendiente de facturar (asígnale el activo relacionado).");
         }
     }
 
@@ -79,11 +79,14 @@ internal sealed partial class EjecucionErp
             int? cliente = personas.TryGetValue(texto, out var idPersona) && idPersona is int ip ? Mapa(TiposErp.Cliente, Txt(ip)) : null;
             var nombre = codigo switch { "AIRBNB" => "Airbnb", "BOOKING" => "Booking", "DIRECTA" => "Directa", _ => texto };
             var textos = codigo switch { "AIRBNB" => "Airbnb", "BOOKING" => "Booking.com;Booking", _ => null };
-            r[texto] = await InsertarAsync("INSERT INTO OrigenesVenta (IdSociedad, Codigo, Nombre, IdCliente, TextosImportacion, EsDirecta, Activo) VALUES (?, ?, ?, ?, ?, ?, True)",
-                Sociedad, codigo, nombre, cliente, textos, codigo == "DIRECTA");
+            r[texto] = await InsertarAsync("INSERT INTO OrigenesVenta (IdSociedad, Codigo, Nombre, TextosImportacion, EsDirecta, Activo) VALUES (?, ?, ?, ?, ?, True)",
+                Sociedad, codigo, nombre, textos, codigo == "DIRECTA");
+            // La regla general del origen nace con el cliente de la persona del ERP; el concepto y el IVA los pone el operador.
+            if (cliente is not null)
+                await InsertarAsync("INSERT INTO ReglasVenta (IdSociedad, IdOrigenVenta, IdCliente, CausaExencion, Activa) VALUES (?, ?, ?, 'E1', True)", Sociedad, r[texto], cliente);
             Anotar(Fase8, "OrigenesVenta", codigo, "IdCliente", cliente is null ? "Erp.OrigenSinCliente" : "Erp.OrigenCreado", cliente is null ? Severidad.Advertencia : Severidad.Informativa,
-                cliente is null ? $"He creado el origen de venta «{nombre}» sin cliente: pónselo en Parámetros y tablas › Orígenes de venta antes de facturar sus reservas."
-                                : $"He creado el origen de venta «{nombre}» con el cliente de la persona «{texto}» del ERP.");
+                cliente is null ? $"He creado el origen de venta «{nombre}» sin regla de venta: ponle el cliente, el concepto y el IVA en Parámetros y tablas › Reglas de venta antes de facturar sus reservas."
+                                : $"He creado el origen de venta «{nombre}» y su regla de venta con el cliente de la persona «{texto}» del ERP (exenta E1); ponle el concepto en Parámetros y tablas › Reglas de venta.");
         }
         return r;
     }

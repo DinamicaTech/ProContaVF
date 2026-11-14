@@ -28,15 +28,15 @@
           <TextBlock Text="Ventas por facturar" Style="{StaticResource Texto.TituloPantalla}" VerticalAlignment="Center" Margin="0,0,14,0" />
           <Grid Width="320" VerticalAlignment="Center">
             <TextBox x:Name="CajaBusqueda" Text="{Binding Texto, UpdateSourceTrigger=PropertyChanged, Delay=200}" Padding="28,0,6,0"
-                     ToolTip="Busca en origen, cliente, piso, referencia, descripción, huésped, notas y factura (Ctrl+F)" AutomationProperties.Name="Buscar ventas" />
+                     ToolTip="Busca en origen, cliente, activo, concepto, referencia, descripción, huésped, notas y factura (Ctrl+F)" AutomationProperties.Name="Buscar ventas" />
             <Path Style="{StaticResource Icono.Trazo14}" Data="{StaticResource Icono.search}" HorizontalAlignment="Left" Margin="9,0,0,0" VerticalAlignment="Center" IsHitTestVisible="False" />
           </Grid>
           <ComboBox Width="150" Margin="10,0,0,0" VerticalAlignment="Center" ItemsSource="{Binding OpcionesEstado}" SelectedItem="{Binding FiltroEstado}"
                     ToolTip="Pendientes de facturar, en un borrador, facturadas, anuladas o con un cambio de Avaibook que no se ha podido aplicar" />
           <ComboBox Width="150" Margin="10,0,0,0" VerticalAlignment="Center" ItemsSource="{Binding OpcionesOrigen}" SelectedItem="{Binding FiltroOrigen}" ToolTip="Solo las ventas de este origen" />
-          <ComboBox Width="230" Margin="10,0,0,0" VerticalAlignment="Center" ItemsSource="{Binding OpcionesPiso}" SelectedItem="{Binding FiltroPiso}" ToolTip="Solo las ventas de este piso" />
+          <ComboBox Width="230" Margin="10,0,0,0" VerticalAlignment="Center" ItemsSource="{Binding OpcionesActivo}" SelectedItem="{Binding FiltroActivo}" ToolTip="Solo las ventas de este activo relacionado" />
           <Button Style="{StaticResource Boton.Enlace}" Content="Limpiar filtros" Command="{Binding LimpiarFiltrosCommand}" VerticalAlignment="Center" Margin="10,0,0,0"
-                  Visibility="{Binding HayFiltros, Converter={StaticResource Visible}}" ToolTip="Vacía la búsqueda y vuelve a mostrar las pendientes de todos los orígenes y pisos" />
+                  Visibility="{Binding HayFiltros, Converter={StaticResource Visible}}" ToolTip="Vacía la búsqueda y vuelve a mostrar las pendientes de todos los orígenes y activos" />
         </WrapPanel>
       </DockPanel>
     </Border>
@@ -66,8 +66,8 @@
           <ContextMenu>
             <MenuItem Header="Ver su factura" Command="{Binding VerFacturaCommand}" ToolTip="Abre el borrador o la factura en que está la venta (solo con una seleccionada)" />
             <Separator />
-            <MenuItem Header="{Binding TextoFacturarSeleccionadas}" Command="{Binding FacturarSeleccionadasCommand}" ToolTip="Factura solo las seleccionadas pendientes: una factura por cliente, mes y piso" />
-            <MenuItem Header="Facturar ventas…" Command="{Binding FacturarCommand}" ToolTip="Elige hasta qué fecha de entrada: crea una factura por cliente, mes y piso con las ventas pendientes" />
+            <MenuItem Header="{Binding TextoFacturarSeleccionadas}" Command="{Binding FacturarSeleccionadasCommand}" ToolTip="Factura solo las seleccionadas pendientes: una factura por cliente, mes y activo" />
+            <MenuItem Header="Facturar ventas…" Command="{Binding FacturarCommand}" ToolTip="Elige hasta qué fecha de entrada: crea una factura por cliente, mes y activo con las ventas pendientes" />
             <MenuItem Header="Importar de Avaibook…" Command="{Binding ImportarCommand}" ToolTip="Lee las reservas de Avaibook entre dos fechas de entrada y las guarda como ventas por facturar, sin duplicar" />
             <Separator />
             <MenuItem Header="{Binding TextoAnular}" Command="{Binding AnularCommand}" ToolTip="Deja fuera de la facturación las seleccionadas pendientes (por ejemplo, una reserva cancelada)" />
@@ -85,8 +85,10 @@
             <DataGridTextColumn Header="Entrada" Binding="{Binding TextoFecha}" SortMemberPath="Fecha" Width="96" ElementStyle="{StaticResource Texto.Celda}" pc:TablaProConta.Clave="fecha" pc:TablaProConta.SiempreVisible="True" />
             <DataGridTextColumn Header="Salida" Binding="{Binding Salida}" Width="96" ElementStyle="{StaticResource Texto.Celda}" pc:TablaProConta.Clave="salida" />
             <DataGridTextColumn Header="Origen" Binding="{Binding Origen}" Width="100" ElementStyle="{StaticResource Texto.Celda}" pc:TablaProConta.Clave="origen" />
-            <DataGridTextColumn Header="Piso" Binding="{Binding Piso}" Width="*" MinWidth="160" ElementStyle="{StaticResource Texto.Celda}" pc:TablaProConta.Clave="piso" />
+            <DataGridTextColumn Header="Activo relacionado" Binding="{Binding Activo}" Width="*" MinWidth="160" ElementStyle="{StaticResource Texto.Celda}" pc:TablaProConta.Clave="activo" />
             <DataGridTextColumn Header="Cliente" Binding="{Binding Cliente}" Width="180" ElementStyle="{StaticResource Texto.Celda}" pc:TablaProConta.Clave="cliente" />
+            <DataGridTextColumn Header="Concepto" Binding="{Binding Concepto}" Width="160" ElementStyle="{StaticResource Texto.Celda}" pc:TablaProConta.Clave="concepto" />
+            <DataGridTextColumn Header="IVA" Binding="{Binding Iva}" Width="90" ElementStyle="{StaticResource Texto.Celda}" pc:TablaProConta.Clave="iva" />
             <DataGridTextColumn Header="Referencia" Binding="{Binding Referencia}" Width="120" ElementStyle="{StaticResource Texto.Celda.Mono}" pc:TablaProConta.Clave="referencia" />
             <DataGridTextColumn Header="Noches" Binding="{Binding TextoCantidad}" SortMemberPath="Cantidad" Width="70" ElementStyle="{StaticResource Texto.Celda.Importe}" HeaderStyle="{StaticResource Tabla.Cabecera.Derecha}" pc:TablaProConta.Clave="cantidad" />
             <DataGridTextColumn Header="Importe" Binding="{Binding TextoImporte}" SortMemberPath="Importe" Width="100" ElementStyle="{StaticResource Texto.Celda.Importe}" HeaderStyle="{StaticResource Tabla.Cabecera.Derecha}" pc:TablaProConta.Clave="importe" />
@@ -140,26 +142,29 @@
                   </Grid.RowDefinitions>
                   <TextBlock Text="Origen" Style="{StaticResource Etiqueta.Campo}" VerticalAlignment="Center" />
                   <ComboBox Grid.Column="1" Width="220" HorizontalAlignment="Left" Margin="0,0,0,6" ItemsSource="{Binding FichaOrigenes}" SelectedItem="{Binding FichaOrigen}"
-                            ToolTip="De dónde viene la venta (Airbnb, Booking, Directa…): sin cliente propio, se factura al cliente del origen" />
+                            ToolTip="De dónde viene la venta (Airbnb, Booking, Directa…): con el activo decide la regla de venta (concepto, IVA y cliente)" />
                   <TextBlock Grid.Row="1" Text="Cliente" Style="{StaticResource Etiqueta.Campo}" VerticalAlignment="Top" Margin="0,4,0,0" />
                   <StackPanel Grid.Row="1" Grid.Column="1" Margin="0,0,0,6">
                     <StackPanel Orientation="Horizontal">
                       <TextBlock Text="{Binding FichaCliente}" FontWeight="SemiBold" VerticalAlignment="Center" MaxWidth="220" TextTrimming="CharacterEllipsis" />
                       <Button Content="Elegir…" Style="{StaticResource Boton.Pequeno}" Margin="10,0,0,0" Command="{Binding ElegirClienteCommand}"
                               ToolTip="Factura esta venta a un cliente propio (el huésped que pide la factura a su nombre); va en una factura aparte" />
-                      <Button Content="Quitar" Style="{StaticResource Boton.Enlace}" Margin="8,0,0,0" Command="{Binding QuitarClienteCommand}" ToolTip="Vuelve a facturarla al cliente del origen" />
+                      <Button Content="Quitar" Style="{StaticResource Boton.Enlace}" Margin="8,0,0,0" Command="{Binding QuitarClienteCommand}" ToolTip="Vuelve a facturarla al cliente de su regla de venta" />
                     </StackPanel>
                     <TextBlock Text="{Binding FichaClienteOrigen}" Style="{StaticResource Texto.Apagado}" TextWrapping="Wrap" />
                   </StackPanel>
-                  <TextBlock Grid.Row="2" Text="Piso" Style="{StaticResource Etiqueta.Campo}" VerticalAlignment="Center" />
-                  <ComboBox Grid.Row="2" Grid.Column="1" Margin="0,0,0,6" ItemsSource="{Binding FichaPisos}" SelectedItem="{Binding FichaPiso}"
-                            ToolTip="Activo de la venta: se factura una factura por piso y mes, y da el centro de coste de la línea" />
+                  <TextBlock Grid.Row="2" Text="Activo relacionado" Style="{StaticResource Etiqueta.Campo}" VerticalAlignment="Top" Margin="0,4,0,0" />
+                  <StackPanel Grid.Row="2" Grid.Column="1" Margin="0,0,0,6">
+                    <ComboBox ItemsSource="{Binding FichaActivos}" SelectedItem="{Binding FichaActivo}"
+                              ToolTip="Activo de la venta (el piso de la reserva): se hace una factura por activo y mes, decide la regla de venta y da el centro de coste de la línea" />
+                    <TextBlock Text="{Binding FichaRegla}" Style="{StaticResource Texto.Apagado}" TextWrapping="Wrap" Margin="0,2,0,0" />
+                  </StackPanel>
                   <TextBlock Grid.Row="3" Text="Concepto" Style="{StaticResource Etiqueta.Campo}" VerticalAlignment="Center" />
                   <ComboBox Grid.Row="3" Grid.Column="1" Margin="0,0,0,6" ItemsSource="{Binding FichaConceptos}" SelectedItem="{Binding FichaConcepto}"
-                            ToolTip="Concepto de la línea de factura: da el nombre, la cuenta de venta y el IVA" />
+                            ToolTip="Solo si esta venta lleva un concepto distinto del de su regla de venta" />
                   <TextBlock Grid.Row="4" Text="IVA" Style="{StaticResource Etiqueta.Campo}" VerticalAlignment="Center" />
-                  <ComboBox Grid.Row="4" Grid.Column="1" Margin="0,0,0,6" ItemsSource="{Binding FichaCausas}" SelectedItem="{Binding FichaCausa}"
-                            ToolTip="E1 para el alquiler turístico sin servicios de hostelería (exento); sujeta, con el IVA del concepto" />
+                  <ComboBox Grid.Row="4" Grid.Column="1" Margin="0,0,0,6" ItemsSource="{Binding FichaIvas}" SelectedItem="{Binding FichaIva}"
+                            ToolTip="Solo si esta venta lleva un IVA distinto del de su regla de venta" />
                   <TextBlock Grid.Row="5" Text="Entrada y salida" Style="{StaticResource Etiqueta.Campo}" VerticalAlignment="Center" />
                   <StackPanel Grid.Row="5" Grid.Column="1" Orientation="Horizontal" Margin="0,0,0,6">
                     <TextBox Width="100" Style="{StaticResource Campo}" Text="{Binding FichaFecha, UpdateSourceTrigger=PropertyChanged}"

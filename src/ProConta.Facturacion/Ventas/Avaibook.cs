@@ -145,7 +145,8 @@ public sealed record ResultadoImportacionAvaibook(int Leidas, int Nuevas, int Ac
 /// Importación de reservas de Avaibook como ventas por facturar (facturacion/reservas 2026-11-14 11:45). Cada reserva se
 /// reconoce por su externalId: la nueva se crea pendiente; la ya importada y pendiente se actualiza si ha cambiado; la
 /// cancelada pasa a anulada si está pendiente; una venta facturada no se toca y su cambio queda como incidencia. Las
-/// reservas de un alojamiento sin piso asignado se omiten con una incidencia (y el alojamiento se da de alta para asignarlo).
+/// reservas de un alojamiento sin activo relacionado se omiten con una incidencia (y el alojamiento se da de alta para
+/// asignarlo). La venta solo guarda los datos de la reserva: el concepto, el IVA y el cliente salen de las reglas de venta al facturar.
 /// Una reserva que coincide con una venta del ERP (mismo origen, fecha de entrada e importe) se reconoce como esa venta.
 /// </summary>
 public sealed class ImportadorAvaibook
@@ -217,10 +218,10 @@ public sealed class ImportadorAvaibook
         await _bd.EnTransaccionAsync(async s =>
         {
             var alojamientos = (await RepositorioVentas.AlojamientosAsync(s, idSociedad)).ToDictionary(a => a.IdExterno, StringComparer.OrdinalIgnoreCase);
-            // Alojamientos nuevos: se dan de alta sin piso, para asignarlo en Parámetros y tablas.
+            // Alojamientos nuevos: se dan de alta sin activo, para asignarlo en Parámetros y tablas.
             foreach (var g in reservas.Where(r => !string.IsNullOrWhiteSpace(r.AccommodationId) && !alojamientos.ContainsKey(r.AccommodationId!)).GroupBy(r => r.AccommodationId!))
             {
-                var a = new AlojamientoAvaibook(0, idSociedad, g.Key, g.First().AccommodationName, null, null, "E1", true);
+                var a = new AlojamientoAvaibook(0, idSociedad, g.Key, g.First().AccommodationName, null, true);
                 var id = await RepositorioVentas.InsertarAlojamientoAsync(s, a);
                 alojamientos[g.Key] = a with { IdAlojamientoAvaibook = id };
             }
@@ -281,7 +282,7 @@ public sealed class ImportadorAvaibook
                 {
                     omitidas++;
                     if (r.AccommodationId is string idA && sinPiso.Add(idA) && !(alojamientos.TryGetValue(idA, out var al) && !al.Activo))
-                        incidencias.Add($"El alojamiento «{r.AccommodationName}» ({idA}) de Avaibook no tiene piso asignado: sus reservas no se han importado. Asígnale el piso y el concepto en Parámetros y tablas › Alojamientos de Avaibook y vuelve a importar.");
+                        incidencias.Add($"El alojamiento «{r.AccommodationName}» ({idA}) de Avaibook no tiene activo relacionado: sus reservas no se han importado. Asígnaselo en Parámetros y tablas › Alojamientos de Avaibook y vuelve a importar.");
                     continue;
                 }
                 // Una reserva ya cargada desde el ERP (mismo origen, fecha de entrada e importe) es la misma venta.
@@ -318,8 +319,6 @@ public sealed class ImportadorAvaibook
         if (r.AccommodationId is string id && alojamientos.TryGetValue(id, out var a))
         {
             v.IdActivo = a.IdActivo ?? v.IdActivo;
-            v.IdConcepto = a.IdConcepto ?? v.IdConcepto;
-            v.CausaExencion = string.IsNullOrWhiteSpace(a.CausaExencion) ? null : a.CausaExencion.Trim();
         }
         v.FechaReferencia = r.CheckIn.Date;
         v.FechaFin = r.CheckOut?.Date;

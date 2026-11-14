@@ -116,30 +116,44 @@ internal static class RepositorioVentas
     // ---------- orígenes y alojamientos ----------
 
     internal static OrigenVenta MapearOrigen(IFilaDatos r) => new(r.Entero("IdOrigenVenta"), (r.Texto("IdSociedad") ?? "").Trim(), (r.Texto("Codigo") ?? "").Trim(),
-        r.Texto("Nombre") ?? "", r.EnteroNulo("IdCliente"), r.Texto("TextosImportacion"), r.Logico("EsDirecta"), r.Logico("Activo"));
+        r.Texto("Nombre") ?? "", r.Texto("TextosImportacion"), r.Logico("EsDirecta"), r.Logico("Activo"));
 
     public static Task<IReadOnlyList<OrigenVenta>> OrigenesAsync(ISesionDatos s, string idSociedad) =>
-        s.ConsultarAsync("SELECT IdOrigenVenta, IdSociedad, Codigo, Nombre, IdCliente, TextosImportacion, EsDirecta, Activo FROM OrigenesVenta WHERE IdSociedad = ? ORDER BY Nombre",
+        s.ConsultarAsync("SELECT IdOrigenVenta, IdSociedad, Codigo, Nombre, TextosImportacion, EsDirecta, Activo FROM OrigenesVenta WHERE IdSociedad = ? ORDER BY Nombre",
             MapearOrigen, idSociedad);
 
     public static async Task<int> InsertarOrigenAsync(ISesionDatos s, OrigenVenta o)
     {
-        await s.EjecutarAsync("INSERT INTO OrigenesVenta (IdSociedad, Codigo, Nombre, IdCliente, TextosImportacion, EsDirecta, Activo) VALUES (?, ?, ?, ?, ?, ?, ?)",
-            o.IdSociedad, o.Codigo, o.Nombre, o.IdCliente, Vacio(o.TextosImportacion), o.EsDirecta, o.Activo);
+        await s.EjecutarAsync("INSERT INTO OrigenesVenta (IdSociedad, Codigo, Nombre, TextosImportacion, EsDirecta, Activo) VALUES (?, ?, ?, ?, ?, ?)",
+            o.IdSociedad, o.Codigo, o.Nombre, Vacio(o.TextosImportacion), o.EsDirecta, o.Activo);
         return await s.UltimoIdAsync();
     }
 
     internal static AlojamientoAvaibook MapearAlojamiento(IFilaDatos r) => new(r.Entero("IdAlojamientoAvaibook"), (r.Texto("IdSociedad") ?? "").Trim(),
-        (r.Texto("IdExterno") ?? "").Trim(), r.Texto("Nombre"), r.EnteroNulo("IdActivo"), r.EnteroNulo("IdConcepto"), r.Texto("CausaExencion")?.Trim(), r.Logico("Activo"));
+        (r.Texto("IdExterno") ?? "").Trim(), r.Texto("Nombre"), r.EnteroNulo("IdActivo"), r.Logico("Activo"));
 
     public static Task<IReadOnlyList<AlojamientoAvaibook>> AlojamientosAsync(ISesionDatos s, string idSociedad) =>
-        s.ConsultarAsync("SELECT IdAlojamientoAvaibook, IdSociedad, IdExterno, Nombre, IdActivo, IdConcepto, CausaExencion, Activo FROM AlojamientosAvaibook WHERE IdSociedad = ?",
+        s.ConsultarAsync("SELECT IdAlojamientoAvaibook, IdSociedad, IdExterno, Nombre, IdActivo, Activo FROM AlojamientosAvaibook WHERE IdSociedad = ?",
             MapearAlojamiento, idSociedad);
 
     public static async Task<int> InsertarAlojamientoAsync(ISesionDatos s, AlojamientoAvaibook a)
     {
-        await s.EjecutarAsync("INSERT INTO AlojamientosAvaibook (IdSociedad, IdExterno, Nombre, IdActivo, IdConcepto, CausaExencion, Activo) VALUES (?, ?, ?, ?, ?, ?, ?)",
-            a.IdSociedad, a.IdExterno, Recortar(a.Nombre, 255), a.IdActivo, a.IdConcepto, Vacio(a.CausaExencion), a.Activo);
+        await s.EjecutarAsync("INSERT INTO AlojamientosAvaibook (IdSociedad, IdExterno, Nombre, IdActivo, Activo) VALUES (?, ?, ?, ?, ?)",
+            a.IdSociedad, a.IdExterno, Recortar(a.Nombre, 255), a.IdActivo, a.Activo);
+        return await s.UltimoIdAsync();
+    }
+
+    internal static ReglaVenta MapearRegla(IFilaDatos r) => new(r.Entero("IdReglaVenta"), (r.Texto("IdSociedad") ?? "").Trim(), r.Entero("IdOrigenVenta"), r.EnteroNulo("IdActivo"),
+        r.EnteroNulo("IdConcepto"), Vacio(r.Texto("CausaExencion")), r.DecimalNulo("TipoIva"), r.EnteroNulo("IdCliente"), r.Logico("Activa"));
+
+    public static Task<IReadOnlyList<ReglaVenta>> ReglasAsync(ISesionDatos s, string idSociedad) =>
+        s.ConsultarAsync("SELECT IdReglaVenta, IdSociedad, IdOrigenVenta, IdActivo, IdConcepto, CausaExencion, TipoIva, IdCliente, Activa FROM ReglasVenta WHERE IdSociedad = ? ORDER BY IdReglaVenta",
+            MapearRegla, idSociedad);
+
+    public static async Task<int> InsertarReglaAsync(ISesionDatos s, ReglaVenta r)
+    {
+        await s.EjecutarAsync("INSERT INTO ReglasVenta (IdSociedad, IdOrigenVenta, IdActivo, IdConcepto, CausaExencion, TipoIva, IdCliente, Activa) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+            r.IdSociedad, r.IdOrigenVenta, r.IdActivo, r.IdConcepto, Vacio(r.CausaExencion), r.TipoIva, r.IdCliente, r.Activa);
         return await s.UltimoIdAsync();
     }
 

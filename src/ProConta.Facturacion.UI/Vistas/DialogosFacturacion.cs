@@ -319,7 +319,7 @@ public sealed class DialogosFacturacion(ApoyoEditorFacturas apoyo, Func<Window?>
         var estado = new TextBlock { Margin = new Thickness(0, 8, 0, 8), Foreground = apagado, TextWrapping = TextWrapping.Wrap };
         var lista = new ListBox { HorizontalContentAlignment = HorizontalAlignment.Stretch };
         var facturar = new Button { Content = "Facturar", Style = (Style)dialogo.FindResource("Boton.Primario"), Margin = new Thickness(8, 0, 0, 0),
-            ToolTip = "Crea una factura por cliente, mes y piso con las ventas pendientes; lo que tenga problemas se queda pendiente y se explica" };
+            ToolTip = "Crea una factura por cliente, mes y activo con las ventas pendientes; lo que tenga problemas se queda pendiente y se explica" };
         lista.ItemTemplate = PlantillaCodigo.Crear(o =>
         {
             var g = (ProConta.Facturacion.Ventas.GrupoVentas)o!;
@@ -328,7 +328,7 @@ public sealed class DialogosFacturacion(ApoyoEditorFacturas apoyo, Func<Window?>
                 fila.ColumnDefinitions.Add(new ColumnDefinition { Width = double.IsNaN(ancho) ? new GridLength(1, GridUnitType.Star) : new GridLength(ancho) });
             var mes = new TextBlock { Text = g.Clave is { } k ? k.PrimerDia.ToString("MM/yyyy", Formatos.Cultura) : Formatos.Fecha(g.Ventas[0].FechaReferencia), FontFamily = (FontFamily)dialogo.FindResource("Fuente.Mono") };
             var texto = new StackPanel();
-            texto.Children.Add(new TextBlock { Text = $"{g.Cliente} · {g.Piso}", FontWeight = FontWeights.SemiBold, TextTrimming = TextTrimming.CharacterEllipsis });
+            texto.Children.Add(new TextBlock { Text = $"{g.Cliente} · {g.Activo}", FontWeight = FontWeights.SemiBold, TextTrimming = TextTrimming.CharacterEllipsis });
             texto.Children.Add(new TextBlock
             {
                 Text = g.Facturable
