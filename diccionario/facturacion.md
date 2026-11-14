@@ -2,6 +2,30 @@
 
 # Diccionario de datos · facturacion
 
+## AlojamientosAvaibook
+
+- Dueño funcional: `facturacion/reservas`
+- Alojamiento de Avaibook de una sociedad y el piso (activo) y concepto con que se importan sus reservas.
+
+| Campo | Tipo | Nulo | Por defecto | Descripción |
+|---|---|---|---|---|
+| IdAlojamientoAvaibook | COUNTER | no |  | Identificador interno. |
+| IdSociedad | TEXT(3) | no |  | Sociedad. |
+| IdExterno | TEXT(40) | no |  | Identificador del alojamiento en Avaibook (accommodationId). |
+| Nombre | TEXT(255) | sí |  | Nombre del alojamiento en Avaibook. |
+| IdActivo | LONG | sí |  | Piso (activo) de las reservas; vacío, sus reservas no se importan. |
+| IdConcepto | LONG | sí |  | Concepto de la línea de factura de sus reservas. |
+| CausaExencion | TEXT(2) | sí |  | Causa de exención de sus reservas (E1 para el alquiler sin servicios de hostelería). |
+| Activo | YESNO | no |  | Si se importan sus reservas. |
+
+Índices:
+- FK_AlojamientosAvaibook_Activo: IdActivo
+- PK_AlojamientosAvaibook (clave primaria): IdAlojamientoAvaibook
+- UX_AlojamientosAvaibook_SociedadExterno (único): IdSociedad, IdExterno
+
+Relaciones:
+- FK_AlojamientosAvaibook_Activo: (IdActivo) → Activos (IdActivo); borrado NO ACTION, actualización NO ACTION
+
 ## Conceptos
 
 - Dueño funcional: `facturacion/conceptos`
@@ -38,6 +62,25 @@ Relaciones:
 - FK_Conceptos_F_DEP: (IdDepartamento) → F_DEP (CODDEP); borrado NO ACTION, actualización NO ACTION
 - FK_Conceptos_TiposConcepto: (IdTipoConcepto) → TiposConcepto (IdTipoConcepto); borrado NO ACTION, actualización NO ACTION
 - FK_SociedadesEjercicios_Conceptos: (IdSociedadEjercicio) → SociedadesEjercicios (IdSociedadEjercicio); borrado NO ACTION, actualización NO ACTION
+
+## ConexionesAvaibook
+
+- Dueño funcional: `facturacion/reservas`
+- Conexión de una sociedad con la API de propietario de Avaibook.
+
+| Campo | Tipo | Nulo | Por defecto | Descripción |
+|---|---|---|---|---|
+| IdSociedad | TEXT(3) | no |  | Sociedad. |
+| Activa | YESNO | no |  | Si se puede importar. |
+| Direccion | TEXT(255) | no |  | Dirección de la API (https://api.avaibook.com/api/owner/). |
+| SecretoProtegido | LONGTEXT | sí |  | Token de la API, cifrado. |
+| ImportarDesde | DATETIME | sí |  | Primera fecha de entrada que se importa (las anteriores vienen del ERP). |
+| UltimaImportacion | DATETIME | sí |  | Fecha y hora de la última importación. |
+| OperadorUltimaImportacion | TEXT(100) | sí |  | Operador de la última importación. |
+| ResumenUltimaImportacion | LONGTEXT | sí |  | Resumen de la última importación, sin datos personales. |
+
+Índices:
+- PK_ConexionesAvaibook (clave primaria): IdSociedad
 
 ## Contratos
 
@@ -499,6 +542,30 @@ Relaciones:
 Relaciones:
 - FK_SociedadesEjercicios_LotesFacturasProgramadas: (IdSociedadEjercicio) → SociedadesEjercicios (IdSociedadEjercicio); borrado NO ACTION, actualización NO ACTION
 
+## OrigenesVenta
+
+- Dueño funcional: `facturacion/reservas`
+- Origen de las ventas por facturar de una sociedad (Airbnb, Booking, directa…): a quién se factura y cómo se reconoce al importar.
+
+| Campo | Tipo | Nulo | Por defecto | Descripción |
+|---|---|---|---|---|
+| IdOrigenVenta | COUNTER | no |  | Identificador del origen. |
+| IdSociedad | TEXT(3) | no |  | Sociedad del origen. |
+| Codigo | TEXT(20) | no |  | Código corto del origen, único en la sociedad (AIRBNB, BOOKING, DIRECTA). |
+| Nombre | TEXT(60) | no |  | Nombre del origen en las pantallas y en la descripción de la factura. |
+| IdCliente | LONG | sí |  | Cliente al que se facturan sus ventas (la plataforma); vacío, cada venta lleva su cliente. |
+| TextosImportacion | TEXT(255) | sí |  | Textos con los que llega en una importación (partnerName de Avaibook), separados por punto y coma. |
+| EsDirecta | YESNO | no |  | Origen de las reservas que no vienen de un portal (alta propia en Avaibook, motor de reservas). |
+| Activo | YESNO | no |  | Solo los activos se ofrecen al dar de alta ventas. |
+
+Índices:
+- FK_OrigenesVenta_Cliente: IdCliente
+- PK_OrigenesVenta (clave primaria): IdOrigenVenta
+- UX_OrigenesVenta_SociedadCodigo (único): IdSociedad, Codigo
+
+Relaciones:
+- FK_OrigenesVenta_Cliente: (IdCliente) → Clientes (IdCliente); borrado NO ACTION, actualización NO ACTION
+
 ## SeriesFacturacion
 
 - Dueño funcional: `facturacion/factura-venta`
@@ -586,6 +653,57 @@ Relaciones:
 Índices:
 - PK_TiposOperacion (clave primaria): IdTipoOperacion
 - UX_TiposOperacion_Codigo (único): Codigo
+
+## VentasPorFacturar
+
+- Dueño funcional: `facturacion/reservas`
+- Venta registrada antes de facturarla (una reserva, un servicio): se factura después con «Facturar ventas…».
+
+| Campo | Tipo | Nulo | Por defecto | Descripción |
+|---|---|---|---|---|
+| IdVentaPorFacturar | COUNTER | no |  | Identificador de la venta. |
+| IdSociedad | TEXT(3) | no |  | Sociedad de la venta. |
+| IdOrigenVenta | LONG | no |  | Origen de la venta; da el cliente al que se factura si la venta no lleva el suyo. |
+| IdCliente | LONG | sí |  | Cliente propio de la venta (el huésped que pide factura); vacío, el del origen. |
+| IdActivo | LONG | sí |  | Piso (activo) de la venta; agrupa las facturas y da el centro de coste de la línea. |
+| IdConcepto | LONG | sí |  | Concepto de la línea de factura (nombre, cuenta e IVA). |
+| FechaReferencia | DATETIME | no |  | Fecha que decide el mes en que se factura: la de entrada del huésped. |
+| FechaFin | DATETIME | sí |  | Fecha final (la de salida del huésped). |
+| Cantidad | DECIMAL | no |  | Cantidad de la línea (noches). |
+| Importe | CURRENCY | no |  | Importe total que se factura: lo que paga el huésped, comisión incluida. |
+| Comision | CURRENCY | sí |  | Comisión de la plataforma; no entra en la factura emitida. |
+| TipoIva | DECIMAL | sí |  | IVA de la línea (%); vacío, el del concepto. |
+| CausaExencion | TEXT(2) | sí |  | Causa de exención de la línea (E1…E6); vacía, sujeta y no exenta. |
+| Descripcion | TEXT(255) | sí |  | Descripción de la línea de factura. |
+| Referencia | TEXT(60) | sí |  | Referencia externa (código de la reserva en la plataforma). |
+| Titular | TEXT(150) | sí |  | Nombre del huésped o titular. Dato personal: no sale en informes ni diagnósticos. |
+| Anulada | YESNO | no |  | Venta anulada (reserva cancelada): no se factura. |
+| MotivoAnulacion | TEXT(255) | sí |  | Por qué se anuló. |
+| FacturadaFuera | YESNO | no |  | Facturada fuera de ProContaVF (en el ERP): no se vuelve a facturar. |
+| IdFactura | LONG | sí |  | Factura (borrador o validada) en la que está; vacío, pendiente. |
+| Fuente | TEXT(12) | no |  | De dónde viene: MANUAL, AVAIBOOK o ERP. |
+| IdExterno | TEXT(80) | sí |  | Identificador en la fuente (externalId de Avaibook, Id del ERP); reconoce la venta al reimportar. |
+| Huella | TEXT(64) | sí |  | Huella de los datos importados, para saber si han cambiado en la fuente. |
+| Incidencia | TEXT(255) | sí |  | Último cambio de la fuente que no se ha podido aplicar (venta ya facturada). |
+| Notas | LONGTEXT | sí |  | Notas internas. |
+| FechaAlta | DATETIME | no |  | Fecha y hora del alta. |
+| OperadorAlta | TEXT(100) | sí |  | Operador o proceso que la dio de alta. |
+| FechaModificacion | DATETIME | sí |  | Fecha y hora del último cambio. |
+| Version | LONG | no |  | Versión de la fila (concurrencia optimista). |
+
+Índices:
+- FK_VentasPorFacturar_Activo: IdActivo
+- FK_VentasPorFacturar_Cliente: IdCliente
+- FK_VentasPorFacturar_Origen: IdOrigenVenta
+- IX_VentasPorFacturar_Externo: IdSociedad, Fuente, IdExterno
+- IX_VentasPorFacturar_Factura: IdFactura
+- IX_VentasPorFacturar_Fecha: IdSociedad, FechaReferencia
+- PK_VentasPorFacturar (clave primaria): IdVentaPorFacturar
+
+Relaciones:
+- FK_VentasPorFacturar_Activo: (IdActivo) → Activos (IdActivo); borrado NO ACTION, actualización NO ACTION
+- FK_VentasPorFacturar_Cliente: (IdCliente) → Clientes (IdCliente); borrado NO ACTION, actualización NO ACTION
+- FK_VentasPorFacturar_Origen: (IdOrigenVenta) → OrigenesVenta (IdOrigenVenta); borrado NO ACTION, actualización NO ACTION
 
 ## VeriFactuConfiguracion
 
