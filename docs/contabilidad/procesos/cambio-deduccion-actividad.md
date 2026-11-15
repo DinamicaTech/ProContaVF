@@ -10,7 +10,7 @@ Pendiente: que la deducción de una actividad de IVA (Actividades.Deducible) pue
 **Aceptación:** con la actividad en «no deducible hasta el 30/11/2026 y 100 % deducible desde el 01/12/2026», el 303 del 4T deduce entera la cuota de diciembre de esa actividad y nada de octubre y noviembre; las bases repercutidas de diciembre cuentan con derecho a deducción en la prorrata real; las compras comunes siguen en prorrata y los bienes de inversión anteriores no se regularizan.
 
 ## Decisions
-- 2026-11-15 19:36 · Creado como borrador desde informes/informe-gestoria (hilo «Mejorar el informe trimestral para la gestoría»), con el visto bueno del propietario. Propuesta recomendada: un cambio de deducción con fecha de efecto en la actividad, en lugar de una actividad nueva con la asignación de centros fechada (más trabajo). Lo usarán LectorActividadesIva, la clasificación de las líneas de IVA del informe para la gestoría y la prorrata.
+- 2026-11-15 19:36 · Creado como borrador desde informes/informe-gestoria (hilo «Mejorar el informe trimestral para la gestoría»), pendiente del visto bueno del propietario a la ruta y a la línea «draft:». Propuesta recomendada: un cambio de deducción con fecha de efecto en la actividad, en lugar de una actividad nueva con la asignación de centros fechada (más trabajo). Lo usarán LectorActividadesIva, la clasificación de las líneas de IVA del informe para la gestoría y la prorrata.
 
 ## Requirements
 - 2026-11-15 19:24 · Cómo gestionamos que a partir del 1/12/2026, el alquiler de pisos lleva 10% de IVA y por tanto, pasa a ser 100% deducible para facturas de compra relacionadas a esa actividad a partir de esa fecha ?
