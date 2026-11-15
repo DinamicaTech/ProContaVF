@@ -193,4 +193,36 @@ public sealed class ReglasErpTests
         Assert.Null(ReglasErp.IbanDatosBancarios("ES88", "0049", "1500", "05", "0012345678"));
         Assert.Null(ReglasErp.IbanDatosBancarios("ES87", null, null, null, null));
     }
+    [Theory]
+    [InlineData("7685138", 47, "código de Booking 7685138")]
+    [InlineData(" 8340467 ", 48, "código de Booking 8340467")]
+    [InlineData("Apartamento Playa con Piscina", 47, "nombre «Playa con Piscina…»")]
+    [InlineData("Apartamento Playa con Piscina Parking y 2 habitac", 47, "nombre «Playa con Piscina…»")]
+    [InlineData("Apartamento Playa con Piscina, Parking y 2 habitac", 47, "nombre «Playa con Piscina…»")]
+    [InlineData("Apartamento  2 habitaciones y magnífica terraza", 48, "nombre «…magnífica terraza»")]
+    [InlineData("APARTAMENTO 2 HABITACIONES Y MAGNIFICA TERRAZA", 48, "nombre «…magnífica terraza»")]
+    public void El_piso_de_una_reserva_del_erp_sale_del_codigo_de_booking_o_del_nombre_del_anuncio(string alojamiento, int inmueble, string regla)
+    {
+        var r = ReglasErp.PisoDeReserva(alojamiento);
+        Assert.NotNull(r);
+        Assert.Equal(inmueble, r.IdInmuebleErp);
+        Assert.Equal(regla, r.Descripcion);
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("76851380")]
+    [InlineData("1234567")]
+    [InlineData("Apartamento 2 habitaciones")]
+    [InlineData("Piso sintético de la playa")]
+    public void Una_reserva_del_erp_cuyo_alojamiento_no_casa_con_ninguna_regla_queda_sin_piso(string? alojamiento) =>
+        Assert.Null(ReglasErp.PisoDeReserva(alojamiento));
+
+    [Fact]
+    public void Cada_regla_de_piso_es_unica_y_apunta_a_uno_de_los_dos_pisos_turisticos()
+    {
+        Assert.Equal(ReglasErp.PisosReservas.Count, ReglasErp.PisosReservas.Select(r => r.Clave).Distinct().Count());
+        Assert.All(ReglasErp.PisosReservas, r => Assert.Contains(r.IdInmuebleErp, new[] { 47, 48 }));
+    }
 }

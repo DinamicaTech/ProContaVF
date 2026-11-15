@@ -278,4 +278,37 @@ public static class ReglasErp
         r[mayor] = (r[mayor].Cuenta, r[mayor].Base + (@base - r.Sum(x => x.Base)), r[mayor].Cuota + (cuota - r.Sum(x => x.Cuota)));
         return r;
     }
+
+    /// <summary>
+    /// Piso de las reservas del ERP (facturacion/reservas 2026-11-15 17:45): el texto «Alojamiento» de ReservasPisosTuristicos es el
+    /// código de alojamiento de Booking o el nombre del anuncio, y cada regla lo lleva al inmueble del ERP (Inmuebles.Id, que la fase 6
+    /// migra como activo con ReferenciaMigracion «ERP:Inmuebles:Id»). Los códigos se comparan enteros; los nombres, por contener el
+    /// fragmento, sin mayúsculas, acentos, espacios ni signos.
+    /// </summary>
+    public static readonly IReadOnlyList<ReglaPisoReservaErp> PisosReservas =
+    [
+        new("7685138", false, 47, "código de Booking 7685138"),
+        new("8340467", false, 48, "código de Booking 8340467"),
+        new("PLAYACONPISCINA", true, 47, "nombre «Playa con Piscina…»"),
+        new("MAGNIFICATERRAZA", true, 48, "nombre «…magnífica terraza»"),
+    ];
+
+    /// <summary>Regla de <see cref="PisosReservas"/> que casa con el alojamiento de una reserva del ERP, o null si ninguna.</summary>
+    public static ReglaPisoReservaErp? PisoDeReserva(string? alojamiento)
+    {
+        var clave = ClavePiso(alojamiento);
+        if (clave.Length == 0) return null;
+        return PisosReservas.FirstOrDefault(r => r.PorNombre ? clave.Contains(r.Clave, StringComparison.Ordinal) : clave == r.Clave);
+    }
+
+    private static string ClavePiso(string? texto)
+    {
+        if (string.IsNullOrWhiteSpace(texto)) return "";
+        var sinAcentos = texto.Normalize(System.Text.NormalizationForm.FormD)
+            .Where(c => CharUnicodeInfo.GetUnicodeCategory(c) != UnicodeCategory.NonSpacingMark);
+        return new string(sinAcentos.Where(char.IsLetterOrDigit).Select(char.ToUpperInvariant).ToArray());
+    }
 }
+
+/// <summary>Regla de asignación del piso de una reserva del ERP: código de Booking (entero) o fragmento del nombre del anuncio → inmueble del ERP.</summary>
+public sealed record ReglaPisoReservaErp(string Clave, bool PorNombre, int IdInmuebleErp, string Descripcion);

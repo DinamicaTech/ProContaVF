@@ -6,7 +6,9 @@ namespace ProConta.Implantacion.ERP;
 // sociedad, como ventas ya facturadas en el ERP (FacturadaFuera) si tienen IdFactura, sin enlazarlas a la factura migrada (su
 // IdFactura no es fiable); las que no lo tienen quedan pendientes de facturar. El importe es lo que pagó el huésped: hasta 11/2025
 // el ERP guardaba en ImporteBruto lo del huésped y en ImporteNeto lo liquidado; desde 12/2025, al revés, así que se toma el mayor.
-// El activo no se asigna (el ERP lo guarda como texto libre): queda en las notas. Los orígenes se crean si faltan, con una regla de
+// El activo relacionado sale del texto «Alojamiento» con las reglas de ReglasErp.PisosReservas (facturacion/reservas 2026-11-15
+// 17:45: código de Booking o nombre del anuncio → inmueble del ERP → su activo de la fase 6); el texto queda además en las notas y
+// la reserva que no casa con ninguna regla se carga sin activo y se cuenta en el informe. Los orígenes se crean si faltan, con una regla de
 // venta general con el cliente de la persona del ERP que se llama como el origen (como hacía el ERP).
 internal sealed partial class EjecucionErp
 {
@@ -26,6 +28,8 @@ internal sealed partial class EjecucionErp
         var conservadas = (await ConsultarAsync("SELECT IdExterno FROM VentasPorFacturar WHERE IdSociedad = ? AND Fuente = 'ERP'", f => f.Texto("IdExterno") ?? "", Sociedad)).ToHashSet();
 
         var origenes = await OrigenesReservasAsync(reservas);
+        var porRegla = new Dictionary<string, int>();
+        var sinPiso = new List<string>();
         var ahora = Ahora;
         foreach (var r in reservas.OrderBy(r => r.F("FechaInicio")).ThenBy(r => r.E("Id")))
         {
@@ -47,19 +51,39 @@ internal sealed partial class EjecucionErp
                 Anotar(Fase8, "ReservasPisosTuristicos", clave, "Noches", "Erp.NochesNoValidas", Severidad.Advertencia,
                     $"La reserva {id} del {entrada:dd/MM/yyyy} tiene {noches} noches en el ERP: la cargo sin fecha de salida y con cantidad 1.", noches.ToString(System.Globalization.CultureInfo.InvariantCulture));
             var facturada = (r.E("IdFactura") ?? 0) > 0;
+            var activo = PisoReserva(r.T("Alojamiento"), id, entrada, porRegla, sinPiso);
             var notas = ReglasErp.UnirNotas(r.T("Alojamiento") is { } aloj ? $"Alojamiento en el ERP: {aloj}." : null,
                 r.T("Detalles"), r.T("Referencia") is { } refe ? $"Referencia en el ERP: {refe}." : null,
                 facturada ? $"Facturada en el ERP (IdFactura {r.E("IdFactura")}, sin comprobar)." : null, $"Reserva {id} del ERP.");
             await EjecutarAsync(
-                "INSERT INTO VentasPorFacturar (IdSociedad, IdOrigenVenta, FechaReferencia, FechaFin, Cantidad, Importe, Comision, Referencia, Titular, Anulada, FacturadaFuera, " +
-                "Fuente, IdExterno, Notas, FechaAlta, OperadorAlta, FechaModificacion, Version) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, False, ?, 'ERP', ?, ?, ?, ?, ?, 0)",
-                Sociedad, idOrigen, entrada, salida, (decimal)(noches is > 0 and <= 365 ? noches : 1), importe, comision is decimal c ? Math.Round(c, 2, MidpointRounding.AwayFromZero) : null,
+                "INSERT INTO VentasPorFacturar (IdSociedad, IdOrigenVenta, IdActivo, FechaReferencia, FechaFin, Cantidad, Importe, Comision, Referencia, Titular, Anulada, FacturadaFuera, " +
+                "Fuente, IdExterno, Notas, FechaAlta, OperadorAlta, FechaModificacion, Version) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, False, ?, 'ERP', ?, ?, ?, ?, ?, 0)",
+                Sociedad, idOrigen, activo, entrada, salida, (decimal)(noches is > 0 and <= 365 ? noches : 1), importe, comision is decimal c ? Math.Round(c, 2, MidpointRounding.AwayFromZero) : null,
                 ReglasErp.Recortar(r.T("CodigoReserva"), 60), ReglasErp.Recortar(r.T("Huesped"), 150), facturada, clave, notas, ahora, Operador, ahora);
             est.Cargadas++;
             if (!facturada)
                 Anotar(Fase8, "ReservasPisosTuristicos", clave, "IdFactura", "Erp.ReservaSinFacturar", Severidad.Informativa,
-                    $"La reserva {id} del {entrada:dd/MM/yyyy} no estaba facturada en el ERP: queda pendiente de facturar (asígnale el activo relacionado).");
+                    $"La reserva {id} del {entrada:dd/MM/yyyy} no estaba facturada en el ERP: queda pendiente de facturar{(activo is null ? " (asígnale el activo relacionado)" : "")}.");
         }
+        foreach (var (regla, n) in porRegla.OrderBy(x => x.Key, StringComparer.Ordinal))
+            Anotar(Fase8, "ReservasPisosTuristicos", null, "Alojamiento", "Erp.PisoAsignado", Severidad.Informativa, $"{n} reservas llevan su activo relacionado por el {regla}.", n.ToString(System.Globalization.CultureInfo.InvariantCulture));
+        if (sinPiso.Count > 0)
+            Anotar(Fase8, "ReservasPisosTuristicos", null, "Alojamiento", "Erp.SinPiso", Severidad.Informativa,
+                $"{sinPiso.Count} reservas quedan sin activo relacionado (asígnaselo en Ventas por facturar; si son muchas, añade su alojamiento a ReglasErp.PisosReservas): {string.Join("; ", sinPiso.Take(20))}{(sinPiso.Count > 20 ? "…" : "")}",
+                sinPiso.Count.ToString(System.Globalization.CultureInfo.InvariantCulture));
+    }
+
+    /// <summary>Activo relacionado de una reserva según <see cref="ReglasErp.PisosReservas"/>, contándola por regla o entre las que quedan sin piso.</summary>
+    private int? PisoReserva(string? alojamiento, int id, DateTime entrada, Dictionary<string, int> porRegla, List<string> sinPiso)
+    {
+        if (ReglasErp.PisoDeReserva(alojamiento) is not { } regla) { sinPiso.Add($"{id} del {entrada:dd/MM/yyyy} («{alojamiento ?? "sin alojamiento"}»)"); return null; }
+        if (Mapa(TiposErp.Activo, Txt(regla.IdInmuebleErp)) is not int activo)
+        {
+            sinPiso.Add($"{id} del {entrada:dd/MM/yyyy} (el inmueble {regla.IdInmuebleErp} del ERP no se ha migrado como activo)");
+            return null;
+        }
+        porRegla[regla.Descripcion] = porRegla.GetValueOrDefault(regla.Descripcion) + 1;
+        return activo;
     }
 
     /// <summary>Origen de cada texto «Origen» de las reservas: el de la sociedad con ese código o nombre o, si no hay, uno nuevo.</summary>
