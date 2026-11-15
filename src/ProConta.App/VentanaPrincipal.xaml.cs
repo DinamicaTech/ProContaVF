@@ -115,8 +115,19 @@ public partial class VentanaPrincipal : Window
                 AbrirPerdidasYGanancias: () => _ = GenerarBalanceAsync(ProConta.Contabilidad.Balances.TipoBalance.PerdidasYGanancias),
                 AbrirBancos: () => _bancos!.Abrir(),
                 AbrirMayor: cuentasMayor => _mayor!.Abrir(cuentasMayor),
-                AbrirBalanceSituacion: () => _ = GenerarBalanceAsync(ProConta.Contabilidad.Balances.TipoBalance.Situacion)),
-            () => this));
+                AbrirBalanceSituacion: () => _ = GenerarBalanceAsync(ProConta.Contabilidad.Balances.TipoBalance.Situacion))
+            {
+                // Pantallas donde se resuelve cada elemento de la salud de la contabilidad (fase 3).
+                AbrirVentas = () => _facturacion!.AbrirVentas(),
+                AbrirLineasN43 = () => _lineasN43!.Abrir(),
+                AbrirFacturasCompra = () => _compras!.AbrirRecibidas(),
+                AbrirDiario = () => _diario!.Abrir(),
+                AbrirTerceros = () => _terceros!.AbrirBuscador(),
+                AbrirNominas = () => _nominas!.Abrir(null),
+                AbrirParametros = clave => AbrirParametros(clave),
+            },
+            () => this,
+            new ProConta.Inicio.Salud.ServicioSalud(new ProConta.Inicio.Salud.FuenteSaludAccess(bd))));
 
         var cuentas = new CatalogoCuentasAccess(bd);
         var servicios = new ServiciosTerceros(

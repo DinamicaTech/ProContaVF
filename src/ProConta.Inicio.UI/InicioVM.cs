@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using System.Globalization;
 using System.Windows.Input;
 using ProConta.Contabilidad.Ratios;
+using ProConta.Inicio.Salud;
 using ProConta.UI.Base.Comandos;
 using ProConta.UI.Base.Controles;
 using ProConta.UI.Base.Formato;
@@ -20,7 +21,18 @@ public sealed record ContextoInicio(string IdSociedad, int Ejercicio, string Raz
 /// </summary>
 public sealed record AccionesInicio(
     Action? AbrirFacturas = null, Action? AbrirPerdidasYGanancias = null, Action? AbrirBancos = null, Action<IReadOnlyList<string>>? AbrirMayor = null,
-    Action? AbrirBalanceSituacion = null);
+    Action? AbrirBalanceSituacion = null)
+{
+    // Pantallas donde se resuelve la salud de la contabilidad (fase 3).
+    public Action? AbrirVentas { get; init; }
+    public Action? AbrirLineasN43 { get; init; }
+    public Action? AbrirFacturasCompra { get; init; }
+    public Action? AbrirDiario { get; init; }
+    public Action? AbrirTerceros { get; init; }
+    public Action? AbrirNominas { get; init; }
+    /// <summary>Configuración › Parámetros y tablas en una tabla concreta (por ejemplo «ejercicios»).</summary>
+    public Action<string>? AbrirParametros { get; init; }
+}
 
 /// <summary>Bloque de la pantalla que se puede ocultar con «Personalizar…».</summary>
 public sealed record BloqueInicio(string Clave, string Nombre, string Ayuda);
@@ -39,6 +51,12 @@ public interface IDialogosInicio
 
     /// <summary>Muestra la ficha de un ratio.</summary>
     void VerRatio(FichaRatioVM ficha);
+
+    /// <summary>«¿Por qué aparece?» de un elemento de salud.</summary>
+    void PorQue(PorQueSaludVM porQue) { }
+
+    /// <summary>Copia un texto al portapapeles.</summary>
+    void Copiar(string texto) { }
 }
 
 /// <summary>Opción del desplegable «Comparar con».</summary>
@@ -111,6 +129,7 @@ public sealed class InicioVM : ModeloVista
         new("ingresos", "Ingresos y gastos", "Ingresos y gastos de cada mes del ejercicio"),
         new("cobros", "Pendiente de cobro", "Lo que deben los clientes, por antigüedad, y los 5 clientes con más saldo"),
         new("gastos", "Gastos por naturaleza", "Gasto acumulado por cuenta de 3 dígitos, con el ejercicio comparado"),
+        new("salud", "Salud de la contabilidad", "Tareas con plazo, avisos de cosas a corregir, estado de los periodos y comprobaciones, con «Lo más urgente» arriba"),
     ];
 
     private readonly ServicioInicio _servicio;
@@ -124,7 +143,8 @@ public sealed class InicioVM : ModeloVista
     private bool _iniciado;
     private PanelInicio? _panel;
 
-    public InicioVM(ServicioInicio servicio, ContextoInicio contexto, IDialogosInicio dialogos, AccionesInicio? acciones = null, IPreferenciasOperador? preferencias = null)
+    public InicioVM(ServicioInicio servicio, ContextoInicio contexto, IDialogosInicio dialogos, AccionesInicio? acciones = null, IPreferenciasOperador? preferencias = null,
+        ServicioSalud? salud = null)
     {
         _servicio = servicio;
         _ctx = contexto;
@@ -140,7 +160,18 @@ public sealed class InicioVM : ModeloVista
         AbrirBancoCommand = new ComandoDelegado(p => { if (p is BancoVM { Cuenta: { } c }) _acciones.AbrirMayor?.Invoke([c]); }, p => p is BancoVM { Cuenta: not null } && _acciones.AbrirMayor is not null);
         AbrirGastoCommand = new ComandoDelegado(p => { if (p is FilaBarraVM { Cuentas: { Count: > 0 } c }) _acciones.AbrirMayor?.Invoke(c); }, p => p is FilaBarraVM { Cuentas.Count: > 0 } && _acciones.AbrirMayor is not null);
         Subtitulo = $"{contexto.RazonSocial} · ejercicio {contexto.Ejercicio}";
+        if (salud is not null)
+        {
+            Salud = new SaludVM(salud, contexto, _acciones, dialogos, () => _inversiones.ToHashSet(StringComparer.Ordinal));
+            Salud.PropertyChanged += (_, e) => { if (e.PropertyName == nameof(SaludVM.HayUrgente)) Avisar(nameof(VerUrgente)); };
+        }
     }
+
+    /// <summary>La franja «Lo más urgente»: solo con la salud visible y algo grave.</summary>
+    public bool VerUrgente => VerSalud && Salud!.HayUrgente;
+
+    /// <summary>Salud de la contabilidad (fase 3); null si no se ha conectado.</summary>
+    public SaludVM? Salud { get; }
 
     // ------------------------------------------------------------ cabecera y estado
 
@@ -196,7 +227,8 @@ public sealed class InicioVM : ModeloVista
     public bool VerIngresos => !_ocultos.Contains("ingresos");
     public bool VerCobros => !_ocultos.Contains("cobros");
     public bool VerGastos => !_ocultos.Contains("gastos");
-    public bool TodoOculto => Bloques.All(b => _ocultos.Contains(b.Clave));
+    public bool VerSalud => Salud is not null && !_ocultos.Contains("salud");
+    public bool TodoOculto => Bloques.All(b => _ocultos.Contains(b.Clave) || (b.Clave == "salud" && Salud is null));
 
     // ------------------------------------------------------------ bloques
 
@@ -281,6 +313,14 @@ public sealed class InicioVM : ModeloVista
     /// <summary>Primera carga: los ejercicios comparables (por defecto, el anterior) y los indicadores.</summary>
     public async Task IniciarAsync()
     {
+        // La salud se revisa aparte: no retrasa los indicadores.
+        var salud = Salud?.RevisarAsync() ?? Task.CompletedTask;
+        await IniciarIndicadoresAsync();
+        await salud;
+    }
+
+    private async Task IniciarIndicadoresAsync()
+    {
         if (_iniciado)
         {
             await CargarAsync();
@@ -310,13 +350,14 @@ public sealed class InicioVM : ModeloVista
     public async Task ActualizarAsync()
     {
         _servicio.Olvidar();
-        if (!_iniciado)
+        var salud = Salud?.RevisarAsync() ?? Task.CompletedTask;
+        if (!_iniciado) await IniciarIndicadoresAsync();
+        else
         {
-            await IniciarAsync();
-            return;
+            await CargarAsync();
+            if (Estado == EstadoVista.Contenido) _ctx.Avisar($"Inicio actualizado a las {DateTime.Now:HH:mm}");
         }
-        await CargarAsync();
-        if (Estado == EstadoVista.Contenido) _ctx.Avisar($"Inicio actualizado a las {DateTime.Now:HH:mm}");
+        await salud;
     }
 
     private async Task CargarAsync()
@@ -376,13 +417,15 @@ public sealed class InicioVM : ModeloVista
         _ocultos = r.Ocultos.ToHashSet(StringComparer.Ordinal);
         if (_ocultos.Count == 0) _prefs.Borrar(ClaveOcultos);
         else _prefs.Guardar(ClaveOcultos, _ocultos.OrderBy(x => x, StringComparer.Ordinal).ToList());
-        Avisar(nameof(VerIndicadores), nameof(VerFacturacion), nameof(VerRatios), nameof(VerTesoreria), nameof(VerIngresos), nameof(VerCobros), nameof(VerGastos), nameof(TodoOculto));
+        Avisar(nameof(VerIndicadores), nameof(VerFacturacion), nameof(VerRatios), nameof(VerTesoreria), nameof(VerIngresos), nameof(VerCobros), nameof(VerGastos), nameof(VerSalud),
+            nameof(VerUrgente), nameof(TodoOculto));
         var inversiones = r.Inversiones.ToHashSet(StringComparer.Ordinal);
         if (inversiones.SetEquals(_inversiones)) return;
         _inversiones = inversiones;
         var clave = ClaveInversiones(_ctx.IdSociedad);
         if (_inversiones.Count == 0) _prefs.Borrar(clave);
         else _prefs.Guardar(clave, _inversiones.OrderBy(x => x, StringComparer.Ordinal).ToList());
+        if (Salud is not null) _ = Salud.RevisarAsync();
         if (_iniciado) await CargarAsync();
     }
 
