@@ -15,7 +15,11 @@ public sealed record ResultadoProgramada(FacturaProgramada? Programada, IReadOnl
 }
 
 /// <summary>Programada con vencimientos pendientes hasta una fecha, para elegir cuáles generar.</summary>
-public sealed record ProgramadaPendiente(FacturaProgramada Programada, string Cliente, IReadOnlyList<DateTime> Vencimientos);
+public sealed record ProgramadaPendiente(FacturaProgramada Programada, string Cliente, IReadOnlyList<DateTime> Vencimientos, string? Problema = null)
+{
+    /// <summary>Se puede generar: no tiene ningún problema conocido antes de empezar el lote.</summary>
+    public bool Generable => Problema is null;
+}
 
 /// <summary>Factura creada por un lote: su vencimiento y si se ha validado.</summary>
 public sealed record FacturaGenerada(int IdFactura, string Programada, DateTime Vencimiento, string Rotulo, bool Validada, bool EnviarPorEmail = false);
@@ -241,11 +245,31 @@ public sealed class ServicioProgramadas
     {
         var lista = await ListarAsync(idSociedad);
         var nombres = await NombresClientesAsync();
+        var ejercicios = await _sociedades.ListarEjerciciosAsync(idSociedad);
+        var hoy = _reloj.Ahora.Date;
         return lista.Where(p => p.Activa)
-            .Select(p => new ProgramadaPendiente(p, p.Plantilla.IdCliente is int c && nombres.TryGetValue(c, out var n) ? n : "Sin cliente", Vencimientos(p, hasta)))
+            .Select(p => (Programada: p, Vencimientos: Vencimientos(p, hasta)))
             .Where(x => x.Vencimientos.Count > 0)
+            .Select(x => new ProgramadaPendiente(x.Programada, x.Programada.Plantilla.IdCliente is int c && nombres.TryGetValue(c, out var n) ? n : "Sin cliente", x.Vencimientos,
+                ProblemaPrevio(x.Programada, x.Vencimientos, ejercicios, hoy)))
             .OrderBy(x => x.Vencimientos[0]).ThenBy(x => x.Programada.IdFacturaProgramada)
             .ToList();
+    }
+
+    /// <summary>
+    /// Lo que ya se sabe, antes de generar, que impedirá la primera factura de una programada (facturacion/pantallas
+    /// 2026-11-15): está incompleta, o su ejercicio no existe o está cerrado. Son las mismas comprobaciones que hace
+    /// el lote, para enseñarlas en el diálogo en lugar de después.
+    /// </summary>
+    private static string? ProblemaPrevio(FacturaProgramada p, IReadOnlyList<DateTime> vencimientos, IReadOnlyList<SociedadEjercicio> ejercicios, DateTime hoy)
+    {
+        var completa = ReglasProgramada.ValidarParaActivar(p);
+        if (completa.Count > 0) return string.Join(" ", completa.Select(i => i.Mensaje));
+        var fecha = vencimientos[0] > hoy ? vencimientos[0] : hoy;
+        var ejercicio = ejercicios.FirstOrDefault(e => e.Ejercicio == fecha.Year);
+        if (ejercicio is null) return $"La sociedad no tiene el ejercicio {fecha.Year}, que es donde va la factura del {fecha:dd/MM/yyyy}. Créalo en Parámetros y tablas › Ejercicios.";
+        if (ejercicio.Cerrado) return $"El ejercicio {fecha.Year} está cerrado y no admite facturas nuevas.";
+        return null;
     }
 
     private static IReadOnlyList<DateTime> Vencimientos(FacturaProgramada p, DateTime hasta)

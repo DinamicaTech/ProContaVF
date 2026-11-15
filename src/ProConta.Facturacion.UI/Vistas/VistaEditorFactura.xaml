@@ -59,6 +59,9 @@
                   Visibility="{Binding EsBorrador, Converter={StaticResource Visible}}" ToolTip="{Binding AyudaEliminar}" />
           <Button Content="{Binding TextoPdf}" Command="{Binding PdfCommand}" Margin="8,0,0,0" ToolTip="{Binding AyudaPdf}"
                   Visibility="{Binding MostrarPdf, Converter={StaticResource Visible}}" />
+          <Button Content="Enviar por correo…" Command="{Binding EnviarCorreoCommand}" Margin="8,0,0,0" pc:Iconos.Icono="{StaticResource Icono.send}"
+                  Visibility="{Binding MostrarEnviarCorreo, Converter={StaticResource Visible}}"
+                  ToolTip="Abre el correo de esta factura con su PDF, la plantilla y los destinatarios del cliente, para revisarlo y enviarlo" />
           <Button Content="Enviar a VeriFactu" IsEnabled="False" Margin="8,0,0,0" ToolTipService.ShowOnDisabled="True" ToolTip="{Binding MotivoVeriFactu}"
                   Visibility="{Binding MostrarEnviarVeriFactu, Converter={StaticResource Visible}}" />
           <Button Content="Rectificar…" Command="{Binding RectificarCommand}" Style="{StaticResource Boton.Primario}" Margin="8,0,0,0"
@@ -106,7 +109,7 @@
           <!-- Arriba: cliente e historial a la izquierda; datos de la factura (y su asiento) a la derecha -->
           <Grid>
             <Grid.ColumnDefinitions>
-              <ColumnDefinition Width="330" />
+              <ColumnDefinition Width="360" />
               <ColumnDefinition Width="14" />
               <ColumnDefinition Width="*" />
             </Grid.ColumnDefinitions>
@@ -144,8 +147,66 @@
                 </StackPanel>
               </Border>
 
-              <!-- Historial: termina a la altura de «Datos de la factura» y tiene su propio desplazamiento -->
-              <Border Style="{StaticResource Tarjeta.Factura}">
+              <!-- Programación de una programada: siempre a la vista, en el sitio del historial (que pasa a una pestaña) -->
+              <Border Style="{StaticResource Tarjeta.Factura}" Visibility="{Binding EsProgramada, Converter={StaticResource Visible}}">
+                <StackPanel>
+                  <TextBlock Text="Programación" Style="{StaticResource Titulo.Tarjeta}" Margin="0,0,0,6" />
+                  <WrapPanel>
+                    <StackPanel Style="{StaticResource Bloque.Campo}">
+                      <TextBlock Text="Periodicidad" Style="{StaticResource Etiqueta.Campo}" />
+                      <ComboBox Width="220" ItemsSource="{Binding Periodicidades}" SelectedItem="{Binding PeriodicidadElegida}" DisplayMemberPath="Texto" IsEnabled="{Binding Editable}"
+                                ToolTip="Cada cuánto se emite una factura; «Una sola vez» emite solo la primera" />
+                    </StackPanel>
+                    <StackPanel Style="{StaticResource Bloque.Campo}">
+                      <TextBlock Text="Fecha de inicio" Style="{StaticResource Etiqueta.Campo}" />
+                      <TextBox Width="110" Text="{Binding FechaInicioProgramacion, ValidatesOnNotifyDataErrors=True}" IsReadOnly="{Binding SoloLectura}" Style="{StaticResource Campo}"
+                               ToolTip="Desde esta fecha se emite la primera factura, el primer día de emisión que llegue (dd/mm/aaaa)" />
+                    </StackPanel>
+                    <StackPanel Style="{StaticResource Bloque.Campo}">
+                      <TextBlock Text="Día de emisión" Style="{StaticResource Etiqueta.Campo}" />
+                      <TextBox Width="70" Text="{Binding DiaEmision, ValidatesOnNotifyDataErrors=True}" IsReadOnly="{Binding SoloLectura}" Style="{StaticResource Campo.Numero}"
+                               ToolTip="Día del mes en que se emite (1 a 31). Del 29 al 31 cuentan desde el final del mes: 31 es siempre el último día y 30 el penúltimo. Vacío: el día de la fecha de inicio" />
+                    </StackPanel>
+                    <StackPanel Style="{StaticResource Bloque.Campo}">
+                      <TextBlock Text="Final" Style="{StaticResource Etiqueta.Campo}" />
+                      <ComboBox Width="210" ItemsSource="{Binding OpcionesFinal}" SelectedIndex="{Binding TipoFinal}" IsEnabled="{Binding Editable}"
+                                ToolTip="Cuándo deja de emitir: nunca, después de una fecha o tras un número de facturas" />
+                    </StackPanel>
+                    <StackPanel Style="{StaticResource Bloque.Campo}" Visibility="{Binding FinPorFecha, Converter={StaticResource Visible}}">
+                      <TextBlock Text="Última fecha" Style="{StaticResource Etiqueta.Campo}" />
+                      <TextBox Width="110" Text="{Binding FechaFinProgramacion, ValidatesOnNotifyDataErrors=True}" IsReadOnly="{Binding SoloLectura}" Style="{StaticResource Campo}"
+                               ToolTip="No se emite ninguna factura después de esta fecha (dd/mm/aaaa)" />
+                    </StackPanel>
+                    <StackPanel Style="{StaticResource Bloque.Campo}" Visibility="{Binding FinPorRepeticiones, Converter={StaticResource Visible}}">
+                      <TextBlock Text="Nº de facturas" Style="{StaticResource Etiqueta.Campo}" />
+                      <TextBox Width="70" Text="{Binding Repeticiones, ValidatesOnNotifyDataErrors=True}" IsReadOnly="{Binding SoloLectura}" Style="{StaticResource Campo.Numero}"
+                               ToolTip="Cuántas facturas emite en total, contando las ya generadas" />
+                    </StackPanel>
+                  </WrapPanel>
+                  <TextBlock Text="{Binding TextoProximas}" FontWeight="SemiBold" TextWrapping="Wrap" Margin="0,0,0,2" />
+                  <TextBlock Text="{Binding TextoPeriodoProximo}" Style="{StaticResource Texto.Apagado}" TextWrapping="Wrap" />
+                  <TextBlock Text="{Binding TextoGeneradas}" Style="{StaticResource Texto.Apagado}" TextWrapping="Wrap" Margin="0,0,0,10" />
+
+                  <TextBlock Text="En cada vencimiento genera" Style="{StaticResource Etiqueta.Campo}" />
+                  <WrapPanel Margin="0,0,0,10">
+                    <RadioButton Content="Un borrador" IsChecked="{Binding AlGenerarBorrador}" IsEnabled="{Binding Editable}" Margin="0,0,18,0" GroupName="AlGenerar"
+                                 ToolTip="La factura queda como borrador sin número, para revisarla y validarla después" />
+                    <RadioButton Content="Una factura validada" IsChecked="{Binding AlGenerarValidar}" IsEnabled="{Binding Editable}" GroupName="AlGenerar"
+                                 ToolTip="La factura se numera, se valida y se contabiliza al generarla; si algo lo impide, queda como borrador y se avisa" />
+                  </WrapPanel>
+                  <CheckBox Content="Enviarla por correo al cliente después de validarla" IsChecked="{Binding EnviarPorEmail}" IsEnabled="{Binding Editable}" Margin="0,0,0,2"
+                            ToolTip="Preferencia de envío de esta programada: el proceso automático solo envía las que la tienen marcada" />
+                  <TextBlock Text="{Binding MotivoEnvio}" Style="{StaticResource Texto.Apagado}" FontSize="{StaticResource Letra.Pequena}" TextWrapping="Wrap" Margin="20,0,0,10" />
+                  <CheckBox Content="Activa" IsChecked="{Binding Activa}" IsEnabled="{Binding Editable}"
+                            ToolTip="Solo las activas generan facturas. Una pausada se puede guardar incompleta; para activarla tiene que estar completa, como para validar una factura" />
+                  <TextBlock Text="Así saldrá la próxima factura" Style="{StaticResource Etiqueta.Campo}" Margin="0,12,0,0" />
+                  <TextBlock Text="{Binding VistaPreviaProxima}" TextWrapping="Wrap" ToolTip="{Binding AyudaMarcadores}" />
+                  <TextBlock Text="{Binding AyudaMarcadores}" Style="{StaticResource Texto.Apagado}" FontSize="{StaticResource Letra.Pequena}" TextWrapping="Wrap" Margin="0,4,0,0" />
+                </StackPanel>
+              </Border>
+
+              <!-- Historial de una factura: termina a la altura de «Datos de la factura» y tiene su propio desplazamiento -->
+              <Border Style="{StaticResource Tarjeta.Factura}" Visibility="{Binding EsFactura, Converter={StaticResource Visible}}">
                 <Border.Height>
                   <MultiBinding Converter="{StaticResource RestaAlturas}" ConverterParameter="14">
                     <Binding ElementName="TarjetaDatos" Path="ActualHeight" />
@@ -172,8 +233,6 @@
               <TabControl Padding="0,12,0,0" Margin="-12,0,0,0">
                 <TabItem Header="Datos de la factura">
                   <StackPanel Margin="12,0,0,0">
-                    <CheckBox Content="Periódica" IsChecked="{Binding Periodica}" IsEnabled="{Binding PuedeCambiarPeriodica}" ToolTipService.ShowOnDisabled="True" ToolTip="{Binding AyudaPeriodica}"
-                              FontWeight="SemiBold" Margin="0,0,0,10" Visibility="{Binding MostrarPeriodica, Converter={StaticResource Visible}}" />
                     <WrapPanel>
                       <StackPanel Style="{StaticResource Bloque.Campo}">
                         <TextBlock Text="Serie" Style="{StaticResource Etiqueta.Campo}" />
@@ -240,57 +299,16 @@
                     </StackPanel>
                   </StackPanel>
                 </TabItem>
-                <TabItem Header="Programación" Visibility="{Binding EsProgramada, Converter={StaticResource Visible}}">
-                  <StackPanel Margin="12,0,0,0">
-                    <WrapPanel>
-                      <StackPanel Style="{StaticResource Bloque.Campo}">
-                        <TextBlock Text="Periodicidad" Style="{StaticResource Etiqueta.Campo}" />
-                        <ComboBox Width="220" ItemsSource="{Binding Periodicidades}" SelectedItem="{Binding PeriodicidadElegida}" DisplayMemberPath="Texto" IsEnabled="{Binding Editable}"
-                                  ToolTip="Cada cuánto se emite una factura; «Una sola vez» emite solo la primera" />
-                      </StackPanel>
-                      <StackPanel Style="{StaticResource Bloque.Campo}">
-                        <TextBlock Text="Fecha de inicio" Style="{StaticResource Etiqueta.Campo}" />
-                        <TextBox Width="110" Text="{Binding FechaInicioProgramacion, ValidatesOnNotifyDataErrors=True}" IsReadOnly="{Binding SoloLectura}" Style="{StaticResource Campo}"
-                                 ToolTip="Desde esta fecha se emite la primera factura, el primer día de emisión que llegue (dd/mm/aaaa)" />
-                      </StackPanel>
-                      <StackPanel Style="{StaticResource Bloque.Campo}">
-                        <TextBlock Text="Día de emisión" Style="{StaticResource Etiqueta.Campo}" />
-                        <TextBox Width="70" Text="{Binding DiaEmision, ValidatesOnNotifyDataErrors=True}" IsReadOnly="{Binding SoloLectura}" Style="{StaticResource Campo.Numero}"
-                                 ToolTip="Día del mes en que se emite (1 a 31). Del 29 al 31 cuentan desde el final del mes: 31 es siempre el último día y 30 el penúltimo. Vacío: el día de la fecha de inicio" />
-                      </StackPanel>
-                      <StackPanel Style="{StaticResource Bloque.Campo}">
-                        <TextBlock Text="Final" Style="{StaticResource Etiqueta.Campo}" />
-                        <ComboBox Width="210" ItemsSource="{Binding OpcionesFinal}" SelectedIndex="{Binding TipoFinal}" IsEnabled="{Binding Editable}"
-                                  ToolTip="Cuándo deja de emitir: nunca, después de una fecha o tras un número de facturas" />
-                      </StackPanel>
-                      <StackPanel Style="{StaticResource Bloque.Campo}" Visibility="{Binding FinPorFecha, Converter={StaticResource Visible}}">
-                        <TextBlock Text="Última fecha" Style="{StaticResource Etiqueta.Campo}" />
-                        <TextBox Width="110" Text="{Binding FechaFinProgramacion, ValidatesOnNotifyDataErrors=True}" IsReadOnly="{Binding SoloLectura}" Style="{StaticResource Campo}"
-                                 ToolTip="No se emite ninguna factura después de esta fecha (dd/mm/aaaa)" />
-                      </StackPanel>
-                      <StackPanel Style="{StaticResource Bloque.Campo}" Visibility="{Binding FinPorRepeticiones, Converter={StaticResource Visible}}">
-                        <TextBlock Text="Nº de facturas" Style="{StaticResource Etiqueta.Campo}" />
-                        <TextBox Width="70" Text="{Binding Repeticiones, ValidatesOnNotifyDataErrors=True}" IsReadOnly="{Binding SoloLectura}" Style="{StaticResource Campo.Numero}"
-                                 ToolTip="Cuántas facturas emite en total, contando las ya generadas" />
-                      </StackPanel>
-                    </WrapPanel>
-                    <TextBlock Text="{Binding TextoProximas}" FontWeight="SemiBold" TextWrapping="Wrap" Margin="0,0,0,2" />
-                    <TextBlock Text="{Binding TextoPeriodoProximo}" Style="{StaticResource Texto.Apagado}" TextWrapping="Wrap" />
-                    <TextBlock Text="{Binding TextoGeneradas}" Style="{StaticResource Texto.Apagado}" TextWrapping="Wrap" Margin="0,0,0,10" />
-
-                    <TextBlock Text="En cada vencimiento genera" Style="{StaticResource Etiqueta.Campo}" />
-                    <WrapPanel Margin="0,0,0,10">
-                      <RadioButton Content="Un borrador" IsChecked="{Binding AlGenerarBorrador}" IsEnabled="{Binding Editable}" Margin="0,0,18,0" GroupName="AlGenerar"
-                                   ToolTip="La factura queda como borrador sin número, para revisarla y validarla después" />
-                      <RadioButton Content="Una factura validada" IsChecked="{Binding AlGenerarValidar}" IsEnabled="{Binding Editable}" GroupName="AlGenerar"
-                                   ToolTip="La factura se numera, se valida y se contabiliza al generarla; si algo lo impide, queda como borrador y se avisa" />
-                    </WrapPanel>
-                    <CheckBox Content="Enviarla por correo al cliente después de validarla" IsChecked="{Binding EnviarPorEmail}" IsEnabled="{Binding Editable}" Margin="0,0,0,2"
-                              ToolTip="Preferencia de envío de esta programada: el proceso automático solo envía las que la tienen marcada" />
-                    <TextBlock Text="{Binding MotivoEnvio}" Style="{StaticResource Texto.Apagado}" FontSize="{StaticResource Letra.Pequena}" TextWrapping="Wrap" Margin="20,0,0,10" />
-                    <CheckBox Content="Activa" IsChecked="{Binding Activa}" IsEnabled="{Binding Editable}"
-                              ToolTip="Solo las activas generan facturas. Una pausada se puede guardar incompleta; para activarla tiene que estar completa, como para validar una factura" />
-                  </StackPanel>
+                <TabItem Header="Historial" Visibility="{Binding EsProgramada, Converter={StaticResource Visible}}">
+                  <ScrollViewer Margin="12,0,0,0" MaxHeight="260" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                    <ItemsControl ItemsSource="{Binding Historial}">
+                      <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                          <TextBlock Text="{Binding}" FontSize="{StaticResource Letra.Pequena}" TextWrapping="Wrap" Margin="0,1" />
+                        </DataTemplate>
+                      </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                  </ScrollViewer>
                 </TabItem>
                 <TabItem Header="Asiento">
                   <StackPanel Margin="12,0,0,0">
@@ -363,7 +381,7 @@
               <Rectangle Height="1" Fill="{StaticResource Pincel.Linea}" Margin="0,0,0,4" />
               <TextBlock Text="Sin líneas. Añade la primera con «Añadir línea…» (F2)." Style="{StaticResource Texto.Apagado}" HorizontalAlignment="Center" Margin="0,14"
                          Visibility="{Binding SinLineas, Converter={StaticResource Visible}}" />
-              <ItemsControl ItemsSource="{Binding Lineas}" Focusable="False">
+              <ItemsControl x:Name="ListaLineas" ItemsSource="{Binding Lineas}" Focusable="False">
                 <ItemsControl.ItemTemplate>
                   <DataTemplate>
                     <Grid Margin="0,3">
@@ -375,13 +393,13 @@
                         <ColumnDefinition Width="30" /><ColumnDefinition Width="240" /><ColumnDefinition Width="*" MinWidth="160" /><ColumnDefinition Width="96" /><ColumnDefinition Width="70" /><ColumnDefinition Width="96" /><ColumnDefinition Width="64" /><ColumnDefinition Width="84" /><ColumnDefinition Width="96" /><ColumnDefinition Width="70" /><ColumnDefinition Width="84" /><ColumnDefinition Width="46" /><ColumnDefinition Width="100" /><ColumnDefinition Width="180" /><ColumnDefinition Width="104" /><ColumnDefinition Width="86" />
                       </Grid.ColumnDefinitions>
                       <TextBlock Grid.Column="0" Text="{Binding Numero}" Style="{StaticResource Texto.Apagado}" VerticalAlignment="Top" Margin="4,6,0,0" />
-                      <TextBox Grid.Column="1" Margin="2,0" VerticalAlignment="Top" Text="{Binding Nombre, UpdateSourceTrigger=PropertyChanged, ValidatesOnNotifyDataErrors=True}" IsReadOnly="{Binding SoloLectura}" Style="{StaticResource Campo}"
+                      <TextBox Grid.Column="1" Tag="Nombre" Margin="2,0" VerticalAlignment="Top" Text="{Binding Nombre, UpdateSourceTrigger=PropertyChanged, ValidatesOnNotifyDataErrors=True}" IsReadOnly="{Binding SoloLectura}" Style="{StaticResource Campo}"
                                MaxLength="255" ToolTip="Nombre visible de la línea; se copia del concepto y lo puedes cambiar" />
                       <TextBox Grid.Column="2" Margin="2,0" VerticalAlignment="Top" Text="{Binding Descripcion, UpdateSourceTrigger=PropertyChanged}" IsReadOnly="{Binding SoloLectura}" Style="{StaticResource Campo.Multilinea}" MinHeight="{StaticResource Alto.Campo}" Padding="6,3" VerticalContentAlignment="Center"
                                ToolTip="Descripción ampliada que sale debajo del nombre; crece con el texto" />
                       <TextBox Grid.Column="3" Margin="2,0" VerticalAlignment="Top" Text="{Binding Fecha, ValidatesOnNotifyDataErrors=True}" IsReadOnly="{Binding SoloLectura}" Style="{StaticResource Campo}"
                                ToolTip="Fecha de entrega o consumo (dd/mm/aaaa); déjala vacía si no corresponde" />
-                      <TextBox Grid.Column="4" Margin="2,0" VerticalAlignment="Top" Text="{Binding Cantidad, ValidatesOnNotifyDataErrors=True}" IsReadOnly="{Binding SoloLectura}" Style="{StaticResource Campo.Numero}" ToolTip="Unidades facturadas" />
+                      <TextBox Grid.Column="4" Tag="Cantidad" Margin="2,0" VerticalAlignment="Top" Text="{Binding Cantidad, ValidatesOnNotifyDataErrors=True}" IsReadOnly="{Binding SoloLectura}" Style="{StaticResource Campo.Numero}" ToolTip="Unidades facturadas" />
                       <TextBox Grid.Column="5" Margin="2,0" VerticalAlignment="Top" Text="{Binding Precio, ValidatesOnNotifyDataErrors=True}" IsReadOnly="{Binding SoloLectura}" Style="{StaticResource Campo.Numero}" ToolTip="Precio por unidad antes de descuentos (hasta 4 decimales)" />
                       <TextBox Grid.Column="6" Margin="2,0" VerticalAlignment="Top" Text="{Binding DescuentoPorcentaje, ValidatesOnNotifyDataErrors=True}" IsReadOnly="{Binding SoloLectura}" Style="{StaticResource Campo.Numero}" ToolTip="Descuento en porcentaje; se aplica antes que el descuento fijo" />
                       <TextBox Grid.Column="7" Margin="2,0" VerticalAlignment="Top" Text="{Binding DescuentoImporte, ValidatesOnNotifyDataErrors=True}" IsReadOnly="{Binding SoloLectura}" Style="{StaticResource Campo.Importe}" ToolTip="Descuento fijo en euros, después del porcentaje" />
@@ -411,7 +429,7 @@
               </ItemsControl>
               <Button Content="Añadir línea…" Command="{Binding AnadirLineaCommand}" Style="{StaticResource Boton.Pequeno}" pc:Iconos.Icono="{StaticResource Icono.plus}"
                       HorizontalAlignment="Left" Margin="0,10,0,0" Visibility="{Binding EditableLineas, Converter={StaticResource Visible}}"
-                      ToolTip="Añade una línea eligiendo un concepto del catálogo de la sociedad (F2)" />
+                      ToolTip="Añade una línea eligiendo un concepto del catálogo de la sociedad, o una línea sin concepto para escribirla a mano (F2)" />
             </StackPanel>
           </Border>
 

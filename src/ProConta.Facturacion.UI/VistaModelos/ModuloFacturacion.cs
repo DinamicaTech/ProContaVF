@@ -29,6 +29,9 @@ public sealed record ServiciosFacturacion(
     ServicioProgramadas Programadas,
     ServicioPdfFacturas Pdf);
 
+/// <summary>Lo elegido en «Añadir línea»: un concepto del catálogo o, con null, una línea sin concepto que se escribe a mano.</summary>
+public sealed record EleccionConcepto(Concepto? Concepto);
+
 /// <summary>Diálogos de facturación (en la vista, para que los modelos de vista se prueben sin ventanas).</summary>
 public interface IDialogosFacturacion
 {
@@ -40,8 +43,11 @@ public interface IDialogosFacturacion
     /// <summary>Busca y elige un cliente; null si se cancela.</summary>
     ClienteElegible? ElegirCliente();
 
-    /// <summary>Elige un concepto activo de la sociedad para una línea nueva; null si se cancela.</summary>
-    Concepto? ElegirConcepto(IReadOnlyList<Concepto> conceptos);
+    /// <summary>
+    /// Elige un concepto activo de la sociedad para una línea nueva, o una línea sin concepto (su <c>Concepto</c> es null);
+    /// null si se cancela.
+    /// </summary>
+    EleccionConcepto? ElegirConcepto(IReadOnlyList<Concepto> conceptos);
 
     /// <summary>Pide la cuenta (existente o nueva) para el rol Cliente; null si se cancela.</summary>
     string? PedirCuenta(ClaseCuentaRol clase, string nombreCliente, string propuesta, string razonSocial);
@@ -163,6 +169,16 @@ public sealed class ModuloFacturacion
         _listado!.FiltrarPorProgramada(idProgramada);
     }
 
+    /// <summary>
+    /// Abre Facturas con solo las facturas recién creadas por un lote de programadas o por «Facturar todo» de ventas
+    /// (facturacion/pantallas 2026-11-15), para revisarlas, validarlas y enviarlas sin buscarlas.
+    /// </summary>
+    internal void VerFacturasCreadas(string rotulo, IReadOnlySet<int> idsFactura)
+    {
+        AbrirListado();
+        _listado!.FiltrarPorConjunto(rotulo, idsFactura);
+    }
+
     /// <summary>Abre una factura en el editor (borrador editable o validada en solo lectura).</summary>
     public void AbrirFactura(int idFactura)
     {
@@ -183,7 +199,8 @@ public sealed class ModuloFacturacion
         var editor = new EditorFacturaVM(this);
         _editores.Add(editor);
         _anfitrion.Abrir(editor);
-        _ = editor.NuevaAsync();
+        // Lo primero de una factura nueva es su cliente: el buscador se abre solo (facturacion/pantallas 2026-11-15).
+        _ = editor.NuevaAsync(buscarCliente: true);
     }
 
     /// <summary>Abre una programada en el editor (o activa su pestaña si ya está abierta).</summary>

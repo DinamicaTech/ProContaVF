@@ -8,6 +8,15 @@
       <ResourceDictionary.MergedDictionaries>
         <ResourceDictionary Source="Recursos.xaml" />
       </ResourceDictionary.MergedDictionaries>
+      <!-- La próxima emisión de una programada vencida (hoy o antes) se destaca: es la que toca facturar -->
+      <Style x:Key="Texto.Celda.Vencida" TargetType="TextBlock" BasedOn="{StaticResource Texto.Celda}">
+        <Style.Triggers>
+          <DataTrigger Binding="{Binding Vencida}" Value="True">
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Foreground" Value="{StaticResource Pincel.AcentoTexto}" />
+          </DataTrigger>
+        </Style.Triggers>
+      </Style>
     </ResourceDictionary>
   </UserControl.Resources>
   <UserControl.InputBindings>
@@ -16,10 +25,12 @@
   </UserControl.InputBindings>
 
   <DockPanel>
-    <!-- Cabecera: título, búsqueda, generar y nueva -->
+    <!-- Cabecera: título, búsqueda y las acciones generales (generar vencidas y nueva) -->
     <Border DockPanel.Dock="Top" BorderBrush="{StaticResource Pincel.Linea}" BorderThickness="0,0,0,1" Padding="14,8">
       <DockPanel>
         <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+          <Button Content="{Binding TextoGenerarVencidas}" Command="{Binding GenerarCommand}" Margin="0,0,8,0"
+                  ToolTip="Genera las facturas de las programadas activas con vencimientos hasta hoy: enseña antes las que saldrán, su total y lo que no se puede generar, y pide una confirmación" />
           <Button Content="Nueva programada" Command="{Binding NuevaCommand}" Style="{StaticResource Boton.Primario}" pc:Iconos.Icono="{StaticResource Icono.plus}"
                   ToolTip="Abre una factura programada nueva: la plantilla de la factura y su programación" />
         </StackPanel>
@@ -56,7 +67,7 @@
         <ColumnDefinition Width="560" MinWidth="380" />
       </Grid.ColumnDefinitions>
 
-      <!-- Tabla, con todas las acciones en el menú contextual -->
+      <!-- Tabla, con las acciones sobre las seleccionadas en el menú contextual -->
       <pc:VistaEstado Grid.Column="0" Estado="{Binding Estado}" Titulo="{Binding TituloEstado}" Mensaje="{Binding MensajeEstado}" TextoAccion="{Binding AccionEstado}" ComandoAccion="{Binding ComandoEstado}">
         <pc:VistaEstado.ContextMenu>
           <ContextMenu>
@@ -64,14 +75,12 @@
             <MenuItem Header="Ver sus facturas" Command="{Binding VerFacturasCommand}" ToolTip="Abre Facturas con las que ha generado esta programada en el ejercicio de trabajo (solo con una seleccionada)" />
             <Separator />
             <MenuItem Header="{Binding TextoGenerarSeleccionadas}" Command="{Binding GenerarSeleccionadasCommand}" ToolTip="Abre el diálogo de generar con las programadas seleccionadas marcadas" />
-            <MenuItem Header="Generar facturas programadas…" Command="{Binding GenerarCommand}" ToolTip="Elige hasta qué fecha y qué programadas: crea en un lote una factura por cada vencimiento" />
             <Separator />
             <MenuItem Header="{Binding TextoPausar}" Command="{Binding PausarCommand}" ToolTip="Pausa las seleccionadas que están activas: dejan de generar facturas hasta que las reanudes" />
             <MenuItem Header="{Binding TextoReanudar}" Command="{Binding ReanudarCommand}" ToolTip="Reanuda las seleccionadas que están pausadas: vuelven a generar facturas (deben estar completas)" />
             <MenuItem Header="{Binding TextoDuplicar}" Command="{Binding DuplicarCommand}" ToolTip="Crea otra programada igual de cada seleccionada, pausada y sin facturas generadas" />
             <MenuItem Header="{Binding TextoEliminar}" Command="{Binding EliminarCommand}" ToolTip="Borra las seleccionadas que aún no han generado ninguna factura" />
             <Separator />
-            <MenuItem Header="Nueva programada" Command="{Binding NuevaCommand}" ToolTip="Abre una factura programada nueva: la plantilla de la factura y su programación" />
             <MenuItem Header="Actualizar" Command="{Binding RefrescarCommand}" InputGestureText="F5" ToolTip="Vuelve a leer las programadas" />
           </ContextMenu>
         </pc:VistaEstado.ContextMenu>
@@ -84,7 +93,7 @@
             <DataGridTextColumn Header="Cliente" Binding="{Binding Cliente}" Width="260" ElementStyle="{StaticResource Texto.Celda}" pc:TablaProConta.Clave="cliente" />
             <DataGridTextColumn Header="Descripción" Binding="{Binding Descripcion}" Width="*" MinWidth="200" ElementStyle="{StaticResource Texto.Celda}" pc:TablaProConta.Clave="descripcion" />
             <DataGridTextColumn Header="Periodicidad" Binding="{Binding Periodicidad}" Width="110" ElementStyle="{StaticResource Texto.Celda}" pc:TablaProConta.Clave="periodicidad" />
-            <DataGridTextColumn Header="Próxima" Binding="{Binding Proxima}" SortMemberPath="ProximaOrden" Width="100" ElementStyle="{StaticResource Texto.Celda}" pc:TablaProConta.Clave="proxima" />
+            <DataGridTextColumn Header="Próxima" Binding="{Binding Proxima}" SortMemberPath="ProximaOrden" Width="100" ElementStyle="{StaticResource Texto.Celda.Vencida}" pc:TablaProConta.Clave="proxima" />
             <DataGridTextColumn Header="Final" Binding="{Binding Final}" Width="130" ElementStyle="{StaticResource Texto.Celda}" pc:TablaProConta.Clave="final" />
             <DataGridTextColumn Header="Generadas" Binding="{Binding TextoGeneradas}" SortMemberPath="Generadas" Width="90" ElementStyle="{StaticResource Texto.Celda.Importe}" HeaderStyle="{StaticResource Tabla.Cabecera.Derecha}" pc:TablaProConta.Clave="generadas" />
             <DataGridTextColumn Header="Total" Binding="{Binding TextoTotal}" SortMemberPath="Total" Width="110" ElementStyle="{StaticResource Texto.Celda.Importe}" HeaderStyle="{StaticResource Tabla.Cabecera.Derecha}" pc:TablaProConta.Clave="total" />

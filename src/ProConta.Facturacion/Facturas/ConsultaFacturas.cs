@@ -30,8 +30,12 @@ public sealed record FilaFactura(
     string? NumeroRectificativa,
     int? IdAsientoContable,
     int Version,
-    string? MotivoRectificacion = null)
+    string? MotivoRectificacion = null,
+    bool DeVentas = false)
 {
+    /// <summary>Origen de la factura para el listado: rectificativa, programada, de ventas por facturar o manual.</summary>
+    public string Origen => EsRectificativa ? "Rectificativa" : EsProgramada ? "Programada" : DeVentas ? "Venta" : "Manual";
+
     public string Rotulo => NumeroFactura ?? FacturaVenta.RotuloBorrador(IdFactura);
     public bool EsBorrador => Estado == EstadoFactura.Borrador;
     public bool EsRectificativa => TipoFactura.StartsWith('R');
@@ -53,7 +57,8 @@ public sealed class ConsultaFacturas(IBaseDatos bd)
     private const string Sql =
         "SELECT f.IdFactura, f.NumeroFactura, f.FechaFactura, f.IdCliente, f.Nombre, f.RazonSocial, f.CIF, t.Nombre AS NombreTercero, t.RazonSocial AS RazonTercero, t.NIF AS NifTercero, " +
         "f.Descripcion, f.NotasInternas, f.BaseImponible, f.TipoRetencion, f.ImporteTotal, f.EstadoFactura, f.TipoFactura, f.IdSerie, s.Prefijo, s.EsRectificativa, f.SinVeriFactu, " +
-        "f.IdFacturaProgramada, f.IdFacturaRectificada, o.NumeroFactura AS NumeroOriginal, r.NumeroFactura AS NumeroRectificativa, r.IdFactura AS IdRectificativa, f.IdAsientoContable, f.Version, f.MotivoRectificacion " +
+        "f.IdFacturaProgramada, f.IdFacturaRectificada, o.NumeroFactura AS NumeroOriginal, r.NumeroFactura AS NumeroRectificativa, r.IdFactura AS IdRectificativa, f.IdAsientoContable, f.Version, f.MotivoRectificacion, " +
+        "(SELECT COUNT(*) FROM VentasPorFacturar AS v WHERE v.IdFactura = f.IdFactura) AS NumVentas " +
         "FROM ((((Facturas AS f LEFT JOIN SeriesFacturacion AS s ON f.IdSerie = s.IdSerie) " +
         "LEFT JOIN Clientes AS c ON f.IdCliente = c.IdCliente) LEFT JOIN Terceros AS t ON c.IdTercero = t.IdTercero) " +
         "LEFT JOIN Facturas AS o ON f.IdFacturaRectificada = o.IdFactura) " +
@@ -106,6 +111,7 @@ public sealed class ConsultaFacturas(IBaseDatos bd)
             r.Texto("NumeroRectificativa") ?? (r.EsNulo("IdRectificativa") ? null : FacturaVenta.RotuloBorrador(r.Entero("IdRectificativa"))),
             r.EnteroNulo("IdAsientoContable"),
             r.EnteroNulo("Version") ?? 0,
-            r.Texto("MotivoRectificacion"));
+            r.Texto("MotivoRectificacion"),
+            (r.EnteroNulo("NumVentas") ?? 0) > 0);
     }
 }

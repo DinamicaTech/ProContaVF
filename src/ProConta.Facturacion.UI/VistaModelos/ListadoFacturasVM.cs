@@ -50,7 +50,7 @@ public sealed class FilaFacturaVM(FilaFactura datos, Func<int, Task<FacturaVenta
     public string TextoTotal => Formatos.Importe(Datos.ImporteTotal);
     public string Estado => Datos.TextoEstado;
     public string VeriFactu => Datos.TextoVeriFactu;
-    public string Origen => Datos.EsRectificativa ? "Rectificativa" : Datos.EsProgramada ? "Programada" : "Manual";
+    public string Origen => Datos.Origen;
     public string Asiento => Datos.EsBorrador ? "" : Datos.IdAsientoContable is null ? "Sin asiento" : "Contabilizada";
     public bool SinAsiento => !Datos.EsBorrador && Datos.IdAsientoContable is null;
     public bool ConAsiento => !Datos.EsBorrador && Datos.IdAsientoContable is not null;
@@ -65,9 +65,10 @@ public sealed record OpcionFiltro(string Texto, string? Valor)
 }
 
 /// <summary>
-/// Pantalla Facturas (facturacion/pantallas): listado filtrable con selección múltiple y detalle de la fila activa. Todas
-/// las acciones están en el menú contextual: Abrir, Programar y Rectificar son de una sola factura; las demás actúan sobre
-/// las seleccionadas a las que les correspondan.
+/// Pantalla Facturas (facturacion/pantallas): listado filtrable con selección múltiple y detalle de la fila activa. Las
+/// acciones sobre las seleccionadas están en el menú contextual: Abrir, Programar y Rectificar son de una sola factura; las
+/// demás actúan sobre las seleccionadas a las que les correspondan. En la cabecera, «Nueva factura» y los accesos rápidos
+/// al trabajo pendiente (borradores y validadas sin asiento); un lote recién creado se ve filtrado por sus facturas.
 /// </summary>
 public sealed class ListadoFacturasVM : ModeloVista, IPestanaTrabajo
 {
@@ -85,6 +86,10 @@ public sealed class ListadoFacturasVM : ModeloVista, IPestanaTrabajo
     private bool _puedeEditar, _puedeValidar, _puedeRectificar;
     private int _cargas;
     private int? _filtroProgramada;
+    private IReadOnlySet<int>? _conjunto;
+    private string? _rotuloConjunto;
+    private int _vistaRapida;
+    private IReadOnlySet<int> _programadasConEnvio = new HashSet<int>();
     private IReadOnlyList<FilaFacturaVM> _seleccion = [];
     private bool _veriFactuActivo;
 
@@ -98,7 +103,7 @@ public sealed class ListadoFacturasVM : ModeloVista, IPestanaTrabajo
             new("Rectificación pendiente", nameof(EstadoFactura.RectificacionPendiente)), new("Rectificada", nameof(EstadoFactura.Rectificada))
         ];
         OpcionesVeriFactu = [new("VeriFactu: todas", null), new("No aplica", "No aplica"), new("Sin VeriFactu", "Sin VeriFactu"), new("Pendiente", "Pendiente")];
-        OpcionesOrigen = [new("Todos los orígenes", null), new("Manual", "Manual"), new("Programada", "Programada"), new("Rectificativa", "Rectificativa")];
+        OpcionesOrigen = [new("Todos los orígenes", null), new("Manual", "Manual"), new("Programada", "Programada"), new("Venta", "Venta"), new("Rectificativa", "Rectificativa")];
         OpcionesSerie.Add(new("Todas las series", null));
         _filtroEstado = OpcionesEstado[0];
         _filtroVeriFactu = OpcionesVeriFactu[0];
@@ -121,13 +126,14 @@ public sealed class ListadoFacturasVM : ModeloVista, IPestanaTrabajo
         RefrescarCommand = new ComandoDelegado(() => _ = CargarAsync(_activa?.Datos.IdFactura));
         LimpiarFiltrosCommand = new ComandoDelegado(LimpiarFiltros, () => HayFiltros);
 
-        VerTodasCommand = new ComandoDelegado(() => FiltrarPorProgramada(null), () => _filtroProgramada is not null);
+        VerTodasCommand = new ComandoDelegado(() => FiltrarPorProgramada(null), () => HayFiltroProgramada);
+        VistaRapidaCommand = new ComandoDelegado(p => VistaRapida = (p as string) switch { "Borradores" => 1, "SinAsiento" => 2, _ => 0 });
         ProgramarCommand = new ComandoDelegado(() => { if (Ambito.Count == 1) _modulo.ProgramarDesde(Ambito[0].Datos.IdFactura); }, () => _puedeEditar && Ambito.Count == 1);
     }
 
     // ---------- pestaña ----------
 
-    public string Titulo => "Facturas emitidas";
+    public string Titulo => "Facturas";
     public string Ayuda => $"Facturas y borradores de {_s.RazonSocial} en {_s.Trabajo.Ejercicio}";
     public string Icono => "doc";
     public bool TieneCambios => false;
@@ -192,26 +198,54 @@ public sealed class ListadoFacturasVM : ModeloVista, IPestanaTrabajo
     public string? ErrorFechas =>
         !VistaModelos.Texto.LeerFecha(_desde, out _) || !VistaModelos.Texto.LeerFecha(_hasta, out _) ? "Escribe las fechas como dd/mm/aaaa." : null;
 
-    public bool HayFiltros => _texto.Length > 0 || _filtroProgramada is not null || _filtroEstado.Valor is not null || _filtroVeriFactu.Valor is not null || _filtroSerie.Valor is not null
+    public bool HayFiltros => _texto.Length > 0 || _filtroProgramada is not null || _conjunto is not null || _vistaRapida != 0 || _filtroEstado.Valor is not null || _filtroVeriFactu.Valor is not null || _filtroSerie.Valor is not null
                               || _filtroOrigen.Valor is not null || _desde.Length > 0 || _hasta.Length > 0;
 
     private void LimpiarFiltros()
     {
         _texto = ""; _desde = ""; _hasta = "";
         _filtroProgramada = null;
+        _conjunto = null;
+        _rotuloConjunto = null;
+        _vistaRapida = 0;
         _filtroEstado = OpcionesEstado[0];
         _filtroVeriFactu = OpcionesVeriFactu[0];
         _filtroSerie = OpcionesSerie[0];
         _filtroOrigen = OpcionesOrigen[0];
         Avisar(nameof(Texto), nameof(Desde), nameof(Hasta), nameof(FiltroEstado), nameof(FiltroVeriFactu), nameof(FiltroSerie), nameof(FiltroOrigen), nameof(ErrorFechas),
-            nameof(FiltroProgramada), nameof(HayFiltroProgramada));
+            nameof(FiltroProgramada), nameof(HayFiltroProgramada), nameof(VistaTodas), nameof(VistaBorradores), nameof(VistaSinAsiento));
         Filtrar();
     }
+
+    // ---------- accesos rápidos al trabajo pendiente ----------
+
+    /// <summary>0 todas, 1 solo los borradores (por validar), 2 solo las validadas sin asiento (por contabilizar).</summary>
+    private int VistaRapida
+    {
+        get => _vistaRapida;
+        set
+        {
+            if (_vistaRapida == value) return;
+            _vistaRapida = value;
+            Avisar(nameof(VistaTodas), nameof(VistaBorradores), nameof(VistaSinAsiento));
+            Filtrar();
+        }
+    }
+
+    public bool VistaTodas => _vistaRapida == 0;
+    public bool VistaBorradores => _vistaRapida == 1;
+    public bool VistaSinAsiento => _vistaRapida == 2;
+    public string TextoVistaBorradores => $"Borradores ({_todas.Count(f => f.Datos.EsBorrador)})";
+    public string TextoVistaSinAsiento => $"Sin asiento ({_todas.Count(f => f.SinAsiento)})";
+    public ICommand VistaRapidaCommand { get; }
 
     private bool Cumple(FilaFacturaVM f)
     {
         var d = f.Datos;
         if (_filtroProgramada is int p && d.IdFacturaProgramada != p) return false;
+        if (_conjunto is not null && !_conjunto.Contains(d.IdFactura)) return false;
+        if (_vistaRapida == 1 && !d.EsBorrador) return false;
+        if (_vistaRapida == 2 && !f.SinAsiento) return false;
         if (!d.Contiene(_texto)) return false;
         if (_filtroEstado.Valor is { } e && d.Estado.ToString() != e) return false;
         if (_filtroVeriFactu.Valor is { } v && d.TextoVeriFactu != v) return false;
@@ -230,20 +264,35 @@ public sealed class ListadoFacturasVM : ModeloVista, IPestanaTrabajo
         Activa = Filas.FirstOrDefault(f => f.Datos.IdFactura == id) ?? Filas.FirstOrDefault();
         Estado = _todas.Count == 0 || Filas.Count == 0 ? EstadoVista.Vacio : EstadoVista.Contenido;
         MensajeEstado = _todas.Count == 0 ? "Crea la primera con «Nueva factura»." : "Cambia o quita los filtros para ver más facturas.";
-        Avisar(nameof(HayFiltros), nameof(Pie), nameof(TituloEstado), nameof(AccionEstado), nameof(ComandoEstado));
+        Avisar(nameof(HayFiltros), nameof(Pie), nameof(TituloEstado), nameof(AccionEstado), nameof(ComandoEstado), nameof(TextoVistaBorradores), nameof(TextoVistaSinAsiento));
         CommandManager.InvalidateRequerySuggested();
     }
 
-    // ---------- filtro por programada ----------
+    // ---------- filtro por programada o por un lote recién creado ----------
 
-    /// <summary>Programada por la que se filtran las facturas («Ver sus facturas»).</summary>
-    public string? FiltroProgramada => _filtroProgramada is int id ? $"Solo las facturas de {FacturaProgramada.RotuloDe(id)}" : null;
-    public bool HayFiltroProgramada => _filtroProgramada is not null;
+    /// <summary>Aviso del filtro puesto desde otra pantalla: las facturas de una programada («Ver sus facturas») o las de un lote recién creado.</summary>
+    public string? FiltroProgramada => _rotuloConjunto ?? (_filtroProgramada is int id ? $"Solo las facturas de {FacturaProgramada.RotuloDe(id)}" : null);
+    public bool HayFiltroProgramada => _filtroProgramada is not null || _conjunto is not null;
 
-    /// <summary>Filtra por una programada («Ver sus facturas» de Facturas programadas), o quita el filtro con null.</summary>
+    /// <summary>Filtra por una programada («Ver sus facturas» de Facturas programadas), o quita el filtro (también el de un lote) con null.</summary>
     internal void FiltrarPorProgramada(int? id)
     {
         _filtroProgramada = id;
+        _conjunto = null;
+        _rotuloConjunto = null;
+        Avisar(nameof(FiltroProgramada), nameof(HayFiltroProgramada));
+        Filtrar();
+    }
+
+    /// <summary>
+    /// Deja a la vista solo unas facturas concretas, con su rótulo: las de un lote de programadas o las creadas por
+    /// «Facturar todo» de ventas. Quita los demás filtros para que se vean todas; «Ver todas» lo quita.
+    /// </summary>
+    internal void FiltrarPorConjunto(string rotulo, IReadOnlySet<int> idsFactura)
+    {
+        LimpiarFiltros();
+        _conjunto = idsFactura;
+        _rotuloConjunto = rotulo;
         Avisar(nameof(FiltroProgramada), nameof(HayFiltroProgramada));
         Filtrar();
     }
@@ -370,7 +419,10 @@ public sealed class ListadoFacturasVM : ModeloVista, IPestanaTrabajo
             _puedeRectificar = await _s.Facturas.PuedeAsync(Acciones.FacturasRectificar);
             VeriFactuActivo = await _s.Facturas.VeriFactuActivoAsync();
             var filas = await _s.Consulta.ListarAsync(_s.Trabajo.IdSociedadEjercicio);
+            // Programadas que piden enviar la factura por correo: al validar sus borradores se ofrece enviarlos en el mismo paso.
+            var conEnvio = (await _s.Programadas.ListarAsync(_s.Trabajo.IdSociedad)).Where(p => p.EnviarPorEmail).Select(p => p.IdFacturaProgramada).ToHashSet();
             if (carga != _cargas) return;
+            _programadasConEnvio = conEnvio;
             var activa = idActiva ?? _activa?.Datos.IdFactura;
             _todas = filas.Select(f => new FilaFacturaVM(f, _s.Facturas.ObtenerAsync)).ToList();
             var seriePrevia = _filtroSerie.Valor;
@@ -430,26 +482,45 @@ public sealed class ListadoFacturasVM : ModeloVista, IPestanaTrabajo
     public ICommand ProgramarCommand { get; }
 
 
-    /// <summary>Valida los borradores del ámbito, uno a uno; los que tienen total cero se confirman aparte.</summary>
+    /// <summary>
+    /// Valida los borradores del ámbito, uno a uno; los que tienen total cero se confirman aparte. Si alguno viene de una
+    /// programada con «Enviar por correo», se ofrece validarlos y enviarlos en el mismo paso (facturacion/pantallas
+    /// 2026-11-15): la preferencia de la programada ya no se pierde cuando la factura nace como borrador.
+    /// </summary>
     private async Task ValidarAsync()
     {
         var borradores = Ambito.Where(f => f.Datos.EsBorrador).ToList();
         if (borradores.Count == 0) return;
+        var conEnvio = _modulo.Correo is null ? 0 : borradores.Count(b => b.Datos.IdFacturaProgramada is int p && _programadasConEnvio.Contains(p));
+        var opciones = new List<OpcionMensaje>
+        {
+            new("Cancelar", "No valida nada", Cancelar: true),
+            new("Validar", conEnvio > 0 ? "Numera y contabiliza, sin enviar nada por correo" : "Numera y contabiliza", Principal: conEnvio == 0)
+        };
+        if (conEnvio > 0)
+            opciones.Add(new OpcionMensaje(ConCuenta("Validar y enviar por correo", conEnvio),
+                "Numera y contabiliza todas y, al terminar, envía por correo con su PDF las de programadas que tienen marcado «Enviar por correo»", Principal: true));
         var opcion = _modulo.Dialogos.Preguntar(borradores.Count == 1 ? $"Validar {borradores[0].Numero}" : $"Validar {borradores.Count} borradores",
-            "Cada borrador recibe el siguiente número de su serie, se copian los datos del cliente y se genera su asiento. Después no se podrán cambiar.",
-            borradores.Select(b => $"{b.Numero} · {b.Cliente} · {b.TextoTotal}").ToList(),
-            new OpcionMensaje("Cancelar", "No valida nada", Cancelar: true),
-            new OpcionMensaje("Validar", "Numera y contabiliza", Principal: true));
-        if (opcion != 1) return;
+            "Cada borrador recibe el siguiente número de su serie, se copian los datos del cliente y se genera su asiento. El número ya no cambia." +
+            (conEnvio > 0 ? $" {Formatos.Plural(conEnvio, "viene de una programada que pide", "vienen de programadas que piden")} enviar la factura por correo." : ""),
+            borradores.Select(b => $"{b.Numero} · {b.Cliente} · {b.TextoTotal}").ToList(), [.. opciones]);
+        if (opcion is not (1 or 2)) return;
+        var enviar = opcion == 2;
 
         var correctas = new List<string>();
         var problemas = new List<string>();
         var ceros = new List<FilaFacturaVM>();
+        var aEnviar = new List<(int IdFactura, string Rotulo)>();
+        void Hecho(FilaFacturaVM b, ResultadoValidacion r)
+        {
+            Anotar(b, r, correctas, problemas);
+            if (enviar && r.Validada && b.Datos.IdFacturaProgramada is int p && _programadasConEnvio.Contains(p)) aEnviar.Add((r.Factura!.IdFactura, r.Factura.NumeroFactura!));
+        }
         foreach (var b in borradores)
         {
             var r = await _s.Facturas.ValidarAsync(b.Datos.IdFactura, b.Datos.Version, _s.Actor);
             if (r.SoloAvisos && r.Incidencias.All(i => i.Codigo == Incidencia.ImporteCero)) { ceros.Add(b); continue; }
-            Anotar(b, r, correctas, problemas);
+            Hecho(b, r);
         }
         if (ceros.Count > 0 && _modulo.Dialogos.Preguntar("Facturas con total cero",
                 $"{Formatos.Plural(ceros.Count, "borrador tiene", "borradores tienen")} total 0,00 €. Comprueba que no falte ningún precio o línea; si es correcto, valídalos igualmente.",
@@ -457,12 +528,23 @@ public sealed class ListadoFacturasVM : ModeloVista, IPestanaTrabajo
                 new OpcionMensaje("No validarlos", "Los deja como borradores", Cancelar: true),
                 new OpcionMensaje("Validar con total cero", "Los numera igualmente", Principal: true)) == 1)
             foreach (var b in ceros)
-                Anotar(b, await _s.Facturas.ValidarAsync(b.Datos.IdFactura, b.Datos.Version, _s.Actor, aceptarAvisos: true), correctas, problemas);
+                Hecho(b, await _s.Facturas.ValidarAsync(b.Datos.IdFactura, b.Datos.Version, _s.Actor, aceptarAvisos: true));
         else
             problemas.AddRange(ceros.Select(c => $"{c.Numero}: no validado (total cero)."));
 
+        // Las validadas dejan de ser borradores: si la vista era la de borradores, las del conjunto o el resto siguen a la vista.
         await CargarAsync(_activa?.Datos.IdFactura);
         Informar(correctas.Count == 1 ? $"Validada {correctas[0]}" : $"{Formatos.Plural(correctas.Count, "factura validada", "facturas validadas")}", correctas, problemas);
+        if (aEnviar.Count == 0) return;
+        try
+        {
+            await _modulo.EnviarPorCorreoAsync(aEnviar, $"Facturas validadas · envío de {aEnviar.Count}");
+        }
+        catch (Exception ex)
+        {
+            _modulo.Dialogos.Preguntar("No se ha podido enviar", $"Las facturas están validadas, pero ha fallado el envío por correo: {ex.Message} Lo que ya se hubiera enviado consta en Correo › Correo enviado; revísalo antes de repetir.", null,
+                new OpcionMensaje("Entendido", "Cierra el aviso", Principal: true, Cancelar: true));
+        }
     }
 
     private static void Anotar(FilaFacturaVM b, ResultadoValidacion r, List<string> correctas, List<string> problemas)
