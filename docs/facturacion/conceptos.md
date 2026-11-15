@@ -20,6 +20,7 @@ Catálogo de conceptos facturables por sociedad (tipos, precio, IVA, cuenta de v
 - 2026-11-04 18:05 · La analítica de la venta es el centro de coste de la línea: el concepto propone uno y se puede cambiar al emitir. Los departamentos del ERP (F_DEP) son el nivel superior de los centros de coste. Hasta la migración del ERP, Conceptos.IdCentroCoste y LineasFactura.IdCentroCoste antiguos guardan el código del ERP (318…), que coincide con el último tramo del código del centro nuevo («3/318»); el editor los muestra como «ERP 318 (sin migrar)». Su conversión al id del centro nuevo y la reducción del catálogo a conceptos genéricos (Alquiler mensual, Alquiler turístico) se hacen en la migración del ERP (implantacion/migracion-erp), no en esta BD, que se volverá a generar.
 - 2026-11-04 17:57 · Validado por el propietario (facturación de venta, PR #14).
 - 2026-11-15 14:05 · Un concepto sin cuenta de venta la puede recibir desde el editor de factura: al elegir en el buscador la cuenta de una línea de ese concepto, se ofrece guardarla como su cuenta por defecto (facturacion/pantallas 2026-11-15 14:05). Se guarda con las reglas de siempre (identidad contable de la cuenta en el ejercicio de trabajo) y no toca las líneas ya escritas.
+- 2026-11-15 15:18 · Validado por el propietario (cuenta de venta desde el editor de factura, PR #74).
 
 ## Requirements
 - 2026-10-28 12:28 · From sources/01_ESPECIFICACION_FUNCIONAL.docx § 9 RF-CAT-01, 02: catálogo de conceptos

@@ -52,6 +52,7 @@ Facturas programadas y Facturas son dos pantallas, cada una con su opción de me
 «Ventas por facturar» (2026-11-14 17:15, sigue en vigor): el resumen de «Facturar todo» y de «Facturar las seleccionadas…» ofrece «Ver las facturas creadas», igual que el lote de programadas.
 Editor: «Nueva factura» abre el editor con el buscador de cliente ya abierto; al añadir una línea, el foco pasa a su cantidad (a su nombre si es una línea sin concepto); el buscador de conceptos tiene «Línea sin concepto», que añade una línea vacía para escribirla a mano; una factura validada tiene «Enviar por correo…» al pie, junto a «PDF». La casilla «Periódica» desaparece: una programada se crea con «Nueva programada» o con «Programar…», y el título dice «Programada nueva» o «Programada P-0041». En una programada, la programación (periodicidad, fecha de inicio, día de emisión, final, próximas emisiones, periodo de la próxima factura, facturas generadas, qué genera cada vencimiento, enviar por correo y Activa) está siempre a la vista en la columna izquierda, en el sitio del historial, que pasa a una pestaña; debajo, «Así saldrá la próxima factura» enseña la descripción general y las líneas con %FECHAINICIO% y %FECHAFIN% ya sustituidos. Guardar, Descartar, Duplicar y Eliminar actúan sobre la programada; Validar no se muestra. No hay cambios de esquema.
 - 2026-11-15 14:05 · Editor, cuenta de la línea (amplía 2026-11-15 12:10): el campo «Cuenta» de cada línea abre el buscador común de subcuentas (contabilidad/cuenta-contable) con una lupa y con F4, limitado al grupo 7 con la casilla para quitar el filtro; en una línea de suplido, sin filtro. Se puede seguir escribiendo el código a mano. Al añadir una línea que queda sin cuenta (concepto sin cuenta de venta o «Línea sin concepto»), el buscador se abre solo después de elegir el concepto. Si la cuenta se elige en el buscador y el concepto de la línea no tiene cuenta de venta, se pregunta si se guarda como su cuenta por defecto (facturacion/conceptos): con «Sí» queda en el concepto; con «No» no se vuelve a preguntar por ese concepto hasta cerrar el programa (no se guarda nada en la base de datos). No se pregunta si la cuenta se escribe a mano, en suplidos ni en líneas sin concepto.
+- 2026-11-15 15:18 · Validado por el propietario (circuito de facturación y buscador de subcuentas en la línea, PR #74).
 
 ## Requirements
 - 2026-10-28 12:28 · From sources/01_ESPECIFICACION_FUNCIONAL.docx § 10 RF-FAC-10: listado, selección, proforma, contadores
@@ -92,6 +93,7 @@ Editor: «Nueva factura» abre el editor con el buscador de cliente ya abierto; 
 - 2026-11-15 13:54 · A
 - 2026-11-15 13:54 · El no, por sesión
 - 2026-11-15 13:54 · answer: cómo recordar el «No» a guardar la cuenta en el concepto → (A) mientras el programa siga abierto, sin cambios en la base de datos
+- 2026-11-15 15:16 · Ok, funciona bien.
 
 ## Hand-over
 - 2026-11-01 18:15 · Hecho: las dos pantallas compiladas y en el menú. Pendiente: probarlas en el equipo del propietario y validarlas contra la maqueta; el motivo de la rectificación y la doble pantalla quedan por decidir.
