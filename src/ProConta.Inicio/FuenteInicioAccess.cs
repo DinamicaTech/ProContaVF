@@ -1,5 +1,7 @@
 using System.Globalization;
+using ProConta.Contabilidad.Balances;
 using ProConta.Contabilidad.CentrosCoste;
+using ProConta.Contabilidad.Ratios;
 using ProConta.Datos.Persistencia;
 using ProConta.Nucleo.Contexto;
 using ProConta.Norma43.Importacion;
@@ -96,4 +98,34 @@ public sealed class FuenteInicioAccess(IBaseDatos bd) : IFuenteInicio
             f => new ActividadInicio((f.Texto("Nombre") ?? "").Trim(), f.EsNulo("Deducible") ? (byte)2 : Convert.ToByte(f.Valor("Deducible"), CultureInfo.InvariantCulture),
                 string.IsNullOrWhiteSpace(f.Texto("SerieCuentaIva")) ? null : f.Texto("SerieCuentaIva")!.Trim()),
             idSociedad), cancelacion);
+
+    public Task<ModeloBalance?> ModeloSituacionAsync(CancellationToken cancelacion = default) =>
+        bd.EjecutarAsync<ModeloBalance?>(async s =>
+        {
+            try { return await GeneradorBalances.LeerModeloAsync(s, TipoBalance.Situacion); }
+            catch (InvalidOperationException) { return null; } // BD sin modelo de situación: Inicio se ve sin ratios.
+        }, cancelacion);
+
+    public Task<IReadOnlyDictionary<int, IReadOnlyList<MovimientoRatio>>> CierresAsync(string idSociedad, IReadOnlyList<EjercicioSociedad> ejercicios, CancellationToken cancelacion = default) =>
+        bd.EjecutarAsync<IReadOnlyDictionary<int, IReadOnlyList<MovimientoRatio>>>(async s =>
+        {
+            var r = new Dictionary<int, IReadOnlyList<MovimientoRatio>>();
+            if (ejercicios.Count == 0) return r;
+            var porId = ejercicios.ToDictionary(e => e.IdSociedadEjercicio, e => e.Ejercicio);
+            // Una sola lectura agrupada por ejercicio, tipo de asiento y cuenta (los ids son enteros de SociedadesEjercicios).
+            var ids = string.Join(", ", porId.Keys.Select(i => i.ToString(CultureInfo.InvariantCulture)));
+            var filas = await s.ConsultarAsync(
+                "SELECT a.IdSociedadEjercicio, a.TipoAsiento, p.CuentaContable, SUM(IIF(p.ImporteDebe IS NULL, 0, p.ImporteDebe)) AS D, SUM(IIF(p.ImporteHaber IS NULL, 0, p.ImporteHaber)) AS H " +
+                $"FROM Asientos AS a INNER JOIN Apuntes AS p ON a.IdAsiento = p.IdAsiento WHERE a.IdSociedadEjercicio IN ({ids}) AND a.EstadoAsiento = 1 AND a.TipoAsiento <> 3 " +
+                "GROUP BY a.IdSociedadEjercicio, a.TipoAsiento, p.CuentaContable",
+                f => (Id: f.Entero("IdSociedadEjercicio"), Tipo: Convert.ToByte(f.Valor("TipoAsiento"), CultureInfo.InvariantCulture), Cuenta: (f.Texto("CuentaContable") ?? "").Trim(),
+                    D: f.DecimalNulo("D") ?? 0m, H: f.DecimalNulo("H") ?? 0m));
+            foreach (var g in filas.Where(x => porId.ContainsKey(x.Id)).GroupBy(x => x.Id))
+            {
+                var anio = porId[g.Key];
+                r[anio] = g.GroupBy(x => (x.Cuenta, x.Tipo))
+                    .Select(x => new MovimientoRatio(new DateTime(anio, 12, 31), x.Key.Cuenta, x.Key.Tipo, x.Sum(y => y.D), x.Sum(y => y.H))).ToList();
+            }
+            return r;
+        }, cancelacion);
 }

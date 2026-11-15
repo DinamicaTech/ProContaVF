@@ -126,4 +126,25 @@ public static class GeometriaGrafico
     /// <summary>Proporción (0 a 1) de un valor sobre el máximo de la escala, para las barras horizontales; 0 si el máximo es 0.</summary>
     public static double Proporcion(decimal valor, decimal maximo) =>
         maximo <= 0 || valor <= 0 ? 0 : Math.Min(1, (double)(valor / maximo));
+
+    /// <summary>
+    /// Franja de rango de un ratio (informes/graficos): posiciones de 0 a 1 de la banda del rango de referencia, del valor y de la
+    /// referencia (el ejercicio comparado) sobre una escala de 0 a un máximo que deja ver el rango y los valores. Rango abierto por
+    /// arriba (máximo null): la banda llega al final. «Menos es mejor»: la banda empieza en 0. Los valores fuera de escala (o
+    /// negativos) se quedan en el borde; un valor null no tiene marca.
+    /// </summary>
+    public static (double BandaDesde, double BandaHasta, double? Valor, double? Referencia) Franja(
+        decimal? minimo, decimal? maximo, bool menosEsMejor, decimal? valor, decimal? referencia)
+    {
+        var lo = minimo ?? 0m;
+        var v = Math.Max(valor ?? 0m, referencia ?? 0m);
+        var tope = menosEsMejor && maximo is decimal h1 ? Math.Max(h1 * 1.6m, v * 1.2m)
+            : maximo is decimal h2 ? Math.Max(h2 * 1.3m, v * 1.15m)
+            : Math.Max(lo * 2m, v * 1.25m);
+        if (tope <= 0) tope = 1m;
+        double P(decimal x) => Math.Clamp((double)(x / tope), 0, 1);
+        var desde = menosEsMejor ? 0 : P(lo);
+        var hasta = maximo is decimal h ? P(h) : 1;
+        return (desde, hasta, valor is decimal a ? P(a) : null, referencia is decimal r ? P(r) : null);
+    }
 }

@@ -114,7 +114,8 @@ public partial class VentanaPrincipal : Window
                 AbrirFacturas: () => _facturacion!.AbrirListado(),
                 AbrirPerdidasYGanancias: () => _ = GenerarBalanceAsync(ProConta.Contabilidad.Balances.TipoBalance.PerdidasYGanancias),
                 AbrirBancos: () => _bancos!.Abrir(),
-                AbrirMayor: cuentasMayor => _mayor!.Abrir(cuentasMayor)),
+                AbrirMayor: cuentasMayor => _mayor!.Abrir(cuentasMayor),
+                AbrirBalanceSituacion: () => _ = GenerarBalanceAsync(ProConta.Contabilidad.Balances.TipoBalance.Situacion)),
             () => this));
 
         var cuentas = new CatalogoCuentasAccess(bd);

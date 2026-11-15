@@ -14,11 +14,13 @@ public enum TipoBalance : byte
 /// <summary>
 /// Regla de clasificación de un modelo de balance (ReglasCuentasBalance con la ruta de su nodo): las cuentas que empiezan
 /// por <paramref name="Prefijo"/> van a ese bloque, apartado, título y subtítulo, con el importe (Debe − Haber) por
-/// <paramref name="Multiplicador"/>. Los órdenes son los de NodosBalance y fijan el orden oficial de presentación.
+/// <paramref name="Multiplicador"/>. Los órdenes son los de NodosBalance y fijan el orden oficial de presentación. Los códigos
+/// del apartado y del título (NodosBalance.Codigo, por ejemplo «ACT.B» y «ACT.B.6.017») los usan los ratios (informes/ratios).
 /// </summary>
 public sealed record ReglaBalance(
     string Prefijo, int Multiplicador, int Prioridad,
-    string Bloque, int OrdenBloque, string Apartado, int OrdenApartado, string Titulo, int OrdenTitulo, string? Subtitulo);
+    string Bloque, int OrdenBloque, string Apartado, int OrdenApartado, string Titulo, int OrdenTitulo, string? Subtitulo,
+    string? CodigoApartado = null, string? CodigoTitulo = null);
 
 /// <summary>Modelo de balance activo de un tipo (ModelosBalance) con sus reglas.</summary>
 public sealed record ModeloBalance(string Codigo, string Nombre, TipoBalance Tipo, IReadOnlyList<ReglaBalance> Reglas)
@@ -182,7 +184,7 @@ public sealed class GeneradorBalances(IBaseDatos bd)
             {
                 var ruta = Ruta(nodos, r.Nodo, tipo);
                 return new ReglaBalance(r.Prefijo, r.Multiplicador, r.Prioridad, ruta.Bloque, ruta.OrdenBloque, ruta.Apartado, ruta.OrdenApartado,
-                    ruta.Titulo, ruta.OrdenTitulo, ruta.Subtitulo);
+                    ruta.Titulo, ruta.OrdenTitulo, ruta.Subtitulo, ruta.CodigoApartado, ruta.CodigoTitulo);
             }).ToList());
     }
 
@@ -193,7 +195,8 @@ public sealed class GeneradorBalances(IBaseDatos bd)
     /// guardan bien en la maestra). En pérdidas y ganancias, los títulos llevan delante su número del modelo oficial
     /// (el del código del nodo, «PYG.A.4…» → «4. Aprovisionamientos.»), como en las cuentas anuales.
     /// </summary>
-    internal static (string Bloque, int OrdenBloque, string Apartado, int OrdenApartado, string Titulo, int OrdenTitulo, string? Subtitulo) Ruta(
+    internal static (string Bloque, int OrdenBloque, string Apartado, int OrdenApartado, string Titulo, int OrdenTitulo, string? Subtitulo,
+        string? CodigoApartado, string? CodigoTitulo) Ruta(
         IReadOnlyDictionary<int, NodoLeido> nodos, int idNodo, TipoBalance tipo)
     {
         NodoLeido? bloque = null, apartado = null, titulo = null, subtitulo = null;
@@ -217,6 +220,6 @@ public sealed class GeneradorBalances(IBaseDatos bd)
                 nombreTitulo = $"{numero}. {nombreTitulo}";
         }
         return (bloque?.Nombre ?? "", bloque?.Orden ?? 0, apartado?.Nombre ?? "", ordenApartado, nombreTitulo, titulo?.Orden ?? 0,
-            subtitulo?.Nombre is { Length: > 0 } st ? st : null);
+            subtitulo?.Nombre is { Length: > 0 } st ? st : null, apartado?.Codigo, titulo?.Codigo);
     }
 }

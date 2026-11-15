@@ -121,5 +121,23 @@ public sealed class FuenteInicioAccessTests : IDisposable
         Assert.Equal(1000m, p2026.Facturacion.Comparado);
         Assert.Equal(420m, p2026.Iva.Repercutido);
         Assert.Equal(2025, p2026.Comparado);
+
+        // Ratios: el modelo de situación de la maestra (con los códigos de apartado y título) y los saldos a cierre de 2025.
+        var modelo = await fuente.ModeloSituacionAsync();
+        Assert.NotNull(modelo);
+        Assert.Equal("ACT.B", modelo!.Regla("5720001")!.CodigoApartado);
+        Assert.StartsWith("ACT.B.6.", modelo.Regla("5720001")!.CodigoTitulo);
+        var cierres = await fuente.CierresAsync("T01", [ejercicios[1]]);
+        Assert.Equal(cierres[2025].Sum(m => m.Debe), cierres[2025].Sum(m => m.Haber));
+        Assert.All(cierres[2025], m => Assert.Equal(new DateTime(2025, 12, 31), m.Fecha));
+        Assert.Equal(new DateTime(2026, 10, 31), p2026.Ratios!.FechaBalance);
+        Assert.Equal([2025, 2026], p2026.SerieRatios.Select(s => s.Ejercicio));
+        var r2025 = p2026.SerieRatios[0].Ratios;
+        Assert.Empty(r2025.SinClasificar);
+        var solvencia = r2025.Ratio("solvencia")!;
+        // Activo a 31/12/2025: banco 4.950 y cliente 1.210; cuadra con el patrimonio neto (5.000 + 850 de resultado) y el pasivo.
+        Assert.Equal(6160m, solvencia.Partidas[0].Importe);
+        Assert.Equal(5850m, r2025.Ratio("endeudamiento")!.Partidas[1].Importe);
+        Assert.Equal(solvencia.Partidas[0].Importe, solvencia.Partidas[1].Importe + r2025.Ratio("endeudamiento")!.Partidas[1].Importe);
     }
 }

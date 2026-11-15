@@ -1,3 +1,6 @@
+using ProConta.Contabilidad.Balances;
+using ProConta.Contabilidad.Ratios;
+
 namespace ProConta.Inicio;
 
 /// <summary>
@@ -12,6 +15,10 @@ public sealed class ServicioInicio(IFuenteInicio fuente, Func<DateTime>? hoy = n
     private IReadOnlyList<BancoN43>? _bancos;
     private IReadOnlyDictionary<int, ActividadInicio>? _porCentro;
     private IReadOnlyList<ActividadInicio>? _actividades;
+    private ModeloBalance? _situacion;
+    private bool _situacionLeida;
+    private readonly Dictionary<int, IReadOnlyList<MovimientoRatio>> _cierres = [];
+    private readonly HashSet<int> _cierresLeidos = [];
 
     public DateTime Hoy => (hoy ?? (() => DateTime.Today))().Date;
 
@@ -28,6 +35,10 @@ public sealed class ServicioInicio(IFuenteInicio fuente, Func<DateTime>? hoy = n
         _bancos = null;
         _porCentro = null;
         _actividades = null;
+        _situacion = null;
+        _situacionLeida = false;
+        _cierres.Clear();
+        _cierresLeidos.Clear();
     }
 
     /// <summary>Ejercicios de la sociedad, del más reciente al más antiguo.</summary>
@@ -40,15 +51,24 @@ public sealed class ServicioInicio(IFuenteInicio fuente, Func<DateTime>? hoy = n
 
     private readonly SemaphoreSlim _turno = new(1, 1);
 
+    /// <summary>Cuentas bancarias de la sociedad (Norma 43) con su cuenta contable, para marcar las de inversión.</summary>
+    public async Task<IReadOnlyList<BancoN43>> BancosAsync(string idSociedad, int ejercicio, CancellationToken cancelacion = default)
+    {
+        if (_bancos is not null && !_olvidar) return _bancos;
+        var e = (await EjerciciosAsync(idSociedad, cancelacion)).FirstOrDefault(x => x.Ejercicio == ejercicio);
+        return e is null ? [] : _bancos = await fuente.BancosAsync(idSociedad, e, cancelacion);
+    }
+
     /// <summary>Calcula el panel; las llamadas se atienden de una en una (comparten lo leído).</summary>
-    public async Task<PanelInicio> CalcularAsync(string idSociedad, int ejercicio, int? comparado, CancellationToken cancelacion = default)
+    /// <param name="inversiones">Cuentas contables de los bancos marcados como inversión (no son tesorería operativa).</param>
+    public async Task<PanelInicio> CalcularAsync(string idSociedad, int ejercicio, int? comparado, IReadOnlySet<string>? inversiones = null, CancellationToken cancelacion = default)
     {
         await _turno.WaitAsync(cancelacion).ConfigureAwait(false);
-        try { return await CalcularSinTurnoAsync(idSociedad, ejercicio, comparado, cancelacion).ConfigureAwait(false); }
+        try { return await CalcularSinTurnoAsync(idSociedad, ejercicio, comparado, inversiones, cancelacion).ConfigureAwait(false); }
         finally { _turno.Release(); }
     }
 
-    private async Task<PanelInicio> CalcularSinTurnoAsync(string idSociedad, int ejercicio, int? comparado, CancellationToken cancelacion)
+    private async Task<PanelInicio> CalcularSinTurnoAsync(string idSociedad, int ejercicio, int? comparado, IReadOnlySet<string>? inversiones, CancellationToken cancelacion)
     {
         if (_olvidar) OlvidarAhora();
         var ejercicios = await EjerciciosAsync(idSociedad, cancelacion);
@@ -62,7 +82,19 @@ public sealed class ServicioInicio(IFuenteInicio fuente, Func<DateTime>? hoy = n
         _bancos ??= await fuente.BancosAsync(idSociedad, actualE, cancelacion);
         _porCentro ??= await fuente.ActividadesPorCentroAsync(idSociedad, cancelacion);
         _actividades ??= await fuente.ActividadesAsync(idSociedad, cancelacion);
-        return CalculadoraInicio.Calcular(actual, anterior, datosComparado, Hoy, _bancos, _porCentro, _actividades);
+        if (!_situacionLeida)
+        {
+            _situacion = await fuente.ModeloSituacionAsync(cancelacion);
+            _situacionLeida = true;
+        }
+        // Saldos a cierre de los ejercicios anteriores (series de los ratios): solo se leen los que aún no se han leído.
+        List<EjercicioSociedad> faltan = _situacion is null ? [] : ejercicios.Where(e => e.Ejercicio < ejercicio && !_cierresLeidos.Contains(e.Ejercicio)).ToList();
+        if (faltan.Count > 0)
+        {
+            foreach (var (anio, movs) in await fuente.CierresAsync(idSociedad, faltan, cancelacion)) _cierres[anio] = movs;
+            foreach (var e in faltan) _cierresLeidos.Add(e.Ejercicio);
+        }
+        return CalculadoraInicio.Calcular(actual, anterior, datosComparado, Hoy, _bancos, _porCentro, _actividades, inversiones, _situacion, _cierres);
     }
 
     private async Task<DatosEjercicio> DatosAsync(string idSociedad, EjercicioSociedad e, CancellationToken cancelacion)

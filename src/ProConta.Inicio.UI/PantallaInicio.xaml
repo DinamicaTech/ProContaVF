@@ -89,6 +89,72 @@
       </Style.Triggers>
     </Style>
 
+    <!-- Estado de un ratio: icono y texto sobre fondo verde, ámbar o rojo. -->
+    <Style x:Key="Insignia.Estado" TargetType="Border">
+      <Setter Property="CornerRadius" Value="999" />
+      <Setter Property="Padding" Value="8,1" />
+      <Setter Property="HorizontalAlignment" Value="Left" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+      <Setter Property="Background" Value="{StaticResource Pincel.Fondo}" />
+      <Style.Triggers>
+        <DataTrigger Binding="{Binding Estado}" Value="Bien"><Setter Property="Background" Value="{StaticResource Pincel.VerdeSuave}" /></DataTrigger>
+        <DataTrigger Binding="{Binding Estado}" Value="Vigilar"><Setter Property="Background" Value="{StaticResource Pincel.AmbarSuave}" /></DataTrigger>
+        <DataTrigger Binding="{Binding Estado}" Value="Mal"><Setter Property="Background" Value="{StaticResource Pincel.RojoSuave}" /></DataTrigger>
+      </Style.Triggers>
+    </Style>
+    <Style x:Key="Texto.Estado" TargetType="TextBlock">
+      <Setter Property="FontSize" Value="{StaticResource Letra.Secundaria}" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+      <Setter Property="Foreground" Value="{StaticResource Pincel.Apagado}" />
+      <Style.Triggers>
+        <DataTrigger Binding="{Binding Estado}" Value="Bien"><Setter Property="Foreground" Value="{StaticResource Pincel.Verde}" /></DataTrigger>
+        <DataTrigger Binding="{Binding Estado}" Value="Vigilar"><Setter Property="Foreground" Value="{StaticResource Pincel.Ambar}" /></DataTrigger>
+        <DataTrigger Binding="{Binding Estado}" Value="Mal"><Setter Property="Foreground" Value="{StaticResource Pincel.Rojo}" /></DataTrigger>
+      </Style.Triggers>
+    </Style>
+    <!-- Fila de un ratio: botón plano que abre su ficha. -->
+    <Style x:Key="Boton.FilaRatio" TargetType="Button">
+      <Setter Property="Cursor" Value="Hand" />
+      <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+      <Setter Property="ToolTipService.ShowDuration" Value="30000" />
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="Button">
+            <Border x:Name="F" Background="Transparent" CornerRadius="7" Padding="6,4">
+              <ContentPresenter />
+            </Border>
+            <ControlTemplate.Triggers>
+              <Trigger Property="IsMouseOver" Value="True">
+                <Setter TargetName="F" Property="Background" Value="{StaticResource Pincel.Fondo}" />
+              </Trigger>
+              <Trigger Property="IsKeyboardFocused" Value="True">
+                <Setter TargetName="F" Property="Background" Value="{StaticResource Pincel.Fondo}" />
+              </Trigger>
+            </ControlTemplate.Triggers>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
+
+    <!-- Banco con su saldo (tesorería operativa e inversiones). -->
+    <DataTemplate x:Key="Plantilla.Banco" DataType="{x:Type local:BancoVM}">
+      <Border BorderBrush="{StaticResource Pincel.Linea2}" BorderThickness="0,0,0,1" Padding="0,4" Background="Transparent" ToolTip="{Binding Ayuda}">
+        <Border.InputBindings>
+          <MouseBinding MouseAction="LeftDoubleClick" Command="{Binding DataContext.AbrirBancoCommand, ElementName=Raiz}" CommandParameter="{Binding}" />
+        </Border.InputBindings>
+        <DockPanel>
+          <TextBlock DockPanel.Dock="Right" Text="{Binding Saldo}" FontWeight="SemiBold" Typography.NumeralAlignment="Tabular" FontSize="{StaticResource Letra.Normal}" />
+          <TextBlock Text="{Binding Nombre}" FontSize="{StaticResource Letra.Normal}" Margin="0,0,10,0" />
+          <TextBlock Text="{Binding Extracto}" Style="{StaticResource Nota.Tarjeta}" FontSize="{StaticResource Letra.Secundaria}" Margin="0,0,8,0" />
+          <Border Background="{StaticResource Pincel.AmbarSuave}" CornerRadius="999" Padding="8,0" HorizontalAlignment="Left" Visibility="{Binding Aviso, Converter={StaticResource Visible}}">
+            <TextBlock FontSize="{StaticResource Letra.Pequena}" FontWeight="SemiBold" Foreground="{StaticResource Pincel.Ambar}">
+              <Run Text="! último extracto " /><Run Text="{Binding Aviso, Mode=OneWay}" />
+            </TextBlock>
+          </Border>
+        </DockPanel>
+      </Border>
+    </DataTemplate>
+
     <!-- Muestra de la leyenda: sólida, rayada (proyección) o a trazos. -->
     <DataTemplate x:Key="Plantilla.Leyenda" DataType="{x:Type local:ElementoLeyenda}">
       <StackPanel Orientation="Horizontal" Margin="0,0,14,0">
@@ -243,6 +309,67 @@
           </StackPanel>
         </Border>
 
+        <!-- Ratios -->
+        <Border Style="{StaticResource Tarjeta.Inicio}" Visibility="{Binding VerRatios, Converter={StaticResource Visible}}">
+          <StackPanel>
+            <DockPanel Margin="0,0,0,8">
+              <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                <Border Background="{StaticResource Pincel.VerdeSuave}" CornerRadius="999" Padding="8,1" Margin="6,0,0,0" Visibility="{Binding HayBien, Converter={StaticResource Visible}}"
+                        ToolTip="Ratios dentro de su rango de referencia">
+                  <TextBlock Text="{Binding RecuentoBien}" FontSize="{StaticResource Letra.Secundaria}" FontWeight="SemiBold" Foreground="{StaticResource Pincel.Verde}" />
+                </Border>
+                <Border Background="{StaticResource Pincel.AmbarSuave}" CornerRadius="999" Padding="8,1" Margin="6,0,0,0" Visibility="{Binding HayVigilar, Converter={StaticResource Visible}}"
+                        ToolTip="Ratios algo por debajo del mínimo o por encima del máximo de su rango">
+                  <TextBlock Text="{Binding RecuentoVigilar}" FontSize="{StaticResource Letra.Secundaria}" FontWeight="SemiBold" Foreground="{StaticResource Pincel.Ambar}" />
+                </Border>
+                <Border Background="{StaticResource Pincel.RojoSuave}" CornerRadius="999" Padding="8,1" Margin="6,0,0,0" Visibility="{Binding HayMal, Converter={StaticResource Visible}}"
+                        ToolTip="Ratios muy por debajo del mínimo (menos del 80 %) o muy por encima del máximo en los de «menos es mejor» (más de 1,3 veces)">
+                  <TextBlock Text="{Binding RecuentoMal}" FontSize="{StaticResource Letra.Secundaria}" FontWeight="SemiBold" Foreground="{StaticResource Pincel.Rojo}" />
+                </Border>
+              </StackPanel>
+              <TextBlock Text="Ratios" Style="{StaticResource Titulo.Tarjeta}" />
+              <TextBlock Text="{Binding TextoRatios}" Style="{StaticResource Nota.Tarjeta}"
+                         ToolTip="Balance a fin del último mes completo (o a 31/12 si el ejercicio está terminado) y resultado de los 12 meses que terminan en esa fecha" />
+            </DockPanel>
+            <TextBlock Text="{Binding SinRatios}" Style="{StaticResource Vacio.Tarjeta}" Visibility="{Binding SinRatios, Converter={StaticResource Visible}}" />
+            <ItemsControl ItemsSource="{Binding FamiliasRatios}" Visibility="{Binding SinRatios, Converter={StaticResource Visible}, ConverterParameter=invertir}">
+              <ItemsControl.ItemsPanel><ItemsPanelTemplate><UniformGrid Columns="2" /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+              <ItemsControl.ItemTemplate>
+                <DataTemplate DataType="{x:Type local:FamiliaRatioVM}">
+                  <StackPanel Margin="0,0,28,8">
+                    <TextBlock Text="{Binding Nombre}" Style="{StaticResource Subtitulo.Bloque}" Margin="6,2,0,2" />
+                    <ItemsControl ItemsSource="{Binding Filas}">
+                      <ItemsControl.ItemTemplate>
+                        <DataTemplate DataType="{x:Type local:FilaRatioVM}">
+                          <Button Style="{StaticResource Boton.FilaRatio}" Command="{Binding Comando}" ToolTip="{Binding Ayuda}" AutomationProperties.Name="{Binding Nombre}">
+                            <Grid>
+                              <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="1.3*" />
+                                <ColumnDefinition Width="78" />
+                                <ColumnDefinition Width="*" MinWidth="70" />
+                                <ColumnDefinition Width="96" />
+                              </Grid.ColumnDefinitions>
+                              <TextBlock Text="{Binding Nombre}" FontSize="{StaticResource Letra.Normal}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+                              <TextBlock Grid.Column="1" Text="{Binding Valor}" FontSize="{StaticResource Letra.Normal}" FontWeight="SemiBold" HorizontalAlignment="Right"
+                                         Typography.NumeralAlignment="Tabular" VerticalAlignment="Center" Margin="0,0,10,0" />
+                              <pc:FranjaRango Grid.Column="2" Height="14" VerticalAlignment="Center" Valor="{Binding Numero}" Referencia="{Binding Comparado}"
+                                              Minimo="{Binding Minimo}" Maximo="{Binding Maximo}" MenosEsMejor="{Binding MenosEsMejor}" />
+                              <Border Grid.Column="3" Style="{StaticResource Insignia.Estado}" Margin="10,0,0,0">
+                                <TextBlock Text="{Binding TextoEstado}" Style="{StaticResource Texto.Estado}" />
+                              </Border>
+                            </Grid>
+                          </Button>
+                        </DataTemplate>
+                      </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                  </StackPanel>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+            <TextBlock Text="{Binding NotaRatios}" Style="{StaticResource Texto.Apagado}" TextWrapping="Wrap" Margin="6,2,0,0" Visibility="{Binding NotaRatios, Converter={StaticResource Visible}}" />
+          </StackPanel>
+        </Border>
+
         <!-- Bloques inferiores en dos columnas -->
         <UniformGrid Columns="2">
           <!-- Tesorería -->
@@ -250,31 +377,16 @@
             <StackPanel>
               <DockPanel Margin="0,0,0,6">
                 <TextBlock Text="Tesorería" Style="{StaticResource Titulo.Tarjeta}" />
-                <TextBlock Text="saldo de bancos a fin de cada uno de los últimos 12 meses" Style="{StaticResource Nota.Tarjeta}" />
+                <TextBlock Text="operativa (sin las cuentas de inversión), a fin de cada uno de los últimos 12 meses" Style="{StaticResource Nota.Tarjeta}" />
               </DockPanel>
               <pc:GraficoLineas Datos="{Binding DatosTesoreria}" Height="190" />
               <TextBlock Text="{Binding TextoBancos}" Style="{StaticResource Subtitulo.Bloque}" Margin="0,10,0,4" />
-              <ItemsControl ItemsSource="{Binding Bancos}">
-                <ItemsControl.ItemTemplate>
-                  <DataTemplate DataType="{x:Type local:BancoVM}">
-                    <Border BorderBrush="{StaticResource Pincel.Linea2}" BorderThickness="0,0,0,1" Padding="0,4" Background="Transparent" ToolTip="{Binding Ayuda}">
-                      <Border.InputBindings>
-                        <MouseBinding MouseAction="LeftDoubleClick" Command="{Binding DataContext.AbrirBancoCommand, ElementName=Raiz}" CommandParameter="{Binding}" />
-                      </Border.InputBindings>
-                      <DockPanel>
-                        <TextBlock DockPanel.Dock="Right" Text="{Binding Saldo}" FontWeight="SemiBold" Typography.NumeralAlignment="Tabular" FontSize="{StaticResource Letra.Normal}" />
-                        <TextBlock Text="{Binding Nombre}" FontSize="{StaticResource Letra.Normal}" Margin="0,0,10,0" />
-                        <TextBlock Text="{Binding Extracto}" Style="{StaticResource Nota.Tarjeta}" FontSize="{StaticResource Letra.Secundaria}" Margin="0,0,8,0" />
-                        <Border Background="{StaticResource Pincel.AmbarSuave}" CornerRadius="999" Padding="8,0" HorizontalAlignment="Left" Visibility="{Binding Aviso, Converter={StaticResource Visible}}">
-                          <TextBlock FontSize="{StaticResource Letra.Pequena}" FontWeight="SemiBold" Foreground="{StaticResource Pincel.Ambar}">
-                            <Run Text="! último extracto " /><Run Text="{Binding Aviso, Mode=OneWay}" />
-                          </TextBlock>
-                        </Border>
-                      </DockPanel>
-                    </Border>
-                  </DataTemplate>
-                </ItemsControl.ItemTemplate>
-              </ItemsControl>
+              <ItemsControl ItemsSource="{Binding Bancos}" ItemTemplate="{StaticResource Plantilla.Banco}" />
+              <StackPanel Visibility="{Binding HayInversiones, Converter={StaticResource Visible}}">
+                <TextBlock Text="{Binding TextoInversiones}" Style="{StaticResource Subtitulo.Bloque}" Margin="0,14,0,4"
+                           ToolTip="Cuentas bancarias marcadas como inversión en «Personalizar…»: no suman en la tesorería operativa ni en su gráfico" />
+                <ItemsControl ItemsSource="{Binding Inversiones}" ItemTemplate="{StaticResource Plantilla.Banco}" />
+              </StackPanel>
             </StackPanel>
           </Border>
 

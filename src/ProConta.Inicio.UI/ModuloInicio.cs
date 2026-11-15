@@ -51,9 +51,9 @@ public static class ModuloInicio
 /// <summary>Diálogos reales de la pantalla de inicio.</summary>
 public sealed class DialogosInicio(Func<Window?> propietario) : IDialogosInicio
 {
-    public IReadOnlySet<string>? Personalizar(IReadOnlyList<BloqueInicio> bloques, IReadOnlySet<string> ocultos)
+    public EleccionInicio? Personalizar(IReadOnlyList<BloqueInicio> bloques, IReadOnlySet<string> ocultos, IReadOnlyList<CuentaBancoInicio> bancos)
     {
-        var d = new DialogoProConta { Title = "Personalizar Inicio", Owner = propietario(), Width = 520, SizeToContent = SizeToContent.Height };
+        var d = new DialogoProConta { Title = "Personalizar Inicio", Owner = propietario(), Width = 560, SizeToContent = SizeToContent.Height };
         var panel = new StackPanel();
         panel.Children.Add(new TextBlock { Text = "Elige qué bloques se ven en Inicio. La elección se guarda para tu operador.", TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 0, 0, 12) });
         var casillas = new List<(BloqueInicio Bloque, CheckBox Casilla)>();
@@ -65,10 +65,31 @@ public sealed class DialogosInicio(Func<Window?> propietario) : IDialogosInicio
         }
         panel.Children.Add(new TextBlock
         {
-            Text = "Los ratios, la salud de la contabilidad, la agenda y la ocupación turística llegarán en las próximas fases.",
+            Text = "La salud de la contabilidad, la agenda y la ocupación turística llegarán en las próximas fases.",
             TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 6, 0, 0), Foreground = (System.Windows.Media.Brush)d.FindResource("Pincel.Apagado"),
         });
-        d.Content = panel;
+        var marcas = new List<(CuentaBancoInicio Banco, CheckBox Casilla)>();
+        if (bancos.Count > 0)
+        {
+            panel.Children.Add(new TextBlock { Text = "Cuentas de inversión", FontWeight = FontWeights.SemiBold, Margin = new Thickness(0, 16, 0, 4) });
+            panel.Children.Add(new TextBlock
+            {
+                Text = "Marca las cuentas bancarias que no son tesorería operativa (por ejemplo, la de un bróker). No suman en el indicador de tesorería ni en su gráfico, " +
+                       "se ven aparte bajo «Inversiones» y en los ratios cuentan como realizable, no como disponible. La marca se guarda para tu operador y esta sociedad.",
+                TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 0, 0, 8), Foreground = (System.Windows.Media.Brush)d.FindResource("Pincel.Apagado"),
+            });
+            foreach (var b in bancos)
+            {
+                var c = new CheckBox
+                {
+                    Content = $"{b.Cuenta} · {b.Nombre} — no es tesorería operativa (inversión)", IsChecked = b.Inversion, Margin = new Thickness(0, 0, 0, 6),
+                    ToolTip = $"Marcada, la cuenta {b.Cuenta} ({b.Nombre}) sale de la tesorería operativa y se muestra aparte como inversión",
+                };
+                marcas.Add((b, c));
+                panel.Children.Add(c);
+            }
+        }
+        d.Content = new ScrollViewer { Content = panel, VerticalScrollBarVisibility = ScrollBarVisibility.Auto, MaxHeight = 640 };
         var aplicar = new Button { Content = "Aplicar", Style = (Style)d.FindResource("Boton.Primario"), IsDefault = true, Margin = new Thickness(8, 0, 0, 0), ToolTip = "Muestra solo los bloques marcados" };
         var todos = new Button { Content = "Mostrar todos", Margin = new Thickness(0, 0, 8, 0), ToolTip = "Marca todos los bloques (como viene de fábrica)" };
         var cancelar = new Button { Content = "Cancelar", IsCancel = true, ToolTip = "Cierra sin cambiar nada" };
@@ -76,6 +97,31 @@ public sealed class DialogosInicio(Func<Window?> propietario) : IDialogosInicio
         cancelar.Click += (_, _) => d.DialogResult = false;
         todos.Click += (_, _) => { foreach (var (_, c) in casillas) c.IsChecked = true; };
         d.Botones = new StackPanel { Orientation = Orientation.Horizontal, Children = { todos, cancelar, aplicar } };
-        return d.ShowDialog() == true ? casillas.Where(x => x.Casilla.IsChecked != true).Select(x => x.Bloque.Clave).ToHashSet(StringComparer.Ordinal) : null;
+        if (d.ShowDialog() != true) return null;
+        return new EleccionInicio(
+            casillas.Where(x => x.Casilla.IsChecked != true).Select(x => x.Bloque.Clave).ToHashSet(StringComparer.Ordinal),
+            marcas.Where(x => x.Casilla.IsChecked == true).Select(x => x.Banco.Cuenta).ToHashSet(StringComparer.Ordinal));
+    }
+
+    public void VerRatio(FichaRatioVM ficha)
+    {
+        var d = new DialogoProConta
+        {
+            Title = ficha.Titulo, Owner = propietario(), Width = 780, Height = 600, MinWidth = 520, MinHeight = 360, SizeToContent = SizeToContent.Manual, Redimensionable = true,
+        };
+        d.Content = new FichaRatio { DataContext = ficha };
+        ficha.Cerrar = () => d.DialogResult = false;
+        var cerrar = new Button { Content = "Cerrar", Style = (Style)d.FindResource("Boton.Primario"), IsCancel = true, IsDefault = true, Margin = new Thickness(8, 0, 0, 0), ToolTip = "Cierra la ficha" };
+        cerrar.Click += (_, _) => d.DialogResult = false;
+        var botones = new StackPanel { Orientation = Orientation.Horizontal };
+        if (ficha.AbrirBalanceCommand is { } balance)
+            botones.Children.Add(new Button
+            {
+                Content = "Abrir el balance", Command = balance,
+                ToolTip = "Abre en Excel el balance de situación del ejercicio de trabajo (Informes › Balance de situación), con las cifras de las que salen los ratios",
+            });
+        botones.Children.Add(cerrar);
+        d.Botones = botones;
+        d.ShowDialog();
     }
 }

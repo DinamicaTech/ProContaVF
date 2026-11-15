@@ -5,7 +5,7 @@ using ProConta.UI.Base.Preferencias;
 namespace ProConta.Inicio.Tests;
 
 /// <summary>Datos sintéticos de dos ejercicios cuadrados (2025 completo y 2026 hasta el 15/11) para el panel y el modelo de vista.</summary>
-internal sealed class FuenteSintetica : IFuenteInicio
+internal sealed class FuenteSintetica(bool conBroker = false) : IFuenteInicio
 {
     public static readonly EjercicioSociedad E2025 = new(1, 2025, 4, null);
     public static readonly EjercicioSociedad E2026 = new(2, 2026, 4, null);
@@ -53,11 +53,29 @@ internal sealed class FuenteSintetica : IFuenteInicio
     public Task<DatosEjercicio> DatosAsync(string idSociedad, EjercicioSociedad ejercicio, CancellationToken cancelacion = default)
     {
         Lecturas++;
-        return Task.FromResult(ejercicio.Ejercicio == 2025 ? Datos(E2025, 12, 31, 1m) : Datos(E2026, 11, 15, 1.1m));
+        var d = ejercicio.Ejercicio == 2025 ? Datos(E2025, 12, 31, 1m) : Datos(E2026, 11, 15, 1.1m);
+        return Task.FromResult(conBroker ? ConBroker(d) : d);
     }
 
+    /// <summary>Añade la cuenta del bróker (5720019) con 3.000 aportados el 1 de enero de cada ejercicio.</summary>
+    public static DatosEjercicio ConBroker(DatosEjercicio d) => d with
+    {
+        Movimientos = [.. d.Movimientos, new MovimientoDia(new DateTime(d.Ejercicio.Ejercicio, 1, 1), "5720019", 1, 3000m, 0), new MovimientoDia(new DateTime(d.Ejercicio.Ejercicio, 1, 1), "1000000", 1, 0, 3000m)],
+    };
+
+    public static IReadOnlyList<BancoN43> Bancos(bool conBroker) => conBroker
+        ? [new BancoN43("Banco sintético", "5720001", new DateTime(2026, 11, 1)), new BancoN43("Bróker sintético", "5720019", null)]
+        : [new BancoN43("Banco sintético", "5720001", new DateTime(2026, 11, 1))];
+
     public Task<IReadOnlyList<BancoN43>> BancosAsync(string idSociedad, EjercicioSociedad ejercicio, CancellationToken cancelacion = default) =>
-        Task.FromResult<IReadOnlyList<BancoN43>>([new BancoN43("Banco sintético", "5720001", new DateTime(2026, 11, 1))]);
+        Task.FromResult(Bancos(conBroker));
+
+    public Task<ProConta.Contabilidad.Balances.ModeloBalance?> ModeloSituacionAsync(CancellationToken cancelacion = default) =>
+        Task.FromResult<ProConta.Contabilidad.Balances.ModeloBalance?>(ModeloSintetico.Situacion);
+
+    public Task<IReadOnlyDictionary<int, IReadOnlyList<ProConta.Contabilidad.Ratios.MovimientoRatio>>> CierresAsync(string idSociedad, IReadOnlyList<EjercicioSociedad> ejercicios, CancellationToken cancelacion = default) =>
+        Task.FromResult<IReadOnlyDictionary<int, IReadOnlyList<ProConta.Contabilidad.Ratios.MovimientoRatio>>>(ejercicios.Where(e => e.Ejercicio == 2025)
+            .ToDictionary(e => e.Ejercicio, e => CalculoInicio.ParaRatios(Datos(E2025, 12, 31, 1m).Movimientos)));
 
     public Task<IReadOnlyDictionary<int, ActividadInicio>> ActividadesPorCentroAsync(string idSociedad, CancellationToken cancelacion = default) =>
         Task.FromResult<IReadOnlyDictionary<int, ActividadInicio>>(new Dictionary<int, ActividadInicio> { [10] = new("Locales", 2, null), [20] = new("Viviendas", 0, "4726") });
@@ -124,7 +142,12 @@ public sealed class PanelInicioTests
         Assert.Equal(7700m, p.Resultado.Valor);
         Assert.Equal(6600m, p.Resultado.Comparado);
         Assert.Equal(7200m, p.Resultado.TotalComparado);
-        Assert.Equal(8400m, Math.Round(p.Resultado.Proyeccion!.Value, 2));
+        // La proyección del indicador de resultado es la del EBITDA (aquí no hay amortizaciones: coincide con el resultado).
+        Assert.Null(p.Resultado.Proyeccion);
+        Assert.Equal(7700m, p.Ebitda.Actual);
+        Assert.Equal(6600m, p.Ebitda.Comparado);
+        Assert.Equal(7200m, p.Ebitda.TotalComparado);
+        Assert.Equal(8400m, Math.Round(p.Ebitda.Proyeccion!.Value, 2));
         // Tesorería: 5.000 de apertura + 10 meses cobrados y pagados.
         Assert.Equal(5000m + 10 * (1331m - 484m), p.Tesoreria.Valor);
         Assert.Equal(p.Tesoreria.Valor, p.Bancos.Single().Saldo);
@@ -176,6 +199,75 @@ public sealed class PanelInicioTests
         Assert.Equal(new DateTime(2025, 12, 31), p.FechaCorte);
         Assert.Null(p.Facturacion.Proyeccion);
         Assert.Null(p.Resultado.Proyeccion);
+        Assert.Null(p.Ebitda.Proyeccion);
+    }
+
+    [Fact]
+    public void LaProyeccionDelEbitdaNoCuentaAmortizacionesNiFinancierosYRespetaLosCasosLimite()
+    {
+        var f = new FuenteSintetica();
+        var a = FuenteSintetica.Datos(FuenteSintetica.E2026, 11, 15, 1.1m);
+        var c = FuenteSintetica.Datos(FuenteSintetica.E2025, 12, 31, 1m);
+        // Una amortización y unos intereses en el comparado completo (diciembre) y en el actual: no cambian el EBITDA.
+        a = a with { Movimientos = [.. a.Movimientos, new MovimientoDia(new DateTime(2026, 6, 30), "6810001", 0, 500m, 0), new MovimientoDia(new DateTime(2026, 6, 30), "6620001", 0, 80m, 0)] };
+        c = c with { Movimientos = [.. c.Movimientos, new MovimientoDia(new DateTime(2025, 12, 31), "6810001", 0, 1200m, 0), new MovimientoDia(new DateTime(2025, 12, 31), "6300001", 0, 300m, 0)] };
+        var p = CalculadoraInicio.Calcular(a, c, c, Hoy, f.BancosAsync("T01", FuenteSintetica.E2026).Result, new Dictionary<int, ActividadInicio>(), []);
+        Assert.Equal(7700m - 580m, p.Resultado.Valor);
+        Assert.Equal(7700m, p.Ebitda.Actual);
+        Assert.Equal(7200m, p.Ebitda.TotalComparado);
+        Assert.Equal(7200m * (7700m / 6600m), p.Ebitda.Proyeccion);
+        // Sin comparado no hay proyección.
+        Assert.Null(CalculadoraInicio.Calcular(a, c, null, Hoy, [], new Dictionary<int, ActividadInicio>(), []).Ebitda.Proyeccion);
+        // Comparado sin EBITDA a la misma fecha (divisor cero): no hay proyección.
+        var vacio = DatosEjercicio.Vacio(FuenteSintetica.E2025);
+        Assert.Null(CalculadoraInicio.Calcular(a, vacio, vacio, Hoy, [], new Dictionary<int, ActividadInicio>(), []).Ebitda.Proyeccion);
+    }
+
+    [Fact]
+    public void LasCuentasDeInversionSalenDeLaTesoreriaOperativaYSeVenAparte()
+    {
+        var a = FuenteSintetica.ConBroker(FuenteSintetica.Datos(FuenteSintetica.E2026, 11, 15, 1.1m));
+        var c = FuenteSintetica.ConBroker(FuenteSintetica.Datos(FuenteSintetica.E2025, 12, 31, 1m));
+        var bancos = FuenteSintetica.Bancos(conBroker: true);
+        var sinMarca = CalculadoraInicio.Calcular(a, c, c, Hoy, bancos, new Dictionary<int, ActividadInicio>(), []);
+        var conMarca = CalculadoraInicio.Calcular(a, c, c, Hoy, bancos, new Dictionary<int, ActividadInicio>(), [], new HashSet<string> { "5720019" });
+        // Sin marcar, el bróker suma; marcado, la tesorería operativa es el total anterior menos el bróker.
+        Assert.Equal(5000m + 10 * (1331m - 484m) + 3000m, sinMarca.Tesoreria.Valor);
+        Assert.Equal(sinMarca.Tesoreria.Valor - 3000m, conMarca.Tesoreria.Valor);
+        Assert.Equal(sinMarca.Tesoreria.Comparado - 3000m, conMarca.Tesoreria.Comparado);
+        Assert.Equal(sinMarca.TesoreriaMensual[^1].Saldo - 3000m, conMarca.TesoreriaMensual[^1].Saldo);
+        Assert.Empty(sinMarca.Inversiones);
+        Assert.Equal("5720019", conMarca.Inversiones.Single().Cuenta);
+        Assert.Equal(3000m, conMarca.TotalInversiones);
+        Assert.DoesNotContain(conMarca.Bancos, b => b.Cuenta == "5720019");
+        Assert.Equal(conMarca.Tesoreria.Valor, conMarca.Bancos.Sum(b => b.Saldo) + conMarca.OtrasCuentasTesoreria);
+    }
+
+    [Fact]
+    public void RatiosDelPanelABalanceDeFinDelMesAnteriorYSerieACierre()
+    {
+        var f = new FuenteSintetica();
+        var a = FuenteSintetica.Datos(FuenteSintetica.E2026, 11, 15, 1.1m);
+        var c = FuenteSintetica.Datos(FuenteSintetica.E2025, 12, 31, 1m);
+        var cierres = f.CierresAsync("T01", [FuenteSintetica.E2025]).Result;
+        var p = CalculadoraInicio.Calcular(a, c, c, Hoy, f.BancosAsync("T01", FuenteSintetica.E2026).Result, new Dictionary<int, ActividadInicio>(), [], null, ModeloSintetico.Situacion, cierres);
+        Assert.NotNull(p.Ratios);
+        Assert.Equal(new DateTime(2026, 10, 31), p.Ratios!.FechaBalance);
+        Assert.Equal(new DateTime(2025, 11, 1), p.Ratios.DesdeResultado);
+        Assert.Equal(12, p.Ratios.Ratios.Count);
+        Assert.Equal([2025, 2026], p.SerieRatios.Select(s => s.Ejercicio));
+        Assert.True(p.SerieRatios[^1].EsActual);
+        // Margen neto de los 12 meses: (2 meses de 2025 + 10 de 2026) × (venta − 400) / ventas.
+        var ventas = 2 * 1000m + 10 * 1100m;
+        var resultado = 2 * 600m + 10 * 700m;
+        Assert.Equal(resultado / ventas * 100m, p.Ratios.Ratio("neto")!.Valor);
+        // Sin el ejercicio anterior no se completan los 12 meses: los ratios de resultados salen sin datos, los de balance no.
+        var sinAnterior = CalculadoraInicio.Calcular(a, null, null, Hoy, [], new Dictionary<int, ActividadInicio>(), [], null, ModeloSintetico.Situacion, null);
+        Assert.Equal(ProConta.Contabilidad.Ratios.EstadoRatio.SinDatos, sinAnterior.Ratios!.Ratio("roe")!.Estado);
+        Assert.Contains("2025", sinAnterior.Ratios.Ratio("roe")!.Motivo);
+        Assert.NotNull(sinAnterior.Ratios.Ratio("liquidez")!.Valor);
+        // Sin modelo de balance no hay ratios.
+        Assert.Null(CalculadoraInicio.Calcular(a, c, c, Hoy, [], new Dictionary<int, ActividadInicio>(), []).Ratios);
     }
 
     [Fact]
@@ -194,19 +286,30 @@ public sealed class PanelInicioTests
 /// <summary>Modelo de vista de la pantalla de inicio con datos sintéticos (sin ventanas).</summary>
 public sealed class InicioVMTests
 {
-    private sealed class DialogosFijos(IReadOnlySet<string>? respuesta) : IDialogosInicio
+    private sealed class DialogosFijos(IReadOnlySet<string>? respuesta, IReadOnlySet<string>? inversiones = null) : IDialogosInicio
     {
-        public IReadOnlySet<string>? Personalizar(IReadOnlyList<BloqueInicio> bloques, IReadOnlySet<string> ocultos) => respuesta;
+        public IReadOnlyList<CuentaBancoInicio>? BancosOfrecidos { get; private set; }
+        public FichaRatioVM? Ficha { get; private set; }
+
+        public EleccionInicio? Personalizar(IReadOnlyList<BloqueInicio> bloques, IReadOnlySet<string> ocultos, IReadOnlyList<CuentaBancoInicio> bancos)
+        {
+            BancosOfrecidos = bancos;
+            return respuesta is null ? null : new EleccionInicio(respuesta, inversiones ?? bancos.Where(b => b.Inversion).Select(b => b.Cuenta).ToHashSet());
+        }
+
+        public void VerRatio(FichaRatioVM ficha) => Ficha = ficha;
     }
 
-    private static (InicioVM Vm, FuenteSintetica Fuente, PreferenciasEnMemoria Prefs, List<string> Abiertas) Crear(AccionesInicio? acciones = null, IReadOnlySet<string>? personalizar = null)
+    private static (InicioVM Vm, FuenteSintetica Fuente, PreferenciasEnMemoria Prefs, List<string> Abiertas) Crear(
+        AccionesInicio? acciones = null, IReadOnlySet<string>? personalizar = null, DialogosFijos? dialogos = null, bool conBroker = false)
     {
-        var fuente = new FuenteSintetica();
+        var fuente = new FuenteSintetica(conBroker);
         var prefs = new PreferenciasEnMemoria();
         var abiertas = new List<string>();
-        acciones ??= new AccionesInicio(AbrirFacturas: () => abiertas.Add("facturas"), AbrirMayor: c => abiertas.Add("mayor " + string.Join(",", c)));
+        acciones ??= new AccionesInicio(AbrirFacturas: () => abiertas.Add("facturas"), AbrirMayor: c => abiertas.Add("mayor " + string.Join(",", c)),
+            AbrirBalanceSituacion: () => abiertas.Add("balance"));
         var vm = new InicioVM(new ServicioInicio(fuente, () => new DateTime(2026, 11, 15)), new ContextoInicio("T01", 2026, "Sociedad sintética", _ => { }),
-            new DialogosFijos(personalizar), acciones, prefs);
+            dialogos ?? new DialogosFijos(personalizar), acciones, prefs);
         return (vm, fuente, prefs, abiertas);
     }
 
@@ -223,6 +326,9 @@ public sealed class InicioVMTests
         Assert.Equal("▲ 10,0 %", vm.Indicadores[0].Variacion);
         Assert.Equal(Tono.Bueno, vm.Indicadores[0].Tono);
         Assert.Equal("Proyección de cierre: " + ProConta.UI.Base.Formato.Formatos.Importe(13200m), vm.Indicadores[0].Proyeccion);
+        Assert.Equal("EBITDA proyectado al cierre: " + ProConta.UI.Base.Formato.Formatos.Importe(8400m), vm.Indicadores[1].Proyeccion);
+        Assert.Contains("no cuenta las amortizaciones", vm.Indicadores[1].Ayuda);
+        Assert.Equal("Tesorería operativa", vm.Indicadores[2].Titulo);
         Assert.Contains("hasta hoy", vm.Subtitulo);
         // Solo son pulsables los indicadores con pantalla conectada: facturas y Mayor, no resultado ni bancos.
         Assert.Equal([true, false, false, true, true, true], vm.Indicadores.Select(i => i.Pulsable));
@@ -286,7 +392,7 @@ public sealed class InicioVMTests
         var (vm, _, prefs, _) = Crear(personalizar: new HashSet<string> { "gastos", "cobros" });
         await vm.IniciarAsync();
         Assert.True(vm.VerGastos);
-        vm.PersonalizarCommand.Execute(null);
+        await vm.PersonalizarAsync();
         Assert.False(vm.VerGastos);
         Assert.False(vm.VerCobros);
         Assert.True(vm.VerFacturacion);
@@ -294,6 +400,63 @@ public sealed class InicioVMTests
         // Otro modelo de vista con las mismas preferencias arranca con esos bloques ocultos.
         var otro = new InicioVM(new ServicioInicio(new FuenteSintetica()), new ContextoInicio("T01", 2026, "S", _ => { }), new DialogosFijos(null), null, prefs);
         Assert.False(otro.VerGastos);
+    }
+
+    [Fact]
+    public async Task MarcarUnaCuentaDeInversionLaSacaDeLaTesoreriaYSeGuardaPorSociedad()
+    {
+        var dialogos = new DialogosFijos(new HashSet<string>(), new HashSet<string> { "5720019" });
+        var (vm, fuente, prefs, _) = Crear(dialogos: dialogos, conBroker: true);
+        await vm.IniciarAsync();
+        var antes = vm.Panel!.Tesoreria.Valor;
+        Assert.False(vm.HayInversiones);
+        var lecturas = fuente.Lecturas;
+        await vm.PersonalizarAsync();
+        Assert.Equal(["5720001", "5720019"], dialogos.BancosOfrecidos!.Select(b => b.Cuenta));
+        Assert.Equal(["5720019"], prefs.Leer<List<string>>(InicioVM.ClaveInversiones("T01")));
+        Assert.Equal(antes - 3000m, vm.Panel!.Tesoreria.Valor);
+        Assert.True(vm.HayInversiones);
+        Assert.Equal("Bróker sintético", vm.Inversiones.Single().Nombre);
+        Assert.StartsWith("Inversiones · ", vm.TextoInversiones);
+        Assert.Contains("5720019", vm.Indicadores[2].Ayuda);
+        // Recalcula sin volver a leer la BD.
+        Assert.Equal(lecturas, fuente.Lecturas);
+        // Otro modelo de vista de la misma sociedad arranca con la marca.
+        var otro = new InicioVM(new ServicioInicio(new FuenteSintetica(true), () => new DateTime(2026, 11, 15)), new ContextoInicio("T01", 2026, "S", _ => { }), new DialogosFijos(null), null, prefs);
+        Assert.Contains("5720019", otro.CuentasInversion);
+    }
+
+    [Fact]
+    public async Task BloqueDeRatiosConRecuentoFranjaYFicha()
+    {
+        var dialogos = new DialogosFijos(null);
+        var (vm, _, _, abiertas) = Crear(dialogos: dialogos);
+        await vm.IniciarAsync();
+        Assert.True(vm.VerRatios);
+        Assert.Null(vm.SinRatios);
+        Assert.Equal("balance a 31/10/2026 · resultado de los últimos 12 meses", vm.TextoRatios);
+        Assert.Equal(["Liquidez", "Solvencia y endeudamiento", "Rentabilidad y márgenes", "Gestión"], vm.FamiliasRatios.Select(f => f.Nombre));
+        Assert.Equal(12, vm.FamiliasRatios.Sum(f => f.Filas.Count));
+        var p = vm.Panel!.Ratios!;
+        Assert.Equal(p.Bien + p.Vigilar + p.Mal + p.Ratios.Count(r => r.Estado == ProConta.Contabilidad.Ratios.EstadoRatio.SinDatos), 12);
+        Assert.Equal($"✓ {p.Bien} bien", vm.RecuentoBien);
+        // La raya gris es el comparado (2025 a cierre).
+        var margen = vm.FamiliasRatios[2].Filas.Single(f => f.Nombre == "Margen neto");
+        Assert.Equal(vm.Panel.SerieRatios[0].Ratios.Ratio("neto")!.Valor, margen.Comparado);
+        Assert.Contains("Raya gris: 2025", vm.NotaRatios);
+        // Ficha: partidas con su Mayor, evolución por ejercicio y abrir el balance.
+        margen.Comando.Execute(null);
+        var ficha = dialogos.Ficha!;
+        Assert.Equal("Margen neto", ficha.Titulo);
+        Assert.Equal(["Resultado neto (12 meses)", "Ventas (12 meses)"], ficha.Partidas.Select(x => x.Nombre));
+        Assert.Equal(["2025", "2026*"], ficha.Evolucion.Select(e => e.Ejercicio));
+        var cerrada = false;
+        ficha.Cerrar = () => cerrada = true;
+        ficha.Partidas[1].AbrirMayor!.Execute(null);
+        Assert.True(cerrada);
+        Assert.Equal("mayor 7000001", abiertas[^1]);
+        ficha.AbrirBalanceCommand!.Execute(null);
+        Assert.Equal("balance", abiertas[^1]);
     }
 
     private sealed class FuenteQueFalla : IFuenteInicio

@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using System.Globalization;
 using System.Windows.Input;
+using ProConta.Contabilidad.Ratios;
 using ProConta.UI.Base.Comandos;
 using ProConta.UI.Base.Controles;
 using ProConta.UI.Base.Formato;
@@ -18,16 +19,26 @@ public sealed record ContextoInicio(string IdSociedad, int Ejercicio, string Raz
 /// pantalla no es pulsable.
 /// </summary>
 public sealed record AccionesInicio(
-    Action? AbrirFacturas = null, Action? AbrirPerdidasYGanancias = null, Action? AbrirBancos = null, Action<IReadOnlyList<string>>? AbrirMayor = null);
+    Action? AbrirFacturas = null, Action? AbrirPerdidasYGanancias = null, Action? AbrirBancos = null, Action<IReadOnlyList<string>>? AbrirMayor = null,
+    Action? AbrirBalanceSituacion = null);
 
 /// <summary>Bloque de la pantalla que se puede ocultar con «Personalizar…».</summary>
 public sealed record BloqueInicio(string Clave, string Nombre, string Ayuda);
 
+/// <summary>Cuenta bancaria en «Personalizar…», con su marca de inversión (no es tesorería operativa).</summary>
+public sealed record CuentaBancoInicio(string Nombre, string Cuenta, bool Inversion);
+
+/// <summary>Lo elegido en «Personalizar…»: bloques ocultos y cuentas contables de los bancos marcados como inversión.</summary>
+public sealed record EleccionInicio(IReadOnlySet<string> Ocultos, IReadOnlySet<string> Inversiones);
+
 /// <summary>Diálogos de la pantalla de inicio (para poder probar el modelo de vista sin ventanas).</summary>
 public interface IDialogosInicio
 {
-    /// <summary>Elige qué bloques se ven; devuelve las claves de los ocultos, o null si se cancela.</summary>
-    IReadOnlySet<string>? Personalizar(IReadOnlyList<BloqueInicio> bloques, IReadOnlySet<string> ocultos);
+    /// <summary>Elige qué bloques se ven y qué cuentas bancarias son de inversión; null si se cancela.</summary>
+    EleccionInicio? Personalizar(IReadOnlyList<BloqueInicio> bloques, IReadOnlySet<string> ocultos, IReadOnlyList<CuentaBancoInicio> bancos);
+
+    /// <summary>Muestra la ficha de un ratio.</summary>
+    void VerRatio(FichaRatioVM ficha);
 }
 
 /// <summary>Opción del desplegable «Comparar con».</summary>
@@ -84,6 +95,9 @@ public sealed record LeyendaTramoVM(string Texto, string Importe, string Color);
 public sealed class InicioVM : ModeloVista
 {
     public const string ClaveOcultos = "inicio.bloquesOcultos";
+
+    /// <summary>Preferencia con las cuentas contables de los bancos marcados como inversión, por sociedad.</summary>
+    public static string ClaveInversiones(string idSociedad) => "inicio.cuentasInversion." + idSociedad;
     private static readonly CultureInfo Es = CultureInfo.GetCultureInfo("es-ES");
     private static readonly string[] Meses = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
     private static readonly string[] MesesLargos = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
@@ -92,7 +106,8 @@ public sealed class InicioVM : ModeloVista
     [
         new("indicadores", "Indicadores principales", "Facturación, resultado, tesorería, pendiente de cobro y de pago e IVA estimado del trimestre"),
         new("facturacion", "Facturación", "Facturación por mes frente al ejercicio comparado, con la proyección de cierre y el reparto por actividad"),
-        new("tesoreria", "Tesorería", "Saldo de bancos a fin de cada uno de los últimos 12 meses y saldo por banco"),
+        new("ratios", "Ratios", "Los 12 ratios de liquidez, solvencia, rentabilidad y gestión con su rango de referencia, a fin del último mes completo"),
+        new("tesoreria", "Tesorería", "Tesorería operativa a fin de cada uno de los últimos 12 meses, saldo por banco y cuentas de inversión aparte"),
         new("ingresos", "Ingresos y gastos", "Ingresos y gastos de cada mes del ejercicio"),
         new("cobros", "Pendiente de cobro", "Lo que deben los clientes, por antigüedad, y los 5 clientes con más saldo"),
         new("gastos", "Gastos por naturaleza", "Gasto acumulado por cuenta de 3 dígitos, con el ejercicio comparado"),
@@ -104,6 +119,7 @@ public sealed class InicioVM : ModeloVista
     private readonly AccionesInicio _acciones;
     private readonly IPreferenciasOperador _prefs;
     private HashSet<string> _ocultos;
+    private HashSet<string> _inversiones;
     private int _carga;
     private bool _iniciado;
     private PanelInicio? _panel;
@@ -116,8 +132,9 @@ public sealed class InicioVM : ModeloVista
         _acciones = acciones ?? new AccionesInicio();
         _prefs = preferencias ?? PreferenciasOperador.Actual;
         _ocultos = (_prefs.Leer<List<string>>(ClaveOcultos) ?? []).ToHashSet(StringComparer.Ordinal);
+        _inversiones = (_prefs.Leer<List<string>>(ClaveInversiones(contexto.IdSociedad)) ?? []).ToHashSet(StringComparer.Ordinal);
         ActualizarCommand = new ComandoDelegado(() => _ = ActualizarAsync(), () => !Cargando);
-        PersonalizarCommand = new ComandoDelegado(Personalizar);
+        PersonalizarCommand = new ComandoDelegado(() => _ = PersonalizarAsync());
         ReintentarCommand = new ComandoDelegado(() => _ = ActualizarAsync());
         AbrirClienteCommand = new ComandoDelegado(p => { if (p is ClienteVM c) _acciones.AbrirMayor?.Invoke([c.Cuenta]); }, p => p is ClienteVM && _acciones.AbrirMayor is not null);
         AbrirBancoCommand = new ComandoDelegado(p => { if (p is BancoVM { Cuenta: { } c }) _acciones.AbrirMayor?.Invoke([c]); }, p => p is BancoVM { Cuenta: not null } && _acciones.AbrirMayor is not null);
@@ -174,6 +191,7 @@ public sealed class InicioVM : ModeloVista
 
     public bool VerIndicadores => !_ocultos.Contains("indicadores");
     public bool VerFacturacion => !_ocultos.Contains("facturacion");
+    public bool VerRatios => !_ocultos.Contains("ratios");
     public bool VerTesoreria => !_ocultos.Contains("tesoreria");
     public bool VerIngresos => !_ocultos.Contains("ingresos");
     public bool VerCobros => !_ocultos.Contains("cobros");
@@ -232,6 +250,30 @@ public sealed class InicioVM : ModeloVista
     private string _textoBancos = "";
     public string TextoBancos { get => _textoBancos; private set => Fijar(ref _textoBancos, value); }
 
+    public ObservableCollection<BancoVM> Inversiones { get; } = [];
+    private string _textoInversiones = "";
+    public string TextoInversiones { get => _textoInversiones; private set => Fijar(ref _textoInversiones, value); }
+    public bool HayInversiones => Inversiones.Count > 0;
+
+    public ObservableCollection<FamiliaRatioVM> FamiliasRatios { get; } = [];
+    private string _textoRatios = "";
+    public string TextoRatios { get => _textoRatios; private set => Fijar(ref _textoRatios, value); }
+    private string? _notaRatios;
+    public string? NotaRatios { get => _notaRatios; private set => Fijar(ref _notaRatios, value); }
+    private string? _sinRatios;
+    /// <summary>Estado vacío del bloque de ratios (sin balance o sin modelo de balance de situación).</summary>
+    public string? SinRatios { get => _sinRatios; private set => Fijar(ref _sinRatios, value); }
+    private int _ratiosBien, _ratiosVigilar, _ratiosMal;
+    public string RecuentoBien => $"✓ {_ratiosBien} bien";
+    public string RecuentoVigilar => $"! {_ratiosVigilar} a vigilar";
+    public string RecuentoMal => $"✕ {_ratiosMal} mal";
+    public bool HayBien => _ratiosBien > 0;
+    public bool HayVigilar => _ratiosVigilar > 0;
+    public bool HayMal => _ratiosMal > 0;
+
+    /// <summary>Cuentas contables de los bancos marcados como inversión.</summary>
+    public IReadOnlySet<string> CuentasInversion => _inversiones;
+
     public PanelInicio? Panel => _panel;
 
     // ------------------------------------------------------------ carga
@@ -285,7 +327,8 @@ public sealed class InicioVM : ModeloVista
         try
         {
             var comparado = Comparar?.Ejercicio;
-            var panel = await Task.Run(() => _servicio.CalcularAsync(_ctx.IdSociedad, _ctx.Ejercicio, comparado));
+            var inversiones = _inversiones.ToHashSet(StringComparer.Ordinal);
+            var panel = await Task.Run(() => _servicio.CalcularAsync(_ctx.IdSociedad, _ctx.Ejercicio, comparado, inversiones));
             if (mia != _carga) return;
             Aplicar(panel);
             Estado = EstadoVista.Contenido;
@@ -316,14 +359,31 @@ public sealed class InicioVM : ModeloVista
         if (_panel is not null) AplicarFacturacion(_panel);
     }
 
-    private void Personalizar()
+    /// <summary>«Personalizar…»: bloques visibles y cuentas bancarias de inversión; si cambian estas, vuelve a calcular (sin releer la BD).</summary>
+    internal async Task PersonalizarAsync()
     {
-        var r = _dialogos.Personalizar(Bloques, _ocultos);
+        IReadOnlyList<BancoN43> bancos;
+        try { bancos = await _servicio.BancosAsync(_ctx.IdSociedad, _ctx.Ejercicio); }
+        catch (Exception ex)
+        {
+            _ctx.Avisar($"No he podido leer las cuentas bancarias para marcar las de inversión: {ex.Message}. Pulsa «Actualizar» y vuelve a intentarlo.");
+            bancos = [];
+        }
+        var cuentas = bancos.Where(b => b.CuentaContable is { Length: > 0 }).GroupBy(b => b.CuentaContable!, StringComparer.Ordinal)
+            .Select(g => new CuentaBancoInicio(g.First().Nombre, g.Key, _inversiones.Contains(g.Key))).OrderBy(c => c.Cuenta, StringComparer.Ordinal).ToList();
+        var r = _dialogos.Personalizar(Bloques, _ocultos, cuentas);
         if (r is null) return;
-        _ocultos = r.ToHashSet(StringComparer.Ordinal);
+        _ocultos = r.Ocultos.ToHashSet(StringComparer.Ordinal);
         if (_ocultos.Count == 0) _prefs.Borrar(ClaveOcultos);
         else _prefs.Guardar(ClaveOcultos, _ocultos.OrderBy(x => x, StringComparer.Ordinal).ToList());
-        Avisar(nameof(VerIndicadores), nameof(VerFacturacion), nameof(VerTesoreria), nameof(VerIngresos), nameof(VerCobros), nameof(VerGastos), nameof(TodoOculto));
+        Avisar(nameof(VerIndicadores), nameof(VerFacturacion), nameof(VerRatios), nameof(VerTesoreria), nameof(VerIngresos), nameof(VerCobros), nameof(VerGastos), nameof(TodoOculto));
+        var inversiones = r.Inversiones.ToHashSet(StringComparer.Ordinal);
+        if (inversiones.SetEquals(_inversiones)) return;
+        _inversiones = inversiones;
+        var clave = ClaveInversiones(_ctx.IdSociedad);
+        if (_inversiones.Count == 0) _prefs.Borrar(clave);
+        else _prefs.Guardar(clave, _inversiones.OrderBy(x => x, StringComparer.Ordinal).ToList());
+        if (_iniciado) await CargarAsync();
     }
 
     // ------------------------------------------------------------ de los cálculos a la pantalla
@@ -341,6 +401,7 @@ public sealed class InicioVM : ModeloVista
         Avisar(nameof(AyudaComparar), nameof(Panel));
         AplicarIndicadores(p);
         AplicarFacturacion(p);
+        AplicarRatios(p);
         AplicarActividades(p);
         AplicarIngresos(p);
         AplicarGastos(p);
@@ -379,14 +440,24 @@ public sealed class InicioVM : ModeloVista
 
         var r = p.Resultado;
         var cmdR = Cmd(_acciones.AbrirPerdidasYGanancias);
-        Indicadores.Add(new IndicadorVM("Resultado antes de impuestos", Imp(r.Valor), Var(r), TonoDe(r.Variacion, true), Vs(r), Proy(r), r.Evolucion,
-            $"Grupo 7 menos grupo 6 (sin el impuesto sobre beneficios, 630) {HastaCorte(p)}: solo asientos contabilizados, sin la regularización ni el cierre." + comparadoTexto + AyudaProy(r) +
+        var eb = p.Ebitda;
+        var proyEbitda = eb.Proyeccion is decimal pe ? $"EBITDA proyectado al cierre: {Imp(pe)}" : null;
+        var ayudaEbitda = $" EBITDA acumulado {HastaCorte(p)}: {Imp(eb.Actual)} (grupos 7 y 6 sin el impuesto 630, las amortizaciones 68, los deterioros y provisiones 69 y 79 ni los financieros 66 y 76)." +
+            (eb.Proyeccion is decimal pe2 && eb.TotalComparado is decimal etc && eb.Comparado is decimal ec
+                ? $" EBITDA proyectado al cierre (estimación, no dato real): EBITDA de {c} completo ({Imp(etc)}) × (EBITDA acumulado actual / EBITDA de {c} a la misma fecha, {Imp(ec)}) = {Imp(pe2)}." +
+                  " Se proyecta el EBITDA y no el resultado porque no cuenta las amortizaciones, de los principales ajustes de fin de ejercicio."
+                : "");
+        Indicadores.Add(new IndicadorVM("Resultado antes de impuestos", Imp(r.Valor), Var(r), TonoDe(r.Variacion, true), Vs(r), proyEbitda, r.Evolucion,
+            $"Grupo 7 menos grupo 6 (sin el impuesto sobre beneficios, 630) {HastaCorte(p)}: solo asientos contabilizados, sin la regularización ni el cierre." + comparadoTexto + ayudaEbitda +
             Pulsa(cmdR, "la cuenta de pérdidas y ganancias del ejercicio en Excel"), cmdR));
 
         var t = p.Tesoreria;
         var cmdT = Cmd(_acciones.AbrirBancos);
-        Indicadores.Add(new IndicadorVM("Tesorería", Imp(t.Valor), Var(t), TonoDe(t.Variacion, true), Vs(t), null, t.Evolucion,
-            $"Saldo contable de las cuentas bancarias (572 y las cuentas de los bancos de Norma 43) {HastaCorte(p)}." + comparadoTexto + " El minigráfico es el saldo a fin de cada uno de los últimos 12 meses." +
+        var notaInversion = p.Inversiones.Count == 0
+            ? " Si alguna cuenta es de inversión (un bróker), márcala en «Personalizar…» para que no cuente aquí."
+            : $" Sin las cuentas de inversión ({string.Join(", ", p.Inversiones.Select(b => b.Cuenta))}, {Imp(p.TotalInversiones)}), que se marcan en «Personalizar…».";
+        Indicadores.Add(new IndicadorVM("Tesorería operativa", Imp(t.Valor), Var(t), TonoDe(t.Variacion, true), Vs(t), null, t.Evolucion,
+            $"Saldo contable de las cuentas bancarias (572 y las cuentas de los bancos de Norma 43) {HastaCorte(p)}." + notaInversion + comparadoTexto + " El minigráfico es el saldo a fin de cada uno de los últimos 12 meses." +
             Pulsa(cmdT, "Bancos › Cuentas bancarias"), cmdT));
 
         var cb = p.PendienteCobro;
@@ -606,13 +677,13 @@ public sealed class InicioVM : ModeloVista
         var puntos = p.TesoreriaMensual;
         var marca = puntos.Count - 1;
         DatosTesoreria = new DatosGrafico(puntos.Select(x => x.Etiqueta).ToList(),
-            [new SerieGrafico("Saldo real", PaletaGraficos.Serie1, puntos.Select(x => x.Saldo).ToList(), Area: true)],
+            [new SerieGrafico("Tesorería operativa", PaletaGraficos.Serie1, puntos.Select(x => x.Saldo).ToList(), Area: true)],
             i =>
             {
                 var x = puntos[i];
                 var titulo = x.EsCorte ? (x.Fecha == _servicio.Hoy ? $"{x.Fecha:dd/MM/yyyy} (hoy)" : $"{x.Fecha:dd/MM/yyyy}") : $"Fin de {MesesLargos[x.Fecha.Month - 1]} de {x.Fecha.Year}";
-                return new ContenidoTooltip(titulo, [new FilaTooltip("Saldo real", x.Saldo is decimal s ? Imp(s) : "sin datos de ese ejercicio", PaletaGraficos.Serie1)]);
-            }, Marca: marca, TextoMarca: p.FechaCorte == _servicio.Hoy ? "hoy" : null, Descripcion: "Saldo de tesorería a fin de cada uno de los últimos 12 meses");
+                return new ContenidoTooltip(titulo, [new FilaTooltip("Tesorería operativa", x.Saldo is decimal s ? Imp(s) : "sin datos de ese ejercicio", PaletaGraficos.Serie1)]);
+            }, Marca: marca, TextoMarca: p.FechaCorte == _servicio.Hoy ? "hoy" : null, Descripcion: "Tesorería operativa (sin las cuentas de inversión) a fin de cada uno de los últimos 12 meses");
         Bancos.Clear();
         foreach (var b in p.Bancos)
         {
@@ -626,7 +697,106 @@ public sealed class InicioVM : ModeloVista
         if (p.OtrasCuentasTesoreria != 0)
             Bancos.Add(new BancoVM("Otras cuentas 572", null, Imp(p.OtrasCuentasTesoreria), "sin cuenta bancaria de Norma 43", null,
                 "Saldo de las subcuentas 572 que no están asociadas a ninguna cuenta bancaria de Norma 43 (tarjetas, traspasos en curso…)"));
-        TextoBancos = $"Saldo por banco · {Imp(p.Tesoreria.Valor)}";
+        TextoBancos = $"Tesorería operativa por banco · {Imp(p.Tesoreria.Valor)}";
+        Inversiones.Clear();
+        foreach (var b in p.Inversiones)
+            Inversiones.Add(new BancoVM(b.Nombre, b.Cuenta, Imp(b.Saldo), b.UltimoExtracto is DateTime ue ? $"extracto hasta el {ue:dd/MM/yyyy}" : "sin extractos N43", null,
+                $"{b.Nombre} ({b.Cuenta}): cuenta de inversión, saldo contable {Imp(b.Saldo)} {HastaCorte(p)}. No suma en la tesorería operativa; la marca se cambia en «Personalizar…»." +
+                (_acciones.AbrirMayor is not null ? " Doble clic: abre el Mayor de la cuenta" : "")));
+        TextoInversiones = $"Inversiones · {Imp(p.TotalInversiones)}";
+        Avisar(nameof(HayInversiones));
+    }
+
+    // ------------------------------------------------------------ ratios
+
+    private void AplicarRatios(PanelInicio p)
+    {
+        FamiliasRatios.Clear();
+        var r = p.Ratios;
+        var c = p.Comparado;
+        var comparado = c is int ce ? p.SerieRatios.FirstOrDefault(x => x.Ejercicio == ce)?.Ratios : null;
+        _ratiosBien = r?.Bien ?? 0;
+        _ratiosVigilar = r?.Vigilar ?? 0;
+        _ratiosMal = r?.Mal ?? 0;
+        Avisar(nameof(RecuentoBien), nameof(RecuentoVigilar), nameof(RecuentoMal), nameof(HayBien), nameof(HayVigilar), nameof(HayMal));
+        if (r is null)
+        {
+            TextoRatios = "";
+            NotaRatios = null;
+            SinRatios = "La base de datos no tiene el modelo del balance de situación (contabilidad/balances): sin él no se pueden clasificar las cuentas. " +
+                        "Actualiza el esquema con el ActualizadorEsquema y pulsa «Actualizar».";
+            return;
+        }
+        TextoRatios = $"balance a {r.FechaBalance:dd/MM/yyyy} · resultado de los últimos 12 meses";
+        if (!r.HayBalance)
+        {
+            NotaRatios = null;
+            SinRatios = $"Aún no hay balance a {r.FechaBalance:dd/MM/yyyy}: los ratios se calculan con el balance a fin del último mes completo y salen con el primer mes contabilizado.";
+            return;
+        }
+        SinRatios = null;
+        foreach (var familia in r.Ratios.GroupBy(x => x.Definicion.Familia))
+        {
+            var filas = familia.Select(v =>
+            {
+                var d = v.Definicion;
+                var pv = comparado?.Ratio(d.Clave)?.Valor;
+                var ayuda = $"{d.Formula}. Referencia: {d.Referencia}." +
+                            (v.Motivo is { } m ? $" Sin datos: {m}" : $" Valor: {FormatoRatios.Valor(d, v.Valor)} ({FormatoRatios.Estado(v.Estado)[2..].ToLowerInvariant()}).") +
+                            (c is not null ? pv is decimal x ? $" En {c} (a cierre): {FormatoRatios.Valor(d, x)}." : $" En {c}: sin datos." : "") +
+                            " Pulsa para ver de qué cifras sale y su evolución.";
+                return new FilaRatioVM(d.Nombre, FormatoRatios.Valor(d, v.Valor), v.Estado, FormatoRatios.Estado(v.Estado), v.Valor, pv, d.Minimo, d.Maximo, d.MenosEsMejor, ayuda,
+                    new ComandoDelegado(() => VerRatio(d.Clave)));
+            }).ToList();
+            FamiliasRatios.Add(new FamiliaRatioVM(FormatoRatios.Familia(familia.Key), filas));
+        }
+        var primero = p.SerieRatios.FirstOrDefault()?.Ejercicio;
+        NotaRatios = "Franja verde: rango de referencia. Marca oscura: valor actual." + (c is not null ? $" Raya gris: {c} a cierre." : "") +
+                     " Pulsa un ratio para ver de qué cifras sale" + (primero is int pr && pr < p.Ejercicio ? $" y su evolución desde {pr}." : ".") +
+                     (r.SinClasificar.Count > 0 ? $" Hay {r.SinClasificar.Count} cuentas con saldo que el modelo del balance no clasifica ({string.Join(", ", r.SinClasificar.Take(5))}{(r.SinClasificar.Count > 5 ? "…" : "")}): no cuentan en los ratios." : "");
+    }
+
+    /// <summary>La ficha de un ratio: fórmula, partidas (cada importe abre el Mayor de sus cuentas), resultado y evolución.</summary>
+    internal FichaRatioVM? FichaRatio(string clave)
+    {
+        if (_panel?.Ratios?.Ratio(clave) is not { } v) return null;
+        var d = v.Definicion;
+        FichaRatioVM? ficha = null;
+        var partidas = v.Partidas.Select(pa =>
+        {
+            var cuentas = pa.CuentasMayor;
+            ICommand? abrir = _acciones.AbrirMayor is { } m && cuentas.Count > 0 ? new ComandoDelegado(() => { ficha?.Cerrar?.Invoke(); m(cuentas); }) : null;
+            return new PartidaRatioVM(pa.Nombre, pa.Cuentas, FormatoRatios.Importe(pa.Importe),
+                abrir is null ? $"{pa.Nombre}: {FormatoRatios.Importe(pa.Importe)}" : $"Abre el Mayor con las cuentas de «{pa.Nombre}» ({pa.Detalle.Count} subcuentas)", abrir);
+        }).ToList();
+        var evolucion = _panel.SerieRatios.Select(s =>
+        {
+            var x = s.Ratios.Ratio(clave);
+            return new EvolucionRatioVM(s.EsActual ? $"{s.Ejercicio}*" : s.Ejercicio.ToString(CultureInfo.InvariantCulture), FormatoRatios.Valor(d, x?.Valor), x?.Estado ?? EstadoRatio.SinDatos,
+                x?.Motivo ?? (s.EsActual ? $"A {s.Ratios.FechaBalance:dd/MM/yyyy}, con el resultado de los últimos 12 meses" : $"A 31/12/{s.Ejercicio}, con el resultado del ejercicio"));
+        }).ToList();
+        var r = _panel.Ratios!;
+        ficha = new FichaRatioVM
+        {
+            Titulo = d.Nombre,
+            Subtitulo = $"{FormatoRatios.Familia(d.Familia)} · balance a {r.FechaBalance:dd/MM/yyyy}, resultado de los últimos 12 meses (del {r.DesdeResultado:dd/MM/yyyy} al {r.FechaBalance:dd/MM/yyyy})",
+            Formula = d.Formula,
+            Referencia = $"Referencia: {d.Referencia}",
+            Partidas = partidas,
+            Resultado = FormatoRatios.Valor(d, v.Valor),
+            Estado = v.Estado,
+            TextoEstado = FormatoRatios.Estado(v.Estado),
+            Motivo = v.Motivo,
+            Evolucion = evolucion,
+            NotaEvolucion = $"* {_panel.Ejercicio} a {r.FechaBalance:dd/MM/yyyy}, con el resultado de los últimos 12 meses. Los demás, a 31/12 con el resultado del ejercicio.",
+            AbrirBalanceCommand = _acciones.AbrirBalanceSituacion is { } ab ? new ComandoDelegado(() => { ficha?.Cerrar?.Invoke(); ab(); }) : null,
+        };
+        return ficha;
+    }
+
+    private void VerRatio(string clave)
+    {
+        if (FichaRatio(clave) is { } f) _dialogos.VerRatio(f);
     }
 }
 

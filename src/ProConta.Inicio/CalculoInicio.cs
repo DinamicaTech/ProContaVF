@@ -103,6 +103,18 @@ public static class CalculoInicio
     public static decimal Resultado(IEnumerable<MovimientoDia> movimientos, DateTime hasta) =>
         movimientos.Where(m => m.Fecha <= hasta && EntraEnResultado(m) && (EsIngreso(m.Cuenta) || EsGasto(m.Cuenta))).Sum(m => m.Haber - m.Debe);
 
+    /// <summary>
+    /// EBITDA hasta una fecha: grupos 7 y 6 con los mismos criterios de asientos que el resultado, sin el impuesto (630), las
+    /// amortizaciones (68), los deterioros y provisiones (69 y 79) ni los resultados financieros (66 y 76). Definición de
+    /// informes/ratios (<see cref="ProConta.Contabilidad.Ratios.CalculoRatios.EsEbitda"/>).
+    /// </summary>
+    public static decimal Ebitda(IEnumerable<MovimientoDia> movimientos, DateTime hasta) =>
+        movimientos.Where(m => m.Fecha <= hasta && EntraEnResultado(m) && ProConta.Contabilidad.Ratios.CalculoRatios.EsEbitda(m.Cuenta)).Sum(m => m.Haber - m.Debe);
+
+    /// <summary>Los movimientos de Inicio como los usan los ratios.</summary>
+    public static IReadOnlyList<ProConta.Contabilidad.Ratios.MovimientoRatio> ParaRatios(IEnumerable<MovimientoDia> movimientos) =>
+        movimientos.Select(m => new ProConta.Contabilidad.Ratios.MovimientoRatio(m.Fecha, m.Cuenta, m.TipoAsiento, m.Debe, m.Haber)).ToList();
+
     /// <summary>Saldo (Debe − Haber) de las cuentas que cumplen el filtro hasta una fecha, con la apertura y sin el cierre.</summary>
     public static decimal Saldo(IEnumerable<MovimientoDia> movimientos, Func<string, bool> cuentas, DateTime hasta) =>
         movimientos.Where(m => m.Fecha <= hasta && m.TipoAsiento != TipoCierre && cuentas(m.Cuenta)).Sum(m => m.Saldo);

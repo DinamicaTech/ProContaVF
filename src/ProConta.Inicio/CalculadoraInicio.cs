@@ -1,4 +1,6 @@
 using System.Globalization;
+using ProConta.Contabilidad.Balances;
+using ProConta.Contabilidad.Ratios;
 
 namespace ProConta.Inicio;
 
@@ -15,10 +17,15 @@ public static class CalculadoraInicio
     /// <param name="actual">El ejercicio de trabajo.</param>
     /// <param name="anterior">El ejercicio anterior, para los meses de tesorería que caen en él; null si no existe.</param>
     /// <param name="comparado">El ejercicio con el que se compara; null para «Sin comparar».</param>
+    /// <param name="inversiones">Cuentas contables de los bancos marcados como inversión: no son tesorería operativa.</param>
+    /// <param name="situacion">Modelo del balance de situación para los ratios; null, sin ratios.</param>
+    /// <param name="cierres">Saldos de los ejercicios anteriores por año (series de los ratios a cierre).</param>
     public static PanelInicio Calcular(
         DatosEjercicio actual, DatosEjercicio? anterior, DatosEjercicio? comparado, DateTime hoy, IReadOnlyList<BancoN43> bancos,
-        IReadOnlyDictionary<int, ActividadInicio> actividadPorCentro, IReadOnlyList<ActividadInicio> actividades)
+        IReadOnlyDictionary<int, ActividadInicio> actividadPorCentro, IReadOnlyList<ActividadInicio> actividades,
+        IReadOnlySet<string>? inversiones = null, ModeloBalance? situacion = null, IReadOnlyDictionary<int, IReadOnlyList<MovimientoRatio>>? cierres = null)
     {
+        inversiones ??= new HashSet<string>(StringComparer.Ordinal);
         var anio = actual.Ejercicio.Ejercicio;
         var corte = CalculoInicio.FechaCorte(anio, hoy);
         var terminado = CalculoInicio.Terminado(corte);
@@ -57,19 +64,30 @@ public static class CalculadoraInicio
         }
         var ingresos = CalculoInicio.PorMes(mov.Where(m => CalculoInicio.EntraEnResultado(m) && CalculoInicio.EsIngreso(m.Cuenta)).Select(m => (m.Fecha, m.Haber - m.Debe)), corte);
         var gastos = CalculoInicio.PorMes(mov.Where(m => CalculoInicio.EntraEnResultado(m) && CalculoInicio.EsGasto(m.Cuenta)).Select(m => (m.Fecha, m.Debe - m.Haber)), corte);
+        // EBITDA y su proyección de cierre (la proyección del indicador de resultado).
+        var ebitda = CalculoInicio.Ebitda(mov, corte);
+        decimal? ebitdaC = null, ebitdaTotalC = null;
+        if (movC is not null && fc is DateTime f7)
+        {
+            ebitdaC = CalculoInicio.Ebitda(movC, f7);
+            ebitdaTotalC = CalculoInicio.Ebitda(movC, new DateTime(comparado!.Ejercicio.Ejercicio, 12, 31));
+        }
+        var ebitdaInicio = new EbitdaInicio(ebitda, ebitdaC, ebitdaTotalC, CalculoInicio.Proyeccion(ebitdaTotalC, ebitda, ebitdaC, terminado));
         var resultadoMensual = ingresos.Select((v, i) => v is decimal x && gastos[i] is decimal g ? x - g : (decimal?)null).ToList();
 
-        // Tesorería: 572 y las cuentas contables de los bancos de Norma 43.
+        // Tesorería operativa: 572 y las cuentas contables de los bancos de Norma 43, sin las cuentas de inversión.
         var codigosBanco = bancos.Where(b => b.CuentaContable is { Length: > 0 }).Select(b => b.CuentaContable!).ToHashSet(StringComparer.Ordinal);
-        bool EsTesoreria(string c) => c.StartsWith("572", StringComparison.Ordinal) || codigosBanco.Contains(c);
+        bool EsTesoreria(string c) => (c.StartsWith("572", StringComparison.Ordinal) || codigosBanco.Contains(c)) && !inversiones.Contains(c);
         var tesoreria = CalculoInicio.Saldo(mov, EsTesoreria, corte);
         decimal? tesoreriaC = movC is not null && fc is DateTime f3 ? CalculoInicio.Saldo(movC, EsTesoreria, f3) : null;
         var puntos = PuntosTesoreria(actual, anterior, EsTesoreria, corte);
         var saldosBanco = CalculoInicio.SaldosPorCuenta(mov, codigosBanco.Contains, corte);
-        var listaBancos = bancos.Where(b => b.CuentaContable is { Length: > 0 })
+        var todosBancos = bancos.Where(b => b.CuentaContable is { Length: > 0 })
             .GroupBy(b => b.CuentaContable!, StringComparer.Ordinal)
             .Select(g => new SaldoBanco(g.First().Nombre, g.Key, saldosBanco.GetValueOrDefault(g.Key), g.Max(b => b.UltimoExtracto)))
             .OrderByDescending(b => b.Saldo).ToList();
+        var listaBancos = todosBancos.Where(b => !inversiones.Contains(b.Cuenta!)).ToList();
+        var listaInversiones = todosBancos.Where(b => inversiones.Contains(b.Cuenta!)).ToList();
         var otras = tesoreria - listaBancos.Sum(b => b.Saldo);
 
         // Pendiente de cobro y de pago
@@ -102,6 +120,8 @@ public static class CalculadoraInicio
             return r - s;
         }).ToList();
 
+        var (ratios, serie) = Ratios(actual, anterior, corte, terminado, inversiones, situacion, cierres, codigosBanco);
+
         return new PanelInicio
         {
             Ejercicio = anio,
@@ -111,8 +131,7 @@ public static class CalculadoraInicio
             Terminado = terminado,
             HayMovimientos = actual.HayMovimientos,
             Facturacion = new Indicador(acumulado, compAcumulado, mensual, proyeccion, compTotal),
-            Resultado = new Indicador(resultado, resultadoC, CalculoInicio.Acumulado(resultadoMensual),
-                CalculoInicio.Proyeccion(resultadoTotalC, resultado, resultadoC, terminado), resultadoTotalC),
+            Resultado = new Indicador(resultado, resultadoC, CalculoInicio.Acumulado(resultadoMensual), null, resultadoTotalC),
             Tesoreria = new Indicador(tesoreria, tesoreriaC, puntos.Select(p => p.Saldo).ToList()),
             PendienteCobro = new Indicador(cobro, cobroC, CalculoInicio.SaldoFinDeMes(mov, (m, d) => CalculoInicio.PendienteCobro(m, d), corte)),
             PendientePago = new Indicador(pago, pagoC, CalculoInicio.SaldoFinDeMes(mov, (m, d) => CalculoInicio.PendientePago(m, d), corte)),
@@ -133,7 +152,43 @@ public static class CalculadoraInicio
             TesoreriaMensual = puntos,
             Bancos = listaBancos,
             OtrasCuentasTesoreria = otras,
+            Inversiones = listaInversiones,
+            Ebitda = ebitdaInicio,
+            Ratios = ratios,
+            SerieRatios = serie,
         };
+    }
+
+    /// <summary>
+    /// Los ratios del ejercicio de trabajo a la fecha de su balance (fin del último mes completo; el 31/12 si está terminado) con
+    /// el resultado de los 12 meses hasta esa fecha, y la serie a cierre de cada ejercicio anterior con datos.
+    /// </summary>
+    internal static (ResultadoRatios? Actual, IReadOnlyList<RatiosEjercicio> Serie) Ratios(
+        DatosEjercicio actual, DatosEjercicio? anterior, DateTime corte, bool terminado, IReadOnlySet<string> inversiones,
+        ModeloBalance? situacion, IReadOnlyDictionary<int, IReadOnlyList<MovimientoRatio>>? cierres, IReadOnlySet<string>? bancos = null)
+    {
+        if (situacion is null) return (null, []);
+        var anio = actual.Ejercicio.Ejercicio;
+        var fb = CalculoRatios.FechaBalance(corte, terminado);
+        var movActual = CalculoInicio.ParaRatios(actual.Movimientos);
+        var hayAnterior = anterior is { HayMovimientos: true };
+        IReadOnlyList<MovimientoRatio> movAnterior = anterior is null ? [] : CalculoInicio.ParaRatios(anterior.Movimientos);
+        ResultadoRatios r;
+        if (fb.Year == anio)
+        {
+            var cierreAnio = fb.Month == 12 && fb.Day == 31;
+            string? sinResultado = cierreAnio || hayAnterior ? null
+                : $"Faltan los datos de {anio - 1} para completar el resultado de los 12 meses hasta el {fb:dd/MM/yyyy}.";
+            IEnumerable<MovimientoRatio> doce = cierreAnio ? movActual : movActual.Concat(movAnterior);
+            r = CalculoRatios.Calcular(situacion, movActual, doce, fb, inversiones, sinResultado, bancos);
+        }
+        else r = CalculoRatios.Calcular(situacion, movAnterior, movAnterior, fb, inversiones, null, bancos);
+        var serie = new List<RatiosEjercicio>();
+        if (cierres is not null)
+            foreach (var (ej, movs) in cierres.Where(c => c.Key < anio && c.Value.Count > 0).OrderBy(c => c.Key))
+                serie.Add(new RatiosEjercicio(ej, CalculoRatios.Calcular(situacion, movs, movs, new DateTime(ej, 12, 31), inversiones, null, bancos), false));
+        serie.Add(new RatiosEjercicio(anio, r, true));
+        return (r, serie);
     }
 
     /// <summary>

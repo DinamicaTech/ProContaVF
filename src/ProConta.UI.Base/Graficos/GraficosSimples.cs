@@ -165,3 +165,42 @@ public sealed class BarraReferencia : FrameworkElement
         return p;
     }
 }
+
+/// <summary>
+/// Franja de rango de un ratio (informes/graficos): la pista gris, la banda verde del rango de referencia, una marca oscura en
+/// el valor actual y una raya gris en el del ejercicio comparado. Las posiciones las calcula <see cref="GeometriaGrafico.Franja"/>.
+/// Su tooltip es el del control que lo contiene.
+/// </summary>
+public sealed class FranjaRango : FrameworkElement
+{
+    public static readonly DependencyProperty ValorProperty = Registrar(nameof(Valor), typeof(decimal?), null);
+    public static readonly DependencyProperty ReferenciaProperty = Registrar(nameof(Referencia), typeof(decimal?), null);
+    public static readonly DependencyProperty MinimoProperty = Registrar(nameof(Minimo), typeof(decimal?), null);
+    public static readonly DependencyProperty MaximoProperty = Registrar(nameof(Maximo), typeof(decimal?), null);
+    public static readonly DependencyProperty MenosEsMejorProperty = Registrar(nameof(MenosEsMejor), typeof(bool), false);
+
+    private static DependencyProperty Registrar(string nombre, Type tipo, object? defecto) =>
+        DependencyProperty.Register(nombre, tipo, typeof(FranjaRango), new FrameworkPropertyMetadata(defecto, FrameworkPropertyMetadataOptions.AffectsRender));
+
+    public decimal? Valor { get => (decimal?)GetValue(ValorProperty); set => SetValue(ValorProperty, value); }
+    public decimal? Referencia { get => (decimal?)GetValue(ReferenciaProperty); set => SetValue(ReferenciaProperty, value); }
+    public decimal? Minimo { get => (decimal?)GetValue(MinimoProperty); set => SetValue(MinimoProperty, value); }
+    public decimal? Maximo { get => (decimal?)GetValue(MaximoProperty); set => SetValue(MaximoProperty, value); }
+    public bool MenosEsMejor { get => (bool)GetValue(MenosEsMejorProperty); set => SetValue(MenosEsMejorProperty, value); }
+
+    protected override Size MeasureOverride(Size disponible) => new(double.IsInfinity(disponible.Width) ? 120 : disponible.Width, 14);
+
+    protected override void OnRender(DrawingContext dc)
+    {
+        var w = ActualWidth;
+        var h = ActualHeight;
+        if (w < 10) return;
+        var pista = Math.Min(8, h);
+        var y = (h - pista) / 2;
+        dc.DrawRoundedRectangle(GraficoBase.Pincel("#F3F0E9"), null, new Rect(0, y, w, pista), pista / 2, pista / 2);
+        var (desde, hasta, valor, referencia) = GeometriaGrafico.Franja(Minimo, Maximo, MenosEsMejor, Valor, Referencia);
+        if (hasta > desde) dc.DrawRoundedRectangle(GraficoBase.Pincel("#BFE0CC"), null, new Rect(desde * w, y, (hasta - desde) * w, pista), 3, 3);
+        if (referencia is double r) dc.DrawRectangle(GraficoBase.Pincel("#9AA0AB"), null, new Rect(Math.Clamp(r * w, 1, w - 1) - 1, 1, 2, h - 2));
+        if (valor is double v) dc.DrawRoundedRectangle(GraficoBase.Pincel("#16213A"), null, new Rect(Math.Clamp(v * w, 2, w - 2) - 1.5, 0, 3, h), 1, 1);
+    }
+}

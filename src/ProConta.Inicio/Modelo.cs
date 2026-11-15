@@ -1,3 +1,6 @@
+using ProConta.Contabilidad.Balances;
+using ProConta.Contabilidad.Ratios;
+
 namespace ProConta.Inicio;
 
 // ---------------------------------------------------------------- Lo que se lee de la BD
@@ -49,13 +52,23 @@ public interface IFuenteInicio
 
     /// <summary>Actividades de la sociedad (para la deducibilidad de las series de 472).</summary>
     Task<IReadOnlyList<ActividadInicio>> ActividadesAsync(string idSociedad, CancellationToken cancelacion = default);
+
+    /// <summary>Modelo activo del balance de situación (contabilidad/balances), para los ratios; null si la BD no tiene ninguno.</summary>
+    Task<ModeloBalance?> ModeloSituacionAsync(CancellationToken cancelacion = default) => Task.FromResult<ModeloBalance?>(null);
+
+    /// <summary>
+    /// Saldos de cada ejercicio indicado, por cuenta y tipo de asiento (sin el cierre), con fecha 31/12: las series de los ratios
+    /// a cierre de cada ejercicio. Clave: el año del ejercicio.
+    /// </summary>
+    Task<IReadOnlyDictionary<int, IReadOnlyList<MovimientoRatio>>> CierresAsync(string idSociedad, IReadOnlyList<EjercicioSociedad> ejercicios, CancellationToken cancelacion = default) =>
+        Task.FromResult<IReadOnlyDictionary<int, IReadOnlyList<MovimientoRatio>>>(new Dictionary<int, IReadOnlyList<MovimientoRatio>>());
 }
 
 // ---------------------------------------------------------------- Lo que se muestra
 
 /// <summary>
 /// Un indicador de la cabecera: valor a la fecha de corte, el del ejercicio comparado a la misma fecha, la proyección de
-/// cierre (solo facturación y resultado) con el total del comparado completo, y la evolución para el minigráfico.
+/// cierre (solo facturación; la del resultado es la del EBITDA, en <see cref="PanelInicio.Ebitda"/>) con el total del comparado completo, y la evolución para el minigráfico.
 /// </summary>
 public sealed record Indicador(decimal Valor, decimal? Comparado, IReadOnlyList<decimal?> Evolucion, decimal? Proyeccion = null, decimal? TotalComparado = null)
 {
@@ -80,6 +93,15 @@ public sealed record ClientePendiente(string Cuenta, string Nombre, decimal Sald
 
 /// <summary>Saldo de tesorería a fin de un mes (o a la fecha de corte, el último). Null si no hay datos de ese ejercicio.</summary>
 public sealed record PuntoTesoreria(DateTime Fecha, string Etiqueta, decimal? Saldo, bool EsCorte);
+
+/// <summary>
+/// EBITDA del indicador de resultado: acumulado a la fecha de corte, el del comparado a la misma fecha y completo, y el EBITDA
+/// proyectado al cierre = completo del comparado × (actual / comparado a la misma fecha); null en los casos sin proyección.
+/// </summary>
+public sealed record EbitdaInicio(decimal Actual, decimal? Comparado, decimal? TotalComparado, decimal? Proyeccion);
+
+/// <summary>Ratios a cierre de un ejercicio (o, el de trabajo, a la fecha de su balance) para la evolución.</summary>
+public sealed record RatiosEjercicio(int Ejercicio, ResultadoRatios Ratios, bool EsActual);
 
 /// <summary>Saldo de un banco a la fecha de corte con la fecha de su último extracto N43.</summary>
 public sealed record SaldoBanco(string Nombre, string? Cuenta, decimal Saldo, DateTime? UltimoExtracto);
@@ -132,4 +154,17 @@ public sealed record PanelInicio
     public required IReadOnlyList<SaldoBanco> Bancos { get; init; }
     /// <summary>Saldo de las 572 que no son de ninguna cuenta bancaria de Norma 43.</summary>
     public required decimal OtrasCuentasTesoreria { get; init; }
+
+    /// <summary>Cuentas bancarias marcadas como inversión (no son tesorería operativa) con su saldo a la fecha de corte.</summary>
+    public IReadOnlyList<SaldoBanco> Inversiones { get; init; } = [];
+    public decimal TotalInversiones => Inversiones.Sum(b => b.Saldo);
+
+    /// <summary>EBITDA del ejercicio y su proyección de cierre (la proyección del indicador de resultado).</summary>
+    public EbitdaInicio Ebitda { get; init; } = new(0, null, null, null);
+
+    /// <summary>Los 12 ratios a la fecha del balance (fin del último mes completo); null sin modelo de balance de situación.</summary>
+    public ResultadoRatios? Ratios { get; init; }
+
+    /// <summary>Ratios a cierre de cada ejercicio anterior con datos y el actual, del más antiguo al más reciente.</summary>
+    public IReadOnlyList<RatiosEjercicio> SerieRatios { get; init; } = [];
 }
