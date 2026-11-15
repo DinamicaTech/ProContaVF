@@ -190,3 +190,5 @@ Recuento: 74 tablas en los 25 bloques, 44 sin dueño y 17 de ContaSol, 135 en to
 - 2026-11-13 23:46 · Derived from facturacion/factura-venta: migrar el IBAN de los clientes para el recibo domiciliado.
 - 2026-11-15 17:55 · Derived from facturacion/reservas: el piso (activo relacionado) de las reservas del ERP por el código de Booking o el nombre del anuncio, en la fase 8 y en una corrección para las BD ya migradas, con las reservas sin piso contadas en el informe.
 - 2026-11-14 13:00 · Derived from facturacion/reservas: fase 8, las reservas de ReservasPisosTuristicos como ventas por facturar ya facturadas en el ERP (sin enlazar su IdFactura, que no es fiable), con lo que pagó el huésped y sin piso; las que no tienen factura quedan pendientes.
+- 2026-11-15 19:24 · Sí, el general va en prorrata, por lo que hay que corregir la migración del ERP
+- 2026-11-15 19:24 · Derived from informes/informe-gestoria: la migración de CategoriasIVA a Actividades traduce el código de deducción del ERP (allí 1 = 100 % deducible y 2 = prorrata) al de Actividades.Deducible (1 = prorrata y 2 = 100 % deducible); General queda en prorrata.

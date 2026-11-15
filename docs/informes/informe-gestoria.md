@@ -26,3 +26,7 @@ Hecha la primera entrega, pendiente de validar: «Informe para la gestoría…»
 - 2026-11-15 13:25 · Falta añadir columnas con retención y centro de coste a facturas de venta
 - 2026-11-15 13:25 · La pestaña controles resulta muy útil como herramienta de validación
 - 2026-11-15 18:06 · Ok al desglose.
+- 2026-11-15 19:24 · 1. Sí, el general va en prorrata, por lo que hay que corregir la migración del ERP
+- 2026-11-15 19:24 · 2. Por actividad
+- 2026-11-15 19:24 · Añade dos pestañas (TDPyG, TDSituación) con una tabla dinámica pre-configurada igual que en el Excel que te he pasado
+- 2026-11-15 19:24 · Cómo gestionamos que a partir del 1/12/2026, el alquiler de pisos lleva 10% de IVA y por tanto, pasa a ser 100% deducible para facturas de compra relacionadas a esa actividad a partir de esa fecha ?
