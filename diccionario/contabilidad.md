@@ -64,6 +64,37 @@ Relaciones:
 - FK_Apuntes_Asientos: (IdAsiento) → Asientos (IdAsiento); borrado CASCADE, actualización NO ACTION
 - FK_Apuntes_CentrosCoste: (IdCentroCoste) → CentrosCoste (IdCentroCoste); borrado NO ACTION, actualización NO ACTION
 
+## ApuntesBorrados
+
+- Dueño funcional: `contabilidad/asientos`
+- Apuntes de los asientos de AsientosBorrados, tal como estaban al borrarlos.
+
+| Campo | Tipo | Nulo | Por defecto | Descripción |
+|---|---|---|---|---|
+| IdApunteBorrado | COUNTER | no |  | Identificador de la copia. |
+| IdAsientoBorrado | LONG | no |  | Asiento borrado al que pertenece. |
+| IdApunte | LONG | no |  | Identificador que tenía el apunte (Apuntes.IdApunte). |
+| IdAsiento | LONG | no |  | Número del asiento que lo contenía. |
+| Orden | SHORT | no |  | Orden dentro del asiento. |
+| CuentaContable | TEXT(20) | no |  | Subcuenta. |
+| ImporteDebe | CURRENCY | sí |  | Importe al Debe. |
+| ImporteHaber | CURRENCY | sí |  | Importe al Haber. |
+| Descripcion | TEXT(255) | sí |  | Concepto del apunte. |
+| NumeroDocumento | TEXT(100) | sí |  | Número de factura o documento. |
+| IdCliente | LONG | sí |  | Cliente del apunte. |
+| IdProveedor | LONG | sí |  | Proveedor del apunte. |
+| FechaVencimiento | DATETIME | sí |  | Vencimiento. |
+| IdCentroCoste | LONG | sí |  | Centro de coste. |
+| TipoApunte | BYTE | no |  | Ordinario o ajuste de redondeo. |
+| Punteado | YESNO | no |  | Si estaba punteado. |
+
+Índices:
+- FK_ApuntesBorrados_AsientoBorrado: IdAsientoBorrado
+- PK_ApuntesBorrados (clave primaria): IdApunteBorrado
+
+Relaciones:
+- FK_ApuntesBorrados_AsientoBorrado: (IdAsientoBorrado) → AsientosBorrados (IdAsientoBorrado); borrado NO ACTION, actualización NO ACTION
+
 ## Asientos
 
 - Dueño funcional: `contabilidad/asientos`
@@ -93,6 +124,7 @@ Relaciones:
 | CodigoProceso | TEXT(100) | sí |  |  |
 | ClaveEjecucion | TEXT(150) | sí |  |  |
 | IdPlantillaAsiento | LONG | sí |  | Plantilla de asiento con la que se creó el asiento; vacío si no se usó ninguna. |
+| CorregidoAMano | YESNO | no | No | Asiento automático cuyas cuentas o importes se han corregido a mano; se quita al regenerar su origen. |
 
 Índices:
 - FK_Asientos_PlantillaAsiento: IdPlantillaAsiento
@@ -107,6 +139,37 @@ Relaciones:
 Relaciones:
 - FK_Asientos_PlantillaAsiento: (IdPlantillaAsiento) → PlantillasAsiento (IdPlantillaAsiento); borrado NO ACTION, actualización NO ACTION
 - FK_Asientos_SociedadesEjercicios: (IdSociedadEjercicio) → SociedadesEjercicios (IdSociedadEjercicio); borrado NO ACTION, actualización NO ACTION
+
+## AsientosBorrados
+
+- Dueño funcional: `contabilidad/asientos`
+- Copia de los asientos manuales eliminados, con cuándo, quién y por qué. Solo se consulta (Diario › «Asientos borrados…»).
+
+| Campo | Tipo | Nulo | Por defecto | Descripción |
+|---|---|---|---|---|
+| IdAsientoBorrado | COUNTER | no |  | Identificador de la copia. |
+| IdAsiento | LONG | no |  | Número que tenía el asiento (Asientos.IdAsiento); no se reutiliza. |
+| IdSociedadEjercicio | LONG | no |  | Sociedad y ejercicio del asiento. |
+| FechaContable | DATETIME | no |  | Fecha contable que tenía. |
+| Descripcion | TEXT(255) | no |  | Descripción que tenía. |
+| TipoAsiento | BYTE | no |  | Tipo de asiento que tenía. |
+| Notas | LONGTEXT | sí |  | Notas que tenía. |
+| OperadorCreacion | TEXT(100) | sí |  | Quién lo grabó. |
+| FechaHoraCreacion | DATETIME | sí |  | Cuándo se grabó. |
+| OperadorModificacion | TEXT(100) | sí |  | Quién lo cambió por última vez. |
+| FechaHoraModificacion | DATETIME | sí |  | Cuándo se cambió por última vez. |
+| TotalDebe | CURRENCY | no |  | Total del Debe. |
+| TotalHaber | CURRENCY | no |  | Total del Haber. |
+| Version | LONG | no |  | Versión que tenía al borrarlo. |
+| IdPlantillaAsiento | LONG | sí |  | Plantilla con la que se creó, si la hubo. |
+| FechaHoraBorrado | DATETIME | no |  | Cuándo se borró. |
+| OperadorBorrado | TEXT(100) | no |  | Quién lo borró. |
+| MotivoBorrado | LONGTEXT | no |  | Motivo que se dio al borrarlo (obligatorio). |
+
+Índices:
+- IX_AsientosBorrados_Asiento: IdAsiento
+- IX_AsientosBorrados_Ejercicio: IdSociedadEjercicio, FechaHoraBorrado
+- PK_AsientosBorrados (clave primaria): IdAsientoBorrado
 
 ## CentrosCoste
 
