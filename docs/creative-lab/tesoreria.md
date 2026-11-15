@@ -19,3 +19,4 @@ Cobros, pagos, vencimientos, remesas y SEPA: fuera del trabajo actual, pendiente
 - 2026-10-28 12:28 · idea: Gestionar cobros, pagos, remesas y vencimientos (tesorería completa), separada de Norma 43.
 - 2026-11-01 16:01 · 2. Mejor crear un nodo e importarlos, luego ya afinaremos si generamos remesas SEPA o no.
 - 2026-11-10 13:06 · Punto B: a) Pasar remesas a creative.
+- 2026-11-15 11:57 · Derived from pantalla-de-inicio: previsión de tesorería a 60 días (cobros, pagos e impuestos previstos) y agenda de los próximos 30 días (facturas programadas que se emiten, vencimientos, nóminas, cuotas); necesitan vencimientos fiables de cobros y pagos. Después del arranque (pantalla-de-inicio 2026-11-15 11:47).

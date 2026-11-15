@@ -106,7 +106,17 @@ public partial class VentanaPrincipal : Window
         _area = new AreaTrabajo(AreaVistas, Avisar);
         _area.PropertyChanged += (_, _) => RefrescarEstado();
         TiraPestanas.ItemsSource = _area.Lista;
-        _area.AbrirFija(new PestanaInicio(new VistaInicio(contexto)));
+        // Inicio (pantalla-de-inicio): indicadores y gráficos del ejercicio de trabajo; cada indicador abre su pantalla si ya existe.
+        _area.AbrirFija(ProConta.Inicio.UI.ModuloInicio.Crear(
+            new ProConta.Inicio.ServicioInicio(new ProConta.Inicio.FuenteInicioAccess(bd)),
+            new ProConta.Inicio.UI.ContextoInicio(contexto.Contexto.IdSociedad, ejercicio, contexto.RazonSocial, Avisar),
+            new ProConta.Inicio.UI.AccionesInicio(
+                AbrirFacturas: () => _facturacion!.AbrirListado(),
+                AbrirPerdidasYGanancias: () => _ = GenerarBalanceAsync(ProConta.Contabilidad.Balances.TipoBalance.PerdidasYGanancias),
+                AbrirBancos: () => _bancos!.Abrir(),
+                AbrirMayor: cuentasMayor => _mayor!.Abrir(cuentasMayor),
+                AbrirBalanceSituacion: () => _ = GenerarBalanceAsync(ProConta.Contabilidad.Balances.TipoBalance.Situacion)),
+            () => this));
 
         var cuentas = new CatalogoCuentasAccess(bd);
         var servicios = new ServiciosTerceros(

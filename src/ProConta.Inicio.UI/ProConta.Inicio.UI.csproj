@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Pantalla de inicio (docs/pantalla-de-inicio.md): la pestaña Inicio del contenedor con indicadores y gráficos. -->
+  <PropertyGroup>
+    <OutputType>Library</OutputType>
+    <UseWPF>true</UseWPF>
+    <RootNamespace>ProConta.Inicio.UI</RootNamespace>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);CS1591;CS1573</NoWarn>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\ProConta.UI.Base\ProConta.UI.Base.csproj" />
+    <ProjectReference Include="..\ProConta.Inicio\ProConta.Inicio.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="ProConta.Inicio.Tests" />
+  </ItemGroup>
+</Project>
