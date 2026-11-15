@@ -2,7 +2,7 @@
 
 # Diccionario de datos
 
-Esquema versión 53 (Actualizada); 157 tablas. SHA-256 de la BD de origen: `A6CC24684CEC173E200B48B6F0E7EAFEA99EED7D279501D9CEDDD3BCCD0BF78F`.
+Esquema versión 54 (Actualizada); 158 tablas. SHA-256 de la BD de origen: `A6CC24684CEC173E200B48B6F0E7EAFEA99EED7D279501D9CEDDD3BCCD0BF78F`.
 
 | Área | Tablas |
 |---|---|
@@ -14,6 +14,7 @@ Esquema versión 53 (Actualizada); 157 tablas. SHA-256 de la BD de origen: `A6CC
 | [datos](datos.md) | LogMigracionesEsquema, VersionesEsquema |
 | [facturacion](facturacion.md) | AlojamientosAvaibook, Conceptos, ConexionesAvaibook, Contratos, DesglosesIVARepercutido, EstadoContratoTerceros, EstadosFactura, Facturas, FacturasProgramadas, FacturasProgramadasBak, LineasContrato, LineasFactura, LineasFacturasProgramadas, LotesExportacionContable, LotesFacturasProgramadas, OrigenesVenta, ReglasVenta, SeriesFacturacion, TiposConcepto, TiposDeIVA, TiposFactura, TiposOperacion, VentasPorFacturar, VeriFactuConfiguracion, VeriFactuEnvios, VeriFactuLotesEnvio, VeriFactuRespuestas |
 | [implantacion](implantacion.md) | FasesImportacionContaSol, ImportacionesContaSol, IncidenciasImportacionContaSol, IncidenciasMigracionERP, MapasIdentidadContaSol, MapasIdentidadERP, MigracionesERP |
+| [inicio](inicio.md) | HistoricoSalud |
 | [nominas](nominas.md) | AliasCamposNomina, ImportacionesNomina, Nominas |
 | [norma43](norma43.md) | Bancos, ComplementosLineaExtractoBancario, ConceptosN43, ContabilizacionesLineaExtracto, CuentasBancarias, EntidadesFinancieras, ExtractosBancarios, ImputacionesLineaExtractoBancario, IncidenciasImportacionBancaria, LineasExtractoBancario, LotesImportacionBancaria, PalabrasClaveBancarias |
 | [organizacion](organizacion.md) | FormasPago, FormasPagoSociedad, Sociedades, SociedadesEjercicios, TiposRetencion |

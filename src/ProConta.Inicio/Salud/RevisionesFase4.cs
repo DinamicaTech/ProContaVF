@@ -9,10 +9,9 @@ public enum PeriodicidadAmortizacion { Mensual, Trimestral, Anual }
 /// Amortizaciones (activos; pantalla-de-inicio 2026-11-15 16:37): fila «Amortizaciones» de «Estado de los periodos» y aviso de
 /// atención cuando un periodo ya cerrado del ejercicio no tiene asiento de amortización (apuntes en una 68 contra una 28,
 /// contabilizado, sin apertura, regularización ni cierre). Solo si la sociedad tiene activos amortizables (marcados como amortizables,
-/// propios y sin dar de baja) o amortizó en el ejercicio o en el anterior. La periodicidad no es fija: se deduce de los meses en que
-/// amortiza (los del ejercicio si ya tiene alguno; si no, los del anterior): solo en diciembre es anual (la copia de validación
-/// amortiza así, el 31/12), solo en fin de trimestre es trimestral y, si no, mensual. Sin ningún asiento, anual. Un periodo está
-/// cerrado cuando ha terminado su último mes.
+/// propios y sin dar de baja) o amortizó en el ejercicio o en el anterior. La periodicidad por defecto es anual (propietario
+/// 2026-11-15 17:31); solo es otra cuando los asientos la muestran claramente (ver <see cref="Deducir"/>): primero los del ejercicio y,
+/// si no la muestran, los del anterior. Un periodo está cerrado cuando ha terminado su último mes.
 /// </summary>
 public sealed class RevisionAmortizaciones : IRevisionSalud
 {
@@ -30,13 +29,23 @@ public sealed class RevisionAmortizaciones : IRevisionSalud
         return Evaluar(ctx.Ejercicio.Ejercicio, asientos, activos, ctx.Hoy);
     }
 
-    /// <summary>Periodicidad deducida de los meses en que se amortiza.</summary>
-    public static PeriodicidadAmortizacion Periodicidad(IEnumerable<int> meses)
+    /// <summary>
+    /// Periodicidad que muestran claramente los meses en que se amortiza, o null si no muestran ninguna: anual si todos son de
+    /// diciembre; mensual si hay asientos en dos meses seguidos; trimestral si hay asientos en dos o más fines de trimestre y en
+    /// ningún otro mes. Un asiento suelto en otro mes (una baja, una corrección) no cambia la periodicidad.
+    /// </summary>
+    public static PeriodicidadAmortizacion? Deducir(IEnumerable<int> meses)
     {
-        var m = meses.Distinct().ToList();
-        if (m.Count == 0 || m.All(x => x == 12)) return PeriodicidadAmortizacion.Anual;
-        return m.All(x => x % 3 == 0) ? PeriodicidadAmortizacion.Trimestral : PeriodicidadAmortizacion.Mensual;
+        var m = meses.Distinct().Order().ToList();
+        if (m.Count == 0) return null;
+        if (m.All(x => x == 12)) return PeriodicidadAmortizacion.Anual;
+        if (m.Zip(m.Skip(1)).Any(p => p.Second - p.First == 1)) return PeriodicidadAmortizacion.Mensual;
+        if (m.Count >= 2 && m.All(x => x % 3 == 0)) return PeriodicidadAmortizacion.Trimestral;
+        return null;
     }
+
+    /// <summary>Periodicidad de unos meses: la que muestran claramente o, si no, anual (la periodicidad por defecto).</summary>
+    public static PeriodicidadAmortizacion Periodicidad(IEnumerable<int> meses) => Deducir(meses) ?? PeriodicidadAmortizacion.Anual;
 
     public static string Texto(PeriodicidadAmortizacion p) => p switch
     {
@@ -53,11 +62,14 @@ public sealed class RevisionAmortizaciones : IRevisionSalud
         if (activosAmortizables == 0 && asientos.Count == 0) return HallazgosSalud.Nada;
         var delEjercicio = asientos.Where(a => a.Fecha.Year == ejercicio).ToList();
         var anteriores = asientos.Where(a => a.Fecha.Year == ejercicio - 1).ToList();
-        var referencia = delEjercicio.Count > 0 ? delEjercicio : anteriores;
-        var periodicidad = Periodicidad(referencia.Select(a => a.Fecha.Month));
+        var deEste = Deducir(delEjercicio.Select(a => a.Fecha.Month));
+        var deAnterior = deEste is null ? Deducir(anteriores.Select(a => a.Fecha.Month)) : null;
+        var periodicidad = deEste ?? deAnterior ?? PeriodicidadAmortizacion.Anual;
         var meses = delEjercicio.GroupBy(a => a.Fecha.Month).ToDictionary(g => g.Key, g => (Fecha: g.Max(a => a.Fecha), Importe: g.Sum(a => a.Importe)));
-        var origen = delEjercicio.Count > 0 ? $"según los asientos de amortización de {ejercicio}"
-            : anteriores.Count > 0 ? $"según los asientos de amortización de {ejercicio - 1}" : "porque aún no hay asientos de amortización";
+        var origen = deEste is not null ? $"según los asientos de amortización de {ejercicio}"
+            : deAnterior is not null ? $"según los asientos de amortización de {ejercicio - 1}"
+            : delEjercicio.Count > 0 || anteriores.Count > 0 ? "la periodicidad por defecto, porque los asientos no muestran otra"
+            : "la periodicidad por defecto, porque aún no hay asientos de amortización";
 
         var periodos = periodicidad switch
         {
@@ -85,7 +97,7 @@ public sealed class RevisionAmortizaciones : IRevisionSalud
             (activosAmortizables > 0 ? $"; hay {N(activosAmortizables, "activo amortizable", "activos amortizables")}." : "."),
             null, Destino, "activos",
             $"Algún periodo ya terminado de {ejercicio} no tiene asiento de amortización (un asiento contabilizado que carga una 68 y abona una 28). " +
-            "Se mira solo si la sociedad tiene activos amortizables o amortizó en el ejercicio o en el anterior; la periodicidad se deduce de los meses en que amortiza.",
+            "Se mira solo si la sociedad tiene activos amortizables o amortizó en el ejercicio o en el anterior; la periodicidad es anual salvo que los asientos muestren claramente que se amortiza cada mes o cada trimestre.",
             "Contabiliza el asiento de amortización de ese periodo (68 al debe contra 28 al haber) desde Contabilidad › Diario o Asiento manual: ProContaVF aún no lo calcula solo. " +
             "El aviso desaparece en cuanto existe el asiento.") { Cantidad = faltan.Count };
         return new HallazgosSalud([elemento], [], [], [fila]);

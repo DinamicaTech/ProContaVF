@@ -19,6 +19,42 @@ public sealed class Fase4Tests
         Assert.Equal(PeriodicidadAmortizacion.Anual, RevisionAmortizaciones.Periodicidad([]));
         Assert.Equal(PeriodicidadAmortizacion.Trimestral, RevisionAmortizaciones.Periodicidad([3, 6, 9]));
         Assert.Equal(PeriodicidadAmortizacion.Mensual, RevisionAmortizaciones.Periodicidad([1, 2, 3]));
+        Assert.Equal(PeriodicidadAmortizacion.Trimestral, RevisionAmortizaciones.Periodicidad([6, 12]));
+    }
+
+    [Fact]
+    public void SinUnPatronClaroLaPeriodicidadEsAnual()
+    {
+        // Un asiento suelto (una baja a mitad de año, una corrección) o meses salteados no muestran otra periodicidad.
+        Assert.Null(RevisionAmortizaciones.Deducir([5]));
+        Assert.Null(RevisionAmortizaciones.Deducir([3]));
+        Assert.Null(RevisionAmortizaciones.Deducir([5, 12]));
+        Assert.Null(RevisionAmortizaciones.Deducir([2, 7, 12]));
+        Assert.Equal(PeriodicidadAmortizacion.Anual, RevisionAmortizaciones.Periodicidad([5]));
+        Assert.Equal(PeriodicidadAmortizacion.Anual, RevisionAmortizaciones.Periodicidad([5, 12]));
+        Assert.Equal(PeriodicidadAmortizacion.Anual, RevisionAmortizaciones.Periodicidad([3]));
+    }
+
+    [Fact]
+    public void SiElEjercicioNoMuestraPatronSeMiraElAnterior()
+    {
+        // Mensual en 2025; en 2026 solo el de enero (aún no hay dos meses seguidos): sigue siendo mensual y avisa de febrero en adelante.
+        var mensual2025 = Enumerable.Range(1, 12).Select(m => new AsientoAmortizacion(2025, new DateTime(2025, m, 28), 10m));
+        var h = RevisionAmortizaciones.Evaluar(2026, [.. mensual2025, new AsientoAmortizacion(2026, new DateTime(2026, 1, 31), 10m)], 1, Hoy);
+        Assert.Equal(12, h.Periodos[0].Celdas.Count);
+        Assert.StartsWith("Amortización sin contabilizar: febrero", Assert.Single(h.Elementos).Titulo);
+        Assert.Contains("según los asientos de amortización de 2025", h.Elementos[0].Explicacion);
+        // Anual en 2025 y una baja en mayo de 2026: sigue siendo anual, sin aviso hasta que termine el año.
+        var anual = new[] { new AsientoAmortizacion(2025, new DateTime(2025, 12, 31), 500m), new AsientoAmortizacion(2026, new DateTime(2026, 5, 20), 80m) };
+        var a = RevisionAmortizaciones.Evaluar(2026, anual, 1, Hoy);
+        Assert.Empty(a.Elementos);
+        Assert.Contains("anual", a.Periodos[0].Celdas[0].Ayuda);
+        Assert.Equal(EstadoPeriodo.Hecho, a.Periodos[0].Celdas[4].Estado);
+        // Sin patrón en ninguno de los dos (un asiento suelto en junio de 2025): anual por defecto; 2025 se da por amortizado.
+        var suelto = RevisionAmortizaciones.Evaluar(2025, [new AsientoAmortizacion(2025, new DateTime(2025, 6, 30), 80m)], 1, Hoy);
+        Assert.Empty(suelto.Elementos);
+        Assert.Equal(12, suelto.Periodos[0].Celdas.Count);
+        Assert.Contains("por defecto", suelto.Periodos[0].Celdas[0].Ayuda);
     }
 
     [Fact]
