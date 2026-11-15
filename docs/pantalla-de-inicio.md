@@ -88,3 +88,5 @@ Es un borrador: el diseño está en la maqueta `sources/maquetas/Inicio/proconta
 - 2026-11-15 15:18 · answer: ¿excluir el IVA autorrepercutido del cuadre de los libros con la 477? → Ok
 - 2026-11-15 15:18 · answer: ¿avisar de extracto antiguo solo en las cuentas con movimientos recientes? → Ok
 - 2026-11-15 15:18 · answer: ¿gravedades y umbral de 7 días para el extracto antiguo? → El umbral sería de 40 días ya que lo obtenemos mensualmente
+- 2026-11-15 16:30 · answer: ¿quitar la marca «hace N días» de Tesorería en las cuentas sin movimiento en 12 meses? → No hace falta, tengo pendiente cargar el fichero N43 del BBVA
+- 2026-11-15 16:30 · answer: ¿excluir las cuentas de remesas del aviso de extracto antiguo? → De momento no hace falta, si tuviese al día los extractos de La Caixa, esta tampoco aparecería como aviso.
