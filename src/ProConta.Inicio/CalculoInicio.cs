@@ -167,13 +167,14 @@ public static class CalculoInicio
     /// <summary>
     /// Fracción deducible del IVA soportado de una subcuenta 472 según la actividad dueña de su serie (por ejemplo 4728): 0 si la
     /// actividad no es deducible, la prorrata del año anterior si es por prorrata (100 % si no está informada) y 1 en los demás
-    /// casos (deducible o sin actividad, cuentas generales).
+    /// casos (deducible o sin actividad, cuentas generales). La deducibilidad es la vigente en <paramref name="fecha"/>, la del apunte
+    /// (contabilidad/procesos/cambio-deduccion-actividad); sin fecha, la anterior a cualquier cambio.
     /// </summary>
-    public static decimal FraccionDeducible(string cuenta, IReadOnlyList<ActividadInicio> actividades, decimal? prorrata)
+    public static decimal FraccionDeducible(string cuenta, IReadOnlyList<ActividadInicio> actividades, decimal? prorrata, DateTime? fecha = null)
     {
         var actividad = actividades.Where(a => a.Serie is { Length: > 3 } s && cuenta.StartsWith(s, StringComparison.Ordinal))
             .OrderByDescending(a => a.Serie!.Length).FirstOrDefault();
-        return actividad?.Deducible switch
+        return (actividad is null ? (byte?)null : fecha is DateTime f ? actividad.DeducibleEn(f) : actividad.Deducible) switch
         {
             0 => 0m,
             1 => prorrata is decimal p && p >= 0 && p <= 100 ? p / 100m : 1m,
@@ -189,7 +190,7 @@ public static class CalculoInicio
         {
             if (a.Fecha < desde || a.Fecha > hasta) continue;
             if (a.Cuenta.StartsWith("477", StringComparison.Ordinal)) rep += a.Haber - a.Debe;
-            else if (a.Cuenta.StartsWith("472", StringComparison.Ordinal)) sop += (a.Debe - a.Haber) * FraccionDeducible(a.Cuenta, actividades, prorrata);
+            else if (a.Cuenta.StartsWith("472", StringComparison.Ordinal)) sop += (a.Debe - a.Haber) * FraccionDeducible(a.Cuenta, actividades, prorrata, a.Fecha);
         }
         return (rep, sop);
     }

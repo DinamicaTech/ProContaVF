@@ -336,6 +336,32 @@ public static class MigracionesContabilidad
         "SELECT COUNT(*) FROM (ReglasCuentasBalance AS r INNER JOIN NodosBalance AS n ON r.IdNodoBalance = n.IdNodoBalance) INNER JOIN ModelosBalance AS m ON n.IdModeloBalance = m.IdModeloBalance " +
         "WHERE m.Codigo = ? AND r.PrefijoCuenta = ?", modelo, prefijo), System.Globalization.CultureInfo.InvariantCulture);
 
+    /// <summary>
+    /// Cambios de deducción de una actividad desde una fecha (contabilidad/procesos/cambio-deduccion-actividad 2026-11-15 19:56):
+    /// desde FechaDesde, la actividad deduce como dice Deducible (0 no, 1 por prorrata, 2 al 100 %); antes del primer cambio vale
+    /// Actividades.Deducible. Caso que lo origina: el alquiler turístico, 100 % deducible desde el 1/12/2026. Solo estructura, sin datos.
+    /// </summary>
+    public static Migracion DeduccionActividadFechas { get; } = new(
+        "20261115_2000_DEDUCCION_ACTIVIDAD_FECHAS", 261115020,
+        "Cambios de deducción de las actividades de IVA a partir de una fecha.",
+        "contabilidad/procesos/cambio-deduccion-actividad",
+        new CrearTabla("ActividadesDeduccion",
+            "CREATE TABLE ActividadesDeduccion (IdActividadDeduccion COUNTER CONSTRAINT PK_ActividadesDeduccion PRIMARY KEY, " +
+            "IdActividad LONG NOT NULL CONSTRAINT FK_ActividadesDeduccion_Actividad REFERENCES Actividades (IdActividad), " +
+            "FechaDesde DATETIME NOT NULL, Deducible BYTE NOT NULL)"),
+        new CrearIndice("ActividadesDeduccion", "UX_ActividadesDeduccion_Fecha",
+            "CREATE UNIQUE INDEX UX_ActividadesDeduccion_Fecha ON ActividadesDeduccion (IdActividad, FechaDesde)"))
+    {
+        Descripciones =
+        [
+            new("ActividadesDeduccion", null, "Cambios de deducción de una actividad de IVA desde una fecha. Antes del primer cambio vale Actividades.Deducible. Cada factura se clasifica por su fecha de expedición."),
+            new("ActividadesDeduccion", "IdActividadDeduccion", "Identificador del cambio."),
+            new("ActividadesDeduccion", "IdActividad", "Actividad que cambia."),
+            new("ActividadesDeduccion", "FechaDesde", "Primer día en que vale la deducción nueva (sin hora)."),
+            new("ActividadesDeduccion", "Deducible", "Deducción desde esa fecha: 0 no deducible, 1 por prorrata, 2 deducible al 100 %."),
+        ],
+    };
+
     private static PasoPersonalizado RelacionActividad()
     {
         const string sql = "ALTER TABLE CentrosCoste ADD CONSTRAINT FK_CentrosCoste_Actividad FOREIGN KEY (IdActividad) REFERENCES Actividades (IdActividad)";

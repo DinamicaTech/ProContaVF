@@ -26,8 +26,15 @@ public sealed record ApunteIva(DateTime Fecha, string Cuenta, decimal Debe, deci
 /// <summary>Cuenta bancaria de Norma 43 con su cuenta contable y la fecha final de su último extracto.</summary>
 public sealed record BancoN43(string Nombre, string? CuentaContable, DateTime? UltimoExtracto);
 
-/// <summary>Actividad de IVA tal como la usa Inicio: nombre, deducibilidad (0 no, 1 prorrata, 2 total) y serie de 472.</summary>
-public sealed record ActividadInicio(string Nombre, byte Deducible, string? Serie);
+/// <summary>
+/// Actividad de IVA tal como la usa Inicio: nombre, deducibilidad (0 no, 1 prorrata, 2 total) antes de su primer cambio, serie de 472
+/// y cambios de deducción desde una fecha (contabilidad/procesos/cambio-deduccion-actividad).
+/// </summary>
+public sealed record ActividadInicio(string Nombre, byte Deducible, string? Serie, IReadOnlyList<ProConta.Contabilidad.CentrosCoste.CambioDeduccion>? Cambios = null)
+{
+    /// <summary>Deducibilidad vigente en una fecha.</summary>
+    public byte DeducibleEn(DateTime fecha) => ProConta.Contabilidad.CentrosCoste.CambioDeduccion.Vigente(Deducible, Cambios, fecha);
+}
 
 /// <summary>Todo lo que Inicio lee de un ejercicio.</summary>
 /// <param name="VentasDeContabilidad">El ejercicio no tiene facturas de venta validadas y las ventas salen del grupo 70.</param>

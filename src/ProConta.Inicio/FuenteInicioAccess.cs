@@ -89,15 +89,19 @@ public sealed class FuenteInicioAccess(IBaseDatos bd) : IFuenteInicio
     public async Task<IReadOnlyDictionary<int, ActividadInicio>> ActividadesPorCentroAsync(string idSociedad, CancellationToken cancelacion = default)
     {
         var porCentro = await new LectorActividadesIva(bd).PorCentroAsync(idSociedad);
-        return porCentro.ToDictionary(p => p.Key, p => new ActividadInicio(p.Value.Nombre, p.Value.Deducible, p.Value.Serie));
+        return porCentro.ToDictionary(p => p.Key, p => new ActividadInicio(p.Value.Nombre, p.Value.Deducible, p.Value.Serie, p.Value.Cambios));
     }
 
     public Task<IReadOnlyList<ActividadInicio>> ActividadesAsync(string idSociedad, CancellationToken cancelacion = default) =>
-        bd.EjecutarAsync<IReadOnlyList<ActividadInicio>>(async s => await s.ConsultarAsync(
-            "SELECT Nombre, Deducible, SerieCuentaIva FROM Actividades WHERE IdSociedad = ? AND Activa = True",
-            f => new ActividadInicio((f.Texto("Nombre") ?? "").Trim(), f.EsNulo("Deducible") ? (byte)2 : Convert.ToByte(f.Valor("Deducible"), CultureInfo.InvariantCulture),
-                string.IsNullOrWhiteSpace(f.Texto("SerieCuentaIva")) ? null : f.Texto("SerieCuentaIva")!.Trim()),
-            idSociedad), cancelacion);
+        bd.EjecutarAsync<IReadOnlyList<ActividadInicio>>(async s =>
+        {
+            var cambios = await LectorActividadesIva.CambiosAsync(s, idSociedad);
+            return await s.ConsultarAsync(
+                "SELECT IdActividad, Nombre, Deducible, SerieCuentaIva FROM Actividades WHERE IdSociedad = ? AND Activa = True",
+                f => new ActividadInicio((f.Texto("Nombre") ?? "").Trim(), f.EsNulo("Deducible") ? (byte)2 : Convert.ToByte(f.Valor("Deducible"), CultureInfo.InvariantCulture),
+                    string.IsNullOrWhiteSpace(f.Texto("SerieCuentaIva")) ? null : f.Texto("SerieCuentaIva")!.Trim(), cambios.GetValueOrDefault(f.Entero("IdActividad"))),
+                idSociedad);
+        }, cancelacion);
 
     public Task<ModeloBalance?> ModeloSituacionAsync(CancellationToken cancelacion = default) =>
         bd.EjecutarAsync<ModeloBalance?>(async s =>

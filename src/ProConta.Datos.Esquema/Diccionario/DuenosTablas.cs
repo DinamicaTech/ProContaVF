@@ -30,6 +30,7 @@ public static class DuenosTablas
         Asignar("contabilidad", "contabilidad/centros-coste", "CentrosCoste", "F_CDP", "F_DEP");
         Asignar("contabilidad", "contabilidad/asientos", "Asientos", "Apuntes", "RelacionesAsientos", "RevisionesAsientos", "RegistroCambiosApuntes", "AsientosBorrados", "ApuntesBorrados");
         Asignar("contabilidad", "contabilidad/procesos", "ConfiguracionesContables", "ConfiguracionesContablesCuentaBancaria", "PeriodosIVA", "IVARepercutido", "IVASoportado", "DesglosesIVASoportado", "Actividades");
+        Asignar("contabilidad", "contabilidad/procesos/cambio-deduccion-actividad", "ActividadesDeduccion");
         Asignar("contabilidad", "contabilidad/modelos-tributarios", "PresentacionesTributarias");
         Asignar("contabilidad", "contabilidad/mayor", "CuadresCuentas");
         Asignar("contabilidad", "contabilidad/plantillas-asiento", "PlantillasAsiento", "PlantillasAsientoDatos", "PlantillasAsientoLineas");

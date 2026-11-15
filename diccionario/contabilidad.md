@@ -24,6 +24,26 @@
 Relaciones:
 - FK_Actividades_Sociedad: (IdSociedad) → Sociedades (IdSociedad); borrado NO ACTION, actualización NO ACTION
 
+## ActividadesDeduccion
+
+- Dueño funcional: `contabilidad/procesos/cambio-deduccion-actividad`
+- Cambios de deducción de una actividad de IVA desde una fecha. Antes del primer cambio vale Actividades.Deducible. Cada factura se clasifica por su fecha de expedición.
+
+| Campo | Tipo | Nulo | Por defecto | Descripción |
+|---|---|---|---|---|
+| IdActividadDeduccion | COUNTER | no |  | Identificador del cambio. |
+| IdActividad | LONG | no |  | Actividad que cambia. |
+| FechaDesde | DATETIME | no |  | Primer día en que vale la deducción nueva (sin hora). |
+| Deducible | BYTE | no |  | Deducción desde esa fecha: 0 no deducible, 1 por prorrata, 2 deducible al 100 %. |
+
+Índices:
+- FK_ActividadesDeduccion_Actividad: IdActividad
+- PK_ActividadesDeduccion (clave primaria): IdActividadDeduccion
+- UX_ActividadesDeduccion_Fecha (único): IdActividad, FechaDesde
+
+Relaciones:
+- FK_ActividadesDeduccion_Actividad: (IdActividad) → Actividades (IdActividad); borrado NO ACTION, actualización NO ACTION
+
 ## Apuntes
 
 - Dueño funcional: `contabilidad/asientos`
