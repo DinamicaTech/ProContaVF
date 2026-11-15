@@ -79,6 +79,7 @@ label.l{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;color:va
 .legend{display:flex;gap:6px 14px;flex-wrap:wrap;font-size:12.5px;color:var(--txt2);align-items:center}
 .legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px}
 .legend i.hatch{background:repeating-linear-gradient(135deg,var(--s1) 0 2px,#fff 2px 4px)!important;border:1px solid var(--s1)}
+.legend i.dash{height:0;width:14px;border-top:2px dashed var(--s1);border-radius:0;vertical-align:3px}
 .tip{position:fixed;z-index:80;pointer-events:none;background:var(--card);border:1px solid var(--ln3);border-radius:8px;box-shadow:0 8px 24px rgba(20,33,58,.16);padding:8px 10px;font-size:12.5px;min-width:160px;max-width:300px}
 .tip b{display:block;margin-bottom:3px}
 .tip .r{display:flex;gap:10px;justify-content:space-between;font-variant-numeric:tabular-nums}
@@ -117,6 +118,39 @@ td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
 .aging{display:flex;height:22px;gap:2px;margin:6px 0 8px}
 .aging div{border-radius:3px;min-width:4px;cursor:default}
 .aging div:first-child{border-radius:4px 3px 3px 4px}.aging div:last-child{border-radius:3px 4px 4px 3px}
+/* lo más urgente */
+.urg{display:flex;gap:10px 14px;align-items:center;flex-wrap:wrap;background:var(--redb);border:1px solid #F3C9C3;border-left:4px solid var(--red);border-radius:10px;padding:10px 14px}
+.urg .tx{flex:1;min-width:min(260px,100%);font-size:13.5px}
+.urg .tx b{color:var(--red)}
+/* ratios compactos */
+.rfam{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(390px,100%),1fr));gap:10px 28px}
+.rrow{display:grid;grid-template-columns:minmax(0,1.3fr) 66px minmax(70px,1fr) 78px;gap:10px;align-items:center;width:100%;border:0;background:transparent;padding:5px 6px;border-radius:7px;cursor:pointer;text-align:left;font-size:13px}
+.rrow:hover{background:var(--bg2)}
+.rrow .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rrow .v{font-weight:600;text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.bul{position:relative;display:block;height:10px;background:var(--ln2);border-radius:5px}
+.bul i{position:absolute;display:block}
+.bul .band{top:0;bottom:0;background:#BFE0CD;border-radius:5px}
+.bul .pv{top:1px;width:2px;height:8px;background:var(--mut2);transform:translateX(-1px)}
+.bul .mk{top:-3px;width:4px;height:16px;border-radius:2px;background:var(--ink);box-shadow:0 0 0 2px #fff;transform:translateX(-2px)}
+/* estado de los periodos */
+.mx{padding:0 6px 4px}
+.mx table{font-size:11.5px;table-layout:fixed}
+.mx th,.mx td{padding:2px 0;text-align:center;border:0}
+.mx th:first-child,.mx td:first-child{text-align:left;width:118px;color:var(--txt2);white-space:nowrap;font-size:12px}
+.mx td span{display:inline-grid;place-items:center;width:20px;height:20px;border-radius:5px;font-weight:700;font-size:11px;cursor:default}
+.mx td.q span{width:calc(100% - 4px);font-weight:600}
+.c-ok{background:var(--greenb);color:var(--green)}.c-w{background:var(--ambb);color:var(--amb)}.c-b{background:var(--redb);color:var(--red)}.c-cur{background:var(--blueb);color:var(--blue)}.c-n{background:var(--ln2);color:var(--mut2)}
+.chk{margin:8px 6px 2px;font-size:12.5px}
+.chk summary{cursor:pointer;font:600 12px var(--f-ui);text-transform:uppercase;letter-spacing:.06em;color:var(--mut)}
+.chk ul{list-style:none;margin:6px 0 0;padding:0;display:flex;flex-direction:column;gap:4px}
+.chk li{display:flex;gap:8px;align-items:flex-start;color:var(--txt2)}
+.chk li::before{content:"✓";color:var(--green);font-weight:700}
+.soc{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:6px 8px;border-radius:8px;font-size:13px;cursor:pointer}
+.soc:hover{background:var(--bg2)}
+.soc b{font-weight:600;margin-right:auto}
+.bank{display:flex;gap:6px 14px;flex-wrap:wrap;align-items:center;font-size:12.5px;padding:3px 0;border-bottom:1px solid var(--ln2)}
+.bank b{font-variant-numeric:tabular-nums;margin-left:auto}
 /* salud */
 .salud{position:sticky;top:8px;display:flex;flex-direction:column;max-height:calc(100vh - 16px)}
 @media (max-width:1250px){.salud{position:static;max-height:none}}
@@ -170,7 +204,7 @@ td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
 </style></head><body>
 
 <div class="demo pad" role="region" aria-label="Controles de la maqueta">
-  <b>MAQUETA</b><span>No forma parte de ProConta · datos ficticios · versión Fable · hoy es domingo 15/11/2026</span>
+  <b>MAQUETA</b><span>No forma parte de ProConta · datos ficticios · versión 2 (Fable) · hoy es domingo 15/11/2026</span>
   <button id="d-ok" aria-pressed="false" title="Muestra el apartado de salud cuando no queda nada pendiente">Ejemplo: todo al día</button>
   <button id="d-nuevo" aria-pressed="false" title="Muestra la pantalla con el ejercicio 2027 recién creado, sin movimientos">Ejemplo: ejercicio recién creado</button>
 </div>
@@ -197,13 +231,15 @@ td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
     <button class="btn" id="b-act" title="Vuelve a calcular los indicadores y a revisar la salud de la contabilidad (se hace solo al abrir Inicio y al cambiar de sociedad o ejercicio)">Actualizar</button>
   </div>
 
+  <section class="urg" id="urg" aria-label="Lo más urgente" hidden></section>
+
   <div class="layout">
     <div class="colL">
       <section class="kpis" id="kpis" aria-label="Indicadores principales" data-blk="kpis"></section>
 
       <section class="card" data-blk="fact" aria-label="Facturación">
         <header>
-          <h2>Facturación</h2><span class="n" id="fact-n">base imponible de las facturas emitidas, por mes</span>
+          <h2>Facturación</h2><span class="n" id="fact-n">base imponible por mes</span><span class="n" id="fact-prev" title="Lo facturado hasta hoy más lo ya comprometido hasta el 31/12: facturas programadas pendientes de emitir y reservas confirmadas sin facturar"></span>
           <div class="seg sp" role="group" aria-label="Vista">
             <button data-v="mes" aria-pressed="true" title="Facturación de cada mes">Mensual</button>
             <button data-v="acu" aria-pressed="false" title="Facturación acumulada desde el 1 de enero">Acumulada</button>
@@ -226,19 +262,27 @@ td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
       <section class="card" data-blk="ratios" aria-label="Ratios">
         <header>
           <h2>Ratios</h2><span class="n">balance a 31/10/2026 · resultado de los últimos 12 meses</span>
-          <span class="sp hint">Pulsa un ratio para ver de qué cifras sale</span>
+          <span class="sp" id="rat-n"></span>
         </header>
-        <div class="cb rgrp" id="ratios"></div>
+        <div class="cb"><div class="rfam" id="ratios"></div><div class="hint" id="rat-h" style="margin-top:8px"></div></div>
       </section>
 
       <div class="grid2">
+        <section class="card" data-blk="teso" aria-label="Tesorería">
+          <header><h2>Tesorería</h2><span class="n">saldo de bancos, 12 meses y previsión a 60 días</span></header>
+          <div class="cb"><div class="legend"><span><i style="background:var(--s1)"></i>Saldo real</span><span><i class="dash"></i>Previsión</span></div><div class="chart" id="teso"></div><div id="teso-b"></div></div>
+        </section>
+        <section class="card" data-blk="agenda" aria-label="Agenda">
+          <header><h2>Agenda</h2><span class="n">lo que va a pasar en los próximos 30 días</span></header>
+          <div class="cb" id="agenda"></div>
+        </section>
+        <section class="card" data-blk="res" aria-label="Ingresos y gastos">
+          <header><h2>Ingresos y gastos</h2><span class="n">por mes · la distancia entre las dos líneas es el resultado</span></header>
+          <div class="cb"><div class="legend"><span><i style="background:var(--s1)"></i>Ingresos</span><span><i style="background:var(--s2)"></i>Gastos</span></div><div class="chart" id="res"></div></div>
+        </section>
         <section class="card" data-blk="cobros" aria-label="Pendiente de cobro">
           <header><h2>Pendiente de cobro</h2><span class="n" id="cob-n"></span></header>
           <div class="cb" id="cobros"></div>
-        </section>
-        <section class="card" data-blk="teso" aria-label="Tesorería">
-          <header><h2>Tesorería</h2><span class="n">saldo de bancos a fin de mes, últimos 12 meses</span></header>
-          <div class="cb"><div class="chart" id="teso"></div></div>
         </section>
         <section class="card" data-blk="gastos" aria-label="Gastos">
           <header><h2>Gastos por naturaleza</h2><span class="n">acumulado del ejercicio</span></header>
@@ -268,13 +312,15 @@ td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
 
   <aside class="notes" data-blk="notas">
     <div>
-      <h3>Qué enseña esta maqueta</h3>
+      <h3>Novedades de la versión 2</h3>
       <ul>
-        <li>Todo se refiere a la sociedad y el ejercicio de trabajo de la cabecera, y se compara a la misma fecha con el ejercicio elegido en «Comparar con».</li>
-        <li>Fila de indicadores: cada uno abre la pantalla de la que sale (facturas, Mayor, bancos, liquidación de IVA).</li>
-        <li>Facturación por mes con el ejercicio comparado, en mensual, acumulado o tabla, y reparto por actividad (las actividades de IVA del árbol de centros de coste).</li>
-        <li>Ratios de liquidez, solvencia, endeudamiento, rentabilidad y márgenes, con su rango de referencia y la evolución desde 2019. Cada ratio enseña la fórmula y las cifras de balance que lo forman.</li>
-        <li>Salud: tareas con plazo (procesos contables y fechas fiscales) y avisos de cosas a corregir, ordenados por gravedad y fecha. Doble clic lleva a la pantalla que lo resuelve; el clic derecho, sobre lo seleccionado, deja posponer o silenciar un aviso.</li>
+        <li><b>Lo más urgente</b>, arriba del todo: lo primero que hay que hacer hoy, con su botón.</li>
+        <li><b>Previsión de cierre</b> en Facturación: a lo facturado se suma lo ya comprometido (facturas programadas por emitir y reservas confirmadas), rayado en el gráfico.</li>
+        <li><b>Ratios compactos</b>: una fila por ratio con su posición respecto al rango de referencia (franja verde). Ocupan la mitad y se leen de un vistazo.</li>
+        <li><b>Tesorería con previsión a 60 días</b> (cobros, pagos e impuestos previstos) y el saldo de cada banco con la fecha de su último extracto.</li>
+        <li><b>Agenda</b>: lo que va a pasar solo (programadas que se emiten, vencimientos, nóminas, cuotas). Salud queda para lo que tienes que hacer tú.</li>
+        <li><b>Ingresos y gastos por mes</b>, para ver el resultado mes a mes.</li>
+        <li>En Salud: <b>estado de los periodos</b> (qué meses y trimestres están cerrados), la <b>tendencia</b> de cada aviso, las <b>comprobaciones correctas</b> y un resumen de las <b>otras sociedades</b>.</li>
       </ul>
     </div>
     <div>
@@ -282,10 +328,11 @@ td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
       <ol>
         <li>¿Sobran o faltan indicadores en la fila de arriba? ¿El IVA estimado del trimestre te resulta útil?</li>
         <li>¿Comparar siempre a la misma fecha, o el ejercicio anterior completo?</li>
-        <li>¿Una sola sociedad (la de trabajo) o una vista resumen de todas las sociedades?</li>
+        <li>Otras sociedades: ¿basta el resumen al pie de Salud o quieres una vista conjunta?</li>
         <li>¿Los rangos de referencia de los ratios los fijas tú por sociedad, o valen los estándar?</li>
-        <li>¿Qué tareas y avisos más quieres ver en salud? ¿Se puede silenciar un aviso para siempre o solo posponerlo?</li>
-        <li>Los bloques de abajo (cobros, tesorería, gastos, ocupación): ¿cuáles te sirven y cuáles cambiarías por otros?</li>
+        <li>¿Qué comprobaciones y avisos más quieres en Salud? ¿Se puede silenciar un aviso para siempre o solo posponerlo?</li>
+        <li>La previsión de tesorería y la agenda necesitan vencimientos fiables de cobros y pagos: ¿entran ahora o después del arranque?</li>
+        <li>Hay nueve bloques: ¿cuáles quitarías de la vista por defecto?</li>
       </ol>
     </div>
   </aside>
@@ -306,6 +353,27 @@ const FACT={
   2025:[66.2,61.0,70.4,76.1,85.3,101.2,129.5,137.1,104.2,80.3,68.4,77.0],
   2026:[71.3,67.2,77.5,82.0,93.4,110.6,141.2,149.3,112.4,88.1,41.6,null]
 };
+const FC={10:38.2,11:71.5}; // ya comprometido sin facturar: programadas por emitir + reservas confirmadas
+const GMES=[65,63,70,72,78,89,104,108,91,74,34.2];
+const AGENDA=[
+  ["lun 16/11","Se emiten 3 facturas programadas",2140,"Facturación › Programadas"],
+  ["vie 20/11","Vencen 2 facturas de proveedores",-4180,"Contabilidad › Mayor (400-410)"],
+  ["mié 25/11","Cuota del préstamo Sabadell",-3250,"Contabilidad › Mayor (170)"],
+  ["vie 27/11","Pago de las nóminas de noviembre",-11800,"Nóminas"],
+  ["lun 30/11","Seguros sociales de octubre",-4900,"Nóminas"],
+  ["mar 01/12","Se emiten 18 facturas programadas (alquileres de diciembre)",24300,"Facturación › Programadas"],
+  ["sáb 05/12","Remesa de recibos de diciembre al banco",21700,"Facturación › Remesas"],
+  ["jue 10/12","Vencen 5 facturas de clientes",9120,"Contabilidad › Mayor (430)"]
+];
+const BANCOS=[["Santander","5720002",142180,"13/11",null],["BBVA","5720003",81035,"06/11","hace 9 días"],["CaixaBank","5720004",25100,"14/11",null]];
+const OK10=Array(10).fill("ok");
+const PER=[
+  ["Bancos conciliados","Norma 43 › Líneas bancarias",["ok","ok","ok","ok","ok","ok","ok","ok","w","b","cur",""],{8:"9 movimientos sin conciliar",9:"28 movimientos sin conciliar y Santander no cuadra con el extracto"}],
+  ["Amortizaciones","Contabilidad › Procesos contables",[...OK10,"cur",""],{}],
+  ["Nóminas","Nóminas",[...OK10,"cur",""],{}]
+];
+const CHK=["El Diario cuadra: debe y haber iguales en los 4.812 asientos","Numeración de facturas sin huecos en las 3 series","Libro de IVA repercutido igual a las cuentas 477","Libro de IVA soportado igual a las cuentas 472","BBVA y CaixaBank cuadran con su último extracto","Sin apuntes en subcuentas dadas de baja","Todos los clientes y proveedores con movimientos tienen NIF","Amortización acumulada igual a la ficha de cada activo","Nóminas contabilizadas hasta octubre"];
+const SOC=[["Ribera Inversions SL",[["warn","! 3 atención"]]],["Mar Blau Turístic SL",[["ok","✓ Todo al día"]]]];
 const NOVHALF={2024:30.1,2025:33.9}; // noviembre hasta el día 15
 const ACT=[ // acumulado a 15/11, miles
   {n:"Alquiler turístico",c:"--s1",v:{2026:428.1,2025:381.0,2024:339.3}},
@@ -316,6 +384,7 @@ const ACT=[ // acumulado a 15/11, miles
 ];
 const TESO=[{m:"dic",v:201.4},{m:"ene",v:188.2},{m:"feb",v:176.9},{m:"mar",v:190.3},{m:"abr",v:183.0},{m:"may",v:196.8},{m:"jun",v:214.5},{m:"jul",v:241.7},{m:"ago",v:268.9},{m:"sep",v:259.3},{m:"oct",v:251.0},{m:"15 nov",v:248.3}];
 const GASTOS=[ // acumulado, miles · 2026 / 2025
+  {n:"600-607 · Compras y trabajos de terceros",c:"6000000",v:213.2,p:196.0},
   {n:"640-642 · Personal",c:"6400000",v:212.4,p:198.7},
   {n:"621 · Arrendamientos",c:"6210000",v:96.0,p:94.2},
   {n:"629 · Limpieza y otros servicios",c:"6290000",v:88.3,p:73.5},
@@ -325,7 +394,7 @@ const GASTOS=[ // acumulado, miles · 2026 / 2025
   {n:"623 · Servicios profesionales",c:"6230000",v:24.6,p:22.3},
   {n:"Resto",c:"6",v:58.1,p:55.4}
 ];
-const OCUP={2026:[38,44,52,61,68,79,93,96,81,63,47,null],2025:[35,41,49,57,66,77,91,95,78,60,45,52]};
+const OCUP={2026:[38,44,52,61,68,79,93,96,81,63,47,null],2024:[33,39,46,55,63,74,89,94,75,57,43,50],2025:[35,41,49,57,66,77,91,95,78,60,45,52]};
 const COBROS={total:64880,tramos:[["No vencido",46640,"--s1"],["1-30 días",9120,"--s4"],["31-60 días",5310,"--s2"],["61-90 días",1890,"--s5"],["Más de 90",1920,"--s3"]],
   top:[["4300012","Hotel Mirador SL",14520,6210],["4300031","Inmobiliaria Garbí SL",9880,0],["4300001","Huéspedes de plataformas",8460,2340],["4300045","Costa Daurada Events SL",6125,4130],["4300027","Marta Soler Puig",3920,1890]]};
 /* ratios: valor por ejercicio 2019..2026 (2026 = a 31/10, 12 meses) */
@@ -361,8 +430,8 @@ const SALUD=[
   {id:1,k:"tar",sev:"bad",t:"Facturar las reservas antes del 1/12",ds:"Desde el 1/12/2026 el alquiler turístico lleva un 10 % de IVA. Quedan 14 reservas con salida antes de esa fecha en Ventas por facturar (12.380 €).",due:"2026-11-30",go:"Facturación › Ventas por facturar",src:"facturacion/reservas"},
   {id:2,k:"avi",sev:"bad",t:"Banco Santander no cuadra con el extracto",ds:"El saldo contable de 5720002 al 31/10 es 12,40 € mayor que el saldo final del extracto N43 de esa fecha.",go:"Norma 43 › Líneas bancarias",src:"norma43"},
   {id:3,k:"tar",sev:"warn",t:"Contabilizar las amortizaciones de noviembre",ds:"Se generan a fin de mes con el proceso de activos (11 activos, 6.470 €).",due:"2026-11-30",go:"Contabilidad › Procesos contables",src:"activos"},
-  {id:4,k:"avi",sev:"warn",t:"37 movimientos bancarios sin conciliar",ds:"Santander 29 y BBVA 8. El más antiguo es del 12/09/2026.",go:"Norma 43 › Líneas bancarias (filtro: sin conciliar)",src:"norma43/conciliacion"},
-  {id:5,k:"avi",sev:"warn",t:"6 facturas de compra sin contabilizar",ds:"Reconocidas y revisadas, pendientes de F12. Hay además 3 PDF nuevos en la carpeta de proveedores.",go:"Compras › Facturas recibidas (Pendientes)",src:"compras"},
+  {id:4,k:"avi",sev:"warn",t:"37 movimientos bancarios sin conciliar",ds:"Santander 29 y BBVA 8. El más antiguo es del 12/09/2026.",go:"Norma 43 › Líneas bancarias (filtro: sin conciliar)",src:"norma43/conciliacion",tr:["▼ 15 desde el lunes",true]},
+  {id:5,k:"avi",sev:"warn",t:"6 facturas de compra sin contabilizar",ds:"Reconocidas y revisadas, pendientes de F12. Hay además 3 PDF nuevos en la carpeta de proveedores.",go:"Compras › Facturas recibidas (Pendientes)",src:"compras",tr:["▲ 2 desde el lunes",false]},
   {id:6,k:"avi",sev:"warn",t:"Último extracto de BBVA de hace 9 días",ds:"El último fichero N43 importado de BBVA llega hasta el 06/11/2026.",go:"Norma 43 › Importar extracto",src:"norma43"},
   {id:7,k:"avi",sev:"warn",t:"4 clientes con saldo acreedor",ds:"Subcuentas 430 con saldo al haber: cobros duplicados o facturas sin registrar (total 1.215,80 €).",go:"Contabilidad › Mayor (filtro: 430 con saldo acreedor)",src:"contabilidad/mayor"},
   {id:8,k:"tar",sev:"info",t:"Crear el ejercicio 2027",ds:"Necesario antes de emitir la primera factura del 1/1/2027.",due:"2026-12-31",go:"Contabilidad › Procesos contables",src:"contabilidad/procesos/nuevo-ejercicio"},
@@ -416,23 +485,24 @@ function renderKpis(){
 }
 /* ---------- facturación ---------- */
 function renderFact(){
-  const c=state.cmp,v=state.fv,cur=state.nuevo?Array(12).fill(null):FACT[2026];
-  const yl=state.nuevo?"2027":"2026";
-  const prev=c?FACT[c]:null;
-  $("#fact-leg").innerHTML=`<span><i style="background:var(--s1)"></i>${yl}</span>`+(c?`<span><i style="background:var(--s2)"></i>${c}</span>`:"")+(state.nuevo?"":`<span><i class="hatch"></i>noviembre ${yl} en curso (hasta el día 15)</span>`);
-  const ch=$("#fact-ch");
-  if(state.nuevo){$("#fact-leg").innerHTML="";ch.innerHTML=`<div class="empty"><b>Aún no hay facturas en 2027</b>El gráfico se llena con la primera factura validada del ejercicio. Mientras, puedes compararlo con 2026 cambiando el ejercicio de trabajo en la cabecera.</div>`;renderAct();return;}
+  const c=state.cmp,v=state.fv,cur=FACT[2026],yl=state.nuevo?"2027":"2026";
+  const prev=c?FACT[c]:null,ch=$("#fact-ch"),pv=$("#fact-prev");
+  if(state.nuevo){pv.hidden=true;$("#fact-leg").innerHTML="";ch.innerHTML=`<div class="empty"><b>Aún no hay facturas en 2027</b>El gráfico se llena con la primera factura validada del ejercicio. Mientras, puedes compararlo con 2026 cambiando el ejercicio de trabajo en la cabecera.</div>`;renderAct();return;}
+  const ytd=sum(cur),fin=ytd+FC[10]+FC[11],pt=prev?sum(prev):null;
+  pv.hidden=false;pv.innerHTML=`· previsión de cierre <b style="color:var(--ink)">${k(fin)}</b>`+(pt?` ${dlt(fin,pt)} sobre ${c}`:"");
+  $("#fact-leg").innerHTML=`<span><i style="background:var(--s1)"></i>${yl} facturado</span><span><i class="hatch"></i>${yl} comprometido (programadas y reservas)</span>`+(c?`<span><i style="background:var(--s2)"></i>${c}</span>`:"");
   if(v==="tab"){
     let acc=0,accp=0;
-    ch.innerHTML=`<div class="tw"><table><thead><tr><th>Mes</th><th class="num">${yl}</th>${c?`<th class="num">${c}</th><th class="num">Variación</th>`:""}<th class="num">Acumulado ${yl}</th>${c?`<th class="num">Acumulado ${c}</th>`:""}</tr></thead><tbody>`+
-      MESL.map((m,i)=>{const a=cur[i],p=prev?(i===10?NOVHALF[c]:prev[i]):null;if(a!=null)acc+=a;if(p!=null&&a!=null)accp+=p;
-        return `<tr><td>${m}${i===10?" (hasta el 15)":""}</td><td class="num">${a==null?"":k(a)}</td>${c?`<td class="num">${a==null?k(prev[i]):k(p)}</td><td class="num">${a==null?"":dlt(a,p)}</td>`:""}<td class="num">${a==null?"":k(acc)}</td>${c?`<td class="num">${a==null?"":k(accp)}</td>`:""}</tr>`;}).join("")+`</tbody></table></div>`;
+    ch.innerHTML=`<div class="tw"><table><thead><tr><th>Mes</th><th class="num">Facturado</th><th class="num">Comprometido</th>${c?`<th class="num">${c}</th><th class="num">Variación</th>`:""}<th class="num">Acumulado previsto</th>${c?`<th class="num">Acumulado ${c}</th>`:""}</tr></thead><tbody>`+
+      MESL.map((m,i)=>{const a=cur[i],f=FC[i]||0,p=prev?prev[i]:null;acc+=(a||0)+f;if(p!=null)accp+=p;
+        return `<tr><td>${m}</td><td class="num">${a==null?"":k(a)}</td><td class="num">${f?k(f):""}</td>${c?`<td class="num">${k(p)}</td><td class="num">${dlt((a||0)+f,p)}</td>`:""}<td class="num">${k(acc)}</td>${c?`<td class="num">${k(accp)}</td>`:""}</tr>`;}).join("")+`</tbody></table></div>`;
     renderAct();return;
   }
   const W=Math.max(ch.clientWidth||640,320),H=250,L=46,R=8,T=14,B=26,pw=W-L-R,ph=H-T-B;
   let A=cur.slice(),P=prev?prev.slice():null;
-  if(v==="acu"){let s=0;A=A.map(x=>x==null?null:(s+=x));if(P){let t=0;P=P.map(x=>(t+=x));}}
-  const mx=niceMax(Math.max(...A.filter(x=>x!=null),...(P||[0]))*1.05);
+  if(v==="acu"){let q=0;A=A.map(x=>x==null?null:(q+=x));if(P){let t=0;P=P.map(x=>(t+=x));}}
+  const tops=v==="acu"?[fin,...(P||[])]:[...cur.map((x,i)=>(x||0)+(FC[i]||0)),...(P||[])];
+  const mx=niceMax(Math.max(...tops)*1.05);
   const y=val=>T+ph-(val/mx)*ph, bw=pw/12;
   let s=`<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" role="img" aria-label="Facturación ${v==="acu"?"acumulada":"mensual"} ${yl}${c?" frente a "+c:""}">`;
   for(let g=0;g<=4;g++){const val=mx*g/4,yy=y(val);s+=`<line x1="${L}" x2="${W-R}" y1="${yy}" y2="${yy}" stroke="${css("--grid")}" stroke-width="1"/><text class="axv" x="${L-6}" y="${yy+4}" text-anchor="end">${nf(val)}k</text>`;}
@@ -440,24 +510,26 @@ function renderFact(){
   const s1=css("--s1"),s2=css("--s2");
   if(v==="mes"){
     const gw=Math.min(bw*.72,46),one=P?(gw-2)/2:gw;
-    const bar=(x,w,val,fill,stroke)=>{const yy=y(val),h=T+ph-yy,r=Math.min(4,w/2,h);return `<path d="M${x},${T+ph}V${yy+r}Q${x},${yy} ${x+r},${yy}H${x+w-r}Q${x+w},${yy} ${x+w},${yy+r}V${T+ph}Z" fill="${fill}"${stroke?` stroke="${stroke}" stroke-width="1"`:""}/>`;};
+    const seg=(x,w,v0,v1,fill,stroke,top)=>{const yb=y(v0)-(v0?2:0),yt=y(v1),h=yb-yt;if(h<=0)return "";const r=top?Math.min(4,w/2,h):0;
+      return `<path d="M${x},${yb}V${yt+r}Q${x},${yt} ${x+r},${yt}H${x+w-r}Q${x+w},${yt} ${x+w},${yt+r}V${yb}Z" fill="${fill}"${stroke?` stroke="${stroke}" stroke-width="1"`:""}/>`;};
     for(let i=0;i<12;i++){
-      const x0=L+i*bw+(bw-gw)/2;
-      if(A[i]!=null)s+=bar(x0,one,A[i],i===10?"url(#hp)":s1,i===10?s1:null);
-      if(P)s+=bar(x0+(A[i]!=null||true?one+2:0),one,P[i],s2);
+      const x0=L+i*bw+(bw-gw)/2,a=A[i]||0,f=FC[i]||0;
+      if(a)s+=seg(x0,one,0,a,s1,null,!f);
+      if(f)s+=seg(x0,one,a,a+f,"url(#hp)",s1,true);
+      if(P)s+=seg(x0+one+2,one,0,P[i],s2,null,true);
       s+=`<text class="ax" x="${L+i*bw+bw/2}" y="${H-8}" text-anchor="middle">${MES[i]}</text>`;
     }
-    // etiqueta directa: mes máximo
     const im=A.indexOf(Math.max(...A.filter(x=>x!=null)));
     s+=`<text class="dl" x="${L+im*bw+(bw-gw)/2+one/2}" y="${y(A[im])-5}" text-anchor="middle">${nf(A[im])}k</text>`;
   }else{
-    const pathOf=(arr,col,dash)=>{const pts=arr.map((val,i)=>val==null?null:[L+i*bw+bw/2,y(val)]).filter(Boolean);return `<path d="${pts.map((p,i)=>(i?"L":"M")+p[0]+","+p[1]).join("")}" fill="none" stroke="${col}" stroke-width="2" stroke-linejoin="round"${dash?' stroke-dasharray="5 4"':""}/>`+pts.map(p=>`<circle cx="${p[0]}" cy="${p[1]}" r="3.5" fill="${col}" stroke="#fff" stroke-width="2"/>`).join("");};
+    const X=i=>L+i*bw+bw/2;
+    const pathOf=(arr,col)=>{const pts=arr.map((val,i)=>val==null?null:[X(i),y(val)]).filter(Boolean);return `<path d="${pts.map((p,i)=>(i?"L":"M")+p[0]+","+p[1]).join("")}" fill="none" stroke="${col}" stroke-width="2" stroke-linejoin="round"/>`+pts.map(p=>`<circle cx="${p[0]}" cy="${p[1]}" r="3.5" fill="${col}" stroke="#fff" stroke-width="2"/>`).join("");};
     if(P)s+=pathOf(P,s2);
+    s+=`<path d="M${X(10)},${y(A[10])}L${X(11)},${y(fin)}" fill="none" stroke="${s1}" stroke-width="2" stroke-dasharray="5 4"/><circle cx="${X(11)}" cy="${y(fin)}" r="3.5" fill="#fff" stroke="${s1}" stroke-width="2"/>`;
     s+=pathOf(A,s1);
-    for(let i=0;i<12;i++)s+=`<text class="ax" x="${L+i*bw+bw/2}" y="${H-8}" text-anchor="middle">${MES[i]}</text>`;
-    const li=A.filter(x=>x!=null).length-1;
-    s+=`<text class="dl" x="${L+li*bw+bw/2-6}" y="${y(A[li])-9}" text-anchor="end">${yl}: ${nf(A[li])}k</text>`;
-    if(P)s+=`<text class="dl" x="${L+11*bw+bw/2}" y="${y(P[11])-9}" text-anchor="end">${c}: ${nf(P[11])}k</text>`;
+    for(let i=0;i<12;i++)s+=`<text class="ax" x="${X(i)}" y="${H-8}" text-anchor="middle">${MES[i]}</text>`;
+    s+=`<text class="dl" x="${X(11)}" y="${y(fin)-9}" text-anchor="end">previsión ${yl}: ${nf(fin)}k</text>`;
+    if(P)s+=`<text class="dl" x="${X(11)}" y="${y(P[11])+17}" text-anchor="end">${c}: ${nf(P[11])}k</text>`;
   }
   s+=`<line id="xh" x1="0" x2="0" y1="${T}" y2="${T+ph}" stroke="${css("--mut2")}" stroke-width="1" opacity="0"/>`;
   for(let i=0;i<12;i++)s+=`<rect class="hit" data-i="${i}" x="${L+i*bw}" y="${T}" width="${bw}" height="${ph}" fill="transparent"/>`;
@@ -465,12 +537,14 @@ function renderFact(){
   const xh=ch.querySelector("#xh");
   ch.querySelectorAll(".hit").forEach(r=>{
     r.onmousemove=e=>{const i=+r.dataset.i;xh.setAttribute("x1",L+i*bw+bw/2);xh.setAttribute("x2",L+i*bw+bw/2);xh.setAttribute("opacity",v==="acu"?".6":"0");
-      const a=A[i],p=P?P[i]:null,pSame=(v==="mes"&&i===10&&c)?NOVHALF[c]:null;
+      const a=A[i],p=P?P[i]:null,f=FC[i]||0;
+      const tot=v==="mes"?(cur[i]||0)+f:(i===11?fin:a);
       showTip(e,`<b>${MESL[i]}${v==="acu"?" · acumulado":""}</b>`+
-        `<div class="r"><span><i style="background:${s1}"></i>${yl}${i===10?" (hasta el 15)":""}</span><span>${a==null?"—":k(a)}</span></div>`+
+        `<div class="r"><span><i style="background:${s1}"></i>${yl} facturado${i===10?" (hasta el 15)":""}</span><span>${a==null?"—":k(a)}</span></div>`+
+        (v==="mes"&&f?`<div class="r"><span>Comprometido</span><span>${k(f)}</span></div>`:"")+
+        (v==="acu"&&i===11?`<div class="r"><span>Previsión de cierre</span><span>${k(fin)}</span></div>`:"")+
         (P?`<div class="r"><span><i style="background:${s2}"></i>${c}</span><span>${k(p)}</span></div>`:"")+
-        (pSame!=null?`<div class="r"><span>${c} hasta el 15</span><span>${k(pSame)}</span></div>`:"")+
-        (P&&a!=null?`<div class="r"><span>Variación</span><span>${dlt(a,pSame??p)}</span></div>`:""));};
+        (P&&!(v==="acu"&&i===10)?`<div class="r"><span>Variación${f||i===11?" prevista":""}</span><span>${dlt(tot,p)}</span></div>`:""));};
     r.onmouseleave=()=>{hideTip();xh.setAttribute("opacity","0");};
     r.onclick=()=>toast("Abriría Facturación › Facturas de "+MESL[r.dataset.i]+" de "+yl);
   });
@@ -497,14 +571,22 @@ function status(r,v){
 }
 const STL={ok:["✓","Bien"],warn:["!","Vigilar"],bad:["✕","Mal"]};
 const fr=(r,v)=>r.u==="%"?nf(v,1)+" %":r.u==="días"?nf(v)+" días":nf(v,2);
+const FAM={Liquidez:"Liquidez",Solvencia:"Solvencia y endeudamiento",Endeudamiento:"Solvencia y endeudamiento",Rentabilidad:"Rentabilidad y márgenes","Márgenes":"Rentabilidad y márgenes","Gestión":"Gestión"};
+function bullet(r,v,p){
+  const lo=r.rng[0],hi=r.rng[1],open=hi>=99;
+  const mx=r.lowGood?Math.max(hi*1.6,v*1.2):open?Math.max(lo*2,v*1.25):Math.max(hi*1.3,v*1.15);
+  const a=r.lowGood?0:lo/mx*100,b=(open?mx:Math.min(hi,mx))/mx*100;
+  return `<span class="bul"><i class="band" style="left:${a}%;width:${b-a}%"></i>${p!=null?`<i class="pv" style="left:${Math.min(p/mx,1)*100}%"></i>`:""}<i class="mk" style="left:${Math.min(v/mx,1)*100}%"></i></span>`;
+}
 function renderRatios(){
   const c=state.cmp,ci=c?YEARS.indexOf(+c):-1;
-  if(state.nuevo){$("#ratios").innerHTML=`<div class="empty" style="grid-column:1/-1"><b>Ratios a 31/12/2026</b>Sin movimientos en 2027, los ratios se calculan con el balance de cierre de 2026 hasta que haya un mes contabilizado.</div>`;return;}
-  $("#ratios").innerHTML=RATIOS.map((r,i)=>{const v=r.h[7],st=status(r,v),p=ci>=0?r.h[ci]:null;
-    return `<button class="ratio" data-i="${i}" title="${esc(r.f)}. Referencia: ${esc(r.ref)}. Pulsa para ver las cifras"><span class="g">${esc(r.g)}</span><span class="nm">${esc(r.n)}</span>
-      <span class="row"><span class="v">${fr(r,v)}</span><span class="st ${st}">${STL[st][0]} ${STL[st][1]}</span></span>
-      <span class="prev">${p!=null?`${c}: ${fr(r,p)} · `:""}ref. ${esc(r.ref.split(" · ")[0])}</span>${spark(r.h,css("--blue"),200,26)}</button>`;}).join("");
-  $("#ratios").querySelectorAll(".ratio").forEach(b=>b.onclick=()=>ratioDlg(RATIOS[b.dataset.i]));
+  if(state.nuevo){$("#rat-n").innerHTML="";$("#rat-h").textContent="";$("#ratios").innerHTML=`<div class="empty" style="grid-column:1/-1"><b>Ratios a 31/12/2026</b>Sin movimientos en 2027, los ratios se calculan con el balance de cierre de 2026 hasta que haya un mes contabilizado.</div>`;return;}
+  const fams=[...new Set(RATIOS.map(r=>FAM[r.g]))],cnt={ok:0,warn:0,bad:0};
+  $("#ratios").innerHTML=fams.map(f=>`<div><div class="sub3">${esc(f)}</div>`+RATIOS.map((r,i)=>{if(FAM[r.g]!==f)return "";const v=r.h[7],st=status(r,v),p=ci>=0?r.h[ci]:null;cnt[st]++;
+    return `<button class="rrow" data-i="${i}" title="${esc(r.f)}. Referencia: ${esc(r.ref)}.${p!=null?" En "+c+": "+fr(r,p)+".":""} Pulsa para ver las cifras"><span class="nm">${esc(r.n)}</span><span class="v">${fr(r,v)}</span>${bullet(r,v,p)}<span class="st ${st}">${STL[st][0]} ${STL[st][1]}</span></button>`;}).join("")+`</div>`).join("");
+  $("#rat-n").innerHTML=`<span class="st ok">✓ ${cnt.ok} bien</span> `+(cnt.warn?`<span class="st warn">! ${cnt.warn} a vigilar</span> `:"")+(cnt.bad?`<span class="st bad">✕ ${cnt.bad} mal</span>`:"");
+  $("#rat-h").textContent="Franja verde: rango de referencia. Marca oscura: valor actual."+(c?" Raya gris: "+c+".":"")+" Pulsa un ratio para ver de qué cifras sale y su evolución desde 2019.";
+  $("#ratios").querySelectorAll(".rrow").forEach(b=>b.onclick=()=>ratioDlg(RATIOS[b.dataset.i]));
 }
 function ratioDlg(r){
   const v=r.h[7],st=status(r,v);
@@ -541,20 +623,36 @@ function lineChart(el,pts,opt){
   pts.forEach((p,i)=>{if(n<=12||i%2===0)s+=`<text class="ax" x="${x(i)}" y="${H-7}" text-anchor="middle">${esc(p)}</text>`;});
   series.forEach(se=>{const P=se.v.map((v,i)=>v==null?null:[x(i),y(v)]).filter(Boolean);
     if(se.area)s+=`<path d="M${P[0][0]},${T+ph}${P.map(p=>"L"+p[0]+","+p[1]).join("")}L${P[P.length-1][0]},${T+ph}Z" fill="${se.c}" opacity=".10"/>`;
-    s+=`<path d="${P.map((p,i)=>(i?"L":"M")+p[0]+","+p[1]).join("")}" fill="none" stroke="${se.c}" stroke-width="2" stroke-linejoin="round"/>`;
-    const l=P[P.length-1];s+=`<circle cx="${l[0]}" cy="${l[1]}" r="4" fill="${se.c}" stroke="#fff" stroke-width="2"/>`;
-    if(se.lab)s+=`<text class="dl" x="${l[0]-6}" y="${l[1]-9}" text-anchor="end">${esc(se.lab)}</text>`;});
+    s+=`<path d="${P.map((p,i)=>(i?"L":"M")+p[0]+","+p[1]).join("")}" fill="none" stroke="${se.c}" stroke-width="2" stroke-linejoin="round"${se.dash?' stroke-dasharray="5 4"':""}/>`;
+    const l=P[P.length-1];s+=se.dash?`<circle cx="${l[0]}" cy="${l[1]}" r="4" fill="#fff" stroke="${se.c}" stroke-width="2"/>`:`<circle cx="${l[0]}" cy="${l[1]}" r="4" fill="${se.c}" stroke="#fff" stroke-width="2"/>`;
+    if(se.lab)s+=`<text class="dl" x="${l[0]+(se.dash?4:-6)}" y="${l[1]+(se.dash?18:-9)}" text-anchor="end">${esc(se.lab)}</text>`;});
+  if(opt.mark!=null)s+=`<line x1="${x(opt.mark)}" x2="${x(opt.mark)}" y1="${T-4}" y2="${T+ph}" stroke="${css("--mut2")}" stroke-dasharray="2 3"/><text class="ax" x="${x(opt.mark)}" y="${T-7}" text-anchor="middle">hoy</text>`;
   s+=`<line class="xh" x1="0" x2="0" y1="${T}" y2="${T+ph}" stroke="${css("--mut2")}" opacity="0"/><g class="dots"></g>`;
   const hw=n>1?pw/(n-1):pw;pts.forEach((p,i)=>s+=`<rect class="hit" data-i="${i}" x="${x(i)-hw/2}" y="${T}" width="${hw}" height="${ph}" fill="transparent"/>`);
   el.innerHTML=s+"</svg>";
   const xh=el.querySelector(".xh"),dots=el.querySelector(".dots");
   el.querySelectorAll(".hit").forEach(r=>{r.onmousemove=e=>{const i=+r.dataset.i;xh.setAttribute("x1",x(i));xh.setAttribute("x2",x(i));xh.setAttribute("opacity",".6");
       dots.innerHTML=series.map(se=>se.v[i]==null?"":`<circle cx="${x(i)}" cy="${y(se.v[i])}" r="4.5" fill="${se.c}" stroke="#fff" stroke-width="2"/>`).join("");
-      showTip(e,`<b>${esc(opt.tt?opt.tt(i):pts[i])}</b>`+series.map(se=>`<div class="r"><span><i style="background:${se.c}"></i>${esc(se.n)}</span><span>${se.v[i]==null?"—":opt.fv(se.v[i])}</span></div>`).join(""));};
+      showTip(e,`<b>${esc(opt.tt?opt.tt(i):pts[i])}</b>`+series.filter(se=>!se.dash||se.v[i]!=null).map(se=>`<div class="r"><span><i style="background:${se.c}"></i>${esc(se.n)}</span><span>${se.v[i]==null?"—":opt.fv(se.v[i])}</span></div>`).join("")+(opt.extra?opt.extra(i):""));};
     r.onmouseleave=()=>{hideTip();xh.setAttribute("opacity","0");dots.innerHTML="";};});
 }
 function renderTeso(){
-  lineChart($("#teso"),TESO.map(t=>t.m),{label:"Tesorería, últimos 12 meses",series:[{n:"Bancos",v:TESO.map(t=>t.v),c:css("--s1"),area:true,lab:"248,3k"}],fy:v=>nf(v)+"k",fv:v=>k(v),min:0,max:300,tt:i=>TESO[i].m==="15 nov"?"15 de noviembre (hoy)":"Fin de "+TESO[i].m+(i===0?" de 2025":"")});
+  const real=[...TESO.map(t=>t.v),null,null],fc=[...Array(11).fill(null),248.3,262.0,231.5],pts=[...TESO.map(t=>t.m),"15 dic","15 ene"];
+  lineChart($("#teso"),pts,{label:"Tesorería, últimos 12 meses y previsión a 60 días",series:[{n:"Saldo real",v:real,c:css("--s1"),area:true},{n:"Previsión",v:fc,c:css("--s1"),dash:true,lab:"231,5k"}],fy:v=>nf(v)+"k",fv:v=>k(v),min:0,max:300,mark:11,
+    tt:i=>i===11?"15 de noviembre (hoy)":i>11?"Previsión al "+pts[i]:"Fin de "+pts[i]+(i===0?" de 2025":"")});
+  $("#teso-b").innerHTML=`<div class="sub3" style="margin-top:8px">Saldo por banco · 248.315 €</div>`+BANCOS.map(b=>`<div class="bank" title="Doble clic: abre el Mayor de ${b[1]}"><span>${esc(b[0])}</span><span class="hint">extracto hasta el ${b[3]}</span>${b[4]?`<span class="st warn">! ${b[4]}</span>`:""}<b>${eur(b[2])}</b></div>`).join("")+
+    `<div class="hint" style="margin-top:8px">Previsto a 60 días: cobros <span class="up">+118.900 €</span>, pagos <span class="dn">−103.700 €</span>, impuestos <span class="dn">−32.000 €</span>. Saldo el 15/01: <b style="color:var(--ink)">231.500 €</b>.</div>`;
+  $("#teso-b").querySelectorAll(".bank").forEach((el,i)=>el.ondblclick=()=>toast("Abriría el Mayor de "+BANCOS[i][1]));
+}
+function renderAgenda(){
+  $("#agenda").innerHTML=`<div class="tw"><table><tbody>${AGENDA.map(a=>`<tr title="Doble clic: abre ${esc(a[3])}"><td class="hint" style="width:1%">${a[0]}</td><td style="white-space:normal">${esc(a[1])}</td><td class="num"><span class="${a[2]>0?"up":"dn"}">${a[2]>0?"+":"−"}${eur(Math.abs(a[2]))}</span></td></tr>`).join("")}</tbody></table></div><div class="hint" style="margin-top:8px">Entradas <span class="up">+${eur(sum(AGENDA.filter(a=>a[2]>0).map(a=>a[2])))}</span> · salidas <span class="dn">−${eur(-sum(AGENDA.filter(a=>a[2]<0).map(a=>a[2])))}</span>. Lo que tienes que hacer tú está en Salud.</div>`;
+  $("#agenda").querySelectorAll("tbody tr").forEach((tr,i)=>tr.ondblclick=()=>toast("Abriría "+AGENDA[i][3]));
+}
+function renderRes(){
+  if(state.nuevo){$("#res").innerHTML=`<div class="empty"><b>Sin movimientos en 2027</b></div>`;return;}
+  const ing=FACT[2026].slice(0,11);
+  lineChart($("#res"),MES.slice(0,11),{label:"Ingresos y gastos por mes",series:[{n:"Ingresos",v:ing,c:css("--s1")},{n:"Gastos",v:GMES,c:css("--s2")}],fy:v=>nf(v)+"k",fv:v=>k(v),min:0,max:160,
+    tt:i=>MESL[i]+(i===10?" (hasta el 15)":""),extra:i=>`<div class="r"><span>Resultado</span><span><b>${k(ing[i]-GMES[i])}</b></span></div>`});
 }
 function renderGastos(){
   const c=state.cmp;
@@ -564,17 +662,29 @@ function renderGastos(){
   $("#gastos").querySelectorAll(".hb").forEach((el,i)=>el.ondblclick=()=>toast("Abriría el Mayor de "+GASTOS[i].n));
 }
 function renderOcup(){
-  const c=state.cmp==="2025"||state.cmp==="2024";
-  $("#ocup-leg").innerHTML=`<span><i style="background:var(--s1)"></i>2026</span>`+(c?`<span><i style="background:var(--s2)"></i>2025</span>`:"");
-  lineChart($("#ocup"),MES,{label:"Ocupación turística por mes",series:[...(c?[{n:"2025",v:OCUP[2025],c:css("--s2")}]:[]),{n:"2026",v:OCUP[2026],c:css("--s1"),}],fy:v=>nf(v)+" %",fv:v=>nf(v)+" %",min:0,max:100,tt:i=>MESL[i]+(i===10?" (reservas ya hechas)":"")});
+  const c=state.cmp;
+  $("#ocup-leg").innerHTML=`<span><i style="background:var(--s1)"></i>2026</span>`+(c?`<span><i style="background:var(--s2)"></i>${c}</span>`:"");
+  lineChart($("#ocup"),MES,{label:"Ocupación turística por mes",series:[...(c?[{n:c,v:OCUP[c],c:css("--s2")}]:[]),{n:"2026",v:OCUP[2026],c:css("--s1")}],fy:v=>nf(v)+" %",fv:v=>nf(v)+" %",min:0,max:100,tt:i=>MESL[i]+(i===10?" (reservas ya hechas)":"")});
 }
 /* ---------- salud ---------- */
 function daysTo(s){return Math.round((new Date(s+"T12:00:00")-HOY)/864e5);}
 function dueChip(it){if(!it.due)return "";const d=daysTo(it.due);const f=it.due.slice(8)+"/"+it.due.slice(5,7)+"/"+it.due.slice(0,4);
   const cls=d<0?"bad":d<=16?"warn":"info";return `<span class="st ${cls} due" title="Fecha límite: ${f}">${d<0?"vencida":d===0?"hoy":"en "+d+" días"}</span>`;}
+function perHtml(){
+  const G={ok:"✓",w:"!",b:"✕",cur:"…","":"·"},T={ok:"hecho",w:"incompleto",b:"con errores",cur:"en curso","":"todavía no toca"};
+  const cell=(st,tt)=>`<span class="c-${st||"n"}" title="${esc(tt)}">${G[st]}</span>`;
+  return `<div class="mx"><table><thead><tr><th></th>${MES.map((m,i)=>`<th title="${MESL[i]}">${m[0].toUpperCase()}</th>`).join("")}</tr></thead><tbody>`+
+    PER.map(r=>`<tr title="Doble clic: abre ${esc(r[1])}"><td>${esc(r[0])}</td>${r[2].map((st,i)=>`<td>${cell(st,r[0]+" · "+MESL[i]+": "+(r[3][i]||T[st]))}</td>`).join("")}</tr>`).join("")+
+    `<tr title="Doble clic: abre Contabilidad › Procesos contables › Liquidación de IVA"><td>IVA liquidado</td>${["ok","ok","ok","cur"].map((st,i)=>`<td colspan="3" class="q">${cell(st,"IVA del "+(i+1)+"T: "+(st==="ok"?"liquidado y 303 presentado":"trimestre activo, se liquida en enero")).replace(">"+G[st]+"<",">"+(i+1)+"T "+G[st]+"<")}</td>`).join("")}</tr></tbody></table></div>`;
+}
+function renderUrg(top){
+  const u=$("#urg");if(!top){u.hidden=true;return;}
+  u.hidden=false;u.innerHTML=`<span class="ic bad">✕</span><div class="tx"><b>Lo más urgente:</b> ${esc(top.t)}. ${esc(top.ds)}</div>${dueChip(top)}<button class="btn pri" title="Abre ${esc(top.go)}, ya filtrado">Abrir ${esc(top.go.split(" › ").pop().split(" (")[0])}</button>`;
+  u.querySelector("button").onclick=()=>openItem(top.id);
+}
 function renderSalud(){
   const box=$("#sbody"),sc=$("#score");
-  if(state.ok||state.nuevo){
+  if(state.ok||state.nuevo){renderUrg(null);
     sc.innerHTML=`<span class="big" style="color:var(--green)">✓</span><div><b>Todo al día</b><div class="hint">${state.nuevo?"Ejercicio 2027 recién creado":"No hay avisos ni tareas vencidas"}</div></div>`;
     const prox=state.nuevo?[{t:"Asiento de apertura de 2027",d:"Se genera al cerrar 2026 (proceso de cierre)."},{t:"Copiar las facturas programadas a 2027",d:"Las de enero se emiten el 1/1/2027."}]:[{t:"Contabilizar las amortizaciones de noviembre",d:"El 30/11/2026"}];
     box.innerHTML=`<div class="okbox"><b>Nada que corregir</b>La contabilidad cuadra, los bancos están conciliados y no hay facturas pendientes de registrar.</div><h3>Próximas tareas</h3>`+prox.map(p=>`<div class="it"><span class="ic info">i</span><span class="tt">${esc(p.t)}</span><span></span><span class="ds">${esc(p.d)}</span></div>`).join("");
@@ -583,11 +693,13 @@ function renderSalud(){
   const vis=SALUD.filter(x=>!state.snooze.has(x.id));
   const cnt=s=>vis.filter(x=>x.sev===s&&!x.done).length;
   const b=cnt("bad"),w=cnt("warn"),i=cnt("info");
-  sc.innerHTML=`<span class="big" style="color:${b?"var(--red)":w?"var(--amb)":"var(--green)"}">${b+w+i}</span><div><b>${b?"Hay cosas urgentes":"Hay cosas pendientes"}</b><div class="cnt"><span class="st bad">✕ ${b} graves</span><span class="st warn">! ${w} atención</span><span class="st info">i ${i} avisos</span></div></div>`;
+  const ord0={bad:0,warn:1,info:2,ok:3};
+  const top=vis.filter(x=>!x.done&&x.sev==="bad").sort((a,c)=>(a.due?0:1)-(c.due?0:1)||(a.due||"").localeCompare(c.due||""))[0];renderUrg(top);
+  sc.innerHTML=`<span class="big" style="color:${b?"var(--red)":w?"var(--amb)":"var(--green)"}" title="Graves más atención; los avisos informativos no cuentan">${b+w}</span><div><b>${b?"Hay cosas urgentes":"Hay cosas pendientes"}</b><div class="cnt"><span class="st bad">✕ ${b} graves</span><span class="st warn">! ${w} atención</span><span class="st info">i ${i} avisos</span></div></div>`;
   const ord={bad:0,warn:1,info:2,ok:3};
   const sortF=(a,c)=>ord[a.sev]-ord[c.sev]||(a.due||"9").localeCompare(c.due||"9");
-  const item=x=>`<div class="it${x.done?" done":""}${state.sel.has(x.id)?" sel":""}" data-id="${x.id}" title="Lo detecta: ${esc(x.src)}. Doble clic abre ${esc(x.go)}"><span class="ic ${x.sev}" aria-label="${SEV[x.sev][1]}">${SEV[x.sev][0]}</span><span class="tt">${esc(x.t)}</span>${dueChip(x)||"<span></span>"}<span class="ds">${esc(x.ds)}</span><span class="go">› ${esc(x.go)}</span></div>`;
-  let h="";
+  const item=x=>`<div class="it${x.done?" done":""}${state.sel.has(x.id)?" sel":""}" data-id="${x.id}" title="Lo detecta: ${esc(x.src)}. Doble clic abre ${esc(x.go)}"><span class="ic ${x.sev}" aria-label="${SEV[x.sev][1]}">${SEV[x.sev][0]}</span><span class="tt">${esc(x.t)}</span>${dueChip(x)||"<span></span>"}<span class="ds">${esc(x.ds)}</span><span class="go">› ${esc(x.go)}${x.tr?` <span class="${x.tr[1]?"up":"dn"}" title="Cambio respecto al lunes">${x.tr[0]}</span>`:""}</span></div>`;
+  let h=`<h3>Estado de los periodos</h3>`+perHtml();
   if(state.sf!=="avi"){const t=vis.filter(x=>x.k==="tar"&&!x.done).sort((a,c)=>(a.due||"9").localeCompare(c.due||"9")||ord[a.sev]-ord[c.sev]);
     h+=`<h3>Tareas con plazo <span class="hint" style="text-transform:none;letter-spacing:0;font-weight:400">${t.length}</span></h3>`+t.map(item).join("");}
   if(state.sf!=="tar"){const a=vis.filter(x=>x.k==="avi").sort(sortF);
@@ -595,7 +707,11 @@ function renderSalud(){
   if(state.sf!=="avi"){const d=vis.filter(x=>x.done);
     h+=`<h3>Hechas este trimestre <span class="hint" style="text-transform:none;letter-spacing:0;font-weight:400">${d.length}</span></h3>`+d.map(item).join("");}
   if(state.snooze.size)h+=`<h3>Pospuestos <button class="lnk" id="unsz" title="Vuelve a mostrar lo pospuesto">Mostrar (${state.snooze.size})</button></h3>`;
+  h+=`<details class="chk"><summary title="Lo que se ha revisado y está bien">Comprobaciones correctas (${CHK.length})</summary><ul>${CHK.map(t=>`<li>${esc(t)}</li>`).join("")}</ul></details>`;
+  h+=`<h3>Otras sociedades</h3>`+SOC.map(o=>`<div class="soc" title="Doble clic: cambia la sociedad de trabajo a ${esc(o[0])}"><b>${esc(o[0])}</b>${o[1].map(q=>`<span class="st ${q[0]}">${q[1]}</span>`).join("")}</div>`).join("");
   box.innerHTML=h;
+  box.querySelectorAll(".soc").forEach((el,i)=>el.ondblclick=()=>toast("Cambiaría la sociedad de trabajo a "+SOC[i][0]));
+  box.querySelectorAll(".mx tbody tr").forEach((tr,i)=>tr.ondblclick=()=>toast("Abriría "+(PER[i]?PER[i][1]:"Contabilidad › Procesos contables › Liquidación de IVA")));
   const u=$("#unsz");if(u)u.onclick=()=>{state.snooze.clear();renderSalud();toast("Vuelven a verse los avisos pospuestos");};
   box.querySelectorAll(".it").forEach(el=>{const id=+el.dataset.id;
     el.onclick=e=>{if(e.ctrlKey||e.metaKey){state.sel.has(id)?state.sel.delete(id):state.sel.add(id);}else if(e.shiftKey&&state.sel.size){const ids=[...box.querySelectorAll(".it")].map(x=>+x.dataset.id);const a=ids.indexOf([...state.sel].pop()),c=ids.indexOf(id);ids.slice(Math.min(a,c),Math.max(a,c)+1).forEach(z=>state.sel.add(z));}else{state.sel=new Set([id]);}renderSalud();};
@@ -631,7 +747,7 @@ function openDlg(html,onGo){const s=$("#scrim");s.innerHTML=`<div class="dlg" ro
   s.querySelectorAll('[data-x="close"]').forEach(b=>b.onclick=closeDlg);const g=s.querySelector('[data-x="go"]');if(g)g.onclick=()=>{closeDlg();onGo&&onGo();};
   s.onclick=e=>{if(e.target===s)closeDlg();};}
 function closeDlg(){$("#scrim").hidden=true;}
-const BLK=[["kpis","Indicadores principales"],["fact","Facturación"],["ratios","Ratios"],["cobros","Pendiente de cobro"],["teso","Tesorería"],["gastos","Gastos por naturaleza"],["ocup","Ocupación turística"],["salud","Salud de la contabilidad"]];
+const BLK=[["kpis","Indicadores principales"],["fact","Facturación"],["ratios","Ratios"],["teso","Tesorería"],["agenda","Agenda"],["res","Ingresos y gastos"],["cobros","Pendiente de cobro"],["gastos","Gastos por naturaleza"],["ocup","Ocupación turística"],["salud","Salud de la contabilidad"]];
 $("#b-pers").onclick=()=>{openDlg(`<header><h3>Personalizar Inicio</h3><p>Qué bloques se ven. Se guarda por operador.</p></header><div class="body"><div class="colist">${BLK.map(b=>`<label><input type="checkbox" value="${b[0]}" ${state.hidden.has(b[0])?"":"checked"}> ${b[1]}</label>`).join("")}</div><div class="hint">El orden de los bloques es fijo en esta maqueta; se puede debatir si debe poder cambiarse.</div></div><footer><button class="btn" data-x="close">Cancelar</button><button class="btn pri" data-x="go">Aplicar</button></footer>`,()=>{});
   const s=$("#scrim");s.querySelector('[data-x="go"]').onclick=()=>{state.hidden=new Set([...s.querySelectorAll("input:not(:checked)")].map(i=>i.value));closeDlg();applyHidden();};};
 function applyHidden(){document.querySelectorAll("[data-blk]").forEach(el=>{if(el.dataset.blk!=="notas")el.hidden=state.hidden.has(el.dataset.blk);});
@@ -645,8 +761,8 @@ $("#d-nuevo").onclick=()=>{state.nuevo=!state.nuevo;$("#d-nuevo").setAttribute("
   $("#ctx-ej").textContent="Ribera Gestión · Ejercicio "+(state.nuevo?"2027":"2026");$("#ctx-t").textContent="Trimestre activo "+(state.nuevo?"1T":"4T");
   $("#sub").textContent=state.nuevo?"Ribera Gestión · ejercicio 2027 · sin movimientos todavía":"Ribera Gestión · ejercicio 2026 · datos contabilizados hasta hoy, 15/11/2026";renderAll();};
 document.querySelectorAll(".tab")[1].onclick=()=>toast("Esta maqueta solo enseña Inicio","El Diario tiene su propia maqueta en sources/maquetas/Diario.");
-function renderAll(){renderKpis();renderFact();renderRatios();renderCobros();renderTeso();renderGastos();renderOcup();renderSalud();}
-let rz;addEventListener("resize",()=>{clearTimeout(rz);rz=setTimeout(()=>{renderFact();renderTeso();renderOcup();},120);});
+function renderAll(){renderKpis();renderFact();renderRatios();renderCobros();renderTeso();renderAgenda();renderRes();renderGastos();renderOcup();renderSalud();}
+let rz;addEventListener("resize",()=>{clearTimeout(rz);rz=setTimeout(()=>{renderFact();renderTeso();renderRes();renderOcup();},120);});
 renderAll();
 </script>
 </body></html>
