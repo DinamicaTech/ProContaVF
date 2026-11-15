@@ -271,4 +271,24 @@ public sealed class FuenteSaludAccess(IBaseDatos bd) : IFuenteSalud
                 f => (Desde: f.FechaNula("PeriodoDesde"), Fecha: f.FechaNula("FechaNomina"), Estado: (f.Texto("Estado") ?? "").Trim().ToUpperInvariant(), Tipo: f.Texto("TipoPaga")?.Trim())))
             .Where(x => (x.Desde ?? x.Fecha) is not null)
             .Select(x => { var m = (x.Desde ?? x.Fecha)!.Value; return new NominaMes(m.Year, m.Month, x.Estado, x.Tipo); }).ToList(), c);
+
+    public Task<IReadOnlyList<AsientoAmortizacion>> AmortizacionesAsync(IReadOnlyList<EjercicioSociedad> ejercicios, CancellationToken c = default) =>
+        ejercicios.Count == 0 ? Task.FromResult<IReadOnlyList<AsientoAmortizacion>>([]) :
+        bd.EjecutarAsync<IReadOnlyList<AsientoAmortizacion>>(async s =>
+        {
+            var anio = ejercicios.ToDictionary(e => e.IdSociedadEjercicio, e => e.Ejercicio);
+            // Asiento de amortización: contabilizado, ni apertura (1) ni regularización (2) ni cierre (3), con una 68 al debe y una 28 al haber.
+            return await s.ConsultarAsync(
+                "SELECT a.IdAsiento, a.IdSociedadEjercicio, a.FechaContable, SUM(p.ImporteDebe) AS I FROM Asientos AS a INNER JOIN Apuntes AS p ON a.IdAsiento = p.IdAsiento " +
+                $"WHERE a.IdSociedadEjercicio IN ({Ids(ejercicios)}) AND a.EstadoAsiento = 1 AND a.TipoAsiento NOT IN (1, 2, 3) AND LEFT(p.CuentaContable, 2) = '68' AND p.ImporteDebe > 0 " +
+                "AND EXISTS (SELECT q.IdApunte FROM Apuntes AS q WHERE q.IdAsiento = a.IdAsiento AND LEFT(q.CuentaContable, 2) = '28' AND q.ImporteHaber > 0) " +
+                "GROUP BY a.IdAsiento, a.IdSociedadEjercicio, a.FechaContable",
+                f => new AsientoAmortizacion(anio.GetValueOrDefault(f.Entero("IdSociedadEjercicio")), f.Fecha("FechaContable").Date, f.DecimalNulo("I") ?? 0m));
+        }, c);
+
+    public Task<int> ActivosAmortizablesAsync(string idSociedad, CancellationToken c = default) =>
+        bd.EjecutarAsync(async s => Convert.ToInt32(await s.EscalarAsync(
+            // Amortizables, propios (no ajenos) y sin dar de baja.
+            "SELECT COUNT(*) FROM Activos AS x WHERE x.IdSociedad = ? AND x.EsAmortizable = True AND x.EsAjeno = False AND x.FechaBaja IS NULL", idSociedad) ?? 0,
+            CultureInfo.InvariantCulture), c);
 }

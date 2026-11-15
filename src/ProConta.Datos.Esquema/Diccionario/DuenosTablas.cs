@@ -62,6 +62,7 @@ public static class DuenosTablas
         Asignar("creative-lab", "creative-lab/inversiones-financieras", "ActivosInversiones", "CotizacionesInstrumentoFinanciero",
             "ImportacionesActivos", "InstrumentosFinancieros", "OperacionesInversion");
         Asignar("creative-lab", "creative-lab/asistente-ia", "ConversacionesIA", "MensajesConversacionIA");
+        Asignar("inicio", "pantalla-de-inicio", "HistoricoSalud");
     }
 
     private static void Asignar(string area, string nodo, params string[] tablas)

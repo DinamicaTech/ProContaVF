@@ -78,7 +78,7 @@ public sealed class RevisionBancosSinAsiento : IRevisionSalud
             elementos.Add(new ElementoSalud("bancos-sin-asiento", TipoSalud.Aviso, GravedadSalud.Atencion, $"{N(total, "movimiento bancario", "movimientos bancarios")} sin asiento",
                 $"{porBanco}." + (antigua is DateTime a ? $" El más antiguo es del {Fecha(a)}." : ""), null, ReglasBancos.Lineas, "norma43/conciliacion",
                 "Hay movimientos de extractos N43 importados (de lotes no revertidos) que no tienen asiento contable. En ProContaVF un movimiento está conciliado cuando tiene su asiento.",
-                "En Líneas N43, filtra los pendientes, asigna la cuenta a cada movimiento y contabilízalo. El aviso desaparece cuando todos tienen asiento."));
+                "En Líneas N43, filtra los pendientes, asigna la cuenta a cada movimiento y contabilízalo. El aviso desaparece cuando todos tienen asiento.") { Cantidad = total });
         }
         return new HallazgosSalud(elementos, [], [], meses.Count == 0 ? [] : [Fila(meses, ejercicio, hoy)]);
     }
@@ -154,7 +154,7 @@ public sealed class RevisionComprasPendientes : IRevisionSalud
             $"Total {Imp(p.Total)}." + (p.MasAntigua is DateTime f ? $" La más antigua es del {Fecha(f)}." : ""),
             null, new DestinoSalud(PantallaSalud.FacturasCompra, "Compras › Facturas recibidas"), "compras",
             "Hay facturas de compra del ejercicio registradas y sin contabilizar (sin marcar como duplicadas).",
-            "En Compras › Facturas recibidas, filtra las pendientes, revísalas y contabilízalas (F12). El aviso desaparece cuando no queda ninguna."));
+            "En Compras › Facturas recibidas, filtra las pendientes, revísalas y contabilízalas (F12). El aviso desaparece cuando no queda ninguna.") { Cantidad = p.Numero, Importe = p.Total });
     }
 }
 
@@ -179,7 +179,7 @@ public sealed class RevisionBorradoresVenta : IRevisionSalud
             $"{N(viejos.Count, "factura de venta en borrador", "facturas de venta en borrador")} desde hace más de {Dias} días",
             $"{(viejos.Count == 1 ? "Borrador sin número" : "Borradores sin número")} {lista}.", null, new DestinoSalud(PantallaSalud.FacturasVenta, "Ventas › Facturas emitidas"),
             "facturacion/factura-venta", $"Hay facturas de venta del ejercicio en borrador creadas hace más de {Dias} días.",
-            "En Ventas › Facturas emitidas, emite los borradores que procedan y borra los que no. El aviso desaparece cuando no queda ninguno de más de 7 días."));
+            "En Ventas › Facturas emitidas, emite los borradores que procedan y borra los que no. El aviso desaparece cuando no queda ninguno de más de 7 días.") { Cantidad = viejos.Count });
     }
 }
 
@@ -203,7 +203,7 @@ public sealed class RevisionClientesAcreedores : IRevisionSalud
             $"Subcuentas 430 a 436 con saldo al haber: cobros duplicados, anticipos o facturas sin registrar (total {Imp(total)}).",
             null, DestinoSalud.Mayor(cuentas, $"{N(acreedores.Count, "cliente", "clientes")} con saldo acreedor"), "contabilidad/mayor",
             "Alguna subcuenta de clientes (430 a 436) tiene saldo acreedor a la fecha de corte, con los asientos contabilizados.",
-            "Abre el Mayor de esos clientes y registra la factura que falta, devuelve el cobro duplicado o reclasifica el anticipo (438). El aviso desaparece cuando ninguno tiene saldo acreedor."));
+            "Abre el Mayor de esos clientes y registra la factura que falta, devuelve el cobro duplicado o reclasifica el anticipo (438). El aviso desaparece cuando ninguno tiene saldo acreedor.") { Cantidad = acreedores.Count, Importe = total });
     }
 }
 
@@ -233,6 +233,6 @@ public sealed class RevisionPartidasPendientes : IRevisionSalud
             $"{detalle}. Mientras no se apliquen, el pasivo corriente puede salir negativo y los ratios de liquidez, «sin datos».",
             null, DestinoSalud.Mayor(conSaldo.Select(s => s.Key).ToList(), "partidas pendientes de aplicación con saldo"), "contabilidad/mayor",
             "Alguna subcuenta 555 (partidas pendientes de aplicación) tiene saldo a la fecha de corte. No cuentan las 555 que Norma 43 usa como banco.",
-            "Abre el Mayor de esas subcuentas y traspasa cada partida a su cuenta definitiva. El aviso desaparece cuando quedan a cero."));
+            "Abre el Mayor de esas subcuentas y traspasa cada partida a su cuenta definitiva. El aviso desaparece cuando quedan a cero.") { Cantidad = conSaldo.Count, Importe = conSaldo.Sum(s => s.Value) });
     }
 }

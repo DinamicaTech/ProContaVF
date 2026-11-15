@@ -35,7 +35,8 @@ public sealed class RevisionVentasAntesCambioIva(IReadOnlyList<CambioTipoIva>? c
             d.AddDays(-1), new DestinoSalud(PantallaSalud.VentasPorFacturar, "Ventas › Ventas por facturar"), "facturacion/reservas",
             $"Hay ventas por facturar sin anular ni facturadas fuera, sin factura o con la factura en borrador, cuya fecha de entrada es anterior al {Fecha(d)}, " +
             $"día en que cambia el tipo de IVA de {cambio.Que} ({cambio.Origen}). Se ve desde 90 días antes del cambio.",
-            "Factura esas ventas en Ventas por facturar (o anula las que no procedan) y valida las facturas que estén en borrador. La tarea desaparece sola cuando no queda ninguna.");
+            "Factura esas ventas en Ventas por facturar (o anula las que no procedan) y valida las facturas que estén en borrador. La tarea desaparece sola cuando no queda ninguna.")
+        { Cantidad = v.Total, Importe = v.Importe };
     }
 }
 

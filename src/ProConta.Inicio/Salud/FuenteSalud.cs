@@ -78,7 +78,13 @@ public sealed record CuentaConProblema(string Cuenta, int Apuntes, bool Existe);
 /// <summary>Importación de nóminas del ejercicio (sin las reemplazadas ni deshechas): mes, estado y tipo de paga.</summary>
 public sealed record NominaMes(int Anio, int Mes, string Estado, string? TipoPaga);
 
-/// <summary>Lecturas de la salud de la contabilidad. Solo lee: ni escribe en la BD ni cambia el esquema.</summary>
+/// <summary>Asiento de amortización contabilizado: carga una 68 y abona una 28 (ni apertura, ni regularización, ni cierre).</summary>
+public sealed record AsientoAmortizacion(int Ejercicio, DateTime Fecha, decimal Importe);
+
+/// <summary>
+/// Lecturas de la salud de la contabilidad. Solo lee: ni escribe en la BD ni cambia el esquema (el histórico de la tendencia va
+/// aparte, en <see cref="IHistoricoSalud"/>). Las lecturas de la fase 4 tienen una implementación vacía por defecto.
+/// </summary>
 public interface IFuenteSalud
 {
     Task<IReadOnlyList<EjercicioSociedad>> EjerciciosAsync(string idSociedad, CancellationToken c = default);
@@ -97,4 +103,11 @@ public interface IFuenteSalud
     Task<IReadOnlyList<TerceroSinNif>> TercerosSinNifAsync(string idSociedad, EjercicioSociedad ejercicio, CancellationToken c = default);
     Task<IReadOnlyList<CuentaConProblema>> CuentasConProblemaAsync(EjercicioSociedad ejercicio, CancellationToken c = default);
     Task<IReadOnlyList<NominaMes>> NominasAsync(IReadOnlyList<EjercicioSociedad> ejercicios, CancellationToken c = default);
+
+    /// <summary>Asientos de amortización (68 contra 28) de los ejercicios pedidos.</summary>
+    Task<IReadOnlyList<AsientoAmortizacion>> AmortizacionesAsync(IReadOnlyList<EjercicioSociedad> ejercicios, CancellationToken c = default) =>
+        Task.FromResult<IReadOnlyList<AsientoAmortizacion>>([]);
+
+    /// <summary>Activos de la sociedad amortizables, propios (no ajenos) y sin dar de baja.</summary>
+    Task<int> ActivosAmortizablesAsync(string idSociedad, CancellationToken c = default) => Task.FromResult(0);
 }

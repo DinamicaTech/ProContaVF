@@ -32,11 +32,17 @@ public sealed class ElementoSaludVM
     public bool HayPlazo => Plazo is not null;
     public string NombreSeccion => Seccion switch { SeccionSalud.Tareas => "Tareas con plazo", SeccionSalud.Avisos => "Avisos", _ => "Hechas este trimestre" };
     public ElementoSalud? Elemento { get; init; }
+    /// <summary>Variación desde el lunes («+3 desde el lunes»); null sin dato o sin cambio.</summary>
+    public string? Tendencia { get; init; }
+    /// <summary>Sube (más cosas pendientes: malo) o Baja (bueno).</summary>
+    public string TonoTendencia { get; init; } = "";
+    public bool HayTendencia => Tendencia is not null;
+    public string AyudaTendencia => Tendencia is null ? "" : $"Variación del número de {(TonoTendencia == "Sube" ? "pendientes (sube: van a más)" : "pendientes (baja: van a menos)")} desde la revisión del lunes de esta semana.";
     public string Nodo { get; init; } = "";
     public DestinoSalud? DestinoModelo { get; init; }
 
     /// <summary>Texto que se copia con «Copiar el texto».</summary>
-    public string TextoCopiar => $"{TextoGravedad}: {Titulo}{(Plazo is null ? "" : $" ({Plazo}{(AyudaPlazo is null ? "" : $", {AyudaPlazo.ToLowerInvariant()}")})")}. {Explicacion} Se resuelve en: {Destino}.";
+    public string TextoCopiar => $"{TextoGravedad}: {Titulo}{(Plazo is null ? "" : $" ({Plazo}{(AyudaPlazo is null ? "" : $", {AyudaPlazo.ToLowerInvariant()}")})")}. {Explicacion}{(Tendencia is null ? "" : $" ({Tendencia}.)")} Se resuelve en: {Destino}.";
 }
 
 /// <summary>Celda de «Estado de los periodos».</summary>
@@ -205,7 +211,8 @@ public sealed class SaludVM : ModeloVista
                 _parciales = informe.Revisiones.ToList();
                 Cargando = false;
                 var hora = informe.Hora;
-                TextoPie = $"Revisada {(hora.Date == DateTime.Today ? "hoy" : $"el {hora:dd/MM/yyyy}")} a las {hora:HH:mm} · {informe.Revisiones.Count} comprobaciones en {informe.Duracion.TotalSeconds.ToString("0.0", Es)} s";
+                TextoPie = $"Revisada {(hora.Date == DateTime.Today ? "hoy" : $"el {hora:dd/MM/yyyy}")} a las {hora:HH:mm} · {informe.Revisiones.Count} comprobaciones en {informe.Duracion.TotalSeconds.ToString("0.0", Es)} s" +
+                            (_servicio.ErrorHistorico is { } eh ? $" · sin tendencia «desde el lunes»: no he podido guardar el histórico ({eh}); pulsa «Actualizar» para reintentarlo" : "");
                 Construir();
             }
             Avisar(nameof(Informe));
@@ -225,6 +232,7 @@ public sealed class SaludVM : ModeloVista
         var elementos = resultados.SelectMany(r => r.Hallazgos.Elementos).ToList();
         (_graves, _atencion, _avisos) = OrdenSalud.Recuento(elementos);
         var hoy = _servicio.Hoy;
+        _tendencias = Cargando ? new Dictionary<string, int>() : _informe?.Tendencias ?? new Dictionary<string, int>();
         var tareas = OrdenSalud.Tareas(elementos);
         var avisos = OrdenSalud.Avisos(elementos);
         var hechas = resultados.SelectMany(r => r.Hallazgos.Hechas).ToList();
@@ -254,6 +262,8 @@ public sealed class SaludVM : ModeloVista
             nameof(TextoTareas), nameof(TextoAvisos), nameof(TituloCorrectas), nameof(HayCorrectas), nameof(HayPeriodos), nameof(HayContenido), nameof(TextoPie));
     }
 
+    private IReadOnlyDictionary<string, int> _tendencias = new Dictionary<string, int>();
+
     private bool Abrible(DestinoSalud d) => Accion(d) is not null;
 
     private Action? Accion(DestinoSalud d) => d.Pantalla switch
@@ -268,6 +278,7 @@ public sealed class SaludVM : ModeloVista
         PantallaSalud.Diario => _acciones.AbrirDiario,
         PantallaSalud.Terceros => _acciones.AbrirTerceros,
         PantallaSalud.Nominas => _acciones.AbrirNominas,
+        PantallaSalud.Programadas => _acciones.AbrirProgramadas,
         _ => null,
     };
 
@@ -275,6 +286,7 @@ public sealed class SaludVM : ModeloVista
     {
         var dias = e.DiasHastaPlazo(hoy);
         var puede = Abrible(e.Destino);
+        int? variacion = _tendencias.TryGetValue(TendenciaSalud.Clave(e.Clave), out var v) ? v : null;
         var (tono, icono, texto) = e.Gravedad switch
         {
             GravedadSalud.Grave => ("Grave", "✕", "Grave"),
@@ -288,6 +300,7 @@ public sealed class SaludVM : ModeloVista
             AyudaPlazo = e.Plazo is DateTime p ? $"Fecha límite: {p:dd/MM/yyyy}" : null,
             TonoPlazo = dias is int dd ? dd < 0 ? "Vencida" : dd <= 16 ? "Cerca" : "Lejos" : "Lejos",
             Destino = e.Destino.Nombre, PuedeAbrir = puede, Elemento = e, Nodo = e.Nodo, DestinoModelo = e.Destino,
+            Tendencia = TendenciaSalud.Texto(variacion), TonoTendencia = variacion > 0 ? "Sube" : variacion < 0 ? "Baja" : "",
             Ayuda = $"{texto}. Lo detecta {e.Nodo}. " + (puede
                 ? $"Doble clic o Intro: abre {e.Destino.Nombre}. Clic derecho: «¿Por qué aparece?» y copiar el texto."
                 : $"La pantalla donde se resuelve ({e.Destino.Nombre}) aún no existe en ProContaVF: no se abre nada. Clic derecho: «¿Por qué aparece?» dice cómo resolverlo."),
