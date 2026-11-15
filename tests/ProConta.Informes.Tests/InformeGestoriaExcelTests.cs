@@ -62,7 +62,7 @@ public sealed class InformeGestoriaExcelTests : IDisposable
         new(new DateTime(2026, 3, 9), 4, 0, 3, "5550002", 50m, 0m, "Pendiente", null),
     ];
 
-    private static readonly Dictionary<int, CentroBalance> Centros = new() { [1] = new("INMUEBLES", "3/300", "Local sintético"), [2] = new("EMPRESA", "1/101", "Gastos generales") };
+    private static readonly Dictionary<int, CentroBalance> Centros = new() { [1] = new("INMUEBLES", "3/300", "Local sintético", "Alquiler Locales"), [2] = new("EMPRESA", "1/101", "Gastos generales", "General") };
 
     private static InformeGestoria Informe(decimal? provisional = 0.15m)
     {
@@ -114,11 +114,24 @@ public sealed class InformeGestoriaExcelTests : IDisposable
         Assert.Contains("30/06/2026", textos);
         Assert.Contains(textos, t => t.StartsWith("2.º", StringComparison.Ordinal));
         // El índice enlaza con cada hoja.
-        Assert.Equal(11, resumen.CellsUsed().Count(c => c.HasHyperlink));
+        Assert.Equal(13, resumen.CellsUsed().Count(c => c.HasHyperlink));
         // Las cifras principales son fórmulas sobre las tablas.
         Assert.StartsWith("SUMIFS(IVA_Cuota,IVA_Trim,1,IVA_Sentido,\"Repercutido\",IVA_Tipo,0.21", libro.Worksheet("IVA 303").Cell(9, 4).FormulaA1);
         Assert.Equal("ROUNDUP(ROUND(C9*100,6),0)/100", libro.Worksheet("Prorrata").Cell(10, 3).FormulaA1);
         Assert.All(libro.Worksheet("Controles").Range("G6:G10").Cells(), c => Assert.True(c.HasFormula));
+        // PyG por actividad: una columna por actividad con importes, y la tabla de datos con un apunte por fila.
+        var pyg = libro.Worksheet("PyG");
+        Assert.Equal(["Alquiler Locales", "General", "Total"], pyg.Row(5).CellsUsed().Skip(1).Select(c => c.GetString()));
+        Assert.Equal(2, libro.Worksheet("Datos PyG").Table("tPyG").DataRange.RowCount());
+        Assert.Equal(ExportadorInformeGestoriaExcel.ColumnasSituacion, libro.Worksheet("Datos Situación").Table("tSit").Fields.Select(f => f.Name));
+        // Tablas dinámicas preconfiguradas como las del libro anterior.
+        var tdPyg = libro.Worksheet("TDPyG").PivotTables.Single();
+        Assert.Equal(["Apartado", "Título", "Cuenta", "Subcuenta"], tdPyg.RowLabels.Select(f => f.SourceName));
+        Assert.Equal(["Actividad"], tdPyg.ColumnLabels.Select(f => f.SourceName));
+        var tdSit = libro.Worksheet("TDSituación").PivotTables.Single();
+        Assert.Equal(["Lado", "Apartado", "Título", "Cuenta", "Subcuenta"], tdSit.RowLabels.Select(f => f.SourceName));
+        Assert.Equal(["Mes"], tdSit.ColumnLabels.Select(f => f.SourceName));
+        Assert.Equal(["Actividad", "Departamento"], tdSit.ReportFilters.Select(f => f.SourceName));
     }
 
     [Fact]

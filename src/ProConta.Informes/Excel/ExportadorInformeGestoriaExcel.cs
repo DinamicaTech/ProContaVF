@@ -22,12 +22,12 @@ public static class ExportadorInformeGestoriaExcel
     public const string FormatoEuros = "#,##0.00 €;[Red]-#,##0.00 €";
 
     public const string HojaResumen = "Resumen", HojaIva = "IVA 303", HojaProrrata = "Prorrata", HojaControles = "Controles", HojaPyG = "PyG",
-        HojaSituacion = "Situación", HojaRatios = "Ratios", HojaEmitidas = "Emitidas", HojaRecibidas = "Recibidas", HojaDatosIva = "Datos IVA",
+        HojaSituacion = "Situación", HojaTDPyG = "TDPyG", HojaTDSituacion = "TDSituación", HojaRatios = "Ratios", HojaEmitidas = "Emitidas", HojaRecibidas = "Recibidas", HojaDatosIva = "Datos IVA",
         HojaDatosPyG = "Datos PyG", HojaDatosSituacion = "Datos Situación";
 
     /// <summary>Hojas del libro, en orden.</summary>
     public static readonly IReadOnlyList<string> Hojas =
-        [HojaResumen, HojaIva, HojaProrrata, HojaControles, HojaPyG, HojaSituacion, HojaRatios, HojaEmitidas, HojaRecibidas, HojaDatosIva, HojaDatosPyG, HojaDatosSituacion];
+        [HojaResumen, HojaIva, HojaProrrata, HojaControles, HojaPyG, HojaSituacion, HojaTDPyG, HojaTDSituacion, HojaRatios, HojaEmitidas, HojaRecibidas, HojaDatosIva, HojaDatosPyG, HojaDatosSituacion];
 
     /// <summary>Columnas de la tabla «tIVA» de la hoja «Datos IVA».</summary>
     public static readonly IReadOnlyList<string> ColumnasIva =
@@ -68,6 +68,7 @@ public static class ExportadorInformeGestoriaExcel
         Controles(libro, inf, mapa);
         PyG(libro, inf, mapa);
         Situacion(libro, inf);
+        TablasDinamicas(libro, inf);
         Ratios(libro, inf);
         Resumen(libro, inf, mapa);
         foreach (var ws in libro.Worksheets) ws.PageSetup.PageOrientation = XLPageOrientation.Landscape;
@@ -180,57 +181,108 @@ public static class ExportadorInformeGestoriaExcel
 
     private static string Centro(string? c) => string.IsNullOrEmpty(c) ? N.SinCentro : c;
 
+    /// <summary>Columnas de la tabla «tPyG» (un apunte por fila, como los libros de balances).</summary>
+    public static readonly IReadOnlyList<string> ColumnasPyG =
+        ["Fecha", "Mes", "Apartado", "Título", "Subtítulo", "Cuenta", "Subcuenta", "Importe", "Asiento", "Orden", "Concepto", "Actividad", "Centro", "Departamento"];
+
+    /// <summary>Columnas de la tabla «tSit»: las de «tPyG» con el lado del balance (su bloque) delante.</summary>
+    public static readonly IReadOnlyList<string> ColumnasSituacion = ["Lado", .. ColumnasPyG];
+
+    private static string Actividad(string? a) => string.IsNullOrEmpty(a) ? N.SinActividad : a;
+
+    /// <summary>Un apunte por fila (los de importe 0 no), desde la columna <paramref name="desde"/> (2 si delante va el lado); devuelve la última fila.</summary>
+    private static int Apuntes(IXLWorksheet ws, ResultadoBalance balance, int desde)
+    {
+        var f = 1;
+        foreach (var x in balance.Filas)
+        {
+            if (x.Importe == 0m) continue;
+            f++;
+            var c = desde;
+            if (desde == 2) ws.Cell(f, 1).Value = x.Bloque;
+            ws.Cell(f, c++).Value = x.Fecha;
+            ws.Cell(f, c++).Value = x.Fecha.Month;
+            ws.Cell(f, c++).Value = x.Apartado;
+            ws.Cell(f, c++).Value = x.Titulo;
+            ws.Cell(f, c++).Value = x.Subtitulo ?? "";
+            ws.Cell(f, c++).Value = x.Cuenta;
+            ws.Cell(f, c++).Value = x.Subcuenta;
+            ws.Cell(f, c++).Value = x.Importe;
+            ws.Cell(f, c++).Value = x.IdAsiento;
+            ws.Cell(f, c++).Value = x.Orden;
+            ws.Cell(f, c++).Value = x.Concepto;
+            ws.Cell(f, c++).Value = Actividad(x.Actividad);
+            ws.Cell(f, c++).Value = Centro(x.CentroCoste);
+            ws.Cell(f, c).Value = x.NombreDepartamento ?? "";
+        }
+        ws.Column(desde).Style.NumberFormat.Format = "dd/mm/yyyy";
+        ws.Column(desde + 7).Style.NumberFormat.Format = FormatoImporte;
+        return f;
+    }
+
     private static void DatosPyG(XLWorkbook libro, ResultadoBalance pyg)
     {
         var ws = libro.Worksheet(HojaDatosPyG);
-        string[] cols = ["Apartado", "Título", "Cuenta", "Subcuenta", "Centro", "Importe"];
-        var f = 1;
-        foreach (var g in pyg.Filas.GroupBy(x => (x.OrdenApartado, x.Apartado, x.OrdenTitulo, x.Titulo, x.Cuenta, x.Subcuenta, Centro: Centro(x.CentroCoste)))
-                     .OrderBy(g => g.Key.OrdenApartado).ThenBy(g => g.Key.OrdenTitulo).ThenBy(g => g.Key.Subcuenta, StringComparer.Ordinal).ThenBy(g => g.Key.Centro, StringComparer.CurrentCulture))
-        {
-            var importe = g.Sum(x => x.Importe);
-            if (importe == 0m) continue;
-            f++;
-            ws.Cell(f, 1).Value = g.Key.Apartado;
-            ws.Cell(f, 2).Value = g.Key.Titulo;
-            ws.Cell(f, 3).Value = g.Key.Cuenta;
-            ws.Cell(f, 4).Value = g.Key.Subcuenta;
-            ws.Cell(f, 5).Value = g.Key.Centro;
-            ws.Cell(f, 6).Value = importe;
-        }
-        Tabla(ws, "tPyG", cols, f);
-        ws.Column(6).Style.NumberFormat.Format = FormatoImporte;
+        var f = Apuntes(ws, pyg, 1);
+        Tabla(ws, "tPyG", ColumnasPyG, f);
         var ultima = Math.Max(2, f);
-        foreach (var (nombre, col) in new[] { (N.PygApartado, 1), (N.PygTitulo, 2), (N.PygCuenta, 3), (N.PygCentro, 5), (N.PygImporte, 6) })
+        foreach (var (nombre, col) in new[] { (N.PygApartado, 3), (N.PygTitulo, 4), (N.PygCuenta, 6), (N.PygImporte, 8), (N.PygActividad, 12), (N.PygCentro, 13) })
             Nombre(libro, ws, nombre, col, ultima);
-        Anchos(ws, [34, 48, 40, 48, 22, 14]);
+        Anchos(ws, [11, 6, 30, 44, 24, 36, 44, 13, 9, 7, 44, 20, 18, 30]);
     }
 
     private static void DatosSituacion(XLWorkbook libro, ResultadoBalance sit)
     {
         var ws = libro.Worksheet(HojaDatosSituacion);
-        string[] cols = ["Lado", "Apartado", "Título", "Subtítulo", "Cuenta", "Subcuenta", "Importe"];
-        var f = 1;
-        foreach (var g in sit.Filas.GroupBy(x => (x.OrdenBloque, x.Bloque, x.OrdenApartado, x.Apartado, x.OrdenTitulo, x.Titulo, Sub: x.Subtitulo ?? "", x.Cuenta, x.Subcuenta))
-                     .OrderBy(g => g.Key.OrdenBloque).ThenBy(g => g.Key.OrdenApartado).ThenBy(g => g.Key.OrdenTitulo).ThenBy(g => g.Key.Subcuenta, StringComparer.Ordinal))
-        {
-            var importe = g.Sum(x => x.Importe);
-            if (importe == 0m) continue;
-            f++;
-            ws.Cell(f, 1).Value = g.Key.Bloque;
-            ws.Cell(f, 2).Value = g.Key.Apartado;
-            ws.Cell(f, 3).Value = g.Key.Titulo;
-            ws.Cell(f, 4).Value = g.Key.Sub;
-            ws.Cell(f, 5).Value = g.Key.Cuenta;
-            ws.Cell(f, 6).Value = g.Key.Subcuenta;
-            ws.Cell(f, 7).Value = importe;
-        }
-        Tabla(ws, "tSit", cols, f);
-        ws.Column(7).Style.NumberFormat.Format = FormatoImporte;
+        var f = Apuntes(ws, sit, 2);
+        Tabla(ws, "tSit", ColumnasSituacion, f);
         var ultima = Math.Max(2, f);
-        foreach (var (nombre, col) in new[] { (N.SitLado, 1), (N.SitApartado, 2), (N.SitTitulo, 3), (N.SitSubtitulo, 4), (N.SitCuenta, 5), (N.SitImporte, 7) })
+        foreach (var (nombre, col) in new[] { (N.SitLado, 1), (N.SitApartado, 4), (N.SitTitulo, 5), (N.SitSubtitulo, 6), (N.SitCuenta, 7), (N.SitImporte, 9) })
             Nombre(libro, ws, nombre, col, ultima);
-        Anchos(ws, [26, 30, 50, 36, 42, 48, 15]);
+        Anchos(ws, [24, 11, 6, 30, 44, 30, 36, 44, 13, 9, 7, 44, 20, 18, 30]);
+    }
+
+    /// <summary>
+    /// Hojas TDPyG y TDSituación: tablas dinámicas preconfiguradas como las de las hojas PyG y Situacion del libro anterior
+    /// (AsientosIVA2026-3Tv1), con lo que ya hace ExportadorBalanceExcel. PyG: Apartado › Título › Cuenta › Subcuenta en filas y las
+    /// actividades en columnas (en el libro anterior, «CentroDeCoste», que era la actividad). Situación: Lado › Apartado › Título ›
+    /// Cuenta › Subcuenta en filas, los meses en columnas y la actividad y el departamento como filtros. Subtotales arriba; Excel
+    /// las calcula al abrir.
+    /// </summary>
+    private static void TablasDinamicas(XLWorkbook libro, InformeGestoria inf)
+    {
+        void Hoja(string hoja, string tabla, string titulo, string valor, Action<IXLPivotTable> configurar)
+        {
+            var ws = libro.Worksheet(hoja);
+            ws.Cell(1, 1).Value = titulo;
+            ws.Cell(1, 1).Style.Font.SetBold().Font.SetFontSize(13).Font.SetFontColor(Azul);
+            Nota(ws.Cell(2, 1), "Tabla dinámica sobre la hoja de datos: se puede filtrar, mover campos o pulsar dos veces en un importe para ver sus apuntes.");
+            var pt = ws.PivotTables.Add("TablaDinamica" + tabla, ws.Cell(5, 1), libro.Table(tabla));
+            configurar(pt);
+            pt.Values.Add("Importe", valor).SetSummaryFormula(XLPivotSummary.Sum).NumberFormat.Format = FormatoImporte;
+            pt.Layout = XLPivotLayout.Compact;
+            pt.SetSubtotals(XLPivotSubtotals.AtTop);
+            pt.SetShowGrandTotalsRows(true).SetShowGrandTotalsColumns(true);
+            pt.SetRowHeaderCaption("Etiquetas de fila");
+            ws.Column(1).Width = 70;
+            ws.Columns(2, 16).Width = 15;
+        }
+        Hoja(HojaTDPyG, "tPyG", $"Pérdidas y ganancias por actividad · {inf.RazonSocial} · {inf.Ejercicio} hasta el {inf.FinTrimestre:dd/MM/yyyy}", "Suma de Importe", pt =>
+        {
+            foreach (var campo in new[] { "Apartado", "Título", "Cuenta" }) pt.RowLabels.Add(campo).AddSubtotal(XLSubtotalFunction.Automatic);
+            pt.RowLabels.Add("Subcuenta");
+            pt.ColumnLabels.Add("Actividad");
+            pt.SetColumnHeaderCaption("Actividad");
+        });
+        Hoja(HojaTDSituacion, "tSit", $"Balance de situación por meses · {inf.RazonSocial} · {inf.Ejercicio} hasta el {inf.FinTrimestre:dd/MM/yyyy}", "Total", pt =>
+        {
+            pt.ReportFilters.Add("Actividad");
+            pt.ReportFilters.Add("Departamento");
+            foreach (var campo in new[] { "Lado", "Apartado", "Título", "Cuenta" }) pt.RowLabels.Add(campo).AddSubtotal(XLSubtotalFunction.Automatic);
+            pt.RowLabels.Add("Subcuenta");
+            pt.ColumnLabels.Add("Mes").SetSort(XLPivotSortType.Ascending);
+            pt.SetColumnHeaderCaption("Mes");
+        });
     }
 
     private static void Emitidas(XLWorkbook libro, InformeGestoria inf)
@@ -567,9 +619,9 @@ public static class ExportadorInformeGestoriaExcel
     private static void PyG(XLWorkbook libro, InformeGestoria inf, Mapa mapa)
     {
         var ws = libro.Worksheet(HojaPyG);
-        var raices = inf.PyG.Filas.Select(f => Centro(f.CentroCoste)).Distinct().OrderBy(c => c == N.SinCentro).ThenBy(c => c, StringComparer.CurrentCulture).ToList();
+        var raices = inf.PyG.Filas.Where(f => f.Importe != 0m).Select(f => Actividad(f.Actividad)).Distinct().OrderBy(c => c == N.SinActividad).ThenBy(c => c, StringComparer.CurrentCulture).ToList();
         var total = 3 + raices.Count;
-        Cabecera(ws, "Cuenta de pérdidas y ganancias", $"Acumulado del ejercicio {inf.Ejercicio} hasta el {inf.FinTrimestre:dd/MM/yyyy}, por centro de coste raíz (sin la regularización ni el cierre)", total);
+        Cabecera(ws, "Cuenta de pérdidas y ganancias", $"Acumulado del ejercicio {inf.Ejercicio} hasta el {inf.FinTrimestre:dd/MM/yyyy}, por actividad (sin la regularización ni el cierre)", total);
         ws.Column(2).Width = 62;
         for (var c = 3; c <= total; c++) ws.Column(c).Width = 17;
         ws.Cell(5, 2).Value = "Concepto";
@@ -582,7 +634,7 @@ public static class ExportadorInformeGestoriaExcel
             f++;
             ws.Cell(f, 2).Value = ap.Key.Apartado;
             var crit = $"{N.PygApartado},{N.Literal(ap.Key.Apartado)}";
-            for (var i = 0; i < raices.Count; i++) Formula(ws, f, 3 + i, $"SUMIFS({N.PygImporte},{crit},{N.PygCentro},{N.Literal(raices[i])})");
+            for (var i = 0; i < raices.Count; i++) Formula(ws, f, 3 + i, $"SUMIFS({N.PygImporte},{crit},{N.PygActividad},{N.Literal(raices[i])})");
             Formula(ws, f, total, $"SUMIFS({N.PygImporte},{crit})");
             ws.Range(f, 2, f, total).Style.Fill.SetBackgroundColor(Fondo).Font.SetBold().Font.SetFontColor(Azul);
             foreach (var ti in ap.GroupBy(x => (x.OrdenTitulo, x.Titulo)).OrderBy(g => g.Key.OrdenTitulo))
@@ -590,7 +642,7 @@ public static class ExportadorInformeGestoriaExcel
                 f++;
                 ws.Cell(f, 2).Value = "   " + ti.Key.Titulo;
                 var c2 = $"{crit},{N.PygTitulo},{N.Literal(ti.Key.Titulo)}";
-                for (var i = 0; i < raices.Count; i++) Formula(ws, f, 3 + i, $"SUMIFS({N.PygImporte},{c2},{N.PygCentro},{N.Literal(raices[i])})");
+                for (var i = 0; i < raices.Count; i++) Formula(ws, f, 3 + i, $"SUMIFS({N.PygImporte},{c2},{N.PygActividad},{N.Literal(raices[i])})");
                 Formula(ws, f, total, $"SUMIFS({N.PygImporte},{c2})").Style.Font.SetBold();
             }
         }
@@ -598,12 +650,12 @@ public static class ExportadorInformeGestoriaExcel
         mapa.FilaResultadoPyG = f;
         mapa.ColumnaTotalPyG = total;
         ws.Cell(f, 2).Value = "Resultado del periodo";
-        for (var i = 0; i < raices.Count; i++) Formula(ws, f, 3 + i, $"SUMIFS({N.PygImporte},{N.PygCentro},{N.Literal(raices[i])})");
+        for (var i = 0; i < raices.Count; i++) Formula(ws, f, 3 + i, $"SUMIFS({N.PygImporte},{N.PygActividad},{N.Literal(raices[i])})");
         Formula(ws, f, total, $"SUM({N.PygImporte})");
         ws.Range(f, 2, f, total).Style.Fill.SetBackgroundColor(Resultado).Font.SetBold();
         var impuesto = inf.PyG.Filas.Any(x => x.CuentaContable.StartsWith("630", StringComparison.Ordinal));
         Nota(ws.Cell(f + 2, 2), (impuesto ? "Incluye el impuesto sobre beneficios contabilizado (630). " : "Antes de impuestos: no hay impuesto sobre beneficios (630) contabilizado. ") +
-            "El detalle por subcuenta y centro está en «Datos PyG».");
+            "El detalle, un apunte por fila, está en «Datos PyG» y en la tabla dinámica de «TDPyG».");
         ws.SheetView.FreezeRows(5);
     }
 
@@ -800,9 +852,10 @@ public static class ExportadorInformeGestoriaExcel
         (string Hoja, string Texto)[] indice =
         [
             (HojaIva, "Liquidación por trimestres"), (HojaProrrata, "Porcentajes y regularización"), (HojaControles, "Avisos antes de presentar"),
-            (HojaPyG, "Pérdidas y ganancias por centro"), (HojaSituacion, "Balance de situación"), (HojaRatios, "Ratios con semáforo"),
+            (HojaPyG, "Pérdidas y ganancias por actividad"), (HojaSituacion, "Balance de situación"),
+            (HojaTDPyG, "Tabla dinámica de pérdidas y ganancias"), (HojaTDSituacion, "Tabla dinámica del balance por meses"), (HojaRatios, "Ratios con semáforo"),
             (HojaEmitidas, "Facturas emitidas"), (HojaRecibidas, "Facturas recibidas"), (HojaDatosIva, "Líneas de IVA, una por desglose"),
-            (HojaDatosPyG, "Pérdidas y ganancias por subcuenta"), (HojaDatosSituacion, "Balance por subcuenta"),
+            (HojaDatosPyG, "Pérdidas y ganancias, un apunte por fila"), (HojaDatosSituacion, "Balance, un apunte por fila"),
         ];
         for (var i = 0; i < indice.Length; i++)
         {

@@ -63,7 +63,7 @@ public static class NombresGestoria
         IvaAviso = "IVA_Aviso";
     public const string EmiTrim = "Emi_Trim", EmiBase = "Emi_Base", EmiContabilizada = "Emi_Contabilizada";
     public const string RecTrim = "Rec_Trim", RecBase = "Rec_Base";
-    public const string PygApartado = "PyG_Apartado", PygTitulo = "PyG_Titulo", PygCuenta = "PyG_Cuenta", PygCentro = "PyG_Centro", PygImporte = "PyG_Importe";
+    public const string PygApartado = "PyG_Apartado", PygTitulo = "PyG_Titulo", PygCuenta = "PyG_Cuenta", PygCentro = "PyG_Centro", PygActividad = "PyG_Actividad", PygImporte = "PyG_Importe";
     /// <summary>Texto de la columna Actividad (y del centro raíz) cuando no hay: así se puede filtrar y usar como criterio.</summary>
     public const string SinActividad = "(sin actividad)";
     public const string SinCentro = "(sin centro)";
@@ -204,8 +204,7 @@ public static class ControlesGestoria
             c.Add(new("Pasivo corriente con saldo deudor (subcuentas en negativo)", deudoras.Sum(x => x.Saldo), 0m, ReglaControl.Cero, EstadoControl.Revisar,
                 deudoras.Count == 0 ? "Ninguna subcuenta del pasivo corriente tiene saldo deudor." :
                 $"{Lista(deudoras.OrderBy(x => x.Saldo).Select(x => $"{x.Key} ({Imp(x.Saldo)})"), 5)}: un pasivo con saldo deudor suele ser un cobro o pago pendiente de aplicar. " +
-                "Ábrelas en Contabilidad › Mayor y aplica los movimientos; mientras, falsean la liquidez y el endeudamiento.",
-                $"SUMIFS({NombresGestoria.SitImporte},{NombresGestoria.SitApartado},{NombresGestoria.Literal(apartadoPc)},{NombresGestoria.SitImporte},\"<0\")"));
+                "Ábrelas en Contabilidad › Mayor y aplica los movimientos; mientras, falsean la liquidez y el endeudamiento."));
         }
 
         // 11. Amortizaciones contabilizadas.

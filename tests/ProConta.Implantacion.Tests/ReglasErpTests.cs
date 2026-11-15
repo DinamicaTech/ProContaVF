@@ -225,4 +225,17 @@ public sealed class ReglasErpTests
         Assert.Equal(ReglasErp.PisosReservas.Count, ReglasErp.PisosReservas.Select(r => r.Clave).Distinct().Count());
         Assert.All(ReglasErp.PisosReservas, r => Assert.Contains(r.IdInmuebleErp, new[] { 47, 48 }));
     }
+
+    /// <summary>
+    /// CategoriasIVA del ERP: General 2, T-Innova 1, Alquiler Viviendas 0, Alquiler Locales 1, Alquiler turístico 0. En el ERP 1 es
+    /// 100 % deducible y 2 prorrata; en Actividades, al revés. General pasa a prorrata (1); las demás quedan como estaban.
+    /// </summary>
+    [Theory]
+    [InlineData(2, 1)]
+    [InlineData(1, 2)]
+    [InlineData(0, 0)]
+    [InlineData(null, 2)]
+    [InlineData(7, 2)]
+    public void La_deduccion_del_ERP_se_traduce_al_codigo_de_Actividades(int? erp, byte actividad) =>
+        Assert.Equal(actividad, ReglasErp.DeducibleActividad(erp));
 }

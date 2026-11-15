@@ -36,14 +36,17 @@ public sealed record ModeloBalance(string Codigo, string Nombre, TipoBalance Tip
 public sealed record ApunteBalance(
     DateTime Fecha, int IdAsiento, byte TipoAsiento, int Orden, string Cuenta, decimal Debe, decimal Haber, string Concepto, int? IdCentroCoste);
 
-/// <summary>Centro de coste del apunte: su raíz (CentroDeCoste), su ruta (SubDepartamento) y su nombre (NombreDepartamento).</summary>
-public sealed record CentroBalance(string Raiz, string Ruta, string Nombre);
+/// <summary>
+/// Centro de coste del apunte: su raíz (CentroDeCoste), su ruta (SubDepartamento), su nombre (NombreDepartamento) y el nombre de su
+/// actividad de IVA, la suya o la heredada (null si no tiene).
+/// </summary>
+public sealed record CentroBalance(string Raiz, string Ruta, string Nombre, string? Actividad = null);
 
 /// <summary>Una fila de la hoja de datos: un apunte clasificado, con el importe ya con el signo del modelo.</summary>
 public sealed record FilaBalance(
     DateTime Fecha, string Bloque, int OrdenBloque, string Apartado, int OrdenApartado, string Titulo, int OrdenTitulo, string? Subtitulo,
     string Cuenta, string Subcuenta, decimal Importe, string CuentaContable, int IdAsiento, int Orden, string Concepto,
-    string? CentroCoste, string? SubDepartamento, string? NombreDepartamento);
+    string? CentroCoste, string? SubDepartamento, string? NombreDepartamento, string? Actividad = null);
 
 /// <summary>Cuenta con apuntes que el modelo no clasifica: no entra en el balance y se lista aparte para que no se pierda.</summary>
 public sealed record CuentaSinClasificar(string Cuenta, string Nombre, int Apuntes, decimal Debe, decimal Haber)
@@ -107,7 +110,7 @@ public static class Clasificador
             filas.Add(new FilaBalance(
                 a.Fecha, regla.Bloque, regla.OrdenBloque, regla.Apartado, regla.OrdenApartado, regla.Titulo, regla.OrdenTitulo, regla.Subtitulo,
                 Etiqueta(grupo, nombres), Etiqueta(a.Cuenta, nombres), (a.Debe - a.Haber) * regla.Multiplicador, a.Cuenta, a.IdAsiento, a.Orden,
-                a.Concepto, centro?.Raiz, centro?.Ruta, centro?.Nombre));
+                a.Concepto, centro?.Raiz, centro?.Ruta, centro?.Nombre, centro?.Actividad));
         }
         var ordenadas = filas
             .OrderBy(f => f.OrdenBloque).ThenBy(f => f.OrdenApartado).ThenBy(f => f.OrdenTitulo)
@@ -127,6 +130,7 @@ public sealed class GeneradorBalances(IBaseDatos bd)
     public async Task<ResultadoBalance> GenerarAsync(TipoBalance tipo, ContextoSociedadEjercicio contexto, string razonSocial, CancellationToken cancelacion = default,
         DateTime? hasta = null)
     {
+        var actividades = await new CentrosCoste.LectorActividadesIva(bd).PorCentroAsync(contexto.IdSociedad);
         var (modelo, apuntes, nombres, centros) = await bd.EjecutarAsync(async s =>
         {
             var m = await LeerModeloAsync(s, tipo);
@@ -152,7 +156,7 @@ public sealed class GeneradorBalances(IBaseDatos bd)
             var porId = filasCentros.ToDictionary(c => c.Id);
             var c = filasCentros.ToDictionary(x => x.Id, x => new CentroBalance(
                 x.Raiz is int r && porId.TryGetValue(r, out var raiz) ? raiz.Nombre : x.Nombre,
-                string.IsNullOrEmpty(x.Ruta) ? x.Codigo : x.Ruta, x.Nombre));
+                string.IsNullOrEmpty(x.Ruta) ? x.Codigo : x.Ruta, x.Nombre, actividades.GetValueOrDefault(x.Id)?.Nombre));
             return (m, a, (IReadOnlyDictionary<string, string>)n, (IReadOnlyDictionary<int, CentroBalance>)c);
         }, cancelacion);
         return Clasificador.Clasificar(modelo, razonSocial, contexto.Ejercicio, hasta is DateTime h ? apuntes.Where(a => a.Fecha <= h.Date) : apuntes, nombres, centros);

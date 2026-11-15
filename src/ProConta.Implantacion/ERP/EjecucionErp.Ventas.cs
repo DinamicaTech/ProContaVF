@@ -48,8 +48,9 @@ internal sealed partial class EjecucionErp
             est.Leidas++;
             var id = c.E("IdCategoria") ?? 0;
             var (codigo, serie) = CodigosActividad.TryGetValue(id, out var x) ? x : ($"CAT{id}", null);
-            // T-Innova (contabilidad/procesos 2026-11-08) y Alquiler Locales (propietario 2026-11-11 17:19) son deducibles al 100 % aunque el ERP diga 1.
-            var deducible = id is 2 or 4 ? (byte)2 : (byte)Math.Clamp(c.E("Deducible") ?? 2, 0, 2);
+            // El código del ERP se traduce al de Actividades.Deducible (informe-gestoria 2026-11-15 19:24). T-Innova (contabilidad/procesos
+            // 2026-11-08) y Alquiler Locales (propietario 2026-11-11 17:19) son deducibles al 100 % en cualquier caso.
+            var deducible = id is 2 or 4 ? (byte)2 : ReglasErp.DeducibleActividad(c.E("Deducible"));
             var idActividad = await Grabar(codigo, ReglasErp.Recortar(c.T("Descripcion"), 100) ?? codigo, deducible, serie);
             porCategoria[id] = idActividad;
             Mapear(TiposErp.Actividad, Txt(id), idActividad);
