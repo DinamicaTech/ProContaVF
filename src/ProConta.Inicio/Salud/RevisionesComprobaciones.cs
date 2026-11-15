@@ -27,7 +27,7 @@ public sealed class RevisionDiarioCuadra : IRevisionSalud
             $"{(mal.Count == 1 ? "Su debe no es igual a su haber" : "Su debe no es igual a su haber")}: {detalle}.", null,
             new DestinoSalud(PantallaSalud.Diario, "Contabilidad › Diario"), "contabilidad/asientos",
             $"Algún asiento de {ejercicio} (contabilizado o en borrador, sin los anulados) tiene una suma del debe distinta de la del haber.",
-            "Busca esos asientos en el Diario por su fecha y corrígelos (la diferencia suele ser un apunte que falta o un importe mal tecleado). El aviso desaparece cuando todos cuadran."));
+            "Busca esos asientos en el Diario por su fecha y corrígelos (la diferencia suele ser un apunte que falta o un importe mal tecleado). El aviso desaparece cuando todos cuadran.") { Cantidad = mal.Count });
     }
 }
 
@@ -78,7 +78,7 @@ public sealed partial class RevisionNumeracionFacturas : IRevisionSalud
 
 /// <summary>
 /// Comprobación 13: los libros de IVA coinciden con las cuentas (contabilidad/modelos-tributarios), por trimestre hasta la fecha de
-/// corte: libro de repercutido (más las cuotas autorrepercutidas del soportado) frente a las 477, y libro de soportado frente a las
+/// corte: libro de repercutido frente a las 477 sin el IVA autorrepercutido (ver CuadreLibrosIva), y libro de soportado frente a las
 /// 472, sin los asientos de liquidación. Solo si el ejercicio tiene libros.
 /// </summary>
 public sealed class RevisionLibrosIva : IRevisionSalud
@@ -106,7 +106,7 @@ public sealed class RevisionLibrosIva : IRevisionSalud
         return HallazgosSalud.De(new ElementoSalud("libros-iva", TipoSalud.Aviso, GravedadSalud.Atencion,
             $"Los libros de IVA no coinciden con las cuentas en el {string.Join(", ", mal.Select(t => $"{t.Trimestre}T"))}",
             string.Join(". ", mal.Select(Detalle)) + ".", null, DestinoSalud.Mayor(["472", "477"], "cuentas 472 y 477"), "contabilidad/modelos-tributarios",
-            $"En algún trimestre de {ejercicio}, la suma de las cuotas del libro de IVA repercutido (más las autorrepercutidas) no es la de las 477, o la del soportado no es la de las 472, " +
+            $"En algún trimestre de {ejercicio}, la suma de las cuotas del libro de IVA repercutido no es la de las 477 (sin el IVA autorrepercutido de las facturas recibidas), o la del soportado no es la de las 472, " +
             "contando solo asientos contabilizados y sin los de liquidación ni regularización.",
             "Abre el Mayor de las 472 y 477 del trimestre y busca los asientos de IVA sin registro en el libro (asientos a mano) o con una cuota distinta. El aviso desaparece cuando coinciden."));
     }
@@ -134,7 +134,7 @@ public sealed class RevisionTercerosNif : IRevisionSalud
             $"{clientes} {(clientes == 1 ? "cliente" : "clientes")} y {terceros.Count - clientes} {(terceros.Count - clientes == 1 ? "proveedor" : "proveedores")}: {nombres}.", null,
             new DestinoSalud(PantallaSalud.Terceros, "Datos maestros › Terceros"), "terceros",
             $"Algún tercero cuya subcuenta de cliente (430 a 436) o de proveedor (400 a 410) tiene apuntes en {ejercicio} no tiene NIF en su ficha. Sin NIF no sale bien en los modelos 347 y 349 ni en las facturas.",
-            "Busca cada tercero en Datos maestros › Terceros, abre su ficha y escribe su NIF. El aviso desaparece cuando todos lo tienen."));
+            "Busca cada tercero en Datos maestros › Terceros, abre su ficha y escribe su NIF. El aviso desaparece cuando todos lo tienen.") { Cantidad = terceros.Count });
     }
 }
 
@@ -163,7 +163,7 @@ public sealed class RevisionCuentasBaja : IRevisionSalud
             $"{N(apuntes, "apunte", "apuntes")} en subcuentas que " + string.Join("; ", partes) + ".", null,
             DestinoSalud.Mayor(cuentas.Select(x => x.Cuenta).Take(40).ToList(), "subcuentas dadas de baja o inexistentes"), "contabilidad/cuenta-contable",
             $"Hay apuntes de {ejercicio} (sin los asientos anulados) en subcuentas que no están en el plan de cuentas del ejercicio o que están inactivas.",
-            "Da de alta la subcuenta que falta o vuelve a activarla, o mueve esos apuntes a la subcuenta correcta desde el Mayor. El aviso desaparece cuando no queda ninguno."));
+            "Da de alta la subcuenta que falta o vuelve a activarla, o mueve esos apuntes a la subcuenta correcta desde el Mayor. El aviso desaparece cuando no queda ninguno.") { Cantidad = apuntes });
     }
 }
 
@@ -219,7 +219,7 @@ public sealed class RevisionNominas : IRevisionSalud
         var elemento = new ElementoSalud("nominas", TipoSalud.Aviso, GravedadSalud.Atencion, $"Nóminas sin contabilizar: {string.Join(", ", faltan.Select(RevisionPlazosIva.Mes))}",
             $"Deberían estar contabilizadas hasta {ultimoMes}; {(faltan.Count == 1 ? "falta" : "faltan")} {lista}.", null, Destino, "nominas",
             $"La sociedad tiene nóminas y algún mes de {ejercicio} hasta el anterior al actual no tiene la nómina mensual importada y contabilizada.",
-            "Importa en Nóminas el fichero de la gestoría de ese mes y contabilízalo (o resuelve sus incidencias). El aviso desaparece cuando todos los meses están contabilizados.");
+            "Importa en Nóminas el fichero de la gestoría de ese mes y contabilízalo (o resuelve sus incidencias). El aviso desaparece cuando todos los meses están contabilizados.") { Cantidad = faltan.Count };
         return new HallazgosSalud([elemento], [], [], [fila]);
     }
 }

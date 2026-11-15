@@ -15,13 +15,34 @@ public partial class PantallaInicio : UserControl
     public PantallaInicio()
     {
         InitializeComponent();
+        // Ocupación turística: el eje y el tooltip en porcentaje.
+        var es = System.Globalization.CultureInfo.GetCultureInfo("es-ES");
+        GraficoOcupacion.FormatoEje = v => v.ToString("0", es) + " %";
+        GraficoOcupacion.FormatoValor = v => v.ToString("0.0", es) + " %";
         SizeChanged += (_, _) => AjustarColumnas();
         Loaded += (_, _) => AjustarColumnas();
         DataContextChanged += (_, _) =>
         {
-            if (DataContext is InicioVM vm)
-                vm.PropertyChanged += (_, a) => { if (a.PropertyName == nameof(InicioVM.VerSalud)) AjustarColumnas(); };
+            if (DataContext is not InicioVM vm) return;
+            vm.PropertyChanged += (_, a) => { if (a.PropertyName == nameof(InicioVM.VerSalud)) AjustarColumnas(); };
+            if (vm.Fase4 is { } f4)
+                f4.PropertyChanged += (_, a) => { if (a.PropertyName == nameof(BloquesFase4VM.CabeceraComparado)) ColumnaComparadoOcupacion.Header = f4.CabeceraComparado; };
         };
+    }
+
+    /// <summary>Agenda: doble clic o Intro abre la pantalla de la entrada, si existe.</summary>
+    private void ListaAgenda_MouseDoubleClick(object sender, MouseButtonEventArgs e) => AbrirAgenda();
+
+    private void ListaAgenda_KeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.Key != Key.Enter) return;
+        AbrirAgenda();
+        e.Handled = true;
+    }
+
+    private void AbrirAgenda()
+    {
+        if (ListaAgenda.SelectedItem is EntradaAgendaVM { Abrir: { } abrir } && abrir.CanExecute(null)) abrir.Execute(null);
     }
 
     /// <summary>Ancho a partir del cual la salud va en su columna a la derecha.</summary>

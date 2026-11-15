@@ -6,17 +6,23 @@ namespace ProConta.Inicio.Salud;
 /// <summary>
 /// Revisión de la salud de la contabilidad (pantalla-de-inicio, fase 3): ejecuta las revisiones a la vez (como mucho 4 lecturas
 /// simultáneas contra Access), cada una por su lado, de modo que una lenta o con error no bloquea a las demás; avisa de cada una
-/// en cuanto termina. Solo lee. La fase 4 añade revisiones a <see cref="Todas"/>.
+/// en cuanto termina. Solo lee, salvo el histórico de la tendencia «desde el lunes» (fase 4): al terminar guarda el recuento del día en
+/// <paramref name="historico"/> y compara con el del lunes; si eso falla, la revisión sale igual, sin tendencia.
 /// </summary>
-public sealed class ServicioSalud(IFuenteSalud fuente, IReadOnlyList<IRevisionSalud>? revisiones = null, Func<DateTime>? hoy = null)
+public sealed class ServicioSalud(IFuenteSalud fuente, IReadOnlyList<IRevisionSalud>? revisiones = null, Func<DateTime>? hoy = null, IHistoricoSalud? historico = null)
 {
-    /// <summary>Las revisiones de la fase 3, en el orden en que se presentan.</summary>
+    /// <summary>Por qué no se ha podido guardar o leer el histórico en la última revisión (null si ha ido bien o no hay histórico).</summary>
+    public string? ErrorHistorico { get; private set; }
+
+    /// <summary>Las revisiones de las fases 3 y 4, en el orden en que se presentan.</summary>
     public static IReadOnlyList<IRevisionSalud> Todas { get; } =
     [
         new RevisionVentasAntesCambioIva(), new RevisionEjercicioSiguiente(), new RevisionPlazosIva(),
         new RevisionBancosCuadre(), new RevisionBancosSinAsiento(), new RevisionExtractoAntiguo(), new RevisionComprasPendientes(), new RevisionBorradoresVenta(),
         new RevisionClientesAcreedores(), new RevisionPartidasPendientes(),
         new RevisionDiarioCuadra(), new RevisionNumeracionFacturas(), new RevisionLibrosIva(), new RevisionTercerosNif(), new RevisionCuentasBaja(), new RevisionNominas(),
+        // Fase 4 (pantalla-de-inicio 2026-11-15 16:37).
+        new RevisionAmortizaciones(), new RevisionCentimosResiduales(),
     ];
 
     public const int LecturasSimultaneas = 4;
@@ -63,7 +69,28 @@ public sealed class ServicioSalud(IFuenteSalud fuente, IReadOnlyList<IRevisionSa
             return resultado;
         }, cancelacion)).ToList();
         var resultados = await Task.WhenAll(tareas).ConfigureAwait(false);
-        return new InformeSalud(DateTime.Now, resultados);
+        return new InformeSalud(DateTime.Now, resultados) { Tendencias = await TendenciasAsync(ctx, resultados, cancelacion).ConfigureAwait(false) };
+    }
+
+    /// <summary>Guarda el recuento de hoy y lo compara con el del lunes. Un fallo no rompe la revisión: queda en <see cref="ErrorHistorico"/>.</summary>
+    private async Task<IReadOnlyDictionary<string, int>> TendenciasAsync(ContextoSalud ctx, IReadOnlyList<ResultadoRevision> resultados, CancellationToken cancelacion)
+    {
+        ErrorHistorico = null;
+        if (historico is null) return new Dictionary<string, int>();
+        try
+        {
+            var filas = TendenciaSalud.Filas(resultados);
+            var ejercicio = ctx.Ejercicio.Ejercicio;
+            await historico.GuardarAsync(ctx.IdSociedad, ejercicio, ctx.Hoy, filas, cancelacion).ConfigureAwait(false);
+            var lunes = TendenciaSalud.Lunes(ctx.Hoy);
+            if (lunes == ctx.Hoy.Date) return new Dictionary<string, int>();
+            return TendenciaSalud.Variaciones(filas, await historico.LeerAsync(ctx.IdSociedad, ejercicio, lunes, cancelacion).ConfigureAwait(false));
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            ErrorHistorico = ex.Message;
+            return new Dictionary<string, int>();
+        }
     }
 
     /// <summary>Una revisión que falla sale como aviso con la causa, sin tapar a las demás.</summary>
@@ -98,6 +125,8 @@ internal sealed class FuenteSaludCompartida(IFuenteSalud f) : IFuenteSalud
     public Task<IReadOnlyList<TerceroSinNif>> TercerosSinNifAsync(string idSociedad, EjercicioSociedad ejercicio, CancellationToken c = default) => f.TercerosSinNifAsync(idSociedad, ejercicio, c);
     public Task<IReadOnlyList<CuentaConProblema>> CuentasConProblemaAsync(EjercicioSociedad ejercicio, CancellationToken c = default) => f.CuentasConProblemaAsync(ejercicio, c);
     public Task<IReadOnlyList<NominaMes>> NominasAsync(IReadOnlyList<EjercicioSociedad> ejercicios, CancellationToken c = default) => f.NominasAsync(ejercicios, c);
+    public Task<IReadOnlyList<AsientoAmortizacion>> AmortizacionesAsync(IReadOnlyList<EjercicioSociedad> ejercicios, CancellationToken c = default) => f.AmortizacionesAsync(ejercicios, c);
+    public Task<int> ActivosAmortizablesAsync(string idSociedad, CancellationToken c = default) => f.ActivosAmortizablesAsync(idSociedad, c);
 }
 
 /// <summary>Orden de la salud y elección de «Lo más urgente».</summary>

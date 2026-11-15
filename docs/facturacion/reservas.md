@@ -34,6 +34,8 @@ threads:
 - 2026-11-14 19:59 · El filtro de estado del listado tiene la opción «Pendientes de meses cerrados» (propietario): las pendientes con fecha de entrada anterior al mes en curso, para que «Facturar todo» no facture las reservas del mes abierto. El filtro por defecto sigue siendo «Pendientes».
 - 2026-11-14 20:01 · Validado por el propietario (ventas por facturar, PR #67).
 - 2026-11-15 12:10 · Derivado de facturacion/pantallas 2026-11-15 12:10: las facturas creadas desde Ventas por facturar se distinguen en Facturas con el origen «Venta» (las que tienen alguna venta enlazada), y el resumen de «Facturar todo» ofrece «Ver las facturas creadas».
+- 2026-11-15 16:32 · Cumplida en parte la línea «Derived from pantalla-de-inicio» del 2026-11-15 16:32 (escrita ahora porque la rama del circuito de facturación tenía abierto este fichero): la salud de Inicio muestra como tarea grave las ventas por facturar con entrada anterior a un cambio de tipo de IVA (sin anular ni facturadas fuera, sin factura o con la factura en borrador), con su importe y plazo el día anterior al cambio (pantalla-de-inicio 2026-11-15 14:48). Falta la ocupación turística, que va en la fase 4, después del arranque.
+- 2026-11-15 17:20 · Cumplida la línea «Derived from pantalla-de-inicio» del 2026-11-15 16:32 (la ocupación turística): el bloque «Ocupación turística» de Inicio lee las ventas por facturar sin anular (también las facturadas en el ERP o fuera), con su activo, su entrada, su salida y sus noches, y los alojamientos (activos con ventas por facturar o con un alojamiento de Avaibook en uso, con su adquisición o alta y su baja); ver pantalla-de-inicio 2026-11-15 17:20. Las reservas del ERP no tienen piso (es texto libre en sus notas) y solo cuentan en el total.
 
 ## Requirements
 - 2026-10-28 12:28 · From sources/01_ESPECIFICACION_FUNCIONAL.docx § 13 RF-RES-01..03: reservas de alojamiento
@@ -80,6 +82,7 @@ threads:
 - 2026-11-14 19:59 · Simplemente sería que en el filtro hubiese una nueva opción 'Pendientes de meses cerrados'
 - 2026-11-14 20:01 · Ok, perfecto. Ya podemos fusionar PR y cerrar hilo, buen trabajo chicos.
 - 2026-11-15 12:10 · Derived from facturacion/pantallas: origen «Venta» en el listado de Facturas y «Ver las facturas creadas» en el resumen de la facturación de ventas.
+- 2026-11-15 16:32 · Derived from pantalla-de-inicio: ventas por facturar pendientes antes de un cambio de tipo de IVA, con su número e importe, para la tarea de la salud de Inicio (fase 3), y la ocupación turística por mes para un bloque de Inicio (fase 4, después del arranque).
 
 ## Hand-over
 - 2026-11-14 13:00 · Hecho: esquema 51 (migración 20261114_1200_VENTAS_POR_FACTURAR), servicio, «Facturar ventas…», importador de Avaibook, Parámetros y tablas (Orígenes de venta, Alojamientos de Avaibook, Conexión con Avaibook), pantalla Ventas por facturar y fase 8 de la migración del ERP; pruebas sin BD y contra Access en verde. Pendiente: validación del propietario en ProConta-ventas-01 (asignar a los dos alojamientos de Avaibook su piso y concepto, poner el token, importar y facturar un mes); el cuadre de la comisión (410 contra 430) en una segunda entrega.

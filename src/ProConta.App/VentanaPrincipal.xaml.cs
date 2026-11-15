@@ -125,9 +125,13 @@ public partial class VentanaPrincipal : Window
                 AbrirTerceros = () => _terceros!.AbrirBuscador(),
                 AbrirNominas = () => _nominas!.Abrir(null),
                 AbrirParametros = clave => AbrirParametros(clave),
+                // Agenda (fase 4).
+                AbrirProgramadas = () => _facturacion!.AbrirProgramadas(),
             },
             () => this,
-            new ProConta.Inicio.Salud.ServicioSalud(new ProConta.Inicio.Salud.FuenteSaludAccess(bd))));
+            // La salud guarda su recuento diario (HistoricoSalud) para la tendencia «desde el lunes» (fase 4).
+            new ProConta.Inicio.Salud.ServicioSalud(new ProConta.Inicio.Salud.FuenteSaludAccess(bd), historico: new ProConta.Inicio.Salud.HistoricoSaludAccess(bd)),
+            new ProConta.Inicio.Bloques.ServicioBloques(new ProConta.Inicio.Bloques.FuenteBloquesAccess(bd))));
 
         var cuentas = new CatalogoCuentasAccess(bd);
         var servicios = new ServiciosTerceros(

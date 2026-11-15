@@ -575,6 +575,84 @@
               <TextBlock Text="{Binding NotaGastos}" Style="{StaticResource Texto.Apagado}" Visibility="{Binding NotaGastos, Converter={StaticResource Visible}}" />
             </StackPanel>
           </Border>
+
+          <!-- Agenda (fase 4): próximos vencimientos, solo lectura -->
+          <Border Style="{StaticResource Tarjeta.Inicio}" Margin="0,0,7,14" Visibility="{Binding VerAgenda, Converter={StaticResource Visible}}">
+            <StackPanel DataContext="{Binding Fase4}">
+              <DockPanel Margin="0,0,0,6">
+                <TextBlock Text="Agenda" Style="{StaticResource Titulo.Tarjeta}" />
+                <TextBlock Text="{Binding TextoAgenda}" Style="{StaticResource Nota.Tarjeta}" ToolTip="{Binding TextoAgenda}" />
+              </DockPanel>
+              <TextBlock Text="Leyendo la agenda…" Style="{StaticResource Vacio.Tarjeta}" Visibility="{Binding CargandoAgenda, Converter={StaticResource Visible}}" />
+              <TextBlock Text="{Binding SinAgenda}" Style="{StaticResource Vacio.Tarjeta}" TextWrapping="Wrap" Visibility="{Binding SinAgenda, Converter={StaticResource Visible}}" />
+              <ListBox x:Name="ListaAgenda" ItemsSource="{Binding Agenda}" BorderThickness="0" Background="Transparent" MaxHeight="330"
+                       ScrollViewer.HorizontalScrollBarVisibility="Disabled" MouseDoubleClick="ListaAgenda_MouseDoubleClick" KeyDown="ListaAgenda_KeyDown"
+                       AutomationProperties.Name="Agenda: próximos vencimientos">
+                <ListBox.ItemContainerStyle>
+                  <Style TargetType="ListBoxItem">
+                    <Setter Property="ToolTip" Value="{Binding Ayuda}" />
+                    <Setter Property="Padding" Value="4,5" />
+                    <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                  </Style>
+                </ListBox.ItemContainerStyle>
+                <ListBox.ItemTemplate>
+                  <DataTemplate DataType="{x:Type local:EntradaAgendaVM}">
+                    <Grid>
+                      <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="78" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                      </Grid.ColumnDefinitions>
+                      <TextBlock Text="{Binding Dia}" Foreground="{StaticResource Pincel.Apagado}" FontSize="{StaticResource Letra.Normal}" />
+                      <TextBlock Grid.Column="1" Text="{Binding Texto}" TextWrapping="Wrap" FontSize="{StaticResource Letra.Normal}" />
+                      <TextBlock Grid.Column="2" Text="{Binding Importe}" Margin="10,0,0,0" FontSize="{StaticResource Letra.Normal}" FontWeight="SemiBold" Foreground="{StaticResource Pincel.Verde}"
+                                 Visibility="{Binding HayImporte, Converter={StaticResource Visible}}" />
+                    </Grid>
+                  </DataTemplate>
+                </ListBox.ItemTemplate>
+              </ListBox>
+              <TextBlock Text="Plazos fiscales y facturas programadas. Lo que hay que hacer, y si ya está hecho, está en Salud." Style="{StaticResource Texto.Apagado}" TextWrapping="Wrap" Margin="0,6,0,0" />
+            </StackPanel>
+          </Border>
+
+          <!-- Ocupación turística (fase 4): solo si la sociedad tiene reservas -->
+          <Border Style="{StaticResource Tarjeta.Inicio}" Margin="7,0,0,14" Visibility="{Binding VerOcupacion, Converter={StaticResource Visible}}">
+            <StackPanel x:Name="BloqueOcupacion" DataContext="{Binding Fase4}">
+              <DockPanel Margin="0,0,0,6">
+                <TextBlock Text="Ocupación turística" Style="{StaticResource Titulo.Tarjeta}" />
+                <TextBlock Text="{Binding TextoOcupacion}" Style="{StaticResource Nota.Tarjeta}" ToolTip="{Binding TextoOcupacion}" />
+              </DockPanel>
+              <TextBlock Text="{Binding ErrorOcupacion}" Style="{StaticResource Vacio.Tarjeta}" TextWrapping="Wrap" Visibility="{Binding ErrorOcupacion, Converter={StaticResource Visible}}" />
+              <ItemsControl ItemsSource="{Binding LeyendaOcupacion}" Focusable="False" Margin="0,0,0,4">
+                <ItemsControl.ItemsPanel><ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate DataType="{x:Type local:ElementoLeyenda}">
+                    <StackPanel Orientation="Horizontal" Margin="0,0,14,0">
+                      <Border Width="10" Height="10" CornerRadius="3" Margin="0,0,5,0" VerticalAlignment="Center" Background="{Binding Color, Converter={StaticResource Pincel}}" />
+                      <TextBlock Text="{Binding Texto}" FontSize="{StaticResource Letra.Normal}" Foreground="{StaticResource Pincel.Texto2}" />
+                    </StackPanel>
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+              <pc:GraficoLineas x:Name="GraficoOcupacion" Datos="{Binding DatosOcupacion}" Height="200" />
+              <pc:TablaProConta x:Name="TablaOcupacion" ItemsSource="{Binding FilasOcupacion}" ClavePreferencias="inicio.ocupacion" TituloExportacion="Ocupación turística por alojamiento"
+                                IsReadOnly="True" AutoGenerateColumns="False" HeadersVisibility="Column" Margin="0,8,0,0">
+                <pc:TablaProConta.Columns>
+                  <DataGridTextColumn Header="Alojamiento" Binding="{Binding Alojamiento}" Width="*" MinWidth="130" ElementStyle="{StaticResource Texto.Celda}" pc:TablaProConta.SiempreVisible="True" />
+                  <DataGridTextColumn Header="Noches" Binding="{Binding Noches}" Width="70" ElementStyle="{StaticResource Texto.Celda.Importe}" HeaderStyle="{StaticResource Tabla.Cabecera.Derecha}"
+                                      pc:TablaProConta.Ayuda="Noches ocupadas del 1 de enero a la fecha de corte" />
+                  <DataGridTextColumn Header="Ocupación" Binding="{Binding Ocupacion}" Width="85" pc:TablaProConta.RutaExportar="Porcentaje" ElementStyle="{StaticResource Texto.Celda.Importe}" HeaderStyle="{StaticResource Tabla.Cabecera.Derecha}"
+                                      pc:TablaProConta.Ayuda="Noches ocupadas entre noches disponibles, del 1 de enero a la fecha de corte" />
+                  <DataGridTextColumn x:Name="ColumnaComparadoOcupacion" Header="Comparado" Binding="{Binding Comparado}" Width="85" pc:TablaProConta.RutaExportar="PorcentajeComparado"
+                                      ElementStyle="{StaticResource Texto.Celda.Importe}" HeaderStyle="{StaticResource Tabla.Cabecera.Derecha}"
+                                      pc:TablaProConta.Ayuda="Ocupación del ejercicio comparado en el mismo periodo (del 1 de enero a la misma fecha)" />
+                  <DataGridTextColumn Header="Var." Binding="{Binding Variacion}" Width="70" ElementStyle="{StaticResource Texto.Celda.Importe}" HeaderStyle="{StaticResource Tabla.Cabecera.Derecha}"
+                                      pc:TablaProConta.Ayuda="Diferencia en puntos de ocupación frente al comparado" />
+                </pc:TablaProConta.Columns>
+              </pc:TablaProConta>
+              <TextBlock Text="{Binding NotaOcupacion}" Style="{StaticResource Texto.Apagado}" TextWrapping="Wrap" Margin="0,6,0,0" Visibility="{Binding NotaOcupacion, Converter={StaticResource Visible}}" />
+            </StackPanel>
+          </Border>
         </UniformGrid>
             <!-- En ancho estrecho, la salud pasa debajo de los bloques. -->
             <ContentControl x:Name="SaludAbajo" Focusable="False" />
@@ -778,9 +856,23 @@
                             <TextBlock Text="{Binding Plazo}" Style="{StaticResource TextoPlazo.Salud}" />
                           </Border>
                           <TextBlock Grid.Row="1" Grid.Column="2" Grid.ColumnSpan="2" Text="{Binding Explicacion}" TextWrapping="Wrap" FontSize="12.5" Foreground="{StaticResource Pincel.Texto2}" Margin="0,2,0,0" />
-                          <TextBlock Grid.Row="2" Grid.Column="2" Grid.ColumnSpan="2" FontSize="12" Foreground="{StaticResource Pincel.Apagado}" TextWrapping="Wrap" Margin="0,3,0,0">
-                            <Run Text="{Binding TextoGravedad, Mode=OneWay}" FontWeight="SemiBold" /> · › <Run Text="{Binding Destino, Mode=OneWay}" />
-                          </TextBlock>
+                          <WrapPanel Grid.Row="2" Grid.Column="2" Grid.ColumnSpan="2" Margin="0,3,0,0">
+                            <TextBlock FontSize="12" Foreground="{StaticResource Pincel.Apagado}" TextWrapping="Wrap">
+                              <Run Text="{Binding TextoGravedad, Mode=OneWay}" FontWeight="SemiBold" /> · › <Run Text="{Binding Destino, Mode=OneWay}" />
+                            </TextBlock>
+                            <TextBlock Text="{Binding Tendencia}" ToolTip="{Binding AyudaTendencia}" FontSize="12" FontWeight="SemiBold" Margin="10,0,0,0"
+                                       Visibility="{Binding HayTendencia, Converter={StaticResource Visible}}">
+                              <TextBlock.Style>
+                                <Style TargetType="TextBlock">
+                                  <Setter Property="Foreground" Value="{StaticResource Pincel.Apagado}" />
+                                  <Style.Triggers>
+                                    <DataTrigger Binding="{Binding TonoTendencia}" Value="Sube"><Setter Property="Foreground" Value="{StaticResource Pincel.Rojo}" /></DataTrigger>
+                                    <DataTrigger Binding="{Binding TonoTendencia}" Value="Baja"><Setter Property="Foreground" Value="{StaticResource Pincel.Verde}" /></DataTrigger>
+                                  </Style.Triggers>
+                                </Style>
+                              </TextBlock.Style>
+                            </TextBlock>
+                          </WrapPanel>
                         </Grid>
                       </DataTemplate>
                     </ListBox.ItemTemplate>

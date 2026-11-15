@@ -40,9 +40,10 @@ public sealed class PestanaInicio : IPestanaTrabajo
 /// </summary>
 public static class ModuloInicio
 {
-    public static PestanaInicio Crear(ServicioInicio servicio, ContextoInicio contexto, AccionesInicio acciones, Func<Window?> propietario, ServicioSalud? salud = null)
+    public static PestanaInicio Crear(ServicioInicio servicio, ContextoInicio contexto, AccionesInicio acciones, Func<Window?> propietario, ServicioSalud? salud = null,
+        ProConta.Inicio.Bloques.ServicioBloques? bloques = null)
     {
-        var vm = new InicioVM(servicio, contexto, new DialogosInicio(propietario), acciones, salud: salud);
+        var vm = new InicioVM(servicio, contexto, new DialogosInicio(propietario), acciones, salud: salud, bloques: bloques);
         var pestana = new PestanaInicio(vm);
         _ = vm.IniciarAsync();
         return pestana;
@@ -64,11 +65,6 @@ public sealed class DialogosInicio(Func<Window?> propietario) : IDialogosInicio
             casillas.Add((b, c));
             panel.Children.Add(c);
         }
-        panel.Children.Add(new TextBlock
-        {
-            Text = "La agenda y la ocupación turística llegarán en las próximas fases.",
-            TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 6, 0, 0), Foreground = (System.Windows.Media.Brush)d.FindResource("Pincel.Apagado"),
-        });
         var marcas = new List<(CuentaBancoInicio Banco, CheckBox Casilla)>();
         if (bancos.Count > 0)
         {

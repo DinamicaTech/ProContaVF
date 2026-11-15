@@ -1,5 +1,5 @@
 <Project Sdk="Microsoft.NET.Sdk">
-  <!-- Pantalla de inicio (docs/pantalla-de-inicio.md): lecturas y cálculo de los indicadores, sin WPF. Solo lee la BD. -->
+  <!-- Pantalla de inicio (docs/pantalla-de-inicio.md): lecturas y cálculo de los indicadores, sin WPF. Solo lee la BD, salvo el histórico de la salud (HistoricoSalud). -->
   <PropertyGroup>
     <OutputType>Library</OutputType>
     <RootNamespace>ProConta.Inicio</RootNamespace>
@@ -11,6 +11,7 @@
     <ProjectReference Include="..\ProConta.Datos.Persistencia\ProConta.Datos.Persistencia.csproj" />
     <ProjectReference Include="..\ProConta.Contabilidad\ProConta.Contabilidad.csproj" />
     <ProjectReference Include="..\ProConta.Norma43\ProConta.Norma43.csproj" />
+    <ProjectReference Include="..\ProConta.Facturacion\ProConta.Facturacion.csproj" />
   </ItemGroup>
   <ItemGroup>
     <InternalsVisibleTo Include="ProConta.Inicio.Tests" />

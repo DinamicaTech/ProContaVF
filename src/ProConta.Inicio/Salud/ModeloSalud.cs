@@ -10,7 +10,7 @@ public enum TipoSalud { Tarea, Aviso }
 /// Pantalla donde se resuelve un elemento. <see cref="Ninguna"/>: todavía no hay pantalla en el contenedor (el tooltip lo dice y
 /// no se abre nada).
 /// </summary>
-public enum PantallaSalud { Ninguna, VentasPorFacturar, Ejercicios, LineasN43, Bancos, FacturasCompra, FacturasVenta, Mayor, Diario, Terceros, Nominas }
+public enum PantallaSalud { Ninguna, VentasPorFacturar, Ejercicios, LineasN43, Bancos, FacturasCompra, FacturasVenta, Mayor, Diario, Terceros, Nominas, Programadas }
 
 /// <summary>Dónde se resuelve: la pantalla, su nombre en el menú y, para el Mayor, las cuentas con las que se abre.</summary>
 public sealed record DestinoSalud(PantallaSalud Pantalla, string Nombre, IReadOnlyList<string>? Cuentas = null)
@@ -28,6 +28,15 @@ public sealed record ElementoSalud(
     string Clave, TipoSalud Tipo, GravedadSalud Gravedad, string Titulo, string Explicacion, DateTime? Plazo, DestinoSalud Destino,
     string Nodo, string Condicion, string ComoSeResuelve)
 {
+    /// <summary>
+    /// Número de cosas que cuenta el elemento (movimientos, facturas, subcuentas…) para la tendencia «desde el lunes»; null si el
+    /// elemento no cuenta nada (entonces cuenta como 1).
+    /// </summary>
+    public int? Cantidad { get; init; }
+
+    /// <summary>Importe asociado al elemento, si lo tiene (se guarda en el histórico de la tendencia).</summary>
+    public decimal? Importe { get; init; }
+
     /// <summary>Días que faltan hasta el plazo (negativo si está vencido); null sin plazo.</summary>
     public int? DiasHastaPlazo(DateTime hoy) => Plazo is DateTime p ? (p.Date - hoy.Date).Days : null;
 }
@@ -84,6 +93,9 @@ public interface IRevisionSalud
 /// <summary>El resultado de todas las revisiones, con la hora en que se hizo.</summary>
 public sealed record InformeSalud(DateTime Hora, IReadOnlyList<ResultadoRevision> Revisiones)
 {
+    /// <summary>Variación de cada elemento respecto al lunes de la semana en curso, por su clave (solo los que tienen dato y cambian).</summary>
+    public IReadOnlyDictionary<string, int> Tendencias { get; init; } = new Dictionary<string, int>();
+
     public IReadOnlyList<ElementoSalud> Elementos => Revisiones.SelectMany(r => r.Hallazgos.Elementos).ToList();
     public IReadOnlyList<HechaSalud> Hechas => Revisiones.SelectMany(r => r.Hallazgos.Hechas).ToList();
     public IReadOnlyList<ComprobacionCorrecta> Correctas => Revisiones.SelectMany(r => r.Hallazgos.Correctas).ToList();

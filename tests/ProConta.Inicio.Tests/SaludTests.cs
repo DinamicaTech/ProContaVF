@@ -158,8 +158,8 @@ public sealed class RevisionesSaludTests
 
     // ------------------------------------------------------------ avisos
 
-    private static BancoSalud Banco(string cuenta, DateTime? extracto, decimal? saldoBanco, decimal? contable, bool cuadrado = true, bool enUso = true) =>
-        new($"Banco {cuenta}", cuenta, true, extracto, saldoBanco, contable, enUso ? 100m : 0m, enUso, cuadrado);
+    private static BancoSalud Banco(string cuenta, DateTime? extracto, decimal? saldoBanco, decimal? contable, bool cuadrado = true, bool enUso = true, DateTime? movimiento = null) =>
+        new($"Banco {cuenta}", cuenta, true, extracto, saldoBanco, contable, enUso ? 100m : 0m, enUso, cuadrado, movimiento ?? extracto);
 
     [Fact]
     public void UnBancoQueNoCuadraEsGrave()
@@ -200,12 +200,43 @@ public sealed class RevisionesSaludTests
     }
 
     [Fact]
-    public void ExtractoAntiguoMasDe7DiasSinLasDeInversion()
+    public void ExtractoAntiguoMasDe40DiasSoloConMovimientoRecienteYSinLasDeInversion()
     {
-        var bancos = new List<BancoSalud> { Banco("5720001", new DateTime(2026, 11, 7), 1, 1), Banco("5720002", new DateTime(2026, 11, 8), 1, 1), Banco("5720019", new DateTime(2026, 1, 1), 1, 1) };
-        var e = RevisionExtractoAntiguo.Evaluar(bancos, new HashSet<string> { "5720019" }, Hoy).Elementos.Single();
-        Assert.Equal("Último extracto de Banco 5720001 de hace 8 días", e.Titulo);
-        Assert.Equal(PantallaSalud.Bancos, e.Destino.Pantalla);
+        var bancos = new List<BancoSalud>
+        {
+            Banco("5720001", new DateTime(2026, 10, 5), 1, 1),                                          // 41 días: avisa
+            Banco("5720002", new DateTime(2026, 10, 6), 1, 1),                                          // 40 días: aún no
+            Banco("5720019", new DateTime(2026, 1, 1), 1, 1),                                           // inversión
+            Banco("5720003", new DateTime(2023, 12, 31), 1, 1),                                         // parada desde 2023: no avisa
+            Banco("5720004", new DateTime(2023, 12, 31), 1, 1, movimiento: new DateTime(2026, 9, 30)),  // sin extracto desde 2023 pero con apuntes: avisa
+            Banco("5720005", new DateTime(2025, 11, 10), 1, 1, movimiento: new DateTime(2025, 11, 14)), // último movimiento hace más de 12 meses
+            Banco("5720006", new DateTime(2025, 11, 15), 1, 1),                                         // justo 12 meses: avisa
+        };
+        var e = RevisionExtractoAntiguo.Evaluar(bancos, new HashSet<string> { "5720019" }, Hoy).Elementos;
+        Assert.Equal(["banco-extracto-5720001", "banco-extracto-5720004", "banco-extracto-5720006"], e.Select(x => x.Clave));
+        Assert.Equal("Último extracto de Banco 5720001 de hace 41 días", e[0].Titulo);
+        Assert.Equal(PantallaSalud.Bancos, e[0].Destino.Pantalla);
+        // Sin ningún movimiento conocido tampoco avisa.
+        Assert.Empty(RevisionExtractoAntiguo.Evaluar([Banco("5720001", new DateTime(2026, 1, 1), 1, 1) with { UltimoMovimiento = null }], new HashSet<string>(), Hoy).Elementos);
+    }
+
+    [Fact]
+    public void ElCuadreDeLibrosDeIvaDejaFueraElAutorrepercutidoDeLasFacturasRecibidas()
+    {
+        var feb = new DateTime(2026, 2, 10);
+        var t = CuadreLibrosIva.Trimestres(
+            [(feb, 210m)],
+            [(feb, 21m), (feb, 30.37m)],   // la segunda es una factura recibida con autorrepercutido (ISP o comisión de plataforma)
+            [
+                new ApunteLibroIva(feb, "4770021", 0m, 210m, false),
+                new ApunteLibroIva(feb, "4720021", 21m, 0m, true),
+                new ApunteLibroIva(feb, "4720021", 30.37m, 0m, true),
+                new ApunteLibroIva(feb, "4771021", 0m, 30.37m, true),        // autorrepercutido: fuera del cuadre
+                new ApunteLibroIva(new DateTime(2026, 5, 4), "4770021", 0m, 15m, false),   // 2T: 477 a mano sin libro
+            ]);
+        Assert.Equal(new IvaLibrosTrimestre(1, 210m, 210m, 51.37m, 51.37m, 3), t[0]);
+        Assert.Equal(new IvaLibrosTrimestre(2, 0m, 15m, 0m, 0m, 0), t[1]);
+        Assert.Single(RevisionLibrosIva.Evaluar(t, 2026).Correctas);   // el 2T no tiene libros: no se compara
     }
 
     [Fact]

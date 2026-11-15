@@ -99,6 +99,7 @@ public static class CatalogoMigraciones
         MigracionesVentas.VentasPorFacturar,
         MigracionesVentas.ReglasVentaAgrupacion,
         MigracionesContabilidad.DiarioAsientosBorrados,
+        MigracionesInicio.HistoricoSalud,
     ];
 
     /// <summary>Versión del esquema que espera esta versión del programa.</summary>

@@ -32,6 +32,8 @@ public sealed record AccionesInicio(
     public Action? AbrirNominas { get; init; }
     /// <summary>Configuración › Parámetros y tablas en una tabla concreta (por ejemplo «ejercicios»).</summary>
     public Action<string>? AbrirParametros { get; init; }
+    /// <summary>Ventas › Facturas programadas (agenda, fase 4).</summary>
+    public Action? AbrirProgramadas { get; init; }
 }
 
 /// <summary>Bloque de la pantalla que se puede ocultar con «Personalizar…».</summary>
@@ -129,6 +131,8 @@ public sealed class InicioVM : ModeloVista
         new("ingresos", "Ingresos y gastos", "Ingresos y gastos de cada mes del ejercicio"),
         new("cobros", "Pendiente de cobro", "Lo que deben los clientes, por antigüedad, y los 5 clientes con más saldo"),
         new("gastos", "Gastos por naturaleza", "Gasto acumulado por cuenta de 3 dígitos, con el ejercicio comparado"),
+        new("agenda", "Agenda", "Próximos vencimientos en orden de fecha (90 días): plazos del 303 y del 390, cambios de tipo de IVA, crear el ejercicio y facturas programadas"),
+        new("ocupacion", "Ocupación turística", "Noches ocupadas entre noches disponibles por mes y por alojamiento, frente al ejercicio comparado. Solo aparece si la sociedad tiene reservas"),
         new("salud", "Salud de la contabilidad", "Tareas con plazo, avisos de cosas a corregir, estado de los periodos y comprobaciones, con «Lo más urgente» arriba"),
     ];
 
@@ -144,7 +148,7 @@ public sealed class InicioVM : ModeloVista
     private PanelInicio? _panel;
 
     public InicioVM(ServicioInicio servicio, ContextoInicio contexto, IDialogosInicio dialogos, AccionesInicio? acciones = null, IPreferenciasOperador? preferencias = null,
-        ServicioSalud? salud = null)
+        ServicioSalud? salud = null, ProConta.Inicio.Bloques.ServicioBloques? bloques = null)
     {
         _servicio = servicio;
         _ctx = contexto;
@@ -165,7 +169,15 @@ public sealed class InicioVM : ModeloVista
             Salud = new SaludVM(salud, contexto, _acciones, dialogos, () => _inversiones.ToHashSet(StringComparer.Ordinal));
             Salud.PropertyChanged += (_, e) => { if (e.PropertyName == nameof(SaludVM.HayUrgente)) Avisar(nameof(VerUrgente)); };
         }
+        if (bloques is not null)
+        {
+            Fase4 = new BloquesFase4VM(bloques, contexto, _acciones);
+            Fase4.PropertyChanged += (_, e) => { if (e.PropertyName == nameof(BloquesFase4VM.HayOcupacion)) Avisar(nameof(VerOcupacion), nameof(TodoOculto)); };
+        }
     }
+
+    /// <summary>Ocupación turística y agenda (fase 4); null si no se han conectado.</summary>
+    public BloquesFase4VM? Fase4 { get; }
 
     /// <summary>La franja «Lo más urgente»: solo con la salud visible y algo grave.</summary>
     public bool VerUrgente => VerSalud && Salud!.HayUrgente;
@@ -189,6 +201,7 @@ public sealed class InicioVM : ModeloVista
         {
             if (!Fijar(ref _comparar, value) || !_iniciado || value is null) return;
             _ = CargarAsync();
+            if (Fase4 is not null) _ = Fase4.CompararAsync(value.Ejercicio);
         }
     }
 
@@ -228,7 +241,10 @@ public sealed class InicioVM : ModeloVista
     public bool VerCobros => !_ocultos.Contains("cobros");
     public bool VerGastos => !_ocultos.Contains("gastos");
     public bool VerSalud => Salud is not null && !_ocultos.Contains("salud");
-    public bool TodoOculto => Bloques.All(b => _ocultos.Contains(b.Clave) || (b.Clave == "salud" && Salud is null));
+    public bool VerAgenda => Fase4 is not null && !_ocultos.Contains("agenda");
+    public bool VerOcupacion => Fase4 is { HayOcupacion: true } && !_ocultos.Contains("ocupacion");
+    public bool TodoOculto => Bloques.All(b => _ocultos.Contains(b.Clave) || (b.Clave == "salud" && Salud is null) || (b.Clave == "agenda" && Fase4 is null)
+                                               || (b.Clave == "ocupacion" && Fase4 is not { HayOcupacion: true }));
 
     // ------------------------------------------------------------ bloques
 
@@ -313,10 +329,12 @@ public sealed class InicioVM : ModeloVista
     /// <summary>Primera carga: los ejercicios comparables (por defecto, el anterior) y los indicadores.</summary>
     public async Task IniciarAsync()
     {
-        // La salud se revisa aparte: no retrasa los indicadores.
+        // La salud y los bloques de la fase 4 se cargan aparte: no retrasan los indicadores.
         var salud = Salud?.RevisarAsync() ?? Task.CompletedTask;
         await IniciarIndicadoresAsync();
+        var fase4 = Fase4?.CargarAsync(Comparar?.Ejercicio) ?? Task.CompletedTask;
         await salud;
+        await fase4;
     }
 
     private async Task IniciarIndicadoresAsync()
@@ -351,6 +369,7 @@ public sealed class InicioVM : ModeloVista
     {
         _servicio.Olvidar();
         var salud = Salud?.RevisarAsync() ?? Task.CompletedTask;
+        var fase4 = Fase4?.CargarAsync(Comparar?.Ejercicio, releer: true) ?? Task.CompletedTask;
         if (!_iniciado) await IniciarIndicadoresAsync();
         else
         {
@@ -358,6 +377,7 @@ public sealed class InicioVM : ModeloVista
             if (Estado == EstadoVista.Contenido) _ctx.Avisar($"Inicio actualizado a las {DateTime.Now:HH:mm}");
         }
         await salud;
+        await fase4;
     }
 
     private async Task CargarAsync()
@@ -418,7 +438,7 @@ public sealed class InicioVM : ModeloVista
         if (_ocultos.Count == 0) _prefs.Borrar(ClaveOcultos);
         else _prefs.Guardar(ClaveOcultos, _ocultos.OrderBy(x => x, StringComparer.Ordinal).ToList());
         Avisar(nameof(VerIndicadores), nameof(VerFacturacion), nameof(VerRatios), nameof(VerTesoreria), nameof(VerIngresos), nameof(VerCobros), nameof(VerGastos), nameof(VerSalud),
-            nameof(VerUrgente), nameof(TodoOculto));
+            nameof(VerAgenda), nameof(VerOcupacion), nameof(VerUrgente), nameof(TodoOculto));
         var inversiones = r.Inversiones.ToHashSet(StringComparer.Ordinal);
         if (inversiones.SetEquals(_inversiones)) return;
         _inversiones = inversiones;
@@ -731,7 +751,8 @@ public sealed class InicioVM : ModeloVista
         foreach (var b in p.Bancos)
         {
             var dias = b.UltimoExtracto is DateTime u ? (p.FechaCorte - u.Date).Days : (int?)null;
-            var aviso = dias is > 7 ? $"hace {dias} días" : null;
+            // Mismo umbral que el aviso de extracto antiguo de la salud (decisión 2026-11-15 15:18 de pantalla-de-inicio).
+            var aviso = dias > ProConta.Inicio.Salud.RevisionExtractoAntiguo.Dias ? $"hace {dias} días" : null;
             Bancos.Add(new BancoVM(b.Nombre, b.Cuenta, Imp(b.Saldo), b.UltimoExtracto is DateTime ue ? $"extracto hasta el {ue:dd/MM/yyyy}" : "sin extractos N43", aviso,
                 $"{b.Nombre} ({b.Cuenta}): saldo contable {Imp(b.Saldo)} {HastaCorte(p)}. " +
                 (b.UltimoExtracto is DateTime ux ? $"El último extracto Norma 43 importado llega hasta el {ux:dd/MM/yyyy}." : "No tiene extractos Norma 43 importados.") +
