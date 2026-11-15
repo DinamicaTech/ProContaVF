@@ -8,7 +8,7 @@ threads:
 ## Summary
 Pantalla de inicio (pestaña Inicio del contenedor) de la sociedad y el ejercicio de trabajo: indicadores financieros (ratios), comparativos de facturación con ejercicios anteriores y otra información útil o vistosa, más un apartado de «salud» de la contabilidad con las tareas pendientes (p. ej. cerrar un IVA trimestral) y los avisos de cosas a solucionar, cada uno con acceso directo a la pantalla que lo resuelve.
 La pantalla solo muestra: los ratios los calcula informes/ratios, los gráficos los dibuja informes/graficos, las tareas salen de contabilidad/procesos y cada aviso lo da el nodo dueño del dato.
-Es un borrador: el diseño está en la maqueta `sources/maquetas/Inicio/proconta-inicio.html` (versión 3, datos ficticios), con las respuestas del propietario del 2026-11-15 ya recogidas en Decisions; falta su visto bueno para repartir las líneas «Derived from» y abrir la implementación. La previsión de tesorería y la agenda quedan para después del arranque.
+Es un borrador: el diseño está en la maqueta `sources/maquetas/Inicio/proconta-inicio.html` (versión 3, datos ficticios), con las respuestas del propietario del 2026-11-15 ya recogidas en Decisions y validada por él el 2026-11-15; falta repartir las líneas «Derived from» y abrir la implementación. La previsión de tesorería y la agenda quedan para después del arranque.
 **Aceptación:** el propietario valida la maqueta, y cada indicador, tarea y aviso tiene su nodo de origen con su línea «Derived from»; cada aviso abre la pantalla que lo resuelve.
 
 ## Decisions
@@ -21,6 +21,7 @@ Es un borrador: el diseño está en la maqueta `sources/maquetas/Inicio/proconta
 - 2026-11-15 11:47 · Salud: de momento sin más comprobaciones que las de la maqueta y sin posponer ni silenciar avisos; se revisará con el uso si resultan molestos. Un aviso desaparece solo cuando deja de cumplirse su condición.
 - 2026-11-15 11:47 · La previsión de tesorería y la agenda (necesitan vencimientos fiables de cobros y pagos) se hacen después del arranque en producción; el saldo real de tesorería y el saldo por banco no dependen de ello.
 - 2026-11-15 11:47 · Los nueve bloques (facturación, ratios, tesorería, agenda, ingresos y gastos, pendiente de cobro, gastos por naturaleza, ocupación turística y salud) se ven por defecto; «Personalizar» permite ocultarlos por operador.
+- 2026-11-15 11:55 · El propietario valida la maqueta versión 3 (`sources/maquetas/Inicio/proconta-inicio.html`) como diseño de la pantalla. El nodo sigue en borrador hasta que se implemente; queda repartir las líneas «Derived from» y acordar el orden de implementación.
 
 ## Requirements
 - 2026-11-15 07:38 · Vamos a trabajar la pantalla de inicio ('home') para que muestre indicadores financieros (ratios), comparativos de facturación y otra información que pueda ser útil o vistosa.
@@ -34,4 +35,5 @@ Es un borrador: el diseño está en la maqueta `sources/maquetas/Inicio/proconta
 - 2026-11-15 11:47 · answer: ¿más comprobaciones de salud, silenciar o posponer? → No se me ocurren más indicadores de salud. De momento sin silenciar ni posponer. Luego veré con el uso si resultan molestos.
 - 2026-11-15 11:47 · answer: ¿previsión de tesorería y agenda ahora o después del arranque? → Después del arranque
 - 2026-11-15 11:47 · answer: ¿qué bloques quitar de la vista por defecto? → La verdad es que los nueve son interesantes, yo no deshabilitaría ninguno por defecto
+- 2026-11-15 11:55 · Ok, validado. Está perfecto.
 - 2026-11-15 07:38 · draft: Diseñar con una maqueta HTML la pantalla de inicio (indicadores, comparativos de facturación y salud de la contabilidad), debatirla con el propietario y, cuando la valide, repartir las líneas «Derived from» y abrir la implementación.
