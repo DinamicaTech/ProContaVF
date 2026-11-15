@@ -69,7 +69,7 @@ label.l{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;color:va
 .kpi .v small{font:500 13px var(--f-ui);color:var(--mut)}
 .kpi .d{font-size:12px;color:var(--mut);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .up{color:var(--green);font-weight:600}.dn{color:var(--red);font-weight:600}
-.kpi svg{display:block;width:100%;height:30px;margin-top:4px}
+.kpi svg{display:block;width:100%;height:30px;margin-top:auto;padding-top:4px;flex:none}
 /* gráficos */
 .chart{position:relative}
 .chart svg{display:block;width:100%;overflow:visible}
@@ -204,7 +204,7 @@ td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
 </style></head><body>
 
 <div class="demo pad" role="region" aria-label="Controles de la maqueta">
-  <b>MAQUETA</b><span>No forma parte de ProConta · datos ficticios · versión 2 (Fable) · hoy es domingo 15/11/2026</span>
+  <b>MAQUETA</b><span>No forma parte de ProConta · datos ficticios · versión 3 (Fable) · hoy es domingo 15/11/2026</span>
   <button id="d-ok" aria-pressed="false" title="Muestra el apartado de salud cuando no queda nada pendiente">Ejemplo: todo al día</button>
   <button id="d-nuevo" aria-pressed="false" title="Muestra la pantalla con el ejercicio 2027 recién creado, sin movimientos">Ejemplo: ejercicio recién creado</button>
 </div>
@@ -239,7 +239,7 @@ td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
 
       <section class="card" data-blk="fact" aria-label="Facturación">
         <header>
-          <h2>Facturación</h2><span class="n" id="fact-n">base imponible por mes</span><span class="n" id="fact-prev" title="Lo facturado hasta hoy más lo ya comprometido hasta el 31/12: facturas programadas pendientes de emitir y reservas confirmadas sin facturar"></span>
+          <h2>Facturación</h2><span class="n" id="fact-n">base imponible por mes</span><span class="n" id="fact-prev" title="Proyección del ejercicio completo: total del ejercicio comparado multiplicado por (acumulado actual hasta hoy / acumulado del ejercicio comparado hasta la misma fecha)"></span>
           <div class="seg sp" role="group" aria-label="Vista">
             <button data-v="mes" aria-pressed="true" title="Facturación de cada mes">Mensual</button>
             <button data-v="acu" aria-pressed="false" title="Facturación acumulada desde el 1 de enero">Acumulada</button>
@@ -269,11 +269,11 @@ td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
 
       <div class="grid2">
         <section class="card" data-blk="teso" aria-label="Tesorería">
-          <header><h2>Tesorería</h2><span class="n">saldo de bancos, 12 meses y previsión a 60 días</span></header>
+          <header><h2>Tesorería</h2><span class="n">saldo de bancos, 12 meses y previsión a 60 días</span><span class="st info sp" title="La previsión necesita los vencimientos de cobros y pagos: se hará después del arranque. El saldo real y el saldo por banco entran desde el principio">Previsión: después del arranque</span></header>
           <div class="cb"><div class="legend"><span><i style="background:var(--s1)"></i>Saldo real</span><span><i class="dash"></i>Previsión</span></div><div class="chart" id="teso"></div><div id="teso-b"></div></div>
         </section>
         <section class="card" data-blk="agenda" aria-label="Agenda">
-          <header><h2>Agenda</h2><span class="n">lo que va a pasar en los próximos 30 días</span></header>
+          <header><h2>Agenda</h2><span class="n">próximos 30 días</span><span class="st info sp" title="Necesita los vencimientos de cobros y pagos: se hará después del arranque">Después del arranque</span></header>
           <div class="cb" id="agenda"></div>
         </section>
         <section class="card" data-blk="res" aria-label="Ingresos y gastos">
@@ -306,33 +306,28 @@ td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
       </header>
       <div class="score" id="score"></div>
       <div class="sbody" id="sbody" tabindex="0" aria-label="Tareas y avisos. Doble clic o Intro abre la pantalla que lo resuelve; clic derecho para más acciones"></div>
-      <div class="sfoot"><span>Revisada hoy a las 07:52</span><span>Doble clic abre la pantalla que lo resuelve · clic derecho, más acciones</span></div>
+      <div class="sfoot"><span>Revisada hoy a las 07:52</span><span>Doble clic abre la pantalla que lo resuelve</span></div>
     </aside>
   </div>
 
   <aside class="notes" data-blk="notas">
     <div>
-      <h3>Novedades de la versión 2</h3>
+      <h3>Decisiones recogidas en la versión 3</h3>
       <ul>
-        <li><b>Lo más urgente</b>, arriba del todo: lo primero que hay que hacer hoy, con su botón.</li>
-        <li><b>Previsión de cierre</b> en Facturación: a lo facturado se suma lo ya comprometido (facturas programadas por emitir y reservas confirmadas), rayado en el gráfico.</li>
-        <li><b>Ratios compactos</b>: una fila por ratio con su posición respecto al rango de referencia (franja verde). Ocupan la mitad y se leen de un vistazo.</li>
-        <li><b>Tesorería con previsión a 60 días</b> (cobros, pagos e impuestos previstos) y el saldo de cada banco con la fecha de su último extracto.</li>
-        <li><b>Agenda</b>: lo que va a pasar solo (programadas que se emiten, vencimientos, nóminas, cuotas). Salud queda para lo que tienes que hacer tú.</li>
-        <li><b>Ingresos y gastos por mes</b>, para ver el resultado mes a mes.</li>
-        <li>En Salud: <b>estado de los periodos</b> (qué meses y trimestres están cerrados), la <b>tendencia</b> de cada aviso, las <b>comprobaciones correctas</b> y un resumen de las <b>otras sociedades</b>.</li>
+        <li>La fila de seis indicadores se queda como está, con el IVA estimado del trimestre.</li>
+        <li>Dos métricas distintas: el <b>comparativo real</b> a la misma fecha del ejercicio comparado y la <b>proyección de cierre</b> = total del ejercicio comparado × (acumulado actual / acumulado del comparado a la misma fecha). La proyección sale en Facturación (rayado en el gráfico) y en los indicadores de facturación y resultado.</li>
+        <li>Solo la sociedad de trabajo: se quita el resumen de otras sociedades.</li>
+        <li>Rangos de referencia de los ratios: los estándar.</li>
+        <li>Salud sin posponer ni silenciar avisos; se verá con el uso si molestan.</li>
+        <li>La previsión de tesorería y la agenda se hacen después del arranque.</li>
+        <li>Los nueve bloques se ven por defecto; «Personalizar» permite ocultar alguno.</li>
       </ul>
     </div>
     <div>
-      <h3>Para debatir</h3>
+      <h3>Pendiente</h3>
       <ol>
-        <li>¿Sobran o faltan indicadores en la fila de arriba? ¿El IVA estimado del trimestre te resulta útil?</li>
-        <li>¿Comparar siempre a la misma fecha, o el ejercicio anterior completo?</li>
-        <li>Otras sociedades: ¿basta el resumen al pie de Salud o quieres una vista conjunta?</li>
-        <li>¿Los rangos de referencia de los ratios los fijas tú por sociedad, o valen los estándar?</li>
-        <li>¿Qué comprobaciones y avisos más quieres en Salud? ¿Se puede silenciar un aviso para siempre o solo posponerlo?</li>
-        <li>La previsión de tesorería y la agenda necesitan vencimientos fiables de cobros y pagos: ¿entran ahora o después del arranque?</li>
-        <li>Hay nueve bloques: ¿cuáles quitarías de la vista por defecto?</li>
+        <li>Tu visto bueno a esta versión como diseño de la pantalla.</li>
+        <li>Con él, se reparte a cada nodo lo que debe aportar (ratios, gráficos, procesos, avisos) y se propone el orden de implementación.</li>
       </ol>
     </div>
   </aside>
@@ -353,7 +348,7 @@ const FACT={
   2025:[66.2,61.0,70.4,76.1,85.3,101.2,129.5,137.1,104.2,80.3,68.4,77.0],
   2026:[71.3,67.2,77.5,82.0,93.4,110.6,141.2,149.3,112.4,88.1,41.6,null]
 };
-const FC={10:38.2,11:71.5}; // ya comprometido sin facturar: programadas por emitir + reservas confirmadas
+let FC={}; // proyección de lo que queda de ejercicio: ejercicio comparado × (acumulado actual / acumulado del comparado a la misma fecha)
 const GMES=[65,63,70,72,78,89,104,108,91,74,34.2];
 const AGENDA=[
   ["lun 16/11","Se emiten 3 facturas programadas",2140,"Facturación › Programadas"],
@@ -373,7 +368,6 @@ const PER=[
   ["Nóminas","Nóminas",[...OK10,"cur",""],{}]
 ];
 const CHK=["El Diario cuadra: debe y haber iguales en los 4.812 asientos","Numeración de facturas sin huecos en las 3 series","Libro de IVA repercutido igual a las cuentas 477","Libro de IVA soportado igual a las cuentas 472","BBVA y CaixaBank cuadran con su último extracto","Sin apuntes en subcuentas dadas de baja","Todos los clientes y proveedores con movimientos tienen NIF","Amortización acumulada igual a la ficha de cada activo","Nóminas contabilizadas hasta octubre"];
-const SOC=[["Ribera Inversions SL",[["warn","! 3 atención"]]],["Mar Blau Turístic SL",[["ok","✓ Todo al día"]]]];
 const NOVHALF={2024:30.1,2025:33.9}; // noviembre hasta el día 15
 const ACT=[ // acumulado a 15/11, miles
   {n:"Alquiler turístico",c:"--s1",v:{2026:428.1,2025:381.0,2024:339.3}},
@@ -459,7 +453,7 @@ function toast(t,s){const el=$("#toast");el.innerHTML=esc(t)+(s?`<small>${esc(s)
 const tip=$("#tip");
 function showTip(e,html){tip.innerHTML=html;tip.hidden=false;const w=tip.offsetWidth,h=tip.offsetHeight;let x=e.clientX+14,y=e.clientY+14;if(x+w>innerWidth-8)x=e.clientX-w-14;if(y+h>innerHeight-8)y=e.clientY-h-14;tip.style.left=Math.max(8,x)+"px";tip.style.top=Math.max(8,y)+"px";}
 function hideTip(){tip.hidden=true;}
-function niceMax(v){const p=Math.pow(10,Math.floor(Math.log10(v)));const m=v/p;return (m<=1?1:m<=2?2:m<=2.5?2.5:m<=5?5:10)*p;}
+function niceMax(v){const p=Math.pow(10,Math.floor(Math.log10(v)));const m=v/p;return (m<=1?1:m<=1.5?1.5:m<=2?2:m<=2.5?2.5:m<=5?5:10)*p;}
 function spark(vals,color,w=200,h=30){
   const pts=vals.map((v,i)=>v==null?null:[i/(vals.length-1)*w,v]).filter(Boolean);
   const mn=Math.min(...pts.map(p=>p[1])),mx=Math.max(...pts.map(p=>p[1]));
@@ -473,14 +467,14 @@ function renderKpis(){
   const n=state.nuevo,c=state.cmp;
   const f26=n?0:sum(FACT[2026]),fc=c?sum(FACT[c].slice(0,10))+NOVHALF[c]:null;
   const K=[
-    {k:"Facturación del ejercicio",v:n?"0 €":eur(Math.round(f26*1000)),d:n?"sin facturas todavía":(c?`${dlt(f26,fc)} vs ${c} (${nf(fc,0)}k)`:"sin comparar"),s:FACT[2026].slice(0,11),go:"Facturación › Facturas",t:"Base imponible de las facturas de venta emitidas desde el 1 de enero hasta hoy"},
-    {k:"Resultado antes de impuestos",v:n?"0 €":"186.420 €",d:n?"—":(c?`${dlt(186420,c==="2024"?149300:161900)} vs ${c} (${c==="2024"?"149k":"162k"})`:"sin comparar"),s:[12,21,34,47,61,79,104,131,149,166,181,186],go:"Informes › Balance de pérdidas y ganancias",t:"Grupos 7 menos grupos 6 (sin el impuesto, 630) hasta hoy"},
+    {k:"Facturación del ejercicio",v:n?"0 €":eur(Math.round(f26*1000)),d:n?"sin facturas todavía":(c?`${dlt(f26,fc)} vs ${c} (${nf(fc,0)}k)`:"sin comparar"),p:!n&&c?`proyección de cierre ${nf(sum(FACT[c])*f26/fc,0)}k`:"",s:FACT[2026].slice(0,11),go:"Facturación › Facturas",t:"Base imponible de las facturas de venta emitidas desde el 1 de enero hasta hoy"},
+    {k:"Resultado antes de impuestos",v:n?"0 €":"186.420 €",d:n?"—":(c?`${dlt(186420,c==="2024"?149300:161900)} vs ${c} (${c==="2024"?"149k":"162k"})`:"sin comparar"),p:!n&&c?`proyección de cierre ${nf((c==="2024"?165.0:178.4)*186420/(c==="2024"?149300:161900),0)}k`:"",s:[12,21,34,47,61,79,104,131,149,166,181,186],go:"Informes › Balance de pérdidas y ganancias",t:"Grupos 7 menos grupos 6 (sin el impuesto, 630) hasta hoy"},
     {k:"Tesorería",v:n?"248.315 €":"248.315 €",d:`<span class="dn">▼ 1,1 %</span> desde el 31/10`,s:TESO.map(x=>x.v),go:"Norma 43 › Bancos",t:"Suma de los saldos contables de las cuentas bancarias (572)"},
     {k:"Pendiente de cobro",v:n?"0 €":eur(COBROS.total),d:n?"—":`<span class="dn">18.240 € vencido</span> · 23 facturas`,s:[52,58,61,55,49,57,71,83,77,69,66,64.9],go:"Contabilidad › Mayor (430 con saldo)",t:"Saldo deudor de clientes (430-436). Vencido: facturas con vencimiento anterior a hoy"},
     {k:"Pendiente de pago",v:n?"0 €":"27.315 €",d:n?"—":`4.180 € vence esta semana`,s:[31,29,33,30,28,34,38,36,31,29,28,27.3],go:"Contabilidad › Mayor (400-410 con saldo)",t:"Saldo acreedor de proveedores y acreedores (400-410)"},
     {k:n?"IVA del 1T (estimado)":"IVA del 4T (estimado)",v:n?"0 €":"21.436 €",d:n?"—":`a ingresar · repercutido 38.900 €`,s:[8,11,14,15,17,19,20,21.4],go:"Contabilidad › Procesos contables › Liquidación de IVA",t:"IVA repercutido menos soportado deducible del trimestre activo, hasta hoy. No es la liquidación: es lo que saldría si se liquidara ahora"}
   ];
-  $("#kpis").innerHTML=K.map((x,i)=>`<button class="kpi" data-i="${i}" title="${esc(x.t)}. Pulsa para abrir ${esc(x.go)}"><span class="k">${esc(x.k)}</span><span class="v">${x.v}</span><span class="d">${x.d}</span>${n&&i!==2?'<svg></svg>':spark(x.s,css("--blue"))}</button>`).join("");
+  $("#kpis").innerHTML=K.map((x,i)=>`<button class="kpi" data-i="${i}" title="${esc(x.t)}. Pulsa para abrir ${esc(x.go)}"><span class="k">${esc(x.k)}</span><span class="v">${x.v}</span><span class="d">${x.d}</span>${x.p?`<span class="d" title="Proyección del ejercicio completo: total de ${c} × (acumulado actual / acumulado de ${c} a la misma fecha)">${x.p}</span>`:""}${n&&i!==2?'<svg></svg>':spark(x.s,css("--blue"))}</button>`).join("");
   $("#kpis").querySelectorAll(".kpi").forEach(b=>b.onclick=()=>toast("Abriría "+K[b.dataset.i].go,"En la aplicación se abre en una pestaña nueva, ya filtrada."));
 }
 /* ---------- facturación ---------- */
@@ -488,12 +482,14 @@ function renderFact(){
   const c=state.cmp,v=state.fv,cur=FACT[2026],yl=state.nuevo?"2027":"2026";
   const prev=c?FACT[c]:null,ch=$("#fact-ch"),pv=$("#fact-prev");
   if(state.nuevo){pv.hidden=true;$("#fact-leg").innerHTML="";ch.innerHTML=`<div class="empty"><b>Aún no hay facturas en 2027</b>El gráfico se llena con la primera factura validada del ejercicio. Mientras, puedes compararlo con 2026 cambiando el ejercicio de trabajo en la cabecera.</div>`;renderAct();return;}
-  const ytd=sum(cur),fin=ytd+FC[10]+FC[11],pt=prev?sum(prev):null;
-  pv.hidden=false;pv.innerHTML=`· previsión de cierre <b style="color:var(--ink)">${k(fin)}</b>`+(pt?` ${dlt(fin,pt)} sobre ${c}`:"");
-  $("#fact-leg").innerHTML=`<span><i style="background:var(--s1)"></i>${yl} facturado</span><span><i class="hatch"></i>${yl} comprometido (programadas y reservas)</span>`+(c?`<span><i style="background:var(--s2)"></i>${c}</span>`:"");
+  const ytd=sum(cur),pt=prev?sum(prev):null,ra=prev?ytd/(sum(prev.slice(0,10))+NOVHALF[c]):null;
+  FC=prev?{10:(prev[10]-NOVHALF[c])*ra,11:prev[11]*ra}:{};
+  const fin=prev?pt*ra:null;
+  pv.hidden=!prev;if(prev)pv.innerHTML=`· proyección de cierre <b style="color:var(--ink)">${k(fin)}</b> ${dlt(fin,pt)} sobre ${c} completo (${k(pt)})`;
+  $("#fact-leg").innerHTML=`<span><i style="background:var(--s1)"></i>${yl} facturado</span>`+(c?`<span><i class="hatch"></i>${yl} proyectado</span>`:"")+(c?`<span><i style="background:var(--s2)"></i>${c}</span>`:"");
   if(v==="tab"){
     let acc=0,accp=0;
-    ch.innerHTML=`<div class="tw"><table><thead><tr><th>Mes</th><th class="num">Facturado</th><th class="num">Comprometido</th>${c?`<th class="num">${c}</th><th class="num">Variación</th>`:""}<th class="num">Acumulado previsto</th>${c?`<th class="num">Acumulado ${c}</th>`:""}</tr></thead><tbody>`+
+    ch.innerHTML=`<div class="tw"><table><thead><tr><th>Mes</th><th class="num">Facturado</th><th class="num">Proyectado</th>${c?`<th class="num">${c}</th><th class="num">Variación</th>`:""}<th class="num">Acumulado proyectado</th>${c?`<th class="num">Acumulado ${c}</th>`:""}</tr></thead><tbody>`+
       MESL.map((m,i)=>{const a=cur[i],f=FC[i]||0,p=prev?prev[i]:null;acc+=(a||0)+f;if(p!=null)accp+=p;
         return `<tr><td>${m}</td><td class="num">${a==null?"":k(a)}</td><td class="num">${f?k(f):""}</td>${c?`<td class="num">${k(p)}</td><td class="num">${dlt((a||0)+f,p)}</td>`:""}<td class="num">${k(acc)}</td>${c?`<td class="num">${k(accp)}</td>`:""}</tr>`;}).join("")+`</tbody></table></div>`;
     renderAct();return;
@@ -501,7 +497,7 @@ function renderFact(){
   const W=Math.max(ch.clientWidth||640,320),H=250,L=46,R=8,T=14,B=26,pw=W-L-R,ph=H-T-B;
   let A=cur.slice(),P=prev?prev.slice():null;
   if(v==="acu"){let q=0;A=A.map(x=>x==null?null:(q+=x));if(P){let t=0;P=P.map(x=>(t+=x));}}
-  const tops=v==="acu"?[fin,...(P||[])]:[...cur.map((x,i)=>(x||0)+(FC[i]||0)),...(P||[])];
+  const tops=v==="acu"?[fin||0,...A.filter(x=>x!=null),...(P||[])]:[...cur.map((x,i)=>(x||0)+(FC[i]||0)),...(P||[])];
   const mx=niceMax(Math.max(...tops)*1.05);
   const y=val=>T+ph-(val/mx)*ph, bw=pw/12;
   let s=`<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" role="img" aria-label="Facturación ${v==="acu"?"acumulada":"mensual"} ${yl}${c?" frente a "+c:""}">`;
@@ -525,10 +521,11 @@ function renderFact(){
     const X=i=>L+i*bw+bw/2;
     const pathOf=(arr,col)=>{const pts=arr.map((val,i)=>val==null?null:[X(i),y(val)]).filter(Boolean);return `<path d="${pts.map((p,i)=>(i?"L":"M")+p[0]+","+p[1]).join("")}" fill="none" stroke="${col}" stroke-width="2" stroke-linejoin="round"/>`+pts.map(p=>`<circle cx="${p[0]}" cy="${p[1]}" r="3.5" fill="${col}" stroke="#fff" stroke-width="2"/>`).join("");};
     if(P)s+=pathOf(P,s2);
-    s+=`<path d="M${X(10)},${y(A[10])}L${X(11)},${y(fin)}" fill="none" stroke="${s1}" stroke-width="2" stroke-dasharray="5 4"/><circle cx="${X(11)}" cy="${y(fin)}" r="3.5" fill="#fff" stroke="${s1}" stroke-width="2"/>`;
+    if(fin)s+=`<path d="M${X(10)},${y(A[10])}L${X(11)},${y(fin)}" fill="none" stroke="${s1}" stroke-width="2" stroke-dasharray="5 4"/><circle cx="${X(11)}" cy="${y(fin)}" r="3.5" fill="#fff" stroke="${s1}" stroke-width="2"/>`;
     s+=pathOf(A,s1);
     for(let i=0;i<12;i++)s+=`<text class="ax" x="${X(i)}" y="${H-8}" text-anchor="middle">${MES[i]}</text>`;
-    s+=`<text class="dl" x="${X(11)}" y="${y(fin)-9}" text-anchor="end">previsión ${yl}: ${nf(fin)}k</text>`;
+    if(fin)s+=`<text class="dl" x="${X(11)}" y="${y(fin)-9}" text-anchor="end">proyección ${yl}: ${nf(fin)}k</text>`;
+    else s+=`<text class="dl" x="${X(10)-6}" y="${y(A[10])-9}" text-anchor="end">${yl}: ${nf(A[10])}k</text>`;
     if(P)s+=`<text class="dl" x="${X(11)}" y="${y(P[11])+17}" text-anchor="end">${c}: ${nf(P[11])}k</text>`;
   }
   s+=`<line id="xh" x1="0" x2="0" y1="${T}" y2="${T+ph}" stroke="${css("--mut2")}" stroke-width="1" opacity="0"/>`;
@@ -541,10 +538,10 @@ function renderFact(){
       const tot=v==="mes"?(cur[i]||0)+f:(i===11?fin:a);
       showTip(e,`<b>${MESL[i]}${v==="acu"?" · acumulado":""}</b>`+
         `<div class="r"><span><i style="background:${s1}"></i>${yl} facturado${i===10?" (hasta el 15)":""}</span><span>${a==null?"—":k(a)}</span></div>`+
-        (v==="mes"&&f?`<div class="r"><span>Comprometido</span><span>${k(f)}</span></div>`:"")+
-        (v==="acu"&&i===11?`<div class="r"><span>Previsión de cierre</span><span>${k(fin)}</span></div>`:"")+
+        (v==="mes"&&f?`<div class="r"><span>Proyectado</span><span>${k(f)}</span></div>`:"")+
+        (v==="acu"&&i===11&&fin?`<div class="r"><span>Proyección de cierre</span><span>${k(fin)}</span></div>`:"")+
         (P?`<div class="r"><span><i style="background:${s2}"></i>${c}</span><span>${k(p)}</span></div>`:"")+
-        (P&&!(v==="acu"&&i===10)?`<div class="r"><span>Variación${f||i===11?" prevista":""}</span><span>${dlt(tot,p)}</span></div>`:""));};
+        (P&&!(v==="acu"&&i===10)?`<div class="r"><span>Variación${f||i===11?" proyectada":""}</span><span>${dlt(tot,p)}</span></div>`:""));};
     r.onmouseleave=()=>{hideTip();xh.setAttribute("opacity","0");};
     r.onclick=()=>toast("Abriría Facturación › Facturas de "+MESL[r.dataset.i]+" de "+yl);
   });
@@ -706,13 +703,9 @@ function renderSalud(){
     h+=`<h3>Avisos <span class="hint" style="text-transform:none;letter-spacing:0;font-weight:400">${a.length}</span></h3>`+(a.length?a.map(item).join(""):`<div class="hint" style="padding:6px 8px">Sin avisos.</div>`);}
   if(state.sf!=="avi"){const d=vis.filter(x=>x.done);
     h+=`<h3>Hechas este trimestre <span class="hint" style="text-transform:none;letter-spacing:0;font-weight:400">${d.length}</span></h3>`+d.map(item).join("");}
-  if(state.snooze.size)h+=`<h3>Pospuestos <button class="lnk" id="unsz" title="Vuelve a mostrar lo pospuesto">Mostrar (${state.snooze.size})</button></h3>`;
   h+=`<details class="chk"><summary title="Lo que se ha revisado y está bien">Comprobaciones correctas (${CHK.length})</summary><ul>${CHK.map(t=>`<li>${esc(t)}</li>`).join("")}</ul></details>`;
-  h+=`<h3>Otras sociedades</h3>`+SOC.map(o=>`<div class="soc" title="Doble clic: cambia la sociedad de trabajo a ${esc(o[0])}"><b>${esc(o[0])}</b>${o[1].map(q=>`<span class="st ${q[0]}">${q[1]}</span>`).join("")}</div>`).join("");
   box.innerHTML=h;
-  box.querySelectorAll(".soc").forEach((el,i)=>el.ondblclick=()=>toast("Cambiaría la sociedad de trabajo a "+SOC[i][0]));
   box.querySelectorAll(".mx tbody tr").forEach((tr,i)=>tr.ondblclick=()=>toast("Abriría "+(PER[i]?PER[i][1]:"Contabilidad › Procesos contables › Liquidación de IVA")));
-  const u=$("#unsz");if(u)u.onclick=()=>{state.snooze.clear();renderSalud();toast("Vuelven a verse los avisos pospuestos");};
   box.querySelectorAll(".it").forEach(el=>{const id=+el.dataset.id;
     el.onclick=e=>{if(e.ctrlKey||e.metaKey){state.sel.has(id)?state.sel.delete(id):state.sel.add(id);}else if(e.shiftKey&&state.sel.size){const ids=[...box.querySelectorAll(".it")].map(x=>+x.dataset.id);const a=ids.indexOf([...state.sel].pop()),c=ids.indexOf(id);ids.slice(Math.min(a,c),Math.max(a,c)+1).forEach(z=>state.sel.add(z));}else{state.sel=new Set([id]);}renderSalud();};
     el.ondblclick=()=>openItem(id);
@@ -722,20 +715,15 @@ function renderSalud(){
 function openItem(id){const x=SALUD.find(z=>z.id===id);toast("Abriría "+x.go,"En una pestaña nueva, ya filtrada en lo que hay que resolver.");}
 function ctxMenu(cx,cy){
   const sel=SALUD.filter(x=>state.sel.has(x.id)),one=sel.length===1,x=sel[0];
-  const allAvi=sel.every(z=>z.k==="avi"),anyDone=sel.some(z=>z.done);
-  const m=$("#menu");
+    const m=$("#menu");
   m.innerHTML=`<div class="t">${one?esc(x.t):sel.length+" elementos seleccionados"}</div>
    <button data-a="open" ${one?"":"disabled"} title="Abre la pantalla donde se resuelve">Abrir ${one?esc(x.go.split(" (")[0]):"la pantalla"}<small>Intro</small></button>
-   <button data-a="why" ${one?"":"disabled"}>¿Por qué aparece?</button><hr>
-   <button data-a="sz7" ${anyDone?"disabled":""} title="Lo oculta una semana; vuelve solo si sigue sin resolverse">Posponer 7 días</button>
-   <button data-a="mute" ${allAvi&&!anyDone?"":"disabled"} title="Solo para avisos: deja de avisar de estos casos concretos (no del tipo de aviso)">No volver a avisar de este caso…</button>
+   <button data-a="why" ${one?"":"disabled"}>¿Por qué aparece?</button>
    <hr><button data-a="copy">Copiar el texto</button>`;
   m.hidden=false;const w=m.offsetWidth,h=m.offsetHeight;m.style.left=Math.min(cx,innerWidth-w-8)+"px";m.style.top=Math.min(cy,innerHeight-h-8)+"px";
   m.querySelectorAll("button").forEach(b=>b.onclick=()=>{m.hidden=true;const a=b.dataset.a;
     if(a==="open")openItem(x.id);
     if(a==="why")openDlg(`<header><h3>${esc(x.t)}</h3><p>Lo detecta ${esc(x.src)}</p></header><div class="body"><p style="margin:0">${esc(x.ds)}</p><div class="formula">Cómo se resuelve: en <b>${esc(x.go)}</b>. El aviso desaparece solo en cuanto deja de cumplirse la condición; no hay que marcarlo como hecho.</div></div><footer><button class="btn" data-x="close">Cerrar</button><button class="btn pri" data-x="go">Abrir la pantalla</button></footer>`,()=>openItem(x.id));
-    if(a==="sz7"){sel.forEach(z=>state.snooze.add(z.id));state.sel.clear();renderSalud();toast(sel.length===1?"Pospuesto hasta el 22/11/2026":"Pospuestos "+sel.length+" elementos hasta el 22/11/2026","Si siguen sin resolverse, vuelven a aparecer ese día.");}
-    if(a==="mute")openDlg(`<header><h3>No volver a avisar</h3><p>${sel.length===1?esc(x.t):sel.length+" avisos"}</p></header><div class="body"><p style="margin:0">Deja de avisar de estos casos concretos. Si aparece otro caso del mismo tipo, sí se avisará. Se puede deshacer desde «Pospuestos».</p><label class="l" style="display:flex;flex-direction:column;align-items:stretch">Motivo (obligatorio, queda registrado)<input class="inp" id="motivo" placeholder="p. ej. diferencia conocida, se regulariza en el cierre"></label></div><footer><button class="btn" data-x="close">Cancelar</button><button class="btn pri" data-x="go">No volver a avisar</button></footer>`,()=>{sel.forEach(z=>state.snooze.add(z.id));state.sel.clear();renderSalud();toast("Silenciado","Queda registrado con el motivo y el operador.");});
     if(a==="copy")toast("Texto copiado al portapapeles");
   });
 }
