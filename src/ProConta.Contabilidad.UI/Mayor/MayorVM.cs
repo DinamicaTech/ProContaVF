@@ -640,11 +640,10 @@ public sealed class MayorVM : ModeloVista
             _avisar(r.Valor.Length == 0 ? $"Número de factura quitado de {Formatos.Plural(ids.Count, "apunte", "apuntes")}." : $"Factura {r.Valor} en {Formatos.Plural(ids.Count, "apunte", "apuntes")}.");
     }
 
-    /// <summary>Cambia el concepto de los apuntes de las filas (solo manuales y en periodos abiertos).</summary>
+    /// <summary>Cambia el concepto de los apuntes de las filas, también de asientos automáticos (contabilidad/diario 2026-11-14 21:50); nunca en un ejercicio cerrado.</summary>
     public async Task CambiarConceptoAsync(IReadOnlyList<FilaMayorVM> filas)
     {
         if (!PuedeEscribir || filas.Count == 0) return;
-        if (filas.Any(f => f.Fila.EsAutomatico)) { _dialogos.Error("No se puede cambiar el concepto", MotivoAutomatico); return; }
         var ids = Apuntes(filas);
         var actuales = filas.Select(f => f.Fila.Concepto).Distinct().ToList();
         if (_dialogos.PedirTexto("Cambiar el concepto", $"Nuevo concepto para {Formatos.Plural(ids.Count, "apunte", "apuntes")}. Vacío: el apunte usará el concepto de su asiento.",
@@ -653,7 +652,10 @@ public sealed class MayorVM : ModeloVista
             _avisar($"Concepto cambiado en {Formatos.Plural(ids.Count, "apunte", "apuntes")}.");
     }
 
-    /// <summary>Cambia la subcuenta de los apuntes de las filas (solo manuales), eligiéndola en el selector.</summary>
+    /// <summary>
+    /// Cambia la subcuenta de los apuntes de las filas, eligiéndola en el selector. En los asientos automáticos el motor no deja cambiar
+    /// los apuntes de la 572 ni, en las facturas, las líneas de IVA, y marca el asiento como modificado a mano.
+    /// </summary>
     public Task CambiarCuentaAsync(IReadOnlyList<FilaMayorVM> filas) =>
         CambiarCuentaDe(filas, f => f.Fila.IdsApunte, "Cambiar la subcuenta del apunte", "la subcuenta");
 
@@ -661,13 +663,11 @@ public sealed class MayorVM : ModeloVista
     public Task CambiarContrapartidaAsync(FilaMayorVM fila) =>
         CambiarCuentaDe([fila], f => f.Fila.IdsApunteContrapartida, "Cambiar la contrapartida", "la contrapartida");
 
-    public const string MotivoAutomatico = "Hay apuntes de asientos automáticos (facturas, importaciones…): su concepto y su cuenta se cambian en el documento de origen, " +
-                                           "porque al regenerar su asiento el cambio se perdería. Sí puedes puntearlos y ponerles número de factura.";
+    public const string MotivoBancoAutomatico = "Hay apuntes de banco (572) de asientos automáticos: su cuenta y su importe los fija el movimiento del banco y no se cambian a mano.";
 
     private async Task CambiarCuentaDe(IReadOnlyList<FilaMayorVM> filas, Func<FilaMayorVM, IReadOnlyList<int>> ids, string titulo, string que)
     {
         if (!PuedeEscribir || filas.Count == 0) return;
-        if (filas.Any(f => f.Fila.EsAutomatico)) { _dialogos.Error($"No se puede cambiar {que}", MotivoAutomatico); return; }
         var porEjercicio = filas.GroupBy(f => _sesion.Elegidos.First(e => e.IdSociedadEjercicio == f.Fila.IdSociedadEjercicio))
             .Select(g => (Ejercicio: g.Key, Ids: g.SelectMany(ids).Distinct().ToList())).Where(x => x.Ids.Count > 0).ToList();
         if (porEjercicio.Count == 0) { _dialogos.Error($"No se puede cambiar {que}", "La fila no tiene una contrapartida única: ábrela con «Ver asiento» y cambia la línea que quieras desde el diario."); return; }
@@ -677,7 +677,8 @@ public sealed class MayorVM : ModeloVista
         if (codigo is null) return;
         if (!SelectorCuentasMayor.EsExacta(codigo, _sesion.Catalogo)) { _dialogos.Error("Elige una subcuenta", $"{codigo} es un código de grupo: los apuntes van siempre a una subcuenta que admite apuntes."); return; }
         var n = porEjercicio.Sum(x => x.Ids.Count);
-        var motivo = _dialogos.PedirMotivo(titulo, $"Pasarás {Formatos.Plural(n, "apunte", "apuntes")} a la cuenta {codigo} {_sesion.Nombre(codigo)}. El cambio queda en el historial del apunte con su motivo.");
+        var motivo = _dialogos.PedirMotivo(titulo, $"Pasarás {Formatos.Plural(n, "apunte", "apuntes")} a la cuenta {codigo} {_sesion.Nombre(codigo)}. El cambio queda en el historial del apunte con su motivo." +
+            (filas.Any(f => f.Fila.EsAutomatico) ? " Hay apuntes de asientos automáticos: quedarán marcados como modificados a mano y, si se regenera su origen, el cambio se pierde." : ""));
         if (motivo is null) return;
         var bien = true;
         foreach (var (ej, lista) in porEjercicio)

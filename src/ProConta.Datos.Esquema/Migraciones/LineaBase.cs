@@ -98,6 +98,7 @@ public static class CatalogoMigraciones
         MigracionesFacturacion.DatosPagoFactura,
         MigracionesVentas.VentasPorFacturar,
         MigracionesVentas.ReglasVentaAgrupacion,
+        MigracionesContabilidad.DiarioAsientosBorrados,
     ];
 
     /// <summary>Versión del esquema que espera esta versión del programa.</summary>

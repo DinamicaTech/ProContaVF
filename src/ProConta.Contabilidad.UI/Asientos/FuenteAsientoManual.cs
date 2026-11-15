@@ -39,6 +39,12 @@ public interface IFuenteAsientoManual
 
     /// <summary>Modificación de un asiento manual (con su motivo).</summary>
     Task<Resultado<Asiento>> ModificarAsync(Asiento asiento, string motivo);
+
+    /// <summary>Corrección a mano de un asiento automático (contabilidad/diario 2026-11-14 21:50), con su motivo y los bloqueos del motor.</summary>
+    Task<Resultado<Asiento>> CorregirAutomaticoAsync(Asiento asiento, string motivo);
+
+    /// <summary>Si el asiento lleva libro de IVA (es de una factura): no se cambian sus importes ni sus líneas de IVA.</summary>
+    Task<bool> TieneLibroIvaAsync(int idAsiento);
 }
 
 /// <summary>La fuente de la pantalla de asiento manual contra la BD: plantillas, cuentas, centros y motor de asientos.</summary>
@@ -59,6 +65,8 @@ public sealed class FuenteAsientoManualAccess(IBaseDatos bd, ContextoSociedadEje
     public Task<Resultado<IReadOnlyList<int>>> EjecutarPlantillaAsync(PropuestaPlantilla propuesta, string motivo) => _plantillas.EjecutarAsync(propuesta, motivo, actor);
     public Task<Resultado<IReadOnlyList<int>>> GuardarNuevosAsync(IReadOnlyList<Asiento> asientos, string motivo) => _motor.GuardarManualesAsync(asientos, actor, motivo);
     public Task<Resultado<Asiento>> ModificarAsync(Asiento asiento, string motivo) => _motor.GuardarManualAsync(asiento, actor, motivo);
+    public Task<Resultado<Asiento>> CorregirAutomaticoAsync(Asiento asiento, string motivo) => _motor.CorregirAutomaticoAsync(asiento, actor, motivo);
+    public Task<bool> TieneLibroIvaAsync(int idAsiento) => _motor.TieneLibroIvaAsync(idAsiento);
 }
 
 /// <summary>Diálogos de la pantalla de asiento manual (los implementa <see cref="DialogosAsiento"/>; las pruebas los sustituyen).</summary>

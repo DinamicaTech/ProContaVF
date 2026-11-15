@@ -120,7 +120,7 @@ public sealed class DialogosMayor(Func<Window?> propietario) : IDialogosMayor
         var cab = new StackPanel { Margin = new Thickness(0, 0, 0, 10) };
         cab.Children.Add(new TextBlock { Text = a.Descripcion, FontWeight = FontWeights.SemiBold, FontSize = (double)d.FindResource("Letra.Destacada"), TextWrapping = TextWrapping.Wrap });
         var datos = new List<string> { $"Ejercicio {a.Ejercicio}", a.TextoTipo };
-        if (a.EsAutomatico) datos.Add("generado por " + (a.Origen ?? "un proceso automático") + " (se cambia desde su origen)");
+        if (a.EsAutomatico) datos.Add("generado por " + (a.Origen ?? "un proceso automático") + " (se corrige en su origen o, a mano, con «Modificar el asiento…»)");
         if (a.GrabadoEl is { } g) datos.Add($"grabado el {Formatos.Fecha(g)}" + (string.IsNullOrWhiteSpace(a.GrabadoPor) ? "" : $" por {a.GrabadoPor}"));
         if (a.ModificadoEl is { } m) datos.Add($"modificado el {Formatos.Fecha(m)}" + (string.IsNullOrWhiteSpace(a.ModificadoPor) ? "" : $" por {a.ModificadoPor}"));
         cab.Children.Add(new TextBlock { Text = string.Join(" · ", datos), Foreground = apagado, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 4, 0, 0) });

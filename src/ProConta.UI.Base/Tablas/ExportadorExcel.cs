@@ -14,8 +14,12 @@ public static class ExportadorExcel
     public const string FormatoImporte = "#,##0.00 \"€\";-#,##0.00 \"€\"";
     public const string FormatoFecha = "dd/mm/yyyy";
 
-    /// <summary>Escribe el libro y devuelve el número de filas exportadas.</summary>
-    public static int Exportar(string ruta, IReadOnlyList<ColumnaExportable> columnas, IEnumerable<object> filas, string hoja = "Datos", string? titulo = null)
+    /// <summary>
+    /// Escribe el libro y devuelve el número de filas exportadas. Con <paramref name="totales"/> (un valor por columna, null donde no hay),
+    /// añade al final una fila de totales en negrita, fuera del filtro automático para que ordenar no la mezcle con los datos.
+    /// </summary>
+    public static int Exportar(string ruta, IReadOnlyList<ColumnaExportable> columnas, IEnumerable<object> filas, string hoja = "Datos", string? titulo = null,
+        IReadOnlyList<object?>? totales = null)
     {
         ArgumentNullException.ThrowIfNull(columnas);
         if (columnas.Count == 0) throw new ArgumentException("No hay columnas visibles que exportar.", nameof(columnas));
@@ -45,6 +49,17 @@ public static class ExportadorExcel
             for (var c = 0; c < columnas.Count; c++) Poner(ws.Cell(f, c + 1), columnas[c].Valor(fila));
         }
         if (n > 0) ws.Range(cab, 1, f, columnas.Count).SetAutoFilter();
+        if (totales is not null && n > 0)
+        {
+            var filaTotales = f + 2;
+            for (var c = 0; c < columnas.Count && c < totales.Count; c++)
+            {
+                var celda = ws.Cell(filaTotales, c + 1);
+                Poner(celda, totales[c]);
+                celda.Style.Font.Bold = true;
+                celda.Style.Border.TopBorder = XLBorderStyleValues.Thin;
+            }
+        }
         ws.SheetView.FreezeRows(cab);
         ws.Columns(1, columnas.Count).AdjustToContents(cab, Math.Min(f, cab + 500), 8, 80);
         libro.SaveAs(ruta);

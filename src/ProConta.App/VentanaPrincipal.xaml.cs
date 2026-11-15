@@ -66,6 +66,7 @@ public partial class VentanaPrincipal : Window
     private readonly ModuloTerceros _terceros;
     private readonly ProConta.Contabilidad.UI.Mayor.ModuloMayor _mayor;
     private readonly ProConta.Contabilidad.UI.Asientos.ModuloAsientos _asientos;
+    private readonly ProConta.Contabilidad.UI.Diario.ModuloDiario _diario;
     private readonly ModuloFacturacion _facturacion;
     private readonly ModuloCompras _compras;
     private readonly ModuloCorreo _correo;
@@ -254,6 +255,28 @@ public partial class VentanaPrincipal : Window
         var abrirContaSol = new ComandoDelegado(AbrirImportacionContaSol);
         var abrirCorreo = new ComandoDelegado(() => _correo.AbrirRegistro());
         var abrirMayor = new ComandoDelegado(() => _mayor.Abrir());
+        // Diario (contabilidad/diario): todos los apuntes del ejercicio de trabajo y del anterior; abre la pantalla de asiento, el Mayor y el
+        // origen de los asientos automáticos, y exporta a PDF por el motor de informes (HTML › PDF con WebView2) y a Excel.
+        _asientos.ParaEjercicio = ejercicioAsiento => (
+            new ProConta.Contabilidad.UI.Asientos.FuenteAsientoManualAccess(bd, ejercicioAsiento, new Actor(sesion.NombreOperador)),
+            new ProConta.Contabilidad.UI.Asientos.DialogosAsiento(cuentas, new CatalogoCentrosCosteAccess(bd), ejercicioAsiento, () => this));
+        _diario = new ProConta.Contabilidad.UI.Diario.ModuloDiario(
+            new ProConta.Contabilidad.UI.Diario.ContextoDiario(new ProConta.Contabilidad.Diario.FuenteDiarioAccess(bd), new MotorAsientosAccess(bd), new CatalogoCentrosCosteAccess(bd),
+                contexto.Contexto, contexto.RazonSocial, new Actor(sesion.NombreOperador), Avisar),
+            _area, new ProConta.Contabilidad.UI.Diario.DialogosDiario(cuentas, new CatalogoCentrosCosteAccess(bd), () => this))
+        {
+            Asientos = _asientos,
+            Mayor = _mayor,
+            HtmlAPdf = html => ConversorHtmlPdf.Compartido.Convertir(html, new PaginaPdf(297, 210, 10, 10, 10, 10)),
+            AbrirFichero = ruta =>
+            {
+                try { System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(ruta) { UseShellExecute = true }); }
+                catch (Exception ex) when (ex is System.ComponentModel.Win32Exception or InvalidOperationException) { Avisar($"Fichero guardado en {ruta} (no he podido abrirlo: {ex.Message})"); }
+            },
+            PorQueNoAbrirOrigen = asiento => OrigenDelDiario(asiento) is null ? PorQueNoSeAbreElOrigen(asiento) : null,
+            AbrirOrigen = asiento => OrigenDelDiario(asiento)?.Invoke(),
+        };
+        var abrirDiario = new ComandoDelegado(() => _diario.Abrir());
         // Informes (contabilidad/balances e informes/excel): cada opción genera el libro Excel con su tabla dinámica y lo abre.
         _balances = new ProConta.Contabilidad.Balances.GeneradorBalances(bd);
         _razonSocial = contexto.RazonSocial;
@@ -277,6 +300,9 @@ public partial class VentanaPrincipal : Window
             new OpcionNavegacion("Mayor", null, true, false,
                 "Mayor de una o varias cuentas (o de un código corto) en los ejercicios que elijas: vistas Normal, Compacto, Solo pendientes y Agrupar 700, filtros, asiento e historial de cada apunte",
                 abrirMayor, EsHija: true),
+            new OpcionNavegacion("Diario", null, true, false,
+                "Todos los apuntes del ejercicio, por asiento o en lista: filtros, sumas, ficha del asiento con edición rápida, asientos borrados y exportación a PDF o Excel",
+                abrirDiario, EsHija: true),
             new OpcionNavegacion("Asiento manual", null, true, false,
                 "Asiento nuevo hecho a mano o desde una plantilla, con su vista previa; para corregir un apunte, ábrelo desde el Mayor con «Asistente de corrección…»",
                 new ComandoDelegado(() => _ = _asientos.AbrirNuevoAsync()), EsHija: true),
@@ -478,6 +504,30 @@ public partial class VentanaPrincipal : Window
     /// Genera el balance del ejercicio de trabajo, lo guarda en Documentos\ProContaVF\Informes y lo abre con Excel. En la barra de
     /// estado dice los totales (activo y patrimonio neto y pasivo, o el resultado) y si hay cuentas sin clasificar.
     /// </summary>
+    /// <summary>
+    /// Cómo abrir el documento que generó un asiento automático desde el Diario, o null si su pantalla aún no sabe abrir uno concreto:
+    /// la factura de venta (la clave del lote es su IdFactura) y la importación de nóminas (la clave empieza por su Id).
+    /// </summary>
+    private Action? OrigenDelDiario(ProConta.Contabilidad.Diario.AsientoDiario asiento)
+    {
+        var clave = (asiento.ClaveEjecucion ?? "").Split('.')[0];
+        if (!int.TryParse(clave, System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out var id) || id <= 0) return null;
+        return asiento.MotorPropietario switch
+        {
+            AsientoVenta.MotorPropietario => () => _facturacion.AbrirFactura(id),
+            ProConta.Nominas.Contabilizacion.ServicioContabilizacionNominas.MotorPropietario => () => _nominas.Abrir(id),
+            _ => null,
+        };
+    }
+
+    private static string PorQueNoSeAbreElOrigen(ProConta.Contabilidad.Diario.AsientoDiario asiento) => asiento.MotorPropietario switch
+    {
+        "compras/factura-compra" => $"Ábrela en Compras › Facturas recibidas (registro {asiento.ClaveEjecucion}): esa pantalla aún no abre una factura concreta desde aquí",
+        "norma43/conciliacion" => $"Búscala en Bancos › Líneas N43 (línea {asiento.ClaveEjecucion}): esa pantalla aún no abre una línea concreta desde aquí",
+        OpcionesLote.MotorImportadorContaSol => "Viene de la importación de ContaSol: no tiene documento de origen en ProContaVF",
+        _ => "Este origen no tiene una pantalla que abrir",
+    };
+
     private async Task GenerarBalanceAsync(ProConta.Contabilidad.Balances.TipoBalance tipo)
     {
         if (_generandoBalance) { Avisar("Ya estoy generando un balance: espera a que se abra en Excel."); return; }

@@ -21,7 +21,17 @@ public class AsientoManualVMTests
         public readonly List<(PropuestaPlantilla Propuesta, string Motivo)> Ejecutadas = [];
         public readonly List<(IReadOnlyList<Asiento> Asientos, string Motivo)> Nuevos = [];
         public readonly List<(Asiento Asiento, string Motivo)> Modificados = [];
-        public int Escrituras => Ejecutadas.Count + Nuevos.Count + Modificados.Count;
+        public readonly List<(Asiento Asiento, string Motivo)> Corregidos = [];
+        public bool ConLibroIva { get; init; }
+        public int Escrituras => Ejecutadas.Count + Nuevos.Count + Modificados.Count + Corregidos.Count;
+
+        public Task<Resultado<Asiento>> CorregirAutomaticoAsync(Asiento asiento, string motivo)
+        {
+            Corregidos.Add((asiento, motivo));
+            return Task.FromResult(Resultado<Asiento>.Correcto(asiento));
+        }
+
+        public Task<bool> TieneLibroIvaAsync(int idAsiento) => Task.FromResult(ConLibroIva);
         public int? Trimestre { get; init; } = 2;
 
         public ContextoSociedadEjercicio Contexto => Ctx;
@@ -51,12 +61,29 @@ public class AsientoManualVMTests
         public Task<Resultado<OrigenSubcuenta>> OrigenSubcuentaAsync(string cuenta) =>
             Task.FromResult(Resultado<OrigenSubcuenta>.Correcto(new OrigenSubcuenta(cuenta, "Subcuenta sintética", 300m, 120m)));
 
-        public Task<Asiento?> AsientoAsync(int idAsiento) => Task.FromResult<Asiento?>(idAsiento switch
+        /// <summary>Retoque del asiento leído (p. ej. ponerle un vencimiento) antes de entregarlo a la pantalla.</summary>
+        public Action<Asiento>? AlLeer { get; init; }
+
+        public Task<Asiento?> AsientoAsync(int idAsiento)
         {
-            1 => Asiento(1, new DateTime(2026, 5, 3), "Gasto sintético", ("6290001", 50m, 0m), ("5720001", 0m, 50m)),
-            2 => Automatico(),
-            _ => null,
-        });
+            var a = idAsiento switch
+            {
+                1 => Asiento(1, new DateTime(2026, 5, 3), "Gasto sintético", ("6290001", 50m, 0m), ("5720001", 0m, 50m)),
+                2 => Automatico(),
+                3 => AutomaticoDeBanco(),
+                _ => null,
+            };
+            if (a is not null) AlLeer?.Invoke(a);
+            return Task.FromResult(a);
+        }
+
+        /// <summary>Automático con un apunte de banco (una nómina pagada): la 572 no se corrige a mano.</summary>
+        private static Asiento AutomaticoDeBanco()
+        {
+            var a = Asiento(3, new DateTime(2026, 5, 4), "Nómina sintética", ("6290001", 100m, 0m), ("5720001", 0m, 100m));
+            typeof(Asiento).GetProperty(nameof(Contabilidad.Asientos.Asiento.Lote))!.SetValue(a, new IdentidadLote("nominas", "NOMINA", "7.1"));
+            return a;
+        }
 
         public Task<Resultado<IReadOnlyList<int>>> EjecutarPlantillaAsync(PropuestaPlantilla propuesta, string motivo)
         {
@@ -376,6 +403,134 @@ public class AsientoManualVMTests
         Assert.False(vm.PuedeGuardar);
         Assert.False(await vm.GuardarAsync());
         Assert.Equal(0, fuente.Escrituras);
+    }
+
+    [Fact]
+    public async Task Un_automatico_se_corrige_a_mano_salvo_su_apunte_de_banco_y_con_motivo()
+    {
+        var (vm, fuente, _) = Crear();
+        Assert.True((await vm.IniciarModificarAsync(3, corregirAutomatico: true)).EsCorrecto);
+        Assert.False(vm.SoloLectura);
+        Assert.True(vm.CorrigeAutomatico);
+        Assert.False(vm.LineasFijas);
+        Assert.Contains("572", vm.AvisoCorreccion);
+        Assert.Single(vm.Plantillas);                       // sin plantillas: sustituirían las líneas
+        var b = vm.Bloques[0];
+        var (gasto, banco) = (b.Lineas[0], b.Lineas[1]);
+
+        // El apunte de la 572 está bloqueado: ni cuenta, ni importe, ni se borra; su ayuda dice por qué.
+        Assert.True(banco.Bloqueada);
+        banco.Cuenta = "5700000";
+        banco.Haber = "90";
+        Assert.Equal(("5720001", 100m), (banco.Cuenta, banco.ValorHaber));
+        Assert.Contains("572", banco.AyudaCuenta);
+        Assert.False(vm.BorrarLineaCommand.CanExecute(banco));
+        Assert.False(vm.InvertirLineaCommand.CanExecute(banco));
+        vm.Borrar(banco);
+        Assert.Equal(2, b.Lineas.Count);
+
+        // El resto sí: otra cuenta y repartir el importe en dos líneas.
+        Assert.False(gasto.Bloqueada);
+        gasto.Cuenta = "6220001";
+        gasto.Debe = "60";
+        vm.AnadirLinea(b);
+        Linea(b.Lineas[2], "6290001", debe: "40");
+        Assert.True(b.Cuadrado);
+        Assert.False(vm.PuedeGuardar);                      // falta el motivo
+        Assert.Contains("motivo", vm.AyudaGuardar);
+        vm.Motivo = "El gasto era de reparaciones";
+        Assert.True(await vm.GuardarAsync());
+        var (corregido, motivo) = Assert.Single(fuente.Corregidos);
+        Assert.Empty(fuente.Modificados);
+        Assert.Equal("El gasto era de reparaciones", motivo);
+        Assert.Equal(3, corregido.IdAsiento);
+        Assert.Equal(["6220001", "5720001", "6290001"], corregido.Apuntes.Select(x => x.CodigoCuenta));
+        Assert.Equal(corregido.TotalDebe, corregido.TotalHaber);
+    }
+
+    [Fact]
+    public async Task En_el_asiento_de_una_factura_solo_se_cambian_las_subcuentas_que_no_son_de_IVA()
+    {
+        var fuente = new Fuente
+        {
+            ConLibroIva = true,
+            AlLeer = a =>
+            {
+                if (a.IdAsiento != 2) return;
+                // Factura de compra con su línea de IVA: 6220001 100 + 4720021 21 = 4000001 121.
+                a.Apuntes[1].Haber = Nucleo.Importes.Importe.Redondear(121m);
+                var iva = Apunte.AlDebe("4720021", 21m);
+                typeof(Apunte).GetProperty(nameof(Apunte.Orden))!.SetValue(iva, 3);
+                a.Apuntes.Add(iva);
+            },
+        };
+        var (vm, _, _) = Crear(fuente);
+        Assert.True((await vm.IniciarModificarAsync(2, corregirAutomatico: true)).EsCorrecto);
+        Assert.True(vm.LineasFijas);
+        Assert.Contains("libro de IVA", vm.AvisoCorreccion);
+        var b = vm.Bloques[0];
+        Assert.True(b.FechaSoloLectura);
+        Assert.False(vm.AnadirLineaCommand.CanExecute(b));
+        Assert.False(vm.BorrarLineaCommand.CanExecute(b.Lineas[0]));
+        vm.AnadirLinea(b);
+        Assert.Equal(3, b.Lineas.Count);
+
+        var (gasto, proveedor, iva) = (b.Lineas[0], b.Lineas[1], b.Lineas[2]);
+        gasto.Debe = "200";                                   // los importes van con el libro de IVA
+        Assert.Equal(100m, gasto.ValorDebe);
+        Assert.True(gasto.ImporteSoloLectura);
+        Assert.False(gasto.CuentaSoloLectura);
+        iva.Cuenta = "6290001";                               // la línea de IVA no cambia de cuenta
+        Assert.Equal("4720021", iva.Cuenta);
+        Assert.True(iva.CuentaSoloLectura);
+
+        gasto.Cuenta = "6290001";
+        vm.Motivo = "Gasto en otra subcuenta";
+        Assert.True(await vm.GuardarAsync());
+        var corregido = Assert.Single(fuente.Corregidos).Asiento;
+        Assert.Equal(["6290001", "4000001", "4720021"], corregido.Apuntes.Select(x => x.CodigoCuenta));
+        Assert.Equal([100m, 0m, 21m], corregido.Apuntes.Select(x => x.Debe.Valor));
+        Assert.Equal(proveedor.ValorHaber, corregido.Apuntes[1].Haber.Valor);
+    }
+
+    [Fact]
+    public async Task Modificar_conserva_el_vencimiento_y_el_tercero_que_la_rejilla_no_ensena()
+    {
+        var fuente = new Fuente
+        {
+            AlLeer = a =>
+            {
+                a.Apuntes[0].FechaVencimiento = new DateTime(2026, 6, 30);
+                a.Apuntes[0].IdProveedor = 77;
+                a.Apuntes[1].IdCliente = 5;
+            },
+        };
+        var (vm, _, _) = Crear(fuente);
+        await vm.IniciarModificarAsync(1);
+        vm.Bloques[0].Lineas[1].Cuenta = "5700000";           // cambia la cuenta: su cliente ya no vale
+        vm.Motivo = "Se pagó por caja";
+        Assert.True(await vm.GuardarAsync());
+        var guardado = Assert.Single(fuente.Modificados).Asiento;
+        Assert.Equal((new DateTime(2026, 6, 30), 77), (guardado.Apuntes[0].FechaVencimiento, guardado.Apuntes[0].IdProveedor));
+        Assert.Null(guardado.Apuntes[1].IdCliente);
+    }
+
+    [Fact]
+    public async Task Usar_un_asiento_como_base_abre_uno_nuevo_con_sus_lineas_y_no_toca_el_original()
+    {
+        var (vm, fuente, _) = Crear();
+        Assert.True((await vm.IniciarNuevoDesdeAsync(1)).EsCorrecto);
+        Assert.Equal(ModoAsientoManual.Nuevo, vm.Modo);
+        Assert.Equal("Asiento nuevo", vm.Titulo);
+        Assert.True(vm.TieneCambios);
+        var b = vm.Bloques[0];
+        Assert.Equal("Gasto sintético", b.Descripcion);
+        Assert.Equal([("6290001", 50m, 0m), ("5720001", 0m, 50m)], b.Lineas.Select(l => (l.Cuenta, l.ValorDebe, l.ValorHaber)));
+        Assert.NotEqual("03/05/2026", b.Fecha);              // la fecha propuesta, no la del original
+        Assert.True(await vm.GuardarAsync());
+        Assert.Single(fuente.Nuevos);
+        Assert.Empty(fuente.Modificados);
+        Assert.Equal("Asientos.NoExiste", (await Crear().Vm.IniciarNuevoDesdeAsync(99)).Error!.Codigo);
     }
 
     [Fact]

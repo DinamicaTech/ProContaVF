@@ -114,19 +114,39 @@ public sealed class ModuloAsientos(Func<IFuenteAsientoManual> fuente, IAnfitrion
     /// <summary>Asistente de corrección: con un apunte (y su cuenta), o solo con una subcuenta si la selección del Mayor es de varias filas de una cuenta.</summary>
     public Task AbrirCorreccionAsync(int? idApunte, string? cuenta) => AbrirAsync(vm => vm.IniciarCorreccionAsync(idApunte, cuenta));
 
-    public Task AbrirModificarAsync(int idAsiento)
+    /// <summary>
+    /// Fuente y diálogos para un ejercicio que no es el de trabajo (el Diario modifica también asientos del anterior si no está cerrado,
+    /// contabilidad/diario 2026-11-14 21:31): sin ella, esos asientos se abren en solo lectura.
+    /// </summary>
+    public Func<ProConta.Nucleo.Contexto.ContextoSociedadEjercicio, (IFuenteAsientoManual Fuente, IDialogosAsiento Dialogos)>? ParaEjercicio { get; set; }
+
+    /// <summary>
+    /// Abre un asiento para modificarlo. Uno automático se abre en solo lectura, salvo con <paramref name="corregirAutomatico"/>, que deja
+    /// corregir sus cuentas e importes con los bloqueos del motor. Con <paramref name="ejercicio"/>, en ese ejercicio en vez del de trabajo.
+    /// </summary>
+    public Task AbrirModificarAsync(int idAsiento, bool corregirAutomatico = false, ProConta.Nucleo.Contexto.ContextoSociedadEjercicio? ejercicio = null)
     {
         if (anfitrion.Pestanas.OfType<PestanaAsientoManual>().FirstOrDefault(p => p.Modelo.Modo == ModoAsientoManual.Modificar && p.Modelo.Titulo == $"Asiento {idAsiento}") is { } abierta)
         {
-            anfitrion.Activar(abierta);
-            return Task.CompletedTask;
+            // Si estaba abierto en solo lectura y ahora se pide corregirlo, se vuelve a abrir en ese modo.
+            if (!corregirAutomatico || !abierta.Modelo.SoloLectura)
+            {
+                anfitrion.Activar(abierta);
+                return Task.CompletedTask;
+            }
+            anfitrion.Cerrar(abierta);
         }
-        return AbrirAsync(vm => vm.IniciarModificarAsync(idAsiento));
+        return AbrirAsync(vm => vm.IniciarModificarAsync(idAsiento, corregirAutomatico), ejercicio);
     }
 
-    private async Task AbrirAsync(Func<AsientoManualVM, Task<ProConta.Nucleo.Resultados.Resultado>> iniciar)
+    /// <summary>Asiento nuevo con las cuentas e importes de otro («Usar como base de un asiento nuevo»).</summary>
+    public Task AbrirNuevoDesdeAsync(int idAsiento) => AbrirAsync(vm => vm.IniciarNuevoDesdeAsync(idAsiento));
+
+    private async Task AbrirAsync(Func<AsientoManualVM, Task<ProConta.Nucleo.Resultados.Resultado>> iniciar, ProConta.Nucleo.Contexto.ContextoSociedadEjercicio? ejercicio = null)
     {
-        var vm = new AsientoManualVM(fuente(), dialogos);
+        var deTrabajo = fuente();
+        var otro = ejercicio is not null && ejercicio.IdSociedadEjercicio != deTrabajo.Contexto.IdSociedadEjercicio && ParaEjercicio is { } crear ? crear(ejercicio) : ((IFuenteAsientoManual, IDialogosAsiento)?)null;
+        var vm = new AsientoManualVM(otro?.Item1 ?? deTrabajo, otro?.Item2 ?? dialogos);
         var r = await iniciar(vm);
         if (!r.EsCorrecto)
         {
