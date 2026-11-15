@@ -16,12 +16,14 @@ Centros de coste jerárquicos por sociedad y revisiones de cuenta a fecha de cor
 - 2026-11-01 09:31 · Validado por el propietario (desarrollos base).
 - 2026-11-08 10:08 · Derived from contabilidad/procesos: cada centro de coste puede tener una actividad a efectos de IVA (CentrosCoste.IdActividad, versión 31); los centros sin actividad propia usan la del nodo más cercano por encima que la tenga.
 - 2026-11-08 11:45 · Derived from facturacion/factura-venta/contabilizacion: `LectorActividadesIva` da la actividad que aplica a cada centro de la sociedad, con su herencia, y la comparten compras y ventas.
+- 2026-11-15 21:10 · Recibe de contabilidad (revisión de las incidencias con la gestoría) el aviso de salud S7: el reparto por actividad del cálculo del IS necesita centro en todos los gastos e ingresos, no solo en las líneas de IVA.
 
 ## Requirements
 - 2026-10-28 12:28 · From sources/01_ESPECIFICACION_FUNCIONAL.docx § 15 RF-CUE-03: revisiones, cachés y centros de coste
 - 2026-10-28 12:28 · draft: Implementar centros de coste y revisiones de cuenta.
 - 2026-10-29 17:45 · From sources/proconta-antiguo/menu-principal/ANALISIS-FUNCIONAL.md § 0, 3.12: «Regenera saldos» recalcula los saldos por periodo (0 apertura, 1-12 meses, 13 regularización, 14 cierre) a partir de los apuntes; es la reconstrucción de la caché de saldos.
 - 2026-10-31 17:53 · Derived from architecture: el catálogo de centros de coste que necesita el motor de asientos (comprobar centro imputable) y su alta jerárquica.
+- 2026-11-15 21:10 · Derived from contabilidad: aviso de salud S7 «Gastos e ingresos sin centro de coste» (gravedad atención): apuntes contabilizados del ejercicio en cuentas de los grupos 6 y 7 sin centro de coste, sin regularización ni cierre; número e importe, por cuenta; abre el Mayor de esas cuentas.
 
 ## Hand-over
 - 2026-10-31 19:05 · Hecho: contrato y alta jerárquica, con pruebas (ruta y nivel, repetido, padre de otra sociedad, imputable o no). Pendiente: revisiones de cuenta a fecha de corte (falta su tabla), modificación y baja de centros, saldos por centro.
