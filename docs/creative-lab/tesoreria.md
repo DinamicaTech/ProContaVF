@@ -12,6 +12,7 @@ Cobros, pagos, vencimientos, remesas y SEPA: fuera del trabajo actual, pendiente
 - 2026-10-28 13:30 · Creado en la carga inicial de requisitos.
 - 2026-11-01 16:05 · [replaced by 2026-11-10 13:06] Las remesas SEPA y sus recibos tienen ya nodo propio, facturacion/remesas-sepa (importación desde el ERP), y los vencimientos de las facturas de venta (`Pagos` del ERP) son de facturacion/factura-venta. Esta idea conserva el resto de la tesorería (cobros, pagos y previsión).
 - 2026-11-10 13:06 · Vuelven aquí las remesas SEPA y los vencimientos: se borra el nodo facturacion/remesas-sepa, y la migración del ERP no importa `Pagos`, los fraccionamientos, `Recibos`, `RemesasRecibos`, `DatosBancarios` ni `DatosBancariosGestion` (implantacion/migracion-erp 2026-11-10 13:06). Los requisitos del nodo borrado se copian abajo con sus fechas.
+- 2026-11-15 17:20 · Cumplida en parte la línea «Derived from pantalla-de-inicio» del 2026-11-15 11:57: la agenda sencilla de Inicio (plazos fiscales, cambios de tipo de IVA, crear el ejercicio y facturas programadas, a 90 días) se hace en pantalla-de-inicio antes del arranque (2026-11-15 17:20). Siguen aquí la previsión de tesorería y los vencimientos de cobros y pagos, nóminas y cuotas de la agenda, que necesitan vencimientos fiables.
 
 ## Requirements
 - 2026-10-28 12:28 · From sources/01_ESPECIFICACION_FUNCIONAL.docx § 19 RF-N43-05 y 29 P-10: tesorería no delimitada
