@@ -83,3 +83,7 @@ Es un borrador: el diseño está en la maqueta `sources/maquetas/Inicio/proconta
 - 2026-11-15 13:56 · answer: ¿endeudamiento por debajo de 0,4 como «Bien»? → Ok
 - 2026-11-15 13:56 · Pruebas ok
 - 2026-11-15 13:58 · Cuando acabes, ya puedes lanzar la fase 3
+- 2026-11-15 15:18 · 1. He de generar los asientos de liquidación, me temo que no los he hecho estos trimestres, cuando tenga el proceso contable para generarlos, dejarán de salir como avisos. Ya me parece bien que salgan como salen ahora.
+- 2026-11-15 15:18 · 2. Ok
+- 2026-11-15 15:18 · 3. Ok
+- 2026-11-15 15:18 · 4. El umbral sería de 40 días ya que lo obtenemos mensualmente
