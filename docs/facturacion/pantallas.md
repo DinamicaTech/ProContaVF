@@ -54,6 +54,7 @@ Editor: «Nueva factura» abre el editor con el buscador de cliente ya abierto; 
 - 2026-11-15 14:05 · Editor, cuenta de la línea (amplía 2026-11-15 12:10): el campo «Cuenta» de cada línea abre el buscador común de subcuentas (contabilidad/cuenta-contable) con una lupa y con F4, limitado al grupo 7 con la casilla para quitar el filtro; en una línea de suplido, sin filtro. Se puede seguir escribiendo el código a mano. Al añadir una línea que queda sin cuenta (concepto sin cuenta de venta o «Línea sin concepto»), el buscador se abre solo después de elegir el concepto. Si la cuenta se elige en el buscador y el concepto de la línea no tiene cuenta de venta, se pregunta si se guarda como su cuenta por defecto (facturacion/conceptos): con «Sí» queda en el concepto; con «No» no se vuelve a preguntar por ese concepto hasta cerrar el programa (no se guarda nada en la base de datos). No se pregunta si la cuenta se escribe a mano, en suplidos ni en líneas sin concepto.
 - 2026-11-15 15:18 · Validado por el propietario (circuito de facturación y buscador de subcuentas en la línea, PR #74).
 - 2026-11-15 17:25 · Editor, cuenta de la línea (precisa 2026-11-15 14:05): la pregunta para guardar la cuenta elegida como cuenta por defecto del concepto solo sale si la cuenta es del grupo 7; con una cuenta de otro grupo (elegida al quitar el filtro) la línea la toma y no se pregunta.
+- 2026-11-15 17:26 · Validado por el propietario (pregunta de la cuenta del concepto solo con el grupo 7, PR #77).
 
 ## Requirements
 - 2026-10-28 12:28 · From sources/01_ESPECIFICACION_FUNCIONAL.docx § 10 RF-FAC-10: listado, selección, proforma, contadores
@@ -96,6 +97,7 @@ Editor: «Nueva factura» abre el editor con el buscador de cliente ya abierto; 
 - 2026-11-15 13:54 · answer: cómo recordar el «No» a guardar la cuenta en el concepto → (A) mientras el programa siga abierto, sin cambios en la base de datos
 - 2026-11-15 15:16 · Ok, funciona bien.
 - 2026-11-15 17:21 · Sí, solo con cuentas del grupo 7
+- 2026-11-15 17:26 · Ya puedes fusionar
 
 ## Hand-over
 - 2026-11-01 18:15 · Hecho: las dos pantallas compiladas y en el menú. Pendiente: probarlas en el equipo del propietario y validarlas contra la maqueta; el motivo de la rectificación y la doble pantalla quedan por decidir.
