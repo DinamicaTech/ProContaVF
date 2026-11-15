@@ -141,7 +141,7 @@ public partial class VentanaPrincipal : Window
             new LectorConfiguracionEjercicio(bd), contexto.Contexto, contexto.RazonSocial, new Actor(sesion.NombreOperador), new CatalogoCentrosCosteAccess(bd),
             new ServicioProgramadas(bd, sociedades, facturas, autorizador),
             new ServicioPdfFacturas(bd, facturas, sociedades, new GeneradorPdfFastReport(), autorizador));
-        _facturacion = new ModuloFacturacion(serviciosFacturacion, _area, new DialogosFacturacion(apoyo, () => this), _terceros.AbrirFicha);
+        _facturacion = new ModuloFacturacion(serviciosFacturacion, _area, new DialogosFacturacion(apoyo, cuentas, new CatalogoCentrosCosteAccess(bd), () => this), _terceros.AbrirFicha);
         // Ventas por facturar (facturacion/reservas): reservas de Avaibook y altas manuales que se facturan por mes, cliente y activo.
         var ventas = new ProConta.Facturacion.Ventas.ServicioVentas(bd, sociedades, facturas, serviciosFacturacion.Conceptos, autorizador);
         var clienteAvaibook = new ProConta.Facturacion.Ventas.ClienteAvaibookHttp(Http);

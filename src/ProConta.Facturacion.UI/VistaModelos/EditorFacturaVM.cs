@@ -5,6 +5,7 @@ using System.Globalization;
 using System.Text;
 using System.Windows.Input;
 using ProConta.Contabilidad.CentrosCoste;
+using ProConta.Facturacion.Conceptos;
 using ProConta.Facturacion.Facturas;
 using ProConta.Facturacion.Programadas;
 using ProConta.Nucleo.Resultados;
@@ -84,6 +85,7 @@ public sealed class EditorFacturaVM : ModeloVista, IPestanaTrabajo, INotifyDataE
         AsignarCuentaRetencionCommand = new ComandoDelegado(() => _ = AsignarCuentaAsync(ClaseCuentaRol.Retencion), () => _cliente is not null && Editable);
         AbrirFichaCommand = new ComandoDelegado(() => { if (_cliente is not null) _modulo.AbrirFichaTercero(_cliente.IdTercero); }, () => _cliente is not null);
         AnadirLineaCommand = new ComandoDelegado(() => _ = AnadirLineaAsync(), () => EditableLineas);
+        BuscarCuentaLineaCommand = new ComandoDelegado(p => { if (p is LineaFacturaVM l) _ = BuscarCuentaLineaAsync(l); }, _ => EditableLineas);
         QuitarLineaCommand = new ComandoDelegado(p => { if (p is LineaFacturaVM l) QuitarLinea(l); }, _ => EditableLineas);
         SubirLineaCommand = new ComandoDelegado(p => { if (p is LineaFacturaVM l) MoverLinea(l, -1); }, p => EditableLineas && p is LineaFacturaVM l && Lineas.IndexOf(l) > 0);
         BajarLineaCommand = new ComandoDelegado(p => { if (p is LineaFacturaVM l) MoverLinea(l, 1); }, p => EditableLineas && p is LineaFacturaVM l && Lineas.IndexOf(l) is var i && i >= 0 && i < Lineas.Count - 1);
@@ -582,6 +584,8 @@ public sealed class EditorFacturaVM : ModeloVista, IPestanaTrabajo, INotifyDataE
     public ICommand AbrirFichaCommand { get; }
     public ICommand AnadirLineaCommand { get; }
     public ICommand QuitarLineaCommand { get; }
+    /// <summary>Abre el buscador de subcuentas para la cuenta de la línea (lupa o F4).</summary>
+    public ICommand BuscarCuentaLineaCommand { get; }
     /// <summary>Sube la línea un puesto (Alt+↑); el orden de las líneas tiene significado y se guarda.</summary>
     public ICommand SubirLineaCommand { get; }
     /// <summary>Baja la línea un puesto (Alt+↓).</summary>
@@ -804,11 +808,40 @@ public sealed class EditorFacturaVM : ModeloVista, IPestanaTrabajo, INotifyDataE
         else linea.TipoIva = _tiposIva.FirstOrDefault();
         linea.Recalcular();
         _f.AnadirLinea(linea);
-        Lineas.Add(new LineaFacturaVM(linea, EditableLineas, _tiposIva, _centros, LineaCambiada));
+        var nueva = new LineaFacturaVM(linea, EditableLineas, _tiposIva, _centros, LineaCambiada);
+        Lineas.Add(nueva);
         QuitarError("Lineas");
         AvisarTotales();
         Cambio();
+        // Sin cuenta (concepto sin cuenta de venta o línea sin concepto), se pide ya con el buscador de subcuentas.
+        if (string.IsNullOrWhiteSpace(linea.CuentaContable)) await BuscarCuentaLineaAsync(nueva, conceptos);
         LineaAnadida?.Invoke(c is null);
+    }
+
+    /// <summary>
+    /// Buscador común de subcuentas para la cuenta de una línea (facturacion/pantallas 2026-11-15 14:05). Si el concepto de
+    /// la línea no tiene cuenta de venta, ofrece guardar la elegida como su cuenta por defecto; un «No» vale para ese
+    /// concepto mientras el programa siga abierto.
+    /// </summary>
+    private async Task BuscarCuentaLineaAsync(LineaFacturaVM linea, IReadOnlyList<Concepto>? conceptos = null)
+    {
+        if (!EditableLineas) return;
+        var suplido = linea.Datos.EsSuplido;
+        if (_modulo.Dialogos.ElegirCuentaLinea(_s.Trabajo, linea.Cuenta.Length > 0 ? linea.Cuenta : null, suplido) is not { } elegida) return;
+        linea.Cuenta = elegida.Codigo;
+        if (suplido || linea.Datos.IdConcepto is not int id || _modulo.ConceptosSinOfrecerCuenta.Contains(id)) return;
+        conceptos ??= await _s.Conceptos.ListarAsync(_s.Trabajo, soloActivos: false);
+        if (conceptos.FirstOrDefault(x => x.IdConcepto == id) is not { CuentaVenta: null } concepto) return;
+        var respuesta = _modulo.Dialogos.Preguntar("Cuenta de venta del concepto",
+            $"El concepto «{concepto.Nombre}» no tiene cuenta de venta. ¿Guardar la {elegida.Codigo} ({elegida.Nombre}) como su cuenta por defecto?", null,
+            new OpcionMensaje("Sí, guardarla", "Las próximas líneas de este concepto traerán esta cuenta", Principal: true),
+            new OpcionMensaje("No", "Solo se usa en esta línea; no se vuelve a preguntar por este concepto hasta que cierres el programa", Cancelar: true));
+        if (respuesta != 0) { _modulo.ConceptosSinOfrecerCuenta.Add(id); return; }
+        var guardado = await _s.Conceptos.GuardarAsync(concepto, elegida.Codigo, _s.Trabajo);
+        if (guardado.EsCorrecto) _modulo.Avisar($"Cuenta {elegida.Codigo} guardada en el concepto «{concepto.Nombre}».");
+        else
+            _modulo.Dialogos.Preguntar("No he podido guardar la cuenta en el concepto", string.Join(" ", guardado.Errores.Select(e => e.Mensaje)), null,
+                new OpcionMensaje("Entendido", "La línea conserva la cuenta elegida", Principal: true, Cancelar: true));
     }
 
     internal void MoverLinea(LineaFacturaVM l, int desplazamiento)

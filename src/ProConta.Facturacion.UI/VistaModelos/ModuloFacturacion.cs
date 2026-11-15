@@ -49,6 +49,12 @@ public interface IDialogosFacturacion
     /// </summary>
     EleccionConcepto? ElegirConcepto(IReadOnlyList<Concepto> conceptos);
 
+    /// <summary>
+    /// Busca la subcuenta de una línea con el buscador común (grupo 7; en un suplido, cualquiera); <paramref name="texto"/>
+    /// es lo escrito en el campo. Null si se cancela.
+    /// </summary>
+    (string Codigo, string Nombre)? ElegirCuentaLinea(ContextoSociedadEjercicio trabajo, string? texto, bool suplido);
+
     /// <summary>Pide la cuenta (existente o nueva) para el rol Cliente; null si se cancela.</summary>
     string? PedirCuenta(ClaseCuentaRol clase, string nombreCliente, string propuesta, string razonSocial);
 
@@ -93,6 +99,12 @@ public sealed class ModuloFacturacion
         _dialogos = dialogos;
         _abrirFichaTercero = abrirFichaTercero;
     }
+
+    /// <summary>
+    /// Conceptos sin cuenta de venta para los que ya se contestó «No» a guardar la elegida en una línea: no se vuelve a
+    /// preguntar mientras el programa siga abierto (facturacion/pantallas 2026-11-15 14:05).
+    /// </summary>
+    internal HashSet<int> ConceptosSinOfrecerCuenta { get; } = [];
 
     /// <summary>Correo común (correo/pantallas): compositor, lotes con resumen y registro. Null, el envío no está disponible.</summary>
     public ProConta.Correo.IEnvioCorreoInteractivo? Correo { get; set; }

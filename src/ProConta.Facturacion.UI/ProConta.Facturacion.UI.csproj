@@ -10,6 +10,7 @@
   <ItemGroup>
     <ProjectReference Include="..\ProConta.UI.Base\ProConta.UI.Base.csproj" />
     <ProjectReference Include="..\ProConta.Facturacion\ProConta.Facturacion.csproj" />
+    <ProjectReference Include="..\ProConta.Contabilidad.UI\ProConta.Contabilidad.UI.csproj" />
   </ItemGroup>
   <ItemGroup>
     <InternalsVisibleTo Include="ProConta.Facturacion.Tests" />

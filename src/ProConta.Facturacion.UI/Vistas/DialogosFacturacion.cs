@@ -13,7 +13,8 @@ using ProConta.UI.Base.Formato;
 namespace ProConta.Facturacion.UI.Vistas;
 
 /// <summary>Diálogos de facturación con <see cref="DialogoProConta"/>: elegir cliente, elegir concepto y asignar cuenta.</summary>
-public sealed class DialogosFacturacion(ApoyoEditorFacturas apoyo, Func<Window?> propietario) : IDialogosFacturacion
+public sealed class DialogosFacturacion(ApoyoEditorFacturas apoyo, ProConta.Contabilidad.Cuentas.ICatalogoCuentas cuentas,
+    ProConta.Contabilidad.CentrosCoste.ICatalogoCentrosCoste centros, Func<Window?> propietario) : IDialogosFacturacion
 {
     private Window? Propietario => propietario() ?? Application.Current?.MainWindow;
 
@@ -154,6 +155,17 @@ public sealed class DialogosFacturacion(ApoyoEditorFacturas apoyo, Func<Window?>
         dialogo.Botones = new StackPanel { Orientation = Orientation.Horizontal, Children = { cancelar, libre, elegir } };
         dialogo.Loaded += (_, _) => { lista.SelectedIndex = 0; filtro.Focus(); };
         return dialogo.ShowDialog() == true ? elegido : null;
+    }
+
+    /// <summary>
+    /// El buscador común de subcuentas para la cuenta de una línea (facturacion/pantallas 2026-11-15 14:05): limitado al
+    /// grupo 7, con la casilla para quitar el filtro; en un suplido, sin filtro.
+    /// </summary>
+    public (string Codigo, string Nombre)? ElegirCuentaLinea(ProConta.Nucleo.Contexto.ContextoSociedadEjercicio trabajo, string? texto, bool suplido)
+    {
+        var vm = new ProConta.Contabilidad.UI.BuscadorCuentasVM(cuentas, trabajo, suplido ? [] : ["7"], texto, centros);
+        return ProConta.Contabilidad.UI.DialogoCuentas.Elegir(Propietario, vm, suplido ? "Cuenta de suplidos de la línea" : "Cuenta de ingreso de la línea") is { } c
+            ? (c.Codigo, c.Nombre) : null;
     }
 
     public string? PedirCuenta(ClaseCuentaRol clase, string nombreCliente, string propuesta, string razonSocial)
