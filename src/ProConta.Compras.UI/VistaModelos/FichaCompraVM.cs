@@ -153,6 +153,8 @@ public sealed class FichaCompraVM : ModeloVista
     private OpcionFicha<int?> _centroCoste;
     private OpcionFicha<int?> _rectifica;
     private readonly IReadOnlyList<decimal> _tiposIva;
+    /// <summary>Las facturas del ejercicio, para los avisos V1 a V3 (<see cref="ValidacionesCompra"/>).</summary>
+    private readonly IReadOnlyList<FilaFacturaCompra> _otras;
     private readonly Dictionary<string, Compras.Reconocimiento.PuntoDocumento> _elegidos = new(StringComparer.Ordinal);
 
     internal FichaCompraVM(FacturaCompra factura, IReadOnlyList<ProveedorFicha> proveedores, IReadOnlyList<OpcionFicha<string>> cuentasGasto,
@@ -161,6 +163,7 @@ public sealed class FichaCompraVM : ModeloVista
         IReadOnlyList<TipoRetencionCompra>? tiposRetencion = null)
     {
         Factura = factura;
+        _otras = otras;
         _tiposIva = tiposIva ?? [];
         _proveedores = proveedores;
         // Las contabilizadas (aquí o en el ERP) se pueden cambiar: lo que toca el asiento, re-exportando (compras/pantallas 2026-11-07).
@@ -747,6 +750,8 @@ public sealed class FichaCompraVM : ModeloVista
             var falta = f.Pendiente();
             if (falta.Count > 0) l.Insert(0, "Falta " + string.Join(", ", falta) + ".");
             if (Factura.Duplicada) l.Add("El ERP la marcó como duplicada de otra factura.");
+            // Avisos que no bloquean (incidencias con la gestoría): operación frente al NIF, retención habitual y abono sin original.
+            if (!SoloLectura) l.AddRange(ValidacionesCompra.Avisos(f, _otras));
             return l;
         }
     }

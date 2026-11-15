@@ -151,4 +151,43 @@ public sealed class FuenteSaludAccessTests : IDisposable
         Assert.Contains("compras-pendientes", claves);
         Assert.Contains("cuentas-baja", claves);
     }
+
+    [Fact]
+    public async Task LeeLoQueNecesitanLosAvisosDeLasIncidenciasConLaGestoria()
+    {
+        await PrepararAsync();
+        await Bd.EjecutarAsync(s => s.EjecutarAsync("INSERT INTO CuadresCuentas (IdSociedadEjercicio, CuentaContable, Cuadrada, Saldo, Notas, Operador, FechaHora) VALUES (?, ?, ?, ?, ?, ?, ?)",
+            9002, "5550001", true, 75m, "Saldo explicado", "operador.prueba", DateTime.Now));
+        var fuente = new FuenteSaludAccess(Bd);
+        var ejercicios = await fuente.EjerciciosAsync("T01");
+        var e2026 = ejercicios.Single(e => e.Ejercicio == 2026);
+
+        // Apuntes por prefijo, con su asiento, tipo y ejercicio.
+        var apuntes = await fuente.ApuntesCuentasAsync(ejercicios, ["555", "4750"]);
+        Assert.Equal(["4750001", "4750001", "4750001", "5550001"], apuntes.Select(a => a.Cuenta).Order());
+        Assert.All(apuntes, a => Assert.Equal(2026, a.Ejercicio));
+        Assert.Equal(-10m, apuntes.Where(a => a.Cuenta == "4750001").Sum(a => a.Haber - a.Debe));
+        Assert.Empty(await fuente.ApuntesCuentasAsync(ejercicios, ["1' OR '1'='1"]));
+
+        Assert.Equal(75m, (await fuente.CuadradasAsync(e2026))["5550001"]);
+
+        // Gastos e ingresos sin centro (los asientos manuales de la prueba no lo llevan).
+        var sinCentro = (await fuente.CuentasSinCentroAsync(e2026)).ToDictionary(x => x.Cuenta);
+        Assert.Equal(-1000m, sinCentro["7000001"].Importe);
+        Assert.Equal(100m, sinCentro["6290001"].Importe);
+
+        var cartera = await fuente.CarteraAsync(e2026);
+        Assert.Equal(910m, cartera.Sum(a => a.Debe - a.Haber));
+
+        var compras = await fuente.FacturasCompraAsync("T01", e2026);
+        Assert.Equal(2, compras.Count);
+        Assert.Single(compras, f => f.Duplicada);
+
+        // Con todo leído, la revisión completa no falla en ninguna pieza.
+        var informe = await new ServicioSalud(fuente, hoy: () => new DateTime(2026, 11, 15)).RevisarAsync("T01", 2026);
+        Assert.DoesNotContain(informe.Revisiones, r => r.Error is not null);
+        // La 555 está cuadrada en el Mayor con el mismo saldo: no avisa.
+        Assert.DoesNotContain(informe.Elementos, e => e.Clave == "partidas-555");
+        Assert.Contains(informe.Elementos, e => e.Clave == "sin-centro");
+    }
 }

@@ -82,6 +82,23 @@ public sealed record NominaMes(int Anio, int Mes, string Estado, string? TipoPag
 public sealed record AsientoAmortizacion(int Ejercicio, DateTime Fecha, decimal Importe);
 
 /// <summary>
+/// Apunte contabilizado (sin los de cierre) de una subcuenta para las revisiones de las incidencias con la gestoría (S1 a S4 y
+/// S9): asiento, tipo (1 apertura, 2 regularización), fecha, cuenta e importes.
+/// </summary>
+public sealed record ApunteCuenta(int Ejercicio, int IdAsiento, DateTime Fecha, byte TipoAsiento, string Cuenta, decimal Debe, decimal Haber)
+{
+    public decimal Saldo => Debe - Haber;
+}
+
+/// <summary>Cuenta de gasto o ingreso con apuntes sin centro de coste en el ejercicio (S7): número de apuntes e importe (debe − haber).</summary>
+public sealed record CuentaSinCentro(string Cuenta, int Apuntes, decimal Importe);
+
+/// <summary>Cliente o proveedor con apuntes en el ejercicio y su NIF tal como está en la ficha (S6).</summary>
+/// <param name="TipoIdentificacion">Terceros.TipoIdentificacion (vacío, NIF, CIF, NIE o DNI: identificación española).</param>
+/// <param name="Pais">País del domicilio de la ficha (Terceros.Pais), si lo tiene.</param>
+public sealed record TerceroNif(int IdTercero, string Nombre, string Cuenta, bool EsCliente, string Nif, string? TipoIdentificacion = null, string? Pais = null);
+
+/// <summary>
 /// Lecturas de la salud de la contabilidad. Solo lee: ni escribe en la BD ni cambia el esquema (el histórico de la tendencia va
 /// aparte, en <see cref="IHistoricoSalud"/>). Las lecturas de la fase 4 tienen una implementación vacía por defecto.
 /// </summary>
@@ -110,4 +127,30 @@ public interface IFuenteSalud
 
     /// <summary>Activos de la sociedad amortizables, propios (no ajenos) y sin dar de baja.</summary>
     Task<int> ActivosAmortizablesAsync(string idSociedad, CancellationToken c = default) => Task.FromResult(0);
+
+    // ---- Incidencias con la gestoría (contabilidad 2026-11-15 21:10): implementación vacía por defecto.
+
+    /// <summary>Apuntes contabilizados, sin los de cierre, de las subcuentas que empiezan por alguno de los prefijos, en los ejercicios pedidos.</summary>
+    Task<IReadOnlyList<ApunteCuenta>> ApuntesCuentasAsync(IReadOnlyList<EjercicioSociedad> ejercicios, IReadOnlyList<string> prefijos, CancellationToken c = default) =>
+        Task.FromResult<IReadOnlyList<ApunteCuenta>>([]);
+
+    /// <summary>Subcuentas marcadas «Cuadrada» en el Mayor en el ejercicio, con el saldo que tenían al marcarlas (null si no se guardó).</summary>
+    Task<IReadOnlyDictionary<string, decimal?>> CuadradasAsync(EjercicioSociedad ejercicio, CancellationToken c = default) =>
+        Task.FromResult<IReadOnlyDictionary<string, decimal?>>(new Dictionary<string, decimal?>());
+
+    /// <summary>Cuentas de los grupos 6 y 7 con apuntes contabilizados sin centro de coste (sin regularización ni cierre).</summary>
+    Task<IReadOnlyList<CuentaSinCentro>> CuentasSinCentroAsync(EjercicioSociedad ejercicio, CancellationToken c = default) =>
+        Task.FromResult<IReadOnlyList<CuentaSinCentro>>([]);
+
+    /// <summary>Clientes y proveedores con apuntes en el ejercicio que tienen NIF en su ficha.</summary>
+    Task<IReadOnlyList<TerceroNif>> TercerosConNifAsync(string idSociedad, EjercicioSociedad ejercicio, CancellationToken c = default) =>
+        Task.FromResult<IReadOnlyList<TerceroNif>>([]);
+
+    /// <summary>Apuntes contabilizados de los clientes (430 a 436) del ejercicio, con su vencimiento.</summary>
+    Task<IReadOnlyList<ApunteCartera>> CarteraAsync(EjercicioSociedad ejercicio, CancellationToken c = default) =>
+        Task.FromResult<IReadOnlyList<ApunteCartera>>([]);
+
+    /// <summary>Facturas de compra del ejercicio, como las lista Compras › Facturas recibidas.</summary>
+    Task<IReadOnlyList<ProConta.Compras.Facturas.FilaFacturaCompra>> FacturasCompraAsync(string idSociedad, EjercicioSociedad ejercicio, CancellationToken c = default) =>
+        Task.FromResult<IReadOnlyList<ProConta.Compras.Facturas.FilaFacturaCompra>>([]);
 }

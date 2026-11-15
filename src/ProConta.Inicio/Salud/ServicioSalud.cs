@@ -23,6 +23,10 @@ public sealed class ServicioSalud(IFuenteSalud fuente, IReadOnlyList<IRevisionSa
         new RevisionDiarioCuadra(), new RevisionNumeracionFacturas(), new RevisionLibrosIva(), new RevisionTercerosNif(), new RevisionCuentasBaja(), new RevisionNominas(),
         // Fase 4 (pantalla-de-inicio 2026-11-15 16:37).
         new RevisionAmortizaciones(), new RevisionCentimosResiduales(),
+        // Incidencias con la gestoría (contabilidad 2026-11-15 21:10): S1 a S10.
+        new RevisionSaldosInmoviles(), new RevisionIvaCompensarUsado(), new RevisionLiquidacionIncompleta(), new RevisionRetenciones(),
+        new RevisionPendientesRecibir(), new RevisionNifInvalido(), new RevisionSinCentro(), new RevisionDeudaAntigua(),
+        new RevisionSeguridadSocial(), new RevisionComprasDuplicadas(),
     ];
 
     public const int LecturasSimultaneas = 4;
@@ -127,6 +131,19 @@ internal sealed class FuenteSaludCompartida(IFuenteSalud f) : IFuenteSalud
     public Task<IReadOnlyList<NominaMes>> NominasAsync(IReadOnlyList<EjercicioSociedad> ejercicios, CancellationToken c = default) => f.NominasAsync(ejercicios, c);
     public Task<IReadOnlyList<AsientoAmortizacion>> AmortizacionesAsync(IReadOnlyList<EjercicioSociedad> ejercicios, CancellationToken c = default) => f.AmortizacionesAsync(ejercicios, c);
     public Task<int> ActivosAmortizablesAsync(string idSociedad, CancellationToken c = default) => f.ActivosAmortizablesAsync(idSociedad, c);
+    public Task<IReadOnlyList<ApunteCuenta>> ApuntesCuentasAsync(IReadOnlyList<EjercicioSociedad> ejercicios, IReadOnlyList<string> prefijos, CancellationToken c = default) =>
+        f.ApuntesCuentasAsync(ejercicios, prefijos, c);
+    public Task<IReadOnlyList<CuentaSinCentro>> CuentasSinCentroAsync(EjercicioSociedad ejercicio, CancellationToken c = default) => f.CuentasSinCentroAsync(ejercicio, c);
+    public Task<IReadOnlyList<TerceroNif>> TercerosConNifAsync(string idSociedad, EjercicioSociedad ejercicio, CancellationToken c = default) => f.TercerosConNifAsync(idSociedad, ejercicio, c);
+    public Task<IReadOnlyList<ApunteCartera>> CarteraAsync(EjercicioSociedad ejercicio, CancellationToken c = default) => f.CarteraAsync(ejercicio, c);
+    public Task<IReadOnlyList<ProConta.Compras.Facturas.FilaFacturaCompra>> FacturasCompraAsync(string idSociedad, EjercicioSociedad ejercicio, CancellationToken c = default) =>
+        f.FacturasCompraAsync(idSociedad, ejercicio, c);
+
+    // Las subcuentas cuadradas las leen varias revisiones (saldos justificados): una lectura por pasada.
+    private readonly ConcurrentDictionary<int, Lazy<Task<IReadOnlyDictionary<string, decimal?>>>> _cuadradas = new();
+
+    public Task<IReadOnlyDictionary<string, decimal?>> CuadradasAsync(EjercicioSociedad ejercicio, CancellationToken c = default) =>
+        _cuadradas.GetOrAdd(ejercicio.IdSociedadEjercicio, _ => new Lazy<Task<IReadOnlyDictionary<string, decimal?>>>(() => f.CuadradasAsync(ejercicio, c))).Value;
 }
 
 /// <summary>Orden de la salud y elección de «Lo más urgente».</summary>
