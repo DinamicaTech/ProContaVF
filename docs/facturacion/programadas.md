@@ -25,6 +25,8 @@ Programaciones con cadencia y ancla de día, generación por lotes idempotente p
 - 2026-11-04 18:50 · Datos del ERP en la BD actual: las programadas que vienen del ERP tienen el periodo en FechaInicio/FechaFin y no tienen PeriodoDesde/Hasta; aquí aparecen sin periodo (sus facturas saldrían sin periodo) y FacturasGeneradas a 0. Su conversión (periodo, facturas ya emitidas y próxima emisión) corresponde a implantacion/migracion-erp cuando se regenere la BD.
 - 2026-11-05 10:40 · Validado por el propietario (facturación programada, PR #16).
 - 2026-11-10 20:05 · Hecho: al generar programadas, las facturas validadas cuya programada tiene «Enviar por email» salen en un lote de correo con su PDF y se muestra el resumen del lote; las generadas como borrador se envían después desde Facturas.
+- 2026-11-15 12:10 · Derivado de facturacion/pantallas 2026-11-15 12:10: `ServicioProgramadas.PendientesAsync` devuelve, con cada programada con vencimientos, lo que ya se sabe que impedirá generarla (`ProgramadaPendiente.Problema`: incompleta, sin ejercicio para la fecha o con el ejercicio cerrado), con las mismas comprobaciones que hace el lote, para enseñarlo antes en el diálogo. La preferencia «Enviar por correo» de la programada se respeta también cuando la factura nació como borrador: al validarla desde Facturas se ofrece enviarla en el mismo paso. La programada ya no se crea con la casilla «Periódica» de una factura nueva (matiza la decisión 2026-11-02 12:50 en eso): se crea con «Nueva programada» o con «Programar…».
+- 2026-11-15 15:18 · Validado por el propietario (circuito de facturación, PR #74).
 
 ## Requirements
 - 2026-10-28 12:28 · From sources/01_ESPECIFICACION_FUNCIONAL.docx § 12 RF-PRO-01..06: programaciones, anclas, lotes, concurrencia, envío, duplicado
@@ -32,6 +34,7 @@ Programaciones con cadencia y ancla de día, generación por lotes idempotente p
 - 2026-11-04 18:14 · Ok a lo de generar una programada a partir de una factura, pero no me queda claro lo de 'Periódica solo aparece' (es un menú contextual?)
 - 2026-11-04 18:14 · Ok (la factura programada decide cómo se envía)
 - 2026-11-05 10:35 · Ok, perfecto.
+- 2026-11-15 12:10 · Derived from facturacion/pantallas: el servicio dice, antes de generar, qué programadas con vencimientos no se podrán generar y por qué; la preferencia de envío por correo se ofrece también al validar desde Facturas un borrador generado por una programada.
 
 ## Hand-over
 - 2026-11-04 18:50 · Hecho: dominio, calendario, servicio, lotes y migración `20261104_1820_FACTURAS_PROGRAMADAS`; editor con «Periódica» y «Programación», sección de programadas, «Generar programadas…» y «Programar…» en Facturas; pruebas sin BD y contra Access en verde; la copia de pruebas actualizada a la versión 15. Pendiente: revisión en pantalla y validación del propietario; envío automático con correo/envio y PDF; conversión de las programadas del ERP (implantacion/migracion-erp).

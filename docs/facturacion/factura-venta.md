@@ -41,6 +41,7 @@ Ente FacturaVenta: borrador sin número, cálculo de líneas y totales, validaci
 - 2026-11-13 23:46 · Avisos al validar (se pueden aceptar): «Facturas.TransferenciaSinCuenta» si la forma de pago no es SEPA, su nombre dice transferencia (también la errata «Trasferencia») y la empresa no le ha asignado cuenta bancaria; «Facturas.ReciboSinIban» si es SEPA y el cliente no tiene IBAN, con la acción «Abrir ficha». Están en `ReglasFactura.AvisosPago`.
 - 2026-11-13 23:46 · Cabecera del PDF: el teléfono de la empresa (Sociedades.Telefono) sale junto a su domicilio, y el pie de página repite nombre, NIF y domicilio en una línea.
 - 2026-11-14 12:25 · Validado por el propietario el diseño del PDF, el logo, el bloque de pago, el IBAN del cliente y el esquema 50 (PR #65).
+- 2026-11-15 12:10 · Derivado de facturacion/pantallas 2026-11-15 12:10: la fila ligera del listado (`FilaFactura`, `ConsultaFacturas`) dice el origen de la factura: rectificativa, programada, venta (tiene alguna venta por facturar enlazada) o manual.
 
 ## Requirements
 - 2026-11-08 11:29 · Si es una factura validada, pero no exportada a Verifactu, se puede modificar cualquier campo o línea.
@@ -68,6 +69,7 @@ Ente FacturaVenta: borrador sin número, cálculo de líneas y totales, validaci
 - 2026-11-13 11:58 · 3. Los colores me parecen bien, lo único que me convencen más los totales en la parte inferior en una zona fija de la factura
 - 2026-11-13 12:13 · Ok a los cambios.
 - 2026-11-14 12:25 · Ok, ya puedes fusionar PR y cerrar hilo
+- 2026-11-15 12:10 · Derived from facturacion/pantallas: la consulta del listado indica si la factura viene de Ventas por facturar, para el filtro de origen.
 
 ## Hand-over
 - 2026-11-01 18:15 · Hecho: el ente, su servicio, las series y la consulta del listado, con pruebas sin BD (cálculo, reglas y asiento) y contra Access (validar numera y contabiliza, total cero, retención sin cuenta, rectificativa, duplicar, numeración concurrente y conflicto de versión). Pendiente: ejecutar las pruebas Access y las migraciones en el equipo del propietario; comprobar el formato del número con las series reales; VeriFactu, PDF, correo y programadas quedan fuera de este desarrollo.
