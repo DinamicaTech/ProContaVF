@@ -193,6 +193,30 @@ public sealed class ContabilizacionComprasAccessTests : IDisposable
         Assert.Equal(26m, Convert.ToDecimal(await Bd.EjecutarAsync(s => s.EscalarAsync("SELECT CuotaSoportadaTotal FROM IVASoportado WHERE IdAsiento = ?", r.Valor.IdAsiento))));
     }
 
+    /// <summary>
+    /// Cambio de deducción desde una fecha (contabilidad/procesos/cambio-deduccion-actividad): la actividad no deducible pasa a
+    /// deducir al 100 % desde <paramref name="desde"/>; manda la fecha de la factura (10/07/2026).
+    /// </summary>
+    [Theory]
+    [InlineData(10, true)]
+    [InlineData(11, false)]
+    public async Task Con_un_cambio_de_deduccion_manda_la_fecha_de_la_factura(int desde, bool deduce)
+    {
+        await EmpresaAsync();
+        var (_, hijo) = await CentrosConActividadAsync("4726", 0);
+        var idActividad = await Contar("SELECT MAX(IdActividad) FROM Actividades");
+        await Bd.EjecutarAsync(s => s.EjecutarAsync("INSERT INTO ActividadesDeduccion (IdActividad, FechaDesde, Deducible) VALUES (?, ?, ?)",
+            idActividad, new DateTime(2026, 7, desde), (byte)2));
+        var (f, _) = await FacturaAsync();
+        f.IdCentroCoste = hijo;
+        var r = await Servicio().ExportarAsync(f, _actor, new OpcionesExportacion(EsProveedor: false));
+        Assert.True(r.EsCorrecto, r.Error?.ToString());
+        var asiento = (await new MotorAsientosAccess(Bd).ObtenerAsync(r.Valor.IdAsiento!.Value))!;
+        Assert.Equal(deduce, asiento.Apuntes.Any(a => a.CodigoCuenta == "4726021" && a.Debe.Valor == 21m));
+        Assert.Equal(deduce ? 150m : 176m, asiento.Apuntes.Where(a => a.CodigoCuenta == "6290000").Sum(a => a.Debe.Valor));
+        Assert.Equal(deduce ? 26m : 0m, Convert.ToDecimal(await Bd.EjecutarAsync(s => s.EscalarAsync("SELECT CuotaDeducibleTotal FROM IVASoportado WHERE IdAsiento = ?", r.Valor.IdAsiento))));
+    }
+
     [Fact]
     public async Task La_propuesta_es_el_asiento_que_se_exportaria_sin_grabar_nada()
     {

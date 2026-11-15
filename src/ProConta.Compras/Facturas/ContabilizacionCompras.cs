@@ -248,9 +248,10 @@ public sealed class ContabilizadorCompras(IBaseDatos bd, IMotorAsientos motor, I
                     "Configura el tipo general en Parámetros y tablas › Ejercicios."));
         }
         // Actividad del centro de coste (contabilidad/procesos 2026-11-08): su serie de 472 sustituye a la general y, si no
-        // deduce el IVA, el IVA va al gasto y no hacen falta cuentas de IVA soportado.
+        // deduce el IVA, el IVA va al gasto y no hacen falta cuentas de IVA soportado. La deducción es la vigente en la fecha de la
+        // factura (contabilidad/procesos/cambio-deduccion-actividad 2026-11-15 19:43): el turístico deduce desde el 1/12/2026.
         var actividad = f.IdCentroCoste is int idCentro ? (await new LectorActividadesIva(bd).PorCentroAsync(ctx.IdSociedad)).GetValueOrDefault(idCentro) : null;
-        var noDeducible = actividad is { Deducible: 0 };
+        var noDeducible = actividad is not null && actividad.DeducibleEn(f.Fecha!.Value) == 0;
         string? Serie(string? cuenta, string sufijo) => actividad?.Serie is { } serie && cuenta is not null ? serie + sufijo : cuenta;
         // La 477 de la actividad sale de su serie de la 472 con el 2 cambiado por el 7 (4728 → 4778; propietario 2026-11-08 09:40).
         string? Serie477(string? cuenta, string sufijo) => actividad?.Serie is { Length: 4 } serie && cuenta is not null ? "477" + serie[3] + sufijo : cuenta;

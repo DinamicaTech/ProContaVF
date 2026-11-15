@@ -50,8 +50,11 @@ public static class TextosIva
         _ => SinCentro,
     };
 
-    /// <summary>Deducción de una actividad (Actividades.Deducible): 0 no deducible, 1 prorrata, 2 (o cualquier otro) 100 %.</summary>
-    public static DeduccionIva DeActividad(ActividadIva? actividad) => actividad?.Deducible switch
+    /// <summary>
+    /// Deducción de una actividad en una fecha (la de la factura): Actividades.Deducible o el cambio vigente en esa fecha
+    /// (contabilidad/procesos/cambio-deduccion-actividad). 0 no deducible, 1 prorrata, 2 (o cualquier otro) 100 %.
+    /// </summary>
+    public static DeduccionIva DeActividad(ActividadIva? actividad, DateTime fecha) => actividad?.DeducibleEn(fecha) switch
     {
         null => DeduccionIva.SinCentro,
         0 => DeduccionIva.NoDeducible,
@@ -78,9 +81,13 @@ public sealed record LineaIva(
 
 /// <summary>Registro de un libro de IVA tal como se lee de la BD, con sus desgloses y los apuntes de su asiento.</summary>
 /// <param name="CodigoTipoOperacion">TiposOperacion.Codigo del registro (SOPORTADO_0 interior, SOPORTADO_1 y SOPORTADO_2 exterior).</param>
+/// <param name="FechaFactura">
+/// Fecha de expedición de la factura del libro: decide la deducción cuando la actividad la cambia desde una fecha
+/// (contabilidad/procesos/cambio-deduccion-actividad). Null: la fecha contable.
+/// </param>
 public sealed record RegistroIvaLeido(
     SentidoIva Sentido, int IdAsiento, DateTime FechaContable, string? CodigoTipoOperacion, bool IspLibro, string Tercero, string? Nif, string? Factura,
-    IReadOnlyList<DesgloseIvaLeido> Desgloses, IReadOnlyList<ApunteIvaLeido> Apuntes);
+    IReadOnlyList<DesgloseIvaLeido> Desgloses, IReadOnlyList<ApunteIvaLeido> Apuntes, DateTime? FechaFactura = null);
 
 /// <summary>Desglose de un registro de IVA: base, tipo (porcentaje), cuota y cuota autorrepercutida grabadas en el libro.</summary>
 public sealed record DesgloseIvaLeido(decimal Base, decimal TipoIva, decimal Cuota, decimal CuotaAutorrepercutida);
@@ -98,8 +105,8 @@ public sealed record CentroIva(string Raiz, string Nombre);
 /// <item>Centro: el del apunte de IVA del asiento (472 en el soportado, 477 en el repercutido), el de importe igual a la cuota del
 /// desglose si hay varios; si el asiento no lo lleva ahí, el del apunte de gasto (6, 2) o de ingreso (7). Es el enlace que
 /// reproduce el departamento (CODCDP) del libro anterior en todas las líneas de 2026.</item>
-/// <item>Deducción: la de la actividad del centro, con herencia (<see cref="LectorActividadesIva"/>). Sin centro o sin actividad:
-/// «Sin centro», con aviso.</item>
+/// <item>Deducción: la de la actividad del centro, con herencia (<see cref="LectorActividadesIva"/>), vigente en la fecha de la
+/// factura (contabilidad/procesos/cambio-deduccion-actividad 2026-11-15 19:43). Sin centro o sin actividad: «Sin centro», con aviso.</item>
 /// <item>Operación: un registro interior (SOPORTADO_0) es nacional; uno exterior (SOPORTADO_1 o SOPORTADO_2) es intracomunitario
 /// si su asiento autorrepercute el IVA en una 477 y es una importación si no (el IVA de importación va a la 4724 sin 477,
 /// compras/factura-compra/contabilizacion 2026-10-31 07:46). Así no depende del código del tipo de operación, que los datos
@@ -133,7 +140,7 @@ public static class ClasificadorLineasIva
                     ?? reg.Apuntes.FirstOrDefault(a => a.IdCentroCoste is not null && a.Cuenta.Length > 0 && a.Cuenta[0] is '6' or '7' or '2')?.IdCentroCoste;
                 var actividad = idCentro is int id ? actividades.GetValueOrDefault(id) : null;
                 var centro = idCentro is int ic ? centros.GetValueOrDefault(ic) : null;
-                var deduccion = TextosIva.DeActividad(actividad);
+                var deduccion = TextosIva.DeActividad(actividad, reg.FechaFactura ?? reg.FechaContable);
                 var aviso = fueraEjercicio ? TextosIva.AvisoFueraEjercicio
                     : idCentro is null ? TextosIva.AvisoSinCentro
                     : actividad is null ? TextosIva.AvisoSinActividad : null;

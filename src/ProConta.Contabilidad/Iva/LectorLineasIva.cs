@@ -21,10 +21,10 @@ public sealed class LectorLineasIva(IBaseDatos bd)
         {
             var id = ctx.IdSociedadEjercicio;
             var cabSop = await s.ConsultarAsync(
-                "SELECT r.IdIVASoportado AS Id, r.IdAsiento, a.FechaContable, t.Codigo AS CodigoTipo, r.InversionSujetoPasivo, r.NombreProveedor AS Tercero, " +
+                "SELECT r.IdIVASoportado AS Id, r.IdAsiento, a.FechaContable, r.FechaExpedicion, t.Codigo AS CodigoTipo, r.InversionSujetoPasivo, r.NombreProveedor AS Tercero, " +
                 "r.IdentificacionFiscalProveedor AS Nif, r.NumeroFactura FROM (IVASoportado AS r INNER JOIN Asientos AS a ON r.IdAsiento = a.IdAsiento) " +
                 $"LEFT JOIN TiposOperacion AS t ON r.IdTipoOperacion = t.IdTipoOperacion WHERE r.IdSociedadEjercicio = ? AND {Contabilizado}",
-                f => (Id: f.Entero("Id"), Asiento: f.Entero("IdAsiento"), Fecha: f.Fecha("FechaContable"), Codigo: f.Texto("CodigoTipo")?.Trim(),
+                f => (Id: f.Entero("Id"), Asiento: f.Entero("IdAsiento"), Fecha: f.Fecha("FechaContable"), Expedicion: f.FechaNula("FechaExpedicion"), Codigo: f.Texto("CodigoTipo")?.Trim(),
                     Isp: !f.EsNulo("InversionSujetoPasivo") && f.Logico("InversionSujetoPasivo"), Tercero: (f.Texto("Tercero") ?? "").Trim(),
                     Nif: f.Texto("Nif")?.Trim(), Factura: f.Texto("NumeroFactura")?.Trim()), id);
             var desSop = await s.ConsultarAsync(
@@ -33,9 +33,9 @@ public sealed class LectorLineasIva(IBaseDatos bd)
                 f => (Id: f.Entero("Id"), D: new DesgloseIvaLeido(f.DecimalNulo("BaseImponible") ?? 0m, f.DecimalNulo("TipoIVA") ?? 0m, f.DecimalNulo("CuotaSoportada") ?? 0m,
                     f.DecimalNulo("CuotaDevengadaAutorrepercutida") ?? 0m)), id);
             var cabRep = await s.ConsultarAsync(
-                "SELECT r.IdIVARepercutido AS Id, r.IdAsiento, a.FechaContable, r.NombreCliente AS Tercero, r.IdentificacionFiscalCliente AS Nif, r.NumeroFactura " +
+                "SELECT r.IdIVARepercutido AS Id, r.IdAsiento, a.FechaContable, r.FechaExpedicion, r.NombreCliente AS Tercero, r.IdentificacionFiscalCliente AS Nif, r.NumeroFactura " +
                 $"FROM IVARepercutido AS r INNER JOIN Asientos AS a ON r.IdAsiento = a.IdAsiento WHERE r.IdSociedadEjercicio = ? AND {Contabilizado}",
-                f => (Id: f.Entero("Id"), Asiento: f.Entero("IdAsiento"), Fecha: f.Fecha("FechaContable"), Tercero: (f.Texto("Tercero") ?? "").Trim(),
+                f => (Id: f.Entero("Id"), Asiento: f.Entero("IdAsiento"), Fecha: f.Fecha("FechaContable"), Expedicion: f.FechaNula("FechaExpedicion"), Tercero: (f.Texto("Tercero") ?? "").Trim(),
                     Nif: f.Texto("Nif")?.Trim(), Factura: f.Texto("NumeroFactura")?.Trim()), id);
             var desRep = await s.ConsultarAsync(
                 "SELECT d.IdIVARepercutido AS Id, d.BaseImponible, d.TipoIVA, d.CuotaRepercutida FROM DesglosesIVARepercutido AS d " +
@@ -53,9 +53,9 @@ public sealed class LectorLineasIva(IBaseDatos bd)
             IReadOnlyList<ApunteIvaLeido> Apuntes(int asiento) => apuntes.TryGetValue(asiento, out var l) ? l : [];
             var regs = new List<RegistroIvaLeido>();
             regs.AddRange(cabSop.Select(c => new RegistroIvaLeido(SentidoIva.Soportado, c.Asiento, c.Fecha, c.Codigo, c.Isp, c.Tercero, c.Nif, c.Factura,
-                dSop.TryGetValue(c.Id, out var d) ? d : [], Apuntes(c.Asiento))));
+                dSop.TryGetValue(c.Id, out var d) ? d : [], Apuntes(c.Asiento), c.Expedicion)));
             regs.AddRange(cabRep.Select(c => new RegistroIvaLeido(SentidoIva.Repercutido, c.Asiento, c.Fecha, null, false, c.Tercero, c.Nif, c.Factura,
-                dRep.TryGetValue(c.Id, out var d) ? d : [], Apuntes(c.Asiento))));
+                dRep.TryGetValue(c.Id, out var d) ? d : [], Apuntes(c.Asiento), c.Expedicion)));
             return ((IReadOnlyList<RegistroIvaLeido>)regs, await CentrosAsync(s, ctx.IdSociedad));
         }, cancelacion);
         return ClasificadorLineasIva.Clasificar(registros, ctx.Ejercicio, actividades, centros);

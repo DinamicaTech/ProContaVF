@@ -144,6 +144,17 @@ public sealed class CalculoInicioTests
     }
 
     [Fact]
+    public void ElIvaDeLaSerieDeUnaActividadQueCambiaDeduceSegunLaFechaDelApunte()
+    {
+        // Turístico (contabilidad/procesos/cambio-deduccion-actividad): no deducible hasta el 30/11/2026, 100 % desde el 1/12.
+        var actividades = new[] { new ActividadInicio("Turístico", 0, "4728", [new ProConta.Contabilidad.CentrosCoste.CambioDeduccion(new DateTime(2026, 12, 1), 2)]) };
+        Assert.Equal(0m, CalculoInicio.FraccionDeducible("4728021", actividades, 40m, new DateTime(2026, 11, 30)));
+        Assert.Equal(1m, CalculoInicio.FraccionDeducible("4728021", actividades, 40m, new DateTime(2026, 12, 1)));
+        var apuntes = new[] { new ApunteIva(new DateTime(2026, 11, 20), "4728021", 50, 0), new ApunteIva(new DateTime(2026, 12, 2), "4728021", 21, 0) };
+        Assert.Equal(21m, CalculoInicio.Iva(apuntes, new DateTime(2026, 10, 1), new DateTime(2026, 12, 31), actividades, 40m).Soportado);
+    }
+
+    [Fact]
     public void IvaDeducibleSegunLaActividadDeCadaSerie()
     {
         var actividades = new[] { new ActividadInicio("Viviendas", 0, "4726"), new ActividadInicio("Inversión", 1, "4722"), new ActividadInicio("Locales", 2, "4727") };

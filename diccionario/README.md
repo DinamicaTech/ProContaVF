@@ -2,13 +2,13 @@
 
 # Diccionario de datos
 
-Esquema versión 54 (Actualizada); 158 tablas. SHA-256 de la BD de origen: `A6CC24684CEC173E200B48B6F0E7EAFEA99EED7D279501D9CEDDD3BCCD0BF78F`.
+Esquema versión 55 (Actualizada); 159 tablas. SHA-256 de la BD de origen: `A6CC24684CEC173E200B48B6F0E7EAFEA99EED7D279501D9CEDDD3BCCD0BF78F`.
 
 | Área | Tablas |
 |---|---|
 | [activos](activos.md) | Activos, ActivosInmuebles, CuentasActivo, DetallesLoteAmortizacionActivo, Inmuebles, LotesAmortizacionActivo, PlanesAmortizacionActivo, PlantillasCuentasActivo, PlantillasSubcuentasActivo, SubcuentasActivo, TiposActivo, TiposSubcuentaActivo |
 | [compras](compras.md) | ConfiguracionReconocimientoFacturasCompra, DesglosesFacturaCompra, FacturasCompra, PlantillasReconocimientoCompra, TextosClaveCompra |
-| [contabilidad](contabilidad.md) | Actividades, Apuntes, ApuntesBorrados, Asientos, AsientosBorrados, CentrosCoste, CodigosContablesReservados, ConfiguracionesContables, ConfiguracionesContablesCuentaBancaria, CuadresCuentas, CuentasContables, CuentasContablesLegacy, CuentasPlanContable, DesglosesIVASoportado, F_CDP, F_DEP, IdentidadesContables, IVARepercutido, IVASoportado, ModelosBalance, NodosBalance, PeriodosIVA, PlanesContables, PlantillasAsiento, PlantillasAsientoDatos, PlantillasAsientoLineas, PresentacionesTributarias, RegistroCambiosApuntes, ReglasCuentasBalance, RelacionesAsientos, RelacionesCalculoBalance, RevisionesAsientos, TiposCuentaContable |
+| [contabilidad](contabilidad.md) | Actividades, ActividadesDeduccion, Apuntes, ApuntesBorrados, Asientos, AsientosBorrados, CentrosCoste, CodigosContablesReservados, ConfiguracionesContables, ConfiguracionesContablesCuentaBancaria, CuadresCuentas, CuentasContables, CuentasContablesLegacy, CuentasPlanContable, DesglosesIVASoportado, F_CDP, F_DEP, IdentidadesContables, IVARepercutido, IVASoportado, ModelosBalance, NodosBalance, PeriodosIVA, PlanesContables, PlantillasAsiento, PlantillasAsientoDatos, PlantillasAsientoLineas, PresentacionesTributarias, RegistroCambiosApuntes, ReglasCuentasBalance, RelacionesAsientos, RelacionesCalculoBalance, RevisionesAsientos, TiposCuentaContable |
 | [correo](correo.md) | AdjuntosMailDispatcher, AdjuntosMensajeCorreo, AdjuntosRecibidosCorreo, ConfiguracionCorreo, ConfiguracionMailDispatcher, CuentasCorreo, DestinatariosMensajeCorreo, EnviosCorreo, IntentosMensajeCorreo, LotesCorreo, MensajesCorreo, MensajesRecibidosCorreo, PlantillasCorreo, ProcesamientosMailDispatcher, RemitentesAutorizadosCorreo, TiposCorreo, TurnosCorreo |
 | [creative-lab](creative-lab.md) | ActivosInversiones, ConversacionesIA, CotizacionesInstrumentoFinanciero, ImportacionesActivos, InstrumentosFinancieros, MensajesConversacionIA, OperacionesInversion |
 | [datos](datos.md) | LogMigracionesEsquema, VersionesEsquema |
