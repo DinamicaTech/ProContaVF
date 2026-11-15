@@ -78,7 +78,7 @@ public sealed partial class RevisionNumeracionFacturas : IRevisionSalud
 
 /// <summary>
 /// Comprobación 13: los libros de IVA coinciden con las cuentas (contabilidad/modelos-tributarios), por trimestre hasta la fecha de
-/// corte: libro de repercutido (más las cuotas autorrepercutidas del soportado) frente a las 477, y libro de soportado frente a las
+/// corte: libro de repercutido frente a las 477 sin el IVA autorrepercutido (ver CuadreLibrosIva), y libro de soportado frente a las
 /// 472, sin los asientos de liquidación. Solo si el ejercicio tiene libros.
 /// </summary>
 public sealed class RevisionLibrosIva : IRevisionSalud
@@ -106,7 +106,7 @@ public sealed class RevisionLibrosIva : IRevisionSalud
         return HallazgosSalud.De(new ElementoSalud("libros-iva", TipoSalud.Aviso, GravedadSalud.Atencion,
             $"Los libros de IVA no coinciden con las cuentas en el {string.Join(", ", mal.Select(t => $"{t.Trimestre}T"))}",
             string.Join(". ", mal.Select(Detalle)) + ".", null, DestinoSalud.Mayor(["472", "477"], "cuentas 472 y 477"), "contabilidad/modelos-tributarios",
-            $"En algún trimestre de {ejercicio}, la suma de las cuotas del libro de IVA repercutido (más las autorrepercutidas) no es la de las 477, o la del soportado no es la de las 472, " +
+            $"En algún trimestre de {ejercicio}, la suma de las cuotas del libro de IVA repercutido no es la de las 477 (sin el IVA autorrepercutido de las facturas recibidas), o la del soportado no es la de las 472, " +
             "contando solo asientos contabilizados y sin los de liquidación ni regularización.",
             "Abre el Mayor de las 472 y 477 del trimestre y busca los asientos de IVA sin registro en el libro (asientos a mano) o con una cuota distinta. El aviso desaparece cuando coinciden."));
     }

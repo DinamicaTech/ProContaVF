@@ -69,11 +69,20 @@ public sealed class FuenteSaludAccess(IBaseDatos bd) : IFuenteSalud
             {
                 var nombre = string.IsNullOrWhiteSpace(b.Nombre) ? b.NombreContable ?? b.Ccc : b.Nombre!.Trim();
                 var cuenta = b.CodigoContable?.Trim();
+                var ultimaLinea = await FechaAsync(s,
+                    "SELECT MAX(l.FechaOperacion) FROM (LineasExtractoBancario AS l INNER JOIN ExtractosBancarios AS x ON l.IdExtractoBancario = x.IdExtractoBancario) " +
+                    "INNER JOIN LotesImportacionBancaria AS lo ON x.IdLoteImportacionBancaria = lo.IdLoteImportacionBancaria WHERE x.IdCuentaBancaria = ? AND lo.Estado <> ?",
+                    b.IdCuentaBancaria, ServicioImportacionN43.EstadoRevertido);
                 if (cuenta is not { Length: > 0 })
                 {
-                    r.Add(new BancoSalud(nombre, null, b.Activa, b.FechaSaldoBanco, b.SaldoBanco, null, 0m, false, await ExtractoCuadradoAsync(s, b.IdCuentaBancaria)));
+                    r.Add(new BancoSalud(nombre, null, b.Activa, b.FechaSaldoBanco, b.SaldoBanco, null, 0m, false, await ExtractoCuadradoAsync(s, b.IdCuentaBancaria), ultimaLinea));
                     continue;
                 }
+                var ultimoApunte = contexto.Ejercicios.Count == 0 ? null : await FechaAsync(s,
+                    $"SELECT MAX(a.FechaContable) FROM Asientos AS a INNER JOIN Apuntes AS p ON a.IdAsiento = p.IdAsiento WHERE a.IdSociedadEjercicio IN ({Ids(contexto.Ejercicios)}) " +
+                    // Sin apertura (1), regularización (2) ni cierre (3): arrastran el saldo de una cuenta parada, no son movimientos.
+                    "AND a.EstadoAsiento = 1 AND a.TipoAsiento NOT IN (1, 2, 3) AND p.CuentaContable = ?", cuenta);
+                var ultimoMovimiento = ultimaLinea is null ? ultimoApunte : ultimoApunte is null ? ultimaLinea : ultimaLinea > ultimoApunte ? ultimaLinea : ultimoApunte;
                 var corte = await SaldoAsync(s, e.IdSociedadEjercicio, cuenta, contexto.Corte);
                 var apuntes = Convert.ToInt32(await s.EscalarAsync(
                     $"SELECT COUNT(*) FROM Asientos AS a INNER JOIN Apuntes AS p ON a.IdAsiento = p.IdAsiento WHERE a.IdSociedadEjercicio = ? AND {Contabilizados} AND p.CuentaContable = ?",
@@ -81,11 +90,14 @@ public sealed class FuenteSaludAccess(IBaseDatos bd) : IFuenteSalud
                 decimal? alExtracto = null;
                 if (b.FechaSaldoBanco is DateTime f && contexto.Ejercicios.FirstOrDefault(x => x.Ejercicio == f.Year) is { } ef)
                     alExtracto = await SaldoAsync(s, ef.IdSociedadEjercicio, cuenta, f.Date);
-                r.Add(new BancoSalud(nombre, cuenta, b.Activa, b.FechaSaldoBanco, b.SaldoBanco, alExtracto, corte, apuntes > 0, await ExtractoCuadradoAsync(s, b.IdCuentaBancaria)));
+                r.Add(new BancoSalud(nombre, cuenta, b.Activa, b.FechaSaldoBanco, b.SaldoBanco, alExtracto, corte, apuntes > 0, await ExtractoCuadradoAsync(s, b.IdCuentaBancaria), ultimoMovimiento));
             }
             return r;
         }, c);
     }
+
+    private static async Task<DateTime?> FechaAsync(ISesionDatos s, string sql, params object?[] parametros) =>
+        await s.EscalarAsync(sql, parametros) is DateTime d ? d.Date : null;
 
     /// <summary>El último extracto (no revertido) de la cuenta cuadra por dentro: sus totales declarados son los calculados.</summary>
     private static async Task<bool> ExtractoCuadradoAsync(ISesionDatos s, int idCuentaBancaria)
@@ -190,20 +202,19 @@ public sealed class FuenteSaludAccess(IBaseDatos bd) : IFuenteSalud
                 $"WHERE r.IdSociedadEjercicio = ? AND {Contabilizados}",
                 f => (Fecha: f.Fecha("FechaContable"), Cuota: f.DecimalNulo("C") ?? 0m), id);
             var sop = await s.ConsultarAsync(
-                "SELECT a.FechaContable, r.CuotaSoportadaTotal AS C, r.CuotaDevengadaAutorrepercutidaTotal AS A FROM IVASoportado AS r INNER JOIN Asientos AS a ON r.IdAsiento = a.IdAsiento " +
+                "SELECT a.FechaContable, r.CuotaSoportadaTotal AS C FROM IVASoportado AS r INNER JOIN Asientos AS a ON r.IdAsiento = a.IdAsiento " +
                 $"WHERE r.IdSociedadEjercicio = ? AND {Contabilizados}",
-                f => (Fecha: f.Fecha("FechaContable"), Cuota: f.DecimalNulo("C") ?? 0m, Auto: f.DecimalNulo("A") ?? 0m), id);
-            var cuentas = await IvaAsync(ejercicio, c);
-            return Enumerable.Range(1, 4).Select(q =>
-            {
-                bool En(DateTime d) => CalculoInicio.TrimestreDe(d) == q;
-                return new IvaLibrosTrimestre(q,
-                    rep.Where(x => En(x.Fecha)).Sum(x => x.Cuota) + sop.Where(x => En(x.Fecha)).Sum(x => x.Auto),
-                    cuentas.Where(x => En(x.Fecha) && x.Cuenta.StartsWith("477", StringComparison.Ordinal)).Sum(x => x.Haber - x.Debe),
-                    sop.Where(x => En(x.Fecha)).Sum(x => x.Cuota),
-                    cuentas.Where(x => En(x.Fecha) && x.Cuenta.StartsWith("472", StringComparison.Ordinal)).Sum(x => x.Debe - x.Haber),
-                    rep.Count(x => En(x.Fecha)) + sop.Count(x => En(x.Fecha)));
-            }).ToList();
+                f => (Fecha: f.Fecha("FechaContable"), Cuota: f.DecimalNulo("C") ?? 0m), id);
+            // Apuntes de las 472 y 477 (como IvaAsync), marcando los de asientos con registro en el libro de soportado: una factura
+            // recibida no lleva IVA repercutido, así que su 477 es el autorrepercutido (inversión del sujeto pasivo, intracomunitarias).
+            var apuntes = await s.ConsultarAsync(
+                "SELECT a.FechaContable, p.CuentaContable, p.ImporteDebe, p.ImporteHaber, " +
+                "(SELECT COUNT(*) FROM IVASoportado AS v WHERE v.IdAsiento = a.IdAsiento) AS NS FROM Asientos AS a INNER JOIN Apuntes AS p ON a.IdAsiento = p.IdAsiento " +
+                $"WHERE a.IdSociedadEjercicio = ? AND {Contabilizados} AND a.TipoAsiento <> 2 AND LEFT(p.CuentaContable, 3) IN ('472', '477') " +
+                "AND NOT EXISTS (SELECT q.IdApunte FROM Apuntes AS q WHERE q.IdAsiento = a.IdAsiento AND LEFT(q.CuentaContable, 4) IN ('4700', '4750'))",
+                f => new ApunteLibroIva(f.Fecha("FechaContable").Date, (f.Texto("CuentaContable") ?? "").Trim(), f.DecimalNulo("ImporteDebe") ?? 0m, f.DecimalNulo("ImporteHaber") ?? 0m,
+                    f.Entero("NS") > 0), id);
+            return CuadreLibrosIva.Trimestres(rep.Select(x => (x.Fecha, x.Cuota)).ToList(), sop.Select(x => (x.Fecha, x.Cuota)).ToList(), apuntes);
         }, c);
 
     public Task<IReadOnlyList<TerceroSinNif>> TercerosSinNifAsync(string idSociedad, EjercicioSociedad ejercicio, CancellationToken c = default) =>

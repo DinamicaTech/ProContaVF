@@ -731,7 +731,8 @@ public sealed class InicioVM : ModeloVista
         foreach (var b in p.Bancos)
         {
             var dias = b.UltimoExtracto is DateTime u ? (p.FechaCorte - u.Date).Days : (int?)null;
-            var aviso = dias is > 7 ? $"hace {dias} días" : null;
+            // Mismo umbral que el aviso de extracto antiguo de la salud (decisión 2026-11-15 15:18 de pantalla-de-inicio).
+            var aviso = dias > ProConta.Inicio.Salud.RevisionExtractoAntiguo.Dias ? $"hace {dias} días" : null;
             Bancos.Add(new BancoVM(b.Nombre, b.Cuenta, Imp(b.Saldo), b.UltimoExtracto is DateTime ue ? $"extracto hasta el {ue:dd/MM/yyyy}" : "sin extractos N43", aviso,
                 $"{b.Nombre} ({b.Cuenta}): saldo contable {Imp(b.Saldo)} {HastaCorte(p)}. " +
                 (b.UltimoExtracto is DateTime ux ? $"El último extracto Norma 43 importado llega hasta el {ux:dd/MM/yyyy}." : "No tiene extractos Norma 43 importados.") +
