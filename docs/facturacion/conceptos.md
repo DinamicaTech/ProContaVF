@@ -5,6 +5,7 @@ threads:
   - 2026-10-28 12:30 · Carga de requisitos | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GRNMH95h9tnQp4dmEPHmw1w
   - 2026-10-31 16:58 · Cerrar preguntas pendientes del proyecto | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5G7UyrP5eDJV4Ds6CCBozdbu
   - 2026-11-01 17:20 · Construir facturación de venta | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GCSSp6rAPiW3SbbKR5GnpnG
+  - 2026-11-15 14:05 · Mejorar el circuito de facturación | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GLrpTRSm4X7wfe7TuGkTuQX
 ---
 ## Summary
 Catálogo de conceptos facturables por sociedad (tipos, precio, IVA, cuenta de venta como identidad contable, departamento y centro de coste) para preparar líneas; cambiar un concepto no reescribe líneas históricas. Código: `CatalogoConceptos` (src/ProConta.Facturacion/Conceptos) y su proveedor en Parámetros y tablas › Conceptos.
@@ -18,6 +19,8 @@ Catálogo de conceptos facturables por sociedad (tipos, precio, IVA, cuenta de v
 - 2026-11-01 18:15 · Elegir un concepto en una línea copia su nombre, descripción, precio, IVA, cuenta, departamento y centro de coste; cambiar después el concepto no toca las líneas.
 - 2026-11-04 18:05 · La analítica de la venta es el centro de coste de la línea: el concepto propone uno y se puede cambiar al emitir. Los departamentos del ERP (F_DEP) son el nivel superior de los centros de coste. Hasta la migración del ERP, Conceptos.IdCentroCoste y LineasFactura.IdCentroCoste antiguos guardan el código del ERP (318…), que coincide con el último tramo del código del centro nuevo («3/318»); el editor los muestra como «ERP 318 (sin migrar)». Su conversión al id del centro nuevo y la reducción del catálogo a conceptos genéricos (Alquiler mensual, Alquiler turístico) se hacen en la migración del ERP (implantacion/migracion-erp), no en esta BD, que se volverá a generar.
 - 2026-11-04 17:57 · Validado por el propietario (facturación de venta, PR #14).
+- 2026-11-15 14:05 · Un concepto sin cuenta de venta la puede recibir desde el editor de factura: al elegir en el buscador la cuenta de una línea de ese concepto, se ofrece guardarla como su cuenta por defecto (facturacion/pantallas 2026-11-15 14:05). Se guarda con las reglas de siempre (identidad contable de la cuenta en el ejercicio de trabajo) y no toca las líneas ya escritas.
+- 2026-11-15 15:18 · Validado por el propietario (cuenta de venta desde el editor de factura, PR #74).
 
 ## Requirements
 - 2026-10-28 12:28 · From sources/01_ESPECIFICACION_FUNCIONAL.docx § 9 RF-CAT-01, 02: catálogo de conceptos
@@ -31,6 +34,7 @@ Catálogo de conceptos facturables por sociedad (tipos, precio, IVA, cuenta de v
 - 2026-11-04 17:28 · La analítica actualmente se asigna por línea factura (IdDepartamento) y viene heredada por ConceptosCaja, lo cual obliga a generar un Concepto para cada Departamento. La idea sería tener menos conceptos (Alquiler mensual, Alquiler turístico) y asignar el Departamento en el momento de la venta (el concepto puede tener un departamento por defecto, pero se debería ser modificable en la emisión de la factura)
 - 2026-11-04 17:50 · Opción 2 ya que la BD actual (ProContaEstructura) la volveré a generar cuando hagamos la migración y se perderán todos los cambios que se hayan hecho en esa BD.
 - 2026-11-04 17:57 · Ok, validado
+- 2026-11-15 14:05 · Derived from facturacion/pantallas: guardar en el concepto la cuenta de venta elegida en una línea de factura cuando el concepto no tiene ninguna.
 
 ## Hand-over
 - 2026-11-01 18:15 · Pendiente en el equipo del propietario: contar con `MigracionesFacturacion.ConceptosRepetidosAsync` los conceptos con el mismo nombre en una sociedad (venían de ejercicios distintos) para decidir si se unen.

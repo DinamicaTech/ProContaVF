@@ -33,6 +33,7 @@ threads:
 - 2026-11-14 17:15 · Importación, cuanto más automática mejor (propietario): un portal que llega por primera vez (por ejemplo «Vrbo [XML]») se da de alta solo como origen de venta (nombre sin la coletilla técnica, código con sus letras y el texto original como texto de importación) y sus reservas entran pendientes. El resultado dice en claro qué ha pasado (nuevas, actualizadas, anuladas, las que ya estaban; y por qué no entran las demás: sin confirmar, canceladas, ya venían del ERP, alojamiento sin activo) y qué queda por hacer, con un botón que abre la pantalla donde se hace: «Abrir Alojamientos» si falta vincular un alojamiento, o «Abrir Reglas de venta» si hay ventas pendientes sin regla que les dé cliente o concepto. Si no queda nada por hacer, basta un aviso. Los mensajes con detalles de todo el programa llevan un botón «Copiar» (plataforma/ui-base).
 - 2026-11-14 19:59 · El filtro de estado del listado tiene la opción «Pendientes de meses cerrados» (propietario): las pendientes con fecha de entrada anterior al mes en curso, para que «Facturar todo» no facture las reservas del mes abierto. El filtro por defecto sigue siendo «Pendientes».
 - 2026-11-14 20:01 · Validado por el propietario (ventas por facturar, PR #67).
+- 2026-11-15 12:10 · Derivado de facturacion/pantallas 2026-11-15 12:10: las facturas creadas desde Ventas por facturar se distinguen en Facturas con el origen «Venta» (las que tienen alguna venta enlazada), y el resumen de «Facturar todo» ofrece «Ver las facturas creadas».
 
 ## Requirements
 - 2026-10-28 12:28 · From sources/01_ESPECIFICACION_FUNCIONAL.docx § 13 RF-RES-01..03: reservas de alojamiento
@@ -78,6 +79,7 @@ threads:
 - 2026-11-14 19:59 · Ok. Solo falta algún filtro más para no facturar reservas de un mes no cerrado (mes actual, vaya).
 - 2026-11-14 19:59 · Simplemente sería que en el filtro hubiese una nueva opción 'Pendientes de meses cerrados'
 - 2026-11-14 20:01 · Ok, perfecto. Ya podemos fusionar PR y cerrar hilo, buen trabajo chicos.
+- 2026-11-15 12:10 · Derived from facturacion/pantallas: origen «Venta» en el listado de Facturas y «Ver las facturas creadas» en el resumen de la facturación de ventas.
 
 ## Hand-over
 - 2026-11-14 13:00 · Hecho: esquema 51 (migración 20261114_1200_VENTAS_POR_FACTURAR), servicio, «Facturar ventas…», importador de Avaibook, Parámetros y tablas (Orígenes de venta, Alojamientos de Avaibook, Conexión con Avaibook), pantalla Ventas por facturar y fase 8 de la migración del ERP; pruebas sin BD y contra Access en verde. Pendiente: validación del propietario en ProConta-ventas-01 (asignar a los dos alojamientos de Avaibook su piso y concepto, poner el token, importar y facturar un mes); el cuadre de la comisión (410 contra 430) en una segunda entrega.
