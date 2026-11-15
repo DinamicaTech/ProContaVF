@@ -10,6 +10,7 @@ using ProConta.Terceros.Roles;
 
 // Migración del ERP (docs/implantacion/migracion-erp.md).
 //   MigradorERP <bd destino> <bd ERP> --direcciones <csv> [--simular] [--informe <md>] [--raiz <carpeta raíz de documentos>]
+//   MigradorERP <bd destino> <bd ERP> --solo-pisos-reservas   (corrección: piso de las reservas del ERP ya migradas)
 
 Console.OutputEncoding = Encoding.UTF8;
 string? Opcion(string nombre)
@@ -23,7 +24,8 @@ var simular = args.Contains("--simular", StringComparer.OrdinalIgnoreCase);
 var informe = Opcion("--informe");
 var direcciones = Opcion("--direcciones");
 var raiz = Opcion("--raiz") ?? @"D:\SynologyBox";
-if (posicionales.Count < 2 || direcciones is null)
+var soloPisos = args.Contains("--solo-pisos-reservas", StringComparer.OrdinalIgnoreCase);
+if (posicionales.Count < 2 || (direcciones is null && !soloPisos))
 {
     Console.WriteLine("""
         Uso:
@@ -31,6 +33,9 @@ if (posicionales.Count < 2 || direcciones is null)
               Migra el ERP (ProcontaEstructura.accdb, solo lectura) a la BD de ProContaVF, que ya debe tener ContaSol importado.
               --simular: lee y comprueba todo sin escribir en el destino (trabaja sobre una copia temporal que después borra).
               --informe: escribe el informe de la ejecución en un md.  --raiz: raíz de las rutas de los PDF (D:\SynologyBox).
+          MigradorERP <bd destino> <bd ERP> --solo-pisos-reservas
+              Corrección para una BD ya migrada: pone el activo relacionado a las reservas del ERP que no lo tienen
+              (código de Booking o nombre del anuncio, facturacion/reservas 2026-11-15). Repetirla no cambia nada.
         """);
     return 2;
 }
@@ -46,6 +51,14 @@ if (!leido.EsCorrecto)
     return 1;
 }
 Console.WriteLine($"{DateTime.Now:HH:mm:ss} ERP leído: {string.Join(", ", leido.Valor.Tablas.Select(t => $"{t.Key} {t.Value.Count}"))}.");
+
+if (soloPisos)
+{
+    var pisos = await new CorreccionPisosReservasErp(new BaseDatosAccess(destino)).AplicarAsync(leido.Valor, new OpcionesMigracionErp().IdSociedad, DateTime.Now);
+    Console.WriteLine(pisos.Texto());
+    BaseDatosAccess.TerminarProceso(0);
+    return 0;
+}
 
 var trabajo = destino;
 if (simular)
