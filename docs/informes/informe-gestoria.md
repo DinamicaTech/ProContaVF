@@ -31,3 +31,7 @@ Hecha la primera entrega, pendiente de validar: «Informe para la gestoría…»
 - 2026-11-15 19:24 · 2. Por actividad
 - 2026-11-15 19:24 · Añade dos pestañas (TDPyG, TDSituación) con una tabla dinámica pre-configurada igual que en el Excel que te he pasado
 - 2026-11-15 19:24 · Cómo gestionamos que a partir del 1/12/2026, el alquiler de pisos lleva 10% de IVA y por tanto, pasa a ser 100% deducible para facturas de compra relacionadas a esa actividad a partir de esa fecha ?
+- 2026-11-15 19:36 · 1. Sí, me temo que en algún sitio habrá que modelizar la fecha de corte, podían haber esperado un mes para aplicarlo y no complicarnos la vida a todos.
+- 2026-11-15 19:36 · 3. Mi idea es modificar el tipo de IVA de venta manualmente el 1/12/2026 al 10%, creo que no necesitamos tenerlo modelizado. Con la prorrata por actividad no puedo hacer lo mismo ya que de alguna forma necesitas poder discriminar por fechas.
+- 2026-11-15 19:36 · Las compras comunes van a prorrata como hasta ahora.
+- 2026-11-15 19:36 · Y los bienes de inversión, al ser anteriores a esta fecha, tampoco creo que deban modificarse
