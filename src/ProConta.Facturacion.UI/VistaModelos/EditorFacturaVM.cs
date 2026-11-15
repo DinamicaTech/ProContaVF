@@ -829,7 +829,8 @@ public sealed class EditorFacturaVM : ModeloVista, IPestanaTrabajo, INotifyDataE
         var suplido = linea.Datos.EsSuplido;
         if (_modulo.Dialogos.ElegirCuentaLinea(_s.Trabajo, linea.Cuenta.Length > 0 ? linea.Cuenta : null, suplido) is not { } elegida) return;
         linea.Cuenta = elegida.Codigo;
-        if (suplido || linea.Datos.IdConcepto is not int id || _modulo.ConceptosSinOfrecerCuenta.Contains(id)) return;
+        // Solo una cuenta de ventas (grupo 7) se ofrece como cuenta por defecto del concepto.
+        if (suplido || !elegida.Codigo.StartsWith('7') || linea.Datos.IdConcepto is not int id || _modulo.ConceptosSinOfrecerCuenta.Contains(id)) return;
         conceptos ??= await _s.Conceptos.ListarAsync(_s.Trabajo, soloActivos: false);
         if (conceptos.FirstOrDefault(x => x.IdConcepto == id) is not { CuentaVenta: null } concepto) return;
         var respuesta = _modulo.Dialogos.Preguntar("Cuenta de venta del concepto",
