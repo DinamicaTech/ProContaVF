@@ -190,6 +190,21 @@ public sealed class ProgramadasAccessTests : IDisposable
     }
 
     [Fact]
+    public async Task UnaActivaQueDejaDeEstarCompletaSaleEnPendientesConSuProblema()
+    {
+        await PrepararAsync();
+        var servicio = Servicio();
+        var p = await ProgramadaAsync(servicio);
+        // Se queda sin líneas por fuera del editor (p. ej., datos traídos del ERP): sigue activa y vencida.
+        await Bd.EjecutarAsync(s => s.EjecutarAsync("DELETE FROM LineasFacturasProgramadas WHERE IdFacturaProgramada = ?", p.IdFacturaProgramada));
+
+        var pendiente = Assert.Single(await servicio.PendientesAsync("T01", _reloj.Ahora.Date));
+        Assert.Equal(p.IdFacturaProgramada, pendiente.Programada.IdFacturaProgramada);
+        Assert.NotNull(pendiente.Problema);
+        Assert.False(pendiente.Generable);
+    }
+
+    [Fact]
     public async Task GenerarValidandoNumeraContabilizaYRespetaLasRepeticiones()
     {
         await PrepararAsync();
