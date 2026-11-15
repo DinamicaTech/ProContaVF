@@ -43,6 +43,7 @@ Ente CuentaContable: identidad permanente (IdentidadesContables) y cuenta por ej
 - 2026-11-06 19:05 · Al mostrar la pantalla para seleccionar la cuenta, el contenido del combo-box está seleccionado por lo que se ve el final y no el principio que es, precisamente, el que muestra la cuenta.
 - 2026-11-06 19:05 · En esa misma pantalla, mostrar también cuentas XXXX (vaya, todas las que tengan longitud < 7)
 - 2026-11-12 11:45 · Derived from activos: dar de alta subcuentas generadas por plantilla con descripción y centro de coste predeterminado, y borrar una subcuenta que no tiene ningún apunte para no dejar residuos.
+- 2026-11-15 11:57 · Derived from pantalla-de-inicio: comprobación de que no hay apuntes en subcuentas dadas de baja. Fase 3.
 
 ## Hand-over
 - 2026-10-31 19:05 · Hecho: contrato, alta y caché de saldos, con pruebas (mismo código en dos ejercicios, código reservado, padre de otro ejercicio, código no válido, saldo reconstruido igual a los apuntes). Pendiente: recodificación, sustitución y fusión con trazabilidad (faltan las tablas de fusiones, revisiones y auditoría de cuentas de los manifiestos antiguos), copia de cuentas entre ejercicios y aplicación de plan (la usará contabilidad/procesos al abrir ejercicio), saldos por periodo (0 a 14).

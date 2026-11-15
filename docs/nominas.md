@@ -53,6 +53,7 @@ Importación de nóminas directamente desde el fichero Excel, también recibido 
 - 2026-11-13 10:11 · Rectifico P3. La fecha es la de la nómina si no es de un trimestre cerrado, en caso contrario, el día 1 del primer mes del trimestre contable activo.
 - 2026-11-13 10:49 · Ok, avanza lo que puedas hasta que cierre el otro hilo y así nos aseguramos no colisionar.
 - 2026-11-13 11:21 · Sí, la fecha de cobro y, en su defecto, último día del período
+- 2026-11-15 11:57 · Derived from pantalla-de-inicio: estado mensual de las nóminas contabilizadas para el apartado Salud. Fase 3.
 
 ## Hand-over
 - 2026-11-13 11:05 · Hecho (PR 1, validada por el propietario 2026-11-13 12:25 y fusionada, PR #60): esquema (migración 20261113_1100_NOMINAS_IMPORTACION), lector del Excel, rol Empleado y servicio de importación con alias, reconocimiento de trabajadores, idempotencia, otra versión, otra sociedad y otro ejercicio; pruebas sin BD y de Access (estas se ejecutan en el equipo del propietario). Los 12 Excel reales de 2026 se leen sin incidencias. Pendiente: PR 2 (plantilla «Nómina» con sus líneas, contabilizar, deshacer y reemplazar con la regla de fecha, migración de F_NOM, alias y plantilla, prueba de paridad) y PR 3 (pantalla de gestión, pestaña Nóminas del tercero y conexión con la recepción de correo).

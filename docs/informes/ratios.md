@@ -22,3 +22,4 @@ Ratios financieros y de gestión calculados desde la contabilidad.
 - 2026-10-31 16:54 · 21. a
 - 2026-10-31 16:54 · answer: qué ratios → (a) liquidez, solvencia, endeudamiento, rentabilidad y márgenes estándar
 - 2026-10-29 17:45 · From sources/proconta-antiguo/menu-principal/ANALISIS-FUNCIONAL.md § 4: exportación «Ratios» del menú antiguo sobre la plantilla indicadores.xlsx (la ruta fija d:\deporwin se parametriza).
+- 2026-11-15 11:57 · Derived from pantalla-de-inicio: los 12 ratios de la maqueta (liquidez general, prueba ácida, tesorería inmediata, solvencia, endeudamiento, calidad de la deuda, ROE, ROA, margen EBITDA, margen neto y periodos medios de cobro y de pago) con su fórmula, las partidas de balance que los forman, el rango de referencia estándar (no configurable por sociedad), su estado (bien, vigilar, mal) y la serie a cierre de cada ejercicio; balance a fin del último mes y resultado de los últimos 12 meses. Fase 2.

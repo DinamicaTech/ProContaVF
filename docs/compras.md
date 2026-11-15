@@ -21,3 +21,4 @@ Facturas de compra: reconocimiento automático de los PDF, registro con control 
 - 2026-11-05 11:18 · P9 Ok
 - 2026-11-05 11:18 · answer: entregas → tres: reconocimiento y registro, pantalla, contabilización
 - 2026-11-05 11:24 · Ok, adelante
+- 2026-11-15 11:57 · Derived from pantalla-de-inicio: aviso de facturas de compra sin contabilizar y de PDF nuevos en la carpeta de proveedores. Fase 3.
