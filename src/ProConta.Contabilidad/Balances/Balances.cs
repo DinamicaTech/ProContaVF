@@ -123,7 +123,9 @@ public static class Clasificador
 /// <summary>Lee de la BD el modelo, los apuntes, los nombres y los centros, y genera el balance del ejercicio.</summary>
 public sealed class GeneradorBalances(IBaseDatos bd)
 {
-    public async Task<ResultadoBalance> GenerarAsync(TipoBalance tipo, ContextoSociedadEjercicio contexto, string razonSocial, CancellationToken cancelacion = default)
+    /// <param name="hasta">Solo los apuntes con fecha contable hasta este día (por ejemplo, el último del trimestre); null, todos.</param>
+    public async Task<ResultadoBalance> GenerarAsync(TipoBalance tipo, ContextoSociedadEjercicio contexto, string razonSocial, CancellationToken cancelacion = default,
+        DateTime? hasta = null)
     {
         var (modelo, apuntes, nombres, centros) = await bd.EjecutarAsync(async s =>
         {
@@ -153,7 +155,7 @@ public sealed class GeneradorBalances(IBaseDatos bd)
                 string.IsNullOrEmpty(x.Ruta) ? x.Codigo : x.Ruta, x.Nombre));
             return (m, a, (IReadOnlyDictionary<string, string>)n, (IReadOnlyDictionary<int, CentroBalance>)c);
         }, cancelacion);
-        return Clasificador.Clasificar(modelo, razonSocial, contexto.Ejercicio, apuntes, nombres, centros);
+        return Clasificador.Clasificar(modelo, razonSocial, contexto.Ejercicio, hasta is DateTime h ? apuntes.Where(a => a.Fecha <= h.Date) : apuntes, nombres, centros);
     }
 
     /// <summary>El modelo activo más reciente del tipo, con la ruta (bloque, apartado, título, subtítulo) de cada regla.</summary>
