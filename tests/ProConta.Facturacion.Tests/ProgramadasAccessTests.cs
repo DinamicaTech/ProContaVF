@@ -150,6 +150,8 @@ public sealed class ProgramadasAccessTests : IDisposable
         // Hoy es 10/03/2026: vencen el 31/01 y el 28/02 (31 = último día del mes).
         var pendientes = await servicio.PendientesAsync("T01", _reloj.Ahora.Date);
         Assert.Equal([new DateTime(2026, 1, 31), new DateTime(2026, 2, 28)], Assert.Single(pendientes).Vencimientos);
+        // Completa y con su ejercicio abierto: el diálogo de generar no le pone ningún problema.
+        Assert.True(pendientes[0].Generable, pendientes[0].Problema);
 
         var r = await servicio.GenerarAsync(_ctx, _reloj.Ahora.Date, [p.IdFacturaProgramada], _actor);
         Assert.True(r.EsCorrecto, r.Error?.ToString());
@@ -185,6 +187,21 @@ public sealed class ProgramadasAccessTests : IDisposable
         Assert.Single(otra.Valor.Incidencias);
         Assert.Equal(2, await Contar("SELECT COUNT(*) FROM Facturas WHERE IdFacturaProgramada = ?", p.IdFacturaProgramada));
         Assert.Empty(await servicio.PendientesAsync("T01", _reloj.Ahora.Date));
+    }
+
+    [Fact]
+    public async Task UnaActivaQueDejaDeEstarCompletaSaleEnPendientesConSuProblema()
+    {
+        await PrepararAsync();
+        var servicio = Servicio();
+        var p = await ProgramadaAsync(servicio);
+        // Se queda sin líneas por fuera del editor (p. ej., datos traídos del ERP): sigue activa y vencida.
+        await Bd.EjecutarAsync(s => s.EjecutarAsync("DELETE FROM LineasFacturasProgramadas WHERE IdFacturaProgramada = ?", p.IdFacturaProgramada));
+
+        var pendiente = Assert.Single(await servicio.PendientesAsync("T01", _reloj.Ahora.Date));
+        Assert.Equal(p.IdFacturaProgramada, pendiente.Programada.IdFacturaProgramada);
+        Assert.NotNull(pendiente.Problema);
+        Assert.False(pendiente.Generable);
     }
 
     [Fact]

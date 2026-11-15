@@ -30,6 +30,17 @@
                      ToolTip="Busca en número, cliente, NIF, descripción, notas y facturas relacionadas (Ctrl+F)" AutomationProperties.Name="Buscar facturas" />
             <Path Style="{StaticResource Icono.Trazo14}" Data="{StaticResource Icono.search}" HorizontalAlignment="Left" Margin="9,0,0,0" VerticalAlignment="Center" IsHitTestVisible="False" />
           </Grid>
+          <!-- Accesos rápidos al trabajo pendiente, con su contador -->
+          <Border Style="{StaticResource Segmentado}" VerticalAlignment="Center" Margin="14,0,0,0">
+          <StackPanel Orientation="Horizontal">
+            <RadioButton Style="{StaticResource Segmento}" Content="Todas" IsChecked="{Binding VistaTodas, Mode=OneWay}" Command="{Binding VistaRapidaCommand}" CommandParameter="Todas"
+                         ToolTip="Muestra todas las facturas y borradores del ejercicio" />
+            <RadioButton Style="{StaticResource Segmento}" Content="{Binding TextoVistaBorradores}" IsChecked="{Binding VistaBorradores, Mode=OneWay}" Command="{Binding VistaRapidaCommand}" CommandParameter="Borradores"
+                         ToolTip="Solo los borradores: lo que queda por revisar y validar" />
+            <RadioButton Style="{StaticResource Segmento}" Content="{Binding TextoVistaSinAsiento}" IsChecked="{Binding VistaSinAsiento, Mode=OneWay}" Command="{Binding VistaRapidaCommand}" CommandParameter="SinAsiento"
+                         ToolTip="Solo las facturas validadas que aún no tienen asiento: lo que queda por contabilizar" />
+          </StackPanel>
+          </Border>
         </StackPanel>
       </DockPanel>
     </Border>
@@ -43,7 +54,7 @@
           <ComboBox Width="190" Margin="0,0,10,0" ItemsSource="{Binding OpcionesEstado}" SelectedItem="{Binding FiltroEstado}" ToolTip="Estado de la factura" />
           <ComboBox Width="170" Margin="0,0,10,0" ItemsSource="{Binding OpcionesVeriFactu}" SelectedItem="{Binding FiltroVeriFactu}" ToolTip="Situación VeriFactu" Visibility="{Binding VeriFactuActivo, Converter={StaticResource Visible}}" />
           <ComboBox Width="160" Margin="0,0,10,0" ItemsSource="{Binding OpcionesSerie}" SelectedItem="{Binding FiltroSerie}" ToolTip="Serie de facturación" />
-          <ComboBox Width="170" Margin="0,0,14,0" ItemsSource="{Binding OpcionesOrigen}" SelectedItem="{Binding FiltroOrigen}" ToolTip="Manual, programada o rectificativa" />
+          <ComboBox Width="170" Margin="0,0,14,0" ItemsSource="{Binding OpcionesOrigen}" SelectedItem="{Binding FiltroOrigen}" ToolTip="Manual, programada, de ventas por facturar o rectificativa" />
           <TextBlock Text="Desde" VerticalAlignment="Center" Margin="0,0,6,0" Style="{StaticResource Texto.Apagado}" />
           <TextBox Width="110" Margin="0,0,10,0" Text="{Binding Desde}" Style="{StaticResource Campo}" ToolTip="Fecha de factura desde (dd/mm/aaaa)" />
           <TextBlock Text="Hasta" VerticalAlignment="Center" Margin="0,0,6,0" Style="{StaticResource Texto.Apagado}" />
@@ -77,7 +88,7 @@
         <pc:Nota DockPanel.Dock="Top" Tipo="Info" Margin="14,8,14,0" Visibility="{Binding HayFiltroProgramada, Converter={StaticResource Visible}}">
           <WrapPanel>
             <TextBlock Text="{Binding FiltroProgramada}" VerticalAlignment="Center" Margin="0,0,10,0" />
-            <Button Content="Ver todas" Command="{Binding VerTodasCommand}" Style="{StaticResource Boton.Enlace}" ToolTip="Quita el filtro de la programada" />
+            <Button Content="Ver todas" Command="{Binding VerTodasCommand}" Style="{StaticResource Boton.Enlace}" ToolTip="Quita este filtro y vuelve a mostrar todas las facturas" />
           </WrapPanel>
         </pc:Nota>
 
@@ -101,7 +112,6 @@
               <MenuItem Header="Ver su correo" Command="{Binding VerCorreoCommand}" ToolTip="Muestra los correos enviados de esta factura, con su estado, contenido y adjuntos (solo con una seleccionada)" />
               <MenuItem Header="Enviar pendientes a VeriFactu" IsEnabled="False" ToolTip="{Binding MotivoVeriFactu}" Visibility="{Binding VeriFactuActivo, Converter={StaticResource Visible}}" />
               <Separator />
-              <MenuItem Header="Nueva factura" Command="{Binding NuevaCommand}" ToolTip="Abre un borrador nuevo sin número en su pestaña" />
               <MenuItem Header="Actualizar" Command="{Binding RefrescarCommand}" InputGestureText="F5" ToolTip="Vuelve a leer las facturas" />
             </ContextMenu>
           </pc:VistaEstado.ContextMenu>

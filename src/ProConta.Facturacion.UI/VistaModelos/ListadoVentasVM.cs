@@ -631,14 +631,20 @@ public sealed class ListadoVentasVM : ModeloVista, IPestanaTrabajo
             var borradores = res.Facturas.Count - validadas;
             var titulo = res.Facturas.Count == 0 ? "No se ha creado ninguna factura" : Formatos.Plural(res.Facturas.Count, "factura creada", "facturas creadas");
             var lineas = res.Facturas.Select(f => $"{f.Rotulo} · {f.Descripcion} · {f.Cliente} · {Formatos.Plural(f.Ventas, "venta", "ventas")} · {Formatos.Importe(f.Total)}").ToList();
-            if (res.SinIncidencias)
+            if (res.Facturas.Count == 0)
             {
-                _modulo.Avisar($"{titulo} ({Formatos.Importe(res.Facturas.Sum(f => f.Total))}). Las ves en Facturas" +
-                               (borradores > 0 ? $"; {(borradores == 1 ? "el borrador se valida" : "los borradores se validan")} con «Validar…»." : "."));
+                Aviso(titulo, "No se ha podido facturar ninguna venta. Revisa lo siguiente:", res.Incidencias.Select(i => "⚠ " + i).ToList());
                 return;
             }
-            Aviso(titulo, res.Facturas.Count == 0 ? "No se ha podido facturar ninguna venta. Revisa lo siguiente:" : "Lo creado ya está guardado; lo demás necesita revisión:",
-                [.. lineas, .. res.Incidencias.Select(i => "⚠ " + i)]);
+            // Como en el lote de programadas (facturacion/pantallas 2026-11-15): el resumen lleva a las facturas creadas.
+            var explicacion = $"Total {Formatos.Importe(res.Facturas.Sum(f => f.Total))}. " +
+                              (borradores == 0 ? "Todas han quedado validadas y contabilizadas."
+                                  : $"{Formatos.Plural(borradores, "ha quedado como borrador", "han quedado como borradores")}: revísalas y valídalas desde Facturas.") +
+                              (res.SinIncidencias ? "" : " Lo demás necesita revisión; lo creado ya está guardado.");
+            if (_modulo.Dialogos.Preguntar(titulo, explicacion, [.. lineas, .. res.Incidencias.Select(i => "⚠ " + i)],
+                    new OpcionMensaje("Cerrar", "Cierra el resumen y se queda en Ventas por facturar", Cancelar: true),
+                    new OpcionMensaje("Ver las facturas creadas", "Abre Facturas con solo estas facturas, para revisarlas, validarlas o enviarlas", Principal: true)) == 1)
+                _modulo.VerFacturasCreadas($"Creadas desde Ventas por facturar: {Formatos.Plural(res.Facturas.Count, "factura", "facturas")}", res.Facturas.Select(f => f.IdFactura).ToHashSet());
         }
         catch (Exception ex)
         {

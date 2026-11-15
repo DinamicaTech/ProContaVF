@@ -158,6 +158,29 @@ public sealed class VentasAccessTests : IDisposable
     }
 
     [Fact]
+    public async Task ElListadoDeFacturasMarcaComoVentaLaQueVieneDeVentasPorFacturar()
+    {
+        await PrepararAsync();
+        var servicio = Servicio();
+        var airbnb = await OrigenAsync(servicio, "AIRBNB");
+        await VentaAsync(servicio, airbnb, new DateTime(2026, 1, 2), 1391m, 11);
+        var r = await servicio.FacturarAsync("T01", _actor);
+        var idDeVentas = Assert.Single(r.Valor.Facturas).IdFactura;
+
+        // Una factura manual del mismo ejercicio, para ver que no se marca como venta.
+        var manual = (await Facturas().NuevoBorradorAsync(_ctx)).Valor;
+        manual.IdCliente = _idHuesped;
+        manual.Descripcion = "Factura manual sintética";
+        var guardada = await Facturas().GuardarBorradorAsync(manual, _actor);
+        Assert.True(guardada.EsCorrecto, guardada.Error?.ToString());
+
+        var filas = await new ConsultaFacturas(Bd).ListarAsync(9001);
+        Assert.Equal("Venta", filas.Single(f => f.IdFactura == idDeVentas).Origen);
+        Assert.Equal("Manual", filas.Single(f => f.IdFactura != idDeVentas).Origen);
+        Assert.True((await new ConsultaFacturas(Bd).FilaAsync(idDeVentas))!.DeVentas);
+    }
+
+    [Fact]
     public async Task BorrarElBorradorDevuelveLasVentasAPendientes()
     {
         await PrepararAsync();

@@ -22,6 +22,8 @@ public sealed class FilaProgramadaVM(FacturaProgramada datos, string cliente, in
     public string Periodicidad => Datos.Periodicidad.EsPuntual ? "Una vez" : Datos.Periodicidad.Codigo[..1] + Datos.Periodicidad.Codigo[1..].ToLowerInvariant();
     public DateTime? ProximaOrden => Datos.ProximaCalculada;
     public string Proxima => Datos.ProximaCalculada is { } d ? Formatos.Fecha(d) : "—";
+    /// <summary>Activa con la próxima emisión hoy o antes: toca facturarla (se destaca en la tabla).</summary>
+    public bool Vencida => Grupo == 0 && Datos.ProximaCalculada is { } d && d <= DateTime.Today;
     public string Final => ReglasProgramada.TextoFinal(Datos);
     public int Generadas { get; } = generadasEjercicio;
     public string TextoGeneradas => Generadas.ToString(Formatos.Cultura);
@@ -41,8 +43,8 @@ public sealed class FilaProgramadaVM(FacturaProgramada datos, string cliente, in
 /// <summary>
 /// Pantalla Facturas programadas (facturacion/pantallas 2026-11-04): listado filtrable de las programadas de la sociedad
 /// y, a la derecha, el detalle de la activa con su programación, líneas, totales, notas e historial. Admite selección
-/// múltiple y todas las acciones están en el menú contextual: unas son de una sola programada (Abrir, Ver sus facturas) y
-/// las demás actúan sobre todas las seleccionadas.
+/// múltiple; las acciones sobre las seleccionadas están en el menú contextual (unas son de una sola programada: Abrir,
+/// Ver sus facturas) y las generales, «Generar vencidas (n)» y «Nueva programada», en la cabecera (2026-11-15).
 /// </summary>
 public sealed class ListadoProgramadasVM : ModeloVista, IPestanaTrabajo
 {
@@ -157,7 +159,7 @@ public sealed class ListadoProgramadasVM : ModeloVista, IPestanaTrabajo
         Activa = Filas.FirstOrDefault(p => p.Id == id) ?? Filas.FirstOrDefault();
         Estado = Filas.Count == 0 ? EstadoVista.Vacio : EstadoVista.Contenido;
         MensajeEstado = _todas.Count == 0 ? "Crea la primera con «Nueva programada», o con «Programar…» desde una factura." : HayFiltros ? "Cambia o quita los filtros para ver más programadas." : "Las demás están pausadas o finalizadas.";
-        Avisar(nameof(HayFiltros), nameof(Pie), nameof(TituloEstado), nameof(AccionEstado), nameof(ComandoEstado));
+        Avisar(nameof(HayFiltros), nameof(Pie), nameof(TituloEstado), nameof(AccionEstado), nameof(ComandoEstado), nameof(TextoGenerarVencidas));
         CommandManager.InvalidateRequerySuggested();
     }
 
@@ -203,13 +205,17 @@ public sealed class ListadoProgramadasVM : ModeloVista, IPestanaTrabajo
         get
         {
             var activas = _todas.Count(p => p.Grupo == 0);
-            var pendientes = _todas.Count(p => p.Grupo == 0 && p.Datos.ProximaCalculada is { } d && d <= DateTime.Today);
+            var pendientes = Vencen;
             var texto = Filas.Count == _todas.Count ? Formatos.Plural(Filas.Count, "programada", "programadas") : $"{Formatos.Plural(Filas.Count, "programada", "programadas")} de {Formatos.Recuento(_todas.Count)}";
             if (_seleccion.Count > 1) texto += $" · {_seleccion.Count} seleccionadas · {Formatos.Importe(_seleccion.Sum(f => f.Total))}";
             texto += $" · {Formatos.Plural(activas, "activa", "activas")}";
             return pendientes > 0 ? $"{texto} · {Formatos.Plural(pendientes, "pendiente de generar", "pendientes de generar")} hoy" : texto;
         }
     }
+
+    /// <summary>Programadas activas con la próxima emisión hoy o antes, con cualquier filtro: las que generará «Generar vencidas».</summary>
+    private int Vencen => _todas.Count(p => p.Vencida);
+    public string TextoGenerarVencidas => Vencen > 0 ? $"Generar vencidas ({Vencen})" : "Generar vencidas";
 
     /// <summary>Con varias seleccionadas, deja claro de cuál es el detalle.</summary>
     public string? AvisoSeleccion => _seleccion.Count > 1 && _activa is not null ? $"{_seleccion.Count} programadas seleccionadas. El detalle es de {_activa.Codigo}." : null;
@@ -443,15 +449,22 @@ public sealed class ListadoProgramadasVM : ModeloVista, IPestanaTrabajo
             if (aEnviar.Count > 0 && _modulo.Correo is not null) await _modulo.EnviarPorCorreoAsync(aEnviar, $"Facturas programadas · lote {lote.IdLote}");
             var creadas = lote.Facturas.Select(f => $"{f.Programada} · {Formatos.Fecha(f.Vencimiento)} → {(f.Validada ? f.Rotulo : f.Rotulo + " (borrador)")}").ToList();
             var titulo = lote.Facturas.Count == 0 ? "No se ha creado ninguna factura" : $"Lote {lote.IdLote}: {Formatos.Plural(lote.Facturas.Count, "factura creada", "facturas creadas")}";
-            if (lote.SinIncidencias)
+            if (lote.Facturas.Count == 0)
             {
-                _modulo.Avisar($"{titulo}. Las ves en Facturas; los borradores se validan con «Validar…».");
+                _modulo.Dialogos.Preguntar(titulo, "Ninguna programada ha generado su factura. Revisa lo siguiente:", lote.Incidencias.Select(i => "⚠ " + i).ToList(),
+                    new OpcionMensaje("Entendido", "Cierra el aviso", Principal: true, Cancelar: true));
                 return;
             }
-            _modulo.Dialogos.Preguntar(titulo,
-                lote.Facturas.Count == 0 ? "Ninguna programada ha generado su factura. Revisa lo siguiente:" : "Las demás programadas necesitan revisión; lo creado ya está guardado:",
-                [.. creadas, .. lote.Incidencias.Select(i => "⚠ " + i)],
-                new OpcionMensaje("Entendido", "Cierra el aviso", Principal: true, Cancelar: true));
+            // El resumen del lote lleva a sus facturas (facturacion/pantallas 2026-11-15): Facturas se abre con solo esas.
+            var borradores = lote.Facturas.Count(f => !f.Validada);
+            var explicacion = (borradores == 0 ? "Todas han quedado validadas y contabilizadas."
+                                  : borradores == lote.Facturas.Count ? "Han quedado como borradores: revísalas y valídalas desde Facturas."
+                                  : $"{Formatos.Plural(borradores, "ha quedado como borrador", "han quedado como borradores")}: revísalas y valídalas desde Facturas.") +
+                              (lote.SinIncidencias ? "" : " Las demás programadas necesitan revisión; lo creado ya está guardado.");
+            var opcion = _modulo.Dialogos.Preguntar(titulo, explicacion, [.. creadas, .. lote.Incidencias.Select(i => "⚠ " + i)],
+                new OpcionMensaje("Cerrar", "Cierra el resumen y se queda en Facturas programadas", Cancelar: true),
+                new OpcionMensaje("Ver las facturas del lote", "Abre Facturas con solo las facturas de este lote, para revisarlas, validarlas o enviarlas", Principal: true));
+            if (opcion == 1) _modulo.VerFacturasCreadas($"Lote {lote.IdLote} de programadas: {Formatos.Plural(lote.Facturas.Count, "factura", "facturas")}", lote.Facturas.Select(f => f.IdFactura).ToHashSet());
         }
         catch (Exception ex)
         {
