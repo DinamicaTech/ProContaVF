@@ -12,6 +12,8 @@
     <ProjectReference Include="..\ProConta.Contabilidad\ProConta.Contabilidad.csproj" />
     <ProjectReference Include="..\ProConta.Norma43\ProConta.Norma43.csproj" />
     <ProjectReference Include="..\ProConta.Facturacion\ProConta.Facturacion.csproj" />
+    <!-- Informe para la gestoría (informes/informe-gestoria): compone el libro con el listado de facturas recibidas de compras. -->
+    <ProjectReference Include="..\ProConta.Compras\ProConta.Compras.csproj" />
   </ItemGroup>
   <ItemGroup>
     <InternalsVisibleTo Include="ProConta.Inicio.Tests" />

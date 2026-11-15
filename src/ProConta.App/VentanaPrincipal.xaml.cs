@@ -307,6 +307,8 @@ public partial class VentanaPrincipal : Window
         _razonSocial = contexto.RazonSocial;
         var balanceSituacion = new ComandoDelegado(() => _ = GenerarBalanceAsync(ProConta.Contabilidad.Balances.TipoBalance.Situacion));
         var balancePyG = new ComandoDelegado(() => _ = GenerarBalanceAsync(ProConta.Contabilidad.Balances.TipoBalance.PerdidasYGanancias));
+        _gestoria = new ProConta.Inicio.Gestoria.ComposicionInformeGestoria(bd);
+        var informeGestoria = new ComandoDelegado(() => _ = GenerarInformeGestoriaAsync());
         Navegacion.ItemsSource = new[]
         {
             new OpcionNavegacion("Inicio", Icono("layout"), true, false, "Página de inicio", irAInicio),
@@ -350,6 +352,10 @@ public partial class VentanaPrincipal : Window
             new OpcionNavegacion("Pérdidas y ganancias", null, true, false,
                 "Genera en Excel la cuenta de pérdidas y ganancias del ejercicio de trabajo (PGC Pymes 2008), sin la regularización ni el cierre: tabla dinámica por apartado, título, cuenta y subcuenta, con los meses en columnas y filtros por centro de coste y departamento, y la abre",
                 balancePyG, EsHija: true),
+            new OpcionNavegacion("Informe para la gestoría…", null, true, false,
+                "Genera en Excel el informe trimestral para la gestoría del ejercicio de trabajo: liquidación del IVA (303) por trimestres, prorrata y su regularización estimada, " +
+                "controles antes de presentar, pérdidas y ganancias, balance, ratios y facturas emitidas y recibidas. Pregunta el trimestre (por defecto, el último terminado) y lo abre",
+                informeGestoria, EsHija: true),
             new OpcionNavegacion("Configuración", Icono("gear"), true, false, "Parámetros y tablas: empresas, ejercicios, series, conceptos, formas de pago…", abrirParametros),
             new OpcionNavegacion("Parámetros y tablas", null, true, false, "Mantenimiento de las tablas y los parámetros de la aplicación, con buscador", abrirParametros, EsHija: true),
             new OpcionNavegacion("Importar ContaSol", null, true, false, "Importa la contabilidad de ContaSol por ejercicios (una BD por ejercicio), con simulación previa", abrirContaSol, EsHija: true),
@@ -522,6 +528,8 @@ public partial class VentanaPrincipal : Window
     }
 
     private readonly ProConta.Contabilidad.Balances.GeneradorBalances _balances;
+    private readonly ProConta.Inicio.Gestoria.ComposicionInformeGestoria _gestoria;
+    private bool _generandoGestoria;
     private readonly string _razonSocial;
     private bool _generandoBalance;
 
@@ -587,6 +595,73 @@ public partial class VentanaPrincipal : Window
         {
             Cursor = anterior;
             _generandoBalance = false;
+        }
+    }
+
+    /// <summary>
+    /// Informe para la gestoría (informes/informe-gestoria): pide el trimestre (por defecto, el último terminado del ejercicio de
+    /// trabajo), compone el informe, lo guarda en Documentos\ProContaVF\Informes y lo abre con Excel. En la barra de estado dice el
+    /// resultado del 303, la prorrata y cuántos controles hay que revisar.
+    /// </summary>
+    private async Task GenerarInformeGestoriaAsync(int? trimestre = null)
+    {
+        if (_generandoGestoria) { Avisar("Ya estoy generando el informe para la gestoría: espera a que se abra en Excel."); return; }
+        var ejercicio = _ejercicioTrabajo.Ejercicio;
+        if (trimestre is null)
+        {
+            var propuesto = ProConta.Informes.Excel.InformeGestoria.TrimestrePropuesto(ejercicio, DateTime.Today);
+            var opciones = Enumerable.Range(1, 4).Select(q => new OpcionMensaje($"{q}T",
+                    $"Del {new DateTime(ejercicio, 3 * q - 2, 1):dd/MM/yyyy} al {ProConta.Informes.Excel.InformeGestoria.FinDe(ejercicio, q):dd/MM/yyyy}" +
+                    (q == propuesto ? " (el último trimestre terminado)" : ""), Principal: q == propuesto))
+                .Append(new OpcionMensaje("Cancelar", "No genera nada", Cancelar: true)).ToArray();
+            var eleccion = ServicioMensajes.Preguntar(this, "Informe para la gestoría",
+                $"¿De qué trimestre de {ejercicio} genero el informe? El IVA sale de todo el ejercicio contabilizado hasta hoy; pérdidas y ganancias, balance, ratios y " +
+                "listados de facturas, hasta el último día del trimestre que elijas.", null, opciones);
+            if (eleccion is < 0 or > 3) return;
+            trimestre = eleccion + 1;
+        }
+        _generandoGestoria = true;
+        Avisar($"Generando el informe para la gestoría del {trimestre}T de {ejercicio}…");
+        var anterior = Cursor;
+        Cursor = Cursors.Wait;
+        string? ruta = null;
+        try
+        {
+            var inversiones = (ProConta.UI.Base.Preferencias.PreferenciasOperador.Actual.Leer<List<string>>(ProConta.Inicio.UI.InicioVM.ClaveInversiones(_ejercicioTrabajo.IdSociedad)) ?? [])
+                .ToHashSet(StringComparer.Ordinal);
+            var t = trimestre.Value;
+            var informe = await Task.Run(() => _gestoria.ComponerAsync(_ejercicioTrabajo, _razonSocial, t, DateTime.Now, inversiones));
+            var carpeta = System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "ProContaVF", "Informes");
+            System.IO.Directory.CreateDirectory(carpeta);
+            ruta = System.IO.Path.Combine(carpeta, ProConta.Informes.Excel.InformeGestoria.NombreFichero(ejercicio, t, informe.Generado));
+            var destino = ruta;
+            await Task.Run(() => ProConta.Informes.Excel.ExportadorInformeGestoriaExcel.Exportar(informe, destino));
+            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(ruta) { UseShellExecute = true });
+            var es = System.Globalization.CultureInfo.GetCultureInfo("es-ES");
+            var resultado = informe.Iva303.Resultado(t);
+            var revisar = ProConta.Informes.Excel.ControlesGestoria.Calcular(informe).Count(c => c.Estado == ProConta.Informes.Excel.EstadoControl.Revisar);
+            Avisar($"Informe para la gestoría {ejercicio}-{t}T abierto en Excel: 303 del {t}T {Math.Abs(resultado).ToString("N2", es)} € {(resultado >= 0 ? "a ingresar" : "a compensar")} · " +
+                   $"prorrata {informe.Prorrata.Provisional:P0} → {informe.Prorrata.Real:P0} · " +
+                   (revisar == 0 ? "ningún control a revisar." : $"{revisar} controles a revisar (hoja Controles)."));
+        }
+        catch (Exception ex)
+        {
+            var bloqueado = ex is System.IO.IOException;
+            var detalles = new List<string>();
+            if (bloqueado && ruta is not null) detalles.Add($"Fichero: {ruta}");
+            if (ex is not InvalidOperationException and not System.IO.IOException) detalles.Add($"Detalle técnico: {ex.GetType().Name}");
+            var mensaje = bloqueado
+                ? $"No he podido escribir el libro: {ex.Message} Si tienes abierto en Excel otro informe con el mismo nombre, ciérralo y pulsa «Reintentar»."
+                : ex.Message;
+            var eleccion = ServicioMensajes.Preguntar(this, "No he podido generar el informe para la gestoría", mensaje, detalles,
+                new OpcionMensaje("Reintentar", "Vuelve a generar el informe del mismo trimestre", Principal: true),
+                new OpcionMensaje("Cerrar", "Vuelve a la pantalla anterior", Cancelar: true));
+            if (eleccion == 0) { _generandoGestoria = false; Cursor = anterior; await GenerarInformeGestoriaAsync(trimestre); return; }
+        }
+        finally
+        {
+            Cursor = anterior;
+            _generandoGestoria = false;
         }
     }
 

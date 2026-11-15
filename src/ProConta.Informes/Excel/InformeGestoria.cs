@@ -16,7 +16,7 @@ public sealed record FilaRecibida(
     decimal Retencion, string? Centro, string? Area, string? RutaPdf, bool PdfExiste);
 
 /// <summary>Cuotas de los libros de IVA frente al saldo de las 477 y 472 de un trimestre (las mismas cifras que la salud de Inicio).</summary>
-public sealed record CuadreLibrosIva(int Trimestre, decimal LibroRepercutido, decimal Cuentas477, decimal LibroSoportado, decimal Cuentas472);
+public sealed record CuadreIvaTrimestre(int Trimestre, decimal LibroRepercutido, decimal Cuentas477, decimal LibroSoportado, decimal Cuentas472);
 
 /// <summary>
 /// Todos los datos del informe para la gestoría de un trimestre, ya calculados (informes/informe-gestoria): el libro Excel solo
@@ -31,7 +31,7 @@ public sealed record InformeGestoria(
     string RazonSocial, int Ejercicio, int Trimestre, DateTime Generado, DateTime? UltimoAsiento, decimal? ProrrataProvisional,
     IReadOnlyList<LineaIva> LineasIva, Resultado303 Iva303, ResultadoProrrata Prorrata,
     ResultadoBalance PyG, ResultadoBalance Situacion, ResultadoRatios? Ratios, string? MotivoSinRatios,
-    IReadOnlyList<FilaEmitida> Emitidas, IReadOnlyList<FilaRecibida> Recibidas, IReadOnlyList<CuadreLibrosIva> CuadreLibros,
+    IReadOnlyList<FilaEmitida> Emitidas, IReadOnlyList<FilaRecibida> Recibidas, IReadOnlyList<CuadreIvaTrimestre> CuadreLibros,
     int AsientosFueraEjercicio, int ActivosAmortizables)
 {
     /// <summary>Último día del trimestre del informe.</summary>
