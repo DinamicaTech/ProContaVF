@@ -18,19 +18,22 @@ public enum EstadoRatio { SinDatos, Bien, Vigilar, Mal }
 /// <summary>
 /// Un ratio con su fórmula y su rango de referencia estándar (no configurable por sociedad). <see cref="Minimo"/> o
 /// <see cref="Maximo"/> nulos: rango abierto por ese lado. <see cref="MenosEsMejor"/>: cuanto más bajo, mejor (solo cuenta el máximo).
+/// <see cref="BajoElMinimoEsBien"/>: estar por debajo del mínimo no es malo (poca deuda en el endeudamiento), se marca Bien.
 /// </summary>
 public sealed record DefinicionRatio(
-    string Clave, string Nombre, FamiliaRatio Familia, string Formula, UnidadRatio Unidad, decimal? Minimo, decimal? Maximo, bool MenosEsMejor, string Referencia)
+    string Clave, string Nombre, FamiliaRatio Familia, string Formula, UnidadRatio Unidad, decimal? Minimo, decimal? Maximo, bool MenosEsMejor, string Referencia,
+    bool BajoElMinimoEsBien = false)
 {
     /// <summary>
-    /// Bien dentro del rango; por debajo del mínimo, Vigilar y Mal si baja del 80 % del mínimo; por encima del máximo, Vigilar.
+    /// Bien dentro del rango; por debajo del mínimo, Vigilar y Mal si baja del 80 % del mínimo (Bien si <see cref="BajoElMinimoEsBien"/>);
+    /// por encima del máximo, Vigilar.
     /// En los de «menos es mejor»: Bien hasta el máximo, Vigilar hasta 1,3 veces el máximo y Mal por encima. Sobre el valor sin redondear.
     /// </summary>
     public EstadoRatio Estado(decimal valor)
     {
         if (MenosEsMejor && Maximo is decimal tope)
             return valor <= tope ? EstadoRatio.Bien : valor <= tope * 1.3m ? EstadoRatio.Vigilar : EstadoRatio.Mal;
-        if (Minimo is decimal min && valor < min) return valor < min * 0.8m ? EstadoRatio.Mal : EstadoRatio.Vigilar;
+        if (Minimo is decimal min && valor < min && !BajoElMinimoEsBien) return valor < min * 0.8m ? EstadoRatio.Mal : EstadoRatio.Vigilar;
         if (Maximo is decimal max && valor > max) return EstadoRatio.Vigilar;
         return EstadoRatio.Bien;
     }
@@ -77,13 +80,13 @@ public static class CalculoRatios
         new("acida", "Prueba ácida", FamiliaRatio.Liquidez, "(Realizable + Disponible) / Pasivo corriente", UnidadRatio.Veces, 1m, 1.8m, false, "entre 1 y 1,8"),
         new("tesoreria", "Tesorería inmediata", FamiliaRatio.Liquidez, "Disponible / Pasivo corriente", UnidadRatio.Veces, 0.1m, 0.4m, false, "entre 0,1 y 0,4 · por encima, dinero ocioso"),
         new("solvencia", "Solvencia", FamiliaRatio.SolvenciaEndeudamiento, "Activo total / Pasivo exigible", UnidadRatio.Veces, 1.5m, null, false, "mayor que 1,5"),
-        new("endeudamiento", "Endeudamiento", FamiliaRatio.SolvenciaEndeudamiento, "Pasivo exigible / Patrimonio neto", UnidadRatio.Veces, 0.4m, 1m, false, "entre 0,4 y 1"),
+        new("endeudamiento", "Endeudamiento", FamiliaRatio.SolvenciaEndeudamiento, "Pasivo exigible / Patrimonio neto", UnidadRatio.Veces, 0.4m, 1m, false, "entre 0,4 y 1 · por debajo de 0,4, poca deuda: también bien", true),
         new("calidad", "Calidad de la deuda", FamiliaRatio.SolvenciaEndeudamiento, "Pasivo corriente / Pasivo exigible", UnidadRatio.Veces, null, 0.5m, true, "menor que 0,5 · más bajo, deuda a más largo plazo"),
         new("roe", "Rentabilidad financiera (ROE)", FamiliaRatio.RentabilidadMargenes, "Resultado neto 12 meses / Patrimonio neto", UnidadRatio.Porcentaje, 6m, null, false, "mayor que 6 %"),
         new("roa", "Rentabilidad económica (ROA)", FamiliaRatio.RentabilidadMargenes, "Resultado de explotación 12 meses / Activo total", UnidadRatio.Porcentaje, 5m, null, false, "mayor que 5 %"),
         new("ebitda", "Margen EBITDA", FamiliaRatio.RentabilidadMargenes, "EBITDA 12 meses / Ventas 12 meses", UnidadRatio.Porcentaje, 20m, null, false, "mayor que 20 %"),
         new("neto", "Margen neto", FamiliaRatio.RentabilidadMargenes, "Resultado neto 12 meses / Ventas 12 meses", UnidadRatio.Porcentaje, 8m, null, false, "mayor que 8 %"),
-        new("pmc", "Periodo medio de cobro", FamiliaRatio.Gestion, "Clientes / Ventas con IVA 12 meses × 365", UnidadRatio.Dias, null, 30m, true, "menos de 30 días"),
+        new("pmc", "Periodo medio de cobro", FamiliaRatio.Gestion, "Clientes (saldos deudores) / Ventas con IVA 12 meses × 365", UnidadRatio.Dias, null, 30m, true, "menos de 30 días"),
         new("pmp", "Periodo medio de pago", FamiliaRatio.Gestion, "Proveedores y acreedores / Compras y gastos con IVA 12 meses × 365", UnidadRatio.Dias, null, 60m, true, "menos de 60 días (plazo legal)"),
     ];
 
@@ -207,8 +210,9 @@ public static class CalculoRatios
         var pn = M("pn");
         var pPN = P("Patrimonio neto", "A. Patrimonio neto, con el resultado del ejercicio hasta la fecha del balance: " + Grupos(pn), pn);
 
-        var clientes = saldos.Where(x => x.Value != 0 && EnRango(x.Key, "430", "436")).OrderBy(x => x.Key, StringComparer.Ordinal).Select(x => new CuentaPartida(x.Key, x.Value)).ToList();
-        var pCli = P("Clientes", "Saldo de las 430 a 436", clientes);
+        // Solo los saldos deudores, la misma cifra que el indicador «Pendiente de cobro»: un anticipo de cliente no reduce lo pendiente.
+        var clientes = saldos.Where(x => x.Value > 0 && EnRango(x.Key, "430", "436")).OrderBy(x => x.Key, StringComparer.Ordinal).Select(x => new CuentaPartida(x.Key, x.Value)).ToList();
+        var pCli = P("Clientes", "Saldo deudor de las 430 a 436 (lo mismo que «Pendiente de cobro»; los saldos acreedores no restan)", clientes);
         var proveedores = saldos.Where(x => x.Value != 0 && EnRango(x.Key, "400", "410")).OrderBy(x => x.Key, StringComparer.Ordinal).Select(x => new CuentaPartida(x.Key, -x.Value)).ToList();
         var pProv = P("Proveedores y acreedores", "Saldo acreedor de las 400 a 410", proveedores);
 

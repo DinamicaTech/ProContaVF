@@ -99,6 +99,20 @@ public sealed class RatiosTests
     }
 
     [Fact]
+    public void ElPeriodoMedioDeCobroSoloCuentaLosSaldosDeudoresDeClientes()
+    {
+        // Un anticipo de otro cliente (saldo acreedor en su 430) no reduce lo pendiente de cobro, como en el indicador.
+        var mov = Actual();
+        mov.AddRange([M(2026, 5, 1, "5720001", 500, 0), M(2026, 5, 1, "4300002", 0, 500)]);
+        var r = CalculoRatios.Calcular(ModeloSintetico.Situacion, mov, [.. mov, .. Anterior()], Balance, new HashSet<string> { "5720019" });
+        var pmc = r.Ratio("pmc")!;
+        Assert.Equal(12100m / 17100m * 365m, pmc.Valor);
+        Assert.Equal(["4300001"], pmc.Partidas[0].Detalle.Select(c => c.Cuenta));
+        Assert.Contains("Saldo deudor de las 430 a 436", pmc.Partidas[0].Cuentas);
+        Assert.Contains("saldos deudores", pmc.Definicion.Formula);
+    }
+
+    [Fact]
     public void LaCuentaDeInversionNoEsDisponibleSinoRealizable()
     {
         var sinMarca = Calcular(new HashSet<string>());
@@ -130,6 +144,14 @@ public sealed class RatiosTests
         var roe = CalculoRatios.Definiciones.Single(d => d.Clave == "roe");
         Assert.Equal(EstadoRatio.Bien, roe.Estado(50m));                   // sin máximo
         Assert.Equal(EstadoRatio.Mal, roe.Estado(-3m));
+        // Endeudamiento: tener poca deuda no es malo; por debajo del mínimo (0,4) es bien y por encima del máximo, vigilar.
+        var endeudamiento = CalculoRatios.Definiciones.Single(d => d.Clave == "endeudamiento");
+        Assert.Equal(EstadoRatio.Bien, endeudamiento.Estado(0.39m));
+        Assert.Equal(EstadoRatio.Bien, endeudamiento.Estado(0.05m));
+        Assert.Equal(EstadoRatio.Bien, endeudamiento.Estado(0m));
+        Assert.Equal(EstadoRatio.Bien, endeudamiento.Estado(1m));
+        Assert.Equal(EstadoRatio.Vigilar, endeudamiento.Estado(1.01m));
+        Assert.Contains("por debajo de 0,4", endeudamiento.Referencia);
         var pmp = CalculoRatios.Definiciones.Single(d => d.Clave == "pmp");
         Assert.Equal(EstadoRatio.Bien, pmp.Estado(60m));
         Assert.Equal(EstadoRatio.Vigilar, pmp.Estado(78m));
