@@ -40,3 +40,4 @@ Hechos y validados por el propietario (2026-11-15 13:56) los 12 ratios de la pan
 - 2026-11-15 13:56 · answer: ¿endeudamiento por debajo de 0,4 como «Bien»? → Ok
 - 2026-11-15 13:56 · Pruebas ok
 - 2026-11-15 16:34 · Ya no hace falta la opción de "ratios", lo estoy gestionando por otro nodo
+- 2026-11-15 18:10 · Derived from informes/informe-gestoria: los ratios y sus rangos, calculados a fin del trimestre del informe, para la hoja Ratios; las mismas definiciones que usa la pantalla de inicio.

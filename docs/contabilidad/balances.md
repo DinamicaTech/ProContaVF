@@ -34,3 +34,4 @@ Hechos el balance de situación y la cuenta de pérdidas y ganancias del ejercic
 - 2026-11-11 16:35 · Ok a Completar el esquema
 - 2026-11-11 16:51 · im-presionante, cuadra al céntimo :-)
 - 2026-11-15 11:57 · Derived from pantalla-de-inicio: cifras consultables sin pasar por Excel, a una fecha y por mes, del ejercicio de trabajo y del comparado: resultado antes de impuestos, ingresos y gastos por mes y gastos por naturaleza (por cuenta de 3 dígitos). Fase 1.
+- 2026-11-15 18:10 · Derived from informes/informe-gestoria: pérdidas y ganancias y balance de situación del ejercicio de trabajo a fin de un trimestre, con el importe por centro de coste raíz, consultables sin pasar por su Excel, para las hojas PyG y Situación del informe.

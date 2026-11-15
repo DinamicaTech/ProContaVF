@@ -28,3 +28,4 @@ Hechos el balance de situación y la cuenta de pérdidas y ganancias (`src/ProCo
 - 2026-10-29 17:45 · From sources/proconta-antiguo/menu-principal/ANALISIS-FUNCIONAL.md § 4: listados de Mayor y Diario a Excel del menú antiguo.
 - 2026-11-11 15:00 · Derived from contabilidad/balances: libros Excel con tabla dinámica del balance de situación y de la cuenta de pérdidas y ganancias, con el formato de los libros del ProConta anterior.
 - 2026-11-12 15:19 · Derived from informes: salidas Excel de datos y Excel con tabla dinámica genéricas sobre el contrato común de las extracciones; primero diario y mayor.
+- 2026-11-15 18:10 · Derived from informes/informe-gestoria: libro de varias hojas con formato de informe (portada con cifras clave y gráficos, hojas con fórmulas sobre tablas de datos, formato condicional de estados), además de los libros de tabla dinámica.

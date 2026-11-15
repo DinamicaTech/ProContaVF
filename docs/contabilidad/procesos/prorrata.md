@@ -14,3 +14,4 @@ Cálculo de la prorrata de IVA: el sistema propone la legal (operaciones con der
 
 ## Requirements
 - 2026-11-13 12:05 · draft: Calcular la prorrata de IVA (la legal propuesta por defecto, la del gestor si se fija, con desglose en Excel) y regularizar la prorrata definitiva (4729) al cierre del ejercicio.
+- 2026-11-15 18:10 · Derived from informes/informe-gestoria: porcentaje provisional del ejercicio, porcentaje real acumulado (operaciones con derecho a deducción entre el total, redondeado al entero superior), volumen de operaciones por actividad y trimestre, y regularización estimada por trimestre (cuota sujeta a prorrata por la diferencia de porcentajes), sin generar asiento. Paridad con el libro anterior: 2026 a 3T da 52.289,30 / 263.012,00 = 19,88 % → 20 % y una regularización estimada de 99,44 €.

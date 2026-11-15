@@ -72,6 +72,7 @@ Ente FacturaVenta: borrador sin número, cálculo de líneas y totales, validaci
 - 2026-11-14 12:25 · Ok, ya puedes fusionar PR y cerrar hilo
 - 2026-11-15 12:10 · Derived from facturacion/pantallas: la consulta del listado indica si la factura viene de Ventas por facturar, para el filtro de origen.
 - 2026-11-15 16:32 · Derived from pantalla-de-inicio: facturación de las facturas validadas por mes, actividad y cliente para los comparativos de Inicio (fase 1), y para la salud el aviso de facturas en borrador antiguas y la comprobación de numeración sin huecos por serie (fase 3).
+- 2026-11-15 18:10 · Derived from informes/informe-gestoria: listado de facturas emitidas del ejercicio hasta el trimestre del informe: número, fecha, NIF, cliente, descripción, base antes de retención, IVA, retención, total, centro de coste y departamento.
 
 ## Hand-over
 - 2026-11-01 18:15 · Hecho: el ente, su servicio, las series y la consulta del listado, con pruebas sin BD (cálculo, reglas y asiento) y contra Access (validar numera y contabiliza, total cero, retención sin cuenta, rectificativa, duplicar, numeración concurrente y conflicto de versión). Pendiente: ejecutar las pruebas Access y las migraciones en el equipo del propietario; comprobar el formato del número con las series reales; VeriFactu, PDF, correo y programadas quedan fuera de este desarrollo.
