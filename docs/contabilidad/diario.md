@@ -1,14 +1,13 @@
 ---
 title: Diario
 depends_on: [contabilidad/asientos, contabilidad/mayor, contabilidad/pantallas, datos/esquema, plataforma/contenedor, plataforma/ui-base, informes/reporting]
-status: draft
 threads:
   - 2026-11-14 21:50 · Refinar la pantalla Diario | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5G1BkGHWh1giMA94fyxjnwdv
   - 2026-11-14 23:35 · Implementar la pantalla Diario | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GXVmWMZHhvnUnUECnzoRaJd
 ---
 ## Summary
 Pantalla Contabilidad › Diario sobre las tablas Asientos y Apuntes: todos los apuntes del ejercicio de trabajo y del anterior, en dos vistas («Por asiento», con cada asiento completo, plegable y con totales por mes; «Lista de apuntes», solo los que cumplen el filtro y ordenable por cualquier columna), con filtros, selección múltiple, sumas de lo filtrado y de lo seleccionado, ficha del asiento con edición rápida, menú contextual con las operaciones sobre la selección, borrado de asientos manuales con copia consultable y exportación a PDF o Excel.
-Implementada (pendiente de la validación del propietario) según la maqueta `sources/maquetas/Diario/proconta-diario.html`: el núcleo sin pantalla en `src/ProConta.Contabilidad/Diario` (`FuenteDiarioAccess`, `CalculadoraDiario`, `ColumnasDiario`, `ExportacionDiario`) y la pantalla en `src/ProConta.Contabilidad.UI/Diario` (`PantallaDiario`, `DiarioVM`, `DialogosDiario`, `ModuloDiario`), con la entrada Contabilidad › Diario del contenedor. Todo lo que cambia apuntes pasa por el motor de asientos (contabilidad/asientos); los asientos automáticos se corrigen en la pantalla de asiento (contabilidad/pantallas).
+Implementada y validada por el propietario el 2026-11-15 según la maqueta `sources/maquetas/Diario/proconta-diario.html`: el núcleo sin pantalla en `src/ProConta.Contabilidad/Diario` (`FuenteDiarioAccess`, `CalculadoraDiario`, `ColumnasDiario`, `ExportacionDiario`) y la pantalla en `src/ProConta.Contabilidad.UI/Diario` (`PantallaDiario`, `DiarioVM`, `DialogosDiario`, `ModuloDiario`), con la entrada Contabilidad › Diario del contenedor. Todo lo que cambia apuntes pasa por el motor de asientos (contabilidad/asientos); los asientos automáticos se corrigen en la pantalla de asiento (contabilidad/pantallas).
 **Aceptación:** con una copia de la BD de pruebas, la pantalla lee el ejercicio de trabajo y el anterior, las sumas de la vista «Por asiento» cuadran (Debe = Haber), la ficha guarda concepto, documento, vencimiento, centro y punteo de un apunte de un asiento automático, un asiento manual se elimina con su motivo y aparece en «Asientos borrados…», un automático se corrige salvo su 572 (y, con libro de IVA, salvo el IVA y los importes), y «Exportar…» genera el PDF y el Excel de lo filtrado.
 
 ## Decisions
@@ -31,6 +30,7 @@ Implementada (pendiente de la validación del propietario) según la maqueta `so
 - 2026-11-14 23:35 · Exportar: el PDF sale por el motor de informes (HTML › PDF con WebView2, texto real, A4 horizontal) con una línea por asiento y sus apuntes, los totales por mes si están marcados y el total final; en «Lista de apuntes», un apunte por fila en el orden de la rejilla. El Excel lleva una fila por apunte con las columnas visibles (importes y fechas con su tipo) y una fila de totales fuera del filtro. Se pregunta dónde guardarlo y se abre al terminar. Con la copia de pruebas, el PDF de un ejercicio (3.800 apuntes) tarda unos 11 s.
 - 2026-11-14 23:35 · «Abrir el origen» abre la factura de venta y la importación de nóminas del asiento; en compras, bancos y ContaSol sale desactivada y dice dónde buscarlo, porque esas pantallas aún no abren un documento concreto.
 - 2026-11-14 23:35 · Rendimiento: la carga de los dos ejercicios hace un número fijo de consultas (asientos, apuntes, libro de IVA, cuentas, centros y plantillas) y el filtro, las sumas y el orden se hacen en memoria. Con la copia de pruebas (4.461 asientos y 10.941 apuntes de 2025 y 2026) lee en 0,5 s y pinta en 1,2 s.
+- 2026-11-15 07:45 · Validado por el propietario (PR #71): el nodo deja de ser borrador. Pendiente, con sus nodos: «Abrir el origen» de compras y bancos cuando sus pantallas abran un documento concreto, y el botón «Regenerar» de la apertura cuando exista su proceso (contabilidad/procesos).
 ## Requirements
 - 2026-11-14 20:48 · Ok, la maqueta de Fable, efectivamente, es más completa que la de Opus, por lo que la damos por buena a falta de refinarla y resolver dudas en un nuevo hilo.
 - 2026-11-14 21:13 · 1) El asiento sí tiene un número de asiento (Asientos.IdAsiento)
@@ -52,6 +52,7 @@ Implementada (pendiente de la validación del propietario) según la maqueta `so
 - 2026-11-14 22:50 · C. Ok
 - 2026-11-14 22:50 · Y ok a los avisos.
 - 2026-11-14 22:50 · Adelante.
+- 2026-11-15 07:43 · Pantalla validada. Ya puedes fusionar.
 ## Hand-over
 - 2026-11-14 23:35 · Rama `claude/diario-pantalla`. Hecho: migración 53, motor de asientos, núcleo y pantalla del Diario, corrección de automáticos y «usar como base» en la pantalla de asiento, reglas y botones del Mayor, entrada en el contenedor y pruebas (sin BD: `DiarioTests`, `DiarioVMTests`, `CorreccionAutomaticoTests` y las nuevas de `AsientoManualVMTests`; con Access: las nuevas de `MotorAsientosAccessTests`). Probado con `C:\Docs\ProContaVF-validacion\ProConta-diario-01.accdb` (copia de ventas-02 actualizada al esquema 53): lectura, capturas de la pantalla dibujada fuera de la vista, PDF y Excel, y un ciclo real de alta, cambio de datos, corrección de un automático de ContaSol con banco y borrado con copia. A, B y C eran: A, mismas reglas en el Mayor; B, aviso de apertura sin «Regenerar»; C, columna CorregidoAMano.
 - 2026-11-14 23:35 · Pendiente: la validación del propietario en la aplicación; regenerar `diccionario/` con el esquema 53 (`ActualizadorEsquema diccionario` sobre la maestra: en este hilo no hubo permiso para leerla); «Abrir el origen» de compras y bancos cuando sus pantallas abran un documento concreto; el botón «Regenerar» de la apertura cuando exista su proceso.
