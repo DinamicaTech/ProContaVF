@@ -53,10 +53,13 @@ public sealed class ServicioFacturasCompra(
     /// Carpeta de la empresa: Sociedades.RutaDocumentos tal cual si es una ruta completa; si es solo un nombre o una ruta
     /// relativa, dentro de la carpeta de datos, que es la que contiene la BD compartida (compras/reconocimiento 2026-11-05 11:24).
     /// </summary>
-    internal string RaizEmpresa(string rutaDocumentos)
+    internal string RaizEmpresa(string rutaDocumentos) => RaizEmpresa(bd.Ruta, rutaDocumentos);
+
+    /// <summary>Carpeta de la empresa para la BD de <paramref name="rutaBd"/> (ver <see cref="RaizEmpresa(string)"/>).</summary>
+    internal static string RaizEmpresa(string rutaBd, string rutaDocumentos)
     {
         var ruta = rutaDocumentos.Trim();
-        return Path.IsPathFullyQualified(ruta) ? ruta : Path.GetFullPath(Path.Combine(Path.GetDirectoryName(Path.GetFullPath(bd.Ruta)) ?? string.Empty, ruta));
+        return Path.IsPathFullyQualified(ruta) ? ruta : Path.GetFullPath(Path.Combine(Path.GetDirectoryName(Path.GetFullPath(rutaBd)) ?? string.Empty, ruta));
     }
 
     /// <summary>

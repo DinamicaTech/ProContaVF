@@ -43,6 +43,7 @@ Ente FacturaVenta: borrador sin número, cálculo de líneas y totales, validaci
 - 2026-11-14 12:25 · Validado por el propietario el diseño del PDF, el logo, el bloque de pago, el IBAN del cliente y el esquema 50 (PR #65).
 - 2026-11-15 12:10 · Derivado de facturacion/pantallas 2026-11-15 12:10: la fila ligera del listado (`FilaFactura`, `ConsultaFacturas`) dice el origen de la factura: rectificativa, programada, venta (tiene alguna venta por facturar enlazada) o manual.
 - 2026-11-15 16:32 · Cumplida la línea «Derived from pantalla-de-inicio» del 2026-11-15 16:32 (escrita ahora porque la rama del circuito de facturación tenía abierto este fichero): Inicio lee de las facturas validadas la facturación por mes, por actividad y por cliente con su comparativo (fase 1; el grupo 70 solo si un ejercicio no tiene facturas), y la salud avisa de las facturas en borrador creadas hace más de 7 días y comprueba que la numeración de cada serie no tiene huecos (fase 3, pantalla-de-inicio 2026-11-15 14:48). Las lecturas son de Inicio (`src/ProConta.Inicio`), de solo lectura.
+- 2026-11-15 19:00 · Cumplida la línea «Derived from informes/informe-gestoria» del 2026-11-15 18:10: `ListadoEmitidas` (`src/ProConta.Facturacion/Facturas`) da las facturas emitidas con base antes de retención, IVA, retención, total, centro de coste raíz y departamento.
 
 ## Requirements
 - 2026-11-08 11:29 · Si es una factura validada, pero no exportada a Verifactu, se puede modificar cualquier campo o línea.
@@ -72,6 +73,7 @@ Ente FacturaVenta: borrador sin número, cálculo de líneas y totales, validaci
 - 2026-11-14 12:25 · Ok, ya puedes fusionar PR y cerrar hilo
 - 2026-11-15 12:10 · Derived from facturacion/pantallas: la consulta del listado indica si la factura viene de Ventas por facturar, para el filtro de origen.
 - 2026-11-15 16:32 · Derived from pantalla-de-inicio: facturación de las facturas validadas por mes, actividad y cliente para los comparativos de Inicio (fase 1), y para la salud el aviso de facturas en borrador antiguas y la comprobación de numeración sin huecos por serie (fase 3).
+- 2026-11-15 18:10 · Derived from informes/informe-gestoria: listado de facturas emitidas del ejercicio hasta el trimestre del informe: número, fecha, NIF, cliente, descripción, base antes de retención, IVA, retención, total, centro de coste y departamento.
 
 ## Hand-over
 - 2026-11-01 18:15 · Hecho: el ente, su servicio, las series y la consulta del listado, con pruebas sin BD (cálculo, reglas y asiento) y contra Access (validar numera y contabiliza, total cero, retención sin cuenta, rectificativa, duplicar, numeración concurrente y conflicto de versión). Pendiente: ejecutar las pruebas Access y las migraciones en el equipo del propietario; comprobar el formato del número con las series reales; VeriFactu, PDF, correo y programadas quedan fuera de este desarrollo.

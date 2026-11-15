@@ -74,6 +74,19 @@ public static class ReglasErp
     public static decimal ProrrataEnPorcentaje(decimal valor) => Math.Round(valor is >= 0m and <= 1m ? valor * 100m : valor, 2);
 
     /// <summary>
+    /// Deducción de una categoría de IVA del ERP (CategoriasIVA.Deducible: 0 no deducible, 1 deducible al 100 %, 2 prorrata, como lo
+    /// clasificaba el libro de la gestoría) traducida a Actividades.Deducible (0 no deducible, 1 prorrata, 2 100 % deducible).
+    /// Vacío o un código desconocido: 100 % deducible, como hasta ahora.
+    /// </summary>
+    public static byte DeducibleActividad(int? deducibleErp) => deducibleErp switch
+    {
+        0 => 0,
+        2 => 1,
+        _ => 2,
+    };
+
+
+    /// <summary>
     /// Valores que la migración escribe en el ejercicio: los no vacíos del ERP. La cuenta de suplidos es CuentaSuplido o, si está
     /// vacía, la «Cuenta de suplido con IVA» del ERP (5550002; propietario 2026-11-13 20:40). Los porcentajes (SINGLE) se
     /// redondean a 4 decimales para no arrastrar el error del tipo de coma flotante.

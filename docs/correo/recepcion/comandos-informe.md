@@ -14,3 +14,4 @@ Pedir por correo un informe del catálogo (por ejemplo, el mayor de una cuenta) 
 ## Requirements
 - 2026-11-12 13:11 · Ok con FlowDocument, lo único que no tengo claro si nos sirve para pedir un mayor mediante un comando de email
 - 2026-11-12 15:19 · draft: Pedir por correo informes del catálogo (por ejemplo, un mayor) y responder al remitente con el informe adjunto en Excel o PDF, generado sin pantalla.
+- 2026-11-15 18:10 · Derived from informes/informe-gestoria: comando para pedir por correo el informe para la gestoría de un trimestre; se atenderá cuando este borrador se desarrolle.
