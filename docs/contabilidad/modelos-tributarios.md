@@ -14,6 +14,7 @@ Cálculo trazable y borrador de los modelos 303 y 390, separado de la presentaci
 - 2026-10-28 13:30 · Creado en la carga inicial de requisitos.
 - 2026-10-31 16:54 · Primeros modelos: 303 y 390 (cálculo trazable y borrador). Después de la Versión Mínima Viable: reproducir en PDF el modelo oficial rellenado (con las plantillas oficiales si se encuentran, o a partir de los PDF resultantes de presentar un modelo) y generar el fichero de intercambio con la AEAT para presentarlo.
 - 2026-11-12 15:19 · El borrador de cada modelo se presenta en PDF con sus casillas, con una plantilla .frx y el motor de informes/reporting (2026-11-12 15:19); la copia exacta del modelo oficial y el fichero de presentación siguen en el borrador hijo `presentacion`. Habrá más modelos además del 303 y el 390; se irán ampliando.
+- 2026-11-15 14:48 · Cumplida la línea «Derived from pantalla-de-inicio» del 2026-11-15 11:57: la salud de Inicio muestra los plazos del 303 (trimestral, hecho si hay asiento de liquidación) y del 390 (anual, sin forma de saber si está presentado) como tareas con fecha, y compara por trimestre los libros de IVA con las cuentas 477 y 472 (pantalla-de-inicio 2026-11-15 14:48). Cuando este nodo registre las presentaciones, Inicio podrá dar el 390 (y el 303) por presentado.
 
 ## Requirements
 - 2026-10-28 12:28 · From sources/01_ESPECIFICACION_FUNCIONAL.docx § 16 RF-MOD-01, 02: cálculo, borrador y plantillas por año

@@ -194,12 +194,97 @@
         <pc:BarraReferencia Grid.Row="1" Grid.ColumnSpan="2" Height="8" Margin="0,3,0,0" Valor="{Binding Actual}" Referencia="{Binding Referencia}" Maximo="{Binding Maximo}" Color="{Binding Color}" />
       </Grid>
     </DataTemplate>
+
+    <!-- Salud: icono redondo y colores según la gravedad (siempre con icono y texto, nunca solo color). -->
+    <Style x:Key="Icono.Salud" TargetType="Border">
+      <Setter Property="Width" Value="20" />
+      <Setter Property="Height" Value="20" />
+      <Setter Property="CornerRadius" Value="10" />
+      <Setter Property="VerticalAlignment" Value="Top" />
+      <Setter Property="Margin" Value="0,1,0,0" />
+      <Setter Property="Background" Value="{StaticResource Pincel.AzulSuave}" />
+      <Style.Triggers>
+        <DataTrigger Binding="{Binding Tono}" Value="Grave"><Setter Property="Background" Value="{StaticResource Pincel.RojoSuave}" /></DataTrigger>
+        <DataTrigger Binding="{Binding Tono}" Value="Atencion"><Setter Property="Background" Value="{StaticResource Pincel.AmbarSuave}" /></DataTrigger>
+        <DataTrigger Binding="{Binding Tono}" Value="Hecho"><Setter Property="Background" Value="{StaticResource Pincel.VerdeSuave}" /></DataTrigger>
+      </Style.Triggers>
+    </Style>
+    <Style x:Key="Texto.Salud" TargetType="TextBlock">
+      <Setter Property="FontWeight" Value="Bold" />
+      <Setter Property="Foreground" Value="{StaticResource Pincel.Azul}" />
+      <Style.Triggers>
+        <DataTrigger Binding="{Binding Tono}" Value="Grave"><Setter Property="Foreground" Value="{StaticResource Pincel.Rojo}" /></DataTrigger>
+        <DataTrigger Binding="{Binding Tono}" Value="Atencion"><Setter Property="Foreground" Value="{StaticResource Pincel.Ambar}" /></DataTrigger>
+        <DataTrigger Binding="{Binding Tono}" Value="Hecho"><Setter Property="Foreground" Value="{StaticResource Pincel.Verde}" /></DataTrigger>
+      </Style.Triggers>
+    </Style>
+    <Style x:Key="Plazo.Salud" TargetType="Border">
+      <Setter Property="CornerRadius" Value="999" />
+      <Setter Property="Padding" Value="7,0" />
+      <Setter Property="VerticalAlignment" Value="Top" />
+      <Setter Property="Margin" Value="8,1,0,0" />
+      <Setter Property="Background" Value="{StaticResource Pincel.AzulSuave}" />
+      <Style.Triggers>
+        <DataTrigger Binding="{Binding TonoPlazo}" Value="Vencida"><Setter Property="Background" Value="{StaticResource Pincel.RojoSuave}" /></DataTrigger>
+        <DataTrigger Binding="{Binding TonoPlazo}" Value="Cerca"><Setter Property="Background" Value="{StaticResource Pincel.AmbarSuave}" /></DataTrigger>
+      </Style.Triggers>
+    </Style>
+    <Style x:Key="TextoPlazo.Salud" TargetType="TextBlock">
+      <Setter Property="FontSize" Value="{StaticResource Letra.Pequena}" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+      <Setter Property="Foreground" Value="{StaticResource Pincel.Azul}" />
+      <Style.Triggers>
+        <DataTrigger Binding="{Binding TonoPlazo}" Value="Vencida"><Setter Property="Foreground" Value="{StaticResource Pincel.Rojo}" /></DataTrigger>
+        <DataTrigger Binding="{Binding TonoPlazo}" Value="Cerca"><Setter Property="Foreground" Value="{StaticResource Pincel.Ambar}" /></DataTrigger>
+      </Style.Triggers>
+    </Style>
+    <Style x:Key="Celda.Periodo" TargetType="Border">
+      <Setter Property="CornerRadius" Value="5" />
+      <Setter Property="Height" Value="20" />
+      <Setter Property="Margin" Value="1" />
+      <Setter Property="Background" Value="{StaticResource Pincel.Linea2}" />
+      <Setter Property="ToolTipService.ShowDuration" Value="30000" />
+      <Style.Triggers>
+        <DataTrigger Binding="{Binding Estado}" Value="Hecho"><Setter Property="Background" Value="{StaticResource Pincel.VerdeSuave}" /></DataTrigger>
+        <DataTrigger Binding="{Binding Estado}" Value="Incompleto"><Setter Property="Background" Value="{StaticResource Pincel.AmbarSuave}" /></DataTrigger>
+        <DataTrigger Binding="{Binding Estado}" Value="ConErrores"><Setter Property="Background" Value="{StaticResource Pincel.RojoSuave}" /></DataTrigger>
+        <DataTrigger Binding="{Binding Estado}" Value="EnCurso"><Setter Property="Background" Value="{StaticResource Pincel.AzulSuave}" /></DataTrigger>
+      </Style.Triggers>
+    </Style>
+    <Style x:Key="TextoCelda.Periodo" TargetType="TextBlock">
+      <Setter Property="FontSize" Value="{StaticResource Letra.Pequena}" />
+      <Setter Property="FontWeight" Value="Bold" />
+      <Setter Property="HorizontalAlignment" Value="Center" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+      <Setter Property="Foreground" Value="{StaticResource Pincel.Apagado}" />
+      <Style.Triggers>
+        <DataTrigger Binding="{Binding Estado}" Value="Hecho"><Setter Property="Foreground" Value="{StaticResource Pincel.Verde}" /></DataTrigger>
+        <DataTrigger Binding="{Binding Estado}" Value="Incompleto"><Setter Property="Foreground" Value="{StaticResource Pincel.Ambar}" /></DataTrigger>
+        <DataTrigger Binding="{Binding Estado}" Value="ConErrores"><Setter Property="Foreground" Value="{StaticResource Pincel.Rojo}" /></DataTrigger>
+        <DataTrigger Binding="{Binding Estado}" Value="EnCurso"><Setter Property="Foreground" Value="{StaticResource Pincel.Azul}" /></DataTrigger>
+      </Style.Triggers>
+    </Style>
+    <Style x:Key="Seccion.Salud" TargetType="TextBlock">
+      <Setter Property="FontSize" Value="{StaticResource Letra.Secundaria}" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+      <Setter Property="Foreground" Value="{StaticResource Pincel.Apagado}" />
+      <Setter Property="Margin" Value="6,12,6,4" />
+    </Style>
+    <CollectionViewSource x:Key="ElementosSalud" Source="{Binding Salud.Elementos}">
+      <CollectionViewSource.GroupDescriptions>
+        <PropertyGroupDescription PropertyName="NombreSeccion" />
+      </CollectionViewSource.GroupDescriptions>
+    </CollectionViewSource>
   </UserControl.Resources>
 
   <pc:VistaEstado Estado="{Binding Estado}" Titulo="{Binding TituloEstado}" Mensaje="{Binding MensajeEstado}"
                   TextoAccion="Reintentar" AyudaAccion="Vuelve a leer la base de datos y a calcular los indicadores" ComandoAccion="{Binding ReintentarCommand}">
-    <ScrollViewer x:Name="Desplazamiento" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-      <StackPanel Margin="16,16,16,8">
+    <Grid>
+      <Grid.RowDefinitions>
+        <RowDefinition Height="Auto" />
+        <RowDefinition Height="*" />
+      </Grid.RowDefinitions>
+      <StackPanel Margin="16,16,16,0">
 
         <!-- Cabecera: título, contexto y acciones generales -->
         <DockPanel Margin="0,0,0,14" LastChildFill="True">
@@ -210,7 +295,7 @@
             <Button Content="Personalizar…" Command="{Binding PersonalizarCommand}" Margin="0,0,8,0" pc:Iconos.Icono="{StaticResource Icono.layout}"
                     ToolTip="Elige qué bloques se ven en Inicio. La elección se guarda para tu operador" />
             <Button Content="Actualizar" Command="{Binding ActualizarCommand}" pc:Iconos.Icono="{StaticResource Icono.refresh}"
-                    ToolTip="Vuelve a leer la base de datos y a calcular los indicadores (se hace solo al abrir Inicio; cambiar «Comparar con» no vuelve a leer lo ya leído)" />
+                    ToolTip="Vuelve a leer la base de datos, a calcular los indicadores y a revisar la salud de la contabilidad (se hace solo al abrir Inicio; cambiar «Comparar con» no vuelve a leer lo ya leído)" />
           </StackPanel>
           <TextBlock Text="{Binding Titulo}" FontFamily="{StaticResource Fuente.Titulo}" FontSize="22" FontWeight="SemiBold" Foreground="{StaticResource Pincel.Tinta}" VerticalAlignment="Center" />
           <TextBlock Text="{Binding Subtitulo}" Style="{StaticResource Nota.Tarjeta}" FontSize="13" Margin="12,3,12,0" ToolTip="{Binding Subtitulo}" />
@@ -220,6 +305,34 @@
                 BorderThickness="1" CornerRadius="10" Padding="14,10" Margin="0,0,0,14">
           <TextBlock Text="{Binding Aviso}" TextWrapping="Wrap" />
         </Border>
+
+        <!-- Lo más urgente: el elemento grave más prioritario de la salud -->
+        <Border Visibility="{Binding VerUrgente, Converter={StaticResource Visible}}" Background="{StaticResource Pincel.RojoSuave}" BorderBrush="{StaticResource Pincel.RojoBorde}"
+                BorderThickness="4,1,1,1" CornerRadius="10" Padding="12,9" Margin="0,0,0,14" AutomationProperties.Name="Lo más urgente">
+          <DockPanel DataContext="{Binding Salud.Urgente}">
+            <Border DockPanel.Dock="Left" Style="{StaticResource Icono.Salud}" Margin="0,0,10,0" VerticalAlignment="Center">
+              <TextBlock Text="{Binding Icono}" Style="{StaticResource Texto.Salud}" FontSize="11.5" HorizontalAlignment="Center" VerticalAlignment="Center" />
+            </Border>
+            <Button DockPanel.Dock="Right" Style="{StaticResource Boton.Primario}" Margin="10,0,0,0" VerticalAlignment="Center"
+                    Content="{Binding DataContext.Salud.TextoBotonUrgente, ElementName=Raiz}" Command="{Binding DataContext.Salud.AbrirUrgenteCommand, ElementName=Raiz}"
+                    ToolTip="{Binding DataContext.Salud.AyudaBotonUrgente, ElementName=Raiz}" ToolTipService.ShowOnDisabled="True" />
+            <Border DockPanel.Dock="Right" Style="{StaticResource Plazo.Salud}" VerticalAlignment="Center" ToolTip="{Binding AyudaPlazo}" Visibility="{Binding HayPlazo, Converter={StaticResource Visible}}">
+              <TextBlock Text="{Binding Plazo}" Style="{StaticResource TextoPlazo.Salud}" />
+            </Border>
+            <TextBlock TextWrapping="Wrap" VerticalAlignment="Center" FontSize="13.5" ToolTip="{Binding Ayuda}">
+              <Run Text="Lo más urgente:" FontWeight="SemiBold" Foreground="{StaticResource Pincel.Rojo}" /> <Run Text="{Binding Titulo, Mode=OneWay}" />. <Run Text="{Binding Explicacion, Mode=OneWay}" Foreground="{StaticResource Pincel.Texto2}" />
+            </TextBlock>
+          </DockPanel>
+        </Border>
+      </StackPanel>
+
+      <Grid Grid.Row="1" x:Name="Columnas">
+        <Grid.ColumnDefinitions>
+          <ColumnDefinition Width="*" />
+          <ColumnDefinition x:Name="ColumnaSalud" Width="400" />
+        </Grid.ColumnDefinitions>
+        <ScrollViewer x:Name="Desplazamiento" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+          <StackPanel Margin="16,0,16,8">
 
         <TextBlock Visibility="{Binding TodoOculto, Converter={StaticResource Visible}}" Style="{StaticResource Vacio.Tarjeta}"
                    Text="Has ocultado todos los bloques. Pulsa «Personalizar…» para volver a mostrar los que quieras." />
@@ -463,7 +576,242 @@
             </StackPanel>
           </Border>
         </UniformGrid>
-      </StackPanel>
-    </ScrollViewer>
+            <!-- En ancho estrecho, la salud pasa debajo de los bloques. -->
+            <ContentControl x:Name="SaludAbajo" Focusable="False" />
+          </StackPanel>
+        </ScrollViewer>
+
+        <ContentControl x:Name="SaludDerecha" Grid.Column="1" Focusable="False" Margin="0,0,16,8">
+          <!-- Salud de la contabilidad: columna propia con su desplazamiento -->
+          <Border x:Name="PanelSalud" Style="{StaticResource Tarjeta.Inicio}" Padding="6,10,6,0" Margin="0,0,0,6" Visibility="{Binding VerSalud, Converter={StaticResource Visible}}"
+                  AutomationProperties.Name="Salud de la contabilidad">
+            <Grid DataContext="{Binding Salud}">
+              <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+                <RowDefinition Height="Auto" />
+              </Grid.RowDefinitions>
+              <DockPanel Margin="8,0,8,6">
+                <Border DockPanel.Dock="Right" Style="{StaticResource Segmentado}">
+                  <StackPanel Orientation="Horizontal">
+                    <RadioButton Style="{StaticResource Segmento}" Content="Todo" IsChecked="{Binding FiltroTodo}" GroupName="FiltroSalud" ToolTip="Tareas y avisos" />
+                    <RadioButton Style="{StaticResource Segmento}" Content="Tareas" IsChecked="{Binding FiltroTareas}" GroupName="FiltroSalud" ToolTip="Solo las tareas con fecha (plazos)" />
+                    <RadioButton Style="{StaticResource Segmento}" Content="Avisos" IsChecked="{Binding FiltroAvisos}" GroupName="FiltroSalud" ToolTip="Solo los avisos de cosas a corregir" />
+                  </StackPanel>
+                </Border>
+                <TextBlock Text="Salud de la contabilidad" Style="{StaticResource Titulo.Tarjeta}" TextTrimming="CharacterEllipsis" />
+              </DockPanel>
+
+              <!-- Resumen: graves más atención (los avisos informativos no cuentan) -->
+              <DockPanel Grid.Row="1" Margin="10,2,10,8" Visibility="{Binding HayContenido, Converter={StaticResource Visible}}">
+                <TextBlock DockPanel.Dock="Left" Text="{Binding Numero}" FontFamily="{StaticResource Fuente.Titulo}" FontSize="30" FontWeight="SemiBold" Margin="0,0,12,0"
+                           VerticalAlignment="Center" ToolTip="Cosas graves más cosas que requieren atención; los avisos informativos no cuentan">
+                  <TextBlock.Style>
+                    <Style TargetType="TextBlock">
+                      <Setter Property="Foreground" Value="{StaticResource Pincel.Verde}" />
+                      <Style.Triggers>
+                        <DataTrigger Binding="{Binding TonoResumen}" Value="Grave"><Setter Property="Foreground" Value="{StaticResource Pincel.Rojo}" /></DataTrigger>
+                        <DataTrigger Binding="{Binding TonoResumen}" Value="Atencion"><Setter Property="Foreground" Value="{StaticResource Pincel.Ambar}" /></DataTrigger>
+                      </Style.Triggers>
+                    </Style>
+                  </TextBlock.Style>
+                </TextBlock>
+                <StackPanel VerticalAlignment="Center">
+                  <TextBlock Text="{Binding TituloResumen}" FontWeight="SemiBold" />
+                  <WrapPanel Margin="0,3,0,0">
+                    <Border Background="{StaticResource Pincel.RojoSuave}" CornerRadius="999" Padding="7,0" Margin="0,0,5,0" ToolTip="Cosas graves: hay que resolverlas cuanto antes">
+                      <TextBlock Text="{Binding RecuentoGraves}" FontSize="{StaticResource Letra.Pequena}" FontWeight="SemiBold" Foreground="{StaticResource Pincel.Rojo}" />
+                    </Border>
+                    <Border Background="{StaticResource Pincel.AmbarSuave}" CornerRadius="999" Padding="7,0" Margin="0,0,5,0" ToolTip="Cosas que requieren atención">
+                      <TextBlock Text="{Binding RecuentoAtencion}" FontSize="{StaticResource Letra.Pequena}" FontWeight="SemiBold" Foreground="{StaticResource Pincel.Ambar}" />
+                    </Border>
+                    <Border Background="{StaticResource Pincel.AzulSuave}" CornerRadius="999" Padding="7,0" ToolTip="Avisos informativos: no cuentan en el número grande">
+                      <TextBlock Text="{Binding RecuentoAvisos}" FontSize="{StaticResource Letra.Pequena}" FontWeight="SemiBold" Foreground="{StaticResource Pincel.Azul}" />
+                    </Border>
+                  </WrapPanel>
+                </StackPanel>
+              </DockPanel>
+
+              <ScrollViewer x:Name="DesplazamientoSalud" Grid.Row="2" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Focusable="False">
+                <StackPanel Margin="2,0,2,10">
+                  <StackPanel Visibility="{Binding Error, Converter={StaticResource Visible}}" Margin="8,6">
+                    <TextBlock Text="{Binding Error}" TextWrapping="Wrap" Foreground="{StaticResource Pincel.Rojo}" />
+                    <Button Content="Reintentar" Command="{Binding ReintentarCommand}" HorizontalAlignment="Left" Margin="0,8,0,0" ToolTip="Vuelve a revisar la salud de la contabilidad" />
+                  </StackPanel>
+
+                  <!-- Estado de los periodos -->
+                  <StackPanel Visibility="{Binding HayPeriodos, Converter={StaticResource Visible}}">
+                    <TextBlock Text="ESTADO DE LOS PERIODOS" Style="{StaticResource Seccion.Salud}" Margin="6,2,6,4" />
+                    <Grid Margin="6,0,6,0">
+                      <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="112" />
+                        <ColumnDefinition Width="*" />
+                      </Grid.ColumnDefinitions>
+                      <ItemsControl Grid.Column="1" ItemsSource="{Binding Meses}" Focusable="False">
+                        <ItemsControl.ItemsPanel><ItemsPanelTemplate><UniformGrid Columns="12" /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                          <DataTemplate><TextBlock Text="{Binding}" FontSize="{StaticResource Letra.Pequena}" Foreground="{StaticResource Pincel.Apagado}" HorizontalAlignment="Center" /></DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                      </ItemsControl>
+                    </Grid>
+                    <ItemsControl ItemsSource="{Binding Periodos}" Margin="6,0,6,2" Focusable="False">
+                      <ItemsControl.ItemTemplate>
+                        <DataTemplate DataType="{x:Type local:FilaPeriodoVM}">
+                          <Grid Background="Transparent" ToolTip="{Binding Ayuda}">
+                            <Grid.InputBindings>
+                              <MouseBinding MouseAction="LeftDoubleClick" Command="{Binding Abrir}" />
+                            </Grid.InputBindings>
+                            <Grid.ColumnDefinitions>
+                              <ColumnDefinition Width="112" />
+                              <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="{Binding Nombre}" FontSize="{StaticResource Letra.Secundaria}" Foreground="{StaticResource Pincel.Texto2}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                            <ItemsControl Grid.Column="1" ItemsSource="{Binding Celdas}" Focusable="False">
+                              <ItemsControl.ItemsPanel><ItemsPanelTemplate><UniformGrid Rows="1" /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                              <ItemsControl.ItemTemplate>
+                                <DataTemplate DataType="{x:Type local:CeldaPeriodoVM}">
+                                  <Border Style="{StaticResource Celda.Periodo}" ToolTip="{Binding Ayuda}">
+                                    <TextBlock Text="{Binding Texto}" Style="{StaticResource TextoCelda.Periodo}" />
+                                  </Border>
+                                </DataTemplate>
+                              </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                          </Grid>
+                        </DataTemplate>
+                      </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                  </StackPanel>
+
+                  <!-- Todo al día -->
+                  <Border Visibility="{Binding TodoAlDia, Converter={StaticResource Visible}}" Background="{StaticResource Pincel.VerdeSuave}" CornerRadius="10" Padding="14,18" Margin="6,10,6,4">
+                    <StackPanel>
+                      <TextBlock Text="✓ Todo al día" FontSize="15" FontWeight="SemiBold" Foreground="{StaticResource Pincel.Verde}" HorizontalAlignment="Center" />
+                      <TextBlock Text="No hay tareas con plazo ni avisos: la contabilidad cuadra, los bancos están al día y no hay facturas pendientes de registrar."
+                                 TextWrapping="Wrap" TextAlignment="Center" Foreground="{StaticResource Pincel.Verde}" Margin="0,4,0,0" />
+                    </StackPanel>
+                  </Border>
+
+                  <!-- Tareas, avisos y hechas: selección simple o múltiple, doble clic o Intro abre la pantalla, clic derecho para más acciones -->
+                  <ListBox x:Name="ListaSalud" ItemsSource="{Binding Source={StaticResource ElementosSalud}}" SelectionMode="Extended" BorderThickness="0" Background="Transparent"
+                           Margin="0,4,0,0" AutomationProperties.Name="Tareas y avisos" SelectionChanged="ListaSalud_SelectionChanged" MouseDoubleClick="ListaSalud_MouseDoubleClick">
+                    <ListBox.Template>
+                      <ControlTemplate TargetType="ListBox"><ItemsPresenter /></ControlTemplate>
+                    </ListBox.Template>
+                    <ListBox.InputBindings>
+                      <KeyBinding Key="Enter" Command="{Binding AbrirCommand}" />
+                    </ListBox.InputBindings>
+                    <ListBox.ContextMenu>
+                      <ContextMenu>
+                        <MenuItem Header="{Binding TextoAbrirSeleccion}" Command="{Binding AbrirCommand}" InputGestureText="Intro"
+                                  ToolTip="Abre la pantalla donde se resuelve (solo con un elemento seleccionado y si la pantalla ya existe)" />
+                        <MenuItem Header="¿Por qué aparece?" Command="{Binding PorQueCommand}" ToolTip="Qué lo detecta, la condición por la que aparece y cómo se resuelve" />
+                        <Separator />
+                        <MenuItem Header="Copiar el texto" Command="{Binding CopiarCommand}" ToolTip="Copia al portapapeles el texto de los elementos seleccionados" />
+                      </ContextMenu>
+                    </ListBox.ContextMenu>
+                    <ListBox.GroupStyle>
+                      <GroupStyle>
+                        <GroupStyle.HeaderTemplate>
+                          <DataTemplate>
+                            <TextBlock Style="{StaticResource Seccion.Salud}">
+                              <Run Text="{Binding Name, Mode=OneWay}" /> <Run Text="{Binding ItemCount, Mode=OneWay}" FontWeight="Normal" />
+                            </TextBlock>
+                          </DataTemplate>
+                        </GroupStyle.HeaderTemplate>
+                      </GroupStyle>
+                    </ListBox.GroupStyle>
+                    <ListBox.ItemContainerStyle>
+                      <Style TargetType="ListBoxItem">
+                        <Setter Property="ToolTip" Value="{Binding Ayuda}" />
+                        <Setter Property="ToolTipService.ShowDuration" Value="30000" />
+                        <Setter Property="AutomationProperties.Name" Value="{Binding Titulo}" />
+                        <Setter Property="Template">
+                          <Setter.Value>
+                            <ControlTemplate TargetType="ListBoxItem">
+                              <Border x:Name="F" Background="Transparent" BorderBrush="Transparent" BorderThickness="1" CornerRadius="8" Padding="8,6" Margin="0,0,0,2">
+                                <ContentPresenter />
+                              </Border>
+                              <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="F" Property="Background" Value="{StaticResource Pincel.Fondo}" /></Trigger>
+                                <Trigger Property="IsSelected" Value="True">
+                                  <Setter TargetName="F" Property="Background" Value="{StaticResource Pincel.Seleccion}" />
+                                  <Setter TargetName="F" Property="BorderBrush" Value="{StaticResource Pincel.AcentoBorde}" />
+                                </Trigger>
+                              </ControlTemplate.Triggers>
+                            </ControlTemplate>
+                          </Setter.Value>
+                        </Setter>
+                      </Style>
+                    </ListBox.ItemContainerStyle>
+                    <ListBox.ItemTemplate>
+                      <DataTemplate DataType="{x:Type local:ElementoSaludVM}">
+                        <Grid>
+                          <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="22" />
+                            <ColumnDefinition Width="6" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                          </Grid.ColumnDefinitions>
+                          <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                          </Grid.RowDefinitions>
+                          <Border Style="{StaticResource Icono.Salud}" AutomationProperties.Name="{Binding TextoGravedad}">
+                            <TextBlock Text="{Binding Icono}" Style="{StaticResource Texto.Salud}" FontSize="11.5" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                          </Border>
+                          <TextBlock Grid.Column="2" Text="{Binding Titulo}" FontWeight="SemiBold" TextWrapping="Wrap">
+                            <TextBlock.Style>
+                              <Style TargetType="TextBlock">
+                                <Style.Triggers>
+                                  <DataTrigger Binding="{Binding Hecha}" Value="True">
+                                    <Setter Property="Foreground" Value="{StaticResource Pincel.Apagado}" />
+                                    <Setter Property="FontWeight" Value="Normal" />
+                                    <Setter Property="TextDecorations" Value="Strikethrough" />
+                                  </DataTrigger>
+                                </Style.Triggers>
+                              </Style>
+                            </TextBlock.Style>
+                          </TextBlock>
+                          <Border Grid.Column="3" Style="{StaticResource Plazo.Salud}" ToolTip="{Binding AyudaPlazo}" Visibility="{Binding HayPlazo, Converter={StaticResource Visible}}">
+                            <TextBlock Text="{Binding Plazo}" Style="{StaticResource TextoPlazo.Salud}" />
+                          </Border>
+                          <TextBlock Grid.Row="1" Grid.Column="2" Grid.ColumnSpan="2" Text="{Binding Explicacion}" TextWrapping="Wrap" FontSize="12.5" Foreground="{StaticResource Pincel.Texto2}" Margin="0,2,0,0" />
+                          <TextBlock Grid.Row="2" Grid.Column="2" Grid.ColumnSpan="2" FontSize="12" Foreground="{StaticResource Pincel.Apagado}" TextWrapping="Wrap" Margin="0,3,0,0">
+                            <Run Text="{Binding TextoGravedad, Mode=OneWay}" FontWeight="SemiBold" /> · › <Run Text="{Binding Destino, Mode=OneWay}" />
+                          </TextBlock>
+                        </Grid>
+                      </DataTemplate>
+                    </ListBox.ItemTemplate>
+                  </ListBox>
+
+                  <!-- Comprobaciones correctas (plegable) -->
+                  <Expander Header="{Binding TituloCorrectas}" Visibility="{Binding HayCorrectas, Converter={StaticResource Visible}}" Margin="6,10,6,0"
+                            ToolTip="Lo que se ha revisado y está bien">
+                    <ItemsControl ItemsSource="{Binding Correctas}" Margin="4,6,0,0" Focusable="False">
+                      <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                          <DockPanel Margin="0,0,0,4">
+                            <TextBlock DockPanel.Dock="Left" Text="✓" FontWeight="Bold" Foreground="{StaticResource Pincel.Verde}" Margin="0,0,8,0" />
+                            <TextBlock Text="{Binding}" TextWrapping="Wrap" Foreground="{StaticResource Pincel.Texto2}" FontSize="12.5" />
+                          </DockPanel>
+                        </DataTemplate>
+                      </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                  </Expander>
+                </StackPanel>
+              </ScrollViewer>
+
+              <Border Grid.Row="3" BorderBrush="{StaticResource Pincel.Linea}" BorderThickness="0,1,0,0" Padding="10,7">
+                <TextBlock FontSize="12" Foreground="{StaticResource Pincel.Apagado}" TextWrapping="Wrap">
+                  <Run Text="{Binding TextoPie, Mode=OneWay}" /> · doble clic abre la pantalla que lo resuelve
+                </TextBlock>
+              </Border>
+            </Grid>
+          </Border>
+        </ContentControl>
+      </Grid>
+    </Grid>
   </pc:VistaEstado>
 </UserControl>

@@ -2,6 +2,7 @@ using System.ComponentModel;
 using System.Windows;
 using System.Windows.Controls;
 using ProConta.UI.Base.Contenedor;
+using ProConta.Inicio.Salud;
 using ProConta.UI.Base.Controles;
 
 namespace ProConta.Inicio.UI;
@@ -39,9 +40,9 @@ public sealed class PestanaInicio : IPestanaTrabajo
 /// </summary>
 public static class ModuloInicio
 {
-    public static PestanaInicio Crear(ServicioInicio servicio, ContextoInicio contexto, AccionesInicio acciones, Func<Window?> propietario)
+    public static PestanaInicio Crear(ServicioInicio servicio, ContextoInicio contexto, AccionesInicio acciones, Func<Window?> propietario, ServicioSalud? salud = null)
     {
-        var vm = new InicioVM(servicio, contexto, new DialogosInicio(propietario), acciones);
+        var vm = new InicioVM(servicio, contexto, new DialogosInicio(propietario), acciones, salud: salud);
         var pestana = new PestanaInicio(vm);
         _ = vm.IniciarAsync();
         return pestana;
@@ -65,7 +66,7 @@ public sealed class DialogosInicio(Func<Window?> propietario) : IDialogosInicio
         }
         panel.Children.Add(new TextBlock
         {
-            Text = "La salud de la contabilidad, la agenda y la ocupación turística llegarán en las próximas fases.",
+            Text = "La agenda y la ocupación turística llegarán en las próximas fases.",
             TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 6, 0, 0), Foreground = (System.Windows.Media.Brush)d.FindResource("Pincel.Apagado"),
         });
         var marcas = new List<(CuentaBancoInicio Banco, CheckBox Casilla)>();
@@ -101,6 +102,53 @@ public sealed class DialogosInicio(Func<Window?> propietario) : IDialogosInicio
         return new EleccionInicio(
             casillas.Where(x => x.Casilla.IsChecked != true).Select(x => x.Bloque.Clave).ToHashSet(StringComparer.Ordinal),
             marcas.Where(x => x.Casilla.IsChecked == true).Select(x => x.Banco.Cuenta).ToHashSet(StringComparer.Ordinal));
+    }
+
+    public void Copiar(string texto)
+    {
+        try { Clipboard.SetText(texto); }
+        catch (System.Runtime.InteropServices.ExternalException)
+        {
+            // Otro programa tiene el portapapeles abierto: se reintenta una vez.
+            try { Clipboard.SetText(texto); } catch (System.Runtime.InteropServices.ExternalException) { }
+        }
+    }
+
+    public void PorQue(PorQueSaludVM porQue)
+    {
+        var d = new DialogoProConta { Title = porQue.Titulo, Owner = propietario(), Width = 600, SizeToContent = SizeToContent.Height };
+        var apagado = (System.Windows.Media.Brush)d.FindResource("Pincel.Apagado");
+        var panel = new StackPanel();
+        panel.Children.Add(new TextBlock { Text = $"Lo detecta {porQue.Nodo}", Foreground = apagado, Margin = new Thickness(0, 0, 0, 10) });
+        panel.Children.Add(new TextBlock { Text = porQue.Explicacion, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 0, 0, 12) });
+        void Bloque(string titulo, string texto)
+        {
+            panel.Children.Add(new TextBlock { Text = titulo, FontWeight = FontWeights.SemiBold, Margin = new Thickness(0, 0, 0, 3) });
+            panel.Children.Add(new TextBlock { Text = texto, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 0, 0, 12) });
+        }
+        Bloque("Por qué aparece", porQue.Condicion);
+        Bloque("Cómo se resuelve", porQue.ComoSeResuelve);
+        panel.Children.Add(new TextBlock { Text = porQue.Destino, Foreground = apagado, TextWrapping = TextWrapping.Wrap });
+        d.Content = new ScrollViewer { Content = panel, VerticalScrollBarVisibility = ScrollBarVisibility.Auto, MaxHeight = 560 };
+        var botones = new StackPanel { Orientation = Orientation.Horizontal };
+        var copiar = new Button { Content = "Copiar el texto", Margin = new Thickness(0, 0, 8, 0), ToolTip = "Copia al portapapeles el título, la explicación y dónde se resuelve" };
+        copiar.Click += (_, _) => Copiar(porQue.TextoCopiar + Environment.NewLine + "Por qué aparece: " + porQue.Condicion + Environment.NewLine + "Cómo se resuelve: " + porQue.ComoSeResuelve);
+        botones.Children.Add(copiar);
+        var cerrar = new Button { Content = "Cerrar", IsCancel = true, ToolTip = "Cierra esta ventana" };
+        cerrar.Click += (_, _) => d.DialogResult = false;
+        botones.Children.Add(cerrar);
+        if (porQue.Abrir is { } abrir)
+        {
+            var ir = new Button { Content = "Abrir la pantalla", Style = (Style)d.FindResource("Boton.Primario"), IsDefault = true, Margin = new Thickness(8, 0, 0, 0), ToolTip = porQue.Destino };
+            ir.Click += (_, _) => { d.DialogResult = true; };
+            botones.Children.Add(ir);
+            d.Botones = botones;
+            if (d.ShowDialog() == true) abrir.Execute(null);
+            return;
+        }
+        cerrar.IsDefault = true;
+        d.Botones = botones;
+        d.ShowDialog();
     }
 
     public void VerRatio(FichaRatioVM ficha)
