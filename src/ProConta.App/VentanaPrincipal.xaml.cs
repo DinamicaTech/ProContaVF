@@ -309,6 +309,9 @@ public partial class VentanaPrincipal : Window
         var balancePyG = new ComandoDelegado(() => _ = GenerarBalanceAsync(ProConta.Contabilidad.Balances.TipoBalance.PerdidasYGanancias));
         _gestoria = new ProConta.Inicio.Gestoria.ComposicionInformeGestoria(bd);
         var informeGestoria = new ComandoDelegado(() => _ = GenerarInformeGestoriaAsync());
+        _rutaBd = ubicacion.RutaBaseDatos;
+        _operador = sesion.NombreOperador;
+        var abrirClaude = new ComandoDelegado(AbrirClaude);
         Navegacion.ItemsSource = new[]
         {
             new OpcionNavegacion("Inicio", Icono("layout"), true, false, "Página de inicio", irAInicio),
@@ -356,6 +359,11 @@ public partial class VentanaPrincipal : Window
                 "Genera en Excel el informe trimestral para la gestoría del ejercicio de trabajo: liquidación del IVA (303) por trimestres, prorrata y su regularización estimada, " +
                 "controles antes de presentar, pérdidas y ganancias, balance, ratios y facturas emitidas y recibidas. Pregunta el trimestre (por defecto, el último terminado) y lo abre",
                 informeGestoria, EsHija: true),
+            // IA (plataforma/conector-claude): Claude Desktop con el conector de ProContaVF sobre la BD abierta.
+            new OpcionNavegacion("IA", Icono("wand"), true, false, "Claude Desktop con el conector de ProContaVF: consultas y propuestas de asientos sobre esta base de datos", abrirClaude),
+            new OpcionNavegacion("Abrir Claude", null, true, false,
+                "Comprueba que Claude Desktop tiene el conector de ProContaVF configurado con esta misma base de datos (si no, lo configura con tu permiso) y abre Claude Desktop",
+                abrirClaude, EsHija: true),
             new OpcionNavegacion("Configuración", Icono("gear"), true, false, "Parámetros y tablas: empresas, ejercicios, series, conceptos, formas de pago…", abrirParametros),
             new OpcionNavegacion("Parámetros y tablas", null, true, false, "Mantenimiento de las tablas y los parámetros de la aplicación, con buscador", abrirParametros, EsHija: true),
             new OpcionNavegacion("Importar ContaSol", null, true, false, "Importa la contabilidad de ContaSol por ejercicios (una BD por ejercicio), con simulación previa", abrirContaSol, EsHija: true),

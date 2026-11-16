@@ -24,5 +24,19 @@
     <ProjectReference Include="..\ProConta.Norma43.UI\ProConta.Norma43.UI.csproj" />
     <ProjectReference Include="..\ProConta.Nominas.UI\ProConta.Nominas.UI.csproj" />
     <ProjectReference Include="..\ProConta.Inicio.UI\ProConta.Inicio.UI.csproj" />
+    <!-- Conector de Claude Desktop (plataforma/conector-claude): se compila con el programa y se copia en la subcarpeta Conector. -->
+    <ProjectReference Include="..\ProConta.Conector\ProConta.Conector.csproj" ReferenceOutputAssembly="false" Private="false" />
   </ItemGroup>
+  <Target Name="CopiarConectorClaude" AfterTargets="Build">
+    <MSBuild Projects="..\ProConta.Conector\ProConta.Conector.csproj" Targets="GetTargetPath">
+      <Output TaskParameter="TargetOutputs" ItemName="SalidaConector" />
+    </MSBuild>
+    <PropertyGroup>
+      <CarpetaConector>@(SalidaConector->'%(RootDir)%(Directory)')</CarpetaConector>
+    </PropertyGroup>
+    <ItemGroup>
+      <ArchivosConector Include="$(CarpetaConector)**\*" />
+    </ItemGroup>
+    <Copy SourceFiles="@(ArchivosConector)" DestinationFiles="@(ArchivosConector->'$(OutDir)Conector\%(RecursiveDir)%(Filename)%(Extension)')" SkipUnchangedFiles="true" />
+  </Target>
 </Project>
