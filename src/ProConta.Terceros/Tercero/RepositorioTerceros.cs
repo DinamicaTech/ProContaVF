@@ -168,7 +168,7 @@ public sealed class RepositorioTercerosAccess(IBaseDatos bd, IReloj? reloj = nul
         return campos.Where(c => !string.Equals(Vacio(c.Item2), Vacio(c.Item3), StringComparison.Ordinal));
     }
 
-    private static Task HistorialAsync(ISesionDatos s, int idTercero, string operacion, DateTime ahora, Actor actor, string entidad, int idRegistro, string tipo, string campo, string? antes, string? despues) =>
+    internal static Task HistorialAsync(ISesionDatos s, int idTercero, string operacion, DateTime ahora, Actor actor, string entidad, int idRegistro, string tipo, string campo, string? antes, string? despues) =>
         s.EjecutarAsync(
             "INSERT INTO HistorialTerceros (IdTercero, IdOperacion, FechaHora, Operador, Entidad, IdRegistro, Operacion, Campo, ValorAntiguo, ValorNuevo) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
             idTercero, operacion, ahora, actor.ToString(), entidad, idRegistro, tipo, campo, antes, despues);

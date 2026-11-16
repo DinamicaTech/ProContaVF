@@ -5,6 +5,7 @@ threads:
   - 2026-10-28 12:30 · Carga de requisitos | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GRNMH95h9tnQp4dmEPHmw1w
   - 2026-10-29 10:15 · Validar prototipos de pantallas principales | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GGPu88XoVeXWyHsuxbrF2kK
   - 2026-11-01 09:55 · Desarrollar la pantalla de Terceros | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GVR2rh2hJF6h9BMYjKSu8jn
+  - 2026-11-16 10:52 · Subcuentas automáticas por rol | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GQBKwGs86wjheCyhHVGxDFn
 ---
 ## Summary
 Buscador multicriterio y ficha de terceros en pestañas del contenedor, con sus diez pestañas en el orden de la maqueta (identidad, contacto, roles, perfiles, notas, historial y los huecos de otras áreas). Primera versión en `src/ProConta.Terceros.UI`, abierta desde «Datos maestros › Terceros»: buscador con filtros y coincidencia, ficha con barra de Guardar/Descartar al pie, errores en el campo y en el resumen, y huecos explícitos para Ventas, Compras y Documentos hasta que lleguen sus áreas. La pestaña Contabilidad muestra el Mayor embebido de las cuentas del tercero (contabilidad/mayor).
@@ -33,6 +34,8 @@ Buscador multicriterio y ficha de terceros en pestañas del contenedor, con sus 
 
 - 2026-11-11 18:30 · La pestaña Contabilidad de la ficha muestra el Mayor embebido (el mismo control que Contabilidad › Mayor) con las cuentas de cliente, proveedor y acreedor del tercero, todas juntas o una a una, sin recientes ni selector; lo que sale de esas cuentas (contrapartidas, buscar una factura en todas las cuentas, «Abrir en el Mayor») se abre en la pestaña del Mayor. Sin cuentas asignadas, explica que se asignan en la pestaña Roles. El contenedor lo conecta con `ModuloTerceros.MayorEmbebido`; los datos se leen al abrir la pestaña (contabilidad/mayor 2026-11-11 18:30).
 - 2026-11-13 15:37 · Pestaña «Nóminas» (nominas/pantallas, PR 3) entre Compras y Contabilidad: solo se ve si el tercero es empleado de la sociedad activa; su contenido lo crea el módulo de nóminas y lo conecta el contenedor con `ModuloTerceros.NominasEmbebidas`, como el Mayor. `ModuloTerceros.AbrirFicha(id, pestaña)` abre la ficha en una pestaña concreta. La edición del código y la 465 en Roles queda pendiente.
+- 2026-11-16 10:52 · Botón «Auto» en cada cuenta de la pestaña Roles, a la derecha del código, visible cuando el rol está activo y la cuenta está vacía: crea al momento la siguiente subcuenta libre de su fila (cuenta del cliente 430, retención 473, proveedor 400, acreedor 410, empleado 465) con el nombre del tercero y la asigna; la asignación se guarda con la ficha. Sustituye al enlace «Crear la siguiente 465 libre» del empleado. El aviso del guardado dice qué subcuentas se han creado o borrado (terceros/roles 2026-11-16 10:52).
+- 2026-11-16 12:19 · Validado por el propietario (botón «Auto», PR #86).
 
 ## Requirements
 - 2026-10-28 12:28 · From sources/01_ESPECIFICACION_FUNCIONAL.docx § 7 RF-TER-05, 09, 11, 15: comportamiento del domicilio, pastilla de destinatarios, búsqueda modal, pestaña Ventas
@@ -60,6 +63,8 @@ Buscador multicriterio y ficha de terceros en pestañas del contenedor, con sus 
 - 2026-11-11 18:30 · Derived from contabilidad/mayor: la pestaña Contabilidad muestra el Mayor embebido, filtrado por las cuentas del tercero y sin panel de recientes; lo que sale de sus cuentas abre una pestaña del Mayor.
 - 2026-11-13 11:05 · Derived from nominas: pestaña «Nóminas» en la ficha del tercero, solo con el rol Empleado (maqueta sources/maquetas/Nominas/); el código de trabajador y la cuenta 465 se editan en Roles.
 - 2026-11-13 15:48 · Derived from nominas/pantallas: sección «Empleado en <sociedad>» en la pestaña Roles (Activar/Desactivar, IdEmpleado, «Código en la gestoría» y cuenta 465 con «Crear la siguiente 465 libre»), insignia «Empleado · código» en la cabecera de la ficha e insignia «Emp» y filtro Empleados en el buscador.
+- 2026-11-16 10:37 · Si un tercero tiene rol asignado pero no la subcuenta, un botón al lado de la subcuenta 'Auto' que cree y asigne una automáticamente.
+- 2026-11-16 12:19 · Ok, funciona perfecto. Puedes fusionar.
 
 ## Hand-over
 - 2026-11-01 10:46 · Hecho: buscador, ficha completa con sus diez pestañas, motores y pruebas (147 sin BD y 204 con Access, todas superadas), compilado en `C:\Docs\Codigo\ProContaVF-build` con la BD de prueba `capturas-terceros\prueba-terceros.accdb` (operador «capturas» sin contraseña) y capturas a 2560×1440 en la misma carpeta. Pendiente: validación del propietario (cuadros de mensaje, arrastre de perfiles y foco tras el CP, que solo se comprueban a mano); la BD real está en la versión 1 del esquema y necesita el ActualizadorEsquema (con `--origen-formas-pago`) antes de abrirla con esta versión; Ventas, Compras, Contabilidad y Documentos llegan con sus áreas.

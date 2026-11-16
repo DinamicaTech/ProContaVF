@@ -693,9 +693,65 @@ public sealed class FichaTerceroVM : Observable, IPestanaTrabajo, INotifyDataErr
         CambiadoAqui("Rol");
     }
 
-    private void AvisarRoles() => Avisar(nameof(ClienteActivo), nameof(ProveedorActivo), nameof(ContactoActivo), nameof(IdCliente), nameof(IdProveedor), nameof(IdContacto),
-        nameof(EstadoCliente), nameof(EstadoProveedor), nameof(EstadoContacto), nameof(NotasCliente), nameof(IbanCliente), nameof(NotasProveedor), nameof(Cargo), nameof(Departamento),
-        nameof(NotasContacto), nameof(Insignias), nameof(EmpleadoActivo), nameof(IdEmpleado), nameof(EstadoEmpleado), nameof(CodigoTrabajador));
+    private void AvisarRoles()
+    {
+        Avisar(nameof(ClienteActivo), nameof(ProveedorActivo), nameof(ContactoActivo), nameof(IdCliente), nameof(IdProveedor), nameof(IdContacto),
+            nameof(EstadoCliente), nameof(EstadoProveedor), nameof(EstadoContacto), nameof(NotasCliente), nameof(IbanCliente), nameof(NotasProveedor), nameof(Cargo), nameof(Departamento),
+            nameof(NotasContacto), nameof(Insignias), nameof(EmpleadoActivo), nameof(IdEmpleado), nameof(EstadoEmpleado), nameof(CodigoTrabajador));
+        foreach (var c in CuentasDeRoles) c.AvisarAuto();
+    }
+
+    private IEnumerable<CuentaRolVM> CuentasDeRoles => [CuentaCliente, CuentaRetencion, CuentaProveedor, CuentaAcreedor, CuentaEmpleado];
+
+    /// <summary>¿Está activo el rol al que pertenece esa cuenta? (cliente y retención del Cliente; proveedor y acreedor del Proveedor).</summary>
+    internal bool RolActivoDe(ClaseCuentaRol clase) => clase switch
+    {
+        ClaseCuentaRol.Cliente or ClaseCuentaRol.Retencion => ClienteActivo,
+        ClaseCuentaRol.Proveedor or ClaseCuentaRol.Acreedor => ProveedorActivo,
+        _ => EmpleadoActivo
+    };
+
+    private CuentaRolVM CuentaDe(ClaseCuentaRol clase) => clase switch
+    {
+        ClaseCuentaRol.Cliente => CuentaCliente,
+        ClaseCuentaRol.Retencion => CuentaRetencion,
+        ClaseCuentaRol.Proveedor => CuentaProveedor,
+        ClaseCuentaRol.Empleado => CuentaEmpleado,
+        _ => CuentaAcreedor
+    };
+
+    /// <summary>
+    /// Al guardar, los roles activos sin cuenta en la sociedad reciben la siguiente subcuenta libre (terceros/roles 2026-11-16):
+    /// se crea antes de guardar para que la asignación quede en el historial con el resto de la ficha. Devuelve lo que ha hecho.
+    /// </summary>
+    private async Task<List<string>> CrearSubcuentasAlGuardarAsync()
+    {
+        var textos = new List<string>();
+        if (Servicios.Subcuentas is not { } sub) return textos;
+        foreach (var clase in SubcuentasRoles.QueCrear(T.Roles, T.CuentasRoles))
+        {
+            var r = await sub.CrearAsync(clase, NombreParaCuenta(), Servicios.Contexto);
+            if (r.EsCorrecto)
+            {
+                CuentaDe(clase).Asignada(r.Valor);
+                textos.Add($"He creado la {ServicioRoles.Describir(clase)} {r.Valor.Codigo} «{r.Valor.Nombre}».");
+            }
+            else textos.Add($"No he podido crear la {ServicioRoles.Describir(clase)}: {r.Error!.Mensaje} {r.Error.AccionCorrectora}".TrimEnd());
+        }
+        return textos;
+    }
+
+    /// <summary>Tras guardar, borra las subcuentas de los roles quitados que no tienen movimientos en los últimos 5 años.</summary>
+    private async Task<List<string>> EliminarSubcuentasQuitadasAsync(Tercero antes, Tercero guardado)
+    {
+        var textos = new List<string>();
+        if (Servicios.Subcuentas is not { } sub) return textos;
+        var quitadas = SubcuentasRoles.QueEliminar(antes, guardado);
+        foreach (var q in quitadas) textos.Add((await sub.EliminarAsync(guardado.IdTercero, q, Servicios.Contexto, Servicios.Actor)).Texto);
+        if (quitadas.Count > 0 && guardado.CuentasRoles is { } c)
+            guardado.CuentasRoles = await Servicios.Roles.IdentidadesAsync(guardado.IdTercero, c.IdSociedad);
+        return textos;
+    }
 
     internal void FijarCuenta(ClaseCuentaRol clase, int? identidad)
     {
@@ -949,6 +1005,8 @@ public sealed class FichaTerceroVM : Observable, IPestanaTrabajo, INotifyDataErr
             return false;
         }
 
+        var antes = _original;
+        var subcuentas = await CrearSubcuentasAlGuardarAsync();
         Guardando = true;
         try
         {
@@ -963,12 +1021,13 @@ public sealed class FichaTerceroVM : Observable, IPestanaTrabajo, INotifyDataErr
             }
             var nombre = r.Valor.Nombre;
             _rolNuevo = null;
+            if (antes is not null) subcuentas.AddRange(await EliminarSubcuentasQuitadasAsync(antes, r.Valor));
             await MostrarAsync(r.Valor);
             GuardadoFallido = false;
             Resumen.Clear();
             Avisar(nameof(HayResumen));
             _modulo?.FichaGuardada(this);
-            AvisoEstado($"Hecho: he guardado la ficha de {nombre}.");
+            AvisoEstado(string.Join(" ", [$"Hecho: he guardado la ficha de {nombre}.", .. subcuentas]));
             return true;
         }
         catch (ConflictoConcurrenciaException ex)

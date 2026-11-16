@@ -80,7 +80,8 @@ public sealed record ServiciosTerceros(
     Func<Task<CatalogoGeografico>> Geografia,
     ContextoSociedadEjercicio Contexto,
     string NombreSociedad,
-    Actor Actor);
+    Actor Actor,
+    SubcuentasRoles? Subcuentas = null);
 
 /// <summary>Diálogos que piden una decisión al operador (en pruebas se sustituyen por respuestas fijas).</summary>
 public interface IDialogos
