@@ -19,7 +19,7 @@ Cada paso se marca con la fecha en que se hace y cómo se comprobó.
 
 **A. Congelar la versión**
 - [ ] Decidir qué entra en el arranque: liquidación de IVA (esquema 56), conciliación N43 (PR #56), conector de Claude Desktop; lo que no entre queda para después.
-- [ ] Fusionar en main todo lo que entra (también la PR #35 y la rama de la migración del ERP, o cerrarlas) y hacer los cambios de esquema antes del arranque.
+- [ ] Fusionar en main todo lo que entra y hacer los cambios de esquema antes del arranque.
 - [ ] Ejecutar `probar.cmd` (con y sin BD de pruebas) sobre main y compilar con `compilar.cmd`.
 
 **B. Instalar ejecutables y librerías**
