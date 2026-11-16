@@ -53,6 +53,8 @@ public static class Acciones
     public const string MantenimientoEditar = "MANTENIMIENTO.EDITAR";
     /// <summary>Cambiar el trimestre activo (compras 2026-11-07).</summary>
     public const string TrimestreCambiar = "TRIMESTRE.CAMBIAR";
+    /// <summary>Liquidar el IVA de un trimestre y deshacerlo (contabilidad/procesos/liquidacion-iva 2026-11-16).</summary>
+    public const string LiquidacionIva = "PROCESOS.LIQUIDACION_IVA";
 
     /// <summary>
     /// Acción que manda mientras una acción nueva no tenga ningún grupo asignado: «Cambiar el trimestre activo» la tienen
@@ -61,6 +63,8 @@ public static class Acciones
     public static string? Respaldo(string codigoAccion) => codigoAccion switch
     {
         TrimestreCambiar => FacturasEditar,
+        // Liquidar el IVA cierra el trimestre: mientras no tenga grupos, la tienen quienes pueden cambiar el trimestre activo.
+        LiquidacionIva => TrimestreCambiar,
         _ => null
     };
 }

@@ -81,7 +81,7 @@ public sealed class RevisionPlazosIva : IRevisionSalud
     public string Nombre => "Plazos del 303 y del 390";
     public string Nodo => "contabilidad/modelos-tributarios";
 
-    private static readonly DestinoSalud Liquidacion = DestinoSalud.SinPantalla("Contabilidad › Procesos contables › Liquidación de IVA");
+    private static readonly DestinoSalud Liquidacion = new(PantallaSalud.LiquidacionIva, "Contabilidad › Procesos contables › Liquidación de IVA");
     private static readonly DestinoSalud Modelos = DestinoSalud.SinPantalla("Contabilidad › Modelos tributarios");
 
     public async Task<HallazgosSalud> RevisarAsync(IFuenteSalud fuente, ContextoSalud ctx, CancellationToken c)

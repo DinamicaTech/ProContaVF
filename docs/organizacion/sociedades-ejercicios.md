@@ -33,6 +33,7 @@ Sociedad permanente y su instancia por ejercicio (SociedadEjercicio), con consul
 - 2026-11-13 22:45 · PorcentajeProrrataAñoAnterior se guarda en porcentaje (14 = 14 %), no en tanto por uno como en el ERP; la migración lo convierte (implantacion/migracion-erp 2026-11-13 22:45). Sociedades.Nombre es la razón social actual de la empresa (emisor de las facturas nuevas); la migración del ERP le pone la del ejercicio de ContaSol más reciente, y las facturas migradas conservan la razón social de su año.
 - 2026-11-13 23:31 · Respuestas del propietario (23:22–23:23): las facturas migradas de 2008–2017 llevan la razón social de 2018; la configuración de 2021 se migra tal como viene del ERP; la cuenta de IVA de importación sigue configurable en el ejercicio y solo el ejercicio en curso (2026) trabaja con la 4724021; los anteriores se quedan como vienen y el histórico de ContaSol sigue en la 4724001.
 - 2026-11-13 23:46 · Sociedades gana Telefono (TEXT 30) y Logo (TEXT 255, ruta del logo de las facturas, JPG o PNG; relativa a la carpeta de documentos de la empresa o absoluta), en la pantalla Empresas. Si el fichero no está o no se puede leer, la factura sale con el nombre de la empresa en lugar del logo (facturacion/factura-venta 2026-11-13 23:46).
+- 2026-11-16 10:20 · Cuentas de la liquidación del IVA por sociedad y ejercicio (esquema 56, contabilidad/procesos/liquidacion-iva): SociedadesEjercicios.CuentaHaciendaAcreedoraIva, CuentaHaciendaDeudoraIva, CuentaAjustesNegativosIva y CuentaAjustesPositivosIva; vacías valen 4750000, 4700000, 6341000 y 6391000, y la que falte se crea al confirmar la primera liquidación que la use. Liquidar el trimestre activo (no el cuarto) activa el siguiente en la misma transacción que el asiento.
 
 ## Requirements
 - 2026-10-28 12:28 · From sources/01_ESPECIFICACION_FUNCIONAL.docx § 3 RF-ARQ-04: propietario de Sociedades/SociedadesEjercicios
@@ -60,6 +61,7 @@ Sociedad permanente y su instancia por ejercicio (SociedadEjercicio), con consul
 - 2026-11-13 23:22 · 3- El IVA de importación no sería un 4724021 ? (21% de IVA)
 - 2026-11-13 23:23 · No pasa nada, ejercicios anteriores se quedan tal cual, solo trabajaremos con 4724021 en el 2026
 - 2026-11-13 23:46 · Derived from facturacion/factura-venta: logo y teléfono de la empresa para la factura, como parámetros de la sociedad.
+- 2026-11-16 10:20 · Derived from contabilidad/procesos/liquidacion-iva: cuentas de la liquidación del IVA por ejercicio (Hacienda acreedora y deudora por IVA, ajustes negativos y positivos), vacías con las de siempre.
 
 ## Hand-over
 - 2026-10-31 18:55 · Hecho: contrato y servicio sobre Access, migración de EjercicioCerrado y pruebas (contexto válido e inválido, ejercicio cerrado). Pendiente: apertura de ejercicio nuevo y cierre/reapertura (contabilidad/procesos), unicidad (IdSociedad, Ejercicio) y unicidad del NIF de sociedad (la maestra tiene dos sociedades con el mismo NIF, una de pruebas), y la regla de propagación de la razón social a los ejercicios.

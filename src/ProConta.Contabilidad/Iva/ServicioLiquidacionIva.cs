@@ -97,6 +97,18 @@ public sealed class ServicioLiquidacionIva(IBaseDatos bd, IMotorAsientos motor, 
             return Resultado<PropuestaLiquidacionIva>.Fallo(new Error("LiquidacionIva.EnCurso",
                 $"El {CalculoLiquidacionIva.Nombre(trimestre)} de {ctx.Ejercicio} aún no ha terminado: se liquida a partir del {fin.AddDays(1):dd/MM/yyyy}.",
                 $"Trimestre {trimestre}", "La liquidación salda las cuentas de IVA del trimestre completo.", "Vuelve cuando haya terminado."));
+        // Por orden: un trimestre anterior sin liquidar dejaría sus saldos en este (salvo que ya estén a cero, como en los años migrados).
+        var guardadas = await GuardadasAsync(ctx);
+        for (var anterior = 1; anterior < trimestre; anterior++)
+        {
+            if (guardadas.Any(g => g.Trimestre == anterior)) continue;
+            var pendientes = (await SaldosAsync(ctx, CalculoLiquidacionIva.FinTrimestre(ctx.Ejercicio, anterior), null)).Where(s => CalculoLiquidacionIva.SeLiquida(s.Cuenta)).ToList();
+            if (pendientes.Count > 0)
+                return Resultado<PropuestaLiquidacionIva>.Fallo(new Error("LiquidacionIva.AnteriorPendiente",
+                    $"Antes hay que liquidar el {CalculoLiquidacionIva.Nombre(anterior)}.", $"Trimestre {trimestre}",
+                    $"Sus cuentas de IVA ({string.Join(", ", pendientes.Take(3).Select(s => s.Cuenta))}{(pendientes.Count > 3 ? "…" : "")}) no están a cero el {CalculoLiquidacionIva.FinTrimestre(ctx.Ejercicio, anterior):dd/MM/yyyy}, y su saldo entraría en esta liquidación.",
+                    $"Elige el {CalculoLiquidacionIva.Nombre(anterior)} en la lista y liquídalo primero."));
+        }
         var lector = new LectorLineasIva(bd);
         var lineas = await lector.LeerAsync(ctx, c);
         var provisional = await lector.ProrrataProvisionalAsync(ctx, c);

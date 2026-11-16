@@ -67,6 +67,7 @@ public partial class VentanaPrincipal : Window
     private readonly ProConta.Contabilidad.UI.Mayor.ModuloMayor _mayor;
     private readonly ProConta.Contabilidad.UI.Asientos.ModuloAsientos _asientos;
     private readonly ProConta.Contabilidad.UI.Diario.ModuloDiario _diario;
+    private readonly ProConta.Contabilidad.UI.Liquidacion.ModuloLiquidacionIva _liquidacionIva;
     private readonly ModuloFacturacion _facturacion;
     private readonly ModuloCompras _compras;
     private readonly ModuloCorreo _correo;
@@ -122,6 +123,7 @@ public partial class VentanaPrincipal : Window
                 AbrirLineasN43 = () => _lineasN43!.Abrir(),
                 AbrirFacturasCompra = () => _compras!.AbrirRecibidas(),
                 AbrirDiario = () => _diario!.Abrir(),
+                AbrirLiquidacionIva = () => _liquidacionIva!.Abrir(),
                 AbrirTerceros = () => _terceros!.AbrirBuscador(),
                 AbrirNominas = () => _nominas!.Abrir(null),
                 AbrirParametros = clave => AbrirParametros(clave),
@@ -302,6 +304,18 @@ public partial class VentanaPrincipal : Window
             AbrirOrigen = asiento => OrigenDelDiario(asiento)?.Invoke(),
         };
         var abrirDiario = new ComandoDelegado(() => _diario.Abrir());
+        // Liquidación de IVA (contabilidad/procesos/liquidacion-iva): un asiento por trimestre, como lote regenerable; activa el trimestre siguiente.
+        _liquidacionIva = new ProConta.Contabilidad.UI.Liquidacion.ModuloLiquidacionIva(
+            new ProConta.Contabilidad.UI.Liquidacion.ContextoLiquidacionIva(
+                new ProConta.Contabilidad.Iva.ServicioLiquidacionIva(bd, new MotorAsientosAccess(bd), cuentas, () => autorizador.PuedeAsync(Acciones.LiquidacionIva)),
+                contexto.Contexto, contexto.RazonSocial, new Actor(sesion.NombreOperador), Avisar)
+            {
+                VerAsiento = id => _mayor.VerAsientoAsync(id),
+                AbrirMayor = cuentasMayor => _mayor.Abrir(cuentasMayor),
+                Cambiada = () => _ = RefrescarTrimestreAsync(),
+            },
+            _area, new ProConta.Contabilidad.UI.Liquidacion.DialogosLiquidacionIva(() => this));
+        var abrirLiquidacionIva = new ComandoDelegado(() => _liquidacionIva.Abrir());
         // Informes (contabilidad/balances e informes/excel): cada opción genera el libro Excel con su tabla dinámica y lo abre.
         _balances = new ProConta.Contabilidad.Balances.GeneradorBalances(bd);
         _razonSocial = contexto.RazonSocial;
@@ -330,6 +344,9 @@ public partial class VentanaPrincipal : Window
             new OpcionNavegacion("Diario", null, true, false,
                 "Todos los apuntes del ejercicio, por asiento o en lista: filtros, sumas, ficha del asiento con edición rápida, asientos borrados y exportación a PDF o Excel",
                 abrirDiario, EsHija: true),
+            new OpcionNavegacion("Liquidación de IVA", null, true, false,
+                "Procesos contables › Liquidación de IVA: un asiento por trimestre que salda las 472 y 477, lleva lo no deducible a la 6341 y el resultado a la 4750 o la 4700; importe ajustable a lo presentado y activación del trimestre siguiente",
+                abrirLiquidacionIva, EsHija: true),
             new OpcionNavegacion("Asiento manual", null, true, false,
                 "Asiento nuevo hecho a mano o desde una plantilla, con su vista previa; para corregir un apunte, ábrelo desde el Mayor con «Asistente de corrección…»",
                 new ComandoDelegado(() => _ = _asientos.AbrirNuevoAsync()), EsHija: true),
