@@ -920,6 +920,7 @@ public sealed class EditorFacturaVM : ModeloVista, IPestanaTrabajo, INotifyDataE
                 var pdf = await _s.Pdf.ObtenerAsync(g.Valor.IdFactura, _s.Actor, regenerar: true);
                 aviso += pdf.EsCorrecto ? " PDF actualizado." : " No se ha podido actualizar el PDF: regenéralo desde el listado.";
             }
+            aviso = await ConAsientosBancoAsync(aviso, g.Valor.IdFactura);
             await RecargarAsync(g.Valor.IdFactura);
             _modulo.Avisar(aviso);
             _modulo.FacturaCambiada(g.Valor.IdFactura);
@@ -929,8 +930,9 @@ public sealed class EditorFacturaVM : ModeloVista, IPestanaTrabajo, INotifyDataE
         {
             var notas = await _s.Facturas.GuardarNotasAsync(_f.IdFactura, _f.NotasInternas, _f.DescripcionAbreviada, _f.Version, _s.Actor);
             if (!notas.EsCorrecto) { MostrarErrores("No se han guardado las notas", notas.Errores); GuardadoFallido = true; return false; }
+            var avisoNotas = await ConAsientosBancoAsync("Notas guardadas.", _f.IdFactura);
             await RecargarAsync(_f.IdFactura);
-            _modulo.Avisar("Notas guardadas.");
+            _modulo.Avisar(avisoNotas);
             _modulo.FacturaCambiada(_f.IdFactura);
             return true;
         }
@@ -940,6 +942,23 @@ public sealed class EditorFacturaVM : ModeloVista, IPestanaTrabajo, INotifyDataE
         _modulo.Avisar($"{r.Valor.Rotulo} guardado. Sigue sin número.");
         _modulo.FacturaCambiada(r.Valor.IdFactura);
         return true;
+    }
+
+    /// <summary>
+    /// La descripción abreviada de la factura sale en los asientos de banco de los movimientos N43 enlazados: se vuelven a generar sus
+    /// textos (norma43/conciliacion/actualizar-textos). Si no cambia nada, no se graba nada; si alguno no se puede, se dice.
+    /// </summary>
+    private async Task<string> ConAsientosBancoAsync(string aviso, int idFactura)
+    {
+        if (_s.AsientosBanco is not { } banco) return aviso;
+        try
+        {
+            return (await banco.FacturaVentaCambiadaAsync(idFactura, _s.Actor)).Aviso is { } extra ? $"{aviso} {extra}" : aviso;
+        }
+        catch (Exception ex)
+        {
+            return $"{aviso} No he podido actualizar los asientos de banco enlazados ({ex.Message}): hazlo desde Líneas N43 con «Actualizar textos del asiento».";
+        }
     }
 
     public void Descartar()

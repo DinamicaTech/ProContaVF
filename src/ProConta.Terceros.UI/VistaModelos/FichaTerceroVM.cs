@@ -1068,6 +1068,18 @@ public sealed class FichaTerceroVM : Observable, IPestanaTrabajo, INotifyDataErr
                 return false;
             }
             var nombre = r.Valor.Nombre;
+            // El nombre del tercero sale en los asientos de banco de sus movimientos N43 (norma43/conciliacion/actualizar-textos).
+            if (antes is { EsNuevo: false } && !string.Equals(antes.Nombre, nombre, StringComparison.Ordinal) && Servicios.AsientosBanco is { } banco)
+            {
+                try
+                {
+                    if ((await banco.TerceroCambiadoAsync(r.Valor.IdTercero, Servicios.Actor)).Aviso is { } avisoBanco) subcuentas.Add(avisoBanco);
+                }
+                catch (Exception ex) when (ex is not OperationCanceledException)
+                {
+                    subcuentas.Add($"No he podido actualizar el nombre en sus asientos de banco ({ex.Message}): hazlo desde Líneas N43 con «Actualizar textos del asiento».");
+                }
+            }
             _rolNuevo = null;
             if (antes is not null) subcuentas.AddRange(await EliminarSubcuentasQuitadasAsync(antes, r.Valor));
             await MostrarAsync(r.Valor);

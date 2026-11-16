@@ -49,6 +49,12 @@ public sealed record PropuestaLineaN43(
 public sealed record ResultadoConciliacionN43(IReadOnlyDictionary<int, int> Asientos, IReadOnlyDictionary<int, IReadOnlyList<Error>> Rechazadas)
 {
     public int Hechas => Asientos.Count;
+
+    /// <summary>
+    /// Al actualizar textos, las líneas de <see cref="Asientos"/> cuyo asiento ya tenía los textos que tocan: no se ha grabado nada
+    /// (norma43/conciliacion/actualizar-textos).
+    /// </summary>
+    public IReadOnlyCollection<int> SinCambios { get; init; } = [];
 }
 
 /// <summary>
@@ -476,6 +482,7 @@ public sealed class ServicioConciliacionN43(IBaseDatos bd, IMotorAsientos motor,
         ArgumentNullException.ThrowIfNull(idsLineas);
         var hechas = new Dictionary<int, int>();
         var rechazadas = new Dictionary<int, IReadOnlyList<Error>>();
+        var sinCambios = new List<int>();
         var lineas = await LeerLineasAsync(idsLineas);
         var cp = await ContextoPropuestaAsync(idSociedad, idsLineas);
         foreach (var id in idsLineas)
@@ -521,6 +528,15 @@ public sealed class ServicioConciliacionN43(IBaseDatos bd, IMotorAsientos motor,
                     "Han cambiado las cuentas asignadas al movimiento después de contabilizarlo.", "Vuelve a contabilizar el movimiento para regenerar el asiento.")];
                 continue;
             }
+            // Si ya tiene los textos que tocan, no se graba nada: así ventas, compras y terceros pueden avisar en cada guardado sin
+            // llenar el registro de cambios (norma43/conciliacion/actualizar-textos).
+            if (Igual(actual.Descripcion, p.Asiento.Descripcion) && Igual(actual.Notas, l.Concepto) && actual.Apuntes.Zip(nuevos).All(x =>
+                    Igual(x.First.Descripcion, x.Second.Concepto) && Igual(x.First.NumeroDocumento, x.Second.Documento)))
+            {
+                hechas[id] = idAsiento;
+                sinCambios.Add(id);
+                continue;
+            }
             actual.Descripcion = p.Asiento.Descripcion;
             actual.Notas = l.Concepto;
             foreach (var (apunte, nuevo) in actual.Apuntes.Zip(nuevos))
@@ -533,8 +549,10 @@ public sealed class ServicioConciliacionN43(IBaseDatos bd, IMotorAsientos motor,
             if (r.EsCorrecto) hechas[id] = r.Valor[0];
             else rechazadas[id] = r.Errores;
         }
-        return new ResultadoConciliacionN43(hechas, rechazadas);
+        return new ResultadoConciliacionN43(hechas, rechazadas) { SinCambios = sinCambios };
     }
+
+    private static bool Igual(string? a, string? b) => string.Equals((a ?? "").Trim(), (b ?? "").Trim(), StringComparison.Ordinal);
 
     private Task<bool> EjercicioCerradoAsync(int idSociedadEjercicio) => bd.EjecutarAsync(async s =>
         await s.EscalarAsync("SELECT EjercicioCerrado FROM SociedadesEjercicios WHERE IdSociedadEjercicio = ?", idSociedadEjercicio) is bool b && b);
