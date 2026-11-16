@@ -14,16 +14,22 @@ namespace ProConta.Facturacion.Facturas;
 /// <summary>Cuentas ya resueltas en el ejercicio para el asiento de una factura de venta.</summary>
 /// <param name="Cliente">Cuenta del rol Cliente en la sociedad (Debe, por el total a cobrar).</param>
 /// <param name="Retencion">Cuenta de retención del cliente (Debe), obligatoria si la factura retiene.</param>
-/// <param name="Iva">Cuenta general de IVA repercutido por porcentaje (Haber).</param>
+/// <param name="Iva">Cuenta general de IVA repercutido por porcentaje (Haber), sin actividad (4770 + porcentaje), o el texto que la
+/// vista previa enseña cuando el porcentaje no tiene cuenta.</param>
 /// <param name="Suplido">Cuenta de suplidos del ejercicio, para las líneas suplidas sin cuenta propia.</param>
 /// <param name="SeriesPorCentro">Serie de 472 de la actividad de cada centro de coste; el centro que no esté usa la cuenta general.</param>
 public sealed record CuentasVenta(string Cliente, string? Retencion, IReadOnlyDictionary<decimal, string> Iva, string? Suplido, IReadOnlyDictionary<int, string>? SeriesPorCentro = null)
 {
-    /// <summary>La 477 de la línea: la de la actividad de su centro de coste o, si no tiene, la general del tipo.</summary>
+    /// <summary>
+    /// La 477 de la línea con la regla única de <see cref="CuentasIva"/>: la de la actividad de su centro de coste (477 + cuarto
+    /// dígito de su serie + porcentaje) o, si no tiene, la general del tipo.
+    /// </summary>
     public string CuentaIva(LineaFacturaVenta linea)
     {
         var general = Iva.TryGetValue(linea.TipoIva, out var c) ? c : "";
-        return linea.IdCentroCoste is int centro && SeriesPorCentro?.TryGetValue(centro, out var serie) == true ? AsientoVenta.CuentaIvaActividad(general, serie) : general;
+        if (general.Length == 0) return general;
+        return linea.IdCentroCoste is int centro && SeriesPorCentro?.TryGetValue(centro, out var serie) == true
+            && CuentasIva.Repercutido(linea.TipoIva, serie) is { } actividad ? actividad : general;
     }
 }
 
@@ -108,16 +114,6 @@ public static class AsientoVenta
     public static DateTime Fecha(FacturaVenta f, int ejercicio, int? trimestreActivo, DateTime hoy) =>
         TrimestreContable.FechaAsiento(f.FechaFactura ?? (hoy.Year == ejercicio ? hoy.Date : new DateTime(ejercicio, 12, 31)), ejercicio,
             TrimestreContable.Activo(trimestreActivo, ejercicio, hoy));
-
-    /// <summary>
-    /// La 477 de una actividad (facturacion/factura-venta/contabilizacion 2026-11-08): su serie de la 472 con el 2 cambiado
-    /// por el 7 y la terminación de la 477 general del tipo (serie 4728 y 4770021 → 4778021).
-    /// </summary>
-    public static string CuentaIvaActividad(string general, string serie)
-    {
-        var g = general.Trim();
-        return serie is { Length: 4 } && g.Length >= 3 && g.All(char.IsAsciiDigit) ? "477" + serie[3] + g[^3..] : g;
-    }
 
     private const string Separador = " - ";
 
@@ -223,7 +219,7 @@ public sealed class ContabilizadorVentas(IBaseDatos bd, IMotorAsientos motor, IC
     private readonly IReloj _reloj = reloj ?? RelojSistema.Instancia;
 
     /// <summary>Comprueba que todas las cuentas del asiento existen y admiten apuntes; devuelve las incidencias (vacía si todo está bien).</summary>
-    /// <param name="crearCuentasIva">Al contabilizar: la cuenta de IVA repercutido configurada (o la 477 deducida) que no exista se crea.</param>
+    /// <param name="crearCuentasIva">Al contabilizar: la cuenta de IVA repercutido calculada (<see cref="CuentasIva"/>) que no exista se crea.</param>
     public async Task<(CuentasVenta? Cuentas, IReadOnlyList<Incidencia> Incidencias)> ResolverAsync(FacturaVenta f, ContextoSociedadEjercicio contexto, bool crearCuentasIva = false)
     {
         var r = new List<Incidencia>();
@@ -303,16 +299,17 @@ public sealed class ContabilizadorVentas(IBaseDatos bd, IMotorAsientos motor, IC
         var comprobadas = new HashSet<string>();
         foreach (var l in conIva)
         {
-            var general = config.CuentaIva(l.TipoIva);
+            // Cuenta calculada (organizacion/sociedades-ejercicios 2026-11-13 20:55): 4770 + porcentaje, o 477 + cuarto dígito de la serie.
+            var general = CuentasIva.Repercutido(l.TipoIva);
             if (general is null)
             {
                 if (iva.TryAdd(l.TipoIva, ""))
-                    r.Add(new("Contabilizacion.SinCuentaIva", $"El ejercicio {contexto.Ejercicio} no tiene cuenta de IVA repercutido para el {l.TipoIva:0.##} %. Configúrala en Parámetros y tablas › Ejercicios."));
+                    r.Add(new("Contabilizacion.SinCuentaIva", CuentasIva.MotivoSinCuenta(l.TipoIva)));
                 continue;
             }
             iva[l.TipoIva] = general;
             var serieLinea = l.IdCentroCoste is int c && series.TryGetValue(c, out var sc) ? sc : null;
-            var codigo = serieLinea is null ? general : AsientoVenta.CuentaIvaActividad(general, serieLinea);
+            var codigo = CuentasIva.Repercutido(l.TipoIva, serieLinea)!;
             if (!comprobadas.Add(codigo)) continue;
             if (!(await cuentas.ResolverAsync(contexto, codigo)).EsCorrecto)
             {
@@ -328,10 +325,10 @@ public sealed class ContabilizadorVentas(IBaseDatos bd, IMotorAsientos motor, IC
         // crear, el desglose queda sin cuenta y no impide contabilizar.
         foreach (var l in sinCuota)
         {
-            if (config.CuentaIva(l.TipoIva) is not { } general) continue;
+            if (CuentasIva.Repercutido(l.TipoIva) is not { } general) continue;
             iva.TryAdd(l.TipoIva, general);
             var serieLinea = l.IdCentroCoste is int c && series.TryGetValue(c, out var sc) ? sc : null;
-            var codigo = serieLinea is null ? general : AsientoVenta.CuentaIvaActividad(general, serieLinea);
+            var codigo = CuentasIva.Repercutido(l.TipoIva, serieLinea)!;
             if (!comprobadas.Add(codigo) || !crearCuentasIva || (await cuentas.ResolverAsync(contexto, codigo)).EsCorrecto) continue;
             await cuentas.AltaSubcuentaAsync(contexto, codigo,
                 $"IVA repercutido del {l.TipoIva:0.##} %{(serieLinea is null ? "" : " de " + actividades[l.IdCentroCoste!.Value].Nombre)}");

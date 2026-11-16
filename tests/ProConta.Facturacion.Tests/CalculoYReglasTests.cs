@@ -341,14 +341,6 @@ public class AsientoVentaTests
     }
 
     [Theory]
-    [InlineData("4770021", "4728", "4778021")]
-    [InlineData("4770021", "4720", "4770021")]
-    [InlineData("4770010", "4722", "4772010")]
-    [InlineData("¿IVA 21 %?", "4728", "¿IVA 21 %?")]
-    public void La_477_de_la_actividad_cambia_el_2_por_el_7_y_conserva_la_terminacion(string general, string serie, string esperada) =>
-        Assert.Equal(esperada, AsientoVenta.CuentaIvaActividad(general, serie));
-
-    [Theory]
     [InlineData(true, "Ana", "Ruiz", "Comercial", "Razón", "Ana Ruiz Gil", "Ana Ruiz")]
     [InlineData(true, null, null, null, null, "Ana Ruiz Gil", "Ana Ruiz Gil")]
     [InlineData(false, null, null, "Comercial", "Razón SL", "Razón SL", "Comercial")]

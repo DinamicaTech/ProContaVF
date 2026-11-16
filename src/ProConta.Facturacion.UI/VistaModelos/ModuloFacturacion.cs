@@ -3,6 +3,7 @@ using ProConta.Facturacion.Conceptos;
 using ProConta.Facturacion.Documentos;
 using ProConta.Facturacion.Facturas;
 using ProConta.Facturacion.Programadas;
+using ProConta.Facturacion.Ventas;
 using ProConta.Nucleo.Auditoria;
 using ProConta.Nucleo.Contexto;
 using ProConta.Organizacion.FormasPago;
@@ -28,6 +29,9 @@ public sealed record ServiciosFacturacion(
     ServicioProgramadas Programadas,
     ServicioPdfFacturas Pdf);
 
+/// <summary>Lo elegido en «Añadir línea»: un concepto del catálogo o, con null, una línea sin concepto que se escribe a mano.</summary>
+public sealed record EleccionConcepto(Concepto? Concepto);
+
 /// <summary>Diálogos de facturación (en la vista, para que los modelos de vista se prueben sin ventanas).</summary>
 public interface IDialogosFacturacion
 {
@@ -39,8 +43,17 @@ public interface IDialogosFacturacion
     /// <summary>Busca y elige un cliente; null si se cancela.</summary>
     ClienteElegible? ElegirCliente();
 
-    /// <summary>Elige un concepto activo de la sociedad para una línea nueva; null si se cancela.</summary>
-    Concepto? ElegirConcepto(IReadOnlyList<Concepto> conceptos);
+    /// <summary>
+    /// Elige un concepto activo de la sociedad para una línea nueva, o una línea sin concepto (su <c>Concepto</c> es null);
+    /// null si se cancela.
+    /// </summary>
+    EleccionConcepto? ElegirConcepto(IReadOnlyList<Concepto> conceptos);
+
+    /// <summary>
+    /// Busca la subcuenta de una línea con el buscador común (grupo 7; en un suplido, cualquiera); <paramref name="texto"/>
+    /// es lo escrito en el campo. Null si se cancela.
+    /// </summary>
+    (string Codigo, string Nombre)? ElegirCuentaLinea(ContextoSociedadEjercicio trabajo, string? texto, bool suplido);
 
     /// <summary>Pide la cuenta (existente o nueva) para el rol Cliente; null si se cancela.</summary>
     string? PedirCuenta(ClaseCuentaRol clase, string nombreCliente, string propuesta, string razonSocial);
@@ -53,6 +66,15 @@ public interface IDialogosFacturacion
     /// con <paramref name="soloMarcadas"/>, solo esas. <paramref name="pendientes"/> lee las de una fecha. Null si se cancela.
     /// </summary>
     (DateTime Hasta, IReadOnlyList<int> Ids)? ElegirProgramadasAGenerar(DateTime hasta, Func<DateTime, Task<IReadOnlyList<ProgramadaPendiente>>> pendientes, IReadOnlySet<int>? soloMarcadas = null);
+
+    /// <summary>
+    /// «Facturar todo»: enseña las facturas que saldrían (y las ventas que no se pueden facturar, con su motivo) y pide una
+    /// sola confirmación. Devuelve si se confirma.
+    /// </summary>
+    bool ConfirmarFacturacionVentas(string titulo, IReadOnlyList<GrupoVentas> grupos);
+
+    /// <summary>Fechas de entrada de las reservas que se importan de Avaibook; null si se cancela.</summary>
+    (DateTime Desde, DateTime Hasta)? ElegirFechasImportacion(DateTime desde, DateTime hasta);
 }
 
 /// <summary>
@@ -68,6 +90,7 @@ public sealed class ModuloFacturacion
     private readonly List<EditorFacturaVM> _editores = [];
     private ListadoFacturasVM? _listado;
     private ListadoProgramadasVM? _programadas;
+    private ListadoVentasVM? _ventas;
 
     public ModuloFacturacion(ServiciosFacturacion servicios, IAnfitrionPestanas anfitrion, IDialogosFacturacion dialogos, Action<int> abrirFichaTercero)
     {
@@ -77,11 +100,26 @@ public sealed class ModuloFacturacion
         _abrirFichaTercero = abrirFichaTercero;
     }
 
+    /// <summary>
+    /// Conceptos sin cuenta de venta para los que ya se contestó «No» a guardar la elegida en una línea: no se vuelve a
+    /// preguntar mientras el programa siga abierto (facturacion/pantallas 2026-11-15 14:05).
+    /// </summary>
+    internal HashSet<int> ConceptosSinOfrecerCuenta { get; } = [];
+
     /// <summary>Correo común (correo/pantallas): compositor, lotes con resumen y registro. Null, el envío no está disponible.</summary>
     public ProConta.Correo.IEnvioCorreoInteractivo? Correo { get; set; }
 
     /// <summary>Prepara el correo de una factura validada (PDF, destinatarios y plantilla).</summary>
     public ProConta.Facturacion.Documentos.PreparadorCorreoFacturas? CorreoFacturas { get; set; }
+
+    /// <summary>Ventas por facturar (facturacion/reservas). Null, la pantalla no está disponible.</summary>
+    public ServicioVentas? Ventas { get; set; }
+
+    /// <summary>Importación de reservas de Avaibook. Null, no se ofrece «Importar de Avaibook…».</summary>
+    public ImportadorAvaibook? Avaibook { get; set; }
+
+    /// <summary>Abre Parámetros y tablas en la tabla indicada por su clave («reglasventa», «alojamientosavaibook»…). Null, no se ofrece.</summary>
+    public Action<string>? AbrirParametros { get; set; }
 
     internal ServiciosFacturacion Servicios => _s;
     internal IDialogosFacturacion Dialogos => _dialogos;
@@ -119,11 +157,38 @@ public sealed class ModuloFacturacion
 
     internal void ProgramadasCerrado() => _programadas = null;
 
+    /// <summary>Abre (o activa) la pestaña Ventas por facturar.</summary>
+    public void AbrirVentas()
+    {
+        if (Ventas is null) return;
+        if (_ventas is not null)
+        {
+            _anfitrion.Activar(_ventas);
+            if (!_ventas.TieneCambios) _ = _ventas.CargarAsync();
+            return;
+        }
+        _ventas = new ListadoVentasVM(this, Ventas);
+        _anfitrion.Abrir(_ventas);
+        _ = _ventas.CargarAsync();
+    }
+
+    internal void VentasCerrado() => _ventas = null;
+
     /// <summary>«Ver sus facturas»: abre Facturas filtrada por la programada.</summary>
     internal void VerFacturasDeProgramada(int idProgramada)
     {
         AbrirListado();
         _listado!.FiltrarPorProgramada(idProgramada);
+    }
+
+    /// <summary>
+    /// Abre Facturas con solo las facturas recién creadas por un lote de programadas o por «Facturar todo» de ventas
+    /// (facturacion/pantallas 2026-11-15), para revisarlas, validarlas y enviarlas sin buscarlas.
+    /// </summary>
+    internal void VerFacturasCreadas(string rotulo, IReadOnlySet<int> idsFactura)
+    {
+        AbrirListado();
+        _listado!.FiltrarPorConjunto(rotulo, idsFactura);
     }
 
     /// <summary>Abre una factura en el editor (borrador editable o validada en solo lectura).</summary>
@@ -146,7 +211,8 @@ public sealed class ModuloFacturacion
         var editor = new EditorFacturaVM(this);
         _editores.Add(editor);
         _anfitrion.Abrir(editor);
-        _ = editor.NuevaAsync();
+        // Lo primero de una factura nueva es su cliente: el buscador se abre solo (facturacion/pantallas 2026-11-15).
+        _ = editor.NuevaAsync(buscarCliente: true);
     }
 
     /// <summary>Abre una programada en el editor (o activa su pestaña si ya está abierta).</summary>
@@ -190,7 +256,12 @@ public sealed class ModuloFacturacion
     }
 
     /// <summary>El editor guardó, validó o borró: el listado se refresca si está abierto.</summary>
-    internal void FacturaCambiada(int? idActiva = null) => _ = _listado?.CargarAsync(idActiva);
+    internal void FacturaCambiada(int? idActiva = null)
+    {
+        _ = _listado?.CargarAsync(idActiva);
+        // Borrar o validar un borrador cambia el estado de sus ventas por facturar.
+        if (_ventas is { TieneCambios: false } v) _ = v.CargarAsync();
+    }
 
     /// <summary>El editor guardó o borró una programada: su listado se refresca si está abierto.</summary>
     internal void ProgramadaCambiada(int? idProgramada = null) => _ = _programadas?.CargarAsync(idProgramada);

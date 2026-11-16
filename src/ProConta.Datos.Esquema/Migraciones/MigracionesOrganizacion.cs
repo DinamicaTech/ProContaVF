@@ -220,4 +220,47 @@ public static class MigracionesOrganizacion
                 foreach (var (porcentaje, descripcion, clase) in _tiposRetencion)
                     await s.EjecutarAsync("INSERT INTO TiposRetencion (Porcentaje, Descripcion, Clase, Activo) VALUES (?, ?, ?, ?)", porcentaje, descripcion, clase, true);
             }));
+
+    /// <summary>Columnas de SociedadesEjercicios que se eliminan (organizacion/sociedades-ejercicios 2026-11-13 20:55).</summary>
+    public static readonly IReadOnlyList<string> ColumnasEjercicioEliminadas =
+    [
+        "Usuario", "RutaFacturasAExportar", "RutaFacturasExportadas", "RutaFacturasDuplicadas", "TipoRetencion", "PorcentajeRetencion",
+        "BDFacturasVenta", "BDERPGestion", "BDExportacion", "CuentaSuplidoIVA", "CuentaRetencionIRPF", "NumIVSDuplicados",
+        "CuentaPeriodificacionVentas", "Cuenta113ParaCuadres", "Cuenta570Tesoreria", "CIF",
+        "TipoIVA1", "TipoIVA2", "TipoIVA3", "TipoIVA4",
+        "CuentaTipoIVA0", "CuentaTipoIVA1", "CuentaTipoIVA2", "CuentaTipoIVA3", "CuentaTipoIVA4",
+        "CuentaIVARepercutido0", "CuentaIVARepercutido1", "CuentaIVARepercutido2", "CuentaIVARepercutido3", "CuentaIVARepercutido4",
+    ];
+
+    /// <summary>Columnas de Sociedades que se eliminan: copias de las del ejercicio que no leía nadie (2026-11-13 20:55).</summary>
+    public static readonly IReadOnlyList<string> ColumnasSociedadEliminadas =
+    [
+        "FormaPagoDefecto", "Usuario", "RutaFacturasExportadas", "RutaFacturasDuplicadas", "TipoRetencion", "PorcentajeRetencion",
+        "TipoIVA1", "TipoIVA2", "TipoIVA3", "TipoIVA4", "BDFacturasVenta", "BDERPGestion", "BDExportacion",
+        "CuentaTipoIVA0", "CuentaTipoIVA1", "CuentaTipoIVA2", "CuentaTipoIVA3", "CuentaTipoIVA4",
+        "CuentaSuplidoIVA", "CuentaRetencionIRPF", "CuentaSuplido",
+        "CuentaIVAIntracomunitarioRepercutidoServicios", "CuentaIVAIntracomunitarioRepercutidoBienes",
+        "CuentaIVAIntracomunitarioSoportadoServicios", "CuentaIVAIntracomunitarioSoportadoBienes",
+        "CuentaIVAInversionSujetoPasivoRepercutido", "CuentaIVAInversionSujetoPasivoSoportado",
+        "CuentaRetencionServicios", "CuentaRetencionAlquileres", "CuentaPeriodificacionVentas",
+    ];
+
+    /// <summary>
+    /// Limpieza de Sociedades y SociedadesEjercicios (organizacion/sociedades-ejercicios 2026-11-13 20:55): quita los campos del
+    /// ERP que no usa ningún proceso, el CIF del ejercicio (el emisor es siempre la empresa) y los tipos y cuentas de IVA por
+    /// posición (los tipos salen del catálogo TiposDeIVA y las cuentas se calculan), y de Sociedades las copias de la
+    /// configuración del ejercicio. Borra sus datos: la configuración que queda la rellena la migración del ERP. Retira las cinco
+    /// CuentaIVARepercutido que añadió 20261107_1300_COMPRAS_VENTAS_NOVIEMBRE.
+    /// </summary>
+    public static Migracion LimpiezaSociedadesEjercicios { get; } = new(
+        "20261113_2100_LIMPIEZA_SOCIEDADES_EJERCICIOS", 261113020,
+        "Quita de SociedadesEjercicios y Sociedades los campos que no usa ProContaVF, el CIF del ejercicio y los tipos y cuentas de IVA por posición.",
+        "organizacion/sociedades-ejercicios",
+        [
+            .. ColumnasEjercicioEliminadas.Select(c => (PasoMigracion)new QuitarColumna("SociedadesEjercicios", c)),
+            .. ColumnasSociedadEliminadas.Select(c => (PasoMigracion)new QuitarColumna("Sociedades", c)),
+        ])
+    {
+        Retira = [.. Enumerable.Range(0, 5).Select(i => ("20261107_1300_COMPRAS_VENTAS_NOVIEMBRE", $"Añadir SociedadesEjercicios.CuentaIVARepercutido{i}"))],
+    };
 }

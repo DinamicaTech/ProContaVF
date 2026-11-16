@@ -89,6 +89,27 @@ public interface ICatalogoCuentas
     /// </summary>
     Task<Resultado<CuentaContable>> CambiarCodigoSinApuntesAsync(ContextoSociedadEjercicio contexto, int idIdentidadContable, string nuevoCodigo) =>
         Task.FromResult(Resultado<CuentaContable>.Fallo(new Error("Cuentas.NoDisponible", "Este catálogo no cambia códigos.", $"Cuenta {nuevoCodigo}")));
+
+    /// <summary>
+    /// Alta de una subcuenta con todos sus datos (nombre, descripción, centro de coste predeterminado…) colgada, si
+    /// <see cref="AltaCuenta.IdCuentaPadre"/> es null, de la cuenta del ejercicio cuyo código es el prefijo más largo del suyo
+    /// (subcuentas generadas por plantilla de activos, activos 2026-11-12 11:45).
+    /// </summary>
+    Task<Resultado<CuentaContable>> AltaSubcuentaAsync(ContextoSociedadEjercicio contexto, AltaCuenta alta) =>
+        Task.FromResult(Resultado<CuentaContable>.Fallo(new Error("Cuentas.NoDisponible", "Este catálogo no da de alta subcuentas.", $"Cuenta {alta.Codigo}")));
+
+    /// <summary>Cambia el nombre de una cuenta de un ejercicio (no toca las de otros ejercicios de su identidad).</summary>
+    Task<Resultado> CambiarNombreAsync(int idCuentaContable, string nombre) =>
+        Task.FromResult(Resultado.Fallo(new Error("Cuentas.NoDisponible", "Este catálogo no cambia nombres.", $"Cuenta {idCuentaContable}")));
+
+    /// <summary>
+    /// Borra una cuenta que nunca ha tenido apuntes (cuenta-contable 2026-11-12 11:45): sus cuentas en todos los ejercicios,
+    /// la reserva de su código y su identidad, solo si ninguna tiene apuntes ni saldo inicial. <paramref name="liberarUsos"/>
+    /// corre dentro de la misma transacción antes de borrar, para que el área que la usa quite su referencia (p. ej. la
+    /// subcuenta de un activo); si otra tabla sigue usando la identidad, no se borra nada y se explica.
+    /// </summary>
+    Task<Resultado> EliminarSinApuntesAsync(ContextoSociedadEjercicio contexto, int idIdentidadContable, Func<ISesionDatos, Task>? liberarUsos = null) =>
+        Task.FromResult(Resultado.Fallo(new Error("Cuentas.NoDisponible", "Este catálogo no borra cuentas.", $"Identidad {idIdentidadContable}")));
 }
 
 public static class ReglasCuenta
@@ -215,6 +236,58 @@ public sealed class CatalogoCuentasAccess(IBaseDatos bd) : ICatalogoCuentas
         var limpio = (codigo ?? "").Trim();
         var padre = limpio.Length == 0 ? null : await bd.EjecutarAsync(s => PadrePorPrefijoAsync(s, contexto.IdSociedadEjercicio, limpio));
         return await AltaAsync(contexto, new AltaCuenta(limpio, nombre, padre));
+    }
+
+    public async Task<Resultado<CuentaContable>> AltaSubcuentaAsync(ContextoSociedadEjercicio contexto, AltaCuenta alta)
+    {
+        var limpio = (alta.Codigo ?? "").Trim();
+        var padre = alta.IdCuentaPadre ?? (limpio.Length == 0 ? null : await bd.EjecutarAsync(s => PadrePorPrefijoAsync(s, contexto.IdSociedadEjercicio, limpio)));
+        return await AltaAsync(contexto, alta with { Codigo = limpio, IdCuentaPadre = padre });
+    }
+
+    public async Task<Resultado> CambiarNombreAsync(int idCuentaContable, string nombre)
+    {
+        var limpio = (nombre ?? "").Trim();
+        if (limpio.Length == 0 || limpio.Length > ReglasCuenta.LongitudMaximaNombre)
+            return Resultado.Fallo(new Error("Cuentas.NombreNoValido", "Falta el nombre de la cuenta o es demasiado largo.", $"Cuenta {idCuentaContable}",
+                $"Debe tener entre 1 y {ReglasCuenta.LongitudMaximaNombre} caracteres.", "Escribe un nombre más corto."));
+        var filas = await bd.EjecutarAsync(s => s.EjecutarAsync("UPDATE CuentasContables SET Nombre = ? WHERE IdCuentaContable = ?", limpio, idCuentaContable));
+        return filas > 0 ? Resultado.Correcto()
+            : Resultado.Fallo(new Error("Cuentas.NoExiste", "La cuenta que hay que renombrar no existe.", $"Cuenta {idCuentaContable}"));
+    }
+
+    public async Task<Resultado> EliminarSinApuntesAsync(ContextoSociedadEjercicio contexto, int idIdentidadContable, Func<ISesionDatos, Task>? liberarUsos = null)
+    {
+        try
+        {
+            return await bd.EnTransaccionAsync(async s =>
+            {
+                var cuentas = await s.ConsultarAsync("SELECT IdCuentaContable, IdSociedadEjercicio, Codigo, SaldoInicial FROM CuentasContables WHERE IdIdentidadContable = ?",
+                    f => (Id: f.Entero("IdCuentaContable"), Ejercicio: f.Entero("IdSociedadEjercicio"), Codigo: f.Texto("Codigo")?.Trim() ?? "", Inicial: f.Decimal("SaldoInicial")),
+                    idIdentidadContable);
+                var codigo = cuentas.Select(c => c.Codigo).FirstOrDefault() ?? "";
+                var registro = $"Cuenta {codigo}";
+                foreach (var c in cuentas)
+                {
+                    var apuntes = Convert.ToInt32(await s.EscalarAsync(
+                        "SELECT COUNT(*) FROM Apuntes AS ap INNER JOIN Asientos AS a ON ap.IdAsiento = a.IdAsiento WHERE a.IdSociedadEjercicio = ? AND ap.CuentaContable = ?",
+                        c.Ejercicio, c.Codigo), System.Globalization.CultureInfo.InvariantCulture);
+                    if (apuntes > 0 || c.Inicial != 0m)
+                        return Resultado.Fallo(new Error("Cuentas.ConApuntes", $"La cuenta {c.Codigo} tiene apuntes y no se borra.", registro,
+                            "Solo se borran las cuentas que nunca han tenido apuntes ni saldo inicial.", "Déjala como está: sus apuntes la necesitan."));
+                }
+                if (liberarUsos is not null) await liberarUsos(s);
+                await s.EjecutarAsync("DELETE FROM CuentasContables WHERE IdIdentidadContable = ?", idIdentidadContable);
+                await s.EjecutarAsync("DELETE FROM CodigosContablesReservados WHERE IdSociedad = ? AND IdIdentidadContable = ?", contexto.IdSociedad, idIdentidadContable);
+                await s.EjecutarAsync("DELETE FROM IdentidadesContables WHERE IdIdentidadContable = ?", idIdentidadContable);
+                return Resultado.Correcto();
+            });
+        }
+        catch (IntegridadReferencialException e)
+        {
+            return Resultado.Fallo(new Error("Cuentas.EnUso", "La cuenta no se borra porque la usa otro registro (un tercero, un parámetro, otra cuenta…).",
+                $"Identidad {idIdentidadContable}", e.Error.Mensaje, "Quita antes ese uso o deja la cuenta como está."));
+        }
     }
 
     public Task<Resultado<CuentaContable>> CambiarCodigoSinApuntesAsync(ContextoSociedadEjercicio contexto, int idIdentidadContable, string nuevoCodigo) =>

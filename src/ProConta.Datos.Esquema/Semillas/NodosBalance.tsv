@@ -1,0 +1,90 @@
+IdNodoBalance	IdModeloBalance	IdNodoPadre	Codigo	Nombre	TipoNodo	Orden	Nivel
+1	1		PYG	CUENTA DE PÉRDIDAS Y GANANCIAS	0	0	0
+2	2		ACTIVO	ACTIVO	0	0	0
+3	2		PNP	PATRIMONIO NETO Y PASIVO	0	10000	0
+4	2	2	ACT.A	A. ACTIVO NO CORRIENTE	1	0	1
+5	2	4	ACT.A.1.001	I. Inmovilizado intangible.	2	101	2
+6	2	4	ACT.A.2.002	II. Inmovilizado material.	2	103	2
+7	2	4	ACT.A.3.003	III. Inversiones inmobiliarias	2	108	2
+8	2	4	ACT.A.4.004	IV. Inversiones en empresas del grupo y asociadas a largo plazo.	2	109	2
+9	2	4	ACT.A.5.005	V. Inversiones financieras a largo plazo.	2	110	2
+10	2	4	ACT.A.6.006	VI. Activos por impuesto diferido.	2	111	2
+11	2	4	ACT.A.7.007	VII. Deudores comerciales no corrientes	2	112	2
+12	2	2	ACT.B	B. ACTIVO CORRIENTE	1	0	1
+13	2	12	ACT.B.1.009	I. Existencias	2	201	2
+14	2	12	ACT.B.2.010	II. Deudores comerciales y otras cuentas a cobrar.	2	203	2
+15	2	14	ACT.B.2.S.011	3. Otros deudores	3	203	3
+16	2	14	ACT.B.2.S.012	1. Clientes por ventas y Prestaciones de servicios	3	204	3
+17	2	14	ACT.B.2.S.013	2. Accionistas (socios) por desembolsos exigidos	3	208	3
+18	2	12	ACT.B.3.014	III. Inversiones en empresas del grupo y asociadas a corto plazo.	2	212	2
+19	2	12	ACT.B.4.015	IV. Inversiones financieras a corto plazo.	2	213	2
+20	2	12	ACT.B.5.016	V. Periodificaciones a corto plazo	2	216	2
+21	2	12	ACT.B.6.017	VI. Efectivo y otros activos líquidos equivalentes	2	217	2
+22	2	3	PNP.A	A. PATRIMONIO NETO	1	0	1
+23	2	22	PNP.A.1.019	A.1 Fondos propios	2	301	2
+24	2	23	PNP.A.1.S.020	I. Capital	3	301	3
+25	2	22	PNP.A.2.021	A.1 Fondos propios	2	302	2
+26	2	25	PNP.A.2.S.022	II. Prima de emisión	3	302	3
+27	2	22	PNP.A.3.023	A.1 Fondos propios	2	303	2
+28	2	27	PNP.A.3.S.024	III. Reservas	3	303	3
+29	2	22	PNP.A.4.025	A.1 Fondos propios	2	305	2
+30	2	29	PNP.A.4.S.026	IV. Acciones y participaciones en patrimonio propias	3	305	3
+31	2	22	PNP.A.5.027	A.1 Fondos propios	2	306	2
+32	2	31	PNP.A.5.S.028	V. Resultados de ejercicios anteriores	3	306	3
+33	2	22	PNP.A.6.029	A.1 Fondos propios	2	307	2
+34	2	33	PNP.A.6.S.030	VI. Otras aportaciones de socios	3	307	3
+35	2	22	PNP.A.7.031	A.1 Fondos propios	2	308	2
+36	2	35	PNP.A.7.S.032	VII. Resultado del ejercicio	3	308	3
+37	2	22	PNP.A.8.033	A.1 Fondos propios	2	344	2
+38	2	37	PNP.A.8.S.034	VIII. Dividendo a cuenta	3	344	3
+39	2	22	PNP.A.1.035	A.2 Ajustes en patrimonio neto	2	345	2
+40	2	22	PNP.A.1.036	A.3 Subvenciones, donaciones y legados recibidos	2	346	2
+41	2	3	PNP.B	B. PASIVO NO CORRIENTE	1	0	1
+42	2	41	PNP.B.1.038	I. Provisiones a largo plazo	2	401	2
+43	2	41	PNP.B.2.039	II. Deudas a largo plazo	2	402	2
+44	2	41	PNP.B.3.040	III. Deudas con empresas del grupo y asociadas a largo plazo.	2	405	2
+45	2	41	PNP.B.4.041	IV. Pasivos por impuesto diferido.	2	406	2
+46	2	41	PNP.B.5.042	V. Periodificaciones a largo plazo	2	407	2
+47	2	41	PNP.B.6.043	VI. Acreedores comerciales no corrientes	2	408	2
+48	2	41	PNP.B.7.044	VII. Deuda con características especiales a largo plazo	2	409	2
+49	2	3	PNP.C	C. PASIVO CORRIENTE	1	0	1
+50	2	49	PNP.C.1.046	I. Provisiones a corto plazo.	2	501	2
+51	2	49	PNP.C.2.047	II. Deudas a corto plazo.	2	502	2
+52	2	51	PNP.C.2.S.048	1. Deuda con entidades de crédito.	3	502	3
+53	2	51	PNP.C.2.S.049	2. Acreedores por arrendamiento financiero	3	503	3
+54	2	51	PNP.C.2.S.050	3. Otras deudas a corto plazo	3	504	3
+55	2	49	PNP.C.3.051	III. Deudas con empresas del grupo y asociadas a corto plazo.	2	508	2
+56	2	49	PNP.C.4.052	IV. Acreedores comerciales y otras cuentas a pagar.	2	509	2
+57	2	56	PNP.C.4.S.053	1. Proveedores	3	509	3
+58	2	56	PNP.C.4.S.054	2. Otros acreedores	3	510	3
+59	2	49	PNP.C.5.055	V. Periodificaciones a corto plazo	2	516	2
+60	2	49	PNP.C.4.056	V. Periodificaciones a corto plazo	2	516	2
+61	2	49	PNP.C.6.057	VI. Deuda con características especiales a corto plazo	2	517	2
+62	1	1	PYG.A	A. RESULTADO DE EXPLOTACIÓN	1	0	1
+63	1	62	PYG.A.1.059	Importe neto de la cifra de negocios.	2	701	2
+64	1	62	PYG.A.2.060	Variación de existencias de productos terminados y en curso de fabricación.	2	702	2
+65	1	62	PYG.A.3.061	Trabajos realizados por la empresa para su activo.	2	703	2
+66	1	62	PYG.A.4.062	Aprovisionamientos.	2	704	2
+67	1	62	PYG.A.5.063	Otros ingresos de explotación.	2	707	2
+68	1	62	PYG.A.6.064	Gastos de personal.	2	709	2
+69	1	62	PYG.A.7.065	Otros gastos de explotación.	2	712	2
+70	1	62	PYG.A.8.066	Amorización del inmovilizado.	2	726	2
+71	1	62	PYG.A.9.067	Imputación de subvenciones de inmovilizado no financiero y otras.	2	728	2
+72	1	71	PYG.A.9.S.068	Subvenciones	3	728	3
+73	1	62	PYG.A.10.069	Exceso de provisiones	2	729	2
+74	1	62	PYG.A.11.070	Deterioro y resultado por enajenaciones del inmovilizado.	2	730	2
+75	1	62	PYG.A.12.071	Otros resultados.	2	731	2
+76	1	1	PYG.B	B. RESULTADO FINANCIERO	1	0	1
+77	1	76	PYG.B.13.073	Ingresos financieros.	2	801	2
+78	1	77	PYG.B.13.a.074	a. Imputación de subvenciones, donaciones y legados de carácter financiero	3	801	3
+79	1	77	PYG.B.13.b.075	b. Otros Ingresos financieros.	3	802	3
+80	1	76	PYG.B.14.076	Gastos financieros.	2	803	2
+81	1	76	PYG.B.15.077	Variación de valor razonable en instrumentos financieros.	2	804	2
+82	1	76	PYG.B.16.078	Diferencias  de cambio.	2	805	2
+83	1	76	PYG.B.17.079	Deterioro y resultado por enajenacions de intrumentos financieros.	2	807	2
+84	1	76	PYG.B.18.080	Otros ingresos y gastos de carácter financiero	2	808	2
+85	1	84	PYG.B.18.a.081	a. Incoporación al activo de gastos financieros	3	808	3
+86	1	84	PYG.B.18.b.082	b. Ingresos finacieros derivados de convenios de acreedores	3	809	3
+87	1	84	PYG.B.18.c.083	c. Resto de ingresos y gastos	3	810	3
+88	1	1	PYG.C	C. RESULTADO ANTES DE IMPUESTOS	1	0	1
+89	1	88	PYG.C.19.085	Impuestos sobre beneficios.	2	901	2

@@ -1,77 +1,120 @@
 <?xml version="1.0" encoding="utf-8"?>
-<Report ScriptLanguage="CSharp" ReportInfo.Created="11/05/2026 10:00:00" ReportInfo.Modified="11/05/2026 10:00:00" ReportInfo.CreatorVersion="2026.2.3">
+<Report ScriptLanguage="CSharp" DoublePass="true" ReportInfo.Created="11/05/2026 10:00:00" ReportInfo.Modified="11/13/2026 23:30:00" ReportInfo.CreatorVersion="2026.2.3">
   <Dictionary>
     <BusinessObjectDataSource Name="Factura" ReferenceName="Factura" DataType="System.Int32" Enabled="true">
-      <Column Name="Titulo" DataType="System.String"/>
-      <Column Name="Aviso" DataType="System.String"/>
-      <Column Name="Numero" DataType="System.String"/>
-      <Column Name="Fecha" DataType="System.String"/>
-      <Column Name="FechaOperacion" DataType="System.String"/>
-      <Column Name="Periodo" DataType="System.String"/>
-      <Column Name="Descripcion" DataType="System.String"/>
-      <Column Name="Rectifica" DataType="System.String"/>
-      <Column Name="EmisorNombre" DataType="System.String"/>
-      <Column Name="EmisorNif" DataType="System.String"/>
-      <Column Name="EmisorDomicilio" DataType="System.String"/>
-      <Column Name="ClienteNombre" DataType="System.String"/>
-      <Column Name="ClienteNif" DataType="System.String"/>
-      <Column Name="ClienteDomicilio" DataType="System.String"/>
-      <Column Name="FormaPago" DataType="System.String"/>
-      <Column Name="Total" DataType="System.String"/>
+        <Column Name="Titulo" DataType="System.String"/>
+        <Column Name="Aviso" DataType="System.String"/>
+        <Column Name="Numero" DataType="System.String"/>
+        <Column Name="Fecha" DataType="System.String"/>
+        <Column Name="FechaOperacion" DataType="System.String"/>
+        <Column Name="Periodo" DataType="System.String"/>
+        <Column Name="Descripcion" DataType="System.String"/>
+        <Column Name="Rectifica" DataType="System.String"/>
+        <Column Name="EmisorNombre" DataType="System.String"/>
+        <Column Name="EmisorNif" DataType="System.String"/>
+        <Column Name="EmisorDomicilio" DataType="System.String"/>
+        <Column Name="EmisorContacto" DataType="System.String"/>
+        <Column Name="PieEmisor" DataType="System.String"/>
+        <Column Name="ClienteNombre" DataType="System.String"/>
+        <Column Name="ClienteNif" DataType="System.String"/>
+        <Column Name="ClienteDomicilio" DataType="System.String"/>
+        <Column Name="FormaPago" DataType="System.String"/>
+        <Column Name="PagoEtiqueta" DataType="System.String"/>
+        <Column Name="PagoCuenta" DataType="System.String"/>
+        <Column Name="PagoDetalle" DataType="System.String"/>
+        <Column Name="QrUrl" DataType="System.String"/>
+        <Column Name="Total" DataType="System.String"/>
     </BusinessObjectDataSource>
     <BusinessObjectDataSource Name="Lineas" ReferenceName="Lineas" DataType="System.Int32" Enabled="true">
-      <Column Name="Concepto" DataType="System.String"/>
-      <Column Name="Cantidad" DataType="System.String"/>
-      <Column Name="Precio" DataType="System.String"/>
-      <Column Name="Descuento" DataType="System.String"/>
-      <Column Name="Base" DataType="System.String"/>
-      <Column Name="Iva" DataType="System.String"/>
-      <Column Name="Total" DataType="System.String"/>
+        <Column Name="Concepto" DataType="System.String"/>
+        <Column Name="Detalle" DataType="System.String"/>
+        <Column Name="Cantidad" DataType="System.String"/>
+        <Column Name="Precio" DataType="System.String"/>
+        <Column Name="Descuento" DataType="System.String"/>
+        <Column Name="Base" DataType="System.String"/>
+        <Column Name="Iva" DataType="System.String"/>
+        <Column Name="Total" DataType="System.String"/>
     </BusinessObjectDataSource>
-    <BusinessObjectDataSource Name="Resumen" ReferenceName="Resumen" DataType="System.Int32" Enabled="true">
-      <Column Name="Etiqueta" DataType="System.String"/>
-      <Column Name="Importe" DataType="System.String"/>
+    <BusinessObjectDataSource Name="Totales" ReferenceName="Totales" DataType="System.Int32" Enabled="true">
+        <Column Name="Etiquetas" DataType="System.String"/>
+        <Column Name="Importes" DataType="System.String"/>
     </BusinessObjectDataSource>
   </Dictionary>
-  <ReportPage Name="Page1" PaperWidth="210" PaperHeight="297" LeftMargin="15" RightMargin="15" TopMargin="15" BottomMargin="15">
-    <ReportTitleBand Name="Cabecera" Width="680.4" Height="215">
-      <TextObject Name="Emisor" Width="340.2" Height="75.6" CanGrow="true" Text="[Factura.EmisorNombre]&#13;&#10;NIF: [Factura.EmisorNif]&#13;&#10;[Factura.EmisorDomicilio]" Font="Arial, 10pt"/>
-      <TextObject Name="Titulo" Left="340.2" Width="340.2" Height="28.35" Text="[Factura.Titulo]" HorzAlign="Right" Font="Arial, 16pt, style=Bold"/>
-      <TextObject Name="Aviso" Left="340.2" Top="28.35" Width="340.2" Height="18.9" Text="[Factura.Aviso]" HorzAlign="Right" TextFill.Color="128, 0, 0" Font="Arial, 9pt, style=Bold"/>
-      <TextObject Name="Datos" Left="396.9" Top="47.25" Width="283.5" Height="66.15" Text="[Factura.Numero]&#13;&#10;Fecha: [Factura.Fecha]&#13;&#10;[Factura.FechaOperacion]&#13;&#10;[Factura.Periodo]" HorzAlign="Right" Font="Arial, 9pt"/>
-      <TextObject Name="Cliente" Top="94.5" Width="378" Height="75.6" CanGrow="true" Border.Lines="All" Border.Color="DarkGray" Padding="6, 4, 6, 4" Text="[Factura.ClienteNombre]&#13;&#10;NIF: [Factura.ClienteNif]&#13;&#10;[Factura.ClienteDomicilio]" Font="Arial, 10pt"/>
-      <TextObject Name="Descripcion" Top="179" Width="680.4" Height="32" CanGrow="true" Text="[Factura.Descripcion]&#13;&#10;[Factura.Rectifica]" Font="Arial, 10pt"/>
+  <ReportPage Name="Page1" PaperWidth="210" PaperHeight="297" LeftMargin="0" RightMargin="0" TopMargin="0" BottomMargin="0" TitleBeforeHeader="false">
+    <PageHeaderBand Name="Franja" Width="793.7" Height="45.35">
+      <TextObject Name="Franja0" Left="0" Top="0" Width="158.74" Height="8.31" Fill.Color="230, 90, 12"/>
+      <TextObject Name="Franja1" Left="158.74" Top="0" Width="158.74" Height="8.31" Fill.Color="236, 135, 11"/>
+      <TextObject Name="Franja2" Left="317.48" Top="0" Width="158.74" Height="8.31" Fill.Color="243, 156, 30"/>
+      <TextObject Name="Franja3" Left="476.22" Top="0" Width="158.74" Height="8.31" Fill.Color="242, 178, 0"/>
+      <TextObject Name="Franja4" Left="634.96" Top="0" Width="158.74" Height="8.31" Fill.Color="248, 213, 0"/>
+    </PageHeaderBand>
+    <ReportTitleBand Name="Cabecera" Top="47.24" Width="793.7" Height="374.17">
+      <PictureObject Name="Logo" Left="56.69" Top="0" Width="279.69" Height="49.51" SizeMode="Zoom"/>
+        <TextObject Name="LogoTexto" Left="56.69" Top="7.56" Width="332.6" Height="34.02" Text="[Factura.EmisorNombre]" Font="Segoe UI Semibold, 13pt" TextFill.Color="43, 43, 43" VertAlign="Center" WordWrap="false" Padding="0, 0, 0, 0"/>
+        <TextObject Name="Titulo" Left="359.06" Top="0" Width="377.95" Height="41.57" Text="[Factura.Titulo]" Font="Segoe UI Semibold, 21pt" TextFill.Color="43, 43, 43" HorzAlign="Right" WordWrap="false" Padding="0, 0, 0, 0"/>
+        <TextObject Name="Aviso" Left="359.06" Top="41.57" Width="377.95" Height="17.01" Text="[Factura.Aviso]" Font="Segoe UI Semibold, 8pt" TextFill.Color="180, 35, 24" HorzAlign="Right" Padding="0, 0, 0, 0"/>
+        <TextObject Name="CajaNumero" Left="504.94" Top="62.36" Width="132.28" Height="41.57" Fill.Color="253, 243, 231"/>
+        <TextObject Name="CajaFecha" Left="639.5" Top="62.36" Width="97.51" Height="41.57" Fill.Color="253, 243, 231"/>
+        <TextObject Name="EtNumero" Left="504.94" Top="66.9" Width="123.21" Height="13.61" Text="NÚMERO" Font="Segoe UI, 6.4pt" TextFill.Color="138, 127, 116" HorzAlign="Right" Padding="0, 0, 0, 0"/>
+        <TextObject Name="Numero" Left="504.94" Top="81.64" Width="123.21" Height="19.65" Text="[Factura.Numero]" Font="Segoe UI Semibold, 10.5pt" TextFill.Color="43, 43, 43" HorzAlign="Right" WordWrap="false" Padding="0, 0, 0, 0"/>
+        <TextObject Name="EtFecha" Left="639.5" Top="66.9" Width="88.44" Height="13.61" Text="FECHA" Font="Segoe UI, 6.4pt" TextFill.Color="138, 127, 116" HorzAlign="Right" Padding="0, 0, 0, 0"/>
+        <TextObject Name="Fecha" Left="639.5" Top="81.64" Width="88.44" Height="19.65" Text="[Factura.Fecha]" Font="Segoe UI Semibold, 10.5pt" TextFill.Color="43, 43, 43" HorzAlign="Right" WordWrap="false" Padding="0, 0, 0, 0"/>
+        <TextObject Name="EtEmisor" Left="56.69" Top="124.72" Width="234.33" Height="13.61" Text="EMISOR" Font="Segoe UI, 6.4pt" TextFill.Color="138, 127, 116" Padding="0, 0, 0, 0"/>
+        <TextObject Name="EmisorNombre" Left="56.69" Top="139.84" Width="241.89" Height="17.39" Text="[Factura.EmisorNombre]" Font="Segoe UI Semibold, 8.6pt" TextFill.Color="43, 43, 43" WordWrap="false" Padding="0, 0, 0, 0"/>
+        <TextObject Name="EmisorDatos" Left="56.69" Top="157.23" Width="241.89" Height="83.15" Text="NIF [Factura.EmisorNif]&#13;&#10;[Factura.EmisorDomicilio]&#13;&#10;[Factura.EmisorContacto]" Font="Segoe UI, 8.6pt" TextFill.Color="90, 85, 80" LineHeight="16.63" Padding="0, 0, 0, 0"/>
+        <TextObject Name="CajaCliente" Left="313.7" Top="120.94" Width="423.31" Height="128.5" Fill.Color="253, 243, 231"/>
+        <TextObject Name="BordeCliente" Left="313.7" Top="120.94" Width="4.54" Height="128.5" Fill.Color="236, 122, 11"/>
+        <TextObject Name="EtCliente" Left="332.6" Top="132.28" Width="226.77" Height="13.61" Text="FACTURAR A" Font="Segoe UI, 6.4pt" TextFill.Color="138, 127, 116" Padding="0, 0, 0, 0"/>
+        <TextObject Name="ClienteNombre" Left="332.6" Top="147.4" Width="393.07" Height="22.68" Text="[Factura.ClienteNombre]" Font="Segoe UI Semibold, 11pt" TextFill.Color="43, 43, 43" WordWrap="false" Padding="0, 0, 0, 0"/>
+        <TextObject Name="ClienteDatos" Left="332.6" Top="171.59" Width="393.07" Height="71.81" Text="NIF [Factura.ClienteNif]&#13;&#10;[Factura.ClienteDomicilio]" Font="Segoe UI, 8.6pt" TextFill.Color="43, 43, 43" LineHeight="16.63" Padding="0, 0, 0, 0"/>
+        <TextObject Name="EtQr" Left="612.28" Top="120.94" Width="124.72" Height="13.61" Text="QR TRIBUTARIO" Font="Segoe UI, 6.4pt" TextFill.Color="138, 127, 116" HorzAlign="Center" Padding="0, 0, 0, 0"/>
+        <BarcodeObject Name="Qr" Left="617.95" Top="136.06" Width="113.39" Height="113.39" Text="[Factura.QrUrl]" ShowText="false" AutoSize="false" Barcode="QR Code" Barcode.ErrorCorrection="M"/>
+        <TextObject Name="QrVeriFactu" Left="604.72" Top="251.34" Width="139.84" Height="14.36" Text="VERI*FACTU" Font="Segoe UI Semibold, 7.2pt" TextFill.Color="43, 43, 43" HorzAlign="Center" Padding="0, 0, 0, 0"/>
+        <TextObject Name="QrLeyenda" Left="604.72" Top="265.32" Width="139.84" Height="24.19" Text="Factura verificable en la sede electrónica de la AEAT" Font="Segoe UI, 6.2pt" TextFill.Color="90, 85, 80" HorzAlign="Center" Padding="0, 0, 0, 0"/>
+        <TextObject Name="LineaMeta1" Left="56.69" Top="298.58" Width="680.31" Height="3.78" Border.Lines="Top" Border.Color="230, 224, 216" Border.Width="0.94"/>
+        <TextObject Name="EtDescripcion" Left="56.69" Top="306.14" Width="226.77" Height="13.61" Text="DESCRIPCIÓN" Font="Segoe UI, 6.4pt" TextFill.Color="138, 127, 116" Padding="0, 0, 0, 0"/>
+        <TextObject Name="Descripcion" Left="56.69" Top="321.26" Width="483.78" Height="36.28" Text="[Factura.Descripcion]&#13;&#10;[Factura.Rectifica]" Font="Segoe UI, 8.6pt" TextFill.Color="43, 43, 43" LineHeight="16.25" Padding="0, 0, 0, 0"/>
+        <TextObject Name="EtPeriodo" Left="566.93" Top="306.14" Width="170.08" Height="13.61" Text="PERIODO" Font="Segoe UI, 6.4pt" TextFill.Color="138, 127, 116" HorzAlign="Right" Padding="0, 0, 0, 0"/>
+        <TextObject Name="Periodo" Left="548.03" Top="321.26" Width="188.98" Height="36.28" Text="[Factura.Periodo]&#13;&#10;[Factura.FechaOperacion]" Font="Segoe UI, 8.6pt" TextFill.Color="43, 43, 43" HorzAlign="Right" LineHeight="16.25" Padding="0, 0, 0, 0"/>
+        <TextObject Name="LineaMeta2" Left="56.69" Top="360.94" Width="680.31" Height="3.78" Border.Lines="Top" Border.Color="230, 224, 216" Border.Width="0.94"/>
     </ReportTitleBand>
-    <DataBand Name="BandaLineas" Top="243" Width="680.4" Height="20" CanGrow="true" DataSource="Lineas">
-      <TextObject Name="LinConcepto" Width="302.4" Height="20" CanGrow="true" Text="[Lineas.Concepto]" Font="Arial, 9pt"/>
-      <TextObject Name="LinCantidad" Left="302.4" Width="56.7" Height="20" Text="[Lineas.Cantidad]" HorzAlign="Right" Font="Arial, 9pt"/>
-      <TextObject Name="LinPrecio" Left="359.1" Width="75.6" Height="20" Text="[Lineas.Precio]" HorzAlign="Right" Font="Arial, 9pt"/>
-      <TextObject Name="LinDescuento" Left="434.7" Width="56.7" Height="20" CanGrow="true" Text="[Lineas.Descuento]" HorzAlign="Right" Font="Arial, 9pt"/>
-      <TextObject Name="LinBase" Left="491.4" Width="75.6" Height="20" Text="[Lineas.Base]" HorzAlign="Right" Font="Arial, 9pt"/>
-      <TextObject Name="LinIva" Left="567" Width="37.8" Height="20" Text="[Lineas.Iva]" HorzAlign="Right" Font="Arial, 9pt"/>
-      <TextObject Name="LinTotal" Left="604.8" Width="75.6" Height="20" Text="[Lineas.Total]" HorzAlign="Right" Font="Arial, 9pt"/>
-      <DataHeaderBand Name="CabeceraLineas" Top="220" Width="680.4" Height="20" RepeatOnEveryPage="true">
-        <TextObject Name="CabConcepto" Width="302.4" Height="20" Border.Lines="Bottom" Text="Concepto" Font="Arial, 9pt, style=Bold"/>
-        <TextObject Name="CabCantidad" Left="302.4" Width="56.7" Height="20" Border.Lines="Bottom" Text="Cant." HorzAlign="Right" Font="Arial, 9pt, style=Bold"/>
-        <TextObject Name="CabPrecio" Left="359.1" Width="75.6" Height="20" Border.Lines="Bottom" Text="Precio" HorzAlign="Right" Font="Arial, 9pt, style=Bold"/>
-        <TextObject Name="CabDescuento" Left="434.7" Width="56.7" Height="20" Border.Lines="Bottom" Text="Dto." HorzAlign="Right" Font="Arial, 9pt, style=Bold"/>
-        <TextObject Name="CabBase" Left="491.4" Width="75.6" Height="20" Border.Lines="Bottom" Text="Base" HorzAlign="Right" Font="Arial, 9pt, style=Bold"/>
-        <TextObject Name="CabIva" Left="567" Width="37.8" Height="20" Border.Lines="Bottom" Text="IVA" HorzAlign="Right" Font="Arial, 9pt, style=Bold"/>
-        <TextObject Name="CabTotal" Left="604.8" Width="75.6" Height="20" Border.Lines="Bottom" Text="Total" HorzAlign="Right" Font="Arial, 9pt, style=Bold"/>
+    <DataBand Name="BandaLineas" Top="461.1" Width="793.7" Height="23.43" CanGrow="true" CanShrink="true" DataSource="Lineas">
+      <TextObject Name="FondoLinea" Left="56.69" Top="0" Width="680.31" Height="23.43" GrowToBottom="true" Border.Lines="Bottom" Border.Color="236, 231, 224"><Highlight><Condition Expression="[Lineas.Iva] == &quot;Supl.&quot;" Fill.Color="250, 248, 245" ApplyFill="true" ApplyTextFill="false"/></Highlight></TextObject>
+        <TextObject Name="LinConcepto" Left="68.03" Top="6.05" Width="298.58" Height="15.87" Text="[Lineas.Concepto]" Font="Segoe UI Semibold, 8.6pt" TextFill.Color="43, 43, 43" CanGrow="true" Padding="0, 0, 0, 0"/>
+        <TextObject Name="LinDetalle" Left="68.03" Top="21.92" Width="298.58" Height="1.51" Text="[Lineas.Detalle]" Font="Segoe UI, 7.6pt" TextFill.Color="119, 112, 106" CanGrow="true" CanShrink="true" LineHeight="13.98" Padding="0, 0, 0, 0"/>
+        <TextObject Name="LinCantidad" Left="370.39" Top="6.05" Width="45.35" Height="15.87" Text="[Lineas.Cantidad]" Font="Segoe UI, 8.6pt" TextFill.Color="43, 43, 43" HorzAlign="Right" WordWrap="false" Padding="0, 0, 0, 0"/>
+        <TextObject Name="LinPrecio" Left="423.31" Top="6.05" Width="68.03" Height="15.87" Text="[Lineas.Precio]" Font="Segoe UI, 8.6pt" TextFill.Color="43, 43, 43" HorzAlign="Right" WordWrap="false" Padding="0, 0, 0, 0"/>
+        <TextObject Name="LinDescuento" Left="498.9" Top="6.05" Width="52.91" Height="15.87" Text="[Lineas.Descuento]" Font="Segoe UI, 8.6pt" TextFill.Color="43, 43, 43" HorzAlign="Right" WordWrap="false" Padding="0, 0, 0, 0"/>
+        <TextObject Name="LinBase" Left="559.37" Top="6.05" Width="64.25" Height="15.87" Text="[Lineas.Base]" Font="Segoe UI, 8.6pt" TextFill.Color="43, 43, 43" HorzAlign="Right" WordWrap="false" Padding="0, 0, 0, 0"/>
+        <TextObject Name="LinIva" Left="631.18" Top="6.05" Width="37.8" Height="15.87" Text="[Lineas.Iva]" Font="Segoe UI, 8.6pt" TextFill.Color="43, 43, 43" HorzAlign="Right" WordWrap="false" Padding="0, 0, 0, 0"/>
+        <TextObject Name="LinTotal" Left="676.54" Top="6.05" Width="52.91" Height="15.87" Text="[Lineas.Total]" Font="Segoe UI Semibold, 8.6pt" TextFill.Color="43, 43, 43" HorzAlign="Right" WordWrap="false" Padding="0, 0, 0, 0"/>
+      <DataHeaderBand Name="CabeceraLineas" Top="430.87" Width="793.7" Height="26.46" RepeatOnEveryPage="true">
+        <TextObject Name="FondoCabecera" Left="56.69" Top="0" Width="680.31" Height="26.46" Fill.Color="51, 48, 45"/>
+        <TextObject Name="CabConcepto" Left="68.03" Top="0" Width="302.36" Height="26.46" Text="CONCEPTO" Font="Segoe UI Semibold, 7pt" TextFill.Color="255, 255, 255" HorzAlign="Left" VertAlign="Center" WordWrap="false" Padding="0, 0, 0, 0"/>
+        <TextObject Name="CabCantidad" Left="370.39" Top="0" Width="45.35" Height="26.46" Text="CANT." Font="Segoe UI Semibold, 7pt" TextFill.Color="255, 255, 255" HorzAlign="Right" VertAlign="Center" WordWrap="false" Padding="0, 0, 0, 0"/>
+        <TextObject Name="CabPrecio" Left="423.31" Top="0" Width="68.03" Height="26.46" Text="PRECIO" Font="Segoe UI Semibold, 7pt" TextFill.Color="255, 255, 255" HorzAlign="Right" VertAlign="Center" WordWrap="false" Padding="0, 0, 0, 0"/>
+        <TextObject Name="CabDescuento" Left="498.9" Top="0" Width="52.91" Height="26.46" Text="DTO." Font="Segoe UI Semibold, 7pt" TextFill.Color="255, 255, 255" HorzAlign="Right" VertAlign="Center" WordWrap="false" Padding="0, 0, 0, 0"/>
+        <TextObject Name="CabBase" Left="559.37" Top="0" Width="64.25" Height="26.46" Text="BASE" Font="Segoe UI Semibold, 7pt" TextFill.Color="255, 255, 255" HorzAlign="Right" VertAlign="Center" WordWrap="false" Padding="0, 0, 0, 0"/>
+        <TextObject Name="CabIva" Left="631.18" Top="0" Width="37.8" Height="26.46" Text="IVA" Font="Segoe UI Semibold, 7pt" TextFill.Color="255, 255, 255" HorzAlign="Right" VertAlign="Center" WordWrap="false" Padding="0, 0, 0, 0"/>
+        <TextObject Name="CabTotal" Left="676.54" Top="0" Width="52.91" Height="26.46" Text="TOTAL" Font="Segoe UI Semibold, 7pt" TextFill.Color="255, 255, 255" HorzAlign="Right" VertAlign="Center" WordWrap="false" Padding="0, 0, 0, 0"/>
       </DataHeaderBand>
     </DataBand>
-    <DataBand Name="BandaResumen" Top="290" Width="680.4" Height="18" DataSource="Resumen">
-      <TextObject Name="ResEtiqueta" Left="340.2" Width="226.8" Height="18" Text="[Resumen.Etiqueta]" HorzAlign="Right" Font="Arial, 9pt"/>
-      <TextObject Name="ResImporte" Left="567" Width="113.4" Height="18" Text="[Resumen.Importe]" HorzAlign="Right" Font="Arial, 9pt"/>
-      <DataHeaderBand Name="SeparadorResumen" Top="268" Width="680.4" Height="14"/>
-    </DataBand>
-    <ReportSummaryBand Name="Totales" Top="315" Width="680.4" Height="62">
-      <TextObject Name="EtiquetaTotal" Left="340.2" Top="4" Width="226.8" Height="24" Border.Lines="Top" Text="Total a pagar" HorzAlign="Right" VertAlign="Center" Font="Arial, 11pt, style=Bold"/>
-      <TextObject Name="Total" Left="567" Top="4" Width="113.4" Height="24" Border.Lines="Top" Text="[Factura.Total]" HorzAlign="Right" VertAlign="Center" Font="Arial, 11pt, style=Bold"/>
-      <TextObject Name="FormaPago" Top="36" Width="680.4" Height="20" Text="[Factura.FormaPago]" Font="Arial, 9pt"/>
-    </ReportSummaryBand>
-    <PageFooterBand Name="Pie" Top="382" Width="680.4" Height="18.9">
-      <TextObject Name="Pagina" Width="680.4" Height="18.9" Text="Página [Page] de [TotalPages#]" HorzAlign="Center" Font="Arial, 8pt"/>
+    <PageFooterBand Name="Pie" Top="510.24" Width="793.7" Height="245.67">
+      <TextObject Name="LineaTotales" Left="56.69" Top="0" Width="680.31" Height="3.78" Border.Lines="Top" Border.Color="51, 48, 45" Border.Width="1.89" PrintOn="LastPage, SinglePage"/>
+        <TextObject Name="CajaPago" Left="56.69" Top="15.12" Width="396.85" Height="166.3" Fill.Color="250, 248, 245" PrintOn="LastPage, SinglePage"/>
+        <TextObject Name="EtPago" Left="71.81" Top="26.46" Width="302.36" Height="13.61" Text="FORMA DE PAGO" Font="Segoe UI, 6.4pt" TextFill.Color="138, 127, 116" Padding="0, 0, 0, 0" PrintOn="LastPage, SinglePage"/>
+        <TextObject Name="FormaPago" Left="71.81" Top="41.57" Width="370.39" Height="18.9" Text="[Factura.FormaPago]" Font="Segoe UI Semibold, 9pt" TextFill.Color="43, 43, 43" Padding="0, 0, 0, 0" PrintOn="LastPage, SinglePage"/>
+        <TextObject Name="EtCuenta" Left="71.81" Top="66.14" Width="302.36" Height="13.61" Text="[Factura.PagoEtiqueta]" Font="Segoe UI, 6.4pt" TextFill.Color="138, 127, 116" Padding="0, 0, 0, 0" PrintOn="LastPage, SinglePage"/>
+        <TextObject Name="PagoCuenta" Left="71.81" Top="80.88" Width="370.39" Height="22.68" Text="[Factura.PagoCuenta]" Font="Segoe UI Semibold, 10.5pt" TextFill.Color="43, 43, 43" WordWrap="false" Padding="0, 0, 0, 0" PrintOn="LastPage, SinglePage"/>
+        <TextObject Name="PagoDetalle" Left="71.81" Top="105.83" Width="370.39" Height="68.03" Text="[Factura.PagoDetalle]" Font="Segoe UI, 8.6pt" TextFill.Color="43, 43, 43" LineHeight="16.25" Padding="0, 0, 0, 0" PrintOn="LastPage, SinglePage"/>
+        <TextObject Name="TotEtiquetas" Left="487.56" Top="15.12" Width="166.3" Height="124.72" Text="[Totales.Etiquetas]" Font="Segoe UI, 8.6pt" TextFill.Color="43, 43, 43" HorzAlign="Left" VertAlign="Bottom" LineHeight="18.14" Padding="0, 0, 0, 0" PrintOn="LastPage, SinglePage"/>
+        <TextObject Name="TotImportes" Left="642.52" Top="15.12" Width="86.93" Height="124.72" Text="[Totales.Importes]" Font="Segoe UI, 8.6pt" TextFill.Color="43, 43, 43" HorzAlign="Right" VertAlign="Bottom" LineHeight="18.14" WordWrap="false" Padding="0, 0, 0, 0" PrintOn="LastPage, SinglePage"/>
+        <TextObject Name="CajaTotal" Left="483.78" Top="143.62" Width="253.23" Height="37.8" Fill.Color="236, 122, 11" PrintOn="LastPage, SinglePage"/>
+        <TextObject Name="EtTotal" Left="495.12" Top="143.62" Width="132.28" Height="37.8" Text="TOTAL A PAGAR" Font="Segoe UI Semibold, 8pt" TextFill.Color="255, 255, 255" VertAlign="Center" WordWrap="false" Padding="0, 0, 0, 0" PrintOn="LastPage, SinglePage"/>
+        <TextObject Name="Total" Left="566.93" Top="143.62" Width="158.74" Height="37.8" Text="[Factura.Total]" Font="Segoe UI Semibold, 12.5pt" TextFill.Color="255, 255, 255" HorzAlign="Right" VertAlign="Center" WordWrap="false" Padding="0, 0, 0, 0" PrintOn="LastPage, SinglePage"/>
+        <TextObject Name="LineaPie" Left="56.69" Top="200.31" Width="680.31" Height="3.78" Border.Lines="Top" Border.Color="230, 224, 216" Border.Width="0.94"/>
+        <TextObject Name="PieEmisor" Left="56.69" Top="207.87" Width="434.65" Height="15.12" Text="[Factura.PieEmisor]" Font="Segoe UI, 6.8pt" TextFill.Color="138, 127, 116" WordWrap="false" Padding="0, 0, 0, 0"/>
+        <TextObject Name="Pagina" Left="491.34" Top="207.87" Width="245.67" Height="15.12" Text="Página [Page] de [TotalPages#]" Font="Segoe UI, 6.8pt" TextFill.Color="138, 127, 116" HorzAlign="Right" WordWrap="false" Padding="0, 0, 0, 0"/>
     </PageFooterBand>
   </ReportPage>
 </Report>

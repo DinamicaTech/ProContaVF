@@ -1,0 +1,436 @@
+<title>ProConta Nóminas</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* Maqueta de ProContaVF: contenedor de escritorio (barra azul marino, pestañas) con la pantalla Nóminas y la ficha de un tercero.
+   Tokens copiados de sources/maquetas (aspecto único y claro, como la aplicación de escritorio). */
+:root{
+  --navy:#14213A;--navy2:#22314F;--navy3:#1B2A47;--ink:#16213A;--mut:#646A78;--mut2:#7A8090;--txt2:#3B4252;
+  --or:#F4A259;--or2:#D9622B;--or3:#B4481F;--bg:#F1EEE7;--bg2:#FBFAF7;--card:#FFFFFF;--ln:#ECE8DE;--ln2:#F3F0E9;--ln3:#E1DDD2;
+  --inb:#E4E1D8;--inbg:#FAF9F6;--blue:#1D5C8C;--blueb:#E3ECF6;--green:#1E6B45;--greenb:#E2F0E8;--red:#B42318;--redb:#FDF1EF;
+  --amb:#8A4410;--ambb:#FFEBD6;--pur:#5B3F86;--purb:#ECE6F3;--act:#FFF3E6;--selb:#E8F0F9;--white:#FFFFFF;
+  --f-ui:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;--f-mono:"IBM Plex Mono",ui-monospace,Consolas,monospace;
+  --f-disp:"Bricolage Grotesque","IBM Plex Sans",system-ui,sans-serif;
+  color-scheme:light;
+}
+[hidden]{display:none!important}
+html,body{height:100%}
+body{background:var(--bg);color:var(--ink);font:14px/1.45 var(--f-ui);margin:0}
+*{box-sizing:border-box}
+button{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--or2);outline-offset:1px}
+.demo{background:var(--ink);color:#C9CED8;display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding-block:8px;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));font-size:13px;border-bottom:2px dashed var(--or)}
+.demo b{background:var(--or);color:var(--ink);font:600 11px var(--f-mono);padding:2px 7px;border-radius:3px;letter-spacing:.06em}
+.demo button{background:var(--navy2);border:1px solid #3A4A6A;color:#E6E9EF;border-radius:6px;padding:4px 10px;cursor:pointer}
+.demo button[aria-pressed=true]{background:var(--or);color:var(--ink);border-color:var(--or)}
+.app{display:flex;flex-direction:column;min-height:calc(100% - 44px)}
+.top{background:var(--navy);color:#fff;display:flex;align-items:center;gap:14px;padding-block:10px;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));flex-wrap:wrap}
+.logo{font:700 17px var(--f-disp);display:flex;gap:8px;align-items:center}
+.logo i{width:20px;height:20px;border-radius:5px;background:var(--or);display:inline-block}
+.ctx{border:1px solid #3A4A6A;border-radius:6px;padding:3px 10px;font-size:13px;color:#DCE1EA}
+.top .op{margin-left:auto;font-size:13px;color:#C9CED8}
+.tabs{background:var(--navy3);display:flex;gap:2px;padding-top:6px;overflow-x:auto;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.tab{background:transparent;border:0;color:#C9CED8;padding:7px 14px;border-radius:7px 7px 0 0;cursor:pointer;white-space:nowrap;font-size:13.5px}
+.tab[aria-selected=true]{background:var(--bg);color:var(--ink);font-weight:600}
+main{flex:1;padding-block:16px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:14px;min-width:0}
+.ph{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.ph h1{font:600 22px var(--f-disp);margin:0}
+.ph .sub{color:var(--mut);font-size:13px}
+.ph .sp{margin-left:auto}
+.btn{border:1px solid var(--inb);background:var(--card);border-radius:7px;padding:6px 12px;cursor:pointer;font-weight:500;font-size:13.5px}
+.btn.pri{background:var(--navy);color:#fff;border-color:var(--navy)}
+.btn.dan{background:var(--red);color:#fff;border-color:var(--red)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.card{background:var(--card);border:1px solid var(--ln);border-radius:10px;min-width:0}
+.card>header{display:flex;align-items:center;gap:10px;padding:12px 14px;flex-wrap:wrap}
+.card>header h2{font:600 15px var(--f-ui);margin:0}
+.card>header .n{color:var(--mut);font-size:13px}
+.filters{display:flex;gap:8px;flex-wrap:wrap;padding:0 14px 12px}
+.seg{display:inline-flex;background:var(--ln2);border-radius:7px;padding:2px}
+.seg button{border:0;background:transparent;padding:4px 10px;border-radius:6px;cursor:pointer;font-size:13px;color:var(--txt2)}
+.seg button[aria-pressed=true]{background:var(--card);box-shadow:0 1px 2px rgba(20,33,58,.12);color:var(--ink);font-weight:500}
+.inp{border:1px solid var(--inb);background:var(--inbg);border-radius:7px;padding:5px 10px;font-size:13px}
+.tw{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:13px}
+th{font-weight:600;color:var(--mut);text-align:left;padding:7px 10px;border-bottom:1px solid var(--ln);white-space:nowrap;font-size:12px}
+td{padding:7px 10px;border-bottom:1px solid var(--ln2);white-space:nowrap}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
+td.mono{font-family:var(--f-mono);font-size:12.5px}
+tbody tr{cursor:default}
+tbody tr:hover{background:var(--bg2)}
+tbody tr.sel{background:var(--selb)}
+tbody tr.act{box-shadow:inset 3px 0 0 var(--or)}
+tbody tr.old td{color:var(--mut2)}
+tfoot td{font-weight:600;border-top:1px solid var(--ln3);border-bottom:0;background:var(--bg2)}
+.pill{display:inline-flex;align-items:center;gap:5px;border-radius:999px;padding:1px 9px;font-size:12px;font-weight:500}
+.pill::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
+.p-ok{background:var(--greenb);color:var(--green)}
+.p-pen{background:var(--blueb);color:var(--blue)}
+.p-inc{background:var(--ambb);color:var(--amb)}
+.p-rep{background:var(--ln2);color:var(--mut)}
+.tag{font:500 11.5px var(--f-mono);color:var(--mut);background:var(--ln2);border-radius:4px;padding:1px 6px}
+.ok{color:var(--green);font-weight:600}
+.banner{display:flex;gap:10px;align-items:flex-start;background:var(--ambb);color:var(--amb);border-radius:8px;padding:10px 12px;margin:0 14px 12px;font-size:13px;flex-wrap:wrap}
+.banner b{color:var(--ink)}
+.banner .btn{margin-left:auto}
+.foot{display:flex;gap:16px;flex-wrap:wrap;padding:9px 14px;color:var(--mut);font-size:12.5px;border-top:1px solid var(--ln)}
+.foot b{color:var(--ink)}
+.hint{color:var(--mut);font-size:12.5px}
+.drop{border:1.5px dashed var(--ln3);border-radius:8px;padding:8px 12px;color:var(--mut);font-size:12.5px}
+.status{background:var(--card);border-top:1px solid var(--ln);display:flex;gap:16px;flex-wrap:wrap;font-size:12px;color:var(--mut);padding-block:6px;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+/* menú contextual */
+.menu{position:fixed;z-index:50;background:var(--card);border:1px solid var(--ln3);border-radius:8px;box-shadow:0 8px 24px rgba(20,33,58,.18);padding:4px;min-width:250px;max-width:calc(100vw - 32px)}
+.menu button{display:flex;width:100%;text-align:left;border:0;background:transparent;padding:6px 10px;border-radius:5px;cursor:pointer;font-size:13px;gap:10px}
+.menu button:hover:not(:disabled){background:var(--act)}
+.menu button:disabled{color:var(--mut2);cursor:not-allowed}
+.menu button small{margin-left:auto;color:var(--mut2);font-size:11.5px;white-space:normal;text-align:right}
+.menu hr{border:0;border-top:1px solid var(--ln);margin:4px 0}
+.menu .t{font-size:11.5px;color:var(--mut);padding:4px 10px}
+/* diálogos */
+.scrim{position:fixed;inset:0;background:rgba(20,33,58,.38);z-index:60;display:flex;align-items:center;justify-content:center;padding:16px}
+.dlg{background:var(--card);border-radius:12px;box-shadow:0 18px 50px rgba(20,33,58,.3);width:min(760px,100%);max-height:calc(100% - 32px);display:flex;flex-direction:column}
+.dlg>header{padding:16px 18px 6px}
+.dlg>header h3{margin:0;font:600 18px var(--f-disp)}
+.dlg>header p{margin:4px 0 0;color:var(--mut);font-size:13px}
+.dlg .body{padding:10px 18px;overflow:auto;display:flex;flex-direction:column;gap:12px}
+.dlg>footer{padding:12px 18px;border-top:1px solid var(--ln);display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap}
+.kv{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:8px}
+.kv div{background:var(--bg2);border:1px solid var(--ln);border-radius:8px;padding:8px 10px}
+.kv small{display:block;color:var(--mut);font-size:11.5px}
+.kv span{font-weight:600}
+.opt{display:flex;gap:10px;align-items:flex-start;border:1px solid var(--ln);border-radius:8px;padding:10px 12px;cursor:pointer}
+.opt:has(input:checked){border-color:var(--or2);background:var(--act)}
+.opt small{display:block;color:var(--mut)}
+.diff-old{color:var(--mut2);text-decoration:line-through}
+.diff-new{color:var(--or3);font-weight:600}
+textarea{width:100%;border:1px solid var(--inb);border-radius:7px;padding:8px;font:inherit;background:var(--inbg);min-height:56px}
+.warn{background:var(--redb);color:var(--red);border-radius:8px;padding:9px 12px;font-size:13px}
+.info{background:var(--blueb);color:var(--blue);border-radius:8px;padding:9px 12px;font-size:13px}
+/* ficha */
+.fh{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.av{width:42px;height:42px;border-radius:50%;background:var(--navy2);color:#fff;display:flex;align-items:center;justify-content:center;font:600 15px var(--f-disp)}
+.fh h1{font:600 21px var(--f-disp);margin:0}
+.badge{border:1px solid var(--ln3);border-radius:6px;padding:1px 8px;font-size:12px;background:var(--card);cursor:pointer}
+.badge.emp{border-color:var(--pur);color:var(--pur);background:var(--purb)}
+.ftabs{display:flex;gap:2px;border-bottom:1px solid var(--ln3);overflow-x:auto}
+.ftabs button{border:0;background:transparent;padding:8px 12px;cursor:pointer;color:var(--mut);white-space:nowrap;border-bottom:2px solid transparent;font-size:13.5px}
+.ftabs button[aria-selected=true]{color:var(--ink);font-weight:600;border-bottom-color:var(--or2)}
+.ftabs button.new::after{content:"nueva";font-size:10px;background:var(--or);color:var(--ink);border-radius:4px;padding:0 4px;margin-left:5px;vertical-align:1px}
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+.tile{background:var(--card);border:1px solid var(--ln);border-radius:10px;padding:10px 12px}
+.tile small{color:var(--mut);font-size:12px;display:block}
+.tile b{font:600 19px var(--f-disp);font-variant-numeric:tabular-nums}
+.emp-card{display:flex;flex-wrap:wrap;gap:8px 22px;padding:0 14px 12px;font-size:13px}
+.emp-card span{color:var(--mut)}
+.emp-card a{color:var(--blue);cursor:pointer}
+.notes{background:var(--card);border:1px dashed var(--or2);border-radius:10px;padding:12px 14px;font-size:13px;color:var(--txt2)}
+.notes h3{margin:0 0 6px;font:600 14px var(--f-ui);color:var(--or3)}
+.notes ul{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:3px}
+@media (max-width:640px){.ph .sp{margin-left:0}.top .op{display:none}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div class="demo" role="region" aria-label="Controles de la maqueta">
+  <b>MAQUETA</b><span>No forma parte de ProConta · datos ficticios</span>
+  <button id="d-gestion" aria-pressed="true" title="Pantalla de gestión de nóminas (Contabilidad › Nóminas)">Gestión de nóminas</button>
+  <button id="d-tercero" aria-pressed="false" title="Ficha de un tercero con el rol Empleado, pestaña Nóminas">Ficha del tercero › Nóminas</button>
+  <button id="d-importar" title="Simula soltar el Excel de octubre en la pantalla">Simular: soltar un Excel</button>
+  <button id="d-reemplazar" title="Simula que llega la segunda versión del Excel de mayo">Simular: llega otra versión de mayo</button>
+</div>
+
+<div class="app">
+  <div class="top">
+    <span class="logo"><i></i>ProConta</span>
+    <span class="ctx" title="Sociedad y ejercicio activos">Ribera Gestión · Ejercicio 2026</span>
+    <span class="op">Operador <b>Ronald</b></span>
+  </div>
+  <div class="tabs" role="tablist">
+    <button class="tab" role="tab" aria-selected="false" title="Inicio">Inicio</button>
+    <button class="tab" role="tab" id="t-gestion" aria-selected="true" title="Contabilidad › Nóminas">Nóminas</button>
+    <button class="tab" role="tab" id="t-tercero" aria-selected="false" title="Ficha del tercero">Joan Pujol</button>
+  </div>
+
+  <!-- ============ GESTIÓN ============ -->
+  <main id="v-gestion">
+    <div class="ph">
+      <h1>Nóminas</h1>
+      <span class="sub">Ribera Gestión · 2026 · gestoría «9001»</span>
+      <span class="drop sp" title="Arrastra aquí el Excel de la gestoría (.xls o .xlsx); también se puede enviar al correo de ProContaVF">Suelta aquí el Excel de la gestoría</span>
+      <button class="btn pri" id="b-importar" title="Elige el Excel de nóminas de la gestoría. ProContaVF detecta la sociedad por el NIF, el periodo y el tipo de paga">+ Importar fichero…</button>
+    </div>
+
+    <section class="card" aria-labelledby="h-res">
+      <header><h2 id="h-res">Resumen por periodo</h2><span class="n" id="n-res"></span></header>
+      <div class="filters">
+        <div class="seg" role="group" aria-label="Estado">
+          <button aria-pressed="true" data-f="todas" title="Todas las importaciones vigentes">Todas</button>
+          <button aria-pressed="false" data-f="pend" title="Importadas sin contabilizar o con incidencias">Pendientes</button>
+          <button aria-pressed="false" data-f="cont" title="Con todos sus asientos">Contabilizadas</button>
+        </div>
+        <label class="hint"><input type="checkbox" id="ver-rep"> Ver versiones reemplazadas</label>
+      </div>
+      <div class="banner" id="ban-oct">
+        <span>⚠</span>
+        <span><b>Octubre: 1 trabajador sin resolver.</b> Llegó por correo el 31/10 (nominas-octubre.xls). El código <span class="tag">000110</span> «NAVARRO GIL, LUCIA» no es ningún empleado de Ribera Gestión. Resuélvelo para poder contabilizar.</span>
+        <button class="btn" id="b-resolver" title="Asigna el trabajador a un tercero existente o dalo de alta como empleado">Resolver…</button>
+      </div>
+      <div class="tw">
+        <table id="tb-res">
+          <thead><tr>
+            <th title="Mes que cubre la nómina">Periodo</th><th>Tipo de paga</th><th title="Fecha de la nómina y de sus asientos">Fecha</th><th>Origen</th>
+            <th class="num" title="Trabajadores del fichero">Trab.</th><th class="num">Bruto</th><th class="num" title="Seguridad Social a cargo de la empresa">SS empresa</th>
+            <th class="num" title="Retenciones del modelo 111">IRPF</th><th class="num">Neto</th><th class="num">Coste empresa</th><th>Estado</th><th title="Asientos generados">Asientos</th>
+          </tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <div class="foot"><span>Clic derecho sobre un periodo para contabilizar, deshacer, reemplazar o ver sus asientos. Selección múltiple con Ctrl o Mayús.</span></div>
+    </section>
+
+    <section class="card" aria-labelledby="h-det">
+      <header><h2 id="h-det">Nóminas de …</h2><span class="n" id="n-det"></span><span class="hint sp" style="margin-left:auto">Clic derecho: ficha del empleado, ver asiento</span></header>
+      <div class="tw">
+        <table id="tb-det">
+          <thead><tr>
+            <th>Trabajador</th><th>Código</th><th>Cuenta 465</th><th class="num">Bruto</th><th class="num" title="Descuento por retribución en especie">Dto. especie</th>
+            <th class="num">SS empresa</th><th class="num" title="TC1 − SS empresa">Cuotas obreras</th><th class="num" title="Cuota de autónomo pagada como retribución en especie">Autónomo</th>
+            <th class="num">IRPF</th><th class="num">Neto</th><th class="num">Coste empresa</th><th title="Bruto − deducciones = neto">Cuadre</th><th>Asiento</th>
+          </tr></thead>
+          <tbody></tbody><tfoot></tfoot>
+        </table>
+      </div>
+      <div class="foot" id="foot-det"></div>
+    </section>
+  </main>
+
+  <!-- ============ FICHA DEL TERCERO ============ -->
+  <main id="v-tercero" hidden>
+    <div class="fh">
+      <span class="av">JP</span>
+      <div><h1>Joan Pujol Vidal</h1><span class="sub hint">Persona física · NIF 00000000T · Activo</span></div>
+      <span class="badge emp" title="Rol Empleado en Ribera Gestión: se activa y se edita en la pestaña Roles">Empleado · 000902</span>
+      <span class="badge" title="Rol Cliente">Cliente · C-0412</span>
+    </div>
+    <div class="ftabs" role="tablist">
+      <button>Identidad</button><button>Contacto</button><button title="Aquí se activa el rol Empleado: código de trabajador y cuenta 465 por sociedad">Roles</button><button>Perfiles</button>
+      <button>Ventas</button><button>Compras</button><button class="new" aria-selected="true" title="Solo aparece si el tercero tiene el rol Empleado">Nóminas</button>
+      <button>Contabilidad</button><button>Notas</button><button>Documentos</button><button>Historial</button>
+    </div>
+
+    <section class="card">
+      <header><h2>Empleado en Ribera Gestión</h2>
+        <div class="seg sp" style="margin-left:auto" role="group" aria-label="Ejercicio">
+          <button aria-pressed="false" data-y="2025" title="Nóminas de 2025">2025</button>
+          <button aria-pressed="true" data-y="2026" title="Nóminas de 2026">2026</button>
+          <button aria-pressed="false" data-y="todos" title="Todas las nóminas del empleado">Todos</button>
+        </div>
+      </header>
+      <div class="emp-card">
+        <div><span>Código en la gestoría</span> <b class="mono">000902</b></div>
+        <div><span>Cuenta 465</span> <b class="mono">4650902</b> Remuneraciones pend. · Joan Pujol</div>
+        <div><span>Cuentas por trabajador</span> <b class="mono">4760003</b> autónomo · <b class="mono">4600103</b> anticipos</div>
+        <div><span>Primera nómina</span> 25/01/2023</div>
+        <div><a title="Abre la pestaña Roles en el rol Empleado">Cambiar en Roles</a></div>
+      </div>
+    </section>
+
+    <div class="tiles" id="tiles"></div>
+
+    <section class="card">
+      <header><h2>Nóminas</h2><span class="n" id="n-ter"></span><span class="hint" style="margin-left:auto">Doble clic: ver el asiento · clic derecho: más acciones</span></header>
+      <div class="tw">
+        <table id="tb-ter">
+          <thead><tr><th>Periodo</th><th>Tipo de paga</th><th>Fecha</th><th class="num">Bruto</th><th class="num">Dto. especie</th><th class="num">Autónomo</th>
+          <th class="num">IRPF</th><th class="num">Cuotas obreras</th><th class="num">Neto</th><th class="num">Coste empresa</th><th>Asiento</th><th>Estado</th></tr></thead>
+          <tbody></tbody><tfoot></tfoot>
+        </table>
+      </div>
+    </section>
+
+    <aside class="notes">
+      <h3>Qué valida esta maqueta</h3>
+      <ul>
+        <li>La pestaña Nóminas solo aparece cuando el tercero tiene el rol Empleado, y muestra sus nóminas en la sociedad activa.</li>
+        <li>El código de trabajador y la cuenta 465 se activan y se cambian en Roles, como la cuenta de cliente o de proveedor.</li>
+        <li>Los totales del año (bruto, IRPF, neto, coste) sirven para el certificado de retenciones y para revisar el modelo 190.</li>
+      </ul>
+    </aside>
+  </main>
+
+  <div class="status"><span>● Conectado · ProConta-erp-04.accdb (simulado)</span><span>Ronald</span><span style="margin-left:auto">Datos ficticios</span></div>
+</div>
+
+<div id="menu" class="menu" hidden role="menu"></div>
+<div id="scrim" class="scrim" hidden><div class="dlg" role="dialog" aria-modal="true" id="dlg"></div></div>
+
+<script>
+(function(){
+const F=n=>{const t=Math.abs(n).toFixed(2).split('.');return (n<0?'−':'')+t[0].replace(/\B(?=(\d{3})+(?!\d))/g,'.')+','+t[1]};
+const fmt=n=>n==null||n===0?'':F(n);
+const E=n=>F(n)+' €';
+const $=s=>document.querySelector(s);
+const MES=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+// Trabajadores ficticios
+const W={
+  A:{n:'Marta Ferrer Soler',c:'000901',cta:'4650901'},
+  B:{n:'Joan Pujol Vidal',c:'000902',cta:'4650902'},
+  C:{n:'Sara Lluch Romero',c:'000903',cta:'4650903'},
+  D:{n:'NAVARRO GIL, LUCIA',c:'000110',cta:null}
+};
+function nom(w,o){const r=Object.assign({w,bruto:0,dto:0,ssemp:0,tc1:0,aut:0,irpf:0},o);r.cuot=+(r.tc1-r.ssemp).toFixed(2);
+  r.neto=+(r.bruto+r.dto-r.aut-r.irpf-r.cuot).toFixed(2);r.coste=+(r.bruto+r.ssemp).toFixed(2);return r}
+const nA=()=>nom('A',{bruto:2300,dto:-40,aut:1300});
+const nB=()=>nom('B',{bruto:2400,dto:-120,aut:1300,irpf:780});
+const nC=()=>nom('C',{bruto:1450,ssemp:460,tc1:552,irpf:87});
+const nCbaja=()=>nom('C',{bruto:1250,ssemp:-1050,tc1:-960});
+let asi=827;const P=[];
+function per(m,tipo,fecha,origen,rows,estado,extra){const p=Object.assign({id:P.length+1,m,tipo,fecha,origen,rows,estado},extra||{});
+  if(estado==='Contabilizada'){p.rows.forEach(r=>r.asi=asi++);}P.push(p);return p}
+per(0,'Mensual','31/01/2026','Migración',[nA(),nB(),nC()],'Contabilizada');
+per(1,'Mensual','28/02/2026','Migración',[nA(),nB(),nC()],'Contabilizada');
+per(2,'Mensual','31/03/2026','Migración',[nA(),nB(),nC()],'Contabilizada');
+per(3,'Mensual','30/04/2026','Migración',[nA(),nB(),nC()],'Contabilizada');
+const mayo1=per(4,'Mensual','31/05/2026','Migración',[nA(),nB(),nC()],'Reemplazada',{ver:1});
+mayo1.rows.forEach((r,i)=>r.asi=839+i);asi=842;
+const mayo2=per(4,'Mensual','31/05/2026','Fichero',[nA(),nB(),nCbaja()],'Contabilizada',{ver:2,fich:'051.xls'});
+per(5,'Mensual','30/06/2026','Migración',[nA(),nB(),nCbaja()],'Contabilizada');
+per(6,'Extra de verano','15/07/2026','Migración',[nom('A',{bruto:960}),nom('B',{bruto:300,irpf:105})],'Contabilizada');
+per(6,'Mensual','31/07/2026','Migración',[nA(),nB(),nCbaja()],'Contabilizada');
+per(7,'Mensual','31/08/2026','Migración',[nA(),nB(),nCbaja()],'Contabilizada');
+per(8,'Mensual','30/09/2026','Fichero',[nA(),nB(),nCbaja()],'Contabilizada',{fich:'09 SEPTIEMBRE RESUMEN.xls'});
+const oct=per(9,'Mensual','31/10/2026','Correo',[nA(),nB(),nC(),nom('D',{bruto:1380,ssemp:438,tc1:526,irpf:41})],'Con incidencias',{fich:'nominas-octubre.xls'});
+const S=r=>k=>r.rows.reduce((a,x)=>a+(x[k]||0),0);
+let filtro='todas',verRep=false,sel=new Set([oct.id]),activo=oct.id;
+const pill=e=>({'Contabilizada':'p-ok','Pendiente':'p-pen','Con incidencias':'p-inc','Reemplazada':'p-rep'}[e]);
+function asientos(p){const a=p.rows.map(r=>r.asi).filter(Boolean);return a.length?(a.length>1?a[0]+'–'+a[a.length-1]:''+a[0]):'—'}
+function renderRes(){
+  const tb=$('#tb-res tbody');tb.innerHTML='';
+  const vis=P.filter(p=>(verRep||p.estado!=='Reemplazada')&&(filtro==='todas'||(filtro==='pend'?['Pendiente','Con incidencias'].includes(p.estado):p.estado==='Contabilizada'))).sort((a,b)=>b.m-a.m||b.id-a.id);
+  vis.forEach(p=>{const s=S(p);const tr=document.createElement('tr');tr.dataset.id=p.id;
+    if(sel.has(p.id))tr.classList.add('sel');if(activo===p.id)tr.classList.add('act');if(p.estado==='Reemplazada')tr.classList.add('old');
+    tr.innerHTML=`<td>${MES[p.m]} 2026${p.ver?` <span class="tag" title="Versión del fichero">v${p.ver}</span>`:''}</td><td>${p.tipo}</td><td class="mono">${p.fecha}</td>
+    <td title="${p.fich?'Fichero: '+p.fich:'Histórico migrado de ProConta antiguo'}">${p.origen}</td><td class="num">${p.rows.length}</td><td class="num">${fmt(s('bruto'))}</td>
+    <td class="num">${fmt(s('ssemp'))}</td><td class="num">${fmt(s('irpf'))}</td><td class="num">${fmt(s('neto'))}</td><td class="num">${fmt(s('coste'))}</td>
+    <td><span class="pill ${pill(p.estado)}">${p.estado}</span></td><td class="mono">${asientos(p)}</td>`;
+    tr.onclick=e=>{if(e.ctrlKey||e.metaKey){sel.has(p.id)?sel.delete(p.id):sel.add(p.id)}else{sel=new Set([p.id])}activo=p.id;render()};
+    tr.oncontextmenu=e=>{e.preventDefault();if(!sel.has(p.id)){sel=new Set([p.id]);activo=p.id;render()}menuRes(e)};
+    tb.appendChild(tr)});
+  $('#n-res').textContent=vis.length+' periodos';
+  $('#ban-oct').hidden=!oct.rows.some(r=>!W[r.w].cta);
+}
+function renderDet(){
+  const p=P.find(x=>x.id===activo);const s=S(p);
+  $('#h-det').textContent=`Nóminas de ${MES[p.m].toLowerCase()} 2026 · ${p.tipo.toLowerCase()}`;
+  $('#n-det').textContent=p.rows.length+' trabajadores';
+  const tb=$('#tb-det tbody');tb.innerHTML='';
+  p.rows.forEach(r=>{const w=W[r.w];const tr=document.createElement('tr');
+    tr.innerHTML=`<td>${w.cta?w.n:`<span class="pill p-inc" title="No coincide con ningún empleado: código, DNI y nombre sin coincidencia segura">Sin resolver</span> ${w.n}`}</td><td class="mono">${w.c}</td>
+    <td class="mono">${w.cta||'—'}</td><td class="num">${fmt(r.bruto)}</td><td class="num">${fmt(r.dto)}</td><td class="num">${fmt(r.ssemp)}</td><td class="num">${fmt(r.cuot)}</td>
+    <td class="num">${fmt(r.aut)}</td><td class="num">${fmt(r.irpf)}</td><td class="num">${fmt(r.neto)}</td><td class="num">${fmt(r.coste)}</td>
+    <td class="ok" title="Bruto ${E(r.bruto)} + dto. especie − autónomo − IRPF − cuotas obreras = neto ${E(r.neto)}">✓</td><td class="mono">${r.asi||'—'}</td>`;
+    tr.oncontextmenu=e=>{e.preventDefault();menu(e,[
+      ['Abrir la ficha del empleado',!w.cta&&'Primero resuelve el trabajador',()=>go('tercero')],
+      ['Ver el asiento',!r.asi&&'Aún no está contabilizada',null],
+      ['Resolver trabajador…',w.cta&&'Ya está resuelto',resolver],
+    ])};
+    tb.appendChild(tr)});
+  $('#tb-det tfoot').innerHTML=`<tr><td colspan="3">Total</td><td class="num">${fmt(s('bruto'))}</td><td class="num">${fmt(s('dto'))}</td><td class="num">${fmt(s('ssemp'))}</td><td class="num">${fmt(s('cuot'))}</td><td class="num">${fmt(s('aut'))}</td><td class="num">${fmt(s('irpf'))}</td><td class="num">${fmt(s('neto'))}</td><td class="num">${fmt(s('coste'))}</td><td></td><td></td></tr>`;
+  $('#foot-det').innerHTML=p.origen==='Migración'?`<span>Histórico migrado de ProConta antiguo, enlazado con los asientos importados de ContaSol.</span>`:
+    `<span>Fichero <b>${p.fich}</b></span><span>Fila «TOTAL EMPRESA» del fichero: <b class="ok">coincide</b></span><span>Todas las filas cuadran</span>`;
+}
+function render(){renderRes();renderDet()}
+function menu(e,items,title){const m=$('#menu');m.innerHTML=(title?`<div class="t">${title}</div>`:'')+items.map((it,i)=>it==='-'?'<hr>':`<button role="menuitem" data-i="${i}" ${it[1]?'disabled':''}>${it[0]}${it[1]?`<small>${it[1]}</small>`:''}</button>`).join('');
+  m.hidden=false;const x=Math.min(e.clientX,innerWidth-m.offsetWidth-16),y=Math.min(e.clientY,innerHeight-m.offsetHeight-16);m.style.left=Math.max(8,x)+'px';m.style.top=Math.max(8,y)+'px';
+  m.querySelectorAll('button').forEach(b=>b.onclick=()=>{m.hidden=true;const f=items[+b.dataset.i][2];f&&f()})}
+document.addEventListener('click',e=>{if(!e.target.closest('#menu'))$('#menu').hidden=true});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){$('#menu').hidden=true;cerrar()}});
+function menuRes(e){const ps=[...sel].map(id=>P.find(p=>p.id===id));const una=ps.length===1;const p=ps[0];
+  const cont=ps.every(x=>x.estado==='Contabilizada'),pend=ps.every(x=>['Pendiente','Con incidencias'].includes(x.estado));
+  menu(e,[
+    ['Contabilizar',!pend?'Solo periodos pendientes':(ps.some(x=>x.estado==='Con incidencias')?'Resuelve antes las incidencias':false),null],
+    ['Deshacer la contabilización…',!cont?'Solo periodos contabilizados':false,()=>deshacer(ps)],
+    ['Reemplazar con otro fichero…',!una?'Elige un solo periodo':(p.estado==='Reemplazada'?'Esta versión ya está reemplazada':false),()=>reemplazar()],
+    '-',
+    ['Ver los asientos',!ps.some(x=>x.rows.some(r=>r.asi))?'No tiene asientos':false,null],
+    ['Abrir el fichero original',!una||!p.fich?'Los periodos migrados no tienen fichero':false,null],
+    ['Abrir el correo de origen',!una||p.origen!=='Correo'?'No llegó por correo':false,null],
+    '-',
+    ['Copiar la lista (F10)',false,null],
+  ],ps.length>1?ps.length+' periodos seleccionados':MES[p.m]+' 2026 · '+p.tipo.toLowerCase())}
+// diálogos
+function dlg(html){$('#dlg').innerHTML=html;$('#scrim').hidden=false;$('#dlg').querySelectorAll('[data-close]').forEach(b=>b.onclick=cerrar);const f=$('#dlg').querySelector('button.pri,input');f&&f.focus()}
+function cerrar(){$('#scrim').hidden=true}
+$('#scrim').onclick=e=>{if(e.target.id==='scrim')cerrar()};
+function importar(){dlg(`<header><h3>Importar nóminas</h3><p>nominas-octubre.xls · leído sin preguntas: la sociedad por el NIF, y el periodo y la paga por la cabecera del fichero.</p></header>
+<div class="body">
+ <div class="kv"><div><small>Sociedad (por NIF)</small><span>Ribera Gestión</span></div><div><small>Periodo</small><span>01/10/2026 – 31/10/2026</span></div>
+ <div><small>Tipo de paga</small><span>Mensual</span></div><div><small>Fecha de la nómina</small><span>31/10/2026</span></div><div><small>Trabajadores</small><span>4 filas</span></div>
+ <div><small>Controles</small><span class="ok">Cuadran las 4 filas · total coincide</span></div></div>
+ <div class="info">Cabecera nueva en este fichero: <b>«Enfermedad/ accidente»</b>. Se guardará para Ribera Gestión y no se volverá a preguntar.
+   <div style="margin-top:6px"><select class="inp" id="map1" title="Campo de la nómina al que corresponde la columna"><option>Enfermedad / accidente</option><option>Ignorar esta columna</option><option>Cuotas obreras</option></select></div></div>
+ <div class="warn">1 trabajador sin resolver: código 000110 «NAVARRO GIL, LUCIA». Puedes importar ahora y resolverlo después; no se contabiliza hasta resolverlo.</div>
+</div>
+<footer><button class="btn" data-close>Cancelar</button><button class="btn" data-close title="Guarda las nóminas sin generar asientos">Solo importar</button><button class="btn pri" id="b-res2" title="Resuelve el trabajador y contabiliza las 4 nóminas en una sola operación">Resolver y contabilizar…</button></footer>`);
+ $('#b-res2').onclick=resolver}
+function resolver(){dlg(`<header><h3>Resolver trabajador</h3><p>Código <span class="tag">000110</span> · «NAVARRO GIL, LUCIA» · DNI 00000001R · Octubre 2026</p></header>
+<div class="body">
+ <p class="hint" style="margin:0">Ningún empleado tiene ese código ni ese DNI. Candidatos por nombre (nunca se asigna solo):</p>
+ <label class="opt"><input type="radio" name="r" value="t"><span><b>Lucía Navarro Gil</b> · Tercero T-02817 · Cliente C-0533<small>Mismo nombre y mismo DNI en la ficha. Se le activa el rol Empleado con el código 000110.</small></span></label>
+ <label class="opt"><input type="radio" name="r" value="n" checked><span><b>Alta como empleada nueva</b><small>Crea el tercero «Lucía Navarro Gil» con el rol Empleado, el código 000110 y la cuenta 4650104 (la siguiente libre de la 465).</small></span></label>
+ <label class="opt"><input type="radio" name="r" value="b"><span><b>Buscar otro tercero…</b><small>Abre el buscador de terceros.</small></span></label>
+</div>
+<footer><button class="btn" data-close>Cancelar</button><button class="btn pri" id="ok-res">Resolver y contabilizar</button></footer>`);
+ $('#ok-res').onclick=()=>{W.D.cta='4650104';W.D.n='Lucía Navarro Gil';oct.estado='Contabilizada';oct.rows.forEach(r=>r.asi=asi++);sel=new Set([oct.id]);activo=oct.id;cerrar();render()}}
+function reemplazar(){
+ const a=mayo1.rows[2],b=mayo2.rows[2];
+ dlg(`<header><h3>Reemplazar mayo 2026</h3><p>Ha llegado <b>051.xls</b>, otra versión del mismo periodo y la misma paga, con contenido distinto.</p></header>
+<div class="body">
+ <div class="tw"><table><thead><tr><th>Trabajador</th><th>Campo</th><th class="num">Antes</th><th class="num">Ahora</th></tr></thead><tbody>
+ ${[['Bruto','bruto'],['SS empresa','ssemp'],['Cuotas obreras','cuot'],['IRPF','irpf'],['Neto','neto'],['Coste empresa','coste']].filter(([_,k])=>a[k]!==b[k]).map(([t,k],i)=>`<tr><td>${i?'':W.C.n}</td><td>${t}</td><td class="num diff-old">${fmt(a[k])||'0,00'}</td><td class="num diff-new">${fmt(b[k])||'0,00'}</td></tr>`).join('')}
+ <tr><td colspan="4" class="hint">Marta Ferrer Soler y Joan Pujol Vidal: sin cambios.</td></tr></tbody></table></div>
+ <div class="warn">Mayo está en un trimestre cerrado: los asientos ${asientos(mayo1)} no se tocan. Se generan su anulación y los asientos nuevos con fecha 01/10/2026, el primer día del trimestre activo. La diferencia de IRPF (−87,00 €) entra en el modelo 111 del 4T.</div>
+ <div class="info">La versión anterior se conserva como «reemplazada», con su fichero.</div>
+ <label>Motivo <span class="hint">(obligatorio, queda en la auditoría de los asientos)</span><textarea id="mot">La gestoría corrige la nómina por la baja de Sara Lluch.</textarea></label>
+</div>
+<footer><button class="btn" data-close>Cancelar</button><button class="btn pri" id="ok-rep">Reemplazar y contabilizar</button></footer>`);
+ $('#ok-rep').onclick=()=>{verRep=true;$('#ver-rep').checked=true;sel=new Set([mayo2.id]);activo=mayo2.id;cerrar();render()}}
+function deshacer(ps){dlg(`<header><h3>Deshacer la contabilización</h3><p>${ps.map(p=>MES[p.m]+' 2026 · '+p.tipo.toLowerCase()).join(', ')}</p></header>
+<div class="body"><div class="info">En un trimestre abierto se borran sus asientos; en uno cerrado se anulan con asientos de fecha 01/10/2026 (primer día del trimestre activo). Afecta a ${ps.reduce((a,p)=>a+p.rows.filter(r=>r.asi).length,0)} asientos. Las nóminas quedan importadas y pendientes; se pueden volver a contabilizar.</div>
+<label>Motivo <span class="hint">(obligatorio)</span><textarea id="mot2" placeholder="Por qué se deshace"></textarea></label></div>
+<footer><button class="btn" data-close>Cancelar</button><button class="btn dan" data-close>Deshacer</button></footer>`)}
+$('#b-importar').onclick=importar;$('#d-importar').onclick=()=>{go('gestion');importar()};
+$('#d-reemplazar').onclick=()=>{go('gestion');reemplazar()};$('#b-resolver').onclick=resolver;
+document.querySelectorAll('[data-f]').forEach(b=>b.onclick=()=>{filtro=b.dataset.f;document.querySelectorAll('[data-f]').forEach(x=>x.setAttribute('aria-pressed',x===b));renderRes()});
+$('#ver-rep').onchange=e=>{verRep=e.target.checked;renderRes()};
+// ficha del tercero
+let anyo='2026';
+function renderTer(){
+  const filas=[];
+  if(anyo!=='2026'){for(let m=11;m>=0;m--){const r=nom('B',{bruto:2350,dto:-120,aut:1260,irpf:740});filas.push({p:{m,tipo:'Mensual',fecha:'25/'+String(m+1).padStart(2,'0')+'/2025',estado:'Contabilizada',y:2025},r:Object.assign(r,{asi:300+m})})}}
+  if(anyo!=='2025')P.filter(p=>p.estado!=='Reemplazada').forEach(p=>p.rows.forEach(r=>{if(r.w==='B')filas.push({p:Object.assign({y:2026},p),r})}));
+  filas.sort((a,b)=>b.p.y-a.p.y||b.p.m-a.p.m);
+  const T=k=>filas.reduce((a,f)=>a+(f.r[k]||0),0);
+  $('#tiles').innerHTML=[['Bruto',T('bruto')],['IRPF retenido',T('irpf')],['Neto',T('neto')],['Coste empresa',T('coste')]].map(([t,v])=>`<div class="tile"><small>${t} · ${anyo==='todos'?'2025–2026':anyo}</small><b>${E(v)}</b></div>`).join('');
+  const tb=$('#tb-ter tbody');tb.innerHTML='';
+  filas.forEach(({p,r})=>{const tr=document.createElement('tr');tr.innerHTML=`<td>${MES[p.m]} ${p.y}</td><td>${p.tipo}</td><td class="mono">${p.fecha}</td><td class="num">${fmt(r.bruto)}</td><td class="num">${fmt(r.dto)}</td><td class="num">${fmt(r.aut)}</td><td class="num">${fmt(r.irpf)}</td><td class="num">${fmt(r.cuot)}</td><td class="num">${fmt(r.neto)}</td><td class="num">${fmt(r.coste)}</td><td class="mono">${r.asi||'—'}</td><td><span class="pill ${pill(p.estado)}">${p.estado}</span></td>`;
+   tr.oncontextmenu=e=>{e.preventDefault();menu(e,[['Ver el asiento',!r.asi&&'Sin contabilizar',null],['Abrir el periodo en Nóminas',false,()=>go('gestion')],['Abrir el fichero original',p.origen==='Migración'||!p.fich?'Migrada, sin fichero':false,null]])};
+   tb.appendChild(tr)});
+  $('#n-ter').textContent=filas.length+' nóminas';
+  $('#tb-ter tfoot').innerHTML=`<tr><td colspan="3">Total</td><td class="num">${fmt(T('bruto'))}</td><td class="num">${fmt(T('dto'))}</td><td class="num">${fmt(T('aut'))}</td><td class="num">${fmt(T('irpf'))}</td><td class="num">${fmt(T('cuot'))}</td><td class="num">${fmt(T('neto'))}</td><td class="num">${fmt(T('coste'))}</td><td></td><td></td></tr>`;
+}
+document.querySelectorAll('[data-y]').forEach(b=>b.onclick=()=>{anyo=b.dataset.y;document.querySelectorAll('[data-y]').forEach(x=>x.setAttribute('aria-pressed',x===b));renderTer()});
+function go(v){location.hash=v==='tercero'?'tercero':'gestion'}
+function show(){const v=location.hash==='#tercero'?'tercero':'gestion';
+  $('#v-gestion').hidden=v!=='gestion';$('#v-tercero').hidden=v!=='tercero';
+  $('#t-gestion').setAttribute('aria-selected',v==='gestion');$('#t-tercero').setAttribute('aria-selected',v==='tercero');
+  $('#d-gestion').setAttribute('aria-pressed',v==='gestion');$('#d-tercero').setAttribute('aria-pressed',v==='tercero');
+  if(v==='tercero')renderTer();else render()}
+$('#t-gestion').onclick=$('#d-gestion').onclick=()=>go('gestion');$('#t-tercero').onclick=$('#d-tercero').onclick=()=>go('tercero');
+addEventListener('hashchange',show);show();
+})();
+</script>

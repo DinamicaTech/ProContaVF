@@ -52,13 +52,13 @@ public sealed class SaldoPincelConverter : IMultiValueConverter
     {
         if (values.Length < 2 || values[0] is null || values[0] == DependencyProperty.UnsetValue) return Neutro;
         var saldo = System.Convert.ToDecimal(values[0], CultureInfo.InvariantCulture);
-        var g = values[1] switch
+        var sentido = values[1] switch
         {
-            char c => c,
-            string s when s.Length > 0 => s[0],
-            _ => '0'
+            char c => ReglaSaldo.Sentido(c, saldo),
+            string s => ReglaSaldo.Sentido(s, saldo),
+            _ => SentidoSaldo.Neutro
         };
-        return ReglaSaldo.Sentido(g, saldo) switch
+        return sentido switch
         {
             SentidoSaldo.AFavor => AFavor,
             SentidoSaldo.EnContra => EnContra,

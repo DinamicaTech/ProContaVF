@@ -45,10 +45,11 @@ public sealed class ContabilizacionComprasAccessTests : IDisposable
     {
         await DatosSinteticos.SociedadAsync(Bd, "T01", "Sociedad sintética", NifSociedad);
         await DatosSinteticos.EjercicioAsync(Bd, 9001, "T01", 2026);
+        // Los tipos salen del catálogo TiposDeIVA y las cuentas de IVA soportado se calculan (4720 + porcentaje).
+        await DatosSinteticos.TiposIvaAsync(Bd, 21m, 10m);
         await Bd.EjecutarAsync(s => s.EjecutarAsync(
-            "UPDATE SociedadesEjercicios SET TipoIVA1 = ?, TipoIVA2 = ?, CuentaTipoIVA1 = ?, CuentaTipoIVA2 = ?, TrimestreActivo = ?, " +
-            "CuentaRedondeoGastos = ?, CuentaRedondeoIngresos = ? WHERE IdSociedadEjercicio = ?",
-            21f, 10f, "4720021", "4720010", trimestreActivo, "6690000", "7690000", 9001));
+            "UPDATE SociedadesEjercicios SET TrimestreActivo = ?, CuentaRedondeoGastos = ?, CuentaRedondeoIngresos = ? WHERE IdSociedadEjercicio = ?",
+            trimestreActivo, "6690000", "7690000", 9001));
         var cuentas = new CatalogoCuentasAccess(Bd);
         foreach (var (codigo, nombre, imputable) in new[]
         {
@@ -190,6 +191,30 @@ public sealed class ContabilizacionComprasAccessTests : IDisposable
         Assert.Equal(176m, asiento.Apuntes.Where(a => a.CodigoCuenta == "6290000").Sum(a => a.Debe.Valor));
         Assert.Equal(0m, Convert.ToDecimal(await Bd.EjecutarAsync(s => s.EscalarAsync("SELECT CuotaDeducibleTotal FROM IVASoportado WHERE IdAsiento = ?", r.Valor.IdAsiento))));
         Assert.Equal(26m, Convert.ToDecimal(await Bd.EjecutarAsync(s => s.EscalarAsync("SELECT CuotaSoportadaTotal FROM IVASoportado WHERE IdAsiento = ?", r.Valor.IdAsiento))));
+    }
+
+    /// <summary>
+    /// Cambio de deducción desde una fecha (contabilidad/procesos/cambio-deduccion-actividad): la actividad no deducible pasa a
+    /// deducir al 100 % desde <paramref name="desde"/>; manda la fecha de la factura (10/07/2026).
+    /// </summary>
+    [Theory]
+    [InlineData(10, true)]
+    [InlineData(11, false)]
+    public async Task Con_un_cambio_de_deduccion_manda_la_fecha_de_la_factura(int desde, bool deduce)
+    {
+        await EmpresaAsync();
+        var (_, hijo) = await CentrosConActividadAsync("4726", 0);
+        var idActividad = await Contar("SELECT MAX(IdActividad) FROM Actividades");
+        await Bd.EjecutarAsync(s => s.EjecutarAsync("INSERT INTO ActividadesDeduccion (IdActividad, FechaDesde, Deducible) VALUES (?, ?, ?)",
+            idActividad, new DateTime(2026, 7, desde), (byte)2));
+        var (f, _) = await FacturaAsync();
+        f.IdCentroCoste = hijo;
+        var r = await Servicio().ExportarAsync(f, _actor, new OpcionesExportacion(EsProveedor: false));
+        Assert.True(r.EsCorrecto, r.Error?.ToString());
+        var asiento = (await new MotorAsientosAccess(Bd).ObtenerAsync(r.Valor.IdAsiento!.Value))!;
+        Assert.Equal(deduce, asiento.Apuntes.Any(a => a.CodigoCuenta == "4726021" && a.Debe.Valor == 21m));
+        Assert.Equal(deduce ? 150m : 176m, asiento.Apuntes.Where(a => a.CodigoCuenta == "6290000").Sum(a => a.Debe.Valor));
+        Assert.Equal(deduce ? 26m : 0m, Convert.ToDecimal(await Bd.EjecutarAsync(s => s.EscalarAsync("SELECT CuotaDeducibleTotal FROM IVASoportado WHERE IdAsiento = ?", r.Valor.IdAsiento))));
     }
 
     [Fact]
@@ -462,19 +487,20 @@ public sealed class ContabilizacionComprasAccessTests : IDisposable
     }
 
     [Fact]
-    public async Task Sin_cuenta_de_gasto_o_con_la_cuenta_de_iva_sin_configurar_no_exporta_nada()
+    public async Task Sin_cuenta_de_gasto_o_con_un_tipo_de_iva_sin_cuenta_calculable_no_exporta_nada()
     {
         await EmpresaAsync();
         var (f, _) = await FacturaAsync();
         f.CuentaGasto = null;
-        f.Desgloses.Add(new DesgloseFacturaCompra(3, 4m, 10m, 0.4m));
+        // La cuenta de IVA se calcula (4720 + porcentaje con tres cifras): un tipo con decimales no la tiene.
+        f.Desgloses.Add(new DesgloseFacturaCompra(3, 5.5m, 10m, 0.55m));
         f.BaseImponible = 160m;
-        f.CuotaIva = 26.4m;
-        f.ImporteTotal = 186.4m;
+        f.CuotaIva = 26.55m;
+        f.ImporteTotal = 186.55m;
         var c = await Servicio().ComprobarAsync(f);
         Assert.False(c.Lista);
         Assert.Contains(c.Errores, e => e.Mensaje.Contains("cuenta de gasto"));
-        Assert.Contains(c.Errores, e => e.Mensaje.Contains("IVA soportado del 4"));
+        Assert.Contains(c.Errores, e => e.Codigo == "Exportar.TipoSinCuenta" && e.Mensaje.Contains("5,5 %"));
         Assert.False((await Servicio().ExportarAsync(f, _actor, new OpcionesExportacion(EsProveedor: false))).EsCorrecto);
         Assert.Equal(0, await Contar("SELECT COUNT(*) FROM Asientos"));
     }

@@ -1,5 +1,6 @@
 using ProConta.Contabilidad.Asientos;
 using ProConta.Implantacion.ContaSol;
+using ProConta.Terceros.Contactos;
 using ProConta.Terceros.Roles;
 
 namespace ProConta.Implantacion.Tests;
@@ -73,7 +74,7 @@ public sealed class PlanificadorTests
     {
         var apuntes = new[]
         {
-            Ap(5, 1, "6000001", 100m, true), Ap(5, 2, "4720000", 21m, true, tipoIva: "S", codigoIva: 3), Ap(5, 3, "4000001", 121m, false),
+            Ap(5, 1, "6000001", 100m, true), Ap(5, 2, "4720021", 21m, true, tipoIva: "S", codigoIva: 3), Ap(5, 3, "4000001", 121m, false),
         };
         var iva = new RegistroIvaContaSol(true, 3, new DateTime(2024, 5, 2), new DateTime(2024, 4, 30), null, "4000001", "F-1", "Proveedor uno", "B12345674", 0m,
             [new TramoIvaContaSol(100m, 21m, 21m)], 121m, 0, true, 50m, null);
@@ -170,5 +171,17 @@ public sealed class PlanificadorIvaFechasTests
         Assert.Equal(new DateTime(2026, 1, 15), r.FechaRegistro);
         Assert.Contains(plan.Incidencias, i => i.Codigo == "ContaSol.IvaFechaCorregida" && i.Clave == "9");
         Assert.Contains(plan.Incidencias, i => i.Codigo == "ContaSol.IvaFueraDeEjercicio" && i.Clave == "10");
+    }
+
+    [Fact]
+    public void LosContactosDeLaFichaSiguenLasReglasDeLaMigracionDeLaFichaAntigua()
+    {
+        var datos = PlanificadorContaSol.ContactosDeFicha(" uno@ejemplo.test; Dos@Ejemplo.test,UNO@ejemplo.test sin-arroba @mal.test mal@ ", " 96 123 45 67 ");
+        Assert.Equal(
+            [(TipoDatoContacto.Email, "uno@ejemplo.test"), (TipoDatoContacto.Email, "Dos@Ejemplo.test"), (TipoDatoContacto.Telefono, "96 123 45 67")],
+            datos);
+        // Un teléfono con menos de 6 cifras o vacío no es un dato de contacto (se queda solo en la ficha).
+        Assert.Empty(PlanificadorContaSol.ContactosDeFicha(null, "12-34"));
+        Assert.Empty(PlanificadorContaSol.ContactosDeFicha("  ", "  "));
     }
 }

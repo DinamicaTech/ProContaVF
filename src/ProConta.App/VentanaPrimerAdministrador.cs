@@ -9,8 +9,8 @@ internal sealed class VentanaPrimerAdministrador : Window
 {
     private readonly ServicioOperadores _operadores;
     private readonly TextBox _nombre = new() { Width = 280, ToolTip = "Nombre con el que entrará el administrador" };
-    private readonly PasswordBox _clave = new() { Width = 280, ToolTip = $"Al menos {ServicioOperadores.LongitudMinimaContrasena} caracteres" };
-    private readonly PasswordBox _repetida = new() { Width = 280, ToolTip = "Escribe otra vez la misma contraseña" };
+    private readonly PasswordBox _clave = new() { Width = 280, ToolTip = "Opcional: déjala vacía para entrar sin contraseña. Cualquier contraseña vale" };
+    private readonly PasswordBox _repetida = new() { Width = 280, ToolTip = "Escribe otra vez la misma contraseña (vacía si no pones ninguna)" };
     private readonly TextBlock _error = new() { Foreground = (System.Windows.Media.Brush)Application.Current.FindResource("Pincel.RojoError"), TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 12, 0, 0) };
 
     private VentanaPrimerAdministrador(ServicioOperadores operadores)
@@ -26,7 +26,7 @@ internal sealed class VentanaPrimerAdministrador : Window
         panel.Children.Add(new TextBlock { Text = "Crea el primer administrador", Style = (Style)FindResource("Texto.Titulo") });
         panel.Children.Add(new TextBlock { Text = "La base de datos no tiene ningún operador. El que crees ahora podrá dar de alta a los demás.", TextWrapping = TextWrapping.Wrap, MaxWidth = 380, Margin = new Thickness(0, 8, 0, 16), Foreground = (System.Windows.Media.Brush)FindResource("Pincel.Apagado") });
         Campo(panel, "Nombre", _nombre);
-        Campo(panel, "Contraseña", _clave);
+        Campo(panel, "Contraseña (opcional)", _clave);
         Campo(panel, "Repite la contraseña", _repetida);
         panel.Children.Add(_error);
 

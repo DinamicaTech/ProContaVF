@@ -1,5 +1,6 @@
 using System.Windows.Input;
 using ProConta.Contabilidad.Cuentas;
+using ProConta.Nucleo.Resultados;
 using ProConta.Organizacion.Geografia;
 using ProConta.Terceros.Contactos;
 using ProConta.Terceros.Perfiles;
@@ -356,6 +357,7 @@ public sealed class CuentaRolVM : ParteFicha
         ClaseCuentaRol.Cliente => "Cuenta contable",
         ClaseCuentaRol.Retencion => "Cuenta de retención",
         ClaseCuentaRol.Proveedor => "Cuenta de proveedor",
+        ClaseCuentaRol.Empleado => "Cuenta 465",
         _ => "Cuenta de acreedor"
     };
     public string AyudaCodigo => $"Código de la {ServicioRoles.Describir(Clase)} en {Ficha.NombreSociedad}. Vale para todos sus ejercicios; al salir del campo compruebo que existe en el ejercicio {Ficha.Ejercicio}";
@@ -382,6 +384,7 @@ public sealed class CuentaRolVM : ParteFicha
             _codigoConfirmado = Codigo = "";
             Nombre = "";
             Aviso = null;
+            OfrecerSiguiente465();
         }
         else
         {
@@ -411,6 +414,15 @@ public sealed class CuentaRolVM : ParteFicha
             _error = null;
             Nombre = "";
             Ficha.FijarCuenta(Clase, null);
+            OfrecerSiguiente465();
+            Cambiado(nameof(Codigo));
+            return;
+        }
+        if (Clase == ClaseCuentaRol.Empleado && !Codigo.StartsWith(ServicioEmpleados.CuentaRemuneraciones, StringComparison.Ordinal))
+        {
+            _error = $"La cuenta del empleado tiene que ser una subcuenta de la {ServicioEmpleados.CuentaRemuneraciones} (remuneraciones pendientes de pago); {Codigo} no lo es.";
+            Nombre = "";
+            OfrecerSiguiente465();
             Cambiado(nameof(Codigo));
             return;
         }
@@ -442,6 +454,48 @@ public sealed class CuentaRolVM : ParteFicha
             new OpcionMensaje("Volver a la ficha", "No crea nada", Cancelar: true));
         if (opcion != 0) return;
         var r = await Ficha.Servicios.Cuentas.AltaAsync(Ficha.Servicios.Contexto, new AltaCuenta(codigo, nombre));
+        if (!r.EsCorrecto)
+        {
+            Ficha.MostrarError("No he podido crear la cuenta", r.Error!);
+            return;
+        }
+        Codigo = _codigoConfirmado = r.Valor.Codigo;
+        Nombre = r.Valor.Nombre;
+        _error = null;
+        _hacerAccion = null;
+        AccionTexto = null;
+        Ficha.FijarCuenta(Clase, r.Valor.IdIdentidadContable);
+        Ficha.AvisoEstado($"Hecho: he creado la cuenta {r.Valor.Codigo} «{r.Valor.Nombre}» en el ejercicio {Ficha.Ejercicio}.");
+        Cambiado(nameof(Codigo));
+    }
+
+    /// <summary>Empleado sin cuenta: se ofrece crear la siguiente 465 libre con el nombre del tercero (nominas 2026-11-13).</summary>
+    private void OfrecerSiguiente465()
+    {
+        if (Clase != ClaseCuentaRol.Empleado) return;
+        AccionTexto = $"Crear la siguiente {ServicioEmpleados.CuentaRemuneraciones} libre";
+        _hacerAccion = CrearSiguiente465Async;
+    }
+
+    private async Task CrearSiguiente465Async()
+    {
+        var ctx = Ficha.Servicios.Contexto;
+        var codigo = await Ficha.Servicios.Cuentas.SiguienteSubcuentaAsync(ctx, ServicioEmpleados.CuentaRemuneraciones);
+        if (codigo is null)
+        {
+            Ficha.MostrarError("No queda ninguna 465 libre", new Error("Empleados.SinCodigos", $"No quedan códigos libres en la cuenta {ServicioEmpleados.CuentaRemuneraciones}.",
+                null, null, "Escribe a mano el código de una subcuenta 465 que ya exista."));
+            return;
+        }
+        var nombre = Recortar(Ficha.NombreParaCuenta(), ReglasCuenta.LongitudMaximaNombre);
+        var opcion = Ficha.Dialogos.Preguntar($"Crear la cuenta {codigo}",
+            $"Creo ahora la cuenta {codigo} «{nombre}» en el ejercicio {Ficha.Ejercicio} de {Ficha.NombreSociedad} y la asigno como {ServicioRoles.Describir(Clase)}. " +
+            "La cuenta queda creada aunque después descartes los cambios de la ficha.", null,
+            new OpcionMensaje("Crear la cuenta", $"Da de alta la cuenta {codigo} en el plan de cuentas del ejercicio {Ficha.Ejercicio}", Principal: true),
+            new OpcionMensaje("Volver a la ficha", "No crea nada", Cancelar: true));
+        if (opcion != 0) return;
+        var padre = await Ficha.Servicios.Cuentas.ResolverAsync(ctx, ServicioEmpleados.CuentaRemuneraciones);
+        var r = await Ficha.Servicios.Cuentas.AltaAsync(ctx, new AltaCuenta(codigo, nombre, padre.EsCorrecto ? padre.Valor.IdCuentaContable : null));
         if (!r.EsCorrecto)
         {
             Ficha.MostrarError("No he podido crear la cuenta", r.Error!);

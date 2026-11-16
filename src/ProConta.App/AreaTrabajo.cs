@@ -197,21 +197,3 @@ public sealed class AreaTrabajo : IAnfitrionPestanas, INotifyPropertyChanged
 
     public event PropertyChangedEventHandler? PropertyChanged;
 }
-
-/// <summary>Pestaña Inicio: fija, sin cambios que guardar.</summary>
-internal sealed class PestanaInicio(FrameworkElement vista) : IPestanaTrabajo
-{
-    public string Titulo => "Inicio";
-    public string Ayuda => "Página de inicio";
-    public string Icono => "layout";
-    public bool TieneCambios => false;
-    public bool GuardadoFallido => false;
-    public object Vista => vista;
-    public IReadOnlyList<string> DescribirCambios() => [];
-    public Task<bool> GuardarAsync() => Task.FromResult(true);
-    public void Descartar() { }
-    public void AlCerrar() { }
-#pragma warning disable CS0067 // la pestaña Inicio no cambia
-    public event PropertyChangedEventHandler? PropertyChanged;
-#pragma warning restore CS0067
-}

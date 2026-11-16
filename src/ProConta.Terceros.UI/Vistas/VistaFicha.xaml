@@ -26,6 +26,10 @@
         <Setter Property="CornerRadius" Value="{StaticResource Radio.Campo}" />
         <Setter Property="Padding" Value="7,2" />
       </Style>
+      <Style x:Key="Insignia.Ficha.Empleado" TargetType="Border" BasedOn="{StaticResource Insignia.Empleado}">
+        <Setter Property="CornerRadius" Value="{StaticResource Radio.Campo}" />
+        <Setter Property="Padding" Value="7,2" />
+      </Style>
 
       <!-- Resumen de errores de validación, con enlace a cada campo (arriba de cada pestaña). -->
       <DataTemplate x:Key="ResumenErrores">
@@ -123,6 +127,7 @@
                 <DataTemplate.Triggers>
                   <DataTrigger Binding="{Binding Rol}" Value="proveedor"><Setter TargetName="Pastilla" Property="Style" Value="{StaticResource Insignia.Ficha.Proveedor}" /></DataTrigger>
                   <DataTrigger Binding="{Binding Rol}" Value="contacto"><Setter TargetName="Pastilla" Property="Style" Value="{StaticResource Insignia.Ficha.Contacto}" /></DataTrigger>
+                  <DataTrigger Binding="{Binding Rol}" Value="empleado"><Setter TargetName="Pastilla" Property="Style" Value="{StaticResource Insignia.Ficha.Empleado}" /></DataTrigger>
                 </DataTemplate.Triggers>
               </DataTemplate>
             </ItemsControl.ItemTemplate>
@@ -517,7 +522,7 @@
         </TabItem>
 
         <!-- ===================== Roles ===================== -->
-        <TabItem ToolTip="Roles Cliente, Proveedor y Contacto: activarlos o desactivarlos, sus Ids, cuentas y notas">
+        <TabItem ToolTip="Roles Cliente, Proveedor, Contacto y Empleado: activarlos o desactivarlos, sus Ids, cuentas, código de la gestoría y notas">
           <TabItem.Header><ContentControl ContentTemplate="{StaticResource CabeceraPestana}" Content="{Binding Cabeceras[2]}" /></TabItem.Header>
           <ScrollViewer VerticalScrollBarVisibility="Auto">
             <StackPanel Margin="18,16" HorizontalAlignment="Left" Width="1240">
@@ -548,6 +553,10 @@
                   <StackPanel Margin="14,0,14,12" Visibility="{Binding ClienteActivo, Converter={StaticResource Visible}}">
                     <ContentControl Content="{Binding CuentaCliente}" ContentTemplate="{StaticResource FilaCuenta}" />
                     <ContentControl Content="{Binding CuentaRetencion}" ContentTemplate="{StaticResource FilaCuenta}" />
+                    <TextBlock Text="IBAN para recibos domiciliados" Style="{StaticResource Etiqueta.Campo}" />
+                    <TextBox Text="{Binding IbanCliente, ValidatesOnNotifyDataErrors=True}" Tag="IbanCliente" Width="300" MaxLength="42" HorizontalAlignment="Left"
+                             Style="{StaticResource Campo.Mono}" Margin="0,0,0,10"
+                             ToolTip="Cuenta del cliente en la que se cargan los recibos domiciliados (ES y 22 dígitos). En sus facturas sale enmascarada, con solo los cuatro últimos dígitos. Vacío si no paga por recibo." />
                     <TextBlock Text="Notas del cliente" Style="{StaticResource Etiqueta.Campo}" />
                     <TextBox Text="{Binding NotasCliente, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource Campo.Multilinea}" Width="760" Height="64" HorizontalAlignment="Left"
                              ToolTip="Observaciones del rol Cliente (se guardan con la ficha)" />
@@ -622,6 +631,40 @@
                     <TextBlock Text="Notas del contacto" Style="{StaticResource Etiqueta.Campo}" />
                     <TextBox Text="{Binding NotasContacto, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource Campo.Multilinea}" Width="760" Height="64" HorizontalAlignment="Left"
                              ToolTip="Observaciones del rol Contacto (se guardan con la ficha)" />
+                  </StackPanel>
+                </StackPanel>
+              </Border>
+
+              <!-- Empleado (en la sociedad de trabajo; nominas 2026-11-13) -->
+              <Border Style="{StaticResource Tarjeta}" Margin="0,0,0,14" Tag="rol:empleado">
+                <StackPanel>
+                  <DockPanel Margin="14,10">
+                    <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                      <TextBlock Text="{Binding EstadoEmpleado}" Style="{StaticResource Texto.Apagado}" VerticalAlignment="Center" Margin="0,0,10,0" TextWrapping="Wrap" MaxWidth="620" />
+                      <StackPanel Orientation="Horizontal" Visibility="{Binding EmpleadoActivo, Converter={StaticResource Visible}}">
+                        <TextBlock Text="IdEmpleado" Style="{StaticResource Etiqueta.Campo}" VerticalAlignment="Center" Margin="0,0,8,0" />
+                        <TextBox Text="{Binding IdEmpleado, Mode=OneWay}" IsReadOnly="True" Width="100" Style="{StaticResource Campo.Mono}" Margin="0,0,10,0" ToolTip="Número de empleado; uno nuevo lo recibe al guardar" />
+                        <Button Style="{StaticResource Boton.Enlace}" Content="Desactivar" Command="{Binding DesactivarRolCommand}" CommandParameter="empleado" VerticalAlignment="Center"
+                                ToolTip="Da de baja al empleado en esta sociedad al guardar: sus nóminas se conservan y se le sigue reconociendo por su código (finiquitos, atrasos), con un aviso al importar" />
+                      </StackPanel>
+                      <Button Content="Activar" Command="{Binding ActivarRolCommand}" CommandParameter="empleado" Style="{StaticResource Boton.Pequeno}"
+                              Visibility="{Binding EmpleadoActivo, Converter={StaticResource Visible}, ConverterParameter=invertir}"
+                              ToolTip="Da al tercero el rol Empleado en esta sociedad al guardar (si ya lo tuvo, lo reactiva con el mismo número y código)" />
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal">
+                      <Border Style="{StaticResource Insignia.Ficha.Empleado}"><TextBlock Text="Emp" Style="{StaticResource Texto.Insignia}" /></Border>
+                      <TextBlock Text="{Binding TituloEmpleado}" Style="{StaticResource Seccion.Ficha}" Margin="6,0,0,0" />
+                    </StackPanel>
+                  </DockPanel>
+                  <StackPanel Margin="14,0,14,12" Visibility="{Binding EmpleadoActivo, Converter={StaticResource Visible}}">
+                    <StackPanel Margin="0,0,0,10" HorizontalAlignment="Left">
+                      <TextBlock Text="Código en la gestoría" Style="{StaticResource Etiqueta.Campo}" />
+                      <TextBox Text="{Binding CodigoTrabajador, UpdateSourceTrigger=PropertyChanged, ValidatesOnNotifyDataErrors=True}" Width="130" MaxLength="30" Style="{StaticResource Campo.Mono}" Tag="CodigoTrabajador"
+                               ToolTip="Código del trabajador en el Excel de la gestoría (columna B). Vale para los Excel que se importen a partir de ahora; al guardar compruebo que no lo tenga otro trabajador de la sociedad" />
+                    </StackPanel>
+                    <ContentControl Content="{Binding CuentaEmpleado}" ContentTemplate="{StaticResource FilaCuenta}" />
+                    <TextBlock Style="{StaticResource Texto.Apagado}" TextWrapping="Wrap" Width="760" HorizontalAlignment="Left"
+                               Text="Cambiar el código vale para los próximos Excel y cambiar la 465 para los asientos nuevos: lo ya contabilizado no se toca. Para pasar nóminas contabilizadas a la cuenta nueva, deshazlas y vuelve a contabilizarlas en la pantalla Nóminas." />
                   </StackPanel>
                 </StackPanel>
               </Border>
@@ -718,15 +761,23 @@
           <pc:VistaEstado Estado="Vacio" Titulo="Compras llega con el desarrollo de compras"
                           Mensaje="Aquí verás las facturas recibidas del proveedor, con su estado de contabilización y el acceso a cada factura y a su PDF." />
         </TabItem>
-        <TabItem ToolTip="Mayor de las cuentas del tercero (llega con el Mayor de contabilidad)">
+        <TabItem ToolTip="Nóminas del empleado en la sociedad activa: código en la gestoría, cuenta 465, totales del año y cada nómina con su asiento"
+                 Visibility="{Binding HayNominas, Converter={StaticResource Visible}}">
           <TabItem.Header><ContentControl ContentTemplate="{StaticResource CabeceraPestana}" Content="{Binding Cabeceras[6]}" /></TabItem.Header>
-          <pc:VistaEstado Estado="Vacio" Titulo="Contabilidad llega con el Mayor de contabilidad"
-                          Mensaje="Aquí verás el Mayor de las cuentas del tercero (cliente, proveedor y acreedor), todas juntas o una a una, con sus filtros; lo que salga de ellas se abrirá en una pestaña del Mayor." />
+          <ContentControl Content="{Binding NominasEmpleado}" FontWeight="Normal" />
+        </TabItem>
+        <TabItem ToolTip="Mayor de las cuentas del tercero (cliente, proveedor y acreedor), todas juntas o una a una; lo que sale de ellas se abre en la pestaña del Mayor">
+          <TabItem.Header><ContentControl ContentTemplate="{StaticResource CabeceraPestana}" Content="{Binding Cabeceras[7]}" /></TabItem.Header>
+          <Grid>
+            <ContentControl Content="{Binding MayorContabilidad}" FontWeight="Normal" Visibility="{Binding HayMayor, Converter={StaticResource Visible}}" Margin="12,10" />
+            <pc:VistaEstado Estado="Vacio" Titulo="{Binding TituloSinMayor}" Mensaje="{Binding MensajeSinMayor}"
+                            Visibility="{Binding HayMayor, Converter={StaticResource Visible}, ConverterParameter=invertir}" />
+          </Grid>
         </TabItem>
 
         <!-- ===================== Notas ===================== -->
         <TabItem ToolTip="Notas y notas internas del tercero">
-          <TabItem.Header><ContentControl ContentTemplate="{StaticResource CabeceraPestana}" Content="{Binding Cabeceras[7]}" /></TabItem.Header>
+          <TabItem.Header><ContentControl ContentTemplate="{StaticResource CabeceraPestana}" Content="{Binding Cabeceras[8]}" /></TabItem.Header>
           <StackPanel Margin="18,16" HorizontalAlignment="Left">
             <ContentControl Content="{Binding}" ContentTemplate="{StaticResource ResumenErrores}" />
             <TextBlock Text="Notas" Style="{StaticResource Etiqueta.Campo}" />
@@ -739,14 +790,14 @@
         </TabItem>
 
         <TabItem ToolTip="Documentos del tercero (llega con el motor documental)">
-          <TabItem.Header><ContentControl ContentTemplate="{StaticResource CabeceraPestana}" Content="{Binding Cabeceras[8]}" /></TabItem.Header>
+          <TabItem.Header><ContentControl ContentTemplate="{StaticResource CabeceraPestana}" Content="{Binding Cabeceras[9]}" /></TabItem.Header>
           <pc:VistaEstado Estado="Vacio" Titulo="Documentos llega con el motor documental"
                           Mensaje="Aquí verás los documentos del tercero: los automáticos (facturas emitidas y recibidas, justificantes de pago) y los ficheros que añadas arrastrándolos, con su tipo y descripción." />
         </TabItem>
 
         <!-- ===================== Historial ===================== -->
         <TabItem ToolTip="Cambios guardados de la ficha: fecha, operador, sección, campo, antes y después">
-          <TabItem.Header><ContentControl ContentTemplate="{StaticResource CabeceraPestana}" Content="{Binding Cabeceras[9]}" /></TabItem.Header>
+          <TabItem.Header><ContentControl ContentTemplate="{StaticResource CabeceraPestana}" Content="{Binding Cabeceras[10]}" /></TabItem.Header>
           <DockPanel Margin="0">
             <Border DockPanel.Dock="Bottom" Style="{StaticResource Barra.Pie}">
               <StackPanel Orientation="Horizontal">

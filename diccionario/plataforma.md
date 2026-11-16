@@ -42,6 +42,7 @@
 | OcultarListaOperadoresAcceso | YESNO | no | No |  |
 | VeriFactuActivo | YESNO | no | No |  |
 | CorreoDesviarA | TEXT(254) | sí |  |  |
+| UmbralCuadreMayor | CURRENCY | sí |  |  |
 
 Índices:
 - PK_Configuracion (clave primaria): IdConfiguracion

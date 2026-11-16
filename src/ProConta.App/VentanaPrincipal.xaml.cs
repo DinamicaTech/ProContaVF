@@ -20,6 +20,7 @@ using ProConta.Facturacion.Conceptos;
 using ProConta.Facturacion.Documentos;
 using ProConta.Facturacion.Facturas;
 using ProConta.Informes;
+using ProConta.Informes.Excel;
 using ProConta.Facturacion.Programadas;
 using ProConta.Facturacion.Mantenimiento;
 using ProConta.Facturacion.UI.VistaModelos;
@@ -63,9 +64,15 @@ public partial class VentanaPrincipal : Window
     private double _anchoNavegacion = 228;
     private readonly AreaTrabajo _area;
     private readonly ModuloTerceros _terceros;
+    private readonly ProConta.Contabilidad.UI.Mayor.ModuloMayor _mayor;
+    private readonly ProConta.Contabilidad.UI.Asientos.ModuloAsientos _asientos;
+    private readonly ProConta.Contabilidad.UI.Diario.ModuloDiario _diario;
     private readonly ModuloFacturacion _facturacion;
     private readonly ModuloCompras _compras;
     private readonly ModuloCorreo _correo;
+    private readonly ProConta.Norma43.UI.VistaModelos.ModuloBancos _bancos;
+    private readonly ProConta.Norma43.UI.VistaModelos.ModuloLineasN43 _lineasN43;
+    private readonly ProConta.Nominas.UI.VistaModelos.ModuloNominas _nominas;
     private readonly CoordinadorCorreo _coordinadorCorreo;
     private static readonly System.Net.Http.HttpClient Http = new() { Timeout = TimeSpan.FromSeconds(15) };
     private readonly Func<PantallaMantenimientoVM> _crearMantenimiento;
@@ -99,13 +106,50 @@ public partial class VentanaPrincipal : Window
         _area = new AreaTrabajo(AreaVistas, Avisar);
         _area.PropertyChanged += (_, _) => RefrescarEstado();
         TiraPestanas.ItemsSource = _area.Lista;
-        _area.AbrirFija(new PestanaInicio(new VistaInicio(contexto)));
+        // Inicio (pantalla-de-inicio): indicadores y gráficos del ejercicio de trabajo; cada indicador abre su pantalla si ya existe.
+        _area.AbrirFija(ProConta.Inicio.UI.ModuloInicio.Crear(
+            new ProConta.Inicio.ServicioInicio(new ProConta.Inicio.FuenteInicioAccess(bd)),
+            new ProConta.Inicio.UI.ContextoInicio(contexto.Contexto.IdSociedad, ejercicio, contexto.RazonSocial, Avisar),
+            new ProConta.Inicio.UI.AccionesInicio(
+                AbrirFacturas: () => _facturacion!.AbrirListado(),
+                AbrirPerdidasYGanancias: () => _ = GenerarBalanceAsync(ProConta.Contabilidad.Balances.TipoBalance.PerdidasYGanancias),
+                AbrirBancos: () => _bancos!.Abrir(),
+                AbrirMayor: cuentasMayor => _mayor!.Abrir(cuentasMayor),
+                AbrirBalanceSituacion: () => _ = GenerarBalanceAsync(ProConta.Contabilidad.Balances.TipoBalance.Situacion))
+            {
+                // Pantallas donde se resuelve cada elemento de la salud de la contabilidad (fase 3).
+                AbrirVentas = () => _facturacion!.AbrirVentas(),
+                AbrirLineasN43 = () => _lineasN43!.Abrir(),
+                AbrirFacturasCompra = () => _compras!.AbrirRecibidas(),
+                AbrirDiario = () => _diario!.Abrir(),
+                AbrirTerceros = () => _terceros!.AbrirBuscador(),
+                AbrirNominas = () => _nominas!.Abrir(null),
+                AbrirParametros = clave => AbrirParametros(clave),
+                // Agenda (fase 4).
+                AbrirProgramadas = () => _facturacion!.AbrirProgramadas(),
+            },
+            () => this,
+            // La salud guarda su recuento diario (HistoricoSalud) para la tendencia «desde el lunes» (fase 4).
+            new ProConta.Inicio.Salud.ServicioSalud(new ProConta.Inicio.Salud.FuenteSaludAccess(bd), historico: new ProConta.Inicio.Salud.HistoricoSaludAccess(bd)),
+            new ProConta.Inicio.Bloques.ServicioBloques(new ProConta.Inicio.Bloques.FuenteBloquesAccess(bd))));
 
         var cuentas = new CatalogoCuentasAccess(bd);
         var servicios = new ServiciosTerceros(
             new RepositorioTercerosAccess(bd), new BuscadorTerceros(bd), new CatalogoPerfilesAccess(bd), new ServicioRoles(bd, cuentas), cuentas,
             () => new FuenteGeografiaAccess(bd).CargarAsync(), contexto.Contexto, contexto.RazonSocial, new Actor(sesion.NombreOperador));
         _terceros = new ModuloTerceros(servicios, _area, new DialogosTerceros(servicios));
+
+        // Mayor (contabilidad/mayor): pestaña Contabilidad › Mayor y el mismo control embebido en la ficha de terceros.
+        _mayor = new ProConta.Contabilidad.UI.Mayor.ModuloMayor(
+            new ProConta.Contabilidad.UI.Mayor.ContextoMayor(new ProConta.Contabilidad.Mayor.FuenteMayorAccess(bd), contexto.Contexto.IdSociedad, ejercicio, contexto.RazonSocial,
+                new MotorAsientosAccess(bd), new Actor(sesion.NombreOperador)),
+            _area, new ProConta.Contabilidad.UI.Mayor.DialogosMayor(() => this));
+        _terceros.MayorEmbebido = cuentas => _mayor.CrearEmbebido(cuentas);
+        // Asiento manual (contabilidad/pantallas y contabilidad/plantillas-asiento): nuevo, asistente de corrección y modificar, desde el menú y el Mayor.
+        _asientos = new ProConta.Contabilidad.UI.Asientos.ModuloAsientos(
+            () => new ProConta.Contabilidad.UI.Asientos.FuenteAsientoManualAccess(bd, contexto.Contexto, new Actor(sesion.NombreOperador)), _area,
+            new ProConta.Contabilidad.UI.Asientos.DialogosAsiento(cuentas, new CatalogoCentrosCosteAccess(bd), contexto.Contexto, () => this));
+        _mayor.Asientos = _asientos;
 
         // Facturación de venta (facturacion/pantallas) y Parámetros y tablas (plataforma/mantenimiento).
         var roles = new ServicioRoles(bd, cuentas);
@@ -122,7 +166,13 @@ public partial class VentanaPrincipal : Window
             new LectorConfiguracionEjercicio(bd), contexto.Contexto, contexto.RazonSocial, new Actor(sesion.NombreOperador), new CatalogoCentrosCosteAccess(bd),
             new ServicioProgramadas(bd, sociedades, facturas, autorizador),
             new ServicioPdfFacturas(bd, facturas, sociedades, new GeneradorPdfFastReport(), autorizador));
-        _facturacion = new ModuloFacturacion(serviciosFacturacion, _area, new DialogosFacturacion(apoyo, () => this), _terceros.AbrirFicha);
+        _facturacion = new ModuloFacturacion(serviciosFacturacion, _area, new DialogosFacturacion(apoyo, cuentas, new CatalogoCentrosCosteAccess(bd), () => this), _terceros.AbrirFicha);
+        // Ventas por facturar (facturacion/reservas): reservas de Avaibook y altas manuales que se facturan por mes, cliente y activo.
+        var ventas = new ProConta.Facturacion.Ventas.ServicioVentas(bd, sociedades, facturas, serviciosFacturacion.Conceptos, autorizador);
+        var clienteAvaibook = new ProConta.Facturacion.Ventas.ClienteAvaibookHttp(Http);
+        _facturacion.Ventas = ventas;
+        _facturacion.Avaibook = new ProConta.Facturacion.Ventas.ImportadorAvaibook(bd, ventas, clienteAvaibook, autorizador);
+        _facturacion.AbrirParametros = clave => AbrirParametros(clave);
 
         // Compras (compras/pantallas): facturas recibidas y su modo «Probar».
         // OCR con Textract si el puesto tiene el perfil de AWS (compras/reconocimiento 2026-11-07); sin él, los escaneados se rellenan a mano.
@@ -134,7 +184,7 @@ public partial class VentanaPrincipal : Window
         var contabilizadorCompras = new ContabilizadorCompras(bd, new MotorAsientosAccess(bd), cuentas, roles);
         var serviciosCompras = new ServiciosCompras(facturasCompra, cuentas, new CatalogoCentrosCosteAccess(bd), contexto.Contexto,
             contexto.RazonSocial, () => autorizador.PuedeAsync(Acciones.FacturasEditar),
-            async () => (await new LectorConfiguracionEjercicio(bd).ObtenerAsync(contexto.Contexto.IdSociedadEjercicio))?.TiposIva.Select(t => t.Porcentaje).ToList() ?? [],
+            () => ProConta.Contabilidad.CentrosCoste.CatalogoTiposIva.ActivosAsync(bd),
             async () => (await new ProConta.Organizacion.FormasPago.CatalogoFormasPagoAccess(bd).ListarAsync()).Select(f => (f.Id, f.Descripcion)).ToList(),
             async () => (await new ProConta.Organizacion.Sociedades.CatalogoTiposRetencion(bd).VigentesAsync(DateTime.Today))
                 .Select(t => new TipoRetencionCompra(t.Porcentaje, t.Descripcion, t.Clase == 2 ? ClaseRetencion.Arrendamientos : ClaseRetencion.Profesionales)).ToList(),
@@ -166,19 +216,52 @@ public partial class VentanaPrincipal : Window
             IdOrigen = idTercero > 0 ? idTercero : null, ReferenciaOrigen = nombre, Destinatarios = [new Destinatario(TipoDestinatario.Para, direccion, nombre)],
         });
         // Recepción (correo/recepcion): el buzón POP3 de cada cuenta activa se mira mientras la aplicación está abierta.
-        _coordinadorCorreo.Recepcion = new ServicioRecepcionCorreo(bd, new ClientePop3MailKit(), servicioCorreo, new ProcesadorFacturasCompraCorreo(bd, facturasCompra, contabilizadorCompras));
+        // Bancos (norma43 y norma43/bancos): cuentas, saldos y extractos Norma 43; los recibidos por correo usan el mismo motor.
+        var importacionN43 = new ProConta.Norma43.Importacion.ServicioImportacionN43(bd);
+        _bancos = new ProConta.Norma43.UI.VistaModelos.ModuloBancos(importacionN43, new ProConta.Norma43.Importacion.ConsultaBancos(bd),
+            new ProConta.Norma43.UI.VistaModelos.ContextoBancos(contexto.Contexto, contexto.RazonSocial, new Actor(sesion.NombreOperador), Avisar), _area,
+            new ProConta.Norma43.UI.Vistas.DialogosBancos(() => this));
+        // Líneas N43 (norma43/pantallas): rejilla de movimientos con su cuenta, asiento y palabras clave; abre el Mayor y el asiento.
+        _lineasN43 = new ProConta.Norma43.UI.VistaModelos.ModuloLineasN43(new ProConta.Norma43.Lineas.ConsultaLineasN43(bd), new ProConta.Norma43.Lineas.ServicioLineasN43(bd),
+            new ProConta.Norma43.Conciliacion.ServicioConciliacionN43(bd), new ProConta.Norma43.Asignacion.AsignadorCuentasN43(bd),
+            new ProConta.Norma43.UI.VistaModelos.ContextoLineasN43(contexto.Contexto, contexto.RazonSocial, new Actor(sesion.NombreOperador), Avisar)
+            {
+                AbrirMayor = (cuentasMayor, anios) => _mayor.Abrir(cuentasMayor, anios),
+                VerAsiento = id => _mayor.VerAsientoAsync(id),
+            },
+            _area, new ProConta.Norma43.UI.Vistas.DialogosLineasN43(cuentas, () => this));
+        // Nóminas (nominas y nominas/pantallas): pantalla por periodo, pestaña Nóminas de la ficha del empleado y Excel recibidos por correo.
+        var importacionNominas = new ProConta.Nominas.Importacion.ServicioImportacionNominas(bd);
+        var contabilizacionNominas = new ProConta.Nominas.Contabilizacion.ServicioContabilizacionNominas(bd);
+        var consultaNominas = new ProConta.Nominas.Consulta.ConsultaNominas(bd);
+        var contextoNominas = new ProConta.Nominas.UI.VistaModelos.ContextoNominas(contexto.Contexto, contexto.RazonSocial, new Actor(sesion.NombreOperador), Avisar)
+        {
+            AbrirFicha = id => _terceros.AbrirFicha(id, ProConta.Terceros.UI.Logica.PestanaFicha.Nominas),
+            VerAsiento = id => _mayor.VerAsientoAsync(id),
+            AbrirCorreoRecibido = () => _correo.AbrirRecibido(),
+        };
+        _nominas = new ProConta.Nominas.UI.VistaModelos.ModuloNominas(
+            new ProConta.Nominas.UI.VistaModelos.ServiciosNominas(consultaNominas, importacionNominas, contabilizacionNominas,
+                new ProConta.Terceros.Roles.ServicioEmpleados(bd, cuentas, new RepositorioTercerosAccess(bd), new Actor(sesion.NombreOperador))),
+            contextoNominas, _area, new ProConta.Nominas.UI.Vistas.DialogosNominas(() => this));
+        _terceros.NominasEmbebidas = idTercero => ProConta.Nominas.UI.VistaModelos.NominasEmpleadoVM.CrearAsync(consultaNominas, contextoNominas, idTercero, id => _nominas.Abrir(id));
+        _coordinadorCorreo.Recepcion = new ServicioRecepcionCorreo(bd, new ClientePop3MailKit(), servicioCorreo, new ProcesadorFacturasCompraCorreo(bd, facturasCompra, contabilizadorCompras),
+            extractos: new ProConta.Norma43.Importacion.ProcesadorExtractosCorreo(importacionN43),
+            nominas: new ProConta.Nominas.Correo.ProcesadorNominasCorreo(importacionNominas, contabilizacionNominas));
         _coordinadorCorreo.Iniciar();
         Closed += async (_, _) => await _coordinadorCorreo.DisposeAsync();
         _ = AvisarDesvioCorreoAsync(servicioCorreo);
 
         var mantenimiento = new ServicioMantenimiento(
-            new IProveedorMantenimiento[] { new ProveedorConfiguracionGeneral(bd) }.Concat(ProveedoresOrganizacion.Todos(bd)).Concat(ProveedoresFacturacion.Todos(bd, cuentas))
-                .Concat(ProConta.Compras.Mantenimiento.ProveedoresCompras.Todos(bd)).Concat(ProveedoresCorreo.Todos(bd)),
+            new IProveedorMantenimiento[] { new ProveedorConfiguracionGeneral(bd) }.Concat(ProveedoresOrganizacion.Todos(bd)).Concat(ProveedoresFacturacion.Todos(bd, cuentas)).Concat(ProConta.Facturacion.Ventas.ProveedoresVentas.Todos(bd, ventas, clienteAvaibook))
+                .Concat(ProConta.Compras.Mantenimiento.ProveedoresCompras.Todos(bd)).Concat(ProveedoresCorreo.Todos(bd))
+                .Concat(ProConta.Activos.Mantenimiento.ProveedoresActivos.Todos(bd, cuentas)),
             () => autorizador.PuedeAsync(Acciones.MantenimientoEditar));
         var contextoMantenimiento = new ContextoMantenimiento(contexto.Contexto, contexto.RazonSocial, new Actor(sesion.NombreOperador));
         _crearMantenimiento = () => new PantallaMantenimientoVM(mantenimiento, contextoMantenimiento,
             (titulo, mensaje, detalles, opciones) => ServicioMensajes.Preguntar(this, titulo, mensaje, detalles, opciones),
-            Avisar, vm => new VistaMantenimiento(vm));
+            Avisar, vm => new VistaMantenimiento(vm))
+        { Cuentas = new SelectorCuentasMantenimiento(cuentas, new CatalogoCentrosCosteAccess(bd), () => this) };
 
         // Importar ContaSol (implantacion/importador-contasol): una pestaña, en Configuración.
         var importadorContaSol = new ProConta.Implantacion.ContaSol.ImportadorContaSol(bd, new MotorAsientosAccess(bd), new CatalogoCentrosCosteAccess(bd),
@@ -186,16 +269,46 @@ public partial class VentanaPrincipal : Window
         _crearImportacionContaSol = () => new PestanaImportarContaSol(importadorContaSol, new Actor(sesion.NombreOperador),
             () => autorizador.PuedeAsync(Acciones.MantenimientoEditar), () => this, Avisar);
 
-        const string proxima = "Aún no está disponible en esta versión: llegará con las pantallas de su área.";
         Geometry? Icono(string clave) => TryFindResource("Icono." + clave) as Geometry;
         var irAInicio = new ComandoDelegado(() => _area.Activar(_area.Lista[0].Pantalla));
         var abrirTerceros = new ComandoDelegado(_terceros.AbrirBuscador);
         var abrirFacturas = new ComandoDelegado(_facturacion.AbrirListado);
         var abrirProgramadas = new ComandoDelegado(_facturacion.AbrirProgramadas);
-        var abrirParametros = new ComandoDelegado(AbrirParametros);
+        var abrirVentas = new ComandoDelegado(_facturacion.AbrirVentas);
+        var abrirParametros = new ComandoDelegado(() => AbrirParametros());
         var abrirRecibidas = new ComandoDelegado(_compras.AbrirRecibidas);
         var abrirContaSol = new ComandoDelegado(AbrirImportacionContaSol);
         var abrirCorreo = new ComandoDelegado(() => _correo.AbrirRegistro());
+        var abrirMayor = new ComandoDelegado(() => _mayor.Abrir());
+        // Diario (contabilidad/diario): todos los apuntes del ejercicio de trabajo y del anterior; abre la pantalla de asiento, el Mayor y el
+        // origen de los asientos automáticos, y exporta a PDF por el motor de informes (HTML › PDF con WebView2) y a Excel.
+        _asientos.ParaEjercicio = ejercicioAsiento => (
+            new ProConta.Contabilidad.UI.Asientos.FuenteAsientoManualAccess(bd, ejercicioAsiento, new Actor(sesion.NombreOperador)),
+            new ProConta.Contabilidad.UI.Asientos.DialogosAsiento(cuentas, new CatalogoCentrosCosteAccess(bd), ejercicioAsiento, () => this));
+        _diario = new ProConta.Contabilidad.UI.Diario.ModuloDiario(
+            new ProConta.Contabilidad.UI.Diario.ContextoDiario(new ProConta.Contabilidad.Diario.FuenteDiarioAccess(bd), new MotorAsientosAccess(bd), new CatalogoCentrosCosteAccess(bd),
+                contexto.Contexto, contexto.RazonSocial, new Actor(sesion.NombreOperador), Avisar),
+            _area, new ProConta.Contabilidad.UI.Diario.DialogosDiario(cuentas, new CatalogoCentrosCosteAccess(bd), () => this))
+        {
+            Asientos = _asientos,
+            Mayor = _mayor,
+            HtmlAPdf = html => ConversorHtmlPdf.Compartido.Convertir(html, new PaginaPdf(297, 210, 10, 10, 10, 10)),
+            AbrirFichero = ruta =>
+            {
+                try { System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(ruta) { UseShellExecute = true }); }
+                catch (Exception ex) when (ex is System.ComponentModel.Win32Exception or InvalidOperationException) { Avisar($"Fichero guardado en {ruta} (no he podido abrirlo: {ex.Message})"); }
+            },
+            PorQueNoAbrirOrigen = asiento => OrigenDelDiario(asiento) is null ? PorQueNoSeAbreElOrigen(asiento) : null,
+            AbrirOrigen = asiento => OrigenDelDiario(asiento)?.Invoke(),
+        };
+        var abrirDiario = new ComandoDelegado(() => _diario.Abrir());
+        // Informes (contabilidad/balances e informes/excel): cada opción genera el libro Excel con su tabla dinámica y lo abre.
+        _balances = new ProConta.Contabilidad.Balances.GeneradorBalances(bd);
+        _razonSocial = contexto.RazonSocial;
+        var balanceSituacion = new ComandoDelegado(() => _ = GenerarBalanceAsync(ProConta.Contabilidad.Balances.TipoBalance.Situacion));
+        var balancePyG = new ComandoDelegado(() => _ = GenerarBalanceAsync(ProConta.Contabilidad.Balances.TipoBalance.PerdidasYGanancias));
+        _gestoria = new ProConta.Inicio.Gestoria.ComposicionInformeGestoria(bd);
+        var informeGestoria = new ComandoDelegado(() => _ = GenerarInformeGestoriaAsync());
         Navegacion.ItemsSource = new[]
         {
             new OpcionNavegacion("Inicio", Icono("layout"), true, false, "Página de inicio", irAInicio),
@@ -203,16 +316,46 @@ public partial class VentanaPrincipal : Window
             new OpcionNavegacion("Terceros", null, true, false, "Buscador y fichas de terceros (clientes, proveedores, contactos…)", abrirTerceros, EsHija: true),
             new OpcionNavegacion("Ventas", Icono("doc"), true, false, "Facturas de venta: emitidas y borradores", abrirFacturas),
             new OpcionNavegacion("Facturas programadas", null, true, false, "Facturas que se generan solas en cada vencimiento: su programación, sus líneas y la generación por lotes", abrirProgramadas, EsHija: true),
-            new OpcionNavegacion("Facturas emitidas", null, true, false, "Listado de facturas y borradores del ejercicio, con su detalle y acciones", abrirFacturas, EsHija: true),
+            new OpcionNavegacion("Facturas", null, true, false, "Listado de facturas y borradores del ejercicio, con su detalle y acciones", abrirFacturas, EsHija: true),
+            new OpcionNavegacion("Ventas por facturar", null, true, false, "Reservas de Avaibook y otras ventas registradas antes de facturarlas: importación, ficha y «Facturar ventas…» por mes, cliente y activo", abrirVentas, EsHija: true),
             new OpcionNavegacion("Compras", Icono("scan"), true, false, "Facturas de compra: los PDF de la carpeta de proveedores, su revisión y el modo prueba del reconocimiento", abrirRecibidas),
             new OpcionNavegacion("Facturas recibidas", null, true, false, "Facturas de compra del ejercicio reconocidas de sus PDF: revisión, corrección y registro (y el modo prueba, en el menú contextual)", abrirRecibidas, EsHija: true),
             new OpcionNavegacion("Correo", Icono("mail"), true, false, "Correo enviado por ProContaVF: estado de cada mensaje, contenido, adjuntos e intentos", abrirCorreo),
             new OpcionNavegacion("Correo enviado", null, true, false, "Registro común del correo enviado (facturas y demás), con reintentos y reenvíos en el menú contextual", abrirCorreo, EsHija: true),
             new OpcionNavegacion("Correo recibido", null, true, false, "Correo que llega a la cuenta del ejercicio: facturas de compra importadas, documentos en espera y remitentes no autorizados", new ComandoDelegado(() => _correo.AbrirRecibido()), EsHija: true),
-            new OpcionNavegacion("Contabilidad", Icono("book"), false, false, proxima),
-            new OpcionNavegacion("Bancos", Icono("bank"), false, false, proxima),
-            new OpcionNavegacion("Nóminas", Icono("coin"), false, false, proxima),
-            new OpcionNavegacion("Informes", Icono("xls"), false, false, proxima),
+            new OpcionNavegacion("Contabilidad", Icono("book"), true, false, "Contabilidad: el Mayor de cualquier cuenta, con varios ejercicios, vistas y filtros", abrirMayor),
+            new OpcionNavegacion("Mayor", null, true, false,
+                "Mayor de una o varias cuentas (o de un código corto) en los ejercicios que elijas: vistas Normal, Compacto, Solo pendientes y Agrupar 700, filtros, asiento e historial de cada apunte",
+                abrirMayor, EsHija: true),
+            new OpcionNavegacion("Diario", null, true, false,
+                "Todos los apuntes del ejercicio, por asiento o en lista: filtros, sumas, ficha del asiento con edición rápida, asientos borrados y exportación a PDF o Excel",
+                abrirDiario, EsHija: true),
+            new OpcionNavegacion("Asiento manual", null, true, false,
+                "Asiento nuevo hecho a mano o desde una plantilla, con su vista previa; para corregir un apunte, ábrelo desde el Mayor con «Asistente de corrección…»",
+                new ComandoDelegado(() => _ = _asientos.AbrirNuevoAsync()), EsHija: true),
+            new OpcionNavegacion("Bancos", Icono("bank"), true, false,
+                "Cuentas bancarias de la sociedad: saldo según el banco y según su 572, movimientos, extractos Norma 43 importados, «Importar N43» y reversión de lotes",
+                new ComandoDelegado(() => _bancos.Abrir())),
+            new OpcionNavegacion("Cuentas bancarias", null, true, false,
+                "Cuentas bancarias de la sociedad: saldos según el banco y según su 572, extractos importados, «Importar N43» y reversión de lotes",
+                new ComandoDelegado(() => _bancos.Abrir()), EsHija: true),
+            new OpcionNavegacion("Líneas N43", null, true, false,
+                "Movimientos bancarios importados: su cuenta de destino, asiento y palabras clave, con filtros y todas las acciones en el menú contextual",
+                new ComandoDelegado(() => _lineasN43.Abrir()), EsHija: true),
+            new OpcionNavegacion("Nóminas", Icono("coin"), true, false,
+                "Nóminas del ejercicio por mes y paga: importar el Excel de la gestoría (o el que llega por correo), resolver trabajadores, contabilizar, deshacer y reemplazar",
+                new ComandoDelegado(() => _nominas.Abrir())),
+            new OpcionNavegacion("Informes", Icono("xls"), true, false, "Informes del ejercicio de trabajo en Excel, con tabla dinámica", balanceSituacion),
+            new OpcionNavegacion("Balance de situación", null, true, false,
+                "Genera en Excel el balance de situación del ejercicio de trabajo (PGC Pymes 2008): tabla dinámica por bloque, apartado, título, cuenta y subcuenta, con los meses en columnas y filtros por centro de coste y departamento, y lo abre",
+                balanceSituacion, EsHija: true),
+            new OpcionNavegacion("Pérdidas y ganancias", null, true, false,
+                "Genera en Excel la cuenta de pérdidas y ganancias del ejercicio de trabajo (PGC Pymes 2008), sin la regularización ni el cierre: tabla dinámica por apartado, título, cuenta y subcuenta, con los meses en columnas y filtros por centro de coste y departamento, y la abre",
+                balancePyG, EsHija: true),
+            new OpcionNavegacion("Informe para la gestoría…", null, true, false,
+                "Genera en Excel el informe trimestral para la gestoría del ejercicio de trabajo: liquidación del IVA (303) por trimestres, prorrata y su regularización estimada, " +
+                "controles antes de presentar, pérdidas y ganancias, balance, ratios y facturas emitidas y recibidas. Pregunta el trimestre (por defecto, el último terminado) y lo abre",
+                informeGestoria, EsHija: true),
             new OpcionNavegacion("Configuración", Icono("gear"), true, false, "Parámetros y tablas: empresas, ejercicios, series, conceptos, formas de pago…", abrirParametros),
             new OpcionNavegacion("Parámetros y tablas", null, true, false, "Mantenimiento de las tablas y los parámetros de la aplicación, con buscador", abrirParametros, EsHija: true),
             new OpcionNavegacion("Importar ContaSol", null, true, false, "Importa la contabilidad de ContaSol por ejercicios (una BD por ejercicio), con simulación previa", abrirContaSol, EsHija: true),
@@ -225,16 +368,18 @@ public partial class VentanaPrincipal : Window
     public ICommand CerrarActivaCommand { get; }
 
     /// <summary>Abre (o activa) la pestaña Parámetros y tablas.</summary>
-    private void AbrirParametros()
+    /// <param name="clave">Tabla que se abre dentro (por ejemplo «reglasventa»); null, la primera o la que estuviera.</param>
+    private void AbrirParametros(string? clave = null)
     {
         if (_mantenimiento is not null && _area.Pestanas.Contains(_mantenimiento))
         {
             _area.Activar(_mantenimiento);
+            if (clave is not null) _ = _mantenimiento.IrAAsync(clave);
             return;
         }
         _mantenimiento = _crearMantenimiento();
         _area.Abrir(_mantenimiento);
-        _ = _mantenimiento.IniciarAsync();
+        _ = _mantenimiento.IniciarAsync(clave);
     }
 
     /// <summary>Abre (o activa) la pestaña Importar ContaSol.</summary>
@@ -380,6 +525,144 @@ public partial class VentanaPrincipal : Window
             TextoDatos.ToolTip = $"{TextoDatos.ToolTip}{Environment.NewLine}Correo de pruebas: todo lo que se envía sale solo a {desvio} (Parámetros y tablas › Configuración general).";
         }
         catch (Exception) { /* sin la columna o sin configuración: no hay desvío que avisar */ }
+    }
+
+    private readonly ProConta.Contabilidad.Balances.GeneradorBalances _balances;
+    private readonly ProConta.Inicio.Gestoria.ComposicionInformeGestoria _gestoria;
+    private bool _generandoGestoria;
+    private readonly string _razonSocial;
+    private bool _generandoBalance;
+
+    /// <summary>
+    /// Genera el balance del ejercicio de trabajo, lo guarda en Documentos\ProContaVF\Informes y lo abre con Excel. En la barra de
+    /// estado dice los totales (activo y patrimonio neto y pasivo, o el resultado) y si hay cuentas sin clasificar.
+    /// </summary>
+    /// <summary>
+    /// Cómo abrir el documento que generó un asiento automático desde el Diario, o null si su pantalla aún no sabe abrir uno concreto:
+    /// la factura de venta (la clave del lote es su IdFactura) y la importación de nóminas (la clave empieza por su Id).
+    /// </summary>
+    private Action? OrigenDelDiario(ProConta.Contabilidad.Diario.AsientoDiario asiento)
+    {
+        var clave = (asiento.ClaveEjecucion ?? "").Split('.')[0];
+        if (!int.TryParse(clave, System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out var id) || id <= 0) return null;
+        return asiento.MotorPropietario switch
+        {
+            AsientoVenta.MotorPropietario => () => _facturacion.AbrirFactura(id),
+            ProConta.Nominas.Contabilizacion.ServicioContabilizacionNominas.MotorPropietario => () => _nominas.Abrir(id),
+            _ => null,
+        };
+    }
+
+    private static string PorQueNoSeAbreElOrigen(ProConta.Contabilidad.Diario.AsientoDiario asiento) => asiento.MotorPropietario switch
+    {
+        "compras/factura-compra" => $"Ábrela en Compras › Facturas recibidas (registro {asiento.ClaveEjecucion}): esa pantalla aún no abre una factura concreta desde aquí",
+        "norma43/conciliacion" => $"Búscala en Bancos › Líneas N43 (línea {asiento.ClaveEjecucion}): esa pantalla aún no abre una línea concreta desde aquí",
+        OpcionesLote.MotorImportadorContaSol => "Viene de la importación de ContaSol: no tiene documento de origen en ProContaVF",
+        _ => "Este origen no tiene una pantalla que abrir",
+    };
+
+    private async Task GenerarBalanceAsync(ProConta.Contabilidad.Balances.TipoBalance tipo)
+    {
+        if (_generandoBalance) { Avisar("Ya estoy generando un balance: espera a que se abra en Excel."); return; }
+        _generandoBalance = true;
+        var nombre = tipo == ProConta.Contabilidad.Balances.TipoBalance.Situacion ? "balance de situación" : "balance de pérdidas y ganancias";
+        Avisar($"Generando el {nombre} del ejercicio {_ejercicioTrabajo.Ejercicio}…");
+        var anterior = Cursor;
+        Cursor = Cursors.Wait;
+        try
+        {
+            var balance = await Task.Run(() => _balances.GenerarAsync(tipo, _ejercicioTrabajo, _razonSocial));
+            var carpeta = System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "ProContaVF", "Informes");
+            System.IO.Directory.CreateDirectory(carpeta);
+            var ruta = System.IO.Path.Combine(carpeta, ExportadorBalanceExcel.NombreFichero(tipo, _ejercicioTrabajo.Ejercicio, DateTime.Now));
+            await Task.Run(() => ExportadorBalanceExcel.Exportar(balance, ruta));
+            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(ruta) { UseShellExecute = true });
+            var es = System.Globalization.CultureInfo.GetCultureInfo("es-ES");
+            var totales = tipo == ProConta.Contabilidad.Balances.TipoBalance.Situacion
+                ? string.Join(" · ", balance.TotalesPorBloque.Select(t => $"{t.Bloque.ToLower(es)} {t.Importe.ToString("N2", es)} €"))
+                : $"resultado {balance.Total.ToString("N2", es)} €";
+            var sin = balance.SinClasificar.Count == 0 ? "" :
+                $" · {balance.SinClasificar.Count} cuentas sin clasificar ({string.Join(", ", balance.SinClasificar.Take(5).Select(c => c.Cuenta))}{(balance.SinClasificar.Count > 5 ? "…" : "")}): mira la hoja SinClasificar";
+            Avisar($"{char.ToUpper(nombre[0], es)}{nombre[1..]} {_ejercicioTrabajo.Ejercicio} abierto en Excel: {totales}{sin}.");
+        }
+        catch (Exception ex)
+        {
+            ServicioMensajes.Preguntar(this, $"No he podido generar el {nombre}", ex.Message,
+                ex is InvalidOperationException ? null : [$"Detalle técnico: {ex.GetType().Name}"],
+                new OpcionMensaje("Cerrar", "Vuelve a la pantalla anterior", Principal: true, Cancelar: true));
+        }
+        finally
+        {
+            Cursor = anterior;
+            _generandoBalance = false;
+        }
+    }
+
+    /// <summary>
+    /// Informe para la gestoría (informes/informe-gestoria): pide el trimestre (por defecto, el último terminado del ejercicio de
+    /// trabajo), compone el informe, lo guarda en Documentos\ProContaVF\Informes y lo abre con Excel. En la barra de estado dice el
+    /// resultado del 303, la prorrata y cuántos controles hay que revisar.
+    /// </summary>
+    private async Task GenerarInformeGestoriaAsync(int? trimestre = null)
+    {
+        if (_generandoGestoria) { Avisar("Ya estoy generando el informe para la gestoría: espera a que se abra en Excel."); return; }
+        var ejercicio = _ejercicioTrabajo.Ejercicio;
+        if (trimestre is null)
+        {
+            var propuesto = ProConta.Informes.Excel.InformeGestoria.TrimestrePropuesto(ejercicio, DateTime.Today);
+            var opciones = Enumerable.Range(1, 4).Select(q => new OpcionMensaje($"{q}T",
+                    $"Del {new DateTime(ejercicio, 3 * q - 2, 1):dd/MM/yyyy} al {ProConta.Informes.Excel.InformeGestoria.FinDe(ejercicio, q):dd/MM/yyyy}" +
+                    (q == propuesto ? " (el último trimestre terminado)" : ""), Principal: q == propuesto))
+                .Append(new OpcionMensaje("Cancelar", "No genera nada", Cancelar: true)).ToArray();
+            var eleccion = ServicioMensajes.Preguntar(this, "Informe para la gestoría",
+                $"¿De qué trimestre de {ejercicio} genero el informe? El IVA sale de todo el ejercicio contabilizado hasta hoy; pérdidas y ganancias, balance, ratios y " +
+                "listados de facturas, hasta el último día del trimestre que elijas.", null, opciones);
+            if (eleccion is < 0 or > 3) return;
+            trimestre = eleccion + 1;
+        }
+        _generandoGestoria = true;
+        Avisar($"Generando el informe para la gestoría del {trimestre}T de {ejercicio}…");
+        var anterior = Cursor;
+        Cursor = Cursors.Wait;
+        string? ruta = null;
+        try
+        {
+            var inversiones = (ProConta.UI.Base.Preferencias.PreferenciasOperador.Actual.Leer<List<string>>(ProConta.Inicio.UI.InicioVM.ClaveInversiones(_ejercicioTrabajo.IdSociedad)) ?? [])
+                .ToHashSet(StringComparer.Ordinal);
+            var t = trimestre.Value;
+            var informe = await Task.Run(() => _gestoria.ComponerAsync(_ejercicioTrabajo, _razonSocial, t, DateTime.Now, inversiones));
+            var carpeta = System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "ProContaVF", "Informes");
+            System.IO.Directory.CreateDirectory(carpeta);
+            ruta = System.IO.Path.Combine(carpeta, ProConta.Informes.Excel.InformeGestoria.NombreFichero(ejercicio, t, informe.Generado));
+            var destino = ruta;
+            await Task.Run(() => ProConta.Informes.Excel.ExportadorInformeGestoriaExcel.Exportar(informe, destino));
+            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(ruta) { UseShellExecute = true });
+            var es = System.Globalization.CultureInfo.GetCultureInfo("es-ES");
+            var resultado = informe.Iva303.Resultado(t);
+            var revisar = ProConta.Informes.Excel.ControlesGestoria.Calcular(informe).Count(c => c.Estado == ProConta.Informes.Excel.EstadoControl.Revisar);
+            Avisar($"Informe para la gestoría {ejercicio}-{t}T abierto en Excel: 303 del {t}T {Math.Abs(resultado).ToString("N2", es)} € {(resultado >= 0 ? "a ingresar" : "a compensar")} · " +
+                   $"prorrata {informe.Prorrata.Provisional:P0} → {informe.Prorrata.Real:P0} · " +
+                   (revisar == 0 ? "ningún control a revisar." : $"{revisar} controles a revisar (hoja Controles)."));
+        }
+        catch (Exception ex)
+        {
+            var bloqueado = ex is System.IO.IOException;
+            var detalles = new List<string>();
+            if (bloqueado && ruta is not null) detalles.Add($"Fichero: {ruta}");
+            if (ex is not InvalidOperationException and not System.IO.IOException) detalles.Add($"Detalle técnico: {ex.GetType().Name}");
+            var mensaje = bloqueado
+                ? $"No he podido escribir el libro: {ex.Message} Si tienes abierto en Excel otro informe con el mismo nombre, ciérralo y pulsa «Reintentar»."
+                : ex.Message;
+            var eleccion = ServicioMensajes.Preguntar(this, "No he podido generar el informe para la gestoría", mensaje, detalles,
+                new OpcionMensaje("Reintentar", "Vuelve a generar el informe del mismo trimestre", Principal: true),
+                new OpcionMensaje("Cerrar", "Vuelve a la pantalla anterior", Cancelar: true));
+            if (eleccion == 0) { _generandoGestoria = false; Cursor = anterior; await GenerarInformeGestoriaAsync(trimestre); return; }
+        }
+        finally
+        {
+            Cursor = anterior;
+            _generandoGestoria = false;
+        }
     }
 
     private void Avisar(string texto)

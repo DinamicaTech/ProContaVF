@@ -1,4 +1,4 @@
-namespace ProConta.Datos.Esquema.Migraciones;
+﻿namespace ProConta.Datos.Esquema.Migraciones;
 
 /// <summary>Migraciones pedidas por los nodos de compras (docs/compras.md).</summary>
 public static class MigracionesCompras
@@ -192,6 +192,25 @@ public static class MigracionesCompras
     /// Marca VIES del proveedor (propietario 2026-11-07 20:25): «VIES», «NO VIES» o vacía (sin verificar; se consulta al abrir
     /// una factura suya), y cuándo se comprobó. Solo estructura, sin datos.
     /// </summary>
+    /// <summary>
+    /// Carpeta de facturas de compra de cada ejercicio (compras/factura-compra 2026-11-11 17:33): relativa a la carpeta de
+    /// documentos de la empresa (Sociedades.RutaDocumentos), por defecto «&lt;año&gt;\Proveedores», que es donde compras busca los PDF
+    /// nuevos y contra la que resuelve las rutas guardadas sin unidad. Se rellena así en los ejercicios que ya existen.
+    /// </summary>
+    public static Migracion CarpetaFacturasCompra { get; } = new(
+        "20261111_1740_CARPETA_FACTURAS_COMPRA", 261111014,
+        "Carpeta de facturas de compra de cada ejercicio, relativa a la carpeta de documentos de la empresa.",
+        "compras/factura-compra",
+        new AnadirColumna("SociedadesEjercicios", "CarpetaFacturasCompra", "TEXT(255)"),
+        new PasoPersonalizado("Rellenar la carpeta de facturas de compra de los ejercicios con «<año>\\Proveedores»",
+            "UPDATE SociedadesEjercicios SET CarpetaFacturasCompra = Ejercicio & '\\Proveedores' WHERE CarpetaFacturasCompra IS NULL AND Ejercicio IS NOT NULL",
+            // Hecho si algún ejercicio la tiene (o no hay ninguno): los ejercicios que se crean después pueden dejarla vacía, que
+            // vale «<año>\Proveedores», y no por eso la migración está a medias.
+            async (s, e) => e.ExisteColumna("SociedadesEjercicios", "CarpetaFacturasCompra") && (
+                System.Convert.ToInt32(await s.EscalarAsync("SELECT COUNT(*) FROM SociedadesEjercicios WHERE CarpetaFacturasCompra IS NOT NULL"), System.Globalization.CultureInfo.InvariantCulture) > 0 ||
+                System.Convert.ToInt32(await s.EscalarAsync("SELECT COUNT(*) FROM SociedadesEjercicios WHERE Ejercicio IS NOT NULL"), System.Globalization.CultureInfo.InvariantCulture) == 0),
+            (s, _) => s.EjecutarAsync("UPDATE SociedadesEjercicios SET CarpetaFacturasCompra = Ejercicio & '\\Proveedores' WHERE CarpetaFacturasCompra IS NULL AND Ejercicio IS NOT NULL")));
+
     public static Migracion ViesProveedor { get; } = new(
         "20261107_2030_VIES_PROVEEDOR", 261107005,
         "Marca VIES del proveedor y fecha de la comprobación.",

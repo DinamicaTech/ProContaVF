@@ -51,7 +51,9 @@ public sealed class VistaMantenimiento : UserControl
         };
         _tabla.SetBinding(ItemsControl.ItemsSourceProperty, new Binding(nameof(vm.Registros)));
         _tabla.SetBinding(System.Windows.Controls.Primitives.Selector.SelectedItemProperty, new Binding(nameof(vm.Seleccionada)) { Mode = BindingMode.TwoWay });
-        _tabla.PreviewKeyDown += (_, e) => { if (e.Key == Key.Enter) { EnfocarPrimerCampo(); e.Handled = true; } };
+        _tabla.PreviewKeyDown += (_, e) => { if (e.Key == Key.Enter) { if (vm.ModoSeleccion) FilaActivada?.Invoke(this, EventArgs.Empty); else EnfocarPrimerCampo(); e.Handled = true; } };
+        _tabla.MouseDoubleClick += (_, e) => { if (vm.ModoSeleccion && e.OriginalSource is FrameworkElement { DataContext: FilaRegistro }) FilaActivada?.Invoke(this, EventArgs.Empty); };
+        vm.ElegirRegistro ??= ElegirRegistroAsync;
 
         Content = Componer();
         InputBindings.Add(new KeyBinding(new ComandoDelegado(() => { _busqueda.Focus(); _busqueda.SelectAll(); }), Key.K, ModifierKeys.Control));
@@ -114,6 +116,7 @@ public sealed class VistaMantenimiento : UserControl
         nav.Children.Add(contenedorNav);
         var bordeNav = new Border { BorderBrush = (Brush)FindResource("Pincel.Linea"), BorderThickness = new Thickness(0, 0, 1, 0), Child = nav };
         DockPanel.SetDock(bordeNav, Dock.Left);
+        if (_vm.ModoSeleccion) bordeNav.Visibility = Visibility.Collapsed;
         raiz.Children.Add(bordeNav);
 
         // ----- cabecera -----
@@ -301,6 +304,12 @@ public sealed class VistaMantenimiento : UserControl
             var b = new Button { Content = a.Texto, ToolTip = a.Ayuda, Margin = new Thickness(8, 0, 0, 0), Command = _vm.AccionCommand, CommandParameter = a.Clave, Style = (Style)FindResource("Boton.Pequeno") };
             _acciones.Children.Add(b);
         }
+        // Las acciones sobre el registro también van en el menú contextual de la lista (criterio de UI del propietario 2026-11-05).
+        if (_vm.Acciones.Count == 0) { _tabla.ContextMenu = null; return; }
+        var menu = new ContextMenu();
+        foreach (var a in _vm.Acciones)
+            menu.Items.Add(new MenuItem { Header = a.Texto, ToolTip = a.Ayuda, Command = _vm.AccionCommand, CommandParameter = a.Clave });
+        _tabla.ContextMenu = menu;
     }
 
     private void ProgramarReconstruccion()
@@ -318,7 +327,10 @@ public sealed class VistaMantenimiento : UserControl
         foreach (var g in _vm.Grupos)
         {
             var campos = new WrapPanel { Margin = new Thickness(0, 6, 0, 6) };
-            foreach (var c in g.Campos) campos.Children.Add(Campo(c));
+            var etiquetas = new List<TextBlock>();
+            foreach (var c in g.Campos) campos.Children.Add(Campo(c, etiquetas));
+            // Tras cada colocación (con la letra del tema ya aplicada y al cambiar el ancho, que reparte los campos en otras filas).
+            campos.SizeChanged += (_, e) => { if (e.WidthChanged) IgualarAlturaEtiquetas(campos, etiquetas); };
             if (varios)
                 _editor.Children.Add(new Expander { Header = new TextBlock { Text = g.Titulo, Style = (Style)FindResource("Texto.Seccion") }, IsExpanded = true, Content = campos, Margin = new Thickness(0, 6, 0, 0) });
             else
@@ -327,17 +339,45 @@ public sealed class VistaMantenimiento : UserControl
         if (_vm.CampoEnfocado is string enfocar && _controles.TryGetValue(enfocar, out var ctl)) Dispatcher.BeginInvoke(DispatcherPriority.Input, () => ctl.Focus());
     }
 
-    private FrameworkElement Campo(CampoEdicionVM c)
+    /// <summary>
+    /// Las etiquetas largas pasan a dos líneas en vez de cortarse (plataforma/mantenimiento 2026-11-12). Todas las del grupo
+    /// de una misma fila se bajan hasta la altura de la más alta, así sus editores quedan alineados.
+    /// </summary>
+    private static void IgualarAlturaEtiquetas(WrapPanel panel, List<TextBlock> etiquetas)
+    {
+        var medidas = new List<(TextBlock Etiqueta, double Fila, double Alto)>();
+        foreach (var e in etiquetas)
+        {
+            if (e.Parent is not FrameworkElement bloque) continue;
+            e.MaxHeight = Math.Ceiling(e.FontFamily.LineSpacing * e.FontSize * 2) + 1;
+            e.Padding = new Thickness(0);
+            e.Measure(new Size(e.MaxWidth, double.PositiveInfinity));
+            medidas.Add((e, Math.Round(bloque.TranslatePoint(new Point(0, 0), panel).Y), e.DesiredSize.Height));
+        }
+        foreach (var fila in medidas.GroupBy(m => m.Fila))
+        {
+            var alto = fila.Max(m => m.Alto);
+            foreach (var m in fila) m.Etiqueta.Padding = new Thickness(0, alto - m.Alto, 0, 0);
+        }
+    }
+
+    private FrameworkElement Campo(CampoEdicionVM c, List<TextBlock> etiquetas)
     {
         var ancho = Anchos.TryGetValue(c.Definicion.Ancho, out var a) ? a : Anchos["m"];
         var bloque = new StackPanel { Width = ancho, Margin = new Thickness(0, 0, 16, 10), DataContext = c };
-        var etiqueta = new TextBlock { Text = c.Etiqueta + (c.Pendiente ? " · por confirmar" : ""), Foreground = (Brush)FindResource("Pincel.Texto2"), Margin = new Thickness(0, 0, 0, 3), TextTrimming = TextTrimming.CharacterEllipsis };
-        etiqueta.SetBinding(ToolTipProperty, nameof(CampoEdicionVM.Ayuda));
+        // Hasta dos líneas: más allá se corta, y la ayuda (al pasar el ratón) la muestra entera.
+        var etiqueta = new TextBlock
+        {
+            Text = c.Etiqueta + (c.Pendiente ? " · por confirmar" : ""), Foreground = (Brush)FindResource("Pincel.Texto2"), Margin = new Thickness(0, 0, 0, 3),
+            TextWrapping = TextWrapping.Wrap, TextTrimming = TextTrimming.CharacterEllipsis, MaxWidth = ancho, VerticalAlignment = VerticalAlignment.Bottom,
+        };
+        etiqueta.SetBinding(ToolTipProperty, nameof(CampoEdicionVM.AyudaEtiqueta));
+        etiquetas.Add(etiqueta);
         Control control;
         switch (c.Tipo)
         {
             case TipoCampo.Logico:
-                var cb = new CheckBox { Content = c.Definicion.Etiqueta, IsEnabled = !c.SoloLectura };
+                var cb = new CheckBox { Content = new TextBlock { Text = c.Definicion.Etiqueta, TextWrapping = TextWrapping.Wrap }, IsEnabled = !c.SoloLectura };
                 cb.SetBinding(System.Windows.Controls.Primitives.ToggleButton.IsCheckedProperty, new Binding(nameof(CampoEdicionVM.Marcado)) { Mode = BindingMode.TwoWay, ValidatesOnNotifyDataErrors = true });
                 etiqueta.Text = " ";
                 control = cb;
@@ -353,6 +393,12 @@ public sealed class VistaMantenimiento : UserControl
                 var combo = new ComboBox { ItemsSource = c.Opciones, DisplayMemberPath = nameof(OpcionCampo.Texto), IsEnabled = !c.SoloLectura };
                 combo.SetBinding(System.Windows.Controls.Primitives.Selector.SelectedItemProperty, new Binding(nameof(CampoEdicionVM.Opcion)) { Mode = BindingMode.TwoWay, ValidatesOnNotifyDataErrors = true });
                 control = combo;
+                break;
+            case TipoCampo.ListaAbierta:
+                // Se elige una opción o se escribe una nueva: el texto pasa al modelo, que lo convierte en la opción que coincide.
+                var abierta = new ComboBox { ItemsSource = c.Opciones, DisplayMemberPath = nameof(OpcionCampo.Texto), IsEditable = true, IsTextSearchEnabled = true, IsEnabled = !c.SoloLectura };
+                abierta.SetBinding(ComboBox.TextProperty, new Binding(nameof(CampoEdicionVM.Texto)) { Mode = BindingMode.TwoWay, UpdateSourceTrigger = UpdateSourceTrigger.PropertyChanged, ValidatesOnNotifyDataErrors = true });
+                control = abierta;
                 break;
             default:
                 var estilo = c.Tipo switch
@@ -376,10 +422,81 @@ public sealed class VistaMantenimiento : UserControl
         System.Windows.Automation.AutomationProperties.SetName(control, c.Definicion.Etiqueta);
         _controles[c.Clave] = control;
         bloque.Children.Add(etiqueta);
-        bloque.Children.Add(control);
+        if (c.EsCuenta && control is TextBox cuenta)
+            bloque.Children.Add(CampoSelector(c, cuenta, c.BuscarCuentaCommand, nameof(CampoEdicionVM.AyudaBuscarCuenta), c.PuedeBuscarCuenta, c.BuscarCuentaAsync, c.VaciarCuenta));
+        else if (c.EsReferencia && control is TextBox referencia)
+            bloque.Children.Add(CampoSelector(c, referencia, c.ElegirReferenciaCommand, nameof(CampoEdicionVM.AyudaElegirReferencia), c.PuedeElegirReferencia, c.ElegirReferenciaAsync, c.VaciarReferencia));
+        else
+            bloque.Children.Add(control);
         if (c.Bloqueo is string motivo)
             bloque.Children.Add(new TextBlock { Text = motivo, FontSize = (double)FindResource("Letra.Pequena"), Foreground = (Brush)FindResource("Pincel.Apagado"), TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 2, 0, 0) });
         return bloque;
+    }
+
+    /// <summary>
+    /// Campo que no se escribe y se elige en un selector (plataforma/mantenimiento 2026-11-12, propietario 12:16): las cuentas
+    /// en el buscador de cuentas del ejercicio (con «Crear subcuenta») y las referencias a otra tabla 1:N en esa tabla (con
+    /// su alta). Lo abren la lupa, el clic en el campo, Intro, Espacio y F4; Supr lo vacía.
+    /// </summary>
+    private FrameworkElement CampoSelector(CampoEdicionVM c, TextBox texto, ICommand abrir, string propiedadAyuda, bool editable, Func<Task> abrirAsync, Action vaciar)
+    {
+        var buscar = new Button { Style = (Style)FindResource("Boton.Icono"), Margin = new Thickness(4, 0, 0, 0), Command = abrir, Focusable = false };
+        Iconos.SetIcono(buscar, (Geometry)FindResource("Icono.search"));
+        buscar.SetBinding(ToolTipProperty, propiedadAyuda);
+        System.Windows.Automation.AutomationProperties.SetName(buscar, $"Elegir {c.Definicion.Etiqueta}");
+        DockPanel.SetDock(buscar, Dock.Right);
+        texto.IsReadOnly = true;
+        if (editable)
+        {
+            texto.Cursor = Cursors.Hand;
+            texto.PreviewMouseLeftButtonUp += (_, e) => { e.Handled = true; _ = abrirAsync(); };
+            texto.PreviewKeyDown += (_, e) =>
+            {
+                if (e.Key is Key.F4 or Key.Enter or Key.Space) { e.Handled = true; _ = abrirAsync(); }
+                else if (e.Key is Key.Delete or Key.Back) { e.Handled = true; vaciar(); }
+            };
+        }
+        var fila = new DockPanel { LastChildFill = true };
+        fila.Children.Add(buscar);
+        fila.Children.Add(texto);
+        return fila;
+    }
+
+    /// <summary>En modo selección: doble clic o Intro en una fila de la lista.</summary>
+    public event EventHandler? FilaActivada;
+
+    /// <summary>
+    /// Selector de un registro de otra tabla 1:N (plataforma/mantenimiento 2026-11-12): la misma pantalla con solo ese
+    /// mantenimiento, donde también se crea o se corrige el registro, y «Elegir» (o doble clic) para llevarlo al campo.
+    /// </summary>
+    private async Task<RegistroMantenimiento?> ElegirRegistroAsync(IProveedorMantenimiento proveedor, object? clave)
+    {
+        var vm = new PantallaMantenimientoVM(new ServicioMantenimiento([proveedor], _vm.Servicio.PuedeEditarAsync), _vm.Contexto, _vm.Preguntar, _vm.AvisarOperador, x => new VistaMantenimiento(x))
+            { ModoSeleccion = true, Cuentas = _vm.Cuentas };
+        var vista = new VistaMantenimiento(vm);
+        var dialogo = new DialogoProConta
+        {
+            Title = $"Elegir en «{proveedor.Titulo}»", Owner = Window.GetWindow(this), Width = 1180, Height = 700, MinWidth = 700, MinHeight = 400,
+            SizeToContent = SizeToContent.Manual, Redimensionable = true, Content = vista,
+        };
+        RegistroMantenimiento? elegido = null;
+        async Task Elegir()
+        {
+            if (await vm.RegistroElegidoAsync() is not { } r) return;
+            elegido = r;
+            dialogo.DialogResult = true;
+        }
+        var elegir = new Button { Content = "Elegir", Style = (Style)FindResource("Boton.Primario"), Margin = new Thickness(8, 0, 0, 0),
+            ToolTip = $"Lleva al campo el registro seleccionado (también doble clic o Intro en la lista). Para uno nuevo, «Nuevo», rellénalo y «Guardar»" };
+        var cancelar = new Button { Content = "Cancelar", IsCancel = true, ToolTip = "Cierra sin cambiar el campo" };
+        elegir.Click += async (_, _) => await Elegir();
+        cancelar.Click += (_, _) => dialogo.DialogResult = false;
+        vista.FilaActivada += async (_, _) => await Elegir();
+        dialogo.Botones = new StackPanel { Orientation = Orientation.Horizontal, Children = { cancelar, elegir } };
+        dialogo.Loaded += async (_, _) => await vm.IniciarSeleccionAsync(clave);
+        var aceptado = dialogo.ShowDialog() == true;
+        _vm.OlvidarReferencias();
+        return aceptado ? elegido : null;
     }
 
     private void EnfocarPrimerCampo()

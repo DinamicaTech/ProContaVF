@@ -13,7 +13,8 @@ using ProConta.UI.Base.Formato;
 namespace ProConta.Facturacion.UI.Vistas;
 
 /// <summary>Diálogos de facturación con <see cref="DialogoProConta"/>: elegir cliente, elegir concepto y asignar cuenta.</summary>
-public sealed class DialogosFacturacion(ApoyoEditorFacturas apoyo, Func<Window?> propietario) : IDialogosFacturacion
+public sealed class DialogosFacturacion(ApoyoEditorFacturas apoyo, ProConta.Contabilidad.Cuentas.ICatalogoCuentas cuentas,
+    ProConta.Contabilidad.CentrosCoste.ICatalogoCentrosCoste centros, Func<Window?> propietario) : IDialogosFacturacion
 {
     private Window? Propietario => propietario() ?? Application.Current?.MainWindow;
 
@@ -88,13 +89,13 @@ public sealed class DialogosFacturacion(ApoyoEditorFacturas apoyo, Func<Window?>
         return dialogo.ShowDialog() == true ? elegido : null;
     }
 
-    public Concepto? ElegirConcepto(IReadOnlyList<Concepto> conceptos)
+    public EleccionConcepto? ElegirConcepto(IReadOnlyList<Concepto> conceptos)
     {
         if (conceptos.Count == 0)
         {
             Preguntar("Sin conceptos", "La sociedad no tiene conceptos activos, así que añado una línea vacía para que escribas su nombre, precio y cuenta. Puedes crear conceptos en Parámetros y tablas › Conceptos.",
                 null, new OpcionMensaje("Entendido", "Añade la línea vacía", Principal: true, Cancelar: true));
-            return null;
+            return new EleccionConcepto(null);
         }
         var dialogo = new DialogoProConta { Title = "Añadir línea", Owner = Propietario, Width = 1000, Height = 680, SizeToContent = SizeToContent.Manual };
         var filtro = new TextBox { ToolTip = "Filtra por nombre, descripción o cuenta" };
@@ -139,18 +140,32 @@ public sealed class DialogosFacturacion(ApoyoEditorFacturas apoyo, Func<Window?>
         cuerpo.Children.Add(lista);
         dialogo.Content = cuerpo;
 
-        Concepto? elegido = null;
+        EleccionConcepto? elegido = null;
+        var libre = new Button { Content = "Línea sin concepto", Margin = new Thickness(8, 0, 0, 0),
+            ToolTip = "Añade una línea vacía para escribir a mano su nombre, precio, IVA y cuenta, sin partir de un concepto del catálogo" };
+        libre.Click += (_, _) => { elegido = new EleccionConcepto(null); dialogo.DialogResult = true; };
         var elegir = new Button { Content = "Añadir", Style = (Style)dialogo.FindResource("Boton.Primario"), Margin = new Thickness(8, 0, 0, 0), ToolTip = "Añade una línea con el concepto seleccionado" };
         var cancelar = new Button { Content = "Cancelar", IsCancel = true, ToolTip = "No añade ninguna línea" };
-        void Aceptar() { if (lista.SelectedItem is Concepto c) { elegido = c; dialogo.DialogResult = true; } }
+        void Aceptar() { if (lista.SelectedItem is Concepto c) { elegido = new EleccionConcepto(c); dialogo.DialogResult = true; } }
         elegir.Click += (_, _) => Aceptar();
         cancelar.Click += (_, _) => dialogo.DialogResult = false;
         lista.MouseDoubleClick += (_, _) => Aceptar();
         lista.KeyDown += (_, e) => { if (e.Key == Key.Enter) { Aceptar(); e.Handled = true; } };
         filtro.PreviewKeyDown += (_, e) => { if (e.Key == Key.Enter) { Aceptar(); e.Handled = true; } else if (e.Key == Key.Down) { lista.Focus(); e.Handled = true; } };
-        dialogo.Botones = new StackPanel { Orientation = Orientation.Horizontal, Children = { cancelar, elegir } };
+        dialogo.Botones = new StackPanel { Orientation = Orientation.Horizontal, Children = { cancelar, libre, elegir } };
         dialogo.Loaded += (_, _) => { lista.SelectedIndex = 0; filtro.Focus(); };
         return dialogo.ShowDialog() == true ? elegido : null;
+    }
+
+    /// <summary>
+    /// El buscador común de subcuentas para la cuenta de una línea (facturacion/pantallas 2026-11-15 14:05): limitado al
+    /// grupo 7, con la casilla para quitar el filtro; en un suplido, sin filtro.
+    /// </summary>
+    public (string Codigo, string Nombre)? ElegirCuentaLinea(ProConta.Nucleo.Contexto.ContextoSociedadEjercicio trabajo, string? texto, bool suplido)
+    {
+        var vm = new ProConta.Contabilidad.UI.BuscadorCuentasVM(cuentas, trabajo, suplido ? [] : ["7"], texto, centros);
+        return ProConta.Contabilidad.UI.DialogoCuentas.Elegir(Propietario, vm, suplido ? "Cuenta de suplidos de la línea" : "Cuenta de ingreso de la línea") is { } c
+            ? (c.Codigo, c.Nombre) : null;
     }
 
     public string? PedirCuenta(ClaseCuentaRol clase, string nombreCliente, string propuesta, string razonSocial)
@@ -216,6 +231,7 @@ public sealed class DialogosFacturacion(ApoyoEditorFacturas apoyo, Func<Window?>
     {
         var dialogo = new DialogoProConta { Title = "Generar facturas programadas", Owner = Propietario, Width = 1040, Height = 660, SizeToContent = SizeToContent.Manual };
         var apagado = (Brush)dialogo.FindResource("Pincel.Apagado");
+        var rojo = (Brush)dialogo.FindResource("Pincel.RojoError");
         var fecha = new TextBox { Text = Texto.Fecha(hasta), Width = 110, Style = (Style)dialogo.FindResource("Campo"),
             ToolTip = "Se generan los vencimientos de esta fecha y anteriores (dd/mm/aaaa)" };
         var leer = new Button { Content = "Ver vencimientos", Margin = new Thickness(8, 0, 0, 0), ToolTip = "Vuelve a leer las programadas con vencimientos hasta esa fecha" };
@@ -227,10 +243,11 @@ public sealed class DialogosFacturacion(ApoyoEditorFacturas apoyo, Func<Window?>
 
         void Recontar()
         {
-            var marcadas = filas.Where(f => f.Marcada).ToList();
+            var marcadas = filas.Where(f => f.Marcada && f.Datos.Generable).ToList();
             var facturas = marcadas.Sum(f => f.Datos.Vencimientos.Count);
+            var total = marcadas.Sum(f => f.Datos.Vencimientos.Count * f.Datos.Programada.Plantilla.Totales.ImporteTotal.Valor);
             generar.IsEnabled = facturas > 0;
-            generar.Content = facturas == 0 ? "Generar" : $"Generar {Formatos.Plural(facturas, "factura", "facturas")}";
+            generar.Content = facturas == 0 ? "Generar" : $"Generar {Formatos.Plural(facturas, "factura", "facturas")} · {Formatos.Importe(total)}";
         }
 
         lista.ItemTemplate = PlantillaCodigo.Crear(o =>
@@ -240,7 +257,10 @@ public sealed class DialogosFacturacion(ApoyoEditorFacturas apoyo, Func<Window?>
             var g = new Grid { Margin = new Thickness(0, 3, 0, 3) };
             foreach (var ancho in new[] { 30d, 90d, double.NaN, 120d, 150d })
                 g.ColumnDefinitions.Add(new ColumnDefinition { Width = double.IsNaN(ancho) ? new GridLength(1, GridUnitType.Star) : new GridLength(ancho) });
-            var marca = new CheckBox { IsChecked = fila.Marcada, VerticalAlignment = VerticalAlignment.Top, Margin = new Thickness(0, 2, 0, 0), ToolTip = "Incluye esta programada en el lote" };
+            var generable = fila.Datos.Generable;
+            var marca = new CheckBox { IsChecked = fila.Marcada && generable, IsEnabled = generable, VerticalAlignment = VerticalAlignment.Top, Margin = new Thickness(0, 2, 0, 0),
+                ToolTip = generable ? "Incluye esta programada en el lote" : "No se puede generar hasta corregir lo que se indica en rojo" };
+            ToolTipService.SetShowOnDisabled(marca, true);
             marca.Checked += (_, _) => { fila.Marcada = true; Recontar(); };
             marca.Unchecked += (_, _) => { fila.Marcada = false; Recontar(); };
             var codigo = new TextBlock { Text = p.Rotulo, FontFamily = (FontFamily)dialogo.FindResource("Fuente.Mono") };
@@ -251,9 +271,12 @@ public sealed class DialogosFacturacion(ApoyoEditorFacturas apoyo, Func<Window?>
                 Text = (fila.Datos.Vencimientos.Count == 1 ? "Vencimiento " : $"{fila.Datos.Vencimientos.Count} vencimientos: ") + string.Join(" · ", fila.Datos.Vencimientos.Select(d => Formatos.Fecha(d))),
                 Foreground = apagado, TextWrapping = TextWrapping.Wrap
             });
-            var genera = new TextBlock { Text = p.AlGenerar == AlGenerar.Validar ? "Factura validada" : "Borrador", Foreground = apagado,
+            // Lo que impedirá generarla se ve antes, en rojo, como en «Facturar todo» de Ventas por facturar.
+            if (!generable) texto.Children.Add(new TextBlock { Text = fila.Datos.Problema, Foreground = rojo, TextWrapping = TextWrapping.Wrap });
+            var genera = new TextBlock { Text = !generable ? "" : p.AlGenerar == AlGenerar.Validar ? "Factura validada" : "Borrador", Foreground = apagado,
                 ToolTip = p.AlGenerar == AlGenerar.Validar ? "Se numera, se valida y se contabiliza al generarla" : "Queda como borrador sin número para revisarlo y validarlo después" };
-            var total = new TextBlock { Text = $"{Formatos.Importe(p.Plantilla.Totales.ImporteTotal.Valor)} cada una", HorizontalAlignment = HorizontalAlignment.Right };
+            var total = new TextBlock { Text = generable ? $"{Formatos.Importe(p.Plantilla.Totales.ImporteTotal.Valor)} cada una" : "No se genera", HorizontalAlignment = HorizontalAlignment.Right };
+            if (!generable) total.Foreground = apagado;
             Grid.SetColumn(codigo, 1);
             Grid.SetColumn(texto, 2);
             Grid.SetColumn(genera, 3);
@@ -275,12 +298,14 @@ public sealed class DialogosFacturacion(ApoyoEditorFacturas apoyo, Func<Window?>
             estado.Text = "Leyendo programadas…";
             var r = await pendientes(leida);
             filas.Clear();
-            filas.AddRange(r.Select(x => new FilaGenerar(x, soloMarcadas?.Contains(x.Programada.IdFacturaProgramada) ?? true)));
+            filas.AddRange(r.Select(x => new FilaGenerar(x, x.Generable && (soloMarcadas?.Contains(x.Programada.IdFacturaProgramada) ?? true))));
+            var malas = filas.Count(f => !f.Datos.Generable);
             lista.ItemsSource = null;
             lista.ItemsSource = filas;
             estado.Text = filas.Count == 0
                 ? $"Ninguna programada activa tiene vencimientos hasta el {Formatos.Fecha(leida)}. Las pausadas no se generan."
-                : $"{Formatos.Plural(filas.Count, "programada activa tiene", "programadas activas tienen")} vencimientos hasta el {Formatos.Fecha(leida)}. Cada vencimiento crea una factura; si una programada falla, las demás siguen.";
+                : $"{Formatos.Plural(filas.Count, "programada activa tiene", "programadas activas tienen")} vencimientos hasta el {Formatos.Fecha(leida)}. Cada vencimiento crea una factura; si una programada falla, las demás siguen." +
+                  (malas > 0 ? $" {Formatos.Plural(malas, "programada no se puede generar todavía", "programadas no se pueden generar todavía")} (en rojo, el motivo)." : "");
             Recontar();
         }
         leer.Click += async (_, _) => await LeerAsync();
@@ -300,9 +325,113 @@ public sealed class DialogosFacturacion(ApoyoEditorFacturas apoyo, Func<Window?>
 
         var cancelar = new Button { Content = "Cancelar", IsCancel = true, ToolTip = "No genera nada" };
         cancelar.Click += (_, _) => dialogo.DialogResult = false;
-        generar.Click += (_, _) => { if (filas.Any(f => f.Marcada)) dialogo.DialogResult = true; };
+        generar.Click += (_, _) => { if (filas.Any(f => f.Marcada && f.Datos.Generable)) dialogo.DialogResult = true; };
         dialogo.Botones = new StackPanel { Orientation = Orientation.Horizontal, Children = { cancelar, generar } };
         dialogo.Loaded += async (_, _) => await LeerAsync();
-        return dialogo.ShowDialog() == true ? (leida, filas.Where(f => f.Marcada).Select(f => f.Datos.Programada.IdFacturaProgramada).ToList()) : null;
+        return dialogo.ShowDialog() == true ? (leida, filas.Where(f => f.Marcada && f.Datos.Generable).Select(f => f.Datos.Programada.IdFacturaProgramada).ToList()) : null;
+    }
+
+    public bool ConfirmarFacturacionVentas(string titulo, IReadOnlyList<ProConta.Facturacion.Ventas.GrupoVentas> grupos)
+    {
+        var dialogo = new DialogoProConta { Title = titulo, Owner = Propietario, Width = 1040, Height = 660, SizeToContent = SizeToContent.Manual };
+        var apagado = (Brush)dialogo.FindResource("Pincel.Apagado");
+        var rojo = (Brush)dialogo.FindResource("Pincel.RojoError");
+        var buenos = grupos.Where(g => g.Facturable).ToList();
+        var malos = grupos.Count - buenos.Count;
+        var validadas = buenos.Count(g => g.Validar);
+        var estado = new TextBlock
+        {
+            Margin = new Thickness(0, 0, 0, 8), TextWrapping = TextWrapping.Wrap,
+            Text = $"Se {(buenos.Count == 1 ? "creará" : "crearán")} {Formatos.Plural(buenos.Count, "factura", "facturas")} con {Formatos.Plural(buenos.Sum(g => g.Ventas.Count), "venta", "ventas")} ({Formatos.Importe(buenos.Sum(g => g.Total))}), con fecha de hoy, según las reglas de venta: " +
+                   (validadas == buenos.Count ? "numeradas, validadas y contabilizadas." : validadas == 0 ? "como borradores, para validarlas desde Facturas." : $"{validadas} validadas y contabilizadas y {buenos.Count - validadas} como borrador.") +
+                   (malos > 0 ? $" {Formatos.Plural(malos, "venta no se puede facturar todavía y se queda pendiente", "ventas no se pueden facturar todavía y se quedan pendientes")} (en rojo, el motivo)." : "")
+        };
+        var lista = new ListBox { HorizontalContentAlignment = HorizontalAlignment.Stretch, ItemsSource = grupos };
+        lista.ItemTemplate = PlantillaCodigo.Crear(o =>
+        {
+            var g = (ProConta.Facturacion.Ventas.GrupoVentas)o!;
+            var fila = new Grid { Margin = new Thickness(0, 3, 0, 3) };
+            foreach (var ancho in new[] { double.NaN, 110d, 140d })
+                fila.ColumnDefinitions.Add(new ColumnDefinition { Width = double.IsNaN(ancho) ? new GridLength(1, GridUnitType.Star) : new GridLength(ancho) });
+            var texto = new StackPanel();
+            texto.Children.Add(new TextBlock { Text = $"{g.Descripcion} · {g.Cliente}", FontWeight = FontWeights.SemiBold, TextTrimming = TextTrimming.CharacterEllipsis });
+            texto.Children.Add(new TextBlock
+            {
+                Text = g.Facturable
+                    ? Formatos.Plural(g.Ventas.Count, "venta", "ventas") + ": " + string.Join(" · ", g.Ventas.Take(12).Select(v => $"{Formatos.Fecha(v.FechaReferencia)} {Formatos.Importe(v.Importe)}")) + (g.Ventas.Count > 12 ? " …" : "")
+                    : $"{g.Ventas[0].Rotulo} del {Formatos.Fecha(g.Ventas[0].FechaReferencia)}: {g.Problema}",
+                Foreground = g.Facturable ? apagado : rojo, TextWrapping = TextWrapping.Wrap
+            });
+            var como = new TextBlock { Text = !g.Facturable ? "" : g.Validar ? "Validada" : "Borrador", Foreground = apagado,
+                ToolTip = g.Validar ? "Su regla de venta pide «Facturar y exportar»: se numera, se valida y se contabiliza" : "Su regla de venta pide «Borrador»: queda sin número para revisarla y validarla desde Facturas" };
+            var total = new TextBlock { Text = g.Facturable ? Formatos.Importe(g.Total) : "No se factura", HorizontalAlignment = HorizontalAlignment.Right };
+            if (!g.Facturable) total.Foreground = apagado;
+            Grid.SetColumn(como, 1);
+            Grid.SetColumn(total, 2);
+            fila.Children.Add(texto);
+            fila.Children.Add(como);
+            fila.Children.Add(total);
+            return fila;
+        });
+        var cuerpo = new DockPanel();
+        DockPanel.SetDock(estado, Dock.Top);
+        cuerpo.Children.Add(estado);
+        cuerpo.Children.Add(lista);
+        dialogo.Content = cuerpo;
+
+        var facturar = new Button { Content = buenos.Count == 0 ? "Facturar" : $"Crear {Formatos.Plural(buenos.Count, "factura", "facturas")}", Style = (Style)dialogo.FindResource("Boton.Primario"),
+            Margin = new Thickness(8, 0, 0, 0), IsEnabled = buenos.Count > 0, ToolTip = "Crea las facturas de la lista; lo que está en rojo se queda pendiente" };
+        var cancelar = new Button { Content = "Cancelar", IsCancel = true, ToolTip = "No crea ninguna factura" };
+        cancelar.Click += (_, _) => dialogo.DialogResult = false;
+        facturar.Click += (_, _) => dialogo.DialogResult = true;
+        dialogo.Botones = new StackPanel { Orientation = Orientation.Horizontal, Children = { cancelar, facturar } };
+        return dialogo.ShowDialog() == true;
+    }
+
+    public (DateTime Desde, DateTime Hasta)? ElegirFechasImportacion(DateTime desde, DateTime hasta)
+    {
+        var dialogo = new DialogoProConta { Title = "Importar reservas de Avaibook", Owner = Propietario, Width = 620 };
+        var cajaDesde = new TextBox { Text = Texto.Fecha(desde), Width = 110, Style = (Style)dialogo.FindResource("Campo"), ToolTip = "Primera fecha de entrada que se importa (dd/mm/aaaa)" };
+        var cajaHasta = new TextBox { Text = Texto.Fecha(hasta), Width = 110, Style = (Style)dialogo.FindResource("Campo"), ToolTip = "Última fecha de entrada que se importa (dd/mm/aaaa)" };
+        var aviso = new TextBlock { Foreground = (Brush)dialogo.FindResource("Pincel.RojoError"), Visibility = Visibility.Collapsed, Margin = new Thickness(0, 6, 0, 0), TextWrapping = TextWrapping.Wrap };
+        var panel = new StackPanel();
+        panel.Children.Add(new TextBlock
+        {
+            Text = "Se leen de Avaibook las reservas confirmadas y canceladas con entrada entre las dos fechas. Las nuevas entran como pendientes de facturar; las ya importadas se actualizan si siguen pendientes, " +
+                   "y las canceladas se anulan. Una venta ya facturada no se toca: si cambia en Avaibook, queda una incidencia. Repetir la importación no duplica nada.",
+            TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 0, 0, 12)
+        });
+        var fila = new StackPanel { Orientation = Orientation.Horizontal };
+        fila.Children.Add(new TextBlock { Text = "Entradas del", VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 8, 0) });
+        fila.Children.Add(cajaDesde);
+        fila.Children.Add(new TextBlock { Text = "al", VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(8, 0, 8, 0) });
+        fila.Children.Add(cajaHasta);
+        panel.Children.Add(fila);
+        panel.Children.Add(aviso);
+        dialogo.Content = panel;
+        DateTime? d1 = null, d2 = null;
+        var importar = new Button { Content = "Importar", Style = (Style)dialogo.FindResource("Boton.Primario"), Margin = new Thickness(8, 0, 0, 0), IsDefault = true,
+            ToolTip = "Lee las reservas de Avaibook y las guarda como ventas por facturar" };
+        var cancelar = new Button { Content = "Cancelar", IsCancel = true, ToolTip = "No importa nada" };
+        importar.Click += (_, _) =>
+        {
+            if (!Texto.LeerFecha(cajaDesde.Text, out d1) || d1 is null || !Texto.LeerFecha(cajaHasta.Text, out d2) || d2 is null)
+            {
+                aviso.Text = "Escribe las dos fechas como dd/mm/aaaa.";
+                aviso.Visibility = Visibility.Visible;
+                return;
+            }
+            if (d2 < d1)
+            {
+                aviso.Text = "La segunda fecha es anterior a la primera.";
+                aviso.Visibility = Visibility.Visible;
+                return;
+            }
+            dialogo.DialogResult = true;
+        };
+        cancelar.Click += (_, _) => dialogo.DialogResult = false;
+        dialogo.Botones = new StackPanel { Orientation = Orientation.Horizontal, Children = { cancelar, importar } };
+        dialogo.Loaded += (_, _) => cajaDesde.Focus();
+        return dialogo.ShowDialog() == true ? (d1!.Value, d2!.Value) : null;
     }
 }

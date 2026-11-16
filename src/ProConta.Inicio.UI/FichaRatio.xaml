@@ -1,0 +1,105 @@
+<UserControl x:Class="ProConta.Inicio.UI.FichaRatio"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:pc="urn:proconta-ui"
+             xmlns:local="clr-namespace:ProConta.Inicio.UI">
+  <!-- Ficha de un ratio (informes/ratios): fórmula y referencia, partidas con sus cuentas, resultado y evolución por ejercicio. -->
+  <UserControl.Resources>
+    <pc:VisibleSiConverter x:Key="Visible" />
+    <Style x:Key="Insignia.Estado" TargetType="Border">
+      <Setter Property="CornerRadius" Value="999" />
+      <Setter Property="Padding" Value="8,1" />
+      <Setter Property="HorizontalAlignment" Value="Left" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+      <Setter Property="Background" Value="{StaticResource Pincel.Fondo}" />
+      <Style.Triggers>
+        <DataTrigger Binding="{Binding Estado}" Value="Bien"><Setter Property="Background" Value="{StaticResource Pincel.VerdeSuave}" /></DataTrigger>
+        <DataTrigger Binding="{Binding Estado}" Value="Vigilar"><Setter Property="Background" Value="{StaticResource Pincel.AmbarSuave}" /></DataTrigger>
+        <DataTrigger Binding="{Binding Estado}" Value="Mal"><Setter Property="Background" Value="{StaticResource Pincel.RojoSuave}" /></DataTrigger>
+      </Style.Triggers>
+    </Style>
+    <Style x:Key="Texto.Estado" TargetType="TextBlock">
+      <Setter Property="FontSize" Value="{StaticResource Letra.Secundaria}" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+      <Setter Property="Foreground" Value="{StaticResource Pincel.Apagado}" />
+      <Style.Triggers>
+        <DataTrigger Binding="{Binding Estado}" Value="Bien"><Setter Property="Foreground" Value="{StaticResource Pincel.Verde}" /></DataTrigger>
+        <DataTrigger Binding="{Binding Estado}" Value="Vigilar"><Setter Property="Foreground" Value="{StaticResource Pincel.Ambar}" /></DataTrigger>
+        <DataTrigger Binding="{Binding Estado}" Value="Mal"><Setter Property="Foreground" Value="{StaticResource Pincel.Rojo}" /></DataTrigger>
+      </Style.Triggers>
+    </Style>
+  </UserControl.Resources>
+
+  <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+    <StackPanel>
+      <TextBlock Text="{Binding Subtitulo}" Style="{StaticResource Texto.Apagado}" TextWrapping="Wrap" Margin="0,0,0,10" />
+
+      <Border Background="{StaticResource Pincel.Fondo}" BorderBrush="{StaticResource Pincel.Linea}" BorderThickness="1" CornerRadius="8" Padding="12,8" Margin="0,0,0,12">
+        <StackPanel>
+          <TextBlock Text="{Binding Formula}" FontWeight="SemiBold" TextWrapping="Wrap" />
+          <TextBlock Text="{Binding Referencia}" Style="{StaticResource Texto.Apagado}" TextWrapping="Wrap" Margin="0,2,0,0" />
+        </StackPanel>
+      </Border>
+
+      <Grid Margin="0,0,0,4">
+        <Grid.ColumnDefinitions>
+          <ColumnDefinition Width="220" />
+          <ColumnDefinition Width="*" />
+          <ColumnDefinition Width="140" />
+        </Grid.ColumnDefinitions>
+        <TextBlock Text="Partida" Style="{StaticResource Texto.Apagado}" FontWeight="SemiBold" />
+        <TextBlock Grid.Column="1" Text="Cuentas" Style="{StaticResource Texto.Apagado}" FontWeight="SemiBold" />
+        <TextBlock Grid.Column="2" Text="Importe" Style="{StaticResource Texto.Apagado}" FontWeight="SemiBold" HorizontalAlignment="Right" />
+      </Grid>
+      <ItemsControl ItemsSource="{Binding Partidas}">
+        <ItemsControl.ItemTemplate>
+          <DataTemplate DataType="{x:Type local:PartidaRatioVM}">
+            <Border BorderBrush="{StaticResource Pincel.Linea2}" BorderThickness="0,1,0,0" Padding="0,5">
+              <Grid>
+                <Grid.ColumnDefinitions>
+                  <ColumnDefinition Width="220" />
+                  <ColumnDefinition Width="*" />
+                  <ColumnDefinition Width="140" />
+                </Grid.ColumnDefinitions>
+                <TextBlock Text="{Binding Nombre}" TextWrapping="Wrap" Margin="0,0,10,0" />
+                <TextBlock Grid.Column="1" Text="{Binding Cuentas}" Style="{StaticResource Texto.Apagado}" TextWrapping="Wrap" Margin="0,0,10,0" ToolTip="{Binding Cuentas}" />
+                <Button Grid.Column="2" Style="{StaticResource Boton.Enlace}" HorizontalAlignment="Right" Content="{Binding Importe}" Command="{Binding AbrirMayor}"
+                        ToolTip="{Binding Ayuda}" FontSize="{StaticResource Letra.Normal}" Typography.NumeralAlignment="Tabular"
+                        Visibility="{Binding AbrirMayor, Converter={StaticResource Visible}}" />
+                <TextBlock Grid.Column="2" HorizontalAlignment="Right" Text="{Binding Importe}" Typography.NumeralAlignment="Tabular" ToolTip="{Binding Ayuda}"
+                           Visibility="{Binding AbrirMayor, Converter={StaticResource Visible}, ConverterParameter=invertir}" />
+              </Grid>
+            </Border>
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+
+      <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
+        <TextBlock Text="Resultado: " VerticalAlignment="Center" />
+        <TextBlock Text="{Binding Resultado}" FontSize="17" FontWeight="SemiBold" Foreground="{StaticResource Pincel.Tinta}" VerticalAlignment="Center" Margin="0,0,10,0" />
+        <Border Style="{StaticResource Insignia.Estado}">
+          <TextBlock Text="{Binding TextoEstado}" Style="{StaticResource Texto.Estado}" />
+        </Border>
+      </StackPanel>
+      <TextBlock Text="{Binding Motivo}" TextWrapping="Wrap" Margin="0,4,0,0" Foreground="{StaticResource Pincel.Ambar}" Visibility="{Binding HayMotivo, Converter={StaticResource Visible}}" />
+
+      <TextBlock Text="Evolución a cierre de cada ejercicio" Style="{StaticResource Texto.Apagado}" FontWeight="SemiBold" Margin="0,16,0,6" />
+      <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
+        <ItemsControl ItemsSource="{Binding Evolucion}">
+          <ItemsControl.ItemsPanel><ItemsPanelTemplate><StackPanel Orientation="Horizontal" /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+          <ItemsControl.ItemTemplate>
+            <DataTemplate DataType="{x:Type local:EvolucionRatioVM}">
+              <Border BorderBrush="{StaticResource Pincel.Linea2}" BorderThickness="0,0,1,0" Padding="8,2" MinWidth="72" ToolTip="{Binding Ayuda}" Background="Transparent">
+                <StackPanel>
+                  <TextBlock Text="{Binding Ejercicio}" Style="{StaticResource Texto.Apagado}" HorizontalAlignment="Right" />
+                  <TextBlock Text="{Binding Valor}" Style="{StaticResource Texto.Estado}" FontSize="{StaticResource Letra.Normal}" HorizontalAlignment="Right" Typography.NumeralAlignment="Tabular" />
+                </StackPanel>
+              </Border>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+      </ScrollViewer>
+      <TextBlock Text="{Binding NotaEvolucion}" Style="{StaticResource Texto.Apagado}" TextWrapping="Wrap" Margin="0,6,0,0" />
+    </StackPanel>
+  </ScrollViewer>
+</UserControl>

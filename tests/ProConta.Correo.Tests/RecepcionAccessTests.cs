@@ -188,6 +188,37 @@ public sealed class RecepcionAccessTests : IDisposable
         Assert.Empty(_buzon.Borrados);
     }
 
+    /// <summary>Procesador de nóminas programado: anota lo que recibe y devuelve el estado pedido.</summary>
+    private sealed class NominasFalsas(EstadoAdjuntoRecibido estado) : IProcesadorNominasRecibidas
+    {
+        public List<(string Nombre, int IdAdjunto, bool Existe)> Recibidas { get; } = [];
+
+        public Task<ResultadoNominasRecibidas> ProcesarAsync(ContextoSociedadEjercicio contexto, string ruta, string nombre, int idAdjunto, Actor actor,
+            CancellationToken cancelacion = default)
+        {
+            Recibidas.Add((nombre, idAdjunto, File.Exists(ruta)));
+            return Task.FromResult(new ResultadoNominasRecibidas(estado, estado == EstadoAdjuntoRecibido.Procesado ? 9002 : null,
+                estado == EstadoAdjuntoRecibido.Procesado ? "Nóminas de octubre contabilizadas." : "Octubre: 1 trabajador sin resolver."));
+        }
+    }
+
+    [Theory]
+    [InlineData(EstadoAdjuntoRecibido.Procesado)]
+    [InlineData(EstadoAdjuntoRecibido.Revisar)]
+    public async Task El_Excel_de_nominas_va_a_su_modulo_con_la_copia_del_adjunto(EstadoAdjuntoRecibido resultado)
+    {
+        var nominas = new NominasFalsas(resultado);
+        var recepcion = new ServicioRecepcionCorreo(_bd, _buzon, _correo, _facturas, nominas: nominas);
+        _buzon.Mensajes["u1"] = BuzonFalso.Mime(Autorizado, "Nóminas de octubre", ("nominas-octubre.xlsx", [1, 2, 3]));
+        await recepcion.SondearCuentaAsync(_cuenta);
+        var m = (await recepcion.ObtenerAsync((await recepcion.ListarAsync(Ejercicio)).Single().IdMensaje))!;
+        var a = Assert.Single(m.Adjuntos);
+        Assert.Equal((TipoAdjuntoRecibido.Nomina, resultado), (a.Tipo, a.Estado));
+        Assert.Equal(("nominas-octubre.xlsx", a.IdAdjunto, true), Assert.Single(nominas.Recibidas));
+        // Lo que queda «para revisar» ya está en la pantalla Nóminas: el mensaje está procesado.
+        Assert.Equal(EstadoRecibido.Procesado, m.Estado);
+    }
+
     [Fact]
     public async Task Un_fallo_deja_incidencia_y_se_reprocesa_sin_borrar()
     {

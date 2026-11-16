@@ -1,6 +1,7 @@
 using ProConta.Nucleo.Seguridad;
 using System.Globalization;
 using ProConta.Compras.Facturas;
+using ProConta.Contabilidad.CentrosCoste;
 using ProConta.Compras.Integraciones;
 using ProConta.Compras.Reconocimiento;
 using ProConta.Datos.Persistencia;
@@ -14,7 +15,7 @@ public static class ProveedoresCompras
 {
     public static IReadOnlyList<IProveedorMantenimiento> Todos(IBaseDatos bd) =>
         [new ProveedorTextosClaveCompra(new CatalogoTextosClaveCompra(bd)), new ProveedorReconocimientoCompra(bd), new ProveedorCertificadoEmpresa(bd),
-         new ProveedorActividades(bd), new ProveedorActividadCentros(bd)];
+         new ProveedorActividades(bd), new ProveedorCambiosDeduccion(bd), new ProveedorActividadCentros(bd)];
 }
 
 /// <summary>
@@ -28,14 +29,17 @@ public sealed class ProveedorActividades : ProveedorTablaAccess
         "Actividades de la empresa a efectos de IVA: si su IVA soportado es deducible y a qué serie de la 472 va. Cada centro de coste puede tener la suya.",
         AmbitoMantenimiento.Sociedad, "actividad", "Actividades", "IdActividad", ClaveNueva.Autonumerica,
         [
-            new("Codigo", "Código", TipoCampo.Codigo) { Obligatorio = true, Longitud = 10, Ancho = "s" },
+            new("Codigo", "Código", TipoCampo.Codigo) { Ayuda = "Código corto de la actividad (por ejemplo ALQTUR), el que se ve en las listas y en los centros de coste.", Obligatorio = true, Longitud = 10, Ancho = "s" },
             new("Nombre", "Nombre") { Obligatorio = true, Longitud = 100, Ancho = "l", Ayuda = "Por ejemplo «Alquileres turísticos»." },
             new("Deducible", "IVA soportado deducible", TipoCampo.Lista) { Obligatorio = true, Ancho = "m", Sinonimos = ["deducible", "prorrata", "exento"],
                 Opciones = [new OpcionCampo((byte)2, "100 % deducible"), new OpcionCampo((byte)1, "Por prorrata"), new OpcionCampo((byte)0, "No deducible")],
-                Ayuda = "No deducible: el IVA de sus compras va al gasto. Por prorrata: por ahora se deduce entero en la 472 de la actividad; la regularización (4729) se hará al cierre." },
+                Ayuda = "No deducible: el IVA de sus compras va al gasto. Por prorrata: por ahora se deduce entero en la 472 de la actividad; la regularización (4729) se hará al cierre. " +
+                    "Si la deducción cambia desde una fecha, aquí va la de antes del cambio y el cambio se da de alta en Catálogos › Cambios de deducción de las actividades." },
             new("SerieCuentaIva", "Serie de la 472", TipoCampo.Codigo) { Longitud = 4, Ancho = "xs", Sinonimos = ["472", "4725", "4726", "4727", "4728"],
                 Ayuda = "Cuatro cifras, por ejemplo 4728. El IVA va a la serie con la terminación de la cuenta general (4720021 → 4728021; intracomunitario x121 y x221, inversión del sujeto pasivo x321, importación x421). Su IVA repercutido va a la 477 con el 2 cambiado por el 7 (4728 → 4778). Vacía: las cuentas generales del ejercicio." },
             new("Activa", "Activa", TipoCampo.Logico) { Ayuda = "Una actividad inactiva no se aplica: sus centros usan las cuentas generales." },
+            new(CampoCalendario, "Deducción por fechas", TipoCampo.TextoLargo) { SoloLectura = true, Ancho = "f",
+                Ayuda = "La deducción que se aplica según la fecha de la factura: la de arriba hasta el primer cambio y, desde cada cambio, la suya. Los cambios se dan de alta en Catálogos › Cambios de deducción de las actividades." },
             new(CampoSubcuentas, "Subcuentas de IVA en este ejercicio", TipoCampo.TextoLargo) { SoloLectura = true, Ancho = "f",
                 Ayuda = "Las subcuentas del ejercicio de trabajo de la serie (472…) y de su 477 (el 2 cambiado por el 7): las que ya había y las que se crean al contabilizar." },
         ],
@@ -58,6 +62,7 @@ public sealed class ProveedorActividades : ProveedorTablaAccess
     }
 
     private const string CampoSubcuentas = "Subcuentas";
+    private const string CampoCalendario = "Calendario";
 
     private readonly IBaseDatos _bd;
 
@@ -72,8 +77,11 @@ public sealed class ProveedorActividades : ProveedorTablaAccess
                 ["Deducible"] = f.EsNulo("Deducible") ? null : Convert.ToByte(f.Valor("Deducible"), CultureInfo.InvariantCulture),
                 ["SerieCuentaIva"] = f.Texto("SerieCuentaIva")?.Trim(), ["Activa"] = f.Logico("Activa"),
             }), c.Trabajo.IdSociedad);
+        var cambios = await LectorActividadesIva.CambiosAsync(s, c.Trabajo.IdSociedad);
         foreach (var r in filas)
         {
+            r[CampoCalendario] = LectorActividadesIva.Calendario(r["Deducible"] is byte d ? d : (byte)2,
+                cambios.GetValueOrDefault(Convert.ToInt32(r.Clave, CultureInfo.InvariantCulture)) ?? []);
             if (r.Texto("SerieCuentaIva") is not { Length: 4 } serie)
             {
                 r[CampoSubcuentas] = "Sin serie: usa las cuentas de IVA generales del ejercicio.";
@@ -99,6 +107,120 @@ public sealed class ProveedorActividades : ProveedorTablaAccess
 }
 
 /// <summary>
+/// Cambios de deducción de las actividades desde una fecha (ActividadesDeduccion, contabilidad/procesos/cambio-deduccion-actividad
+/// 2026-11-15): desde FechaDesde la actividad deduce como dice el cambio; cada factura se clasifica por su fecha. Caso que lo
+/// origina: el alquiler turístico, 100 % deducible desde el 1/12/2026.
+/// </summary>
+public sealed class ProveedorCambiosDeduccion(IBaseDatos bd) : ProveedorBase
+{
+    private IReadOnlyList<OpcionCampo> _actividades = [];
+
+    public override string Clave => "cambiosdeduccion";
+    public override string Titulo => "Cambios de deducción de las actividades";
+    public override string Categoria => "Catálogos";
+    public override string Finalidad => "Desde qué fecha cambia la deducción del IVA soportado de una actividad. Cada factura se clasifica con la deducción vigente en su fecha.";
+    public override AmbitoMantenimiento Ambito => AmbitoMantenimiento.Sociedad;
+    public override string NombreRegistro => "cambio de deducción";
+    public override IReadOnlyList<string> Sinonimos => ["deducible", "deducción", "prorrata", "actividad", "fecha de corte", "turístico", "10 %"];
+
+    public override IReadOnlyList<CampoMantenimiento> Campos =>
+    [
+        new("IdActividad", "Actividad", TipoCampo.Lista) { Obligatorio = true, Opciones = _actividades, Ancho = "l",
+            Ayuda = "La actividad de IVA que cambia. Antes de su primer cambio vale la deducción de su ficha (Catálogos › Actividades (IVA))." },
+        new("FechaDesde", "Desde", TipoCampo.Fecha) { Obligatorio = true, Ancho = "s",
+            Ayuda = "Primer día de la deducción nueva. Las facturas con fecha igual o posterior usan esta deducción, aunque se contabilicen en otra fecha." },
+        new("Deducible", "Deducción desde esa fecha", TipoCampo.Lista) { Obligatorio = true, Ancho = "m", Sinonimos = ["deducible", "prorrata", "exento"],
+            Opciones = [new OpcionCampo((byte)2, "100 % deducible"), new OpcionCampo((byte)1, "Por prorrata"), new OpcionCampo((byte)0, "No deducible")],
+            Ayuda = "Cómo deduce la actividad desde esa fecha. Las facturas de compra ya contabilizadas no cambian: si alguna es de esa fecha o posterior, descontabilízala y vuelve a contabilizarla." },
+    ];
+
+    public override IReadOnlyList<ColumnaLista> Columnas => [new("Actividad", "Actividad"), new("Desde", "Desde", 90), new("Deduccion", "Deducción", 130)];
+
+    public override string TituloRegistro(RegistroMantenimiento r) => r.EsNuevo ? "Nuevo cambio de deducción" : $"{r.Texto("Actividad")} · desde el {r.Texto("Desde")}";
+
+    public override async Task<IReadOnlyList<RegistroMantenimiento>> ListarAsync(ContextoMantenimiento c)
+    {
+        var (actividades, filas) = await bd.EjecutarAsync(async s =>
+        {
+            var a = await s.ConsultarAsync("SELECT IdActividad, Codigo, Nombre, Activa FROM Actividades WHERE IdSociedad = ? ORDER BY Codigo",
+                f => (Id: f.Entero("IdActividad"), Texto: $"{f.Texto("Codigo")?.Trim()} · {f.Texto("Nombre")?.Trim()}{(f.Logico("Activa") ? "" : " (inactiva)")}"),
+                c.Trabajo.IdSociedad);
+            var d = await s.ConsultarAsync(
+                "SELECT d.IdActividadDeduccion, d.IdActividad, d.FechaDesde, d.Deducible FROM ActividadesDeduccion AS d INNER JOIN Actividades AS a ON d.IdActividad = a.IdActividad " +
+                "WHERE a.IdSociedad = ? ORDER BY a.Codigo, d.FechaDesde",
+                f => (Id: f.Entero("IdActividadDeduccion"), Actividad: f.Entero("IdActividad"), Desde: f.Fecha("FechaDesde").Date,
+                    Deducible: Convert.ToByte(f.Valor("Deducible"), CultureInfo.InvariantCulture)), c.Trabajo.IdSociedad);
+            return (a, d);
+        });
+        _actividades = [.. actividades.Select(x => new OpcionCampo(x.Id, x.Texto))];
+        var textos = actividades.ToDictionary(x => x.Id, x => x.Texto);
+        return [.. filas.Select(f => new RegistroMantenimiento(f.Id, new Dictionary<string, object?>
+        {
+            ["IdActividad"] = f.Actividad, ["FechaDesde"] = f.Desde, ["Deducible"] = f.Deducible,
+            ["Actividad"] = textos.GetValueOrDefault(f.Actividad, ""), ["Desde"] = f.Desde.ToString("dd/MM/yyyy", CultureInfo.InvariantCulture),
+            ["Deduccion"] = LectorActividadesIva.TextoDeducible(f.Deducible),
+        }))];
+    }
+
+    public override async Task<RegistroMantenimiento> NuevoAsync(ContextoMantenimiento contexto)
+    {
+        if (_actividades.Count == 0) await ListarAsync(contexto);
+        var r = await base.NuevoAsync(contexto);
+        r["Deducible"] = (byte)2;
+        return r;
+    }
+
+    public override async Task<Resultado<RegistroMantenimiento>> GuardarAsync(RegistroMantenimiento r, ContextoMantenimiento c)
+    {
+        if (r.Entero("IdActividad") is not int actividad || r["FechaDesde"] is not DateTime desde || r["Deducible"] is null)
+            return Resultado<RegistroMantenimiento>.Fallo(new Error("CambiosDeduccion.Incompleto", "Falta la actividad, la fecha o la deducción.", null, null, "Complétalas y vuelve a guardar."));
+        var deducible = Convert.ToByte(r["Deducible"], CultureInfo.InvariantCulture);
+        int? id = r.EsNuevo ? null : Convert.ToInt32(r.Clave, CultureInfo.InvariantCulture);
+        try
+        {
+            var guardado = await bd.EnTransaccionAsync(async s =>
+            {
+                var deLaSociedad = Convert.ToInt32(await s.EscalarAsync("SELECT COUNT(*) FROM Actividades WHERE IdActividad = ? AND IdSociedad = ?", actividad, c.Trabajo.IdSociedad), CultureInfo.InvariantCulture);
+                if (deLaSociedad == 0)
+                    throw new ExcepcionDatos(new Error("CambiosDeduccion.SinActividad", "La actividad ya no existe en esta empresa.", null, null, "Actualiza la lista y elige otra."));
+                var repetidos = Convert.ToInt32(await s.EscalarAsync("SELECT COUNT(*) FROM ActividadesDeduccion WHERE IdActividad = ? AND FechaDesde = ? AND IdActividadDeduccion <> ?",
+                    actividad, desde.Date, id ?? -1), CultureInfo.InvariantCulture);
+                if (repetidos > 0)
+                    throw new ExcepcionDatos(new Error("CambiosDeduccion.Repetido", $"Esa actividad ya tiene un cambio de deducción desde el {desde:dd/MM/yyyy}.", "FechaDesde", null,
+                        "Abre ese cambio y modifícalo, o usa otra fecha."));
+                if (id is int existente)
+                {
+                    var n = await s.EjecutarAsync("UPDATE ActividadesDeduccion SET IdActividad = ?, FechaDesde = ?, Deducible = ? WHERE IdActividadDeduccion = ?", actividad, desde.Date, deducible, existente);
+                    if (n == 0) throw new ExcepcionDatos(new Error("CambiosDeduccion.NoExiste", "El cambio de deducción ya no existe: otro operador lo ha borrado.", null, null, "Actualiza la lista."));
+                    return existente;
+                }
+                await s.EjecutarAsync("INSERT INTO ActividadesDeduccion (IdActividad, FechaDesde, Deducible) VALUES (?, ?, ?)", actividad, desde.Date, deducible);
+                return Convert.ToInt32(await s.UltimoIdAsync(), CultureInfo.InvariantCulture);
+            });
+            var registro = (await ListarAsync(c)).First(x => Convert.ToInt32(x.Clave, CultureInfo.InvariantCulture) == guardado);
+            return Resultado<RegistroMantenimiento>.Correcto(registro);
+        }
+        catch (ExcepcionDatos ex)
+        {
+            return Resultado<RegistroMantenimiento>.Fallo(ex.Error);
+        }
+    }
+
+    public override async Task<Resultado> EliminarAsync(RegistroMantenimiento r, ContextoMantenimiento c)
+    {
+        var id = Convert.ToInt32(r.Clave, CultureInfo.InvariantCulture);
+        var borrados = await bd.EjecutarAsync(async s =>
+        {
+            var deLaSociedad = Convert.ToInt32(await s.EscalarAsync("SELECT COUNT(*) FROM ActividadesDeduccion AS d INNER JOIN Actividades AS a ON d.IdActividad = a.IdActividad " +
+                "WHERE d.IdActividadDeduccion = ? AND a.IdSociedad = ?", id, c.Trabajo.IdSociedad), CultureInfo.InvariantCulture);
+            return deLaSociedad == 0 ? 0 : await s.EjecutarAsync("DELETE FROM ActividadesDeduccion WHERE IdActividadDeduccion = ?", id);
+        });
+        return borrados > 0 ? Resultado.Correcto()
+            : Resultado.Fallo(new Error("CambiosDeduccion.NoExiste", "El cambio de deducción ya no existe en esta empresa: otro operador lo ha borrado.", null, null, "Actualiza la lista."));
+    }
+}
+
+/// <summary>
 /// Actividad de cada centro de coste de la empresa (CentrosCoste.IdActividad, contabilidad/procesos 2026-11-08): la heredan
 /// los centros que cuelgan de él y no tienen otra. No da de alta ni borra centros: solo asigna la actividad.
 /// </summary>
@@ -118,11 +240,11 @@ public sealed class ProveedorActividadCentros(IBaseDatos bd) : ProveedorBase
 
     public override IReadOnlyList<CampoMantenimiento> Campos =>
     [
-        new("Ruta", "Centro de coste", TipoCampo.Codigo) { SoloLectura = true, Ancho = "m" },
-        new("Nombre", "Nombre") { SoloLectura = true, Ancho = "l" },
-        new("IdActividad", "Actividad", TipoCampo.Lista) { Opciones = _actividades, Ancho = "l",
+        new("Ruta", "Centro de coste", TipoCampo.Codigo) { Ayuda = "Código completo del centro de coste, con los de los que cuelga. Los centros se crean en Contabilidad.", SoloLectura = true, Ancho = "m" },
+        new("Nombre", "Nombre") { Ayuda = "Nombre del centro de coste. Se cambia en Contabilidad.", SoloLectura = true, Ancho = "l" },
+        new("IdActividad", "Actividad", TipoCampo.Referencia) { Referencia = "actividades", Opciones = _actividades, Ancho = "l",
             Ayuda = "Vacía: la del centro del que cuelga (o, si ninguno la tiene, las cuentas de IVA generales del ejercicio)." },
-        new("Aplica", "Actividad que se aplica") { SoloLectura = true, Ancho = "l" },
+        new("Aplica", "Actividad que se aplica") { Ayuda = "La actividad que se usa de verdad: la propia o, si no tiene, la heredada del centro del que cuelga. Se calcula sola.", SoloLectura = true, Ancho = "l" },
     ];
 
     public override IReadOnlyList<ColumnaLista> Columnas => [new("Ruta", "Centro", 110), new("Nombre", "Nombre"), new("Aplica", "Actividad que se aplica")];
@@ -196,9 +318,9 @@ public sealed class ProveedorTextosClaveCompra(CatalogoTextosClaveCompra catalog
     [
         new("Texto", "Texto clave") { Obligatorio = true, Longitud = ReglasTextosClave.LongitudMaxima, Ancho = "l",
             Ayuda = "Se busca sin distinguir mayúsculas ni acentos. Si coinciden varios textos, gana el más largo; si empatan, no se asigna nada y la factura avisa." },
-        new("Cuenta", "Cuenta de gasto", TipoCampo.Cuenta) { Longitud = 30, Ancho = "s", Sinonimos = ["cuenta", "gasto", "6"],
+        new("Cuenta", "Cuenta de gasto", TipoCampo.Cuenta) { Longitud = 30, Ancho = "s", Sinonimos = ["cuenta", "gasto", "6"], GruposCuenta = Facturas.FacturaCompra.GruposCuentaGasto,
             Ayuda = "Subcuenta del ejercicio de trabajo. Se guarda su identidad contable, así vale en los demás ejercicios aunque cambie el código. Vacía, el texto no asigna cuenta." },
-        new("NombreCuenta", "Nombre de la cuenta") { SoloLectura = true, Ancho = "l" },
+        new("NombreCuenta", "Nombre de la cuenta") { Ayuda = "Nombre de la cuenta de gasto en el ejercicio de trabajo, para comprobar que es la buena. Se rellena solo.", SoloLectura = true, Ancho = "l" },
         new("IdCentroCoste", "Centro de coste", TipoCampo.Lista) { Opciones = _centros, Ancho = "l", Ayuda = "Vacío, el texto no asigna centro de coste." },
     ];
 
@@ -260,8 +382,8 @@ public sealed class ProveedorReconocimientoCompra(IBaseDatos bd, Func<Credencial
 
     public override IReadOnlyList<CampoMantenimiento> Campos =>
     [
-        new("Activo", "Reconocer los PDF de compra", TipoCampo.Logico) { Grupo = "rec" },
-        new("SociedadTieneVies", "La empresa está en el VIES", TipoCampo.Logico) { Grupo = "rec", Sinonimos = ["vies", "intracomunitario"] },
+        new("Activo", "Reconocer los PDF de compra", TipoCampo.Logico) { Ayuda = "Marcado, los PDF de compra se leen solos y se proponen como facturas recibidas; sin marcar, se rellenan a mano.", Grupo = "rec" },
+        new("SociedadTieneVies", "La empresa está en el VIES", TipoCampo.Logico) { Ayuda = "Marcado, la empresa está dada de alta en el censo VIES y sus compras a otros países de la UE se tratan como intracomunitarias.", Grupo = "rec", Sinonimos = ["vies", "intracomunitario"] },
         new("UmbralAceptacion", "Confianza mínima para aceptar", TipoCampo.Decimal) { Grupo = "rec", Obligatorio = true, Minimo = 0m, Maximo = 1m, Ancho = "s",
             Ayuda = "Entre 0 y 1. Por debajo, la factura queda para revisar." },
         new("UmbralDiscrepanciaImporte", "Descuadre de importes admitido", TipoCampo.Importe) { Grupo = "rec", Obligatorio = true, Minimo = 0m, Ancho = "s",
@@ -274,7 +396,7 @@ public sealed class ProveedorReconocimientoCompra(IBaseDatos bd, Func<Credencial
             Ayuda = "De un usuario de AWS que solo pueda usar Textract (DetectDocumentText). Vacía, cada equipo usa su perfil de AWS «proconta-textract»." },
         new("SecretoAWS", "Clave secreta (Secret access key)", TipoCampo.Secreto) { Grupo = "ocr", Longitud = 128, Ancho = "l", Sinonimos = ["secret", "secreto"],
             Ayuda = "Se guarda cifrada y no se vuelve a mostrar. Déjala vacía para conservar la guardada." },
-        new("EstadoSecreto", "Clave secreta guardada") { Grupo = "ocr", SoloLectura = true, Ancho = "s" },
+        new("EstadoSecreto", "Clave secreta guardada") { Ayuda = "Dice si hay una clave secreta de AWS guardada, sin mostrarla. Se cambia en «Clave secreta».", Grupo = "ocr", SoloLectura = true, Ancho = "s" },
     ];
 
     public override IReadOnlyList<ColumnaLista> Columnas => [new("ClaveAccesoAWS", "Clave de acceso")];
@@ -391,7 +513,7 @@ public sealed class ProveedorCertificadoEmpresa(IBaseDatos bd, Func<IReadOnlyLis
     [
         new("Huella", "Certificado", TipoCampo.Lista) { Opciones = _opciones, Ancho = "f",
             Ayuda = "Certificados instalados en Windows (del equipo o de tu usuario) con clave privada y sin caducar. Si no sale, instálalo en este equipo (doble clic en el .pfx) y vuelve a abrir esta pantalla." },
-        new("HuellaGuardada", "Huella guardada", TipoCampo.Codigo) { SoloLectura = true, Ancho = "l" },
+        new("HuellaGuardada", "Huella guardada", TipoCampo.Codigo) { Ayuda = "Huella del certificado que se usa ahora, para comprobar cuál es. Cambia al elegir otro en «Certificado».", SoloLectura = true, Ancho = "l" },
     ];
 
     public override IReadOnlyList<ColumnaLista> Columnas => [new("HuellaGuardada", "Huella")];

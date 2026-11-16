@@ -180,7 +180,7 @@ public sealed class ImportadorContaSol(IBaseDatos bd, IMotorAsientos motor, ICat
     /// <summary>
     /// Importa los planes en orden de ejercicio. Un plan con incidencias bloqueantes se importa igualmente sin los registros
     /// afectados, y su ejecución queda «con incidencias»; una bloqueante del destino (otra empresa, importación de otra versión)
-    /// impide importarlo.
+    /// impide importarlo, y apuntes en una antigua cuenta del IVA al 16 % (<see cref="IvaCeroContaSol"/>) impiden importar todos.
     /// </summary>
     public Task<IReadOnlyList<ResumenEjercicio>> ImportarAsync(IReadOnlyList<PlanEjercicio> planes, Actor actor, IProgress<ProgresoImportacion>? progreso = null,
         CancellationToken cancelacion = default) =>
@@ -192,6 +192,17 @@ public sealed class ImportadorContaSol(IBaseDatos bd, IMotorAsientos motor, ICat
         CancellationToken cancelacion)
     {
         var resumenes = new List<ResumenEjercicio>();
+        // Apuntes en una antigua cuenta del IVA al 16 % (4720000/4770000) en cualquier ejercicio: no se importa ninguno (2026-11-13 20:55).
+        var parada = planes.SelectMany(p => p.Incidencias).Where(i => i.Codigo == IvaCeroContaSol.CodigoIva16ConApuntes).ToList();
+        if (parada.Count > 0)
+        {
+            foreach (var plan in planes.OrderBy(p => p.Empresa.Codigo, StringComparer.Ordinal).ThenBy(p => p.Ejercicio))
+            {
+                resumenes.Add(new ResumenEjercicio(plan.Ejercicio, plan.Origen.Ruta, 0, EstadosImportacion.Fallida, 0, 0, 0, 0, 0, 0, 0, 0, plan.Incidencias));
+                progreso?.Report(new ProgresoImportacion(plan.Ejercicio, "fin", 1, 1, $"{plan.Ejercicio}: no se importa. {IvaCeroContaSol.MotivoParada(parada)}"));
+            }
+            return resumenes;
+        }
         foreach (var plan in planes.OrderBy(p => p.Empresa.Codigo, StringComparer.Ordinal).ThenBy(p => p.Ejercicio))
         {
             if (plan.Incidencias.Any(i => i.Severidad == Severidad.Bloqueante && i.Fase == "destino"))
@@ -310,8 +321,9 @@ public sealed class ImportadorContaSol(IBaseDatos bd, IMotorAsientos motor, ICat
                 var id = await s.EscalarAsync("SELECT IdSociedadEjercicio FROM SociedadesEjercicios WHERE IdSociedad = ? AND Ejercicio = ?", Sociedad, anio);
                 if (id is null or DBNull)
                 {
-                    await s.EjecutarAsync("INSERT INTO SociedadesEjercicios (IdSociedad, Ejercicio, Nombre, CIF, Activa, EjercicioCerrado) VALUES (?, ?, ?, ?, ?, ?)",
-                        Sociedad, anio, Vacio(PlanificadorContaSol.Recortar(empresa.Nombre, 255)), Vacio(PlanificadorContaSol.Recortar(empresa.Nif, 10)), true, false);
+                    // Sin CIF: el emisor es siempre la empresa (organizacion/sociedades-ejercicios 2026-11-13 20:55).
+                    await s.EjecutarAsync("INSERT INTO SociedadesEjercicios (IdSociedad, Ejercicio, Nombre, Activa, EjercicioCerrado) VALUES (?, ?, ?, ?, ?)",
+                        Sociedad, anio, Vacio(PlanificadorContaSol.Recortar(empresa.Nombre, 255)), true, false);
                     id = await s.UltimoIdAsync();
                     Anotar("preparacion", "F_EMP", Sociedad, "EJEEMP", "ContaSol.EjercicioCreado", Severidad.Informativa, $"He dado de alta el ejercicio {anio} de la empresa {Sociedad}.");
                 }
@@ -504,6 +516,12 @@ public sealed class ImportadorContaSol(IBaseDatos bd, IMotorAsientos motor, ICat
                     idTercero = alta.Valor.IdTercero;
                     if (t.Nif.Length > 0) porNif[t.Nif] = idTercero.Value;
                     creados++;
+                    // Un «teléfono» de ContaSol que no es un número (suele ser un trozo de dirección) no pasa a los datos de contacto (propietario 2026-11-16).
+                    if (t.Origen.Telefono?.Trim() is { Length: > 0 } telefono
+                        && !PlanificadorContaSol.ContactosDeFicha(null, telefono).Any(c => c.Tipo == TipoDatoContacto.Telefono))
+                        Anotar("terceros", t.Origen.EsCliente ? "F_CLI" : "F_PRO", codigo, t.Origen.EsCliente ? "TELCLI" : "TELPRO", "ContaSol.TelefonoNoValido", Severidad.Advertencia,
+                            $"El teléfono del {(t.Origen.EsCliente ? "cliente" : "proveedor")} {codigo} {t.Origen.Nombre}, «{telefono}», no parece un número: no lo paso a sus datos de contacto. " +
+                            "Revísalo en ContaSol o en la ficha del tercero.", telefono);
                 }
                 var rol = t.Origen.EsCliente ? await imp._roles.AsegurarClienteAsync(idTercero.Value) : await imp._roles.AsegurarProveedorAsync(idTercero.Value);
                 if (!rol.EsCorrecto)
@@ -557,14 +575,13 @@ public sealed class ImportadorContaSol(IBaseDatos bd, IMotorAsientos motor, ICat
                 CodigoPostal = PlanificadorContaSol.Recortar(o.CodigoPostal, 10),
                 Poblacion = PlanificadorContaSol.Recortar(o.Poblacion, 100),
                 Provincia = PlanificadorContaSol.Recortar(o.Provincia, 100),
+                Telefono = PlanificadorContaSol.Recortar(o.Telefono, 50),
+                Email = o.Email is { Length: <= 254 } e && e.Contains('@') ? e : null,
                 Notas = $"Importado de ContaSol: {(o.EsCliente ? "cliente" : "proveedor")} {o.Codigo}.",
             };
-            // Email y teléfono van a la lista de datos de contacto, no a la ficha antigua (terceros/contactos, migración 20261101_1300).
-            foreach (var email in (o.Email ?? "").Split([';', ',', ' ', '\t', '\r', '\n'], StringSplitOptions.RemoveEmptyEntries).Select(e => e.Trim())
-                         .Where(e => e.IndexOf('@') > 0 && !e.EndsWith('@') && e.Length <= 254).Distinct(StringComparer.OrdinalIgnoreCase))
-                tercero.DatosContacto.Add(new DatoContacto { Tipo = TipoDatoContacto.Email, Etiqueta = "Principal", Valor = email });
-            if (o.Telefono?.Trim() is { Length: > 0 and <= 254 } telefono && telefono.Count(char.IsAsciiDigit) >= 6)
-                tercero.DatosContacto.Add(new DatoContacto { Tipo = TipoDatoContacto.Telefono, Etiqueta = "Principal", Valor = telefono });
+            // El email y el teléfono van también a la lista de datos de contacto, como los dejaría la migración de la ficha antigua.
+            foreach (var (tipo, valor) in PlanificadorContaSol.ContactosDeFicha(tercero.Email, tercero.Telefono))
+                tercero.DatosContacto.Add(new DatoContacto { Tipo = tipo, Etiqueta = "Principal", Valor = valor, Activo = true });
             if (o.EsCliente) tercero.Roles.Cliente = new RolCliente { Activo = true };
             else tercero.Roles.Proveedor = new RolProveedor { Activo = true };
             return tercero;

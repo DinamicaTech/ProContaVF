@@ -13,6 +13,20 @@ public static class DatosSinteticos
             "INSERT INTO SociedadesEjercicios (IdSociedadEjercicio, IdSociedad, Ejercicio, Nombre, Activa, EjercicioCerrado) VALUES (?, ?, ?, ?, ?, ?)",
             idSociedadEjercicio, idSociedad, anio.ToString(), $"Sociedad {idSociedad} {anio}", activa, cerrado));
 
+    /// <summary>
+    /// Deja activos en el catálogo TiposDeIVA exactamente estos porcentajes (los demás se desactivan; los que faltan se dan de
+    /// alta). Compras y ventas toman de ahí los tipos (organizacion/sociedades-ejercicios 2026-11-13 20:55).
+    /// </summary>
+    public static Task TiposIvaAsync(IBaseDatos bd, params decimal[] tipos) =>
+        bd.EjecutarAsync(async s =>
+        {
+            await s.EjecutarAsync("UPDATE TiposDeIVA SET Activo = False");
+            foreach (var t in tipos)
+                if (await s.EjecutarAsync("UPDATE TiposDeIVA SET Activo = True WHERE Valor = ?", (double)t) == 0)
+                    await s.EjecutarAsync("INSERT INTO TiposDeIVA (Valor, Descripcion, Activo) VALUES (?, ?, ?)", (double)t, $"IVA {t:0.##} %", true);
+            return tipos.Length;
+        });
+
     public static async Task<int> GrupoAsync(IBaseDatos bd, string codigo, bool activo = true) =>
         await bd.EjecutarAsync(async s =>
         {

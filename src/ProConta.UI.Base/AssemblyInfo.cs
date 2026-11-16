@@ -6,4 +6,5 @@ using System.Windows.Markup;
 [assembly: XmlnsDefinition("urn:proconta-ui", "ProConta.UI.Base.Tablas")]
 [assembly: XmlnsDefinition("urn:proconta-ui", "ProConta.UI.Base.Formato")]
 [assembly: XmlnsDefinition("urn:proconta-ui", "ProConta.UI.Base.Comandos")]
+[assembly: XmlnsDefinition("urn:proconta-ui", "ProConta.UI.Base.Graficos")]
 [assembly: XmlnsPrefix("urn:proconta-ui", "pc")]

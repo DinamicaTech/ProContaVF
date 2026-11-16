@@ -46,6 +46,12 @@ public sealed class Migracion
     /// </summary>
     public IReadOnlyList<(string IdMigracion, string DescripcionPaso)> Retira { get; init; } = [];
 
+    /// <summary>
+    /// Descripciones de las tablas y campos que crea (la propiedad Description de Access, que recoge el diccionario). El actualizador
+    /// las escribe con DAO al terminar la migración; no forman parte del hash.
+    /// </summary>
+    public IReadOnlyList<DescripcionEsquema> Descripciones { get; init; } = [];
+
     /// <summary>SHA-256 de la definición: identifica la migración aplicada aunque cambie su texto descriptivo.</summary>
     public string Hash { get; }
 
@@ -102,6 +108,30 @@ public sealed class AnadirColumna(string tabla, string columna, string definicio
     public override Task<bool> YaAplicadoAsync(ISesionDatos sesion, EsquemaFisico esquema) =>
         Task.FromResult(esquema.ExisteColumna(tabla, columna));
     public override Task AplicarAsync(ISesionDatos sesion, ContextoMigracion contexto) => sesion.EjecutarAsync(Firma);
+}
+
+/// <summary>
+/// Elimina una columna si existe, con sus datos. Antes quita los índices (salvo la clave primaria) que la usan, porque Access
+/// no deja borrar una columna indexada, y las relaciones de esta tabla hacia otras que la usan. Una columna de la clave primaria
+/// o a la que apunten relaciones de otras tablas no se quita así: el paso falla con el error de Access y la migración se queda
+/// sin aplicar.
+/// </summary>
+public sealed class QuitarColumna(string tabla, string columna) : PasoMigracion
+{
+    public override string Descripcion => $"Quitar {tabla}.{columna}";
+    public override string Firma => $"ALTER TABLE [{tabla}] DROP COLUMN [{columna}]";
+    public override Task<bool> YaAplicadoAsync(ISesionDatos sesion, EsquemaFisico esquema) =>
+        Task.FromResult(esquema.Tabla(tabla) is not null && !esquema.ExisteColumna(tabla, columna));
+    public override async Task AplicarAsync(ISesionDatos sesion, ContextoMigracion contexto)
+    {
+        var t = sesion.LeerEsquema().Tabla(tabla);
+        if (t?.Columna(columna) is null) return;
+        foreach (var relacion in t.Relaciones.Where(r => r.Columnas.Contains(columna, StringComparer.OrdinalIgnoreCase)))
+            await sesion.EjecutarAsync($"ALTER TABLE [{tabla}] DROP CONSTRAINT [{relacion.Nombre}]");
+        foreach (var indice in t.Indices.Where(i => !i.EsClavePrimaria && i.Columnas.Contains(columna, StringComparer.OrdinalIgnoreCase)))
+            await sesion.EjecutarAsync($"DROP INDEX [{indice.Nombre}] ON [{tabla}]");
+        await sesion.EjecutarAsync(Firma);
+    }
 }
 
 /// <summary>

@@ -74,6 +74,8 @@ public static class ValidacionFicha
             errores.Add(new(PestanaFicha.Identidad, t, "RazonSocial", "Escribe la razón social."));
         if (t.TipoPersona is null && string.IsNullOrWhiteSpace(t.Nombre))
             errores.Add(new(PestanaFicha.Identidad, t, "Nombre", "Escribe el nombre del tercero."));
+        if (t.Roles.Cliente is { Activo: true, Iban: { } iban } && !string.IsNullOrWhiteSpace(iban) && !Nucleo.Identificacion.Ibanes.EsValido(iban))
+            errores.Add(new(PestanaFicha.Roles, t, "IbanCliente", "El IBAN no es válido: revisa los dígitos (uno español tiene ES y 22 cifras) o déjalo vacío."));
         foreach (var d in domicilios)
         {
             if (ErrorCodigoPostal(d.Pais, d.CodigoPostal, d.Etiqueta) is { } cp) errores.Add(new(PestanaFicha.Identidad, d, "CodigoPostal", cp));
@@ -93,6 +95,8 @@ public static class ValidacionFicha
             if (r.FechaInicio is { } i && r.FechaFin is { } f && f < i)
                 errores.Add(new(PestanaFicha.Contacto, r, "TextoHasta", $"La relación con {Otro(t, r)} termina antes de empezar: revisa las fechas."));
         }
+        if (t.Roles.Empleado?.CodigoTrabajador is { Length: > 30 })
+            errores.Add(new(PestanaFicha.Roles, t, "CodigoTrabajador", "El código del trabajador tiene más de 30 caracteres: escribe el que usa la gestoría."));
         return errores;
     }
 

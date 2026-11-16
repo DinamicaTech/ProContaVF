@@ -106,12 +106,13 @@ public sealed class OrganizacionAccessTests : IDisposable
         Assert.True((await catalogo.ObtenerAsync(alta.Valor.Id))!.Sepa);
 
         await DatosSinteticos.SociedadAsync(bd, "T01", "Sociedad sintética");
-        await bd.EjecutarAsync(s => s.EjecutarAsync("UPDATE Sociedades SET FormaPagoDefecto = ? WHERE IdSociedad = ?", (int)alta.Valor.Id, "T01"));
+        await DatosSinteticos.EjercicioAsync(bd, 9001, "T01", 2026);
+        await bd.EjecutarAsync(s => s.EjecutarAsync("UPDATE SociedadesEjercicios SET FormaPagoDefecto = ? WHERE IdSociedadEjercicio = ?", (int)alta.Valor.Id, 9001));
         var enUso = await catalogo.BajaAsync(alta.Valor.Id);
         Assert.Equal("FormasPago.EnUso", enUso.Error!.Codigo);
-        Assert.Contains("1 sociedades", enUso.Error.Causa);
+        Assert.Contains("1 ejercicios de sociedad", enUso.Error.Causa);
 
-        await bd.EjecutarAsync(s => s.EjecutarAsync("UPDATE Sociedades SET FormaPagoDefecto = NULL"));
+        await bd.EjecutarAsync(s => s.EjecutarAsync("UPDATE SociedadesEjercicios SET FormaPagoDefecto = NULL"));
         Assert.True((await catalogo.BajaAsync(alta.Valor.Id)).EsCorrecto);
         Assert.Null(await catalogo.ObtenerAsync(alta.Valor.Id));
     }
@@ -150,6 +151,40 @@ public sealed class OrganizacionAccessTests : IDisposable
 
         Assert.True((await catalogo.AsignarAsync(1, "", t2026)).EsCorrecto);
         Assert.Null((await catalogo.ListarAsync(t2026)).Single(f => f.IdFormaPago == 1).Cuenta);
+    }
+
+    [Fact]
+    public async Task LaCuentaBancariaDeCobroDeUnaFormaDePagoEsDeLaEmpresaYConviveConLaSubcuenta()
+    {
+        var bd = _copia.Bd();
+        await DatosSinteticos.SociedadAsync(bd, "T01", "Sociedad sintética");
+        await DatosSinteticos.SociedadAsync(bd, "T02", "Otra sociedad sintética");
+        await DatosSinteticos.EjercicioAsync(bd, 9002, "T01", 2026);
+        // IBAN sintético con dígitos de control correctos; no es de nadie.
+        var (propia, ajena) = await bd.EjecutarAsync(async s =>
+        {
+            await s.EjecutarAsync("INSERT INTO CuentasBancarias (IdSociedad, EntidadOriginal, Oficina, Cuenta, Iban, Divisa, Nombre, Activa) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                "T01", "0049", "1500", "0012345678", "ES8700491500050012345678", "EUR", "Banco ficticio", true);
+            var a = await s.UltimoIdAsync();
+            await s.EjecutarAsync("INSERT INTO CuentasBancarias (IdSociedad, EntidadOriginal, Oficina, Cuenta, Divisa, Nombre, Activa) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                "T02", "2100", "0001", "0000000001", "EUR", "Banco de otra", true);
+            return (a, await s.UltimoIdAsync());
+        });
+        var catalogo = new CatalogoFormasPagoSociedad(bd);
+        var t2026 = new Nucleo.Contexto.ContextoSociedadEjercicio("T01", 9002, 2026);
+
+        var cuentas = await catalogo.CuentasBancariasAsync("T01");
+        Assert.Equal("Banco ficticio · ES87 0049 1500 0500 1234 5678", Assert.Single(cuentas).Texto);
+        Assert.Equal("FormasPago.CuentaBancariaAjena", (await catalogo.AsignarCuentaBancariaAsync(1, ajena, t2026)).Error!.Codigo);
+
+        Assert.True((await catalogo.AsignarCuentaBancariaAsync(1, propia, t2026)).EsCorrecto);
+        var una = (await catalogo.ListarAsync(t2026)).Single(f => f.IdFormaPago == 1);
+        Assert.Equal((propia, "Banco ficticio · ES87 0049 1500 0500 1234 5678"), (una.IdCuentaBancaria!.Value, una.CuentaBancaria!));
+        Assert.Null(una.Cuenta);
+
+        // Quitar la cuenta bancaria no deja filas vacías.
+        Assert.True((await catalogo.AsignarCuentaBancariaAsync(1, null, t2026)).EsCorrecto);
+        Assert.Equal(0, Convert.ToInt32(await bd.EjecutarAsync(s => s.EscalarAsync("SELECT COUNT(*) FROM FormasPagoSociedad WHERE IdSociedad = 'T01'"))));
     }
 
     [Fact]
@@ -204,17 +239,5 @@ public class TrimestreActivoTests
         Assert.True(ServicioTrimestreActivo.PuedeReactivar(4, 2026, new DateTime(2026, 10, 15)));
         Assert.False(ServicioTrimestreActivo.PuedeReactivar(4, 2026, new DateTime(2026, 9, 10)));
         Assert.False(ServicioTrimestreActivo.PuedeReactivar(1, 2026, new DateTime(2026, 1, 15)));
-    }
-}
-
-public class CuentasIvaRepercutidoTests
-{
-    [Fact]
-    public void Sin_cuenta_de_repercutido_las_ventas_usan_la_477_con_la_terminacion_de_la_472()
-    {
-        Assert.Equal("4770021", LectorConfiguracionEjercicio.RepercutidoDe("4720021"));
-        Assert.Equal("4770001", LectorConfiguracionEjercicio.RepercutidoDe(" 4720001 "));
-        Assert.Equal("4770010", LectorConfiguracionEjercicio.RepercutidoDe("4770010"));
-        Assert.Null(LectorConfiguracionEjercicio.RepercutidoDe(null));
     }
 }

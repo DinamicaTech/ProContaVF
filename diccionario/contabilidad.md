@@ -24,6 +24,26 @@
 Relaciones:
 - FK_Actividades_Sociedad: (IdSociedad) → Sociedades (IdSociedad); borrado NO ACTION, actualización NO ACTION
 
+## ActividadesDeduccion
+
+- Dueño funcional: `contabilidad/procesos/cambio-deduccion-actividad`
+- Cambios de deducción de una actividad de IVA desde una fecha. Antes del primer cambio vale Actividades.Deducible. Cada factura se clasifica por su fecha de expedición.
+
+| Campo | Tipo | Nulo | Por defecto | Descripción |
+|---|---|---|---|---|
+| IdActividadDeduccion | COUNTER | no |  | Identificador del cambio. |
+| IdActividad | LONG | no |  | Actividad que cambia. |
+| FechaDesde | DATETIME | no |  | Primer día en que vale la deducción nueva (sin hora). |
+| Deducible | BYTE | no |  | Deducción desde esa fecha: 0 no deducible, 1 por prorrata, 2 deducible al 100 %. |
+
+Índices:
+- FK_ActividadesDeduccion_Actividad: IdActividad
+- PK_ActividadesDeduccion (clave primaria): IdActividadDeduccion
+- UX_ActividadesDeduccion_Fecha (único): IdActividad, FechaDesde
+
+Relaciones:
+- FK_ActividadesDeduccion_Actividad: (IdActividad) → Actividades (IdActividad); borrado NO ACTION, actualización NO ACTION
+
 ## Apuntes
 
 - Dueño funcional: `contabilidad/asientos`
@@ -47,6 +67,7 @@ Relaciones:
 | GeneradoAutomaticamente | YESNO | no |  |  |
 | MotivoGeneracion | TEXT(255) | sí |  |  |
 | DiferenciaOrigen | CURRENCY | sí |  | Descuadre previo que justificó un ajuste automático. |
+| Punteado | YESNO | no | No |  |
 
 Índices:
 - FK_Apuntes_Asientos: IdAsiento
@@ -62,6 +83,37 @@ Relaciones:
 Relaciones:
 - FK_Apuntes_Asientos: (IdAsiento) → Asientos (IdAsiento); borrado CASCADE, actualización NO ACTION
 - FK_Apuntes_CentrosCoste: (IdCentroCoste) → CentrosCoste (IdCentroCoste); borrado NO ACTION, actualización NO ACTION
+
+## ApuntesBorrados
+
+- Dueño funcional: `contabilidad/asientos`
+- Apuntes de los asientos de AsientosBorrados, tal como estaban al borrarlos.
+
+| Campo | Tipo | Nulo | Por defecto | Descripción |
+|---|---|---|---|---|
+| IdApunteBorrado | COUNTER | no |  | Identificador de la copia. |
+| IdAsientoBorrado | LONG | no |  | Asiento borrado al que pertenece. |
+| IdApunte | LONG | no |  | Identificador que tenía el apunte (Apuntes.IdApunte). |
+| IdAsiento | LONG | no |  | Número del asiento que lo contenía. |
+| Orden | SHORT | no |  | Orden dentro del asiento. |
+| CuentaContable | TEXT(20) | no |  | Subcuenta. |
+| ImporteDebe | CURRENCY | sí |  | Importe al Debe. |
+| ImporteHaber | CURRENCY | sí |  | Importe al Haber. |
+| Descripcion | TEXT(255) | sí |  | Concepto del apunte. |
+| NumeroDocumento | TEXT(100) | sí |  | Número de factura o documento. |
+| IdCliente | LONG | sí |  | Cliente del apunte. |
+| IdProveedor | LONG | sí |  | Proveedor del apunte. |
+| FechaVencimiento | DATETIME | sí |  | Vencimiento. |
+| IdCentroCoste | LONG | sí |  | Centro de coste. |
+| TipoApunte | BYTE | no |  | Ordinario o ajuste de redondeo. |
+| Punteado | YESNO | no |  | Si estaba punteado. |
+
+Índices:
+- FK_ApuntesBorrados_AsientoBorrado: IdAsientoBorrado
+- PK_ApuntesBorrados (clave primaria): IdApunteBorrado
+
+Relaciones:
+- FK_ApuntesBorrados_AsientoBorrado: (IdAsientoBorrado) → AsientosBorrados (IdAsientoBorrado); borrado NO ACTION, actualización NO ACTION
 
 ## Asientos
 
@@ -91,17 +143,53 @@ Relaciones:
 | MotorPropietario | TEXT(50) | sí |  |  |
 | CodigoProceso | TEXT(100) | sí |  |  |
 | ClaveEjecucion | TEXT(150) | sí |  |  |
+| IdPlantillaAsiento | LONG | sí |  | Plantilla de asiento con la que se creó el asiento; vacío si no se usó ninguna. |
+| CorregidoAMano | YESNO | no | No | Asiento automático cuyas cuentas o importes se han corregido a mano; se quita al regenerar su origen. |
 
 Índices:
+- FK_Asientos_PlantillaAsiento: IdPlantillaAsiento
 - FK_Asientos_SociedadesEjercicios: IdSociedadEjercicio
 - IX_Asientos_Diario: IdSociedadEjercicio, FechaContable, IdAsiento
 - IX_Asientos_Estado: IdSociedadEjercicio, EstadoAsiento
 - IX_Asientos_Lote: IdLoteProceso
+- IX_Asientos_Plantilla: IdPlantillaAsiento
 - IX_Asientos_PropiedadAutomatica: EsAutomatico, MotorPropietario, CodigoProceso, IdSociedadEjercicio, ClaveEjecucion
 - PK_Asientos (clave primaria): IdAsiento
 
 Relaciones:
+- FK_Asientos_PlantillaAsiento: (IdPlantillaAsiento) → PlantillasAsiento (IdPlantillaAsiento); borrado NO ACTION, actualización NO ACTION
 - FK_Asientos_SociedadesEjercicios: (IdSociedadEjercicio) → SociedadesEjercicios (IdSociedadEjercicio); borrado NO ACTION, actualización NO ACTION
+
+## AsientosBorrados
+
+- Dueño funcional: `contabilidad/asientos`
+- Copia de los asientos manuales eliminados, con cuándo, quién y por qué. Solo se consulta (Diario › «Asientos borrados…»).
+
+| Campo | Tipo | Nulo | Por defecto | Descripción |
+|---|---|---|---|---|
+| IdAsientoBorrado | COUNTER | no |  | Identificador de la copia. |
+| IdAsiento | LONG | no |  | Número que tenía el asiento (Asientos.IdAsiento); no se reutiliza. |
+| IdSociedadEjercicio | LONG | no |  | Sociedad y ejercicio del asiento. |
+| FechaContable | DATETIME | no |  | Fecha contable que tenía. |
+| Descripcion | TEXT(255) | no |  | Descripción que tenía. |
+| TipoAsiento | BYTE | no |  | Tipo de asiento que tenía. |
+| Notas | LONGTEXT | sí |  | Notas que tenía. |
+| OperadorCreacion | TEXT(100) | sí |  | Quién lo grabó. |
+| FechaHoraCreacion | DATETIME | sí |  | Cuándo se grabó. |
+| OperadorModificacion | TEXT(100) | sí |  | Quién lo cambió por última vez. |
+| FechaHoraModificacion | DATETIME | sí |  | Cuándo se cambió por última vez. |
+| TotalDebe | CURRENCY | no |  | Total del Debe. |
+| TotalHaber | CURRENCY | no |  | Total del Haber. |
+| Version | LONG | no |  | Versión que tenía al borrarlo. |
+| IdPlantillaAsiento | LONG | sí |  | Plantilla con la que se creó, si la hubo. |
+| FechaHoraBorrado | DATETIME | no |  | Cuándo se borró. |
+| OperadorBorrado | TEXT(100) | no |  | Quién lo borró. |
+| MotivoBorrado | LONGTEXT | no |  | Motivo que se dio al borrarlo (obligatorio). |
+
+Índices:
+- IX_AsientosBorrados_Asiento: IdAsiento
+- IX_AsientosBorrados_Ejercicio: IdSociedadEjercicio, FechaHoraBorrado
+- PK_AsientosBorrados (clave primaria): IdAsientoBorrado
 
 ## CentrosCoste
 
@@ -198,6 +286,29 @@ Relaciones:
 Relaciones:
 - FK_ConfigBanco_Cuenta: (IdCuentaBancaria) → CuentasBancarias (IdCuentaBancaria); borrado NO ACTION, actualización NO ACTION
 - FK_ConfigBanco_Identidad: (IdIdentidadContableBanco) → IdentidadesContables (IdIdentidadContable); borrado NO ACTION, actualización NO ACTION
+
+## CuadresCuentas
+
+- Dueño funcional: `contabilidad/mayor`
+
+| Campo | Tipo | Nulo | Por defecto | Descripción |
+|---|---|---|---|---|
+| IdCuadreCuenta | COUNTER | no |  |  |
+| IdSociedadEjercicio | LONG | no |  |  |
+| CuentaContable | TEXT(20) | no |  |  |
+| Cuadrada | YESNO | no |  |  |
+| Saldo | CURRENCY | sí |  |  |
+| Notas | LONGTEXT | sí |  |  |
+| Operador | TEXT(30) | no |  |  |
+| FechaHora | DATETIME | no |  |  |
+
+Índices:
+- FK_CuadresCuentas_SociedadEjercicio: IdSociedadEjercicio
+- PK_CuadresCuentas (clave primaria): IdCuadreCuenta
+- UX_CuadresCuentas_EjercicioCuenta (único): IdSociedadEjercicio, CuentaContable
+
+Relaciones:
+- FK_CuadresCuentas_SociedadEjercicio: (IdSociedadEjercicio) → SociedadesEjercicios (IdSociedadEjercicio); borrado NO ACTION, actualización NO ACTION
 
 ## CuentasContables
 
@@ -488,6 +599,89 @@ Relaciones:
 Índices:
 - PK_PlanesContables (clave primaria): IdPlanContable
 - UX_PlanesContables_Codigo (único): Codigo
+
+## PlantillasAsiento
+
+- Dueño funcional: `contabilidad/plantillas-asiento`
+- Plantillas de asiento: recetas de apuntes con fórmulas que proponen uno o varios asientos (contabilidad/plantillas-asiento).
+
+| Campo | Tipo | Nulo | Por defecto | Descripción |
+|---|---|---|---|---|
+| IdPlantillaAsiento | COUNTER | no |  | Identificador de la plantilla. |
+| Nombre | TEXT(100) | no |  | Nombre de la plantilla que ve el usuario (p. ej. «Anular asiento»). |
+| Descripcion | LONGTEXT | sí |  | Explicación para el usuario de qué asiento genera y cuándo usarla. |
+| Tipo | TEXT(10) | no |  | USUARIO: se ofrece en el asiento manual y en el Mayor. SISTEMA: solo la ejecuta su proceso (p. ej. la nómina). |
+| IdSociedad | TEXT(3) | sí |  | Empresa a la que pertenece; vacío = todas las empresas. |
+| Origen | TEXT(10) | no |  | Qué necesita: NINGUNO, ASIENTO (un asiento entero), APUNTE (un apunte), SUBCUENTA (una subcuenta y su saldo) o PROCESO (registros de un proceso). |
+| ClaveProceso | TEXT(50) | sí |  | Con origen PROCESO, el proceso que la ejecuta (p. ej. nominas). |
+| ReglaFecha | TEXT(20) | no |  | TRIMESTRE_ACTIVO: primer día del trimestre activo o la fecha del origen si es posterior. FECHA_ORIGEN: la fecha del origen. |
+| AgruparPorCuenta | YESNO | no |  | Sí: suma en una línea los importes de la misma cuenta y genera un solo asiento para todos los registros del proceso. |
+| Activa | YESNO | no |  | Solo las activas se ofrecen y se ejecutan. |
+| MotivoPropuesto | TEXT(255) | sí |  | Texto que se propone como motivo del cambio (el motivo es obligatorio al ejecutar). |
+| Ejemplo | LONGTEXT | sí |  | Ejemplo ficticio en JSON (origen y datos de entrada) del que sale la vista previa de la plantilla. |
+| Orden | SHORT | no |  | Orden en que se ofrece la plantilla en las listas. |
+| Clase | TEXT(12) | sí |  | CORRECCION: corrige un asiento, un apunte o una subcuenta desde el Mayor. GUIA: explicación y asiento de ejemplo. ASISTENTE: pide datos y propone un asiento. PROCESO: la ejecuta un proceso. |
+
+Índices:
+- FK_PlantillasAsiento_Sociedad: IdSociedad
+- IX_PlantillasAsiento_Nombre: Nombre
+- PK_PlantillasAsiento (clave primaria): IdPlantillaAsiento
+
+Relaciones:
+- FK_PlantillasAsiento_Sociedad: (IdSociedad) → Sociedades (IdSociedad); borrado NO ACTION, actualización NO ACTION
+
+## PlantillasAsientoDatos
+
+- Dueño funcional: `contabilidad/plantillas-asiento`
+- Datos de entrada que pide cada plantilla antes de proponer el asiento.
+
+| Campo | Tipo | Nulo | Por defecto | Descripción |
+|---|---|---|---|---|
+| IdPlantillaAsientoDato | COUNTER | no |  | Identificador del dato. |
+| IdPlantillaAsiento | LONG | no |  | Plantilla a la que pertenece. |
+| Orden | SHORT | no |  | Orden en que se pide el dato. |
+| Nombre | TEXT(50) | no |  | Nombre con que lo usan las fórmulas, sin espacios (p. ej. NuevaCuenta). |
+| Etiqueta | TEXT(100) | no |  | Texto con que se pide al usuario. |
+| Tipo | TEXT(10) | no |  | IMPORTE, CUENTA, TEXTO o FECHA. |
+| ValorPropuesto | TEXT(255) | sí |  | Fórmula del valor que se propone (p. ej. Importe o UltimaUsada()). |
+| FiltroCuenta | TEXT(30) | sí |  | En un dato de cuenta, prefijo de las cuentas que admite y que ofrece el buscador (p. ej. 551). |
+| Ayuda | TEXT(255) | sí |  | Ayuda para el usuario sobre el dato. |
+| Obligatorio | YESNO | no |  | Sí: no se propone el asiento sin este dato. |
+
+Índices:
+- FK_PlantillasAsientoDatos_Plantilla: IdPlantillaAsiento
+- PK_PlantillasAsientoDatos (clave primaria): IdPlantillaAsientoDato
+- UX_PlantillasAsientoDatos_Nombre (único): IdPlantillaAsiento, Nombre
+
+Relaciones:
+- FK_PlantillasAsientoDatos_Plantilla: (IdPlantillaAsiento) → PlantillasAsiento (IdPlantillaAsiento); borrado NO ACTION, actualización NO ACTION
+
+## PlantillasAsientoLineas
+
+- Dueño funcional: `contabilidad/plantillas-asiento`
+- Líneas de cada plantilla: un apunte de uno de sus asientos, con fórmulas.
+
+| Campo | Tipo | Nulo | Por defecto | Descripción |
+|---|---|---|---|---|
+| IdPlantillaAsientoLinea | COUNTER | no |  | Identificador de la línea. |
+| IdPlantillaAsiento | LONG | no |  | Plantilla a la que pertenece. |
+| NumeroAsiento | SHORT | no |  | Asiento de la plantilla al que va la línea (una plantilla puede generar varios: 1, 2…). |
+| Orden | SHORT | no |  | Orden de la línea dentro de su asiento. |
+| PorCadaApunte | YESNO | no |  | Sí: la línea se repite por cada apunte del asiento de origen (anular, rehacer) con los campos de ese apunte. |
+| FormulaCuenta | TEXT(255) | no |  | Fórmula de la cuenta: un campo, un dato, CuentaCuadres, CuentaTesoreria, un código entre comillas o un prefijo terminado en ?. |
+| Lado | TEXT(255) | no |  | D, H, SIGNO (positivo al Haber), MISMO o CONTRARIO (al lado del apunte de origen), o una fórmula que dé uno de ellos. |
+| FormulaImporte | TEXT(255) | no |  | Fórmula del importe (decimal, redondeado a 2 decimales); 0 = no se crea la línea; negativo = cambia de lado. |
+| FormulaConcepto | TEXT(255) | sí |  | Fórmula del concepto del apunte (p. ej. "Anulación: " & Concepto). |
+| FormulaCentro | TEXT(255) | sí |  | Fórmula del centro de coste (p. ej. Centro, el del apunte de origen); vacío = sin centro. |
+| Condicion | TEXT(255) | sí |  | Fórmula que, si da falso, hace que no se cree la línea; vacío = siempre. |
+
+Índices:
+- FK_PlantillasAsientoLineas_Plantilla: IdPlantillaAsiento
+- PK_PlantillasAsientoLineas (clave primaria): IdPlantillaAsientoLinea
+- UX_PlantillasAsientoLineas_Orden (único): IdPlantillaAsiento, NumeroAsiento, Orden
+
+Relaciones:
+- FK_PlantillasAsientoLineas_Plantilla: (IdPlantillaAsiento) → PlantillasAsiento (IdPlantillaAsiento); borrado NO ACTION, actualización NO ACTION
 
 ## PresentacionesTributarias
 

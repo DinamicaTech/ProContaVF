@@ -832,14 +832,16 @@
   </Style>
 
   <!-- ===================== Tablas ===================== -->
+  <!-- Separador de columnas (plataforma/ui-base 2026-11-12): zona de 10 px para cogerlo y, al pasar el ratón, la línea resaltada.
+       Los nombres no son PART_: el redimensionado lo hace TablaProConta (solo cambia esa columna, sin mínimos). -->
   <Style x:Key="Tabla.Pinza" TargetType="Thumb">
-    <Setter Property="Width" Value="8" />
+    <Setter Property="Width" Value="10" />
     <Setter Property="Cursor" Value="SizeWE" />
     <Setter Property="Template">
       <Setter.Value>
         <ControlTemplate TargetType="Thumb">
           <Border x:Name="P" Background="Transparent">
-            <Border x:Name="L" Width="2" HorizontalAlignment="Center" Background="Transparent" Margin="0,5" CornerRadius="1" />
+            <Border x:Name="L" Width="3" HorizontalAlignment="Center" Background="Transparent" Margin="0,4" CornerRadius="1" />
           </Border>
           <ControlTemplate.Triggers>
             <Trigger Property="IsMouseOver" Value="True">
@@ -880,8 +882,10 @@
                 <TextBlock x:Name="Flecha" Margin="4,0,0,0" FontSize="9" VerticalAlignment="Center" Foreground="{StaticResource Pincel.Marino}" />
               </StackPanel>
             </Border>
-            <Thumb x:Name="PART_LeftHeaderGripper" HorizontalAlignment="Left" Margin="-4,0,0,0" Style="{StaticResource Tabla.Pinza}" />
-            <Thumb x:Name="PART_RightHeaderGripper" HorizontalAlignment="Right" Margin="0,0,-4,0" Style="{StaticResource Tabla.Pinza}" />
+            <!-- Línea divisoria visible entre títulos -->
+            <Border HorizontalAlignment="Right" Width="1" Margin="0,7" Background="{StaticResource Pincel.Linea3}" IsHitTestVisible="False" />
+            <Thumb x:Name="PinzaIzquierda" HorizontalAlignment="Left" Margin="-5,0,0,0" Style="{StaticResource Tabla.Pinza}" />
+            <Thumb x:Name="PinzaDerecha" HorizontalAlignment="Right" Margin="0,0,-5,0" Style="{StaticResource Tabla.Pinza}" />
           </Grid>
           <ControlTemplate.Triggers>
             <Trigger Property="IsMouseOver" Value="True">

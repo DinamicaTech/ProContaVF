@@ -16,6 +16,7 @@
 | FechaAlta | DATETIME | sí | Date() | Fecha de alta del cliente en la aplicación. Valor predeterminado: fecha actual. |
 | IdTercero | LONG | no |  | Contrato TERCEROS_VF_1: tipo ACE 3, longitud 0, obligatorio True. FK a Terceros.IdTercero; una identidad por origen sin fusiones. |
 | Activo | YESNO | no |  | Contrato TERCEROS_VF_1: tipo ACE 11, longitud 0, obligatorio True. True inicial para clientes existentes; estado operativo nuevo del rol. |
+| IBAN | TEXT(34) | sí |  | IBAN del cliente, sin espacios, para los recibos domiciliados; en la factura sale enmascarado (solo los cuatro últimos dígitos). |
 
 Índices:
 - FK_Clientes_Contratos: IdContrato
@@ -181,6 +182,54 @@ Relaciones:
 
 Relaciones:
 - FK_Domicilios_Terceros: (IdTercero) → Terceros (IdTercero); borrado NO ACTION, actualización NO ACTION
+
+## Empleados
+
+- Dueño funcional: `terceros/roles`
+- Rol Empleado de un tercero (terceros/roles): la persona a la que la empresa paga nóminas.
+
+| Campo | Tipo | Nulo | Por defecto | Descripción |
+|---|---|---|---|---|
+| IdEmpleado | COUNTER | no |  | Identificador del rol Empleado. |
+| IdTercero | LONG | no |  | Tercero que tiene el rol (uno como mucho por tercero). |
+| Activo | YESNO | no |  | Si el rol está activo; al quitarlo la fila se conserva. |
+| FechaAlta | DATETIME | no |  | Día en que se dio el rol. |
+| Notas | LONGTEXT | sí |  | Notas del rol. |
+
+Índices:
+- FK_Empleados_Tercero: IdTercero
+- PK_Empleados (clave primaria): IdEmpleado
+- UX_Empleados_Tercero (único): IdTercero
+
+Relaciones:
+- FK_Empleados_Tercero: (IdTercero) → Terceros (IdTercero); borrado NO ACTION, actualización NO ACTION
+
+## EmpleadosSociedad
+
+- Dueño funcional: `terceros/roles`
+- Datos del empleado en cada sociedad: su código en la gestoría y su cuenta 465 (terceros/roles).
+
+| Campo | Tipo | Nulo | Por defecto | Descripción |
+|---|---|---|---|---|
+| IdEmpleadoSociedad | COUNTER | no |  | Identificador de la fila. |
+| IdEmpleado | LONG | no |  | Empleado. |
+| IdSociedad | TEXT(3) | no |  | Sociedad en la que trabaja. |
+| CodigoTrabajador | TEXT(30) | sí |  | Código del trabajador en la gestoría (columna sin cabecera del Excel); con él se reconoce al importar. |
+| IdIdentidadContable | LONG | sí |  | Cuenta 465 (remuneraciones pendientes de pago) del empleado; en cada ejercicio se usa la cuenta de esta identidad. |
+| Activo | YESNO | no |  | Si sigue trabajando en la sociedad. |
+
+Índices:
+- FK_EmpleadosSociedad_Empleado: IdEmpleado
+- FK_EmpleadosSociedad_Identidad: IdIdentidadContable
+- FK_EmpleadosSociedad_Sociedad: IdSociedad
+- IX_EmpleadosSociedad_Codigo: IdSociedad, CodigoTrabajador
+- PK_EmpleadosSociedad (clave primaria): IdEmpleadoSociedad
+- UX_EmpleadosSociedad_EmpleadoSociedad (único): IdEmpleado, IdSociedad
+
+Relaciones:
+- FK_EmpleadosSociedad_Empleado: (IdEmpleado) → Empleados (IdEmpleado); borrado NO ACTION, actualización NO ACTION
+- FK_EmpleadosSociedad_Identidad: (IdIdentidadContable) → IdentidadesContables (IdIdentidadContable); borrado NO ACTION, actualización NO ACTION
+- FK_EmpleadosSociedad_Sociedad: (IdSociedad) → Sociedades (IdSociedad); borrado NO ACTION, actualización NO ACTION
 
 ## HistorialTerceros
 

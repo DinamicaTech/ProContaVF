@@ -1,4 +1,4 @@
-using ProConta.Contabilidad.Cuentas;
+﻿using ProConta.Contabilidad.Cuentas;
 using ProConta.Datos.Persistencia;
 using ProConta.Facturacion.Conceptos;
 using ProConta.Facturacion.Facturas;
@@ -40,7 +40,7 @@ public class MantenimientoGenericoTests
     {
         var s = Servicio();
         var r = s.Buscar("retencion");
-        Assert.Contains(r, x => x.Campo?.Clave == "CuentaRetencionIRPF" && x.Proveedor.Clave == "ejercicios");
+        Assert.Contains(r, x => x.Campo?.Clave == "CuentaRetencionServicios" && x.Proveedor.Clave == "ejercicios");
         Assert.Equal("series", s.Buscar("numeración").First().Proveedor.Clave);
         Assert.Empty(s.Buscar("   "));
     }
@@ -95,6 +95,69 @@ public sealed class MantenimientoAccessTests : IDisposable
         await DatosSinteticos.SociedadAsync(Bd, "T01", "Sociedad sintética");
         await DatosSinteticos.EjercicioAsync(Bd, 9001, "T01", 2026);
         await DatosSinteticos.EjercicioAsync(Bd, 9000, "T01", 2025);
+    }
+
+    /// <summary>
+    /// Cada mantenimiento lee sus campos de la BD actualizada: un campo cuya columna no existe en su tabla hace fallar el listado
+    /// entero («No se han especificado valores para algunos de los parámetros requeridos»), como pasó en Empresas con las cuentas
+    /// de IVA repercutido, que solo tiene el ejercicio.
+    /// </summary>
+    [Fact]
+    public async Task TodosLosMantenimientosListanConLaBdActualizada()
+    {
+        await PrepararAsync();
+        await Bd.EjecutarAsync(x => x.EjecutarAsync("UPDATE Sociedades SET Cuenta113ParaCuadres = '1130000', Cuenta570Tesoreria = '5700000' WHERE IdSociedad = 'T01'"));
+        foreach (var p in Servicio().Proveedores)
+        {
+            var filas = await p.ListarAsync(Ctx);
+            Assert.NotNull(filas);
+        }
+        var empresa = (await Servicio().Proveedor("sociedades")!.ListarAsync(Ctx)).Single(r => r.Texto("IdSociedad") == "T01");
+        Assert.Equal(("1130000", "5700000"), (empresa.Texto("Cuenta113ParaCuadres"), empresa.Texto("Cuenta570Tesoreria")));
+        // Solo los campos que quedan en cada tabla (organizacion/sociedades-ejercicios 2026-11-13 20:55).
+        Assert.Equal(["IdSociedad", "Nombre", "CIF", "DireccionFiscal", "CodigoPostalFiscal", "PoblacionFiscal", "ProvinciaFiscal", "Telefono",
+            "Cuenta113ParaCuadres", "Cuenta570Tesoreria", "RutaDocumentos", "Logo"], Servicio().Proveedor("sociedades")!.Campos.Select(c => c.Clave).ToArray());
+        Assert.Equal(new[] { "Ejercicio", "Nombre", "TrimestreActivo", "Activa", "EjercicioCerrado", "FormaPagoDefecto", "TipoIVAGeneral", "PorcentajeProrrataAñoAnterior",
+            "CuentaSuplido", "CuentaRetencionServicios", "CuentaRetencionAlquileres", "CuentaIVAIntracomunitarioRepercutidoServicios", "CuentaIVAIntracomunitarioRepercutidoBienes",
+            "CuentaIVAIntracomunitarioSoportadoServicios", "CuentaIVAIntracomunitarioSoportadoBienes", "CuentaIVAInversionSujetoPasivoRepercutido",
+            "CuentaIVAInversionSujetoPasivoSoportado", "CuentaIVAImportacion", "CuentaRedondeoGastos", "CuentaRedondeoIngresos", "CarpetaFacturasCompra" }.Order(),
+            Servicio().Proveedor("ejercicios")!.Campos.Select(c => c.Clave).Order());
+        await Bd.EjecutarAsync(x => x.EjecutarAsync("UPDATE SociedadesEjercicios SET CuentaSuplido = '5550002', PorcentajeProrrataAñoAnterior = 0.14 WHERE IdSociedadEjercicio = 9001"));
+        var ejercicio = (await Servicio().Proveedor("ejercicios")!.ListarAsync(Ctx)).Single(r => r.Texto("Ejercicio") == "2026");
+        Assert.Equal("5550002", ejercicio.Texto("CuentaSuplido"));
+        var eliminadas = await Bd.EjecutarAsync(x => Task.FromResult(x.LeerEsquema()));
+        Assert.DoesNotContain(eliminadas.Tabla("SociedadesEjercicios")!.Columnas, c => c.Nombre is "CIF" or "TipoIVA1" or "CuentaTipoIVA0" or "CuentaIVARepercutido0" or "Usuario");
+        Assert.DoesNotContain(eliminadas.Tabla("Sociedades")!.Columnas, c => c.Nombre is "FormaPagoDefecto" or "CuentaSuplido" or "TipoIVA1" or "BDExportacion");
+    }
+
+    /// <summary>
+    /// La misma comprobación contra una BD de validación del propietario, solo si PROCONTA_BD_VALIDACION apunta a ella (se lee una
+    /// copia temporal; el original no se abre). Sin la variable no hace nada.
+    /// </summary>
+    [Fact]
+    public async Task TodosLosMantenimientosListanConLaBdDeValidacion()
+    {
+        if (Environment.GetEnvironmentVariable("PROCONTA_BD_VALIDACION") is not { Length: > 0 } origen || !File.Exists(origen)) return;
+        var copia = Path.Combine(BdPruebas.CarpetaTemporal(), Path.GetFileName(origen));
+        File.Copy(origen, copia);
+        try
+        {
+            var bd = new ProConta.Datos.Persistencia.Access.BaseDatosAccess(copia);
+            var ctx = await bd.EjecutarAsync(s => s.ConsultarPrimeroAsync(
+                "SELECT TOP 1 IdSociedad, IdSociedadEjercicio, Ejercicio FROM SociedadesEjercicios ORDER BY Ejercicio DESC",
+                f => new ContextoSociedadEjercicio(f.Texto("IdSociedad") ?? "", f.Entero("IdSociedadEjercicio"), int.Parse(f.Texto("Ejercicio") ?? "0"))));
+            var servicio = new ServicioMantenimiento(
+                [.. ProveedoresOrganizacion.Todos(bd), .. ProveedoresFacturacion.Todos(bd, new CatalogoCuentasAccess(bd)), new ProveedorConfiguracionGeneral(bd)],
+                () => Task.FromResult(true));
+            var contexto = new ContextoMantenimiento(ctx!, "Validación", new Actor("prueba"));
+            foreach (var p in servicio.Proveedores) Assert.NotNull(await p.ListarAsync(contexto));
+            Assert.NotEmpty(await servicio.Proveedor("sociedades")!.ListarAsync(contexto));
+            Assert.NotEmpty(await servicio.Proveedor("ejercicios")!.ListarAsync(contexto));
+        }
+        finally
+        {
+            try { File.Delete(copia); } catch (IOException) { }
+        }
     }
 
     [Fact]

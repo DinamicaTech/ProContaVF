@@ -1,4 +1,4 @@
-namespace ProConta.Datos.Esquema.Diccionario;
+﻿namespace ProConta.Datos.Esquema.Diccionario;
 
 /// <summary>Dueño funcional de una tabla: el área del diccionario y el nodo de docs que la escribe.</summary>
 public sealed record DuenoTabla(string Area, string Nodo);
@@ -21,38 +21,49 @@ public static class DuenosTablas
         Asignar("seguridad", "seguridad/permisos", "GruposOperadores", "OperadoresGrupos", "AccesoSociedadesGrupo", "RestriccionesReportsGrupo", "PermisosAccionesGrupo");
         Asignar("seguridad", "seguridad/acceso", "OperadoresSeguridad", "AuditoriaSeguridad", "PreferenciasAccesoOperador", "PreferenciasAccesoEjercicio");
         Asignar("terceros", "terceros/tercero", "Terceros", "HistorialTerceros", "MapasOrigenTerceros", "DomiciliosTercero");
-        Asignar("terceros", "terceros/roles", "Clientes", "Proveedores", "CuentasClientesSociedad", "CuentasProveedoresSociedad");
+        Asignar("terceros", "terceros/roles", "Clientes", "Proveedores", "CuentasClientesSociedad", "CuentasProveedoresSociedad",
+            "Empleados", "EmpleadosSociedad");
         Asignar("terceros", "terceros/contactos", "Contactos", "ContactosLibresTercero", "DatosContacto", "RelacionesContactos");
         Asignar("terceros", "terceros/perfiles-notas", "Perfiles", "PerfilesTerceros");
         Asignar("contabilidad", "contabilidad/cuenta-contable", "CuentasContables", "IdentidadesContables", "CodigosContablesReservados",
             "CuentasContablesLegacy", "CuentasPlanContable", "PlanesContables", "TiposCuentaContable");
         Asignar("contabilidad", "contabilidad/centros-coste", "CentrosCoste", "F_CDP", "F_DEP");
-        Asignar("contabilidad", "contabilidad/asientos", "Asientos", "Apuntes", "RelacionesAsientos", "RevisionesAsientos", "RegistroCambiosApuntes");
+        Asignar("contabilidad", "contabilidad/asientos", "Asientos", "Apuntes", "RelacionesAsientos", "RevisionesAsientos", "RegistroCambiosApuntes", "AsientosBorrados", "ApuntesBorrados");
         Asignar("contabilidad", "contabilidad/procesos", "ConfiguracionesContables", "ConfiguracionesContablesCuentaBancaria", "PeriodosIVA", "IVARepercutido", "IVASoportado", "DesglosesIVASoportado", "Actividades");
+        Asignar("contabilidad", "contabilidad/procesos/cambio-deduccion-actividad", "ActividadesDeduccion");
         Asignar("contabilidad", "contabilidad/modelos-tributarios", "PresentacionesTributarias");
+        Asignar("contabilidad", "contabilidad/mayor", "CuadresCuentas");
+        Asignar("contabilidad", "contabilidad/plantillas-asiento", "PlantillasAsiento", "PlantillasAsientoDatos", "PlantillasAsientoLineas");
         Asignar("contabilidad", "contabilidad/balances", "ModelosBalance", "NodosBalance", "ReglasCuentasBalance", "RelacionesCalculoBalance");
         Asignar("facturacion", "facturacion/factura-venta", "Facturas", "LineasFactura", "DesglosesIVARepercutido", "SeriesFacturacion",
             "TiposFactura", "EstadosFactura", "TiposOperacion", "TiposDeIVA", "LotesExportacionContable");
         Asignar("facturacion", "facturacion/conceptos", "Conceptos", "TiposConcepto");
         Asignar("facturacion", "facturacion/contratos", "Contratos", "LineasContrato", "EstadoContratoTerceros");
         Asignar("facturacion", "facturacion/programadas", "FacturasProgramadas", "FacturasProgramadasBak", "LineasFacturasProgramadas", "LotesFacturasProgramadas");
+        Asignar("facturacion", "facturacion/reservas", "OrigenesVenta", "ReglasVenta", "VentasPorFacturar", "AlojamientosAvaibook", "ConexionesAvaibook");
         Asignar("facturacion", "facturacion/verifactu", "VeriFactuConfiguracion", "VeriFactuEnvios", "VeriFactuLotesEnvio", "VeriFactuRespuestas");
         Asignar("compras", "compras/factura-compra", "FacturasCompra", "DesglosesFacturaCompra", "TextosClaveCompra");
         Asignar("compras", "compras/reconocimiento", "ConfiguracionReconocimientoFacturasCompra", "PlantillasReconocimientoCompra");
         Asignar("norma43", "norma43", "Bancos", "EntidadesFinancieras", "CuentasBancarias", "ExtractosBancarios", "LineasExtractoBancario",
             "ComplementosLineaExtractoBancario", "ContabilizacionesLineaExtracto", "ImputacionesLineaExtractoBancario",
-            "IncidenciasImportacionBancaria", "LotesImportacionBancaria");
+            "IncidenciasImportacionBancaria", "LotesImportacionBancaria", "PalabrasClaveBancarias");
+        Asignar("norma43", "norma43/conciliacion", "ConceptosN43");
         Asignar("correo", "correo", "ConfiguracionCorreo", "PlantillasCorreo", "TiposCorreo", "EnviosCorreo",
             "ConfiguracionMailDispatcher", "ProcesamientosMailDispatcher", "AdjuntosMailDispatcher");
         Asignar("correo", "correo/envio", "CuentasCorreo", "LotesCorreo", "MensajesCorreo", "DestinatariosMensajeCorreo", "AdjuntosMensajeCorreo",
             "IntentosMensajeCorreo", "TurnosCorreo");
         Asignar("correo", "correo/recepcion", "MensajesRecibidosCorreo", "AdjuntosRecibidosCorreo", "RemitentesAutorizadosCorreo");
+        Asignar("nominas", "nominas", "AliasCamposNomina", "ImportacionesNomina", "Nominas");
         Asignar("implantacion", "implantacion/importador-contasol", "ImportacionesContaSol", "FasesImportacionContaSol",
             "IncidenciasImportacionContaSol", "MapasIdentidadContaSol");
-        Asignar("creative-lab", "creative-lab/activos", "Activos", "ActivosInversiones", "CotizacionesInstrumentoFinanciero", "CuentasActivo",
-            "DetallesLoteAmortizacionActivo", "ImportacionesActivos", "InstrumentosFinancieros", "LotesAmortizacionActivo",
-            "OperacionesInversion", "PlanesAmortizacionActivo", "PlantillasCuentasActivo", "TiposActivo", "Inmuebles");
+        Asignar("implantacion", "implantacion/migracion-erp", "MigracionesERP", "IncidenciasMigracionERP", "MapasIdentidadERP");
+        Asignar("activos", "activos", "Activos", "TiposActivo", "TiposSubcuentaActivo", "PlantillasSubcuentasActivo", "SubcuentasActivo",
+            "ActivosInmuebles", "PlanesAmortizacionActivo", "LotesAmortizacionActivo", "DetallesLoteAmortizacionActivo",
+            "PlantillasCuentasActivo", "CuentasActivo", "Inmuebles");
+        Asignar("creative-lab", "creative-lab/inversiones-financieras", "ActivosInversiones", "CotizacionesInstrumentoFinanciero",
+            "ImportacionesActivos", "InstrumentosFinancieros", "OperacionesInversion");
         Asignar("creative-lab", "creative-lab/asistente-ia", "ConversacionesIA", "MensajesConversacionIA");
+        Asignar("inicio", "pantalla-de-inicio", "HistoricoSalud");
     }
 
     private static void Asignar(string area, string nodo, params string[] tablas)

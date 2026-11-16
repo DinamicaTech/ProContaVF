@@ -1,6 +1,5 @@
 ---
 title: Pantallas de compras
-status: draft
 depends_on: [compras/reconocimiento, plataforma/contenedor]
 threads:
   - 2026-10-28 12:30 · Carga de requisitos | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GRNMH95h9tnQp4dmEPHmw1w
@@ -45,6 +44,7 @@ Revisión de la factura reconocida con confianza, candidatos y motivos visibles,
 - 2026-11-07 00:38 · Hecho (trimestre activo): en la cabecera, junto al ejercicio, «Trimestre activo: jul-sep». Al pulsarlo se ofrece cerrar el activo y activar el siguiente (el cuarto no: se cierra con el cierre del ejercicio) y, si el trimestre natural de hoy + 10 días es el activo, reactivar el anterior con un aviso importante y una segunda confirmación. Al entrar en Facturas recibidas, si hoy no cae en el trimestre activo del ejercicio de este año, se avisa con cerrar y activar el siguiente o recordarlo en 1, 3 o 7 días (por operador, en sus preferencias locales). Decisión propia, pendiente de validar: cambiar el trimestre pide el mismo permiso que editar facturas (FACTURAS.EDITAR) hasta que haya uno de contabilidad. Pendiente: que los demás módulos (ventas) respeten el trimestre cerrado.
 - 2026-11-07 12:44 · Hecho (arreglos del 7 de noviembre): «Ocultar lista» con Ctrl+L, fija hasta que exista el catálogo de atajos (será «Compras.OcultarLista»); el aviso al entrar fuera del trimestre activo usa el texto del propietario («a su cierre» en lugar de «al su cierre»); los contadores de las pestañas cuentan lo que cumple los filtros; al guardar tras «Volver a reconocer» se guardan la confianza, la fuente y el log de esa lectura; en los importes, una columna «Total» por tipo de IVA (IVA %, Base, IVA y Total): escribirlo reparte la base redondeada a céntimos y el IVA como resto.
 - 2026-11-07 12:54 · Hecho (exportadas editables): en una contabilizada, aquí o en el ERP, la ficha se puede cambiar. Con cambios que no tocan el asiento, el pie muestra «Cancelar» y «Guardar»; con cambios que lo tocan, «Cancelar» y «Guardar y re-exportar» (Ctrl+S explica que hay que re-exportar). «Deshacer exportación» también aparece en las del ERP y avisa de que su asiento no se toca y se hace un contra-asiento.
+- 2026-11-11 17:37 · Validado por el propietario (PR #19 a #27 fusionadas; compras cerrado el 2026-11-08): el nodo pasa a estable.
 
 ## Requirements
 - 2026-10-28 12:28 · From sources/01_ESPECIFICACION_FUNCIONAL.docx § 14 RF-COM-06, 07: pantalla de pruebas y revisión final

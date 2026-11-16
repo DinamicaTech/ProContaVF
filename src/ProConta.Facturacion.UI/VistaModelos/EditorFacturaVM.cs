@@ -5,6 +5,7 @@ using System.Globalization;
 using System.Text;
 using System.Windows.Input;
 using ProConta.Contabilidad.CentrosCoste;
+using ProConta.Facturacion.Conceptos;
 using ProConta.Facturacion.Facturas;
 using ProConta.Facturacion.Programadas;
 using ProConta.Nucleo.Resultados;
@@ -84,9 +85,11 @@ public sealed class EditorFacturaVM : ModeloVista, IPestanaTrabajo, INotifyDataE
         AsignarCuentaRetencionCommand = new ComandoDelegado(() => _ = AsignarCuentaAsync(ClaseCuentaRol.Retencion), () => _cliente is not null && Editable);
         AbrirFichaCommand = new ComandoDelegado(() => { if (_cliente is not null) _modulo.AbrirFichaTercero(_cliente.IdTercero); }, () => _cliente is not null);
         AnadirLineaCommand = new ComandoDelegado(() => _ = AnadirLineaAsync(), () => EditableLineas);
+        BuscarCuentaLineaCommand = new ComandoDelegado(p => { if (p is LineaFacturaVM l) _ = BuscarCuentaLineaAsync(l); }, _ => EditableLineas);
         QuitarLineaCommand = new ComandoDelegado(p => { if (p is LineaFacturaVM l) QuitarLinea(l); }, _ => EditableLineas);
         SubirLineaCommand = new ComandoDelegado(p => { if (p is LineaFacturaVM l) MoverLinea(l, -1); }, p => EditableLineas && p is LineaFacturaVM l && Lineas.IndexOf(l) > 0);
         BajarLineaCommand = new ComandoDelegado(p => { if (p is LineaFacturaVM l) MoverLinea(l, 1); }, p => EditableLineas && p is LineaFacturaVM l && Lineas.IndexOf(l) is var i && i >= 0 && i < Lineas.Count - 1);
+        EnviarCorreoCommand = new ComandoDelegado(() => _ = EnviarCorreoAsync(), () => PuedeEnviarCorreo);
         VolverCommand = new ComandoDelegado(() => { if (_p is null) _modulo.VolverAlListado(); else _modulo.VolverAProgramadas(); });
     }
 
@@ -154,6 +157,10 @@ public sealed class EditorFacturaVM : ModeloVista, IPestanaTrabajo, INotifyDataE
     /// <summary>El botón de VeriFactu solo se ve con el parámetro general activado.</summary>
     public bool MostrarEnviarVeriFactu => _veriFactuActivo && EsValidada;
     public bool MostrarPdf => _p is null;
+
+    /// <summary>«Enviar por correo…» se ofrece en una factura validada, sin volver al listado (facturacion/pantallas 2026-11-15).</summary>
+    public bool MostrarEnviarCorreo => _p is null && EsValidada && _modulo.Correo is not null;
+    private bool PuedeEnviarCorreo => MostrarEnviarCorreo && !_cargando && !TieneCambios;
     public string TextoPdf => EsBorrador ? "Proforma en PDF" : "PDF";
     public string AyudaPdf => EsBorrador
         ? "Abre una proforma del borrador, sin número ni validez fiscal, con sus cambios guardados"
@@ -299,15 +306,11 @@ public sealed class EditorFacturaVM : ModeloVista, IPestanaTrabajo, INotifyDataE
     public bool EsFactura => _p is null;
     public bool MostrarValidar => EsBorrador && _p is null;
 
-    /// <summary>La casilla se ve en una factura nueva y en las programadas (no en una factura ya guardada ni en una rectificativa).</summary>
-    public bool MostrarPeriodica => !_cargando && !_f.EsRectificativa && (_p is not null || _f.EsNueva);
-
-    /// <summary>Solo se cambia antes de guardar: una programada guardada no vuelve a ser factura, ni al revés.</summary>
+    /// <summary>
+    /// Solo se cambia antes de guardar: una programada guardada no vuelve a ser factura, ni al revés. La pantalla ya no
+    /// tiene la casilla «Periódica» (2026-11-15): una programada nace con «Nueva programada» o con «Programar…».
+    /// </summary>
     public bool PuedeCambiarPeriodica => Editable && (_p is null ? _f.EsNueva : _p.EsNueva);
-
-    public string AyudaPeriodica => PuedeCambiarPeriodica
-        ? "Convierte esta factura en una factura programada: una plantilla que genera una factura en cada vencimiento (pestaña «Programación»)"
-        : "Es una factura programada: genera una factura en cada vencimiento. Para programar una factura ya guardada, usa «Programar…» en Facturas.";
 
     public bool Periodica
     {
@@ -463,6 +466,31 @@ public sealed class EditorFacturaVM : ModeloVista, IPestanaTrabajo, INotifyDataE
         : _p.FacturasGeneradas == 0 ? "Aún no ha generado ninguna factura."
         : $"Ha generado {Formatos.Plural(_p.FacturasGeneradas, "factura", "facturas")}" + (_p.FechaUltimaGeneracion is { } u ? $"; la última, el {Formatos.Fecha(u)}." : ".");
 
+    /// <summary>
+    /// «Así saldrá la próxima factura»: la descripción general y los nombres de las líneas con los marcadores
+    /// %FECHAINICIO% y %FECHAFIN% ya sustituidos por el periodo de la próxima factura (facturacion/pantallas 2026-11-15).
+    /// </summary>
+    public string VistaPreviaProxima
+    {
+        get
+        {
+            if (_p is null) return "";
+            if (_p.ProximaCalculada is null) return "No le quedan facturas por emitir.";
+            var (d, h) = _p.Periodo(_p.FacturasGeneradas);
+            var textos = new List<string>();
+            if (!string.IsNullOrWhiteSpace(_f.Descripcion)) textos.Add(MarcadoresPeriodo.Sustituir(_f.Descripcion, d, h));
+            foreach (var l in _f.Lineas)
+            {
+                var nombre = MarcadoresPeriodo.Sustituir(l.Nombre, d, h);
+                var descripcion = MarcadoresPeriodo.Sustituir(l.Descripcion, d, h);
+                if (!string.IsNullOrWhiteSpace(nombre)) textos.Add("· " + nombre + (string.IsNullOrWhiteSpace(descripcion) ? "" : " — " + descripcion));
+            }
+            return textos.Count == 0 ? "Escribe la descripción general y las líneas para ver cómo saldrá." : string.Join(Environment.NewLine, textos);
+        }
+    }
+
+    public string AyudaMarcadores => $"En la descripción y en las líneas, {MarcadoresPeriodo.Inicio} y {MarcadoresPeriodo.Fin} se sustituyen en cada factura por las fechas de su periodo.";
+
     public string MotivoEnvio => "Al generarla validada, la factura se envía por correo con su PDF a los emails del cliente marcados para facturas, en un lote con resumen al final. Si se genera como borrador, se envía después desde Facturas con «Enviar por correo…».";
 
     private void CargarCamposProgramacion()
@@ -476,7 +504,7 @@ public sealed class EditorFacturaVM : ModeloVista, IPestanaTrabajo, INotifyDataE
     }
 
     private void AvisarProgramacion() =>
-        Avisar(nameof(TextoProximas), nameof(TextoPeriodoProximo), nameof(TextoEstado), nameof(Subtitulo), nameof(TextoGeneradas), nameof(Titulo), nameof(Ayuda));
+        Avisar(nameof(TextoProximas), nameof(TextoPeriodoProximo), nameof(TextoEstado), nameof(Subtitulo), nameof(TextoGeneradas), nameof(Titulo), nameof(Ayuda), nameof(VistaPreviaProxima));
 
     // ---------- líneas, totales y asiento ----------
 
@@ -508,7 +536,7 @@ public sealed class EditorFacturaVM : ModeloVista, IPestanaTrabajo, INotifyDataE
         {
             if (!HayCliente || _f.Lineas.Count == 0) return [];
             var iva = new Dictionary<decimal, string>();
-            foreach (var d in CalculoFactura.Desglose(_f.Lineas)) iva[d.TipoIva] = _config?.CuentaIva(d.TipoIva) ?? $"¿IVA {Texto.Porcentaje(d.TipoIva)} %?";
+            foreach (var d in CalculoFactura.Desglose(_f.Lineas)) iva[d.TipoIva] = CuentasIva.Repercutido(d.TipoIva) ?? $"¿IVA {Texto.Porcentaje(d.TipoIva)} %?";
             var cuentas = new CuentasVenta(
                 _cuentaCliente?.EnEjercicio?.Codigo ?? "¿430?",
                 _cuentaRetencion?.EnEjercicio?.Codigo ?? "¿473?",
@@ -556,23 +584,34 @@ public sealed class EditorFacturaVM : ModeloVista, IPestanaTrabajo, INotifyDataE
     public ICommand AbrirFichaCommand { get; }
     public ICommand AnadirLineaCommand { get; }
     public ICommand QuitarLineaCommand { get; }
+    /// <summary>Abre el buscador de subcuentas para la cuenta de la línea (lupa o F4).</summary>
+    public ICommand BuscarCuentaLineaCommand { get; }
     /// <summary>Sube la línea un puesto (Alt+↑); el orden de las líneas tiene significado y se guarda.</summary>
     public ICommand SubirLineaCommand { get; }
     /// <summary>Baja la línea un puesto (Alt+↓).</summary>
     public ICommand BajarLineaCommand { get; }
     public ICommand VolverCommand { get; }
+    public ICommand EnviarCorreoCommand { get; }
+
+    /// <summary>
+    /// Se ha añadido una línea y el foco debe ir a ella: a la cantidad si viene de un concepto, o al nombre si es una
+    /// línea sin concepto (el argumento). La vista lo atiende; así se sigue escribiendo sin tocar el ratón.
+    /// </summary>
+    public event Action<bool>? LineaAnadida;
 
     public string MotivoVeriFactu => "VeriFactu aún no está disponible en esta versión.";
 
     // ---------- carga ----------
 
-    public async Task NuevaAsync()
+    /// <summary>Borrador nuevo sin guardar; con <paramref name="buscarCliente"/>, abre el buscador de cliente en cuanto está listo.</summary>
+    public async Task NuevaAsync(bool buscarCliente = false)
     {
         _p = null;
         await PrepararAsync();
         var r = await _s.Facturas.NuevoBorradorAsync(_s.Trabajo);
         if (!r.EsCorrecto) { FalloCarga(r.Errores); return; }
         await MostrarAsync(r.Valor);
+        if (buscarCliente && EditableCliente && ErrorCarga is null) await BuscarClienteAsync();
     }
 
     /// <summary>Programada nueva sin guardar; con <paramref name="desdeFactura"/>, con el contenido de esa factura («Programar…»).</summary>
@@ -700,7 +739,7 @@ public sealed class EditorFacturaVM : ModeloVista, IPestanaTrabajo, INotifyDataE
     {
         if (_cargando) return;
         GuardadoFallido = false;
-        Avisar(nameof(TieneCambios), nameof(Ayuda), nameof(PuedeGuardar), nameof(Asiento), nameof(Subtitulo));
+        Avisar(nameof(TieneCambios), nameof(Ayuda), nameof(PuedeGuardar), nameof(Asiento), nameof(Subtitulo), nameof(VistaPreviaProxima));
         CommandManager.InvalidateRequerySuggested();
     }
 
@@ -751,7 +790,9 @@ public sealed class EditorFacturaVM : ModeloVista, IPestanaTrabajo, INotifyDataE
     private async Task AnadirLineaAsync()
     {
         var conceptos = await _s.Conceptos.ListarAsync(_s.Trabajo, soloActivos: true);
-        var c = _modulo.Dialogos.ElegirConcepto(conceptos);
+        // Null: se canceló. Con concepto, la línea copia sus datos; sin él («Línea sin concepto»), se escribe a mano.
+        if (_modulo.Dialogos.ElegirConcepto(conceptos) is not { } eleccion) return;
+        var c = eleccion.Concepto;
         var linea = new LineaFacturaVenta();
         if (c is not null)
         {
@@ -764,14 +805,44 @@ public sealed class EditorFacturaVM : ModeloVista, IPestanaTrabajo, INotifyDataE
             linea.IdDepartamento = c.IdDepartamento;
             linea.IdCentroCoste = c.IdCentroCoste;
         }
-        else if (conceptos.Count > 0) return; // canceló el diálogo
         else linea.TipoIva = _tiposIva.FirstOrDefault();
         linea.Recalcular();
         _f.AnadirLinea(linea);
-        Lineas.Add(new LineaFacturaVM(linea, EditableLineas, _tiposIva, _centros, LineaCambiada));
+        var nueva = new LineaFacturaVM(linea, EditableLineas, _tiposIva, _centros, LineaCambiada);
+        Lineas.Add(nueva);
         QuitarError("Lineas");
         AvisarTotales();
         Cambio();
+        // Sin cuenta (concepto sin cuenta de venta o línea sin concepto), se pide ya con el buscador de subcuentas.
+        if (string.IsNullOrWhiteSpace(linea.CuentaContable)) await BuscarCuentaLineaAsync(nueva, conceptos);
+        LineaAnadida?.Invoke(c is null);
+    }
+
+    /// <summary>
+    /// Buscador común de subcuentas para la cuenta de una línea (facturacion/pantallas 2026-11-15 14:05). Si el concepto de
+    /// la línea no tiene cuenta de venta, ofrece guardar la elegida como su cuenta por defecto; un «No» vale para ese
+    /// concepto mientras el programa siga abierto.
+    /// </summary>
+    private async Task BuscarCuentaLineaAsync(LineaFacturaVM linea, IReadOnlyList<Concepto>? conceptos = null)
+    {
+        if (!EditableLineas) return;
+        var suplido = linea.Datos.EsSuplido;
+        if (_modulo.Dialogos.ElegirCuentaLinea(_s.Trabajo, linea.Cuenta.Length > 0 ? linea.Cuenta : null, suplido) is not { } elegida) return;
+        linea.Cuenta = elegida.Codigo;
+        // Solo una cuenta de ventas (grupo 7) se ofrece como cuenta por defecto del concepto.
+        if (suplido || !elegida.Codigo.StartsWith('7') || linea.Datos.IdConcepto is not int id || _modulo.ConceptosSinOfrecerCuenta.Contains(id)) return;
+        conceptos ??= await _s.Conceptos.ListarAsync(_s.Trabajo, soloActivos: false);
+        if (conceptos.FirstOrDefault(x => x.IdConcepto == id) is not { CuentaVenta: null } concepto) return;
+        var respuesta = _modulo.Dialogos.Preguntar("Cuenta de venta del concepto",
+            $"El concepto «{concepto.Nombre}» no tiene cuenta de venta. ¿Guardar la {elegida.Codigo} ({elegida.Nombre}) como su cuenta por defecto?", null,
+            new OpcionMensaje("Sí, guardarla", "Las próximas líneas de este concepto traerán esta cuenta", Principal: true),
+            new OpcionMensaje("No", "Solo se usa en esta línea; no se vuelve a preguntar por este concepto hasta que cierres el programa", Cancelar: true));
+        if (respuesta != 0) { _modulo.ConceptosSinOfrecerCuenta.Add(id); return; }
+        var guardado = await _s.Conceptos.GuardarAsync(concepto, elegida.Codigo, _s.Trabajo);
+        if (guardado.EsCorrecto) _modulo.Avisar($"Cuenta {elegida.Codigo} guardada en el concepto «{concepto.Nombre}».");
+        else
+            _modulo.Dialogos.Preguntar("No he podido guardar la cuenta en el concepto", string.Join(" ", guardado.Errores.Select(e => e.Mensaje)), null,
+                new OpcionMensaje("Entendido", "La línea conserva la cuenta elegida", Principal: true, Cancelar: true));
     }
 
     internal void MoverLinea(LineaFacturaVM l, int desplazamiento)
@@ -885,7 +956,7 @@ public sealed class EditorFacturaVM : ModeloVista, IPestanaTrabajo, INotifyDataE
         var serie = Serie?.Prefijo.Trim() ?? "";
         var fecha = _f.FechaFactura is { } d ? Formatos.Fecha(d) : Formatos.Fecha(DateTime.Today);
         var avisos = previas.Where(i => i.EsAviso).Select(i => i.Mensaje).ToList();
-        var mensaje = $"Se asignará el siguiente número de la serie {serie} con fecha {fecha}, se copiarán los datos del cliente y se generará el asiento. Después no se podrá cambiar.";
+        var mensaje = $"Se asignará el siguiente número de la serie {serie} con fecha {fecha}, se copiarán los datos del cliente y se generará el asiento. El número ya no cambia.";
         var opcion = _modulo.Dialogos.Preguntar("Validar la factura", mensaje, avisos.Count > 0 ? avisos : null,
             new OpcionMensaje("Cancelar", "Vuelve al borrador sin validar", Cancelar: true),
             new OpcionMensaje(avisos.Count > 0 ? "Validar con total cero" : "Validar", "Numera la factura y genera el asiento", Principal: true));
@@ -907,6 +978,21 @@ public sealed class EditorFacturaVM : ModeloVista, IPestanaTrabajo, INotifyDataE
         if (!r.EsCorrecto) { MostrarErrores("No se ha podido crear el PDF", r.Errores); return; }
         if (r.Valor.Generado && !r.Valor.EsProforma) await RecargarAsync(_f.IdFactura);
         _modulo.Dialogos.AbrirArchivo(r.Valor.Ruta);
+    }
+
+    /// <summary>Abre el compositor de correo con el PDF de la factura, la plantilla y los destinatarios del cliente.</summary>
+    private async Task EnviarCorreoAsync()
+    {
+        try
+        {
+            await _modulo.EnviarPorCorreoAsync([(_f.IdFactura, _f.Rotulo)], $"Envío de {_f.Rotulo}");
+            await RecargarAsync(_f.IdFactura);
+        }
+        catch (Exception ex)
+        {
+            _modulo.Dialogos.Preguntar("No se ha podido enviar", $"Ha fallado el envío por correo: {ex.Message} Lo que ya se hubiera enviado consta en Correo › Correo enviado; revísalo antes de repetir.", null,
+                new OpcionMensaje("Entendido", "Cierra el aviso", Principal: true, Cancelar: true));
+        }
     }
 
     private async Task DuplicarAsync()

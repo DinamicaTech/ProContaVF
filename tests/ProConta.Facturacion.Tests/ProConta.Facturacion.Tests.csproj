@@ -14,6 +14,9 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\ProConta.Facturacion\ProConta.Facturacion.csproj" />
     <ProjectReference Include="..\..\src\ProConta.Datos.Esquema\ProConta.Datos.Esquema.csproj" />
+    <ProjectReference Include="..\..\src\ProConta.Compras\ProConta.Compras.csproj" />
+    <ProjectReference Include="..\..\src\ProConta.Correo\ProConta.Correo.csproj" />
+    <ProjectReference Include="..\..\src\ProConta.Activos\ProConta.Activos.csproj" />
     <ProjectReference Include="..\ProConta.Pruebas.Access\ProConta.Pruebas.Access.csproj" />
   </ItemGroup>
 </Project>

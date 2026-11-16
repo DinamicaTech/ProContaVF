@@ -42,11 +42,11 @@ public sealed class PdfFacturasTests
         Invariantes.Totales(f.Totales);
         Assert.Equal("FACTURA", d.Titulo);
         Assert.Equal("", d.Aviso);
-        Assert.Equal("Número: F2026/0007", d.Numero);
+        Assert.Equal("F2026/0007", d.Numero);
         Assert.Equal("Inquilina Sintética SL", d.ClienteNombre);
         Assert.Contains("Calle Sintética 1", d.EmisorDomicilio);
         Assert.Contains("08002 Barcelona", d.EmisorDomicilio);
-        Assert.Equal("Periodo: 01/08/2026 – 31/08/2026", d.Periodo);
+        Assert.Equal("01/08/2026 – 31/08/2026", d.Periodo);
         Assert.Equal("1.151,90 €", d.Total.Replace(' ', ' '));
         Assert.Equal(3, lineas.Count);
         Assert.Equal("Supl.", lineas[2].Iva);
@@ -77,7 +77,7 @@ public sealed class PdfFacturasTests
         var (d, _, _) = ConstructorPdfFactura.Construir(f, Cliente, "E", "N", Emisor, null);
         Assert.Equal("FACTURA PROFORMA", d.Titulo);
         Assert.Contains("sin validez fiscal", d.Aviso);
-        Assert.StartsWith("Sin número", d.Numero);
+        Assert.StartsWith("Borrador", d.Numero);
     }
 
     [Theory]
@@ -142,7 +142,7 @@ public sealed class PdfFacturasAccessTests : IDisposable
         await Bd.EjecutarAsync(async s =>
         {
             await s.EjecutarAsync("UPDATE Sociedades SET DireccionFiscal = ?, CodigoPostalFiscal = ?, PoblacionFiscal = ?, RutaDocumentos = ? WHERE IdSociedad = ?", "Calle Sintética 1", "08001", "Barcelona", _raiz, "T01");
-            await s.EjecutarAsync("UPDATE SociedadesEjercicios SET Nombre = ?, CIF = ?, TipoIVA1 = ?, CuentaTipoIVA1 = ? WHERE IdSociedadEjercicio = ?", "Sociedad sintética SL (2026)", "B12345674", 21f, "4770021", 9001);
+            await s.EjecutarAsync("UPDATE SociedadesEjercicios SET Nombre = ? WHERE IdSociedadEjercicio = ?", "Sociedad sintética SL (2026)", 9001);
             if (Convert.ToInt32(await s.EscalarAsync("SELECT COUNT(*) FROM TiposFactura WHERE TipoFactura = ?", "F1")) == 0)
                 await s.EjecutarAsync("INSERT INTO TiposFactura (TipoFactura, Descripcion, EsRectificativa) VALUES (?, ?, ?)", "F1", "Factura", false);
             foreach (var (id, nombre) in new[] { ((byte)0, "Pendiente de validar"), ((byte)1, "Validada"), ((byte)2, "Rectificada"), ((byte)3, "Borrador"), ((byte)4, "Rectificación pendiente") })

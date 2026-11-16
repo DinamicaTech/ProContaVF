@@ -100,8 +100,6 @@ public sealed class AccesoAccessTests : IDisposable
     {
         var acceso = Servicio();
         Assert.False(await acceso.Operadores.HayOperadoresAsync());
-        Assert.Equal("Seguridad.ContrasenaCorta", (await acceso.Operadores.CrearPrimerAdministradorAsync("admin", "corta")).Error!.Codigo);
-
         var admin = await acceso.Operadores.CrearPrimerAdministradorAsync("admin.prueba", "frase de prueba larga");
         Assert.True(admin.EsCorrecto, admin.Error?.ToString());
         Assert.True(await acceso.Operadores.HayOperadoresAsync());
@@ -109,6 +107,36 @@ public sealed class AccesoAccessTests : IDisposable
         Assert.Equal("Seguridad.YaHayOperadores", (await acceso.Operadores.CrearPrimerAdministradorAsync("otro", "frase de prueba larga")).Error!.Codigo);
 
         Assert.True((await acceso.AutenticarAsync(" ADMIN.prueba ", "frase de prueba larga")).EsCorrecto);
+    }
+
+    [Fact]
+    public async Task PrimerAdministradorSinContrasenaEntraConContrasenaVacia()
+    {
+        var acceso = Servicio();
+        var admin = await acceso.Operadores.CrearPrimerAdministradorAsync("admin.prueba", "");
+        Assert.True(admin.EsCorrecto, admin.Error?.ToString());
+        Assert.False(admin.Valor.TieneContrasena);
+        var sesion = await acceso.AutenticarAsync("admin.prueba", "");
+        Assert.True(sesion.EsCorrecto);
+        Assert.True(sesion.Valor.SinContrasena);
+    }
+
+    [Fact]
+    public async Task ContrasenaSinLongitudNiComplejidadYVaciaLaQuita()
+    {
+        var acceso = Servicio();
+        var admin = await acceso.Operadores.CrearPrimerAdministradorAsync("admin.prueba", "a");
+        Assert.True(admin.EsCorrecto, admin.Error?.ToString());
+        Assert.True((await acceso.AutenticarAsync("admin.prueba", "a")).EsCorrecto);
+        Assert.False((await acceso.AutenticarAsync("admin.prueba", "")).EsCorrecto);
+
+        Assert.True((await acceso.Operadores.EstablecerContrasenaAsync(admin.Valor.IdOperador, "b", new Actor("prueba"))).EsCorrecto);
+        Assert.True((await acceso.AutenticarAsync("admin.prueba", "b")).EsCorrecto);
+
+        Assert.True((await acceso.Operadores.EstablecerContrasenaAsync(admin.Valor.IdOperador, "", new Actor("prueba"))).EsCorrecto);
+        Assert.False((await acceso.Operadores.ObtenerAsync(admin.Valor.IdOperador))!.TieneContrasena);
+        Assert.True((await acceso.AutenticarAsync("admin.prueba", "")).EsCorrecto);
+        Assert.False((await acceso.AutenticarAsync("admin.prueba", "b")).EsCorrecto);
     }
 
     [Fact]

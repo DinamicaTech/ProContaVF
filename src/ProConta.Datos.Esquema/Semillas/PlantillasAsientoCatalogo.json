@@ -1,0 +1,567 @@
+[
+  {
+    "nombre": "Anular asiento",
+    "descripcion": "Deja sin efecto un asiento sin borrarlo: genera otro con los mismos apuntes y el Debe y el Haber intercambiados. No vale para asientos de facturas (se corrigen desde la factura) ni para asientos automáticos.",
+    "tipo": "USUARIO",
+    "clase": "CORRECCION",
+    "origen": "ASIENTO",
+    "reglaFecha": "TRIMESTRE_ACTIVO",
+    "orden": 1,
+    "datos": [],
+    "lineas": [
+      {
+        "asiento": 1,
+        "orden": 1,
+        "porCadaApunte": true,
+        "cuenta": "Cuenta",
+        "lado": "CONTRARIO",
+        "importe": "Importe",
+        "concepto": "\"Anulación: \" & Concepto",
+        "centro": "Centro"
+      }
+    ],
+    "ejemplo": {
+      "ejercicio": 2026,
+      "trimestreActivo": 2,
+      "cuentas": {
+        "6220001": "Reparaciones y conservación",
+        "5720001": "Banco Ejemplo"
+      },
+      "asiento": {
+        "fecha": "2026-02-10",
+        "descripcion": "Reparación de la caldera (ejemplo)",
+        "apuntes": [
+          {
+            "cuenta": "6220001",
+            "debe": 242.0,
+            "concepto": "Reparación caldera Ejemplo, S.L.",
+            "documento": "F-2026-015"
+          },
+          {
+            "cuenta": "5720001",
+            "haber": 242.0,
+            "concepto": "Reparación caldera Ejemplo, S.L.",
+            "documento": "F-2026-015"
+          }
+        ]
+      },
+      "apunte": 1
+    }
+  },
+  {
+    "nombre": "Anular y rehacer con otra cuenta",
+    "descripcion": "Corrige un asiento hecho con una cuenta equivocada sin tocarlo: lo anula (Debe y Haber intercambiados) y lo vuelve a hacer igual, pero con la cuenta nueva en lugar de la del apunte. Genera dos asientos. No vale para asientos de facturas ni para asientos automáticos.",
+    "tipo": "USUARIO",
+    "clase": "CORRECCION",
+    "origen": "ASIENTO",
+    "reglaFecha": "TRIMESTRE_ACTIVO",
+    "orden": 2,
+    "datos": [
+      {
+        "nombre": "NuevaCuenta",
+        "etiqueta": "Nueva cuenta",
+        "tipo": "CUENTA",
+        "ayuda": "Cuenta que sustituye a la del apunte en el asiento rehecho."
+      }
+    ],
+    "lineas": [
+      {
+        "asiento": 1,
+        "orden": 1,
+        "porCadaApunte": true,
+        "cuenta": "Cuenta",
+        "lado": "CONTRARIO",
+        "importe": "Importe",
+        "concepto": "\"Anulación: \" & Concepto",
+        "centro": "Centro"
+      },
+      {
+        "asiento": 2,
+        "orden": 1,
+        "porCadaApunte": true,
+        "cuenta": "Si(EsApunteOrigen; NuevaCuenta; Cuenta)",
+        "lado": "MISMO",
+        "importe": "Importe",
+        "concepto": "\"Rehecho: \" & Concepto",
+        "centro": "Centro"
+      }
+    ],
+    "ejemplo": {
+      "ejercicio": 2026,
+      "trimestreActivo": 2,
+      "cuentas": {
+        "6220001": "Reparaciones y conservación",
+        "6290001": "Otros servicios",
+        "5720001": "Banco Ejemplo"
+      },
+      "asiento": {
+        "fecha": "2026-02-10",
+        "descripcion": "Reparación de la caldera (ejemplo)",
+        "apuntes": [
+          {
+            "cuenta": "6220001",
+            "debe": 242.0,
+            "concepto": "Reparación caldera Ejemplo, S.L.",
+            "documento": "F-2026-015"
+          },
+          {
+            "cuenta": "5720001",
+            "haber": 242.0,
+            "concepto": "Reparación caldera Ejemplo, S.L.",
+            "documento": "F-2026-015"
+          }
+        ]
+      },
+      "apunte": 1,
+      "datos": {
+        "NuevaCuenta": "6290001"
+      }
+    }
+  },
+  {
+    "nombre": "Pasar saldo a otra cuenta",
+    "descripcion": "Pasa el saldo de una subcuenta a otra cuenta: la subcuenta va al lado contrario de su saldo y la cuenta nueva al mismo lado. Se propone el saldo de la subcuenta en el ejercicio; puedes cambiar el importe (en negativo, los dos lados se invierten).",
+    "tipo": "USUARIO",
+    "clase": "CORRECCION",
+    "origen": "SUBCUENTA",
+    "reglaFecha": "TRIMESTRE_ACTIVO",
+    "orden": 3,
+    "datos": [
+      {
+        "nombre": "NuevaCuenta",
+        "etiqueta": "Nueva cuenta",
+        "tipo": "CUENTA",
+        "ayuda": "Cuenta que recibe el saldo."
+      },
+      {
+        "nombre": "ImporteTraspaso",
+        "etiqueta": "Importe a traspasar",
+        "tipo": "IMPORTE",
+        "valorPropuesto": "Importe",
+        "ayuda": "Se propone el saldo de la subcuenta en el ejercicio."
+      }
+    ],
+    "lineas": [
+      {
+        "asiento": 1,
+        "orden": 1,
+        "cuenta": "Cuenta",
+        "lado": "CONTRARIO",
+        "importe": "ImporteTraspaso",
+        "concepto": "\"Traspaso de saldo: \" & Concepto"
+      },
+      {
+        "asiento": 1,
+        "orden": 2,
+        "cuenta": "NuevaCuenta",
+        "lado": "MISMO",
+        "importe": "ImporteTraspaso",
+        "concepto": "\"Traspaso de saldo: \" & Concepto"
+      }
+    ],
+    "ejemplo": {
+      "ejercicio": 2026,
+      "trimestreActivo": 2,
+      "cuentas": {
+        "4300001": "Cliente Ejemplo A",
+        "4300002": "Cliente Ejemplo B"
+      },
+      "subcuenta": {
+        "cuenta": "4300001",
+        "saldo": 500.0,
+        "saldoApertura": 500.0
+      },
+      "datos": {
+        "NuevaCuenta": "4300002"
+      }
+    }
+  },
+  {
+    "nombre": "Ajustar saldo inicial contra la 113",
+    "descripcion": "Para un saldo inicial que debería ser 0 y no sabemos por qué no lo es: lleva el saldo de apertura de la subcuenta contra la cuenta 113 de cuadres de la empresa (Parámetros › Empresas). En positivo va al Haber de la subcuenta; en negativo, al Debe.",
+    "tipo": "USUARIO",
+    "clase": "CORRECCION",
+    "origen": "SUBCUENTA",
+    "reglaFecha": "TRIMESTRE_ACTIVO",
+    "orden": 4,
+    "datos": [
+      {
+        "nombre": "ImporteAjuste",
+        "etiqueta": "Importe del ajuste",
+        "tipo": "IMPORTE",
+        "valorPropuesto": "SaldoApertura",
+        "ayuda": "Se propone el saldo de apertura de la subcuenta. Si el saldo de la contabilidad es mayor que el real, en positivo (irá al Haber); si es menor, en negativo (irá al Debe)."
+      }
+    ],
+    "lineas": [
+      {
+        "asiento": 1,
+        "orden": 1,
+        "cuenta": "Cuenta",
+        "lado": "SIGNO",
+        "importe": "ImporteAjuste",
+        "concepto": "\"Regularización saldo inicial\""
+      },
+      {
+        "asiento": 1,
+        "orden": 2,
+        "cuenta": "CuentaCuadres",
+        "lado": "D",
+        "importe": "ImporteAjuste",
+        "concepto": "\"Regularización saldo inicial cliente \" & Cuenta"
+      }
+    ],
+    "ejemplo": {
+      "ejercicio": 2026,
+      "trimestreActivo": 2,
+      "cuentaCuadres": "1130000",
+      "cuentas": {
+        "4300003": "Cliente Ejemplo C",
+        "1130000": "Reservas voluntarias"
+      },
+      "subcuenta": {
+        "cuenta": "4300003",
+        "saldo": 150.0,
+        "saldoApertura": 150.0
+      }
+    }
+  },
+  {
+    "nombre": "Pago por tesorería",
+    "descripcion": "Paga (o cobra) por caja el importe del apunte: la cuenta del apunte va al lado contrario y la cuenta 570 de tesorería de la empresa (Parámetros › Empresas) al mismo lado.",
+    "tipo": "USUARIO",
+    "clase": "CORRECCION",
+    "origen": "APUNTE",
+    "reglaFecha": "TRIMESTRE_ACTIVO",
+    "motivoPropuesto": "Pasamos pago a caja/tesorería",
+    "orden": 5,
+    "datos": [
+      {
+        "nombre": "ImportePago",
+        "etiqueta": "Importe del pago",
+        "tipo": "IMPORTE",
+        "valorPropuesto": "Importe",
+        "ayuda": "Se propone el importe del apunte."
+      }
+    ],
+    "lineas": [
+      {
+        "asiento": 1,
+        "orden": 1,
+        "cuenta": "Cuenta",
+        "lado": "CONTRARIO",
+        "importe": "ImportePago",
+        "concepto": "\"Pago por tesorería: \" & Concepto"
+      },
+      {
+        "asiento": 1,
+        "orden": 2,
+        "cuenta": "CuentaTesoreria",
+        "lado": "MISMO",
+        "importe": "ImportePago",
+        "concepto": "\"Pago por tesorería: \" & Concepto"
+      }
+    ],
+    "ejemplo": {
+      "ejercicio": 2026,
+      "trimestreActivo": 2,
+      "cuentaTesoreria": "5700000",
+      "cuentas": {
+        "6280001": "Suministros",
+        "4720021": "IVA soportado 21 %",
+        "4000001": "Suministros Ejemplo, S.A.",
+        "5700000": "Caja"
+      },
+      "asiento": {
+        "fecha": "2026-05-06",
+        "descripcion": "Factura F-77 Suministros Ejemplo, S.A. (ejemplo)",
+        "libroIva": true,
+        "apuntes": [
+          {
+            "cuenta": "6280001",
+            "debe": 100.0,
+            "documento": "F-77"
+          },
+          {
+            "cuenta": "4720021",
+            "debe": 21.0,
+            "documento": "F-77"
+          },
+          {
+            "cuenta": "4000001",
+            "haber": 121.0,
+            "documento": "F-77"
+          }
+        ]
+      },
+      "apunte": 3
+    }
+  },
+  {
+    "nombre": "Pago por un socio",
+    "descripcion": "Una factura de la empresa pagada con dinero de un socio: la cuenta del apunte va al lado contrario y la subcuenta 551 del socio que elijas (se propone la última usada) al mismo lado.",
+    "tipo": "USUARIO",
+    "clase": "CORRECCION",
+    "origen": "APUNTE",
+    "reglaFecha": "TRIMESTRE_ACTIVO",
+    "motivoPropuesto": "Pasamos pago deuda con socios",
+    "orden": 6,
+    "datos": [
+      {
+        "nombre": "CuentaSocio",
+        "etiqueta": "Cuenta del socio",
+        "tipo": "CUENTA",
+        "filtroCuenta": "551",
+        "valorPropuesto": "UltimaUsada()",
+        "ayuda": "Subcuenta 551 del socio que ha pagado; el buscador solo ofrece las 551."
+      },
+      {
+        "nombre": "ImportePago",
+        "etiqueta": "Importe del pago",
+        "tipo": "IMPORTE",
+        "valorPropuesto": "Importe",
+        "ayuda": "Se propone el importe del apunte."
+      }
+    ],
+    "lineas": [
+      {
+        "asiento": 1,
+        "orden": 1,
+        "cuenta": "Cuenta",
+        "lado": "CONTRARIO",
+        "importe": "ImportePago",
+        "concepto": "\"Pago por un socio: \" & Concepto"
+      },
+      {
+        "asiento": 1,
+        "orden": 2,
+        "cuenta": "CuentaSocio",
+        "lado": "MISMO",
+        "importe": "ImportePago",
+        "concepto": "\"Pagado por socio: \" & Concepto"
+      }
+    ],
+    "ejemplo": {
+      "ejercicio": 2026,
+      "trimestreActivo": 2,
+      "cuentas": {
+        "6280001": "Suministros",
+        "4720021": "IVA soportado 21 %",
+        "4000001": "Suministros Ejemplo, S.A.",
+        "5510001": "Socio Ejemplo, cuenta corriente"
+      },
+      "asiento": {
+        "fecha": "2026-05-06",
+        "descripcion": "Factura F-77 Suministros Ejemplo, S.A. (ejemplo)",
+        "libroIva": true,
+        "apuntes": [
+          {
+            "cuenta": "6280001",
+            "debe": 100.0,
+            "documento": "F-77"
+          },
+          {
+            "cuenta": "4720021",
+            "debe": 21.0,
+            "documento": "F-77"
+          },
+          {
+            "cuenta": "4000001",
+            "haber": 121.0,
+            "documento": "F-77"
+          }
+        ]
+      },
+      "apunte": 3,
+      "ultimasCuentas": {
+        "CuentaSocio": "5510001"
+      }
+    }
+  },
+  {
+    "nombre": "Pasar un cliente de cobro dudoso a incobrable",
+    "descripcion": "Guía de dos asientos, en dos momentos distintos. 1) Cuando el cobro de un cliente se ve dudoso (ha vencido y lo reclamas sin éxito, está en concurso…): su deuda pasa de la subcuenta del cliente (430) a la de clientes de dudoso cobro (436), y se dota el deterioro con un gasto (694) contra la corrección de valor (490). 2) Cuando el crédito es definitivamente incobrable: la deuda se da de baja como pérdida (650) contra la 436, y el deterioro dotado se revierte (490 contra 794). Cada asiento se fecha cuando ocurre: con «Usar como base» te pido las subcuentas y el importe, y en la rejilla quitas el asiento que aún no toca. El IVA de la factura no se toca aquí: si lo recuperas (modificación de la base imponible), se hace con una factura rectificativa.",
+    "tipo": "USUARIO",
+    "clase": "GUIA",
+    "origen": "NINGUNO",
+    "reglaFecha": "TRIMESTRE_ACTIVO",
+    "orden": 20,
+    "datos": [
+      {
+        "nombre": "CuentaCliente",
+        "etiqueta": "Subcuenta del cliente (430)",
+        "tipo": "CUENTA",
+        "filtroCuenta": "430",
+        "ayuda": "Subcuenta del cliente que debe la factura."
+      },
+      {
+        "nombre": "CuentaDudoso",
+        "etiqueta": "Subcuenta de dudoso cobro (436)",
+        "tipo": "CUENTA",
+        "filtroCuenta": "436",
+        "ayuda": "Subcuenta de clientes de dudoso cobro de ese cliente; si no existe, créala desde el buscador."
+      },
+      {
+        "nombre": "CuentaDeterioro",
+        "etiqueta": "Gasto por deterioro (694)",
+        "tipo": "CUENTA",
+        "filtroCuenta": "694",
+        "valorPropuesto": "UltimaUsada()",
+        "ayuda": "Pérdidas por deterioro de créditos comerciales; se propone la última usada."
+      },
+      {
+        "nombre": "CuentaCorreccion",
+        "etiqueta": "Deterioro de créditos (490)",
+        "tipo": "CUENTA",
+        "filtroCuenta": "490",
+        "valorPropuesto": "UltimaUsada()",
+        "ayuda": "Deterioro de valor de créditos por operaciones comerciales; se propone la última usada."
+      },
+      {
+        "nombre": "CuentaPerdida",
+        "etiqueta": "Pérdida por incobrable (650)",
+        "tipo": "CUENTA",
+        "filtroCuenta": "650",
+        "valorPropuesto": "UltimaUsada()",
+        "ayuda": "Pérdidas de créditos comerciales incobrables; se propone la última usada."
+      },
+      {
+        "nombre": "CuentaReversion",
+        "etiqueta": "Reversión del deterioro (794)",
+        "tipo": "CUENTA",
+        "filtroCuenta": "794",
+        "valorPropuesto": "UltimaUsada()",
+        "ayuda": "Reversión del deterioro de créditos comerciales; se propone la última usada."
+      },
+      {
+        "nombre": "ImporteCredito",
+        "etiqueta": "Importe pendiente del cliente",
+        "tipo": "IMPORTE",
+        "ayuda": "Lo que debe el cliente, IVA incluido (lo que está en su 430)."
+      }
+    ],
+    "lineas": [
+      {
+        "asiento": 1,
+        "orden": 1,
+        "cuenta": "CuentaDudoso",
+        "lado": "D",
+        "importe": "ImporteCredito",
+        "concepto": "\"Cliente de dudoso cobro\""
+      },
+      {
+        "asiento": 1,
+        "orden": 2,
+        "cuenta": "CuentaCliente",
+        "lado": "H",
+        "importe": "ImporteCredito",
+        "concepto": "\"Cliente de dudoso cobro\""
+      },
+      {
+        "asiento": 1,
+        "orden": 3,
+        "cuenta": "CuentaDeterioro",
+        "lado": "D",
+        "importe": "ImporteCredito",
+        "concepto": "\"Deterioro por cliente de dudoso cobro\""
+      },
+      {
+        "asiento": 1,
+        "orden": 4,
+        "cuenta": "CuentaCorreccion",
+        "lado": "H",
+        "importe": "ImporteCredito",
+        "concepto": "\"Deterioro por cliente de dudoso cobro\""
+      },
+      {
+        "asiento": 2,
+        "orden": 1,
+        "cuenta": "CuentaPerdida",
+        "lado": "D",
+        "importe": "ImporteCredito",
+        "concepto": "\"Crédito incobrable\""
+      },
+      {
+        "asiento": 2,
+        "orden": 2,
+        "cuenta": "CuentaDudoso",
+        "lado": "H",
+        "importe": "ImporteCredito",
+        "concepto": "\"Crédito incobrable\""
+      },
+      {
+        "asiento": 2,
+        "orden": 3,
+        "cuenta": "CuentaCorreccion",
+        "lado": "D",
+        "importe": "ImporteCredito",
+        "concepto": "\"Reversión del deterioro\""
+      },
+      {
+        "asiento": 2,
+        "orden": 4,
+        "cuenta": "CuentaReversion",
+        "lado": "H",
+        "importe": "ImporteCredito",
+        "concepto": "\"Reversión del deterioro\""
+      }
+    ],
+    "ejemplo": {
+      "ejercicio": 2026,
+      "trimestreActivo": 2,
+      "cuentas": {
+        "4300001": "Cliente Ejemplo, S.L.",
+        "4360001": "Cliente Ejemplo, S.L. (dudoso cobro)",
+        "6940000": "Pérdidas por deterioro de créditos comerciales",
+        "4900000": "Deterioro de valor de créditos por operaciones comerciales",
+        "6500000": "Pérdidas de créditos comerciales incobrables",
+        "7940000": "Reversión del deterioro de créditos comerciales"
+      },
+      "datos": {
+        "CuentaCliente": "4300001",
+        "CuentaDudoso": "4360001",
+        "CuentaDeterioro": "6940000",
+        "CuentaCorreccion": "4900000",
+        "CuentaPerdida": "6500000",
+        "CuentaReversion": "7940000",
+        "ImporteCredito": "1210"
+      }
+    }
+  },
+  {
+    "nombre": "Nómina",
+    "descripcion": "Contabiliza las nóminas de un mes: un asiento por trabajador (o uno solo si agrupa por cuenta), con fórmulas sobre los importes de la nómina. Es una plantilla de sistema: la ejecuta el proceso de nóminas y no se usa a mano. Sus líneas se cargarán desde la plantilla de nóminas del ERP (PlantillasApuntes) cuando se construya nóminas.",
+    "tipo": "SISTEMA",
+    "clase": "PROCESO",
+    "origen": "PROCESO",
+    "claveProceso": "nominas",
+    "reglaFecha": "FECHA_ORIGEN",
+    "orden": 100,
+    "datos": [],
+    "lineas": [],
+    "ejemplo": {
+      "ejercicio": 2026,
+      "cuentas": {
+        "4650001": "Trabajador Ejemplo",
+        "6400000": "Sueldos y salarios",
+        "6420000": "Seguridad Social a cargo de la empresa",
+        "4751000": "HP acreedora por retenciones",
+        "4760000": "Organismos de la Seguridad Social"
+      },
+      "registros": [
+        {
+          "clave": "Trabajador Ejemplo",
+          "fecha": "2026-01-31",
+          "campos": {
+            "CuentaTrabajador": "4650001",
+            "Bruto": 2000.0,
+            "SSEmp": 640.0,
+            "SSTrab": 127.0,
+            "IRPF111": 300.0,
+            "Neto": 1573.0
+          }
+        }
+      ]
+    }
+  }
+]

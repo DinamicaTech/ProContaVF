@@ -59,6 +59,7 @@ try
             Console.WriteLine(informe.Aplicadas.Count == 0
                 ? $"La BD ya estaba actualizada (versión {informe.VersionFinal}). No he cambiado nada."
                 : $"Actualizada de la versión {informe.VersionInicial} a la {informe.VersionFinal}: {string.Join(", ", informe.Aplicadas)}. Copia previa: {informe.CopiaSeguridad}");
+            foreach (var aviso in informe.Avisos ?? []) Console.WriteLine("Aviso: " + aviso);
             return 0;
         }
         case "diccionario" when args.Length >= 3:

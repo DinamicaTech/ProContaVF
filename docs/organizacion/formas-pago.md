@@ -20,6 +20,7 @@ Catálogo de formas de pago, del que cuelgan las cuentas de proveedor/acreedor d
 - 2026-10-31 19:02 · El código 1, que usan 2 facturas y la forma de pago por defecto de las sociedades y sus ejercicios, se da de alta como «Indefinida» (SEPA no) y se restauran las relaciones de Facturas.FormaDePago y Contratos.FormaDePago con FormasPago (migración 20261031_1910_FORMA_PAGO_INDEFINIDA, con comprobación previa de que no quedan códigos sin forma de pago). Sustituye a la decisión 19:55 de no recrearlas.
 - 2026-11-01 09:31 · Validado por el propietario (desarrollos base).
 - 2026-11-06 12:35 · La subcuenta de cada forma de pago es de cada empresa: tabla FormasPagoSociedad (IdFormaPago, IdSociedad, IdIdentidadContable), que guarda la identidad contable y muestra el código del ejercicio de trabajo, como los conceptos. Solo se escribe con `CatalogoFormasPagoSociedad`: listar todas las formas de pago con su subcuenta y asignar por código (la cuenta tiene que existir en el ejercicio y admitir apuntes; vacía quita la asignación). Mantenimiento «Cuentas de las formas de pago» (Empresas y ejercicios, ámbito empresa), sin alta ni baja: las formas de pago se crean y borran en «Formas de pago». La baja de una forma de pago también se rechaza si la usan FormasPagoSociedad, facturas de compra o la forma de pago por defecto de proveedores.
+- 2026-11-13 23:46 · FormasPagoSociedad gana IdCuentaBancaria: la cuenta bancaria de la empresa (CuentasBancarias, dueño norma43) en la que se cobra esa forma de pago, cuyo IBAN sale en la factura (facturacion/factura-venta 2026-11-13 23:46). Se elige en «Cuentas de las formas de pago» entre las cuentas de la empresa de trabajo (`CatalogoFormasPagoSociedad.AsignarCuentaBancariaAsync`; una cuenta de otra empresa se rechaza con «FormasPago.CuentaBancariaAjena»). Es independiente de la subcuenta: una fila sin subcuenta ni cuenta bancaria se borra.
 
 ## Requirements
 - 2026-10-28 12:28 · From sources/01_ESPECIFICACION_FUNCIONAL.docx § 29 P-02: propietario de formas de pago
@@ -34,6 +35,7 @@ Catálogo de formas de pago, del que cuelgan las cuentas de proveedor/acreedor d
 - 2026-11-01 17:20 · Derived from plataforma/mantenimiento: proveedor de Formas de pago para la pantalla genérica.
 - 2026-11-06 12:24 · Q1. En el ERP, FormasPago tiene un campo IdAgrupacion, que apunta a la tabla Agrupaciones que contiene subcuenta contable, centro de coste, departamento, etc., pero, efectivamente, lo correcto es FormasPagoSociedad para esta información. Ok a FacturasCompra.IdFormaPago. Ok a la forma de pago por defecto.
 - 2026-11-06 12:35 · Derived from compras: subcuenta de la forma de pago por empresa, para la contabilización de las facturas recibidas (entrega 3).
+- 2026-11-13 23:46 · Derived from facturacion/factura-venta: cuenta bancaria de cobro de cada forma de pago en cada empresa.
 
 ## Hand-over
 - 2026-10-31 19:10 · Hecho: migraciones (tabla propia, código 1 «Indefinida» y relaciones restauradas), contrato y pruebas. Pendiente: el proveedor declarativo para plataforma/mantenimiento.

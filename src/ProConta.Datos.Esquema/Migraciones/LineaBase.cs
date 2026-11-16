@@ -1,4 +1,4 @@
-namespace ProConta.Datos.Esquema.Migraciones;
+﻿namespace ProConta.Datos.Esquema.Migraciones;
 
 /// <summary>
 /// Versión 1 del esquema: la maestra C:\docs\codigo\ProContaVF\ProConta\Proconta.accdb tal como
@@ -81,6 +81,26 @@ public static class CatalogoMigraciones
         MigracionesCorreo.CorreoSaliente,
         MigracionesCorreo.CorreoRecepcion,
         MigracionesFacturacion.LibroIvaRepercutido,
+        MigracionesContabilidad.EsquemaBalances,
+        MigracionesContabilidad.ReglasBalancesCompletas,
+        MigracionesImplantacion.MigracionErp,
+        MigracionesNorma43.PalabrasClave,
+        MigracionesCompras.CarpetaFacturasCompra,
+        MigracionesContabilidad.PunteoCuadreMayor,
+        MigracionesActivos.Estructura,
+        MigracionesContabilidad.PlantillasAsiento,
+        MigracionesContabilidad.ClasesPlantillasAsiento,
+        MigracionesNorma43.ReversionLotes,
+        MigracionesConciliacionN43.Conciliacion,
+        MigracionesConciliacionN43.Conceptos,
+        MigracionesNominas.Importacion,
+        MigracionesOrganizacion.LimpiezaSociedadesEjercicios,
+        MigracionesFacturacion.DatosPagoFactura,
+        MigracionesVentas.VentasPorFacturar,
+        MigracionesVentas.ReglasVentaAgrupacion,
+        MigracionesContabilidad.DiarioAsientosBorrados,
+        MigracionesInicio.HistoricoSalud,
+        MigracionesContabilidad.DeduccionActividadFechas,
     ];
 
     /// <summary>Versión del esquema que espera esta versión del programa.</summary>

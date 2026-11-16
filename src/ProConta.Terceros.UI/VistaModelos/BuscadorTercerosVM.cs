@@ -126,8 +126,9 @@ public sealed class BuscadorTercerosVM : Observable, IPestanaTrabajo
         set { if (Fijar(ref _tipo, value)) { foreach (var t in Tipos) t.Refrescar(); Avisar(nameof(HayFiltros)); _ = BuscarAsync(); } }
     }
 
-    private bool _clientes, _proveedores, _contactos, _inactivos;
+    private bool _clientes, _proveedores, _contactos, _empleados, _inactivos;
     public bool Clientes { get => _clientes; set { if (Fijar(ref _clientes, value)) FiltroCambiado(); } }
+    public bool Empleados { get => _empleados; set { if (Fijar(ref _empleados, value)) FiltroCambiado(); } }
     public bool Proveedores { get => _proveedores; set { if (Fijar(ref _proveedores, value)) FiltroCambiado(); } }
     public bool Contactos { get => _contactos; set { if (Fijar(ref _contactos, value)) FiltroCambiado(); } }
     public bool IncluirInactivos { get => _inactivos; set { if (Fijar(ref _inactivos, value)) FiltroCambiado(); } }
@@ -139,12 +140,13 @@ public sealed class BuscadorTercerosVM : Observable, IPestanaTrabajo
     private OpcionPerfil? _perfil;
     public OpcionPerfil PerfilElegido { get => _perfil ?? TodosLosPerfiles; set { if (Fijar(ref _perfil, value?.Perfil is null ? null : value)) FiltroCambiado(); } }
 
-    private int _recClientes, _recProveedores, _recContactos;
+    private int _recClientes, _recProveedores, _recContactos, _recEmpleados;
     public int RecuentoClientes { get => _recClientes; private set => Fijar(ref _recClientes, value); }
+    public int RecuentoEmpleados { get => _recEmpleados; private set => Fijar(ref _recEmpleados, value); }
     public int RecuentoProveedores { get => _recProveedores; private set => Fijar(ref _recProveedores, value); }
     public int RecuentoContactos { get => _recContactos; private set => Fijar(ref _recContactos, value); }
 
-    public bool HayFiltros => _texto.Trim().Length > 0 || _tipo != "todos" || _clientes || _proveedores || _contactos || _inactivos || _perfil is not null;
+    public bool HayFiltros => _texto.Trim().Length > 0 || _tipo != "todos" || _clientes || _proveedores || _contactos || _empleados || _inactivos || _perfil is not null;
 
     private void FiltroCambiado()
     {
@@ -154,8 +156,8 @@ public sealed class BuscadorTercerosVM : Observable, IPestanaTrabajo
 
     private void QuitarFiltros()
     {
-        _texto = ""; _tipo = "todos"; _clientes = _proveedores = _contactos = _inactivos = false; _perfil = null;
-        Avisar(nameof(Texto), nameof(Clientes), nameof(Proveedores), nameof(Contactos), nameof(IncluirInactivos), nameof(PerfilElegido), nameof(HayFiltros));
+        _texto = ""; _tipo = "todos"; _clientes = _proveedores = _contactos = _empleados = _inactivos = false; _perfil = null;
+        Avisar(nameof(Texto), nameof(Clientes), nameof(Proveedores), nameof(Contactos), nameof(Empleados), nameof(IncluirInactivos), nameof(PerfilElegido), nameof(HayFiltros));
         foreach (var t in Tipos) t.Refrescar();
         _ = BuscarAsync();
     }
@@ -165,7 +167,7 @@ public sealed class BuscadorTercerosVM : Observable, IPestanaTrabajo
         _tipo switch { "fisica" => TipoPersona.Fisica, "juridica" => TipoPersona.Juridica, "entidad" => TipoPersona.EntidadSinPersonalidad, _ => null },
         false,
         new HashSet<RolBusqueda>((_clientes ? [RolBusqueda.Cliente] : Array.Empty<RolBusqueda>())
-            .Concat(_proveedores ? [RolBusqueda.Proveedor] : []).Concat(_contactos ? [RolBusqueda.Contacto] : [])),
+            .Concat(_proveedores ? [RolBusqueda.Proveedor] : []).Concat(_contactos ? [RolBusqueda.Contacto] : []).Concat(_empleados ? [RolBusqueda.Empleado] : [])),
         _perfil?.Perfil?.IdPerfil,
         _inactivos);
 
@@ -249,6 +251,7 @@ public sealed class BuscadorTercerosVM : Observable, IPestanaTrabajo
         RecuentoClientes = r.Recuentos.Clientes;
         RecuentoProveedores = r.Recuentos.Proveedores;
         RecuentoContactos = r.Recuentos.Contactos;
+        RecuentoEmpleados = r.Recuentos.Empleados;
         FichasAbiertas = _modulo is null ? "" : $"{_modulo.NumeroFichas} de {GestorFichas.Maximo} fichas abiertas";
 
         if (r.Filas.Count == 0)

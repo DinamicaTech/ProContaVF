@@ -41,6 +41,24 @@ public static class ServicioMensajes
 
         var elegida = Array.FindIndex(opciones, o => o.Cancelar);
         var botones = new StackPanel { Orientation = Orientation.Horizontal };
+        if (detalles is { Count: > 0 })
+        {
+            // Un aviso con detalles se puede copiar entero (también lo que no cabe en la lista), para pegarlo en un correo o una nota.
+            var copiar = new Button { Content = "Copiar", ToolTip = "Copia al portapapeles el título, el mensaje y todos los detalles", Style = (Style)dialogo.FindResource("Boton.Enlace"), Margin = new Thickness(0, 0, 8, 0) };
+            copiar.Click += (_, _) =>
+            {
+                try
+                {
+                    Clipboard.SetText(TextoCopiable(titulo, mensaje, detalles));
+                    copiar.Content = "Copiado";
+                }
+                catch (System.Runtime.InteropServices.ExternalException)
+                {
+                    copiar.Content = "No he podido copiar: otro programa tiene ocupado el portapapeles";
+                }
+            };
+            botones.Children.Add(copiar);
+        }
         for (var i = 0; i < opciones.Length; i++)
         {
             var o = opciones[i];
@@ -56,4 +74,8 @@ public static class ServicioMensajes
         dialogo.Botones = botones;
         return dialogo.ShowDialog() == true ? elegida : Array.FindIndex(opciones, o => o.Cancelar);
     }
+
+    /// <summary>Texto de un mensaje para el portapapeles: título, mensaje y todos sus detalles, uno por línea.</summary>
+    public static string TextoCopiable(string titulo, string mensaje, IReadOnlyList<string>? detalles) =>
+        string.Join(Environment.NewLine, new[] { titulo, mensaje }.Concat((detalles ?? []).Select(d => "· " + d)));
 }

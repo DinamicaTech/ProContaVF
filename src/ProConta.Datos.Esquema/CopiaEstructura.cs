@@ -14,7 +14,9 @@ public static class CopiaEstructura
     public static readonly IReadOnlySet<string> TablasConservadas = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
     {
         "VersionesEsquema", "LogMigracionesEsquema", "TiposDeIVA", "TiposCuentaContable", "EstadosFactura",
-        "TiposFactura", "TiposOperacion", "TiposCorreo", "TiposActivo"
+        "TiposFactura", "TiposOperacion", "TiposCorreo", "TiposActivo",
+        // Modelo de los balances (contabilidad/balances 2026-11-11): catálogo normativo, sin datos de negocio.
+        "ModelosBalance", "NodosBalance", "ReglasCuentasBalance", "RelacionesCalculoBalance"
     };
 
     public static async Task CrearAsync(string origen, string destino)

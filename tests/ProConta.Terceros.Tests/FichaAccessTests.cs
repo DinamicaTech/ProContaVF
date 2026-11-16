@@ -129,6 +129,20 @@ public sealed class FichaAccessTests : IDisposable
     }
 
     [Fact]
+    public async Task ElIbanDelClienteSeValidaYSeGuardaSinEspacios()
+    {
+        // IBAN sintéticos: dígitos de control calculados sobre una cuenta inventada.
+        var t = Juridica("Sintética SL");
+        t.Roles.Cliente = new RolCliente { Iban = "ES88 0049 1500 0500 1234 5678" };
+        Assert.Equal("Tercero.IbanNoValido", (await Repo.GuardarAsync(t, _actor)).Error!.Codigo);
+
+        t.Roles.Cliente.Iban = "es87 0049 1500 0500 1234 5678";
+        var guardado = await Guardar(t);
+        Assert.Equal("ES8700491500050012345678", await Bd.EjecutarAsync(s => s.EscalarAsync("SELECT IBAN FROM Clientes WHERE IdTercero = ?", guardado.IdTercero)) as string);
+        Assert.Equal("ES8700491500050012345678", (await Repo.ObtenerAsync(guardado.IdTercero))!.Roles.Cliente!.Iban);
+    }
+
+    [Fact]
     public async Task UnErrorNoDejaNadaAMedias()
     {
         var catalogo = new CatalogoPerfilesAccess(Bd);
@@ -202,6 +216,58 @@ public sealed class FichaAccessTests : IDisposable
         Assert.Equal("Cuentas.NoExiste", (await roles.BuscarPorCodigoAsync(ClaseCuentaRol.Cliente, "4309999", c2026)).Error!.Codigo);
         Assert.Equal("Cuentas.CodigoReservado", (await cuentas.AltaEnEjercicioAsync(c2026, cuentaProveedor.IdIdentidadContable, "4100031")).Error!.Codigo);
         Assert.Equal(1, await Contar("SELECT COUNT(*) FROM HistorialTerceros WHERE Campo = 'CuentaAcreedor T01'"));
+    }
+
+    [Fact]
+    public async Task ElRolEmpleadoSeGuardaConLaFichaConSuCodigoYSu465()
+    {
+        var (c2025, _, _) = await SociedadesAsync();
+        var cuentas = new CatalogoCuentasAccess(Bd);
+        var roles = new ServicioRoles(Bd, cuentas);
+        var c465 = (await cuentas.AltaAsync(c2025, new AltaCuenta("4650001", "Trabajadora sintética"))).Valor;
+
+        var t = new Tercero { TipoPersona = TipoPersona.Fisica, NombrePersona = "Ana", PrimerApellido = "Sintética" };
+        t.Roles.Empleado = new RolEmpleado("T01") { CodigoTrabajador = " 000123 " };
+        t.CuentasRoles = new CuentasRolesFicha("T01") { Empleado = c465.IdIdentidadContable };
+        t = await Guardar(t);
+        var idEmpleado = Assert.IsType<int>(t.Roles.Empleado!.IdEmpleado);
+        Assert.Equal("000123", t.Roles.Empleado.CodigoTrabajador);
+        Assert.Equal(c465.IdIdentidadContable, t.CuentasRoles!.Empleado);
+        Assert.Equal("4650001", (await roles.CuentasAsync(t.IdTercero, c2025)).Empleado!.Codigo);
+        Assert.Equal(1, await Contar("SELECT COUNT(*) FROM HistorialTerceros WHERE IdTercero = ? AND Entidad = 'Empleado' AND Campo = 'CodigoTrabajador T01'", t.IdTercero));
+        Assert.Equal(1, await Contar("SELECT COUNT(*) FROM HistorialTerceros WHERE IdTercero = ? AND Entidad = 'Empleado' AND Campo = 'Cuenta465 T01'", t.IdTercero));
+
+        // El código es único entre los trabajadores de la sociedad.
+        var otro = new Tercero { TipoPersona = TipoPersona.Fisica, NombrePersona = "Luis", PrimerApellido = "Sintético" };
+        otro.Roles.Empleado = new RolEmpleado("T01") { CodigoTrabajador = "000123" };
+        Assert.Equal("Empleados.CodigoRepetido", (await Repo.GuardarAsync(otro.Clonar(), _actor)).Error!.Codigo); // la ficha guarda siempre una copia
+        otro.Roles.Empleado.CodigoTrabajador = new string('9', 31);
+        Assert.Equal("Empleados.CodigoLargo", (await Repo.GuardarAsync(otro.Clonar(), _actor)).Error!.Codigo);
+        Assert.Equal(1, await Contar("SELECT COUNT(*) FROM Terceros"));
+
+        // Cambiar el código deja historial; darlo de baja lo desactiva en la sociedad, pero se sigue reconociendo por el código.
+        t.Roles.Empleado.CodigoTrabajador = "000124";
+        t.Roles.Empleado.Activo = false;
+        t = await Guardar(t);
+        Assert.False(t.Roles.Empleado!.Activo);
+        Assert.Equal(1, await Contar("SELECT COUNT(*) FROM HistorialTerceros WHERE IdTercero = ? AND Campo = 'Activo T01'", t.IdTercero));
+        Assert.Equal(2, await Contar("SELECT COUNT(*) FROM HistorialTerceros WHERE IdTercero = ? AND Campo = 'CodigoTrabajador T01'", t.IdTercero));
+        var reconocido = await Bd.EjecutarAsync(s => ServicioEmpleados.BuscarAsync(s, "T01", "000124", null, "SINTETICA ANA"));
+        Assert.Equal(idEmpleado, reconocido.IdEmpleado);
+
+        // Quien guarda la ficha sin haber cargado el rol Empleado no toca su 465.
+        var sinRol = (await Repo.ObtenerAsync(t.IdTercero))!;
+        Assert.Null(sinRol.Roles.Empleado);
+        sinRol.CuentasRoles = new CuentasRolesFicha("T01");
+        sinRol.NotasInternas = "otra pantalla";
+        await Guardar(sinRol);
+        Assert.Equal(c465.IdIdentidadContable, (await roles.IdentidadesAsync(t.IdTercero, "T01")).Empleado);
+
+        // El buscador lo encuentra por el código de trabajador y lo filtra por el rol Empleado (activo a nivel global).
+        var indice = new Busqueda.IndiceTerceros(await Bd.EjecutarAsync(Busqueda.BuscadorTerceros.CargarAsync));
+        Assert.Contains(indice.Buscar(new Busqueda.FiltroTerceros("000124")).Filas, f => f.IdTercero == t.IdTercero);
+        var empleados = indice.Buscar(new Busqueda.FiltroTerceros(Roles: new HashSet<Busqueda.RolBusqueda> { Busqueda.RolBusqueda.Empleado }));
+        Assert.Equal([t.IdTercero], empleados.Filas.Select(f => f.IdTercero));
     }
 
     [Fact]

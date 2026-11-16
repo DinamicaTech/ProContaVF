@@ -29,7 +29,9 @@ public class ReglaSaldoTests
 {
     [Theory]
     [InlineData("5720001", 100, SentidoSaldo.AFavor)]     // banco con dinero
-    [InlineData("43000012", 100, SentidoSaldo.AFavor)]    // cliente que nos debe
+    [InlineData("43000012", 100, SentidoSaldo.EnContra)]  // cliente que nos debe
+    [InlineData("43000012", -100, SentidoSaldo.AFavor)]   // cliente con anticipo
+    [InlineData("4400001", 100, SentidoSaldo.EnContra)]   // deudor que nos debe
     [InlineData("40000031", -100, SentidoSaldo.EnContra)] // proveedor al que debemos
     [InlineData("4000004", 100, SentidoSaldo.AFavor)]     // proveedor pagado de más
     [InlineData("4750001", -100, SentidoSaldo.EnContra)]  // Hacienda acreedora

@@ -1,4 +1,4 @@
-using System.Globalization;
+﻿using System.Globalization;
 using System.Text;
 using ProConta.Compras.Reconocimiento;
 using ProConta.Datos.Persistencia;
@@ -515,6 +515,10 @@ internal static class RepositorioFacturasCompra
             return (null, "no puedo descifrar el secreto de AWS guardado: vuelve a escribirlo");
         return (new CredencialesOcr(region.Trim(), claveAcceso.Trim(), secreto), null);
     }
+
+    /// <summary>Carpeta de facturas de compra del ejercicio (SociedadesEjercicios.CarpetaFacturasCompra), o null si no la tiene.</summary>
+    public static async Task<string?> CarpetaComprasEjercicioAsync(ISesionDatos s, int idSociedadEjercicio) =>
+        await s.EscalarAsync("SELECT CarpetaFacturasCompra FROM SociedadesEjercicios WHERE IdSociedadEjercicio = ?", idSociedadEjercicio) is string c && c.Trim().Length > 0 ? c.Trim() : null;
 
     /// <summary>Carpeta de documentos de la empresa (Sociedades.RutaDocumentos) y su nombre.</summary>
     public static Task<(string Nombre, string? Raiz)> EmpresaAsync(ISesionDatos s, string idSociedad) =>
