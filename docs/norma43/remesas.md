@@ -44,5 +44,6 @@ Hecho y validado por el propietario el 2026-11-16 (PR #87 y #88): `ReglasRemesas
 
 - 2026-11-16 13:02 · La opción correcta sería la 3), anula la factura incorrecta y genera una nueva con el importe que toca.
 - 2026-11-16 13:27 · Ok ya puedes fusionar
+- 2026-11-16 17:55 · Derived from contabilidad/procesos/aplicacion-resultado: desglosar un cargo entre varios socios como una remesa (extracto ficticio, formato DIVIDENDOS), con una línea por socio con su importe, su 526 y la descripción «Pago de dividendos <socio>», que se deshace con «Deshacer explosión».
 ## Hand-over
 - 2026-11-16 13:10 · Hechas la PR 1 (#87, rama claude/norma43-remesas) y la PR 2 (rama claude/norma43-remesas-ajustes, sobre la 1); queda que el propietario las valide. Lo que pedía la PR 2, ya hecho: en el diálogo de la remesa, cuando el importe cobrado de una factura es distinto, proponer y ejecutar los ajustes de la decisión «Importe cobrado distinto» con los servicios de facturación (ServicioProgramadas, ServicioFacturas.GuardarValidadaAsync y CrearRectificativaAsync), enlazando las facturas nuevas al recibo con CobrosFacturasN43.RegistrarCobroAsync. El servicio de remesas está en Norma43, que no referencia Facturacion: hace falta un puerto (interfaz) implementado en Facturacion y conectado en ProConta.App.

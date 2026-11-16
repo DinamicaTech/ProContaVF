@@ -81,3 +81,4 @@ Hecha la PR 1 y validada por el propietario el 2026-11-13: pestaña «Líneas N4
 - 2026-11-13 13:16 · Correcto
 - 2026-11-16 12:20 · Derived from norma43/remesas: opciones «Explotar remesa…», «Conciliar facturas devueltas…» y «Deshacer explosión» en el menú contextual y botón de cabecera «Explotar remesas pendientes».
 - 2026-11-16 13:45 · Derived from norma43/movimientos-similares: opción «Movimientos similares…» en el menú contextual y avance de 3 movimientos similares con «Usar» y «Ver todos» en el detalle de la línea.
+- 2026-11-16 17:55 · Derived from contabilidad/procesos/aplicacion-resultado: opción «Pago de dividendos…» en el menú contextual de un solo cargo no contabilizado ni explotado.

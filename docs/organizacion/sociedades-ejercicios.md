@@ -62,6 +62,7 @@ Sociedad permanente y su instancia por ejercicio (SociedadEjercicio), con consul
 - 2026-11-13 23:23 · No pasa nada, ejercicios anteriores se quedan tal cual, solo trabajaremos con 4724021 en el 2026
 - 2026-11-13 23:46 · Derived from facturacion/factura-venta: logo y teléfono de la empresa para la factura, como parámetros de la sociedad.
 - 2026-11-16 10:20 · Derived from contabilidad/procesos/liquidacion-iva: cuentas de la liquidación del IVA por ejercicio (Hacienda acreedora y deudora por IVA, ajustes negativos y positivos), vacías con las de siempre.
+- 2026-11-16 17:55 · Derived from contabilidad/procesos/aplicacion-resultado: % de retención de dividendos (19 por defecto) y cuenta de reservas de los dividendos (1130000 por defecto) en cada ejercicio.
 
 ## Hand-over
 - 2026-10-31 18:55 · Hecho: contrato y servicio sobre Access, migración de EjercicioCerrado y pruebas (contexto válido e inválido, ejercicio cerrado). Pendiente: apertura de ejercicio nuevo y cierre/reapertura (contabilidad/procesos), unicidad (IdSociedad, Ejercicio) y unicidad del NIF de sociedad (la maestra tiene dos sociedades con el mismo NIF, una de pruebas), y la regla de propagación de la razón social a los ejercicios.

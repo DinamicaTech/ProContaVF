@@ -137,6 +137,7 @@ Código: `src/ProConta.Datos.Esquema` (diagnóstico, migraciones idempotentes, a
 - 2026-11-16 14:05 · Derived from plataforma/entorno-pruebas: la migración con la marca de entorno de pruebas en Configuracion.
 - 2026-11-16 17:05 · Derived from facturacion/descripcion-abreviada: columnas DescripcionAbreviada en Facturas y FacturasProgramadas.
 - 2026-11-16 17:15 · Derived from facturacion/reservas/compensacion-comision: plantilla de sistema «Compensación de comisión de plataforma» en PlantillasAsiento (sin tablas ni columnas nuevas).
+- 2026-11-16 17:55 · Derived from contabilidad/procesos/aplicacion-resultado: tablas Socios, SociosSociedad, RepartosDividendos y RepartosDividendosSocios y columnas de retención y reservas de dividendos en SociedadesEjercicios.
 
 ## Hand-over
 - 2026-11-01 09:30 · Hecho: diagnóstico, actualizador con copia verificada, comprobación previa y parámetros, registro de intentos, migraciones idempotentes (catálogo en la versión 7), diccionario en `diccionario/`, copia sin datos y la maestra 0.24 del desarrollo anterior registrada como referencia estructural. Pendiente: «crear la maestra desde cero» se cubre con `copia-estructura` (estructura de la versión 1 sin datos), no con DDL desde cero; script de instalación en el servidor (plataforma/entrega); descripciones de campo que faltan en la maestra actual (se pueden tomar de la referencia 0.24).

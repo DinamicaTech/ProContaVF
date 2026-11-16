@@ -41,6 +41,7 @@ Operadores, grupos (N:M) y permisos por ámbito: ámbito sin configurar permite 
 - 2026-11-14 20:04 · La contraseña no es obligatoria
 - 2026-11-14 20:04 · Tampoco es preciso complejidad de contraseña, 'a' sería una contraseña válida
 - 2026-11-16 10:20 · Derived from contabilidad/procesos/liquidacion-iva: permiso propio para liquidar el IVA y deshacer la liquidación.
+- 2026-11-16 17:55 · Derived from contabilidad/procesos/aplicacion-resultado: nueva acción PROCESOS.DIVIDENDOS, «Repartir dividendos».
 
 ## Hand-over
 - 2026-10-31 19:10 · Hecho: política común, ámbito de sociedades, operadores (búsqueda, grupos activos, primer administrador, cambio de contraseña) y pruebas. Pendiente: mantenimiento completo de operadores y grupos (seguridad/pantallas); ámbitos de reports (las RestriccionesReportsGrupo antiguas son de denegación y necesitan adaptarse, RF-SEG-07) y de procesos que generan asientos o borran datos (requisito 2026-10-29 17:45, sin tabla todavía); regeneración de contraseña temporal por correo.

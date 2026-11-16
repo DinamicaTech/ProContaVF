@@ -67,6 +67,7 @@ Roles opcionales de una identidad (Cliente, Proveedor, Contacto) con IDs funcion
 - 2026-11-16 10:37 · Si se desmarca el rol y esa subcuenta no tiene ningún movimiento en los últimos 5 años, se elimina.
 - 2026-11-16 10:41 · Ok a todo, adelante
 - 2026-11-16 12:19 · Ok, funciona perfecto. Puedes fusionar.
+- 2026-11-16 17:55 · Derived from contabilidad/procesos/aplicacion-resultado: rol Socio por sociedad con su % de participación, su subcuenta de dividendos a pagar (526) y su subcuenta de retención de dividendos (4751), creadas solas al guardar si faltan.
 
 ## Hand-over
 - 2026-10-31 19:05 · Hecho: roles y cuentas por ejercicio, con pruebas (rol idempotente sin duplicar identidad, cuentas distintas por ejercicio, cuenta de otro ejercicio rechazada). Pendiente, porque necesita columnas nuevas y lo pedirá compras: distinguir cuenta de proveedor y de acreedor (decisión 2026-10-31 16:54), valores por defecto del proveedor (tipo de operación, producto, retención, país, forma de pago, cuenta de gasto, moneda) y su actualización desde la factura (decisiones 2026-10-29 18:14 y 2026-10-31 07:46), y la carpeta de PDF del proveedor.
