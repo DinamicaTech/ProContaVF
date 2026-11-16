@@ -35,6 +35,7 @@ Sociedad permanente y su instancia por ejercicio (SociedadEjercicio), con consul
 - 2026-11-13 23:46 · Sociedades gana Telefono (TEXT 30) y Logo (TEXT 255, ruta del logo de las facturas, JPG o PNG; relativa a la carpeta de documentos de la empresa o absoluta), en la pantalla Empresas. Si el fichero no está o no se puede leer, la factura sale con el nombre de la empresa en lugar del logo (facturacion/factura-venta 2026-11-13 23:46).
 - 2026-11-16 10:20 · Cuentas de la liquidación del IVA por sociedad y ejercicio (esquema 56, contabilidad/procesos/liquidacion-iva): SociedadesEjercicios.CuentaHaciendaAcreedoraIva, CuentaHaciendaDeudoraIva, CuentaAjustesNegativosIva y CuentaAjustesPositivosIva; vacías valen 4750000, 4700000, 6341000 y 6391000, y la que falte se crea al confirmar la primera liquidación que la use. Liquidar el trimestre activo (no el cuarto) activa el siguiente en la misma transacción que el asiento.
 - 2026-11-16 18:40 · Dividendos del ejercicio (esquema 62, contabilidad/procesos/aplicacion-resultado): SociedadesEjercicios.PorcentajeRetencionDividendos (vacío: 19 %) y CuentaReservasDividendos (vacía: 1130000), en Parámetros y tablas › Ejercicios («Retención de dividendos (%)» en Impuestos y «Reparto de dividendos · reservas» en Cuentas).
+- 2026-11-16 19:25 · Validado por el propietario lo derivado de contabilidad/procesos/aplicacion-resultado (PR #95).
 
 ## Requirements
 - 2026-10-28 12:28 · From sources/01_ESPECIFICACION_FUNCIONAL.docx § 3 RF-ARQ-04: propietario de Sociedades/SociedadesEjercicios
