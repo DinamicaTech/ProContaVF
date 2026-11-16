@@ -192,7 +192,7 @@ public sealed class AjustesRemesaN43VM(IReadOnlyList<PropuestaAjusteN43> propues
     {
         ArgumentNullException.ThrowIfNull(reciboDe);
         return Filas.Select(f => new AjusteElegidoN43(f.Datos.IdFactura, f.Datos.Cobrado, reciboDe(f.Datos.IdFactura), f.ActualizarProgramada && f.PuedeProgramada,
-            f.EmitirDiferencia && f.PuedeDiferencia, f.Asumir ? ModoMenorN43.Asumir : ModoMenorN43.CobrarAlCliente)).ToList();
+            f.EmitirDiferencia && f.PuedeDiferencia, f.Asumir && f.PuedeAsumir ? ModoMenorN43.Asumir : ModoMenorN43.CobrarAlCliente)).ToList();
     }
 }
 
@@ -201,7 +201,7 @@ public sealed class FilaAjusteN43VM(PropuestaAjusteN43 p) : ModeloVista
 {
     private bool _programada = p.PuedeProgramada && p.CobraMas;
     private bool _diferencia = p.PuedeDiferencia;
-    private bool _asumir;
+    private bool _asumir = p.PuedeAsumir;
 
     public PropuestaAjusteN43 Datos { get; } = p;
     public string Numero => Datos.Numero;
@@ -218,6 +218,10 @@ public sealed class FilaAjusteN43VM(PropuestaAjusteN43 p) : ModeloVista
     public string TextoProgramada => Datos.PuedeProgramada
         ? $"Actualizar su programada de {Formatos.Importe(Datos.TotalProgramada ?? 0m)} € a {Cobrado} €"
         : $"Programada: {Datos.MotivoSinProgramada}";
+    public bool PuedeAsumir => Datos.PuedeAsumir;
+    public string TextoAsumir => Datos.PuedeAsumir
+        ? $"Asumirla: anular la factura con una rectificativa y emitir otra por {Cobrado} €"
+        : $"Asumirla: {Datos.MotivoSinAsumir}";
     public string TextoDiferencia => Datos.PuedeDiferencia
         ? $"Emitir una factura por la diferencia de {Diferencia} € (base {Formatos.Importe(Datos.BaseDiferencia ?? 0m)} €)"
         : $"Factura de diferencia: {Datos.MotivoSinDiferencia}";

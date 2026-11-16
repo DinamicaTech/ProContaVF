@@ -347,6 +347,32 @@ public sealed class ProgramadasAccessTests : IDisposable
         Assert.False((await ajustes.PlanAsync(idFactura, 1200m))!.PuedeDiferencia);
     }
 
+    /// <summary>Asumir lo que el banco cobró de menos (propietario 2026-11-16 13:02): rectificativa completa y factura nueva por lo cobrado.</summary>
+    [Fact]
+    public async Task CobradaPorMenosSeAnulaConRectificativaYSeEmiteOtraPorLoCobrado()
+    {
+        await PrepararAsync();
+        await Bd.EjecutarAsync(s => s.EjecutarAsync(
+            "INSERT INTO SeriesFacturacion (IdSociedadEjercicio, Descripcion, RangoDesde, RangoHasta, Prefijo, EsRectificativa, EsPredeterminada) VALUES (?, ?, ?, ?, ?, ?, ?)",
+            9001, "Rectificativas 2026", 1, 99999, "R2026", true, false));
+        var servicio = Servicio();
+        var p = await ProgramadaAsync(servicio, AlGenerar.Validar);
+        var r = await servicio.GenerarAsync(_ctx, _reloj.Ahora.Date, [p.IdFacturaProgramada], _actor);
+        var idFactura = r.Valor.Facturas[0].IdFactura;
+        var ajustes = new AjustesCobroFacturas(Facturas(), servicio);
+
+        // 1.210 € de factura; el banco cobró 1.185,80 (la renta de antes): 980,00 + 21 %.
+        var plan = (await ajustes.PlanAsync(idFactura, 1185.80m))!;
+        Assert.True(plan.PuedeSustituir, plan.MotivoSinSustitucion);
+        var s = await ajustes.SustituirAsync(idFactura, 1185.80m, _ctx, _actor);
+        Assert.True(s.EsCorrecto, s.Error?.ToString());
+        Assert.Equal((-1210m, EstadoFactura.Validada), (s.Valor.Rectificativa.Totales.ImporteTotal.Valor, s.Valor.Rectificativa.Estado));
+        Assert.Equal((1185.80m, EstadoFactura.Validada, 980m), (s.Valor.Nueva.Totales.ImporteTotal.Valor, s.Valor.Nueva.Estado, s.Valor.Nueva.Totales.BaseImponible.Valor));
+        Assert.Equal(EstadoFactura.Rectificada, (await Facturas().ObtenerAsync(idFactura))!.Estado);
+        // Ya rectificada, no se vuelve a sustituir.
+        Assert.False((await ajustes.PlanAsync(idFactura, 1185.80m))!.PuedeSustituir);
+    }
+
     [Fact]
     public void LaBaseDeLaDiferenciaSeCalculaHaciaAtrasConIvaYRetencion()
     {

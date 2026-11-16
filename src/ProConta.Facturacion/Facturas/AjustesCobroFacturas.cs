@@ -13,13 +13,18 @@ namespace ProConta.Facturacion.Facturas;
 /// <param name="LineaDiferencia">La línea de la factura de diferencia (base calculada hacia atrás para que el total sea la diferencia); null si no se puede.</param>
 public sealed record PlanAjusteCobro(int IdFactura, string Numero, decimal Importe, decimal Cobrado,
     int? IdProgramada, decimal? TotalProgramada, string? MotivoSinProgramada,
-    LineaFacturaVenta? LineaDiferencia, TotalesFactura? TotalesDiferencia, string? MotivoSinDiferencia)
+    LineaFacturaVenta? LineaDiferencia, TotalesFactura? TotalesDiferencia, string? MotivoSinDiferencia, string? MotivoSinSustitucion = null)
 {
     public decimal Diferencia => Cobrado - Importe;
     public bool CobraMas => Diferencia > 0m;
     public bool PuedeProgramada => IdProgramada is not null && MotivoSinProgramada is null;
     public bool PuedeDiferencia => LineaDiferencia is not null;
+    /// <summary>Si cobró menos, se puede asumir: rectificativa completa de la factura y otra nueva por lo cobrado (propietario 2026-11-16 13:02).</summary>
+    public bool PuedeSustituir => !CobraMas && MotivoSinSustitucion is null;
 }
+
+/// <summary>La rectificativa que anula la factura y la nueva por el importe cobrado.</summary>
+public sealed record SustitucionCobro(FacturaVenta Rectificativa, FacturaVenta Nueva);
 
 /// <summary>
 /// Ajustes de una factura cobrada por otro importe que el suyo (norma43/remesas): emitir una factura por la diferencia (misma serie,
@@ -62,7 +67,61 @@ public sealed class AjustesCobroFacturas(ServicioFacturas facturas, ServicioProg
             else if (LineaPorTotal(p.Plantilla.Lineas.Single(x => !x.EsSuplido), cobrado - p.Plantilla.Lineas.Where(x => x.EsSuplido).Sum(x => x.ImporteTotal.Valor), p.Plantilla.TipoRetencion) is null)
                 sinProgramada = $"No hay un precio que dé {cobrado.ToString("N2", Es)} € (ni a un céntimo) con su IVA y su retención: actualízala a mano.";
         }
-        return new PlanAjusteCobro(f.IdFactura, f.Rotulo, total, cobrado, idProgramada, totalProgramada, sinProgramada, linea, totales, sinDiferencia);
+        var sinSustitucion = diferencia >= 0m ? "El banco no cobró menos que la factura."
+            : f.Estado != EstadoFactura.Validada || f.EsRectificativa ? "La factura ya está rectificada (o es una rectificativa): hazlo a mano."
+            : f.Lineas.Count(x => !x.EsSuplido) != 1 ? "La factura tiene varias líneas: rectifícala y emite la nueva a mano."
+            : LineaPorTotal(f.Lineas.Single(x => !x.EsSuplido), cobrado - f.Lineas.Where(x => x.EsSuplido).Sum(x => x.ImporteTotal.Valor), f.TipoRetencion) is null
+                ? $"No hay una base que dé {cobrado.ToString("N2", Es)} € (ni a un céntimo) con su IVA y su retención: hazlo a mano."
+            : null;
+        return new PlanAjusteCobro(f.IdFactura, f.Rotulo, total, cobrado, idProgramada, totalProgramada, sinProgramada, linea, totales, sinDiferencia, sinSustitucion);
+    }
+
+    /// <summary>
+    /// Asumir la diferencia cuando el banco cobró menos (propietario 2026-11-16 13:02): anula la factura con su rectificativa completa
+    /// (validada) y emite y valida otra igual por el importe cobrado (su línea con la base calculada hacia atrás). Si la nueva no se puede
+    /// validar, la rectificativa queda hecha y se dice qué falta.
+    /// </summary>
+    public async Task<Resultado<SustitucionCobro>> SustituirAsync(int idFactura, decimal cobrado, ContextoSociedadEjercicio trabajo, Actor actor)
+    {
+        var plan = await PlanAsync(idFactura, cobrado);
+        var original = await facturas.ObtenerAsync(idFactura);
+        if (plan is null || original is null) return Resultado<SustitucionCobro>.Fallo(new Error("Ajustes.FacturaNoExiste", "La factura ya no existe.", FacturaVenta.RotuloBorrador(idFactura)));
+        if (!plan.PuedeSustituir)
+            return Resultado<SustitucionCobro>.Fallo(new Error("Ajustes.SinSustitucion", $"No se puede asumir la diferencia de {plan.Numero}.", plan.Numero, plan.MotivoSinSustitucion,
+                "Rectifícala desde Facturas y emite la nueva; después enlázalas al recibo con «Buscar por importe»."));
+        var motivo = $"El banco cobró {cobrado.ToString("N2", Es)} € en la remesa y la factura es de {plan.Importe.ToString("N2", Es)} €: se sustituye por otra del importe cobrado.";
+        if (motivo.Length > ReglasFactura.LongitudMotivo) motivo = motivo[..ReglasFactura.LongitudMotivo];
+        var borradorR = await facturas.CrearRectificativaAsync(idFactura, motivo, trabajo, actor);
+        if (!borradorR.EsCorrecto) return Resultado<SustitucionCobro>.Fallo(borradorR.Errores);
+        var vr = await facturas.ValidarAsync(borradorR.Valor.IdFactura, borradorR.Valor.Version, actor, aceptarAvisos: true);
+        if (!vr.Validada)
+            return Resultado<SustitucionCobro>.Fallo(new Error("Ajustes.RectificativaNoValidada", $"La rectificativa de {plan.Numero} se ha quedado en borrador ({borradorR.Valor.Rotulo}).", plan.Numero,
+                string.Join(" ", vr.Incidencias.Select(i => i.Mensaje)), "Ábrela en Facturas, corrige lo que dice y valídala; después emite la nueva por el importe cobrado."));
+
+        var nuevo = await facturas.NuevoBorradorAsync(trabajo);
+        if (!nuevo.EsCorrecto) return Resultado<SustitucionCobro>.Fallo(nuevo.Errores);
+        var f = nuevo.Valor;
+        if (original.IdSociedadEjercicio == trabajo.IdSociedadEjercicio) f.IdSerie = original.IdSerie;
+        f.IdCliente = original.IdCliente;
+        f.FechaOperacion = original.FechaOperacion ?? f.FechaOperacion;
+        f.FechaInicioValidez = original.FechaInicioValidez;
+        f.FechaFinValidez = original.FechaFinValidez;
+        f.FormaDePago = original.FormaDePago;
+        f.DiaDePago = original.DiaDePago;
+        f.TipoRetencion = original.TipoRetencion;
+        f.TipoFactura = original.TipoFactura;
+        f.Descripcion = original.Descripcion;
+        f.NotasInternas = $"Sustituye a la factura {original.NumeroFactura} (rectificada por {vr.Factura!.NumeroFactura}): el banco cobró {cobrado.ToString("N2", Es)} € en la remesa.";
+        var suplidos = original.Lineas.Where(x => x.EsSuplido).Sum(x => x.ImporteTotal.Valor);
+        foreach (var l in original.Lineas)
+            f.AnadirLinea(l.EsSuplido ? l.Copiar() : LineaPorTotal(l, cobrado - suplidos, original.TipoRetencion)!);
+        var borrador = await facturas.GuardarBorradorAsync(f, actor);
+        if (!borrador.EsCorrecto) return Resultado<SustitucionCobro>.Fallo(borrador.Errores);
+        var v = await facturas.ValidarAsync(borrador.Valor.IdFactura, borrador.Valor.Version, actor, aceptarAvisos: true);
+        if (!v.Validada)
+            return Resultado<SustitucionCobro>.Fallo(new Error("Ajustes.NoValidada", $"{plan.Numero} está rectificada ({vr.Factura.NumeroFactura}), pero la nueva se ha quedado en borrador ({borrador.Valor.Rotulo}).",
+                plan.Numero, string.Join(" ", v.Incidencias.Select(i => i.Mensaje)), "Ábrela en Facturas, corrige lo que dice y valídala; después enlázala al recibo con «Buscar por importe»."));
+        return Resultado<SustitucionCobro>.Correcto(new SustitucionCobro(vr.Factura, v.Factura!));
     }
 
     /// <summary>

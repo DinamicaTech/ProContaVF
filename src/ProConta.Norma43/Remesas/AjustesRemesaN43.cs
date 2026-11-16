@@ -6,7 +6,8 @@ namespace ProConta.Norma43.Remesas;
 /// <summary>Qué se puede hacer con una factura de la remesa que el banco cobró por otro importe (norma43/remesas 2026-11-16 12:08).</summary>
 /// <param name="BaseDiferencia">Base de la factura de diferencia que se emitiría (solo si el banco cobró más y se puede).</param>
 public sealed record PropuestaAjusteN43(int IdFactura, string Numero, decimal Importe, decimal Cobrado,
-    bool PuedeProgramada, string? MotivoSinProgramada, decimal? TotalProgramada, bool PuedeDiferencia, string? MotivoSinDiferencia, decimal? BaseDiferencia)
+    bool PuedeProgramada, string? MotivoSinProgramada, decimal? TotalProgramada, bool PuedeDiferencia, string? MotivoSinDiferencia, decimal? BaseDiferencia,
+    bool PuedeAsumir = false, string? MotivoSinAsumir = null)
 {
     public decimal Diferencia => Cobrado - Importe;
     public bool CobraMas => Diferencia > 0m;
@@ -17,7 +18,7 @@ public enum ModoMenorN43
 {
     /// <summary>La diferencia queda pendiente en la 430 del cliente, para cobrársela después.</summary>
     CobrarAlCliente,
-    /// <summary>La empresa asume la diferencia.</summary>
+    /// <summary>La empresa asume la diferencia: se anula la factura con una rectificativa completa y se emite otra por lo cobrado (propietario 2026-11-16 13:02).</summary>
     Asumir,
 }
 

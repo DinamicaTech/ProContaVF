@@ -128,8 +128,10 @@ public sealed partial class DialogosLineasN43
             {
                 var cliente = new RadioButton { Content = "Cobrársela al cliente: la diferencia queda pendiente en su cuenta", GroupName = $"menor{f.Datos.IdFactura}", IsChecked = !f.Asumir, DataContext = f,
                     ToolTip = "No se emite nada: la diferencia se cobra después (otra remesa o «Buscar por importe»)", Margin = new Thickness(0, 4, 0, 0) };
-                var asumir = new RadioButton { Content = "Asumirla", GroupName = $"menor{f.Datos.IdFactura}", IsChecked = f.Asumir, DataContext = f,
-                    ToolTip = "La empresa asume la diferencia", Margin = new Thickness(0, 2, 0, 0) };
+                var asumir = new RadioButton { Content = f.TextoAsumir, GroupName = $"menor{f.Datos.IdFactura}", IsChecked = f.Asumir, DataContext = f, IsEnabled = f.PuedeAsumir,
+                    ToolTip = "La empresa asume la diferencia: la factura se anula con su rectificativa completa y se emite otra igual por lo que cobró el banco, las dos con el mismo recibo",
+                    Margin = new Thickness(0, 2, 0, 0) };
+                ToolTipService.SetShowOnDisabled(asumir, true);
                 asumir.SetBinding(System.Windows.Controls.Primitives.ToggleButton.IsCheckedProperty, new Binding(nameof(FilaAjusteN43VM.Asumir)) { Mode = BindingMode.TwoWay });
                 bloque.Children.Add(cliente);
                 bloque.Children.Add(asumir);

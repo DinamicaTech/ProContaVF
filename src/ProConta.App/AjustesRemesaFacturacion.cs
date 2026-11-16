@@ -22,7 +22,7 @@ public sealed class AjustesRemesaFacturacion(AjustesCobroFacturas ajustes, IBase
         foreach (var (id, cobrado) in facturas)
             if (await ajustes.PlanAsync(id, cobrado) is { } p)
                 r.Add(new PropuestaAjusteN43(p.IdFactura, p.Numero, p.Importe, p.Cobrado, p.PuedeProgramada, p.MotivoSinProgramada, p.TotalProgramada,
-                    p.PuedeDiferencia, p.MotivoSinDiferencia, p.TotalesDiferencia?.BaseImponible.Valor));
+                    p.PuedeDiferencia, p.MotivoSinDiferencia, p.TotalesDiferencia?.BaseImponible.Valor, p.PuedeSustituir, p.MotivoSinSustitucion));
         return r;
     }
 
@@ -56,6 +56,21 @@ public sealed class AjustesRemesaFacturacion(AjustesCobroFacturas ajustes, IBase
             {
                 if (a.Menor == ModoMenorN43.CobrarAlCliente)
                     hechos.Add($"{plan.Numero}: la diferencia de {(-plan.Diferencia).ToString("N2", Es)} € queda pendiente en la cuenta del cliente.");
+                else
+                {
+                    var s = await ajustes.SustituirAsync(a.IdFactura, a.Cobrado, trabajo, actor);
+                    if (!s.EsCorrecto) fallos.AddRange(s.Errores.Select(e => e.TextoOperador()));
+                    else
+                    {
+                        // La rectificativa (en negativo) y la nueva van con el mismo recibo que la original: la cuenta del cliente queda a cero.
+                        var enlazadas = await bd.EnTransaccionAsync(async t =>
+                            await CobrosFacturasN43.RegistrarCobroAsync(t, s.Valor.Rectificativa.IdFactura, a.IdLineaRecibo)
+                            & await CobrosFacturasN43.RegistrarCobroAsync(t, s.Valor.Nueva.IdFactura, a.IdLineaRecibo));
+                        hechos.Add($"{plan.Numero} anulada con la rectificativa {s.Valor.Rectificativa.Rotulo} y sustituida por {s.Valor.Nueva.Rotulo} de " +
+                            $"{s.Valor.Nueva.Totales.ImporteTotal.Valor.ToString("N2", Es)} €" +
+                            (enlazadas ? ", las dos con el mismo recibo." : "; enlázalas al recibo con «Buscar por importe»."));
+                    }
+                }
                 recordatorios.Add($"Actualiza en el banco la remesa SEPA de {plan.Numero}: cobró {plan.Cobrado.ToString("N2", Es)} € y la factura es de {plan.Importe.ToString("N2", Es)} €.");
             }
         }
