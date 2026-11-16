@@ -5,6 +5,7 @@ using ProConta.Norma43.Busqueda;
 using ProConta.Norma43.Conciliacion;
 using ProConta.Norma43.Lineas;
 using ProConta.Norma43.Remesas;
+using ProConta.Norma43.Similares;
 using ProConta.Nucleo.Auditoria;
 using ProConta.Nucleo.Contexto;
 using ProConta.Nucleo.Resultados;
@@ -55,6 +56,8 @@ public interface IDialogosLineasN43
     bool ConciliarDevolucion(DevolucionN43VM vm) => false;
     /// <summary>Diálogo «Ajustes de importe» tras explotar (modal): true si se pulsa «Aplicar».</summary>
     bool AjustarImportes(AjustesRemesaN43VM vm) => false;
+    /// <summary>Diálogo «Movimientos similares» (modal): lo que se elige al cerrarlo (vm.Eleccion), o null.</summary>
+    EleccionSimilarN43? MovimientosSimilares(MovimientosSimilaresN43VM vm) => null;
 }
 
 /// <summary>Una acción del menú contextual: su texto, si se puede y, si no, por qué (en el tooltip).</summary>
@@ -188,6 +191,11 @@ public sealed class LineasN43VM : ModeloVista, IPestanaTrabajo
     private readonly BusquedaPorImporteN43? _busqueda;
     private readonly ServicioRemesasN43? _remesas;
     private readonly IAjustesRemesaN43? _ajustes;
+    private readonly ConsultaSimilaresN43? _similares;
+    /// <summary>Candidatos de «Movimientos similares» por rango de ejercicios: se leen una vez y se olvidan al volver a leer o tras una acción.</summary>
+    private readonly Dictionary<(int Desde, int Hasta), IReadOnlyList<CandidatoSimilarN43>> _candidatos = [];
+    private IReadOnlyList<AvanceSimilarN43VM> _avance = [];
+    private int _versionAvance;
     private readonly IDialogosLineasN43 _dialogos;
     private readonly ContextoLineasN43 _contexto;
     private readonly Action? _alCerrar;
@@ -212,8 +220,9 @@ public sealed class LineasN43VM : ModeloVista, IPestanaTrabajo
 
     public LineasN43VM(ConsultaLineasN43 consulta, ServicioLineasN43 servicio, ServicioConciliacionN43 conciliacion, AsignadorCuentasN43 asignador,
         IDialogosLineasN43 dialogos, ContextoLineasN43 contexto, Action? alCerrar = null, BusquedaPorImporteN43? busqueda = null, ServicioRemesasN43? remesas = null,
-        IAjustesRemesaN43? ajustes = null)
+        IAjustesRemesaN43? ajustes = null, ConsultaSimilaresN43? similares = null)
     {
+        _similares = similares;
         _busqueda = busqueda;
         _remesas = remesas;
         _ajustes = ajustes;
@@ -242,6 +251,8 @@ public sealed class LineasN43VM : ModeloVista, IPestanaTrabajo
         AccionDeshacer = new("Deshacer el asiento…", "Borra el asiento generado por ProContaVF (pide el motivo, que queda registrado) y la línea vuelve a estar pendiente", () => _ = DeshacerAsync());
         AccionTextos = new("Actualizar textos del asiento", "Vuelve a calcular la descripción, el concepto y el documento del asiento sin cambiar su fecha, cuentas ni importes", () => _ = ActualizarTextosAsync());
         AccionReasignar = new("Reasignar por palabras clave", "Vuelve a buscar palabra clave para las líneas sin asiento: las cuentas puestas a mano o por un traspaso no se tocan", () => _ = ReasignarAsync());
+        AccionSimilares = new("Movimientos similares…", "Busca las líneas con cuenta cuyo concepto se parece al de esta (en su ejercicio y los dos anteriores) para ponerle la misma cuenta", () => _ = MovimientosSimilaresAsync());
+        VerTodosSimilaresCommand = new ComandoDelegado(() => _ = MovimientosSimilaresAsync(desdeDetalle: true), () => _actual is not null && HayAvanceVisible && !Ocupado);
         AccionPalabras = new("Palabras clave de la línea…", "Crea, corrige o borra las palabras clave que asignan la cuenta a movimientos como este", () => _ = PalabrasClaveAsync());
         AccionTraspaso = new("Traspaso entre bancos", "Imputa el cargo de un banco y el abono del otro a la cuenta puente de traspasos, donde sus asientos se compensan", () => _ = TraspasoAsync());
         AccionBuscarImporte = new("Buscar por importe…", "Busca para cada línea seleccionada las facturas de su importe (compras para los cargos, ventas para los abonos) y enlaza las que marques; si la línea no está contabilizada, le pone la cuenta del tercero", () => _ = BuscarPorImporteAsync());
@@ -339,7 +350,7 @@ public sealed class LineasN43VM : ModeloVista, IPestanaTrabajo
     public FilaLineaN43VM? Actual
     {
         get => _actual;
-        set { if (Fijar(ref _actual, value)) Avisar(nameof(HayActual), nameof(DetalleDestinos), nameof(DetalleFechas)); }
+        set { if (Fijar(ref _actual, value)) { Avisar(nameof(HayActual), nameof(DetalleDestinos), nameof(DetalleFechas)); _ = CalcularAvanceAsync(); } }
     }
     public bool HayActual => _actual is not null;
     public string DetalleFechas => _actual is not { } a ? "" :
@@ -367,6 +378,7 @@ public sealed class LineasN43VM : ModeloVista, IPestanaTrabajo
     public AccionLineasVM AccionTextos { get; }
     public AccionLineasVM AccionReasignar { get; }
     public AccionLineasVM AccionPalabras { get; }
+    public AccionLineasVM AccionSimilares { get; }
     public AccionLineasVM AccionTraspaso { get; }
     public AccionLineasVM AccionBuscarImporte { get; }
     public AccionLineasVM AccionVerAsiento { get; }
@@ -420,6 +432,7 @@ public sealed class LineasN43VM : ModeloVista, IPestanaTrabajo
         try
         {
             if (_todas.Count == 0) Estado = EstadoVista.Cargando;
+            _candidatos.Clear();
             Mostrar(await _consulta.LineasAsync(_contexto.Trabajo.IdSociedad, AniosMarcados));
         }
         catch (Exception ex)
@@ -537,6 +550,7 @@ public sealed class LineasN43VM : ModeloVista, IPestanaTrabajo
         AccionTextos.Fijar("Actualizar textos del asiento" + (a.ADeshacer.Count > 1 ? $" ({a.ADeshacer.Count})" : ""), a.ActualizarTextos ?? Ocupada());
         AccionReasignar.Fijar(a.TextoReasignar, a.Reasignar ?? Ocupada());
         AccionPalabras.Fijar("Palabras clave de la línea…", a.PalabrasClave ?? Ocupada());
+        AccionSimilares.Fijar("Movimientos similares…", MotivoSimilares() ?? Ocupada());
         AccionTraspaso.Fijar("Traspaso entre bancos", a.Traspaso ?? Ocupada());
         AccionBuscarImporte.Fijar("Buscar por importe…" + (Seleccion.Count > 1 ? $" ({Seleccion.Count})" : ""),
             a.BuscarPorImporte ?? (_busqueda is null ? "La búsqueda por importe no está disponible en esta pantalla." : null) ?? Ocupada());
@@ -575,6 +589,7 @@ public sealed class LineasN43VM : ModeloVista, IPestanaTrabajo
     /// <summary>Vuelve a leer las líneas indicadas (después de una acción) y vuelve a filtrar.</summary>
     public async Task RefrescarLineasAsync(IReadOnlyCollection<int> ids)
     {
+        _candidatos.Clear();
         var nuevas = (await _consulta.LineasAsync(_contexto.Trabajo.IdSociedad, AniosMarcados, ids)).ToDictionary(l => l.Id);
         foreach (var f in _todas.Where(f => ids.Contains(f.Id)).ToList())
         {
@@ -583,6 +598,7 @@ public sealed class LineasN43VM : ModeloVista, IPestanaTrabajo
         }
         Filtrar();
         Avisar(nameof(DetalleDestinos), nameof(DetalleFechas));
+        _ = CalcularAvanceAsync();
     }
 
     private ContextoSociedadEjercicio ContextoDe(int anio) =>
@@ -607,8 +623,14 @@ public sealed class LineasN43VM : ModeloVista, IPestanaTrabajo
         var cuenta = _dialogos.ElegirCuenta(ContextoDe(anio),
             sel.Count == 1 ? $"Cuenta de destino · {sel[0].Datos.Rotulo}" : $"Cuenta de destino de {sel.Count} líneas", sel.Count == 1 ? sel[0].Datos.CuentaDestino : null);
         if (cuenta is null) return;
-        var r = await _servicio.AsignarCuentaAsync(_contexto.Trabajo.IdSociedad, sel.Select(f => f.Id).ToList(), cuenta.IdIdentidadContable, _contexto.Actor);
-        var texto = $"{cuenta.Codigo} asignada a {Formatos.Plural(r.Hechas.Count, "línea", "líneas")}";
+        await AplicarCuentaAsync(sel, cuenta.IdIdentidadContable, cuenta.Codigo);
+    }, "asignar la cuenta");
+
+    /// <summary>Pone la cuenta a las líneas (regenerando el asiento de las contabilizadas), las vuelve a leer y avisa de lo que no se ha podido.</summary>
+    private async Task AplicarCuentaAsync(IReadOnlyList<FilaLineaN43VM> sel, int idIdentidad, string codigo)
+    {
+        var r = await _servicio.AsignarCuentaAsync(_contexto.Trabajo.IdSociedad, sel.Select(f => f.Id).ToList(), idIdentidad, _contexto.Actor);
+        var texto = $"{codigo} asignada a {Formatos.Plural(r.Hechas.Count, "línea", "líneas")}";
         if (r.Recontabilizar.Count > 0)
         {
             var c = await _conciliacion.ContabilizarLineasAsync(_contexto.Trabajo.IdSociedad, r.Recontabilizar, _contexto.Actor);
@@ -618,7 +640,129 @@ public sealed class LineasN43VM : ModeloVista, IPestanaTrabajo
         await RefrescarLineasAsync(sel.Select(f => f.Id).ToList());
         _contexto.Avisar(texto + ".");
         InformarRechazos("Algunas líneas no han cambiado", r.Rechazadas.ToDictionary(x => x.Key, x => (IReadOnlyList<Error>)[x.Value]), r.Hechas.Count, texto);
+    }
+
+    // ---------- movimientos similares (norma43/movimientos-similares) ----------
+
+    /// <summary>Botón «Ver todos» del avance del detalle: el diálogo completo para la línea del detalle.</summary>
+    public ICommand VerTodosSimilaresCommand { get; }
+
+    /// <summary>El detalle enseña el avance de similares: hay buscador y la línea se puede comparar.</summary>
+    public bool HayAvanceVisible => _similares is not null && _actual is not null && ReglasSimilaresN43.Motivo(_actual.Datos) is null;
+    public IReadOnlyList<AvanceSimilarN43VM> AvanceSimilares { get => _avance; private set { if (Fijar(ref _avance, value)) Avisar(nameof(HayAvance), nameof(SinAvance)); } }
+    public bool HayAvance => _avance.Count > 0;
+    public bool SinAvance => _avance.Count == 0;
+    public string TextoSinAvance =>
+        $"Ningún movimiento con otra cuenta se parece al menos un {ReglasSimilaresN43.MinimoAvance} %; «Ver todos» muestra desde el {ReglasSimilaresN43.MinimoLista} %.";
+
+    /// <summary>La línea con la que se compara desde el menú: la del detalle si está seleccionada; si no, la primera seleccionada.</summary>
+    private FilaLineaN43VM? BaseSimilares()
+    {
+        var sel = Seleccion;
+        return _actual is not null && sel.Contains(_actual) ? _actual : sel.FirstOrDefault();
+    }
+
+    private string? MotivoSimilares()
+    {
+        if (_similares is null) return "Movimientos similares no está disponible en esta pantalla.";
+        if (BaseSimilares() is not { } b) return "Selecciona una línea: se buscan los movimientos que se parecen a ella.";
+        return ReglasSimilaresN43.Motivo(b.Datos);
+    }
+
+    /// <summary>Candidatos del rango de ejercicios de la línea; la primera vez se leen de la BD y después se reutilizan.</summary>
+    private async Task<IReadOnlyList<CandidatoSimilarN43>> CandidatosAsync(int ejercicio)
+    {
+        var rango = ReglasSimilaresN43.Rango(ejercicio);
+        if (_candidatos.TryGetValue(rango, out var c)) return c;
+        c = await _similares!.CandidatosAsync(_contexto.Trabajo.IdSociedad, rango.Desde, rango.Hasta);
+        _candidatos[rango] = c;
+        return c;
+    }
+
+    /// <summary>Recalcula el avance del detalle para la línea actual (si cambia mientras se lee, gana la última).</summary>
+    private async Task CalcularAvanceAsync()
+    {
+        var version = ++_versionAvance;
+        Avisar(nameof(HayAvanceVisible));
+        if (!HayAvanceVisible) { AvanceSimilares = []; return; }
+        var fila = _actual!;
+        try
+        {
+            var candidatos = await CandidatosAsync(fila.Datos.Ejercicio);
+            if (version != _versionAvance) return;
+            var motivo = AccionesLineasN43.Evaluar([fila.Datos]).AsignarCuenta;
+            AvanceSimilares = ReglasSimilaresN43.Avance(fila.Datos, candidatos)
+                .Select(s => new AvanceSimilarN43VM(s, motivo, () => _ = UsarSimilarAsync(fila, s))).ToList();
+        }
+        catch (Exception)
+        {
+            // El avance es una ayuda: si la lectura falla, no se enseña (el diálogo completo dirá el error).
+            if (version == _versionAvance) AvanceSimilares = [];
+        }
+    }
+
+    /// <summary>«Usar» del avance: pone la cuenta del movimiento parecido a la línea del detalle.</summary>
+    private Task UsarSimilarAsync(FilaLineaN43VM fila, SimilarN43 s) => Ejecutar(async () =>
+    {
+        if (AccionesLineasN43.Evaluar([fila.Datos]).AsignarCuenta is not null || s.Linea.Cuenta is null) return;
+        await AplicarCuentaAsync([fila], s.Linea.IdIdentidadContable, s.Linea.Cuenta);
     }, "asignar la cuenta");
+
+    /// <summary>
+    /// Movimientos similares: el diálogo con los parecidos a la línea. Desde el menú, «Asignar» pone la cuenta a todas las seleccionadas;
+    /// desde «Ver todos» del detalle, solo a la línea del detalle.
+    /// </summary>
+    public Task MovimientosSimilaresAsync(bool desdeDetalle = false) => Ejecutar(async () =>
+    {
+        if (_similares is null) return;
+        FilaLineaN43VM? fila;
+        IReadOnlyList<FilaLineaN43VM> destino;
+        if (desdeDetalle) { fila = _actual; destino = fila is null ? [] : [fila]; }
+        else { fila = BaseSimilares(); destino = Seleccion; }
+        if (fila is null || ReglasSimilaresN43.Motivo(fila.Datos) is not null) return;
+        var resultados = ReglasSimilaresN43.Buscar(fila.Datos, await CandidatosAsync(fila.Datos.Ejercicio));
+        var vm = new MovimientosSimilaresN43VM(fila.Datos, destino.Select(f => f.Datos).ToList(), resultados,
+            AccionesLineasN43.Evaluar(destino.Select(f => f.Datos).ToList()).AsignarCuenta, _contexto.VerAsiento);
+        switch (_dialogos.MovimientosSimilares(vm))
+        {
+            case { Accion: AccionSimilarN43.Asignar, Resultado: var r } when r.Linea.Cuenta is { } codigo && vm.MotivoAsignar is null:
+                await AplicarCuentaAsync(destino, r.Linea.IdIdentidadContable, codigo);
+                break;
+            case { Accion: AccionSimilarN43.IrALinea, Resultado: var r }:
+                await IrALineaAsync(r.Linea.IdLinea, r.Linea.Ejercicio);
+                break;
+        }
+    }, "buscar los movimientos similares");
+
+    /// <summary>
+    /// Selecciona una línea en la lista y la pone en el detalle: si es de un ejercicio no marcado, lo marca y vuelve a leer; si los filtros
+    /// la ocultan, los quita.
+    /// </summary>
+    public async Task IrALineaAsync(int id, int ejercicio)
+    {
+        if (_todas.All(f => f.Id != id) && Ejercicios.FirstOrDefault(e => e.Anio == ejercicio) is { Marcado: false } opcion)
+        {
+            opcion.FijarSinAvisar(true);
+            Avisar(nameof(TextoEjercicios));
+            await CargarAsync();
+            _contexto.Avisar($"He marcado el ejercicio {ejercicio} para enseñarte la línea.");
+        }
+        var fila = _todas.FirstOrDefault(f => f.Id == id);
+        if (fila is null)
+        {
+            _contexto.Avisar("Esa línea ya no está en la lista: puede que se haya revertido su importación. Pulsa Actualizar (F5).");
+            return;
+        }
+        if (!_filas.Contains(fila))
+        {
+            QuitarFiltros();
+            _contexto.Avisar("He quitado los filtros para enseñarte la línea.");
+        }
+        _seleccion.Clear();
+        _seleccion.Add(id);
+        Actual = fila;
+        Filtrar();
+    }
 
     /// <summary>
     /// Buscar por importe (norma43/busqueda-por-importe): un solo diálogo con las candidatas de todas las líneas seleccionadas; al
