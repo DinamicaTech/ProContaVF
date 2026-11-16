@@ -72,6 +72,8 @@
               <TextBox Text="{Binding Codigo, UpdateSourceTrigger=PropertyChanged, ValidatesOnNotifyDataErrors=True}" Width="130" Style="{StaticResource Campo.Mono}" Tag="Codigo"
                        ToolTip="{Binding AyudaCodigo}" LostKeyboardFocus="Cuenta_LostKeyboardFocus" KeyDown="Cuenta_KeyDown" />
             </StackPanel>
+            <Button Content="Auto" Command="{Binding AutoCommand}" VerticalAlignment="Bottom" Margin="0,0,10,0" Style="{StaticResource Boton.Pequeno}"
+                    Visibility="{Binding PuedeAuto, Converter={StaticResource Visible}}" ToolTip="{Binding AyudaAuto}" />
             <StackPanel Margin="0,0,10,0">
               <TextBlock Text="Descripción" Style="{StaticResource Etiqueta.Campo}" />
               <TextBox Text="{Binding Nombre, Mode=OneWay}" IsReadOnly="True" Width="380" ToolTip="Nombre de la cuenta en el plan contable, para comprobar que es la correcta. Se cambia en el plan de cuentas" />

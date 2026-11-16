@@ -138,7 +138,8 @@ public partial class VentanaPrincipal : Window
         var cuentas = new CatalogoCuentasAccess(bd);
         var servicios = new ServiciosTerceros(
             new RepositorioTercerosAccess(bd), new BuscadorTerceros(bd), new CatalogoPerfilesAccess(bd), new ServicioRoles(bd, cuentas), cuentas,
-            () => new FuenteGeografiaAccess(bd).CargarAsync(), contexto.Contexto, contexto.RazonSocial, new Actor(sesion.NombreOperador));
+            () => new FuenteGeografiaAccess(bd).CargarAsync(), contexto.Contexto, contexto.RazonSocial, new Actor(sesion.NombreOperador),
+            new SubcuentasRoles(bd, cuentas));
         _terceros = new ModuloTerceros(servicios, _area, new DialogosTerceros(servicios));
 
         // Mayor (contabilidad/mayor): pestaña Contabilidad › Mayor y el mismo control embebido en la ficha de terceros.

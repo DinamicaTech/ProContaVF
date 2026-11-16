@@ -110,7 +110,24 @@ public interface ICatalogoCuentas
     /// </summary>
     Task<Resultado> EliminarSinApuntesAsync(ContextoSociedadEjercicio contexto, int idIdentidadContable, Func<ISesionDatos, Task>? liberarUsos = null) =>
         Task.FromResult(Resultado.Fallo(new Error("Cuentas.NoDisponible", "Este catálogo no borra cuentas.", $"Identidad {idIdentidadContable}")));
+
+    /// <summary>
+    /// Borra una subcuenta sin movimientos desde <paramref name="desde"/> (la de un rol que se quita, terceros/roles 2026-11-16):
+    /// falla si tiene apuntes con fecha contable desde ese día o saldo inicial en un ejercicio de ese año o posterior. Si nunca
+    /// ha tenido apuntes ni saldo inicial se borra del todo (todos sus ejercicios, la reserva del código y la identidad); si
+    /// tiene apuntes más antiguos, solo se borran sus cuentas de los ejercicios donde está vacía y se conserva la identidad
+    /// con su historia. <paramref name="liberarUsos"/> corre dentro de la transacción antes de borrar, con true si el borrado
+    /// es completo, para que el área que la usa quite su referencia.
+    /// </summary>
+    Task<Resultado<BorradoCuenta>> EliminarSinMovimientosDesdeAsync(ContextoSociedadEjercicio contexto, int idIdentidadContable, DateTime desde,
+        Func<ISesionDatos, bool, Task>? liberarUsos = null) =>
+        Task.FromResult(Resultado<BorradoCuenta>.Fallo(new Error("Cuentas.NoDisponible", "Este catálogo no borra cuentas.", $"Identidad {idIdentidadContable}")));
 }
+
+/// <summary>Resultado de <see cref="ICatalogoCuentas.EliminarSinMovimientosDesdeAsync"/>: qué cuenta y en qué ejercicios se ha borrado.</summary>
+/// <param name="Completo">True si se ha borrado en todos sus ejercicios, con su identidad y la reserva de su código.</param>
+/// <param name="Ejercicios">Años de los ejercicios en que se ha borrado (vacío si no había ninguno sin apuntes).</param>
+public sealed record BorradoCuenta(string Codigo, string Nombre, bool Completo, IReadOnlyList<int> Ejercicios);
 
 public static class ReglasCuenta
 {
@@ -287,6 +304,60 @@ public sealed class CatalogoCuentasAccess(IBaseDatos bd) : ICatalogoCuentas
         {
             return Resultado.Fallo(new Error("Cuentas.EnUso", "La cuenta no se borra porque la usa otro registro (un tercero, un parámetro, otra cuenta…).",
                 $"Identidad {idIdentidadContable}", e.Error.Mensaje, "Quita antes ese uso o deja la cuenta como está."));
+        }
+    }
+
+    public async Task<Resultado<BorradoCuenta>> EliminarSinMovimientosDesdeAsync(ContextoSociedadEjercicio contexto, int idIdentidadContable, DateTime desde,
+        Func<ISesionDatos, bool, Task>? liberarUsos = null)
+    {
+        var inv = System.Globalization.CultureInfo.InvariantCulture;
+        try
+        {
+            return await bd.EnTransaccionAsync(async s =>
+            {
+                var cuentas = await s.ConsultarAsync(
+                    "SELECT c.IdCuentaContable, c.IdSociedadEjercicio, c.Codigo, c.Nombre, c.SaldoInicial, se.Ejercicio FROM CuentasContables AS c " +
+                    "INNER JOIN SociedadesEjercicios AS se ON c.IdSociedadEjercicio = se.IdSociedadEjercicio WHERE c.IdIdentidadContable = ? ORDER BY se.Ejercicio DESC",
+                    f => (Id: f.Entero("IdCuentaContable"), Ejercicio: f.Entero("IdSociedadEjercicio"), Codigo: f.Texto("Codigo")?.Trim() ?? "", Nombre: f.Texto("Nombre")?.Trim() ?? "",
+                        Inicial: f.Decimal("SaldoInicial"), Anio: f.Entero("Ejercicio")),
+                    idIdentidadContable);
+                if (cuentas.Count == 0)
+                    return Resultado<BorradoCuenta>.Fallo(new Error("Cuentas.NoExiste", "La cuenta que hay que borrar no existe.", $"Identidad {idIdentidadContable}"));
+                var codigo = cuentas[0].Codigo;
+                var nombre = cuentas[0].Nombre;
+                var registro = $"Cuenta {codigo}";
+                var vacias = new List<(int Id, int Anio)>();
+                foreach (var c in cuentas)
+                {
+                    var apuntes = Convert.ToInt32(await s.EscalarAsync(
+                        "SELECT COUNT(*) FROM Apuntes AS ap INNER JOIN Asientos AS a ON ap.IdAsiento = a.IdAsiento WHERE a.IdSociedadEjercicio = ? AND ap.CuentaContable = ?",
+                        c.Ejercicio, c.Codigo), inv);
+                    var recientes = apuntes == 0 ? 0 : Convert.ToInt32(await s.EscalarAsync(
+                        "SELECT COUNT(*) FROM Apuntes AS ap INNER JOIN Asientos AS a ON ap.IdAsiento = a.IdAsiento WHERE a.IdSociedadEjercicio = ? AND ap.CuentaContable = ? AND a.FechaContable >= ?",
+                        c.Ejercicio, c.Codigo, desde.Date), inv);
+                    if (recientes > 0 || (c.Inicial != 0m && c.Anio >= desde.Year))
+                        return Resultado<BorradoCuenta>.Fallo(new Error("Cuentas.ConMovimientosRecientes",
+                            $"La cuenta {c.Codigo} tiene movimientos desde el {desde:dd/MM/yyyy} y no se borra.", registro,
+                            recientes > 0 ? $"Tiene {recientes} apuntes en el ejercicio {c.Anio}." : $"Tiene saldo inicial en el ejercicio {c.Anio}.",
+                            "Se conserva para no perder su historia; queda sin usar mientras el rol esté quitado."));
+                    if (apuntes == 0 && c.Inicial == 0m) vacias.Add((c.Id, c.Anio));
+                }
+                var completo = vacias.Count == cuentas.Count;
+                if (vacias.Count == 0) return Resultado<BorradoCuenta>.Correcto(new BorradoCuenta(codigo, nombre, false, []));
+                if (liberarUsos is not null) await liberarUsos(s, completo);
+                foreach (var (id, _) in vacias) await s.EjecutarAsync("DELETE FROM CuentasContables WHERE IdCuentaContable = ?", id);
+                if (completo)
+                {
+                    await s.EjecutarAsync("DELETE FROM CodigosContablesReservados WHERE IdSociedad = ? AND IdIdentidadContable = ?", contexto.IdSociedad, idIdentidadContable);
+                    await s.EjecutarAsync("DELETE FROM IdentidadesContables WHERE IdIdentidadContable = ?", idIdentidadContable);
+                }
+                return Resultado<BorradoCuenta>.Correcto(new BorradoCuenta(codigo, nombre, completo, vacias.Select(v => v.Anio).OrderBy(a => a).ToList()));
+            });
+        }
+        catch (IntegridadReferencialException e)
+        {
+            return Resultado<BorradoCuenta>.Fallo(new Error("Cuentas.EnUso", "La cuenta no se borra porque la usa otro registro (un parámetro, una factura, otra cuenta…).",
+                $"Identidad {idIdentidadContable}", e.Error.Mensaje, "Se conserva; si sobra, bórrala desde el plan de cuentas cuando quites ese uso."));
         }
     }
 
