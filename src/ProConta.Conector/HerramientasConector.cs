@@ -18,8 +18,9 @@ public sealed class HerramientasConector(ServicioConector servicio)
     };
 
     [McpServerTool(Name = "sociedades", ReadOnly = true, Destructive = false, OpenWorld = false)]
-    [Description("Lista las sociedades de ProContaVF con sus ejercicios (si están cerrados y el trimestre activo). Úsala primero para saber el código de sociedad y el ejercicio.")]
-    public async Task<string> Sociedades() => Texto(await servicio.SociedadesAsync());
+    [Description("Dice en qué entorno trabaja el conector (Producción o Pruebas) y lista las sociedades de ProContaVF con sus ejercicios (si están cerrados y el trimestre activo). " +
+        "Úsala primero para saber el entorno, el código de sociedad y el ejercicio.")]
+    public async Task<string> Sociedades() => Texto(new { entorno = servicio.Entorno, sociedades = await servicio.SociedadesAsync() });
 
     [McpServerTool(Name = "buscar_asientos", ReadOnly = true, Destructive = false, OpenWorld = false)]
     [Description("Busca asientos contabilizados de una sociedad y ejercicio por número, fechas, cuenta (prefijo) o texto de la descripción, concepto o documento. " +

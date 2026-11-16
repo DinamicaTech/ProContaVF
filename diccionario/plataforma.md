@@ -43,6 +43,9 @@
 | VeriFactuActivo | YESNO | no | No |  |
 | CorreoDesviarA | TEXT(254) | sí |  |  |
 | UmbralCuadreMayor | CURRENCY | sí |  |  |
+| EntornoPruebas | YESNO | no | No | Sí si esta BD es la copia de pruebas (la pone el refresco desde producción). En producción, siempre No. |
+| CopiaProduccionFecha | DATETIME | sí |  | Fecha y hora en que se copió de producción esta BD de pruebas. Nulo en producción. |
+| CopiaProduccionOrigen | TEXT(255) | sí |  | Ruta de la BD de producción de la que sale esta copia de pruebas. Nulo en producción. |
 
 Índices:
 - PK_Configuracion (clave primaria): IdConfiguracion

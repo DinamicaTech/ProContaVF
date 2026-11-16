@@ -16,6 +16,11 @@
   </Window.InputBindings>
 
   <DockPanel>
+    <!-- Entorno de pruebas (plataforma/entorno-pruebas): franja naranja siempre visible encima de la cabecera; en producción no sale. -->
+    <Border x:Name="FranjaPruebas" DockPanel.Dock="Top" Background="#E06A00" Padding="12,4" Visibility="Collapsed"
+            ToolTip="Estás en la copia de pruebas: lo que hagas aquí no afecta a la contabilidad real. Para trabajar de verdad, sal y entra en Producción.">
+      <TextBlock x:Name="TextoFranjaPruebas" Foreground="White" FontWeight="Bold" HorizontalAlignment="Center" TextTrimming="CharacterEllipsis" />
+    </Border>
     <!-- Cabecera: marca, contexto de trabajo y operador -->
     <Border DockPanel.Dock="Top" Background="{StaticResource Pincel.Marino}" Height="44" Padding="12,0">
       <DockPanel>

@@ -290,7 +290,9 @@ internal sealed partial class EjecucionErp
                     $"La retención de la factura {numero} es {retenciones.Sum(r => r.ImporteRetencion):0.00} € en el ERP y {totales.Retencion.Valor:0.00} € con el {f.TipoRetencion:0.##} % sobre la base.");
 
             f.Descripcion = ReglasErp.Recortar(fv.T("Descripcion"), 255) ?? f.Lineas.Select(l => l.Descripcion).FirstOrDefault(x => !string.IsNullOrWhiteSpace(x)) ?? $"Factura {numero}";
-            f.NotasInternas = ReglasErp.UnirNotas(fv.T("Notas"), fv.T("NotasInternas"));
+            var (abreviada, notasLargas) = ReglasErp.DescripcionAbreviada(fv.T("Notas"));
+            f.DescripcionAbreviada = abreviada;
+            f.NotasInternas = ReglasErp.UnirNotas(notasLargas, fv.T("NotasInternas"));
 
             // Asiento (DOCAPU = número) y registro del libro (FACIVR = número) importados de ContaSol, salvo las aún no contabilizadas.
             int? idAsiento = null, idRegistro = null;
@@ -344,7 +346,7 @@ internal sealed partial class EjecucionErp
                 rect ? "R4" : "F1", rect ? "I" : null, (byte)EstadoFactura.Validada, p.IdAsiento, p.IdAsiento is null ? null : p.FechaAsiento,
                 $"{ahora:dd/MM/yyyy HH:mm} · {Operador} · Migrada del ERP (factura {p.Numero}).",
                 ReglasErp.Recortar(dir?.Direccion, 255), ReglasErp.Recortar(dir?.CodigoPostal, 10), ReglasErp.Recortar(dir?.Poblacion, 100), ReglasErp.Recortar(dir?.Provincia, 100),
-                true, 0, rect ? $"Rectificativa del ERP de la factura {p.Rectificada}." : null, f.FormaDePago, f.DiaDePago,
+                true, 0, rect ? $"Rectificativa del ERP de la factura {p.Rectificada}." : null, f.FormaDePago, f.DiaDePago, f.DescripcionAbreviada,
             };
         }).ToList();
         var ids = await MasivaAsync("Facturas",
@@ -353,7 +355,7 @@ internal sealed partial class EjecucionErp
             "PoblacionEmisor", "ProvinciaEmisor", "FechaFactura", "FechaInicioValidez", "FechaFinValidez", "FechaCreacion", "FechaHoraEmision", "Descripcion", "NotasInternas",
             "BaseImponible", "IVA", "ImporteBruto", "TipoRetencion", "Retencion", "ImporteTotal", "TipoFactura", "TipoRectificativa", "EstadoFactura", "IdAsientoContable",
             "FechaExportacionContable", "Historial", "DireccionCliente", "CodigoPostalCliente", "PoblacionCliente", "ProvinciaCliente", "SinVeriFactu", "Version", "MotivoRectificacion",
-            "FormaDePago", "DiaDePago",
+            "FormaDePago", "DiaDePago", "DescripcionAbreviada",
         ], filas, "IdFactura");
         for (var i = 0; i < preparadas.Count; i++) Mapear(TiposErp.Factura, Txt(preparadas[i].Numero), ids[i]);
         est.Cargadas = ids.Count;

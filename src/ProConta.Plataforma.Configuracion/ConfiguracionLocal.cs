@@ -10,6 +10,9 @@ public sealed record ConfiguracionLocal
 
     /// <summary>Último operador que entró en este puesto, para proponerlo en el acceso.</summary>
     public string? UltimoOperador { get; init; }
+
+    /// <summary>Copia de pruebas de la BD de producción de este puesto (plataforma/entorno-pruebas); null si no se ha creado.</summary>
+    public EntornoPruebasLocal? Pruebas { get; init; }
 }
 
 /// <summary>Preferencias del puesto que no son la ubicación de datos.</summary>

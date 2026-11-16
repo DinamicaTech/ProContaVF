@@ -65,7 +65,7 @@ public sealed class ServicioConciliacionN43(IBaseDatos bd, IMotorAsientos motor,
     public ServicioConciliacionN43(IBaseDatos bd) : this(bd, new MotorAsientosAccess(bd), new ServicioPlantillasAsiento(bd)) { }
 
     private readonly IReloj _reloj = reloj ?? RelojSistema.Instancia;
-    private readonly IFacturasLineaN43 _facturas = facturas ?? SinFacturasEnlazadas.Instancia;
+    private readonly IFacturasLineaN43 _facturas = facturas ?? new FacturasEnlazadasN43(bd);
 
     /// <summary>Longitud del número de documento de un apunte.</summary>
     private const int LongitudDocumento = 100;

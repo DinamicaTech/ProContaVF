@@ -36,7 +36,8 @@ if (diagnostico.Estado != EstadoEsquema.Actualizada)
     BaseDatosAccess.TerminarProceso(3);
 }
 
-var servicio = new ServicioConector(bd, Valor("--operador") ?? Environment.UserName);
+var entorno = await ProConta.Plataforma.Configuracion.InfoEntorno.LeerAsync(bd);
+var servicio = new ServicioConector(bd, Valor("--operador") ?? Environment.UserName) { Entorno = entorno.Nombre };
 
 var builder = Host.CreateApplicationBuilder(new HostApplicationBuilderSettings { DisableDefaults = false, Args = [] });
 builder.Logging.ClearProviders();
@@ -46,8 +47,8 @@ builder.Services.AddSingleton(servicio);
 builder.Services
     .AddMcpServer(o =>
     {
-        o.ServerInfo = new() { Name = "ProContaVF", Version = "1.0" };
-        o.ServerInstructions = InstruccionesConector.Texto;
+        o.ServerInfo = new() { Name = entorno.EsPruebas ? "ProContaVF (pruebas)" : "ProContaVF", Version = "1.0" };
+        o.ServerInstructions = InstruccionesConector.Texto + (entorno.EsPruebas ? InstruccionesConector.Pruebas : InstruccionesConector.Produccion);
     })
     .WithStdioServerTransport()
     .WithTools<HerramientasConector>();

@@ -23,6 +23,7 @@ Cuentas de correo por sociedad y ejercicio, transporte SMTP con evidencia por de
 - 2026-11-10 19:40 · Desvío de pruebas: parámetro general «Desviar todo el correo a» (Configuracion.CorreoDesviarA); con valor, todo mensaje sale solo a esa dirección, con los destinatarios reales anotados en el propio mensaje y en el registro, y las pantallas lo avisan. En la BD de pruebas se pone a la dirección del propietario.
 - 2026-11-10 20:05 · Hecho (entrega 1): esquema (versión 33), cuenta de correo en Parámetros y tablas con «Probar envío» y «Probar recepción», plantillas de correo por empresa, cola durable con turno entre sesiones, reintentos, reenvío, cancelación y resolución de inciertos, desvío de pruebas y transporte SMTP con resultado por destinatario y clasificación por fase. El cifrado de secretos pasa a `ProConta.Nucleo.Seguridad.SecretoProtegido`, compartido con compras. Pruebas: 26 sin BD (con un servidor SMTP local: aceptado, aceptado en parte, rechazo temporal y definitivo, corte tras el contenido = incierto, contraseña mala, sin cifrado no se envía la contraseña) y 14 contra Access. Pendiente de validar con la cuenta real de pruebas.
 - 2026-11-11 10:46 · Validado por el propietario con la cuenta de pruebas (correo recibido): el nodo deja de ser borrador.
+- 2026-11-16 14:05 · En la copia de pruebas (Configuracion.EntornoPruebas) no sale ningún mensaje sin desvío: queda Fallido con el motivo y cómo poner el desvío (plataforma/entorno-pruebas).
 
 ## Requirements
 - 2026-10-28 12:28 · From sources/01_ESPECIFICACION_FUNCIONAL.docx § 22 RF-COR-04..07: cuentas y secretos, coordinador saliente, reintento/reenvío, no duplicar transporte
@@ -39,3 +40,4 @@ Cuentas de correo por sociedad y ejercicio, transporte SMTP con evidencia por de
 - 2026-11-10 19:26 · Reintentos: ok, pero añade un cuarto intento a las 16 horas
 - 2026-11-10 19:26 · Reenvios: Ok
 - 2026-11-11 10:45 · Ok, pruebas realizadas. Correo recibido. Todo ok.
+- 2026-11-16 14:05 · Derived from plataforma/entorno-pruebas: en pruebas, no se envía nada sin desvío.

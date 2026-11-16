@@ -13,7 +13,7 @@ internal static class RepositorioFacturas
         "f.IdFactura, f.IdSociedadEjercicio, f.IdSerie, f.NumeroFactura, f.IdCliente, f.IdContrato, f.CIF, f.Nombre, f.RazonSocial, f.PaisCliente, " +
         "f.TipoIdentificacionCliente, f.DireccionCliente, f.CodigoPostalCliente, f.PoblacionCliente, f.ProvinciaCliente, f.EmailCliente, " +
         "f.NIFEmisor, f.NombreEmisor, f.FechaFactura, f.FechaOperacion, f.FechaInicioValidez, f.FechaFinValidez, f.FechaCreacion, f.FechaHoraEmision, " +
-        "f.FormaDePago, f.DiaDePago, f.Descripcion, f.NotasInternas, f.TipoRetencion, f.TipoFactura, f.TipoRectificativa, f.EstadoFactura, " +
+        "f.FormaDePago, f.DiaDePago, f.Descripcion, f.DescripcionAbreviada, f.NotasInternas, f.TipoRetencion, f.TipoFactura, f.TipoRectificativa, f.EstadoFactura, " +
         "f.IdFacturaRectificada, f.IdAsientoContable, f.FechaExportacionContable, f.Historial, f.SinVeriFactu, f.IdFacturaProgramada, f.Version, f.MotivoRectificacion, " +
         "f.DireccionEmisor, f.CodigoPostalEmisor, f.PoblacionEmisor, f.ProvinciaEmisor";
 
@@ -60,6 +60,7 @@ internal static class RepositorioFacturas
         FormaDePago = r.EsNulo("FormaDePago") ? null : (byte)r.Entero("FormaDePago"),
         DiaDePago = r.EsNulo("DiaDePago") ? null : (byte)r.Entero("DiaDePago"),
         Descripcion = r.Texto("Descripcion") ?? "",
+        DescripcionAbreviada = r.Texto("DescripcionAbreviada"),
         NotasInternas = r.Texto("NotasInternas"),
         TipoRetencion = r.EsNulo("TipoRetencion") ? 0m : Redondear(r.Doble("TipoRetencion")),
         TipoFactura = r.Texto("TipoFactura")?.Trim() ?? "F1",
@@ -129,13 +130,13 @@ internal static class RepositorioFacturas
             "INSERT INTO Facturas (IdSociedadEjercicio, IdSerie, IdCliente, IdContrato, FechaFactura, FechaOperacion, FechaInicioValidez, FechaFinValidez, FechaCreacion, " +
             "FormaDePago, DiaDePago, Descripcion, NotasInternas, BaseImponible, IVA, ImporteBruto, TipoRetencion, Retencion, ImporteTotal, TipoFactura, TipoRectificativa, " +
             "EstadoFactura, IdFacturaRectificada, Historial, CIF, Nombre, RazonSocial, PaisCliente, TipoIdentificacionCliente, DireccionCliente, CodigoPostalCliente, " +
-            "PoblacionCliente, ProvinciaCliente, EmailCliente, SinVeriFactu, Version, MotivoRectificacion) " +
-            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            "PoblacionCliente, ProvinciaCliente, EmailCliente, SinVeriFactu, Version, MotivoRectificacion, DescripcionAbreviada) " +
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
             f.IdSociedadEjercicio, f.IdSerie, f.IdCliente, f.IdContrato, f.FechaFactura, f.FechaOperacion, f.FechaInicioValidez, f.FechaFinValidez, f.FechaCreacion,
             f.FormaDePago, f.DiaDePago, f.Descripcion ?? "", Nulo(f.NotasInternas), t.BaseImponible, t.Iva, t.ImporteBruto, (float)f.TipoRetencion, t.Retencion, t.ImporteTotal,
             f.TipoFactura, f.TipoRectificativa, (byte)f.Estado, f.IdFacturaRectificada, f.Historial,
             Nulo(f.Cliente.Nif), Nulo(f.Cliente.Nombre), Nulo(f.Cliente.RazonSocial), Nulo(f.Cliente.Pais), f.Cliente.TipoIdentificacion,
-            Nulo(f.Cliente.Direccion), Nulo(f.Cliente.CodigoPostal), Nulo(f.Cliente.Poblacion), Nulo(f.Cliente.Provincia), Nulo(f.Cliente.Email), f.SinVeriFactu, 0, Nulo(f.MotivoRectificacion));
+            Nulo(f.Cliente.Direccion), Nulo(f.Cliente.CodigoPostal), Nulo(f.Cliente.Poblacion), Nulo(f.Cliente.Provincia), Nulo(f.Cliente.Email), f.SinVeriFactu, 0, Nulo(f.MotivoRectificacion), ReglasFactura.Abreviada(f.DescripcionAbreviada));
         var id = await s.UltimoIdAsync();
         f.IdFactura = id;
         f.Version = 0;
@@ -150,11 +151,11 @@ internal static class RepositorioFacturas
         await s.ActualizarConVersionAsync(
             "UPDATE Facturas SET IdSerie = ?, IdCliente = ?, FechaFactura = ?, FechaOperacion = ?, FechaInicioValidez = ?, FechaFinValidez = ?, FormaDePago = ?, DiaDePago = ?, " +
             "Descripcion = ?, NotasInternas = ?, BaseImponible = ?, IVA = ?, ImporteBruto = ?, TipoRetencion = ?, Retencion = ?, ImporteTotal = ?, TipoFactura = ?, " +
-            "Historial = ?, MotivoRectificacion = ?, Version = Version + 1 WHERE IdFactura = ? AND Version = ? AND EstadoFactura = ?",
+            "Historial = ?, MotivoRectificacion = ?, DescripcionAbreviada = ?, Version = Version + 1 WHERE IdFactura = ? AND Version = ? AND EstadoFactura = ?",
             f.Rotulo,
             f.IdSerie, f.IdCliente, f.FechaFactura, f.FechaOperacion, f.FechaInicioValidez, f.FechaFinValidez, f.FormaDePago, f.DiaDePago,
             f.Descripcion ?? "", Nulo(f.NotasInternas), t.BaseImponible, t.Iva, t.ImporteBruto, (float)f.TipoRetencion, t.Retencion, t.ImporteTotal, f.TipoFactura,
-            f.Historial, Nulo(f.MotivoRectificacion), f.IdFactura, f.Version, (byte)EstadoFactura.Borrador);
+            f.Historial, Nulo(f.MotivoRectificacion), ReglasFactura.Abreviada(f.DescripcionAbreviada), f.IdFactura, f.Version, (byte)EstadoFactura.Borrador);
         f.Version++;
         await s.EjecutarAsync("DELETE FROM LineasFactura WHERE IdFactura = ?", f.IdFactura);
         await InsertarLineasAsync(s, f);
@@ -171,13 +172,13 @@ internal static class RepositorioFacturas
             "UPDATE Facturas SET IdCliente = ?, FechaFactura = ?, FechaOperacion = ?, FechaInicioValidez = ?, FechaFinValidez = ?, FormaDePago = ?, DiaDePago = ?, " +
             "Descripcion = ?, NotasInternas = ?, BaseImponible = ?, IVA = ?, ImporteBruto = ?, TipoRetencion = ?, Retencion = ?, ImporteTotal = ?, TipoFactura = ?, " +
             "CIF = ?, Nombre = ?, RazonSocial = ?, PaisCliente = ?, TipoIdentificacionCliente = ?, DireccionCliente = ?, CodigoPostalCliente = ?, PoblacionCliente = ?, " +
-            "ProvinciaCliente = ?, EmailCliente = ?, Historial = ?, MotivoRectificacion = ?, Version = Version + 1 WHERE IdFactura = ? AND Version = ? AND EstadoFactura = ?",
+            "ProvinciaCliente = ?, EmailCliente = ?, Historial = ?, MotivoRectificacion = ?, DescripcionAbreviada = ?, Version = Version + 1 WHERE IdFactura = ? AND Version = ? AND EstadoFactura = ?",
             f.Rotulo,
             f.IdCliente, f.FechaFactura, f.FechaOperacion, f.FechaInicioValidez, f.FechaFinValidez, f.FormaDePago, f.DiaDePago,
             f.Descripcion ?? "", Nulo(f.NotasInternas), t.BaseImponible, t.Iva, t.ImporteBruto, (float)f.TipoRetencion, t.Retencion, t.ImporteTotal, f.TipoFactura,
             Nulo(f.Cliente.Nif), Nulo(f.Cliente.Nombre), Nulo(f.Cliente.RazonSocial), Nulo(f.Cliente.Pais), f.Cliente.TipoIdentificacion, Nulo(f.Cliente.Direccion),
             Nulo(f.Cliente.CodigoPostal), Nulo(f.Cliente.Poblacion), Nulo(f.Cliente.Provincia), Nulo(f.Cliente.Email),
-            f.Historial, Nulo(f.MotivoRectificacion), f.IdFactura, f.Version, (byte)EstadoFactura.Validada);
+            f.Historial, Nulo(f.MotivoRectificacion), ReglasFactura.Abreviada(f.DescripcionAbreviada), f.IdFactura, f.Version, (byte)EstadoFactura.Validada);
         f.Version++;
         await s.EjecutarAsync("DELETE FROM LineasFactura WHERE IdFactura = ?", f.IdFactura);
         await InsertarLineasAsync(s, f);

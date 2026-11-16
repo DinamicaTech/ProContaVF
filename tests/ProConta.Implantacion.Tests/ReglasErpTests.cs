@@ -12,6 +12,18 @@ public sealed class ReglasErpTests
         new(num, 1, "Servicio de prueba", cantidad, precio, iva, null, cabecera, false, 0m, 0m, null);
 
     [Fact]
+    public void Las_notas_del_ERP_pasan_a_descripcion_abreviada_y_si_no_caben_tambien_a_las_notas()
+    {
+        Assert.Equal((null, null), ReglasErp.DescripcionAbreviada("  "));
+        Assert.Equal(("Período: 01/11/2026 - 30/11/2026", (string?)null), ReglasErp.DescripcionAbreviada(" Período: 01/11/2026 - 30/11/2026 "));
+        Assert.Equal(("Período: %FECHAINICIO% - %FECHAFIN%", (string?)null), ReglasErp.DescripcionAbreviada("Período: %FECHAINICIO% - %FECHAFIN%"));
+        var largo = "Texto ficticio largo " + new string('x', 130);
+        var (abreviada, notas) = ReglasErp.DescripcionAbreviada(largo);
+        Assert.Equal(largo[..120], abreviada);
+        Assert.Equal(largo, notas);
+    }
+
+    [Fact]
     public void La_forma_y_el_dia_de_pago_salen_del_esquema_de_fraccionamiento()
     {
         // Como los esquemas del ERP: «0 DÍAS DOMICILIADO» con forma 110 y día 1; «DOMICILIADO DÍA 5» sin forma; transferencia 129.

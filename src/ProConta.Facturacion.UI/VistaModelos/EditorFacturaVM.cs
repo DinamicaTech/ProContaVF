@@ -278,6 +278,18 @@ public sealed class EditorFacturaVM : ModeloVista, IPestanaTrabajo, INotifyDataE
         set { _f.MotivoRectificacion = string.IsNullOrWhiteSpace(value) ? null : value; QuitarError(nameof(Motivo)); Avisar(); Cambio(); }
     }
 
+    /// <summary>
+    /// Descripción abreviada (facturacion/descripcion-abreviada 2026-11-16): la que la conciliación N43 añade al concepto de los apuntes
+    /// de banco. Como las notas, se puede cambiar también en una factura validada.
+    /// </summary>
+    public string DescripcionAbreviada
+    {
+        get => _f.DescripcionAbreviada ?? "";
+        set { _f.DescripcionAbreviada = string.IsNullOrEmpty(value) ? null : value; Avisar(); Cambio(); }
+    }
+
+    public int LongitudDescripcionAbreviada => ReglasFactura.LongitudDescripcionAbreviada;
+
     public string Notas
     {
         get => _f.NotasInternas ?? "";
@@ -915,7 +927,7 @@ public sealed class EditorFacturaVM : ModeloVista, IPestanaTrabajo, INotifyDataE
         }
         if (!EsBorrador)
         {
-            var notas = await _s.Facturas.GuardarNotasAsync(_f.IdFactura, _f.NotasInternas, _f.Version, _s.Actor);
+            var notas = await _s.Facturas.GuardarNotasAsync(_f.IdFactura, _f.NotasInternas, _f.DescripcionAbreviada, _f.Version, _s.Actor);
             if (!notas.EsCorrecto) { MostrarErrores("No se han guardado las notas", notas.Errores); GuardadoFallido = true; return false; }
             await RecargarAsync(_f.IdFactura);
             _modulo.Avisar("Notas guardadas.");
@@ -1146,7 +1158,7 @@ public sealed class EditorFacturaVM : ModeloVista, IPestanaTrabajo, INotifyDataE
         var f = _f;
         var b = new StringBuilder();
         b.Append(CultureInfo.InvariantCulture, $"{f.IdSerie}|{f.IdCliente}|{f.TipoFactura}|{f.FechaFactura:d}|{f.FechaOperacion:d}|{f.FechaInicioValidez:d}|{f.FechaFinValidez:d}|");
-        b.Append(CultureInfo.InvariantCulture, $"{f.FormaDePago}|{f.DiaDePago}|{f.TipoRetencion}|{f.Descripcion}|{f.NotasInternas}|{f.MotivoRectificacion}");
+        b.Append(CultureInfo.InvariantCulture, $"{f.FormaDePago}|{f.DiaDePago}|{f.TipoRetencion}|{f.Descripcion}|{f.DescripcionAbreviada}|{f.NotasInternas}|{f.MotivoRectificacion}");
         if (_p is { } p)
             b.Append(CultureInfo.InvariantCulture, $"|P{p.IdFacturaProgramada}|{p.Periodicidad.Codigo}|{p.FechaInicio:d}|{p.DiaEmision}|{p.FechaFin:d}|{p.NumeroRepeticiones}|{p.AlGenerar}|{p.EnviarPorEmail}|{p.Activa}");
         foreach (var l in f.Lineas)

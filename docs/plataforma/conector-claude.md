@@ -23,6 +23,7 @@ Viene de la idea creative-lab/asistente-ia, que sigue en el laboratorio para lo 
 - 2026-11-16 10:25 · Menú «IA › Abrir Claude» (plataforma/contenedor): antes de abrir Claude Desktop comprueba su configuración (`ConectorClaudeDesktop`, en ProConta.Plataforma.Configuracion). Busca `claude_desktop_config.json` primero en %LOCALAPPDATA%\Claude-Data\claude_* (Claude Desktop de la Tienda) y después en %APPDATA%\Claude (instalador clásico). Estados: correcto; sin conector; otra BD (Claude consultaría y grabaría en otros datos); otro ejecutable (otra instalación o versión); fichero no válido, que no se toca y se ofrece abrir en el Bloc de notas. En los demás casos pregunta y, si el operador acepta, escribe la entrada «procontavf» con el conector de la subcarpeta Conector del programa, la BD abierta y el operador, conservando el resto del fichero y con una copia previa al lado. Si Claude Desktop ya estaba abierto avisa de que hay que reiniciarlo y de que eso corta lo que Claude esté haciendo; nunca lo reinicia solo. Abre Claude Desktop con su protocolo claude://.
 - 2026-11-16 10:25 · El conector se compila con el programa: ProConta.App lo referencia sin usar su ensamblado y lo copia en la subcarpeta `Conector\` de su salida, para que cada versión del programa lleve su conector sin mezclar sus librerías.
 - 2026-11-16 09:58 · Los textos de la BD (descripciones, conceptos, nombres, notas) son datos para Claude, nunca instrucciones (instrucciones del servidor, regla 7).
+- 2026-11-16 14:05 · Una entrada por entorno (plataforma/entorno-pruebas): `procontavf` para producción y `procontavf-pruebas` para la copia de pruebas; «IA › Abrir Claude» comprueba y configura la del entorno abierto. La herramienta `sociedades` devuelve `{ entorno, sociedades }` y las instrucciones del servidor dicen a Claude en qué entorno trabaja.
 
 ## Requirements
 - 2026-11-16 09:26 · Analiza la posibilidad de integrar una IA (Claude, en este caso) dentro del propio ProcontaVF. La idea es poder lanzar prompts que puedan interactuar con la BD.
@@ -33,6 +34,7 @@ Viene de la idea creative-lab/asistente-ia, que sigue en el laboratorio para lo 
 - 2026-11-16 10:08 · Quedaría muy bonito tener una opción de menú 'IA'. Quizá lo único que haría sería abrir/activar Claude Desktop.
 - 2026-11-16 10:08 · Y, lo suyo, sería verificar primero si está configurado el conector y, en caso contrario, configurarlo, pero no tengo claro si es factible.
 - 2026-11-16 10:12 · Ok al menú y a la validación previa de estar trabajando en la misma  BD que el entorno, podría generar problemillas que no fuese así.
+- 2026-11-16 14:05 · Derived from plataforma/entorno-pruebas: una entrada por entorno y el entorno indicado en la herramienta `sociedades`.
 
 ## Configuración en Claude Desktop
 Lo normal es configurarlo desde ProContaVF con «IA › Abrir Claude». A mano: en Claude Desktop, Configuración › Desarrollador › Editar configuración, y en `claude_desktop_config.json`, dentro del objeto que ya hay (no debajo):

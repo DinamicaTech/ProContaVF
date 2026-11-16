@@ -83,8 +83,9 @@ public partial class VentanaPrincipal : Window
     private readonly DispatcherTimer _borrarAviso;
     private bool _saliendo;
 
-    public VentanaPrincipal(ContextoAcceso contexto, UbicacionDatos ubicacion, int versionEsquema, IBaseDatos bd)
+    public VentanaPrincipal(ContextoAcceso contexto, UbicacionDatos ubicacion, int versionEsquema, IBaseDatos bd, InfoEntorno entorno)
     {
+        _entorno = entorno;
         AlternarNavegacionCommand = new ComandoDelegado(_ => AlternarNavegacion());
         GuardarActivaCommand = new ComandoDelegado(() => { if (_area?.Activa is { TieneCambios: true } p) _ = p.GuardarAsync(); });
         CerrarActivaCommand = new ComandoDelegado(() => { if (_area?.Lista.FirstOrDefault(p => p.Activa) is { Cerrable: true } p) p.CerrarCommand.Execute(null); });
@@ -101,6 +102,14 @@ public partial class VentanaPrincipal : Window
         TextoDatos.ToolTip = ubicacion.RutaBaseDatos;
         TextoEsquema.Text = $"Esquema versión {versionEsquema}";
         TextoVersion.Text = App.Version;
+        if (entorno.EsPruebas)
+        {
+            Title = "PRUEBAS · " + Title;
+            FranjaPruebas.Visibility = Visibility.Visible;
+            TextoFranjaPruebas.Text = "ENTORNO DE PRUEBAS" + (entorno.CopiaFecha is DateTime f ? $" · copia de producción del {f:dd/MM/yyyy HH:mm}" : "") + " · lo que hagas aquí no afecta a producción";
+            TextoDatos.Text = "PRUEBAS · " + TextoDatos.Text;
+            TextoDatos.ToolTip = $"{ubicacion.RutaBaseDatos}{Environment.NewLine}Copia de pruebas{(entorno.CopiaOrigen is { } o ? $" de {o}" : "")}.";
+        }
 
         _borrarAviso = new DispatcherTimer(TimeSpan.FromSeconds(12), DispatcherPriority.Background, (_, _) => { TextoAviso.Text = ""; _borrarAviso!.Stop(); }, Dispatcher);
         _borrarAviso.Stop();
@@ -392,7 +401,13 @@ public partial class VentanaPrincipal : Window
             new OpcionNavegacion("Configuración", Icono("gear"), true, false, "Parámetros y tablas: empresas, ejercicios, series, conceptos, formas de pago…", abrirParametros),
             new OpcionNavegacion("Parámetros y tablas", null, true, false, "Mantenimiento de las tablas y los parámetros de la aplicación, con buscador", abrirParametros, EsHija: true),
             new OpcionNavegacion("Importar ContaSol", null, true, false, "Importa la contabilidad de ContaSol por ejercicios (una BD por ejercicio), con simulación previa", abrirContaSol, EsHija: true),
-        };
+        }.Concat(entorno.EsPruebas ? [] : new[]
+        {
+            // Entorno de pruebas (plataforma/entorno-pruebas): el refresco se lanza desde producción.
+            new OpcionNavegacion("Actualizar la copia de pruebas…", null, true, false,
+                "Sustituye la copia de pruebas por una imagen de producción tal como está ahora (la BD y sus carpetas), con el correo desviado y sin VeriFactu. En producción no cambia nada",
+                new ComandoDelegado(() => _ = ActualizarCopiaPruebasAsync()), EsHija: true),
+        }).ToArray();
         RefrescarEstado();
     }
 

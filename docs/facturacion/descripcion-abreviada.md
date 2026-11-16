@@ -1,16 +1,25 @@
 ---
 title: Descripción abreviada de las facturas
-status: draft
-depends_on: [facturacion/factura-venta, facturacion/programadas, implantacion/migracion-erp, norma43/conciliacion]
+depends_on: [facturacion/factura-venta, facturacion/programadas, implantacion/migracion-erp, norma43/conciliacion, norma43/busqueda-por-importe/enlace-facturas]
+threads:
+  - 2026-11-16 17:05 · Descripción abreviada de las facturas | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GGZLepDu59ZV3krPJEfEMnf
 ---
 ## Summary
 Campo corto DescripcionAbreviada en las facturas de venta y en las facturas programadas (que lo pasan a la factura que generan), para el concepto de los apuntes de banco de la conciliación N43 («Transferencia de Juan Diaz · Alquiler mensual StaMaria 03/2026»). La carga inicial sale de las Notas del ERP.
+Hecho: columnas Facturas.DescripcionAbreviada y FacturasProgramadas.DescripcionAbreviada (TEXT 120, esquema 60), campo «Descripción abreviada» en el editor común de facturas y programadas (`EditorFacturaVM`, `VistaEditorFactura.xaml`), paso a la factura generada con %FECHAINICIO%/%FECHAFIN% sustituidos (`ServicioProgramadas`), carga desde las Notas del ERP (`ReglasErp.DescripcionAbreviada`) y lectura por la conciliación con `FacturasEnlazadasN43` (norma43/busqueda-por-importe/enlace-facturas). Pruebas en `FacturasAccessTests`, `ProgramadasAccessTests`, `ReglasErpTests` y `ConciliacionN43AccessTests`.
 **Aceptación:** la factura de venta y la programada tienen DescripcionAbreviada editable en sus pantallas; la programada la pasa (con su periodo) a la factura que genera; la migración del ERP la carga desde FacturasVenta.Notas y FacturasProgramadas.Notas; la conciliación N43 la añade al concepto de los apuntes de las líneas enlazadas.
 
 ## Decisions
 - 2026-11-13 10:50 · Creado como borrador desde norma43/conciliacion. En el ERP, FacturasVenta.Notas está informado en 1.566 de 2.160 facturas (p. ej. «Período: 01/09/2026 - 30/09/2026»); en ProContaVF la tabla Facturas no tiene Notas (no se migró), así que la carga inicial tiene que salir del ERP en implantacion/migracion-erp. Compras aún no tiene descripción abreviada: FacturasCompra.ConceptoAbreviado existe pero está vacío (su valor por defecto sería CuentasProveedoresSociedad.ConceptoAbreviadoDefecto).
+- 2026-11-16 17:05 · Campo: Facturas.DescripcionAbreviada y FacturasProgramadas.DescripcionAbreviada, texto de hasta 120 caracteres (las Notas del ERP llegan a 118), migración `20261116_1600_DESCRIPCION_ABREVIADA` (esquema 60). Se guarda sin espacios a los lados, nula si está vacía y recortada a 120 (`ReglasFactura.Abreviada`).
+- 2026-11-16 17:05 · Es un dato interno: no sale en el PDF ni en VeriFactu y no cambia la huella del documento, así que se puede cambiar también en una factura validada o rectificada, junto con las notas internas (`ReglasFactura.CampoModificable`, `ServicioFacturas.GuardarNotasAsync`).
+- 2026-11-16 17:05 · En el editor común de facturas y programadas va debajo de «Descripción general», con su tooltip. La copian Duplicar, la rectificativa y «Programar…»; la programada la pasa a cada factura que genera con %FECHAINICIO% y %FECHAFIN% sustituidos por su periodo. La búsqueda del listado de facturas la tiene en cuenta.
+- 2026-11-16 17:05 · Carga inicial (implantacion/migracion-erp 2026-11-16 17:05): FacturasVenta.Notas y FacturasProgramadas.Notas pasan a DescripcionAbreviada y dejan de ir a NotasInternas; si no caben en 120 caracteres, se recortan y el texto entero queda también en NotasInternas. Las BD de pruebas ya migradas no se rellenan: la de producción se carga de nuevo con el migrador.
+- 2026-11-16 17:05 · La conciliación N43 la recibe con las facturas enlazadas de cada línea (norma43/busqueda-por-importe/enlace-facturas 2026-11-16 17:05); el concepto de los apuntes ya la usaba (norma43/conciliacion 2026-11-13 10:50).
+- 2026-11-16 17:19 · Validado por el propietario (PR #92): el nodo deja de ser borrador.
 
 ## Requirements
 - 2026-11-13 10:42 · 'Alquiler mensual StaMaria 03/2026', el IdFactura ya lo tenemos en una columna aparte. Seria FacturasVenta.DescripcionAbreviada ..... vaya, me acabo de inventar un campo que afecta de lleno a facturas de venta. El campo 'Descripcion' actual es demasiado largo, por lo que añadiremos un 'DescripcionAbreviada' en facturas programadas y en facturas venta. De hecho, actualmente ya lo tenemos en FacturasVenta.Notas (aparece, por ejemplo 'Período: 01/11/2025 - 30/11/2025' que es justo lo que necesitamos), solo que este es un campo Memo no especializado en la descripción corta, pero nos puede servir para la carga inicial de datos (FacturasProgramadas.DescripcionAbreviada=FacturasProgramadas.Notas) y (FacturasVenta.DescripcionAbreviada=FacturasVenta.Notas)
 - 2026-11-13 10:42 · Si, compras aún no tiene descripcion abreviada.
 - 2026-11-13 10:50 · draft: Añadir DescripcionAbreviada a las facturas de venta y a las facturas programadas (que la pasan a la factura que generan), editable en sus pantallas, con la carga inicial desde FacturasVenta.Notas y FacturasProgramadas.Notas del ERP en implantacion/migracion-erp, para que la conciliación N43 la añada al concepto de los apuntes de banco.
+- 2026-11-16 17:19 · Ok, puedes fusionar

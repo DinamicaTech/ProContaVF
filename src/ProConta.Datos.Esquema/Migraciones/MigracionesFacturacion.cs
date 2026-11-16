@@ -231,4 +231,23 @@ public static class MigracionesFacturacion
             new("Clientes", "IBAN", "IBAN del cliente, sin espacios, para los recibos domiciliados; en la factura sale enmascarado (solo los cuatro últimos dígitos)."),
         ],
     };
+
+    /// <summary>
+    /// Descripción abreviada (facturacion/descripcion-abreviada 2026-11-16): texto corto de la factura de venta y de la programada
+    /// (que lo pasa, con su periodo, a la factura que genera) para el concepto de los apuntes de banco de la conciliación N43.
+    /// Es un dato interno: no sale en el PDF ni en VeriFactu. Solo añade columnas.
+    /// </summary>
+    public static Migracion DescripcionAbreviada { get; } = new(
+        "20261116_1600_DESCRIPCION_ABREVIADA", 261116016,
+        "Descripción abreviada de las facturas de venta y de las programadas, para el concepto de los apuntes de banco.",
+        "facturacion/descripcion-abreviada",
+        new AnadirColumna("Facturas", "DescripcionAbreviada", "TEXT(120)"),
+        new AnadirColumna("FacturasProgramadas", "DescripcionAbreviada", "TEXT(120)"))
+    {
+        Descripciones =
+        [
+            new("Facturas", "DescripcionAbreviada", "Descripción corta de la factura («Período: 01/11/2026 - 30/11/2026») que la conciliación N43 añade al concepto de los apuntes de banco. No sale en el PDF."),
+            new("FacturasProgramadas", "DescripcionAbreviada", "Descripción corta que pasa a cada factura generada; admite %FECHAINICIO% y %FECHAFIN%, que se sustituyen por su periodo."),
+        ],
+    };
 }

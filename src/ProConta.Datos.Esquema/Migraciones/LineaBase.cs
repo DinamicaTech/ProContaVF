@@ -104,6 +104,8 @@ public static class CatalogoMigraciones
         MigracionesContabilidad.LiquidacionesIva,
         MigracionesNorma43.BusquedaPorImporte,
         MigracionesNorma43.Remesas,
+        MigracionesPlataforma.EntornoPruebas,
+        MigracionesFacturacion.DescripcionAbreviada,
         MigracionesVentas.CompensacionComision,
     ];
 
