@@ -46,6 +46,8 @@ public sealed class FichaTerceroVM : Observable, IPestanaTrabajo, INotifyDataErr
         CuentaAcreedor = new CuentaRolVM(this, ClaseCuentaRol.Acreedor);
         CuentaRetencion = new CuentaRolVM(this, ClaseCuentaRol.Retencion);
         CuentaEmpleado = new CuentaRolVM(this, ClaseCuentaRol.Empleado);
+        CuentaDividendos = new CuentaRolVM(this, ClaseCuentaRol.Dividendos);
+        CuentaRetencionDividendos = new CuentaRolVM(this, ClaseCuentaRol.RetencionDividendos);
 
         GuardarCommand = new ComandoDelegado(() => _ = GuardarAsync(), () => !Guardando && Estado == EstadoVista.Contenido);
         DescartarCommand = new ComandoDelegado(PreguntarDescartar, () => TieneCambios && !Guardando);
@@ -111,6 +113,7 @@ public sealed class FichaTerceroVM : Observable, IPestanaTrabajo, INotifyDataErr
             }
             t.CuentasRoles = await Servicios.Roles.IdentidadesAsync(idTercero, Servicios.Contexto.IdSociedad);
             t.Roles.Empleado = await Servicios.Roles.EmpleadoAsync(idTercero, Servicios.Contexto.IdSociedad);
+            t.Roles.Socio = await Servicios.Roles.SocioAsync(idTercero, Servicios.Contexto.IdSociedad);
             await MostrarAsync(t);
         }
         catch (ExcepcionDatos ex)
@@ -154,6 +157,7 @@ public sealed class FichaTerceroVM : Observable, IPestanaTrabajo, INotifyDataErr
         _cargando = true;
         _original = t;
         T = t.Clonar();
+        _participacionTexto = null;
         Clave = t.IdTercero;
         _tocados.Clear();
         _intentoGuardar = false;
@@ -177,6 +181,8 @@ public sealed class FichaTerceroVM : Observable, IPestanaTrabajo, INotifyDataErr
         CuentaAcreedor.Cargar(await De(ClaseCuentaRol.Acreedor));
         CuentaRetencion.Cargar(await De(ClaseCuentaRol.Retencion));
         CuentaEmpleado.Cargar(await De(ClaseCuentaRol.Empleado));
+        CuentaDividendos.Cargar(await De(ClaseCuentaRol.Dividendos));
+        CuentaRetencionDividendos.Cargar(await De(ClaseCuentaRol.RetencionDividendos));
         ActualizarMayor();
     }
 
@@ -319,6 +325,8 @@ public sealed class FichaTerceroVM : Observable, IPestanaTrabajo, INotifyDataErr
         T.Roles.EsContacto ? new InsigniaRol("contacto", "Contacto", T.Roles.Contacto!.IdContacto?.ToString() ?? "nuevo", "Rol Contacto activo. Pulsa para ir a él en la pestaña Roles") : null,
         T.Roles.EsEmpleado ? new InsigniaRol("empleado", "Empleado", string.IsNullOrWhiteSpace(T.Roles.Empleado!.CodigoTrabajador) ? "sin código" : T.Roles.Empleado.CodigoTrabajador.Trim(),
             $"Empleado en {NombreSociedad}, con su código en la gestoría. Pulsa para ir al rol en la pestaña Roles") : null,
+        T.Roles.EsSocio ? new InsigniaRol("socio", "Socio", T.Roles.Socio!.Participacion is decimal p ? $"{p.ToString("0.##", Formatos.Cultura)} %" : "sin %",
+            $"Socio de {NombreSociedad}, con su participación en el capital. Pulsa para ir al rol en la pestaña Roles") : null,
     }.OfType<InsigniaRol>().ToList();
 
     /// <summary>Se ha pulsado una insignia: la vista lleva el foco al rol.</summary>
@@ -619,6 +627,35 @@ public sealed class FichaTerceroVM : Observable, IPestanaTrabajo, INotifyDataErr
         : $"De baja en {NombreSociedad}: sus nóminas se conservan y el trabajador se sigue reconociendo por su código (finiquitos, atrasos), con un aviso al importar.";
     public string TituloEmpleado => $"Empleado en {NombreSociedad}";
 
+    public bool SocioActivo => T.Roles.EsSocio;
+    public string IdSocio => T.Roles.Socio?.IdSocio?.ToString() ?? (SocioActivo ? "al guardar" : "");
+    public string EstadoSocio => SocioActivo ? "" : T.Roles.Socio is null ? $"Rol no activo en {NombreSociedad}."
+        : $"Ya no es socio de {NombreSociedad}: sus repartos y sus subcuentas 526 y 4751 se conservan.";
+    public string TituloSocio => $"Socio de {NombreSociedad}";
+
+    private string? _participacionTexto;
+
+    /// <summary>
+    /// % de participación vigente en el capital (contabilidad/procesos/aplicacion-resultado 2026-11-16 17:55): reparte los dividendos y los pagos entre
+    /// socios. Sin fechas de vigencia: cada cambio queda en el historial de la ficha.
+    /// </summary>
+    public string ParticipacionSocio
+    {
+        get => _participacionTexto ?? (T.Roles.Socio?.Participacion is decimal p ? p.ToString("0.####", Formatos.Cultura) : "");
+        set
+        {
+            if (T.Roles.Socio is not { } so) return;
+            _participacionTexto = value;
+            var texto = (value ?? "").Replace("%", "").Trim();
+            decimal? nuevo = texto.Length == 0 ? null : Formatos.LeerImporte(texto, out var v) ? v : so.Participacion;
+            if (nuevo != so.Participacion) so.Participacion = nuevo;
+            Avisar();
+            Avisar(nameof(Insignias));
+            CambiadoAqui(nameof(ParticipacionSocio));
+        }
+    }
+
+
     /// <summary>Código del trabajador en la gestoría (columna B del Excel de nóminas); vale para los Excel que se importen a partir de ahora.</summary>
     public string? CodigoTrabajador
     {
@@ -661,6 +698,8 @@ public sealed class FichaTerceroVM : Observable, IPestanaTrabajo, INotifyDataErr
     public CuentaRolVM CuentaAcreedor { get; }
     public CuentaRolVM CuentaRetencion { get; }
     public CuentaRolVM CuentaEmpleado { get; }
+    public CuentaRolVM CuentaDividendos { get; }
+    public CuentaRolVM CuentaRetencionDividendos { get; }
 
     public string TextoCuentas => $"Las cuentas valen para todos los ejercicios de {NombreSociedad}: en cada ejercicio se usa la misma cuenta, aunque cambie su código. Se ven las del ejercicio {Ejercicio}.";
 
@@ -687,6 +726,11 @@ public sealed class FichaTerceroVM : Observable, IPestanaTrabajo, INotifyDataErr
                 if (T.Roles.Empleado is null) { if (activo) T.Roles.Empleado = new RolEmpleado(Servicios.Contexto.IdSociedad); }
                 else T.Roles.Empleado.Activo = activo;
                 break;
+            case "socio":
+                if (T.Roles.Socio is null) { if (activo) T.Roles.Socio = new RolSocio(Servicios.Contexto.IdSociedad); }
+                else T.Roles.Socio.Activo = activo;
+                _participacionTexto = null;
+                break;
             default: return;
         }
         AvisarRoles();
@@ -697,17 +741,19 @@ public sealed class FichaTerceroVM : Observable, IPestanaTrabajo, INotifyDataErr
     {
         Avisar(nameof(ClienteActivo), nameof(ProveedorActivo), nameof(ContactoActivo), nameof(IdCliente), nameof(IdProveedor), nameof(IdContacto),
             nameof(EstadoCliente), nameof(EstadoProveedor), nameof(EstadoContacto), nameof(NotasCliente), nameof(IbanCliente), nameof(NotasProveedor), nameof(Cargo), nameof(Departamento),
-            nameof(NotasContacto), nameof(Insignias), nameof(EmpleadoActivo), nameof(IdEmpleado), nameof(EstadoEmpleado), nameof(CodigoTrabajador));
+            nameof(NotasContacto), nameof(Insignias), nameof(EmpleadoActivo), nameof(IdEmpleado), nameof(EstadoEmpleado), nameof(CodigoTrabajador),
+            nameof(SocioActivo), nameof(IdSocio), nameof(EstadoSocio), nameof(ParticipacionSocio));
         foreach (var c in CuentasDeRoles) c.AvisarAuto();
     }
 
-    private IEnumerable<CuentaRolVM> CuentasDeRoles => [CuentaCliente, CuentaRetencion, CuentaProveedor, CuentaAcreedor, CuentaEmpleado];
+    private IEnumerable<CuentaRolVM> CuentasDeRoles => [CuentaCliente, CuentaRetencion, CuentaProveedor, CuentaAcreedor, CuentaEmpleado, CuentaDividendos, CuentaRetencionDividendos];
 
     /// <summary>¿Está activo el rol al que pertenece esa cuenta? (cliente y retención del Cliente; proveedor y acreedor del Proveedor).</summary>
     internal bool RolActivoDe(ClaseCuentaRol clase) => clase switch
     {
         ClaseCuentaRol.Cliente or ClaseCuentaRol.Retencion => ClienteActivo,
         ClaseCuentaRol.Proveedor or ClaseCuentaRol.Acreedor => ProveedorActivo,
+        ClaseCuentaRol.Dividendos or ClaseCuentaRol.RetencionDividendos => SocioActivo,
         _ => EmpleadoActivo
     };
 
@@ -717,6 +763,8 @@ public sealed class FichaTerceroVM : Observable, IPestanaTrabajo, INotifyDataErr
         ClaseCuentaRol.Retencion => CuentaRetencion,
         ClaseCuentaRol.Proveedor => CuentaProveedor,
         ClaseCuentaRol.Empleado => CuentaEmpleado,
+        ClaseCuentaRol.Dividendos => CuentaDividendos,
+        ClaseCuentaRol.RetencionDividendos => CuentaRetencionDividendos,
         _ => CuentaAcreedor
     };
 
@@ -904,7 +952,7 @@ public sealed class FichaTerceroVM : Observable, IPestanaTrabajo, INotifyDataErr
     internal void Tocar(object modelo, string campo) => _tocados.Add((modelo, campo));
 
     private IEnumerable<ParteFicha> Partes() =>
-        Domicilios.Cast<ParteFicha>().Concat(Emails).Concat(Telefonos).Concat(Grupos).Concat(Relaciones).Concat([CuentaCliente, CuentaRetencion, CuentaProveedor, CuentaAcreedor, CuentaEmpleado]);
+        Domicilios.Cast<ParteFicha>().Concat(Emails).Concat(Telefonos).Concat(Grupos).Concat(Relaciones).Concat([CuentaCliente, CuentaRetencion, CuentaProveedor, CuentaAcreedor, CuentaEmpleado, CuentaDividendos, CuentaRetencionDividendos]);
 
     private void RecalcularErrores()
     {
@@ -996,7 +1044,7 @@ public sealed class FichaTerceroVM : Observable, IPestanaTrabajo, INotifyDataErr
         _intentoGuardar = true;
         _erroresGuardado = [];
         // Confirma las cuentas escritas y aún sin comprobar (el foco puede seguir en el campo).
-        foreach (var c in new[] { CuentaCliente, CuentaRetencion, CuentaProveedor, CuentaAcreedor, CuentaEmpleado }) await c.ConfirmarAsync();
+        foreach (var c in new[] { CuentaCliente, CuentaRetencion, CuentaProveedor, CuentaAcreedor, CuentaEmpleado, CuentaDividendos, CuentaRetencionDividendos }) await c.ConfirmarAsync();
         RecalcularErrores();
         if (_errores.Count > 0)
         {

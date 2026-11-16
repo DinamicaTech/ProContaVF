@@ -50,7 +50,7 @@ public sealed record ResultadoPendientesN43(IReadOnlyList<int> Explotadas, IRead
 /// remesa anterior: con un solo recibo, la propia línea va a la 430 del cliente; con varios se desglosa en la cuenta ficticia de recibos
 /// devueltos (cuenta 0000000001). Deshacer revierte el extracto ficticio (auditado, sin borrar filas) y libera las facturas.
 /// </summary>
-public sealed class ServicioRemesasN43
+public sealed partial class ServicioRemesasN43
 {
     /// <summary>Cuenta (CCC) de la cuenta bancaria ficticia de remesas de cada banco.</summary>
     public const string CuentaRemesas = "0000000000";
@@ -307,6 +307,14 @@ public sealed class ServicioRemesasN43
                 var idLote = Convert.ToInt32(await s.EscalarAsync("SELECT IdLoteImportacionBancaria FROM ExtractosBancarios WHERE IdExtractoBancario = ?", idExtracto), CultureInfo.InvariantCulture);
                 await s.EjecutarAsync("UPDATE LotesImportacionBancaria SET Estado = ?, FechaHoraReversion = ?, OperadorReversion = ?, MotivoReversion = ? WHERE IdLoteImportacionBancaria = ?",
                     ServicioImportacionN43.EstadoRevertido, SinMilisegundos(_reloj.Ahora), Recortar(actor.ToString(), 100), $"Deshecha la explosión de la línea {l.Id} ({l.Rotulo}).", idLote);
+                if (await s.EscalarAsync("SELECT Formato FROM LotesImportacionBancaria WHERE IdLoteImportacionBancaria = ?", idLote) is string formatoLote && formatoLote == FormatoDividendos)
+                {
+                    if (l.IdAsiento is null)
+                        await s.EjecutarAsync("UPDATE ImputacionesLineaExtractoBancario SET Estado = 'DESCARTADA' WHERE IdLineaExtractoBancario = ? AND Estado <> 'DESCARTADA' AND Origen = ?",
+                            l.Id, OrigenDividendos);
+                    return new ResultadoRemesaN43(idExtracto, hijas,
+                        $"Deshecho el pago de dividendos: {l.Rotulo} vuelve a estar sin desglosar y sin cuenta; ponle la suya con «Reasignar por palabras clave», «Asignar cuenta…» o «Pago de dividendos…».", null);
+                }
                 return new ResultadoRemesaN43(idExtracto, hijas, $"Deshecha: {l.Rotulo} vuelve a estar sin explotar y sus {cobros.Count + devoluciones.Count} factura(s) quedan como estaban.", null);
             }
 
@@ -475,23 +483,42 @@ public sealed class ServicioRemesasN43
     // ---------- escrituras ----------
 
     /// <summary>Lote, extracto ficticio (con la línea de origen) y una línea por recibo, cada una llevada a la cuenta de su cliente.</summary>
-    private async Task<(int IdExtracto, IReadOnlyList<int> Lineas)> EscribirDesgloseAsync(ISesionDatos s, string idSociedad, LineaN43 l, int idCuenta, bool devolucion,
+    private Task<(int IdExtracto, IReadOnlyList<int> Lineas)> EscribirDesgloseAsync(ISesionDatos s, string idSociedad, LineaN43 l, int idCuenta, bool devolucion,
         IReadOnlyList<(FacturaRemesa Factura, decimal Importe, int Identidad)> recibos, Actor actor)
+    {
+        var que = devolucion ? "Devolución" : "Remesa";
+        _ = actor;
+        return EscribirExtractoAsync(s, idSociedad, l, idCuenta, devolucion, Formato,
+            $"{que} del {l.FechaOperacion:dd/MM/yyyy} · {l.Importe.ToString("N2", Es)} € · {recibos.Count} recibo(s) (línea {l.Id})", $"({que} de la línea {l.Id})",
+            devolucion ? OrigenDevolucion : OrigenRemesa,
+            recibos.Select(r => new LineaDesglose(Recortar(r.Factura.Numero, 10), ReglasRemesasN43.ConceptoRecibo(r.Factura, devolucion),
+                $"(Recibo de la factura {r.Factura.Numero}, {que.ToLowerInvariant()} de la línea {l.Id})", r.Importe, r.Identidad)).ToList());
+    }
+
+    /// <summary>Una línea de un extracto ficticio: documento, concepto, texto original, importe y la cuenta (identidad) a la que va.</summary>
+    private sealed record LineaDesglose(string? Documento, string Concepto, string TextoOriginal, decimal Importe, int Identidad);
+
+    /// <summary>
+    /// Lote (con su <paramref name="formato"/>), extracto ficticio en la cuenta <paramref name="idCuenta"/> enlazado con la línea de origen y una línea por
+    /// desglose, cada una llevada a su cuenta. <paramref name="cargo"/>: las líneas son cargos (devoluciones, pagos de dividendos) o abonos (remesas).
+    /// </summary>
+    private async Task<(int IdExtracto, IReadOnlyList<int> Lineas)> EscribirExtractoAsync(ISesionDatos s, string idSociedad, LineaN43 l, int idCuenta, bool cargo, string formato,
+        string nombreLote, string cabecera, string origen, IReadOnlyList<LineaDesglose> lineas)
     {
         var ahora = SinMilisegundos(_reloj.Ahora);
         var cuenta = await s.ConsultarPrimeroAsync("SELECT EntidadOriginal, Oficina, Cuenta, Divisa FROM CuentasBancarias WHERE IdCuentaBancaria = ?",
             f => (Entidad: (f.Texto("EntidadOriginal") ?? "").Trim(), Oficina: (f.Texto("Oficina") ?? "").Trim(), Cuenta: (f.Texto("Cuenta") ?? "").Trim(), Divisa: (f.Texto("Divisa") ?? "EUR").Trim()), idCuenta);
-        var que = devolucion ? "Devolución" : "Remesa";
-        var nombre = Recortar($"{que} del {l.FechaOperacion:dd/MM/yyyy} · {l.Importe.ToString("N2", Es)} € · {recibos.Count} recibo(s) (línea {l.Id})", 255);
-        var huella = ServicioImportacionN43.Huella(Encoding.UTF8.GetBytes($"{Formato}|{idSociedad}|{l.Id}|{ahora:O}|{Guid.NewGuid():N}"));
+        var nombre = Recortar(nombreLote, 255);
+        var huella = ServicioImportacionN43.Huella(Encoding.UTF8.GetBytes($"{formato}|{idSociedad}|{l.Id}|{ahora:O}|{Guid.NewGuid():N}"));
         await s.EjecutarAsync(
             "INSERT INTO LotesImportacionBancaria (IdSociedad, Formato, VersionEsquema, NombreFichero, RutaOrigen, HashSha256Contenido, TamanoBytes, Codificacion, Estado, " +
             "FechaHoraInicio, FechaHoraFin, NumeroRegistrosDeclarado, NumeroRegistrosLeido, NumeroExtractos, NumeroMovimientos, NumeroErrores, NumeroAdvertencias) " +
             "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-            idSociedad, Formato, "PROCONTAVF", nombre, null, huella, 0, "N/A", ServicioImportacionN43.EstadoImportado, ahora, ahora, 0, 0, 1, recibos.Count, 0, 0);
+            idSociedad, formato, "PROCONTAVF", nombre, null, huella, 0, "N/A", ServicioImportacionN43.EstadoImportado, ahora, ahora, 0, 0, 1, lineas.Count, 0, 0);
         var idLote = await s.UltimoIdAsync();
-        var total = recibos.Sum(r => r.Importe);
-        var n = recibos.Count;
+        var total = lineas.Sum(r => r.Importe);
+        var n = lineas.Count;
+        var devolucion = cargo;
         await s.EjecutarAsync(
             "INSERT INTO ExtractosBancarios (IdLoteImportacionBancaria, OrdinalExtracto, IdCuentaBancaria, Entidad, Oficina, Cuenta, Divisa, FechaInicio, FechaFin, SentidoSaldoInicial, " +
             "SaldoInicial, Modalidad, Nombre, NumeroApuntesDebeDeclarado, TotalDebeDeclarado, NumeroApuntesHaberDeclarado, TotalHaberDeclarado, NumeroApuntesDebeCalculado, " +
@@ -502,25 +529,23 @@ public sealed class ServicioRemesasN43
             devolucion ? n : 0, devolucion ? total : 0m, devolucion ? 0 : n, devolucion ? 0m : total,
             devolucion ? n : 0, devolucion ? total : 0m, devolucion ? 0 : n, devolucion ? 0m : total, null, devolucion ? -total : total,
             // Descuadrado a propósito: su saldo final no es el de una cuenta (pantalla-de-inicio no lo compara), como los del ERP.
-            "DESCUADRADO", Recortar($"({que} de la línea {l.Id})", 80), Recortar($"({que} de la línea {l.Id})", 80), l.Id);
+            "DESCUADRADO", Recortar(cabecera, 80), Recortar(cabecera, 80), l.Id);
         var idExtracto = await s.UltimoIdAsync();
         var sentido = ReglasRemesasN43.Sentido(devolucion);
         var ids = new List<int>(n);
         for (var i = 0; i < n; i++)
         {
-            var (f, importe, identidad) = recibos[i];
-            var concepto = ReglasRemesasN43.ConceptoRecibo(f, devolucion);
+            var d = lineas[i];
             await s.EjecutarAsync(
                 "INSERT INTO LineasExtractoBancario (IdExtractoBancario, OrdinalMovimiento, NumeroLineaFisica, OficinaOrigen, FechaOperacion, FechaValor, ConceptoComun, ConceptoPropio, " +
                 "Sentido, Importe, Documento, Referencia1, Referencia2, ConceptoCompleto, EntidadOficinaDestino, TextoOriginal) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                idExtracto, i + 1, i + 1, null, l.FechaOperacion, l.FechaValor, l.ConceptoComun, null, sentido, importe, Recortar(f.Numero, 10),
-                l.Referencia1 is null ? null : Recortar(l.Referencia1, 12), l.Referencia2 is null ? null : Recortar(l.Referencia2, 16), concepto, null,
-                Recortar($"(Recibo de la factura {f.Numero}, {que.ToLowerInvariant()} de la línea {l.Id})", 80));
+                idExtracto, i + 1, i + 1, null, l.FechaOperacion, l.FechaValor, l.ConceptoComun, null, sentido, d.Importe, d.Documento,
+                l.Referencia1 is null ? null : Recortar(l.Referencia1, 12), l.Referencia2 is null ? null : Recortar(l.Referencia2, 16), d.Concepto, null,
+                Recortar(d.TextoOriginal, 80));
             var id = await s.UltimoIdAsync();
-            await ImputarAsync(s, id, identidad, sentido, importe, devolucion ? OrigenDevolucion : OrigenRemesa, concepto);
+            await ImputarAsync(s, id, d.Identidad, sentido, d.Importe, origen, d.Concepto);
             ids.Add(id);
         }
-        _ = actor;
         return (idExtracto, ids);
     }
 

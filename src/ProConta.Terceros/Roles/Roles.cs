@@ -59,6 +59,21 @@ public sealed class RolEmpleado(string idSociedad)
 }
 
 /// <summary>
+/// Rol Socio en la sociedad de trabajo (tablas Socios y SociosSociedad, contabilidad/procesos/aplicacion-resultado 2026-11-16 17:55): su % de
+/// participación vigente (sin fechas: los cambios quedan en el historial de la ficha) y, en <see cref="CuentasRolesFicha.Dividendos"/> y
+/// <see cref="CuentasRolesFicha.RetencionDividendos"/>, sus subcuentas 526 y 4751. Quitarlo deja la fila de la sociedad inactiva.
+/// </summary>
+public sealed class RolSocio(string idSociedad)
+{
+    public string IdSociedad { get; } = idSociedad;
+    public int? IdSocio { get; internal set; }
+    public bool Activo { get; set; } = true;
+    /// <summary>Participación en el capital, en porcentaje (50 = 50 %); null sin indicar.</summary>
+    public decimal? Participacion { get; set; }
+    internal RolSocio Clonar() => (RolSocio)MemberwiseClone();
+}
+
+/// <summary>
 /// Roles de la ficha. Null en un rol significa que el tercero nunca lo ha tenido y guardar no lo toca; para darlo
 /// se crea con Activo = true y para quitarlo se pone Activo = false (la fila se conserva).
 /// </summary>
@@ -69,11 +84,14 @@ public sealed class RolesFicha
     public RolContacto? Contacto { get; set; }
     /// <summary>Rol Empleado en la sociedad de trabajo; lo carga la ficha con las cuentas de la sociedad (null: nunca lo ha tenido allí).</summary>
     public RolEmpleado? Empleado { get; set; }
+    /// <summary>Rol Socio en la sociedad de trabajo; lo carga la ficha (null: nunca lo ha tenido allí).</summary>
+    public RolSocio? Socio { get; set; }
 
     public bool EsCliente => Cliente is { Activo: true };
     public bool EsProveedor => Proveedor is { Activo: true };
     public bool EsContacto => Contacto is { Activo: true };
     public bool EsEmpleado => Empleado is { Activo: true };
+    public bool EsSocio => Socio is { Activo: true };
 
     internal void CopiarDe(RolesFicha otro)
     {
@@ -81,6 +99,7 @@ public sealed class RolesFicha
         Proveedor = otro.Proveedor?.Clonar();
         Contacto = otro.Contacto?.Clonar();
         Empleado = otro.Empleado?.Clonar();
+        Socio = otro.Socio?.Clonar();
     }
 }
 
@@ -95,7 +114,11 @@ public enum ClaseCuentaRol
     Acreedor,
     Retencion,
     /// <summary>Cuenta 465 del empleado (remuneraciones pendientes), en EmpleadosSociedad.</summary>
-    Empleado
+    Empleado,
+    /// <summary>Subcuenta 526 del socio (dividendo activo a pagar), en SociosSociedad.</summary>
+    Dividendos,
+    /// <summary>Subcuenta 4751 del socio (retención de dividendos), en SociosSociedad.</summary>
+    RetencionDividendos
 }
 
 /// <summary>
@@ -110,6 +133,8 @@ public sealed class CuentasRolesFicha(string idSociedad)
     public int? Acreedor { get; set; }
     public int? Retencion { get; set; }
     public int? Empleado { get; set; }
+    public int? Dividendos { get; set; }
+    public int? RetencionDividendos { get; set; }
 
     public int? De(ClaseCuentaRol clase) => clase switch
     {
@@ -117,6 +142,8 @@ public sealed class CuentasRolesFicha(string idSociedad)
         ClaseCuentaRol.Proveedor => Proveedor,
         ClaseCuentaRol.Retencion => Retencion,
         ClaseCuentaRol.Empleado => Empleado,
+        ClaseCuentaRol.Dividendos => Dividendos,
+        ClaseCuentaRol.RetencionDividendos => RetencionDividendos,
         _ => Acreedor
     };
 
@@ -128,6 +155,8 @@ public sealed class CuentasRolesFicha(string idSociedad)
             case ClaseCuentaRol.Proveedor: Proveedor = identidad; break;
             case ClaseCuentaRol.Retencion: Retencion = identidad; break;
             case ClaseCuentaRol.Empleado: Empleado = identidad; break;
+            case ClaseCuentaRol.Dividendos: Dividendos = identidad; break;
+            case ClaseCuentaRol.RetencionDividendos: RetencionDividendos = identidad; break;
             default: Acreedor = identidad; break;
         }
     }
@@ -147,7 +176,8 @@ public sealed record CuentaRol(ClaseCuentaRol Clase, int IdIdentidadContable, Cu
 }
 
 /// <summary>Cuentas de los roles de un tercero en la sociedad y el ejercicio de trabajo.</summary>
-public sealed record CuentasRolesTercero(CuentaRol? Cliente, CuentaRol? Proveedor, CuentaRol? Acreedor, CuentaRol? Retencion = null, CuentaRol? Empleado = null)
+public sealed record CuentasRolesTercero(CuentaRol? Cliente, CuentaRol? Proveedor, CuentaRol? Acreedor, CuentaRol? Retencion = null, CuentaRol? Empleado = null,
+    CuentaRol? Dividendos = null, CuentaRol? RetencionDividendos = null)
 {
     public CuentaRol? De(ClaseCuentaRol clase) => clase switch
     {
@@ -155,6 +185,8 @@ public sealed record CuentasRolesTercero(CuentaRol? Cliente, CuentaRol? Proveedo
         ClaseCuentaRol.Proveedor => Proveedor,
         ClaseCuentaRol.Retencion => Retencion,
         ClaseCuentaRol.Empleado => Empleado,
+        ClaseCuentaRol.Dividendos => Dividendos,
+        ClaseCuentaRol.RetencionDividendos => RetencionDividendos,
         _ => Acreedor
     };
 }
@@ -247,8 +279,22 @@ public sealed class ServicioRoles(IBaseDatos bd, ICatalogoCuentas cuentas)
         r.Empleado = await s.ConsultarPrimeroAsync(
             "SELECT es.IdIdentidadContable FROM EmpleadosSociedad AS es INNER JOIN Empleados AS e ON es.IdEmpleado = e.IdEmpleado " +
             "WHERE e.IdTercero = ? AND es.IdSociedad = ? AND es.IdIdentidadContable IS NOT NULL", f => (int?)f.Entero("IdIdentidadContable"), idTercero, idSociedad);
+        var socio = await s.ConsultarPrimeroAsync(
+            "SELECT ss.IdIdentidadDividendos, ss.IdIdentidadRetencion FROM SociosSociedad AS ss INNER JOIN Socios AS so ON ss.IdSocio = so.IdSocio " +
+            "WHERE so.IdTercero = ? AND ss.IdSociedad = ?", f => (Dividendos: f.EnteroNulo("IdIdentidadDividendos"), Retencion: f.EnteroNulo("IdIdentidadRetencion")), idTercero, idSociedad);
+        r.Dividendos = socio.Dividendos;
+        r.RetencionDividendos = socio.Retencion;
         return r;
     }
+
+    /// <summary>El rol Socio del tercero en la sociedad (null si nunca lo ha tenido allí).</summary>
+    public Task<RolSocio?> SocioAsync(int idTercero, string idSociedad) => bd.EjecutarAsync(s => SocioAsync(s, idTercero, idSociedad));
+
+    internal static Task<RolSocio?> SocioAsync(ISesionDatos s, int idTercero, string idSociedad) => s.ConsultarPrimeroAsync(
+        "SELECT so.IdSocio, ss.Activo, ss.Participacion FROM Socios AS so INNER JOIN SociosSociedad AS ss ON so.IdSocio = ss.IdSocio " +
+        "WHERE so.IdTercero = ? AND ss.IdSociedad = ?",
+        f => (RolSocio?)new RolSocio(idSociedad) { IdSocio = f.Entero("IdSocio"), Activo = f.Logico("Activo"), Participacion = f.DecimalNulo("Participacion") },
+        idTercero, idSociedad);
 
     /// <summary>El rol Empleado del tercero en la sociedad (null si nunca lo ha tenido allí).</summary>
     public Task<RolEmpleado?> EmpleadoAsync(int idTercero, string idSociedad) => bd.EjecutarAsync(s => EmpleadoAsync(s, idTercero, idSociedad));
@@ -268,7 +314,9 @@ public sealed class ServicioRoles(IBaseDatos bd, ICatalogoCuentas cuentas)
             ids.Proveedor is int p ? await ResolverAsync(ClaseCuentaRol.Proveedor, p, contexto) : null,
             ids.Acreedor is int a ? await ResolverAsync(ClaseCuentaRol.Acreedor, a, contexto) : null,
             ids.Retencion is int r ? await ResolverAsync(ClaseCuentaRol.Retencion, r, contexto) : null,
-            ids.Empleado is int e ? await ResolverAsync(ClaseCuentaRol.Empleado, e, contexto) : null);
+            ids.Empleado is int e ? await ResolverAsync(ClaseCuentaRol.Empleado, e, contexto) : null,
+            ids.Dividendos is int d ? await ResolverAsync(ClaseCuentaRol.Dividendos, d, contexto) : null,
+            ids.RetencionDividendos is int rd ? await ResolverAsync(ClaseCuentaRol.RetencionDividendos, rd, contexto) : null);
     }
 
     /// <summary>La cuenta de una identidad en el ejercicio de trabajo o, si aún no existe, la última conocida.</summary>
@@ -304,7 +352,10 @@ public sealed class ServicioRoles(IBaseDatos bd, ICatalogoCuentas cuentas)
 
     /// <summary>Identidad asignada a un rol en una sociedad, o null.</summary>
     internal static Task<int?> IdentidadAsignadaAsync(ISesionDatos s, ClaseCuentaRol clase, int idRol, string idSociedad) =>
-        clase == ClaseCuentaRol.Empleado
+        EsDeSocio(clase)
+            ? s.ConsultarPrimeroAsync($"SELECT {ColumnaSocio(clase)} FROM SociosSociedad WHERE IdSocio = ? AND IdSociedad = ? AND {ColumnaSocio(clase)} IS NOT NULL",
+                f => (int?)f.Entero(ColumnaSocio(clase)), idRol, idSociedad)
+        : clase == ClaseCuentaRol.Empleado
             ? s.ConsultarPrimeroAsync("SELECT IdIdentidadContable FROM EmpleadosSociedad WHERE IdEmpleado = ? AND IdSociedad = ? AND IdIdentidadContable IS NOT NULL",
                 f => (int?)f.Entero("IdIdentidadContable"), idRol, idSociedad)
         : EsDeCliente(clase)
@@ -322,6 +373,11 @@ public sealed class ServicioRoles(IBaseDatos bd, ICatalogoCuentas cuentas)
             if (sociedad is null || !string.Equals(sociedad.Trim(), idSociedad.Trim(), StringComparison.OrdinalIgnoreCase))
                 return new Error("Roles.CuentaDeOtraSociedad", $"La {Describir(clase)} no es de la sociedad de trabajo.", $"Identidad contable {identidad}",
                     "Las cuentas de los roles son de cada sociedad.", "Elige una cuenta de la sociedad de trabajo.");
+        }
+        if (EsDeSocio(clase))
+        {
+            await s.EjecutarAsync($"UPDATE SociosSociedad SET {ColumnaSocio(clase)} = ? WHERE IdSocio = ? AND IdSociedad = ?", idIdentidadContable, idRol, idSociedad);
+            return null;
         }
         if (clase == ClaseCuentaRol.Empleado)
         {
@@ -344,6 +400,11 @@ public sealed class ServicioRoles(IBaseDatos bd, ICatalogoCuentas cuentas)
     /// <summary>La cuenta de cliente y la de retención son del rol Cliente; las otras, del rol Proveedor.</summary>
     public static bool EsDeCliente(ClaseCuentaRol clase) => clase is ClaseCuentaRol.Cliente or ClaseCuentaRol.Retencion;
 
+    /// <summary>La 526 y la 4751 son del rol Socio (SociosSociedad).</summary>
+    public static bool EsDeSocio(ClaseCuentaRol clase) => clase is ClaseCuentaRol.Dividendos or ClaseCuentaRol.RetencionDividendos;
+
+    internal static string ColumnaSocio(ClaseCuentaRol clase) => clase == ClaseCuentaRol.Dividendos ? "IdIdentidadDividendos" : "IdIdentidadRetencion";
+
     internal static string TextoClase(ClaseCuentaRol clase) => clase switch
     {
         ClaseCuentaRol.Proveedor => "PROVEEDOR",
@@ -359,6 +420,8 @@ public sealed class ServicioRoles(IBaseDatos bd, ICatalogoCuentas cuentas)
         ClaseCuentaRol.Proveedor => "cuenta de proveedor",
         ClaseCuentaRol.Retencion => "cuenta de retención",
         ClaseCuentaRol.Empleado => "cuenta 465 del empleado",
+        ClaseCuentaRol.Dividendos => "subcuenta 526 de dividendos del socio",
+        ClaseCuentaRol.RetencionDividendos => "subcuenta 4751 de retención de dividendos del socio",
         _ => "cuenta de acreedor"
     };
 }

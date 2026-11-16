@@ -8,7 +8,7 @@ threads:
   - 2026-11-13 12:15 · Pantalla de líneas N43 (PR 1) | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GGpRojcCHMpPdN8vRsxN2PS
 ---
 ## Summary
-Tabla densa de líneas bancarias con filtros, detalle y acciones (también las de conciliación).
+Tabla densa de líneas bancarias con filtros, detalle y acciones (también las de conciliación). El menú contextual tiene también «Pago de dividendos…» para un cargo sin contabilizar ni desglosar (pendiente de validar).
 Hecha la PR 1 y validada por el propietario el 2026-11-13: pestaña «Líneas N43» (menú Bancos › Líneas N43) en `src/ProConta.Norma43.UI` (`LineasN43VM`, `VistaLineasN43`, `PalabrasClaveN43VM`, `DialogosLineasN43`, `ModuloLineasN43`) sobre `src/ProConta.Norma43/Lineas` (`ConsultaLineasN43`, `FiltroLineasN43` con `AccionesLineasN43`, `ServicioLineasN43`): rejilla con selección múltiple por Id, ejercicios múltiples, filtros en Y con fichas, detalle lateral y, en el menú contextual, asignar cuenta, reasignar por palabras clave, palabras clave de la línea, traspaso entre bancos, contabilizar o recontabilizar, ver el asiento, actualizar textos, deshacer el asiento y exportar a Excel. Doble clic: el asiento (o el propuesto); en una cuenta, su Mayor. Sin cambios de esquema. Pruebas en `tests/ProConta.Norma43.Tests` (LineasN43Tests sin BD y LineasN43AccessTests). Fuera de la PR 1: «Movimientos similares» y «Buscar por importe» (sus nodos), dividir la línea, explotar remesa y «Remesas…» (norma43/remesas).
 **Aceptación:** búsqueda y orden mantienen la selección por ID; las acciones indican su alcance real.
 
@@ -41,6 +41,7 @@ Hecha la PR 1 y validada por el propietario el 2026-11-13: pestaña «Líneas N4
 
 - 2026-11-16 12:20 · Remesas y devoluciones (norma43/remesas 2026-11-16 12:20): en el menú contextual, tras «Buscar por importe…», «Explotar remesa…», «Conciliar facturas devueltas…» y «Deshacer explosión», con una sola línea (`AccionesLineasN43.ExplotarRemesa`, `ConciliarDevueltas` y `DeshacerExplosion` dan el motivo cuando no se puede); en la cabecera, el botón general «Explotar remesas pendientes». `LineaN43` lleva Especial (de la palabra clave), IdExtractoDesglose e IdLineaOrigen, y la columna «Facturas» enseña también las de los recibos y las devoluciones. En el diálogo de palabras clave, la casilla de remesa de un cargo es «Es un recibo devuelto» (Especial 6).
 - 2026-11-16 13:45 · «Movimientos similares…» (norma43/movimientos-similares) entra en el menú contextual justo debajo de «Asignar cuenta…», sin atajo. El detalle de la línea gana, debajo de «Cuenta de destino», la sección «Movimientos similares»: los 3 mejores, cada uno con «Usar», y el enlace «Ver todos». Asignar desde ahí usa la misma regla que «Asignar cuenta…» (F2).
+- 2026-11-16 18:40 · «Pago de dividendos…» (contabilidad/procesos/aplicacion-resultado) en el menú contextual, tras «Deshacer explosión»: solo con un cargo seleccionado que no esté contabilizado ni desglosado (`AccionesLineasN43.PagoDividendos`). El diálogo lista los socios activos con casilla (marcados), %, su 526 y el importe propuesto (el cargo repartido entre los marcados por su %; al marcar o desmarcar se vuelve a repartir), editable; «Pagar» solo se activa si la suma cuadra al céntimo.
 
 ## Requirements
 - 2026-10-28 12:28 · From sources/01_ESPECIFICACION_FUNCIONAL.docx § 19 RF-N43-03, 04: pantalla fiel a maqueta, selección explícita
@@ -81,3 +82,4 @@ Hecha la PR 1 y validada por el propietario el 2026-11-13: pestaña «Líneas N4
 - 2026-11-13 13:16 · Correcto
 - 2026-11-16 12:20 · Derived from norma43/remesas: opciones «Explotar remesa…», «Conciliar facturas devueltas…» y «Deshacer explosión» en el menú contextual y botón de cabecera «Explotar remesas pendientes».
 - 2026-11-16 13:45 · Derived from norma43/movimientos-similares: opción «Movimientos similares…» en el menú contextual y avance de 3 movimientos similares con «Usar» y «Ver todos» en el detalle de la línea.
+- 2026-11-16 17:55 · Derived from contabilidad/procesos/aplicacion-resultado: opción «Pago de dividendos…» en el menú contextual de un solo cargo no contabilizado ni explotado.

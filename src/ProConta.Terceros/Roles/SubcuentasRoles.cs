@@ -43,6 +43,8 @@ public sealed class SubcuentasRoles(IBaseDatos bd, ICatalogoCuentas cuentas, IRe
         ClaseCuentaRol.Proveedor => "400",
         ClaseCuentaRol.Retencion => "473",
         ClaseCuentaRol.Empleado => "465",
+        ClaseCuentaRol.Dividendos => "526",
+        ClaseCuentaRol.RetencionDividendos => "4751",
         _ => "410"
     };
 
@@ -64,6 +66,11 @@ public sealed class SubcuentasRoles(IBaseDatos bd, ICatalogoCuentas cuentas, IRe
         if (roles.EsCliente && cuentasFicha.Cliente is null) r.Add(ClaseCuentaRol.Cliente);
         if (roles.EsProveedor && cuentasFicha.Proveedor is null && cuentasFicha.Acreedor is null) r.Add(ClaseCuentaRol.Acreedor);
         if (roles.EsEmpleado && roles.Empleado!.IdSociedad == cuentasFicha.IdSociedad && cuentasFicha.Empleado is null) r.Add(ClaseCuentaRol.Empleado);
+        if (roles.EsSocio && roles.Socio!.IdSociedad == cuentasFicha.IdSociedad)
+        {
+            if (cuentasFicha.Dividendos is null) r.Add(ClaseCuentaRol.Dividendos);
+            if (cuentasFicha.RetencionDividendos is null) r.Add(ClaseCuentaRol.RetencionDividendos);
+        }
         return r;
     }
 
@@ -85,6 +92,8 @@ public sealed class SubcuentasRoles(IBaseDatos bd, ICatalogoCuentas cuentas, IRe
         Anadir(antes.Roles.EsProveedor, guardado.Roles.EsProveedor, guardado.Roles.Proveedor?.IdProveedor, ClaseCuentaRol.Proveedor, ClaseCuentaRol.Acreedor);
         if (guardado.Roles.Empleado is { } e && e.IdSociedad == c.IdSociedad)
             Anadir(antes.Roles.EsEmpleado, guardado.Roles.EsEmpleado, e.IdEmpleado, ClaseCuentaRol.Empleado);
+        if (guardado.Roles.Socio is { } so && so.IdSociedad == c.IdSociedad)
+            Anadir(antes.Roles.EsSocio, guardado.Roles.EsSocio, so.IdSocio, ClaseCuentaRol.Dividendos, ClaseCuentaRol.RetencionDividendos);
         return r;
     }
 
@@ -101,6 +110,8 @@ public sealed class SubcuentasRoles(IBaseDatos bd, ICatalogoCuentas cuentas, IRe
             return Resultado<CuentaContable>.Fallo(new Error("Roles.SinCodigosLibres", $"No quedan códigos libres en la cuenta {raiz} del ejercicio {contexto.Ejercicio}.",
                 $"Cuenta {raiz}", null, $"Escribe a mano el código de una subcuenta {raiz} que ya exista."));
         var padre = await cuentas.ResolverAsync(contexto, raiz);
+        // La 4751 no suele existir como cuenta: la subcuenta cuelga entonces de la cuenta del prefijo más largo (la 475).
+        if (!padre.EsCorrecto && raiz.Length > 3) return await cuentas.AltaSubcuentaAsync(contexto, codigo, nombre);
         return await cuentas.AltaAsync(contexto, new AltaCuenta(codigo, nombre, padre.EsCorrecto ? padre.Valor.IdCuentaContable : null));
     }
 
@@ -149,14 +160,18 @@ public sealed class SubcuentasRoles(IBaseDatos bd, ICatalogoCuentas cuentas, IRe
         var clientes = Contar(await s.EscalarAsync("SELECT COUNT(*) FROM CuentasClientesSociedad WHERE IdIdentidadContable = ? AND NOT (IdCliente = ? AND Clase = ?)",
             q.IdIdentidadContable, ServicioRoles.EsDeCliente(q.Clase) ? q.IdRol : -1, ServicioRoles.TextoClase(q.Clase)));
         var proveedores = Contar(await s.EscalarAsync("SELECT COUNT(*) FROM CuentasProveedoresSociedad WHERE IdIdentidadContable = ? AND NOT (IdProveedor = ? AND Clase = ?)",
-            q.IdIdentidadContable, !ServicioRoles.EsDeCliente(q.Clase) && q.Clase != ClaseCuentaRol.Empleado ? q.IdRol : -1, ServicioRoles.TextoClase(q.Clase)));
+            q.IdIdentidadContable, !ServicioRoles.EsDeCliente(q.Clase) && q.Clase != ClaseCuentaRol.Empleado && !ServicioRoles.EsDeSocio(q.Clase) ? q.IdRol : -1, ServicioRoles.TextoClase(q.Clase)));
         var empleados = Contar(await s.EscalarAsync("SELECT COUNT(*) FROM EmpleadosSociedad WHERE IdIdentidadContable = ? AND IdEmpleado <> ?",
             q.IdIdentidadContable, q.Clase == ClaseCuentaRol.Empleado ? q.IdRol : -1));
-        return clientes + proveedores + empleados;
+        var socios = Contar(await s.EscalarAsync("SELECT COUNT(*) FROM SociosSociedad WHERE IdIdentidadDividendos = ? AND IdSocio <> ?", q.IdIdentidadContable,
+                q.Clase == ClaseCuentaRol.Dividendos ? q.IdRol : -1))
+            + Contar(await s.EscalarAsync("SELECT COUNT(*) FROM SociosSociedad WHERE IdIdentidadRetencion = ? AND IdSocio <> ?", q.IdIdentidadContable,
+                q.Clase == ClaseCuentaRol.RetencionDividendos ? q.IdRol : -1));
+        return clientes + proveedores + empleados + socios;
     }
 
     private static string Entidad(ClaseCuentaRol clase) =>
-        clase == ClaseCuentaRol.Empleado ? "Empleado" : ServicioRoles.EsDeCliente(clase) ? "Cliente" : "Proveedor";
+        clase == ClaseCuentaRol.Empleado ? "Empleado" : ServicioRoles.EsDeSocio(clase) ? "Socio" : ServicioRoles.EsDeCliente(clase) ? "Cliente" : "Proveedor";
 
     /// <summary>Campo del historial, el mismo que escribe el guardado de la ficha.</summary>
     private static string Campo(ClaseCuentaRol clase) => clase switch
@@ -165,6 +180,8 @@ public sealed class SubcuentasRoles(IBaseDatos bd, ICatalogoCuentas cuentas, IRe
         ClaseCuentaRol.Retencion => "CuentaRetencion",
         ClaseCuentaRol.Proveedor => "CuentaProveedor",
         ClaseCuentaRol.Empleado => "Cuenta465",
+        ClaseCuentaRol.Dividendos => "Cuenta526",
+        ClaseCuentaRol.RetencionDividendos => "Cuenta4751",
         _ => "CuentaAcreedor"
     };
 }

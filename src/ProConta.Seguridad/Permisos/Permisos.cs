@@ -55,6 +55,8 @@ public static class Acciones
     public const string TrimestreCambiar = "TRIMESTRE.CAMBIAR";
     /// <summary>Liquidar el IVA de un trimestre y deshacerlo (contabilidad/procesos/liquidacion-iva 2026-11-16).</summary>
     public const string LiquidacionIva = "PROCESOS.LIQUIDACION_IVA";
+    /// <summary>Repartir dividendos, corregir y deshacer un reparto (contabilidad/procesos/aplicacion-resultado 2026-11-16).</summary>
+    public const string Dividendos = "PROCESOS.DIVIDENDOS";
 
     /// <summary>
     /// Acción que manda mientras una acción nueva no tenga ningún grupo asignado: «Cambiar el trimestre activo» la tienen
@@ -65,6 +67,8 @@ public static class Acciones
         TrimestreCambiar => FacturasEditar,
         // Liquidar el IVA cierra el trimestre: mientras no tenga grupos, la tienen quienes pueden cambiar el trimestre activo.
         LiquidacionIva => TrimestreCambiar,
+        // Repartir dividendos graba asientos de reservas y retenciones: mientras no tenga grupos, lo tienen quienes pueden liquidar el IVA.
+        Dividendos => LiquidacionIva,
         _ => null
     };
 }

@@ -30,6 +30,10 @@
         <Setter Property="CornerRadius" Value="{StaticResource Radio.Campo}" />
         <Setter Property="Padding" Value="7,2" />
       </Style>
+      <Style x:Key="Insignia.Ficha.Socio" TargetType="Border" BasedOn="{StaticResource Insignia.Socio}">
+        <Setter Property="CornerRadius" Value="{StaticResource Radio.Campo}" />
+        <Setter Property="Padding" Value="7,2" />
+      </Style>
 
       <!-- Resumen de errores de validación, con enlace a cada campo (arriba de cada pestaña). -->
       <DataTemplate x:Key="ResumenErrores">
@@ -94,6 +98,46 @@
           <TextBlock Text="{Binding Aviso}" Visibility="{Binding HayAviso, Converter={StaticResource Visible}}" Foreground="{StaticResource Pincel.Aviso}" Margin="0,4,0,0" TextWrapping="Wrap" />
         </StackPanel>
       </DataTemplate>
+      <!-- Subcuentas del socio: siempre con el buscador (sin escribir el código), en una rejilla de columnas fijas para que las dos filas queden alineadas. -->
+      <DataTemplate x:Key="FilaCuentaSocio">
+        <StackPanel Margin="0,0,0,10">
+          <Grid>
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="220" />
+              <ColumnDefinition Width="Auto" />
+              <ColumnDefinition Width="Auto" />
+              <ColumnDefinition Width="390" />
+              <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <StackPanel Grid.Column="0" Margin="0,0,10,0">
+              <TextBlock Text="{Binding Titulo}" Style="{StaticResource Etiqueta.Campo}" />
+              <TextBox Text="{Binding Codigo, Mode=OneWay, ValidatesOnNotifyDataErrors=True}" IsReadOnly="True" Width="130" HorizontalAlignment="Left" Style="{StaticResource Campo.Mono}" Tag="Codigo"
+                       Cursor="Hand" ToolTip="{Binding AyudaBuscar}" PreviewMouseLeftButtonUp="CuentaSocio_Click" KeyDown="CuentaSocio_KeyDown" />
+            </StackPanel>
+            <Button Grid.Column="1" Content="Buscar…" Command="{Binding BuscarCommand}" Style="{StaticResource Boton.Pequeno}" VerticalAlignment="Bottom" Margin="0,0,6,0"
+                    ToolTip="{Binding AyudaBuscar}" />
+            <!-- «Auto» reserva su hueco aunque no se vea, para que las descripciones queden alineadas. -->
+            <Button Grid.Column="2" Content="Auto" Command="{Binding AutoCommand}" VerticalAlignment="Bottom" Margin="0,0,10,0" ToolTip="{Binding AyudaAuto}">
+              <Button.Style>
+                <Style TargetType="Button" BasedOn="{StaticResource Boton.Pequeno}">
+                  <Style.Triggers>
+                    <DataTrigger Binding="{Binding PuedeAuto}" Value="False">
+                      <Setter Property="Visibility" Value="Hidden" />
+                    </DataTrigger>
+                  </Style.Triggers>
+                </Style>
+              </Button.Style>
+            </Button>
+            <StackPanel Grid.Column="3" Margin="0,0,10,0">
+              <TextBlock Text="Descripción" Style="{StaticResource Etiqueta.Campo}" />
+              <TextBox Text="{Binding Nombre, Mode=OneWay}" IsReadOnly="True" Width="380" HorizontalAlignment="Left" ToolTip="Nombre de la cuenta en el plan contable, para comprobar que es la correcta. Se cambia en el plan de cuentas" />
+            </StackPanel>
+            <Button Grid.Column="4" Content="{Binding AccionTexto}" Command="{Binding AccionCommand}" VerticalAlignment="Bottom" Visibility="{Binding HayAccion, Converter={StaticResource Visible}}"
+                    pc:Iconos.Icono="{StaticResource Icono.plus}" ToolTip="Da de alta la cuenta en el plan contable del ejercicio de trabajo (se crea al momento, aunque luego descartes la ficha)" />
+          </Grid>
+          <TextBlock Text="{Binding Aviso}" Visibility="{Binding HayAviso, Converter={StaticResource Visible}}" Foreground="{StaticResource Pincel.Aviso}" Margin="0,4,0,0" TextWrapping="Wrap" />
+        </StackPanel>
+      </DataTemplate>
     </ResourceDictionary>
   </UserControl.Resources>
 
@@ -140,6 +184,7 @@
                   <DataTrigger Binding="{Binding Rol}" Value="proveedor"><Setter TargetName="Pastilla" Property="Style" Value="{StaticResource Insignia.Ficha.Proveedor}" /></DataTrigger>
                   <DataTrigger Binding="{Binding Rol}" Value="contacto"><Setter TargetName="Pastilla" Property="Style" Value="{StaticResource Insignia.Ficha.Contacto}" /></DataTrigger>
                   <DataTrigger Binding="{Binding Rol}" Value="empleado"><Setter TargetName="Pastilla" Property="Style" Value="{StaticResource Insignia.Ficha.Empleado}" /></DataTrigger>
+                  <DataTrigger Binding="{Binding Rol}" Value="socio"><Setter TargetName="Pastilla" Property="Style" Value="{StaticResource Insignia.Ficha.Socio}" /></DataTrigger>
                 </DataTemplate.Triggers>
               </DataTemplate>
             </ItemsControl.ItemTemplate>
@@ -534,7 +579,7 @@
         </TabItem>
 
         <!-- ===================== Roles ===================== -->
-        <TabItem ToolTip="Roles Cliente, Proveedor, Contacto y Empleado: activarlos o desactivarlos, sus Ids, cuentas, código de la gestoría y notas">
+        <TabItem ToolTip="Roles Cliente, Proveedor, Contacto, Empleado y Socio: activarlos o desactivarlos, sus Ids, cuentas, código de la gestoría, participación y notas">
           <TabItem.Header><ContentControl ContentTemplate="{StaticResource CabeceraPestana}" Content="{Binding Cabeceras[2]}" /></TabItem.Header>
           <ScrollViewer VerticalScrollBarVisibility="Auto">
             <StackPanel Margin="18,16" HorizontalAlignment="Left" Width="1240">
@@ -677,6 +722,39 @@
                     <ContentControl Content="{Binding CuentaEmpleado}" ContentTemplate="{StaticResource FilaCuenta}" />
                     <TextBlock Style="{StaticResource Texto.Apagado}" TextWrapping="Wrap" Width="760" HorizontalAlignment="Left"
                                Text="Cambiar el código vale para los próximos Excel y cambiar la 465 para los asientos nuevos: lo ya contabilizado no se toca. Para pasar nóminas contabilizadas a la cuenta nueva, deshazlas y vuelve a contabilizarlas en la pantalla Nóminas." />
+                  </StackPanel>
+                </StackPanel>
+              </Border>
+
+              <!-- Socio (en la sociedad de trabajo; contabilidad/procesos/aplicacion-resultado 2026-11-16) -->
+              <Border Style="{StaticResource Tarjeta}" Margin="0,0,0,14" Tag="rol:socio">
+                <StackPanel>
+                  <DockPanel Margin="14,10">
+                    <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                      <TextBlock Text="{Binding EstadoSocio}" Style="{StaticResource Texto.Apagado}" VerticalAlignment="Center" Margin="0,0,10,0" TextWrapping="Wrap" MaxWidth="620" />
+                      <StackPanel Orientation="Horizontal" Visibility="{Binding SocioActivo, Converter={StaticResource Visible}}">
+                        <Button Style="{StaticResource Boton.Enlace}" Content="Desactivar" Command="{Binding DesactivarRolCommand}" CommandParameter="socio" VerticalAlignment="Center"
+                                ToolTip="Deja de ser socio de esta sociedad al guardar: ya no sale en los repartos ni en los pagos de dividendos; sus repartos anteriores se conservan" />
+                      </StackPanel>
+                      <Button Content="Activar" Command="{Binding ActivarRolCommand}" CommandParameter="socio" Style="{StaticResource Boton.Pequeno}"
+                              Visibility="{Binding SocioActivo, Converter={StaticResource Visible}, ConverterParameter=invertir}"
+                              ToolTip="Da al tercero el rol Socio en esta sociedad al guardar (si ya lo tuvo, lo reactiva con el mismo número y sus subcuentas)" />
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal">
+                      <Border Style="{StaticResource Insignia.Ficha.Socio}"><TextBlock Text="Soc" Style="{StaticResource Texto.Insignia}" /></Border>
+                      <TextBlock Text="{Binding TituloSocio}" Style="{StaticResource Seccion.Ficha}" Margin="6,0,0,0" />
+                    </StackPanel>
+                  </DockPanel>
+                  <StackPanel Margin="14,0,14,12" Visibility="{Binding SocioActivo, Converter={StaticResource Visible}}">
+                    <StackPanel Margin="0,0,0,10" HorizontalAlignment="Left">
+                      <TextBlock Text="Participación (%)" Style="{StaticResource Etiqueta.Campo}" />
+                      <TextBox Text="{Binding ParticipacionSocio, UpdateSourceTrigger=PropertyChanged, ValidatesOnNotifyDataErrors=True}" Width="90" Style="{StaticResource Campo.Mono}" Tag="ParticipacionSocio"
+                               ToolTip="Participación vigente en el capital, en porcentaje (50 = 50 %). Reparte los dividendos y los pagos entre socios. Cada cambio queda en el historial de la ficha" />
+                    </StackPanel>
+                    <ContentControl Content="{Binding CuentaDividendos}" ContentTemplate="{StaticResource FilaCuentaSocio}" />
+                    <ContentControl Content="{Binding CuentaRetencionDividendos}" ContentTemplate="{StaticResource FilaCuentaSocio}" />
+                    <TextBlock Style="{StaticResource Texto.Apagado}" TextWrapping="Wrap" Width="760" HorizontalAlignment="Left"
+                               Text="Elígelas con «Buscar…» (o clic en el código). Si las dejas vacías, al guardar se crean las siguientes subcuentas libres de la 526 y la 4751 con el nombre del socio. Los repartos de dividendos (Contabilidad › Reparto de dividendos) y los pagos (Líneas N43 › Pago de dividendos…) usan estas subcuentas y este porcentaje." />
                   </StackPanel>
                 </StackPanel>
               </Border>

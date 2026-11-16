@@ -120,6 +120,21 @@ public partial class VistaFicha : UserControl
         if (sender is FrameworkElement { DataContext: CuentaRolVM c }) _ = c.ConfirmarAsync();
     }
 
+    /// <summary>Las subcuentas del socio no se escriben: clic, Intro, Espacio o F4 en el código abren el buscador.</summary>
+    private void CuentaSocio_Click(object sender, MouseButtonEventArgs e)
+    {
+        if (sender is FrameworkElement { DataContext: CuentaRolVM c } && c.BuscarCommand.CanExecute(null)) c.BuscarCommand.Execute(null);
+    }
+
+    private void CuentaSocio_KeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.Key is Key.Enter or Key.Space or Key.F4 && sender is FrameworkElement { DataContext: CuentaRolVM c } && c.BuscarCommand.CanExecute(null))
+        {
+            c.BuscarCommand.Execute(null);
+            e.Handled = true;
+        }
+    }
+
     private void Cuenta_KeyDown(object sender, KeyEventArgs e)
     {
         if (e.Key == Key.Enter && sender is FrameworkElement { DataContext: CuentaRolVM c })

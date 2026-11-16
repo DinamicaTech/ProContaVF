@@ -37,6 +37,7 @@ public static class ProveedoresOrganizacion
         "CuentaHaciendaDeudoraIva" => ["470"],
         "CuentaAjustesNegativosIva" => ["634"],
         "CuentaAjustesPositivosIva" => ["639"],
+        "CuentaReservasDividendos" => ["113"],
         _ => [],
     };
 
@@ -71,6 +72,15 @@ public static class ProveedoresOrganizacion
             sinonimos: ["6341", "prorrata", "no deducible"]),
         Cuenta("CuentaAjustesPositivosIva", "Liquidación del IVA · ajustes a pagar menos", ayuda: "Recibe el ajuste cuando se liquida menos de lo que dicen las cuentas (por ejemplo, para cuadrar con lo presentado). Vacía: 6391000. Si no existe, se crea al usarla.",
             sinonimos: ["6391", "ajuste iva"]),
+    ];
+
+    /// <summary>Retención y cuenta de reservas de los dividendos del ejercicio (contabilidad/procesos/aplicacion-resultado, esquema 62); vacías, 19 % y 1130000.</summary>
+    internal static IEnumerable<CampoMantenimiento> Dividendos() =>
+    [
+        new("PorcentajeRetencionDividendos", "Retención de dividendos (%)", TipoCampo.Porcentaje) { Grupo = "impuestos", Ancho = "xs", Sinonimos = ["dividendos", "retencion", "socios"],
+            Ayuda = "Retención que se aplica a los dividendos que se reparten en este ejercicio, en porcentaje: 19 es el 19 %. Vacío: 19 %. El reparto calcula el bruto de cada socio como neto / (1 − retención)." },
+        Cuenta("CuentaReservasDividendos", "Reparto de dividendos · reservas", ayuda: "Cuenta de reservas que se carga por el bruto de los dividendos en Contabilidad › Reparto de dividendos. Vacía: 1130000 (reservas voluntarias). Si no existe, se crea al repartir.",
+            sinonimos: ["1130", "reservas", "dividendos"]),
     ];
 
     /// <summary>
@@ -174,7 +184,7 @@ public static class ProveedoresOrganizacion
             .. Predeterminados(),
             TipoGeneral(),
             ProrrataAnterior(),
-            .. Cuentas(), .. CuentasCompras(), .. CuentasLiquidacionIva(),
+            .. Cuentas(), .. CuentasCompras(), .. CuentasLiquidacionIva(), .. Dividendos(),
             Ruta("CarpetaFacturasCompra", "Carpeta de facturas de compra") with
             {
                 Ayuda = "Dónde se buscan los PDF de compra de este ejercicio, dentro de la carpeta de documentos de la empresa (Empresas › Carpeta de documentos, la ruta base), por ejemplo 2026\\Proveedores. " +
@@ -187,7 +197,7 @@ public static class ProveedoresOrganizacion
         ColumnaAmbito = "IdSociedad",
         Orden = "Ejercicio DESC",
         GruposCampos = GruposEjercicio,
-        Alias = ["ejercicio", "año", "trimestre", "prorrata", "suplido", "retencion"],
+        Alias = ["ejercicio", "año", "trimestre", "prorrata", "suplido", "retencion", "dividendos", "reservas"],
         Usos = [new("SeriesFacturacion", "IdSociedadEjercicio", "series"), new("Facturas", "IdSociedadEjercicio", "facturas"),
             new("CuentasContables", "IdSociedadEjercicio", "cuentas contables"), new("Asientos", "IdSociedadEjercicio", "asientos")],
         Titular = r => r.EsNuevo ? "Nuevo ejercicio" : r.Texto("Nombre") ?? $"Ejercicio {r.Texto("Ejercicio")}",

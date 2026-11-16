@@ -347,6 +347,7 @@ public sealed class CuentaRolVM : ParteFicha
         AccionCommand = new ComandoDelegado(() => { if (_hacerAccion is { } a) _ = a(); }, () => _hacerAccion is not null);
         ConfirmarCommand = new ComandoDelegado(() => _ = ConfirmarAsync());
         AutoCommand = new ComandoDelegado(() => _ = AutoAsync(), () => PuedeAuto);
+        BuscarCommand = new ComandoDelegado(() => _ = BuscarAsync(), () => Ficha.RolActivoDe(Clase));
     }
 
     public ClaseCuentaRol Clase { get; }
@@ -359,6 +360,8 @@ public sealed class CuentaRolVM : ParteFicha
         ClaseCuentaRol.Retencion => "Cuenta de retención",
         ClaseCuentaRol.Proveedor => "Cuenta de proveedor",
         ClaseCuentaRol.Empleado => "Cuenta 465",
+        ClaseCuentaRol.Dividendos => "Dividendos a pagar (526)",
+        ClaseCuentaRol.RetencionDividendos => "Retención de dividendos (4751)",
         _ => "Cuenta de acreedor"
     };
     public string AyudaCodigo => $"Código de la {ServicioRoles.Describir(Clase)} en {Ficha.NombreSociedad}. Vale para todos sus ejercicios; al salir del campo compruebo que existe en el ejercicio {Ficha.Ejercicio}";
@@ -378,6 +381,22 @@ public sealed class CuentaRolVM : ParteFicha
     /// </summary>
     public bool PuedeAuto => Ficha.Servicios.Subcuentas is not null && Ficha.RolActivoDe(Clase) && Codigo.Length == 0;
     public ICommand AutoCommand { get; }
+
+    /// <summary>
+    /// Las subcuentas del socio (526 y 4751) se eligen siempre con el buscador de subcuentas, filtrado por su cuenta, no escribiendo el código
+    /// (propietario 2026-11-16).
+    /// </summary>
+    public ICommand BuscarCommand { get; }
+    public string AyudaBuscar => $"Abre el buscador de subcuentas de la {SubcuentasRoles.Raiz(Clase)} del ejercicio {Ficha.Ejercicio} para elegir la {ServicioRoles.Describir(Clase)} " +
+        "(también con clic o Intro en el código). Si la dejas vacía, al guardar se crea la siguiente libre con el nombre del socio";
+
+    private async Task BuscarAsync()
+    {
+        var raiz = SubcuentasRoles.Raiz(Clase);
+        if (Ficha.Dialogos.ElegirCuenta($"{Titulo} · {Ficha.NombreParaCuenta()}", [raiz]) is not { } c) return;
+        Codigo = c.Codigo;
+        await ConfirmarAsync();
+    }
     public string AyudaAuto => $"Crea la siguiente subcuenta libre de la {SubcuentasRoles.Raiz(Clase)} con el nombre del tercero en el ejercicio {Ficha.Ejercicio} " +
         $"de {Ficha.NombreSociedad} y la asigna como {ServicioRoles.Describir(Clase)}. La cuenta se crea al momento, aunque después descartes los cambios de la ficha";
 
@@ -432,6 +451,13 @@ public sealed class CuentaRolVM : ParteFicha
         if (Clase == ClaseCuentaRol.Empleado && !Codigo.StartsWith(ServicioEmpleados.CuentaRemuneraciones, StringComparison.Ordinal))
         {
             _error = $"La cuenta del empleado tiene que ser una subcuenta de la {ServicioEmpleados.CuentaRemuneraciones} (remuneraciones pendientes de pago); {Codigo} no lo es.";
+            Nombre = "";
+            Cambiado(nameof(Codigo));
+            return;
+        }
+        if (ServicioRoles.EsDeSocio(Clase) && !Codigo.StartsWith(SubcuentasRoles.Raiz(Clase), StringComparison.Ordinal))
+        {
+            _error = $"La {ServicioRoles.Describir(Clase)} tiene que ser una subcuenta de la {SubcuentasRoles.Raiz(Clase)}; {Codigo} no lo es. Déjala vacía y se creará la siguiente libre al guardar.";
             Nombre = "";
             Cambiado(nameof(Codigo));
             return;

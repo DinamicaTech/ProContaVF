@@ -94,4 +94,7 @@ public interface IDialogos
 
     /// <summary>Pide nombre y descripción de un perfil nuevo; null si se cancela.</summary>
     (string Nombre, string? Descripcion)? PedirPerfilNuevo(string? nombrePropuesto);
+
+    /// <summary>Buscador de subcuentas del ejercicio de trabajo, filtrado por <paramref name="grupos"/>; null si se cancela.</summary>
+    CuentaContable? ElegirCuenta(string titulo, IReadOnlyList<string> grupos) => null;
 }
