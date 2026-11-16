@@ -13,12 +13,12 @@ public sealed class PalabraExistenteN43VM(PalabraClaveLineaN43 p) : ModeloVista
 {
     public PalabraClaveLineaN43 Datos { get; } = p;
     public string Texto => Datos.PalabraClave2 is { } dos ? $"«{Datos.PalabraClave}» y «{dos}»" : $"«{Datos.PalabraClave}»";
-    public string Cuenta => Datos.Cuenta is null ? (Datos.EsRemesa ? "Remesa (sin cuenta)" : "Sin cuenta") : $"{Datos.Cuenta} · {Datos.NombreCuenta}";
+    public string Cuenta => Datos.Cuenta is null ? (Datos.EsRemesa ? "Remesa (sin cuenta)" : Datos.EsDevolucion ? "Recibo devuelto (sin cuenta)" : "Sin cuenta") : $"{Datos.Cuenta} · {Datos.NombreCuenta}";
     public string Alcance => string.Join(" · ", new[]
     {
         Datos.Entidad is { } e ? $"solo banco {e}" : "cualquier banco",
         ReglasPalabrasClave.SentidoDeLinea(Datos.Sentido) switch { "D" => "solo cargos", "H" => "solo abonos", _ => "cargos y abonos" },
-        Datos.EsRemesa ? "remesa" : null,
+        Datos.EsRemesa ? "remesa" : Datos.EsDevolucion ? "recibo devuelto" : null,
         Datos.Usos > 0 ? $"asignó {Datos.Usos} línea(s)" : "aún no ha asignado ninguna",
     }.Where(t => t is not null));
 }
@@ -67,7 +67,12 @@ public sealed class PalabrasClaveN43VM : ModeloVista
     public string Palabra2 { get => _palabra2; private set { if (Fijar(ref _palabra2, value)) Error = null; } }
     public bool SoloBanco { get => _soloBanco; set { if (Fijar(ref _soloBanco, value)) Error = null; } }
     public bool SoloSentido { get => _soloSentido; set { if (Fijar(ref _soloSentido, value)) Error = null; } }
+    /// <summary>En un abono, la palabra clave es de remesa de recibos (Especial 5); en un cargo, de recibo devuelto (Especial 6). Norma43/remesas.</summary>
     public bool Remesa { get => _remesa; set { if (Fijar(ref _remesa, value)) Error = null; } }
+    public string TextoRemesa => Linea.EsCargo ? "Es un recibo devuelto" : "Es una remesa de recibos";
+    public string AyudaRemesa => Linea.EsCargo
+        ? "Los recibos devueltos se concilian con sus facturas («Conciliar facturas devueltas…»); puede ir sin cuenta"
+        : "Las remesas se explotan en un recibo por factura («Explotar remesa…»); la línea toma igualmente su cuenta, la 555 de remesas";
     public string TextoSoloBanco => $"Solo este banco ({Linea.Entidad})";
     public string TextoSoloSentido => Linea.EsCargo ? "Solo cargos" : "Solo abonos";
     public CuentaElegidaN43? Cuenta { get => _cuenta; private set { if (Fijar(ref _cuenta, value)) { Avisar(nameof(TextoCuenta)); Error = null; } } }
@@ -125,7 +130,7 @@ public sealed class PalabrasClaveN43VM : ModeloVista
         Palabra2 = p.Datos.PalabraClave2 ?? "";
         SoloBanco = p.Datos.Entidad is not null;
         SoloSentido = p.Datos.Sentido is not null;
-        Remesa = p.Datos.EsRemesa;
+        Remesa = p.Datos.EsRemesa || p.Datos.EsDevolucion;
         Cuenta = p.Datos.IdIdentidadContable is int id ? new CuentaElegidaN43(id, p.Datos.Cuenta ?? "", p.Datos.NombreCuenta ?? "") : null;
         Error = null;
         Avisar(nameof(Editando), nameof(TituloFormulario));
@@ -135,7 +140,8 @@ public sealed class PalabrasClaveN43VM : ModeloVista
     public EdicionPalabraClaveN43 Edicion => new(_editando, SoloBanco ? Linea.Entidad : null,
         // Convenio de PalabrasClaveBancarias: el sentido es el de la 572 (H para los cargos de la línea, D para los abonos).
         SoloSentido ? (Linea.EsCargo ? ServicioConciliacionN43.Abono : ServicioConciliacionN43.Cargo) : null,
-        Palabra, Palabra2.Length == 0 ? null : Palabra2, _cuenta?.IdIdentidadContable, Remesa ? ReglasPalabrasClave.EspecialRemesa : null);
+        Palabra, Palabra2.Length == 0 ? null : Palabra2, _cuenta?.IdIdentidadContable,
+        Remesa ? (Linea.EsCargo ? ReglasPalabrasClave.EspecialDevolucion : ReglasPalabrasClave.EspecialRemesa) : null);
 
     public async Task<bool> GuardarAsync()
     {

@@ -72,19 +72,21 @@ internal sealed partial class EjecucionErp
 
             var notas = ReglasErp.UnirNotas(p.T("Notas"), p.T("NotasInternas"),
                 p.T("Referencia1") is { } ipc ? $"Revisión del IPC (ERP, Referencia1): {ipc}." : null,
-                p.F("FechaPrimerVencimiento") is DateTime pv ? $"Primer vencimiento en el ERP: {pv:dd/MM/yyyy} (el día de pago se pone a mano)." : null,
+                p.F("FechaPrimerVencimiento") is DateTime pv ? $"Primer vencimiento en el ERP: {pv:dd/MM/yyyy}." : null,
                 $"Programada {id} del ERP.");
+            // Forma y día de pago de su esquema de fraccionamiento (norma43/remesas): pasan a las facturas que genere.
+            var (formaPago, diaPago) = await PagoEsquemaAsync(p.E("EsquemaFraccionamiento"), "FacturasProgramadas", clave);
             var ahora = Ahora;
             var idProgramada = await _bd.EnTransaccionAsync(async s =>
             {
                 await s.EjecutarAsync(
                     "INSERT INTO FacturasProgramadas (IdSociedadEjercicio, IdCliente, IdSerie, TipoFactura, FechaInicio, FechaFin, DiaEmision, ProximaFechaEmision, TipoRetencion, " +
-                    "Descripcion, NotasInternas, Activa, FechaAlta, OperadorAlta, Historial, EnviarPorEmail, PeriodoDesde, PeriodoHasta, NumeroRepeticiones, FacturasGeneradas, AlGenerar, Version, Periodicidad) " +
-                    "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                    "Descripcion, NotasInternas, Activa, FechaAlta, OperadorAlta, Historial, EnviarPorEmail, PeriodoDesde, PeriodoHasta, NumeroRepeticiones, FacturasGeneradas, AlGenerar, Version, Periodicidad, FormaDePago, DiaDePago) " +
+                    "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                     idEj, idCliente, serie, "F1", inicio, null, (byte)proxima.Day, proxima, (float)tipoRetencion,
                     ReglasErp.Recortar(p.T("DescripcionFactura") ?? p.T("Descripcion"), 255), notas, true, p.F("FechaCreacion") ?? ahora.Date, Operador,
                     $"{ahora:dd/MM/yyyy HH:mm} · {Operador} · Migrada del ERP (programada {id}, {generadas} facturas generadas).", false, periodoDesde, periodoHasta, repeticiones, generadas,
-                    "BORRADOR", 0, periodicidad.Codigo);
+                    "BORRADOR", 0, periodicidad.Codigo, formaPago, diaPago);
                 var nuevo = await s.UltimoIdAsync();
                 var n = 1;
                 foreach (var (l, c) in lineas)

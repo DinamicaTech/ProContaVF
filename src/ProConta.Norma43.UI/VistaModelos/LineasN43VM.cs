@@ -4,6 +4,7 @@ using ProConta.Norma43.Asignacion;
 using ProConta.Norma43.Busqueda;
 using ProConta.Norma43.Conciliacion;
 using ProConta.Norma43.Lineas;
+using ProConta.Norma43.Remesas;
 using ProConta.Nucleo.Auditoria;
 using ProConta.Nucleo.Contexto;
 using ProConta.Nucleo.Resultados;
@@ -48,6 +49,10 @@ public interface IDialogosLineasN43
     void PalabrasClave(PalabrasClaveN43VM vm);
     /// <summary>Diálogo «Buscar por importe» (modal): true si se pulsa «Enlazar».</summary>
     bool BuscarPorImporte(BusquedaImporteN43VM vm) => false;
+    /// <summary>Diálogo «Explotar remesa» (modal): true si se pulsa «Explotar».</summary>
+    bool ExplotarRemesa(RemesaN43VM vm) => false;
+    /// <summary>Diálogo «Conciliar facturas devueltas» (modal): true si se pulsa «Conciliar».</summary>
+    bool ConciliarDevolucion(DevolucionN43VM vm) => false;
 }
 
 /// <summary>Una acción del menú contextual: su texto, si se puede y, si no, por qué (en el tooltip).</summary>
@@ -140,6 +145,8 @@ public sealed class FilaLineaN43VM(LineaN43 datos) : ModeloVista
         ServicioLineasN43.OrigenManual => "puesta a mano",
         ServicioLineasN43.OrigenTraspaso => "traspaso entre bancos (cuenta puente)",
         BusquedaPorImporteN43.OrigenFactura => "la del tercero de la factura enlazada",
+        ServicioRemesasN43.OrigenRemesa => "la del cliente del recibo (remesa explotada)",
+        ServicioRemesasN43.OrigenDevolucion => "la del cliente del recibo devuelto",
         _ => $"origen {d.Origen.ToLowerInvariant()} (migración del ERP)",
     };
 }
@@ -177,6 +184,7 @@ public sealed class LineasN43VM : ModeloVista, IPestanaTrabajo
     private readonly ServicioConciliacionN43 _conciliacion;
     private readonly AsignadorCuentasN43 _asignador;
     private readonly BusquedaPorImporteN43? _busqueda;
+    private readonly ServicioRemesasN43? _remesas;
     private readonly IDialogosLineasN43 _dialogos;
     private readonly ContextoLineasN43 _contexto;
     private readonly Action? _alCerrar;
@@ -200,9 +208,10 @@ public sealed class LineasN43VM : ModeloVista, IPestanaTrabajo
     private AccionesLineasN43 _acciones = AccionesLineasN43.Evaluar([]);
 
     public LineasN43VM(ConsultaLineasN43 consulta, ServicioLineasN43 servicio, ServicioConciliacionN43 conciliacion, AsignadorCuentasN43 asignador,
-        IDialogosLineasN43 dialogos, ContextoLineasN43 contexto, Action? alCerrar = null, BusquedaPorImporteN43? busqueda = null)
+        IDialogosLineasN43 dialogos, ContextoLineasN43 contexto, Action? alCerrar = null, BusquedaPorImporteN43? busqueda = null, ServicioRemesasN43? remesas = null)
     {
         _busqueda = busqueda;
+        _remesas = remesas;
         _consulta = consulta;
         _servicio = servicio;
         _conciliacion = conciliacion;
@@ -232,6 +241,10 @@ public sealed class LineasN43VM : ModeloVista, IPestanaTrabajo
         AccionTraspaso = new("Traspaso entre bancos", "Imputa el cargo de un banco y el abono del otro a la cuenta puente de traspasos, donde sus asientos se compensan", () => _ = TraspasoAsync());
         AccionBuscarImporte = new("Buscar por importe…", "Busca para cada línea seleccionada las facturas de su importe (compras para los cargos, ventas para los abonos) y enlaza las que marques; si la línea no está contabilizada, le pone la cuenta del tercero", () => _ = BuscarPorImporteAsync());
         AccionVerAsiento = new("Ver el asiento", "Muestra el asiento de la línea o, si no está contabilizada, el que generaría (también con doble clic)", () => _ = VerAsientoAsync());
+        AccionExplotarRemesa = new("Explotar remesa…", "Desglosa la remesa del banco en un recibo por factura domiciliada del mes, llevado a la cuenta de su cliente; las facturas quedan cobradas", () => _ = ExplotarRemesaAsync());
+        AccionConciliarDevueltas = new("Conciliar facturas devueltas…", "Elige los recibos devueltos de la remesa anterior que suman el cargo: vuelven a la cuenta de su cliente y las facturas quedan pendientes de cobro", () => _ = ConciliarDevueltasAsync());
+        AccionDeshacerExplosion = new("Deshacer explosión", "Quita el desglose en recibos de la remesa o la devolución y deja sus facturas como estaban (no si algún recibo ya tiene asiento)", () => _ = DeshacerExplosionAsync());
+        ExplotarPendientesCommand = new ComandoDelegado(() => _ = ExplotarPendientesAsync(), () => _remesas is not null && !Ocupado && AniosMarcados.Count > 0);
         ActualizarAcciones();
     }
 
@@ -352,6 +365,12 @@ public sealed class LineasN43VM : ModeloVista, IPestanaTrabajo
     public AccionLineasVM AccionTraspaso { get; }
     public AccionLineasVM AccionBuscarImporte { get; }
     public AccionLineasVM AccionVerAsiento { get; }
+    public AccionLineasVM AccionExplotarRemesa { get; }
+    public AccionLineasVM AccionConciliarDevueltas { get; }
+    public AccionLineasVM AccionDeshacerExplosion { get; }
+    /// <summary>Botón de cabecera: explota las remesas pendientes de los ejercicios marcados que cuadran solas (acción general, no de la selección).</summary>
+    public ICommand ExplotarPendientesCommand { get; }
+    public bool HayRemesas => _remesas is not null;
     public ICommand RefrescarCommand { get; }
     public ICommand QuitarFiltrosCommand { get; }
 
@@ -517,6 +536,10 @@ public sealed class LineasN43VM : ModeloVista, IPestanaTrabajo
         AccionBuscarImporte.Fijar("Buscar por importe…" + (Seleccion.Count > 1 ? $" ({Seleccion.Count})" : ""),
             a.BuscarPorImporte ?? (_busqueda is null ? "La búsqueda por importe no está disponible en esta pantalla." : null) ?? Ocupada());
         AccionVerAsiento.Fijar(Seleccion is [{ Datos.IdAsiento: null }] ? "Ver el asiento propuesto" : "Ver el asiento", a.VerAsiento);
+        var sinRemesas = _remesas is null ? "Las remesas no están disponibles en esta pantalla." : null;
+        AccionExplotarRemesa.Fijar("Explotar remesa…", a.ExplotarRemesa ?? sinRemesas ?? Ocupada());
+        AccionConciliarDevueltas.Fijar("Conciliar facturas devueltas…", a.ConciliarDevueltas ?? sinRemesas ?? Ocupada());
+        AccionDeshacerExplosion.Fijar("Deshacer explosión", a.DeshacerExplosion ?? sinRemesas ?? Ocupada());
         Avisar(nameof(Resumen), nameof(Acciones));
     }
 
@@ -619,6 +642,72 @@ public sealed class LineasN43VM : ModeloVista, IPestanaTrabajo
                 new OpcionMensaje("Entendido", "Cierra el aviso", Principal: true, Cancelar: true));
         InformarRechazos("Algunas líneas no se han enlazado", r.Rechazadas.ToDictionary(x => x.Key, x => (IReadOnlyList<Error>)[x.Value]), r.Lineas.Count, texto);
     }, "enlazar las facturas");
+
+    // ---------- remesas y devoluciones (norma43/remesas) ----------
+
+    /// <summary>
+    /// Explotar remesa: el diálogo con las facturas SEPA del mes y su importe cobrado; al pulsar «Explotar» se graba el desglose (solo si
+    /// cuadra) y se vuelve a leer la pantalla, que ya enseña los recibos nuevos.
+    /// </summary>
+    public Task ExplotarRemesaAsync() => Ejecutar(async () =>
+    {
+        if (Seleccion is not [var fila] || _remesas is null || _acciones.ExplotarRemesa is not null) return;
+        var p = await _remesas.ProponerRemesaAsync(_contexto.Trabajo.IdSociedad, fila.Id);
+        if (p is null) return;
+        if (p.Bloqueo is { } b) { Informar("No se puede explotar la remesa", b); return; }
+        var vm = new RemesaN43VM(p, _contexto.AbrirFacturaVenta);
+        if (!_dialogos.ExplotarRemesa(vm)) return;
+        var r = await _remesas.ExplotarRemesaAsync(_contexto.Trabajo.IdSociedad, fila.Id, vm.Recibos(), _contexto.Actor);
+        await TrasRemesaAsync(r, "No se ha explotado la remesa");
+    }, "explotar la remesa");
+
+    /// <summary>Conciliar facturas devueltas: los recibos de la remesa anterior, con su combinación marcada; graba solo si cuadra.</summary>
+    public Task ConciliarDevueltasAsync() => Ejecutar(async () =>
+    {
+        if (Seleccion is not [var fila] || _remesas is null || _acciones.ConciliarDevueltas is not null) return;
+        var p = await _remesas.ProponerDevolucionAsync(_contexto.Trabajo.IdSociedad, fila.Id);
+        if (p is null) return;
+        if (p.Bloqueo is { } b && p.Remesas.Count == 0) { Informar("No se puede conciliar la devolución", b); return; }
+        var vm = new DevolucionN43VM(p, id => _remesas.ProponerDevolucionAsync(_contexto.Trabajo.IdSociedad, fila.Id, id));
+        if (!_dialogos.ConciliarDevolucion(vm)) return;
+        var r = await _remesas.ConciliarDevolucionAsync(_contexto.Trabajo.IdSociedad, fila.Id, vm.IdsRecibos(), _contexto.Actor);
+        await TrasRemesaAsync(r, "No se ha conciliado la devolución");
+    }, "conciliar la devolución");
+
+    public Task DeshacerExplosionAsync() => Ejecutar(async () =>
+    {
+        if (Seleccion is not [var fila] || _remesas is null || _acciones.DeshacerExplosion is not null) return;
+        if (_dialogos.Preguntar("Deshacer explosión",
+                $"Se quitará el desglose en recibos del {FiltroMinuscula(fila.Datos.Rotulo)} y sus facturas volverán a como estaban antes. Queda registrado con tu nombre y la hora. " +
+                "No se puede si algún recibo ya tiene asiento: deshaz antes esos asientos.", null,
+                new OpcionMensaje("Deshacer explosión", "Quita los recibos y libera las facturas", Principal: true),
+                new OpcionMensaje("Cancelar", "No cambia nada", Cancelar: true)) != 0) return;
+        var r = await _remesas.DeshacerAsync(_contexto.Trabajo.IdSociedad, fila.Id, _contexto.Actor);
+        await TrasRemesaAsync(r, "No se ha deshecho la explosión");
+    }, "deshacer la explosión");
+
+    /// <summary>Botón de cabecera: explota todas las remesas pendientes de los ejercicios marcados cuyas facturas cuadran solas.</summary>
+    public Task ExplotarPendientesAsync() => Ejecutar(async () =>
+    {
+        if (_remesas is null) return;
+        var r = await _remesas.ExplotarPendientesAsync(_contexto.Trabajo.IdSociedad, AniosMarcados, _contexto.Actor);
+        if (r.Explotadas.Count > 0) await CargarAsync();
+        if (r.Pendientes.Count == 0) { _contexto.Avisar(r.Texto); return; }
+        _dialogos.Preguntar("Remesas pendientes de explotar", r.Texto, r.Pendientes.Values.ToList(),
+            new OpcionMensaje("Entendido", "Cierra el aviso; las que no cuadran siguen sin explotar", Principal: true, Cancelar: true));
+    }, "explotar las remesas pendientes");
+
+    private async Task TrasRemesaAsync(ResultadoRemesaN43 r, string tituloError)
+    {
+        if (!r.Hecho) { Informar(tituloError, r.Error!); return; }
+        await CargarAsync();
+        _contexto.Avisar(r.Texto);
+    }
+
+    private void Informar(string titulo, Error e) =>
+        _dialogos.Preguntar(titulo, e.TextoOperador(), null, new OpcionMensaje("Entendido", "Cierra el aviso; no se ha cambiado nada", Principal: true, Cancelar: true));
+
+    private static string FiltroMinuscula(string s) => s.Length == 0 ? s : char.ToLowerInvariant(s[0]) + s[1..];
 
     private void AbrirDocumento(CandidatoN43 c)
     {

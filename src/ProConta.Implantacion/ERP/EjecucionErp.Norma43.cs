@@ -168,6 +168,34 @@ internal sealed partial class EjecucionErp
                 await s.EjecutarAsync("UPDATE FacturasCompra SET LineaN43 = ? WHERE IdRegistro = ?", idLinea, idCompra);
             else ClaveNula(Fase5, "FacturasCompra", Txt(c.E("IdRegistro")), "LineaN43", c.E("LineaN43"), $"La línea bancaria {c.E("LineaN43")} de la factura de compra {c.E("IdRegistro")} no se ha migrado.");
         });
+
+        // Remesas explotadas en el ERP (norma43/remesas 2026-11-16): la línea de la remesa apunta (IdN43Explotado) al extracto ficticio con un
+        // recibo por factura. El extracto guarda su línea de origen y cada recibo de una remesa (abono) cobra la factura de su documento.
+        var estRem = Est(Fase5, "N43Lineas → remesas explotadas");
+        var origenes = o.Tabla("N43Lineas").Where(l => l.B("Explotado") && l.E("IdN43Explotado") is int c && c > 0 && c != l.E("IdRegistro") && !l.B("Eliminar")).ToList();
+        var remesasAbono = new HashSet<int>();
+        await EnLotesAsync(origenes, async (s, l) =>
+        {
+            var idCab = l.E("IdN43Explotado")!.Value;
+            if (Mapa(TiposErp.LineaN43, Txt(l.E("NumLinea"))) is not int idLinea || Mapa(TiposErp.ExtractoN43, Txt(idCab)) is not int idExtracto)
+            {
+                ClaveNula(Fase5, "N43Lineas", Txt(l.E("NumLinea")), "IdN43Explotado", idCab, $"La remesa {l.E("NumLinea")} o su extracto ficticio {idCab} no se han migrado: queda sin enlazar.");
+                return;
+            }
+            if (await s.EjecutarAsync("UPDATE ExtractosBancarios SET IdLineaExtractoOrigen = ? WHERE IdExtractoBancario = ? AND IdLineaExtractoOrigen IS NULL", idLinea, idExtracto) == 1)
+            {
+                estRem.Cargadas++;
+                if (l.T("DebeHaber") == "2") lock (remesasAbono) remesasAbono.Add(idCab);
+            }
+        });
+        var recibos = o.Tabla("N43Lineas").Where(l => l.E("IdRegistro") is int r && remesasAbono.Contains(r) && !l.B("Eliminar")).ToList();
+        var estRec = Est(Fase5, "N43Lineas → recibos cobrados (Facturas.LineaN43)");
+        await EnLotesAsync(recibos, async (s, l) =>
+        {
+            var documento = (l.T("Documento") ?? "").Trim().TrimStart('0');
+            if (documento.Length == 0 || Mapa(TiposErp.Factura, documento) is not int idFactura || Mapa(TiposErp.LineaN43, Txt(l.E("NumLinea"))) is not int idRecibo) return;
+            if (await s.EjecutarAsync("UPDATE Facturas SET LineaN43 = ? WHERE IdFactura = ? AND (LineaN43 IS NULL OR LineaN43 = 0)", idRecibo, idFactura) == 1) estRec.Cargadas++;
+        });
     }
 
     private static decimal ImporteLinea(Fila l) => l.D("ImporteEuros") ?? ReglasErp.ImporteN43(l.T("Importe")) ?? 0m;

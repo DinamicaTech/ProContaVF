@@ -166,6 +166,35 @@ internal sealed partial class EjecucionErp
         }
     }
 
+    // ---------- forma y día de pago (norma43/remesas) ----------
+
+    private Dictionary<int, (byte? Forma, byte? Dia)>? _pagosEsquema;
+    private HashSet<int>? _formasPago;
+
+    /// <summary>
+    /// Forma y día de pago del esquema de fraccionamiento del ERP (FraccionesEsquema.FormaPago y Dia de su primera fracción). Algunos esquemas
+    /// domiciliados no tienen forma de pago: se toma la de recibo domiciliado (<see cref="ReglasErp.FormaPagoDomiciliado"/>) si su nombre dice
+    /// «DOMICILIADO». Una forma que no está en FormasPago se deja vacía y se anota.
+    /// </summary>
+    private async Task<(byte? Forma, byte? Dia)> PagoEsquemaAsync(int? esquema, string tabla, string clave)
+    {
+        if (esquema is not int e || e <= 0) return (null, null);
+        _formasPago ??= (await ConsultarAsync("SELECT Id FROM FormasPago", f => f.Entero("Id"))).ToHashSet();
+        _pagosEsquema ??= o.Tabla("EsquemasFraccionamiento").Where(x => x.E("Codigo") is int).ToDictionary(x => x.E("Codigo")!.Value, x =>
+        {
+            var fraccion = o.Tabla("FraccionesEsquema").Where(fr => fr.E("CodigoEsquema") == x.E("Codigo")).OrderBy(fr => fr.E("Numero") ?? 0).FirstOrDefault();
+            return ReglasErp.PagoEsquema(x.T("Nombre"), fraccion?.E("FormaPago"), fraccion?.E("Dia"));
+        });
+        if (!_pagosEsquema.TryGetValue(e, out var pago)) return (null, null);
+        if (pago.Forma is byte forma && !_formasPago.Contains(forma))
+        {
+            Anotar(Fase2, tabla, clave, "EsquemaFraccionamiento", "Erp.FormaPagoDesconocida", Severidad.Informativa,
+                $"La forma de pago {forma} del esquema {e} no está en FormasPago: queda sin forma de pago (el día de pago sí se migra).");
+            return (null, pago.Dia);
+        }
+        return pago;
+    }
+
     // ---------- facturas de venta ----------
 
     private sealed record FacturaPreparada(Fila Erp, int Numero, int Anio, FacturaVenta Factura, int? IdAsiento, DateTime? FechaAsiento, int? IdRegistroIva, string Rectificada);
@@ -204,6 +233,8 @@ internal sealed partial class EjecucionErp
             _ventasErp[numero] = (fv.Dec("ImporteTotal"), numero);
 
             var f = new FacturaVenta { FechaFactura = fecha, FechaInicioValidez = fv.F("FechaInicio"), FechaFinValidez = fv.F("FechaFin") };
+            // Forma y día de pago, de su esquema de fraccionamiento (norma43/remesas): agrupan las facturas de cada remesa.
+            (f.FormaDePago, f.DiaDePago) = await PagoEsquemaAsync(fv.E("EsquemaFraccionamiento"), "FacturasVenta", clave);
             // Cliente (pagador) y beneficiario (quien recibe el servicio).
             int? idCliente = null;
             if (fv.E("IdCliente") is int pc)
@@ -313,7 +344,7 @@ internal sealed partial class EjecucionErp
                 rect ? "R4" : "F1", rect ? "I" : null, (byte)EstadoFactura.Validada, p.IdAsiento, p.IdAsiento is null ? null : p.FechaAsiento,
                 $"{ahora:dd/MM/yyyy HH:mm} · {Operador} · Migrada del ERP (factura {p.Numero}).",
                 ReglasErp.Recortar(dir?.Direccion, 255), ReglasErp.Recortar(dir?.CodigoPostal, 10), ReglasErp.Recortar(dir?.Poblacion, 100), ReglasErp.Recortar(dir?.Provincia, 100),
-                true, 0, rect ? $"Rectificativa del ERP de la factura {p.Rectificada}." : null,
+                true, 0, rect ? $"Rectificativa del ERP de la factura {p.Rectificada}." : null, f.FormaDePago, f.DiaDePago,
             };
         }).ToList();
         var ids = await MasivaAsync("Facturas",
@@ -322,6 +353,7 @@ internal sealed partial class EjecucionErp
             "PoblacionEmisor", "ProvinciaEmisor", "FechaFactura", "FechaInicioValidez", "FechaFinValidez", "FechaCreacion", "FechaHoraEmision", "Descripcion", "NotasInternas",
             "BaseImponible", "IVA", "ImporteBruto", "TipoRetencion", "Retencion", "ImporteTotal", "TipoFactura", "TipoRectificativa", "EstadoFactura", "IdAsientoContable",
             "FechaExportacionContable", "Historial", "DireccionCliente", "CodigoPostalCliente", "PoblacionCliente", "ProvinciaCliente", "SinVeriFactu", "Version", "MotivoRectificacion",
+            "FormaDePago", "DiaDePago",
         ], filas, "IdFactura");
         for (var i = 0; i < preparadas.Count; i++) Mapear(TiposErp.Factura, Txt(preparadas[i].Numero), ids[i]);
         est.Cargadas = ids.Count;
