@@ -111,14 +111,7 @@ public partial class App : Application
         }
         var d = comprobacion.Diagnostico!;
         var carpeta = ComprobadorArranque.CarpetaCopias(ubicacion);
-        var pregunta = new Error("Esquema.Pendiente",
-            $"Esta versión del programa trae {(d.Pendientes.Count == 1 ? "un cambio" : $"{d.Pendientes.Count} cambios")} de estructura que la base de datos todavía no tiene " +
-            $"(está en la versión {d.VersionBd} y el programa usa la {d.VersionPrograma}).",
-            ubicacion.RutaBaseDatos,
-            "Cambios pendientes: " + string.Join(", ", d.Pendientes.Select(m => m.Descripcion)),
-            $"Pulsa «Actualizar ahora»: antes hago una copia de la base de datos en {carpeta}. Si prefieres no actualizarla todavía, sal y abre la versión anterior del programa.");
-        if (!VentanaAviso.Preguntar("La base de datos necesita actualizarse", pregunta, "Actualizar ahora",
-                "Hace una copia de la base de datos y le aplica los cambios de estructura de esta versión; después entra"))
+        if (VentanaActualizar(d, ubicacion.RutaBaseDatos, carpeta).ShowDialog() != true)
             return null;
         var actualizada = await ComprobadorArranque.ActualizarAhoraAsync(ubicacion, Environment.UserName);
         if (!actualizada.EsCorrecto)
@@ -131,6 +124,27 @@ public partial class App : Application
         VentanaAviso.Mostrar("La base de datos no se puede usar con esta versión", comprobacion.Error!);
         return null;
     }
+
+    /// <summary>
+    /// Aviso «La base de datos necesita actualizarse» (datos/esquema 2026-11-16 19:09): qué pasa y qué hacer arriba, los cambios pendientes en un cuadro
+    /// con barra de desplazamiento y los botones siempre a la vista. Sin abrirla, para poder capturarla.
+    /// </summary>
+    internal static Window VentanaActualizar(Datos.Esquema.DiagnosticoEsquema d, string rutaBd, string carpetaCopias)
+    {
+        var pregunta = new Error("Esquema.Pendiente",
+            $"Esta versión del programa trae {(d.Pendientes.Count == 1 ? "un cambio" : $"{d.Pendientes.Count} cambios")} de estructura que la base de datos todavía no tiene " +
+            $"(está en la versión {d.VersionBd} y el programa usa la {d.VersionPrograma}).",
+            rutaBd,
+            null,
+            $"Pulsa «Actualizar ahora»: antes hago una copia de la base de datos en {carpetaCopias}. Si prefieres no actualizarla todavía, sal y abre la versión anterior del programa. " +
+            "Si no es la base de datos que querías abrir, sal y ábrela con su ruta (--bd \"<fichero accdb>\").");
+        return VentanaAviso.Crear("La base de datos necesita actualizarse", pregunta, "Actualizar ahora",
+            "Hace una copia de la base de datos y le aplica los cambios de estructura de esta versión; después entra", "Cambios pendientes:", CambiosPendientes(d));
+    }
+
+    /// <summary>Un cambio de esquema pendiente por línea, con la versión a la que lleva delante: «v8 · Cuentas de cliente…».</summary>
+    internal static IReadOnlyList<string> CambiosPendientes(Datos.Esquema.DiagnosticoEsquema d) =>
+        d.Pendientes.Select((m, i) => $"v{d.VersionBd + i + 1} · {m.Descripcion}").ToList();
 
     /// <summary>Ubicación resuelta o, si no la hay, la que elija el operador; null si cancela.</summary>
     private static UbicacionDatos? ResolverUbicacion(string[] argumentos)

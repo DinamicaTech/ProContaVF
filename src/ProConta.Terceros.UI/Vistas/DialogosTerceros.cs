@@ -10,6 +10,10 @@ namespace ProConta.Terceros.UI.Vistas;
 /// <summary>Diálogos de Terceros con los componentes de la biblioteca visual.</summary>
 public sealed class DialogosTerceros(ServiciosTerceros servicios) : IDialogos
 {
+    /// <summary>El buscador de subcuentas común (contabilidad/cuenta-contable), con el filtro de la cuenta que toca.</summary>
+    public ProConta.Contabilidad.Cuentas.CuentaContable? ElegirCuenta(string titulo, IReadOnlyList<string> grupos) =>
+        ProConta.Contabilidad.UI.DialogoCuentas.Elegir(Propietario, new ProConta.Contabilidad.UI.BuscadorCuentasVM(servicios.Cuentas, servicios.Contexto, grupos), titulo);
+
     private static Window? Propietario => Application.Current?.Windows.OfType<Window>().FirstOrDefault(w => w.IsActive) ?? Application.Current?.MainWindow;
 
     public int Preguntar(string titulo, string mensaje, IReadOnlyList<string>? detalles, params OpcionMensaje[] opciones) =>

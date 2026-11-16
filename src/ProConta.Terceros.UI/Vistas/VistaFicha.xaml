@@ -98,6 +98,46 @@
           <TextBlock Text="{Binding Aviso}" Visibility="{Binding HayAviso, Converter={StaticResource Visible}}" Foreground="{StaticResource Pincel.Aviso}" Margin="0,4,0,0" TextWrapping="Wrap" />
         </StackPanel>
       </DataTemplate>
+      <!-- Subcuentas del socio: siempre con el buscador (sin escribir el código), en una rejilla de columnas fijas para que las dos filas queden alineadas. -->
+      <DataTemplate x:Key="FilaCuentaSocio">
+        <StackPanel Margin="0,0,0,10">
+          <Grid>
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="220" />
+              <ColumnDefinition Width="Auto" />
+              <ColumnDefinition Width="Auto" />
+              <ColumnDefinition Width="390" />
+              <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <StackPanel Grid.Column="0" Margin="0,0,10,0">
+              <TextBlock Text="{Binding Titulo}" Style="{StaticResource Etiqueta.Campo}" />
+              <TextBox Text="{Binding Codigo, Mode=OneWay, ValidatesOnNotifyDataErrors=True}" IsReadOnly="True" Width="130" HorizontalAlignment="Left" Style="{StaticResource Campo.Mono}" Tag="Codigo"
+                       Cursor="Hand" ToolTip="{Binding AyudaBuscar}" PreviewMouseLeftButtonUp="CuentaSocio_Click" KeyDown="CuentaSocio_KeyDown" />
+            </StackPanel>
+            <Button Grid.Column="1" Content="Buscar…" Command="{Binding BuscarCommand}" Style="{StaticResource Boton.Pequeno}" VerticalAlignment="Bottom" Margin="0,0,6,0"
+                    ToolTip="{Binding AyudaBuscar}" />
+            <!-- «Auto» reserva su hueco aunque no se vea, para que las descripciones queden alineadas. -->
+            <Button Grid.Column="2" Content="Auto" Command="{Binding AutoCommand}" VerticalAlignment="Bottom" Margin="0,0,10,0" ToolTip="{Binding AyudaAuto}">
+              <Button.Style>
+                <Style TargetType="Button" BasedOn="{StaticResource Boton.Pequeno}">
+                  <Style.Triggers>
+                    <DataTrigger Binding="{Binding PuedeAuto}" Value="False">
+                      <Setter Property="Visibility" Value="Hidden" />
+                    </DataTrigger>
+                  </Style.Triggers>
+                </Style>
+              </Button.Style>
+            </Button>
+            <StackPanel Grid.Column="3" Margin="0,0,10,0">
+              <TextBlock Text="Descripción" Style="{StaticResource Etiqueta.Campo}" />
+              <TextBox Text="{Binding Nombre, Mode=OneWay}" IsReadOnly="True" Width="380" HorizontalAlignment="Left" ToolTip="Nombre de la cuenta en el plan contable, para comprobar que es la correcta. Se cambia en el plan de cuentas" />
+            </StackPanel>
+            <Button Grid.Column="4" Content="{Binding AccionTexto}" Command="{Binding AccionCommand}" VerticalAlignment="Bottom" Visibility="{Binding HayAccion, Converter={StaticResource Visible}}"
+                    pc:Iconos.Icono="{StaticResource Icono.plus}" ToolTip="Da de alta la cuenta en el plan contable del ejercicio de trabajo (se crea al momento, aunque luego descartes la ficha)" />
+          </Grid>
+          <TextBlock Text="{Binding Aviso}" Visibility="{Binding HayAviso, Converter={StaticResource Visible}}" Foreground="{StaticResource Pincel.Aviso}" Margin="0,4,0,0" TextWrapping="Wrap" />
+        </StackPanel>
+      </DataTemplate>
     </ResourceDictionary>
   </UserControl.Resources>
 
@@ -693,8 +733,6 @@
                     <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
                       <TextBlock Text="{Binding EstadoSocio}" Style="{StaticResource Texto.Apagado}" VerticalAlignment="Center" Margin="0,0,10,0" TextWrapping="Wrap" MaxWidth="620" />
                       <StackPanel Orientation="Horizontal" Visibility="{Binding SocioActivo, Converter={StaticResource Visible}}">
-                        <TextBlock Text="IdSocio" Style="{StaticResource Etiqueta.Campo}" VerticalAlignment="Center" Margin="0,0,8,0" />
-                        <TextBox Text="{Binding IdSocio, Mode=OneWay}" IsReadOnly="True" Width="100" Style="{StaticResource Campo.Mono}" Margin="0,0,10,0" ToolTip="Número de socio; uno nuevo lo recibe al guardar" />
                         <Button Style="{StaticResource Boton.Enlace}" Content="Desactivar" Command="{Binding DesactivarRolCommand}" CommandParameter="socio" VerticalAlignment="Center"
                                 ToolTip="Deja de ser socio de esta sociedad al guardar: ya no sale en los repartos ni en los pagos de dividendos; sus repartos anteriores se conservan" />
                       </StackPanel>
@@ -713,10 +751,10 @@
                       <TextBox Text="{Binding ParticipacionSocio, UpdateSourceTrigger=PropertyChanged, ValidatesOnNotifyDataErrors=True}" Width="90" Style="{StaticResource Campo.Mono}" Tag="ParticipacionSocio"
                                ToolTip="Participación vigente en el capital, en porcentaje (50 = 50 %). Reparte los dividendos y los pagos entre socios. Cada cambio queda en el historial de la ficha" />
                     </StackPanel>
-                    <ContentControl Content="{Binding CuentaDividendos}" ContentTemplate="{StaticResource FilaCuenta}" />
-                    <ContentControl Content="{Binding CuentaRetencionDividendos}" ContentTemplate="{StaticResource FilaCuenta}" />
+                    <ContentControl Content="{Binding CuentaDividendos}" ContentTemplate="{StaticResource FilaCuentaSocio}" />
+                    <ContentControl Content="{Binding CuentaRetencionDividendos}" ContentTemplate="{StaticResource FilaCuentaSocio}" />
                     <TextBlock Style="{StaticResource Texto.Apagado}" TextWrapping="Wrap" Width="760" HorizontalAlignment="Left"
-                               Text="Si las dejas vacías, al guardar se crean las siguientes subcuentas libres de la 526 y la 4751 con el nombre del socio. Los repartos de dividendos (Contabilidad › Reparto de dividendos) y los pagos (Líneas N43 › Pago de dividendos…) usan estas subcuentas y este porcentaje." />
+                               Text="Elígelas con «Buscar…» (o clic en el código). Si las dejas vacías, al guardar se crean las siguientes subcuentas libres de la 526 y la 4751 con el nombre del socio. Los repartos de dividendos (Contabilidad › Reparto de dividendos) y los pagos (Líneas N43 › Pago de dividendos…) usan estas subcuentas y este porcentaje." />
                   </StackPanel>
                 </StackPanel>
               </Border>
