@@ -27,6 +27,9 @@ public sealed class ServicioConector
     private readonly ConcurrentDictionary<int, Propuesta> _propuestas = new();
     private int _ultimaPropuesta;
 
+    /// <summary>Entorno de la BD (plataforma/entorno-pruebas): «Producción» o «Pruebas»; lo dice la herramienta «sociedades».</summary>
+    public string Entorno { get; init; } = "Producción";
+
     public ServicioConector(IBaseDatos bd, string operador, Func<DateTime>? hoy = null)
     {
         _bd = bd;

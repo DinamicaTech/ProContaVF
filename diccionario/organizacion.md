@@ -92,6 +92,10 @@ Relaciones:
 | CuentaRedondeoGastos | TEXT(10) | sí |  |  |
 | CuentaRedondeoIngresos | TEXT(10) | sí |  |  |
 | CarpetaFacturasCompra | TEXT(255) | sí |  |  |
+| CuentaHaciendaAcreedoraIva | TEXT(10) | sí |  | Cuenta del IVA a ingresar en la liquidación (vacía: 4750000). |
+| CuentaHaciendaDeudoraIva | TEXT(10) | sí |  | Cuenta del IVA a compensar o devolver en la liquidación (vacía: 4700000). |
+| CuentaAjustesNegativosIva | TEXT(10) | sí |  | Cuenta del IVA no deducible y de los ajustes a pagar más en la liquidación (vacía: 6341000). |
+| CuentaAjustesPositivosIva | TEXT(10) | sí |  | Cuenta de los ajustes a pagar menos en la liquidación (vacía: 6391000). |
 
 Índices:
 - FK_Sociedades_SociedadesEjercicios: IdSociedad

@@ -69,3 +69,4 @@ Cada paso se marca con la fecha en que se hace y cómo se comprobó.
 - 2026-11-16 09:40 · Este nodo organizará las diferente tareas y validaciones que vamos a hacer para pasar a producción (copia de ejecutables y librerías a la carpeta de producción, base de datos maestra, lanzar importaciones, revisar parámetros de configuración, validaciones de importación y operativa, etc.)
 - 2026-11-16 09:45 · Cuando haya acabado los últimos desarrollos, activaré este nodo para pasar a producción.
 - 2026-11-16 09:45 · draft: Ejecutar el plan de paso a producción de este nodo, paso a paso y con sus validaciones, cuando el propietario lo active tras acabar los últimos desarrollos.
+- 2026-11-16 14:05 · Derived from plataforma/entorno-pruebas: después de las importaciones (paso D), crear la copia de pruebas con «Actualizar la copia de pruebas…», y validar la operativa (paso G) primero en pruebas.

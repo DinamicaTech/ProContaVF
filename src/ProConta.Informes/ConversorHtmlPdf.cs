@@ -35,6 +35,24 @@ public sealed class ConversorHtmlPdf
     private HwndSource? _ventana;
     private readonly SemaphoreSlim _turno = new(1, 1);
 
+    /// <summary>
+    /// Marca de agua que llevan todos los PDF del programa (plataforma/entorno-pruebas): «PRUEBAS» cuando se trabaja en la copia de
+    /// pruebas, para que ninguno se confunda con un documento real. Null en producción. La pone el arranque.
+    /// </summary>
+    public static string? MarcaDeAgua { get; set; }
+
+    /// <summary>Pone la marca de agua en el HTML: un texto fijo, girado y translúcido, que se repite en cada página y no tapa el contenido.</summary>
+    public static string ConMarcaDeAgua(string html, string? marca)
+    {
+        if (string.IsNullOrWhiteSpace(marca)) return html;
+        var texto = System.Net.WebUtility.HtmlEncode(marca);
+        var capa = "<div style=\"position:fixed;left:0;top:0;width:100%;height:100%;display:flex;align-items:center;justify-content:center;" +
+            "pointer-events:none;z-index:2147483647\"><div style=\"transform:rotate(-35deg);font:bold 120px Arial,sans-serif;letter-spacing:12px;" +
+            "color:rgba(230,90,0,0.18);white-space:nowrap\">" + texto + "</div></div>";
+        var i = html.LastIndexOf("</body>", StringComparison.OrdinalIgnoreCase);
+        return i >= 0 ? html.Insert(i, capa) : html + capa;
+    }
+
     /// <summary>El conversor de todo el programa (un solo navegador para todos los PDF).</summary>
     public static ConversorHtmlPdf Compartido => _compartido.Value;
 
@@ -65,7 +83,7 @@ public sealed class ConversorHtmlPdf
     {
         ComprobarComponente();
         var hilo = Hilo();
-        var tarea = hilo.InvokeAsync(() => ConvertirEnHiloAsync(AjustarPagina(html, pagina), pagina)).Task.Unwrap();
+        var tarea = hilo.InvokeAsync(() => ConvertirEnHiloAsync(AjustarPagina(ConMarcaDeAgua(html, MarcaDeAgua), pagina), pagina)).Task.Unwrap();
         try
         {
             return tarea.GetAwaiter().GetResult();

@@ -514,6 +514,34 @@ Relaciones:
 - FK_IVAS_Proveedor: (IdProveedor) → Proveedores (IdProveedor); borrado NO ACTION, actualización NO ACTION
 - FK_IVAS_Tipo: (IdTipoOperacion) → TiposOperacion (IdTipoOperacion); borrado NO ACTION, actualización NO ACTION
 
+## LiquidacionesIva
+
+- Dueño funcional: `contabilidad/procesos/liquidacion-iva`
+- Liquidación del IVA de un trimestre del ejercicio: lo calculado desde los libros, lo liquidado y su asiento (lote contabilidad/procesos/liquidacion-iva).
+
+| Campo | Tipo | Nulo | Por defecto | Descripción |
+|---|---|---|---|---|
+| IdLiquidacionIva | COUNTER | no |  | Identificador de la liquidación. |
+| IdSociedadEjercicio | LONG | no |  | Ejercicio liquidado. |
+| Trimestre | BYTE | no |  | Trimestre liquidado, de 1 a 4. |
+| Prorrata | DECIMAL | sí |  | Prorrata provisional usada, en tanto por uno (0,15 = 15 %). |
+| ResultadoCalculado | CURRENCY | no |  | Resultado del 303 calculado desde los libros de IVA: positivo a ingresar, negativo a compensar, antes de compensar trimestres anteriores. |
+| ImporteLiquidado | CURRENCY | no |  | Resultado con el que se liquidó: el calculado o el que fijó el operador para ajustarlo a lo presentado. |
+| Compensado | CURRENCY | no |  | Crédito de la 4700 de trimestres anteriores aplicado en esta liquidación. |
+| Ajuste | CURRENCY | no |  | Línea de ajuste del asiento: positiva a la 6391 (sale a pagar menos), negativa a la 6341 (sale a pagar más). |
+| Motivo | TEXT(255) | sí |  | Motivo que dio el operador al confirmar (obligatorio con ajuste o en un trimestre cerrado). |
+| IdAsiento | LONG | sí |  | Asiento de la liquidación. |
+| Operador | TEXT(100) | sí |  | Operador que confirmó la liquidación. |
+| FechaHoraConfirmacion | DATETIME | no |  | Fecha y hora de la confirmación. |
+
+Índices:
+- FK_LiquidacionesIva_Ejercicio: IdSociedadEjercicio
+- PK_LiquidacionesIva (clave primaria): IdLiquidacionIva
+- UX_LiquidacionesIva_Trimestre (único): IdSociedadEjercicio, Trimestre
+
+Relaciones:
+- FK_LiquidacionesIva_Ejercicio: (IdSociedadEjercicio) → SociedadesEjercicios (IdSociedadEjercicio); borrado NO ACTION, actualización NO ACTION
+
 ## ModelosBalance
 
 - Dueño funcional: `contabilidad/balances`

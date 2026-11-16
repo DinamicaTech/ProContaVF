@@ -295,6 +295,24 @@ public sealed class ColaAccessTests : IDisposable
     }
 
     [Fact]
+    public async Task En_la_copia_de_pruebas_sin_desvio_no_sale_nada()
+    {
+        await CrearCuentaAsync();
+        await _bd.EjecutarAsync(async s =>
+        {
+            if (Convert.ToInt32(await s.EscalarAsync("SELECT COUNT(*) FROM Configuracion")) == 0)
+                await s.EjecutarAsync("INSERT INTO Configuracion (IdConfiguracion, OcultarListaOperadoresAcceso) VALUES (1, False)");
+            return await s.EjecutarAsync("UPDATE Configuracion SET CorreoDesviarA = Null, EntornoPruebas = True");
+        });
+        Assert.True(await _servicio.EsEntornoPruebasAsync());
+        var id = await EncolarAsync("cliente@example.invalid");
+        var r = await _servicio.EnviarAhoraAsync(id);
+        Assert.Empty(_transporte.Enviados);
+        Assert.Contains("base de datos de pruebas", r.Explicacion);
+        Assert.Equal(EstadoMensaje.Fallido, await _servicio.EstadoAsync(id));
+    }
+
+    [Fact]
     public async Task Adjunto_alterado_no_se_envia()
     {
         await CrearCuentaAsync();

@@ -28,18 +28,40 @@ public partial class App : Application
         base.OnStartup(e);
         try
         {
-            var ubicacion = ResolverUbicacion(e.Args);
-            if (ubicacion is null) { Shutdown(0); return; }
+            var resuelta = ResolverUbicacion(e.Args);
+            if (resuelta is null) { Shutdown(0); return; }
 
-            var compatible = await ComprobadorArranque.ComprobarAsync(ubicacion);
-            if (!compatible.EsCorrecto)
+            // Entorno (plataforma/entorno-pruebas): si el puesto tiene copia de pruebas de esta BD, se elige antes del acceso.
+            ConfiguracionLocal? local = null;
+            try { local = new AlmacenConfiguracionLocalJson().Leer(); } catch (Exception ex) when (ex is System.IO.InvalidDataException or System.IO.IOException) { }
+            var opciones = SelectorEntorno.Resolver(resuelta, e.Args, local);
+            if (!opciones.EsCorrecto)
             {
-                VentanaAviso.Mostrar("La base de datos no se puede usar con esta versión", compatible.Error!);
+                VentanaAviso.Mostrar("No sé en qué entorno entrar", opciones.Error!);
                 Shutdown(1);
                 return;
             }
+            var ubicacion = opciones.Valor.Eleccion == EleccionEntorno.Preguntar
+                ? VentanaEntorno.Elegir(opciones.Valor, await InfoEntorno.LeerAsync(new BaseDatosAccess(opciones.Valor.Pruebas!.RutaBaseDatos, ModoApertura.SoloLectura)))
+                : opciones.Valor.Elegida;
+            if (ubicacion is null) { Shutdown(0); return; }
+            var quierePruebas = opciones.Valor.Pruebas is { } p && string.Equals(p.RutaBaseDatos, ubicacion.RutaBaseDatos, StringComparison.OrdinalIgnoreCase);
+
+            var compatible = await ComprobarOActualizarAsync(ubicacion);
+            if (compatible is null) { Shutdown(1); return; }
 
             var bd = new BaseDatosAccess(ubicacion.RutaBaseDatos);
+            var entorno = await InfoEntorno.LeerAsync(bd);
+            if (quierePruebas && !entorno.EsPruebas)
+            {
+                VentanaAviso.Mostrar("Esta no es la copia de pruebas", new Error("Configuracion.PruebasSinMarca",
+                    "La base de datos registrada como copia de pruebas no tiene la marca de pruebas, así que no entro en ella: podría ser una BD de verdad.",
+                    ubicacion.RutaBaseDatos, "No la ha creado «Actualizar la copia de pruebas…», o se ha sustituido a mano.",
+                    "Entra en producción y vuelve a crear la copia con Configuración › «Actualizar la copia de pruebas…»."));
+                Shutdown(1);
+                return;
+            }
+            Informes.ConversorHtmlPdf.MarcaDeAgua = entorno.EsPruebas ? "PRUEBAS" : null;
             var sociedades = new ServicioSociedadesAccess(bd);
             _acceso = new ServicioAcceso(bd, sociedades);
 
@@ -62,7 +84,7 @@ public partial class App : Application
             // Columnas de las tablas y paneles se guardan por operador (ProConta.UI.Base).
             UI.Base.Preferencias.PreferenciasOperador.Actual = new UI.Base.Preferencias.PreferenciasJson(_sesion.NombreOperador);
 
-            var principal = new VentanaPrincipal(acceso.Resultado, ubicacion, compatible.Valor.VersionBd, bd);
+            var principal = new VentanaPrincipal(acceso.Resultado, ubicacion, compatible.VersionBd, bd, entorno);
             principal.Closed += (_, _) => Shutdown(0);
             MainWindow = principal;
             principal.Show();
@@ -72,6 +94,42 @@ public partial class App : Application
             VentanaAviso.Mostrar("No he podido acceder a los datos", ex.Error);
             Shutdown(1);
         }
+    }
+
+    /// <summary>
+    /// Comprueba el esquema y, si solo le faltan migraciones, ofrece «Actualizar ahora» con copia previa (plataforma/entorno-pruebas
+    /// 2026-11-16). Devuelve el diagnóstico compatible, o null si no se puede entrar (ya se ha avisado al operador).
+    /// </summary>
+    private static async Task<Datos.Esquema.DiagnosticoEsquema?> ComprobarOActualizarAsync(UbicacionDatos ubicacion)
+    {
+        var comprobacion = await ComprobadorArranque.DiagnosticarAsync(ubicacion);
+        if (comprobacion.EsCompatible) return comprobacion.Diagnostico;
+        if (!comprobacion.SePuedeActualizarAhora)
+        {
+            VentanaAviso.Mostrar("La base de datos no se puede usar con esta versión", comprobacion.Error!);
+            return null;
+        }
+        var d = comprobacion.Diagnostico!;
+        var carpeta = ComprobadorArranque.CarpetaCopias(ubicacion);
+        var pregunta = new Error("Esquema.Pendiente",
+            $"Esta versión del programa trae {(d.Pendientes.Count == 1 ? "un cambio" : $"{d.Pendientes.Count} cambios")} de estructura que la base de datos todavía no tiene " +
+            $"(está en la versión {d.VersionBd} y el programa usa la {d.VersionPrograma}).",
+            ubicacion.RutaBaseDatos,
+            "Cambios pendientes: " + string.Join(", ", d.Pendientes.Select(m => m.Descripcion)),
+            $"Pulsa «Actualizar ahora»: antes hago una copia de la base de datos en {carpeta}. Si prefieres no actualizarla todavía, sal y abre la versión anterior del programa.");
+        if (!VentanaAviso.Preguntar("La base de datos necesita actualizarse", pregunta, "Actualizar ahora",
+                "Hace una copia de la base de datos y le aplica los cambios de estructura de esta versión; después entra"))
+            return null;
+        var actualizada = await ComprobadorArranque.ActualizarAhoraAsync(ubicacion, Environment.UserName);
+        if (!actualizada.EsCorrecto)
+        {
+            VentanaAviso.Mostrar("No he podido actualizar la base de datos", actualizada.Error!);
+            return null;
+        }
+        comprobacion = await ComprobadorArranque.DiagnosticarAsync(ubicacion);
+        if (comprobacion.EsCompatible) return comprobacion.Diagnostico;
+        VentanaAviso.Mostrar("La base de datos no se puede usar con esta versión", comprobacion.Error!);
+        return null;
     }
 
     /// <summary>Ubicación resuelta o, si no la hay, la que elija el operador; null si cancela.</summary>

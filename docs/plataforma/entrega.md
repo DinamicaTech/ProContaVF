@@ -32,6 +32,7 @@ En la raíz del repositorio: `compilar.cmd` compila `ProContaVF.slnx` en Release
 - 2026-10-31 08:37 · Derived from architecture: la solución, la compilación x64 y la ejecución local de las pruebas (sin BD y contra la BD de pruebas) forman el primer incremento del esqueleto técnico; no se configura compilación en GitHub.
 - 2026-10-31 17:53 · Derived from architecture: los comandos locales de compilación x64 y de pruebas (con y sin Access) y la versión de entrega calculada desde git.
 - 2026-11-16 09:45 · Derived from implantacion/proceso-de-paso-a-produccion: el script de publicación copia la versión compilada a C:\Docs\ProConta (equipo del propietario) con respaldo previo de la anterior.
+- 2026-11-16 14:05 · Derived from plataforma/entorno-pruebas: el script de instalación reemplaza el exe de C:\Docs\ProConta guardando una copia del anterior; el mismo programa abre producción y la copia de pruebas.
 
 ## Hand-over
 - 2026-10-31 19:30 · Hecho: `compilar.cmd`, `probar.cmd [sinbd]`, `ejecutar.cmd` y la versión desde git, visible en la aplicación. Pendiente: el script de instalación en C:\Docs\ProConta del equipo del propietario (antes el Windows Server) con respaldo previo y actualización del esquema (P-14) y el ensayo de restauración de copias (RF-TEC-05).

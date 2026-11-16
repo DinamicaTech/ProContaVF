@@ -43,6 +43,17 @@ public sealed class MotorPdfTests
         Assert.DoesNotContain("size: portrait", ajustado);
     }
 
+    [Fact]
+    public void EnPruebasLosPdfLlevanLaMarcaDeAgua()
+    {
+        const string html = "<html><head></head><body><p>Factura</p></body></html>";
+        Assert.Equal(html, ConversorHtmlPdf.ConMarcaDeAgua(html, null));
+        var marcado = ConversorHtmlPdf.ConMarcaDeAgua(html, "PRUEBAS");
+        Assert.Contains(">PRUEBAS</div></div></body>", marcado);
+        Assert.Contains("position:fixed", marcado);
+        Assert.StartsWith("<html><head></head><body><p>Factura</p>", marcado);
+    }
+
     [Theory]
     [InlineData(PlantillaFactura.Factura, 6, 1)]
     [InlineData(PlantillaFactura.Factura, 40, 2)]
