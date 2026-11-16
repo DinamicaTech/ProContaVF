@@ -144,7 +144,8 @@ public sealed record AccionesLineasN43(
     string TextoReasignar, string? Reasignar,
     string? PalabrasClave,
     string? Traspaso,
-    string? VerAsiento)
+    string? VerAsiento,
+    string? BuscarPorImporte)
 {
     private static readonly CultureInfo Es = CultureInfo.GetCultureInfo("es-ES");
 
@@ -199,9 +200,12 @@ public sealed record AccionesLineasN43(
                 ?? (a.IdAsiento is not null || b.IdAsiento is not null ? "Alguna de las dos ya está contabilizada: deshaz antes su asiento (solo si lo generó ProContaVF)." : null);
         }
 
+        // Buscar por importe (norma43/busqueda-por-importe): enlazar facturas no cambia asientos, así que vale también para las contabilizadas.
+        var buscar = ninguna ?? soloLectura;
+
         var verAsiento = n != 1 ? (n == 0 ? "Selecciona una línea." : "Se abre el asiento de una sola línea.") : null;
 
-        return new AccionesLineasN43(asignar, textoContabilizar, contabilizar, aContabilizar, deshacer, propias, actualizar, textoReasignar, reasignar, palabras, traspaso, verAsiento);
+        return new AccionesLineasN43(asignar, textoContabilizar, contabilizar, aContabilizar, deshacer, propias, actualizar, textoReasignar, reasignar, palabras, traspaso, verAsiento, buscar);
     }
 
     private static string Minuscula(string s) => s.Length == 0 ? s : char.ToLowerInvariant(s[0]) + s[1..];

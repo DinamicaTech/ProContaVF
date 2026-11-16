@@ -368,6 +368,23 @@ public sealed class FacturasRecibidasVM : ModeloVista, IPestanaTrabajo
         CommandManager.InvalidateRequerySuggested();
     }
 
+    /// <summary>
+    /// Deja a la vista una factura concreta (la abren otras pantallas, como la búsqueda por importe de Norma 43): quita los filtros, pasa a
+    /// su pestaña y la activa. Si no es del ejercicio de trabajo, lo avisa.
+    /// </summary>
+    internal void Mostrar(int idRegistro)
+    {
+        var d = _datos.FirstOrDefault(x => x.IdRegistro == idRegistro);
+        if (d is null)
+        {
+            _modulo.Avisar($"La factura de compra (registro {idRegistro}) no es del ejercicio de trabajo: cambia de ejercicio en la barra de estado para verla.");
+            return;
+        }
+        LimpiarFiltros();
+        if (!EnTodas) PestanaLista = d.Contabilizada ? "contabilizadas" : "pendientes";
+        Filtrar(idRegistro);
+    }
+
     // ---------- relacionadas ----------
 
     public bool HayRelacionadas => _relacionadasDe is not null;

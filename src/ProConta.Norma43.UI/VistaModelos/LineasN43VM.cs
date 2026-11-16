@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using System.Windows.Input;
 using ProConta.Norma43.Asignacion;
+using ProConta.Norma43.Busqueda;
 using ProConta.Norma43.Conciliacion;
 using ProConta.Norma43.Lineas;
 using ProConta.Nucleo.Auditoria;
@@ -21,6 +22,10 @@ public sealed record ContextoLineasN43(ContextoSociedadEjercicio Trabajo, string
     public Action<IReadOnlyList<string>, IReadOnlyList<int>>? AbrirMayor { get; init; }
     /// <summary>Muestra un asiento grabado.</summary>
     public Func<int, Task>? VerAsiento { get; init; }
+    /// <summary>Abre una factura de venta (IdFactura).</summary>
+    public Action<int>? AbrirFacturaVenta { get; init; }
+    /// <summary>Abre una factura de compra (IdRegistro).</summary>
+    public Action<int>? AbrirFacturaCompra { get; init; }
 }
 
 /// <summary>Cuenta elegida en el buscador de cuentas.</summary>
@@ -41,6 +46,8 @@ public interface IDialogosLineasN43
     void VerPropuesta(PropuestaLineaN43 propuesta);
     /// <summary>Diálogo de palabras clave de una línea (modal).</summary>
     void PalabrasClave(PalabrasClaveN43VM vm);
+    /// <summary>Diálogo «Buscar por importe» (modal): true si se pulsa «Enlazar».</summary>
+    bool BuscarPorImporte(BusquedaImporteN43VM vm) => false;
 }
 
 /// <summary>Una acción del menú contextual: su texto, si se puede y, si no, por qué (en el tooltip).</summary>
@@ -110,6 +117,10 @@ public sealed class FilaLineaN43VM(LineaN43 datos) : ModeloVista
           + "\nDoble clic: su Mayor";
     /// <summary>Documento del banco; vacío si viene a ceros (no aporta nada).</summary>
     public string Documento => _datos.Documento is { } d && d.Trim().Any(c => c != '0') ? d : "";
+    public string Facturas => _datos.Facturas ?? "";
+    public string AyudaFacturas => _datos.Facturas is null
+        ? "Sin facturas enlazadas: búscalas con «Buscar por importe…» (clic derecho)"
+        : $"Facturas enlazadas: {_datos.Facturas}";
     public string Estado => FiltroLineasN43.TextoEstado(_datos.Estado);
     public EstadoLineaN43 EstadoDatos => _datos.Estado;
     public string AyudaEstado => _datos.Estado switch
@@ -128,6 +139,7 @@ public sealed class FilaLineaN43VM(LineaN43 datos) : ModeloVista
         AsignadorCuentasN43.Origen => d.PalabraClave is { } p ? $"por la palabra clave «{p}»" : "por palabra clave",
         ServicioLineasN43.OrigenManual => "puesta a mano",
         ServicioLineasN43.OrigenTraspaso => "traspaso entre bancos (cuenta puente)",
+        BusquedaPorImporteN43.OrigenFactura => "la del tercero de la factura enlazada",
         _ => $"origen {d.Origen.ToLowerInvariant()} (migración del ERP)",
     };
 }
@@ -164,6 +176,7 @@ public sealed class LineasN43VM : ModeloVista, IPestanaTrabajo
     private readonly ServicioLineasN43 _servicio;
     private readonly ServicioConciliacionN43 _conciliacion;
     private readonly AsignadorCuentasN43 _asignador;
+    private readonly BusquedaPorImporteN43? _busqueda;
     private readonly IDialogosLineasN43 _dialogos;
     private readonly ContextoLineasN43 _contexto;
     private readonly Action? _alCerrar;
@@ -187,8 +200,9 @@ public sealed class LineasN43VM : ModeloVista, IPestanaTrabajo
     private AccionesLineasN43 _acciones = AccionesLineasN43.Evaluar([]);
 
     public LineasN43VM(ConsultaLineasN43 consulta, ServicioLineasN43 servicio, ServicioConciliacionN43 conciliacion, AsignadorCuentasN43 asignador,
-        IDialogosLineasN43 dialogos, ContextoLineasN43 contexto, Action? alCerrar = null)
+        IDialogosLineasN43 dialogos, ContextoLineasN43 contexto, Action? alCerrar = null, BusquedaPorImporteN43? busqueda = null)
     {
+        _busqueda = busqueda;
         _consulta = consulta;
         _servicio = servicio;
         _conciliacion = conciliacion;
@@ -216,6 +230,7 @@ public sealed class LineasN43VM : ModeloVista, IPestanaTrabajo
         AccionReasignar = new("Reasignar por palabras clave", "Vuelve a buscar palabra clave para las líneas sin asiento: las cuentas puestas a mano o por un traspaso no se tocan", () => _ = ReasignarAsync());
         AccionPalabras = new("Palabras clave de la línea…", "Crea, corrige o borra las palabras clave que asignan la cuenta a movimientos como este", () => _ = PalabrasClaveAsync());
         AccionTraspaso = new("Traspaso entre bancos", "Imputa el cargo de un banco y el abono del otro a la cuenta puente de traspasos, donde sus asientos se compensan", () => _ = TraspasoAsync());
+        AccionBuscarImporte = new("Buscar por importe…", "Busca para cada línea seleccionada las facturas de su importe (compras para los cargos, ventas para los abonos) y enlaza las que marques; si la línea no está contabilizada, le pone la cuenta del tercero", () => _ = BuscarPorImporteAsync());
         AccionVerAsiento = new("Ver el asiento", "Muestra el asiento de la línea o, si no está contabilizada, el que generaría (también con doble clic)", () => _ = VerAsientoAsync());
         ActualizarAcciones();
     }
@@ -335,6 +350,7 @@ public sealed class LineasN43VM : ModeloVista, IPestanaTrabajo
     public AccionLineasVM AccionReasignar { get; }
     public AccionLineasVM AccionPalabras { get; }
     public AccionLineasVM AccionTraspaso { get; }
+    public AccionLineasVM AccionBuscarImporte { get; }
     public AccionLineasVM AccionVerAsiento { get; }
     public ICommand RefrescarCommand { get; }
     public ICommand QuitarFiltrosCommand { get; }
@@ -498,6 +514,8 @@ public sealed class LineasN43VM : ModeloVista, IPestanaTrabajo
         AccionReasignar.Fijar(a.TextoReasignar, a.Reasignar ?? Ocupada());
         AccionPalabras.Fijar("Palabras clave de la línea…", a.PalabrasClave ?? Ocupada());
         AccionTraspaso.Fijar("Traspaso entre bancos", a.Traspaso ?? Ocupada());
+        AccionBuscarImporte.Fijar("Buscar por importe…" + (Seleccion.Count > 1 ? $" ({Seleccion.Count})" : ""),
+            a.BuscarPorImporte ?? (_busqueda is null ? "La búsqueda por importe no está disponible en esta pantalla." : null) ?? Ocupada());
         AccionVerAsiento.Fijar(Seleccion is [{ Datos.IdAsiento: null }] ? "Ver el asiento propuesto" : "Ver el asiento", a.VerAsiento);
         Avisar(nameof(Resumen), nameof(Acciones));
     }
@@ -573,6 +591,40 @@ public sealed class LineasN43VM : ModeloVista, IPestanaTrabajo
         _contexto.Avisar(texto + ".");
         InformarRechazos("Algunas líneas no han cambiado", r.Rechazadas.ToDictionary(x => x.Key, x => (IReadOnlyList<Error>)[x.Value]), r.Hechas.Count, texto);
     }, "asignar la cuenta");
+
+    /// <summary>
+    /// Buscar por importe (norma43/busqueda-por-importe): un solo diálogo con las candidatas de todas las líneas seleccionadas; al
+    /// pulsar «Enlazar» se aplica todo lo marcado y desmarcado. Si alguna línea contabilizada ya no lleva la cuenta del tercero, no se
+    /// toca su asiento: el enlace es documental.
+    /// </summary>
+    public Task BuscarPorImporteAsync() => Ejecutar(async () =>
+    {
+        var sel = Seleccion;
+        if (sel.Count == 0 || _busqueda is null || _acciones.BuscarPorImporte is not null) return;
+        var busquedas = await _busqueda.BuscarAsync(_contexto.Trabajo.IdSociedad, sel.Select(f => f.Datos).ToList());
+        var vm = new BusquedaImporteN43VM(busquedas, AbrirDocumento);
+        if (!_dialogos.BuscarPorImporte(vm)) return;
+        var cambios = vm.Cambios();
+        if (cambios.Count == 0) return;
+        var r = await _busqueda.EnlazarAsync(_contexto.Trabajo.IdSociedad, cambios, _contexto.Actor);
+        await RefrescarLineasAsync(sel.Select(f => f.Id).ToList());
+        var partes = new List<string>();
+        if (r.Enlazadas > 0) partes.Add($"{Formatos.Plural(r.Enlazadas, "factura enlazada", "facturas enlazadas")}");
+        if (r.Desenlazadas > 0) partes.Add($"{Formatos.Plural(r.Desenlazadas, "factura desenlazada", "facturas desenlazadas")}");
+        if (r.ConCuenta.Count > 0) partes.Add($"{Formatos.Plural(r.ConCuenta.Count, "línea con la cuenta del tercero", "líneas con la cuenta del tercero")}");
+        var texto = partes.Count == 0 ? "No ha cambiado nada" : string.Join("; ", partes);
+        _contexto.Avisar(texto + ".");
+        if (r.Avisos.Count > 0)
+            _dialogos.Preguntar("Facturas enlazadas, con avisos", $"{texto}. Algunas líneas no han tomado la cuenta del tercero:", r.Avisos,
+                new OpcionMensaje("Entendido", "Cierra el aviso", Principal: true, Cancelar: true));
+        InformarRechazos("Algunas líneas no se han enlazado", r.Rechazadas.ToDictionary(x => x.Key, x => (IReadOnlyList<Error>)[x.Value]), r.Lineas.Count, texto);
+    }, "enlazar las facturas");
+
+    private void AbrirDocumento(CandidatoN43 c)
+    {
+        var abrir = c.Documento.Tipo == TipoDocumentoN43.Venta ? _contexto.AbrirFacturaVenta : _contexto.AbrirFacturaCompra;
+        abrir?.Invoke(c.Documento.Id);
+    }
 
     public Task ContabilizarAsync() => Ejecutar(async () =>
     {

@@ -262,5 +262,125 @@ public sealed class DialogosLineasN43(ICatalogoCuentas cuentas, Func<Window?> ve
         d.ShowDialog();
     }
 
+    /// <summary>
+    /// «Buscar por importe»: cada movimiento como cabecera y debajo sus facturas candidatas, que se marcan o desmarcan con un clic en
+    /// cualquier parte de la fila (sin Ctrl ni Mayús). Doble clic o «Ver» abre la factura. «Enlazar» aplica lo marcado y lo desmarcado.
+    /// </summary>
+    public bool BuscarPorImporte(BusquedaImporteN43VM vm) => CrearBuscarPorImporte(vm, Activa()).ShowDialog() == true;
+
+    /// <summary>Construye el diálogo «Buscar por importe» sin abrirlo (también para capturas fuera de pantalla).</summary>
+    public static DialogoProConta CrearBuscarPorImporte(BusquedaImporteN43VM vm, Window? propietario)
+    {
+        ArgumentNullException.ThrowIfNull(vm);
+        var d = new DialogoProConta
+        {
+            Title = "Buscar por importe", Owner = propietario, Width = 1150, Height = 640, MinWidth = 760, MinHeight = 360,
+            SizeToContent = SizeToContent.Manual, Redimensionable = true, DataContext = vm,
+        };
+        Style S(string k) => (Style)d.FindResource(k);
+        var apagado = (Brush)d.FindResource("Pincel.Apagado");
+        var linea = (Brush)d.FindResource("Pincel.Linea");
+        var mono = (FontFamily)d.FindResource("Fuente.Mono");
+        double[] anchos = [28, 120, 88, 100, 96, 64, 260, double.NaN, 54];
+
+        // Las filas van dentro de la casilla, después de su cuadro: sin la primera columna, que en los títulos ocupa ese hueco.
+        Grid Fila(bool titulos = false)
+        {
+            var g = new Grid();
+            for (var i = 0; i < anchos.Length; i++)
+            {
+                var a = i == 0 ? (titulos ? 22 : 0) : anchos[i];
+                g.ColumnDefinitions.Add(new ColumnDefinition { Width = double.IsNaN(a) ? new GridLength(1, GridUnitType.Star) : new GridLength(a) });
+            }
+            return g;
+        }
+        TextBlock Celda(Grid g, int col, string texto, bool numero = false, bool fuenteMono = false, Brush? color = null)
+        {
+            var t = new TextBlock
+            {
+                Text = texto, TextTrimming = TextTrimming.CharacterEllipsis, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 8, 0),
+                TextAlignment = numero ? TextAlignment.Right : TextAlignment.Left,
+            };
+            if (fuenteMono) t.FontFamily = mono;
+            if (color is not null) t.Foreground = color;
+            Grid.SetColumn(t, col);
+            g.Children.Add(t);
+            return t;
+        }
+
+        var panel = new StackPanel();
+        panel.Children.Add(new TextBlock { Text = vm.Cabecera, FontWeight = FontWeights.SemiBold, TextWrapping = TextWrapping.Wrap });
+        panel.Children.Add(new TextBlock { Text = vm.Criterios, Foreground = apagado, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 4, 0, 4) });
+        foreach (var grupo in vm.Grupos)
+        {
+            var cab = new Border { BorderBrush = linea, BorderThickness = new Thickness(0, 0, 0, 1), Margin = new Thickness(0, 14, 0, 4), Padding = new Thickness(0, 0, 0, 4) };
+            var textosCab = new StackPanel();
+            textosCab.Children.Add(new TextBlock { Text = grupo.Titulo, Style = S("Texto.Seccion") });
+            textosCab.Children.Add(new TextBlock { Text = grupo.Concepto, Foreground = apagado, TextTrimming = TextTrimming.CharacterEllipsis, ToolTip = grupo.Concepto });
+            cab.Child = textosCab;
+            panel.Children.Add(cab);
+            if (grupo.SinCandidatos)
+            {
+                panel.Children.Add(new TextBlock { Text = grupo.TextoSinCandidatos, Foreground = apagado, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 2, 0, 0) });
+                continue;
+            }
+            var titulos = Fila(titulos: true);
+            titulos.Margin = new Thickness(0, 0, 0, 2);
+            string[] nombres = ["", "Número", "Fecha", "Días", "Importe", "Dif.", "Tercero", "Descripción", ""];
+            for (var i = 0; i < nombres.Length; i++) Celda(titulos, i, nombres[i], numero: i is 4 or 5, color: apagado).FontSize = (double)d.FindResource("Letra.Pequena");
+            panel.Children.Add(titulos);
+            foreach (var c in grupo.Candidatos)
+            {
+                var g = Fila();
+                Celda(g, 1, c.Numero, fuenteMono: true);
+                Celda(g, 2, c.Fecha, fuenteMono: true);
+                Celda(g, 3, c.Dias);
+                Celda(g, 4, c.Importe, numero: true, fuenteMono: true);
+                Celda(g, 5, c.Diferencia, numero: true, fuenteMono: true, color: apagado);
+                Celda(g, 6, c.Tercero);
+                Celda(g, 7, string.IsNullOrEmpty(c.Estado) ? c.Descripcion : $"{c.Estado} · {c.Descripcion}");
+                if (c.PuedeAbrir)
+                {
+                    var ver = new Button { Content = "Ver", Style = S("Boton.Enlace"), ToolTip = "Abre la factura en su pantalla", VerticalAlignment = VerticalAlignment.Center };
+                    ver.Click += (_, e) => { c.Abrir(); e.Handled = true; };
+                    Grid.SetColumn(ver, 8);
+                    g.Children.Add(ver);
+                }
+                // La fila entera es la casilla: un clic la marca o desmarca; el doble clic abre la factura (y deja la marca como estaba).
+                var casilla = new CheckBox
+                {
+                    Content = g, HorizontalContentAlignment = HorizontalAlignment.Stretch, VerticalContentAlignment = VerticalAlignment.Center,
+                    Padding = new Thickness(6, 3, 0, 3), ToolTip = c.Ayuda, DataContext = c,
+                };
+                casilla.SetBinding(System.Windows.Controls.Primitives.ToggleButton.IsCheckedProperty, new Binding(nameof(CandidatoBusquedaImporteN43VM.Marcado)) { Mode = BindingMode.TwoWay });
+                // La casilla mide su contenido sin límite: la fila se ata al ancho visible (menos el cuadro) para que los textos largos se recorten.
+                g.SetBinding(FrameworkElement.WidthProperty, new Binding(nameof(FrameworkElement.ActualWidth)) { Source = panel, Converter = new Restar(30) });
+                if (c.PuedeAbrir) casilla.MouseDoubleClick += (_, e) => { c.Abrir(); e.Handled = true; };
+                panel.Children.Add(casilla);
+            }
+        }
+        d.Content = new ScrollViewer { Content = panel, VerticalScrollBarVisibility = ScrollBarVisibility.Auto, HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled };
+
+        var resumen = new TextBlock { VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 16, 0), Foreground = apagado };
+        resumen.SetBinding(TextBlock.TextProperty, nameof(BusquedaImporteN43VM.Resumen));
+        var enlazar = new Button { Content = "Enlazar", Style = S("Boton.Primario"), Margin = new Thickness(8, 0, 0, 0), IsDefault = true,
+            ToolTip = "Enlaza las facturas marcadas y quita el enlace de las desmarcadas; a las líneas sin contabilizar les pone la cuenta del tercero" };
+        enlazar.SetBinding(UIElement.IsEnabledProperty, nameof(BusquedaImporteN43VM.HayCambios));
+        var cancelar = new Button { Content = "Cancelar", IsCancel = true, ToolTip = "Cierra sin enlazar nada" };
+        enlazar.Click += (_, _) => d.DialogResult = true;
+        cancelar.Click += (_, _) => d.DialogResult = false;
+        d.Botones = new StackPanel { Orientation = Orientation.Horizontal, Children = { resumen, cancelar, enlazar } };
+        return d;
+    }
+
     private Window? Activa() => Application.Current?.Windows.OfType<Window>().FirstOrDefault(w => w.IsActive) ?? ventana();
+}
+
+/// <summary>Resta un número fijo a un ancho (para atar una fila al ancho visible menos un margen).</summary>
+internal sealed class Restar(double cuanto) : IValueConverter
+{
+    public object Convert(object value, Type targetType, object parameter, System.Globalization.CultureInfo culture) =>
+        value is double d ? Math.Max(0, d - cuanto) : DependencyProperty.UnsetValue;
+
+    public object ConvertBack(object value, Type targetType, object parameter, System.Globalization.CultureInfo culture) => throw new NotSupportedException();
 }
