@@ -279,6 +279,7 @@ public sealed class SaludVM : ModeloVista
         PantallaSalud.Terceros => _acciones.AbrirTerceros,
         PantallaSalud.Nominas => _acciones.AbrirNominas,
         PantallaSalud.Programadas => _acciones.AbrirProgramadas,
+        PantallaSalud.LiquidacionIva => _acciones.AbrirLiquidacionIva,
         _ => null,
     };
 

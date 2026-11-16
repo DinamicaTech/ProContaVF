@@ -23,6 +23,7 @@ Operadores, grupos (N:M) y permisos por ámbito: ámbito sin configurar permite 
 - 2026-11-01 09:31 · Validado por el propietario (desarrollos base).
 - 2026-11-01 18:15 · Migración `20261101_1633_PERMISOS_ACCIONES`: tabla PermisosAccionesGrupo (CodigoAccion, IdGrupoOperadores, única por los dos). `AutorizadorAccionesAccess` aplica la regla común: una acción sin filas la puede cualquier operador; con alguna, solo los grupos activos del operador que la tienen. Acciones de hoy: FACTURAS.EDITAR, FACTURAS.VALIDAR, FACTURAS.RECTIFICAR y MANTENIMIENTO.EDITAR. Aún no hay pantalla para asignarlas.
 - 2026-11-14 20:06 · Criterio de contraseñas (de momento, hasta afinarlo en seguridad/permisos/politica-contrasenas): la contraseña de un operador no es obligatoria y no tiene requisitos de longitud ni de complejidad («a» es válida). Vacía significa sin contraseña: el operador entra con la contraseña vacía. Primer administrador: si no hay ningún operador, `CrearPrimerAdministradorAsync` lo crea con contraseña o sin ella y lo pone en el grupo ADMINISTRADORES (lo crea si falta), en una sola transacción y con auditoría; si ya hay operadores, se niega. `EstablecerContrasenaAsync` con la contraseña vacía le quita la contraseña al operador (auditoría CONTRASENA_QUITADA). Sigue valiendo que un operador con contraseña nunca entra con la contraseña vacía (seguridad/acceso).
+- 2026-11-16 10:20 · Acción nueva «PROCESOS.LIQUIDACION_IVA» (liquidar el IVA de un trimestre y deshacerlo, contabilidad/procesos/liquidacion-iva): mientras no tenga grupos asignados, la tiene quien puede cambiar el trimestre activo (TRIMESTRE.CAMBIAR), porque liquidar cierra el trimestre. La comprueba el servicio, no solo la pantalla.
 
 ## Requirements
 - 2026-10-28 12:28 · From sources/01_ESPECIFICACION_FUNCIONAL.docx § 5 RF-SEG-03, 04, 07: operadores y grupos, política de ámbitos, puntos pendientes
@@ -39,6 +40,7 @@ Operadores, grupos (N:M) y permisos por ámbito: ámbito sin configurar permite 
 - 2026-11-01 17:20 · Derived from facturacion/factura-venta: las acciones de validar, rectificar y eliminar borradores se autorizan en el servicio con la regla común.
 - 2026-11-14 20:04 · La contraseña no es obligatoria
 - 2026-11-14 20:04 · Tampoco es preciso complejidad de contraseña, 'a' sería una contraseña válida
+- 2026-11-16 10:20 · Derived from contabilidad/procesos/liquidacion-iva: permiso propio para liquidar el IVA y deshacer la liquidación.
 
 ## Hand-over
 - 2026-10-31 19:10 · Hecho: política común, ámbito de sociedades, operadores (búsqueda, grupos activos, primer administrador, cambio de contraseña) y pruebas. Pendiente: mantenimiento completo de operadores y grupos (seguridad/pantallas); ámbitos de reports (las RestriccionesReportsGrupo antiguas son de denegación y necesitan adaptarse, RF-SEG-07) y de procesos que generan asientos o borran datos (requisito 2026-10-29 17:45, sin tabla todavía); regeneración de contraseña temporal por correo.

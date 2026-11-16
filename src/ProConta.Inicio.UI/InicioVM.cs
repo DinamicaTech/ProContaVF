@@ -28,6 +28,8 @@ public sealed record AccionesInicio(
     public Action? AbrirLineasN43 { get; init; }
     public Action? AbrirFacturasCompra { get; init; }
     public Action? AbrirDiario { get; init; }
+    /// <summary>Contabilidad › Procesos contables › Liquidación de IVA (contabilidad/procesos/liquidacion-iva).</summary>
+    public Action? AbrirLiquidacionIva { get; init; }
     public Action? AbrirTerceros { get; init; }
     public Action? AbrirNominas { get; init; }
     /// <summary>Configuración › Parámetros y tablas en una tabla concreta (por ejemplo «ejercicios»).</summary>

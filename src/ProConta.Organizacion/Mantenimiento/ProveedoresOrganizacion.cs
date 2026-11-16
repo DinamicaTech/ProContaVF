@@ -33,6 +33,10 @@ public static class ProveedoresOrganizacion
         "Cuenta570Tesoreria" => ["57"],
         "CuentaRedondeoGastos" => ["6"],
         "CuentaRedondeoIngresos" => ["7"],
+        "CuentaHaciendaAcreedoraIva" => ["475"],
+        "CuentaHaciendaDeudoraIva" => ["470"],
+        "CuentaAjustesNegativosIva" => ["634"],
+        "CuentaAjustesPositivosIva" => ["639"],
         _ => [],
     };
 
@@ -54,6 +58,19 @@ public static class ProveedoresOrganizacion
         Cuenta("CuentaIVAImportacion", "IVA de importación", ayuda: "IVA soportado en importaciones (4724001 en el ERP): el importe de la factura se desglosa al tipo general."),
         Cuenta("CuentaRedondeoGastos", "Diferencias de redondeo · gastos", ayuda: "Cuando a un asiento de compra le falta Debe (hasta 0,03 €, o más con motivo). Vacía: 6590000.", sinonimos: ["redondeo"]),
         Cuenta("CuentaRedondeoIngresos", "Diferencias de redondeo · ingresos", ayuda: "Cuando a un asiento de compra le sobra Debe. Vacía: 7590000. Si no existe, se crea al usarla.", sinonimos: ["redondeo"]),
+    ];
+
+    /// <summary>Cuentas de la liquidación del IVA del ejercicio (contabilidad/procesos/liquidacion-iva, esquema 56); vacías, las de siempre.</summary>
+    internal static IEnumerable<CampoMantenimiento> CuentasLiquidacionIva() =>
+    [
+        Cuenta("CuentaHaciendaAcreedoraIva", "Liquidación del IVA · a ingresar", ayuda: "Hacienda acreedora por IVA: recibe el resultado a ingresar de cada trimestre. Vacía: 4750000. Si no existe, se crea al liquidar.",
+            sinonimos: ["4750", "liquidacion", "iva a ingresar"]),
+        Cuenta("CuentaHaciendaDeudoraIva", "Liquidación del IVA · a compensar", ayuda: "Hacienda deudora por IVA: recibe el resultado a compensar o devolver, y su saldo se compensa en la siguiente que salga a ingresar. Vacía: 4700000.",
+            sinonimos: ["4700", "liquidacion", "iva a compensar"]),
+        Cuenta("CuentaAjustesNegativosIva", "Liquidación del IVA · no deducible y ajustes a pagar más", ayuda: "Recibe el IVA soportado que no se deduce (prorrata y actividades no deducibles) y el ajuste cuando se liquida más de lo que dicen las cuentas. Vacía: 6341000.",
+            sinonimos: ["6341", "prorrata", "no deducible"]),
+        Cuenta("CuentaAjustesPositivosIva", "Liquidación del IVA · ajustes a pagar menos", ayuda: "Recibe el ajuste cuando se liquida menos de lo que dicen las cuentas (por ejemplo, para cuadrar con lo presentado). Vacía: 6391000. Si no existe, se crea al usarla.",
+            sinonimos: ["6391", "ajuste iva"]),
     ];
 
     /// <summary>
@@ -157,7 +174,7 @@ public static class ProveedoresOrganizacion
             .. Predeterminados(),
             TipoGeneral(),
             ProrrataAnterior(),
-            .. Cuentas(), .. CuentasCompras(),
+            .. Cuentas(), .. CuentasCompras(), .. CuentasLiquidacionIva(),
             Ruta("CarpetaFacturasCompra", "Carpeta de facturas de compra") with
             {
                 Ayuda = "Dónde se buscan los PDF de compra de este ejercicio, dentro de la carpeta de documentos de la empresa (Empresas › Carpeta de documentos, la ruta base), por ejemplo 2026\\Proveedores. " +

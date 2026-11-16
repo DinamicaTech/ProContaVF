@@ -10,7 +10,7 @@ public enum TipoSalud { Tarea, Aviso }
 /// Pantalla donde se resuelve un elemento. <see cref="Ninguna"/>: todavía no hay pantalla en el contenedor (el tooltip lo dice y
 /// no se abre nada).
 /// </summary>
-public enum PantallaSalud { Ninguna, VentasPorFacturar, Ejercicios, LineasN43, Bancos, FacturasCompra, FacturasVenta, Mayor, Diario, Terceros, Nominas, Programadas }
+public enum PantallaSalud { Ninguna, VentasPorFacturar, Ejercicios, LineasN43, Bancos, FacturasCompra, FacturasVenta, Mayor, Diario, Terceros, Nominas, Programadas, LiquidacionIva }
 
 /// <summary>Dónde se resuelve: la pantalla, su nombre en el menú y, para el Mayor, las cuentas con las que se abre.</summary>
 public sealed record DestinoSalud(PantallaSalud Pantalla, string Nombre, IReadOnlyList<string>? Cuentas = null)
