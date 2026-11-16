@@ -225,12 +225,6 @@ public sealed class RefrescoPruebas(Func<DateTime>? ahora = null)
             if (!esquema.ExisteColumna("Configuracion", "EntornoPruebas"))
                 throw new ExcepcionDatos(new Error("Pruebas.EsquemaAntiguo", "La BD de producción no tiene todavía la marca de entorno de pruebas.", plan.BdProduccion,
                     "Su esquema es anterior a la versión que trae el entorno de pruebas.", "Entra en producción con esta versión del programa para que la actualice y vuelve a intentarlo."));
-            var n = await s.EjecutarAsync("UPDATE Configuracion SET EntornoPruebas = True, CopiaProduccionFecha = ?, CopiaProduccionOrigen = ?, CorreoDesviarA = ?",
-                fecha, Recortar(plan.BdProduccion, 255), Recortar(desvio, 254));
-            if (n == 0)
-                await s.EjecutarAsync("INSERT INTO Configuracion (EntornoPruebas, CopiaProduccionFecha, CopiaProduccionOrigen, CorreoDesviarA) VALUES (True, ?, ?, ?)",
-                    fecha, Recortar(plan.BdProduccion, 255), Recortar(desvio, 254));
-
             // Rutas a carpetas de producción → sus réplicas en pruebas, en todas las columnas de texto (las más largas primero).
             var rutas = 0;
             var cambios = plan.Carpetas.OrderByDescending(c => c.Origen.Length).ToList();
@@ -238,6 +232,13 @@ public sealed class RefrescoPruebas(Func<DateTime>? ahora = null)
                 foreach (var col in tabla.Columnas.Where(c => c.Tipo.StartsWith("TEXT", StringComparison.OrdinalIgnoreCase) || c.Tipo == "LONGTEXT"))
                     foreach (var c in cambios)
                         rutas += await s.EjecutarAsync(SqlCambioRuta(tabla.Nombre, col.Nombre), c.Destino, c.Origen.Length + 1, c.Origen.Length + 1, c.Origen + "\\", c.Origen);
+
+            // La marca, después de las rutas: CopiaProduccionOrigen tiene que seguir diciendo la ruta de producción.
+            var n = await s.EjecutarAsync("UPDATE Configuracion SET EntornoPruebas = True, CopiaProduccionFecha = ?, CopiaProduccionOrigen = ?, CorreoDesviarA = ?",
+                fecha, Recortar(plan.BdProduccion, 255), Recortar(desvio, 254));
+            if (n == 0)
+                throw new ExcepcionDatos(new Error("Pruebas.SinConfiguracion", "La BD de producción no tiene la fila de Configuración general, así que no puedo marcar la copia.", plan.BdProduccion,
+                    "La tabla Configuracion está vacía.", "Abre Parámetros y tablas › Configuración general en producción, guárdala una vez y vuelve a intentarlo."));
 
             // Correo: sin recepción ni borrado del buzón real; la cuenta de pruebas de la copia anterior vuelve a su ejercicio.
             var conservadas = new List<string>();

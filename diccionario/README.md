@@ -2,13 +2,13 @@
 
 # Diccionario de datos
 
-Esquema versión 55 (Actualizada); 159 tablas. SHA-256 de la BD de origen: `A6CC24684CEC173E200B48B6F0E7EAFEA99EED7D279501D9CEDDD3BCCD0BF78F`.
+Esquema versión 59 (Actualizada); 161 tablas. SHA-256 de la BD de origen: `179E53555C5E02FB86C3CAC6D2DEDC77CD879569608A3F4BC7B77AA027DA56B0`.
 
 | Área | Tablas |
 |---|---|
 | [activos](activos.md) | Activos, ActivosInmuebles, CuentasActivo, DetallesLoteAmortizacionActivo, Inmuebles, LotesAmortizacionActivo, PlanesAmortizacionActivo, PlantillasCuentasActivo, PlantillasSubcuentasActivo, SubcuentasActivo, TiposActivo, TiposSubcuentaActivo |
 | [compras](compras.md) | ConfiguracionReconocimientoFacturasCompra, DesglosesFacturaCompra, FacturasCompra, PlantillasReconocimientoCompra, TextosClaveCompra |
-| [contabilidad](contabilidad.md) | Actividades, ActividadesDeduccion, Apuntes, ApuntesBorrados, Asientos, AsientosBorrados, CentrosCoste, CodigosContablesReservados, ConfiguracionesContables, ConfiguracionesContablesCuentaBancaria, CuadresCuentas, CuentasContables, CuentasContablesLegacy, CuentasPlanContable, DesglosesIVASoportado, F_CDP, F_DEP, IdentidadesContables, IVARepercutido, IVASoportado, ModelosBalance, NodosBalance, PeriodosIVA, PlanesContables, PlantillasAsiento, PlantillasAsientoDatos, PlantillasAsientoLineas, PresentacionesTributarias, RegistroCambiosApuntes, ReglasCuentasBalance, RelacionesAsientos, RelacionesCalculoBalance, RevisionesAsientos, TiposCuentaContable |
+| [contabilidad](contabilidad.md) | Actividades, ActividadesDeduccion, Apuntes, ApuntesBorrados, Asientos, AsientosBorrados, CentrosCoste, CodigosContablesReservados, ConfiguracionesContables, ConfiguracionesContablesCuentaBancaria, CuadresCuentas, CuentasContables, CuentasContablesLegacy, CuentasPlanContable, DesglosesIVASoportado, F_CDP, F_DEP, IdentidadesContables, IVARepercutido, IVASoportado, LiquidacionesIva, ModelosBalance, NodosBalance, PeriodosIVA, PlanesContables, PlantillasAsiento, PlantillasAsientoDatos, PlantillasAsientoLineas, PresentacionesTributarias, RegistroCambiosApuntes, ReglasCuentasBalance, RelacionesAsientos, RelacionesCalculoBalance, RevisionesAsientos, TiposCuentaContable |
 | [correo](correo.md) | AdjuntosMailDispatcher, AdjuntosMensajeCorreo, AdjuntosRecibidosCorreo, ConfiguracionCorreo, ConfiguracionMailDispatcher, CuentasCorreo, DestinatariosMensajeCorreo, EnviosCorreo, IntentosMensajeCorreo, LotesCorreo, MensajesCorreo, MensajesRecibidosCorreo, PlantillasCorreo, ProcesamientosMailDispatcher, RemitentesAutorizadosCorreo, TiposCorreo, TurnosCorreo |
 | [creative-lab](creative-lab.md) | ActivosInversiones, ConversacionesIA, CotizacionesInstrumentoFinanciero, ImportacionesActivos, InstrumentosFinancieros, MensajesConversacionIA, OperacionesInversion |
 | [datos](datos.md) | LogMigracionesEsquema, VersionesEsquema |
@@ -16,7 +16,7 @@ Esquema versión 55 (Actualizada); 159 tablas. SHA-256 de la BD de origen: `A6CC
 | [implantacion](implantacion.md) | FasesImportacionContaSol, ImportacionesContaSol, IncidenciasImportacionContaSol, IncidenciasMigracionERP, MapasIdentidadContaSol, MapasIdentidadERP, MigracionesERP |
 | [inicio](inicio.md) | HistoricoSalud |
 | [nominas](nominas.md) | AliasCamposNomina, ImportacionesNomina, Nominas |
-| [norma43](norma43.md) | Bancos, ComplementosLineaExtractoBancario, ConceptosN43, ContabilizacionesLineaExtracto, CuentasBancarias, EntidadesFinancieras, ExtractosBancarios, ImputacionesLineaExtractoBancario, IncidenciasImportacionBancaria, LineasExtractoBancario, LotesImportacionBancaria, PalabrasClaveBancarias |
+| [norma43](norma43.md) | Bancos, ComplementosLineaExtractoBancario, ConceptosN43, ContabilizacionesLineaExtracto, CuentasBancarias, EntidadesFinancieras, ExtractosBancarios, ImputacionesLineaExtractoBancario, IncidenciasImportacionBancaria, LineasExtractoBancario, LotesImportacionBancaria, PalabrasClaveBancarias, ReintentosSEPA |
 | [organizacion](organizacion.md) | FormasPago, FormasPagoSociedad, Sociedades, SociedadesEjercicios, TiposRetencion |
 | [plataforma](plataforma.md) | AliasCamposConfiguracion, Configuracion |
 | [seguridad](seguridad.md) | AccesoSociedadesGrupo, AuditoriaSeguridad, GruposOperadores, OperadoresGrupos, OperadoresSeguridad, PermisosAccionesGrupo, PreferenciasAccesoEjercicio, PreferenciasAccesoOperador, RestriccionesReportsGrupo |

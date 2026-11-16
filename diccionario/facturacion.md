@@ -57,7 +57,6 @@ Relaciones:
 - PK_Conceptos (clave primaria): IdConcepto
 
 Relaciones:
-- FK_Conceptos_F_DEP: (IdDepartamento) → F_DEP (CODDEP); borrado NO ACTION, actualización NO ACTION
 - FK_Conceptos_TiposConcepto: (IdTipoConcepto) → TiposConcepto (IdTipoConcepto); borrado NO ACTION, actualización NO ACTION
 - FK_SociedadesEjercicios_Conceptos: (IdSociedadEjercicio) → SociedadesEjercicios (IdSociedadEjercicio); borrado NO ACTION, actualización NO ACTION
 
@@ -121,7 +120,6 @@ Relaciones:
 Relaciones:
 - FK_Contratos_Clientes: (IdCliente) → Clientes (IdCliente); borrado NO ACTION, actualización NO ACTION
 - FK_FormasPago_Contratos: (FormaDePago) → FormasPago (Id); borrado NO ACTION, actualización NO ACTION
-- FK_Inmuebles_Contratos: (IdInmueble) → Inmuebles (Id); borrado NO ACTION, actualización NO ACTION
 - FK_Sociedades_Contratos: (IdSociedad) → Sociedades (IdSociedad); borrado NO ACTION, actualización NO ACTION
 
 ## DesglosesIVARepercutido
@@ -243,6 +241,8 @@ Relaciones:
 | ProvinciaEmisor | TEXT(100) | sí |  |  |
 | IdAsientoAnulado | LONG | sí |  |  |
 | GeneracionExportacion | LONG | sí |  |  |
+| LineaN43 | LONG | sí |  | Movimiento bancario (LineasExtractoBancario) con que se cobró la factura, enlazado con «Buscar por importe»: la factura está conciliada. Nulo si no. |
+| LineaN43Devolucion | LONG | sí |  | Movimiento bancario con que se devolvió el recibo de Facturas.LineaN43. Nulo si no se devolvió. |
 
 Índices:
 - EstadosFacturaFacturas: EstadoFactura
@@ -264,6 +264,8 @@ Relaciones:
 - IX_Facturas_IdFacturaProgramada: IdFacturaProgramada
 - IX_Facturas_IdLoteFacturaProgramada: IdLoteFacturaProgramada
 - IX_Facturas_IdSerie: IdSerie
+- IX_Facturas_LineaN43: LineaN43
+- IX_Facturas_LineaN43Devolucion: LineaN43Devolucion
 - IX_Facturas_LoteExportacionContable: LoteExportacionContable
 - IX_Facturas_TipoFactura: TipoFactura
 - PK_Facturas (clave primaria): IdFactura

@@ -174,11 +174,13 @@ Relaciones:
 | EstadoCuadre | TEXT(20) | no |  |  |
 | TextoCabeceraOriginal | TEXT(80) | no |  |  |
 | TextoCierreOriginal | TEXT(80) | no |  |  |
+| IdLineaExtractoOrigen | LONG | sí |  | Línea (remesa o devolución de recibos) que desglosa este extracto ficticio, una línea por recibo. Nulo en los extractos del banco. |
 
 Índices:
 - FK_Extractos_Cuenta: IdCuentaBancaria
 - FK_Extractos_Lote: IdLoteImportacionBancaria
 - IX_Extractos_CuentaFechas: IdCuentaBancaria, FechaInicio, FechaFin
+- IX_Extractos_LineaOrigen: IdLineaExtractoOrigen
 - PK_ExtractosBancarios (clave primaria): IdExtractoBancario
 - UX_ExtractosBanco_Ordinal (único): IdLoteImportacionBancaria, OrdinalExtracto
 
@@ -329,4 +331,24 @@ Relaciones:
 Relaciones:
 - FK_PalabrasClaveBancarias_Identidad: (IdIdentidadContable) → IdentidadesContables (IdIdentidadContable); borrado NO ACTION, actualización NO ACTION
 - FK_PalabrasClaveBancarias_Sociedad: (IdSociedad) → Sociedades (IdSociedad); borrado NO ACTION, actualización NO ACTION
+
+## ReintentosSEPA
+
+- Dueño funcional: `norma43/remesas`
+
+| Campo | Tipo | Nulo | Por defecto | Descripción |
+|---|---|---|---|---|
+| IdReintentoSEPA | COUNTER | no |  |  |
+| IdFactura | LONG | no |  |  |
+| Intento | SHORT | no |  | Número del intento de cobro: 2 para el primer reintento (el primero es Facturas.LineaN43). |
+| LineaN43 | LONG | no |  | Movimiento bancario del nuevo cobro de la factura. |
+| LineaN43Devolucion | LONG | sí |  | Movimiento bancario con que se devolvió ese cobro. Nulo si no se devolvió. |
+
+Índices:
+- FK_ReintentosSEPA_Factura: IdFactura
+- IX_ReintentosSEPA_Factura (único): IdFactura, Intento
+- PK_ReintentosSEPA (clave primaria): IdReintentoSEPA
+
+Relaciones:
+- FK_ReintentosSEPA_Factura: (IdFactura) → Facturas (IdFactura); borrado NO ACTION, actualización NO ACTION
 
