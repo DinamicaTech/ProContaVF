@@ -236,7 +236,8 @@ public partial class VentanaPrincipal : Window
             },
             _area, new ProConta.Norma43.UI.Vistas.DialogosLineasN43(cuentas, () => this), new ProConta.Norma43.Busqueda.BusquedaPorImporteN43(bd),
             new ProConta.Norma43.Remesas.ServicioRemesasN43(bd),
-            new AjustesRemesaFacturacion(new AjustesCobroFacturas(facturas, serviciosFacturacion.Programadas), bd));
+            new AjustesRemesaFacturacion(new AjustesCobroFacturas(facturas, serviciosFacturacion.Programadas), bd),
+            new ProConta.Norma43.Similares.ConsultaSimilaresN43(bd));
         // Nóminas (nominas y nominas/pantallas): pantalla por periodo, pestaña Nóminas de la ficha del empleado y Excel recibidos por correo.
         var importacionNominas = new ProConta.Nominas.Importacion.ServicioImportacionNominas(bd);
         var contabilizacionNominas = new ProConta.Nominas.Contabilizacion.ServicioContabilizacionNominas(bd);

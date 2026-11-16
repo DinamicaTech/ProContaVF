@@ -61,6 +61,7 @@
     </Style>
     <ContextMenu x:Key="Menu.Lineas">
       <MenuItem Header="{Binding AccionAsignar.Texto}" Command="{Binding AccionAsignar.Comando}" ToolTip="{Binding AccionAsignar.Ayuda}" InputGestureText="F2" />
+      <MenuItem Header="{Binding AccionSimilares.Texto}" Command="{Binding AccionSimilares.Comando}" ToolTip="{Binding AccionSimilares.Ayuda}" />
       <MenuItem Header="{Binding AccionReasignar.Texto}" Command="{Binding AccionReasignar.Comando}" ToolTip="{Binding AccionReasignar.Ayuda}" />
       <MenuItem Header="{Binding AccionPalabras.Texto}" Command="{Binding AccionPalabras.Comando}" ToolTip="{Binding AccionPalabras.Ayuda}" InputGestureText="Ctrl+K" />
       <MenuItem Header="{Binding AccionTraspaso.Texto}" Command="{Binding AccionTraspaso.Comando}" ToolTip="{Binding AccionTraspaso.Ayuda}" />
@@ -253,6 +254,35 @@
             <TextBlock Text="{Binding Actual.AyudaFacturas}" TextWrapping="Wrap" />
             <TextBlock Text="Cuenta de destino" Style="{StaticResource Etiqueta.Campo}" />
             <TextBlock Text="{Binding DetalleDestinos}" TextWrapping="Wrap" />
+            <!-- Avance de movimientos similares (norma43/movimientos-similares): los 3 mejores con otra cuenta, desde el 50 % -->
+            <StackPanel Visibility="{Binding HayAvanceVisible, Converter={StaticResource Visible}}">
+              <DockPanel Margin="0,14,0,4">
+                <Button DockPanel.Dock="Right" Content="Ver todos" Style="{StaticResource Boton.Enlace}" Command="{Binding VerTodosSimilaresCommand}"
+                        ToolTip="Abre la lista completa de movimientos similares a esta línea, desde el 20 %" />
+                <TextBlock Text="Movimientos similares" Style="{StaticResource Etiqueta.Campo}" Margin="0" VerticalAlignment="Center" />
+              </DockPanel>
+              <TextBlock Text="{Binding TextoSinAvance}" Style="{StaticResource Texto.Apagado}" TextWrapping="Wrap" Visibility="{Binding SinAvance, Converter={StaticResource Visible}}" />
+              <ItemsControl ItemsSource="{Binding AvanceSimilares}">
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate>
+                    <Grid Margin="0,2,0,4">
+                      <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="42" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                      </Grid.ColumnDefinitions>
+                      <TextBlock Text="{Binding Porcentaje}" Style="{StaticResource Texto.Mono}" VerticalAlignment="Top" ToolTip="Palabras del concepto en común con esta línea" />
+                      <StackPanel Grid.Column="1" Margin="0,0,8,0">
+                        <TextBlock Text="{Binding Concepto}" TextTrimming="CharacterEllipsis" ToolTip="{Binding Concepto}" />
+                        <TextBlock Text="{Binding Pie}" Style="{StaticResource Texto.Apagado}" TextTrimming="CharacterEllipsis" ToolTip="{Binding Pie}" />
+                      </StackPanel>
+                      <Button Grid.Column="2" Content="Usar" Style="{StaticResource Boton.Pequeno}" Command="{Binding UsarCommand}" VerticalAlignment="Top"
+                              ToolTip="{Binding AyudaUsar}" ToolTipService.ShowOnDisabled="True" />
+                    </Grid>
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+            </StackPanel>
             <TextBlock Text="Doble clic en la línea: su asiento (o el que generaría). Clic derecho: acciones." Style="{StaticResource Texto.Apagado}" TextWrapping="Wrap" Margin="0,14,0,0" />
           </StackPanel>
         </StackPanel>
