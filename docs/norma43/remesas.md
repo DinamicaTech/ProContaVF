@@ -1,13 +1,12 @@
 ---
 title: Explosión de remesas
-status: draft
 depends_on: [norma43, norma43/pantallas, norma43/busqueda-por-importe, norma43/asignacion-cuentas, norma43/conciliacion, implantacion/migracion-erp, datos/esquema, facturacion/programadas]
 threads:
   - 2026-11-16 10:56 · Desglosar remesas de recibos N43 | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GA9KXv6BZB6p6zhxbzoGe75
 ---
 ## Summary
 Desglosa las líneas de remesas de recibos (palabra clave Especial 5) en una línea por recibo y concilia los recibos devueltos (Especial 6) con sus facturas, con los reintentos de cobro.
-PR 1 hecha, pendiente de validar: `ReglasRemesasN43` (propuesta y cuadre, sin BD), `CobrosFacturasN43` (cobros, devoluciones y reintentos de una factura) y `ServicioRemesasN43` (explotar, explotar pendientes, conciliar devoluciones y deshacer) en `src/ProConta.Norma43/Remesas`; diálogos en `DialogosRemesasN43` con `RemesaN43VM` y `DevolucionN43VM`; migración `20261116_1300_REMESAS_N43` (esquema 58). Pruebas en `tests/ProConta.Norma43.Tests` (RemesasN43Tests y RemesasN43AccessTests). PR 2 hecha, pendiente de validar: ajustes de importe tras explotar (programada, factura de diferencia o sustitución con rectificativa).
+Hecho y validado por el propietario el 2026-11-16 (PR #87 y #88): `ReglasRemesasN43` (propuesta y cuadre, sin BD), `CobrosFacturasN43` (cobros, devoluciones y reintentos de una factura) y `ServicioRemesasN43` (explotar, explotar pendientes, conciliar devoluciones y deshacer) en `src/ProConta.Norma43/Remesas`; diálogos en `DialogosRemesasN43` con `RemesaN43VM` y `DevolucionN43VM`; migración `20261116_1300_REMESAS_N43` (esquema 58). Pruebas en `tests/ProConta.Norma43.Tests` (RemesasN43Tests y RemesasN43AccessTests). Ajustes de importe tras explotar (programada, factura de diferencia o sustitución con rectificativa).
 **Aceptación:** en una copia, la remesa del 4/9/2026 se desglosa en las mismas 11 facturas que el ERP, la suma de los recibos es igual a la remesa, deshacer lo deja todo como estaba y una remesa que no cuadra nunca se graba; una devolución se concilia con sus facturas, que vuelven a quedar pendientes de cobro, y el nuevo cobro es un reintento.
 
 ## Decisions
@@ -24,6 +23,7 @@ PR 1 hecha, pendiente de validar: `ReglasRemesasN43` (propuesta y cuadre, sin BD
 - 2026-11-16 12:20 · Se hace en dos PR en este hilo: la PR 1 con todo lo anterior (el importe cobrado ya se puede cambiar y la diferencia queda en la 430) y la PR 2 con las propuestas de ajuste, que dependen de facturación.
 
 - 2026-11-16 13:10 · Ajustes de importe (PR 2; propietario 2026-11-16 12:08-13:02): tras explotar, si alguna factura se cobró por otro importe, el diálogo «Ajustes de importe» propone, si el banco cobró más, actualizar su programada al importe cobrado (si tiene una sola línea) y emitir y validar una factura por la diferencia (fecha de hoy, misma serie si es del ejercicio de trabajo, cliente, periodo, forma y día de pago, IVA y retención; base calculada hacia atrás y, si con ese IVA no se llega al céntimo exacto, el más cercano por arriba, que se queda en la 430); si cobró menos, el operador elige por factura entre cobrársela al cliente (queda en su 430) o asumirla, marcado por defecto: la factura se anula con su rectificativa completa (la única que hay en facturación) y se emite otra igual por lo cobrado. Las facturas nuevas y la rectificativa quedan cobradas con el mismo recibo, así que la 430 queda a cero. Al final, un resumen con lo hecho, lo que falló con qué hacer y el recordatorio de actualizar en el banco la remesa SEPA de las cobradas por menos. Código: `AjustesCobroFacturas` (src/ProConta.Facturacion/Facturas), el puerto `IAjustesRemesaN43` (Norma 43 no depende de facturación) y su implementación `AjustesRemesaFacturacion` en ProConta.App; pruebas en ProgramadasAccessTests. Sustituye a la decisión de las 12:20 en lo de asumir (rectificativa por diferencias, que facturación no tiene).
+- 2026-11-16 13:30 · Validado por el propietario («Ok ya puedes fusionar», PR #87 y #88): deja de ser borrador.
 ## Requirements
 - 2026-11-12 16:47 · P4. Ok, lo haremos en un nuevo hilo
 - 2026-11-12 16:47 · draft: Explotar las remesas de recibos en una línea por recibo.
@@ -43,5 +43,6 @@ PR 1 hecha, pendiente de validar: `ReglasRemesasN43` (propuesta y cuadre, sin BD
 - 2026-11-16 12:12 · Lo podemos dejar como una decisión del operador (si quiere asumir el coste, sería mi opción, si quiere que lo pague el cliente, sería tu opción)
 
 - 2026-11-16 13:02 · La opción correcta sería la 3), anula la factura incorrecta y genera una nueva con el importe que toca.
+- 2026-11-16 13:27 · Ok ya puedes fusionar
 ## Hand-over
 - 2026-11-16 13:10 · Hechas la PR 1 (#87, rama claude/norma43-remesas) y la PR 2 (rama claude/norma43-remesas-ajustes, sobre la 1); queda que el propietario las valide. Lo que pedía la PR 2, ya hecho: en el diálogo de la remesa, cuando el importe cobrado de una factura es distinto, proponer y ejecutar los ajustes de la decisión «Importe cobrado distinto» con los servicios de facturación (ServicioProgramadas, ServicioFacturas.GuardarValidadaAsync y CrearRectificativaAsync), enlazando las facturas nuevas al recibo con CobrosFacturasN43.RegistrarCobroAsync. El servicio de remesas está en Norma43, que no referencia Facturacion: hace falta un puerto (interfaz) implementado en Facturacion y conectado en ProConta.App.
