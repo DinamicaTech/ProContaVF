@@ -1,6 +1,5 @@
 ---
 title: Compensar la comisión de las plataformas
-status: draft
 depends_on: [facturacion/reservas, compras/factura-compra, contabilidad/plantillas-asiento, compras/factura-compra/contabilizacion, pantalla-de-inicio, datos/esquema]
 threads:
   - 2026-11-16 17:15 · Compensar la comisión de las plataformas | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GV8QpLRQiA4g3SL6y6CB81w
@@ -15,6 +14,7 @@ Al exportar la factura de comisión de una plataforma (Airbnb, Booking), su cuen
 - 2026-11-16 17:15 · Asiento (propietario, P3 «uno por factura»): un asiento de compensación por factura, con la 410 de la factura al Debe y la 430 del cliente del mismo tercero en el ejercicio al Haber, por lo que el asiento de la factura llevó a esa 410 (total menos retención; con inversión del sujeto pasivo, el total). En un abono el importe es negativo y los lados se invierten. Fecha: la del asiento de la factura, o el día 1 del trimestre activo si es anterior. Concepto «Compensación comisión <tercero> fra. <número>» y el número de la factura como documento. Sale de la plantilla de sistema «Compensación de comisión de plataforma» (si la BD no la tiene, la misma en el código).
 - 2026-11-16 17:15 · Lote propio: «compras/factura-compra/COMPENSACION/<IdRegistro>», no el de la factura (las del ERP no tienen lote de ProContaVF). Exportar, re-exportar y deshacer la exportación lo ponen al día después del lote de la factura: si la compensación vigente ya es la que toca no se toca; si cambia, se regenera; si la factura deja de estar exportada, se quita. Si su asiento es de un trimestre cerrado, no se toca: el lote siguiente («<IdRegistro>.n») lleva su contra-asiento («Anulación: …») el día 1 del trimestre activo y, si toca, la compensación nueva. Si no se puede compensar (el cliente no tiene 430 en el ejercicio, el asiento no tiene una sola cuenta 400/410), la exportación sigue hecha y el aviso dice qué corregir.
 - 2026-11-16 17:15 · Facturas ya contabilizadas (propietario, P2 a): las facturas de comisión del ejercicio de trabajo exportadas (por ProContaVF o en el ERP) sin su compensación salen en el aviso de Inicio «Comisiones sin compensar» (atención), con el número y el importe por plataforma; su acción («Compensar las comisiones», doble clic o Intro) enseña la lista, pide confirmación y hace un asiento por factura; un fallo no para las demás y el resultado dice por qué. Solo el ejercicio de trabajo: 2025 y anteriores los cubre el asiento anual que hacía el ERP («Cambio cuenta: … deduce sus comisiones…»). En la copia de validación, con el cliente y el acreedor juntos, salen 11 de Airbnb (4.344,74 €) y 9 de Booking (2.084,27 €) de 2026.
+- 2026-11-16 17:47 · Validado por el propietario (PR #93, esquema 61): el nodo deja de ser borrador. Queda comprobar, con la próxima copia del ERP, que la migración junta en un solo tercero el cliente y el acreedor de cada plataforma (mismo NIF en las fichas de ContaSol).
 
 ## Requirements
 - 2026-11-12 14:40 · Q2. a. La plataforma es la que realmente nos paga, aunque no el 100% de la factura ya que se queda su comisión (registradas como facturas de compra). Esto contablemente se ha de cuadrar ya que por un lado, la plataforma actúa como 430 y por otro lado como 410, el ingreso bancario no coincide con el importe de la factura emitida y la factura de compra no tiene movimiento bancario de pago.
@@ -24,3 +24,6 @@ Al exportar la factura de comisión de una plataforma (Airbnb, Booking), su cuen
 - 2026-11-16 16:50 · P3. Uno por factura
 - 2026-11-16 16:56 · Como en el ERP no tengo nada que 'cuelgue' del acreedor, me es más fácil eliminar antes de la migración las dos fichas de acreedor de airbnb y booking y dejar solo las dos de cliente a las que habría que añadir el rol de proveedor. Modificaré la razón social en el ERP de los 430 para que sea la correcta.
 - 2026-11-16 16:59 · Yo voy a eliminar la ficha de DeporWin.
+- 2026-11-16 17:05 · Ok, asigno la cuenta del acreedor a la fichas de los clientes.
+- 2026-11-16 17:22 · Ok, asignado el mismo CIF (NL805734958) a la ficha del tercero, F_CLI y F_PRO
+- 2026-11-16 17:46 · Puedes fusionar PR, te vuelvo a activar para que puedas verificar CIFs antes de lanzar la importación.
