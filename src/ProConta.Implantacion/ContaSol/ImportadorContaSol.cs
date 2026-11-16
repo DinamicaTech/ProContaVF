@@ -516,6 +516,12 @@ public sealed class ImportadorContaSol(IBaseDatos bd, IMotorAsientos motor, ICat
                     idTercero = alta.Valor.IdTercero;
                     if (t.Nif.Length > 0) porNif[t.Nif] = idTercero.Value;
                     creados++;
+                    // Un «teléfono» de ContaSol que no es un número (suele ser un trozo de dirección) no pasa a los datos de contacto (propietario 2026-11-16).
+                    if (t.Origen.Telefono?.Trim() is { Length: > 0 } telefono
+                        && !PlanificadorContaSol.ContactosDeFicha(null, telefono).Any(c => c.Tipo == TipoDatoContacto.Telefono))
+                        Anotar("terceros", t.Origen.EsCliente ? "F_CLI" : "F_PRO", codigo, t.Origen.EsCliente ? "TELCLI" : "TELPRO", "ContaSol.TelefonoNoValido", Severidad.Advertencia,
+                            $"El teléfono del {(t.Origen.EsCliente ? "cliente" : "proveedor")} {codigo} {t.Origen.Nombre}, «{telefono}», no parece un número: no lo paso a sus datos de contacto. " +
+                            "Revísalo en ContaSol o en la ficha del tercero.", telefono);
                 }
                 var rol = t.Origen.EsCliente ? await imp._roles.AsegurarClienteAsync(idTercero.Value) : await imp._roles.AsegurarProveedorAsync(idTercero.Value);
                 if (!rol.EsCorrecto)
