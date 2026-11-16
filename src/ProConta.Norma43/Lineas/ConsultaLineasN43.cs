@@ -31,13 +31,22 @@ public sealed record DestinoLineaN43(int IdIdentidadContable, string? Cuenta, st
 /// <param name="CuentaOrigen">La 572 de la cuenta bancaria en la fecha del movimiento, con su código del ejercicio de la línea.</param>
 /// <param name="Tipo">ConceptosN43.ConceptoReducido (norma43/conciliacion 2026-11-13 10:50), calculado al vuelo; null si ninguna regla encaja.</param>
 /// <param name="Facturas">Números de las facturas enlazadas con la línea (norma43/busqueda-por-importe), separados por comas; null si ninguna.</param>
+/// <param name="Especial">Especial de la palabra clave que le puso la cuenta (5 remesa, 6 recibo devuelto; norma43/remesas); null si ninguna.</param>
+/// <param name="IdExtractoDesglose">Extracto ficticio (no revertido) que desglosa esta línea en recibos (norma43/remesas); null si no está explotada.</param>
+/// <param name="IdLineaOrigen">En las líneas de un extracto ficticio, la remesa o devolución que desglosan; null en las del banco.</param>
 public sealed record LineaN43(
     int Id, int IdLote, int? IdCuentaBancaria, string NombreBanco, string Ccc, string Entidad,
     DateTime FechaOperacion, DateTime FechaValor, int Ejercicio, bool EjercicioCerrado,
     string Sentido, decimal Importe, string? ConceptoComun, string? Concepto, string? Documento, string? Referencia1, string? Referencia2,
     string? CuentaOrigen, string? NombreCuentaOrigen, IReadOnlyList<DestinoLineaN43> Destinos,
-    int? IdAsiento, bool AsientoPropio, string? Tipo, string? Facturas = null)
+    int? IdAsiento, bool AsientoPropio, string? Tipo, string? Facturas = null, int? Especial = null, int? IdExtractoDesglose = null, int? IdLineaOrigen = null)
 {
+    /// <summary>La desglosa un extracto ficticio de recibos (remesa o devolución explotada).</summary>
+    public bool Explotada => IdExtractoDesglose is not null;
+
+    /// <summary>Es un recibo de una remesa o devolución explotada.</summary>
+    public bool EsRecibo => IdLineaOrigen is not null;
+
     /// <summary>Importe con signo desde el punto de vista del banco: positivo si entra dinero (abono), negativo si sale (cargo).</summary>
     public decimal ImporteFirmado => Sentido == ServicioConciliacionN43.Abono ? Importe : -Importe;
 
@@ -102,7 +111,7 @@ public sealed class ConsultaLineasN43(IBaseDatos bd)
         const string desde = "(LineasExtractoBancario AS l INNER JOIN ExtractosBancarios AS e ON l.IdExtractoBancario = e.IdExtractoBancario) " +
             "INNER JOIN LotesImportacionBancaria AS lo ON e.IdLoteImportacionBancaria = lo.IdLoteImportacionBancaria";
         var sql = "SELECT l.IdLineaExtractoBancario, lo.IdLoteImportacionBancaria, e.IdCuentaBancaria, e.Entidad, e.Oficina, e.Cuenta, l.FechaOperacion, l.FechaValor, " +
-            "l.Sentido, l.Importe, l.ConceptoComun, l.ConceptoCompleto, l.Documento, l.Referencia1, l.Referencia2 " +
+            "l.Sentido, l.Importe, l.ConceptoComun, l.ConceptoCompleto, l.Documento, l.Referencia1, l.Referencia2, e.IdLineaExtractoOrigen " +
             $"FROM {desde} WHERE lo.IdSociedad = ? AND lo.Estado <> ?";
         var parametros = new List<object?> { idSociedad, ServicioImportacionN43.EstadoRevertido };
         if (ids is null && anios is { Count: > 0 })
@@ -122,7 +131,7 @@ public sealed class ConsultaLineasN43(IBaseDatos bd)
                 f.Entero("IdLineaExtractoBancario"), f.Entero("IdLoteImportacionBancaria"), f.EnteroNulo("IdCuentaBancaria"), Limpio(f.Texto("Entidad")) ?? "",
                 $"{Limpio(f.Texto("Entidad"))} {Limpio(f.Texto("Oficina"))} {Limpio(f.Texto("Cuenta"))}", f.Fecha("FechaOperacion").Date, f.Fecha("FechaValor").Date,
                 (Limpio(f.Texto("Sentido")) ?? "").ToUpperInvariant(), f.Decimal("Importe"), Limpio(f.Texto("ConceptoComun")), Limpio(f.Texto("ConceptoCompleto")),
-                Limpio(f.Texto("Documento")), Limpio(f.Texto("Referencia1")), Limpio(f.Texto("Referencia2"))), [.. parametros]));
+                Limpio(f.Texto("Documento")), Limpio(f.Texto("Referencia1")), Limpio(f.Texto("Referencia2")), f.EnteroNulo("IdLineaExtractoOrigen")), [.. parametros]));
         }
         var porAnio = ejercicios.ToDictionary(e => e.Ejercicio);
         if (anios is { Count: > 0 } && ids is null)
@@ -158,21 +167,33 @@ public sealed class ConsultaLineasN43(IBaseDatos bd)
             }
         }
 
-        // Facturas enlazadas (norma43/busqueda-por-importe): las de compra y las de venta que apuntan a la línea.
+        // Facturas enlazadas (norma43/busqueda-por-importe): las de compra y las de venta que apuntan a la línea, por su cobro, su
+        // devolución o un reintento (norma43/remesas).
         var facturas = new Dictionary<int, List<string>>();
+        var desgloses = new Dictionary<int, int>();
         foreach (var bloque in filas.Select(f => f.Id).Chunk(300))
         {
             var lista = Lista(bloque);
+            const string venta = "SELECT {0} AS Linea, s.Prefijo, f.NumeroFactura FROM {1} WHERE {0} IN ({2})";
+            const string desdeVenta = "Facturas AS f LEFT JOIN SeriesFacturacion AS s ON f.IdSerie = s.IdSerie";
+            const string desdeReintento = "(ReintentosSEPA AS r INNER JOIN Facturas AS f ON r.IdFactura = f.IdFactura) LEFT JOIN SeriesFacturacion AS s ON f.IdSerie = s.IdSerie";
+            static (int Linea, string Numero) Venta(IFilaDatos f) => (f.Entero("Linea"), (Limpio(f.Texto("Prefijo")) ?? "") + (Limpio(f.Texto("NumeroFactura")) ?? ""));
             var enlazadas = (await s.ConsultarAsync($"SELECT LineaN43, NumeroFactura FROM FacturasCompra WHERE LineaN43 IN ({lista})",
                     f => (Linea: f.Entero("LineaN43"), Numero: Limpio(f.Texto("NumeroFactura")) ?? "(sin número)")))
-                .Concat(await s.ConsultarAsync(
-                    $"SELECT f.LineaN43, s.Prefijo, f.NumeroFactura FROM Facturas AS f LEFT JOIN SeriesFacturacion AS s ON f.IdSerie = s.IdSerie WHERE f.LineaN43 IN ({lista})",
-                    f => (Linea: f.Entero("LineaN43"), Numero: (Limpio(f.Texto("Prefijo")) ?? "") + (Limpio(f.Texto("NumeroFactura")) ?? ""))));
+                .Concat(await s.ConsultarAsync(string.Format(CultureInfo.InvariantCulture, venta, "f.LineaN43", desdeVenta, lista), Venta))
+                .Concat(await s.ConsultarAsync(string.Format(CultureInfo.InvariantCulture, venta, "f.LineaN43Devolucion", desdeVenta, lista), Venta))
+                .Concat(await s.ConsultarAsync(string.Format(CultureInfo.InvariantCulture, venta, "r.LineaN43", desdeReintento, lista), Venta))
+                .Concat(await s.ConsultarAsync(string.Format(CultureInfo.InvariantCulture, venta, "r.LineaN43Devolucion", desdeReintento, lista), Venta));
             foreach (var e in enlazadas)
             {
                 if (!facturas.TryGetValue(e.Linea, out var l)) facturas[e.Linea] = l = [];
-                l.Add(e.Numero);
+                if (!l.Contains(e.Numero)) l.Add(e.Numero);
             }
+            foreach (var d in await s.ConsultarAsync(
+                "SELECT e.IdLineaExtractoOrigen, e.IdExtractoBancario FROM ExtractosBancarios AS e INNER JOIN LotesImportacionBancaria AS lo ON e.IdLoteImportacionBancaria = lo.IdLoteImportacionBancaria " +
+                $"WHERE lo.Estado <> ? AND e.IdLineaExtractoOrigen IN ({lista})",
+                f => (Linea: f.Entero("IdLineaExtractoOrigen"), Extracto: f.Entero("IdExtractoBancario")), ServicioImportacionN43.EstadoRevertido))
+                desgloses[d.Linea] = d.Extracto;
         }
 
         // La 572 de cada cuenta bancaria según la fecha, y la cuenta puente.
@@ -213,10 +234,14 @@ public sealed class ConsultaLineasN43(IBaseDatos bd)
             codigos.TryGetValue((anio, identidad), out var c) ? c : ultimos.TryGetValue(identidad, out var u) ? u : null;
 
         var palabras = new Dictionary<int, string>();
+        var especiales = new Dictionary<int, int>();
         if (imputaciones.Any(i => i.Palabra is not null))
-            foreach (var p in await s.ConsultarAsync("SELECT IdPalabraClaveBancaria, PalabraClave, PalabraClave2 FROM PalabrasClaveBancarias WHERE IdSociedad = ?",
-                         f => (Id: f.Entero("IdPalabraClaveBancaria"), Uno: Limpio(f.Texto("PalabraClave")), Dos: Limpio(f.Texto("PalabraClave2"))), idSociedad))
+            foreach (var p in await s.ConsultarAsync("SELECT IdPalabraClaveBancaria, PalabraClave, PalabraClave2, Especial FROM PalabrasClaveBancarias WHERE IdSociedad = ?",
+                         f => (Id: f.Entero("IdPalabraClaveBancaria"), Uno: Limpio(f.Texto("PalabraClave")), Dos: Limpio(f.Texto("PalabraClave2")), Especial: f.EnteroNulo("Especial")), idSociedad))
+            {
                 palabras[p.Id] = p.Dos is null ? p.Uno ?? "" : $"{p.Uno} + {p.Dos}";
+                if (p.Especial is int e and > 0) especiales[p.Id] = e;
+            }
         var reglas = await ReglasConceptoN43.LeerAsync(bd);
         var porLinea = imputaciones.ToLookup(i => i.Linea);
         var r = new List<LineaN43>(filas.Count);
@@ -235,13 +260,15 @@ public sealed class ConsultaLineasN43(IBaseDatos bd)
             r.Add(new LineaN43(f.Id, f.IdLote, f.IdCuentaBancaria, nombreBanco ?? banco?.Nombre ?? f.Ccc, f.Ccc, f.Entidad, f.FechaOperacion, f.FechaValor, anio,
                 porAnio.TryGetValue(anio, out var ej) && ej.Cerrado, f.Sentido, f.Importe, f.ConceptoComun, f.Concepto, f.Documento, f.Referencia1, f.Referencia2,
                 banco?.Codigo, banco?.Nombre, destinos, c?.Asiento, c?.Propio ?? false, tipo,
-                facturas.TryGetValue(f.Id, out var fs) ? string.Join(", ", fs.OrderBy(x => x, StringComparer.CurrentCulture)) : null));
+                facturas.TryGetValue(f.Id, out var fs) ? string.Join(", ", fs.OrderBy(x => x, StringComparer.CurrentCulture)) : null,
+                destinos.Select(d => d.IdPalabraClave is int p && especiales.TryGetValue(p, out var e) ? e : (int?)null).FirstOrDefault(e => e is not null),
+                desgloses.TryGetValue(f.Id, out var desglose) ? desglose : null, f.IdLineaOrigen));
         }
         return r.OrderBy(l => l.FechaOperacion).ThenBy(l => l.Id).ToList();
     });
 
     private sealed record FilaLeida(int Id, int IdLote, int? IdCuentaBancaria, string Entidad, string Ccc, DateTime FechaOperacion, DateTime FechaValor, string Sentido,
-        decimal Importe, string? ConceptoComun, string? Concepto, string? Documento, string? Referencia1, string? Referencia2)
+        decimal Importe, string? ConceptoComun, string? Concepto, string? Documento, string? Referencia1, string? Referencia2, int? IdLineaOrigen)
     {
         public DateTime FechaMovimiento => ServicioConciliacionN43.FechaMovimiento(FechaOperacion, FechaValor);
         public int Ejercicio => FechaMovimiento.Year;

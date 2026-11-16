@@ -52,8 +52,11 @@ public sealed class LectorErp
         "N43EntidadesBancarias", "N43PalabrasClave", "Inmuebles", "PlantillasInmuebles", "CuentasInmuebles", "TiposInmueble",
     ];
 
-    /// <summary>Tablas que se migran si existen (facturacion/factura-venta 2026-11-13): DatosBancarios da el IBAN de los clientes.</summary>
-    public static readonly IReadOnlyList<string> TablasOpcionales = ["DatosBancarios"];
+    /// <summary>
+    /// Tablas que se migran si existen (facturacion/factura-venta 2026-11-13): DatosBancarios da el IBAN de los clientes; los esquemas de
+    /// fraccionamiento dan la forma y el día de pago de cada factura y programada (norma43/remesas 2026-11-16).
+    /// </summary>
+    public static readonly IReadOnlyList<string> TablasOpcionales = ["DatosBancarios", "EsquemasFraccionamiento", "FraccionesEsquema"];
 
     /// <summary>Tablas de nóminas que se migran si existen (fase 7, nominas 2026-11-13): sin ellas la fase no carga nada.</summary>
     public static readonly IReadOnlyList<string> TablasNominasMigradas = ["F_NOM", "AliasCamposF_NOM", "PlantillasApuntes"];

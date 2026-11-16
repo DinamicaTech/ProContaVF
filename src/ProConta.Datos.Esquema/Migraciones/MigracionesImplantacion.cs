@@ -87,4 +87,33 @@ public static class MigracionesNorma43
             new("Facturas", "LineaN43", "Movimiento bancario (LineasExtractoBancario) con que se cobró la factura, enlazado con «Buscar por importe»: la factura está conciliada. Nulo si no."),
         ],
     };
+
+    /// <summary>
+    /// Explosión de remesas y devoluciones de recibos (norma43/remesas 2026-11-16): el extracto ficticio que desglosa una remesa
+    /// (o una devolución) guarda la línea de la que sale; la factura guarda la devolución de su primer recibo, y los cobros y
+    /// devoluciones de los recibos que se vuelven a girar van a ReintentosSEPA (intento 2, 3…).
+    /// </summary>
+    public static Migracion Remesas { get; } = new(
+        "20261116_1300_REMESAS_N43", 261116013,
+        "Norma 43: explosión de remesas y devoluciones de recibos, con los reintentos de cobro.",
+        "norma43/remesas",
+        new AnadirColumna("ExtractosBancarios", "IdLineaExtractoOrigen", "LONG"),
+        new CrearIndice("ExtractosBancarios", "IX_Extractos_LineaOrigen", "CREATE INDEX IX_Extractos_LineaOrigen ON ExtractosBancarios (IdLineaExtractoOrigen)"),
+        new AnadirColumna("Facturas", "LineaN43Devolucion", "LONG"),
+        new CrearIndice("Facturas", "IX_Facturas_LineaN43Devolucion", "CREATE INDEX IX_Facturas_LineaN43Devolucion ON Facturas (LineaN43Devolucion)"),
+        new CrearTabla("ReintentosSEPA",
+            "CREATE TABLE ReintentosSEPA (IdReintentoSEPA COUNTER CONSTRAINT PK_ReintentosSEPA PRIMARY KEY, " +
+            "IdFactura LONG NOT NULL CONSTRAINT FK_ReintentosSEPA_Factura REFERENCES Facturas (IdFactura), Intento SHORT NOT NULL, " +
+            "LineaN43 LONG NOT NULL, LineaN43Devolucion LONG)"),
+        new CrearIndice("ReintentosSEPA", "IX_ReintentosSEPA_Factura", "CREATE UNIQUE INDEX IX_ReintentosSEPA_Factura ON ReintentosSEPA (IdFactura, Intento)"))
+    {
+        Descripciones =
+        [
+            new("ExtractosBancarios", "IdLineaExtractoOrigen", "Línea (remesa o devolución de recibos) que desglosa este extracto ficticio, una línea por recibo. Nulo en los extractos del banco."),
+            new("Facturas", "LineaN43Devolucion", "Movimiento bancario con que se devolvió el recibo de Facturas.LineaN43. Nulo si no se devolvió."),
+            new("ReintentosSEPA", "Intento", "Número del intento de cobro: 2 para el primer reintento (el primero es Facturas.LineaN43)."),
+            new("ReintentosSEPA", "LineaN43", "Movimiento bancario del nuevo cobro de la factura."),
+            new("ReintentosSEPA", "LineaN43Devolucion", "Movimiento bancario con que se devolvió ese cobro. Nulo si no se devolvió."),
+        ],
+    };
 }

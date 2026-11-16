@@ -15,7 +15,7 @@ using ProConta.UI.Base.Formato;
 namespace ProConta.Norma43.UI.Vistas;
 
 /// <summary>Diálogos de la pantalla de líneas N43 sobre la ventana activa de la aplicación.</summary>
-public sealed class DialogosLineasN43(ICatalogoCuentas cuentas, Func<Window?> ventana) : IDialogosLineasN43
+public sealed partial class DialogosLineasN43(ICatalogoCuentas cuentas, Func<Window?> ventana) : IDialogosLineasN43
 {
     public int Preguntar(string titulo, string mensaje, IReadOnlyList<string>? detalles, params OpcionMensaje[] opciones) =>
         ServicioMensajes.Preguntar(Activa(), titulo, mensaje, detalles, opciones);
@@ -206,7 +206,7 @@ public sealed class DialogosLineasN43(ICatalogoCuentas cuentas, Func<Window?> ve
         soloSentido.Margin = new Thickness(0, 0, 16, 0);
         alcance.Children.Add(soloBanco);
         alcance.Children.Add(soloSentido);
-        alcance.Children.Add(Casilla(nameof(PalabrasClaveN43VM.Remesa), "Es una remesa de recibos", "Las remesas se explotarán en recibos (norma43/remesas); la línea toma igualmente su cuenta"));
+        alcance.Children.Add(Casilla(nameof(PalabrasClaveN43VM.Remesa), vm.TextoRemesa, vm.AyudaRemesa));
         Fila("Alcance", alcance, "A qué movimientos se aplica");
         form.Children.Add(g);
         var error = new TextBlock { Foreground = (Brush)d.FindResource("Pincel.RojoError"), TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 6, 0, 0) };

@@ -145,7 +145,10 @@ public sealed record AccionesLineasN43(
     string? PalabrasClave,
     string? Traspaso,
     string? VerAsiento,
-    string? BuscarPorImporte)
+    string? BuscarPorImporte,
+    string? ExplotarRemesa = "Selecciona una línea.",
+    string? ConciliarDevueltas = "Selecciona una línea.",
+    string? DeshacerExplosion = "Selecciona una línea.")
 {
     private static readonly CultureInfo Es = CultureInfo.GetCultureInfo("es-ES");
 
@@ -205,7 +208,22 @@ public sealed record AccionesLineasN43(
 
         var verAsiento = n != 1 ? (n == 0 ? "Selecciona una línea." : "Se abre el asiento de una sola línea.") : null;
 
-        return new AccionesLineasN43(asignar, textoContabilizar, contabilizar, aContabilizar, deshacer, propias, actualizar, textoReasignar, reasignar, palabras, traspaso, verAsiento, buscar);
+        // Remesas y devoluciones de recibos (norma43/remesas): sobre una sola línea del banco.
+        var una = n != 1 ? (n == 0 ? "Selecciona una línea." : "Se hace sobre una sola línea: deja seleccionada solo una.") : null;
+        var l1 = n == 1 ? sel[0] : null;
+        var conciliadaDevolucion = l1 is not null && l1.Destinos.Any(d => d.Origen == "DEVOLUCION");
+        var explotar = una ?? soloLectura ?? (l1!.EsRecibo ? "Esta línea ya es un recibo de una remesa explotada: elige la remesa del banco."
+            : l1.Explotada ? "Esta remesa ya está explotada: para repetirla, usa antes «Deshacer explosión»."
+            : l1.EsCargo ? "Una remesa es un abono del banco; para un recibo devuelto usa «Conciliar facturas devueltas…»." : null);
+        var devueltas = una ?? soloLectura ?? (l1!.EsRecibo ? "Esta línea ya es un recibo de una devolución explotada: elige la devolución del banco."
+            : l1.Explotada || conciliadaDevolucion ? "Esta devolución ya está conciliada: para repetirla, usa antes «Deshacer explosión»."
+            : !l1.EsCargo ? "Un recibo devuelto es un cargo del banco; para una remesa usa «Explotar remesa…»." : null);
+        var deshacerExplosion = una ?? soloLectura ?? (l1!.Explotada || conciliadaDevolucion ? null
+            : l1.EsRecibo ? "Esta línea es un recibo: deshaz la explosión desde la remesa o la devolución del banco."
+            : "Esta línea no está explotada ni conciliada con recibos devueltos.");
+
+        return new AccionesLineasN43(asignar, textoContabilizar, contabilizar, aContabilizar, deshacer, propias, actualizar, textoReasignar, reasignar, palabras, traspaso, verAsiento, buscar,
+            explotar, devueltas, deshacerExplosion);
     }
 
     private static string Minuscula(string s) => s.Length == 0 ? s : char.ToLowerInvariant(s[0]) + s[1..];

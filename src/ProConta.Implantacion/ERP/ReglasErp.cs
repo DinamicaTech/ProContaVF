@@ -22,6 +22,20 @@ public sealed record LineaTransformada(LineaFacturaVenta? Linea, decimal? TipoRe
 /// </summary>
 public static class ReglasErp
 {
+    /// <summary>Forma de pago «Recibo domiciliado» (SEPA) del ERP, la que se da a los esquemas domiciliados que no la tienen.</summary>
+    public const byte FormaPagoDomiciliado = 110;
+
+    /// <summary>
+    /// Forma y día de pago de un esquema de fraccionamiento del ERP (norma43/remesas 2026-11-16): la forma de su fracción o, si no la tiene y
+    /// el nombre dice «DOMICILIADO», la de recibo domiciliado; el día, si está entre 1 y 31.
+    /// </summary>
+    public static (byte? Forma, byte? Dia) PagoEsquema(string? nombre, int? formaFraccion, int? dia)
+    {
+        byte? forma = formaFraccion is int f and > 0 and <= 255 ? (byte)f
+            : (nombre ?? "").Contains("DOMICILIADO", StringComparison.OrdinalIgnoreCase) ? FormaPagoDomiciliado : null;
+        return (forma, dia is int d and >= 1 and <= 31 ? (byte)d : null);
+    }
+
     /// <summary>
     /// Campos de configuración que quedan en SociedadesEjercicios y su columna en la tabla Sociedades del ERP
     /// (organizacion/sociedades-ejercicios 2026-11-13 20:55). Los que el ERP no tiene (tipo general, importación y redondeo) se
