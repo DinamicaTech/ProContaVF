@@ -1,6 +1,5 @@
 ---
 title: Búsqueda por importe
-status: draft
 depends_on: [norma43/pantallas, compras, facturacion, contabilidad/asientos]
 threads:
   - 2026-10-29 17:19 · Validar prototipos de pantallas principales | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GGPu88XoVeXWyHsuxbrF2kK
@@ -8,7 +7,7 @@ threads:
 ---
 ## Summary
 Desde el menú contextual de la pantalla de líneas N43 («Buscar por importe…», Ctrl+B), con una o varias líneas, busca para cada una las facturas cuyo importe coincide (compras para los cargos, ventas para los abonos) y enlaza las que marca el operador. Sustituye a `frmN43BusquedaPorImporte` de ProConta antiguo, sin sus defectos.
-Hecho, pendiente de validar: `BusquedaPorImporteN43` y `ReglasBusquedaImporteN43` en src/ProConta.Norma43/Busqueda; diálogo en `DialogosLineasN43.BuscarPorImporte` con `BusquedaImporteN43VM`; columna «Facturas» y detalle en la rejilla; migración `20261116_1100_BUSQUEDA_IMPORTE_N43` (esquema 57: Facturas.LineaN43); pruebas en tests/ProConta.Norma43.Tests (BusquedaImporteN43Tests y BusquedaImporteN43AccessTests).
+Hecho y validado por el propietario (2026-11-16, PR #85): `BusquedaPorImporteN43` y `ReglasBusquedaImporteN43` en src/ProConta.Norma43/Busqueda; diálogo en `DialogosLineasN43.BuscarPorImporte` con `BusquedaImporteN43VM`; columna «Facturas» y detalle en la rejilla; migración `20261116_1100_BUSQUEDA_IMPORTE_N43` (esquema 57: Facturas.LineaN43); pruebas en tests/ProConta.Norma43.Tests (BusquedaImporteN43Tests y BusquedaImporteN43AccessTests).
 **Aceptación:** un solo diálogo para todas las líneas seleccionadas, cada una con sus candidatas ordenadas por cercanía de fecha y marcadas con un clic; vienen marcadas las de 0 o 1 día; «Enlazar» guarda la línea en la factura (conciliada) y pone la cuenta del tercero si la línea no está contabilizada; la factura de venta no se marca como exportada; nunca aparecen documentos de otra sociedad.
 
 ## Decisions
@@ -23,6 +22,7 @@ Hecho, pendiente de validar: `BusquedaPorImporteN43` y `ReglasBusquedaImporteN43
 - 2026-11-16 11:30 · Enlace: la línea se guarda en la factura, FacturasCompra.LineaN43 (ya existía y lo trae la migración del ERP) o Facturas.LineaN43 (nueva, esquema 57). Es la marca «conciliada», distinta de «exportada» (el asiento 430 de la factura, que genera Facturación): enlazar no toca el asiento de la factura ni el del movimiento. Una línea puede tener varias facturas; la rejilla las muestra en la columna «Facturas». Desmarcar una enlazada quita el enlace y deja la cuenta de la línea como estaba. Se hace en una transacción; por línea es todo o nada: si una de sus facturas ya está con otro movimiento (otro puesto) o se ha borrado, la línea no cambia y se dice por qué.
 - 2026-11-16 11:30 · Cuenta de la línea: solo si no está contabilizada (por ProContaVF o en el ERP), se le pone la cuenta del tercero con origen FACTURA, que «Reasignar por palabras clave» no toca: en compras, la CuentaContableProveedor de la factura en el ejercicio de la línea o, si no existe, la de su rol de proveedor o acreedor en la sociedad; en ventas, la del rol de cliente. Si las facturas enlazadas son de terceros distintos, o alguna no tiene cuenta en el ejercicio, la línea se enlaza sin cambiar su cuenta y se avisa. Las líneas contabilizadas, también las del ERP, se enlazan igual; las de lotes revertidos y ejercicios cerrados, no.
 - 2026-11-16 11:30 · A diferencia de la decisión del 2026-10-29 17:18 y del requisito de esa hora, la factura de venta no se marca como exportada con el asiento del banco: cada factura tiene ya su asiento 430/7xx/477 de Facturación, y marcarla así la dejaría sin el de IVA. Pasar el número y la descripción de las facturas enlazadas a los apuntes de la conciliación (`IFacturasLineaN43`) y migrar N43Lineas.NumeroFactura de las ventas del ERP siguen en el borrador norma43/busqueda-por-importe/enlace-facturas.
+- 2026-11-16 12:10 · Validado por el propietario (PR #85): deja de ser borrador. La tabla de enlaces factura ↔ línea que propone norma43/remesas (varios cobros y devoluciones por factura), si se aprueba, sustituirá a Facturas.LineaN43 en su propio esquema.
 
 ## Requirements
 - 2026-10-29 17:08 · No veo las opciones de 'Buscar por importe' (sería un contextual que hace lo que hay en el formulario frmN43BusquedaPorImporte) ni la de 'Movimientos similares', que ejecuta el formulario frmMovimientosN43Similares. Ambas funcionalidades se merecen un nodo propio por debajo de Norma43
@@ -33,3 +33,4 @@ Hecho, pendiente de validar: `BusquedaPorImporteN43` y `ReglasBusquedaImporteN43
 - 2026-11-16 10:54 · 1- Exportada sería la generación del asiento 430..., 'Conciliada' sería que la hemos vinculado a un movimiento bancario, son dos flags diferentes
 - 2026-11-16 10:54 · 2- Sí, buscamos importes contra facturas directamente
 - 2026-11-16 10:54 · 3- Ok, de hecho, eso haría de flag 'conciliada'
+- 2026-11-16 12:10 · Ok, ya puedes fusionar PR
