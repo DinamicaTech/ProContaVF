@@ -581,6 +581,35 @@ public sealed class FacturasAccessTests : IDisposable
     }
 
     [Fact]
+    public async Task LaDescripcionAbreviadaSeGuardaSeCambiaValidadaYSeCopia()
+    {
+        await PrepararAsync();
+        var servicio = Servicio();
+        var b = await BorradorAsync(servicio);
+        b.DescripcionAbreviada = "Alquiler local 03/2026";
+        b = (await servicio.GuardarBorradorAsync(b, _actor)).Valor;
+        Assert.Equal("Alquiler local 03/2026", (await servicio.ObtenerAsync(b.IdFactura))!.DescripcionAbreviada);
+
+        var f = (await servicio.ValidarAsync(b.IdFactura, b.Version, _actor)).Factura!;
+        Assert.Equal("Alquiler local 03/2026", f.DescripcionAbreviada);
+        // Es un dato interno: se cambia con la factura validada, como las notas, sin tocar número ni asiento.
+        Assert.True(ReglasFactura.CampoModificable(f, nameof(FacturaVenta.DescripcionAbreviada)));
+        var largo = new string('x', ReglasFactura.LongitudDescripcionAbreviada + 10);
+        var g = await servicio.GuardarNotasAsync(f.IdFactura, "Nota", largo, f.Version, _actor);
+        Assert.True(g.EsCorrecto, g.Error?.ToString());
+        var leida = (await servicio.ObtenerAsync(f.IdFactura))!;
+        Assert.Equal(new string('x', ReglasFactura.LongitudDescripcionAbreviada), leida.DescripcionAbreviada);
+        Assert.Equal((f.NumeroFactura, f.IdAsientoContable), (leida.NumeroFactura, leida.IdAsientoContable));
+        Assert.True((await servicio.GuardarNotasAsync(f.IdFactura, "Nota", "Alquiler local 03/2026", leida.Version, _actor)).EsCorrecto);
+
+        // Duplicar la copia y el listado la encuentra al buscar.
+        var d = await servicio.DuplicarAsync(f.IdFactura, _ctx, _actor);
+        Assert.Equal("Alquiler local 03/2026", d.Valor.DescripcionAbreviada);
+        var filas = await new ConsultaFacturas(Bd).ListarAsync(_ctx.IdSociedadEjercicio);
+        Assert.Equal(2, filas.Count(x => x.Contiene("local 03/2026")));
+    }
+
+    [Fact]
     public async Task ValidacionesALaVezNoRepitenNumero()
     {
         await PrepararAsync();

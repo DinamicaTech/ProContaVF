@@ -227,6 +227,12 @@ public sealed class FacturaVenta
     public byte? FormaDePago { get; set; }
     public byte? DiaDePago { get; set; }
     public string Descripcion { get; set; } = "";
+
+    /// <summary>
+    /// Descripción corta (facturacion/descripcion-abreviada 2026-11-16) que la conciliación N43 añade al concepto de los apuntes de
+    /// banco. Dato interno: no sale en el PDF ni en VeriFactu, y se puede cambiar también con la factura validada.
+    /// </summary>
+    public string? DescripcionAbreviada { get; set; }
     public string? NotasInternas { get; set; }
     public decimal TipoRetencion { get; set; }
     public string TipoFactura { get; set; } = "F1";

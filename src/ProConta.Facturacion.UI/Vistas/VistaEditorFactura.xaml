@@ -292,6 +292,12 @@
                       <TextBox Text="{Binding Descripcion, UpdateSourceTrigger=PropertyChanged, ValidatesOnNotifyDataErrors=True}" IsReadOnly="{Binding SoloLectura}" Style="{StaticResource Campo.Multilinea}"
                                MinHeight="{StaticResource Alto.Campo}" Padding="6,3" VerticalContentAlignment="Center" MaxLength="500" ToolTip="Qué se factura, en una frase. Va a la AEAT y encabeza el PDF." />
                     </StackPanel>
+                    <StackPanel Style="{StaticResource Bloque.Campo}" HorizontalAlignment="Left">
+                      <TextBlock Text="Descripción abreviada" Style="{StaticResource Etiqueta.Campo}" />
+                      <TextBox Text="{Binding DescripcionAbreviada, UpdateSourceTrigger=PropertyChanged}" IsReadOnly="{Binding NotasSoloLectura}" Width="420" HorizontalAlignment="Left"
+                               MaxLength="{Binding LongitudDescripcionAbreviada, Mode=OneTime}"
+                               ToolTip="Texto corto que se añade al concepto de los apuntes de banco cuando un movimiento se enlaza con esta factura (p. ej. «Período: %FECHAINICIO% - %FECHAFIN%» en una programada, que se sustituye por el periodo de cada factura). No sale en el PDF ni va a la AEAT; se puede cambiar también en una factura validada." />
+                    </StackPanel>
                     <StackPanel Margin="0,0,14,0">
                       <TextBlock Text="Notas internas" Style="{StaticResource Etiqueta.Campo}" />
                       <TextBox Text="{Binding Notas, UpdateSourceTrigger=PropertyChanged}" IsReadOnly="{Binding NotasSoloLectura}" Style="{StaticResource Campo.Multilinea}" MinHeight="44"

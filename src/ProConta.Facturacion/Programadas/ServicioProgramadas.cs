@@ -116,6 +116,7 @@ public sealed class ServicioProgramadas
         var f = p.Plantilla;
         f.IdCliente = origen.IdCliente;
         f.Descripcion = origen.Descripcion;
+        f.DescripcionAbreviada = origen.DescripcionAbreviada;
         f.NotasInternas = origen.NotasInternas;
         f.FormaDePago = origen.FormaDePago ?? f.FormaDePago;
         f.DiaDePago = origen.DiaDePago;
@@ -391,6 +392,7 @@ public sealed class ServicioProgramadas
                         FormaDePago = plantilla.FormaDePago,
                         DiaDePago = plantilla.DiaDePago,
                         Descripcion = MarcadoresPeriodo.Sustituir(plantilla.Descripcion, desde, hastaPeriodo),
+                        DescripcionAbreviada = ReglasFactura.Abreviada(MarcadoresPeriodo.Sustituir(plantilla.DescripcionAbreviada ?? "", desde, hastaPeriodo)),
                         NotasInternas = plantilla.NotasInternas,
                         TipoRetencion = plantilla.TipoRetencion,
                         TipoFactura = plantilla.TipoFactura

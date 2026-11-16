@@ -36,6 +36,13 @@ public static class ReglasFactura
 {
     public const int LongitudNombreLinea = 255;
     public const int LongitudMotivo = 255;
+
+    /// <summary>Longitud de Facturas.DescripcionAbreviada y FacturasProgramadas.DescripcionAbreviada (facturacion/descripcion-abreviada).</summary>
+    public const int LongitudDescripcionAbreviada = 120;
+
+    /// <summary>Descripción abreviada tal como se guarda: sin espacios a los lados, nula si está vacía y recortada a su longitud.</summary>
+    public static string? Abreviada(string? texto) =>
+        string.IsNullOrWhiteSpace(texto) ? null : texto.Trim() is var t && t.Length > LongitudDescripcionAbreviada ? t[..LongitudDescripcionAbreviada].TrimEnd() : t.Trim();
     public const int CifrasPorDefecto = 4;
 
     /// <summary>
@@ -95,11 +102,11 @@ public static class ReglasFactura
     }
 
     /// <summary>
-    /// Campos que se pueden cambiar en una factura que ya no es borrador (RF-FAC-07): sus notas internas y, por los
+    /// Campos que se pueden cambiar en una factura que ya no es borrador (RF-FAC-07): sus notas internas, su descripción abreviada y, por los
     /// servicios, la referencia contable, el PDF y el historial.
     /// </summary>
     public static bool CampoModificable(FacturaVenta f, string campo) =>
-        f.EsBorrador || campo is nameof(FacturaVenta.NotasInternas) or nameof(FacturaVenta.IdAsientoContable)
+        f.EsBorrador || campo is nameof(FacturaVenta.NotasInternas) or nameof(FacturaVenta.DescripcionAbreviada) or nameof(FacturaVenta.IdAsientoContable)
             or nameof(FacturaVenta.FechaExportacionContable) or nameof(FacturaVenta.Historial);
 
     /// <summary>

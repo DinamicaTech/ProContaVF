@@ -162,6 +162,46 @@ public sealed class ConciliacionN43AccessTests : IDisposable
     }
 
     [Fact]
+    public async Task Las_facturas_enlazadas_en_la_BD_ponen_su_descripcion_abreviada_y_su_numero_en_los_apuntes()
+    {
+        var ids = await PrepararAsync(M(11, 3, 500m, false, "TRANSFERENCIA INQUILINO FICTICIO", comun: "04"), M(11, 4, 121m, true, "RECIBO PROVEEDOR FICTICIO", comun: "03"),
+            M(11, 5, 300m, false, "TRANSFERENCIA SIN FACTURA", comun: "04"));
+        await ClienteAsync("4300001", "INQUILINO FICTICIO");
+        await ImputarAsync(ids[0], "4300001", -500m);
+        await ImputarAsync(ids[1], "6280001", 121m);
+        await ImputarAsync(ids[2], "4300001", -300m);
+        await Bd.EjecutarAsync(async s =>
+        {
+            await s.EjecutarAsync("INSERT INTO SeriesFacturacion (IdSociedadEjercicio, Descripcion, RangoDesde, RangoHasta, Prefijo, EsRectificativa, EsPredeterminada) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                9001, "Facturas 2026", 1, 99999, "S", false, true);
+            var serie = Convert.ToInt32(await s.EscalarAsync("SELECT MAX(IdSerie) FROM SeriesFacturacion WHERE IdSociedadEjercicio = 9001"), CultureInfo.InvariantCulture);
+            // Venta cobrada por la primera línea, con descripción abreviada; un borrador enlazado (sin número) no cuenta.
+            foreach (var (numero, abreviada, estado) in new[] { ("0007", "Período: 01/11/2026 - 30/11/2026", (byte)1), ((string?)null, "Borrador ficticio", (byte)3) })
+                await s.EjecutarAsync(
+                    "INSERT INTO Facturas (IdSociedadEjercicio, IdSerie, NumeroFactura, Nombre, Descripcion, DescripcionAbreviada, EstadoFactura, TipoFactura, FechaCreacion, FechaFactura, " +
+                    "BaseImponible, ImporteTotal, LineaN43) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                    9001, serie, (object?)numero ?? DBNull.Value, "Inquilino ficticio", "Alquiler ficticio", abreviada, estado, "F1", new DateTime(2026, 11, 1), new DateTime(2026, 11, 1),
+                    500m, 500m, ids[0]);
+            // Compra pagada por la segunda línea, sin concepto abreviado: el apunte dice «Fra. <número>».
+            return await s.EjecutarAsync(
+                "INSERT INTO FacturasCompra (Sociedad, Ejercicio, IdSociedadEjercicio, CuentaContableProveedor, NumeroFactura, Fecha, ImporteTotal, Carpeta, NIF, MD5, Pagada, Exportada, Duplicada, " +
+                "InversionSujetoPasivo, LineaN43) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                "T01", "2026", 9001, "4000001", "FP-12", new DateTime(2026, 11, 2), 121m, "Ficticio", "A00000000", "FP-12", false, false, false, false, ids[1]);
+        });
+
+        var enlazadas = await new FacturasEnlazadasN43(Bd).FacturasAsync(ids);
+        Assert.Equal([new FacturaEnlazadaN43("S0007", "Período: 01/11/2026 - 30/11/2026")], enlazadas[ids[0]]);
+        Assert.Equal([new FacturaEnlazadaN43("FP-12", null)], enlazadas[ids[1]]);
+        Assert.False(enlazadas.ContainsKey(ids[2]));
+
+        // El servicio normal ya las lee de la BD.
+        var ps = await Servicio.ProponerAsync("T01", ids);
+        Assert.All(ps[0].Asiento!.Apuntes, a => Assert.Equal(("Transferencia de INQUILINO FICTICIO · Período: 01/11/2026 - 30/11/2026", "S0007"), (a.Concepto, a.Documento)));
+        Assert.All(ps[1].Asiento!.Apuntes, a => Assert.Equal(("Recibo de Suministros ficticios · Fra. FP-12", "FP-12"), (a.Concepto, a.Documento)));
+        Assert.All(ps[2].Asiento!.Apuntes, a => Assert.Equal("Transferencia de INQUILINO FICTICIO", a.Concepto));
+    }
+
+    [Fact]
     public async Task El_tipo_de_cada_movimiento_se_calcula_al_vuelo_para_la_rejilla()
     {
         var ids = await PrepararAsync(M(11, 2, 50m, true, ".COMPRA EN TIENDA FICTICIA TARJ. :*0000", comun: "00"), M(11, 3, 70m, true, "SIN CLASIFICAR", comun: "00"),

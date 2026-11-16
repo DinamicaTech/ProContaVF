@@ -227,6 +227,20 @@ public static class ReglasErp
     };
 
     /// <summary>Notas y Mas Notas en un solo texto.</summary>
+    /// <summary>
+    /// Descripción abreviada desde las Notas del ERP (facturacion/descripcion-abreviada 2026-11-16): FacturasVenta.Notas y
+    /// FacturasProgramadas.Notas («Período: 01/11/2026 - 30/11/2026», «Período: %FECHAINICIO% - %FECHAFIN%») pasan a
+    /// DescripcionAbreviada. Si no caben, se recortan y el texto entero se queda también en las notas internas, para no perder nada.
+    /// </summary>
+    public static (string? Abreviada, string? ParaNotas) DescripcionAbreviada(string? notas)
+    {
+        if (string.IsNullOrWhiteSpace(notas)) return (null, null);
+        var t = notas.Trim();
+        return t.Length <= ProConta.Facturacion.Facturas.ReglasFactura.LongitudDescripcionAbreviada
+            ? (t, null)
+            : (ProConta.Facturacion.Facturas.ReglasFactura.Abreviada(t), t);
+    }
+
     public static string? UnirNotas(params string?[] partes)
     {
         var p = partes.Where(x => !string.IsNullOrWhiteSpace(x)).Select(x => x!.Trim()).ToList();
