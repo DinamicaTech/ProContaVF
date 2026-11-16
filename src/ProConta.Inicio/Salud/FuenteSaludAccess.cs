@@ -218,36 +218,44 @@ public sealed class FuenteSaludAccess(IBaseDatos bd) : IFuenteSalud
         }, c);
 
     public Task<IReadOnlyList<TerceroSinNif>> TercerosSinNifAsync(string idSociedad, EjercicioSociedad ejercicio, CancellationToken c = default) =>
-        bd.EjecutarAsync<IReadOnlyList<TerceroSinNif>>(async s =>
+        bd.EjecutarAsync<IReadOnlyList<TerceroSinNif>>(async s => (await TercerosConApuntesAsync(s, idSociedad, ejercicio))
+            .Where(x => string.IsNullOrWhiteSpace(x.Nif)).Select(x => new TerceroSinNif(x.Tercero, x.Nombre, x.Codigo, x.EsCliente)).ToList(), c);
+
+    public Task<IReadOnlyList<TerceroNif>> TercerosConNifAsync(string idSociedad, EjercicioSociedad ejercicio, CancellationToken c = default) =>
+        bd.EjecutarAsync<IReadOnlyList<TerceroNif>>(async s => (await TercerosConApuntesAsync(s, idSociedad, ejercicio))
+            .Where(x => !string.IsNullOrWhiteSpace(x.Nif)).Select(x => new TerceroNif(x.Tercero, x.Nombre, x.Codigo, x.EsCliente, x.Nif!.Trim(), x.Tipo, x.Pais)).ToList(), c);
+
+    /// <summary>Clientes y proveedores cuya subcuenta (por su identidad contable) tiene apuntes contabilizados en el ejercicio, con su NIF.</summary>
+    private static async Task<List<(int Tercero, string Nombre, string Codigo, bool EsCliente, string? Nif, string? Tipo, string? Pais)>> TercerosConApuntesAsync(ISesionDatos s, string idSociedad, EjercicioSociedad ejercicio)
+    {
+        var id = ejercicio.IdSociedadEjercicio;
+        // Subcuentas de clientes y proveedores con apuntes contabilizados en el ejercicio, con su identidad contable.
+        var cuentas = await s.ConsultarAsync(
+            "SELECT DISTINCT cc.Codigo, cc.IdIdentidadContable FROM (Asientos AS a INNER JOIN Apuntes AS p ON a.IdAsiento = p.IdAsiento) " +
+            "INNER JOIN CuentasContables AS cc ON cc.Codigo = p.CuentaContable " +
+            $"WHERE a.IdSociedadEjercicio = ? AND cc.IdSociedadEjercicio = ? AND {Contabilizados} AND (LEFT(p.CuentaContable, 3) BETWEEN '430' AND '436' OR LEFT(p.CuentaContable, 3) BETWEEN '400' AND '410')",
+            f => (Codigo: (f.Texto("Codigo") ?? "").Trim(), Identidad: f.EnteroNulo("IdIdentidadContable")), id, id);
+        var porIdentidad = cuentas.Where(x => x.Identidad is not null).GroupBy(x => x.Identidad!.Value).ToDictionary(g => g.Key, g => g.First().Codigo);
+        var r = new List<(int Tercero, string Nombre, string Codigo, bool EsCliente, string? Nif, string? Tipo, string? Pais)>();
+        if (porIdentidad.Count == 0) return r;
+        var clientes = await s.ConsultarAsync(
+            "SELECT cs.IdIdentidadContable, t.IdTercero, t.Nombre, t.RazonSocial, t.NIF, t.TipoIdentificacion, t.Pais FROM (CuentasClientesSociedad AS cs INNER JOIN Clientes AS cl ON cs.IdCliente = cl.IdCliente) " +
+            "INNER JOIN Terceros AS t ON cl.IdTercero = t.IdTercero WHERE cs.IdSociedad = ?",
+            f => (Identidad: f.EnteroNulo("IdIdentidadContable"), Tercero: f.Entero("IdTercero"), Nombre: f.Texto("RazonSocial") is { Length: > 0 } rs ? rs : f.Texto("Nombre") ?? "", Nif: f.Texto("NIF"), Tipo: f.Texto("TipoIdentificacion"), Pais: f.Texto("Pais")), idSociedad);
+        var proveedores = await s.ConsultarAsync(
+            "SELECT cs.IdIdentidadContable, t.IdTercero, t.Nombre, t.RazonSocial, t.NIF, t.TipoIdentificacion, t.Pais FROM (CuentasProveedoresSociedad AS cs INNER JOIN Proveedores AS pr ON cs.IdProveedor = pr.IdProveedor) " +
+            "INNER JOIN Terceros AS t ON pr.IdTercero = t.IdTercero WHERE cs.IdSociedad = ?",
+            f => (Identidad: f.EnteroNulo("IdIdentidadContable"), Tercero: f.Entero("IdTercero"), Nombre: f.Texto("RazonSocial") is { Length: > 0 } rs ? rs : f.Texto("Nombre") ?? "", Nif: f.Texto("NIF"), Tipo: f.Texto("TipoIdentificacion"), Pais: f.Texto("Pais")), idSociedad);
+        void Anadir(IEnumerable<(int? Identidad, int Tercero, string Nombre, string? Nif, string? Tipo, string? Pais)> filas, bool esCliente)
         {
-            var id = ejercicio.IdSociedadEjercicio;
-            // Subcuentas de clientes y proveedores con apuntes contabilizados en el ejercicio, con su identidad contable.
-            var cuentas = await s.ConsultarAsync(
-                "SELECT DISTINCT cc.Codigo, cc.IdIdentidadContable FROM (Asientos AS a INNER JOIN Apuntes AS p ON a.IdAsiento = p.IdAsiento) " +
-                "INNER JOIN CuentasContables AS cc ON cc.Codigo = p.CuentaContable " +
-                $"WHERE a.IdSociedadEjercicio = ? AND cc.IdSociedadEjercicio = ? AND {Contabilizados} AND (LEFT(p.CuentaContable, 3) BETWEEN '430' AND '436' OR LEFT(p.CuentaContable, 3) BETWEEN '400' AND '410')",
-                f => (Codigo: (f.Texto("Codigo") ?? "").Trim(), Identidad: f.EnteroNulo("IdIdentidadContable")), id, id);
-            var porIdentidad = cuentas.Where(x => x.Identidad is not null).GroupBy(x => x.Identidad!.Value).ToDictionary(g => g.Key, g => g.First().Codigo);
-            if (porIdentidad.Count == 0) return [];
-            var clientes = await s.ConsultarAsync(
-                "SELECT cs.IdIdentidadContable, t.IdTercero, t.Nombre, t.RazonSocial, t.NIF FROM (CuentasClientesSociedad AS cs INNER JOIN Clientes AS cl ON cs.IdCliente = cl.IdCliente) " +
-                "INNER JOIN Terceros AS t ON cl.IdTercero = t.IdTercero WHERE cs.IdSociedad = ?",
-                f => (Identidad: f.EnteroNulo("IdIdentidadContable"), Tercero: f.Entero("IdTercero"), Nombre: f.Texto("RazonSocial") is { Length: > 0 } rs ? rs : f.Texto("Nombre") ?? "", Nif: f.Texto("NIF")), idSociedad);
-            var proveedores = await s.ConsultarAsync(
-                "SELECT cs.IdIdentidadContable, t.IdTercero, t.Nombre, t.RazonSocial, t.NIF FROM (CuentasProveedoresSociedad AS cs INNER JOIN Proveedores AS pr ON cs.IdProveedor = pr.IdProveedor) " +
-                "INNER JOIN Terceros AS t ON pr.IdTercero = t.IdTercero WHERE cs.IdSociedad = ?",
-                f => (Identidad: f.EnteroNulo("IdIdentidadContable"), Tercero: f.Entero("IdTercero"), Nombre: f.Texto("RazonSocial") is { Length: > 0 } rs ? rs : f.Texto("Nombre") ?? "", Nif: f.Texto("NIF")), idSociedad);
-            var r = new List<TerceroSinNif>();
-            void Anadir(IEnumerable<(int? Identidad, int Tercero, string Nombre, string? Nif)> filas, bool esCliente)
-            {
-                foreach (var x in filas)
-                    if (x.Identidad is int i && porIdentidad.TryGetValue(i, out var codigo) && string.IsNullOrWhiteSpace(x.Nif))
-                        r.Add(new TerceroSinNif(x.Tercero, x.Nombre.Trim(), codigo, esCliente));
-            }
-            Anadir(clientes, true);
-            Anadir(proveedores, false);
-            return r;
-        }, c);
+            foreach (var x in filas)
+                if (x.Identidad is int i && porIdentidad.TryGetValue(i, out var codigo))
+                    r.Add((x.Tercero, x.Nombre.Trim(), codigo, esCliente, x.Nif, x.Tipo, x.Pais));
+        }
+        Anadir(clientes, true);
+        Anadir(proveedores, false);
+        return r;
+    }
 
     public Task<IReadOnlyList<CuentaConProblema>> CuentasConProblemaAsync(EjercicioSociedad ejercicio, CancellationToken c = default) =>
         bd.EjecutarAsync<IReadOnlyList<CuentaConProblema>>(async s =>
@@ -291,4 +299,48 @@ public sealed class FuenteSaludAccess(IBaseDatos bd) : IFuenteSalud
             // Amortizables, propios (no ajenos) y sin dar de baja.
             "SELECT COUNT(*) FROM Activos AS x WHERE x.IdSociedad = ? AND x.EsAmortizable = True AND x.EsAjeno = False AND x.FechaBaja IS NULL", idSociedad) ?? 0,
             CultureInfo.InvariantCulture), c);
+
+    // ------------------------------------------------ incidencias con la gestoría (contabilidad 2026-11-15 21:10)
+
+    public Task<IReadOnlyList<ApunteCuenta>> ApuntesCuentasAsync(IReadOnlyList<EjercicioSociedad> ejercicios, IReadOnlyList<string> prefijos, CancellationToken c = default)
+    {
+        var limpios = prefijos.Where(x => x.Length > 0 && x.All(char.IsAsciiDigit)).Distinct().ToList();
+        if (ejercicios.Count == 0 || limpios.Count == 0) return Task.FromResult<IReadOnlyList<ApunteCuenta>>([]);
+        var anio = ejercicios.ToDictionary(e => e.IdSociedadEjercicio, e => e.Ejercicio);
+        // Los prefijos son solo cifras (se comprueba arriba), así que se escriben en la consulta.
+        var filtro = string.Join(" OR ", limpios.Select(x => $"LEFT(p.CuentaContable, {x.Length}) = '{x}'"));
+        return bd.EjecutarAsync<IReadOnlyList<ApunteCuenta>>(async s => await s.ConsultarAsync(
+            "SELECT a.IdSociedadEjercicio, a.IdAsiento, a.FechaContable, a.TipoAsiento, p.CuentaContable, p.ImporteDebe, p.ImporteHaber FROM Asientos AS a INNER JOIN Apuntes AS p ON a.IdAsiento = p.IdAsiento " +
+            $"WHERE a.IdSociedadEjercicio IN ({Ids(ejercicios)}) AND {Contabilizados} AND ({filtro})",
+            f => new ApunteCuenta(anio.GetValueOrDefault(f.Entero("IdSociedadEjercicio")), f.Entero("IdAsiento"), f.Fecha("FechaContable").Date,
+                Convert.ToByte(f.Valor("TipoAsiento"), CultureInfo.InvariantCulture), (f.Texto("CuentaContable") ?? "").Trim(), f.DecimalNulo("ImporteDebe") ?? 0m, f.DecimalNulo("ImporteHaber") ?? 0m)), c);
+    }
+
+    public Task<IReadOnlyDictionary<string, decimal?>> CuadradasAsync(EjercicioSociedad ejercicio, CancellationToken c = default) =>
+        bd.EjecutarAsync<IReadOnlyDictionary<string, decimal?>>(async s =>
+        {
+            var filas = await s.ConsultarAsync("SELECT CuentaContable, Saldo FROM CuadresCuentas WHERE IdSociedadEjercicio = ? AND Cuadrada = True",
+                f => (Cuenta: (f.Texto("CuentaContable") ?? "").Trim(), Saldo: f.DecimalNulo("Saldo")), ejercicio.IdSociedadEjercicio);
+            var d = new Dictionary<string, decimal?>(StringComparer.Ordinal);
+            foreach (var x in filas) if (x.Cuenta.Length > 0) d[x.Cuenta] = x.Saldo;
+            return d;
+        }, c);
+
+    public Task<IReadOnlyList<CuentaSinCentro>> CuentasSinCentroAsync(EjercicioSociedad ejercicio, CancellationToken c = default) =>
+        bd.EjecutarAsync<IReadOnlyList<CuentaSinCentro>>(async s => await s.ConsultarAsync(
+            "SELECT p.CuentaContable, COUNT(*) AS N, SUM(IIF(p.ImporteDebe IS NULL, 0, p.ImporteDebe)) - SUM(IIF(p.ImporteHaber IS NULL, 0, p.ImporteHaber)) AS I " +
+            $"FROM Asientos AS a INNER JOIN Apuntes AS p ON a.IdAsiento = p.IdAsiento WHERE a.IdSociedadEjercicio = ? AND {Contabilizados} AND a.TipoAsiento NOT IN (1, 2) " +
+            "AND LEFT(p.CuentaContable, 1) IN ('6', '7') AND p.IdCentroCoste IS NULL GROUP BY p.CuentaContable",
+            f => new CuentaSinCentro((f.Texto("CuentaContable") ?? "").Trim(), f.Entero("N"), f.DecimalNulo("I") ?? 0m), ejercicio.IdSociedadEjercicio), c);
+
+    public Task<IReadOnlyList<ApunteCartera>> CarteraAsync(EjercicioSociedad ejercicio, CancellationToken c = default) =>
+        bd.EjecutarAsync<IReadOnlyList<ApunteCartera>>(async s => await s.ConsultarAsync(
+            "SELECT p.CuentaContable, a.FechaContable, p.FechaVencimiento, p.ImporteDebe, p.ImporteHaber FROM Asientos AS a INNER JOIN Apuntes AS p ON a.IdAsiento = p.IdAsiento " +
+            $"WHERE a.IdSociedadEjercicio = ? AND {Contabilizados} AND LEFT(p.CuentaContable, 3) BETWEEN '430' AND '436'",
+            f => new ApunteCartera((f.Texto("CuentaContable") ?? "").Trim(), f.Fecha("FechaContable").Date, f.FechaNula("FechaVencimiento")?.Date,
+                f.DecimalNulo("ImporteDebe") ?? 0m, f.DecimalNulo("ImporteHaber") ?? 0m), ejercicio.IdSociedadEjercicio), c);
+
+    public Task<IReadOnlyList<ProConta.Compras.Facturas.FilaFacturaCompra>> FacturasCompraAsync(string idSociedad, EjercicioSociedad ejercicio, CancellationToken c = default) =>
+        ProConta.Compras.Facturas.ValidacionesCompra.ListarAsync(bd, new ContextoSociedadEjercicio(idSociedad, ejercicio.IdSociedadEjercicio, ejercicio.Ejercicio), c);
 }
+

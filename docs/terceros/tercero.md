@@ -22,11 +22,14 @@ Ente Tercero: identidad estable (IdTercero) de persona física, jurídica o enti
 - 2026-11-01 10:46 · Búsqueda multicriterio: un mismo texto se busca en nombre y apellidos, razón social, nombre comercial, NIF (también con guiones o espacios), IdTercero, IdCliente, IdProveedor, IdContacto, teléfonos y emails, domicilios, contactos libres, relaciones, perfiles, cuentas de los roles y la columna antigua Clientes.CuentaContable; con varias palabras deben aparecer todas, sin distinguir tildes ni mayúsculas. Cada resultado dice en qué dato coincidió y trae sus roles con su Id; filtros por tipo, rol y perfil, con o sin inactivos; máximo 500 filas con el total y los recuentos de los filtros. Se apoya en un índice en memoria que se carga con una consulta por tabla, vale 30 segundos y se invalida al guardar.
 - 2026-11-01 10:46 · `HistorialAsync(idTercero)` lee HistorialTerceros por fecha, operador, sección, operación, campo, antes y después; para mostrar código y nombre de las cuentas se leen (solo lectura) CuentasContables.
 - 2026-11-01 15:48 · Validado por el propietario (pantalla de Terceros y revisión 1).
+- 2026-11-15 21:10 · Recibe de contabilidad (revisión de las incidencias con la gestoría) el aviso de salud S6, para los NIF antiguos que no se validan porque no se han cambiado.
+- 2026-11-15 22:40 · Hecho, pendiente de validar: aviso S6 (`RevisionNifInvalido`, src/ProConta.Inicio/Salud/RevisionesIncidencias.cs). Se valida como NIF español el de identificación vacía, NIF, CIF, NIE o DNI sin país o con España, y el de identificación «OTRO» con el país España explícito: la migración dejó como «OTRO» los NIF que no validaban, también españoles mal escritos (en la copia de pruebas, 25 de «OTRO»: 10 con país España, que avisan, y 15 sin país, que no).
 
 ## Requirements
 - 2026-10-28 12:28 · From sources/01_ESPECIFICACION_FUNCIONAL.docx § 7 RF-TER-01, 02, 06: identidad, tipos de persona, domicilios
 - 2026-10-28 12:28 · draft: Implementar el ente Tercero y publicar su contrato.
 - 2026-10-31 17:53 · Derived from architecture: el ente Tercero con su contrato (ficha, búsqueda, guardado con concurrencia optimista e historial).
+- 2026-11-15 21:10 · Derived from contabilidad: aviso de salud S6 «NIF que no valida» (gravedad atención): clientes y proveedores con apuntes en el ejercicio (por la identidad contable de su subcuenta) cuyo NIF español no pasa la validación de nucleo; las otras identificaciones (VAT, pasaporte…) no se validan; abre la ficha del tercero. [Precisado en Decisions 2026-11-15 22:40]
 
 ## Hand-over
 - 2026-10-31 19:05 · Hecho: ente, repositorio y pruebas (reglas por tipo, nombre calculado, NIF solo al cambiar, NIF repetido sin fusión, ficha completa en una transacción, conflicto de versión, nada a medias ante un error, filas antiguas con versión 0 tras migrar). Pendiente: importación con mapas de origen (MapasOrigenTerceros, implantacion), instantánea fiscal en documentos emitidos (facturación) y baja de terceros.

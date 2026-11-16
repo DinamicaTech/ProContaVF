@@ -11,7 +11,9 @@ Parte del diseño heredado: `sources/traspaso-2026-10-03/referencias/Activos/doc
 
 ## Decisions
 - 2026-11-12 10:30 · Creado al sacar las inversiones financieras del alcance de activos (propietario 2026-11-11 18:20: «importamos todo excepto ETFs, que quedan en Creative Lab para una segunda fase»; ruta aceptada el 2026-11-12 10:19).
+- 2026-11-15 21:10 · Recibe de contabilidad (revisión de las incidencias con la gestoría) un criterio para cuando se debata la idea.
 
 ## Requirements
 - 2026-11-11 18:20 · Q1. Ok, importamos todo excepto ETFs, que quedan en Creative Lab para una segunda fase
 - 2026-11-12 10:30 · idea: Gestionar las inversiones financieras (ETFs y fondos) como posiciones con compras, ventas, resultado y cotizaciones, como segunda fase de activos.
+- 2026-11-15 21:10 · Derived from contabilidad: vender una posición deja a cero su saldo en la cuenta de la inversión y lleva la diferencia a resultados; la cartera se concilia con el intermediario.

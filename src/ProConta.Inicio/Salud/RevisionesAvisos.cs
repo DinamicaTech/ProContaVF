@@ -191,18 +191,19 @@ public sealed class RevisionClientesAcreedores : IRevisionSalud
     public string Nodo => "contabilidad/mayor";
 
     public async Task<HallazgosSalud> RevisarAsync(IFuenteSalud fuente, ContextoSalud ctx, CancellationToken c) =>
-        Evaluar(await fuente.SaldosAsync(ctx.Ejercicio, "430", "436", ctx.Corte, c));
+        Evaluar(await fuente.SaldosAsync(ctx.Ejercicio, "430", "436", ctx.Corte, c), await fuente.CuadradasAsync(ctx.Ejercicio, c));
 
-    public static HallazgosSalud Evaluar(IReadOnlyDictionary<string, decimal> saldos)
+    /// <param name="cuadradas">Subcuentas marcadas «Cuadrada» en el Mayor: no cuentan si su saldo no ha cambiado (saldo justificado).</param>
+    public static HallazgosSalud Evaluar(IReadOnlyDictionary<string, decimal> saldos, IReadOnlyDictionary<string, decimal?>? cuadradas = null)
     {
-        var acreedores = saldos.Where(s => Math.Round(s.Value, 2) < 0).OrderBy(s => s.Value).ToList();
+        var acreedores = saldos.Where(s => Math.Round(s.Value, 2) < 0 && !SaldoJustificado.Es(s.Key, s.Value, cuadradas)).OrderBy(s => s.Value).ToList();
         if (acreedores.Count == 0) return HallazgosSalud.Nada;
         var total = -acreedores.Sum(s => s.Value);
         var cuentas = acreedores.Select(s => s.Key).OrderBy(x => x, StringComparer.Ordinal).ToList();
         return HallazgosSalud.De(new ElementoSalud("clientes-acreedores", TipoSalud.Aviso, GravedadSalud.Atencion, $"{N(acreedores.Count, "cliente", "clientes")} con saldo acreedor",
             $"Subcuentas 430 a 436 con saldo al haber: cobros duplicados, anticipos o facturas sin registrar (total {Imp(total)}).",
             null, DestinoSalud.Mayor(cuentas, $"{N(acreedores.Count, "cliente", "clientes")} con saldo acreedor"), "contabilidad/mayor",
-            "Alguna subcuenta de clientes (430 a 436) tiene saldo acreedor a la fecha de corte, con los asientos contabilizados.",
+            "Alguna subcuenta de clientes (430 a 436) tiene saldo acreedor a la fecha de corte, con los asientos contabilizados. " + SaldoJustificado.Texto,
             "Abre el Mayor de esos clientes y registra la factura que falta, devuelve el cobro duplicado o reclasifica el anticipo (438). El aviso desaparece cuando ninguno tiene saldo acreedor.") { Cantidad = acreedores.Count, Importe = total });
     }
 }
@@ -221,18 +222,19 @@ public sealed class RevisionPartidasPendientes : IRevisionSalud
     {
         var saldos = await fuente.SaldosAsync(ctx.Ejercicio, "555", "555", ctx.Corte, c);
         var bancos = (await fuente.BancosAsync(ctx.IdSociedad, ctx, c)).Where(b => b.Cuenta is not null).Select(b => b.Cuenta!).ToHashSet(StringComparer.Ordinal);
-        return Evaluar(saldos, bancos);
+        return Evaluar(saldos, bancos, await fuente.CuadradasAsync(ctx.Ejercicio, c));
     }
 
-    public static HallazgosSalud Evaluar(IReadOnlyDictionary<string, decimal> saldos, IReadOnlySet<string> bancos)
+    /// <param name="cuadradas">Subcuentas marcadas «Cuadrada» en el Mayor: no cuentan si su saldo no ha cambiado (saldo justificado).</param>
+    public static HallazgosSalud Evaluar(IReadOnlyDictionary<string, decimal> saldos, IReadOnlySet<string> bancos, IReadOnlyDictionary<string, decimal?>? cuadradas = null)
     {
-        var conSaldo = saldos.Where(s => Math.Round(s.Value, 2) != 0 && !bancos.Contains(s.Key)).OrderBy(s => s.Key, StringComparer.Ordinal).ToList();
+        var conSaldo = saldos.Where(s => Math.Round(s.Value, 2) != 0 && !bancos.Contains(s.Key) && !SaldoJustificado.Es(s.Key, s.Value, cuadradas)).OrderBy(s => s.Key, StringComparer.Ordinal).ToList();
         if (conSaldo.Count == 0) return HallazgosSalud.Nada;
         var detalle = string.Join(", ", conSaldo.Take(4).Select(s => $"{s.Key} {Imp(Math.Abs(s.Value))} {(s.Value > 0 ? "deudor" : "acreedor")}")) + (conSaldo.Count > 4 ? "…" : "");
         return HallazgosSalud.De(new ElementoSalud("partidas-555", TipoSalud.Aviso, GravedadSalud.Atencion, $"{N(conSaldo.Count, "partida pendiente de aplicación", "partidas pendientes de aplicación")} con saldo",
             $"{detalle}. Mientras no se apliquen, el pasivo corriente puede salir negativo y los ratios de liquidez, «sin datos».",
             null, DestinoSalud.Mayor(conSaldo.Select(s => s.Key).ToList(), "partidas pendientes de aplicación con saldo"), "contabilidad/mayor",
-            "Alguna subcuenta 555 (partidas pendientes de aplicación) tiene saldo a la fecha de corte. No cuentan las 555 que Norma 43 usa como banco.",
+            "Alguna subcuenta 555 (partidas pendientes de aplicación) tiene saldo a la fecha de corte. No cuentan las 555 que Norma 43 usa como banco. " + SaldoJustificado.Texto,
             "Abre el Mayor de esas subcuentas y traspasa cada partida a su cuenta definitiva. El aviso desaparece cuando quedan a cero.") { Cantidad = conSaldo.Count, Importe = conSaldo.Sum(s => s.Value) });
     }
 }

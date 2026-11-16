@@ -1,16 +1,29 @@
 ---
 title: Contabilidad
-depends_on: []
+depends_on: [pantalla-de-inicio, compras/factura-compra, terceros/tercero, nominas, facturacion/contratos, creative-lab/inversiones-financieras]
 threads:
   - 2026-10-28 12:30 · Carga de requisitos | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GRNMH95h9tnQp4dmEPHmw1w
+  - 2026-11-15 21:10 · Revisar incidencias de la gestoría | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GDQjnB16uK2aEvY1YirWJRC
 ---
 ## Summary
 Contabilidad automatizada: cuentas, centros de coste, motor común de asientos, diario, mayor, balances, procesos de cierre e impuestos, modelos tributarios. Las áreas que generan asientos usan el motor de asientos directamente.
+Revisión de las incidencias con la gestoría (2026-11-15): avisos de salud S1 a S10 y validaciones V1 a V6 repartidos en sus nodos, con la regla del saldo justificado (Decisions 2026-11-15 21:10).
 
 ## Decisions
 - 2026-10-28 13:30 · Creado en la carga inicial de requisitos.
 - 2026-11-14 21:50 · Nuevo hijo contabilidad/diario: pantalla Diario sobre Asientos y Apuntes (maqueta elegida, implementación pendiente).
+- 2026-11-15 21:10 · Revisión por tipología de las incidencias tratadas con la gestoría en los dos últimos años, a petición del propietario. El análisis es suyo y queda fuera del repositorio porque lleva datos reales. Ya impedidas o vigiladas, sin cambios: pagos sin factura y 555 (salud: movimientos sin asiento y 555 con saldo), devengo y reversión de facturas pendientes de recibir (el proceso revierte en la apertura), base mostrada neta de retención (invariante de cuadre y desgloses separados), prorrata y fórmulas del 303 (cálculo línea a línea desde los libros con la deducción de la actividad, hoja Controles del informe para la gestoría), asientos de liquidación del IVA (proceso liquidacion-iva y trimestre cerrado para las cuentas fiscales), dividendos (aplicacion-resultado), nóminas (cuadre e importación sin repetir), inmovilizado (activos y aviso de amortización) y cierre y apertura (proceso atómico e informes siempre regenerados con sello).
+- 2026-11-15 21:10 · Avisos de salud nuevos, de solo lectura, cada uno definido en la línea «Derived from contabilidad» de su nodo dueño: S1 saldos inmóviles y S8 deuda antigua sin deterioro (contabilidad/mayor), S2 IVA a compensar ya usado y S3 liquidación incompleta (contabilidad/procesos/liquidacion-iva), S4 retenciones sin cuadrar (contabilidad/modelos-tributarios), S5 facturas pendientes de recibir sin llegar (contabilidad/procesos/facturas-pendientes-recibir), S6 NIF que no valida (terceros/tercero), S7 gastos e ingresos sin centro de coste (contabilidad/centros-coste), S9 Seguridad Social pendiente (nominas) y S10 posibles compras duplicadas (compras/factura-compra). Los muestra pantalla-de-inicio.
+- 2026-11-15 21:10 · Validaciones nuevas, que avisan sin bloquear: V1 a V3 al registrar compras (compras/factura-compra), V4 compensación de la 4700 en la liquidación (contabilidad/procesos/liquidacion-iva), V5 comprobación previa al cierre (contabilidad/procesos/cierre-ejercicio) y V6 pruebas del 303 (contabilidad/modelos-tributarios). Después del arranque: registrar el 303 presentado y avisar si el recalculado difiere (contabilidad/modelos-tributarios).
+- 2026-11-15 21:10 · Criterio que no se automatiza y queda anotado en su nodo: recargos, sanciones, operaciones extraordinarias y certificados de retenciones soportadas (contabilidad/procesos/impuesto-sociedades), fianzas (facturacion/contratos), inversiones financieras (creative-lab/inversiones-financieras) y subvenciones (su saldo en la 4708 lo vigila S1). Ningún aviso corrige solo ni se basa en el signo de una cuenta: un saldo extraño puede estar justificado.
+- 2026-11-15 21:10 · Saldo justificado (propietario 2026-11-15 21:01): los avisos por saldo de subcuentas (S1, S8, partidas pendientes de aplicación 555 y clientes con saldo acreedor) no cuentan las subcuentas marcadas «Cuadrada» en el Mayor en el ejercicio de trabajo; la nota del cuadre es el expediente de la excepción. Entran antes del arranque S1 a S10 y V1 a V6; V4 y V5 se cumplen cuando se construyan la liquidación del IVA y el cierre.
+- 2026-11-15 22:40 · Hecho, pendiente de validar por el propietario: S1 a S10 en la salud de Inicio, V1 a V3 en la ficha de compras y V6 como pruebas del 303 (detalle en las Decisions de cada nodo dueño de la misma fecha). V4 y V5 quedan escritas en liquidacion-iva y cierre-ejercicio para cuando se construyan esos procesos. Ajustes tras probarlo con una copia de la BD de pruebas: S1 sin las fianzas, S4 compara lo pendiente al cierre del trimestre con lo pagado el mes siguiente y señala cada diferencia solo en el trimestre en que aparece, y S6 también valida los NIF de tipo «OTRO» con país España.
+- 2026-11-16 09:23 · Validado por el propietario (PR #81): avisos S1 a S10, validaciones V1 a V3 y pruebas V6. Quedan V4 y V5 en liquidacion-iva y cierre-ejercicio.
 
 ## Requirements
 - 2026-10-28 12:28 · From sources/traspaso-2026-10-03/referencias/ContaSol/docs/: modelo contable e IVA propuestos
 - 2026-10-28 12:28 · From sources/traspaso-2026-10-03/referencias/GestorContable/docs/GESTOR_CONTABLE.md: procesos anteriores
+- 2026-11-15 19:56 · Necesito que revises esta tipología de incidencias para verificar que con el nuevo sistema no se puedan reproducir o, en su defecto, poder añadirlos al 'estado de salud' de la pantalla principal como incidencias a corregir.
+- 2026-11-15 19:56 · No se trata de analizar la incidencia en sí (se supone que ya se han resuelto), si no ver si hay algún 'know how' que debamos incorporar a ProcontaVF
+- 2026-11-15 21:01 · answer: ¿no avisar de las subcuentas marcadas «Cuadrada» en el Mayor (saldo justificado)? → Ok
+- 2026-11-15 21:01 · answer: ¿qué entra antes del 1/12? → S1 a S10 y V1-V6
