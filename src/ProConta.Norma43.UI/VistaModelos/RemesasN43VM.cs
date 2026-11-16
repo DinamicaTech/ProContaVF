@@ -173,6 +173,60 @@ public sealed class DevolucionN43VM : ModeloVista
     internal void AlCambiar() => Avisar(nameof(Cuadra), nameof(Cuadre));
 }
 
+/// <summary>
+/// Diálogo «Ajustes de importe» (norma43/remesas 2026-11-16 12:08-12:12), tras explotar una remesa con facturas cobradas por otro
+/// importe: si el banco cobró más, actualizar la programada y emitir la factura de diferencia (marcadas si se pueden); si cobró menos,
+/// el operador elige entre asumir la diferencia o cobrársela al cliente.
+/// </summary>
+public sealed class AjustesRemesaN43VM(IReadOnlyList<PropuestaAjusteN43> propuestas) : ModeloVista
+{
+    public IReadOnlyList<FilaAjusteN43VM> Filas { get; } = propuestas.Select(p => new FilaAjusteN43VM(p)).ToList();
+    public IReadOnlyList<FilaAjusteN43VM> Mas => Filas.Where(f => f.Datos.CobraMas).ToList();
+    public IReadOnlyList<FilaAjusteN43VM> Menos => Filas.Where(f => !f.Datos.CobraMas).ToList();
+
+    public string Explicacion =>
+        (Mas.Count > 0 ? "Facturas que el banco cobró por más: se puede actualizar su programada al importe cobrado y emitir una factura por la diferencia, que queda cobrada con el mismo recibo. " : "") +
+        (Menos.Count > 0 ? "Facturas que el banco cobró por menos: elige si se cobra la diferencia al cliente (queda en su cuenta) o se asume. Al terminar se recuerda actualizar la remesa del banco." : "");
+
+    public IReadOnlyList<AjusteElegidoN43> Elegidos(Func<int, int> reciboDe)
+    {
+        ArgumentNullException.ThrowIfNull(reciboDe);
+        return Filas.Select(f => new AjusteElegidoN43(f.Datos.IdFactura, f.Datos.Cobrado, reciboDe(f.Datos.IdFactura), f.ActualizarProgramada && f.PuedeProgramada,
+            f.EmitirDiferencia && f.PuedeDiferencia, f.Asumir && f.PuedeAsumir ? ModoMenorN43.Asumir : ModoMenorN43.CobrarAlCliente)).ToList();
+    }
+}
+
+/// <summary>Una factura del diálogo de ajustes, con lo que se hará con ella.</summary>
+public sealed class FilaAjusteN43VM(PropuestaAjusteN43 p) : ModeloVista
+{
+    private bool _programada = p.PuedeProgramada && p.CobraMas;
+    private bool _diferencia = p.PuedeDiferencia;
+    private bool _asumir = p.PuedeAsumir;
+
+    public PropuestaAjusteN43 Datos { get; } = p;
+    public string Numero => Datos.Numero;
+    public string Importe => Formatos.Importe(Datos.Importe);
+    public string Cobrado => Formatos.Importe(Datos.Cobrado);
+    public string Diferencia => Formatos.Importe(Datos.Diferencia);
+    public bool PuedeProgramada => Datos.PuedeProgramada;
+    public bool PuedeDiferencia => Datos.PuedeDiferencia;
+    public bool ActualizarProgramada { get => _programada; set => Fijar(ref _programada, value); }
+    public bool EmitirDiferencia { get => _diferencia; set => Fijar(ref _diferencia, value); }
+    /// <summary>Solo si cobró menos: true asume la diferencia, false la deja en la cuenta del cliente.</summary>
+    public bool Asumir { get => _asumir; set => Fijar(ref _asumir, value); }
+
+    public string TextoProgramada => Datos.PuedeProgramada
+        ? $"Actualizar su programada de {Formatos.Importe(Datos.TotalProgramada ?? 0m)} € a {Cobrado} €"
+        : $"Programada: {Datos.MotivoSinProgramada}";
+    public bool PuedeAsumir => Datos.PuedeAsumir;
+    public string TextoAsumir => Datos.PuedeAsumir
+        ? $"Asumirla: anular la factura con una rectificativa y emitir otra por {Cobrado} €"
+        : $"Asumirla: {Datos.MotivoSinAsumir}";
+    public string TextoDiferencia => Datos.PuedeDiferencia
+        ? $"Emitir una factura por la diferencia de {Diferencia} € (base {Formatos.Importe(Datos.BaseDiferencia ?? 0m)} €)"
+        : $"Factura de diferencia: {Datos.MotivoSinDiferencia}";
+}
+
 /// <summary>Un recibo del diálogo de la devolución.</summary>
 public sealed class FilaDevolucionN43VM(DevolucionN43VM padre, CandidataDevolucion c) : ModeloVista
 {
