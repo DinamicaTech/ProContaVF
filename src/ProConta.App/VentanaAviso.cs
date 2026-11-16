@@ -11,7 +11,7 @@ namespace ProConta.App;
 /// </summary>
 internal sealed class VentanaAviso : Window
 {
-    private VentanaAviso(string titulo, Error error, string? accion)
+    private VentanaAviso(string titulo, Error error, string? accion, string? ayudaAccion = null)
     {
         Title = "ProContaVF · " + titulo;
         Style = (Style)Application.Current.FindResource("Ventana.ProConta");
@@ -38,7 +38,7 @@ internal sealed class VentanaAviso : Window
         botones.Children.Add(salir);
         if (accion is not null)
         {
-            var corregir = new Button { Content = accion, Margin = new Thickness(8, 0, 0, 0), IsDefault = true, Style = (Style)FindResource("Boton.Primario"), ToolTip = "Elige el fichero accdb de ProContaVF en el servidor" };
+            var corregir = new Button { Content = accion, Margin = new Thickness(8, 0, 0, 0), IsDefault = true, Style = (Style)FindResource("Boton.Primario"), ToolTip = ayudaAccion ?? "Elige el fichero accdb de ProContaVF" };
             corregir.Click += (_, _) => { DialogResult = true; };
             botones.Children.Add(corregir);
         }
@@ -49,5 +49,5 @@ internal sealed class VentanaAviso : Window
     public static void Mostrar(string titulo, Error error) => new VentanaAviso(titulo, error, null).ShowDialog();
 
     /// <summary>true si el operador elige la acción que corrige el problema.</summary>
-    public static bool Preguntar(string titulo, Error error, string accion) => new VentanaAviso(titulo, error, accion).ShowDialog() == true;
+    public static bool Preguntar(string titulo, Error error, string accion, string? ayudaAccion = null) => new VentanaAviso(titulo, error, accion, ayudaAccion).ShowDialog() == true;
 }

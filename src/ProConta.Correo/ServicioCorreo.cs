@@ -48,6 +48,20 @@ public sealed class ServicioCorreo
         return v is string t && !string.IsNullOrWhiteSpace(t) ? t.Trim() : null;
     }
 
+    /// <summary>
+    /// Si la BD es la copia de pruebas (Configuracion.EntornoPruebas, plataforma/entorno-pruebas): en ella no sale nada sin desvío.
+    /// Sin la columna (esquema anterior) es producción.
+    /// </summary>
+    public async Task<bool> EsEntornoPruebasAsync()
+    {
+        try
+        {
+            return await _bd.EjecutarAsync(async s => s.LeerEsquema().ExisteColumna("Configuracion", "EntornoPruebas")
+                && await s.EscalarAsync("SELECT TOP 1 EntornoPruebas FROM Configuracion") is bool b && b);
+        }
+        catch (ExcepcionDatos) { return false; }
+    }
+
     // ---------- encolar ----------
 
     /// <summary>Crea un lote para un proceso de más de un correo.</summary>
@@ -259,6 +273,9 @@ public sealed class ServicioCorreo
             adjuntos.Add((a.Nombre, a.TipoContenido, bytes));
         }
         var desvio = await DesvioAsync();
+        if (desvio is null && await EsEntornoPruebasAsync())
+            return (null, cuenta, null, "Esta es la base de datos de pruebas y no tiene desvío de correo, así que no envío nada para que no le llegue a nadie de verdad. " +
+                "Pon tu dirección en Parámetros y tablas › Configuración general › «Desviar todo el correo a» y vuelve a enviar el mensaje.");
         var reales = detalle.Destinatarios.Select(d => new Destinatario(d.Tipo, d.Direccion, d.Nombre)).ToList();
         var transmision = new MensajeTransmision(detalle.MessageId, detalle.Remitente, detalle.NombreRemitente, detalle.ResponderA,
             desvio is null ? detalle.Asunto : DesvioPruebas.Asunto(detalle.Asunto),

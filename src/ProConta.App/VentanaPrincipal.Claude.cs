@@ -25,7 +25,7 @@ public partial class VentanaPrincipal
                 [$"Debería estar en {EjecutableConector}.", "Se instala con el programa: vuelve a compilar o a copiar ProContaVF completo, con su carpeta Conector."]);
             return;
         }
-        var conector = new ConectorClaudeDesktop();
+        var conector = new ConectorClaudeDesktop(servidor: ConectorClaudeDesktop.ServidorDe(_entorno.EsPruebas));
         var estado = conector.Comprobar(EjecutableConector, _rutaBd);
         if (estado.Estado == EstadoConectorClaude.Correcto)
         {
@@ -52,7 +52,7 @@ public partial class VentanaPrincipal
             _ => ("Claude Desktop no tiene el conector de ProContaVF",
                 "Para que Claude pueda consultar esta base de datos y proponer asientos, hay que añadir el conector de ProContaVF a la configuración de Claude Desktop."),
         };
-        var detalles = new List<string> { $"Base de datos de ProContaVF: {_rutaBd}" };
+        var detalles = new List<string> { $"Base de datos de ProContaVF: {_rutaBd}", $"Conector de Claude Desktop: «{conector.Servidor}» ({(_entorno.EsPruebas ? "el de la copia de pruebas" : "el de producción")})" };
         if (estado.Estado == EstadoConectorClaude.OtraBd) detalles.Add($"Base de datos del conector: {estado.BdConfigurada ?? "(ninguna)"}");
         if (estado.Estado == EstadoConectorClaude.OtroEjecutable) detalles.Add($"Conector configurado: {estado.EjecutableConfigurado ?? "(ninguno)"}");
         detalles.Add($"Configuración: {estado.RutaConfiguracion} (se guarda una copia antes de cambiarla)");

@@ -13,6 +13,7 @@
     <ProjectReference Include="..\ProConta.Contabilidad\ProConta.Contabilidad.csproj" />
     <ProjectReference Include="..\ProConta.Inicio\ProConta.Inicio.csproj" />
     <ProjectReference Include="..\ProConta.Datos.Esquema\ProConta.Datos.Esquema.csproj" />
+    <ProjectReference Include="..\ProConta.Plataforma.Configuracion\ProConta.Plataforma.Configuracion.csproj" />
   </ItemGroup>
   <ItemGroup>
     <InternalsVisibleTo Include="ProConta.Conector.Tests" />

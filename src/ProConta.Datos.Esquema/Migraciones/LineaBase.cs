@@ -104,6 +104,7 @@ public static class CatalogoMigraciones
         MigracionesContabilidad.LiquidacionesIva,
         MigracionesNorma43.BusquedaPorImporte,
         MigracionesNorma43.Remesas,
+        MigracionesPlataforma.EntornoPruebas,
     ];
 
     /// <summary>Versión del esquema que espera esta versión del programa.</summary>

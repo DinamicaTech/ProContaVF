@@ -27,9 +27,18 @@ public sealed record ComprobacionConectorClaude(EstadoConectorClaude Estado, str
 /// misma BD que ProContaVF, la crea o la corrige sin tocar el resto del fichero (con copia previa), y abre Claude Desktop.
 /// Claude Desktop instalado desde la Tienda guarda la configuración en %LOCALAPPDATA%\Claude-Data\claude_*; el instalador clásico, en %APPDATA%\Claude.
 /// </summary>
-public sealed class ConectorClaudeDesktop(string? rutaConfiguracion = null)
+public sealed class ConectorClaudeDesktop(string? rutaConfiguracion = null, string servidor = ConectorClaudeDesktop.NombreServidor)
 {
     public const string NombreServidor = "procontavf";
+
+    /// <summary>Entrada del conector para la copia de pruebas (plataforma/entorno-pruebas): convive con la de producción.</summary>
+    public const string NombreServidorPruebas = "procontavf-pruebas";
+
+    /// <summary>La entrada de Claude Desktop que comprueba y configura esta instancia.</summary>
+    public string Servidor { get; } = servidor;
+
+    /// <summary>La entrada que corresponde a un entorno.</summary>
+    public static string ServidorDe(bool pruebas) => pruebas ? NombreServidorPruebas : NombreServidor;
     public const string NombreFichero = "claude_desktop_config.json";
 
     public string RutaConfiguracion { get; } = rutaConfiguracion ?? LocalizarConfiguracion();
@@ -57,7 +66,7 @@ public sealed class ConectorClaudeDesktop(string? rutaConfiguracion = null)
         {
             return new(EstadoConectorClaude.ConfiguracionInvalida, RutaConfiguracion, null, null, ex.Message);
         }
-        if (raiz["mcpServers"]?[NombreServidor] is not JsonObject entrada)
+        if (raiz["mcpServers"]?[Servidor] is not JsonObject entrada)
             return new(EstadoConectorClaude.SinConector, RutaConfiguracion, null, null);
         var comando = entrada["command"]?.GetValue<string>();
         var args = entrada["args"] is JsonArray a ? a.Select(x => x?.GetValue<string>() ?? "").ToList() : [];
@@ -86,7 +95,7 @@ public sealed class ConectorClaudeDesktop(string? rutaConfiguracion = null)
             servidores = [];
             raiz["mcpServers"] = servidores;
         }
-        servidores[NombreServidor] = new JsonObject
+        servidores[Servidor] = new JsonObject
         {
             ["command"] = ejecutableConector,
             ["args"] = new JsonArray("--bd", rutaBd, "--operador", operador),

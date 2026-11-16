@@ -57,7 +57,7 @@ public sealed class ActualizadorEsquema
             return Resultado<InformeActualizacion>.Fallo(ex.Error with
             {
                 Mensaje = "No puedo actualizar la base de datos porque hay alguien usándola.",
-                AccionCorrectora = "Pide a todos los usuarios que cierren ProContaVF (también en las otras sesiones de Escritorio remoto) y vuelve a ejecutar el ActualizadorEsquema."
+                AccionCorrectora = "Cierra ProContaVF en las demás ventanas o sesiones que la usen, y también Claude Desktop si su conector trabaja con esta BD, y vuelve a intentarlo."
             });
         }
         catch (ExcepcionDatos ex)
