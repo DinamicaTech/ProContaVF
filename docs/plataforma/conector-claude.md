@@ -1,6 +1,5 @@
 ---
 title: Conector de Claude Desktop
-status: draft
 depends_on: [plataforma/contenedor, contabilidad/asientos, contabilidad/plantillas-asiento, contabilidad/diario, pantalla-de-inicio, datos/esquema]
 threads:
   - 2026-11-16 09:58 · Conectar Claude Desktop con ProContaVF | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5G5UWQaWzwuZVTBM6RqkBGiW
@@ -13,6 +12,7 @@ En ProContaVF, «IA › Abrir Claude» comprueba que Claude Desktop tiene el con
 Viene de la idea creative-lab/asistente-ia, que sigue en el laboratorio para lo que queda (subcuentas propuestas por Claude, botón en los avisos de salud, asientos a partir de documentos).
 
 ## Decisions
+- 2026-11-16 10:30 · Validado por el propietario: el nodo deja de ser borrador.
 - 2026-11-16 09:58 · Creado al salir del laboratorio la parte del conector de la idea creative-lab/asistente-ia, para ejecutarla hoy, antes del arranque en producción. Es un nodo de plataforma porque el conector servirá a todas las áreas; la primera versión solo toca asientos.
 - 2026-11-16 09:58 · Vía: conector local de Claude Desktop con el SDK oficial de MCP para C# (NuGet `ModelContextProtocol` 2.3.0, con `Microsoft.Extensions.Hosting` 10.0.0), aprobado por el propietario. Sin API de Anthropic ni clave: usa la suscripción de Claude Desktop. Los datos que Claude lee se envían a Anthropic dentro de la conversación.
 - 2026-11-16 09:58 · Alcance de la primera versión: consultas de solo lectura, alta de asientos manuales nuevos y corrección de asientos con un asiento que anula el original y otro corregido. No borra, no modifica asientos existentes, no da de alta cuentas y no toca facturas.
