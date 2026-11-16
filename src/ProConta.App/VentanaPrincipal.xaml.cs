@@ -129,6 +129,8 @@ public partial class VentanaPrincipal : Window
                 AbrirParametros = clave => AbrirParametros(clave),
                 // Agenda (fase 4).
                 AbrirProgramadas = () => _facturacion!.AbrirProgramadas(),
+                // Aviso «Comisiones sin compensar» (facturacion/reservas/compensacion-comision).
+                CompensarComisiones = () => CompensarComisionesAsync(bd, new Actor(sesion.NombreOperador)),
             },
             () => this,
             // La salud guarda su recuento diario (HistoricoSalud) para la tendencia «desde el lunes» (fase 4).
@@ -694,6 +696,44 @@ public partial class VentanaPrincipal : Window
             Cursor = anterior;
             _generandoGestoria = false;
         }
+    }
+
+    /// <summary>
+    /// Botón del aviso «Comisiones sin compensar» de Inicio (facturacion/reservas/compensacion-comision): enseña las facturas de comisión
+    /// pendientes del ejercicio de trabajo, pide confirmación y hace un asiento de compensación por factura.
+    /// </summary>
+    private async Task<bool> CompensarComisionesAsync(IBaseDatos bd, Actor actor)
+    {
+        var es = System.Globalization.CultureInfo.GetCultureInfo("es-ES");
+        var servicio = new ProConta.Compras.Facturas.CompensacionComision(bd, new MotorAsientosAccess(bd));
+        var ctx = _ejercicioTrabajo;
+        var pendientes = await Task.Run(() => servicio.PendientesAsync(ctx.IdSociedad, ctx.IdSociedadEjercicio));
+        if (pendientes.Count == 0)
+        {
+            Avisar("No hay comisiones de plataformas por compensar.");
+            return true;
+        }
+        var total = pendientes.Sum(p => p.Importe);
+        var detalles = pendientes.Select(p => $"{p.Plataforma} · {(p.NumeroFactura ?? "sin número")} · {p.Fecha:dd/MM/yyyy} · {p.Importe.ToString("N2", es)} €").ToList();
+        var eleccion = ServicioMensajes.Preguntar(this, "Compensar las comisiones",
+            $"Voy a compensar {pendientes.Count} {(pendientes.Count == 1 ? "factura de comisión" : "facturas de comisión")} de {ctx.Ejercicio} por {total.ToString("N2", es)} €: " +
+            "un asiento por factura, con su 410 al Debe y la 430 de la plataforma al Haber, con la fecha de su asiento (o el día 1 del trimestre activo si es anterior).",
+            detalles,
+            new OpcionMensaje("Compensar", "Hace los asientos de compensación", Principal: true),
+            new OpcionMensaje("Cancelar", "No hace nada", Cancelar: true));
+        if (eleccion != 0) return false;
+        var anterior = Cursor;
+        Cursor = Cursors.Wait;
+        try
+        {
+            var r = await Task.Run(() => servicio.CompensarPendientesAsync(ctx.IdSociedad, ctx.IdSociedadEjercicio, actor));
+            if (r.Problemas.Count == 0) Avisar(r.Texto);
+            else
+                ServicioMensajes.Preguntar(this, "Compensar las comisiones", r.Texto, r.Problemas,
+                    new OpcionMensaje("Cerrar", "Vuelve a Inicio; el aviso sigue con las que faltan", Principal: true, Cancelar: true));
+            return true;
+        }
+        finally { Cursor = anterior; }
     }
 
     private void Avisar(string texto)

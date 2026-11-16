@@ -155,13 +155,14 @@ public sealed class CompensacionComision(IBaseDatos bd, IMotorAsientos motor, IR
         var ctx = d.Contexto;
         var (generacion, actuales) = await LoteVigenteAsync(ctx, d.IdRegistro);
         var vigente = actuales.LastOrDefault(a => !a.Descripcion.StartsWith(PrefijoAnulacion, StringComparison.Ordinal));
-        if (deseada is null && vigente is null && actuales.All(a => !Cerrado(a, ctx)))
+        if (deseada is null && vigente is null) return Resultado<string>.Correcto("");
+        if (deseada is not null && vigente is not null && Igual(vigente, deseada)) return Resultado<string>.Correcto("");
+        if (deseada is null && actuales.All(a => !Cerrado(a, ctx) && !a.Descripcion.StartsWith(PrefijoAnulacion, StringComparison.Ordinal)))
         {
-            if (actuales.Count == 0) return Resultado<string>.Correcto("");
+            // Sin nada de un trimestre cerrado que anular: se borra el lote.
             var borrado = await motor.EliminarLoteAsync(ctx, Lote(d.IdRegistro, generacion), actor, $"Quitar la compensación de la {d.Rotulo.ToLowerInvariant()}");
             return borrado.EsCorrecto ? Resultado<string>.Correcto("He quitado su compensación con la 430.") : Resultado<string>.Fallo(borrado.Errores);
         }
-        if (deseada is not null && vigente is not null && Igual(vigente, deseada)) return Resultado<string>.Correcto("");
 
         Asiento? nuevo = null;
         if (deseada is not null)
@@ -180,7 +181,6 @@ public sealed class CompensacionComision(IBaseDatos bd, IMotorAsientos motor, IR
         }
         else asientos.AddRange(actuales.Where(a => a.Descripcion.StartsWith(PrefijoAnulacion, StringComparison.Ordinal)).Select(Copia));
         if (nuevo is not null) asientos.Add(nuevo);
-        if (asientos.Count == 0) return Resultado<string>.Correcto("");
         var motivo = $"Compensar la comisión de la {d.Rotulo.ToLowerInvariant()}";
         var r = await motor.ReemplazarLoteAsync(ctx, Lote(d.IdRegistro, generacion), asientos, actor, motivo);
         if (!r.EsCorrecto) return Resultado<string>.Fallo(r.Errores);

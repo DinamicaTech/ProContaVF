@@ -153,4 +153,8 @@ public interface IFuenteSalud
     /// <summary>Facturas de compra del ejercicio, como las lista Compras › Facturas recibidas.</summary>
     Task<IReadOnlyList<ProConta.Compras.Facturas.FilaFacturaCompra>> FacturasCompraAsync(string idSociedad, EjercicioSociedad ejercicio, CancellationToken c = default) =>
         Task.FromResult<IReadOnlyList<ProConta.Compras.Facturas.FilaFacturaCompra>>([]);
+
+    /// <summary>Facturas de comisión de las plataformas del ejercicio exportadas y sin compensar (facturacion/reservas/compensacion-comision).</summary>
+    Task<IReadOnlyList<ProConta.Compras.Facturas.ComisionPendiente>> ComisionesSinCompensarAsync(string idSociedad, EjercicioSociedad ejercicio, CancellationToken c = default) =>
+        Task.FromResult<IReadOnlyList<ProConta.Compras.Facturas.ComisionPendiente>>([]);
 }

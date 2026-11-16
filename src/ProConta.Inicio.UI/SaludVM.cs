@@ -146,8 +146,8 @@ public sealed class SaludVM : ModeloVista
     /// <summary>«Lo más urgente»: el elemento grave más prioritario; null si no hay nada grave.</summary>
     public ElementoSaludVM? Urgente { get => _urgente; private set { Fijar(ref _urgente, value); Avisar(nameof(HayUrgente), nameof(TextoBotonUrgente), nameof(AyudaBotonUrgente)); CommandManager.InvalidateRequerySuggested(); } }
     public bool HayUrgente => Urgente is not null;
-    public string TextoBotonUrgente => Urgente is { PuedeAbrir: true } u ? $"Abrir {Corto(u.Destino)}" : "Sin pantalla aún";
-    public string AyudaBotonUrgente => Urgente is { } u ? u.PuedeAbrir ? $"Abre {u.Destino}" : u.Ayuda : "";
+    public string TextoBotonUrgente => Urgente is { PuedeAbrir: true } u ? TextoBoton(u.DestinoModelo, u.Destino) : "Sin pantalla aún";
+    public string AyudaBotonUrgente => Urgente is { } u ? u.PuedeAbrir ? u.DestinoModelo?.Pantalla == PantallaSalud.CompensarComisiones ? u.Ayuda : $"Abre {u.Destino}" : u.Ayuda : "";
 
     public InformeSalud? Informe => _informe;
 
@@ -166,7 +166,7 @@ public sealed class SaludVM : ModeloVista
     }
 
     public IReadOnlyList<ElementoSaludVM> Seleccion => _seleccion;
-    public string TextoAbrirSeleccion => _seleccion.Count == 1 && _seleccion[0].PuedeAbrir ? $"Abrir {Corto(_seleccion[0].Destino)}" : "Abrir la pantalla";
+    public string TextoAbrirSeleccion => _seleccion.Count == 1 && _seleccion[0].PuedeAbrir ? TextoBoton(_seleccion[0].DestinoModelo, _seleccion[0].Destino) : "Abrir la pantalla";
 
     private static string Corto(string destino) => destino.Split(" › ").Last().Split(" (")[0];
 
@@ -280,8 +280,19 @@ public sealed class SaludVM : ModeloVista
         PantallaSalud.Nominas => _acciones.AbrirNominas,
         PantallaSalud.Programadas => _acciones.AbrirProgramadas,
         PantallaSalud.LiquidacionIva => _acciones.AbrirLiquidacionIva,
+        PantallaSalud.CompensarComisiones => _acciones.CompensarComisiones is { } compensar ? () => _ = CompensarAsync(compensar) : null,
         _ => null,
     };
+
+    /// <summary>Ejecuta la acción del aviso y, si ha cambiado algo, vuelve a revisar la salud.</summary>
+    private async Task CompensarAsync(Func<Task<bool>> accion)
+    {
+        if (await accion()) await RevisarAsync();
+    }
+
+    /// <summary>Texto del botón de un destino: «Abrir …» para una pantalla; el nombre de la acción si el destino es una acción.</summary>
+    private static string TextoBoton(DestinoSalud? d, string destino) =>
+        d?.Pantalla == PantallaSalud.CompensarComisiones ? d.Nombre : $"Abrir {Corto(destino)}";
 
     internal ElementoSaludVM Vista(ElementoSalud e, SeccionSalud seccion, DateTime hoy)
     {
@@ -303,7 +314,9 @@ public sealed class SaludVM : ModeloVista
             Destino = e.Destino.Nombre, PuedeAbrir = puede, Elemento = e, Nodo = e.Nodo, DestinoModelo = e.Destino,
             Tendencia = TendenciaSalud.Texto(variacion), TonoTendencia = variacion > 0 ? "Sube" : variacion < 0 ? "Baja" : "",
             Ayuda = $"{texto}. Lo detecta {e.Nodo}. " + (puede
-                ? $"Doble clic o Intro: abre {e.Destino.Nombre}. Clic derecho: «¿Por qué aparece?» y copiar el texto."
+                ? e.Destino.Pantalla == PantallaSalud.CompensarComisiones
+                    ? "Doble clic o Intro: compensa las comisiones pendientes, un asiento por factura, tras confirmarlo. Clic derecho: «¿Por qué aparece?» y copiar el texto."
+                    : $"Doble clic o Intro: abre {e.Destino.Nombre}. Clic derecho: «¿Por qué aparece?» y copiar el texto."
                 : $"La pantalla donde se resuelve ({e.Destino.Nombre}) aún no existe en ProContaVF: no se abre nada. Clic derecho: «¿Por qué aparece?» dice cómo resolverlo."),
         };
     }

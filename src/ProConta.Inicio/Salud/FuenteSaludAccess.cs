@@ -342,5 +342,8 @@ public sealed class FuenteSaludAccess(IBaseDatos bd) : IFuenteSalud
 
     public Task<IReadOnlyList<ProConta.Compras.Facturas.FilaFacturaCompra>> FacturasCompraAsync(string idSociedad, EjercicioSociedad ejercicio, CancellationToken c = default) =>
         ProConta.Compras.Facturas.ValidacionesCompra.ListarAsync(bd, new ContextoSociedadEjercicio(idSociedad, ejercicio.IdSociedadEjercicio, ejercicio.Ejercicio), c);
+
+    public Task<IReadOnlyList<ProConta.Compras.Facturas.ComisionPendiente>> ComisionesSinCompensarAsync(string idSociedad, EjercicioSociedad ejercicio, CancellationToken c = default) =>
+        new ProConta.Compras.Facturas.CompensacionComision(bd, new ProConta.Contabilidad.Asientos.MotorAsientosAccess(bd)).PendientesAsync(idSociedad, ejercicio.IdSociedadEjercicio);
 }
 

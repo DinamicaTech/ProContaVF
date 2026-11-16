@@ -27,6 +27,8 @@ public sealed class ServicioSalud(IFuenteSalud fuente, IReadOnlyList<IRevisionSa
         new RevisionSaldosInmoviles(), new RevisionIvaCompensarUsado(), new RevisionLiquidacionIncompleta(), new RevisionRetenciones(),
         new RevisionPendientesRecibir(), new RevisionNifInvalido(), new RevisionSinCentro(), new RevisionDeudaAntigua(),
         new RevisionSeguridadSocial(), new RevisionComprasDuplicadas(),
+        // Compensación de la comisión de las plataformas (facturacion/reservas/compensacion-comision 2026-11-16).
+        new RevisionComisionesSinCompensar(),
     ];
 
     public const int LecturasSimultaneas = 4;

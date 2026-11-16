@@ -238,6 +238,24 @@ public sealed class SaludIncidenciasTests
         Assert.Equal(2, e.Cantidad);
     }
 
+    [Fact]
+    public void ComisionesSinCompensar_AvisaPorPlataformaYSuBotonLasCompensa()
+    {
+        Assert.Empty(RevisionComisionesSinCompensar.Evaluar([]).Elementos);
+        var e = Unico(RevisionComisionesSinCompensar.Evaluar(
+        [
+            new ProConta.Compras.Facturas.ComisionPendiente(1, "Plataforma A", "A-1", new(2026, 1, 25), 66.19m),
+            new ProConta.Compras.Facturas.ComisionPendiente(2, "Plataforma A", "A-2", new(2026, 2, 24), 33.81m),
+            new ProConta.Compras.Facturas.ComisionPendiente(3, "Plataforma B", "B-1", new(2026, 2, 16), 50m),
+        ]));
+        Assert.Equal(GravedadSalud.Atencion, e.Gravedad);
+        Assert.Equal(3, e.Cantidad);
+        Assert.Equal(150m, e.Importe);
+        Assert.Equal(PantallaSalud.CompensarComisiones, e.Destino.Pantalla);
+        Assert.Contains("Plataforma A: 2 facturas", e.Explicacion, StringComparison.Ordinal);
+        Assert.Contains("comisiones-sin-compensar", ServicioSalud.Todas.Select(r => r.Clave));
+    }
+
     // ---------------- registro y saldo justificado en los avisos que ya existían
 
     [Fact]
