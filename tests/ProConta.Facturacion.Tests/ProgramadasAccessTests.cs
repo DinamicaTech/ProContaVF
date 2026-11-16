@@ -310,4 +310,53 @@ public sealed class ProgramadasAccessTests : IDisposable
         Assert.Null(Assert.Single(p.Valor.Plantilla.Lineas).Fecha);
         Assert.True((await Servicio().GuardarAsync(p.Valor, _actor)).Guardada);
     }
+
+    /// <summary>
+    /// Ajustes de una factura que el banco cobró por más (norma43/remesas 2026-11-16 12:08): la factura de diferencia, validada, con el
+    /// mismo cliente e IVA, y la programada al importe cobrado.
+    /// </summary>
+    [Fact]
+    public async Task CobradaPorMasEmiteLaDiferenciaYActualizaLaProgramada()
+    {
+        await PrepararAsync();
+        var servicio = Servicio();
+        var p = await ProgramadaAsync(servicio, AlGenerar.Validar);
+        var r = await servicio.GenerarAsync(_ctx, _reloj.Ahora.Date, [p.IdFacturaProgramada], _actor);
+        Assert.True(r.EsCorrecto, r.Error?.ToString());
+        var idFactura = r.Valor.Facturas[0].IdFactura;
+        var ajustes = new AjustesCobroFacturas(Facturas(), servicio);
+
+        // 1.210 € de factura; el banco cobró 1.234,20 (con el IPC del 2 %): diferencia de 24,20 = 20,00 + 21 %.
+        var plan = (await ajustes.PlanAsync(idFactura, 1234.20m))!;
+        Assert.True(plan.CobraMas);
+        Assert.True(plan.PuedeDiferencia, plan.MotivoSinDiferencia);
+        Assert.True(plan.PuedeProgramada, plan.MotivoSinProgramada);
+        Assert.Equal((20m, 24.20m), (plan.TotalesDiferencia!.BaseImponible.Valor, plan.TotalesDiferencia.ImporteTotal.Valor));
+
+        var d = await ajustes.EmitirDiferenciaAsync(idFactura, 1234.20m, _ctx, _actor);
+        Assert.True(d.EsCorrecto, d.Error?.ToString());
+        Assert.NotNull(d.Valor.NumeroFactura);
+        Assert.Equal((EstadoFactura.Validada, 24.20m, _idCliente), (d.Valor.Estado, d.Valor.Totales.ImporteTotal.Valor, d.Valor.IdCliente!.Value));
+        Assert.Equal(21m, Assert.Single(d.Valor.Lineas).TipoIva);
+
+        var a = await ajustes.ActualizarProgramadaAsync(idFactura, 1234.20m, _actor);
+        Assert.True(a.EsCorrecto, a.Error?.ToString());
+        Assert.Equal(1234.20m, (await servicio.ObtenerAsync(p.IdFacturaProgramada))!.Plantilla.Totales.ImporteTotal.Valor);
+
+        // Cobrada por menos no hay factura de diferencia.
+        Assert.False((await ajustes.PlanAsync(idFactura, 1200m))!.PuedeDiferencia);
+    }
+
+    [Fact]
+    public void LaBaseDeLaDiferenciaSeCalculaHaciaAtrasConIvaYRetencion()
+    {
+        var conRetencion = AjustesCobroFacturas.LineaPorTotal(new LineaFacturaVenta { TipoIva = 21m }, 100m, 19m)!;
+        Assert.Equal(98.04m, conRetencion.BaseImponible.Valor);
+        Assert.Equal(100m, CalculoFactura.Totales([conRetencion], 19m).ImporteTotal.Valor);
+        Assert.Equal(55.5m, AjustesCobroFacturas.LineaPorTotal(new LineaFacturaVenta { TipoIva = 0m }, 55.5m, 0m)!.BaseImponible.Valor);
+        // Con el 21 % no se llega a 10,00 (8,26 da 9,99 y 8,27 da 10,01): se queda a un céntimo, por arriba.
+        var aproximada = AjustesCobroFacturas.LineaPorTotal(new LineaFacturaVenta { TipoIva = 21m }, 10m, 0m)!;
+        Assert.Equal(10.01m, CalculoFactura.Totales([aproximada], 0m).ImporteTotal.Valor);
+        Assert.Null(AjustesCobroFacturas.LineaPorTotal(new LineaFacturaVenta { TipoIva = 21m }, 0m, 0m));
+    }
 }

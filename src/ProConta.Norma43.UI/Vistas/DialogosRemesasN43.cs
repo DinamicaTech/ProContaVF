@@ -99,6 +99,62 @@ public sealed partial class DialogosLineasN43
         return d;
     }
 
+    /// <summary>«Ajustes de importe» tras explotar una remesa con facturas cobradas por otro importe.</summary>
+    public bool AjustarImportes(AjustesRemesaN43VM vm) => CrearAjustarImportes(vm, Activa()).ShowDialog() == true;
+
+    /// <summary>Construye el diálogo «Ajustes de importe» sin abrirlo.</summary>
+    public static DialogoProConta CrearAjustarImportes(AjustesRemesaN43VM vm, Window? propietario)
+    {
+        ArgumentNullException.ThrowIfNull(vm);
+        var d = Dialogo("Ajustes de importe", propietario, vm);
+        d.Height = 520;
+        var (panel, apagado) = Cabecera(d, "Facturas cobradas por otro importe", "", vm.Explicacion);
+        foreach (var f in vm.Filas)
+        {
+            var bloque = new StackPanel { Margin = new Thickness(0, 8, 0, 4) };
+            bloque.Children.Add(new TextBlock
+            {
+                Text = $"{f.Numero} · factura {f.Importe} € · cobrado {f.Cobrado} € · diferencia {f.Diferencia} €",
+                Style = (Style)d.FindResource("Texto.Seccion"),
+            });
+            if (f.Datos.CobraMas)
+            {
+                bloque.Children.Add(Opcion(f, nameof(FilaAjusteN43VM.ActualizarProgramada), f.TextoProgramada, f.PuedeProgramada,
+                    "Las facturas que genere a partir de ahora saldrán por el importe que cobró el banco"));
+                bloque.Children.Add(Opcion(f, nameof(FilaAjusteN43VM.EmitirDiferencia), f.TextoDiferencia, f.PuedeDiferencia,
+                    "Se emite y valida con la fecha de hoy, el mismo cliente, IVA y retención, y queda cobrada con el mismo recibo"));
+            }
+            else
+            {
+                var cliente = new RadioButton { Content = "Cobrársela al cliente: la diferencia queda pendiente en su cuenta", GroupName = $"menor{f.Datos.IdFactura}", IsChecked = !f.Asumir, DataContext = f,
+                    ToolTip = "No se emite nada: la diferencia se cobra después (otra remesa o «Buscar por importe»)", Margin = new Thickness(0, 4, 0, 0) };
+                var asumir = new RadioButton { Content = "Asumirla", GroupName = $"menor{f.Datos.IdFactura}", IsChecked = f.Asumir, DataContext = f,
+                    ToolTip = "La empresa asume la diferencia", Margin = new Thickness(0, 2, 0, 0) };
+                asumir.SetBinding(System.Windows.Controls.Primitives.ToggleButton.IsCheckedProperty, new Binding(nameof(FilaAjusteN43VM.Asumir)) { Mode = BindingMode.TwoWay });
+                bloque.Children.Add(cliente);
+                bloque.Children.Add(asumir);
+            }
+            panel.Children.Add(bloque);
+        }
+        d.Content = new ScrollViewer { Content = panel, VerticalScrollBarVisibility = ScrollBarVisibility.Auto, HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled };
+        var aceptar = new Button { Content = "Aplicar", Style = (Style)d.FindResource("Boton.Primario"), Margin = new Thickness(8, 0, 0, 0), IsDefault = true,
+            ToolTip = "Hace lo marcado factura a factura y enseña un resumen con lo hecho y lo que falte" };
+        var cancelar = new Button { Content = "Ahora no", IsCancel = true, ToolTip = "No hace nada más: las diferencias quedan en la cuenta de cada cliente" };
+        aceptar.Click += (_, _) => d.DialogResult = true;
+        cancelar.Click += (_, _) => d.DialogResult = false;
+        d.Botones = new StackPanel { Orientation = Orientation.Horizontal, Children = { cancelar, aceptar } };
+        _ = apagado;
+        return d;
+    }
+
+    private static CheckBox Opcion(object fila, string propiedad, string texto, bool habilitada, string ayuda)
+    {
+        var c = new CheckBox { Content = new TextBlock { Text = texto, TextWrapping = TextWrapping.Wrap }, DataContext = fila, IsEnabled = habilitada, ToolTip = ayuda, Margin = new Thickness(0, 4, 0, 0) };
+        c.SetBinding(System.Windows.Controls.Primitives.ToggleButton.IsCheckedProperty, new Binding(propiedad) { Mode = BindingMode.TwoWay });
+        if (!habilitada) ToolTipService.SetShowOnDisabled(c, true);
+        return c;
+    }
+
     // ---------- piezas comunes ----------
 
     private static DialogoProConta Dialogo(string titulo, Window? propietario, object vm) => new()

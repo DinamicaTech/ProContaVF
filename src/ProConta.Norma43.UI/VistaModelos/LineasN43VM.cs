@@ -53,6 +53,8 @@ public interface IDialogosLineasN43
     bool ExplotarRemesa(RemesaN43VM vm) => false;
     /// <summary>Diálogo «Conciliar facturas devueltas» (modal): true si se pulsa «Conciliar».</summary>
     bool ConciliarDevolucion(DevolucionN43VM vm) => false;
+    /// <summary>Diálogo «Ajustes de importe» tras explotar (modal): true si se pulsa «Aplicar».</summary>
+    bool AjustarImportes(AjustesRemesaN43VM vm) => false;
 }
 
 /// <summary>Una acción del menú contextual: su texto, si se puede y, si no, por qué (en el tooltip).</summary>
@@ -185,6 +187,7 @@ public sealed class LineasN43VM : ModeloVista, IPestanaTrabajo
     private readonly AsignadorCuentasN43 _asignador;
     private readonly BusquedaPorImporteN43? _busqueda;
     private readonly ServicioRemesasN43? _remesas;
+    private readonly IAjustesRemesaN43? _ajustes;
     private readonly IDialogosLineasN43 _dialogos;
     private readonly ContextoLineasN43 _contexto;
     private readonly Action? _alCerrar;
@@ -208,10 +211,12 @@ public sealed class LineasN43VM : ModeloVista, IPestanaTrabajo
     private AccionesLineasN43 _acciones = AccionesLineasN43.Evaluar([]);
 
     public LineasN43VM(ConsultaLineasN43 consulta, ServicioLineasN43 servicio, ServicioConciliacionN43 conciliacion, AsignadorCuentasN43 asignador,
-        IDialogosLineasN43 dialogos, ContextoLineasN43 contexto, Action? alCerrar = null, BusquedaPorImporteN43? busqueda = null, ServicioRemesasN43? remesas = null)
+        IDialogosLineasN43 dialogos, ContextoLineasN43 contexto, Action? alCerrar = null, BusquedaPorImporteN43? busqueda = null, ServicioRemesasN43? remesas = null,
+        IAjustesRemesaN43? ajustes = null)
     {
         _busqueda = busqueda;
         _remesas = remesas;
+        _ajustes = ajustes;
         _consulta = consulta;
         _servicio = servicio;
         _conciliacion = conciliacion;
@@ -657,9 +662,39 @@ public sealed class LineasN43VM : ModeloVista, IPestanaTrabajo
         if (p.Bloqueo is { } b) { Informar("No se puede explotar la remesa", b); return; }
         var vm = new RemesaN43VM(p, _contexto.AbrirFacturaVenta);
         if (!_dialogos.ExplotarRemesa(vm)) return;
-        var r = await _remesas.ExplotarRemesaAsync(_contexto.Trabajo.IdSociedad, fila.Id, vm.Recibos(), _contexto.Actor);
+        var recibos = vm.Recibos();
+        var r = await _remesas.ExplotarRemesaAsync(_contexto.Trabajo.IdSociedad, fila.Id, recibos, _contexto.Actor);
         await TrasRemesaAsync(r, "No se ha explotado la remesa");
+        if (r.Hecho) await AjustarImportesAsync(vm, recibos, r.Recibos);
     }, "explotar la remesa");
+
+    /// <summary>
+    /// Tras explotar, las facturas cobradas por otro importe (norma43/remesas 2026-11-16 12:08): si el banco cobró más, actualizar su
+    /// programada y emitir la factura de diferencia; si cobró menos, el operador elige; al final, el resumen con el recordatorio de la remesa
+    /// del banco. Sin el puerto de ajustes, la diferencia se queda en la 430 y solo se recuerda.
+    /// </summary>
+    private async Task AjustarImportesAsync(RemesaN43VM vm, IReadOnlyList<ReciboRemesa> recibos, IReadOnlyList<int> lineas)
+    {
+        var distintas = vm.Filas.Where(f => f.Marcada && f.Distinto).ToList();
+        if (distintas.Count == 0) return;
+        var reciboDe = recibos.Select((x, i) => (x.IdFactura, Linea: lineas[i])).ToDictionary(x => x.IdFactura, x => x.Linea);
+        if (_ajustes is null)
+        {
+            _dialogos.Preguntar("Facturas cobradas por otro importe", "La diferencia queda pendiente en la cuenta de cada cliente.",
+                distintas.Select(f => $"{f.Numero}: factura {f.Importe} €, cobrado {Formatos.Importe(f.Cobrado)} €").ToList(),
+                new OpcionMensaje("Entendido", "Cierra el aviso", Principal: true, Cancelar: true));
+            return;
+        }
+        var propuestas = await _ajustes.ProponerAsync(distintas.Select(f => (f.Datos.Id, f.Cobrado)).ToList());
+        var ajustes = new AjustesRemesaN43VM(propuestas);
+        if (!_dialogos.AjustarImportes(ajustes)) return;
+        var r = await _ajustes.AplicarAsync(ajustes.Elegidos(id => reciboDe[id]), _contexto.Trabajo, _contexto.Actor);
+        await CargarAsync();
+        var detalles = r.Hechos.Concat(r.Fallos.Select(f => "No hecho: " + f)).Concat(r.Recordatorios.Select(x => "Recuerda: " + x)).ToList();
+        _dialogos.Preguntar(r.Fallos.Count == 0 ? "Ajustes de importe hechos" : "Ajustes de importe, con avisos",
+            r.Recordatorios.Count == 0 ? "Esto es lo que se ha hecho:" : "Esto es lo que se ha hecho. Actualiza en el banco los importes de la remesa SEPA de estas facturas para que el mes que viene cuadre:",
+            detalles, new OpcionMensaje("Entendido", "Cierra el resumen", Principal: true, Cancelar: true));
+    }
 
     /// <summary>Conciliar facturas devueltas: los recibos de la remesa anterior, con su combinación marcada; graba solo si cuadra.</summary>
     public Task ConciliarDevueltasAsync() => Ejecutar(async () =>
