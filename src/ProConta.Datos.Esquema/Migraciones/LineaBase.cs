@@ -101,6 +101,7 @@ public static class CatalogoMigraciones
         MigracionesContabilidad.DiarioAsientosBorrados,
         MigracionesInicio.HistoricoSalud,
         MigracionesContabilidad.DeduccionActividadFechas,
+        MigracionesContabilidad.LiquidacionesIva,
     ];
 
     /// <summary>Versión del esquema que espera esta versión del programa.</summary>

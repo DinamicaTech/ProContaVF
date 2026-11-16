@@ -29,9 +29,19 @@ public sealed record TrabajoLote(
 /// </summary>
 /// <see cref="DiferirSaldos"/>: no recalcula la caché de saldos de las cuentas en cada lote; quien la pide llama a
 /// <see cref="IMotorAsientos.RecalcularSaldosAsync"/> al terminar (cargas masivas: el importador de ContaSol graba miles de lotes).
-public sealed record OpcionesLote(bool LibroExterno = false, bool DiferirSaldos = false)
+public sealed record OpcionesLote(bool LibroExterno = false, bool DiferirSaldos = false, int? TrimestreLiquidado = null)
 {
     public static readonly OpcionesLote Normal = new();
+
+    /// <summary>Motor propietario de los lotes de la liquidación del IVA, el único que puede pedir <see cref="TrimestreLiquidado"/>.</summary>
+    public const string MotorLiquidacionIva = "contabilidad/procesos/liquidacion-iva";
+
+    /// <summary>
+    /// Si el asiento cae en el trimestre que liquida el lote (<see cref="TrimestreLiquidado"/>, contabilidad/procesos/liquidacion-iva
+    /// 2026-11-16): ese asiento se admite aunque el trimestre esté cerrado, porque es el que cierra su declaración.
+    /// </summary>
+    public bool ExentoTrimestreCerrado(Asiento asiento) =>
+        LibroExterno || (TrimestreLiquidado is int t && asiento.FechaContable.Year == asiento.Contexto.Ejercicio && Nucleo.Contexto.TrimestreContable.De(asiento.FechaContable) == t);
 
     /// <summary>Motor propietario de los lotes del importador de ContaSol, el único que puede pedir <see cref="LibroExterno"/>.</summary>
     public const string MotorImportadorContaSol = "implantacion/importador-contasol";
@@ -278,7 +288,7 @@ public sealed partial class MotorAsientosAccess(IBaseDatos bd, PoliticaCuadre? p
         {
             var externo = (opciones ?? OpcionesLote.Normal).LibroExterno;
             var diferir = (opciones ?? OpcionesLote.Normal).DiferirSaldos;
-            var error = ValidarLote(lote, motivo) ?? ValidarExterno(lote, externo) ?? asientos.Where(a => a.Contexto != contexto).Select(a => new Error("Asientos.LoteOtroEjercicio",
+            var error = ValidarLote(lote, motivo) ?? ValidarExterno(lote, externo) ?? ValidarLiquidacion(lote, opciones) ?? asientos.Where(a => a.Contexto != contexto).Select(a => new Error("Asientos.LoteOtroEjercicio",
                 "Todos los asientos del lote deben ser del mismo ejercicio.", a.ToString(), "El lote es de un ejercicio.", "Genera un lote por ejercicio.")).FirstOrDefault();
             if (error is not null) return Resultado<IReadOnlyList<int>>.Fallo(error);
             var abierto = await ComprobarEjercicioAbiertoAsync(s, contexto, externo);
@@ -301,7 +311,7 @@ public sealed partial class MotorAsientosAccess(IBaseDatos bd, PoliticaCuadre? p
                     reutilizados.Add(viejo);
                     continue;
                 }
-                var trimestre = externo ? Resultado.Correcto() : await ComprobarTrimestreAbiertoAsync(s, viejo);
+                var trimestre = (opciones ?? OpcionesLote.Normal).ExentoTrimestreCerrado(viejo) ? Resultado.Correcto() : await ComprobarTrimestreAbiertoAsync(s, viejo);
                 if (!trimestre.EsCorrecto) return Resultado<IReadOnlyList<int>>.Fallo(trimestre.Errores);
                 await BorrarAsync(s, viejo, actor, motivo.Trim(), idLote);
             }
@@ -313,7 +323,9 @@ public sealed partial class MotorAsientosAccess(IBaseDatos bd, PoliticaCuadre? p
                 asiento.IdAsiento = i < reutilizados.Count ? reutilizados[i].IdAsiento : 0;
                 if (i < reutilizados.Count) asiento.Version = reutilizados[i].Version;
                 asiento.Lote = lote;
-                var guardado = await GuardarInternoAsync(s, asiento, actor, motivo.Trim(), idLote, manual: false, externo, diferir);
+                var guardado = await GuardarInternoAsync(s, asiento, actor, motivo.Trim(), idLote, manual: false, externo, diferir,
+                    trimestreExento: (opciones ?? OpcionesLote.Normal).ExentoTrimestreCerrado(asiento)
+                        && (i >= reutilizados.Count || (opciones ?? OpcionesLote.Normal).ExentoTrimestreCerrado(reutilizados[i])));
                 if (guardado.EsCorrecto) nuevos.Add(guardado.Valor);
                 else errores.AddRange(guardado.Errores);
             }
@@ -332,7 +344,7 @@ public sealed partial class MotorAsientosAccess(IBaseDatos bd, PoliticaCuadre? p
         bd.EnTransaccionAsync(async s =>
         {
             var externo = (opciones ?? OpcionesLote.Normal).LibroExterno;
-            var error = ValidarLote(lote, motivo) ?? ValidarExterno(lote, externo);
+            var error = ValidarLote(lote, motivo) ?? ValidarExterno(lote, externo) ?? ValidarLiquidacion(lote, opciones);
             if (error is not null) return Resultado<int>.Fallo(error);
             var abierto = await ComprobarEjercicioAbiertoAsync(s, contexto, externo);
             if (!abierto.EsCorrecto) return Resultado<int>.Fallo(abierto.Errores);
@@ -343,7 +355,7 @@ public sealed partial class MotorAsientosAccess(IBaseDatos bd, PoliticaCuadre? p
             foreach (var id in ids)
             {
                 var viejo = (await CargarAsync(s, id))!;
-                var trimestre = externo ? Resultado.Correcto() : await ComprobarTrimestreAbiertoAsync(s, viejo);
+                var trimestre = (opciones ?? OpcionesLote.Normal).ExentoTrimestreCerrado(viejo) ? Resultado.Correcto() : await ComprobarTrimestreAbiertoAsync(s, viejo);
                 if (!trimestre.EsCorrecto) return Resultado<int>.Fallo(trimestre.Errores);
                 cuentas.AddRange(viejo.Apuntes.Select(a => a.CodigoCuenta));
                 await BorrarAsync(s, viejo, actor, motivo.Trim(), idLote);
@@ -673,7 +685,7 @@ public sealed partial class MotorAsientosAccess(IBaseDatos bd, PoliticaCuadre? p
 
     /// <summary>Valida y guarda un asiento dentro de la transacción en curso. Devuelve su IdAsiento.</summary>
     private async Task<Resultado<int>> GuardarInternoAsync(ISesionDatos s, Asiento asiento, Actor actor, string motivo, Guid idLote, bool manual, bool externo = false, bool diferirSaldos = false,
-        bool correccion = false)
+        bool correccion = false, bool trimestreExento = false)
     {
         var reglas = ReglasAsiento.ValidarYCuadrar(asiento, _politica);
         if (!reglas.EsCorrecto) return Resultado<int>.Fallo(reglas.Errores);
@@ -708,7 +720,7 @@ public sealed partial class MotorAsientosAccess(IBaseDatos bd, PoliticaCuadre? p
         }
         // Trimestre cerrado (contabilidad/asientos 2026-11-13 10:50): se comprueban el asiento anterior y el nuevo, salvo que el cambio no
         // tenga efecto fiscal (solo textos, documento o la subcuenta de un tercero del mismo grupo 4XX).
-        if (!externo && (anterior is null || !ReglasAsiento.EsCambioSinEfectoFiscal(anterior, asiento)))
+        if (!externo && !trimestreExento && (anterior is null || !ReglasAsiento.EsCambioSinEfectoFiscal(anterior, asiento)))
         {
             var trimestre = await ComprobarTrimestreAbiertoAsync(s, asiento);
             if (!trimestre.EsCorrecto) return Resultado<int>.Fallo(trimestre.Errores);
@@ -990,6 +1002,14 @@ public sealed partial class MotorAsientosAccess(IBaseDatos bd, PoliticaCuadre? p
             ? new Error("Asientos.LibroExternoNoPermitido", "Este lote no puede grabarse en un periodo cerrado.", lote.ToString(),
                 "Solo los asientos importados de ContaSol, copia de un libro ya cerrado, se admiten en ejercicios y trimestres cerrados.",
                 "Fecha el asiento en el trimestre activo o reabre el periodo con el proceso contable autorizado.")
+            : null;
+
+    /// <summary>Solo la liquidación del IVA puede grabar su asiento en el trimestre cerrado que liquida.</summary>
+    private static Error? ValidarLiquidacion(IdentidadLote lote, OpcionesLote? opciones) =>
+        opciones?.TrimestreLiquidado is not null && !string.Equals(lote.MotorPropietario, OpcionesLote.MotorLiquidacionIva, StringComparison.Ordinal)
+            ? new Error("Asientos.TrimestreLiquidadoNoPermitido", "Este lote no puede grabarse en un trimestre cerrado.", lote.ToString(),
+                "Solo la liquidación del IVA graba su propio asiento en el trimestre cerrado que liquida.",
+                "Fecha el asiento en el trimestre activo.")
             : null;
 
     private static Error SinMotivo(string registro) =>

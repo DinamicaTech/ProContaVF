@@ -362,6 +362,50 @@ public static class MigracionesContabilidad
         ],
     };
 
+    /// <summary>
+    /// Liquidación del IVA por trimestre (contabilidad/procesos/liquidacion-iva 2026-11-16): una fila por ejercicio y trimestre
+    /// liquidado, con la prorrata usada, lo calculado desde los libros, lo liquidado (que el operador puede ajustar a lo presentado),
+    /// lo compensado de la 4700, el ajuste y su motivo, el asiento y quién lo confirmó. Añade a SociedadesEjercicios las cuatro
+    /// cuentas de la liquidación (vacías: 4750000, 4700000, 6341000 y 6391000). Solo estructura, sin datos.
+    /// </summary>
+    public static Migracion LiquidacionesIva { get; } = new(
+        "20261116_1000_LIQUIDACIONES_IVA", 261116010,
+        "Liquidaciones del IVA por trimestre y cuentas de la liquidación del ejercicio.",
+        "contabilidad/procesos/liquidacion-iva",
+        new CrearTabla("LiquidacionesIva",
+            "CREATE TABLE LiquidacionesIva (IdLiquidacionIva COUNTER CONSTRAINT PK_LiquidacionesIva PRIMARY KEY, " +
+            "IdSociedadEjercicio LONG NOT NULL CONSTRAINT FK_LiquidacionesIva_Ejercicio REFERENCES SociedadesEjercicios (IdSociedadEjercicio), " +
+            "Trimestre BYTE NOT NULL, Prorrata DECIMAL(9,6), ResultadoCalculado CURRENCY NOT NULL, ImporteLiquidado CURRENCY NOT NULL, " +
+            "Compensado CURRENCY NOT NULL, Ajuste CURRENCY NOT NULL, Motivo TEXT(255), IdAsiento LONG, Operador TEXT(100), FechaHoraConfirmacion DATETIME NOT NULL)"),
+        new CrearIndice("LiquidacionesIva", "UX_LiquidacionesIva_Trimestre",
+            "CREATE UNIQUE INDEX UX_LiquidacionesIva_Trimestre ON LiquidacionesIva (IdSociedadEjercicio, Trimestre)"),
+        new AnadirColumna("SociedadesEjercicios", "CuentaHaciendaAcreedoraIva", "TEXT(10)"),
+        new AnadirColumna("SociedadesEjercicios", "CuentaHaciendaDeudoraIva", "TEXT(10)"),
+        new AnadirColumna("SociedadesEjercicios", "CuentaAjustesNegativosIva", "TEXT(10)"),
+        new AnadirColumna("SociedadesEjercicios", "CuentaAjustesPositivosIva", "TEXT(10)"))
+    {
+        Descripciones =
+        [
+            new("LiquidacionesIva", null, "Liquidación del IVA de un trimestre del ejercicio: lo calculado desde los libros, lo liquidado y su asiento (lote contabilidad/procesos/liquidacion-iva)."),
+            new("LiquidacionesIva", "IdLiquidacionIva", "Identificador de la liquidación."),
+            new("LiquidacionesIva", "IdSociedadEjercicio", "Ejercicio liquidado."),
+            new("LiquidacionesIva", "Trimestre", "Trimestre liquidado, de 1 a 4."),
+            new("LiquidacionesIva", "Prorrata", "Prorrata provisional usada, en tanto por uno (0,15 = 15 %)."),
+            new("LiquidacionesIva", "ResultadoCalculado", "Resultado del 303 calculado desde los libros de IVA: positivo a ingresar, negativo a compensar, antes de compensar trimestres anteriores."),
+            new("LiquidacionesIva", "ImporteLiquidado", "Resultado con el que se liquidó: el calculado o el que fijó el operador para ajustarlo a lo presentado."),
+            new("LiquidacionesIva", "Compensado", "Crédito de la 4700 de trimestres anteriores aplicado en esta liquidación."),
+            new("LiquidacionesIva", "Ajuste", "Línea de ajuste del asiento: positiva a la 6391 (sale a pagar menos), negativa a la 6341 (sale a pagar más)."),
+            new("LiquidacionesIva", "Motivo", "Motivo que dio el operador al confirmar (obligatorio con ajuste o en un trimestre cerrado)."),
+            new("LiquidacionesIva", "IdAsiento", "Asiento de la liquidación."),
+            new("LiquidacionesIva", "Operador", "Operador que confirmó la liquidación."),
+            new("LiquidacionesIva", "FechaHoraConfirmacion", "Fecha y hora de la confirmación."),
+            new("SociedadesEjercicios", "CuentaHaciendaAcreedoraIva", "Cuenta del IVA a ingresar en la liquidación (vacía: 4750000)."),
+            new("SociedadesEjercicios", "CuentaHaciendaDeudoraIva", "Cuenta del IVA a compensar o devolver en la liquidación (vacía: 4700000)."),
+            new("SociedadesEjercicios", "CuentaAjustesNegativosIva", "Cuenta del IVA no deducible y de los ajustes a pagar más en la liquidación (vacía: 6341000)."),
+            new("SociedadesEjercicios", "CuentaAjustesPositivosIva", "Cuenta de los ajustes a pagar menos en la liquidación (vacía: 6391000)."),
+        ],
+    };
+
     private static PasoPersonalizado RelacionActividad()
     {
         const string sql = "ALTER TABLE CentrosCoste ADD CONSTRAINT FK_CentrosCoste_Actividad FOREIGN KEY (IdActividad) REFERENCES Actividades (IdActividad)";

@@ -75,6 +75,9 @@ public sealed record LineaIva(
     string? Centro, string? Departamento, string? Actividad, DeduccionIva Deduccion, string Tercero, string? Nif, string? Factura,
     decimal Base, decimal Cuota, decimal CuotaAutorrepercutida, string? CuentaIva, string? Aviso)
 {
+    /// <summary>Centro de coste del que sale la clasificación (el del apunte de IVA o, si no lo lleva, el de gasto o ingreso); null sin centro.</summary>
+    public int? IdCentroCoste { get; init; }
+
     /// <summary>Línea de IVA soportado autorrepercutida: intracomunitaria, inversión del sujeto pasivo o importación.</summary>
     public bool Autorrepercutida => Sentido == SentidoIva.Soportado && (Operacion != OperacionIva.Nacional || Isp);
 }
@@ -149,7 +152,7 @@ public static class ClasificadorLineasIva
                     : 0m;
                 r.Add(new LineaIva(reg.FechaContable.Date, trimestre, reg.IdAsiento, reg.Sentido, operacion, isp, d.TipoIva,
                     centro?.Raiz, centro?.Nombre, actividad?.Nombre, deduccion, reg.Tercero, reg.Nif, reg.Factura,
-                    d.Base, d.Cuota, autorrepercutida, apunteIva?.Cuenta, aviso));
+                    d.Base, d.Cuota, autorrepercutida, apunteIva?.Cuenta, aviso) { IdCentroCoste = idCentro });
             }
         }
         return r.OrderBy(l => l.Fecha).ThenBy(l => l.IdAsiento).ThenBy(l => l.Sentido).ToList();
