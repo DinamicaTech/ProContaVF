@@ -20,6 +20,7 @@ public sealed record PalabraClaveLineaN43(int Id, string? Entidad, string? Senti
     string? Cuenta, string? NombreCuenta, int? Especial, int Usos)
 {
     public bool EsRemesa => Especial == ReglasPalabrasClave.EspecialRemesa;
+    public bool EsDevolucion => Especial == ReglasPalabrasClave.EspecialDevolucion;
 }
 
 /// <summary>Datos de una palabra clave nueva o modificada (Id null = nueva).</summary>
@@ -240,7 +241,7 @@ public sealed class ServicioLineasN43(IBaseDatos bd)
         if (ReglasPalabrasClave.Trozos(p.PalabraClave).Count == 0)
             return new Error("PalabrasClave.Vacia", "Falta el texto de la palabra clave.", null, "La palabra clave es el trozo del concepto que identifica el movimiento.",
                 "Selecciona en el concepto el trozo que se repite en estos movimientos y pulsa «Usar como palabra clave».");
-        if (p.IdIdentidadContable is null && p.Especial != ReglasPalabrasClave.EspecialRemesa)
+        if (p.IdIdentidadContable is null && !ReglasPalabrasClave.AdmiteSinCuenta(p.Especial))
             return new Error("PalabrasClave.SinCuenta", "Falta la cuenta de la palabra clave.", p.PalabraClave, "Sin cuenta, la palabra clave no asigna nada.", "Elige la cuenta con «Elegir cuenta…».");
         var palabra = new PalabraClaveN43(p.Id ?? 0, p.Entidad, p.Sentido, p.PalabraClave, p.PalabraClave2, p.IdIdentidadContable, p.Especial);
         if (!ReglasPalabrasClave.Encaja(palabra, ParaAsignar(linea)))

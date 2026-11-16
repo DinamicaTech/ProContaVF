@@ -2,6 +2,7 @@ using System.Globalization;
 using ProConta.Datos.Persistencia;
 using ProConta.Norma43.Conciliacion;
 using ProConta.Norma43.Lineas;
+using ProConta.Norma43.Remesas;
 using ProConta.Nucleo.Auditoria;
 using ProConta.Nucleo.Resultados;
 
@@ -201,8 +202,20 @@ public sealed class BusquedaPorImporteN43(IBaseDatos bd)
             "AND f.FechaFactura >= ? AND f.FechaFactura < ?",
             Venta, idSociedad, l.Importe - ReglasBusquedaImporteN43.Tolerancia, l.Importe + ReglasBusquedaImporteN43.Tolerancia, desde, hasta.AddDays(1))).ToList();
         docs.AddRange(await s.ConsultarAsync($"SELECT {ColumnasVenta} FROM {DesdeVenta} WHERE se.IdSociedad = ? AND f.LineaN43 = ?", Venta, idSociedad, l.Id));
-        return docs;
+        docs.AddRange(await s.ConsultarAsync($"SELECT {ColumnasVenta} FROM ({DesdeVenta}) INNER JOIN ReintentosSEPA AS r ON f.IdFactura = r.IdFactura WHERE se.IdSociedad = ? AND r.LineaN43 = ?",
+            Venta, idSociedad, l.Id));
+        var r = new List<DocumentoN43>(docs.Count);
+        foreach (var d in docs.GroupBy(d => d.Id).Select(g => g.First())) r.Add(await CobroVigenteAsync(s, d));
+        return r;
     }
+
+    /// <summary>
+    /// La factura de venta con la línea de su cobro vigente (norma43/remesas): la del último intento si no se devolvió; null si no tiene
+    /// recibos o el último se devolvió, para que se pueda volver a cobrar (un reintento).
+    /// </summary>
+    private static async Task<DocumentoN43> CobroVigenteAsync(ISesionDatos s, DocumentoN43 d) =>
+        d.Tipo != TipoDocumentoN43.Venta ? d
+        : d with { LineaN43 = await CobrosFacturasN43.UltimoAsync(s, d.Id) is { Devuelto: false } u ? u.LineaCobro : null };
 
     private static int? Linea(IFilaDatos f) => f.EnteroNulo("LineaN43") is int n and > 0 ? n : null;
 
@@ -264,13 +277,18 @@ public sealed class BusquedaPorImporteN43(IBaseDatos bd)
                 var hechasLinea = 0;
                 foreach (var c in porLinea.Where(c => !c.Enlazar))
                 {
-                    var n = await s.EjecutarAsync($"UPDATE {Tabla(c.Tipo)} SET LineaN43 = NULL WHERE {Clave(c.Tipo)} = ? AND LineaN43 = ?", c.IdDocumento, id);
+                    // Ventas: se quita el cobro vigente, sea el primero (Facturas.LineaN43) o un reintento tras una devolución (norma43/remesas).
+                    var n = c.Tipo == TipoDocumentoN43.Venta
+                        ? (await CobrosFacturasN43.QuitarCobroAsync(s, c.IdDocumento, id) ? 1 : 0)
+                        : await s.EjecutarAsync($"UPDATE {Tabla(c.Tipo)} SET LineaN43 = NULL WHERE {Clave(c.Tipo)} = ? AND LineaN43 = ?", c.IdDocumento, id);
                     desenlazadas += n;
                     hechasLinea += n;
                 }
                 foreach (var c in aEnlazar)
                 {
-                    var n = await s.EjecutarAsync($"UPDATE {Tabla(c.Tipo)} SET LineaN43 = ? WHERE {Clave(c.Tipo)} = ? AND (LineaN43 IS NULL OR LineaN43 = 0)", id, c.IdDocumento);
+                    var n = c.Tipo == TipoDocumentoN43.Venta
+                        ? (await CobrosFacturasN43.RegistrarCobroAsync(s, c.IdDocumento, id) ? 1 : 0)
+                        : await s.EjecutarAsync($"UPDATE {Tabla(c.Tipo)} SET LineaN43 = ? WHERE {Clave(c.Tipo)} = ? AND (LineaN43 IS NULL OR LineaN43 = 0)", id, c.IdDocumento);
                     enlazadas += n;
                     hechasLinea += n;
                 }
@@ -316,9 +334,13 @@ public sealed class BusquedaPorImporteN43(IBaseDatos bd)
     private static string Tabla(TipoDocumentoN43 t) => t == TipoDocumentoN43.Compra ? "FacturasCompra" : "Facturas";
     private static string Clave(TipoDocumentoN43 t) => t == TipoDocumentoN43.Compra ? "IdRegistro" : "IdFactura";
 
-    private static Task<DocumentoN43?> DocumentoAsync(ISesionDatos s, string idSociedad, TipoDocumentoN43 tipo, int id) => tipo == TipoDocumentoN43.Compra
-        ? s.ConsultarPrimeroAsync($"SELECT {ColumnasCompra} FROM {DesdeCompra} WHERE se.IdSociedad = ? AND fc.IdRegistro = ?", f => (DocumentoN43?)Compra(f), idSociedad, id)
-        : s.ConsultarPrimeroAsync($"SELECT {ColumnasVenta} FROM {DesdeVenta} WHERE se.IdSociedad = ? AND f.IdFactura = ?", f => (DocumentoN43?)Venta(f), idSociedad, id);
+    private static async Task<DocumentoN43?> DocumentoAsync(ISesionDatos s, string idSociedad, TipoDocumentoN43 tipo, int id)
+    {
+        if (tipo == TipoDocumentoN43.Compra)
+            return await s.ConsultarPrimeroAsync($"SELECT {ColumnasCompra} FROM {DesdeCompra} WHERE se.IdSociedad = ? AND fc.IdRegistro = ?", f => (DocumentoN43?)Compra(f), idSociedad, id);
+        var d = await s.ConsultarPrimeroAsync($"SELECT {ColumnasVenta} FROM {DesdeVenta} WHERE se.IdSociedad = ? AND f.IdFactura = ?", f => (DocumentoN43?)Venta(f), idSociedad, id);
+        return d is null ? null : await CobroVigenteAsync(s, d);
+    }
 
     /// <summary>Datos para buscar la cuenta del tercero de una factura enlazada.</summary>
     private sealed record Enlazada(DocumentoN43 Doc, string? CuentaProveedor, int? IdProveedor, int? IdCliente);
@@ -331,6 +353,9 @@ public sealed class BusquedaPorImporteN43(IBaseDatos bd)
             f => new Enlazada(Compra(f), ConsultaLineasN43.Limpio(f.Texto("CuentaContableProveedor")), f.EnteroNulo("IdProveedor"), null), idLinea));
         r.AddRange(await s.ConsultarAsync(
             $"SELECT {ColumnasVenta}, f.IdCliente FROM {DesdeVenta} WHERE f.LineaN43 = ?",
+            f => new Enlazada(Venta(f), null, null, f.EnteroNulo("IdCliente")), idLinea));
+        r.AddRange(await s.ConsultarAsync(
+            $"SELECT {ColumnasVenta}, f.IdCliente FROM ({DesdeVenta}) INNER JOIN ReintentosSEPA AS r ON f.IdFactura = r.IdFactura WHERE r.LineaN43 = ?",
             f => new Enlazada(Venta(f), null, null, f.EnteroNulo("IdCliente")), idLinea));
         return r;
     }

@@ -8,6 +8,8 @@ public sealed record PalabraClaveN43(int Id, string? Entidad, string? Sentido, s
 {
     /// <summary>Especial = 5: remesa de recibos que se explota después (norma43/remesas); la línea toma su cuenta como cualquier otra.</summary>
     public bool EsRemesa => Especial == ReglasPalabrasClave.EspecialRemesa;
+    /// <summary>Especial = 6: recibo devuelto, que se concilia con las facturas devueltas (norma43/remesas).</summary>
+    public bool EsDevolucion => Especial == ReglasPalabrasClave.EspecialDevolucion;
     /// <summary>Trozos normalizados de cada texto: el asterisco es un comodín (los trozos deben aparecer en ese orden).</summary>
     internal IReadOnlyList<string> Trozos1 { get; } = ReglasPalabrasClave.Trozos(PalabraClave);
     internal IReadOnlyList<string> Trozos2 { get; } = ReglasPalabrasClave.Trozos(PalabraClave2);
@@ -52,6 +54,12 @@ public static class ReglasPalabrasClave
 {
     /// <summary>Valor de Especial de las palabras clave de remesas de recibos (se explotan en norma43/remesas).</summary>
     public const int EspecialRemesa = 5;
+
+    /// <summary>Valor de Especial de las palabras clave de recibos devueltos (se concilian con sus facturas en norma43/remesas).</summary>
+    public const int EspecialDevolucion = 6;
+
+    /// <summary>Las palabras clave de remesa o de devolución pueden ir sin cuenta: la línea se desglosa después en recibos.</summary>
+    public static bool AdmiteSinCuenta(int? especial) => especial is EspecialRemesa or EspecialDevolucion;
 
     /// <summary>
     /// Sentido de las líneas al que se aplica el sentido guardado en la palabra clave. La palabra clave lo guarda desde el punto
