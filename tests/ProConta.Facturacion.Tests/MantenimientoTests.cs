@@ -120,7 +120,9 @@ public sealed class MantenimientoAccessTests : IDisposable
         Assert.Equal(new[] { "Ejercicio", "Nombre", "TrimestreActivo", "Activa", "EjercicioCerrado", "FormaPagoDefecto", "TipoIVAGeneral", "PorcentajeProrrataAñoAnterior",
             "CuentaSuplido", "CuentaRetencionServicios", "CuentaRetencionAlquileres", "CuentaIVAIntracomunitarioRepercutidoServicios", "CuentaIVAIntracomunitarioRepercutidoBienes",
             "CuentaIVAIntracomunitarioSoportadoServicios", "CuentaIVAIntracomunitarioSoportadoBienes", "CuentaIVAInversionSujetoPasivoRepercutido",
-            "CuentaIVAInversionSujetoPasivoSoportado", "CuentaIVAImportacion", "CuentaRedondeoGastos", "CuentaRedondeoIngresos", "CarpetaFacturasCompra" }.Order(),
+            "CuentaIVAInversionSujetoPasivoSoportado", "CuentaIVAImportacion", "CuentaRedondeoGastos", "CuentaRedondeoIngresos", "CarpetaFacturasCompra",
+            // Cuentas de la liquidación del IVA (contabilidad/procesos/liquidacion-iva, esquema 56).
+            "CuentaHaciendaAcreedoraIva", "CuentaHaciendaDeudoraIva", "CuentaAjustesNegativosIva", "CuentaAjustesPositivosIva" }.Order(),
             Servicio().Proveedor("ejercicios")!.Campos.Select(c => c.Clave).Order());
         await Bd.EjecutarAsync(x => x.EjecutarAsync("UPDATE SociedadesEjercicios SET CuentaSuplido = '5550002', PorcentajeProrrataAñoAnterior = 0.14 WHERE IdSociedadEjercicio = 9001"));
         var ejercicio = (await Servicio().Proveedor("ejercicios")!.ListarAsync(Ctx)).Single(r => r.Texto("Ejercicio") == "2026");
