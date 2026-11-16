@@ -1,13 +1,12 @@
 ---
 title: Liquidación de IVA
-status: draft
 depends_on: [contabilidad/procesos, contabilidad/asientos, organizacion/sociedades-ejercicios, contabilidad/procesos/prorrata, contabilidad/modelos-tributarios, pantalla-de-inicio, seguridad/permisos, datos/esquema]
 threads:
   - 2026-11-16 10:20 · Liquidar el IVA trimestral | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GDca5JfSvDmn2MCsdFRmeAe
 ---
 ## Summary
 Liquidación trimestral del IVA en un solo asiento, con fecha el último día del trimestre: deja a cero las 477x y 472x (sin la 4729), lleva a la 6341 el IVA soportado que no se deduce (la parte no deducible por prorrata y el de actividades no deducibles que esté en una 472, repartidos por centro de coste), aplica primero el crédito de la 4700 de trimestres anteriores (V4) y lleva el resto a la 4750 (a ingresar) o a la 4700 (a compensar). El importe sale del 303 calculado desde los libros de IVA y se puede cambiar a mano para ajustarlo a lo presentado; lo que no cuadra va a una línea de ajuste (6391 si sale a pagar menos, 6341 si sale a pagar más). Se graba como lote propio regenerable, también en el trimestre cerrado que liquida (con motivo), y al confirmar se activa el trimestre siguiente.
-Hecho, pendiente de validar por el propietario: `src/ProConta.Contabilidad/Iva/LiquidacionIva.cs` (cálculo sin BD) y `ServicioLiquidacionIva.cs` (estado, propuesta, confirmación y deshacer), tabla LiquidacionesIva y cuentas de la liquidación en SociedadesEjercicios (esquema 56), excepción del trimestre cerrado en el motor de asientos y pantalla Contabilidad › Liquidación de IVA (`src/ProConta.Contabilidad.UI/Liquidacion`).
+Hecho y validado por el propietario (PR #84): `src/ProConta.Contabilidad/Iva/LiquidacionIva.cs` (cálculo sin BD) y `ServicioLiquidacionIva.cs` (estado, propuesta, confirmación y deshacer), tabla LiquidacionesIva y cuentas de la liquidación en SociedadesEjercicios (esquema 56), excepción del trimestre cerrado en el motor de asientos y pantalla Contabilidad › Liquidación de IVA (`src/ProConta.Contabilidad.UI/Liquidacion`).
 **Aceptación:** con repercutido 10.000, soportado 100 % deducible 2.000, soportado por prorrata 1.000 y prorrata del 80 %, el asiento es 477 D 10.000, 4725 H 2.000, 4727 H 1.000, 6341 D 200 y 4750 H 7.200; repetirla regenera el mismo lote sin duplicar, y al confirmar el trimestre activo pasa al siguiente. En la copia de pruebas, el 1T, 2T y 3T de 2026 se liquidan por 1.330,59, 3.026,65 y 3.875,21 € (el 303 del informe para la gestoría) y sus 472 y 477 quedan a cero.
 
 ## Decisions
@@ -22,6 +21,7 @@ Hecho, pendiente de validar por el propietario: `src/ProConta.Contabilidad/Iva/L
 - 2026-11-16 10:20 · Pantalla Contabilidad › Liquidación de IVA (navegación, hija de Contabilidad; la pantalla común «Procesos contables» del nodo padre sigue pendiente): lista de los cuatro trimestres con su estado, cerrado, 303 calculado, liquidado, compensado y ajuste; al elegir uno terminado se calcula su propuesta (resumen del 303, importe a liquidar editable con «Volver a calcular» y «Usar el calculado», avisos, asiento con totales y, si hace falta, motivo). Acción general en la cabecera (Actualizar); menú contextual del trimestre elegido (Volver a calcular, Ver el asiento, Mayor de sus cuentas de IVA, Deshacer la liquidación…); edición con botones al pie (Descartar cambios, Confirmar o Repetir la liquidación). Permiso propio «PROCESOS.LIQUIDACION_IVA» (seguridad/permisos), que mientras no tenga grupos sigue al de cambiar el trimestre activo.
 - 2026-11-16 10:20 · Prueba con la copia ProConta-liquidacion-iva-01 (de incidencias-01, esquema 56): con «General» en prorrata (como deja la migración del ERP corregida el 2026-11-15; las copias anteriores lo traían al 100 %), el 1T, 2T y 3T de 2026 dan 1.330,59, 3.026,65 y 3.875,21 €, el 303 del informe para la gestoría. El 2T y el 3T cuadran al céntimo con las cuentas; el 1T lleva un ajuste de 9,02 € a la 6341 por la importación con DUA de enero: el 303 la devenga y deduce (10,92 €, pendiente de confirmar con la gestoría, ver contabilidad/modelos-tributarios) y las cuentas solo tienen 9,02 € en la 4724001, sin 477.
 - 2026-11-16 10:20 · Cumplida la validación V4 de la línea «Derived from contabilidad» del 2026-11-15 21:10: la propuesta que sale a ingresar aplica primero el crédito de la 4700 y lo enseña (cifra «Crédito de la 4700», línea «Compensación del IVA a compensar de trimestres anteriores» y resultado «después de compensar»). S2 y S3 ya estaban hechos (pantalla-de-inicio, PR #81).
+- 2026-11-16 10:28 · Validado por el propietario (PR #84): pasa a estable. Antes de liquidar en producción hay que comprobar que la actividad «General» está en prorrata.
 
 ## Requirements
 - 2026-11-13 11:52 · answer: ¿Liquidar un trimestre activa el siguiente? → P2. Sí
@@ -35,6 +35,7 @@ Hecho, pendiente de validar por el propietario: `src/ProConta.Contabilidad/Iva/L
 - 2026-11-16 09:37 · answer: ¿Trimestres ya presentados? → el programa propone el importe calculado, que se puede modificar a mano; la diferencia va a una línea de ajuste (6341 o 6391) con motivo
 - 2026-11-16 09:37 · answer: ¿La liquidación puede grabar en un trimestre cerrado? → Decisión 2: Ok, solo su propio asiento y en ese trimestre, con motivo
 - 2026-11-16 09:37 · answer: ¿Esquema 56 con LiquidacionesIva y las cuentas de la liquidación por sociedad y ejercicio? → Decisión 3: Ok
+- 2026-11-16 10:28 · Ok, fusiona PR
 
 ## Hand-over
-- 2026-11-16 10:20 · Hecho en la rama claude/liquidacion-iva: cálculo, servicio, esquema 56, excepción del motor, permiso, pantalla y destino de la salud de Inicio, con pruebas sin BD (`LiquidacionIvaTests`) y contra Access (`LiquidacionIvaAccessTests`). Pendiente: la validación del propietario en la copia ProConta-liquidacion-iva-01 y, en producción, comprobar que la actividad «General» está en prorrata antes de liquidar.
+- 2026-11-16 10:20 · Hecho en la rama claude/liquidacion-iva: cálculo, servicio, esquema 56, excepción del motor, permiso, pantalla y destino de la salud de Inicio, con pruebas sin BD (`LiquidacionIvaTests`) y contra Access (`LiquidacionIvaAccessTests`). Validado el 2026-11-16 10:28. Pendiente en producción: comprobar que la actividad «General» está en prorrata antes de liquidar.
