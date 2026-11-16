@@ -33,7 +33,8 @@ public sealed class BusquedaImporteN43VM : ModeloVista
             var con = Grupos.Count(g => g.Candidatos.Count > 0);
             return Grupos.Count == 1
                 ? con == 0 ? "No he encontrado ninguna factura con este importe." : "Marca con un clic las facturas que paga o cobra este movimiento."
-                : $"{Formatos.Plural(con, "movimiento tiene", "movimientos tienen")} candidatas de {Grupos.Count}. Marca con un clic las facturas que paga o cobra cada uno.";
+                : (con == Grupos.Count ? $"Los {Grupos.Count} movimientos tienen candidatas." : $"{con} de los {Grupos.Count} movimientos tienen candidatas.")
+                  + " Marca con un clic las facturas que paga o cobra cada uno.";
         }
     }
 
@@ -126,14 +127,15 @@ public sealed class CandidatoBusquedaImporteN43VM(BusquedaImporteN43VM padre, in
         _ => $"{-Datos.Dias} d después",
     };
     public string Importe => Formatos.Importe(Datos.Documento.Importe);
-    public string Diferencia => Datos.Diferencia == 0 ? "" : Datos.Diferencia.ToString("+0.00;-0.00", Es);
+    /// <summary>Diferencia en céntimos; vacía si no llega a medio céntimo (las compras guardan más decimales).</summary>
+    public string Diferencia => Math.Round(Datos.Diferencia, 2) == 0 ? "" : Math.Round(Datos.Diferencia, 2).ToString("+0.00;-0.00", Es);
     public string Tercero => string.Join(" · ", new[] { Datos.Documento.Nif, Datos.Documento.Tercero }.Where(t => !string.IsNullOrWhiteSpace(t)));
     public string Descripcion => Datos.Documento.Descripcion ?? "";
     public string Estado => Datos.Enlazada ? "Ya enlazada" : "";
 
     public string Ayuda =>
         $"{(Datos.Documento.Tipo == TipoDocumentoN43.Compra ? "Factura de compra" : "Factura de venta")} {Numero} del {Fecha} ({Dias} del movimiento), " +
-        $"{Importe} €{(Datos.Diferencia == 0 ? "" : $", {Diferencia} € de diferencia")}. " +
+        $"{Importe} €{(Diferencia.Length == 0 ? "" : $", {Diferencia} € de diferencia")}. " +
         (Datos.Enlazada ? "Ya está enlazada con este movimiento: desmárcala para quitar el enlace. " : "Clic: marcarla o desmarcarla. ") +
         (PuedeAbrir ? "Doble clic o «Ver»: abrirla." : "");
 }

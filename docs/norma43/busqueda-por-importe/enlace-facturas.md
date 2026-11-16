@@ -9,6 +9,7 @@ Guardar qué factura (de venta o de compra) paga o cobra cada línea N43, migran
 
 ## Decisions
 - 2026-11-13 10:50 · Creado como borrador desde norma43/conciliacion. En el ERP, N43Lineas.NumeroFactura está informado en 1.913 de las 6.736 líneas y no se migró: en ProContaVF la línea solo guarda Documento, que coincide con el número de factura en las remesas pero no en el resto. La conciliación ya tiene el punto de extensión `IFacturasLineaN43` (hoy `SinFacturasEnlazadas`) y `ActualizarTextosAsync`.
+- 2026-11-16 11:30 · El enlace ya existe (norma43/busqueda-por-importe 2026-11-16 11:30): la línea se guarda en la factura, FacturasCompra.LineaN43 (migrado del ERP para las compras) y Facturas.LineaN43 (esquema 57), y lo crea la búsqueda por importe. Queda en este borrador: migrar N43Lineas.NumeroFactura del ERP a Facturas.LineaN43 para las ventas, implementar `IFacturasLineaN43` leyendo esas dos columnas y actualizar los textos del asiento al enlazar.
 
 ## Requirements
 - 2026-11-13 10:29 · En el caso de transferencia de juan diaz, si tenemos el IdFacturaVenta, podemos concatenar la descripción de la factura al final de los dos apuntes.

@@ -266,11 +266,15 @@ public sealed class DialogosLineasN43(ICatalogoCuentas cuentas, Func<Window?> ve
     /// «Buscar por importe»: cada movimiento como cabecera y debajo sus facturas candidatas, que se marcan o desmarcan con un clic en
     /// cualquier parte de la fila (sin Ctrl ni Mayús). Doble clic o «Ver» abre la factura. «Enlazar» aplica lo marcado y lo desmarcado.
     /// </summary>
-    public bool BuscarPorImporte(BusquedaImporteN43VM vm)
+    public bool BuscarPorImporte(BusquedaImporteN43VM vm) => CrearBuscarPorImporte(vm, Activa()).ShowDialog() == true;
+
+    /// <summary>Construye el diálogo «Buscar por importe» sin abrirlo (también para capturas fuera de pantalla).</summary>
+    public static DialogoProConta CrearBuscarPorImporte(BusquedaImporteN43VM vm, Window? propietario)
     {
+        ArgumentNullException.ThrowIfNull(vm);
         var d = new DialogoProConta
         {
-            Title = "Buscar por importe", Owner = Activa(), Width = 1150, Height = 640, MinWidth = 760, MinHeight = 360,
+            Title = "Buscar por importe", Owner = propietario, Width = 1150, Height = 640, MinWidth = 760, MinHeight = 360,
             SizeToContent = SizeToContent.Manual, Redimensionable = true, DataContext = vm,
         };
         Style S(string k) => (Style)d.FindResource(k);
@@ -279,11 +283,15 @@ public sealed class DialogosLineasN43(ICatalogoCuentas cuentas, Func<Window?> ve
         var mono = (FontFamily)d.FindResource("Fuente.Mono");
         double[] anchos = [28, 120, 88, 100, 96, 64, 260, double.NaN, 54];
 
-        Grid Fila()
+        // Las filas van dentro de la casilla, después de su cuadro: sin la primera columna, que en los títulos ocupa ese hueco.
+        Grid Fila(bool titulos = false)
         {
             var g = new Grid();
-            foreach (var a in anchos)
+            for (var i = 0; i < anchos.Length; i++)
+            {
+                var a = i == 0 ? (titulos ? 22 : 0) : anchos[i];
                 g.ColumnDefinitions.Add(new ColumnDefinition { Width = double.IsNaN(a) ? new GridLength(1, GridUnitType.Star) : new GridLength(a) });
+            }
             return g;
         }
         TextBlock Celda(Grid g, int col, string texto, bool numero = false, bool fuenteMono = false, Brush? color = null)
@@ -316,7 +324,7 @@ public sealed class DialogosLineasN43(ICatalogoCuentas cuentas, Func<Window?> ve
                 panel.Children.Add(new TextBlock { Text = grupo.TextoSinCandidatos, Foreground = apagado, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 2, 0, 0) });
                 continue;
             }
-            var titulos = Fila();
+            var titulos = Fila(titulos: true);
             titulos.Margin = new Thickness(0, 0, 0, 2);
             string[] nombres = ["", "Número", "Fecha", "Días", "Importe", "Dif.", "Tercero", "Descripción", ""];
             for (var i = 0; i < nombres.Length; i++) Celda(titulos, i, nombres[i], numero: i is 4 or 5, color: apagado).FontSize = (double)d.FindResource("Letra.Pequena");
@@ -345,6 +353,8 @@ public sealed class DialogosLineasN43(ICatalogoCuentas cuentas, Func<Window?> ve
                     Padding = new Thickness(6, 3, 0, 3), ToolTip = c.Ayuda, DataContext = c,
                 };
                 casilla.SetBinding(System.Windows.Controls.Primitives.ToggleButton.IsCheckedProperty, new Binding(nameof(CandidatoBusquedaImporteN43VM.Marcado)) { Mode = BindingMode.TwoWay });
+                // La casilla mide su contenido sin límite: la fila se ata al ancho visible (menos el cuadro) para que los textos largos se recorten.
+                g.SetBinding(FrameworkElement.WidthProperty, new Binding(nameof(FrameworkElement.ActualWidth)) { Source = panel, Converter = new Restar(30) });
                 if (c.PuedeAbrir) casilla.MouseDoubleClick += (_, e) => { c.Abrir(); e.Handled = true; };
                 panel.Children.Add(casilla);
             }
@@ -360,8 +370,17 @@ public sealed class DialogosLineasN43(ICatalogoCuentas cuentas, Func<Window?> ve
         enlazar.Click += (_, _) => d.DialogResult = true;
         cancelar.Click += (_, _) => d.DialogResult = false;
         d.Botones = new StackPanel { Orientation = Orientation.Horizontal, Children = { resumen, cancelar, enlazar } };
-        return d.ShowDialog() == true;
+        return d;
     }
 
     private Window? Activa() => Application.Current?.Windows.OfType<Window>().FirstOrDefault(w => w.IsActive) ?? ventana();
+}
+
+/// <summary>Resta un número fijo a un ancho (para atar una fila al ancho visible menos un margen).</summary>
+internal sealed class Restar(double cuanto) : IValueConverter
+{
+    public object Convert(object value, Type targetType, object parameter, System.Globalization.CultureInfo culture) =>
+        value is double d ? Math.Max(0, d - cuanto) : DependencyProperty.UnsetValue;
+
+    public object ConvertBack(object value, Type targetType, object parameter, System.Globalization.CultureInfo culture) => throw new NotSupportedException();
 }
