@@ -70,6 +70,7 @@
       <MenuItem Header="{Binding AccionExplotarRemesa.Texto}" Command="{Binding AccionExplotarRemesa.Comando}" ToolTip="{Binding AccionExplotarRemesa.Ayuda}" />
       <MenuItem Header="{Binding AccionConciliarDevueltas.Texto}" Command="{Binding AccionConciliarDevueltas.Comando}" ToolTip="{Binding AccionConciliarDevueltas.Ayuda}" />
       <MenuItem Header="{Binding AccionDeshacerExplosion.Texto}" Command="{Binding AccionDeshacerExplosion.Comando}" ToolTip="{Binding AccionDeshacerExplosion.Ayuda}" />
+      <MenuItem Header="{Binding AccionPagoDividendos.Texto}" Command="{Binding AccionPagoDividendos.Comando}" ToolTip="{Binding AccionPagoDividendos.Ayuda}" />
       <Separator />
       <MenuItem Header="{Binding AccionContabilizar.Texto}" Command="{Binding AccionContabilizar.Comando}" ToolTip="{Binding AccionContabilizar.Ayuda}" InputGestureText="Ctrl+E" />
       <MenuItem Header="{Binding AccionVerAsiento.Texto}" Command="{Binding AccionVerAsiento.Comando}" ToolTip="{Binding AccionVerAsiento.Ayuda}" InputGestureText="Doble clic" />

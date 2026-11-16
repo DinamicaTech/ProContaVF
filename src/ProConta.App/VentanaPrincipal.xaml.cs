@@ -68,6 +68,7 @@ public partial class VentanaPrincipal : Window
     private readonly ProConta.Contabilidad.UI.Asientos.ModuloAsientos _asientos;
     private readonly ProConta.Contabilidad.UI.Diario.ModuloDiario _diario;
     private readonly ProConta.Contabilidad.UI.Liquidacion.ModuloLiquidacionIva _liquidacionIva;
+    private readonly ProConta.Contabilidad.UI.Dividendos.ModuloRepartoDividendos _dividendos;
     private readonly ModuloFacturacion _facturacion;
     private readonly ModuloCompras _compras;
     private readonly ModuloCorreo _correo;
@@ -333,6 +334,17 @@ public partial class VentanaPrincipal : Window
             },
             _area, new ProConta.Contabilidad.UI.Liquidacion.DialogosLiquidacionIva(() => this));
         var abrirLiquidacionIva = new ComandoDelegado(() => _liquidacionIva.Abrir());
+        // Reparto de dividendos (contabilidad/procesos/aplicacion-resultado): reservas a la 526 de cada socio con su retención, como lote regenerable.
+        _dividendos = new ProConta.Contabilidad.UI.Dividendos.ModuloRepartoDividendos(
+            new ProConta.Contabilidad.UI.Dividendos.ContextoRepartoDividendos(
+                new ProConta.Contabilidad.Dividendos.ServicioDividendos(bd, new MotorAsientosAccess(bd), cuentas, () => autorizador.PuedeAsync(Acciones.Dividendos)),
+                contexto.Contexto, contexto.RazonSocial, new Actor(sesion.NombreOperador), Avisar)
+            {
+                VerAsiento = id => _mayor.VerAsientoAsync(id),
+                AbrirMayor = cuentasMayor => _mayor.Abrir(cuentasMayor),
+            },
+            _area, new ProConta.Contabilidad.UI.Dividendos.DialogosRepartoDividendos(() => this));
+        var abrirDividendos = new ComandoDelegado(() => _dividendos.Abrir());
         // Informes (contabilidad/balances e informes/excel): cada opción genera el libro Excel con su tabla dinámica y lo abre.
         _balances = new ProConta.Contabilidad.Balances.GeneradorBalances(bd);
         _razonSocial = contexto.RazonSocial;
@@ -367,6 +379,9 @@ public partial class VentanaPrincipal : Window
             new OpcionNavegacion("Liquidación de IVA", null, true, false,
                 "Procesos contables › Liquidación de IVA: un asiento por trimestre que salda las 472 y 477, lleva lo no deducible a la 6341 y el resultado a la 4750 o la 4700; importe ajustable a lo presentado y activación del trimestre siguiente",
                 abrirLiquidacionIva, EsHija: true),
+            new OpcionNavegacion("Reparto de dividendos", null, true, false,
+                "Procesos contables › Reparto de dividendos: del neto de cada socio (por defecto, lo ya pagado en su 526) calcula el bruto y la retención del ejercicio y graba el asiento de reservas a dividendos; corregir o deshacer con motivo",
+                abrirDividendos, EsHija: true),
             new OpcionNavegacion("Asiento manual", null, true, false,
                 "Asiento nuevo hecho a mano o desde una plantilla, con su vista previa; para corregir un apunte, ábrelo desde el Mayor con «Asistente de corrección…»",
                 new ComandoDelegado(() => _ = _asientos.AbrirNuevoAsync()), EsHija: true),

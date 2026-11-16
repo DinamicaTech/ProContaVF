@@ -148,7 +148,8 @@ public sealed record AccionesLineasN43(
     string? BuscarPorImporte,
     string? ExplotarRemesa = "Selecciona una línea.",
     string? ConciliarDevueltas = "Selecciona una línea.",
-    string? DeshacerExplosion = "Selecciona una línea.")
+    string? DeshacerExplosion = "Selecciona una línea.",
+    string? PagoDividendos = "Selecciona una línea.")
 {
     private static readonly CultureInfo Es = CultureInfo.GetCultureInfo("es-ES");
 
@@ -222,8 +223,14 @@ public sealed record AccionesLineasN43(
             : l1.EsRecibo ? "Esta línea es un recibo: deshaz la explosión desde la remesa o la devolución del banco."
             : "Esta línea no está explotada ni conciliada con recibos devueltos.");
 
+        // Pago de dividendos (contabilidad/procesos/aplicacion-resultado): un solo cargo, sin contabilizar ni explotar.
+        var dividendos = una ?? soloLectura ?? (l1!.EsRecibo ? "Esta línea ya es parte de un desglose: elige la línea del banco."
+            : l1.Explotada ? "Este movimiento ya está desglosado: para repetirlo, usa antes «Deshacer explosión»."
+            : !l1.EsCargo ? "Un pago de dividendos es un cargo del banco y esta línea es un abono."
+            : l1.IdAsiento is not null ? "La línea ya está contabilizada: deshaz antes su asiento («Deshacer el asiento…») si lo generó ProContaVF." : null);
+
         return new AccionesLineasN43(asignar, textoContabilizar, contabilizar, aContabilizar, deshacer, propias, actualizar, textoReasignar, reasignar, palabras, traspaso, verAsiento, buscar,
-            explotar, devueltas, deshacerExplosion);
+            explotar, devueltas, deshacerExplosion, dividendos);
     }
 
     private static string Minuscula(string s) => s.Length == 0 ? s : char.ToLowerInvariant(s[0]) + s[1..];

@@ -54,6 +54,8 @@ public interface IDialogosLineasN43
     bool ExplotarRemesa(RemesaN43VM vm) => false;
     /// <summary>Diálogo «Conciliar facturas devueltas» (modal): true si se pulsa «Conciliar».</summary>
     bool ConciliarDevolucion(DevolucionN43VM vm) => false;
+    /// <summary>Diálogo «Pago de dividendos» (modal): true si se pulsa «Pagar».</summary>
+    bool PagarDividendos(PagoDividendosN43VM vm) => false;
     /// <summary>Diálogo «Ajustes de importe» tras explotar (modal): true si se pulsa «Aplicar».</summary>
     bool AjustarImportes(AjustesRemesaN43VM vm) => false;
     /// <summary>Diálogo «Movimientos similares» (modal): lo que se elige al cerrarlo (vm.Eleccion), o null.</summary>
@@ -152,6 +154,7 @@ public sealed class FilaLineaN43VM(LineaN43 datos) : ModeloVista
         BusquedaPorImporteN43.OrigenFactura => "la del tercero de la factura enlazada",
         ServicioRemesasN43.OrigenRemesa => "la del cliente del recibo (remesa explotada)",
         ServicioRemesasN43.OrigenDevolucion => "la del cliente del recibo devuelto",
+        ServicioRemesasN43.OrigenDividendos => "pago de dividendos (la 526 del socio, o la 555 si se desglosó entre varios)",
         _ => $"origen {d.Origen.ToLowerInvariant()} (migración del ERP)",
     };
 }
@@ -259,7 +262,8 @@ public sealed class LineasN43VM : ModeloVista, IPestanaTrabajo
         AccionVerAsiento = new("Ver el asiento", "Muestra el asiento de la línea o, si no está contabilizada, el que generaría (también con doble clic)", () => _ = VerAsientoAsync());
         AccionExplotarRemesa = new("Explotar remesa…", "Desglosa la remesa del banco en un recibo por factura domiciliada del mes, llevado a la cuenta de su cliente; las facturas quedan cobradas", () => _ = ExplotarRemesaAsync());
         AccionConciliarDevueltas = new("Conciliar facturas devueltas…", "Elige los recibos devueltos de la remesa anterior que suman el cargo: vuelven a la cuenta de su cliente y las facturas quedan pendientes de cobro", () => _ = ConciliarDevueltasAsync());
-        AccionDeshacerExplosion = new("Deshacer explosión", "Quita el desglose en recibos de la remesa o la devolución y deja sus facturas como estaban (no si algún recibo ya tiene asiento)", () => _ = DeshacerExplosionAsync());
+        AccionDeshacerExplosion = new("Deshacer explosión", "Quita el desglose en recibos de la remesa o la devolución (o en pagos de dividendos) y deja sus facturas como estaban (no si alguna línea del desglose ya tiene asiento)", () => _ = DeshacerExplosionAsync());
+        AccionPagoDividendos = new("Pago de dividendos…", "Lleva el cargo a la 526 del socio que cobra o, si son varios, lo desglosa en una línea por socio con su importe y su 526", () => _ = PagoDividendosAsync());
         ExplotarPendientesCommand = new ComandoDelegado(() => _ = ExplotarPendientesAsync(), () => _remesas is not null && !Ocupado && AniosMarcados.Count > 0);
         ActualizarAcciones();
     }
@@ -385,6 +389,7 @@ public sealed class LineasN43VM : ModeloVista, IPestanaTrabajo
     public AccionLineasVM AccionExplotarRemesa { get; }
     public AccionLineasVM AccionConciliarDevueltas { get; }
     public AccionLineasVM AccionDeshacerExplosion { get; }
+    public AccionLineasVM AccionPagoDividendos { get; }
     /// <summary>Botón de cabecera: explota las remesas pendientes de los ejercicios marcados que cuadran solas (acción general, no de la selección).</summary>
     public ICommand ExplotarPendientesCommand { get; }
     public bool HayRemesas => _remesas is not null;
@@ -559,6 +564,7 @@ public sealed class LineasN43VM : ModeloVista, IPestanaTrabajo
         AccionExplotarRemesa.Fijar("Explotar remesa…", a.ExplotarRemesa ?? sinRemesas ?? Ocupada());
         AccionConciliarDevueltas.Fijar("Conciliar facturas devueltas…", a.ConciliarDevueltas ?? sinRemesas ?? Ocupada());
         AccionDeshacerExplosion.Fijar("Deshacer explosión", a.DeshacerExplosion ?? sinRemesas ?? Ocupada());
+        AccionPagoDividendos.Fijar("Pago de dividendos…", a.PagoDividendos ?? (_remesas is null ? "Los pagos de dividendos no están disponibles en esta pantalla." : null) ?? Ocupada());
         Avisar(nameof(Resumen), nameof(Acciones));
     }
 
@@ -867,13 +873,29 @@ public sealed class LineasN43VM : ModeloVista, IPestanaTrabajo
     {
         if (Seleccion is not [var fila] || _remesas is null || _acciones.DeshacerExplosion is not null) return;
         if (_dialogos.Preguntar("Deshacer explosión",
-                $"Se quitará el desglose en recibos del {FiltroMinuscula(fila.Datos.Rotulo)} y sus facturas volverán a como estaban antes. Queda registrado con tu nombre y la hora. " +
-                "No se puede si algún recibo ya tiene asiento: deshaz antes esos asientos.", null,
+                $"Se quitará el desglose del {FiltroMinuscula(fila.Datos.Rotulo)} (recibos de una remesa o devolución, o pagos de dividendos) y sus facturas volverán a como estaban antes. " +
+                "Queda registrado con tu nombre y la hora. No se puede si alguna línea del desglose ya tiene asiento: deshaz antes esos asientos.", null,
                 new OpcionMensaje("Deshacer explosión", "Quita los recibos y libera las facturas", Principal: true),
                 new OpcionMensaje("Cancelar", "No cambia nada", Cancelar: true)) != 0) return;
         var r = await _remesas.DeshacerAsync(_contexto.Trabajo.IdSociedad, fila.Id, _contexto.Actor);
         await TrasRemesaAsync(r, "No se ha deshecho la explosión");
     }, "deshacer la explosión");
+
+    /// <summary>
+    /// Pago de dividendos (contabilidad/procesos/aplicacion-resultado): el diálogo con los socios activos, su % y el importe propuesto (editable); al pulsar
+    /// «Pagar» se graba solo si cuadra. Con un socio la línea va a su 526; con varios se desglosa como una remesa.
+    /// </summary>
+    public Task PagoDividendosAsync() => Ejecutar(async () =>
+    {
+        if (Seleccion is not [var fila] || _remesas is null || _acciones.PagoDividendos is not null) return;
+        var p = await _remesas.ProponerPagoDividendosAsync(_contexto.Trabajo.IdSociedad, fila.Id);
+        if (p is null) return;
+        if (p.Bloqueo is { } b) { Informar("No se puede pagar dividendos con esta línea", b); return; }
+        var vm = new PagoDividendosN43VM(p);
+        if (!_dialogos.PagarDividendos(vm)) return;
+        var r = await _remesas.PagarDividendosAsync(_contexto.Trabajo.IdSociedad, fila.Id, vm.Pagos(), _contexto.Actor);
+        await TrasRemesaAsync(r, "No se ha grabado el pago de dividendos");
+    }, "pagar los dividendos");
 
     /// <summary>Botón de cabecera: explota todas las remesas pendientes de los ejercicios marcados cuyas facturas cuadran solas.</summary>
     public Task ExplotarPendientesAsync() => Ejecutar(async () =>

@@ -10,7 +10,8 @@ public enum RolBusqueda
     Cliente,
     Proveedor,
     Contacto,
-    Empleado
+    Empleado,
+    Socio
 }
 
 /// <summary>
@@ -35,8 +36,8 @@ public sealed record Coincidencia(string Fuente, string Valor)
 /// <summary>Rol de un resultado, con su Id y si está activo.</summary>
 public sealed record RolResultado(RolBusqueda Rol, int Id, bool Activo)
 {
-    public string Abreviatura => Rol switch { RolBusqueda.Cliente => "Cli", RolBusqueda.Proveedor => "Prov", RolBusqueda.Empleado => "Emp", _ => "Cont" };
-    public string Nombre => Rol switch { RolBusqueda.Cliente => "Cliente", RolBusqueda.Proveedor => "Proveedor", RolBusqueda.Empleado => "Empleado", _ => "Contacto" };
+    public string Abreviatura => Rol switch { RolBusqueda.Cliente => "Cli", RolBusqueda.Proveedor => "Prov", RolBusqueda.Empleado => "Emp", RolBusqueda.Socio => "Soc", _ => "Cont" };
+    public string Nombre => Rol switch { RolBusqueda.Cliente => "Cliente", RolBusqueda.Proveedor => "Proveedor", RolBusqueda.Empleado => "Empleado", RolBusqueda.Socio => "Socio", _ => "Contacto" };
 }
 
 /// <summary>Fila del buscador: datos de resumen, roles con su Id, perfiles y en qué ha coincidido.</summary>
@@ -55,7 +56,7 @@ public sealed record TerceroEncontrado(
     IReadOnlyList<Coincidencia> Coincidencias);
 
 /// <summary>Recuentos para los filtros (sobre lo que coincide con el texto, el perfil y los inactivos, sin el tipo ni los roles).</summary>
-public sealed record RecuentosBusqueda(int Todos, int Fisicas, int Juridicas, int Entidades, int SinClasificar, int Clientes, int Proveedores, int Contactos, int Empleados = 0);
+public sealed record RecuentosBusqueda(int Todos, int Fisicas, int Juridicas, int Entidades, int SinClasificar, int Clientes, int Proveedores, int Contactos, int Empleados = 0, int Socios = 0);
 
 /// <summary>Resultado de una búsqueda: las filas (hasta el máximo) y cuántas hay en total.</summary>
 public sealed record ResultadoBusquedaTerceros(IReadOnlyList<TerceroEncontrado> Filas, int Total, RecuentosBusqueda Recuentos)
@@ -127,7 +128,8 @@ public sealed class IndiceTerceros(IEnumerable<EntradaIndiceTercero> entradas)
             coinciden.Count(c => c.Entrada.Tipo == TipoPersona.Fisica), coinciden.Count(c => c.Entrada.Tipo == TipoPersona.Juridica),
             coinciden.Count(c => c.Entrada.Tipo == TipoPersona.EntidadSinPersonalidad), coinciden.Count(c => c.Entrada.Tipo is null),
             coinciden.Count(c => TieneRol(c.Entrada, RolBusqueda.Cliente)), coinciden.Count(c => TieneRol(c.Entrada, RolBusqueda.Proveedor)),
-            coinciden.Count(c => TieneRol(c.Entrada, RolBusqueda.Contacto)), coinciden.Count(c => TieneRol(c.Entrada, RolBusqueda.Empleado)));
+            coinciden.Count(c => TieneRol(c.Entrada, RolBusqueda.Contacto)), coinciden.Count(c => TieneRol(c.Entrada, RolBusqueda.Empleado)),
+            coinciden.Count(c => TieneRol(c.Entrada, RolBusqueda.Socio)));
 
         var filtradas = coinciden.Where(c =>
             (filtro.Tipo is null || c.Entrada.Tipo == filtro.Tipo) &&
@@ -237,6 +239,7 @@ public sealed class BuscadorTerceros(IBaseDatos bd, TimeSpan? vigencia = null) :
                      (RolBusqueda.Proveedor, "SELECT IdProveedor AS Id, IdTercero, Activo, NULL AS Extra FROM Proveedores", "IdProveedor"),
                      (RolBusqueda.Contacto, "SELECT IdContacto AS Id, IdTercero, Activo, Cargo AS Extra FROM Contactos", "IdContacto"),
                      (RolBusqueda.Empleado, "SELECT IdEmpleado AS Id, IdTercero, Activo, NULL AS Extra FROM Empleados", "IdEmpleado"),
+                     (RolBusqueda.Socio, "SELECT IdSocio AS Id, IdTercero, Activo, NULL AS Extra FROM Socios", "IdSocio"),
                  })
             foreach (var (id, idTercero, activo, extra) in await s.ConsultarAsync(sql, f => (f.Entero("Id"), f.Entero("IdTercero"), f.Logico("Activo"), f.Texto("Extra"))))
                 if (De(idTercero) is { } e)

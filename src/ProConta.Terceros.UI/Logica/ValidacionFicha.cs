@@ -97,6 +97,8 @@ public static class ValidacionFicha
         }
         if (t.Roles.Empleado?.CodigoTrabajador is { Length: > 30 })
             errores.Add(new(PestanaFicha.Roles, t, "CodigoTrabajador", "El código del trabajador tiene más de 30 caracteres: escribe el que usa la gestoría."));
+        if (t.Roles.Socio is { Activo: true, Participacion: { } pct } && (pct < 0m || pct > 100m))
+            errores.Add(new(PestanaFicha.Roles, t, "ParticipacionSocio", "La participación del socio es un porcentaje entre 0 y 100: escribe, por ejemplo, 50."));
         return errores;
     }
 

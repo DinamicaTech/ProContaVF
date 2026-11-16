@@ -359,6 +359,8 @@ public sealed class CuentaRolVM : ParteFicha
         ClaseCuentaRol.Retencion => "Cuenta de retención",
         ClaseCuentaRol.Proveedor => "Cuenta de proveedor",
         ClaseCuentaRol.Empleado => "Cuenta 465",
+        ClaseCuentaRol.Dividendos => "Dividendos a pagar (526)",
+        ClaseCuentaRol.RetencionDividendos => "Retención de dividendos (4751)",
         _ => "Cuenta de acreedor"
     };
     public string AyudaCodigo => $"Código de la {ServicioRoles.Describir(Clase)} en {Ficha.NombreSociedad}. Vale para todos sus ejercicios; al salir del campo compruebo que existe en el ejercicio {Ficha.Ejercicio}";
@@ -432,6 +434,13 @@ public sealed class CuentaRolVM : ParteFicha
         if (Clase == ClaseCuentaRol.Empleado && !Codigo.StartsWith(ServicioEmpleados.CuentaRemuneraciones, StringComparison.Ordinal))
         {
             _error = $"La cuenta del empleado tiene que ser una subcuenta de la {ServicioEmpleados.CuentaRemuneraciones} (remuneraciones pendientes de pago); {Codigo} no lo es.";
+            Nombre = "";
+            Cambiado(nameof(Codigo));
+            return;
+        }
+        if (ServicioRoles.EsDeSocio(Clase) && !Codigo.StartsWith(SubcuentasRoles.Raiz(Clase), StringComparison.Ordinal))
+        {
+            _error = $"La {ServicioRoles.Describir(Clase)} tiene que ser una subcuenta de la {SubcuentasRoles.Raiz(Clase)}; {Codigo} no lo es. Déjala vacía y se creará la siguiente libre al guardar.";
             Nombre = "";
             Cambiado(nameof(Codigo));
             return;

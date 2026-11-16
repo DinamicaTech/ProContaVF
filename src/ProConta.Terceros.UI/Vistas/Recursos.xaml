@@ -32,6 +32,10 @@
     <Setter Property="Background" Value="{StaticResource Pincel.MoradoSuave}" />
     <Setter Property="BorderBrush" Value="{StaticResource Pincel.Linea}" />
   </Style>
+  <Style x:Key="Insignia.Socio" TargetType="Border" BasedOn="{StaticResource Insignia}">
+    <Setter Property="Background" Value="{StaticResource Pincel.AmbarSuave}" />
+    <Setter Property="BorderBrush" Value="{StaticResource Pincel.Linea}" />
+  </Style>
   <Style x:Key="Texto.Insignia" TargetType="TextBlock">
     <Setter Property="FontSize" Value="{StaticResource Letra.Mini}" />
     <Setter Property="FontWeight" Value="SemiBold" />

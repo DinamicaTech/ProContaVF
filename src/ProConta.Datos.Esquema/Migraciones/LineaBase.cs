@@ -107,6 +107,7 @@ public static class CatalogoMigraciones
         MigracionesPlataforma.EntornoPruebas,
         MigracionesFacturacion.DescripcionAbreviada,
         MigracionesVentas.CompensacionComision,
+        MigracionesDividendos.Dividendos,
     ];
 
     /// <summary>Versión del esquema que espera esta versión del programa.</summary>

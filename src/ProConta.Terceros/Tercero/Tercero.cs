@@ -195,6 +195,9 @@ public sealed class Tercero
             if (contacto.Cargo is { Length: > 100 }) errores.Add(new Error("Roles.CargoLargo", "El cargo del contacto tiene más de 100 caracteres.", registro, "No cabe.", "Acórtalo."));
             if (contacto.Departamento is { Length: > 100 }) errores.Add(new Error("Roles.DepartamentoLargo", "El departamento del contacto tiene más de 100 caracteres.", registro, "No cabe.", "Acórtalo."));
         }
+        if (Roles.Socio is { Activo: true, Participacion: { } pct } && (pct < 0m || pct > 100m || decimal.Round(pct, 4) != pct))
+            errores.Add(new Error("Socios.ParticipacionNoValida", $"La participación del socio ({pct} %) no es válida.", registro,
+                "Es un porcentaje del capital, entre 0 y 100, con cuatro decimales como mucho.", "Escribe su participación, por ejemplo 50 para el 50 %."));
         if (Roles.Empleado?.CodigoTrabajador is { Length: > 30 })
             errores.Add(new Error("Empleados.CodigoLargo", "El código del trabajador tiene más de 30 caracteres.", registro, "No cabe.", "Escribe el código que usa la gestoría."));
         foreach (var grupo in ContactosLibres.Where(g => string.IsNullOrWhiteSpace(g.Nombre)))

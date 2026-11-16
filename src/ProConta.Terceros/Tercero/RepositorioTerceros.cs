@@ -11,7 +11,7 @@ namespace ProConta.Terceros;
 public sealed record ResumenTercero(int IdTercero, string Nombre, string? NombreComercial, string? Nif, bool Activo);
 
 /// <summary>Movimiento del historial de un tercero (tabla HistorialTerceros).</summary>
-/// <param name="Entidad">Sección de la ficha: Tercero, DatosContacto, Cliente, Proveedor, Contacto, Empleado, Perfil o Relacion.</param>
+/// <param name="Entidad">Sección de la ficha: Tercero, DatosContacto, Cliente, Proveedor, Contacto, Empleado, Socio, Perfil o Relacion.</param>
 public sealed record MovimientoHistorial(int IdHistorial, string IdOperacion, DateTime FechaHora, string Operador, string Entidad, int IdRegistro,
     string Operacion, string Campo, string? ValorAntiguo, string? ValorNuevo);
 
@@ -97,12 +97,14 @@ public sealed class RepositorioTercerosAccess(IBaseDatos bd, IReloj? reloj = nul
             await GuardarHijosAsync(s, tercero, anterior, operacion, ahora, actor);
             var h = new Historial(s, tercero.IdTercero, operacion, ahora, actor);
             await GuardarRolesAsync(s, tercero, h);
-            var error = await GuardarEmpleadoAsync(s, tercero, h) ?? await GuardarPerfilesAsync(s, tercero, h) ?? await GuardarRelacionesAsync(s, tercero, h) ?? await GuardarCuentasAsync(s, tercero, h);
+            var error = await GuardarEmpleadoAsync(s, tercero, h) ?? await GuardarSocioAsync(s, tercero, h) ?? await GuardarPerfilesAsync(s, tercero, h) ?? await GuardarRelacionesAsync(s, tercero, h) ?? await GuardarCuentasAsync(s, tercero, h);
             if (error is not null) return Resultado<Tercero>.Fallo(error with { RegistroAfectado = error.RegistroAfectado ?? $"Tercero {tercero.Nombre}" });
             var guardado = (await CargarAsync(s, tercero.IdTercero))!;
             if (tercero.CuentasRoles is { } cuentas) guardado.CuentasRoles = await ServicioRoles.IdentidadesAsync(s, guardado.IdTercero, cuentas.IdSociedad);
             if ((tercero.Roles.Empleado?.IdSociedad ?? tercero.CuentasRoles?.IdSociedad) is { } sociedad)
                 guardado.Roles.Empleado = await ServicioRoles.EmpleadoAsync(s, guardado.IdTercero, sociedad);
+            if ((tercero.Roles.Socio?.IdSociedad ?? tercero.CuentasRoles?.IdSociedad) is { } sociedadSocio)
+                guardado.Roles.Socio = await ServicioRoles.SocioAsync(s, guardado.IdTercero, sociedadSocio);
             return Resultado<Tercero>.Correcto(guardado);
         });
 
@@ -289,6 +291,42 @@ public sealed class RepositorioTercerosAccess(IBaseDatos bd, IReloj? reloj = nul
         return null;
     }
 
+    /// <summary>
+    /// Rol Socio en su sociedad (contabilidad/procesos/aplicacion-resultado 2026-11-16 17:55): darlo crea Socios y SociosSociedad; quitarlo deja la
+    /// fila de la sociedad inactiva con sus subcuentas. El % de participación es el vigente, sin fechas: cada cambio queda en el historial.
+    /// </summary>
+    private static async Task<Error?> GuardarSocioAsync(ISesionDatos s, Tercero t, Historial h)
+    {
+        if (t.Roles.Socio is not { } so) return null;
+        static string? Pct(decimal? p) => p is decimal v ? v.ToString("0.####", System.Globalization.CultureInfo.GetCultureInfo("es-ES")) + " %" : null;
+        var idSocio = await s.ConsultarPrimeroAsync("SELECT IdSocio FROM Socios WHERE IdTercero = ?", f => (int?)f.Entero("IdSocio"), t.IdTercero);
+        var db = idSocio is int id0
+            ? await s.ConsultarPrimeroAsync("SELECT IdSocioSociedad, Activo, Participacion FROM SociosSociedad WHERE IdSocio = ? AND IdSociedad = ?",
+                f => (Id: (int?)f.Entero("IdSocioSociedad"), Activo: f.Logico("Activo"), Participacion: f.DecimalNulo("Participacion")), id0, so.IdSociedad)
+            : default;
+        if (db.Id is not int idFila)
+        {
+            if (!so.Activo) return null;
+            if (idSocio is null)
+            {
+                await s.EjecutarAsync("INSERT INTO Socios (IdTercero, Activo, FechaAlta) VALUES (?, ?, ?)", t.IdTercero, true, DateTime.Today);
+                idSocio = await s.UltimoIdAsync();
+            }
+            else await s.EjecutarAsync("UPDATE Socios SET Activo = True WHERE IdSocio = ?", idSocio);
+            await s.EjecutarAsync("INSERT INTO SociosSociedad (IdSocio, IdSociedad, Participacion, Activo) VALUES (?, ?, ?, ?)", idSocio, so.IdSociedad, so.Participacion, true);
+            so.IdSocio = idSocio;
+            await h.Anotar("Socio", idSocio.Value, "ALTA", $"Participacion {so.IdSociedad}", null, Pct(so.Participacion) ?? "");
+            return null;
+        }
+        so.IdSocio = idSocio;
+        await s.EjecutarAsync("UPDATE SociosSociedad SET Activo = ?, Participacion = ? WHERE IdSocioSociedad = ?", so.Activo, so.Participacion, idFila);
+        if (so.Activo) await s.EjecutarAsync("UPDATE Socios SET Activo = True WHERE IdSocio = ?", idSocio);
+        if (db.Activo != so.Activo) await h.Anotar("Socio", idSocio!.Value, "MODIFICACION", $"Activo {so.IdSociedad}", db.Activo.ToString(), so.Activo.ToString());
+        if (db.Participacion != so.Participacion)
+            await h.Anotar("Socio", idSocio!.Value, "MODIFICACION", $"Participacion {so.IdSociedad}", Pct(db.Participacion), Pct(so.Participacion));
+        return null;
+    }
+
     private static async Task AnotarRolAsync(Historial h, string rol, FilaRol db, bool activo, params (string Campo, string? Antes, string? Despues)[] campos)
     {
         if (db.Activo != activo) await h.Anotar(rol, db.Id, "MODIFICACION", "Activo", db.Activo.ToString(), activo.ToString());
@@ -390,21 +428,25 @@ public sealed class RepositorioTercerosAccess(IBaseDatos bd, IReloj? reloj = nul
     private static async Task<Error?> GuardarCuentasAsync(ISesionDatos s, Tercero t, Historial h)
     {
         if (t.CuentasRoles is not { } cuentas) return null;
-        foreach (var clase in new[] { ClaseCuentaRol.Cliente, ClaseCuentaRol.Retencion, ClaseCuentaRol.Proveedor, ClaseCuentaRol.Acreedor, ClaseCuentaRol.Empleado })
+        foreach (var clase in new[] { ClaseCuentaRol.Cliente, ClaseCuentaRol.Retencion, ClaseCuentaRol.Proveedor, ClaseCuentaRol.Acreedor, ClaseCuentaRol.Empleado,
+                     ClaseCuentaRol.Dividendos, ClaseCuentaRol.RetencionDividendos })
         {
             var deseada = cuentas.De(clase);
             var deCliente = ServicioRoles.EsDeCliente(clase);
             var esEmpleado = clase == ClaseCuentaRol.Empleado;
-            // Quien guarda sin haber cargado el rol Empleado (otras pantallas) no toca su 465.
+            var esSocio = ServicioRoles.EsDeSocio(clase);
+            // Quien guarda sin haber cargado el rol Empleado o Socio (otras pantallas) no toca su 465, 526 ni 4751.
             if (esEmpleado && t.Roles.Empleado is null) continue;
+            if (esSocio && t.Roles.Socio is null) continue;
             int? idRol = esEmpleado ? (t.Roles.Empleado is { } emp && emp.IdSociedad == cuentas.IdSociedad ? emp.IdEmpleado : null)
+                : esSocio ? (t.Roles.Socio is { } soc && soc.IdSociedad == cuentas.IdSociedad ? soc.IdSocio : null)
                 : deCliente ? t.Roles.Cliente?.IdCliente : t.Roles.Proveedor?.IdProveedor;
             if (idRol is null)
             {
                 if (deseada is null) continue;
-                var rol = esEmpleado ? "Empleado" : deCliente ? "Cliente" : "Proveedor";
+                var rol = esEmpleado ? "Empleado" : esSocio ? "Socio" : deCliente ? "Cliente" : "Proveedor";
                 return new Error("Roles.CuentaSinRol", $"No puedo guardar la {ServicioRoles.Describir(clase)} porque el tercero no tiene el rol {rol}.",
-                    null, "Solo los clientes, los proveedores y los empleados tienen cuenta.", "Activa el rol en la pestaña Roles o quita la cuenta.");
+                    null, "Solo los clientes, los proveedores, los empleados y los socios tienen cuenta.", "Activa el rol en la pestaña Roles o quita la cuenta.");
             }
             var actual = await ServicioRoles.IdentidadAsignadaAsync(s, clase, idRol.Value, cuentas.IdSociedad);
             if (actual == deseada) continue;
@@ -416,9 +458,11 @@ public sealed class RepositorioTercerosAccess(IBaseDatos bd, IReloj? reloj = nul
                 ClaseCuentaRol.Retencion => "CuentaRetencion",
                 ClaseCuentaRol.Proveedor => "CuentaProveedor",
                 ClaseCuentaRol.Empleado => "Cuenta465",
+                ClaseCuentaRol.Dividendos => "Cuenta526",
+                ClaseCuentaRol.RetencionDividendos => "Cuenta4751",
                 _ => "CuentaAcreedor"
             };
-            await h.Anotar(esEmpleado ? "Empleado" : deCliente ? "Cliente" : "Proveedor", idRol.Value, "MODIFICACION", $"{campo} {cuentas.IdSociedad}",
+            await h.Anotar(esEmpleado ? "Empleado" : esSocio ? "Socio" : deCliente ? "Cliente" : "Proveedor", idRol.Value, "MODIFICACION", $"{campo} {cuentas.IdSociedad}",
                 await DescribirIdentidadAsync(s, actual), await DescribirIdentidadAsync(s, deseada));
         }
         return null;

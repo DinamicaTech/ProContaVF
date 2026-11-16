@@ -99,6 +99,45 @@ public sealed partial class DialogosLineasN43
         return d;
     }
 
+    /// <summary>«Pago de dividendos»: socios activos con su casilla, su % y el importe; «Pagar» solo se activa si cuadra.</summary>
+    public bool PagarDividendos(PagoDividendosN43VM vm) => CrearPagarDividendos(vm, Activa()).ShowDialog() == true;
+
+    /// <summary>Construye el diálogo «Pago de dividendos» sin abrirlo (también para capturas fuera de pantalla).</summary>
+    public static DialogoProConta CrearPagarDividendos(PagoDividendosN43VM vm, Window? propietario)
+    {
+        ArgumentNullException.ThrowIfNull(vm);
+        var d = Dialogo("Pago de dividendos", propietario, vm);
+        d.Width = 820;
+        d.Height = 460;
+        var (panel, apagado) = Cabecera(d, vm.Titulo, vm.Concepto, vm.Explicacion);
+        double[] anchos = [24, double.NaN, 80, 90, 130];
+        panel.Children.Add(Titulos(d, anchos, ["", "Socio", "%", "Cuenta", "Importe"], apagado, [2, 4]));
+        foreach (var f in vm.Filas)
+        {
+            var g = Rejilla(anchos);
+            Casilla(g, f, nameof(FilaPagoDividendosN43VM.Marcada), f.Ayuda);
+            if (!f.Elegible) { g.Children[^1].IsEnabled = false; ToolTipService.SetShowOnDisabled(g.Children[^1], true); }
+            Celda(d, g, 1, f.Nombre);
+            Celda(d, g, 2, f.Participacion, numero: true, mono: true);
+            Celda(d, g, 3, f.Cuenta, mono: true);
+            var importe = new TextBox
+            {
+                Style = (Style)d.FindResource("Campo"), TextAlignment = TextAlignment.Right, FontFamily = (FontFamily)d.FindResource("Fuente.Mono"), DataContext = f,
+                ToolTip = "Lo que cobra este socio con el cargo. Por defecto, el cargo repartido entre los marcados según su participación", Margin = new Thickness(0, 1, 0, 1),
+            };
+            importe.SetBinding(TextBox.TextProperty, new Binding(nameof(FilaPagoDividendosN43VM.ImporteTexto)) { Mode = BindingMode.TwoWay, UpdateSourceTrigger = UpdateSourceTrigger.PropertyChanged });
+            importe.SetBinding(UIElement.IsEnabledProperty, new Binding(nameof(FilaPagoDividendosN43VM.Marcada)));
+            Grid.SetColumn(importe, 4);
+            g.Children.Add(importe);
+            g.ToolTip = f.Ayuda;
+            panel.Children.Add(g);
+        }
+        d.Content = new ScrollViewer { Content = panel, VerticalScrollBarVisibility = ScrollBarVisibility.Auto, HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled };
+        Botones(d, nameof(PagoDividendosN43VM.Cuadre), nameof(PagoDividendosN43VM.Cuadra), "Pagar",
+            "Con un socio, lleva la línea a su 526; con varios, la desglosa en una línea por socio con su importe y su 526", "Cierra sin cambiar nada");
+        return d;
+    }
+
     /// <summary>«Ajustes de importe» tras explotar una remesa con facturas cobradas por otro importe.</summary>
     public bool AjustarImportes(AjustesRemesaN43VM vm) => CrearAjustarImportes(vm, Activa()).ShowDialog() == true;
 
