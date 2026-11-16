@@ -779,17 +779,27 @@ public sealed class LineasN43VM : ModeloVista, IPestanaTrabajo
         var cambios = vm.Cambios();
         if (cambios.Count == 0) return;
         var r = await _busqueda.EnlazarAsync(_contexto.Trabajo.IdSociedad, cambios, _contexto.Actor);
+        // Las líneas ya contabilizadas por ProContaVF llevan en su asiento el número y la descripción abreviada de sus facturas
+        // (norma43/busqueda-por-importe/enlace-facturas 2026-11-16): se actualizan sus textos. Las no contabilizadas los tomarán al
+        // contabilizarse y las del ERP no se tocan.
+        var textos = r.Lineas.Count == 0 ? null
+            : await _conciliacion.ActualizarTextosAsync(_contexto.Trabajo.IdSociedad, r.Lineas, _contexto.Actor, "Enlazar facturas con el movimiento bancario");
         await RefrescarLineasAsync(sel.Select(f => f.Id).ToList());
         var partes = new List<string>();
         if (r.Enlazadas > 0) partes.Add($"{Formatos.Plural(r.Enlazadas, "factura enlazada", "facturas enlazadas")}");
         if (r.Desenlazadas > 0) partes.Add($"{Formatos.Plural(r.Desenlazadas, "factura desenlazada", "facturas desenlazadas")}");
         if (r.ConCuenta.Count > 0) partes.Add($"{Formatos.Plural(r.ConCuenta.Count, "línea con la cuenta del tercero", "líneas con la cuenta del tercero")}");
+        if (textos?.Hechas > 0) partes.Add($"{Formatos.Plural(textos.Hechas, "asiento con los textos actualizados", "asientos con los textos actualizados")}");
         var texto = partes.Count == 0 ? "No ha cambiado nada" : string.Join("; ", partes);
         _contexto.Avisar(texto + ".");
         if (r.Avisos.Count > 0)
             _dialogos.Preguntar("Facturas enlazadas, con avisos", $"{texto}. Algunas líneas no han tomado la cuenta del tercero:", r.Avisos,
                 new OpcionMensaje("Entendido", "Cierra el aviso", Principal: true, Cancelar: true));
         InformarRechazos("Algunas líneas no se han enlazado", r.Rechazadas.ToDictionary(x => x.Key, x => (IReadOnlyList<Error>)[x.Value]), r.Lineas.Count, texto);
+        if (textos is not null)
+            InformarRechazos("Facturas enlazadas, pero sin actualizar el asiento",
+                textos.Rechazadas.Where(x => x.Value.Any(e => e.Codigo is not ("Conciliacion.NoContabilizada" or "Conciliacion.ContabilizadaFuera")))
+                    .ToDictionary(x => x.Key, x => x.Value), textos.Hechas, texto);
     }, "enlazar las facturas");
 
     // ---------- remesas y devoluciones (norma43/remesas) ----------

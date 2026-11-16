@@ -70,7 +70,8 @@ internal sealed partial class EjecucionErp
                 lineas.Add((linea, idConcepto));
             }
 
-            var notas = ReglasErp.UnirNotas(p.T("Notas"), p.T("NotasInternas"),
+            var (abreviada, notasLargas) = ReglasErp.DescripcionAbreviada(p.T("Notas"));
+            var notas = ReglasErp.UnirNotas(notasLargas, p.T("NotasInternas"),
                 p.T("Referencia1") is { } ipc ? $"Revisión del IPC (ERP, Referencia1): {ipc}." : null,
                 p.F("FechaPrimerVencimiento") is DateTime pv ? $"Primer vencimiento en el ERP: {pv:dd/MM/yyyy}." : null,
                 $"Programada {id} del ERP.");
@@ -81,12 +82,12 @@ internal sealed partial class EjecucionErp
             {
                 await s.EjecutarAsync(
                     "INSERT INTO FacturasProgramadas (IdSociedadEjercicio, IdCliente, IdSerie, TipoFactura, FechaInicio, FechaFin, DiaEmision, ProximaFechaEmision, TipoRetencion, " +
-                    "Descripcion, NotasInternas, Activa, FechaAlta, OperadorAlta, Historial, EnviarPorEmail, PeriodoDesde, PeriodoHasta, NumeroRepeticiones, FacturasGeneradas, AlGenerar, Version, Periodicidad, FormaDePago, DiaDePago) " +
-                    "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                    "Descripcion, NotasInternas, Activa, FechaAlta, OperadorAlta, Historial, EnviarPorEmail, PeriodoDesde, PeriodoHasta, NumeroRepeticiones, FacturasGeneradas, AlGenerar, Version, Periodicidad, FormaDePago, DiaDePago, " +
+                    "DescripcionAbreviada) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                     idEj, idCliente, serie, "F1", inicio, null, (byte)proxima.Day, proxima, (float)tipoRetencion,
                     ReglasErp.Recortar(p.T("DescripcionFactura") ?? p.T("Descripcion"), 255), notas, true, p.F("FechaCreacion") ?? ahora.Date, Operador,
                     $"{ahora:dd/MM/yyyy HH:mm} · {Operador} · Migrada del ERP (programada {id}, {generadas} facturas generadas).", false, periodoDesde, periodoHasta, repeticiones, generadas,
-                    "BORRADOR", 0, periodicidad.Codigo, formaPago, diaPago);
+                    "BORRADOR", 0, periodicidad.Codigo, formaPago, diaPago, abreviada);
                 var nuevo = await s.UltimoIdAsync();
                 var n = 1;
                 foreach (var (l, c) in lineas)

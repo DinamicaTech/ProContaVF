@@ -196,6 +196,60 @@ internal sealed partial class EjecucionErp
             if (documento.Length == 0 || Mapa(TiposErp.Factura, documento) is not int idFactura || Mapa(TiposErp.LineaN43, Txt(l.E("NumLinea"))) is not int idRecibo) return;
             if (await s.EjecutarAsync("UPDATE Facturas SET LineaN43 = ? WHERE IdFactura = ? AND (LineaN43 IS NULL OR LineaN43 = 0)", idRecibo, idFactura) == 1) estRec.Cargadas++;
         });
+
+        await EnlacesNumeroFacturaAsync();
+    }
+
+    /// <summary>
+    /// N43Lineas.NumeroFactura (norma43/busqueda-por-importe/enlace-facturas 2026-11-16): la factura que el ERP enlazó a mano con cada
+    /// movimiento. Los abonos cobran una factura de venta (Facturas.LineaN43, número = FacturasVenta.Id) y los cargos pagan una de compra
+    /// (FacturasCompra.LineaN43, por su número cuando es único entre las compras del ERP). Nunca pisa un enlace que ya exista (el de
+    /// FacturasCompra.LineaN43 del ERP o el de los recibos de las remesas): si una factura sale en varias líneas, se queda con la primera.
+    /// </summary>
+    private async Task EnlacesNumeroFacturaAsync()
+    {
+        var lineas = o.Tabla("N43Lineas")
+            .Where(l => !l.B("Eliminar") && (l.T("NumeroFactura") ?? "").Trim() is { Length: > 0 } n && !n.Equals("Vinculada", StringComparison.OrdinalIgnoreCase))
+            .OrderBy(l => l.E("NumLinea")).ToList();
+
+        var estVentas = Est(Fase5, "N43Lineas.NumeroFactura → Facturas.LineaN43");
+        var ventas = lineas.Where(l => l.T("DebeHaber") == "2" && (l.T("NumeroFactura") ?? "").Trim().TrimStart('0') is { Length: > 0 } n && n.All(char.IsAsciiDigit))
+            .GroupBy(l => (l.T("NumeroFactura") ?? "").Trim().TrimStart('0')).ToList();
+        estVentas.Leidas = ventas.Sum(g => g.Count());
+        await EnLotesAsync(ventas, async (s, g) =>
+        {
+            if (Mapa(TiposErp.Factura, g.Key) is not int idFactura)
+            {
+                Anotar(Fase5, "N43Lineas", Txt(g.First().E("NumLinea")), "NumeroFactura", "Erp.FacturaNoMigrada", Severidad.Informativa,
+                    $"La factura de venta {g.Key} de la línea bancaria {g.First().E("NumLinea")} no se ha migrado: la línea queda sin factura.", g.Key);
+                return;
+            }
+            foreach (var l in g)
+                if (Mapa(TiposErp.LineaN43, Txt(l.E("NumLinea"))) is int idLinea
+                    && await s.EjecutarAsync("UPDATE Facturas SET LineaN43 = ? WHERE IdFactura = ? AND (LineaN43 IS NULL OR LineaN43 = 0)", idLinea, idFactura) == 1)
+                {
+                    estVentas.Cargadas++;
+                    break;
+                }
+        });
+
+        var estCompras = Est(Fase5, "N43Lineas.NumeroFactura → FacturasCompra.LineaN43");
+        var comprasPorNumero = o.Tabla("FacturasCompra").Where(c => (c.T("NumeroFactura") ?? "").Trim().Length > 0)
+            .GroupBy(c => (c.T("NumeroFactura") ?? "").Trim(), StringComparer.OrdinalIgnoreCase)
+            .Where(g => g.Count() == 1).ToDictionary(g => g.Key, g => g.Single().E("IdRegistro"), StringComparer.OrdinalIgnoreCase);
+        var compras = lineas.Where(l => l.T("DebeHaber") == "1").GroupBy(l => (l.T("NumeroFactura") ?? "").Trim(), StringComparer.OrdinalIgnoreCase).ToList();
+        estCompras.Leidas = compras.Sum(g => g.Count());
+        await EnLotesAsync(compras, async (s, g) =>
+        {
+            if (!comprasPorNumero.TryGetValue(g.Key, out var idErp) || Mapa(TiposErp.Compra, Txt(idErp)) is not int idCompra) return;
+            foreach (var l in g)
+                if (Mapa(TiposErp.LineaN43, Txt(l.E("NumLinea"))) is int idLinea
+                    && await s.EjecutarAsync("UPDATE FacturasCompra SET LineaN43 = ? WHERE IdRegistro = ? AND (LineaN43 IS NULL OR LineaN43 = 0)", idLinea, idCompra) == 1)
+                {
+                    estCompras.Cargadas++;
+                    break;
+                }
+        });
     }
 
     private static decimal ImporteLinea(Fila l) => l.D("ImporteEuros") ?? ReglasErp.ImporteN43(l.T("Importe")) ?? 0m;

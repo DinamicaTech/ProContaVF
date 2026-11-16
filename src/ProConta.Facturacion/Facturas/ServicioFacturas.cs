@@ -324,8 +324,11 @@ public sealed class ServicioFacturas
         }
     }
 
-    /// <summary>Notas internas de una factura numerada que ya no se puede modificar (RF-FAC-07).</summary>
-    public async Task<Resultado> GuardarNotasAsync(int idFactura, string? notas, int versionLeida, Actor actor)
+    /// <summary>
+    /// Notas internas y descripción abreviada de una factura numerada que ya no se puede modificar (RF-FAC-07,
+    /// facturacion/descripcion-abreviada 2026-11-16): son datos internos que no cambian el documento emitido.
+    /// </summary>
+    public async Task<Resultado> GuardarNotasAsync(int idFactura, string? notas, string? descripcionAbreviada, int versionLeida, Actor actor)
     {
         if (!await _autorizador.PuedeAsync(Acciones.FacturasEditar)) return SinPermiso<bool>("editar facturas", FacturaVenta.RotuloBorrador(idFactura));
         try
@@ -333,8 +336,9 @@ public sealed class ServicioFacturas
             await _bd.EjecutarAsync(async s =>
             {
                 var f = await RepositorioFacturas.CargarAsync(s, idFactura);
-                await s.ActualizarConVersionAsync("UPDATE Facturas SET NotasInternas = ?, Version = Version + 1 WHERE IdFactura = ? AND Version = ?",
-                    f?.Rotulo ?? FacturaVenta.RotuloBorrador(idFactura), string.IsNullOrWhiteSpace(notas) ? null : notas.Trim(), idFactura, versionLeida);
+                await s.ActualizarConVersionAsync("UPDATE Facturas SET NotasInternas = ?, DescripcionAbreviada = ?, Version = Version + 1 WHERE IdFactura = ? AND Version = ?",
+                    f?.Rotulo ?? FacturaVenta.RotuloBorrador(idFactura), string.IsNullOrWhiteSpace(notas) ? null : notas.Trim(),
+                    ReglasFactura.Abreviada(descripcionAbreviada), idFactura, versionLeida);
                 return true;
             });
             return Resultado.Correcto();
@@ -553,6 +557,7 @@ public sealed class ServicioFacturas
         var f = nuevo.Valor;
         f.IdCliente = origen.IdCliente;
         f.Descripcion = origen.Descripcion;
+        f.DescripcionAbreviada = origen.DescripcionAbreviada;
         f.NotasInternas = origen.NotasInternas;
         f.FormaDePago = origen.FormaDePago ?? f.FormaDePago;
         f.DiaDePago = origen.DiaDePago;
@@ -608,6 +613,7 @@ public sealed class ServicioFacturas
             FormaDePago = original.FormaDePago,
             DiaDePago = original.DiaDePago,
             Descripcion = Recortar($"Rectificación de la factura {original.NumeroFactura}: {original.Descripcion}".Trim(), 4000),
+            DescripcionAbreviada = original.DescripcionAbreviada,
             TipoRetencion = original.TipoRetencion,
             TipoFactura = ReglasFactura.TipoRectificativaDe(original.TipoFactura),
             TipoRectificativa = "I",

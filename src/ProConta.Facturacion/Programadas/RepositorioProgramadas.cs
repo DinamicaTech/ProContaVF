@@ -11,7 +11,7 @@ internal static class RepositorioProgramadas
 {
     private const string Columnas =
         "p.IdFacturaProgramada, p.IdSociedadEjercicio, p.IdContrato, p.IdCliente, p.IdSerie, p.TipoFactura, p.FechaInicio, p.FechaFin, p.Periodicidad, p.DiaEmision, " +
-        "p.ProximaFechaEmision, p.FechaUltimaGeneracion, p.FormaDePago, p.DiaDePago, p.TipoRetencion, p.Descripcion, p.NotasInternas, p.Activa, p.FechaAlta, " +
+        "p.ProximaFechaEmision, p.FechaUltimaGeneracion, p.FormaDePago, p.DiaDePago, p.TipoRetencion, p.Descripcion, p.DescripcionAbreviada, p.NotasInternas, p.Activa, p.FechaAlta, " +
         "p.OperadorAlta, p.Historial, p.EnviarPorEmail, p.PeriodoDesde, p.PeriodoHasta, p.NumeroRepeticiones, p.FacturasGeneradas, p.AlGenerar, p.Version";
 
     private const string ColumnasLinea =
@@ -80,6 +80,7 @@ internal static class RepositorioProgramadas
             DiaDePago = r.EsNulo("DiaDePago") ? null : (byte)r.Entero("DiaDePago"),
             TipoRetencion = r.EsNulo("TipoRetencion") ? 0m : Math.Round((decimal)r.Doble("TipoRetencion"), 4, MidpointRounding.AwayFromZero),
             Descripcion = r.Texto("Descripcion") ?? "",
+            DescripcionAbreviada = r.Texto("DescripcionAbreviada"),
             NotasInternas = r.Texto("NotasInternas"),
             FechaInicioValidez = RepositorioFacturas.FechaReal(r, "PeriodoDesde"),
             FechaFinValidez = RepositorioFacturas.FechaReal(r, "PeriodoHasta"),
@@ -125,13 +126,14 @@ internal static class RepositorioProgramadas
         [
             f.IdCliente, f.IdSerie, f.TipoFactura, p.FechaInicio!.Value.Date, p.FechaFin?.Date, p.Periodicidad.Codigo, p.DiaEmision, proxima, f.FormaDePago, f.DiaDePago,
             (float)f.TipoRetencion, Nulo(f.Descripcion), Nulo(f.NotasInternas), p.Activa, p.Historial, p.EnviarPorEmail, f.FechaInicioValidez?.Date, f.FechaFinValidez?.Date,
-            p.Limite, p.AlGenerar == AlGenerar.Validar ? "VALIDAR" : "BORRADOR"
+            p.Limite, p.AlGenerar == AlGenerar.Validar ? "VALIDAR" : "BORRADOR", ReglasFactura.Abreviada(f.DescripcionAbreviada)
         ];
     }
 
     private const string CamposCabecera =
         "IdCliente = ?, IdSerie = ?, TipoFactura = ?, FechaInicio = ?, FechaFin = ?, Periodicidad = ?, DiaEmision = ?, ProximaFechaEmision = ?, FormaDePago = ?, DiaDePago = ?, " +
-        "TipoRetencion = ?, Descripcion = ?, NotasInternas = ?, Activa = ?, Historial = ?, EnviarPorEmail = ?, PeriodoDesde = ?, PeriodoHasta = ?, NumeroRepeticiones = ?, AlGenerar = ?";
+        "TipoRetencion = ?, Descripcion = ?, NotasInternas = ?, Activa = ?, Historial = ?, EnviarPorEmail = ?, PeriodoDesde = ?, PeriodoHasta = ?, NumeroRepeticiones = ?, AlGenerar = ?, " +
+        "DescripcionAbreviada = ?";
 
     /// <summary>Próxima fecha que se guarda (la columna es obligatoria): la calculada o, si ya no hay vencimientos, la última.</summary>
     private static DateTime Proxima(FacturaProgramada p) =>
@@ -142,8 +144,8 @@ internal static class RepositorioProgramadas
         var v = ValoresCabecera(p, Proxima(p));
         await s.EjecutarAsync(
             "INSERT INTO FacturasProgramadas (IdCliente, IdSerie, TipoFactura, FechaInicio, FechaFin, Periodicidad, DiaEmision, ProximaFechaEmision, FormaDePago, DiaDePago, " +
-            "TipoRetencion, Descripcion, NotasInternas, Activa, Historial, EnviarPorEmail, PeriodoDesde, PeriodoHasta, NumeroRepeticiones, AlGenerar, " +
-            "IdSociedadEjercicio, IdContrato, FechaAlta, OperadorAlta, FacturasGeneradas, Version) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            "TipoRetencion, Descripcion, NotasInternas, Activa, Historial, EnviarPorEmail, PeriodoDesde, PeriodoHasta, NumeroRepeticiones, AlGenerar, DescripcionAbreviada, " +
+            "IdSociedadEjercicio, IdContrato, FechaAlta, OperadorAlta, FacturasGeneradas, Version) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
             [.. v, p.IdSociedadEjercicio, p.IdContrato, p.FechaAlta, Nulo(p.OperadorAlta), p.FacturasGeneradas, 0]);
         p.IdFacturaProgramada = await s.UltimoIdAsync();
         p.Version = 0;

@@ -31,7 +31,8 @@ public sealed record FilaFactura(
     int? IdAsientoContable,
     int Version,
     string? MotivoRectificacion = null,
-    bool DeVentas = false)
+    bool DeVentas = false,
+    string? DescripcionAbreviada = null)
 {
     /// <summary>Origen de la factura para el listado: rectificativa, programada, de ventas por facturar o manual.</summary>
     public string Origen => EsRectificativa ? "Rectificativa" : EsProgramada ? "Programada" : DeVentas ? "Venta" : "Manual";
@@ -45,9 +46,9 @@ public sealed record FilaFactura(
     /// <summary>Situación VeriFactu mientras no hay VeriFactu: no aplica en borradores; «Sin VeriFactu» en las validadas con el paso provisional.</summary>
     public string TextoVeriFactu => EsBorrador ? "No aplica" : SinVeriFactu ? "Sin VeriFactu" : "Pendiente";
 
-    /// <summary>Texto de búsqueda: número, cliente, NIF, descripción, notas, facturas relacionadas y motivo de la rectificación.</summary>
+    /// <summary>Texto de búsqueda: número, cliente, NIF, descripción y descripción abreviada, notas, facturas relacionadas y motivo de la rectificación.</summary>
     public bool Contiene(string texto) =>
-        string.IsNullOrWhiteSpace(texto) || new[] { Rotulo, Cliente, Nif, Descripcion, NotasInternas, NumeroRectificada, NumeroRectificativa, MotivoRectificacion }
+        string.IsNullOrWhiteSpace(texto) || new[] { Rotulo, Cliente, Nif, Descripcion, DescripcionAbreviada, NotasInternas, NumeroRectificada, NumeroRectificativa, MotivoRectificacion }
             .Any(c => c?.Contains(texto.Trim(), StringComparison.CurrentCultureIgnoreCase) == true);
 }
 
@@ -56,7 +57,7 @@ public sealed class ConsultaFacturas(IBaseDatos bd)
 {
     private const string Sql =
         "SELECT f.IdFactura, f.NumeroFactura, f.FechaFactura, f.IdCliente, f.Nombre, f.RazonSocial, f.CIF, t.Nombre AS NombreTercero, t.RazonSocial AS RazonTercero, t.NIF AS NifTercero, " +
-        "f.Descripcion, f.NotasInternas, f.BaseImponible, f.TipoRetencion, f.ImporteTotal, f.EstadoFactura, f.TipoFactura, f.IdSerie, s.Prefijo, s.EsRectificativa, f.SinVeriFactu, " +
+        "f.Descripcion, f.DescripcionAbreviada, f.NotasInternas, f.BaseImponible, f.TipoRetencion, f.ImporteTotal, f.EstadoFactura, f.TipoFactura, f.IdSerie, s.Prefijo, s.EsRectificativa, f.SinVeriFactu, " +
         "f.IdFacturaProgramada, f.IdFacturaRectificada, o.NumeroFactura AS NumeroOriginal, r.NumeroFactura AS NumeroRectificativa, r.IdFactura AS IdRectificativa, f.IdAsientoContable, f.Version, f.MotivoRectificacion, " +
         "(SELECT COUNT(*) FROM VentasPorFacturar AS v WHERE v.IdFactura = f.IdFactura) AS NumVentas " +
         "FROM ((((Facturas AS f LEFT JOIN SeriesFacturacion AS s ON f.IdSerie = s.IdSerie) " +
@@ -112,6 +113,7 @@ public sealed class ConsultaFacturas(IBaseDatos bd)
             r.EnteroNulo("IdAsientoContable"),
             r.EnteroNulo("Version") ?? 0,
             r.Texto("MotivoRectificacion"),
-            (r.EnteroNulo("NumVentas") ?? 0) > 0);
+            (r.EnteroNulo("NumVentas") ?? 0) > 0,
+            r.Texto("DescripcionAbreviada"));
     }
 }

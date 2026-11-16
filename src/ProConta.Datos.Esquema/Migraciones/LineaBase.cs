@@ -105,6 +105,7 @@ public static class CatalogoMigraciones
         MigracionesNorma43.BusquedaPorImporte,
         MigracionesNorma43.Remesas,
         MigracionesPlataforma.EntornoPruebas,
+        MigracionesFacturacion.DescripcionAbreviada,
     ];
 
     /// <summary>Versión del esquema que espera esta versión del programa.</summary>

@@ -190,6 +190,28 @@ public sealed class ProgramadasAccessTests : IDisposable
     }
 
     [Fact]
+    public async Task LaDescripcionAbreviadaPasaALaFacturaGeneradaConSuPeriodo()
+    {
+        await PrepararAsync();
+        var servicio = Servicio();
+        var p = await ProgramadaAsync(servicio);
+        p.Plantilla.DescripcionAbreviada = "  Período: %FECHAINICIO% - %FECHAFIN%  ";
+        Assert.True((await servicio.GuardarAsync(p, _actor)).Guardada);
+        var leida = (await servicio.ObtenerAsync(p.IdFacturaProgramada))!;
+        Assert.Equal("Período: %FECHAINICIO% - %FECHAFIN%", leida.Plantilla.DescripcionAbreviada);
+
+        var r = await servicio.GenerarAsync(_ctx, _reloj.Ahora.Date, [p.IdFacturaProgramada], _actor);
+        Assert.True(r.EsCorrecto, r.Error?.ToString());
+        var abreviadas = await Bd.EjecutarAsync(s => s.ConsultarAsync(
+            "SELECT DescripcionAbreviada FROM Facturas WHERE IdFacturaProgramada = ? ORDER BY FechaProgramadaOrigen", f => f.Texto("DescripcionAbreviada"), p.IdFacturaProgramada));
+        Assert.Equal(["Período: 01/01/2026 - 31/01/2026", "Período: 01/02/2026 - 28/02/2026"], abreviadas);
+
+        // «Programar…» desde una de ellas la copia tal cual.
+        var desde = await servicio.DesdeFacturaAsync(r.Valor.Facturas[0].IdFactura, _ctx);
+        Assert.Equal("Período: 01/01/2026 - 31/01/2026", desde.Valor.Plantilla.DescripcionAbreviada);
+    }
+
+    [Fact]
     public async Task UnaActivaQueDejaDeEstarCompletaSaleEnPendientesConSuProblema()
     {
         await PrepararAsync();
