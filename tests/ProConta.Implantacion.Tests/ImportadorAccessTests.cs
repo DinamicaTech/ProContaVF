@@ -166,6 +166,18 @@ public sealed class ImportadorAccessTests : IDisposable
     }
 
     [Fact]
+    public async Task UnTelefonoQueNoEsUnNumeroSeAvisa()
+    {
+        var o = Ejercicio2024();
+        o.ContactosTerceros["4000001"] = ("C/ Mayor 99", "proveedor@ejemplo.test");
+        var r = Assert.Single(await ImportarAsync(await o.CrearAsync(_carpeta)));
+        var aviso = Assert.Single(r.Incidencias, i => i.Codigo == "ContaSol.TelefonoNoValido");
+        Assert.Equal(Severidad.Advertencia, aviso.Severidad);
+        Assert.Equal("4000001", aviso.Clave);
+        Assert.Equal(0, await ContarAsync("SELECT COUNT(*) FROM DatosContacto WHERE Tipo = 'TELEFONO'"));
+    }
+
+    [Fact]
     public async Task ReimportarSustituyeLoCambiadoYBorraLoQueYaNoEsta()
     {
         var antes = await Ejercicio2024().CrearAsync(_carpeta);
