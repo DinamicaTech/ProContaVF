@@ -9,6 +9,7 @@
     <Project Path="src/ProConta.Contabilidad/ProConta.Contabilidad.csproj" />
     <Project Path="src/ProConta.Correo/ProConta.Correo.csproj" />
     <Project Path="src/ProConta.Correo.UI/ProConta.Correo.UI.csproj" />
+    <Project Path="src/ProConta.Conector/ProConta.Conector.csproj" />
     <Project Path="src/ProConta.Contabilidad.UI/ProConta.Contabilidad.UI.csproj" />
     <Project Path="src/ProConta.Datos.Esquema.Consola/ProConta.Datos.Esquema.Consola.csproj" />
     <Project Path="src/ProConta.Datos.Esquema/ProConta.Datos.Esquema.csproj" />
@@ -42,6 +43,7 @@
     <Project Path="tests/ProConta.Activos.Tests/ProConta.Activos.Tests.csproj" />
     <Project Path="tests/ProConta.Compras.Tests/ProConta.Compras.Tests.csproj" />
     <Project Path="tests/ProConta.Compras.UI.Tests/ProConta.Compras.UI.Tests.csproj" />
+    <Project Path="tests/ProConta.Conector.Tests/ProConta.Conector.Tests.csproj" />
     <Project Path="tests/ProConta.Contabilidad.Tests/ProConta.Contabilidad.Tests.csproj" />
     <Project Path="tests/ProConta.Contabilidad.UI.Tests/ProConta.Contabilidad.UI.Tests.csproj" />
     <Project Path="tests/ProConta.Correo.Tests/ProConta.Correo.Tests.csproj" />

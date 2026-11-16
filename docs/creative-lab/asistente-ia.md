@@ -9,10 +9,11 @@ threads:
 ## Summary
 Asistente con IA que consulta la BD de ProContaVF y propone asientos y correcciones (por ejemplo, «corrige el asiento 321 de enero con el IVA descuadrado»), siempre validados por el programa y confirmados por el operador antes de grabarse con el motor de asientos.
 La vía elegida (2026-11-16) es un conector local de Claude Desktop: un ejecutable de ProContaVF que expone a Claude herramientas de lectura, de propuesta y de grabación sobre los servicios del programa, sin chat propio ni API de pago. Claude nunca escribe SQL ni toca la BD directamente.
-El propietario quiere tenerlo desde el arranque en producción (2026-11-16); sigue en el laboratorio hasta que confirme el desglose para ejecutarlo.
+El conector salió del laboratorio ejecutado el 2026-11-16 y ahora es plataforma/conector-claude. Aquí siguen como idea las ampliaciones: subcuentas propuestas por Claude, el botón «Corregir con Claude» en los avisos de salud, las correcciones de facturas y los asientos a partir de documentos.
 
 ## Decisions
 - 2026-10-28 13:30 · Creado en la carga inicial de requisitos.
+- 2026-11-16 09:58 · Leaves the lab: executed. La parte del conector (consultas, asientos manuales nuevos y corrección de asientos) es ahora el nodo plataforma/conector-claude, con el análisis y las decisiones en vigor; el análisis de abajo queda como antecedente. Las ampliaciones siguen aquí como idea.
 - 2026-11-16 09:40 · Se amplía la idea con la del propietario de lanzar prompts que interactúan con la BD (antes «Asistente IA de asientos»). La integración será un conector local de Claude Desktop (servidor MCP) y no un chat dentro de ProContaVF con la API de Anthropic: usa la suscripción de Claude del propietario, sin coste por uso ni pantalla nueva. Ver el análisis más abajo.
 
 ## Requirements
@@ -27,9 +28,13 @@ El propietario quiere tenerlo desde el arranque en producción (2026-11-16); sig
 - 2026-11-16 09:35 · Ok, amplía el nodo de Asistente IA de asientos.
 - 2026-11-16 09:35 · La opción de poder usar Claude Desktop a través de un conector me parece perfecta, avanza el análisis de esta idea.
 - 2026-11-16 09:35 · Cuando implantarlo: hoy mismo. Quiero pasar a producción y es una herramienta que creo que vamos a necesitar desde buen principio.
-- 2026-11-16 09:40 · question: ¿Sale hoy del laboratorio para ejecutarse? Opciones: (a) sí, como nodo nuevo plataforma/conector-claude, porque es una pieza técnica que servirá a todas las áreas; (b) sí, como contabilidad/asistente-ia, si solo va a tocar asientos; (c) no, sigue como idea. Recomendado: (a).
-- 2026-11-16 09:40 · question: ¿Qué alcance tiene la primera versión? Opciones: (a) consultas de solo lectura y corrección de asientos manuales con rectificativo y corregido; (b) lo mismo más el alta de subcuentas propuesta por Claude; (c) solo consultas. Recomendado: (a); las subcuentas, las facturas y los avisos de salud van después.
-- 2026-11-16 09:40 · question: ¿Se añade el SDK oficial de MCP para C# (paquete NuGet ModelContextProtocol)? Es la librería con la que el ejecutable habla con Claude Desktop; sin ella habría que programar el protocolo a mano. Recomendado: sí.
+- 2026-11-16 09:40 · [answered 2026-11-16 09:42] question: ¿Sale hoy del laboratorio para ejecutarse? Opciones: (a) sí, como nodo nuevo plataforma/conector-claude, porque es una pieza técnica que servirá a todas las áreas; (b) sí, como contabilidad/asistente-ia, si solo va a tocar asientos; (c) no, sigue como idea. Recomendado: (a).
+- 2026-11-16 09:40 · [answered 2026-11-16 09:42] question: ¿Qué alcance tiene la primera versión? Opciones: (a) consultas de solo lectura y corrección de asientos manuales con rectificativo y corregido; (b) lo mismo más el alta de subcuentas propuesta por Claude; (c) solo consultas. Recomendado: (a); las subcuentas, las facturas y los avisos de salud van después.
+- 2026-11-16 09:40 · [answered 2026-11-16 09:42] question: ¿Se añade el SDK oficial de MCP para C# (paquete NuGet ModelContextProtocol)? Es la librería con la que el ejecutable habla con Claude Desktop; sin ella habría que programar el protocolo a mano. Recomendado: sí.
+
+- 2026-11-16 09:42 · answer: ¿Sale hoy del laboratorio? → Sí, como plataforma/conector-claude («1. Ok»).
+- 2026-11-16 09:42 · answer: ¿Alcance de la primera versión? → «Ok, pero también creación de asientos manuales nuevos, no solo corrección.»
+- 2026-11-16 09:42 · answer: ¿SDK oficial de MCP para C#? → Sí («3. Ok»).
 
 ## Análisis (2026-11-16)
 

@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Conector de Claude Desktop (servidor MCP por stdio) sobre los servicios de ProContaVF (docs/plataforma/conector-claude.md). -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>ProConta.Conector</RootNamespace>
+    <AssemblyName>ProContaConector</AssemblyName>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="ModelContextProtocol" Version="2.3.0" />
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.0" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\ProConta.Contabilidad\ProConta.Contabilidad.csproj" />
+    <ProjectReference Include="..\ProConta.Inicio\ProConta.Inicio.csproj" />
+    <ProjectReference Include="..\ProConta.Datos.Esquema\ProConta.Datos.Esquema.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="ProConta.Conector.Tests" />
+  </ItemGroup>
+</Project>
