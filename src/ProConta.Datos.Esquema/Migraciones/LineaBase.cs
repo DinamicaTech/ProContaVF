@@ -106,6 +106,7 @@ public static class CatalogoMigraciones
         MigracionesNorma43.Remesas,
         MigracionesPlataforma.EntornoPruebas,
         MigracionesFacturacion.DescripcionAbreviada,
+        MigracionesVentas.CompensacionComision,
     ];
 
     /// <summary>Versión del esquema que espera esta versión del programa.</summary>

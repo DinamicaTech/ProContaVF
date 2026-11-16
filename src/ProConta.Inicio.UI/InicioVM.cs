@@ -36,6 +36,11 @@ public sealed record AccionesInicio(
     public Action<string>? AbrirParametros { get; init; }
     /// <summary>Ventas › Facturas programadas (agenda, fase 4).</summary>
     public Action? AbrirProgramadas { get; init; }
+    /// <summary>
+    /// Botón del aviso «Comisiones sin compensar» (facturacion/reservas/compensacion-comision): compensa las pendientes tras confirmarlo;
+    /// true si ha hecho algo y hay que volver a revisar la salud.
+    /// </summary>
+    public Func<Task<bool>>? CompensarComisiones { get; init; }
 }
 
 /// <summary>Bloque de la pantalla que se puede ocultar con «Personalizar…».</summary>

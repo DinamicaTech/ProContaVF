@@ -468,3 +468,33 @@ public sealed class RevisionComprasDuplicadas : IRevisionSalud
         { Cantidad = n });
     }
 }
+
+/// <summary>
+/// «Comisiones sin compensar» (facturacion/reservas/compensacion-comision, propietario 2026-11-16): facturas de comisión de las plataformas del
+/// ejercicio de trabajo exportadas (por ProContaVF o en el ERP) sin su asiento de compensación de la 410 contra la 430. Su botón las compensa.
+/// </summary>
+public sealed class RevisionComisionesSinCompensar : IRevisionSalud
+{
+    public string Clave => "comisiones-sin-compensar";
+    public string Nombre => "Comisiones de las plataformas compensadas";
+    public string Nodo => "facturacion/reservas/compensacion-comision";
+
+    public async Task<HallazgosSalud> RevisarAsync(IFuenteSalud fuente, ContextoSalud ctx, CancellationToken c) =>
+        Evaluar(await fuente.ComisionesSinCompensarAsync(ctx.IdSociedad, ctx.Ejercicio, c));
+
+    public static HallazgosSalud Evaluar(IReadOnlyList<ComisionPendiente> pendientes)
+    {
+        if (pendientes.Count == 0) return HallazgosSalud.Correcta("Las comisiones de las plataformas están compensadas con su 430", "facturacion/reservas/compensacion-comision");
+        var importe = pendientes.Sum(p => p.Importe);
+        var detalle = Apuntes.Lista(pendientes.GroupBy(p => p.Plataforma).Select(g => $"{g.Key}: {N(g.Count(), "factura", "facturas")} ({Imp(g.Sum(p => p.Importe))})"), 3);
+        return HallazgosSalud.De(new ElementoSalud("comisiones-sin-compensar", TipoSalud.Aviso, GravedadSalud.Atencion,
+            $"{N(pendientes.Count, "comisión sin compensar", "comisiones sin compensar")}",
+            $"{detalle}. Su 410 sigue sin compensar contra la 430 de la plataforma, que no cuadra con lo que ingresa el banco.",
+            null, new DestinoSalud(PantallaSalud.CompensarComisiones, "Compensar las comisiones"), "facturacion/reservas/compensacion-comision",
+            "Hay facturas de compra del ejercicio exportadas de un proveedor que es también el cliente de una regla de venta (una plataforma) sin su asiento de " +
+            "compensación (410 al Debe contra la 430 del mismo tercero al Haber); suelen ser las que contabilizó el ERP.",
+            "Pulsa «Compensar las comisiones» (doble clic o Intro): hace un asiento de compensación por factura, con la fecha de su asiento (o el día 1 del " +
+            "trimestre activo si es anterior). Si alguna no se puede compensar, el resultado dice por qué.")
+        { Cantidad = pendientes.Count, Importe = importe });
+    }
+}

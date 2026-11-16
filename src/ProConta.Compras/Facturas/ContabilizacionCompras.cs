@@ -522,6 +522,7 @@ public sealed class ContabilizadorCompras(IBaseDatos bd, IMotorAsientos motor, I
         if (propuesta.Descuadre != 0m) aviso += $" Lleva un ajuste de {Math.Abs(propuesta.Descuadre):0.00} € a la cuenta de redondeo.";
         if (cuentaNueva is not null) aviso += $" El proveedor pasa a la cuenta {cuentaNueva}.";
         if (creadas.Count > 0) aviso += $" He creado {(creadas.Count == 1 ? "la cuenta" : "las cuentas")} {string.Join(", ", creadas)}, que estaba{(creadas.Count == 1 ? "" : "n")} en los parámetros del ejercicio.";
+        aviso += await CompensarAsync(f, actor);
         return Resultado<ResultadoExportacionCompra>.Correcto(new ResultadoExportacionCompra(idAsiento, idContra, aviso, cuentaNueva));
     }
 
@@ -556,7 +557,7 @@ public sealed class ContabilizadorCompras(IBaseDatos bd, IMotorAsientos motor, I
                 Despues: async (s, _) => { await MarcarAsync(s, f.IdRegistro, false, generacion, null, null, null); return Resultado.Correcto(); }));
             if (!borrado.EsCorrecto) return Resultado<ResultadoExportacionCompra>.Fallo(borrado.Errores);
             f.Contabilizada = false;
-            return Resultado<ResultadoExportacionCompra>.Correcto(new ResultadoExportacionCompra(null, null, $"Exportación deshecha: he borrado el asiento {actual}."));
+            return Resultado<ResultadoExportacionCompra>.Correcto(new ResultadoExportacionCompra(null, null, $"Exportación deshecha: he borrado el asiento {actual}." + await CompensarAsync(f, actor)));
         }
         var contra = await ContraAsync(idAnulado, f, activo);
         if (!contra.EsCorrecto) return Resultado<ResultadoExportacionCompra>.Fallo(contra.Errores);
@@ -579,7 +580,18 @@ public sealed class ContabilizadorCompras(IBaseDatos bd, IMotorAsientos motor, I
             : cerrado
             ? $"El asiento {actual} es de un trimestre cerrado: queda como estaba y he hecho el contra-asiento {r.Valor[0]} ({Nombre(contra.Valor.Asiento.FechaContable)})."
             : $"Exportación deshecha: he quitado el asiento {actual}; queda el contra-asiento {r.Valor[0]} del asiento {idAnulado}, que es de un trimestre cerrado.";
-        return Resultado<ResultadoExportacionCompra>.Correcto(new ResultadoExportacionCompra(null, r.Valor[0], texto));
+        return Resultado<ResultadoExportacionCompra>.Correcto(new ResultadoExportacionCompra(null, r.Valor[0], texto + await CompensarAsync(f, actor)));
+    }
+
+    /// <summary>
+    /// Pone al día la compensación de la comisión si el proveedor es una plataforma (facturacion/reservas/compensacion-comision): va después del
+    /// lote de la factura y, si falla, no deshace la exportación; el aviso dice qué corregir y el aviso de Inicio la deja pendiente.
+    /// </summary>
+    private async Task<string> CompensarAsync(FacturaCompra f, Actor actor)
+    {
+        var r = await new CompensacionComision(bd, motor, _reloj).SincronizarAsync(f.IdRegistro, actor);
+        if (r.EsCorrecto) return r.Valor.Length == 0 ? "" : " " + r.Valor;
+        return " " + string.Join(" ", r.Errores.Select(e => e.AccionCorrectora is { } a ? $"{e.Mensaje} {a}" : e.Mensaje));
     }
 
     // ---------- piezas ----------

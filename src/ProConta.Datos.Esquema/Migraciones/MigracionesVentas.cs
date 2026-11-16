@@ -161,4 +161,61 @@ public static class MigracionesVentas
         new("ConexionesAvaibook", "OperadorUltimaImportacion", "Operador de la última importación."),
         new("ConexionesAvaibook", "ResumenUltimaImportacion", "Resumen de la última importación, sin datos personales."),
     ];
+
+    /// <summary>Clave de proceso de la plantilla de sistema de la compensación (la misma que PlantillaCompensacionComision.ClaveProceso).</summary>
+    public const string ClaveCompensacion = "comision-plataforma";
+
+    public const string NombreCompensacion = "Compensación de comisión de plataforma";
+
+    private const string DescripcionCompensacion =
+        "Compensa la comisión de una plataforma (Airbnb, Booking…) que la plataforma descuenta de lo que paga: la cuenta de acreedor (410) de la " +
+        "factura de comisión al Debe contra la cuenta de cliente (430) del mismo tercero al Haber, por lo que la factura llevó a la 410. Así la 430 " +
+        "queda con lo que ingresa el banco. Es una plantilla de sistema: la ejecuta la exportación de las facturas de compra y no se usa a mano.";
+
+    private const string EjemploCompensacion =
+        "{\"ejercicio\":2026,\"cuentas\":{\"4100001\":\"Plataforma Ejemplo Ltd.\",\"4300001\":\"Plataforma Ejemplo Ltd.\"}," +
+        "\"registros\":[{\"clave\":\"1\",\"fecha\":\"2026-03-31\",\"campos\":{\"CuentaProveedor\":\"4100001\",\"CuentaCliente\":\"4300001\"," +
+        "\"Importe\":152.40,\"Concepto\":\"Compensación comisión Plataforma Ejemplo Ltd. fra. EJ-0001\"}}]}";
+
+    /// <summary>Líneas de la plantilla de compensación: (orden, cuenta, lado, importe, concepto).</summary>
+    private static readonly (short Orden, string Cuenta, string Lado, string Importe, string Concepto)[] LineasCompensacion =
+    [
+        (1, "CuentaProveedor", "D", "Importe", "Concepto"),
+        (2, "CuentaCliente", "H", "Importe", "Concepto"),
+    ];
+
+    /// <summary>
+    /// Compensación de la comisión de las plataformas (facturacion/reservas/compensacion-comision 2026-11-16): la plantilla de sistema
+    /// «Compensación de comisión de plataforma», que da el asiento que lleva la 410 de cada factura de comisión contra la 430 del mismo tercero.
+    /// Solo añade la plantilla: no cambia ninguna tabla.
+    /// </summary>
+    public static Migracion CompensacionComision { get; } = new(
+        "20261116_1700_COMPENSACION_COMISION", 261116017,
+        "Ventas por facturar: plantilla de sistema de la compensación de la comisión de las plataformas (410 contra 430).",
+        "facturacion/reservas/compensacion-comision",
+        new PasoPersonalizado(
+            "Dar de alta la plantilla de sistema «" + NombreCompensacion + "»",
+            "INSERT PlantillasAsiento (" + NombreCompensacion + ", SISTEMA, PROCESO " + ClaveCompensacion + ", FECHA_ORIGEN) + PlantillasAsientoLineas " +
+            string.Join("; ", LineasCompensacion.Select(l => $"{l.Orden} {l.Cuenta} {l.Lado} {l.Importe} {l.Concepto}")) + "; ejemplo " + EjemploCompensacion,
+            async (s, e) => e.Tabla("PlantillasAsiento") is not null && await IdPlantillaCompensacionAsync(s) is not null,
+            async (s, _) => await CargarPlantillaCompensacionAsync(s)));
+
+    private static async Task<int?> IdPlantillaCompensacionAsync(ISesionDatos s) =>
+        await s.EscalarAsync("SELECT TOP 1 IdPlantillaAsiento FROM PlantillasAsiento WHERE ClaveProceso = ? AND IdSociedad IS NULL", ClaveCompensacion) is { } v and not DBNull
+            ? Convert.ToInt32(v, System.Globalization.CultureInfo.InvariantCulture) : null;
+
+    private static async Task CargarPlantillaCompensacionAsync(ISesionDatos s)
+    {
+        if (await IdPlantillaCompensacionAsync(s) is not null) return;
+        await s.EjecutarAsync(
+            "INSERT INTO PlantillasAsiento (Nombre, Descripcion, Tipo, IdSociedad, Origen, ClaveProceso, ReglaFecha, AgruparPorCuenta, Activa, MotivoPropuesto, Ejemplo, Orden, Clase) " +
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            NombreCompensacion, DescripcionCompensacion, "SISTEMA", DBNull.Value, "PROCESO", ClaveCompensacion, "FECHA_ORIGEN", false, true, DBNull.Value, EjemploCompensacion, (short)102, "PROCESO");
+        var id = await s.UltimoIdAsync();
+        foreach (var l in LineasCompensacion)
+            await s.EjecutarAsync(
+                "INSERT INTO PlantillasAsientoLineas (IdPlantillaAsiento, NumeroAsiento, Orden, PorCadaApunte, FormulaCuenta, Lado, FormulaImporte, FormulaConcepto, FormulaCentro, Condicion) " +
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                id, (short)1, l.Orden, false, l.Cuenta, l.Lado, l.Importe, l.Concepto, DBNull.Value, DBNull.Value);
+    }
 }
