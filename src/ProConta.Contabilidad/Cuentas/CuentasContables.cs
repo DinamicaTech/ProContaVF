@@ -319,7 +319,7 @@ public sealed class CatalogoCuentasAccess(IBaseDatos bd) : ICatalogoCuentas
                     "SELECT c.IdCuentaContable, c.IdSociedadEjercicio, c.Codigo, c.Nombre, c.SaldoInicial, se.Ejercicio FROM CuentasContables AS c " +
                     "INNER JOIN SociedadesEjercicios AS se ON c.IdSociedadEjercicio = se.IdSociedadEjercicio WHERE c.IdIdentidadContable = ? ORDER BY se.Ejercicio DESC",
                     f => (Id: f.Entero("IdCuentaContable"), Ejercicio: f.Entero("IdSociedadEjercicio"), Codigo: f.Texto("Codigo")?.Trim() ?? "", Nombre: f.Texto("Nombre")?.Trim() ?? "",
-                        Inicial: f.Decimal("SaldoInicial"), Anio: f.Entero("Ejercicio")),
+                        Inicial: f.Decimal("SaldoInicial"), Anio: int.TryParse(f.Texto("Ejercicio"), System.Globalization.NumberStyles.Integer, inv, out var anio) ? anio : 0),
                     idIdentidadContable);
                 if (cuentas.Count == 0)
                     return Resultado<BorradoCuenta>.Fallo(new Error("Cuentas.NoExiste", "La cuenta que hay que borrar no existe.", $"Identidad {idIdentidadContable}"));
