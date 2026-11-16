@@ -15,12 +15,13 @@ En la raíz del repositorio: `compilar.cmd` compila `ProContaVF.slnx` en Release
 ## Decisions
 - 2026-10-28 13:30 · Creado en la carga inicial de requisitos.
 - 2026-10-31 08:37 · Pruebas en local, sin compilación en GitHub (ver architecture 2026-10-31 08:37): cada hilo ejecuta las pruebas sin BD antes de abrir su PR y las pruebas contra Access se ejecutan en el equipo del propietario, contra la BD de pruebas, antes de pedir la validación. Sustituye la parte "ejecución de pruebas en cada PR" de su línea draft. Es el primer incremento del esqueleto técnico.
-- 2026-10-31 16:54 · Instalación en el Windows Server: carpeta versionada copiada con un script (con respaldo previo y actualización del esquema) y ACE x64 instalado aparte una sola vez; sin instalador MSI (resuelve P-14).
+- 2026-10-31 16:54 · [replaced by 2026-11-16 09:45] Instalación en el Windows Server: carpeta versionada copiada con un script (con respaldo previo y actualización del esquema) y ACE x64 instalado aparte una sola vez; sin instalador MSI (resuelve P-14).
 2026-10-31 18:02 · Comandos de entrega en la raíz: `compilar.cmd` (`dotnet build ProContaVF.slnx -c Release -p:Platform=x64`) y `probar.cmd` (compila y ejecuta todas las pruebas; con el argumento `sinbd` excluye las de la categoría `Access`).
 2026-10-31 18:02 · InformationalVersion calculada desde git en cada compilación (`Directory.Build.targets`): `ProContaVF-<rama>.<número de commits>+<sha corto>`, con «/» de la rama cambiada por «-»; sin git queda `ProContaVF-local`. Cumple el formato `<producto>-<rama>.<secuencia>` de RF-TEC-06 y añade el commit.
 2026-10-31 18:02 · Las pruebas que tocan Access llevan `[Trait("Categoria","Access")]` y trabajan siempre sobre una copia de la BD en una carpeta temporal, nunca sobre el original.
 - 2026-10-31 19:30 · `ejecutar.cmd` en la raíz abre ProContaVF.exe sin necesidad de compilar antes (si no está compilado, lo compila; las entregas se dejan ya compiladas en la carpeta) y pasa sus argumentos, por ejemplo `--bd "<ruta del accdb>"`. La versión de entrega se ve en la pantalla de acceso y en la barra de estado de la ventana principal.
 - 2026-11-01 09:31 · Validado por el propietario (desarrollos base).
+- 2026-11-16 09:45 · Instalación en el equipo del propietario (README 2026-11-14 14:02), no en el Windows Server: carpeta versionada copiada con un script a C:\Docs\ProConta (con respaldo previo de la versión anterior y actualización del esquema) y ACE x64 instalado aparte una sola vez; sin instalador MSI. El script lo usa el paso B de implantacion/proceso-de-paso-a-produccion.
 
 ## Requirements
 - 2026-10-28 12:28 · From sources/01_ESPECIFICACION_FUNCIONAL.docx § 27 RF-TEC-04..07: pruebas sin efectos externos, backups con ensayo de restauración, entregas versionadas, compilación completa
@@ -30,6 +31,7 @@ En la raíz del repositorio: `compilar.cmd` compila `ProContaVF.slnx` en Release
 - 2026-10-31 16:54 · answer: P-14 instalación → (a) carpeta copiada con un script y ACE x64 instalado aparte
 - 2026-10-31 08:37 · Derived from architecture: la solución, la compilación x64 y la ejecución local de las pruebas (sin BD y contra la BD de pruebas) forman el primer incremento del esqueleto técnico; no se configura compilación en GitHub.
 - 2026-10-31 17:53 · Derived from architecture: los comandos locales de compilación x64 y de pruebas (con y sin Access) y la versión de entrega calculada desde git.
+- 2026-11-16 09:45 · Derived from implantacion/proceso-de-paso-a-produccion: el script de publicación copia la versión compilada a C:\Docs\ProConta (equipo del propietario) con respaldo previo de la anterior.
 
 ## Hand-over
-- 2026-10-31 19:30 · Hecho: `compilar.cmd`, `probar.cmd [sinbd]`, `ejecutar.cmd` y la versión desde git, visible en la aplicación. Pendiente: el script de instalación en el Windows Server con respaldo previo y actualización del esquema (P-14) y el ensayo de restauración de copias (RF-TEC-05).
+- 2026-10-31 19:30 · Hecho: `compilar.cmd`, `probar.cmd [sinbd]`, `ejecutar.cmd` y la versión desde git, visible en la aplicación. Pendiente: el script de instalación en C:\Docs\ProConta del equipo del propietario (antes el Windows Server) con respaldo previo y actualización del esquema (P-14) y el ensayo de restauración de copias (RF-TEC-05).
