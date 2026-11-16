@@ -1,6 +1,5 @@
 ---
 title: Movimientos similares
-status: draft
 depends_on: [norma43/pantallas]
 threads:
   - 2026-10-29 17:19 · Validar prototipos de pantallas principales | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GGPu88XoVeXWyHsuxbrF2kK
@@ -8,7 +7,7 @@ threads:
 ---
 ## Summary
 Para una línea N43, lista las líneas con cuenta de destino cuyo concepto se parece más y permite asignar esa cuenta a la selección. Sustituye a `frmMovimientosN43Similares` de ProConta antiguo.
-Hecho en la pantalla de líneas N43 (pendiente de validar): «Movimientos similares…» en el menú contextual, debajo de «Asignar cuenta…», con su diálogo, y el avance de 3 resultados con «Usar» y «Ver todos» en el detalle. El cálculo es `ReglasSimilaresN43` y la lectura ligera de candidatos `ConsultaSimilaresN43` (`src/ProConta.Norma43/Similares`). El diálogo es `MovimientosSimilaresN43VM` con `DialogosLineasN43.Similares`. Se busca en el ejercicio de la línea y los dos anteriores. Sin cambios de esquema. Pruebas: `MovimientosSimilaresN43Tests` (sin BD) y `MovimientosSimilaresN43AccessTests`.
+Hecho en la pantalla de líneas N43 y validado por el propietario (PR #89): «Movimientos similares…» en el menú contextual, debajo de «Asignar cuenta…», con su diálogo, y el avance de 3 resultados con «Usar» y «Ver todos» en el detalle. El cálculo es `ReglasSimilaresN43` y la lectura ligera de candidatos `ConsultaSimilaresN43` (`src/ProConta.Norma43/Similares`). El diálogo es `MovimientosSimilaresN43VM` con `DialogosLineasN43.Similares`. Se busca en el ejercicio de la línea y los dos anteriores. Sin cambios de esquema. Pruebas: `MovimientosSimilaresN43Tests` (sin BD) y `MovimientosSimilaresN43AccessTests`.
 **Aceptación:** la lista sale ordenada por porcentaje (como número), sin la propia línea; asignar una cuenta la aplica a las líneas seleccionadas; ver asiento e ir a la línea funcionan desde cada resultado; el detalle de la línea muestra un avance con los mejores resultados.
 
 ## Decisions
@@ -44,8 +43,10 @@ Hecho en la pantalla de líneas N43 (pendiente de validar): «Movimientos simila
   - De las 193 líneas de 2026 sin cuenta, 169 tienen algún similar desde el 50 %.
 
   Se probó también a dar menos peso a las palabras que salen en muchas líneas, como «RECIBO», «SEPA» o «MANDATO». Acierta lo mismo (854 de 950 desde el 50 %), así que se mantiene el cálculo validado, que es más sencillo de explicar.
+- 2026-11-16 14:00 · Validado por el propietario («Ok, perfecto»): el nodo deja de ser borrador y se fusiona la PR #89.
 
 ## Requirements
 - 2026-10-29 17:08 · No veo las opciones de 'Buscar por importe' (sería un contextual que hace lo que hay en el formulario frmN43BusquedaPorImporte) ni la de 'Movimientos similares', que ejecuta el formulario frmMovimientosN43Similares. Ambas funcionalidades se merecen un nodo propio por debajo de Norma43
 - 2026-10-29 17:18 · Si tu cálculo de movimientos similares es parecido o mejor al antiguo, conservamos el nuevo
 - 2026-11-16 12:17 · Creo que podemos limitarlo a los últimos tres ejercicios (actual y dos anteriores).
+- 2026-11-16 14:00 · Ok, perfecto. Ya puedes fusionar PR
