@@ -100,6 +100,26 @@ public sealed class ModuloCompras(ServiciosCompras servicios, IAnfitrionPestanas
         _ = _recibidas.IniciarAsync();
     }
 
+    /// <summary>Abre Facturas recibidas con una factura concreta a la vista (registro de FacturasCompra).</summary>
+    public void AbrirFactura(int idRegistro)
+    {
+        if (_recibidas is not null)
+        {
+            anfitrion.Activar(_recibidas);
+            _recibidas.Mostrar(idRegistro);
+            return;
+        }
+        var recibidas = _recibidas = new FacturasRecibidasVM(this, prueba: false);
+        anfitrion.Abrir(recibidas);
+        _ = MostrarTrasIniciarAsync(recibidas, idRegistro);
+    }
+
+    private static async Task MostrarTrasIniciarAsync(FacturasRecibidasVM recibidas, int idRegistro)
+    {
+        await recibidas.IniciarAsync();
+        recibidas.Mostrar(idRegistro);
+    }
+
     internal void Cerrada(FacturasRecibidasVM pestana)
     {
         if (ReferenceEquals(pestana, _recibidas)) _recibidas = null;

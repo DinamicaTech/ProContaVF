@@ -64,6 +64,7 @@
       <MenuItem Header="{Binding AccionReasignar.Texto}" Command="{Binding AccionReasignar.Comando}" ToolTip="{Binding AccionReasignar.Ayuda}" />
       <MenuItem Header="{Binding AccionPalabras.Texto}" Command="{Binding AccionPalabras.Comando}" ToolTip="{Binding AccionPalabras.Ayuda}" InputGestureText="Ctrl+K" />
       <MenuItem Header="{Binding AccionTraspaso.Texto}" Command="{Binding AccionTraspaso.Comando}" ToolTip="{Binding AccionTraspaso.Ayuda}" />
+      <MenuItem Header="{Binding AccionBuscarImporte.Texto}" Command="{Binding AccionBuscarImporte.Comando}" ToolTip="{Binding AccionBuscarImporte.Ayuda}" InputGestureText="Ctrl+B" />
       <Separator />
       <MenuItem Header="{Binding AccionContabilizar.Texto}" Command="{Binding AccionContabilizar.Comando}" ToolTip="{Binding AccionContabilizar.Ayuda}" InputGestureText="Ctrl+E" />
       <MenuItem Header="{Binding AccionVerAsiento.Texto}" Command="{Binding AccionVerAsiento.Comando}" ToolTip="{Binding AccionVerAsiento.Ayuda}" InputGestureText="Doble clic" />
@@ -80,6 +81,7 @@
     <KeyBinding Key="F2" Command="{Binding AccionAsignar.Comando}" />
     <KeyBinding Key="E" Modifiers="Ctrl" Command="{Binding AccionContabilizar.Comando}" />
     <KeyBinding Key="K" Modifiers="Ctrl" Command="{Binding AccionPalabras.Comando}" />
+    <KeyBinding Key="B" Modifiers="Ctrl" Command="{Binding AccionBuscarImporte.Comando}" />
     <KeyBinding Key="F" Modifiers="Ctrl" Command="{Binding EnfocarBusquedaCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" />
   </UserControl.InputBindings>
 
@@ -210,6 +212,8 @@
                                 pc:TablaProConta.Ayuda="Contrapartida del asiento («Varias» si está repartida). Doble clic: su Mayor" />
             <DataGridTextColumn Header="Descripción cuenta destino" Binding="{Binding NombreCuentaDestino}" Width="200" ElementStyle="{StaticResource Celda.DestinoNombre}" pc:TablaProConta.Clave="desc-destino" />
             <DataGridTextColumn Header="Documento" Binding="{Binding Documento}" Width="96" ElementStyle="{StaticResource Texto.Celda.Mono}" pc:TablaProConta.Clave="documento" />
+            <DataGridTextColumn Header="Facturas" Binding="{Binding Facturas}" Width="110" ElementStyle="{StaticResource Texto.Celda.Mono}" pc:TablaProConta.Clave="facturas"
+                                pc:TablaProConta.Ayuda="Facturas de compra o de venta enlazadas con el movimiento («Buscar por importe…», Ctrl+B)" />
             <DataGridTextColumn Header="Estado" Binding="{Binding Estado}" Width="160" ElementStyle="{StaticResource Celda.Estado}" pc:TablaProConta.Clave="estado" />
             <DataGridTextColumn Header="Asiento" Binding="{Binding Asiento}" SortMemberPath="AsientoOrden" Width="70" ElementStyle="{StaticResource Texto.Celda.Importe}" pc:TablaProConta.Clave="asiento"
                                 HeaderStyle="{StaticResource Tabla.Cabecera.Derecha}" pc:TablaProConta.Ayuda="Número del asiento. Doble clic en la línea: verlo" />
@@ -238,6 +242,8 @@
                      ToolTip="Concepto del banco tal cual, con sus referencias: puedes seleccionarlo y copiarlo" />
             <TextBlock Text="Documento" Style="{StaticResource Etiqueta.Campo}" />
             <TextBlock Text="{Binding Actual.Documento}" Style="{StaticResource Texto.Mono}" />
+            <TextBlock Text="Facturas enlazadas" Style="{StaticResource Etiqueta.Campo}" />
+            <TextBlock Text="{Binding Actual.AyudaFacturas}" TextWrapping="Wrap" />
             <TextBlock Text="Cuenta de destino" Style="{StaticResource Etiqueta.Campo}" />
             <TextBlock Text="{Binding DetalleDestinos}" TextWrapping="Wrap" />
             <TextBlock Text="Doble clic en la línea: su asiento (o el que generaría). Clic derecho: acciones." Style="{StaticResource Texto.Apagado}" TextWrapping="Wrap" Margin="0,14,0,0" />

@@ -86,17 +86,26 @@ public sealed class ServicioLineasN43(IBaseDatos bd)
                         $"Elige una cuenta del ejercicio {l.Ejercicio} o dala de alta en él (en el buscador, «Crear subcuenta…»).");
                     continue;
                 }
-                await s.EjecutarAsync("UPDATE ImputacionesLineaExtractoBancario SET Estado = 'DESCARTADA' WHERE IdLineaExtractoBancario = ? AND Estado <> 'DESCARTADA'", id);
-                await s.EjecutarAsync(
-                    "INSERT INTO ImputacionesLineaExtractoBancario (IdLineaExtractoBancario, IdIdentidadContable, Rol, ImporteFirmado, Origen, Confianza, Estado, Concepto, IdCentroCoste, IdPalabraClaveBancaria) " +
-                    "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                    id, idIdentidad, AsignadorCuentasN43.Rol, l.Sentido == ServicioConciliacionN43.Cargo ? l.Importe : -l.Importe, origen, null, AsignadorCuentasN43.Estado,
-                    l.Concepto, null, null);
+                await ImputarAsync(s, l, idIdentidad, origen);
                 hechas.Add(id);
                 if (l.IdAsiento is not null) recontabilizar.Add(id);
             }
             return new ResultadoLineasN43(hechas, rechazadas, recontabilizar);
         });
+    }
+
+    /// <summary>
+    /// Pone a la línea la cuenta indicada por el importe entero del movimiento: descarta (sin borrar) sus imputaciones vivas y añade la
+    /// nueva con su origen. No comprueba nada: lo hace quien la llama, dentro de su transacción.
+    /// </summary>
+    internal static async Task ImputarAsync(ISesionDatos s, LineaEscritura l, int idIdentidad, string origen)
+    {
+        await s.EjecutarAsync("UPDATE ImputacionesLineaExtractoBancario SET Estado = 'DESCARTADA' WHERE IdLineaExtractoBancario = ? AND Estado <> 'DESCARTADA'", l.Id);
+        await s.EjecutarAsync(
+            "INSERT INTO ImputacionesLineaExtractoBancario (IdLineaExtractoBancario, IdIdentidadContable, Rol, ImporteFirmado, Origen, Confianza, Estado, Concepto, IdCentroCoste, IdPalabraClaveBancaria) " +
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            l.Id, idIdentidad, AsignadorCuentasN43.Rol, l.Sentido == ServicioConciliacionN43.Cargo ? l.Importe : -l.Importe, origen, null, AsignadorCuentasN43.Estado,
+            l.Concepto, null, null);
     }
 
     // ---------- traspaso entre bancos ----------
@@ -284,7 +293,7 @@ public sealed class ServicioLineasN43(IBaseDatos bd)
             "Ese asiento no lo generó ProContaVF y no se regenera desde aquí.", "Corrígelo desde el Mayor con una plantilla de corrección o un asiento manual.")
         : null;
 
-    private static async Task<Dictionary<int, LineaEscritura>> LeerAsync(ISesionDatos s, string idSociedad, IReadOnlyCollection<int> ids)
+    internal static async Task<Dictionary<int, LineaEscritura>> LeerAsync(ISesionDatos s, string idSociedad, IReadOnlyCollection<int> ids)
     {
         var r = new Dictionary<int, LineaEscritura>();
         var ejercicios = (await s.ConsultarAsync("SELECT IdSociedadEjercicio, Ejercicio, EjercicioCerrado FROM SociedadesEjercicios WHERE IdSociedad = ?",

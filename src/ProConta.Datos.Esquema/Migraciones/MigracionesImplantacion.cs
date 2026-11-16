@@ -70,4 +70,21 @@ public static class MigracionesNorma43
         new AnadirColumna("LotesImportacionBancaria", "MotivoReversion", "LONGTEXT"),
         new CrearIndice("ExtractosBancarios", "IX_Extractos_CuentaFechas",
             "CREATE INDEX IX_Extractos_CuentaFechas ON ExtractosBancarios (IdCuentaBancaria, FechaInicio, FechaFin)"));
+
+    /// <summary>
+    /// Búsqueda por importe (norma43/busqueda-por-importe 2026-11-16): la factura de venta guarda el movimiento bancario con que se
+    /// cobró, como ya hace FacturasCompra.LineaN43 con el pago. Es la marca «conciliada», distinta de la de exportada (su asiento 430).
+    /// </summary>
+    public static Migracion BusquedaPorImporte { get; } = new(
+        "20261116_1100_BUSQUEDA_IMPORTE_N43", 261116011,
+        "Norma 43: movimiento bancario enlazado a cada factura de venta (búsqueda por importe).",
+        "norma43/busqueda-por-importe",
+        new AnadirColumna("Facturas", "LineaN43", "LONG"),
+        new CrearIndice("Facturas", "IX_Facturas_LineaN43", "CREATE INDEX IX_Facturas_LineaN43 ON Facturas (LineaN43)"))
+    {
+        Descripciones =
+        [
+            new("Facturas", "LineaN43", "Movimiento bancario (LineasExtractoBancario) con que se cobró la factura, enlazado con «Buscar por importe»: la factura está conciliada. Nulo si no."),
+        ],
+    };
 }

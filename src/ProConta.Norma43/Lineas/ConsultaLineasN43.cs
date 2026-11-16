@@ -30,12 +30,13 @@ public sealed record DestinoLineaN43(int IdIdentidadContable, string? Cuenta, st
 /// <param name="Ejercicio">Año de la fecha contable del movimiento (la fecha valor salvo que sea del año anterior a la de operación).</param>
 /// <param name="CuentaOrigen">La 572 de la cuenta bancaria en la fecha del movimiento, con su código del ejercicio de la línea.</param>
 /// <param name="Tipo">ConceptosN43.ConceptoReducido (norma43/conciliacion 2026-11-13 10:50), calculado al vuelo; null si ninguna regla encaja.</param>
+/// <param name="Facturas">Números de las facturas enlazadas con la línea (norma43/busqueda-por-importe), separados por comas; null si ninguna.</param>
 public sealed record LineaN43(
     int Id, int IdLote, int? IdCuentaBancaria, string NombreBanco, string Ccc, string Entidad,
     DateTime FechaOperacion, DateTime FechaValor, int Ejercicio, bool EjercicioCerrado,
     string Sentido, decimal Importe, string? ConceptoComun, string? Concepto, string? Documento, string? Referencia1, string? Referencia2,
     string? CuentaOrigen, string? NombreCuentaOrigen, IReadOnlyList<DestinoLineaN43> Destinos,
-    int? IdAsiento, bool AsientoPropio, string? Tipo)
+    int? IdAsiento, bool AsientoPropio, string? Tipo, string? Facturas = null)
 {
     /// <summary>Importe con signo desde el punto de vista del banco: positivo si entra dinero (abono), negativo si sale (cargo).</summary>
     public decimal ImporteFirmado => Sentido == ServicioConciliacionN43.Abono ? Importe : -Importe;
@@ -157,6 +158,23 @@ public sealed class ConsultaLineasN43(IBaseDatos bd)
             }
         }
 
+        // Facturas enlazadas (norma43/busqueda-por-importe): las de compra y las de venta que apuntan a la línea.
+        var facturas = new Dictionary<int, List<string>>();
+        foreach (var bloque in filas.Select(f => f.Id).Chunk(300))
+        {
+            var lista = Lista(bloque);
+            var enlazadas = (await s.ConsultarAsync($"SELECT LineaN43, NumeroFactura FROM FacturasCompra WHERE LineaN43 IN ({lista})",
+                    f => (Linea: f.Entero("LineaN43"), Numero: Limpio(f.Texto("NumeroFactura")) ?? "(sin número)")))
+                .Concat(await s.ConsultarAsync(
+                    $"SELECT f.LineaN43, s.Prefijo, f.NumeroFactura FROM Facturas AS f LEFT JOIN SeriesFacturacion AS s ON f.IdSerie = s.IdSerie WHERE f.LineaN43 IN ({lista})",
+                    f => (Linea: f.Entero("LineaN43"), Numero: (Limpio(f.Texto("Prefijo")) ?? "") + (Limpio(f.Texto("NumeroFactura")) ?? ""))));
+            foreach (var e in enlazadas)
+            {
+                if (!facturas.TryGetValue(e.Linea, out var l)) facturas[e.Linea] = l = [];
+                l.Add(e.Numero);
+            }
+        }
+
         // La 572 de cada cuenta bancaria según la fecha, y la cuenta puente.
         var configuraciones = (await s.ConsultarAsync(
                 "SELECT cfg.IdCuentaBancaria, cfg.IdIdentidadContableBanco, cfg.FechaDesde, cfg.FechaHasta, cb.Nombre FROM ConfiguracionesContablesCuentaBancaria AS cfg " +
@@ -216,7 +234,8 @@ public sealed class ConsultaLineasN43(IBaseDatos bd)
             var nombreBanco = f.IdCuentaBancaria is int ib ? nombresBanco.GetValueOrDefault(ib) : null;
             r.Add(new LineaN43(f.Id, f.IdLote, f.IdCuentaBancaria, nombreBanco ?? banco?.Nombre ?? f.Ccc, f.Ccc, f.Entidad, f.FechaOperacion, f.FechaValor, anio,
                 porAnio.TryGetValue(anio, out var ej) && ej.Cerrado, f.Sentido, f.Importe, f.ConceptoComun, f.Concepto, f.Documento, f.Referencia1, f.Referencia2,
-                banco?.Codigo, banco?.Nombre, destinos, c?.Asiento, c?.Propio ?? false, tipo));
+                banco?.Codigo, banco?.Nombre, destinos, c?.Asiento, c?.Propio ?? false, tipo,
+                facturas.TryGetValue(f.Id, out var fs) ? string.Join(", ", fs.OrderBy(x => x, StringComparer.CurrentCulture)) : null));
         }
         return r.OrderBy(l => l.FechaOperacion).ThenBy(l => l.Id).ToList();
     });

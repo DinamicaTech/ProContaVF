@@ -230,8 +230,10 @@ public partial class VentanaPrincipal : Window
             {
                 AbrirMayor = (cuentasMayor, anios) => _mayor.Abrir(cuentasMayor, anios),
                 VerAsiento = id => _mayor.VerAsientoAsync(id),
+                AbrirFacturaVenta = id => _facturacion.AbrirFactura(id),
+                AbrirFacturaCompra = id => _compras.AbrirFactura(id),
             },
-            _area, new ProConta.Norma43.UI.Vistas.DialogosLineasN43(cuentas, () => this));
+            _area, new ProConta.Norma43.UI.Vistas.DialogosLineasN43(cuentas, () => this), new ProConta.Norma43.Busqueda.BusquedaPorImporteN43(bd));
         // Nóminas (nominas y nominas/pantallas): pantalla por periodo, pestaña Nóminas de la ficha del empleado y Excel recibidos por correo.
         var importacionNominas = new ProConta.Nominas.Importacion.ServicioImportacionNominas(bd);
         var contabilizacionNominas = new ProConta.Nominas.Contabilizacion.ServicioContabilizacionNominas(bd);
