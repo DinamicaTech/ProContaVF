@@ -133,7 +133,7 @@ public sealed class ServicioRemesasN43
                     throw new InvalidOperationException($"La factura {preparados[i].Factura.Numero} dejó de estar pendiente durante la explosión.");
             await ImputarOrigenSiFaltaAsync(s, l, ficticia.Identidad, OrigenRemesa);
             return new ResultadoRemesaN43(idExtracto, ids,
-                $"{l.Rotulo} explotada en {ids.Count} recibo(s) en «{ficticia.Nombre}»; las facturas quedan cobradas.", null);
+                $"{l.Rotulo} explotado en {ids.Count} recibo(s) en «{ficticia.Nombre}»; las facturas quedan cobradas.", null);
         });
     }
 
@@ -241,7 +241,7 @@ public sealed class ServicioRemesasN43
                 await ImputarAsync(s, l.Id, identidad, l.Sentido, l.Importe, OrigenDevolucion, ReglasRemesasN43.ConceptoRecibo(r.Factura, devolucion: true));
                 if (!await CobrosFacturasN43.RegistrarDevolucionAsync(s, r.Factura.Id, r.IdLineaRecibo, l.Id))
                     throw new InvalidOperationException($"El recibo de la factura {r.Factura.Numero} dejó de estar cobrado durante la conciliación.");
-                return new ResultadoRemesaN43(null, [], $"{l.Rotulo} conciliada con la factura {r.Factura.Numero}: vuelve a la cuenta del cliente y queda pendiente de cobro.", null);
+                return new ResultadoRemesaN43(null, [], $"{l.Rotulo} conciliado con la factura {r.Factura.Numero}: va a la cuenta del cliente y la factura queda pendiente de cobro.", null);
             }
 
             var ficticia = await CuentaFicticiaAsync(s, idSociedad, l, CuentaDevueltos);
@@ -253,7 +253,7 @@ public sealed class ServicioRemesasN43
                     throw new InvalidOperationException($"El recibo de la factura {recibos[i].Recibo.Factura.Numero} dejó de estar cobrado durante la conciliación.");
             await ImputarOrigenSiFaltaAsync(s, l, ficticia.Identidad, OrigenDevolucion);
             return new ResultadoRemesaN43(idExtracto, ids,
-                $"{l.Rotulo} conciliada con {ids.Count} facturas devueltas, desglosada en «{ficticia.Nombre}»; las facturas quedan pendientes de cobro.", null);
+                $"{l.Rotulo} conciliado con {ids.Count} facturas devueltas, desglosado en «{ficticia.Nombre}»; las facturas quedan pendientes de cobro.", null);
         });
     }
 

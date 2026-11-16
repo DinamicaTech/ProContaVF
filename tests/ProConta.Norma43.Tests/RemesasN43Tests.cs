@@ -74,6 +74,27 @@ public sealed class RemesasN43Tests
     }
 
     [Fact]
+    public void El_menu_ofrece_cada_accion_de_remesas_sobre_una_sola_linea_que_la_admite()
+    {
+        var remesa = Abono(new DateTime(2026, 9, 4), 1300m);
+        var a = AccionesLineasN43.Evaluar([remesa]);
+        Assert.Null(a.ExplotarRemesa);
+        Assert.NotNull(a.ConciliarDevueltas);
+        Assert.NotNull(a.DeshacerExplosion);
+        var explotada = AccionesLineasN43.Evaluar([remesa with { IdExtractoDesglose = 9 }]);
+        Assert.NotNull(explotada.ExplotarRemesa);
+        Assert.Null(explotada.DeshacerExplosion);
+        var devolucion = AccionesLineasN43.Evaluar([remesa with { Sentido = "D" }]);
+        Assert.Null(devolucion.ConciliarDevueltas);
+        Assert.NotNull(devolucion.ExplotarRemesa);
+        var conciliada = remesa with { Sentido = "D", Destinos = [new DestinoLineaN43(1, "4300001", "Cliente", 50m, ServicioRemesasN43.OrigenDevolucion, null, null)] };
+        Assert.Null(AccionesLineasN43.Evaluar([conciliada]).DeshacerExplosion);
+        Assert.NotNull(AccionesLineasN43.Evaluar([conciliada]).ConciliarDevueltas);
+        Assert.Contains("una sola", AccionesLineasN43.Evaluar([remesa, remesa with { Id = 2 }]).ExplotarRemesa);
+        Assert.Contains("cerrado", AccionesLineasN43.Evaluar([remesa with { EjercicioCerrado = true }]).ExplotarRemesa);
+    }
+
+    [Fact]
     public void Los_bloqueos_dicen_que_hacer()
     {
         var remesa = Abono(new DateTime(2026, 9, 4), 1300m);

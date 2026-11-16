@@ -12,6 +12,17 @@ public sealed class ReglasErpTests
         new(num, 1, "Servicio de prueba", cantidad, precio, iva, null, cabecera, false, 0m, 0m, null);
 
     [Fact]
+    public void La_forma_y_el_dia_de_pago_salen_del_esquema_de_fraccionamiento()
+    {
+        // Como los esquemas del ERP: «0 DÍAS DOMICILIADO» con forma 110 y día 1; «DOMICILIADO DÍA 5» sin forma; transferencia 129.
+        Assert.Equal(((byte?)110, (byte?)1), ReglasErp.PagoEsquema("0 DÍAS DOMICILIADO", 110, 1));
+        Assert.Equal(((byte?)ReglasErp.FormaPagoDomiciliado, (byte?)5), ReglasErp.PagoEsquema("DOMICILIADO DÍA 5", null, 5));
+        Assert.Equal(((byte?)129, (byte?)1), ReglasErp.PagoEsquema("0 DÍAS TRANSFERENCIA", 129, 1));
+        Assert.Equal(((byte?)null, (byte?)null), ReglasErp.PagoEsquema("OTRO", 0, 0));
+        Assert.Equal(((byte?)null, (byte?)null), ReglasErp.PagoEsquema(null, null, 40));
+    }
+
+    [Fact]
     public void El_total_es_la_suma_de_cantidad_por_precio_sin_las_lineas_de_cabecera()
     {
         var lineas = new[] { Linea(2m, 121m), Linea(0m, 0m, cabecera: true), Linea(1m, 60.5m), Linea(5m, 999m, cabecera: true) };

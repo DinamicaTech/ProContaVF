@@ -39,6 +39,7 @@ Hecha la PR 1 y validada por el propietario el 2026-11-13: pestaña «Líneas N4
 - 2026-11-13 13:20 · Validado por el propietario (PR 1, #61: «Todo está perfecto», con el cambio del filtro de importe): el nodo deja de ser borrador. Las PR 2 y PR 3 van en nodos nuevos con su propio hilo (Requirements 2026-11-13 12:15).
 - 2026-11-16 11:30 · Buscar por importe (norma43/busqueda-por-importe 2026-11-16 11:30): opción «Buscar por importe…» (Ctrl+B) en el menú contextual, tras «Traspaso entre bancos», con una o varias líneas (también contabilizadas; no las de ejercicios cerrados); columna «Facturas» con los números de las facturas enlazadas y la misma información en el detalle. `AccionesLineasN43.BuscarPorImporte` da el motivo cuando no se puede. El avance de 3 resultados con «Ver todos» en el detalle de la ronda 3 del prototipo (2026-10-29 17:40) no se hace: la búsqueda se abre desde el menú.
 
+- 2026-11-16 12:20 · Remesas y devoluciones (norma43/remesas 2026-11-16 12:20): en el menú contextual, tras «Buscar por importe…», «Explotar remesa…», «Conciliar facturas devueltas…» y «Deshacer explosión», con una sola línea (`AccionesLineasN43.ExplotarRemesa`, `ConciliarDevueltas` y `DeshacerExplosion` dan el motivo cuando no se puede); en la cabecera, el botón general «Explotar remesas pendientes». `LineaN43` lleva Especial (de la palabra clave), IdExtractoDesglose e IdLineaOrigen, y la columna «Facturas» enseña también las de los recibos y las devoluciones. En el diálogo de palabras clave, la casilla de remesa de un cargo es «Es un recibo devuelto» (Especial 6).
 ## Requirements
 - 2026-10-28 12:28 · From sources/01_ESPECIFICACION_FUNCIONAL.docx § 19 RF-N43-03, 04: pantalla fiel a maqueta, selección explícita
 - 2026-10-28 12:28 · From sources/traspaso-2026-10-03/referencias/Norma43/docs/ENTREGA_VISUAL_LINEAS_BANCARIAS_20261001.md: entrega visual anterior
@@ -76,3 +77,4 @@ Hecha la PR 1 y validada por el propietario el 2026-11-13: pestaña «Líneas N4
 - 2026-11-13 12:15 · PR3- Lo mismo que PR3, nuevo nodo y a la espera de PR1 y PR2
 - 2026-11-13 13:16 · Todo está perfecto, lo único es que la búsqueda por importe es complicada al ser exacta. Si el importe que se introduce no tiene decimales, busca los importes que cuadren la parte entera. Si el importe tiene decimales, busca con un margen de +- 0,50.
 - 2026-11-13 13:16 · Correcto
+- 2026-11-16 12:20 · Derived from norma43/remesas: opciones «Explotar remesa…», «Conciliar facturas devueltas…» y «Deshacer explosión» en el menú contextual y botón de cabecera «Explotar remesas pendientes».

@@ -19,8 +19,10 @@ Hecho y validado por el propietario el 2026-11-13 (PR #55): `ReglasPalabrasClave
 - 2026-11-13 09:27 · Validado por el propietario (reglas de encaje y desempate, remesas con su cuenta, comodín, sin fecha mínima y las 6 diferencias con el ERP explicadas): deja de ser borrador.
 - 2026-11-13 12:45 · Reasignar desde la pantalla de líneas N43 (norma43/pantallas 2026-11-13 12:45): `ReasignarLineasAsync` trata solo las líneas indicadas sin asiento; descarta (DESCARTADA, sin borrar) las imputaciones que puso antes el motor (Origen PALABRA_CLAVE) y vuelve a elegir con las palabras clave de ahora, en una transacción. Es la única excepción a «nunca se pisa nada», y solo cuando el operador lo pide: las cuentas puestas a mano, por un traspaso o por la migración del ERP, y las líneas contabilizadas o de lotes revertidos, no se tocan. Sin selección, la pantalla usa `AsignarAsync` (solo las que no tienen cuenta).
 
+- 2026-11-16 12:20 · Especial 6 (norma43/remesas 2026-11-16 12:20): palabra clave de recibo devuelto, que como la de remesa (5) puede ir sin cuenta; la línea se concilia después con sus facturas devueltas.
 ## Requirements
 - 2026-11-12 16:47 · P4. Ok, lo haremos en un nuevo hilo
 - 2026-11-12 16:47 · draft: Asignar automáticamente la cuenta de destino a las líneas importadas con las palabras clave bancarias.
 - 2026-11-13 09:27 · Ok a todo
 - 2026-11-13 12:45 · Derived from norma43/pantallas: reasignar por palabras clave las líneas seleccionadas, volviendo a elegir las que asignó una palabra clave.
+- 2026-11-16 12:20 · Derived from norma43/remesas: palabras clave de recibo devuelto (Especial 6), que pueden ir sin cuenta.
