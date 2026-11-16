@@ -1,7 +1,6 @@
 ---
 title: Entorno de pruebas
 depends_on: [plataforma/configuracion, plataforma/contenedor, plataforma/conector-claude, plataforma/entrega, datos/esquema, correo/envio, informes/reporting, implantacion/proceso-de-paso-a-produccion]
-status: draft
 threads:
   - 2026-11-16 14:30 · Crear entorno de pruebas aislado | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GH9N4kKi6JhxqiXZ88bqrHk
 ---
@@ -19,6 +18,7 @@ Código: `InfoEntorno`, `SelectorEntorno` y `RefrescoPruebas` en `src/ProConta.P
 - 2026-11-16 14:05 · En la copia: todo el correo desviado a la dirección que se indica al refrescar; las cuentas de correo de producción sin POP3 ni borrado del buzón; la cuenta de pruebas que el operador dé de alta en la copia (p. ej. un buzón de pruebas de la sociedad) se conserva en los refrescos siguientes; los envíos pendientes de producción se cancelan; VeriFactu desactivado, con el entorno PRUEBAS y las direcciones de pruebas de la AEAT. Se conservan el token de Avaibook (solo hace GET) y las credenciales de Textract, que el propietario necesita para probar, y el certificado (la consulta de NIF lo usa y solo lee).
 - 2026-11-16 14:05 · En pruebas Claude puede escribir y probar sin pedir permiso cada vez; en producción sigue la regla del MVP: leer sí, escribir solo con permiso del propietario (README 2026-11-14).
 - 2026-11-16 14:05 · Las nuevas versiones reemplazan el exe de `C:\Docs\ProConta` guardando el anterior (plataforma/entrega), y el mismo programa abre los dos entornos. Una BD con migraciones pendientes se actualiza al entrar con «Actualizar ahora» (plataforma/configuracion 2026-11-16 14:05).
+- 2026-11-16 16:43 · Validado por el propietario: el nodo pasa a estable (PR #90).
 
 ## Requirements
 - 2026-11-16 13:43 · Ahora que estamos cerquita de pasar a producción, creo que sería muy útil poder disponer de un entorno de pruebas donde poder validar cosas.
