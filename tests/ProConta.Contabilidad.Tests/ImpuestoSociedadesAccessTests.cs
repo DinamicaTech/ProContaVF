@@ -237,6 +237,40 @@ public sealed class ImpuestoSociedadesAccessTests(ITestOutputHelper salida) : ID
         Assert.Equal(LectorDatosFiscalesAeat.UrlDefecto, await servicio.UrlDatosFiscalesAsync());
     }
 
+    [Fact]
+    public async Task ElFicheroDeHaciendaSeGuardaEnLaCarpetaDeDocumentosYSeVuelveALeer()
+    {
+        await PrepararAsync();
+        var servicio = Servicio(Enero);
+        var d = await servicio.DatosAsync(_ctx);
+        var html = System.Text.Encoding.Latin1.GetBytes(DatosFiscalesAeatTests.Html(2026, "B12345674", pagos: [("2T", "500,00")],
+            alquileres: [("X0000000X", "INQUILINO SINTETICO", "1.800,00")], bases: null, presentado: null));
+
+        // Sin carpeta de documentos no hay dónde guardar ni de dónde leer.
+        await Bd.EjecutarAsync(s => s.EjecutarAsync("UPDATE Sociedades SET RutaDocumentos = NULL WHERE IdSociedad = ?", _ctx.IdSociedad));
+        Assert.Null(await servicio.RutaDatosFiscalesAsync(_ctx));
+        Assert.Null(await servicio.GuardarDatosFiscalesAsync(_ctx, html));
+        Assert.Null(await servicio.LeerDatosFiscalesGuardadosAsync(_ctx, d));
+
+        var raiz = Path.Combine(Path.GetTempPath(), "proconta-is-" + Guid.NewGuid().ToString("N"));
+        try
+        {
+            await Bd.EjecutarAsync(s => s.EjecutarAsync("UPDATE Sociedades SET RutaDocumentos = ? WHERE IdSociedad = ?", raiz, _ctx.IdSociedad));
+            var ruta = Path.Combine(raiz, "2026", "Impuestos", "DatosFiscalesIS-2026.htm");
+            Assert.Equal(ruta, await servicio.RutaDatosFiscalesAsync(_ctx));
+            Assert.Null(await servicio.LeerDatosFiscalesGuardadosAsync(_ctx, d)); // todavía no se ha importado nada
+            Assert.Equal(ruta, await servicio.GuardarDatosFiscalesAsync(_ctx, html));
+            Assert.Equal(html, await File.ReadAllBytesAsync(ruta));
+            var leidos = await servicio.LeerDatosFiscalesGuardadosAsync(_ctx, d);
+            Assert.True(leidos is { EsCorrecto: true });
+            Assert.Equal([500m, 1800m], leidos!.Valor.Retenciones.Select(r => r.Importe));
+        }
+        finally
+        {
+            if (Directory.Exists(raiz)) Directory.Delete(raiz, recursive: true);
+        }
+    }
+
     /// <summary>
     /// Paridad con la hoja de la gestoría de 2025 contra una BD de validación del propietario, solo si PROCONTA_BD_VALIDACION_IS apunta a
     /// ella (se actualiza y se lee una copia temporal; el original no se abre). Sin la variable no hace nada. Escribe en la salida las cifras

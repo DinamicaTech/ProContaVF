@@ -195,4 +195,28 @@ public sealed class ImpuestoSociedadesTests
         Assert.Equal(calculada.BonificacionPropuesta / 2m, escrita.BonificacionPropuesta);
         Assert.Contains(escrita.Avisos, a => a.Contains("renta de viviendas de 20.000,00 €"));
     }
+
+    [Fact]
+    public void LaRentaDeViviendasSeDesglosaPisoAPisoYSumaLaRenta()
+    {
+        // Dos pisos con 20.000 y 10.000 de alquiler (70 a 75) y un ingreso extraordinario del piso B que no pesa en el reparto; 10.001 de generales al 50 %.
+        var v = new RentaViviendasDetalle(31000m, 8000m, 10001m, 30000m, 60000m,
+        [
+            new(PartidaRentaViviendas.IngresoViviendas, "300 Piso A", "7520000", "Alquileres", 20000m, 12),
+            new(PartidaRentaViviendas.IngresoViviendas, "301 Piso B", "7520000", "Alquileres", 10000m, 12),
+            new(PartidaRentaViviendas.IngresoViviendas, "301 Piso B", "7780000", "Ingresos excepcionales", 1000m, 1),
+            new(PartidaRentaViviendas.GastoDirecto, "300 Piso A", "6220000", "Reparaciones", 5000m, 3),
+            new(PartidaRentaViviendas.GastoDirecto, "301 Piso B", "6810000", "Amortización", 3000m, 12),
+            new(PartidaRentaViviendas.GastoIndirecto, "(sin centro)", "6230000", "Gestoría", 10001m, 12),
+            new(PartidaRentaViviendas.OtroIngresoOrdinario, "100 Locales", "7520000", "Alquileres", 30000m, 12),
+        ]);
+        var pisos = v.PorCentro();
+        Assert.Equal(["300 Piso A", "301 Piso B"], pisos.Select(p => p.Centro));
+        // 5.000,50 de generales imputados: 2/3 al piso A (3.333,67; el céntimo que sobra va al de más ingresos) y 1/3 al B (1.666,83).
+        Assert.Equal([(20000m, 5000m, 3333.67m, 11666.33m), (11000m, 3000m, 1666.83m, 6333.17m)], pisos.Select(p => (p.Ingresos, p.GastosDirectos, p.GastosGenerales, p.Renta)));
+        Assert.Equal(v.IndirectosImputados, pisos.Sum(p => p.GastosGenerales));
+        Assert.Equal(v.Renta, pisos.Sum(p => p.Renta));
+        Assert.Equal([2, 3], pisos.Select(p => p.Partidas.Count));
+        Assert.Empty(new RentaViviendasDetalle(0m, 0m, 500m, 0m, 0m, []).PorCentro());
+    }
 }
