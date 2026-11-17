@@ -138,8 +138,9 @@ public sealed class ServicioFacturasPendientes(IBaseDatos bd, IMotorAsientos mot
             foreach (var c in new[] { ctx, siguiente })
             {
                 if ((await cuentas.ResolverAsync(c, codigo)).EsCorrecto) continue;
-                var nombre = await NombreCuentaAsync(ctx, codigo, p.Configuracion);
-                var alta = await cuentas.AltaSubcuentaAsync(c, codigo, nombre);
+                // Si el código ya es de una cuenta de la empresa en otro ejercicio, se da de alta esa misma cuenta (su identidad); si no, una nueva.
+                var (identidad, nombre) = await CuentaDeLaEmpresaAsync(ctx, codigo, p.Configuracion);
+                var alta = identidad is int id ? await cuentas.AltaEnEjercicioAsync(c, id, codigo, nombre) : await cuentas.AltaSubcuentaAsync(c, codigo, nombre);
                 if (!alta.EsCorrecto) return Resultado<ConfirmacionFacturasPendientes>.Fallo(alta.Errores);
                 creadas.Add($"{alta.Valor.Codigo} «{alta.Valor.Nombre}» en {c.Ejercicio}");
             }
@@ -310,16 +311,21 @@ public sealed class ServicioFacturasPendientes(IBaseDatos bd, IMotorAsientos mot
             return (filas.Where(x => x.Cuenta is not null).Select(x => new LineaFacturaPendiente(x.Cuenta!, x.Debe, x.Haber, x.Concepto, x.Centro)).ToList(), filas.Min(x => x.Id));
         });
 
-    /// <summary>Nombre para dar de alta una cuenta que falta: el que tiene en otro ejercicio de la empresa o, para las del proceso, el de siempre.</summary>
-    private Task<string> NombreCuentaAsync(ContextoSociedadEjercicio ctx, string codigo, ConfiguracionFacturasPendientes cfg) => bd.EjecutarAsync(async s =>
-    {
-        var v = await s.EscalarAsync(
-            "SELECT TOP 1 c.Nombre FROM CuentasContables AS c INNER JOIN SociedadesEjercicios AS e ON c.IdSociedadEjercicio = e.IdSociedadEjercicio " +
-            "WHERE e.IdSociedad = ? AND c.Codigo = ? ORDER BY e.Ejercicio DESC", ctx.IdSociedad, codigo);
-        if (v is string n && n.Trim().Length > 0) return n.Trim();
-        return codigo == cfg.CuentaPendientes ? "Proveedores, facturas pendientes de recibir o de formalizar"
-            : codigo == cfg.CuentaGasto ? "Otros servicios" : $"Cuenta {codigo}";
-    });
+    /// <summary>
+    /// La cuenta con ese código en otro ejercicio de la empresa (su identidad y nombre, del más reciente) para dar de alta una que falta; si
+    /// no existe en ninguno, sin identidad y con el nombre de siempre para las del proceso.
+    /// </summary>
+    private Task<(int? Identidad, string Nombre)> CuentaDeLaEmpresaAsync(ContextoSociedadEjercicio ctx, string codigo, ConfiguracionFacturasPendientes cfg) =>
+        bd.EjecutarAsync<(int?, string)>(async s =>
+        {
+            var fila = await s.ConsultarPrimeroAsync(
+                "SELECT TOP 1 c.IdIdentidadContable, c.Nombre FROM CuentasContables AS c INNER JOIN SociedadesEjercicios AS e ON c.IdSociedadEjercicio = e.IdSociedadEjercicio " +
+                "WHERE e.IdSociedad = ? AND c.Codigo = ? ORDER BY e.Ejercicio DESC",
+                f => (Identidad: f.EnteroNulo("IdIdentidadContable"), Nombre: (f.Texto("Nombre") ?? "").Trim()), ctx.IdSociedad, codigo);
+            if (fila.Identidad is not null && fila.Nombre.Length > 0) return (fila.Identidad, fila.Nombre);
+            return (null, codigo == cfg.CuentaPendientes ? "Proveedores, facturas pendientes de recibir o de formalizar"
+                : codigo == cfg.CuentaGasto ? "Otros servicios" : $"Cuenta {codigo}");
+        });
 
     /// <summary>Nombres de los centros de coste de la empresa, para enseñarlos en la propuesta.</summary>
     public Task<IReadOnlyDictionary<int, string>> NombresCentrosAsync(ContextoSociedadEjercicio ctx) => bd.EjecutarAsync<IReadOnlyDictionary<int, string>>(async s =>
