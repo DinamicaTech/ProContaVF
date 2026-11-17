@@ -302,8 +302,9 @@
         <!-- ========== Cuenta de resultados ========== -->
         <TabItem Header="Cuenta de resultados" Visibility="{Binding Propio, Converter={StaticResource Visible}}"
                  ToolTip="Ingresos y gastos del activo por subcuenta, en resumen o por meses, con su resultado">
-          <DockPanel Margin="0,10,0,0">
-            <WrapPanel DockPanel.Dock="Top" Margin="0,0,0,8">
+          <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto" Padding="0,10,0,0">
+          <StackPanel>
+            <WrapPanel Margin="0,0,0,8">
               <TextBlock Text="Ejercicio" VerticalAlignment="Center" Margin="0,0,6,4" />
               <ComboBox ItemsSource="{Binding Ejercicios}" SelectedItem="{Binding EjercicioCuenta}" Width="80" Margin="0,0,14,4" VerticalAlignment="Center"
                         ToolTip="Ejercicio de la cuenta de resultados (cualquiera de la sociedad)" />
@@ -319,39 +320,26 @@
               <Button Content="Exportar a Excel" Style="{StaticResource Boton}" Command="{Binding ExportarCuentaCommand}" VerticalAlignment="Center" Margin="0,0,0,4"
                       ToolTip="Guarda en Excel la cuenta de resultados que se ve, con los doce meses, el año y la comparación" />
             </WrapPanel>
-            <pc:Nota DockPanel.Dock="Top" Tipo="Info" Margin="0,0,0,8" MaxWidth="1100" HorizontalAlignment="Left" Visibility="{Binding AvisoCuenta, Converter={StaticResource Visible}}">
+            <pc:Nota Tipo="Info" Margin="0,0,0,8" MaxWidth="1100" HorizontalAlignment="Left" Visibility="{Binding AvisoCuenta, Converter={StaticResource Visible}}">
               <TextBlock Text="{Binding AvisoCuenta}" TextWrapping="Wrap" />
             </pc:Nota>
-            <TextBlock DockPanel.Dock="Top" Text="{Binding TextoGenerales}" Style="{StaticResource Texto.Apagado}" TextWrapping="Wrap" Margin="0,0,0,8" MaxWidth="1100" HorizontalAlignment="Left"
+            <TextBlock Text="{Binding TextoGenerales}" Style="{StaticResource Texto.Apagado}" TextWrapping="Wrap" Margin="0,0,0,8" MaxWidth="1100" HorizontalAlignment="Left"
                        Visibility="{Binding HayTextoGenerales, Converter={StaticResource Visible}}" />
-            <StackPanel DockPanel.Dock="Bottom" Margin="0,10,0,0" Visibility="{Binding Grafico, Converter={StaticResource Visible}}">
-              <TextBlock Style="{StaticResource Texto.Seccion}"><Run Text="Ingresos y gastos de " /><Run Text="{Binding EjercicioCuenta, Mode=OneWay}" /><Run Text=", mes a mes" /></TextBlock>
-              <TextBlock Text="Sin la amortización, que se contabiliza de una vez. Pasa el ratón por un mes para ver sus cifras." Style="{StaticResource Texto.Apagado}" Margin="0,0,0,4" />
-              <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
-                <Rectangle Width="10" Height="10" Fill="#2a78d6" Margin="0,0,5,0" VerticalAlignment="Center" /><TextBlock Text="Ingresos" Margin="0,0,14,0" />
-                <Rectangle Width="10" Height="10" Fill="#eb6834" Margin="0,0,5,0" VerticalAlignment="Center" /><TextBlock Text="Gastos" />
-              </StackPanel>
-              <pc:GraficoBarras Datos="{Binding Grafico}" Height="200" MaxWidth="1100" HorizontalAlignment="Left" Width="900" />
-            </StackPanel>
             <Grid>
               <DataGrid Style="{StaticResource Tabla}" ItemsSource="{Binding FilasCuenta}" AutoGenerateColumns="False" IsReadOnly="True" HeadersVisibility="Column" SelectionMode="Single"
-                        RowStyle="{StaticResource FilaCuenta}" HorizontalAlignment="Left" Visibility="{Binding EnResumen, Converter={StaticResource Visible}}"
+                        RowStyle="{StaticResource FilaCuenta}" HorizontalAlignment="Left" VerticalScrollBarVisibility="Disabled" Visibility="{Binding EnResumen, Converter={StaticResource Visible}}"
                         MouseDoubleClick="Cuenta_MouseDoubleClick" AutomationProperties.Name="Cuenta de resultados del activo">
                 <DataGrid.Columns>
                   <DataGridTextColumn Header="Subcuenta" Binding="{Binding Cuenta}" Width="90" ElementStyle="{StaticResource Texto.Celda.Mono}" />
                   <DataGridTextColumn Header="Concepto" Binding="{Binding Concepto}" Width="360" ElementStyle="{StaticResource Texto.Celda}" />
-                  <DataGridTextColumn Binding="{Binding Importe}" Width="120" ElementStyle="{StaticResource Celda.ImporteCuenta}" HeaderStyle="{StaticResource Tabla.Cabecera.Derecha}">
-                    <DataGridTextColumn.Header><TextBlock Text="{Binding DataContext.EjercicioCuenta, RelativeSource={RelativeSource AncestorType=UserControl}}" /></DataGridTextColumn.Header>
-                  </DataGridTextColumn>
-                  <DataGridTextColumn Binding="{Binding Anterior}" Width="120" ElementStyle="{StaticResource Texto.Celda.Importe}" HeaderStyle="{StaticResource Tabla.Cabecera.Derecha}">
-                    <DataGridTextColumn.Header><TextBlock Text="{Binding DataContext.EjercicioAnterior, RelativeSource={RelativeSource AncestorType=UserControl}}" /></DataGridTextColumn.Header>
-                  </DataGridTextColumn>
-                  <DataGridTextColumn Header="Diferencia" Binding="{Binding Diferencia}" Width="110" ElementStyle="{StaticResource Texto.Celda.Importe}" HeaderStyle="{StaticResource Tabla.Cabecera.Derecha}" />
+                  <DataGridTextColumn x:Name="ColAnio" Header="Año" Binding="{Binding Importe}" Width="120" ElementStyle="{StaticResource Celda.ImporteCuenta}" HeaderStyle="{StaticResource Tabla.Cabecera.Derecha}" />
+                  <DataGridTextColumn x:Name="ColAnterior" Header="Año anterior" Binding="{Binding Anterior}" Width="120" ElementStyle="{StaticResource Texto.Celda.Importe}" HeaderStyle="{StaticResource Tabla.Cabecera.Derecha}" />
+                  <DataGridTextColumn x:Name="ColDiferencia" Header="Diferencia" Binding="{Binding Diferencia}" Width="110" ElementStyle="{StaticResource Texto.Celda.Importe}" HeaderStyle="{StaticResource Tabla.Cabecera.Derecha}" />
                   <DataGridTextColumn Header="% de ingresos" Binding="{Binding Porcentaje}" Width="100" ElementStyle="{StaticResource Texto.Celda.Importe}" HeaderStyle="{StaticResource Tabla.Cabecera.Derecha}" />
                 </DataGrid.Columns>
               </DataGrid>
               <DataGrid Style="{StaticResource Tabla}" ItemsSource="{Binding FilasCuenta}" AutoGenerateColumns="False" IsReadOnly="True" HeadersVisibility="Column" SelectionMode="Single"
-                        RowStyle="{StaticResource FilaCuenta}" HorizontalAlignment="Left" Visibility="{Binding PorMeses, Converter={StaticResource Visible}}" HorizontalScrollBarVisibility="Auto"
+                        RowStyle="{StaticResource FilaCuenta}" HorizontalAlignment="Left" VerticalScrollBarVisibility="Disabled" Visibility="{Binding PorMeses, Converter={StaticResource Visible}}" HorizontalScrollBarVisibility="Auto"
                         MouseDoubleClick="Cuenta_MouseDoubleClick" AutomationProperties.Name="Cuenta de resultados del activo por meses">
                 <DataGrid.Columns>
                   <DataGridTextColumn Header="Subcuenta" Binding="{Binding Cuenta}" Width="80" ElementStyle="{StaticResource Texto.Celda.Mono}" />
@@ -368,13 +356,21 @@
                   <DataGridTextColumn Header="Oct" Binding="{Binding M10}" Width="74" ElementStyle="{StaticResource Texto.Celda.Importe}" HeaderStyle="{StaticResource Tabla.Cabecera.Derecha}" />
                   <DataGridTextColumn Header="Nov" Binding="{Binding M11}" Width="74" ElementStyle="{StaticResource Texto.Celda.Importe}" HeaderStyle="{StaticResource Tabla.Cabecera.Derecha}" />
                   <DataGridTextColumn Header="Dic" Binding="{Binding M12}" Width="74" ElementStyle="{StaticResource Texto.Celda.Importe}" HeaderStyle="{StaticResource Tabla.Cabecera.Derecha}" />
-                  <DataGridTextColumn Binding="{Binding Importe}" Width="110" ElementStyle="{StaticResource Celda.ImporteCuenta}" HeaderStyle="{StaticResource Tabla.Cabecera.Derecha}">
-                    <DataGridTextColumn.Header><TextBlock Text="{Binding DataContext.EjercicioCuenta, RelativeSource={RelativeSource AncestorType=UserControl}}" /></DataGridTextColumn.Header>
-                  </DataGridTextColumn>
+                  <DataGridTextColumn x:Name="ColAnioMeses" Header="Año" Binding="{Binding Importe}" Width="110" ElementStyle="{StaticResource Celda.ImporteCuenta}" HeaderStyle="{StaticResource Tabla.Cabecera.Derecha}" />
                 </DataGrid.Columns>
               </DataGrid>
             </Grid>
-          </DockPanel>
+            <StackPanel Margin="0,10,0,0" Visibility="{Binding Grafico, Converter={StaticResource Visible}}">
+              <TextBlock Style="{StaticResource Texto.Seccion}"><Run Text="Ingresos y gastos de " /><Run Text="{Binding EjercicioCuenta, Mode=OneWay}" /><Run Text=", mes a mes" /></TextBlock>
+              <TextBlock Text="Sin la amortización, que se contabiliza de una vez. Pasa el ratón por un mes para ver sus cifras." Style="{StaticResource Texto.Apagado}" Margin="0,0,0,4" />
+              <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                <Rectangle Width="10" Height="10" Fill="#2a78d6" Margin="0,0,5,0" VerticalAlignment="Center" /><TextBlock Text="Ingresos" Margin="0,0,14,0" />
+                <Rectangle Width="10" Height="10" Fill="#eb6834" Margin="0,0,5,0" VerticalAlignment="Center" /><TextBlock Text="Gastos" />
+              </StackPanel>
+              <pc:GraficoBarras Datos="{Binding Grafico}" Height="200" MaxWidth="1100" HorizontalAlignment="Left" Width="900" />
+            </StackPanel>
+          </StackPanel>
+          </ScrollViewer>
         </TabItem>
 
         <!-- ========== Subcuentas ========== -->

@@ -68,7 +68,8 @@
 
     <!-- Filtros -->
     <WrapPanel DockPanel.Dock="Top" Margin="14,10,14,6" Orientation="Horizontal">
-      <TextBox Text="{Binding Busqueda, UpdateSourceTrigger=PropertyChanged, Delay=200}" Width="260" Margin="0,0,12,4" VerticalAlignment="Center"
+      <TextBlock Text="Buscar" VerticalAlignment="Center" Margin="0,0,6,4" Style="{StaticResource Texto.Apagado}" />
+      <TextBox Text="{Binding Busqueda, UpdateSourceTrigger=PropertyChanged, Delay=200}" Width="240" Margin="0,0,12,4" VerticalAlignment="Center"
                ToolTip="Busca por código, nombre, nombre corto o centro de coste" AutomationProperties.Name="Buscar activos" />
       <Border Style="{StaticResource Segmentado}" Margin="0,0,12,4" VerticalAlignment="Center" ToolTip="Qué clase de activos se ven">
         <StackPanel Orientation="Horizontal">
@@ -141,14 +142,14 @@
                 </DataTemplate>
               </DataGridTemplateColumn.CellTemplate>
             </DataGridTemplateColumn>
-            <DataGridTextColumn Header="Código" Binding="{Binding Codigo}" Width="150" ElementStyle="{StaticResource Texto.Celda.Mono}" pc:TablaProConta.Clave="codigo"
+            <DataGridTextColumn Header="Código" Binding="{Binding Codigo}" Width="175" ElementStyle="{StaticResource Texto.Celda.Mono}" pc:TablaProConta.Clave="codigo"
                                 pc:TablaProConta.Ayuda="Código corto del activo, único en la sociedad" />
             <DataGridTextColumn Header="Nombre" Binding="{Binding Nombre}" Width="*" MinWidth="220" ElementStyle="{StaticResource Texto.Celda}" pc:TablaProConta.Clave="nombre" />
             <DataGridTextColumn Header="Tipo" Binding="{Binding Tipo}" Width="140" ElementStyle="{StaticResource Texto.Celda}" pc:TablaProConta.Clave="tipo"
                                 pc:TablaProConta.Ayuda="Tipo de activo: decide su plantilla de subcuentas" />
             <DataGridTextColumn Header="Centro de coste" Binding="{Binding Centro}" Width="200" ElementStyle="{StaticResource Texto.Celda}" pc:TablaProConta.Clave="centro"
                                 pc:TablaProConta.Ayuda="Centro de coste del activo: de él hereda la actividad de IVA" />
-            <DataGridTextColumn Header="Compra" Binding="{Binding Compra}" SortMemberPath="FechaOrden" Width="90" ElementStyle="{StaticResource Texto.Celda.Mono}" pc:TablaProConta.Clave="compra"
+            <DataGridTextColumn Header="Compra" Binding="{Binding Compra}" SortMemberPath="FechaOrden" Width="98" ElementStyle="{StaticResource Texto.Celda.Mono}" pc:TablaProConta.Clave="compra"
                                 pc:TablaProConta.Ayuda="Fecha de compra" />
             <DataGridTextColumn Header="Coste" Binding="{Binding Coste}" SortMemberPath="CosteOrden" Width="120" ElementStyle="{StaticResource Texto.Celda.Importe}"
                                 HeaderStyle="{StaticResource Tabla.Cabecera.Derecha}" pc:TablaProConta.Clave="coste" pc:TablaProConta.Ayuda="Coste de compra: precio más gastos" />

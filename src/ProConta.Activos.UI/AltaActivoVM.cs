@@ -62,7 +62,7 @@ public sealed class AltaActivoVM : ModeloVista
     {
         Tipos = (await _ctx.Servicio.TiposAsync()).Select(t => new OpcionTipoAlta(t)).ToList();
         _centros = await _ctx.Servicio.CentrosAsync(_ctx.Trabajo.IdSociedad);
-        Tipo = Tipos.FirstOrDefault();
+        Tipo = Tipos.FirstOrDefault(t => t.Tipo.Codigo == TiposActivoPgc.Vivienda) ?? Tipos.FirstOrDefault();
         Avisar(nameof(Tipos));
     }
 
