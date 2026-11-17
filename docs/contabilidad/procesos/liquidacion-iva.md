@@ -38,6 +38,7 @@ Hecho y validado por el propietario (PR #84): `src/ProConta.Contabilidad/Iva/Liq
 - 2026-11-16 09:37 · answer: ¿Esquema 56 con LiquidacionesIva y las cuentas de la liquidación por sociedad y ejercicio? → Decisión 3: Ok
 - 2026-11-16 10:28 · Ok, fusiona PR
 - 2026-11-17 10:50 · Derived from contabilidad/procesos/prorrata: en el 4T, saldar la 4729 de la regularización de la prorrata y no proponer la liquidación si su saldo no coincide con la regularización del 303.
+- 2026-11-17 14:10 · Derived from contabilidad/modelos-tributarios/presentacion: al presentar el 303 de un trimestre desde el programa, lo liquidado de ese trimestre pasa a ser lo presentado (importe aceptado por la AEAT), con su CSV y fecha de presentación; si ya estaba liquidado por otro importe, la liquidación queda desactualizada para repetirla.
 
 ## Hand-over
 - 2026-11-16 10:20 · Hecho en la rama claude/liquidacion-iva: cálculo, servicio, esquema 56, excepción del motor, permiso, pantalla y destino de la salud de Inicio, con pruebas sin BD (`LiquidacionIvaTests`) y contra Access (`LiquidacionIvaAccessTests`). Validado el 2026-11-16 10:28. Pendiente en producción: comprobar que la actividad «General» está en prorrata antes de liquidar.
