@@ -65,9 +65,6 @@ public interface ICatalogoCuentas
     /// </summary>
     Task<Resultado<CuentaContable>> AltaEnEjercicioAsync(ContextoSociedadEjercicio contexto, int idIdentidadContable, string? codigo = null, string? nombre = null);
 
-    /// <summary>Recalcula SaldoActual y NumeroApuntes de las cuentas del ejercicio desde sus apuntes.</summary>
-    Task ReconstruirSaldosAsync(ContextoSociedadEjercicio contexto);
-
     /// <summary>
     /// Siguiente código libre de subcuenta de <paramref name="cuenta"/> (tres cifras) en el ejercicio, sin usar los
     /// reservados de la sociedad (<see cref="BuscadorCuentas.SiguienteCodigo"/>). Null si no queda ninguno.
@@ -455,21 +452,6 @@ public sealed class CatalogoCuentasAccess(IBaseDatos bd) : ICatalogoCuentas
                     contexto.IdSociedad, cod, idIdentidadContable, DateTime.Today);
             return Resultado<CuentaContable>.Correcto(new CuentaContable(id, idIdentidadContable, contexto.IdSociedadEjercicio, null, cod, nom,
                 true, false, ultima?.EsImputable ?? true, ultima?.IdCentroCostePredeterminado, 0m, 0m, 0, ultima?.Descripcion));
-        });
-
-    public Task ReconstruirSaldosAsync(ContextoSociedadEjercicio contexto) =>
-        bd.EnTransaccionAsync(async s =>
-        {
-            // Los apuntes guardan el código de cuenta; se agregan por código dentro de los asientos del ejercicio.
-            var movimientos = await s.ConsultarAsync(
-                "SELECT ap.CuentaContable AS Codigo, SUM(IIF(ap.ImporteDebe IS NULL, 0, ap.ImporteDebe)) AS Debe, SUM(IIF(ap.ImporteHaber IS NULL, 0, ap.ImporteHaber)) AS Haber, COUNT(*) AS N " +
-                "FROM Apuntes AS ap INNER JOIN Asientos AS a ON ap.IdAsiento = a.IdAsiento WHERE a.IdSociedadEjercicio = ? GROUP BY ap.CuentaContable",
-                f => (Codigo: f.Texto("Codigo") ?? "", Saldo: f.Decimal("Debe") - f.Decimal("Haber"), N: f.Entero("N")), contexto.IdSociedadEjercicio);
-            await s.EjecutarAsync("UPDATE CuentasContables SET SaldoActual = SaldoInicial, NumeroApuntes = 0 WHERE IdSociedadEjercicio = ?", contexto.IdSociedadEjercicio);
-            foreach (var m in movimientos)
-                await s.EjecutarAsync("UPDATE CuentasContables SET SaldoActual = SaldoInicial + ?, NumeroApuntes = ? WHERE IdSociedadEjercicio = ? AND Codigo = ?",
-                    m.Saldo, m.N, contexto.IdSociedadEjercicio, m.Codigo);
-            return true;
         });
 
     private static Resultado<CuentaContable> Fallo(string codigo, string mensaje, string registro, string causa, string accion) =>

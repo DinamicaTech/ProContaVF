@@ -1,0 +1,89 @@
+<UserControl x:Class="ProConta.Contabilidad.UI.Saldos.PantallaRecalcularSaldos"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:pc="urn:proconta-ui"
+             Background="White">
+  <UserControl.Resources>
+    <pc:VisibleSiConverter x:Key="Visible" />
+    <ContextMenu x:Key="Menu.Cuenta">
+      <MenuItem Header="Mayor de la subcuenta" Command="{Binding MayorCommand}" ToolTipService.ShowOnDisabled="True"
+                CommandParameter="{Binding PlacementTarget.SelectedItem, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
+                ToolTip="Abre el Mayor de la subcuenta: su saldo se calcula siempre desde los apuntes" />
+    </ContextMenu>
+  </UserControl.Resources>
+  <UserControl.InputBindings>
+    <KeyBinding Key="F5" Command="{Binding CompararCommand}" />
+  </UserControl.InputBindings>
+
+  <DockPanel>
+    <!-- Cabecera: acciones generales -->
+    <Border DockPanel.Dock="Top" BorderBrush="{StaticResource Pincel.Linea}" BorderThickness="0,0,0,1" Padding="14,8">
+      <DockPanel>
+        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+          <Button Content="Comparar" Style="{StaticResource Boton}" Command="{Binding CompararCommand}" Margin="0,0,8,0" VerticalAlignment="Center"
+                  ToolTip="Vuelve a comparar el saldo guardado de cada cuenta con la suma de sus apuntes, sin grabar nada (F5)" />
+          <Button Content="Recalcular" Style="{StaticResource Boton.Primario}" Command="{Binding RecalcularCommand}" VerticalAlignment="Center" MinWidth="90" ToolTipService.ShowOnDisabled="True"
+                  ToolTip="Rehace el saldo guardado y el número de apuntes de todas las cuentas del ejercicio desde sus apuntes. No crea ni cambia asientos" />
+        </StackPanel>
+        <StackPanel Orientation="Horizontal">
+          <TextBlock Text="Recalcular saldos" Style="{StaticResource Texto.TituloPantalla}" VerticalAlignment="Center" Margin="0,0,12,0" />
+          <TextBlock Text="{Binding Subtitulo}" Style="{StaticResource Texto.Apagado}" VerticalAlignment="Center" Margin="0,0,12,0" />
+          <TextBlock Text="{Binding Resumen}" FontWeight="SemiBold" VerticalAlignment="Center" />
+        </StackPanel>
+      </DockPanel>
+    </Border>
+
+    <pc:VistaEstado Estado="{Binding Estado}" Mensaje="{Binding MensajeEstado}" TextoAccion="Comparar" ComandoAccion="{Binding CompararCommand}">
+      <DockPanel Margin="14,10,14,8">
+        <pc:Nota DockPanel.Dock="Top" Tipo="Info" Margin="0,0,0,10" MaxWidth="900" HorizontalAlignment="Left">
+          <TextBlock TextWrapping="Wrap"
+                     Text="Cada cuenta guarda su saldo y su número de apuntes para consultarlos deprisa (los usa la búsqueda de cuentas del conector de Claude). El programa los actualiza al grabar cada asiento; si alguien ha tocado la base de datos por fuera, aquí se ve la diferencia y «Recalcular» la corrige. El Mayor, los balances y los procesos calculan siempre desde los apuntes." />
+        </pc:Nota>
+
+        <!-- Códigos con apuntes que no están en el plan del ejercicio -->
+        <pc:Nota DockPanel.Dock="Top" Tipo="Aviso" Margin="0,0,0,10" MaxWidth="900" HorizontalAlignment="Left" Visibility="{Binding HaySinAlta, Converter={StaticResource Visible}}">
+          <StackPanel>
+            <TextBlock Text="{Binding TextoSinAlta}" TextWrapping="Wrap" Margin="0,0,0,6" />
+            <DataGrid Style="{StaticResource Tabla}" ItemsSource="{Binding SinAlta}" IsReadOnly="True" AutoGenerateColumns="False" HeadersVisibility="Column"
+                      SelectionMode="Single" MaxHeight="160" HorizontalAlignment="Left" RowStyle="{StaticResource Tabla.Fila}"
+                      AutomationProperties.Name="Códigos con apuntes que no están en el plan de cuentas"
+                      ToolTip="Códigos con apuntes en el ejercicio que no tienen su subcuenta en el plan de cuentas del ejercicio">
+              <DataGrid.Columns>
+                <DataGridTextColumn Header="Código" Binding="{Binding Codigo}" Width="90" ElementStyle="{StaticResource Texto.Celda.Mono}" />
+                <DataGridTextColumn Header="Saldo" Binding="{Binding Saldo}" Width="110" ElementStyle="{StaticResource Texto.Celda.Importe}" HeaderStyle="{StaticResource Tabla.Cabecera.Derecha}" />
+                <DataGridTextColumn Header="Apuntes" Binding="{Binding Apuntes}" Width="70" ElementStyle="{StaticResource Texto.Celda.Importe}" HeaderStyle="{StaticResource Tabla.Cabecera.Derecha}" />
+              </DataGrid.Columns>
+            </DataGrid>
+          </StackPanel>
+        </pc:Nota>
+
+        <pc:Nota DockPanel.Dock="Top" Tipo="Info" Margin="0,0,0,10" MaxWidth="900" HorizontalAlignment="Left"
+                 Visibility="{Binding HayDiferencias, Converter={StaticResource Visible}, ConverterParameter=invertir}">
+          <TextBlock Text="{Binding TextoCuadra}" TextWrapping="Wrap" />
+        </pc:Nota>
+
+        <!-- Subcuentas con diferencias -->
+        <DataGrid Style="{StaticResource Tabla}" ItemsSource="{Binding Diferencias}" IsReadOnly="True" AutoGenerateColumns="False" HeadersVisibility="Column"
+                  SelectionMode="Single" HorizontalAlignment="Left" VerticalAlignment="Top" RowStyle="{StaticResource Tabla.Fila}" ContextMenu="{StaticResource Menu.Cuenta}"
+                  Visibility="{Binding HayDiferencias, Converter={StaticResource Visible}}" AutomationProperties.Name="Cuentas cuyo saldo guardado no coincide con sus apuntes"
+                  ToolTip="Cuentas cuyo saldo guardado no coincide con la suma de sus apuntes. Pasa el ratón por una fila para ver el detalle. Clic derecho: Mayor de la subcuenta">
+          <DataGrid.Columns>
+            <DataGridTemplateColumn Header="Cuenta" Width="320">
+              <DataGridTemplateColumn.CellTemplate>
+                <DataTemplate>
+                  <TextBlock Style="{StaticResource Texto.Celda}" ToolTip="{Binding Ayuda}" TextTrimming="CharacterEllipsis">
+                    <Run Text="{Binding Codigo, Mode=OneWay}" FontFamily="Consolas" /> <Run Text="{Binding Nombre, Mode=OneWay}" />
+                  </TextBlock>
+                </DataTemplate>
+              </DataGridTemplateColumn.CellTemplate>
+            </DataGridTemplateColumn>
+            <DataGridTextColumn Header="Saldo guardado" Binding="{Binding Guardado}" Width="115" ElementStyle="{StaticResource Texto.Celda.Importe}" HeaderStyle="{StaticResource Tabla.Cabecera.Derecha}" />
+            <DataGridTextColumn Header="Según apuntes" Binding="{Binding SegunApuntes}" Width="115" ElementStyle="{StaticResource Texto.Celda.Importe}" HeaderStyle="{StaticResource Tabla.Cabecera.Derecha}" />
+            <DataGridTextColumn Header="Diferencia" Binding="{Binding Diferencia}" Width="105" ElementStyle="{StaticResource Texto.Celda.Importe}" HeaderStyle="{StaticResource Tabla.Cabecera.Derecha}" />
+            <DataGridTextColumn Header="Apuntes" Binding="{Binding Apuntes}" Width="90" ElementStyle="{StaticResource Texto.Celda.Importe}" HeaderStyle="{StaticResource Tabla.Cabecera.Derecha}" />
+          </DataGrid.Columns>
+        </DataGrid>
+      </DockPanel>
+    </pc:VistaEstado>
+  </DockPanel>
+</UserControl>

@@ -908,11 +908,9 @@ public sealed partial class MotorAsientosAccess(IBaseDatos bd, PoliticaCuadre? p
 
     public async Task RecalcularSaldosAsync(ContextoSociedadEjercicio contexto)
     {
-        var saldos = (await bd.EjecutarAsync(s => s.ConsultarAsync(
-                "SELECT ap.CuentaContable, SUM(IIF(ap.ImporteDebe IS NULL, 0, ap.ImporteDebe)) - SUM(IIF(ap.ImporteHaber IS NULL, 0, ap.ImporteHaber)) AS Saldo, COUNT(*) AS N " +
-                "FROM Apuntes AS ap INNER JOIN Asientos AS a ON ap.IdAsiento = a.IdAsiento WHERE a.IdSociedadEjercicio = ? GROUP BY ap.CuentaContable",
-                f => (Cuenta: (f.Texto("CuentaContable") ?? "").Trim(), Saldo: f.DecimalNulo("Saldo") ?? 0m, N: f.Entero("N")), contexto.IdSociedadEjercicio)))
-            .ToDictionary(x => x.Cuenta, x => (x.Saldo, x.N), StringComparer.Ordinal);
+        // La misma suma que compara el proceso «Recalcular saldos» (contabilidad/procesos/recalcular-saldos).
+        var saldos = ProConta.Contabilidad.Saldos.ComparacionSaldos.Agrupar(
+            await bd.EjecutarAsync(s => ProConta.Contabilidad.Saldos.ServicioRecalcularSaldos.MovimientosAsync(s, contexto.IdSociedadEjercicio)));
         var codigos = await bd.EjecutarAsync(s => s.ConsultarAsync("SELECT Codigo FROM CuentasContables WHERE IdSociedadEjercicio = ?",
             f => (f.Texto("Codigo") ?? "").Trim(), contexto.IdSociedadEjercicio));
         // Por tandas: las transacciones de Access tienen un límite de bloqueos.
