@@ -175,6 +175,12 @@ public sealed record RentaViviendasDetalle(decimal Ingresos, decimal GastosDirec
     }
 }
 
+/// <summary>
+/// Gastos generales de la sociedad en el ejercicio (grupo 6 sin centro, sin actividad o de la actividad general, con financieros y amortizaciones y
+/// sin las cuentas del impuesto) y sus ingresos ordinarios (cuentas 70 a 75), los dos de la renta de viviendas del Impuesto sobre Sociedades.
+/// </summary>
+public sealed record GastosGeneralesSociedad(decimal GastosGenerales, decimal IngresosOrdinarios);
+
 /// <summary>Cuenta de resultados de un piso para la bonificación: ingresos, gastos directos, su parte de los gastos generales y sus cuentas.</summary>
 public sealed record RentaCentroViviendas(string Centro, decimal Ingresos, decimal GastosDirectos, decimal GastosGenerales, IReadOnlyList<PartidaRentaViviendas> Partidas)
 {

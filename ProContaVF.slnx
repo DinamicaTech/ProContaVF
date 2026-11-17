@@ -31,6 +31,7 @@
     <Project Path="src/ProConta.Nominas.UI/ProConta.Nominas.UI.csproj" />
     <Project Path="src/ProConta.Nucleo/ProConta.Nucleo.csproj" />
     <Project Path="src/ProConta.Activos/ProConta.Activos.csproj" />
+    <Project Path="src/ProConta.Activos.UI/ProConta.Activos.UI.csproj" />
     <Project Path="src/ProConta.Organizacion/ProConta.Organizacion.csproj" />
     <Project Path="src/ProConta.Plataforma.Configuracion/ProConta.Plataforma.Configuracion.csproj" />
     <Project Path="src/ProConta.Seguridad/ProConta.Seguridad.csproj" />
