@@ -30,7 +30,7 @@ public sealed record ContextoRegularizacionProrrata(ServicioRegularizacionProrra
 public sealed record FilaTrimestreProrrataVM(string Trimestre, string CuotaSujeta, string Deducido, string Deducible, string Regularizacion, bool EsTotal = false);
 
 /// <summary>Línea del asiento propuesto.</summary>
-public sealed record FilaLineaProrrataVM(string Cuenta, string Concepto, string Debe, string Haber);
+public sealed record FilaLineaProrrataVM(string Cuenta, string Centro, string Concepto, string Debe, string Haber);
 
 /// <summary>
 /// Pantalla Contabilidad › Procesos contables › Prorrata de IVA (contabilidad/procesos/prorrata): porcentajes (provisional, legal y
@@ -164,7 +164,7 @@ public sealed class RegularizacionProrrataVM : ModeloVista, IPestanaTrabajo
         new("Año", Formatos.Importe(p.CuotaSujeta), Formatos.Importe(p.Deducido), Formatos.Importe(p.Deducible), Formatos.Importe(p.Regularizacion), EsTotal: true),
     ];
 
-    public IReadOnlyList<FilaLineaProrrataVM> Lineas => _propuesta?.Lineas.Select(l => new FilaLineaProrrataVM(l.Cuenta, l.Concepto, Formatos.ImporteOVacio(l.Debe), Formatos.ImporteOVacio(l.Haber))).ToList() ?? [];
+    public IReadOnlyList<FilaLineaProrrataVM> Lineas => _propuesta?.Lineas.Select(l => new FilaLineaProrrataVM(l.Cuenta, l.NombreCentro ?? (l.IdCentroCoste is null ? "" : $"Centro {l.IdCentroCoste}"), l.Concepto, Formatos.ImporteOVacio(l.Debe), Formatos.ImporteOVacio(l.Haber))).ToList() ?? [];
     public string TotalDebe => _propuesta is null ? "" : Formatos.Importe(_propuesta.TotalDebe);
     public string TotalHaber => _propuesta is null ? "" : Formatos.Importe(_propuesta.TotalHaber);
 

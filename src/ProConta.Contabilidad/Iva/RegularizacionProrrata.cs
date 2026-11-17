@@ -25,7 +25,8 @@ public sealed record CuentasRegularizacionProrrata(string Regularizacion, string
 public sealed record DatosRegularizacionProrrata(int Ejercicio, IvaEjercicio Iva, IReadOnlyList<LineaIva> Lineas, CuentasRegularizacionProrrata Cuentas);
 
 /// <summary>Una línea del asiento propuesto.</summary>
-public sealed record LineaRegularizacionProrrata(string Cuenta, decimal Debe, decimal Haber, string Concepto, int? IdCentroCoste = null);
+/// <param name="NombreCentro">Nombre del centro de coste, para enseñarlo en la propuesta (no va al asiento).</param>
+public sealed record LineaRegularizacionProrrata(string Cuenta, decimal Debe, decimal Haber, string Concepto, int? IdCentroCoste = null, string? NombreCentro = null);
 
 /// <summary>Las cifras de un trimestre en la propuesta: cuota sujeta, deducido con la provisional, deducible con la definitiva y diferencia.</summary>
 public sealed record TrimestreRegularizacionProrrata(int Trimestre, decimal CuotaSujeta, decimal Deducido, decimal Deducible)
@@ -89,14 +90,17 @@ public static class CalculoRegularizacionProrrata
             var pesos = d.Lineas.Where(l => l.Trimestre is >= 1 and <= 4 && Calculo303.EsSoportado(l) && l.Deduccion == DeduccionIva.Prorrata)
                 .GroupBy(l => l.IdCentroCoste).Select(g => (Centro: g.Key, Peso: g.Sum(l => l.Cuota))).OrderBy(x => x.Centro ?? int.MaxValue).ToList();
             var partes = CalculoLiquidacionIva.Repartir(Math.Abs(regularizacion), pesos);
+            var nombres = d.Lineas.Where(l => l.IdCentroCoste is not null).GroupBy(l => l.IdCentroCoste!.Value)
+                .ToDictionary(g => g.Key, g => g.Select(l => l.Departamento ?? l.Centro).FirstOrDefault(n => !string.IsNullOrWhiteSpace(n)));
+            string? Nombre(int? centro) => centro is int c && nombres.TryGetValue(c, out var n) ? n : null;
             if (regularizacion > 0m)
             {
                 lineas.Add(new(d.Cuentas.Regularizacion, regularizacion, 0m, concepto));
-                lineas.AddRange(partes.Select(x => new LineaRegularizacionProrrata(d.Cuentas.AjustesPositivos, 0m, x.Importe, concepto, x.Centro)));
+                lineas.AddRange(partes.Select(x => new LineaRegularizacionProrrata(d.Cuentas.AjustesPositivos, 0m, x.Importe, concepto, x.Centro, Nombre(x.Centro))));
             }
             else
             {
-                lineas.AddRange(partes.Select(x => new LineaRegularizacionProrrata(d.Cuentas.AjustesNegativos, x.Importe, 0m, concepto, x.Centro)));
+                lineas.AddRange(partes.Select(x => new LineaRegularizacionProrrata(d.Cuentas.AjustesNegativos, x.Importe, 0m, concepto, x.Centro, Nombre(x.Centro))));
                 lineas.Add(new(d.Cuentas.Regularizacion, 0m, -regularizacion, concepto));
             }
         }

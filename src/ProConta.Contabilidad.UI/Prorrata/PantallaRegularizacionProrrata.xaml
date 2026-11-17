@@ -110,7 +110,7 @@
             <!-- Definitiva editable -->
             <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,8">
               <TextBlock Text="Prorrata definitiva (%)" VerticalAlignment="Center" Margin="0,0,8,0" ToolTip="{Binding AyudaDefinitiva}" />
-              <TextBox Text="{Binding Definitiva, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource Campo.Importe}" Width="70" VerticalAlignment="Center"
+              <TextBox Text="{Binding Definitiva, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource Campo}" TextAlignment="Right" Width="70" VerticalAlignment="Center"
                        ToolTip="{Binding AyudaDefinitiva}" AutomationProperties.Name="Prorrata definitiva">
                 <TextBox.InputBindings>
                   <KeyBinding Key="Enter" Command="{Binding RecalcularCommand}" />
@@ -166,6 +166,7 @@
                       ToolTip="Asiento del 31/12. Clic derecho: ver el asiento grabado, Mayor de la 4729 o deshacer">
               <DataGrid.Columns>
                 <DataGridTextColumn Header="Cuenta" Binding="{Binding Cuenta}" Width="90" ElementStyle="{StaticResource Texto.Celda.Mono}" />
+                <DataGridTextColumn Header="Centro de coste" Binding="{Binding Centro}" Width="200" ElementStyle="{StaticResource Texto.Celda}" />
                 <DataGridTextColumn Header="Concepto" Binding="{Binding Concepto}" Width="*" ElementStyle="{StaticResource Texto.Celda}" />
                 <DataGridTextColumn Header="Debe" Binding="{Binding Debe}" Width="120" ElementStyle="{StaticResource Texto.Celda.Importe}" HeaderStyle="{StaticResource Tabla.Cabecera.Derecha}" />
                 <DataGridTextColumn Header="Haber" Binding="{Binding Haber}" Width="120" ElementStyle="{StaticResource Texto.Celda.Importe}" HeaderStyle="{StaticResource Tabla.Cabecera.Derecha}" />
