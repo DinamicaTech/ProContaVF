@@ -36,6 +36,7 @@ Sociedad permanente y su instancia por ejercicio (SociedadEjercicio), con consul
 - 2026-11-16 10:20 · Cuentas de la liquidación del IVA por sociedad y ejercicio (esquema 56, contabilidad/procesos/liquidacion-iva): SociedadesEjercicios.CuentaHaciendaAcreedoraIva, CuentaHaciendaDeudoraIva, CuentaAjustesNegativosIva y CuentaAjustesPositivosIva; vacías valen 4750000, 4700000, 6341000 y 6391000, y la que falte se crea al confirmar la primera liquidación que la use. Liquidar el trimestre activo (no el cuarto) activa el siguiente en la misma transacción que el asiento.
 - 2026-11-16 18:40 · Dividendos del ejercicio (esquema 62, contabilidad/procesos/aplicacion-resultado): SociedadesEjercicios.PorcentajeRetencionDividendos (vacío: 19 %) y CuentaReservasDividendos (vacía: 1130000), en Parámetros y tablas › Ejercicios («Retención de dividendos (%)» en Impuestos y «Reparto de dividendos · reservas» en Cuentas).
 - 2026-11-16 19:25 · Validado por el propietario lo derivado de contabilidad/procesos/aplicacion-resultado (PR #95).
+- 2026-11-17 11:00 · Nuevas en SociedadesEjercicios (esquema 63): PorcentajeProrrataDefinitiva (en porcentaje, vacía mientras no se fije) y CuentaRegularizacionProrrata (vacía: 4729001). Parámetros › Ejercicios las muestra: «Prorrata definitiva (%)» en Impuestos y «Regularización de la prorrata» en Cuentas (buscador limitado a la 472). Lo normal es fijar la definitiva en Contabilidad › Prorrata de IVA, que además la copia en la «Prorrata del año anterior» del ejercicio siguiente.
 
 ## Requirements
 - 2026-10-28 12:28 · From sources/01_ESPECIFICACION_FUNCIONAL.docx § 3 RF-ARQ-04: propietario de Sociedades/SociedadesEjercicios
@@ -65,6 +66,7 @@ Sociedad permanente y su instancia por ejercicio (SociedadEjercicio), con consul
 - 2026-11-13 23:46 · Derived from facturacion/factura-venta: logo y teléfono de la empresa para la factura, como parámetros de la sociedad.
 - 2026-11-16 10:20 · Derived from contabilidad/procesos/liquidacion-iva: cuentas de la liquidación del IVA por ejercicio (Hacienda acreedora y deudora por IVA, ajustes negativos y positivos), vacías con las de siempre.
 - 2026-11-16 17:55 · Derived from contabilidad/procesos/aplicacion-resultado: % de retención de dividendos (19 por defecto) y cuenta de reservas de los dividendos (1130000 por defecto) en cada ejercicio.
+- 2026-11-17 10:50 · Derived from contabilidad/procesos/prorrata: guardar en el ejercicio la prorrata definitiva y la cuenta de la regularización de la prorrata.
 
 ## Hand-over
 - 2026-10-31 18:55 · Hecho: contrato y servicio sobre Access, migración de EjercicioCerrado y pruebas (contexto válido e inválido, ejercicio cerrado). Pendiente: apertura de ejercicio nuevo y cierre/reapertura (contabilidad/procesos), unicidad (IdSociedad, Ejercicio) y unicidad del NIF de sociedad (la maestra tiene dos sociedades con el mismo NIF, una de pruebas), y la regla de propagación de la razón social a los ejercicios.

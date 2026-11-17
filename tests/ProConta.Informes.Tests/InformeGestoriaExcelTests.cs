@@ -64,10 +64,10 @@ public sealed class InformeGestoriaExcelTests : IDisposable
 
     private static readonly Dictionary<int, CentroBalance> Centros = new() { [1] = new("INMUEBLES", "3/300", "Local sintético", "Alquiler Locales"), [2] = new("EMPRESA", "1/101", "Gastos generales", "General") };
 
-    private static InformeGestoria Informe(decimal? provisional = 0.15m)
+    private static InformeGestoria Informe(decimal? provisional = 0.15m, decimal? definitiva = null)
     {
-        var r303 = Calculo303.Calcular(Lineas, provisional ?? 1m);
-        var prorrata = CalculoProrrata.Calcular(Lineas, provisional, r303);
+        var iva = CalculoIvaEjercicio.Calcular(Lineas, provisional, definitiva);
+        var (r303, prorrata) = (iva.Modelo303, iva.Prorrata);
         var nombres = new Dictionary<string, string> { ["705"] = "PRESTACIONES", ["7050001"] = "Alquiler local sintético" };
         var pyg = Clasificador.Clasificar(Pyg, "Sociedad sintética", 2026, Apuntes, nombres, Centros);
         var sit = Clasificador.Clasificar(Situacion, "Sociedad sintética", 2026, Apuntes, nombres, Centros);
@@ -207,4 +207,29 @@ public sealed class InformeGestoriaExcelTests : IDisposable
 
     /// <summary>Valor calculado por ClosedXML, redondeado a 6 decimales para quitar el ruido del doble.</summary>
     private static decimal Valor(IXLCell c) => Math.Round((decimal)c.Value.GetNumber(), 6);
+
+    /// <summary>Con la prorrata definitiva fijada (contabilidad/procesos/prorrata), el 303 del 4T lleva la regularización y la hoja Prorrata la calcula con ella.</summary>
+    [Fact]
+    public void ConLaDefinitivaFijadaEl4TLlevaLaRegularizacion()
+    {
+        var inf = Informe(0.15m, 0.30m);
+        Assert.True(inf.Prorrata.DefinitivaFijada);
+        var regularizacion = inf.Iva303.Linea(Calculo303.ClaveRectificacion).En(4).Cuota;
+        Assert.Equal(inf.Prorrata.Regularizacion(0), regularizacion);
+        Assert.NotEqual(0m, regularizacion);
+        var ruta = Exportar(inf);
+        using var libro = new XLWorkbook(ruta);
+        var iva = libro.Worksheet("IVA 303");
+        var fila = iva.Column(2).CellsUsed().First(c => c.GetString() == "Regularización de la prorrata definitiva").Address.RowNumber;
+        Assert.Equal(regularizacion, Valor(iva.Cell(fila, ExportadorInformeGestoriaExcel.ColumnaCuota(4))));
+        Assert.Equal(0m, Valor(iva.Cell(fila, ExportadorInformeGestoriaExcel.ColumnaCuota(1))));
+        var filaResultado = iva.Column(2).CellsUsed().First(c => c.GetString().StartsWith("Resultado del trimestre", StringComparison.Ordinal)).Address.RowNumber;
+        Assert.Equal(inf.Iva303.Resultado(4), Valor(iva.Cell(filaResultado, ExportadorInformeGestoriaExcel.ColumnaCuota(4))));
+        var prorrata = libro.Worksheet("Prorrata");
+        Assert.Equal(0.30m, Valor(prorrata.Cell(11, 3)));
+        var filaReg = prorrata.Column(2).CellsUsed().First(c => c.GetString().StartsWith("Regularización a favor", StringComparison.Ordinal)).Address.RowNumber;
+        Assert.Equal(regularizacion, Valor(prorrata.Cell(filaReg, 7)));
+        var errores = libro.Worksheets.SelectMany(w => w.CellsUsed(c => c.HasFormula)).Where(c => c.Value.IsError).Select(c => $"{c.Worksheet.Name}!{c.Address}: {c.FormulaA1}").ToList();
+        Assert.True(errores.Count == 0, string.Join(Environment.NewLine, errores));
+    }
 }

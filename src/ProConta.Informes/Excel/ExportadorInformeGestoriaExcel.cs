@@ -434,7 +434,8 @@ public static class ExportadorInformeGestoriaExcel
                 for (var q = 1; q <= 4; q++)
                 {
                     var cb = 1 + 2 * q;
-                    if (l.Clave == Calculo303.ClaveRectificacion) { ws.Cell(f, cb + 1).Value = 0; Importe(ws.Cell(f, cb + 1)); continue; }
+                    // La regularización de la prorrata (solo 4T, con la definitiva fijada) es un dato del programa, no una fórmula.
+                    if (l.Clave == Calculo303.ClaveRectificacion) { ws.Cell(f, cb + 1).Value = l.En(q).Cuota; Importe(ws.Cell(f, cb + 1)); continue; }
                     if (l.ConBase) Formula(ws, f, cb, FormulaLinea(l.Clave, q, cuota: false));
                     if (l.ConCuota) Formula(ws, f, cb + 1, FormulaLinea(l.Clave, q, cuota: true));
                 }
@@ -471,9 +472,13 @@ public static class ExportadorInformeGestoriaExcel
             Formula(ws, f, col, $"{l}{mapa.FilaTotalDevengado}-{l}{mapa.FilaTotalDeducible}");
         }
         ws.Range(f, 2, f, 12).Style.Fill.SetBackgroundColor(Resultado).Font.SetBold();
+        var conDefinitiva = inf.Prorrata.Definitiva is decimal def
+            ? $"el 4T incluye la regularización anual de la prorrata con la definitiva del {def * 100m:0.##} % (hoja «Prorrata»)."
+            : null;
         Nota(ws.Cell(f, 14), inf.Trimestre < 4
-            ? "Los trimestres posteriores al del informe están incompletos; el 4T no incluye todavía la regularización anual de la prorrata (hoja «Prorrata»)."
-            : "El 4T no incluye la regularización anual de la prorrata: está estimada en la hoja «Prorrata».");
+            ? "Los trimestres posteriores al del informe están incompletos; " + (conDefinitiva ?? "el 4T no incluye todavía la regularización anual de la prorrata (hoja «Prorrata»).")
+            : conDefinitiva is not null ? char.ToUpperInvariant(conDefinitiva[0]) + conDefinitiva[1..]
+            : "El 4T no incluye la regularización anual de la prorrata porque el ejercicio no tiene la definitiva: está estimada en la hoja «Prorrata» (Contabilidad › Prorrata de IVA).");
         f += 2;
         Seccion(ws, f, 2, 12, "Informativo (no entra en el resultado)", Gris);
         Lineas(inf.Iva303.Informativo);
@@ -494,7 +499,9 @@ public static class ExportadorInformeGestoriaExcel
     {
         var ws = libro.Worksheet(HojaProrrata);
         var p = inf.Prorrata;
-        Cabecera(ws, "Prorrata de IVA", "Porcentaje provisional, porcentaje real acumulado del año y regularización estimada (sin asiento)", 7);
+        Cabecera(ws, "Prorrata de IVA", p.DefinitivaFijada
+            ? "Porcentaje provisional, real acumulado del año, definitiva fijada y regularización del 4T"
+            : "Porcentaje provisional, porcentaje real acumulado del año y regularización estimada (sin asiento)", 7);
         Anchos(ws, [2, 50, 16, 16, 16, 16, 16, 3, 70]);
         Seccion(ws, 5, 2, 7, "1 · Porcentajes");
         ws.Cell(6, 2).Value = $"Prorrata provisional (definitiva de {inf.Ejercicio - 1})";
@@ -521,6 +528,13 @@ public static class ExportadorInformeGestoriaExcel
         ws.Cell(10, 3).Style.Fill.SetBackgroundColor(Total);
         libro.DefinedNames.Add(N.ProrrataReal, ws.Cell(10, 3).AsRange());
         Nota(ws.Cell(10, 9), "El cociente se redondea antes a 6 decimales para que el ruido decimal no suba un punto (19,00 % → 19 %; 19,001 % → 20 %).");
+        ws.Cell(11, 2).Value = "Prorrata definitiva del año (fijada)";
+        if (p.Definitiva is decimal definitiva) ws.Cell(11, 3).Value = definitiva; else ws.Cell(11, 3).Value = "sin fijar";
+        ws.Cell(11, 3).Style.NumberFormat.Format = "0.##%";
+        ws.Cell(11, 3).Style.Font.SetBold().Font.SetFontColor(Enlace).Alignment.SetHorizontal(XLAlignmentHorizontalValues.Right);
+        Nota(ws.Cell(11, 9), p.DefinitivaFijada
+            ? "La que marca la gestoría, fijada en Contabilidad › Prorrata de IVA: con ella se calcula la regularización, que va en el 303 del 4T."
+            : "Sin fijar: la regularización se estima con la real acumulada. Se fija en Contabilidad › Prorrata de IVA al cerrar el año.");
 
         Seccion(ws, 12, 2, 7, "2 · Volumen de operaciones por actividad (bases repercutidas)");
         string[] cab = ["Actividad", "1T", "2T", "3T", "4T", "Total"];
@@ -546,15 +560,16 @@ public static class ExportadorInformeGestoriaExcel
         ws.Range(f, 2, f, 7).Style.Font.SetBold().Fill.SetBackgroundColor(Fondo);
 
         f += 2;
-        Seccion(ws, f, 2, 7, "3 · IVA soportado sujeto a prorrata y regularización estimada");
+        Seccion(ws, f, 2, 7, p.DefinitivaFijada ? "3 · IVA soportado sujeto a prorrata y regularización" : "3 · IVA soportado sujeto a prorrata y regularización estimada");
         f++;
         for (var i = 1; i < cab.Length; i++) ws.Cell(f, 2 + i).Value = cab[i];
         ws.Range(f, 3, f, 7).Style.Font.SetBold().Font.SetFontColor(Azul);
         var fs = f + 1;
         ws.Cell(fs, 2).Value = "Cuota soportada sujeta a prorrata";
         ws.Cell(fs + 1, 2).Value = "Deducido con la prorrata provisional";
-        ws.Cell(fs + 2, 2).Value = "Deducible con la prorrata real acumulada";
-        ws.Cell(fs + 3, 2).Value = "Regularización estimada a favor (+) o en contra (−)";
+        ws.Cell(fs + 2, 2).Value = p.DefinitivaFijada ? "Deducible con la prorrata definitiva" : "Deducible con la prorrata real acumulada";
+        ws.Cell(fs + 3, 2).Value = p.DefinitivaFijada ? "Regularización a favor (+) o en contra (−)" : "Regularización estimada a favor (+) o en contra (−)";
+        var aplicada = p.DefinitivaFijada ? "$C$11" : N.ProrrataReal;
         for (var q = 1; q <= 4; q++)
         {
             var col = 2 + q;
@@ -562,13 +577,15 @@ public static class ExportadorInformeGestoriaExcel
             var colIva = XLHelper.GetColumnLetterFromNumber(ColumnaCuota(q));
             Formula(ws, fs, col, $"SUMIFS({N.IvaCuota},{N.IvaSentido},{Txt(TextosIva.Soportado)},{N.IvaDeduccion},{Txt(TextosIva.Prorrata)},{N.IvaTrim},{q})");
             Formula(ws, fs + 1, col, $"'{HojaIva}'!{colIva}{mapa.FilaIva[Calculo303.ClaveInterioresProrrata]}+'{HojaIva}'!{colIva}{mapa.FilaIva[Calculo303.ClaveAutorrepercutidasProrrata]}");
-            Formula(ws, fs + 2, col, $"ROUND({l}{fs}*{N.ProrrataReal},2)");
+            Formula(ws, fs + 2, col, $"ROUND({l}{fs}*{aplicada},2)");
             Formula(ws, fs + 3, col, $"{l}{fs + 2}-{l}{fs + 1}");
         }
         for (var r = fs; r <= fs + 3; r++) Formula(ws, r, 7, $"SUM(C{r}:F{r})").Style.Font.SetBold();
         ws.Range(fs + 3, 2, fs + 3, 7).Style.Font.SetBold().Fill.SetBackgroundColor(Fondo);
         mapa.FilaRegularizacion = fs + 3;
-        Nota(ws.Cell(fs + 5, 2), "La regularización se aplica en el 303 del 4T con la prorrata definitiva del año; esta cifra es una estimación con lo contabilizado hasta la fecha de los datos.");
+        Nota(ws.Cell(fs + 5, 2), p.DefinitivaFijada
+            ? "La regularización va en el 303 del 4T (línea «Regularización de la prorrata definitiva») y en el asiento del 31/12 a la 4729."
+            : "La regularización se aplica en el 303 del 4T con la prorrata definitiva del año; esta cifra es una estimación con lo contabilizado hasta la fecha de los datos.");
     }
 
     // ---------- Controles ----------
@@ -811,7 +828,8 @@ public static class ExportadorInformeGestoriaExcel
         var resIva = Ref(HojaIva, mapa.FilaResultado, ColumnaCuota(t));
         Kpi(2, 2, $"IVA {t}T · RESULTADO", resIva, FormatoEuros, $"IF({resIva}>=0,\"a ingresar\",\"a compensar\")", pieFormula: true);
         Kpi(4, 2, "PRORRATA", $"TEXT({N.ProrrataProv},\"0%\")&\" → \"&TEXT({N.ProrrataReal},\"0%\")", "General", "provisional → real acumulada");
-        Kpi(6, 2, "REGULARIZACIÓN ESTIMADA", Ref(HojaProrrata, mapa.FilaRegularizacion, 7), FormatoEuros, "a favor (+) o en contra (−), en el 303 del 4T");
+        Kpi(6, 2, inf.Prorrata.DefinitivaFijada ? "REGULARIZACIÓN PRORRATA" : "REGULARIZACIÓN ESTIMADA", Ref(HojaProrrata, mapa.FilaRegularizacion, 7), FormatoEuros,
+            inf.Prorrata.DefinitivaFijada ? "con la definitiva, en el 303 del 4T" : "a favor (+) o en contra (−), en el 303 del 4T");
         Kpi(9, 2, "RESULTADO ACUMULADO", Ref(HojaPyG, mapa.FilaResultadoPyG, mapa.ColumnaTotalPyG), FormatoEuros, $"pérdidas y ganancias hasta el {inf.FinTrimestre:dd/MM/yyyy}");
         Kpi(11, 1, "CONTROLES", $"COUNTIF('{HojaControles}'!G{mapa.PrimeraControl}:G{mapa.UltimaControl},\"Revisar\")", "0", "a revisar");
         ws.Cell(6, 11).Style.Font.SetFontColor(Rojo);
