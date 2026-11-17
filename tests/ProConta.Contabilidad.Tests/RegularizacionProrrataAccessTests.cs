@@ -78,7 +78,7 @@ public sealed class RegularizacionProrrataAccessTests : IDisposable
 
         var d = await servicio.DeshacerAsync(_ctx, "Prueba de deshacer", _actor);
         Assert.True(d.EsCorrecto, d.Error?.Mensaje);
-        Assert.IsType<DBNull>(await LeerAsync("SELECT PorcentajeProrrataDefinitiva FROM SociedadesEjercicios WHERE IdSociedadEjercicio = 9001"));
+        Assert.Null(await LeerAsync("SELECT PorcentajeProrrataDefinitiva FROM SociedadesEjercicios WHERE IdSociedadEjercicio = 9001"));
         Assert.Equal(EstadoRegularizacionProrrata.Pendiente, (await servicio.SituacionAsync(_ctx)).Estado);
         // La provisional del ejercicio siguiente no se toca al deshacer.
         Assert.Equal(18m, Convert.ToDecimal(await LeerAsync("SELECT [PorcentajeProrrataAñoAnterior] FROM SociedadesEjercicios WHERE IdSociedadEjercicio = 9002")));
