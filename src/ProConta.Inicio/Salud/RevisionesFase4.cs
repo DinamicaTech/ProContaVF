@@ -152,37 +152,43 @@ public sealed class RevisionAmortizaciones : IRevisionSalud
 
 /// <summary>
 /// Céntimos residuales (contabilidad/procesos/centimos-residuales; pantalla-de-inicio 2026-11-15 16:37): subcuentas de clientes y
-/// proveedores (40, 41 y 43) cuyo saldo a la fecha de corte, redondeado a céntimos, no es cero y es menor de 1 € en valor
-/// absoluto. Aviso informativo: no deforman las cuentas, pero ensucian el Mayor y los listados de pendientes. Abre el Mayor ya con
-/// esas subcuentas. Solo avisa; el proceso que los limpia es de contabilidad/procesos/centimos-residuales.
+/// proveedores (40, 41 y 43) cuyo saldo a la fecha de corte, redondeado a céntimos, no es cero y es menor que el umbral del ejercicio
+/// (Parámetros › Ejercicios › «Umbral de los céntimos residuales»; vacío, 1,00 €) en valor absoluto. Aviso informativo: no deforman las
+/// cuentas, pero ensucian el Mayor y los listados de pendientes. Abre el proceso de céntimos residuales, que los salda a 31/12
+/// (contabilidad/procesos/centimos-residuales 2026-11-17 19:05).
 /// </summary>
 public sealed class RevisionCentimosResiduales : IRevisionSalud
 {
+    /// <summary>Umbral cuando el ejercicio no tiene otro.</summary>
     public const decimal Umbral = 1m;
     public string Clave => "centimos-residuales";
     public string Nombre => "Sin céntimos residuales en clientes y proveedores";
     public string Nodo => "contabilidad/procesos/centimos-residuales";
 
     public async Task<HallazgosSalud> RevisarAsync(IFuenteSalud fuente, ContextoSalud ctx, CancellationToken c) =>
-        Evaluar(await fuente.SaldosAsync(ctx.Ejercicio, "40", "43", ctx.Corte, c), ctx.Corte);
+        Evaluar(await fuente.SaldosAsync(ctx.Ejercicio, "40", "43", ctx.Corte, c), ctx.Corte, await fuente.UmbralCentimosResidualesAsync(ctx.Ejercicio, c));
 
-    public static HallazgosSalud Evaluar(IReadOnlyDictionary<string, decimal> saldos, DateTime corte)
+    public static HallazgosSalud Evaluar(IReadOnlyDictionary<string, decimal> saldos, DateTime corte, decimal? umbral = null)
     {
+        var limite = umbral is decimal u and > 0m ? u : Umbral;
         var residuales = saldos
             .Where(s => s.Key.StartsWith("40", StringComparison.Ordinal) || s.Key.StartsWith("41", StringComparison.Ordinal) || s.Key.StartsWith("43", StringComparison.Ordinal))
             .Select(s => (Cuenta: s.Key, Saldo: Math.Round(s.Value, 2, MidpointRounding.AwayFromZero)))
-            .Where(s => s.Saldo != 0 && Math.Abs(s.Saldo) < Umbral).OrderBy(s => s.Cuenta, StringComparer.Ordinal).ToList();
+            .Where(s => s.Saldo != 0 && Math.Abs(s.Saldo) < limite).OrderBy(s => s.Cuenta, StringComparer.Ordinal).ToList();
+        var menor = $"menor de {Imp(limite)}";
         if (residuales.Count == 0)
-            return HallazgosSalud.Correcta($"Ningún cliente ni proveedor tiene céntimos residuales (saldo de menos de 1 €) al {Fecha(corte)}", "contabilidad/procesos/centimos-residuales");
+            return HallazgosSalud.Correcta($"Ningún cliente ni proveedor tiene céntimos residuales (saldo {menor}) al {Fecha(corte)}", "contabilidad/procesos/centimos-residuales");
         var total = residuales.Sum(s => Math.Abs(s.Saldo));
         var clientes = residuales.Count(s => s.Cuenta.StartsWith("43", StringComparison.Ordinal));
         var detalle = string.Join(", ", residuales.Take(4).Select(s => $"{s.Cuenta} {Imp(s.Saldo)}")) + (residuales.Count > 4 ? "…" : "");
         return HallazgosSalud.De(new ElementoSalud("centimos-residuales", TipoSalud.Aviso, GravedadSalud.Aviso,
             $"{N(residuales.Count, "subcuenta", "subcuentas")} de clientes o proveedores con céntimos residuales",
-            $"{clientes} de clientes y {residuales.Count - clientes} de proveedores o acreedores con un saldo de menos de 1 € (en total {Imp(total)} en valor absoluto): {detalle}.",
-            null, DestinoSalud.Mayor(residuales.Select(s => s.Cuenta).ToList(), "céntimos residuales"), "contabilidad/procesos/centimos-residuales",
-            $"Alguna subcuenta 40, 41 o 43 tiene al {Fecha(corte)} un saldo distinto de cero y menor de 1 € en valor absoluto (diferencias de redondeo o de cobro y pago).",
-            "Revisa esos saldos en el Mayor y sáldalos con el proceso de céntimos residuales (Contabilidad › Procesos contables) cuando esté en ProContaVF, o con un asiento contra la 669 o la 769. " +
-            "El aviso desaparece cuando quedan a cero.") { Cantidad = residuales.Count, Importe = total });
+            $"{clientes} de clientes y {residuales.Count - clientes} de proveedores o acreedores con un saldo {menor} (en total {Imp(total)} en valor absoluto): {detalle}.",
+            null, new DestinoSalud(PantallaSalud.CentimosResiduales, "Contabilidad › Procesos contables › Fin de ejercicio › Céntimos residuales", residuales.Select(s => s.Cuenta).ToList()),
+            "contabilidad/procesos/centimos-residuales",
+            $"Alguna subcuenta 40, 41 o 43 tiene al {Fecha(corte)} un saldo distinto de cero y {menor} en valor absoluto (diferencias de redondeo o de cobro y pago). " +
+            "El umbral es el del ejercicio (Parámetros y tablas › Ejercicios › «Umbral de los céntimos residuales»).",
+            "Sáldalos con Contabilidad › Procesos contables › Fin de ejercicio › Céntimos residuales, que los lleva a 31/12 a las cuentas de redondeo (un asiento por subcuenta), " +
+            "o revisa antes en el Mayor si alguno es un cobro o un pago pendiente de verdad. El aviso desaparece cuando quedan a cero.") { Cantidad = residuales.Count, Importe = total });
     }
 }

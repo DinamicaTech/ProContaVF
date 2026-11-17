@@ -70,6 +70,12 @@ public sealed class ModuloMayor(ContextoMayor contexto, IAnfitrionPestanas anfit
         vm.ModificarAsiento = id => _ = a.AbrirModificarAsync(id, corregirAutomatico: true);
     }
 
+    /// <summary>Si la pestaña del Mayor está abierta, vuelve a leer sus saldos y cuadres (tras reiniciar el cuadre, por ejemplo).</summary>
+    public void RefrescarSiAbierto()
+    {
+        if (_pestana is not null) _ = _pestana.Modelo.RefrescarAsync();
+    }
+
     /// <summary>Abre la pestaña del Mayor (vacía o con unas cuentas).</summary>
     public void Abrir(IReadOnlyList<string>? cuentas = null)
     {

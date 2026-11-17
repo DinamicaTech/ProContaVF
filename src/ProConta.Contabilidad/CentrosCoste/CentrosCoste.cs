@@ -55,7 +55,14 @@ public sealed class CatalogoCentrosCosteAccess(IBaseDatos bd) : ICatalogoCentros
     }
 
     public Task<Resultado<CentroCoste>> AltaAsync(string idSociedad, string codigo, string nombre, int? idPadre = null, bool esImputable = true) =>
-        bd.EnTransaccionAsync(async s =>
+        bd.EnTransaccionAsync(s => AltaAsync(s, idSociedad, codigo, nombre, idPadre, esImputable));
+
+    /// <summary>
+    /// La misma alta dentro de una transacción que ya tiene abierta quien llama (el alta de un activo graba su ficha y su centro nuevo
+    /// juntos, activos 2026-11-17 18:50). Si falla, quien llama debe deshacer su transacción.
+    /// </summary>
+    public static async Task<Resultado<CentroCoste>> AltaAsync(ISesionDatos s, string idSociedad, string codigo, string nombre, int? idPadre = null, bool esImputable = true)
+    {
         {
             var cod = (codigo ?? "").Trim();
             var nom = (nombre ?? "").Trim();
@@ -92,7 +99,8 @@ public sealed class CatalogoCentrosCosteAccess(IBaseDatos bd) : ICatalogoCentros
             var raiz = padre is null ? nuevo : await s.EscalarAsync("SELECT IIF(IdCentroCosteRaiz IS NULL, IdCentroCoste, IdCentroCosteRaiz) FROM CentrosCoste WHERE IdCentroCoste = ?", padre.IdCentroCoste);
             await s.EjecutarAsync("UPDATE CentrosCoste SET IdCentroCosteRaiz = ? WHERE IdCentroCoste = ?", Convert.ToInt32(raiz), nuevo);
             return Resultado<CentroCoste>.Correcto(new CentroCoste(nuevo, idSociedad, padre?.IdCentroCoste, cod, nom, esImputable, true, nivel, ruta));
-        });
+        }
+    }
 
     private static CentroCoste Mapear(IFilaDatos f) => new(
         f.Entero("IdCentroCoste"), f.Texto("IdSociedad") ?? "", f.EnteroNulo("IdCentroCostePadre"), f.Texto("Codigo") ?? "", f.Texto("Nombre") ?? "",

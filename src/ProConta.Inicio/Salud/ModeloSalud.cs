@@ -13,6 +13,8 @@ public enum TipoSalud { Tarea, Aviso }
 public enum PantallaSalud { Ninguna, VentasPorFacturar, Ejercicios, LineasN43, Bancos, FacturasCompra, FacturasVenta, Mayor, Diario, Terceros, Nominas, Programadas, LiquidacionIva,
     /// <summary>Contabilidad › Procesos contables › Fin de ejercicio › Amortización de activos (contabilidad/procesos/amortizacion-de-activos).</summary>
     Amortizacion,
+    /// <summary>Contabilidad › Procesos contables › Fin de ejercicio › Céntimos residuales (contabilidad/procesos/centimos-residuales).</summary>
+    CentimosResiduales,
     /// <summary>No abre una pantalla: compensa las comisiones de las plataformas pendientes (facturacion/reservas/compensacion-comision).</summary>
     CompensarComisiones }
 

@@ -447,6 +447,17 @@ public sealed class ServicioImpuestoSociedades(IBaseDatos bd, IMotorAsientos mot
     }
 
     /// <summary>
+    /// Gastos generales del ejercicio y los ingresos ordinarios (70 a 75) de toda la sociedad, con la misma definición que la renta de viviendas
+    /// (contabilidad/procesos/impuesto-sociedades 2026-11-17 17:45): la cuenta de resultados de cada activo reparte los generales con ellos
+    /// (activos 2026-11-17 18:50). Lee lo mismo que el cálculo del impuesto, así que las cifras son las del paso «Alquiler de viviendas».
+    /// </summary>
+    public async Task<GastosGeneralesSociedad> GastosGeneralesAsync(ContextoSociedadEjercicio ctx, CancellationToken c = default)
+    {
+        var v = (await DatosAsync(ctx, c)).Viviendas!;
+        return new GastosGeneralesSociedad(v.GastosIndirectos, v.IngresosOrdinariosTotales);
+    }
+
+    /// <summary>
     /// Renta de viviendas (propietario 2026-11-17 12:44, art. 49.2 LIS): ingresos de los centros bonificados − sus gastos directos − los gastos
     /// indirectos (sin centro, sin actividad o de la actividad general) en proporción a los ingresos ordinarios (70 a 75) de viviendas sobre los totales.
     /// </summary>

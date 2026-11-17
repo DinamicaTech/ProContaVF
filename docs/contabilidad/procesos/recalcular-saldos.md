@@ -21,4 +21,4 @@ Pantalla Contabilidad › Recalcular saldos: compara, sin grabar, la caché de s
 - 2026-11-17 19:11 · 1- Ok 2- Ok 3- Ok 4- Ok 5- Ok 6- Ok
 
 ## Hand-over
-- 2026-11-17 19:20 · Hecho en la rama claude/project-thread-plkpz0: compila y pasan las pruebas sin BD en la nube. Falta, cuando el propietario lo autorice (otro hilo trabajaba en su equipo): pruebas contra Access y ensayo en una copia de C:\Docs\ProContaVF-validacion (descuadrar a mano una subcuenta, comprobar que sale y recalcular).
+- 2026-11-17 20:10 · Fusionado en main (PR #110) a petición del propietario (2026-11-17 20:04), sin pruebas en su equipo: él probará a la vez varios hilos. Queda en borrador hasta que lo valide. Para probarlo: prueba Access `CuentasAccessTests.RecalcularSaldos_muestra_la_diferencia_y_deja_la_cache_igual_a_los_apuntes` y, en una copia de C:\Docs\ProContaVF-validacion, descuadrar a mano el SaldoActual de una subcuenta, abrir Contabilidad › Recalcular saldos, ver la diferencia y pulsar «Recalcular».

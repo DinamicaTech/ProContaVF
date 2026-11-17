@@ -298,6 +298,11 @@ public sealed class FuenteSaludAccess(IBaseDatos bd) : IFuenteSalud
         bd.EjecutarAsync(async s => !s.LeerEsquema().ExisteColumna("SociedadesEjercicios", "PeriodicidadAmortizacion") ? null
             : (await s.EscalarAsync("SELECT PeriodicidadAmortizacion FROM SociedadesEjercicios WHERE IdSociedadEjercicio = ?", ejercicio.IdSociedadEjercicio) as string)?.Trim() is { Length: > 0 } p ? p : null, c);
 
+    public Task<decimal?> UmbralCentimosResidualesAsync(EjercicioSociedad ejercicio, CancellationToken c = default) =>
+        bd.EjecutarAsync(async s => !s.LeerEsquema().ExisteColumna("SociedadesEjercicios", "UmbralCentimosResiduales") ? null
+            : await s.EscalarAsync("SELECT UmbralCentimosResiduales FROM SociedadesEjercicios WHERE IdSociedadEjercicio = ?", ejercicio.IdSociedadEjercicio) is { } v and not DBNull
+                ? Convert.ToDecimal(v, System.Globalization.CultureInfo.InvariantCulture) : (decimal?)null, c);
+
     public Task<int> ActivosAmortizablesAsync(string idSociedad, CancellationToken c = default) =>
         bd.EjecutarAsync(async s => Convert.ToInt32(await s.EscalarAsync(
             // Amortizables, propios (no ajenos) y sin dar de baja.

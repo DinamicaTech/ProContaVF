@@ -33,6 +33,7 @@ public enum DestinoComprobacion
     LiquidacionIva,
     Prorrata,
     FacturasPendientes,
+    CentimosResiduales,
     Diario,
     Salud,
 }
@@ -140,6 +141,7 @@ public sealed class ServicioCierreEjercicio(IBaseDatos bd, IMotorAsientos motor,
         r.Add(await ComprobarProrrataAsync(ctx));
         r.Add(await ComprobarLiquidacionAsync(ctx));
         r.Add(await ComprobarFacturasPendientesAsync(ctx));
+        r.Add(await ComprobarCentimosAsync(ctx));
 
         var borradores = await bd.EjecutarAsync(async s => Convert.ToInt32(await s.EscalarAsync(
             "SELECT COUNT(*) FROM Asientos WHERE IdSociedadEjercicio = ? AND EstadoAsiento = 0", ctx.IdSociedadEjercicio), CultureInfo.InvariantCulture));
@@ -260,6 +262,32 @@ public sealed class ServicioCierreEjercicio(IBaseDatos bd, IMotorAsientos motor,
             _ => new(Clave, Titulo, ResultadoComprobacion.Aviso,
                 $"Sin contabilizar: {Plural(n, "proveedor cuadrado", "proveedores cuadrados")} con saldo deudor (pagado sin factura) por {CalculoCierreEjercicio.Euros(p.Total)} de base.",
                 DestinoComprobacion.FacturasPendientes),
+        };
+    }
+
+    /// <summary>
+    /// Céntimos residuales (contabilidad/procesos/centimos-residuales 2026-11-17 19:05): el estado del proceso; avisa, no bloquea, si quedan
+    /// subcuentas con céntimos por saldar o si lo grabado ya no coincide con la propuesta.
+    /// </summary>
+    private async Task<ComprobacionCierre> ComprobarCentimosAsync(ContextoSociedadEjercicio ctx)
+    {
+        const string Clave = "centimos", Titulo = "Céntimos residuales";
+        var situacion = await new ProConta.Contabilidad.Centimos.ServicioCentimos(bd, motor, cuentas, null, _reloj).SituacionAsync(ctx);
+        var p = situacion.Propuesta;
+        var n = p.Asientos.Count;
+        return situacion.Estado switch
+        {
+            ProConta.Contabilidad.Centimos.EstadoCentimos.Hecho when situacion.Asientos == 0 => new(Clave, Titulo, ResultadoComprobacion.Correcta,
+                p.Filas.Count == 0 ? "Ninguna subcuenta tiene céntimos residuales." : "Las subcuentas con céntimos residuales están excluidas.", DestinoComprobacion.CentimosResiduales),
+            ProConta.Contabilidad.Centimos.EstadoCentimos.Hecho => new(Clave, Titulo, ResultadoComprobacion.Correcta,
+                $"Saldados a 31/12: {Plural(situacion.Asientos, "subcuenta", "subcuentas")} por {CalculoCierreEjercicio.Euros(situacion.Grabado)}.", DestinoComprobacion.CentimosResiduales),
+            ProConta.Contabilidad.Centimos.EstadoCentimos.Desactualizado => new(Clave, Titulo, ResultadoComprobacion.Aviso, $"Desactualizados: {situacion.Motivo} Repítelo antes de cerrar.",
+                DestinoComprobacion.CentimosResiduales),
+            _ when n == 0 => new(Clave, Titulo, ResultadoComprobacion.Correcta,
+                p.Filas.Count == 0 ? "Ninguna subcuenta tiene céntimos residuales." : "Las subcuentas con céntimos residuales están excluidas.", DestinoComprobacion.CentimosResiduales),
+            _ => new(Clave, Titulo, ResultadoComprobacion.Aviso,
+                $"Sin saldar: {Plural(n, "subcuenta", "subcuentas")} con céntimos residuales por {CalculoCierreEjercicio.Euros(p.Total)}; pasarían así al ejercicio siguiente.",
+                DestinoComprobacion.CentimosResiduales),
         };
     }
 

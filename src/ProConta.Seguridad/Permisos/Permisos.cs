@@ -68,6 +68,10 @@ public static class Acciones
     public const string FacturasPendientes = "PROCESOS.FACTURAS_PENDIENTES";
     /// <summary>Amortizar los activos: confirmar y deshacer la amortización de un periodo (contabilidad/procesos/amortizacion-de-activos 2026-11-17).</summary>
     public const string Amortizacion = "PROCESOS.AMORTIZACION";
+    /// <summary>Saldar los céntimos residuales: confirmar y deshacer sus asientos del 31/12 (contabilidad/procesos/centimos-residuales 2026-11-17).</summary>
+    public const string CentimosResiduales = "PROCESOS.CENTIMOS_RESIDUALES";
+    /// <summary>Ver y modificar los activos: listado, ficha, alta y generación de sus subcuentas (activos 2026-11-17 18:50).</summary>
+    public const string Activos = "MAESTROS.ACTIVOS";
 
     /// <summary>
     /// Acción que manda mientras una acción nueva no tenga ningún grupo asignado: «Cambiar el trimestre activo» la tienen
@@ -88,6 +92,10 @@ public static class Acciones
         FacturasPendientes => LiquidacionIva,
         // La amortización graba asientos de 68 contra 28: mientras no tenga grupos, la tienen quienes pueden liquidar el IVA.
         Amortizacion => LiquidacionIva,
+        // Los céntimos residuales graban asientos contra las cuentas de redondeo: mientras no tenga grupos, los tienen quienes pueden liquidar el IVA.
+        CentimosResiduales => LiquidacionIva,
+        // Los activos son datos maestros con sus subcuentas y centros: mientras no tenga grupos, la tienen quienes pueden editar Parámetros y tablas.
+        Activos => MantenimientoEditar,
         _ => null
     };
 }

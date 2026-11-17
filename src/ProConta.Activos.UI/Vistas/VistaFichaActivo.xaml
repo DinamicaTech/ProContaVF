@@ -1,0 +1,445 @@
+<UserControl x:Class="ProConta.Activos.UI.Vistas.VistaFichaActivo"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:pc="urn:proconta-ui"
+             Background="White">
+  <UserControl.Resources>
+    <pc:VisibleSiConverter x:Key="Visible" />
+    <Style x:Key="Rotulo" TargetType="TextBlock">
+      <Setter Property="FontSize" Value="{StaticResource Letra.Pequena}" />
+      <Setter Property="Foreground" Value="{StaticResource Pincel.Apagado}" />
+      <Setter Property="Margin" Value="0,0,0,3" />
+    </Style>
+    <Style x:Key="Campo.Bloque" TargetType="StackPanel">
+      <Setter Property="Margin" Value="0,0,16,10" />
+    </Style>
+    <Style x:Key="Bloque" TargetType="Border">
+      <Setter Property="BorderBrush" Value="{StaticResource Pincel.Linea}" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="CornerRadius" Value="{StaticResource Radio.Panel}" />
+      <Setter Property="Padding" Value="14,10,14,4" />
+      <Setter Property="Margin" Value="0,0,0,12" />
+      <Setter Property="MaxWidth" Value="1100" />
+      <Setter Property="HorizontalAlignment" Value="Left" />
+    </Style>
+    <Style x:Key="Pastilla" TargetType="Border">
+      <Setter Property="Background" Value="{StaticResource Pincel.VerdeSuave}" />
+      <Setter Property="CornerRadius" Value="{StaticResource Radio.Pastilla}" />
+      <Setter Property="Padding" Value="8,1" />
+      <Style.Triggers>
+        <DataTrigger Binding="{Binding ClaseEstado}" Value="BAJA"><Setter Property="Background" Value="{StaticResource Pincel.Linea2}" /></DataTrigger>
+        <DataTrigger Binding="{Binding ClaseEstado}" Value="AJENO"><Setter Property="Background" Value="{StaticResource Pincel.MoradoSuave}" /></DataTrigger>
+        <DataTrigger Binding="{Binding ClaseEstado}" Value="PENDIENTEDECONTABILIZAR"><Setter Property="Background" Value="{StaticResource Pincel.AvisoSuave}" /></DataTrigger>
+        <DataTrigger Binding="{Binding ClaseEstado}" Value="PREVISTA"><Setter Property="Background" Value="{StaticResource Pincel.AzulSuave}" /></DataTrigger>
+        <DataTrigger Binding="{Binding ClaseEstado}" Value="CALCULADA"><Setter Property="Background" Value="{StaticResource Pincel.Linea2}" /></DataTrigger>
+      </Style.Triggers>
+    </Style>
+    <Style x:Key="FilaCuenta" TargetType="DataGridRow" BasedOn="{StaticResource Tabla.Fila}">
+      <Setter Property="ToolTip" Value="{Binding Ayuda}" />
+      <Style.Triggers>
+        <DataTrigger Binding="{Binding Clase}" Value="GRUPO">
+          <Setter Property="Background" Value="{StaticResource Pincel.Linea2}" />
+          <Setter Property="FontWeight" Value="SemiBold" />
+        </DataTrigger>
+        <DataTrigger Binding="{Binding Clase}" Value="TOTAL">
+          <Setter Property="Background" Value="{StaticResource Pincel.Fondo2}" />
+          <Setter Property="FontWeight" Value="SemiBold" />
+        </DataTrigger>
+        <DataTrigger Binding="{Binding Clase}" Value="RESULTADO">
+          <Setter Property="FontWeight" Value="Bold" />
+          <Setter Property="BorderBrush" Value="{StaticResource Pincel.Tinta}" />
+          <Setter Property="BorderThickness" Value="0,2,0,0" />
+        </DataTrigger>
+        <DataTrigger Binding="{Binding Clase}" Value="CALCULADA">
+          <Setter Property="FontStyle" Value="Italic" />
+          <Setter Property="Foreground" Value="{StaticResource Pincel.Apagado}" />
+        </DataTrigger>
+      </Style.Triggers>
+    </Style>
+    <Style x:Key="Celda.ImporteCuenta" TargetType="TextBlock" BasedOn="{StaticResource Texto.Celda.Importe}">
+      <Style.Triggers>
+        <DataTrigger Binding="{Binding Negativo}" Value="True"><Setter Property="Foreground" Value="{StaticResource Pincel.RojoSaldo}" /></DataTrigger>
+      </Style.Triggers>
+    </Style>
+  </UserControl.Resources>
+  <UserControl.InputBindings>
+    <KeyBinding Key="F5" Command="{Binding RefrescarCommand}" />
+  </UserControl.InputBindings>
+
+  <DockPanel>
+    <!-- Cabecera -->
+    <Border DockPanel.Dock="Top" BorderBrush="{StaticResource Pincel.Linea}" BorderThickness="0,0,0,1" Padding="14,8">
+      <DockPanel>
+        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Top">
+          <Button Content="Ver el Mayor" Style="{StaticResource Boton}" Command="{Binding MayorCommand}" Margin="0,0,8,0" Visibility="{Binding Propio, Converter={StaticResource Visible}}"
+                  ToolTip="Abre el Mayor con todas las subcuentas del activo en el ejercicio de trabajo" />
+          <Button Content="Actualizar" Style="{StaticResource Boton}" Command="{Binding RefrescarCommand}"
+                  ToolTip="Vuelve a leer el activo, sus cifras y sus subcuentas (F5). Si hay cambios sin guardar, pregunta antes" />
+        </StackPanel>
+        <StackPanel>
+          <TextBlock Text="{Binding Nombre}" Style="{StaticResource Texto.TituloPantalla}" TextTrimming="CharacterEllipsis" ToolTip="{Binding Nombre}" />
+          <WrapPanel Margin="0,4,0,0">
+            <TextBlock Text="{Binding Codigo}" Style="{StaticResource Texto.Mono}" VerticalAlignment="Center" Margin="0,0,10,0" ToolTip="Código del activo" />
+            <TextBlock Text="{Binding TipoTexto}" Style="{StaticResource Texto.Apagado}" VerticalAlignment="Center" Margin="0,0,10,0" ToolTip="Tipo de activo" />
+            <Border Style="{StaticResource Pastilla}" VerticalAlignment="Center" Margin="0,0,10,0" ToolTip="En uso, de baja o ajeno a la sociedad">
+              <TextBlock Text="{Binding EstadoTexto}" FontSize="{StaticResource Letra.Pequena}" FontWeight="SemiBold" Foreground="{StaticResource Pincel.Texto2}" />
+            </Border>
+            <TextBlock Style="{StaticResource Texto.Apagado}" VerticalAlignment="Center" Margin="0,0,10,0" Visibility="{Binding Propio, Converter={StaticResource Visible}}"
+                       ToolTip="Centro de coste del activo: en él se apuntan sus gastos e ingresos">
+              <Run Text="Centro:" /> <Run Text="{Binding CentroTexto, Mode=OneWay}" Foreground="{StaticResource Pincel.Tinta}" />
+            </TextBlock>
+            <TextBlock Style="{StaticResource Texto.Apagado}" VerticalAlignment="Center" Visibility="{Binding Propio, Converter={StaticResource Visible}}"
+                       ToolTip="Actividad de IVA, heredada de su centro de coste">
+              <Run Text="Actividad:" /> <Run Text="{Binding ActividadTexto, Mode=OneWay}" Foreground="{StaticResource Pincel.Tinta}" />
+            </TextBlock>
+          </WrapPanel>
+        </StackPanel>
+      </DockPanel>
+    </Border>
+
+    <!-- Indicadores del ejercicio de trabajo -->
+    <ItemsControl DockPanel.Dock="Top" ItemsSource="{Binding Indicadores}" Margin="14,10,14,0" Focusable="False" Visibility="{Binding Propio, Converter={StaticResource Visible}}">
+      <ItemsControl.ItemsPanel><ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+      <ItemsControl.ItemTemplate>
+        <DataTemplate>
+          <Border BorderBrush="{StaticResource Pincel.Linea}" BorderThickness="1" CornerRadius="{StaticResource Radio.Panel}" Padding="12,7" Margin="0,0,10,6" MinWidth="170"
+                  ToolTip="{Binding Detalle}">
+            <StackPanel>
+              <TextBlock Text="{Binding Titulo}" Style="{StaticResource Rotulo}" />
+              <TextBlock Text="{Binding Valor}" FontSize="{StaticResource Letra.Subtitulo}" FontWeight="SemiBold">
+                <TextBlock.Style>
+                  <Style TargetType="TextBlock">
+                    <Style.Triggers>
+                      <DataTrigger Binding="{Binding Negativo}" Value="True"><Setter Property="Foreground" Value="{StaticResource Pincel.RojoSaldo}" /></DataTrigger>
+                    </Style.Triggers>
+                  </Style>
+                </TextBlock.Style>
+              </TextBlock>
+              <TextBlock Text="{Binding Detalle}" Style="{StaticResource Rotulo}" Margin="0,2,0,0" />
+            </StackPanel>
+          </Border>
+        </DataTemplate>
+      </ItemsControl.ItemTemplate>
+    </ItemsControl>
+
+    <!-- Pie: guardar o cancelar los datos -->
+    <Border DockPanel.Dock="Bottom" Style="{StaticResource Barra.Pie}" Visibility="{Binding EnDatos, Converter={StaticResource Visible}}">
+      <DockPanel>
+        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+          <Button Content="Cancelar" Style="{StaticResource Boton}" Command="{Binding CancelarCommand}" Margin="0,0,8,0" MinWidth="80"
+                  ToolTip="Deshace los cambios que no has guardado y vuelve a lo guardado" />
+          <Button Content="Guardar" Style="{StaticResource Boton.Primario}" Command="{Binding GuardarCommand}" MinWidth="80"
+                  ToolTip="Guarda los datos del activo (Ctrl+G). Si cambias el tipo o la marca de ajeno, antes te enseña qué pasará con sus subcuentas" />
+        </StackPanel>
+        <TextBlock Text="{Binding PieDatos}" Style="{StaticResource Texto.Apagado}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" ToolTip="{Binding PieDatos}" />
+      </DockPanel>
+    </Border>
+
+    <pc:VistaEstado Estado="{Binding Estado}" Mensaje="{Binding MensajeEstado}" TextoAccion="Actualizar" ComandoAccion="{Binding RefrescarCommand}">
+      <TabControl SelectedIndex="{Binding IndiceApartado}" Margin="14,10,14,8">
+        <!-- ========== Datos ========== -->
+        <TabItem Header="Datos" ToolTip="Identificación, compra, datos del inmueble y amortización del activo">
+          <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Padding="0,10,0,0">
+            <StackPanel>
+              <pc:Nota Tipo="Info" Margin="0,0,0,12" MaxWidth="1100" HorizontalAlignment="Left" Visibility="{Binding EsAjeno, Converter={StaticResource Visible}}">
+                <TextBlock Text="{Binding AvisoAjeno}" TextWrapping="Wrap" />
+              </pc:Nota>
+
+              <Border Style="{StaticResource Bloque}">
+                <StackPanel>
+                  <TextBlock Text="Identificación" Style="{StaticResource Texto.Seccion}" Margin="0,0,0,8" />
+                  <WrapPanel>
+                    <StackPanel Style="{StaticResource Campo.Bloque}">
+                      <TextBlock Text="Código" Style="{StaticResource Rotulo}" />
+                      <TextBox Text="{Binding CodigoActivo, UpdateSourceTrigger=PropertyChanged, ValidatesOnNotifyDataErrors=True}" Width="180" MaxLength="40"
+                               ToolTip="Código corto del activo, único en la sociedad (por ejemplo GavaPoveda). Sirve para buscarlo" />
+                    </StackPanel>
+                    <StackPanel Style="{StaticResource Campo.Bloque}">
+                      <TextBlock Text="Nombre" Style="{StaticResource Rotulo}" />
+                      <TextBox Text="{Binding NombreActivo, UpdateSourceTrigger=PropertyChanged, ValidatesOnNotifyDataErrors=True}" Width="380" MaxLength="255"
+                               ToolTip="Nombre completo del activo. Se usa en el nombre de sus subcuentas (si lo cambias, «Generar las que falten…» las renombra)" />
+                    </StackPanel>
+                    <StackPanel Style="{StaticResource Campo.Bloque}">
+                      <TextBlock Text="Nombre corto" Style="{StaticResource Rotulo}" />
+                      <TextBox Text="{Binding NombreCorto, UpdateSourceTrigger=PropertyChanged, ValidatesOnNotifyDataErrors=True}" Width="200" MaxLength="100"
+                               ToolTip="Nombre abreviado para listados y pestañas" />
+                    </StackPanel>
+                    <StackPanel Style="{StaticResource Campo.Bloque}">
+                      <TextBlock Text="Tipo" Style="{StaticResource Rotulo}" />
+                      <ComboBox ItemsSource="{Binding Tipos}" SelectedItem="{Binding Tipo, ValidatesOnNotifyDataErrors=True}" DisplayMemberPath="Nombre" Width="200"
+                                IsEnabled="{Binding TipoEditable}" ToolTipService.ShowOnDisabled="True"
+                                ToolTip="El tipo decide la plantilla de subcuentas y las cuentas del plan contable que usa. Solo se puede cambiar si sus subcuentas no tienen apuntes en los últimos cinco ejercicios" />
+                    </StackPanel>
+                    <StackPanel Style="{StaticResource Campo.Bloque}" VerticalAlignment="Bottom">
+                      <CheckBox Content="Es ajeno a la sociedad" IsChecked="{Binding EsAjeno}" IsEnabled="{Binding TipoEditable}" Margin="0,0,0,6" ToolTipService.ShowOnDisabled="True"
+                                ToolTip="Márcalo si el activo no es de la sociedad y solo quieres guardar su información (por ejemplo, el piso particular): no tendrá subcuentas, centro ni amortización" />
+                    </StackPanel>
+                  </WrapPanel>
+                  <pc:Nota Tipo="Aviso" Margin="0,0,0,10" Visibility="{Binding MotivoBloqueo, Converter={StaticResource Visible}}">
+                    <TextBlock Text="{Binding MotivoBloqueo}" TextWrapping="Wrap" />
+                  </pc:Nota>
+                  <StackPanel Style="{StaticResource Campo.Bloque}">
+                    <TextBlock Text="Notas" Style="{StaticResource Rotulo}" />
+                    <TextBox Text="{Binding Notas, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource Campo.Multilinea}" Width="800" HorizontalAlignment="Left" MinHeight="48"
+                             ToolTip="Texto libre sobre el activo" />
+                  </StackPanel>
+                </StackPanel>
+              </Border>
+
+              <Border Style="{StaticResource Bloque}">
+                <StackPanel>
+                  <TextBlock Text="Compra" Style="{StaticResource Texto.Seccion}" Margin="0,0,0,8" />
+                  <WrapPanel>
+                    <StackPanel Style="{StaticResource Campo.Bloque}">
+                      <TextBlock Text="Fecha de compra" Style="{StaticResource Rotulo}" />
+                      <TextBox Text="{Binding FechaCompra, UpdateSourceTrigger=PropertyChanged, ValidatesOnNotifyDataErrors=True}" Width="110" ToolTip="dd/mm/aaaa. Normalmente desde este día se amortiza" />
+                    </StackPanel>
+                    <StackPanel Style="{StaticResource Campo.Bloque}" Visibility="{Binding VerCompraPropia, Converter={StaticResource Visible}}">
+                      <TextBlock Text="Coste de compra (€)" Style="{StaticResource Rotulo}" />
+                      <TextBox Text="{Binding Coste, UpdateSourceTrigger=PropertyChanged, ValidatesOnNotifyDataErrors=True}" Width="140" TextAlignment="Right"
+                               ToolTip="Precio más gastos de compra (notaría, registro, impuestos). Es el importe de alta del activo" />
+                    </StackPanel>
+                    <StackPanel Style="{StaticResource Campo.Bloque}" Visibility="{Binding VerCompraPropia, Converter={StaticResource Visible}}">
+                      <TextBlock Text="Centro de coste" Style="{StaticResource Rotulo}" />
+                      <StackPanel Orientation="Horizontal">
+                        <TextBox Text="{Binding Centro, Mode=OneWay, ValidatesOnNotifyDataErrors=True}" IsReadOnly="True" Width="260"
+                                 ToolTip="Centro de coste del activo: en él se apuntan sus gastos e ingresos y de él hereda la actividad de IVA" />
+                        <Button Content="Elegir…" Style="{StaticResource Boton}" Command="{Binding ElegirCentroCommand}" Margin="6,0,0,0"
+                                ToolTip="Elige el centro de coste del activo entre los centros activos e imputables de la sociedad" />
+                      </StackPanel>
+                    </StackPanel>
+                    <StackPanel Style="{StaticResource Campo.Bloque}" Visibility="{Binding VerCompraPropia, Converter={StaticResource Visible}}">
+                      <TextBlock Text="Actividad de IVA" Style="{StaticResource Rotulo}" />
+                      <TextBox Text="{Binding ActividadTexto, Mode=OneWay}" IsReadOnly="True" Width="220" ToolTip="La hereda de su centro de coste; se cambia en el árbol de centros de coste" />
+                    </StackPanel>
+                  </WrapPanel>
+                </StackPanel>
+              </Border>
+
+              <Border Style="{StaticResource Bloque}" Visibility="{Binding VerInmueble, Converter={StaticResource Visible}}">
+                <StackPanel>
+                  <TextBlock Text="Datos del inmueble" Style="{StaticResource Texto.Seccion}" Margin="0,0,0,2" />
+                  <TextBlock Text="El % de construcción sale de los valores catastrales y decide qué parte del coste se amortiza: el suelo no se amortiza." Style="{StaticResource Texto.Apagado}"
+                             Margin="0,0,0,8" TextWrapping="Wrap" />
+                  <WrapPanel>
+                    <StackPanel Style="{StaticResource Campo.Bloque}">
+                      <TextBlock Text="Referencia catastral" Style="{StaticResource Rotulo}" />
+                      <TextBox Text="{Binding Referencia, UpdateSourceTrigger=PropertyChanged, ValidatesOnNotifyDataErrors=True}" Width="200" MaxLength="30" Style="{StaticResource Campo.Mono}"
+                               ToolTip="Los 20 caracteres de la referencia catastral del recibo del IBI" />
+                    </StackPanel>
+                    <StackPanel Style="{StaticResource Campo.Bloque}">
+                      <TextBlock Text="Valor catastral del suelo (€)" Style="{StaticResource Rotulo}" />
+                      <TextBox Text="{Binding Suelo, UpdateSourceTrigger=LostFocus, ValidatesOnNotifyDataErrors=True}" Width="140" TextAlignment="Right" ToolTip="Del recibo del IBI" />
+                    </StackPanel>
+                    <StackPanel Style="{StaticResource Campo.Bloque}">
+                      <TextBlock Text="Valor catastral de la construcción (€)" Style="{StaticResource Rotulo}" />
+                      <TextBox Text="{Binding Construccion, UpdateSourceTrigger=LostFocus, ValidatesOnNotifyDataErrors=True}" Width="140" TextAlignment="Right" ToolTip="Del recibo del IBI" />
+                    </StackPanel>
+                    <StackPanel Style="{StaticResource Campo.Bloque}">
+                      <TextBlock Text="Construcción (%)" Style="{StaticResource Rotulo}" />
+                      <StackPanel Orientation="Horizontal">
+                        <TextBox Text="{Binding PorcentajeConstruccion, UpdateSourceTrigger=PropertyChanged, ValidatesOnNotifyDataErrors=True}" Width="70" TextAlignment="Right"
+                                 ToolTip="Valor de la construcción sobre el total catastral. Se calcula solo al cambiar los valores catastrales y se puede corregir" />
+                        <Button Content="Calcular" Style="{StaticResource Boton.Pequeno}" Command="{Binding CalcularConstruccionCommand}" Margin="6,0,0,0" VerticalAlignment="Center"
+                                ToolTip="Vuelve a calcular el % con los valores catastrales (construcción / suelo + construcción)" />
+                      </StackPanel>
+                    </StackPanel>
+                  </WrapPanel>
+                  <WrapPanel Visibility="{Binding VerCompraPropia, Converter={StaticResource Visible}}">
+                    <StackPanel Style="{StaticResource Campo.Bloque}">
+                      <TextBlock Text="Alquiler mensual (€)" Style="{StaticResource Rotulo}" />
+                      <TextBox Text="{Binding Alquiler, UpdateSourceTrigger=PropertyChanged, ValidatesOnNotifyDataErrors=True}" Width="120" TextAlignment="Right" ToolTip="Renta mensual del contrato en vigor" />
+                    </StackPanel>
+                    <StackPanel Style="{StaticResource Campo.Bloque}">
+                      <TextBlock Text="Inicio del alquiler" Style="{StaticResource Rotulo}" />
+                      <TextBox Text="{Binding InicioAlquiler, UpdateSourceTrigger=PropertyChanged, ValidatesOnNotifyDataErrors=True}" Width="110" ToolTip="dd/mm/aaaa: inicio del contrato en vigor" />
+                    </StackPanel>
+                    <StackPanel Style="{StaticResource Campo.Bloque}">
+                      <TextBlock Text="Tributo metropolitano (€)" Style="{StaticResource Rotulo}" />
+                      <TextBox Text="{Binding Tributo, UpdateSourceTrigger=PropertyChanged, ValidatesOnNotifyDataErrors=True}" Width="120" TextAlignment="Right" ToolTip="Importe anual del tributo metropolitano" />
+                    </StackPanel>
+                  </WrapPanel>
+                </StackPanel>
+              </Border>
+
+              <Border Style="{StaticResource Bloque}" Visibility="{Binding VerAmortizacion, Converter={StaticResource Visible}}">
+                <StackPanel>
+                  <TextBlock Text="Amortización" Style="{StaticResource Texto.Seccion}" Margin="0,0,0,8" />
+                  <CheckBox Content="Se amortiza cada año" IsChecked="{Binding SeAmortiza}" Margin="0,0,0,10"
+                            ToolTip="Desmárcalo si el activo no se amortiza (un terreno, por ejemplo): el proceso de amortización lo dejará fuera" />
+                  <WrapPanel Visibility="{Binding VerPlan, Converter={StaticResource Visible}}">
+                    <StackPanel Style="{StaticResource Campo.Bloque}">
+                      <TextBlock Text="Desde" Style="{StaticResource Rotulo}" />
+                      <TextBox Text="{Binding InicioAmortizacion, UpdateSourceTrigger=PropertyChanged, ValidatesOnNotifyDataErrors=True}" Width="110"
+                               ToolTip="dd/mm/aaaa: desde qué día se amortiza (normalmente, la fecha de compra). El primer año cuenta solo los días desde esa fecha" />
+                    </StackPanel>
+                    <StackPanel Style="{StaticResource Campo.Bloque}">
+                      <TextBlock Text="Base que se amortiza (€)" Style="{StaticResource Rotulo}" />
+                      <TextBox Text="{Binding Base, UpdateSourceTrigger=PropertyChanged, ValidatesOnNotifyDataErrors=True}" Width="140" TextAlignment="Right"
+                               ToolTip="Coste por el % de construcción en un inmueble (el suelo no se amortiza); el coste entero en los demás" />
+                    </StackPanel>
+                    <StackPanel Style="{StaticResource Campo.Bloque}">
+                      <TextBlock Text="Valor residual (€)" Style="{StaticResource Rotulo}" />
+                      <TextBox Text="{Binding Residual, UpdateSourceTrigger=PropertyChanged, ValidatesOnNotifyDataErrors=True}" Width="120" TextAlignment="Right"
+                               ToolTip="Lo que no se amortiza al final de su vida (lo normal es 0)" />
+                    </StackPanel>
+                    <StackPanel Style="{StaticResource Campo.Bloque}">
+                      <TextBlock Text="% anual" Style="{StaticResource Rotulo}" />
+                      <TextBox Text="{Binding PorcentajeAnual, UpdateSourceTrigger=PropertyChanged, ValidatesOnNotifyDataErrors=True}" Width="70" TextAlignment="Right"
+                               ToolTip="Porcentaje de la base que se amortiza cada año (3 en inmuebles, 16 en vehículos…)" />
+                    </StackPanel>
+                    <StackPanel Style="{StaticResource Campo.Bloque}">
+                      <TextBlock Text="Cuota de un año completo" Style="{StaticResource Rotulo}" />
+                      <TextBox Text="{Binding CuotaAnual, Mode=OneWay}" IsReadOnly="True" Width="140" TextAlignment="Right" ToolTip="Base × % anual: lo que se amortiza en un año entero" />
+                    </StackPanel>
+                  </WrapPanel>
+                </StackPanel>
+              </Border>
+            </StackPanel>
+          </ScrollViewer>
+        </TabItem>
+
+        <!-- ========== Cuenta de resultados ========== -->
+        <TabItem Header="Cuenta de resultados" Visibility="{Binding Propio, Converter={StaticResource Visible}}"
+                 ToolTip="Ingresos y gastos del activo por subcuenta, en resumen o por meses, con su resultado">
+          <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto" Padding="0,10,0,0">
+          <StackPanel>
+            <WrapPanel Margin="0,0,0,8">
+              <TextBlock Text="Ejercicio" VerticalAlignment="Center" Margin="0,0,6,4" />
+              <ComboBox ItemsSource="{Binding Ejercicios}" SelectedItem="{Binding EjercicioCuenta}" Width="80" Margin="0,0,14,4" VerticalAlignment="Center"
+                        ToolTip="Ejercicio de la cuenta de resultados (cualquiera de la sociedad)" />
+              <Border Style="{StaticResource Segmentado}" Margin="0,0,14,4" VerticalAlignment="Center" ToolTip="Una columna por año o una por mes">
+                <StackPanel Orientation="Horizontal">
+                  <RadioButton Style="{StaticResource Segmento}" Content="Resumen" GroupName="Vista" IsChecked="{Binding EnResumen}" ToolTip="Una columna con el año, la comparación y el % sobre los ingresos" />
+                  <RadioButton Style="{StaticResource Segmento}" Content="Por meses" GroupName="Vista" IsChecked="{Binding PorMeses}" ToolTip="Una columna por mes" />
+                </StackPanel>
+              </Border>
+              <CheckBox Content="{Binding TextoComparar}" IsChecked="{Binding Comparar}" VerticalAlignment="Center" Margin="0,0,14,4"
+                        ToolTip="Añade el importe del ejercicio anterior y la diferencia (en la vista Resumen)" />
+              <CheckBox Content="Añadir su parte de gastos generales" IsChecked="{Binding AnadirGenerales}" VerticalAlignment="Center" Margin="0,0,14,4" ToolTip="{Binding AyudaGenerales}" />
+              <Button Content="Exportar a Excel" Style="{StaticResource Boton}" Command="{Binding ExportarCuentaCommand}" VerticalAlignment="Center" Margin="0,0,0,4"
+                      ToolTip="Guarda en Excel la cuenta de resultados que se ve, con los doce meses, el año y la comparación" />
+            </WrapPanel>
+            <pc:Nota Tipo="Info" Margin="0,0,0,8" MaxWidth="1100" HorizontalAlignment="Left" Visibility="{Binding AvisoCuenta, Converter={StaticResource Visible}}">
+              <TextBlock Text="{Binding AvisoCuenta}" TextWrapping="Wrap" />
+            </pc:Nota>
+            <TextBlock Text="{Binding TextoGenerales}" Style="{StaticResource Texto.Apagado}" TextWrapping="Wrap" Margin="0,0,0,8" MaxWidth="1100" HorizontalAlignment="Left"
+                       Visibility="{Binding HayTextoGenerales, Converter={StaticResource Visible}}" />
+            <Grid>
+              <DataGrid Style="{StaticResource Tabla}" ItemsSource="{Binding FilasCuenta}" AutoGenerateColumns="False" IsReadOnly="True" HeadersVisibility="Column" SelectionMode="Single"
+                        RowStyle="{StaticResource FilaCuenta}" HorizontalAlignment="Left" VerticalScrollBarVisibility="Disabled" Visibility="{Binding EnResumen, Converter={StaticResource Visible}}"
+                        MouseDoubleClick="Cuenta_MouseDoubleClick" AutomationProperties.Name="Cuenta de resultados del activo">
+                <DataGrid.Columns>
+                  <DataGridTextColumn Header="Subcuenta" Binding="{Binding Cuenta}" Width="90" ElementStyle="{StaticResource Texto.Celda.Mono}" />
+                  <DataGridTextColumn Header="Concepto" Binding="{Binding Concepto}" Width="360" ElementStyle="{StaticResource Texto.Celda}" />
+                  <DataGridTextColumn x:Name="ColAnio" Header="Año" Binding="{Binding Importe}" Width="120" ElementStyle="{StaticResource Celda.ImporteCuenta}" HeaderStyle="{StaticResource Tabla.Cabecera.Derecha}" />
+                  <DataGridTextColumn x:Name="ColAnterior" Header="Año anterior" Binding="{Binding Anterior}" Width="120" ElementStyle="{StaticResource Texto.Celda.Importe}" HeaderStyle="{StaticResource Tabla.Cabecera.Derecha}" />
+                  <DataGridTextColumn x:Name="ColDiferencia" Header="Diferencia" Binding="{Binding Diferencia}" Width="110" ElementStyle="{StaticResource Texto.Celda.Importe}" HeaderStyle="{StaticResource Tabla.Cabecera.Derecha}" />
+                  <DataGridTextColumn Header="% de ingresos" Binding="{Binding Porcentaje}" Width="100" ElementStyle="{StaticResource Texto.Celda.Importe}" HeaderStyle="{StaticResource Tabla.Cabecera.Derecha}" />
+                </DataGrid.Columns>
+              </DataGrid>
+              <DataGrid Style="{StaticResource Tabla}" ItemsSource="{Binding FilasCuenta}" AutoGenerateColumns="False" IsReadOnly="True" HeadersVisibility="Column" SelectionMode="Single"
+                        RowStyle="{StaticResource FilaCuenta}" HorizontalAlignment="Left" VerticalScrollBarVisibility="Disabled" Visibility="{Binding PorMeses, Converter={StaticResource Visible}}" HorizontalScrollBarVisibility="Auto"
+                        MouseDoubleClick="Cuenta_MouseDoubleClick" AutomationProperties.Name="Cuenta de resultados del activo por meses">
+                <DataGrid.Columns>
+                  <DataGridTextColumn Header="Subcuenta" Binding="{Binding Cuenta}" Width="80" ElementStyle="{StaticResource Texto.Celda.Mono}" />
+                  <DataGridTextColumn Header="Concepto" Binding="{Binding Concepto}" Width="230" ElementStyle="{StaticResource Texto.Celda}" />
+                  <DataGridTextColumn Header="Ene" Binding="{Binding M1}" Width="74" ElementStyle="{StaticResource Texto.Celda.Importe}" HeaderStyle="{StaticResource Tabla.Cabecera.Derecha}" />
+                  <DataGridTextColumn Header="Feb" Binding="{Binding M2}" Width="74" ElementStyle="{StaticResource Texto.Celda.Importe}" HeaderStyle="{StaticResource Tabla.Cabecera.Derecha}" />
+                  <DataGridTextColumn Header="Mar" Binding="{Binding M3}" Width="74" ElementStyle="{StaticResource Texto.Celda.Importe}" HeaderStyle="{StaticResource Tabla.Cabecera.Derecha}" />
+                  <DataGridTextColumn Header="Abr" Binding="{Binding M4}" Width="74" ElementStyle="{StaticResource Texto.Celda.Importe}" HeaderStyle="{StaticResource Tabla.Cabecera.Derecha}" />
+                  <DataGridTextColumn Header="May" Binding="{Binding M5}" Width="74" ElementStyle="{StaticResource Texto.Celda.Importe}" HeaderStyle="{StaticResource Tabla.Cabecera.Derecha}" />
+                  <DataGridTextColumn Header="Jun" Binding="{Binding M6}" Width="74" ElementStyle="{StaticResource Texto.Celda.Importe}" HeaderStyle="{StaticResource Tabla.Cabecera.Derecha}" />
+                  <DataGridTextColumn Header="Jul" Binding="{Binding M7}" Width="74" ElementStyle="{StaticResource Texto.Celda.Importe}" HeaderStyle="{StaticResource Tabla.Cabecera.Derecha}" />
+                  <DataGridTextColumn Header="Ago" Binding="{Binding M8}" Width="74" ElementStyle="{StaticResource Texto.Celda.Importe}" HeaderStyle="{StaticResource Tabla.Cabecera.Derecha}" />
+                  <DataGridTextColumn Header="Sep" Binding="{Binding M9}" Width="74" ElementStyle="{StaticResource Texto.Celda.Importe}" HeaderStyle="{StaticResource Tabla.Cabecera.Derecha}" />
+                  <DataGridTextColumn Header="Oct" Binding="{Binding M10}" Width="74" ElementStyle="{StaticResource Texto.Celda.Importe}" HeaderStyle="{StaticResource Tabla.Cabecera.Derecha}" />
+                  <DataGridTextColumn Header="Nov" Binding="{Binding M11}" Width="74" ElementStyle="{StaticResource Texto.Celda.Importe}" HeaderStyle="{StaticResource Tabla.Cabecera.Derecha}" />
+                  <DataGridTextColumn Header="Dic" Binding="{Binding M12}" Width="74" ElementStyle="{StaticResource Texto.Celda.Importe}" HeaderStyle="{StaticResource Tabla.Cabecera.Derecha}" />
+                  <DataGridTextColumn x:Name="ColAnioMeses" Header="Año" Binding="{Binding Importe}" Width="110" ElementStyle="{StaticResource Celda.ImporteCuenta}" HeaderStyle="{StaticResource Tabla.Cabecera.Derecha}" />
+                </DataGrid.Columns>
+              </DataGrid>
+            </Grid>
+            <StackPanel Margin="0,10,0,0" Visibility="{Binding Grafico, Converter={StaticResource Visible}}">
+              <TextBlock Style="{StaticResource Texto.Seccion}"><Run Text="Ingresos y gastos de " /><Run Text="{Binding EjercicioCuenta, Mode=OneWay}" /><Run Text=", mes a mes" /></TextBlock>
+              <TextBlock Text="Sin la amortización, que se contabiliza de una vez. Pasa el ratón por un mes para ver sus cifras." Style="{StaticResource Texto.Apagado}" Margin="0,0,0,4" />
+              <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                <Rectangle Width="10" Height="10" Fill="#2a78d6" Margin="0,0,5,0" VerticalAlignment="Center" /><TextBlock Text="Ingresos" Margin="0,0,14,0" />
+                <Rectangle Width="10" Height="10" Fill="#eb6834" Margin="0,0,5,0" VerticalAlignment="Center" /><TextBlock Text="Gastos" />
+              </StackPanel>
+              <pc:GraficoBarras Datos="{Binding Grafico}" Height="200" MaxWidth="1100" HorizontalAlignment="Left" Width="900" />
+            </StackPanel>
+          </StackPanel>
+          </ScrollViewer>
+        </TabItem>
+
+        <!-- ========== Subcuentas ========== -->
+        <TabItem Header="Subcuentas" Visibility="{Binding Propio, Converter={StaticResource Visible}}" ToolTip="Las subcuentas del activo según la plantilla de su tipo, con su papel y su saldo">
+          <DockPanel Margin="0,10,0,0">
+            <DockPanel DockPanel.Dock="Top" Margin="0,0,0,8">
+              <Button DockPanel.Dock="Right" Content="Generar las que falten…" Style="{StaticResource Boton}" Command="{Binding GenerarSubcuentasCommand}" VerticalAlignment="Center"
+                      ToolTipService.ShowOnDisabled="True"
+                      ToolTip="Propone las subcuentas de su plantilla que le faltan en el ejercicio de trabajo (o con otro nombre) y las crea al confirmar" />
+              <TextBlock Text="{Binding TextoPlantilla}" Style="{StaticResource Texto.Apagado}" VerticalAlignment="Center" TextWrapping="Wrap" />
+            </DockPanel>
+            <pc:Nota DockPanel.Dock="Top" Tipo="Aviso" Margin="0,0,0,8" MaxWidth="1100" HorizontalAlignment="Left" Visibility="{Binding HayQueFaltan, Converter={StaticResource Visible}}">
+              <StackPanel>
+                <TextBlock Text="{Binding TextoQueFaltan}" TextWrapping="Wrap" />
+                <ItemsControl ItemsSource="{Binding QueFaltan}" Focusable="False" Margin="8,2,0,2">
+                  <ItemsControl.ItemTemplate><DataTemplate><TextBlock Text="{Binding StringFormat='· {0}'}" TextWrapping="Wrap" /></DataTemplate></ItemsControl.ItemTemplate>
+                </ItemsControl>
+                <TextBlock Text="Pulsa «Generar las que falten…» para crearlas." />
+              </StackPanel>
+            </pc:Nota>
+            <DataGrid Style="{StaticResource Tabla}" ItemsSource="{Binding Subcuentas}" AutoGenerateColumns="False" IsReadOnly="True" HeadersVisibility="Column" SelectionMode="Single"
+                      HorizontalAlignment="Left" MouseDoubleClick="Subcuentas_MouseDoubleClick" AutomationProperties.Name="Subcuentas del activo">
+              <DataGrid.RowStyle>
+                <Style TargetType="DataGridRow" BasedOn="{StaticResource Tabla.Fila}"><Setter Property="ToolTip" Value="{Binding Ayuda}" /></Style>
+              </DataGrid.RowStyle>
+              <DataGrid.Columns>
+                <DataGridTextColumn Header="Subcuenta" Binding="{Binding Codigo}" Width="90" ElementStyle="{StaticResource Texto.Celda.Mono}" />
+                <DataGridTextColumn Header="Nombre" Binding="{Binding Nombre}" Width="430" ElementStyle="{StaticResource Texto.Celda}" />
+                <DataGridTextColumn Header="Papel" Binding="{Binding Papel}" Width="300" ElementStyle="{StaticResource Texto.Celda}" />
+                <DataGridTextColumn Header="Saldo" Binding="{Binding Saldo}" Width="130" ElementStyle="{StaticResource Texto.Celda.Importe}" HeaderStyle="{StaticResource Tabla.Cabecera.Derecha}" />
+              </DataGrid.Columns>
+            </DataGrid>
+          </DockPanel>
+        </TabItem>
+
+        <!-- ========== Amortización ========== -->
+        <TabItem Header="Amortización" Visibility="{Binding Propio, Converter={StaticResource Visible}}" ToolTip="El plan de amortización del activo y lo amortizado y previsto por ejercicio (solo consulta)">
+          <DockPanel Margin="0,10,0,0">
+            <TextBlock DockPanel.Dock="Top" Text="{Binding FrasePlan}" TextWrapping="Wrap" Margin="0,0,0,8" MaxWidth="1100" HorizontalAlignment="Left" />
+            <pc:Nota DockPanel.Dock="Top" Tipo="Info" Margin="0,0,0,8" HorizontalAlignment="Left">
+              <StackPanel Orientation="Horizontal">
+                <TextBlock Text="La amortización se calcula y se contabiliza desde Contabilidad › Amortización de activos. El primer año y el último cuentan los días reales y la cuota nunca supera lo pendiente."
+                           TextWrapping="Wrap" MaxWidth="760" VerticalAlignment="Center" />
+                <Button Content="Abrir Amortización de activos" Style="{StaticResource Boton.Enlace}" Command="{Binding AbrirAmortizacionCommand}" Margin="10,0,0,0" VerticalAlignment="Center"
+                        ToolTip="Abre la pantalla del proceso de amortización de todos los activos" />
+              </StackPanel>
+            </pc:Nota>
+            <DataGrid Style="{StaticResource Tabla}" ItemsSource="{Binding FilasAmortizacion}" AutoGenerateColumns="False" IsReadOnly="True" HeadersVisibility="Column" SelectionMode="Single"
+                      HorizontalAlignment="Left" AutomationProperties.Name="Amortización por ejercicio">
+              <DataGrid.Columns>
+                <DataGridTextColumn Header="Ejercicio" Binding="{Binding Ejercicio}" Width="80" ElementStyle="{StaticResource Texto.Celda.Mono}" />
+                <DataGridTextColumn Header="Días" Binding="{Binding Dias}" Width="90" ElementStyle="{StaticResource Texto.Celda.Importe}" HeaderStyle="{StaticResource Tabla.Cabecera.Derecha}" />
+                <DataGridTextColumn Header="Cuota" Binding="{Binding Cuota}" Width="120" ElementStyle="{StaticResource Texto.Celda.Importe}" HeaderStyle="{StaticResource Tabla.Cabecera.Derecha}" />
+                <DataGridTextColumn Header="Acumulado" Binding="{Binding Acumulado}" Width="130" ElementStyle="{StaticResource Texto.Celda.Importe}" HeaderStyle="{StaticResource Tabla.Cabecera.Derecha}" />
+                <DataGridTextColumn Header="Pendiente" Binding="{Binding Pendiente}" Width="130" ElementStyle="{StaticResource Texto.Celda.Importe}" HeaderStyle="{StaticResource Tabla.Cabecera.Derecha}" />
+                <DataGridTemplateColumn Header="Estado" Width="190">
+                  <DataGridTemplateColumn.CellTemplate>
+                    <DataTemplate>
+                      <Border Style="{StaticResource Pastilla}" HorizontalAlignment="Left" ToolTip="{Binding Ayuda}">
+                        <TextBlock Text="{Binding Estado}" FontSize="{StaticResource Letra.Pequena}" FontWeight="SemiBold" Foreground="{StaticResource Pincel.Texto2}" />
+                      </Border>
+                    </DataTemplate>
+                  </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+              </DataGrid.Columns>
+            </DataGrid>
+          </DockPanel>
+        </TabItem>
+      </TabControl>
+    </pc:VistaEstado>
+  </DockPanel>
+</UserControl>

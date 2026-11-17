@@ -118,7 +118,7 @@ public sealed class ProveedorConfiguracionGeneral(IBaseDatos bd) : ProveedorTabl
         new("OcultarListaOperadoresAcceso", "Ocultar la lista de operadores al entrar", TipoCampo.Logico) { Ayuda = "Marcado, la ventana de entrada no muestra los operadores existentes: cada uno escribe su nombre.", Grupo = "ubi" },
         new("VeriFactuActivo", "Activar VeriFactu", TipoCampo.Logico) { Grupo = "sis", Sinonimos = ["verifactu", "aeat"], Ayuda = "Desactivado, las facturas se validan sin comunicarse a la AEAT y sin QR. Las validadas así no se envían después. VeriFactu aún no está disponible en esta versión: activado, validar se detiene y lo explica." },
         new("UmbralCuadreMayor", "Umbral para reiniciar el cuadre del Mayor", TipoCampo.Importe) { Grupo = "con", Ancho = "s", Sinonimos = ["cuadre", "mayor", "umbral", "tolerancia"],
-            Ayuda = "«Reiniciar el cuadre» del Mayor marca como cuadradas las cuentas con un saldo de hasta este importe, positivo o negativo. Vacío: 0,05 €." },
+            Ayuda = "Contabilidad › Reiniciar el cuadre del Mayor marca como cuadradas las subcuentas del ejercicio de trabajo con un saldo de hasta este importe, positivo o negativo, y quita la casilla a las demás. Vacío: 0,05 €." },
         new("FechaModificacion", "Modificado el", TipoCampo.Fecha) { Ayuda = "Fecha del último cambio guardado en esta configuración. Se rellena sola.", Grupo = "ubi", SoloLectura = true },
         new("OperadorModificacion", "Modificado por") { Ayuda = "Operador que guardó el último cambio de esta configuración. Se rellena solo.", Grupo = "ubi", SoloLectura = true },
     ],
