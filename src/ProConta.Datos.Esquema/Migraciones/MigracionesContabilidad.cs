@@ -629,4 +629,40 @@ public static class MigracionesContabilidad
             new("Sociedades", "IbanDomiciliacion", "IBAN de la cuenta en que se domicilian las autoliquidaciones que salen a ingresar (303 y demás modelos)."),
         ],
     };
+
+    /// <summary>
+    /// Facturas pendientes de recibir (contabilidad/procesos/facturas-pendientes-recibir 2026-11-17): los tres parámetros del ejercicio,
+    /// la cuenta de facturas pendientes de recibir (vacía: 4009000), la cuenta de gasto por defecto de los proveedores sin cuenta de
+    /// gasto (vacía: 6299000) y el tipo de IVA supuesto de los que no tienen facturas (vacío: 21 %), y la tabla
+    /// FacturasPendientesAjustes con lo que el operador excluye o cambia a mano en la propuesta. Solo estructura, sin datos.
+    /// </summary>
+    public static Migracion FacturasPendientesRecibir { get; } = new(
+        "20261117_1700_FACTURAS_PENDIENTES_RECIBIR", 261117017,
+        "Parámetros del ejercicio de las facturas pendientes de recibir y ajustes manuales de su propuesta.",
+        "contabilidad/procesos/facturas-pendientes-recibir",
+        new AnadirColumna("SociedadesEjercicios", "CuentaFacturasPendientesRecibir", "TEXT(10)"),
+        new AnadirColumna("SociedadesEjercicios", "CuentaGastoFacturasPendientes", "TEXT(10)"),
+        new AnadirColumna("SociedadesEjercicios", "TipoIvaFacturasPendientes", "DECIMAL(9,4)"),
+        new CrearTabla("FacturasPendientesAjustes",
+            "CREATE TABLE FacturasPendientesAjustes (IdFacturaPendienteAjuste COUNTER CONSTRAINT PK_FacturasPendientesAjustes PRIMARY KEY, " +
+            "IdSociedadEjercicio LONG NOT NULL CONSTRAINT FK_FacturasPendientesAjustes_Ejercicio REFERENCES SociedadesEjercicios (IdSociedadEjercicio), " +
+            "CuentaProveedor TEXT(30) NOT NULL, Excluido YESNO NOT NULL, BaseManual CURRENCY, Operador TEXT(100), FechaHora DATETIME NOT NULL)"),
+        new CrearIndice("FacturasPendientesAjustes", "UX_FacturasPendientesAjustes_Cuenta",
+            "CREATE UNIQUE INDEX UX_FacturasPendientesAjustes_Cuenta ON FacturasPendientesAjustes (IdSociedadEjercicio, CuentaProveedor)"))
+    {
+        Descripciones =
+        [
+            new("SociedadesEjercicios", "CuentaFacturasPendientesRecibir", "Cuenta de facturas pendientes de recibir: recibe al Haber el gasto supuesto a 31/12 y se salda el 1/1 del siguiente (vacía: 4009000)."),
+            new("SociedadesEjercicios", "CuentaGastoFacturasPendientes", "Cuenta de gasto de las facturas pendientes de recibir de los proveedores sin cuenta de gasto por defecto ni facturas (vacía: 6299000)."),
+            new("SociedadesEjercicios", "TipoIvaFacturasPendientes", "Tipo de IVA, en porcentaje, con que se saca la base de un proveedor sin facturas: saldo / (1 + tipo) (vacío: 21 %)."),
+            new("FacturasPendientesAjustes", null, "Lo que el operador cambió a mano en la propuesta de facturas pendientes de recibir de un ejercicio: proveedores excluidos y bases escritas."),
+            new("FacturasPendientesAjustes", "IdFacturaPendienteAjuste", "Identificador del ajuste."),
+            new("FacturasPendientesAjustes", "IdSociedadEjercicio", "Ejercicio de la propuesta."),
+            new("FacturasPendientesAjustes", "CuentaProveedor", "Subcuenta del proveedor o acreedor (40 o 41) a la que se refiere."),
+            new("FacturasPendientesAjustes", "Excluido", "Sí: el proveedor no entra en la provisión aunque cumpla las condiciones."),
+            new("FacturasPendientesAjustes", "BaseManual", "Base escrita a mano en lugar de la calculada; vacía: la calculada."),
+            new("FacturasPendientesAjustes", "Operador", "Operador que hizo el cambio."),
+            new("FacturasPendientesAjustes", "FechaHora", "Fecha y hora del cambio."),
+        ],
+    };
 }

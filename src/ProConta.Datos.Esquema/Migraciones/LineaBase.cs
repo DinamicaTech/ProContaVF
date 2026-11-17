@@ -112,6 +112,7 @@ public static class CatalogoMigraciones
         MigracionesContabilidad.ImpuestoSociedades,
         MigracionesContabilidad.CuentaResultadoEjercicio,
         MigracionesContabilidad.PresentacionesAeat,
+        MigracionesContabilidad.FacturasPendientesRecibir,
     ];
 
     /// <summary>Versión del esquema que espera esta versión del programa.</summary>

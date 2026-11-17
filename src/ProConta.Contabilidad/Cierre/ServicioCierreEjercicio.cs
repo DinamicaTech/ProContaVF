@@ -1,6 +1,7 @@
 using System.Globalization;
 using ProConta.Contabilidad.Asientos;
 using ProConta.Contabilidad.Cuentas;
+using ProConta.Contabilidad.FacturasPendientes;
 using ProConta.Contabilidad.Impuestos;
 using ProConta.Contabilidad.Iva;
 using ProConta.Datos.Persistencia;
@@ -31,6 +32,7 @@ public enum DestinoComprobacion
     Amortizacion,
     LiquidacionIva,
     Prorrata,
+    FacturasPendientes,
     Diario,
     Salud,
 }
@@ -122,7 +124,7 @@ public sealed class ServicioCierreEjercicio(IBaseDatos bd, IMotorAsientos motor,
     /// <summary>
     /// Comprobación previa al cierre (validación V5, contabilidad 2026-11-15 21:10): el ejercicio siguiente (impide cerrar si falta), el
     /// Impuesto sobre Sociedades, la amortización, la regularización de la prorrata, la liquidación del IVA del 4T, las facturas pendientes
-    /// de recibir (aún sin proceso), los asientos en borrador y los avisos graves de la salud. Lo demás avisa, no impide.
+    /// de recibir, los asientos en borrador y los avisos graves de la salud. Lo demás avisa, no impide.
     /// </summary>
     public async Task<IReadOnlyList<ComprobacionCierre>> ComprobarAsync(ContextoSociedadEjercicio ctx)
     {
@@ -137,7 +139,7 @@ public sealed class ServicioCierreEjercicio(IBaseDatos bd, IMotorAsientos motor,
         r.Add(await ComprobarAmortizacionAsync(ctx));
         r.Add(await ComprobarProrrataAsync(ctx));
         r.Add(await ComprobarLiquidacionAsync(ctx));
-        r.Add(new("facturas-pendientes", "Facturas pendientes de recibir", ResultadoComprobacion.NoAplica, "El proceso aún no existe en ProContaVF."));
+        r.Add(await ComprobarFacturasPendientesAsync(ctx));
 
         var borradores = await bd.EjecutarAsync(async s => Convert.ToInt32(await s.EscalarAsync(
             "SELECT COUNT(*) FROM Asientos WHERE IdSociedadEjercicio = ? AND EstadoAsiento = 0", ctx.IdSociedadEjercicio), CultureInfo.InvariantCulture));
@@ -207,6 +209,32 @@ public sealed class ServicioCierreEjercicio(IBaseDatos bd, IMotorAsientos motor,
                 $"Definitiva fijada ({(situacion.Definitiva ?? 0m) * 100m:0.##} %) y regularizada a la 4729.", DestinoComprobacion.Prorrata),
             EstadoRegularizacionProrrata.Desactualizada => new("prorrata", Titulo, ResultadoComprobacion.Aviso, $"Desactualizada: {situacion.Motivo} Repítela antes de cerrar.", DestinoComprobacion.Prorrata),
             _ => new("prorrata", Titulo, ResultadoComprobacion.Aviso, "Sin la prorrata definitiva: falta fijarla y regularizarla a 31/12 (antes de liquidar el 4T).", DestinoComprobacion.Prorrata),
+        };
+    }
+
+    /// <summary>
+    /// Facturas pendientes de recibir (contabilidad/procesos/facturas-pendientes-recibir): su estado. Son lotes propios de ese proceso
+    /// (provisión a 31/12 y reversión a 1/1 del siguiente): el cierre no los graba ni los borra al reabrir.
+    /// </summary>
+    private async Task<ComprobacionCierre> ComprobarFacturasPendientesAsync(ContextoSociedadEjercicio ctx)
+    {
+        const string Clave = "facturas-pendientes", Titulo = "Facturas pendientes de recibir";
+        var situacion = await new ServicioFacturasPendientes(bd, motor, cuentas, null, _reloj).SituacionAsync(ctx);
+        var p = situacion.Propuesta;
+        var n = p.Incluidas.Count();
+        return situacion.Estado switch
+        {
+            EstadoFacturasPendientes.Hecho when situacion.Grabado == 0m => new(Clave, Titulo, ResultadoComprobacion.Correcta, "Hecho: no había nada que provisionar.", DestinoComprobacion.FacturasPendientes),
+            EstadoFacturasPendientes.Hecho => new(Clave, Titulo, ResultadoComprobacion.Correcta,
+                $"Provisionadas a 31/12 por {CalculoCierreEjercicio.Euros(situacion.Grabado)}, con su reversión el 1/1/{ctx.Ejercicio + 1}.", DestinoComprobacion.FacturasPendientes),
+            EstadoFacturasPendientes.Desactualizado => new(Clave, Titulo, ResultadoComprobacion.Aviso, $"Desactualizadas: {situacion.Motivo} Repítelo antes de cerrar.",
+                DestinoComprobacion.FacturasPendientes),
+            _ when n == 0 => new(Clave, Titulo, ResultadoComprobacion.Correcta,
+                p.Filas.Count == 0 ? "Ningún proveedor cuadrado en el Mayor tiene saldo deudor: nada que provisionar." : "Todos los proveedores con saldo deudor están excluidos.",
+                DestinoComprobacion.FacturasPendientes),
+            _ => new(Clave, Titulo, ResultadoComprobacion.Aviso,
+                $"Sin contabilizar: {Plural(n, "proveedor cuadrado", "proveedores cuadrados")} con saldo deudor (pagado sin factura) por {CalculoCierreEjercicio.Euros(p.Total)} de base.",
+                DestinoComprobacion.FacturasPendientes),
         };
     }
 
