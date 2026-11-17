@@ -77,6 +77,7 @@ public partial class VentanaPrincipal : Window
     private readonly ProConta.Contabilidad.UI.Cierre.ModuloCierreEjercicio _cierreEjercicio;
     private readonly ProConta.Contabilidad.UI.FacturasPendientes.ModuloFacturasPendientes _facturasPendientes;
     private readonly ProConta.Contabilidad.UI.Amortizacion.ModuloAmortizacion _amortizacion;
+    private readonly ProConta.Contabilidad.UI.Centimos.ModuloCentimos _centimos;
     private readonly ModuloFacturacion _facturacion;
     private readonly ModuloCompras _compras;
     private readonly ModuloCorreo _correo;
@@ -143,6 +144,7 @@ public partial class VentanaPrincipal : Window
                 AbrirDiario = () => _diario!.Abrir(),
                 AbrirLiquidacionIva = () => _liquidacionIva!.Abrir(),
                 AbrirAmortizacion = () => _amortizacion!.Abrir(),
+                AbrirCentimosResiduales = () => _centimos!.Abrir(),
                 AbrirTerceros = () => _terceros!.AbrirBuscador(),
                 AbrirNominas = () => _nominas!.Abrir(null),
                 AbrirParametros = clave => AbrirParametros(clave),
@@ -432,6 +434,7 @@ public partial class VentanaPrincipal : Window
                     ProConta.Contabilidad.Cierre.DestinoComprobacion.LiquidacionIva => () => _liquidacionIva.Abrir(4),
                     ProConta.Contabilidad.Cierre.DestinoComprobacion.Prorrata => () => _prorrata.Abrir(),
                     ProConta.Contabilidad.Cierre.DestinoComprobacion.FacturasPendientes => () => _facturasPendientes!.Abrir(),
+                    ProConta.Contabilidad.Cierre.DestinoComprobacion.CentimosResiduales => () => _centimos!.Abrir(),
                     ProConta.Contabilidad.Cierre.DestinoComprobacion.Diario => () => _diario.Abrir(),
                     ProConta.Contabilidad.Cierre.DestinoComprobacion.Salud => () => irAInicio.Execute(null),
                     _ => null,
@@ -468,6 +471,20 @@ public partial class VentanaPrincipal : Window
             },
             _area, new ProConta.Contabilidad.UI.Liquidacion.DialogosLiquidacionIva(() => this));
         var abrirAmortizacion = new ComandoDelegado(() => _amortizacion.Abrir());
+        // Céntimos residuales (contabilidad/procesos/centimos-residuales): saldos de menos del umbral en las subcuentas de los grupos 1 a 5 (sin 47 ni 57),
+        // saldados a 31/12 contra las cuentas de redondeo, un asiento por subcuenta, como lote propio; el cierre solo mira su estado.
+        _centimos = new ProConta.Contabilidad.UI.Centimos.ModuloCentimos(
+            new ProConta.Contabilidad.UI.Centimos.ContextoCentimos(
+                new ProConta.Contabilidad.Centimos.ServicioCentimos(bd, new MotorAsientosAccess(bd), cuentas, () => autorizador.PuedeAsync(Acciones.CentimosResiduales)),
+                contexto.Contexto, contexto.RazonSocial, new Actor(sesion.NombreOperador), Avisar)
+            {
+                VerAsiento = id => _mayor.VerAsientoAsync(id),
+                AbrirMayor = cuentasMayor => _mayor.Abrir(cuentasMayor),
+                AbrirParametros = clave => AbrirParametros(clave),
+                Cambiada = () => _ = RefrescarTrimestreAsync(),
+            },
+            _area, new ProConta.Contabilidad.UI.Liquidacion.DialogosLiquidacionIva(() => this));
+        var abrirCentimos = new ComandoDelegado(() => _centimos.Abrir());
         // Informes (contabilidad/balances e informes/excel): cada opción genera el libro Excel con su tabla dinámica y lo abre.
         _balances = new ProConta.Contabilidad.Balances.GeneradorBalances(bd);
         _razonSocial = contexto.RazonSocial;
@@ -510,7 +527,7 @@ public partial class VentanaPrincipal : Window
                 "Procesos contables › Reparto de dividendos: del neto de cada socio (por defecto, lo ya pagado en su 526) calcula el bruto y la retención del ejercicio y graba el asiento de reservas a dividendos; corregir o deshacer con motivo",
                 abrirDividendos, EsHija: true),
             new OpcionNavegacion("Fin de ejercicio", null, true, false,
-                "Procesos contables que se hacen al terminar el año, en este orden: amortización, facturas pendientes de recibir, prorrata, liquidación del IVA del 4T, Impuesto sobre Sociedades y cierre. " +
+                "Procesos contables que se hacen al terminar el año, en este orden: amortización, facturas pendientes de recibir, céntimos residuales, prorrata, liquidación del IVA del 4T, Impuesto sobre Sociedades y cierre. " +
                 "Pulsar aquí abre el Cierre del ejercicio, cuya comprobación previa dice qué falta de cada paso",
                 abrirCierreEjercicio, EsHija: true),
             new OpcionNavegacion("Amortización de activos", null, true, false,
@@ -521,6 +538,10 @@ public partial class VentanaPrincipal : Window
                 "Procesos contables › Fin de ejercicio › Facturas pendientes de recibir: proveedores y acreedores cuadrados en el Mayor con saldo deudor a 31/12 (pagado sin factura), su base supuesta y cuenta de gasto; " +
                 "provisión a 31/12 contra la 4009 y su reversión el 1/1 del ejercicio siguiente, con casilla para excluir y base editable",
                 abrirFacturasPendientes, EsNieta: true),
+            new OpcionNavegacion("Céntimos residuales", null, true, false,
+                "Procesos contables › Fin de ejercicio › Céntimos residuales: subcuentas de los grupos 1 a 5 (salvo 47 y 57) con un saldo a 31/12 menor que el umbral del ejercicio, " +
+                "saldadas contra las cuentas de redondeo (659 y 759) con un asiento por subcuenta y casilla para excluir; repetir o deshacer con motivo",
+                abrirCentimos, EsNieta: true),
             new OpcionNavegacion("Prorrata de IVA", null, true, false,
                 "Procesos contables › Fin de ejercicio › Prorrata de IVA: provisional, legal del año y definitiva (la de la gestoría), su regularización por trimestre y el asiento del 31/12 a la 4729 que deduce el 303 del 4T",
                 abrirProrrata, EsNieta: true),

@@ -154,6 +154,15 @@ public static class ProveedoresOrganizacion
     ];
 
     /// <summary>
+    /// Umbral de los céntimos residuales del ejercicio (contabilidad/procesos/centimos-residuales, esquema 69); vacío, 1,00 €.
+    /// </summary>
+    internal static CampoMantenimiento UmbralCentimosResiduales() =>
+        new("UmbralCentimosResiduales", "Umbral de los céntimos residuales (€)", TipoCampo.Importe) { Grupo = "pred", Ancho = "xs",
+            Sinonimos = ["centimos", "céntimos", "centimillos", "redondeo", "umbral", "659", "759"],
+            Ayuda = "Una subcuenta de los grupos 1 a 5 (salvo 47 y 57) con un saldo a 31/12 menor que este importe en valor absoluto, y distinto de cero, tiene céntimos residuales: " +
+                "Contabilidad › Fin de ejercicio › Céntimos residuales la salda contra las cuentas de redondeo y el aviso de Inicio la señala. Vacío: 1,00 €. Crear el ejercicio siguiente lo copia." };
+
+    /// <summary>
     /// Periodicidad del asiento de amortización de los activos (contabilidad/procesos/amortizacion-de-activos, esquema 68); vacía, anual.
     /// </summary>
     internal static CampoMantenimiento PeriodicidadAmortizacion() =>
@@ -282,6 +291,7 @@ public static class ProveedoresOrganizacion
             ProrrataAnterior(),
             ProrrataDefinitiva(),
             PeriodicidadAmortizacion(),
+            UmbralCentimosResiduales(),
             .. Cuentas(), .. CuentasCompras(), .. CuentasLiquidacionIva(), .. Dividendos(), .. ImpuestoSociedades(), .. CuentasCierre(), .. FacturasPendientes(),
             Ruta("CarpetaFacturasCompra", "Carpeta de facturas de compra") with
             {
@@ -295,7 +305,7 @@ public static class ProveedoresOrganizacion
         ColumnaAmbito = "IdSociedad",
         Orden = "Ejercicio DESC",
         GruposCampos = GruposEjercicio,
-        Alias = ["ejercicio", "año", "trimestre", "prorrata", "suplido", "retencion", "dividendos", "reservas", "sociedades", "impuesto", "pendientes", "amortizacion"],
+        Alias = ["ejercicio", "año", "trimestre", "prorrata", "suplido", "retencion", "dividendos", "reservas", "sociedades", "impuesto", "pendientes", "amortizacion", "centimos"],
         Usos = [new("SeriesFacturacion", "IdSociedadEjercicio", "series"), new("Facturas", "IdSociedadEjercicio", "facturas"),
             new("CuentasContables", "IdSociedadEjercicio", "cuentas contables"), new("Asientos", "IdSociedadEjercicio", "asientos")],
         Titular = r => r.EsNuevo ? "Nuevo ejercicio" : r.Texto("Nombre") ?? $"Ejercicio {r.Texto("Ejercicio")}",

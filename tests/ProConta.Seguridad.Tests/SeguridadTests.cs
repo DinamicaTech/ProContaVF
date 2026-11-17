@@ -102,6 +102,8 @@ public sealed class AccesoAccessTests : IDisposable
         Assert.Equal(Acciones.LiquidacionIva, Acciones.Respaldo(Acciones.FacturasPendientes));
         // contabilidad/procesos/amortizacion-de-activos 2026-11-17 17:59: PROCESOS.AMORTIZACION, igual.
         Assert.Equal(Acciones.LiquidacionIva, Acciones.Respaldo(Acciones.Amortizacion));
+        // contabilidad/procesos/centimos-residuales 2026-11-17 19:05: PROCESOS.CENTIMOS_RESIDUALES, igual.
+        Assert.Equal(Acciones.LiquidacionIva, Acciones.Respaldo(Acciones.CentimosResiduales));
         var bd = _copia.Bd();
         var iva = await DatosSinteticos.GrupoAsync(bd, "IVA");
         var otros = await DatosSinteticos.GrupoAsync(bd, "OTROS");

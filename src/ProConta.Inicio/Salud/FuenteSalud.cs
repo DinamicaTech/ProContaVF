@@ -131,6 +131,12 @@ public interface IFuenteSalud
     /// </summary>
     Task<string?> PeriodicidadAmortizacionAsync(EjercicioSociedad ejercicio, CancellationToken c = default) => Task.FromResult<string?>(null);
 
+    /// <summary>
+    /// Umbral de los céntimos residuales del ejercicio (Parámetros › Ejercicios, contabilidad/procesos/centimos-residuales); null si no
+    /// está configurado (se usa 1,00 €).
+    /// </summary>
+    Task<decimal?> UmbralCentimosResidualesAsync(EjercicioSociedad ejercicio, CancellationToken c = default) => Task.FromResult<decimal?>(null);
+
     /// <summary>Activos de la sociedad amortizables, propios (no ajenos) y sin dar de baja.</summary>
     Task<int> ActivosAmortizablesAsync(string idSociedad, CancellationToken c = default) => Task.FromResult(0);
 
