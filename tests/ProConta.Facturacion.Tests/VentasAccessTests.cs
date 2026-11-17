@@ -316,6 +316,8 @@ public sealed class VentasAccessTests : IDisposable
         Assert.Equal(1000m, factura.Totales.BaseImponible.Valor);
         Assert.Equal(100m, factura.Totales.Iva.Valor);
         Assert.Null(factura.Lineas[0].CausaExencion);
+        // «Facturar ventas…» pasa el activo de la venta a la línea (activos 2026-11-17 20:35), y se guarda y se lee.
+        Assert.Equal(idActivo, factura.Lineas[0].IdActivo);
     }
 
     [Fact]

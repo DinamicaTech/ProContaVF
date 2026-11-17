@@ -226,6 +226,7 @@ public sealed class VentasTests
         Assert.Equal(0m, l.TipoIva);
         Assert.Equal("E1", l.CausaExencion);
         Assert.Equal(34, l.IdCentroCoste);
+        Assert.Equal(18, l.IdActivo);
         Assert.Equal(noches, l.Cantidad);
         Assert.Equal("7520002", l.CuentaContable);
     }

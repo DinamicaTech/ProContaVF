@@ -99,7 +99,7 @@ public sealed partial class ServicioActivos
             IReadOnlySet<string> ninguna = new HashSet<string>();
             var filas = await s.ConsultarAsync(
                 "SELECT fc.IdRegistro, fc.IdSociedadEjercicio, fc.Ejercicio, fc.Fecha, fc.NumeroFactura, fc.NombreProveedorAeat, t.RazonSocial, t.Nombre, fc.Concepto, " +
-                "fc.ImporteBI, fc.ImporteIVA, fc.ImporteTotal, fc.Exportada, fc.CuentaGasto, fc.IdCentroCoste " +
+                "fc.ImporteBI, fc.ImporteIVA, fc.ImporteTotal, fc.Exportada, fc.ConceptoGasto, fc.IdCentroCoste " +
                 "FROM (FacturasCompra AS fc LEFT JOIN Proveedores AS p ON fc.IdProveedor = p.IdProveedor) LEFT JOIN Terceros AS t ON p.IdTercero = t.IdTercero " +
                 "WHERE fc.Duplicada = False AND (fc.IdSociedadEjercicio IN (SELECT IdSociedadEjercicio FROM SociedadesEjercicios WHERE IdSociedad = ?) " +
                 "OR (fc.IdSociedadEjercicio IS NULL AND fc.Sociedad = ?))",
@@ -108,7 +108,7 @@ public sealed partial class ServicioActivos
                     int? anio = f.EnteroNulo("IdSociedadEjercicio") is int ie && ejercicios.TryGetValue(ie, out var a) ? a
                         : int.TryParse(f.Texto("Ejercicio")?.Trim(), NumberStyles.None, CultureInfo.InvariantCulture, out var e) ? e : null;
                     var proveedor = new[] { f.Texto("NombreProveedorAeat"), f.Texto("RazonSocial"), f.Texto("Nombre") }.FirstOrDefault(x => !string.IsNullOrWhiteSpace(x))?.Trim() ?? "";
-                    return (Anio: anio, Cuenta: f.Texto("CuentaGasto")?.Trim(), Centro: f.EnteroNulo("IdCentroCoste"),
+                    return (Anio: anio, Cuenta: f.Texto("ConceptoGasto")?.Trim(), Centro: f.EnteroNulo("IdCentroCoste"),
                         Fila: new CompraDeActivo(f.Entero("IdRegistro"), f.FechaNula("Fecha"), (f.Texto("NumeroFactura") ?? "").Trim(), proveedor, (f.Texto("Concepto") ?? "").Trim(),
                             f.DecimalNulo("ImporteBI") ?? 0m, f.DecimalNulo("ImporteIVA") ?? 0m, f.DecimalNulo("ImporteTotal") ?? 0m,
                             ReglasEnlacesActivo.EstadoCompra(f.Logico("Exportada")), anio));
@@ -120,6 +120,8 @@ public sealed partial class ServicioActivos
                 .Select(x => x.Fila)
                 .OrderByDescending(x => x.Fecha ?? DateTime.MinValue).ThenByDescending(x => x.IdRegistro).ToList();
         });
+
+    private static string Entero(int valor) => valor.ToString(CultureInfo.InvariantCulture);
 
     /// <summary>
     /// Apartado «Ventas»: las programadas con alguna línea del activo que emiten en el ejercicio y las facturas emitidas y borradores del ejercicio
@@ -140,11 +142,12 @@ public sealed partial class ServicioActivos
                     "SELECT p.IdFacturaProgramada, p.Periodicidad, p.FechaInicio, p.FechaFin, p.ProximaFechaEmision, p.Activa, t.RazonSocial, t.Nombre " +
                     "FROM (((FacturasProgramadas AS p INNER JOIN SociedadesEjercicios AS se ON p.IdSociedadEjercicio = se.IdSociedadEjercicio) " +
                     "LEFT JOIN Clientes AS c ON p.IdCliente = c.IdCliente) LEFT JOIN Terceros AS t ON c.IdTercero = t.IdTercero) " +
-                    "WHERE se.IdSociedad = ? AND p.IdFacturaProgramada IN (SELECT IdFacturaProgramada FROM LineasFacturasProgramadas WHERE IdActivo = ? AND Activa = True)",
+                    // El activo va escrito (es un entero): Access no respeta el orden de los parámetros de una subconsulta IN.
+                    $"WHERE se.IdSociedad = ? AND p.IdFacturaProgramada IN (SELECT IdFacturaProgramada FROM LineasFacturasProgramadas WHERE IdActivo = {Entero(idActivo)} AND Activa = True)",
                     f => (Inicio: f.FechaNula("FechaInicio"), Fin: f.FechaNula("FechaFin"),
                         Fila: new ProgramadaDeActivo(f.Entero("IdFacturaProgramada"), Cliente(f, "RazonSocial", "Nombre"), ReglasEnlacesActivo.Periodicidad(f.Texto("Periodicidad")),
                             f.FechaNula("ProximaFechaEmision"), basePorProgramada.GetValueOrDefault(f.Entero("IdFacturaProgramada")), f.Logico("Activa"))),
-                    idSociedad, idActivo))
+                    idSociedad))
                 .Where(x => ReglasEnlacesActivo.ProgramadaEnEjercicio(x.Inicio, x.Fin, ejercicio))
                 .Select(x => x.Fila).OrderByDescending(x => x.Activa).ThenBy(x => x.ProximaEmision ?? DateTime.MaxValue).ThenBy(x => x.IdFacturaProgramada).ToList();
 
@@ -155,7 +158,7 @@ public sealed partial class ServicioActivos
                     "SELECT f.IdFactura, f.NumeroFactura, f.FechaFactura, f.EstadoFactura, f.ImporteTotal, f.RazonSocial, f.Nombre, t.RazonSocial AS RazonTercero, t.Nombre AS NombreTercero, se.Ejercicio " +
                     "FROM (((Facturas AS f INNER JOIN SociedadesEjercicios AS se ON f.IdSociedadEjercicio = se.IdSociedadEjercicio) " +
                     "LEFT JOIN Clientes AS c ON f.IdCliente = c.IdCliente) LEFT JOIN Terceros AS t ON c.IdTercero = t.IdTercero) " +
-                    "WHERE se.IdSociedad = ? AND f.IdFactura IN (SELECT IdFactura FROM LineasFactura WHERE IdActivo = ?)" + (ejercicio is null ? "" : " AND se.Ejercicio = ?"),
+                    $"WHERE se.IdSociedad = ? AND f.IdFactura IN (SELECT IdFactura FROM LineasFactura WHERE IdActivo = {Entero(idActivo)})" + (ejercicio is null ? "" : " AND se.Ejercicio = ?"),
                     f =>
                     {
                         var numero = f.Texto("NumeroFactura")?.Trim();
@@ -165,7 +168,7 @@ public sealed partial class ServicioActivos
                         return new VentaDeActivo(f.Entero("IdFactura"), f.FechaNula("FechaFactura"), numero is { Length: > 0 } ? numero : "(borrador)", cliente,
                             basePorFactura.GetValueOrDefault(f.Entero("IdFactura")), f.DecimalNulo("ImporteTotal") ?? 0m, ReglasEnlacesActivo.EstadoVenta(estado), f.Entero("Ejercicio"));
                     },
-                    ejercicio is int a ? [idSociedad, idActivo, a] : [idSociedad, idActivo]))
+                    ejercicio is int a ? [idSociedad, a] : [idSociedad]))
                 .OrderByDescending(x => x.Estado == "Borrador").ThenByDescending(x => x.Fecha ?? DateTime.MaxValue).ThenByDescending(x => x.IdFactura).ToList();
             return new VentasDeActivo(programadas, facturas);
         });

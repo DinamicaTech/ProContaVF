@@ -148,6 +148,45 @@ public sealed class FichaCompraTests
     }
 
     [Fact]
+    public void La_cuenta_de_gasto_de_un_activo_pone_su_centro_si_no_hay_y_avisa_si_hay_otro()
+    {
+        // activos 2026-11-17 20:35: 6250001 es del Piso A (centro 300); 6280001, del Piso A y del Piso B; 6290001, de ninguno.
+        var activos = new Dictionary<string, IReadOnlyList<ActivoDeCuenta>>
+        {
+            ["6250001"] = [new(1, "Piso A", 300)],
+            ["6280001"] = [new(1, "Piso A", 300), new(2, "Piso B", 301)],
+        };
+        FichaCompraVM Nueva()
+        {
+            var sin = Factura();
+            sin.CuentaGasto = null;
+            sin.IdCentroCoste = null;
+            return new(sin, [Proveedor], [new("6250001 · Seguro Piso A", "6250001"), new("6280001 · Luz edificio", "6280001"), new("6290001 · Otros", "6290001")],
+                [new CentroCoste(300, "T01", null, "300", "Piso A", true, true, 0, "300"), new CentroCoste(301, "T01", null, "301", "Piso B", true, true, 0, "301")],
+                [], false, tiposIva: [21m], activosCuentas: activos);
+        }
+
+        var f = Nueva();
+        f.CodigoCuentaGasto = "6250001";
+        Assert.Equal(300, f.Construir().IdCentroCoste);
+        Assert.DoesNotContain(f.Avisos, a => a.Contains("activo", StringComparison.Ordinal));
+        // Se puede cambiar; al volver a elegir la cuenta, el centro elegido se queda y sale el aviso, que no bloquea.
+        f.CentroCoste = f.CentrosCoste.First(c => c.Valor == 301);
+        f.CodigoCuentaGasto = "6290001";
+        f.CodigoCuentaGasto = "6250001";
+        Assert.Equal(301, f.Construir().IdCentroCoste);
+        Assert.Contains(f.Avisos, a => a.Contains("«Piso A»", StringComparison.Ordinal));
+
+        // Subcuenta de dos activos o de ninguno: nada.
+        var g = Nueva();
+        g.CodigoCuentaGasto = "6280001";
+        Assert.Null(g.Construir().IdCentroCoste);
+        g.CodigoCuentaGasto = "6290001";
+        Assert.Null(g.Construir().IdCentroCoste);
+        Assert.DoesNotContain(g.Avisos, a => a.Contains("activo", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public void Volver_a_reconocer_pone_la_cuenta_de_gasto_del_proveedor_si_no_habia_y_no_cambia_la_elegida()
     {
         var sin = Factura();
