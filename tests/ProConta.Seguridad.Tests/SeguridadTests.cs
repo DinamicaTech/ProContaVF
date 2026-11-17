@@ -96,6 +96,27 @@ public sealed class AccesoAccessTests : IDisposable
     }
 
     [Fact]
+    public async Task Las_facturas_pendientes_de_recibir_siguen_a_liquidar_el_iva_hasta_que_tienen_grupos_propios()
+    {
+        // contabilidad/procesos/facturas-pendientes-recibir 2026-11-17 16:40: PROCESOS.FACTURAS_PENDIENTES, sin grupos, la tiene quien liquida el IVA.
+        Assert.Equal(Acciones.LiquidacionIva, Acciones.Respaldo(Acciones.FacturasPendientes));
+        var bd = _copia.Bd();
+        var iva = await DatosSinteticos.GrupoAsync(bd, "IVA");
+        var otros = await DatosSinteticos.GrupoAsync(bd, "OTROS");
+        var ana = await DatosSinteticos.OperadorSinContrasenaAsync(bd, "ana.prueba");
+        var luis = await DatosSinteticos.OperadorSinContrasenaAsync(bd, "luis.prueba");
+        await DatosSinteticos.MiembroAsync(bd, ana, iva);
+        await DatosSinteticos.MiembroAsync(bd, luis, otros);
+        await bd.EjecutarAsync(s => s.EjecutarAsync("INSERT INTO PermisosAccionesGrupo (IdGrupoOperadores, CodigoAccion) VALUES (?, ?)", iva, Acciones.LiquidacionIva));
+        AutorizadorAccionesAccess De(int operador) => new(bd, new ServicioOperadores(bd), operador);
+        Assert.True(await De(ana).PuedeAsync(Acciones.FacturasPendientes));
+        Assert.False(await De(luis).PuedeAsync(Acciones.FacturasPendientes));
+        await bd.EjecutarAsync(s => s.EjecutarAsync("INSERT INTO PermisosAccionesGrupo (IdGrupoOperadores, CodigoAccion) VALUES (?, ?)", otros, Acciones.FacturasPendientes));
+        Assert.False(await De(ana).PuedeAsync(Acciones.FacturasPendientes));
+        Assert.True(await De(luis).PuedeAsync(Acciones.FacturasPendientes));
+    }
+
+    [Fact]
     public async Task PrimerAdministradorSoloSinOperadores()
     {
         var acceso = Servicio();

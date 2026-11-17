@@ -38,8 +38,15 @@ public sealed record OpcionesLote(bool LibroExterno = false, bool DiferirSaldos 
     /// <summary>Motor propietario de los lotes del cierre del ejercicio, el único que puede pedir <see cref="CierreEjercicio"/>.</summary>
     public const string MotorCierreEjercicio = "contabilidad/procesos/cierre-ejercicio";
 
-    /// <summary>Motor propietario de los lotes de la liquidación del IVA, el único que puede pedir <see cref="TrimestreLiquidado"/>.</summary>
+    /// <summary>Motor propietario de los lotes de la liquidación del IVA, que puede pedir <see cref="TrimestreLiquidado"/>.</summary>
     public const string MotorLiquidacionIva = "contabilidad/procesos/liquidacion-iva";
+
+    /// <summary>
+    /// Motor propietario de los lotes de las facturas pendientes de recibir (contabilidad/procesos/facturas-pendientes-recibir
+    /// 2026-11-17 16:40): la provisión del 31/12 lleva cuentas de gasto que son fiscales (621, 623…), así que también puede pedir
+    /// <see cref="TrimestreLiquidado"/> 4, como la regularización de la prorrata.
+    /// </summary>
+    public const string MotorFacturasPendientes = "contabilidad/procesos/facturas-pendientes-recibir";
 
     /// <summary>
     /// Si el asiento cae en el trimestre que liquida el lote (<see cref="TrimestreLiquidado"/>, contabilidad/procesos/liquidacion-iva
@@ -1058,9 +1065,10 @@ public sealed partial class MotorAsientosAccess(IBaseDatos bd, PoliticaCuadre? p
                 "Fecha el asiento en el trimestre activo o reabre el periodo con el proceso contable autorizado.")
             : null;
 
-    /// <summary>Solo la liquidación del IVA puede grabar su asiento en el trimestre cerrado que liquida.</summary>
+    /// <summary>Solo la liquidación del IVA (y las facturas pendientes de recibir, a 31/12) puede grabar su asiento en el trimestre cerrado que liquida.</summary>
     private static Error? ValidarLiquidacion(IdentidadLote lote, OpcionesLote? opciones) =>
         opciones?.TrimestreLiquidado is not null && !string.Equals(lote.MotorPropietario, OpcionesLote.MotorLiquidacionIva, StringComparison.Ordinal)
+            && !string.Equals(lote.MotorPropietario, OpcionesLote.MotorFacturasPendientes, StringComparison.Ordinal)
             ? new Error("Asientos.TrimestreLiquidadoNoPermitido", "Este lote no puede grabarse en un trimestre cerrado.", lote.ToString(),
                 "Solo la liquidación del IVA graba su propio asiento en el trimestre cerrado que liquida.",
                 "Fecha el asiento en el trimestre activo.")

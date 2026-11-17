@@ -45,6 +45,8 @@ public static class ProveedoresOrganizacion
         "CuentaHaciendaDeudoraIS" => ["470"],
         "CuentaCreditoPerdidasIS" => ["474"],
         "CuentaResultadoEjercicio" => ["129"],
+        "CuentaFacturasPendientesRecibir" => ["400"],
+        "CuentaGastoFacturasPendientes" => ["6"],
         _ => [],
     };
 
@@ -133,6 +135,22 @@ public static class ProveedoresOrganizacion
     [
         Cuenta("CuentaResultadoEjercicio", "Cierre · cuenta de resultados", ayuda: "Subcuenta del resultado del ejercicio: la regularización del cierre (Contabilidad › Cierre del ejercicio) salda contra ella los grupos 6 y 7. Vacía: 1290000. Si no existe, se crea al cerrar.",
             sinonimos: ["129", "resultado", "cierre", "regularizacion"]),
+    ];
+
+    /// <summary>
+    /// Parámetros de las facturas pendientes de recibir del ejercicio (contabilidad/procesos/facturas-pendientes-recibir, esquema 67);
+    /// vacíos, 4009000, 6299000 y 21 %.
+    /// </summary>
+    internal static IEnumerable<CampoMantenimiento> FacturasPendientes() =>
+    [
+        new("TipoIvaFacturasPendientes", "Facturas pendientes de recibir · tipo de IVA supuesto (%)", TipoCampo.Porcentaje) { Grupo = "impuestos", Ancho = "xs",
+            Sinonimos = ["pendientes", "recibir", "4009", "iva supuesto"],
+            Ayuda = "Tipo de IVA con que se saca la base de un proveedor pagado sin factura que aún no tiene ninguna factura contabilizada: base = saldo / (1 + tipo), en porcentaje: 21 es el 21 %. " +
+                "Vacío: 21 %. Si el proveedor tiene facturas, la base sale de la proporción base / total de la última (Contabilidad › Facturas pendientes de recibir)." },
+        Cuenta("CuentaFacturasPendientesRecibir", "Facturas pendientes de recibir · cuenta", ayuda: "Recibe al Haber, a 31/12, el gasto supuesto de los proveedores pagados sin factura, y se salda el 1/1 del ejercicio siguiente con la reversión. Vacía: 4009000. Si no existe, se crea al confirmar.",
+            sinonimos: ["4009", "pendientes", "recibir"]),
+        Cuenta("CuentaGastoFacturasPendientes", "Facturas pendientes de recibir · gasto por defecto", ayuda: "Cuenta de gasto de la provisión para los proveedores sin cuenta de gasto por defecto (Proveedores) ni facturas contabilizadas. Vacía: 6299000 (otros servicios). Si no existe, se crea al confirmar.",
+            sinonimos: ["6299", "pendientes", "recibir", "gasto"]),
     ];
 
     /// <summary>
@@ -253,7 +271,7 @@ public static class ProveedoresOrganizacion
             TipoGeneral(),
             ProrrataAnterior(),
             ProrrataDefinitiva(),
-            .. Cuentas(), .. CuentasCompras(), .. CuentasLiquidacionIva(), .. Dividendos(), .. ImpuestoSociedades(), .. CuentasCierre(),
+            .. Cuentas(), .. CuentasCompras(), .. CuentasLiquidacionIva(), .. Dividendos(), .. ImpuestoSociedades(), .. CuentasCierre(), .. FacturasPendientes(),
             Ruta("CarpetaFacturasCompra", "Carpeta de facturas de compra") with
             {
                 Ayuda = "Dónde se buscan los PDF de compra de este ejercicio, dentro de la carpeta de documentos de la empresa (Empresas › Carpeta de documentos, la ruta base), por ejemplo 2026\\Proveedores. " +
@@ -266,7 +284,7 @@ public static class ProveedoresOrganizacion
         ColumnaAmbito = "IdSociedad",
         Orden = "Ejercicio DESC",
         GruposCampos = GruposEjercicio,
-        Alias = ["ejercicio", "año", "trimestre", "prorrata", "suplido", "retencion", "dividendos", "reservas", "sociedades", "impuesto"],
+        Alias = ["ejercicio", "año", "trimestre", "prorrata", "suplido", "retencion", "dividendos", "reservas", "sociedades", "impuesto", "pendientes"],
         Usos = [new("SeriesFacturacion", "IdSociedadEjercicio", "series"), new("Facturas", "IdSociedadEjercicio", "facturas"),
             new("CuentasContables", "IdSociedadEjercicio", "cuentas contables"), new("Asientos", "IdSociedadEjercicio", "asientos")],
         Titular = r => r.EsNuevo ? "Nuevo ejercicio" : r.Texto("Nombre") ?? $"Ejercicio {r.Texto("Ejercicio")}",
