@@ -22,4 +22,4 @@ Proceso contable que reinicia el cuadre de las subcuentas del Mayor en el ejerci
 - 2026-11-17 19:17 · Se desmarca el flag de los no cuadrados y se marca los que cuadran con un pequeño margen de error.
 
 ## Hand-over
-2026-11-17 19:20 · Hecho en la rama `claude/project-thread-nqx5eg`: lógica, pantalla, menú y pruebas sin BD (`MayorCuadreTests`). Sin compilar todavía: el propietario pidió no ejecutar nada en su equipo mientras otro hilo lo usa. Falta: compilar y pasar las pruebas en su equipo, probar la pantalla con una copia de C:\Docs\ProContaVF-validacion, abrir la PR y la validación del propietario (entonces el nodo deja de ser borrador).
+2026-11-17 20:10 · Hecho y fusionado (PR #111): lógica, pantalla, menú y pruebas sin BD (`MayorCuadreTests`, pasan); la solución compila. Falta, junto con otros hilos: las pruebas contra Access y probar la pantalla con una copia de C:\Docs\ProContaVF-validacion; cuando el propietario lo valide, el nodo deja de ser borrador.
