@@ -38,3 +38,4 @@ Pantalla Contabilidad › Cierre del ejercicio (código en `src/ProConta.Contabi
 - 2026-11-17 15:38 · answer: ¿La comprobación previa no bloquea, salvo el ejercicio siguiente, y pide motivo con avisos? → 4. Ok
 - 2026-11-17 16:04 · Ok, fusiona PR
 - 2026-11-17 16:40 · Derived from contabilidad/procesos/facturas-pendientes-recibir: la comprobación previa enseña el estado real de las facturas pendientes de recibir (pendiente, hecho o desactualizado, con enlace a su pantalla) en lugar de «no aplica»; reabrir el ejercicio no borra la provisión ni su reversión, que son lotes propios de ese proceso.
+- 2026-11-17 17:59 · Derived from contabilidad/procesos/amortizacion-de-activos: la comprobación previa enseña el estado real de la amortización del ejercicio (pendiente, hecho o desactualizada, con enlace a su pantalla) en lugar de mirar solo si hay algún cargo en las 68; reabrir el ejercicio no borra los asientos de amortización, que son lotes propios de ese proceso.

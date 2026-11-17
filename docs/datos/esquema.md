@@ -158,3 +158,4 @@ Código: `src/ProConta.Datos.Esquema` (diagnóstico, migraciones idempotentes, a
 - 2026-11-10 19:40 · Derived from correo/envio: tablas CuentasCorreo, LotesCorreo, MensajesCorreo, DestinatariosMensajeCorreo, AdjuntosMensajeCorreo, IntentosMensajeCorreo y TurnosCorreo, y la columna Configuracion.CorreoDesviarA.
 - 2026-11-12 16:50 · Derived from norma43: añadir a LotesImportacionBancaria la reversión auditada (fecha y hora, operador y motivo de la reversión).
 - 2026-11-15 17:31 · 3. Tienes permiso para lo que necesites
+- 2026-11-17 17:59 · Derived from contabilidad/procesos/amortizacion-de-activos: esquema 68 con la columna SociedadesEjercicios.PeriodicidadAmortizacion.
