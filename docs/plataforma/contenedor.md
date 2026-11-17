@@ -58,6 +58,7 @@ Aplicación principal (UI-PRINCIPAL): cabecera con empresa, ejercicio y operador
 - 2026-11-16 10:25 · Derived from plataforma/conector-claude: área «IA» en la navegación con «Abrir Claude», y el conector copiado en la subcarpeta Conector del programa.
 - 2026-11-16 14:05 · Derived from plataforma/entorno-pruebas: el selector de entorno antes del acceso, la franja y el título PRUEBAS, y el menú para actualizar la copia de pruebas en producción.
 - 2026-11-17 11:22 · Derived from diseno-de-logo-e-iconos: ProContaVF.exe, la ventana principal y la barra de tareas usan el icono elegido.
+- 2026-11-17 18:50 · Derived from activos: entrada «Activos» en la navegación, hija de «Datos maestros», que abre el listado de activos; las fichas de activo se abren como pestañas de trabajo.
 
 ## Hand-over
 - 2026-10-31 19:30 · Hecho: ejecutable con arranque, primer administrador, acceso y ventana principal; revisado renderizando las ventanas fuera de pantalla contra una copia de la maestra en la versión 6. Pendiente (próximas entregas): búsqueda «Ir a», pestañas de pantallas con cambios pendientes, cambio de sociedad o ejercicio sin volver a entrar, franja de iconos por debajo de 150 px y posición del separador guardada por operador, barra de título propia de la maqueta, doble pantalla y el resto del catálogo de atajos.

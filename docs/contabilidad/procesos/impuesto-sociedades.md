@@ -53,3 +53,4 @@ Proceso de cierre que calcula el Impuesto sobre Sociedades del ejercicio con el 
 - 2026-11-17 15:31 · Doble click en una subcuenta, que directamente abra su mayor. Doble click en un piso, abrirá su pantalla de activo (no está diseñada aún, ahora lo activo) con su cuenta de explotación.
 - 2026-11-17 17:30 · Ok, ya tienes vía libre para implementar la nueva pantalla
 - 2026-11-17 17:56 · Ok está perfecto. Ya puedes fusionar.
+- 2026-11-17 18:50 · Derived from activos: conectar el enganche `AbrirActivoDeCentro` con la apertura de activos por centro de coste, y exponer el cálculo de los gastos generales del ejercicio y de los ingresos ordinarios de la sociedad para que la cuenta de resultados de cada activo use la misma definición.
