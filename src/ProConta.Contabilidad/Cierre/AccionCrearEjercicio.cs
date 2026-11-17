@@ -50,7 +50,7 @@ public static class AccionCrearEjercicio
         p.Series == 0 ? "Series de facturación: no hay ninguna."
             : $"Series de facturación: {p.Series} ({string.Join(", ", p.NombresSeries)}). Las que llevan el año en el prefijo empiezan en 1; las demás, en {ServicioNuevoEjercicio.PrimerNumero(p.Ejercicio)}.",
         p.Prorrata is decimal pr
-            ? $"Prorrata provisional de {p.Ejercicio}: {(pr * 100m).ToString("0.##", CultureInfo.GetCultureInfo("es-ES"))} % ({(p.DefinitivaFijada ? "la definitiva" : "la provisional, porque la definitiva aún no está fijada")} de {ejercicio})."
+            ? $"Prorrata provisional de {p.Ejercicio}: {pr.ToString("0.##", CultureInfo.GetCultureInfo("es-ES"))} % ({(p.DefinitivaFijada ? "la definitiva" : "la provisional, porque la definitiva aún no está fijada")} de {ejercicio})."
             : "Prorrata: sin informar.",
         "Trimestre activo: 1.º. La configuración de correo, si el ejercicio nuevo no tiene.",
     ];
