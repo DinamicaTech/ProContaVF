@@ -555,6 +555,22 @@ public static class MigracionesContabilidad
         ],
     };
 
+    /// <summary>
+    /// Cuenta de resultados del ejercicio (contabilidad/procesos/cierre-ejercicio 2026-11-17): SociedadesEjercicios.CuentaResultadoEjercicio,
+    /// la subcuenta contra la que la regularización salda los grupos 6 y 7 (vacía: 1290000). Solo estructura, sin datos.
+    /// </summary>
+    public static Migracion CuentaResultadoEjercicio { get; } = new(
+        "20261117_1500_CUENTA_RESULTADO_EJERCICIO", 261117015,
+        "Cuenta de resultados del ejercicio, la de la regularización del cierre.",
+        "contabilidad/procesos/cierre-ejercicio",
+        new AnadirColumna("SociedadesEjercicios", "CuentaResultadoEjercicio", "TEXT(10)"))
+    {
+        Descripciones =
+        [
+            new("SociedadesEjercicios", "CuentaResultadoEjercicio", "Subcuenta del resultado del ejercicio: la regularización del cierre salda contra ella los grupos 6 y 7 (vacía: 1290000)."),
+        ],
+    };
+
     private static PasoPersonalizado RelacionActividad()
     {
         const string sql = "ALTER TABLE CentrosCoste ADD CONSTRAINT FK_CentrosCoste_Actividad FOREIGN KEY (IdActividad) REFERENCES Actividades (IdActividad)";
@@ -562,4 +578,120 @@ public static class MigracionesContabilidad
             (_, e) => Task.FromResult(MigracionesOrganizacion.TieneRelacion(e, "CentrosCoste", "FK_CentrosCoste_Actividad")),
             (s, _) => s.EjecutarAsync(sql));
     }
+
+    /// <summary>
+    /// Presentación de modelos a la AEAT (contabilidad/modelos-tributarios/presentacion y modelo-303 2026-11-17): una fila por
+    /// presentación aceptada, con su entorno (pruebas o producción), CSV, expediente, justificante, forma de pago, importe, resultado
+    /// del modelo, presentador, operador, el fichero enviado, la respuesta de la AEAT con sus avisos, el justificante de la anterior si es
+    /// una rectificativa y el PDF justificante archivado. Añade la cuenta de domiciliación de la sociedad (Sociedades.IbanDomiciliacion,
+    /// organizacion/sociedades-ejercicios). Solo estructura, sin datos.
+    /// </summary>
+    public static Migracion PresentacionesAeat { get; } = new(
+        "20261117_1530_PRESENTACIONES_AEAT", 261117016,
+        "Presentaciones de modelos a la AEAT y cuenta de domiciliación de la sociedad.",
+        "contabilidad/modelos-tributarios/presentacion",
+        new CrearTabla("PresentacionesAeat",
+            "CREATE TABLE PresentacionesAeat (IdPresentacionAeat COUNTER CONSTRAINT PK_PresentacionesAeat PRIMARY KEY, " +
+            "IdSociedad TEXT(3) NOT NULL CONSTRAINT FK_PresentacionesAeat_Sociedad REFERENCES Sociedades (IdSociedad), " +
+            "Modelo TEXT(3) NOT NULL, Ejercicio SHORT NOT NULL, Periodo TEXT(2) NOT NULL, Entorno TEXT(10) NOT NULL, FechaHora DATETIME NOT NULL, " +
+            "Csv TEXT(16) NOT NULL, Expediente TEXT(25), Justificante TEXT(13) NOT NULL, ComplementariaDe TEXT(13), FormaPago TEXT(1), " +
+            "Importe CURRENCY NOT NULL, Resultado CURRENCY NOT NULL, NifPresentador TEXT(9), Presentador TEXT(120), Operador TEXT(100), " +
+            "Fichero LONGTEXT NOT NULL, Respuesta LONGTEXT, Avisos LONGTEXT, UrlPdf TEXT(255), RutaPdf TEXT(255))"),
+        new CrearIndice("PresentacionesAeat", "IX_PresentacionesAeat_Periodo",
+            "CREATE INDEX IX_PresentacionesAeat_Periodo ON PresentacionesAeat (IdSociedad, Modelo, Ejercicio, Periodo)"),
+        new AnadirColumna("Sociedades", "IbanDomiciliacion", "TEXT(34)"))
+    {
+        Descripciones =
+        [
+            new("PresentacionesAeat", null, "Modelo presentado a la AEAT desde el programa: la respuesta aceptada (CSV, justificante) y su PDF (contabilidad/modelos-tributarios/presentacion)."),
+            new("PresentacionesAeat", "IdPresentacionAeat", "Identificador de la presentación."),
+            new("PresentacionesAeat", "IdSociedad", "Sociedad declarante."),
+            new("PresentacionesAeat", "Modelo", "Modelo presentado (303, 390, 111…)."),
+            new("PresentacionesAeat", "Ejercicio", "Ejercicio de devengo."),
+            new("PresentacionesAeat", "Periodo", "Periodo como lo escribe la AEAT: 1T a 4T, 01 a 12 o 0A."),
+            new("PresentacionesAeat", "Entorno", "PRUEBAS (entorno de pruebas de la AEAT, sin efectos) o PRODUCCION, el de la BD."),
+            new("PresentacionesAeat", "FechaHora", "Fecha y hora de la presentación según la AEAT."),
+            new("PresentacionesAeat", "Csv", "Código seguro de verificación de la declaración."),
+            new("PresentacionesAeat", "Expediente", "Número de expediente de la AEAT."),
+            new("PresentacionesAeat", "Justificante", "Número de justificante de la declaración (13 cifras)."),
+            new("PresentacionesAeat", "ComplementariaDe", "En una rectificativa (complementaria), el justificante de la declaración anterior."),
+            new("PresentacionesAeat", "FormaPago", "Forma de pago según la AEAT: U domiciliación, I ingreso con NRC, C a compensar, N sin resultado…"),
+            new("PresentacionesAeat", "Importe", "Importe a ingresar según la AEAT (0 si no sale a ingresar)."),
+            new("PresentacionesAeat", "Resultado", "Resultado del modelo que se liquida en la contabilidad (en el 303, la casilla 66, antes de compensar)."),
+            new("PresentacionesAeat", "NifPresentador", "NIF del presentador (el titular del certificado)."),
+            new("PresentacionesAeat", "Presentador", "Nombre del presentador (el titular del certificado)."),
+            new("PresentacionesAeat", "Operador", "Operador del programa que dio la conformidad y presentó."),
+            new("PresentacionesAeat", "Fichero", "Fichero enviado, con el diseño de registro del modelo."),
+            new("PresentacionesAeat", "Respuesta", "Respuesta JSON de la AEAT."),
+            new("PresentacionesAeat", "Avisos", "Avisos y advertencias de la AEAT, uno por línea."),
+            new("PresentacionesAeat", "UrlPdf", "Dirección de descarga del PDF justificante que dio la AEAT."),
+            new("PresentacionesAeat", "RutaPdf", "PDF justificante archivado en la carpeta de documentos de la empresa (vacío si no se pudo descargar)."),
+            new("Sociedades", "IbanDomiciliacion", "IBAN de la cuenta en que se domicilian las autoliquidaciones que salen a ingresar (303 y demás modelos)."),
+        ],
+    };
+
+    /// <summary>
+    /// Facturas pendientes de recibir (contabilidad/procesos/facturas-pendientes-recibir 2026-11-17): los tres parámetros del ejercicio,
+    /// la cuenta de facturas pendientes de recibir (vacía: 4009000), la cuenta de gasto por defecto de los proveedores sin cuenta de
+    /// gasto (vacía: 6299000) y el tipo de IVA supuesto de los que no tienen facturas (vacío: 21 %), y la tabla
+    /// FacturasPendientesAjustes con lo que el operador excluye o cambia a mano en la propuesta. Solo estructura, sin datos.
+    /// </summary>
+    public static Migracion FacturasPendientesRecibir { get; } = new(
+        "20261117_1700_FACTURAS_PENDIENTES_RECIBIR", 261117017,
+        "Parámetros del ejercicio de las facturas pendientes de recibir y ajustes manuales de su propuesta.",
+        "contabilidad/procesos/facturas-pendientes-recibir",
+        new AnadirColumna("SociedadesEjercicios", "CuentaFacturasPendientesRecibir", "TEXT(10)"),
+        new AnadirColumna("SociedadesEjercicios", "CuentaGastoFacturasPendientes", "TEXT(10)"),
+        new AnadirColumna("SociedadesEjercicios", "TipoIvaFacturasPendientes", "DECIMAL(9,4)"),
+        new CrearTabla("FacturasPendientesAjustes",
+            "CREATE TABLE FacturasPendientesAjustes (IdFacturaPendienteAjuste COUNTER CONSTRAINT PK_FacturasPendientesAjustes PRIMARY KEY, " +
+            "IdSociedadEjercicio LONG NOT NULL CONSTRAINT FK_FacturasPendientesAjustes_Ejercicio REFERENCES SociedadesEjercicios (IdSociedadEjercicio), " +
+            "CuentaProveedor TEXT(30) NOT NULL, Excluido YESNO NOT NULL, BaseManual CURRENCY, Operador TEXT(100), FechaHora DATETIME NOT NULL)"),
+        new CrearIndice("FacturasPendientesAjustes", "UX_FacturasPendientesAjustes_Cuenta",
+            "CREATE UNIQUE INDEX UX_FacturasPendientesAjustes_Cuenta ON FacturasPendientesAjustes (IdSociedadEjercicio, CuentaProveedor)"))
+    {
+        Descripciones =
+        [
+            new("SociedadesEjercicios", "CuentaFacturasPendientesRecibir", "Cuenta de facturas pendientes de recibir: recibe al Haber el gasto supuesto a 31/12 y se salda el 1/1 del siguiente (vacía: 4009000)."),
+            new("SociedadesEjercicios", "CuentaGastoFacturasPendientes", "Cuenta de gasto de las facturas pendientes de recibir de los proveedores sin cuenta de gasto por defecto ni facturas (vacía: 6299000)."),
+            new("SociedadesEjercicios", "TipoIvaFacturasPendientes", "Tipo de IVA, en porcentaje, con que se saca la base de un proveedor sin facturas: saldo / (1 + tipo) (vacío: 21 %)."),
+            new("FacturasPendientesAjustes", null, "Lo que el operador cambió a mano en la propuesta de facturas pendientes de recibir de un ejercicio: proveedores excluidos y bases escritas."),
+            new("FacturasPendientesAjustes", "IdFacturaPendienteAjuste", "Identificador del ajuste."),
+            new("FacturasPendientesAjustes", "IdSociedadEjercicio", "Ejercicio de la propuesta."),
+            new("FacturasPendientesAjustes", "CuentaProveedor", "Subcuenta del proveedor o acreedor (40 o 41) a la que se refiere."),
+            new("FacturasPendientesAjustes", "Excluido", "Sí: el proveedor no entra en la provisión aunque cumpla las condiciones."),
+            new("FacturasPendientesAjustes", "BaseManual", "Base escrita a mano en lugar de la calculada; vacía: la calculada."),
+            new("FacturasPendientesAjustes", "Operador", "Operador que hizo el cambio."),
+            new("FacturasPendientesAjustes", "FechaHora", "Fecha y hora del cambio."),
+        ],
+    };
+
+    /// <summary>
+    /// Amortización de activos (contabilidad/procesos/amortizacion-de-activos 2026-11-17 17:59): la periodicidad del asiento de amortización
+    /// del ejercicio (ANUAL, TRIMESTRAL o MENSUAL; vacía, anual) y la tabla AmortizacionExclusiones con los activos que el operador deja
+    /// fuera de la propuesta del ejercicio. Solo estructura, sin datos.
+    /// </summary>
+    public static Migracion AmortizacionActivos { get; } = new(
+        "20261117_1800_AMORTIZACION_ACTIVOS", 261117018,
+        "Periodicidad de la amortización del ejercicio y activos excluidos de su propuesta.",
+        "contabilidad/procesos/amortizacion-de-activos",
+        new AnadirColumna("SociedadesEjercicios", "PeriodicidadAmortizacion", "TEXT(12)"),
+        new CrearTabla("AmortizacionExclusiones",
+            "CREATE TABLE AmortizacionExclusiones (IdAmortizacionExclusion COUNTER CONSTRAINT PK_AmortizacionExclusiones PRIMARY KEY, " +
+            "IdSociedadEjercicio LONG NOT NULL CONSTRAINT FK_AmortizacionExclusiones_Ejercicio REFERENCES SociedadesEjercicios (IdSociedadEjercicio), " +
+            "IdActivo LONG NOT NULL CONSTRAINT FK_AmortizacionExclusiones_Activo REFERENCES Activos (IdActivo), Operador TEXT(100), FechaHora DATETIME NOT NULL)"),
+        new CrearIndice("AmortizacionExclusiones", "UX_AmortizacionExclusiones_Activo",
+            "CREATE UNIQUE INDEX UX_AmortizacionExclusiones_Activo ON AmortizacionExclusiones (IdSociedadEjercicio, IdActivo)"))
+    {
+        Descripciones =
+        [
+            new("SociedadesEjercicios", "PeriodicidadAmortizacion", "Cada cuánto se graba el asiento de amortización de los activos: ANUAL, TRIMESTRAL o MENSUAL (vacía: anual)."),
+            new("AmortizacionExclusiones", null, "Activos que el operador deja fuera de la propuesta de amortización de un ejercicio."),
+            new("AmortizacionExclusiones", "IdAmortizacionExclusion", "Identificador de la exclusión."),
+            new("AmortizacionExclusiones", "IdSociedadEjercicio", "Ejercicio de la propuesta."),
+            new("AmortizacionExclusiones", "IdActivo", "Activo excluido: no entra en la amortización de ese ejercicio mientras no se vuelva a marcar."),
+            new("AmortizacionExclusiones", "Operador", "Operador que lo excluyó."),
+            new("AmortizacionExclusiones", "FechaHora", "Fecha y hora de la exclusión."),
+        ],
+    };
 }

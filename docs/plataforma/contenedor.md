@@ -36,6 +36,8 @@ Aplicación principal (UI-PRINCIPAL): cabecera con empresa, ejercicio y operador
 - 2026-11-16 14:05 · Entorno de pruebas (plataforma/entorno-pruebas): antes del acceso, si el puesto tiene copia de pruebas de la BD, una ventana pregunta «Producción» (por defecto, Intro) o «Pruebas». En pruebas, franja naranja «ENTORNO DE PRUEBAS · copia de producción del …» encima de la cabecera, «PRUEBAS ·» en el título y en la barra de estado. En producción, Configuración › «Actualizar la copia de pruebas…». Una BD con migraciones pendientes ofrece «Actualizar ahora» al arrancar.
 - 2026-11-17 11:22 · Icono: ProContaVF.exe lleva el icono de diseno-de-logo-e-iconos (`Recursos/ProContaVF.ico`, ApplicationIcon) y la ventana principal y los diálogos lo toman del ejecutable.
 
+- 2026-11-17 18:12 · La navegación lateral admite un tercer nivel (OpcionNavegacion.EsNieta: sangría de 28 px y el mismo punto que las hijas); lo usa el submenú «Fin de ejercicio» de Contabilidad (contabilidad/procesos 2026-11-17 18:12).
+
 ## Requirements
 - 2026-10-28 12:28 · From sources/01_ESPECIFICACION_FUNCIONAL.docx § 6 RF-UI-01, 04, 05, 07: contenedor, avisos técnicos discretos, ciclo de vida de fichas y rendimiento
 - 2026-10-28 12:28 · From sources/traspaso-2026-10-03/referencias/Facturacion/docs/contratos/UI-PRINCIPAL.md y ACUERDOS_CONTENEDOR_WPF.md: contrato anterior
@@ -61,3 +63,4 @@ Aplicación principal (UI-PRINCIPAL): cabecera con empresa, ejercicio y operador
 - 2026-10-31 19:30 · Hecho: ejecutable con arranque, primer administrador, acceso y ventana principal; revisado renderizando las ventanas fuera de pantalla contra una copia de la maestra en la versión 6. Pendiente (próximas entregas): búsqueda «Ir a», pestañas de pantallas con cambios pendientes, cambio de sociedad o ejercicio sin volver a entrar, franja de iconos por debajo de 150 px y posición del separador guardada por operador, barra de título propia de la maqueta, doble pantalla y el resto del catálogo de atajos.
 - 2026-11-01 10:46 · Hecho: pestañas de trabajo con cambios pendientes y la entrada de Terceros. Pendiente: cambio de sociedad y ejercicio sin salir y búsqueda de pantallas y acciones.
 - 2026-11-10 19:40 · Derived from correo/pantallas: área «Correo» en la navegación con «Correo enviado» (registro común), y aviso en la barra de estado cuando el correo está desviado a la dirección de pruebas.
+- 2026-11-17 18:12 · Derived from contabilidad/procesos: un tercer nivel en la navegación lateral (submenú «Fin de ejercicio» dentro de Contabilidad, con más sangría), para agrupar los procesos de final de año en su orden.

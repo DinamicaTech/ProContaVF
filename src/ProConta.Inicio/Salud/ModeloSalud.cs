@@ -11,6 +11,8 @@ public enum TipoSalud { Tarea, Aviso }
 /// no se abre nada).
 /// </summary>
 public enum PantallaSalud { Ninguna, VentasPorFacturar, Ejercicios, LineasN43, Bancos, FacturasCompra, FacturasVenta, Mayor, Diario, Terceros, Nominas, Programadas, LiquidacionIva,
+    /// <summary>Contabilidad › Procesos contables › Fin de ejercicio › Amortización de activos (contabilidad/procesos/amortizacion-de-activos).</summary>
+    Amortizacion,
     /// <summary>No abre una pantalla: compensa las comisiones de las plataformas pendientes (facturacion/reservas/compensacion-comision).</summary>
     CompensarComisiones }
 

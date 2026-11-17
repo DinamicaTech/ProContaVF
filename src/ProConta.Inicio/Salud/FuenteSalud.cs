@@ -125,6 +125,12 @@ public interface IFuenteSalud
     Task<IReadOnlyList<AsientoAmortizacion>> AmortizacionesAsync(IReadOnlyList<EjercicioSociedad> ejercicios, CancellationToken c = default) =>
         Task.FromResult<IReadOnlyList<AsientoAmortizacion>>([]);
 
+    /// <summary>
+    /// Periodicidad de la amortización configurada en el ejercicio (Parámetros › Ejercicios, contabilidad/procesos/amortizacion-de-activos):
+    /// ANUAL, TRIMESTRAL o MENSUAL; null si no está configurada.
+    /// </summary>
+    Task<string?> PeriodicidadAmortizacionAsync(EjercicioSociedad ejercicio, CancellationToken c = default) => Task.FromResult<string?>(null);
+
     /// <summary>Activos de la sociedad amortizables, propios (no ajenos) y sin dar de baja.</summary>
     Task<int> ActivosAmortizablesAsync(string idSociedad, CancellationToken c = default) => Task.FromResult(0);
 

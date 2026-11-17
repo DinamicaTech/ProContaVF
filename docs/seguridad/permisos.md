@@ -8,7 +8,7 @@ threads:
   - 2026-11-14 20:06 · Contraseña opcional sin complejidad | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GAnsNpR97upaGB6RX2PKgeg
 ---
 ## Summary
-Operadores, grupos (N:M) y permisos por ámbito: ámbito sin configurar permite a todo operador válido; ámbito configurado aplica sus asignaciones. Los servicios comprueban la autorización, no solo la pantalla. Código (src/ProConta.Seguridad/Permisos): `PoliticaAmbito` (regla común), `AutorizadorSociedades` (ámbito AccesoSociedadesGrupo), `ServicioOperadores` (buscar operador, grupos activos, primer administrador, contraseña) y `HashContrasena` (PBKDF2-HMAC-SHA256). La contraseña de los operadores es opcional y sin requisitos de longitud ni complejidad. Acciones con permiso propio: FACTURAS.*, MANTENIMIENTO.EDITAR, TRIMESTRE.CAMBIAR, PROCESOS.LIQUIDACION_IVA y PROCESOS.DIVIDENDOS.
+Operadores, grupos (N:M) y permisos por ámbito: ámbito sin configurar permite a todo operador válido; ámbito configurado aplica sus asignaciones. Los servicios comprueban la autorización, no solo la pantalla. Código (src/ProConta.Seguridad/Permisos): `PoliticaAmbito` (regla común), `AutorizadorSociedades` (ámbito AccesoSociedadesGrupo), `ServicioOperadores` (buscar operador, grupos activos, primer administrador, contraseña) y `HashContrasena` (PBKDF2-HMAC-SHA256). La contraseña de los operadores es opcional y sin requisitos de longitud ni complejidad. Acciones con permiso propio: FACTURAS.*, MANTENIMIENTO.EDITAR, TRIMESTRE.CAMBIAR, PROCESOS.LIQUIDACION_IVA, PROCESOS.DIVIDENDOS, PROCESOS.IMPUESTO_SOCIEDADES, PROCESOS.CIERRE_EJERCICIO y PROCESOS.FACTURAS_PENDIENTES.
 **Aceptación:** grupo sin filas no hereda acceso en un ámbito configurado; tabla ausente no equivale a ámbito sin configurar.
 
 ## Decisions
@@ -26,6 +26,9 @@ Operadores, grupos (N:M) y permisos por ámbito: ámbito sin configurar permite 
 - 2026-11-16 10:20 · Acción nueva «PROCESOS.LIQUIDACION_IVA» (liquidar el IVA de un trimestre y deshacerlo, contabilidad/procesos/liquidacion-iva): mientras no tenga grupos asignados, la tiene quien puede cambiar el trimestre activo (TRIMESTRE.CAMBIAR), porque liquidar cierra el trimestre. La comprueba el servicio, no solo la pantalla.
 - 2026-11-16 18:40 · Acción nueva «PROCESOS.DIVIDENDOS» (repartir dividendos, corregir y deshacer un reparto, contabilidad/procesos/aplicacion-resultado): mientras no tenga grupos asignados, la tiene quien puede liquidar el IVA (PROCESOS.LIQUIDACION_IVA). La comprueba `ServicioDividendos`, no solo la pantalla. El pago de dividendos de Líneas N43 no lleva permiso propio: solo asigna cuentas a líneas, como explotar una remesa.
 - 2026-11-16 19:25 · Validado por el propietario lo derivado de contabilidad/procesos/aplicacion-resultado (PR #95).
+- 2026-11-17 17:05 · Cumplida la línea «Derived from contabilidad/procesos/facturas-pendientes-recibir» del 2026-11-17 16:40: acción PROCESOS.FACTURAS_PENDIENTES (`Acciones.FacturasPendientes`), «Contabilizar las facturas pendientes de recibir»; la comprueba el servicio al confirmar y al deshacer. Mientras no tenga grupos, la tienen quienes pueden liquidar el IVA (`Acciones.Respaldo`), como la del cierre del ejercicio.
+
+- 2026-11-17 18:12 · Acción PROCESOS.AMORTIZACION («Amortizar los activos»: confirmar y deshacer la amortización de un periodo); mientras no tenga grupos, la tienen quienes pueden liquidar el IVA (contabilidad/procesos/amortizacion-de-activos 2026-11-17 18:12).
 
 ## Requirements
 - 2026-10-28 12:28 · From sources/01_ESPECIFICACION_FUNCIONAL.docx § 5 RF-SEG-03, 04, 07: operadores y grupos, política de ámbitos, puntos pendientes
@@ -45,8 +48,10 @@ Operadores, grupos (N:M) y permisos por ámbito: ámbito sin configurar permite 
 - 2026-11-16 10:20 · Derived from contabilidad/procesos/liquidacion-iva: permiso propio para liquidar el IVA y deshacer la liquidación.
 - 2026-11-16 17:55 · Derived from contabilidad/procesos/aplicacion-resultado: nueva acción PROCESOS.DIVIDENDOS, «Repartir dividendos».
 - 2026-11-17 11:35 · Derived from contabilidad/procesos/impuesto-sociedades: nueva acción PROCESOS.IMPUESTO_SOCIEDADES, «Contabilizar el Impuesto sobre Sociedades» (confirmar y deshacer); mientras no tenga grupos, la tienen quienes pueden liquidar el IVA.
+- 2026-11-17 16:40 · Derived from contabilidad/procesos/facturas-pendientes-recibir: nueva acción PROCESOS.FACTURAS_PENDIENTES, «Contabilizar las facturas pendientes de recibir» (confirmar y deshacer); mientras no tenga grupos, la tienen quienes pueden liquidar el IVA.
 
 ## Hand-over
 - 2026-10-31 19:10 · Hecho: política común, ámbito de sociedades, operadores (búsqueda, grupos activos, primer administrador, cambio de contraseña) y pruebas. Pendiente: mantenimiento completo de operadores y grupos (seguridad/pantallas); ámbitos de reports (las RestriccionesReportsGrupo antiguas son de denegación y necesitan adaptarse, RF-SEG-07) y de procesos que generan asientos o borran datos (requisito 2026-10-29 17:45, sin tabla todavía); regeneración de contraseña temporal por correo.
 - 2026-11-07 13:23 · Derived from compras/pantallas: nueva acción TRIMESTRE.CAMBIAR, «Cambiar el trimestre activo». Mientras no tenga ningún grupo asignado en PermisosAccionesGrupo, la tienen quienes pueden FACTURAS.EDITAR (respaldo en el autorizador, sin copiar datos); en cuanto se le asigna un grupo, va por su cuenta. El campo del trimestre activo en Parámetros › Ejercicios pasa a solo lectura.
 - 2026-11-14 20:06 · Hecho: criterio de contraseña opcional sin longitud ni complejidad en el servicio de operadores y en el asistente del primer administrador, con pruebas. Pendiente: la política definitiva, en el borrador seguridad/permisos/politica-contrasenas.
+- 2026-11-17 17:59 · Derived from contabilidad/procesos/amortizacion-de-activos: nueva acción PROCESOS.AMORTIZACION, «Amortizar los activos» (confirmar y deshacer la amortización), que mientras no tenga grupos sigue a la de liquidar el IVA.

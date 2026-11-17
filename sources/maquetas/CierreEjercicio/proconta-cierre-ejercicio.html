@@ -1,0 +1,316 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Cierre del ejercicio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* Maqueta de ProContaVF: Contabilidad › Cierre del ejercicio (nodo contabilidad/procesos/cierre-ejercicio).
+   Datos ficticios. Tokens copiados de la maqueta del Diario. */
+:root{
+  --navy:#14213A;--navy2:#22314F;--navy3:#1B2A47;--ink:#16213A;--mut:#646A78;--txt2:#3B4252;
+  --or:#F4A259;--or2:#D9622B;--bg:#F1EEE7;--bg2:#FBFAF7;--card:#FFFFFF;--ln:#ECE8DE;--ln2:#F3F0E9;
+  --inb:#E4E1D8;--inbg:#FAF9F6;--blue:#1D5C8C;--blueb:#E3ECF6;--green:#1E6B45;--greenb:#E2F0E8;--red:#B42318;--redb:#FDF1EF;
+  --amb:#8A4410;--ambb:#FFEBD6;
+  --f-ui:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;--f-mono:"IBM Plex Mono",ui-monospace,Consolas,monospace;
+  --f-disp:"Bricolage Grotesque","IBM Plex Sans",system-ui,sans-serif;color-scheme:light;
+}
+[hidden]{display:none!important}
+*{box-sizing:border-box}
+html,body{min-height:100%}
+body{background:var(--bg);color:var(--ink);font:14px/1.45 var(--f-ui);margin:0}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--or2);outline-offset:1px}
+.demo{background:var(--ink);color:#C9CED8;display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:8px 16px;font-size:13px;border-bottom:2px dashed var(--or)}
+.demo b{background:var(--or);color:var(--ink);font:600 11px var(--f-mono);padding:2px 7px;border-radius:3px;letter-spacing:.06em}
+.demo button{background:var(--navy2);border:1px solid #3A4A6A;color:#E6E9EF;border-radius:6px;padding:4px 10px;cursor:pointer}
+.demo button[aria-pressed=true]{background:var(--or);color:var(--ink);border-color:var(--or)}
+.top{background:var(--navy);color:#fff;display:flex;align-items:center;gap:14px;padding:10px 16px;flex-wrap:wrap}
+.logo{font:700 17px var(--f-disp);display:flex;gap:8px;align-items:center}
+.logo i{width:20px;height:20px;border-radius:5px;background:var(--or);display:inline-block}
+.ctx{border:1px solid #3A4A6A;border-radius:6px;padding:3px 10px;font-size:13px;color:#DCE1EA}
+.top .op{margin-left:auto;font-size:13px;color:#C9CED8}
+.tabs{background:var(--navy3);display:flex;gap:2px;padding:6px 16px 0;overflow-x:auto}
+.tab{background:transparent;border:0;color:#C9CED8;padding:7px 14px;border-radius:7px 7px 0 0;white-space:nowrap;font-size:13.5px}
+.tab[aria-selected=true]{background:var(--bg);color:var(--ink);font-weight:600}
+main{padding:16px;display:flex;flex-direction:column;gap:12px;max-width:1280px}
+.ph{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.ph h1{font:600 22px var(--f-disp);margin:0}
+.ph .sub{color:var(--mut);font-size:13px}
+.ph .sp{margin-left:auto;display:flex;gap:8px;flex-wrap:wrap}
+.btn{border:1px solid var(--inb);background:var(--card);border-radius:7px;padding:6px 12px;cursor:pointer;font-weight:500;font-size:13.5px;white-space:nowrap}
+.btn.pri{background:var(--navy);color:#fff;border-color:var(--navy)}
+.btn.dan{background:var(--red);color:#fff;border-color:var(--red)}
+.btn.sm{padding:3px 9px;font-size:12.5px}
+.btn.link{border:0;background:none;color:var(--blue);padding:0 4px;text-decoration:underline;cursor:pointer;font-size:13px}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.card{background:var(--card);border:1px solid var(--ln);border-radius:10px;min-width:0}
+.card>header{display:flex;align-items:center;gap:10px;padding:11px 14px;flex-wrap:wrap;border-bottom:1px solid var(--ln)}
+.card>header h2{font:600 15px var(--f-ui);margin:0}
+.card>header .n{color:var(--mut);font-size:13px}
+.card>header .sp{margin-left:auto}
+.grid2.solo{grid-template-columns:minmax(0,1fr)}
+.grid2{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,7fr);gap:12px;align-items:start}
+@media (max-width:1000px){.grid2{grid-template-columns:minmax(0,1fr)}}
+.state{display:flex;flex-wrap:wrap;gap:6px 26px;padding:12px 14px}
+.state .k{color:var(--mut);font-size:12px}
+.state .v{font-weight:600}
+.pill{display:inline-flex;align-items:center;gap:5px;border-radius:999px;padding:1px 9px;font-size:12px;font-weight:600}
+.p-ok{background:var(--greenb);color:var(--green)}.p-warn{background:var(--ambb);color:var(--amb)}.p-bad{background:var(--redb);color:var(--red)}.p-info{background:var(--blueb);color:var(--blue)}
+.checks{list-style:none;margin:0;padding:4px 0}
+.checks li{display:grid;grid-template-columns:22px minmax(0,1fr) auto;gap:8px;padding:8px 14px;border-bottom:1px solid var(--ln2);align-items:start}
+.checks li:last-child{border-bottom:0}
+.checks .ic{font-weight:700;text-align:center}
+.checks .t{font-weight:500}
+.checks .d{color:var(--mut);font-size:12.5px}
+.i-ok{color:var(--green)}.i-warn{color:var(--amb)}.i-bad{color:var(--red)}.i-na{color:var(--mut)}
+.figs{display:flex;flex-wrap:wrap;gap:6px 28px;padding:12px 14px;border-bottom:1px solid var(--ln)}
+.figs .k{color:var(--mut);font-size:12px}
+.figs .v{font:600 16px var(--f-mono);font-variant-numeric:tabular-nums}
+.seg{display:inline-flex;background:var(--ln2);border-radius:7px;padding:2px;flex-wrap:wrap}
+.seg button{border:0;background:transparent;padding:4px 10px;border-radius:6px;cursor:pointer;font-size:13px;color:var(--txt2)}
+.seg button[aria-pressed=true]{background:var(--card);box-shadow:0 1px 2px rgba(20,33,58,.12);color:var(--ink);font-weight:500}
+.bar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;padding:9px 14px;border-bottom:1px solid var(--ln)}
+.bar .sp{margin-left:auto;color:var(--mut);font-size:12.5px}
+.tw{overflow:auto;max-height:52vh}
+table{border-collapse:collapse;width:100%;font-size:13px}
+th{font-weight:600;color:var(--mut);text-align:left;padding:7px 9px;border-bottom:1px solid var(--ln);white-space:nowrap;font-size:12px;position:sticky;top:0;background:var(--card)}
+td{padding:5px 9px;border-bottom:1px solid var(--ln2);white-space:nowrap}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums;font-family:var(--f-mono);font-size:12.5px}
+td.mono{font-family:var(--f-mono);font-size:12.5px}
+tfoot td{font-weight:600;border-top:1px solid var(--ln);background:var(--bg2)}
+tr.r129 td{background:#FFF8E6}
+.foot{display:flex;gap:10px 14px;flex-wrap:wrap;align-items:center;padding:10px 14px;border-top:1px solid var(--ln);background:var(--bg2);border-radius:0 0 10px 10px}
+.foot .why{color:var(--mut);font-size:12.5px;flex:1;min-width:220px}
+.inp{border:1px solid var(--inb);background:var(--inbg);border-radius:7px;padding:5px 9px;font-size:13px}
+.inp.motivo{width:26em;max-width:100%}
+.ok{color:var(--green);font-weight:600}.bad{color:var(--red);font-weight:600}
+.note{background:var(--blueb);color:var(--blue);border-radius:8px;padding:9px 12px;font-size:13px}
+.warn{background:var(--ambb);color:var(--amb);border-radius:8px;padding:9px 12px;font-size:13px}
+.empty{padding:28px 14px;color:var(--mut);text-align:center}
+.scrim{position:fixed;inset:0;background:rgba(20,33,58,.38);z-index:60;display:flex;align-items:center;justify-content:center;padding:16px}
+.dlg{background:var(--card);border-radius:12px;box-shadow:0 18px 50px rgba(20,33,58,.3);width:min(600px,100%);max-height:100%;display:flex;flex-direction:column;resize:both;overflow:hidden}
+.dlg>header{padding:16px 18px 6px}
+.dlg>header h3{margin:0;font:600 18px var(--f-disp)}
+.dlg>header p{margin:4px 0 0;color:var(--mut);font-size:13px}
+.dlg .body{padding:10px 18px;overflow:auto;display:flex;flex-direction:column;gap:10px;flex:1;min-height:0}
+.dlg .body ul{margin:0;padding-left:20px}
+.dlg>footer{padding:12px 18px;border-top:1px solid var(--ln);display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;align-items:center}
+.qs{background:var(--card);border:1px dashed var(--or2);border-radius:10px;padding:12px 16px;font-size:13.5px}
+.qs h2{font:600 15px var(--f-ui);margin:0 0 6px}
+.qs ol{margin:0;padding-left:20px}
+.qs li{margin:4px 0}
+</style></head>
+<body>
+<div class="demo">
+  <b>MAQUETA</b><span>Datos ficticios. Situación:</span>
+  <button data-st="sin" aria-pressed="false" title="Aún no existe el ejercicio 2027">Sin 2027</button>
+  <button data-st="abierto" aria-pressed="true" title="2027 existe y la propuesta se puede confirmar">Listo para cerrar</button>
+  <button data-st="cerrado" aria-pressed="false" title="2026 ya está cerrado">Cerrado</button>
+</div>
+<div class="top">
+  <span class="logo"><i></i>ProConta</span>
+  <span class="ctx" title="Sociedad y ejercicio de trabajo">Ribera Gestión · Ejercicio 2026</span>
+  <span class="op">Operador <b>Ronald</b></span>
+</div>
+<div class="tabs" role="tablist">
+  <span class="tab" role="tab" aria-selected="false">Inicio</span>
+  <span class="tab" role="tab" aria-selected="false">Diario</span>
+  <span class="tab" role="tab" aria-selected="false">Liquidación de IVA</span>
+  <span class="tab" role="tab" aria-selected="true">Cierre del ejercicio</span>
+</div>
+
+<main>
+  <div class="ph">
+    <h1>Cierre del ejercicio</h1>
+    <span class="sub" id="sub">Ribera Gestión · 2026</span>
+    <span class="sp">
+      <button class="btn" id="bCrear" title="Crea el ejercicio 2027 copiando de 2026 los parámetros, el plan de cuentas, las subcuentas y las series de facturación">Crear el ejercicio 2027…</button>
+      <button class="btn" id="bDiario" title="Abre el Diario con los tres asientos del cierre">Ver en el Diario</button>
+      <button class="btn" id="bReabrir" title="Quita la marca de cerrado y borra la regularización, el cierre y la apertura que grabó este proceso (pide motivo)">Reabrir el ejercicio…</button>
+      <button class="btn" title="Vuelve a leer los saldos y la comprobación previa (F5)">Actualizar</button>
+    </span>
+  </div>
+
+  <section class="card">
+    <div class="state">
+      <div><div class="k">Ejercicio 2026</div><div class="v" id="stEj"></div></div>
+      <div><div class="k">Ejercicio siguiente</div><div class="v" id="stSig"></div></div>
+      <div><div class="k" title="Parámetros y tablas › Ejercicios › Cuentas. Vacía: 1290000">Cuenta de resultados</div><div class="v mono">1290000</div></div>
+      <div><div class="k">Resultado del ejercicio</div><div class="v" id="stRes"></div></div>
+      <div id="stCerradoInfo" hidden><div class="k">Cerrado</div><div class="v">05/01/2027 10:12 · Ronald</div></div>
+    </div>
+  </section>
+
+  <div class="grid2" id="grid">
+    <section class="card" id="cardChecks">
+      <header><h2>Comprobación previa</h2><span class="n">Avisa, no impide cerrar</span></header>
+      <ul class="checks" id="checks"></ul>
+    </section>
+
+    <section class="card" id="cardProp">
+      <header><h2 id="tProp">Propuesta</h2><span class="n" id="nProp"></span></header>
+      <div id="propBody">
+        <div class="figs" id="figs"></div>
+        <div class="bar">
+          <div class="seg" id="seg">
+            <button data-a="reg" aria-pressed="true" title="Saldos de los grupos 6 y 7 contra la cuenta de resultados">Regularización · 31/12/2026</button>
+            <button data-a="cie" aria-pressed="false" title="Saldos de los grupos 1 a 5, incluida la 129">Cierre · 31/12/2026</button>
+            <button data-a="ape" aria-pressed="false" title="El cierre al revés, en el ejercicio siguiente">Apertura · 01/01/2027</button>
+          </div>
+          <span class="sp" id="nLin"></span>
+        </div>
+        <div class="tw"><table>
+          <thead><tr><th>Cuenta</th><th>Nombre</th><th class="num">Debe</th><th class="num">Haber</th></tr></thead>
+          <tbody id="tb"></tbody>
+          <tfoot><tr><td></td><td id="ftTxt">Total</td><td class="num" id="ftD"></td><td class="num" id="ftH"></td></tr></tfoot>
+        </table></div>
+      </div>
+      <div class="empty" id="propEmpty" hidden></div>
+      <div class="foot" id="foot">
+        <span class="why" id="why"></span>
+        <input class="inp motivo" id="motivo" placeholder="Motivo (obligatorio si hay avisos)" title="Queda en el registro de cambios de los tres asientos">
+        <button class="btn pri" id="bCerrar" title="Graba la regularización, el cierre y la apertura exactamente como se ven y marca 2026 como cerrado, en una sola operación">Cerrar el ejercicio 2026</button>
+      </div>
+    </section>
+  </div>
+
+  <section class="qs">
+    <h2>Para validar</h2>
+    <ol>
+      <li>¿La pantalla va en Contabilidad › Cierre del ejercicio, junto a la Liquidación y la Prorrata?</li>
+      <li>«Crear el ejercicio 2027…» sale aquí cuando falta; ¿lo quieres también como botón en Parámetros y tablas › Ejercicios (y el aviso de Inicio abriría esta pantalla)?</li>
+      <li>La regularización y el cierre van subcuenta a subcuenta y sin centro de coste (los informes por actividad ya no cuentan la regularización). ¿De acuerdo?</li>
+      <li>La comprobación previa no bloquea: si queda algún aviso, pide motivo. ¿Bien así, o algún punto debería impedir cerrar?</li>
+    </ol>
+  </section>
+</main>
+
+<div class="scrim" id="dlgReabrir" hidden><div class="dlg" role="dialog" aria-labelledby="hR">
+  <header><h3 id="hR">Reabrir el ejercicio 2026</h3><p>Se deshace solo lo que grabó el cierre; el resto de asientos no se toca.</p></header>
+  <div class="body">
+    <div>Se borrarán (el borrado queda en el historial de los apuntes):</div>
+    <ul>
+      <li>Regularización de cuentas, 31/12/2026 (#18412)</li>
+      <li>Cierre del ejercicio, 31/12/2026 (#18413)</li>
+      <li>Asiento de apertura, 01/01/2027 (#18414)</li>
+    </ul>
+    <div class="note">2026 vuelve a admitir cambios. Mientras esté abierto, 2027 no tendrá apertura: los saldos iniciales de 2027 saldrán a cero hasta que vuelvas a cerrar.</div>
+    <label>Motivo <input class="inp motivo" placeholder="Obligatorio" style="width:100%"></label>
+  </div>
+  <footer><button class="btn" data-close>Cancelar</button><button class="btn dan" data-close title="Quita la marca y borra los tres asientos en una sola operación">Reabrir</button></footer>
+</div></div>
+
+<div class="scrim" id="dlgCrear" hidden><div class="dlg" role="dialog" aria-labelledby="hC">
+  <header><h3 id="hC">Crear el ejercicio 2027</h3><p>Se copia de 2026. Repetirlo no duplica nada: solo añade lo que falte.</p></header>
+  <div class="body">
+    <ul>
+      <li>Parámetros del ejercicio: cuentas, forma de pago, tipo de IVA, retención de dividendos, cuenta de resultados, Impuesto sobre Sociedades.</li>
+      <li>«Prorrata del año anterior»: 20 % (la definitiva de 2026; si aún no está fijada, la provisional de 2026).</li>
+      <li>Plan de cuentas: 412 cuentas y 1.236 subcuentas.</li>
+      <li>Series de facturación: 4 series, con la numeración empezando en 1.</li>
+      <li>Trimestre activo: 1.º.</li>
+    </ul>
+  </div>
+  <footer><button class="btn" data-close>Cancelar</button><button class="btn pri" id="bCrearOk">Crear 2027</button></footer>
+</div></div>
+
+<script>
+const fmt=n=>{if(n===0)return '';const [e,d]=Math.abs(n).toFixed(2).split('.');return (n<0?'−':'')+e.replace(/\B(?=(\d{3})+(?!\d))/g,'.')+','+d;};
+// Saldos de 2026 (deudor positivo). Datos ficticios.
+const pyg=[
+ ['6000000','Compras de mercaderías',8420.15],['6210000','Arrendamientos y cánones',12000],['6220000','Reparaciones y conservación',6312.40],
+ ['6230000','Servicios de profesionales independientes',18200],['6250000','Primas de seguros',2140.77],['6280000','Suministros',4310.55],
+ ['6290000','Otros servicios',3988.12],['6310000','Otros tributos',1906.30],['6341000','Ajustes negativos en la imposición indirecta',1204.66],
+ ['6400000','Sueldos y salarios',52000],['6420000','Seguridad Social a cargo de la empresa',16640],['6620000','Intereses de deudas',2310.08],
+ ['6810000','Amortización del inmovilizado material',9870],['6300000','Impuesto corriente',13120],
+ ['7050000','Prestaciones de servicios',-182450],['7520000','Ingresos por arrendamientos',-96300],['7690000','Otros ingresos financieros',-412.33],
+ ['6391000','Ajustes positivos en la imposición indirecta',0],
+].filter(r=>r[2]!==0);
+const resultado=-pyg.reduce((s,r)=>s+r[2],0); // beneficio positivo
+const bal=[
+ ['1000000','Capital social',-3006],['1130000','Reservas voluntarias',-385210.44],['1700000','Deudas a largo plazo con entidades de crédito',-148600],
+ ['2110000','Construcciones',420000],['2160000','Mobiliario',12450],['2170000','Equipos para procesos de información',6890.50],
+ ['2810000','Amortización acumulada del inmovilizado material',-61200],['4100003','Suministros Delta, S.L.',-1210.40],
+ ['4300001','Cliente Alfa, S.L.',8470],['4300002','Cliente Beta, S.A.',3025],['4650001','Remuneraciones pendientes de pago',-3120],
+ ['4709000','Hacienda Pública, deudora por devolución de impuestos',0],['4750000','Hacienda Pública, acreedora por IVA',-6114.22],
+ ['4751111','HP acreedora por retenciones (111)',-2984.10],['4751115','HP acreedora por retenciones (115)',-2280],
+ ['4752000','HP acreedora por Impuesto sobre Sociedades',-7240.18],['4760000','Organismos de la Seguridad Social, acreedores',-4380],
+ ['5200000','Préstamos a corto plazo de entidades de crédito',-14400],
+].filter(r=>r[2]!==0);
+// Banco = lo que cuadra el balance (sumas de 1 a 7 = 0)
+const sumBal=bal.reduce((s,r)=>s+r[2],0)+pyg.reduce((s,r)=>s+r[2],0);
+bal.push(['5720001','Banco Uno, c/c',Math.round(-sumBal*100)/100]);
+bal.sort((a,b)=>a[0].localeCompare(b[0]));
+const r2=x=>Math.round(x*100)/100;
+function regularizacion(){
+  const l=pyg.map(([c,n,s])=>s>0?[c,n,0,s]:[c,n,-s,0]);
+  l.push(['1290000','Resultado del ejercicio',resultado<0?-resultado:0,resultado>0?resultado:0,true]);
+  return l;
+}
+function saldosCierre(){
+  const s=bal.map(r=>[...r]); s.push(['1290000','Resultado del ejercicio',r2(-resultado)]);
+  return s.sort((a,b)=>a[0].localeCompare(b[0]));
+}
+const cierre=()=>saldosCierre().map(([c,n,s])=>s>0?[c,n,0,s,c==='1290000']:[c,n,-s,0,c==='1290000']);
+const apertura=()=>saldosCierre().map(([c,n,s])=>s>0?[c,n,s,0,c==='1290000']:[c,n,0,-s,c==='1290000']);
+
+let st='abierto',as='reg';
+const $=id=>document.getElementById(id);
+const checksData=[
+ ['ok','Impuesto sobre Sociedades','Asiento del 31/12/2026: 6300000 por 13.120,00 €.','Abrir'],
+ ['ok','Amortización del ejercicio','Contabilizada hasta diciembre (9.870,00 €).','Abrir'],
+ ['ok','Prorrata de IVA','Definitiva fijada (20 %) y regularizada a la 4729.','Abrir'],
+ ['warn','Liquidación del IVA del 4T','Sin liquidar: las 472 y 477 aún tienen saldo y pasarán así a 2027.','Liquidar'],
+ ['na','Facturas pendientes de recibir','El proceso aún no existe en ProContaVF.',''],
+ ['warn','Asientos en borrador','2 asientos en borrador de 2026 no entran en el cierre y no se podrán contabilizar después.','Ver'],
+ ['ok','Salud de la contabilidad','Sin avisos graves.','Abrir'],
+];
+function render(){
+  document.querySelectorAll('.demo button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.st===st));
+  $('stEj').innerHTML=st==='cerrado'?'<span class="pill p-ok">Cerrado</span>':'<span class="pill p-info">Abierto</span>';
+  $('stSig').innerHTML=st==='sin'?'<span class="pill p-bad">2027 no existe</span>':'<span class="pill p-ok">2027 creado</span>';
+  $('stRes').innerHTML=`<span class="mono">${fmt(resultado)} €</span> <span class="k">beneficio</span>`;
+  $('stCerradoInfo').hidden=st!=='cerrado';
+  $('bCrear').hidden=st!=='sin';
+  $('bReabrir').hidden=st!=='cerrado';
+  $('bDiario').hidden=st!=='cerrado';
+  $('cardChecks').hidden=st==='cerrado';
+  $('grid').classList.toggle('solo',st==='cerrado');
+  $('foot').hidden=st==='cerrado';
+  // comprobación
+  $('checks').innerHTML=(st==='sin'?[['bad','Ejercicio 2027','No existe: la apertura no se puede grabar. Créalo con «Crear el ejercicio 2027…».','Crear']]:[]).concat(checksData).map(([k,t,d,a])=>
+    `<li><span class="ic i-${k}">${{ok:'✓',warn:'!',bad:'✕',na:'–'}[k]}</span><div><div class="t">${t}</div><div class="d">${d}</div></div>${a?`<button class="btn link" title="Abre la pantalla que lo resuelve">${a}</button>`:'<span></span>'}</li>`).join('');
+  // propuesta
+  $('tProp').textContent=st==='cerrado'?'Asientos grabados':'Propuesta';
+  $('nProp').textContent=st==='cerrado'?'Lotes del cierre de 2026':'Calculada desde los apuntes contabilizados de 2026';
+  const sets={reg:regularizacion(),cie:cierre(),ape:apertura()};
+  const tot=a=>[r2(a.reduce((s,l)=>s+l[2],0)),r2(a.reduce((s,l)=>s+l[3],0))];
+  const [rd,rh]=tot(sets.reg),[cd,ch]=tot(sets.cie),[ad,ah]=tot(sets.ape);
+  const cuadra=rd===rh&&cd===ch&&ad===ah&&cd===ah&&ch===ad;
+  $('figs').innerHTML=[
+    ['Ingresos (grupo 7)',fmt(-pyg.filter(r=>r[0][0]==='7').reduce((s,r)=>s+r[2],0))],
+    ['Gastos (grupo 6)',fmt(pyg.filter(r=>r[0][0]==='6').reduce((s,r)=>s+r[2],0))],
+    ['Resultado a la 1290000',fmt(resultado)],
+    ['Cierre y apertura',fmt(cd)],
+    ['Cuadre',cuadra?'<span class="ok">✓ Cuadran entre sí</span>':'<span class="bad">✕ No cuadran</span>'],
+  ].map(([k,v])=>`<div><div class="k">${k}</div><div class="v">${v}</div></div>`).join('');
+  document.querySelectorAll('#seg button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.a===as));
+  const l=sets[as];
+  $('tb').innerHTML=l.map(([c,n,d,h,m])=>`<tr class="${m?'r129':''}"><td class="mono">${c}</td><td>${n}</td><td class="num">${fmt(d)}</td><td class="num">${fmt(h)}</td></tr>`).join('');
+  const [td,th]=tot(l);$('ftD').textContent=fmt(td);$('ftH').textContent=fmt(th);
+  $('nLin').textContent=`${l.length} apuntes · `+{reg:'Regularización de cuentas',cie:'Cierre del ejercicio',ape:'Asiento de apertura'}[as]+(st==='cerrado'?' · #'+{reg:18412,cie:18413,ape:18414}[as]:'');
+  // pie
+  const avisos=checksData.filter(c=>c[0]==='warn').length;
+  $('bCerrar').disabled=st==='sin';
+  $('why').innerHTML=st==='sin'?'<span class="bad">No se puede cerrar: falta el ejercicio 2027.</span>':`${avisos} avisos en la comprobación previa: escribe el motivo para cerrar igualmente.`;
+}
+document.querySelectorAll('.demo button').forEach(b=>b.onclick=()=>{st=b.dataset.st;render()});
+document.querySelectorAll('#seg button').forEach(b=>b.onclick=()=>{as=b.dataset.a;render()});
+$('bReabrir').onclick=()=>$('dlgReabrir').hidden=false;
+$('bCrear').onclick=()=>$('dlgCrear').hidden=false;
+$('bCrearOk').onclick=()=>{$('dlgCrear').hidden=true;st='abierto';render()};
+$('bCerrar').onclick=()=>{st='cerrado';render()};
+document.querySelectorAll('[data-close]').forEach(b=>b.onclick=()=>{b.closest('.scrim').hidden=true;if(b.classList.contains('dan')){st='abierto';render()}});
+render();
+</script>
+</body></html>

@@ -59,6 +59,15 @@ public static class Acciones
     public const string Dividendos = "PROCESOS.DIVIDENDOS";
     /// <summary>Contabilizar el Impuesto sobre Sociedades del ejercicio y deshacerlo (contabilidad/procesos/impuesto-sociedades 2026-11-17).</summary>
     public const string ImpuestoSociedades = "PROCESOS.IMPUESTO_SOCIEDADES";
+    /// <summary>Cerrar el ejercicio, crear el siguiente y reabrirlo (contabilidad/procesos/cierre-ejercicio 2026-11-17).</summary>
+    public const string CierreEjercicio = "PROCESOS.CIERRE_EJERCICIO";
+    /// <summary>
+    /// Contabilizar las facturas pendientes de recibir: confirmar la provisión del 31/12 con su reversión y deshacerlas
+    /// (contabilidad/procesos/facturas-pendientes-recibir 2026-11-17).
+    /// </summary>
+    public const string FacturasPendientes = "PROCESOS.FACTURAS_PENDIENTES";
+    /// <summary>Amortizar los activos: confirmar y deshacer la amortización de un periodo (contabilidad/procesos/amortizacion-de-activos 2026-11-17).</summary>
+    public const string Amortizacion = "PROCESOS.AMORTIZACION";
 
     /// <summary>
     /// Acción que manda mientras una acción nueva no tenga ningún grupo asignado: «Cambiar el trimestre activo» la tienen
@@ -73,6 +82,12 @@ public static class Acciones
         Dividendos => LiquidacionIva,
         // El Impuesto sobre Sociedades graba el gasto por impuesto y salda las 473: mientras no tenga grupos, lo tienen quienes pueden liquidar el IVA.
         ImpuestoSociedades => LiquidacionIva,
+        // Cerrar y reabrir el ejercicio graba la regularización, el cierre y la apertura: mientras no tenga grupos, lo tienen quienes pueden liquidar el IVA.
+        CierreEjercicio => LiquidacionIva,
+        // Las facturas pendientes de recibir graban gasto contra la 4009 a 31/12 y su reversión: mientras no tenga grupos, lo tienen quienes pueden liquidar el IVA.
+        FacturasPendientes => LiquidacionIva,
+        // La amortización graba asientos de 68 contra 28: mientras no tenga grupos, la tienen quienes pueden liquidar el IVA.
+        Amortizacion => LiquidacionIva,
         _ => null
     };
 }

@@ -377,6 +377,9 @@ public class MotorPlantillasTests
         public Task<Resultado> EliminarManualAsync(int idAsiento, int versionLeida, Actor actor, string motivo) => No<Task<Resultado>>();
         public Task<Resultado<IReadOnlyList<int>>> ReemplazarLoteAsync(ContextoSociedadEjercicio contexto, IdentidadLote lote, IReadOnlyList<Asiento> asientos, Actor actor, string motivo,
             TrabajoLote? enLaTransaccion = null, OpcionesLote? opciones = null) => No<Task<Resultado<IReadOnlyList<int>>>>();
+        public Task<Resultado<IReadOnlyList<IReadOnlyList<int>>>> ReemplazarLotesAsync(IReadOnlyList<LoteAsientos> lotes, Actor actor, string motivo,
+            Func<ISesionDatos, Task<Resultado>>? alPrincipio = null, Func<ISesionDatos, Task<Resultado>>? alFinal = null, OpcionesLote? opciones = null) =>
+            No<Task<Resultado<IReadOnlyList<IReadOnlyList<int>>>>>();
         public Task<Resultado<int>> EliminarLoteAsync(ContextoSociedadEjercicio contexto, IdentidadLote lote, Actor actor, string motivo, TrabajoLote? enLaTransaccion = null,
             OpcionesLote? opciones = null) => No<Task<Resultado<int>>>();
         public Task<Resultado<Guid>> CambiarCuentaApuntesAsync(ContextoSociedadEjercicio contexto, IReadOnlyCollection<int> idsApunte, string nuevaCuenta, Actor actor, string motivo) => No<Task<Resultado<Guid>>>();

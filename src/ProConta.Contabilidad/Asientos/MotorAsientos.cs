@@ -29,19 +29,31 @@ public sealed record TrabajoLote(
 /// </summary>
 /// <see cref="DiferirSaldos"/>: no recalcula la caché de saldos de las cuentas en cada lote; quien la pide llama a
 /// <see cref="IMotorAsientos.RecalcularSaldosAsync"/> al terminar (cargas masivas: el importador de ContaSol graba miles de lotes).
-public sealed record OpcionesLote(bool LibroExterno = false, bool DiferirSaldos = false, int? TrimestreLiquidado = null)
+/// <see cref="CierreEjercicio"/>: lotes del cierre del ejercicio (regularización, cierre y apertura, contabilidad/procesos/cierre-ejercicio
+/// 2026-11-17): no tienen efecto fiscal, así que se admiten aunque su fecha caiga en un trimestre cerrado. Solo para el motor del cierre.
+public sealed record OpcionesLote(bool LibroExterno = false, bool DiferirSaldos = false, int? TrimestreLiquidado = null, bool CierreEjercicio = false)
 {
     public static readonly OpcionesLote Normal = new();
 
-    /// <summary>Motor propietario de los lotes de la liquidación del IVA, el único que puede pedir <see cref="TrimestreLiquidado"/>.</summary>
+    /// <summary>Motor propietario de los lotes del cierre del ejercicio, el único que puede pedir <see cref="CierreEjercicio"/>.</summary>
+    public const string MotorCierreEjercicio = "contabilidad/procesos/cierre-ejercicio";
+
+    /// <summary>Motor propietario de los lotes de la liquidación del IVA, que puede pedir <see cref="TrimestreLiquidado"/>.</summary>
     public const string MotorLiquidacionIva = "contabilidad/procesos/liquidacion-iva";
+
+    /// <summary>
+    /// Motor propietario de los lotes de las facturas pendientes de recibir (contabilidad/procesos/facturas-pendientes-recibir
+    /// 2026-11-17 16:40): la provisión del 31/12 lleva cuentas de gasto que son fiscales (621, 623…), así que también puede pedir
+    /// <see cref="TrimestreLiquidado"/> 4, como la regularización de la prorrata.
+    /// </summary>
+    public const string MotorFacturasPendientes = "contabilidad/procesos/facturas-pendientes-recibir";
 
     /// <summary>
     /// Si el asiento cae en el trimestre que liquida el lote (<see cref="TrimestreLiquidado"/>, contabilidad/procesos/liquidacion-iva
     /// 2026-11-16): ese asiento se admite aunque el trimestre esté cerrado, porque es el que cierra su declaración.
     /// </summary>
     public bool ExentoTrimestreCerrado(Asiento asiento) =>
-        LibroExterno || (TrimestreLiquidado is int t && asiento.FechaContable.Year == asiento.Contexto.Ejercicio && Nucleo.Contexto.TrimestreContable.De(asiento.FechaContable) == t);
+        LibroExterno || CierreEjercicio || (TrimestreLiquidado is int t && asiento.FechaContable.Year == asiento.Contexto.Ejercicio && Nucleo.Contexto.TrimestreContable.De(asiento.FechaContable) == t);
 
     /// <summary>Motor propietario de los lotes del importador de ContaSol, el único que puede pedir <see cref="LibroExterno"/>.</summary>
     public const string MotorImportadorContaSol = "implantacion/importador-contasol";
@@ -101,6 +113,16 @@ public interface IMotorAsientos
     /// </summary>
     Task<Resultado<IReadOnlyList<int>>> ReemplazarLoteAsync(ContextoSociedadEjercicio contexto, IdentidadLote lote, IReadOnlyList<Asiento> asientos, Actor actor, string motivo,
         TrabajoLote? enLaTransaccion = null, OpcionesLote? opciones = null);
+
+    /// <summary>
+    /// Sustituye varios lotes, de uno o varios ejercicios, en una sola transacción (el cierre del ejercicio graba la regularización y el
+    /// cierre en un ejercicio y la apertura en el siguiente, contabilidad/procesos/cierre-ejercicio 2026-11-17): un lote con la lista vacía
+    /// se borra. <paramref name="alPrincipio"/> corre antes de comprobar nada (p. ej. quitar la marca de cerrado al reabrir) y
+    /// <paramref name="alFinal"/> después de grabar todos los lotes (p. ej. poner la marca); si cualquiera falla, no se guarda nada.
+    /// Devuelve los asientos de cada lote, en el orden recibido.
+    /// </summary>
+    Task<Resultado<IReadOnlyList<IReadOnlyList<int>>>> ReemplazarLotesAsync(IReadOnlyList<LoteAsientos> lotes, Actor actor, string motivo,
+        Func<ISesionDatos, Task<Resultado>>? alPrincipio = null, Func<ISesionDatos, Task<Resultado>>? alFinal = null, OpcionesLote? opciones = null);
 
     /// <summary>Borra los asientos de un lote automático; devuelve cuántos.</summary>
     Task<Resultado<int>> EliminarLoteAsync(ContextoSociedadEjercicio contexto, IdentidadLote lote, Actor actor, string motivo, TrabajoLote? enLaTransaccion = null,
@@ -174,6 +196,9 @@ public sealed record CambioDatosApunte
     public bool SoloPunteo => !CambiaConcepto && !CambiaDocumento && !CambiaVencimiento && !CambiaCentro;
     public bool Vacio => SoloPunteo && Punteado is null;
 }
+
+/// <summary>Un lote con su ejercicio y sus asientos, para <see cref="IMotorAsientos.ReemplazarLotesAsync"/> (lista vacía: se borra).</summary>
+public sealed record LoteAsientos(ContextoSociedadEjercicio Contexto, IdentidadLote Lote, IReadOnlyList<Asiento> Asientos);
 
 /// <summary>Apunte de un asiento borrado (tabla ApuntesBorrados).</summary>
 public sealed record ApunteBorrado(int IdApunte, int Orden, string Cuenta, decimal Debe, decimal Haber, string? Concepto, string? Documento,
@@ -286,65 +311,101 @@ public sealed partial class MotorAsientosAccess(IBaseDatos bd, PoliticaCuadre? p
         TrabajoLote? enLaTransaccion = null, OpcionesLote? opciones = null) =>
         bd.EnTransaccionAsync(async s =>
         {
-            var externo = (opciones ?? OpcionesLote.Normal).LibroExterno;
-            var diferir = (opciones ?? OpcionesLote.Normal).DiferirSaldos;
-            var error = ValidarLote(lote, motivo) ?? ValidarExterno(lote, externo) ?? ValidarLiquidacion(lote, opciones) ?? asientos.Where(a => a.Contexto != contexto).Select(a => new Error("Asientos.LoteOtroEjercicio",
-                "Todos los asientos del lote deben ser del mismo ejercicio.", a.ToString(), "El lote es de un ejercicio.", "Genera un lote por ejercicio.")).FirstOrDefault();
-            if (error is not null) return Resultado<IReadOnlyList<int>>.Fallo(error);
-            var abierto = await ComprobarEjercicioAbiertoAsync(s, contexto, externo);
-            if (!abierto.EsCorrecto) return Resultado<IReadOnlyList<int>>.Fallo(abierto.Errores);
-
-            var idLote = Guid.NewGuid();
-            var anteriores = await IdsDelLoteAsync(s, contexto, lote);
-            if (enLaTransaccion?.Antes is { } antes) await antes(s, anteriores);
-            // Los asientos que ya tiene el lote se reutilizan en orden (cambian sus apuntes, no su número), y solo se
-            // borran los que sobran o se crean los que faltan (contabilidad/asientos 2026-11-07).
-            var cuentas = new List<string>();
-            var reutilizados = new List<Asiento>();
-            foreach (var (id, i) in anteriores.Select((id, i) => (id, i)))
-            {
-                var viejo = (await CargarAsync(s, id))!;
-                cuentas.AddRange(viejo.Apuntes.Select(a => a.CodigoCuenta));
-                // El que se reutiliza lo comprueba GuardarInterno comparándolo con el nuevo (un cambio sin efecto fiscal se admite).
-                if (i < asientos.Count)
-                {
-                    reutilizados.Add(viejo);
-                    continue;
-                }
-                var trimestre = (opciones ?? OpcionesLote.Normal).ExentoTrimestreCerrado(viejo) ? Resultado.Correcto() : await ComprobarTrimestreAbiertoAsync(s, viejo);
-                if (!trimestre.EsCorrecto) return Resultado<IReadOnlyList<int>>.Fallo(trimestre.Errores);
-                await BorrarAsync(s, viejo, actor, motivo.Trim(), idLote);
-            }
-            var nuevos = new List<int>();
-            var errores = new List<Error>();
-            for (var i = 0; i < asientos.Count; i++)
-            {
-                var asiento = asientos[i];
-                asiento.IdAsiento = i < reutilizados.Count ? reutilizados[i].IdAsiento : 0;
-                if (i < reutilizados.Count) asiento.Version = reutilizados[i].Version;
-                asiento.Lote = lote;
-                var guardado = await GuardarInternoAsync(s, asiento, actor, motivo.Trim(), idLote, manual: false, externo, diferir,
-                    trimestreExento: (opciones ?? OpcionesLote.Normal).ExentoTrimestreCerrado(asiento)
-                        && (i >= reutilizados.Count || (opciones ?? OpcionesLote.Normal).ExentoTrimestreCerrado(reutilizados[i])));
-                if (guardado.EsCorrecto) nuevos.Add(guardado.Valor);
-                else errores.AddRange(guardado.Errores);
-            }
-            if (errores.Count > 0) return Resultado<IReadOnlyList<int>>.Fallo(errores);
-            if (enLaTransaccion?.Despues is { } despues)
-            {
-                var hecho = await despues(s, nuevos);
-                if (!hecho.EsCorrecto) return Resultado<IReadOnlyList<int>>.Fallo(hecho.Errores);
-            }
-            if (!diferir) await ActualizarSaldosAsync(s, contexto, cuentas);
-            return Resultado<IReadOnlyList<int>>.Correcto(nuevos);
+            var hecho = await ReemplazarEnSesionAsync(s, contexto, lote, asientos, actor, motivo, Guid.NewGuid(), enLaTransaccion, opciones);
+            if (!hecho.EsCorrecto) return Resultado<IReadOnlyList<int>>.Fallo(hecho.Errores);
+            if (!(opciones ?? OpcionesLote.Normal).DiferirSaldos) await ActualizarSaldosAsync(s, contexto, hecho.Valor.Cuentas);
+            return Resultado<IReadOnlyList<int>>.Correcto(hecho.Valor.Nuevos);
         });
+
+    public Task<Resultado<IReadOnlyList<IReadOnlyList<int>>>> ReemplazarLotesAsync(IReadOnlyList<LoteAsientos> lotes, Actor actor, string motivo,
+        Func<ISesionDatos, Task<Resultado>>? alPrincipio = null, Func<ISesionDatos, Task<Resultado>>? alFinal = null, OpcionesLote? opciones = null) =>
+        bd.EnTransaccionAsync(async s =>
+        {
+            Resultado<IReadOnlyList<IReadOnlyList<int>>> Fallo(IReadOnlyList<Error> e) => Resultado<IReadOnlyList<IReadOnlyList<int>>>.Fallo(e);
+            if (alPrincipio is not null && await alPrincipio(s) is { EsCorrecto: false } previo) return Fallo(previo.Errores);
+            var idLote = Guid.NewGuid();
+            var ids = new List<IReadOnlyList<int>>();
+            var cuentas = new List<(ContextoSociedadEjercicio Contexto, List<string> Cuentas)>();
+            foreach (var l in lotes)
+            {
+                var hecho = await ReemplazarEnSesionAsync(s, l.Contexto, l.Lote, l.Asientos, actor, motivo, idLote, null, opciones);
+                if (!hecho.EsCorrecto) return Fallo(hecho.Errores);
+                ids.Add(hecho.Valor.Nuevos);
+                cuentas.Add((l.Contexto, hecho.Valor.Cuentas));
+            }
+            if (alFinal is not null && await alFinal(s) is { EsCorrecto: false } final) return Fallo(final.Errores);
+            if (!(opciones ?? OpcionesLote.Normal).DiferirSaldos)
+                foreach (var g in cuentas.GroupBy(c => c.Contexto))
+                    await ActualizarSaldosAsync(s, g.Key, g.SelectMany(c => c.Cuentas));
+            return Resultado<IReadOnlyList<IReadOnlyList<int>>>.Correcto(ids);
+        });
+
+    /// <summary>
+    /// Sustituye un lote dentro de una transacción ya abierta: valida, reutiliza los asientos que ya tiene (cambian sus apuntes, no su
+    /// número), borra los que sobran y crea los que faltan. Devuelve los asientos nuevos y las cuentas cuyo saldo hay que rehacer.
+    /// </summary>
+    private async Task<Resultado<(IReadOnlyList<int> Nuevos, List<string> Cuentas)>> ReemplazarEnSesionAsync(ISesionDatos s, ContextoSociedadEjercicio contexto,
+        IdentidadLote lote, IReadOnlyList<Asiento> asientos, Actor actor, string motivo, Guid idLote, TrabajoLote? enLaTransaccion, OpcionesLote? opciones)
+    {
+        Resultado<(IReadOnlyList<int>, List<string>)> Fallo(IReadOnlyList<Error> e) => Resultado<(IReadOnlyList<int>, List<string>)>.Fallo(e);
+        var op = opciones ?? OpcionesLote.Normal;
+        var externo = op.LibroExterno;
+        var diferir = op.DiferirSaldos;
+        var error = ValidarLote(lote, motivo) ?? ValidarExterno(lote, externo) ?? ValidarLiquidacion(lote, opciones) ?? ValidarCierre(lote, opciones)
+            ?? asientos.Where(a => a.Contexto != contexto).Select(a => new Error("Asientos.LoteOtroEjercicio",
+                "Todos los asientos del lote deben ser del mismo ejercicio.", a.ToString(), "El lote es de un ejercicio.", "Genera un lote por ejercicio.")).FirstOrDefault();
+        if (error is not null) return Fallo([error]);
+        var abierto = await ComprobarEjercicioAbiertoAsync(s, contexto, externo);
+        if (!abierto.EsCorrecto) return Fallo(abierto.Errores);
+
+        var anteriores = await IdsDelLoteAsync(s, contexto, lote);
+        if (enLaTransaccion?.Antes is { } antes) await antes(s, anteriores);
+        // Los asientos que ya tiene el lote se reutilizan en orden (cambian sus apuntes, no su número), y solo se
+        // borran los que sobran o se crean los que faltan (contabilidad/asientos 2026-11-07).
+        var cuentas = new List<string>();
+        var reutilizados = new List<Asiento>();
+        foreach (var (id, i) in anteriores.Select((id, i) => (id, i)))
+        {
+            var viejo = (await CargarAsync(s, id))!;
+            cuentas.AddRange(viejo.Apuntes.Select(a => a.CodigoCuenta));
+            // El que se reutiliza lo comprueba GuardarInterno comparándolo con el nuevo (un cambio sin efecto fiscal se admite).
+            if (i < asientos.Count)
+            {
+                reutilizados.Add(viejo);
+                continue;
+            }
+            var trimestre = op.ExentoTrimestreCerrado(viejo) ? Resultado.Correcto() : await ComprobarTrimestreAbiertoAsync(s, viejo);
+            if (!trimestre.EsCorrecto) return Fallo(trimestre.Errores);
+            await BorrarAsync(s, viejo, actor, motivo.Trim(), idLote);
+        }
+        var nuevos = new List<int>();
+        var errores = new List<Error>();
+        for (var i = 0; i < asientos.Count; i++)
+        {
+            var asiento = asientos[i];
+            asiento.IdAsiento = i < reutilizados.Count ? reutilizados[i].IdAsiento : 0;
+            if (i < reutilizados.Count) asiento.Version = reutilizados[i].Version;
+            asiento.Lote = lote;
+            var guardado = await GuardarInternoAsync(s, asiento, actor, motivo.Trim(), idLote, manual: false, externo, diferir,
+                trimestreExento: op.ExentoTrimestreCerrado(asiento) && (i >= reutilizados.Count || op.ExentoTrimestreCerrado(reutilizados[i])));
+            if (guardado.EsCorrecto) nuevos.Add(guardado.Valor);
+            else errores.AddRange(guardado.Errores);
+        }
+        if (errores.Count > 0) return Fallo(errores);
+        if (enLaTransaccion?.Despues is { } despues)
+        {
+            var hecho = await despues(s, nuevos);
+            if (!hecho.EsCorrecto) return Fallo(hecho.Errores);
+        }
+        return Resultado<(IReadOnlyList<int>, List<string>)>.Correcto((nuevos, cuentas));
+    }
 
     public Task<Resultado<int>> EliminarLoteAsync(ContextoSociedadEjercicio contexto, IdentidadLote lote, Actor actor, string motivo, TrabajoLote? enLaTransaccion = null,
         OpcionesLote? opciones = null) =>
         bd.EnTransaccionAsync(async s =>
         {
             var externo = (opciones ?? OpcionesLote.Normal).LibroExterno;
-            var error = ValidarLote(lote, motivo) ?? ValidarExterno(lote, externo) ?? ValidarLiquidacion(lote, opciones);
+            var error = ValidarLote(lote, motivo) ?? ValidarExterno(lote, externo) ?? ValidarLiquidacion(lote, opciones) ?? ValidarCierre(lote, opciones);
             if (error is not null) return Resultado<int>.Fallo(error);
             var abierto = await ComprobarEjercicioAbiertoAsync(s, contexto, externo);
             if (!abierto.EsCorrecto) return Resultado<int>.Fallo(abierto.Errores);
@@ -1004,11 +1065,20 @@ public sealed partial class MotorAsientosAccess(IBaseDatos bd, PoliticaCuadre? p
                 "Fecha el asiento en el trimestre activo o reabre el periodo con el proceso contable autorizado.")
             : null;
 
-    /// <summary>Solo la liquidación del IVA puede grabar su asiento en el trimestre cerrado que liquida.</summary>
+    /// <summary>Solo la liquidación del IVA (y las facturas pendientes de recibir, a 31/12) puede grabar su asiento en el trimestre cerrado que liquida.</summary>
     private static Error? ValidarLiquidacion(IdentidadLote lote, OpcionesLote? opciones) =>
         opciones?.TrimestreLiquidado is not null && !string.Equals(lote.MotorPropietario, OpcionesLote.MotorLiquidacionIva, StringComparison.Ordinal)
+            && !string.Equals(lote.MotorPropietario, OpcionesLote.MotorFacturasPendientes, StringComparison.Ordinal)
             ? new Error("Asientos.TrimestreLiquidadoNoPermitido", "Este lote no puede grabarse en un trimestre cerrado.", lote.ToString(),
                 "Solo la liquidación del IVA graba su propio asiento en el trimestre cerrado que liquida.",
+                "Fecha el asiento en el trimestre activo.")
+            : null;
+
+    /// <summary>Solo el cierre del ejercicio puede grabar sus asientos en un trimestre cerrado.</summary>
+    private static Error? ValidarCierre(IdentidadLote lote, OpcionesLote? opciones) =>
+        opciones?.CierreEjercicio == true && !string.Equals(lote.MotorPropietario, OpcionesLote.MotorCierreEjercicio, StringComparison.Ordinal)
+            ? new Error("Asientos.CierreNoPermitido", "Este lote no puede grabarse en un trimestre cerrado.", lote.ToString(),
+                "Solo el cierre del ejercicio (regularización, cierre y apertura) graba sus asientos sin mirar el trimestre cerrado.",
                 "Fecha el asiento en el trimestre activo.")
             : null;
 

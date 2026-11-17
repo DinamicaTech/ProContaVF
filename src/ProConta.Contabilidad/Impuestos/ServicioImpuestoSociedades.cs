@@ -237,6 +237,36 @@ public sealed class ServicioImpuestoSociedades(IBaseDatos bd, IMotorAsientos mot
         return Resultado<DatosFiscalesAeat>.Correcto(leidos with { Retenciones = LectorDatosFiscalesAeat.Asignar(leidos.Retenciones, datos.Retenciones) });
     }
 
+    /// <summary>
+    /// Dónde se guarda el HTML de los datos fiscales del ejercicio (propietario 2026-11-17 15:23): la carpeta de documentos de la empresa,
+    /// «&lt;año&gt;\Impuestos\DatosFiscalesIS-&lt;año&gt;.htm»; null si la empresa no tiene carpeta de documentos.
+    /// </summary>
+    public async Task<string?> RutaDatosFiscalesAsync(ContextoSociedadEjercicio ctx)
+    {
+        var raiz = await bd.EjecutarAsync(s => s.EscalarAsync("SELECT RutaDocumentos FROM Sociedades WHERE IdSociedad = ?", ctx.IdSociedad)) as string;
+        if (string.IsNullOrWhiteSpace(raiz)) return null;
+        var ruta = raiz.Trim();
+        if (!Path.IsPathFullyQualified(ruta)) ruta = Path.GetFullPath(Path.Combine(Path.GetDirectoryName(Path.GetFullPath(bd.Ruta)) ?? string.Empty, ruta));
+        var anio = ctx.Ejercicio.ToString(CultureInfo.InvariantCulture);
+        return Path.Combine(ruta, anio, "Impuestos", $"DatosFiscalesIS-{anio}.htm");
+    }
+
+    /// <summary>Guarda una copia del HTML importado en <see cref="RutaDatosFiscalesAsync"/> (sustituye la anterior); devuelve la ruta, o null si no hay dónde.</summary>
+    public async Task<string?> GuardarDatosFiscalesAsync(ContextoSociedadEjercicio ctx, byte[] contenido)
+    {
+        if (await RutaDatosFiscalesAsync(ctx) is not { } ruta) return null;
+        Directory.CreateDirectory(Path.GetDirectoryName(ruta)!);
+        await File.WriteAllBytesAsync(ruta, contenido);
+        return ruta;
+    }
+
+    /// <summary>Lee el HTML guardado del ejercicio, si lo hay (null: no hay fichero guardado).</summary>
+    public async Task<Resultado<DatosFiscalesAeat>?> LeerDatosFiscalesGuardadosAsync(ContextoSociedadEjercicio ctx, DatosImpuestoSociedades datos)
+    {
+        if (await RutaDatosFiscalesAsync(ctx) is not { } ruta || !File.Exists(ruta)) return null;
+        return await ImportarDatosFiscalesAsync(ctx, await File.ReadAllBytesAsync(ruta), datos);
+    }
+
     // ---------- grabación ----------
 
     private async Task GuardarAsync(ISesionDatos s, ContextoSociedadEjercicio ctx, PropuestaImpuestoSociedades p, string? motivo, Actor actor, int? idAsiento)
@@ -413,7 +443,7 @@ public sealed class ServicioImpuestoSociedades(IBaseDatos bd, IMotorAsientos mot
         var credito = paraRet.Where(x => x.Cuenta == parametros.Cuentas.CreditoPerdidas).Sum(x => x.Debe - x.Haber);
         var textosAjenos = ajenos.Count == 0 ? [] : await TextosAsientosAsync(ajenos);
         return new DatosImpuestoSociedades(ctx.Ejercicio, resultado, viviendas.Renta, hayBonificada, retenciones, posibles, Math.Max(0m, credito), parametros, textosAjenos,
-            apuntesRet, viviendas);
+            apuntesRet, viviendas, enResultado.Where(x => x.Cuenta[0] == '7').Sum(x => x.Haber - x.Debe));
     }
 
     /// <summary>

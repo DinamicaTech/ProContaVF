@@ -48,10 +48,12 @@ using ProConta.UI.Base.Controles;
 namespace ProConta.App;
 
 /// <summary>Opción de la navegación lateral (un área o, sangrada, una de sus pantallas).</summary>
-public sealed record OpcionNavegacion(string Titulo, Geometry? Icono, bool Disponible, bool Activa, string Ayuda, ICommand? Comando = null, bool EsHija = false)
+public sealed record OpcionNavegacion(string Titulo, Geometry? Icono, bool Disponible, bool Activa, string Ayuda, ICommand? Comando = null, bool EsHija = false, bool EsNieta = false)
 {
-    public Thickness Sangria => EsHija ? new Thickness(14, 0, 0, 0) : new Thickness(0);
-    public FontWeight Peso => EsHija ? FontWeights.Normal : FontWeights.SemiBold;
+    /// <summary>Tercer nivel del menú: una opción dentro de un submenú (p. ej. Contabilidad › Fin de ejercicio › Amortización de activos).</summary>
+    public Thickness Sangria => EsNieta ? new Thickness(28, 0, 0, 0) : EsHija ? new Thickness(14, 0, 0, 0) : new Thickness(0);
+    public FontWeight Peso => EsHija || EsNieta ? FontWeights.Normal : FontWeights.SemiBold;
+    public bool ConPunto => EsHija || EsNieta;
 }
 
 /// <summary>
@@ -68,9 +70,13 @@ public partial class VentanaPrincipal : Window
     private readonly ProConta.Contabilidad.UI.Asientos.ModuloAsientos _asientos;
     private readonly ProConta.Contabilidad.UI.Diario.ModuloDiario _diario;
     private readonly ProConta.Contabilidad.UI.Liquidacion.ModuloLiquidacionIva _liquidacionIva;
+    private readonly ProConta.Contabilidad.UI.Modelo303.ModuloModelo303 _modelo303;
     private readonly ProConta.Contabilidad.UI.Dividendos.ModuloRepartoDividendos _dividendos;
     private readonly ProConta.Contabilidad.UI.Prorrata.ModuloRegularizacionProrrata _prorrata;
     private readonly ProConta.Contabilidad.UI.ImpuestoSociedades.ModuloImpuestoSociedades _impuestoSociedades;
+    private readonly ProConta.Contabilidad.UI.Cierre.ModuloCierreEjercicio _cierreEjercicio;
+    private readonly ProConta.Contabilidad.UI.FacturasPendientes.ModuloFacturasPendientes _facturasPendientes;
+    private readonly ProConta.Contabilidad.UI.Amortizacion.ModuloAmortizacion _amortizacion;
     private readonly ModuloFacturacion _facturacion;
     private readonly ModuloCompras _compras;
     private readonly ModuloCorreo _correo;
@@ -136,6 +142,7 @@ public partial class VentanaPrincipal : Window
                 AbrirFacturasCompra = () => _compras!.AbrirRecibidas(),
                 AbrirDiario = () => _diario!.Abrir(),
                 AbrirLiquidacionIva = () => _liquidacionIva!.Abrir(),
+                AbrirAmortizacion = () => _amortizacion!.Abrir(),
                 AbrirTerceros = () => _terceros!.AbrirBuscador(),
                 AbrirNominas = () => _nominas!.Abrir(null),
                 AbrirParametros = clave => AbrirParametros(clave),
@@ -277,8 +284,13 @@ public partial class VentanaPrincipal : Window
         Closed += async (_, _) => await _coordinadorCorreo.DisposeAsync();
         _ = AvisarDesvioCorreoAsync(servicioCorreo);
 
+        // Parámetros y tablas › Ejercicios lleva también «Crear el ejercicio siguiente…» (contabilidad/procesos/nuevo-ejercicio 2026-11-17 15:38).
+        var proveedoresOrganizacion = ProveedoresOrganizacion.Todos(bd).ToList();
+        if (proveedoresOrganizacion.OfType<ProveedorTablaAccess>().FirstOrDefault(p => p.Clave == "ejercicios") is { } ejerciciosMantenimiento)
+            ProConta.Contabilidad.Cierre.AccionCrearEjercicio.Conectar(ejerciciosMantenimiento,
+                new ProConta.Contabilidad.Cierre.ServicioNuevoEjercicio(bd, () => autorizador.PuedeAsync(Acciones.CierreEjercicio)));
         var mantenimiento = new ServicioMantenimiento(
-            new IProveedorMantenimiento[] { new ProveedorConfiguracionGeneral(bd) }.Concat(ProveedoresOrganizacion.Todos(bd)).Concat(ProveedoresFacturacion.Todos(bd, cuentas)).Concat(ProConta.Facturacion.Ventas.ProveedoresVentas.Todos(bd, ventas, clienteAvaibook))
+            new IProveedorMantenimiento[] { new ProveedorConfiguracionGeneral(bd) }.Concat(proveedoresOrganizacion).Concat(ProveedoresFacturacion.Todos(bd, cuentas)).Concat(ProConta.Facturacion.Ventas.ProveedoresVentas.Todos(bd, ventas, clienteAvaibook))
                 .Concat(ProConta.Compras.Mantenimiento.ProveedoresCompras.Todos(bd)).Concat(ProveedoresCorreo.Todos(bd))
                 .Concat(ProConta.Activos.Mantenimiento.ProveedoresActivos.Todos(bd, cuentas)),
             () => autorizador.PuedeAsync(Acciones.MantenimientoEditar));
@@ -339,6 +351,22 @@ public partial class VentanaPrincipal : Window
             },
             _area, new ProConta.Contabilidad.UI.Liquidacion.DialogosLiquidacionIva(() => this));
         var abrirLiquidacionIva = new ComandoDelegado(() => _liquidacionIva.Abrir());
+        // Modelo 303 (contabilidad/modelos-tributarios/modelo-303): casillas, PDF de la AEAT (ServaliDos) y presentación con el certificado de la
+        // sociedad en el entorno de la BD (pieza común contabilidad/modelos-tributarios/presentacion).
+        _modelo303 = new ProConta.Contabilidad.UI.Modelo303.ModuloModelo303(
+            new ProConta.Contabilidad.UI.Modelo303.ContextoModelo303(
+                new ProConta.Contabilidad.Modelos.Servicio303(bd, new ProConta.Contabilidad.Presentacion.ServicioPresentacionAeat(bd, new ProConta.Contabilidad.Presentacion.ClienteAeatHttp())),
+                contexto.Contexto, contexto.RazonSocial, new Actor(sesion.NombreOperador), Avisar)
+            {
+                AbrirFichero = ruta =>
+                {
+                    try { System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(ruta) { UseShellExecute = true }); }
+                    catch (Exception ex) when (ex is System.ComponentModel.Win32Exception or InvalidOperationException) { Avisar($"Fichero guardado en {ruta} (no he podido abrirlo: {ex.Message})"); }
+                },
+                AbrirLiquidacion = t => _liquidacionIva.Abrir(t),
+            },
+            _area, new ProConta.Contabilidad.UI.Modelo303.DialogosModelo303(() => this));
+        var abrirModelo303 = new ComandoDelegado(() => _modelo303.Abrir());
         // Prorrata de IVA (contabilidad/procesos/prorrata): definitiva del año (por defecto, la legal) y su regularización el 31/12 en la 4729.
         _prorrata = new ProConta.Contabilidad.UI.Prorrata.ModuloRegularizacionProrrata(
             new ProConta.Contabilidad.UI.Prorrata.ContextoRegularizacionProrrata(
@@ -384,6 +412,62 @@ public partial class VentanaPrincipal : Window
             },
             _area, new ProConta.Contabilidad.UI.Dividendos.DialogosRepartoDividendos(() => this));
         var abrirDividendos = new ComandoDelegado(() => _dividendos.Abrir());
+        // Cierre del ejercicio (contabilidad/procesos/cierre-ejercicio): regularización, cierre y apertura del siguiente en una transacción, con la
+        // comprobación previa (V5) enlazada a donde se resuelve; reabrir borra solo esos asientos. Crea también el ejercicio siguiente.
+        var puedeCerrar = () => autorizador.PuedeAsync(Acciones.CierreEjercicio);
+        _cierreEjercicio = new ProConta.Contabilidad.UI.Cierre.ModuloCierreEjercicio(
+            new ProConta.Contabilidad.UI.Cierre.ContextoCierreEjercicio(
+                new ProConta.Contabilidad.Cierre.ServicioCierreEjercicio(bd, new MotorAsientosAccess(bd), cuentas,
+                    new ProConta.Contabilidad.Cierre.ServicioNuevoEjercicio(bd, puedeCerrar), puedeCerrar,
+                    avisosGraves: async ctx => (await new ProConta.Inicio.Salud.ServicioSalud(new ProConta.Inicio.Salud.FuenteSaludAccess(bd)).RevisarAsync(ctx.IdSociedad, ctx.Ejercicio))
+                        .Elementos.Where(e => e.Tipo == ProConta.Inicio.Salud.TipoSalud.Aviso && e.Gravedad == ProConta.Inicio.Salud.GravedadSalud.Grave).Select(e => e.Titulo).ToList()),
+                contexto.Contexto, contexto.RazonSocial, new Actor(sesion.NombreOperador), Avisar)
+            {
+                VerAsiento = id => _mayor.VerAsientoAsync(id),
+                AbrirMayor = cuentasMayor => _mayor.Abrir(cuentasMayor),
+                Destino = destino => destino switch
+                {
+                    ProConta.Contabilidad.Cierre.DestinoComprobacion.ImpuestoSociedades => () => _impuestoSociedades.Abrir(),
+                    ProConta.Contabilidad.Cierre.DestinoComprobacion.Amortizacion => () => _amortizacion!.Abrir(),
+                    ProConta.Contabilidad.Cierre.DestinoComprobacion.LiquidacionIva => () => _liquidacionIva.Abrir(4),
+                    ProConta.Contabilidad.Cierre.DestinoComprobacion.Prorrata => () => _prorrata.Abrir(),
+                    ProConta.Contabilidad.Cierre.DestinoComprobacion.FacturasPendientes => () => _facturasPendientes!.Abrir(),
+                    ProConta.Contabilidad.Cierre.DestinoComprobacion.Diario => () => _diario.Abrir(),
+                    ProConta.Contabilidad.Cierre.DestinoComprobacion.Salud => () => irAInicio.Execute(null),
+                    _ => null,
+                },
+                Cambiada = () => _ = RefrescarTrimestreAsync(),
+            },
+            _area, new ProConta.Contabilidad.UI.Liquidacion.DialogosLiquidacionIva(() => this));
+        var abrirCierreEjercicio = new ComandoDelegado(() => _cierreEjercicio.Abrir());
+        // Facturas pendientes de recibir (contabilidad/procesos/facturas-pendientes-recibir): gasto supuesto de los proveedores cuadrados con saldo deudor contra la
+        // 4009 a 31/12 y su reversión el 1/1 del siguiente, como dos lotes propios; el cierre solo mira su estado.
+        _facturasPendientes = new ProConta.Contabilidad.UI.FacturasPendientes.ModuloFacturasPendientes(
+            new ProConta.Contabilidad.UI.FacturasPendientes.ContextoFacturasPendientes(
+                new ProConta.Contabilidad.FacturasPendientes.ServicioFacturasPendientes(bd, new MotorAsientosAccess(bd), cuentas, () => autorizador.PuedeAsync(Acciones.FacturasPendientes)),
+                new ProConta.Contabilidad.Cierre.ServicioNuevoEjercicio(bd, puedeCerrar),
+                contexto.Contexto, contexto.RazonSocial, new Actor(sesion.NombreOperador), Avisar)
+            {
+                VerAsiento = id => _mayor.VerAsientoAsync(id),
+                AbrirMayor = cuentasMayor => _mayor.Abrir(cuentasMayor),
+                Cambiada = () => _ = RefrescarTrimestreAsync(),
+            },
+            _area, new ProConta.Contabilidad.UI.Liquidacion.DialogosLiquidacionIva(() => this));
+        var abrirFacturasPendientes = new ComandoDelegado(() => _facturasPendientes.Abrir());
+        // Amortización de activos (contabilidad/procesos/amortizacion-de-activos): cuota de cada activo por días reales con tope en lo pendiente, un asiento por
+        // periodo (anual, trimestral o mensual según el ejercicio) como lote propio; la ficha de activos solo consulta.
+        _amortizacion = new ProConta.Contabilidad.UI.Amortizacion.ModuloAmortizacion(
+            new ProConta.Contabilidad.UI.Amortizacion.ContextoAmortizacion(
+                new ProConta.Contabilidad.Amortizacion.ServicioAmortizacion(bd, new MotorAsientosAccess(bd), () => autorizador.PuedeAsync(Acciones.Amortizacion)),
+                contexto.Contexto, contexto.RazonSocial, new Actor(sesion.NombreOperador), Avisar)
+            {
+                VerAsiento = id => _mayor.VerAsientoAsync(id),
+                AbrirMayor = cuentasMayor => _mayor.Abrir(cuentasMayor),
+                AbrirParametros = clave => AbrirParametros(clave),
+                Cambiada = () => _ = RefrescarTrimestreAsync(),
+            },
+            _area, new ProConta.Contabilidad.UI.Liquidacion.DialogosLiquidacionIva(() => this));
+        var abrirAmortizacion = new ComandoDelegado(() => _amortizacion.Abrir());
         // Informes (contabilidad/balances e informes/excel): cada opción genera el libro Excel con su tabla dinámica y lo abre.
         _balances = new ProConta.Contabilidad.Balances.GeneradorBalances(bd);
         _razonSocial = contexto.RazonSocial;
@@ -418,15 +502,37 @@ public partial class VentanaPrincipal : Window
             new OpcionNavegacion("Liquidación de IVA", null, true, false,
                 "Procesos contables › Liquidación de IVA: un asiento por trimestre que salda las 472 y 477, lleva lo no deducible a la 6341 y el resultado a la 4750 o la 4700; importe ajustable a lo presentado y activación del trimestre siguiente",
                 abrirLiquidacionIva, EsHija: true),
-            new OpcionNavegacion("Prorrata de IVA", null, true, false,
-                "Procesos contables › Prorrata de IVA: provisional, legal del año y definitiva (la de la gestoría), su regularización por trimestre y el asiento del 31/12 a la 4729 que deduce el 303 del 4T",
-                abrirProrrata, EsHija: true),
-            new OpcionNavegacion("Impuesto sobre Sociedades", null, true, false,
-                "Procesos contables › Impuesto sobre Sociedades: resultado contable, ajustes que confirma la gestoría, cuota por tramos con la bonificación por alquiler de viviendas, retenciones de las 473 y el asiento del 31/12 (6300 contra 473 y 4752 o 4709) antes de la regularización",
-                abrirImpuestoSociedades, EsHija: true),
+            new OpcionNavegacion("Modelo 303", null, true, false,
+                "Modelos tributarios › Modelo 303: los cuatro trimestres con su estado y sus casillas; «Ver el PDF» de la AEAT, «Presentar…» con el certificado de la sociedad " +
+                "(en la copia de pruebas, en el entorno de pruebas de la AEAT), complementarias y justificantes",
+                abrirModelo303, EsHija: true),
             new OpcionNavegacion("Reparto de dividendos", null, true, false,
                 "Procesos contables › Reparto de dividendos: del neto de cada socio (por defecto, lo ya pagado en su 526) calcula el bruto y la retención del ejercicio y graba el asiento de reservas a dividendos; corregir o deshacer con motivo",
                 abrirDividendos, EsHija: true),
+            new OpcionNavegacion("Fin de ejercicio", null, true, false,
+                "Procesos contables que se hacen al terminar el año, en este orden: amortización, facturas pendientes de recibir, prorrata, liquidación del IVA del 4T, Impuesto sobre Sociedades y cierre. " +
+                "Pulsar aquí abre el Cierre del ejercicio, cuya comprobación previa dice qué falta de cada paso",
+                abrirCierreEjercicio, EsHija: true),
+            new OpcionNavegacion("Amortización de activos", null, true, false,
+                "Procesos contables › Fin de ejercicio › Amortización de activos: cuota de cada activo según su plan (días reales, tope en lo pendiente, descontando lo ya contabilizado), " +
+                "un asiento por periodo (68 contra 28, con el centro del activo) con casilla para excluir activos; repetir o deshacer con motivo",
+                abrirAmortizacion, EsNieta: true),
+            new OpcionNavegacion("Facturas pendientes de recibir", null, true, false,
+                "Procesos contables › Fin de ejercicio › Facturas pendientes de recibir: proveedores y acreedores cuadrados en el Mayor con saldo deudor a 31/12 (pagado sin factura), su base supuesta y cuenta de gasto; " +
+                "provisión a 31/12 contra la 4009 y su reversión el 1/1 del ejercicio siguiente, con casilla para excluir y base editable",
+                abrirFacturasPendientes, EsNieta: true),
+            new OpcionNavegacion("Prorrata de IVA", null, true, false,
+                "Procesos contables › Fin de ejercicio › Prorrata de IVA: provisional, legal del año y definitiva (la de la gestoría), su regularización por trimestre y el asiento del 31/12 a la 4729 que deduce el 303 del 4T",
+                abrirProrrata, EsNieta: true),
+            new OpcionNavegacion("Liquidación de IVA (4T)", null, true, false,
+                "Procesos contables › Fin de ejercicio › Liquidación de IVA del cuarto trimestre: la misma pantalla de la liquidación, abierta en el 4T, después de regularizar la prorrata",
+                new ComandoDelegado(() => _liquidacionIva.Abrir(4)), EsNieta: true),
+            new OpcionNavegacion("Impuesto sobre Sociedades", null, true, false,
+                "Procesos contables › Fin de ejercicio › Impuesto sobre Sociedades: resultado contable, ajustes que confirma la gestoría, cuota por tramos con la bonificación por alquiler de viviendas, retenciones de las 473 y el asiento del 31/12 (6300 contra 473 y 4752 o 4709) antes de la regularización",
+                abrirImpuestoSociedades, EsNieta: true),
+            new OpcionNavegacion("Cierre del ejercicio", null, true, false,
+                "Procesos contables › Fin de ejercicio › Cierre del ejercicio: comprobación previa, regularización de los grupos 6 y 7 a la cuenta de resultados, cierre de los grupos 1 a 5 y apertura del ejercicio siguiente, grabados de una vez con la marca de cerrado; reabrir con motivo y crear el ejercicio siguiente",
+                abrirCierreEjercicio, EsNieta: true),
             new OpcionNavegacion("Asiento manual", null, true, false,
                 "Asiento nuevo hecho a mano o desde una plantilla, con su vista previa; para corregir un apunte, ábrelo desde el Mayor con «Asistente de corrección…»",
                 new ComandoDelegado(() => _ = _asientos.AbrirNuevoAsync()), EsHija: true),

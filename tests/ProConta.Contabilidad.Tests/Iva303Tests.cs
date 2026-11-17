@@ -40,16 +40,19 @@ public sealed class Iva303Tests
     public void ElResultadoDelLibroAnteriorSeReproduceConProrrataDel15()
     {
         var r = Calculo303.Calcular(Paridad2026, 0.15m);
-        Assert.Equal([3366.37m, 5139.02m, 3947.76m], [r.TotalDevengado(1), r.TotalDevengado(2), r.TotalDevengado(3)]);
+        // La importación con DUA del 1T (10,92 €) ya no se devenga (modelo-303 2026-11-17 14:38): el libro anterior daba 3.366,37 y 1.341,25.
+        Assert.Equal([3355.45m, 5139.02m, 3947.76m], [r.TotalDevengado(1), r.TotalDevengado(2), r.TotalDevengado(3)]);
         Assert.Equal([2025.12m, 2112.37m, 99.96m], [r.TotalDeducible(1), r.TotalDeducible(2), r.TotalDeducible(3)]);
-        Assert.Equal([1341.25m, 3026.65m, 3847.80m], [r.Resultado(1), r.Resultado(2), r.Resultado(3)]);
+        Assert.Equal([1330.33m, 3026.65m, 3847.80m], [r.Resultado(1), r.Resultado(2), r.Resultado(3)]);
         // El año es la suma de los trimestres ya redondeados.
         Assert.Equal(r.Resultado(1) + r.Resultado(2) + r.Resultado(3) + r.Resultado(4), r.Resultado(0));
-        // El redondeo de la prorrata es por línea del modelo y trimestre: (10,24 + 623,68) × 15 % = 95,088 → 95,09.
-        Assert.Equal(95.09m, r.Linea(Calculo303.ClaveInterioresProrrata).En(1).Cuota);
-        Assert.Equal(6.19m, r.Linea(Calculo303.ClaveAutorrepercutidasProrrata).En(1).Cuota);
-        // La base de las interiores no cuenta las de tipo 0.
-        Assert.Equal(102.41m + 2969.84m, r.Linea(Calculo303.ClaveInterioresProrrata).En(1).Base);
+        // El redondeo de la prorrata es por casilla y trimestre: interiores corrientes con la ISP nacional (10,24 + 623,68 + 30,37) × 15 % = 99,6435 → 99,64.
+        Assert.Equal(1923.84m + 99.64m, r.Linea(Calculo303.ClaveInterioresCorrientes).En(1).Cuota);
+        Assert.Equal(99.64m, r.Linea(Calculo303.ClaveInterioresCorrientes).Prorrata(1));
+        Assert.Equal(1.64m, r.Linea(Calculo303.ClaveImportacionesCorrientes).En(1).Cuota);
+        Assert.Equal(99.64m + 1.64m, r.DeducidoProrrata(1));
+        // La base: la de lo 100 % deducible más la de prorrata × 15 %, sin las de tipo 0: 9.161,17 + Redondear(3.216,87 × 15 %).
+        Assert.Equal(9161.17m + 482.53m, r.Linea(Calculo303.ClaveInterioresCorrientes).En(1).Base);
         Assert.Equal(25.14m, r.Linea(Calculo303.ClaveSinClasificar).En(3).Cuota);
         Assert.Equal(52763.23m, r.Linea(Calculo303.ClaveExentas).En(1).Base);
     }
@@ -104,8 +107,9 @@ public sealed class Iva303Tests
         Assert.Equal(42m + 210m, r.Linea(Calculo303.ClaveIntracomunitarias).En(1).Cuota);
         Assert.Equal(63m, r.Linea(Calculo303.ClaveIsp).En(1).Cuota);
         Assert.Equal(21m + 42m + 210m + 63m, r.TotalDevengado(1));
-        Assert.Equal(42m, r.Linea(Calculo303.ClaveAutorrepercutidas100).En(1).Cuota);
-        Assert.Equal(31.5m, r.Linea(Calculo303.ClaveAutorrepercutidasProrrata).En(1).Cuota);
+        Assert.Equal(42m + 31.5m, r.Linea(Calculo303.ClaveIntracomunitariasCorrientes).En(1).Cuota);
+        Assert.Equal(31.5m, r.DeducidoProrrata(1));
+        Assert.Equal(0m, r.Linea(Calculo303.ClaveInterioresCorrientes).En(1).Cuota);
         Assert.Equal(42m + 31.5m, r.TotalDeducible(1));
         Assert.Equal(84m, r.Linea(Calculo303.ClaveSinClasificar).En(1).Cuota);
         Assert.Equal(63m, r.Linea(Calculo303.ClaveNoDeducible).En(1).Cuota);

@@ -116,7 +116,7 @@ public sealed class InformeGestoriaExcelTests : IDisposable
         // El índice enlaza con cada hoja.
         Assert.Equal(13, resumen.CellsUsed().Count(c => c.HasHyperlink));
         // Las cifras principales son fórmulas sobre las tablas.
-        Assert.StartsWith("SUMIFS(IVA_Cuota,IVA_Trim,1,IVA_Sentido,\"Repercutido\",IVA_Tipo,0.21", libro.Worksheet("IVA 303").Cell(9, 4).FormulaA1);
+        Assert.StartsWith("SUMIFS(IVA_Cuota,IVA_Trim,1,IVA_Sentido,\"Repercutido\",IVA_Rectificativa,\"No\",IVA_Tipo,0.21", libro.Worksheet("IVA 303").Cell(9, 4).FormulaA1);
         Assert.Equal("ROUNDUP(ROUND(C9*100,6),0)/100", libro.Worksheet("Prorrata").Cell(10, 3).FormulaA1);
         Assert.All(libro.Worksheet("Controles").Range("G6:G10").Cells(), c => Assert.True(c.HasFormula));
         // PyG por actividad: una columna por actividad con importes, y la tabla de datos con un apunte por fila.
@@ -214,13 +214,13 @@ public sealed class InformeGestoriaExcelTests : IDisposable
     {
         var inf = Informe(0.15m, 0.30m);
         Assert.True(inf.Prorrata.DefinitivaFijada);
-        var regularizacion = inf.Iva303.Linea(Calculo303.ClaveRectificacion).En(4).Cuota;
+        var regularizacion = inf.Iva303.Linea(Calculo303.ClaveRegularizacionProrrata).En(4).Cuota;
         Assert.Equal(inf.Prorrata.Regularizacion(0), regularizacion);
         Assert.NotEqual(0m, regularizacion);
         var ruta = Exportar(inf);
         using var libro = new XLWorkbook(ruta);
         var iva = libro.Worksheet("IVA 303");
-        var fila = iva.Column(2).CellsUsed().First(c => c.GetString() == "Regularización de la prorrata definitiva").Address.RowNumber;
+        var fila = iva.Column(2).CellsUsed().First(c => c.GetString() == "Regularización por la prorrata definitiva").Address.RowNumber;
         Assert.Equal(regularizacion, Valor(iva.Cell(fila, ExportadorInformeGestoriaExcel.ColumnaCuota(4))));
         Assert.Equal(0m, Valor(iva.Cell(fila, ExportadorInformeGestoriaExcel.ColumnaCuota(1))));
         var filaResultado = iva.Column(2).CellsUsed().First(c => c.GetString().StartsWith("Resultado del trimestre", StringComparison.Ordinal)).Address.RowNumber;
