@@ -111,6 +111,7 @@ public static class CatalogoMigraciones
         MigracionesContabilidad.ProrrataDefinitiva,
         MigracionesContabilidad.ImpuestoSociedades,
         MigracionesContabilidad.CuentaResultadoEjercicio,
+        MigracionesContabilidad.PresentacionesAeat,
     ];
 
     /// <summary>Versión del esquema que espera esta versión del programa.</summary>

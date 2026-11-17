@@ -1,6 +1,7 @@
 ﻿using System.Globalization;
 using ProConta.Datos.Persistencia;
 using ProConta.Mantenimiento;
+using ProConta.Nucleo.Identificacion;
 using ProConta.Nucleo.Resultados;
 using ProConta.Organizacion.FormasPago;
 
@@ -176,6 +177,12 @@ public static class ProveedoresOrganizacion
             new("PoblacionFiscal", "Población") { Ayuda = "Población del domicilio fiscal; sale en las facturas como parte de la dirección del emisor.", Grupo = "ident", Longitud = 100 },
             new("ProvinciaFiscal", "Provincia") { Ayuda = "Provincia del domicilio fiscal; sale en las facturas como parte de la dirección del emisor.", Grupo = "ident", Longitud = 100 },
             new("Telefono", "Teléfono") { Ayuda = "Teléfono de la empresa; sale en sus facturas debajo del domicilio. Vacío: no sale.", Grupo = "ident", Longitud = 30, Ancho = "s", Sinonimos = ["telefono", "tel"] },
+            new("IbanDomiciliacion", "IBAN de domiciliación", TipoCampo.Codigo)
+            {
+                Grupo = "ident", Longitud = 34, Ancho = "m", Sinonimos = ["iban", "domiciliacion", "cuenta bancaria", "303", "aeat"],
+                Ayuda = "Cuenta en la que se domicilian los modelos de la AEAT que salen a ingresar (el 303 y los demás que se presenten desde el programa), " +
+                    "por ejemplo ES91 2100 0418 4502 0005 1332. Si es de una entidad que no colabora con la AEAT, el cargo puede tener comisiones.",
+            },
             .. CuentasCorreccion(),
             Ruta("RutaDocumentos", "Carpeta de documentos") with
             {
@@ -198,8 +205,18 @@ public static class ProveedoresOrganizacion
         Usos = [new("SociedadesEjercicios", "IdSociedad", "ejercicios"), new("Conceptos", "IdSociedad", "conceptos"), new("CuentasClientesSociedad", "IdSociedad", "cuentas de clientes")],
         Titular = r => r.EsNuevo ? "Nueva empresa" : r.Texto("Nombre") ?? "Empresa sin nombre",
         Subtitular = r => r.Texto("IdSociedad") is string c ? $"Código {c}" : null,
-        Reglas = r => r.Texto("IdSociedad") is string c && c.Length != 3 ? [new ErrorCampo("IdSociedad", "El código de la empresa tiene tres caracteres.")] : [],
+        Reglas = r => ReglasEmpresa(r),
     };
+
+    /// <summary>El código de la empresa tiene tres caracteres; el IBAN de domiciliación, si se escribe, tiene que ser válido.</summary>
+    private static IReadOnlyList<ErrorCampo> ReglasEmpresa(RegistroMantenimiento r)
+    {
+        var errores = new List<ErrorCampo>();
+        if (r.Texto("IdSociedad") is string c && c.Length != 3) errores.Add(new ErrorCampo("IdSociedad", "El código de la empresa tiene tres caracteres."));
+        if (r.Texto("IbanDomiciliacion") is { Length: > 0 } iban && !Ibanes.EsValido(iban))
+            errores.Add(new ErrorCampo("IbanDomiciliacion", "El IBAN no es válido: revisa que esté bien copiado (el español tiene 24 caracteres: ES y 22 cifras)."));
+        return errores;
+    }
 
     /// <summary>Tipos de retención que se ofrecen en las facturas recibidas (organizacion/sociedades-ejercicios 2026-11-06).</summary>
     public static ProveedorTablaAccess TiposRetencion(IBaseDatos bd) => new(bd, "tiposretencion", "Tipos de retención", "Catálogos",

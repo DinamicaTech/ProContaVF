@@ -60,7 +60,7 @@ public static class NombresGestoria
     public const string ProrrataReal = "ProrrataReal";
     public const string IvaTrim = "IVA_Trim", IvaAsiento = "IVA_Asiento", IvaSentido = "IVA_Sentido", IvaOperacion = "IVA_Operacion", IvaIsp = "IVA_ISP",
         IvaTipo = "IVA_Tipo", IvaCentro = "IVA_Centro", IvaActividad = "IVA_Actividad", IvaDeduccion = "IVA_Deduccion", IvaBase = "IVA_Base", IvaCuota = "IVA_Cuota",
-        IvaAviso = "IVA_Aviso";
+        IvaAviso = "IVA_Aviso", IvaInversion = "IVA_Inversion", IvaRectificativa = "IVA_Rectificativa", IvaClave = "IVA_Clave";
     public const string EmiTrim = "Emi_Trim", EmiBase = "Emi_Base", EmiContabilizada = "Emi_Contabilizada";
     public const string RecTrim = "Rec_Trim", RecBase = "Rec_Base";
     public const string PygApartado = "PyG_Apartado", PygTitulo = "PyG_Titulo", PygCuenta = "PyG_Cuenta", PygCentro = "PyG_Centro", PygActividad = "PyG_Actividad", PygImporte = "PyG_Importe";

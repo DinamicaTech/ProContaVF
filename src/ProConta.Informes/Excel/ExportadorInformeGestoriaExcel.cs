@@ -32,7 +32,7 @@ public static class ExportadorInformeGestoriaExcel
     /// <summary>Columnas de la tabla «tIVA» de la hoja «Datos IVA».</summary>
     public static readonly IReadOnlyList<string> ColumnasIva =
         ["Fecha", "Trim", "Asiento", "Sentido", "Operación", "ISP", "Tipo", "Centro", "Departamento", "Actividad", "Deducción", "Tercero", "NIF", "Factura",
-         "Base", "Cuota", "Autorrepercutida", "Cuenta IVA", "Aviso"];
+         "Base", "Cuota", "Autorrepercutida", "Cuenta IVA", "Aviso", "Inversión", "Rectificativa", "Clave"];
 
     private static readonly XLColor Azul = XLColor.FromHtml("#1F3A5F"), AzulClaro = XLColor.FromHtml("#C9D6E8"), Verde = XLColor.FromHtml("#2A9D8F"),
         Gris = XLColor.FromHtml("#6B7785"), Fondo = XLColor.FromHtml("#F3F6FA"), Total = XLColor.FromHtml("#E8F4F2"), Resultado = XLColor.FromHtml("#DCEBFA"),
@@ -159,6 +159,9 @@ public static class ExportadorInformeGestoriaExcel
             r.Cell(17).Value = l.CuotaAutorrepercutida;
             r.Cell(18).Value = l.CuentaIva ?? "";
             r.Cell(19).Value = l.Aviso ?? "";
+            r.Cell(20).Value = l.BienInversion ? TextosIva.Si : TextosIva.No;
+            r.Cell(21).Value = l.Rectificativa ? TextosIva.Si : TextosIva.No;
+            r.Cell(22).Value = l.ClaveOperacion ?? "";
         }
         var tabla = Tabla(ws, "tIVA", ColumnasIva, f);
         ws.Column(1).Style.NumberFormat.Format = "dd/mm/yyyy";
@@ -166,11 +169,12 @@ public static class ExportadorInformeGestoriaExcel
         ws.Columns(15, 17).Style.NumberFormat.Format = FormatoImporte;
         var ultima = Math.Max(2, f);
         foreach (var (nombre, col) in new[] { (N.IvaTrim, 2), (N.IvaAsiento, 3), (N.IvaSentido, 4), (N.IvaOperacion, 5), (N.IvaIsp, 6), (N.IvaTipo, 7), (N.IvaCentro, 8),
-                     (N.IvaActividad, 10), (N.IvaDeduccion, 11), (N.IvaBase, 15), (N.IvaCuota, 16), (N.IvaAviso, 19) })
+                     (N.IvaActividad, 10), (N.IvaDeduccion, 11), (N.IvaBase, 15), (N.IvaCuota, 16), (N.IvaAviso, 19), (N.IvaInversion, 20), (N.IvaRectificativa, 21),
+                     (N.IvaClave, 22) })
             Nombre(libro, ws, nombre, col, ultima);
         ws.Range(2, 19, ultima, 19).AddConditionalFormat().WhenNotBlank().Fill.SetBackgroundColor(XLColor.FromHtml("#FDE7E1"));
         ws.Range(2, 11, ultima, 11).AddConditionalFormat().WhenEquals($"\"{TextosIva.SinCentro}\"").Font.SetFontColor(Rojo);
-        Anchos(ws, [11, 6, 9, 12, 15, 6, 7, 18, 30, 20, 16, 34, 13, 18, 12, 11, 12, 11, 26]);
+        Anchos(ws, [11, 6, 9, 12, 15, 6, 7, 18, 30, 20, 16, 34, 13, 18, 12, 11, 12, 11, 26, 10, 12, 7]);
         _ = tabla;
     }
 
@@ -367,42 +371,67 @@ public static class ExportadorInformeGestoriaExcel
     {
         var sop = (N.IvaSentido, Txt(TextosIva.Soportado));
         var rep = (N.IvaSentido, Txt(TextosIva.Repercutido));
+        var noRect = (N.IvaRectificativa, Txt(TextosIva.No));
         var intra = new[] { sop, (N.IvaOperacion, Txt(TextosIva.Intracomunitaria)) };
         var isp = new[] { sop, (N.IvaIsp, Txt(TextosIva.Si)), (N.IvaOperacion, Txt("<>" + TextosIva.Intracomunitaria)) };
         var imp = new[] { sop, (N.IvaOperacion, Txt(TextosIva.Importacion)), (N.IvaIsp, Txt(TextosIva.No)) };
-        (string, string)[] Con(IEnumerable<(string, string)> a, string deduccion) => [.. a, (N.IvaDeduccion, Txt(deduccion))];
         var interior = new[] { sop, (N.IvaOperacion, Txt(TextosIva.Nacional)), (N.IvaIsp, Txt(TextosIva.No)) };
+        (string, string)[] ConInversion((string, string)[] a, bool inversion) => [.. a, (N.IvaInversion, Txt(inversion ? TextosIva.Si : TextosIva.No))];
+        (string, string)[][] Claves(IReadOnlyList<string> claves) => [.. claves.Select(c => new[] { rep, (N.IvaClave, Txt(c)) })];
         return clave switch
         {
             Calculo303.ClaveIntracomunitarias => [intra],
             Calculo303.ClaveIsp => [isp],
-            Calculo303.ClaveImportaciones => [imp],
-            Calculo303.ClaveInteriores100 => [Con(interior, TextosIva.Deducible100)],
-            Calculo303.ClaveInterioresProrrata => [Con(interior, TextosIva.Prorrata)],
-            Calculo303.ClaveAutorrepercutidas100 => [Con(intra, TextosIva.Deducible100), Con(isp, TextosIva.Deducible100), Con(imp, TextosIva.Deducible100)],
-            Calculo303.ClaveAutorrepercutidasProrrata => [Con(intra, TextosIva.Prorrata), Con(isp, TextosIva.Prorrata), Con(imp, TextosIva.Prorrata)],
+            Calculo303.ClaveModificacion => [[rep, (N.IvaRectificativa, Txt(TextosIva.Si)), (N.IvaTipo, Txt(">0"))]],
+            Calculo303.ClaveInterioresCorrientes => [ConInversion(interior, false), ConInversion(isp, false)],
+            Calculo303.ClaveInterioresInversion => [ConInversion(interior, true), ConInversion(isp, true)],
+            Calculo303.ClaveImportacionesCorrientes => [ConInversion(imp, false)],
+            Calculo303.ClaveImportacionesInversion => [ConInversion(imp, true)],
+            Calculo303.ClaveIntracomunitariasCorrientes => [ConInversion(intra, false)],
+            Calculo303.ClaveIntracomunitariasInversion => [ConInversion(intra, true)],
             Calculo303.ClaveNoDeducible => [[sop, (N.IvaDeduccion, Txt(TextosIva.NoDeducible))]],
             Calculo303.ClaveSujetaProrrata => [[sop, (N.IvaDeduccion, Txt(TextosIva.Prorrata))]],
             Calculo303.ClaveSinClasificar => [[sop, (N.IvaDeduccion, Txt(TextosIva.SinCentro))]],
             Calculo303.ClaveExentas => [[rep, (N.IvaTipo, "0")]],
+            Calculo303.ClaveEntregasIntracomunitarias => Claves(Calculo303.ClavesEntregasIntracomunitarias),
+            Calculo303.ClaveExportaciones => Claves(Calculo303.ClavesExportaciones),
+            Calculo303.ClaveNoSujetasLocalizacion => Claves(Calculo303.ClavesNoSujetasLocalizacion),
+            Calculo303.ClaveSujetasIsp => Claves(Calculo303.ClavesSujetasIsp),
             _ when clave.StartsWith("dev.rep.", StringComparison.Ordinal) =>
-                [[rep, (N.IvaTipo, Inv(decimal.Parse(clave["dev.rep.".Length..], CultureInfo.InvariantCulture) / 100m))]],
+                [[rep, noRect, (N.IvaTipo, Inv(decimal.Parse(clave["dev.rep.".Length..], CultureInfo.InvariantCulture) / 100m))]],
             _ => [],
         };
     }
 
-    private static bool EsProrrata(string clave) => clave is Calculo303.ClaveInterioresProrrata or Calculo303.ClaveAutorrepercutidasProrrata;
-    private static bool BaseConTipo(string clave) => clave is Calculo303.ClaveInteriores100 or Calculo303.ClaveInterioresProrrata;
+    /// <summary>Línea de lo deducible por cuotas soportadas (casillas 28 a 39).</summary>
+    private static bool EsDeduccion(string clave) => Calculo303.ClavesDeduccionSoportado.Contains(clave);
 
+    private static string Sumas(string columna, int trimestre, IEnumerable<(string, string)[]> sumandos, string extra) =>
+        string.Join("+", sumandos.Select(s => $"SUMIFS({columna},{N.IvaTrim},{trimestre}{Cond(s)}{extra})"));
+
+    private static IEnumerable<(string, string)[]> ConDeduccion(string clave, string deduccion) =>
+        Criterios(clave).Select(s => s.Append((N.IvaDeduccion, Txt(deduccion))).ToArray());
+
+    /// <summary>
+    /// Fórmula de una línea y trimestre. En las casillas de lo deducible: lo 100 % deducible entero más la parte de prorrata
+    /// (<see cref="FormulaProrrata"/>); la base, solo de las líneas con tipo.
+    /// </summary>
     private static string FormulaLinea(string clave, int trimestre, bool cuota)
     {
         var sumandos = Criterios(clave);
         if (sumandos.Count == 0) return "0";
         var columna = cuota ? N.IvaCuota : N.IvaBase;
-        var extra = !cuota && BaseConTipo(clave) ? Cond((N.IvaTipo, Txt(">0"))) : "";
-        var suma = string.Join("+", sumandos.Select(s => $"SUMIFS({columna},{N.IvaTrim},{trimestre}{Cond(s)}{extra})"));
-        if (cuota && EsProrrata(clave)) return $"ROUND(({suma})*{N.ProrrataProv},2)";
-        return suma;
+        if (!EsDeduccion(clave)) return Sumas(columna, trimestre, sumandos, "");
+        var extra = cuota ? "" : Cond((N.IvaTipo, Txt(">0")));
+        return $"{Sumas(columna, trimestre, ConDeduccion(clave, TextosIva.Deducible100), extra)}+{FormulaProrrata(clave, trimestre, cuota)}";
+    }
+
+    /// <summary>Parte de una casilla de lo deducible que sale de la prorrata: ROUND(suma de lo de prorrata × prorrata provisional, 2), una vez por casilla.</summary>
+    private static string FormulaProrrata(string clave, int trimestre, bool cuota = true)
+    {
+        var columna = cuota ? N.IvaCuota : N.IvaBase;
+        var extra = cuota ? "" : Cond((N.IvaTipo, Txt(">0")));
+        return $"ROUND(({Sumas(columna, trimestre, ConDeduccion(clave, TextosIva.Prorrata), extra)})*{N.ProrrataProv},2)";
     }
 
     private static void Iva303(XLWorkbook libro, InformeGestoria inf, Mapa mapa)
@@ -435,7 +464,7 @@ public static class ExportadorInformeGestoriaExcel
                 {
                     var cb = 1 + 2 * q;
                     // La regularización de la prorrata (solo 4T, con la definitiva fijada) es un dato del programa, no una fórmula.
-                    if (l.Clave == Calculo303.ClaveRectificacion) { ws.Cell(f, cb + 1).Value = l.En(q).Cuota; Importe(ws.Cell(f, cb + 1)); continue; }
+                    if (l.Clave == Calculo303.ClaveRegularizacionProrrata) { ws.Cell(f, cb + 1).Value = l.En(q).Cuota; Importe(ws.Cell(f, cb + 1)); continue; }
                     if (l.ConBase) Formula(ws, f, cb, FormulaLinea(l.Clave, q, cuota: false));
                     if (l.ConCuota) Formula(ws, f, cb + 1, FormulaLinea(l.Clave, q, cuota: true));
                 }
@@ -574,9 +603,8 @@ public static class ExportadorInformeGestoriaExcel
         {
             var col = 2 + q;
             var l = XLHelper.GetColumnLetterFromNumber(col);
-            var colIva = XLHelper.GetColumnLetterFromNumber(ColumnaCuota(q));
             Formula(ws, fs, col, $"SUMIFS({N.IvaCuota},{N.IvaSentido},{Txt(TextosIva.Soportado)},{N.IvaDeduccion},{Txt(TextosIva.Prorrata)},{N.IvaTrim},{q})");
-            Formula(ws, fs + 1, col, $"'{HojaIva}'!{colIva}{mapa.FilaIva[Calculo303.ClaveInterioresProrrata]}+'{HojaIva}'!{colIva}{mapa.FilaIva[Calculo303.ClaveAutorrepercutidasProrrata]}");
+            Formula(ws, fs + 1, col, string.Join("+", Calculo303.ClavesDeduccionSoportado.Select(c => FormulaProrrata(c, q))));
             Formula(ws, fs + 2, col, $"ROUND({l}{fs}*{aplicada},2)");
             Formula(ws, fs + 3, col, $"{l}{fs + 2}-{l}{fs + 1}");
         }
@@ -851,8 +879,8 @@ public static class ExportadorInformeGestoriaExcel
         string L(string clave) => Ref(HojaIva, mapa.FilaIva[clave], ColumnaCuota(0));
         (string, string)[] reparto =
         [
-            ("Deducible al 100 %", $"{L(Calculo303.ClaveInteriores100)}+{L(Calculo303.ClaveAutorrepercutidas100)}"),
-            ("Deducido por prorrata", $"{L(Calculo303.ClaveInterioresProrrata)}+{L(Calculo303.ClaveAutorrepercutidasProrrata)}"),
+            ("Deducible al 100 %", $"{string.Join("+", Calculo303.ClavesDeduccionSoportado.Select(L))}-C17"),
+            ("Deducido por prorrata", Ref(HojaProrrata, mapa.FilaRegularizacion - 2, 7)),
             ("Prorrata no deducida", $"{L(Calculo303.ClaveSujetaProrrata)}-C17"),
             ("No deducible (actividades exentas)", L(Calculo303.ClaveNoDeducible)),
             ("Sin clasificar (sin centro)", L(Calculo303.ClaveSinClasificar)),

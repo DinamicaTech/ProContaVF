@@ -37,7 +37,9 @@ public sealed class Iva303CasillasTests
     {
         var lineas = Combinaciones();
         var r = Calculo303.Calcular(lineas, 1m);
+        // Se devenga el repercutido y lo autorrepercutido (intracomunitarias e ISP); la importación con DUA no.
         var esperado = lineas.Where(Calculo303.EsRepercutido).Sum(x => x.Cuota) + lineas.Where(Calculo303.EsAutorrepercutida).Sum(x => x.Cuota);
+        Assert.DoesNotContain(lineas, x => Calculo303.EsImportacion(x) && Calculo303.EsAutorrepercutida(x));
         Assert.Equal(esperado, r.TotalDevengado(1));
         // Ninguna línea de soportado está a la vez en dos casillas de devengado (importación, ISP e intracomunitarias se excluyen entre sí).
         foreach (var x in lineas.Where(Calculo303.EsSoportado))
@@ -65,8 +67,8 @@ public sealed class Iva303CasillasTests
         var r = Calculo303.Calcular(lineas, 0.15m);
         Assert.Equal(210m, r.Linea(Calculo303.ClaveIsp).En(2).Cuota);
         Assert.Equal(105m, r.Linea(Calculo303.ClaveIntracomunitarias).En(2).Cuota);
-        Assert.Equal(21m, r.Linea(Calculo303.ClaveImportaciones).En(2).Cuota);
-        Assert.Equal(336m, r.TotalDevengado(2));
+        // La importación con DUA no se devenga (el IVA se pagó en la aduana): solo se deduce.
+        Assert.Equal(315m, r.TotalDevengado(2));
         // Lo que limita la actividad es solo la deducción.
         Assert.True(r.TotalDeducible(2) < 336m);
     }

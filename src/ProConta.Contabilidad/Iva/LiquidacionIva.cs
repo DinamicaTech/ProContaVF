@@ -69,7 +69,7 @@ public sealed record PropuestaLiquidacionIva(
 /// <item>Cada 472 y 477 se deja a cero por su saldo. La 4729 (regularización de la prorrata) solo en el 4T, donde lleva la
 /// regularización anual que grabó la prorrata el 31/12 (contabilidad/procesos/prorrata) y que el 303 del 4T deduce.</item>
 /// <item>IVA no deducible por prorrata a la cuenta de ajustes negativos (6341): la cuota sujeta a prorrata del 303 menos lo que se
-/// deduce de ella (las dos líneas de prorrata del 303, redondeadas como el 303). También va a la 6341 el IVA de actividades no
+/// deduce de ella (la parte de prorrata de cada casilla del 303, redondeada como el 303). También va a la 6341 el IVA de actividades no
 /// deducibles que se contabilizó en una 472 (los datos importados lo traen así).</item>
 /// <item>Importe del trimestre: el resultado del 303 (devengado − deducible), o el que fije el operador para ajustarlo a lo presentado
 /// (propietario 2026-11-16 08:37). A ingresar: primero se compensa el crédito de la 4700 de trimestres anteriores (V4, abona la
@@ -129,7 +129,7 @@ public static class CalculoLiquidacionIva
 
         // 2. Lo no deducible a la 6341.
         decimal Cuota(string clave) => r.Linea(clave).En(t).Cuota;
-        var noDeducibleProrrata = Cuota(Calculo303.ClaveSujetaProrrata) - Cuota(Calculo303.ClaveInterioresProrrata) - Cuota(Calculo303.ClaveAutorrepercutidasProrrata);
+        var noDeducibleProrrata = Cuota(Calculo303.ClaveSujetaProrrata) - r.DeducidoProrrata(t);
         bool En472(LineaIva l) => l.Trimestre == t && Calculo303.EsSoportado(l) && (l.CuentaIva ?? "").StartsWith(PrefijoSoportado, StringComparison.Ordinal);
         var noDeducible472 = d.Lineas.Where(l => En472(l) && l.Deduccion == DeduccionIva.NoDeducible).Sum(l => l.Cuota);
         var sinClasificar472 = d.Lineas.Where(l => En472(l) && l.Deduccion == DeduccionIva.SinCentro).Sum(l => l.Cuota);

@@ -43,7 +43,7 @@ public sealed class RegularizacionProrrataTests
         Assert.False(iva.Prorrata.DefinitivaFijada);
         Assert.Equal(0.20m, iva.Prorrata.Aplicada);
         Assert.Equal(75m, iva.Prorrata.Regularizacion(0));
-        Assert.All(Enumerable.Range(1, 4), t => Assert.Equal(0m, iva.Modelo303.Linea(Calculo303.ClaveRectificacion).En(t).Cuota));
+        Assert.All(Enumerable.Range(1, 4), t => Assert.Equal(0m, iva.Modelo303.Linea(Calculo303.ClaveRegularizacionProrrata).En(t).Cuota));
     }
 
     [Fact]
@@ -51,8 +51,8 @@ public sealed class RegularizacionProrrataTests
     {
         var sin = CalculoIvaEjercicio.Calcular(Ejemplo, 0.15m, null).Modelo303;
         var con = CalculoIvaEjercicio.Calcular(Ejemplo, 0.15m, 0.20m).Modelo303;
-        Assert.Equal(75m, con.Linea(Calculo303.ClaveRectificacion).En(4).Cuota);
-        Assert.Equal(75m, con.Linea(Calculo303.ClaveRectificacion).En(0).Cuota);
+        Assert.Equal(75m, con.Linea(Calculo303.ClaveRegularizacionProrrata).En(4).Cuota);
+        Assert.Equal(75m, con.Linea(Calculo303.ClaveRegularizacionProrrata).En(0).Cuota);
         Assert.Equal(sin.TotalDeducible(4) + 75m, con.TotalDeducible(4));
         Assert.Equal(sin.Resultado(4) - 75m, con.Resultado(4));
         // Los tres primeros trimestres no cambian.
@@ -109,7 +109,7 @@ public sealed class RegularizacionProrrataTests
         ];
         var p = Regularizar(0.20m, lineas);
         Assert.Equal(133.34m, p.Deducible);
-        Assert.Equal(p.Regularizacion, CalculoIvaEjercicio.Calcular(lineas, 0.15m, 0.20m).Modelo303.Linea(Calculo303.ClaveRectificacion).En(4).Cuota);
+        Assert.Equal(p.Regularizacion, CalculoIvaEjercicio.Calcular(lineas, 0.15m, 0.20m).Modelo303.Linea(Calculo303.ClaveRegularizacionProrrata).En(4).Cuota);
         Cuadra(p);
     }
 
@@ -118,7 +118,7 @@ public sealed class RegularizacionProrrataTests
     {
         IReadOnlyList<LineaIva> lineas = [.. Ejemplo, L(SentidoIva.Repercutido, DeduccionIva.Deducible100, 100m / 0.21m, 21m, "4770021", Centro100, 4)];
         var iva = CalculoIvaEjercicio.Calcular(lineas, 0.15m, 0.20m);
-        var regularizacion = iva.Modelo303.Linea(Calculo303.ClaveRectificacion).En(4).Cuota;
+        var regularizacion = iva.Modelo303.Linea(Calculo303.ClaveRegularizacionProrrata).En(4).Cuota;
         var p = CalculoLiquidacionIva.Calcular(new DatosLiquidacionIva(2026, 4, [new("4770021", -100m), new("4729001", regularizacion)], [], iva.Modelo303, lineas,
             CuentasLiquidacionIva.Defecto));
         Assert.Contains(p.Lineas, l => l.Cuenta == "4729001" && l.Haber == regularizacion && l.Concepto.Contains("prorrata"));
