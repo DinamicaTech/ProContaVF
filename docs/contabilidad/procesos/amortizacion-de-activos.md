@@ -1,12 +1,11 @@
 ---
 title: Amortización de activos
 depends_on: [contabilidad/procesos/cierre-ejercicio, datos/esquema, seguridad/permisos]
-status: draft
 threads:
   - 2026-11-17 17:59 · Amortizar los activos en bloque | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GDmPFvF6e5dLoWt3hz8xSbT
 ---
 ## Summary
-Proceso que genera de una vez los asientos de amortización de todos los activos de la sociedad en cada periodo del ejercicio (anual por defecto; trimestral o mensual según el ejercicio). Para cada activo amortizable, propio y con plan calcula la cuota por días reales con tope en lo pendiente, descuenta lo ya contabilizado en el año y propone un asiento por activo (68x al Debe y 28x al Haber, con el centro de coste del activo), todos en el lote del periodo; el operador lo revisa, puede excluir activos y confirma exactamente lo propuesto como lote regenerable. Pantalla Contabilidad › Procesos contables › Fin de ejercicio › Amortización de activos (`src/ProConta.Contabilidad.UI/Amortizacion`); cálculo sin BD y servicio en `src/ProConta.Contabilidad/Amortizacion`, esquema 68 y permiso PROCESOS.AMORTIZACION. Hecho, pendiente de validar. La ficha del activo (activos) solo consulta y reutiliza `CalculoAmortizacion`.
+Proceso que genera de una vez los asientos de amortización de todos los activos de la sociedad en cada periodo del ejercicio (anual por defecto; trimestral o mensual según el ejercicio). Para cada activo amortizable, propio y con plan calcula la cuota por días reales con tope en lo pendiente, descuenta lo ya contabilizado en el año y propone un asiento por activo (68x al Debe y 28x al Haber, con el centro de coste del activo), todos en el lote del periodo; el operador lo revisa, puede excluir activos y confirma exactamente lo propuesto como lote regenerable. Pantalla Contabilidad › Procesos contables › Fin de ejercicio › Amortización de activos (`src/ProConta.Contabilidad.UI/Amortizacion`); cálculo sin BD y servicio en `src/ProConta.Contabilidad/Amortizacion`, esquema 68 y permiso PROCESOS.AMORTIZACION. Validado por el propietario (2026-11-17 18:35). La ficha del activo (activos) solo consulta y reutiliza `CalculoAmortizacion`.
 **Aceptación:** cada asiento cuadra y nunca supera lo pendiente; prorratea por días reales (366 en bisiesto) y doce cuotas mensuales suman lo mismo que la anual; repetirlo no duplica y deshacerlo borra solo su lote; un activo ajeno o sin plan no genera nada; en una copia de ProConta-ventas-02, 2026 propone la del año (2025 propone solo las pequeñas diferencias con lo que amortizó ContaSol, que no se graban).
 
 ## Decisions
@@ -26,12 +25,15 @@ Proceso que genera de una vez los asientos de amortización de todos los activos
 - 2026-11-17 18:12 · Menú (propietario 2026-11-17 18:00, en el chat del proyecto): esta pantalla es la primera del submenú «Fin de ejercicio» de los procesos contables (ver contabilidad/procesos 2026-11-17 18:12).
 - 2026-11-17 18:30 · Asiento (sustituye a la decisión 1; propietario 2026-11-17 18:24): un asiento por activo y periodo, con dos líneas, 68x al Debe (con el centro de coste del activo, si está activo y admite apuntes) y 28x al Haber, fecha el último día del periodo y descripción «Amortización {periodo} · {activo}»; todos los asientos del periodo van en el mismo lote del motor `contabilidad/procesos/amortizacion-de-activos`, proceso AMORTIZACION y clave el periodo (AAAA, AAAA-Tn o AAAA-MM), así que repetir los sustituye todos y deshacer los borra todos. Las 68 y 28 no son cuentas fiscales del trimestre, así que se graba también en un trimestre cerrado; con el ejercicio cerrado no se puede (hay que reabrirlo).
 - 2026-11-17 18:31 · 2025 (propietario 2026-11-17 18:29, opción «No grabar nada en 2025»): en la copia de ProConta-ventas-02, 2025 propone 166,82 € porque ContaSol amortizó cinco activos algo por debajo de su plan (SH350 136,03 €; cuatro pisos de Gavà y Viladecans entre 0,95 € y 14,10 €). No se graba: 2025 queda como lo cerró ContaSol y se presentó a la gestoría, y el plan manda a partir de 2026. La pantalla seguirá mostrando 2025 como pendiente con esa diferencia; no se añade ninguna excepción en el código.
+- 2026-11-17 18:36 · Validado por el propietario (2026-11-17 18:35, «Ok, fusiona PR»): el nodo pasa a stable.
 
 ## Hand-over
 - 2026-11-17 18:12 · Hecho en la rama claude/project-thread-gfwgam: código, esquema 68, permiso, cierre, Inicio, submenú «Fin de ejercicio», pruebas sin BD (9, pasan) y contra Access, y docs. Falta pasar las pruebas de Access en el equipo del propietario y su validación en una copia de ProConta-ventas-02; después, status stable.
+- 2026-11-17 18:36 · Pruebas de Access e Inicio pasadas en el equipo del propietario y ensayo en la copia ProConta-amortizacion-01 (2026: 25 asientos, 65.267,74 €). Validado y fusionado (PR #108).
 
 ## Requirements
 - 2026-11-17 17:51 · Nuevo nodo dentro de procesos para generar de forma masiva los asientos de amortización de activos.
 - 2026-11-17 17:57 · Puedes avanzar.
 - 2026-11-17 18:24 · Un asiento por activo, no un asiento único
 - 2026-11-17 18:29 · A (opción «No grabar nada en 2025»)
+- 2026-11-17 18:35 · Ok, fusiona PR
