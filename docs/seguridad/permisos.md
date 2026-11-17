@@ -45,6 +45,7 @@ Operadores, grupos (N:M) y permisos por ámbito: ámbito sin configurar permite 
 - 2026-11-16 10:20 · Derived from contabilidad/procesos/liquidacion-iva: permiso propio para liquidar el IVA y deshacer la liquidación.
 - 2026-11-16 17:55 · Derived from contabilidad/procesos/aplicacion-resultado: nueva acción PROCESOS.DIVIDENDOS, «Repartir dividendos».
 - 2026-11-17 11:35 · Derived from contabilidad/procesos/impuesto-sociedades: nueva acción PROCESOS.IMPUESTO_SOCIEDADES, «Contabilizar el Impuesto sobre Sociedades» (confirmar y deshacer); mientras no tenga grupos, la tienen quienes pueden liquidar el IVA.
+- 2026-11-17 16:40 · Derived from contabilidad/procesos/facturas-pendientes-recibir: nueva acción PROCESOS.FACTURAS_PENDIENTES, «Contabilizar las facturas pendientes de recibir» (confirmar y deshacer); mientras no tenga grupos, la tienen quienes pueden liquidar el IVA.
 
 ## Hand-over
 - 2026-10-31 19:10 · Hecho: política común, ámbito de sociedades, operadores (búsqueda, grupos activos, primer administrador, cambio de contraseña) y pruebas. Pendiente: mantenimiento completo de operadores y grupos (seguridad/pantallas); ámbitos de reports (las RestriccionesReportsGrupo antiguas son de denegación y necesitan adaptarse, RF-SEG-07) y de procesos que generan asientos o borran datos (requisito 2026-10-29 17:45, sin tabla todavía); regeneración de contraseña temporal por correo.
