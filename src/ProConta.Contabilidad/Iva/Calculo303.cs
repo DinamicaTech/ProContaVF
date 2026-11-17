@@ -41,7 +41,8 @@ public sealed record Resultado303(decimal ProrrataProvisional, IReadOnlyList<Lin
 /// autorrepercutido.</item>
 /// <item>Deducible: interiores de actividades 100 % deducibles; interiores en prorrata = Redondear(cuota × prorrata provisional,
 /// 2); intracomunitarias, inversión del sujeto pasivo e importación de actividades 100 % deducibles; ídem en prorrata;
-/// rectificación de deducciones (0 por ahora). Las líneas «Sin centro» y las no deducibles no deducen.</item>
+/// regularización de la prorrata definitiva (solo en el 4T, la que da <see cref="CalculoProrrata"/> cuando el ejercicio tiene la
+/// definitiva fijada; si no, 0). Las líneas «Sin centro» y las no deducibles no deducen.</item>
 /// <item>Redondeo: las bases y cuotas son las del libro (céntimos) y se suman sin redondear; lo único que se redondea es el
 /// producto por la prorrata, a 2 decimales (alejándose de cero, como REDONDEAR de Excel), sobre el total de cada línea del modelo
 /// y trimestre, no por apunte. El año es la suma de los cuatro trimestres ya redondeados.</item>
@@ -81,7 +82,9 @@ public static class Calculo303
     public static bool EsInterior(LineaIva l) => EsSoportado(l) && l.Operacion == OperacionIva.Nacional && !l.Isp;
     public static bool EsAutorrepercutida(LineaIva l) => EsIntracomunitaria(l) || EsIspNoIntracomunitaria(l) || EsImportacion(l);
 
-    public static Resultado303 Calcular(IReadOnlyList<LineaIva> lineas, decimal prorrataProvisional)
+    /// <param name="regularizacionProrrata">Regularización anual de la prorrata (contabilidad/procesos/prorrata): positiva a favor,
+    /// negativa en contra. Va en la línea de regularización del 4T; 0 mientras no haya prorrata definitiva.</param>
+    public static Resultado303 Calcular(IReadOnlyList<LineaIva> lineas, decimal prorrataProvisional, decimal regularizacionProrrata = 0m)
     {
         CifraIva[] Sumar(Func<LineaIva, bool> filtro, Func<LineaIva, bool>? filtroBase = null, bool prorrata = false) =>
             Enumerable.Range(1, 4).Select(t =>
@@ -116,8 +119,9 @@ public static class Calculo303
                 Sumar(l => EsAutorrepercutida(l) && Ded(l, DeduccionIva.Deducible100))),
             new(ClaveAutorrepercutidasProrrata, "Intracomunitarias, ISP e importación · prorrata", "Cuota autorrepercutida de centros en prorrata × prorrata provisional.",
                 Sumar(l => EsAutorrepercutida(l) && Ded(l, DeduccionIva.Prorrata), prorrata: true)),
-            new(ClaveRectificacion, "Rectificación de deducciones", "0 por ahora: si procede, se corrige a mano en el modelo.",
-                [CifraIva.Cero, CifraIva.Cero, CifraIva.Cero, CifraIva.Cero], ConBase: false),
+            new(ClaveRectificacion, "Regularización de la prorrata definitiva",
+                "Solo en el 4T: cuota sujeta a prorrata del año × (definitiva − provisional). 0 mientras el ejercicio no tenga la prorrata definitiva (Contabilidad › Prorrata de IVA).",
+                [CifraIva.Cero, CifraIva.Cero, CifraIva.Cero, new CifraIva(0m, regularizacionProrrata)], ConBase: false),
         };
         var informativo = new List<Linea303>
         {
@@ -141,17 +145,30 @@ public sealed record VolumenActividad(string Actividad, DeduccionIva Deduccion, 
 }
 
 /// <summary>
-/// Prorrata del ejercicio (contabilidad/procesos/prorrata) sin asiento: provisional (la definitiva del año anterior), real
-/// acumulada y regularización estimada por trimestre (índices 0 a 3). Porcentajes en tanto por uno.
+/// Prorrata del ejercicio (contabilidad/procesos/prorrata): provisional (la definitiva del año anterior), real acumulada (la legal),
+/// definitiva fijada (la del gestor, null si aún no se ha fijado) y regularización por trimestre (índices 0 a 3) con la aplicada: la
+/// definitiva si está fijada y, si no, la real (entonces es una estimación). Porcentajes en tanto por uno.
 /// </summary>
 public sealed record ResultadoProrrata(
     decimal Provisional, bool ProvisionalInformada, decimal Numerador, decimal Denominador, decimal Cociente, decimal Real,
     IReadOnlyList<VolumenActividad> Volumen, IReadOnlyList<decimal> CuotaSujeta, IReadOnlyList<decimal> DeducidoProvisional,
-    IReadOnlyList<decimal> DeducibleReal)
+    IReadOnlyList<decimal> DeducibleReal, decimal? Definitiva = null, IReadOnlyList<decimal>? DeducibleDefinitiva = null)
 {
+    /// <summary>La que se usa para regularizar: la definitiva fijada o, sin ella, la real acumulada.</summary>
+    public decimal Aplicada => Definitiva ?? Real;
+
+    public bool DefinitivaFijada => Definitiva is not null;
+
+    /// <summary>Deducible con la prorrata aplicada, por trimestre.</summary>
+    public IReadOnlyList<decimal> DeducibleAplicada => DeducibleDefinitiva ?? DeducibleReal;
+
+    /// <summary>Regularización a favor (+) o en contra (−) de un trimestre (1 a 4) o del año (0), con la prorrata aplicada.</summary>
     public decimal Regularizacion(int trimestre) => trimestre == 0
         ? Enumerable.Range(1, 4).Sum(Regularizacion)
-        : DeducibleReal[trimestre - 1] - DeducidoProvisional[trimestre - 1];
+        : DeducibleAplicada[trimestre - 1] - DeducidoProvisional[trimestre - 1];
+
+    /// <summary>Cuota sujeta a prorrata del año.</summary>
+    public decimal CuotaSujetaAnual => CuotaSujeta.Sum();
 }
 
 /// <summary>
@@ -161,7 +178,9 @@ public sealed record ResultadoProrrata(
 /// (todas las líneas con trimestre), redondeada al entero superior (art. 104 LIVA). Para que el ruido decimal no suba un punto,
 /// el cociente en porcentaje se redondea antes a 6 decimales: 19,88 % → 20 %, 19,00 % → 19 %, 19,001 % → 20 %. Sin ventas, 0.</item>
 /// <item>Por trimestre: cuota sujeta a prorrata (todas las soportadas en prorrata), deducido con la provisional (las dos líneas de
-/// prorrata del 303), deducible con la real = Redondear(cuota sujeta × real, 2) y regularización estimada = deducible − deducido.</item>
+/// prorrata del 303), deducible con la real = Redondear(cuota sujeta × real, 2), deducible con la aplicada (la definitiva fijada o,
+/// sin ella, la real) y regularización = deducible con la aplicada − deducido. La del año es la suma de los cuatro trimestres, como
+/// en la hoja «Prorrata» del informe.</item>
 /// </list>
 /// </summary>
 public static class CalculoProrrata
@@ -170,7 +189,8 @@ public static class CalculoProrrata
     public static decimal RedondearArriba(decimal cociente) => Math.Ceiling(Math.Round(cociente * 100m, 6, MidpointRounding.AwayFromZero)) / 100m;
 
     /// <param name="provisional">Prorrata provisional en tanto por uno; null si el ejercicio no la tiene informada (se usa 100 %).</param>
-    public static ResultadoProrrata Calcular(IReadOnlyList<LineaIva> lineas, decimal? provisional, Resultado303 r303)
+    /// <param name="definitiva">Prorrata definitiva fijada en tanto por uno; null si aún no se ha fijado (se regulariza con la real).</param>
+    public static ResultadoProrrata Calcular(IReadOnlyList<LineaIva> lineas, decimal? provisional, Resultado303 r303, decimal? definitiva = null)
     {
         var rep = lineas.Where(l => l.Trimestre is >= 1 and <= 4 && l.Sentido == SentidoIva.Repercutido).ToList();
         var numerador = rep.Where(l => l.Deduccion == DeduccionIva.Deducible100).Sum(l => l.Base);
@@ -185,6 +205,29 @@ public static class CalculoProrrata
         var deducido = Enumerable.Range(1, 4).Select(t =>
             r303.Linea(Calculo303.ClaveInterioresProrrata).En(t).Cuota + r303.Linea(Calculo303.ClaveAutorrepercutidasProrrata).En(t).Cuota).ToList();
         var deducibleReal = sujeta.Select(c => Calculo303.Redondear(c * real)).ToList();
-        return new ResultadoProrrata(provisional ?? 1m, provisional is not null, numerador, denominador, cociente, real, volumen, sujeta, deducido, deducibleReal);
+        var deducibleDefinitiva = definitiva is decimal d ? sujeta.Select(c => Calculo303.Redondear(c * d)).ToList() : null;
+        return new ResultadoProrrata(provisional ?? 1m, provisional is not null, numerador, denominador, cociente, real, volumen, sujeta, deducido, deducibleReal,
+            definitiva, deducibleDefinitiva);
+    }
+}
+
+/// <summary>El 303 y la prorrata de un ejercicio calculados juntos.</summary>
+public sealed record IvaEjercicio(Resultado303 Modelo303, ResultadoProrrata Prorrata);
+
+/// <summary>
+/// Calcula juntos el 303 y la prorrata del ejercicio (contabilidad/procesos/prorrata): primero el 303 con la provisional, después la
+/// prorrata y, si el ejercicio tiene la definitiva fijada, otra vez el 303 con la regularización anual en el 4T. Es la única forma
+/// en que la liquidación, el informe para la gestoría y la pantalla de la prorrata obtienen el 303, para que den lo mismo.
+/// </summary>
+public static class CalculoIvaEjercicio
+{
+    /// <param name="provisional">Prorrata provisional en tanto por uno (null: no informada, se usa 100 %).</param>
+    /// <param name="definitiva">Prorrata definitiva fijada en tanto por uno (null: no fijada, sin regularización en el 303).</param>
+    public static IvaEjercicio Calcular(IReadOnlyList<LineaIva> lineas, decimal? provisional, decimal? definitiva)
+    {
+        var base303 = Calculo303.Calcular(lineas, provisional ?? 1m);
+        var prorrata = CalculoProrrata.Calcular(lineas, provisional, base303, definitiva);
+        var r303 = definitiva is null ? base303 : Calculo303.Calcular(lineas, provisional ?? 1m, prorrata.Regularizacion(0));
+        return new IvaEjercicio(r303, prorrata);
     }
 }

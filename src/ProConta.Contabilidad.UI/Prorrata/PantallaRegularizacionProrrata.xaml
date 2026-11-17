@@ -1,0 +1,179 @@
+﻿<UserControl x:Class="ProConta.Contabilidad.UI.Prorrata.PantallaRegularizacionProrrata"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:pc="urn:proconta-ui"
+             Background="White">
+  <UserControl.Resources>
+    <pc:VisibleSiConverter x:Key="Visible" />
+    <Style x:Key="Fila.Total" TargetType="DataGridRow" BasedOn="{StaticResource Tabla.Fila}">
+      <Style.Triggers>
+        <DataTrigger Binding="{Binding EsTotal}" Value="True">
+          <Setter Property="FontWeight" Value="SemiBold" />
+          <Setter Property="Background" Value="{StaticResource Pincel.Fondo}" />
+        </DataTrigger>
+      </Style.Triggers>
+    </Style>
+    <ContextMenu x:Key="Menu.Asiento">
+      <MenuItem Header="Volver a calcular" Command="{Binding RecalcularCommand}" InputGestureText="F9" ToolTipService.ShowOnDisabled="True"
+                ToolTip="Vuelve a calcular la regularización con los apuntes de ahora y la definitiva escrita" />
+      <MenuItem Header="Ver el asiento" Command="{Binding VerAsientoCommand}" ToolTipService.ShowOnDisabled="True"
+                ToolTip="Abre el asiento grabado de la regularización (solo si ya está regularizada)" />
+      <MenuItem Header="Mayor de la 4729" Command="{Binding MayorCommand}" ToolTipService.ShowOnDisabled="True"
+                ToolTip="Abre el Mayor de la cuenta de regularización de la prorrata, para revisar sus apuntes" />
+      <Separator />
+      <MenuItem Header="Deshacer la regularización…" Command="{Binding DeshacerCommand}" ToolTipService.ShowOnDisabled="True"
+                ToolTip="Borra el asiento de la regularización y quita la prorrata definitiva del ejercicio, con motivo" />
+    </ContextMenu>
+  </UserControl.Resources>
+  <UserControl.InputBindings>
+    <KeyBinding Key="F5" Command="{Binding RefrescarCommand}" />
+    <KeyBinding Key="F9" Command="{Binding RecalcularCommand}" />
+  </UserControl.InputBindings>
+
+  <DockPanel>
+    <!-- Cabecera: acciones generales -->
+    <Border DockPanel.Dock="Top" BorderBrush="{StaticResource Pincel.Linea}" BorderThickness="0,0,0,1" Padding="14,8">
+      <DockPanel>
+        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+          <Button Content="Informe para la gestoría…" Style="{StaticResource Boton}" Command="{Binding InformeCommand}" Margin="0,0,8,0" VerticalAlignment="Center"
+                  ToolTip="Genera el Excel del trimestre para la gestoría: la hoja «Prorrata» tiene el desglose de este cálculo para contrastarlo" />
+          <Button Content="Liquidación del 4T" Style="{StaticResource Boton}" Command="{Binding Liquidacion4TCommand}" Margin="0,0,8,0" VerticalAlignment="Center"
+                  ToolTip="Abre la liquidación del IVA en el 4T, que deduce la regularización y salda la 4729" />
+          <Button Content="Actualizar" Style="{StaticResource Boton}" Command="{Binding RefrescarCommand}" VerticalAlignment="Center"
+                  ToolTip="Vuelve a leer la prorrata guardada y recalcula la propuesta (F5)" />
+        </StackPanel>
+        <StackPanel Orientation="Horizontal">
+          <TextBlock Text="Prorrata de IVA" Style="{StaticResource Texto.TituloPantalla}" VerticalAlignment="Center" Margin="0,0,12,0" />
+          <TextBlock Text="{Binding Subtitulo}" Style="{StaticResource Texto.Apagado}" VerticalAlignment="Center" Margin="0,0,12,0" />
+          <Border x:Name="Pastilla" CornerRadius="{StaticResource Radio.Pastilla}" Padding="8,1" VerticalAlignment="Center" ToolTip="{Binding AyudaEstado}">
+            <Border.Style>
+              <Style TargetType="Border">
+                <Setter Property="Background" Value="{StaticResource Pincel.AzulSuave}" />
+                <Style.Triggers>
+                  <DataTrigger Binding="{Binding ClaseEstado}" Value="REGULARIZADA">
+                    <Setter Property="Background" Value="{StaticResource Pincel.VerdeSuave}" />
+                  </DataTrigger>
+                  <DataTrigger Binding="{Binding ClaseEstado}" Value="DESACTUALIZADA">
+                    <Setter Property="Background" Value="{StaticResource Pincel.AvisoSuave}" />
+                  </DataTrigger>
+                </Style.Triggers>
+              </Style>
+            </Border.Style>
+            <TextBlock Text="{Binding EstadoTexto}" FontSize="{StaticResource Letra.Pequena}" FontWeight="SemiBold" Foreground="{StaticResource Pincel.Texto2}" />
+          </Border>
+          <TextBlock Text="{Binding AyudaEstado}" Style="{StaticResource Texto.Apagado}" VerticalAlignment="Center" Margin="10,0,0,0" TextTrimming="CharacterEllipsis" />
+        </StackPanel>
+      </DockPanel>
+    </Border>
+
+    <!-- Pie: confirmar lo que se ve -->
+    <Border DockPanel.Dock="Bottom" Style="{StaticResource Barra.Pie}">
+      <DockPanel>
+        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+          <Button Content="Descartar cambios" Style="{StaticResource Boton}" Command="{Binding DescartarCommand}" Margin="0,0,8,0"
+                  ToolTip="Vuelve a la definitiva guardada (o a la legal) y borra el motivo escrito" />
+          <Button Content="{Binding TextoConfirmar}" Style="{StaticResource Boton.Primario}" Command="{Binding ConfirmarCommand}" ToolTipService.ShowOnDisabled="True"
+                  ToolTip="{Binding PorQueNoConfirmar, TargetNullValue='Guarda la prorrata definitiva, la copia como provisional del ejercicio siguiente y graba exactamente el asiento de la propuesta (repetirla lo sustituye)'}" />
+        </StackPanel>
+        <TextBlock Text="{Binding PorQueNoConfirmar}" Style="{StaticResource Texto.Apagado}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+      </DockPanel>
+    </Border>
+
+    <pc:VistaEstado Estado="{Binding Estado}" Mensaje="{Binding MensajeEstado}" TextoAccion="Actualizar" ComandoAccion="{Binding RefrescarCommand}">
+      <Border Padding="14,10,14,8">
+        <Grid>
+          <TextBlock Text="{Binding TextoSinPropuesta}" Style="{StaticResource Texto.Apagado}" TextWrapping="Wrap" MaxWidth="760" HorizontalAlignment="Left"
+                     Visibility="{Binding HayPropuesta, Converter={StaticResource Visible}, ConverterParameter=invertir}" />
+          <DockPanel Visibility="{Binding HayPropuesta, Converter={StaticResource Visible}}">
+            <TextBlock DockPanel.Dock="Top" Text="{Binding TituloPropuesta}" Style="{StaticResource Texto.Seccion}" Margin="0,0,0,8" />
+
+            <!-- Porcentajes y cifras -->
+            <ItemsControl DockPanel.Dock="Top" ItemsSource="{Binding Cifras}" Focusable="False" Margin="0,0,0,8">
+              <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate>
+              </ItemsControl.ItemsPanel>
+              <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                  <StackPanel Margin="0,0,22,6" ToolTip="{Binding Ayuda}">
+                    <TextBlock Text="{Binding Etiqueta}" Style="{StaticResource Texto.Apagado}" FontSize="{StaticResource Letra.Pequena}" />
+                    <TextBlock x:Name="Valor" Text="{Binding Valor}" Style="{StaticResource Texto.Importe}" HorizontalAlignment="Left" />
+                  </StackPanel>
+                  <DataTemplate.Triggers>
+                    <DataTrigger Binding="{Binding Destacada}" Value="True">
+                      <Setter TargetName="Valor" Property="FontWeight" Value="SemiBold" />
+                    </DataTrigger>
+                  </DataTemplate.Triggers>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+
+            <!-- Definitiva editable -->
+            <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,8">
+              <TextBlock Text="Prorrata definitiva (%)" VerticalAlignment="Center" Margin="0,0,8,0" ToolTip="{Binding AyudaDefinitiva}" />
+              <TextBox Text="{Binding Definitiva, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource Campo.Importe}" Width="70" VerticalAlignment="Center"
+                       ToolTip="{Binding AyudaDefinitiva}" AutomationProperties.Name="Prorrata definitiva">
+                <TextBox.InputBindings>
+                  <KeyBinding Key="Enter" Command="{Binding RecalcularCommand}" />
+                </TextBox.InputBindings>
+              </TextBox>
+              <Button Content="Volver a calcular" Style="{StaticResource Boton.Pequeno}" Command="{Binding RecalcularCommand}" Margin="8,0,0,0" VerticalAlignment="Center"
+                      ToolTip="Calcula de nuevo la regularización con los apuntes de ahora y la definitiva escrita (F9)" />
+              <Button Content="Usar la legal" Style="{StaticResource Boton.Enlace}" Command="{Binding UsarLegalCommand}" Margin="8,0,0,0" VerticalAlignment="Center"
+                      ToolTip="Vuelve a poner la prorrata legal calculada desde las ventas del año" />
+              <TextBlock Text="{Binding Resultado}" FontWeight="SemiBold" VerticalAlignment="Center" Margin="18,0,0,0" />
+            </StackPanel>
+
+            <pc:Nota DockPanel.Dock="Top" Tipo="Aviso" Margin="0,0,0,8" MaxWidth="1000" HorizontalAlignment="Left" Visibility="{Binding HayAvisos, Converter={StaticResource Visible}}">
+              <ItemsControl ItemsSource="{Binding Avisos}" Focusable="False">
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate>
+                    <TextBlock Text="{Binding}" TextWrapping="Wrap" Margin="0,1" />
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+            </pc:Nota>
+
+            <!-- Desglose por trimestre -->
+            <DataGrid DockPanel.Dock="Top" Style="{StaticResource Tabla}" ItemsSource="{Binding Trimestres}" IsReadOnly="True" AutoGenerateColumns="False" HeadersVisibility="Column"
+                      RowStyle="{StaticResource Fila.Total}" HorizontalAlignment="Left" Margin="0,0,0,10" AutomationProperties.Name="Regularización por trimestre"
+                      ToolTip="Por trimestre: IVA soportado en prorrata, lo deducido con la provisional, lo deducible con la definitiva y la diferencia">
+              <DataGrid.Columns>
+                <DataGridTextColumn Header="Trimestre" Binding="{Binding Trimestre}" Width="110" ElementStyle="{StaticResource Texto.Celda}" />
+                <DataGridTextColumn Header="Cuota sujeta" Binding="{Binding CuotaSujeta}" Width="120" ElementStyle="{StaticResource Texto.Celda.Importe}" HeaderStyle="{StaticResource Tabla.Cabecera.Derecha}" />
+                <DataGridTextColumn Header="Deducido (provisional)" Binding="{Binding Deducido}" Width="150" ElementStyle="{StaticResource Texto.Celda.Importe}" HeaderStyle="{StaticResource Tabla.Cabecera.Derecha}" />
+                <DataGridTextColumn Header="Deducible (definitiva)" Binding="{Binding Deducible}" Width="150" ElementStyle="{StaticResource Texto.Celda.Importe}" HeaderStyle="{StaticResource Tabla.Cabecera.Derecha}" />
+                <DataGridTextColumn Header="Regularización" Binding="{Binding Regularizacion}" Width="120" ElementStyle="{StaticResource Texto.Celda.Importe}" HeaderStyle="{StaticResource Tabla.Cabecera.Derecha}" />
+              </DataGrid.Columns>
+            </DataGrid>
+
+            <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" Margin="0,8,0,0" Visibility="{Binding PideMotivo, Converter={StaticResource Visible}}">
+              <TextBlock Text="Motivo" VerticalAlignment="Center" Margin="0,0,8,0" ToolTip="{Binding AyudaMotivo}" />
+              <TextBox Text="{Binding Motivo, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource Campo}" Width="520" MaxLength="255" VerticalAlignment="Center"
+                       ToolTip="{Binding AyudaMotivo}" AutomationProperties.Name="Motivo" />
+              <TextBlock Text="{Binding AyudaMotivo}" Style="{StaticResource Texto.Apagado}" VerticalAlignment="Center" Margin="10,0,0,0" />
+            </StackPanel>
+
+            <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,6,0,0">
+              <TextBlock Text="Total Debe" Style="{StaticResource Texto.Apagado}" Margin="0,0,6,0" />
+              <TextBlock Text="{Binding TotalDebe}" Style="{StaticResource Texto.Importe}" Margin="0,0,18,0" />
+              <TextBlock Text="Total Haber" Style="{StaticResource Texto.Apagado}" Margin="0,0,6,0" />
+              <TextBlock Text="{Binding TotalHaber}" Style="{StaticResource Texto.Importe}" />
+            </StackPanel>
+
+            <!-- Asiento propuesto -->
+            <DataGrid Style="{StaticResource Tabla}" ItemsSource="{Binding Lineas}" IsReadOnly="True" AutoGenerateColumns="False" HeadersVisibility="Column"
+                      RowStyle="{StaticResource Tabla.Fila}" ContextMenu="{StaticResource Menu.Asiento}" AutomationProperties.Name="Asiento propuesto"
+                      ToolTip="Asiento del 31/12. Clic derecho: ver el asiento grabado, Mayor de la 4729 o deshacer">
+              <DataGrid.Columns>
+                <DataGridTextColumn Header="Cuenta" Binding="{Binding Cuenta}" Width="90" ElementStyle="{StaticResource Texto.Celda.Mono}" />
+                <DataGridTextColumn Header="Concepto" Binding="{Binding Concepto}" Width="*" ElementStyle="{StaticResource Texto.Celda}" />
+                <DataGridTextColumn Header="Debe" Binding="{Binding Debe}" Width="120" ElementStyle="{StaticResource Texto.Celda.Importe}" HeaderStyle="{StaticResource Tabla.Cabecera.Derecha}" />
+                <DataGridTextColumn Header="Haber" Binding="{Binding Haber}" Width="120" ElementStyle="{StaticResource Texto.Celda.Importe}" HeaderStyle="{StaticResource Tabla.Cabecera.Derecha}" />
+              </DataGrid.Columns>
+            </DataGrid>
+          </DockPanel>
+        </Grid>
+      </Border>
+    </pc:VistaEstado>
+  </DockPanel>
+</UserControl>

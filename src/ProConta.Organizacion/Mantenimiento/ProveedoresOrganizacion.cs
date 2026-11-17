@@ -38,6 +38,7 @@ public static class ProveedoresOrganizacion
         "CuentaAjustesNegativosIva" => ["634"],
         "CuentaAjustesPositivosIva" => ["639"],
         "CuentaReservasDividendos" => ["113"],
+        "CuentaRegularizacionProrrata" => ["472"],
         _ => [],
     };
 
@@ -51,7 +52,14 @@ public static class ProveedoresOrganizacion
     /// <summary>Prorrata del año anterior, que usará el cálculo de la prorrata (organizacion/sociedades-ejercicios 2026-11-13 20:55).</summary>
     internal static CampoMantenimiento ProrrataAnterior() =>
         new("PorcentajeProrrataAñoAnterior", "Prorrata del año anterior (%)", TipoCampo.Porcentaje) { Grupo = "impuestos", Ancho = "xs", Sinonimos = ["prorrata"],
-            Ayuda = "Porcentaje de prorrata definitivo del año anterior, que se aplica de forma provisional en este ejercicio, en porcentaje: 14 es el 14 %." };
+            Ayuda = "Porcentaje de prorrata definitivo del año anterior, que se aplica de forma provisional en este ejercicio, en porcentaje: 14 es el 14 %. " +
+                "Lo rellena solo la regularización de la prorrata del año anterior (Contabilidad › Prorrata de IVA)." };
+
+    /// <summary>Prorrata definitiva del ejercicio (contabilidad/procesos/prorrata, esquema 63).</summary>
+    internal static CampoMantenimiento ProrrataDefinitiva() =>
+        new("PorcentajeProrrataDefinitiva", "Prorrata definitiva (%)", TipoCampo.Porcentaje) { Grupo = "impuestos", Ancho = "xs", Sinonimos = ["prorrata", "definitiva"],
+            Ayuda = "Prorrata definitiva de este ejercicio, en porcentaje: 20 es el 20 %. Vacía mientras no se fije. Con ella, el 303 del 4T lleva la regularización de la prorrata. " +
+                "Lo normal es fijarla en Contabilidad › Prorrata de IVA, que propone la legal, graba la regularización y la copia como prorrata del año anterior del ejercicio siguiente." };
 
     /// <summary>Cuentas de compras que solo tiene el ejercicio (compras/factura-compra/contabilizacion).</summary>
     internal static IEnumerable<CampoMantenimiento> CuentasCompras() =>
@@ -72,6 +80,8 @@ public static class ProveedoresOrganizacion
             sinonimos: ["6341", "prorrata", "no deducible"]),
         Cuenta("CuentaAjustesPositivosIva", "Liquidación del IVA · ajustes a pagar menos", ayuda: "Recibe el ajuste cuando se liquida menos de lo que dicen las cuentas (por ejemplo, para cuadrar con lo presentado). Vacía: 6391000. Si no existe, se crea al usarla.",
             sinonimos: ["6391", "ajuste iva"]),
+        Cuenta("CuentaRegularizacionProrrata", "Regularización de la prorrata", ayuda: "Recibe el 31/12 la regularización anual de la prorrata (Contabilidad › Prorrata de IVA), y la liquidación del 4T la salda. Vacía: 4729001. Si no existe, se crea al regularizar.",
+            sinonimos: ["4729", "prorrata", "regularizacion"]),
     ];
 
     /// <summary>Retención y cuenta de reservas de los dividendos del ejercicio (contabilidad/procesos/aplicacion-resultado, esquema 62); vacías, 19 % y 1130000.</summary>
@@ -184,6 +194,7 @@ public static class ProveedoresOrganizacion
             .. Predeterminados(),
             TipoGeneral(),
             ProrrataAnterior(),
+            ProrrataDefinitiva(),
             .. Cuentas(), .. CuentasCompras(), .. CuentasLiquidacionIva(), .. Dividendos(),
             Ruta("CarpetaFacturasCompra", "Carpeta de facturas de compra") with
             {

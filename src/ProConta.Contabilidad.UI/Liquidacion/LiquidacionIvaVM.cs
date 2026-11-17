@@ -352,7 +352,7 @@ public sealed class LiquidacionIvaVM : ModeloVista, IPestanaTrabajo
 
     private void AbrirMayor()
     {
-        if (_propuesta is { } p) _ctx.AbrirMayor?.Invoke(p.Lineas.Select(l => l.Cuenta).Where(CalculoLiquidacionIva.SeLiquida).Distinct().ToList());
+        if (_propuesta is { } p) _ctx.AbrirMayor?.Invoke(p.Lineas.Select(l => l.Cuenta).Where(c => CalculoLiquidacionIva.SeLiquida(c, p.Trimestre)).Distinct().ToList());
     }
 
     private static string Texto(Nucleo.Resultados.Error e) => e.TextoOperador();
