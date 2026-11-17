@@ -90,4 +90,71 @@ public static class MigracionesDividendos
             new("SociedadesEjercicios", "CuentaReservasDividendos", "Cuenta de reservas de la que salen los dividendos (vacía: 1130000)."),
         ],
     };
+
+    /// <summary>
+    /// Aplicación del resultado y acta del reparto de dividendos (contabilidad/procesos/aplicacion-resultado 2026-11-17 20:10): cada aplicación del
+    /// resultado de un ejercicio (129 a reservas, a la 121 o a dividendos) con su asiento; en Ejercicios, las cuentas de reserva legal (112) y de
+    /// resultados negativos (121); en Empresas, el valor nominal de la participación; en el rol Socio, sus participaciones, su numeración y su
+    /// cargo en la junta (Presidente o Secretario); en el rol Empleado, si es administrador y con qué cargo, y en Empleados la nacionalidad, la
+    /// profesión y el estado civil que salen en el acta. Solo estructura, sin datos.
+    /// </summary>
+    public static Migracion AplicacionResultado { get; } = new(
+        "20261117_2010_APLICACION_RESULTADO", 261117020,
+        "Aplicación del resultado del ejercicio y datos de socios y administrador para el acta del reparto de dividendos.",
+        "contabilidad/procesos/aplicacion-resultado",
+        new CrearTabla("AplicacionesResultado",
+            "CREATE TABLE AplicacionesResultado (IdAplicacionResultado COUNTER CONSTRAINT PK_AplicacionesResultado PRIMARY KEY, " +
+            "IdSociedadEjercicio LONG NOT NULL CONSTRAINT FK_AplicacionesResultado_Ejercicio REFERENCES SociedadesEjercicios (IdSociedadEjercicio), " +
+            "EjercicioResultado LONG NOT NULL, Fecha DATETIME NOT NULL, Resultado CURRENCY NOT NULL, Compensacion CURRENCY NOT NULL, ReservaLegal CURRENCY NOT NULL, " +
+            "Dividendos CURRENCY NOT NULL, Voluntarias CURRENCY NOT NULL, CuentaResultado TEXT(10) NOT NULL, CuentaReservaLegal TEXT(10) NOT NULL, " +
+            "CuentaVoluntarias TEXT(10) NOT NULL, CuentaResultadosNegativos TEXT(10) NOT NULL, IdRepartoDividendos LONG, IdAsiento LONG, Motivo TEXT(255), " +
+            "Operador TEXT(100), FechaHoraConfirmacion DATETIME NOT NULL)"),
+        new CrearIndice("AplicacionesResultado", "UX_AplicacionesResultado_Ejercicio",
+            "CREATE UNIQUE INDEX UX_AplicacionesResultado_Ejercicio ON AplicacionesResultado (IdSociedadEjercicio, EjercicioResultado)"),
+        new AnadirColumna("SociedadesEjercicios", "CuentaReservaLegal", "TEXT(10)"),
+        new AnadirColumna("SociedadesEjercicios", "CuentaResultadosNegativos", "TEXT(10)"),
+        new AnadirColumna("Sociedades", "ValorNominalParticipacion", "CURRENCY"),
+        new AnadirColumna("SociosSociedad", "Participaciones", "LONG"),
+        new AnadirColumna("SociosSociedad", "NumeracionParticipaciones", "TEXT(255)"),
+        new AnadirColumna("SociosSociedad", "CargoJunta", "TEXT(20)"),
+        new AnadirColumna("EmpleadosSociedad", "Administrador", "YESNO"),
+        new AnadirColumna("EmpleadosSociedad", "CargoAdministrador", "TEXT(50)"),
+        new AnadirColumna("Empleados", "Nacionalidad", "TEXT(50)"),
+        new AnadirColumna("Empleados", "Profesion", "TEXT(100)"),
+        new AnadirColumna("Empleados", "EstadoCivil", "TEXT(150)"))
+    {
+        Descripciones =
+        [
+            new("AplicacionesResultado", null, "Aplicación del resultado de un ejercicio, grabada en el siguiente: la 129 a la 121, a reserva legal, a dividendos y a voluntarias (lote contabilidad/procesos/aplicacion-resultado · APLICACION · año del resultado)."),
+            new("AplicacionesResultado", "IdAplicacionResultado", "Identificador de la aplicación."),
+            new("AplicacionesResultado", "IdSociedadEjercicio", "Ejercicio en que se graba (el siguiente al del resultado)."),
+            new("AplicacionesResultado", "EjercicioResultado", "Año del resultado que se aplica."),
+            new("AplicacionesResultado", "Fecha", "Fecha de la aplicación (la de la junta) y de su asiento."),
+            new("AplicacionesResultado", "Resultado", "Resultado aplicado: saldo acreedor de la cuenta de resultados (negativo si hubo pérdida)."),
+            new("AplicacionesResultado", "Compensacion", "Parte del beneficio que compensa resultados negativos de ejercicios anteriores (121)."),
+            new("AplicacionesResultado", "ReservaLegal", "Parte del beneficio que va a reserva legal (112)."),
+            new("AplicacionesResultado", "Dividendos", "Parte del beneficio que va a dividendos (bruto), con su reparto en RepartosDividendos."),
+            new("AplicacionesResultado", "Voluntarias", "Resto del beneficio, a reservas voluntarias (113)."),
+            new("AplicacionesResultado", "CuentaResultado", "Cuenta de resultados que se salda (129)."),
+            new("AplicacionesResultado", "CuentaReservaLegal", "Cuenta de reserva legal usada."),
+            new("AplicacionesResultado", "CuentaVoluntarias", "Cuenta de reservas voluntarias usada."),
+            new("AplicacionesResultado", "CuentaResultadosNegativos", "Cuenta de resultados negativos de ejercicios anteriores usada (121)."),
+            new("AplicacionesResultado", "IdRepartoDividendos", "Reparto de dividendos con cargo al resultado que se hizo con la aplicación (vacío: sin dividendos)."),
+            new("AplicacionesResultado", "IdAsiento", "Asiento de la aplicación."),
+            new("AplicacionesResultado", "Motivo", "Motivo de la última corrección."),
+            new("AplicacionesResultado", "Operador", "Operador que la confirmó o corrigió por última vez."),
+            new("AplicacionesResultado", "FechaHoraConfirmacion", "Fecha y hora de la última confirmación."),
+            new("SociedadesEjercicios", "CuentaReservaLegal", "Cuenta de reserva legal de la aplicación del resultado (vacía: 1120000)."),
+            new("SociedadesEjercicios", "CuentaResultadosNegativos", "Cuenta de resultados negativos de ejercicios anteriores de la aplicación del resultado (vacía: 1210000)."),
+            new("Sociedades", "ValorNominalParticipacion", "Valor nominal de cada participación social en euros; con las participaciones de cada socio da su capital en el acta del reparto de dividendos."),
+            new("SociosSociedad", "Participaciones", "Número de participaciones sociales del socio (sale en el acta del reparto de dividendos)."),
+            new("SociosSociedad", "NumeracionParticipaciones", "Numeración de las participaciones del socio, en texto (por ejemplo «Del 951 al 1.950, ambos inclusive»)."),
+            new("SociosSociedad", "CargoJunta", "Cargo del socio en la junta: PRESIDENTE o SECRETARIO (vacío: ninguno). Sale en el acta del reparto de dividendos."),
+            new("EmpleadosSociedad", "Administrador", "Si el empleado es administrador de la sociedad (sale en el acta del reparto de dividendos)."),
+            new("EmpleadosSociedad", "CargoAdministrador", "Cargo del administrador (vacío: Administrador único)."),
+            new("Empleados", "Nacionalidad", "Nacionalidad de la persona (para el acta del reparto de dividendos si es administrador)."),
+            new("Empleados", "Profesion", "Profesión de la persona (para el acta del reparto de dividendos si es administrador)."),
+            new("Empleados", "EstadoCivil", "Estado civil y régimen económico de la persona (por ejemplo «casado en régimen de separación de bienes»)."),
+        ],
+    };
 }

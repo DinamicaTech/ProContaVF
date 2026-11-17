@@ -720,6 +720,30 @@
                                ToolTip="Código del trabajador en el Excel de la gestoría (columna B). Vale para los Excel que se importen a partir de ahora; al guardar compruebo que no lo tenga otro trabajador de la sociedad" />
                     </StackPanel>
                     <ContentControl Content="{Binding CuentaEmpleado}" ContentTemplate="{StaticResource FilaCuenta}" />
+                    <CheckBox Content="Administrador de la sociedad" IsChecked="{Binding AdministradorEmpleado}" Margin="0,4,0,8" HorizontalAlignment="Left" Tag="AdministradorEmpleado"
+                              ToolTip="Márcalo si es administrador de la sociedad: el acta del reparto de dividendos lo cita con su cargo, nacionalidad, profesión, estado civil, domicilio y DNI de esta ficha" />
+                    <WrapPanel Margin="0,0,0,10" Visibility="{Binding AdministradorEmpleado, Converter={StaticResource Visible}}">
+                      <StackPanel Margin="0,0,14,0">
+                        <TextBlock Text="Cargo" Style="{StaticResource Etiqueta.Campo}" />
+                        <TextBox Text="{Binding CargoAdministrador, UpdateSourceTrigger=PropertyChanged}" Width="190" MaxLength="50" Style="{StaticResource Campo}" Tag="CargoAdministrador"
+                                 ToolTip="Cargo con que sale en el acta, por ejemplo «Administrador único» (el que se propone) o «Administrador solidario»" />
+                      </StackPanel>
+                      <StackPanel Margin="0,0,14,0">
+                        <TextBlock Text="Nacionalidad" Style="{StaticResource Etiqueta.Campo}" />
+                        <TextBox Text="{Binding NacionalidadEmpleado, UpdateSourceTrigger=PropertyChanged}" Width="130" MaxLength="50" Style="{StaticResource Campo}" Tag="NacionalidadEmpleado"
+                                 ToolTip="Nacionalidad como sale en el acta, por ejemplo «española»" />
+                      </StackPanel>
+                      <StackPanel Margin="0,0,14,0">
+                        <TextBlock Text="Profesión" Style="{StaticResource Etiqueta.Campo}" />
+                        <TextBox Text="{Binding ProfesionEmpleado, UpdateSourceTrigger=PropertyChanged}" Width="230" MaxLength="100" Style="{StaticResource Campo}" Tag="ProfesionEmpleado"
+                                 ToolTip="Profesión como sale en el acta, por ejemplo «directivo del sector informático»" />
+                      </StackPanel>
+                      <StackPanel>
+                        <TextBlock Text="Estado civil" Style="{StaticResource Etiqueta.Campo}" />
+                        <TextBox Text="{Binding EstadoCivilEmpleado, UpdateSourceTrigger=PropertyChanged}" Width="300" MaxLength="150" Style="{StaticResource Campo}" Tag="EstadoCivilEmpleado"
+                                 ToolTip="Estado civil con su régimen económico, como sale en el acta, por ejemplo «casado en régimen de separación de bienes»" />
+                      </StackPanel>
+                    </WrapPanel>
                     <TextBlock Style="{StaticResource Texto.Apagado}" TextWrapping="Wrap" Width="760" HorizontalAlignment="Left"
                                Text="Cambiar el código vale para los próximos Excel y cambiar la 465 para los asientos nuevos: lo ya contabilizado no se toca. Para pasar nóminas contabilizadas a la cuenta nueva, deshazlas y vuelve a contabilizarlas en la pantalla Nóminas." />
                   </StackPanel>
@@ -751,6 +775,23 @@
                       <TextBox Text="{Binding ParticipacionSocio, UpdateSourceTrigger=PropertyChanged, ValidatesOnNotifyDataErrors=True}" Width="90" Style="{StaticResource Campo.Mono}" Tag="ParticipacionSocio"
                                ToolTip="Participación vigente en el capital, en porcentaje (50 = 50 %). Reparte los dividendos y los pagos entre socios. Cada cambio queda en el historial de la ficha" />
                     </StackPanel>
+                    <WrapPanel Margin="0,0,0,10">
+                      <StackPanel Margin="0,0,14,0">
+                        <TextBlock Text="Participaciones" Style="{StaticResource Etiqueta.Campo}" />
+                        <TextBox Text="{Binding ParticipacionesSocio, UpdateSourceTrigger=PropertyChanged}" Width="90" Style="{StaticResource Campo.Mono}" TextAlignment="Right" Tag="ParticipacionesSocio"
+                                 ToolTip="Número de participaciones sociales del socio. Con el valor nominal de la empresa (Parámetros y tablas › Empresas) da su capital en el acta del reparto de dividendos" />
+                      </StackPanel>
+                      <StackPanel Margin="0,0,14,0">
+                        <TextBlock Text="Numeración de las participaciones" Style="{StaticResource Etiqueta.Campo}" />
+                        <TextBox Text="{Binding NumeracionParticipacionesSocio, UpdateSourceTrigger=PropertyChanged}" Width="380" MaxLength="255" Style="{StaticResource Campo}" Tag="NumeracionParticipacionesSocio"
+                                 ToolTip="Como sale en el acta, por ejemplo «Del 951 al 1.950, ambos inclusive». Si son varios tramos, sepáralos con punto y coma" />
+                      </StackPanel>
+                      <StackPanel>
+                        <TextBlock Text="Cargo en la junta" Style="{StaticResource Etiqueta.Campo}" />
+                        <ComboBox ItemsSource="{Binding OpcionesCargoJunta}" DisplayMemberPath="Texto" SelectedValuePath="Valor" SelectedValue="{Binding CargoJuntaSocio}" Width="130" Tag="CargoJuntaSocio"
+                                  ToolTip="Presidente o secretario de la junta general: el acta lo nombra y lo pone en las firmas. Solo puede haber uno de cada en la sociedad" />
+                      </StackPanel>
+                    </WrapPanel>
                     <ContentControl Content="{Binding CuentaDividendos}" ContentTemplate="{StaticResource FilaCuentaSocio}" />
                     <ContentControl Content="{Binding CuentaRetencionDividendos}" ContentTemplate="{StaticResource FilaCuentaSocio}" />
                     <TextBlock Style="{StaticResource Texto.Apagado}" TextWrapping="Wrap" Width="760" HorizontalAlignment="Left"
