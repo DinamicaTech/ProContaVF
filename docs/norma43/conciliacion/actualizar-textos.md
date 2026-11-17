@@ -1,13 +1,12 @@
 ---
 title: Actualizar los textos de los asientos de banco
-status: draft
 depends_on: [norma43/conciliacion, facturacion/factura-venta, compras/factura-compra, terceros/tercero, contabilidad/asientos]
 threads:
   - 2026-11-16 19:30 · Actualizar textos de asientos de banco | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GDcCQxBdyc3ZHhzbnMzE44H
 ---
 ## Summary
 Ventas, compras y terceros piden a la conciliación que regenere los textos (descripción, concepto y documento) de los asientos de banco de las líneas enlazadas cuando cambia algo que sale en ellos, también en un trimestre cerrado. No cambia cuentas: el cambio de subcuenta del tercero va en el borrador terceros/roles/cambio-subcuenta.
-Hecho (pendiente de validar): contrato `IAsientosBancoEnlazados` en src/ProConta.Contabilidad/Asientos (sin implementación: `SinAsientosBanco`), implementado por `AsientosBancoN43` en src/ProConta.Norma43/Conciliacion; lo llaman la ficha de la factura de venta (guardar notas o una validada), la de compra (guardar y exportar) y la del tercero (al cambiar el nombre). `ActualizarTextosAsync` ya no graba nada si el asiento tiene los textos que tocan (`SinCambios`). Pruebas en tests/ProConta.Norma43.Tests/AsientosBancoN43AccessTests.cs.
+Hecho y validado: contrato `IAsientosBancoEnlazados` en src/ProConta.Contabilidad/Asientos (sin implementación: `SinAsientosBanco`), implementado por `AsientosBancoN43` en src/ProConta.Norma43/Conciliacion; lo llaman la ficha de la factura de venta (guardar notas o una validada), la de compra (guardar y exportar) y la del tercero (al cambiar el nombre). `ActualizarTextosAsync` ya no graba nada si el asiento tiene los textos que tocan (`SinCambios`). Pruebas en tests/ProConta.Norma43.Tests/AsientosBancoN43AccessTests.cs.
 **Aceptación:** cambiar la descripción abreviada de una venta enlazada, el número o el concepto abreviado de una compra enlazada, o el nombre del tercero, actualiza los asientos de banco de sus líneas con `ServicioConciliacionN43.ActualizarTextosAsync` (mismo asiento, mismas cuentas e importes, con registro de cambios); en un trimestre cerrado se hace igual y en un ejercicio cerrado se avisa sin cambiar nada; guardar sin cambios no graba nada.
 
 ## Decisions
@@ -18,6 +17,7 @@ Hecho (pendiente de validar): contrato `IAsientosBancoEnlazados` en src/ProConta
 - 2026-11-16 19:30 · Sin cambios no se graba: si el asiento ya tiene la descripción, las notas, el concepto y el documento que tocan, `ActualizarTextosAsync` no llama al motor (la línea sale en `SinCambios`), así que avisar en cada guardado no llena el registro de cambios. El aviso de la pantalla dice cuántos asientos ha actualizado y, agrupado por motivo, cuántos no (ejercicio cerrado, cuentas cambiadas → volver a contabilizar); si no hay nada que decir, no dice nada.
 - 2026-11-16 19:30 · Regla en vigor de actualizar textos (sustituye a norma43/conciliacion 2026-11-13 10:50; las facturas enlazadas se leen de la BD con `FacturasEnlazadasN43`, norma43/conciliacion 2026-11-16 17:05): `ActualizarTextosAsync` vuelve a calcular la descripción, las notas, el concepto y el documento del mismo asiento de las líneas contabilizadas por ProContaVF, sin cambiar su fecha, cuentas ni importes; el motor lo registra y lo admite también en un trimestre cerrado. Si la propuesta ya no lleva las mismas cuentas e importes, no se toca y se pide volver a contabilizar; en un ejercicio cerrado no se actualiza y se dice; las líneas del ERP no se tocan; sin cambios no se graba. No se exporta nada a ContaSol.
 
+- 2026-11-17 11:30 · Validado por el propietario (PR #96).
 ## Requirements
 - 2026-11-13 10:42 · Esto lleva al punto que si modificamos la descripción abreviada de una factura de venta, también deberíamos actualizar el asiento (solo descripción), al igual que si modificamos el número de factura o, incluso, la subcuenta del proveedor (aunque sea un trimestre cerrado)
 - 2026-11-13 10:50 · draft: Que ventas, compras y terceros llamen a ServicioConciliacionN43.ActualizarTextosAsync al cambiar la descripción abreviada o el número de una factura enlazada a una línea N43, o la subcuenta del tercero, para regenerar los textos (y, si cambia, la subcuenta) de los asientos de banco, también en un trimestre cerrado.
