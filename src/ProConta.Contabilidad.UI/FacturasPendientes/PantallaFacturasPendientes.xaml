@@ -108,7 +108,7 @@
                 </DataGridTemplateColumn.CellTemplate>
               </DataGridTemplateColumn>
               <DataGridTextColumn Header="Subcuenta" Binding="{Binding Cuenta}" IsReadOnly="True" Width="80" ElementStyle="{StaticResource Texto.Celda.Mono}" />
-              <DataGridTextColumn Header="Proveedor" Binding="{Binding Nombre}" IsReadOnly="True" Width="230" ElementStyle="{StaticResource Texto.Celda}" />
+              <DataGridTextColumn Header="Proveedor" Binding="{Binding Nombre}" IsReadOnly="True" Width="300" ElementStyle="{StaticResource Texto.Celda}" />
               <DataGridTextColumn Header="Saldo deudor" Binding="{Binding Saldo}" IsReadOnly="True" Width="105" ElementStyle="{StaticResource Texto.Celda.Importe}" HeaderStyle="{StaticResource Tabla.Cabecera.Derecha}" />
               <DataGridTemplateColumn Header="Proporción" Width="110">
                 <DataGridTemplateColumn.CellTemplate>
@@ -141,24 +141,8 @@
             </DataGrid.Columns>
           </DataGrid>
 
-          <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" Margin="0,8,0,0" Visibility="{Binding PideMotivo, Converter={StaticResource Visible}}">
-            <TextBlock Text="Motivo" VerticalAlignment="Center" Margin="0,0,8,0" ToolTip="{Binding AyudaMotivo}" />
-            <TextBox Text="{Binding Motivo, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource Campo}" Width="520" MaxLength="255" VerticalAlignment="Center"
-                     ToolTip="{Binding AyudaMotivo}" AutomationProperties.Name="Motivo" />
-            <TextBlock Text="{Binding AyudaMotivo}" Style="{StaticResource Texto.Apagado}" VerticalAlignment="Center" Margin="10,0,0,0" />
-          </StackPanel>
-
-          <TextBlock DockPanel.Dock="Bottom" Text="{Binding TextoReversion}" Style="{StaticResource Texto.Apagado}" TextWrapping="Wrap" Margin="0,6,0,0" />
-
-          <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" HorizontalAlignment="Left" Margin="0,6,0,0">
-            <TextBlock Text="Total Debe" Style="{StaticResource Texto.Apagado}" Margin="0,0,6,0" />
-            <TextBlock Text="{Binding TotalDebe}" Style="{StaticResource Texto.Importe}" Margin="0,0,18,0" />
-            <TextBlock Text="Total Haber" Style="{StaticResource Texto.Apagado}" Margin="0,0,6,0" />
-            <TextBlock Text="{Binding TotalHaber}" Style="{StaticResource Texto.Importe}" />
-          </StackPanel>
-
           <!-- Asiento resumido de la provisión -->
-          <DataGrid Style="{StaticResource Tabla}" ItemsSource="{Binding Lineas}" IsReadOnly="True" AutoGenerateColumns="False" HeadersVisibility="Column" HorizontalAlignment="Left"
+          <DataGrid DockPanel.Dock="Top" Style="{StaticResource Tabla}" ItemsSource="{Binding Lineas}" IsReadOnly="True" AutoGenerateColumns="False" HeadersVisibility="Column" HorizontalAlignment="Left"
                     RowStyle="{StaticResource Tabla.Fila}" ContextMenu="{StaticResource Menu.Linea}" AutomationProperties.Name="Asiento de la provisión"
                     ToolTip="Asiento del 31/12 resumido por cuenta y centro (grabado lleva un par de líneas por proveedor con su nombre). Clic derecho: Mayor de la cuenta">
             <DataGrid.Columns>
@@ -169,6 +153,26 @@
               <DataGridTextColumn Header="Haber" Binding="{Binding Haber}" Width="110" ElementStyle="{StaticResource Texto.Celda.Importe}" HeaderStyle="{StaticResource Tabla.Cabecera.Derecha}" />
             </DataGrid.Columns>
           </DataGrid>
+
+
+
+
+          <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" HorizontalAlignment="Left" Margin="0,6,0,0">
+            <TextBlock Text="Total Debe" Style="{StaticResource Texto.Apagado}" Margin="0,0,6,0" />
+            <TextBlock Text="{Binding TotalDebe}" Style="{StaticResource Texto.Importe}" Margin="0,0,18,0" />
+            <TextBlock Text="Total Haber" Style="{StaticResource Texto.Apagado}" Margin="0,0,6,0" />
+            <TextBlock Text="{Binding TotalHaber}" Style="{StaticResource Texto.Importe}" />
+          </StackPanel>
+
+          <TextBlock DockPanel.Dock="Top" Text="{Binding TextoReversion}" Style="{StaticResource Texto.Apagado}" TextWrapping="Wrap" Margin="0,6,0,0" />
+
+          <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,8,0,0" Visibility="{Binding PideMotivo, Converter={StaticResource Visible}}">
+            <TextBlock Text="Motivo" VerticalAlignment="Center" Margin="0,0,8,0" ToolTip="{Binding AyudaMotivo}" />
+            <TextBox Text="{Binding Motivo, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource Campo}" Width="520" MaxLength="255" VerticalAlignment="Center"
+                     ToolTip="{Binding AyudaMotivo}" AutomationProperties.Name="Motivo" />
+            <TextBlock Text="{Binding AyudaMotivo}" Style="{StaticResource Texto.Apagado}" VerticalAlignment="Center" Margin="10,0,0,0" />
+          </StackPanel>
+          <Grid />
         </DockPanel>
       </Border>
     </pc:VistaEstado>

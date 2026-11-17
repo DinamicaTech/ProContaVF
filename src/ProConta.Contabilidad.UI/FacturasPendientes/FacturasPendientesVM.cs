@@ -207,7 +207,7 @@ public sealed class FacturasPendientesVM : ModeloVista, IPestanaTrabajo
         .GroupBy(l => (l.Cuenta, l.IdCentroCoste, Debe: l.Debe != 0m))
         .OrderBy(g => g.Key.Debe ? 0 : 1).ThenBy(g => g.Key.Cuenta, StringComparer.Ordinal)
         .Select(g => new FilaLineaPendienteVM(g.Key.Cuenta, NombreCentro(g.Key.IdCentroCoste),
-            g.Count() == 2 ? g.First().Concepto : $"{Formatos.Plural(g.Count(), "proveedor", "proveedores")} pagados sin factura",
+            g.Count() == 1 ? g.First().Concepto : $"Facturas pendientes de recibir de {Formatos.Recuento(g.Count())} proveedores",
             Formatos.ImporteOVacio(g.Sum(l => l.Debe)), Formatos.ImporteOVacio(g.Sum(l => l.Haber))))
         .ToList();
 
