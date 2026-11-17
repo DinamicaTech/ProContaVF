@@ -17,6 +17,18 @@ public sealed record DeclaracionAeat(string Modelo, int Ejercicio, string Period
     decimal ImporteAIngresar, decimal Resultado, string? Iban, string? ComplementariaDe, IReadOnlyList<(string Etiqueta, string Valor)> Resumen,
     Func<string, string?> LeerNif)
 {
+    /// <summary>NRC del pago (22 caracteres), solo con la forma de pago I: lo da el banco o la Sede al pagar.</summary>
+    public string? Nrc { get; init; }
+
+    /// <summary>Por qué el NRC no vale (null si vale): 22 letras o cifras.</summary>
+    public static string? ErrorNrc(string? nrc)
+    {
+        var s = (nrc ?? "").Trim().ToUpperInvariant();
+        if (s.Length == 0) return "Falta el NRC del pago: págalo en el banco o en la Sede de la AEAT y escribe el NRC que te den.";
+        if (s.Length != 22 || s.Any(ch => !char.IsAsciiLetterOrDigit(ch))) return $"El NRC tiene 22 letras o cifras y «{s}» tiene {s.Length}: revisa que esté bien copiado del justificante del pago.";
+        return null;
+    }
+
     public string Titulo => $"Modelo {Modelo} · {Periodo} {Ejercicio}" + (ComplementariaDe is null ? "" : " · rectificativa");
 
     public string TextoFormaPago => FormaPago switch
@@ -90,6 +102,7 @@ public sealed class ServicioPresentacionAeat(IBaseDatos bd, IClienteAeat cliente
             validacion = new ValidacionAeat(null, [], [$"No he podido conectar con el servicio de validación de la AEAT: {ex.Message} Comprueba la conexión a internet y vuelve a intentarlo."]);
         }
         foreach (var e in validacion.Errores) bloqueos.Add($"La AEAT rechaza el fichero: {e}");
+        if (d.FormaPago == 'I' && DeclaracionAeat.ErrorNrc(d.Nrc) is { } nrc) bloqueos.Add(nrc);
 
         var nif = d.LeerNif(d.Fichero);
         if (!string.Equals(nif, d.NifSociedad.Trim(), StringComparison.OrdinalIgnoreCase))
@@ -159,7 +172,8 @@ public sealed class ServicioPresentacionAeat(IBaseDatos bd, IClienteAeat cliente
         {
             try
             {
-                r = await cliente.PresentarAsync(entorno, cert, new PeticionPresentacionAeat(d.Modelo, d.Ejercicio.ToString(CultureInfo.InvariantCulture), d.Periodo, d.Fichero, nif, nombre), cancelacion);
+                r = await cliente.PresentarAsync(entorno, cert, new PeticionPresentacionAeat(d.Modelo, d.Ejercicio.ToString(CultureInfo.InvariantCulture), d.Periodo, d.Fichero, nif, nombre,
+                    d.FormaPago == 'I' ? d.Nrc?.Trim().ToUpperInvariant() : null), cancelacion);
             }
             catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)
             {
@@ -249,7 +263,7 @@ public sealed class ServicioPresentacionAeat(IBaseDatos bd, IClienteAeat cliente
         bd.EjecutarAsync(async s => s.LeerEsquema().ExisteTabla("PresentacionesAeat")
             ? await s.ConsultarAsync(
                 "SELECT IdPresentacionAeat, IdSociedad, Modelo, Ejercicio, Periodo, Entorno, FechaHora, Csv, Expediente, Justificante, ComplementariaDe, FormaPago, Importe, Resultado, " +
-                "NifPresentador, Presentador, Operador, Avisos, UrlPdf, RutaPdf FROM PresentacionesAeat WHERE IdSociedad = ? AND Modelo = ? AND Ejercicio = ? ORDER BY FechaHora",
+                "NifPresentador, Presentador, Operador, Avisos, UrlPdf, RutaPdf FROM PresentacionesAeat WHERE IdSociedad = ? AND Modelo = ? AND Ejercicio = ? ORDER BY FechaHora, IdPresentacionAeat",
                 f => new PresentacionGuardada(f.Entero("IdPresentacionAeat"), f.Texto("IdSociedad") ?? "", f.Texto("Modelo") ?? "", f.Entero("Ejercicio"), f.Texto("Periodo") ?? "",
                     f.Texto("Entorno") ?? "", f.Fecha("FechaHora"), f.Texto("Csv") ?? "", f.Texto("Expediente"), f.Texto("Justificante") ?? "", f.Texto("ComplementariaDe"),
                     f.Texto("FormaPago"), f.DecimalNulo("Importe") ?? 0m, f.DecimalNulo("Resultado") ?? 0m, f.Texto("NifPresentador"), f.Texto("Presentador"), f.Texto("Operador"),

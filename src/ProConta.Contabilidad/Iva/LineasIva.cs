@@ -93,6 +93,9 @@ public sealed record LineaIva(
     /// </summary>
     public string? ClaveOperacion { get; init; }
 
+    /// <summary>Fecha de expedición de la factura del libro (null si no la tiene): el 303 avisa si es de un trimestre anterior al de su asiento.</summary>
+    public DateTime? FechaExpedicion { get; init; }
+
     /// <summary>Línea de IVA soportado autorrepercutida: intracomunitaria, inversión del sujeto pasivo o importación.</summary>
     public bool Autorrepercutida => Sentido == SentidoIva.Soportado && (Operacion != OperacionIva.Nacional || Isp);
 }
@@ -184,6 +187,7 @@ public static class ClasificadorLineasIva
                     BienInversion = soportado && bienInversion,
                     Rectificativa = !soportado && reg.Rectificativa,
                     ClaveOperacion = soportado ? null : Clave(d.CausaExencion) ?? Clave(d.Calificacion),
+                    FechaExpedicion = reg.FechaFactura?.Date,
                 });
             }
         }

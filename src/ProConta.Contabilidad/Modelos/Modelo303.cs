@@ -1,5 +1,6 @@
 using System.Globalization;
 using ProConta.Contabilidad.Iva;
+using ProConta.Nucleo.Identificacion;
 
 namespace ProConta.Contabilidad.Modelos;
 
@@ -31,8 +32,8 @@ public sealed record Declaracion303(int Ejercicio, int Trimestre, Declarante303 
     /// <summary>Resultado de la autoliquidación (casilla 71): positivo a ingresar, negativo a compensar.</summary>
     public decimal Resultado => Casilla(71);
 
-    /// <summary>Lo que se domicilia (0 si no sale a ingresar).</summary>
-    public decimal ImporteAIngresar => TipoDeclaracion == 'U' ? Casilla(71) : 0m;
+    /// <summary>Lo que se ingresa, domiciliado o con NRC (0 si no sale a ingresar).</summary>
+    public decimal ImporteAIngresar => TipoDeclaracion is 'U' or 'I' ? Casilla(71) : 0m;
 
     public bool Valida => Errores.Count == 0;
 
@@ -40,6 +41,7 @@ public sealed record Declaracion303(int Ejercicio, int Trimestre, Declarante303 
     public string FormaPago => TipoDeclaracion switch
     {
         'U' => "Domiciliación del ingreso",
+        'I' => "Ingreso con NRC (pagado antes en el banco o en la Sede)",
         'C' => "A compensar en los trimestres siguientes",
         'N' => "Sin resultado (cero)",
         _ => TipoDeclaracion.ToString(),
@@ -59,11 +61,15 @@ public sealed record Declaracion303(int Ejercicio, int Trimestre, Declarante303 
 /// aplicado (hasta dejar el resultado a cero) y 87 lo que queda; 69 = 66 + 77 − 78; 70 lo ingresado en la autoliquidación anterior (solo
 /// en una rectificativa); 71 = 69 − 70; 111 lo que la rectificativa devuelve de lo ingresado.</item>
 /// <item>Forma de pago (propietario 2026-11-17 14:38): a ingresar, domiciliación (U) con el IBAN de la sociedad; negativo, a compensar
-/// (C), también en el 4T (nunca devolución); cero, N.</item>
+/// (C), también en el 4T (nunca devolución); cero, N. Fuera del plazo de domiciliación (hasta el 15 del mes siguiente; en el 4T, el
+/// 25 de enero) lo que sale a ingresar se paga antes en el banco o en la Sede y se presenta con su NRC (forma I; propietario 2026-11-17 15:32).</item>
 /// </list>
 /// </summary>
 public static class Modelo303
 {
+    /// <summary>Primer ejercicio con el diseño de registro que genera <see cref="Fichero303"/> (DR303e26v101): los anteriores usan otro.</summary>
+    public const int PrimerEjercicio = 2026;
+
     /// <summary>Tipos del régimen general que tienen casilla en el 303 de 2026: tipo → (casilla de base, casilla de cuota).</summary>
     public static readonly IReadOnlyDictionary<decimal, (int Base, int Cuota)> CasillasTipo = new Dictionary<decimal, (int, int)>
     {
@@ -78,13 +84,37 @@ public static class Modelo303
         (Calculo303.ClaveIntracomunitariasCorrientes, 36, 37), (Calculo303.ClaveIntracomunitariasInversion, 38, 39),
     ];
 
+    /// <summary>Las casillas que calcula el programa, en el orden del modelo, con su concepto (para la pantalla y la comparación con el PDF).</summary>
+    public static readonly IReadOnlyList<(int Casilla, string Concepto)> Conceptos =
+    [
+        (1, "Régimen general 4 % · base"), (3, "Régimen general 4 % · cuota"), (4, "Régimen general 10 % · base"), (6, "Régimen general 10 % · cuota"),
+        (7, "Régimen general 21 % · base"), (9, "Régimen general 21 % · cuota"), (10, "Adquisiciones intracomunitarias · base"), (11, "Adquisiciones intracomunitarias · cuota"),
+        (12, "Otras operaciones con inversión del sujeto pasivo · base"), (13, "Otras operaciones con inversión del sujeto pasivo · cuota"),
+        (14, "Modificación de bases y cuotas · base"), (15, "Modificación de bases y cuotas · cuota"), (27, "Total cuota devengada"),
+        (28, "Operaciones interiores corrientes · base"), (29, "Operaciones interiores corrientes · cuota"),
+        (30, "Operaciones interiores con bienes de inversión · base"), (31, "Operaciones interiores con bienes de inversión · cuota"),
+        (32, "Importaciones de bienes corrientes · base"), (33, "Importaciones de bienes corrientes · cuota"),
+        (34, "Importaciones de bienes de inversión · base"), (35, "Importaciones de bienes de inversión · cuota"),
+        (36, "Adquisiciones intracomunitarias corrientes · base"), (37, "Adquisiciones intracomunitarias corrientes · cuota"),
+        (38, "Adquisiciones intracomunitarias de bienes de inversión · base"), (39, "Adquisiciones intracomunitarias de bienes de inversión · cuota"),
+        (40, "Rectificación de deducciones · base"), (41, "Rectificación de deducciones · cuota"), (44, "Regularización por la prorrata definitiva"),
+        (45, "Total a deducir"), (46, "Resultado régimen general"),
+        (59, "Entregas intracomunitarias"), (60, "Exportaciones y operaciones asimiladas"), (120, "No sujetas por reglas de localización"),
+        (122, "Sujetas con inversión del sujeto pasivo"), (64, "Suma de resultados"), (65, "% atribuible a la Administración del Estado"),
+        (66, "Atribuible a la Administración del Estado"), (77, "IVA a la importación pendiente de ingreso"), (110, "Cuotas a compensar pendientes de periodos anteriores"),
+        (78, "Cuotas a compensar aplicadas en este periodo"), (87, "Cuotas a compensar pendientes para periodos posteriores"), (69, "Resultado de la autoliquidación"),
+        (70, "Ingresado en la autoliquidación anterior"), (71, "Resultado"), (111, "Rectificación · importe a devolver"),
+    ];
+
     /// <summary>Casillas sin signo del diseño (Num): no admiten importes negativos.</summary>
     public static readonly IReadOnlySet<int> SinSigno = new HashSet<int> { 1, 3, 4, 6, 7, 9, 10, 11, 12, 13, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 77, 110, 78, 87, 70, 109, 112, 111 };
 
     /// <param name="r">El 303 del ejercicio (de <see cref="CalculoIvaEjercicio"/>).</param>
     /// <param name="pendienteCompensar">Cuotas a compensar de periodos anteriores pendientes (casilla 110): el saldo deudor de las 4700 el último día del trimestre sin su liquidación.</param>
     /// <param name="rectificativa">Si es una autoliquidación rectificativa, la anterior; null en la primera.</param>
-    public static Declaracion303 Calcular(Resultado303 r, int ejercicio, int trimestre, Declarante303 declarante, decimal pendienteCompensar, Rectificativa303? rectificativa = null)
+    /// <param name="conNrc">Si sale a ingresar, se paga con NRC (forma I) en lugar de domiciliarlo (fuera del plazo de domiciliación).</param>
+    public static Declaracion303 Calcular(Resultado303 r, int ejercicio, int trimestre, Declarante303 declarante, decimal pendienteCompensar, Rectificativa303? rectificativa = null,
+        bool conNrc = false)
     {
         if (trimestre is < 1 or > 4) throw new ArgumentOutOfRangeException(nameof(trimestre), "El trimestre va de 1 a 4.");
         var c = new SortedDictionary<int, decimal>();
@@ -147,16 +177,18 @@ public static class Modelo303
         // Rectificativa que rebaja lo ingresado: la parte que se devuelve va en la 111 y el tipo de declaración se decide sin ella.
         c[111] = rectificativa is not null && c[71] < 0m && c[70] > 0m ? Math.Min(-c[71], c[70]) : 0m;
         var paraForma = c[71] + c[111];
-        var tipo = paraForma > 0m ? 'U' : paraForma < 0m ? 'C' : 'N';
+        var tipo = paraForma > 0m ? (conNrc ? 'I' : 'U') : paraForma < 0m ? 'C' : 'N';
 
         // Comprobaciones antes del fichero.
+        if (ejercicio < PrimerEjercicio)
+            errores.Add($"El programa genera el 303 con el diseño de registro de {PrimerEjercicio} y la AEAT usa otro para {ejercicio}: presenta el 303 de {ejercicio} desde la Sede o con la gestoría.");
         if (string.IsNullOrWhiteSpace(declarante.Nif))
             errores.Add("La sociedad no tiene NIF: escríbelo en Configuración › Parámetros y tablas › Empresas.");
         if (tipo == 'U' || c[111] > 0m)
         {
             if (string.IsNullOrWhiteSpace(declarante.Iban))
                 errores.Add($"El 303 sale a ingresar ({Euros(c[71])}) y la sociedad no tiene cuenta de domiciliación: escríbela en Configuración › Parámetros y tablas › Empresas («IBAN de domiciliación»).");
-            else if (!Iban.EsValido(declarante.Iban))
+            else if (!Ibanes.EsValido(declarante.Iban))
                 errores.Add($"El IBAN de domiciliación de la sociedad ({declarante.Iban}) no es válido: corrígelo en Configuración › Parámetros y tablas › Empresas.");
         }
         foreach (var n in c.Keys.Where(n => SinSigno.Contains(n) && c[n] < 0m))
@@ -167,39 +199,4 @@ public static class Modelo303
     }
 
     private static string Euros(decimal v) => v.ToString("#,##0.00", CultureInfo.GetCultureInfo("es-ES")) + " €";
-}
-
-/// <summary>Comprobación del IBAN (ISO 13616): letras y números, longitud de su país (ES: 24) y dígitos de control (módulo 97).</summary>
-public static class Iban
-{
-    /// <summary>El IBAN sin espacios y en mayúsculas.</summary>
-    public static string Normalizar(string? iban) => new string((iban ?? "").Where(ch => !char.IsWhiteSpace(ch) && ch != '-').ToArray()).ToUpperInvariant();
-
-    public static bool EsValido(string? iban) => Error(iban) is null;
-
-    /// <summary>Por qué no es válido (null si lo es).</summary>
-    public static string? Error(string? iban)
-    {
-        var s = Normalizar(iban);
-        if (s.Length == 0) return "Está vacío.";
-        if (s.Length < 15 || s.Length > 34) return "Un IBAN tiene entre 15 y 34 caracteres (el español, 24: ES y 22 cifras).";
-        if (!char.IsLetter(s[0]) || !char.IsLetter(s[1]) || !char.IsDigit(s[2]) || !char.IsDigit(s[3])) return "Empieza por el código del país y dos dígitos de control (p. ej. ES91).";
-        if (s.Any(ch => !char.IsAsciiLetterOrDigit(ch))) return "Solo puede tener letras y números.";
-        if (s.StartsWith("ES", StringComparison.Ordinal) && (s.Length != 24 || s.Skip(2).Any(ch => !char.IsAsciiDigit(ch)))) return "El IBAN español tiene 24 caracteres: ES y 22 cifras.";
-        var reordenado = s[4..] + s[..4];
-        var resto = 0;
-        foreach (var ch in reordenado)
-        {
-            var valor = char.IsAsciiDigit(ch) ? ch - '0' : ch - 'A' + 10;
-            resto = valor >= 10 ? (resto * 100 + valor) % 97 : (resto * 10 + valor) % 97;
-        }
-        return resto == 1 ? null : "Los dígitos de control no cuadran: revisa que esté bien copiado.";
-    }
-
-    /// <summary>El IBAN en grupos de cuatro, para mostrarlo.</summary>
-    public static string Formatear(string? iban)
-    {
-        var s = Normalizar(iban);
-        return string.Join(" ", Enumerable.Range(0, (s.Length + 3) / 4).Select(i => s.Substring(i * 4, Math.Min(4, s.Length - i * 4))));
-    }
 }

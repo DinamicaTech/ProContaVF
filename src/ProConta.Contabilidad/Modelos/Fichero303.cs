@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Text;
+using ProConta.Nucleo.Identificacion;
 
 namespace ProConta.Contabilidad.Modelos;
 
@@ -8,6 +9,14 @@ public sealed record ProgramaAeat(string Version, string NifDesarrollo)
 {
     /// <summary>Versión del programa en los ficheros de la AEAT. Se sube cuando cambie el formato de algún modelo.</summary>
     public const string VersionActual = "0100";
+
+    /// <summary>
+    /// NIF de la empresa que desarrolla el programa: Dinámica Ingeniería Suministros y Servicios, S.L. (propietario 2026-11-17 15:33). Es un
+    /// dato público fijo del programa, no un dato de cliente.
+    /// </summary>
+    public const string NifDesarrolloActual = "B62344502";
+
+    public static ProgramaAeat Actual { get; } = new(VersionActual, NifDesarrolloActual);
 }
 
 /// <summary>
@@ -132,7 +141,7 @@ public static class Fichero303
         var p = new StringBuilder();
         p.Append("<T303DID00>");
         p.Append(' ', 11);                                          // SWIFT-BIC (solo devoluciones al extranjero)
-        p.Append(An(ConCuenta(d) ? Iban.Normalizar(d.Declarante.Iban) : "", 34)); // IBAN: solo al domiciliar o si la rectificativa devuelve
+        p.Append(An(ConCuenta(d) ? Ibanes.Normalizar(d.Declarante.Iban) : "", 34)); // IBAN: solo al domiciliar o si la rectificativa devuelve
         p.Append(' ', 70).Append(' ', 35).Append(' ', 30).Append(' ', 2); // banco, dirección, ciudad y país (solo devoluciones al extranjero)
         p.Append('0');                                              // marca SEPA de la devolución: vacía
         p.Append(' ', 617);

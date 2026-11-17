@@ -68,6 +68,7 @@ public partial class VentanaPrincipal : Window
     private readonly ProConta.Contabilidad.UI.Asientos.ModuloAsientos _asientos;
     private readonly ProConta.Contabilidad.UI.Diario.ModuloDiario _diario;
     private readonly ProConta.Contabilidad.UI.Liquidacion.ModuloLiquidacionIva _liquidacionIva;
+    private readonly ProConta.Contabilidad.UI.Modelo303.ModuloModelo303 _modelo303;
     private readonly ProConta.Contabilidad.UI.Dividendos.ModuloRepartoDividendos _dividendos;
     private readonly ProConta.Contabilidad.UI.Prorrata.ModuloRegularizacionProrrata _prorrata;
     private readonly ProConta.Contabilidad.UI.ImpuestoSociedades.ModuloImpuestoSociedades _impuestoSociedades;
@@ -339,6 +340,22 @@ public partial class VentanaPrincipal : Window
             },
             _area, new ProConta.Contabilidad.UI.Liquidacion.DialogosLiquidacionIva(() => this));
         var abrirLiquidacionIva = new ComandoDelegado(() => _liquidacionIva.Abrir());
+        // Modelo 303 (contabilidad/modelos-tributarios/modelo-303): casillas, PDF de la AEAT (ServaliDos) y presentación con el certificado de la
+        // sociedad en el entorno de la BD (pieza común contabilidad/modelos-tributarios/presentacion).
+        _modelo303 = new ProConta.Contabilidad.UI.Modelo303.ModuloModelo303(
+            new ProConta.Contabilidad.UI.Modelo303.ContextoModelo303(
+                new ProConta.Contabilidad.Modelos.Servicio303(bd, new ProConta.Contabilidad.Presentacion.ServicioPresentacionAeat(bd, new ProConta.Contabilidad.Presentacion.ClienteAeatHttp())),
+                contexto.Contexto, contexto.RazonSocial, new Actor(sesion.NombreOperador), Avisar)
+            {
+                AbrirFichero = ruta =>
+                {
+                    try { System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(ruta) { UseShellExecute = true }); }
+                    catch (Exception ex) when (ex is System.ComponentModel.Win32Exception or InvalidOperationException) { Avisar($"Fichero guardado en {ruta} (no he podido abrirlo: {ex.Message})"); }
+                },
+                AbrirLiquidacion = t => _liquidacionIva.Abrir(t),
+            },
+            _area, new ProConta.Contabilidad.UI.Modelo303.DialogosModelo303(() => this));
+        var abrirModelo303 = new ComandoDelegado(() => _modelo303.Abrir());
         // Prorrata de IVA (contabilidad/procesos/prorrata): definitiva del año (por defecto, la legal) y su regularización el 31/12 en la 4729.
         _prorrata = new ProConta.Contabilidad.UI.Prorrata.ModuloRegularizacionProrrata(
             new ProConta.Contabilidad.UI.Prorrata.ContextoRegularizacionProrrata(
@@ -418,6 +435,10 @@ public partial class VentanaPrincipal : Window
             new OpcionNavegacion("Liquidación de IVA", null, true, false,
                 "Procesos contables › Liquidación de IVA: un asiento por trimestre que salda las 472 y 477, lleva lo no deducible a la 6341 y el resultado a la 4750 o la 4700; importe ajustable a lo presentado y activación del trimestre siguiente",
                 abrirLiquidacionIva, EsHija: true),
+            new OpcionNavegacion("Modelo 303", null, true, false,
+                "Modelos tributarios › Modelo 303: los cuatro trimestres con su estado y sus casillas; «Ver el PDF» de la AEAT, «Presentar…» con el certificado de la sociedad " +
+                "(en la copia de pruebas, en el entorno de pruebas de la AEAT), complementarias y justificantes",
+                abrirModelo303, EsHija: true),
             new OpcionNavegacion("Prorrata de IVA", null, true, false,
                 "Procesos contables › Prorrata de IVA: provisional, legal del año y definitiva (la de la gestoría), su regularización por trimestre y el asiento del 31/12 a la 4729 que deduce el 303 del 4T",
                 abrirProrrata, EsHija: true),

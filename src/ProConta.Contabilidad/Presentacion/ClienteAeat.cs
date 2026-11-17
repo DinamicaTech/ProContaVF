@@ -224,7 +224,7 @@ public sealed class ClienteAeatHttp(Func<X509Certificate2?, HttpMessageHandler>?
             var texto = V(error, "descripcionError") ?? error.Value.Trim();
             // Sin declaraciones presentadas no es un fallo de la consulta.
             var t = texto.ToUpperInvariant();
-            return t.Contains("NO EXISTE") || t.Contains("NO SE HAN ENCONTRADO") || t.Contains("NO HAY") || t.Contains("NO SE ENCUENTRA")
+            return t.Contains("NO HA PRESENTADO") || t.Contains("NO EXISTE") || t.Contains("NO SE HAN ENCONTRADO") || t.Contains("NO HAY") || t.Contains("NO SE ENCUENTRA")
                 ? new ConsultaAeat([], null)
                 : new ConsultaAeat([], texto);
         }

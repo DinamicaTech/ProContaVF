@@ -48,7 +48,8 @@ public sealed class FilaTrimestreIvaVM(TrimestreLiquidacionIva datos) : ModeloVi
     public string AyudaEstado => Datos.Estado switch
     {
         EstadoLiquidacionIva.EnCurso => $"El trimestre termina el {Fin}: se liquida a partir del día siguiente",
-        EstadoLiquidacionIva.Pendiente => "Terminado y sin liquidar: elígelo, revisa la propuesta y pulsa «Confirmar la liquidación»",
+        EstadoLiquidacionIva.Pendiente => "Terminado y sin liquidar: elígelo, revisa la propuesta y pulsa «Confirmar la liquidación»" +
+            (Datos.Presentado is { } p ? $". El 303 está presentado por {Formatos.Importe(p.Resultado)}: se propone ese importe" : ""),
         EstadoLiquidacionIva.Liquidado => $"Liquidado el {Datos.Guardada!.FechaHora:dd/MM/yyyy HH:mm}" + (Datos.Guardada.Operador is { } o ? $" por {o}" : "") +
             (Datos.Guardada.Motivo is { } m ? $". Motivo: {m}" : "") + ". Sus 472 y 477 están a cero",
         _ => $"Hay que repetirla: {Datos.Motivo}",
@@ -265,8 +266,8 @@ public sealed class LiquidacionIvaVM : ModeloVista, IPestanaTrabajo
         if (fila is null || fila.Datos.Estado == EstadoLiquidacionIva.EnCurso) return;
         var (valido, valor) = ImporteEscrito();
         if (!valido) { ErrorPropuesta = "El importe a liquidar no es un número válido: escríbelo como 1.234,56 (negativo si sale a compensar)."; return; }
-        // Al abrir un trimestre ya liquidado, la propuesta parte del importe con que se liquidó.
-        var fijado = valor ?? (fila.Datos.Guardada is { } g && g.ImporteLiquidado != g.ResultadoCalculado ? g.ImporteLiquidado : null);
+        // Al abrir un trimestre ya liquidado, la propuesta parte del importe con que se liquidó; si el 303 está presentado, del presentado (lo pone el servicio).
+        var fijado = valor ?? (fila.Datos.Presentado is null && fila.Datos.Guardada is { } g && g.ImporteLiquidado != g.ResultadoCalculado ? g.ImporteLiquidado : null);
         Ocupado = true;
         try
         {
@@ -275,6 +276,11 @@ public sealed class LiquidacionIvaVM : ModeloVista, IPestanaTrabajo
             if (!r.EsCorrecto) { ErrorPropuesta = Texto(r.Error!); return; }
             Propuesta = r.Valor;
             _importe = Formatos.Numero(r.Valor.ImporteLiquidado);
+            if (string.IsNullOrWhiteSpace(_motivo) && fila.Datos.Presentado is { } pr && r.Valor.ImporteLiquidado == pr.Resultado && r.Valor.HayAjuste)
+            {
+                _motivo = $"Ajuste al 303 presentado (CSV {pr.Csv})";
+                Avisar(nameof(Motivo));
+            }
             Avisar(nameof(Importe), nameof(PorQueNoConfirmar));
         }
         catch (Exception ex)

@@ -25,10 +25,16 @@ public enum EstadoLiquidacionIva
 public sealed record LiquidacionGuardada(int Trimestre, decimal? Prorrata, decimal ResultadoCalculado, decimal ImporteLiquidado, decimal Compensado, decimal Ajuste,
     string? Motivo, int? IdAsiento, string? Operador, DateTime FechaHora);
 
-/// <summary>Un trimestre en la pantalla de la liquidación: su estado, lo guardado y por qué está desactualizado.</summary>
+/// <summary>El 303 presentado de un trimestre desde el programa (PresentacionesAeat, del entorno de la BD): su resultado antes de compensar (casilla 66), CSV y fecha.</summary>
+public sealed record Presentado303(decimal Resultado, string Csv, string Justificante, DateTime FechaHora);
+
+/// <summary>Un trimestre en la pantalla de la liquidación: su estado, lo guardado, el 303 presentado y por qué está desactualizado.</summary>
 public sealed record TrimestreLiquidacionIva(int Trimestre, DateTime Fin, EstadoLiquidacionIva Estado, bool Cerrado, decimal ResultadoCalculado,
     LiquidacionGuardada? Guardada, string? Motivo)
 {
+    /// <summary>El 303 presentado desde el programa (null si no lo está): lo liquidado tiene que ser lo presentado.</summary>
+    public Presentado303? Presentado { get; init; }
+
     public string Nombre => CalculoLiquidacionIva.Nombre(Trimestre);
 }
 
@@ -65,9 +71,10 @@ public sealed class ServicioLiquidacionIva(IBaseDatos bd, IMotorAsientos motor, 
             var g = guardadas.FirstOrDefault(x => x.Trimestre == t);
             var calculado = r303.Resultado(t);
             var cerrado = activo is int a && t < a;
+            var presentado = await PresentadoAsync(ctx, t);
             if (g is null)
             {
-                r.Add(new(t, fin, Hoy > fin ? EstadoLiquidacionIva.Pendiente : EstadoLiquidacionIva.EnCurso, cerrado, calculado, null, null));
+                r.Add(new(t, fin, Hoy > fin ? EstadoLiquidacionIva.Pendiente : EstadoLiquidacionIva.EnCurso, cerrado, calculado, null, null) { Presentado = presentado });
                 continue;
             }
             var pendientes = (await SaldosAsync(ctx, fin, null)).Where(s => CalculoLiquidacionIva.SeLiquida(s.Cuenta, t) && s.Saldo != 0m).ToList();
@@ -75,9 +82,11 @@ public sealed class ServicioLiquidacionIva(IBaseDatos bd, IMotorAsientos motor, 
             if (g.IdAsiento is int id && await motor.ObtenerAsync(id) is null) motivo = "Su asiento ya no existe.";
             else if (pendientes.Count > 0)
                 motivo = $"Después de liquidarla han cambiado apuntes del trimestre: {string.Join(", ", pendientes.Take(4).Select(s => s.Cuenta))}{(pendientes.Count > 4 ? "…" : "")} no están a cero.";
-            else if (calculado != g.ResultadoCalculado)
+            else if (presentado is not null && presentado.Resultado != g.ImporteLiquidado)
+                motivo = $"Se presentó el 303 por {Euros(presentado.Resultado)} (CSV {presentado.Csv}) y está liquidado por {Euros(g.ImporteLiquidado)}: repite la liquidación con lo presentado.";
+            else if (presentado is null && calculado != g.ResultadoCalculado)
                 motivo = $"El 303 da ahora {Euros(calculado)} y al liquidarla daba {Euros(g.ResultadoCalculado)}.";
-            r.Add(new(t, fin, motivo is null ? EstadoLiquidacionIva.Liquidado : EstadoLiquidacionIva.Desactualizado, cerrado, calculado, g, motivo));
+            r.Add(new(t, fin, motivo is null ? EstadoLiquidacionIva.Liquidado : EstadoLiquidacionIva.Desactualizado, cerrado, calculado, g, motivo) { Presentado = presentado });
         }
         return r;
     }
@@ -128,12 +137,20 @@ public sealed class ServicioLiquidacionIva(IBaseDatos bd, IMotorAsientos motor, 
                         : $"Con la prorrata definitiva del {definitiva.Value * 100m:0.##} %, el 303 del 4T lleva una regularización de {Euros(regularizacion)} y la 4729 tiene {Euros(en4729)} el 31/12.",
                     "Abre Contabilidad › Prorrata de IVA, revisa la definitiva y confirma la regularización; después vuelve aquí."));
         }
+        // Presentado el 303 desde el programa, lo liquidado es lo presentado (contabilidad/modelos-tributarios/modelo-303, 2026-11-17 14:38).
+        var presentado = await PresentadoAsync(ctx, trimestre);
+        if (importeFijado is null && presentado is not null) importeFijado = presentado.Resultado;
         var config = await CuentasAsync(ctx);
         int? centroAjustes = null;
         if ((await cuentas.ResolverAsync(ctx, config.AjustesNegativos)) is { EsCorrecto: true } neg) centroAjustes = neg.Valor.IdCentroCostePredeterminado;
         var datos = new DatosLiquidacionIva(ctx.Ejercicio, trimestre, saldos.Where(s => CalculoLiquidacionIva.SeLiquida(s.Cuenta, trimestre)).ToList(),
             saldos.Where(s => s.Cuenta.StartsWith(CalculoLiquidacionIva.PrefijoCredito, StringComparison.Ordinal)).ToList(), r303, lineas, config, importeFijado, centroAjustes);
         var propuesta = CalculoLiquidacionIva.Calcular(datos);
+        if (presentado is not null)
+            propuesta = propuesta with
+            {
+                Avisos = [$"El 303 de este trimestre se presentó el {presentado.FechaHora:dd/MM/yyyy HH:mm} (CSV {presentado.Csv}) con un resultado de {Euros(presentado.Resultado)}: es el importe que se propone liquidar.", .. propuesta.Avisos],
+            };
         if (provisional is null)
             propuesta = propuesta with { Avisos = [.. propuesta.Avisos, "El ejercicio no tiene prorrata provisional: se deduce el 100 % del IVA en prorrata. Ponla en Parámetros y tablas › Ejercicios (Impuestos)."] };
         return Resultado<PropuestaLiquidacionIva>.Correcto(propuesta);
@@ -268,6 +285,22 @@ public sealed class ServicioLiquidacionIva(IBaseDatos bd, IMotorAsientos motor, 
         f => new LiquidacionGuardada(f.Entero("Trimestre"), f.DecimalNulo("Prorrata"), f.DecimalNulo("ResultadoCalculado") ?? 0m, f.DecimalNulo("ImporteLiquidado") ?? 0m,
             f.DecimalNulo("Compensado") ?? 0m, f.DecimalNulo("Ajuste") ?? 0m, f.Texto("Motivo"), f.EnteroNulo("IdAsiento"), f.Texto("Operador"), f.Fecha("FechaHoraConfirmacion")),
         ctx.IdSociedadEjercicio));
+
+    /// <summary>
+    /// El último 303 presentado del trimestre desde el programa, del entorno de la BD (una copia de pruebas solo mira lo presentado en el
+    /// entorno de pruebas de la AEAT). Null si no hay ninguno o la BD no tiene aún la tabla PresentacionesAeat.
+    /// </summary>
+    public Task<Presentado303?> PresentadoAsync(ContextoSociedadEjercicio ctx, int trimestre) => bd.EjecutarAsync(async s =>
+    {
+        var esquema = s.LeerEsquema();
+        if (!esquema.ExisteTabla("PresentacionesAeat")) return null;
+        var pruebas = esquema.ExisteColumna("Configuracion", "EntornoPruebas") && await s.EscalarAsync("SELECT TOP 1 EntornoPruebas FROM Configuracion") is bool b && b;
+        var filas = await s.ConsultarAsync(
+            "SELECT Resultado, Csv, Justificante, FechaHora FROM PresentacionesAeat WHERE IdSociedad = ? AND Modelo = '303' AND Ejercicio = ? AND Periodo = ? AND Entorno = ? ORDER BY FechaHora DESC, IdPresentacionAeat DESC",
+            f => new Presentado303(f.DecimalNulo("Resultado") ?? 0m, f.Texto("Csv") ?? "", f.Texto("Justificante") ?? "", f.Fecha("FechaHora")),
+            ctx.IdSociedad, (short)ctx.Ejercicio, $"{trimestre}T", pruebas ? "PRUEBAS" : "PRODUCCION");
+        return filas.FirstOrDefault();
+    });
 
     public Task<int?> TrimestreActivoAsync(ContextoSociedadEjercicio ctx) => bd.EjecutarAsync(async s =>
     {
