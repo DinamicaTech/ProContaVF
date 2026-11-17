@@ -17,7 +17,7 @@ public sealed class ModuloImpuestoSociedades(ContextoImpuestoSociedades contexto
             _ = _vm.CargarAsync();
             return;
         }
-        _vm = new ImpuestoSociedadesVM(contexto, dialogos, () => _vm = null);
+        _vm = new ImpuestoSociedadesVM(contexto, dialogos, () => _vm = null, anfitrion);
         anfitrion.Abrir(_vm);
         _ = _vm.CargarAsync();
     }

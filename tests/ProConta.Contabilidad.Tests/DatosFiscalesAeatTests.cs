@@ -110,30 +110,68 @@ public sealed class DatosFiscalesAeatTests
         Assert.Equal("4735079", LectorDatosFiscalesAeat.Asignar([new("180", null, "GARCIA PEREZ JUAN", 957.07m, "4735079")], Cuentas473)[0].Cuenta);
     }
 
-    private static DatosImpuestoSociedades Datos(decimal resultado) =>
-        new(2025, resultado, 0m, false, Cuentas473, [], 0m, ParametrosImpuestoSociedades.Defecto, []);
+    private static readonly DateTime F = new(2025, 6, 30);
+
+    /// <summary>Apuntes que forman los saldos de <see cref="Cuentas473"/>: Alfa y Juan en la 4730001, los 202, el banco, el fondo y un inquilino que Hacienda no conoce.</summary>
+    private static readonly IReadOnlyList<ApunteRetencion> Apuntes =
+    [
+        new(1, F, "4730001", "Alquiler junio", 2926.00m, "INMOBILIARIA ALFA, SLU", "X-0000001-X"),
+        new(2, F.AddMonths(3), "4730001", "Alquiler septiembre", 2926.00m, "INMOBILIARIA ALFA, SLU", "X0000001X"),
+        new(3, F, "4730001", "Alquiler Juan", 625.85m, "GARCIA JUAN"),
+        new(4, F, "4730002", "Pago fraccionado 2T", 1250.50m),
+        new(5, F.AddMonths(3), "4730002", "Pago fraccionado 3T", 1250.50m),
+        new(6, F, "4730004", "Retención intereses", 380.00m),
+        new(7, F, "4730105", "Retención fondo", 20.00m),
+        new(8, F, "4735079", "Alquiler local 2", 1668.33m, "OTRO INQUILINO SL", "B99999999"),
+    ];
+
+    private static DatosImpuestoSociedades Datos(decimal resultado, bool conApuntes = true) =>
+        new(2025, resultado, 0m, false, Cuentas473, [], 0m, ParametrosImpuestoSociedades.Defecto, [], conApuntes ? Apuntes : null);
 
     [Fact]
-    public void ConDatosFiscalesSeDeduceLoQueConoceLaAeatYLoEscritoManda()
+    public void ElContrasteCasaCadaPagadorConHaciendaYLoEscritoMandaConJustificacion()
     {
-        var aeat = LectorDatosFiscalesAeat.Asignar(Ejemplo().Retenciones, Cuentas473);
-        var p = CalculoImpuestoSociedades.Calcular(Datos(40000m), new([], RetencionesAeat: aeat, BasesNegativasAeat: 3000m, ResultadoPresentado: 0m,
-            Deducir: [new("4735079", 1668.33m)]));
+        IReadOnlyList<RetencionAeat> aeat = [.. LectorDatosFiscalesAeat.Asignar(Ejemplo().Retenciones, Cuentas473), new("180", "B11111111", "NUEVO PAGADOR SA", 10m)];
+        var p = CalculoImpuestoSociedades.Calcular(Datos(40000m), new([], RetencionesAeat: aeat, BasesNegativasAeat: 3000m, ResultadoPresentado: 0m));
+        // Por NIF (Alfa), por palabras (Juan), por la cuenta del lector (202 y banco) y lo que solo conoce Hacienda en su fila.
         Assert.Equal(
-            [("4730001", 6477.85m, (decimal?)5852.00m, 5852.00m, 5852.00m), ("4730002", 2501.00m, 2501.00m, 2501.00m, 2501.00m), ("4730004", 380.00m, 400.00m, 400.00m, 400.00m),
-                ("4730105", 20.00m, 0m, 0m, 0m), ("4735079", 1668.33m, 0m, 0m, 1668.33m)],
-            p.Retenciones.Select(r => (r.Cuenta, r.Saldo, r.SegunAeat, r.Propuesto, r.Deducido)).ToList());
-        Assert.Equal(10421.33m, p.TotalRetenciones);
-        Assert.Equal(11047.18m, p.TotalSaldos473);
+            [("4730001|X0000001X", (decimal?)5852.00m, 5852.00m, 5852.00m), ("4730001|GARCIA JUAN", 957.07m, 625.85m, 957.07m), ("4730002|", 2501.00m, 2501.00m, 2501.00m),
+                ("4730004|", 400.00m, 380.00m, 400.00m), ("4730105|", 0m, 20.00m, 0m), ("4735079|B99999999", 0m, 1668.33m, 0m), ("AEAT|180|B11111111", 10m, 0m, 10m)],
+            p.FilasContraste.Select(f => (f.Clave, f.Hacienda, f.Contable, f.Valor)).ToList());
+        var alfa = p.FilasContraste[0];
+        Assert.Equal([1, 2], alfa.Apuntes.Select(a => a.IdAsiento));
+        Assert.Equal("INMOBILIARIA ALFA SL", Assert.Single(alfa.Aeat).Nombre);
+        Assert.True(p.FilasContraste[^1].SoloHacienda);
+        Assert.Null(p.FilasContraste[^1].Cuenta);
+        Assert.Contains("la 473 de NUEVO PAGADOR SA", p.PorQueNoContraste);
+        Assert.Contains(p.Avisos, x => x.Contains("no coinciden en 5 pagadores"));
+        Assert.Contains(p.Avisos, x => x.Contains("NUEVO PAGADOR SA") && x.Contains("sin cuenta 473"));
+
+        // El inquilino que Hacienda no conoce se deduce con justificación; Juan, con lo contabilizado y sin justificar, no deja confirmar.
+        var valores = new List<ValorRetencion>
+        {
+            new("4735079|B99999999", 1668.33m, "Certificado del inquilino y cobros en el banco"),
+            new("AEAT|180|B11111111", null, null, "4730001"),
+            new("4730001|GARCIA JUAN", 625.85m),
+        };
+        p = CalculoImpuestoSociedades.Calcular(Datos(40000m), new([], RetencionesAeat: aeat, BasesNegativasAeat: 3000m, ResultadoPresentado: 0m, Valores: valores));
+        Assert.Contains("GARCIA JUAN", p.PorQueNoContraste);
+        Assert.Contains(p.Avisos, x => x.Contains("GARCIA JUAN") && x.Contains("escribe la justificación"));
+        valores[2] = valores[2] with { Justificacion = "Hacienda suma un recibo de 2024" };
+        p = CalculoImpuestoSociedades.Calcular(Datos(40000m), new([], RetencionesAeat: aeat, BasesNegativasAeat: 3000m, ResultadoPresentado: 0m, Valores: valores));
+        Assert.Null(p.PorQueNoContraste);
+        Assert.Equal(
+            [("4730001", 6477.85m, (decimal?)6819.07m, 6487.85m), ("4730002", 2501.00m, 2501.00m, 2501.00m), ("4730004", 380.00m, 400.00m, 400.00m),
+                ("4730105", 20.00m, 0m, 0m), ("4735079", 1668.33m, 0m, 1668.33m)],
+            p.Retenciones.Select(r => (r.Cuenta, r.Saldo, r.SegunAeat, r.Deducido)).ToList());
+        Assert.Equal(11057.18m, p.TotalRetenciones);
         Assert.Equal(10000m, p.CuotaLiquida);
-        Assert.Equal(-421.33m, p.Resultado);
+        Assert.Equal(-1057.18m, p.Resultado);
         Assert.Equal(p.TotalDebe, p.TotalHaber);
         Assert.DoesNotContain(p.Lineas, l => l.Cuenta == "4730105");
-        Assert.Contains(p.Avisos, x => x.Contains("GARCIA PEREZ JUAN") && x.Contains("sin cuenta 473"));
-        Assert.Contains(p.Avisos, x => x.Contains("4730001") && x.Contains("625,85 €") && x.Contains("se queda en la cuenta"));
-        Assert.Contains(p.Avisos, x => x.Contains("Has escrito 1.668,33 €") && x.Contains("4735079"));
+        Assert.Contains(p.Avisos, x => x.Contains("4730105") && x.Contains("20,00 €") && x.Contains("se queda en la cuenta"));
         Assert.Contains(p.Avisos, x => x.Contains("4730004") && x.Contains("quedará con saldo acreedor"));
-        Assert.Contains(p.Avisos, x => x.Contains("declaración presentada") && x.Contains("-421,33 €"));
+        Assert.Contains(p.Avisos, x => x.Contains("declaración presentada") && x.Contains("-1.057,18 €") && x.Contains("rectificativa"));
         Assert.DoesNotContain(p.Avisos, x => x.Contains("Sin datos fiscales"));
 
         var bases = CalculoImpuestoSociedades.Calcular(Datos(40000m), new([], BasesNegativas: 5000m, RetencionesAeat: aeat, BasesNegativasAeat: 3000m));
@@ -141,13 +179,18 @@ public sealed class DatosFiscalesAeatTests
     }
 
     [Fact]
-    public void SinDatosFiscalesSeDeduceElSaldoYSeAvisa()
+    public void SinDatosFiscalesSeDeduceLoContabilizadoYSeAvisa()
     {
-        var p = CalculoImpuestoSociedades.Calcular(Datos(40000m), EntradaImpuestoSociedades.Vacia);
-        Assert.Equal(p.TotalSaldos473, p.TotalRetenciones);
-        Assert.All(p.Retenciones, r => Assert.Null(r.SegunAeat));
-        Assert.Contains(p.Avisos, x => x.Contains("Sin datos fiscales de la AEAT"));
-        Assert.NotNull(CalculoImpuestoSociedades.Validar(new([], Deducir: [new("4730001", -1m)])));
+        foreach (var conApuntes in new[] { true, false })
+        {
+            var p = CalculoImpuestoSociedades.Calcular(Datos(40000m, conApuntes), EntradaImpuestoSociedades.Vacia);
+            Assert.Equal(p.TotalSaldos473, p.TotalRetenciones);
+            Assert.All(p.Retenciones, r => Assert.Null(r.SegunAeat));
+            Assert.All(p.FilasContraste, f => Assert.Null(f.Hacienda));
+            Assert.Null(p.PorQueNoContraste);
+            Assert.Contains(p.Avisos, x => x.Contains("Sin datos fiscales de la AEAT"));
+        }
+        Assert.NotNull(CalculoImpuestoSociedades.Validar(new([], Valores: [new("4730001|", -1m)])));
         Assert.NotNull(CalculoImpuestoSociedades.Validar(new([], RetencionesAeat: [new("180", null, "X", -1m)])));
     }
 }

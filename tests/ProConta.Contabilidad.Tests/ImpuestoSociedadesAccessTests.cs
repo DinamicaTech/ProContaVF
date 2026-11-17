@@ -78,7 +78,15 @@ public sealed class ImpuestoSociedadesAccessTests(ITestOutputHelper salida) : ID
         await PrepararAsync();
         var d = await Servicio(Enero).DatosAsync(_ctx);
         Assert.Equal(15900m, d.ResultadoContable);
-        Assert.Equal(20000m, d.RentaViviendas);
+        // Renta de viviendas: los 20.000 del piso menos los gastos sin centro (generales) en proporción a los ingresos ordinarios (todos del piso).
+        Assert.Equal(15900m, d.RentaViviendas);
+        var v = d.Viviendas!;
+        Assert.Equal((20000m, 0m, 4100m, 20000m, 20000m, 4100m), (v.Ingresos, v.GastosDirectos, v.GastosIndirectos, v.IngresosOrdinariosViviendas, v.IngresosOrdinariosTotales, v.IndirectosImputados));
+        Assert.Equal([(PartidaRentaViviendas.GastoIndirecto, "(sin centro)", "6290001", 4000m), (PartidaRentaViviendas.GastoIndirecto, "(sin centro)", "6780000", 100m),
+                (PartidaRentaViviendas.IngresoViviendas, "300 Piso A", "7520000", 20000m)],
+            v.Partidas.Select(x => (x.Clase, x.Centro, x.Cuenta, x.Importe)).ToList());
+        Assert.Equal(1900m, d.ApuntesRetencion!.Where(x => x.Cuenta == "4730001").Sum(x => x.Importe));
+        Assert.Equal("Inquilino sintético", d.ApuntesRetencion!.Single(x => x.Cuenta == "4730001").Pagador);
         Assert.True(d.HayActividadBonificada);
         Assert.Equal([("4730001", 1900m), ("4730002", 500m)], d.Retenciones.Select(r => (r.Cuenta, r.Saldo)).ToList());
         Assert.Equal(["Inquilino sintético"], d.Retenciones[0].Pagadores!);
@@ -196,23 +204,30 @@ public sealed class ImpuestoSociedadesAccessTests(ITestOutputHelper salida) : ID
         await PrepararAsync();
         var servicio = Servicio(Enero);
         var d = await servicio.DatosAsync(_ctx);
-        // La AEAT conoce 1.800 de la 4730001 (no los 1.900 del saldo) y 500 de pago fraccionado; el operador deduce 1.850 de la 4730001.
+        // Hacienda conoce 1.800 del inquilino (no los 1.900 contabilizados) y 500 de pago fraccionado; el operador usa 1.850 con justificación.
         var importados = await servicio.ImportarDatosFiscalesAsync(_ctx, System.Text.Encoding.Latin1.GetBytes(DatosFiscalesAeatTests.Html(2026, "B12345674",
             pagos: [("2T", "500,00")], alquileres: [("X0000000X", "INQUILINO SINTETICO", "1.800,00")], bases: "1.000,00", presentado: null)), d);
         Assert.True(importados.EsCorrecto, importados.Error?.Mensaje);
         Assert.Equal(["4730002", "4730001"], importados.Valor.Retenciones.Select(r => r.Cuenta));
-        var entrada = ConMulta with
-        {
-            Bonificaciones = 0m, RetencionesAeat = importados.Valor.Retenciones, BasesNegativasAeat = importados.Valor.BasesNegativas, Deducir = [new("4730001", 1850m)],
-        };
+        var sinValor = servicio.Calcular(_ctx, d, ConMulta with { Bonificaciones = 0m, RetencionesAeat = importados.Valor.Retenciones, BasesNegativasAeat = importados.Valor.BasesNegativas });
+        var inquilino = sinValor.FilasContraste.Single(f => f.Cuenta == "4730001");
+        Assert.Equal(("Inquilino sintético", (decimal?)1800m, 1900m, 1), (inquilino.Pagador, inquilino.Hacienda, inquilino.Contable, inquilino.Apuntes.Count));
+        Assert.Equal(1900m, inquilino.Apuntes[0].Importe);
+        var entrada = sinValor.Entrada with { Valores = [new(inquilino.Clave, 1850m, "Certificado del inquilino: 1.850")] };
         var p = servicio.Calcular(_ctx, d, entrada);
+        Assert.Null(p.PorQueNoContraste);
         Assert.Equal([("6300000", 4000m, 0m), ("4730001", 0m, 1850m), ("4730002", 0m, 500m), ("4752000", 0m, 1650m)], p.Lineas.Select(l => (l.Cuenta, l.Debe, l.Haber)).ToList());
         Assert.True((await servicio.ConfirmarAsync(_ctx, entrada, null, _actor, p)).EsCorrecto);
 
         var otra = (await servicio.ProponerAsync(_ctx)).Valor;
         Assert.True(otra.Entrada.Equivale(entrada with { Bonificaciones = otra.Entrada.Bonificaciones, CreditoPerdidas = otra.Entrada.CreditoPerdidas }));
         Assert.Equal(p.Lineas, otra.Lineas);
-        Assert.Equal(1, await ContarAsync("SELECT COUNT(*) FROM ImpuestosSociedadesRetenciones WHERE Cuenta = '4730001' AND Saldo = 1900 AND SegunAeat = 1800 AND Deducido = 1850 AND Escrito = True"));
+        Assert.Equal(1, await ContarAsync("SELECT COUNT(*) FROM ImpuestosSociedadesRetenciones WHERE Cuenta = '4730001' AND Hacienda = 1800 AND Contable = 1900 AND Propuesto = 1800 " +
+            "AND Valor = 1850 AND Escrito = True AND Justificacion = 'Certificado del inquilino: 1.850'"));
+        Assert.Equal(2, await ContarAsync("SELECT COUNT(*) FROM ImpuestosSociedadesDatosAeat"));
+        // Sin justificación no se confirma.
+        var sinJustificar = servicio.Calcular(_ctx, d, entrada with { Valores = [new(inquilino.Clave, 1850m)] });
+        Assert.False((await servicio.ConfirmarAsync(_ctx, sinJustificar.Entrada, "Prueba", _actor, sinJustificar)).EsCorrecto);
         Assert.Equal(EstadoImpuestoSociedades.Contabilizado, (await servicio.SituacionAsync(_ctx)).Estado);
 
         // Otro NIF u otro ejercicio no se importan.
@@ -253,16 +268,33 @@ public sealed class ImpuestoSociedadesAccessTests(ITestOutputHelper salida) : ID
             salida.WriteLine($"Base {propuesta.BaseImponible}; cuota íntegra {propuesta.CuotaIntegra}; bonificación propuesta {propuesta.BonificacionPropuesta}; cuota líquida {propuesta.CuotaLiquida}");
             Assert.Equal(116430.95m, d.ResultadoContable);
             Assert.Equal(13734.76m, propuesta.CuotaIntegra);
-            // Con los datos fiscales (PROCONTA_DATOS_FISCALES_IS: el HTML de la Sede), la gestoría deduce lo de la AEAT salvo en una 473, donde deduce su saldo.
+            if (d.Viviendas is { } v)
+            {
+                salida.WriteLine($"Renta de viviendas: ingresos {v.Ingresos}; directos {v.GastosDirectos}; generales {v.GastosIndirectos}; ordinarios viviendas {v.IngresosOrdinariosViviendas} " +
+                    $"de {v.IngresosOrdinariosTotales} ({v.Proporcion:P2}); imputados {v.IndirectosImputados}; renta {v.Renta}");
+                foreach (var g in v.Partidas.GroupBy(x => (x.Clase, x.Centro)))
+                    salida.WriteLine($"  {g.Key.Clase} · {g.Key.Centro}: {g.Sum(x => x.Importe)} ({g.Count()} cuentas)");
+                foreach (var x in v.Partidas.Where(x => x.Clase != PartidaRentaViviendas.OtroIngresoOrdinario).OrderByDescending(x => x.Importe).Take(25))
+                    salida.WriteLine($"    {x.Clase} · {x.Centro} · {x.Cuenta} {x.NombreCuenta}: {x.Importe}");
+            }
+            // Con los datos fiscales (PROCONTA_DATOS_FISCALES_IS: el HTML de la Sede), la gestoría deduce lo de Hacienda salvo en la 4735079, donde deduce lo contabilizado.
             if (Environment.GetEnvironmentVariable("PROCONTA_DATOS_FISCALES_IS") is not { Length: > 0 } html || !File.Exists(html)) return;
             var importados = await servicio.ImportarDatosFiscalesAsync(ctx!, await File.ReadAllBytesAsync(html), d);
             Assert.True(importados.EsCorrecto, importados.Error?.Mensaje);
             var aeat = importados.Valor;
             foreach (var r in aeat.Retenciones) salida.WriteLine($"  AEAT {r.Modelo} {r.Nif} {r.Nombre}: {r.Importe} → {r.Cuenta ?? "sin cuenta"}");
             salida.WriteLine($"Bases negativas según la AEAT {aeat.BasesNegativas}; presentado {aeat.ResultadoPresentado}; viviendas {aeat.ArrendamientoViviendas}");
-            var gestoria = CalculoImpuestoSociedades.Calcular(d, new([new(false, false, "Ajuste art. 21.3", 51727.50m)], Bonificaciones: 2148.29m,
-                RetencionesAeat: aeat.Retenciones, BasesNegativasAeat: aeat.BasesNegativas, ResultadoPresentado: aeat.ResultadoPresentado,
-                Deducir: [new("4735079", d.Retenciones.Single(r => r.Cuenta == "4735079").Saldo)]));
+            var conAeat = new EntradaImpuestoSociedades([new(false, false, "Ajuste art. 21.3", 51727.50m)], Bonificaciones: 2148.29m,
+                RetencionesAeat: aeat.Retenciones, BasesNegativasAeat: aeat.BasesNegativas, ResultadoPresentado: aeat.ResultadoPresentado);
+            var contraste = CalculoImpuestoSociedades.Calcular(d, conAeat).FilasContraste;
+            foreach (var f in contraste)
+                salida.WriteLine($"  contraste {f.Cuenta ?? "sin cuenta"} · {f.Pagador} ({f.Nif}): Hacienda {f.Hacienda}, contabilidad {f.Contable} en {f.Apuntes.Count} apuntes, " +
+                    $"líneas de Hacienda {f.Aeat.Count}");
+            var gestoria = CalculoImpuestoSociedades.Calcular(d, conAeat with
+            {
+                Valores = [.. contraste.Where(f => f.Cuenta == "4735079" && f.Contable != (f.Hacienda ?? 0m))
+                    .Select(f => new ValorRetencion(f.Clave, Math.Max(0m, f.Contable), "Pagado por el inquilino; Hacienda no lo conoce"))],
+            });
             foreach (var r in gestoria.Retenciones) salida.WriteLine($"  {r.Cuenta}: saldo {r.Saldo}, AEAT {r.SegunAeat}, propuesto {r.Propuesto}, deducido {r.Deducido}");
             foreach (var a in gestoria.Avisos) salida.WriteLine($"  aviso: {a}");
             Assert.Equal(11586.47m, gestoria.CuotaLiquida);

@@ -175,4 +175,24 @@ public sealed class ImpuestoSociedadesTests
         Assert.Equal(ParametrosImpuestoSociedades.PrefijosAjustesDefecto, ParametrosImpuestoSociedades.LeerPrefijos(" "));
         Assert.Equal(CuentasImpuestoSociedades.Defecto, CuentasImpuestoSociedades.Con(null, " ", null, "", null));
     }
+
+    [Fact]
+    public void LaRentaDeViviendasImputaLosGastosGeneralesEnProporcionALosIngresosOrdinarios()
+    {
+        // 30.000 de viviendas sobre 60.000 de ingresos ordinarios: la mitad de los 10.001 generales (redondeada) se imputa a las viviendas.
+        var v = new RentaViviendasDetalle(31000m, 8000m, 10001m, 30000m, 60000m, []);
+        Assert.Equal(0.5m, v.Proporcion);
+        Assert.Equal(5000.50m, v.IndirectosImputados);
+        Assert.Equal(17999.50m, v.Renta);
+        Assert.Equal(0m, new RentaViviendasDetalle(0m, 0m, 500m, 0m, 0m, []).IndirectosImputados);
+
+        // La renta escrita manda sobre la calculada en la bonificación, con aviso.
+        var d = new DatosImpuestoSociedades(2025, 100000m, 40000m, true, [], [], 0m, ParametrosImpuestoSociedades.Defecto with { Bonificacion = 0.40m }, []);
+        var calculada = CalculoImpuestoSociedades.Calcular(d, EntradaImpuestoSociedades.Vacia);
+        var escrita = CalculoImpuestoSociedades.Calcular(d, new([], RentaViviendas: 20000m));
+        Assert.Equal(40000m, calculada.RentaViviendas);
+        Assert.Equal((20000m, 40000m), (escrita.RentaViviendas, escrita.RentaViviendasCalculada));
+        Assert.Equal(calculada.BonificacionPropuesta / 2m, escrita.BonificacionPropuesta);
+        Assert.Contains(escrita.Avisos, a => a.Contains("renta de viviendas de 20.000,00 €"));
+    }
 }

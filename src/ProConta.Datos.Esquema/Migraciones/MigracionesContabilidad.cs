@@ -444,7 +444,7 @@ public static class MigracionesContabilidad
             "CuotaIntegra CURRENCY NOT NULL, Bonificaciones CURRENCY NOT NULL, Deducciones CURRENCY NOT NULL, CuotaCalculada CURRENCY NOT NULL, " +
             "CuotaLiquida CURRENCY NOT NULL, Retenciones CURRENCY NOT NULL, CreditoPerdidas CURRENCY NOT NULL, Resultado CURRENCY NOT NULL, " +
             "Motivo TEXT(255), IdAsiento LONG, Operador TEXT(100), FechaHoraConfirmacion DATETIME NOT NULL, SaldoRetenciones CURRENCY NOT NULL, " +
-            "BasesNegativasAeat CURRENCY, ResultadoPresentadoAeat CURRENCY)"),
+            "BasesNegativasAeat CURRENCY, ResultadoPresentadoAeat CURRENCY, RentaViviendas CURRENCY NOT NULL, RentaViviendasCalculada CURRENCY NOT NULL)"),
         new CrearIndice("ImpuestosSociedades", "UX_ImpuestosSociedades_Ejercicio",
             "CREATE UNIQUE INDEX UX_ImpuestosSociedades_Ejercicio ON ImpuestosSociedades (IdSociedadEjercicio)"),
         new CrearTabla("ImpuestosSociedadesAjustes",
@@ -456,9 +456,10 @@ public static class MigracionesContabilidad
         new CrearTabla("ImpuestosSociedadesRetenciones",
             "CREATE TABLE ImpuestosSociedadesRetenciones (IdImpuestoSociedadesRetencion COUNTER CONSTRAINT PK_ImpuestosSociedadesRetenciones PRIMARY KEY, " +
             "IdImpuestoSociedades LONG NOT NULL CONSTRAINT FK_ImpuestosSociedadesRetenciones_Impuesto REFERENCES ImpuestosSociedades (IdImpuestoSociedades), " +
-            "Cuenta TEXT(10) NOT NULL, Saldo CURRENCY NOT NULL, SegunAeat CURRENCY, Propuesto CURRENCY NOT NULL, Deducido CURRENCY NOT NULL, Escrito YESNO NOT NULL)"),
+            "Clave TEXT(80) NOT NULL, Pagador TEXT(120) NOT NULL, Nif TEXT(20), Cuenta TEXT(10), Hacienda CURRENCY, Contable CURRENCY NOT NULL, Propuesto CURRENCY NOT NULL, " +
+            "Valor CURRENCY NOT NULL, Escrito YESNO NOT NULL, Justificacion TEXT(255))"),
         new CrearIndice("ImpuestosSociedadesRetenciones", "IX_ImpuestosSociedadesRetenciones_Impuesto",
-            "CREATE INDEX IX_ImpuestosSociedadesRetenciones_Impuesto ON ImpuestosSociedadesRetenciones (IdImpuestoSociedades, Cuenta)"),
+            "CREATE INDEX IX_ImpuestosSociedadesRetenciones_Impuesto ON ImpuestosSociedadesRetenciones (IdImpuestoSociedades, Clave)"),
         new CrearTabla("ImpuestosSociedadesDatosAeat",
             "CREATE TABLE ImpuestosSociedadesDatosAeat (IdImpuestoSociedadesDatoAeat COUNTER CONSTRAINT PK_ImpuestosSociedadesDatosAeat PRIMARY KEY, " +
             "IdImpuestoSociedades LONG NOT NULL CONSTRAINT FK_ImpuestosSociedadesDatosAeat_Impuesto REFERENCES ImpuestosSociedades (IdImpuestoSociedades), " +
@@ -515,15 +516,21 @@ public static class MigracionesContabilidad
             new("ImpuestosSociedadesAjustes", "Descripcion", "Texto del ajuste (por ejemplo «Multas y sanciones» o «Ajuste art. 21.3»)."),
             new("ImpuestosSociedadesAjustes", "Cuenta", "Cuenta de la que sale, si se añadió desde los posibles ajustes."),
             new("ImpuestosSociedadesAjustes", "Importe", "Importe del ajuste, positivo."),
-            new("ImpuestosSociedadesRetenciones", null, "Cada 473 de un cálculo del Impuesto sobre Sociedades: su saldo, lo que conoce la AEAT, lo propuesto y lo deducido."),
+            new("ImpuestosSociedadesRetenciones", null, "Contraste de retenciones de un cálculo del Impuesto sobre Sociedades: por pagador, Hacienda frente a contabilidad y el valor usado."),
             new("ImpuestosSociedadesRetenciones", "IdImpuestoSociedadesRetencion", "Identificador de la línea."),
             new("ImpuestosSociedadesRetenciones", "IdImpuestoSociedades", "Cálculo al que pertenece."),
-            new("ImpuestosSociedadesRetenciones", "Cuenta", "Subcuenta 473."),
-            new("ImpuestosSociedadesRetenciones", "Saldo", "Saldo de la cuenta a 31/12 (Debe − Haber) al confirmar."),
-            new("ImpuestosSociedadesRetenciones", "SegunAeat", "Lo que la AEAT le atribuye según los datos fiscales; vacío sin datos fiscales."),
-            new("ImpuestosSociedadesRetenciones", "Propuesto", "Lo que se propuso deducir: lo que conoce la AEAT o, sin datos fiscales, el saldo deudor."),
-            new("ImpuestosSociedadesRetenciones", "Deducido", "Lo deducido (Haber de la cuenta en el asiento); lo que no se deduce se queda en la cuenta."),
-            new("ImpuestosSociedadesRetenciones", "Escrito", "Sí si el operador escribió el importe a deducir en lugar del propuesto."),
+            new("ImpuestosSociedadesRetenciones", "Clave", "Clave de la fila: «cuenta|NIF o pagador» si la contabilidad la tiene, «AEAT|modelo|pagador» si solo la conoce Hacienda."),
+            new("ImpuestosSociedadesRetenciones", "Pagador", "Pagador (o la 473 si sus apuntes no tienen pagador)."),
+            new("ImpuestosSociedadesRetenciones", "Nif", "NIF del pagador, si se conoce."),
+            new("ImpuestosSociedadesRetenciones", "Cuenta", "Subcuenta 473 a cuyo Haber va el valor; vacía si no se eligió."),
+            new("ImpuestosSociedadesRetenciones", "Hacienda", "Lo que dicen los datos fiscales de la AEAT; vacío sin datos fiscales."),
+            new("ImpuestosSociedadesRetenciones", "Contable", "Lo contabilizado en la 473 para ese pagador (Debe − Haber de sus apuntes)."),
+            new("ImpuestosSociedadesRetenciones", "Propuesto", "Lo propuesto: lo de Hacienda o, sin datos fiscales, lo contabilizado."),
+            new("ImpuestosSociedadesRetenciones", "Valor", "Valor usado en el IS (Haber de la 473 en el asiento); lo que no se usa se queda en la cuenta."),
+            new("ImpuestosSociedadesRetenciones", "Escrito", "Sí si el operador escribió o copió el valor en lugar del propuesto."),
+            new("ImpuestosSociedadesRetenciones", "Justificacion", "Por qué el valor no es el de Hacienda (por ejemplo, el certificado del pagador)."),
+            new("ImpuestosSociedades", "RentaViviendas", "Renta de viviendas aplicada en la bonificación (la calculada o la escrita)."),
+            new("ImpuestosSociedades", "RentaViviendasCalculada", "Renta de viviendas calculada: ingresos − gastos directos − indirectos en proporción a los ingresos ordinarios."),
             new("ImpuestosSociedadesDatosAeat", null, "Retenciones y pagos a cuenta de los datos fiscales de la AEAT usados en un cálculo del Impuesto sobre Sociedades (sin el fichero)."),
             new("ImpuestosSociedadesDatosAeat", "IdImpuestoSociedadesDatoAeat", "Identificador de la línea."),
             new("ImpuestosSociedadesDatosAeat", "IdImpuestoSociedades", "Cálculo al que pertenece."),

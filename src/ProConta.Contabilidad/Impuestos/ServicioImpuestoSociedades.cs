@@ -122,6 +122,9 @@ public sealed class ServicioImpuestoSociedades(IBaseDatos bd, IMotorAsientos mot
         if (vista is not null && (!vista.Lineas.SequenceEqual(p.Lineas) || vista.ResultadoContable != p.ResultadoContable || vista.CuotaLiquida != p.CuotaLiquida))
             return Fallo(new Error("ImpuestoSociedades.Cambiada", "La propuesta ha cambiado desde que la abriste.", registro,
                 "Alguien ha contabilizado o cambiado apuntes del ejercicio mientras la revisabas.", "Vuelve a calcularla y revísala antes de confirmar."));
+        if (p.PorQueNoContraste is { } contraste)
+            return Fallo(new Error("ImpuestoSociedades.Contraste", "Falta completar el contraste de retenciones.", registro, contraste,
+                "Ábrelo desde la pantalla del impuesto y complétalo."));
         if (await RegularizacionAsync(ctx) is { } reg)
             return Fallo(new Error("ImpuestoSociedades.Regularizado", "El ejercicio ya está regularizado.", registro,
                 $"El impuesto va antes de la regularización y el ejercicio ya tiene el asiento {reg}: la 6300 quedaría fuera del resultado.",
@@ -242,19 +245,21 @@ public sealed class ServicioImpuestoSociedades(IBaseDatos bd, IMotorAsientos mot
         await s.EjecutarAsync(
             "INSERT INTO ImpuestosSociedades (IdSociedadEjercicio, ResultadoContable, AjustesAumentos, AjustesDisminuciones, BasesNegativas, BaseImponible, TipoGeneral, " +
             "LimiteTramoReducido, TipoTramoReducido, CuotaIntegra, Bonificaciones, Deducciones, CuotaCalculada, CuotaLiquida, Retenciones, CreditoPerdidas, Resultado, " +
-            "Motivo, IdAsiento, Operador, FechaHoraConfirmacion, SaldoRetenciones, BasesNegativasAeat, ResultadoPresentadoAeat) " +
-            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            "Motivo, IdAsiento, Operador, FechaHoraConfirmacion, SaldoRetenciones, BasesNegativasAeat, ResultadoPresentadoAeat, RentaViviendas, RentaViviendasCalculada) " +
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
             ctx.IdSociedadEjercicio, p.ResultadoContable, p.AumentosPermanentes + p.AumentosTemporales, p.DisminucionesPermanentes + p.DisminucionesTemporales,
             p.BasesNegativas, p.BaseImponible, Porcentaje(p.TipoGeneral), p.LimiteTramo, p.TipoTramo is decimal t ? Porcentaje(t) : null, p.CuotaIntegra,
             p.Bonificaciones, p.Deducciones, p.CuotaCalculada, p.CuotaLiquida, p.TotalRetenciones, p.CreditoPerdidas, p.Resultado,
             string.IsNullOrWhiteSpace(motivo) ? null : Recortar(motivo.Trim(), 255), idAsiento, Recortar(actor.ToString(), 100), _reloj.Ahora,
-            p.TotalSaldos473, p.Entrada.BasesNegativasAeat, p.Entrada.ResultadoPresentado);
+            p.TotalSaldos473, p.Entrada.BasesNegativasAeat, p.Entrada.ResultadoPresentado, p.RentaViviendas, p.RentaViviendasCalculada);
         var idImpuesto = await s.UltimoIdAsync();
         var e = p.Entrada;
-        foreach (var r in p.Retenciones)
+        foreach (var r in p.FilasContraste)
             await s.EjecutarAsync(
-                "INSERT INTO ImpuestosSociedadesRetenciones (IdImpuestoSociedades, Cuenta, Saldo, SegunAeat, Propuesto, Deducido, Escrito) VALUES (?, ?, ?, ?, ?, ?, ?)",
-                idImpuesto, r.Cuenta, r.Saldo, r.SegunAeat, r.Propuesto, r.Deducido, r.Escrito);
+                "INSERT INTO ImpuestosSociedadesRetenciones (IdImpuestoSociedades, Clave, Pagador, Nif, Cuenta, Hacienda, Contable, Propuesto, Valor, Escrito, Justificacion) " +
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                idImpuesto, Recortar(r.Clave, 80), Recortar(r.Pagador, 120), string.IsNullOrWhiteSpace(r.Nif) ? null : Recortar(r.Nif.Trim(), 20), r.Cuenta, r.Hacienda,
+                r.Contable, r.Propuesto, r.Valor, r.Escrito, r.Justificacion is null ? null : Recortar(r.Justificacion, 255));
         var aeat = e.RetencionesAeat ?? [];
         for (var i = 0; i < aeat.Count; i++)
         {
@@ -288,13 +293,15 @@ public sealed class ServicioImpuestoSociedades(IBaseDatos bd, IMotorAsientos mot
     {
         var filas = await s.ConsultarAsync(
             "SELECT IdImpuestoSociedades, ResultadoContable, BasesNegativas, BaseImponible, Bonificaciones, Deducciones, CuotaCalculada, CuotaLiquida, Retenciones, " +
-            "CreditoPerdidas, Resultado, Motivo, IdAsiento, Operador, FechaHoraConfirmacion, SaldoRetenciones, BasesNegativasAeat, ResultadoPresentadoAeat " +
+            "CreditoPerdidas, Resultado, Motivo, IdAsiento, Operador, FechaHoraConfirmacion, SaldoRetenciones, BasesNegativasAeat, ResultadoPresentadoAeat, " +
+            "RentaViviendas, RentaViviendasCalculada " +
             "FROM ImpuestosSociedades WHERE IdSociedadEjercicio = ?",
             f => (Id: f.Entero("IdImpuestoSociedades"), Resultado: Dec(f, "ResultadoContable"), Bases: Dec(f, "BasesNegativas"), Base: Dec(f, "BaseImponible"),
                 Bonif: Dec(f, "Bonificaciones"), Deduc: Dec(f, "Deducciones"), Calculada: Dec(f, "CuotaCalculada"), Cuota: Dec(f, "CuotaLiquida"),
                 Ret: Dec(f, "Retenciones"), Credito: Dec(f, "CreditoPerdidas"), Saldo: Dec(f, "Resultado"), Motivo: f.Texto("Motivo"), IdAsiento: f.EnteroNulo("IdAsiento"),
                 Operador: f.Texto("Operador"), Fecha: f.Fecha("FechaHoraConfirmacion"), SaldoRet: Dec(f, "SaldoRetenciones"),
-                BasesAeat: f.DecimalNulo("BasesNegativasAeat"), Presentado: f.DecimalNulo("ResultadoPresentadoAeat")),
+                BasesAeat: f.DecimalNulo("BasesNegativasAeat"), Presentado: f.DecimalNulo("ResultadoPresentadoAeat"),
+                Renta: Dec(f, "RentaViviendas"), RentaCalculada: Dec(f, "RentaViviendasCalculada")),
             ctx.IdSociedadEjercicio);
         if (filas.Count == 0) return null;
         var g = filas[0];
@@ -303,9 +310,12 @@ public sealed class ServicioImpuestoSociedades(IBaseDatos bd, IMotorAsientos mot
             f => new AjusteImpuestoSociedades(f.Logico("Temporal"), f.Logico("Aumento"), (f.Texto("Descripcion") ?? "").Trim(), Dec(f, "Importe"),
                 string.IsNullOrWhiteSpace(f.Texto("Cuenta")) ? null : f.Texto("Cuenta")!.Trim()),
             g.Id);
-        var deducir = await s.ConsultarAsync(
-            "SELECT Cuenta, Deducido FROM ImpuestosSociedadesRetenciones WHERE IdImpuestoSociedades = ? AND Escrito = True ORDER BY Cuenta",
-            f => new RetencionDeducida((f.Texto("Cuenta") ?? "").Trim(), Dec(f, "Deducido")), g.Id);
+        var valores = await s.ConsultarAsync(
+            "SELECT Clave, Cuenta, Valor, Escrito, Justificacion FROM ImpuestosSociedadesRetenciones WHERE IdImpuestoSociedades = ? " +
+            "AND (Escrito = True OR Justificacion Is Not Null OR Left(Clave, 5) = 'AEAT|') ORDER BY Clave",
+            f => new ValorRetencion((f.Texto("Clave") ?? "").Trim(), f.Logico("Escrito") ? Dec(f, "Valor") : null,
+                string.IsNullOrWhiteSpace(f.Texto("Justificacion")) ? null : f.Texto("Justificacion")!.Trim(),
+                string.IsNullOrWhiteSpace(f.Texto("Cuenta")) ? null : f.Texto("Cuenta")!.Trim()), g.Id);
         var aeat = await s.ConsultarAsync(
             "SELECT Modelo, Nif, Nombre, Importe, Cuenta FROM ImpuestosSociedadesDatosAeat WHERE IdImpuestoSociedades = ? ORDER BY Orden",
             f => new RetencionAeat((f.Texto("Modelo") ?? "").Trim(), string.IsNullOrWhiteSpace(f.Texto("Nif")) ? null : f.Texto("Nif")!.Trim(), (f.Texto("Nombre") ?? "").Trim(),
@@ -313,7 +323,7 @@ public sealed class ServicioImpuestoSociedades(IBaseDatos bd, IMotorAsientos mot
             g.Id);
         // Lo escrito: la bonificación y el crédito tal como se grabaron, la cuota solo si se fijó a mano, lo escrito en las 473 y los datos fiscales.
         var entrada = new EntradaImpuestoSociedades(ajustes, g.Bases, g.Bonif, g.Deduc, g.Credito, g.Cuota != g.Calculada ? g.Cuota : null,
-            aeat.Count == 0 ? null : aeat, g.BasesAeat, g.Presentado, deducir.Count == 0 ? null : deducir);
+            aeat.Count == 0 ? null : aeat, g.BasesAeat, g.Presentado, valores.Count == 0 ? null : valores, g.Renta != g.RentaCalculada ? g.Renta : null);
         return new ImpuestoSociedadesGuardado(g.Resultado, g.Base, g.Cuota, g.Ret, g.Saldo, g.Motivo, g.IdAsiento, g.Operador, g.Fecha, entrada, g.SaldoRet);
     });
 
@@ -330,29 +340,40 @@ public sealed class ServicioImpuestoSociedades(IBaseDatos bd, IMotorAsientos mot
                     f.Texto("CuentaCreditoPerdidasIS"), f.Texto("CuentaImpuestoDiferidoIS"))),
             ctx.IdSociedadEjercicio) ?? ParametrosImpuestoSociedades.Defecto);
 
-    private sealed record ApunteLeido(int IdAsiento, int Tipo, string Cuenta, decimal Debe, decimal Haber, int? IdCentro, bool DelLote);
+    private sealed record ApunteLeido(int IdAsiento, int Tipo, string Cuenta, decimal Debe, decimal Haber, int? IdCentro, bool DelLote, DateTime Fecha = default, string Texto = "");
 
     /// <summary>Todo lo que el cálculo lee de la contabilidad del ejercicio.</summary>
     public async Task<DatosImpuestoSociedades> DatosAsync(ContextoSociedadEjercicio ctx, CancellationToken c = default)
     {
         var parametros = await ParametrosAsync(ctx);
-        var (bonificados, hayBonificada) = await CentrosBonificadosAsync(ctx.IdSociedad);
+        var (bonificados, generales, nombresCentros, hayBonificada) = await CentrosAsync(ctx.IdSociedad);
         var lote = Lote(ctx.Ejercicio);
         var fin = CalculoImpuestoSociedades.FechaAsiento(ctx.Ejercicio);
-        var (apuntes, nombres) = await bd.EjecutarAsync(async s =>
+        var (apuntes, nombres, nifs) = await bd.EjecutarAsync(async s =>
         {
             var a = await s.ConsultarAsync(
-                "SELECT a.IdAsiento, a.TipoAsiento, a.FechaContable, a.MotorPropietario, a.CodigoProceso, a.ClaveEjecucion, p.CuentaContable, p.ImporteDebe, p.ImporteHaber, p.IdCentroCoste " +
+                "SELECT a.IdAsiento, a.TipoAsiento, a.FechaContable, a.Descripcion AS TextoAsiento, a.MotorPropietario, a.CodigoProceso, a.ClaveEjecucion, p.CuentaContable, " +
+                "p.ImporteDebe, p.ImporteHaber, p.IdCentroCoste, p.Descripcion AS TextoApunte " +
                 "FROM Asientos AS a INNER JOIN Apuntes AS p ON a.IdAsiento = p.IdAsiento WHERE a.IdSociedadEjercicio = ? AND a.EstadoAsiento = 1 AND a.FechaContable <= ?",
                 f => new ApunteLeido(f.Entero("IdAsiento"), Convert.ToInt32(f.Valor("TipoAsiento"), CultureInfo.InvariantCulture), (f.Texto("CuentaContable") ?? "").Trim(),
                     f.DecimalNulo("ImporteDebe") ?? 0m, f.DecimalNulo("ImporteHaber") ?? 0m, f.EnteroNulo("IdCentroCoste"),
-                    f.Texto("MotorPropietario") == lote.MotorPropietario && f.Texto("CodigoProceso") == lote.CodigoProceso && f.Texto("ClaveEjecucion") == lote.ClaveEjecucion),
+                    f.Texto("MotorPropietario") == lote.MotorPropietario && f.Texto("CodigoProceso") == lote.CodigoProceso && f.Texto("ClaveEjecucion") == lote.ClaveEjecucion,
+                    f.Fecha("FechaContable"), (f.Texto("TextoApunte") is { Length: > 0 } ta ? ta : f.Texto("TextoAsiento") ?? "").Trim()),
                 ctx.IdSociedadEjercicio, fin.AddDays(1).AddTicks(-1));
             var n = new Dictionary<string, string>(StringComparer.Ordinal);
             foreach (var (codigo, nombre) in await s.ConsultarAsync("SELECT Codigo, Nombre FROM CuentasContables WHERE IdSociedadEjercicio = ?",
                          f => ((f.Texto("Codigo") ?? "").Trim(), (f.Texto("Nombre") ?? "").Trim()), ctx.IdSociedadEjercicio))
                 if (codigo.Length > 0) n.TryAdd(codigo, nombre);
-            return (a, n);
+            // NIF del tercero de cada 43 y 44 del ejercicio (clientes y proveedores), para casar los pagadores con Hacienda.
+            var nifs = new Dictionary<string, string>(StringComparer.Ordinal);
+            foreach (var sql in (string[])[
+                         "SELECT cc.Codigo, t.NIF FROM ((CuentasContables AS cc INNER JOIN CuentasClientesSociedad AS cs ON cc.IdIdentidadContable = cs.IdIdentidadContable) " +
+                         "INNER JOIN Clientes AS cl ON cs.IdCliente = cl.IdCliente) INNER JOIN Terceros AS t ON cl.IdTercero = t.IdTercero WHERE cc.IdSociedadEjercicio = ?",
+                         "SELECT cc.Codigo, t.NIF FROM ((CuentasContables AS cc INNER JOIN CuentasProveedoresSociedad AS cs ON cc.IdIdentidadContable = cs.IdIdentidadContable) " +
+                         "INNER JOIN Proveedores AS pr ON cs.IdProveedor = pr.IdProveedor) INNER JOIN Terceros AS t ON pr.IdTercero = t.IdTercero WHERE cc.IdSociedadEjercicio = ?"])
+                foreach (var (codigo, nif) in await s.ConsultarAsync(sql, f => ((f.Texto("Codigo") ?? "").Trim(), (f.Texto("NIF") ?? "").Trim()), ctx.IdSociedadEjercicio))
+                    if (codigo.Length > 0 && nif.Length > 0) nifs.TryAdd(codigo, nif);
+            return (a, n, nifs);
         }, c);
 
         // Sin este proceso, sin la regularización (2) ni el cierre (3).
@@ -361,8 +382,8 @@ public sealed class ServicioImpuestoSociedades(IBaseDatos bd, IMotorAsientos mot
         var ajenos = ordinarios.Where(x => CalculoImpuestoSociedades.EsImpuestoBeneficios(x.Cuenta)).Select(x => x.IdAsiento).ToHashSet();
         var enResultado = ordinarios.Where(x => CalculoImpuestoSociedades.EntraEnResultado(x.Cuenta)).ToList();
         var resultado = enResultado.Sum(x => x.Haber - x.Debe);
-        var viviendas = enResultado.Where(x => x.IdCentro is int ce && bonificados.Contains(ce)).Sum(x => x.Haber - x.Debe);
         string Nombre(string cuenta) => nombres.GetValueOrDefault(cuenta, "");
+        var viviendas = RentaViviendas(enResultado, bonificados, generales, nombresCentros, Nombre);
 
         // Retenciones: saldo de cada 473 sin el cierre ni los asientos del impuesto hechos fuera del proceso.
         var paraRet = propios.Where(x => x.Tipo != TipoCierre && !ajenos.Contains(x.IdAsiento)).ToList();
@@ -376,6 +397,14 @@ public sealed class ServicioImpuestoSociedades(IBaseDatos bd, IMotorAsientos mot
                 return new SaldoCuentaImpuesto(g.Key, Nombre(g.Key), g.Sum(x => x.Debe - x.Haber), g.Count(), pagadores);
             })
             .Where(r => r.Saldo != 0m).OrderBy(r => r.Cuenta, StringComparer.Ordinal).ToList();
+        var apuntesRet = paraRet.Where(x => CalculoImpuestoSociedades.EsRetencion(x.Cuenta) && x.Debe - x.Haber != 0m).Select(x =>
+        {
+            var pagador = x.Debe > 0m
+                ? porAsiento[x.IdAsiento].Select(o => o.Cuenta).FirstOrDefault(o => o.StartsWith("43", StringComparison.Ordinal) || o.StartsWith("44", StringComparison.Ordinal))
+                : null;
+            return new ApunteRetencion(x.IdAsiento, x.Fecha, x.Cuenta, x.Texto, x.Debe - x.Haber,
+                pagador is null ? null : (Nombre(pagador) is { Length: > 0 } np ? np : pagador), pagador is null ? null : nifs.GetValueOrDefault(pagador));
+        }).ToList();
 
         var posibles = ordinarios.Where(x => parametros.PrefijosAjustes.Any(pr => x.Cuenta.StartsWith(pr, StringComparison.Ordinal)) && x.Cuenta.Length > 3)
             .GroupBy(x => x.Cuenta).Select(g => new SaldoCuentaImpuesto(g.Key, Nombre(g.Key), g.Sum(x => x.Debe - x.Haber), g.Count()))
@@ -383,7 +412,35 @@ public sealed class ServicioImpuestoSociedades(IBaseDatos bd, IMotorAsientos mot
 
         var credito = paraRet.Where(x => x.Cuenta == parametros.Cuentas.CreditoPerdidas).Sum(x => x.Debe - x.Haber);
         var textosAjenos = ajenos.Count == 0 ? [] : await TextosAsientosAsync(ajenos);
-        return new DatosImpuestoSociedades(ctx.Ejercicio, resultado, viviendas, hayBonificada, retenciones, posibles, Math.Max(0m, credito), parametros, textosAjenos);
+        return new DatosImpuestoSociedades(ctx.Ejercicio, resultado, viviendas.Renta, hayBonificada, retenciones, posibles, Math.Max(0m, credito), parametros, textosAjenos,
+            apuntesRet, viviendas);
+    }
+
+    /// <summary>
+    /// Renta de viviendas (propietario 2026-11-17 12:44, art. 49.2 LIS): ingresos de los centros bonificados − sus gastos directos − los gastos
+    /// indirectos (sin centro, sin actividad o de la actividad general) en proporción a los ingresos ordinarios (70 a 75) de viviendas sobre los totales.
+    /// </summary>
+    private static RentaViviendasDetalle RentaViviendas(IReadOnlyList<ApunteLeido> enResultado, HashSet<int> bonificados, HashSet<int> generales,
+        IReadOnlyDictionary<int, string> centros, Func<string, string> nombre)
+    {
+        static bool Ordinario(string c) => c.Length >= 2 && c[0] == '7' && c[1] is >= '0' and <= '5';
+        string? Clase(ApunteLeido x)
+        {
+            var viv = x.IdCentro is int ce && bonificados.Contains(ce);
+            var general = x.IdCentro is not int cg || generales.Contains(cg);
+            if (x.Cuenta[0] == '7') return viv ? PartidaRentaViviendas.IngresoViviendas : Ordinario(x.Cuenta) ? PartidaRentaViviendas.OtroIngresoOrdinario : null;
+            return viv ? PartidaRentaViviendas.GastoDirecto : general ? PartidaRentaViviendas.GastoIndirecto : null;
+        }
+        var partidas = enResultado.Select(x => (x, Clase: Clase(x))).Where(t => t.Clase is not null)
+            .GroupBy(t => (t.Clase!, t.x.IdCentro, t.x.Cuenta))
+            .Select(g => new PartidaRentaViviendas(g.Key.Item1, g.Key.IdCentro is int ce ? centros.GetValueOrDefault(ce, ce.ToString(CultureInfo.InvariantCulture)) : "(sin centro)",
+                g.Key.Cuenta, nombre(g.Key.Cuenta), g.Sum(t => g.Key.Item1 is PartidaRentaViviendas.IngresoViviendas or PartidaRentaViviendas.OtroIngresoOrdinario
+                    ? t.x.Haber - t.x.Debe : t.x.Debe - t.x.Haber), g.Count()))
+            .Where(p => p.Importe != 0m).OrderBy(p => p.Clase, StringComparer.Ordinal).ThenBy(p => p.Centro, StringComparer.CurrentCulture).ThenBy(p => p.Cuenta, StringComparer.Ordinal).ToList();
+        decimal Suma(string clase, bool soloOrdinarios = false) => partidas.Where(p => p.Clase == clase && (!soloOrdinarios || Ordinario(p.Cuenta))).Sum(p => p.Importe);
+        var ordViv = Suma(PartidaRentaViviendas.IngresoViviendas, true);
+        return new RentaViviendasDetalle(Suma(PartidaRentaViviendas.IngresoViviendas), Suma(PartidaRentaViviendas.GastoDirecto), Suma(PartidaRentaViviendas.GastoIndirecto),
+            ordViv, ordViv + Suma(PartidaRentaViviendas.OtroIngresoOrdinario), partidas);
     }
 
     /// <summary>Asientos del ejercicio con una 630 hechos fuera de este proceso (sin regularización ni cierre), como texto.</summary>
@@ -424,22 +481,29 @@ public sealed class ServicioImpuestoSociedades(IBaseDatos bd, IMotorAsientos mot
         return ((int?)filas.Min(x => x.Id), filas.Where(x => CalculoImpuestoSociedades.EsImpuestoBeneficios(x.Cuenta)).Sum(x => x.Debe - x.Haber));
     });
 
-    /// <summary>Centros de la sociedad cuya actividad (propia o heredada) tiene la bonificación por alquiler de viviendas, y si hay alguna actividad marcada.</summary>
-    private Task<(HashSet<int> Centros, bool HayActividad)> CentrosBonificadosAsync(string idSociedad) => bd.EjecutarAsync(async s =>
+    /// <summary>
+    /// Centros de la sociedad: los de actividad (propia o heredada) con la bonificación por alquiler de viviendas, los generales (sin actividad o
+    /// de la actividad general, serie de IVA 4720 o vacía), sus nombres y si hay alguna actividad marcada.
+    /// </summary>
+    private Task<(HashSet<int> Bonificados, HashSet<int> Generales, Dictionary<int, string> Nombres, bool HayActividad)> CentrosAsync(string idSociedad) => bd.EjecutarAsync(async s =>
     {
         var filas = await s.ConsultarAsync(
-            "SELECT c.IdCentroCoste, c.IdCentroCostePadre, a.Codigo, a.Nombre, a.Activa, a.BonificacionIS FROM CentrosCoste AS c " +
-            "LEFT JOIN Actividades AS a ON c.IdActividad = a.IdActividad WHERE c.IdSociedad = ?",
+            "SELECT c.IdCentroCoste, c.IdCentroCostePadre, c.Codigo AS CodigoCentro, c.Nombre AS NombreCentro, a.Codigo, a.Nombre, a.Activa, a.BonificacionIS, a.SerieCuentaIva " +
+            "FROM CentrosCoste AS c LEFT JOIN Actividades AS a ON c.IdActividad = a.IdActividad WHERE c.IdSociedad = ?",
             f => (Id: f.Entero("IdCentroCoste"), Padre: f.EnteroNulo("IdCentroCostePadre"),
+                Nombre: $"{(f.Texto("CodigoCentro") ?? "").Trim()} {(f.Texto("NombreCentro") ?? "").Trim()}".Trim(),
                 Propia: f.Texto("Codigo") is { } codigo && !f.EsNulo("Activa") && f.Logico("Activa")
-                    ? new ActividadIva(codigo.Trim(), (f.Texto("Nombre") ?? codigo).Trim(), (byte)(!f.EsNulo("BonificacionIS") && f.Logico("BonificacionIS") ? 1 : 0), null)
+                    ? new ActividadIva(codigo.Trim(), (f.Texto("Nombre") ?? codigo).Trim(), (byte)(!f.EsNulo("BonificacionIS") && f.Logico("BonificacionIS") ? 1 : 0),
+                        (f.Texto("SerieCuentaIva") ?? "").Trim())
                     : null),
             idSociedad);
         var hay = Convert.ToInt32(await s.EscalarAsync("SELECT COUNT(*) FROM Actividades WHERE IdSociedad = ? AND BonificacionIS = True AND Activa = True", idSociedad),
             CultureInfo.InvariantCulture) > 0;
         // El campo Deducible del registro se usa aquí solo como marca de bonificación (1).
         var resueltas = LectorActividadesIva.ResolverHerencia(filas.Select(f => (f.Id, f.Padre, f.Propia)));
-        return (resueltas.Where(kv => kv.Value.Deducible == 1).Select(kv => kv.Key).ToHashSet(), hay);
+        var bonificados = resueltas.Where(kv => kv.Value.Deducible == 1).Select(kv => kv.Key).ToHashSet();
+        var generales = filas.Select(f => f.Id).Where(id => !resueltas.TryGetValue(id, out var a) || string.IsNullOrEmpty(a.Serie) || a.Serie == "4720").ToHashSet();
+        return (bonificados, generales, filas.ToDictionary(f => f.Id, f => f.Nombre), hay);
     });
 
     private const int TipoRegularizacion = 2;
