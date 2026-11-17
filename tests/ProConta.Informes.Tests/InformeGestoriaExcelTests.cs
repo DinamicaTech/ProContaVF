@@ -214,7 +214,7 @@ public sealed class InformeGestoriaExcelTests : IDisposable
     {
         var inf = Informe(0.15m, 0.30m);
         Assert.True(inf.Prorrata.DefinitivaFijada);
-        var regularizacion = inf.Iva303.Linea(Calculo303.ClaveRectificacion).En(4).Cuota;
+        var regularizacion = inf.Iva303.Linea(Calculo303.ClaveRegularizacionProrrata).En(4).Cuota;
         Assert.Equal(inf.Prorrata.Regularizacion(0), regularizacion);
         Assert.NotEqual(0m, regularizacion);
         var ruta = Exportar(inf);

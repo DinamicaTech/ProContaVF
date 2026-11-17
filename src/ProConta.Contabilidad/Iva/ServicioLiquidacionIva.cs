@@ -115,7 +115,7 @@ public sealed class ServicioLiquidacionIva(IBaseDatos bd, IMotorAsientos motor, 
         {
             // El 303 del 4T deduce la regularización de la prorrata y la liquidación salda la 4729: tienen que coincidir
             // (contabilidad/procesos/prorrata). Si no, la diferencia caería en el ajuste sin explicación.
-            var regularizacion = r303.Linea(Calculo303.ClaveRectificacion).En(4).Cuota;
+            var regularizacion = r303.Linea(Calculo303.ClaveRegularizacionProrrata).En(4).Cuota;
             var en4729 = saldos.Where(s => CalculoLiquidacionIva.EsRegularizacionProrrata(s.Cuenta)).Sum(s => s.Saldo);
             if (regularizacion != en4729)
                 return Resultado<PropuestaLiquidacionIva>.Fallo(new Error("LiquidacionIva.ProrrataSinRegularizar",

@@ -562,4 +562,55 @@ public static class MigracionesContabilidad
             (_, e) => Task.FromResult(MigracionesOrganizacion.TieneRelacion(e, "CentrosCoste", "FK_CentrosCoste_Actividad")),
             (s, _) => s.EjecutarAsync(sql));
     }
+
+    /// <summary>
+    /// Presentación de modelos a la AEAT (contabilidad/modelos-tributarios/presentacion y modelo-303 2026-11-17): una fila por
+    /// presentación aceptada, con su entorno (pruebas o producción), CSV, expediente, justificante, forma de pago, importe, resultado
+    /// del modelo, presentador, operador, el fichero enviado, la respuesta de la AEAT con sus avisos, el justificante de la anterior si es
+    /// una rectificativa y el PDF justificante archivado. Añade la cuenta de domiciliación de la sociedad (Sociedades.IbanDomiciliacion,
+    /// organizacion/sociedades-ejercicios). Solo estructura, sin datos.
+    /// </summary>
+    public static Migracion PresentacionesAeat { get; } = new(
+        "20261117_1530_PRESENTACIONES_AEAT", 261117013,
+        "Presentaciones de modelos a la AEAT y cuenta de domiciliación de la sociedad.",
+        "contabilidad/modelos-tributarios/presentacion",
+        new CrearTabla("PresentacionesAeat",
+            "CREATE TABLE PresentacionesAeat (IdPresentacionAeat COUNTER CONSTRAINT PK_PresentacionesAeat PRIMARY KEY, " +
+            "IdSociedad TEXT(3) NOT NULL CONSTRAINT FK_PresentacionesAeat_Sociedad REFERENCES Sociedades (IdSociedad), " +
+            "Modelo TEXT(3) NOT NULL, Ejercicio SHORT NOT NULL, Periodo TEXT(2) NOT NULL, Entorno TEXT(10) NOT NULL, FechaHora DATETIME NOT NULL, " +
+            "Csv TEXT(16) NOT NULL, Expediente TEXT(25), Justificante TEXT(13) NOT NULL, ComplementariaDe TEXT(13), FormaPago TEXT(1), " +
+            "Importe CURRENCY NOT NULL, Resultado CURRENCY NOT NULL, NifPresentador TEXT(9), Presentador TEXT(120), Operador TEXT(100), " +
+            "Fichero LONGTEXT NOT NULL, Respuesta LONGTEXT, Avisos LONGTEXT, UrlPdf TEXT(255), RutaPdf TEXT(255))"),
+        new CrearIndice("PresentacionesAeat", "IX_PresentacionesAeat_Periodo",
+            "CREATE INDEX IX_PresentacionesAeat_Periodo ON PresentacionesAeat (IdSociedad, Modelo, Ejercicio, Periodo)"),
+        new AnadirColumna("Sociedades", "IbanDomiciliacion", "TEXT(34)"))
+    {
+        Descripciones =
+        [
+            new("PresentacionesAeat", null, "Modelo presentado a la AEAT desde el programa: la respuesta aceptada (CSV, justificante) y su PDF (contabilidad/modelos-tributarios/presentacion)."),
+            new("PresentacionesAeat", "IdPresentacionAeat", "Identificador de la presentación."),
+            new("PresentacionesAeat", "IdSociedad", "Sociedad declarante."),
+            new("PresentacionesAeat", "Modelo", "Modelo presentado (303, 390, 111…)."),
+            new("PresentacionesAeat", "Ejercicio", "Ejercicio de devengo."),
+            new("PresentacionesAeat", "Periodo", "Periodo como lo escribe la AEAT: 1T a 4T, 01 a 12 o 0A."),
+            new("PresentacionesAeat", "Entorno", "PRUEBAS (entorno de pruebas de la AEAT, sin efectos) o PRODUCCION, el de la BD."),
+            new("PresentacionesAeat", "FechaHora", "Fecha y hora de la presentación según la AEAT."),
+            new("PresentacionesAeat", "Csv", "Código seguro de verificación de la declaración."),
+            new("PresentacionesAeat", "Expediente", "Número de expediente de la AEAT."),
+            new("PresentacionesAeat", "Justificante", "Número de justificante de la declaración (13 cifras)."),
+            new("PresentacionesAeat", "ComplementariaDe", "En una rectificativa (complementaria), el justificante de la declaración anterior."),
+            new("PresentacionesAeat", "FormaPago", "Forma de pago según la AEAT: U domiciliación, I ingreso con NRC, C a compensar, N sin resultado…"),
+            new("PresentacionesAeat", "Importe", "Importe a ingresar según la AEAT (0 si no sale a ingresar)."),
+            new("PresentacionesAeat", "Resultado", "Resultado del modelo que se liquida en la contabilidad (en el 303, la casilla 66, antes de compensar)."),
+            new("PresentacionesAeat", "NifPresentador", "NIF del presentador (el titular del certificado)."),
+            new("PresentacionesAeat", "Presentador", "Nombre del presentador (el titular del certificado)."),
+            new("PresentacionesAeat", "Operador", "Operador del programa que dio la conformidad y presentó."),
+            new("PresentacionesAeat", "Fichero", "Fichero enviado, con el diseño de registro del modelo."),
+            new("PresentacionesAeat", "Respuesta", "Respuesta JSON de la AEAT."),
+            new("PresentacionesAeat", "Avisos", "Avisos y advertencias de la AEAT, uno por línea."),
+            new("PresentacionesAeat", "UrlPdf", "Dirección de descarga del PDF justificante que dio la AEAT."),
+            new("PresentacionesAeat", "RutaPdf", "PDF justificante archivado en la carpeta de documentos de la empresa (vacío si no se pudo descargar)."),
+            new("Sociedades", "IbanDomiciliacion", "IBAN de la cuenta en que se domicilian las autoliquidaciones que salen a ingresar (303 y demás modelos)."),
+        ],
+    };
 }

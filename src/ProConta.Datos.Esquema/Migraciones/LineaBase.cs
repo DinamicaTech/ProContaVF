@@ -110,6 +110,7 @@ public static class CatalogoMigraciones
         MigracionesDividendos.Dividendos,
         MigracionesContabilidad.ProrrataDefinitiva,
         MigracionesContabilidad.ImpuestoSociedades,
+        MigracionesContabilidad.PresentacionesAeat,
     ];
 
     /// <summary>Versión del esquema que espera esta versión del programa.</summary>

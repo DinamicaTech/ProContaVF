@@ -98,9 +98,9 @@ public sealed class DeduccionPorFechasTests
         var lineas = ClasificadorLineasIva.Clasificar(registros, 2026, Actividades, Centros);
         var r = Calculo303.Calcular(lineas, 0.15m);
 
-        Assert.Equal(84m, r.Linea(Calculo303.ClaveInteriores100).En(4).Cuota);              // 400 × 21 % de diciembre, entera
+        Assert.Equal(84m, r.Linea(Calculo303.ClaveInterioresCorrientes).En(4).Cuota - r.DeducidoProrrata(4)); // 400 × 21 % de diciembre, entera
         Assert.Equal(315m, r.Linea(Calculo303.ClaveNoDeducible).En(4).Cuota);               // 210 + 105 de octubre y noviembre
-        Assert.Equal(3.15m, r.Linea(Calculo303.ClaveInterioresProrrata).En(4).Cuota);       // común: 21 × 15 %
+        Assert.Equal(3.15m, r.Linea(Calculo303.ClaveInterioresCorrientes).Prorrata(4));       // común: 21 × 15 %
         Assert.Equal(84m + 3.15m, r.TotalDeducible(4));
         Assert.Equal(200m, r.Linea(Calculo303.ClaveRepercutido(10m)).En(4).Cuota);
         Assert.Equal(200m - 87.15m, r.Resultado(4));

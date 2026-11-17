@@ -22,25 +22,27 @@ public sealed class LectorLineasIva(IBaseDatos bd)
             var id = ctx.IdSociedadEjercicio;
             var cabSop = await s.ConsultarAsync(
                 "SELECT r.IdIVASoportado AS Id, r.IdAsiento, a.FechaContable, r.FechaExpedicion, t.Codigo AS CodigoTipo, r.InversionSujetoPasivo, r.NombreProveedor AS Tercero, " +
-                "r.IdentificacionFiscalProveedor AS Nif, r.NumeroFactura FROM (IVASoportado AS r INNER JOIN Asientos AS a ON r.IdAsiento = a.IdAsiento) " +
+                "r.IdentificacionFiscalProveedor AS Nif, r.NumeroFactura, r.BienInversion FROM (IVASoportado AS r INNER JOIN Asientos AS a ON r.IdAsiento = a.IdAsiento) " +
                 $"LEFT JOIN TiposOperacion AS t ON r.IdTipoOperacion = t.IdTipoOperacion WHERE r.IdSociedadEjercicio = ? AND {Contabilizado}",
                 f => (Id: f.Entero("Id"), Asiento: f.Entero("IdAsiento"), Fecha: f.Fecha("FechaContable"), Expedicion: f.FechaNula("FechaExpedicion"), Codigo: f.Texto("CodigoTipo")?.Trim(),
                     Isp: !f.EsNulo("InversionSujetoPasivo") && f.Logico("InversionSujetoPasivo"), Tercero: (f.Texto("Tercero") ?? "").Trim(),
-                    Nif: f.Texto("Nif")?.Trim(), Factura: f.Texto("NumeroFactura")?.Trim()), id);
+                    Nif: f.Texto("Nif")?.Trim(), Factura: f.Texto("NumeroFactura")?.Trim(), Bien: !f.EsNulo("BienInversion") && f.Logico("BienInversion")), id);
             var desSop = await s.ConsultarAsync(
                 "SELECT d.IdIVASoportado AS Id, d.BaseImponible, d.TipoIVA, d.CuotaSoportada, d.CuotaDevengadaAutorrepercutida FROM DesglosesIVASoportado AS d " +
                 $"INNER JOIN (IVASoportado AS r INNER JOIN Asientos AS a ON r.IdAsiento = a.IdAsiento) ON d.IdIVASoportado = r.IdIVASoportado WHERE r.IdSociedadEjercicio = ? AND {Contabilizado} ORDER BY d.IdIVASoportado, d.Orden",
                 f => (Id: f.Entero("Id"), D: new DesgloseIvaLeido(f.DecimalNulo("BaseImponible") ?? 0m, f.DecimalNulo("TipoIVA") ?? 0m, f.DecimalNulo("CuotaSoportada") ?? 0m,
                     f.DecimalNulo("CuotaDevengadaAutorrepercutida") ?? 0m)), id);
             var cabRep = await s.ConsultarAsync(
-                "SELECT r.IdIVARepercutido AS Id, r.IdAsiento, a.FechaContable, r.FechaExpedicion, r.NombreCliente AS Tercero, r.IdentificacionFiscalCliente AS Nif, r.NumeroFactura " +
-                $"FROM IVARepercutido AS r INNER JOIN Asientos AS a ON r.IdAsiento = a.IdAsiento WHERE r.IdSociedadEjercicio = ? AND {Contabilizado}",
+                "SELECT r.IdIVARepercutido AS Id, r.IdAsiento, a.FechaContable, r.FechaExpedicion, r.NombreCliente AS Tercero, r.IdentificacionFiscalCliente AS Nif, r.NumeroFactura, " +
+                "tf.EsRectificativa FROM ((IVARepercutido AS r INNER JOIN Asientos AS a ON r.IdAsiento = a.IdAsiento) LEFT JOIN Facturas AS fa ON r.IdFactura = fa.IdFactura) " +
+                $"LEFT JOIN TiposFactura AS tf ON fa.TipoFactura = tf.TipoFactura WHERE r.IdSociedadEjercicio = ? AND {Contabilizado}",
                 f => (Id: f.Entero("Id"), Asiento: f.Entero("IdAsiento"), Fecha: f.Fecha("FechaContable"), Expedicion: f.FechaNula("FechaExpedicion"), Tercero: (f.Texto("Tercero") ?? "").Trim(),
-                    Nif: f.Texto("Nif")?.Trim(), Factura: f.Texto("NumeroFactura")?.Trim()), id);
+                    Nif: f.Texto("Nif")?.Trim(), Factura: f.Texto("NumeroFactura")?.Trim(), Rect: !f.EsNulo("EsRectificativa") && f.Logico("EsRectificativa")), id);
             var desRep = await s.ConsultarAsync(
-                "SELECT d.IdIVARepercutido AS Id, d.BaseImponible, d.TipoIVA, d.CuotaRepercutida FROM DesglosesIVARepercutido AS d " +
+                "SELECT d.IdIVARepercutido AS Id, d.BaseImponible, d.TipoIVA, d.CuotaRepercutida, d.CalificacionOperacion, d.CausaExencion FROM DesglosesIVARepercutido AS d " +
                 $"INNER JOIN (IVARepercutido AS r INNER JOIN Asientos AS a ON r.IdAsiento = a.IdAsiento) ON d.IdIVARepercutido = r.IdIVARepercutido WHERE r.IdSociedadEjercicio = ? AND {Contabilizado} ORDER BY d.IdIVARepercutido, d.Orden",
-                f => (Id: f.Entero("Id"), D: new DesgloseIvaLeido(f.DecimalNulo("BaseImponible") ?? 0m, f.DecimalNulo("TipoIVA") ?? 0m, f.DecimalNulo("CuotaRepercutida") ?? 0m, 0m)), id);
+                f => (Id: f.Entero("Id"), D: new DesgloseIvaLeido(f.DecimalNulo("BaseImponible") ?? 0m, f.DecimalNulo("TipoIVA") ?? 0m, f.DecimalNulo("CuotaRepercutida") ?? 0m, 0m,
+                    f.Texto("CalificacionOperacion"), f.Texto("CausaExencion"))), id);
             var apuntes = (await s.ConsultarAsync(
                     "SELECT p.IdAsiento, p.CuentaContable, p.ImporteDebe, p.ImporteHaber, p.IdCentroCoste FROM Apuntes AS p INNER JOIN Asientos AS a ON p.IdAsiento = a.IdAsiento " +
                     $"WHERE a.IdSociedadEjercicio = ? AND {Contabilizado} AND (EXISTS (SELECT r.IdIVASoportado FROM IVASoportado AS r WHERE r.IdAsiento = a.IdAsiento) " +
@@ -53,9 +55,9 @@ public sealed class LectorLineasIva(IBaseDatos bd)
             IReadOnlyList<ApunteIvaLeido> Apuntes(int asiento) => apuntes.TryGetValue(asiento, out var l) ? l : [];
             var regs = new List<RegistroIvaLeido>();
             regs.AddRange(cabSop.Select(c => new RegistroIvaLeido(SentidoIva.Soportado, c.Asiento, c.Fecha, c.Codigo, c.Isp, c.Tercero, c.Nif, c.Factura,
-                dSop.TryGetValue(c.Id, out var d) ? d : [], Apuntes(c.Asiento), c.Expedicion)));
+                dSop.TryGetValue(c.Id, out var d) ? d : [], Apuntes(c.Asiento), c.Expedicion) { BienInversion = c.Bien }));
             regs.AddRange(cabRep.Select(c => new RegistroIvaLeido(SentidoIva.Repercutido, c.Asiento, c.Fecha, null, false, c.Tercero, c.Nif, c.Factura,
-                dRep.TryGetValue(c.Id, out var d) ? d : [], Apuntes(c.Asiento), c.Expedicion)));
+                dRep.TryGetValue(c.Id, out var d) ? d : [], Apuntes(c.Asiento), c.Expedicion) { Rectificativa = c.Rect }));
             return ((IReadOnlyList<RegistroIvaLeido>)regs, await CentrosAsync(s, ctx.IdSociedad));
         }, cancelacion);
         return ClasificadorLineasIva.Clasificar(registros, ctx.Ejercicio, actividades, centros);

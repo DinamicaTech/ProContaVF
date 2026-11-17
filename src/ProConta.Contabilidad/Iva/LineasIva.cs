@@ -78,6 +78,21 @@ public sealed record LineaIva(
     /// <summary>Centro de coste del que sale la clasificación (el del apunte de IVA o, si no lo lleva, el de gasto o ingreso); null sin centro.</summary>
     public int? IdCentroCoste { get; init; }
 
+    /// <summary>
+    /// Soportado de un bien de inversión (contabilidad/modelos-tributarios/modelo-303): la marca IVASoportado.BienInversion o un asiento
+    /// con un cargo a una cuenta de inmovilizado (20 a 23). Va en las casillas 30/31, 34/35 o 38/39 del 303.
+    /// </summary>
+    public bool BienInversion { get; init; }
+
+    /// <summary>Repercutido de una factura rectificativa (TiposFactura.EsRectificativa): va en las casillas 14/15 del 303.</summary>
+    public bool Rectificativa { get; init; }
+
+    /// <summary>
+    /// Clave de la operación repercutida: la causa de exención (E1 a E6) o, sin ella, la calificación (S1, S2, N1, N2; los datos
+    /// importados guardan ahí la exención). Decide las casillas informativas del 303 (59, 60, 120 y 122).
+    /// </summary>
+    public string? ClaveOperacion { get; init; }
+
     /// <summary>Línea de IVA soportado autorrepercutida: intracomunitaria, inversión del sujeto pasivo o importación.</summary>
     public bool Autorrepercutida => Sentido == SentidoIva.Soportado && (Operacion != OperacionIva.Nacional || Isp);
 }
@@ -90,10 +105,20 @@ public sealed record LineaIva(
 /// </param>
 public sealed record RegistroIvaLeido(
     SentidoIva Sentido, int IdAsiento, DateTime FechaContable, string? CodigoTipoOperacion, bool IspLibro, string Tercero, string? Nif, string? Factura,
-    IReadOnlyList<DesgloseIvaLeido> Desgloses, IReadOnlyList<ApunteIvaLeido> Apuntes, DateTime? FechaFactura = null);
+    IReadOnlyList<DesgloseIvaLeido> Desgloses, IReadOnlyList<ApunteIvaLeido> Apuntes, DateTime? FechaFactura = null)
+{
+    /// <summary>Marca de bien de inversión del libro de soportado (IVASoportado.BienInversion).</summary>
+    public bool BienInversion { get; init; }
 
-/// <summary>Desglose de un registro de IVA: base, tipo (porcentaje), cuota y cuota autorrepercutida grabadas en el libro.</summary>
-public sealed record DesgloseIvaLeido(decimal Base, decimal TipoIva, decimal Cuota, decimal CuotaAutorrepercutida);
+    /// <summary>El registro repercutido es de una factura rectificativa (Facturas.TipoFactura con TiposFactura.EsRectificativa).</summary>
+    public bool Rectificativa { get; init; }
+}
+
+/// <summary>
+/// Desglose de un registro de IVA: base, tipo (porcentaje), cuota y cuota autorrepercutida grabadas en el libro; en el repercutido,
+/// también la calificación (S1, S2, N1, N2 o, en los datos importados, la exención) y la causa de exención (E1 a E6).
+/// </summary>
+public sealed record DesgloseIvaLeido(decimal Base, decimal TipoIva, decimal Cuota, decimal CuotaAutorrepercutida, string? Calificacion = null, string? CausaExencion = null);
 
 /// <summary>Apunte del asiento de un registro de IVA (cuenta, importes y centro de coste).</summary>
 public sealed record ApunteIvaLeido(string Cuenta, decimal Debe, decimal Haber, int? IdCentroCoste);
@@ -136,6 +161,7 @@ public static class ClasificadorLineasIva
             var isp = soportado && (reg.IspLibro || (operacion == OperacionIva.Nacional && hay477));
             var fueraEjercicio = reg.FechaContable.Year != ejercicio;
             var trimestre = fueraEjercicio ? 0 : (reg.FechaContable.Month - 1) / 3 + 1;
+            var bienInversion = soportado && (reg.BienInversion || reg.Apuntes.Any(EsCargoInmovilizado));
             foreach (var d in reg.Desgloses)
             {
                 var apunteIva = ApunteIva(reg.Apuntes, prefijoIva, d.Cuota);
@@ -152,11 +178,23 @@ public static class ClasificadorLineasIva
                     : 0m;
                 r.Add(new LineaIva(reg.FechaContable.Date, trimestre, reg.IdAsiento, reg.Sentido, operacion, isp, d.TipoIva,
                     centro?.Raiz, centro?.Nombre, actividad?.Nombre, deduccion, reg.Tercero, reg.Nif, reg.Factura,
-                    d.Base, d.Cuota, autorrepercutida, apunteIva?.Cuenta, aviso) { IdCentroCoste = idCentro });
+                    d.Base, d.Cuota, autorrepercutida, apunteIva?.Cuenta, aviso)
+                {
+                    IdCentroCoste = idCentro,
+                    BienInversion = soportado && bienInversion,
+                    Rectificativa = !soportado && reg.Rectificativa,
+                    ClaveOperacion = soportado ? null : Clave(d.CausaExencion) ?? Clave(d.Calificacion),
+                });
             }
         }
         return r.OrderBy(l => l.Fecha).ThenBy(l => l.IdAsiento).ThenBy(l => l.Sentido).ToList();
     }
+
+    /// <summary>Cargo a una cuenta de inmovilizado (20 a 23: intangible, material, inversiones inmobiliarias y en curso): compra de un bien de inversión.</summary>
+    private static bool EsCargoInmovilizado(ApunteIvaLeido a) =>
+        a.Debe > 0m && a.Cuenta.Length > 1 && a.Cuenta[0] == '2' && a.Cuenta[1] is >= '0' and <= '3';
+
+    private static string? Clave(string? s) => string.IsNullOrWhiteSpace(s) ? null : s.Trim().ToUpperInvariant();
 
     /// <summary>El apunte de IVA del asiento con centro: el de importe igual a la cuota; si no hay, el de mayor importe.</summary>
     private static ApunteIvaLeido? ApunteIva(IReadOnlyList<ApunteIvaLeido> apuntes, string prefijo, decimal cuota)
