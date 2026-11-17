@@ -278,8 +278,13 @@ public partial class VentanaPrincipal : Window
         Closed += async (_, _) => await _coordinadorCorreo.DisposeAsync();
         _ = AvisarDesvioCorreoAsync(servicioCorreo);
 
+        // Parámetros y tablas › Ejercicios lleva también «Crear el ejercicio siguiente…» (contabilidad/procesos/nuevo-ejercicio 2026-11-17 15:38).
+        var proveedoresOrganizacion = ProveedoresOrganizacion.Todos(bd).ToList();
+        if (proveedoresOrganizacion.OfType<ProveedorTablaAccess>().FirstOrDefault(p => p.Clave == "ejercicios") is { } ejerciciosMantenimiento)
+            ProConta.Contabilidad.Cierre.AccionCrearEjercicio.Conectar(ejerciciosMantenimiento,
+                new ProConta.Contabilidad.Cierre.ServicioNuevoEjercicio(bd, () => autorizador.PuedeAsync(Acciones.CierreEjercicio)));
         var mantenimiento = new ServicioMantenimiento(
-            new IProveedorMantenimiento[] { new ProveedorConfiguracionGeneral(bd) }.Concat(ProveedoresOrganizacion.Todos(bd)).Concat(ProveedoresFacturacion.Todos(bd, cuentas)).Concat(ProConta.Facturacion.Ventas.ProveedoresVentas.Todos(bd, ventas, clienteAvaibook))
+            new IProveedorMantenimiento[] { new ProveedorConfiguracionGeneral(bd) }.Concat(proveedoresOrganizacion).Concat(ProveedoresFacturacion.Todos(bd, cuentas)).Concat(ProConta.Facturacion.Ventas.ProveedoresVentas.Todos(bd, ventas, clienteAvaibook))
                 .Concat(ProConta.Compras.Mantenimiento.ProveedoresCompras.Todos(bd)).Concat(ProveedoresCorreo.Todos(bd))
                 .Concat(ProConta.Activos.Mantenimiento.ProveedoresActivos.Todos(bd, cuentas)),
             () => autorizador.PuedeAsync(Acciones.MantenimientoEditar));

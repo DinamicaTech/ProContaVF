@@ -145,4 +145,11 @@ public sealed class CierreEjercicioTests
     [InlineData("Sin año", 2026, "Sin año")]
     public void El_nuevo_ejercicio_cambia_el_año_de_los_textos(string texto, int ejercicio, string esperado) =>
         Assert.Equal(esperado, ServicioNuevoEjercicio.NuevoTexto(texto, ejercicio));
+
+    [Theory]
+    [InlineData("", 2026, 999999, 20270001, 20279999)]
+    [InlineData("R", 2026, 999999, 20270001, 20279999)]
+    [InlineData("F2026-", 2026, 9999, 1, 9999)]
+    public void Las_series_del_nuevo_ejercicio_empiezan_por_el_año_si_el_prefijo_no_lo_lleva(string prefijo, int ejercicio, int hasta, int desdeEsperado, int hastaEsperado) =>
+        Assert.Equal((desdeEsperado, hastaEsperado), ServicioNuevoEjercicio.RangoSerie(prefijo, ejercicio, hasta));
 }

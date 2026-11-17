@@ -80,6 +80,22 @@ public class ProveedorTablaAccess : ProveedorBase
     /// <summary>Comprobaciones con BD antes de guardar (unicidad…); devuelve el error o null.</summary>
     public Func<ISesionDatos, RegistroMantenimiento, ContextoMantenimiento, Task<Error?>>? AntesDeGuardar { get; init; }
 
+    /// <summary>
+    /// Acciones propias sobre el registro que pone quien monta el mantenimiento (por ejemplo, un proceso de otro módulo que este no puede
+    /// referenciar): su lista y cómo se proponen y ejecutan.
+    /// </summary>
+    public IReadOnlyList<AccionMantenimiento> AccionesExtra { get; set; } = [];
+    public Func<string, RegistroMantenimiento, ContextoMantenimiento, Task<Resultado<ResultadoAccion>>>? EjecutarAccion { get; set; }
+    public Func<string, RegistroMantenimiento, ContextoMantenimiento, Task<Resultado<ResultadoAccion>>>? ProponerAccion { get; set; }
+
+    public override IReadOnlyList<AccionMantenimiento> Acciones => AccionesExtra;
+
+    public override Task<Resultado<ResultadoAccion>> EjecutarAsync(string accion, RegistroMantenimiento registro, ContextoMantenimiento contexto) =>
+        EjecutarAccion is not null && AccionesExtra.Any(a => a.Clave == accion) ? EjecutarAccion(accion, registro, contexto) : base.EjecutarAsync(accion, registro, contexto);
+
+    public override Task<Resultado<ResultadoAccion>> ProponerAsync(string accion, RegistroMantenimiento registro, ContextoMantenimiento contexto) =>
+        ProponerAccion is not null && AccionesExtra.Any(a => a.Clave == accion) ? ProponerAccion(accion, registro, contexto) : base.ProponerAsync(accion, registro, contexto);
+
     public override string TituloRegistro(RegistroMantenimiento r) => Titular?.Invoke(r) ?? base.TituloRegistro(r);
     public override string? SubtituloRegistro(RegistroMantenimiento r) => Subtitular?.Invoke(r);
 

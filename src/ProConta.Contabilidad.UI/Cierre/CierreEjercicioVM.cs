@@ -384,17 +384,7 @@ public sealed class CierreEjercicioVM : ModeloVista, IPestanaTrabajo
         PrevisionNuevoEjercicio prevision;
         try { prevision = await nuevo.PrevisionAsync(_ctx.Trabajo); }
         catch (Exception ex) { _dialogos.Error($"No se ha creado el ejercicio {Ejercicio + 1}", ex.Message); return; }
-        var detalles = new List<string>
-        {
-            "Parámetros del ejercicio: cuentas, formas de pago, tipos, retenciones, cuenta de resultados e Impuesto sobre Sociedades.",
-            $"Plan de cuentas: {Formatos.Plural(prevision.Cuentas, "cuenta", "cuentas")}, con las mismas identidades y sin saldos.",
-            prevision.Series == 0 ? "Series de facturación: no hay ninguna."
-                : $"Series de facturación: {Formatos.Plural(prevision.Series, "serie", "series")} ({string.Join(", ", prevision.NombresSeries)}), con la numeración empezando en 1.",
-            prevision.Prorrata is decimal pr
-                ? $"Prorrata provisional de {prevision.Ejercicio}: {(pr * 100m).ToString("0.##", Formatos.Cultura)} % ({(prevision.DefinitivaFijada ? "la definitiva" : "la provisional, porque la definitiva aún no está fijada")} de {Ejercicio})."
-                : "Prorrata: sin informar.",
-            "Trimestre activo: 1.º. La configuración de correo, si el ejercicio nuevo no tiene.",
-        };
+        var detalles = AccionCrearEjercicio.Detalle(prevision, Ejercicio);
         if (_dialogos.Preguntar($"Crear el ejercicio {prevision.Ejercicio}", $"Se copia de {Ejercicio}. Repetirlo no duplica nada: solo añade lo que falte.", detalles,
                 new OpcionMensaje($"Crear {prevision.Ejercicio}", "Crea el ejercicio con lo que se lista", Principal: true), new OpcionMensaje("Cancelar", "No crea nada", Cancelar: true)) != 0)
             return;

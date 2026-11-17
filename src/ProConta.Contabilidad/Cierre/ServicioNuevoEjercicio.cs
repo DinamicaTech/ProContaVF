@@ -135,7 +135,19 @@ public sealed class ServicioNuevoEjercicio(IBaseDatos bd, Func<Task<bool>>? pued
         return faltan.Count;
     }
 
-    /// <summary>Copia las series que faltan: el año del prefijo y de la descripción pasa al siguiente, la numeración empieza en 1.</summary>
+    /// <summary>Primer número de una serie sin el año en el prefijo: el año y cuatro cifras (2027 → 20270001; propietario 2026-11-17 15:38, punto 5).</summary>
+    public static int PrimerNumero(int ejercicio) => ejercicio * 10000 + 1;
+
+    /// <summary>
+    /// Rango de la serie en el ejercicio <paramref name="ejercicio"/>: con el año en el prefijo (F2026 → F2027), de 1 al «hasta» de la serie;
+    /// sin él, del año seguido de 0001 al año seguido de 9999, para que la numeración no se repita entre ejercicios.
+    /// </summary>
+    public static (int Desde, int Hasta) RangoSerie(string prefijoOrigen, int ejercicioOrigen, int hastaOrigen) =>
+        prefijoOrigen.Contains(ejercicioOrigen.ToString(CultureInfo.InvariantCulture), StringComparison.Ordinal)
+            ? (1, Math.Max(hastaOrigen, 1))
+            : (PrimerNumero(ejercicioOrigen + 1), (ejercicioOrigen + 1) * 10000 + 9999);
+
+    /// <summary>Copia las series que faltan: el año del prefijo y de la descripción pasa al siguiente y la numeración empieza de nuevo (<see cref="RangoSerie"/>).</summary>
     private Task<int> CopiarSeriesAsync(ContextoSociedadEjercicio origen, ContextoSociedadEjercicio destino) => bd.EnTransaccionAsync(async s =>
     {
         var series = await s.ConsultarAsync(
@@ -151,9 +163,10 @@ public sealed class ServicioNuevoEjercicio(IBaseDatos bd, Func<Task<bool>>? pued
             // Un prefijo vacío se guarda como espacio si el campo no admite cadenas vacías (como la migración del ERP).
             var prefijo = NuevoTexto(serie.Prefijo, origen.Ejercicio);
             if (!existentes.Add(prefijo.Trim())) continue;
+            var (desde, hasta) = RangoSerie(serie.Prefijo, origen.Ejercicio, serie.Hasta);
             await s.EjecutarAsync(
                 "INSERT INTO SeriesFacturacion (IdSociedadEjercicio, Descripcion, Prefijo, RangoDesde, RangoHasta, UltimoNumero, EsRectificativa, EsPredeterminada) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-                destino.IdSociedadEjercicio, NuevoTexto(serie.Descripcion, origen.Ejercicio), prefijo, 1, Math.Max(serie.Hasta, 1), null, serie.Rectificativa, serie.Predeterminada);
+                destino.IdSociedadEjercicio, NuevoTexto(serie.Descripcion, origen.Ejercicio), prefijo, desde, hasta, null, serie.Rectificativa, serie.Predeterminada);
             copiadas++;
         }
         return copiadas;
