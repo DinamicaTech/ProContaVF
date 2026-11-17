@@ -50,6 +50,7 @@ Operadores, grupos (N:M) y permisos por ámbito: ámbito sin configurar permite 
 - 2026-11-16 17:55 · Derived from contabilidad/procesos/aplicacion-resultado: nueva acción PROCESOS.DIVIDENDOS, «Repartir dividendos».
 - 2026-11-17 11:35 · Derived from contabilidad/procesos/impuesto-sociedades: nueva acción PROCESOS.IMPUESTO_SOCIEDADES, «Contabilizar el Impuesto sobre Sociedades» (confirmar y deshacer); mientras no tenga grupos, la tienen quienes pueden liquidar el IVA.
 - 2026-11-17 16:40 · Derived from contabilidad/procesos/facturas-pendientes-recibir: nueva acción PROCESOS.FACTURAS_PENDIENTES, «Contabilizar las facturas pendientes de recibir» (confirmar y deshacer); mientras no tenga grupos, la tienen quienes pueden liquidar el IVA.
+- 2026-11-17 18:50 · Derived from activos: una sola acción nueva para ver y modificar los activos (pantalla Datos maestros › Activos).
 - 2026-11-17 19:05 · Derived from contabilidad/procesos/centimos-residuales: nueva acción PROCESOS.CENTIMOS_RESIDUALES, «Saldar los céntimos residuales», que mientras no tenga grupos sigue a la de liquidar el IVA.
 
 ## Hand-over

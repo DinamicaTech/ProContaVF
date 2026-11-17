@@ -31,4 +31,5 @@ Pantalla Contabilidad › Procesos contables › Fin de ejercicio › Céntimos 
 - 2026-11-17 19:05 · 7- Ok
 
 ## Hand-over
-- 2026-11-17 19:15 · Hecho en la rama claude/project-thread-fhgf80: código, esquema 69, permiso, menú, comprobación del cierre, aviso de Inicio, pruebas sin BD (pasan en la nube) y docs. El propietario pidió no ejecutar nada en su equipo todavía porque otro hilo trabaja allí. Falta, cuando lo diga: compilar en un clon propio, pasar las pruebas contra Access (CentimosAccessTests, Fase4Tests, MantenimientoTests, SeguridadTests) y ensayar en una copia de C:\Docs\ProContaVF-validacion; después, que el propietario lo valide y pasar el nodo a estable.
+- 2026-11-17 19:15 · Hecho en la rama claude/project-thread-fhgf80: código, esquema 69, permiso, menú, comprobación del cierre, aviso de Inicio, pruebas sin BD (pasan en la nube) y docs.
+- 2026-11-17 20:05 · El propietario pidió fusionar sin hacer las pruebas en su equipo (2026-11-17 19:56: las hará junto con las de otros hilos); la solución compila con main al día. Falta: pruebas contra Access (CentimosAccessTests, Fase4Tests, MantenimientoTests, SeguridadTests), ensayo en una copia de C:\Docs\ProContaVF-validacion y la validación del propietario; después, quitar `status: draft`.

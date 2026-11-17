@@ -78,6 +78,7 @@ public partial class VentanaPrincipal : Window
     private readonly ProConta.Contabilidad.UI.FacturasPendientes.ModuloFacturasPendientes _facturasPendientes;
     private readonly ProConta.Contabilidad.UI.Amortizacion.ModuloAmortizacion _amortizacion;
     private readonly ProConta.Contabilidad.UI.Centimos.ModuloCentimos _centimos;
+    private readonly ProConta.Activos.UI.ModuloActivos _activos;
     private readonly ModuloFacturacion _facturacion;
     private readonly ModuloCompras _compras;
     private readonly ModuloCorreo _correo;
@@ -400,6 +401,8 @@ public partial class VentanaPrincipal : Window
                     return dialogo.ShowDialog(this) == true ? dialogo.FileName : null;
                 },
                 AbrirEnlace = url => System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(url) { UseShellExecute = true })?.Dispose(),
+                // Doble clic en un piso del paso «Alquiler de viviendas»: su activo con su cuenta de resultados (activos 2026-11-17 18:50).
+                AbrirActivoDeCentro = centro => _ = _activos!.AbrirDeCentroAsync(centro),
             },
             _area, new ProConta.Contabilidad.UI.Liquidacion.DialogosLiquidacionIva(() => this));
         var abrirImpuestoSociedades = new ComandoDelegado(() => _impuestoSociedades.Abrir());
@@ -485,6 +488,16 @@ public partial class VentanaPrincipal : Window
             },
             _area, new ProConta.Contabilidad.UI.Liquidacion.DialogosLiquidacionIva(() => this));
         var abrirCentimos = new ComandoDelegado(() => _centimos.Abrir());
+        // Activos (activos 2026-11-17 18:50): listado, fichas en pestañas y alta paso a paso, en Datos maestros; abre el Mayor y la amortización.
+        _activos = new ProConta.Activos.UI.ModuloActivos(
+            new ProConta.Activos.UI.ContextoActivos(
+                new ProConta.Activos.Gestion.ServicioActivos(bd, cuentas, () => autorizador.PuedeAsync(Acciones.Activos)), contexto.Contexto, contexto.RazonSocial, Avisar)
+            {
+                AbrirMayor = (cuentasMayor, anios) => { if (anios.Count == 0) _mayor.Abrir(cuentasMayor); else _mayor.Abrir(cuentasMayor, anios); },
+                AbrirAmortizacion = () => _amortizacion.Abrir(),
+            },
+            _area, new ProConta.Activos.UI.Vistas.DialogosActivos(() => this));
+        var abrirActivos = new ComandoDelegado(() => _activos.AbrirListado());
         // Informes (contabilidad/balances e informes/excel): cada opción genera el libro Excel con su tabla dinámica y lo abre.
         _balances = new ProConta.Contabilidad.Balances.GeneradorBalances(bd);
         _razonSocial = contexto.RazonSocial;
@@ -498,8 +511,11 @@ public partial class VentanaPrincipal : Window
         Navegacion.ItemsSource = new[]
         {
             new OpcionNavegacion("Inicio", Icono("layout"), true, false, "Página de inicio", irAInicio),
-            new OpcionNavegacion("Datos maestros", Icono("user"), true, false, "Terceros: clientes, proveedores, contactos y demás personas y organizaciones", abrirTerceros),
+            new OpcionNavegacion("Datos maestros", Icono("user"), true, false, "Terceros (clientes, proveedores, contactos…) y activos de la sociedad (inmuebles, vehículos, instalaciones…)", abrirTerceros),
             new OpcionNavegacion("Terceros", null, true, false, "Buscador y fichas de terceros (clientes, proveedores, contactos…)", abrirTerceros, EsHija: true),
+            new OpcionNavegacion("Activos", null, true, false,
+                "Inmuebles, vehículos, instalaciones y aplicaciones de la sociedad: listado con sus cifras del año, ficha con su cuenta de resultados, subcuentas y amortización, y alta paso a paso",
+                abrirActivos, EsHija: true),
             new OpcionNavegacion("Ventas", Icono("doc"), true, false, "Facturas de venta: emitidas y borradores", abrirFacturas),
             new OpcionNavegacion("Facturas programadas", null, true, false, "Facturas que se generan solas en cada vencimiento: su programación, sus líneas y la generación por lotes", abrirProgramadas, EsHija: true),
             new OpcionNavegacion("Facturas", null, true, false, "Listado de facturas y borradores del ejercicio, con su detalle y acciones", abrirFacturas, EsHija: true),
