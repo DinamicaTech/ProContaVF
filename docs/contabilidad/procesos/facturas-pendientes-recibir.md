@@ -6,7 +6,7 @@ threads:
 ---
 ## Summary
 Proceso de cierre para los proveedores y acreedores cuadrados con saldo deudor (pagado sin factura recibida): propone el gasto por la base supuesta (saldo / (1 + tipo de IVA configurable)) en la cuenta de gasto por defecto del proveedor contra la 4009 (facturas pendientes de recibir), y lo revierte en la apertura del ejercicio siguiente para que la factura real se contabilice con normalidad.
-Hecho, pendiente de validar: pantalla Contabilidad › Facturas pendientes de recibir (`src/ProConta.Contabilidad.UI/FacturasPendientes`), cálculo y servicio en `src/ProConta.Contabilidad/FacturasPendientes`, parámetros del ejercicio y tabla FacturasPendientesAjustes (esquema 67) y permiso PROCESOS.FACTURAS_PENDIENTES.
+Hecho y validado (PR #104): pantalla Contabilidad › Facturas pendientes de recibir (`src/ProConta.Contabilidad.UI/FacturasPendientes`), cálculo y servicio en `src/ProConta.Contabilidad/FacturasPendientes`, parámetros del ejercicio y tabla FacturasPendientesAjustes (esquema 67) y permiso PROCESOS.FACTURAS_PENDIENTES.
 **Aceptación:** repetirlo no duplica; la apertura del ejercicio siguiente lleva su reversión; el proveedor no se realimenta en una segunda ejecución.
 
 ## Decisions
