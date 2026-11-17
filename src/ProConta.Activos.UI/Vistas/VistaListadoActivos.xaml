@@ -1,0 +1,188 @@
+<UserControl x:Class="ProConta.Activos.UI.Vistas.VistaListadoActivos"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:pc="urn:proconta-ui"
+             xmlns:v="clr-namespace:ProConta.Activos.UI.Vistas"
+             Background="White">
+  <UserControl.Resources>
+    <pc:VisibleSiConverter x:Key="Visible" />
+    <v:IgualConverter x:Key="Igual" />
+    <ContextMenu x:Key="Menu.Activos">
+      <MenuItem Header="Abrir la ficha" Command="{Binding AbrirCommand}" ToolTipService.ShowOnDisabled="True"
+                ToolTip="Abre la ficha del activo marcado en una pestaña (solo con uno marcado). También con doble clic" />
+      <MenuItem Header="Ver su cuenta de resultados" Command="{Binding CuentaResultadosCommand}" ToolTipService.ShowOnDisabled="True"
+                ToolTip="Abre la ficha en Cuenta de resultados: sus ingresos y gastos del año, mes a mes (solo con uno marcado y que no sea ajeno)" />
+      <MenuItem Header="Ver el Mayor de sus subcuentas" Command="{Binding MayorCommand}" ToolTipService.ShowOnDisabled="True"
+                ToolTip="Abre el Mayor con todas las subcuentas de los activos marcados en el ejercicio de trabajo (los ajenos no tienen subcuentas)" />
+      <Separator />
+      <MenuItem Header="Generar las subcuentas que les falten…" Command="{Binding GenerarMarcadosCommand}" ToolTipService.ShowOnDisabled="True"
+                ToolTip="Propone las subcuentas de la plantilla de su tipo que les faltan (o con otro nombre) y las crea al confirmar. No vale para ajenos ni activos de baja" />
+    </ContextMenu>
+    <Style x:Key="Pastilla" TargetType="Border">
+      <Setter Property="Background" Value="{StaticResource Pincel.VerdeSuave}" />
+      <Setter Property="CornerRadius" Value="{StaticResource Radio.Pastilla}" />
+      <Setter Property="Padding" Value="8,1" />
+      <Setter Property="HorizontalAlignment" Value="Left" />
+      <Style.Triggers>
+        <DataTrigger Binding="{Binding ClaseEstado}" Value="FALTA"><Setter Property="Background" Value="{StaticResource Pincel.AvisoSuave}" /></DataTrigger>
+        <DataTrigger Binding="{Binding ClaseEstado}" Value="BAJA"><Setter Property="Background" Value="{StaticResource Pincel.Linea2}" /></DataTrigger>
+        <DataTrigger Binding="{Binding ClaseEstado}" Value="AJENO"><Setter Property="Background" Value="{StaticResource Pincel.MoradoSuave}" /></DataTrigger>
+      </Style.Triggers>
+    </Style>
+    <Style x:Key="Fila" TargetType="DataGridRow" BasedOn="{StaticResource Tabla.Fila}">
+      <Setter Property="ToolTip" Value="{Binding AyudaFila}" />
+      <Style.Triggers>
+        <DataTrigger Binding="{Binding Marcado}" Value="True"><Setter Property="Background" Value="{StaticResource Pincel.Seleccion}" /></DataTrigger>
+      </Style.Triggers>
+    </Style>
+    <Style x:Key="Celda.Resultado" TargetType="TextBlock" BasedOn="{StaticResource Texto.Celda.Importe}">
+      <Style.Triggers>
+        <DataTrigger Binding="{Binding ResultadoNegativo}" Value="True"><Setter Property="Foreground" Value="{StaticResource Pincel.RojoSaldo}" /></DataTrigger>
+      </Style.Triggers>
+    </Style>
+  </UserControl.Resources>
+  <UserControl.InputBindings>
+    <KeyBinding Key="F5" Command="{Binding RefrescarCommand}" />
+  </UserControl.InputBindings>
+
+  <DockPanel>
+    <!-- Cabecera: título y acciones generales -->
+    <Border DockPanel.Dock="Top" BorderBrush="{StaticResource Pincel.Linea}" BorderThickness="0,0,0,1" Padding="14,8">
+      <DockPanel>
+        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+          <Button Content="Nuevo activo…" Style="{StaticResource Boton.Primario}" Command="{Binding NuevoCommand}" Margin="0,0,8,0" VerticalAlignment="Center"
+                  ToolTip="Da de alta un activo paso a paso: qué es, la compra, la amortización y un repaso de lo que se va a crear (ficha, centro y subcuentas). No graba asientos" />
+          <Button Content="Generar subcuentas…" Style="{StaticResource Boton}" Command="{Binding GenerarTodasCommand}" Margin="0,0,8,0" VerticalAlignment="Center"
+                  ToolTip="Para todos los activos propios en uso, propone las subcuentas de la plantilla de su tipo que faltan en el ejercicio de trabajo (o con otro nombre) y las crea al confirmar" />
+          <Button Content="Exportar a Excel" Style="{StaticResource Boton}" Command="{Binding ExportarExcelCommand, ElementName=Tabla}" Margin="0,0,8,0" VerticalAlignment="Center"
+                  ToolTip="Guarda en Excel los activos que se ven, con las mismas columnas, para sumarlos o filtrarlos" />
+          <Button Content="Actualizar" Style="{StaticResource Boton}" Command="{Binding RefrescarCommand}" VerticalAlignment="Center"
+                  ToolTip="Vuelve a leer los activos y sus cifras del ejercicio (F5)" />
+        </StackPanel>
+        <StackPanel Orientation="Horizontal">
+          <TextBlock Text="Activos" Style="{StaticResource Texto.TituloPantalla}" VerticalAlignment="Center" Margin="0,0,12,0" />
+          <TextBlock Text="{Binding Subtitulo}" Style="{StaticResource Texto.Apagado}" VerticalAlignment="Center" />
+        </StackPanel>
+      </DockPanel>
+    </Border>
+
+    <!-- Filtros -->
+    <WrapPanel DockPanel.Dock="Top" Margin="14,10,14,6" Orientation="Horizontal">
+      <TextBox Text="{Binding Busqueda, UpdateSourceTrigger=PropertyChanged, Delay=200}" Width="260" Margin="0,0,12,4" VerticalAlignment="Center"
+               ToolTip="Busca por código, nombre, nombre corto o centro de coste" AutomationProperties.Name="Buscar activos" />
+      <Border Style="{StaticResource Segmentado}" Margin="0,0,12,4" VerticalAlignment="Center" ToolTip="Qué clase de activos se ven">
+        <StackPanel Orientation="Horizontal">
+          <RadioButton Style="{StaticResource Segmento}" Content="Todos" GroupName="Clase" IsChecked="{Binding Clase, Converter={StaticResource Igual}, ConverterParameter=Todos}" ToolTip="Todas las clases" />
+          <RadioButton Style="{StaticResource Segmento}" Content="Inmuebles" GroupName="Clase" IsChecked="{Binding Clase, Converter={StaticResource Igual}, ConverterParameter=Inmuebles}" ToolTip="Viviendas, locales, parkings y pisos turísticos" />
+          <RadioButton Style="{StaticResource Segmento}" Content="Vehículos" GroupName="Clase" IsChecked="{Binding Clase, Converter={StaticResource Igual}, ConverterParameter=Vehículos}" ToolTip="Coches, motos y demás vehículos" />
+          <RadioButton Style="{StaticResource Segmento}" Content="Otros" GroupName="Clase" IsChecked="{Binding Clase, Converter={StaticResource Igual}, ConverterParameter=Otros}" ToolTip="Instalaciones técnicas y aplicaciones informáticas" />
+        </StackPanel>
+      </Border>
+      <Border Style="{StaticResource Segmentado}" Margin="0,0,12,4" VerticalAlignment="Center" ToolTip="Activos en uso, dados de baja o todos">
+        <StackPanel Orientation="Horizontal">
+          <RadioButton Style="{StaticResource Segmento}" Content="En uso" GroupName="Estado" IsChecked="{Binding FiltroEstado, Converter={StaticResource Igual}, ConverterParameter='En uso'}" ToolTip="Los que no están de baja" />
+          <RadioButton Style="{StaticResource Segmento}" Content="De baja" GroupName="Estado" IsChecked="{Binding FiltroEstado, Converter={StaticResource Igual}, ConverterParameter='De baja'}" ToolTip="Solo los dados de baja o vendidos" />
+          <RadioButton Style="{StaticResource Segmento}" Content="Todos" GroupName="Estado" IsChecked="{Binding FiltroEstado, Converter={StaticResource Igual}, ConverterParameter=Todos}" ToolTip="En uso y de baja" />
+        </StackPanel>
+      </Border>
+      <CheckBox Content="Mostrar ajenos" IsChecked="{Binding MostrarAjenos}" VerticalAlignment="Center" Margin="0,0,12,4"
+                ToolTip="Incluye los activos que no son de la sociedad (por ejemplo, el piso particular), que solo se guardan para tener su información" />
+      <pc:Etiqueta Content="{Binding TextoFiltroCentro}" ComandoQuitar="{Binding QuitarCentroCommand}" Visibility="{Binding HayFiltroCentro, Converter={StaticResource Visible}}"
+                   Margin="0,0,12,4" VerticalAlignment="Center" AyudaQuitar="Quita el filtro del centro de coste y enseña todos los activos"
+                   ToolTip="Solo se ven los activos de este centro de coste (abierto desde el Impuesto sobre Sociedades)" />
+    </WrapPanel>
+
+    <!-- Pie: recuento y totales -->
+    <Border DockPanel.Dock="Bottom" Style="{StaticResource Barra.Pie}">
+      <DockPanel>
+        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Visibility="{Binding HayTotales, Converter={StaticResource Visible}}"
+                    ToolTip="Suma de los activos de la sociedad que se ven (los ajenos no cuentan). Gastos con la amortización prevista del año">
+          <TextBlock Text="{Binding TextoTotales}" Style="{StaticResource Texto.Apagado}" Margin="0,0,14,0" VerticalAlignment="Center" />
+          <TextBlock Text="Coste " Style="{StaticResource Texto.Apagado}" VerticalAlignment="Center" />
+          <TextBlock Text="{Binding TotalCoste}" Style="{StaticResource Texto.Importe}" Margin="0,0,14,0" VerticalAlignment="Center" />
+          <TextBlock Text="Ingresos " Style="{StaticResource Texto.Apagado}" VerticalAlignment="Center" />
+          <TextBlock Text="{Binding TotalIngresos}" Style="{StaticResource Texto.Importe}" Margin="0,0,14,0" VerticalAlignment="Center" />
+          <TextBlock Text="Gastos " Style="{StaticResource Texto.Apagado}" VerticalAlignment="Center" />
+          <TextBlock Text="{Binding TotalGastos}" Style="{StaticResource Texto.Importe}" Margin="0,0,14,0" VerticalAlignment="Center" />
+          <TextBlock Text="Resultado " Style="{StaticResource Texto.Apagado}" VerticalAlignment="Center" />
+          <TextBlock Text="{Binding TotalResultado}" FontWeight="SemiBold" VerticalAlignment="Center">
+            <TextBlock.Style>
+              <Style TargetType="TextBlock" BasedOn="{StaticResource Texto.Importe}">
+                <Style.Triggers>
+                  <DataTrigger Binding="{Binding TotalNegativo}" Value="True"><Setter Property="Foreground" Value="{StaticResource Pincel.RojoSaldo}" /></DataTrigger>
+                </Style.Triggers>
+              </Style>
+            </TextBlock.Style>
+          </TextBlock>
+        </StackPanel>
+        <TextBlock Style="{StaticResource Texto.Apagado}" VerticalAlignment="Center">
+          <Run Text="{Binding Recuento, Mode=OneWay}" /> · Clic: marcar · Doble clic: abrir la ficha · Clic derecho: acciones sobre lo marcado
+        </TextBlock>
+      </DockPanel>
+    </Border>
+
+    <pc:VistaEstado Estado="{Binding Estado}" Mensaje="{Binding MensajeEstado}" TextoAccion="Actualizar" ComandoAccion="{Binding RefrescarCommand}">
+      <Grid Margin="14,4,14,8">
+        <pc:TablaProConta x:Name="Tabla" ItemsSource="{Binding Filas}" ClavePreferencias="activos.listado" TituloExportacion="Activos"
+                          IsReadOnly="True" SelectionMode="Single" SelectionUnit="FullRow" AutomationProperties.Name="Activos de la sociedad"
+                          HorizontalScrollBarVisibility="Auto" ContextMenu="{StaticResource Menu.Activos}" RowStyle="{StaticResource Fila}"
+                          PreviewMouseLeftButtonDown="Tabla_PreviewMouseLeftButtonDown" MouseDoubleClick="Tabla_MouseDoubleClick"
+                          PreviewMouseRightButtonDown="Tabla_PreviewMouseRightButtonDown" PreviewKeyDown="Tabla_PreviewKeyDown">
+          <pc:TablaProConta.Columns>
+            <DataGridTemplateColumn Width="34" pc:TablaProConta.Clave="marca" pc:TablaProConta.SiempreVisible="True" CanUserSort="False">
+              <DataGridTemplateColumn.Header>
+                <CheckBox IsChecked="{Binding DataContext.TodosMarcados, RelativeSource={RelativeSource AncestorType=UserControl}, Mode=TwoWay}"
+                          ToolTip="Marca o desmarca todos los activos que se ven" />
+              </DataGridTemplateColumn.Header>
+              <DataGridTemplateColumn.CellTemplate>
+                <DataTemplate>
+                  <CheckBox IsChecked="{Binding Marcado, UpdateSourceTrigger=PropertyChanged}" HorizontalAlignment="Center" VerticalAlignment="Center"
+                            ToolTip="Marcado: el menú contextual actúa sobre él. También se marca con un clic en la fila" />
+                </DataTemplate>
+              </DataGridTemplateColumn.CellTemplate>
+            </DataGridTemplateColumn>
+            <DataGridTextColumn Header="Código" Binding="{Binding Codigo}" Width="150" ElementStyle="{StaticResource Texto.Celda.Mono}" pc:TablaProConta.Clave="codigo"
+                                pc:TablaProConta.Ayuda="Código corto del activo, único en la sociedad" />
+            <DataGridTextColumn Header="Nombre" Binding="{Binding Nombre}" Width="*" MinWidth="220" ElementStyle="{StaticResource Texto.Celda}" pc:TablaProConta.Clave="nombre" />
+            <DataGridTextColumn Header="Tipo" Binding="{Binding Tipo}" Width="140" ElementStyle="{StaticResource Texto.Celda}" pc:TablaProConta.Clave="tipo"
+                                pc:TablaProConta.Ayuda="Tipo de activo: decide su plantilla de subcuentas" />
+            <DataGridTextColumn Header="Centro de coste" Binding="{Binding Centro}" Width="200" ElementStyle="{StaticResource Texto.Celda}" pc:TablaProConta.Clave="centro"
+                                pc:TablaProConta.Ayuda="Centro de coste del activo: de él hereda la actividad de IVA" />
+            <DataGridTextColumn Header="Compra" Binding="{Binding Compra}" SortMemberPath="FechaOrden" Width="90" ElementStyle="{StaticResource Texto.Celda.Mono}" pc:TablaProConta.Clave="compra"
+                                pc:TablaProConta.Ayuda="Fecha de compra" />
+            <DataGridTextColumn Header="Coste" Binding="{Binding Coste}" SortMemberPath="CosteOrden" Width="120" ElementStyle="{StaticResource Texto.Celda.Importe}"
+                                HeaderStyle="{StaticResource Tabla.Cabecera.Derecha}" pc:TablaProConta.Clave="coste" pc:TablaProConta.Ayuda="Coste de compra: precio más gastos" />
+            <DataGridTextColumn Header="Amortizado" Binding="{Binding Amortizado}" SortMemberPath="AmortizadoOrden" Width="88" ElementStyle="{StaticResource Texto.Celda.Importe}"
+                                HeaderStyle="{StaticResource Tabla.Cabecera.Derecha}" pc:TablaProConta.Clave="amortizado"
+                                pc:TablaProConta.Ayuda="Amortización acumulada en su subcuenta sobre lo amortizable de su plan" />
+            <DataGridTextColumn Binding="{Binding Ingresos}" SortMemberPath="IngresosOrden" Width="115" ElementStyle="{StaticResource Texto.Celda.Importe}"
+                                HeaderStyle="{StaticResource Tabla.Cabecera.Derecha}" pc:TablaProConta.Clave="ingresos" pc:TablaProConta.Ayuda="Ingresos del ejercicio de trabajo (grupo 7)">
+              <DataGridTextColumn.Header><TextBlock><Run Text="Ingresos " /><Run Text="{Binding DataContext.Ejercicio, RelativeSource={RelativeSource AncestorType=UserControl}, Mode=OneWay}" /></TextBlock></DataGridTextColumn.Header>
+            </DataGridTextColumn>
+            <DataGridTextColumn Binding="{Binding Gastos}" SortMemberPath="GastosOrden" Width="115" ElementStyle="{StaticResource Texto.Celda.Importe}"
+                                HeaderStyle="{StaticResource Tabla.Cabecera.Derecha}" pc:TablaProConta.Clave="gastos"
+                                pc:TablaProConta.Ayuda="Gastos del ejercicio de trabajo (grupo 6), con la amortización prevista del año si aún no está contabilizada">
+              <DataGridTextColumn.Header><TextBlock><Run Text="Gastos " /><Run Text="{Binding DataContext.Ejercicio, RelativeSource={RelativeSource AncestorType=UserControl}, Mode=OneWay}" /></TextBlock></DataGridTextColumn.Header>
+            </DataGridTextColumn>
+            <DataGridTextColumn Binding="{Binding Resultado}" SortMemberPath="ResultadoOrden" Width="115" ElementStyle="{StaticResource Celda.Resultado}"
+                                HeaderStyle="{StaticResource Tabla.Cabecera.Derecha}" pc:TablaProConta.Clave="resultado" pc:TablaProConta.Ayuda="Ingresos menos gastos del ejercicio de trabajo">
+              <DataGridTextColumn.Header><TextBlock><Run Text="Resultado " /><Run Text="{Binding DataContext.Ejercicio, RelativeSource={RelativeSource AncestorType=UserControl}, Mode=OneWay}" /></TextBlock></DataGridTextColumn.Header>
+            </DataGridTextColumn>
+            <DataGridTemplateColumn Header="Estado" Width="170" SortMemberPath="Estado" pc:TablaProConta.Clave="estado" pc:TablaProConta.RutaExportar="Estado">
+              <DataGridTemplateColumn.CellTemplate>
+                <DataTemplate>
+                  <Border Style="{StaticResource Pastilla}" ToolTip="{Binding AyudaEstado}">
+                    <TextBlock Text="{Binding Estado}" FontSize="{StaticResource Letra.Pequena}" FontWeight="SemiBold" Foreground="{StaticResource Pincel.Texto2}" />
+                  </Border>
+                </DataTemplate>
+              </DataGridTemplateColumn.CellTemplate>
+            </DataGridTemplateColumn>
+          </pc:TablaProConta.Columns>
+        </pc:TablaProConta>
+        <TextBlock Text="Ningún activo cumple los filtros. Cambia la clase o el estado, marca «Mostrar ajenos» o borra la búsqueda para ver más."
+                   Style="{StaticResource Texto.Apagado}" HorizontalAlignment="Center" VerticalAlignment="Center" TextWrapping="Wrap" MaxWidth="520"
+                   Visibility="{Binding SinResultados, Converter={StaticResource Visible}}" />
+      </Grid>
+    </pc:VistaEstado>
+  </DockPanel>
+</UserControl>

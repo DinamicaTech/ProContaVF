@@ -467,7 +467,8 @@ public sealed class ServicioActivos
                     continue;
                 }
                 var saldo = Convert.ToDecimal(await s.EscalarAsync(
-                    "SELECT SUM(p.ImporteDebe - p.ImporteHaber) FROM Apuntes AS p INNER JOIN Asientos AS a ON p.IdAsiento = a.IdAsiento " +
+                    // Debe o Haber pueden estar vacíos (nulos): se suman por separado para que un nulo no anule la fila.
+                    "SELECT SUM(IIF(p.ImporteDebe IS NULL, 0, p.ImporteDebe)) - SUM(IIF(p.ImporteHaber IS NULL, 0, p.ImporteHaber)) FROM Apuntes AS p INNER JOIN Asientos AS a ON p.IdAsiento = a.IdAsiento " +
                     "WHERE a.IdSociedadEjercicio = ? AND a.EstadoAsiento = 1 AND a.TipoAsiento <> 2 AND a.TipoAsiento <> 3 AND p.CuentaContable = ?",
                     ctx.IdSociedadEjercicio, cuenta.Codigo) is { } v and not DBNull ? v : 0m, CultureInfo.InvariantCulture);
                 lista.Add(new SubcuentaFicha(e.IdSubcuentaActivo, cuenta.Codigo, cuenta.Nombre, papel, saldo, true));
@@ -566,18 +567,20 @@ public sealed class ServicioActivos
             if (enlaces.Count > 0)
             {
                 var marcas = string.Join(", ", enlaces.Select(_ => "?"));
-                // Los ejercicios en los que existe alguna de sus subcuentas: ahí lo contabilizado es la verdad (aunque sea cero).
-                var existentes = await s.ConsultarAsync(
-                    $"SELECT DISTINCT se.Ejercicio FROM CuentasContables AS c INNER JOIN SociedadesEjercicios AS se ON c.IdSociedadEjercicio = se.IdSociedadEjercicio " +
-                    $"WHERE c.IdIdentidadContable IN ({marcas})", f => f.Entero("Ejercicio"), [.. enlaces.Select(e => (object?)e.IdIdentidad)]);
-                var movimientos = await s.ConsultarAsync(
-                    "SELECT se.Ejercicio, c.IdIdentidadContable, a.TipoAsiento, p.ImporteDebe, p.ImporteHaber FROM ((Apuntes AS p INNER JOIN Asientos AS a ON p.IdAsiento = a.IdAsiento) " +
-                    "INNER JOIN CuentasContables AS c ON (c.IdSociedadEjercicio = a.IdSociedadEjercicio AND c.Codigo = p.CuentaContable)) " +
-                    "INNER JOIN SociedadesEjercicios AS se ON a.IdSociedadEjercicio = se.IdSociedadEjercicio " +
-                    $"WHERE a.EstadoAsiento = 1 AND c.IdIdentidadContable IN ({marcas})",
-                    f => (Ejercicio: f.Entero("Ejercicio"), Identidad: f.Entero("IdIdentidadContable"), Tipo: Convert.ToInt32(f.Valor("TipoAsiento"), CultureInfo.InvariantCulture),
-                        Debe: f.DecimalNulo("ImporteDebe") ?? 0m, Haber: f.DecimalNulo("ImporteHaber") ?? 0m),
+                // Sus cuentas en cada ejercicio: ahí lo contabilizado es la verdad (aunque sea cero). Los apuntes guardan el código, así que se leen por cuenta.
+                var cuentasEj = await s.ConsultarAsync(
+                    $"SELECT c.IdIdentidadContable, c.IdSociedadEjercicio, c.Codigo, se.Ejercicio FROM CuentasContables AS c INNER JOIN SociedadesEjercicios AS se " +
+                    $"ON c.IdSociedadEjercicio = se.IdSociedadEjercicio WHERE c.IdIdentidadContable IN ({marcas})",
+                    f => (Identidad: f.Entero("IdIdentidadContable"), IdEj: f.Entero("IdSociedadEjercicio"), Codigo: (f.Texto("Codigo") ?? "").Trim(), Ejercicio: f.Entero("Ejercicio")),
                     [.. enlaces.Select(e => (object?)e.IdIdentidad)]);
+                var existentes = cuentasEj.Select(c => c.Ejercicio).Distinct().ToList();
+                var movimientos = new List<(int Ejercicio, int Identidad, int Tipo, decimal Debe, decimal Haber)>();
+                foreach (var c in cuentasEj)
+                    movimientos.AddRange(await s.ConsultarAsync(
+                        "SELECT a.TipoAsiento, p.ImporteDebe, p.ImporteHaber FROM Apuntes AS p INNER JOIN Asientos AS a ON p.IdAsiento = a.IdAsiento " +
+                        "WHERE a.IdSociedadEjercicio = ? AND a.EstadoAsiento = 1 AND p.CuentaContable = ?",
+                        f => (c.Ejercicio, c.Identidad, Convert.ToInt32(f.Valor("TipoAsiento"), CultureInfo.InvariantCulture), f.DecimalNulo("ImporteDebe") ?? 0m, f.DecimalNulo("ImporteHaber") ?? 0m),
+                        c.IdEj, c.Codigo));
                 var gasto = enlaces.Where(e => e.Rol == RolesSubcuentaActivo.GastoAmortizacion).Select(e => e.IdIdentidad).ToHashSet();
                 var acumulada = enlaces.Where(e => e.Rol == RolesSubcuentaActivo.AmortizacionAcumulada).Select(e => e.IdIdentidad).ToHashSet();
                 foreach (var y in existentes.Distinct())
