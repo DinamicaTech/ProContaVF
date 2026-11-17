@@ -59,6 +59,8 @@ public static class Acciones
     public const string Dividendos = "PROCESOS.DIVIDENDOS";
     /// <summary>Contabilizar el Impuesto sobre Sociedades del ejercicio y deshacerlo (contabilidad/procesos/impuesto-sociedades 2026-11-17).</summary>
     public const string ImpuestoSociedades = "PROCESOS.IMPUESTO_SOCIEDADES";
+    /// <summary>Cerrar el ejercicio, crear el siguiente y reabrirlo (contabilidad/procesos/cierre-ejercicio 2026-11-17).</summary>
+    public const string CierreEjercicio = "PROCESOS.CIERRE_EJERCICIO";
 
     /// <summary>
     /// Acción que manda mientras una acción nueva no tenga ningún grupo asignado: «Cambiar el trimestre activo» la tienen
@@ -73,6 +75,8 @@ public static class Acciones
         Dividendos => LiquidacionIva,
         // El Impuesto sobre Sociedades graba el gasto por impuesto y salda las 473: mientras no tenga grupos, lo tienen quienes pueden liquidar el IVA.
         ImpuestoSociedades => LiquidacionIva,
+        // Cerrar y reabrir el ejercicio graba la regularización, el cierre y la apertura: mientras no tenga grupos, lo tienen quienes pueden liquidar el IVA.
+        CierreEjercicio => LiquidacionIva,
         _ => null
     };
 }
