@@ -1,0 +1,4 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" xmlns:c2pa="http://c2pa.org/manifest"><defs>
+<linearGradient id="g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1E3156"/><stop offset="1" stop-color="#14213A"/></linearGradient></defs>
+<rect x="8" y="8" width="240" height="240" rx="52" fill="url(#g)"/>
+<path d="M11.17 42.11 L30.45 76.00 L80.90 76.00 L128.00 153.23 L175.10 76.00 L225.55 76.00 L244.83 42.11 Z" fill="#F4A259"/><path d="M128.00 247.50 L219.12 87.31 L181.45 87.31 L128.00 174.94 L74.55 87.31 L36.88 87.31 Z" fill="#FFFFFF"/></svg>
