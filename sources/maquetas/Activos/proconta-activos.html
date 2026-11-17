@@ -1,0 +1,413 @@
+<meta name="claude:viewport-fit-sides" content="cover">
+<title>ProConta Activos</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* Maqueta de ProContaVF: Datos maestros › Activos. Listado a todo el ancho; la ficha se abre encima con pestañas
+   (Datos, Cuenta de resultados, Subcuentas, Amortización) y también directamente por activo. Aspecto único y claro,
+   como la aplicación de escritorio (tokens de sources/maquetas). Datos ficticios. */
+:root{
+  --navy:#14213A;--navy2:#22314F;--navy3:#1B2A47;--ink:#16213A;--mut:#646A78;--txt2:#3B4252;
+  --or:#F4A259;--or2:#D9622B;--bg:#F1EEE7;--bg2:#FBFAF7;--card:#FFFFFF;--ln:#ECE8DE;--ln2:#F3F0E9;--ln3:#E1DDD2;
+  --inb:#E4E1D8;--inbg:#FAF9F6;--blue:#1D5C8C;--blueb:#E3ECF6;--green:#1E6B45;--greenb:#E2F0E8;--red:#B42318;--redb:#FDF1EF;
+  --amb:#8A4410;--ambb:#FFEBD6;--selb:#E8F0F9;--gris:#EEF0F3;
+  --s1:#2a78d6;--s2:#eb6834;--grid:#ECE8DE;
+  --f-ui:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;--f-mono:"IBM Plex Mono",ui-monospace,Consolas,monospace;
+  --f-disp:"Bricolage Grotesque","IBM Plex Sans",system-ui,sans-serif;
+  color-scheme:light;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font:14px/1.45 var(--f-ui);margin:0}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--or2);outline-offset:1px}
+.pad{padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.demo{background:var(--ink);color:#C9CED8;display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding-block:8px;font-size:13px;border-bottom:2px dashed var(--or)}
+.demo b{background:var(--or);color:var(--ink);font:600 11px var(--f-mono);padding:2px 7px;border-radius:3px;letter-spacing:.06em}
+.demo button{background:var(--navy2);border:1px solid #3A4A6A;color:#E6E9EF;border-radius:6px;padding:4px 10px;cursor:pointer}
+.top{background:var(--navy);color:#fff;display:flex;align-items:center;gap:14px;padding-block:10px;flex-wrap:wrap}
+.logo{font:700 17px var(--f-disp)}
+.ctx{border:1px solid #3A4A6A;border-radius:6px;padding:3px 10px;font-size:13px;color:#DCE1EA}
+.top .op{margin-left:auto;font-size:13px;color:#C9CED8}
+main{padding-block:16px;display:flex;flex-direction:column;gap:14px;min-width:0}
+.miga{color:var(--mut);font-size:12.5px}
+.miga button{border:0;background:none;color:var(--blue);cursor:pointer;padding:0;text-decoration:underline}
+.ph{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.ph h1{font:600 22px var(--f-disp);margin:0;text-wrap:balance}
+.sp{margin-left:auto}
+.btn{border:1px solid var(--inb);background:var(--card);border-radius:7px;padding:6px 12px;cursor:pointer;font-weight:500;font-size:13.5px;white-space:nowrap}
+.btn:hover{background:var(--bg2)}
+.btn.pri{background:var(--navy);color:#fff;border-color:var(--navy)}
+.btn[disabled]{opacity:.45;cursor:default}
+.seg{display:inline-flex;background:var(--ln2);border-radius:7px;padding:2px;flex-wrap:wrap}
+.seg button{border:0;background:transparent;padding:4px 10px;border-radius:6px;cursor:pointer;font-size:13px;color:var(--txt2)}
+.seg button[aria-pressed=true]{background:var(--card);box-shadow:0 1px 2px rgba(20,33,58,.12);color:var(--ink);font-weight:500}
+.inp{border:1px solid var(--inb);background:var(--inbg);border-radius:7px;padding:5px 9px;font-size:13.5px;color:var(--ink);max-width:100%}
+.inp.num{text-align:right;font-variant-numeric:tabular-nums}
+.inp[readonly]{background:var(--ln2);color:var(--txt2)}
+label.l{display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--txt2)}
+.card{background:var(--card);border:1px solid var(--ln);border-radius:10px;min-width:0}
+.filtros{display:flex;gap:12px;align-items:center;flex-wrap:wrap;padding:10px 14px}
+.hint{color:var(--mut);font-size:12.5px}
+.tw{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:13.5px}
+th{font-weight:600;font-size:12px;color:var(--mut);text-align:left;padding:7px 10px;border-bottom:1px solid var(--ln3);white-space:nowrap;background:var(--bg2)}
+td{padding:7px 10px;border-bottom:1px solid var(--ln2);white-space:nowrap}
+td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
+td.c{font-family:var(--f-mono);font-size:12.5px;color:var(--txt2)}
+tbody tr.fila{cursor:default}
+tbody tr.fila:hover{background:var(--bg2)}
+tbody tr.sel{background:var(--selb)}
+tr.tot td{font-weight:600;border-top:1px solid var(--ln3);background:var(--bg2)}
+tr.grp td{font-weight:600;background:var(--ln2);font-size:12.5px;color:var(--txt2)}
+tr.res td{font-weight:700;border-top:2px solid var(--ink);font-size:14.5px}
+tr.prev td{color:var(--mut);font-style:italic}
+.neg{color:var(--red)}
+.pill{display:inline-block;border-radius:20px;padding:1px 9px;font-size:12px;font-weight:500;white-space:nowrap}
+.pill.ok{background:var(--greenb);color:var(--green)}.pill.baja{background:var(--gris);color:var(--mut)}
+.pill.aj{background:var(--blueb);color:var(--blue)}.pill.av{background:var(--ambb);color:var(--amb)}
+.pill.tipo{background:var(--ln2);color:var(--txt2)}
+/* ficha */
+.cab{padding:14px 16px;display:flex;gap:10px 18px;flex-wrap:wrap;align-items:flex-start}
+.cab h1{font:600 21px var(--f-disp);margin:0 0 4px;text-wrap:balance}
+.cab .meta{display:flex;gap:8px;flex-wrap:wrap;align-items:center;color:var(--mut);font-size:13px}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));border-top:1px solid var(--ln)}
+.kpi{padding:10px 16px;border-right:1px solid var(--ln2);min-width:0}
+.kpi .t{font-size:12px;color:var(--mut)}
+.kpi .v{font:600 19px var(--f-disp);font-variant-numeric:tabular-nums}
+.kpi .s{font-size:12px;color:var(--mut)}
+.barra{height:6px;background:var(--ln2);border-radius:3px;margin-top:5px;overflow:hidden}
+.barra i{display:block;height:100%;background:var(--navy2);border-radius:3px}
+.tabs{display:flex;gap:2px;border-bottom:1px solid var(--ln3);padding:0 12px;overflow-x:auto}
+.tab{border:0;background:none;padding:9px 14px;cursor:pointer;font-size:14px;color:var(--txt2);border-bottom:3px solid transparent;white-space:nowrap}
+.tab[aria-selected=true]{color:var(--ink);font-weight:600;border-bottom-color:var(--or2)}
+.panel{padding:14px 16px;display:flex;flex-direction:column;gap:14px;min-width:0}
+.blq h3{font:600 14px var(--f-ui);margin:0 0 2px}
+.blq>p{margin:0 0 8px;color:var(--mut);font-size:12.5px}
+.campos{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:10px 16px}
+.campo{display:flex;flex-direction:column;gap:3px;min-width:0}
+.campo>span{font-size:12px;color:var(--mut)}
+.campo.ancho{grid-column:1/-1}
+.pie{display:flex;gap:8px;justify-content:flex-end;padding:10px 16px;border-top:1px solid var(--ln);background:var(--bg2);border-radius:0 0 10px 10px;align-items:center;flex-wrap:wrap}
+.aviso{background:var(--blueb);color:var(--blue);border-radius:8px;padding:9px 12px;font-size:13px}
+.aviso.amb{background:var(--ambb);color:var(--amb)}
+.ctl{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+.leyenda{display:flex;gap:14px;font-size:12.5px;color:var(--txt2);align-items:center;flex-wrap:wrap}
+.leyenda i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:5px}
+.graf{position:relative;max-width:760px}
+.graf svg{display:block;width:100%;height:auto}
+.graf text{font:11px var(--f-ui);fill:var(--mut)}
+.tip{position:absolute;pointer-events:none;background:var(--ink);color:#fff;border-radius:6px;padding:6px 9px;font-size:12px;line-height:1.5;white-space:nowrap;z-index:5}
+/* menú contextual, diálogo y aviso */
+.menu{position:fixed;background:var(--card);border:1px solid var(--ln3);border-radius:8px;box-shadow:0 8px 24px rgba(20,33,58,.18);padding:4px;z-index:30;min-width:240px}
+.menu button{display:block;width:100%;text-align:left;border:0;background:none;padding:7px 10px;border-radius:5px;cursor:pointer;font-size:13.5px}
+.menu button:hover{background:var(--selb)}
+.menu button[disabled]{color:var(--mut);cursor:default;background:none}
+.menu hr{border:0;border-top:1px solid var(--ln2);margin:4px 0}
+.velo{position:fixed;inset:0;background:rgba(20,33,58,.45);display:flex;align-items:flex-start;justify-content:center;padding:max(16px,4vh) 16px;z-index:40;overflow:auto}
+.dlg{background:var(--card);border-radius:12px;width:min(720px,100%);display:flex;flex-direction:column}
+.dlg>header{padding:14px 18px 6px}
+.dlg h2{font:600 18px var(--f-disp);margin:0}
+.pasos{display:flex;gap:6px;padding:8px 18px;flex-wrap:wrap}
+.paso{display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--mut);padding:3px 10px 3px 4px;border-radius:20px;background:var(--ln2)}
+.paso b{width:20px;height:20px;border-radius:50%;background:var(--card);display:inline-flex;align-items:center;justify-content:center;font-size:11.5px}
+.paso.act{background:var(--navy);color:#fff}.paso.act b{color:var(--navy)}
+.paso.hecho{background:var(--greenb);color:var(--green)}
+.dlg .cuerpo{padding:8px 18px 16px;display:flex;flex-direction:column;gap:12px}
+.dlg .cuerpo>p{margin:0;color:var(--txt2)}
+.tipos{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
+.tipos button{border:1px solid var(--inb);background:var(--inbg);border-radius:8px;padding:9px 10px;text-align:left;cursor:pointer}
+.tipos button small{display:block;color:var(--mut);font-size:11.5px}
+.tipos button[aria-pressed=true]{border-color:var(--navy);background:var(--selb);box-shadow:inset 0 0 0 1px var(--navy)}
+.repaso{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:5px}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(20px + env(safe-area-inset-bottom,0px));background:var(--ink);color:#fff;border-radius:8px;padding:9px 14px;font-size:13.5px;z-index:60;max-width:calc(100% - 32px);box-shadow:0 6px 20px rgba(0,0,0,.25)}
+.preg{padding:14px 16px}
+.preg h2{font:600 16px var(--f-disp);margin:0 0 6px}
+.preg ol{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:8px;max-width:75ch}
+.preg em{font-style:normal;background:var(--greenb);color:var(--green);border-radius:4px;padding:0 5px;font-size:12px}
+@media (prefers-reduced-motion:no-preference){.barra i{transition:width .3s}}
+</style>
+
+<div class="demo pad"><b>MAQUETA</b><span>Datos ficticios. Prueba a abrir una ficha con doble clic y el menú con clic derecho.</span>
+  <button id="demoLista" title="Vuelve al listado de activos">Ver el listado</button>
+  <button id="demoDirecta" title="Así se abriría desde el detalle de la renta de viviendas del Impuesto sobre Sociedades">Abrir una ficha directamente, como desde el Impuesto sobre Sociedades</button>
+</div>
+<div class="top pad"><span class="logo">ProContaVF</span><span class="ctx">Inversiones Ejemplo, S.L.</span><span class="ctx">Ejercicio 2026</span><span class="op">Operador: Ronald</span></div>
+
+<main class="pad">
+  <!-- LISTADO -->
+  <section id="vLista" style="display:contents">
+    <div class="miga">Datos maestros › Activos</div>
+    <div class="ph">
+      <h1>Activos</h1><span class="hint" id="cuenta"></span>
+      <span class="sp"></span>
+      <button class="btn pri" id="bNuevo" title="Da de alta un activo paso a paso: crea su centro de coste, sus subcuentas y su plan de amortización">Nuevo activo…</button>
+      <button class="btn" id="bGenerar" title="Crea las subcuentas que falten a los activos de un tipo, según su plantilla. Antes enseña la propuesta">Generar subcuentas…</button>
+      <button class="btn" id="bExcel" title="Exporta a Excel la lista que se ve, con los filtros aplicados">Exportar a Excel</button>
+    </div>
+    <div class="card">
+      <div class="filtros">
+        <input class="inp" id="fBuscar" placeholder="Buscar por nombre o código" title="Escribe parte del nombre, del código o del centro de coste" style="width:230px">
+        <div class="seg" id="fTipo" title="Filtra por clase de activo"></div>
+        <div class="seg" id="fEstado" title="En uso: activos que la sociedad tiene hoy. De baja: vendidos o retirados"></div>
+        <label class="l" title="Los activos ajenos no son de la sociedad: se guardan solo para tener su información"><input type="checkbox" id="fAjenos" checked> Mostrar ajenos</label>
+        <span class="sp hint">Doble clic: abrir la ficha · Clic derecho: acciones sobre lo marcado</span>
+      </div>
+      <div class="tw"><table id="tLista">
+        <thead><tr><th style="width:30px"><input type="checkbox" id="selTodos" title="Marcar o desmarcar todos los que se ven"></th><th>Código</th><th>Nombre</th><th>Tipo</th><th>Centro de coste</th><th>Compra</th><th class="n">Coste</th><th class="n">Amortizado</th><th class="n">Ingresos 2026</th><th class="n">Gastos 2026</th><th class="n">Resultado 2026</th><th>Estado</th></tr></thead>
+        <tbody></tbody><tfoot></tfoot>
+      </table></div>
+    </div>
+    <div class="card preg">
+      <h2>Lo que necesito que decidas</h2>
+      <ol>
+        <li><b>De dónde sale la cuenta de resultados de cada activo.</b> Propongo sumar los apuntes de los grupos 6 y 7 que estén en una subcuenta del activo o que lleven su centro de coste. En los activos migrados que comparten centro con otro, solo sus subcuentas. <em>recomendado</em></li>
+        <li><b>Gastos generales.</b> La ficha muestra el resultado directo del activo. Con el interruptor «Añadir su parte de gastos generales» se suma una línea con el mismo reparto que usa el Impuesto sobre Sociedades (en proporción a los ingresos). Propongo dejarlo apagado por defecto. <em>recomendado</em></li>
+        <li><b>Amortización del año en curso.</b> Como el asiento es anual a 31/12, hasta entonces no hay gasto contabilizado. Propongo enseñarla como línea «prevista», en cursiva y sumada al resultado, para que la cifra no engañe. <em>recomendado</em></li>
+        <li><b>Alcance de esta fase.</b> Se construiría el listado, la ficha con sus cuatro pestañas y el alta paso a paso. «Calcular la amortización» y «Dar de baja o vender» aparecen ya en su sitio pero desactivadas, porque son las dos fases siguientes. <em>recomendado</em></li>
+      </ol>
+    </div>
+  </section>
+
+  <!-- FICHA -->
+  <section id="vFicha" hidden style="display:contents">
+    <div class="miga" id="miga"></div>
+    <div class="card">
+      <div class="cab">
+        <div style="min-width:0;flex:1 1 320px"><h1 id="fNombre"></h1><div class="meta" id="fMeta"></div></div>
+        <button class="btn" id="bMayor" title="Abre el Mayor con todas las subcuentas de este activo">Ver el Mayor</button>
+        <button class="btn" id="bBaja" disabled title="Dar de baja o vender: propone el asiento que cancela el activo y lleva el resultado a la 671 o la 771. Llegará en una fase posterior">Dar de baja o vender…</button>
+      </div>
+      <div class="kpis" id="fKpis"></div>
+      <div class="tabs" role="tablist" id="fTabs"></div>
+      <div class="panel" id="fPanel"></div>
+      <div class="pie" id="fPie" hidden>
+        <span class="hint sp" id="pieTxt" style="margin-right:auto;margin-left:0"></span>
+        <button class="btn" id="bCancelar" title="Descarta los cambios y deja la ficha como estaba">Cancelar</button>
+        <button class="btn pri" id="bGuardar" title="Guarda los cambios de la ficha">Guardar</button>
+      </div>
+    </div>
+  </section>
+</main>
+<div id="capa"></div>
+
+<script>
+(function(){
+const $=(s,r=document)=>r.querySelector(s), $$=(s,r=document)=>[...r.querySelectorAll(s)];
+const eur=(v,d=2)=>v==null?'':v.toLocaleString('es-ES',{minimumFractionDigits:d,maximumFractionDigits:d,useGrouping:'always'});
+const fecha=s=>s?s.split('-').reverse().join('/'):'';
+const MES=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+const HOY_MES=10; // la maqueta está a 17/11/2026: hay apuntes hasta noviembre
+const TIPOS={VIVIENDA:{n:'Vivienda',g:'Inmuebles',inm:1,padre:'Viviendas',pct:3,ctas:'221 · 282 · 682'},LOCAL:{n:'Local',g:'Inmuebles',inm:1,padre:'Locales',pct:3,ctas:'221 · 282 · 682'},
+  PARKING:{n:'Parking',g:'Inmuebles',inm:1,padre:'Locales',pct:3,ctas:'221 · 282 · 682'},TURISTICO:{n:'Piso turístico',g:'Inmuebles',inm:1,padre:'Turístico',pct:3,ctas:'221 · 282 · 682'},
+  VEHICULO:{n:'Vehículo',g:'Vehículos',padre:'General',pct:16,ctas:'218 · 2818 · 681'},INSTALACION:{n:'Instalación técnica',g:'Otros',padre:'General',pct:10,ctas:'212 · 2812 · 681'},
+  APLICACION:{n:'Aplicación informática',g:'Otros',padre:'General',pct:33,ctas:'206 · 2806 · 680'}};
+const A=[
+ {id:1,cod:'V01',nom:'Piso Calle del Roble 14, 2.º 1.ª',alias:'Roble 14',tipo:'VIVIENDA',adq:'2015-03-12',coste:185000,pc:62,pct:3,alq:950,act:'Viviendas (bonificada)'},
+ {id:2,cod:'V02',nom:'Piso Avenida del Faro 8, 4.º B',alias:'Faro 8',tipo:'VIVIENDA',adq:'2018-09-01',coste:210000,pc:58,pct:3,alq:1100,act:'Viviendas (bonificada)'},
+ {id:3,cod:'V03',nom:'Piso Plaza del Olmo 3, 1.º',alias:'Olmo 3',tipo:'VIVIENDA',adq:'2020-06-15',coste:164000,pc:65,pct:3,alq:875,act:'Viviendas (bonificada)',faltan:1},
+ {id:4,cod:'L01',nom:'Local Calle del Molino 22',alias:'Molino 22',tipo:'LOCAL',adq:'2012-01-20',coste:240000,pc:55,pct:3,alq:1650,act:'Locales'},
+ {id:5,cod:'P01',nom:'Parking Calle del Molino 22, plaza 17',alias:'Molino pl. 17',tipo:'PARKING',adq:'2012-01-20',coste:18000,pc:70,pct:3,alq:95,act:'Locales'},
+ {id:6,cod:'T01',nom:'Apartamento Paseo de la Marina 5',alias:'Marina 5',tipo:'TURISTICO',adq:'2021-04-10',coste:198000,pc:60,pct:3,alq:0,tur:1,act:'Alquiler turístico'},
+ {id:7,cod:'H01',nom:'Furgoneta eléctrica de mantenimiento',alias:'Furgoneta',tipo:'VEHICULO',adq:'2023-02-01',coste:32400,pc:100,pct:16,alq:0,act:'General (prorrata)'},
+ {id:8,cod:'I01',nom:'Instalación fotovoltaica de la cubierta',alias:'Fotovoltaica',tipo:'INSTALACION',adq:'2022-07-01',coste:14800,pc:100,pct:10,alq:0,act:'General (prorrata)'},
+ {id:9,cod:'S01',nom:'Programa de gestión de reservas',alias:'Reservas',tipo:'APLICACION',adq:'2024-01-15',coste:6200,pc:100,pct:33,alq:0,act:'Alquiler turístico'},
+ {id:10,cod:'V04',nom:'Piso Calle de la Ribera 31, 3.º',alias:'Ribera 31',tipo:'VIVIENDA',adq:'2010-05-03',coste:142000,pc:60,pct:3,alq:820,baja:'2025-05-30',act:'Viviendas (bonificada)'},
+ {id:11,cod:'X01',nom:'Piso particular Calle del Sauce 9',alias:'Sauce 9',tipo:'VIVIENDA',adq:'2009-11-02',coste:0,pc:60,pct:0,alq:0,ajeno:1}
+];
+A.forEach(a=>{a.T=TIPOS[a.tipo];a.nn=String(a.id).padStart(2,'0');a.centro=a.ajeno?'':a.T.padre+' › '+a.alias;a.base=Math.round(a.coste*a.pc)/100;
+  a.cat={ref:a.T.inm?('93'+(41000+a.id*377)+'DF'+(2800+a.id*13)+'N000'+a.id+'KP'):'',suelo:a.T.inm?Math.round((a.coste||150000)*.19*(100-a.pc)/100):0,cons:a.T.inm?Math.round((a.coste||150000)*.19*a.pc/100):0};});
+const rnd=(a,b)=>{let x=Math.sin(a*127.1+b*311.7)*43758.5453;return x-Math.floor(x)};
+const r2=v=>Math.round(v*100)/100;
+const dias=y=>(y%4===0&&(y%100!==0||y%400===0))?366:365;
+// Amortización por ejercicio: prorrata por días reales el primer y el último año, con tope en lo pendiente.
+function plan(a){const out=[];if(a.ajeno||!a.pct)return out;const y0=+a.adq.slice(0,4),fin=a.baja?+a.baja.slice(0,4):2060;let acu=0;
+  for(let y=y0;y<=fin&&acu<a.base-0.005;y++){const D=dias(y);let d=D;
+    if(y===y0)d=Math.round((new Date(y,11,31)-new Date(a.adq))/864e5)+1;
+    if(a.baja&&y===fin)d=Math.round((new Date(a.baja)-new Date(y,0,1))/864e5)+1;
+    let c=r2(a.base*a.pct/100*d/D);c=Math.min(c,r2(a.base-acu));acu=r2(acu+c);out.push({y,d,D,c,acu,pte:r2(a.base-acu)});}
+  return out;}
+A.forEach(a=>{a.plan=plan(a);a.acu25=(a.plan.filter(p=>p.y<=2025).pop()||{acu:0}).acu;});
+// Cuenta de resultados del activo y ejercicio: filas por subcuenta con sus doce meses.
+function pyg(a,y){const rows=[],s=a.id*10+y,hasta=y===2026?HOY_MES:11,ok=m=>m<=hasta&&!(a.baja&&(y>2025||(y===2025&&m>4)));
+  const fila=(g,pre,nom,f,extra)=>{const m=MES.map((_,i)=>ok(i)?r2(Math.max(0,f(i))):0);if(m.some(v=>v))rows.push(Object.assign({g,cta:pre+a.nn,nom,m,t:r2(m.reduce((x,v)=>x+v,0))},extra));};
+  if(a.ajeno)return rows;const k=1+(y-2026)*.03;
+  if(a.tur){const est=[.35,.4,.55,.8,.95,1.25,1.6,1.7,1.15,.7,.4,.5];fila('I','70500','Ingresos por estancias',i=>2350*est[i]*k*(.9+rnd(s,i)*.2));
+    fila('G','62300','Comisiones de plataformas',i=>2350*est[i]*k*.15);fila('G','62910','Limpieza y lavandería',i=>210*est[i]*(.9+rnd(s+1,i)*.3));}
+  else if(a.alq)fila('I','75200','Ingresos por alquiler',i=>a.alq*k);
+  if(a.T.inm){fila('G','62900','Comunidad de propietarios',i=>a.tipo==='PARKING'?14:58+a.id*6);fila('G','63100','IBI y otros tributos',i=>i===8?a.coste*.0031*k:0);
+    fila('G','62550','Seguro',i=>i===2?(a.tipo==='PARKING'?0:190+a.id*14):0);fila('G','62800','Suministros',i=>a.tur?95+rnd(s+2,i)*60:(rnd(s+2,i)>.8?40:0));
+    fila('G','62200','Reparaciones y conservación',i=>rnd(s+3,i)>.84&&a.tipo!=='PARKING'?120+rnd(s+4,i)*520:0);}
+  if(a.tipo==='VEHICULO'){fila('G','62550','Seguro',i=>i===1?640:0);fila('G','62810','Recarga eléctrica',i=>38+rnd(s,i)*30);fila('G','62200','Mantenimiento y revisiones',i=>i===5||i===10?185+rnd(s,i)*90:0);}
+  if(a.tipo==='INSTALACION'){fila('I','75900','Excedentes vendidos a la red',i=>22+[0,5,18,30,42,55,60,52,35,18,6,0][i]);fila('G','62200','Mantenimiento',i=>i===3?210:0);}
+  if(a.tipo==='APLICACION')fila('G','62900','Cuota de soporte',i=>29);
+  const p=a.plan.find(q=>q.y===y);if(p){const m=MES.map(()=>0);m[11]=p.c;rows.push({g:'G',cta:(a.T.inm?'68200':a.tipo==='APLICACION'?'68000':'68100')+a.nn,nom:y===2026?'Amortización (prevista, sin contabilizar)':'Amortización',m,t:p.c,prev:y===2026,amo:1});}
+  return rows;}
+const tot=(rows,g)=>r2(rows.filter(r=>r.g===g).reduce((x,r)=>x+r.t,0));
+A.forEach(a=>{const r=pyg(a,2026);a.ing=tot(r,'I');a.gas=tot(r,'G');a.res=r2(a.ing-a.gas);});
+
+const st={tipo:'Todos',estado:'En uso',sel:new Set(),act:null,tab:'Datos',ej:2026,comp:true,vista:'Resumen',generales:false,sucio:false,directa:false};
+function toast(t){$$('.toast').forEach(e=>e.remove());const d=document.createElement('div');d.className='toast';d.setAttribute('role','status');d.textContent=t;document.body.append(d);setTimeout(()=>d.remove(),3800);}
+function seg(el,ops,get,set){el.innerHTML=ops.map(o=>`<button aria-pressed="${o===get()}">${o}</button>`).join('');el.onclick=e=>{const b=e.target.closest('button');if(!b)return;set(b.textContent);seg(el,ops,get,set);};}
+const estado=a=>a.ajeno?'<span class="pill aj" title="No es de la sociedad: solo informativo, sin subcuentas, centro ni amortización">Ajeno</span>':a.baja?`<span class="pill baja" title="Vendido o retirado el ${fecha(a.baja)}">De baja</span>`:a.faltan?'<span class="pill av" title="Le falta una subcuenta de su plantilla. Se crea con «Generar subcuentas…»">Falta 1 subcuenta</span>':'<span class="pill ok">En uso</span>';
+const imp=(v,cls='')=>`<td class="n ${v<0?'neg':''} ${cls}">${eur(v)}</td>`;
+
+/* ---------- listado ---------- */
+function visibles(){const q=$('#fBuscar').value.trim().toLowerCase();return A.filter(a=>(st.tipo==='Todos'||a.T.g===st.tipo)&&(st.estado==='Todos'||(st.estado==='De baja')===!!a.baja)
+  &&($('#fAjenos').checked||!a.ajeno)&&(!q||(a.nom+a.cod+a.centro).toLowerCase().includes(q)));}
+function lista(){const v=visibles();st.sel.forEach(id=>{if(!v.some(a=>a.id===id))st.sel.delete(id)});
+  $('#tLista tbody').innerHTML=v.map(a=>`<tr class="fila ${st.sel.has(a.id)?'sel':''}" data-id="${a.id}" title="Doble clic para abrir la ficha">
+   <td><input type="checkbox" ${st.sel.has(a.id)?'checked':''} aria-label="Marcar ${a.nom}"></td><td class="c">${a.cod}</td><td>${a.nom}</td><td><span class="pill tipo">${a.T.n}</span></td>
+   <td>${a.centro||'<span class="hint">sin centro</span>'}</td><td>${fecha(a.adq)}</td>${a.ajeno?'<td class="n hint" colspan="5">solo informativo</td>':imp(a.coste)+`<td class="n">${a.base?Math.round(a.acu25/a.base*100):0} %</td>`+imp(a.ing)+imp(a.gas)+imp(a.res)}
+   <td>${estado(a)}</td></tr>`).join('')||'<tr><td colspan="12" class="hint" style="padding:18px">Ningún activo cumple los filtros. Cambia el tipo o el estado para ver más.</td></tr>';
+  const p=v.filter(a=>!a.ajeno),s=k=>r2(p.reduce((x,a)=>x+a[k],0));
+  $('#tLista tfoot').innerHTML=p.length?`<tr class="tot"><td></td><td colspan="5">Total de ${p.length} activos de la sociedad</td>${imp(s('coste'))}<td></td>${imp(s('ing'))}${imp(s('gas'))}${imp(s('res'))}<td></td></tr>`:'';
+  $('#cuenta').textContent=v.length+' activos'+(st.sel.size?' · '+st.sel.size+' marcados':'');$('#selTodos').checked=v.length>0&&v.every(a=>st.sel.has(a.id));}
+seg($('#fTipo'),['Todos','Inmuebles','Vehículos','Otros'],()=>st.tipo,v=>{st.tipo=v;lista()});
+seg($('#fEstado'),['En uso','De baja','Todos'],()=>st.estado,v=>{st.estado=v;lista()});
+$('#fBuscar').oninput=lista;$('#fAjenos').onchange=lista;
+$('#selTodos').onchange=e=>{visibles().forEach(a=>e.target.checked?st.sel.add(a.id):st.sel.delete(a.id));lista();};
+const tb=$('#tLista tbody');
+tb.onclick=e=>{const tr=e.target.closest('tr[data-id]');if(!tr)return;const id=+tr.dataset.id;st.sel.has(id)?st.sel.delete(id):st.sel.add(id);
+  // se actualiza la fila sin repintar la tabla, para que el doble clic siga encontrando la misma fila
+  tr.classList.toggle('sel',st.sel.has(id));$('input',tr).checked=st.sel.has(id);const v=visibles();
+  $('#cuenta').textContent=v.length+' activos'+(st.sel.size?' · '+st.sel.size+' marcados':'');$('#selTodos').checked=v.every(a=>st.sel.has(a.id));};
+tb.ondblclick=e=>{const tr=e.target.closest('tr[data-id]');if(tr&&!e.target.matches('input'))abrir(+tr.dataset.id,false);};
+tb.oncontextmenu=e=>{const tr=e.target.closest('tr[data-id]');if(!tr)return;e.preventDefault();const id=+tr.dataset.id;if(!st.sel.has(id)){st.sel.clear();st.sel.add(id);lista();}
+  const n=st.sel.size,uno=n===1,a=A.find(x=>x.id===id),propio=[...st.sel].every(i=>!A.find(x=>x.id===i).ajeno);
+  menu(e.clientX,e.clientY,[[uno?'Abrir la ficha':'Abrir la ficha (solo con uno marcado)',uno?()=>abrir(id,false):null],
+   [uno?'Ver su cuenta de resultados':'Ver su cuenta de resultados (solo con uno marcado)',uno&&!a.ajeno?()=>{abrir(id,false,'Cuenta de resultados')}:null],
+   [n>1?`Ver el Mayor de los ${n} marcados`:'Ver el Mayor de sus subcuentas',propio?()=>toast('Se abriría el Mayor con las subcuentas de '+(uno?a.alias:'los '+n+' activos marcados')+'.'):null],'-',
+   [n>1?`Generar las subcuentas que falten a los ${n} marcados…`:'Generar las subcuentas que le falten…',propio?()=>toast('Se enseñaría la propuesta de subcuentas nuevas para confirmar.'):null],
+   ['Dar de baja o vender… (fase posterior)',null]]);};
+function menu(x,y,ops){cerrarMenu();const m=document.createElement('div');m.className='menu';m.setAttribute('role','menu');
+  ops.forEach(o=>{if(o==='-'){m.append(document.createElement('hr'));return;}const b=document.createElement('button');b.textContent=o[0];b.setAttribute('role','menuitem');if(!o[1])b.disabled=true;else b.onclick=()=>{cerrarMenu();o[1]();};m.append(b);});
+  document.body.append(m);const r=m.getBoundingClientRect();m.style.left=Math.max(8,Math.min(x,innerWidth-r.width-8))+'px';m.style.top=Math.max(8,Math.min(y,innerHeight-r.height-8))+'px';}
+function cerrarMenu(){$$('.menu').forEach(m=>m.remove());}
+addEventListener('click',cerrarMenu);addEventListener('scroll',cerrarMenu,true);addEventListener('keydown',e=>{if(e.key==='Escape'){cerrarMenu();$('#capa').innerHTML='';}});
+$('#bExcel').onclick=()=>toast('Se generaría un Excel con los '+visibles().length+' activos que se ven.');
+$('#bGenerar').onclick=()=>toast('Se abriría «Generar subcuentas» (ya existe): eliges el tipo de activo, ves la propuesta y confirmas.');
+
+/* ---------- ficha ---------- */
+function ver(lst){$('#vLista').hidden=!lst;$('#vFicha').hidden=lst;scrollTo(0,0);}
+function abrir(id,directa,tab){st.act=A.find(a=>a.id===id);st.directa=directa;st.tab=tab||(directa?'Cuenta de resultados':'Datos');st.sucio=false;st.ej=2026;ver(false);ficha();}
+function volver(){if(st.sucio){toast('Hay cambios sin guardar. Pulsa Guardar o Cancelar al pie de la ficha.');return;}ver(true);lista();}
+function ficha(){const a=st.act,R=pyg(a,2026),ing=tot(R,'I'),gas=tot(R,'G');
+  $('#miga').innerHTML=st.directa?'<span>Contabilidad › Impuesto sobre Sociedades › Renta de viviendas › </span><b>'+a.alias+'</b> · <button id="mVolver">Ver todos los activos</button>':'Datos maestros › <button id="mVolver">Activos</button> › <b>'+a.alias+'</b>';
+  $('#mVolver').onclick=volver;
+  $('#fNombre').textContent=a.nom;
+  $('#fMeta').innerHTML=`<span class="c" style="font-family:var(--f-mono)">${a.cod}</span><span class="pill tipo">${a.T.n}</span>${estado(a)}${a.ajeno?'':`<span title="Centro de coste propio del activo. De él hereda la actividad de IVA">Centro: <b>${a.centro}</b></span><span>Actividad: ${a.act}</span>`}`;
+  $('#bMayor').hidden=$('#bBaja').hidden=!!a.ajeno;
+  const pa=a.base?Math.round(a.acu25/a.base*100):0;
+  $('#fKpis').innerHTML=a.ajeno?'':[['Coste de compra',eur(a.coste)+' €','comprado el '+fecha(a.adq)],
+   ['Amortizado hasta 2025',eur(a.acu25)+' €',`<div class="barra" title="${pa} % de lo que se puede amortizar (${eur(a.base)} €)"><i style="width:${pa}%"></i></div>${pa} % de ${eur(a.base)} €`],
+   ['Ingresos de 2026',eur(ing)+' €','hasta el 17/11/2026'],['Gastos de 2026',eur(gas)+' €','con la amortización prevista'],
+   ['Resultado de 2026',`<span class="${ing-gas<0?'neg':''}">${eur(r2(ing-gas))} €</span>`,a.coste&&ing?`rentabilidad sobre el coste: ${eur((ing-gas)/a.coste*100,1)} %`:'sin ingresos propios']]
+   .map(k=>`<div class="kpi"><div class="t">${k[0]}</div><div class="v">${k[1]}</div><div class="s">${k[2]}</div></div>`).join('');
+  const tabs=a.ajeno?['Datos']:['Datos','Cuenta de resultados','Subcuentas','Amortización'];if(!tabs.includes(st.tab))st.tab='Datos';
+  $('#fTabs').innerHTML=tabs.map(t=>`<button class="tab" role="tab" aria-selected="${t===st.tab}">${t}</button>`).join('');
+  $('#fTabs').onclick=e=>{const b=e.target.closest('.tab');if(b){st.tab=b.textContent;ficha();}};
+  ({'Datos':tDatos,'Cuenta de resultados':tPyg,'Subcuentas':tSub,'Amortización':tAmo})[st.tab](a);
+  $('#fPie').hidden=st.tab!=='Datos';pie();}
+function pie(){$('#bGuardar').disabled=$('#bCancelar').disabled=!st.sucio;$('#pieTxt').textContent=st.sucio?'Hay cambios sin guardar.':'Sin cambios.';}
+$('#bGuardar').onclick=()=>{st.sucio=false;pie();toast('Ficha guardada.');};
+$('#bCancelar').onclick=()=>{st.sucio=false;ficha();toast('Cambios descartados.');};
+$('#bMayor').onclick=()=>toast('Se abriría el Mayor con las subcuentas de '+st.act.alias+'.');
+const campo=(et,val,o={})=>`<label class="campo ${o.ancho?'ancho':''}" title="${o.tip||et}"><span>${et}</span>${o.html||`<input class="inp ${o.num?'num':''}" id="c_${et.replace(/\W+/g,'_')}" value="${val??''}" ${o.ro?'readonly':''} style="width:${o.w||'100%'}">`}</label>`;
+function tDatos(a){const I=a.T.inm,c=a.cat;
+  $('#fPanel').innerHTML=(a.ajeno?'<div class="aviso">Este activo no es de la sociedad. Se guarda solo para tener su información: no tiene subcuentas, centro de coste ni amortización, y no genera ningún asiento.</div>':'')+
+  `<div class="blq"><h3>Identificación</h3><div class="campos">${campo('Código',a.cod,{w:'90px',tip:'Código corto del activo, único en la sociedad'})}${campo('Nombre',a.nom,{tip:'Nombre completo. Se usa en el nombre de sus subcuentas'})}${campo('Nombre corto',a.alias,{tip:'Nombre abreviado para listados y para su centro de coste'})}
+   ${campo('Tipo','',{html:`<select class="inp" id="c_tipo">${Object.values(TIPOS).map(t=>`<option ${t===a.T?'selected':''}>${t.n}</option>`).join('')}</select>`,tip:'El tipo decide la plantilla de subcuentas y las cuentas del PGC que usa'})}
+   <label class="campo" title="Márcalo si el activo no pertenece a la sociedad y solo quieres tener su información"><span>Propiedad</span><span class="l" style="padding:5px 0"><input type="checkbox" id="c_ajeno" ${a.ajeno?'checked':''}> Es ajeno a la sociedad</span></label>
+   ${campo('Notas',a.ajeno?'Vivienda particular. Registrada para tener a mano sus datos catastrales.':'',{ancho:1,tip:'Texto libre'})}</div></div>
+  <div class="blq"><h3>Compra</h3><div class="campos">${campo('Fecha de compra',fecha(a.adq),{w:'120px',tip:'Desde este día empieza a amortizarse'})}${a.ajeno?'':campo('Coste de compra (€)',eur(a.coste),{num:1,w:'150px',tip:'Precio más gastos de compra. Es el importe de alta del activo'})}
+   ${a.ajeno?'':campo('Centro de coste',a.centro,{ro:1,tip:'Centro propio del activo, creado al darlo de alta. Se cambia desde el árbol de centros de coste'})}${a.ajeno?'':campo('Actividad de IVA',a.act,{ro:1,tip:'La hereda de su centro de coste'})}</div></div>`+
+  (I?`<div class="blq"><h3>Datos del inmueble</h3><p>El porcentaje de construcción sale de los valores catastrales y decide qué parte del coste se amortiza: el suelo no se amortiza.</p><div class="campos">
+   ${campo('Referencia catastral',c.ref,{tip:'Los 20 caracteres del recibo del IBI'})}${campo('Valor catastral del suelo (€)',eur(c.suelo),{num:1,w:'150px'})}${campo('Valor catastral de la construcción (€)',eur(c.cons),{num:1,w:'150px'})}
+   ${campo('Construcción (%)',eur(a.pc),{num:1,w:'90px',tip:'Valor de la construcción sobre el total catastral. Se calcula solo y se puede corregir'})}
+   ${a.ajeno?'':campo('Alquiler mensual actual (€)',a.alq?eur(a.alq):'',{num:1,w:'150px',tip:'Renta del contrato en vigor'})+campo('Inicio del alquiler',a.alq?'01/02/2024':'',{w:'120px'})+campo('Tributo metropolitano (€)',eur(38+a.id*3),{num:1,w:'120px'})}</div></div>`:'')+
+  (a.ajeno?'':`<div class="blq"><h3>Amortización</h3><div class="campos"><label class="campo" title="Desmárcalo si el bien no se amortiza"><span>¿Se amortiza?</span><span class="l" style="padding:5px 0"><input type="checkbox" id="c_amo" checked> Sí, cada año</span></label>
+   ${campo('Porcentaje anual (%)',eur(a.pct),{num:1,w:'90px',tip:'Porcentaje que se amortiza cada año sobre la base'})}${campo('Base que se amortiza (€)',eur(a.base),{ro:1,num:1,w:'150px',tip:'Coste por el porcentaje de construcción (el coste entero si no es un inmueble)'})}
+   ${campo('Cuota de un año completo (€)',eur(r2(a.base*a.pct/100)),{ro:1,num:1,w:'150px'})}</div></div>`);
+  $('#fPanel').oninput=()=>{st.sucio=true;pie();};}
+function tPyg(a){const R=pyg(a,st.ej),P=st.comp?pyg(a,st.ej-1):null,ing=tot(R,'I'),gas=tot(R,'G');
+  const gen=st.generales?r2(ing*.085):0,res=r2(ing-gas-gen),meses=st.vista==='Por meses';
+  const prevT=r=>{if(!P)return null;const q=P.find(x=>x.cta===r.cta);return q?q.t:0;};
+  const fila=r=>{const p=prevT(r);return `<tr class="fila ${r.prev?'prev':''}" title="Doble clic para ver el Mayor de la ${r.cta}"><td class="c">${r.cta}</td><td>${r.nom}</td>`+
+    (meses?r.m.map(v=>`<td class="n">${v?eur(v,0):''}</td>`).join(''):'')+imp(r.t)+(P&&!meses?imp(p)+imp(r2(r.t-p)):'')+(!meses?`<td class="n">${ing?eur(r.t/ing*100,1)+' %':''}</td>`:'')+'</tr>';};
+  const linea=(cls,txt,v,pv,ms)=>`<tr class="${cls}"><td></td><td>${txt}</td>`+(meses?ms.map(x=>`<td class="n ${x<0?'neg':''}">${x?eur(x,0):''}</td>`).join(''):'')+imp(v)+(P&&!meses?imp(pv)+imp(r2(v-pv)):'')+(!meses?`<td class="n">${ing&&cls!=='grp'?eur(v/ing*100,1)+' %':''}</td>`:'')+'</tr>';
+  const sm=g=>MES.map((_,i)=>r2(R.filter(r=>r.g===g).reduce((x,r)=>x+r.m[i],0)));
+  const mi=sm('I'),mg=sm('G'),pi=P?tot(P,'I'):0,pg=P?tot(P,'G'):0,ncol=2+(meses?12:0);
+  $('#fPanel').innerHTML=`<div class="ctl">
+    <label class="l" title="Ejercicio que se muestra">Ejercicio <select class="inp" id="pEj">${[2026,2025,2024].map(y=>`<option ${y===st.ej?'selected':''}>${y}</option>`).join('')}</select></label>
+    <div class="seg" id="pVista" title="Resumen: una cifra por concepto. Por meses: los doce meses en columnas"></div>
+    <label class="l" title="Añade una columna con el ejercicio anterior y la diferencia"><input type="checkbox" id="pComp" ${st.comp?'checked':''}> Comparar con ${st.ej-1}</label>
+    <label class="l" title="Suma la parte de los gastos generales de la sociedad que le toca a este activo, en proporción a sus ingresos, igual que en el Impuesto sobre Sociedades"><input type="checkbox" id="pGen" ${st.generales?'checked':''}> Añadir su parte de gastos generales</label>
+    <span class="sp"></span><button class="btn" id="pExcel" title="Exporta a Excel esta cuenta de resultados">Exportar a Excel</button></div>
+   ${st.ej===2026?'<div class="hint">Ejercicio en curso: cifras hasta el 17/11/2026. La amortización se contabiliza a 31/12; hasta entonces se muestra la prevista.</div>':''}
+   <div class="tw"><table><thead><tr><th>Subcuenta</th><th>Concepto</th>${meses?MES.map(m=>`<th class="n">${m}</th>`).join(''):''}<th class="n">${st.ej}</th>${P&&!meses?`<th class="n">${st.ej-1}</th><th class="n">Diferencia</th>`:''}${!meses?'<th class="n">% de ingresos</th>':''}</tr></thead><tbody id="pBody">
+    <tr class="grp"><td colspan="${ncol+4}">Ingresos</td></tr>${R.filter(r=>r.g==='I').map(fila).join('')||`<tr><td></td><td class="hint" colspan="${ncol+3}">Este activo no tiene ingresos propios.</td></tr>`}
+    ${linea('tot','Total de ingresos',ing,pi,mi)}
+    <tr class="grp"><td colspan="${ncol+4}">Gastos</td></tr>${R.filter(r=>r.g==='G').map(fila).join('')}
+    ${st.generales?linea('prev','Parte de gastos generales de la sociedad',gen,r2(pi*.085),mi.map(v=>r2(v*.085))):''}
+    ${linea('tot','Total de gastos',r2(gas+gen),r2(pg+(st.generales?pi*.085:0)),mg.map((v,i)=>r2(v+(st.generales?mi[i]*.085:0))))}
+    ${linea('res','Resultado del activo',res,r2(pi-pg-(st.generales?pi*.085:0)),mi.map((v,i)=>r2(v-mg[i]-(st.generales?v*.085:0))))}
+   </tbody></table></div>
+   <div class="blq"><h3>Ingresos y gastos de ${st.ej}, mes a mes</h3><p>Sin la amortización, que se contabiliza de una vez en diciembre.</p>
+    <div class="leyenda"><span><i style="background:var(--s1)"></i>Ingresos</span><span><i style="background:var(--s2)"></i>Gastos</span></div><div class="graf" id="graf"></div></div>`;
+  seg($('#pVista'),['Resumen','Por meses'],()=>st.vista,v=>{st.vista=v;tPyg(a)});
+  $('#pEj').onchange=e=>{st.ej=+e.target.value;tPyg(a)};$('#pComp').onchange=e=>{st.comp=e.target.checked;tPyg(a)};$('#pGen').onchange=e=>{st.generales=e.target.checked;tPyg(a)};
+  $('#pExcel').onclick=()=>toast('Se generaría un Excel con la cuenta de resultados de '+a.alias+' de '+st.ej+'.');
+  $('#pBody').ondblclick=e=>{const tr=e.target.closest('tr.fila');if(tr)toast('Se abriría el Mayor de la subcuenta '+tr.cells[0].textContent+' en '+st.ej+'.');};
+  $('#fPanel').oninput=null;
+  const sinAmo=MES.map((_,i)=>r2(R.filter(r=>r.g==='G'&&!r.amo).reduce((x,r)=>x+r.m[i],0)));grafico($('#graf'),mi,sinAmo);}
+function grafico(el,ing,gas){const W=760,H=230,L=52,B=24,T=10,max=Math.max(1,...ing,...gas);
+  const paso=[50,100,200,250,500,1000,2000,2500,5000,10000].find(p=>max/p<=4)||20000,top=Math.ceil(max/paso)*paso,y=v=>T+(H-T-B)*(1-v/top),bw=(W-L)/12;
+  let s=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Ingresos y gastos por mes">`;
+  for(let v=0;v<=top;v+=paso)s+=`<line x1="${L}" x2="${W}" y1="${y(v)}" y2="${y(v)}" stroke="var(--grid)" stroke-width="1"/><text x="${L-6}" y="${y(v)+4}" text-anchor="end">${eur(v,0)}</text>`;
+  const bar=(x,v,c)=>{if(!v)return '';const h=y(0)-y(v),w=bw*.3,r=Math.min(4,h);return `<path d="M${x},${y(0)}v${-(h-r)}q0,${-r} ${r},${-r}h${w-2*r}q${r},0 ${r},${r}v${h-r}z" fill="${c}"/>`;};
+  MES.forEach((m,i)=>{const x=L+i*bw;s+=bar(x+bw*.18,ing[i],'var(--s1)')+bar(x+bw*.18+bw*.3+2,gas[i],'var(--s2)')+`<text x="${x+bw/2}" y="${H-7}" text-anchor="middle">${m}</text><rect data-i="${i}" x="${x}" y="${T}" width="${bw}" height="${H-T-B}" fill="transparent"/>`;});
+  el.innerHTML=s+'</svg><div class="tip" hidden></div>';const tip=$('.tip',el);
+  el.onmousemove=e=>{const r=e.target.closest('rect[data-i]');if(!r){tip.hidden=true;return;}const i=+r.dataset.i,b=el.getBoundingClientRect();
+    tip.innerHTML=`<b>${MES[i]}</b><br>Ingresos: ${eur(ing[i])} €<br>Gastos: ${eur(gas[i])} €<br>Diferencia: ${eur(r2(ing[i]-gas[i]))} €`;tip.hidden=false;
+    tip.style.left=Math.min(e.clientX-b.left+12,b.width-170)+'px';tip.style.top=Math.max(0,e.clientY-b.top-70)+'px';};
+  el.onmouseleave=()=>tip.hidden=true;}
+function tSub(a){const I=a.T.inm,p=I?['22100','22000','28200','68200']:a.tipo==='VEHICULO'?['21800','','28180','68100']:a.tipo==='INSTALACION'?['21200','','28120','68100']:['20600','','28060','68000'];
+  const L=[[p[0],'Valor del bien (se amortiza)','Valor '+a.alias,a.base],p[1]?[p[1],'Terreno (no se amortiza)','Terreno '+a.alias,r2(a.coste-a.base)]:null,[p[2],'Amortización acumulada','Amort. acumulada '+a.alias,-a.acu25],[p[3],'Gasto por amortización','Amortización '+a.alias,0]].filter(Boolean);
+  pyg(a,2026).filter(r=>!r.amo).forEach(r=>L.push([r.cta.slice(0,5),r.g==='I'&&(a.alq||a.tur)?'Ingreso por alquiler':'Otra cuenta del activo',r.nom+' '+a.alias,r.g==='I'?-r.t:r.t]));
+  if(I)L.push(['47350','Otra cuenta del activo','Retenciones '+a.alias,0]);
+  $('#fPanel').innerHTML=`<div class="ctl"><span class="hint">Las subcuentas salen de la plantilla del tipo «${a.T.n}» (${a.T.ctas}). El papel dice para qué usa el programa cada una.</span><span class="sp"></span>
+    <button class="btn" id="sGen" title="Crea las subcuentas de la plantilla que le falten a este activo. Antes enseña la propuesta">Generar las que falten…</button></div>
+   ${a.faltan?'<div class="aviso amb">A este activo le falta la subcuenta «Seguro» de su plantilla. Pulsa «Generar las que falten…» para crearla.</div>':''}
+   <div class="tw"><table><thead><tr><th>Subcuenta</th><th>Nombre</th><th>Papel</th><th class="n">Saldo 2026</th></tr></thead><tbody id="sBody">${L.filter(l=>!(a.faltan&&l[0]==='62550')).map(l=>`<tr class="fila" title="Doble clic para ver su Mayor"><td class="c">${l[0]+a.nn}</td><td>${l[2]}</td><td>${l[1]}</td>${imp(r2(l[3]))}</tr>`).join('')}</tbody></table></div>`;
+  $('#sGen').onclick=()=>toast(a.faltan?'Propuesta: crear 6255003 «Seguro Olmo 3». Se confirmaría antes de crearla.':'No falta ninguna subcuenta: no hay nada que crear.');
+  $('#sBody').ondblclick=e=>{const tr=e.target.closest('tr');if(tr)toast('Se abriría el Mayor de la subcuenta '+tr.cells[0].textContent+'.');};$('#fPanel').oninput=null;}
+function tAmo(a){const P=a.plan,fin=P.length?P[P.length-1].y:null,ver=P.filter(p=>p.y<=2028);
+  $('#fPanel').innerHTML=`<div class="ctl"><span>Se amortiza el <b>${eur(a.pct)} %</b> al año sobre <b>${eur(a.base)} €</b>${a.T.inm?` (el ${eur(a.pc,0)} % del coste, que es la construcción)`:''}. ${a.baja?'Dejó de amortizarse al darse de baja el '+fecha(a.baja)+'.':'Terminará de amortizarse en '+fin+'.'}</span><span class="sp"></span>
+    <button class="btn" disabled title="Calcula y contabiliza la amortización del ejercicio de todos los activos, con propuesta y confirmación. Llegará en la fase siguiente, dentro de Procesos contables">Calcular la amortización de 2026…</button></div>
+   <div class="tw"><table><thead><tr><th>Ejercicio</th><th class="n">Días</th><th class="n">Cuota</th><th class="n">Acumulado</th><th class="n">Pendiente</th><th>Estado</th></tr></thead><tbody>${ver.map(p=>`<tr><td>${p.y}</td><td class="n" title="Días del año en que el activo ha sido de la sociedad">${p.d} de ${p.D}</td>${imp(p.c)}${imp(p.acu)}${imp(p.pte)}
+     <td>${p.y<=2025?'<span class="pill ok" title="Asiento del 31/12/'+p.y+'">Contabilizada</span>':p.y===2026?'<span class="pill av">Pendiente de contabilizar</span>':'<span class="hint">prevista</span>'}</td></tr>`).join('')}
+     ${fin>2028?`<tr><td colspan="6" class="hint">… y así cada año hasta ${fin}.</td></tr>`:''}</tbody></table></div>
+   <div class="hint">El primer año y el último se calculan por los días reales. La cuota nunca supera lo que queda pendiente.</div>`;$('#fPanel').oninput=null;}
+
+/* ---------- alta paso a paso ---------- */
+const N={paso:1,tipo:'VIVIENDA',ajeno:false};
+function alta(){const T=TIPOS[N.tipo],P=['Qué es','La compra','La amortización','Repaso'];
+  const cuerpo=[
+   `<p>Elige la clase de activo. De ella dependen sus subcuentas y las cuentas del plan contable que usa.</p><div class="tipos">${Object.entries(TIPOS).map(([k,t])=>`<button data-k="${k}" aria-pressed="${k===N.tipo}">${t.n}<small>${t.ctas}</small></button>`).join('')}</div>
+    <label class="l" title="Un activo ajeno no es de la sociedad: se guarda su información, pero no crea subcuentas, centro ni asientos"><input type="checkbox" id="nAjeno" ${N.ajeno?'checked':''}> No es de la sociedad, solo quiero guardar su información</label>`,
+   `<p>Datos de la compra${T.inm?' y del catastro. Con los valores catastrales se calcula qué parte es construcción':''}.</p><div class="campos">${campo('Nombre','',{tip:'Por ejemplo: Piso Calle del Roble 14, 2.º 1.ª'})}${campo('Nombre corto','',{tip:'Para listados y para el nombre de su centro de coste'})}${campo('Fecha de compra','',{w:'120px'})}${N.ajeno?'':campo('Coste de compra (€)','',{num:1,w:'150px',tip:'Precio más gastos de compra'})}
+    ${T.inm?campo('Referencia catastral','')+campo('Valor catastral del suelo (€)','',{num:1,w:'150px'})+campo('Valor catastral de la construcción (€)','',{num:1,w:'150px'})+campo('Construcción (%)','se calcula solo',{ro:1,w:'130px'}):''}</div>`,
+   N.ajeno?'<div class="aviso">Un activo ajeno no se amortiza. No hay nada que rellenar en este paso.</div>':`<p>Para un activo de tipo «${T.n}» lo habitual es el ${T.pct} % anual. Puedes cambiarlo.</p><div class="campos"><label class="campo"><span>¿Se amortiza?</span><span class="l" style="padding:5px 0"><input type="checkbox" checked id="nAmo"> Sí, cada año</span></label>${campo('Porcentaje anual (%)',T.pct,{num:1,w:'90px'})}${campo('Base que se amortiza (€)','coste'+(T.inm?' × % de construcción':''),{ro:1})}</div><div class="hint">El asiento se hace una vez al año, a 31/12. El primer año cuenta solo los días desde la compra.</div>`,
+   `<p>Al pulsar «Crear el activo» el programa hará esto:</p><ul class="repaso">${N.ajeno?'<li>Guardar la ficha del activo, marcada como ajena a la sociedad.</li><li>No crear subcuentas, centro de coste ni asientos.</li>':`<li>Guardar la ficha del activo de tipo «${T.n}».</li><li>Crear su centro de coste propio dentro de «${T.padre}», del que hereda la actividad de IVA.</li><li>Crear sus subcuentas según la plantilla del tipo (${T.ctas} y las de gastos e ingresos). Verás la lista antes de confirmar.</li><li>Dejar preparado su plan de amortización al ${T.pct} % anual.</li>`}</ul><div class="hint">No se graba ningún asiento: el alta contable de la compra sigue viniendo de la factura de compra.</div>`][N.paso-1];
+  $('#capa').innerHTML=`<div class="velo"><div class="dlg" role="dialog" aria-modal="true" aria-label="Nuevo activo"><header><h2>Nuevo activo</h2></header>
+   <div class="pasos">${P.map((t,i)=>`<span class="paso ${i+1===N.paso?'act':i+1<N.paso?'hecho':''}"><b>${i+1<N.paso?'✓':i+1}</b>${t}</span>`).join('')}</div>
+   <div class="cuerpo">${cuerpo}</div>
+   <div class="pie"><button class="btn" id="nCanc" style="margin-right:auto" title="Cierra sin crear nada">Cancelar</button>${N.paso>1?'<button class="btn" id="nAtras">Atrás</button>':''}<button class="btn pri" id="nSig">${N.paso<4?'Siguiente':'Crear el activo'}</button></div></div></div>`;
+  $$('.tipos button').forEach(b=>b.onclick=()=>{N.tipo=b.dataset.k;alta()});const aj=$('#nAjeno');if(aj)aj.onchange=()=>{N.ajeno=aj.checked};
+  $('#nCanc').onclick=()=>$('#capa').innerHTML='';if($('#nAtras'))$('#nAtras').onclick=()=>{N.paso--;alta()};
+  $('#nSig').onclick=()=>{if(N.paso<4){N.paso++;alta();}else{$('#capa').innerHTML='';toast('En el programa se crearía el activo y se abriría su ficha.');}};}
+$('#bNuevo').onclick=()=>{N.paso=1;N.ajeno=false;alta();};
+$('#demoLista').onclick=()=>{st.sucio=false;ver(true);lista();};$('#demoDirecta').onclick=()=>abrir(2,true);
+lista();
+})();
+</script>
