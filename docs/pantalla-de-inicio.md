@@ -115,3 +115,4 @@ Es un borrador: el diseño está en la maqueta `sources/maquetas/Inicio/proconta
 - 2026-11-16 10:20 · Derived from contabilidad/procesos/liquidacion-iva: abrir la pantalla Liquidación de IVA desde la tarea de liquidación del IVA de la salud.
 - 2026-11-16 17:15 · Derived from facturacion/reservas/compensacion-comision: aviso «Comisiones sin compensar» en la salud con un botón que compensa las facturas de comisión pendientes del ejercicio de trabajo.
 - 2026-11-17 10:35 · Derived from compras/facturas-recurrentes-pendientes: aviso en la salud con el número de facturas recurrentes de proveedores sin recibir, que abre la pantalla de facturas recurrentes pendientes.
+- 2026-11-17 15:30 · Derived from contabilidad/procesos/cierre-ejercicio: la tarea «Crear el ejercicio siguiente» abre Contabilidad › Cierre del ejercicio, que tiene el botón «Crear el ejercicio N+1…»; el aviso grave de la salud entra en la comprobación previa del cierre.

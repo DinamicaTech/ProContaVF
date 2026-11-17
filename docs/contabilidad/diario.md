@@ -53,6 +53,8 @@ Implementada y validada por el propietario el 2026-11-15 según la maqueta `sour
 - 2026-11-14 22:50 · Y ok a los avisos.
 - 2026-11-14 22:50 · Adelante.
 - 2026-11-15 07:43 · Pantalla validada. Ya puedes fusionar.
+- 2026-11-17 15:30 · Derived from contabilidad/procesos/cierre-ejercicio: el botón «Regenerar» de la apertura será «reabrir y volver a cerrar» el ejercicio anterior, solo cuando su cierre lo hizo ProContaVF (lotes del proceso de cierre).
+
 ## Hand-over
 - 2026-11-14 23:35 · Rama `claude/diario-pantalla`. Hecho: migración 53, motor de asientos, núcleo y pantalla del Diario, corrección de automáticos y «usar como base» en la pantalla de asiento, reglas y botones del Mayor, entrada en el contenedor y pruebas (sin BD: `DiarioTests`, `DiarioVMTests`, `CorreccionAutomaticoTests` y las nuevas de `AsientoManualVMTests`; con Access: las nuevas de `MotorAsientosAccessTests`). Probado con `C:\Docs\ProContaVF-validacion\ProConta-diario-01.accdb` (copia de ventas-02 actualizada al esquema 53): lectura, capturas de la pantalla dibujada fuera de la vista, PDF y Excel, y un ciclo real de alta, cambio de datos, corrección de un automático de ContaSol con banco y borrado con copia. A, B y C eran: A, mismas reglas en el Mayor; B, aviso de apertura sin «Regenerar»; C, columna CorregidoAMano.
 - 2026-11-14 23:35 · Pendiente: la validación del propietario en la aplicación; regenerar `diccionario/` con el esquema 53 (`ActualizadorEsquema diccionario` sobre la maestra: en este hilo no hubo permiso para leerla); «Abrir el origen» de compras y bancos cuando sus pantallas abran un documento concreto; el botón «Regenerar» de la apertura cuando exista su proceso.

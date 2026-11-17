@@ -71,6 +71,7 @@ public partial class VentanaPrincipal : Window
     private readonly ProConta.Contabilidad.UI.Dividendos.ModuloRepartoDividendos _dividendos;
     private readonly ProConta.Contabilidad.UI.Prorrata.ModuloRegularizacionProrrata _prorrata;
     private readonly ProConta.Contabilidad.UI.ImpuestoSociedades.ModuloImpuestoSociedades _impuestoSociedades;
+    private readonly ProConta.Contabilidad.UI.Cierre.ModuloCierreEjercicio _cierreEjercicio;
     private readonly ModuloFacturacion _facturacion;
     private readonly ModuloCompras _compras;
     private readonly ModuloCorreo _correo;
@@ -277,8 +278,13 @@ public partial class VentanaPrincipal : Window
         Closed += async (_, _) => await _coordinadorCorreo.DisposeAsync();
         _ = AvisarDesvioCorreoAsync(servicioCorreo);
 
+        // Parámetros y tablas › Ejercicios lleva también «Crear el ejercicio siguiente…» (contabilidad/procesos/nuevo-ejercicio 2026-11-17 15:38).
+        var proveedoresOrganizacion = ProveedoresOrganizacion.Todos(bd).ToList();
+        if (proveedoresOrganizacion.OfType<ProveedorTablaAccess>().FirstOrDefault(p => p.Clave == "ejercicios") is { } ejerciciosMantenimiento)
+            ProConta.Contabilidad.Cierre.AccionCrearEjercicio.Conectar(ejerciciosMantenimiento,
+                new ProConta.Contabilidad.Cierre.ServicioNuevoEjercicio(bd, () => autorizador.PuedeAsync(Acciones.CierreEjercicio)));
         var mantenimiento = new ServicioMantenimiento(
-            new IProveedorMantenimiento[] { new ProveedorConfiguracionGeneral(bd) }.Concat(ProveedoresOrganizacion.Todos(bd)).Concat(ProveedoresFacturacion.Todos(bd, cuentas)).Concat(ProConta.Facturacion.Ventas.ProveedoresVentas.Todos(bd, ventas, clienteAvaibook))
+            new IProveedorMantenimiento[] { new ProveedorConfiguracionGeneral(bd) }.Concat(proveedoresOrganizacion).Concat(ProveedoresFacturacion.Todos(bd, cuentas)).Concat(ProConta.Facturacion.Ventas.ProveedoresVentas.Todos(bd, ventas, clienteAvaibook))
                 .Concat(ProConta.Compras.Mantenimiento.ProveedoresCompras.Todos(bd)).Concat(ProveedoresCorreo.Todos(bd))
                 .Concat(ProConta.Activos.Mantenimiento.ProveedoresActivos.Todos(bd, cuentas)),
             () => autorizador.PuedeAsync(Acciones.MantenimientoEditar));
@@ -384,6 +390,33 @@ public partial class VentanaPrincipal : Window
             },
             _area, new ProConta.Contabilidad.UI.Dividendos.DialogosRepartoDividendos(() => this));
         var abrirDividendos = new ComandoDelegado(() => _dividendos.Abrir());
+        // Cierre del ejercicio (contabilidad/procesos/cierre-ejercicio): regularización, cierre y apertura del siguiente en una transacción, con la
+        // comprobación previa (V5) enlazada a donde se resuelve; reabrir borra solo esos asientos. Crea también el ejercicio siguiente.
+        var puedeCerrar = () => autorizador.PuedeAsync(Acciones.CierreEjercicio);
+        _cierreEjercicio = new ProConta.Contabilidad.UI.Cierre.ModuloCierreEjercicio(
+            new ProConta.Contabilidad.UI.Cierre.ContextoCierreEjercicio(
+                new ProConta.Contabilidad.Cierre.ServicioCierreEjercicio(bd, new MotorAsientosAccess(bd), cuentas,
+                    new ProConta.Contabilidad.Cierre.ServicioNuevoEjercicio(bd, puedeCerrar), puedeCerrar,
+                    avisosGraves: async ctx => (await new ProConta.Inicio.Salud.ServicioSalud(new ProConta.Inicio.Salud.FuenteSaludAccess(bd)).RevisarAsync(ctx.IdSociedad, ctx.Ejercicio))
+                        .Elementos.Where(e => e.Tipo == ProConta.Inicio.Salud.TipoSalud.Aviso && e.Gravedad == ProConta.Inicio.Salud.GravedadSalud.Grave).Select(e => e.Titulo).ToList()),
+                contexto.Contexto, contexto.RazonSocial, new Actor(sesion.NombreOperador), Avisar)
+            {
+                VerAsiento = id => _mayor.VerAsientoAsync(id),
+                AbrirMayor = cuentasMayor => _mayor.Abrir(cuentasMayor),
+                Destino = destino => destino switch
+                {
+                    ProConta.Contabilidad.Cierre.DestinoComprobacion.ImpuestoSociedades => () => _impuestoSociedades.Abrir(),
+                    ProConta.Contabilidad.Cierre.DestinoComprobacion.Amortizacion => () => _mayor.Abrir(["68"]),
+                    ProConta.Contabilidad.Cierre.DestinoComprobacion.LiquidacionIva => () => _liquidacionIva.Abrir(4),
+                    ProConta.Contabilidad.Cierre.DestinoComprobacion.Prorrata => () => _prorrata.Abrir(),
+                    ProConta.Contabilidad.Cierre.DestinoComprobacion.Diario => () => _diario.Abrir(),
+                    ProConta.Contabilidad.Cierre.DestinoComprobacion.Salud => () => irAInicio.Execute(null),
+                    _ => null,
+                },
+                Cambiada = () => _ = RefrescarTrimestreAsync(),
+            },
+            _area, new ProConta.Contabilidad.UI.Liquidacion.DialogosLiquidacionIva(() => this));
+        var abrirCierreEjercicio = new ComandoDelegado(() => _cierreEjercicio.Abrir());
         // Informes (contabilidad/balances e informes/excel): cada opción genera el libro Excel con su tabla dinámica y lo abre.
         _balances = new ProConta.Contabilidad.Balances.GeneradorBalances(bd);
         _razonSocial = contexto.RazonSocial;
@@ -427,6 +460,9 @@ public partial class VentanaPrincipal : Window
             new OpcionNavegacion("Reparto de dividendos", null, true, false,
                 "Procesos contables › Reparto de dividendos: del neto de cada socio (por defecto, lo ya pagado en su 526) calcula el bruto y la retención del ejercicio y graba el asiento de reservas a dividendos; corregir o deshacer con motivo",
                 abrirDividendos, EsHija: true),
+            new OpcionNavegacion("Cierre del ejercicio", null, true, false,
+                "Procesos contables › Cierre del ejercicio: comprobación previa, regularización de los grupos 6 y 7 a la cuenta de resultados, cierre de los grupos 1 a 5 y apertura del ejercicio siguiente, grabados de una vez con la marca de cerrado; reabrir con motivo y crear el ejercicio siguiente",
+                abrirCierreEjercicio, EsHija: true),
             new OpcionNavegacion("Asiento manual", null, true, false,
                 "Asiento nuevo hecho a mano o desde una plantilla, con su vista previa; para corregir un apunte, ábrelo desde el Mayor con «Asistente de corrección…»",
                 new ComandoDelegado(() => _ = _asientos.AbrirNuevoAsync()), EsHija: true),

@@ -129,7 +129,9 @@ public sealed class MantenimientoAccessTests : IDisposable
             "PorcentajeRetencionDividendos", "CuentaReservasDividendos",
             // Impuesto sobre Sociedades (contabilidad/procesos/impuesto-sociedades, esquema 64).
             "TipoImpuestoSociedades", "LimiteTramoReducidoIS", "TipoTramoReducidoIS", "BonificacionViviendasIS", "PrefijosAjustesIS", "CuentaImpuestoSociedades",
-            "CuentaHaciendaAcreedoraIS", "CuentaHaciendaDeudoraIS", "CuentaCreditoPerdidasIS", "CuentaImpuestoDiferidoIS" }.Order(),
+            "CuentaHaciendaAcreedoraIS", "CuentaHaciendaDeudoraIS", "CuentaCreditoPerdidasIS", "CuentaImpuestoDiferidoIS",
+            // Cuenta de resultados de la regularización del cierre (contabilidad/procesos/cierre-ejercicio, esquema 65).
+            "CuentaResultadoEjercicio" }.Order(),
             Servicio().Proveedor("ejercicios")!.Campos.Select(c => c.Clave).Order());
         await Bd.EjecutarAsync(x => x.EjecutarAsync("UPDATE SociedadesEjercicios SET CuentaSuplido = '5550002', PorcentajeProrrataAñoAnterior = 0.14 WHERE IdSociedadEjercicio = 9001"));
         var ejercicio = (await Servicio().Proveedor("ejercicios")!.ListarAsync(Ctx)).Single(r => r.Texto("Ejercicio") == "2026");

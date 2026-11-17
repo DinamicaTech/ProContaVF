@@ -43,6 +43,7 @@ public static class ProveedoresOrganizacion
         "CuentaHaciendaAcreedoraIS" => ["475"],
         "CuentaHaciendaDeudoraIS" => ["470"],
         "CuentaCreditoPerdidasIS" => ["474"],
+        "CuentaResultadoEjercicio" => ["129"],
         _ => [],
     };
 
@@ -124,6 +125,13 @@ public static class ProveedoresOrganizacion
             sinonimos: ["4745", "sociedades", "bases negativas"]),
         Cuenta("CuentaImpuestoDiferidoIS", "Impuesto sobre Sociedades · impuesto diferido", ayuda: "Gasto que recibe el crédito por pérdidas aplicado. Vacía: 6301000. Si no existe, se crea al contabilizar.",
             sinonimos: ["6301", "sociedades", "diferido"]),
+    ];
+
+    /// <summary>Cuenta de resultados del ejercicio (contabilidad/procesos/cierre-ejercicio, esquema 65); vacía, 1290000.</summary>
+    internal static IEnumerable<CampoMantenimiento> CuentasCierre() =>
+    [
+        Cuenta("CuentaResultadoEjercicio", "Cierre · cuenta de resultados", ayuda: "Subcuenta del resultado del ejercicio: la regularización del cierre (Contabilidad › Cierre del ejercicio) salda contra ella los grupos 6 y 7. Vacía: 1290000. Si no existe, se crea al cerrar.",
+            sinonimos: ["129", "resultado", "cierre", "regularizacion"]),
     ];
 
     /// <summary>
@@ -228,7 +236,7 @@ public static class ProveedoresOrganizacion
             TipoGeneral(),
             ProrrataAnterior(),
             ProrrataDefinitiva(),
-            .. Cuentas(), .. CuentasCompras(), .. CuentasLiquidacionIva(), .. Dividendos(), .. ImpuestoSociedades(),
+            .. Cuentas(), .. CuentasCompras(), .. CuentasLiquidacionIva(), .. Dividendos(), .. ImpuestoSociedades(), .. CuentasCierre(),
             Ruta("CarpetaFacturasCompra", "Carpeta de facturas de compra") with
             {
                 Ayuda = "Dónde se buscan los PDF de compra de este ejercicio, dentro de la carpeta de documentos de la empresa (Empresas › Carpeta de documentos, la ruta base), por ejemplo 2026\\Proveedores. " +
