@@ -11,8 +11,8 @@ namespace ProConta.Contabilidad.Tests;
 
 /// <summary>
 /// Amortización de activos contra Access (contabilidad/procesos/amortizacion-de-activos 2026-11-17 17:59): entran los activos amortizables
-/// y propios con plan y subcuentas; el activo ajeno no sale y el que no tiene plan sale como problema; confirmar graba un asiento que
-/// cuadra como lote del periodo; repetir no duplica; la amortización mensual suma la anual; lo excluido se guarda; deshacer borra el
+/// y propios con plan y subcuentas; el activo ajeno no sale y el que no tiene plan sale como problema; confirmar graba un asiento por activo
+/// que cuadra, todos en el lote del periodo; repetir no duplica; la amortización mensual suma la anual; lo excluido se guarda; deshacer borra el
 /// lote. Datos sintéticos.
 /// </summary>
 [Trait("Categoria", "Access")]
@@ -131,6 +131,32 @@ public sealed class AmortizacionAccessTests : IDisposable
         Assert.Equal(730m, (await servicio.SituacionAsync(_ctx)).Periodos[0].Grabado);
 
         // Deshacer borra el lote.
+        var d = await servicio.DeshacerAsync(_ctx, anual.Periodo, "Prueba", _actor);
+        Assert.True(d.EsCorrecto, d.Error?.Mensaje);
+        Assert.Equal(0, await AsientosAsync());
+    }
+
+    [Fact]
+    public async Task Cada_activo_tiene_su_propio_asiento_en_el_lote_del_periodo()
+    {
+        // Un asiento por activo (propietario 2026-11-17 18:24): Local B recibe plan y comparte las subcuentas del Piso A.
+        await PrepararAsync();
+        await Bd.EjecutarAsync(async s =>
+        {
+            await s.EjecutarAsync("INSERT INTO PlanesAmortizacionActivo (IdActivo, FechaInicio, BaseAmortizable, ValorResidual, VidaUtilMeses, Metodo, EstaActivo, PorcentajeAnual) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                _sinPlan, new DateTime(2015, 1, 1), 36_500m, 0m, 600, "LINEAL", true, 0.02m);
+            await s.EjecutarAsync("INSERT INTO SubcuentasActivo (IdActivo, IdPlantillaSubcuentaActivo, IdIdentidadContable, FechaHoraCreacion) " +
+                "SELECT " + _sinPlan + ", IdPlantillaSubcuentaActivo, IdIdentidadContable, FechaHoraCreacion FROM SubcuentasActivo WHERE IdActivo = ?", _piso);
+            return 0;
+        });
+        var servicio = Servicio();
+        var anual = (await servicio.SituacionAsync(_ctx)).Periodos.Single();
+        Assert.Equal(1_460m, anual.Propuesta.Total);
+        var r = await servicio.ConfirmarAsync(_ctx, anual.Periodo, new HashSet<int>(), null, _actor, anual.Propuesta);
+        Assert.True(r.EsCorrecto, r.Error?.Mensaje);
+        Assert.Equal(2, await AsientosAsync());
+        Assert.Equal(2, await ContarAsync("SELECT COUNT(*) FROM Asientos WHERE MotorPropietario = ? AND ClaveEjecucion = '2026'", ServicioAmortizacion.Motor));
+        Assert.Equal(EstadoAmortizacion.Hecho, (await servicio.SituacionAsync(_ctx)).Periodos[0].Estado);
         var d = await servicio.DeshacerAsync(_ctx, anual.Periodo, "Prueba", _actor);
         Assert.True(d.EsCorrecto, d.Error?.Mensaje);
         Assert.Equal(0, await AsientosAsync());

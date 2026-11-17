@@ -36,10 +36,10 @@
         <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
           <Button Content="Periodicidad…" Style="{StaticResource Boton}" Command="{Binding PeriodicidadCommand}" Margin="0,0,8,0" VerticalAlignment="Center"
                   ToolTip="Abre Parámetros y tablas › Ejercicios para cambiar la periodicidad de la amortización (anual, trimestral o mensual)" />
-          <Button Content="Ver el asiento" Style="{StaticResource Boton}" Command="{Binding VerAsientoCommand}" Margin="0,0,8,0" VerticalAlignment="Center" ToolTipService.ShowOnDisabled="True"
-                  ToolTip="Abre el asiento grabado del periodo elegido (solo si ya está hecho)" />
+          <Button Content="Ver los asientos" Style="{StaticResource Boton}" Command="{Binding VerAsientoCommand}" Margin="0,0,8,0" VerticalAlignment="Center" ToolTipService.ShowOnDisabled="True"
+                  ToolTip="Abre el primer asiento grabado del periodo elegido; hay uno por activo (solo si ya está hecho)" />
           <Button Content="Deshacer…" Style="{StaticResource Boton}" Command="{Binding DeshacerCommand}" Margin="0,0,8,0" VerticalAlignment="Center" ToolTipService.ShowOnDisabled="True"
-                  ToolTip="Borra el asiento de amortización del periodo elegido, con motivo (las casillas desmarcadas se conservan)" />
+                  ToolTip="Borra los asientos de amortización del periodo elegido, con motivo (las casillas desmarcadas se conservan)" />
           <Button Content="Actualizar" Style="{StaticResource Boton}" Command="{Binding RefrescarCommand}" VerticalAlignment="Center"
                   ToolTip="Vuelve a leer los activos, sus planes y subcuentas y lo contabilizado, y recalcula la propuesta (F5). Descarta lo cambiado sin confirmar" />
         </StackPanel>
@@ -133,7 +133,7 @@
                 <DataGridTemplateColumn.CellTemplate>
                   <DataTemplate>
                     <CheckBox IsChecked="{Binding Incluido, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding Editable}" HorizontalAlignment="Center" VerticalAlignment="Center"
-                              ToolTip="Marcado: entra en el asiento. Desmárcalo para dejar fuera este activo en el ejercicio; se recuerda al volver a proponer" ToolTipService.ShowOnDisabled="True" />
+                              ToolTip="Marcado: se le hace su asiento. Desmárcalo para dejar fuera este activo en el ejercicio; se recuerda al volver a proponer" ToolTipService.ShowOnDisabled="True" />
                   </DataTemplate>
                 </DataGridTemplateColumn.CellTemplate>
               </DataGridTemplateColumn>

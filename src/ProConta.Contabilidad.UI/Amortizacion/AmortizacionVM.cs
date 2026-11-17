@@ -15,7 +15,7 @@ namespace ProConta.Contabilidad.UI.Amortizacion;
 /// <summary>Contexto de la pantalla Amortización de activos y lo que abre fuera de ella.</summary>
 public sealed record ContextoAmortizacion(ServicioAmortizacion Servicio, ContextoSociedadEjercicio Trabajo, string RazonSocial, Actor Actor, Action<string> Avisar)
 {
-    /// <summary>Muestra un asiento grabado.</summary>
+    /// <summary>Muestra un asiento grabado (el primero del lote del periodo).</summary>
     public Func<int, Task>? VerAsiento { get; init; }
     /// <summary>Abre el Mayor de unas subcuentas.</summary>
     public Action<IReadOnlyList<string>>? AbrirMayor { get; init; }
@@ -89,7 +89,7 @@ public sealed class FilaActivoAmortizacionVM : ModeloVista
           $"Hasta el fin del periodo tocan {c.Dias} de {c.DiasAno} días = {Formatos.Importe(c.HastaFinPeriodo)}; ya contabilizado en el año en la {CuentaGasto}: {Formatos.Importe(c.YaContabilizado)}. " +
           $"Acumulada en la {CuentaAcumulada}: {Formatos.Importe(c.Acumulada)}; queda por amortizar {Formatos.Importe(c.Pendiente)}.";
 
-    /// <summary>La casilla: entra en el asiento. Un clic la cambia.</summary>
+    /// <summary>La casilla: se le hace su asiento. Un clic la cambia.</summary>
     public bool Incluido
     {
         get => _incluido;
@@ -101,7 +101,7 @@ public sealed class FilaActivoAmortizacionVM : ModeloVista
 
 /// <summary>
 /// Pantalla Contabilidad › Procesos contables › Fin de ejercicio › Amortización de activos (contabilidad/procesos/amortizacion-de-activos):
-/// los periodos del ejercicio con su estado y, para el elegido, la cuota de cada activo con su casilla, el total del asiento, el motivo
+/// los periodos del ejercicio con su estado y, para el elegido, la cuota de cada activo con su casilla, el total de los asientos, el motivo
 /// cuando hace falta y la confirmación al pie. Las acciones generales van en la cabecera; el menú contextual de un activo abre el Mayor
 /// de sus subcuentas.
 /// </summary>
@@ -171,7 +171,7 @@ public sealed class AmortizacionVM : ModeloVista, IPestanaTrabajo
         _ => "Amortización anual",
     };
 
-    public string AyudaPeriodicidad => "Cada cuánto se graba el asiento. Se cambia en Parámetros y tablas › Ejercicios › «Periodicidad de la amortización»; cambiarla a mitad de año no duplica nada.";
+    public string AyudaPeriodicidad => "Cada cuánto se graban los asientos (uno por activo). Se cambia en Parámetros y tablas › Ejercicios › «Periodicidad de la amortización»; cambiarla a mitad de año no duplica nada.";
 
     public IReadOnlyList<FilaPeriodoAmortizacionVM> Periodos { get; private set; } = [];
 
@@ -210,11 +210,11 @@ public sealed class AmortizacionVM : ModeloVista, IPestanaTrabajo
     public IReadOnlyList<FilaActivoAmortizacionVM> Filas { get => _filas; private set { _filas = value; Avisar(nameof(Filas)); } }
 
     public string TituloPropuesta => _propuesta is null ? "" :
-        $"{ProcesoAmortizacion.Descripcion(_propuesta.Periodo)} · asiento del {Formatos.Fecha(_propuesta.Periodo.Hasta)}" +
-        (_seleccion?.Datos.IdAsiento is not null ? " (repetirlo sustituye el asiento)" : "");
+        $"{ProcesoAmortizacion.Descripcion(_propuesta.Periodo)} · un asiento por activo a {Formatos.Fecha(_propuesta.Periodo.Hasta)}" +
+        (_seleccion?.Datos.IdAsiento is not null ? " (repetirlo sustituye los asientos)" : "");
 
     public string Resumen => _propuesta is not { } p ? ""
-        : p.Lineas.Count == 0 ? "Nada que amortizar: no hay asiento"
+        : p.Lineas.Count == 0 ? "Nada que amortizar: no hay asientos"
         : $"{Formatos.Plural(p.Incluidas.Count(), "activo", "activos")} · {Formatos.Importe(p.Total)}";
 
     public string TotalDebe => _propuesta is null ? "" : Formatos.Importe(_propuesta.TotalDebe);
@@ -227,11 +227,11 @@ public sealed class AmortizacionVM : ModeloVista, IPestanaTrabajo
     private bool Repetir => _seleccion?.Datos.IdAsiento is not null;
     private bool Terminado => _seleccion?.Datos.Terminado ?? true;
     public bool PideMotivo => _seleccion is not null && ServicioAmortizacion.PorQueMotivo(Terminado, Repetir) is not null;
-    public string AyudaMotivo => _seleccion is null ? "" : (ServicioAmortizacion.PorQueMotivo(Terminado, Repetir) ?? "") + " El motivo queda en el asiento y en su historial.";
+    public string AyudaMotivo => _seleccion is null ? "" : (ServicioAmortizacion.PorQueMotivo(Terminado, Repetir) ?? "") + " El motivo queda en los asientos y en su historial.";
     public string TextoConfirmar => Repetir ? "Repetir" : "Confirmar";
     public string AyudaConfirmar => PorQueNoConfirmar ?? (Repetir
-        ? "Sustituye el asiento del periodo por exactamente lo que se ve y guarda las casillas desmarcadas"
-        : "Graba el asiento del periodo tal como se ve y guarda las casillas desmarcadas");
+        ? "Sustituye los asientos del periodo por exactamente lo que se ve y guarda las casillas desmarcadas"
+        : "Graba un asiento por activo tal como se ve y guarda las casillas desmarcadas");
 
     public string? PorQueNoConfirmar =>
         _propuesta is null || _seleccion is null ? "Elige un periodo."
@@ -276,7 +276,7 @@ public sealed class AmortizacionVM : ModeloVista, IPestanaTrabajo
         Propuesta = p;
     }
 
-    /// <summary>Al marcar o desmarcar una casilla: el asiento con esas casillas, sin volver a leer nada.</summary>
+    /// <summary>Al marcar o desmarcar una casilla: los asientos con esas casillas, sin volver a leer nada.</summary>
     private void Recalcular()
     {
         if (_propuesta is null) return;
@@ -303,9 +303,9 @@ public sealed class AmortizacionVM : ModeloVista, IPestanaTrabajo
             $"Asiento del {Formatos.Fecha(p.Periodo.Hasta)}: la 68 de cada activo al Debe, con su centro de coste, y su 28 al Haber.",
         };
         if (p.Excluidos.Count > 0) detalles.Add($"Se guardan las casillas desmarcadas ({Formatos.Plural(p.Excluidos.Count, "activo", "activos")}): se respetan al volver a proponer.");
-        var mensaje = p.Lineas.Count > 0 ? "Se graba el asiento tal como se ve en la propuesta." : "No hay nada que amortizar: se borra el asiento anterior de este periodo.";
+        var mensaje = p.Lineas.Count > 0 ? "Se graba un asiento por activo tal como se ve en la propuesta." : "No hay nada que amortizar: se borran los asientos anteriores de este periodo.";
         if (_dialogos.Preguntar($"{TextoConfirmar} la amortización de {p.Periodo.Nombre}", mensaje, detalles,
-                new OpcionMensaje(TextoConfirmar, "Graba el asiento de amortización", Principal: true), new OpcionMensaje("Cancelar", "No graba nada", Cancelar: true)) != 0)
+                new OpcionMensaje(TextoConfirmar, "Graba los asientos de amortización", Principal: true), new OpcionMensaje("Cancelar", "No graba nada", Cancelar: true)) != 0)
             return;
         Ocupado = true;
         try
@@ -317,7 +317,7 @@ public sealed class AmortizacionVM : ModeloVista, IPestanaTrabajo
                 return;
             }
             _ctx.Avisar(r.Valor is int id
-                ? $"Amortización de {p.Periodo.Nombre}: {Formatos.Importe(p.Total)} en el asiento {id}."
+                ? $"Amortización de {p.Periodo.Nombre}: {Formatos.Importe(p.Total)} en {Formatos.Plural(p.Lineas.Count / 2, "asiento", "asientos")}, uno por activo (el primero es el {id})."
                 : $"Amortización de {p.Periodo.Nombre}: nada que amortizar; no queda ningún asiento.");
             _ctx.Cambiada?.Invoke();
         }
@@ -334,7 +334,7 @@ public sealed class AmortizacionVM : ModeloVista, IPestanaTrabajo
         if (_seleccion is null) return;
         var periodo = _seleccion.Datos.Periodo;
         var motivo = _dialogos.PedirMotivo($"Deshacer la amortización de {periodo.Nombre}",
-            $"Se borra el asiento de amortización del {Formatos.Fecha(periodo.Hasta)}. Las casillas desmarcadas se conservan para la próxima propuesta.");
+            $"Se borran los asientos de amortización del {Formatos.Fecha(periodo.Hasta)}. Las casillas desmarcadas se conservan para la próxima propuesta.");
         if (string.IsNullOrWhiteSpace(motivo)) return;
         Ocupado = true;
         try

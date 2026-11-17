@@ -34,7 +34,7 @@ public sealed record SituacionAmortizacion(int Ejercicio, PeriodicidadAmortizaci
 /// Proceso «Amortización de activos» (contabilidad/procesos/amortizacion-de-activos 2026-11-17 17:59) sobre Access. Lee los activos
 /// amortizables y propios con su plan y sus subcuentas de gasto (68x) y de amortización acumulada (28x) en el ejercicio, los apuntes de
 /// esas subcuentas en el año y lo excluido a mano (AmortizacionExclusiones); propone por periodo (<see cref="ProcesoAmortizacion"/>) y, al
-/// confirmar, graba un asiento por periodo como lote del motor <see cref="Motor"/>, proceso AMORTIZACION, clave el periodo. Repetirlo no
+/// confirmar, graba un asiento por activo en el lote del periodo del motor <see cref="Motor"/>, proceso AMORTIZACION, clave el periodo. Repetirlo no
 /// duplica; deshacer borra el lote del periodo. Las 68 y 28 no son cuentas fiscales, así que también se graba en un trimestre cerrado.
 /// </summary>
 public sealed class ServicioAmortizacion(IBaseDatos bd, IMotorAsientos motor, Func<Task<bool>>? puede = null, IReloj? reloj = null)
@@ -122,12 +122,14 @@ public sealed class ServicioAmortizacion(IBaseDatos bd, IMotorAsientos motor, Fu
             return Fallo(new Error("Amortizacion.SinMotivo", "Hay que escribir el motivo.", registro, porQue,
                 "Escribe el motivo (por ejemplo «Amortización anticipada para el informe de la gestoría»)."));
 
+        // Un asiento por activo (propietario 2026-11-17 18:24): las líneas van por pares (68x al Debe y 28x al Haber de cada activo), todas en el lote del periodo.
         var asientos = new List<Asiento>();
-        if (p.Lineas.Count > 0)
+        for (var i = 0; i + 1 < p.Lineas.Count; i += 2)
         {
-            var a = new Asiento(ctx, periodo.Hasta, registro);
+            var par = new[] { p.Lineas[i], p.Lineas[i + 1] };
+            var a = new Asiento(ctx, periodo.Hasta, par[0].Concepto);
             if (!string.IsNullOrWhiteSpace(motivo)) a.Notas = $"Motivo: {motivo.Trim()}";
-            foreach (var l in p.Lineas)
+            foreach (var l in par)
             {
                 var ap = l.Debe != 0m ? Apunte.AlDebe(l.Cuenta, l.Debe, l.Concepto) : Apunte.AlHaber(l.Cuenta, l.Haber, l.Concepto);
                 ap.IdCentroCoste = l.IdCentroCoste;
@@ -246,7 +248,7 @@ public sealed class ServicioAmortizacion(IBaseDatos bd, IMotorAsientos motor, Fu
         return new Datos(periodicidad, fila.Cerrado, lista, movimientos, excluidos);
     });
 
-    /// <summary>Los lotes de este proceso en el ejercicio: clave → primer asiento y sus líneas.</summary>
+    /// <summary>Los lotes de este proceso en el ejercicio: clave → primer asiento, número de asientos y sus líneas.</summary>
     private Task<Dictionary<string, (int IdAsiento, IReadOnlyList<LineaAmortizacion> Lineas)>> GrabadosAsync(ContextoSociedadEjercicio ctx) =>
         bd.EjecutarAsync(async s =>
         {

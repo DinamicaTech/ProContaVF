@@ -191,7 +191,7 @@ public sealed class ServicioCierreEjercicio(IBaseDatos bd, IMotorAsientos motor,
         var grabado = situacion.Periodos.Sum(p => p.Grabado);
         if (faltan.Count == 0)
             return new ComprobacionCierre("amortizacion", Titulo, ResultadoComprobacion.Correcta,
-                grabado == 0m ? "Hecha: no había nada que amortizar." : $"Hecha: {CalculoCierreEjercicio.Euros(grabado)} en {Plural(situacion.Periodos.Count(p => p.IdAsiento is not null), "asiento", "asientos")}.",
+                grabado == 0m ? "Hecha: no había nada que amortizar." : $"Hecha: {CalculoCierreEjercicio.Euros(grabado)} contabilizados en {Plural(situacion.Periodos.Count(p => p.IdAsiento is not null), "periodo", "periodos")} (un asiento por activo).",
                 DestinoComprobacion.Amortizacion);
         var desactualizados = faltan.Where(p => p.Estado == ProConta.Contabilidad.Amortizacion.EstadoAmortizacion.Desactualizado).Select(p => p.Periodo.Nombre).ToList();
         var pendientes = faltan.Where(p => p.Estado == ProConta.Contabilidad.Amortizacion.EstadoAmortizacion.Pendiente).ToList();
