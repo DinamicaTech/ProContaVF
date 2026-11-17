@@ -130,12 +130,16 @@ public sealed class Fase4Tests
         // 0,004 redondea a 0,00 (no cuenta); −0,999 redondea a −1,00 (no es menor de 1 €); la 42 no es de clientes ni proveedores.
         Assert.Equal(2, e.Cantidad);
         Assert.Equal(0.41m, e.Importe);
-        Assert.Equal(PantallaSalud.Mayor, e.Destino.Pantalla);
+        Assert.Equal(PantallaSalud.CentimosResiduales, e.Destino.Pantalla);
         Assert.Equal(["4300001", "4300002"], e.Destino.Cuentas);
         Assert.StartsWith("2 subcuentas", e.Titulo);
         var bien = RevisionCentimosResiduales.Evaluar(new Dictionary<string, decimal> { ["4300001"] = 5m }, Hoy);
         Assert.Empty(bien.Elementos);
         Assert.Single(bien.Correctas);
+        // Con el umbral del ejercicio (contabilidad/procesos/centimos-residuales 2026-11-17 19:05): a 0,10 € solo queda la 4300001.
+        var conUmbral = Assert.Single(RevisionCentimosResiduales.Evaluar(saldos, Hoy, 0.10m).Elementos);
+        Assert.Equal(1, conUmbral.Cantidad);
+        Assert.Contains("menor de 0,10", conUmbral.Explicacion);
     }
 
     // ------------------------------------------------------------ ocupación

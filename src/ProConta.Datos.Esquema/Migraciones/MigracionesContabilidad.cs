@@ -694,4 +694,34 @@ public static class MigracionesContabilidad
             new("AmortizacionExclusiones", "FechaHora", "Fecha y hora de la exclusión."),
         ],
     };
+
+    /// <summary>
+    /// Céntimos residuales (contabilidad/procesos/centimos-residuales 2026-11-17 19:05): el umbral del ejercicio por debajo del cual un saldo
+    /// es un céntimo residual (vacío: 1,00 €) y la tabla CentimosResidualesExclusiones con las subcuentas que el operador deja fuera de la
+    /// propuesta del ejercicio. Las cuentas de redondeo son las que ya existían (CuentaRedondeoGastos y CuentaRedondeoIngresos). Solo
+    /// estructura, sin datos.
+    /// </summary>
+    public static Migracion CentimosResiduales { get; } = new(
+        "20261117_1910_CENTIMOS_RESIDUALES", 261117019,
+        "Umbral de los céntimos residuales del ejercicio y subcuentas excluidas de su propuesta.",
+        "contabilidad/procesos/centimos-residuales",
+        new AnadirColumna("SociedadesEjercicios", "UmbralCentimosResiduales", "CURRENCY"),
+        new CrearTabla("CentimosResidualesExclusiones",
+            "CREATE TABLE CentimosResidualesExclusiones (IdCentimosResidualesExclusion COUNTER CONSTRAINT PK_CentimosResidualesExclusiones PRIMARY KEY, " +
+            "IdSociedadEjercicio LONG NOT NULL CONSTRAINT FK_CentimosResidualesExclusiones_Ejercicio REFERENCES SociedadesEjercicios (IdSociedadEjercicio), " +
+            "CuentaContable TEXT(30) NOT NULL, Operador TEXT(100), FechaHora DATETIME NOT NULL)"),
+        new CrearIndice("CentimosResidualesExclusiones", "UX_CentimosResidualesExclusiones_Cuenta",
+            "CREATE UNIQUE INDEX UX_CentimosResidualesExclusiones_Cuenta ON CentimosResidualesExclusiones (IdSociedadEjercicio, CuentaContable)"))
+    {
+        Descripciones =
+        [
+            new("SociedadesEjercicios", "UmbralCentimosResiduales", "Saldo, en valor absoluto, por debajo del cual una subcuenta tiene céntimos residuales que se saldan a 31/12 contra las cuentas de redondeo (vacío: 1,00 €). También lo usa el aviso de Inicio."),
+            new("CentimosResidualesExclusiones", null, "Subcuentas que el operador deja fuera de la propuesta de céntimos residuales de un ejercicio."),
+            new("CentimosResidualesExclusiones", "IdCentimosResidualesExclusion", "Identificador de la exclusión."),
+            new("CentimosResidualesExclusiones", "IdSociedadEjercicio", "Ejercicio de la propuesta."),
+            new("CentimosResidualesExclusiones", "CuentaContable", "Subcuenta excluida: no se salda en ese ejercicio mientras no se vuelva a marcar."),
+            new("CentimosResidualesExclusiones", "Operador", "Operador que la excluyó."),
+            new("CentimosResidualesExclusiones", "FechaHora", "Fecha y hora de la exclusión."),
+        ],
+    };
 }
