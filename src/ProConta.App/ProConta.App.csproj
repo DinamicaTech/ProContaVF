@@ -6,6 +6,8 @@
     <RootNamespace>ProConta.App</RootNamespace>
     <AssemblyName>ProContaVF</AssemblyName>
     <ApplicationManifest>app.manifest</ApplicationManifest>
+    <!-- Icono del programa (docs/diseno-de-logo-e-iconos.md); fuente en sources/identidad/procontavf-icono.svg. -->
+    <ApplicationIcon>Recursos\ProContaVF.ico</ApplicationIcon>
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\ProConta.UI.Base\ProConta.UI.Base.csproj" />
