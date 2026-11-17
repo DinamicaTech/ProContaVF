@@ -380,7 +380,7 @@ public sealed class ImpuestoSociedadesVM : ModeloVista, IPestanaTrabajo
             ActualizarContraste();
             Avisar(nameof(Propuesta), nameof(HayPropuesta), nameof(Calculo), nameof(PosiblesAjustes), nameof(HayPosiblesAjustes), nameof(Retenciones),
                 nameof(TotalRetenciones), nameof(TotalSaldos), nameof(TotalAeat), nameof(TotalContable), nameof(ResumenAeat), nameof(ResumenContraste), nameof(PorQueNoContraste),
-                nameof(HayPorQueNoContraste), nameof(RentaCalculada), nameof(ResumenRenta), nameof(Partidas), nameof(HayDetalleRenta),
+                nameof(HayPorQueNoContraste), nameof(RentaCalculada), nameof(ResumenRenta), nameof(SinActividadBonificada), nameof(HaySinActividadBonificada), nameof(Partidas), nameof(HayDetalleRenta),
                 nameof(Lineas), nameof(Avisos), nameof(HayAvisos), nameof(TotalDebe), nameof(TotalHaber), nameof(Resultado), nameof(TituloPropuesta),
                 nameof(AyudaBonificacion), nameof(AyudaRenta), nameof(AyudaCuota), nameof(AyudaCredito), nameof(PorQueNoConfirmar), nameof(PideMotivo), nameof(AyudaMotivo));
             CommandManager.InvalidateRequerySuggested();
@@ -516,6 +516,11 @@ public sealed class ImpuestoSociedadesVM : ModeloVista, IPestanaTrabajo
     // ---------- renta de viviendas ----------
     public string RentaCalculada => _propuesta is null ? "" : Formatos.Importe(_propuesta.RentaViviendasCalculada);
     public bool HayDetalleRenta => _propuesta?.Viviendas is not null;
+    /// <summary>Por qué la renta sale vacía: ninguna actividad tiene la marca de bonificación (null si alguna la tiene).</summary>
+    public string? SinActividadBonificada => _datos is { HayActividadBonificada: false }
+        ? "Ninguna actividad tiene marcada la bonificación: marca «Bonificación IS por alquiler de viviendas» en la de viviendas (Catálogos › Actividades (IVA)) y pulsa F9."
+        : null;
+    public bool HaySinActividadBonificada => SinActividadBonificada is not null;
     public IReadOnlyList<FilaPartidaIsVM> Partidas => _propuesta?.Viviendas?.Partidas.Select(p => new FilaPartidaIsVM(p.Clase, p.Centro, p.Cuenta, p.NombreCuenta,
         Formatos.Importe(p.Importe), p.Apuntes.ToString(System.Globalization.CultureInfo.CurrentCulture))).ToList() ?? [];
 

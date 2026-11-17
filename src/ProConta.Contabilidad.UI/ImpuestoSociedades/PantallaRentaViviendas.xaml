@@ -48,6 +48,8 @@
           <TextBlock Text="Cálculo (art. 49.2 LIS)" Style="{StaticResource Texto.Seccion}" Margin="0,0,0,6" />
           <TextBlock Text="{Binding TextoSinPropuesta}" Style="{StaticResource Texto.Apagado}" TextWrapping="Wrap"
                      Visibility="{Binding HayPropuesta, Converter={StaticResource Visible}, ConverterParameter=invertir}" />
+          <TextBlock Text="{Binding SinActividadBonificada}" Foreground="{StaticResource Pincel.Aviso}" TextWrapping="Wrap" Margin="0,0,0,8"
+                     Visibility="{Binding HaySinActividadBonificada, Converter={StaticResource Visible}}" />
           <ItemsControl ItemsSource="{Binding ResumenRenta}" Focusable="False" AutomationProperties.Name="Cálculo de la renta de viviendas">
             <ItemsControl.ItemTemplate>
               <DataTemplate>
