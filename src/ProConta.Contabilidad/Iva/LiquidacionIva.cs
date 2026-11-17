@@ -66,7 +66,8 @@ public sealed record PropuestaLiquidacionIva(
 /// Cálculo de la liquidación del IVA de un trimestre en un solo asiento (contabilidad/procesos/liquidacion-iva, opción A del
 /// propietario 2026-11-13 12:00), sin BD. Fecha: el último día del trimestre.
 /// <list type="bullet">
-/// <item>Cada 472 y 477 (menos la 4729 de regularización de la prorrata) se deja a cero por su saldo.</item>
+/// <item>Cada 472 y 477 se deja a cero por su saldo. La 4729 (regularización de la prorrata) solo en el 4T, donde lleva la
+/// regularización anual que grabó la prorrata el 31/12 (contabilidad/procesos/prorrata) y que el 303 del 4T deduce.</item>
 /// <item>IVA no deducible por prorrata a la cuenta de ajustes negativos (6341): la cuota sujeta a prorrata del 303 menos lo que se
 /// deduce de ella (las dos líneas de prorrata del 303, redondeadas como el 303). También va a la 6341 el IVA de actividades no
 /// deducibles que se contabilizó en una 472 (los datos importados lo traen así).</item>
@@ -85,13 +86,18 @@ public static class CalculoLiquidacionIva
     public const string RegularizacionProrrata = "4729";
     public const string PrefijoCredito = "4700";
 
-    /// <summary>Si la subcuenta se salda en la liquidación: 472 y 477, sin la 4729.</summary>
+    /// <summary>Si la subcuenta se salda en la liquidación de los tres primeros trimestres: 472 y 477, sin la 4729.</summary>
     public static bool SeLiquida(string cuenta)
     {
         var c = (cuenta ?? "").Trim();
-        return (c.StartsWith(PrefijoSoportado, StringComparison.Ordinal) && !c.StartsWith(RegularizacionProrrata, StringComparison.Ordinal))
+        return (c.StartsWith(PrefijoSoportado, StringComparison.Ordinal) && !EsRegularizacionProrrata(c))
             || c.StartsWith(PrefijoRepercutido, StringComparison.Ordinal);
     }
+
+    /// <summary>Si la subcuenta se salda en la liquidación del trimestre: en el 4T también la 4729 de la regularización de la prorrata.</summary>
+    public static bool SeLiquida(string cuenta, int trimestre) => SeLiquida(cuenta) || (trimestre == 4 && EsRegularizacionProrrata(cuenta));
+
+    public static bool EsRegularizacionProrrata(string cuenta) => (cuenta ?? "").Trim().StartsWith(RegularizacionProrrata, StringComparison.Ordinal);
 
     public static DateTime FinTrimestre(int ejercicio, int trimestre) => new DateTime(ejercicio, 3 * trimestre, 1).AddMonths(1).AddDays(-1);
 
@@ -111,13 +117,13 @@ public static class CalculoLiquidacionIva
         var etiqueta = $"{Nombre(t)} {d.Ejercicio}";
 
         // 1. Saldar las 477 (Debe) y las 472 (Haber), cada subcuenta por su saldo.
-        var saldos = d.Saldos.Where(s => SeLiquida(s.Cuenta) && s.Saldo != 0m)
+        var saldos = d.Saldos.Where(s => SeLiquida(s.Cuenta, t) && s.Saldo != 0m)
             .GroupBy(s => s.Cuenta.Trim(), StringComparer.Ordinal).Select(g => new SaldoSubcuenta(g.Key, g.Sum(x => x.Saldo)))
             .Where(s => s.Saldo != 0m).OrderBy(s => s.Cuenta, StringComparer.Ordinal).ToList();
         foreach (var s in saldos.Where(s => s.Cuenta.StartsWith(PrefijoRepercutido, StringComparison.Ordinal)))
             lineas.Add(Saldar(s, $"IVA repercutido {etiqueta}"));
         foreach (var s in saldos.Where(s => s.Cuenta.StartsWith(PrefijoSoportado, StringComparison.Ordinal)))
-            lineas.Add(Saldar(s, $"IVA soportado {etiqueta}"));
+            lineas.Add(Saldar(s, EsRegularizacionProrrata(s.Cuenta) ? $"Regularización de la prorrata definitiva {d.Ejercicio}" : $"IVA soportado {etiqueta}"));
         var repercutido = -saldos.Where(s => s.Cuenta.StartsWith(PrefijoRepercutido, StringComparison.Ordinal)).Sum(s => s.Saldo);
         var soportado = saldos.Where(s => s.Cuenta.StartsWith(PrefijoSoportado, StringComparison.Ordinal)).Sum(s => s.Saldo);
 

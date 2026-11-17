@@ -406,6 +406,25 @@ public static class MigracionesContabilidad
         ],
     };
 
+    /// <summary>
+    /// Prorrata definitiva del ejercicio (contabilidad/procesos/prorrata 2026-11-17): SociedadesEjercicios.PorcentajeProrrataDefinitiva
+    /// (en porcentaje, vacía mientras no se fije; con ella el 303 del 4T lleva la regularización) y la cuenta de la regularización
+    /// (vacía: 4729001). Solo estructura, sin datos.
+    /// </summary>
+    public static Migracion ProrrataDefinitiva { get; } = new(
+        "20261117_1100_PRORRATA_DEFINITIVA", 261117011,
+        "Prorrata definitiva del ejercicio y cuenta de su regularización.",
+        "contabilidad/procesos/prorrata",
+        new AnadirColumna("SociedadesEjercicios", "PorcentajeProrrataDefinitiva", "DECIMAL(9,4)"),
+        new AnadirColumna("SociedadesEjercicios", "CuentaRegularizacionProrrata", "TEXT(10)"))
+    {
+        Descripciones =
+        [
+            new("SociedadesEjercicios", "PorcentajeProrrataDefinitiva", "Prorrata definitiva del ejercicio en porcentaje (20 = 20 %), la que se regulariza en el 4T; vacía mientras no se fije. Se copia como prorrata del año anterior del ejercicio siguiente."),
+            new("SociedadesEjercicios", "CuentaRegularizacionProrrata", "Cuenta de la regularización anual de la prorrata (vacía: 4729001); la salda la liquidación del IVA del 4T."),
+        ],
+    };
+
     private static PasoPersonalizado RelacionActividad()
     {
         const string sql = "ALTER TABLE CentrosCoste ADD CONSTRAINT FK_CentrosCoste_Actividad FOREIGN KEY (IdActividad) REFERENCES Actividades (IdActividad)";

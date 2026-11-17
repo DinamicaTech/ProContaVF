@@ -54,10 +54,8 @@ public sealed class ServicioLiquidacionIva(IBaseDatos bd, IMotorAsientos motor, 
     /// <summary>Los cuatro trimestres del ejercicio con su estado.</summary>
     public async Task<IReadOnlyList<TrimestreLiquidacionIva>> TrimestresAsync(ContextoSociedadEjercicio ctx, CancellationToken c = default)
     {
-        var lector = new LectorLineasIva(bd);
-        var lineas = await lector.LeerAsync(ctx, c);
-        var provisional = await lector.ProrrataProvisionalAsync(ctx, c);
-        var r303 = Calculo303.Calcular(lineas, provisional ?? 1m);
+        var (_, _, _, iva) = await new LectorLineasIva(bd).CalcularAsync(ctx, c);
+        var r303 = iva.Modelo303;
         var guardadas = await GuardadasAsync(ctx);
         var activo = await TrimestreActivoAsync(ctx);
         var r = new List<TrimestreLiquidacionIva>();
@@ -72,7 +70,7 @@ public sealed class ServicioLiquidacionIva(IBaseDatos bd, IMotorAsientos motor, 
                 r.Add(new(t, fin, Hoy > fin ? EstadoLiquidacionIva.Pendiente : EstadoLiquidacionIva.EnCurso, cerrado, calculado, null, null));
                 continue;
             }
-            var pendientes = (await SaldosAsync(ctx, fin, null)).Where(s => CalculoLiquidacionIva.SeLiquida(s.Cuenta) && s.Saldo != 0m).ToList();
+            var pendientes = (await SaldosAsync(ctx, fin, null)).Where(s => CalculoLiquidacionIva.SeLiquida(s.Cuenta, t) && s.Saldo != 0m).ToList();
             string? motivo = null;
             if (g.IdAsiento is int id && await motor.ObtenerAsync(id) is null) motivo = "Su asiento ya no existe.";
             else if (pendientes.Count > 0)
@@ -102,23 +100,38 @@ public sealed class ServicioLiquidacionIva(IBaseDatos bd, IMotorAsientos motor, 
         for (var anterior = 1; anterior < trimestre; anterior++)
         {
             if (guardadas.Any(g => g.Trimestre == anterior)) continue;
-            var pendientes = (await SaldosAsync(ctx, CalculoLiquidacionIva.FinTrimestre(ctx.Ejercicio, anterior), null)).Where(s => CalculoLiquidacionIva.SeLiquida(s.Cuenta)).ToList();
+            var pendientes = (await SaldosAsync(ctx, CalculoLiquidacionIva.FinTrimestre(ctx.Ejercicio, anterior), null)).Where(s => CalculoLiquidacionIva.SeLiquida(s.Cuenta, anterior)).ToList();
             if (pendientes.Count > 0)
                 return Resultado<PropuestaLiquidacionIva>.Fallo(new Error("LiquidacionIva.AnteriorPendiente",
                     $"Antes hay que liquidar el {CalculoLiquidacionIva.Nombre(anterior)}.", $"Trimestre {trimestre}",
                     $"Sus cuentas de IVA ({string.Join(", ", pendientes.Take(3).Select(s => s.Cuenta))}{(pendientes.Count > 3 ? "…" : "")}) no están a cero el {CalculoLiquidacionIva.FinTrimestre(ctx.Ejercicio, anterior):dd/MM/yyyy}, y su saldo entraría en esta liquidación.",
                     $"Elige el {CalculoLiquidacionIva.Nombre(anterior)} en la lista y liquídalo primero."));
         }
-        var lector = new LectorLineasIva(bd);
-        var lineas = await lector.LeerAsync(ctx, c);
-        var provisional = await lector.ProrrataProvisionalAsync(ctx, c);
-        var r303 = Calculo303.Calcular(lineas, provisional ?? 1m);
+        var (lineas, provisional, definitiva, iva) = await new LectorLineasIva(bd).CalcularAsync(ctx, c);
+        var r303 = iva.Modelo303;
         var lote = Lote(ctx.Ejercicio, trimestre);
         var saldos = await SaldosAsync(ctx, fin, lote);
+        if (trimestre == 4)
+        {
+            // El 303 del 4T deduce la regularización de la prorrata y la liquidación salda la 4729: tienen que coincidir
+            // (contabilidad/procesos/prorrata). Si no, la diferencia caería en el ajuste sin explicación.
+            var regularizacion = r303.Linea(Calculo303.ClaveRectificacion).En(4).Cuota;
+            var en4729 = saldos.Where(s => CalculoLiquidacionIva.EsRegularizacionProrrata(s.Cuenta)).Sum(s => s.Saldo);
+            if (regularizacion != en4729)
+                return Resultado<PropuestaLiquidacionIva>.Fallo(new Error("LiquidacionIva.ProrrataSinRegularizar",
+                    definitiva is null
+                        ? $"La 4729 tiene {Euros(en4729)} el 31/12 y el ejercicio no tiene la prorrata definitiva fijada."
+                        : $"Antes hay que {(en4729 == 0m ? "regularizar" : "volver a regularizar")} la prorrata de {ctx.Ejercicio}.",
+                    $"Trimestre {trimestre}",
+                    definitiva is null
+                        ? "El 303 del 4T solo deduce la regularización de la prorrata cuando el ejercicio tiene la definitiva, y la liquidación del 4T salda la 4729."
+                        : $"Con la prorrata definitiva del {definitiva.Value * 100m:0.##} %, el 303 del 4T lleva una regularización de {Euros(regularizacion)} y la 4729 tiene {Euros(en4729)} el 31/12.",
+                    "Abre Contabilidad › Prorrata de IVA, revisa la definitiva y confirma la regularización; después vuelve aquí."));
+        }
         var config = await CuentasAsync(ctx);
         int? centroAjustes = null;
         if ((await cuentas.ResolverAsync(ctx, config.AjustesNegativos)) is { EsCorrecto: true } neg) centroAjustes = neg.Valor.IdCentroCostePredeterminado;
-        var datos = new DatosLiquidacionIva(ctx.Ejercicio, trimestre, saldos.Where(s => CalculoLiquidacionIva.SeLiquida(s.Cuenta)).ToList(),
+        var datos = new DatosLiquidacionIva(ctx.Ejercicio, trimestre, saldos.Where(s => CalculoLiquidacionIva.SeLiquida(s.Cuenta, trimestre)).ToList(),
             saldos.Where(s => s.Cuenta.StartsWith(CalculoLiquidacionIva.PrefijoCredito, StringComparison.Ordinal)).ToList(), r303, lineas, config, importeFijado, centroAjustes);
         var propuesta = CalculoLiquidacionIva.Calcular(datos);
         if (provisional is null)

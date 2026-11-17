@@ -14,3 +14,4 @@ Proceso que crea el ejercicio siguiente de una sociedad: su fila en SociedadesEj
 
 ## Requirements
 - 2026-11-13 12:05 · draft: Crear el ejercicio siguiente de una sociedad (parámetros, plan de cuentas y subcuentas, trimestre activo 1.º) como condición previa del cierre y la apertura.
+- 2026-11-17 10:50 · Derived from contabilidad/procesos/prorrata: al crear el ejercicio siguiente, su «Prorrata del año anterior» (PorcentajeProrrataAñoAnterior) es la prorrata definitiva del ejercicio actual (PorcentajeProrrataDefinitiva), si la tiene.

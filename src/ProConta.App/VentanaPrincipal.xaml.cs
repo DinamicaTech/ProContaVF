@@ -69,6 +69,7 @@ public partial class VentanaPrincipal : Window
     private readonly ProConta.Contabilidad.UI.Diario.ModuloDiario _diario;
     private readonly ProConta.Contabilidad.UI.Liquidacion.ModuloLiquidacionIva _liquidacionIva;
     private readonly ProConta.Contabilidad.UI.Dividendos.ModuloRepartoDividendos _dividendos;
+    private readonly ProConta.Contabilidad.UI.Prorrata.ModuloRegularizacionProrrata _prorrata;
     private readonly ModuloFacturacion _facturacion;
     private readonly ModuloCompras _compras;
     private readonly ModuloCorreo _correo;
@@ -337,6 +338,19 @@ public partial class VentanaPrincipal : Window
             },
             _area, new ProConta.Contabilidad.UI.Liquidacion.DialogosLiquidacionIva(() => this));
         var abrirLiquidacionIva = new ComandoDelegado(() => _liquidacionIva.Abrir());
+        // Prorrata de IVA (contabilidad/procesos/prorrata): definitiva del año (por defecto, la legal) y su regularización el 31/12 en la 4729.
+        _prorrata = new ProConta.Contabilidad.UI.Prorrata.ModuloRegularizacionProrrata(
+            new ProConta.Contabilidad.UI.Prorrata.ContextoRegularizacionProrrata(
+                new ProConta.Contabilidad.Iva.ServicioRegularizacionProrrata(bd, new MotorAsientosAccess(bd), cuentas, () => autorizador.PuedeAsync(Acciones.LiquidacionIva)),
+                contexto.Contexto, contexto.RazonSocial, new Actor(sesion.NombreOperador), Avisar)
+            {
+                VerAsiento = id => _mayor.VerAsientoAsync(id),
+                AbrirMayor = cuentasMayor => _mayor.Abrir(cuentasMayor),
+                AbrirLiquidacion4T = () => _liquidacionIva.Abrir(4),
+                GenerarInforme = () => _ = GenerarInformeGestoriaAsync(4),
+            },
+            _area, new ProConta.Contabilidad.UI.Liquidacion.DialogosLiquidacionIva(() => this));
+        var abrirProrrata = new ComandoDelegado(() => _prorrata.Abrir());
         // Reparto de dividendos (contabilidad/procesos/aplicacion-resultado): reservas a la 526 de cada socio con su retención, como lote regenerable.
         _dividendos = new ProConta.Contabilidad.UI.Dividendos.ModuloRepartoDividendos(
             new ProConta.Contabilidad.UI.Dividendos.ContextoRepartoDividendos(
@@ -382,6 +396,9 @@ public partial class VentanaPrincipal : Window
             new OpcionNavegacion("Liquidación de IVA", null, true, false,
                 "Procesos contables › Liquidación de IVA: un asiento por trimestre que salda las 472 y 477, lleva lo no deducible a la 6341 y el resultado a la 4750 o la 4700; importe ajustable a lo presentado y activación del trimestre siguiente",
                 abrirLiquidacionIva, EsHija: true),
+            new OpcionNavegacion("Prorrata de IVA", null, true, false,
+                "Procesos contables › Prorrata de IVA: provisional, legal del año y definitiva (la de la gestoría), su regularización por trimestre y el asiento del 31/12 a la 4729 que deduce el 303 del 4T",
+                abrirProrrata, EsHija: true),
             new OpcionNavegacion("Reparto de dividendos", null, true, false,
                 "Procesos contables › Reparto de dividendos: del neto de cada socio (por defecto, lo ya pagado en su 526) calcula el bruto y la retención del ejercicio y graba el asiento de reservas a dividendos; corregir o deshacer con motivo",
                 abrirDividendos, EsHija: true),

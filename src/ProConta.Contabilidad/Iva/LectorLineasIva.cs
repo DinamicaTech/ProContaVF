@@ -78,4 +78,22 @@ public sealed class LectorLineasIva(IBaseDatos bd)
         bd.EjecutarAsync(async s => await s.EscalarAsync("SELECT [PorcentajeProrrataAñoAnterior] FROM SociedadesEjercicios WHERE IdSociedadEjercicio = ?", ctx.IdSociedadEjercicio) is { } v and not DBNull
             ? Convert.ToDecimal(v, CultureInfo.InvariantCulture) / 100m
             : (decimal?)null, cancelacion);
+
+    /// <summary>
+    /// Prorrata definitiva del ejercicio en tanto por uno (contabilidad/procesos/prorrata): SociedadesEjercicios.PorcentajeProrrataDefinitiva,
+    /// que se guarda en porcentaje (20 = 20 %). Null mientras no se fije.
+    /// </summary>
+    public Task<decimal?> ProrrataDefinitivaAsync(ContextoSociedadEjercicio ctx, CancellationToken cancelacion = default) =>
+        bd.EjecutarAsync(async s => await s.EscalarAsync("SELECT PorcentajeProrrataDefinitiva FROM SociedadesEjercicios WHERE IdSociedadEjercicio = ?", ctx.IdSociedadEjercicio) is { } v and not DBNull
+            ? Convert.ToDecimal(v, CultureInfo.InvariantCulture) / 100m
+            : (decimal?)null, cancelacion);
+
+    /// <summary>Las líneas de IVA del ejercicio con su 303 y su prorrata (provisional y definitiva del ejercicio).</summary>
+    public async Task<(IReadOnlyList<LineaIva> Lineas, decimal? Provisional, decimal? Definitiva, IvaEjercicio Iva)> CalcularAsync(ContextoSociedadEjercicio ctx, CancellationToken cancelacion = default)
+    {
+        var lineas = await LeerAsync(ctx, cancelacion);
+        var provisional = await ProrrataProvisionalAsync(ctx, cancelacion);
+        var definitiva = await ProrrataDefinitivaAsync(ctx, cancelacion);
+        return (lineas, provisional, definitiva, CalculoIvaEjercicio.Calcular(lineas, provisional, definitiva));
+    }
 }

@@ -33,10 +33,9 @@ public sealed class ComposicionInformeGestoria(IBaseDatos bd)
         if (trimestre is < 1 or > 4) throw new ArgumentOutOfRangeException(nameof(trimestre), trimestre, "El trimestre va de 1 a 4.");
         var fin = InformeGestoria.FinDe(ctx.Ejercicio, trimestre);
         var lector = new LectorLineasIva(bd);
-        var lineas = await lector.LeerAsync(ctx, cancelacion);
-        var provisional = await lector.ProrrataProvisionalAsync(ctx, cancelacion);
-        var r303 = Calculo303.Calcular(lineas, provisional ?? 1m);
-        var prorrata = CalculoProrrata.Calcular(lineas, provisional, r303);
+        // El 303 y la prorrata juntos: con la definitiva fijada, el 4T lleva la regularización (contabilidad/procesos/prorrata).
+        var (lineas, provisional, _, iva) = await lector.CalcularAsync(ctx, cancelacion);
+        var (r303, prorrata) = (iva.Modelo303, iva.Prorrata);
 
         var balances = new GeneradorBalances(bd);
         var pyg = await balances.GenerarAsync(TipoBalance.PerdidasYGanancias, ctx, razonSocial, cancelacion, fin);

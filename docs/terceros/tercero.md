@@ -24,12 +24,14 @@ Ente Tercero: identidad estable (IdTercero) de persona física, jurídica o enti
 - 2026-11-01 15:48 · Validado por el propietario (pantalla de Terceros y revisión 1).
 - 2026-11-15 21:10 · Recibe de contabilidad (revisión de las incidencias con la gestoría) el aviso de salud S6, para los NIF antiguos que no se validan porque no se han cambiado.
 - 2026-11-15 22:40 · Hecho, pendiente de validar: aviso S6 (`RevisionNifInvalido`, src/ProConta.Inicio/Salud/RevisionesIncidencias.cs). Se valida como NIF español el de identificación vacía, NIF, CIF, NIE o DNI sin país o con España, y el de identificación «OTRO» con el país España explícito: la migración dejó como «OTRO» los NIF que no validaban, también españoles mal escritos (en la copia de pruebas, 25 de «OTRO»: 10 con país España, que avisan, y 15 sin país, que no).
+- 2026-11-17 10:35 · Recibe de compras/facturas-recurrentes-pendientes (hilo «Proyectar facturas de proveedores pendientes») la exclusión del proveedor del control de facturas recurrentes y su periodicidad fija; pendiente de implementar con ese nodo.
 
 ## Requirements
 - 2026-10-28 12:28 · From sources/01_ESPECIFICACION_FUNCIONAL.docx § 7 RF-TER-01, 02, 06: identidad, tipos de persona, domicilios
 - 2026-10-28 12:28 · draft: Implementar el ente Tercero y publicar su contrato.
 - 2026-10-31 17:53 · Derived from architecture: el ente Tercero con su contrato (ficha, búsqueda, guardado con concurrencia optimista e historial).
 - 2026-11-15 21:10 · Derived from contabilidad: aviso de salud S6 «NIF que no valida» (gravedad atención): clientes y proveedores con apuntes en el ejercicio (por la identidad contable de su subcuenta) cuyo NIF español no pasa la validación de nucleo; las otras identificaciones (VAT, pasaporte…) no se validan; abre la ficha del tercero. [Precisado en Decisions 2026-11-15 22:40]
+- 2026-11-17 10:35 · Derived from compras/facturas-recurrentes-pendientes: casilla en la ficha del proveedor para excluirlo del control de facturas recurrentes pendientes y campo para fijar su periodicidad (mensual, bimestral o trimestral), que manda sobre la deducida. Cambio de esquema.
 
 - 2026-11-16 19:30 · Derived from norma43/conciliacion/actualizar-textos: al guardar la ficha con otro nombre, avisa a la conciliación (`IAsientosBancoEnlazados.TerceroCambiadoAsync`) para que actualice la descripción de los asientos de banco imputados a sus cuentas.
 ## Hand-over
