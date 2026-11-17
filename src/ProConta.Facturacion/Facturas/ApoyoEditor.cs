@@ -44,6 +44,9 @@ public sealed class ApoyoEditorFacturas(IBaseDatos bd, ServicioRoles roles)
     public Task<ClienteElegible?> ClienteAsync(int idCliente) =>
         bd.EjecutarAsync(s => s.ConsultarPrimeroAsync(SqlClientes + "WHERE c.IdCliente = ?", Mapear, idCliente));
 
+    /// <summary>Activos propios de la sociedad para el campo «Activo» de las líneas (activos 2026-11-17 20:35).</summary>
+    public Task<IReadOnlyList<ActivoLinea>> ActivosAsync(ContextoSociedadEjercicio contexto) => ReglasActivoLinea.ListarAsync(bd, contexto);
+
     /// <summary>Serie de 472 de la actividad de cada centro de coste de la sociedad, para la vista previa del asiento.</summary>
     public async Task<IReadOnlyDictionary<int, string>> SeriesPorCentroAsync(string idSociedad) =>
         (await new ProConta.Contabilidad.CentrosCoste.LectorActividadesIva(bd).PorCentroAsync(idSociedad))

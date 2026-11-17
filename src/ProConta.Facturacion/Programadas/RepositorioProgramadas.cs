@@ -16,7 +16,7 @@ internal static class RepositorioProgramadas
 
     private const string ColumnasLinea =
         "IdFacturaProgramada, NumeroLinea, IdConcepto, Nombre, Descripcion, NotasInternas, Cantidad, PrecioUnitario, DescuentoPorcentaje, DescuentoImporte, Impuesto, " +
-        "ClaveRegimen, CalificacionOperacion, CausaExencion, TipoIVA, TipoRecargoEquivalencia, EsSuplido, CuentaContable, IdDepartamento, IdCentroCoste";
+        "ClaveRegimen, CalificacionOperacion, CausaExencion, TipoIVA, TipoRecargoEquivalencia, EsSuplido, CuentaContable, IdDepartamento, IdCentroCoste, IdActivo";
 
     public static async Task<FacturaProgramada?> CargarAsync(ISesionDatos s, int id)
     {
@@ -38,7 +38,7 @@ internal static class RepositorioProgramadas
         var lineas = await s.ConsultarAsync(
             "SELECT l.IdFacturaProgramada, l.NumeroLinea, l.IdConcepto, l.Nombre, l.Descripcion, l.NotasInternas, l.Cantidad, l.PrecioUnitario, l.DescuentoPorcentaje, " +
             "l.DescuentoImporte, l.Impuesto, l.ClaveRegimen, l.CalificacionOperacion, l.CausaExencion, l.TipoIVA, l.TipoRecargoEquivalencia, l.EsSuplido, l.CuentaContable, " +
-            "l.IdDepartamento, l.IdCentroCoste FROM (LineasFacturasProgramadas AS l INNER JOIN FacturasProgramadas AS p ON l.IdFacturaProgramada = p.IdFacturaProgramada) " +
+            "l.IdDepartamento, l.IdCentroCoste, l.IdActivo FROM (LineasFacturasProgramadas AS l INNER JOIN FacturasProgramadas AS p ON l.IdFacturaProgramada = p.IdFacturaProgramada) " +
             "INNER JOIN SociedadesEjercicios AS se ON p.IdSociedadEjercicio = se.IdSociedadEjercicio WHERE se.IdSociedad = ? AND l.Activa = True ORDER BY l.IdFacturaProgramada, l.NumeroLinea",
             MapearLinea, idSociedad);
         foreach (var (id, l) in lineas)
@@ -111,7 +111,8 @@ internal static class RepositorioProgramadas
             EsSuplido = r.Logico("EsSuplido"),
             CuentaContable = r.Texto("CuentaContable")?.Trim(),
             IdDepartamento = r.EnteroNulo("IdDepartamento"),
-            IdCentroCoste = r.EnteroNulo("IdCentroCoste")
+            IdCentroCoste = r.EnteroNulo("IdCentroCoste"),
+            IdActivo = r.EnteroNulo("IdActivo")
         };
         l.Recalcular();
         return (r.Entero("IdFacturaProgramada"), l);
@@ -170,10 +171,10 @@ internal static class RepositorioProgramadas
             await s.EjecutarAsync(
                 "INSERT INTO LineasFacturasProgramadas (IdFacturaProgramada, NumeroLinea, IdConcepto, Nombre, Descripcion, NotasInternas, Cantidad, PrecioUnitario, " +
                 "DescuentoPorcentaje, DescuentoImporte, Impuesto, ClaveRegimen, CalificacionOperacion, CausaExencion, TipoIVA, TipoRecargoEquivalencia, EsSuplido, " +
-                "CuentaContable, IdDepartamento, IdCentroCoste, Activa) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                "CuentaContable, IdDepartamento, IdCentroCoste, IdActivo, Activa) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                 p.IdFacturaProgramada, (short)l.NumeroLinea, l.IdConcepto, Nulo(l.Nombre), string.IsNullOrWhiteSpace(l.Descripcion) ? " " : l.Descripcion, Nulo(l.NotasInternas),
                 (double)l.Cantidad, l.PrecioUnitario, (double)l.DescuentoPorcentaje, l.DescuentoImporte, l.Impuesto, l.ClaveRegimen, l.CalificacionOperacion, Nulo(l.CausaExencion),
-                (double)l.TipoIva, (double)l.TipoRecargo, l.EsSuplido, Nulo(l.CuentaContable), l.IdDepartamento, l.IdCentroCoste, true);
+                (double)l.TipoIva, (double)l.TipoRecargo, l.EsSuplido, Nulo(l.CuentaContable), l.IdDepartamento, l.IdCentroCoste, l.IdActivo, true);
     }
 
     /// <summary>

@@ -131,6 +131,7 @@ public static class AgrupadorVentas
             CuentaContable = concepto.CuentaVenta,
             IdDepartamento = concepto.IdDepartamento,
             IdCentroCoste = activo?.IdCentroCoste ?? concepto.IdCentroCoste,
+            IdActivo = activo?.IdActivo,
         };
         l.FijarTotal(v.Importe);
         return l;

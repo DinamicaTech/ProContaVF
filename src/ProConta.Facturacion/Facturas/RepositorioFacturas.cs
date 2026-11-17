@@ -20,7 +20,7 @@ internal static class RepositorioFacturas
     private const string ColumnasLinea =
         "IdLineaFactura, NumeroLinea, IdConcepto, Nombre, Descripcion, NotasInternas, Fecha, Cantidad, PrecioUnitario, DescuentoPorcentaje, DescuentoImporte, " +
         "BaseImponible, Impuesto, ClaveRegimen, CalificacionOperacion, CausaExencion, TipoIVA, CuotaIVA, TipoRecargoEquivalencia, CuotaRecargoEquivalencia, " +
-        "EsSuplido, ImporteTotal, CuentaContable, IdDepartamento, IdCentroCoste";
+        "EsSuplido, ImporteTotal, CuentaContable, IdDepartamento, IdCentroCoste, IdActivo";
 
     public static async Task<FacturaVenta?> CargarAsync(ISesionDatos s, int idFactura)
     {
@@ -101,7 +101,8 @@ internal static class RepositorioFacturas
             EsSuplido = r.Logico("EsSuplido"),
             CuentaContable = r.Texto("CuentaContable")?.Trim(),
             IdDepartamento = r.EnteroNulo("IdDepartamento"),
-            IdCentroCoste = r.EnteroNulo("IdCentroCoste")
+            IdCentroCoste = r.EnteroNulo("IdCentroCoste"),
+            IdActivo = r.EnteroNulo("IdActivo")
         };
         l.CargarImportes(r.Decimal("BaseImponible"), r.Decimal("CuotaIVA"), r.Decimal("CuotaRecargoEquivalencia"), r.Decimal("ImporteTotal"));
         return l;
@@ -201,12 +202,12 @@ internal static class RepositorioFacturas
             await s.EjecutarAsync(
                 "INSERT INTO LineasFactura (IdFactura, NumeroLinea, IdConcepto, Nombre, Descripcion, NotasInternas, Fecha, Cantidad, PrecioUnitario, DescuentoPorcentaje, " +
                 "DescuentoImporte, BaseImponible, Impuesto, ClaveRegimen, CalificacionOperacion, CausaExencion, TipoIVA, CuotaIVA, TipoRecargoEquivalencia, " +
-                "CuotaRecargoEquivalencia, EsSuplido, ImporteTotal, CuentaContable, IdDepartamento, IdCentroCoste) " +
-                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                "CuotaRecargoEquivalencia, EsSuplido, ImporteTotal, CuentaContable, IdDepartamento, IdCentroCoste, IdActivo) " +
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                 f.IdFactura, (short)l.NumeroLinea, l.IdConcepto, l.Nombre.Trim(), string.IsNullOrWhiteSpace(l.Descripcion) ? " " : l.Descripcion, Nulo(l.NotasInternas), l.Fecha,
                 (double)l.Cantidad, l.PrecioUnitario, (double)l.DescuentoPorcentaje, l.DescuentoImporte, l.BaseImponible, l.Impuesto, l.ClaveRegimen, l.CalificacionOperacion,
                 Nulo(l.CausaExencion), (double)l.TipoIva, l.CuotaIva, (double)l.TipoRecargo, l.CuotaRecargo, l.EsSuplido, l.ImporteTotal, Nulo(l.CuentaContable),
-                l.IdDepartamento, l.IdCentroCoste);
+                l.IdDepartamento, l.IdCentroCoste, l.IdActivo);
             l.IdLineaFactura = await s.UltimoIdAsync();
         }
     }

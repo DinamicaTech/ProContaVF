@@ -60,6 +60,7 @@ public sealed class EditorFacturaVM : ModeloVista, IPestanaTrabajo, INotifyDataE
     private ConfiguracionEjercicio? _config;
     private IReadOnlyList<decimal> _tiposIva = [21m, 10m, 4m, 0m];
     private IReadOnlyList<OpcionCentroCoste> _centros = [SinCentro];
+    private IReadOnlyList<ActivoLinea> _activos = [];
     private IReadOnlyDictionary<int, string> _seriesPorCentro = new Dictionary<int, string>();
     private bool _validadaModificable;
     private int? _idClienteCongelado;
@@ -672,6 +673,7 @@ public sealed class EditorFacturaVM : ModeloVista, IPestanaTrabajo, INotifyDataE
             _seriesPorCentro = await _s.Apoyo.SeriesPorCentroAsync(_s.Trabajo.IdSociedad);
             var centros = await _s.CentrosCoste.ListarAsync(_s.Trabajo.IdSociedad);
             _centros = [SinCentro, .. centros.Where(c => c.EstaActivo && c.EsImputable).Select(c => new OpcionCentroCoste(c.IdCentroCoste, $"{c.Codigo.Trim()} · {c.Nombre.Trim()}"))];
+            _activos = await _s.Apoyo.ActivosAsync(_s.Trabajo);
             Rellenar(Series, await _s.Facturas.SeriesAsync(_s.Trabajo.IdSociedadEjercicio));
             Rellenar(TiposFactura, await _s.Apoyo.TiposFacturaAsync());
             Rellenar(FormasPago, await _s.FormasPago.ListarAsync());
@@ -726,7 +728,7 @@ public sealed class EditorFacturaVM : ModeloVista, IPestanaTrabajo, INotifyDataE
     private void ReconstruirLineas()
     {
         Lineas.Clear();
-        foreach (var l in _f.Lineas) Lineas.Add(new LineaFacturaVM(l, EditableLineas, _tiposIva, _centros, LineaCambiada));
+        foreach (var l in _f.Lineas) Lineas.Add(new LineaFacturaVM(l, EditableLineas, _tiposIva, _centros, _activos, LineaCambiada));
     }
 
     private void LineaCambiada()
@@ -820,7 +822,7 @@ public sealed class EditorFacturaVM : ModeloVista, IPestanaTrabajo, INotifyDataE
         else linea.TipoIva = _tiposIva.FirstOrDefault();
         linea.Recalcular();
         _f.AnadirLinea(linea);
-        var nueva = new LineaFacturaVM(linea, EditableLineas, _tiposIva, _centros, LineaCambiada);
+        var nueva = new LineaFacturaVM(linea, EditableLineas, _tiposIva, _centros, _activos, LineaCambiada);
         Lineas.Add(nueva);
         QuitarError("Lineas");
         AvisarTotales();
@@ -1182,7 +1184,7 @@ public sealed class EditorFacturaVM : ModeloVista, IPestanaTrabajo, INotifyDataE
             b.Append(CultureInfo.InvariantCulture, $"|P{p.IdFacturaProgramada}|{p.Periodicidad.Codigo}|{p.FechaInicio:d}|{p.DiaEmision}|{p.FechaFin:d}|{p.NumeroRepeticiones}|{p.AlGenerar}|{p.EnviarPorEmail}|{p.Activa}");
         foreach (var l in f.Lineas)
             b.Append(CultureInfo.InvariantCulture,
-                $"#{l.IdConcepto}|{l.Nombre}|{l.Descripcion}|{l.Cantidad}|{l.PrecioUnitario}|{l.DescuentoPorcentaje}|{l.DescuentoImporte}|{l.TipoIva}|{l.EsSuplido}|{l.CuentaContable}|{l.ImporteTotal}|{l.Fecha:d}|{l.IdCentroCoste}");
+                $"#{l.IdConcepto}|{l.Nombre}|{l.Descripcion}|{l.Cantidad}|{l.PrecioUnitario}|{l.DescuentoPorcentaje}|{l.DescuentoImporte}|{l.TipoIva}|{l.EsSuplido}|{l.CuentaContable}|{l.ImporteTotal}|{l.Fecha:d}|{l.IdCentroCoste}|{l.IdActivo}");
         return b.ToString();
     }
 }

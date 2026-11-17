@@ -133,7 +133,9 @@ public sealed class BuscadorCuentasVMTests
     public async Task La_cuenta_de_gasto_admite_el_punto_y_abre_el_buscador_con_un_codigo_desconocido()
     {
         var textos = new List<string>();
-        var ficha = Ficha(_ => Task.FromResult<CuentaContable?>(C(9, "6290002", "Suministros: agua") with { IdCentroCostePredeterminado = 3 }), textos);
+        // El buscador «responde» cuando la prueba lo suelta: así no compite con la comprobación de que todavía no se ha abierto.
+        var respuesta = new TaskCompletionSource<CuentaContable?>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var ficha = Ficha(_ => respuesta.Task, textos);
         Assert.Equal(("6000000", "Compras"), (ficha.CodigoCuentaGasto, ficha.NombreCuentaGasto));
 
         ficha.CodigoCuentaGasto = "629.1";
@@ -144,6 +146,7 @@ public sealed class BuscadorCuentasVMTests
         ficha.CodigoCuentaGasto = "agua";
         Assert.Equal("6290001", ficha.CodigoCuentaGasto);
         // El buscador se abre después de escribir el valor, no dentro del enlace.
+        respuesta.SetResult(C(9, "6290002", "Suministros: agua") with { IdCentroCostePredeterminado = 3 });
         for (var i = 0; i < 100 && ficha.CodigoCuentaGasto != "6290002"; i++) await Task.Delay(20);
         Assert.Equal(["agua"], textos);
         Assert.Equal(("6290002", "Suministros: agua"), (ficha.CodigoCuentaGasto, ficha.NombreCuentaGasto));

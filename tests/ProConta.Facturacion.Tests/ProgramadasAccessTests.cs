@@ -190,6 +190,35 @@ public sealed class ProgramadasAccessTests : IDisposable
     }
 
     [Fact]
+    public async Task ElActivoDeLasLineasSeGuardaYPasaALasFacturasGeneradas()
+    {
+        // activos 2026-11-17 20:35: la línea de la programada guarda su activo y las facturas generadas lo copian.
+        await PrepararAsync();
+        var tipo = Convert.ToInt32(await Bd.EjecutarAsync(s => s.EscalarAsync("SELECT MIN(IdTipoActivo) FROM TiposActivo")));
+        var idActivo = await Bd.EjecutarAsync(async s =>
+        {
+            await s.EjecutarAsync(
+                "INSERT INTO Activos (IdSociedad, IdTipoActivo, Codigo, Nombre, FechaAlta, Estado, EsAmortizable, CosteAdquisicionActual, AmortizacionAcumulada, DeterioroAcumulado, " +
+                "ValorContable, EstadoCalculo, EsAjeno, Version) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                "T01", tipo, "LOCAL1", "Local sintético", new DateTime(2026, 1, 1), (byte)1, true, 0m, 0m, 0m, 0m, (byte)0, false, 0);
+            return await s.UltimoIdAsync();
+        });
+        var servicio = Servicio();
+        var p = await ProgramadaAsync(servicio);
+        p.Plantilla.Lineas[0].IdActivo = idActivo;
+        Assert.True((await servicio.GuardarAsync(p, _actor)).Guardada);
+        Assert.Equal(idActivo, (await servicio.ObtenerAsync(p.IdFacturaProgramada))!.Plantilla.Lineas[0].IdActivo);
+        Assert.Equal(idActivo, (await servicio.ListarAsync("T01")).Single(x => x.IdFacturaProgramada == p.IdFacturaProgramada).Plantilla.Lineas[0].IdActivo);
+
+        var r = await servicio.GenerarAsync(_ctx, _reloj.Ahora.Date, [p.IdFacturaProgramada], _actor);
+        Assert.True(r.EsCorrecto, r.Error?.ToString());
+        Assert.NotEmpty(r.Valor.Facturas);
+        foreach (var f in r.Valor.Facturas)
+            Assert.Equal(idActivo, (await Facturas().ObtenerAsync(f.IdFactura))!.Lineas.Single().IdActivo);
+        Assert.Equal(r.Valor.Facturas.Count, await Contar("SELECT COUNT(*) FROM LineasFactura WHERE IdActivo = ?", idActivo));
+    }
+
+    [Fact]
     public async Task LaDescripcionAbreviadaPasaALaFacturaGeneradaConSuPeriodo()
     {
         await PrepararAsync();

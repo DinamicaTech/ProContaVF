@@ -39,6 +39,7 @@ Programaciones con cadencia y ancla de día, generación por lotes idempotente p
 - 2026-11-15 12:10 · Derived from facturacion/pantallas: el servicio dice, antes de generar, qué programadas con vencimientos no se podrán generar y por qué; la preferencia de envío por correo se ofrece también al validar desde Facturas un borrador generado por una programada.
 - 2026-11-15 17:20 · Derived from pantalla-de-inicio: los próximos vencimientos de las facturas programadas activas, con su fecha, cliente e importe, para la agenda de Inicio.
 - 2026-11-16 17:05 · Derived from facturacion/descripcion-abreviada: la programada guarda una descripción abreviada editable en su pantalla y la pasa, con su periodo, a la factura que genera.
+- 2026-11-17 20:35 · Derived from activos: la línea de factura programada guarda su activo (IdActivo, opcional), con el mismo campo «Activo» y los mismos valores por defecto que la línea de factura; las facturas generadas copian el activo de sus líneas. La ficha del activo lista sus programadas y las abre con doble clic.
 
 ## Hand-over
 - 2026-11-04 18:50 · Hecho: dominio, calendario, servicio, lotes y migración `20261104_1820_FACTURAS_PROGRAMADAS`; editor con «Periódica» y «Programación», sección de programadas, «Generar programadas…» y «Programar…» en Facturas; pruebas sin BD y contra Access en verde; la copia de pruebas actualizada a la versión 15. Pendiente: revisión en pantalla y validación del propietario; envío automático con correo/envio y PDF; conversión de las programadas del ERP (implantacion/migracion-erp).

@@ -52,9 +52,9 @@ public sealed record FilaAmortizacionVM(string Ejercicio, string Dias, string Cu
 
 /// <summary>
 /// Ficha de un activo en su pestaña (activos 2026-11-17 18:50): cabecera con nombre, código, tipo, estado, centro y actividad; indicadores del ejercicio de
-/// trabajo y los apartados Datos (con Guardar y Cancelar al pie), Cuenta de resultados, Subcuentas y Amortización. Un activo ajeno solo tiene Datos.
+/// trabajo y los apartados Datos (con Guardar y Cancelar al pie), Cuenta de resultados, Facturas, Ventas, Subcuentas y Amortización. Un activo ajeno solo tiene Datos.
 /// </summary>
-public sealed class FichaActivoVM : ModeloVista, IPestanaTrabajo, INotifyDataErrorInfo
+public sealed partial class FichaActivoVM : ModeloVista, IPestanaTrabajo, INotifyDataErrorInfo
 {
     private static readonly CultureInfo Es = Formatos.Cultura;
     private static readonly string[] Meses = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
@@ -140,7 +140,7 @@ public sealed class FichaActivoVM : ModeloVista, IPestanaTrabajo, INotifyDataErr
     }
 
     /// <summary>Índice de la pestaña del apartado (para el TabControl).</summary>
-    public int IndiceApartado { get => (int)_apartado; set => Apartado = (ApartadoFicha)Math.Clamp(value, 0, 3); }
+    public int IndiceApartado { get => (int)_apartado; set => Apartado = (ApartadoFicha)Math.Clamp(value, 0, 5); }
     public bool EnDatos => _apartado == ApartadoFicha.Datos;
 
     // ---------- cabecera ----------
@@ -195,7 +195,7 @@ public sealed class FichaActivoVM : ModeloVista, IPestanaTrabajo, INotifyDataErr
         if (TieneCambios && _modulo.Dialogos.Preguntar("Cambios sin guardar", "Actualizar vuelve a leer el activo y perderías los cambios que no has guardado.", null,
                 new OpcionMensaje("Descartar y actualizar", "Pierde los cambios y lee el activo de nuevo"), new OpcionMensaje("Seguir editando", "No hace nada", Principal: true, Cancelar: true)) != 0)
             return;
-        _cuenta = null; _subcuentas = null; _amortizacion = null;
+        _cuenta = null; _subcuentas = null; _amortizacion = null; _compras = null; _ventas = null;
         await CargarAsync();
     }
 
@@ -242,6 +242,8 @@ public sealed class FichaActivoVM : ModeloVista, IPestanaTrabajo, INotifyDataErr
             switch (_apartado)
             {
                 case ApartadoFicha.CuentaResultados when _cuenta is null: await CargarCuentaAsync(); break;
+                case ApartadoFicha.Facturas when _compras is null: await CargarComprasAsync(); break;
+                case ApartadoFicha.Ventas when _ventas is null: await CargarVentasAsync(); break;
                 case ApartadoFicha.Subcuentas when _subcuentas is null: await CargarSubcuentasAsync(); break;
                 case ApartadoFicha.Amortizacion when _amortizacion is null: await CargarAmortizacionAsync(); break;
             }
@@ -456,7 +458,7 @@ public sealed class FichaActivoVM : ModeloVista, IPestanaTrabajo, INotifyDataErr
             if (r.Valor.Count > 0)
                 _modulo.Dialogos.Error("Guardado, con avisos", "Los datos se han guardado, pero con las subcuentas ha pasado esto:" + Environment.NewLine + Environment.NewLine +
                     string.Join(Environment.NewLine, r.Valor) + Environment.NewLine + Environment.NewLine + "Revísalo en el apartado Subcuentas.");
-            _cuenta = null; _subcuentas = null; _amortizacion = null;
+            _cuenta = null; _subcuentas = null; _amortizacion = null; _compras = null; _ventas = null;
             await LeerFichaAsync();
             await IndicadoresAsync();
             await CargarApartadoAsync();
