@@ -112,7 +112,9 @@ public sealed class ImpuestoSociedadesAccessTests(ITestOutputHelper salida) : ID
 
         // Lo guardado vuelve como lo escrito; las 473 ya no tienen saldo fuera del lote.
         var otra = (await servicio.ProponerAsync(_ctx)).Valor;
-        Assert.True(otra.Entrada.Equivale(entrada));
+        Assert.Equal(entrada.Ajustes, otra.Entrada.Ajustes);
+        Assert.Equal(0m, otra.Entrada.Bonificaciones);
+        Assert.Null(otra.Entrada.CuotaLiquida);
         Assert.Equal(p.Lineas, otra.Lineas);
 
         // Repetir pide motivo y regenera el mismo lote.
@@ -188,6 +190,38 @@ public sealed class ImpuestoSociedadesAccessTests(ITestOutputHelper salida) : ID
         Assert.Equal("ImpuestoSociedades.Regularizado", (await servicio.ConfirmarAsync(_ctx, ConMulta, null, _actor)).Error!.Codigo);
     }
 
+    [Fact]
+    public async Task DatosFiscalesYLoDeducidoSeGuardanYVuelven()
+    {
+        await PrepararAsync();
+        var servicio = Servicio(Enero);
+        var d = await servicio.DatosAsync(_ctx);
+        // La AEAT conoce 1.800 de la 4730001 (no los 1.900 del saldo) y 500 de pago fraccionado; el operador deduce 1.850 de la 4730001.
+        var importados = await servicio.ImportarDatosFiscalesAsync(_ctx, System.Text.Encoding.Latin1.GetBytes(DatosFiscalesAeatTests.Html(2026, "B12345674",
+            pagos: [("2T", "500,00")], alquileres: [("X0000000X", "INQUILINO SINTETICO", "1.800,00")], bases: "1.000,00", presentado: null)), d);
+        Assert.True(importados.EsCorrecto, importados.Error?.Mensaje);
+        Assert.Equal(["4730002", "4730001"], importados.Valor.Retenciones.Select(r => r.Cuenta));
+        var entrada = ConMulta with
+        {
+            RetencionesAeat = importados.Valor.Retenciones, BasesNegativasAeat = importados.Valor.BasesNegativas, Deducir = [new("4730001", 1850m)],
+        };
+        var p = servicio.Calcular(_ctx, d, entrada);
+        Assert.Equal([("6300000", 4000m, 0m), ("4730001", 0m, 1850m), ("4730002", 0m, 500m), ("4752000", 0m, 1650m)], p.Lineas.Select(l => (l.Cuenta, l.Debe, l.Haber)).ToList());
+        Assert.True((await servicio.ConfirmarAsync(_ctx, entrada, null, _actor, p)).EsCorrecto);
+
+        var otra = (await servicio.ProponerAsync(_ctx)).Valor;
+        Assert.True(otra.Entrada.Equivale(entrada with { Bonificaciones = otra.Entrada.Bonificaciones, CreditoPerdidas = otra.Entrada.CreditoPerdidas }));
+        Assert.Equal(p.Lineas, otra.Lineas);
+        Assert.Equal(1, await ContarAsync("SELECT COUNT(*) FROM ImpuestosSociedadesRetenciones WHERE Cuenta = '4730001' AND Saldo = 1900 AND SegunAeat = 1800 AND Deducido = 1850 AND Escrito = True"));
+        Assert.Equal(EstadoImpuestoSociedades.Contabilizado, (await servicio.SituacionAsync(_ctx)).Estado);
+
+        // Otro NIF u otro ejercicio no se importan.
+        var otroNif = await servicio.ImportarDatosFiscalesAsync(_ctx, System.Text.Encoding.Latin1.GetBytes(DatosFiscalesAeatTests.Html(2026, "B99999999", [], [], null, null)), d);
+        Assert.False(otroNif.EsCorrecto);
+        Assert.False((await servicio.ImportarDatosFiscalesAsync(_ctx, System.Text.Encoding.Latin1.GetBytes(DatosFiscalesAeatTests.Html(2025, "B12345674", [], [], null, null)), d)).EsCorrecto);
+        Assert.Equal(LectorDatosFiscalesAeat.UrlDefecto, await servicio.UrlDatosFiscalesAsync());
+    }
+
     /// <summary>
     /// Paridad con la hoja de la gestoría de 2025 contra una BD de validación del propietario, solo si PROCONTA_BD_VALIDACION_IS apunta a
     /// ella (se actualiza y se lee una copia temporal; el original no se abre). Sin la variable no hace nada. Escribe en la salida las cifras
@@ -218,11 +252,23 @@ public sealed class ImpuestoSociedadesAccessTests(ITestOutputHelper salida) : ID
             var propuesta = CalculoImpuestoSociedades.Calcular(d, new([new(false, false, "Ajuste art. 21.3", 51727.50m)]));
             salida.WriteLine($"Base {propuesta.BaseImponible}; cuota íntegra {propuesta.CuotaIntegra}; bonificación propuesta {propuesta.BonificacionPropuesta}; cuota líquida {propuesta.CuotaLiquida}");
             Assert.Equal(116430.95m, d.ResultadoContable);
-            Assert.Equal(17469.41m, d.Retenciones.Where(r => r.Saldo > 0m).Sum(r => r.Saldo));
             Assert.Equal(13734.76m, propuesta.CuotaIntegra);
-            var gestoria = CalculoImpuestoSociedades.Calcular(d, new([new(false, false, "Ajuste art. 21.3", 51727.50m)], Bonificaciones: 2148.29m));
+            // Con los datos fiscales (PROCONTA_DATOS_FISCALES_IS: el HTML de la Sede), la gestoría deduce lo de la AEAT salvo en una 473, donde deduce su saldo.
+            if (Environment.GetEnvironmentVariable("PROCONTA_DATOS_FISCALES_IS") is not { Length: > 0 } html || !File.Exists(html)) return;
+            var importados = await servicio.ImportarDatosFiscalesAsync(ctx!, await File.ReadAllBytesAsync(html), d);
+            Assert.True(importados.EsCorrecto, importados.Error?.Mensaje);
+            var aeat = importados.Valor;
+            foreach (var r in aeat.Retenciones) salida.WriteLine($"  AEAT {r.Modelo} {r.Nif} {r.Nombre}: {r.Importe} → {r.Cuenta ?? "sin cuenta"}");
+            salida.WriteLine($"Bases negativas según la AEAT {aeat.BasesNegativas}; presentado {aeat.ResultadoPresentado}; viviendas {aeat.ArrendamientoViviendas}");
+            var gestoria = CalculoImpuestoSociedades.Calcular(d, new([new(false, false, "Ajuste art. 21.3", 51727.50m)], Bonificaciones: 2148.29m,
+                RetencionesAeat: aeat.Retenciones, BasesNegativasAeat: aeat.BasesNegativas, ResultadoPresentado: aeat.ResultadoPresentado,
+                Deducir: [new("4735079", d.Retenciones.Single(r => r.Cuenta == "4735079").Saldo)]));
+            foreach (var r in gestoria.Retenciones) salida.WriteLine($"  {r.Cuenta}: saldo {r.Saldo}, AEAT {r.SegunAeat}, propuesto {r.Propuesto}, deducido {r.Deducido}");
+            foreach (var a in gestoria.Avisos) salida.WriteLine($"  aviso: {a}");
             Assert.Equal(11586.47m, gestoria.CuotaLiquida);
+            Assert.Equal(17469.41m, gestoria.TotalRetenciones);
             Assert.Equal(-5882.94m, gestoria.Resultado);
+            Assert.DoesNotContain(gestoria.Avisos, a => a.Contains("declaración presentada"));
         }
         finally
         {

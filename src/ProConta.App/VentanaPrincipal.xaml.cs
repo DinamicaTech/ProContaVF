@@ -357,6 +357,16 @@ public partial class VentanaPrincipal : Window
             {
                 VerAsiento = id => _mayor.VerAsientoAsync(id),
                 AbrirMayor = cuentasMayor => _mayor.Abrir(cuentasMayor),
+                ElegirDatosFiscales = () =>
+                {
+                    var dialogo = new Microsoft.Win32.OpenFileDialog
+                    {
+                        Title = "Datos fiscales del Impuesto sobre Sociedades (HTML guardado desde la Sede)",
+                        Filter = "Página web (*.htm;*.html)|*.htm;*.html|Todos los ficheros (*.*)|*.*",
+                    };
+                    return dialogo.ShowDialog(this) == true ? dialogo.FileName : null;
+                },
+                AbrirEnlace = url => System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(url) { UseShellExecute = true })?.Dispose(),
             },
             _area, new ProConta.Contabilidad.UI.Liquidacion.DialogosLiquidacionIva(() => this));
         var abrirImpuestoSociedades = new ComandoDelegado(() => _impuestoSociedades.Abrir());

@@ -53,6 +53,7 @@ Pantalla genérica y extensible (CFG-MANT) para parámetros únicos y coleccione
 - 2026-11-12 11:49 · Y prefiero no dejar escribir en el valor del campo de claves foráneas a tablas 1:n y mostrar siempre el selector.
 - 2026-11-12 11:49 · El alta de registros se puede hacer directamente desde esta tabla.
 - 2026-11-12 12:16 · Permite entrar texto libre cuando la idea es siempre a través del selector. Ya no debería aparecer nunca el label de error ni el botón 'Buscar o crear', que ya es la lupa
+- 2026-11-17 12:15 · Derived from contabilidad/procesos/impuesto-sociedades: campo «Página de los datos fiscales del IS» (Configuracion.UrlDatosFiscalesIS) en Configuración general, grupo «Ubicaciones e integraciones»; vacío, la página de ayuda de la Sede con el enlace a la consulta de datos fiscales del Impuesto sobre Sociedades.
 
 ## Hand-over
 - 2026-11-01 18:15 · Hecho: contrato, servicio, proveedores y pantalla, con pruebas sin BD (validación, búsqueda, permisos, solo consulta) y contra Access (series y conceptos). Pendiente: probar la pantalla en el equipo del propietario; Correo, VeriFactu y Ubicación de datos llegan con sus nodos.

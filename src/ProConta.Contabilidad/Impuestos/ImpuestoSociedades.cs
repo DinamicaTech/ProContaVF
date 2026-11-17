@@ -61,6 +61,25 @@ public sealed record SaldoCuentaImpuesto(string Cuenta, string Nombre, decimal S
     public bool EsGasto => Cuenta.StartsWith('6');
 }
 
+/// <summary>
+/// Retención o pago a cuenta que conoce la AEAT (datos fiscales del IS: modelos 202, 193, 180…), con la 473 a la que corresponde
+/// (null: sin asignar, no se deduce).
+/// </summary>
+public sealed record RetencionAeat(string Modelo, string? Nif, string Nombre, decimal Importe, string? Cuenta = null);
+
+/// <summary>Importe a deducir de una 473 que escribe el operador en lugar del propuesto.</summary>
+public sealed record RetencionDeducida(string Cuenta, decimal Importe);
+
+/// <summary>
+/// Una 473 en la propuesta: su saldo, lo que conoce la AEAT (null sin datos fiscales), lo propuesto y lo que se deduce.
+/// Lo que no se deduce se queda en la cuenta.
+/// </summary>
+public sealed record RetencionPropuesta(string Cuenta, string Nombre, decimal Saldo, int Apuntes, IReadOnlyList<string> Pagadores, decimal? SegunAeat,
+    decimal Propuesto, decimal Deducido)
+{
+    public bool Escrito => Deducido != Propuesto;
+}
+
 /// <summary>Lo que se lee de la contabilidad para el cálculo.</summary>
 /// <param name="ResultadoContable">Grupos 6 y 7 sin las 630, 633 y 638, sin regularización ni cierre (Haber − Debe: positivo, beneficio).</param>
 /// <param name="RentaViviendas">Lo mismo, solo de los centros cuya actividad tiene la bonificación por alquiler de viviendas.</param>
@@ -76,14 +95,23 @@ public sealed record DatosImpuestoSociedades(int Ejercicio, decimal ResultadoCon
 /// <summary>
 /// Lo que escribe el operador. Null en <see cref="Bonificaciones"/>, <see cref="CreditoPerdidas"/> y <see cref="CuotaLiquida"/>: la propuesta.
 /// </summary>
+/// <param name="RetencionesAeat">Retenciones y pagos a cuenta de los datos fiscales de la AEAT (importados o escritos); null o vacío: sin datos fiscales.</param>
+/// <param name="BasesNegativasAeat">Bases negativas pendientes de compensar según la AEAT.</param>
+/// <param name="ResultadoPresentado">Resultado de la declaración ya presentada (casilla 621 del modelo 200) que traen los datos fiscales.</param>
+/// <param name="Deducir">Importes a deducir de las 473 escritos por el operador (las demás, la propuesta).</param>
 public sealed record EntradaImpuestoSociedades(IReadOnlyList<AjusteImpuestoSociedades> Ajustes, decimal BasesNegativas = 0m, decimal? Bonificaciones = null,
-    decimal Deducciones = 0m, decimal? CreditoPerdidas = null, decimal? CuotaLiquida = null)
+    decimal Deducciones = 0m, decimal? CreditoPerdidas = null, decimal? CuotaLiquida = null, IReadOnlyList<RetencionAeat>? RetencionesAeat = null,
+    decimal? BasesNegativasAeat = null, decimal? ResultadoPresentado = null, IReadOnlyList<RetencionDeducida>? Deducir = null)
 {
     public static EntradaImpuestoSociedades Vacia { get; } = new([]);
 
+    public bool HayDatosAeat => RetencionesAeat is { Count: > 0 } || BasesNegativasAeat is not null || ResultadoPresentado is not null;
+
     public bool Equivale(EntradaImpuestoSociedades o) =>
         BasesNegativas == o.BasesNegativas && Bonificaciones == o.Bonificaciones && Deducciones == o.Deducciones && CreditoPerdidas == o.CreditoPerdidas
-        && CuotaLiquida == o.CuotaLiquida && Ajustes.SequenceEqual(o.Ajustes);
+        && CuotaLiquida == o.CuotaLiquida && Ajustes.SequenceEqual(o.Ajustes) && (RetencionesAeat ?? []).SequenceEqual(o.RetencionesAeat ?? [])
+        && BasesNegativasAeat == o.BasesNegativasAeat && ResultadoPresentado == o.ResultadoPresentado
+        && (Deducir ?? []).OrderBy(x => x.Cuenta, StringComparer.Ordinal).SequenceEqual((o.Deducir ?? []).OrderBy(x => x.Cuenta, StringComparer.Ordinal));
 }
 
 /// <summary>Línea del asiento propuesto.</summary>
@@ -98,13 +126,17 @@ public sealed record PropuestaImpuestoSociedades(
     decimal AumentosPermanentes, decimal DisminucionesPermanentes, decimal AumentosTemporales, decimal DisminucionesTemporales,
     decimal BasesNegativas, decimal BaseImponible, decimal TipoGeneral, decimal? LimiteTramo, decimal? TipoTramo,
     decimal CuotaIntegra, decimal RentaViviendas, decimal BonificacionPropuesta, decimal Bonificaciones, decimal Deducciones,
-    decimal CuotaCalculada, decimal CuotaLiquida, IReadOnlyList<SaldoCuentaImpuesto> Retenciones, decimal CreditoPropuesto, decimal CreditoPerdidas,
+    decimal CuotaCalculada, decimal CuotaLiquida, IReadOnlyList<RetencionPropuesta> Retenciones, decimal CreditoPropuesto, decimal CreditoPerdidas,
     IReadOnlyList<SaldoCuentaImpuesto> PosiblesAjustes, IReadOnlyList<LineaImpuestoSociedades> Lineas, IReadOnlyList<string> Avisos,
     EntradaImpuestoSociedades Entrada)
 {
     public decimal ResultadoAjustado => ResultadoContable + AumentosPermanentes - DisminucionesPermanentes;
     public decimal BasePrevia => ResultadoAjustado + AumentosTemporales - DisminucionesTemporales;
-    public decimal TotalRetenciones => Retenciones.Where(r => r.Saldo > 0m).Sum(r => r.Saldo);
+    /// <summary>Lo que se deduce de las 473 (lo que va al Haber de cada una).</summary>
+    public decimal TotalRetenciones => Retenciones.Sum(r => r.Deducido);
+    /// <summary>Suma de los saldos de las 473 (sin las acreedoras).</summary>
+    public decimal TotalSaldos473 => Retenciones.Where(r => r.Saldo > 0m).Sum(r => r.Saldo);
+    public decimal? TotalAeat => Retenciones.Any(r => r.SegunAeat is not null) ? Retenciones.Sum(r => r.SegunAeat ?? 0m) : null;
     public decimal Resultado => CuotaLiquida - TotalRetenciones;
     public bool CuotaFijada => CuotaLiquida != CuotaCalculada;
     /// <summary>Tipo medio de la cuota íntegra sobre la base (0 sin base).</summary>
@@ -120,7 +152,9 @@ public sealed record PropuestaImpuestoSociedades(
 /// <item>Cuota íntegra (0 si la base no es positiva): hasta el límite del tramo al tipo reducido y el resto al general, cada tramo redondeado al céntimo.</item>
 /// <item>Bonificación por alquiler de viviendas propuesta: Redondear(cuota íntegra × renta de viviendas / base imponible (entre 0 y 1) × porcentaje, 2).</item>
 /// <item>Cuota líquida = cuota íntegra − bonificaciones − deducciones (nunca negativa), o la que fija el operador.</item>
-/// <item>Resultado = cuota líquida − retenciones y pagos a cuenta (saldo deudor de cada 473): positivo a la 4752, negativo a la 4709.</item>
+/// <item>Retenciones y pagos a cuenta: de cada 473 se propone deducir lo que conoce la AEAT si hay datos fiscales (0 si la AEAT no le asigna nada) y,
+/// sin ellos, su saldo deudor; el operador puede escribir otro importe. Lo que no se deduce se queda en la cuenta.</item>
+/// <item>Resultado = cuota líquida − retenciones deducidas: positivo a la 4752, negativo a la 4709.</item>
 /// <item>Crédito por pérdidas (propuesto: el menor entre el saldo de la 4745 y las bases negativas por el tipo general): 6301 al Debe y 4745 al Haber.</item>
 /// </list>
 /// </summary>
@@ -164,6 +198,11 @@ public static class CalculoImpuestoSociedades
         if (e.Deducciones < 0m) return "Las deducciones no pueden ser negativas.";
         if (e.CreditoPerdidas is < 0m) return "El crédito por pérdidas aplicado no puede ser negativo.";
         if (e.CuotaLiquida is < 0m) return "La cuota líquida no puede ser negativa.";
+        if (e.BasesNegativasAeat is < 0m) return "Las bases negativas pendientes según la AEAT no pueden ser negativas.";
+        foreach (var r in e.RetencionesAeat ?? [])
+            if (r.Importe < 0m) return $"La retención de la AEAT de «{r.Nombre}» no puede ser negativa.";
+        foreach (var r in e.Deducir ?? [])
+            if (r.Importe < 0m) return $"El importe a deducir de la {r.Cuenta} no puede ser negativo.";
         return null;
     }
 
@@ -191,16 +230,16 @@ public static class CalculoImpuestoSociedades
             ? Math.Min(d.SaldoCreditoPerdidas, Redondear(e.BasesNegativas * p.TipoGeneral)) : 0m;
         var credito = e.CreditoPerdidas ?? creditoPropuesto;
 
-        var retenciones = d.Retenciones.Where(r => r.Saldo != 0m).ToList();
-        var totalRet = retenciones.Where(r => r.Saldo > 0m).Sum(r => r.Saldo);
+        var retenciones = Retenciones(d, e);
+        var totalRet = retenciones.Sum(r => r.Deducido);
         var resultado = cuotaLiquida - totalRet;
 
         var concepto = Descripcion(d.Ejercicio);
         var lineas = new List<LineaImpuestoSociedades>();
         if (cuotaLiquida > 0m) lineas.Add(new(p.Cuentas.Impuesto, cuotaLiquida, 0m, $"Cuota líquida del {concepto}"));
         if (resultado < 0m) lineas.Add(new(p.Cuentas.Deudora, -resultado, 0m, $"{concepto} a devolver"));
-        foreach (var r in retenciones.Where(r => r.Saldo > 0m))
-            lineas.Add(new(r.Cuenta, 0m, r.Saldo, $"Retenciones y pagos a cuenta del {concepto}"));
+        foreach (var r in retenciones.Where(r => r.Deducido > 0m))
+            lineas.Add(new(r.Cuenta, 0m, r.Deducido, $"Retenciones y pagos a cuenta del {concepto}"));
         if (resultado > 0m) lineas.Add(new(p.Cuentas.Acreedora, 0m, resultado, $"{concepto} a ingresar"));
         if (credito > 0m)
         {
@@ -229,6 +268,7 @@ public static class CalculoImpuestoSociedades
             avisos.Add($"El crédito por pérdidas aplicado ({Euros(credito)}) es mayor que el saldo de la {p.Cuentas.CreditoPerdidas} ({Euros(d.SaldoCreditoPerdidas)}).");
         foreach (var r in retenciones.Where(r => r.Saldo < 0m))
             avisos.Add($"La {r.Cuenta} {r.Nombre} tiene saldo acreedor ({Euros(-r.Saldo)}): no se salda. Revísala en el Mayor.");
+        AvisosAeat(d, e, retenciones, resultado, avisos);
         var sinAjustar = d.PosiblesAjustes.Where(x => x.Saldo != 0m && !e.Ajustes.Any(a => a.Cuenta == x.Cuenta)).ToList();
         if (sinAjustar.Count > 0)
             avisos.Add($"Hay {sinAjustar.Count} {(sinAjustar.Count == 1 ? "cuenta" : "cuentas")} con posibles ajustes fiscales sin ajustar ({string.Join(", ", sinAjustar.Select(x => x.Cuenta))}): valídalas con la gestoría.");
@@ -238,6 +278,59 @@ public static class CalculoImpuestoSociedades
         return new PropuestaImpuestoSociedades(d.Ejercicio, FechaAsiento(d.Ejercicio), d.ResultadoContable, aumP, disP, aumT, disT, e.BasesNegativas, baseImponible,
             p.TipoGeneral, p.TieneTramo ? p.LimiteTramo : null, p.TieneTramo ? p.TipoTramo : null, cuotaIntegra, d.RentaViviendas, bonifPropuesta, bonif, e.Deducciones,
             cuotaCalculada, cuotaLiquida, retenciones, creditoPropuesto, credito, d.PosiblesAjustes, lineas, avisos, e);
+    }
+
+    /// <summary>
+    /// Las 473 de la propuesta: las que tienen saldo y las que la AEAT o el operador nombran. Con datos fiscales se propone lo que conoce la AEAT
+    /// (0 en las que no le asigna nada); sin ellos, el saldo deudor.
+    /// </summary>
+    public static IReadOnlyList<RetencionPropuesta> Retenciones(DatosImpuestoSociedades d, EntradaImpuestoSociedades e)
+    {
+        var aeat = e.RetencionesAeat ?? [];
+        var hayAeat = aeat.Count > 0;
+        var porCuenta = aeat.Where(a => !string.IsNullOrWhiteSpace(a.Cuenta)).GroupBy(a => a.Cuenta!.Trim(), StringComparer.Ordinal)
+            .ToDictionary(g => g.Key, g => g.Sum(x => x.Importe), StringComparer.Ordinal);
+        var escritos = (e.Deducir ?? []).GroupBy(x => x.Cuenta.Trim(), StringComparer.Ordinal).ToDictionary(g => g.Key, g => g.Last().Importe, StringComparer.Ordinal);
+        var saldos = d.Retenciones.ToDictionary(r => r.Cuenta, StringComparer.Ordinal);
+        var cuentas = d.Retenciones.Where(r => r.Saldo != 0m).Select(r => r.Cuenta).Concat(porCuenta.Keys).Concat(escritos.Keys)
+            .Distinct(StringComparer.Ordinal).OrderBy(c => c, StringComparer.Ordinal);
+        return cuentas.Select(c =>
+        {
+            var s = saldos.GetValueOrDefault(c);
+            var saldo = s?.Saldo ?? 0m;
+            decimal? segunAeat = hayAeat ? porCuenta.GetValueOrDefault(c) : null;
+            var propuesto = segunAeat ?? Math.Max(0m, saldo);
+            var deducido = escritos.TryGetValue(c, out var v) ? v : propuesto;
+            return new RetencionPropuesta(c, s?.Nombre ?? "", saldo, s?.Apuntes ?? 0, s?.Pagadores ?? [], segunAeat, propuesto, deducido);
+        }).ToList();
+    }
+
+    private static void AvisosAeat(DatosImpuestoSociedades d, EntradaImpuestoSociedades e, IReadOnlyList<RetencionPropuesta> retenciones, decimal resultado, List<string> avisos)
+    {
+        var aeat = e.RetencionesAeat ?? [];
+        if (aeat.Count == 0)
+        {
+            if (retenciones.Any(r => r.Saldo > 0m))
+                avisos.Add("Sin datos fiscales de la AEAT se propone deducir el saldo de cada 473. Impórtalos para contrastarlos antes de confirmar.");
+        }
+        else
+        {
+            foreach (var g in aeat.Where(a => string.IsNullOrWhiteSpace(a.Cuenta)).GroupBy(a => (a.Modelo, a.Nombre)))
+                avisos.Add($"La AEAT tiene {Euros(g.Sum(x => x.Importe))} de {g.Key.Nombre} ({g.Key.Modelo}) sin cuenta 473: elige su cuenta en los datos fiscales; mientras, no se deduce.");
+            foreach (var r in retenciones.Where(r => r.SegunAeat is decimal a && a != Math.Max(0m, r.Saldo)))
+                avisos.Add(r.Saldo > 0m
+                    ? $"La {r.Cuenta} {r.Nombre} tiene {Euros(r.Saldo)} y la AEAT conoce {Euros(r.SegunAeat!.Value)}" +
+                      (r.Deducido < r.Saldo ? $": la diferencia que no se deduce ({Euros(r.Saldo - r.Deducido)}) se queda en la cuenta." : ".")
+                    : $"La AEAT conoce {Euros(r.SegunAeat!.Value)} en la {r.Cuenta} {r.Nombre}, que no tiene saldo deudor.");
+        }
+        foreach (var r in retenciones.Where(r => r.Escrito))
+            avisos.Add($"Has escrito {Euros(r.Deducido)} a deducir de la {r.Cuenta}; la propuesta es {Euros(r.Propuesto)}.");
+        foreach (var r in retenciones.Where(r => r.Deducido > 0m && r.Deducido > Math.Max(0m, r.Saldo)))
+            avisos.Add($"Se deduce de la {r.Cuenta} más que su saldo ({Euros(Math.Max(0m, r.Saldo))}): quedará con saldo acreedor.");
+        if (e.BasesNegativasAeat is decimal bn && e.BasesNegativas > bn)
+            avisos.Add($"Compensas {Euros(e.BasesNegativas)} de bases negativas y la AEAT solo tiene pendientes {Euros(bn)}.");
+        if (e.ResultadoPresentado is decimal rp && rp != resultado)
+            avisos.Add($"La declaración presentada del {d.Ejercicio} da {Euros(rp)} y este cálculo {Euros(resultado)}: ajústalo a lo presentado.");
     }
 
     /// <summary>Texto para las notas del asiento: el cálculo resumido.</summary>

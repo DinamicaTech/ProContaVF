@@ -22,6 +22,10 @@ public sealed record ContextoImpuestoSociedades(ServicioImpuestoSociedades Servi
     public Action<IReadOnlyList<string>>? AbrirMayor { get; init; }
     /// <summary>Lo llama la pantalla después de confirmar o deshacer.</summary>
     public Action? Cambiada { get; init; }
+    /// <summary>Pide el HTML de los datos fiscales guardado desde la Sede; null si se cancela.</summary>
+    public Func<string?>? ElegirDatosFiscales { get; init; }
+    /// <summary>Abre una dirección web en el navegador.</summary>
+    public Action<string>? AbrirEnlace { get; init; }
 }
 
 /// <summary>Una línea de la hoja de cálculo (concepto e importe), en el orden de la de la gestoría.</summary>
@@ -52,8 +56,62 @@ public sealed class FilaAjusteIsVM : ModeloVista
             : null;
 }
 
-/// <summary>Subcuenta con saldo (473 o posible ajuste).</summary>
+/// <summary>Subcuenta con saldo (posible ajuste).</summary>
 public sealed record FilaCuentaIsVM(string Cuenta, string Nombre, string Detalle, string Saldo, SaldoCuentaImpuesto Datos);
+
+/// <summary>Una 473: su saldo, lo que conoce la AEAT, lo propuesto y el importe a deducir que escribe el operador (vacío: el propuesto).</summary>
+public sealed class FilaRetencionIsVM(string cuenta, Action<string, string> alEscribir) : ModeloVista
+{
+    private string _deducir = "", _nombre = "", _pagadores = "", _saldo = "", _segunAeat = "", _propuesto = "", _deducido = "";
+    private bool _escrito;
+
+    public string Cuenta { get; } = cuenta;
+    public string Nombre { get => _nombre; private set => Fijar(ref _nombre, value); }
+    public string Pagadores { get => _pagadores; private set => Fijar(ref _pagadores, value); }
+    public string Saldo { get => _saldo; private set => Fijar(ref _saldo, value); }
+    public string SegunAeat { get => _segunAeat; private set => Fijar(ref _segunAeat, value); }
+    public string Propuesto { get => _propuesto; private set => Fijar(ref _propuesto, value); }
+    public string Deducido { get => _deducido; private set => Fijar(ref _deducido, value); }
+    public bool Escrito { get => _escrito; private set => Fijar(ref _escrito, value); }
+
+    /// <summary>Lo que escribe el operador; vacío, lo propuesto.</summary>
+    public string Deducir { get => _deducir; set { if (Fijar(ref _deducir, value ?? "")) alEscribir(Cuenta, _deducir); } }
+
+    internal void Cargar(string deducir) { _deducir = deducir; Avisar(nameof(Deducir)); }
+
+    internal void Actualizar(RetencionPropuesta r)
+    {
+        Nombre = r.Nombre;
+        Pagadores = string.Join(", ", r.Pagadores);
+        Saldo = Formatos.Importe(r.Saldo);
+        SegunAeat = r.SegunAeat is decimal a ? Formatos.Importe(a) : "";
+        Propuesto = Formatos.Importe(r.Propuesto);
+        Deducido = Formatos.Importe(r.Deducido);
+        Escrito = r.Escrito;
+    }
+}
+
+/// <summary>Línea de los datos fiscales de la AEAT (importada o escrita): modelo, pagador, importe y la 473 a la que corresponde.</summary>
+public sealed class FilaAeatIsVM : ModeloVista
+{
+    private string _nombre = "", _importe = "", _cuenta = "";
+
+    public string Modelo { get; init; } = "";
+    public string? Nif { get; init; }
+    public string Nombre { get => _nombre; set => Fijar(ref _nombre, value ?? ""); }
+    public string Importe { get => _importe; set => Fijar(ref _importe, value ?? ""); }
+    /// <summary>473 a la que corresponde; vacía: sin asignar (no se deduce).</summary>
+    public string Cuenta { get => _cuenta; set => Fijar(ref _cuenta, value ?? ""); }
+    public string Pagador => Nif is { Length: > 0 } n ? $"{Nombre} · {n}" : Nombre;
+
+    public static FilaAeatIsVM De(RetencionAeat r) => new() { Modelo = r.Modelo, Nif = r.Nif, _nombre = r.Nombre, _importe = Formatos.Numero(r.Importe), _cuenta = r.Cuenta ?? "" };
+
+    /// <summary>La línea escrita; null si el importe no se puede leer.</summary>
+    public RetencionAeat? Leer() =>
+        Formatos.LeerImporte(_importe.Replace("€", "").Trim().Length == 0 ? "0" : _importe.Replace("€", "").Trim(), out var v)
+            ? new RetencionAeat(Modelo, Nif, _nombre.Trim(), Math.Round(v, 2, MidpointRounding.AwayFromZero), _cuenta.Trim().Length == 0 ? null : _cuenta.Trim())
+            : null;
+}
 
 /// <summary>Línea del asiento propuesto.</summary>
 public sealed record FilaLineaIsVM(string Cuenta, string Concepto, string Debe, string Haber);
@@ -77,9 +135,12 @@ public sealed class ImpuestoSociedadesVM : ModeloVista, IPestanaTrabajo
     private DatosImpuestoSociedades? _datos;
     private PropuestaImpuestoSociedades? _propuesta;
     private string? _errorPropuesta;
-    private string _basesNegativas = "", _bonificaciones = "", _deducciones = "", _credito = "", _cuota = "", _motivo = "";
+    private string _basesNegativas = "", _bonificaciones = "", _deducciones = "", _credito = "", _cuota = "", _motivo = "", _basesAeat = "", _presentado = "";
     private FilaAjusteIsVM? _ajusteSeleccionado;
-    private FilaCuentaIsVM? _posibleSeleccionado, _retencionSeleccionada;
+    private FilaCuentaIsVM? _posibleSeleccionado;
+    private FilaRetencionIsVM? _retencionSeleccionada;
+    private FilaAeatIsVM? _aeatSeleccionada;
+    private readonly Dictionary<string, string> _deducir = new(StringComparer.Ordinal);
 
     public ImpuestoSociedadesVM(ContextoImpuestoSociedades ctx, IDialogosLiquidacionIva dialogos, Action? alCerrar = null)
     {
@@ -92,13 +153,26 @@ public sealed class ImpuestoSociedadesVM : ModeloVista, IPestanaTrabajo
             foreach (FilaAjusteIsVM f in e.OldItems ?? Array.Empty<FilaAjusteIsVM>()) f.PropertyChanged -= AlCambiarAjuste;
             Recalcular();
         };
+        DatosAeat.CollectionChanged += (_, e) =>
+        {
+            foreach (FilaAeatIsVM f in e.NewItems ?? Array.Empty<FilaAeatIsVM>()) f.PropertyChanged += AlCambiarAjuste;
+            foreach (FilaAeatIsVM f in e.OldItems ?? Array.Empty<FilaAeatIsVM>()) f.PropertyChanged -= AlCambiarAjuste;
+            Avisar(nameof(HayDatosAeat));
+            Recalcular();
+        };
+        AbrirSedeCommand = new ComandoDelegado(() => _ = AbrirSedeAsync(), () => _ctx.AbrirEnlace is not null);
+        ImportarDatosFiscalesCommand = new ComandoDelegado(() => _ = ImportarDatosFiscalesAsync(), () => !_ocupado && _datos is not null && _ctx.ElegirDatosFiscales is not null);
+        AnadirDatoAeatCommand = new ComandoDelegado(() => DatosAeat.Add(new FilaAeatIsVM { Modelo = "Manual", Nombre = "Retención" }), () => !_ocupado);
+        QuitarDatoAeatCommand = new ComandoDelegado(() => { if (_aeatSeleccionada is { } f) DatosAeat.Remove(f); }, () => _aeatSeleccionada is not null && !_ocupado);
+        QuitarDatosAeatCommand = new ComandoDelegado(() => { DatosAeat.Clear(); BasesNegativasAeat = ""; ResultadoPresentado = ""; }, () => !_ocupado && (HayDatosAeat || _basesAeat.Length > 0 || _presentado.Length > 0));
+        UsarPropuestoCommand = new ComandoDelegado(() => { if (_retencionSeleccionada is { } f) f.Deducir = ""; }, () => _retencionSeleccionada is { Escrito: true });
         RefrescarCommand = new ComandoDelegado(() => _ = CargarAsync());
         RecalcularCommand = new ComandoDelegado(() => _ = LeerDatosAsync(), () => !_ocupado);
         AnadirAjusteCommand = new ComandoDelegado(() => Ajustes.Add(new FilaAjusteIsVM()), () => !_ocupado);
         QuitarAjusteCommand = new ComandoDelegado(() => { if (_ajusteSeleccionado is { } f) Ajustes.Remove(f); }, () => _ajusteSeleccionado is not null && !_ocupado);
         AnadirPosibleCommand = new ComandoDelegado(AnadirPosible, () => _posibleSeleccionado is not null && !_ocupado);
-        MayorPosibleCommand = new ComandoDelegado(() => AbrirMayor(_posibleSeleccionado), () => _posibleSeleccionado is not null && _ctx.AbrirMayor is not null);
-        MayorRetencionCommand = new ComandoDelegado(() => AbrirMayor(_retencionSeleccionada), () => _retencionSeleccionada is not null && _ctx.AbrirMayor is not null);
+        MayorPosibleCommand = new ComandoDelegado(() => AbrirMayor(_posibleSeleccionado?.Cuenta), () => _posibleSeleccionado is not null && _ctx.AbrirMayor is not null);
+        MayorRetencionCommand = new ComandoDelegado(() => AbrirMayor(_retencionSeleccionada?.Cuenta), () => _retencionSeleccionada is not null && _ctx.AbrirMayor is not null);
         UsarBonificacionCommand = new ComandoDelegado(() => Bonificaciones = "", () => _bonificaciones.Trim().Length > 0);
         UsarCuotaCommand = new ComandoDelegado(() => Cuota = "", () => _cuota.Trim().Length > 0);
         ConfirmarCommand = new ComandoDelegado(() => _ = ConfirmarAsync(), () => !_ocupado && PorQueNoConfirmar is null);
@@ -136,6 +210,12 @@ public sealed class ImpuestoSociedadesVM : ModeloVista, IPestanaTrabajo
     public ICommand VerAsientoCommand { get; }
     public ICommand MayorAsientoCommand { get; }
     public ICommand DeshacerCommand { get; }
+    public ICommand AbrirSedeCommand { get; }
+    public ICommand ImportarDatosFiscalesCommand { get; }
+    public ICommand AnadirDatoAeatCommand { get; }
+    public ICommand QuitarDatoAeatCommand { get; }
+    public ICommand QuitarDatosAeatCommand { get; }
+    public ICommand UsarPropuestoCommand { get; }
 
     // ---------- estado ----------
     public string Subtitulo => $"{_ctx.RazonSocial} · {_ctx.Trabajo.Ejercicio}";
@@ -173,7 +253,19 @@ public sealed class ImpuestoSociedadesVM : ModeloVista, IPestanaTrabajo
     public IReadOnlyList<string> Sentidos { get; } = [FilaAjusteIsVM.Aumento, FilaAjusteIsVM.Disminucion];
     public FilaAjusteIsVM? AjusteSeleccionado { get => _ajusteSeleccionado; set { if (Fijar(ref _ajusteSeleccionado, value)) CommandManager.InvalidateRequerySuggested(); } }
     public FilaCuentaIsVM? PosibleSeleccionado { get => _posibleSeleccionado; set { if (Fijar(ref _posibleSeleccionado, value)) CommandManager.InvalidateRequerySuggested(); } }
-    public FilaCuentaIsVM? RetencionSeleccionada { get => _retencionSeleccionada; set { if (Fijar(ref _retencionSeleccionada, value)) CommandManager.InvalidateRequerySuggested(); } }
+    public FilaRetencionIsVM? RetencionSeleccionada { get => _retencionSeleccionada; set { if (Fijar(ref _retencionSeleccionada, value)) CommandManager.InvalidateRequerySuggested(); } }
+    public FilaAeatIsVM? AeatSeleccionada { get => _aeatSeleccionada; set { if (Fijar(ref _aeatSeleccionada, value)) CommandManager.InvalidateRequerySuggested(); } }
+
+    /// <summary>Retenciones y pagos a cuenta de los datos fiscales de la AEAT.</summary>
+    public ObservableCollection<FilaAeatIsVM> DatosAeat { get; } = [];
+    public bool HayDatosAeat => DatosAeat.Count > 0;
+    /// <summary>Las 473 del ejercicio para asignar las líneas de la AEAT (vacía: sin asignar).</summary>
+    public IReadOnlyList<string> Cuentas473 => ["", .. (_datos?.Retenciones ?? []).Select(r => r.Cuenta).Distinct().OrderBy(c => c, StringComparer.Ordinal)];
+    public string BasesNegativasAeat { get => _basesAeat; set { if (Fijar(ref _basesAeat, value ?? "")) Recalcular(); } }
+    public string ResultadoPresentado { get => _presentado; set { if (Fijar(ref _presentado, value ?? "")) Recalcular(); } }
+    public string TotalAeat => _propuesta?.TotalAeat is decimal t ? Formatos.Importe(t) : "";
+    public string ResumenAeat => !HayDatosAeat ? "Sin datos fiscales: se propone el saldo de cada 473. Ábrelos en la Sede, guárdalos como HTML e impórtalos."
+        : $"{Formatos.Plural(DatosAeat.Count, "línea", "líneas")} · {TotalAeat} según la AEAT · {Formatos.Plural(DatosAeat.Count(d => d.Cuenta.Trim().Length == 0), "sin cuenta", "sin cuenta")}";
 
     public string BasesNegativas { get => _basesNegativas; set { if (Fijar(ref _basesNegativas, value)) Recalcular(); } }
     public string Bonificaciones { get => _bonificaciones; set { if (Fijar(ref _bonificaciones, value)) Recalcular(); } }
@@ -181,6 +273,9 @@ public sealed class ImpuestoSociedadesVM : ModeloVista, IPestanaTrabajo
     public string Credito { get => _credito; set { if (Fijar(ref _credito, value)) Recalcular(); } }
     public string Cuota { get => _cuota; set { if (Fijar(ref _cuota, value)) Recalcular(); } }
     public string Motivo { get => _motivo; set { if (Fijar(ref _motivo, value)) Avisar(nameof(PorQueNoConfirmar)); } }
+
+    /// <summary>Las 473 de la propuesta, que se conservan mientras se escribe (para no perder la fila en edición).</summary>
+    public ObservableCollection<FilaRetencionIsVM> Retenciones { get; } = [];
 
     public string AyudaBonificacion => _propuesta is not { } p ? "" :
         $"Bonificación por alquiler de viviendas. Vacía: la propuesta ({Formatos.Importe(p.BonificacionPropuesta)}) = cuota íntegra × renta de viviendas ({Formatos.Importe(p.RentaViviendas)}) / base × " +
@@ -197,7 +292,9 @@ public sealed class ImpuestoSociedadesVM : ModeloVista, IPestanaTrabajo
         private set
         {
             _propuesta = value;
-            Avisar(nameof(Propuesta), nameof(HayPropuesta), nameof(Calculo), nameof(PosiblesAjustes), nameof(HayPosiblesAjustes), nameof(Retenciones), nameof(TotalRetenciones),
+            ActualizarRetenciones();
+            Avisar(nameof(Propuesta), nameof(HayPropuesta), nameof(Calculo), nameof(PosiblesAjustes), nameof(HayPosiblesAjustes), nameof(TotalRetenciones), nameof(TotalSaldos),
+                nameof(TotalAeat), nameof(ResumenAeat),
                 nameof(Lineas), nameof(Avisos), nameof(HayAvisos), nameof(TotalDebe), nameof(TotalHaber), nameof(Resultado), nameof(TituloPropuesta),
                 nameof(AyudaBonificacion), nameof(AyudaCuota), nameof(AyudaCredito), nameof(PorQueNoConfirmar), nameof(PideMotivo), nameof(AyudaMotivo));
             CommandManager.InvalidateRequerySuggested();
@@ -229,7 +326,8 @@ public sealed class ImpuestoSociedadesVM : ModeloVista, IPestanaTrabajo
         new("Deducciones", Formatos.Importe(p.Deducciones), "Deducciones (doble imposición, inversión…), se escriben abajo", Sangrada: true),
         new("Cuota líquida calculada", Formatos.Importe(p.CuotaCalculada), "Cuota íntegra − bonificaciones − deducciones, nunca negativa"),
         new("Cuota líquida a contabilizar (6300)", Formatos.Importe(p.CuotaLiquida), p.CuotaFijada ? "Fijada a mano: no es la calculada" : "La calculada", true),
-        new("Retenciones y pagos a cuenta (473)", Formatos.Importe(p.TotalRetenciones), "Saldo deudor de las 473 a 31/12 (detalle a la derecha)", Sangrada: true),
+        new("Retenciones y pagos a cuenta (473)", Formatos.Importe(p.TotalRetenciones),
+            (p.TotalAeat is null ? "Saldo deudor de las 473 a 31/12" : "Lo que conoce la AEAT de cada 473") + " salvo lo escrito a mano (detalle a la derecha)", Sangrada: true),
         new(p.Resultado >= 0m ? "Líquido a ingresar" : "Líquido a devolver", Formatos.Importe(Math.Abs(p.Resultado)),
             p.Resultado >= 0m ? "Cuota líquida − retenciones: a la 4752" : "Retenciones − cuota líquida: a la 4709", true),
     ];
@@ -243,9 +341,33 @@ public sealed class ImpuestoSociedadesVM : ModeloVista, IPestanaTrabajo
             Formatos.Importe(x.EsGasto ? x.Saldo : -x.Saldo), x)).ToList() ?? [];
     public bool HayPosiblesAjustes => _propuesta is { PosiblesAjustes.Count: > 0 };
 
-    public IReadOnlyList<FilaCuentaIsVM> Retenciones => _propuesta?.Retenciones
-        .Select(x => new FilaCuentaIsVM(x.Cuenta, x.Nombre, x.Pagadores is { Count: > 0 } pg ? string.Join(", ", pg) : "", Formatos.Importe(x.Saldo), x)).ToList() ?? [];
     public string TotalRetenciones => _propuesta is null ? "" : Formatos.Importe(_propuesta.TotalRetenciones);
+    public string TotalSaldos => _propuesta is null ? "" : Formatos.Importe(_propuesta.TotalSaldos473);
+
+    /// <summary>Pone las filas de las 473 al día con la propuesta: actualiza las que siguen y solo añade o quita las que cambian.</summary>
+    private void ActualizarRetenciones()
+    {
+        var nuevas = _propuesta?.Retenciones ?? [];
+        var actuales = Retenciones.ToDictionary(f => f.Cuenta, StringComparer.Ordinal);
+        if (!nuevas.Select(r => r.Cuenta).SequenceEqual(Retenciones.Select(f => f.Cuenta)))
+        {
+            Retenciones.Clear();
+            foreach (var r in nuevas)
+            {
+                var f = actuales.GetValueOrDefault(r.Cuenta) ?? new FilaRetencionIsVM(r.Cuenta, AlEscribirDeducir);
+                f.Cargar(_deducir.GetValueOrDefault(r.Cuenta, ""));
+                Retenciones.Add(f);
+            }
+            Avisar(nameof(Cuentas473));
+        }
+        foreach (var (f, r) in Retenciones.Zip(nuevas)) f.Actualizar(r);
+    }
+
+    private void AlEscribirDeducir(string cuenta, string texto)
+    {
+        if (texto.Trim().Length == 0) _deducir.Remove(cuenta); else _deducir[cuenta] = texto;
+        Recalcular();
+    }
 
     public IReadOnlyList<FilaLineaIsVM> Lineas => _propuesta?.Lineas.Select(l => new FilaLineaIsVM(l.Cuenta, l.Concepto, Formatos.ImporteOVacio(l.Debe), Formatos.ImporteOVacio(l.Haber))).ToList() ?? [];
     public string TotalDebe => _propuesta is null ? "" : Formatos.Importe(_propuesta.TotalDebe);
@@ -321,7 +443,14 @@ public sealed class ImpuestoSociedadesVM : ModeloVista, IPestanaTrabajo
             _deducciones = e.Deducciones == 0m ? "" : Formatos.Numero(e.Deducciones);
             _credito = e.CreditoPerdidas is decimal c ? Formatos.Numero(c) : "";
             _cuota = e.CuotaLiquida is decimal q ? Formatos.Numero(q) : "";
-            Avisar(nameof(BasesNegativas), nameof(Bonificaciones), nameof(Deducciones), nameof(Credito), nameof(Cuota));
+            _basesAeat = e.BasesNegativasAeat is decimal ba ? Formatos.Numero(ba) : "";
+            _presentado = e.ResultadoPresentado is decimal rp ? Formatos.Numero(rp) : "";
+            DatosAeat.Clear();
+            foreach (var r in e.RetencionesAeat ?? []) DatosAeat.Add(FilaAeatIsVM.De(r));
+            _deducir.Clear();
+            foreach (var d in e.Deducir ?? []) _deducir[d.Cuenta] = Formatos.Numero(d.Importe);
+            foreach (var f in Retenciones) f.Cargar(_deducir.GetValueOrDefault(f.Cuenta, ""));
+            Avisar(nameof(BasesNegativas), nameof(Bonificaciones), nameof(Deducciones), nameof(Credito), nameof(Cuota), nameof(BasesNegativasAeat), nameof(ResultadoPresentado));
         }
         finally { _cargandoEntrada = false; }
         if (recalcular) Recalcular();
@@ -343,7 +472,22 @@ public sealed class ImpuestoSociedadesVM : ModeloVista, IPestanaTrabajo
         if (!Leer(_deducciones, out var deduc)) return (null, "Las deducciones no son un importe válido.");
         if (!Leer(_credito, out var credito)) return (null, "El crédito por pérdidas no es un importe válido.");
         if (!Leer(_cuota, out var cuota)) return (null, "La cuota líquida no es un importe válido.");
-        return (new EntradaImpuestoSociedades(ajustes, bases ?? 0m, bonif, deduc ?? 0m, credito, cuota), null);
+        if (!Leer(_basesAeat, out var basesAeat)) return (null, "Las bases negativas según la AEAT no son un importe válido.");
+        if (!Leer(_presentado, out var presentado)) return (null, "El resultado presentado no es un importe válido.");
+        var aeat = new List<RetencionAeat>();
+        foreach (var f in DatosAeat)
+        {
+            if (f.Leer() is not { } a) return (null, $"El importe de la AEAT de «{f.Nombre}» no es un importe válido.");
+            aeat.Add(a);
+        }
+        var deducir = new List<RetencionDeducida>();
+        foreach (var (cuenta, texto) in _deducir.OrderBy(kv => kv.Key, StringComparer.Ordinal))
+        {
+            if (!Leer(texto, out var v)) return (null, $"El importe a deducir de la {cuenta} no es un importe válido.");
+            if (v is decimal d) deducir.Add(new(cuenta, d));
+        }
+        return (new EntradaImpuestoSociedades(ajustes, bases ?? 0m, bonif, deduc ?? 0m, credito, cuota, aeat.Count == 0 ? null : aeat, basesAeat, presentado,
+            deducir.Count == 0 ? null : deducir), null);
     }
 
     private static bool Leer(string? texto, out decimal? valor)
@@ -390,9 +534,53 @@ public sealed class ImpuestoSociedadesVM : ModeloVista, IPestanaTrabajo
         });
     }
 
-    private void AbrirMayor(FilaCuentaIsVM? f)
+    private void AbrirMayor(string? cuenta)
     {
-        if (f is not null) _ctx.AbrirMayor?.Invoke([f.Cuenta]);
+        if (cuenta is not null) _ctx.AbrirMayor?.Invoke([cuenta]);
+    }
+
+    private async Task AbrirSedeAsync()
+    {
+        try { _ctx.AbrirEnlace?.Invoke(await _ctx.Servicio.UrlDatosFiscalesAsync()); }
+        catch (Exception ex) { _dialogos.Error("No he podido abrir la Sede de la AEAT", ex.Message); }
+    }
+
+    /// <summary>Lee el HTML de los datos fiscales y sustituye las líneas de la AEAT, las bases negativas pendientes y el resultado presentado.</summary>
+    private async Task ImportarDatosFiscalesAsync()
+    {
+        if (_datos is not { } datos || _ctx.ElegirDatosFiscales?.Invoke() is not { Length: > 0 } ruta) return;
+        Ocupado = true;
+        try
+        {
+            var r = await _ctx.Servicio.ImportarDatosFiscalesAsync(_ctx.Trabajo, await System.IO.File.ReadAllBytesAsync(ruta), datos);
+            if (!r.EsCorrecto)
+            {
+                _dialogos.Error("No se han importado los datos fiscales", string.Join(Environment.NewLine + Environment.NewLine, r.Errores.Select(e => e.TextoOperador())));
+                return;
+            }
+            var d = r.Valor;
+            _cargandoEntrada = true;
+            try
+            {
+                DatosAeat.Clear();
+                foreach (var x in d.Retenciones) DatosAeat.Add(FilaAeatIsVM.De(x));
+                _basesAeat = d.BasesNegativas is decimal b ? Formatos.Numero(b) : "";
+                _presentado = d.ResultadoPresentado is decimal p ? Formatos.Numero(p) : "";
+                Avisar(nameof(BasesNegativasAeat), nameof(ResultadoPresentado));
+            }
+            finally { _cargandoEntrada = false; }
+            Recalcular();
+            var sinCuenta = d.Retenciones.Count(x => x.Cuenta is null);
+            _ctx.Avisar($"Datos fiscales {d.Ejercicio} importados: {Formatos.Plural(d.Retenciones.Count, "línea", "líneas")} de retenciones y pagos a cuenta ({Formatos.Importe(d.Retenciones.Sum(x => x.Importe))})" +
+                (sinCuenta > 0 ? $", {Formatos.Plural(sinCuenta, "sin cuenta 473", "sin cuenta 473")}: elígela en la tabla." : ".") +
+                (d.ArrendamientoViviendas == false && (_datos?.Parametros.Bonificacion ?? 0m) > 0m ? " La AEAT no le reconoce el carácter de arrendamiento de viviendas: revisa la bonificación." : "") +
+                (d.Avisos.Count > 0 ? " " + string.Join(" ", d.Avisos) : ""));
+        }
+        catch (Exception ex)
+        {
+            _dialogos.Error("No se han importado los datos fiscales", ex.Message);
+        }
+        finally { Ocupado = false; }
     }
 
     private async Task ConfirmarAsync()

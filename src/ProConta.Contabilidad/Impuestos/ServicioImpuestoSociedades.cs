@@ -21,8 +21,10 @@ public enum EstadoImpuestoSociedades
 }
 
 /// <summary>Lo que se guardó al confirmar (tabla ImpuestosSociedades) y lo que escribió el operador.</summary>
+/// <param name="Retenciones">Lo deducido de las 473.</param>
+/// <param name="SaldoRetenciones">Suma de los saldos deudores de las 473 al confirmar (para saber si han cambiado).</param>
 public sealed record ImpuestoSociedadesGuardado(decimal ResultadoContable, decimal BaseImponible, decimal CuotaLiquida, decimal Retenciones, decimal Resultado,
-    string? Motivo, int? IdAsiento, string? Operador, DateTime FechaHora, EntradaImpuestoSociedades Entrada);
+    string? Motivo, int? IdAsiento, string? Operador, DateTime FechaHora, EntradaImpuestoSociedades Entrada, decimal SaldoRetenciones = 0m);
 
 /// <summary>Situación del impuesto: lo guardado frente a lo que se calcula ahora con lo mismo que se escribió.</summary>
 public sealed record SituacionImpuestoSociedades(EstadoImpuestoSociedades Estado, ImpuestoSociedadesGuardado? Guardado, string? Motivo, bool EjercicioTerminado);
@@ -71,8 +73,8 @@ public sealed class ServicioImpuestoSociedades(IBaseDatos bd, IMotorAsientos mot
             else if (g.IdAsiento is null && idLote is not null) motivo = "Hay un asiento del impuesto que no es el del cálculo guardado.";
             else if (d.ResultadoContable != g.ResultadoContable)
                 motivo = $"El resultado contable es ahora {CalculoImpuestoSociedades.Euros(d.ResultadoContable)} y al contabilizarlo era {CalculoImpuestoSociedades.Euros(g.ResultadoContable)}.";
-            else if (totalRet != g.Retenciones)
-                motivo = $"Las retenciones y pagos a cuenta suman ahora {CalculoImpuestoSociedades.Euros(totalRet)} y al contabilizarlo {CalculoImpuestoSociedades.Euros(g.Retenciones)}.";
+            else if (totalRet != g.SaldoRetenciones)
+                motivo = $"Las 473 suman ahora {CalculoImpuestoSociedades.Euros(totalRet)} y al contabilizarlo {CalculoImpuestoSociedades.Euros(g.SaldoRetenciones)}.";
         }
         return new(motivo is null ? EstadoImpuestoSociedades.Contabilizado : EstadoImpuestoSociedades.Desactualizado, g, motivo, terminado);
     }
@@ -202,6 +204,36 @@ public sealed class ServicioImpuestoSociedades(IBaseDatos bd, IMotorAsientos mot
         return await motor.EliminarLoteAsync(ctx, Lote(ctx.Ejercicio), actor, $"Deshacer el {registro}: {motivo.Trim()}", trabajo);
     }
 
+    // ---------- datos fiscales de la AEAT ----------
+
+    /// <summary>Dirección de la página de la Sede con el enlace a los datos fiscales (Configuración general; vacía, la de siempre).</summary>
+    public async Task<string> UrlDatosFiscalesAsync()
+    {
+        var v = await bd.EjecutarAsync(s => s.EscalarAsync("SELECT TOP 1 UrlDatosFiscalesIS FROM Configuracion ORDER BY IdConfiguracion")) as string;
+        return string.IsNullOrWhiteSpace(v) ? LectorDatosFiscalesAeat.UrlDefecto : v.Trim();
+    }
+
+    /// <summary>
+    /// Lee el HTML de los datos fiscales guardado desde la Sede, comprueba que es de esta sociedad y este ejercicio, y asigna a cada
+    /// retención su 473 (<see cref="LectorDatosFiscalesAeat.Asignar"/>).
+    /// </summary>
+    public async Task<Resultado<DatosFiscalesAeat>> ImportarDatosFiscalesAsync(ContextoSociedadEjercicio ctx, byte[] contenido, DatosImpuestoSociedades datos)
+    {
+        Resultado<DatosFiscalesAeat> Fallo(string mensaje, string? causa, string accion) =>
+            Resultado<DatosFiscalesAeat>.Fallo(new Error("ImpuestoSociedades.DatosFiscales", mensaje, CalculoImpuestoSociedades.Descripcion(ctx.Ejercicio), causa, accion));
+        var leidos = LectorDatosFiscalesAeat.Leer(contenido);
+        if (leidos.Ejercicio is null)
+            return Fallo("El fichero no son los datos fiscales del Impuesto sobre Sociedades.", leidos.Avisos.FirstOrDefault(),
+                "Ábrelos en la Sede, guárdalos con «Guardar página como…» y elige ese fichero.");
+        if (leidos.Ejercicio != ctx.Ejercicio)
+            return Fallo($"Son los datos fiscales de {leidos.Ejercicio} y estás en {ctx.Ejercicio}.", null, "Descarga los del ejercicio de trabajo o cambia de ejercicio.");
+        var nif = await bd.EjecutarAsync(s => s.EscalarAsync("SELECT CIF FROM Sociedades WHERE IdSociedad = ?", ctx.IdSociedad)) as string;
+        static string Normal(string? n) => new((n ?? "").Where(char.IsLetterOrDigit).Select(char.ToUpperInvariant).ToArray());
+        if (leidos.Nif is not null && Normal(nif).Length > 0 && Normal(nif) != Normal(leidos.Nif))
+            return Fallo($"Son los datos fiscales del NIF {leidos.Nif} y la sociedad abierta tiene el {nif!.Trim()}.", null, "Descarga los de esta sociedad.");
+        return Resultado<DatosFiscalesAeat>.Correcto(leidos with { Retenciones = LectorDatosFiscalesAeat.Asignar(leidos.Retenciones, datos.Retenciones) });
+    }
+
     // ---------- grabación ----------
 
     private async Task GuardarAsync(ISesionDatos s, ContextoSociedadEjercicio ctx, PropuestaImpuestoSociedades p, string? motivo, Actor actor, int? idAsiento)
@@ -210,13 +242,28 @@ public sealed class ServicioImpuestoSociedades(IBaseDatos bd, IMotorAsientos mot
         await s.EjecutarAsync(
             "INSERT INTO ImpuestosSociedades (IdSociedadEjercicio, ResultadoContable, AjustesAumentos, AjustesDisminuciones, BasesNegativas, BaseImponible, TipoGeneral, " +
             "LimiteTramoReducido, TipoTramoReducido, CuotaIntegra, Bonificaciones, Deducciones, CuotaCalculada, CuotaLiquida, Retenciones, CreditoPerdidas, Resultado, " +
-            "Motivo, IdAsiento, Operador, FechaHoraConfirmacion) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            "Motivo, IdAsiento, Operador, FechaHoraConfirmacion, SaldoRetenciones, BasesNegativasAeat, ResultadoPresentadoAeat) " +
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
             ctx.IdSociedadEjercicio, p.ResultadoContable, p.AumentosPermanentes + p.AumentosTemporales, p.DisminucionesPermanentes + p.DisminucionesTemporales,
             p.BasesNegativas, p.BaseImponible, Porcentaje(p.TipoGeneral), p.LimiteTramo, p.TipoTramo is decimal t ? Porcentaje(t) : null, p.CuotaIntegra,
             p.Bonificaciones, p.Deducciones, p.CuotaCalculada, p.CuotaLiquida, p.TotalRetenciones, p.CreditoPerdidas, p.Resultado,
-            string.IsNullOrWhiteSpace(motivo) ? null : Recortar(motivo.Trim(), 255), idAsiento, Recortar(actor.ToString(), 100), _reloj.Ahora);
+            string.IsNullOrWhiteSpace(motivo) ? null : Recortar(motivo.Trim(), 255), idAsiento, Recortar(actor.ToString(), 100), _reloj.Ahora,
+            p.TotalSaldos473, p.Entrada.BasesNegativasAeat, p.Entrada.ResultadoPresentado);
         var idImpuesto = await s.UltimoIdAsync();
         var e = p.Entrada;
+        foreach (var r in p.Retenciones)
+            await s.EjecutarAsync(
+                "INSERT INTO ImpuestosSociedadesRetenciones (IdImpuestoSociedades, Cuenta, Saldo, SegunAeat, Propuesto, Deducido, Escrito) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                idImpuesto, r.Cuenta, r.Saldo, r.SegunAeat, r.Propuesto, r.Deducido, r.Escrito);
+        var aeat = e.RetencionesAeat ?? [];
+        for (var i = 0; i < aeat.Count; i++)
+        {
+            var a = aeat[i];
+            await s.EjecutarAsync(
+                "INSERT INTO ImpuestosSociedadesDatosAeat (IdImpuestoSociedades, Orden, Modelo, Nif, Nombre, Importe, Cuenta) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                idImpuesto, i + 1, Recortar(a.Modelo, 10), string.IsNullOrWhiteSpace(a.Nif) ? null : Recortar(a.Nif.Trim(), 20), Recortar(a.Nombre.Trim(), 120), a.Importe,
+                string.IsNullOrWhiteSpace(a.Cuenta) ? null : a.Cuenta.Trim());
+        }
         for (var i = 0; i < e.Ajustes.Count; i++)
         {
             var a = e.Ajustes[i];
@@ -228,8 +275,9 @@ public sealed class ServicioImpuestoSociedades(IBaseDatos bd, IMotorAsientos mot
 
     private static async Task BorrarGuardadoAsync(ISesionDatos s, ContextoSociedadEjercicio ctx)
     {
-        await s.EjecutarAsync("DELETE FROM ImpuestosSociedadesAjustes WHERE IdImpuestoSociedades IN (SELECT IdImpuestoSociedades FROM ImpuestosSociedades WHERE IdSociedadEjercicio = ?)",
-            ctx.IdSociedadEjercicio);
+        foreach (var tabla in (string[])["ImpuestosSociedadesAjustes", "ImpuestosSociedadesRetenciones", "ImpuestosSociedadesDatosAeat"])
+            await s.EjecutarAsync($"DELETE FROM {tabla} WHERE IdImpuestoSociedades IN (SELECT IdImpuestoSociedades FROM ImpuestosSociedades WHERE IdSociedadEjercicio = ?)",
+                ctx.IdSociedadEjercicio);
         await s.EjecutarAsync("DELETE FROM ImpuestosSociedades WHERE IdSociedadEjercicio = ?", ctx.IdSociedadEjercicio);
     }
 
@@ -240,11 +288,13 @@ public sealed class ServicioImpuestoSociedades(IBaseDatos bd, IMotorAsientos mot
     {
         var filas = await s.ConsultarAsync(
             "SELECT IdImpuestoSociedades, ResultadoContable, BasesNegativas, BaseImponible, Bonificaciones, Deducciones, CuotaCalculada, CuotaLiquida, Retenciones, " +
-            "CreditoPerdidas, Resultado, Motivo, IdAsiento, Operador, FechaHoraConfirmacion FROM ImpuestosSociedades WHERE IdSociedadEjercicio = ?",
+            "CreditoPerdidas, Resultado, Motivo, IdAsiento, Operador, FechaHoraConfirmacion, SaldoRetenciones, BasesNegativasAeat, ResultadoPresentadoAeat " +
+            "FROM ImpuestosSociedades WHERE IdSociedadEjercicio = ?",
             f => (Id: f.Entero("IdImpuestoSociedades"), Resultado: Dec(f, "ResultadoContable"), Bases: Dec(f, "BasesNegativas"), Base: Dec(f, "BaseImponible"),
                 Bonif: Dec(f, "Bonificaciones"), Deduc: Dec(f, "Deducciones"), Calculada: Dec(f, "CuotaCalculada"), Cuota: Dec(f, "CuotaLiquida"),
                 Ret: Dec(f, "Retenciones"), Credito: Dec(f, "CreditoPerdidas"), Saldo: Dec(f, "Resultado"), Motivo: f.Texto("Motivo"), IdAsiento: f.EnteroNulo("IdAsiento"),
-                Operador: f.Texto("Operador"), Fecha: f.Fecha("FechaHoraConfirmacion")),
+                Operador: f.Texto("Operador"), Fecha: f.Fecha("FechaHoraConfirmacion"), SaldoRet: Dec(f, "SaldoRetenciones"),
+                BasesAeat: f.DecimalNulo("BasesNegativasAeat"), Presentado: f.DecimalNulo("ResultadoPresentadoAeat")),
             ctx.IdSociedadEjercicio);
         if (filas.Count == 0) return null;
         var g = filas[0];
@@ -253,9 +303,18 @@ public sealed class ServicioImpuestoSociedades(IBaseDatos bd, IMotorAsientos mot
             f => new AjusteImpuestoSociedades(f.Logico("Temporal"), f.Logico("Aumento"), (f.Texto("Descripcion") ?? "").Trim(), Dec(f, "Importe"),
                 string.IsNullOrWhiteSpace(f.Texto("Cuenta")) ? null : f.Texto("Cuenta")!.Trim()),
             g.Id);
-        // Lo escrito: la bonificación y el crédito tal como se grabaron, y la cuota solo si se fijó a mano.
-        var entrada = new EntradaImpuestoSociedades(ajustes, g.Bases, g.Bonif, g.Deduc, g.Credito, g.Cuota != g.Calculada ? g.Cuota : null);
-        return new ImpuestoSociedadesGuardado(g.Resultado, g.Base, g.Cuota, g.Ret, g.Saldo, g.Motivo, g.IdAsiento, g.Operador, g.Fecha, entrada);
+        var deducir = await s.ConsultarAsync(
+            "SELECT Cuenta, Deducido FROM ImpuestosSociedadesRetenciones WHERE IdImpuestoSociedades = ? AND Escrito = True ORDER BY Cuenta",
+            f => new RetencionDeducida((f.Texto("Cuenta") ?? "").Trim(), Dec(f, "Deducido")), g.Id);
+        var aeat = await s.ConsultarAsync(
+            "SELECT Modelo, Nif, Nombre, Importe, Cuenta FROM ImpuestosSociedadesDatosAeat WHERE IdImpuestoSociedades = ? ORDER BY Orden",
+            f => new RetencionAeat((f.Texto("Modelo") ?? "").Trim(), string.IsNullOrWhiteSpace(f.Texto("Nif")) ? null : f.Texto("Nif")!.Trim(), (f.Texto("Nombre") ?? "").Trim(),
+                Dec(f, "Importe"), string.IsNullOrWhiteSpace(f.Texto("Cuenta")) ? null : f.Texto("Cuenta")!.Trim()),
+            g.Id);
+        // Lo escrito: la bonificación y el crédito tal como se grabaron, la cuota solo si se fijó a mano, lo escrito en las 473 y los datos fiscales.
+        var entrada = new EntradaImpuestoSociedades(ajustes, g.Bases, g.Bonif, g.Deduc, g.Credito, g.Cuota != g.Calculada ? g.Cuota : null,
+            aeat.Count == 0 ? null : aeat, g.BasesAeat, g.Presentado, deducir.Count == 0 ? null : deducir);
+        return new ImpuestoSociedadesGuardado(g.Resultado, g.Base, g.Cuota, g.Ret, g.Saldo, g.Motivo, g.IdAsiento, g.Operador, g.Fecha, entrada, g.SaldoRet);
     });
 
     /// <summary>Parámetros y cuentas del IS del ejercicio.</summary>

@@ -28,8 +28,14 @@
                 ToolTip="Abre el Mayor de la cuenta para ver sus apuntes" />
     </ContextMenu>
     <ContextMenu x:Key="Menu.Retencion">
+      <MenuItem Header="Usar la propuesta" Command="{Binding UsarPropuestoCommand}" ToolTipService.ShowOnDisabled="True"
+                ToolTip="Borra el importe escrito a mano: se deduce lo propuesto" />
       <MenuItem Header="Mayor de la cuenta" Command="{Binding MayorRetencionCommand}" ToolTipService.ShowOnDisabled="True"
                 ToolTip="Abre el Mayor de la 473 para cotejar sus apuntes con el certificado del pagador" />
+    </ContextMenu>
+    <ContextMenu x:Key="Menu.Aeat">
+      <MenuItem Header="Quitar la línea" Command="{Binding QuitarDatoAeatCommand}" ToolTipService.ShowOnDisabled="True"
+                ToolTip="Quita la línea de los datos fiscales y recalcula" />
     </ContextMenu>
   </UserControl.Resources>
   <UserControl.InputBindings>
@@ -233,20 +239,103 @@
               </DataGrid>
 
               <DockPanel Margin="0,0,0,6">
-                <TextBlock DockPanel.Dock="Right" Text="{Binding TotalRetenciones}" Style="{StaticResource Texto.Importe}" FontWeight="SemiBold" />
+                <TextBlock DockPanel.Dock="Right" Text="{Binding TotalRetenciones}" Style="{StaticResource Texto.Importe}" FontWeight="SemiBold"
+                           ToolTip="Lo que se deduce: va al Haber de las 473" />
+                <TextBlock DockPanel.Dock="Right" Text="a deducir: " Style="{StaticResource Texto.Apagado}" />
+                <TextBlock DockPanel.Dock="Right" Text="{Binding TotalSaldos}" Style="{StaticResource Texto.Importe}" Margin="0,0,14,0" />
+                <TextBlock DockPanel.Dock="Right" Text="saldos: " Style="{StaticResource Texto.Apagado}" />
                 <TextBlock Text="Retenciones y pagos a cuenta (473)" Style="{StaticResource Texto.Seccion}"
-                           ToolTip="Saldo deudor de cada 473 a 31/12, con los pagadores de sus apuntes, para cotejarlo con los certificados de retenciones" />
+                           ToolTip="Saldo de cada 473 a 31/12 con los pagadores de sus apuntes, lo que conoce la AEAT y lo que se deduce. Lo que no se deduce se queda en la cuenta" />
               </DockPanel>
-              <DataGrid Style="{StaticResource Tabla}" ItemsSource="{Binding Retenciones}" SelectedItem="{Binding RetencionSeleccionada}" IsReadOnly="True" AutoGenerateColumns="False"
-                        HeadersVisibility="Column" RowStyle="{StaticResource Tabla.Fila}" MaxHeight="220" ContextMenu="{StaticResource Menu.Retencion}"
-                        AutomationProperties.Name="Retenciones y pagos a cuenta" ToolTip="Clic derecho: Mayor de la cuenta, para cotejarla con el certificado">
+              <DataGrid Style="{StaticResource Tabla}" ItemsSource="{Binding Retenciones}" SelectedItem="{Binding RetencionSeleccionada}" AutoGenerateColumns="False"
+                        CanUserAddRows="False" CanUserDeleteRows="False" HeadersVisibility="Column" RowStyle="{StaticResource Tabla.Fila}" MaxHeight="240" Margin="0,0,0,12"
+                        ContextMenu="{StaticResource Menu.Retencion}" AutomationProperties.Name="Retenciones y pagos a cuenta"
+                        ToolTip="Escribe en «A deducir» otro importe si la gestoría deduce otra cosa (vacío: la propuesta). Clic derecho: usar la propuesta o abrir el Mayor">
                 <DataGrid.Columns>
-                  <DataGridTextColumn Header="Cuenta" Binding="{Binding Cuenta}" Width="90" ElementStyle="{StaticResource Texto.Celda.Mono}" />
-                  <DataGridTextColumn Header="Nombre" Binding="{Binding Nombre}" Width="*" ElementStyle="{StaticResource Texto.Celda}" />
-                  <DataGridTextColumn Header="Pagadores" Binding="{Binding Detalle}" Width="*" ElementStyle="{StaticResource Texto.Celda}" />
-                  <DataGridTextColumn Header="Saldo" Binding="{Binding Saldo}" Width="120" ElementStyle="{StaticResource Texto.Celda.Importe}" HeaderStyle="{StaticResource Tabla.Cabecera.Derecha}" />
+                  <DataGridTextColumn Header="Cuenta" Binding="{Binding Cuenta}" Width="80" IsReadOnly="True" ElementStyle="{StaticResource Texto.Celda.Mono}" />
+                  <DataGridTemplateColumn Header="Nombre y pagadores" Width="*" IsReadOnly="True">
+                    <DataGridTemplateColumn.CellTemplate>
+                      <DataTemplate>
+                        <TextBlock Text="{Binding Nombre}" ToolTip="{Binding Pagadores}" Style="{StaticResource Texto.Celda}" TextTrimming="CharacterEllipsis" />
+                      </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                  </DataGridTemplateColumn>
+                  <DataGridTextColumn Header="Saldo" Binding="{Binding Saldo}" Width="100" IsReadOnly="True" ElementStyle="{StaticResource Texto.Celda.Importe}" HeaderStyle="{StaticResource Tabla.Cabecera.Derecha}" />
+                  <DataGridTextColumn Header="Según la AEAT" Binding="{Binding SegunAeat}" Width="100" IsReadOnly="True" ElementStyle="{StaticResource Texto.Celda.Importe}" HeaderStyle="{StaticResource Tabla.Cabecera.Derecha}" />
+                  <DataGridTextColumn Header="Propuesto" Binding="{Binding Propuesto}" Width="100" IsReadOnly="True" ElementStyle="{StaticResource Texto.Celda.Importe}" HeaderStyle="{StaticResource Tabla.Cabecera.Derecha}" />
+                  <DataGridTemplateColumn Header="A deducir" Width="110" HeaderStyle="{StaticResource Tabla.Cabecera.Derecha}">
+                    <DataGridTemplateColumn.CellTemplate>
+                      <DataTemplate>
+                        <TextBox Text="{Binding Deducir, UpdateSourceTrigger=LostFocus}" Style="{StaticResource Campo.Importe}" Margin="0,1"
+                                 ToolTip="Importe a deducir de esta 473 si no es el propuesto. Vacío: el propuesto. Al salir del campo se recalcula" />
+                      </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                  </DataGridTemplateColumn>
                 </DataGrid.Columns>
               </DataGrid>
+
+              <DockPanel Margin="0,0,0,6">
+                <Button DockPanel.Dock="Right" Content="Añadir línea" Style="{StaticResource Boton.Pequeno}" Command="{Binding AnadirDatoAeatCommand}" Margin="6,0,0,0"
+                        ToolTip="Añade a mano una retención o pago a cuenta que conoce la AEAT (si no se puede importar el fichero)" />
+                <Button DockPanel.Dock="Right" Content="Quitar los datos" Style="{StaticResource Boton.Pequeno}" Command="{Binding QuitarDatosAeatCommand}" Margin="6,0,0,0"
+                        ToolTip="Quita todas las líneas y cifras de la AEAT: se vuelve a proponer el saldo de cada 473" />
+                <Button DockPanel.Dock="Right" Content="Importar…" Style="{StaticResource Boton.Pequeno}" Command="{Binding ImportarDatosFiscalesCommand}" Margin="6,0,0,0"
+                        ToolTip="Lee el HTML de los datos fiscales guardado desde la Sede (Guardar página como…): pagos fraccionados, retenciones por pagador, bases negativas pendientes y declaración presentada" />
+                <Button DockPanel.Dock="Right" Content="Abrir la Sede" Style="{StaticResource Boton.Pequeno}" Command="{Binding AbrirSedeCommand}"
+                        ToolTip="Abre la página de la AEAT con el enlace a los datos fiscales del Impuesto sobre Sociedades (con certificado). La dirección está en Parámetros generales" />
+                <TextBlock Text="Datos fiscales de la AEAT" Style="{StaticResource Texto.Seccion}" VerticalAlignment="Center"
+                           ToolTip="Lo que la AEAT sabe de la sociedad: se contrasta con las 473 antes de confirmar" />
+              </DockPanel>
+              <TextBlock Text="{Binding ResumenAeat}" Style="{StaticResource Texto.Apagado}" TextWrapping="Wrap" Margin="0,0,0,6" />
+              <DataGrid Style="{StaticResource Tabla}" ItemsSource="{Binding DatosAeat}" SelectedItem="{Binding AeatSeleccionada}" AutoGenerateColumns="False"
+                        CanUserAddRows="False" CanUserDeleteRows="False" HeadersVisibility="Column" RowStyle="{StaticResource Tabla.Fila}" MaxHeight="240" Margin="0,0,0,8"
+                        ContextMenu="{StaticResource Menu.Aeat}" AutomationProperties.Name="Datos fiscales de la AEAT"
+                        Visibility="{Binding HayDatosAeat, Converter={StaticResource Visible}}"
+                        ToolTip="Elige la 473 de cada línea; sin cuenta, no se deduce. Clic derecho: quitar la línea">
+                <DataGrid.Columns>
+                  <DataGridTextColumn Header="Modelo" Binding="{Binding Modelo}" Width="64" IsReadOnly="True" ElementStyle="{StaticResource Texto.Celda.Mono}" />
+                  <DataGridTemplateColumn Header="Pagador o concepto" Width="*">
+                    <DataGridTemplateColumn.CellTemplate>
+                      <DataTemplate>
+                        <TextBox Text="{Binding Nombre, UpdateSourceTrigger=LostFocus}" ToolTip="{Binding Pagador}" Style="{StaticResource Campo}" MaxLength="120" Margin="0,1" />
+                      </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                  </DataGridTemplateColumn>
+                  <DataGridTemplateColumn Header="Importe" Width="100" HeaderStyle="{StaticResource Tabla.Cabecera.Derecha}">
+                    <DataGridTemplateColumn.CellTemplate>
+                      <DataTemplate>
+                        <TextBox Text="{Binding Importe, UpdateSourceTrigger=LostFocus}" Style="{StaticResource Campo.Importe}" Margin="0,1"
+                                 ToolTip="Retención o pago a cuenta según la AEAT" />
+                      </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                  </DataGridTemplateColumn>
+                  <DataGridTemplateColumn Header="Cuenta 473" Width="100">
+                    <DataGridTemplateColumn.CellTemplate>
+                      <DataTemplate>
+                        <ComboBox ItemsSource="{Binding DataContext.Cuentas473, ElementName=Raiz}" SelectedItem="{Binding Cuenta, UpdateSourceTrigger=PropertyChanged}" Margin="0,1"
+                                  ToolTip="473 a la que corresponde. Vacía: sin asignar, no se deduce" />
+                      </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                  </DataGridTemplateColumn>
+                </DataGrid.Columns>
+              </DataGrid>
+              <Grid Margin="0,0,0,4">
+                <Grid.ColumnDefinitions>
+                  <ColumnDefinition Width="260" />
+                  <ColumnDefinition Width="120" />
+                  <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                  <RowDefinition Height="Auto" />
+                  <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+                <TextBlock Grid.Row="0" Text="Bases negativas pendientes según la AEAT" VerticalAlignment="Center"
+                           ToolTip="Pérdidas fiscales de años anteriores pendientes de compensar según la AEAT; avisa si compensas más. Vacío: sin dato" />
+                <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding BasesNegativasAeat, UpdateSourceTrigger=LostFocus}" Style="{StaticResource Campo.Importe}" Margin="0,2" />
+                <TextBlock Grid.Row="1" Text="Resultado presentado (casilla 621)" VerticalAlignment="Center"
+                           ToolTip="Resultado de la declaración del ejercicio ya presentada (negativo, a devolver); avisa si el cálculo no coincide. Vacío: sin presentar" />
+                <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding ResultadoPresentado, UpdateSourceTrigger=LostFocus}" Style="{StaticResource Campo.Importe}" Margin="0,2" />
+              </Grid>
             </StackPanel>
           </Grid>
 
