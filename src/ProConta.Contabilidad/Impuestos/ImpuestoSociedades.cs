@@ -87,10 +87,15 @@ public sealed record RetencionPropuesta(string Cuenta, string Nombre, decimal Sa
 /// <param name="AsientosAjenos">Asientos del ejercicio con una 630 hechos fuera de este proceso (texto para el aviso).</param>
 /// <param name="ApuntesRetencion">Apuntes de las 473 que forman su saldo, con el pagador de su asiento (null: solo se conocen los saldos).</param>
 /// <param name="Viviendas">Desglose de la renta de viviendas (ingresos, gastos directos e indirectos imputados); null: solo la cifra.</param>
+/// <param name="Ingresos">Ingresos del ejercicio que entran en el resultado (grupo 7, Haber − Debe); null: solo se conoce el resultado.</param>
 public sealed record DatosImpuestoSociedades(int Ejercicio, decimal ResultadoContable, decimal RentaViviendas, bool HayActividadBonificada,
     IReadOnlyList<SaldoCuentaImpuesto> Retenciones, IReadOnlyList<SaldoCuentaImpuesto> PosiblesAjustes, decimal SaldoCreditoPerdidas,
     ParametrosImpuestoSociedades Parametros, IReadOnlyList<string> AsientosAjenos, IReadOnlyList<ApunteRetencion>? ApuntesRetencion = null,
-    RentaViviendasDetalle? Viviendas = null);
+    RentaViviendasDetalle? Viviendas = null, decimal? Ingresos = null)
+{
+    /// <summary>Gastos del ejercicio que entran en el resultado (ingresos − resultado); null si no se conocen los ingresos.</summary>
+    public decimal? Gastos => Ingresos is decimal i ? i - ResultadoContable : null;
+}
 
 /// <summary>
 /// Lo que escribe el operador. Null en <see cref="Bonificaciones"/>, <see cref="CreditoPerdidas"/> y <see cref="CuotaLiquida"/>: la propuesta.

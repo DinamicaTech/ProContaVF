@@ -147,4 +147,36 @@ public sealed record RentaViviendasDetalle(decimal Ingresos, decimal GastosDirec
     public decimal Proporcion => IngresosOrdinariosTotales > 0m ? IngresosOrdinariosViviendas / IngresosOrdinariosTotales : 0m;
     public decimal IndirectosImputados => Math.Round(GastosIndirectos * Proporcion, 2, MidpointRounding.AwayFromZero);
     public decimal Renta => Ingresos - GastosDirectos - IndirectosImputados;
+
+    /// <summary>
+    /// La misma renta piso a piso (propietario 2026-11-17 15:23): cada centro con sus ingresos, sus gastos directos y la parte de los gastos
+    /// generales imputados que le toca por sus ingresos ordinarios (70 a 75) sobre los de todas las viviendas. El céntimo que sobre del reparto
+    /// va al piso con más ingresos ordinarios, para que la suma de los pisos sea la renta.
+    /// </summary>
+    public IReadOnlyList<RentaCentroViviendas> PorCentro()
+    {
+        static bool Ordinario(string c) => c.Length >= 2 && c[0] == '7' && c[1] is >= '0' and <= '5';
+        var centros = Partidas.Where(p => p.Clase is PartidaRentaViviendas.IngresoViviendas or PartidaRentaViviendas.GastoDirecto)
+            .GroupBy(p => p.Centro, StringComparer.Ordinal)
+            .Select(g =>
+            {
+                var ingresos = g.Where(p => p.Clase == PartidaRentaViviendas.IngresoViviendas).ToList();
+                return (Centro: g.Key, Ingresos: ingresos.Sum(p => p.Importe), Ordinarios: ingresos.Where(p => Ordinario(p.Cuenta)).Sum(p => p.Importe),
+                    Directos: g.Where(p => p.Clase == PartidaRentaViviendas.GastoDirecto).Sum(p => p.Importe), Partidas: (IReadOnlyList<PartidaRentaViviendas>)[.. g]);
+            }).ToList();
+        var total = IndirectosImputados;
+        var partes = centros.Select(c => IngresosOrdinariosViviendas > 0m ? Math.Round(total * c.Ordinarios / IngresosOrdinariosViviendas, 2, MidpointRounding.AwayFromZero) : 0m).ToList();
+        if (centros.Count > 0 && IngresosOrdinariosViviendas > 0m)
+        {
+            var mayor = Enumerable.Range(0, centros.Count).MaxBy(i => centros[i].Ordinarios);
+            partes[mayor] += total - partes.Sum();
+        }
+        return [.. centros.Select((c, i) => new RentaCentroViviendas(c.Centro, c.Ingresos, c.Directos, partes[i], c.Partidas))];
+    }
+}
+
+/// <summary>Cuenta de resultados de un piso para la bonificación: ingresos, gastos directos, su parte de los gastos generales y sus cuentas.</summary>
+public sealed record RentaCentroViviendas(string Centro, decimal Ingresos, decimal GastosDirectos, decimal GastosGenerales, IReadOnlyList<PartidaRentaViviendas> Partidas)
+{
+    public decimal Renta => Ingresos - GastosDirectos - GastosGenerales;
 }

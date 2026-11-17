@@ -1,0 +1,363 @@
+<title>Impuesto sobre Sociedades · maqueta</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* Maqueta alternativa de Contabilidad › Impuesto sobre Sociedades (ProContaVF).
+   Disposición: a la izquierda los cinco pasos del proceso con su estado; en el centro el paso elegido,
+   explicado en lenguaje llano; a la derecha «La cuenta», el cálculo completo siempre a la vista.
+   Aspecto único y claro, como la aplicación de escritorio (tokens de sources/maquetas). Datos ficticios. */
+:root{
+  --navy:#14213A;--navy2:#22314F;--navy3:#1B2A47;--ink:#16213A;--mut:#646A78;--txt2:#3B4252;
+  --or:#F4A259;--or2:#D9622B;--bg:#F1EEE7;--bg2:#FBFAF7;--card:#FFFFFF;--ln:#ECE8DE;--ln3:#E1DDD2;
+  --inb:#D9D5CA;--blue:#1D5C8C;--blueb:#E8F0F8;--green:#1E6B45;--greenb:#E2F0E8;--greenl:#A9D2BB;
+  --amb:#7A5A00;--ambb:#FFF6E0;--ambl:#E2CF8F;--white:#FFFFFF;
+  --f-ui:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,Consolas,monospace;
+  --f-disp:"Bricolage Grotesque","IBM Plex Sans",system-ui,sans-serif;
+  color-scheme:light;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font:14px/1.5 var(--f-ui);margin:0}
+button,input,select{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--or2);outline-offset:2px}
+.gut{padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.num{font-family:var(--f-mono);font-variant-numeric:tabular-nums;white-space:nowrap}
+.mut{color:var(--mut)}
+h1,h2,h3{font-family:var(--f-disp);margin:0;text-wrap:balance}
+
+.demo{background:var(--ink);color:#C9CED8;padding-block:7px;font-size:13px;border-bottom:2px dashed var(--or)}
+.demo b{background:var(--or);color:var(--ink);font:600 11px var(--f-mono);padding:2px 7px;border-radius:3px;letter-spacing:.06em;margin-right:8px}
+.top{background:var(--navy);color:var(--white);display:flex;align-items:center;gap:14px;padding-block:9px;flex-wrap:wrap}
+.logo{font:700 16px var(--f-disp)}
+.ctx{border:1px solid #3A4A6A;border-radius:6px;padding:2px 10px;font-size:13px;color:#DCE1EA}
+.tabs{background:var(--navy3);display:flex;gap:2px;padding-top:6px;overflow-x:auto}
+.tab{color:#C9CED8;padding:6px 14px;border-radius:7px 7px 0 0;white-space:nowrap;font-size:13.5px}
+.tab.on{background:var(--bg);color:var(--ink);font-weight:600}
+
+/* Cabecera: el resultado en una frase */
+.hero{display:flex;gap:20px;align-items:flex-end;flex-wrap:wrap;padding-block:18px 14px}
+.hero h1{font-size:22px;font-weight:600}
+.hero .sub{color:var(--mut);font-size:13.5px}
+.verdict{margin-left:auto;text-align:right}
+.verdict .lbl{font-size:12.5px;color:var(--mut);letter-spacing:.04em;text-transform:uppercase}
+.verdict .big{font:600 30px/1.1 var(--f-disp);color:var(--green)}
+.pill{display:inline-block;border-radius:99px;padding:1px 10px;font-size:12px;font-weight:600}
+.pill.pend{background:var(--blueb);color:var(--blue)}
+.pill.ok{background:var(--greenb);color:var(--green)}
+.pill.warn{background:var(--ambb);color:var(--amb);border:1px solid var(--ambl)}
+
+.work{display:grid;grid-template-columns:230px minmax(0,1fr) 320px;gap:18px;align-items:start;padding-bottom:90px}
+@media (max-width:1080px){.work{grid-template-columns:minmax(0,1fr) 300px}.steps{grid-column:1/-1;flex-direction:row;overflow-x:auto}.step{min-width:190px}}
+@media (max-width:720px){.work{grid-template-columns:minmax(0,1fr)}}
+
+/* Pasos */
+.steps{display:flex;flex-direction:column;gap:6px}
+.step{display:flex;gap:10px;align-items:flex-start;text-align:left;background:transparent;border:1px solid transparent;border-radius:10px;padding:9px 10px;cursor:pointer;width:100%}
+.step:hover{background:var(--bg2)}
+.step[aria-selected=true]{background:var(--card);border-color:var(--ln3)}
+.dot{flex:none;width:24px;height:24px;border-radius:50%;display:grid;place-items:center;font:600 12px var(--f-mono);background:var(--card);border:1.5px solid var(--inb);color:var(--mut)}
+.step.ok .dot{background:var(--green);border-color:var(--green);color:var(--white)}
+.step.warn .dot{background:var(--ambb);border-color:var(--ambl);color:var(--amb)}
+.step .t{font-weight:600;font-size:13.5px;display:block}
+.step .d{font-size:12.5px;color:var(--mut);display:block}
+
+/* Panel del paso */
+.panel{background:var(--card);border:1px solid var(--ln3);border-radius:12px;padding:20px 22px;min-width:0}
+.panel h2{font-size:19px;font-weight:600}
+.panel .lead{color:var(--txt2);max-width:62ch;margin:6px 0 16px}
+.sec{font:600 12px var(--f-ui);letter-spacing:.06em;text-transform:uppercase;color:var(--mut);margin:20px 0 8px}
+.row{display:flex;gap:12px;align-items:center;padding:9px 0;border-bottom:1px solid var(--ln)}
+.row:last-child{border-bottom:0}
+.row .grow{flex:1;min-width:0}
+.row .name{font-weight:500}
+.row .hint{font-size:12.5px;color:var(--mut)}
+.amt{font:500 14px var(--f-mono);font-variant-numeric:tabular-nums;white-space:nowrap}
+.amt.plus{color:var(--ink)}.amt.minus{color:var(--blue)}
+.btn{background:var(--card);border:1px solid var(--inb);border-radius:7px;padding:5px 12px;cursor:pointer;font-size:13px}
+.btn:hover{border-color:var(--mut)}
+.btn.pri{background:var(--or2);border-color:var(--or2);color:var(--white);font-weight:600}
+.btn.link{border:0;background:transparent;color:var(--blue);padding:2px 4px;text-decoration:underline;text-underline-offset:2px}
+.note{background:var(--ambb);border:1px solid var(--ambl);color:var(--amb);border-radius:9px;padding:10px 12px;font-size:13.5px;display:flex;gap:10px;align-items:flex-start;margin:10px 0}
+.note.info{background:var(--blueb);border-color:#C9DAEC;color:var(--blue)}
+.note .grow{flex:1}
+.fig{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.fig .v{font:600 26px var(--f-disp)}
+
+/* Ecuación de la renta de viviendas */
+.eq{display:flex;gap:10px;align-items:stretch;flex-wrap:wrap;margin:6px 0 4px}
+.term{flex:1 1 130px;background:var(--bg2);border:1px solid var(--ln3);border-radius:10px;padding:10px 12px;min-width:0}
+.term .k{font-size:12.5px;color:var(--mut)}
+.term .v{font:600 17px var(--f-mono);font-variant-numeric:tabular-nums}
+.term.res{background:var(--greenb);border-color:var(--greenl)}
+.op{align-self:center;font:600 18px var(--f-mono);color:var(--mut)}
+.bar{height:10px;border-radius:99px;background:var(--ln3);overflow:hidden;margin:6px 0 4px;max-width:420px}
+.bar i{display:block;height:100%;background:var(--blue);border-radius:99px}
+.field{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.field input{border:1px solid var(--inb);border-radius:7px;padding:5px 9px;width:130px;text-align:right;font-family:var(--f-mono);background:var(--bg2)}
+
+/* Retenciones por pagador */
+.pay{border:1px solid var(--ln3);border-radius:10px;margin-bottom:8px;overflow:hidden}
+.pay.att{border-color:var(--ambl)}
+.pay summary{list-style:none;cursor:pointer;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px 14px;padding:10px 12px;align-items:center}
+.pay summary::-webkit-details-marker{display:none}
+.pay .who{font-weight:600}
+.pay .who small{font-weight:400;color:var(--mut);margin-left:6px}
+.cmp{display:flex;gap:18px;font-size:12.5px;color:var(--mut);flex-wrap:wrap}
+.cmp b{font:500 13px var(--f-mono);color:var(--ink)}
+.use{text-align:right}
+.use .lbl{font-size:11.5px;color:var(--mut);display:block}
+.seg{display:inline-flex;border:1px solid var(--inb);border-radius:7px;overflow:hidden}
+.seg button{border:0;background:var(--card);padding:4px 10px;font-size:12.5px;cursor:pointer}
+.seg button+button{border-left:1px solid var(--inb)}
+.seg button[aria-pressed=true]{background:var(--navy);color:var(--white)}
+.det{border-top:1px solid var(--ln);background:var(--bg2);padding:10px 12px;display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px}
+.det h3{font:600 12px var(--f-ui);letter-spacing:.05em;text-transform:uppercase;color:var(--mut);margin-bottom:4px}
+.det table{width:100%;border-collapse:collapse;font-size:12.5px}
+.det td{padding:3px 0;border-bottom:1px solid var(--ln)}
+.det td:last-child{text-align:right}
+.just{grid-column:1/-1;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.just input.otro{flex:none;width:110px;min-width:0;text-align:right;font-family:var(--f-mono)}
+.just input{flex:1;min-width:200px;border:1px solid var(--inb);border-radius:7px;padding:5px 9px;background:var(--card)}
+.toolbar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+
+/* Asiento */
+.tbl{overflow-x:auto}
+.tbl table{width:100%;border-collapse:collapse;min-width:420px}
+.tbl th{font:600 12px var(--f-ui);color:var(--mut);text-align:left;padding:6px 8px;border-bottom:1px solid var(--ln3)}
+.tbl td{padding:6px 8px;border-bottom:1px solid var(--ln)}
+.tbl .r{text-align:right}
+.tbl tr.sub td{font-size:12.5px;color:var(--txt2);background:var(--bg2)}
+.tbl tr.totr td{font-weight:600;border-top:1px solid var(--ln3)}
+.gen{margin-top:10px}.gen summary{cursor:pointer;color:var(--blue);text-decoration:underline;text-underline-offset:2px}
+.check{display:flex;gap:9px;align-items:flex-start;padding:5px 0}
+.check i{flex:none;width:18px;height:18px;border-radius:50%;display:grid;place-items:center;font:700 11px var(--f-ui);font-style:normal;margin-top:2px}
+.check.ok i{background:var(--green);color:var(--white)}
+.check.warn i{background:var(--ambb);color:var(--amb);border:1px solid var(--ambl)}
+
+/* La cuenta */
+.bill{background:var(--card);border:1px solid var(--ln3);border-radius:12px;padding:16px 16px 12px;position:sticky;top:12px}
+.bill h2{font-size:15px;font-weight:600;margin-bottom:8px}
+.bl{display:flex;justify-content:space-between;gap:10px;padding:5px 6px;border-radius:6px;background:transparent;border:0;width:100%;text-align:left;cursor:pointer}
+.bl:hover{background:var(--bg2)}
+.bl.sub{color:var(--txt2);padding-left:18px;font-size:13px}
+.bl.tot{font-weight:600;border-top:1px solid var(--ln3);border-radius:0;margin-top:3px;padding-top:8px}
+.bl.fin{background:var(--greenb);border-radius:9px;margin-top:8px;padding:10px;font-weight:600;color:var(--green)}
+.bl.fin .num{font-size:17px}
+.bill .foot{font-size:12px;color:var(--mut);margin:10px 4px 0}
+
+.dock{position:fixed;left:0;right:0;bottom:0;background:var(--card);border-top:1px solid var(--ln3);padding-block:10px;padding-bottom:calc(10px + env(safe-area-inset-bottom,0px));display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+.dock .msg{flex:1;min-width:200px;font-size:13.5px}
+@media (prefers-reduced-motion:no-preference){.panel>section{animation:in .18s ease-out}}
+@keyframes in{from{transform:translateY(4px);opacity:.6}to{transform:none;opacity:1}}
+</style>
+
+<div class="demo gut"><b>MAQUETA</b>Propuesta alternativa de la pantalla del Impuesto sobre Sociedades. Datos ficticios. Pulsa los pasos, los pagadores y las líneas de «La cuenta».</div>
+<div class="top gut"><span class="logo">ProContaVF</span><span class="ctx">Sociedad Ejemplo, SL</span><span class="ctx">Ejercicio 2025</span></div>
+<div class="tabs gut"><span class="tab">Inicio</span><span class="tab">Diario</span><span class="tab on">Impuesto sobre Sociedades</span></div>
+
+<div class="gut">
+  <div class="hero">
+    <div>
+      <h1>Impuesto sobre Sociedades 2025</h1>
+      <div class="sub"><span class="pill pend">Sin contabilizar</span>&nbsp; Faltan 2 cosas por revisar antes de contabilizarlo.</div>
+    </div>
+    <div class="verdict">
+      <div class="lbl">Con lo que hay ahora</div>
+      <div class="big">Hacienda te devuelve <span class="num">2.560,17 €</span></div>
+      <div class="sub">Impuesto del año 11.117,23 € · ya adelantado 13.677,40 €</div>
+    </div>
+  </div>
+
+  <div class="work">
+    <nav class="steps" role="tablist" aria-label="Pasos del impuesto">
+      <button class="step ok" role="tab" data-s="0" id="st0"><span class="dot">✓</span><span><span class="t">Resultado del año</span><span class="d">98.400,00 € de beneficio</span></span></button>
+      <button class="step warn" role="tab" data-s="1" id="st1"><span class="dot">2</span><span><span class="t">Ajustes fiscales</span><span class="d">1 cuenta por revisar</span></span></button>
+      <button class="step ok" role="tab" data-s="2" id="st2"><span class="dot">✓</span><span><span class="t">Alquiler de viviendas</span><span class="d">Bonificación 1.285,77 €</span></span></button>
+      <button class="step warn" role="tab" data-s="3" id="st3"><span class="dot">4</span><span><span class="t">Retenciones y pagos a cuenta</span><span class="d">1 pagador sin justificar</span></span></button>
+      <button class="step" role="tab" data-s="4" id="st4"><span class="dot">5</span><span><span class="t">Contabilizar</span><span class="d">Asiento del 31/12</span></span></button>
+    </nav>
+
+    <div class="panel" id="panel">
+      <!-- 1 -->
+      <section data-p="0">
+        <h2>¿Cuánto ha ganado la sociedad este año?</h2>
+        <p class="lead">Es el punto de partida: los ingresos menos los gastos del ejercicio, antes de contar el propio impuesto. Sale de la contabilidad; aquí no hay nada que escribir.</p>
+        <div class="fig"><span class="v num">98.400,00 €</span><span class="mut">de beneficio antes del impuesto</span></div>
+        <div class="sec">De dónde sale</div>
+        <div class="row"><div class="grow"><div class="name">Ingresos</div><div class="hint">Todo lo facturado y otros ingresos del año</div></div><span class="amt">171.250,00 €</span></div>
+        <div class="row"><div class="grow"><div class="name">Gastos</div><div class="hint">Sin el gasto del impuesto ni los asientos de cierre</div></div><span class="amt minus">− 72.850,00 €</span></div>
+        <div class="row"><div class="grow"><button class="btn link">Ver la cuenta de resultados</button><button class="btn link">Volver a leer la contabilidad (F9)</button></div></div>
+      </section>
+
+      <!-- 2 -->
+      <section data-p="1" hidden>
+        <h2>¿Hay algo que Hacienda no cuenta igual que la contabilidad?</h2>
+        <p class="lead">Algunos gastos no se pueden deducir (multas, recargos) y algunos ingresos no tributan (dividendos de participadas). Aquí se suman o se restan al resultado. Lo normal es que te los confirme la gestoría.</p>
+        <div class="sec">Ajustes aplicados</div>
+        <div class="row"><div class="grow"><div class="name">Dividendos de participadas (art. 21)</div><div class="hint">No tributa · permanente</div></div><span class="amt minus">− 40.000,00 €</span><button class="btn link">Quitar</button></div>
+        <div class="row"><div class="grow"><div class="name">Multas y sanciones</div><div class="hint">No deducible · permanente · cuenta 6780000</div></div><span class="amt plus">+ 250,00 €</span><button class="btn link">Quitar</button></div>
+        <div class="row"><div class="grow"><button class="btn">Añadir un ajuste</button></div></div>
+        <div class="sec">Cuentas que conviene revisar con la gestoría</div>
+        <div class="note"><div class="grow"><b>6690001 Intereses de demora</b> tiene 84,20 € en 2 apuntes y no está ajustada. Los recargos e intereses de demora a veces no son deducibles.</div><button class="btn">Añadir como ajuste</button><button class="btn link">Ver apuntes</button></div>
+        <div class="row"><div class="grow"><div class="name">Pérdidas de años anteriores</div><div class="hint">Hacienda dice que no te queda ninguna pendiente de compensar</div></div><span class="amt">0,00 €</span></div>
+      </section>
+
+      <!-- 3 -->
+      <section data-p="2" hidden>
+        <h2>¿Cuánto del beneficio viene de alquilar viviendas?</h2>
+        <p class="lead">Esa parte del impuesto tiene una bonificación del 40 %. La renta de las viviendas son sus ingresos, menos sus gastos propios, menos la parte de los gastos generales que les toca.</p>
+        <div class="eq">
+          <div class="term"><div class="k">Ingresos de viviendas</div><div class="v">42.000,00</div></div><span class="op">−</span>
+          <div class="term"><div class="k">Sus gastos directos</div><div class="v">14.300,00</div></div><span class="op">−</span>
+          <div class="term"><div class="k">Parte de gastos generales</div><div class="v">12.500,00</div></div><span class="op">=</span>
+          <div class="term res"><div class="k">Renta de viviendas</div><div class="v">15.200,00</div></div>
+        </div>
+        <div class="sec">Cómo se reparten los gastos generales</div>
+        <div>Las viviendas facturan <b class="num">42.000,00 €</b> de los <b class="num">168.000,00 €</b> de ingresos ordinarios: el <b>25 %</b>.</div>
+        <div class="bar"><i style="width:25%"></i></div>
+        <div class="mut" style="font-size:13px">Así que les toca el 25 % de los 50.000,00 € de gastos generales (incluye financieros y amortizaciones sin piso asignado).</div>
+        <div class="sec">Cuenta de resultados de las viviendas</div>
+        <div class="tbl"><table>
+          <tr><th>Piso</th><th class="r">Ingresos</th><th class="r">Gastos directos</th><th class="r">Gastos generales (25 %)</th><th class="r">Renta</th></tr>
+          <tr class="piso" data-piso="a"><td><button class="btn link" aria-expanded="true">▾ Piso A · Mayor 12, 1.º</button></td><td class="r num">15.600,00</td><td class="r num">5.900,00</td><td class="r num">4.642,86</td><td class="r num">5.057,14</td></tr>
+          <tr class="sub" data-de="a"><td>&nbsp;&nbsp;7520001 Alquileres</td><td class="r num">15.600,00</td><td></td><td></td><td></td></tr>
+          <tr class="sub" data-de="a"><td>&nbsp;&nbsp;6820001 Amortización del piso</td><td></td><td class="r num">3.100,00</td><td></td><td></td></tr>
+          <tr class="sub" data-de="a"><td>&nbsp;&nbsp;6310001 IBI y basuras</td><td></td><td class="r num">1.250,00</td><td></td><td></td></tr>
+          <tr class="sub" data-de="a"><td>&nbsp;&nbsp;6220001 Reparaciones</td><td></td><td class="r num">980,00</td><td></td><td></td></tr>
+          <tr class="sub" data-de="a"><td>&nbsp;&nbsp;6250001 Seguro &nbsp;<button class="btn link">Ver apuntes</button></td><td></td><td class="r num">570,00</td><td></td><td></td></tr>
+          <tr class="piso" data-piso="b"><td><button class="btn link" aria-expanded="false">▸ Piso B · Mayor 12, 2.º</button></td><td class="r num">14.400,00</td><td class="r num">4.600,00</td><td class="r num">4.285,71</td><td class="r num">5.514,29</td></tr>
+          <tr class="piso" data-piso="c"><td><button class="btn link" aria-expanded="false">▸ Piso C · Sol 3, bajo</button></td><td class="r num">12.000,00</td><td class="r num">3.800,00</td><td class="r num">3.571,43</td><td class="r num">4.628,57</td></tr>
+          <tr class="totr"><td>Total viviendas</td><td class="r num">42.000,00</td><td class="r num">14.300,00</td><td class="r num">12.500,00</td><td class="r num">15.200,00</td></tr>
+        </table></div>
+        <div class="mut" style="font-size:13px;margin-top:6px">Pulsa un piso para ver sus cuentas; desde cada cuenta se abren sus apuntes. Los gastos generales se reparten entre los pisos según sus ingresos.</div>
+        <details class="gen"><summary>Ver los 50.000,00 € de gastos generales que se reparten</summary>
+          <div class="tbl"><table>
+            <tr><th>Cuenta</th><th class="r">Importe</th><th class="r">A viviendas (25 %)</th></tr>
+            <tr><td>6400000 Sueldos y Seguridad Social</td><td class="r num">28.000,00</td><td class="r num">7.000,00</td></tr>
+            <tr><td>6620000 Intereses de préstamos</td><td class="r num">9.200,00</td><td class="r num">2.300,00</td></tr>
+            <tr><td>6810000 Amortización sin piso asignado</td><td class="r num">6.400,00</td><td class="r num">1.600,00</td></tr>
+            <tr><td>6230000 Gestoría y profesionales</td><td class="r num">4.100,00</td><td class="r num">1.025,00</td></tr>
+            <tr><td>6290000 Otros servicios</td><td class="r num">2.300,00</td><td class="r num">575,00</td></tr>
+          </table></div>
+        </details>
+        <div class="sec">Resultado</div>
+        <div class="row"><div class="grow"><div class="name">Bonificación que sale</div><div class="hint">Impuesto que corresponde a esa renta × 40 %</div></div><span class="amt minus">− 1.285,77 €</span></div>
+        <div class="row"><div class="grow field"><label for="renta">¿La gestoría usa otra renta?</label><input id="renta" placeholder="15.200,00" aria-label="Renta de viviendas a aplicar"><span class="hint mut">Vacío: la calculada</span></div></div>
+      </section>
+
+      <!-- 4 -->
+      <section data-p="3" hidden>
+        <h2>¿Cuánto has adelantado ya a Hacienda?</h2>
+        <p class="lead">Los pagos a cuenta y las retenciones que te han practicado se restan del impuesto. Compara lo que Hacienda dice que tiene con lo que hay en la contabilidad y elige qué cifra usar en cada caso: la de Hacienda, la de la contabilidad u otro valor escrito a mano.</p>
+        <div class="toolbar">
+          <button class="btn">Abrir la Sede</button><button class="btn">Volver a importar…</button>
+          <span style="flex:1"></span>
+          <button class="btn" id="allH">Usar Hacienda en todos</button><button class="btn" id="allC">Usar contabilidad en todos</button>
+        </div>
+        <div class="note info"><div class="grow">Datos fiscales de 2025 importados el 17/11 y guardados en <b>2025\Impuestos\DatosFiscalesIS-2025.htm</b>: no hay que volver a subirlos. <b>3 de 6 cuadran.</b> Abre los que no cuadran para ver por qué.</div><button class="btn link">Abrir el fichero</button></div>
+        <div id="pays"></div>
+        <div class="row"><div class="grow"><div class="name">Total que se resta del impuesto</div></div><span class="amt" id="totRet"></span></div>
+      </section>
+
+      <!-- 5 -->
+      <section data-p="4" hidden>
+        <h2>Revisa y contabiliza</h2>
+        <p class="lead">Este es el asiento que se grabará el 31/12. Si después cambia algo, se puede repetir o deshacer.</p>
+        <div class="check ok"><i>✓</i><div>El resultado del año está leído de la contabilidad de hoy.</div></div>
+        <div class="check warn"><i>!</i><div>Hay una cuenta con posible ajuste sin revisar. <button class="btn link" data-go="1">Ir a ajustes</button></div></div>
+        <div class="check warn" id="chkJ"><i>!</i><div>Juan García usa un valor distinto del de Hacienda sin justificar. <button class="btn link" data-go="3">Ir a retenciones</button></div></div>
+        <div class="check ok"><i>✓</i><div>La gestoría presentó − 2.560,17 €. Si este cálculo da otra cifra y es el correcto, habla con ella de una rectificativa.</div></div>
+        <div class="sec">Asiento del 31/12/2025</div>
+        <div class="tbl"><table>
+          <tr><th>Cuenta</th><th>Qué es</th><th class="r">Debe</th><th class="r">Haber</th></tr>
+          <tr><td class="num">6300000</td><td>Impuesto del año</td><td class="r num">11.117,23</td><td></td></tr>
+          <tr><td class="num">4709000</td><td>Hacienda nos devuelve</td><td class="r num" id="aDev"></td><td></td></tr>
+          <tr><td class="num">473…</td><td>Retenciones y pagos a cuenta (5 cuentas)</td><td></td><td class="r num" id="aRet"></td></tr>
+        </table></div>
+      </section>
+    </div>
+
+    <aside class="bill" aria-label="La cuenta">
+      <h2>La cuenta</h2>
+      <button class="bl" data-go="0"><span>Beneficio del año</span><span class="num">98.400,00</span></button>
+      <button class="bl sub" data-go="1"><span>Ajustes fiscales</span><span class="num">− 39.750,00</span></button>
+      <button class="bl tot" data-go="1"><span>Base del impuesto</span><span class="num">58.650,00</span></button>
+      <button class="bl sub" data-go="0"><span>21 % hasta 50.000 y 22 % el resto</span><span class="num">12.403,00</span></button>
+      <button class="bl sub" data-go="2"><span>Bonificación por viviendas</span><span class="num">− 1.285,77</span></button>
+      <button class="bl tot" data-go="4"><span>Impuesto del año</span><span class="num">11.117,23</span></button>
+      <button class="bl sub" data-go="3"><span>Ya adelantado a Hacienda</span><span class="num" id="bRet"></span></button>
+      <button class="bl fin" data-go="4"><span id="bLbl">Te devuelven</span><span class="num" id="bFin"></span></button>
+      <p class="foot">Pulsa una línea para ver de dónde sale. La gestoría presentó − 2.560,17 €.</p>
+    </aside>
+  </div>
+</div>
+
+<div class="dock gut">
+  <div class="msg" id="dockMsg"></div>
+  <button class="btn">Descartar cambios</button>
+  <button class="btn pri" id="go">Contabilizar el impuesto</button>
+</div>
+
+<script>
+// Pagadores: h = Hacienda, c = contabilidad, uso = 'h' | 'c'. Datos ficticios.
+var P=[
+ {n:'Pagos a cuenta del impuesto',s:'modelo 202',h:4800,c:4800,uso:'h',ap:[['20/04','1.er pago',1600],['20/10','2.º pago',1600],['20/12','3.er pago',1600]],ha:[['202 · 1P',1600],['202 · 2P',1600],['202 · 3P',1600]]},
+ {n:'Inmobiliaria Alfa, SL',s:'inquilino del local 1',h:5852,c:5852,uso:'h',ap:[['12 facturas','Retención 19 % alquiler',5852]],ha:[['180 · X0000001X',5852]]},
+ {n:'Banco Beta',s:'intereses',h:400,c:400,uso:'h',ap:[['30/06','Retención intereses',180],['31/12','Retención intereses',220]],ha:[['193 · A00000000',400]]},
+ {n:'Juan García',s:'inquilino del local 3',h:957.07,c:625.85,uso:'c',j:'',ap:[['8 facturas','Retención 19 % alquiler',625.85]],ha:[['180 · 00000002Y',957.07]],why:'Hacienda tiene 331,22 € más que la contabilidad. Puede que el inquilino declarase un recibo del año anterior.'},
+ {n:'Otro Inquilino, SL',s:'inquilino del local 2',h:0,c:1668.33,uso:'c',j:'Certificado del inquilino y cobros en el banco',ap:[['12 facturas','Retención 19 % alquiler',1668.33]],ha:[],why:'Hacienda no sabe nada de estas retenciones: el inquilino no las presentó. Tú sí las soportaste.'},
+ {n:'Fondo Gamma',s:'sin pagador identificado',h:0,c:20,uso:'h',ap:[['15/03','Retención fondo',20]],ha:[],why:'Solo está en la contabilidad. Si no lo deduces, los 20,00 € se quedan en la cuenta.'}
+];
+var fmt=function(v){return v.toLocaleString('es-ES',{minimumFractionDigits:2,maximumFractionDigits:2,useGrouping:'always'})+' €'};
+var val=function(p){return p.uso==='h'?p.h:p.uso==='c'?p.c:(p.o||0)};
+var num=function(t){var v=parseFloat(String(t).replace(/\./g,'').replace(',','.'));return isNaN(v)||v<0?0:Math.round(v*100)/100};
+var needJ=function(p){return val(p)!==p.h&&!(p.j||'').trim()};
+function tbl(rows,three){return '<table>'+(rows.length?rows.map(function(r){return '<tr><td>'+r[0]+(three?' · '+r[1]:'')+'</td><td class="num">'+fmt(r[three?2:1])+'</td></tr>'}).join(''):'<tr><td class="mut">Nada</td><td></td></tr>')+'</table>'}
+var openSet={3:true};
+function draw(){
+  var el=document.getElementById('pays');
+  el.innerHTML=P.map(function(p,i){
+    var ok=p.h===p.c, st=ok?'<span class="pill ok">Cuadra</span>':needJ(p)?'<span class="pill warn">Falta justificar</span>':'<span class="pill warn">No cuadra</span>';
+    return '<details class="pay'+(ok?'':' att')+'" data-i="'+i+'"'+(openSet[i]?' open':'')+'><summary><div><div class="who">'+p.n+'<small>'+p.s+'</small> '+st+'</div>'+
+      '<div class="cmp"><span>Hacienda <b>'+fmt(p.h)+'</b></span><span>Contabilidad <b>'+fmt(p.c)+'</b></span></div></div>'+
+      '<div class="use"><span class="lbl">Se usa</span><span class="amt">'+fmt(val(p))+'</span></div></summary>'+
+      '<div class="det">'+(p.why?'<div class="just" style="color:var(--amb)">'+p.why+'</div>':'')+
+      '<div><h3>En la contabilidad</h3>'+tbl(p.ap,true)+'</div><div><h3>Lo que dice Hacienda</h3>'+tbl(p.ha,false)+'</div>'+
+      '<div class="just"><span>Usar</span><span class="seg"><button data-u="h" aria-pressed="'+(p.uso==='h')+'">Hacienda</button><button data-u="c" aria-pressed="'+(p.uso==='c')+'">Contabilidad</button><button data-u="o" aria-pressed="'+(p.uso==='o')+'">Otro valor</button></span>'+
+      (p.uso==='o'?'<input class="otro" id="o'+i+'" data-o="'+i+'" value="'+(p.o?fmt(p.o).replace(' €',''):'')+'" placeholder="0,00" aria-label="Otro valor">':'')+
+      (val(p)!==p.h?'<input id="j'+i+'" data-j="'+i+'" value="'+(p.j||'').replace(/"/g,'&quot;')+'" placeholder="Por qué no usas el dato de Hacienda (certificado, justificante de pago…)" aria-label="Justificación">':'')+
+      '<button class="btn link">Ver asientos</button></div></div></details>';
+  }).join('');
+  var t=P.reduce(function(a,p){return a+val(p)},0), fin=11117.23-t, pend=P.filter(needJ);
+  document.getElementById('totRet').textContent=fmt(t);
+  document.getElementById('bRet').textContent='− '+fmt(t).replace(' €','');
+  document.getElementById('aRet').textContent=fmt(t).replace(' €','');
+  document.getElementById('aDev').textContent=fmt(Math.abs(fin)).replace(' €','');
+  document.getElementById('bLbl').textContent=fin<0?'Te devuelven':'A pagar';
+  document.getElementById('bFin').textContent=fmt(Math.abs(fin));
+  document.querySelector('.verdict .big').innerHTML=(fin<0?'Hacienda te devuelve ':'Hay que pagar ')+'<span class="num">'+fmt(Math.abs(fin))+'</span>';
+  document.querySelector('.verdict .sub').textContent='Impuesto del año 11.117,23 € · ya adelantado '+fmt(t);
+  var s3=document.getElementById('st3');
+  s3.className='step '+(pend.length?'warn':'ok');s3.querySelector('.dot').textContent=pend.length?'4':'✓';
+  s3.querySelector('.d').textContent=pend.length?pend.length+' pagador sin justificar':fmt(t)+' adelantados';
+  document.getElementById('chkJ').hidden=!pend.length;
+  document.getElementById('go').disabled=!!pend.length;document.getElementById('go').style.opacity=pend.length?.5:1;
+  document.getElementById('dockMsg').textContent=pend.length?'Para contabilizar, justifica por qué '+pend[0].n+' no usa el dato de Hacienda.':'Todo listo. Se grabará el asiento del 31/12/2025 tal como se ve en el paso 5.';
+  document.querySelector('.hero .sub').innerHTML='<span class="pill pend">Sin contabilizar</span>&nbsp; '+(pend.length?'Faltan 2 cosas por revisar antes de contabilizarlo.':'Queda 1 cosa por revisar; ya se puede contabilizar.');
+}
+function go(n){
+  document.querySelectorAll('[data-p]').forEach(function(s){s.hidden=s.dataset.p!=n});
+  document.querySelectorAll('.step').forEach(function(b){b.setAttribute('aria-selected',b.dataset.s==n)});
+}
+document.addEventListener('click',function(e){
+  var g=e.target.closest('[data-go]');if(g){go(g.dataset.go);return}
+  var s=e.target.closest('.step');if(s){go(s.dataset.s);return}
+  var pi=e.target.closest('tr.piso');if(pi){var b=pi.querySelector('button'),on=b.getAttribute('aria-expanded')!=='true';b.setAttribute('aria-expanded',on);b.textContent=(on?'▾':'▸')+b.textContent.slice(1);document.querySelectorAll('[data-de="'+pi.dataset.piso+'"]').forEach(function(r){r.hidden=!on});return}
+  var u=e.target.closest('[data-u]');if(u){var d=u.closest('.pay');var q=P[d.dataset.i];q.uso=u.dataset.u;if(q.uso==='o'&&q.o===undefined)q.o=q.c;openSet[d.dataset.i]=true;draw();return}
+  if(e.target.id==='allH'||e.target.id==='allC'){P.forEach(function(p){p.uso=e.target.id==='allH'?'h':'c'});draw()}
+});
+document.addEventListener('toggle',function(e){var d=e.target;if(d.classList&&d.classList.contains('pay'))openSet[d.dataset.i]=d.open},true);
+document.addEventListener('change',function(e){var j=e.target.dataset.j;if(j!==undefined){P[j].j=e.target.value;draw();return}var o=e.target.dataset.o;if(o!==undefined){P[o].o=num(e.target.value);draw()}});
+draw();go(3);
+</script>
