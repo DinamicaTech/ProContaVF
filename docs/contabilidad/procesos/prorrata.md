@@ -1,6 +1,5 @@
 ---
 title: Prorrata de IVA
-status: draft
 depends_on: [contabilidad/procesos, facturacion/factura-venta/contabilizacion, contabilidad/procesos/liquidacion-iva, contabilidad/modelos-tributarios, informes/informe-gestoria, contabilidad/procesos/nuevo-ejercicio, datos/esquema]
 threads:
   - 2026-11-17 10:35 · Calcular y regularizar la prorrata de IVA | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5G6fmNEhWckT9S6qs9Uq5oR2
@@ -19,6 +18,7 @@ Código: `CalculoIvaEjercicio`, `CalculoProrrata` (src/ProConta.Contabilidad/Iva
 - 2026-11-17 11:00 · Definitiva: SociedadesEjercicios.PorcentajeProrrataDefinitiva, en porcentaje (20 = 20 %), vacía mientras no se fije; la pantalla propone la guardada o, si no hay, la legal, y avisa cuando no es la legal. Al confirmar se guarda junto con el asiento y se copia en la «Prorrata del año anterior» del ejercicio siguiente si ya existe (si se crea después, lo hace contabilidad/procesos/nuevo-ejercicio). Pide motivo si el ejercicio aún no ha terminado (se puede probar antes de enero) o si se repite. Deshacer borra el asiento y quita la definitiva, sin tocar la provisional del ejercicio siguiente. Estado: pendiente, regularizada o desactualizada (el asiento ya no coincide con lo que se calcula ahora).
 - 2026-11-17 11:00 · El 303 y la prorrata se calculan siempre juntos (`CalculoIvaEjercicio`): con la definitiva fijada, la línea «Regularización de la prorrata definitiva» del 4T lleva la regularización. Lo usan la liquidación del IVA, el informe para la gestoría y esta pantalla, para que den lo mismo.
 
+- 2026-11-17 11:14 · Validado por el propietario (PR #98) con la copia ProConta-prorrata-01 (2026 hasta el 17/11: provisional 15 %, legal 20 %, regularización de 101,05 € a favor, 6391 repartida en 8 centros): pasa a estable. Pendiente en contabilidad/procesos/nuevo-ejercicio: copiar la definitiva como provisional al crear el ejercicio siguiente.
 ## Requirements
 - 2026-11-13 12:05 · draft: Calcular la prorrata de IVA (la legal propuesta por defecto, la del gestor si se fija, con desglose en Excel) y regularizar la prorrata definitiva (4729) al cierre del ejercicio.
 - 2026-11-15 18:10 · Derived from informes/informe-gestoria: porcentaje provisional del ejercicio, porcentaje real acumulado (operaciones con derecho a deducción entre el total, redondeado al entero superior), volumen de operaciones por actividad y trimestre, y regularización estimada por trimestre (cuota sujeta a prorrata por la diferencia de porcentajes), sin generar asiento. Paridad con el libro anterior: 2026 a 3T da 52.289,30 / 263.012,00 = 19,88 % → 20 % y una regularización estimada de 99,44 €.
