@@ -34,6 +34,7 @@ public enum DestinoComprobacion
     Prorrata,
     FacturasPendientes,
     CentimosResiduales,
+    AplicacionResultado,
     Diario,
     Salud,
 }
@@ -142,6 +143,7 @@ public sealed class ServicioCierreEjercicio(IBaseDatos bd, IMotorAsientos motor,
         r.Add(await ComprobarLiquidacionAsync(ctx));
         r.Add(await ComprobarFacturasPendientesAsync(ctx));
         r.Add(await ComprobarCentimosAsync(ctx));
+        r.Add(await ComprobarAplicacionAsync(ctx));
 
         var borradores = await bd.EjecutarAsync(async s => Convert.ToInt32(await s.EscalarAsync(
             "SELECT COUNT(*) FROM Asientos WHERE IdSociedadEjercicio = ? AND EstadoAsiento = 0", ctx.IdSociedadEjercicio), CultureInfo.InvariantCulture));
@@ -289,6 +291,29 @@ public sealed class ServicioCierreEjercicio(IBaseDatos bd, IMotorAsientos motor,
                 $"Sin saldar: {Plural(n, "subcuenta", "subcuentas")} con céntimos residuales por {CalculoCierreEjercicio.Euros(p.Total)}; pasarían así al ejercicio siguiente.",
                 DestinoComprobacion.CentimosResiduales),
         };
+    }
+
+    /// <summary>
+    /// El resultado del ejercicio anterior tiene que estar aplicado antes de cerrar (contabilidad/procesos/aplicacion-resultado 2026-11-17): si la
+    /// cuenta de resultados aún tiene saldo, la regularización le sumaría el resultado de este año y los dos quedarían mezclados en la apertura.
+    /// Cuenta la apertura (que trae el resultado anterior) y no la regularización ni el cierre de este ejercicio (su clave es este año).
+    /// </summary>
+    private async Task<ComprobacionCierre> ComprobarAplicacionAsync(ContextoSociedadEjercicio ctx)
+    {
+        const string Clave = "aplicacion-resultado";
+        var titulo = $"Aplicación del resultado de {ctx.Ejercicio - 1}";
+        var (cuenta, _) = await CuentaResultadoAsync(ctx);
+        var saldo = await bd.EjecutarAsync(async s => await s.EscalarAsync(
+            "SELECT SUM(IIF(p.ImporteDebe IS NULL, 0, p.ImporteDebe)) - SUM(IIF(p.ImporteHaber IS NULL, 0, p.ImporteHaber)) FROM Apuntes AS p INNER JOIN Asientos AS a ON p.IdAsiento = a.IdAsiento " +
+            "WHERE a.IdSociedadEjercicio = ? AND a.EstadoAsiento = 1 AND p.CuentaContable = ? " +
+            "AND (a.MotorPropietario IS NULL OR a.MotorPropietario <> ? OR a.ClaveEjecucion IS NULL OR a.ClaveEjecucion <> ?)",
+            ctx.IdSociedadEjercicio, cuenta, Motor, ctx.Ejercicio.ToString(CultureInfo.InvariantCulture)));
+        var valor = saldo is null or DBNull ? 0m : Math.Round(Convert.ToDecimal(saldo, CultureInfo.InvariantCulture), 2);
+        return valor == 0m
+            ? new(Clave, titulo, ResultadoComprobacion.Correcta, $"Aplicado: la {cuenta} no tiene saldo antes de la regularización.", DestinoComprobacion.AplicacionResultado)
+            : new(Clave, titulo, ResultadoComprobacion.Aviso,
+                $"Sin aplicar: la {cuenta} tiene {CalculoCierreEjercicio.Euros(-valor)} del resultado de {ctx.Ejercicio - 1}. Si cierras así, la regularización le suma el de {ctx.Ejercicio} y los dos quedan mezclados.",
+                DestinoComprobacion.AplicacionResultado);
     }
 
     private async Task<ComprobacionCierre> ComprobarLiquidacionAsync(ContextoSociedadEjercicio ctx)

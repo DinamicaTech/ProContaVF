@@ -43,6 +43,7 @@ Sociedad permanente y su instancia por ejercicio (SociedadEjercicio), con consul
 
 - 2026-11-17 18:12 · Parámetro del ejercicio «Periodicidad de la amortización» (SociedadesEjercicios.PeriodicidadAmortizacion, esquema 68) en Parámetros y tablas › Ejercicios, grupo de valores predeterminados: Anual (vacío, por defecto), Trimestral o Mensual (contabilidad/procesos/amortizacion-de-activos 2026-11-17 18:12). Crear el ejercicio siguiente la copia con las demás columnas.
 - 2026-11-17 19:15 · Parámetro del ejercicio «Umbral de los céntimos residuales (€)» (SociedadesEjercicios.UmbralCentimosResiduales, esquema 69) en Parámetros y tablas › Ejercicios, grupo de valores predeterminados; vacío, 1,00 € (contabilidad/procesos/centimos-residuales 2026-11-17 19:15). Las cuentas de redondeo del proceso son CuentaRedondeoGastos y CuentaRedondeoIngresos, las mismas de Compras. Crear el ejercicio siguiente lo copia con las demás columnas.
+- 2026-11-17 20:30 · Para la aplicación del resultado (contabilidad/procesos/aplicacion-resultado): Ejercicios tiene las cuentas de reserva legal (vacía, 1120000) y de resultados negativos de ejercicios anteriores (vacía, 1210000); la cuenta de reservas de los dividendos pasa a llamarse «Reservas voluntarias · dividendos y aplicación». Empresas tiene el valor nominal de la participación, para el capital de cada socio en el acta. Esquema 70; pendiente de validar.
 
 ## Requirements
 - 2026-10-28 12:28 · From sources/01_ESPECIFICACION_FUNCIONAL.docx § 3 RF-ARQ-04: propietario de Sociedades/SociedadesEjercicios
@@ -77,6 +78,7 @@ Sociedad permanente y su instancia por ejercicio (SociedadEjercicio), con consul
 - 2026-11-17 15:30 · Derived from contabilidad/procesos/cierre-ejercicio: campo «Cuenta de resultados del ejercicio» por ejercicio (vacío, 1290000), editable en Parámetros y tablas › Ejercicios.
 - 2026-11-17 16:40 · Derived from contabilidad/procesos/facturas-pendientes-recibir: en Parámetros y tablas › Ejercicios, los parámetros de las facturas pendientes de recibir del ejercicio: cuenta de facturas pendientes de recibir (vacía: 4009000), cuenta de gasto por defecto (vacía: 6299000) y tipo de IVA supuesto (vacío: 21 %).
 - 2026-11-17 19:05 · Derived from contabilidad/procesos/centimos-residuales: parámetro del ejercicio «Umbral de los céntimos residuales» (vacío, 1,00 €) en Parámetros y tablas › Ejercicios.
+- 2026-11-17 20:30 · Derived from contabilidad/procesos/aplicacion-resultado: en Parámetros y tablas › Ejercicios, cuentas de reserva legal (vacía, 1120000) y de resultados negativos de ejercicios anteriores (vacía, 1210000); en Parámetros y tablas › Empresas, valor nominal de la participación.
 
 ## Hand-over
 - 2026-10-31 18:55 · Hecho: contrato y servicio sobre Access, migración de EjercicioCerrado y pruebas (contexto válido e inválido, ejercicio cerrado). Pendiente: apertura de ejercicio nuevo y cierre/reapertura (contabilidad/procesos), unicidad (IdSociedad, Ejercicio) y unicidad del NIF de sociedad (la maestra tiene dos sociedades con el mismo NIF, una de pruebas), y la regla de propagación de la razón social a los ejercicios.

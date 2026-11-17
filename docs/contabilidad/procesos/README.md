@@ -31,6 +31,7 @@ Marco común de los procesos contables y pantalla «Procesos contables» con el 
 - 2026-11-17 19:15 · Submenú «Fin de ejercicio» (propietario 2026-11-17 18:00, en el chat del proyecto; céntimos residuales añadidos el 2026-11-17 19:05, contabilidad/procesos/centimos-residuales): en Contabilidad, tras el Reparto de dividendos, una entrada «Fin de ejercicio» (abre el Cierre del ejercicio, cuya comprobación previa dice qué falta de cada paso) con, en este orden, Amortización de activos, Facturas pendientes de recibir, Céntimos residuales, Prorrata de IVA, Liquidación de IVA (4T) (la misma pantalla de la liquidación abierta en el 4T), Impuesto sobre Sociedades y Cierre del ejercicio. La Liquidación de IVA sigue además en su sitio para los trimestres normales.
 
 - 2026-11-17 19:20 · Menú: «Reiniciar el cuadre del Mayor» (contabilidad/procesos/reiniciar-cuadre) va en Contabilidad como hija, tras el Reparto de dividendos y antes de «Fin de ejercicio», porque no es un paso del cierre sino un proceso que se usa en cualquier momento del año.
+- 2026-11-17 20:30 · Fin de ejercicio incluye «Aplicación del resultado» (contabilidad/procesos/aplicacion-resultado), tras «Cierre del ejercicio»: aplica en el ejercicio de trabajo el resultado del anterior.
 
 ## Requirements
 - 2026-10-28 12:28 · From sources/01_ESPECIFICACION_FUNCIONAL.docx § 16 RF-GES-01..05: procesos, propuestas, IVA, Sociedades, cierre y reapertura
@@ -50,3 +51,4 @@ Marco común de los procesos contables y pantalla «Procesos contables» con el 
 - 2026-11-17 18:00 · El menú de procesos contables se está haciendo grande.
 - 2026-11-17 18:00 · Si es así, se podrían agrupar dentro de un submenú 'Fin ejercicio' y ordenados según la secuencia lógica de ejecución.
 - 2026-11-17 18:00 · Ok
+- 2026-11-17 20:30 · Derived from contabilidad/procesos/aplicacion-resultado: entrada «Aplicación del resultado» en Procesos contables › Fin de ejercicio, tras «Cierre del ejercicio».

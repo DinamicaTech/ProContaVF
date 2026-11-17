@@ -10,6 +10,8 @@
                 ToolTip="Abre el asiento grabado del reparto elegido" />
       <MenuItem Header="Mayor de sus cuentas" Command="{Binding MayorCommand}" ToolTipService.ShowOnDisabled="True"
                 ToolTip="Abre el Mayor de la cuenta de reservas y de las 526 y 4751 de los socios del reparto elegido" />
+      <MenuItem Header="Generar el acta…" Command="{Binding GenerarActaCommand}" ToolTipService.ShowOnDisabled="True"
+                ToolTip="Genera en PDF el acta de la junta que aprueba el reparto elegido (socios, administrador, acuerdo con el importe en letras y firmas), la guarda en la carpeta de documentos de la empresa (&lt;ejercicio&gt;\Actas) y la abre" />
       <Separator />
       <MenuItem Header="Deshacer el reparto…" Command="{Binding DeshacerCommand}" ToolTipService.ShowOnDisabled="True"
                 ToolTip="Borra el asiento del reparto elegido y el reparto, con motivo; los pagos a los socios quedan como pagos a cuenta en su 526" />
