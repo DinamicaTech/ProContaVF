@@ -85,6 +85,40 @@ public static class MigracionesActivos
         new CrearIndice("PlanesAmortizacionActivo", "IX_PlanesAmortizacionActivo_Activo",
             "CREATE INDEX IX_PlanesAmortizacionActivo_Activo ON PlanesAmortizacionActivo (IdActivo)"));
 
+    /// <summary>
+    /// Enlaces de ventas con activos (activos 2026-11-17 20:35; facturacion/factura-venta y facturacion/programadas): las líneas de factura de venta
+    /// y de factura programada guardan su activo (IdActivo, opcional). Relleno inicial, una vez: la línea toma el activo cuando su cuenta es una
+    /// subcuenta de un solo activo propio o, si no, cuando su centro de coste es el de un solo activo propio; las demás quedan sin activo
+    /// (<see cref="RellenoActivoLineas"/>).
+    /// </summary>
+    public static Migracion LineasVentaActivo { get; } = new(
+        "20261117_2035_ACTIVO_LINEAS_VENTA", 261117021,
+        "Activo de cada línea de factura de venta y de factura programada, con relleno inicial por subcuenta o centro de coste.",
+        "activos",
+        new AnadirColumna("LineasFactura", "IdActivo", "LONG"),
+        new CrearIndice("LineasFactura", "IX_LineasFactura_Activo", "CREATE INDEX IX_LineasFactura_Activo ON LineasFactura (IdActivo)"),
+        Relacion("LineasFactura", "FK_LineasFactura_Activo", "ALTER TABLE LineasFactura ADD CONSTRAINT FK_LineasFactura_Activo FOREIGN KEY (IdActivo) REFERENCES Activos (IdActivo)"),
+        new AnadirColumna("LineasFacturasProgramadas", "IdActivo", "LONG"),
+        new CrearIndice("LineasFacturasProgramadas", "IX_LineasFacturasProgramadas_Activo",
+            "CREATE INDEX IX_LineasFacturasProgramadas_Activo ON LineasFacturasProgramadas (IdActivo)"),
+        Relacion("LineasFacturasProgramadas", "FK_LineasFacturasProgramadas_Activo",
+            "ALTER TABLE LineasFacturasProgramadas ADD CONSTRAINT FK_LineasFacturasProgramadas_Activo FOREIGN KEY (IdActivo) REFERENCES Activos (IdActivo)"),
+        new PasoPersonalizado(
+            "Rellenar el activo de las líneas de factura y de programada por subcuenta de un solo activo o, si no, por centro de un solo activo",
+            "UPDATE LineasFactura/LineasFacturasProgramadas SET IdActivo = subcuenta de un solo activo propio; si no, centro de un solo activo propio",
+            // Hecho si alguna línea ya tiene activo o si el relleno no tiene nada que poner: después el operador puede quitar el activo de una
+            // línea a propósito sin que la migración parezca a medias.
+            async (s, e) => e.ExisteColumna("LineasFactura", "IdActivo") && e.ExisteColumna("LineasFacturasProgramadas", "IdActivo") &&
+                (await RellenoActivoLineas.HayAlgunoAsync(s) || (await RellenoActivoLineas.ProponerAsync(s)).Count == 0),
+            async (s, _) => await RellenoActivoLineas.AplicarAsync(s)))
+    {
+        Descripciones =
+        [
+            new("LineasFactura", "IdActivo", "Activo al que corresponde la línea (opcional): lo elige el operador en el editor, lo pone «Facturar ventas…» con el de la venta o lo copia la programada. Lo usa el apartado «Ventas» de la ficha del activo."),
+            new("LineasFacturasProgramadas", "IdActivo", "Activo al que corresponde la línea (opcional); las facturas que genera la programada lo copian."),
+        ],
+    };
+
     private static async Task<bool> TiposPgcCompletosAsync(ISesionDatos s)
     {
         var codigos = (await s.ConsultarAsync("SELECT Codigo, EstaActivo FROM TiposActivo", f => (Codigo: (f.Texto("Codigo") ?? "").Trim(), Activo: f.Logico("EstaActivo"))))
@@ -105,4 +139,76 @@ public static class MigracionesActivos
         new($"Relacionar {tabla} ({nombre})", sql,
             (_, e) => Task.FromResult(MigracionesOrganizacion.TieneRelacion(e, tabla, nombre)),
             (s, _) => s.EjecutarAsync(sql));
+}
+
+/// <summary>
+/// Relleno inicial del activo de las líneas de venta (activos 2026-11-17 20:35). Una línea toma el activo cuando su cuenta es una subcuenta de un
+/// solo activo propio (no ajeno; también los dados de baja) o, si no, cuando su centro de coste es el de un solo activo propio. Las cuentas se
+/// buscan por código en todos los ejercicios de la sociedad, porque una programada vive varios ejercicios. Solo toca líneas sin activo.
+/// </summary>
+public static class RellenoActivoLineas
+{
+    /// <summary>La regla: subcuenta de un solo activo; si no, centro de un solo activo; si no, ninguno.</summary>
+    public static int? Elegir(IReadOnlyCollection<int> activosDeLaCuenta, IReadOnlyCollection<int> activosDelCentro) =>
+        activosDeLaCuenta.Count == 1 ? activosDeLaCuenta.First()
+        : activosDelCentro.Count == 1 ? activosDelCentro.First()
+        : null;
+
+    /// <summary>Línea propuesta: tabla («F» factura, «P» programada), identificador de la línea y activo.</summary>
+    public sealed record Propuesta(char Tabla, int IdLinea, int IdActivo);
+
+    internal static async Task<bool> HayAlgunoAsync(ISesionDatos s) =>
+        Convert.ToInt32(await s.EscalarAsync("SELECT COUNT(*) FROM LineasFactura WHERE IdActivo IS NOT NULL"), System.Globalization.CultureInfo.InvariantCulture) > 0 ||
+        Convert.ToInt32(await s.EscalarAsync("SELECT COUNT(*) FROM LineasFacturasProgramadas WHERE IdActivo IS NOT NULL"), System.Globalization.CultureInfo.InvariantCulture) > 0;
+
+    public static async Task<IReadOnlyList<Propuesta>> ProponerAsync(ISesionDatos s)
+    {
+        var porCuenta = new Dictionary<(string Sociedad, string Codigo), HashSet<int>>();
+        foreach (var f in await s.ConsultarAsync(
+                     "SELECT DISTINCT se.IdSociedad, c.Codigo, a.IdActivo FROM ((SubcuentasActivo AS sa INNER JOIN Activos AS a ON sa.IdActivo = a.IdActivo) " +
+                     "INNER JOIN CuentasContables AS c ON sa.IdIdentidadContable = c.IdIdentidadContable) INNER JOIN SociedadesEjercicios AS se ON c.IdSociedadEjercicio = se.IdSociedadEjercicio " +
+                     "WHERE a.EsAjeno = False AND se.IdSociedad = a.IdSociedad",
+                     r => (Sociedad: (r.Texto("IdSociedad") ?? "").Trim(), Codigo: (r.Texto("Codigo") ?? "").Trim(), Activo: r.Entero("IdActivo"))))
+        {
+            if (!porCuenta.TryGetValue((f.Sociedad, f.Codigo), out var set)) porCuenta[(f.Sociedad, f.Codigo)] = set = [];
+            set.Add(f.Activo);
+        }
+        var porCentro = (await s.ConsultarAsync("SELECT IdSociedad, IdCentroCoste, IdActivo FROM Activos WHERE EsAjeno = False AND IdCentroCoste IS NOT NULL",
+                r => (Sociedad: (r.Texto("IdSociedad") ?? "").Trim(), Centro: r.Entero("IdCentroCoste"), Activo: r.Entero("IdActivo"))))
+            .GroupBy(x => (x.Sociedad, x.Centro)).ToDictionary(g => g.Key, g => (IReadOnlyCollection<int>)g.Select(x => x.Activo).Distinct().ToList());
+
+        var lineas = new List<(char Tabla, int Id, string Sociedad, string? Cuenta, int? Centro)>();
+        lineas.AddRange((await s.ConsultarAsync(
+            "SELECT l.IdLineaFactura AS Id, se.IdSociedad, l.CuentaContable, l.IdCentroCoste FROM (LineasFactura AS l INNER JOIN Facturas AS f ON l.IdFactura = f.IdFactura) " +
+            "INNER JOIN SociedadesEjercicios AS se ON f.IdSociedadEjercicio = se.IdSociedadEjercicio WHERE l.IdActivo IS NULL",
+            Leer)).Select(x => ('F', x.Id, x.Sociedad, x.Cuenta, x.Centro)));
+        lineas.AddRange((await s.ConsultarAsync(
+            "SELECT l.IdLineaFacturaProgramada AS Id, se.IdSociedad, l.CuentaContable, l.IdCentroCoste FROM (LineasFacturasProgramadas AS l INNER JOIN FacturasProgramadas AS p " +
+            "ON l.IdFacturaProgramada = p.IdFacturaProgramada) INNER JOIN SociedadesEjercicios AS se ON p.IdSociedadEjercicio = se.IdSociedadEjercicio WHERE l.IdActivo IS NULL",
+            Leer)).Select(x => ('P', x.Id, x.Sociedad, x.Cuenta, x.Centro)));
+
+        IReadOnlyCollection<int> ninguno = [];
+        var propuestas = new List<Propuesta>();
+        foreach (var l in lineas)
+        {
+            IReadOnlyCollection<int> deCuenta = l.Cuenta is { Length: > 0 } c && porCuenta.TryGetValue((l.Sociedad, c), out var a) ? a : ninguno;
+            var deCentro = l.Centro is int ce && porCentro.TryGetValue((l.Sociedad, ce), out var b) ? b : ninguno;
+            if (Elegir(deCuenta, deCentro) is int activo) propuestas.Add(new Propuesta(l.Tabla, l.Id, activo));
+        }
+        return propuestas;
+
+        static (int Id, string Sociedad, string? Cuenta, int? Centro) Leer(IFilaDatos r) =>
+            (r.Entero("Id"), (r.Texto("IdSociedad") ?? "").Trim(), r.Texto("CuentaContable")?.Trim(), r.EnteroNulo("IdCentroCoste"));
+    }
+
+    /// <summary>Aplica el relleno y devuelve cuántas líneas de factura y de programada han tomado activo.</summary>
+    public static async Task<(int Facturas, int Programadas)> AplicarAsync(ISesionDatos s)
+    {
+        var propuestas = await ProponerAsync(s);
+        foreach (var p in propuestas)
+            await s.EjecutarAsync(p.Tabla == 'F'
+                ? "UPDATE LineasFactura SET IdActivo = ? WHERE IdLineaFactura = ? AND IdActivo IS NULL"
+                : "UPDATE LineasFacturasProgramadas SET IdActivo = ? WHERE IdLineaFacturaProgramada = ? AND IdActivo IS NULL", p.IdActivo, p.IdLinea);
+        return (propuestas.Count(p => p.Tabla == 'F'), propuestas.Count(p => p.Tabla == 'P'));
+    }
 }

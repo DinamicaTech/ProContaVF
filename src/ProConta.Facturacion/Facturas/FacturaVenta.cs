@@ -87,6 +87,9 @@ public sealed class LineaFacturaVenta
     public int? IdDepartamento { get; set; }
     public int? IdCentroCoste { get; set; }
 
+    /// <summary>Activo al que corresponde la línea (opcional; activos 2026-11-17 20:35). No cambia ni la contabilización ni los importes.</summary>
+    public int? IdActivo { get; set; }
+
     public Importe BaseImponible { get; internal set; }
     public Importe CuotaIva { get; internal set; }
     public Importe CuotaRecargo { get; internal set; }

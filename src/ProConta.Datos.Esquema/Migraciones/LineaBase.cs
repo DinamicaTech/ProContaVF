@@ -116,6 +116,7 @@ public static class CatalogoMigraciones
         MigracionesContabilidad.AmortizacionActivos,
         MigracionesContabilidad.CentimosResiduales,
         MigracionesDividendos.AplicacionResultado,
+        MigracionesActivos.LineasVentaActivo,
     ];
 
     /// <summary>Versión del esquema que espera esta versión del programa.</summary>

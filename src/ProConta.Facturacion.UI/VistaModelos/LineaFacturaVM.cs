@@ -16,7 +16,7 @@ public sealed class LineaFacturaVM : ModeloVista, INotifyDataErrorInfo
     private readonly Action _cambiada;
     private readonly Dictionary<string, string> _errores = new(StringComparer.Ordinal);
 
-    internal LineaFacturaVM(LineaFacturaVenta linea, bool editable, IReadOnlyList<decimal> tiposIva, IReadOnlyList<OpcionCentroCoste> centros, Action cambiada)
+    internal LineaFacturaVM(LineaFacturaVenta linea, bool editable, IReadOnlyList<decimal> tiposIva, IReadOnlyList<OpcionCentroCoste> centros, IReadOnlyList<ActivoLinea> activos, Action cambiada)
     {
         Datos = linea;
         Editable = editable;
@@ -26,6 +26,9 @@ public sealed class LineaFacturaVM : ModeloVista, INotifyDataErrorInfo
         CentrosCoste = linea.IdCentroCoste is int c && centros.All(o => o.Id != c)
             ? centros.Append(new OpcionCentroCoste(c, $"ERP {c} (sin migrar)")).ToList()
             : centros;
+        // Se eligen los activos en uso; el de la línea se sigue viendo aunque esté de baja.
+        Activos = [SinActivo, .. activos.Where(a => a.EnUso || a.IdActivo == linea.IdActivo)];
+        if (linea.IdActivo is int ia && Activos.All(a => a.IdActivo != ia)) Activos = [.. Activos, new ActivoLinea(ia, "", $"Activo {ia} (no disponible)", null, null, false)];
         _fecha = Texto.Fecha(linea.Fecha);
         _cambiada = cambiada;
     }
@@ -60,6 +63,30 @@ public sealed class LineaFacturaVM : ModeloVista, INotifyDataErrorInfo
     {
         get => CentrosCoste.FirstOrDefault(o => o.Id == Datos.IdCentroCoste);
         set { Datos.IdCentroCoste = value?.Id; Cambiada(nameof(CentroCoste)); }
+    }
+
+    /// <summary>«Sin activo» al principio de la lista.</summary>
+    public static readonly ActivoLinea SinActivo = new(0, "", "Sin activo", null, null);
+
+    /// <summary>Activos propios en uso de la sociedad, con «Sin activo» al principio.</summary>
+    public IReadOnlyList<ActivoLinea> Activos { get; }
+
+    /// <summary>
+    /// Activo de la línea (activos 2026-11-17 20:35): al elegirlo, la línea toma su centro de coste (se puede cambiar) y, si no tiene cuenta, su
+    /// subcuenta de ingreso por alquiler.
+    /// </summary>
+    public ActivoLinea? Activo
+    {
+        get => Activos.FirstOrDefault(a => a.IdActivo == (Datos.IdActivo ?? 0));
+        set
+        {
+            var elegido = value is null || value.IdActivo == 0 ? null : value;
+            if (elegido?.IdActivo == Datos.IdActivo) return;
+            var (centro, cuenta) = ReglasActivoLinea.Elegir(Datos, elegido);
+            if (centro) Avisar(nameof(CentroCoste));
+            if (cuenta) { QuitarError(nameof(Cuenta)); Avisar(nameof(Cuenta)); }
+            Cambiada(nameof(Activo));
+        }
     }
 
     internal void AvisarNumero() => Avisar(nameof(Numero));
