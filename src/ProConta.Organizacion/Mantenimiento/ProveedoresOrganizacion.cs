@@ -39,6 +39,10 @@ public static class ProveedoresOrganizacion
         "CuentaAjustesPositivosIva" => ["639"],
         "CuentaReservasDividendos" => ["113"],
         "CuentaRegularizacionProrrata" => ["472"],
+        "CuentaImpuestoSociedades" or "CuentaImpuestoDiferidoIS" => ["630"],
+        "CuentaHaciendaAcreedoraIS" => ["475"],
+        "CuentaHaciendaDeudoraIS" => ["470"],
+        "CuentaCreditoPerdidasIS" => ["474"],
         _ => [],
     };
 
@@ -91,6 +95,35 @@ public static class ProveedoresOrganizacion
             Ayuda = "Retención que se aplica a los dividendos que se reparten en este ejercicio, en porcentaje: 19 es el 19 %. Vacío: 19 %. El reparto calcula el bruto de cada socio como neto / (1 − retención)." },
         Cuenta("CuentaReservasDividendos", "Reparto de dividendos · reservas", ayuda: "Cuenta de reservas que se carga por el bruto de los dividendos en Contabilidad › Reparto de dividendos. Vacía: 1130000 (reservas voluntarias). Si no existe, se crea al repartir.",
             sinonimos: ["1130", "reservas", "dividendos"]),
+    ];
+
+    /// <summary>
+    /// Parámetros y cuentas del Impuesto sobre Sociedades del ejercicio (contabilidad/procesos/impuesto-sociedades, esquema 64); vacíos:
+    /// 25 % sin tramo ni bonificación, prefijos 678, 669, 778, 760, 766 y 666, y cuentas 6300000, 4752000, 4709000, 4745000 y 6301000.
+    /// </summary>
+    internal static IEnumerable<CampoMantenimiento> ImpuestoSociedades() =>
+    [
+        new("TipoImpuestoSociedades", "Impuesto sobre Sociedades · tipo general (%)", TipoCampo.Porcentaje) { Grupo = "impuestos", Ancho = "xs", Sinonimos = ["sociedades", "is", "tipo"],
+            Ayuda = "Tipo del IS para la base que pasa del tramo reducido (o para toda, si no hay tramo), en porcentaje: 25 es el 25 %. Vacío: 25 %. Lo confirma la gestoría cada año." },
+        new("LimiteTramoReducidoIS", "Impuesto sobre Sociedades · base del tramo reducido (€)", TipoCampo.Importe) { Grupo = "impuestos", Ancho = "s", Sinonimos = ["sociedades", "tramo", "microempresa"],
+            Ayuda = "Base imponible hasta la que se aplica el tipo reducido (microempresas: los primeros 50.000 €). Vacía: sin tramo, toda la base al tipo general." },
+        new("TipoTramoReducidoIS", "Impuesto sobre Sociedades · tipo del tramo reducido (%)", TipoCampo.Porcentaje) { Grupo = "impuestos", Ancho = "xs", Sinonimos = ["sociedades", "tramo", "microempresa"],
+            Ayuda = "Tipo de la base hasta el límite del tramo reducido, en porcentaje (en 2025, el 21 % de microempresa). Vacío: sin tramo." },
+        new("BonificacionViviendasIS", "Impuesto sobre Sociedades · bonificación por alquiler de viviendas (%)", TipoCampo.Porcentaje) { Grupo = "impuestos", Ancho = "xs", Sinonimos = ["sociedades", "bonificacion", "viviendas"],
+            Ayuda = "Porcentaje de la cuota que corresponde a las rentas del alquiler de viviendas que se bonifica (40 es el 40 %). Las actividades que la tienen se marcan en Catálogos › Actividades (IVA). Vacío: sin bonificación." },
+        new("PrefijosAjustesIS", "Impuesto sobre Sociedades · cuentas de posibles ajustes", TipoCampo.Codigo) { Grupo = "impuestos", Longitud = 255, Ancho = "m", Sinonimos = ["sociedades", "ajustes", "sanciones"],
+            Ayuda = "Prefijos de las cuentas que se listan como posibles ajustes fiscales para validarlos con la gestoría, separados por comas. Vacío: 678, 669, 778, 760, 766, 666 " +
+                "(gastos e ingresos excepcionales, intereses de demora y dividendos o plusvalías de participaciones)." },
+        Cuenta("CuentaImpuestoSociedades", "Impuesto sobre Sociedades · impuesto corriente", ayuda: "Gasto por el impuesto del ejercicio (cuota líquida). Vacía: 6300000. Si no existe, se crea al contabilizar.",
+            sinonimos: ["6300", "sociedades", "impuesto"]),
+        Cuenta("CuentaHaciendaAcreedoraIS", "Impuesto sobre Sociedades · a ingresar", ayuda: "Recibe lo que queda a pagar después de las retenciones y pagos a cuenta. Vacía: 4752000. Si no existe, se crea al contabilizar.",
+            sinonimos: ["4752", "sociedades", "a ingresar"]),
+        Cuenta("CuentaHaciendaDeudoraIS", "Impuesto sobre Sociedades · a devolver", ayuda: "Recibe lo que Hacienda tiene que devolver cuando las retenciones y pagos a cuenta superan la cuota. Vacía: 4709000. Si no existe, se crea al contabilizar.",
+            sinonimos: ["4709", "sociedades", "a devolver"]),
+        Cuenta("CuentaCreditoPerdidasIS", "Impuesto sobre Sociedades · crédito por pérdidas", ayuda: "Crédito por pérdidas a compensar activado; al aplicarlo se abona. Vacía: 4745000.",
+            sinonimos: ["4745", "sociedades", "bases negativas"]),
+        Cuenta("CuentaImpuestoDiferidoIS", "Impuesto sobre Sociedades · impuesto diferido", ayuda: "Gasto que recibe el crédito por pérdidas aplicado. Vacía: 6301000. Si no existe, se crea al contabilizar.",
+            sinonimos: ["6301", "sociedades", "diferido"]),
     ];
 
     /// <summary>
@@ -181,7 +214,7 @@ public static class ProveedoresOrganizacion
     };
 
     public static ProveedorTablaAccess Ejercicios(IBaseDatos bd) => new(bd, "ejercicios", "Ejercicios", "Empresas y ejercicios",
-        "Ejercicios de la empresa de trabajo con su forma de pago predeterminada, tipo de IVA general, prorrata, cuentas y carpeta de compras.", AmbitoMantenimiento.Sociedad, "ejercicio",
+        "Ejercicios de la empresa de trabajo con su forma de pago predeterminada, tipo de IVA general, prorrata, Impuesto sobre Sociedades, cuentas y carpeta de compras.", AmbitoMantenimiento.Sociedad, "ejercicio",
         "SociedadesEjercicios", "IdSociedadEjercicio", ClaveNueva.Autonumerica,
         [
             new("Ejercicio", "Ejercicio", TipoCampo.Codigo) { Grupo = "ident", Obligatorio = true, Longitud = 4, Ancho = "xs", Ayuda = "Cuatro cifras, por ejemplo 2026.", Sinonimos = ["año"] },
@@ -195,7 +228,7 @@ public static class ProveedoresOrganizacion
             TipoGeneral(),
             ProrrataAnterior(),
             ProrrataDefinitiva(),
-            .. Cuentas(), .. CuentasCompras(), .. CuentasLiquidacionIva(), .. Dividendos(),
+            .. Cuentas(), .. CuentasCompras(), .. CuentasLiquidacionIva(), .. Dividendos(), .. ImpuestoSociedades(),
             Ruta("CarpetaFacturasCompra", "Carpeta de facturas de compra") with
             {
                 Ayuda = "Dónde se buscan los PDF de compra de este ejercicio, dentro de la carpeta de documentos de la empresa (Empresas › Carpeta de documentos, la ruta base), por ejemplo 2026\\Proveedores. " +
@@ -208,7 +241,7 @@ public static class ProveedoresOrganizacion
         ColumnaAmbito = "IdSociedad",
         Orden = "Ejercicio DESC",
         GruposCampos = GruposEjercicio,
-        Alias = ["ejercicio", "año", "trimestre", "prorrata", "suplido", "retencion", "dividendos", "reservas"],
+        Alias = ["ejercicio", "año", "trimestre", "prorrata", "suplido", "retencion", "dividendos", "reservas", "sociedades", "impuesto"],
         Usos = [new("SeriesFacturacion", "IdSociedadEjercicio", "series"), new("Facturas", "IdSociedadEjercicio", "facturas"),
             new("CuentasContables", "IdSociedadEjercicio", "cuentas contables"), new("Asientos", "IdSociedadEjercicio", "asientos")],
         Titular = r => r.EsNuevo ? "Nuevo ejercicio" : r.Texto("Nombre") ?? $"Ejercicio {r.Texto("Ejercicio")}",

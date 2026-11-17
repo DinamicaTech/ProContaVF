@@ -57,6 +57,8 @@ public static class Acciones
     public const string LiquidacionIva = "PROCESOS.LIQUIDACION_IVA";
     /// <summary>Repartir dividendos, corregir y deshacer un reparto (contabilidad/procesos/aplicacion-resultado 2026-11-16).</summary>
     public const string Dividendos = "PROCESOS.DIVIDENDOS";
+    /// <summary>Contabilizar el Impuesto sobre Sociedades del ejercicio y deshacerlo (contabilidad/procesos/impuesto-sociedades 2026-11-17).</summary>
+    public const string ImpuestoSociedades = "PROCESOS.IMPUESTO_SOCIEDADES";
 
     /// <summary>
     /// Acción que manda mientras una acción nueva no tenga ningún grupo asignado: «Cambiar el trimestre activo» la tienen
@@ -69,6 +71,8 @@ public static class Acciones
         LiquidacionIva => TrimestreCambiar,
         // Repartir dividendos graba asientos de reservas y retenciones: mientras no tenga grupos, lo tienen quienes pueden liquidar el IVA.
         Dividendos => LiquidacionIva,
+        // El Impuesto sobre Sociedades graba el gasto por impuesto y salda las 473: mientras no tenga grupos, lo tienen quienes pueden liquidar el IVA.
+        ImpuestoSociedades => LiquidacionIva,
         _ => null
     };
 }

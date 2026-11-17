@@ -1,0 +1,313 @@
+﻿<UserControl x:Class="ProConta.Contabilidad.UI.ImpuestoSociedades.PantallaImpuestoSociedades"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:pc="urn:proconta-ui"
+             x:Name="Raiz"
+             Background="White">
+  <UserControl.Resources>
+    <pc:VisibleSiConverter x:Key="Visible" />
+    <ContextMenu x:Key="Menu.Asiento">
+      <MenuItem Header="Volver a leer la contabilidad" Command="{Binding RecalcularCommand}" InputGestureText="F9" ToolTipService.ShowOnDisabled="True"
+                ToolTip="Vuelve a leer el resultado, las 473 y los posibles ajustes con los apuntes de ahora y recalcula con lo escrito" />
+      <MenuItem Header="Ver el asiento" Command="{Binding VerAsientoCommand}" ToolTipService.ShowOnDisabled="True"
+                ToolTip="Abre el asiento grabado del impuesto (solo si ya está contabilizado)" />
+      <MenuItem Header="Mayor de sus cuentas" Command="{Binding MayorAsientoCommand}" ToolTipService.ShowOnDisabled="True"
+                ToolTip="Abre el Mayor de las cuentas del asiento propuesto (6300, 473, 4752 o 4709)" />
+      <Separator />
+      <MenuItem Header="Deshacer el impuesto…" Command="{Binding DeshacerCommand}" ToolTipService.ShowOnDisabled="True"
+                ToolTip="Borra el asiento del impuesto y el cálculo guardado, con motivo" />
+    </ContextMenu>
+    <ContextMenu x:Key="Menu.Ajuste">
+      <MenuItem Header="Quitar el ajuste" Command="{Binding QuitarAjusteCommand}" ToolTipService.ShowOnDisabled="True"
+                ToolTip="Quita la línea de ajuste elegida y recalcula" />
+    </ContextMenu>
+    <ContextMenu x:Key="Menu.Posible">
+      <MenuItem Header="Añadir como ajuste" Command="{Binding AnadirPosibleCommand}" ToolTipService.ShowOnDisabled="True"
+                ToolTip="Crea una línea de ajuste permanente con el saldo de la cuenta: aumento si es un gasto, disminución si es un ingreso. Cámbiala si la gestoría dice otra cosa" />
+      <MenuItem Header="Mayor de la cuenta" Command="{Binding MayorPosibleCommand}" ToolTipService.ShowOnDisabled="True"
+                ToolTip="Abre el Mayor de la cuenta para ver sus apuntes" />
+    </ContextMenu>
+    <ContextMenu x:Key="Menu.Retencion">
+      <MenuItem Header="Contraste con Hacienda…" Command="{Binding AbrirContrasteCommand}" ToolTipService.ShowOnDisabled="True"
+                ToolTip="Abre el contraste por pagador: lo que dice Hacienda, lo contabilizado con sus apuntes y el valor para el IS" />
+      <MenuItem Header="Mayor de la cuenta" Command="{Binding MayorRetencionCommand}" ToolTipService.ShowOnDisabled="True"
+                ToolTip="Abre el Mayor de la 473 para cotejar sus apuntes con el certificado del pagador" />
+    </ContextMenu>
+  </UserControl.Resources>
+  <UserControl.InputBindings>
+    <KeyBinding Key="F5" Command="{Binding RefrescarCommand}" />
+    <KeyBinding Key="F9" Command="{Binding RecalcularCommand}" />
+  </UserControl.InputBindings>
+
+  <DockPanel>
+    <!-- Cabecera: acciones generales -->
+    <Border DockPanel.Dock="Top" BorderBrush="{StaticResource Pincel.Linea}" BorderThickness="0,0,0,1" Padding="14,8">
+      <DockPanel>
+        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+          <Button Content="Actualizar" Style="{StaticResource Boton}" Command="{Binding RefrescarCommand}" VerticalAlignment="Center"
+                  ToolTip="Vuelve a leer el impuesto guardado y la contabilidad, y descarta lo escrito sin confirmar (F5)" />
+        </StackPanel>
+        <StackPanel Orientation="Horizontal">
+          <TextBlock Text="Impuesto sobre Sociedades" Style="{StaticResource Texto.TituloPantalla}" VerticalAlignment="Center" Margin="0,0,12,0" />
+          <TextBlock Text="{Binding Subtitulo}" Style="{StaticResource Texto.Apagado}" VerticalAlignment="Center" Margin="0,0,12,0" />
+          <Border CornerRadius="{StaticResource Radio.Pastilla}" Padding="8,1" VerticalAlignment="Center" ToolTip="{Binding AyudaEstado}">
+            <Border.Style>
+              <Style TargetType="Border">
+                <Setter Property="Background" Value="{StaticResource Pincel.AzulSuave}" />
+                <Style.Triggers>
+                  <DataTrigger Binding="{Binding ClaseEstado}" Value="CONTABILIZADO">
+                    <Setter Property="Background" Value="{StaticResource Pincel.VerdeSuave}" />
+                  </DataTrigger>
+                  <DataTrigger Binding="{Binding ClaseEstado}" Value="DESACTUALIZADO">
+                    <Setter Property="Background" Value="{StaticResource Pincel.AvisoSuave}" />
+                  </DataTrigger>
+                </Style.Triggers>
+              </Style>
+            </Border.Style>
+            <TextBlock Text="{Binding EstadoTexto}" FontSize="{StaticResource Letra.Pequena}" FontWeight="SemiBold" Foreground="{StaticResource Pincel.Texto2}" />
+          </Border>
+          <TextBlock Text="{Binding AyudaEstado}" Style="{StaticResource Texto.Apagado}" VerticalAlignment="Center" Margin="10,0,0,0" TextTrimming="CharacterEllipsis" />
+        </StackPanel>
+      </DockPanel>
+    </Border>
+
+    <!-- Pie: confirmar lo que se ve -->
+    <Border DockPanel.Dock="Bottom" Style="{StaticResource Barra.Pie}">
+      <DockPanel>
+        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+          <Button Content="Descartar cambios" Style="{StaticResource Boton}" Command="{Binding DescartarCommand}" Margin="0,0,8,0"
+                  ToolTip="Vuelve a lo guardado (o a la propuesta sin ajustes) y borra el motivo escrito" />
+          <Button Content="{Binding TextoConfirmar}" Style="{StaticResource Boton.Primario}" Command="{Binding ConfirmarCommand}" ToolTipService.ShowOnDisabled="True"
+                  ToolTip="{Binding PorQueNoConfirmar, TargetNullValue='Graba exactamente el asiento de la propuesta el 31/12 y guarda el cálculo con sus ajustes (repetirlo lo sustituye)'}" />
+        </StackPanel>
+        <StackPanel DockPanel.Dock="Left" Orientation="Horizontal" Margin="0,0,12,0" Visibility="{Binding PideMotivo, Converter={StaticResource Visible}}">
+          <TextBlock Text="Motivo" VerticalAlignment="Center" Margin="0,0,8,0" ToolTip="{Binding AyudaMotivo}" />
+          <TextBox Text="{Binding Motivo, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource Campo}" Width="360" MaxLength="255" VerticalAlignment="Center"
+                   ToolTip="{Binding AyudaMotivo}" AutomationProperties.Name="Motivo" />
+        </StackPanel>
+        <TextBlock Text="{Binding PorQueNoConfirmar}" Style="{StaticResource Texto.Apagado}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+      </DockPanel>
+    </Border>
+
+    <pc:VistaEstado Estado="{Binding Estado}" Mensaje="{Binding MensajeEstado}" TextoAccion="Actualizar" ComandoAccion="{Binding RefrescarCommand}">
+      <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+        <StackPanel Margin="14,10,14,10">
+          <TextBlock Text="{Binding TituloPropuesta}" Style="{StaticResource Texto.Seccion}" Margin="0,0,0,8" />
+          <TextBlock Text="{Binding TextoSinPropuesta}" Style="{StaticResource Texto.Apagado}" TextWrapping="Wrap" MaxWidth="760" HorizontalAlignment="Left" Margin="0,0,0,8"
+                     Visibility="{Binding HayPropuesta, Converter={StaticResource Visible}, ConverterParameter=invertir}" />
+
+          <Grid>
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="Auto" />
+              <ColumnDefinition Width="24" />
+              <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+
+            <!-- Izquierda: la hoja de cálculo y lo que confirma la gestoría -->
+            <StackPanel Grid.Column="0" Width="470">
+              <ItemsControl ItemsSource="{Binding Calculo}" Focusable="False" AutomationProperties.Name="Cálculo del impuesto">
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate>
+                    <Border BorderBrush="{StaticResource Pincel.Linea}" BorderThickness="0,0,0,1" Padding="0,3" ToolTip="{Binding Ayuda}">
+                      <DockPanel>
+                        <TextBlock x:Name="Importe" DockPanel.Dock="Right" Text="{Binding Importe}" Style="{StaticResource Texto.Importe}" />
+                        <TextBlock x:Name="Concepto" Text="{Binding Concepto}" VerticalAlignment="Center" />
+                      </DockPanel>
+                    </Border>
+                    <DataTemplate.Triggers>
+                      <DataTrigger Binding="{Binding Destacada}" Value="True">
+                        <Setter TargetName="Importe" Property="FontWeight" Value="SemiBold" />
+                        <Setter TargetName="Concepto" Property="FontWeight" Value="SemiBold" />
+                      </DataTrigger>
+                      <DataTrigger Binding="{Binding Sangrada}" Value="True">
+                        <Setter TargetName="Concepto" Property="Margin" Value="16,0,0,0" />
+                        <Setter TargetName="Concepto" Property="Foreground" Value="{StaticResource Pincel.Texto2}" />
+                      </DataTrigger>
+                    </DataTemplate.Triggers>
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+
+              <TextBlock Text="Lo que confirma la gestoría" Style="{StaticResource Texto.Seccion}" Margin="0,14,0,6" />
+              <Grid>
+                <Grid.ColumnDefinitions>
+                  <ColumnDefinition Width="230" />
+                  <ColumnDefinition Width="120" />
+                  <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                  <RowDefinition Height="Auto" />
+                  <RowDefinition Height="Auto" />
+                  <RowDefinition Height="Auto" />
+                  <RowDefinition Height="Auto" />
+                  <RowDefinition Height="Auto" />
+                  <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+                <TextBlock Grid.Row="0" Text="Compensación de bases negativas" VerticalAlignment="Center"
+                           ToolTip="Pérdidas fiscales de años anteriores que la gestoría resta este año de la base. Vacío: ninguna" />
+                <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding BasesNegativas, UpdateSourceTrigger=LostFocus}" Style="{StaticResource Campo.Importe}" Margin="0,2"
+                         ToolTip="Pérdidas fiscales de años anteriores que la gestoría resta este año de la base. Vacío: ninguna" AutomationProperties.Name="Compensación de bases negativas" />
+
+                <TextBlock Grid.Row="1" Text="Renta de viviendas a aplicar" VerticalAlignment="Center" ToolTip="{Binding AyudaRenta}" />
+                <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding RentaAplicar, UpdateSourceTrigger=LostFocus}" Style="{StaticResource Campo.Importe}" Margin="0,2"
+                         ToolTip="{Binding AyudaRenta}" AutomationProperties.Name="Renta de viviendas a aplicar" />
+                <StackPanel Grid.Row="1" Grid.Column="2" Orientation="Horizontal" Margin="8,0,0,0" VerticalAlignment="Center">
+                  <Button Content="Detalle…" Style="{StaticResource Boton.Enlace}" Command="{Binding AbrirRentaCommand}" Margin="0,0,10,0"
+                          ToolTip="Abre el cálculo de la renta de viviendas: ingresos, gastos directos y gastos generales imputados, con cada cuenta" />
+                  <Button Content="Usar la calculada" Style="{StaticResource Boton.Enlace}" Command="{Binding UsarRentaCalculadaCommand}"
+                          ToolTip="Vacía el campo para aplicar la renta de viviendas calculada" />
+                </StackPanel>
+
+                <TextBlock Grid.Row="2" Text="Bonificación por alquiler de viviendas" VerticalAlignment="Center" ToolTip="{Binding AyudaBonificacion}" />
+                <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding Bonificaciones, UpdateSourceTrigger=LostFocus}" Style="{StaticResource Campo.Importe}" Margin="0,2"
+                         ToolTip="{Binding AyudaBonificacion}" AutomationProperties.Name="Bonificaciones" />
+                <Button Grid.Row="2" Grid.Column="2" Content="Usar la propuesta" Style="{StaticResource Boton.Enlace}" Command="{Binding UsarBonificacionCommand}" Margin="8,0,0,0"
+                        VerticalAlignment="Center" HorizontalAlignment="Left" ToolTip="Vacía el campo para usar la bonificación propuesta con la renta de las actividades bonificadas" />
+
+                <TextBlock Grid.Row="3" Text="Deducciones" VerticalAlignment="Center" ToolTip="Deducciones de la cuota (doble imposición, inversión…) que indique la gestoría. Vacío: ninguna" />
+                <TextBox Grid.Row="3" Grid.Column="1" Text="{Binding Deducciones, UpdateSourceTrigger=LostFocus}" Style="{StaticResource Campo.Importe}" Margin="0,2"
+                         ToolTip="Deducciones de la cuota (doble imposición, inversión…) que indique la gestoría. Vacío: ninguna" AutomationProperties.Name="Deducciones" />
+
+                <TextBlock Grid.Row="4" Text="Crédito por pérdidas aplicado" VerticalAlignment="Center" ToolTip="{Binding AyudaCredito}" />
+                <TextBox Grid.Row="4" Grid.Column="1" Text="{Binding Credito, UpdateSourceTrigger=LostFocus}" Style="{StaticResource Campo.Importe}" Margin="0,2"
+                         ToolTip="{Binding AyudaCredito}" AutomationProperties.Name="Crédito por pérdidas aplicado" />
+
+                <TextBlock Grid.Row="5" Text="Cuota líquida a contabilizar" VerticalAlignment="Center" FontWeight="SemiBold" ToolTip="{Binding AyudaCuota}" />
+                <TextBox Grid.Row="5" Grid.Column="1" Text="{Binding Cuota, UpdateSourceTrigger=LostFocus}" Style="{StaticResource Campo.Importe}" Margin="0,2"
+                         ToolTip="{Binding AyudaCuota}" AutomationProperties.Name="Cuota líquida a contabilizar" />
+                <Button Grid.Row="5" Grid.Column="2" Content="Usar la calculada" Style="{StaticResource Boton.Enlace}" Command="{Binding UsarCuotaCommand}" Margin="8,0,0,0"
+                        VerticalAlignment="Center" HorizontalAlignment="Left" ToolTip="Vacía el campo para contabilizar la cuota líquida calculada" />
+              </Grid>
+              <TextBlock Text="{Binding Resultado}" FontWeight="SemiBold" FontSize="{StaticResource Letra.Destacada}" Margin="0,10,0,0" />
+              <TextBlock Text="Pulsa Tab al acabar de escribir un importe para recalcular." Style="{StaticResource Texto.Apagado}" Margin="0,2,0,0" />
+            </StackPanel>
+
+            <!-- Derecha: ajustes, posibles ajustes y retenciones -->
+            <StackPanel Grid.Column="2">
+              <DockPanel Margin="0,0,0,6">
+                <Button DockPanel.Dock="Right" Content="Añadir ajuste" Style="{StaticResource Boton.Pequeno}" Command="{Binding AnadirAjusteCommand}"
+                        ToolTip="Añade una línea de ajuste al resultado: permanente o temporal, aumento o disminución, con su texto e importe" />
+                <TextBlock Text="Ajustes al resultado contable" Style="{StaticResource Texto.Seccion}" VerticalAlignment="Center" />
+              </DockPanel>
+              <DataGrid Style="{StaticResource Tabla}" ItemsSource="{Binding Ajustes}" SelectedItem="{Binding AjusteSeleccionado}" AutoGenerateColumns="False" HeadersVisibility="Column"
+                        CanUserAddRows="False" CanUserDeleteRows="False" RowStyle="{StaticResource Tabla.Fila}" MinHeight="60" MaxHeight="220" Margin="0,0,0,12"
+                        ContextMenu="{StaticResource Menu.Ajuste}" AutomationProperties.Name="Ajustes al resultado contable"
+                        ToolTip="Ajustes que confirma la gestoría (multas, ajuste del art. 21.3…). Clic derecho: quitar el ajuste">
+                <DataGrid.Columns>
+                  <DataGridTemplateColumn Header="Clase" Width="110">
+                    <DataGridTemplateColumn.CellTemplate>
+                      <DataTemplate>
+                        <ComboBox ItemsSource="{Binding DataContext.Clases, ElementName=Raiz}" SelectedItem="{Binding Clase, UpdateSourceTrigger=PropertyChanged}" Margin="0,1"
+                                  ToolTip="Permanente: no revierte en años siguientes (multas, exenciones). Temporal: revierte (amortizaciones aceleradas, deterioros…)" />
+                      </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                  </DataGridTemplateColumn>
+                  <DataGridTemplateColumn Header="Sentido" Width="120">
+                    <DataGridTemplateColumn.CellTemplate>
+                      <DataTemplate>
+                        <ComboBox ItemsSource="{Binding DataContext.Sentidos, ElementName=Raiz}" SelectedItem="{Binding Sentido, UpdateSourceTrigger=PropertyChanged}" Margin="0,1"
+                                  ToolTip="Aumento: suma al resultado (un gasto que no es deducible). Disminución: resta (un ingreso exento)" />
+                      </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                  </DataGridTemplateColumn>
+                  <DataGridTemplateColumn Header="Descripción" Width="*">
+                    <DataGridTemplateColumn.CellTemplate>
+                      <DataTemplate>
+                        <TextBox Text="{Binding Descripcion, UpdateSourceTrigger=LostFocus}" Style="{StaticResource Campo}" MaxLength="255" Margin="0,1"
+                                 ToolTip="Qué es el ajuste, por ejemplo «Multas y sanciones» o «Ajuste art. 21.3»" />
+                      </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                  </DataGridTemplateColumn>
+                  <DataGridTemplateColumn Header="Importe" Width="120" HeaderStyle="{StaticResource Tabla.Cabecera.Derecha}">
+                    <DataGridTemplateColumn.CellTemplate>
+                      <DataTemplate>
+                        <TextBox Text="{Binding Importe, UpdateSourceTrigger=LostFocus}" Style="{StaticResource Campo.Importe}" Margin="0,1"
+                                 ToolTip="Importe positivo del ajuste; el sentido dice si suma o resta. Al salir del campo se recalcula" />
+                      </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                  </DataGridTemplateColumn>
+                </DataGrid.Columns>
+              </DataGrid>
+
+              <TextBlock Text="Posibles ajustes para validar con la gestoría" Style="{StaticResource Texto.Seccion}" Margin="0,0,0,6"
+                         ToolTip="Saldo del ejercicio de las cuentas de recargos, sanciones, intereses de demora, excepcionales y dividendos o plusvalías de participaciones (Parámetros y tablas › Ejercicios)" />
+              <TextBlock Text="Ninguna cuenta de posibles ajustes tiene saldo este ejercicio." Style="{StaticResource Texto.Apagado}" Margin="0,0,0,12"
+                         Visibility="{Binding HayPosiblesAjustes, Converter={StaticResource Visible}, ConverterParameter=invertir}" />
+              <DataGrid Style="{StaticResource Tabla}" ItemsSource="{Binding PosiblesAjustes}" SelectedItem="{Binding PosibleSeleccionado}" IsReadOnly="True" AutoGenerateColumns="False"
+                        HeadersVisibility="Column" RowStyle="{StaticResource Tabla.Fila}" MaxHeight="200" Margin="0,0,0,12" ContextMenu="{StaticResource Menu.Posible}"
+                        Visibility="{Binding HayPosiblesAjustes, Converter={StaticResource Visible}}" AutomationProperties.Name="Posibles ajustes"
+                        ToolTip="Clic derecho: añadir como ajuste o abrir su Mayor">
+                <DataGrid.Columns>
+                  <DataGridTextColumn Header="Cuenta" Binding="{Binding Cuenta}" Width="90" ElementStyle="{StaticResource Texto.Celda.Mono}" />
+                  <DataGridTextColumn Header="Nombre" Binding="{Binding Nombre}" Width="*" ElementStyle="{StaticResource Texto.Celda}" />
+                  <DataGridTextColumn Header="Apuntes" Binding="{Binding Detalle}" Width="150" ElementStyle="{StaticResource Texto.Celda}" />
+                  <DataGridTextColumn Header="Importe" Binding="{Binding Saldo}" Width="120" ElementStyle="{StaticResource Texto.Celda.Importe}" HeaderStyle="{StaticResource Tabla.Cabecera.Derecha}" />
+                </DataGrid.Columns>
+              </DataGrid>
+
+              <DockPanel Margin="0,0,0,6">
+                <Button DockPanel.Dock="Right" Content="Contraste con Hacienda…" Style="{StaticResource Boton.Pequeno}" Command="{Binding AbrirContrasteCommand}" Margin="12,0,0,0"
+                        ToolTip="Abre el contraste por pagador con los datos fiscales de Hacienda: lo contabilizado con sus apuntes y el valor que se usa en el IS" />
+                <TextBlock DockPanel.Dock="Right" Text="{Binding TotalRetenciones}" Style="{StaticResource Texto.Importe}" FontWeight="SemiBold" VerticalAlignment="Center"
+                           ToolTip="Lo que se deduce: va al Haber de las 473" />
+                <TextBlock DockPanel.Dock="Right" Text="para el IS: " Style="{StaticResource Texto.Apagado}" VerticalAlignment="Center" />
+                <TextBlock DockPanel.Dock="Right" Text="{Binding TotalSaldos}" Style="{StaticResource Texto.Importe}" Margin="0,0,14,0" VerticalAlignment="Center" />
+                <TextBlock DockPanel.Dock="Right" Text="saldos: " Style="{StaticResource Texto.Apagado}" VerticalAlignment="Center" />
+                <TextBlock Text="Retenciones y pagos a cuenta (473)" Style="{StaticResource Texto.Seccion}" VerticalAlignment="Center"
+                           ToolTip="Saldo de cada 473 a 31/12, lo que dice Hacienda y lo que se deduce según el contraste. Lo que no se deduce se queda en la cuenta" />
+              </DockPanel>
+              <TextBlock Text="{Binding PorQueNoContraste}" Foreground="{StaticResource Pincel.Aviso}" TextWrapping="Wrap" Margin="0,0,0,6"
+                         Visibility="{Binding HayPorQueNoContraste, Converter={StaticResource Visible}}" />
+              <DataGrid Style="{StaticResource Tabla}" ItemsSource="{Binding Retenciones}" SelectedItem="{Binding RetencionSeleccionada}" IsReadOnly="True" AutoGenerateColumns="False"
+                        HeadersVisibility="Column" RowStyle="{StaticResource Tabla.Fila}" MaxHeight="240" Margin="0,0,0,12"
+                        ContextMenu="{StaticResource Menu.Retencion}" AutomationProperties.Name="Retenciones y pagos a cuenta"
+                        ToolTip="Lo que se deduce de cada 473 se decide en el contraste con Hacienda. Clic derecho: abrir el contraste o el Mayor">
+                <DataGrid.Columns>
+                  <DataGridTextColumn Header="Cuenta" Binding="{Binding Cuenta}" Width="80" ElementStyle="{StaticResource Texto.Celda.Mono}" />
+                  <DataGridTemplateColumn Header="Nombre y pagadores" Width="*">
+                    <DataGridTemplateColumn.CellTemplate>
+                      <DataTemplate>
+                        <TextBlock Text="{Binding Nombre}" ToolTip="{Binding Pagadores}" Style="{StaticResource Texto.Celda}" TextTrimming="CharacterEllipsis" />
+                      </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                  </DataGridTemplateColumn>
+                  <DataGridTextColumn Header="Saldo" Binding="{Binding Saldo}" Width="100" ElementStyle="{StaticResource Texto.Celda.Importe}" HeaderStyle="{StaticResource Tabla.Cabecera.Derecha}" />
+                  <DataGridTextColumn Header="Hacienda" Binding="{Binding SegunAeat}" Width="100" ElementStyle="{StaticResource Texto.Celda.Importe}" HeaderStyle="{StaticResource Tabla.Cabecera.Derecha}" />
+                  <DataGridTextColumn Header="Para el IS" Binding="{Binding Deducido}" Width="100" ElementStyle="{StaticResource Texto.Celda.Importe}" HeaderStyle="{StaticResource Tabla.Cabecera.Derecha}" />
+                </DataGrid.Columns>
+              </DataGrid>
+            </StackPanel>
+          </Grid>
+
+          <pc:Nota Tipo="Aviso" Margin="0,12,0,0" MaxWidth="1100" HorizontalAlignment="Left" Visibility="{Binding HayAvisos, Converter={StaticResource Visible}}">
+            <ItemsControl ItemsSource="{Binding Avisos}" Focusable="False">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                  <TextBlock Text="{Binding}" TextWrapping="Wrap" Margin="0,1" />
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </pc:Nota>
+
+          <TextBlock Text="Asiento propuesto" Style="{StaticResource Texto.Seccion}" Margin="0,14,0,6" />
+          <DataGrid Style="{StaticResource Tabla}" ItemsSource="{Binding Lineas}" IsReadOnly="True" AutoGenerateColumns="False" HeadersVisibility="Column"
+                    RowStyle="{StaticResource Tabla.Fila}" ContextMenu="{StaticResource Menu.Asiento}" MaxHeight="260" AutomationProperties.Name="Asiento propuesto"
+                    ToolTip="Asiento del 31/12. Clic derecho: volver a leer la contabilidad, ver el asiento grabado, Mayor de sus cuentas o deshacer">
+            <DataGrid.Columns>
+              <DataGridTextColumn Header="Cuenta" Binding="{Binding Cuenta}" Width="90" ElementStyle="{StaticResource Texto.Celda.Mono}" />
+              <DataGridTextColumn Header="Concepto" Binding="{Binding Concepto}" Width="*" ElementStyle="{StaticResource Texto.Celda}" />
+              <DataGridTextColumn Header="Debe" Binding="{Binding Debe}" Width="120" ElementStyle="{StaticResource Texto.Celda.Importe}" HeaderStyle="{StaticResource Tabla.Cabecera.Derecha}" />
+              <DataGridTextColumn Header="Haber" Binding="{Binding Haber}" Width="120" ElementStyle="{StaticResource Texto.Celda.Importe}" HeaderStyle="{StaticResource Tabla.Cabecera.Derecha}" />
+            </DataGrid.Columns>
+          </DataGrid>
+          <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,6,0,0">
+            <TextBlock Text="Total Debe" Style="{StaticResource Texto.Apagado}" Margin="0,0,6,0" />
+            <TextBlock Text="{Binding TotalDebe}" Style="{StaticResource Texto.Importe}" Margin="0,0,18,0" />
+            <TextBlock Text="Total Haber" Style="{StaticResource Texto.Apagado}" Margin="0,0,6,0" />
+            <TextBlock Text="{Binding TotalHaber}" Style="{StaticResource Texto.Importe}" />
+          </StackPanel>
+        </StackPanel>
+      </ScrollViewer>
+    </pc:VistaEstado>
+  </DockPanel>
+</UserControl>

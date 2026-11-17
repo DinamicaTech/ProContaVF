@@ -109,6 +109,7 @@ public static class CatalogoMigraciones
         MigracionesVentas.CompensacionComision,
         MigracionesDividendos.Dividendos,
         MigracionesContabilidad.ProrrataDefinitiva,
+        MigracionesContabilidad.ImpuestoSociedades,
     ];
 
     /// <summary>Versión del esquema que espera esta versión del programa.</summary>
