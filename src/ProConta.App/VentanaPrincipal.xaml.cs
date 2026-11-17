@@ -77,6 +77,7 @@ public partial class VentanaPrincipal : Window
     private readonly ProConta.Contabilidad.UI.Cierre.ModuloCierreEjercicio _cierreEjercicio;
     private readonly ProConta.Contabilidad.UI.FacturasPendientes.ModuloFacturasPendientes _facturasPendientes;
     private readonly ProConta.Contabilidad.UI.Amortizacion.ModuloAmortizacion _amortizacion;
+    private readonly ProConta.Contabilidad.UI.ReinicioCuadre.ModuloReinicioCuadre _reinicioCuadre;
     private readonly ModuloFacturacion _facturacion;
     private readonly ModuloCompras _compras;
     private readonly ModuloCorreo _correo;
@@ -468,6 +469,18 @@ public partial class VentanaPrincipal : Window
             },
             _area, new ProConta.Contabilidad.UI.Liquidacion.DialogosLiquidacionIva(() => this));
         var abrirAmortizacion = new ComandoDelegado(() => _amortizacion.Abrir());
+        // Reiniciar el cuadre del Mayor (contabilidad/procesos/reiniciar-cuadre): en el ejercicio de trabajo, cuadradas las subcuentas con saldo dentro del umbral
+        // y sin la casilla las demás, sin tocar las notas ni hacer asientos; refresca el Mayor abierto.
+        _reinicioCuadre = new ProConta.Contabilidad.UI.ReinicioCuadre.ModuloReinicioCuadre(
+            new ProConta.Contabilidad.UI.ReinicioCuadre.ContextoReinicioCuadre(new ProConta.Contabilidad.Mayor.FuenteMayorAccess(bd), contexto.Contexto.IdSociedad, ejercicio,
+                contexto.RazonSocial, new Actor(sesion.NombreOperador), Avisar)
+            {
+                AbrirMayor = cuentasMayor => _mayor.Abrir(cuentasMayor),
+                AbrirParametros = clave => AbrirParametros(clave),
+                Cambiada = () => _mayor.RefrescarSiAbierto(),
+            },
+            _area, new ProConta.Contabilidad.UI.Liquidacion.DialogosLiquidacionIva(() => this));
+        var abrirReinicioCuadre = new ComandoDelegado(() => _reinicioCuadre.Abrir());
         // Informes (contabilidad/balances e informes/excel): cada opción genera el libro Excel con su tabla dinámica y lo abre.
         _balances = new ProConta.Contabilidad.Balances.GeneradorBalances(bd);
         _razonSocial = contexto.RazonSocial;
@@ -509,6 +522,10 @@ public partial class VentanaPrincipal : Window
             new OpcionNavegacion("Reparto de dividendos", null, true, false,
                 "Procesos contables › Reparto de dividendos: del neto de cada socio (por defecto, lo ya pagado en su 526) calcula el bruto y la retención del ejercicio y graba el asiento de reservas a dividendos; corregir o deshacer con motivo",
                 abrirDividendos, EsHija: true),
+            new OpcionNavegacion("Reiniciar el cuadre del Mayor", null, true, false,
+                "Procesos contables › Reiniciar el cuadre del Mayor: en el ejercicio de trabajo, marca como cuadradas las subcuentas con saldo dentro del umbral (Configuración general, vacío 0,05 €) " +
+                "y quita la casilla a las demás; enseña antes lo que cambia, conserva las notas y no hace asientos",
+                abrirReinicioCuadre, EsHija: true),
             new OpcionNavegacion("Fin de ejercicio", null, true, false,
                 "Procesos contables que se hacen al terminar el año, en este orden: amortización, facturas pendientes de recibir, prorrata, liquidación del IVA del 4T, Impuesto sobre Sociedades y cierre. " +
                 "Pulsar aquí abre el Cierre del ejercicio, cuya comprobación previa dice qué falta de cada paso",

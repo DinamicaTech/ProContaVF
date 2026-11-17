@@ -159,15 +159,24 @@ public sealed class SesionMayor(IFuenteMayor fuente, string idSociedad)
         await CargarCatalogoAsync(c);
     }
 
-    /// <summary>Reinicia el cuadre del ejercicio de trabajo con el umbral de la configuración; devuelve los cuadres guardados.</summary>
-    public async Task<(int Cambiados, decimal Umbral)> ReiniciarCuadreAsync(bool desmarcarResto, string operador, DateTime ahora, CancellationToken c = default)
+    /// <summary>
+    /// Propuesta de «Reiniciar el cuadre» del ejercicio de trabajo con el umbral de la configuración (contabilidad/procesos/reiniciar-cuadre),
+    /// sin grabar nada. Lee de nuevo los saldos y los cuadres antes de calcularla.
+    /// </summary>
+    public async Task<PropuestaReinicioCuadre> ProponerReinicioCuadreAsync(string operador, DateTime ahora, CancellationToken c = default)
     {
+        await CargarCatalogoAsync(c);
         var umbral = await fuente.UmbralCuadreAsync(c);
         var subcuentas = Catalogo.Where(x => x.EsSubcuenta).Select(x => x.Codigo).Union(Cuadre.SaldosTrabajo.Keys).ToList();
-        var cambios = CuadresMayor.Reiniciar(Cuadre, subcuentas, umbral, desmarcarResto, operador, ahora);
-        if (cambios.Count > 0) await fuente.GuardarCuadresAsync(cambios, c);
+        var nombres = Catalogo.GroupBy(x => x.Codigo, StringComparer.Ordinal).ToDictionary(g => g.Key, g => g.First().Nombre, StringComparer.Ordinal);
+        return CuadresMayor.ProponerReinicio(Cuadre, subcuentas, x => nombres.GetValueOrDefault(x, ""), umbral, operador, ahora);
+    }
+
+    /// <summary>Graba exactamente los cambios de la propuesta (en una sola transacción) y vuelve a leer el selector.</summary>
+    public async Task GuardarReinicioCuadreAsync(PropuestaReinicioCuadre propuesta, CancellationToken c = default)
+    {
+        if (propuesta.Cambios.Count > 0) await fuente.GuardarCuadresAsync(propuesta.Cambios.Select(x => x.Nuevo).ToList(), c);
         await CargarCatalogoAsync(c);
-        return (cambios.Count, umbral);
     }
 
     /// <summary>Umbral de «Reiniciar el cuadre» de la configuración.</summary>
