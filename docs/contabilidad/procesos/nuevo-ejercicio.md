@@ -2,17 +2,20 @@
 title: Crear el ejercicio siguiente
 status: draft
 depends_on: [contabilidad/procesos, organizacion/sociedades-ejercicios, contabilidad/cuenta-contable]
-threads: []
+threads:
+  - 2026-11-17 15:30 · Cerrar y reabrir el ejercicio | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GVAzARnPH8KvtQS2dxJnDsi
 ---
 ## Summary
-Proceso que crea el ejercicio siguiente de una sociedad: su fila en SociedadesEjercicios con los parámetros copiados del actual, el plan de cuentas y las subcuentas, y el trimestre activo en el 1.º. Es la condición previa de la apertura y del cierre.
+Proceso que crea el ejercicio siguiente de una sociedad (`ServicioNuevoEjercicio` en `src/ProConta.Contabilidad/Cierre`), desde el botón «Crear el ejercicio N+1…» de Contabilidad › Cierre del ejercicio: copia la fila de SociedadesEjercicios con todos sus parámetros (cuentas, IVA, dividendos, cuenta de resultados, Impuesto sobre Sociedades), sin la marca de cerrado y con el trimestre activo en el 1.º; como «Prorrata del año anterior», la definitiva del actual o, si no está fijada, su provisional. Copia también el plan de cuentas con las mismas identidades contables y sin saldos, las series de facturación (el año del prefijo pasa al siguiente y la numeración empieza en 1) y la configuración de correo del ejercicio. Es la condición previa de la apertura y del cierre, que además copia al siguiente las cuentas creadas después.
 **Aceptación:** el ejercicio nuevo tiene las mismas cuentas y parámetros que el anterior y su trimestre activo es el 1.º; repetirlo no duplica nada.
 
 ## Decisions
 - 2026-11-13 12:05 · Creado como borrador desde contabilidad/procesos (hilo «Definir los procesos contables»), al acordar con el propietario la lista de procesos contables. Usa el marco común del nodo padre: propuesta revisable en el visor de asientos, confirmación de exactamente lo propuesto, lote propio regenerable (repetir no duplica), permisos y cuentas configuradas por sociedad y ejercicio.
 - 2026-11-13 12:05 · Lo hace contabilidad/procesos, como ya decía organizacion/sociedades-ejercicios («la apertura y el cierre los hará contabilidad/procesos»).
+- 2026-11-17 15:30 · Se hace con el cierre del ejercicio, en su hilo (propietario 2026-11-17 11:50, P1 A). Copia genérica de la fila de SociedadesEjercicios (todas las columnas salvo el autonumérico), así que un parámetro nuevo del ejercicio se copia sin tocar este proceso; cambian Ejercicio, el año en Nombre y en CarpetaFacturasCompra, EjercicioCerrado (no), Activa (sí), TrimestreActivo (1), PorcentajeProrrataDefinitiva (vacía) y PorcentajeProrrataAñoAnterior (la definitiva del actual o, sin ella, la provisional). Cuentas: las que falten por código, con la misma IdIdentidadContable, nombre, descripción, marcas y centro de coste predeterminado, por tandas de 150 (límite de bloqueos de Access; repetirlo termina el trabajo) y con la cuenta padre del ejercicio nuevo. Series de facturación: las que falten, con el año del prefijo cambiado, RangoDesde 1 y sin último número. Correo (CuentasCorreo, RemitentesAutorizadosCorreo, ConfiguracionMailDispatcher): solo si el ejercicio nuevo no tiene filas. Los conceptos son por sociedad y no se copian. Permiso: el del cierre del ejercicio. Pendiente de validar.
 
 ## Requirements
 - 2026-11-13 12:05 · draft: Crear el ejercicio siguiente de una sociedad (parámetros, plan de cuentas y subcuentas, trimestre activo 1.º) como condición previa del cierre y la apertura.
 - 2026-11-17 10:50 · Derived from contabilidad/procesos/prorrata: al crear el ejercicio siguiente, su «Prorrata del año anterior» (PorcentajeProrrataAñoAnterior) es la prorrata definitiva del ejercicio actual (PorcentajeProrrataDefinitiva), si la tiene.
 - 2026-11-17 11:35 · Derived from contabilidad/procesos/impuesto-sociedades: al crear el ejercicio siguiente, copiar los parámetros del Impuesto sobre Sociedades del ejercicio actual (tipos, tramo, bonificación, prefijos de ajustes y cuentas); la gestoría los revisa cada año.
+- 2026-11-17 11:50 · answer: ¿Crear el ejercicio siguiente (parámetros con prorrata e IS, plan de cuentas, series de facturación, trimestre activo 1) se hace en este trabajo? → P1. A

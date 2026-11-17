@@ -17,3 +17,4 @@ Proceso de cierre para los proveedores y acreedores cuadrados con saldo deudor (
 - 2026-11-13 11:52 · answer: ¿Rehacer o quitar las facturas pendientes de recibir? → P3. A
 - 2026-11-13 12:05 · draft: Proponer a 31/12, para los proveedores y acreedores cuadrados con saldo deudor, el gasto por la base supuesta (tipo de IVA configurable) en la cuenta de gasto del proveedor contra la 4009, y revertirlo en la apertura del ejercicio siguiente.
 - 2026-11-15 21:10 · Derived from contabilidad: aviso de salud S5 «Facturas pendientes de recibir sin llegar» (gravedad atención): pasado el 31 de marzo, la 4009 tiene saldo a la fecha de corte; abre el Mayor de la 4009.
+- 2026-11-17 15:30 · Derived from contabilidad/procesos/cierre-ejercicio: la reversión del 1/1 va como lote propio, y reabrir el ejercicio lo borra con la regularización, el cierre y la apertura; mientras no exista este proceso, la comprobación previa del cierre lo muestra como «no aplica».
