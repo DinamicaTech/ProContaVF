@@ -806,7 +806,7 @@ public sealed class FacturasRecibidasVM : ModeloVista, IPestanaTrabajo
                 return;
             }
             ErrorFicha = null;
-            _modulo.Avisar(r.Valor.Aviso);
+            _modulo.Avisar(await AsientosBancoAsync(f.IdRegistro) is { } avisoBanco ? $"{r.Valor.Aviso} {avisoBanco}" : r.Valor.Aviso);
             if (r.Valor.CuentaProveedor is not null) _proveedores = await _s.Facturas.ProveedoresAsync(_s.Trabajo);
             await RecargarTrasExportarAsync(f.IdRegistro);
         }
@@ -1116,7 +1116,25 @@ public sealed class FacturasRecibidasVM : ModeloVista, IPestanaTrabajo
         ActualizarFila(f);
         _modulo.FacturaCambiada(this);
         Avisar(nameof(TieneCambios), nameof(GuardadoFallido));
+        if (await AsientosBancoAsync(f.IdRegistro) is { } avisoBanco) _modulo.Avisar(avisoBanco);
         return true;
+    }
+
+    /// <summary>
+    /// El número y el concepto abreviado de la factura salen en el asiento de banco del movimiento N43 que la paga: se vuelven a generar
+    /// sus textos (norma43/conciliacion/actualizar-textos). Null si no hay nada que decir.
+    /// </summary>
+    private async Task<string?> AsientosBancoAsync(int idRegistro)
+    {
+        if (_s.AsientosBanco is not { } banco) return null;
+        try
+        {
+            return (await banco.FacturaCompraCambiadaAsync(idRegistro, _s.Operador ?? new ProConta.Nucleo.Auditoria.Actor("ProContaVF"))).Aviso;
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            return $"No he podido actualizar el asiento de banco enlazado ({ex.Message}): hazlo desde Líneas N43 con «Actualizar textos del asiento».";
+        }
     }
 
     /// <summary>Refleja en la lista lo guardado sin volver a leer todo.</summary>

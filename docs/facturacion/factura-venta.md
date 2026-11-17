@@ -79,5 +79,6 @@ Ente FacturaVenta: borrador sin número, cálculo de líneas y totales, validaci
 
 - 2026-11-16 13:10 · Derived from norma43/remesas: emitir la factura de diferencia de una factura cobrada por más, sustituir con rectificativa y factura nueva la cobrada por menos, y actualizar su programada al importe cobrado.
 - 2026-11-16 17:05 · Derived from facturacion/descripcion-abreviada: la factura de venta guarda una descripción abreviada editable en su pantalla, también validada, que copian Duplicar y la rectificativa.
+- 2026-11-16 19:30 · Derived from norma43/conciliacion/actualizar-textos: al guardar las notas y la descripción abreviada de una factura numerada, o una validada modificable, avisa a la conciliación (`IAsientosBancoEnlazados.FacturaVentaCambiadaAsync`) para que actualice los textos de los asientos de banco enlazados.
 ## Hand-over
 - 2026-11-01 18:15 · Hecho: el ente, su servicio, las series y la consulta del listado, con pruebas sin BD (cálculo, reglas y asiento) y contra Access (validar numera y contabiliza, total cero, retención sin cuenta, rectificativa, duplicar, numeración concurrente y conflicto de versión). Pendiente: ejecutar las pruebas Access y las migraciones en el equipo del propietario; comprobar el formato del número con las series reales; VeriFactu, PDF, correo y programadas quedan fuera de este desarrollo.

@@ -27,7 +27,8 @@ public sealed record ServiciosFacturacion(
     Actor Actor,
     ICatalogoCentrosCoste CentrosCoste,
     ServicioProgramadas Programadas,
-    ServicioPdfFacturas Pdf);
+    ServicioPdfFacturas Pdf,
+    ProConta.Contabilidad.Asientos.IAsientosBancoEnlazados? AsientosBanco = null);
 
 /// <summary>Lo elegido en «Añadir línea»: un concepto del catálogo o, con null, una línea sin concepto que se escribe a mano.</summary>
 public sealed record EleccionConcepto(Concepto? Concepto);

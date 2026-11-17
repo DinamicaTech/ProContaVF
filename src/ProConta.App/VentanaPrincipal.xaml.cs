@@ -149,10 +149,12 @@ public partial class VentanaPrincipal : Window
             new ProConta.Inicio.Bloques.ServicioBloques(new ProConta.Inicio.Bloques.FuenteBloquesAccess(bd))));
 
         var cuentas = new CatalogoCuentasAccess(bd);
+        // Ventas, compras y terceros actualizan los textos de los asientos de banco enlazados (norma43/conciliacion/actualizar-textos).
+        var asientosBanco = new ProConta.Norma43.Conciliacion.AsientosBancoN43(bd);
         var servicios = new ServiciosTerceros(
             new RepositorioTercerosAccess(bd), new BuscadorTerceros(bd), new CatalogoPerfilesAccess(bd), new ServicioRoles(bd, cuentas), cuentas,
             () => new FuenteGeografiaAccess(bd).CargarAsync(), contexto.Contexto, contexto.RazonSocial, new Actor(sesion.NombreOperador),
-            new SubcuentasRoles(bd, cuentas));
+            new SubcuentasRoles(bd, cuentas), asientosBanco);
         _terceros = new ModuloTerceros(servicios, _area, new DialogosTerceros(servicios));
 
         // Mayor (contabilidad/mayor): pestaña Contabilidad › Mayor y el mismo control embebido en la ficha de terceros.
@@ -181,7 +183,7 @@ public partial class VentanaPrincipal : Window
         var serviciosFacturacion = new ServiciosFacturacion(facturas, new ConsultaFacturas(bd), new CatalogoConceptos(bd, cuentas), apoyo, new CatalogoFormasPagoAccess(bd),
             new LectorConfiguracionEjercicio(bd), contexto.Contexto, contexto.RazonSocial, new Actor(sesion.NombreOperador), new CatalogoCentrosCosteAccess(bd),
             new ServicioProgramadas(bd, sociedades, facturas, autorizador),
-            new ServicioPdfFacturas(bd, facturas, sociedades, new GeneradorPdfFastReport(), autorizador));
+            new ServicioPdfFacturas(bd, facturas, sociedades, new GeneradorPdfFastReport(), autorizador), asientosBanco);
         _facturacion = new ModuloFacturacion(serviciosFacturacion, _area, new DialogosFacturacion(apoyo, cuentas, new CatalogoCentrosCosteAccess(bd), () => this), _terceros.AbrirFicha);
         // Ventas por facturar (facturacion/reservas): reservas de Avaibook y altas manuales que se facturan por mes, cliente y activo.
         var ventas = new ProConta.Facturacion.Ventas.ServicioVentas(bd, sociedades, facturas, serviciosFacturacion.Conceptos, autorizador);
@@ -208,7 +210,8 @@ public partial class VentanaPrincipal : Window
             altaProveedor,
             contabilizadorCompras,
             new Actor(sesion.NombreOperador),
-            ComprobarTrimestreAlEntrarAsync);
+            ComprobarTrimestreAlEntrarAsync,
+            asientosBanco);
         _compras = new ModuloCompras(serviciosCompras, _area, new DialogosCompras(() => this), _terceros.AbrirFicha);
 
         // Correo (correo/envio y correo/pantallas): cola durable procesada mientras la aplicación está abierta, compositor común,
