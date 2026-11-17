@@ -42,3 +42,4 @@ Hecho y validado por el propietario (PR #84): `src/ProConta.Contabilidad/Iva/Liq
 
 ## Hand-over
 - 2026-11-16 10:20 · Hecho en la rama claude/liquidacion-iva: cálculo, servicio, esquema 56, excepción del motor, permiso, pantalla y destino de la salud de Inicio, con pruebas sin BD (`LiquidacionIvaTests`) y contra Access (`LiquidacionIvaAccessTests`). Validado el 2026-11-16 10:28. Pendiente en producción: comprobar que la actividad «General» está en prorrata antes de liquidar.
+2026-11-17 15:10 · Derived from contabilidad/modelos-tributarios/modelo-303: al presentar el 303 de un trimestre, lo liquidado pasa a ser lo presentado: si el trimestre no está liquidado, la propuesta usa el importe presentado; si ya lo estaba con otro importe, queda «desactualizado» y la pantalla ofrece repetir la liquidación.
