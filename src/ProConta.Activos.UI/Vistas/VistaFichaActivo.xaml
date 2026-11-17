@@ -373,6 +373,87 @@
           </ScrollViewer>
         </TabItem>
 
+        <!-- ========== Facturas ========== -->
+        <TabItem Header="Facturas" Visibility="{Binding Propio, Converter={StaticResource Visible}}"
+                 ToolTip="Las facturas de compra del activo: por su cuenta de gasto o por su centro de coste (solo consulta)">
+          <DockPanel Margin="0,10,0,0">
+            <WrapPanel DockPanel.Dock="Top" Margin="0,0,0,8">
+              <TextBlock Text="Ejercicio" VerticalAlignment="Center" Margin="0,0,6,4" />
+              <ComboBox ItemsSource="{Binding EjerciciosEnlaces}" SelectedItem="{Binding EjercicioEnlaces}" DisplayMemberPath="Texto" Width="80" Margin="0,0,14,4" VerticalAlignment="Center"
+                        ToolTip="Ejercicio de las facturas (el de trabajo por defecto); «Todos» enseña las de todos los ejercicios" />
+              <TextBlock Text="{Binding ExplicacionCompras}" Style="{StaticResource Texto.Apagado}" VerticalAlignment="Center" TextWrapping="Wrap" MaxWidth="900" Margin="0,0,0,4" />
+            </WrapPanel>
+            <TextBlock DockPanel.Dock="Bottom" Text="{Binding TotalCompras}" FontWeight="SemiBold" Margin="0,8,0,0" />
+            <DataGrid Style="{StaticResource Tabla}" ItemsSource="{Binding FilasCompras}" AutoGenerateColumns="False" IsReadOnly="True" HeadersVisibility="Column" SelectionMode="Single"
+                      HorizontalAlignment="Left" MouseDoubleClick="Abrible_MouseDoubleClick" AutomationProperties.Name="Facturas de compra del activo"
+                      Visibility="{Binding SinCompras, Converter={StaticResource Visible}, ConverterParameter=invertir}">
+              <DataGrid.RowStyle>
+                <Style TargetType="DataGridRow" BasedOn="{StaticResource Tabla.Fila}"><Setter Property="ToolTip" Value="{Binding Ayuda}" /></Style>
+              </DataGrid.RowStyle>
+              <DataGrid.Columns>
+                <DataGridTextColumn Header="Fecha" Binding="{Binding Fecha}" Width="86" ElementStyle="{StaticResource Texto.Celda}" />
+                <DataGridTextColumn Header="Número" Binding="{Binding Numero}" Width="130" ElementStyle="{StaticResource Texto.Celda}" />
+                <DataGridTextColumn Header="Proveedor" Binding="{Binding Proveedor}" Width="220" ElementStyle="{StaticResource Texto.Celda}" />
+                <DataGridTextColumn Header="Concepto" Binding="{Binding Concepto}" Width="260" ElementStyle="{StaticResource Texto.Celda}" />
+                <DataGridTextColumn Header="Base" Binding="{Binding Base}" Width="100" ElementStyle="{StaticResource Texto.Celda.Importe}" HeaderStyle="{StaticResource Tabla.Cabecera.Derecha}" />
+                <DataGridTextColumn Header="IVA" Binding="{Binding Iva}" Width="90" ElementStyle="{StaticResource Texto.Celda.Importe}" HeaderStyle="{StaticResource Tabla.Cabecera.Derecha}" />
+                <DataGridTextColumn Header="Total" Binding="{Binding Total}" Width="100" ElementStyle="{StaticResource Texto.Celda.Importe}" HeaderStyle="{StaticResource Tabla.Cabecera.Derecha}" />
+                <DataGridTextColumn Header="Estado" Binding="{Binding Estado}" Width="170" ElementStyle="{StaticResource Texto.Celda}" />
+              </DataGrid.Columns>
+            </DataGrid>
+          </DockPanel>
+        </TabItem>
+
+        <!-- ========== Ventas ========== -->
+        <TabItem Header="Ventas" Visibility="{Binding Propio, Converter={StaticResource Visible}}"
+                 ToolTip="Las facturas programadas y las facturas emitidas con alguna línea de este activo (solo consulta)">
+          <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto" Padding="0,10,0,0">
+          <StackPanel>
+            <WrapPanel Margin="0,0,0,8">
+              <TextBlock Text="Ejercicio" VerticalAlignment="Center" Margin="0,0,6,4" />
+              <ComboBox ItemsSource="{Binding EjerciciosEnlaces}" SelectedItem="{Binding EjercicioEnlaces}" DisplayMemberPath="Texto" Width="80" Margin="0,0,14,4" VerticalAlignment="Center"
+                        ToolTip="Ejercicio de las ventas (el de trabajo por defecto); «Todos» enseña las de todos los ejercicios. Las programadas salen si emiten en ese año" />
+              <TextBlock Text="Los importes del activo son la base de las líneas que llevan este activo; el total es el de toda la factura." Style="{StaticResource Texto.Apagado}"
+                         VerticalAlignment="Center" TextWrapping="Wrap" MaxWidth="900" Margin="0,0,0,4" />
+            </WrapPanel>
+            <TextBlock Text="Facturas programadas" Style="{StaticResource Texto.Seccion}" />
+            <DataGrid Style="{StaticResource Tabla}" ItemsSource="{Binding FilasProgramadas}" AutoGenerateColumns="False" IsReadOnly="True" HeadersVisibility="Column" SelectionMode="Single"
+                      HorizontalAlignment="Left" VerticalScrollBarVisibility="Disabled" MouseDoubleClick="Abrible_MouseDoubleClick" AutomationProperties.Name="Facturas programadas del activo"
+                      Visibility="{Binding SinProgramadas, Converter={StaticResource Visible}, ConverterParameter=invertir}">
+              <DataGrid.RowStyle>
+                <Style TargetType="DataGridRow" BasedOn="{StaticResource Tabla.Fila}"><Setter Property="ToolTip" Value="{Binding Ayuda}" /></Style>
+              </DataGrid.RowStyle>
+              <DataGrid.Columns>
+                <DataGridTextColumn Header="Programada" Binding="{Binding Rotulo}" Width="90" ElementStyle="{StaticResource Texto.Celda.Mono}" />
+                <DataGridTextColumn Header="Cliente" Binding="{Binding Cliente}" Width="260" ElementStyle="{StaticResource Texto.Celda}" />
+                <DataGridTextColumn Header="Periodicidad" Binding="{Binding Periodicidad}" Width="110" ElementStyle="{StaticResource Texto.Celda}" />
+                <DataGridTextColumn Header="Próxima" Binding="{Binding Proxima}" Width="86" ElementStyle="{StaticResource Texto.Celda}" />
+                <DataGridTextColumn Header="Importe del activo" Binding="{Binding Importe}" Width="130" ElementStyle="{StaticResource Texto.Celda.Importe}" HeaderStyle="{StaticResource Tabla.Cabecera.Derecha}" />
+                <DataGridTextColumn Header="Activa" Binding="{Binding Activa}" Width="60" ElementStyle="{StaticResource Texto.Celda}" />
+              </DataGrid.Columns>
+            </DataGrid>
+            <TextBlock Text="{Binding TotalProgramadas}" FontWeight="SemiBold" Margin="0,6,0,14" />
+            <TextBlock Text="Facturas emitidas y borradores" Style="{StaticResource Texto.Seccion}" />
+            <DataGrid Style="{StaticResource Tabla}" ItemsSource="{Binding FilasVentas}" AutoGenerateColumns="False" IsReadOnly="True" HeadersVisibility="Column" SelectionMode="Single"
+                      HorizontalAlignment="Left" VerticalScrollBarVisibility="Disabled" MouseDoubleClick="Abrible_MouseDoubleClick" AutomationProperties.Name="Facturas de venta del activo"
+                      Visibility="{Binding SinVentas, Converter={StaticResource Visible}, ConverterParameter=invertir}">
+              <DataGrid.RowStyle>
+                <Style TargetType="DataGridRow" BasedOn="{StaticResource Tabla.Fila}"><Setter Property="ToolTip" Value="{Binding Ayuda}" /></Style>
+              </DataGrid.RowStyle>
+              <DataGrid.Columns>
+                <DataGridTextColumn Header="Fecha" Binding="{Binding Fecha}" Width="86" ElementStyle="{StaticResource Texto.Celda}" />
+                <DataGridTextColumn Header="Número" Binding="{Binding Numero}" Width="120" ElementStyle="{StaticResource Texto.Celda}" />
+                <DataGridTextColumn Header="Cliente" Binding="{Binding Cliente}" Width="260" ElementStyle="{StaticResource Texto.Celda}" />
+                <DataGridTextColumn Header="Base del activo" Binding="{Binding BaseActivo}" Width="120" ElementStyle="{StaticResource Texto.Celda.Importe}" HeaderStyle="{StaticResource Tabla.Cabecera.Derecha}" />
+                <DataGridTextColumn Header="Total factura" Binding="{Binding Total}" Width="110" ElementStyle="{StaticResource Texto.Celda.Importe}" HeaderStyle="{StaticResource Tabla.Cabecera.Derecha}" />
+                <DataGridTextColumn Header="Estado" Binding="{Binding Estado}" Width="170" ElementStyle="{StaticResource Texto.Celda}" />
+              </DataGrid.Columns>
+            </DataGrid>
+            <TextBlock Text="{Binding TotalVentas}" FontWeight="SemiBold" Margin="0,6,0,0" />
+          </StackPanel>
+          </ScrollViewer>
+        </TabItem>
+
         <!-- ========== Subcuentas ========== -->
         <TabItem Header="Subcuentas" Visibility="{Binding Propio, Converter={StaticResource Visible}}" ToolTip="Las subcuentas del activo según la plantilla de su tipo, con su papel y su saldo">
           <DockPanel Margin="0,10,0,0">

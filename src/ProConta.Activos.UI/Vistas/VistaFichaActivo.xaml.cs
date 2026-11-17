@@ -4,7 +4,7 @@ using System.Windows.Input;
 
 namespace ProConta.Activos.UI.Vistas;
 
-/// <summary>Ficha del activo: el doble clic en una subcuenta (de la cuenta de resultados o del apartado Subcuentas) abre su Mayor.</summary>
+/// <summary>Ficha del activo: el doble clic en una subcuenta (de la cuenta de resultados o del apartado Subcuentas) abre su Mayor, y en una factura de Facturas o Ventas, la factura.</summary>
 public partial class VistaFichaActivo : UserControl
 {
     public VistaFichaActivo()
@@ -38,6 +38,11 @@ public partial class VistaFichaActivo : UserControl
     private void Cuenta_MouseDoubleClick(object sender, MouseButtonEventArgs e)
     {
         if (Fila(sender, e) is FilaCuentaVM { MayorCommand: { } c } && c.CanExecute(null)) { c.Execute(null); e.Handled = true; }
+    }
+
+    private void Abrible_MouseDoubleClick(object sender, MouseButtonEventArgs e)
+    {
+        if (Fila(sender, e) is IFilaAbrible { AbrirCommand: { } c } && c.CanExecute(null)) { c.Execute(null); e.Handled = true; }
     }
 
     private void Subcuentas_MouseDoubleClick(object sender, MouseButtonEventArgs e)

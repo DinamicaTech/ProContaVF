@@ -14,10 +14,19 @@ public sealed record ContextoActivos(ServicioActivos Servicio, ContextoSociedadE
 
     /// <summary>Abre Contabilidad › Amortización de activos.</summary>
     public Action? AbrirAmortizacion { get; init; }
+
+    /// <summary>Abre una factura de compra en Compras › Facturas recibidas (apartado Facturas de la ficha).</summary>
+    public Action<int>? AbrirFacturaCompra { get; init; }
+
+    /// <summary>Abre una factura de venta o un borrador (apartado Ventas de la ficha).</summary>
+    public Action<int>? AbrirFacturaVenta { get; init; }
+
+    /// <summary>Abre una factura programada (apartado Ventas de la ficha).</summary>
+    public Action<int>? AbrirProgramada { get; init; }
 }
 
 /// <summary>Apartado de la ficha.</summary>
-public enum ApartadoFicha { Datos, CuentaResultados, Subcuentas, Amortizacion }
+public enum ApartadoFicha { Datos, CuentaResultados, Facturas, Ventas, Subcuentas, Amortizacion }
 
 /// <summary>Diálogos de la pantalla de activos (en pruebas se sustituyen por respuestas fijas).</summary>
 public interface IDialogosActivos

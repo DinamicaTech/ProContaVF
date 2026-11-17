@@ -18,7 +18,7 @@ namespace ProConta.Activos.Gestion;
 /// amortización prevista sale del proceso (<see cref="ServicioAmortizacion.PrevistaAnualAsync"/>) y los gastos generales, del Impuesto sobre
 /// Sociedades (<see cref="ServicioImpuestoSociedades.GastosGeneralesAsync"/>). Ninguna operación graba asientos.
 /// </summary>
-public sealed class ServicioActivos
+public sealed partial class ServicioActivos
 {
     private readonly IBaseDatos _bd;
     private readonly ICatalogoCuentas _cuentas;

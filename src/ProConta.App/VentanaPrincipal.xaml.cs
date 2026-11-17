@@ -542,6 +542,9 @@ public partial class VentanaPrincipal : Window
             {
                 AbrirMayor = (cuentasMayor, anios) => { if (anios.Count == 0) _mayor.Abrir(cuentasMayor); else _mayor.Abrir(cuentasMayor, anios); },
                 AbrirAmortizacion = () => _amortizacion.Abrir(),
+                AbrirFacturaCompra = id => _compras.AbrirFactura(id),
+                AbrirFacturaVenta = id => _facturacion.AbrirFactura(id),
+                AbrirProgramada = id => _facturacion.AbrirProgramada(id),
             },
             _area, new ProConta.Activos.UI.Vistas.DialogosActivos(() => this));
         var abrirActivos = new ComandoDelegado(() => _activos.AbrirListado());
