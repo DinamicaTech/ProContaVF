@@ -158,12 +158,12 @@ tr.prev td{color:var(--mut);font-style:italic}
       </table></div>
     </div>
     <div class="card preg">
-      <h2>Lo que necesito que decidas</h2>
+      <h2>Decidido el 17/11/2026</h2>
       <ol>
         <li><b>De dónde sale la cuenta de resultados de cada activo.</b> Propongo sumar los apuntes de los grupos 6 y 7 que estén en una subcuenta del activo o que lleven su centro de coste. En los activos migrados que comparten centro con otro, solo sus subcuentas. <em>recomendado</em></li>
         <li><b>Gastos generales.</b> La ficha muestra el resultado directo del activo. Con el interruptor «Añadir su parte de gastos generales» se suma una línea con el mismo reparto que usa el Impuesto sobre Sociedades (en proporción a los ingresos). Propongo dejarlo apagado por defecto. <em>recomendado</em></li>
         <li><b>Amortización del año en curso.</b> Como el asiento es anual a 31/12, hasta entonces no hay gasto contabilizado. Propongo enseñarla como línea «prevista», en cursiva y sumada al resultado, para que la cifra no engañe. <em>recomendado</em></li>
-        <li><b>Alcance de esta fase.</b> Se construiría el listado, la ficha con sus cuatro pestañas y el alta paso a paso. «Calcular la amortización» y «Dar de baja o vender» aparecen ya en su sitio pero desactivadas, porque son las dos fases siguientes. <em>recomendado</em></li>
+        <li><b>Alcance.</b> Listado, ficha con sus cuatro pestañas y alta paso a paso. La amortización se genera desde Procesos contables, así que aquí solo se consulta. Dar de baja un activo queda para más adelante. Las inversiones financieras aparecerán también en esta pantalla, con un nodo propio.</li>
       </ol>
     </div>
   </section>
@@ -175,7 +175,6 @@ tr.prev td{color:var(--mut);font-style:italic}
       <div class="cab">
         <div style="min-width:0;flex:1 1 320px"><h1 id="fNombre"></h1><div class="meta" id="fMeta"></div></div>
         <button class="btn" id="bMayor" title="Abre el Mayor con todas las subcuentas de este activo">Ver el Mayor</button>
-        <button class="btn" id="bBaja" disabled title="Dar de baja o vender: propone el asiento que cancela el activo y lleva el resultado a la 671 o la 771. Llegará en una fase posterior">Dar de baja o vender…</button>
       </div>
       <div class="kpis" id="fKpis"></div>
       <div class="tabs" role="tablist" id="fTabs"></div>
@@ -277,8 +276,7 @@ tb.oncontextmenu=e=>{const tr=e.target.closest('tr[data-id]');if(!tr)return;e.pr
   menu(e.clientX,e.clientY,[[uno?'Abrir la ficha':'Abrir la ficha (solo con uno marcado)',uno?()=>abrir(id,false):null],
    [uno?'Ver su cuenta de resultados':'Ver su cuenta de resultados (solo con uno marcado)',uno&&!a.ajeno?()=>{abrir(id,false,'Cuenta de resultados')}:null],
    [n>1?`Ver el Mayor de los ${n} marcados`:'Ver el Mayor de sus subcuentas',propio?()=>toast('Se abriría el Mayor con las subcuentas de '+(uno?a.alias:'los '+n+' activos marcados')+'.'):null],'-',
-   [n>1?`Generar las subcuentas que falten a los ${n} marcados…`:'Generar las subcuentas que le falten…',propio?()=>toast('Se enseñaría la propuesta de subcuentas nuevas para confirmar.'):null],
-   ['Dar de baja o vender… (fase posterior)',null]]);};
+   [n>1?`Generar las subcuentas que falten a los ${n} marcados…`:'Generar las subcuentas que le falten…',propio?()=>toast('Se enseñaría la propuesta de subcuentas nuevas para confirmar.'):null]]);};
 function menu(x,y,ops){cerrarMenu();const m=document.createElement('div');m.className='menu';m.setAttribute('role','menu');
   ops.forEach(o=>{if(o==='-'){m.append(document.createElement('hr'));return;}const b=document.createElement('button');b.textContent=o[0];b.setAttribute('role','menuitem');if(!o[1])b.disabled=true;else b.onclick=()=>{cerrarMenu();o[1]();};m.append(b);});
   document.body.append(m);const r=m.getBoundingClientRect();m.style.left=Math.max(8,Math.min(x,innerWidth-r.width-8))+'px';m.style.top=Math.max(8,Math.min(y,innerHeight-r.height-8))+'px';}
@@ -296,7 +294,7 @@ function ficha(){const a=st.act,R=pyg(a,2026),ing=tot(R,'I'),gas=tot(R,'G');
   $('#mVolver').onclick=volver;
   $('#fNombre').textContent=a.nom;
   $('#fMeta').innerHTML=`<span class="c" style="font-family:var(--f-mono)">${a.cod}</span><span class="pill tipo">${a.T.n}</span>${estado(a)}${a.ajeno?'':`<span title="Centro de coste propio del activo. De él hereda la actividad de IVA">Centro: <b>${a.centro}</b></span><span>Actividad: ${a.act}</span>`}`;
-  $('#bMayor').hidden=$('#bBaja').hidden=!!a.ajeno;
+  $('#bMayor').hidden=!!a.ajeno;
   const pa=a.base?Math.round(a.acu25/a.base*100):0;
   $('#fKpis').innerHTML=a.ajeno?'':[['Coste de compra',eur(a.coste)+' €','comprado el '+fecha(a.adq)],
    ['Amortizado hasta 2025',eur(a.acu25)+' €',`<div class="barra" title="${pa} % de lo que se puede amortizar (${eur(a.base)} €)"><i style="width:${pa}%"></i></div>${pa} % de ${eur(a.base)} €`],
@@ -383,7 +381,7 @@ function tSub(a){const I=a.T.inm,p=I?['22100','22000','28200','68200']:a.tipo===
   $('#sBody').ondblclick=e=>{const tr=e.target.closest('tr');if(tr)toast('Se abriría el Mayor de la subcuenta '+tr.cells[0].textContent+'.');};$('#fPanel').oninput=null;}
 function tAmo(a){const P=a.plan,fin=P.length?P[P.length-1].y:null,ver=P.filter(p=>p.y<=2028);
   $('#fPanel').innerHTML=`<div class="ctl"><span>Se amortiza el <b>${eur(a.pct)} %</b> al año sobre <b>${eur(a.base)} €</b>${a.T.inm?` (el ${eur(a.pc,0)} % del coste, que es la construcción)`:''}. ${a.baja?'Dejó de amortizarse al darse de baja el '+fecha(a.baja)+'.':'Terminará de amortizarse en '+fin+'.'}</span><span class="sp"></span>
-    <button class="btn" disabled title="Calcula y contabiliza la amortización del ejercicio de todos los activos, con propuesta y confirmación. Llegará en la fase siguiente, dentro de Procesos contables">Calcular la amortización de 2026…</button></div>
+    <span class="hint">La amortización se calcula y se contabiliza desde Procesos contables.</span></div>
    <div class="tw"><table><thead><tr><th>Ejercicio</th><th class="n">Días</th><th class="n">Cuota</th><th class="n">Acumulado</th><th class="n">Pendiente</th><th>Estado</th></tr></thead><tbody>${ver.map(p=>`<tr><td>${p.y}</td><td class="n" title="Días del año en que el activo ha sido de la sociedad">${p.d} de ${p.D}</td>${imp(p.c)}${imp(p.acu)}${imp(p.pte)}
      <td>${p.y<=2025?'<span class="pill ok" title="Asiento del 31/12/'+p.y+'">Contabilizada</span>':p.y===2026?'<span class="pill av">Pendiente de contabilizar</span>':'<span class="hint">prevista</span>'}</td></tr>`).join('')}
      ${fin>2028?`<tr><td colspan="6" class="hint">… y así cada año hasta ${fin}.</td></tr>`:''}</tbody></table></div>
