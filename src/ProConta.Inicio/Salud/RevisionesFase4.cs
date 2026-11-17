@@ -19,14 +19,15 @@ public sealed class RevisionAmortizaciones : IRevisionSalud
     public string Nombre => "Amortizaciones contabilizadas";
     public string Nodo => "activos";
 
-    private static readonly DestinoSalud Destino = new(PantallaSalud.Diario, "Contabilidad › Diario");
+    private static readonly DestinoSalud Destino = new(PantallaSalud.Amortizacion, "Contabilidad › Procesos contables › Fin de ejercicio › Amortización de activos");
 
     public async Task<HallazgosSalud> RevisarAsync(IFuenteSalud fuente, ContextoSalud ctx, CancellationToken c)
     {
         var ejercicios = ctx.Ejercicios.Where(e => e.Ejercicio == ctx.Ejercicio.Ejercicio || e.Ejercicio == ctx.Ejercicio.Ejercicio - 1).ToList();
         var asientos = await fuente.AmortizacionesAsync(ejercicios, c);
         var activos = await fuente.ActivosAmortizablesAsync(ctx.IdSociedad, c);
-        return Evaluar(ctx.Ejercicio.Ejercicio, asientos, activos, ctx.Hoy);
+        var configurada = Leer(await fuente.PeriodicidadAmortizacionAsync(ctx.Ejercicio, c));
+        return Evaluar(ctx.Ejercicio.Ejercicio, asientos, activos, ctx.Hoy, configurada);
     }
 
     /// <summary>
@@ -47,6 +48,15 @@ public sealed class RevisionAmortizaciones : IRevisionSalud
     /// <summary>Periodicidad de unos meses: la que muestran claramente o, si no, anual (la periodicidad por defecto).</summary>
     public static PeriodicidadAmortizacion Periodicidad(IEnumerable<int> meses) => Deducir(meses) ?? PeriodicidadAmortizacion.Anual;
 
+    /// <summary>Periodicidad del parámetro del ejercicio (ANUAL, TRIMESTRAL o MENSUAL); null si no está configurada.</summary>
+    public static PeriodicidadAmortizacion? Leer(string? texto) => (texto ?? "").Trim().ToUpperInvariant() switch
+    {
+        "ANUAL" => PeriodicidadAmortizacion.Anual,
+        "TRIMESTRAL" => PeriodicidadAmortizacion.Trimestral,
+        "MENSUAL" => PeriodicidadAmortizacion.Mensual,
+        _ => null,
+    };
+
     public static string Texto(PeriodicidadAmortizacion p) => p switch
     {
         PeriodicidadAmortizacion.Mensual => "mensual",
@@ -56,17 +66,23 @@ public sealed class RevisionAmortizaciones : IRevisionSalud
 
     private sealed record Periodo(int Desde, int Hasta, string Nombre);
 
-    public static HallazgosSalud Evaluar(int ejercicio, IReadOnlyList<AsientoAmortizacion> asientos, int activosAmortizables, DateTime hoy)
+    /// <summary>
+    /// <paramref name="configurada"/>: la periodicidad del parámetro del ejercicio (contabilidad/procesos/amortizacion-de-activos); si la
+    /// hay, manda sobre la que muestran los asientos.
+    /// </summary>
+    public static HallazgosSalud Evaluar(int ejercicio, IReadOnlyList<AsientoAmortizacion> asientos, int activosAmortizables, DateTime hoy,
+        PeriodicidadAmortizacion? configurada = null)
     {
         hoy = hoy.Date;
         if (activosAmortizables == 0 && asientos.Count == 0) return HallazgosSalud.Nada;
         var delEjercicio = asientos.Where(a => a.Fecha.Year == ejercicio).ToList();
         var anteriores = asientos.Where(a => a.Fecha.Year == ejercicio - 1).ToList();
-        var deEste = Deducir(delEjercicio.Select(a => a.Fecha.Month));
-        var deAnterior = deEste is null ? Deducir(anteriores.Select(a => a.Fecha.Month)) : null;
-        var periodicidad = deEste ?? deAnterior ?? PeriodicidadAmortizacion.Anual;
+        var deEste = configurada is null ? Deducir(delEjercicio.Select(a => a.Fecha.Month)) : null;
+        var deAnterior = configurada is null && deEste is null ? Deducir(anteriores.Select(a => a.Fecha.Month)) : null;
+        var periodicidad = configurada ?? deEste ?? deAnterior ?? PeriodicidadAmortizacion.Anual;
         var meses = delEjercicio.GroupBy(a => a.Fecha.Month).ToDictionary(g => g.Key, g => (Fecha: g.Max(a => a.Fecha), Importe: g.Sum(a => a.Importe)));
-        var origen = deEste is not null ? $"según los asientos de amortización de {ejercicio}"
+        var origen = configurada is not null ? "según Parámetros y tablas › Ejercicios"
+            : deEste is not null ? $"según los asientos de amortización de {ejercicio}"
             : deAnterior is not null ? $"según los asientos de amortización de {ejercicio - 1}"
             : delEjercicio.Count > 0 || anteriores.Count > 0 ? "la periodicidad por defecto, porque los asientos no muestran otra"
             : "la periodicidad por defecto, porque aún no hay asientos de amortización";
@@ -98,7 +114,7 @@ public sealed class RevisionAmortizaciones : IRevisionSalud
             null, Destino, "activos",
             $"Algún periodo ya terminado de {ejercicio} no tiene asiento de amortización (un asiento contabilizado que carga una 68 y abona una 28). " +
             "Se mira solo si la sociedad tiene activos amortizables o amortizó en el ejercicio o en el anterior; la periodicidad es anual salvo que los asientos muestren claramente que se amortiza cada mes o cada trimestre.",
-            "Contabiliza el asiento de amortización de ese periodo (68 al debe contra 28 al haber) desde Contabilidad › Diario o Asiento manual: ProContaVF aún no lo calcula solo. " +
+            "Contabilízala en Contabilidad › Procesos contables › Fin de ejercicio › Amortización de activos, que calcula la cuota de cada activo según su plan y graba el asiento del periodo. " +
             "El aviso desaparece en cuanto existe el asiento.") { Cantidad = faltan.Count };
         return new HallazgosSalud([elemento], [], [], [fila]);
     }

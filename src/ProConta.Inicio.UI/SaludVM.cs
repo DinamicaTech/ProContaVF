@@ -280,6 +280,7 @@ public sealed class SaludVM : ModeloVista
         PantallaSalud.Nominas => _acciones.AbrirNominas,
         PantallaSalud.Programadas => _acciones.AbrirProgramadas,
         PantallaSalud.LiquidacionIva => _acciones.AbrirLiquidacionIva,
+        PantallaSalud.Amortizacion => _acciones.AbrirAmortizacion,
         PantallaSalud.CompensarComisiones => _acciones.CompensarComisiones is { } compensar ? () => _ = CompensarAsync(compensar) : null,
         _ => null,
     };

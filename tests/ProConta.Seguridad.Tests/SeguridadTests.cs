@@ -100,6 +100,8 @@ public sealed class AccesoAccessTests : IDisposable
     {
         // contabilidad/procesos/facturas-pendientes-recibir 2026-11-17 16:40: PROCESOS.FACTURAS_PENDIENTES, sin grupos, la tiene quien liquida el IVA.
         Assert.Equal(Acciones.LiquidacionIva, Acciones.Respaldo(Acciones.FacturasPendientes));
+        // contabilidad/procesos/amortizacion-de-activos 2026-11-17 17:59: PROCESOS.AMORTIZACION, igual.
+        Assert.Equal(Acciones.LiquidacionIva, Acciones.Respaldo(Acciones.Amortizacion));
         var bd = _copia.Bd();
         var iva = await DatosSinteticos.GrupoAsync(bd, "IVA");
         var otros = await DatosSinteticos.GrupoAsync(bd, "OTROS");

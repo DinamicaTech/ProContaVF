@@ -665,4 +665,33 @@ public static class MigracionesContabilidad
             new("FacturasPendientesAjustes", "FechaHora", "Fecha y hora del cambio."),
         ],
     };
+
+    /// <summary>
+    /// Amortización de activos (contabilidad/procesos/amortizacion-de-activos 2026-11-17 17:59): la periodicidad del asiento de amortización
+    /// del ejercicio (ANUAL, TRIMESTRAL o MENSUAL; vacía, anual) y la tabla AmortizacionExclusiones con los activos que el operador deja
+    /// fuera de la propuesta del ejercicio. Solo estructura, sin datos.
+    /// </summary>
+    public static Migracion AmortizacionActivos { get; } = new(
+        "20261117_1800_AMORTIZACION_ACTIVOS", 261117018,
+        "Periodicidad de la amortización del ejercicio y activos excluidos de su propuesta.",
+        "contabilidad/procesos/amortizacion-de-activos",
+        new AnadirColumna("SociedadesEjercicios", "PeriodicidadAmortizacion", "TEXT(12)"),
+        new CrearTabla("AmortizacionExclusiones",
+            "CREATE TABLE AmortizacionExclusiones (IdAmortizacionExclusion COUNTER CONSTRAINT PK_AmortizacionExclusiones PRIMARY KEY, " +
+            "IdSociedadEjercicio LONG NOT NULL CONSTRAINT FK_AmortizacionExclusiones_Ejercicio REFERENCES SociedadesEjercicios (IdSociedadEjercicio), " +
+            "IdActivo LONG NOT NULL CONSTRAINT FK_AmortizacionExclusiones_Activo REFERENCES Activos (IdActivo), Operador TEXT(100), FechaHora DATETIME NOT NULL)"),
+        new CrearIndice("AmortizacionExclusiones", "UX_AmortizacionExclusiones_Activo",
+            "CREATE UNIQUE INDEX UX_AmortizacionExclusiones_Activo ON AmortizacionExclusiones (IdSociedadEjercicio, IdActivo)"))
+    {
+        Descripciones =
+        [
+            new("SociedadesEjercicios", "PeriodicidadAmortizacion", "Cada cuánto se graba el asiento de amortización de los activos: ANUAL, TRIMESTRAL o MENSUAL (vacía: anual)."),
+            new("AmortizacionExclusiones", null, "Activos que el operador deja fuera de la propuesta de amortización de un ejercicio."),
+            new("AmortizacionExclusiones", "IdAmortizacionExclusion", "Identificador de la exclusión."),
+            new("AmortizacionExclusiones", "IdSociedadEjercicio", "Ejercicio de la propuesta."),
+            new("AmortizacionExclusiones", "IdActivo", "Activo excluido: no entra en la amortización de ese ejercicio mientras no se vuelva a marcar."),
+            new("AmortizacionExclusiones", "Operador", "Operador que lo excluyó."),
+            new("AmortizacionExclusiones", "FechaHora", "Fecha y hora de la exclusión."),
+        ],
+    };
 }

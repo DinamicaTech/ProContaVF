@@ -294,6 +294,10 @@ public sealed class FuenteSaludAccess(IBaseDatos bd) : IFuenteSalud
                 f => new AsientoAmortizacion(anio.GetValueOrDefault(f.Entero("IdSociedadEjercicio")), f.Fecha("FechaContable").Date, f.DecimalNulo("I") ?? 0m));
         }, c);
 
+    public Task<string?> PeriodicidadAmortizacionAsync(EjercicioSociedad ejercicio, CancellationToken c = default) =>
+        bd.EjecutarAsync(async s => !s.LeerEsquema().ExisteColumna("SociedadesEjercicios", "PeriodicidadAmortizacion") ? null
+            : (await s.EscalarAsync("SELECT PeriodicidadAmortizacion FROM SociedadesEjercicios WHERE IdSociedadEjercicio = ?", ejercicio.IdSociedadEjercicio) as string)?.Trim() is { Length: > 0 } p ? p : null, c);
+
     public Task<int> ActivosAmortizablesAsync(string idSociedad, CancellationToken c = default) =>
         bd.EjecutarAsync(async s => Convert.ToInt32(await s.EscalarAsync(
             // Amortizables, propios (no ajenos) y sin dar de baja.
