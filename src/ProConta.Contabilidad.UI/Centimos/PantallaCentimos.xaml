@@ -1,0 +1,133 @@
+<UserControl x:Class="ProConta.Contabilidad.UI.Centimos.PantallaCentimos"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:pc="urn:proconta-ui"
+             Background="White">
+  <UserControl.Resources>
+    <pc:VisibleSiConverter x:Key="Visible" />
+    <ContextMenu x:Key="Menu.Subcuenta">
+      <MenuItem Header="Mayor de la subcuenta" Command="{Binding MayorCommand}" ToolTipService.ShowOnDisabled="True"
+                CommandParameter="{Binding PlacementTarget.SelectedItem, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
+                ToolTip="Abre el Mayor de la subcuenta para ver de dónde salen los céntimos antes de saldarlos" />
+    </ContextMenu>
+    <Style x:Key="Pastilla" TargetType="Border">
+      <Setter Property="Background" Value="{StaticResource Pincel.AzulSuave}" />
+      <Style.Triggers>
+        <DataTrigger Binding="{Binding ClaseEstado}" Value="HECHO">
+          <Setter Property="Background" Value="{StaticResource Pincel.VerdeSuave}" />
+        </DataTrigger>
+        <DataTrigger Binding="{Binding ClaseEstado}" Value="DESACTUALIZADO">
+          <Setter Property="Background" Value="{StaticResource Pincel.AvisoSuave}" />
+        </DataTrigger>
+      </Style.Triggers>
+    </Style>
+  </UserControl.Resources>
+  <UserControl.InputBindings>
+    <KeyBinding Key="F5" Command="{Binding RefrescarCommand}" />
+  </UserControl.InputBindings>
+
+  <DockPanel>
+    <!-- Cabecera: acciones generales -->
+    <Border DockPanel.Dock="Top" BorderBrush="{StaticResource Pincel.Linea}" BorderThickness="0,0,0,1" Padding="14,8">
+      <DockPanel>
+        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+          <Button Content="Umbral y cuentas…" Style="{StaticResource Boton}" Command="{Binding ParametrosCommand}" Margin="0,0,8,0" VerticalAlignment="Center"
+                  ToolTip="Abre Parámetros y tablas › Ejercicios para cambiar el umbral de los céntimos residuales y las cuentas de redondeo (vacías: 1,00 €, 6590000 y 7590000)" />
+          <Button Content="Ver los asientos" Style="{StaticResource Boton}" Command="{Binding VerAsientoCommand}" Margin="0,0,8,0" VerticalAlignment="Center" ToolTipService.ShowOnDisabled="True"
+                  ToolTip="Abre el primer asiento grabado; hay uno por subcuenta (solo si ya está hecho)" />
+          <Button Content="Deshacer…" Style="{StaticResource Boton}" Command="{Binding DeshacerCommand}" Margin="0,0,8,0" VerticalAlignment="Center" ToolTipService.ShowOnDisabled="True"
+                  ToolTip="Borra los asientos de céntimos residuales del 31/12, con motivo (las casillas desmarcadas se conservan)" />
+          <Button Content="Actualizar" Style="{StaticResource Boton}" Command="{Binding RefrescarCommand}" VerticalAlignment="Center"
+                  ToolTip="Vuelve a leer los saldos, el umbral y lo contabilizado, y recalcula la propuesta (F5). Descarta lo cambiado sin confirmar" />
+        </StackPanel>
+        <StackPanel Orientation="Horizontal">
+          <TextBlock Text="Céntimos residuales" Style="{StaticResource Texto.TituloPantalla}" VerticalAlignment="Center" Margin="0,0,12,0" />
+          <TextBlock Text="{Binding Subtitulo}" Style="{StaticResource Texto.Apagado}" VerticalAlignment="Center" Margin="0,0,12,0" />
+          <TextBlock Text="{Binding TextoUmbral}" Style="{StaticResource Texto.Apagado}" VerticalAlignment="Center" Margin="0,0,12,0" ToolTip="{Binding AyudaUmbral}" />
+          <Border CornerRadius="{StaticResource Radio.Pastilla}" Padding="8,1" VerticalAlignment="Center" ToolTip="{Binding AyudaEstado}" Style="{StaticResource Pastilla}">
+            <TextBlock Text="{Binding EstadoTexto}" FontSize="{StaticResource Letra.Pequena}" FontWeight="SemiBold" Foreground="{StaticResource Pincel.Texto2}" />
+          </Border>
+          <TextBlock Text="{Binding AyudaEstado}" Style="{StaticResource Texto.Apagado}" VerticalAlignment="Center" Margin="10,0,0,0" TextTrimming="CharacterEllipsis" ToolTip="{Binding AyudaEstado}" />
+        </StackPanel>
+      </DockPanel>
+    </Border>
+
+    <!-- Pie: confirmar lo que se ve -->
+    <Border DockPanel.Dock="Bottom" Style="{StaticResource Barra.Pie}">
+      <DockPanel>
+        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+          <Button Content="Descartar cambios" Style="{StaticResource Boton}" Command="{Binding DescartarCommand}" Margin="0,0,8,0"
+                  ToolTip="Vuelve a las casillas guardadas y borra el motivo escrito" />
+          <Button Content="{Binding TextoConfirmar}" Style="{StaticResource Boton.Primario}" Command="{Binding ConfirmarCommand}" ToolTipService.ShowOnDisabled="True"
+                  ToolTip="{Binding AyudaConfirmar}" MinWidth="90" />
+        </StackPanel>
+        <TextBlock Text="{Binding PorQueNoConfirmar}" Style="{StaticResource Texto.Apagado}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" ToolTip="{Binding PorQueNoConfirmar}" />
+      </DockPanel>
+    </Border>
+
+    <pc:VistaEstado Estado="{Binding Estado}" Mensaje="{Binding MensajeEstado}" TextoAccion="Actualizar" ComandoAccion="{Binding RefrescarCommand}">
+      <DockPanel Margin="14,10,14,8">
+
+        <DockPanel Visibility="{Binding HayPropuesta, Converter={StaticResource Visible}}">
+          <DockPanel DockPanel.Dock="Top" Margin="0,0,0,8">
+            <TextBlock DockPanel.Dock="Right" Text="{Binding Resumen}" FontWeight="SemiBold" VerticalAlignment="Center" Margin="18,0,0,0" />
+            <TextBlock Text="{Binding TituloPropuesta}" Style="{StaticResource Texto.Seccion}" VerticalAlignment="Center" />
+          </DockPanel>
+
+          <pc:Nota DockPanel.Dock="Top" Tipo="Aviso" Margin="0,0,0,8" MaxWidth="1000" HorizontalAlignment="Left" Visibility="{Binding HayAvisos, Converter={StaticResource Visible}}">
+            <ItemsControl ItemsSource="{Binding Avisos}" Focusable="False">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                  <TextBlock Text="{Binding}" TextWrapping="Wrap" Margin="0,1" />
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </pc:Nota>
+
+          <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" Margin="0,8,0,0" Visibility="{Binding PideMotivo, Converter={StaticResource Visible}}">
+            <TextBlock Text="Motivo" VerticalAlignment="Center" Margin="0,0,8,0" ToolTip="{Binding AyudaMotivo}" />
+            <TextBox Text="{Binding Motivo, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource Campo}" Width="520" MaxLength="255" VerticalAlignment="Center"
+                     ToolTip="{Binding AyudaMotivo}" AutomationProperties.Name="Motivo" />
+            <TextBlock Text="{Binding AyudaMotivo}" Style="{StaticResource Texto.Apagado}" VerticalAlignment="Center" Margin="10,0,0,0" />
+          </StackPanel>
+
+          <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" HorizontalAlignment="Left" Margin="0,6,0,0">
+            <TextBlock Text="{Binding EtiquetaGastos}" Style="{StaticResource Texto.Apagado}" Margin="0,0,6,0" ToolTip="Total de las subcuentas deudoras: diferencias de redondeo en contra" />
+            <TextBlock Text="{Binding TotalGastos}" Style="{StaticResource Texto.Importe}" Margin="0,0,18,0" />
+            <TextBlock Text="{Binding EtiquetaIngresos}" Style="{StaticResource Texto.Apagado}" Margin="0,0,6,0" ToolTip="Total de las subcuentas acreedoras: diferencias de redondeo a favor" />
+            <TextBlock Text="{Binding TotalIngresos}" Style="{StaticResource Texto.Importe}" />
+          </StackPanel>
+
+          <!-- Subcuentas -->
+          <DataGrid Style="{StaticResource Tabla}" ItemsSource="{Binding Filas}" AutoGenerateColumns="False" HeadersVisibility="Column"
+                    CanUserAddRows="False" CanUserDeleteRows="False" SelectionMode="Single" RowStyle="{StaticResource Tabla.Fila}"
+                    HorizontalAlignment="Left" ContextMenu="{StaticResource Menu.Subcuenta}" AutomationProperties.Name="Subcuentas con céntimos residuales"
+                    ToolTip="Subcuentas con céntimos residuales a 31/12. Pasa el ratón por una para ver su asiento. Clic derecho: su Mayor">
+            <DataGrid.Columns>
+              <DataGridTemplateColumn Header="" Width="34">
+                <DataGridTemplateColumn.CellTemplate>
+                  <DataTemplate>
+                    <CheckBox IsChecked="{Binding Incluido, UpdateSourceTrigger=PropertyChanged}" HorizontalAlignment="Center" VerticalAlignment="Center"
+                              ToolTip="Marcada: se salda con su asiento. Desmárcala para dejar fuera esta subcuenta en el ejercicio; se recuerda al volver a proponer" />
+                  </DataTemplate>
+                </DataGridTemplateColumn.CellTemplate>
+              </DataGridTemplateColumn>
+              <DataGridTextColumn Header="Subcuenta" Binding="{Binding Cuenta}" IsReadOnly="True" Width="80" ElementStyle="{StaticResource Texto.Celda.Mono}" />
+              <DataGridTemplateColumn Header="Nombre" Width="300">
+                <DataGridTemplateColumn.CellTemplate>
+                  <DataTemplate>
+                    <TextBlock Text="{Binding Nombre}" Style="{StaticResource Texto.Celda}" TextTrimming="CharacterEllipsis" ToolTip="{Binding AyudaFila}" />
+                  </DataTemplate>
+                </DataGridTemplateColumn.CellTemplate>
+              </DataGridTemplateColumn>
+              <DataGridTextColumn Header="Saldo a 31/12" Binding="{Binding Saldo}" IsReadOnly="True" Width="100" ElementStyle="{StaticResource Texto.Celda.Importe}" HeaderStyle="{StaticResource Tabla.Cabecera.Derecha}" />
+              <DataGridTextColumn Header="Saldo" Binding="{Binding Naturaleza}" IsReadOnly="True" Width="76" ElementStyle="{StaticResource Texto.Celda}" />
+              <DataGridTextColumn Header="Contra la" Binding="{Binding Contrapartida}" IsReadOnly="True" Width="80" ElementStyle="{StaticResource Texto.Celda.Mono}" />
+              <DataGridTextColumn Header="Importe" Binding="{Binding Importe}" IsReadOnly="True" Width="90" ElementStyle="{StaticResource Texto.Celda.Importe}" HeaderStyle="{StaticResource Tabla.Cabecera.Derecha}" />
+            </DataGrid.Columns>
+          </DataGrid>
+        </DockPanel>
+      </DockPanel>
+    </pc:VistaEstado>
+  </DockPanel>
+</UserControl>

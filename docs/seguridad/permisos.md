@@ -29,6 +29,7 @@ Operadores, grupos (N:M) y permisos por ámbito: ámbito sin configurar permite 
 - 2026-11-17 17:05 · Cumplida la línea «Derived from contabilidad/procesos/facturas-pendientes-recibir» del 2026-11-17 16:40: acción PROCESOS.FACTURAS_PENDIENTES (`Acciones.FacturasPendientes`), «Contabilizar las facturas pendientes de recibir»; la comprueba el servicio al confirmar y al deshacer. Mientras no tenga grupos, la tienen quienes pueden liquidar el IVA (`Acciones.Respaldo`), como la del cierre del ejercicio.
 
 - 2026-11-17 18:12 · Acción PROCESOS.AMORTIZACION («Amortizar los activos»: confirmar y deshacer la amortización de un periodo); mientras no tenga grupos, la tienen quienes pueden liquidar el IVA (contabilidad/procesos/amortizacion-de-activos 2026-11-17 18:12).
+- 2026-11-17 19:15 · Acción PROCESOS.CENTIMOS_RESIDUALES («Saldar los céntimos residuales»: confirmar y deshacer sus asientos del 31/12); mientras no tenga grupos, la tienen quienes pueden liquidar el IVA (contabilidad/procesos/centimos-residuales 2026-11-17 19:15).
 
 ## Requirements
 - 2026-10-28 12:28 · From sources/01_ESPECIFICACION_FUNCIONAL.docx § 5 RF-SEG-03, 04, 07: operadores y grupos, política de ámbitos, puntos pendientes
@@ -50,6 +51,7 @@ Operadores, grupos (N:M) y permisos por ámbito: ámbito sin configurar permite 
 - 2026-11-17 11:35 · Derived from contabilidad/procesos/impuesto-sociedades: nueva acción PROCESOS.IMPUESTO_SOCIEDADES, «Contabilizar el Impuesto sobre Sociedades» (confirmar y deshacer); mientras no tenga grupos, la tienen quienes pueden liquidar el IVA.
 - 2026-11-17 16:40 · Derived from contabilidad/procesos/facturas-pendientes-recibir: nueva acción PROCESOS.FACTURAS_PENDIENTES, «Contabilizar las facturas pendientes de recibir» (confirmar y deshacer); mientras no tenga grupos, la tienen quienes pueden liquidar el IVA.
 - 2026-11-17 18:50 · Derived from activos: una sola acción nueva para ver y modificar los activos (pantalla Datos maestros › Activos).
+- 2026-11-17 19:05 · Derived from contabilidad/procesos/centimos-residuales: nueva acción PROCESOS.CENTIMOS_RESIDUALES, «Saldar los céntimos residuales», que mientras no tenga grupos sigue a la de liquidar el IVA.
 
 ## Hand-over
 - 2026-10-31 19:10 · Hecho: política común, ámbito de sociedades, operadores (búsqueda, grupos activos, primer administrador, cambio de contraseña) y pruebas. Pendiente: mantenimiento completo de operadores y grupos (seguridad/pantallas); ámbitos de reports (las RestriccionesReportsGrupo antiguas son de denegación y necesitan adaptarse, RF-SEG-07) y de procesos que generan asientos o borran datos (requisito 2026-10-29 17:45, sin tabla todavía); regeneración de contraseña temporal por correo.

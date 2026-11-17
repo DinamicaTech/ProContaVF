@@ -1,19 +1,35 @@
 ---
 title: Céntimos residuales
 status: draft
-depends_on: [contabilidad/procesos]
-threads: []
+depends_on: [contabilidad/procesos, organizacion/sociedades-ejercicios, contabilidad/procesos/cierre-ejercicio, pantalla-de-inicio, datos/esquema, seguridad/permisos, contabilidad/mayor]
+threads:
+  - 2026-11-17 19:15 · Ajustar los céntimos residuales | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GCyHQic1UajQccvjRgPHVJG
 ---
 ## Summary
-Proceso de cierre que lleva a la cuenta de diferencias de redondeo los céntimos que quedan en el saldo de las subcuentas (por ejemplo, la 430 de un cliente con 0,01 € tras cobrar 120,99 € de una factura de 121,00 €), con fecha 31/12. Sustituye a «Mata centimillos» del sistema antiguo, sin sus defectos: calcula desde los apuntes y no duplica al repetirse.
-**Aceptación:** las subcuentas con saldo distinto de cero dentro del umbral quedan a cero contra las cuentas de redondeo del ejercicio; repetirlo no genera asientos nuevos ni duplica el lote.
+Proceso de cierre que lleva a las cuentas de redondeo del ejercicio los céntimos que quedan en el saldo de las subcuentas (por ejemplo, la 430 de un cliente con 0,01 € tras cobrar 120,99 € de una factura de 121,00 €), con fecha 31/12. Sustituye a «Mata centimillos» del sistema antiguo, sin sus defectos: calcula desde los apuntes y no duplica al repetirse.
+Pantalla Contabilidad › Procesos contables › Fin de ejercicio › Céntimos residuales (`src/ProConta.Contabilidad.UI/Centimos`; cálculo y servicio en `src/ProConta.Contabilidad/Centimos`). Entran las subcuentas de los grupos 1 a 5, salvo 47 y 57, con un saldo a 31/12 distinto de cero y menor que el umbral del ejercicio (vacío, 1,00 €); un asiento por subcuenta, las deudoras contra la cuenta de redondeo de gastos (6590000) y las acreedoras contra la de ingresos (7590000), como lote propio regenerable con casilla para excluir. Esquema 69 y permiso PROCESOS.CENTIMOS_RESIDUALES. Hecho, pendiente de probar contra Access en el equipo del propietario y de validar.
+**Aceptación:** las subcuentas con saldo distinto de cero dentro del umbral quedan a cero contra las cuentas de redondeo del ejercicio; repetirlo no genera asientos nuevos ni duplica el lote; el aviso de Inicio desaparece al saldarlas.
 
 ## Decisions
 - 2026-11-13 12:05 · Creado como borrador desde contabilidad/procesos (hilo «Definir los procesos contables»), al acordar con el propietario la lista de procesos contables. Usa el marco común del nodo padre: propuesta revisable en el visor de asientos, confirmación de exactamente lo propuesto, lote propio regenerable (repetir no duplica), permisos y cuentas configuradas por sociedad y ejercicio.
 - 2026-11-13 12:05 · Se mantiene (propietario 2026-11-13 12:00): el motor cuadra cada asiento, pero eso no deja a cero el saldo de las subcuentas. Umbral configurable (el antiguo usaba ±0,07 €); cuentas de redondeo = las del ejercicio (Parámetros › Ejercicios, vacías 6590000 y 7590000).
-- 2026-11-15 17:20 · Cumplida la línea «Derived from pantalla-de-inicio» del 2026-11-15 17:20: la salud de Inicio avisa (gravedad «aviso») de las subcuentas 40, 41 y 43 con saldo a la fecha de corte distinto de cero y menor de 1 € en valor absoluto, con su número, su total y el Mayor ya con ellas (pantalla-de-inicio 2026-11-15 17:20). Solo es el aviso: el proceso de este nodo sigue por hacer, y cuando exista, el aviso podrá abrirlo.
+- 2026-11-15 17:20 · [replaced by 2026-11-17 19:15] Cumplida la línea «Derived from pantalla-de-inicio» del 2026-11-15 17:20: la salud de Inicio avisa (gravedad «aviso») de las subcuentas 40, 41 y 43 con saldo a la fecha de corte distinto de cero y menor de 1 € en valor absoluto, con su número, su total y el Mayor ya con ellas (pantalla-de-inicio 2026-11-15 17:20). Solo es el aviso: el proceso de este nodo sigue por hacer, y cuando exista, el aviso podrá abrirlo.
+- 2026-11-17 19:15 · Desglose aceptado por el propietario (2026-11-17 19:05): pantalla Contabilidad › Procesos contables › Fin de ejercicio › Céntimos residuales, entre Facturas pendientes de recibir y Prorrata de IVA. (1) Entran las subcuentas de 7 dígitos de los grupos 1 a 5, salvo las 47 (Administraciones Públicas: las salda la liquidación) y las 57 (bancos y caja: su saldo es real). (2) Umbral: parámetro del ejercicio «Umbral de los céntimos residuales» (vacío, 1,00 €); entra un saldo que, redondeado a céntimos, no es cero y es menor que el umbral en valor absoluto; el aviso de Inicio usa el mismo umbral. (3) Un asiento por subcuenta a 31/12 (el propietario descarta el asiento único): la deudora al Haber contra la cuenta de redondeo de gastos del ejercicio (Debe) y la acreedora al Debe contra la de ingresos (Haber), sin compensar entre ellas. (4) Casilla para excluir cada subcuenta, que se recuerda (tabla CentimosResidualesExclusiones). (5) Se graba aunque el 4T esté liquidado (las 659 y 759 no son cuentas fiscales del trimestre), nunca en un ejercicio cerrado; la comprobación previa del cierre enseña su estado. (6) Motivo obligatorio si se repite o si el ejercicio no ha terminado; deshacer, con motivo. (7) Esquema 69 y permiso propio.
+- 2026-11-17 19:15 · Saldo a 31/12 = Debe − Haber de los apuntes contabilizados del ejercicio, con la apertura y sin la regularización (TipoAsiento 2), el cierre (3) ni los lotes de este proceso: por eso repetirlo da la misma propuesta y no duplica. Los asientos van en el lote del motor `contabilidad/procesos/centimos-residuales`, proceso CENTIMOS, clave el año; confirmar vuelve a calcular y solo graba si la propuesta es la que se ve; las cuentas de redondeo que falten se crean al confirmar (con la identidad de la de otro ejercicio si existe). Estado: pendiente (sin asientos y algo que saldar, o en curso si el ejercicio no ha terminado), hecho (lo grabado coincide con lo propuesto, o nada que saldar) o desactualizado.
+- 2026-11-17 19:15 · Hecho, pendiente de validar. Código: `CalculoCentimos` (sin BD) y `ServicioCentimos` en `src/ProConta.Contabilidad/Centimos`, pantalla `CentimosVM`/`PantallaCentimos` en `src/ProConta.Contabilidad.UI/Centimos` (menú Fin de ejercicio, tras Facturas pendientes de recibir; cabecera con «Umbral y cuentas…», «Ver los asientos», «Deshacer…» y «Actualizar»; menú contextual de una subcuenta: su Mayor), comprobación «Céntimos residuales» del cierre, aviso de Inicio con el umbral del ejercicio que abre esta pantalla. Pruebas: `CentimosTests` (sin BD) y `CentimosAccessTests` (contra Access).
 
 ## Requirements
 - 2026-11-13 12:00 · 4. Tienes razón, estaba pensando en centimillos de un asiento, no del saldo de una subcuenta. Sí, lo seguimos necesitando
 - 2026-11-13 12:05 · draft: Llevar a 31/12 a las cuentas de redondeo del ejercicio los céntimos residuales del saldo de las subcuentas (dentro de un umbral configurable), como propuesta confirmada en un lote regenerable.
 - 2026-11-15 17:20 · Derived from pantalla-de-inicio: aviso en la salud de Inicio de las subcuentas de clientes y proveedores (40, 41 y 43) con céntimos residuales (saldo a la fecha de corte distinto de cero y menor de 1 € en valor absoluto), con su número, su importe y el Mayor de esas subcuentas; el proceso que los salda sigue siendo de este nodo.
+- 2026-11-17 19:05 · 1- Ok
+- 2026-11-17 19:05 · 2- Ok
+- 2026-11-17 19:05 · 3- No, un asiento por subcuenta
+- 2026-11-17 19:05 · 4- Ok
+- 2026-11-17 19:05 · 5- Ok
+- 2026-11-17 19:05 · 6- Ok
+- 2026-11-17 19:05 · 7- Ok
+
+## Hand-over
+- 2026-11-17 19:15 · Hecho en la rama claude/project-thread-fhgf80: código, esquema 69, permiso, menú, comprobación del cierre, aviso de Inicio, pruebas sin BD (pasan en la nube) y docs.
+- 2026-11-17 20:05 · El propietario pidió fusionar sin hacer las pruebas en su equipo (2026-11-17 19:56: las hará junto con las de otros hilos); la solución compila con main al día. Falta: pruebas contra Access (CentimosAccessTests, Fase4Tests, MantenimientoTests, SeguridadTests), ensayo en una copia de C:\Docs\ProContaVF-validacion y la validación del propietario; después, quitar `status: draft`.

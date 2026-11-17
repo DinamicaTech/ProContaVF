@@ -135,7 +135,9 @@ public sealed class MantenimientoAccessTests : IDisposable
             // Facturas pendientes de recibir (contabilidad/procesos/facturas-pendientes-recibir, esquema 67).
             "TipoIvaFacturasPendientes", "CuentaFacturasPendientesRecibir", "CuentaGastoFacturasPendientes",
             // Periodicidad de la amortización de los activos (contabilidad/procesos/amortizacion-de-activos, esquema 68).
-            "PeriodicidadAmortizacion" }.Order(),
+            "PeriodicidadAmortizacion",
+            // Umbral de los céntimos residuales (contabilidad/procesos/centimos-residuales, esquema 69).
+            "UmbralCentimosResiduales" }.Order(),
             Servicio().Proveedor("ejercicios")!.Campos.Select(c => c.Clave).Order());
         await Bd.EjecutarAsync(x => x.EjecutarAsync("UPDATE SociedadesEjercicios SET CuentaSuplido = '5550002', PorcentajeProrrataAñoAnterior = 0.14 WHERE IdSociedadEjercicio = 9001"));
         var ejercicio = (await Servicio().Proveedor("ejercicios")!.ListarAsync(Ctx)).Single(r => r.Texto("Ejercicio") == "2026");

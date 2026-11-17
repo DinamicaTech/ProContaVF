@@ -114,6 +114,7 @@ public static class CatalogoMigraciones
         MigracionesContabilidad.PresentacionesAeat,
         MigracionesContabilidad.FacturasPendientesRecibir,
         MigracionesContabilidad.AmortizacionActivos,
+        MigracionesContabilidad.CentimosResiduales,
     ];
 
     /// <summary>Versión del esquema que espera esta versión del programa.</summary>
