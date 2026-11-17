@@ -72,6 +72,7 @@ public partial class VentanaPrincipal : Window
     private readonly ProConta.Contabilidad.UI.Liquidacion.ModuloLiquidacionIva _liquidacionIva;
     private readonly ProConta.Contabilidad.UI.Modelo303.ModuloModelo303 _modelo303;
     private readonly ProConta.Contabilidad.UI.Dividendos.ModuloRepartoDividendos _dividendos;
+    private readonly ProConta.Contabilidad.UI.Dividendos.ModuloAplicacionResultado _aplicacionResultado;
     private readonly ProConta.Contabilidad.UI.Prorrata.ModuloRegularizacionProrrata _prorrata;
     private readonly ProConta.Contabilidad.UI.ImpuestoSociedades.ModuloImpuestoSociedades _impuestoSociedades;
     private readonly ProConta.Contabilidad.UI.Cierre.ModuloCierreEjercicio _cierreEjercicio;
@@ -408,17 +409,38 @@ public partial class VentanaPrincipal : Window
             },
             _area, new ProConta.Contabilidad.UI.Liquidacion.DialogosLiquidacionIva(() => this));
         var abrirImpuestoSociedades = new ComandoDelegado(() => _impuestoSociedades.Abrir());
-        // Reparto de dividendos (contabilidad/procesos/aplicacion-resultado): reservas a la 526 de cada socio con su retención, como lote regenerable.
+        // Reparto de dividendos (contabilidad/procesos/aplicacion-resultado): reservas a la 526 de cada socio con su retención, como lote regenerable,
+        // y el acta de la junta en PDF (motor de informes, HTML › PDF con WebView2) en la carpeta de documentos de la empresa.
+        var servicioDividendos = new ProConta.Contabilidad.Dividendos.ServicioDividendos(bd, new MotorAsientosAccess(bd), cuentas, () => autorizador.PuedeAsync(Acciones.Dividendos));
+        Action<string> abrirFichero = ruta =>
+        {
+            try { System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(ruta) { UseShellExecute = true })?.Dispose(); }
+            catch (Exception ex) when (ex is System.ComponentModel.Win32Exception or InvalidOperationException) { Avisar($"Fichero guardado en {ruta} (no he podido abrirlo: {ex.Message})"); }
+        };
         _dividendos = new ProConta.Contabilidad.UI.Dividendos.ModuloRepartoDividendos(
-            new ProConta.Contabilidad.UI.Dividendos.ContextoRepartoDividendos(
-                new ProConta.Contabilidad.Dividendos.ServicioDividendos(bd, new MotorAsientosAccess(bd), cuentas, () => autorizador.PuedeAsync(Acciones.Dividendos)),
+            new ProConta.Contabilidad.UI.Dividendos.ContextoRepartoDividendos(servicioDividendos, contexto.Contexto, contexto.RazonSocial, new Actor(sesion.NombreOperador), Avisar)
+            {
+                VerAsiento = id => _mayor.VerAsientoAsync(id),
+                AbrirMayor = cuentasMayor => _mayor.Abrir(cuentasMayor),
+                Actas = new ProConta.Contabilidad.Dividendos.ServicioActaDividendos(bd, servicioDividendos),
+                HtmlAPdf = html => ConversorHtmlPdf.Compartido.Convertir(html, new PaginaPdf(210, 297, 22, 22, 20, 22)),
+                AbrirFichero = abrirFichero,
+            },
+            _area, new ProConta.Contabilidad.UI.Dividendos.DialogosRepartoDividendos(() => this));
+        var abrirDividendos = new ComandoDelegado(() => _dividendos.Abrir());
+        // Aplicación del resultado (contabilidad/procesos/aplicacion-resultado, fase 2): el resultado del ejercicio anterior (129) a la 121, a reserva
+        // legal, a dividendos (un reparto con cargo a la 129) y a voluntarias, como lote regenerable.
+        _aplicacionResultado = new ProConta.Contabilidad.UI.Dividendos.ModuloAplicacionResultado(
+            new ProConta.Contabilidad.UI.Dividendos.ContextoAplicacionResultado(
+                new ProConta.Contabilidad.Dividendos.ServicioAplicacionResultado(bd, new MotorAsientosAccess(bd), cuentas, servicioDividendos, () => autorizador.PuedeAsync(Acciones.Dividendos)),
                 contexto.Contexto, contexto.RazonSocial, new Actor(sesion.NombreOperador), Avisar)
             {
                 VerAsiento = id => _mayor.VerAsientoAsync(id),
                 AbrirMayor = cuentasMayor => _mayor.Abrir(cuentasMayor),
+                AbrirRepartos = () => _dividendos.Abrir(),
             },
-            _area, new ProConta.Contabilidad.UI.Dividendos.DialogosRepartoDividendos(() => this));
-        var abrirDividendos = new ComandoDelegado(() => _dividendos.Abrir());
+            _area, new ProConta.Contabilidad.UI.Liquidacion.DialogosLiquidacionIva(() => this));
+        var abrirAplicacion = new ComandoDelegado(() => _aplicacionResultado.Abrir());
         // Cierre del ejercicio (contabilidad/procesos/cierre-ejercicio): regularización, cierre y apertura del siguiente en una transacción, con la
         // comprobación previa (V5) enlazada a donde se resuelve; reabrir borra solo esos asientos. Crea también el ejercicio siguiente.
         var puedeCerrar = () => autorizador.PuedeAsync(Acciones.CierreEjercicio);
@@ -440,6 +462,7 @@ public partial class VentanaPrincipal : Window
                     ProConta.Contabilidad.Cierre.DestinoComprobacion.Prorrata => () => _prorrata.Abrir(),
                     ProConta.Contabilidad.Cierre.DestinoComprobacion.FacturasPendientes => () => _facturasPendientes!.Abrir(),
                     ProConta.Contabilidad.Cierre.DestinoComprobacion.CentimosResiduales => () => _centimos!.Abrir(),
+                    ProConta.Contabilidad.Cierre.DestinoComprobacion.AplicacionResultado => () => _aplicacionResultado.Abrir(),
                     ProConta.Contabilidad.Cierre.DestinoComprobacion.Diario => () => _diario.Abrir(),
                     ProConta.Contabilidad.Cierre.DestinoComprobacion.Salud => () => irAInicio.Execute(null),
                     _ => null,
@@ -571,7 +594,7 @@ public partial class VentanaPrincipal : Window
                 "y quita la casilla a las demás; enseña antes lo que cambia, conserva las notas y no hace asientos",
                 abrirReinicioCuadre, EsHija: true),
             new OpcionNavegacion("Fin de ejercicio", null, true, false,
-                "Procesos contables que se hacen al terminar el año, en este orden: amortización, facturas pendientes de recibir, céntimos residuales, prorrata, liquidación del IVA del 4T, Impuesto sobre Sociedades y cierre. " +
+                "Procesos contables que se hacen al terminar el año, en este orden: amortización, facturas pendientes de recibir, céntimos residuales, prorrata, liquidación del IVA del 4T, Impuesto sobre Sociedades y cierre; y, en el ejercicio siguiente, la aplicación del resultado. " +
                 "Pulsar aquí abre el Cierre del ejercicio, cuya comprobación previa dice qué falta de cada paso",
                 abrirCierreEjercicio, EsHija: true),
             new OpcionNavegacion("Amortización de activos", null, true, false,
@@ -598,6 +621,10 @@ public partial class VentanaPrincipal : Window
             new OpcionNavegacion("Cierre del ejercicio", null, true, false,
                 "Procesos contables › Fin de ejercicio › Cierre del ejercicio: comprobación previa, regularización de los grupos 6 y 7 a la cuenta de resultados, cierre de los grupos 1 a 5 y apertura del ejercicio siguiente, grabados de una vez con la marca de cerrado; reabrir con motivo y crear el ejercicio siguiente",
                 abrirCierreEjercicio, EsNieta: true),
+            new OpcionNavegacion("Aplicación del resultado", null, true, false,
+                "Procesos contables › Fin de ejercicio › Aplicación del resultado: en el ejercicio siguiente al cerrado, el resultado que la apertura deja en la 129 " +
+                "a la 121 si es pérdida o, si es beneficio, a compensar pérdidas, a reserva legal (el mínimo de la ley), a dividendos (un reparto con cargo a la 129) y el resto a voluntarias; repetir o deshacer con motivo",
+                abrirAplicacion, EsNieta: true),
             new OpcionNavegacion("Recalcular saldos", null, true, false,
                 "Procesos contables › Recalcular saldos: compara el saldo y el número de apuntes guardados de cada cuenta del ejercicio con sus apuntes, lista las diferencias " +
                 "y los códigos con apuntes que no están en el plan, y «Recalcular» los rehace. No crea ni cambia asientos",

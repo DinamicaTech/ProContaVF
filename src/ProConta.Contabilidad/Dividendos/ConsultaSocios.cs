@@ -55,15 +55,20 @@ public sealed class ConsultaSocios(IBaseDatos bd)
     /// Saldo (Debe − Haber) de unas cuentas hasta <paramref name="hasta"/> desde los apuntes contabilizados del ejercicio, sin el cierre y sin los
     /// asientos del lote <paramref name="sinLote"/> («motor|proceso|clave»; el propio reparto al corregirlo).
     /// </summary>
+    public static Task<IReadOnlyDictionary<string, decimal>> SaldosAsync(ISesionDatos s, int idSociedadEjercicio, DateTime hasta, IReadOnlyCollection<string> cuentas,
+        string? sinLote = null) => SaldosAsync(s, idSociedadEjercicio, hasta, cuentas, sinLote is null ? [] : [sinLote]);
+
+    /// <summary>Como el anterior, sin los asientos de varios lotes («motor|proceso|clave»).</summary>
     public static async Task<IReadOnlyDictionary<string, decimal>> SaldosAsync(ISesionDatos s, int idSociedadEjercicio, DateTime hasta, IReadOnlyCollection<string> cuentas,
-        string? sinLote = null)
+        IReadOnlyCollection<string> sinLotes)
     {
         var r = new Dictionary<string, decimal>(StringComparer.Ordinal);
         var lista = cuentas.Select(c => c.Trim()).Where(c => c.Length > 0 && c.All(char.IsAsciiDigit)).Distinct().ToList();
         if (lista.Count == 0) return r;
-        var excluir = sinLote is null ? "" : "AND (IIF(a.MotorPropietario IS NULL, '', a.MotorPropietario) & '|' & IIF(a.CodigoProceso IS NULL, '', a.CodigoProceso) & '|' & IIF(a.ClaveEjecucion IS NULL, '', a.ClaveEjecucion)) <> ? ";
+        const string ClaveLote = "(IIF(a.MotorPropietario IS NULL, '', a.MotorPropietario) & '|' & IIF(a.CodigoProceso IS NULL, '', a.CodigoProceso) & '|' & IIF(a.ClaveEjecucion IS NULL, '', a.ClaveEjecucion))";
+        var excluir = string.Concat(sinLotes.Select(_ => $"AND {ClaveLote} <> ? "));
         var parametros = new List<object?> { idSociedadEjercicio, hasta.Date };
-        if (sinLote is not null) parametros.Add(sinLote);
+        parametros.AddRange(sinLotes);
         var filas = await s.ConsultarAsync(
             "SELECT p.CuentaContable, SUM(IIF(p.ImporteDebe IS NULL, 0, p.ImporteDebe)) - SUM(IIF(p.ImporteHaber IS NULL, 0, p.ImporteHaber)) AS Saldo " +
             "FROM Apuntes AS p INNER JOIN Asientos AS a ON p.IdAsiento = a.IdAsiento " +

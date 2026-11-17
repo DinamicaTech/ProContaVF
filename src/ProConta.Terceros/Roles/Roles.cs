@@ -55,6 +55,15 @@ public sealed class RolEmpleado(string idSociedad)
     public int? IdEmpleado { get; internal set; }
     public bool Activo { get; set; } = true;
     public string? CodigoTrabajador { get; set; }
+    /// <summary>Es administrador de la sociedad (contabilidad/procesos/aplicacion-resultado 2026-11-17): sale en el acta del reparto de dividendos.</summary>
+    public bool Administrador { get; set; }
+    /// <summary>Cargo del administrador; vacío, «Administrador único».</summary>
+    public string? CargoAdministrador { get; set; }
+    /// <summary>Datos de la persona para el acta (tabla Empleados, comunes a todas las sociedades).</summary>
+    public string? Nacionalidad { get; set; }
+    public string? Profesion { get; set; }
+    /// <summary>Estado civil y régimen económico, como sale en el acta (por ejemplo «casado en régimen de separación de bienes»).</summary>
+    public string? EstadoCivil { get; set; }
     internal RolEmpleado Clonar() => (RolEmpleado)MemberwiseClone();
 }
 
@@ -70,7 +79,28 @@ public sealed class RolSocio(string idSociedad)
     public bool Activo { get; set; } = true;
     /// <summary>Participación en el capital, en porcentaje (50 = 50 %); null sin indicar.</summary>
     public decimal? Participacion { get; set; }
+    /// <summary>Número de participaciones sociales (para el acta del reparto de dividendos).</summary>
+    public int? Participaciones { get; set; }
+    /// <summary>Numeración de sus participaciones, en texto (por ejemplo «Del 951 al 1.950, ambos inclusive»).</summary>
+    public string? NumeracionParticipaciones { get; set; }
+    /// <summary>Cargo en la junta: <see cref="CargosJunta.Presidente"/>, <see cref="CargosJunta.Secretario"/> o null.</summary>
+    public string? CargoJunta { get; set; }
     internal RolSocio Clonar() => (RolSocio)MemberwiseClone();
+}
+
+/// <summary>Cargos de un socio en la junta general (columna SociosSociedad.CargoJunta).</summary>
+public static class CargosJunta
+{
+    public const string Presidente = "PRESIDENTE";
+    public const string Secretario = "SECRETARIO";
+
+    /// <summary>El valor guardado normalizado (PRESIDENTE, SECRETARIO o null).</summary>
+    public static string? Normalizar(string? cargo) => (cargo ?? "").Trim().ToUpperInvariant() switch
+    {
+        Presidente => Presidente,
+        Secretario => Secretario,
+        _ => null,
+    };
 }
 
 /// <summary>
@@ -291,18 +321,26 @@ public sealed class ServicioRoles(IBaseDatos bd, ICatalogoCuentas cuentas)
     public Task<RolSocio?> SocioAsync(int idTercero, string idSociedad) => bd.EjecutarAsync(s => SocioAsync(s, idTercero, idSociedad));
 
     internal static Task<RolSocio?> SocioAsync(ISesionDatos s, int idTercero, string idSociedad) => s.ConsultarPrimeroAsync(
-        "SELECT so.IdSocio, ss.Activo, ss.Participacion FROM Socios AS so INNER JOIN SociosSociedad AS ss ON so.IdSocio = ss.IdSocio " +
+        "SELECT so.IdSocio, ss.Activo, ss.Participacion, ss.Participaciones, ss.NumeracionParticipaciones, ss.CargoJunta FROM Socios AS so INNER JOIN SociosSociedad AS ss ON so.IdSocio = ss.IdSocio " +
         "WHERE so.IdTercero = ? AND ss.IdSociedad = ?",
-        f => (RolSocio?)new RolSocio(idSociedad) { IdSocio = f.Entero("IdSocio"), Activo = f.Logico("Activo"), Participacion = f.DecimalNulo("Participacion") },
+        f => (RolSocio?)new RolSocio(idSociedad)
+        {
+            IdSocio = f.Entero("IdSocio"), Activo = f.Logico("Activo"), Participacion = f.DecimalNulo("Participacion"), Participaciones = f.EnteroNulo("Participaciones"),
+            NumeracionParticipaciones = f.Texto("NumeracionParticipaciones"), CargoJunta = CargosJunta.Normalizar(f.Texto("CargoJunta")),
+        },
         idTercero, idSociedad);
 
     /// <summary>El rol Empleado del tercero en la sociedad (null si nunca lo ha tenido allí).</summary>
     public Task<RolEmpleado?> EmpleadoAsync(int idTercero, string idSociedad) => bd.EjecutarAsync(s => EmpleadoAsync(s, idTercero, idSociedad));
 
     internal static Task<RolEmpleado?> EmpleadoAsync(ISesionDatos s, int idTercero, string idSociedad) => s.ConsultarPrimeroAsync(
-        "SELECT e.IdEmpleado, es.Activo, es.CodigoTrabajador FROM Empleados AS e INNER JOIN EmpleadosSociedad AS es ON e.IdEmpleado = es.IdEmpleado " +
-        "WHERE e.IdTercero = ? AND es.IdSociedad = ?",
-        f => (RolEmpleado?)new RolEmpleado(idSociedad) { IdEmpleado = f.Entero("IdEmpleado"), Activo = f.Logico("Activo"), CodigoTrabajador = f.Texto("CodigoTrabajador") },
+        "SELECT e.IdEmpleado, es.Activo, es.CodigoTrabajador, es.Administrador, es.CargoAdministrador, e.Nacionalidad, e.Profesion, e.EstadoCivil " +
+        "FROM Empleados AS e INNER JOIN EmpleadosSociedad AS es ON e.IdEmpleado = es.IdEmpleado WHERE e.IdTercero = ? AND es.IdSociedad = ?",
+        f => (RolEmpleado?)new RolEmpleado(idSociedad)
+        {
+            IdEmpleado = f.Entero("IdEmpleado"), Activo = f.Logico("Activo"), CodigoTrabajador = f.Texto("CodigoTrabajador"), Administrador = f.Logico("Administrador"),
+            CargoAdministrador = f.Texto("CargoAdministrador"), Nacionalidad = f.Texto("Nacionalidad"), Profesion = f.Texto("Profesion"), EstadoCivil = f.Texto("EstadoCivil"),
+        },
         idTercero, idSociedad);
 
     /// <summary>Cuentas de los roles del tercero resueltas en el ejercicio de trabajo.</summary>

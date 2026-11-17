@@ -39,6 +39,8 @@ public static class ProveedoresOrganizacion
         "CuentaAjustesNegativosIva" => ["634"],
         "CuentaAjustesPositivosIva" => ["639"],
         "CuentaReservasDividendos" => ["113"],
+        "CuentaReservaLegal" => ["112"],
+        "CuentaResultadosNegativos" => ["121"],
         "CuentaRegularizacionProrrata" => ["472"],
         "CuentaImpuestoSociedades" or "CuentaImpuestoDiferidoIS" => ["630"],
         "CuentaHaciendaAcreedoraIS" => ["475"],
@@ -97,8 +99,12 @@ public static class ProveedoresOrganizacion
     [
         new("PorcentajeRetencionDividendos", "Retención de dividendos (%)", TipoCampo.Porcentaje) { Grupo = "impuestos", Ancho = "xs", Sinonimos = ["dividendos", "retencion", "socios"],
             Ayuda = "Retención que se aplica a los dividendos que se reparten en este ejercicio, en porcentaje: 19 es el 19 %. Vacío: 19 %. El reparto calcula el bruto de cada socio como neto / (1 − retención)." },
-        Cuenta("CuentaReservasDividendos", "Reparto de dividendos · reservas", ayuda: "Cuenta de reservas que se carga por el bruto de los dividendos en Contabilidad › Reparto de dividendos. Vacía: 1130000 (reservas voluntarias). Si no existe, se crea al repartir.",
-            sinonimos: ["1130", "reservas", "dividendos"]),
+        Cuenta("CuentaReservasDividendos", "Reservas voluntarias · dividendos y aplicación", ayuda: "Cuenta de reservas que se carga por el bruto de los dividendos en Contabilidad › Reparto de dividendos y que recibe el resto del beneficio en la aplicación del resultado. Vacía: 1130000 (reservas voluntarias). Si no existe, se crea al usarla.",
+            sinonimos: ["1130", "reservas", "dividendos", "voluntarias", "aplicacion"]),
+        Cuenta("CuentaReservaLegal", "Aplicación del resultado · reserva legal", ayuda: "Recibe en la aplicación del resultado (Contabilidad › Fin de ejercicio › Aplicación del resultado) la parte del beneficio para la reserva legal: el 10 % hasta que llegue al 20 % del capital. Vacía: 1120000. Si no existe, se crea al aplicar.",
+            sinonimos: ["1120", "reserva legal", "aplicacion", "resultado"]),
+        Cuenta("CuentaResultadosNegativos", "Aplicación del resultado · resultados negativos", ayuda: "Resultados negativos de ejercicios anteriores: recibe la pérdida al aplicarla y se compensa con los beneficios siguientes. Vacía: 1210000. Si no existe, se crea al aplicar.",
+            sinonimos: ["1210", "perdidas", "resultados negativos", "aplicacion"]),
     ];
 
     /// <summary>
@@ -219,6 +225,11 @@ public static class ProveedoresOrganizacion
                 Grupo = "ident", Longitud = 34, Ancho = "m", Sinonimos = ["iban", "domiciliacion", "cuenta bancaria", "303", "aeat"],
                 Ayuda = "Cuenta en la que se domicilian los modelos de la AEAT que salen a ingresar (el 303 y los demás que se presenten desde el programa), " +
                     "por ejemplo ES91 2100 0418 4502 0005 1332. Si es de una entidad que no colabora con la AEAT, el cargo puede tener comisiones.",
+            },
+            new("ValorNominalParticipacion", "Valor nominal de la participación (€)", TipoCampo.Importe)
+            {
+                Grupo = "ident", Ancho = "xs", Sinonimos = ["capital", "participaciones", "nominal", "acta", "socios"],
+                Ayuda = "Valor nominal de cada participación social, por ejemplo 10. Con las participaciones de cada socio (ficha › Roles › Socio) da su capital en el acta del reparto de dividendos.",
             },
             .. CuentasCorreccion(),
             Ruta("RutaDocumentos", "Carpeta de documentos") with

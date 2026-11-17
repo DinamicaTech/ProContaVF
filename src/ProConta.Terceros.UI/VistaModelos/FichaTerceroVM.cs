@@ -158,6 +158,7 @@ public sealed class FichaTerceroVM : Observable, IPestanaTrabajo, INotifyDataErr
         _original = t;
         T = t.Clonar();
         _participacionTexto = null;
+        _participacionesTexto = null;
         Clave = t.IdTercero;
         _tocados.Clear();
         _intentoGuardar = false;
@@ -671,6 +672,90 @@ public sealed class FichaTerceroVM : Observable, IPestanaTrabajo, INotifyDataErr
         }
     }
 
+    // ---------- datos para el acta del reparto de dividendos (contabilidad/procesos/aplicacion-resultado 2026-11-17) ----------
+
+    /// <summary>El empleado es administrador de la sociedad: sale en el acta del reparto de dividendos con sus datos.</summary>
+    public bool AdministradorEmpleado
+    {
+        get => T.Roles.Empleado?.Administrador ?? false;
+        set
+        {
+            if (T.Roles.Empleado is not { } e || e.Administrador == value) return;
+            e.Administrador = value;
+            if (value && string.IsNullOrWhiteSpace(e.CargoAdministrador)) e.CargoAdministrador = "Administrador único";
+            Avisar();
+            Avisar(nameof(CargoAdministrador));
+            CambiadoAqui(nameof(AdministradorEmpleado));
+        }
+    }
+
+    public string? CargoAdministrador { get => T.Roles.Empleado?.CargoAdministrador; set => CambiarEmpleado(value, e => e.CargoAdministrador, (e, v) => e.CargoAdministrador = v); }
+    public string? NacionalidadEmpleado { get => T.Roles.Empleado?.Nacionalidad; set => CambiarEmpleado(value, e => e.Nacionalidad, (e, v) => e.Nacionalidad = v); }
+    public string? ProfesionEmpleado { get => T.Roles.Empleado?.Profesion; set => CambiarEmpleado(value, e => e.Profesion, (e, v) => e.Profesion = v); }
+    public string? EstadoCivilEmpleado { get => T.Roles.Empleado?.EstadoCivil; set => CambiarEmpleado(value, e => e.EstadoCivil, (e, v) => e.EstadoCivil = v); }
+
+    private void CambiarEmpleado(string? valor, Func<RolEmpleado, string?> leer, Action<RolEmpleado, string?> escribir, [System.Runtime.CompilerServices.CallerMemberName] string propiedad = "")
+    {
+        if (T.Roles.Empleado is not { } e) return;
+        var v = string.IsNullOrWhiteSpace(valor) ? null : valor.Trim();
+        if (v == leer(e)) return;
+        escribir(e, v);
+        Avisar(propiedad);
+        CambiadoAqui(propiedad);
+    }
+
+    private string? _participacionesTexto;
+
+    /// <summary>Número de participaciones sociales del socio (para el acta).</summary>
+    public string ParticipacionesSocio
+    {
+        get => _participacionesTexto ?? (T.Roles.Socio?.Participaciones is int n ? n.ToString("#,##0", Formatos.Cultura) : "");
+        set
+        {
+            if (T.Roles.Socio is not { } so) return;
+            _participacionesTexto = value;
+            var texto = (value ?? "").Replace(".", "").Replace(" ", "").Trim();
+            int? nuevo = texto.Length == 0 ? null : int.TryParse(texto, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out var v) && v >= 0 ? v : so.Participaciones;
+            if (nuevo != so.Participaciones) so.Participaciones = nuevo;
+            Avisar();
+            CambiadoAqui(nameof(ParticipacionesSocio));
+        }
+    }
+
+    /// <summary>Numeración de las participaciones del socio, en texto libre (para el acta).</summary>
+    public string? NumeracionParticipacionesSocio
+    {
+        get => T.Roles.Socio?.NumeracionParticipaciones;
+        set
+        {
+            if (T.Roles.Socio is not { } so) return;
+            var v = string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+            if (v == so.NumeracionParticipaciones) return;
+            so.NumeracionParticipaciones = v;
+            Avisar();
+            CambiadoAqui(nameof(NumeracionParticipacionesSocio));
+        }
+    }
+
+    /// <summary>Opciones del cargo en la junta: ninguno, presidente o secretario.</summary>
+    public IReadOnlyList<OpcionCargoJunta> OpcionesCargoJunta { get; } =
+        [new(null, "Ninguno"), new(CargosJunta.Presidente, "Presidente"), new(CargosJunta.Secretario, "Secretario")];
+
+    /// <summary>Cargo del socio en la junta general (sale en el acta del reparto de dividendos).</summary>
+    public string? CargoJuntaSocio
+    {
+        get => T.Roles.Socio?.CargoJunta;
+        set
+        {
+            if (T.Roles.Socio is not { } so) return;
+            var v = CargosJunta.Normalizar(value);
+            if (v == so.CargoJunta) return;
+            so.CargoJunta = v;
+            Avisar();
+            CambiadoAqui(nameof(CargoJuntaSocio));
+        }
+    }
+
     private static string EstadoRol(int? id, bool activo) => activo ? "" : id is null ? "Rol no activo." : $"Rol desactivado (conserva su Id {id}).";
 
     public string? NotasCliente { get => T.Roles.Cliente?.Notas; set { if (T.Roles.Cliente is { } c && value != c.Notas) { c.Notas = value; Avisar(); CambiadoAqui(nameof(NotasCliente)); } } }
@@ -730,6 +815,7 @@ public sealed class FichaTerceroVM : Observable, IPestanaTrabajo, INotifyDataErr
                 if (T.Roles.Socio is null) { if (activo) T.Roles.Socio = new RolSocio(Servicios.Contexto.IdSociedad); }
                 else T.Roles.Socio.Activo = activo;
                 _participacionTexto = null;
+                _participacionesTexto = null;
                 break;
             default: return;
         }
@@ -742,7 +828,9 @@ public sealed class FichaTerceroVM : Observable, IPestanaTrabajo, INotifyDataErr
         Avisar(nameof(ClienteActivo), nameof(ProveedorActivo), nameof(ContactoActivo), nameof(IdCliente), nameof(IdProveedor), nameof(IdContacto),
             nameof(EstadoCliente), nameof(EstadoProveedor), nameof(EstadoContacto), nameof(NotasCliente), nameof(IbanCliente), nameof(NotasProveedor), nameof(Cargo), nameof(Departamento),
             nameof(NotasContacto), nameof(Insignias), nameof(EmpleadoActivo), nameof(IdEmpleado), nameof(EstadoEmpleado), nameof(CodigoTrabajador),
-            nameof(SocioActivo), nameof(IdSocio), nameof(EstadoSocio), nameof(ParticipacionSocio));
+            nameof(SocioActivo), nameof(IdSocio), nameof(EstadoSocio), nameof(ParticipacionSocio), nameof(AdministradorEmpleado), nameof(CargoAdministrador),
+            nameof(NacionalidadEmpleado), nameof(ProfesionEmpleado), nameof(EstadoCivilEmpleado), nameof(ParticipacionesSocio), nameof(NumeracionParticipacionesSocio),
+            nameof(CargoJuntaSocio));
         foreach (var c in CuentasDeRoles) c.AvisarAuto();
     }
 
@@ -1162,3 +1250,6 @@ public sealed class FichaTerceroVM : Observable, IPestanaTrabajo, INotifyDataErr
         public int GetHashCode((object, string) obj) => HashCode.Combine(System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(obj.Item1), obj.Item2);
     }
 }
+
+/// <summary>Opción del desplegable «Cargo en la junta» del rol Socio.</summary>
+public sealed record OpcionCargoJunta(string? Valor, string Texto);

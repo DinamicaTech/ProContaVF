@@ -15,6 +15,26 @@ public sealed class DialogosRepartoDividendos(Func<Window?> propietario) : IDial
     public string? PedirMotivo(string titulo, string explicacion) => _comunes.PedirMotivo(titulo, explicacion);
 
     public void Error(string titulo, string mensaje) => _comunes.Error(titulo, mensaje);
+
+    public string? PedirHora(string titulo, string explicacion, string propuesta)
+    {
+        var d = new DialogoProConta { Title = titulo, Owner = propietario(), Width = 460, SizeToContent = SizeToContent.Height };
+        var panel = new System.Windows.Controls.StackPanel();
+        panel.Children.Add(new System.Windows.Controls.TextBlock { Text = explicacion, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 0, 0, 12) });
+        panel.Children.Add(new System.Windows.Controls.TextBlock { Text = "Hora de la junta", FontWeight = FontWeights.SemiBold, Margin = new Thickness(0, 0, 0, 4) });
+        var hora = new System.Windows.Controls.TextBox { Text = propuesta, MaxLength = 5, Width = 80, HorizontalAlignment = HorizontalAlignment.Left,
+            ToolTip = "Hora a la que se reúne la junta (hh:mm), por ejemplo 11:00; en el acta sale como «11,00 horas»" };
+        panel.Children.Add(hora);
+        d.Content = panel;
+        var aceptar = new System.Windows.Controls.Button { Content = "Generar el acta", Style = (Style)d.FindResource("Boton.Primario"), IsDefault = true, Margin = new Thickness(8, 0, 0, 0),
+            ToolTip = "Genera el PDF del acta con esta hora" };
+        var cancelar = new System.Windows.Controls.Button { Content = "Cancelar", IsCancel = true, ToolTip = "Cierra sin generar nada" };
+        aceptar.Click += (_, _) => d.DialogResult = true;
+        cancelar.Click += (_, _) => d.DialogResult = false;
+        d.Botones = new System.Windows.Controls.StackPanel { Orientation = System.Windows.Controls.Orientation.Horizontal, Children = { cancelar, aceptar } };
+        d.Loaded += (_, _) => { hora.Focus(); hora.SelectAll(); };
+        return d.ShowDialog() == true ? hora.Text.Trim() : null;
+    }
 }
 
 /// <summary>Reparto de dividendos dentro del contenedor (contabilidad/procesos/aplicacion-resultado): una sola pestaña por sesión.</summary>

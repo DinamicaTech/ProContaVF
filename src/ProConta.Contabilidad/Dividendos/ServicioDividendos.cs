@@ -92,7 +92,12 @@ public sealed class ServicioDividendos(IBaseDatos bd, IMotorAsientos motor, ICat
     /// Propuesta del reparto con los netos dados (los socios que no están en <paramref name="netos"/> no entran). Avisa si la cuenta de reservas no
     /// llega al bruto o si los % de los socios activos no suman 100.
     /// </summary>
-    public async Task<Resultado<PropuestaDividendos>> ProponerAsync(ContextoSociedadEjercicio ctx, DateTime fecha, IReadOnlyList<NetoSocio> netos, int? idReparto = null)
+    /// <remarks>
+    /// <paramref name="cuentaOrigen"/>: cuenta que se carga por el bruto en lugar de la de reservas del ejercicio (la aplicación del resultado reparte
+    /// con cargo a la 129). Al corregir un reparto se mantiene la cuenta con que se grabó.
+    /// </remarks>
+    public async Task<Resultado<PropuestaDividendos>> ProponerAsync(ContextoSociedadEjercicio ctx, DateTime fecha, IReadOnlyList<NetoSocio> netos, int? idReparto = null,
+        string? cuentaOrigen = null)
     {
         ArgumentNullException.ThrowIfNull(netos);
         var registro = CalculoDividendos.Descripcion(fecha);
@@ -116,10 +121,13 @@ public sealed class ServicioDividendos(IBaseDatos bd, IMotorAsientos motor, ICat
                 return Resultado<PropuestaDividendos>.Fallo(new Error("Dividendos.SocioSinCuentas", e, registro, "Cada socio lleva su 526 y su 4751 en el asiento.", "Desmárcalo o créale las subcuentas."));
             socios.Add(new SocioCalculoDividendos(s.IdSocio, s.Nombre, s.Participacion, s.CuentaDividendos, s.CuentaRetencion, n.Neto));
         }
-        var saldoReservas = await bd.EjecutarAsync(s => ConsultaSocios.SaldosAsync(s, ctx.IdSociedadEjercicio, fecha, [datos.Configuracion.CuentaReservas],
+        var origen = !string.IsNullOrWhiteSpace(cuentaOrigen) ? cuentaOrigen.Trim()
+            : datos.Guardado is { CuentaReservas.Length: > 0 } g ? g.CuentaReservas : datos.Configuracion.CuentaReservas;
+        var config = datos.Configuracion with { CuentaReservas = origen };
+        var saldoReservas = await bd.EjecutarAsync(s => ConsultaSocios.SaldosAsync(s, ctx.IdSociedadEjercicio, fecha, [origen],
             idReparto is int r ? Clave(Lote(r)) : null));
-        var acreedor = -saldoReservas.GetValueOrDefault(datos.Configuracion.CuentaReservas);
-        return Resultado<PropuestaDividendos>.Correcto(CalculoDividendos.Calcular(fecha, datos.Configuracion, socios, acreedor,
+        var acreedor = -saldoReservas.GetValueOrDefault(origen);
+        return Resultado<PropuestaDividendos>.Correcto(CalculoDividendos.Calcular(fecha, config, socios, acreedor,
             datos.SociosActivos == 0 ? null : datos.SumaParticipaciones));
     }
 
@@ -129,7 +137,7 @@ public sealed class ServicioDividendos(IBaseDatos bd, IMotorAsientos motor, ICat
     /// subcuentas de los socios que existen en otro ejercicio y aún no en este.
     /// </summary>
     public async Task<Resultado<ConfirmacionDividendos>> ConfirmarAsync(ContextoSociedadEjercicio ctx, DateTime fecha, IReadOnlyList<NetoSocio> netos, int? idReparto,
-        string? motivo, Actor actor, PropuestaDividendos? vista = null)
+        string? motivo, Actor actor, PropuestaDividendos? vista = null, string? cuentaOrigen = null)
     {
         ArgumentNullException.ThrowIfNull(actor);
         Resultado<ConfirmacionDividendos> Fallo(Error e) => Resultado<ConfirmacionDividendos>.Fallo(e);
@@ -142,7 +150,7 @@ public sealed class ServicioDividendos(IBaseDatos bd, IMotorAsientos motor, ICat
                 "Escribe el motivo (por ejemplo «Neto acordado en la junta»)."));
         if (idReparto is int existente && (await RepartosAsync(ctx)).All(r => r.IdReparto != existente))
             return Fallo(new Error("Dividendos.NoExiste", "El reparto ya no existe.", registro, "Se ha deshecho mientras lo corregías.", "Vuelve a la lista y crea un reparto nuevo."));
-        var prop = await ProponerAsync(ctx, fecha, netos, idReparto);
+        var prop = await ProponerAsync(ctx, fecha, netos, idReparto, cuentaOrigen);
         if (!prop.EsCorrecto) return Resultado<ConfirmacionDividendos>.Fallo(prop.Errores);
         var p = prop.Valor;
         if (vista is not null && !MismoAsiento(vista, p))
@@ -158,7 +166,7 @@ public sealed class ServicioDividendos(IBaseDatos bd, IMotorAsientos motor, ICat
             var identidad = activos.SelectMany(s => new[] { s.Dividendos, s.Retencion }).OfType<CuentaSocio>().FirstOrDefault(c => c.Codigo == codigo && !c.ExisteEnEjercicio);
             var alta = identidad is not null
                 ? await cuentas.AltaEnEjercicioAsync(ctx, identidad.IdIdentidadContable)
-                : codigo == p.CuentaReservas ? await cuentas.AltaSubcuentaAsync(ctx, codigo, "Reservas voluntarias") : null;
+                : codigo == p.CuentaReservas ? await cuentas.AltaSubcuentaAsync(ctx, codigo, codigo.StartsWith("129", StringComparison.Ordinal) ? "Resultado del ejercicio" : "Reservas voluntarias") : null;
             if (alta is null) continue; // el motor explica el error de las demás
             if (!alta.EsCorrecto) return Resultado<ConfirmacionDividendos>.Fallo(alta.Errores);
             creadas.Add($"{alta.Valor.Codigo} «{alta.Valor.Nombre}»");

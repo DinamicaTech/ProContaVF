@@ -280,6 +280,7 @@ public sealed class RepositorioTercerosAccess(IBaseDatos bd, IReloj? reloj = nul
             await s.EjecutarAsync("INSERT INTO EmpleadosSociedad (IdEmpleado, IdSociedad, CodigoTrabajador, Activo) VALUES (?, ?, ?, ?)", idEmpleado, e.IdSociedad, codigo, true);
             e.IdEmpleado = idEmpleado;
             await h.Anotar("Empleado", idEmpleado.Value, "ALTA", $"CodigoTrabajador {e.IdSociedad}", null, codigo ?? "");
+            await GuardarAdministradorAsync(s, e, idEmpleado.Value, h);
             return null;
         }
         e.IdEmpleado = idEmpleado;
@@ -288,7 +289,31 @@ public sealed class RepositorioTercerosAccess(IBaseDatos bd, IReloj? reloj = nul
         if (db.Activo != e.Activo) await h.Anotar("Empleado", idEmpleado!.Value, "MODIFICACION", $"Activo {e.IdSociedad}", db.Activo.ToString(), e.Activo.ToString());
         if (!string.Equals(Vacio(db.Notas), codigo, StringComparison.Ordinal))
             await h.Anotar("Empleado", idEmpleado!.Value, "MODIFICACION", $"CodigoTrabajador {e.IdSociedad}", Vacio(db.Notas), codigo);
+        await GuardarAdministradorAsync(s, e, idEmpleado!.Value, h);
         return null;
+    }
+
+    /// <summary>
+    /// Administrador de la sociedad y datos de la persona para el acta del reparto de dividendos (contabilidad/procesos/aplicacion-resultado
+    /// 2026-11-17): la marca y el cargo van en EmpleadosSociedad; la nacionalidad, la profesión y el estado civil, en Empleados. Cada cambio
+    /// queda en el historial.
+    /// </summary>
+    private static async Task GuardarAdministradorAsync(ISesionDatos s, RolEmpleado e, int idEmpleado, Historial h)
+    {
+        var antes = await s.ConsultarPrimeroAsync(
+            "SELECT es.Administrador, es.CargoAdministrador, em.Nacionalidad, em.Profesion, em.EstadoCivil FROM EmpleadosSociedad AS es INNER JOIN Empleados AS em ON es.IdEmpleado = em.IdEmpleado " +
+            "WHERE es.IdEmpleado = ? AND es.IdSociedad = ?",
+            f => (Admin: f.Logico("Administrador"), Cargo: f.Texto("CargoAdministrador"), Nac: f.Texto("Nacionalidad"), Prof: f.Texto("Profesion"), Civil: f.Texto("EstadoCivil")),
+            idEmpleado, e.IdSociedad);
+        var cargo = Vacio(e.CargoAdministrador);
+        var nacionalidad = Vacio(e.Nacionalidad);
+        var profesion = Vacio(e.Profesion);
+        var civil = Vacio(e.EstadoCivil);
+        await s.EjecutarAsync("UPDATE EmpleadosSociedad SET Administrador = ?, CargoAdministrador = ? WHERE IdEmpleado = ? AND IdSociedad = ?", e.Administrador, cargo, idEmpleado, e.IdSociedad);
+        await s.EjecutarAsync("UPDATE Empleados SET Nacionalidad = ?, Profesion = ?, EstadoCivil = ? WHERE IdEmpleado = ?", nacionalidad, profesion, civil, idEmpleado);
+        if (antes.Admin != e.Administrador) await h.Anotar("Empleado", idEmpleado, "MODIFICACION", $"Administrador {e.IdSociedad}", antes.Admin.ToString(), e.Administrador.ToString());
+        foreach (var (campo, a, d) in new[] { ($"CargoAdministrador {e.IdSociedad}", antes.Cargo, cargo), ("Nacionalidad", antes.Nac, nacionalidad), ("Profesion", antes.Prof, profesion), ("EstadoCivil", antes.Civil, civil) })
+            if (!string.Equals(Vacio(a), d, StringComparison.Ordinal)) await h.Anotar("Empleado", idEmpleado, "MODIFICACION", campo, Vacio(a), d);
     }
 
     /// <summary>
@@ -316,6 +341,7 @@ public sealed class RepositorioTercerosAccess(IBaseDatos bd, IReloj? reloj = nul
             await s.EjecutarAsync("INSERT INTO SociosSociedad (IdSocio, IdSociedad, Participacion, Activo) VALUES (?, ?, ?, ?)", idSocio, so.IdSociedad, so.Participacion, true);
             so.IdSocio = idSocio;
             await h.Anotar("Socio", idSocio.Value, "ALTA", $"Participacion {so.IdSociedad}", null, Pct(so.Participacion) ?? "");
+            await GuardarDatosActaSocioAsync(s, so, idSocio.Value, h);
             return null;
         }
         so.IdSocio = idSocio;
@@ -324,6 +350,40 @@ public sealed class RepositorioTercerosAccess(IBaseDatos bd, IReloj? reloj = nul
         if (db.Activo != so.Activo) await h.Anotar("Socio", idSocio!.Value, "MODIFICACION", $"Activo {so.IdSociedad}", db.Activo.ToString(), so.Activo.ToString());
         if (db.Participacion != so.Participacion)
             await h.Anotar("Socio", idSocio!.Value, "MODIFICACION", $"Participacion {so.IdSociedad}", Pct(db.Participacion), Pct(so.Participacion));
+        return await GuardarDatosActaSocioAsync(s, so, idSocio!.Value, h);
+    }
+
+    /// <summary>
+    /// Participaciones, su numeración y el cargo en la junta del socio (contabilidad/procesos/aplicacion-resultado 2026-11-17), para el acta del
+    /// reparto de dividendos. Solo puede haber un presidente y un secretario activos en la sociedad.
+    /// </summary>
+    private static async Task<Error?> GuardarDatosActaSocioAsync(ISesionDatos s, RolSocio so, int idSocio, Historial h)
+    {
+        var cargo = CargosJunta.Normalizar(so.CargoJunta);
+        if (cargo is not null && so.Activo)
+        {
+            var otro = await s.ConsultarPrimeroAsync(
+                "SELECT t.Nombre FROM (SociosSociedad AS ss INNER JOIN Socios AS so ON ss.IdSocio = so.IdSocio) INNER JOIN Terceros AS t ON so.IdTercero = t.IdTercero " +
+                "WHERE ss.IdSociedad = ? AND ss.Activo = True AND ss.CargoJunta = ? AND ss.IdSocio <> ?", f => f.Texto("Nombre"), so.IdSociedad, cargo, idSocio);
+            if (otro is not null)
+            {
+                var nombreCargo = cargo == CargosJunta.Presidente ? "presidente" : "secretario";
+                return new Error("Socios.CargoRepetido", $"{otro.Trim()} ya es {nombreCargo} de la junta en esta sociedad.", null,
+                    "El acta lleva un solo presidente y un solo secretario.", $"Quítale antes el cargo en su ficha (Roles › Socio) o elige otro cargo para este socio.");
+            }
+        }
+        var antes = await s.ConsultarPrimeroAsync("SELECT Participaciones, NumeracionParticipaciones, CargoJunta FROM SociosSociedad WHERE IdSocio = ? AND IdSociedad = ?",
+            f => (N: f.EnteroNulo("Participaciones"), Num: f.Texto("NumeracionParticipaciones"), Cargo: f.Texto("CargoJunta")), idSocio, so.IdSociedad);
+        var numeracion = Vacio(so.NumeracionParticipaciones);
+        await s.EjecutarAsync("UPDATE SociosSociedad SET Participaciones = ?, NumeracionParticipaciones = ?, CargoJunta = ? WHERE IdSocio = ? AND IdSociedad = ?",
+            so.Participaciones, numeracion, cargo, idSocio, so.IdSociedad);
+        if (antes.N != so.Participaciones)
+            await h.Anotar("Socio", idSocio, "MODIFICACION", $"Participaciones {so.IdSociedad}", antes.N?.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                so.Participaciones?.ToString(System.Globalization.CultureInfo.InvariantCulture));
+        if (!string.Equals(Vacio(antes.Num), numeracion, StringComparison.Ordinal))
+            await h.Anotar("Socio", idSocio, "MODIFICACION", $"NumeracionParticipaciones {so.IdSociedad}", Vacio(antes.Num), numeracion);
+        if (!string.Equals(Vacio(antes.Cargo), cargo, StringComparison.Ordinal))
+            await h.Anotar("Socio", idSocio, "MODIFICACION", $"CargoJunta {so.IdSociedad}", Vacio(antes.Cargo), cargo);
         return null;
     }
 

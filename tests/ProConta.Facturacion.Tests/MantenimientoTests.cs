@@ -116,7 +116,7 @@ public sealed class MantenimientoAccessTests : IDisposable
         Assert.Equal(("1130000", "5700000"), (empresa.Texto("Cuenta113ParaCuadres"), empresa.Texto("Cuenta570Tesoreria")));
         // Solo los campos que quedan en cada tabla (organizacion/sociedades-ejercicios 2026-11-13 20:55).
         Assert.Equal(["IdSociedad", "Nombre", "CIF", "DireccionFiscal", "CodigoPostalFiscal", "PoblacionFiscal", "ProvinciaFiscal", "Telefono", "IbanDomiciliacion",
-            "Cuenta113ParaCuadres", "Cuenta570Tesoreria", "RutaDocumentos", "Logo"], Servicio().Proveedor("sociedades")!.Campos.Select(c => c.Clave).ToArray());
+            "ValorNominalParticipacion", "Cuenta113ParaCuadres", "Cuenta570Tesoreria", "RutaDocumentos", "Logo"], Servicio().Proveedor("sociedades")!.Campos.Select(c => c.Clave).ToArray());
         Assert.Equal(new[] { "Ejercicio", "Nombre", "TrimestreActivo", "Activa", "EjercicioCerrado", "FormaPagoDefecto", "TipoIVAGeneral", "PorcentajeProrrataAñoAnterior",
             "CuentaSuplido", "CuentaRetencionServicios", "CuentaRetencionAlquileres", "CuentaIVAIntracomunitarioRepercutidoServicios", "CuentaIVAIntracomunitarioRepercutidoBienes",
             "CuentaIVAIntracomunitarioSoportadoServicios", "CuentaIVAIntracomunitarioSoportadoBienes", "CuentaIVAInversionSujetoPasivoRepercutido",
@@ -137,7 +137,9 @@ public sealed class MantenimientoAccessTests : IDisposable
             // Periodicidad de la amortización de los activos (contabilidad/procesos/amortizacion-de-activos, esquema 68).
             "PeriodicidadAmortizacion",
             // Umbral de los céntimos residuales (contabilidad/procesos/centimos-residuales, esquema 69).
-            "UmbralCentimosResiduales" }.Order(),
+            "UmbralCentimosResiduales",
+            // Aplicación del resultado (contabilidad/procesos/aplicacion-resultado, esquema 70).
+            "CuentaReservaLegal", "CuentaResultadosNegativos" }.Order(),
             Servicio().Proveedor("ejercicios")!.Campos.Select(c => c.Clave).Order());
         await Bd.EjecutarAsync(x => x.EjecutarAsync("UPDATE SociedadesEjercicios SET CuentaSuplido = '5550002', PorcentajeProrrataAñoAnterior = 0.14 WHERE IdSociedadEjercicio = 9001"));
         var ejercicio = (await Servicio().Proveedor("ejercicios")!.ListarAsync(Ctx)).Single(r => r.Texto("Ejercicio") == "2026");

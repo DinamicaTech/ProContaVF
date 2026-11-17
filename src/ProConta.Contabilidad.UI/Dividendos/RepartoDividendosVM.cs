@@ -1,3 +1,4 @@
+using System.IO;
 using System.Collections.ObjectModel;
 using System.Globalization;
 using System.Windows.Input;
@@ -19,6 +20,12 @@ public sealed record ContextoRepartoDividendos(ServicioDividendos Servicio, Cont
     public Func<int, Task>? VerAsiento { get; init; }
     /// <summary>Abre el Mayor de unas subcuentas.</summary>
     public Action<IReadOnlyList<string>>? AbrirMayor { get; init; }
+    /// <summary>Lee los datos del acta de un reparto y dónde se guarda (null: sin acta).</summary>
+    public ServicioActaDividendos? Actas { get; init; }
+    /// <summary>Convierte el HTML del acta a PDF (el motor de informes, con WebView2).</summary>
+    public Func<string, byte[]>? HtmlAPdf { get; init; }
+    /// <summary>Abre un fichero con el programa de Windows que le corresponde.</summary>
+    public Action<string>? AbrirFichero { get; init; }
 }
 
 /// <summary>Diálogos de la pantalla (en pruebas se sustituyen por respuestas fijas).</summary>
@@ -27,6 +34,9 @@ public interface IDialogosRepartoDividendos
     int Preguntar(string titulo, string mensaje, IReadOnlyList<string>? detalles, params OpcionMensaje[] opciones);
     string? PedirMotivo(string titulo, string explicacion);
     void Error(string titulo, string mensaje);
+
+    /// <summary>Pide la hora de la junta para el acta (null: cancelar). Por omisión, la propuesta.</summary>
+    string? PedirHora(string titulo, string explicacion, string propuesta) => propuesta;
 }
 
 /// <summary>Fila de la lista: un reparto confirmado.</summary>
@@ -141,6 +151,8 @@ public sealed class RepartoDividendosVM : ModeloVista, IPestanaTrabajo
         VerAsientoCommand = new ComandoDelegado(() => _ = VerAsientoAsync(), () => _seleccion?.Datos.IdAsiento is not null && _ctx.VerAsiento is not null);
         MayorCommand = new ComandoDelegado(AbrirMayor, () => _ctx.AbrirMayor is not null && _seleccion is not null);
         DeshacerCommand = new ComandoDelegado(() => _ = DeshacerAsync(), () => !_ocupado && _seleccion is not null);
+        GenerarActaCommand = new ComandoDelegado(() => { if (_seleccion is { } f) _ = GenerarActaAsync(f.IdReparto); },
+            () => !_ocupado && _seleccion is not null && _ctx.Actas is not null && _ctx.HtmlAPdf is not null);
     }
 
     // ---------- pestaña ----------
@@ -165,6 +177,7 @@ public sealed class RepartoDividendosVM : ModeloVista, IPestanaTrabajo
     public ICommand VerAsientoCommand { get; }
     public ICommand MayorCommand { get; }
     public ICommand DeshacerCommand { get; }
+    public ICommand GenerarActaCommand { get; }
 
     // ---------- lista ----------
     public string Subtitulo => $"{_ctx.RazonSocial} · {_ctx.Trabajo.Ejercicio}" + (_datos is { } d
@@ -415,6 +428,45 @@ public sealed class RepartoDividendosVM : ModeloVista, IPestanaTrabajo
         }
         finally { Ocupado = false; }
         await CargarAsync(elegir);
+        if (elegir is int nuevo && _ctx.Actas is not null && _ctx.HtmlAPdf is not null
+            && _dialogos.Preguntar("Acta del reparto", "¿Genero ahora el acta de la junta que aprueba este reparto?",
+                ["Es un PDF con los socios, el administrador, el acuerdo con su importe en letras y las firmas. También puedes generarla después con clic derecho sobre el reparto › «Generar el acta…»."],
+                new OpcionMensaje("Generar el acta", "Pide la hora de la junta y abre el PDF", Principal: true), new OpcionMensaje("Ahora no", "No genera nada", Cancelar: true)) == 0)
+            await GenerarActaAsync(nuevo);
+    }
+
+    /// <summary>
+    /// Acta de la junta que aprueba un reparto (contabilidad/procesos/aplicacion-resultado 2026-11-17): pide la hora, avisa de lo que falta en las
+    /// fichas, genera el PDF en la carpeta de documentos de la empresa (&lt;ejercicio&gt;\Actas) y lo abre.
+    /// </summary>
+    public async Task GenerarActaAsync(int idReparto)
+    {
+        if (_ctx.Actas is not { } actas || _ctx.HtmlAPdf is not { } aPdf) return;
+        var hora = _dialogos.PedirHora("Acta del reparto de dividendos", "Hora a la que se reúne la junta, como sale en el acta (hh:mm).", "11:00");
+        if (hora is null) return;
+        if (!ActaDividendos.HoraValida(hora)) { _dialogos.Error("No se ha generado el acta", $"La hora «{hora}» no es válida: escríbela como hh:mm, por ejemplo 11:00."); return; }
+        Ocupado = true;
+        try
+        {
+            var r = await actas.DatosAsync(_ctx.Trabajo, idReparto, hora);
+            if (!r.EsCorrecto) { _dialogos.Error("No se ha generado el acta", string.Join(Environment.NewLine + Environment.NewLine, r.Errores.Select(e => e.TextoOperador()))); return; }
+            var datos = r.Valor;
+            if (datos.Avisos.Count > 0 && _dialogos.Preguntar("Acta del reparto de dividendos", "Faltan datos en las fichas para que el acta salga completa:", datos.Avisos,
+                    new OpcionMensaje("Generar igualmente", "Genera el acta con lo que hay", Principal: true), new OpcionMensaje("Cancelar", "Completa antes las fichas", Cancelar: true)) != 0)
+                return;
+            var ruta = await actas.RutaAsync(_ctx.Trabajo, datos);
+            var html = ActaDividendos.Html(datos);
+            var pdf = await Task.Run(() => aPdf(html));
+            Directory.CreateDirectory(Path.GetDirectoryName(ruta)!);
+            await File.WriteAllBytesAsync(ruta, pdf);
+            _ctx.Avisar($"Acta del reparto guardada en {ruta}.");
+            _ctx.AbrirFichero?.Invoke(ruta);
+        }
+        catch (Exception ex)
+        {
+            _dialogos.Error("No se ha generado el acta", ex.Message + " Si el PDF está abierto, ciérralo y vuelve a generarla.");
+        }
+        finally { Ocupado = false; }
     }
 
     private async Task DescartarAsync()
