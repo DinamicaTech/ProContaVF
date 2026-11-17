@@ -105,6 +105,9 @@ public class DiarioVMTests
         public Task<bool> TieneLibroIvaAsync(int idAsiento) => No<Task<bool>>();
         public Task<Resultado<IReadOnlyList<int>>> ReemplazarLoteAsync(ContextoSociedadEjercicio contexto, IdentidadLote lote, IReadOnlyList<Asiento> asientos, Actor actor, string motivo,
             TrabajoLote? enLaTransaccion = null, OpcionesLote? opciones = null) => No<Task<Resultado<IReadOnlyList<int>>>>();
+        public Task<Resultado<IReadOnlyList<IReadOnlyList<int>>>> ReemplazarLotesAsync(IReadOnlyList<LoteAsientos> lotes, Actor actor, string motivo,
+            Func<ISesionDatos, Task<Resultado>>? alPrincipio = null, Func<ISesionDatos, Task<Resultado>>? alFinal = null, OpcionesLote? opciones = null) =>
+            No<Task<Resultado<IReadOnlyList<IReadOnlyList<int>>>>>();
         public Task<Resultado<int>> EliminarLoteAsync(ContextoSociedadEjercicio contexto, IdentidadLote lote, Actor actor, string motivo, TrabajoLote? enLaTransaccion = null,
             OpcionesLote? opciones = null) => No<Task<Resultado<int>>>();
         public Task RecalcularSaldosAsync(ContextoSociedadEjercicio contexto) => No<Task>();

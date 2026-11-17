@@ -555,6 +555,22 @@ public static class MigracionesContabilidad
         ],
     };
 
+    /// <summary>
+    /// Cuenta de resultados del ejercicio (contabilidad/procesos/cierre-ejercicio 2026-11-17): SociedadesEjercicios.CuentaResultadoEjercicio,
+    /// la subcuenta contra la que la regularización salda los grupos 6 y 7 (vacía: 1290000). Solo estructura, sin datos.
+    /// </summary>
+    public static Migracion CuentaResultadoEjercicio { get; } = new(
+        "20261117_1500_CUENTA_RESULTADO_EJERCICIO", 261117015,
+        "Cuenta de resultados del ejercicio, la de la regularización del cierre.",
+        "contabilidad/procesos/cierre-ejercicio",
+        new AnadirColumna("SociedadesEjercicios", "CuentaResultadoEjercicio", "TEXT(10)"))
+    {
+        Descripciones =
+        [
+            new("SociedadesEjercicios", "CuentaResultadoEjercicio", "Subcuenta del resultado del ejercicio: la regularización del cierre salda contra ella los grupos 6 y 7 (vacía: 1290000)."),
+        ],
+    };
+
     private static PasoPersonalizado RelacionActividad()
     {
         const string sql = "ALTER TABLE CentrosCoste ADD CONSTRAINT FK_CentrosCoste_Actividad FOREIGN KEY (IdActividad) REFERENCES Actividades (IdActividad)";
@@ -571,7 +587,7 @@ public static class MigracionesContabilidad
     /// organizacion/sociedades-ejercicios). Solo estructura, sin datos.
     /// </summary>
     public static Migracion PresentacionesAeat { get; } = new(
-        "20261117_1530_PRESENTACIONES_AEAT", 261117013,
+        "20261117_1530_PRESENTACIONES_AEAT", 261117016,
         "Presentaciones de modelos a la AEAT y cuenta de domiciliación de la sociedad.",
         "contabilidad/modelos-tributarios/presentacion",
         new CrearTabla("PresentacionesAeat",

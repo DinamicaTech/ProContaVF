@@ -38,3 +38,4 @@ Fase 1 hecha y validada por el propietario (PR #95, esquema 62): rol Socio en la
 - 2026-11-16 17:53 · answer: ¿% de participación vigente sin fechas, con el cambio en el historial? → P3. Ok
 - 2026-11-16 17:53 · answer: ¿El neto propuesto de cada socio es lo que ya tiene pagado (saldo deudor de su 526)? → P4. Ok
 - 2026-11-16 19:22 · Ok, puedes fusionar
+- 2026-11-17 15:30 · Derived from contabilidad/procesos/cierre-ejercicio: el cierre ya existe (pendiente de validar): la fase 2 aplica el saldo de la cuenta de resultados del ejercicio (SociedadesEjercicios.CuentaResultadoEjercicio; vacía, 1290000), que la apertura del ejercicio siguiente deja en el Haber si hubo beneficio.
