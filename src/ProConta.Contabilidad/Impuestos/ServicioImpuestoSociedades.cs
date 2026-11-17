@@ -83,7 +83,15 @@ public sealed class ServicioImpuestoSociedades(IBaseDatos bd, IMotorAsientos mot
         entrada ??= (await GuardadoAsync(ctx))?.Entrada ?? EntradaImpuestoSociedades.Vacia;
         if (CalculoImpuestoSociedades.Validar(entrada) is { } error)
             return Resultado<PropuestaImpuestoSociedades>.Fallo(new Error("ImpuestoSociedades.Entrada", error, CalculoImpuestoSociedades.Descripcion(ctx.Ejercicio)));
-        var d = await DatosAsync(ctx, c);
+        return Resultado<PropuestaImpuestoSociedades>.Correcto(Calcular(ctx, await DatosAsync(ctx, c), entrada));
+    }
+
+    /// <summary>
+    /// La propuesta con unos datos ya leídos (la pantalla los lee una vez y recalcula al escribir): el cálculo y, si el ejercicio no ha
+    /// terminado, el aviso de que es provisional. Lo escrito tiene que ser válido (<see cref="CalculoImpuestoSociedades.Validar"/>).
+    /// </summary>
+    public PropuestaImpuestoSociedades Calcular(ContextoSociedadEjercicio ctx, DatosImpuestoSociedades d, EntradaImpuestoSociedades entrada)
+    {
         var p = CalculoImpuestoSociedades.Calcular(d, entrada);
         if (!EjercicioTerminado(ctx))
             p = p with
@@ -91,7 +99,7 @@ public sealed class ServicioImpuestoSociedades(IBaseDatos bd, IMotorAsientos mot
                 Avisos = ["El ejercicio aún no ha terminado: el cálculo es provisional con lo contabilizado hasta hoy. Se contabiliza en enero, antes de la regularización, con las cifras de la gestoría.",
                     .. p.Avisos],
             };
-        return Resultado<PropuestaImpuestoSociedades>.Correcto(p);
+        return p;
     }
 
     /// <summary>

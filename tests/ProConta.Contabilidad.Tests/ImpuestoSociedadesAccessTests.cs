@@ -5,6 +5,7 @@ using ProConta.Datos.Persistencia;
 using ProConta.Nucleo.Auditoria;
 using ProConta.Nucleo.Contexto;
 using ProConta.Pruebas.Access;
+using Xunit.Abstractions;
 
 namespace ProConta.Contabilidad.Tests;
 
@@ -15,7 +16,7 @@ namespace ProConta.Contabilidad.Tests;
 /// con regularización o con otro asiento de la 630. Datos sintéticos.
 /// </summary>
 [Trait("Categoria", "Access")]
-public sealed class ImpuestoSociedadesAccessTests : IDisposable
+public sealed class ImpuestoSociedadesAccessTests(ITestOutputHelper salida) : IDisposable
 {
     private readonly BdPruebas _copia = BdPruebas.Nueva();
     private readonly ContextoSociedadEjercicio _ctx = new("T01", 9001, 2026);
@@ -185,5 +186,47 @@ public sealed class ImpuestoSociedadesAccessTests : IDisposable
         var servicio = Servicio(Enero);
         Assert.Equal(15900m, (await servicio.DatosAsync(_ctx)).ResultadoContable);
         Assert.Equal("ImpuestoSociedades.Regularizado", (await servicio.ConfirmarAsync(_ctx, ConMulta, null, _actor)).Error!.Codigo);
+    }
+
+    /// <summary>
+    /// Paridad con la hoja de la gestoría de 2025 contra una BD de validación del propietario, solo si PROCONTA_BD_VALIDACION_IS apunta a
+    /// ella (se actualiza y se lee una copia temporal; el original no se abre). Sin la variable no hace nada. Escribe en la salida las cifras
+    /// leídas y la bonificación que se propondría con la actividad de serie 4726 marcada.
+    /// </summary>
+    [Fact]
+    public async Task ParidadConLaGestoria2025EnLaBdDeValidacion()
+    {
+        if (Environment.GetEnvironmentVariable("PROCONTA_BD_VALIDACION_IS") is not { Length: > 0 } origen || !File.Exists(origen)) return;
+        var carpeta = BdPruebas.CarpetaTemporal();
+        var copia = Path.Combine(carpeta, Path.GetFileName(origen));
+        File.Copy(origen, copia);
+        try
+        {
+            var act = await new ProConta.Datos.Esquema.ActualizadorEsquema(_actor).ActualizarAsync(copia, carpeta);
+            Assert.True(act.EsCorrecto, act.Error?.Mensaje);
+            var bd = new ProConta.Datos.Persistencia.Access.BaseDatosAccess(copia);
+            await bd.EjecutarAsync(s => s.EjecutarAsync("UPDATE Actividades SET BonificacionIS = True WHERE SerieCuentaIva = '4726'"));
+            var ctx = await bd.EjecutarAsync(s => s.ConsultarPrimeroAsync(
+                "SELECT IdSociedad, IdSociedadEjercicio, Ejercicio FROM SociedadesEjercicios WHERE Ejercicio = '2025'",
+                f => new ContextoSociedadEjercicio(f.Texto("IdSociedad") ?? "", f.Entero("IdSociedadEjercicio"), 2025)));
+            var servicio = new ServicioImpuestoSociedades(bd, new MotorAsientosAccess(bd), new CatalogoCuentasAccess(bd), null, new RelojFijo(new DateTime(2026, 11, 17)));
+            var d = await servicio.DatosAsync(ctx!);
+            d = d with { Parametros = d.Parametros with { TipoGeneral = 0.22m, LimiteTramo = 50000m, TipoTramo = 0.21m, Bonificacion = 0.40m } };
+            salida.WriteLine($"Resultado contable {d.ResultadoContable}; renta de viviendas {d.RentaViviendas}; asientos ajenos: {string.Join(" | ", d.AsientosAjenos)}");
+            foreach (var r in d.Retenciones) salida.WriteLine($"  {r.Cuenta} {r.Nombre}: {r.Saldo} ({string.Join(", ", r.Pagadores ?? [])})");
+            foreach (var r in d.PosiblesAjustes) salida.WriteLine($"  posible {r.Cuenta} {r.Nombre}: {r.Saldo} en {r.Apuntes} apuntes");
+            var propuesta = CalculoImpuestoSociedades.Calcular(d, new([new(false, false, "Ajuste art. 21.3", 51727.50m)]));
+            salida.WriteLine($"Base {propuesta.BaseImponible}; cuota íntegra {propuesta.CuotaIntegra}; bonificación propuesta {propuesta.BonificacionPropuesta}; cuota líquida {propuesta.CuotaLiquida}");
+            Assert.Equal(116430.95m, d.ResultadoContable);
+            Assert.Equal(17469.41m, d.Retenciones.Where(r => r.Saldo > 0m).Sum(r => r.Saldo));
+            Assert.Equal(13734.76m, propuesta.CuotaIntegra);
+            var gestoria = CalculoImpuestoSociedades.Calcular(d, new([new(false, false, "Ajuste art. 21.3", 51727.50m)], Bonificaciones: 2148.29m));
+            Assert.Equal(11586.47m, gestoria.CuotaLiquida);
+            Assert.Equal(-5882.94m, gestoria.Resultado);
+        }
+        finally
+        {
+            try { File.Delete(copia); } catch (IOException) { }
+        }
     }
 }

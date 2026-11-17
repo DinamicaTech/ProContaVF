@@ -70,6 +70,7 @@ public partial class VentanaPrincipal : Window
     private readonly ProConta.Contabilidad.UI.Liquidacion.ModuloLiquidacionIva _liquidacionIva;
     private readonly ProConta.Contabilidad.UI.Dividendos.ModuloRepartoDividendos _dividendos;
     private readonly ProConta.Contabilidad.UI.Prorrata.ModuloRegularizacionProrrata _prorrata;
+    private readonly ProConta.Contabilidad.UI.ImpuestoSociedades.ModuloImpuestoSociedades _impuestoSociedades;
     private readonly ModuloFacturacion _facturacion;
     private readonly ModuloCompras _compras;
     private readonly ModuloCorreo _correo;
@@ -348,6 +349,17 @@ public partial class VentanaPrincipal : Window
             },
             _area, new ProConta.Contabilidad.UI.Liquidacion.DialogosLiquidacionIva(() => this));
         var abrirProrrata = new ComandoDelegado(() => _prorrata.Abrir());
+        // Impuesto sobre Sociedades (contabilidad/procesos/impuesto-sociedades): cálculo como la hoja de la gestoría y asiento del 31/12 antes de la regularización.
+        _impuestoSociedades = new ProConta.Contabilidad.UI.ImpuestoSociedades.ModuloImpuestoSociedades(
+            new ProConta.Contabilidad.UI.ImpuestoSociedades.ContextoImpuestoSociedades(
+                new ProConta.Contabilidad.Impuestos.ServicioImpuestoSociedades(bd, new MotorAsientosAccess(bd), cuentas, () => autorizador.PuedeAsync(Acciones.ImpuestoSociedades)),
+                contexto.Contexto, contexto.RazonSocial, new Actor(sesion.NombreOperador), Avisar)
+            {
+                VerAsiento = id => _mayor.VerAsientoAsync(id),
+                AbrirMayor = cuentasMayor => _mayor.Abrir(cuentasMayor),
+            },
+            _area, new ProConta.Contabilidad.UI.Liquidacion.DialogosLiquidacionIva(() => this));
+        var abrirImpuestoSociedades = new ComandoDelegado(() => _impuestoSociedades.Abrir());
         // Reparto de dividendos (contabilidad/procesos/aplicacion-resultado): reservas a la 526 de cada socio con su retención, como lote regenerable.
         _dividendos = new ProConta.Contabilidad.UI.Dividendos.ModuloRepartoDividendos(
             new ProConta.Contabilidad.UI.Dividendos.ContextoRepartoDividendos(
@@ -396,6 +408,9 @@ public partial class VentanaPrincipal : Window
             new OpcionNavegacion("Prorrata de IVA", null, true, false,
                 "Procesos contables › Prorrata de IVA: provisional, legal del año y definitiva (la de la gestoría), su regularización por trimestre y el asiento del 31/12 a la 4729 que deduce el 303 del 4T",
                 abrirProrrata, EsHija: true),
+            new OpcionNavegacion("Impuesto sobre Sociedades", null, true, false,
+                "Procesos contables › Impuesto sobre Sociedades: resultado contable, ajustes que confirma la gestoría, cuota por tramos con la bonificación por alquiler de viviendas, retenciones de las 473 y el asiento del 31/12 (6300 contra 473 y 4752 o 4709) antes de la regularización",
+                abrirImpuestoSociedades, EsHija: true),
             new OpcionNavegacion("Reparto de dividendos", null, true, false,
                 "Procesos contables › Reparto de dividendos: del neto de cada socio (por defecto, lo ya pagado en su 526) calcula el bruto y la retención del ejercicio y graba el asiento de reservas a dividendos; corregir o deshacer con motivo",
                 abrirDividendos, EsHija: true),
