@@ -178,7 +178,32 @@ public sealed class ServicioCierreEjercicio(IBaseDatos bd, IMotorAsientos motor,
                 DestinoComprobacion.ImpuestoSociedades);
     }
 
-    private Task<ComprobacionCierre> ComprobarAmortizacionAsync(ContextoSociedadEjercicio ctx) => bd.EjecutarAsync(async s =>
+    /// <summary>
+    /// Amortización del ejercicio (contabilidad/procesos/amortizacion-de-activos 2026-11-17 17:59): el estado real de cada periodo del
+    /// proceso. Sin activos que puedan amortizarse con el proceso, como antes: mira si hay algún cargo en las 68.
+    /// </summary>
+    private async Task<ComprobacionCierre> ComprobarAmortizacionAsync(ContextoSociedadEjercicio ctx)
+    {
+        const string Titulo = "Amortización del ejercicio";
+        var situacion = await new ProConta.Contabilidad.Amortizacion.ServicioAmortizacion(bd, motor, null, _reloj).SituacionAsync(ctx);
+        if (situacion.Activos == 0) return await ComprobarCargosAmortizacionAsync(ctx);
+        var faltan = situacion.Periodos.Where(p => p.FaltaAlgo).ToList();
+        var grabado = situacion.Periodos.Sum(p => p.Grabado);
+        if (faltan.Count == 0)
+            return new ComprobacionCierre("amortizacion", Titulo, ResultadoComprobacion.Correcta,
+                grabado == 0m ? "Hecha: no había nada que amortizar." : $"Hecha: {CalculoCierreEjercicio.Euros(grabado)} en {Plural(situacion.Periodos.Count(p => p.IdAsiento is not null), "asiento", "asientos")}.",
+                DestinoComprobacion.Amortizacion);
+        var desactualizados = faltan.Where(p => p.Estado == ProConta.Contabilidad.Amortizacion.EstadoAmortizacion.Desactualizado).Select(p => p.Periodo.Nombre).ToList();
+        var pendientes = faltan.Where(p => p.Estado == ProConta.Contabilidad.Amortizacion.EstadoAmortizacion.Pendiente).ToList();
+        var texto = string.Join(" ", new[]
+        {
+            pendientes.Count == 0 ? null : $"Sin contabilizar: {string.Join(", ", pendientes.Select(p => p.Periodo.Nombre))} ({CalculoCierreEjercicio.Euros(pendientes.Sum(p => p.Propuesta.Total))}).",
+            desactualizados.Count == 0 ? null : $"Desactualizada: {string.Join(", ", desactualizados)}; repítela antes de cerrar.",
+        }.Where(t => t is not null));
+        return new ComprobacionCierre("amortizacion", Titulo, ResultadoComprobacion.Aviso, texto, DestinoComprobacion.Amortizacion);
+    }
+
+    private Task<ComprobacionCierre> ComprobarCargosAmortizacionAsync(ContextoSociedadEjercicio ctx) => bd.EjecutarAsync(async s =>
     {
         const string Titulo = "Amortización del ejercicio";
         var amortizado = await s.EscalarAsync(

@@ -66,6 +66,8 @@ public static class Acciones
     /// (contabilidad/procesos/facturas-pendientes-recibir 2026-11-17).
     /// </summary>
     public const string FacturasPendientes = "PROCESOS.FACTURAS_PENDIENTES";
+    /// <summary>Amortizar los activos: confirmar y deshacer la amortización de un periodo (contabilidad/procesos/amortizacion-de-activos 2026-11-17).</summary>
+    public const string Amortizacion = "PROCESOS.AMORTIZACION";
 
     /// <summary>
     /// Acción que manda mientras una acción nueva no tenga ningún grupo asignado: «Cambiar el trimestre activo» la tienen
@@ -84,6 +86,8 @@ public static class Acciones
         CierreEjercicio => LiquidacionIva,
         // Las facturas pendientes de recibir graban gasto contra la 4009 a 31/12 y su reversión: mientras no tenga grupos, lo tienen quienes pueden liquidar el IVA.
         FacturasPendientes => LiquidacionIva,
+        // La amortización graba asientos de 68 contra 28: mientras no tenga grupos, la tienen quienes pueden liquidar el IVA.
+        Amortizacion => LiquidacionIva,
         _ => null
     };
 }

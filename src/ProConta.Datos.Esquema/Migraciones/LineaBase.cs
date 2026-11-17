@@ -113,6 +113,7 @@ public static class CatalogoMigraciones
         MigracionesContabilidad.CuentaResultadoEjercicio,
         MigracionesContabilidad.PresentacionesAeat,
         MigracionesContabilidad.FacturasPendientesRecibir,
+        MigracionesContabilidad.AmortizacionActivos,
     ];
 
     /// <summary>Versión del esquema que espera esta versión del programa.</summary>

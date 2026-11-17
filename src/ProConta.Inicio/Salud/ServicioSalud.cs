@@ -133,6 +133,7 @@ internal sealed class FuenteSaludCompartida(IFuenteSalud f) : IFuenteSalud
     public Task<IReadOnlyList<NominaMes>> NominasAsync(IReadOnlyList<EjercicioSociedad> ejercicios, CancellationToken c = default) => f.NominasAsync(ejercicios, c);
     public Task<IReadOnlyList<AsientoAmortizacion>> AmortizacionesAsync(IReadOnlyList<EjercicioSociedad> ejercicios, CancellationToken c = default) => f.AmortizacionesAsync(ejercicios, c);
     public Task<int> ActivosAmortizablesAsync(string idSociedad, CancellationToken c = default) => f.ActivosAmortizablesAsync(idSociedad, c);
+    public Task<string?> PeriodicidadAmortizacionAsync(EjercicioSociedad ejercicio, CancellationToken c = default) => f.PeriodicidadAmortizacionAsync(ejercicio, c);
     public Task<IReadOnlyList<ApunteCuenta>> ApuntesCuentasAsync(IReadOnlyList<EjercicioSociedad> ejercicios, IReadOnlyList<string> prefijos, CancellationToken c = default) =>
         f.ApuntesCuentasAsync(ejercicios, prefijos, c);
     public Task<IReadOnlyList<CuentaSinCentro>> CuentasSinCentroAsync(EjercicioSociedad ejercicio, CancellationToken c = default) => f.CuentasSinCentroAsync(ejercicio, c);

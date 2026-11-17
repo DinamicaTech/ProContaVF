@@ -26,6 +26,8 @@ Pantalla Contabilidad › Cierre del ejercicio (código en `src/ProConta.Contabi
 ## Hand-over
 - 2026-11-17 15:30 · Hecho: motor multilote, campo «Cierre · cuenta de resultados» (esquema 65), cálculo, crear el ejercicio siguiente, servicio de cierre y reapertura, pantalla y pruebas (sin BD: 12 pasan; contra Access: CierreEjercicioAccessTests, a ejecutar en el equipo del propietario). Pendiente: pruebas contra Access y prueba con una copia de la BD (límite de bloqueos de Access en un cierre grande), validación del propietario y de las preguntas de la maqueta.
 
+- 2026-11-17 18:12 · Cumplida la línea «Derived from contabilidad/procesos/amortizacion-de-activos» del 2026-11-17 17:59: la comprobación previa «Amortización del ejercicio» enseña el estado de los periodos del proceso (hecha, sin contabilizar con su importe, o desactualizada) y abre su pantalla; sin activos con plan sigue mirando si hay cargos en las 68. Los asientos de amortización son lotes propios de ese proceso: reabrir el ejercicio no los toca.
+
 ## Requirements
 - 2026-11-13 11:52 · answer: ¿Cuál es el primer cierre que hace ProContaVF? → P5. 2026
 - 2026-11-13 12:05 · draft: Cerrar el ejercicio (regularización 10000, cierre 20000 y apertura 1 del siguiente, cuadrados, y marca de cerrado) en una operación atómica, y reabrirlo deshaciendo solo esos lotes; primer cierre, el de 2026.

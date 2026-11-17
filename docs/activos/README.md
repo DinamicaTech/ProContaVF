@@ -27,6 +27,8 @@ Es un borrador: el diseño está acordado (Decisions 2026-11-11 18:21 y 2026-11-
 
 - 2026-11-17 17:59 · La fase 4 del borrador (proceso de amortización) pasa a contabilidad/procesos/amortizacion-de-activos (propietario 2026-11-17 17:29 y 17:51): activos conserva el plan de amortización de cada activo (Decisions 2026-11-11 18:21) y la ficha solo lo consulta; las tablas LotesAmortizacionActivo y DetallesLoteAmortizacionActivo no se usan, y el historial sale de los apuntes de la 28x del activo.
 
+- 2026-11-17 18:12 · Para la ficha de activos (pestaña Amortización y línea «prevista» de la cuenta de resultados): `ProConta.Contabilidad.Amortizacion.CalculoAmortizacion.DelAno(plan, ejercicio, acumuladaAlEmpezar)` da los días, la cuota, la acumulada y lo pendiente del año, con el mismo cálculo que el proceso; los asientos del proceso se reconocen por Asientos.MotorPropietario = `contabilidad/procesos/amortizacion-de-activos`, CodigoProceso = AMORTIZACION y ClaveEjecucion = el periodo (AAAA, AAAA-Tn o AAAA-MM).
+
 ## Requirements
 - 2026-10-28 12:28 · From sources/01_ESPECIFICACION_FUNCIONAL.docx § 20 RF-ACT-01..05: activos e inversiones
 - 2026-10-28 12:28 · From sources/traspaso-2026-10-03/referencias/Activos/docs/MODELO_ACTIVOS.md: modelo anterior

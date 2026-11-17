@@ -133,7 +133,9 @@ public sealed class MantenimientoAccessTests : IDisposable
             // Cuenta de resultados de la regularización del cierre (contabilidad/procesos/cierre-ejercicio, esquema 65).
             "CuentaResultadoEjercicio",
             // Facturas pendientes de recibir (contabilidad/procesos/facturas-pendientes-recibir, esquema 67).
-            "TipoIvaFacturasPendientes", "CuentaFacturasPendientesRecibir", "CuentaGastoFacturasPendientes" }.Order(),
+            "TipoIvaFacturasPendientes", "CuentaFacturasPendientesRecibir", "CuentaGastoFacturasPendientes",
+            // Periodicidad de la amortización de los activos (contabilidad/procesos/amortizacion-de-activos, esquema 68).
+            "PeriodicidadAmortizacion" }.Order(),
             Servicio().Proveedor("ejercicios")!.Campos.Select(c => c.Clave).Order());
         await Bd.EjecutarAsync(x => x.EjecutarAsync("UPDATE SociedadesEjercicios SET CuentaSuplido = '5550002', PorcentajeProrrataAñoAnterior = 0.14 WHERE IdSociedadEjercicio = 9001"));
         var ejercicio = (await Servicio().Proveedor("ejercicios")!.ListarAsync(Ctx)).Single(r => r.Texto("Ejercicio") == "2026");

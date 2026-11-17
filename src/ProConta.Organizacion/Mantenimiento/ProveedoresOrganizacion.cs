@@ -154,6 +154,16 @@ public static class ProveedoresOrganizacion
     ];
 
     /// <summary>
+    /// Periodicidad del asiento de amortización de los activos (contabilidad/procesos/amortizacion-de-activos, esquema 68); vacía, anual.
+    /// </summary>
+    internal static CampoMantenimiento PeriodicidadAmortizacion() =>
+        new("PeriodicidadAmortizacion", "Periodicidad de la amortización", TipoCampo.Lista) { Grupo = "pred", Ancho = "s",
+            Sinonimos = ["amortizacion", "amortización", "activos", "68", "28"],
+            Opciones = [new OpcionCampo(null, "Anual (por defecto)"), new OpcionCampo("TRIMESTRAL", "Trimestral"), new OpcionCampo("MENSUAL", "Mensual")],
+            Ayuda = "Cada cuánto se graba el asiento de amortización de los activos en Contabilidad › Amortización de activos: uno al año (a 31/12), uno por trimestre o uno por mes. " +
+                "Cambiarla a mitad de año no duplica nada: cada periodo descuenta lo ya amortizado en el año. Crear el ejercicio siguiente la copia." };
+
+    /// <summary>
     /// Cuentas de la empresa que usan las plantillas de corrección de asientos (contabilidad/plantillas-asiento 2026-11-12 11:15;
     /// organizacion/sociedades-ejercicios 2026-11-12): solo en Empresas.
     /// </summary>
@@ -271,6 +281,7 @@ public static class ProveedoresOrganizacion
             TipoGeneral(),
             ProrrataAnterior(),
             ProrrataDefinitiva(),
+            PeriodicidadAmortizacion(),
             .. Cuentas(), .. CuentasCompras(), .. CuentasLiquidacionIva(), .. Dividendos(), .. ImpuestoSociedades(), .. CuentasCierre(), .. FacturasPendientes(),
             Ruta("CarpetaFacturasCompra", "Carpeta de facturas de compra") with
             {
@@ -284,7 +295,7 @@ public static class ProveedoresOrganizacion
         ColumnaAmbito = "IdSociedad",
         Orden = "Ejercicio DESC",
         GruposCampos = GruposEjercicio,
-        Alias = ["ejercicio", "año", "trimestre", "prorrata", "suplido", "retencion", "dividendos", "reservas", "sociedades", "impuesto", "pendientes"],
+        Alias = ["ejercicio", "año", "trimestre", "prorrata", "suplido", "retencion", "dividendos", "reservas", "sociedades", "impuesto", "pendientes", "amortizacion"],
         Usos = [new("SeriesFacturacion", "IdSociedadEjercicio", "series"), new("Facturas", "IdSociedadEjercicio", "facturas"),
             new("CuentasContables", "IdSociedadEjercicio", "cuentas contables"), new("Asientos", "IdSociedadEjercicio", "asientos")],
         Titular = r => r.EsNuevo ? "Nuevo ejercicio" : r.Texto("Nombre") ?? $"Ejercicio {r.Texto("Ejercicio")}",

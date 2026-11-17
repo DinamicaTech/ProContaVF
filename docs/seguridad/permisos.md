@@ -28,6 +28,8 @@ Operadores, grupos (N:M) y permisos por ámbito: ámbito sin configurar permite 
 - 2026-11-16 19:25 · Validado por el propietario lo derivado de contabilidad/procesos/aplicacion-resultado (PR #95).
 - 2026-11-17 17:05 · Cumplida la línea «Derived from contabilidad/procesos/facturas-pendientes-recibir» del 2026-11-17 16:40: acción PROCESOS.FACTURAS_PENDIENTES (`Acciones.FacturasPendientes`), «Contabilizar las facturas pendientes de recibir»; la comprueba el servicio al confirmar y al deshacer. Mientras no tenga grupos, la tienen quienes pueden liquidar el IVA (`Acciones.Respaldo`), como la del cierre del ejercicio.
 
+- 2026-11-17 18:12 · Acción PROCESOS.AMORTIZACION («Amortizar los activos»: confirmar y deshacer la amortización de un periodo); mientras no tenga grupos, la tienen quienes pueden liquidar el IVA (contabilidad/procesos/amortizacion-de-activos 2026-11-17 18:12).
+
 ## Requirements
 - 2026-10-28 12:28 · From sources/01_ESPECIFICACION_FUNCIONAL.docx § 5 RF-SEG-03, 04, 07: operadores y grupos, política de ámbitos, puntos pendientes
 - 2026-10-28 12:28 · draft: Implementar operadores, grupos y la política de permisos por ámbitos.
