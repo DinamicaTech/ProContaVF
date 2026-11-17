@@ -315,7 +315,8 @@ public sealed class ServicioImpuestoSociedades(IBaseDatos bd, IMotorAsientos mot
             "AND (Escrito = True OR Justificacion Is Not Null OR Left(Clave, 5) = 'AEAT|') ORDER BY Clave",
             f => new ValorRetencion((f.Texto("Clave") ?? "").Trim(), f.Logico("Escrito") ? Dec(f, "Valor") : null,
                 string.IsNullOrWhiteSpace(f.Texto("Justificacion")) ? null : f.Texto("Justificacion")!.Trim(),
-                string.IsNullOrWhiteSpace(f.Texto("Cuenta")) ? null : f.Texto("Cuenta")!.Trim()), g.Id);
+                // La 473 solo se elige en las filas que solo conoce Hacienda; en las demás es la de sus apuntes.
+                (f.Texto("Clave") ?? "").StartsWith("AEAT|", StringComparison.Ordinal) && !string.IsNullOrWhiteSpace(f.Texto("Cuenta")) ? f.Texto("Cuenta")!.Trim() : null), g.Id);
         var aeat = await s.ConsultarAsync(
             "SELECT Modelo, Nif, Nombre, Importe, Cuenta FROM ImpuestosSociedadesDatosAeat WHERE IdImpuestoSociedades = ? ORDER BY Orden",
             f => new RetencionAeat((f.Texto("Modelo") ?? "").Trim(), string.IsNullOrWhiteSpace(f.Texto("Nif")) ? null : f.Texto("Nif")!.Trim(), (f.Texto("Nombre") ?? "").Trim(),
@@ -399,9 +400,8 @@ public sealed class ServicioImpuestoSociedades(IBaseDatos bd, IMotorAsientos mot
             .Where(r => r.Saldo != 0m).OrderBy(r => r.Cuenta, StringComparer.Ordinal).ToList();
         var apuntesRet = paraRet.Where(x => CalculoImpuestoSociedades.EsRetencion(x.Cuenta) && x.Debe - x.Haber != 0m).Select(x =>
         {
-            var pagador = x.Debe > 0m
-                ? porAsiento[x.IdAsiento].Select(o => o.Cuenta).FirstOrDefault(o => o.StartsWith("43", StringComparison.Ordinal) || o.StartsWith("44", StringComparison.Ordinal))
-                : null;
+            // También en los abonos (una factura rectificativa del inquilino resta de su fila, no forma una aparte).
+            var pagador = porAsiento[x.IdAsiento].Select(o => o.Cuenta).FirstOrDefault(o => o.StartsWith("43", StringComparison.Ordinal) || o.StartsWith("44", StringComparison.Ordinal));
             return new ApunteRetencion(x.IdAsiento, x.Fecha, x.Cuenta, x.Texto, x.Debe - x.Haber,
                 pagador is null ? null : (Nombre(pagador) is { Length: > 0 } np ? np : pagador), pagador is null ? null : nifs.GetValueOrDefault(pagador));
         }).ToList();
