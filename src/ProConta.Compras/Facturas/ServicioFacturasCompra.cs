@@ -33,6 +33,9 @@ public sealed class ServicioFacturasCompra(
 {
     private readonly IReloj _reloj = reloj ?? RelojSistema.Instancia;
 
+    /// <summary>Activos propios de cada subcuenta del ejercicio, para proponer el centro del activo al elegir la cuenta de gasto.</summary>
+    public Task<IReadOnlyDictionary<string, IReadOnlyList<ActivoDeCuenta>>> ActivosDeCuentasAsync(ContextoSociedadEjercicio ctx) => CentroActivoCompra.LeerAsync(bd, ctx);
+
     /// <summary>Carpeta de compras del ejercicio, o el error que explica por qué no la hay.</summary>
     public async Task<Resultado<string>> CarpetaComprasAsync(ContextoSociedadEjercicio ctx, CancellationToken cancelacion = default)
     {

@@ -153,6 +153,8 @@ public sealed class FichaCompraVM : ModeloVista
     private OpcionFicha<int?> _centroCoste;
     private OpcionFicha<int?> _rectifica;
     private readonly IReadOnlyList<decimal> _tiposIva;
+    /// <summary>Activos de cada subcuenta del ejercicio (activos 2026-11-17 20:35).</summary>
+    private readonly IReadOnlyDictionary<string, IReadOnlyList<ActivoDeCuenta>> _activosCuentas;
     /// <summary>Las facturas del ejercicio, para los avisos V1 a V3 (<see cref="ValidacionesCompra"/>).</summary>
     private readonly IReadOnlyList<FilaFacturaCompra> _otras;
     private readonly Dictionary<string, Compras.Reconocimiento.PuntoDocumento> _elegidos = new(StringComparer.Ordinal);
@@ -160,9 +162,10 @@ public sealed class FichaCompraVM : ModeloVista
     internal FichaCompraVM(FacturaCompra factura, IReadOnlyList<ProveedorFicha> proveedores, IReadOnlyList<OpcionFicha<string>> cuentasGasto,
         IReadOnlyList<CentroCoste> centros, IReadOnlyList<FilaFacturaCompra> otras, bool soloLectura, ConfianzaCampos? confianza = null,
         IReadOnlyList<decimal>? tiposIva = null, IReadOnlyList<(byte Id, string Descripcion)>? formasPago = null,
-        IReadOnlyList<TipoRetencionCompra>? tiposRetencion = null)
+        IReadOnlyList<TipoRetencionCompra>? tiposRetencion = null, IReadOnlyDictionary<string, IReadOnlyList<ActivoDeCuenta>>? activosCuentas = null)
     {
         Factura = factura;
+        _activosCuentas = activosCuentas ?? new Dictionary<string, IReadOnlyList<ActivoDeCuenta>>();
         _otras = otras;
         _tiposIva = tiposIva ?? [];
         _proveedores = proveedores;
@@ -484,8 +487,21 @@ public sealed class FichaCompraVM : ModeloVista
     public OpcionFicha<string> CuentaGasto
     {
         get => _cuentaGasto;
-        set { if (value is not null && Cambiar(ref _cuentaGasto, value, "gasto")) Avisar(nameof(CodigoCuentaGasto), nameof(NombreCuentaGasto)); }
+        set
+        {
+            if (value is null || !Cambiar(ref _cuentaGasto, value, "gasto")) return;
+            Avisar(nameof(CodigoCuentaGasto), nameof(NombreCuentaGasto));
+            // Subcuenta de un activo y factura sin centro: el centro del activo (activos 2026-11-17 20:35); con otro centro, el aviso de Avisos.
+            if (!_cargando && PropuestaActivo().CentroPropuesto is int cc && CentrosCoste.FirstOrDefault(c => c.Valor == cc) is { } centro)
+                CentroCoste = centro;
+        }
     }
+
+    /// <summary>Lo que dice el activo de la cuenta de gasto sobre el centro de coste de la factura.</summary>
+    private PropuestaCentroActivo PropuestaActivo() =>
+        _cuentaGasto.Valor is { } cuenta && _activosCuentas.TryGetValue(cuenta, out var activos)
+            ? CentroActivoCompra.Proponer(activos, _centroCoste.Valor, cuenta, id => CentrosCoste.FirstOrDefault(c => c.Valor == id)?.Texto ?? $"el centro {id}")
+            : new PropuestaCentroActivo(null, null);
 
     /// <summary>
     /// Código de la cuenta de gasto tal como se escribe en la ficha (contabilidad/cuenta-contable 2026-11-06): admite el
@@ -752,6 +768,8 @@ public sealed class FichaCompraVM : ModeloVista
             if (Factura.Duplicada) l.Add("El ERP la marcó como duplicada de otra factura.");
             // Avisos que no bloquean (incidencias con la gestoría): operación frente al NIF, retención habitual y abono sin original.
             if (!SoloLectura) l.AddRange(ValidacionesCompra.Avisos(f, _otras));
+            // Cuenta de gasto de un activo con otro centro en la factura: solo al cambiar la cuenta en la ficha, sin bloquear.
+            if (!SoloLectura && _manuales.Contains("gasto") && PropuestaActivo().Aviso is { } avisoActivo) l.Add(avisoActivo);
             return l;
         }
     }

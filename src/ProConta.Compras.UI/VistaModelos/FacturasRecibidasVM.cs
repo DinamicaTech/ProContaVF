@@ -56,6 +56,7 @@ public sealed class FacturasRecibidasVM : ModeloVista, IPestanaTrabajo
     private IReadOnlyList<decimal> _tiposIva = [];
     private IReadOnlyList<(byte Id, string Descripcion)> _formasPago = [];
     private IReadOnlyList<TipoRetencionCompra> _tiposRetencion = [];
+    private IReadOnlyDictionary<string, IReadOnlyList<ActivoDeCuenta>> _activosCuentas = new Dictionary<string, IReadOnlyList<ActivoDeCuenta>>();
     private IReadOnlyList<FilaCompraVM> _seleccion = [];
     private object? _vista;
     private EstadoVista _estado = EstadoVista.Cargando;
@@ -207,6 +208,9 @@ public sealed class FacturasRecibidasVM : ModeloVista, IPestanaTrabajo
             if (_s.TiposIva is { } tipos) _tiposIva = await tipos();
             if (_s.FormasPago is { } formas) _formasPago = await formas();
             if (_s.TiposRetencion is { } retenciones) _tiposRetencion = await retenciones();
+            // Sin las tablas de activos (o si falla la lectura), la ficha funciona igual sin proponer el centro del activo.
+            try { _activosCuentas = await _s.Facturas.ActivosDeCuentasAsync(_s.Trabajo); }
+            catch (Exception ex) when (ex is not OperationCanceledException) { _activosCuentas = new Dictionary<string, IReadOnlyList<ActivoDeCuenta>>(); }
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
@@ -457,7 +461,7 @@ public sealed class FacturasRecibidasVM : ModeloVista, IPestanaTrabajo
                 // Una contabilizada (aquí o en el ERP) se puede cambiar: lo que no toca el asiento se guarda; lo demás, al re-exportar
                 // (compras/pantallas 2026-11-07).
                 var soloLectura = !_puedeEditar || factura.Contabilizada && _s.Contabilizador is null;
-                Ficha = new FichaCompraVM(factura, _proveedores, _cuentasGasto, _centros, _datos, soloLectura: soloLectura, tiposIva: _tiposIva, formasPago: _formasPago, tiposRetencion: _tiposRetencion);
+                Ficha = new FichaCompraVM(factura, _proveedores, _cuentasGasto, _centros, _datos, soloLectura: soloLectura, tiposIva: _tiposIva, formasPago: _formasPago, tiposRetencion: _tiposRetencion, activosCuentas: _activosCuentas);
                 _ = CargarPuntosPlantillaAsync(Ficha, carga);
                 return;
             }
