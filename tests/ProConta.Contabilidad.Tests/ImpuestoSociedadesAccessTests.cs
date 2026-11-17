@@ -203,7 +203,7 @@ public sealed class ImpuestoSociedadesAccessTests(ITestOutputHelper salida) : ID
         Assert.Equal(["4730002", "4730001"], importados.Valor.Retenciones.Select(r => r.Cuenta));
         var entrada = ConMulta with
         {
-            RetencionesAeat = importados.Valor.Retenciones, BasesNegativasAeat = importados.Valor.BasesNegativas, Deducir = [new("4730001", 1850m)],
+            Bonificaciones = 0m, RetencionesAeat = importados.Valor.Retenciones, BasesNegativasAeat = importados.Valor.BasesNegativas, Deducir = [new("4730001", 1850m)],
         };
         var p = servicio.Calcular(_ctx, d, entrada);
         Assert.Equal([("6300000", 4000m, 0m), ("4730001", 0m, 1850m), ("4730002", 0m, 500m), ("4752000", 0m, 1650m)], p.Lineas.Select(l => (l.Cuenta, l.Debe, l.Haber)).ToList());
