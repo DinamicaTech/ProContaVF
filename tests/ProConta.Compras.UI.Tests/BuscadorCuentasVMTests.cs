@@ -47,7 +47,6 @@ public sealed class BuscadorCuentasVMTests
         public Task<CuentaContable?> CuentaDeIdentidadAsync(ContextoSociedadEjercicio contexto, int idIdentidadContable) => throw new NotSupportedException();
         public Task<CuentaContable?> UltimaCuentaDeIdentidadAsync(int idIdentidadContable) => throw new NotSupportedException();
         public Task<Resultado<CuentaContable>> AltaEnEjercicioAsync(ContextoSociedadEjercicio contexto, int idIdentidadContable, string? codigo = null, string? nombre = null) => throw new NotSupportedException();
-        public Task ReconstruirSaldosAsync(ContextoSociedadEjercicio contexto) => throw new NotSupportedException();
     }
 
     [Fact]

@@ -78,7 +78,7 @@ public sealed class CuentasAccessTests : IDisposable
     }
 
     [Fact]
-    public async Task LaCacheDeSaldosReconstruidaCoincideConLosApuntes()
+    public async Task RecalcularSaldos_muestra_la_diferencia_y_deja_la_cache_igual_a_los_apuntes()
     {
         await PrepararAsync();
         var bd = _copia.Bd();
@@ -99,10 +99,33 @@ public sealed class CuentasAccessTests : IDisposable
             return true;
         });
 
-        await catalogo.ReconstruirSaldosAsync(_c2025);
+        // contabilidad/procesos/recalcular-saldos: la caché de la 5720001 está descuadrada a mano (999 con 99 apuntes); la 7000001 no tiene
+        // caché; la 6290099 tiene apuntes pero no está en el plan del ejercicio.
+        await bd.EjecutarAsync(async s =>
+        {
+            var asiento = Convert.ToInt32(await s.EscalarAsync("SELECT MAX(IdAsiento) FROM Asientos"), System.Globalization.CultureInfo.InvariantCulture);
+            await s.EjecutarAsync("INSERT INTO Apuntes (IdAsiento, Orden, CuentaContable, ImporteDebe, ImporteHaber, TipoApunte, GeneradoAutomaticamente) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                asiento, (short)3, "6290099", 10m, null, (byte)0, false);
+            await s.EjecutarAsync("INSERT INTO Apuntes (IdAsiento, Orden, CuentaContable, ImporteDebe, ImporteHaber, TipoApunte, GeneradoAutomaticamente) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                asiento, (short)4, "5720001", null, 10m, (byte)0, false);
+            return true;
+        });
+        var servicio = new ProConta.Contabilidad.Saldos.ServicioRecalcularSaldos(bd, new ProConta.Contabilidad.Asientos.MotorAsientosAccess(bd));
+        var antes = await servicio.CompararAsync(_c2025);
+        Assert.Equal(["5720001", "7000001"], antes.Diferencias.Select(d => d.Codigo));
+        var banco2025 = antes.Diferencias[0];
+        Assert.Equal((999m, 240m, 99, 2, 759m), (banco2025.SaldoGuardado, banco2025.SaldoApuntes, banco2025.ApuntesGuardados, banco2025.ApuntesReales, banco2025.Diferencia));
+        Assert.Equal(["6290099"], antes.SinAlta.Select(c => c.Codigo));
+        Assert.Equal(10m, antes.SinAlta[0].Saldo);
+        // Comparar no graba nada.
+        Assert.Equal(999m, (await catalogo.ResolverAsync(_c2025, "5720001")).Valor.SaldoActual);
+
+        var despues = await servicio.RecalcularAsync(_c2025);
+        Assert.True(despues.Cuadra);
+        Assert.Equal(["6290099"], despues.SinAlta.Select(c => c.Codigo));
         var reconstruida = (await catalogo.ResolverAsync(_c2025, "5720001")).Valor;
-        Assert.Equal(250m, reconstruida.SaldoActual);
-        Assert.Equal(1, reconstruida.NumeroApuntes);
+        Assert.Equal(240m, reconstruida.SaldoActual);
+        Assert.Equal(2, reconstruida.NumeroApuntes);
         Assert.Equal(-150m, (await catalogo.ResolverAsync(_c2025, "7000001")).Valor.SaldoActual);
     }
 

@@ -77,6 +77,7 @@ public partial class VentanaPrincipal : Window
     private readonly ProConta.Contabilidad.UI.Cierre.ModuloCierreEjercicio _cierreEjercicio;
     private readonly ProConta.Contabilidad.UI.FacturasPendientes.ModuloFacturasPendientes _facturasPendientes;
     private readonly ProConta.Contabilidad.UI.Amortizacion.ModuloAmortizacion _amortizacion;
+    private readonly ProConta.Contabilidad.UI.Saldos.ModuloRecalcularSaldos _recalcularSaldos;
     private readonly ProConta.Contabilidad.UI.ReinicioCuadre.ModuloReinicioCuadre _reinicioCuadre;
     private readonly ProConta.Contabilidad.UI.Centimos.ModuloCentimos _centimos;
     private readonly ProConta.Activos.UI.ModuloActivos _activos;
@@ -475,6 +476,16 @@ public partial class VentanaPrincipal : Window
             },
             _area, new ProConta.Contabilidad.UI.Liquidacion.DialogosLiquidacionIva(() => this));
         var abrirAmortizacion = new ComandoDelegado(() => _amortizacion.Abrir());
+        // Recalcular saldos (contabilidad/procesos/recalcular-saldos): compara la caché de saldos de las cuentas del ejercicio con sus apuntes y la rehace;
+        // no genera asientos, así que no pide permiso propio.
+        _recalcularSaldos = new ProConta.Contabilidad.UI.Saldos.ModuloRecalcularSaldos(
+            new ProConta.Contabilidad.UI.Saldos.ContextoRecalcularSaldos(
+                new ProConta.Contabilidad.Saldos.ServicioRecalcularSaldos(bd, new MotorAsientosAccess(bd)), contexto.Contexto, contexto.RazonSocial, Avisar)
+            {
+                AbrirMayor = cuentasMayor => _mayor.Abrir(cuentasMayor),
+            },
+            _area);
+        var abrirRecalcularSaldos = new ComandoDelegado(() => _recalcularSaldos.Abrir());
         // Reiniciar el cuadre del Mayor (contabilidad/procesos/reiniciar-cuadre): en el ejercicio de trabajo, cuadradas las subcuentas con saldo dentro del umbral
         // y sin la casilla las demás, sin tocar las notas ni hacer asientos; refresca el Mayor abierto.
         _reinicioCuadre = new ProConta.Contabilidad.UI.ReinicioCuadre.ModuloReinicioCuadre(
@@ -587,6 +598,10 @@ public partial class VentanaPrincipal : Window
             new OpcionNavegacion("Cierre del ejercicio", null, true, false,
                 "Procesos contables › Fin de ejercicio › Cierre del ejercicio: comprobación previa, regularización de los grupos 6 y 7 a la cuenta de resultados, cierre de los grupos 1 a 5 y apertura del ejercicio siguiente, grabados de una vez con la marca de cerrado; reabrir con motivo y crear el ejercicio siguiente",
                 abrirCierreEjercicio, EsNieta: true),
+            new OpcionNavegacion("Recalcular saldos", null, true, false,
+                "Procesos contables › Recalcular saldos: compara el saldo y el número de apuntes guardados de cada cuenta del ejercicio con sus apuntes, lista las diferencias " +
+                "y los códigos con apuntes que no están en el plan, y «Recalcular» los rehace. No crea ni cambia asientos",
+                abrirRecalcularSaldos, EsHija: true),
             new OpcionNavegacion("Asiento manual", null, true, false,
                 "Asiento nuevo hecho a mano o desde una plantilla, con su vista previa; para corregir un apunte, ábrelo desde el Mayor con «Asistente de corrección…»",
                 new ComandoDelegado(() => _ = _asientos.AbrirNuevoAsync()), EsHija: true),
