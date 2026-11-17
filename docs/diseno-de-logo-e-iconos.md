@@ -1,7 +1,6 @@
 ---
 title: Diseño de logo e iconos
 depends_on: [plataforma/contenedor]
-status: draft
 threads:
   - 2026-11-17 10:29 · Diseñar el icono de ProContaVF | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GHucmYMs2JCKwKZFq7Pfzkf
 ---
@@ -14,6 +13,7 @@ Icono elegido: una cuña naranja (facturación) encajada en una V blanca (contab
 - 2026-11-17 11:22 · Icono del programa: pastilla de 240 × 240 (sobre 256) con esquinas redondeadas de radio 52 y degradado azul marino (#1E3156 → #14213A). Dentro, un triángulo invertido inscrito en la pastilla: sus dos esquinas superiores caen sobre la curva de las esquinas redondeadas y su punta toca el borde inferior, sin que nada quede cortado. El triángulo se parte en una franja superior con una cuña central naranja (#F4A259) y una V blanca que la abraza; el hueco entre ambas tiene el mismo grosor en todo el contorno (el 4,8 % del ancho del triángulo). Proporciones respecto al triángulo: franja hasta el 16,5 % de su altura, cuña hasta el 54,1 % y medio ancho de la cuña en la base el 20,2 % de su ancho.
 - 2026-11-17 11:22 · El .ico lleva los tamaños 16, 20, 24, 32, 40, 48, 64, 128 y 256 px renderizados uno a uno desde el SVG (no reescalados) y se asigna como ApplicationIcon de ProConta.App; las ventanas toman el icono del ejecutable.
 - 2026-11-17 11:22 · Se descartan, por este orden, P con sello (parece un letrero de parking), cuenta en T (demasiado sutil), factura con gráfico (parece un módulo de reporting), libro mayor, ticket con euro, balanza, formas abstractas (ciclo, arco, esquina doblada), dos piezas que encajan (eslabones, puzle, ganchos, arcos enganchados, círculo en onda, órbita). Bocetos en project-files `diseno-icono/`.
+- 2026-11-17 11:29 · Validado por el propietario con el programa compilado: el nodo deja de ser borrador.
 
 ## Requirements
 - 2026-11-17 10:29 · Ahora que ya estamos cerquita de pasar a producción, ¿Me puedes hacer una propuesta visual de un icono para ProContaVF? (tres propuesta diferentes para poder escoger)
