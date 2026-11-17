@@ -73,6 +73,7 @@ public partial class VentanaPrincipal : Window
     private readonly ProConta.Contabilidad.UI.Prorrata.ModuloRegularizacionProrrata _prorrata;
     private readonly ProConta.Contabilidad.UI.ImpuestoSociedades.ModuloImpuestoSociedades _impuestoSociedades;
     private readonly ProConta.Contabilidad.UI.Cierre.ModuloCierreEjercicio _cierreEjercicio;
+    private readonly ProConta.Contabilidad.UI.FacturasPendientes.ModuloFacturasPendientes _facturasPendientes;
     private readonly ModuloFacturacion _facturacion;
     private readonly ModuloCompras _compras;
     private readonly ModuloCorreo _correo;
@@ -426,6 +427,7 @@ public partial class VentanaPrincipal : Window
                     ProConta.Contabilidad.Cierre.DestinoComprobacion.Amortizacion => () => _mayor.Abrir(["68"]),
                     ProConta.Contabilidad.Cierre.DestinoComprobacion.LiquidacionIva => () => _liquidacionIva.Abrir(4),
                     ProConta.Contabilidad.Cierre.DestinoComprobacion.Prorrata => () => _prorrata.Abrir(),
+                    ProConta.Contabilidad.Cierre.DestinoComprobacion.FacturasPendientes => () => _facturasPendientes!.Abrir(),
                     ProConta.Contabilidad.Cierre.DestinoComprobacion.Diario => () => _diario.Abrir(),
                     ProConta.Contabilidad.Cierre.DestinoComprobacion.Salud => () => irAInicio.Execute(null),
                     _ => null,
@@ -434,6 +436,20 @@ public partial class VentanaPrincipal : Window
             },
             _area, new ProConta.Contabilidad.UI.Liquidacion.DialogosLiquidacionIva(() => this));
         var abrirCierreEjercicio = new ComandoDelegado(() => _cierreEjercicio.Abrir());
+        // Facturas pendientes de recibir (contabilidad/procesos/facturas-pendientes-recibir): gasto supuesto de los proveedores cuadrados con saldo deudor contra la
+        // 4009 a 31/12 y su reversión el 1/1 del siguiente, como dos lotes propios; el cierre solo mira su estado.
+        _facturasPendientes = new ProConta.Contabilidad.UI.FacturasPendientes.ModuloFacturasPendientes(
+            new ProConta.Contabilidad.UI.FacturasPendientes.ContextoFacturasPendientes(
+                new ProConta.Contabilidad.FacturasPendientes.ServicioFacturasPendientes(bd, new MotorAsientosAccess(bd), cuentas, () => autorizador.PuedeAsync(Acciones.FacturasPendientes)),
+                new ProConta.Contabilidad.Cierre.ServicioNuevoEjercicio(bd, puedeCerrar),
+                contexto.Contexto, contexto.RazonSocial, new Actor(sesion.NombreOperador), Avisar)
+            {
+                VerAsiento = id => _mayor.VerAsientoAsync(id),
+                AbrirMayor = cuentasMayor => _mayor.Abrir(cuentasMayor),
+                Cambiada = () => _ = RefrescarTrimestreAsync(),
+            },
+            _area, new ProConta.Contabilidad.UI.Liquidacion.DialogosLiquidacionIva(() => this));
+        var abrirFacturasPendientes = new ComandoDelegado(() => _facturasPendientes.Abrir());
         // Informes (contabilidad/balances e informes/excel): cada opción genera el libro Excel con su tabla dinámica y lo abre.
         _balances = new ProConta.Contabilidad.Balances.GeneradorBalances(bd);
         _razonSocial = contexto.RazonSocial;
@@ -481,6 +497,10 @@ public partial class VentanaPrincipal : Window
             new OpcionNavegacion("Reparto de dividendos", null, true, false,
                 "Procesos contables › Reparto de dividendos: del neto de cada socio (por defecto, lo ya pagado en su 526) calcula el bruto y la retención del ejercicio y graba el asiento de reservas a dividendos; corregir o deshacer con motivo",
                 abrirDividendos, EsHija: true),
+            new OpcionNavegacion("Facturas pendientes de recibir", null, true, false,
+                "Procesos contables › Facturas pendientes de recibir: proveedores y acreedores cuadrados en el Mayor con saldo deudor a 31/12 (pagado sin factura), su base supuesta y cuenta de gasto; " +
+                "provisión a 31/12 contra la 4009 y su reversión el 1/1 del ejercicio siguiente, con casilla para excluir y base editable",
+                abrirFacturasPendientes, EsHija: true),
             new OpcionNavegacion("Cierre del ejercicio", null, true, false,
                 "Procesos contables › Cierre del ejercicio: comprobación previa, regularización de los grupos 6 y 7 a la cuenta de resultados, cierre de los grupos 1 a 5 y apertura del ejercicio siguiente, grabados de una vez con la marca de cerrado; reabrir con motivo y crear el ejercicio siguiente",
                 abrirCierreEjercicio, EsHija: true),
