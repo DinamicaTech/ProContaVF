@@ -83,25 +83,64 @@ public sealed class MayorCuadreTests
     }
 
     [Fact]
-    public async Task ReiniciarElCuadreMarcaLasCuentasDentroDelUmbralYSoloQuitaCasillasNoNotas()
+    public async Task ReiniciarElCuadreMarcaLasCuentasDentroDelUmbralDesmarcaLasDemasYNoTocaLasNotas()
     {
         var fuente = DatosMayorSinteticos.Fuente();
-        fuente.Umbral = 0.05m;
+        fuente.Umbral = 5m;
         var s = await DatosMayorSinteticos.SesionAsync(fuente, 2025);
+        // En 2025: 4300001 debe 5 €, 4300002 tiene 0,03 €, 4300003 debe -200 € y el banco 3.110 €.
         await s.GuardarCuadreAsync("5720001", true, "Banco conciliado con el extracto", "ronald", Ahora);
+        await s.GuardarCuadreAsync("4300002", true, null, "ronald", Ahora);
+        await s.GuardarCuadreAsync("4300003", false, "Recibo devuelto", "ronald", Ahora);
+        Assert.Equal(3, fuente.CuadresGuardados.Count);
 
-        var (cambiados, umbral) = await s.ReiniciarCuadreAsync(desmarcarResto: false, "ronald", Ahora);
-        Assert.Equal(0.05m, umbral);
-        Assert.Equal(1, cambiados);
-        // En 2025, la 4300002 tiene 0,03 € (dentro del umbral); la 4300003 debe 200 € y no se marca; el banco sigue cuadrado.
-        Assert.True(fuente.CuadresGuardados.Single(c => c.Cuenta == "4300002").Cuadrada);
-        Assert.DoesNotContain(fuente.CuadresGuardados, c => c.Cuenta == "4300003");
-        Assert.True(fuente.CuadresGuardados.Single(c => c.Cuenta == "5720001").Cuadrada);
+        var p = await s.ProponerReinicioCuadreAsync("ana", Ahora);
+        Assert.Equal(5m, p.Umbral);
+        Assert.Equal(2025, p.Trabajo!.Ejercicio);
+        // La 4300002 ya está cuadrada con el mismo saldo: no cambia. La propuesta no graba nada.
+        Assert.Equal(1, p.SiguenCuadradas);
+        Assert.Equal(3, fuente.CuadresGuardados.Count);
+        Assert.Equal(["4300001", "5720001"], p.Cambios.Select(c => c.Cuenta));
+        var cliente = p.Cambios[0];
+        Assert.Equal(("Se marca", "Cliente uno", 5m), (cliente.Cambio, cliente.Nombre, cliente.Saldo));
+        var banco = p.Cambios[1];
+        Assert.Equal("Se desmarca", banco.Cambio);
+        Assert.Equal((1, 1), (p.SeMarcan, p.SeDesmarcan));
 
-        await s.ReiniciarCuadreAsync(desmarcarResto: true, "ronald", Ahora);
-        var banco = fuente.CuadresGuardados.Single(c => c.Cuenta == "5720001");
-        Assert.False(banco.Cuadrada);
-        Assert.Equal("Banco conciliado con el extracto", banco.Notas);
-        Assert.True(fuente.CuadresGuardados.Single(c => c.Cuenta == "4300002").Cuadrada);
+        await s.GuardarReinicioCuadreAsync(p);
+        Assert.Equal(4, fuente.CuadresGuardados.Count);
+        var b = fuente.CuadresGuardados.Single(c => c.Cuenta == "5720001");
+        Assert.False(b.Cuadrada);
+        Assert.Null(b.Saldo);
+        Assert.Equal(("Banco conciliado con el extracto", "ana"), (b.Notas, b.Operador));
+        var c1 = fuente.CuadresGuardados.Single(c => c.Cuenta == "4300001");
+        Assert.True(c1.Cuadrada);
+        Assert.Equal(5m, c1.Saldo);
+        Assert.Equal(EstadoCuadre.Cuadrada, s.Catalogo.Single(c => c.Codigo == "4300001").Cuadre);
+        // La 4300003 (fuera del umbral, sin la casilla) no cambia y conserva sus notas.
+        Assert.DoesNotContain(p.Cambios, c => c.Cuenta == "4300003");
+        Assert.Equal("Recibo devuelto", fuente.CuadresGuardados.Single(c => c.Cuenta == "4300003").Notas);
+        // Una cuenta sin movimientos en el ejercicio no se marca.
+        Assert.DoesNotContain(p.Cambios, c => c.Cuenta == "5720009");
+
+        // Repetirlo sin cambios no propone nada; si el saldo de una cuadrada cambia sin salir del umbral, se actualiza su saldo.
+        Assert.Empty((await s.ProponerReinicioCuadreAsync("ana", Ahora)).Cambios);
+        fuente.Asiento(new(30, 2, new DateTime(2025, 6, 1), "Redondeo", [new("4300002", 0.01m, 0m), new("7000001", 0m, 0.01m)]));
+        var p2 = await s.ProponerReinicioCuadreAsync("ana", Ahora);
+        var actualizada = Assert.Single(p2.Cambios);
+        Assert.Equal(("4300002", "Se actualiza", 0.04m), (actualizada.Cuenta, actualizada.Cambio, actualizada.Nuevo.Saldo!.Value));
+    }
+
+    [Fact]
+    public async Task ReiniciarElCuadreConElUmbralPredeterminadoSoloMarcaLosCentimos()
+    {
+        var fuente = DatosMayorSinteticos.Fuente();
+        // Notas del ejercicio anterior: al marcarla en el de trabajo, se copian.
+        await fuente.GuardarCuadresAsync([new CuadreCuenta(1, "4300002", false, null, "2024: revisar remesa", "ronald", Ahora)]);
+        var s = await DatosMayorSinteticos.SesionAsync(fuente, 2025);
+        var p = await s.ProponerReinicioCuadreAsync("ana", Ahora);
+        var unico = Assert.Single(p.Cambios);
+        Assert.Equal(("4300002", true, 0.03m), (unico.Cuenta, unico.Marcar, unico.Saldo));
+        Assert.Equal(("2024: revisar remesa", 2), (unico.Nuevo.Notas, unico.Nuevo.IdSociedadEjercicio));
     }
 }

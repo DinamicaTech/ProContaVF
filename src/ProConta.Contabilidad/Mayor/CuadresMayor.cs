@@ -118,28 +118,47 @@ public static class CuadresMayor
     }
 
     /// <summary>
-    /// «Reiniciar el cuadre» del ejercicio de trabajo (el «Reinicia cuadre del Mayor» del antiguo, con el umbral parametrizado):
-    /// con <paramref name="desmarcarResto"/> se quita antes la casilla de todas las cuentas (las notas se conservan); después se
-    /// marcan como cuadradas las subcuentas con movimientos y saldo de hasta ±<paramref name="umbral"/>, con sus notas (o las
-    /// heredadas). Devuelve los cuadres que hay que guardar.
+    /// «Reiniciar el cuadre» del ejercicio de trabajo (contabilidad/procesos/reiniciar-cuadre; el «Reinicia cuadre del Mayor» del
+    /// antiguo, con el umbral parametrizado): las subcuentas con movimientos y saldo de hasta ±<paramref name="umbral"/> quedan
+    /// marcadas como cuadradas con su saldo actual, y todas las demás quedan sin la casilla, también las cuadradas a mano con saldo.
+    /// Las notas nunca se tocan (las heredadas del ejercicio anterior se copian al de trabajo al marcarla). Solo devuelve lo que
+    /// cambia: una cuenta ya cuadrada con el mismo saldo y dentro del umbral se queda como está.
     /// </summary>
-    public static IReadOnlyList<CuadreCuenta> Reiniciar(ContextoCuadre ctx, IReadOnlyCollection<string> subcuentas, decimal umbral, bool desmarcarResto,
-        string operador, DateTime ahora)
+    public static PropuestaReinicioCuadre ProponerReinicio(ContextoCuadre ctx, IReadOnlyCollection<string> subcuentas, Func<string, string> nombre,
+        decimal umbral, string operador, DateTime ahora)
     {
-        if (ctx.Trabajo is null) return [];
         umbral = Math.Abs(umbral);
-        var cambios = new Dictionary<string, CuadreCuenta>(StringComparer.Ordinal);
-        if (desmarcarResto)
-            foreach (var c in ctx.Cuadres.Where(c => c.IdSociedadEjercicio == ctx.Trabajo.IdSociedadEjercicio && c.Cuadrada))
-                cambios[c.Cuenta] = c with { Cuadrada = false, Saldo = null, Operador = operador, FechaHora = ahora };
-        foreach (var cuenta in subcuentas)
+        if (ctx.Trabajo is null) return new PropuestaReinicioCuadre(null, umbral, [], 0);
+        var trabajo = ctx.Trabajo.IdSociedadEjercicio;
+        var cambios = new Dictionary<string, CambioReinicioCuadre>(StringComparer.Ordinal);
+        var siguen = 0;
+        foreach (var cuenta in subcuentas.Union(ctx.Cuadres.Where(c => c.IdSociedadEjercicio == trabajo && c.Cuadrada).Select(c => c.Cuenta), StringComparer.Ordinal))
         {
             var (saldo, apuntes) = ctx.SaldosTrabajo.GetValueOrDefault(cuenta);
-            if (apuntes == 0 || Math.Abs(Math.Round(saldo, 2)) > umbral) continue;
+            saldo = Math.Round(saldo, 2);
+            var dentro = apuntes > 0 && Math.Abs(saldo) <= umbral;
             var v = Ver(cuenta, ctx);
-            if (v.Estado == EstadoCuadre.Cuadrada && !desmarcarResto) continue;
-            cambios[cuenta] = new CuadreCuenta(ctx.Trabajo.IdSociedadEjercicio, cuenta, true, Math.Round(saldo, 2), v.Notas, operador, ahora);
+            var marcada = v.Registro is { Cuadrada: true };
+            if (dentro && v.Estado == EstadoCuadre.Cuadrada) { siguen++; continue; }
+            if (!dentro && !marcada) continue;
+            var nuevo = dentro
+                ? new CuadreCuenta(trabajo, cuenta, true, saldo, v.Notas, operador, ahora)
+                : v.Registro! with { Cuadrada = false, Saldo = null, Operador = operador, FechaHora = ahora };
+            cambios[cuenta] = new CambioReinicioCuadre(cuenta, nombre(cuenta), saldo, dentro, marcada, v.Notas is not null, nuevo);
         }
-        return cambios.Values.ToList();
+        return new PropuestaReinicioCuadre(ctx.Trabajo, umbral, cambios.Values.OrderBy(c => c.Cuenta, StringComparer.Ordinal).ToList(), siguen);
     }
+}
+
+/// <summary>Una subcuenta que cambia al reiniciar el cuadre: se marca como cuadrada (o se actualiza su saldo) o se le quita la casilla.</summary>
+public sealed record CambioReinicioCuadre(string Cuenta, string Nombre, decimal Saldo, bool Marcar, bool EstabaMarcada, bool TieneNotas, CuadreCuenta Nuevo)
+{
+    public string Cambio => Marcar ? EstabaMarcada ? "Se actualiza" : "Se marca" : "Se desmarca";
+}
+
+/// <summary>Lo que hará «Reiniciar el cuadre» en el ejercicio de trabajo, para enseñarlo antes de grabar.</summary>
+public sealed record PropuestaReinicioCuadre(EjercicioMayor? Trabajo, decimal Umbral, IReadOnlyList<CambioReinicioCuadre> Cambios, int SiguenCuadradas)
+{
+    public int SeMarcan => Cambios.Count(c => c.Marcar);
+    public int SeDesmarcan => Cambios.Count(c => !c.Marcar);
 }

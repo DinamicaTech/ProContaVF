@@ -1,0 +1,85 @@
+<UserControl x:Class="ProConta.Contabilidad.UI.ReinicioCuadre.PantallaReinicioCuadre"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:pc="urn:proconta-ui"
+             Background="White">
+  <UserControl.Resources>
+    <pc:VisibleSiConverter x:Key="Visible" />
+    <ContextMenu x:Key="Menu.Cuenta">
+      <MenuItem Header="Mayor de la subcuenta" Command="{Binding MayorCommand}" ToolTipService.ShowOnDisabled="True"
+                CommandParameter="{Binding PlacementTarget.SelectedItem, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
+                ToolTip="Abre el Mayor de esta subcuenta para ver sus apuntes y su cuadre antes de reiniciar" />
+    </ContextMenu>
+  </UserControl.Resources>
+  <UserControl.InputBindings>
+    <KeyBinding Key="F5" Command="{Binding RefrescarCommand}" />
+  </UserControl.InputBindings>
+
+  <DockPanel>
+    <!-- Cabecera: acciones generales -->
+    <Border DockPanel.Dock="Top" BorderBrush="{StaticResource Pincel.Linea}" BorderThickness="0,0,0,1" Padding="14,8">
+      <DockPanel>
+        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+          <Button Content="Cambiar el umbral…" Style="{StaticResource Boton}" Command="{Binding UmbralCommand}" Margin="0,0,8,0" VerticalAlignment="Center"
+                  ToolTip="Abre Parámetros y tablas › Configuración general, donde está el umbral para reiniciar el cuadre del Mayor (vacío: 0,05 €). Después pulsa Actualizar" />
+          <Button Content="Actualizar" Style="{StaticResource Boton}" Command="{Binding RefrescarCommand}" VerticalAlignment="Center"
+                  ToolTip="Vuelve a leer los saldos, los cuadres y el umbral, y recalcula lo que cambiaría (F5)" />
+        </StackPanel>
+        <StackPanel Orientation="Horizontal">
+          <TextBlock Text="Reiniciar el cuadre del Mayor" Style="{StaticResource Texto.TituloPantalla}" VerticalAlignment="Center" Margin="0,0,12,0" />
+          <TextBlock Text="{Binding Subtitulo}" Style="{StaticResource Texto.Apagado}" VerticalAlignment="Center" Margin="0,0,12,0" />
+          <TextBlock Text="{Binding TextoUmbral}" Style="{StaticResource Texto.Apagado}" VerticalAlignment="Center"
+                     ToolTip="Las subcuentas con movimientos en el ejercicio y saldo de hasta este importe, positivo o negativo, quedan cuadradas; las demás, sin la casilla" />
+        </StackPanel>
+      </DockPanel>
+    </Border>
+
+    <!-- Pie: grabar lo que se ve -->
+    <Border DockPanel.Dock="Bottom" Style="{StaticResource Barra.Pie}">
+      <DockPanel>
+        <Button DockPanel.Dock="Right" Content="Reiniciar el cuadre" Style="{StaticResource Boton.Primario}" Command="{Binding ReiniciarCommand}" ToolTipService.ShowOnDisabled="True"
+                ToolTip="Marca y desmarca exactamente las subcuentas de la tabla en el ejercicio de trabajo. Las notas no se tocan y no se hace ningún asiento" />
+        <TextBlock Text="{Binding PorQueNoReiniciar}" Style="{StaticResource Texto.Apagado}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" ToolTip="{Binding PorQueNoReiniciar}" />
+      </DockPanel>
+    </Border>
+
+    <pc:VistaEstado Estado="{Binding Estado}" Mensaje="{Binding MensajeEstado}" TextoAccion="Actualizar" ComandoAccion="{Binding RefrescarCommand}">
+      <Border Padding="14,10,14,8">
+        <DockPanel>
+          <DockPanel DockPanel.Dock="Top" Margin="0,0,0,8">
+            <TextBlock DockPanel.Dock="Right" Text="{Binding Resumen}" FontWeight="SemiBold" VerticalAlignment="Center" Margin="18,0,0,0" />
+            <TextBlock Text="Subcuentas que cambian" Style="{StaticResource Texto.Seccion}" VerticalAlignment="Center" />
+          </DockPanel>
+          <TextBlock DockPanel.Dock="Top" Style="{StaticResource Texto.Apagado}" TextWrapping="Wrap" Margin="0,0,0,8" MaxWidth="900" HorizontalAlignment="Left"
+                     Text="Al reiniciar, las subcuentas del ejercicio de trabajo con movimientos y saldo dentro del umbral quedan cuadradas (en verde en el Mayor) y todas las demás quedan sin la casilla «Cuadrada», también las que cuadraste a mano con saldo. Las notas nunca se borran." />
+          <TextBlock DockPanel.Dock="Top" Text="No hay nada que cambiar: el cuadre ya está como quedaría al reiniciarlo." Margin="0,4,0,0"
+                     Visibility="{Binding SinCambios, Converter={StaticResource Visible}}" />
+          <DataGrid Style="{StaticResource Tabla}" ItemsSource="{Binding Filas}" IsReadOnly="True" AutoGenerateColumns="False" HeadersVisibility="Column" HorizontalAlignment="Left"
+                    SelectionMode="Single" RowStyle="{StaticResource Tabla.Fila}" ContextMenu="{StaticResource Menu.Cuenta}" AutomationProperties.Name="Subcuentas que cambian"
+                    Visibility="{Binding HayCambios, Converter={StaticResource Visible}}"
+                    ToolTip="Subcuentas cuyo cuadre cambia al reiniciar. Clic derecho: Mayor de la subcuenta">
+            <DataGrid.Columns>
+              <DataGridTextColumn Header="Subcuenta" Binding="{Binding Cuenta}" Width="80" ElementStyle="{StaticResource Texto.Celda.Mono}" />
+              <DataGridTextColumn Header="Nombre" Binding="{Binding Nombre}" Width="320" ElementStyle="{StaticResource Texto.Celda}" />
+              <DataGridTextColumn Header="Saldo" Binding="{Binding Saldo}" Width="110" ElementStyle="{StaticResource Texto.Celda.Importe}" HeaderStyle="{StaticResource Tabla.Cabecera.Derecha}" />
+              <DataGridTemplateColumn Header="Cambio" Width="100">
+                <DataGridTemplateColumn.CellTemplate>
+                  <DataTemplate>
+                    <TextBlock Text="{Binding Cambio}" ToolTip="{Binding AyudaCambio}" Style="{StaticResource Texto.Celda}" />
+                  </DataTemplate>
+                </DataGridTemplateColumn.CellTemplate>
+              </DataGridTemplateColumn>
+              <DataGridTemplateColumn Header="Notas" Width="55">
+                <DataGridTemplateColumn.CellTemplate>
+                  <DataTemplate>
+                    <TextBlock Text="{Binding Notas}" ToolTip="Tiene notas de cuadre (de este ejercicio o heredadas del anterior): se conservan" Style="{StaticResource Texto.Celda}" />
+                  </DataTemplate>
+                </DataGridTemplateColumn.CellTemplate>
+              </DataGridTemplateColumn>
+            </DataGrid.Columns>
+          </DataGrid>
+        </DockPanel>
+      </Border>
+    </pc:VistaEstado>
+  </DockPanel>
+</UserControl>
