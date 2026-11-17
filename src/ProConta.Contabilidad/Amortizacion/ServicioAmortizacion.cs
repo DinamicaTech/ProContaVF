@@ -96,6 +96,21 @@ public sealed class ServicioAmortizacion(IBaseDatos bd, IMotorAsientos motor, Fu
         return ProcesoAmortizacion.Proponer(periodo, d.Activos, d.Movimientos, excluidos ?? d.Excluidos, Avisos(periodo));
     }
 
+    /// <summary>
+    /// Lo que falta por contabilizar de la amortización del año, por activo, para la ficha de activos (activos 2026-11-17 18:50: fila
+    /// «Amortización prevista (sin contabilizar)»): la propuesta del periodo anual del ejercicio con el mismo cálculo del proceso, pero contando
+    /// todo lo ya cargado en el año, también lo de este proceso; así es cero cuando la amortización del año ya está contabilizada del todo. Solo
+    /// salen los activos que tocan este año y no tienen problema; las casillas desmarcadas del proceso no cuentan (la ficha muestra la cuota).
+    /// </summary>
+    public async Task<IReadOnlyDictionary<int, CuotaAmortizacion>> PrevistaAnualAsync(ContextoSociedadEjercicio ctx)
+    {
+        var d = await LeerAsync(ctx);
+        var anual = PeriodoAmortizacion.DelEjercicio(ctx.Ejercicio, PeriodicidadAmortizacion.Anual)[0];
+        var movimientos = d.Movimientos.Select(m => m with { ClaveLote = null }).ToList();
+        var p = ProcesoAmortizacion.Proponer(anual, d.Activos, movimientos, new HashSet<int>());
+        return p.Filas.Where(f => f.Cuota is not null).ToDictionary(f => f.Activo.IdActivo, f => f.Cuota!);
+    }
+
     // ---------- confirmar ----------
 
     /// <summary>

@@ -76,18 +76,24 @@ public sealed class GeneradorSubcuentasActivo(IBaseDatos bd, ICatalogoCuentas cu
         return operaciones;
     }
 
-    /// <summary>Propuesta para los activos de esos tipos en la sociedad y el ejercicio de trabajo.</summary>
-    public async Task<IReadOnlyList<OperacionSubcuenta>> ProponerAsync(ContextoSociedadEjercicio contexto, IReadOnlyCollection<int> idsTipoActivo)
+    /// <summary>
+    /// Propuesta para los activos de esos tipos en la sociedad y el ejercicio de trabajo; con <paramref name="idsActivo"/>, solo para esos
+    /// activos (la pantalla de activos genera las que faltan a los marcados o a uno recién dado de alta).
+    /// </summary>
+    public async Task<IReadOnlyList<OperacionSubcuenta>> ProponerAsync(ContextoSociedadEjercicio contexto, IReadOnlyCollection<int> idsTipoActivo,
+        IReadOnlyCollection<int>? idsActivo = null)
     {
         if (idsTipoActivo.Count == 0) return [];
         var (activos, lineas, actuales) = await LeerAsync(contexto, idsTipoActivo);
+        if (idsActivo is not null) activos = activos.Where(a => idsActivo.Contains(a.IdActivo)).ToList();
         return Planificar(activos, lineas, actuales);
     }
 
     /// <summary>Vuelve a calcular la propuesta y la aplica; cada subcuenta va en su propia transacción.</summary>
-    public async Task<ResultadoGeneracionSubcuentas> GenerarAsync(ContextoSociedadEjercicio contexto, IReadOnlyCollection<int> idsTipoActivo)
+    public async Task<ResultadoGeneracionSubcuentas> GenerarAsync(ContextoSociedadEjercicio contexto, IReadOnlyCollection<int> idsTipoActivo,
+        IReadOnlyCollection<int>? idsActivo = null)
     {
-        var operaciones = await ProponerAsync(contexto, idsTipoActivo);
+        var operaciones = await ProponerAsync(contexto, idsTipoActivo, idsActivo);
         int creadas = 0, altas = 0, renombradas = 0;
         var errores = new List<string>();
         foreach (var op in operaciones)
