@@ -33,6 +33,7 @@ public static class DuenosTablas
         Asignar("contabilidad", "contabilidad/procesos/cambio-deduccion-actividad", "ActividadesDeduccion");
         Asignar("contabilidad", "contabilidad/procesos/liquidacion-iva", "LiquidacionesIva");
         Asignar("contabilidad", "contabilidad/procesos/aplicacion-resultado", "RepartosDividendos", "RepartosDividendosSocios");
+        Asignar("contabilidad", "contabilidad/procesos/impuesto-sociedades", "ImpuestosSociedades", "ImpuestosSociedadesAjustes");
         Asignar("contabilidad", "contabilidad/modelos-tributarios", "PresentacionesTributarias");
         Asignar("contabilidad", "contabilidad/mayor", "CuadresCuentas");
         Asignar("contabilidad", "contabilidad/plantillas-asiento", "PlantillasAsiento", "PlantillasAsientoDatos", "PlantillasAsientoLineas");

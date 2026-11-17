@@ -38,6 +38,9 @@ public sealed class ProveedorActividades : ProveedorTablaAccess
             new("SerieCuentaIva", "Serie de la 472", TipoCampo.Codigo) { Longitud = 4, Ancho = "xs", Sinonimos = ["472", "4725", "4726", "4727", "4728"],
                 Ayuda = "Cuatro cifras, por ejemplo 4728. El IVA va a la serie con la terminación de la cuenta general (4720021 → 4728021; intracomunitario x121 y x221, inversión del sujeto pasivo x321, importación x421). Su IVA repercutido va a la 477 con el 2 cambiado por el 7 (4728 → 4778). Vacía: las cuentas generales del ejercicio." },
             new("Activa", "Activa", TipoCampo.Logico) { Ayuda = "Una actividad inactiva no se aplica: sus centros usan las cuentas generales." },
+            new("BonificacionIS", "Bonificación IS por alquiler de viviendas", TipoCampo.Logico) { Sinonimos = ["sociedades", "bonificacion", "viviendas"],
+                Ayuda = "Sus rentas tienen la bonificación del Impuesto sobre Sociedades por alquiler de viviendas: su renta neta (ingresos − gastos de sus centros) propone la bonificación " +
+                    "en Contabilidad › Impuesto sobre Sociedades. El porcentaje va en Parámetros y tablas › Ejercicios. Normalmente, solo el alquiler de viviendas (no el turístico)." },
             new(CampoCalendario, "Deducción por fechas", TipoCampo.TextoLargo) { SoloLectura = true, Ancho = "f",
                 Ayuda = "La deducción que se aplica según la fecha de la factura: la de arriba hasta el primer cambio y, desde cada cambio, la suya. Los cambios se dan de alta en Catálogos › Cambios de deducción de las actividades." },
             new(CampoSubcuentas, "Subcuentas de IVA en este ejercicio", TipoCampo.TextoLargo) { SoloLectura = true, Ancho = "f",

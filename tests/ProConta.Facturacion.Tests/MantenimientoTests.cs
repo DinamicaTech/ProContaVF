@@ -124,7 +124,12 @@ public sealed class MantenimientoAccessTests : IDisposable
             // Cuentas de la liquidación del IVA (contabilidad/procesos/liquidacion-iva, esquema 56).
             "CuentaHaciendaAcreedoraIva", "CuentaHaciendaDeudoraIva", "CuentaAjustesNegativosIva", "CuentaAjustesPositivosIva",
             // Prorrata definitiva y cuenta de su regularización (contabilidad/procesos/prorrata, esquema 63).
-            "PorcentajeProrrataDefinitiva", "CuentaRegularizacionProrrata" }.Order(),
+            "PorcentajeProrrataDefinitiva", "CuentaRegularizacionProrrata",
+            // Retención y reservas de los dividendos (contabilidad/procesos/aplicacion-resultado, esquema 62).
+            "PorcentajeRetencionDividendos", "CuentaReservasDividendos",
+            // Impuesto sobre Sociedades (contabilidad/procesos/impuesto-sociedades, esquema 64).
+            "TipoImpuestoSociedades", "LimiteTramoReducidoIS", "TipoTramoReducidoIS", "BonificacionViviendasIS", "PrefijosAjustesIS", "CuentaImpuestoSociedades",
+            "CuentaHaciendaAcreedoraIS", "CuentaHaciendaDeudoraIS", "CuentaCreditoPerdidasIS", "CuentaImpuestoDiferidoIS" }.Order(),
             Servicio().Proveedor("ejercicios")!.Campos.Select(c => c.Clave).Order());
         await Bd.EjecutarAsync(x => x.EjecutarAsync("UPDATE SociedadesEjercicios SET CuentaSuplido = '5550002', PorcentajeProrrataAñoAnterior = 0.14 WHERE IdSociedadEjercicio = 9001"));
         var ejercicio = (await Servicio().Proveedor("ejercicios")!.ListarAsync(Ctx)).Single(r => r.Texto("Ejercicio") == "2026");
