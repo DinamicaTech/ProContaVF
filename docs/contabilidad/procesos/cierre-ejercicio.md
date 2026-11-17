@@ -1,6 +1,5 @@
 ---
 title: Cierre y reapertura del ejercicio
-status: draft
 depends_on: [contabilidad/procesos, contabilidad/procesos/nuevo-ejercicio, organizacion/sociedades-ejercicios, contabilidad/asientos, contabilidad/diario, contabilidad/procesos/impuesto-sociedades, contabilidad/procesos/prorrata, contabilidad/procesos/liquidacion-iva, pantalla-de-inicio, seguridad/permisos]
 threads:
   - 2026-11-17 15:30 · Cerrar y reabrir el ejercicio | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GVAzARnPH8KvtQS2dxJnDsi
@@ -20,6 +19,7 @@ Pantalla Contabilidad › Cierre del ejercicio (código en `src/ProConta.Contabi
 - 2026-11-17 15:30 · Confirmar vuelve a calcular y solo graba si la propuesta es la que se ve; crea la cuenta de resultados si falta, copia al ejercicio siguiente las cuentas que le falten y graba los tres lotes y la marca EjercicioCerrado en una transacción (motor de asientos, varios lotes a la vez y exentos del trimestre cerrado). Reabrir quita la marca y borra los tres lotes en otra transacción; el borrado queda en el registro de cambios de los apuntes. Permiso «Cerrar y reabrir el ejercicio» (PROCESOS.CIERRE_EJERCICIO); mientras no tenga grupos, lo tienen quienes pueden liquidar el IVA. Crear el ejercicio siguiente va con el mismo permiso.
 - 2026-11-17 15:30 · Para después: la reversión de facturas pendientes de recibir en la apertura será un lote propio que reabrir también borrará (contabilidad/procesos/facturas-pendientes-recibir); el botón «Regenerar» de la apertura en el Diario será «reabrir y volver a cerrar» (contabilidad/diario); la aplicación del resultado de la 129 (contabilidad/procesos/aplicacion-resultado, fase 2) ya puede hacerse.
 - 2026-11-17 15:55 · Maqueta validada por el propietario (2026-11-17 15:38): la pantalla va en Contabilidad, junto a la Liquidación y la Prorrata; la regularización y el cierre van subcuenta a subcuenta y sin centro de coste; la comprobación previa solo impide cerrar si falta el ejercicio siguiente y lo demás avisa y pide motivo. Crear el ejercicio siguiente se ofrece también en Parámetros y tablas › Ejercicios (contabilidad/procesos/nuevo-ejercicio).
+- 2026-11-17 16:05 · Validado por el propietario («Ok, fusiona PR», PR #102): pasa a estable. Las series sin año en el prefijo (también la rectificativa R) empiezan en el año seguido de 0001.
 
 ## Hand-over
 - 2026-11-17 15:30 · Hecho: motor multilote, campo «Cierre · cuenta de resultados» (esquema 65), cálculo, crear el ejercicio siguiente, servicio de cierre y reapertura, pantalla y pruebas (sin BD: 12 pasan; contra Access: CierreEjercicioAccessTests, a ejecutar en el equipo del propietario). Pendiente: pruebas contra Access y prueba con una copia de la BD (límite de bloqueos de Access en un cierre grande), validación del propietario y de las preguntas de la maqueta.
@@ -34,3 +34,4 @@ Pantalla Contabilidad › Cierre del ejercicio (código en `src/ProConta.Contabi
 - 2026-11-17 15:38 · answer: ¿La pantalla va en Contabilidad › Cierre del ejercicio, junto a la Liquidación y la Prorrata? → 1. Ok
 - 2026-11-17 15:38 · answer: ¿Regularización y cierre subcuenta a subcuenta y sin centro de coste? → 3. Ok
 - 2026-11-17 15:38 · answer: ¿La comprobación previa no bloquea, salvo el ejercicio siguiente, y pide motivo con avisos? → 4. Ok
+- 2026-11-17 16:04 · Ok, fusiona PR
