@@ -5,6 +5,7 @@ threads:
   - 2026-10-28 12:30 · Carga de requisitos | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GRNMH95h9tnQp4dmEPHmw1w
   - 2026-10-31 16:58 · Cerrar preguntas pendientes del proyecto | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5G7UyrP5eDJV4Ds6CCBozdbu
   - 2026-11-10 19:40 · Desarrollar envío y recepción de correo | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GT4mx65rhF9fy8aRE77SaGH
+  - 2026-11-18 19:20 · Diseñar el gestor documental | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GWo8SybrmKimtCP8FKpt7zw
 ---
 ## Summary
 Mail Dispatcher: mira el buzón POP3 de la cuenta de cada ejercicio mientras la aplicación está abierta, guarda cada mensaje (.eml y adjuntos con su huella), atiende solo a los remitentes autorizados, clasifica los adjuntos (facturas de compra, Norma 43, nóminas) y los pasa a sus motores, responde al remitente con lo hecho y borra del servidor lo terminado, con hitos persistidos para no duplicar. Código: `ServicioRecepcionCorreo`, `ClientePop3MailKit` y `LectorCorreo` (src/ProConta.Correo/Recepcion.cs), `ProcesadorFacturasCompraCorreo` (src/ProConta.Compras/Facturas/FacturasRecibidasCorreo.cs), pantalla `CorreoRecibidoVM` y migración `20261111_1100_CORREO_RECEPCION`.
@@ -41,3 +42,4 @@ Mail Dispatcher: mira el buzón POP3 de la cuenta de cada ejercicio mientras la 
 - 2026-11-11 11:08 · Ok, prueba realizada. La factura ha llegado y aparece en facturas recibidas.
 - 2026-11-12 16:50 · Derived from norma43: pasar los adjuntos Norma 43 recibidos al motor de importación de extractos (el mismo que usa la pantalla Bancos) y responder al remitente con el resultado: importado, ya importado, solape o cuenta bancaria desconocida.
 - 2026-11-13 11:05 · Derived from nominas: los Excel de nóminas recibidos se pasan a ServicioImportacionNominas (origen Correo, con el adjunto); si no queda nada por resolver se contabilizan solos, y si no quedan en la pantalla de nóminas con sus incidencias.
+- 2026-11-18 19:20 · Derived from documentos: los adjuntos de cada mensaje recibido (no ignorado) se registran en el gestor documental donde están, vinculados al mensaje.
