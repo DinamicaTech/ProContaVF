@@ -70,7 +70,7 @@ public partial class VentanaPrincipal : Window
     private readonly ProConta.Contabilidad.UI.Asientos.ModuloAsientos _asientos;
     private readonly ProConta.Contabilidad.UI.Diario.ModuloDiario _diario;
     private readonly ProConta.Contabilidad.UI.Liquidacion.ModuloLiquidacionIva _liquidacionIva;
-    private readonly ProConta.Contabilidad.UI.Modelo303.ModuloModelo303 _modelo303;
+    private readonly ProConta.Contabilidad.UI.ModelosTributarios.ModuloModelosTributarios _modelos;
     private readonly ProConta.Contabilidad.UI.Dividendos.ModuloRepartoDividendos _dividendos;
     private readonly ProConta.Contabilidad.UI.Dividendos.ModuloAplicacionResultado _aplicacionResultado;
     private readonly ProConta.Contabilidad.UI.Prorrata.ModuloRegularizacionProrrata _prorrata;
@@ -154,6 +154,8 @@ public partial class VentanaPrincipal : Window
                 AbrirParametros = clave => AbrirParametros(clave),
                 // Agenda (fase 4).
                 AbrirProgramadas = () => _facturacion!.AbrirProgramadas(),
+                // Plazos de los modelos (contabilidad/modelos-tributarios): abren Modelos tributarios en su periodo.
+                AbrirModelosTributarios = (modelo, periodo) => _ = AbrirModelosAsync(modelo, periodo),
                 // Aviso «Comisiones sin compensar» (facturacion/reservas/compensacion-comision).
                 CompensarComisiones = () => CompensarComisionesAsync(bd, new Actor(sesion.NombreOperador)),
             },
@@ -190,6 +192,7 @@ public partial class VentanaPrincipal : Window
         _trimestres = new ServicioTrimestreActivo(bd);
         _ejercicioTrabajo = contexto.Contexto;
         _puedeCambiarTrimestre = () => autorizador.PuedeAsync(Acciones.TrimestreCambiar);
+        _puedeVerModelos = () => autorizador.PuedeAsync(Acciones.ModelosVer);
         _ = RefrescarTrimestreAsync();
         var contabilizador = new ContabilizadorVentas(bd, new MotorAsientosAccess(bd), cuentas, roles, sociedades);
         var facturas = new ServicioFacturas(bd, sociedades, new RepositorioTercerosAccess(bd), roles, cuentas, contabilizador, autorizador);
@@ -354,25 +357,47 @@ public partial class VentanaPrincipal : Window
                 VerAsiento = id => _mayor.VerAsientoAsync(id),
                 AbrirMayor = cuentasMayor => _mayor.Abrir(cuentasMayor),
                 Cambiada = () => _ = RefrescarTrimestreAsync(),
+                AbrirModelo = (modelo, periodo) => _ = AbrirModelosAsync(modelo, periodo),
             },
             _area, new ProConta.Contabilidad.UI.Liquidacion.DialogosLiquidacionIva(() => this));
         var abrirLiquidacionIva = new ComandoDelegado(() => _liquidacionIva.Abrir());
-        // Modelo 303 (contabilidad/modelos-tributarios/modelo-303): casillas, PDF de la AEAT (ServaliDos) y presentación con el certificado de la
-        // sociedad en el entorno de la BD (pieza común contabilidad/modelos-tributarios/presentacion).
-        _modelo303 = new ProConta.Contabilidad.UI.Modelo303.ModuloModelo303(
-            new ProConta.Contabilidad.UI.Modelo303.ContextoModelo303(
-                new ProConta.Contabilidad.Modelos.Servicio303(bd, new ProConta.Contabilidad.Presentacion.ServicioPresentacionAeat(bd, new ProConta.Contabilidad.Presentacion.ClienteAeatHttp())),
+        // Modelos tributarios (contabilidad/modelos-tributarios): pantalla única de los modelos de la sociedad con sus plazos, borradores, ficheros,
+        // presentación con la pieza común (contabilidad/modelos-tributarios/presentacion) y consulta a la AEAT de lo presentado fuera del programa.
+        // Sustituye a la antigua opción «Modelo 303» (decisión del propietario del 2026-11-18 05:34).
+        var presentacionAeat = new ProConta.Contabilidad.Presentacion.ServicioPresentacionAeat(bd, new ProConta.Contabilidad.Presentacion.ClienteAeatHttp());
+        _modelos = new ProConta.Contabilidad.UI.ModelosTributarios.ModuloModelosTributarios(
+            new ProConta.Contabilidad.UI.ModelosTributarios.ContextoModelosTributarios(
+                new ProConta.Contabilidad.Modelos.ServicioModelosTributarios(bd, presentacionAeat,
+                    new ProConta.Contabilidad.Presentacion.ServicioTgvi(bd, new ProConta.Contabilidad.Presentacion.ClienteTgviHttp()),
+                    new ProConta.Contabilidad.Impuestos.ServicioImpuestoSociedades(bd, new MotorAsientosAccess(bd), cuentas, () => autorizador.PuedeAsync(Acciones.ImpuestoSociedades))),
                 contexto.Contexto, contexto.RazonSocial, new Actor(sesion.NombreOperador), Avisar)
             {
+                PuedePresentar = () => autorizador.PuedeAsync(Acciones.ModelosPresentar),
                 AbrirFichero = ruta =>
                 {
-                    try { System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(ruta) { UseShellExecute = true }); }
+                    try { System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(ruta) { UseShellExecute = true })?.Dispose(); }
                     catch (Exception ex) when (ex is System.ComponentModel.Win32Exception or InvalidOperationException) { Avisar($"Fichero guardado en {ruta} (no he podido abrirlo: {ex.Message})"); }
                 },
-                AbrirLiquidacion = t => _liquidacionIva.Abrir(t),
+                Copiar = texto => { try { Clipboard.SetText(texto); } catch (System.Runtime.InteropServices.ExternalException) { Avisar("No he podido copiar al portapapeles: vuelve a intentarlo."); } },
+                CarpetaEmpresa = async () => ProConta.Contabilidad.Presentacion.ServicioPresentacionAeat.CarpetaEmpresa(bd.Ruta,
+                    await bd.EjecutarAsync(s => s.EscalarAsync("SELECT RutaDocumentos FROM Sociedades WHERE IdSociedad = ?", contexto.Contexto.IdSociedad)) as string),
+                AbrirProceso = (proceso, modelo, periodo) =>
+                {
+                    switch (proceso)
+                    {
+                        case ProConta.Contabilidad.Modelos.ProcesoModelo.LiquidacionIva:
+                            if (periodo is { Length: 2 } && periodo[1] == 'T' && char.IsAsciiDigit(periodo[0])) _liquidacionIva!.Abrir(periodo[0] - '0'); else _liquidacionIva!.Abrir();
+                            break;
+                        case ProConta.Contabilidad.Modelos.ProcesoModelo.Nominas: _nominas!.Abrir(null); break;
+                        case ProConta.Contabilidad.Modelos.ProcesoModelo.ImpuestoSociedades: _impuestoSociedades!.Abrir(); break;
+                        case ProConta.Contabilidad.Modelos.ProcesoModelo.Prorrata: _prorrata!.Abrir(); break;
+                        case ProConta.Contabilidad.Modelos.ProcesoModelo.AplicacionResultado: _dividendos!.Abrir(); break;
+                        case ProConta.Contabilidad.Modelos.ProcesoModelo.FacturasCompra: _compras!.AbrirRecibidas(); break;
+                    }
+                },
             },
-            _area, new ProConta.Contabilidad.UI.Modelo303.DialogosModelo303(() => this));
-        var abrirModelo303 = new ComandoDelegado(() => _modelo303.Abrir());
+            _area, new ProConta.Contabilidad.UI.ModelosTributarios.DialogosModelosTributarios(() => this));
+        var abrirModelos = new ComandoDelegado(() => _ = AbrirModelosAsync(null, null));
         // Prorrata de IVA (contabilidad/procesos/prorrata): definitiva del año (por defecto, la legal) y su regularización el 31/12 en la 4729.
         _prorrata = new ProConta.Contabilidad.UI.Prorrata.ModuloRegularizacionProrrata(
             new ProConta.Contabilidad.UI.Prorrata.ContextoRegularizacionProrrata(
@@ -406,6 +431,7 @@ public partial class VentanaPrincipal : Window
                 AbrirEnlace = url => System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(url) { UseShellExecute = true })?.Dispose(),
                 // Doble clic en un piso del paso «Alquiler de viviendas»: su activo con su cuenta de resultados (activos 2026-11-17 18:50).
                 AbrirActivoDeCentro = centro => _ = _activos!.AbrirDeCentroAsync(centro),
+                AbrirModelo = (modelo, periodo) => _ = AbrirModelosAsync(modelo, periodo),
             },
             _area, new ProConta.Contabilidad.UI.Liquidacion.DialogosLiquidacionIva(() => this));
         var abrirImpuestoSociedades = new ComandoDelegado(() => _impuestoSociedades.Abrir());
@@ -465,6 +491,7 @@ public partial class VentanaPrincipal : Window
                     ProConta.Contabilidad.Cierre.DestinoComprobacion.AplicacionResultado => () => _aplicacionResultado.Abrir(),
                     ProConta.Contabilidad.Cierre.DestinoComprobacion.Diario => () => _diario.Abrir(),
                     ProConta.Contabilidad.Cierre.DestinoComprobacion.Salud => () => irAInicio.Execute(null),
+                    ProConta.Contabilidad.Cierre.DestinoComprobacion.ModelosTributarios => () => _ = AbrirModelosAsync("390", "0A"),
                     _ => null,
                 },
                 Cambiada = () => _ = RefrescarTrimestreAsync(),
@@ -585,10 +612,10 @@ public partial class VentanaPrincipal : Window
             new OpcionNavegacion("Liquidación de IVA", null, true, false,
                 "Procesos contables › Liquidación de IVA: un asiento por trimestre que salda las 472 y 477, lleva lo no deducible a la 6341 y el resultado a la 4750 o la 4700; importe ajustable a lo presentado y activación del trimestre siguiente",
                 abrirLiquidacionIva, EsHija: true),
-            new OpcionNavegacion("Modelo 303", null, true, false,
-                "Modelos tributarios › Modelo 303: los cuatro trimestres con su estado y sus casillas; «Ver el PDF» de la AEAT, «Presentar…» con el certificado de la sociedad " +
-                "(en la copia de pruebas, en el entorno de pruebas de la AEAT), complementarias y justificantes",
-                abrirModelo303, EsHija: true),
+            new OpcionNavegacion("Modelos tributarios", null, true, false,
+                "Modelos tributarios: los modelos de la sociedad (303, 111, 115, 123, 349, 202, 390, 190, 180, 193, 347 y 200) con sus plazos y su estado; borrador de la AEAT, fichero, " +
+                "«Presentar…» con el certificado de la sociedad (en la copia de pruebas, en el entorno de pruebas de la AEAT), complementarias, justificantes y «Consultar a la AEAT»",
+                abrirModelos, EsHija: true),
             new OpcionNavegacion("Reparto de dividendos", null, true, false,
                 "Procesos contables › Reparto de dividendos: del neto de cada socio (por defecto, lo ya pagado en su 526) calcula el bruto y la retención del ejercicio y graba el asiento de reservas a dividendos; corregir o deshacer con motivo",
                 abrirDividendos, EsHija: true),
@@ -916,6 +943,19 @@ public partial class VentanaPrincipal : Window
     /// trabajo), compone el informe, lo guarda en Documentos\ProContaVF\Informes y lo abre con Excel. En la barra de estado dice el
     /// resultado del 303, la prorrata y cuántos controles hay que revisar.
     /// </summary>
+    private readonly Func<Task<bool>> _puedeVerModelos;
+
+    /// <summary>Abre Contabilidad › Modelos tributarios (permiso MODELOS.VER), con un periodo marcado si se da (enlaces de otras pantallas e Inicio).</summary>
+    private async Task AbrirModelosAsync(string? modelo, string? periodo)
+    {
+        if (!await _puedeVerModelos())
+        {
+            Avisar("No tienes permiso para ver los modelos tributarios (MODELOS.VER): pídeselo a quien administra la seguridad.");
+            return;
+        }
+        _modelos.Abrir(modelo, periodo);
+    }
+
     private async Task GenerarInformeGestoriaAsync(int? trimestre = null)
     {
         if (_generandoGestoria) { Avisar("Ya estoy generando el informe para la gestoría: espera a que se abra en Excel."); return; }

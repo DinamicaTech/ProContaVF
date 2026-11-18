@@ -11,6 +11,9 @@ public interface IFuenteBloques
     Task<IReadOnlyList<ReservaOcupacion>> ReservasAsync(string idSociedad, CancellationToken c = default);
     Task<IReadOnlyList<AlojamientoOcupacion>> AlojamientosAsync(string idSociedad, CancellationToken c = default);
     Task<IReadOnlyList<VencimientoProgramado>> ProgramadasAsync(string idSociedad, DateTime hasta, CancellationToken c = default);
+
+    /// <summary>Modelos de la sociedad y lo presentado, para los plazos de la agenda (contabilidad/modelos-tributarios).</summary>
+    Task<ProConta.Inicio.Salud.ModelosInicio> ModelosAsync(string idSociedad, CancellationToken c = default) => Task.FromResult(ProConta.Inicio.Salud.ModelosInicio.PorDefecto);
 }
 
 /// <summary>Lecturas de los bloques de la fase 4 en Access.</summary>
@@ -38,6 +41,8 @@ public sealed class FuenteBloquesAccess(IBaseDatos bd) : IFuenteBloques
 
     public Task<IReadOnlyList<VencimientoProgramado>> ProgramadasAsync(string idSociedad, DateTime hasta, CancellationToken c = default) =>
         AgendaProgramadas.VencimientosAsync(bd, idSociedad, hasta, c);
+
+    public Task<ProConta.Inicio.Salud.ModelosInicio> ModelosAsync(string idSociedad, CancellationToken c = default) => ProConta.Inicio.Salud.ModelosInicio.LeerAsync(bd, idSociedad, c);
 }
 
 /// <summary>
@@ -72,6 +77,7 @@ public sealed class ServicioBloques(IFuenteBloques fuente, Func<DateTime>? hoy =
         var dia = Hoy;
         var ejercicios = (await fuente.EjerciciosAsync(idSociedad, c).ConfigureAwait(false)).ToHashSet();
         var programadas = await fuente.ProgramadasAsync(idSociedad, dia.AddDays(CalculoAgenda.Dias), c).ConfigureAwait(false);
-        return CalculoAgenda.Calcular(dia, ejercicios, programadas);
+        var modelos = await fuente.ModelosAsync(idSociedad, c).ConfigureAwait(false);
+        return CalculoAgenda.Calcular(dia, ejercicios, programadas, null, modelos);
     }
 }

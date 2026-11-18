@@ -17,7 +17,7 @@ public sealed class ServicioSalud(IFuenteSalud fuente, IReadOnlyList<IRevisionSa
     /// <summary>Las revisiones de las fases 3 y 4, en el orden en que se presentan.</summary>
     public static IReadOnlyList<IRevisionSalud> Todas { get; } =
     [
-        new RevisionVentasAntesCambioIva(), new RevisionEjercicioSiguiente(), new RevisionPlazosIva(),
+        new RevisionVentasAntesCambioIva(), new RevisionEjercicioSiguiente(), new RevisionPlazosIva(), new RevisionPlazosModelos(),
         new RevisionBancosCuadre(), new RevisionBancosSinAsiento(), new RevisionExtractoAntiguo(), new RevisionComprasPendientes(), new RevisionBorradoresVenta(),
         new RevisionClientesAcreedores(), new RevisionPartidasPendientes(),
         new RevisionDiarioCuadra(), new RevisionNumeracionFacturas(), new RevisionLibrosIva(), new RevisionTercerosNif(), new RevisionCuentasBaja(), new RevisionNominas(),

@@ -88,7 +88,9 @@ internal sealed class SesionAccess(OleDbConnection conexion, OleDbTransaction? t
         return maximo is null ? 1 : Convert.ToInt32(maximo) + 1;
     }
 
-    public EsquemaFisico LeerEsquema() => LectorEsquemaAccess.Leer(conexion, transaccion);
+    public EsquemaFisico LeerEsquema() => transaccion is null
+        ? MemoriaEsquema.Obtener(conexion.DataSource, () => LectorEsquemaAccess.Leer(conexion, null))
+        : LectorEsquemaAccess.Leer(conexion, transaccion);
 
     private OleDbCommand Crear(string sql, object?[] parametros)
     {

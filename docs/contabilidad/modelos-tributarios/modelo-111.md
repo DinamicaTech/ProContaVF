@@ -1,6 +1,5 @@
 ---
 title: Modelo 111
-status: draft
 depends_on: [contabilidad/modelos-tributarios, contabilidad/modelos-tributarios/presentacion, nominas, compras/factura-compra]
 threads:
   - 2026-11-17 13:50 · Analizar los servicios web de la AEAT | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GSezTWx3SmyHa8owaSHFbbN

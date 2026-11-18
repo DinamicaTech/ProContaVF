@@ -118,6 +118,7 @@ public static class CatalogoMigraciones
         MigracionesDividendos.AplicacionResultado,
         MigracionesActivos.LineasVentaActivo,
         MigracionesModelosTributarios.DatosModelos,
+        MigracionesModelosTributarios.PantallaModelos,
     ];
 
     /// <summary>Versión del esquema que espera esta versión del programa.</summary>

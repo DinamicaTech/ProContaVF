@@ -8,6 +8,7 @@ threads:
   - 2026-11-01 10:46 · Desarrollar la pantalla de Terceros | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GVR2rh2hJF6h9BMYjKSu8jn
   - 2026-11-11 15:00 · Generar balances en Excel | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GRuPaDaEwyqkxbhZeBADiWX
   - 2026-11-14 23:35 · Implementar la pantalla Diario | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GXVmWMZHhvnUnUECnzoRaJd
+  - 2026-11-18 15:10 · Completar los modelos tributarios y su pantalla | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GWW9gQjRoqJLGy11fuziWXQ
 ---
 ## Summary
 Aplicación principal (UI-PRINCIPAL): cabecera con empresa, ejercicio y operador, navegación lateral plegable, búsqueda de pantallas y acciones, área de trabajo con pestañas y gestión de cambios pendientes al cambiar de ficha o contexto. Primera versión en `src/ProConta.App` (ejecutable ProContaVF.exe, con el icono de diseno-de-logo-e-iconos; `ejecutar.cmd` en la raíz): arranque con resolución de la BD y comprobación del esquema, asistente del primer administrador, pantalla de acceso y ventana principal con la cabecera, la navegación, la pestaña Inicio (la pantalla de inicio de pantalla-de-inicio, con los indicadores y gráficos del ejercicio de trabajo) y la barra de estado con la BD, la versión del esquema y la versión del programa.
@@ -37,6 +38,7 @@ Aplicación principal (UI-PRINCIPAL): cabecera con empresa, ejercicio y operador
 - 2026-11-17 11:22 · Icono: ProContaVF.exe lleva el icono de diseno-de-logo-e-iconos (`Recursos/ProContaVF.ico`, ApplicationIcon) y la ventana principal y los diálogos lo toman del ejecutable.
 
 - 2026-11-17 18:12 · La navegación lateral admite un tercer nivel (OpcionNavegacion.EsNieta: sangría de 28 px y el mismo punto que las hijas); lo usa el submenú «Fin de ejercicio» de Contabilidad (contabilidad/procesos 2026-11-17 18:12).
+- 2026-11-18 15:10 · Menú Contabilidad: la opción «Modelo 303» pasa a ser «Modelos tributarios» (contabilidad/modelos-tributarios 2026-11-18 15:10); las casillas del 303 se abren como pestaña de detalle desde esa pantalla.
 
 ## Requirements
 - 2026-10-28 12:28 · From sources/01_ESPECIFICACION_FUNCIONAL.docx § 6 RF-UI-01, 04, 05, 07: contenedor, avisos técnicos discretos, ciclo de vida de fichas y rendimiento
@@ -59,6 +61,7 @@ Aplicación principal (UI-PRINCIPAL): cabecera con empresa, ejercicio y operador
 - 2026-11-16 14:05 · Derived from plataforma/entorno-pruebas: el selector de entorno antes del acceso, la franja y el título PRUEBAS, y el menú para actualizar la copia de pruebas en producción.
 - 2026-11-17 11:22 · Derived from diseno-de-logo-e-iconos: ProContaVF.exe, la ventana principal y la barra de tareas usan el icono elegido.
 - 2026-11-17 18:50 · Derived from activos: entrada «Activos» en la navegación, hija de «Datos maestros», que abre el listado de activos; las fichas de activo se abren como pestañas de trabajo.
+- 2026-11-18 15:10 · Derived from contabilidad/modelos-tributarios: la opción de menú «Modelo 303» pasa a ser «Modelos tributarios».
 
 ## Hand-over
 - 2026-10-31 19:30 · Hecho: ejecutable con arranque, primer administrador, acceso y ventana principal; revisado renderizando las ventanas fuera de pantalla contra una copia de la maestra en la versión 6. Pendiente (próximas entregas): búsqueda «Ir a», pestañas de pantallas con cambios pendientes, cambio de sociedad o ejercicio sin volver a entrar, franja de iconos por debajo de 150 px y posición del separador guardada por operador, barra de título propia de la maqueta, doble pantalla y el resto del catálogo de atajos.

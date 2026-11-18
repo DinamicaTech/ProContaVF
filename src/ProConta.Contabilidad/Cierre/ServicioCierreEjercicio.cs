@@ -38,6 +38,8 @@ public enum DestinoComprobacion
     AplicacionResultado,
     Diario,
     Salud,
+    /// <summary>Contabilidad › Modelos tributarios, en los modelos anuales del ejercicio.</summary>
+    ModelosTributarios,
 }
 
 /// <summary>Una comprobación previa al cierre (validación V5): qué se mira, cómo está y dónde se resuelve.</summary>
@@ -145,6 +147,7 @@ public sealed class ServicioCierreEjercicio(IBaseDatos bd, IMotorAsientos motor,
         r.Add(await ComprobarFacturasPendientesAsync(ctx));
         r.Add(await ComprobarCentimosAsync(ctx));
         r.Add(await ComprobarAplicacionAsync(ctx));
+        r.Add(await ComprobarModelosAnualesAsync(ctx));
 
         var borradores = await bd.EjecutarAsync(async s => Convert.ToInt32(await s.EscalarAsync(
             "SELECT COUNT(*) FROM Asientos WHERE IdSociedadEjercicio = ? AND EstadoAsiento = 0", ctx.IdSociedadEjercicio), CultureInfo.InvariantCulture));
@@ -164,6 +167,26 @@ public sealed class ServicioCierreEjercicio(IBaseDatos bd, IMotorAsientos motor,
         }
         return r;
     }
+
+    /// <summary>
+    /// Modelos anuales del ejercicio (390, 200, 180, 190, 193 y 347; contabilidad/modelos-tributarios 2026-11-18): cuáles constan
+    /// presentados y cuáles quedan, con su plazo. No impide ni avisa: se presentan en el año siguiente; abre Modelos tributarios.
+    /// </summary>
+    private Task<ComprobacionCierre> ComprobarModelosAnualesAsync(ContextoSociedadEjercicio ctx) => bd.EjecutarAsync(async s =>
+    {
+        const string Titulo = "Modelos anuales";
+        string[] anuales = ["390", "190", "180", "193", "347", "200"];
+        var presentados = s.LeerEsquema().ExisteTabla("PresentacionesAeat")
+            ? (await s.ConsultarAsync("SELECT DISTINCT Modelo FROM PresentacionesAeat WHERE IdSociedad = ? AND Ejercicio = ? AND Periodo = '0A'", f => (f.Texto("Modelo") ?? "").Trim(),
+                ctx.IdSociedad, (short)ctx.Ejercicio)).ToHashSet()
+            : [];
+        var faltan = anuales.Where(m => !presentados.Contains(m)).ToList();
+        var texto = faltan.Count == 0
+            ? $"Presentados: {string.Join(", ", anuales)}."
+            : $"Se presentan en {ctx.Ejercicio + 1}: {string.Join(", ", faltan.Select(m => $"{m} (hasta el {Modelos.PlazosModelos.Plazo(m, ctx.Ejercicio, "0A").Hasta:dd/MM})"))}" +
+              (presentados.Count > 0 ? $"; ya presentados: {string.Join(", ", anuales.Where(presentados.Contains))}" : "") + ". Ábrelos en Modelos tributarios.";
+        return new ComprobacionCierre("modelos-anuales", Titulo, ResultadoComprobacion.Correcta, texto, DestinoComprobacion.ModelosTributarios);
+    });
 
     private async Task<ComprobacionCierre> ComprobarImpuestoAsync(ContextoSociedadEjercicio ctx)
     {

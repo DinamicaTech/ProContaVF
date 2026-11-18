@@ -5,6 +5,7 @@ threads:
   - 2026-10-28 12:30 · Carga de requisitos | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GRNMH95h9tnQp4dmEPHmw1w
   - 2026-10-31 16:58 · Cerrar preguntas pendientes del proyecto | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5G7UyrP5eDJV4Ds6CCBozdbu
   - 2026-10-31 18:40 · Desarrollos base | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GPQZwFm28U4vq3sQdopN45C
+  - 2026-11-18 15:51 · Completar los modelos tributarios y su pantalla | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GWW9gQjRoqJLGy11fuziWXQ
 ---
 ## Summary
 Capa común sobre ACE/OLE DB x64 en `src/ProConta.Datos.Persistencia`, la única que abre conexiones: `IBaseDatos` (conexión corta por trabajo, con o sin transacción), `ISesionDatos` (consultas con parámetros por posición, concurrencia optimista, numeración dentro de transacción, lectura de la estructura) e `IFilaDatos` (lectura de campos sin tipos de OLE DB). Traduce los fallos técnicos (tabla ausente, duplicado, integridad, bloqueo, BD no disponible, conflicto de versión) a excepciones con un `Error` explicado, nunca a «vacío» o «sin permiso». El dominio no conoce OLE DB.
@@ -22,6 +23,7 @@ Capa común sobre ACE/OLE DB x64 en `src/ProConta.Datos.Persistencia`, la única
 - 2026-10-31 18:40 · Particularidades del ACE de Office instalado (Hacer clic y ejecutar) comprobadas en el equipo del propietario: falla con una violación de acceso si dos hilos del mismo proceso abren o cierran conexiones a la vez, así que la apertura y el cierre se serializan dentro del proceso; y falla al descargarse cuando termina un proceso .NET, aunque todo esté cerrado, así que los ejecutables terminan con `BaseDatosAccess.TerminarProceso(código)` como último paso.
 - 2026-11-01 09:31 · Validado por el propietario (desarrollos base).
 - 2026-11-11 14:00 · Carga masiva (CargaMasivaAccess): para miles de filas se usa un Recordset de DAO (AddNew/Update) en una transacción por tanda de 5.000 filas, en vez de una sentencia OLE DB por fila. DAO se usa solo aquí, en un hilo STA propio y con su propia apertura compartida de la BD; el límite de bloqueos se sube para la sesión y cada tanda se confirma forzando la escritura en disco, para que las conexiones OLE DB que se abran después la vean. Devuelve el autonumérico de cada fila cuando se pide. No se usan ficheros de texto con INSERT … SELECT: el ACE de Office bloquea las tablas remotas en las consultas (comprobado en el equipo del propietario). Lo usan el motor de asientos (libro externo) y los mapas del importador de ContaSol (propietario 2026-11-11 12:47).
+- 2026-11-18 15:51 · `MemoriaEsquema`: dentro de un ámbito abierto con `MemoriaEsquema.Abrir()`, `LeerEsquema` fuera de transacción lee la estructura de la BD una sola vez por fichero (en Access cuesta unos 0,4 s). Fuera de un ámbito se lee siempre, como antes, para que migraciones y pruebas vean los cambios de estructura al momento. Lo usa la carga de la pantalla de modelos tributarios (contabilidad/modelos-tributarios).
 
 ## Requirements
 - 2026-10-28 12:28 · From sources/01_ESPECIFICACION_FUNCIONAL.docx § 27 RF-TEC-01: capas separadas, consultas parametrizadas, conexiones cortas fuera de HTTP/SMTP/OCR
@@ -32,6 +34,7 @@ Capa común sobre ACE/OLE DB x64 en `src/ProConta.Datos.Persistencia`, la única
 - 2026-10-31 16:54 · 10. a
 - 2026-10-31 16:54 · answer: política de concurrencia → (a) optimista con versión de fila en las fichas editables y transacción en numeración
 - 2026-10-31 17:53 · Derived from architecture: la capa OLE DB común (conexiones y transacciones cortas, parámetros por posición, concurrencia optimista, errores explícitos) con pruebas de integración sobre una copia de la maestra.
+- 2026-11-18 15:51 · Derived from contabilidad/modelos-tributarios: leer la estructura de la BD una sola vez mientras dura la carga de una pantalla.
 
 ## Hand-over
 - 2026-10-31 18:40 · Hecho: capa completa y 11 pruebas contra una copia sin datos de la maestra (transacción revertida por excepción y por resultado fallido, confirmación, conflicto de versión, tabla ausente, duplicado, tipos de parámetros, numeración, lectura de estructura, BD inexistente, la copia no tiene datos de negocio). Las pruebas contra Access se ejecutan sin paralelismo. Pendiente: comprobar en el Windows Server que el ACE instalado allí no tiene los mismos fallos (si es el redistribuible y no el de Office, quizá no los tenga).

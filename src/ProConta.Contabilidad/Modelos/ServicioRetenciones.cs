@@ -109,7 +109,7 @@ public sealed class ServicioRetenciones(IBaseDatos bd, ServicioPresentacionAeat 
             // El estado compara el total del trimestre con el total presentado.
             var estado = Hoy <= fin ? Estado303.EnCurso
                 : ultima is null ? Estado303.SinPresentar
-                : ultima.Resultado != d.TotalRetenciones ? Estado303.Desactualizado
+                : ultima.DistintoDe(d.TotalRetenciones) ? Estado303.Desactualizado
                 : ultima.ComplementariaDe is not null ? Estado303.Complementaria
                 : Estado303.Presentado;
             if (estado == Estado303.Desactualizado)
@@ -301,7 +301,10 @@ public sealed class ServicioRetenciones(IBaseDatos bd, ServicioPresentacionAeat 
     });
 
     /// <summary>Nóminas, facturas de compra con retención y apuntes de las 4751 del ejercicio.</summary>
-    public Task<LecturaRetenciones> LeerAsync(ContextoSociedadEjercicio ctx, CancellationToken c = default) => bd.EjecutarAsync(async s =>
+    public Task<LecturaRetenciones> LeerAsync(ContextoSociedadEjercicio ctx, CancellationToken c = default) =>
+        CacheCalculo.ObtenerAsync<LecturaRetenciones>($"ret|{bd.Ruta}|{ctx.IdSociedadEjercicio}", () => LeerSinCacheAsync(ctx, c));
+
+    private Task<LecturaRetenciones> LeerSinCacheAsync(ContextoSociedadEjercicio ctx, CancellationToken c = default) => bd.EjecutarAsync(async s =>
     {
         var esquema = s.LeerEsquema();
         var percepciones = new List<PercepcionRetencion>();

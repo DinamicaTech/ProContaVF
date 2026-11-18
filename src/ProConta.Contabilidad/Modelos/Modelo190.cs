@@ -122,7 +122,10 @@ public static class Modelo190
             .Num(148, 151, 0).Num(152, 152, 0)
             .Personales(p, d.Ejercicio)
             .ImporteConSigno(255, 268, 0m).Importe(269, 281, 0m).ImporteConSigno(282, 295, 0m).Importe(296, 308, 0m).Importe(309, 321, 0m)
-            .Num(322, 322, 0).Importe(323, 387, 0m)
+            // 323-335 Hacienda estatal: en la clave E, lo retenido e ingresado a cuenta (todo a la Hacienda estatal); 336-387 las forales, a cero.
+            .Num(322, 322, 0).Importe(323, 335, p.Clave == 'E' ? p.Total : 0m).Importe(336, 387, 0m)
+            // 388 tipo de entidad del 389, 389 excesos de acciones de empresas emergentes, 390-394 prestaciones de la clave B.01: numéricos a cero (diseño de 2025).
+            .Num(388, 394, 0)
             .ToString()).ToList();
         return (t1.ToString(), t2);
     }

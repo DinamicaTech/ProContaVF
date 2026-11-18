@@ -1,0 +1,335 @@
+<UserControl x:Class="ProConta.Contabilidad.UI.ModelosTributarios.PantallaModelosTributarios"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:pc="urn:proconta-ui"
+             Background="{StaticResource Pincel.Fondo}">
+  <UserControl.Resources>
+    <pc:VisibleSiConverter x:Key="Visible" />
+
+    <!-- Colores de los estados (los de la maqueta): presentado verde, desactualizado ámbar, en plazo azul, vencido rojo, aún no abre gris -->
+    <Style x:Key="Pastilla.Estado" TargetType="Border">
+      <Setter Property="CornerRadius" Value="{StaticResource Radio.Pastilla}" />
+      <Setter Property="Padding" Value="8,1" />
+      <Setter Property="Background" Value="{StaticResource Pincel.Fondo}" />
+      <Style.Triggers>
+        <DataTrigger Binding="{Binding ClaseEstado}" Value="PRESENTADO"><Setter Property="Background" Value="{StaticResource Pincel.VerdeSuave}" /></DataTrigger>
+        <DataTrigger Binding="{Binding ClaseEstado}" Value="DESACTUALIZADO"><Setter Property="Background" Value="{StaticResource Pincel.AvisoSuave}" /></DataTrigger>
+        <DataTrigger Binding="{Binding ClaseEstado}" Value="ENPLAZO"><Setter Property="Background" Value="{StaticResource Pincel.AzulSuave}" /></DataTrigger>
+        <DataTrigger Binding="{Binding ClaseEstado}" Value="VENCIDO"><Setter Property="Background" Value="{StaticResource Pincel.RojoSuave}" /></DataTrigger>
+      </Style.Triggers>
+    </Style>
+    <Style x:Key="Texto.Estado" TargetType="TextBlock">
+      <Setter Property="FontSize" Value="{StaticResource Letra.Pequena}" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+      <Setter Property="Foreground" Value="{StaticResource Pincel.Texto2}" />
+      <Style.Triggers>
+        <DataTrigger Binding="{Binding ClaseEstado}" Value="PRESENTADO"><Setter Property="Foreground" Value="{StaticResource Pincel.Verde}" /></DataTrigger>
+        <DataTrigger Binding="{Binding ClaseEstado}" Value="DESACTUALIZADO"><Setter Property="Foreground" Value="{StaticResource Pincel.Aviso}" /></DataTrigger>
+        <DataTrigger Binding="{Binding ClaseEstado}" Value="ENPLAZO"><Setter Property="Foreground" Value="{StaticResource Pincel.Azul}" /></DataTrigger>
+        <DataTrigger Binding="{Binding ClaseEstado}" Value="VENCIDO"><Setter Property="Foreground" Value="{StaticResource Pincel.Rojo}" /></DataTrigger>
+      </Style.Triggers>
+    </Style>
+
+    <!-- Ficha de un periodo (lista de modelos y franja de plazos) -->
+    <Style x:Key="Boton.Ficha" TargetType="Button">
+      <Setter Property="Cursor" Value="Hand" />
+      <Setter Property="Margin" Value="0,0,4,4" />
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="Button">
+            <Border x:Name="Fondo" CornerRadius="{StaticResource Radio.Pequeno}" Padding="7,2" Background="{StaticResource Pincel.Fondo}" BorderThickness="1"
+                    BorderBrush="{StaticResource Pincel.Linea}">
+              <ContentPresenter />
+            </Border>
+            <ControlTemplate.Triggers>
+              <DataTrigger Binding="{Binding Clase}" Value="PRESENTADO">
+                <Setter TargetName="Fondo" Property="Background" Value="{StaticResource Pincel.VerdeSuave}" />
+                <Setter TargetName="Fondo" Property="BorderBrush" Value="{StaticResource Pincel.VerdeBorde}" />
+              </DataTrigger>
+              <DataTrigger Binding="{Binding Clase}" Value="DESACTUALIZADO">
+                <Setter TargetName="Fondo" Property="Background" Value="{StaticResource Pincel.AvisoSuave}" />
+                <Setter TargetName="Fondo" Property="BorderBrush" Value="{StaticResource Pincel.AvisoBorde}" />
+              </DataTrigger>
+              <DataTrigger Binding="{Binding Clase}" Value="ENPLAZO">
+                <Setter TargetName="Fondo" Property="Background" Value="{StaticResource Pincel.AzulSuave}" />
+                <Setter TargetName="Fondo" Property="BorderBrush" Value="{StaticResource Pincel.AcentoBorde}" />
+              </DataTrigger>
+              <DataTrigger Binding="{Binding Clase}" Value="VENCIDO">
+                <Setter TargetName="Fondo" Property="Background" Value="{StaticResource Pincel.RojoSuave}" />
+                <Setter TargetName="Fondo" Property="BorderBrush" Value="{StaticResource Pincel.RojoBorde}" />
+              </DataTrigger>
+              <Trigger Property="IsMouseOver" Value="True">
+                <Setter TargetName="Fondo" Property="BorderBrush" Value="{StaticResource Pincel.HoverBorde}" />
+              </Trigger>
+            </ControlTemplate.Triggers>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
+    <DataTemplate x:Key="Plantilla.Ficha">
+      <Button Style="{StaticResource Boton.Ficha}" Command="{Binding Ir}" ToolTip="{Binding Ayuda}">
+        <StackPanel>
+          <TextBlock Text="{Binding Texto}" FontWeight="SemiBold" FontSize="{StaticResource Letra.Secundaria}" />
+          <TextBlock Text="{Binding Detalle}" FontSize="{StaticResource Letra.Mini}" Foreground="{StaticResource Pincel.Apagado}" />
+        </StackPanel>
+      </Button>
+    </DataTemplate>
+    <DataTemplate x:Key="Plantilla.FichaCorta">
+      <Button Style="{StaticResource Boton.Ficha}" Command="{Binding Ir}" ToolTip="{Binding Ayuda}" Margin="0,0,3,0">
+        <TextBlock Text="{Binding Texto}" FontWeight="SemiBold" FontSize="{StaticResource Letra.Pequena}" />
+      </Button>
+    </DataTemplate>
+    <ItemsPanelTemplate x:Key="Panel.Horizontal"><WrapPanel Orientation="Horizontal" /></ItemsPanelTemplate>
+
+    <!-- Columnas comunes de las dos tablas de periodos -->
+    <DataTemplate x:Key="Celda.Marca">
+      <CheckBox IsChecked="{Binding Marcado, UpdateSourceTrigger=PropertyChanged}" HorizontalAlignment="Center" VerticalAlignment="Center" Focusable="False"
+                ToolTip="Marca el periodo para sus acciones (clic derecho o «⋯»); con varios marcados, en bloque" />
+    </DataTemplate>
+    <DataTemplate x:Key="Celda.Estado">
+      <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="6,0">
+        <Border Style="{StaticResource Pastilla.Estado}" ToolTip="{Binding AyudaEstado}">
+          <TextBlock Text="{Binding Estado}" Style="{StaticResource Texto.Estado}" />
+        </Border>
+        <TextBlock Text="{Binding Origen}" Margin="6,0,0,0" VerticalAlignment="Center" FontSize="{StaticResource Letra.Mini}" Foreground="{StaticResource Pincel.Apagado}"
+                   ToolTip="{Binding AyudaOrigen}" />
+      </StackPanel>
+    </DataTemplate>
+    <DataTemplate x:Key="Celda.Menu">
+      <Button Content="⋯" Style="{StaticResource Boton.Fantasma}" Padding="6,0" Click="BotonMenu_Click" Focusable="False"
+              ToolTip="Acciones de este periodo (las mismas del clic derecho)" AutomationProperties.Name="Acciones del periodo" />
+    </DataTemplate>
+  </UserControl.Resources>
+  <UserControl.InputBindings>
+    <KeyBinding Key="F5" Command="{Binding RefrescarCommand}" />
+  </UserControl.InputBindings>
+
+  <DockPanel>
+    <!-- Cabecera -->
+    <Border DockPanel.Dock="Top" Background="White" BorderBrush="{StaticResource Pincel.Linea}" BorderThickness="0,0,0,1" Padding="14,8">
+      <DockPanel>
+        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+          <Border Style="{StaticResource Segmentado}" Margin="0,0,10,0" VerticalAlignment="Center">
+            <StackPanel Orientation="Horizontal">
+              <RadioButton Style="{StaticResource Segmento}" Content="Por modelo" GroupName="Vista" IsChecked="{Binding PorModelo}" ToolTip="Los modelos de la sociedad y, del elegido, sus periodos" />
+              <RadioButton Style="{StaticResource Segmento}" Content="Por plazo" GroupName="Vista" IsChecked="{Binding PorPlazo}"
+                           ToolTip="Todos los periodos de todos los modelos, ordenados por la fecha en que termina su plazo" />
+            </StackPanel>
+          </Border>
+          <Button Content="Consultar a la AEAT" Style="{StaticResource Boton}" Command="{Binding ConsultarCommand}" Margin="0,0,6,0"
+                  ToolTip="Pregunta a la AEAT qué se ha presentado de esta sociedad en el ejercicio, también lo que presentó la gestoría, y lo añade sin duplicar lo que ya está. Se hace sola una vez al día al abrir la pantalla" />
+          <Button Content="Modelos de la sociedad…" Style="{StaticResource Boton}" Command="{Binding ModelosSociedadCommand}" Margin="0,0,6,0"
+                  ToolTip="Elige qué modelos presenta esta sociedad; los demás no salen en la lista, en los plazos ni en los avisos de Inicio" />
+          <Button Content="Actualizar" Style="{StaticResource Boton}" Command="{Binding RefrescarCommand}" ToolTip="Vuelve a calcular los modelos con lo contabilizado ahora (F5)" />
+        </StackPanel>
+        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+          <TextBlock Text="Modelos tributarios" Style="{StaticResource Texto.TituloPantalla}" VerticalAlignment="Center" Margin="0,0,12,0" />
+          <TextBlock Text="{Binding Subtitulo}" Style="{StaticResource Texto.Apagado}" VerticalAlignment="Center" />
+          <Border CornerRadius="{StaticResource Radio.Pastilla}" Padding="10,2" Margin="12,0,0,0" VerticalAlignment="Center" Background="{StaticResource Pincel.AvisoSuave}"
+                  Visibility="{Binding EsPruebas, Converter={StaticResource Visible}}" ToolTip="{Binding AyudaEntorno}">
+            <TextBlock Text="PRUEBAS" FontWeight="SemiBold" Foreground="{StaticResource Pincel.Aviso}" />
+          </Border>
+        </StackPanel>
+      </DockPanel>
+    </Border>
+
+    <!-- Pie: última consulta y ayuda de la marca -->
+    <Border DockPanel.Dock="Bottom" Background="White" BorderBrush="{StaticResource Pincel.Linea}" BorderThickness="0,1,0,0" Padding="14,4">
+      <DockPanel>
+        <TextBlock DockPanel.Dock="Right" Text="{Binding TextoConsulta}" Style="{StaticResource Texto.Apagado}" FontSize="{StaticResource Letra.Pequena}" />
+        <TextBlock DockPanel.Dock="Right" Text="{Binding TextoCalculando}" FontSize="{StaticResource Letra.Pequena}" FontWeight="SemiBold" Foreground="{StaticResource Pincel.Azul}" Margin="0,0,16,0" />
+        <TextBlock Text="{Binding TextoMarcados}" Style="{StaticResource Texto.Apagado}" FontSize="{StaticResource Letra.Pequena}" TextTrimming="CharacterEllipsis" />
+      </DockPanel>
+    </Border>
+
+    <pc:VistaEstado Estado="{Binding Estado}" Mensaje="{Binding MensajeEstado}" TextoAccion="Actualizar" ComandoAccion="{Binding RefrescarCommand}">
+      <DockPanel Margin="14,10,14,10">
+        <!-- Franja de plazos -->
+        <Border DockPanel.Dock="Top" Style="{StaticResource Tarjeta}" Padding="12,8,12,4" Margin="0,0,0,10">
+          <WrapPanel Orientation="Horizontal">
+            <StackPanel Orientation="Horizontal" Visibility="{Binding HayVencidos, Converter={StaticResource Visible}}" Margin="0,0,14,0">
+              <TextBlock Text="Vencidos sin presentación:" FontWeight="SemiBold" Foreground="{StaticResource Pincel.Rojo}" VerticalAlignment="Top" Margin="0,4,8,0" />
+              <ItemsControl ItemsSource="{Binding Vencidos}" ItemTemplate="{StaticResource Plantilla.Ficha}" ItemsPanel="{StaticResource Panel.Horizontal}" Focusable="False" />
+              <TextBlock Text="{Binding TextoMasVencidos}" Style="{StaticResource Texto.Apagado}" VerticalAlignment="Top" Margin="4,4,0,0" />
+            </StackPanel>
+            <StackPanel Orientation="Horizontal" Visibility="{Binding HayDesactualizados, Converter={StaticResource Visible}}" Margin="0,0,14,0">
+              <TextBlock Text="Desactualizados:" FontWeight="SemiBold" Foreground="{StaticResource Pincel.Aviso}" VerticalAlignment="Top" Margin="0,4,8,0" />
+              <ItemsControl ItemsSource="{Binding Desactualizados}" ItemTemplate="{StaticResource Plantilla.Ficha}" ItemsPanel="{StaticResource Panel.Horizontal}" Focusable="False" />
+            </StackPanel>
+            <StackPanel Orientation="Horizontal">
+              <TextBlock Text="Próximos plazos:" FontWeight="SemiBold" VerticalAlignment="Top" Margin="0,4,8,0" />
+              <ItemsControl ItemsSource="{Binding Proximos}" ItemTemplate="{StaticResource Plantilla.Ficha}" ItemsPanel="{StaticResource Panel.Horizontal}" Focusable="False" />
+              <TextBlock Text="{Binding TextoMasProximos}" Style="{StaticResource Texto.Apagado}" VerticalAlignment="Top" Margin="4,4,0,0" />
+            </StackPanel>
+          </WrapPanel>
+        </Border>
+
+        <Grid>
+          <!-- Por modelo -->
+          <Grid Visibility="{Binding PorModelo, Converter={StaticResource Visible}}">
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="420" MinWidth="320" />
+              <ColumnDefinition Width="10" />
+              <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+            <Border Grid.Column="0" Style="{StaticResource Tarjeta}">
+              <DockPanel>
+                <DockPanel DockPanel.Dock="Top" Margin="12,8,12,6">
+                  <TextBlock DockPanel.Dock="Right" Text="{Binding TextoModelos}" Style="{StaticResource Texto.Apagado}" VerticalAlignment="Center" />
+                  <TextBlock Text="Modelos de la sociedad" Style="{StaticResource Texto.Seccion}" />
+                </DockPanel>
+                <TextBlock DockPanel.Dock="Top" Margin="12,0,12,8" TextWrapping="Wrap" Style="{StaticResource Texto.Apagado}" Visibility="{Binding SinModelos, Converter={StaticResource Visible}}"
+                           Text="La sociedad no tiene ningún modelo marcado. Elígelos en «Modelos de la sociedad…»." />
+                <ListBox ItemsSource="{Binding Modelos}" SelectedItem="{Binding Seleccion}" BorderThickness="0" ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                         AutomationProperties.Name="Modelos de la sociedad" HorizontalContentAlignment="Stretch">
+                  <ListBox.ItemTemplate>
+                    <DataTemplate>
+                      <Grid Margin="4,6">
+                        <Grid.ColumnDefinitions>
+                          <ColumnDefinition Width="52" />
+                          <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Text="{Binding Id}" FontFamily="{StaticResource Fuente.Mono}" FontSize="18" FontWeight="SemiBold" Foreground="{StaticResource Pincel.Marino}" VerticalAlignment="Top" />
+                        <StackPanel Grid.Column="1">
+                          <WrapPanel>
+                            <TextBlock Text="{Binding Nombre}" FontWeight="SemiBold" TextWrapping="Wrap" />
+                            <TextBlock Text="{Binding Periodicidad, StringFormat=' · {0}'}" Foreground="{StaticResource Pincel.Apagado}" />
+                            <Border CornerRadius="{StaticResource Radio.Pastilla}" Padding="6,0" Margin="6,0,0,0" Background="{StaticResource Pincel.Fondo2}"
+                                    Visibility="{Binding EsSoloConsulta, Converter={StaticResource Visible}}" ToolTip="{Binding SoloConsulta}">
+                              <TextBlock Text="solo consulta" FontSize="{StaticResource Letra.Mini}" Foreground="{StaticResource Pincel.Apagado}" />
+                            </Border>
+                          </WrapPanel>
+                          <TextBlock Text="{Binding Corto}" TextWrapping="Wrap" Foreground="{StaticResource Pincel.Apagado}" FontSize="{StaticResource Letra.Pequena}" Margin="0,1,0,4" />
+                          <DockPanel>
+                            <TextBlock DockPanel.Dock="Right" Text="{Binding Proximo}" Foreground="{StaticResource Pincel.Apagado}" FontSize="{StaticResource Letra.Mini}" VerticalAlignment="Center" />
+                            <ItemsControl ItemsSource="{Binding Fichas}" ItemTemplate="{StaticResource Plantilla.FichaCorta}" ItemsPanel="{StaticResource Panel.Horizontal}" Focusable="False" />
+                          </DockPanel>
+                        </StackPanel>
+                      </Grid>
+                    </DataTemplate>
+                  </ListBox.ItemTemplate>
+                </ListBox>
+              </DockPanel>
+            </Border>
+
+            <!-- Detalle del modelo elegido -->
+            <Border Grid.Column="2" Style="{StaticResource Tarjeta}" Visibility="{Binding HaySeleccion, Converter={StaticResource Visible}}">
+              <DockPanel Margin="14,10">
+                <StackPanel DockPanel.Dock="Top">
+                  <TextBlock Text="{Binding TituloDetalle}" Style="{StaticResource Texto.Titulo}" />
+                  <TextBlock Text="{Binding DescripcionDetalle}" TextWrapping="Wrap" Foreground="{StaticResource Pincel.Texto2}" Margin="0,4,0,8" />
+                  <pc:Nota Tipo="Aviso" Margin="0,0,0,8" Visibility="{Binding EsSoloConsultaDetalle, Converter={StaticResource Visible}}">
+                    <TextBlock Text="{Binding SoloConsultaDetalle}" TextWrapping="Wrap" />
+                  </pc:Nota>
+                  <Grid Margin="0,0,0,8">
+                    <Grid.ColumnDefinitions>
+                      <ColumnDefinition Width="*" /><ColumnDefinition Width="*" /><ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions><RowDefinition /><RowDefinition /></Grid.RowDefinitions>
+                    <StackPanel Grid.Row="0" Grid.Column="0" Margin="0,0,10,6">
+                      <TextBlock Text="Periodicidad" Style="{StaticResource Texto.Apagado}" FontSize="{StaticResource Letra.Mini}" />
+                      <TextBlock Text="{Binding PeriodicidadDetalle}" TextWrapping="Wrap" />
+                    </StackPanel>
+                    <StackPanel Grid.Row="0" Grid.Column="1" Grid.ColumnSpan="2" Margin="0,0,10,6">
+                      <TextBlock Text="Plazo" Style="{StaticResource Texto.Apagado}" FontSize="{StaticResource Letra.Mini}" />
+                      <TextBlock Text="{Binding PlazoDetalle}" TextWrapping="Wrap" />
+                    </StackPanel>
+                    <StackPanel Grid.Row="1" Grid.Column="0" Margin="0,0,10,6">
+                      <TextBlock Text="Se presenta por" Style="{StaticResource Texto.Apagado}" FontSize="{StaticResource Letra.Mini}" />
+                      <TextBlock Text="{Binding CanalDetalle}" TextWrapping="Wrap" />
+                    </StackPanel>
+                    <StackPanel Grid.Row="1" Grid.Column="1" Margin="0,0,10,6">
+                      <TextBlock Text="Pago" Style="{StaticResource Texto.Apagado}" FontSize="{StaticResource Letra.Mini}" />
+                      <TextBlock Text="{Binding PagoDetalle}" TextWrapping="Wrap" />
+                    </StackPanel>
+                    <StackPanel Grid.Row="1" Grid.Column="2" Margin="0,0,10,6">
+                      <TextBlock Text="Sale de" Style="{StaticResource Texto.Apagado}" FontSize="{StaticResource Letra.Mini}" />
+                      <TextBlock Text="{Binding OrigenDetalle}" TextWrapping="Wrap" />
+                    </StackPanel>
+                  </Grid>
+                  <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                    <Button Content="{Binding ProcesoDetalle}" ContentStringFormat="Abrir «{0}»" Style="{StaticResource Boton.Enlace}" Command="{Binding AbrirProcesoCommand}" Margin="0,0,14,0"
+                            Visibility="{Binding HayProceso, Converter={StaticResource Visible}}" ToolTip="Abre la pantalla del proceso relacionado con este modelo" />
+                    <Button Content="{Binding TextoCasillasDetalle}" Style="{StaticResource Boton.Enlace}" Command="{Binding AbrirCasillasDetalleCommand}"
+                            ToolTip="Abre las casillas del periodo marcado (o del último cerrado), con lo que impide presentarlo y sus avisos" />
+                  </StackPanel>
+                </StackPanel>
+                <DataGrid x:Name="TablaDetalle" Style="{StaticResource Tabla}" ItemsSource="{Binding Periodos}" IsReadOnly="True" AutoGenerateColumns="False" HeadersVisibility="Column"
+                          SelectionMode="Single" RowStyle="{StaticResource Tabla.Fila}" AutomationProperties.Name="Periodos del modelo" ContextMenuOpening="Tabla_ContextMenuOpening"
+                          PreviewMouseLeftButtonUp="Tabla_PreviewMouseLeftButtonUp">
+                  <DataGrid.ContextMenu><ContextMenu /></DataGrid.ContextMenu>
+                  <DataGrid.Columns>
+                    <DataGridTemplateColumn Width="34" CellTemplate="{StaticResource Celda.Marca}">
+                      <DataGridTemplateColumn.Header>
+                        <CheckBox IsChecked="{Binding DataContext.TodosMarcadosDetalle, RelativeSource={RelativeSource AncestorType=UserControl}}" IsThreeState="False"
+                                  ToolTip="Marcar o desmarcar todos" Focusable="False" />
+                      </DataGridTemplateColumn.Header>
+                    </DataGridTemplateColumn>
+                    <DataGridTextColumn Header="Periodo" Binding="{Binding Periodo}" Width="64" ElementStyle="{StaticResource Texto.Celda}" FontWeight="SemiBold" />
+                    <DataGridTextColumn Header="Plazo" Binding="{Binding Plazo}" Width="140" ElementStyle="{StaticResource Texto.Celda}" />
+                    <DataGridTemplateColumn Header="Estado" Width="230" CellTemplate="{StaticResource Celda.Estado}" />
+                    <DataGridTemplateColumn Header="Calculado" Width="110" HeaderStyle="{StaticResource Tabla.Cabecera.Derecha}">
+                      <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                          <TextBlock x:Name="T" Text="{Binding Calculado}" Style="{StaticResource Texto.Celda.Importe}" ToolTip="{Binding AyudaCalculado}" />
+                          <DataTemplate.Triggers>
+                            <DataTrigger Binding="{Binding Provisional}" Value="True"><Setter TargetName="T" Property="Foreground" Value="{StaticResource Pincel.Apagado}" /></DataTrigger>
+                          </DataTemplate.Triggers>
+                        </DataTemplate>
+                      </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
+                    <DataGridTextColumn Header="Presentado" Binding="{Binding Presentado}" Width="110" ElementStyle="{StaticResource Texto.Celda.Importe}" HeaderStyle="{StaticResource Tabla.Cabecera.Derecha}" />
+                    <DataGridTextColumn Header="Fecha" Binding="{Binding Fecha}" Width="86" ElementStyle="{StaticResource Texto.Celda}" />
+                    <DataGridTextColumn Header="CSV" Binding="{Binding Csv}" Width="*" MinWidth="140" ElementStyle="{StaticResource Texto.Celda.Mono}" />
+                    <DataGridTemplateColumn Width="40" CellTemplate="{StaticResource Celda.Menu}" />
+                  </DataGrid.Columns>
+                </DataGrid>
+              </DockPanel>
+            </Border>
+          </Grid>
+
+          <!-- Por plazo -->
+          <Border Style="{StaticResource Tarjeta}" Visibility="{Binding PorPlazo, Converter={StaticResource Visible}}">
+            <DockPanel Margin="12,8">
+              <DockPanel DockPanel.Dock="Top" Margin="0,0,0,8">
+                <Border DockPanel.Dock="Right" Style="{StaticResource Segmentado}">
+                  <StackPanel Orientation="Horizontal">
+                    <RadioButton Style="{StaticResource Segmento}" Content="Todos" GroupName="Filtro" IsChecked="{Binding FiltroTodos}" ToolTip="Todos los periodos del ejercicio" />
+                    <RadioButton Style="{StaticResource Segmento}" Content="Pendientes" GroupName="Filtro" IsChecked="{Binding FiltroPendientes}"
+                                 ToolTip="Sin presentar, o presentados con un importe distinto del calculado" />
+                    <RadioButton Style="{StaticResource Segmento}" Content="Presentados" GroupName="Filtro" IsChecked="{Binding FiltroPresentados}" ToolTip="Los presentados, desde el programa o fuera de él" />
+                  </StackPanel>
+                </Border>
+                <TextBlock Text="{Binding TituloCalendario}" Style="{StaticResource Texto.Seccion}" VerticalAlignment="Center" />
+                <TextBlock Text="{Binding TextoPlazos}" Style="{StaticResource Texto.Apagado}" VerticalAlignment="Center" Margin="10,0,0,0" />
+              </DockPanel>
+              <DataGrid x:Name="TablaPlazos" Style="{StaticResource Tabla}" ItemsSource="{Binding PeriodosPlazo}" IsReadOnly="True" AutoGenerateColumns="False" HeadersVisibility="Column"
+                        SelectionMode="Single" RowStyle="{StaticResource Tabla.Fila}" AutomationProperties.Name="Periodos por plazo" ContextMenuOpening="Tabla_ContextMenuOpening"
+                        PreviewMouseLeftButtonUp="Tabla_PreviewMouseLeftButtonUp">
+                <DataGrid.ContextMenu><ContextMenu /></DataGrid.ContextMenu>
+                <DataGrid.Columns>
+                  <DataGridTemplateColumn Width="34" CellTemplate="{StaticResource Celda.Marca}">
+                    <DataGridTemplateColumn.Header>
+                      <CheckBox IsChecked="{Binding DataContext.TodosMarcadosPlazo, RelativeSource={RelativeSource AncestorType=UserControl}}" IsThreeState="False"
+                                ToolTip="Marcar o desmarcar todos" Focusable="False" />
+                    </DataGridTemplateColumn.Header>
+                  </DataGridTemplateColumn>
+                  <DataGridTextColumn Header="Plazo hasta" Binding="{Binding PlazoHasta}" Width="90" ElementStyle="{StaticResource Texto.Celda}" />
+                  <DataGridTextColumn Header="Modelo" Binding="{Binding Id}" Width="66" ElementStyle="{StaticResource Texto.Celda.Mono}" FontWeight="SemiBold" />
+                  <DataGridTextColumn Header="" Binding="{Binding NombreModelo}" Width="260" ElementStyle="{StaticResource Texto.Celda}" />
+                  <DataGridTextColumn Header="Periodo" Binding="{Binding Periodo}" Width="60" ElementStyle="{StaticResource Texto.Celda}" />
+                  <DataGridTemplateColumn Header="Estado" Width="230" CellTemplate="{StaticResource Celda.Estado}" />
+                  <DataGridTextColumn Header="Calculado" Binding="{Binding Calculado}" Width="110" ElementStyle="{StaticResource Texto.Celda.Importe}" HeaderStyle="{StaticResource Tabla.Cabecera.Derecha}" />
+                  <DataGridTextColumn Header="Presentado" Binding="{Binding Presentado}" Width="110" ElementStyle="{StaticResource Texto.Celda.Importe}" HeaderStyle="{StaticResource Tabla.Cabecera.Derecha}" />
+                  <DataGridTextColumn Header="Fecha" Binding="{Binding Fecha}" Width="86" ElementStyle="{StaticResource Texto.Celda}" />
+                  <DataGridTextColumn Header="CSV" Binding="{Binding Csv}" Width="*" MinWidth="140" ElementStyle="{StaticResource Texto.Celda.Mono}" />
+                  <DataGridTemplateColumn Width="40" CellTemplate="{StaticResource Celda.Menu}" />
+                </DataGrid.Columns>
+              </DataGrid>
+            </DockPanel>
+          </Border>
+        </Grid>
+      </DockPanel>
+    </pc:VistaEstado>
+  </DockPanel>
+</UserControl>

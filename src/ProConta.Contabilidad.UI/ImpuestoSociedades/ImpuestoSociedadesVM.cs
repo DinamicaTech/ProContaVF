@@ -28,6 +28,8 @@ public sealed record ContextoImpuestoSociedades(ServicioImpuestoSociedades Servi
     public Action<string>? AbrirEnlace { get; init; }
     /// <summary>Abre la pantalla del activo de un piso (por el nombre de su centro de coste) con su cuenta de explotación; null mientras no exista.</summary>
     public Action<string>? AbrirActivoDeCentro { get; init; }
+    /// <summary>Abre Contabilidad › Modelos tributarios con un periodo marcado («200», «0A»): al contabilizar el impuesto se ofrece el 200.</summary>
+    public Action<string, string>? AbrirModelo { get; init; }
 }
 
 /// <summary>Fila que hace algo con el doble clic (abrir el Mayor de su cuenta, su asiento o su activo).</summary>
@@ -1055,6 +1057,11 @@ public sealed class ImpuestoSociedadesVM : ModeloVista, IPestanaTrabajo
                 (c.IdAsiento is int id ? $" en el asiento {id}." : " (sin asiento).") + $" {Resultado}." +
                 (c.CuentasCreadas.Count > 0 ? $" Cuentas creadas: {string.Join(", ", c.CuentasCreadas)}." : ""));
             _ctx.Cambiada?.Invoke();
+            if (_ctx.AbrirModelo is { } abrir && _dialogos.Preguntar("Impuesto contabilizado",
+                    $"El Impuesto sobre Sociedades de {p.Ejercicio} está contabilizado. Su declaración es el modelo 200, que se presenta en julio de {p.Ejercicio + 1}.", null,
+                    new OpcionMensaje("Abrir el 200…", "Abre Modelos tributarios con el 200 del ejercicio marcado", Principal: true),
+                    new OpcionMensaje("Ahora no", "Cierra el mensaje", Cancelar: true)) == 0)
+                abrir("200", "0A");
         }
         catch (Exception ex)
         {

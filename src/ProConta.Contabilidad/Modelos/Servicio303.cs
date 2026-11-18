@@ -84,7 +84,7 @@ public sealed class Servicio303(IBaseDatos bd, ServicioPresentacionAeat presenta
             }
             var estado = Hoy <= fin ? Estado303.EnCurso
                 : ultima is null ? Estado303.SinPresentar
-                : ultima.Resultado != calculado ? Estado303.Desactualizado
+                : ultima.DistintoDe(calculado) ? Estado303.Desactualizado
                 : ultima.ComplementariaDe is not null ? Estado303.Complementaria
                 : Estado303.Presentado;
             if (estado == Estado303.Desactualizado)

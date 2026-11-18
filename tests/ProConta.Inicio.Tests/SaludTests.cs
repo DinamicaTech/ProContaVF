@@ -112,7 +112,9 @@ public sealed class RevisionesSaludTests
     [InlineData("2026-04-21", 2026, 2)]
     [InlineData("2026-12-31", 2026, 4)]
     [InlineData("2027-01-30", 2026, 4)]   // el 4T se liquida en enero del año siguiente
-    [InlineData("2027-01-31", 2027, 1)]
+    [InlineData("2027-01-31", 2026, 4)]   // el 30/1/2027 es sábado: el plazo pasa al lunes 1/2 (día hábil)
+    [InlineData("2027-02-01", 2026, 4)]
+    [InlineData("2027-02-02", 2027, 1)]
     public void ElAsientoDeLiquidacionSeAsignaAlTrimestreDeSuPlazo(string fecha, int anio, int trimestre) =>
         Assert.Equal((anio, trimestre), RevisionPlazosIva.TrimestreLiquidado(DateTime.Parse(fecha)));
 
@@ -136,13 +138,17 @@ public sealed class RevisionesSaludTests
         var hechas = Plazos(new DateTime(2026, 10, 21), [.. liq, new LiquidacionIva(2026, new DateTime(2026, 10, 20))]);
         Assert.DoesNotContain(hechas.Elementos, e => e.Clave == "303-2026-3");
         Assert.Contains(hechas.Hechas, h => h.Clave == "303-2026-3");
-        // El 4T se ve desde 90 días antes del 30 de enero (el 1/11), igual que el 390.
-        Assert.DoesNotContain(Plazos(new DateTime(2026, 10, 31), liq).Elementos, e => e.Clave is "303-2026-4" or "390-2026");
-        var noviembre = Plazos(new DateTime(2026, 11, 1), [.. liq, new LiquidacionIva(2026, new DateTime(2026, 9, 30))]);
+        // El 4T se ve desde 90 días antes del fin del plazo (el 30/1/2027 es sábado: pasa al lunes 1/2, así que desde el 3/11), igual que el 390.
+        Assert.DoesNotContain(Plazos(new DateTime(2026, 11, 2), liq).Elementos, e => e.Clave is "303-2026-4" or "390-2026");
+        var noviembre = Plazos(new DateTime(2026, 11, 3), [.. liq, new LiquidacionIva(2026, new DateTime(2026, 9, 30))]);
         Assert.Equal(["303-2026-4", "390-2026"], noviembre.Elementos.Select(e => e.Clave).OrderBy(x => x));
         Assert.Equal(GravedadSalud.Aviso, noviembre.Elementos[0].Gravedad);
-        // El 390 de 2026 se ve hasta el 30/1/2027 y después desaparece (no se puede saber si está presentado).
-        Assert.Contains(Plazos(new DateTime(2027, 1, 30)).Elementos, e => e.Clave == "390-2026");
+        // El 390 de 2026 se ve hasta el fin de su plazo (1/2/2027) si no consta presentado; presentado, pasa a «hechas».
+        Assert.Contains(Plazos(new DateTime(2027, 2, 1)).Elementos, e => e.Clave == "390-2026");
+        var presentado = new ModelosInicio(new HashSet<string> { "303", "390" }, [new PresentacionInicio("390", 2026, "0A", new DateTime(2027, 1, 20))], null);
+        var conPresentado = RevisionPlazosIva.Evaluar(new HashSet<int> { 2025, 2026 }, 2026, liq, new DateTime(2027, 1, 25), (_, _) => (1000m, 400m), presentado);
+        Assert.DoesNotContain(conPresentado.Elementos, e => e.Clave == "390-2026");
+        Assert.Contains(conPresentado.Hechas, h => h.Clave == "390-2026");
     }
 
     [Fact]
