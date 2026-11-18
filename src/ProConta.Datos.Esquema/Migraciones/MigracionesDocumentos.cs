@@ -140,4 +140,21 @@ public static class MigracionesDocumentos
             new("PresentacionesAeat", "IdDocumento", "Documento del gestor documental con el PDF justificante (tipo «Modelo presentado», vinculado al modelo y periodo); RutaPdf guarda su ruta."),
         ],
     };
+
+    /// <summary>
+    /// Tipo de documento «Informe contable» (esquema 76; contabilidad/balances/sumas-y-saldos 2026-11-18): los informes contables que se generan
+    /// desde el menú Informes (de momento, el balance de sumas y saldos) se guardan por el gestor documental en «&lt;año&gt;\Informes», vinculados al ejercicio.
+    /// </summary>
+    public static Migracion TipoInformeContable { get; } = new(
+        "20261118_2000_DOCUMENTOS_INFORME_CONTABLE", 261118005,
+        "Gestor documental: tipo de documento «Informe contable» para los informes del menú Informes.",
+        "documentos",
+        new PasoPersonalizado(
+            "Dar de alta el tipo de documento INFORME_CONTABLE",
+            "INSERT INTO TiposDocumento: INFORME_CONTABLE=Informe contable/Informes/26/True",
+            async (s, e) => e.ExisteTabla("TiposDocumento") &&
+                Convert.ToInt32(await s.EscalarAsync("SELECT COUNT(*) FROM TiposDocumento WHERE Codigo = ?", "INFORME_CONTABLE")) > 0,
+            async (s, _) =>
+                await s.EjecutarAsync("INSERT INTO TiposDocumento (Codigo, Nombre, Carpeta, Orden, PorAnio, Manual, Activo) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                    "INFORME_CONTABLE", "Informe contable", "Informes", (short)26, true, false, true)));
 }
