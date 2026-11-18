@@ -38,16 +38,21 @@ public sealed record DeclaracionRetenciones(string Modelo, int Ejercicio, int Tr
 
     public decimal Casilla(int numero) => Casillas.TryGetValue(numero, out var v) ? v : 0m;
 
-    private bool Es111 => Modelo == Modelo111.Modelo;
+    private (int Total, int Anteriores, int Resultado) CasillasResultado => Modelo switch
+    {
+        Modelo111.Modelo => (28, 29, 30),
+        Modelo123.Modelo => (12, 13, 14),
+        _ => (3, 4, 5),
+    };
 
-    /// <summary>Total de retenciones e ingresos a cuenta del trimestre (111: casilla 28; 115: casilla 03): lo que se guarda como resultado del modelo.</summary>
-    public decimal TotalRetenciones => Casilla(Es111 ? 28 : 3);
+    /// <summary>Total de retenciones e ingresos a cuenta del trimestre (111: casilla 28; 115: 03; 123: 12): lo que se guarda como resultado del modelo.</summary>
+    public decimal TotalRetenciones => Casilla(CasillasResultado.Total);
 
-    /// <summary>Resultado de las declaraciones anteriores del periodo (111: 29; 115: 04), solo en una complementaria.</summary>
-    public decimal ResultadoAnteriores => Casilla(Es111 ? 29 : 4);
+    /// <summary>Resultado de las declaraciones anteriores del periodo (111: 29; 115: 04; 123: 13), solo en una complementaria.</summary>
+    public decimal ResultadoAnteriores => Casilla(CasillasResultado.Anteriores);
 
-    /// <summary>Resultado a ingresar (111: 30; 115: 05).</summary>
-    public decimal Resultado => Casilla(Es111 ? 30 : 5);
+    /// <summary>Resultado a ingresar (111: 30; 115: 05; 123: 14).</summary>
+    public decimal Resultado => Casilla(CasillasResultado.Resultado);
 
     public decimal ImporteAIngresar => TipoDeclaracion is 'U' or 'I' ? Resultado : 0m;
 
@@ -198,5 +203,56 @@ public static class Modelo115
         if (c[2] < 0m)
             errores.Add($"La base de las retenciones sale negativa ({CalculoRetenciones.Euros(c[2])}) y el modelo no lo admite: revisa los abonos de alquileres del trimestre.");
         return CalculoRetenciones.Cerrar(Modelo, ejercicio, trimestre, declarante, c, 3, 4, 5, rectificativa, conNrc, errores, []);
+    }
+}
+
+/// <summary>
+/// Modelo 123 de un trimestre (contabilidad/modelos-tributarios/modelo-123), sin BD, con el diseño de registro de la AEAT
+/// (sources/aeat/DR123.xls): retenciones del capital mobiliario de los dividendos repartidos a los socios en el trimestre.
+/// <list type="bullet">
+/// <item>01 número de rentas (socios con dividendo), 04 base (dividendos íntegros) y 07 retenciones; 02, 05 y 08 (resto de rentas) a
+/// cero: la sociedad no paga otras rentas del capital mobiliario. 03, 06 y 09 los totales.</item>
+/// <item>10 y 11 (periodificación) a cero; 12 = 09 + 11; 13 resultado de las declaraciones anteriores del periodo (complementaria); 14 = 12 − 13.</item>
+/// </list>
+/// </summary>
+public static class Modelo123
+{
+    public const string Modelo = "123";
+
+    public static readonly IReadOnlyList<(int Casilla, string Concepto)> Conceptos =
+    [
+        (1, "Número de rentas · dividendos"), (3, "Número de rentas · total"), (4, "Base de retenciones · dividendos"), (6, "Base de retenciones · total"),
+        (7, "Retenciones · dividendos"), (9, "Retenciones · total"), (12, "Suma de retenciones y regularización"), (13, "Resultado de anteriores declaraciones"),
+        (14, "Resultado a ingresar"),
+    ];
+
+    public static readonly IReadOnlySet<int> CasillasPerceptores = new HashSet<int> { 1, 2, 3 };
+
+    public static DeclaracionRetenciones Calcular(IEnumerable<Perceptor193> dividendos, int ejercicio, int trimestre, Declarante303 declarante,
+        RectificativaRetenciones? rectificativa = null, bool conNrc = false)
+    {
+        var d = dividendos.Where(x => x.Base != 0m || x.Retencion != 0m).ToList();
+        var c = new SortedDictionary<int, decimal>
+        {
+            [1] = d.Select(x => x.Socio.Nif.Length > 0 ? x.Socio.Nif : x.Socio.Nombre).Distinct(StringComparer.OrdinalIgnoreCase).Count(),
+            [2] = 0m,
+            [4] = d.Sum(x => x.Base),
+            [5] = 0m,
+            [7] = d.Sum(x => x.Retencion),
+            [8] = 0m,
+            [10] = 0m,
+            [11] = 0m,
+        };
+        c[3] = c[1] + c[2];
+        c[6] = c[4] + c[5];
+        c[9] = c[7] + c[8];
+        c[12] = c[9] + c[11];
+        var errores = new List<string>();
+        var avisos = new List<string>();
+        if (d.Any(x => x.Origen.StartsWith("subcuenta", StringComparison.Ordinal)))
+            avisos.Add("El reparto no está grabado en el programa: la base sale de la retención abonada en la subcuenta de cada socio. Comprueba el bruto con el acta del reparto.");
+        if (c[4] < 0m)
+            errores.Add($"La base de las retenciones sale negativa ({CalculoRetenciones.Euros(c[4])}) y el modelo no lo admite: revisa los asientos de dividendos del trimestre.");
+        return CalculoRetenciones.Cerrar(Modelo, ejercicio, trimestre, declarante, c, 12, 13, 14, rectificativa, conNrc, errores, avisos);
     }
 }
