@@ -1,4 +1,4 @@
-using System.ComponentModel;
+﻿using System.ComponentModel;
 using System.Text.Encodings.Web;
 using System.Text.Json;
 using ModelContextProtocol.Server;
@@ -20,12 +20,16 @@ public sealed class HerramientasConector(ServicioConector servicio)
     [McpServerTool(Name = "sociedades", ReadOnly = true, Destructive = false, OpenWorld = false)]
     [Description("Dice en qué entorno trabaja el conector (Producción o Pruebas) y lista las sociedades de ProContaVF con sus ejercicios (si están cerrados y el trimestre activo). " +
         "Úsala primero para saber el entorno, el código de sociedad y el ejercicio.")]
-    public async Task<string> Sociedades() => Texto(new { entorno = servicio.Entorno, sociedades = await servicio.SociedadesAsync() });
+    public Task<string> Sociedades() => Proteger("sociedades", null, null, async () =>
+    {
+        if (servicio.ProvocarError) throw new InvalidOperationException("Error de prueba provocado con --provocar-error para comprobar el registro de errores. No ha cambiado ningún dato.");
+        return Texto(new { entorno = servicio.Entorno, sociedades = await servicio.SociedadesAsync() });
+    });
 
     [McpServerTool(Name = "buscar_asientos", ReadOnly = true, Destructive = false, OpenWorld = false)]
     [Description("Busca asientos contabilizados de una sociedad y ejercicio por número, fechas, cuenta (prefijo) o texto de la descripción, concepto o documento. " +
         "Devuelve como mucho 50 (o 'maximo'). El número es el que se ve en el Diario de ProContaVF.")]
-    public async Task<string> BuscarAsientos(
+    public Task<string> BuscarAsientos(
         [Description("Código de la sociedad (p. ej. «01»).")] string idSociedad,
         [Description("Año del ejercicio.")] int ejercicio,
         [Description("Número de asiento exacto.")] int? numero = null,
@@ -35,42 +39,45 @@ public sealed class HerramientasConector(ServicioConector servicio)
         [Description("Texto a buscar en la descripción, el concepto o el documento.")] string? texto = null,
         [Description("Solo asientos cuyo Debe no coincide con el Haber.")] bool soloDescuadrados = false,
         [Description("Máximo de asientos (1-200).")] int maximo = ServicioConector.MaximoAsientos) =>
-        Texto(await servicio.BuscarAsientosAsync(idSociedad, ejercicio, numero, desde, hasta, cuenta, texto, soloDescuadrados, maximo));
+        Proteger("buscar_asientos", idSociedad, ejercicio, async () => Texto(await servicio.BuscarAsientosAsync(idSociedad, ejercicio, numero, desde, hasta, cuenta, texto, soloDescuadrados, maximo)));
 
     [McpServerTool(Name = "ver_asiento", ReadOnly = true, Destructive = false, OpenWorld = false)]
     [Description("Muestra un asiento completo: apuntes con el nombre de cada cuenta, si es de una factura (libro de IVA) o de un proceso automático, su versión, " +
         "sus relaciones con otros asientos y cómo se corrige.")]
-    public async Task<string> VerAsiento([Description("Número del asiento.")] int numero) => Texto(await servicio.VerAsientoAsync(numero));
+    public Task<string> VerAsiento([Description("Número del asiento.")] int numero) =>
+        Proteger("ver_asiento", null, null, async () => Texto(await servicio.VerAsientoAsync(numero)), $"asiento {numero}");
 
     [McpServerTool(Name = "buscar_cuentas", ReadOnly = true, Destructive = false, OpenWorld = false)]
     [Description("Busca cuentas del plan de la sociedad y ejercicio por código, prefijo o nombre. Solo las imputables (subcuentas) admiten apuntes.")]
-    public async Task<string> BuscarCuentas(string idSociedad, int ejercicio,
+    public Task<string> BuscarCuentas(string idSociedad, int ejercicio,
         [Description("Código, prefijo (430, 4300.) o parte del nombre.")] string texto,
         [Description("Máximo de cuentas (1-200).")] int maximo = 50) =>
-        Texto(await servicio.BuscarCuentasAsync(idSociedad, ejercicio, texto, maximo));
+        Proteger("buscar_cuentas", idSociedad, ejercicio, async () => Texto(await servicio.BuscarCuentasAsync(idSociedad, ejercicio, texto, maximo)));
 
     [McpServerTool(Name = "mayor_cuenta", ReadOnly = true, Destructive = false, OpenWorld = false)]
     [Description("Mayor de una subcuenta en el ejercicio: saldo de apertura, saldo actual (Debe − Haber) y sus movimientos, opcionalmente entre dos fechas.")]
-    public async Task<string> MayorCuenta(string idSociedad, int ejercicio,
+    public Task<string> MayorCuenta(string idSociedad, int ejercicio,
         [Description("Subcuenta; admite el punto (43.1 = 4300001).")] string cuenta,
         DateTime? desde = null, DateTime? hasta = null,
         [Description("Máximo de movimientos (1-1000).")] int maximo = 200) =>
-        Texto(await servicio.MayorAsync(idSociedad, ejercicio, cuenta, desde, hasta, maximo));
+        Proteger("mayor_cuenta", idSociedad, ejercicio, async () => Texto(await servicio.MayorAsync(idSociedad, ejercicio, cuenta, desde, hasta, maximo)), $"cuenta {cuenta}");
 
     [McpServerTool(Name = "avisos_salud", ReadOnly = true, Destructive = false, OpenWorld = false)]
     [Description("Avisos de salud de la contabilidad de la pantalla de inicio (descuadres, IVA, bancos, plazos…) con cómo se resuelve cada uno. Tarda unos segundos.")]
-    public async Task<string> AvisosSalud(string idSociedad, int ejercicio) => Texto(await servicio.AvisosSaludAsync(idSociedad, ejercicio));
+    public Task<string> AvisosSalud(string idSociedad, int ejercicio) =>
+        Proteger("avisos_salud", idSociedad, ejercicio, async () => Texto(await servicio.AvisosSaludAsync(idSociedad, ejercicio)));
 
     [McpServerTool(Name = "proponer_asientos", ReadOnly = true, Destructive = false, Idempotent = false, OpenWorld = false)]
     [Description("Valida uno o varios asientos manuales nuevos con todas las reglas de ProContaVF (cuadre, cuentas, ejercicio y trimestre cerrados) SIN GRABAR NADA y " +
         "devuelve un número de propuesta. Para corregir un asiento manual indica 'asientoOrigen' y normalmente dos asientos: uno que lo anula (anula = true, las mismas " +
         "cuentas con Debe y Haber cambiados) y otro con los importes correctos. Los asientos de factura y los de procesos automáticos (salvo los importados de ContaSol sin IVA) no se corrigen así. " +
         "Enseña la propuesta al operador en una tabla y espera su OK antes de grabarla.")]
-    public async Task<string> ProponerAsientos(string idSociedad, int ejercicio,
+    public Task<string> ProponerAsientos(string idSociedad, int ejercicio,
         [Description("Por qué se hace, con las palabras del operador. Queda en las notas del asiento y en el registro de cambios.")] string motivo,
         [Description("Asientos: fecha (AAAA-MM-DD), descripción, apuntes (cuenta, debe o haber positivo, concepto y documento opcionales) y 'anula' si es el que anula el origen.")]
         List<AsientoPedido> asientos,
-        [Description("Número del asiento que se corrige, si es una corrección.")] int? asientoOrigen = null)
+        [Description("Número del asiento que se corrige, si es una corrección.")] int? asientoOrigen = null) =>
+        Proteger("proponer_asientos", idSociedad, ejercicio, async () =>
     {
         var r = await servicio.ProponerAsync(new PeticionPropuesta(idSociedad, ejercicio, motivo, asientos ?? [], asientoOrigen));
         return r.EsCorrecto
@@ -83,18 +90,46 @@ public sealed class HerramientasConector(ServicioConector servicio)
                 siguientePaso = $"Enseña los asientos al operador. Solo si dice que están bien, llama a grabar_propuesta con propuesta = {r.Valor.Numero}.",
             }, Json)
             : Errores(r.Errores);
-    }
+    }, asientoOrigen is int o ? $"corrige el asiento {o}" : null);
 
     [McpServerTool(Name = "grabar_propuesta", ReadOnly = false, Destructive = false, Idempotent = true, OpenWorld = false)]
     [Description("Graba en ProContaVF, tal como se validó, una propuesta de proponer_asientos. Úsala SOLO cuando el operador haya aceptado expresamente esa propuesta. " +
         "Si el asiento de origen ha cambiado desde la propuesta, no graba nada.")]
-    public async Task<string> GrabarPropuesta([Description("Número de propuesta que devolvió proponer_asientos.")] int propuesta)
+    public Task<string> GrabarPropuesta([Description("Número de propuesta que devolvió proponer_asientos.")] int propuesta) =>
+        Proteger("grabar_propuesta", null, null, async () =>
     {
         var r = await servicio.GrabarAsync(propuesta);
         return r.EsCorrecto
             ? JsonSerializer.Serialize(new { grabada = propuesta, asientos = r.Valor, nota = "Se ven en el Diario de ProContaVF (pulsa Actualizar si está abierto)." }, Json)
             : Errores(r.Errores);
+    }, $"propuesta {propuesta}");
+
+    /// <summary>
+    /// Ejecuta una herramienta y, si falla de forma inesperada, guarda el error en el registro de errores (plataforma/registro-errores)
+    /// y devuelve a Claude qué ha fallado y dónde está el fichero, en vez del error genérico del protocolo. No graba nada a medias:
+    /// la única herramienta que escribe lo hace en una transacción.
+    /// </summary>
+    private async Task<string> Proteger(string herramienta, string? idSociedad, int? ejercicio, Func<Task<string>> ejecutar, string? datos = null)
+    {
+        try
+        {
+            return await ejecutar();
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            var sociedad = idSociedad is null ? null : $"{idSociedad}{(ejercicio is int e ? $" · ejercicio {e}" : "")}";
+            var ruta = servicio.RegistrarError(ex, $"Herramienta {herramienta}{(datos is null ? "" : $" ({datos})")}", sociedad);
+            return TextoErrorInesperado(herramienta, ex, ruta, servicio.RutaRegistroErrores);
+        }
     }
+
+    /// <summary>Texto para Claude (y el operador) cuando una herramienta falla de forma inesperada.</summary>
+    internal static string TextoErrorInesperado(string herramienta, Exception ex, string? ruta, string? rutaPrevista) =>
+        $"No se ha hecho nada: la herramienta {herramienta} ha fallado por un error inesperado del conector ({ProConta.Plataforma.Configuracion.RegistroErrores.Resumen(ex)}). " +
+        (ruta is not null
+            ? $"El detalle técnico está guardado en el registro de errores: {ruta}. "
+            : $"No se ha podido guardar el detalle en el registro de errores{(rutaPrevista is null ? "" : $" ({rutaPrevista})")}. ") +
+        "Díselo al operador con esa ruta; puede volver a intentarlo y, si se repite, enviar ese fichero a quien le da soporte. No lo reintentes tú más de una vez.";
 
     private static string Texto<T>(T valor) => JsonSerializer.Serialize(valor, Json);
 

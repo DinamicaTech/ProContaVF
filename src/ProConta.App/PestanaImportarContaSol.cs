@@ -1,4 +1,4 @@
-using System.Collections.ObjectModel;
+﻿using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.IO;
 using System.Runtime.CompilerServices;
@@ -62,10 +62,10 @@ internal sealed class PestanaImportarContaSol : IPestanaTrabajo
         _vista.RowDefinitions.Add(new RowDefinition { Height = new GridLength(2, GridUnitType.Star) });
 
         var cabecera = new StackPanel();
-        cabecera.Children.Add(new TextBlock { Text = "Importar ContaSol", Style = Estilo("Letra.TituloPantalla") });
+        cabecera.Children.Add(new TextBlock { Text = "Importar ContaSol", Style = Estilo("Texto.TituloPantalla") });
         cabecera.Children.Add(new TextBlock
         {
-            TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 6, 0, 10), Style = Estilo("Letra.Secundaria"),
+            TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 6, 0, 10), Style = Estilo("Texto.Apagado"),
             Text = "Elige las BD de ContaSol (una por ejercicio, p. ej. 0022026.accdb) con clic derecho en la tabla. «Simular» lo comprueba todo sin escribir; " +
                    "«Importar» graba cada ejercicio en orden. Repetir la importación de un ejercicio sustituye lo importado antes sin duplicar.",
         });
@@ -87,7 +87,7 @@ internal sealed class PestanaImportarContaSol : IPestanaTrabajo
         var avance = new StackPanel();
         avance.Children.Add(_avance);
         avance.Children.Add(_barra);
-        avance.Children.Add(new TextBlock { Text = "Incidencias", Style = Estilo("Letra.Subtitulo"), Margin = new Thickness(0, 8, 0, 6) });
+        avance.Children.Add(new TextBlock { Text = "Incidencias", Style = Estilo("Texto.Seccion"), Margin = new Thickness(0, 8, 0, 6) });
         Grid.SetRow(avance, 2);
         _vista.Children.Add(avance);
 

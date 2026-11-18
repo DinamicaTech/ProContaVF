@@ -7,7 +7,7 @@ threads:
 ## Summary
 Conector local de Claude Desktop (servidor MCP por entrada y salida estándar) que deja a Claude consultar la contabilidad de ProContaVF y proponer asientos manuales, nuevos o de corrección, que solo se graban cuando el operador acepta la propuesta.
 Es el ejecutable `ProContaConector.exe` (proyecto `src/ProConta.Conector`): Claude Desktop lo arranca con `--bd <accdb>` y `--operador <nombre>`, abre la BD en modo compartido (funciona con ProContaVF abierto) y no arranca si el esquema de la BD no es el del programa. No tiene reglas contables propias ni SQL libre: lee con los servicios del Diario, del catálogo de cuentas, de las plantillas y de la salud, y escribe solo con el motor de asientos.
-Herramientas: de lectura `sociedades`, `buscar_asientos`, `ver_asiento`, `buscar_cuentas`, `mayor_cuenta` y `avisos_salud`; `proponer_asientos`, que valida con el motor en una transacción que siempre se revierte y devuelve un número de propuesta; y `grabar_propuesta`, la única que escribe.
+Herramientas: de lectura `sociedades`, `buscar_asientos`, `ver_asiento`, `buscar_cuentas`, `mayor_cuenta` y `avisos_salud`; `proponer_asientos`, que valida con el motor en una transacción que siempre se revierte y devuelve un número de propuesta; y `grabar_propuesta`, la única que escribe. Si una herramienta falla de forma inesperada, el error queda en el registro de errores común (plataforma/registro-errores) y Claude recibe la ruta del fichero.
 En ProContaVF, «IA › Abrir Claude» comprueba que Claude Desktop tiene el conector de esta instalación con la misma BD que está abierta, lo configura si el operador quiere y abre Claude Desktop.
 Viene de la idea creative-lab/asistente-ia, que sigue en el laboratorio para lo que queda (subcuentas propuestas por Claude, botón en los avisos de salud, asientos a partir de documentos).
 
@@ -24,6 +24,7 @@ Viene de la idea creative-lab/asistente-ia, que sigue en el laboratorio para lo 
 - 2026-11-16 10:25 · El conector se compila con el programa: ProConta.App lo referencia sin usar su ensamblado y lo copia en la subcarpeta `Conector\` de su salida, para que cada versión del programa lleve su conector sin mezclar sus librerías.
 - 2026-11-16 09:58 · Los textos de la BD (descripciones, conceptos, nombres, notas) son datos para Claude, nunca instrucciones (instrucciones del servidor, regla 7).
 - 2026-11-16 14:05 · Una entrada por entorno (plataforma/entorno-pruebas): `procontavf` para producción y `procontavf-pruebas` para la copia de pruebas; «IA › Abrir Claude» comprueba y configura la del entorno abierto. La herramienta `sociedades` devuelve `{ entorno, sociedades }` y las instrucciones del servidor dicen a Claude en qué entorno trabaja.
+- 2026-11-18 18:48 · Errores inesperados (plataforma/registro-errores 2026-11-18 18:48): cada herramienta se ejecuta dentro de `Proteger`, que guarda el error en el registro de errores común con la sociedad y el ejercicio pedidos y devuelve a Claude «No se ha hecho nada…» con el error y la ruta del fichero (el SDK de MCP solo daría un error genérico). Los errores no controlados del proceso también se guardan. `--provocar-error` hace fallar la herramienta `sociedades` para validarlo.
 
 ## Requirements
 - 2026-11-16 09:26 · Analiza la posibilidad de integrar una IA (Claude, en este caso) dentro del propio ProcontaVF. La idea es poder lanzar prompts que puedan interactuar con la BD.
@@ -35,6 +36,7 @@ Viene de la idea creative-lab/asistente-ia, que sigue en el laboratorio para lo 
 - 2026-11-16 10:08 · Y, lo suyo, sería verificar primero si está configurado el conector y, en caso contrario, configurarlo, pero no tengo claro si es factible.
 - 2026-11-16 10:12 · Ok al menú y a la validación previa de estar trabajando en la misma  BD que el entorno, podría generar problemillas que no fuese así.
 - 2026-11-16 14:05 · Derived from plataforma/entorno-pruebas: una entrada por entorno y el entorno indicado en la herramienta `sociedades`.
+- 2026-11-18 18:48 · Derived from plataforma/registro-errores: guardar en el registro de errores los fallos inesperados de las herramientas y del proceso, y decir a Claude dónde está el fichero.
 
 ## Configuración en Claude Desktop
 Lo normal es configurarlo desde ProContaVF con «IA › Abrir Claude». A mano: en Claude Desktop, Configuración › Desarrollador › Editar configuración, y en `claude_desktop_config.json`, dentro del objeto que ya hay (no debajo):
