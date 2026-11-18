@@ -77,7 +77,7 @@ public static class Fichero303
         p.Append('2');                                  // 112 autoliquidación conjunta: no
         p.Append('2');                                  // 113 criterio de caja: no
         p.Append('2');                                  // 114 destinatario de operaciones con criterio de caja: no
-        p.Append('2');                                  // 115 opción por la prorrata especial: no (Nota 6; la AEAT no admite blanco)
+        p.Append(d.Trimestre == 4 && d.OpcionProrrataEspecial ? '1' : '2'); // 115 opción por la prorrata especial: sí en el 4T del ejercicio que la aplica (Nota 6)
         p.Append('2');                                  // 116 revocación de la prorrata especial: no
         p.Append('2');                                  // 117 concurso de acreedores: no
         p.Append(' ', 8);                               // 118 fecha del auto de concurso

@@ -14,7 +14,8 @@ public sealed class Modelos390y202Tests
     private const OperacionIva Nac = OperacionIva.Nacional, Intra = OperacionIva.Intracomunitaria, Imp = OperacionIva.Importacion;
     private const DeduccionIva D100 = DeduccionIva.Deducible100, Pro = DeduccionIva.Prorrata, NoD = DeduccionIva.NoDeducible;
     private static readonly Declarante303 Sociedad = new("B00000000", "Sociedad sintética, SL", "ES9121000418450200051332");
-    private static readonly DatosEstadisticos390 Datos = new([new Actividad390("ALQUILER SINTETICO", "A01", "8612"), new Actividad390("OTRA ACTIVIDAD", "A03", "845")], "6820");
+    private static readonly DatosEstadisticos390 Datos = new([new Actividad390("ALQUILER SINTETICO", "A01", "8612"), new Actividad390("OTRA ACTIVIDAD", "A03", "845")], "6820",
+        Representantes: [new Representante200("00000000T", "PRUEBA SINTETICA, UNO", new DateTime(2000, 1, 2), "NOTARIA")]);
     private const string CuentaBienes = "4720121";
 
     private static LineaIva L(int trim, SentidoIva sentido, DeduccionIva ded, OperacionIva op, bool isp, decimal tipo, decimal b, decimal cuota, bool inversion = false,
@@ -92,7 +93,7 @@ public sealed class Modelos390y202Tests
         Assert.Equal(308m, d.Casilla(230));
         // Prorrata: operaciones totales, con derecho y porcentaje (sin definitiva, la real).
         Assert.Equal((iva.Prorrata.Denominador, iva.Prorrata.Numerador, iva.Prorrata.Real * 100m), (d.Casilla(115), d.Casilla(116), d.Casilla(118)));
-        Assert.Equal("G", d.TipoProrrata);
+        Assert.Equal("E", d.TipoProrrata);                                       // gastos comunes en prorrata y actividades al 100 % y al 0 %
         Assert.Contains(d.Avisos, a => a.Contains("prorrata del ejercicio no está fijada"));
         // Resultado anual: el crédito del 1T (300) se compensa en el 85; lo ingresado en el año en el 95.
         Assert.Equal(300m, d.Casilla(85));
@@ -144,12 +145,46 @@ public sealed class Modelos390y202Tests
         Assert.Equal("10000", En("06000", 115, 5));                   // territorio común 100 %
         Assert.Equal(Cent(d.Casilla(108)), En("06000", 684, 17));
         Assert.Equal("6820", En("07000", 240, 4));
-        Assert.Equal("G", En("07000", 278, 1));
+        Assert.Equal("E", En("07000", 278, 1));
+        Assert.Equal("PRUEBA SINTETICA, UNO".PadRight(80) + "00000000T02012000NOTARIA     ", En("01000", 646, 109));
         Assert.Equal(new string('0', 17), En("07000", 328, 17));      // la segunda fila de prorrata va a cero
         // Sustitutiva: marca y justificante de la anterior.
         var s = Fichero390.Generar(d with { Sustitutiva = new Sustitutiva390("3900000000001") }, ProgramaAeat.Actual);
         Assert.Equal("1", s.Substring(s.IndexOf("<T39001000>", StringComparison.Ordinal) + 133, 1));
         Assert.Contains("3900000000001", s);
+    }
+
+    [Fact]
+    public void ProrrataGeneralSiTodoVaEnProrrata()
+    {
+        var lineas = Ano().Where(l => l.Sentido == SentidoIva.Repercutido || l.Deduccion == Pro).ToList();
+        Assert.False(Modelo390.ProrrataEspecial(lineas));
+        Assert.True(Modelo390.ProrrataEspecial(Ano()));
+        Assert.Equal("G", Calcular(lineas, 0.15m).D.TipoProrrata);
+        Assert.Equal(" ", Calcular(Ano().Where(l => l.Deduccion != Pro).ToList(), 1m).D.TipoProrrata);
+    }
+
+    [Fact]
+    public void ElDe2025VaConSuDiseno()
+    {
+        var (d26, _, _) = Calcular(Ano(), 0.15m);
+        var d = d26 with { Ejercicio = 2025, Casillas = new Dictionary<int, decimal>(d26.Casillas) { [87] = 0m, [92] = 0m, [93] = 0m, [94] = 0m } };
+        var f = Fichero390.Generar(d, ProgramaAeat.Actual);
+        var paginas = Fichero390.Presentadas(2025).Select(c => Diseno390.Paginas2025.First(p => p.Codigo == c)).ToList();
+        Assert.Contains("02B00", Fichero390.Presentadas(2025));
+        Assert.DoesNotContain("02B00", Fichero390.Presentadas(2026));
+        Assert.Equal(Fichero390.LongitudCabecera + paginas.Sum(p => p.Longitud) + 18, f.Length);
+        Assert.StartsWith("<T390020250A0000><AUX>", f);
+        string En(string codigo, int posicion, int largo) =>
+            f.Substring(f.IndexOf($"<T390{codigo}>", StringComparison.Ordinal), Diseno390.Paginas2025.First(p => p.Codigo == codigo).Longitud).Substring(posicion - 1, largo);
+        Assert.Equal("2025", En("01000", 103, 4));
+        Assert.Equal("0", En("01000", 133, 1));                       // no es sustitutiva (posición 134 en el diseño de 2026)
+        Assert.Equal("PRUEBA SINTETICA, UNO", En("01000", 645, 80).Trim());
+        Assert.Equal("682", En("07000", 240, 3));                     // CNAE de 3 posiciones en 2025
+        Assert.Equal("E", En("07000", 277, 1));
+        Assert.Equal(decimal.Round(d.Casilla(118) * 100m).ToString("00000"), En("07000", 278, 5));
+        Assert.Equal(new string('0', 5), En("06000", 98, 5));         // territorio común vacío en 2025
+        Assert.Equal(new string('0', 17), En("06000", 123, 17));      // y sus casillas repetidas
     }
 
     // ---------- 202 ----------

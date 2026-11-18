@@ -26,6 +26,12 @@ public sealed record Declaracion303(int Ejercicio, int Trimestre, Declarante303 
 
     public decimal Casilla(int numero) => Casillas.TryGetValue(numero, out var v) ? v : 0m;
 
+    /// <summary>
+    /// Opción por la prorrata especial (posición 115 del fichero, Nota 6 del diseño): se marca en el último periodo (4T) del ejercicio que la
+    /// aplica; en los demás periodos va en blanco («2»).
+    /// </summary>
+    public bool OpcionProrrataEspecial { get; init; }
+
     /// <summary>Resultado del régimen general (casilla 46 = 66 con el 100 % atribuible al Estado): lo que se liquida en la contabilidad, antes de compensar.</summary>
     public decimal ResultadoLiquidacion => Casilla(66);
 

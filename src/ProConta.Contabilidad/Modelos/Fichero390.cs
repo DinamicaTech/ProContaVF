@@ -31,6 +31,16 @@ public static class Fichero390
     /// <summary>Páginas que se presentan.</summary>
     public static readonly IReadOnlyList<string> PaginasPresentadas = ["01000", "02000", "03000", "04000", "06000", "07000"];
 
+    /// <summary>
+    /// Diseño del ejercicio: el de 2025 (DR390e2025v102.xlsx, versión 1.02) para 2025 y el de 2026 (DR390e2026v100.xlsx) para los demás.
+    /// Los textos se escriben con las posiciones del diseño de 2026 y se trasladan al del ejercicio por la descripción del campo.
+    /// </summary>
+    internal static IReadOnlyList<Pagina390> Diseno(int ejercicio) => ejercicio == 2025 ? Diseno390.Paginas2025 : Diseno390.Paginas;
+
+    /// <summary>Páginas que se presentan en un ejercicio: con el diseño de 2025, también la 02 bis (la AEAT comprueba en ella la casilla 47).</summary>
+    public static IReadOnlyList<string> Presentadas(int ejercicio) =>
+        ejercicio == 2025 ? ["01000", "02000", "02B00", "03000", "04000", "06000", "07000"] : PaginasPresentadas;
+
     public static string Generar(Declaracion390 d, ProgramaAeat programa, IReadOnlyList<string>? paginas = null)
     {
         var ejercicio = d.Ejercicio.ToString("0000", CultureInfo.InvariantCulture);
@@ -38,7 +48,7 @@ public static class Fichero390
         r.Append("<T3900").Append(ejercicio).Append("0A0000>");
         r.Append("<AUX>").Append(' ', 70).Append(Fichero303.An(programa.Version, 4)).Append(' ', 4).Append(Fichero303.An(programa.NifDesarrollo, 9)).Append(' ', 213).Append("</AUX>");
         if (r.Length != LongitudCabecera) throw new InvalidOperationException($"El fichero del 390 tiene mal la cabecera: {r.Length} posiciones.");
-        foreach (var codigo in paginas ?? PaginasPresentadas) r.Append(Pagina(Diseno390.Paginas.First(p => p.Codigo == codigo), d));
+        foreach (var codigo in paginas ?? Presentadas(d.Ejercicio)) r.Append(Pagina(Diseno(d.Ejercicio).First(p => p.Codigo == codigo), d));
         r.Append("</T3900").Append(ejercicio).Append("0A0000>");
         return r.ToString();
     }
@@ -52,7 +62,9 @@ public static class Fichero390
 
     internal static string Pagina(Pagina390 pagina, Declaracion390 d)
     {
-        var textos = Textos(pagina.Codigo, d);
+        var textos = Trasladar(Textos(pagina.Codigo, d), pagina);
+        // La prorrata va en la primera fila de la página 07 (las otras cuatro repiten las casillas 114 a 118 y van a cero).
+        var segundaFila = pagina.Campos.FirstOrDefault(c => c.Descripcion.StartsWith("12. Prorratas - 2", StringComparison.Ordinal))?.Posicion ?? int.MaxValue;
         var p = new StringBuilder("<T390").Append(pagina.Codigo).Append('>');
         foreach (var campo in pagina.Campos)
         {
@@ -61,8 +73,9 @@ public static class Fichero390
             if (campo.Descripcion.Contains("Fin de registro", StringComparison.OrdinalIgnoreCase)) { p.Append("</T390").Append(pagina.Codigo).Append('>'); continue; }
             if (campo.EsNumerico)
             {
-                // La prorrata va en la primera fila de la página 07 (las otras cuatro repiten las casillas 114 a 118 y van a cero).
-                var otraFilaProrrata = pagina.Codigo == "07000" && campo.Posicion > 283;
+                var otraFilaProrrata = pagina.Codigo == "07000" && campo.Posicion >= segundaFila;
+                // Diseño de 2025: el apartado de tributación por razón de territorio solo se rellena con territorio foral.
+                if (Diseno390.Paginas2025.Contains(pagina) && campo.Descripcion.StartsWith("8. Tributación razón de territorio", StringComparison.Ordinal)) otraFilaProrrata = true;
                 if (campo.Casilla == 0 && textos.TryGetValue(campo.Posicion, out var codigo))
                     p.Append(codigo.PadLeft(campo.Longitud, '0'));                       // códigos numéricos (ejercicio, marcas), tal cual
                 else p.Append(Numero(campo.Casilla != 0 && !otraFilaProrrata ? d.Casilla(campo.Casilla) : 0m, campo));
@@ -71,6 +84,26 @@ public static class Fichero390
         }
         if (p.Length != pagina.Longitud) throw new InvalidOperationException($"La página {pagina.Codigo} del 390 tiene {p.Length} posiciones en lugar de {pagina.Longitud}.");
         return p.ToString();
+    }
+
+    /// <summary>
+    /// Pasa las posiciones de los textos (escritas con el diseño de 2026) a las del diseño de la página: el campo con la misma descripción
+    /// (y, si se repite, la misma aparición). Un campo que el diseño del ejercicio no tiene no se escribe.
+    /// </summary>
+    private static Dictionary<int, string> Trasladar(Dictionary<int, string> textos, Pagina390 pagina)
+    {
+        var base26 = Diseno390.Paginas.FirstOrDefault(p => p.Codigo == pagina.Codigo);
+        if (base26 is null || ReferenceEquals(base26, pagina)) return textos;
+        var r = new Dictionary<int, string>();
+        foreach (var (pos, texto) in textos)
+        {
+            var campo = base26.Campos.FirstOrDefault(c => c.Posicion == pos);
+            if (campo is null) continue;
+            var vez = base26.Campos.TakeWhile(c => c.Posicion < pos).Count(c => c.Descripcion == campo.Descripcion);
+            var destino = pagina.Campos.Where(c => c.Descripcion == campo.Descripcion).Skip(vez).FirstOrDefault();
+            if (destino is not null) r[destino.Posicion] = texto;
+        }
+        return r;
     }
 
     /// <summary>Numérico del diseño: 2 decimales salvo los de 6 posiciones (1 entero y 5 decimales); con signo, «N» delante si es negativo.</summary>
@@ -112,6 +145,13 @@ public static class Fichero390
                     t[pos] = a.Descripcion; t[pos + 40] = a.Clave; t[pos + 43] = a.Epigrafe;
                 }
                 t[431] = d.Datos?.DeclaraOperacionesTerceros == true ? "1" : "0"; // declaración anual de operaciones con terceras personas (347)
+                var reps = d.Datos?.Representantes ?? [];
+                for (var i = 0; i < Math.Min(3, reps.Count); i++)
+                {
+                    var b = 646 + 109 * i;                         // representantes de personas jurídicas (posiciones del diseño de 2026)
+                    t[b] = reps[i].Nombre; t[b + 80] = Modelo200.Nif(reps[i].Nif);
+                    t[b + 89] = reps[i].FechaPoder?.ToString("ddMMyyyy", CultureInfo.InvariantCulture) ?? ""; t[b + 97] = reps[i].Notaria;
+                }
                 break;
             case "07000":
                 if (d.Casilla(115) != 0m)

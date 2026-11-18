@@ -3,6 +3,7 @@ title: Prorrata de IVA
 depends_on: [contabilidad/procesos, facturacion/factura-venta/contabilizacion, contabilidad/procesos/liquidacion-iva, contabilidad/modelos-tributarios, informes/informe-gestoria, contabilidad/procesos/nuevo-ejercicio, datos/esquema]
 threads:
   - 2026-11-17 10:35 · Calcular y regularizar la prorrata de IVA | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5G6fmNEhWckT9S6qs9Uq5oR2
+  - 2026-11-18 12:25 · Completar los modelos tributarios y su pantalla | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GWW9gQjRoqJLGy11fuziWXQ
 ---
 ## Summary
 Cálculo de la prorrata de IVA y su regularización anual. La legal (operaciones con derecho a deducción / total de operaciones, sin IVA, redondeada al entero superior) y su desglose en Excel ya los da la hoja «Prorrata» del informe para la gestoría; la provisional es la «Prorrata del año anterior» del ejercicio. Pantalla Contabilidad › Prorrata de IVA: propone como definitiva la legal, el operador la cambia por la del gestor, y al confirmar guarda la definitiva en el ejercicio (SociedadesEjercicios.PorcentajeProrrataDefinitiva), la copia como provisional del ejercicio siguiente si existe y graba el 31/12 la regularización (cuota sujeta × definitiva − lo deducido con la provisional, por trimestre) como lote regenerable: a favor 4729 D / 6391 H, en contra 6341 D / 4729 H, repartiendo la 6391 o 6341 por centro de coste. Con la definitiva fijada, el 303 del 4T lleva la regularización y la liquidación del 4T salda la 4729.
@@ -20,6 +21,8 @@ Código: `CalculoIvaEjercicio`, `CalculoProrrata` (src/ProConta.Contabilidad/Iva
 
 - 2026-11-17 11:14 · Validado por el propietario (PR #98) con la copia ProConta-prorrata-01 (2026 hasta el 17/11: provisional 15 %, legal 20 %, regularización de 101,05 € a favor, 6391 repartida en 8 centros): pasa a estable. Pendiente en contabilidad/procesos/nuevo-ejercicio: copiar la definitiva como provisional al crear el ejercicio siguiente.
 - 2026-11-18 05:30 · Cuentas siempre asignadas (organizacion/sociedades-ejercicios 2026-11-18 05:30): La cuenta de la regularización de la prorrata ya no vale 4729001 cuando está vacía: si lo está, la propuesta se detiene y pide asignarla en la pestaña IVA de Ejercicios. Hecho, pendiente de validar.
+
+- 2026-11-18 12:25 · Prorrata especial (propietario 2026-11-18 11:05): «si en 2025 dedujiste el 100 % en locales, el 0 % en viviendas y el 15 % en gastos comunes, ese cálculo corresponde a prorrata especial dentro de un mismo sector. En ese supuesto, consignarías 117 = E y 118 = 15 %, si ese era el porcentaje definitivo.» El cálculo del programa es correcto (locales al 100 %, viviendas al 0 % y gastos comunes a la prorrata), pero es prorrata especial dentro de un mismo sector y así se declara: 390 con 117 = «E» y 118 = el porcentaje definitivo, y en el 303 del 4T la opción por la prorrata especial marcada (contabilidad/modelos-tributarios/modelo-390 y modelo-303 2026-11-18 12:25).
 
 ## Requirements
 - 2026-11-13 12:05 · draft: Calcular la prorrata de IVA (la legal propuesta por defecto, la del gestor si se fija, con desglose en Excel) y regularizar la prorrata definitiva (4729) al cierre del ejercicio.

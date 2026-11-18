@@ -153,7 +153,7 @@ public sealed class ServicioResumenRetenciones(IBaseDatos bd, ServicioTgvi tgvi,
                     : string.Join(' ', new[] { f.Texto("PrimerApellido"), f.Texto("SegundoApellido"), f.Texto("NombrePersona") }.Where(x => !string.IsNullOrWhiteSpace(x)).Select(x => x!.Trim())) is { Length: > 0 } n
                         ? n : f.Texto("Nombre") ?? "";
                 var cp = f.Texto("CodigoPostal")?.Trim();
-                return new PerceptorInformativa(Modelo347.Nif(f.Texto("NIF")), nombre.Trim(), cp is { Length: >= 2 } && cp[..2].All(char.IsAsciiDigit) ? cp[..2] : null);
+                return new PerceptorInformativa(Modelo347.Nif(f.Texto("NIF")), (nombre ?? "").Trim(), cp is { Length: >= 2 } && cp[..2].All(char.IsAsciiDigit) ? cp[..2] : null);
             }
             const string campos = "t.NIF, t.TipoPersona, t.RazonSocial, t.Nombre, t.PrimerApellido, t.SegundoApellido, t.NombrePersona, t.CodigoPostal";
             var emp = esquema.ExisteTabla("Empleados")

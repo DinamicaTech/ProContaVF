@@ -18,18 +18,17 @@ namespace ProConta.Contabilidad.Modelos;
 /// </summary>
 public static class FicheroRetenciones
 {
-    public const int LongitudCabecera = 328, LongitudPagina111 = 1000, LongitudPagina115 = 500;
+    public const int LongitudCabecera = 328, LongitudPagina111 = 1000, LongitudPagina115 = 500, LongitudPagina123 = 600;
 
     public static string Generar(DeclaracionRetenciones d, ProgramaAeat programa)
     {
-        var es111 = d.Modelo == Modelo111.Modelo;
-        if (!es111 && d.Modelo != Modelo115.Modelo) throw new ArgumentException($"El modelo {d.Modelo} no es de retenciones.", nameof(d));
+        if (d.Modelo is not (Modelo111.Modelo or Modelo115.Modelo or Modelo123.Modelo)) throw new ArgumentException($"El modelo {d.Modelo} no es de retenciones.", nameof(d));
         var ejercicio = d.Ejercicio.ToString("0000", CultureInfo.InvariantCulture);
         var r = new StringBuilder();
         r.Append("<T").Append(d.Modelo).Append('0').Append(ejercicio).Append(d.Periodo).Append("0000>");
         r.Append("<AUX>").Append(' ', 70).Append(Fichero303.An(programa.Version, 4)).Append(' ', 4).Append(Fichero303.An(programa.NifDesarrollo, 9)).Append(' ', 213).Append("</AUX>");
         Comprobar(r.Length, LongitudCabecera, d.Modelo, "la cabecera");
-        r.Append(es111 ? Pagina111(d) : Pagina115(d));
+        r.Append(d.Modelo switch { Modelo111.Modelo => Pagina111(d), Modelo115.Modelo => Pagina115(d), _ => Pagina123(d) });
         r.Append("</T").Append(d.Modelo).Append('0').Append(ejercicio).Append(d.Periodo).Append("0000>");
         return r.ToString();
     }
@@ -37,7 +36,7 @@ public static class FicheroRetenciones
     /// <summary>NIF del declarante leído del propio fichero (página 01, posición 14).</summary>
     public static string? LeerNif(string fichero)
     {
-        foreach (var marca in new[] { "<T11101000>", "<T11501000>" })
+        foreach (var marca in new[] { "<T11101000>", "<T11501000>", "<T12301000>" })
         {
             var i = fichero.IndexOf(marca, StringComparison.Ordinal);
             if (i >= 0) return fichero.Length < i + 22 ? null : fichero.Substring(i + 13, 9).Trim();
@@ -92,6 +91,26 @@ public static class FicheroRetenciones
         p.Append(' ', 236).Append(' ', 13);                         // 240 reservado y 476 sello
         p.Append("</T11501000>");
         Comprobar(p.Length, LongitudPagina115, d.Modelo, "la página 01");
+        return p.ToString();
+    }
+
+    /// <summary>Página 01 del 123 (sources/aeat/DR123.xls): identificación con la razón social en 80 posiciones y las casillas 01 a 14.</summary>
+    private static string Pagina123(DeclaracionRetenciones d)
+    {
+        var p = new StringBuilder("<T12301000>");
+        p.Append(' ');                                              // 12 página complementaria
+        p.Append(d.TipoDeclaracion);                                // 13 tipo de declaración
+        p.Append(Fichero303.An(d.Declarante.Nif, 9));               // 14 NIF
+        p.Append(Fichero303.An(d.Declarante.RazonSocial, 80));      // 23 razón social
+        p.Append(d.Ejercicio.ToString("0000", CultureInfo.InvariantCulture)); // 103
+        p.Append(d.Periodo);                                        // 107
+        for (var n = 1; n <= 3; n++) p.Append(Perceptores(d.Casilla(n), 15));   // 109-153: [01]-[03] número de rentas
+        for (var n = 4; n <= 14; n++) p.Append(Fichero303.Num(d.Casilla(n)));   // 154-340: [04]-[14]
+        Complementaria(p, d);                                       // 341-354
+        p.Append(Iban(d));                                          // 355
+        p.Append(' ', 200);                                         // 389 reservado
+        p.Append("</T12301000>");
+        Comprobar(p.Length, LongitudPagina123, d.Modelo, "la página 01");
         return p.ToString();
     }
 
