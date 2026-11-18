@@ -108,7 +108,8 @@ public sealed class Servicio303(IBaseDatos bd, ServicioPresentacionAeat presenta
         if (Hoy <= fin)
             return Resultado<(Declaracion303, DeclaracionAeat)>.Fallo(new Error("Modelo303.EnCurso", $"El {trimestre}T de {ctx.Ejercicio} aún no ha terminado.", registro,
                 "El 303 se presenta cuando el trimestre ha terminado.", $"Vuelve a partir del {fin.AddDays(1):dd/MM/yyyy}."));
-        var (_, _, _, iva) = await new LectorLineasIva(bd).CalcularAsync(ctx, c);
+        var (lineas, _, _, iva) = await new LectorLineasIva(bd).CalcularAsync(ctx, c);
+        var especial = Modelo390.ProrrataEspecial(lineas);
         var entorno = await presentacion.EntornoAsync(c);
         PresentacionGuardada? anterior = null;
         if (complementaria)
@@ -126,6 +127,7 @@ public sealed class Servicio303(IBaseDatos bd, ServicioPresentacionAeat presenta
         // Fuera del plazo de domiciliación se paga antes y se presenta con el NRC (forma I).
         if (FueraDePlazoDomiciliacion(d, Hoy) is not null)
             d = Modelo303.Calcular(iva.Modelo303, ctx.Ejercicio, trimestre, declarante, pendiente, Rectificativa(anterior), conNrc: true);
+        d = d with { OpcionProrrataEspecial = especial };
         var fichero = Fichero303.Generar(d, ProgramaAeat.Actual);
         var resumen = new List<(string, string)>
         {

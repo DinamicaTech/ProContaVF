@@ -113,8 +113,15 @@ public sealed class Servicio390(IBaseDatos bd, ServicioPresentacionAeat presenta
         var (lineas, _, _, iva) = await new LectorLineasIva(bd).CalcularAsync(ctx, c);
         var declarante = await _s303.DeclaranteAsync(ctx);
         var trimestres = new List<Declaracion303>();
+        // Las cuotas a compensar del 1T salen de la contabilidad (crédito del año anterior); en los siguientes, de los 303 calculados del
+        // propio ejercicio (lo que queda pendiente más lo que sale a compensar), para que el apartado 9 encaje con el resultado anual.
+        var pendiente = await _s303.PendienteCompensarAsync(ctx, 1);
         for (var t = 1; t <= 4; t++)
-            trimestres.Add(Modelo303.Calcular(iva.Modelo303, ctx.Ejercicio, t, declarante, await _s303.PendienteCompensarAsync(ctx, t)));
+        {
+            var d303 = Modelo303.Calcular(iva.Modelo303, ctx.Ejercicio, t, declarante, pendiente);
+            trimestres.Add(d303);
+            pendiente = d303.Casilla(87) + Math.Max(0m, -d303.Casilla(71));
+        }
         var bienes = await CuentasBienesIntraAsync(ctx);
         var d = Modelo390.Calcular(lineas, iva, trimestres, ctx.Ejercicio, declarante, datos, l => l.CuentaIva is { } cta && bienes.Contains(cta.Trim()), sustitutiva);
         var bloqueos = new List<string>(d.Errores);

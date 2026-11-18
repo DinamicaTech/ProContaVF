@@ -10,7 +10,8 @@ public sealed record Actividad390(string Descripcion, string Clave, string Epigr
 /// Datos de la sociedad que el 390 pide y el programa no guarda (sin cambio de esquema): las actividades (la primera es la principal) y
 /// el CNAE de la prorrata. Los da quien pide la declaración (la pantalla de modelos); sin ellos no se ofrece presentar.
 /// </summary>
-public sealed record DatosEstadisticos390(IReadOnlyList<Actividad390> Actividades, string Cnae, bool DeclaraOperacionesTerceros = true);
+public sealed record DatosEstadisticos390(IReadOnlyList<Actividad390> Actividades, string Cnae, bool DeclaraOperacionesTerceros = true,
+    IReadOnlyList<Representante200>? Representantes = null);
 
 /// <summary>Declaración anterior del ejercicio para una sustitutiva: su número de justificante.</summary>
 public sealed record Sustitutiva390(string JustificanteAnterior);
@@ -102,6 +103,16 @@ public static class Modelo390
     /// <param name="iva">El 303 y la prorrata del ejercicio (de <see cref="CalculoIvaEjercicio"/>).</param>
     /// <param name="trimestres">Los cuatro 303 del ejercicio (de <see cref="Modelo303.Calcular"/>), para lo compensado y lo ingresado.</param>
     /// <param name="esBienIntracomunitario">Si una adquisición intracomunitaria es de bienes (si no, de servicios).</param>
+    /// <summary>
+    /// Si el ejercicio aplica la prorrata especial (art. 106 LIVA): hay gastos comunes en prorrata y, además, actividades que deducen todo o
+    /// nada (locales al 100 %, viviendas al 0 %). Con todo en prorrata es la general (propietario 2026-11-18 11:05).
+    /// </summary>
+    public static bool ProrrataEspecial(IEnumerable<LineaIva> lineasDelAno)
+    {
+        var sop = lineasDelAno.Where(l => l.Trimestre is >= 1 and <= 4 && Calculo303.EsSoportado(l)).ToList();
+        return sop.Any(l => l.Deduccion == DeduccionIva.Prorrata) && sop.Any(l => l.TipoIva > 0m && l.Deduccion is DeduccionIva.Deducible100 or DeduccionIva.NoDeducible);
+    }
+
     public static Declaracion390 Calcular(IReadOnlyList<LineaIva> lineas, IvaEjercicio iva, IReadOnlyList<Declaracion303> trimestres, int ejercicio, Declarante303 declarante,
         DatosEstadisticos390? datos, Func<LineaIva, bool> esBienIntracomunitario, Sustitutiva390? sustitutiva = null)
     {
@@ -135,6 +146,8 @@ public static class Modelo390
         var basesDev = new[] { 1, 3, 5, 21, 23, 25, 545, 547, 551, 27, 29 };
         c[33] = basesDev.Sum(n => c.GetValueOrDefault(n));
         c[34] = basesDev.Sum(n => c.GetValueOrDefault(n + 1));
+        // Total de cuotas de IVA y recargo de equivalencia (página 02 bis, que se presenta con el diseño de 2025).
+        c[47] = new[] { 34, 664, 692, 36, 666, 694, 600, 602, 42, 44, 46 }.Sum(n => c.GetValueOrDefault(n));
         // El total de cuotas es, por construcción, la suma de los 27 de los cuatro 303 (comprobado en las pruebas).
 
         // ---------- deducible ----------
@@ -190,10 +203,11 @@ public static class Modelo390
         c[85] = Math.Min(aplicado, pendienteInicial);
         c[112] = 0m;
         c[86] = c[84] + c[659] - c[85] - c[112];
-        c[87] = 100m;
-        c[92] = c[84];
-        c[93] = c[85];
-        c[94] = c[92] + c[659] - c[93] - c[112];
+        c[87] = ejercicio <= 2025 ? 0m : 100m;              // territorio común (con el diseño de 2025, el apartado va vacío)
+        // Tributación por razón de territorio: el diseño de 2025 solo la admite con territorio foral (la sociedad tributa toda en el común).
+        c[92] = ejercicio <= 2025 ? 0m : c[84];
+        c[93] = ejercicio <= 2025 ? 0m : c[85];
+        c[94] = ejercicio <= 2025 ? 0m : c[92] + c[659] - c[93] - c[112];
         c[95] = porTrimestre.Sum(d => Math.Max(0m, d.Casilla(71)));
         c[96] = 0m; c[524] = 0m;
         var cuarto = porTrimestre[3];
@@ -242,9 +256,14 @@ public static class Modelo390
             errores.Add("Faltan las actividades de la sociedad (descripción, clave y epígrafe del IAE) de los datos estadísticos del 390.");
         else if (datos.Actividades.Count > 6)
             errores.Add("El 390 admite como mucho 6 actividades (la principal y 5 más).");
+        if (datos is not null && (datos.Representantes ?? []).Count == 0)
+            errores.Add("Falta el representante legal de la sociedad (página 1 del 390): la AEAT lo exige a las personas jurídicas.");
         if (hayProrrata && string.IsNullOrWhiteSpace(datos?.Cnae))
             errores.Add("Falta el CNAE de la actividad para la prorrata (página 7 del 390).");
-        return new Declaracion390(ejercicio, declarante, c, datos, hayProrrata ? "G" : " ", sustitutiva, errores, avisos);
+        // Prorrata especial (E) si, además de los gastos comunes en prorrata, hay actividades que deducen todo o nada (locales al 100 %,
+        // viviendas al 0 %); general (G) si todo va en prorrata (propietario 2026-11-18 11:05).
+        var especial = ProrrataEspecial(delAno);
+        return new Declaracion390(ejercicio, declarante, c, datos, !hayProrrata ? " " : especial ? "E" : "G", sustitutiva, errores, avisos);
     }
 
     /// <summary>Si una línea soportada es del grupo del 390 (los grupos del 303, con las intracomunitarias corrientes separadas en bienes y servicios).</summary>

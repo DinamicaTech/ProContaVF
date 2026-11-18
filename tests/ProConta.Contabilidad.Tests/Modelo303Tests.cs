@@ -174,6 +174,21 @@ public sealed class Modelo303Tests
     }
 
     [Fact]
+    public void LaOpcionPorLaProrrataEspecialSeMarcaSoloEnEl4T()
+    {
+        static char Opcion(Declaracion303 d)
+        {
+            var f = Fichero303.Generar(d, ProgramaAeat.Actual);
+            return f[f.IndexOf("<T30301000>", StringComparison.Ordinal) + 114];      // posición 115 de la página 01
+        }
+        var r = Calculo303.Calcular([L(4, R, DeduccionIva.Deducible100, Nac, false, 21, 1000m, 210m)], 1m);
+        var cuarto = Modelo303.Calcular(r, 2026, 4, Sociedad, 0m);
+        Assert.Equal('2', Opcion(cuarto));
+        Assert.Equal('1', Opcion(cuarto with { OpcionProrrataEspecial = true }));
+        Assert.Equal('2', Opcion(Ejemplo() with { OpcionProrrataEspecial = true }));       // 3T: en blanco («2»)
+    }
+
+    [Fact]
     public void ElFicheroTieneLasPaginasYPosicionesDelDiseno2026()
     {
         var d = Ejemplo();
