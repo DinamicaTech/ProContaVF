@@ -124,4 +124,20 @@ public static class MigracionesDocumentos
             new("DocumentosVinculos", "Operador", "Operador que lo vinculó."),
         ],
     };
+
+    /// <summary>
+    /// Justificantes de los modelos por el gestor documental (esquema 75; documentos 2026-11-18, parte b): cada presentación apunta al documento de su
+    /// PDF justificante (PresentacionesAeat.IdDocumento); RutaPdf se sigue rellenando con su ruta para abrirlo.
+    /// </summary>
+    public static Migracion Presentaciones { get; } = new(
+        "20261118_1900_DOCUMENTOS_PRESENTACIONES", 261118004,
+        "Gestor documental: cada presentación de un modelo apunta al documento de su PDF justificante.",
+        "documentos",
+        new AnadirColumna("PresentacionesAeat", "IdDocumento", "LONG"))
+    {
+        Descripciones =
+        [
+            new("PresentacionesAeat", "IdDocumento", "Documento del gestor documental con el PDF justificante (tipo «Modelo presentado», vinculado al modelo y periodo); RutaPdf guarda su ruta."),
+        ],
+    };
 }

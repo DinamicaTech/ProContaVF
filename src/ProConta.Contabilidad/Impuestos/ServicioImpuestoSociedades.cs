@@ -255,19 +255,35 @@ public sealed class ServicioImpuestoSociedades(IBaseDatos bd, IMotorAsientos mot
         return Path.Combine(ruta, anio, "Impuestos", $"DatosFiscalesIS-{anio}.htm");
     }
 
-    /// <summary>Guarda una copia del HTML importado en <see cref="RutaDatosFiscalesAsync"/> (sustituye la anterior); devuelve la ruta, o null si no hay dónde.</summary>
-    public async Task<string?> GuardarDatosFiscalesAsync(ContextoSociedadEjercicio ctx, byte[] contenido)
+    /// <summary>
+    /// Guarda una copia del HTML importado por el gestor documental (documentos 2026-11-18, parte b): en <see cref="RutaDatosFiscalesAsync"/> la
+    /// primera vez y, si se vuelve a importar otro distinto, como versión nueva del mismo documento (la anterior se conserva). Queda vinculado al
+    /// ejercicio. Devuelve la ruta del fichero guardado, o null si la empresa no tiene carpeta de documentos.
+    /// </summary>
+    public async Task<string?> GuardarDatosFiscalesAsync(ContextoSociedadEjercicio ctx, byte[] contenido, string operador = "programa")
     {
         if (await RutaDatosFiscalesAsync(ctx) is not { } ruta) return null;
-        Directory.CreateDirectory(Path.GetDirectoryName(ruta)!);
-        await File.WriteAllBytesAsync(ruta, contenido);
-        return ruta;
+        var anio = ctx.Ejercicio.ToString(CultureInfo.InvariantCulture);
+        var r = await new ProConta.Documentos.ServicioDocumentos(bd, operador, _reloj).GuardarAsync(new ProConta.Documentos.SolicitudDocumento(
+            ctx.IdSociedad, "DATOS_FISCALES", $"Datos fiscales de Hacienda {anio}", Path.GetDirectoryName(ruta)!, Path.GetFileName(ruta), _reloj.Ahora.Date, ctx.Ejercicio,
+            "IMPUESTO_SOCIEDADES", [new ProConta.Documentos.Vinculo(ProConta.Documentos.TiposEntidad.Ejercicio, ctx.IdSociedadEjercicio, null, $"Ejercicio {anio}")],
+            Motivo: "Importados en el Impuesto sobre Sociedades", VersionSiMismoNombre: true), contenido);
+        if (!r.EsCorrecto) throw new IOException(r.Error!.TextoOperador());
+        return r.Valor.RutaCompleta;
     }
 
-    /// <summary>Lee el HTML guardado del ejercicio, si lo hay (null: no hay fichero guardado).</summary>
+    /// <summary>El fichero de datos fiscales vigente del ejercicio (la última versión guardada), o null si no hay ninguno.</summary>
+    public async Task<string?> RutaVigenteDatosFiscalesAsync(ContextoSociedadEjercicio ctx)
+    {
+        if (await RutaDatosFiscalesAsync(ctx) is not { } ruta) return null;
+        if (await new ProConta.Documentos.ServicioDocumentos(bd, "programa", _reloj).VigenteDeAsync(ctx.IdSociedad, ruta) is { } vigente && File.Exists(vigente)) return vigente;
+        return File.Exists(ruta) ? ruta : null;
+    }
+
+    /// <summary>Lee el HTML guardado del ejercicio (su última versión), si lo hay (null: no hay fichero guardado).</summary>
     public async Task<Resultado<DatosFiscalesAeat>?> LeerDatosFiscalesGuardadosAsync(ContextoSociedadEjercicio ctx, DatosImpuestoSociedades datos)
     {
-        if (await RutaDatosFiscalesAsync(ctx) is not { } ruta || !File.Exists(ruta)) return null;
+        if (await RutaVigenteDatosFiscalesAsync(ctx) is not { } ruta) return null;
         return await ImportarDatosFiscalesAsync(ctx, await File.ReadAllBytesAsync(ruta), datos);
     }
 

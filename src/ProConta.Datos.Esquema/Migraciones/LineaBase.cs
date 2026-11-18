@@ -120,6 +120,7 @@ public static class CatalogoMigraciones
         MigracionesModelosTributarios.DatosModelos,
         MigracionesModelosTributarios.PantallaModelos,
         MigracionesDocumentos.GestorDocumental,
+        MigracionesDocumentos.Presentaciones,
     ];
 
     /// <summary>Versión del esquema que espera esta versión del programa.</summary>

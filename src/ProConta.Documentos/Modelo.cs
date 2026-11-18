@@ -181,6 +181,8 @@ public sealed record DestinoVinculo(Vinculo Vinculo, string Detalle)
 /// <param name="Subcarpeta">Relativa a la carpeta de documentos de la empresa (por ejemplo «2026\Modelos»), o una ruta completa fuera de ella.</param>
 /// <param name="NombreFichero">Nombre propuesto, con su extensión.</param>
 /// <param name="NuevaVersionDe">Documento del que esto es una versión nueva (por ejemplo, el PDF regenerado de una factura); null: documento nuevo.</param>
+/// <param name="VersionSiMismoNombre">Si ya hay un documento con un fichero en esa misma ruta (subcarpeta y nombre), lo nuevo es una versión suya
+/// (el acta regenerada, los datos fiscales importados otra vez…) en lugar de otro documento.</param>
 public sealed record SolicitudDocumento(
     string IdSociedad,
     string Tipo,
@@ -192,7 +194,8 @@ public sealed record SolicitudDocumento(
     string Origen,
     IReadOnlyList<Vinculo> Vinculos,
     int? NuevaVersionDe = null,
-    string? Motivo = null);
+    string? Motivo = null,
+    bool VersionSiMismoNombre = false);
 
 /// <summary>Resultado de guardar o registrar un documento.</summary>
 public sealed record DocumentoGuardado(int IdDocumento, int IdVersionDocumento, int NumeroVersion, string Ruta, string RutaCompleta, bool YaExistia);

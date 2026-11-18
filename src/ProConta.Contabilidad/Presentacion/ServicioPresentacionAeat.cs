@@ -231,10 +231,8 @@ public sealed class ServicioPresentacionAeat(IBaseDatos bd, IClienteAeat cliente
             try
             {
                 var pdf = await cliente.DescargarAsync(r.UrlPdf, cert, cancelacion);
-                var ruta = await RutaJustificanteAsync(ctx.IdSociedad, d, r.Justificante ?? r.Csv!, entorno);
-                Directory.CreateDirectory(Path.GetDirectoryName(ruta)!);
-                await File.WriteAllBytesAsync(ruta, pdf, cancelacion);
-                await bd.EjecutarAsync(s => s.EjecutarAsync("UPDATE PresentacionesAeat SET RutaPdf = ? WHERE IdPresentacionAeat = ?", Recortar(ruta, 255), id));
+                var ruta = await JustificantesModelos.ArchivarAsync(bd, actor.ToString(), _reloj, ctx.IdSociedad, d.Modelo, d.Ejercicio, d.Periodo, r.Justificante ?? r.Csv!, entorno,
+                    fecha, id, pdf, cancelacion);
                 guardada = guardada with { RutaPdf = ruta };
             }
             catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or IOException or UnauthorizedAccessException)
@@ -258,10 +256,8 @@ public sealed class ServicioPresentacionAeat(IBaseDatos bd, IClienteAeat cliente
         {
             var pdf = await cliente.DescargarAsync(p.UrlPdf, cert, cancelacion);
             var entorno = p.EsPruebas ? EntornoAeat.Pruebas : EntornoAeat.Produccion;
-            var ruta = await RutaJustificanteAsync(ctx.IdSociedad, p.Modelo, p.Ejercicio, p.Periodo, p.Justificante, entorno);
-            Directory.CreateDirectory(Path.GetDirectoryName(ruta)!);
-            await File.WriteAllBytesAsync(ruta, pdf, cancelacion);
-            await bd.EjecutarAsync(s => s.EjecutarAsync("UPDATE PresentacionesAeat SET RutaPdf = ? WHERE IdPresentacionAeat = ?", Recortar(ruta, 255), p.Id));
+            var ruta = await JustificantesModelos.ArchivarAsync(bd, p.Operador ?? "programa", _reloj, ctx.IdSociedad, p.Modelo, p.Ejercicio, p.Periodo, p.Justificante, entorno,
+                p.FechaHora, p.Id, pdf, cancelacion);
             return Resultado<string>.Correcto(ruta);
         }
         catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or IOException or UnauthorizedAccessException)
@@ -364,17 +360,6 @@ public sealed class ServicioPresentacionAeat(IBaseDatos bd, IClienteAeat cliente
     /// «Modelos AEAT» \ modelo, con el nombre «303 2026 1T 3030000000000.pdf»; en el entorno de pruebas, con «PRUEBAS» delante.
     /// Sin carpeta de documentos, junto a la BD.
     /// </summary>
-    private Task<string> RutaJustificanteAsync(string idSociedad, DeclaracionAeat d, string justificante, EntornoAeat entorno) =>
-        RutaJustificanteAsync(idSociedad, d.Modelo, d.Ejercicio, d.Periodo, justificante, entorno);
-
-    private async Task<string> RutaJustificanteAsync(string idSociedad, string modelo, int ejercicio, string periodo, string justificante, EntornoAeat entorno)
-    {
-        var ruta = await bd.EjecutarAsync(s => s.EscalarAsync("SELECT RutaDocumentos FROM Sociedades WHERE IdSociedad = ?", idSociedad));
-        var raiz = CarpetaEmpresa(bd.Ruta, ruta as string);
-        var nombre = $"{(entorno == EntornoAeat.Pruebas ? "PRUEBAS " : "")}{modelo} {ejercicio} {periodo} {justificante}.pdf";
-        return Path.Combine(raiz, ejercicio.ToString(CultureInfo.InvariantCulture), "Modelos AEAT", modelo, string.Concat(nombre.Split(Path.GetInvalidFileNameChars())));
-    }
-
     /// <summary>Carpeta de la empresa: la ruta completa tal cual; una relativa o vacía, junto a la BD.</summary>
     public static string CarpetaEmpresa(string rutaBd, string? rutaDocumentos)
     {

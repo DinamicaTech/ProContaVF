@@ -454,11 +454,9 @@ public sealed class RepartoDividendosVM : ModeloVista, IPestanaTrabajo
             if (datos.Avisos.Count > 0 && _dialogos.Preguntar("Acta del reparto de dividendos", "Faltan datos en las fichas para que el acta salga completa:", datos.Avisos,
                     new OpcionMensaje("Generar igualmente", "Genera el acta con lo que hay", Principal: true), new OpcionMensaje("Cancelar", "Completa antes las fichas", Cancelar: true)) != 0)
                 return;
-            var ruta = await actas.RutaAsync(_ctx.Trabajo, datos);
             var html = ActaDividendos.Html(datos);
             var pdf = await Task.Run(() => aPdf(html));
-            Directory.CreateDirectory(Path.GetDirectoryName(ruta)!);
-            await File.WriteAllBytesAsync(ruta, pdf);
+            var ruta = await actas.GuardarAsync(_ctx.Trabajo, datos, pdf, _ctx.Actor.ToString());
             _ctx.Avisar($"Acta del reparto guardada en {ruta}.");
             _ctx.AbrirFichero?.Invoke(ruta);
         }
