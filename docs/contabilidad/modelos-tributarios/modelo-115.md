@@ -4,15 +4,24 @@ status: draft
 depends_on: [contabilidad/modelos-tributarios, contabilidad/modelos-tributarios/presentacion, compras/factura-compra]
 threads:
   - 2026-11-17 13:50 · Analizar los servicios web de la AEAT | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GSezTWx3SmyHa8owaSHFbbN
+  - 2026-11-18 06:20 · Completar los modelos tributarios y su pantalla | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GWW9gQjRoqJLGy11fuziWXQ
 ---
 ## Summary
-Retenciones de arrendamientos de inmuebles urbanos, trimestral: las retenciones de las facturas de alquiler recibidas del trimestre, fichero con el diseño de registro del ejercicio, PDF oficial y presentación con la pieza común (`presentacion`), con domiciliación.
+Retenciones de arrendamientos de inmuebles urbanos, trimestral: arrendadores, base y retenciones de las facturas de alquiler recibidas del trimestre, fichero con el diseño de registro de la AEAT (`sources/aeat/DR115v13.xls`), PDF oficial (ServaliDos) y presentación con la pieza común (`presentacion`), con domiciliación dentro de plazo o NRC fuera de él, y complementarias.
+Hecho, pendiente de validar con la pantalla única «Modelos tributarios» (sin menú propio): `src/ProConta.Contabilidad/Modelos` (`Modelo115`, `FicheroRetenciones`, `ServicioRetenciones.Modelo115`, con el mismo contrato que `Servicio303`; el cálculo común está descrito en contabilidad/modelos-tributarios/modelo-111). Calcula cualquier ejercicio. En la copia de pruebas no hay alquileres con retención en 2025 ni en 2026: todos los trimestres salen negativos (sin actividad), y no hay 115 presentados en la carpeta de la gestoría para contrastar.
 Después de la Versión Mínima Viable.
 **Aceptación:** el fichero generado con datos de prueba pasa la validación de la AEAT (ServaliDos) sin errores y su PDF muestra en cada casilla el importe que da el programa; en el entorno de pruebas de la AEAT se presenta y queda registrado con su CSV y justificante; el total retenido coincide con lo que el aviso S4 espera en la 4751 de arrendamientos del trimestre.
 
 ## Decisions
 - 2026-11-17 13:50 · Creado como borrador desde el hilo «Analizar los servicios web de la AEAT», con el árbol acordado con el propietario (2026-11-17 12:48 y 13:46): un nodo por modelo, con la pieza común en contabilidad/modelos-tributarios/presentacion. El PDF del modelo es el que devuelve la AEAT y lo que sale a ingresar se domicilia (ver contabilidad/modelos-tributarios/presentacion 2026-11-17 13:50).
+- 2026-11-18 07:00 · Hecho en la rama claude/project-thread-v1z0ue con el mismo servicio que el 111 (`ServicioRetenciones`), sin menú ni pantalla y sin cambio de esquema; las decisiones de lectura de facturas, forma de pago, complementaria, bloqueos y cuadre con las 4751 son las del 111 (contabilidad/modelos-tributarios/modelo-111 2026-11-18 07:00).
+- 2026-11-18 07:00 · Alquileres: facturas de compra no duplicadas con retención de clase 2 (TipoRetencion, «arrendamientos»), por la fecha de su asiento (la de la factura si no lo tiene). 01 arrendadores distintos (el proveedor de la ficha), 02 base imponible de las facturas, 03 retenciones (las migradas sin importe: base × porcentaje por factura), 04 resultado de las declaraciones anteriores del periodo, 05 = 03 − 04. Sin alquileres con retención en el trimestre, la declaración es negativa (N), todo a cero. Una factura con retención y sin clase bloquea el 115 y el 111 hasta que se elija; una de alquiler sin contabilizar bloquea el 115.
+- 2026-11-18 07:00 · Fichero: cabecera &lt;T1150EEEEPP0000&gt; con &lt;AUX&gt;, una página 01 de 500 posiciones con los perceptores en 15 posiciones y el cierre. ServaliDos validó sin errores ni avisos el 1T-3T de 2026 de ProConta-modelos-01 (negativas) y su PDF muestra 0,00.
+- 2026-11-18 07:00 · Pruebas: las de `ModelosRetencionesTests` y `RetencionesAccessTests` (casillas, posiciones del 115, negativa, complementaria, bloqueos por clase y cuadre con la 4751 de alquileres).
 
 ## Requirements
 - 2026-11-17 13:50 · Derived from contabilidad/modelos-tributarios/presentacion: generar el fichero del modelo con el diseño de registro de su ejercicio para validarlo y presentarlo con la pieza común.
 - 2026-11-17 13:50 · draft: Generar el modelo 115 de cada trimestre desde las facturas de alquiler recibidas con retención: fichero con el diseño de registro del ejercicio, PDF oficial de la AEAT y presentación directa con domiciliación, con la pieza común contabilidad/modelos-tributarios/presentacion, después de la Versión Mínima Viable.
+
+## Hand-over
+- 2026-11-18 07:00 · Hecho en la rama claude/project-thread-v1z0ue (sin PR: la abre el hilo coordinador), con la copia C:\Docs\ProContaVF-validacion\ProConta-modelos-01.accdb. Pendiente: la pantalla única «Modelos tributarios» y la validación del propietario.
