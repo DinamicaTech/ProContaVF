@@ -180,7 +180,6 @@ public sealed class ServicioPdfFacturas
             if (soc == default) return Resultado<PdfFactura>.Fallo(new Error("Facturas.SinSociedad", "La sociedad de la factura no existe.", f.Rotulo));
 
             var proforma = f.NumeroFactura is null;
-            string? destino = null;
             string? relativa = null;
             if (!proforma)
             {
@@ -188,12 +187,12 @@ public sealed class ServicioPdfFacturas
                     return Resultado<PdfFactura>.Fallo(new Error("Facturas.SinCarpetaDocumentos", $"La empresa {soc.Nombre} no tiene carpeta de documentos, y es donde se guarda el PDF.", f.Rotulo, null,
                         "Escríbela en Configuración › Parámetros y tablas › Empresas (grupo «Rutas y bases de datos») y vuelve a pedir el PDF."));
                 relativa = await _bd.EjecutarAsync(s => s.EscalarAsync("SELECT PDFFactura FROM Facturas WHERE IdFactura = ?", idFactura)) as string;
-                if (!regenerar && !string.IsNullOrWhiteSpace(relativa) && File.Exists(Path.Combine(soc.Raiz.Trim(), relativa)))
-                    return Resultado<PdfFactura>.Correcto(new PdfFactura(Path.Combine(soc.Raiz.Trim(), relativa), false, false));
+                var raiz = ProConta.Documentos.RutasDocumentos.Raiz(soc.Raiz, _bd.Ruta);
+                if (!regenerar && !string.IsNullOrWhiteSpace(relativa) && File.Exists(ProConta.Documentos.RutasDocumentos.Completa(raiz, relativa)))
+                    return Resultado<PdfFactura>.Correcto(new PdfFactura(ProConta.Documentos.RutasDocumentos.Completa(raiz, relativa), false, false));
                 if (!await _autorizador.PuedeAsync(Acciones.FacturasEditar))
                     return Resultado<PdfFactura>.Fallo(new Error("Seguridad.SinPermiso", "No tienes permiso para generar el PDF de las facturas.", f.Rotulo, null, "Pídeselo a quien administra los permisos."));
                 relativa = ConstructorPdfFactura.RutaRelativa(ejercicio.Ejercicio, f.NumeroFactura!, f.Cliente.NombreVisible);
-                destino = Path.Combine(soc.Raiz.Trim(), relativa);
             }
 
             var cliente = proforma && f.IdCliente is int idCliente ? await _facturas.InstantaneaClienteAsync(idCliente) ?? f.Cliente : f.Cliente;
@@ -216,14 +215,17 @@ public sealed class ServicioPdfFacturas
                 return Resultado<PdfFactura>.Correcto(new PdfFactura(temporal, true, true));
             }
 
-            Directory.CreateDirectory(Path.GetDirectoryName(destino!)!);
-            // Primero a un temporal en la misma carpeta: un fallo a medias no deja un PDF cortado con el nombre definitivo.
-            var parcial = destino + ".tmp";
-            await File.WriteAllBytesAsync(parcial, bytes);
-            File.Move(parcial, destino!, overwrite: true);
+            // Por el gestor documental (documentos 2026-11-18, parte c): mismo nombre y carpeta; regenerar guarda una versión nueva y la anterior se
+            // conserva (lo ya enviado sigue apuntando a ella). Queda vinculado a la factura y al cliente.
+            var vinculos = new List<ProConta.Documentos.Vinculo> { new(ProConta.Documentos.TiposEntidad.FacturaVenta, idFactura, null, $"{f.NumeroFactura} · {f.Cliente.NombreVisible}") };
+            if (f.IdCliente is int cli) vinculos.Add(new(ProConta.Documentos.TiposEntidad.Tercero, cli, null, f.Cliente.NombreVisible));
+            var guardado = await new ProConta.Documentos.ServicioDocumentos(_bd, actor.Nombre, _reloj).GuardarAsync(new ProConta.Documentos.SolicitudDocumento(
+                ejercicio.IdSociedad, "FACTURA_VENTA", $"Factura {f.NumeroFactura} {f.Cliente.NombreVisible}", Path.GetDirectoryName(relativa!) ?? "", Path.GetFileName(relativa!),
+                f.FechaFactura?.Date, ejercicio.Ejercicio, "FACTURA_VENTA", vinculos, Motivo: regenerar ? "PDF regenerado" : "PDF generado", VersionSiMismoNombre: true), bytes);
+            if (!guardado.EsCorrecto) return Resultado<PdfFactura>.Fallo(guardado.Errores);
             f.Anotar(_reloj.Ahora, actor.Nombre, regenerar ? "PDF regenerado" : "PDF generado");
-            await _bd.EjecutarAsync(s => s.EjecutarAsync("UPDATE Facturas SET PDFFactura = ?, Historial = ? WHERE IdFactura = ?", relativa, f.Historial, idFactura));
-            return Resultado<PdfFactura>.Correcto(new PdfFactura(destino!, false, true));
+            await _bd.EjecutarAsync(s => s.EjecutarAsync("UPDATE Facturas SET PDFFactura = ?, Historial = ? WHERE IdFactura = ?", guardado.Valor.Ruta, f.Historial, idFactura));
+            return Resultado<PdfFactura>.Correcto(new PdfFactura(guardado.Valor.RutaCompleta, false, true));
         }
         catch (ExcepcionDatos ex)
         {

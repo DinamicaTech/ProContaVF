@@ -5,6 +5,7 @@ threads:
   - 2026-10-28 12:30 · Carga de requisitos | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GRNMH95h9tnQp4dmEPHmw1w
   - 2026-10-31 07:46 · Validar prototipos de pantallas principales | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GGPu88XoVeXWyHsuxbrF2kK
   - 2026-11-05 11:24 · Construir facturas de compra | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GEbtcX2Z7baM2yhwHY2wJXj
+  - 2026-11-18 18:45 · Diseñar el gestor documental | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GWo8SybrmKimtCP8FKpt7zw
 ---
 ## Summary
 Ente FacturaCompra con sus desgloses: inserción atómica, MD5 compatible del PDF para duplicados, configuración por sociedad y destino por sociedad/ejercicio.
@@ -48,3 +49,4 @@ Ente FacturaCompra con sus desgloses: inserción atómica, MD5 compatible del PD
 - 2026-11-16 19:30 · Derived from norma43/conciliacion/actualizar-textos: al guardar y al exportar una factura, avisa a la conciliación (`IAsientosBancoEnlazados.FacturaCompraCambiadaAsync`) para que actualice el número y el concepto abreviado en el asiento de banco del movimiento que la paga.
 - 2026-11-17 20:35 · Derived from activos: al elegir una cuenta de gasto que es una subcuenta de un activo, si el centro de coste está vacío se rellena con el del activo (modificable); si ya hay otro centro, aviso que no bloquea. La ficha del activo lista las facturas de compra por su cuenta de gasto o su centro y abre la factura con doble clic.
 - 2026-11-18 07:00 · Derived from contabilidad/modelos-tributarios/modelo-111 y modelo-115: la clase de retención de cada factura con retención (TipoRetencion 1 profesionales, 111; 2 arrendamientos, 115), su base, su porcentaje y su importe de retención (en las migradas del ERP solo hay porcentaje: el modelo usa base × porcentaje por factura), su proveedor y su asiento. Una factura con retención sin clase o sin contabilizar impide presentar el modelo del trimestre.
+- 2026-11-18 18:45 · Derived from documentos: el PDF de cada factura registrada queda en el gestor documental donde está (sin moverlo), vinculado a la factura y al proveedor; moverlo a la carpeta del proveedor, cambiar el proveedor o separar la factura lo actualizan.

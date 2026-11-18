@@ -155,6 +155,34 @@ public sealed class ServicioFacturasCompra(
         return true;
     }
 
+    /// <summary>
+    /// Deja el PDF de la factura en el gestor documental (documentos 2026-11-18, parte c): registrado donde está, sin moverlo, como «Factura
+    /// recibida» vinculada a la factura y a su proveedor; si Compras lo ha movido a la carpeta del proveedor, se actualiza la ruta, y si se ha
+    /// partido, la primera parte es una versión nueva. Si falla, no detiene a Compras: la factura sigue registrada y se reintenta al guardarla.
+    /// </summary>
+    internal async Task SincronizarDocumentoAsync(FacturaCompra f, CancellationToken cancelacion = default)
+    {
+        if (f.IdRegistro <= 0 || string.IsNullOrWhiteSpace(f.RutaPdf) || !File.Exists(f.RutaPdf)) return;
+        try
+        {
+            var proveedor = f.IdProveedor is int idp
+                ? await bd.EjecutarAsync(s => s.EscalarAsync("SELECT Nombre FROM Terceros WHERE IdTercero = ?", idp), cancelacion) as string
+                : null;
+            proveedor = (proveedor ?? f.NombreProveedorAeat ?? "").Trim();
+            var numero = string.IsNullOrWhiteSpace(f.NumeroFactura) ? f.NombreFichero : f.NumeroFactura.Trim();
+            var clave = new ProConta.Documentos.Vinculo(ProConta.Documentos.TiposEntidad.FacturaCompra, f.IdRegistro, null, proveedor.Length > 0 ? $"{numero} · {proveedor}" : numero);
+            var vinculos = new List<ProConta.Documentos.Vinculo> { clave };
+            if (f.IdProveedor is int idProv) vinculos.Add(new(ProConta.Documentos.TiposEntidad.Tercero, idProv, null, proveedor.Length > 0 ? proveedor : $"Proveedor {idProv}"));
+            await new ProConta.Documentos.ServicioDocumentos(bd, "Compras", _reloj).SincronizarAsync(new ProConta.Documentos.SolicitudDocumento(
+                f.Ejercicio.IdSociedad, "FACTURA_COMPRA", proveedor.Length > 0 ? $"Factura {numero} {proveedor}" : $"Factura {numero}", "", f.NombreFichero, f.Fecha?.Date,
+                f.Ejercicio.Ejercicio, "FACTURA_COMPRA", vinculos), f.RutaPdf, clave, cancelacion);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            // El gestor documental es secundario aquí: la factura ya está registrada.
+        }
+    }
+
     /// <summary>Contexto del reconocimiento para un PDF: configuración de la empresa, NIF conocidos, proveedor de la carpeta e histórico.</summary>
     public Task<(ContextoProcesamiento Contexto, ProveedorCarpeta? Proveedor)> CargarContextoAsync(
         ContextoSociedadEjercicio ctx, string rutaPdf, CancellationToken cancelacion = default) =>
@@ -306,7 +334,11 @@ public sealed class ServicioFacturasCompra(
         }
         factura.OrigenDocumento ??= EnRaiz(rutaPdf) ? OrigenesDocumento.Raiz : OrigenesDocumento.Carpeta;
         var registrada = await RegistrarAsync(factura, cancelacion);
-        if (registrada.Factura is { } f) await MoverDesdeRaizAsync(f, cancelacion);
+        if (registrada.Factura is { } f)
+        {
+            await MoverDesdeRaizAsync(f, cancelacion);
+            await SincronizarDocumentoAsync(f, cancelacion);
+        }
         return registrada;
     }
 
@@ -424,6 +456,7 @@ public sealed class ServicioFacturasCompra(
         if (!r.EsCorrecto) return Resultado.Fallo(r.Errores);
         factura.Version = r.Valor;
         await MoverDesdeRaizAsync(factura, cancelacion);
+        await SincronizarDocumentoAsync(factura, cancelacion);
         await AprenderAsync(factura, elegidos, cancelacion);
         return Resultado.Correcto();
     }
@@ -510,6 +543,7 @@ public sealed class ServicioFacturasCompra(
         leida.RequiereRevision = true;
         var reemplazo = await bd.EnTransaccionAsync(s => RepositorioFacturasCompra.ReemplazarPdfAsync(s, leida), cancelacion);
         if (!reemplazo.EsCorrecto) return Resultado<ImportacionPdf>.Fallo(reemplazo.Errores);
+        await SincronizarDocumentoAsync(leida, cancelacion);
         return Resultado<ImportacionPdf>.Correcto(await ImportarAsync(ctx, ruta2, cancelacion));
     }
 

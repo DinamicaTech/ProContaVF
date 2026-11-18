@@ -18,6 +18,7 @@
     <ProjectReference Include="..\ProConta.Mantenimiento\ProConta.Mantenimiento.csproj" />
     <ProjectReference Include="..\ProConta.Terceros\ProConta.Terceros.csproj" />
     <ProjectReference Include="..\ProConta.Correo\ProConta.Correo.csproj" />
+    <ProjectReference Include="..\ProConta.Documentos\ProConta.Documentos.csproj" />
   </ItemGroup>
   <ItemGroup>
     <InternalsVisibleTo Include="ProConta.Compras.Tests" />
