@@ -907,6 +907,70 @@ public sealed class FichaTerceroVM : Observable, IPestanaTrabajo, INotifyDataErr
         return textos;
     }
 
+    /// <summary>
+    /// Si se ha cambiado la subcuenta de un rol de cliente o proveedor y la antigua tiene algo que pasar en los ejercicios abiertos,
+    /// enseña qué se pasaría y pregunta (terceros/roles/cambio-subcuenta). Devuelve las propuestas aceptadas (vacía si no hay nada
+    /// o se elige «Solo para lo nuevo») o null si se cancela el guardado.
+    /// </summary>
+    private async Task<List<PropuestaCambioSubcuenta>?> PreguntarCambiosSubcuentaAsync(Tercero? antes)
+    {
+        var aceptadas = new List<PropuestaCambioSubcuenta>();
+        if (Servicios.CambioSubcuenta is not { } cambio) return aceptadas;
+        foreach (var c in CambioSubcuentaTercero.QueCambiar(antes, T))
+        {
+            var describir = ServicioRoles.Describir(c.Clase);
+            Nucleo.Resultados.Resultado<PropuestaCambioSubcuenta> r;
+            try
+            {
+                r = await Task.Run(() => cambio.ProponerAsync(c));
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                r = Nucleo.Resultados.Resultado<PropuestaCambioSubcuenta>.Fallo(new Nucleo.Resultados.Error("CambioSubcuenta.Lectura", ex.Message, null));
+            }
+            if (!r.EsCorrecto)
+            {
+                var o = Dialogos.Preguntar($"No he podido revisar la {describir}",
+                    $"No he podido calcular qué apuntes pasarían a la subcuenta nueva: {r.Error!.Mensaje} {r.Error.AccionCorrectora}".TrimEnd(), null,
+                    new OpcionMensaje("Volver a la ficha", "No guarda: puedes revisar la subcuenta o volver a intentarlo", Principal: true, Cancelar: true),
+                    new OpcionMensaje("Guardar sin pasar los apuntes", "La subcuenta nueva solo vale para lo que se contabilice desde ahora"));
+                if (o != 1) return null;
+                continue;
+            }
+            var p = r.Valor;
+            if (!p.HayQueDecidir) continue;
+            var opcion = Dialogos.Preguntar($"Cambiar la {describir}",
+                $"Cambias la {describir} de {NombreCabecera} de la {p.CodigoAntiguo} a la {p.CodigoNuevo}. {p.Resumen} ¿Paso también lo ya contabilizado para que facturas y cobros o pagos sigan en la misma subcuenta?",
+                p.Detalles,
+                new OpcionMensaje("Pasar también los apuntes", $"Guarda la ficha y pasa a la {p.CodigoNuevo} lo indicado, con registro de cambios", Principal: true),
+                new OpcionMensaje("Solo para lo nuevo", $"Guarda la ficha; lo ya contabilizado sigue en la {p.CodigoAntiguo}"),
+                new OpcionMensaje("Cancelar", "No guarda: vuelves a la ficha", Cancelar: true));
+            if (opcion == 2 || opcion < 0) return null;
+            if (opcion == 0) aceptadas.Add(p);
+        }
+        return aceptadas;
+    }
+
+    /// <summary>Tras guardar, pasa los apuntes de las subcuentas cambiadas que el operador ha aceptado; devuelve los textos del aviso.</summary>
+    private async Task<List<string>> TrasladarSubcuentasAsync(IReadOnlyList<PropuestaCambioSubcuenta> traslados, string nombre)
+    {
+        var textos = new List<string>();
+        if (Servicios.CambioSubcuenta is not { } cambio) return textos;
+        foreach (var p in traslados)
+        {
+            try
+            {
+                textos.AddRange((await Task.Run(() => cambio.EjecutarAsync(p, nombre, Servicios.Actor, Servicios.Contexto))).Textos);
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                textos.Add($"He guardado la ficha, pero no he podido pasar los apuntes de la {p.CodigoAntiguo} a la {p.CodigoNuevo} ({ex.Message}). " +
+                    $"Para repetirlo, vuelve a poner la {p.CodigoAntiguo} en el rol, guarda, pon la {p.CodigoNuevo} y guarda otra vez.");
+            }
+        }
+        return textos;
+    }
+
     internal void FijarCuenta(ClaseCuentaRol clase, int? identidad)
     {
         T.CuentasRoles ??= new CuentasRolesFicha(Servicios.Contexto.IdSociedad);
@@ -1160,6 +1224,9 @@ public sealed class FichaTerceroVM : Observable, IPestanaTrabajo, INotifyDataErr
         }
 
         var antes = _original;
+        // Otra subcuenta en un rol: se pregunta antes de guardar si se pasan también sus apuntes (terceros/roles/cambio-subcuenta).
+        var traslados = await PreguntarCambiosSubcuentaAsync(antes);
+        if (traslados is null) return false;
         var subcuentas = await CrearSubcuentasAlGuardarAsync();
         Guardando = true;
         try
@@ -1187,6 +1254,7 @@ public sealed class FichaTerceroVM : Observable, IPestanaTrabajo, INotifyDataErr
                 }
             }
             _rolNuevo = null;
+            subcuentas.AddRange(await TrasladarSubcuentasAsync(traslados, nombre));
             if (antes is not null) subcuentas.AddRange(await EliminarSubcuentasQuitadasAsync(antes, r.Valor));
             await MostrarAsync(r.Valor);
             GuardadoFallido = false;

@@ -153,8 +153,27 @@ public sealed class SubcuentasRoles(IBaseDatos bd, ICatalogoCuentas cuentas, IRe
             q.IdIdentidadContable);
     }
 
+    /// <summary>
+    /// Tras cambiar la subcuenta de un rol y pasar sus apuntes a la nueva (terceros/roles/cambio-subcuenta), borra la antigua con la
+    /// misma regla que al quitar un rol (sin movimientos en los últimos 5 años y sin otro tercero o registro que la use), sin tocar el
+    /// rol, que ya tiene la nueva. Devuelve el texto para el aviso.
+    /// </summary>
+    public async Task<string> EliminarAntiguaAsync(ClaseCuentaRol clase, int idIdentidadAntigua, ContextoSociedadEjercicio contexto)
+    {
+        var ultima = await cuentas.UltimaCuentaDeIdentidadAsync(idIdentidadAntigua);
+        var codigo = ultima?.Codigo.Trim() ?? "";
+        if (await bd.EjecutarAsync(s => OtrosUsosAsync(s, new SubcuentaQuitada(clase, -1, idIdentidadAntigua))) > 0)
+            return $"La {codigo} se conserva porque la usa otro tercero o rol.";
+        var r = await cuentas.EliminarSinMovimientosDesdeAsync(contexto, idIdentidadAntigua, _reloj.Ahora.Date.AddYears(-AniosSinMovimientos));
+        if (!r.EsCorrecto) return $"La {codigo} se conserva: {r.Error!.Mensaje}{(r.Error.Causa is { } c ? " " + c : "")}";
+        var b = r.Valor;
+        if (b.Completo) return $"He borrado la {b.Codigo} «{b.Nombre}», que ya no tiene movimientos.";
+        if (b.Ejercicios.Count == 0) return $"La {b.Codigo} se conserva porque tiene movimientos recientes en un ejercicio cerrado.";
+        return $"He borrado la {b.Codigo} de {string.Join(", ", b.Ejercicios)}, donde ha quedado vacía; se conserva en los ejercicios con movimientos.";
+    }
+
     /// <summary>Cuántas asignaciones de roles (de cualquier tercero) usan la identidad, sin contar la del rol que se quita.</summary>
-    private static async Task<int> OtrosUsosAsync(ISesionDatos s, SubcuentaQuitada q)
+    internal static async Task<int> OtrosUsosAsync(ISesionDatos s, SubcuentaQuitada q)
     {
         int Contar(object? v) => Convert.ToInt32(v, System.Globalization.CultureInfo.InvariantCulture);
         var clientes = Contar(await s.EscalarAsync("SELECT COUNT(*) FROM CuentasClientesSociedad WHERE IdIdentidadContable = ? AND NOT (IdCliente = ? AND Clase = ?)",

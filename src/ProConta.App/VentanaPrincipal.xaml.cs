@@ -172,7 +172,9 @@ public partial class VentanaPrincipal : Window
         var servicios = new ServiciosTerceros(
             new RepositorioTercerosAccess(bd), new BuscadorTerceros(bd), new CatalogoPerfilesAccess(bd), new ServicioRoles(bd, cuentas), cuentas,
             () => new FuenteGeografiaAccess(bd).CargarAsync(), contexto.Contexto, contexto.RazonSocial, new Actor(sesion.NombreOperador),
-            new SubcuentasRoles(bd, cuentas), asientosBanco);
+            new SubcuentasRoles(bd, cuentas), asientosBanco,
+            // Al cambiar la subcuenta de un rol se ofrece pasar sus apuntes (terceros/roles/cambio-subcuenta).
+            new CambioSubcuentaTercero(bd, cuentas, new MotorAsientosAccess(bd), asientosBanco));
         _terceros = new ModuloTerceros(servicios, _area, new DialogosTerceros(servicios));
 
         // Mayor (contabilidad/mayor): pestaña Contabilidad › Mayor y el mismo control embebido en la ficha de terceros.

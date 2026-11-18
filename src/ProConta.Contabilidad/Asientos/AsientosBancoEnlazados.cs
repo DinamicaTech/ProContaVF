@@ -1,3 +1,4 @@
+using ProConta.Datos.Persistencia;
 using ProConta.Nucleo.Auditoria;
 
 namespace ProConta.Contabilidad.Asientos;
@@ -39,7 +40,25 @@ public interface IAsientosBancoEnlazados
     Task<ResultadoAsientosBanco> FacturaCompraCambiadaAsync(int idRegistro, Actor actor);
 
     Task<ResultadoAsientosBanco> TerceroCambiadoAsync(int idTercero, Actor actor);
+
+    /// <summary>
+    /// Movimientos N43 de una subcuenta de tercero que cambia (terceros/roles/cambio-subcuenta), con sus asientos (de ProContaVF o del ERP).
+    /// Sin facturas (<paramref name="idsFacturaVenta"/> y <paramref name="idsRegistroCompra"/> null), los imputados a la identidad antigua;
+    /// con facturas, los enlazados a ellas (la subcuenta la comparte otro tercero).
+    /// </summary>
+    Task<IReadOnlyList<MovimientoBancoTercero>> MovimientosDeSubcuentaAsync(int idIdentidadAntigua, IReadOnlyCollection<int>? idsFacturaVenta,
+        IReadOnlyCollection<int>? idsRegistroCompra) => Task.FromResult<IReadOnlyList<MovimientoBancoTercero>>([]);
+
+    /// <summary>
+    /// Pasa a la identidad nueva las imputaciones vivas de esas líneas a la antigua, dentro de la transacción del cambio, y, con
+    /// <paramref name="palabrasClave"/> (la subcuenta antigua era solo de este tercero), también las palabras clave bancarias que
+    /// asignaban la antigua; devuelve cuántas imputaciones ha cambiado.
+    /// </summary>
+    Task<int> ReimputarAsync(ISesionDatos s, IReadOnlyCollection<int> lineas, int idIdentidadAntigua, int idIdentidadNueva, bool palabrasClave) => Task.FromResult(0);
 }
+
+/// <summary>Movimiento N43 afectado por el cambio de subcuenta de un tercero: sus asientos y si está imputado a la subcuenta antigua.</summary>
+public sealed record MovimientoBancoTercero(int IdLinea, IReadOnlyList<int> Asientos, bool ImputadoALaAntigua);
 
 /// <summary>No hay asientos de banco que actualizar (pruebas y pantallas sin Norma 43).</summary>
 public sealed class SinAsientosBanco : IAsientosBancoEnlazados

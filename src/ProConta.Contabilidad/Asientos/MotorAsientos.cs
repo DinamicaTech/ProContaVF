@@ -135,6 +135,16 @@ public interface IMotorAsientos
     Task<Resultado<Guid>> CambiarCuentaApuntesAsync(ContextoSociedadEjercicio contexto, IReadOnlyCollection<int> idsApunte, string nuevaCuenta, Actor actor, string motivo);
 
     /// <summary>
+    /// Pasa a la subcuenta nueva de un tercero varios apuntes en una operación (terceros/roles/cambio-subcuenta): las mismas reglas que
+    /// <see cref="CambiarCuentaApuntesAsync"/> (ejercicio cerrado, trimestre cerrado salvo el cambio de subcuenta 4XX sin 4751, ni la 572 ni
+    /// las líneas de IVA de un automático), pero sin marcar los automáticos como corregidos a mano, porque al regenerarlos ya salen con la
+    /// subcuenta nueva del tercero. <paramref name="despues"/> corre en la misma transacción (las imputaciones N43).
+    /// </summary>
+    Task<Resultado<Guid>> PasarApuntesDeTerceroAsync(ContextoSociedadEjercicio contexto, IReadOnlyCollection<int> idsApunte, string nuevaCuenta, Actor actor, string motivo,
+        Func<ISesionDatos, Task<Resultado>>? despues = null) =>
+        Task.FromResult(Resultado<Guid>.Fallo(new Error("Asientos.NoDisponible", "Este motor no pasa apuntes de un tercero a otra subcuenta.", contexto.ToString())));
+
+    /// <summary>
     /// Puntea o despuntea apuntes desde el Mayor (contabilidad/mayor 2026-11-11 20:05), también de asientos automáticos y de
     /// periodos cerrados: el punteo no cambia la contabilidad, así que no cambia la versión del asiento. Cada cambio va al
     /// registro de cambios con un IdLote común; se conserva al guardar o regenerar el asiento.
@@ -431,6 +441,14 @@ public sealed partial class MotorAsientosAccess(IBaseDatos bd, PoliticaCuadre? p
         });
 
     public Task<Resultado<Guid>> CambiarCuentaApuntesAsync(ContextoSociedadEjercicio contexto, IReadOnlyCollection<int> idsApunte, string nuevaCuenta, Actor actor, string motivo) =>
+        CambiarCuentaAsync(contexto, idsApunte, nuevaCuenta, actor, motivo, marcarCorregido: true, despues: null);
+
+    public Task<Resultado<Guid>> PasarApuntesDeTerceroAsync(ContextoSociedadEjercicio contexto, IReadOnlyCollection<int> idsApunte, string nuevaCuenta, Actor actor, string motivo,
+        Func<ISesionDatos, Task<Resultado>>? despues = null) =>
+        CambiarCuentaAsync(contexto, idsApunte, nuevaCuenta, actor, motivo, marcarCorregido: false, despues);
+
+    private Task<Resultado<Guid>> CambiarCuentaAsync(ContextoSociedadEjercicio contexto, IReadOnlyCollection<int> idsApunte, string nuevaCuenta, Actor actor, string motivo,
+        bool marcarCorregido, Func<ISesionDatos, Task<Resultado>>? despues) =>
         bd.EnTransaccionAsync(async s =>
         {
             if (string.IsNullOrWhiteSpace(motivo)) return Resultado<Guid>.Fallo(SinMotivo("Cambio de cuenta"));
@@ -482,9 +500,18 @@ public sealed partial class MotorAsientosAccess(IBaseDatos bd, PoliticaCuadre? p
             }
             foreach (var (idAsiento, anterior) in anteriores)
             {
-                await s.EjecutarAsync("UPDATE Asientos SET Version = Version + 1, OperadorModificacion = ?, FechaHoraModificacion = ?, CorregidoAMano = ? WHERE IdAsiento = ?",
-                    actor.ToString(), _reloj.Ahora, anterior.EsAutomatico, idAsiento);
+                if (marcarCorregido)
+                    await s.EjecutarAsync("UPDATE Asientos SET Version = Version + 1, OperadorModificacion = ?, FechaHoraModificacion = ?, CorregidoAMano = ? WHERE IdAsiento = ?",
+                        actor.ToString(), _reloj.Ahora, anterior.EsAutomatico, idAsiento);
+                else
+                    await s.EjecutarAsync("UPDATE Asientos SET Version = Version + 1, OperadorModificacion = ?, FechaHoraModificacion = ? WHERE IdAsiento = ?",
+                        actor.ToString(), _reloj.Ahora, idAsiento);
                 await RevisionAsync(s, idAsiento, OperacionRevision.Modificacion, motivo.Trim(), actor, anterior, (await CargarAsync(s, idAsiento))!);
+            }
+            if (despues is not null)
+            {
+                var hecho = await despues(s);
+                if (!hecho.EsCorrecto) return Resultado<Guid>.Fallo(hecho.Errores);
             }
             await ActualizarSaldosAsync(s, contexto, afectadas);
             return Resultado<Guid>.Correcto(idLote);
