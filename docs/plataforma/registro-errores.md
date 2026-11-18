@@ -1,6 +1,5 @@
 ---
 title: Registro de errores
-status: draft
 depends_on: [plataforma/contenedor, plataforma/conector-claude, plataforma/configuracion]
 threads:
   - 2026-11-18 18:48 · Registrar los errores inesperados | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5G2FNuf3HdhCg2nAo5Gwvfe1
@@ -19,6 +18,7 @@ Los errores ya explicados (BD no encontrada, esquema antiguo, validaciones…) s
 - 2026-11-18 18:37 · Desglose acordado con el propietario («Ok, adelante con todo»): un fichero común por mes en `%LocalAppData%\ProContaVF\errores`, conservado 12 meses; en ProContaVF, aviso con la ruta, «Abrir la carpeta» y «Copiar» sin cerrar el programa; en el conector, el error y la ruta van a Claude en la respuesta de la herramienta; argumento `--provocar-error` para validarlo sin botones nuevos; solo los errores inesperados van al fichero, los ya explicados siguen con su aviso.
 - 2026-11-18 18:48 · Construido: `RegistroErrores` y `ContextoError` en ProConta.Plataforma.Configuracion (escritura compartida con reintentos porque los dos programas usan el mismo fichero), `ErroresInesperados` y `VentanaPrincipal.Errores.cs` en ProConta.App, y `Proteger` en cada herramienta del conector (el SDK de MCP se traga la excepción y devolvería un error genérico, así que se captura dentro de cada herramienta). Pruebas sin BD en ProConta.Plataforma.Configuracion.Tests (RegistroErroresTests) y ProConta.Conector.Tests (ErroresInesperadosConectorTests).
 - 2026-11-18 18:58 · Pantalla de consulta, acordada con el propietario (18:50): Configuración › «Registro de errores», de solo lectura, lee los ficheros de la carpeta (`RegistroErrores.Leer`, de la entrada más reciente a la más antigua; un fichero bloqueado se salta y se avisa). No cambia la BD ni el formato del fichero.
+- 2026-11-18 20:17 · Validado por el propietario («Ok, ya puedes fusionar»): el nodo deja de ser borrador.
 
 ## Requirements
 - 2026-11-18 12:16 · Sí, un registro de errores nos puede resultar necesario. Como nuevo nodo en draft, lo activaré cuando modelos tributarios haya acabado
@@ -27,3 +27,4 @@ Los errores ya explicados (BD no encontrada, esquema antiguo, validaciones…) s
 
 ## Hand-over
 - 2026-11-18 18:48 · Hecho y probado: pruebas automáticas y el conector con `--provocar-error` contra la copia ProConta-errores-01 (el error queda en el fichero y la respuesta da la ruta). La pestaña Configuración › «Registro de errores» se ha revisado fuera de pantalla con dos errores de ejemplo. Falta: validar en pantalla ProContaVF con `--provocar-error` y la pestaña, y, cuando el propietario lo dé por bueno, quitar `status: draft`.
+- 2026-11-18 20:17 · Validado por el propietario y fusionado. No queda nada pendiente.
