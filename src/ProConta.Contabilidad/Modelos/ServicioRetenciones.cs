@@ -271,7 +271,7 @@ public sealed class ServicioRetenciones(IBaseDatos bd, ServicioPresentacionAeat 
         var que = compartidas ? "el 111 y el 115" : $"el {Modelo}";
         var espera = cuentas.Sum(EsperaS4);
         if (Math.Abs(espera - total) > 0.05m)
-            r.Add($"Las 4751 de {que} ({(cuentas.Count == 0 ? "ninguna" : string.Join(", ", cuentas.Order()))}) recogen {Euros(espera)} en el {trimestre}T y {que} da {Euros(total)} " +
+            r.Add($"Las 4751 d{(compartidas ? "el 111 y el 115" : $"el {Modelo}")} ({(cuentas.Count == 0 ? "ninguna" : string.Join(", ", cuentas.Order()))}) recogen {Euros(espera)} en el {trimestre}T y {que} da {Euros(total)} " +
                 $"(diferencia {Euros(espera - total)}): el aviso S4 esperará pagar lo de las 4751. Busca un asiento manual a la 4751, una nómina o factura contabilizada con otra " +
                 "retención o un documento sin contabilizar, y corrígelo antes de presentar.");
         if (Es111)

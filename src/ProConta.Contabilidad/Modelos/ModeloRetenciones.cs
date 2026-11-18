@@ -88,8 +88,10 @@ internal static class CalculoRetenciones
         if (resultado < 0m && rectificativa is not null)
             errores.Add($"La complementaria daría {Euros(resultado)}: lo declarado ahora ({Euros(c[casillaTotal])}) es menos que lo de la anterior ({Euros(rectificativa.ResultadoAnterior)}). " +
                 $"Una complementaria solo puede subir el resultado; para bajarlo hay que pedir la rectificación del {modelo} en la Sede de la AEAT.");
+        // La AEAT rechaza la complementaria del 111 que no sube el importe (error 1011, entorno de pruebas 2026-11-18); se aplica también al 115.
         if (rectificativa is not null && resultado == 0m)
-            avisos.Add($"La complementaria no cambia el resultado ({Euros(c[casillaTotal])}, lo mismo que la anterior): solo tiene sentido si corrige perceptores o bases.");
+            errores.Add($"La complementaria daría lo mismo que la anterior ({Euros(c[casillaTotal])}) y la AEAT no admite una complementaria sin más importe a ingresar. " +
+                $"Para corregir solo perceptores o bases hay que pedir la rectificación del {modelo} en la Sede de la AEAT.");
         if (tipo == 'U')
         {
             if (string.IsNullOrWhiteSpace(declarante.Iban))

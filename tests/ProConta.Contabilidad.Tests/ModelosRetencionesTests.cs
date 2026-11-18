@@ -104,7 +104,7 @@ public sealed class ModelosRetencionesTests
         Assert.Contains(baja.Errores, e => e.Contains("rectificación"));
         var igual = Modelo115.Calcular(Trimestre1(), 2026, 1, Sociedad, new RectificativaRetenciones("1150000000001", 608m));
         Assert.Equal(('N', 0m), (igual.TipoDeclaracion, igual.Resultado));
-        Assert.Contains(igual.Avisos, a => a.Contains("no cambia el resultado"));
+        Assert.Contains(igual.Errores, a => a.Contains("no admite una complementaria sin más importe"));
     }
 
     [Fact]
