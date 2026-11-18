@@ -217,6 +217,9 @@ public sealed class DocumentosAccessTests : IDisposable
         File.WriteAllBytes(movido, [2, 2]);
         var r3 = await Servicio.SincronizarAsync(Sol(2), movido, clave);
         Assert.Equal((r1.Valor.IdDocumento, 2), (r3.Valor.IdDocumento, r3.Valor.NumeroVersion));
+    }
+
+    [Fact]
     public async Task Tipos_nuevos_desde_parametros_y_tablas()
     {
         await PrepararAsync();
