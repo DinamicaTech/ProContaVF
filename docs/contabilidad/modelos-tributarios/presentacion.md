@@ -1,6 +1,5 @@
 ---
 title: Presentación directa a la AEAT
-status: draft
 depends_on: [contabilidad/modelos-tributarios, informes/reporting, facturacion/verifactu, organizacion/sociedades-ejercicios, contabilidad/procesos/liquidacion-iva]
 threads:
   - 2026-10-31 17:12 · Cerrar preguntas pendientes del proyecto | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5G7UyrP5eDJV4Ds6CCBozdbu

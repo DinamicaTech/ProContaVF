@@ -1,6 +1,5 @@
 ---
 title: Modelo 123
-status: draft
 depends_on: [contabilidad/modelos-tributarios, contabilidad/modelos-tributarios/presentacion, contabilidad/modelos-tributarios/modelo-193, contabilidad/procesos/aplicacion-resultado]
 threads:
   - 2026-11-18 13:05 · Completar los modelos tributarios y su pantalla | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GWW9gQjRoqJLGy11fuziWXQ
