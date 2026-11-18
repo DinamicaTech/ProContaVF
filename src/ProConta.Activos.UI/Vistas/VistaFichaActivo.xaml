@@ -520,6 +520,12 @@
             </DataGrid>
           </DockPanel>
         </TabItem>
+
+        <!-- Documentos (documentos 2026-11-18): escrituras, contratos, pólizas… vinculados al activo -->
+        <TabItem Header="Documentos" Visibility="{Binding HayDocumentos, Converter={StaticResource Visible}}"
+                 ToolTip="Documentos del activo en el gestor documental (escrituras, contratos de alquiler, pólizas…); arrastra aquí ficheros para archivarlos y vincularlos">
+          <ContentControl Content="{Binding PanelDocumentos}" Margin="0,10,0,0" />
+        </TabItem>
       </TabControl>
     </pc:VistaEstado>
   </DockPanel>

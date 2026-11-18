@@ -1,0 +1,74 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:pc="urn:proconta-ui">
+  <!-- Piezas comunes de la pantalla Documentos, del panel de las fichas y del diálogo «Vincular a…». -->
+  <pc:VisibleSiConverter x:Key="Visible" />
+
+  <!-- Etiqueta de un vínculo: el tipo en pequeño, en su color, y el texto. -->
+  <Style x:Key="Chip.Tipo" TargetType="TextBlock">
+    <Setter Property="FontFamily" Value="{StaticResource Fuente.Mono}" />
+    <Setter Property="FontSize" Value="10" />
+    <Setter Property="FontWeight" Value="Medium" />
+    <Setter Property="Margin" Value="0,0,5,0" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+    <Setter Property="Foreground" Value="{StaticResource Pincel.Apagado}" />
+    <Style.Triggers>
+      <DataTrigger Binding="{Binding Clase}" Value="MODELO"><Setter Property="Foreground" Value="{StaticResource Pincel.Azul}" /></DataTrigger>
+      <DataTrigger Binding="{Binding Clase}" Value="TERCERO"><Setter Property="Foreground" Value="{StaticResource Pincel.Morado}" /></DataTrigger>
+      <DataTrigger Binding="{Binding Clase}" Value="EJERCICIO"><Setter Property="Foreground" Value="{StaticResource Pincel.Verde}" /></DataTrigger>
+      <DataTrigger Binding="{Binding Clase}" Value="EMPRESA"><Setter Property="Foreground" Value="{StaticResource Pincel.Acento3}" /></DataTrigger>
+      <DataTrigger Binding="{Binding Clase}" Value="ACTIVO"><Setter Property="Foreground" Value="{StaticResource Pincel.Ambar}" /></DataTrigger>
+      <DataTrigger Binding="{Binding Clase}" Value="FACTURA"><Setter Property="Foreground" Value="{StaticResource Pincel.Azul}" /></DataTrigger>
+      <DataTrigger Binding="{Binding Clase}" Value="ASIENTO"><Setter Property="Foreground" Value="{StaticResource Pincel.Verde}" /></DataTrigger>
+    </Style.Triggers>
+  </Style>
+
+  <Style x:Key="Chip" TargetType="Border">
+    <Setter Property="BorderBrush" Value="{StaticResource Pincel.Linea3}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="5" />
+    <Setter Property="Background" Value="{StaticResource Pincel.Blanco}" />
+    <Setter Property="Padding" Value="6,1" />
+    <Setter Property="Margin" Value="0,1,4,1" />
+  </Style>
+
+  <!-- Lista de vínculos de solo lectura (en las filas). -->
+  <DataTemplate x:Key="Vinculos.Lectura">
+    <ItemsControl ItemsSource="{Binding Vinculos}" Focusable="False">
+      <ItemsControl.ItemsPanel>
+        <ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate>
+      </ItemsControl.ItemsPanel>
+      <ItemsControl.ItemTemplate>
+        <DataTemplate>
+          <Border Style="{StaticResource Chip}" ToolTip="{Binding Ayuda}">
+            <StackPanel Orientation="Horizontal">
+              <TextBlock Text="{Binding Tipo}" Style="{StaticResource Chip.Tipo}" />
+              <TextBlock Text="{Binding Etiqueta}" FontSize="12" VerticalAlignment="Center" />
+            </StackPanel>
+          </Border>
+        </DataTemplate>
+      </ItemsControl.ItemTemplate>
+    </ItemsControl>
+  </DataTemplate>
+
+  <!-- Pastilla de la propuesta de la bandeja. -->
+  <Style x:Key="Pastilla.Propuesta" TargetType="Border">
+    <Setter Property="CornerRadius" Value="{StaticResource Radio.Pastilla}" />
+    <Setter Property="Padding" Value="8,1" />
+    <Setter Property="HorizontalAlignment" Value="Left" />
+    <Setter Property="Background" Value="{StaticResource Pincel.AzulSuave}" />
+    <Style.Triggers>
+      <DataTrigger Binding="{Binding ClasePropuesta}" Value="SEGURA"><Setter Property="Background" Value="{StaticResource Pincel.VerdeSuave}" /></DataTrigger>
+      <DataTrigger Binding="{Binding ClasePropuesta}" Value="FALTA"><Setter Property="Background" Value="{StaticResource Pincel.AvisoSuave}" /></DataTrigger>
+      <DataTrigger Binding="{Binding ClasePropuesta}" Value="COMPRA"><Setter Property="Background" Value="{StaticResource Pincel.Linea2}" /></DataTrigger>
+    </Style.Triggers>
+  </Style>
+
+  <Style x:Key="Zona.Soltar" TargetType="Border">
+    <Setter Property="BorderBrush" Value="{StaticResource Pincel.Linea3}" />
+    <Setter Property="BorderThickness" Value="1.5" />
+    <Setter Property="CornerRadius" Value="8" />
+    <Setter Property="Padding" Value="12,8" />
+    <Setter Property="Background" Value="{StaticResource Pincel.Fondo2}" />
+  </Style>
+</ResourceDictionary>

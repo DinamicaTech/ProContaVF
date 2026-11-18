@@ -22,6 +22,7 @@
     <ProjectReference Include="..\ProConta.Implantacion\ProConta.Implantacion.csproj" />
     <ProjectReference Include="..\ProConta.Activos\ProConta.Activos.csproj" />
     <ProjectReference Include="..\ProConta.Activos.UI\ProConta.Activos.UI.csproj" />
+    <ProjectReference Include="..\ProConta.Documentos.UI\ProConta.Documentos.UI.csproj" />
     <ProjectReference Include="..\ProConta.Correo.UI\ProConta.Correo.UI.csproj" />
     <ProjectReference Include="..\ProConta.Contabilidad.UI\ProConta.Contabilidad.UI.csproj" />
     <ProjectReference Include="..\ProConta.Norma43.UI\ProConta.Norma43.UI.csproj" />

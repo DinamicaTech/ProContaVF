@@ -132,7 +132,7 @@ public sealed partial class FichaActivoVM : ModeloVista, IPestanaTrabajo, INotif
         get => _apartado;
         set
         {
-            if (_ficha is { Datos.EsAjeno: true }) value = ApartadoFicha.Datos;
+            if (_ficha is { Datos.EsAjeno: true } && value != ApartadoFicha.Documentos) value = ApartadoFicha.Datos;
             if (!Fijar(ref _apartado, value)) return;
             Avisar(nameof(IndiceApartado), nameof(EnDatos));
             _ = CargarApartadoAsync();
@@ -140,7 +140,14 @@ public sealed partial class FichaActivoVM : ModeloVista, IPestanaTrabajo, INotif
     }
 
     /// <summary>Índice de la pestaña del apartado (para el TabControl).</summary>
-    public int IndiceApartado { get => (int)_apartado; set => Apartado = (ApartadoFicha)Math.Clamp(value, 0, 5); }
+    public int IndiceApartado { get => (int)_apartado; set => Apartado = (ApartadoFicha)Math.Clamp(value, 0, 6); }
+
+    // ---------- apartado Documentos (documentos 2026-11-18): el panel común del gestor documental ----------
+    private object? _documentos;
+
+    /// <summary>Panel Documentos del activo (lo crea el gestor documental al entrar en el apartado); null sin gestor.</summary>
+    public object? PanelDocumentos => _documentos;
+    public bool HayDocumentos => _modulo.Contexto.CrearPanelDocumentos is not null;
     public bool EnDatos => _apartado == ApartadoFicha.Datos;
 
     // ---------- cabecera ----------
@@ -246,6 +253,10 @@ public sealed partial class FichaActivoVM : ModeloVista, IPestanaTrabajo, INotif
                 case ApartadoFicha.Ventas when _ventas is null: await CargarVentasAsync(); break;
                 case ApartadoFicha.Subcuentas when _subcuentas is null: await CargarSubcuentasAsync(); break;
                 case ApartadoFicha.Amortizacion when _amortizacion is null: await CargarAmortizacionAsync(); break;
+                case ApartadoFicha.Documentos when _documentos is null && _modulo.Contexto.CrearPanelDocumentos is { } crear:
+                    _documentos = crear(IdActivo, Nombre.Length > 0 ? Nombre : $"Activo {IdActivo}");
+                    Avisar(nameof(PanelDocumentos));
+                    break;
             }
         }
         catch (Exception ex)

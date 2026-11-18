@@ -76,6 +76,11 @@ public static class Acciones
     public const string ModelosVer = "MODELOS.VER";
     /// <summary>Presentar modelos a la AEAT, también complementarias (contabilidad/modelos-tributarios 2026-11-18; pendiente desde el 303).</summary>
     public const string ModelosPresentar = "MODELOS.PRESENTAR";
+    /// <summary>
+    /// Añadir, archivar, vincular, versionar y eliminar documentos en el gestor documental (documentos 2026-11-18). Verlos y abrirlos lo puede cualquiera;
+    /// sin grupos asignados, cualquier operador (sin respaldo).
+    /// </summary>
+    public const string Documentos = "DOCUMENTOS.EDITAR";
 
     /// <summary>
     /// Acción que manda mientras una acción nueva no tenga ningún grupo asignado: «Cambiar el trimestre activo» la tienen

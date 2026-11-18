@@ -43,7 +43,8 @@ public sealed partial class ServicioDocumentos
             .ToList();
     });
 
-    internal static IReadOnlyList<string> Palabras(string? texto) =>
+    /// <summary>Palabras de un texto para buscar: en minúsculas y sin acentos.</summary>
+    public static IReadOnlyList<string> Palabras(string? texto) =>
         LectorPropuestas.QuitarAcentos((texto ?? "").Replace('·', ' ')).ToLowerInvariant().Split([' ', ',', ';', '/', '-'], StringSplitOptions.RemoveEmptyEntries);
 
     internal static bool Coincide(DestinoVinculo d, IReadOnlyList<string> palabras)

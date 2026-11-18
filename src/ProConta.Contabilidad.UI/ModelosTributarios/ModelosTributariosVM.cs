@@ -28,6 +28,9 @@ public sealed record ContextoModelosTributarios(ServicioModelosTributarios Servi
     public Action<string>? Copiar { get; init; }
     /// <summary>Carpeta de la empresa (documentos) donde se guardan los ficheros de los modelos; null si no se sabe.</summary>
     public Func<Task<string?>>? CarpetaEmpresa { get; init; }
+
+    /// <summary>Abre los documentos de un periodo (modelo, ejercicio y periodo) en el gestor documental; sin él, la opción no sale.</summary>
+    public Action<string, int, string>? AbrirDocumentos { get; init; }
 }
 
 /// <summary>Diálogos de la pantalla (en pruebas se sustituyen por respuestas fijas).</summary>
@@ -485,6 +488,8 @@ public sealed class ModelosTributariosVM : ModeloVista, IPestanaTrabajo
         var r = new List<OpcionMenuVM>();
         foreach (var a in AccionesPeriodos.De([.. marcados.Select(m => m.Datos)], Hoy, _puedePresentar))
         {
+            if (a.Accion == AccionModelo.Documentos && _ctx.AbrirDocumentos is null) continue;
+            if (a.Accion == AccionModelo.Documentos) r.Add(new OpcionMenuVM("", null, false, null, true));
             if (a.Accion is AccionModelo.AbrirJustificante or AccionModelo.AbrirCasillas && marcados.Count == 1 && r.Count > 0) r.Add(new OpcionMenuVM("", null, false, null, true));
             var accion = a.Accion;
             r.Add(new OpcionMenuVM(a.Texto, a.NoSePuede ?? a.Ayuda, a.Disponible && !_ocupado, new ComandoDelegado(() => _ = AccionAsync(accion, marcados))));
@@ -521,6 +526,7 @@ public sealed class ModelosTributariosVM : ModeloVista, IPestanaTrabajo
                 break;
             case AccionModelo.AbrirCasillas: await AbrirCasillasAsync(fila); break;
             case AccionModelo.AbrirProceso: AbrirProceso(fila.Modelo, fila.Datos.Periodo); break;
+            case AccionModelo.Documentos: _ctx.AbrirDocumentos?.Invoke(fila.Datos.Modelo, fila.Datos.Ejercicio, fila.Datos.Periodo); break;
         }
     }
 

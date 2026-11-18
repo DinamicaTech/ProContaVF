@@ -1,0 +1,73 @@
+<UserControl x:Class="ProConta.Documentos.UI.Vistas.VistaVincular"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             Width="640" Height="520">
+  <UserControl.Resources>
+    <ResourceDictionary>
+      <ResourceDictionary.MergedDictionaries>
+        <ResourceDictionary Source="/ProConta.Documentos.UI;component/Vistas/Recursos.xaml" />
+      </ResourceDictionary.MergedDictionaries>
+      <CollectionViewSource x:Key="Grupos" Source="{Binding Resultados}">
+        <CollectionViewSource.GroupDescriptions>
+          <PropertyGroupDescription PropertyName="Grupo" />
+        </CollectionViewSource.GroupDescriptions>
+      </CollectionViewSource>
+    </ResourceDictionary>
+  </UserControl.Resources>
+
+  <DockPanel>
+    <TextBlock DockPanel.Dock="Top" Text="{Binding Explicacion}" TextWrapping="Wrap" Style="{StaticResource Texto.Apagado}" Margin="0,0,0,10" />
+    <TextBox x:Name="Buscar" DockPanel.Dock="Top" Text="{Binding Busqueda, UpdateSourceTrigger=PropertyChanged, Delay=250}" FontSize="15" Padding="8,6" Margin="0,0,0,10"
+             AutomationProperties.Name="Buscar a qué vincular"
+             ToolTip="Escribe parte de lo que buscas: modelo y periodo («303 2t 2026»), nombre o NIF de un tercero, año de un ejercicio, nombre de un activo, número de factura o de asiento. Todas las palabras tienen que aparecer" />
+
+    <!-- Lo elegido, con su aspa -->
+    <StackPanel DockPanel.Dock="Top" Margin="0,0,0,10">
+      <TextBlock Text="ELEGIDO" Style="{StaticResource Texto.Seccion}" Margin="0,0,0,4" />
+      <TextBlock Text="Nada elegido todavía: marca uno o varios resultados." Style="{StaticResource Texto.Apagado}" FontStyle="Italic"
+                 Visibility="{Binding NadaElegido, Converter={StaticResource Visible}}" />
+      <ItemsControl ItemsSource="{Binding Elegidos}" Focusable="False">
+        <ItemsControl.ItemsPanel><ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+        <ItemsControl.ItemTemplate>
+          <DataTemplate>
+            <Border Style="{StaticResource Chip}" Background="{StaticResource Pincel.AcentoSuave}" BorderBrush="{StaticResource Pincel.AcentoBorde}">
+              <StackPanel Orientation="Horizontal">
+                <TextBlock Text="{Binding Tipo}" Style="{StaticResource Chip.Tipo}" />
+                <TextBlock Text="{Binding Etiqueta}" VerticalAlignment="Center" />
+                <Button Style="{StaticResource Boton.Aspa}" Margin="4,0,0,0" ToolTip="Quitar de lo elegido"
+                        Command="{Binding DataContext.QuitarCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" />
+              </StackPanel>
+            </Border>
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+    </StackPanel>
+
+    <Grid>
+      <ListBox ItemsSource="{Binding Source={StaticResource Grupos}}" BorderThickness="1" BorderBrush="{StaticResource Pincel.Linea}"
+               ScrollViewer.HorizontalScrollBarVisibility="Disabled" AutomationProperties.Name="Resultados">
+        <ListBox.GroupStyle>
+          <GroupStyle>
+            <GroupStyle.HeaderTemplate>
+              <DataTemplate>
+                <TextBlock Text="{Binding Name}" Style="{StaticResource Texto.Seccion}" Margin="4,8,0,2" />
+              </DataTemplate>
+            </GroupStyle.HeaderTemplate>
+          </GroupStyle>
+        </ListBox.GroupStyle>
+        <ListBox.ItemTemplate>
+          <DataTemplate>
+            <CheckBox IsChecked="{Binding Elegido}" ToolTip="Marcado: el documento se vincula a esto">
+              <DockPanel LastChildFill="True">
+                <TextBlock DockPanel.Dock="Right" Text="{Binding Detalle}" Style="{StaticResource Texto.Apagado}" Margin="12,0,0,0" TextTrimming="CharacterEllipsis" MaxWidth="260" />
+                <TextBlock Text="{Binding Etiqueta}" TextTrimming="CharacterEllipsis" />
+              </DockPanel>
+            </CheckBox>
+          </DataTemplate>
+        </ListBox.ItemTemplate>
+      </ListBox>
+      <TextBlock Text="Nada coincide. Prueba con menos palabras o con otras («303 2026», el NIF, parte del nombre…)." Style="{StaticResource Texto.Apagado}"
+                 HorizontalAlignment="Center" VerticalAlignment="Center" TextWrapping="Wrap" MaxWidth="420" Visibility="{Binding SinResultados, Converter={StaticResource Visible}}" />
+    </Grid>
+  </DockPanel>
+</UserControl>
