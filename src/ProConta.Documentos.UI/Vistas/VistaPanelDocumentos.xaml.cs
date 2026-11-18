@@ -18,7 +18,7 @@ public partial class VistaPanelDocumentos : UserControl
 
     private void Tabla_MouseDoubleClick(object sender, MouseButtonEventArgs e)
     {
-        if (VistaDocumentos.FilaDe(Tabla, e.OriginalSource) is { } fila && Vm is not null && Vm.AbrirCommand.CanExecute(fila)) Vm.AbrirCommand.Execute(fila);
+        if (VistaDocumentos.FilaDe(Tabla, e.OriginalSource) is { } fila && Vm is not null) Vm.AbrirOClasificar(fila);
     }
 
     private void AlArrastrar(object sender, DragEventArgs e)

@@ -27,6 +27,8 @@ public sealed class PanelDocumentosVM : ModeloVista
         VincularArchivadoCommand = new ComandoDelegado(() => _ = VincularArchivadoAsync(), () => !_ocupado);
         AbrirCommand = new ComandoDelegado(p => _acciones.Abrir(Fila(p)), p => Fila(p) is not null);
         CarpetaCommand = new ComandoDelegado(p => _acciones.Carpeta(Fila(p)), p => Fila(p) is not null);
+        CopiarRutaCommand = new ComandoDelegado(p => _acciones.CopiarRuta(Fila(p)), p => Fila(p) is not null);
+        ClasificarCommand = new ComandoDelegado(p => { if (Fila(p) is { } f) _ = ClasificarAsync(f); }, p => Fila(p) is { Datos.PorClasificar: true });
         VincularCommand = new ComandoDelegado(p => { if (Fila(p) is { } f) _ = _acciones.VincularAsync([f], this).ContinueWith(_ => CargarAsync(), TaskScheduler.FromCurrentSynchronizationContext()); },
             p => Fila(p) is not null);
         NuevaVersionCommand = new ComandoDelegado(p => { if (Fila(p) is { } f) _ = _acciones.NuevaVersionAsync(f, this); }, p => Fila(p) is { Datos.PorClasificar: false });
@@ -43,6 +45,8 @@ public sealed class PanelDocumentosVM : ModeloVista
     public ICommand VincularArchivadoCommand { get; }
     public ICommand AbrirCommand { get; }
     public ICommand CarpetaCommand { get; }
+    public ICommand CopiarRutaCommand { get; }
+    public ICommand ClasificarCommand { get; }
     public ICommand VincularCommand { get; }
     public ICommand NuevaVersionCommand { get; }
     public ICommand DesvincularCommand { get; }
@@ -109,6 +113,19 @@ public sealed class PanelDocumentosVM : ModeloVista
         _modulo.Contexto.Avisar($"{ModuloDocumentos.Plural(elegido.Count, "documento vinculado", "documentos vinculados")} a {Destino.Etiqueta}.");
         _modulo.Cambiado(this);
         await CargarAsync();
+    }
+
+    private async Task ClasificarAsync(FilaDocumentoVM f)
+    {
+        await _acciones.ClasificarAsync(f, this);
+        await CargarAsync();
+    }
+
+    /// <summary>Doble clic: los pendientes se clasifican; los archivados se abren.</summary>
+    public void AbrirOClasificar(FilaDocumentoVM f)
+    {
+        if (f.Datos.PorClasificar) _ = ClasificarAsync(f);
+        else _acciones.Abrir(f);
     }
 
     private async Task DesvincularAsync(FilaDocumentoVM f)

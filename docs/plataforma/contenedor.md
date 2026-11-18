@@ -64,6 +64,7 @@ Aplicación principal (UI-PRINCIPAL): cabecera con empresa, ejercicio y operador
 - 2026-11-17 18:50 · Derived from activos: entrada «Activos» en la navegación, hija de «Datos maestros», que abre el listado de activos; las fichas de activo se abren como pestañas de trabajo.
 - 2026-11-18 15:10 · Derived from contabilidad/modelos-tributarios: la opción de menú «Modelo 303» pasa a ser «Modelos tributarios».
 - 2026-11-18 16:28 · Derived from documentos: entrada Contabilidad › Documentos en la navegación (pantalla del gestor documental); el contenedor conecta el panel Documentos con la ficha del tercero, la del activo y el menú de los periodos de Modelos tributarios, y abre el registro de cada vínculo.
+- 2026-11-18 18:06 · Derived from documentos: la entrada Documentos pasa de Contabilidad a Datos maestros (Datos maestros › Documentos), y Parámetros y tablas incluye Catálogos › Tipos de documento.
 
 ## Hand-over
 - 2026-10-31 19:30 · Hecho: ejecutable con arranque, primer administrador, acceso y ventana principal; revisado renderizando las ventanas fuera de pantalla contra una copia de la maestra en la versión 6. Pendiente (próximas entregas): búsqueda «Ir a», pestañas de pantallas con cambios pendientes, cambio de sociedad o ejercicio sin volver a entrar, franja de iconos por debajo de 150 px y posición del separador guardada por operador, barra de título propia de la maqueta, doble pantalla y el resto del catálogo de atajos.
