@@ -23,8 +23,6 @@ public sealed record ConfiguracionCompras(
     string? IntraSoportadoBienes, string? IntraSoportadoServicios, string? IntraRepercutidoBienes, string? IntraRepercutidoServicios,
     string? Importacion, string? Suplido, string? RedondeoGastos, string? RedondeoIngresos)
 {
-    public const string RedondeoGastosDefecto = "6590000";
-    public const string RedondeoIngresosDefecto = "7590000";
 
     /// <summary>El tipo general configurado o, sin configurar, el más alto de los tipos de IVA activos del catálogo (2026-11-06 12:10).</summary>
     public decimal? TipoGeneralEfectivo => TipoGeneral is > 0m ? TipoGeneral : Tipos.Count > 0 ? Tipos.Max() : null;
@@ -214,7 +212,7 @@ public sealed class ContabilizadorCompras(IBaseDatos bd, IMotorAsientos motor, I
             {
                 if (obligatoria)
                     errores.Add(new Error("Exportar.SinCuenta", $"Falta la {que}.", campo ?? registro, null,
-                        campo is null ? "Configúrala en Parámetros y tablas › Ejercicios (grupo Cuentas)." : "Complétala en la ficha."));
+                        campo is null ? $"Asígnala en Configuración › Parámetros y tablas › Ejercicios, ejercicio {ctx.Ejercicio}, pestaña «Compras y ventas»: «Auto» propone la habitual y la crea si no existe." : "Complétala en la ficha."));
                 return null;
             }
             var c = await cuentas.ResolverAsync(ctx, codigo.Trim());
@@ -309,8 +307,8 @@ public sealed class ContabilizadorCompras(IBaseDatos bd, IMotorAsientos motor, I
         string? redG = null, redI = null;
         if (descuadre != 0m)
         {
-            if (descuadre < 0m) redG = await Cuenta(config.RedondeoGastos ?? ConfiguracionCompras.RedondeoGastosDefecto, "cuenta de diferencias de redondeo (gastos)");
-            else redI = await Cuenta(config.RedondeoIngresos ?? ConfiguracionCompras.RedondeoIngresosDefecto, "cuenta de diferencias de redondeo (ingresos)");
+            if (descuadre < 0m) redG = await Cuenta(config.RedondeoGastos, "cuenta de diferencias de redondeo (gastos)");
+            else redI = await Cuenta(config.RedondeoIngresos, "cuenta de diferencias de redondeo (ingresos)");
         }
 
         var cerrado = LoteCerrado(estado, config, ctx.Ejercicio, hoy);

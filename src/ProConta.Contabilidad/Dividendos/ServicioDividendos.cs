@@ -5,6 +5,7 @@ using ProConta.Datos.Persistencia;
 using ProConta.Nucleo.Auditoria;
 using ProConta.Nucleo.Contexto;
 using ProConta.Nucleo.Resultados;
+using ProConta.Organizacion.Mantenimiento;
 
 namespace ProConta.Contabilidad.Dividendos;
 
@@ -99,6 +100,9 @@ public sealed class ServicioDividendos(IBaseDatos bd, IMotorAsientos motor, ICat
     public async Task<Resultado<PropuestaDividendos>> ProponerAsync(ContextoSociedadEjercicio ctx, DateTime fecha, IReadOnlyList<NetoSocio> netos, int? idReparto = null,
         string? cuentaOrigen = null)
     {
+        // Sin cuenta por defecto implícita: si falta alguna del ejercicio, el proceso se detiene y dice dónde asignarla (organizacion/sociedades-ejercicios 2026-11-18).
+        if (string.IsNullOrWhiteSpace(cuentaOrigen) && await bd.EjecutarAsync(s => CuentasEjercicio.FaltanAsync(s, ctx.IdSociedadEjercicio, "CuentaReservasDividendos")) is { } faltaCuenta)
+            return Resultado<PropuestaDividendos>.Fallo(faltaCuenta);
         ArgumentNullException.ThrowIfNull(netos);
         var registro = CalculoDividendos.Descripcion(fecha);
         if (fecha.Year != ctx.Ejercicio)

@@ -5,6 +5,7 @@ using ProConta.Datos.Persistencia;
 using ProConta.Nucleo.Auditoria;
 using ProConta.Nucleo.Contexto;
 using ProConta.Nucleo.Resultados;
+using ProConta.Organizacion.Mantenimiento;
 
 namespace ProConta.Contabilidad.FacturasPendientes;
 
@@ -78,6 +79,9 @@ public sealed class ServicioFacturasPendientes(IBaseDatos bd, IMotorAsientos mot
     /// <summary>Propuesta con los ajustes <paramref name="ajustes"/> (null: los guardados en el ejercicio).</summary>
     public async Task<Resultado<PropuestaFacturasPendientes>> ProponerAsync(ContextoSociedadEjercicio ctx, IReadOnlyList<AjusteFacturaPendiente>? ajustes = null)
     {
+        // Sin cuenta por defecto implícita: si falta alguna del ejercicio, el proceso se detiene y dice dónde asignarla (organizacion/sociedades-ejercicios 2026-11-18).
+        if (await bd.EjecutarAsync(s => CuentasEjercicio.FaltanAsync(s, ctx.IdSociedadEjercicio, "CuentaFacturasPendientesRecibir", "CuentaGastoFacturasPendientes")) is { } faltaCuenta)
+            return Resultado<PropuestaFacturasPendientes>.Fallo(faltaCuenta);
         var cfg = await ConfiguracionAsync(ctx);
         var subcuentas = await SubcuentasAsync(ctx, cfg);
         ajustes ??= await AjustesAsync(ctx);

@@ -6,6 +6,7 @@ using ProConta.Datos.Persistencia;
 using ProConta.Nucleo.Auditoria;
 using ProConta.Nucleo.Contexto;
 using ProConta.Nucleo.Resultados;
+using ProConta.Organizacion.Mantenimiento;
 
 namespace ProConta.Contabilidad.Impuestos;
 
@@ -82,6 +83,9 @@ public sealed class ServicioImpuestoSociedades(IBaseDatos bd, IMotorAsientos mot
     /// <summary>Propuesta con lo escrito; null: lo guardado al confirmar o, si no hay, la propuesta sin ajustes.</summary>
     public async Task<Resultado<PropuestaImpuestoSociedades>> ProponerAsync(ContextoSociedadEjercicio ctx, EntradaImpuestoSociedades? entrada = null, CancellationToken c = default)
     {
+        // Sin cuenta por defecto implícita: si falta alguna del ejercicio, el proceso se detiene y dice dónde asignarla (organizacion/sociedades-ejercicios 2026-11-18).
+        if (await bd.EjecutarAsync(s => CuentasEjercicio.FaltanAsync(s, ctx.IdSociedadEjercicio, "CuentaImpuestoSociedades", "CuentaHaciendaAcreedoraIS", "CuentaHaciendaDeudoraIS", "CuentaCreditoPerdidasIS", "CuentaImpuestoDiferidoIS")) is { } faltaCuenta)
+            return Resultado<PropuestaImpuestoSociedades>.Fallo(faltaCuenta);
         entrada ??= (await GuardadoAsync(ctx))?.Entrada ?? EntradaImpuestoSociedades.Vacia;
         if (CalculoImpuestoSociedades.Validar(entrada) is { } error)
             return Resultado<PropuestaImpuestoSociedades>.Fallo(new Error("ImpuestoSociedades.Entrada", error, CalculoImpuestoSociedades.Descripcion(ctx.Ejercicio)));

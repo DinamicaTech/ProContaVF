@@ -5,6 +5,7 @@ using ProConta.Datos.Persistencia;
 using ProConta.Nucleo.Auditoria;
 using ProConta.Nucleo.Contexto;
 using ProConta.Nucleo.Resultados;
+using ProConta.Organizacion.Mantenimiento;
 
 namespace ProConta.Contabilidad.Iva;
 
@@ -66,6 +67,9 @@ public sealed class ServicioRegularizacionProrrata(IBaseDatos bd, IMotorAsientos
     /// </summary>
     public async Task<Resultado<PropuestaRegularizacionProrrata>> ProponerAsync(ContextoSociedadEjercicio ctx, decimal? definitiva = null, CancellationToken c = default)
     {
+        // Sin cuenta por defecto implícita: si falta alguna del ejercicio, el proceso se detiene y dice dónde asignarla (organizacion/sociedades-ejercicios 2026-11-18).
+        if (await bd.EjecutarAsync(s => CuentasEjercicio.FaltanAsync(s, ctx.IdSociedadEjercicio, "CuentaRegularizacionProrrata", "CuentaAjustesNegativosIva", "CuentaAjustesPositivosIva")) is { } faltaCuenta)
+            return Resultado<PropuestaRegularizacionProrrata>.Fallo(faltaCuenta);
         if (definitiva is < 0m or > 1m)
             return Resultado<PropuestaRegularizacionProrrata>.Fallo(new Error("Prorrata.Porcentaje", "La prorrata definitiva va de 0 % a 100 %.",
                 $"Prorrata {ctx.Ejercicio}", null, "Escríbela en porcentaje, por ejemplo 20."));

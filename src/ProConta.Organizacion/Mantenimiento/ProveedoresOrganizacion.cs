@@ -1,6 +1,7 @@
 ﻿using System.Globalization;
 using ProConta.Datos.Persistencia;
 using ProConta.Mantenimiento;
+using ProConta.Nucleo.Contexto;
 using ProConta.Nucleo.Identificacion;
 using ProConta.Nucleo.Resultados;
 using ProConta.Organizacion.FormasPago;
@@ -18,37 +19,17 @@ public static class ProveedoresOrganizacion
 
     internal static IReadOnlyList<GrupoCampos> GruposEmpresa => [new("ident", "Identificación"), new("cuentas", "Cuentas"), new("rutas", "Rutas")];
 
-    internal static IReadOnlyList<GrupoCampos> GruposEjercicio =>
-        [new("ident", "Identificación"), new("pred", "Valores predeterminados"), new("impuestos", "Impuestos"), new("cuentas", "Cuentas"), new("rutas", "Rutas")];
+    /// <summary>Una pestaña por proceso (organizacion/sociedades-ejercicios 2026-11-18).</summary>
+    internal static IReadOnlyList<GrupoCampos> GruposEjercicio => CuentasEjercicio.Pestanas;
 
     private static CampoMantenimiento Cuenta(string clave, string etiqueta, int longitud = 10, string? ayuda = null, params string[] sinonimos) =>
         new(clave, etiqueta, TipoCampo.Cuenta) { Grupo = "cuentas", Longitud = longitud, Ancho = "s", Ayuda = ayuda, Sinonimos = sinonimos, GruposCuenta = GruposDe(clave) };
 
-    /// <summary>Grupos a los que se limita el buscador de cada cuenta (plataforma/mantenimiento 2026-11-12); se puede quitar el filtro.</summary>
+    /// <summary>Grupos a los que se limita el buscador de cada cuenta de Empresas; las del ejercicio los declaran en <see cref="CuentasEjercicio"/>.</summary>
     private static IReadOnlyList<string> GruposDe(string clave) => clave switch
     {
-        _ when clave.Contains("Repercutido") => ["477"],
-        _ when clave.Contains("Soportado") || clave == "CuentaIVAImportacion" => ["472"],
-        _ when clave.StartsWith("CuentaRetencion") => ["475"],
         "Cuenta113ParaCuadres" => ["113"],
         "Cuenta570Tesoreria" => ["57"],
-        "CuentaRedondeoGastos" => ["6"],
-        "CuentaRedondeoIngresos" => ["7"],
-        "CuentaHaciendaAcreedoraIva" => ["475"],
-        "CuentaHaciendaDeudoraIva" => ["470"],
-        "CuentaAjustesNegativosIva" => ["634"],
-        "CuentaAjustesPositivosIva" => ["639"],
-        "CuentaReservasDividendos" => ["113"],
-        "CuentaReservaLegal" => ["112"],
-        "CuentaResultadosNegativos" => ["121"],
-        "CuentaRegularizacionProrrata" => ["472"],
-        "CuentaImpuestoSociedades" or "CuentaImpuestoDiferidoIS" => ["630"],
-        "CuentaHaciendaAcreedoraIS" => ["475"],
-        "CuentaHaciendaDeudoraIS" => ["470"],
-        "CuentaCreditoPerdidasIS" => ["474"],
-        "CuentaResultadoEjercicio" => ["129"],
-        "CuentaFacturasPendientesRecibir" => ["400"],
-        "CuentaGastoFacturasPendientes" => ["6"],
         _ => [],
     };
 
@@ -56,55 +37,28 @@ public static class ProveedoresOrganizacion
 
     /// <summary>Solo en Ejercicios: el tipo general es del ejercicio (compras/pantallas 2026-11-06 12:10).</summary>
     internal static CampoMantenimiento TipoGeneral() =>
-        new("TipoIVAGeneral", "Tipo de IVA general (%)", TipoCampo.Porcentaje) { Grupo = "impuestos", Ancho = "xs", Sinonimos = ["iva general", "21"],
+        new("TipoIVAGeneral", "Tipo general (%)", TipoCampo.Porcentaje) { Grupo = "iva", Ancho = "xs", Sinonimos = ["iva general", "21"],
             Ayuda = "El de la autorrepercusión (inversión del sujeto pasivo e intracomunitarias) y el de la importación en las compras. Vacío: el más alto de los tipos de IVA activos (Catálogos › Tipos de IVA)." };
 
     /// <summary>Prorrata del año anterior, que usará el cálculo de la prorrata (organizacion/sociedades-ejercicios 2026-11-13 20:55).</summary>
     internal static CampoMantenimiento ProrrataAnterior() =>
-        new("PorcentajeProrrataAñoAnterior", "Prorrata del año anterior (%)", TipoCampo.Porcentaje) { Grupo = "impuestos", Ancho = "xs", Sinonimos = ["prorrata"],
+        new("PorcentajeProrrataAñoAnterior", "Prorrata del año anterior (%)", TipoCampo.Porcentaje) { Grupo = "iva", Ancho = "xs", Sinonimos = ["prorrata"],
             Ayuda = "Porcentaje de prorrata definitivo del año anterior, que se aplica de forma provisional en este ejercicio, en porcentaje: 14 es el 14 %. " +
                 "Lo rellena solo la regularización de la prorrata del año anterior (Contabilidad › Prorrata de IVA)." };
 
     /// <summary>Prorrata definitiva del ejercicio (contabilidad/procesos/prorrata, esquema 63).</summary>
     internal static CampoMantenimiento ProrrataDefinitiva() =>
-        new("PorcentajeProrrataDefinitiva", "Prorrata definitiva (%)", TipoCampo.Porcentaje) { Grupo = "impuestos", Ancho = "xs", Sinonimos = ["prorrata", "definitiva"],
+        new("PorcentajeProrrataDefinitiva", "Prorrata definitiva (%)", TipoCampo.Porcentaje) { Grupo = "iva", Ancho = "xs", Sinonimos = ["prorrata", "definitiva"],
             Ayuda = "Prorrata definitiva de este ejercicio, en porcentaje: 20 es el 20 %. Vacía mientras no se fije. Con ella, el 303 del 4T lleva la regularización de la prorrata. " +
                 "Lo normal es fijarla en Contabilidad › Prorrata de IVA, que propone la legal, graba la regularización y la copia como prorrata del año anterior del ejercicio siguiente." };
 
-    /// <summary>Cuentas de compras que solo tiene el ejercicio (compras/factura-compra/contabilizacion).</summary>
-    internal static IEnumerable<CampoMantenimiento> CuentasCompras() =>
-    [
-        Cuenta("CuentaIVAImportacion", "IVA de importación", ayuda: "IVA soportado en importaciones (4724001 en el ERP): el importe de la factura se desglosa al tipo general."),
-        Cuenta("CuentaRedondeoGastos", "Diferencias de redondeo · gastos", ayuda: "Cuando a un asiento de compra le falta Debe (hasta 0,03 €, o más con motivo). Vacía: 6590000.", sinonimos: ["redondeo"]),
-        Cuenta("CuentaRedondeoIngresos", "Diferencias de redondeo · ingresos", ayuda: "Cuando a un asiento de compra le sobra Debe. Vacía: 7590000. Si no existe, se crea al usarla.", sinonimos: ["redondeo"]),
-    ];
 
-    /// <summary>Cuentas de la liquidación del IVA del ejercicio (contabilidad/procesos/liquidacion-iva, esquema 56); vacías, las de siempre.</summary>
-    internal static IEnumerable<CampoMantenimiento> CuentasLiquidacionIva() =>
-    [
-        Cuenta("CuentaHaciendaAcreedoraIva", "Liquidación del IVA · a ingresar", ayuda: "Hacienda acreedora por IVA: recibe el resultado a ingresar de cada trimestre. Vacía: 4750000. Si no existe, se crea al liquidar.",
-            sinonimos: ["4750", "liquidacion", "iva a ingresar"]),
-        Cuenta("CuentaHaciendaDeudoraIva", "Liquidación del IVA · a compensar", ayuda: "Hacienda deudora por IVA: recibe el resultado a compensar o devolver, y su saldo se compensa en la siguiente que salga a ingresar. Vacía: 4700000.",
-            sinonimos: ["4700", "liquidacion", "iva a compensar"]),
-        Cuenta("CuentaAjustesNegativosIva", "Liquidación del IVA · no deducible y ajustes a pagar más", ayuda: "Recibe el IVA soportado que no se deduce (prorrata y actividades no deducibles) y el ajuste cuando se liquida más de lo que dicen las cuentas. Vacía: 6341000.",
-            sinonimos: ["6341", "prorrata", "no deducible"]),
-        Cuenta("CuentaAjustesPositivosIva", "Liquidación del IVA · ajustes a pagar menos", ayuda: "Recibe el ajuste cuando se liquida menos de lo que dicen las cuentas (por ejemplo, para cuadrar con lo presentado). Vacía: 6391000. Si no existe, se crea al usarla.",
-            sinonimos: ["6391", "ajuste iva"]),
-        Cuenta("CuentaRegularizacionProrrata", "Regularización de la prorrata", ayuda: "Recibe el 31/12 la regularización anual de la prorrata (Contabilidad › Prorrata de IVA), y la liquidación del 4T la salda. Vacía: 4729001. Si no existe, se crea al regularizar.",
-            sinonimos: ["4729", "prorrata", "regularizacion"]),
-    ];
 
     /// <summary>Retención y cuenta de reservas de los dividendos del ejercicio (contabilidad/procesos/aplicacion-resultado, esquema 62); vacías, 19 % y 1130000.</summary>
     internal static IEnumerable<CampoMantenimiento> Dividendos() =>
     [
-        new("PorcentajeRetencionDividendos", "Retención de dividendos (%)", TipoCampo.Porcentaje) { Grupo = "impuestos", Ancho = "xs", Sinonimos = ["dividendos", "retencion", "socios"],
+        new("PorcentajeRetencionDividendos", "Retención de dividendos (%)", TipoCampo.Porcentaje) { Grupo = "fin", Ancho = "xs", Sinonimos = ["dividendos", "retencion", "socios"],
             Ayuda = "Retención que se aplica a los dividendos que se reparten en este ejercicio, en porcentaje: 19 es el 19 %. Vacío: 19 %. El reparto calcula el bruto de cada socio como neto / (1 − retención)." },
-        Cuenta("CuentaReservasDividendos", "Reservas voluntarias · dividendos y aplicación", ayuda: "Cuenta de reservas que se carga por el bruto de los dividendos en Contabilidad › Reparto de dividendos y que recibe el resto del beneficio en la aplicación del resultado. Vacía: 1130000 (reservas voluntarias). Si no existe, se crea al usarla.",
-            sinonimos: ["1130", "reservas", "dividendos", "voluntarias", "aplicacion"]),
-        Cuenta("CuentaReservaLegal", "Aplicación del resultado · reserva legal", ayuda: "Recibe en la aplicación del resultado (Contabilidad › Fin de ejercicio › Aplicación del resultado) la parte del beneficio para la reserva legal: el 10 % hasta que llegue al 20 % del capital. Vacía: 1120000. Si no existe, se crea al aplicar.",
-            sinonimos: ["1120", "reserva legal", "aplicacion", "resultado"]),
-        Cuenta("CuentaResultadosNegativos", "Aplicación del resultado · resultados negativos", ayuda: "Resultados negativos de ejercicios anteriores: recibe la pérdida al aplicarla y se compensa con los beneficios siguientes. Vacía: 1210000. Si no existe, se crea al aplicar.",
-            sinonimos: ["1210", "perdidas", "resultados negativos", "aplicacion"]),
     ];
 
     /// <summary>
@@ -113,35 +67,19 @@ public static class ProveedoresOrganizacion
     /// </summary>
     internal static IEnumerable<CampoMantenimiento> ImpuestoSociedades() =>
     [
-        new("TipoImpuestoSociedades", "Impuesto sobre Sociedades · tipo general (%)", TipoCampo.Porcentaje) { Grupo = "impuestos", Ancho = "xs", Sinonimos = ["sociedades", "is", "tipo"],
+        new("TipoImpuestoSociedades", "Tipo general (%)", TipoCampo.Porcentaje) { Grupo = "is", Ancho = "xs", Sinonimos = ["sociedades", "is", "tipo"],
             Ayuda = "Tipo del IS para la base que pasa del tramo reducido (o para toda, si no hay tramo), en porcentaje: 25 es el 25 %. Vacío: 25 %. Lo confirma la gestoría cada año." },
-        new("LimiteTramoReducidoIS", "Impuesto sobre Sociedades · base del tramo reducido (€)", TipoCampo.Importe) { Grupo = "impuestos", Ancho = "s", Sinonimos = ["sociedades", "tramo", "microempresa"],
+        new("LimiteTramoReducidoIS", "Base del tramo reducido (€)", TipoCampo.Importe) { Grupo = "is", Ancho = "s", Sinonimos = ["sociedades", "tramo", "microempresa"],
             Ayuda = "Base imponible hasta la que se aplica el tipo reducido (microempresas: los primeros 50.000 €). Vacía: sin tramo, toda la base al tipo general." },
-        new("TipoTramoReducidoIS", "Impuesto sobre Sociedades · tipo del tramo reducido (%)", TipoCampo.Porcentaje) { Grupo = "impuestos", Ancho = "xs", Sinonimos = ["sociedades", "tramo", "microempresa"],
+        new("TipoTramoReducidoIS", "Tipo del tramo reducido (%)", TipoCampo.Porcentaje) { Grupo = "is", Ancho = "xs", Sinonimos = ["sociedades", "tramo", "microempresa"],
             Ayuda = "Tipo de la base hasta el límite del tramo reducido, en porcentaje (en 2025, el 21 % de microempresa). Vacío: sin tramo." },
-        new("BonificacionViviendasIS", "Impuesto sobre Sociedades · bonificación por alquiler de viviendas (%)", TipoCampo.Porcentaje) { Grupo = "impuestos", Ancho = "xs", Sinonimos = ["sociedades", "bonificacion", "viviendas"],
+        new("BonificacionViviendasIS", "Bonificación por alquiler de viviendas (%)", TipoCampo.Porcentaje) { Grupo = "is", Ancho = "xs", Sinonimos = ["sociedades", "bonificacion", "viviendas"],
             Ayuda = "Porcentaje de la cuota que corresponde a las rentas del alquiler de viviendas que se bonifica (40 es el 40 %). Las actividades que la tienen se marcan en Catálogos › Actividades (IVA). Vacío: sin bonificación." },
-        new("PrefijosAjustesIS", "Impuesto sobre Sociedades · cuentas de posibles ajustes", TipoCampo.Codigo) { Grupo = "impuestos", Longitud = 255, Ancho = "m", Sinonimos = ["sociedades", "ajustes", "sanciones"],
+        new("PrefijosAjustesIS", "Cuentas de posibles ajustes", TipoCampo.Codigo) { Grupo = "is", Longitud = 255, Ancho = "m", Sinonimos = ["sociedades", "ajustes", "sanciones"],
             Ayuda = "Prefijos de las cuentas que se listan como posibles ajustes fiscales para validarlos con la gestoría, separados por comas. Vacío: 678, 669, 778, 760, 766, 666 " +
                 "(gastos e ingresos excepcionales, intereses de demora y dividendos o plusvalías de participaciones)." },
-        Cuenta("CuentaImpuestoSociedades", "Impuesto sobre Sociedades · impuesto corriente", ayuda: "Gasto por el impuesto del ejercicio (cuota líquida). Vacía: 6300000. Si no existe, se crea al contabilizar.",
-            sinonimos: ["6300", "sociedades", "impuesto"]),
-        Cuenta("CuentaHaciendaAcreedoraIS", "Impuesto sobre Sociedades · a ingresar", ayuda: "Recibe lo que queda a pagar después de las retenciones y pagos a cuenta. Vacía: 4752000. Si no existe, se crea al contabilizar.",
-            sinonimos: ["4752", "sociedades", "a ingresar"]),
-        Cuenta("CuentaHaciendaDeudoraIS", "Impuesto sobre Sociedades · a devolver", ayuda: "Recibe lo que Hacienda tiene que devolver cuando las retenciones y pagos a cuenta superan la cuota. Vacía: 4709000. Si no existe, se crea al contabilizar.",
-            sinonimos: ["4709", "sociedades", "a devolver"]),
-        Cuenta("CuentaCreditoPerdidasIS", "Impuesto sobre Sociedades · crédito por pérdidas", ayuda: "Crédito por pérdidas a compensar activado; al aplicarlo se abona. Vacía: 4745000.",
-            sinonimos: ["4745", "sociedades", "bases negativas"]),
-        Cuenta("CuentaImpuestoDiferidoIS", "Impuesto sobre Sociedades · impuesto diferido", ayuda: "Gasto que recibe el crédito por pérdidas aplicado. Vacía: 6301000. Si no existe, se crea al contabilizar.",
-            sinonimos: ["6301", "sociedades", "diferido"]),
     ];
 
-    /// <summary>Cuenta de resultados del ejercicio (contabilidad/procesos/cierre-ejercicio, esquema 65); vacía, 1290000.</summary>
-    internal static IEnumerable<CampoMantenimiento> CuentasCierre() =>
-    [
-        Cuenta("CuentaResultadoEjercicio", "Cierre · cuenta de resultados", ayuda: "Subcuenta del resultado del ejercicio: la regularización del cierre (Contabilidad › Cierre del ejercicio) salda contra ella los grupos 6 y 7. Vacía: 1290000. Si no existe, se crea al cerrar.",
-            sinonimos: ["129", "resultado", "cierre", "regularizacion"]),
-    ];
 
     /// <summary>
     /// Parámetros de las facturas pendientes de recibir del ejercicio (contabilidad/procesos/facturas-pendientes-recibir, esquema 67);
@@ -149,21 +87,17 @@ public static class ProveedoresOrganizacion
     /// </summary>
     internal static IEnumerable<CampoMantenimiento> FacturasPendientes() =>
     [
-        new("TipoIvaFacturasPendientes", "Facturas pendientes de recibir · tipo de IVA supuesto (%)", TipoCampo.Porcentaje) { Grupo = "impuestos", Ancho = "xs",
+        new("TipoIvaFacturasPendientes", "IVA supuesto de las facturas pendientes (%)", TipoCampo.Porcentaje) { Grupo = "fin", Ancho = "xs",
             Sinonimos = ["pendientes", "recibir", "4009", "iva supuesto"],
             Ayuda = "Tipo de IVA con que se saca la base de un proveedor pagado sin factura que aún no tiene ninguna factura contabilizada: base = saldo / (1 + tipo), en porcentaje: 21 es el 21 %. " +
                 "Vacío: 21 %. Si el proveedor tiene facturas, la base sale de la proporción base / total de la última (Contabilidad › Facturas pendientes de recibir)." },
-        Cuenta("CuentaFacturasPendientesRecibir", "Facturas pendientes de recibir · cuenta", ayuda: "Recibe al Haber, a 31/12, el gasto supuesto de los proveedores pagados sin factura, y se salda el 1/1 del ejercicio siguiente con la reversión. Vacía: 4009000. Si no existe, se crea al confirmar.",
-            sinonimos: ["4009", "pendientes", "recibir"]),
-        Cuenta("CuentaGastoFacturasPendientes", "Facturas pendientes de recibir · gasto por defecto", ayuda: "Cuenta de gasto de la provisión para los proveedores sin cuenta de gasto por defecto (Proveedores) ni facturas contabilizadas. Vacía: 6299000 (otros servicios). Si no existe, se crea al confirmar.",
-            sinonimos: ["6299", "pendientes", "recibir", "gasto"]),
     ];
 
     /// <summary>
     /// Umbral de los céntimos residuales del ejercicio (contabilidad/procesos/centimos-residuales, esquema 69); vacío, 1,00 €.
     /// </summary>
     internal static CampoMantenimiento UmbralCentimosResiduales() =>
-        new("UmbralCentimosResiduales", "Umbral de los céntimos residuales (€)", TipoCampo.Importe) { Grupo = "pred", Ancho = "xs",
+        new("UmbralCentimosResiduales", "Umbral de los céntimos residuales (€)", TipoCampo.Importe) { Grupo = "fin", Ancho = "xs",
             Sinonimos = ["centimos", "céntimos", "centimillos", "redondeo", "umbral", "659", "759"],
             Ayuda = "Una subcuenta de los grupos 1 a 5 (salvo 47 y 57) con un saldo a 31/12 menor que este importe en valor absoluto, y distinto de cero, tiene céntimos residuales: " +
                 "Contabilidad › Fin de ejercicio › Céntimos residuales la salda contra las cuentas de redondeo y el aviso de Inicio la señala. Vacío: 1,00 €. Crear el ejercicio siguiente lo copia." };
@@ -172,7 +106,7 @@ public static class ProveedoresOrganizacion
     /// Periodicidad del asiento de amortización de los activos (contabilidad/procesos/amortizacion-de-activos, esquema 68); vacía, anual.
     /// </summary>
     internal static CampoMantenimiento PeriodicidadAmortizacion() =>
-        new("PeriodicidadAmortizacion", "Periodicidad de la amortización", TipoCampo.Lista) { Grupo = "pred", Ancho = "s",
+        new("PeriodicidadAmortizacion", "Periodicidad de la amortización", TipoCampo.Lista) { Grupo = "fin", Ancho = "s",
             Sinonimos = ["amortizacion", "amortización", "activos", "68", "28"],
             Opciones = [new OpcionCampo(null, "Anual (por defecto)"), new OpcionCampo("TRIMESTRAL", "Trimestral"), new OpcionCampo("MENSUAL", "Mensual")],
             Ayuda = "Cada cuánto se graba el asiento de amortización de los activos en Contabilidad › Amortización de activos: uno al año (a 31/12), uno por trimestre o uno por mes. " +
@@ -190,22 +124,9 @@ public static class ProveedoresOrganizacion
             sinonimos: ["570", "caja", "tesoreria"]),
     ];
 
-    internal static IEnumerable<CampoMantenimiento> Cuentas() =>
-    [
-        Cuenta("CuentaSuplido", "Suplido", 255, "La usan las ventas en las líneas suplidas sin cuenta propia y las compras para el importe suplido (por ejemplo 5550002)."),
-        Cuenta("CuentaRetencionServicios", "Retención de servicios", ayuda: "Retenciones de IRPF practicadas a profesionales (4751, modelo 111)."),
-        Cuenta("CuentaRetencionAlquileres", "Retención de alquileres", ayuda: "Retenciones de IRPF practicadas en los alquileres (4751, modelo 115)."),
-        Cuenta("CuentaIVAIntracomunitarioRepercutidoServicios", "IVA intracomunitario repercutido · servicios", ayuda: "IVA que se autorrepercute (477) al comprar servicios a otro país de la UE."),
-        Cuenta("CuentaIVAIntracomunitarioRepercutidoBienes", "IVA intracomunitario repercutido · bienes", ayuda: "IVA que se autorrepercute (477) al comprar bienes a otro país de la UE."),
-        Cuenta("CuentaIVAIntracomunitarioSoportadoServicios", "IVA intracomunitario soportado · servicios", ayuda: "IVA soportado deducible (472) de las compras de servicios a otro país de la UE."),
-        Cuenta("CuentaIVAIntracomunitarioSoportadoBienes", "IVA intracomunitario soportado · bienes", ayuda: "IVA soportado deducible (472) de las compras de bienes a otro país de la UE."),
-        Cuenta("CuentaIVAInversionSujetoPasivoRepercutido", "IVA por inversión del sujeto pasivo · repercutido", ayuda: "IVA que se autorrepercute (477) en las compras con inversión del sujeto pasivo."),
-        Cuenta("CuentaIVAInversionSujetoPasivoSoportado", "IVA por inversión del sujeto pasivo · soportado", ayuda: "IVA soportado deducible (472) de las compras con inversión del sujeto pasivo."),
-    ];
-
     private static IEnumerable<CampoMantenimiento> Predeterminados() =>
     [
-        new("FormaPagoDefecto", "Forma de pago predeterminada", TipoCampo.Referencia) { Grupo = "pred", Ancho = "m", Referencia = "formaspago", Ayuda = "Forma de pago que se propone en las facturas nuevas." },
+        new("FormaPagoDefecto", "Forma de pago predeterminada", TipoCampo.Referencia) { Grupo = "compras", Ancho = "m", Referencia = "formaspago", Ayuda = "Forma de pago que se propone en las facturas nuevas." },
     ];
 
     public static ProveedorTablaAccess Empresas(IBaseDatos bd) => new(bd, "sociedades", "Empresas", "Empresas y ejercicios",
@@ -303,9 +224,11 @@ public static class ProveedoresOrganizacion
             ProrrataDefinitiva(),
             PeriodicidadAmortizacion(),
             UmbralCentimosResiduales(),
-            .. Cuentas(), .. CuentasCompras(), .. CuentasLiquidacionIva(), .. Dividendos(), .. ImpuestoSociedades(), .. CuentasCierre(), .. FacturasPendientes(),
+            .. Dividendos(), .. ImpuestoSociedades(), .. FacturasPendientes(),
+            .. CuentasEjercicio.Todas.Select(CuentasEjercicio.Campo),
             Ruta("CarpetaFacturasCompra", "Carpeta de facturas de compra") with
             {
+                Grupo = "compras",
                 Ayuda = "Dónde se buscan los PDF de compra de este ejercicio, dentro de la carpeta de documentos de la empresa (Empresas › Carpeta de documentos, la ruta base), por ejemplo 2026\\Proveedores. " +
                     "Vacía: <año>\\Proveedores. Una ruta completa (con unidad) se usa tal cual.",
                 Sinonimos = ["proveedores", "pdf", "compras"],
@@ -316,6 +239,9 @@ public static class ProveedoresOrganizacion
         ColumnaAmbito = "IdSociedad",
         Orden = "Ejercicio DESC",
         GruposCampos = GruposEjercicio,
+        // Las cuentas de un ejercicio se eligen y se crean en su propio plan, no en el del ejercicio de trabajo (plataforma/mantenimiento 2026-11-18).
+        EjercicioCuentas = (r, c) => r.EsNuevo || r.Texto("Ejercicio") is not string e || !int.TryParse(e, CultureInfo.InvariantCulture, out var anio) ? null
+            : new ContextoSociedadEjercicio(c.Trabajo.IdSociedad, Convert.ToInt32(r.Clave, CultureInfo.InvariantCulture), anio),
         Alias = ["ejercicio", "año", "trimestre", "prorrata", "suplido", "retencion", "dividendos", "reservas", "sociedades", "impuesto", "pendientes", "amortizacion", "centimos"],
         Usos = [new("SeriesFacturacion", "IdSociedadEjercicio", "series"), new("Facturas", "IdSociedadEjercicio", "facturas"),
             new("CuentasContables", "IdSociedadEjercicio", "cuentas contables"), new("Asientos", "IdSociedadEjercicio", "asientos")],

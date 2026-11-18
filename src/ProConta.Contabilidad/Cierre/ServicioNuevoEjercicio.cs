@@ -1,3 +1,4 @@
+using ProConta.Contabilidad.Cuentas;
 using System.Globalization;
 using ProConta.Datos.Persistencia;
 using ProConta.Nucleo.Contexto;
@@ -11,7 +12,11 @@ public sealed record PrevisionNuevoEjercicio(int Ejercicio, bool Existe, int Cue
 
 /// <summary>Lo que hizo «Crear el ejercicio siguiente»: el ejercicio (nuevo o ya existente) y lo que añadió.</summary>
 public sealed record ResumenNuevoEjercicio(ContextoSociedadEjercicio Ejercicio, bool Creado, int CuentasCopiadas, int SeriesCopiadas, IReadOnlyList<string> OtrasTablas,
-    decimal? Prorrata);
+    decimal? Prorrata)
+{
+    /// <summary>Cuentas del ejercicio que estaban vacías y ha asignado «Auto» (organizacion/sociedades-ejercicios 2026-11-18).</summary>
+    public IReadOnlyList<string> CuentasAsignadas { get; init; } = [];
+}
 
 /// <summary>
 /// Proceso «Crear el ejercicio siguiente» (contabilidad/procesos/nuevo-ejercicio, propietario 2026-11-17 11:50, P1 A): copia del ejercicio
@@ -90,7 +95,9 @@ public sealed class ServicioNuevoEjercicio(IBaseDatos bd, Func<Task<bool>>? pued
         var cuentas = await CopiarCuentasQueFaltanAsync(ctx, siguiente);
         var series = await CopiarSeriesAsync(ctx, siguiente);
         var otras = await CopiarConfiguracionAsync(ctx, siguiente);
-        return Resultado<ResumenNuevoEjercicio>.Correcto(new ResumenNuevoEjercicio(siguiente, creado, cuentas, series, otras, prorrata));
+        // Las cuentas del ejercicio siempre asignadas (propietario 2026-11-18 05:10): las que vinieran vacías, con la regla de «Auto».
+        var asignadas = await new AsignacionCuentasEjercicio(bd, new CatalogoCuentasAccess(bd)).AsignarAsync(siguiente);
+        return Resultado<ResumenNuevoEjercicio>.Correcto(new ResumenNuevoEjercicio(siguiente, creado, cuentas, series, otras, prorrata) { CuentasAsignadas = asignadas });
     }
 
     /// <summary>

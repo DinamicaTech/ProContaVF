@@ -7,5 +7,6 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\src\ProConta.Datos.Esquema\ProConta.Datos.Esquema.csproj" />
+    <ProjectReference Include="..\..\src\ProConta.Organizacion\ProConta.Organizacion.csproj" />
   </ItemGroup>
 </Project>

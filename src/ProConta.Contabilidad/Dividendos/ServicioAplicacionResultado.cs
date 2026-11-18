@@ -5,6 +5,7 @@ using ProConta.Datos.Persistencia;
 using ProConta.Nucleo.Auditoria;
 using ProConta.Nucleo.Contexto;
 using ProConta.Nucleo.Resultados;
+using ProConta.Organizacion.Mantenimiento;
 
 namespace ProConta.Contabilidad.Dividendos;
 
@@ -132,6 +133,9 @@ public sealed class ServicioAplicacionResultado(IBaseDatos bd, IMotorAsientos mo
     /// </summary>
     public async Task<Resultado<PropuestaAplicacionCompleta>> ProponerAsync(ContextoSociedadEjercicio ctx, DateTime fecha, ImportesAplicacion importes)
     {
+        // Sin cuenta por defecto implícita: si falta alguna del ejercicio, el proceso se detiene y dice dónde asignarla (organizacion/sociedades-ejercicios 2026-11-18).
+        if (await bd.EjecutarAsync(s => CuentasEjercicio.FaltanAsync(s, ctx.IdSociedadEjercicio, "CuentaResultadoEjercicio", "CuentaReservaLegal", "CuentaReservasDividendos", "CuentaResultadosNegativos")) is { } faltaCuenta)
+            return Resultado<PropuestaAplicacionCompleta>.Fallo(faltaCuenta);
         ArgumentNullException.ThrowIfNull(importes);
         var anio = ctx.Ejercicio - 1;
         var registro = CalculoAplicacionResultado.Descripcion(anio);
