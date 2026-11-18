@@ -54,6 +54,9 @@ public sealed class FilaDocumentoVM : ModeloVista
     public string? Ruta => Datos.Vigente?.RutaCompleta;
     public string Extension => Path.GetExtension(Datos.Vigente?.Ruta ?? "").ToLowerInvariant();
 
+    /// <summary>Tipo de fichero para la columna «Ext.»: PDF, JPG, XLSX…</summary>
+    public string TipoFichero => Extension.TrimStart('.').ToUpperInvariant();
+
     public string? Tipo
     {
         get => _tipo;

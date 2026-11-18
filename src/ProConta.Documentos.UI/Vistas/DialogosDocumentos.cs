@@ -118,6 +118,51 @@ public sealed class DialogosDocumentos(Func<Window?> propietario) : IDialogosDoc
         return d.ShowDialog() == true ? texto.Text.Trim() : null;
     }
 
+    public (string Tipo, DateTime Fecha, string Titulo)? Clasificar(IReadOnlyList<TipoDocumento> tipos, string? tipo, DateTime? fecha, string titulo, string explicacion)
+    {
+        var d = new DialogoProConta { Title = "Clasificar y archivar", Owner = propietario(), Width = 480, SizeToContent = SizeToContent.Height };
+        var panel = new StackPanel();
+        panel.Children.Add(new TextBlock { Text = explicacion, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 0, 0, 12) });
+        panel.Children.Add(new TextBlock { Text = "Tipo", Margin = new Thickness(0, 0, 0, 3) });
+        var combo = new ComboBox { ItemsSource = tipos, DisplayMemberPath = nameof(TipoDocumento.Nombre), Margin = new Thickness(0, 0, 0, 10),
+            ToolTip = "Tipo del documento: decide la carpeta donde se archiva. Los tipos se mantienen en Parámetros y tablas › Tipos de documento" };
+        combo.SelectedItem = tipos.FirstOrDefault(t => t.Codigo == tipo);
+        panel.Children.Add(combo);
+        panel.Children.Add(new TextBlock { Text = "Fecha del documento", Margin = new Thickness(0, 0, 0, 3) });
+        var dia = new DatePicker { SelectedDate = fecha, Margin = new Thickness(0, 0, 0, 10), Width = 160, HorizontalAlignment = HorizontalAlignment.Left,
+            ToolTip = "Fecha del propio documento (firma, notificación, presentación…); decide el año de la carpeta" };
+        panel.Children.Add(dia);
+        panel.Children.Add(new TextBlock { Text = "Título", Margin = new Thickness(0, 0, 0, 3) });
+        var texto = new TextBox { Text = titulo, ToolTip = "Título del documento: será el nombre del fichero archivado" };
+        panel.Children.Add(texto);
+        var aviso = new TextBlock { Foreground = System.Windows.Media.Brushes.Firebrick, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 8, 0, 0) };
+        panel.Children.Add(aviso);
+        d.Content = panel;
+        var aceptar = new Button { Content = "Archivar", Style = (Style)d.FindResource("Boton.Primario"), IsDefault = true, Margin = new Thickness(8, 0, 0, 0),
+            ToolTip = "Guarda el tipo, la fecha y el título y archiva el documento en su carpeta" };
+        var cancelar = new Button { Content = "Cancelar", IsCancel = true, ToolTip = "Cierra sin cambiar nada" };
+        aceptar.Click += (_, _) =>
+        {
+            if (combo.SelectedItem is null || dia.SelectedDate is null || texto.Text.Trim().Length == 0)
+            {
+                aviso.Text = "Falta " + string.Join(", ", new[] { combo.SelectedItem is null ? "el tipo" : null, dia.SelectedDate is null ? "la fecha" : null,
+                    texto.Text.Trim().Length == 0 ? "el título" : null }.Where(x => x is not null)) + ".";
+                return;
+            }
+            d.DialogResult = true;
+        };
+        cancelar.Click += (_, _) => d.DialogResult = false;
+        d.Botones = new StackPanel { Orientation = Orientation.Horizontal, Children = { cancelar, aceptar } };
+        d.Loaded += (_, _) => combo.Focus();
+        return d.ShowDialog() == true && combo.SelectedItem is TipoDocumento t && dia.SelectedDate is DateTime f ? (t.Codigo, f.Date, texto.Text.Trim()) : null;
+    }
+
+    public bool Copiar(string texto)
+    {
+        try { Clipboard.SetText(texto); return true; }
+        catch (System.Runtime.InteropServices.ExternalException) { return false; }
+    }
+
     public void AbrirFichero(string ruta)
     {
         try { System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(ruta) { UseShellExecute = true })?.Dispose(); }

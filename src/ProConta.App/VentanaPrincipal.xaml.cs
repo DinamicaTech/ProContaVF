@@ -233,7 +233,7 @@ public partial class VentanaPrincipal : Window
             asientosBanco);
         _compras = new ModuloCompras(serviciosCompras, _area, new DialogosCompras(() => this), _terceros.AbrirFicha);
 
-        // Gestor documental (documentos 2026-11-18): pantalla Contabilidad › Documentos, «Vincular a…» y el panel Documentos de las fichas (tercero,
+        // Gestor documental (documentos 2026-11-18): pantalla Datos maestros › Documentos, «Vincular a…» y el panel Documentos de las fichas (tercero,
         // activo y periodo de un modelo). Cada vínculo abre su registro; una factura de compra que se cuela en la bandeja va a la carpeta de Compras.
         var servicioDocumentos = new ProConta.Documentos.ServicioDocumentos(bd, sesion.NombreOperador, puede: () => autorizador.PuedeAsync(Acciones.Documentos));
         _servicioDocumentos = servicioDocumentos;
@@ -329,7 +329,7 @@ public partial class VentanaPrincipal : Window
         var mantenimiento = new ServicioMantenimiento(
             new IProveedorMantenimiento[] { new ProveedorConfiguracionGeneral(bd) }.Concat(proveedoresOrganizacion).Concat(ProveedoresFacturacion.Todos(bd, cuentas)).Concat(ProConta.Facturacion.Ventas.ProveedoresVentas.Todos(bd, ventas, clienteAvaibook))
                 .Concat(ProConta.Compras.Mantenimiento.ProveedoresCompras.Todos(bd)).Concat(ProveedoresCorreo.Todos(bd))
-                .Concat(ProConta.Activos.Mantenimiento.ProveedoresActivos.Todos(bd, cuentas)),
+                .Concat(ProConta.Activos.Mantenimiento.ProveedoresActivos.Todos(bd, cuentas)).Concat(ProConta.Documentos.Mantenimiento.ProveedoresDocumentos.Todos(bd)),
             () => autorizador.PuedeAsync(Acciones.MantenimientoEditar));
         var contextoMantenimiento = new ContextoMantenimiento(contexto.Contexto, contexto.RazonSocial, new Actor(sesion.NombreOperador));
         _crearMantenimiento = () => new PantallaMantenimientoVM(mantenimiento, contextoMantenimiento,
@@ -618,11 +618,15 @@ public partial class VentanaPrincipal : Window
         Navegacion.ItemsSource = new[]
         {
             new OpcionNavegacion("Inicio", Icono("layout"), true, false, "Página de inicio", irAInicio),
-            new OpcionNavegacion("Datos maestros", Icono("user"), true, false, "Terceros (clientes, proveedores, contactos…) y activos de la sociedad (inmuebles, vehículos, instalaciones…)", abrirTerceros),
+            new OpcionNavegacion("Datos maestros", Icono("user"), true, false, "Terceros (clientes, proveedores, contactos…), activos de la sociedad (inmuebles, vehículos, instalaciones…) y documentos", abrirTerceros),
             new OpcionNavegacion("Terceros", null, true, false, "Buscador y fichas de terceros (clientes, proveedores, contactos…)", abrirTerceros, EsHija: true),
             new OpcionNavegacion("Activos", null, true, false,
                 "Inmuebles, vehículos, instalaciones y aplicaciones de la sociedad: listado con sus cifras del año, ficha con su cuenta de resultados, subcuentas y amortización, y alta paso a paso",
                 abrirActivos, EsHija: true),
+            new OpcionNavegacion("Documentos", null, true, false,
+                "Gestor documental de la sociedad: añade ficheros (o arrástralos) a «Por clasificar», revisa lo que el programa propone (tipo, fecha, título y vínculo), " +
+                "archívalos de una vez y vincúlalos a modelos, ejercicios, terceros, activos, facturas o asientos; vista previa, versiones y búsqueda",
+                abrirDocumentos, EsHija: true),
             new OpcionNavegacion("Ventas", Icono("doc"), true, false, "Facturas de venta: emitidas y borradores", abrirFacturas),
             new OpcionNavegacion("Facturas programadas", null, true, false, "Facturas que se generan solas en cada vencimiento: su programación, sus líneas y la generación por lotes", abrirProgramadas, EsHija: true),
             new OpcionNavegacion("Facturas", null, true, false, "Listado de facturas y borradores del ejercicio, con su detalle y acciones", abrirFacturas, EsHija: true),
@@ -646,10 +650,6 @@ public partial class VentanaPrincipal : Window
                 "Modelos tributarios: los modelos de la sociedad (303, 111, 115, 123, 349, 202, 390, 190, 180, 193, 347 y 200) con sus plazos y su estado; borrador de la AEAT, fichero, " +
                 "«Presentar…» con el certificado de la sociedad (en la copia de pruebas, en el entorno de pruebas de la AEAT), complementarias, justificantes y «Consultar a la AEAT»",
                 abrirModelos, EsHija: true),
-            new OpcionNavegacion("Documentos", null, true, false,
-                "Gestor documental de la sociedad: añade ficheros (o arrástralos) a «Por clasificar», revisa lo que el programa propone (tipo, fecha, título y vínculo), " +
-                "archívalos de una vez y vincúlalos a modelos, ejercicios, terceros, activos, facturas o asientos; vista previa, versiones y búsqueda",
-                abrirDocumentos, EsHija: true),
             new OpcionNavegacion("Reparto de dividendos", null, true, false,
                 "Procesos contables › Reparto de dividendos: del neto de cada socio (por defecto, lo ya pagado en su 526) calcula el bruto y la retención del ejercicio y graba el asiento de reservas a dividendos; corregir o deshacer con motivo",
                 abrirDividendos, EsHija: true),

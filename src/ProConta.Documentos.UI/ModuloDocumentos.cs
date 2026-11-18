@@ -43,6 +43,14 @@ public interface IDialogosDocumentos
     /// <summary>Pide un texto (por ejemplo, el motivo de una versión); null si se cancela.</summary>
     string? PedirTexto(string titulo, string explicacion, string propuesto);
 
+    /// <summary>
+    /// «Clasificar y archivar…» de un documento pendiente: tipo, fecha y título; null si se cancela. Lo que ya tiene viene propuesto.
+    /// </summary>
+    (string Tipo, DateTime Fecha, string Titulo)? Clasificar(IReadOnlyList<TipoDocumento> tipos, string? tipo, DateTime? fecha, string titulo, string explicacion);
+
+    /// <summary>Copia un texto al portapapeles; false si no se ha podido.</summary>
+    bool Copiar(string texto);
+
     /// <summary>Abre un fichero con el programa del sistema.</summary>
     void AbrirFichero(string ruta);
 

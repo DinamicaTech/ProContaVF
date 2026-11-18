@@ -217,6 +217,25 @@ public sealed class DocumentosAccessTests : IDisposable
         File.WriteAllBytes(movido, [2, 2]);
         var r3 = await Servicio.SincronizarAsync(Sol(2), movido, clave);
         Assert.Equal((r1.Valor.IdDocumento, 2), (r3.Valor.IdDocumento, r3.Valor.NumeroVersion));
+    public async Task Tipos_nuevos_desde_parametros_y_tablas()
+    {
+        await PrepararAsync();
+        var p = ProConta.Documentos.Mantenimiento.ProveedoresDocumentos.TiposDocumento(Bd);
+        var ctx = new ProConta.Mantenimiento.ContextoMantenimiento(new ProConta.Nucleo.Contexto.ContextoSociedadEjercicio("T01", 9001, 2026), "Sociedad sintética",
+            new ProConta.Nucleo.Auditoria.Actor("Pruebas"));
+        Assert.Contains(await p.ListarAsync(ctx), r => Equals(r["Codigo"], "ESCRITURA"));
+        var r = await p.NuevoAsync(ctx);
+        r["Codigo"] = "DNI";
+        r["Nombre"] = "DNI";
+        r["Carpeta"] = "Personal";
+        r["PorAnio"] = false;
+        r["Orden"] = 8;
+        r["Manual"] = true;
+        r["Activo"] = true;
+        var g = await p.GuardarAsync(r, ctx);
+        Assert.True(g.EsCorrecto, g.Error?.ToString());
+        var dni = Assert.Single(await Servicio.TiposAsync(), t => t.Codigo == "DNI");
+        Assert.Equal(Path.Combine("Documentos", "Personal"), RutasDocumentos.SubcarpetaManual(dni, 2026));
     }
 
     [Fact]
