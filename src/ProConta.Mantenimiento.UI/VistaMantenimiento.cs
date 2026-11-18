@@ -443,18 +443,29 @@ public sealed class VistaMantenimiento : UserControl
         var nombresAnchos = new List<UIElement>();
         var nombresEstrechos = new List<UIElement>();
         bool? estrecho = null;
-        grid.SizeChanged += (_, e) =>
+        void Ajustar(double ancho)
         {
-            if (!e.WidthChanged) return;
-            var ahora = e.NewSize.Width < 500;
+            var ahora = ancho > 0 && ancho < 500;
             if (ahora == estrecho) return;
             estrecho = ahora;
-            colConcepto.Width = new GridLength(ahora ? 150 : 210);
+            // Estrecho: Concepto en estrella (lo que quede tras Subcuenta y Estado), porque con un ancho fijo la pastilla se cortaba a 337 px.
+            colConcepto.Width = ahora ? new GridLength(1, GridUnitType.Star) : new GridLength(210);
             colSubcuenta.Width = new GridLength(ahora ? 128 : 140);
             colNombre.MinWidth = ahora ? 0 : 60;
             colNombre.Width = ahora ? new GridLength(0) : new GridLength(1, GridUnitType.Star);
             foreach (var n in nombresAnchos) n.Visibility = ahora ? Visibility.Collapsed : Visibility.Visible;
             foreach (var n in nombresEstrechos) n.Visibility = ahora ? Visibility.Visible : Visibility.Collapsed;
+        }
+        // Se mide el contenedor, no la tabla: con sus columnas fijas la tabla nunca baja de unos 500 px aunque no quepa (ensayo del 2026-11-18).
+        FrameworkElement? contenedor = null;
+        grid.Loaded += (_, _) =>
+        {
+            if (contenedor is null && grid.Parent is FrameworkElement padre)
+            {
+                contenedor = padre;
+                padre.SizeChanged += (_, e) => { if (e.WidthChanged) Ajustar(e.NewSize.Width); };
+            }
+            if (contenedor is not null) Ajustar(contenedor.ActualWidth);
         };
         var fila = 0;
         void Fila(UIElement e, int columna, int span = 1)
