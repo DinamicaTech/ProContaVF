@@ -134,8 +134,39 @@ public sealed class ServicioImportacionNominas(IBaseDatos bd, IReloj? reloj = nu
     /// que sustituye, si el operador lo ha confirmado; solo si aún no está contabilizada (la contabilizada se reemplaza desde la
     /// contabilización, que anula sus asientos).
     /// </summary>
-    public Task<Resultado<ResultadoImportacionNominas>> ImportarAsync(ContextoSociedadEjercicio ctx, byte[] contenido, string nombreFichero, OrigenNominas origen,
-        Actor actor, IReadOnlyList<AliasNuevo>? alias = null, int? reemplazar = null, int? idAdjuntoRecibido = null, string? motivo = null) =>
+    public async Task<Resultado<ResultadoImportacionNominas>> ImportarAsync(ContextoSociedadEjercicio ctx, byte[] contenido, string nombreFichero, OrigenNominas origen,
+        Actor actor, IReadOnlyList<AliasNuevo>? alias = null, int? reemplazar = null, int? idAdjuntoRecibido = null, string? motivo = null)
+    {
+        var r = await ImportarEnBdAsync(ctx, contenido, nombreFichero, origen, actor, alias, reemplazar, idAdjuntoRecibido, motivo);
+        if (r is { EsCorrecto: true, Valor: { Veredicto: VeredictoNominas.Importable, IdImportacion: int id } v }) await ArchivarExcelAsync(ctx, contenido, nombreFichero, id, v.Analisis.Fichero, actor);
+        return r;
+    }
+
+    /// <summary>
+    /// Guarda el Excel importado en el gestor documental (documentos 2026-11-18, parte d), en «&lt;año&gt;\Nominas» con su nombre, vinculado a la
+    /// importación y al ejercicio. Si falla, la importación sigue: el gestor es secundario aquí.
+    /// </summary>
+    private async Task ArchivarExcelAsync(ContextoSociedadEjercicio ctx, byte[] contenido, string nombreFichero, int idImportacion, FicheroNominas f, Actor actor)
+    {
+        try
+        {
+            var anio = ctx.Ejercicio.ToString(System.Globalization.CultureInfo.InvariantCulture);
+            var periodo = f.Mes is DateTime mes ? mes.ToString("MMMM yyyy", System.Globalization.CultureInfo.GetCultureInfo("es-ES")) : anio;
+            var paga = string.IsNullOrWhiteSpace(f.TextoPaga) ? "Nóminas" : f.TextoPaga.Trim();
+            await new ProConta.Documentos.ServicioDocumentos(bd, actor.ToString(), _reloj).GuardarAsync(new ProConta.Documentos.SolicitudDocumento(
+                ctx.IdSociedad, "NOMINA", $"Nóminas {periodo} · {paga}", Path.Combine(anio, "Nominas"), Path.GetFileName(nombreFichero), (f.FechaNomina ?? f.PeriodoHasta)?.Date,
+                ctx.Ejercicio, "NOMINAS",
+                [new ProConta.Documentos.Vinculo(ProConta.Documentos.TiposEntidad.ImportacionNomina, idImportacion, null, $"{periodo} · {paga}"),
+                 new ProConta.Documentos.Vinculo(ProConta.Documentos.TiposEntidad.Ejercicio, ctx.IdSociedadEjercicio, null, $"Ejercicio {anio}")]), contenido);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            // La importación ya está hecha.
+        }
+    }
+
+    private Task<Resultado<ResultadoImportacionNominas>> ImportarEnBdAsync(ContextoSociedadEjercicio ctx, byte[] contenido, string nombreFichero, OrigenNominas origen,
+        Actor actor, IReadOnlyList<AliasNuevo>? alias, int? reemplazar, int? idAdjuntoRecibido, string? motivo) =>
         bd.EnTransaccionAsync(async s =>
         {
             foreach (var a in alias ?? [])

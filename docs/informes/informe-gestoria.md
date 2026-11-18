@@ -3,6 +3,7 @@ title: Informe para la gestoría
 depends_on: [contabilidad/modelos-tributarios, contabilidad/procesos/prorrata, contabilidad/balances, informes/ratios, informes/excel, facturacion/factura-venta, compras/factura-compra, contabilidad/centros-coste, plataforma/contenedor]
 threads:
   - 2026-11-15 18:10 · Mejorar el informe trimestral para la gestoría | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GDKdsJYPwYjUXMKLnUhFQKN
+  - 2026-11-18 19:20 · Diseñar el gestor documental | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GWo8SybrmKimtCP8FKpt7zw
 ---
 ## Summary
 Libro Excel que se envía a la gestoría cada trimestre para cerrar el IVA y revisar facturas emitidas y recibidas, ratios y balances: sustituye al libro AsientosIVA<año>-<trimestre>.XLSX que se alimentaba de consultas de la ProConta anterior. Este nodo compone el libro (portada, controles y sello) y pide cada cifra al nodo que la calcula; no calcula reglas fiscales ni contables propias.
@@ -36,3 +37,4 @@ Hecho y validado por el propietario el 2026-11-15: «Informe para la gestoría�
 - 2026-11-15 19:43 · Me parece bien el PR #79
 - 2026-11-15 20:40 · Derived from contabilidad/procesos/cambio-deduccion-actividad: mostrar en cada línea de IVA la deducción vigente en la fecha de su factura.
 - 2026-11-17 10:50 · Derived from contabilidad/procesos/prorrata: con la definitiva fijada, la hoja Prorrata la muestra y regulariza con ella, y el 303 del 4T lleva la regularización.
+- 2026-11-18 19:20 · Derived from documentos: el informe se guarda en la carpeta de documentos de la empresa («<año>\Gestoria») por el gestor documental, vinculado al ejercicio, y se abre desde ahí.

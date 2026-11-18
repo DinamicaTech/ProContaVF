@@ -154,6 +154,26 @@ public sealed partial class ServicioDocumentos
         }
     }
 
+    /// <summary>
+    /// Registra un adjunto de correo que ya está en su carpeta (documentos 2026-11-18, parte d): si su contenido ya es un documento de la sociedad
+    /// (por ejemplo, el PDF de la factura que se envía), solo le añade los vínculos de la solicitud (el mensaje), sin duplicarlo; si no, lo registra
+    /// donde está.
+    /// </summary>
+    public async Task<Resultado<DocumentoGuardado>> RegistrarAdjuntoAsync(SolicitudDocumento solicitud, string rutaCompleta, string huella, CancellationToken cancelacion = default)
+    {
+        var existente = await _bd.EjecutarAsync(s => s.ConsultarPrimeroAsync<(int Doc, int Ver, int Num, string Ruta)?>(
+            "SELECT TOP 1 v.IdDocumento, v.IdVersionDocumento, v.NumeroVersion, v.Ruta FROM DocumentosVersiones v INNER JOIN Documentos d ON v.IdDocumento = d.IdDocumento " +
+            "WHERE d.IdSociedad = ? AND v.Huella = ? ORDER BY v.IdVersionDocumento", f => (f.Entero("IdDocumento"), f.Entero("IdVersionDocumento"), f.Entero("NumeroVersion"), f.Texto("Ruta") ?? ""),
+            solicitud.IdSociedad, huella.ToUpperInvariant()), cancelacion);
+        if (existente is { } e)
+        {
+            await AnadirVinculosAsync(e.Doc, solicitud.Vinculos);
+            var raiz = await RaizProductorAsync(solicitud.IdSociedad);
+            return Resultado<DocumentoGuardado>.Correcto(new DocumentoGuardado(e.Doc, e.Ver, e.Num, e.Ruta, RutasDocumentos.Completa(raiz, e.Ruta), true));
+        }
+        return await RegistrarAsync(solicitud, rutaCompleta, cancelacion);
+    }
+
     /// <summary>Vincula un documento ya guardado a más registros (sin comprobar el permiso: lo usan los productores).</summary>
     public async Task AnadirVinculosAsync(int idDocumento, IReadOnlyList<Vinculo> vinculos)
     {

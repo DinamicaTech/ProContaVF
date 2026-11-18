@@ -143,6 +143,9 @@ public sealed class ServicioCorreo
                     nuevo, a.Ordinal, a.Nombre, Recortar(a.Tipo, 100), (int)Math.Min(int.MaxValue, a.Tamano), a.Huella, a.Ruta);
             return nuevo;
         });
+        if (adjuntos.Count > 0 && destino.Raiz is { } raizAdjuntos)
+            await RegistrarAdjuntosAsync(_bd, m.IdSociedadEjercicio, raizAdjuntos, adjuntos.Select(a => (a.Nombre, a.Huella, a.Ruta)).ToList(),
+                new ProConta.Documentos.Vinculo(ProConta.Documentos.TiposEntidad.CorreoEnviado, id, null, m.Asunto.Trim()), actor.Nombre, _reloj.Ahora);
         return Resultado<int>.Correcto(id);
     }
 
@@ -543,6 +546,32 @@ public sealed class ServicioCorreo
     {
         var ruta = rutaDocumentos.Trim();
         return Path.IsPathFullyQualified(ruta) ? ruta : Path.GetFullPath(Path.Combine(Path.GetDirectoryName(Path.GetFullPath(rutaBd)) ?? string.Empty, ruta));
+    }
+
+    /// <summary>
+    /// Registra en el gestor documental los adjuntos guardados de un mensaje (documentos 2026-11-18, parte d), vinculados a él; un adjunto que ya es
+    /// un documento (el PDF de una factura) solo gana el vínculo. Si falla, el correo sigue: el gestor es secundario aquí.
+    /// </summary>
+    internal static async Task RegistrarAdjuntosAsync(IBaseDatos bd, int idSociedadEjercicio, string raiz, IReadOnlyList<(string Nombre, string Huella, string Ruta)> adjuntos,
+        ProConta.Documentos.Vinculo mensaje, string operador, DateTime fecha)
+    {
+        try
+        {
+            var (idSociedad, ejercicio) = await bd.EjecutarAsync(async s => await s.ConsultarPrimeroAsync("SELECT IdSociedad, Ejercicio FROM SociedadesEjercicios WHERE IdSociedadEjercicio = ?",
+                f => (f.Texto("IdSociedad") ?? "", int.TryParse(f.Texto("Ejercicio"), NumberStyles.None, CultureInfo.InvariantCulture, out var a) ? a : (int?)null), idSociedadEjercicio));
+            if (string.IsNullOrEmpty(idSociedad)) return;
+            var documentos = new ProConta.Documentos.ServicioDocumentos(bd, operador);
+            foreach (var (nombre, huella, ruta) in adjuntos)
+            {
+                var completa = Path.Combine(raiz, ruta);
+                await documentos.RegistrarAdjuntoAsync(new ProConta.Documentos.SolicitudDocumento(idSociedad, "ADJUNTO_CORREO", Path.GetFileNameWithoutExtension(nombre), "", Path.GetFileName(completa),
+                    fecha.Date, ejercicio, "CORREO", [mensaje]), completa, huella);
+            }
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            // El correo ya está guardado; el registro en el gestor se puede rehacer.
+        }
     }
 
     internal static string CodigoTipo(TipoDestinatario t) => t switch { TipoDestinatario.Para => "PARA", TipoDestinatario.Cc => "CC", _ => "CCO" };

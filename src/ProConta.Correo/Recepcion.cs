@@ -348,7 +348,7 @@ public sealed class ServicioRecepcionCorreo
         }
         var propio = leido.Remitente is { } rem && (string.Equals(rem, cuenta.Direccion, StringComparison.OrdinalIgnoreCase) || string.Equals(rem, cuenta.ResponderA, StringComparison.OrdinalIgnoreCase));
         var estado = leido.EsAutomatico || propio || leido.Remitente is null ? EstadoRecibido.Ignorado : EstadoRecibido.Descargado;
-        return await _bd.EnTransaccionAsync(async s =>
+        var idMensaje = await _bd.EnTransaccionAsync(async s =>
         {
             await s.EjecutarAsync(
                 "INSERT INTO MensajesRecibidosCorreo (IdCuentaCorreo, IdSociedadEjercicio, Uidl, MessageId, Remitente, NombreRemitente, Asunto, FechaMensaje, FechaRecepcion, " +
@@ -364,6 +364,11 @@ public sealed class ServicioRecepcionCorreo
                     (a.Tipo == TipoAdjuntoRecibido.NoReconocido ? EstadoAdjuntoRecibido.NoReconocido : EstadoAdjuntoRecibido.Pendiente).ToString());
             return id;
         });
+        if (adjuntos.Count > 0 && estado != EstadoRecibido.Ignorado)
+            await ServicioCorreo.RegistrarAdjuntosAsync(_bd, cuenta.IdSociedadEjercicio, raiz, adjuntos.Select(a => (a.Nombre, a.Huella, a.Ruta)).ToList(),
+                new ProConta.Documentos.Vinculo(ProConta.Documentos.TiposEntidad.CorreoRecibido, idMensaje, null,
+                    string.IsNullOrWhiteSpace(leido.Asunto) ? $"Correo de {leido.Remitente}" : leido.Asunto.Trim()), "Correo", ahora);
+        return idMensaje;
     }
 
     /// <summary>

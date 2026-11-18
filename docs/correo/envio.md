@@ -5,6 +5,7 @@ threads:
   - 2026-10-28 12:30 · Carga de requisitos | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GRNMH95h9tnQp4dmEPHmw1w
   - 2026-10-31 16:58 · Cerrar preguntas pendientes del proyecto | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5G7UyrP5eDJV4Ds6CCBozdbu
   - 2026-11-10 19:40 · Desarrollar envío y recepción de correo | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GT4mx65rhF9fy8aRE77SaGH
+  - 2026-11-18 19:20 · Diseñar el gestor documental | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GWo8SybrmKimtCP8FKpt7zw
 ---
 ## Summary
 Cuentas de correo por sociedad y ejercicio, transporte SMTP con evidencia por destinatario y cola durable con intentos, reintentos, lotes y estados que distinguen aceptación, aceptación en parte, fallo e incertidumbre. La procesa la aplicación mientras está abierta, y los adjuntos enviados se conservan como copia inmutable. Código: `src/ProConta.Correo` (`ServicioCorreo`, `TransporteSmtpMailKit`, `CoordinadorCorreo`, `RepositorioCuentasCorreo`, `ServicioPlantillasCorreo`, `ProveedoresCorreo`), migración `20261110_1940_CORREO_SALIENTE` y pruebas en `tests/ProConta.Correo.Tests`.
@@ -41,3 +42,4 @@ Cuentas de correo por sociedad y ejercicio, transporte SMTP con evidencia por de
 - 2026-11-10 19:26 · Reenvios: Ok
 - 2026-11-11 10:45 · Ok, pruebas realizadas. Correo recibido. Todo ok.
 - 2026-11-16 14:05 · Derived from plataforma/entorno-pruebas: en pruebas, no se envía nada sin desvío.
+- 2026-11-18 19:20 · Derived from documentos: los adjuntos guardados de cada mensaje se registran en el gestor documental vinculados al mensaje; si ya son un documento (el PDF de una factura), solo se les añade el vínculo.

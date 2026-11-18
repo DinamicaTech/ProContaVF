@@ -242,6 +242,29 @@ public sealed class DocumentosAccessTests : IDisposable
     }
 
     [Fact]
+    public async Task Un_adjunto_que_ya_es_documento_solo_gana_el_vinculo()
+    {
+        await PrepararAsync();
+        var factura = new Vinculo(TiposEntidad.FacturaVenta, 10, null, "F1");
+        var g = await Servicio.GuardarAsync(new SolicitudDocumento("T01", "FACTURA_VENTA", "F1", "2026", "F1.pdf", null, 2026, "FACTURA_VENTA", [factura]), [5, 5, 5]);
+        var carpeta = Path.Combine(_raiz, "2026", "Correo", "x");
+        Directory.CreateDirectory(carpeta);
+        var copia = Path.Combine(carpeta, "01-F1.pdf");
+        File.WriteAllBytes(copia, [5, 5, 5]);
+        var correo = new Vinculo(TiposEntidad.CorreoEnviado, 3, null, "Su factura");
+        var r = await Servicio.RegistrarAdjuntoAsync(new SolicitudDocumento("T01", "ADJUNTO_CORREO", "F1", "", "01-F1.pdf", null, 2026, "CORREO", [correo]), copia,
+            RutasDocumentos.Huella([5, 5, 5]));
+        Assert.Equal(g.Valor.IdDocumento, r.Valor.IdDocumento);
+        Assert.Single(await Servicio.DeAsync("T01", correo));
+        // Uno que no está en el gestor se registra donde está.
+        var otro = Path.Combine(carpeta, "02-otro.txt");
+        File.WriteAllBytes(otro, [9]);
+        var r2 = await Servicio.RegistrarAdjuntoAsync(new SolicitudDocumento("T01", "ADJUNTO_CORREO", "otro", "", "02-otro.txt", null, 2026, "CORREO", [correo]), otro, RutasDocumentos.Huella([9]));
+        Assert.NotEqual(g.Valor.IdDocumento, r2.Valor.IdDocumento);
+        Assert.Equal(2, (await Servicio.DeAsync("T01", correo)).Count);
+    }
+
+    [Fact]
     public async Task Sin_carpeta_de_documentos_lo_dice()
     {
         await DatosSinteticos.SociedadAsync(Bd, "T02", "Sin carpeta");

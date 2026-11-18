@@ -83,6 +83,7 @@ public partial class VentanaPrincipal : Window
     private readonly ProConta.Contabilidad.UI.Centimos.ModuloCentimos _centimos;
     private readonly ProConta.Activos.UI.ModuloActivos _activos;
     private readonly ProConta.Documentos.UI.ModuloDocumentos _documentos;
+    private readonly ProConta.Documentos.ServicioDocumentos _servicioDocumentos;
     private readonly ModuloFacturacion _facturacion;
     private readonly ModuloCompras _compras;
     private readonly ModuloCorreo _correo;
@@ -235,6 +236,7 @@ public partial class VentanaPrincipal : Window
         // Gestor documental (documentos 2026-11-18): pantalla Datos maestros › Documentos, «Vincular a…» y el panel Documentos de las fichas (tercero,
         // activo y periodo de un modelo). Cada vínculo abre su registro; una factura de compra que se cuela en la bandeja va a la carpeta de Compras.
         var servicioDocumentos = new ProConta.Documentos.ServicioDocumentos(bd, sesion.NombreOperador, puede: () => autorizador.PuedeAsync(Acciones.Documentos));
+        _servicioDocumentos = servicioDocumentos;
         _documentos = new ProConta.Documentos.UI.ModuloDocumentos(
             new ProConta.Documentos.UI.ContextoDocumentos(servicioDocumentos, contexto.Contexto.IdSociedad, contexto.RazonSocial, Avisar)
             {
@@ -1053,11 +1055,25 @@ public partial class VentanaPrincipal : Window
                 .ToHashSet(StringComparer.Ordinal);
             var t = trimestre.Value;
             var informe = await Task.Run(() => _gestoria.ComponerAsync(_ejercicioTrabajo, _razonSocial, t, DateTime.Now, inversiones));
-            var carpeta = System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "ProContaVF", "Informes");
+            // Se genera en una carpeta temporal y se guarda por el gestor documental (documentos 2026-11-18, parte d) en «<año>\Gestoria» de la
+            // carpeta de documentos, vinculado al ejercicio; se abre la copia guardada.
+            var carpeta = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "ProContaVF", "Informes");
             System.IO.Directory.CreateDirectory(carpeta);
-            ruta = System.IO.Path.Combine(carpeta, ProConta.Informes.Excel.InformeGestoria.NombreFichero(ejercicio, t, informe.Generado));
+            var nombre = ProConta.Informes.Excel.InformeGestoria.NombreFichero(ejercicio, t, informe.Generado);
+            ruta = System.IO.Path.Combine(carpeta, nombre);
             var destino = ruta;
             await Task.Run(() => ProConta.Informes.Excel.ExportadorInformeGestoriaExcel.Exportar(informe, destino));
+            var guardado = await _servicioDocumentos.GuardarAsync(new ProConta.Documentos.SolicitudDocumento(
+                _ejercicioTrabajo.IdSociedad, "INFORME_GESTORIA", $"Informe para la gestoría {ejercicio} {t}T",
+                System.IO.Path.Combine(ejercicio.ToString(System.Globalization.CultureInfo.InvariantCulture), "Gestoria"), nombre, informe.Generado.Date, ejercicio, "INFORME_GESTORIA",
+                [new ProConta.Documentos.Vinculo(ProConta.Documentos.TiposEntidad.Ejercicio, _ejercicioTrabajo.IdSociedadEjercicio, null, $"Ejercicio {ejercicio}")]),
+                await System.IO.File.ReadAllBytesAsync(ruta));
+            if (guardado.EsCorrecto)
+            {
+                try { System.IO.File.Delete(ruta); } catch (System.IO.IOException) { }
+                ruta = guardado.Valor.RutaCompleta;
+            }
+            else Avisar($"El informe no se ha guardado en la carpeta de documentos ({guardado.Error!.Mensaje}); lo abro desde {ruta}.");
             System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(ruta) { UseShellExecute = true });
             var es = System.Globalization.CultureInfo.GetCultureInfo("es-ES");
             var resultado = informe.Iva303.Resultado(t);
