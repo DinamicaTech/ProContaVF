@@ -222,7 +222,7 @@ public static class LectorPropuestas
             "ESCRITURA" => Frase(plano, "escritura"),
             "ACTA" => Frase(plano, "acta"),
             "CERTIFICADO" => Frase(plano, "certificado"),
-            "CONTRATO" => Frase(plano, "contrato") ?? Frase(plano, "póliza"),
+            "CONTRATO" => Frase(plano, "contrato") ?? Frase(plano, "p[oó]liza", "Póliza"),
             "NOTIFICACION" => FraseNotificacion(plano),
             _ => null,
         };
@@ -232,7 +232,7 @@ public static class LectorPropuestas
     }
 
     /// <summary>«Escritura de ampliación de capital»: la palabra clave seguida de «de» y unas pocas palabras, hasta un corte natural.</summary>
-    private static string? Frase(string plano, string palabra)
+    private static string? Frase(string plano, string palabra, string? texto = null)
     {
         var m = Regex.Match(plano, $@"\b{palabra}\s+de\s+((?:[\p{{L}}]+\s*){{1,7}})", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
         if (!m.Success) return null;
@@ -242,11 +242,11 @@ public static class LectorPropuestas
         {
             if (palabras.Count > 0 && cortes.Contains(p.ToLowerInvariant()) && p.ToLowerInvariant() is not ("de" or "la" or "del")) break;
             palabras.Add(p.ToLowerInvariant());
-            if (palabras.Count >= 5) break;
+            if (palabras.Count >= 4) break;
         }
         while (palabras.Count > 0 && cortes.Contains(palabras[^1])) palabras.RemoveAt(palabras.Count - 1);
         if (palabras.Count == 0) return null;
-        return char.ToUpperInvariant(palabra[0]) + palabra[1..] + " de " + string.Join(' ', palabras);
+        return (texto ?? char.ToUpperInvariant(palabra[0]) + palabra[1..]) + " de " + string.Join(' ', palabras);
     }
 
     private static string? FraseNotificacion(string plano)

@@ -43,7 +43,7 @@
           <Border Style="{StaticResource Chip}" ToolTip="{Binding Ayuda}">
             <StackPanel Orientation="Horizontal">
               <TextBlock Text="{Binding Tipo}" Style="{StaticResource Chip.Tipo}" />
-              <TextBlock Text="{Binding Etiqueta}" FontSize="12" VerticalAlignment="Center" />
+              <TextBlock Text="{Binding Etiqueta}" FontSize="12" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" MaxWidth="230" />
             </StackPanel>
           </Border>
         </DataTemplate>

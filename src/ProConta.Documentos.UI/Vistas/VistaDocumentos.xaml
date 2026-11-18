@@ -107,7 +107,7 @@
         <Grid.ColumnDefinitions>
           <ColumnDefinition Width="*" MinWidth="420" />
           <ColumnDefinition Width="Auto" />
-          <ColumnDefinition Width="380" MinWidth="260" />
+          <ColumnDefinition Width="350" MinWidth="260" />
         </Grid.ColumnDefinitions>
 
         <DockPanel Grid.Column="0">
@@ -126,7 +126,7 @@
                               PreviewMouseLeftButtonDown="Tabla_PreviewMouseLeftButtonDown" MouseDoubleClick="Tabla_MouseDoubleClick"
                               PreviewMouseRightButtonDown="Tabla_PreviewMouseRightButtonDown" PreviewKeyDown="Tabla_PreviewKeyDown">
               <pc:TablaProConta.Columns>
-                <DataGridTemplateColumn Width="34" pc:TablaProConta.Clave="marca" pc:TablaProConta.SiempreVisible="True" CanUserSort="False">
+                <DataGridTemplateColumn Width="38" pc:TablaProConta.Clave="marca" pc:TablaProConta.SiempreVisible="True" CanUserSort="False">
                   <DataGridTemplateColumn.Header>
                     <CheckBox IsChecked="{Binding DataContext.TodosMarcados, RelativeSource={RelativeSource AncestorType=UserControl}, Mode=TwoWay}" ToolTip="Marca o desmarca todos los que se ven" />
                   </DataGridTemplateColumn.Header>
@@ -137,9 +137,9 @@
                     </DataTemplate>
                   </DataGridTemplateColumn.CellTemplate>
                 </DataGridTemplateColumn>
-                <DataGridTextColumn Header="Fichero" Binding="{Binding Fichero}" Width="190" ElementStyle="{StaticResource Texto.Celda.Mono}" pc:TablaProConta.Clave="fichero"
+                <DataGridTextColumn Header="Fichero" Binding="{Binding Fichero}" Width="170" ElementStyle="{StaticResource Texto.Celda.Mono}" pc:TablaProConta.Clave="fichero"
                                     pc:TablaProConta.Ayuda="Nombre del fichero tal como llegó" />
-                <DataGridTemplateColumn Header="Tipo" Width="190" SortMemberPath="NombreTipo" pc:TablaProConta.Clave="tipo" pc:TablaProConta.RutaExportar="NombreTipo">
+                <DataGridTemplateColumn Header="Tipo" Width="175" SortMemberPath="NombreTipo" pc:TablaProConta.Clave="tipo" pc:TablaProConta.RutaExportar="NombreTipo">
                   <DataGridTemplateColumn.CellTemplate>
                     <DataTemplate>
                       <Grid>
@@ -151,7 +151,7 @@
                     </DataTemplate>
                   </DataGridTemplateColumn.CellTemplate>
                 </DataGridTemplateColumn>
-                <DataGridTemplateColumn Header="Fecha" Width="130" SortMemberPath="FechaOrden" pc:TablaProConta.Clave="fecha" pc:TablaProConta.RutaExportar="FechaTexto">
+                <DataGridTemplateColumn Header="Fecha" Width="140" SortMemberPath="FechaOrden" pc:TablaProConta.Clave="fecha" pc:TablaProConta.RutaExportar="FechaTexto">
                   <DataGridTemplateColumn.CellTemplate>
                     <DataTemplate>
                       <DatePicker SelectedDate="{Binding Fecha, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding EsCompra, Converter={x:Static v:NegarConverter.Instancia}}"
@@ -159,7 +159,7 @@
                     </DataTemplate>
                   </DataGridTemplateColumn.CellTemplate>
                 </DataGridTemplateColumn>
-                <DataGridTemplateColumn Header="Título" Width="250" SortMemberPath="Titulo" pc:TablaProConta.Clave="titulo" pc:TablaProConta.RutaExportar="Titulo">
+                <DataGridTemplateColumn Header="Título" Width="220" SortMemberPath="Titulo" pc:TablaProConta.Clave="titulo" pc:TablaProConta.RutaExportar="Titulo">
                   <DataGridTemplateColumn.CellTemplate>
                     <DataTemplate>
                       <TextBox Text="{Binding Titulo, UpdateSourceTrigger=LostFocus}" IsEnabled="{Binding EsCompra, Converter={x:Static v:NegarConverter.Instancia}}"
@@ -170,9 +170,8 @@
                 <DataGridTemplateColumn Header="Vincular a" Width="*" MinWidth="260" pc:TablaProConta.Clave="vinculos" pc:TablaProConta.RutaExportar="TextoVinculos" CanUserSort="False">
                   <DataGridTemplateColumn.CellTemplate>
                     <DataTemplate>
-                      <WrapPanel>
-                        <ContentControl Content="{Binding}" ContentTemplate="{StaticResource Vinculos.Lectura}" Focusable="False" />
-                        <Button Style="{StaticResource Boton.Pequeno}" Command="{Binding DataContext.VincularFilaCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                      <DockPanel LastChildFill="True">
+                        <Button DockPanel.Dock="Right" Margin="6,0,0,0" Style="{StaticResource Boton.Pequeno}" Command="{Binding DataContext.VincularFilaCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                 CommandParameter="{Binding}" Visibility="{Binding EsCompra, Converter={StaticResource Visible}, ConverterParameter=invertir}"
                                 ToolTip="Busca un modelo, ejercicio, tercero, activo, factura o asiento y cambia a qué se vincula">
                           <TextBlock>
@@ -186,15 +185,16 @@
                             </TextBlock.Style>
                           </TextBlock>
                         </Button>
-                        <Button Content="Enviar a Facturas recibidas" Style="{StaticResource Boton.Pequeno}"
+                        <Button DockPanel.Dock="Right" Content="Enviar a Facturas recibidas" Style="{StaticResource Boton.Pequeno}"
                                 Command="{Binding DataContext.EnviarCompraFilaCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}"
                                 Visibility="{Binding EsCompra, Converter={StaticResource Visible}}"
                                 ToolTip="La copia a la carpeta de facturas de compra del ejercicio, donde la recoge Compras › Facturas recibidas, y la quita de aquí" />
-                      </WrapPanel>
+                        <ContentControl Content="{Binding}" ContentTemplate="{StaticResource Vinculos.Lectura}" Focusable="False" ClipToBounds="True" VerticalAlignment="Center" />
+                      </DockPanel>
                     </DataTemplate>
                   </DataGridTemplateColumn.CellTemplate>
                 </DataGridTemplateColumn>
-                <DataGridTemplateColumn Header="Propuesta" Width="130" SortMemberPath="ClasePropuesta" pc:TablaProConta.Clave="propuesta" pc:TablaProConta.RutaExportar="TextoPropuesta">
+                <DataGridTemplateColumn Header="Propuesta" Width="124" SortMemberPath="ClasePropuesta" pc:TablaProConta.Clave="propuesta" pc:TablaProConta.RutaExportar="TextoPropuesta">
                   <DataGridTemplateColumn.CellTemplate>
                     <DataTemplate>
                       <Border Style="{StaticResource Pastilla.Propuesta}" ToolTip="{Binding AyudaPropuesta}">
@@ -214,7 +214,7 @@
                               PreviewMouseLeftButtonDown="Tabla_PreviewMouseLeftButtonDown" MouseDoubleClick="Tabla_MouseDoubleClick"
                               PreviewMouseRightButtonDown="Tabla_PreviewMouseRightButtonDown" PreviewKeyDown="Tabla_PreviewKeyDown">
               <pc:TablaProConta.Columns>
-                <DataGridTemplateColumn Width="34" pc:TablaProConta.Clave="marca" pc:TablaProConta.SiempreVisible="True" CanUserSort="False">
+                <DataGridTemplateColumn Width="38" pc:TablaProConta.Clave="marca" pc:TablaProConta.SiempreVisible="True" CanUserSort="False">
                   <DataGridTemplateColumn.Header>
                     <CheckBox IsChecked="{Binding DataContext.TodosMarcados, RelativeSource={RelativeSource AncestorType=UserControl}, Mode=TwoWay}" ToolTip="Marca o desmarca todos los que se ven" />
                   </DataGridTemplateColumn.Header>
