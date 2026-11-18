@@ -192,6 +192,34 @@ public sealed class DocumentosAccessTests : IDisposable
     }
 
     [Fact]
+    public async Task Sincronizar_sigue_al_fichero_que_mueve_otro_modulo()
+    {
+        await PrepararAsync();
+        var raiz = Path.Combine(_raiz, "2026", "Proveedores");
+        Directory.CreateDirectory(raiz);
+        var pdf = Path.Combine(raiz, "fac.pdf");
+        File.WriteAllBytes(pdf, [1, 1, 1]);
+        var clave = new Vinculo(TiposEntidad.FacturaCompra, 7, null, "F1 · Proveedor");
+        SolicitudDocumento Sol(int prov) => new("T01", "FACTURA_COMPRA", "Factura F1", "", "fac.pdf", new DateTime(2026, 3, 1), 2026, "FACTURA_COMPRA",
+            [clave, new Vinculo(TiposEntidad.Tercero, prov, null, $"Proveedor {prov}")]);
+        var r1 = await Servicio.SincronizarAsync(Sol(1), pdf, clave);
+        Assert.True(r1.EsCorrecto, r1.Error?.TextoOperador());
+        // Compras lo mueve a la carpeta del proveedor y le cambia el proveedor: misma versión con la ruta nueva, y el tercero cambia.
+        var movido = Path.Combine(raiz, "Proveedor 2", "fac.pdf");
+        Directory.CreateDirectory(Path.GetDirectoryName(movido)!);
+        File.Move(pdf, movido);
+        var r2 = await Servicio.SincronizarAsync(Sol(2), movido, clave);
+        Assert.Equal((r1.Valor.IdDocumento, 1), (r2.Valor.IdDocumento, r2.Valor.NumeroVersion));
+        var d = Assert.Single(await Servicio.DeAsync("T01", clave));
+        Assert.Equal(Path.Combine("2026", "Proveedores", "Proveedor 2", "fac.pdf"), d.Vigente!.Ruta);
+        Assert.Equal([2], d.Vinculos.Where(v => v.TipoEntidad == TiposEntidad.Tercero).Select(v => v.IdEntidad!.Value));
+        // Otro contenido en el mismo sitio (la factura partida): versión nueva.
+        File.WriteAllBytes(movido, [2, 2]);
+        var r3 = await Servicio.SincronizarAsync(Sol(2), movido, clave);
+        Assert.Equal((r1.Valor.IdDocumento, 2), (r3.Valor.IdDocumento, r3.Valor.NumeroVersion));
+    }
+
+    [Fact]
     public async Task Tipos_nuevos_desde_parametros_y_tablas()
     {
         await PrepararAsync();

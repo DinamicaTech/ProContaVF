@@ -98,6 +98,62 @@ public sealed partial class ServicioDocumentos
         return (await VersionesAsync(id)).FirstOrDefault()?.RutaCompleta;
     }
 
+    /// <summary>
+    /// Para ficheros que vive y mueve otro módulo (el PDF de una factura recibida, que Compras mueve a la carpeta del proveedor o parte en dos):
+    /// deja el gestor al día con el fichero de <paramref name="rutaActual"/> como versión vigente del documento de <paramref name="clave"/>. Sin
+    /// documento, lo registra; con el mismo contenido en otra ruta, solo actualiza la ruta (se ha movido); con otro contenido, guarda una versión
+    /// nueva. Los vínculos de los tipos que trae la solicitud se dejan como ella dice (por ejemplo, el proveedor si ha cambiado); los demás se
+    /// conservan.
+    /// </summary>
+    public async Task<Resultado<DocumentoGuardado>> SincronizarAsync(SolicitudDocumento solicitud, string rutaActual, Vinculo clave, CancellationToken cancelacion = default)
+    {
+        if (!File.Exists(rutaActual))
+            return Resultado<DocumentoGuardado>.Fallo(new Error("Documentos.SinFichero", $"No encuentro el fichero {rutaActual}.", solicitud.Titulo, null,
+                "Comprueba que la carpeta está accesible desde este equipo y vuelve a intentarlo."));
+        var raiz = await RaizProductorAsync(solicitud.IdSociedad);
+        var (filtro, p) = FiltroDestino(clave);
+        var id = await _bd.EjecutarAsync(s => s.ConsultarPrimeroAsync<int?>(
+            $"SELECT TOP 1 v.IdDocumento FROM DocumentosVinculos v INNER JOIN Documentos d ON v.IdDocumento = d.IdDocumento WHERE d.IdSociedad = ? AND d.Tipo = ? AND {filtro} " +
+            "ORDER BY v.IdDocumento DESC", f => f.Entero("IdDocumento"), [solicitud.IdSociedad, solicitud.Tipo, .. p]), cancelacion);
+        var vinculos = solicitud.Vinculos.Any(v => v.MismoDestino(clave)) ? solicitud.Vinculos : [clave, .. solicitud.Vinculos];
+        if (id is not int idDoc) return await RegistrarAsync(solicitud with { Vinculos = vinculos }, rutaActual, cancelacion);
+        try
+        {
+            var ruta = RutasDocumentos.ParaGuardar(raiz, rutaActual);
+            var huella = await RutasDocumentos.HuellaAsync(rutaActual, cancelacion);
+            var vigente = (await VersionesAsync(idDoc)).FirstOrDefault();
+            DocumentoGuardado guardado;
+            if (vigente is not null && vigente.Huella == huella)
+            {
+                if (!string.Equals(vigente.Ruta, ruta, StringComparison.OrdinalIgnoreCase))
+                    await _bd.EjecutarAsync(s => s.EjecutarAsync("UPDATE DocumentosVersiones SET Ruta = ? WHERE IdVersionDocumento = ?", Recortar(ruta, 255), vigente.IdVersionDocumento), cancelacion);
+                guardado = new DocumentoGuardado(idDoc, vigente.IdVersionDocumento, vigente.NumeroVersion, ruta, rutaActual, true);
+            }
+            else
+            {
+                var r = await RegistrarFicheroAsync(solicitud with { NuevaVersionDe = idDoc, Vinculos = [] }, raiz, rutaActual, Path.GetFileName(rutaActual),
+                    new FileInfo(rutaActual).Length, huella, cancelacion);
+                if (!r.EsCorrecto) return r;
+                guardado = r.Valor;
+            }
+            await _bd.EnTransaccionAsync(async s =>
+            {
+                await s.EjecutarAsync("UPDATE Documentos SET Titulo = ?, FechaDocumento = ?, Ejercicio = ?, FechaModificacion = ?, OperadorModificacion = ? WHERE IdDocumento = ?",
+                    Recortar(solicitud.Titulo, 200), solicitud.FechaDocumento, (object?)(solicitud.Ejercicio ?? EjercicioDe(vinculos, solicitud.FechaDocumento)), _reloj.Ahora, _operador, idDoc);
+                var actuales = await s.ConsultarAsync("SELECT * FROM DocumentosVinculos WHERE IdDocumento = ?", VinculoDe, idDoc);
+                var tipos = vinculos.Select(v => v.TipoEntidad).ToHashSet(StringComparer.OrdinalIgnoreCase);
+                foreach (var v in actuales.Where(a => tipos.Contains(a.TipoEntidad) && !vinculos.Any(n => n.MismoDestino(a)))) await BorrarVinculoAsync(s, idDoc, v);
+                foreach (var v in vinculos.Where(n => !actuales.Any(a => a.MismoDestino(n)))) await InsertarVinculoAsync(s, idDoc, v);
+                return true;
+            }, cancelacion);
+            return Resultado<DocumentoGuardado>.Correcto(guardado);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or System.Data.Common.DbException or InvalidOperationException)
+        {
+            return Resultado<DocumentoGuardado>.Fallo(NoGuardado(solicitud, ex));
+        }
+    }
+
     /// <summary>Vincula un documento ya guardado a más registros (sin comprobar el permiso: lo usan los productores).</summary>
     public async Task AnadirVinculosAsync(int idDocumento, IReadOnlyList<Vinculo> vinculos)
     {
