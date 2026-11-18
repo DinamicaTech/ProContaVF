@@ -39,8 +39,8 @@ se han tomado las filas en el orden del PDF, y ServaliDos acepta las del program
 
 | Casilla | Gestoría | Programa | Por qué |
 |---|---|---|---|
-| 00127 / 00133 | 37.286,00 en «Instrumentos de patrimonio» | 37.286,00 en «Resto» de inversiones financieras a largo plazo | Son las fianzas depositadas en el INCASOL (2650001…2650027). Por el PGC (260 y 265, fianzas y depósitos constituidos) no son instrumentos de patrimonio: el programa las pone en «Resto». Mismo total (00126). **Criterio a validar por el propietario.** |
-| 00171 / 00175 | 49.113,81 en «Valores representativos de deuda» | 49.113,81 en «Resto» de inversiones financieras a corto plazo | Es la 5510001 «Deudas a corto plazo con socios» con saldo deudor: un crédito a socios, no valores. El programa la pone en «Resto» del modelo PYMES. Mismo total (00168). **Criterio a validar por el propietario.** |
+| 00127 / 00133 | 37.286,00 en «Instrumentos de patrimonio» | 37.286,00 en «Resto» de inversiones financieras a largo plazo | Son las fianzas depositadas en el INCASOL (2650001…2650027). Por el PGC (260 y 265, fianzas y depósitos constituidos) no son instrumentos de patrimonio: el programa las pone en «Resto». Mismo total (00126). **Validado por el propietario (2026-11-18): como dice el programa.** |
+| 00171 / 00175 | 49.113,81 en «Valores representativos de deuda» | 49.113,81 en «Resto» de inversiones financieras a corto plazo | Es la 5510001 «Deudas a corto plazo con socios» con saldo deudor: un crédito a socios, no valores. El programa la pone en «Resto» del modelo PYMES. Mismo total (00168). **Validado por el propietario (2026-11-18): como dice el programa.** |
 | 01398 | 57.302,27 | — | Límite del beneficio operativo de 2023 pendiente de aplicar: historial de años anteriores que el programa no lleva. |
 | 02447 / 03588, 03590, 00538, 00546 | 25.695,15 en la fila de 2025 y totales con el de 2023 (82.997,42) | 25.594,16 (límite de 2025 menos los 100,99 de gastos financieros) en la fila de 2025 y en los totales | ServaliDos calcula estas casillas y rechaza otros importes; el programa genera lo que la AEAT calcula con los datos del año. La diferencia es el historial de 2023. |
 
@@ -52,5 +52,5 @@ se han tomado las filas en el orden del PDF, y ServaliDos acepta las del program
 - No están en el programa (sin cambio de esquema, propuestas para el esquema 72): administradores, titulares reales con su fecha de
   nacimiento, secretario y representantes legales con su poder; el CNAE, la plantilla media y la opción del 0,7 %. En la prueba se
   pasaron a mano.
-- Datos de las fichas: los socios no tienen código postal y sus NIF están sin letra; uno de ellos no coincide con el NIE que usa la
-  gestoría. El programa añade la letra de control, pero la ficha hay que corregirla.
+- Datos de las fichas: los socios no tienen código postal y sus NIF están sin letra; uno de ellos tenía NIE y hoy tiene NIF: la gestoría
+  usó el NIE antiguo y el programa da el NIF actual (correcto). El programa añade la letra de control; las fichas se completan en el ERP antes de la migración.
