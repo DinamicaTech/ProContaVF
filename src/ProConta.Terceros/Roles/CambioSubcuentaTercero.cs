@@ -122,13 +122,16 @@ public sealed class CambioSubcuentaTercero(IBaseDatos bd, ICatalogoCuentas cuent
     /// <summary>
     /// ¿Se puede pasar en un trimestre cerrado el apunte de <paramref name="antigua"/> a <paramref name="nueva"/> de un asiento con estas cuentas?
     /// Null si sí; si no, el motivo. Misma regla que el motor (contabilidad/asientos 2026-11-14 23:30): un asiento sin cuentas fiscales
-    /// siempre; con ellas, solo el cambio a otra subcuenta del mismo grupo 4XX y sin retención (4751).
+    /// siempre; con ellas, solo el cambio a otra subcuenta del mismo grupo 4XX y sin retención (4751), salvo en la apertura y el cierre,
+    /// donde la 4751 es un saldo y no una retención practicada.
     /// </summary>
-    public static string? BloqueoTrimestreCerrado(IReadOnlyCollection<string> cuentasAsiento, string antigua, string nueva)
+    public static string? BloqueoTrimestreCerrado(IReadOnlyCollection<string> cuentasAsiento, string antigua, string nueva, TipoAsiento tipo = TipoAsiento.Ordinario)
     {
         var fiscal = ReglasAsiento.AfectaTrimestreFiscal(cuentasAsiento);
         if (fiscal is null) return null;
-        if (cuentasAsiento.Any(c => c.Trim().StartsWith(ReglasAsiento.PrefijoRetenciones, StringComparison.Ordinal)))
+        // La apertura y el cierre llevan la 4751 como saldo, no como retención practicada.
+        var saldos = tipo is TipoAsiento.Apertura or TipoAsiento.Cierre;
+        if (!saldos && cuentasAsiento.Any(c => c.Trim().StartsWith(ReglasAsiento.PrefijoRetenciones, StringComparison.Ordinal)))
             return "es de un trimestre cerrado y lleva retención (4751), que ya está en su declaración. Corrígelo con un asiento de reclasificación en el trimestre activo.";
         if (!ReglasAsiento.EsCambioDeSubcuentaDeTercero(antigua, nueva))
             return $"es de un trimestre cerrado, lleva la cuenta fiscal {fiscal} y la {nueva} no es del mismo grupo que la {antigua}. Corrígelo con un asiento de reclasificación en el trimestre activo.";
@@ -205,7 +208,8 @@ public sealed class CambioSubcuentaTercero(IBaseDatos bd, ICatalogoCuentas cuent
                     foreach (var g in filas.Where(f => f.Fecha < inicio).GroupBy(f => f.Asiento))
                     {
                         var cuentasAsiento = await s.ConsultarAsync("SELECT CuentaContable FROM Apuntes WHERE IdAsiento = ?", f => (f.Texto("CuentaContable") ?? "").Trim(), g.Key);
-                        if (BloqueoTrimestreCerrado(cuentasAsiento, vieja.Codigo, nueva) is { } motivo)
+                        var tipo = (TipoAsiento)Convert.ToByte(await s.EscalarAsync("SELECT TipoAsiento FROM Asientos WHERE IdAsiento = ?", g.Key) is { } t and not DBNull ? t : 0, CultureInfo.InvariantCulture);
+                        if (BloqueoTrimestreCerrado(cuentasAsiento, vieja.Codigo, nueva, tipo) is { } motivo)
                             noMovibles.Add(new AsientoNoMovible(g.Key, ctx.Ejercicio, g.First().Fecha, motivo));
                     }
                 }

@@ -77,11 +77,13 @@ public sealed class CambioSubcuentaTerceroAccessTests : IDisposable
         idLinea, _identidades[cuenta], "CONTRAPARTIDA", importeFirmado, "MANUAL", "CONFIRMADA"));
 
     /// <summary>Asiento manual sintético con esos apuntes (cuenta, Debe, Haber); devuelve su Id.</summary>
-    private Task<int> ManualAsync(DateTime fecha, params (string Cuenta, decimal Debe, decimal Haber)[] apuntes) => Bd.EjecutarAsync(async s =>
+    private Task<int> ManualAsync(DateTime fecha, params (string Cuenta, decimal Debe, decimal Haber)[] apuntes) => ManualAsync(fecha, TipoAsiento.Ordinario, apuntes);
+
+    private Task<int> ManualAsync(DateTime fecha, TipoAsiento tipo, params (string Cuenta, decimal Debe, decimal Haber)[] apuntes) => Bd.EjecutarAsync(async s =>
     {
         await s.EjecutarAsync(
             "INSERT INTO Asientos (IdSociedadEjercicio, FechaContable, Descripcion, TipoAsiento, EstadoAsiento, OperadorCreacion, FechaHoraCreacion, TotalDebe, TotalHaber, Version) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-            9001, fecha, "Asiento sintético", (byte)1, (byte)1, "prueba", DateTime.Now, apuntes.Sum(a => a.Debe), apuntes.Sum(a => a.Haber), 1);
+            9001, fecha, "Asiento sintético", (byte)tipo, (byte)1, "prueba", DateTime.Now, apuntes.Sum(a => a.Debe), apuntes.Sum(a => a.Haber), 1);
         var asiento = await s.UltimoIdAsync();
         short orden = 0;
         foreach (var a in apuntes)
@@ -115,20 +117,23 @@ public sealed class CambioSubcuentaTerceroAccessTests : IDisposable
         // Un manual del primer trimestre con retención (no se pasa) y otro con la 477 sin retención (sí, es solo cambio de subcuenta 4XX).
         var conRetencion = await ManualAsync(new DateTime(2026, 2, 1), ("4300001", 100m, 0m), ("4751001", 0m, 100m));
         var conIva = await ManualAsync(new DateTime(2026, 2, 2), ("4300001", 121m, 0m), ("4770001", 0m, 21m), ("7050001", 0m, 100m));
+        // La apertura lleva la 4751 como saldo: sí se pasa.
+        var apertura = await ManualAsync(new DateTime(2026, 1, 1), TipoAsiento.Apertura, ("4300001", 80m, 0m), ("4751001", 0m, 30m), ("1000001", 0m, 50m));
         await Bd.EjecutarAsync(s => s.EjecutarAsync("UPDATE SociedadesEjercicios SET TrimestreActivo = ? WHERE IdSociedadEjercicio = 9001", (byte)4));
 
         var cambio = new SubcuentaCambiada(ClaseCuentaRol.Cliente, cliente, "T01", _identidades["4300001"], _identidades["4300002"]);
         var p = (await Cambio.ProponerAsync(cambio)).Valor;
         Assert.False(p.Compartida);
-        Assert.Equal((3, 3), (p.NumeroApuntes, p.NumeroAsientos));
+        Assert.Equal((4, 4), (p.NumeroApuntes, p.NumeroAsientos));
         Assert.Equal(conRetencion, Assert.Single(p.NoMovibles).IdAsiento);
         Assert.Equal(ids, p.LineasReimputar.OrderBy(i => i));
         Assert.True(p.HayQueDecidir);
-        Assert.Equal("Se pasarían a la 4300002: 3 apuntes de 3 asientos de 2026 y 3 movimientos N43 imputados.", p.Resumen);
+        Assert.Equal("Se pasarían a la 4300002: 4 apuntes de 4 asientos de 2026 y 3 movimientos N43 imputados.", p.Resumen);
 
         await AsignarAsync(cliente, "4300002"); // lo que hace el guardado de la ficha
         var r = await Cambio.EjecutarAsync(p, "INQUILINO FICTICIO", _actor, _ctx);
-        Assert.Equal((3, 3, 3), (r.Apuntes, r.Asientos, r.Lineas));
+        Assert.Equal((4, 4, 3), (r.Apuntes, r.Asientos, r.Lineas));
+        Assert.Equal(["4300002", "4751001", "1000001"], await CuentasAsync(apertura));
         Assert.Equal(["5720001", "4300002"], await CuentasAsync(bancos[ids[0]]));
         Assert.Equal(["5720001", "4300002"], await CuentasAsync(bancos[ids[1]]));
         Assert.Equal(["4300002", "4770001", "7050001"], await CuentasAsync(conIva));
@@ -136,7 +141,7 @@ public sealed class CambioSubcuentaTerceroAccessTests : IDisposable
         Assert.Equal(ids, await ImputadasAsync("4300002"));
         // No quedan como corregidos a mano y cada cambio está en el registro con el motivo.
         Assert.Equal(0, await ContarAsync("SELECT COUNT(*) FROM Asientos WHERE CorregidoAMano = True"));
-        Assert.Equal(3, await ContarAsync("SELECT COUNT(*) FROM RegistroCambiosApuntes WHERE Motivo LIKE 'Cambio de subcuenta del tercero INQUILINO FICTICIO%'"));
+        Assert.Equal(4, await ContarAsync("SELECT COUNT(*) FROM RegistroCambiosApuntes WHERE Motivo LIKE 'Cambio de subcuenta del tercero INQUILINO FICTICIO%'"));
         Assert.Contains(r.Textos, t => t.StartsWith("1 asiento sigue en la 4300001", StringComparison.Ordinal));
         // La antigua conserva el asiento con retención, así que no se borra.
         Assert.Contains(r.Textos, t => t.StartsWith("La 4300001 se conserva", StringComparison.Ordinal));

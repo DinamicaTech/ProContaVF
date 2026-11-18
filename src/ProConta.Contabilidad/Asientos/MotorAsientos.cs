@@ -487,8 +487,11 @@ public sealed partial class MotorAsientosAccess(IBaseDatos bd, PoliticaCuadre? p
                 }
                 // En un trimestre cerrado solo se admite pasar a otra subcuenta del mismo grupo 4XX de terceros si el asiento no lleva
                 // la 4751 (contabilidad/asientos 2026-11-13 10:50).
+                // Al pasar los apuntes de un tercero a su nueva subcuenta, la apertura y el cierre llevan la 4751 como saldo, no como
+                // retención practicada: el cambio de subcuenta 4XX en ellos no toca ninguna declaración (terceros/roles/cambio-subcuenta).
+                var saldos = !marcarCorregido && anteriores[fila.IdAsiento].Tipo is TipoAsiento.Apertura or TipoAsiento.Cierre;
                 var deTercero = ReglasAsiento.EsCambioDeSubcuentaDeTercero(fila.Cuenta, cuenta.Valor.Codigo)
-                    && !anteriores[fila.IdAsiento].Apuntes.Any(a => a.CodigoCuenta.Trim().StartsWith(ReglasAsiento.PrefijoRetenciones, StringComparison.Ordinal));
+                    && (saldos || !anteriores[fila.IdAsiento].Apuntes.Any(a => a.CodigoCuenta.Trim().StartsWith(ReglasAsiento.PrefijoRetenciones, StringComparison.Ordinal)));
                 if (!deTercero)
                 {
                     var trimestre = await ComprobarTrimestreAbiertoAsync(s, anteriores[fila.IdAsiento], cuenta.Valor.Codigo);

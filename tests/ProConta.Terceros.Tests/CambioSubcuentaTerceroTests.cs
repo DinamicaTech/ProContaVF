@@ -42,6 +42,8 @@ public sealed class CambioSubcuentaTerceroTests
         Assert.Null(CambioSubcuentaTercero.BloqueoTrimestreCerrado(["4300001", "5720001"], "4300001", "4100001"));
         Assert.Null(CambioSubcuentaTercero.BloqueoTrimestreCerrado(["4300001", "4770001", "7050001"], "4300001", "4300002"));
         Assert.Contains("retención (4751)", CambioSubcuentaTercero.BloqueoTrimestreCerrado(["4300001", "4751001"], "4300001", "4300002"));
+        // En la apertura y el cierre la 4751 es un saldo: el cambio de subcuenta del tercero pasa.
+        Assert.Null(CambioSubcuentaTercero.BloqueoTrimestreCerrado(["4300001", "4751001", "5720001"], "4300001", "4300002", Contabilidad.Asientos.TipoAsiento.Apertura));
         Assert.Contains("no es del mismo grupo", CambioSubcuentaTercero.BloqueoTrimestreCerrado(["4000001", "4720001", "6280001"], "4000001", "4100001"));
     }
 }
