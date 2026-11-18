@@ -119,6 +119,9 @@ public sealed class CierreEjercicioAccessTests : IDisposable
         var prevision = await Nuevo().PrevisionAsync(_ctx);
         Assert.False(prevision.Existe);
         Assert.Equal(2027, prevision.Ejercicio);
+        // Como en la realidad, las cuentas del ejercicio ya están dadas de alta en su plan («Auto» en Ejercicios): el siguiente las copia
+        // con la misma identidad y no tiene que dar de alta ninguna (organizacion/sociedades-ejercicios 2026-11-18).
+        await new AsignacionCuentasEjercicio(Bd, Cuentas()).AsignarAsync(_ctx);
         var r = await Nuevo().CrearSiguienteAsync(_ctx);
         Assert.True(r.EsCorrecto, r.Error?.Mensaje);
         Assert.True(r.Valor.Creado);

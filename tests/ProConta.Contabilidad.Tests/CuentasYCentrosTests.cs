@@ -65,8 +65,8 @@ public sealed class CuentasAccessTests : IDisposable
         // «Auto» de Ejercicios (ensayo del 2026-11-18): la 4009000 de 2025 no se podía dar de alta otra vez en 2026.
         await PrepararAsync();
         var catalogo = new CatalogoCuentasAccess(_copia.Bd());
-        await catalogo.AltaAsync(_c2025, new AltaCuenta("400", "Proveedores", EsImputable: false));
-        await catalogo.AltaAsync(_c2026, new AltaCuenta("400", "Proveedores", EsImputable: false));
+        var proveedores = await catalogo.AltaAsync(_c2025, new AltaCuenta("400", "Proveedores", EsImputable: false));
+        Assert.True((await catalogo.AltaEnEjercicioAsync(_c2026, proveedores.Valor.IdIdentidadContable)).EsCorrecto);
         var en2025 = await catalogo.AltaSubcuentaAsync(_c2025, "4009000", "Proveedores, facturas pendientes de recibir");
         Assert.Equal("Cuentas.CodigoReservado", (await catalogo.AltaSubcuentaAsync(_c2026, "4009000", "Otro nombre")).Error!.Codigo);
         var traida = await catalogo.AltaOTraerSubcuentaAsync(_c2026, "4009000", "Otro nombre");

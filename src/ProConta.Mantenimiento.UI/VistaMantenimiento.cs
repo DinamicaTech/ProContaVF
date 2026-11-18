@@ -431,10 +431,31 @@ public sealed class VistaMantenimiento : UserControl
         var grid = new Grid { Margin = new Thickness(0, 4, 0, 8) };
         // Concepto con ancho fijo (igual en todas las pestañas, en dos líneas si hace falta), Estado con el ancho de su pastilla más larga
         // y Nombre con todo lo que sobra: así el estado nunca se corta en un panel estrecho (ensayo del 2026-11-18).
-        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(210) });
-        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(140) });
-        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star), MinWidth = 60 });
+        var colConcepto = new ColumnDefinition { Width = new GridLength(210) };
+        var colSubcuenta = new ColumnDefinition { Width = new GridLength(140) };
+        var colNombre = new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star), MinWidth = 60 };
+        grid.ColumnDefinitions.Add(colConcepto);
+        grid.ColumnDefinitions.Add(colSubcuenta);
+        grid.ColumnDefinitions.Add(colNombre);
         grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(92) });
+        // Panel estrecho (menos de 500 px, p. ej. a 1180 de ancho con el menú lateral): la columna Nombre desaparece y el nombre de la
+        // subcuenta pasa debajo del concepto, en pequeño; así Estado sigue visible (ensayo del 2026-11-18).
+        var nombresAnchos = new List<UIElement>();
+        var nombresEstrechos = new List<UIElement>();
+        bool? estrecho = null;
+        grid.SizeChanged += (_, e) =>
+        {
+            if (!e.WidthChanged) return;
+            var ahora = e.NewSize.Width < 500;
+            if (ahora == estrecho) return;
+            estrecho = ahora;
+            colConcepto.Width = new GridLength(ahora ? 150 : 210);
+            colSubcuenta.Width = new GridLength(ahora ? 128 : 140);
+            colNombre.MinWidth = ahora ? 0 : 60;
+            colNombre.Width = ahora ? new GridLength(0) : new GridLength(1, GridUnitType.Star);
+            foreach (var n in nombresAnchos) n.Visibility = ahora ? Visibility.Collapsed : Visibility.Visible;
+            foreach (var n in nombresEstrechos) n.Visibility = ahora ? Visibility.Visible : Visibility.Collapsed;
+        };
         var fila = 0;
         void Fila(UIElement e, int columna, int span = 1)
         {
@@ -445,7 +466,11 @@ public sealed class VistaMantenimiento : UserControl
         }
         grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
         foreach (var (titulo, col) in new[] { ("Concepto", 0), ("Subcuenta", 1), ("Nombre", 2), ("Estado", 3) })
-            Fila(new TextBlock { Text = titulo, FontSize = (double)FindResource("Letra.Pequena"), FontWeight = FontWeights.SemiBold, Foreground = (Brush)FindResource("Pincel.Apagado"), Margin = new Thickness(0, 0, 12, 4) }, col);
+        {
+            var cabecera = new TextBlock { Text = titulo, FontSize = (double)FindResource("Letra.Pequena"), FontWeight = FontWeights.SemiBold, Foreground = (Brush)FindResource("Pincel.Apagado"), Margin = new Thickness(0, 0, 12, 4) };
+            if (col == 2) nombresAnchos.Add(cabecera);
+            Fila(cabecera, col);
+        }
         fila++;
         string? subgrupo = null;
         foreach (var c in cuentas)
@@ -462,8 +487,18 @@ public sealed class VistaMantenimiento : UserControl
                 fila++;
             }
             grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-            var concepto = Concepto(c);
-            Fila(concepto, 0);
+            var nombreEstrecho = new TextBlock
+            {
+                FontSize = (double)FindResource("Letra.Pequena"), Foreground = (Brush)FindResource("Pincel.Apagado"), TextTrimming = TextTrimming.CharacterEllipsis,
+                Margin = new Thickness(0, 0, 12, 2), Visibility = Visibility.Collapsed, DataContext = c,
+            };
+            nombreEstrecho.SetBinding(TextBlock.TextProperty, nameof(CampoEdicionVM.NombreCuenta));
+            nombreEstrecho.SetBinding(ToolTipProperty, nameof(CampoEdicionVM.NombreCuenta));
+            nombresEstrechos.Add(nombreEstrecho);
+            var celda = new StackPanel { VerticalAlignment = VerticalAlignment.Center };
+            celda.Children.Add(Concepto(c));
+            celda.Children.Add(nombreEstrecho);
+            Fila(celda, 0);
 
             var tb = new TextBox { Style = (Style)FindResource("Campo.Mono"), IsReadOnly = c.SoloLectura, DataContext = c };
             if (c.Definicion.Longitud is int l) tb.MaxLength = l;
@@ -484,6 +519,7 @@ public sealed class VistaMantenimiento : UserControl
             vacia.Setters.Add(new Setter(TextBlock.FontStyleProperty, FontStyles.Italic));
             estiloNombre.Triggers.Add(vacia);
             nombre.Style = estiloNombre;
+            nombresAnchos.Add(nombre);
             Fila(nombre, 2);
 
             Fila(Estado(c), 3);
