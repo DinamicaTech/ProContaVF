@@ -1,3 +1,4 @@
+using ProConta.Organizacion.Mantenimiento;
 using ProConta.Datos.Persistencia;
 
 namespace ProConta.Pruebas.Access;
@@ -8,10 +9,21 @@ public static class DatosSinteticos
     public static Task SociedadAsync(IBaseDatos bd, string id, string nombre, string nif = "B12345674") =>
         bd.EjecutarAsync(s => s.EjecutarAsync("INSERT INTO Sociedades (IdSociedad, Nombre, CIF) VALUES (?, ?, ?)", id, nombre, nif));
 
+    /// <summary>
+    /// Ejercicio con las cuentas de los procesos ya asignadas a la habitual de cada una, como lo deja «Auto»: los procesos ya no tienen
+    /// cuenta por defecto implícita (organizacion/sociedades-ejercicios 2026-11-18).
+    /// </summary>
     public static Task EjercicioAsync(IBaseDatos bd, int idSociedadEjercicio, string idSociedad, int anio, bool cerrado = false, bool activa = true) =>
-        bd.EjecutarAsync(s => s.EjecutarAsync(
-            "INSERT INTO SociedadesEjercicios (IdSociedadEjercicio, IdSociedad, Ejercicio, Nombre, Activa, EjercicioCerrado) VALUES (?, ?, ?, ?, ?, ?)",
-            idSociedadEjercicio, idSociedad, anio.ToString(), $"Sociedad {idSociedad} {anio}", activa, cerrado));
+        bd.EjecutarAsync(async s =>
+        {
+            await s.EjecutarAsync(
+                "INSERT INTO SociedadesEjercicios (IdSociedadEjercicio, IdSociedad, Ejercicio, Nombre, Activa, EjercicioCerrado) VALUES (?, ?, ?, ?, ?, ?)",
+                idSociedadEjercicio, idSociedad, anio.ToString(), $"Sociedad {idSociedad} {anio}", activa, cerrado);
+            var esquema = s.LeerEsquema();
+            foreach (var c in CuentasEjercicio.Todas.Where(c => c.Habitual is not null && esquema.ExisteColumna("SociedadesEjercicios", c.Columna)))
+                await s.EjecutarAsync($"UPDATE SociedadesEjercicios SET {c.Columna} = ? WHERE IdSociedadEjercicio = ?", c.Habitual, idSociedadEjercicio);
+            return 0;
+        });
 
     /// <summary>
     /// Deja activos en el catálogo TiposDeIVA exactamente estos porcentajes (los demás se desactivan; los que faltan se dan de

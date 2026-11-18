@@ -3,6 +3,7 @@ using System.ComponentModel;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
+using System.Windows.Documents;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Threading;
@@ -236,6 +237,14 @@ public sealed class VistaMantenimiento : UserControl
         DockPanel.SetDock(descartar, Dock.Right);
         piePanel.Children.Add(guardar);
         piePanel.Children.Add(descartar);
+        // «Auto» actúa sobre los campos en edición: va en el pie con Guardar (criterio de UI del propietario; plataforma/mantenimiento 2026-11-18).
+        var auto = new Button { Content = "Auto", Margin = new Thickness(0, 0, 12, 0) };
+        auto.SetBinding(Button.CommandProperty, nameof(_vm.AutoCommand));
+        auto.SetBinding(ToolTipProperty, nameof(_vm.AyudaAuto));
+        ToolTipService.SetShowOnDisabled(auto, true);
+        auto.SetBinding(VisibilityProperty, new Binding(nameof(_vm.HayAuto)) { Converter = new VisibleSiConverterLocal() });
+        DockPanel.SetDock(auto, Dock.Left);
+        piePanel.Children.Add(auto);
         var cambios = new TextBlock { VerticalAlignment = VerticalAlignment.Center, FontWeight = FontWeights.SemiBold };
         cambios.SetBinding(TextBlock.TextProperty, nameof(_vm.TextoCambios));
         piePanel.Children.Add(cambios);
@@ -273,6 +282,9 @@ public sealed class VistaMantenimiento : UserControl
                 break;
             case nameof(PantallaMantenimientoVM.SoloLectura):
                 ProgramarReconstruccion();
+                break;
+            case nameof(PantallaMantenimientoVM.CuentasSinAsignar):
+                RefrescarRotulosPestana();
                 break;
         }
     }
@@ -319,24 +331,209 @@ public sealed class VistaMantenimiento : UserControl
         Dispatcher.BeginInvoke(DispatcherPriority.Background, () => { _reconstruirPendiente = false; ReconstruirEditor(); });
     }
 
+    private readonly List<(TextBlock Rotulo, GrupoEdicion Grupo)> _rotulosPestana = [];
+
+    /// <summary>
+    /// Compone el editor (plataforma/mantenimiento 2026-11-18): un grupo es el formulario directo; de dos a tres, secciones plegables; con
+    /// cuatro o más, pestañas. En cada grupo, los parámetros arriba y las cuentas en una tabla con su nombre y su estado.
+    /// </summary>
     private void ReconstruirEditor()
     {
         _editor.Children.Clear();
         _controles.Clear();
+        _rotulosPestana.Clear();
         var varios = _vm.Grupos.Count > 1;
+        TabControl? pestanas = null;
+        if (_vm.UsaPestanas)
+        {
+            pestanas = new TabControl { Margin = new Thickness(0, 6, 0, 0), BorderThickness = new Thickness(0, 1, 0, 0) };
+            _editor.Children.Add(pestanas);
+        }
         foreach (var g in _vm.Grupos)
         {
-            var campos = new WrapPanel { Margin = new Thickness(0, 6, 0, 6) };
-            var etiquetas = new List<TextBlock>();
-            foreach (var c in g.Campos) campos.Children.Add(Campo(c, etiquetas));
-            // Tras cada colocación (con la letra del tema ya aplicada y al cambiar el ancho, que reparte los campos en otras filas).
-            campos.SizeChanged += (_, e) => { if (e.WidthChanged) IgualarAlturaEtiquetas(campos, etiquetas); };
-            if (varios)
-                _editor.Children.Add(new Expander { Header = new TextBlock { Text = g.Titulo, Style = (Style)FindResource("Texto.Seccion") }, IsExpanded = true, Content = campos, Margin = new Thickness(0, 6, 0, 0) });
+            var contenido = Contenido(g);
+            if (pestanas is not null)
+            {
+                var rotulo = new TextBlock { Text = RotuloPestana(g) };
+                _rotulosPestana.Add((rotulo, g));
+                pestanas.Items.Add(new TabItem { Header = rotulo, Content = contenido, ToolTip = AyudaPestana(g) });
+            }
+            else if (varios)
+                _editor.Children.Add(new Expander { Header = new TextBlock { Text = g.Titulo, Style = (Style)FindResource("Texto.Seccion") }, IsExpanded = true, Content = contenido, Margin = new Thickness(0, 6, 0, 0) });
             else
-                _editor.Children.Add(campos);
+                _editor.Children.Add(contenido);
+        }
+        if (pestanas is not null)
+        {
+            pestanas.SetBinding(System.Windows.Controls.Primitives.Selector.SelectedIndexProperty, new Binding(nameof(_vm.Pestana)) { Mode = BindingMode.TwoWay });
+            if (pestanas.SelectedIndex < 0) pestanas.SelectedIndex = 0;
         }
         if (_vm.CampoEnfocado is string enfocar && _controles.TryGetValue(enfocar, out var ctl)) Dispatcher.BeginInvoke(DispatcherPriority.Input, () => ctl.Focus());
+    }
+
+    private static string RotuloPestana(GrupoEdicion g) => g.CuentasSinAsignar > 0 ? $"{g.Titulo} ({g.CuentasSinAsignar})" : g.Titulo;
+    private static string AyudaPestana(GrupoEdicion g) => g.CuentasSinAsignar > 0
+        ? $"{g.Titulo}: {(g.CuentasSinAsignar == 1 ? "1 cuenta sin asignar" : $"{g.CuentasSinAsignar} cuentas sin asignar")}. «Auto» propone las habituales."
+        : $"Parámetros y cuentas de {g.Titulo.ToLowerInvariant()}";
+
+    private void RefrescarRotulosPestana()
+    {
+        foreach (var (rotulo, g) in _rotulosPestana) { rotulo.Text = RotuloPestana(g); if (rotulo.Parent is TabItem t) t.ToolTip = AyudaPestana(g); }
+    }
+
+    /// <summary>Un grupo: sus parámetros (campos que se escriben) y, debajo, la tabla de sus cuentas.</summary>
+    private FrameworkElement Contenido(GrupoEdicion g)
+    {
+        var panel = new StackPanel();
+        var parametros = g.Parametros;
+        var cuentas = g.Cuentas;
+        var ambos = parametros.Count > 0 && cuentas.Count > 0;
+        if (parametros.Count > 0)
+        {
+            if (ambos) panel.Children.Add(Rotulo("Parámetros"));
+            var campos = new WrapPanel { Margin = new Thickness(0, 6, 0, 6) };
+            var etiquetas = new List<TextBlock>();
+            foreach (var c in parametros) campos.Children.Add(Campo(c, etiquetas));
+            // Tras cada colocación (con la letra del tema ya aplicada y al cambiar el ancho, que reparte los campos en otras filas).
+            campos.SizeChanged += (_, e) => { if (e.WidthChanged) IgualarAlturaEtiquetas(campos, etiquetas); };
+            panel.Children.Add(campos);
+        }
+        if (cuentas.Count > 0)
+        {
+            if (ambos) panel.Children.Add(Rotulo("Cuentas"));
+            panel.Children.Add(TablaCuentas(cuentas));
+        }
+        return panel;
+    }
+
+    private TextBlock Rotulo(string texto) => new()
+    {
+        Text = texto.ToUpperInvariant(), FontSize = (double)FindResource("Letra.Pequena"), FontWeight = FontWeights.SemiBold,
+        Foreground = (Brush)FindResource("Pincel.Apagado"), Margin = new Thickness(0, 10, 0, 2),
+    };
+
+    /// <summary>
+    /// Las cuentas en tabla (propietario 2026-11-18 04:59): concepto (clic: explicación), código con su lupa, nombre de la subcuenta en el
+    /// plan del ejercicio y estado. Los subgrupos (<see cref="CampoMantenimiento.Subgrupo"/>) son filas de cabecera.
+    /// </summary>
+    private FrameworkElement TablaCuentas(IReadOnlyList<CampoEdicionVM> cuentas)
+    {
+        var grid = new Grid { Margin = new Thickness(0, 4, 0, 8) };
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto, MinWidth = 200 });
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(150) });
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star), MinWidth = 160 });
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        var fila = 0;
+        void Fila(UIElement e, int columna, int span = 1)
+        {
+            Grid.SetRow(e, fila);
+            Grid.SetColumn(e, columna);
+            Grid.SetColumnSpan(e, span);
+            grid.Children.Add(e);
+        }
+        grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+        foreach (var (titulo, col) in new[] { ("Concepto", 0), ("Subcuenta", 1), ("Nombre", 2), ("Estado", 3) })
+            Fila(new TextBlock { Text = titulo, FontSize = (double)FindResource("Letra.Pequena"), FontWeight = FontWeights.SemiBold, Foreground = (Brush)FindResource("Pincel.Apagado"), Margin = new Thickness(0, 0, 12, 4) }, col);
+        fila++;
+        string? subgrupo = null;
+        foreach (var c in cuentas)
+        {
+            if (c.Definicion.Subgrupo is string sg && sg != subgrupo)
+            {
+                subgrupo = sg;
+                grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+                Fila(new Border
+                {
+                    Background = (Brush)FindResource("Pincel.Fondo"), Padding = new Thickness(6, 4, 6, 4), Margin = new Thickness(0, 6, 0, 2),
+                    Child = new TextBlock { Text = sg, FontWeight = FontWeights.SemiBold, Foreground = (Brush)FindResource("Pincel.Texto2") },
+                }, 0, 4);
+                fila++;
+            }
+            grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+            var concepto = Concepto(c);
+            Fila(concepto, 0);
+
+            var tb = new TextBox { Style = (Style)FindResource("Campo.Mono"), IsReadOnly = c.SoloLectura, DataContext = c };
+            if (c.Definicion.Longitud is int l) tb.MaxLength = l;
+            tb.SetBinding(TextBox.TextProperty, new Binding(nameof(CampoEdicionVM.Texto)) { Mode = BindingMode.TwoWay, UpdateSourceTrigger = UpdateSourceTrigger.PropertyChanged, ValidatesOnNotifyDataErrors = true });
+            tb.SetBinding(ToolTipProperty, nameof(CampoEdicionVM.Ayuda));
+            System.Windows.Automation.AutomationProperties.SetName(tb, c.Definicion.Etiqueta);
+            _controles[c.Clave] = tb;
+            var selector = CampoSelector(c, tb, c.BuscarCuentaCommand, nameof(CampoEdicionVM.AyudaBuscarCuenta), c.PuedeBuscarCuenta, c.BuscarCuentaAsync, c.VaciarCuenta);
+            if (selector is FrameworkElement fe) { fe.Margin = new Thickness(0, 2, 12, 2); fe.DataContext = c; }
+            Fila(selector, 1);
+
+            var nombre = new TextBlock { VerticalAlignment = VerticalAlignment.Center, TextTrimming = TextTrimming.CharacterEllipsis, Margin = new Thickness(0, 0, 12, 0), DataContext = c };
+            nombre.SetBinding(TextBlock.TextProperty, nameof(CampoEdicionVM.NombreCuenta));
+            nombre.SetBinding(ToolTipProperty, nameof(CampoEdicionVM.NombreCuenta));
+            var estiloNombre = new Style(typeof(TextBlock));
+            var vacia = new DataTrigger { Binding = new Binding(nameof(CampoEdicionVM.EstadoCorrecto)), Value = false };
+            vacia.Setters.Add(new Setter(TextBlock.ForegroundProperty, FindResource("Pincel.Apagado")));
+            vacia.Setters.Add(new Setter(TextBlock.FontStyleProperty, FontStyles.Italic));
+            estiloNombre.Triggers.Add(vacia);
+            nombre.Style = estiloNombre;
+            Fila(nombre, 2);
+
+            Fila(Estado(c), 3);
+            fila++;
+        }
+        return grid;
+    }
+
+    /// <summary>Etiqueta de la cuenta: tooltip con la ayuda y, al hacer clic, la explicación detallada (propietario 2026-11-18 05:13).</summary>
+    private FrameworkElement Concepto(CampoEdicionVM c)
+    {
+        var texto = new TextBlock { Text = c.Definicion.Etiqueta, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 16, 0), TextWrapping = TextWrapping.Wrap, MaxWidth = 300, DataContext = c };
+        texto.SetBinding(ToolTipProperty, nameof(CampoEdicionVM.AyudaEtiqueta));
+        if (c.TieneExplicacion) HacerExplicable(texto, c);
+        return texto;
+    }
+
+    private void HacerExplicable(TextBlock texto, CampoEdicionVM c)
+    {
+        texto.TextDecorations = new TextDecorationCollection([new TextDecoration { Location = TextDecorationLocation.Underline, Pen = new Pen((Brush)FindResource("Pincel.Apagado2"), 1) { DashStyle = DashStyles.Dot }, PenOffset = 2 }]);
+        texto.Cursor = Cursors.Help;
+        texto.MouseLeftButtonUp += (_, e) => { e.Handled = true; MostrarExplicacion(texto, c); };
+    }
+
+    private void MostrarExplicacion(FrameworkElement destino, CampoEdicionVM c)
+    {
+        var panel = new StackPanel { MaxWidth = 520 };
+        panel.Children.Add(new TextBlock { Text = c.Definicion.Etiqueta, Style = (Style)FindResource("Texto.Titulo"), TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 0, 0, 6) });
+        foreach (var a in c.Explicacion)
+        {
+            panel.Children.Add(new TextBlock { Text = a.Titulo, FontWeight = FontWeights.SemiBold, Foreground = (Brush)FindResource("Pincel.Texto2"), Margin = new Thickness(0, 8, 0, 2) });
+            panel.Children.Add(new TextBlock { Text = a.Texto, TextWrapping = TextWrapping.Wrap });
+        }
+        var popup = new System.Windows.Controls.Primitives.Popup
+        {
+            PlacementTarget = destino, Placement = System.Windows.Controls.Primitives.PlacementMode.Bottom, StaysOpen = false, AllowsTransparency = true,
+            Child = new Border
+            {
+                Background = (Brush)FindResource("Pincel.Blanco"), BorderBrush = (Brush)FindResource("Pincel.Linea"), BorderThickness = new Thickness(1),
+                CornerRadius = (CornerRadius)FindResource("Radio.Panel"), Padding = new Thickness(16, 12, 16, 14), Margin = new Thickness(0, 4, 8, 8), Child = panel,
+                Effect = new System.Windows.Media.Effects.DropShadowEffect { BlurRadius = 14, ShadowDepth = 2, Opacity = 0.18 },
+            },
+        };
+        popup.Child.PreviewKeyDown += (_, e) => { if (e.Key == Key.Escape) popup.IsOpen = false; };
+        popup.IsOpen = true;
+    }
+
+    private Border Estado(CampoEdicionVM c)
+    {
+        var t = new TextBlock { FontSize = (double)FindResource("Letra.Pequena"), FontWeight = FontWeights.SemiBold };
+        t.SetBinding(TextBlock.TextProperty, nameof(CampoEdicionVM.EstadoCuenta));
+        var b = new Border { CornerRadius = (CornerRadius)FindResource("Radio.Pastilla"), Padding = new Thickness(8, 1, 8, 1), VerticalAlignment = VerticalAlignment.Center, Child = t, DataContext = c };
+        b.SetBinding(ToolTipProperty, nameof(CampoEdicionVM.AyudaEstadoCuenta));
+        var estilo = new Style(typeof(Border));
+        estilo.Setters.Add(new Setter(Border.BackgroundProperty, FindResource("Pincel.VerdeSuave")));
+        estilo.Setters.Add(new Setter(TextElement.ForegroundProperty, FindResource("Pincel.Verde")));
+        var mal = new DataTrigger { Binding = new Binding(nameof(CampoEdicionVM.EstadoCorrecto)), Value = false };
+        mal.Setters.Add(new Setter(Border.BackgroundProperty, FindResource("Pincel.AmbarSuave")));
+        mal.Setters.Add(new Setter(TextElement.ForegroundProperty, FindResource("Pincel.Ambar")));
+        estilo.Triggers.Add(mal);
+        b.Style = estilo;
+        return b;
     }
 
     /// <summary>
@@ -372,6 +569,7 @@ public sealed class VistaMantenimiento : UserControl
             TextWrapping = TextWrapping.Wrap, TextTrimming = TextTrimming.CharacterEllipsis, MaxWidth = ancho, VerticalAlignment = VerticalAlignment.Bottom,
         };
         etiqueta.SetBinding(ToolTipProperty, nameof(CampoEdicionVM.AyudaEtiqueta));
+        if (c.TieneExplicacion) HacerExplicable(etiqueta, c);
         etiquetas.Add(etiqueta);
         Control control;
         switch (c.Tipo)

@@ -1,5 +1,6 @@
 using System.Globalization;
 using ProConta.Datos.Persistencia;
+using ProConta.Nucleo.Contexto;
 using ProConta.Nucleo.Resultados;
 
 namespace ProConta.Mantenimiento;
@@ -98,6 +99,11 @@ public class ProveedorTablaAccess : ProveedorBase
 
     public override string TituloRegistro(RegistroMantenimiento r) => Titular?.Invoke(r) ?? base.TituloRegistro(r);
     public override string? SubtituloRegistro(RegistroMantenimiento r) => Subtitular?.Invoke(r);
+
+    /// <summary>Ejercicio en cuyo plan se eligen las cuentas del registro; sin él, el de trabajo.</summary>
+    public Func<RegistroMantenimiento, ContextoMantenimiento, ContextoSociedadEjercicio?>? EjercicioCuentas { get; init; }
+    public override ContextoSociedadEjercicio? EjercicioDeCuentas(RegistroMantenimiento registro, ContextoMantenimiento contexto) =>
+        EjercicioCuentas is null ? base.EjercicioDeCuentas(registro, contexto) : EjercicioCuentas(registro, contexto);
 
     public override IReadOnlyList<ErrorCampo> Validar(RegistroMantenimiento r) =>
         [.. base.Validar(r), .. Reglas?.Invoke(r) ?? []];

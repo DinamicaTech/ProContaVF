@@ -19,8 +19,11 @@ Código: `CalculoIvaEjercicio`, `CalculoProrrata` (src/ProConta.Contabilidad/Iva
 - 2026-11-17 11:00 · El 303 y la prorrata se calculan siempre juntos (`CalculoIvaEjercicio`): con la definitiva fijada, la línea «Regularización de la prorrata definitiva» del 4T lleva la regularización. Lo usan la liquidación del IVA, el informe para la gestoría y esta pantalla, para que den lo mismo.
 
 - 2026-11-17 11:14 · Validado por el propietario (PR #98) con la copia ProConta-prorrata-01 (2026 hasta el 17/11: provisional 15 %, legal 20 %, regularización de 101,05 € a favor, 6391 repartida en 8 centros): pasa a estable. Pendiente en contabilidad/procesos/nuevo-ejercicio: copiar la definitiva como provisional al crear el ejercicio siguiente.
+- 2026-11-18 05:30 · Cuentas siempre asignadas (organizacion/sociedades-ejercicios 2026-11-18 05:30): La cuenta de la regularización de la prorrata ya no vale 4729001 cuando está vacía: si lo está, la propuesta se detiene y pide asignarla en la pestaña IVA de Ejercicios. Hecho, pendiente de validar.
+
 ## Requirements
 - 2026-11-13 12:05 · draft: Calcular la prorrata de IVA (la legal propuesta por defecto, la del gestor si se fija, con desglose en Excel) y regularizar la prorrata definitiva (4729) al cierre del ejercicio.
 - 2026-11-15 18:10 · Derived from informes/informe-gestoria: porcentaje provisional del ejercicio, porcentaje real acumulado (operaciones con derecho a deducción entre el total, redondeado al entero superior), volumen de operaciones por actividad y trimestre, y regularización estimada por trimestre (cuota sujeta a prorrata por la diferencia de porcentajes), sin generar asiento. Paridad con el libro anterior: 2026 a 3T da 52.289,30 / 263.012,00 = 19,88 % → 20 % y una regularización estimada de 99,44 €.
 - 2026-11-15 20:40 · Derived from contabilidad/procesos/cambio-deduccion-actividad: contar como operaciones con derecho a deducción las ventas de una actividad desde la fecha en que pasa a ser deducible.
 - 2026-11-17 10:50 · Ok, adelante con el nodo y el desarrollo
+- 2026-11-18 05:30 · Derived from organizacion/sociedades-ejercicios: la cuenta de la regularización de la prorrata ya no vale 4729001 cuando está vacía: si lo está, la propuesta se detiene y pide asignarla en la pestaña IVA de Ejercicios.
