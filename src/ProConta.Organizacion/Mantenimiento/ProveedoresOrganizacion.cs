@@ -15,7 +15,8 @@ namespace ProConta.Organizacion.Mantenimiento;
 public static class ProveedoresOrganizacion
 {
     public static IEnumerable<IProveedorMantenimiento> Todos(IBaseDatos bd) =>
-        [Empresas(bd), Ejercicios(bd), new ProveedorFormasPago(bd, new CatalogoFormasPagoAccess(bd)), new ProveedorFormasPagoSociedad(new CatalogoFormasPagoSociedad(bd)), TiposRetencion(bd)];
+        [Empresas(bd), Ejercicios(bd), new ProveedorFormasPago(bd, new CatalogoFormasPagoAccess(bd)), new ProveedorFormasPagoSociedad(new CatalogoFormasPagoSociedad(bd)), TiposRetencion(bd),
+         .. ProveedoresModelos.Todos(bd)];
 
     internal static IReadOnlyList<GrupoCampos> GruposEmpresa => [new("ident", "Identificación"), new("cuentas", "Cuentas"), new("rutas", "Rutas")];
 
@@ -67,6 +68,12 @@ public static class ProveedoresOrganizacion
     /// </summary>
     internal static IEnumerable<CampoMantenimiento> ImpuestoSociedades() =>
     [
+        new("PersonalFijo", "Plantilla media fija (200)", TipoCampo.Decimal) { Grupo = "is", Ancho = "xs", Minimo = 0, Sinonimos = ["plantilla", "personal", "200", "00041"],
+            Ayuda = "Personal asalariado fijo, cifra media del ejercicio, con dos decimales (por ejemplo 1,00). Va a la casilla 00041 del modelo 200." },
+        new("PersonalNoFijo", "Plantilla media no fija (200)", TipoCampo.Decimal) { Grupo = "is", Ancho = "xs", Minimo = 0, Sinonimos = ["plantilla", "personal", "200", "00042"],
+            Ayuda = "Personal asalariado no fijo, cifra media del ejercicio. Va a la casilla 00042 del modelo 200." },
+        new("OpcionFinesSociales", "Opción del 0,7 % para fines sociales (200)", TipoCampo.Logico) { Grupo = "is", Sinonimos = ["0,7", "fines sociales", "200", "00073"],
+            Ayuda = "Marca la clave 00073 del modelo 200: el 0,7 % de la cuota íntegra se destina a actividades de interés general. No cambia lo que se paga." },
         new("TipoImpuestoSociedades", "Tipo general (%)", TipoCampo.Porcentaje) { Grupo = "is", Ancho = "xs", Sinonimos = ["sociedades", "is", "tipo"],
             Ayuda = "Tipo del IS para la base que pasa del tramo reducido (o para toda, si no hay tramo), en porcentaje: 25 es el 25 %. Vacío: 25 %. Lo confirma la gestoría cada año." },
         new("LimiteTramoReducidoIS", "Base del tramo reducido (€)", TipoCampo.Importe) { Grupo = "is", Ancho = "s", Sinonimos = ["sociedades", "tramo", "microempresa"],
@@ -140,7 +147,12 @@ public static class ProveedoresOrganizacion
             new("CodigoPostalFiscal", "Código postal") { Ayuda = "Código postal del domicilio fiscal; sale en las facturas como parte de la dirección del emisor.", Grupo = "ident", Longitud = 20, Ancho = "xs" },
             new("PoblacionFiscal", "Población") { Ayuda = "Población del domicilio fiscal; sale en las facturas como parte de la dirección del emisor.", Grupo = "ident", Longitud = 100 },
             new("ProvinciaFiscal", "Provincia") { Ayuda = "Provincia del domicilio fiscal; sale en las facturas como parte de la dirección del emisor.", Grupo = "ident", Longitud = 100 },
-            new("Telefono", "Teléfono") { Ayuda = "Teléfono de la empresa; sale en sus facturas debajo del domicilio. Vacío: no sale.", Grupo = "ident", Longitud = 30, Ancho = "s", Sinonimos = ["telefono", "tel"] },
+            new("Telefono", "Teléfono") { Ayuda = "Teléfono de la empresa; sale en sus facturas debajo del domicilio y es el de contacto de los modelos de la AEAT (TGVI Online y el 200). Vacío: no sale en las facturas y no se pueden presentar las informativas.", Grupo = "ident", Longitud = 30, Ancho = "s", Sinonimos = ["telefono", "tel", "contacto", "aeat"] },
+            new("Cnae", "CNAE de la actividad principal", TipoCampo.Codigo)
+            {
+                Grupo = "ident", Longitud = 4, Ancho = "xs", Sinonimos = ["cnae", "actividad", "200", "202", "390"],
+                Ayuda = "Código CNAE-2025 de cuatro cifras de la actividad principal (por ejemplo 6820, alquiler de bienes inmobiliarios propios). Lo piden el 200, el 202 y el 390.",
+            },
             new("IbanDomiciliacion", "IBAN de domiciliación", TipoCampo.Codigo)
             {
                 Grupo = "ident", Longitud = 34, Ancho = "m", Sinonimos = ["iban", "domiciliacion", "cuenta bancaria", "303", "aeat"],

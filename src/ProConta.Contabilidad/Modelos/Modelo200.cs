@@ -414,22 +414,27 @@ public static class Modelo200
         if (tipoDeclaracion == 'D' && string.IsNullOrWhiteSpace(declarante.Iban))
             errores.Add("El 200 sale a devolver y la sociedad no tiene IBAN: escríbelo en Sociedades para que la AEAT ingrese la devolución.");
         if (string.IsNullOrWhiteSpace(datos.Cnae) || datos.Cnae.Trim().Length != 4 || !datos.Cnae.Trim().All(char.IsAsciiDigit))
-            errores.Add("Falta el código CNAE-2025 de la actividad principal (cuatro cifras).");
+            errores.Add("Falta el código CNAE-2025 de la actividad principal (cuatro cifras): escríbelo en Parámetros y tablas › Empresas › «CNAE de la actividad principal».");
         if (declarante.Nif.Length != 9) errores.Add("La sociedad no tiene NIF.");
-        if ((datos.Administradores ?? []).Count == 0) errores.Add("Faltan los administradores de la sociedad (página 2, apartado A).");
+        if ((datos.Administradores ?? []).Count == 0) errores.Add("Faltan los administradores de la sociedad (página 2, apartado A): dalos de alta en Parámetros y tablas › Cargos de la empresa con el cargo «Administrador».");
         if ((datos.Administradores ?? []).Count > 5) avisos.Add("El fichero lleva los cinco primeros administradores: el resto, en Sociedades WEB.");
-        if ((datos.TitularesReales ?? []).Count == 0) errores.Add("Faltan los titulares reales de la sociedad (página 2 bis, apartado F).");
-        if (datos.Secretario is null) errores.Add("Falta el secretario del consejo o quien haga sus funciones (página 2 bis, apartado G).");
-        if ((datos.Representantes ?? []).Count == 0) errores.Add("Falta al menos un representante legal de la sociedad (página 2 bis, apartado G).");
+        if ((datos.TitularesReales ?? []).Count == 0) errores.Add("Faltan los titulares reales de la sociedad (página 2 bis, apartado F): dalos de alta en Parámetros y tablas › Cargos de la empresa con el cargo «Titular real» y su fecha de nacimiento.");
+        if (datos.Secretario is null) errores.Add("Falta el secretario del consejo o quien haga sus funciones (página 2 bis, apartado G): dalo de alta en Parámetros y tablas › Cargos de la empresa con el cargo «Secretario del consejo».");
+        foreach (var t in (datos.TitularesReales ?? []).Where(t => t.FechaNacimiento is null))
+            errores.Add($"Falta la fecha de nacimiento del titular real {t.Nombre} (página 2 bis): escríbela en Parámetros y tablas › Cargos de la empresa.");
+        foreach (var rep in (datos.Representantes ?? []).Where(x => x.FechaPoder is null))
+            errores.Add($"Falta la fecha del poder del representante {rep.Nombre} (página 2 bis): escríbela en Parámetros y tablas › Cargos de la empresa.");
+        if ((datos.Representantes ?? []).Count == 0) errores.Add("Falta al menos un representante legal de la sociedad (página 2 bis, apartado G): dalo de alta en Parámetros y tablas › Cargos de la empresa con el cargo «Representante legal», la fecha del poder y la notaría.");
         if ((datos.Representantes ?? []).Count > 3) avisos.Add("El fichero lleva los tres primeros representantes: el resto, en Sociedades WEB.");
-        if ((socios ?? []).Count == 0) errores.Add("Faltan los socios (página 2, apartado B.2): una SL tiene que declarar al menos uno. Dalos de alta en Socios.");
+        if ((socios ?? []).Count == 0) errores.Add("Faltan los socios (página 2, apartado B.2): una SL tiene que declarar al menos uno. Dalos de alta en la ficha de cada tercero › Roles › Socio.");
         if ((socios ?? []).Count > 6) avisos.Add("El fichero lleva los seis primeros socios: el resto, en Sociedades WEB.");
         foreach (var p in (socios ?? []).Where(p => p.Provincia is null).DistinctBy(p => p.Nif))
-            errores.Add($"{p.Nombre} no tiene código postal en su ficha: el 200 pide su provincia.");
+            errores.Add($"{p.Nombre} no tiene código postal en su ficha de tercero: el 200 pide su provincia. Complétalo en Terceros.");
 
         var paginas = PaginasGeneradas.Where(p => p switch
         {
-            "13000" or "20B00" => V("13000", 417) != 0m || V("13000", 418) != 0m,
+            // La página 13 es obligatoria aunque no haya correcciones (ServaliDos: «Falta la página obligatoria 13»); la 20B solo con ellas.
+            "20B00" => V("13000", 417) != 0m || V("13000", 418) != 0m,
             "26E00" => c.ContainsKey("26E00"),
             "26G00" => c.ContainsKey("26G00"),
             "20D00" => c.ContainsKey("20D00"),

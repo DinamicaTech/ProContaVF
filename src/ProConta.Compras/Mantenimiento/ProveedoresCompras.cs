@@ -1,4 +1,4 @@
-using ProConta.Nucleo.Seguridad;
+﻿using ProConta.Nucleo.Seguridad;
 using System.Globalization;
 using ProConta.Compras.Facturas;
 using ProConta.Contabilidad.CentrosCoste;
@@ -41,6 +41,14 @@ public sealed class ProveedorActividades : ProveedorTablaAccess
             new("BonificacionIS", "Bonificación IS por alquiler de viviendas", TipoCampo.Logico) { Sinonimos = ["sociedades", "bonificacion", "viviendas"],
                 Ayuda = "Sus rentas tienen la bonificación del Impuesto sobre Sociedades por alquiler de viviendas: sus ingresos − los gastos de sus centros − los gastos generales imputados proponen la bonificación " +
                     "en Contabilidad › Impuesto sobre Sociedades. El porcentaje va en Parámetros y tablas › Ejercicios. Normalmente, solo el alquiler de viviendas (no el turístico)." },
+            new("Clave390", "Clave de actividad (390)", TipoCampo.Codigo) { Longitud = 3, Ancho = "xs", Sinonimos = ["390", "clave", "a01", "a03", "estadisticos"],
+                Ayuda = "Clave de la actividad en los datos estadísticos del 390: A01 empresarial (por ejemplo, alquileres), A03 profesional, A04 agrícola… Vacía: la actividad no va al 390." },
+            new("EpigrafeIae", "Epígrafe del IAE (390)", TipoCampo.Codigo) { Longitud = 10, Ancho = "xs", Sinonimos = ["iae", "epigrafe", "390"],
+                Ayuda = "Epígrafe del IAE de la actividad para el 390, por ejemplo 8612 (alquiler de locales) o 845. Las actividades con la misma clave y epígrafe van una sola vez." },
+            new("Cnae", "CNAE (390)", TipoCampo.Codigo) { Longitud = 4, Ancho = "xs", Sinonimos = ["cnae", "390", "prorrata"],
+                Ayuda = "CNAE de la actividad (cuatro cifras). El 390 lo usa en la prorrata. Vacío: el de la empresa (Empresas › CNAE)." },
+            new("Orden390", "Orden en el 390", TipoCampo.Entero) { Ancho = "xs", Minimo = 1, Maximo = 99, Sinonimos = ["390", "principal"],
+                Ayuda = "Orden de la actividad en la página 1 del 390: la de menor orden es la principal (el 390 admite seis)." },
             new(CampoCalendario, "Deducción por fechas", TipoCampo.TextoLargo) { SoloLectura = true, Ancho = "f",
                 Ayuda = "La deducción que se aplica según la fecha de la factura: la de arriba hasta el primer cambio y, desde cada cambio, la suya. Los cambios se dan de alta en Catálogos › Cambios de deducción de las actividades." },
             new(CampoSubcuentas, "Subcuentas de IVA en este ejercicio", TipoCampo.TextoLargo) { SoloLectura = true, Ancho = "f",

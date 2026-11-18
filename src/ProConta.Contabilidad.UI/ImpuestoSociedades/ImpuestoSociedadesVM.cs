@@ -41,8 +41,15 @@ public sealed class FilaAjusteIsVM : ModeloVista
 {
     public const string Permanente = "Permanente", Temporal = "Temporal", Aumento = "Aumento", Disminucion = "Disminución";
     private string _clase = Permanente, _sentido = Aumento, _descripcion = "", _importe = "";
+    private string? _linea200;
 
     public string Clase { get => _clase; set => Fijar(ref _clase, value); }
+    /// <summary>Línea del detalle de correcciones del 200 (texto de la lista); vacía, la que sale de la descripción.</summary>
+    public string Linea200
+    {
+        get => AjusteImpuestoSociedades.Lineas200.FirstOrDefault(l => l.Clave == (_linea200 ?? AjusteImpuestoSociedades.LineaPorDescripcion(_descripcion))).Texto ?? "";
+        set { var clave = AjusteImpuestoSociedades.Lineas200.FirstOrDefault(l => l.Texto == value).Clave; if (clave != _linea200) { _linea200 = clave; Avisar(nameof(Linea200)); } }
+    }
     public string Sentido { get => _sentido; set => Fijar(ref _sentido, value); }
     public string Descripcion { get => _descripcion; set => Fijar(ref _descripcion, value); }
     public string Importe { get => _importe; set => Fijar(ref _importe, value); }
@@ -51,13 +58,13 @@ public sealed class FilaAjusteIsVM : ModeloVista
     public static FilaAjusteIsVM De(AjusteImpuestoSociedades a) => new()
     {
         _clase = a.Temporal ? Temporal : Permanente, _sentido = a.Aumento ? Aumento : Disminucion, _descripcion = a.Descripcion,
-        _importe = Formatos.Numero(a.Importe), Cuenta = a.Cuenta,
+        _importe = Formatos.Numero(a.Importe), Cuenta = a.Cuenta, _linea200 = a.Linea200,
     };
 
     /// <summary>El ajuste escrito; null si el importe no se puede leer.</summary>
     public AjusteImpuestoSociedades? Leer() =>
         Formatos.LeerImporte((_importe ?? "").Trim().Length == 0 ? "0" : _importe, out var v)
-            ? new AjusteImpuestoSociedades(_clase == Temporal, _sentido == Aumento, _descripcion ?? "", Math.Round(v, 2, MidpointRounding.AwayFromZero), Cuenta)
+            ? new AjusteImpuestoSociedades(_clase == Temporal, _sentido == Aumento, _descripcion ?? "", Math.Round(v, 2, MidpointRounding.AwayFromZero), Cuenta, _linea200 ?? AjusteImpuestoSociedades.LineaPorDescripcion(_descripcion))
             : null;
 }
 
@@ -532,6 +539,7 @@ public sealed class ImpuestoSociedadesVM : ModeloVista, IPestanaTrabajo
     public ObservableCollection<FilaAjusteIsVM> Ajustes { get; } = [];
     public IReadOnlyList<string> Clases { get; } = [FilaAjusteIsVM.Permanente, FilaAjusteIsVM.Temporal];
     public IReadOnlyList<string> Sentidos { get; } = [FilaAjusteIsVM.Aumento, FilaAjusteIsVM.Disminucion];
+    public IReadOnlyList<string> Lineas200 { get; } = [.. AjusteImpuestoSociedades.Lineas200.Select(l => l.Texto)];
     public FilaAjusteIsVM? AjusteSeleccionado { get => _ajusteSeleccionado; set { if (Fijar(ref _ajusteSeleccionado, value)) CommandManager.InvalidateRequerySuggested(); } }
     public FilaCuentaIsVM? PosibleSeleccionado { get => _posibleSeleccionado; set { if (Fijar(ref _posibleSeleccionado, value)) CommandManager.InvalidateRequerySuggested(); } }
 

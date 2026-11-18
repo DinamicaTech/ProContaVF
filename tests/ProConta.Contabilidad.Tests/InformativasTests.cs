@@ -130,7 +130,8 @@ public sealed class InformativasTests
         Assert.Equal(3, d190.Percepciones.Count);
         Assert.Equal(('E', "04", 4000m, 600m, 1000m, 180m), (d190.Percepciones[1].Clave, d190.Percepciones[1].Subclave, d190.Percepciones[1].Dinerario,
             d190.Percepciones[1].Retenciones, d190.Percepciones[1].Especie, d190.Percepciones[1].IngresosCuenta));
-        Assert.Contains(d190.Errores, e => e.Contains("datos personales"));        // A y E piden datos que el programa no guarda
+        Assert.Contains(d190.Errores, e => e.Contains("año de nacimiento") && e.Contains("PERCEPTOR E2"));   // la clave A pide los datos personales del empleado
+        Assert.DoesNotContain(d190.Errores, e => e.Contains("PERCEPTOR E1"));                               // la E (administradores) no
         var (t1, t2) = Modelo190.Registros(d190, Contacto, "1902600000001");
         Assert.Equal("000000003", t1.Substring(135, 9));
         Assert.Equal((suma111 * 100m).ToString("0").PadLeft(15, '0'), t1.Substring(160, 15));

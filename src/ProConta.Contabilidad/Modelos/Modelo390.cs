@@ -253,13 +253,13 @@ public static class Modelo390
         if (string.IsNullOrWhiteSpace(declarante.Nif))
             errores.Add("La sociedad no tiene NIF: escríbelo en Configuración › Parámetros y tablas › Empresas.");
         if (datos is null || datos.Actividades.Count == 0)
-            errores.Add("Faltan las actividades de la sociedad (descripción, clave y epígrafe del IAE) de los datos estadísticos del 390.");
+            errores.Add("Faltan las actividades de la sociedad de los datos estadísticos del 390: escribe la clave y el epígrafe del IAE de cada actividad en Parámetros y tablas › Actividades (IVA) (las que no tienen clave no van al 390).");
         else if (datos.Actividades.Count > 6)
-            errores.Add("El 390 admite como mucho 6 actividades (la principal y 5 más).");
+            errores.Add("El 390 admite como mucho 6 actividades (la principal y 5 más): en Parámetros y tablas › Actividades (IVA), quita la clave del 390 a las que sobran o dales la misma clave y epígrafe.");
         if (datos is not null && (datos.Representantes ?? []).Count == 0)
-            errores.Add("Falta el representante legal de la sociedad (página 1 del 390): la AEAT lo exige a las personas jurídicas.");
+            errores.Add("Falta el representante legal de la sociedad (página 1 del 390): la AEAT lo exige a las personas jurídicas. Dalo de alta en Parámetros y tablas › Cargos de la empresa con el cargo «Representante legal».");
         if (hayProrrata && string.IsNullOrWhiteSpace(datos?.Cnae))
-            errores.Add("Falta el CNAE de la actividad para la prorrata (página 7 del 390).");
+            errores.Add("Falta el CNAE de la actividad para la prorrata (página 7 del 390): escríbelo en Parámetros y tablas › Empresas › «CNAE de la actividad principal».");
         // Prorrata especial (E) si, además de los gastos comunes en prorrata, hay actividades que deducen todo o nada (locales al 100 %,
         // viviendas al 0 %); general (G) si todo va en prorrata (propietario 2026-11-18 11:05).
         var especial = ProrrataEspecial(delAno);

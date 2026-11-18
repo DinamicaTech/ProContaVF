@@ -136,6 +136,9 @@ public sealed class Servicio202(IBaseDatos bd, ServicioPresentacionAeat presenta
 
     private async Task<Declaracion202> DeclararAsync(ContextoSociedadEjercicio ctx, int periodo, DatosActividad202? datos, PresentacionGuardada? anterior, string? nrc)
     {
+        // Sin datos escritos, el CNAE de la sociedad (Parámetros y tablas › Empresas, esquema 72).
+        datos ??= await bd.EjecutarAsync(async s => s.LeerEsquema().ExisteColumna("Sociedades", "Cnae")
+            && await s.EscalarAsync("SELECT Cnae FROM Sociedades WHERE IdSociedad = ?", ctx.IdSociedad) is string cnae && cnae.Trim().Length > 0 ? new DatosActividad202(cnae.Trim()) : null);
         var declarante = await _s303.DeclaranteAsync(ctx);
         var origen = await BaseAsync(ctx.IdSociedad, Modelo202.EjercicioBase(ctx.Ejercicio, periodo));
         var menor1M = await CifraNegociosAsync(ctx.IdSociedad, ctx.Ejercicio - 1) is decimal cn && cn < 1_000_000m;

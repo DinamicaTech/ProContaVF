@@ -150,4 +150,58 @@ public sealed class Modelo200AccessTests : IDisposable
         Assert.False(r.EsCorrecto);
         Assert.Equal("Modelo200.SinDiseno", r.Errores[0].Codigo);
     }
+
+    /// <summary>
+    /// Esquema 72: el CNAE, el teléfono, la plantilla y la opción del 0,7 % (Empresas y Ejercicios) y los cargos vigentes a 31/12 (Cargos de la
+    /// empresa) los leen el 200 y el 390; la línea del 200 de cada ajuste se graba con el impuesto.
+    /// </summary>
+    [Fact]
+    public async Task ElDoscientosYElTrescientosNoventaLeenSusDatosDeLaBd()
+    {
+        await PrepararAsync();
+        await Bd.EjecutarAsync(async s =>
+        {
+            await s.EjecutarAsync("UPDATE Sociedades SET Cnae = '6820', Telefono = '930000000' WHERE IdSociedad = 'T01'");
+            await s.EjecutarAsync("UPDATE SociedadesEjercicios SET PersonalFijo = 1.5, PersonalNoFijo = 0.25, OpcionFinesSociales = True WHERE IdSociedadEjercicio = 9001");
+            await s.EjecutarAsync("INSERT INTO Terceros (TipoPersona, Nombre, PrimerApellido, SegundoApellido, NombrePersona, NIF, CodigoPostal, Activo) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                "FISICA", "Persona sintética", "SINTETICA", "PRUEBA", "UNO", "00000000T", "08001", true);
+            var uno = Convert.ToInt32(await s.EscalarAsync("SELECT MAX(IdTercero) FROM Terceros"));
+            await s.EjecutarAsync("INSERT INTO Terceros (TipoPersona, Nombre, PrimerApellido, NombrePersona, NIF, Activo) VALUES (?, ?, ?, ?, ?, ?)",
+                "FISICA", "Persona sintética dos", "SINTETICA", "DOS", "00000001R", true);
+            var dos = Convert.ToInt32(await s.EscalarAsync("SELECT MAX(IdTercero) FROM Terceros"));
+            foreach (var (tercero, cargo, nacimiento, poder, hasta) in new (int, string, DateTime?, DateTime?, DateTime?)[]
+                     {
+                         (uno, "ADMINISTRADOR", null, null, null), (uno, "SECRETARIO", null, null, null), (uno, "TITULAR_REAL", new DateTime(1970, 1, 1), null, null),
+                         (uno, "REPRESENTANTE", null, new DateTime(2000, 1, 1), null), (dos, "ADMINISTRADOR", null, null, new DateTime(2025, 6, 30)),
+                     })
+                await s.EjecutarAsync("INSERT INTO CargosSociedad (IdSociedad, IdTercero, Cargo, FechaNacimiento, FechaPoder, Notaria, FechaHasta, Activo) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                    "T01", tercero, cargo, nacimiento, poder, poder is null ? null : "NOTARIA", hasta, true);
+            await s.EjecutarAsync("UPDATE Actividades SET Clave390 = 'A01', EpigrafeIae = '8612', Cnae = '6820', Orden390 = 1 WHERE IdSociedad = 'T01'");
+            if (Convert.ToInt32(await s.EscalarAsync("SELECT COUNT(*) FROM Actividades WHERE IdSociedad = 'T01'")) == 0)
+                await s.EjecutarAsync("INSERT INTO Actividades (IdSociedad, Codigo, Nombre, Deducible, Activa, Clave390, EpigrafeIae, Cnae, Orden390) VALUES ('T01', 'LOCALES', 'Alquiler de locales', 1, True, 'A01', '8612', '6820', 1)");
+            return true;
+        });
+        var presentacion = new ServicioPresentacionAeat(Bd, new ClienteSimulado(), Certificado, new RelojFijo(Julio));
+        var s200 = new Servicio200(Bd, presentacion, Impuesto());
+
+        var d = await s200.DatosAsync(_ctx);
+        Assert.Equal(("6820", "930000000", 1.5m, 0.25m, true), (d.Cnae, d.Telefono, d.PersonalFijo, d.PersonalNoFijo, d.FinesSociales));
+        Assert.Equal(["SINTETICA PRUEBA, UNO"], d.Administradores!.Select(x => x.Nombre));      // el que cesó en junio ya no está a 31/12
+        Assert.Equal(("00000000T", "08"), (d.Administradores![0].Nif, d.Administradores[0].Provincia));
+        Assert.Equal(new DateTime(1970, 1, 1), d.TitularesReales!.Single().FechaNacimiento);
+        Assert.Equal("00000000T", d.Secretario!.Nif);
+        Assert.Equal((new DateTime(2000, 1, 1), "NOTARIA"), (d.Representantes!.Single().FechaPoder, d.Representantes![0].Notaria));
+
+        var r = await s200.DeclaracionAsync(_ctx);
+        Assert.True(r.EsCorrecto, string.Join(" ", r.Errores.Select(e => e.Mensaje + " " + e.Causa)));
+        Assert.DoesNotContain(r.Valor.Declaracion.Errores, e => e.Contains("CNAE") || e.Contains("administrador") || e.Contains("titular"));
+        Assert.Equal(100m, r.Valor.Declaracion.Casilla("13000", 413));                            // la multa, en «otras correcciones» por su línea grabada
+
+        var guardado = await Impuesto().GuardadoAsync(_ctx);
+        Assert.Equal(AjusteImpuestoSociedades.LineaOtras, guardado!.Entrada.Ajustes.Single().Linea200);
+
+        var d390 = await new Servicio390(Bd, presentacion).DatosAsync(_ctx);
+        Assert.Equal(("6820", "A01", "8612"), (d390.Cnae, d390.Actividades.Single().Clave, d390.Actividades.Single().Epigrafe));
+        Assert.Equal("00000000T", d390.Representantes!.Single().Nif);
+    }
 }

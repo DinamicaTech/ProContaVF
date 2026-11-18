@@ -336,6 +336,15 @@
                         </DataTemplate>
                       </DataGridTemplateColumn.CellTemplate>
                     </DataGridTemplateColumn>
+                    <DataGridTemplateColumn Header="Línea del 200" Width="190">
+                      <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                          <ComboBox ItemsSource="{Binding DataContext.Lineas200, ElementName=Raiz}" SelectedItem="{Binding Linea200, UpdateSourceTrigger=PropertyChanged}" Margin="0,1"
+                                    AutomationProperties.Name="Línea del 200"
+                                    ToolTip="Dónde va el ajuste en el detalle de correcciones del modelo 200: la exención del art. 21 (venta de participaciones de entidades residentes) u otras correcciones. Sale propuesta por la descripción" />
+                        </DataTemplate>
+                      </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
                     <DataGridTemplateColumn Header="Descripción" Width="*">
                       <DataGridTemplateColumn.CellTemplate>
                         <DataTemplate>

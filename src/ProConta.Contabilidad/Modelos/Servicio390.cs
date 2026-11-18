@@ -107,9 +107,38 @@ public sealed class Servicio390(IBaseDatos bd, ServicioPresentacionAeat presenta
         return Resultado<(Declaracion390, DeclaracionAeat)>.Correcto((d, aeat));
     }
 
+    /// <summary>
+    /// Datos estadísticos del 390 desde la BD (esquema 72): las actividades con clave del 390 (Actividades.Clave390, una por clave y epígrafe, en el
+    /// orden de Orden390; la descripción es el nombre de la primera), el CNAE (el de la sociedad o, si no, el de la primera actividad) y los
+    /// representantes legales vigentes a 31/12 (Cargos de la empresa).
+    /// </summary>
+    public Task<DatosEstadisticos390> DatosAsync(ContextoSociedadEjercicio ctx) => bd.EjecutarAsync(async s =>
+    {
+        var esquema = s.LeerEsquema();
+        if (!esquema.ExisteColumna("Actividades", "Clave390")) return new DatosEstadisticos390([], "");
+        var actividades = await s.ConsultarAsync(
+            "SELECT Nombre, Clave390, EpigrafeIae, Cnae, Orden390 FROM Actividades WHERE IdSociedad = ? AND Activa = True AND Clave390 IS NOT NULL ORDER BY Orden390, Codigo",
+            f => (Nombre: (f.Texto("Nombre") ?? "").Trim(), Clave: (f.Texto("Clave390") ?? "").Trim().ToUpperInvariant(), Epigrafe: (f.Texto("EpigrafeIae") ?? "").Trim(),
+                Cnae: (f.Texto("Cnae") ?? "").Trim()), ctx.IdSociedad);
+        var cnae = await s.EscalarAsync("SELECT Cnae FROM Sociedades WHERE IdSociedad = ?", ctx.IdSociedad) as string;
+        var lista = actividades.Where(x => x.Clave.Length > 0).GroupBy(x => (x.Clave, x.Epigrafe)).Select(g => new Actividad390(g.First().Nombre.ToUpperInvariant(), g.Key.Clave, g.Key.Epigrafe)).ToList();
+        var fin = new DateTime(ctx.Ejercicio, 12, 31);
+        var representantes = esquema.ExisteTabla("CargosSociedad")
+            ? await s.ConsultarAsync(
+                "SELECT c.FechaPoder, c.Notaria, t.NIF, t.TipoPersona, t.RazonSocial, t.Nombre, t.PrimerApellido, t.SegundoApellido, t.NombrePersona, t.CodigoPostal " +
+                "FROM CargosSociedad AS c INNER JOIN Terceros AS t ON c.IdTercero = t.IdTercero WHERE c.IdSociedad = ? AND c.Cargo = 'REPRESENTANTE' AND c.Activo = True " +
+                "AND (c.FechaDesde IS NULL OR c.FechaDesde <= ?) AND (c.FechaHasta IS NULL OR c.FechaHasta >= ?) ORDER BY c.IdCargoSociedad",
+                f => { var p = Servicio200.Persona(f); return new Representante200(p.Nif, p.Nombre, f.FechaNula("FechaPoder"), (f.Texto("Notaria") ?? "").Trim()); },
+                ctx.IdSociedad, fin, fin)
+            : [];
+        var cnaeFinal = !string.IsNullOrWhiteSpace(cnae) ? cnae.Trim() : actividades.Select(x => x.Cnae).FirstOrDefault(x => x.Length > 0) ?? "";
+        return new DatosEstadisticos390(lista, cnaeFinal, true, representantes);
+    });
+
     private async Task<(Declaracion390 D, List<string> Bloqueos, List<string> Avisos)> CalcularAsync(ContextoSociedadEjercicio ctx, DatosEstadisticos390? datos, Sustitutiva390? sustitutiva,
         CancellationToken c)
     {
+        datos ??= await DatosAsync(ctx);
         var (lineas, _, _, iva) = await new LectorLineasIva(bd).CalcularAsync(ctx, c);
         var declarante = await _s303.DeclaranteAsync(ctx);
         var trimestres = new List<Declaracion303>();

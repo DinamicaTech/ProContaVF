@@ -50,9 +50,35 @@ public sealed record ParametrosImpuestoSociedades(decimal TipoGeneral, decimal? 
 /// <param name="Temporal">Ajuste temporal (si no, permanente).</param>
 /// <param name="Aumento">Aumenta el resultado (si no, lo disminuye).</param>
 /// <param name="Cuenta">Cuenta de la que sale, si se añadió desde los posibles ajustes.</param>
-public sealed record AjusteImpuestoSociedades(bool Temporal, bool Aumento, string Descripcion, decimal Importe, string? Cuenta = null)
+public sealed record AjusteImpuestoSociedades(bool Temporal, bool Aumento, string Descripcion, decimal Importe, string? Cuenta = null, string? Linea200 = null)
 {
     public decimal ConSigno => Aumento ? Importe : -Importe;
+
+    /// <summary>Exención por transmisión de valores de entidades residentes (art. 21.3 LIS): su línea en el detalle de correcciones del 200.</summary>
+    public const string LineaExencionArt21 = "EXENCION_ART21";
+    /// <summary>Otras correcciones al resultado de la cuenta de pérdidas y ganancias.</summary>
+    public const string LineaOtras = "OTRAS";
+
+    /// <summary>Líneas del 200 que se ofrecen, con su texto.</summary>
+    public static readonly IReadOnlyList<(string Clave, string Texto)> Lineas200 =
+        [(LineaExencionArt21, "Exención art. 21 (valores de residentes)"), (LineaOtras, "Otras correcciones")];
+
+    /// <summary>
+    /// Línea del 200 por defecto de un ajuste sin línea guardada: la regla anterior al esquema 72, por la descripción («art. 21» o
+    /// «exención»: la exención; si no, otras correcciones).
+    /// </summary>
+    public static string LineaPorDescripcion(string? descripcion) =>
+        System.Text.RegularExpressions.Regex.IsMatch(descripcion ?? "", @"\bart(\.|[íi]culo)?\s*21\b|exenci[óo]n",
+            System.Text.RegularExpressions.RegexOptions.IgnoreCase | System.Text.RegularExpressions.RegexOptions.CultureInvariant) ? LineaExencionArt21 : LineaOtras;
+
+    /// <summary>La línea del 200 del ajuste: la guardada o, sin ella, la de la descripción.</summary>
+    public string LineaDel200 => string.IsNullOrWhiteSpace(Linea200) ? LineaPorDescripcion(Descripcion) : Linea200.Trim();
+
+    /// <summary>Dos ajustes son iguales si lo son sus datos y su línea del 200 efectiva (sin línea elegida cuenta la de la regla): lo grabado vuelve igual a lo escrito.</summary>
+    public bool Equals(AjusteImpuestoSociedades? o) =>
+        o is not null && Temporal == o.Temporal && Aumento == o.Aumento && Descripcion == o.Descripcion && Importe == o.Importe && Cuenta == o.Cuenta && LineaDel200 == o.LineaDel200;
+
+    public override int GetHashCode() => HashCode.Combine(Temporal, Aumento, Descripcion, Importe, Cuenta, LineaDel200);
 }
 
 /// <summary>Saldo de una subcuenta en el ejercicio (Debe − Haber) con sus apuntes y, en las 473, los pagadores (nombres de las 43 y 44 de sus asientos).</summary>

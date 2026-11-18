@@ -102,12 +102,23 @@ public static class Modelo349
 }
 
 /// <summary>Un declarado del 347: NIF, nombre, provincia (2 cifras del código postal), clave (A compras, B ventas) e importe de cada trimestre (IVA incluido).</summary>
-public sealed record Declarado347(string Nif, string Nombre, string Provincia, char Clave, IReadOnlyList<decimal> Trimestres, bool InversionSujetoPasivo)
+public sealed record Declarado347(string Nif, string Nombre, string Provincia, char Clave, IReadOnlyList<decimal> Trimestres, bool InversionSujetoPasivo,
+    bool ArrendamientoLocal = false)
 {
     public decimal Total => Trimestres.Sum();
 }
 
-public sealed record Declaracion347(int Ejercicio, Declarante303 Declarante, IReadOnlyList<Declarado347> Declarados, IReadOnlyList<string> Errores, IReadOnlyList<string> Avisos)
+/// <summary>Un local de negocio alquilado a un arrendatario en el año (registro de inmueble del 347): el inmueble y lo facturado por trimestres, IVA incluido.</summary>
+public sealed record Arrendamiento347(string Nif, string Nombre, Inmueble180 Inmueble, IReadOnlyList<decimal> Trimestres)
+{
+    public decimal Total => Trimestres.Sum();
+
+    /// <summary>Situación del 347 (1 normal, 2 País Vasco o Navarra, 3 sin referencia catastral, 4 extranjero) desde la del 180 (1 a 4).</summary>
+    public int Situacion347 => Inmueble.Situacion switch { 2 or 3 => 2, 4 => 3, _ => 1 };
+}
+
+public sealed record Declaracion347(int Ejercicio, Declarante303 Declarante, IReadOnlyList<Declarado347> Declarados, IReadOnlyList<string> Errores, IReadOnlyList<string> Avisos,
+    IReadOnlyList<Arrendamiento347>? Inmuebles = null)
 {
     public decimal Total => Declarados.Sum(x => x.Total);
     public bool Valida => Errores.Count == 0;
@@ -127,7 +138,10 @@ public static class Modelo347
 
     /// <param name="excluir">Líneas que no van: con retención o marcadas «no incluir en el 347» en el libro de IVA.</param>
     /// <param name="codigoPostal">Código postal del tercero por su NIF (la provincia son sus dos primeras cifras).</param>
-    public static Declaracion347 Calcular(IReadOnlyList<LineaIva> lineas, int ejercicio, Declarante303 declarante, Func<LineaIva, bool> excluir, Func<string, string?> codigoPostal)
+    /// <param name="arrendamientos">Locales de negocio alquilados en el año, por arrendatario e inmueble: su parte de las ventas va en un registro aparte con la marca
+    /// de arrendamiento de local de negocio y cada uno en un registro de inmueble.</param>
+    public static Declaracion347 Calcular(IReadOnlyList<LineaIva> lineas, int ejercicio, Declarante303 declarante, Func<LineaIva, bool> excluir, Func<string, string?> codigoPostal,
+        IReadOnlyList<Arrendamiento347>? arrendamientos = null)
     {
         var errores = new List<string>();
         var avisos = new List<string>();
@@ -144,10 +158,25 @@ public static class Modelo347
             var cp = codigoPostal(g.Key.Nif);
             var provincia = cp is { Length: >= 2 } && cp[..2].All(char.IsAsciiDigit) && int.Parse(cp[..2], CultureInfo.InvariantCulture) is >= 1 and <= 52 ? cp[..2] : null;
             if (provincia is null) errores.Add($"{g.First().Tercero} ({g.Key.Nif}) no tiene código postal en su ficha: el 347 pide su provincia. Escríbelo en Terceros.");
-            declarados.Add(new Declarado347(g.Key.Nif, g.First().Tercero, provincia ?? "00", g.Key.Clave, t, g.Any(l => l.Isp)));
+            var locales = g.Key.Clave == 'B' ? (arrendamientos ?? []).Where(a => Nif(a.Nif) == g.Key.Nif).ToList() : [];
+            if (locales.Count == 0)
+            {
+                declarados.Add(new Declarado347(g.Key.Nif, g.First().Tercero, provincia ?? "00", g.Key.Clave, t, g.Any(l => l.Isp)));
+                continue;
+            }
+            // El arrendamiento de locales de negocio va en un registro aparte, con su marca (diseño del 347, posición 100).
+            var deLocal = Enumerable.Range(0, 4).Select(q => locales.Sum(a => a.Trimestres[q])).ToList();
+            var resto = Enumerable.Range(0, 4).Select(q => t[q] - deLocal[q]).ToList();
+            declarados.Add(new Declarado347(g.Key.Nif, g.First().Tercero, provincia ?? "00", 'B', deLocal, false, ArrendamientoLocal: true));
+            if (resto.Any(x => x != 0m)) declarados.Add(new Declarado347(g.Key.Nif, g.First().Tercero, provincia ?? "00", 'B', resto, g.Any(l => l.Isp)));
         }
+        var inmuebles = (arrendamientos ?? []).Where(a => declarados.Any(d => d.ArrendamientoLocal && d.Nif == Nif(a.Nif))).ToList();
+        foreach (var a in inmuebles.Where(a => a.Inmueble.Falta().Count > 0).DistinctBy(a => a.Inmueble.Activo))
+            errores.Add($"Al local {a.Inmueble.Activo}, alquilado a {a.Nombre}, le falta {string.Join(", ", a.Inmueble.Falta())} para el registro de inmuebles del 347: complétalo en " +
+                "Activos › Inmuebles para los modelos (180 y 347).");
         if (string.IsNullOrWhiteSpace(declarante.Nif)) errores.Add("La sociedad no tiene NIF: escríbelo en Configuración › Parámetros y tablas › Empresas.");
-        return new Declaracion347(ejercicio, declarante, [.. declarados.OrderBy(d => d.Clave).ThenBy(d => d.Nif, StringComparer.Ordinal)], errores, avisos);
+        return new Declaracion347(ejercicio, declarante, [.. declarados.OrderBy(d => d.Clave).ThenBy(d => d.Nif, StringComparer.Ordinal).ThenBy(d => d.ArrendamientoLocal)], errores, avisos,
+            inmuebles);
     }
 
     /// <summary>Importe de una línea para el 347: IVA incluido; con inversión del sujeto pasivo, solo la base.</summary>
@@ -170,17 +199,26 @@ public static class Modelo347
     {
         var t1 = Tipo1Informativa.Base(Modelo, d.Ejercicio, d.Declarante, contacto, numero, anterior, sustitutiva)
             .Num(136, 144, d.Declarados.Count).ImporteConSigno(145, 160, d.Total)
-            .Num(161, 169, 0).ImporteConSigno(170, 185, 0m);
+            .Num(161, 169, (d.Inmuebles ?? []).Count).ImporteConSigno(170, 185, (d.Inmuebles ?? []).Sum(a => a.Total));
         var t2 = d.Declarados.Select(x =>
         {
             var r = new RegistroInformativo()
                 .Texto(1, "2").Texto(2, Modelo).Num(5, 8, d.Ejercicio).Nif(9, d.Declarante.Nif).Nif(18, x.Nif).An(36, 75, x.Nombre)
-                .Texto(76, "D").Texto(77, x.Provincia).An(79, 80, "").Texto(82, x.Clave.ToString()).ImporteConSigno(83, 98, x.Total)
+                .Texto(76, "D").Texto(77, x.Provincia).An(79, 80, "").Texto(82, x.Clave.ToString()).ImporteConSigno(83, 98, x.Total).Texto(100, x.ArrendamientoLocal ? "X" : " ")
                 .Importe(101, 115, 0m).ImporteConSigno(116, 131, 0m).Num(132, 135, 0);
             for (var q = 0; q < 4; q++) r.ImporteConSigno(136 + 32 * q, 151 + 32 * q, x.Trimestres[q]).ImporteConSigno(152 + 32 * q, 167 + 32 * q, 0m);
             r.An(264, 280, "").Texto(282, x.InversionSujetoPasivo ? "X" : " ").ImporteConSigno(284, 299, 0m).Num(300, 305, 0);
             return r.ToString();
         }).ToList();
+        // Registros de inmueble (tipo de hoja «I»): un local alquilado por arrendatario, con lo facturado en el año.
+        t2.AddRange((d.Inmuebles ?? []).Select(a =>
+        {
+            var r = new RegistroInformativo()
+                .Texto(1, "2").Texto(2, Modelo).Num(5, 8, d.Ejercicio).Nif(9, d.Declarante.Nif).Nif(18, a.Nif).An(36, 75, a.Nombre).Texto(76, "I")
+                .ImporteConSigno(99, 114, a.Total).Num(115, 115, a.Situacion347).An(116, 140, a.Inmueble.ReferenciaCatastral);
+            a.Inmueble.Direccion.Escribir(r, 141);
+            return r.ToString();
+        }));
         return (t1.ToString(), t2);
     }
 }

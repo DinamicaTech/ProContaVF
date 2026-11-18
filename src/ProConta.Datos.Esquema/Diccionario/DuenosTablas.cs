@@ -36,6 +36,8 @@ public static class DuenosTablas
         Asignar("contabilidad", "contabilidad/procesos/amortizacion-de-activos", "AmortizacionExclusiones");
         Asignar("contabilidad", "contabilidad/procesos/centimos-residuales", "CentimosResidualesExclusiones");
         Asignar("contabilidad", "contabilidad/modelos-tributarios/presentacion", "PresentacionesAeat");
+        Asignar("organizacion", "organizacion/sociedades-ejercicios", "CargosSociedad");
+        Asignar("nominas", "nominas", "FamiliaresEmpleado");
         Asignar("contabilidad", "contabilidad/procesos/aplicacion-resultado", "RepartosDividendos", "RepartosDividendosSocios", "AplicacionesResultado");
         Asignar("contabilidad", "contabilidad/procesos/impuesto-sociedades", "ImpuestosSociedades", "ImpuestosSociedadesAjustes",
             "ImpuestosSociedadesRetenciones", "ImpuestosSociedadesDatosAeat");

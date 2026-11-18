@@ -214,8 +214,40 @@ public sealed class Servicio347(IBaseDatos bd, ServicioTgvi tgvi, IReloj? reloj 
             var t = await s.ConsultarAsync("SELECT NIF, CodigoPostal FROM Terceros WHERE NIF IS NOT NULL", f => (Nif: Modelo347.Nif(f.Texto("NIF")), Cp: f.Texto("CodigoPostal")?.Trim()));
             return (ex, t.Where(x => !string.IsNullOrEmpty(x.Cp)).GroupBy(x => x.Nif).ToDictionary(g => g.Key, g => g.First().Cp!));
         }, c);
-        return Modelo347.Calcular(lineas, ctx.Ejercicio, await DeclaranteAsync(ctx), l => excluidos.Contains(l.IdAsiento), nif => cps.GetValueOrDefault(nif));
+        return Modelo347.Calcular(lineas, ctx.Ejercicio, await DeclaranteAsync(ctx), l => excluidos.Contains(l.IdAsiento), nif => cps.GetValueOrDefault(nif),
+            await ArrendamientosAsync(ctx));
     }
+
+    /// <summary>
+    /// Locales de negocio alquilados en el año (registro de inmuebles del 347, esquema 72): las líneas de las facturas de venta contabilizadas cuyo activo
+    /// (el de la línea o, sin él, el de su centro de coste) es de tipo LOCAL, por arrendatario e inmueble y trimestre, IVA incluido.
+    /// </summary>
+    private Task<IReadOnlyList<Arrendamiento347>> ArrendamientosAsync(ContextoSociedadEjercicio ctx) => Bd.EjecutarAsync<IReadOnlyList<Arrendamiento347>>(async s =>
+    {
+        var esquema = s.LeerEsquema();
+        if (!esquema.ExisteColumna("ActivosInmuebles", "SituacionInmueble") || !esquema.ExisteColumna("LineasFactura", "IdActivo")) return [];
+        var locales = (await s.ConsultarAsync(
+            "SELECT a.IdActivo, a.IdCentroCoste, a.Codigo, a.Nombre, i.SituacionInmueble, i.ReferenciaCatastral, i.TipoVia, i.NombreVia, i.TipoNumeracion, i.NumeroCasa, i.CalificadorNumero, " +
+            "i.Bloque, i.Portal, i.Escalera, i.Planta, i.Puerta, i.Complemento, i.Localidad, i.Municipio, i.CodigoMunicipio, i.CodigoProvincia, i.CodigoPostal " +
+            "FROM (Activos AS a INNER JOIN TiposActivo AS t ON a.IdTipoActivo = t.IdTipoActivo) LEFT JOIN ActivosInmuebles AS i ON a.IdActivo = i.IdActivo " +
+            "WHERE a.IdSociedad = ? AND t.Codigo = 'LOCAL'",
+            f => (Id: f.Entero("IdActivo"), Centro: f.EnteroNulo("IdCentroCoste"), I: ServicioResumenRetenciones.Inmueble(f)), ctx.IdSociedad)).ToList();
+        if (locales.Count == 0) return [];
+        var porId = locales.ToDictionary(x => x.Id);
+        var porCentro = locales.Where(x => x.Centro is not null).GroupBy(x => x.Centro!.Value).Where(g => g.Count() == 1).ToDictionary(g => g.Key, g => g.First());
+        var lineas = await s.ConsultarAsync(
+            "SELECT f.CIF, f.RazonSocial, f.Nombre, f.FechaFactura, l.BaseImponible, l.CuotaIVA, l.IdActivo, l.IdCentroCoste FROM LineasFactura AS l INNER JOIN Facturas AS f ON l.IdFactura = f.IdFactura " +
+            "WHERE f.IdSociedadEjercicio = ? AND f.IdAsientoContable IS NOT NULL",
+            f => (Nif: Modelo347.Nif(f.Texto("CIF")), Nombre: (f.Texto("RazonSocial") ?? f.Texto("Nombre") ?? "").Trim(), Fecha: f.Fecha("FechaFactura"),
+                Importe: (f.DecimalNulo("BaseImponible") ?? 0m) + (f.DecimalNulo("CuotaIVA") ?? 0m), Activo: f.EnteroNulo("IdActivo"), Centro: f.EnteroNulo("IdCentroCoste")),
+            ctx.IdSociedadEjercicio);
+        var r = new List<Arrendamiento347>();
+        foreach (var g in lineas.Select(l => (l, Local: l.Activo is int a && porId.TryGetValue(a, out var x) ? x : l.Activo is null && l.Centro is int cc && porCentro.TryGetValue(cc, out var y) ? y : default))
+                     .Where(x => x.Local.I is not null && Modelo347.EsNifEspanol(x.l.Nif)).GroupBy(x => (x.l.Nif, x.Local.Id)))
+            r.Add(new Arrendamiento347(g.Key.Nif, g.First().l.Nombre, g.First().Local.I,
+                [.. Enumerable.Range(1, 4).Select(q => g.Where(x => (x.l.Fecha.Month + 2) / 3 == q).Sum(x => x.l.Importe))]));
+        return r;
+    });
 
     public async Task<PeriodoInformativa> EjercicioAsync(ContextoSociedadEjercicio ctx, CancellationToken c = default)
     {
