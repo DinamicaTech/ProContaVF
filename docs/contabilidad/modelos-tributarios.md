@@ -8,7 +8,7 @@ threads:
 ---
 ## Summary
 Cálculo trazable de los modelos tributarios, separado de su presentación. Cada modelo tiene un nodo hijo propio (`modelo-303`, `modelo-390`, `modelo-111`, `modelo-115`, `modelo-202`, `modelo-200` y las informativas `modelo-347`, `modelo-349`, `modelo-180` y `modelo-190`) que genera su fichero con el diseño de registro de la AEAT; el PDF oficial lo devuelve la AEAT y la presentación se hace desde el programa con la pieza común `presentacion`; `presentados` lista todo lo presentado. Todo ello, después de la Versión Mínima Viable.
-Hecho el cálculo del 303 por trimestre desde los libros de IVA (`src/ProConta.Contabilidad/Iva`), con una línea por casilla del modelo, que usan el informe para la gestoría, la liquidación del IVA (contabilidad/procesos/liquidacion-iva) y las casillas y el fichero de `modelo-303` (hechos, pendientes de validar); sigue pendiente el 390.
+Hecho el cálculo del 303 por trimestre desde los libros de IVA (`src/ProConta.Contabilidad/Iva`), con una línea por casilla del modelo, que usan el informe para la gestoría, la liquidación del IVA (contabilidad/procesos/liquidacion-iva) y las casillas y el fichero de `modelo-303` (hechos, pendientes de validar); sigue pendiente el 390. Hechos también, pendientes de validar con la pantalla única «Modelos tributarios», el 111 y el 115 (`modelo-111`, `modelo-115`, `ServicioRetenciones`).
 **Aceptación:** un modelo incompleto no ofrece presentación válida.
 
 ## Decisions
