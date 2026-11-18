@@ -735,6 +735,10 @@ public partial class VentanaPrincipal : Window
             new OpcionNavegacion("Configuración", Icono("gear"), true, false, "Parámetros y tablas: empresas, ejercicios, series, conceptos, formas de pago…", abrirParametros),
             new OpcionNavegacion("Parámetros y tablas", null, true, false, "Mantenimiento de las tablas y los parámetros de la aplicación, con buscador", abrirParametros, EsHija: true),
             new OpcionNavegacion("Importar ContaSol", null, true, false, "Importa la contabilidad de ContaSol por ejercicios (una BD por ejercicio), con simulación previa", abrirContaSol, EsHija: true),
+            // Registro de errores (plataforma/registro-errores): consulta de los errores inesperados guardados en este equipo.
+            new OpcionNavegacion("Registro de errores", null, true, false,
+                "Errores inesperados de ProContaVF y del conector de Claude Desktop guardados en este equipo (últimos 12 meses), con su detalle técnico para enviarlo a soporte",
+                new ComandoDelegado(AbrirRegistroErrores), EsHija: true),
         }.Concat(entorno.EsPruebas ? [] : new[]
         {
             // Entorno de pruebas (plataforma/entorno-pruebas): el refresco se lanza desde producción.
