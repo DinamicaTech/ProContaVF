@@ -149,18 +149,20 @@ td.con span{border-bottom:1px dotted var(--mut);cursor:help}
     <h3>Reglas del botón «Auto»</h3>
     <ol>
       <li>Solo toca las cuentas vacías de todas las pestañas. Nunca cambia una cuenta ya puesta.</li>
-      <li>Si el proceso tiene cuenta por defecto (4750000, 1290000…), es el candidato: si existe en el plan se asigna; si no existe, se asigna y se crea al guardar con su nombre del PGC.</li>
+      <li>Si el proceso tiene cuenta habitual (4750000, 1290000…), es el candidato: si existe en el plan se asigna; si no existe, se asigna y se crea al guardar con su nombre del PGC.</li>
+      <li>Las cuentas siempre quedan asignadas: ya no hay «vacía = cuenta por defecto». Crear el ejercicio siguiente las copia, y un proceso con una cuenta vacía se detiene y ofrece asignarla con «Auto».</li>
       <li>Si no tiene cuenta por defecto (suplidos, retenciones, intracomunitarias, inversión del sujeto pasivo, importación), busca en su grupo las subcuentas cuyo nombre encaja (por ejemplo, 4751 con «alquiler»). Con una sola, la asigna; con ninguna o con varias, la deja vacía y dice por qué.</li>
       <li>Antes de aplicar muestra la propuesta y solo la aplica si la aceptas. Nada se graba hasta pulsar «Guardar».</li>
     </ol>
     <h3>Elegir a mano</h3>
     <p>La lupa, el clic en la cuenta, Intro o F4 abren el buscador ya filtrado por el grupo de esa cuenta, con las que encajan por nombre arriba. La casilla «Ver todo el plan» quita el filtro, y «Crear subcuenta» propone el siguiente código libre del grupo. Supr o la × vacían la cuenta.</p>
-    <h3>Preguntas para validar</h3>
+    <h3>Validado (18/11/2026)</h3>
     <ol>
-      <li>¿Te parecen bien los cinco grupos de pestañas y lo que va en cada uno? La carpeta de facturas de compra pasa a «Compras y ventas» y desaparece el grupo «Rutas».</li>
-      <li>¿«Auto» en el pie, junto a Guardar, para todas las pestañas a la vez? La alternativa es un botón por pestaña.</li>
-      <li>Una cuenta vacía con cuenta por defecto sigue funcionando como hoy (el proceso usa la de por defecto). ¿Lo mantenemos, o prefieres que todas queden siempre asignadas?</li>
+      <li>Cinco pestañas por proceso; la carpeta de facturas de compra pasa a «Compras y ventas».</li>
+      <li>Un único «Auto» en el pie, para todas las pestañas.</li>
+      <li>Cuentas siempre asignadas, sin cuenta por defecto implícita.</li>
     </ol>
+    <p>Pasa el ratón por un concepto para ver cuándo se usa esa cuenta.</p>
   </section>
 </main>
 
@@ -291,7 +293,6 @@ function paramHtml(p){
 function stateOf(c){
   const v = draft[c.k];
   if (v) return nuevas[v] ? ['p-new','Nueva'] : ['p-ok','Asignada'];
-  if (c.def) return ['p-def','Por defecto'];
   return ['p-warn','Sin asignar'];
 }
 
@@ -299,14 +300,14 @@ function ctaHtml(c){
   const v = draft[c.k];
   let code, name, cls = '';
   if (v){ code = v; name = nameOf(v) || 'Subcuenta no encontrada en el plan'; }
-  else if (c.def){ cls = 'empty'; code = c.def[0]; name = `se usará ${c.def[1]}${inPlan(c.def[0])?'':' (se creará al usarla)'}`; }
-  else { cls = 'empty'; code = '—'; name = 'sin cuenta por defecto: elígela o usa «Auto»'; }
+  else if (c.def){ cls = 'empty'; code = '—'; name = `«Auto» propondrá ${c.def[0]} ${c.def[1]}${inPlan(c.def[0])?'':' (la creará)'}`; }
+  else { cls = 'empty'; code = '—'; name = 'elígela o usa «Auto»'; }
   const [pc, pt] = stateOf(c);
   return `<tr>
     <td class="con"><span title="${esc(c.h)}">${esc(c.l)}</span></td>
     <td><div class="cta ${cls}${flash.has(c.k)?' flash':''}" tabindex="0" role="button" data-c="${c.k}" title="${ro()?'Ejercicio cerrado':'Elegir la subcuenta (clic, Intro o F4). Supr la vacía.'}"><span class="c">${esc(code)}</span><span class="n">${esc(name)}</span>
       <button class="icon" data-pick="${c.k}" title="Abrir el buscador filtrado por ${c.pre.join(', ')}" ${ro()?'disabled':''}>⌕</button>
-      <button class="icon" data-clr="${c.k}" title="Vaciar la cuenta${c.def?`: se usará ${c.def[0]}`:''}" ${(!v||ro())?'disabled':''}>×</button></div></td>
+      <button class="icon" data-clr="${c.k}" title="Vaciar la cuenta: el proceso que la usa no se podrá ejecutar hasta asignarla" ${(!v||ro())?'disabled':''}>×</button></div></td>
     <td><span class="pill ${pc}">${pt}</span></td>
   </tr>`;
 }
