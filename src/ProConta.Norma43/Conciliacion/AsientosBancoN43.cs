@@ -61,6 +61,58 @@ public sealed class AsientosBancoN43(IBaseDatos bd, ServicioConciliacionN43 conc
         return await ActualizarAsync(lineas, actor, "Cambio del nombre del tercero");
     }
 
+    public async Task<IReadOnlyList<MovimientoBancoTercero>> MovimientosDeSubcuentaAsync(int idIdentidadAntigua, IReadOnlyCollection<int>? idsFacturaVenta,
+        IReadOnlyCollection<int>? idsRegistroCompra) => await bd.EjecutarAsync(async s =>
+    {
+        var imputadas = (await s.ConsultarAsync(
+            "SELECT DISTINCT IdLineaExtractoBancario FROM ImputacionesLineaExtractoBancario WHERE Estado <> 'DESCARTADA' AND IdIdentidadContable = ?",
+            f => f.Entero("IdLineaExtractoBancario"), idIdentidadAntigua)).ToHashSet();
+        HashSet<int> lineas;
+        if (idsFacturaVenta is null && idsRegistroCompra is null) lineas = imputadas;
+        else
+        {
+            lineas = [];
+            foreach (var bloque in (idsFacturaVenta ?? []).Distinct().Chunk(200))
+            {
+                var lista = Lista(bloque);
+                foreach (var tabla in new[] { "Facturas", "ReintentosSEPA" })
+                    foreach (var f in await s.ConsultarAsync($"SELECT LineaN43, LineaN43Devolucion FROM {tabla} WHERE IdFactura IN ({lista})",
+                                 x => (x.EnteroNulo("LineaN43"), x.EnteroNulo("LineaN43Devolucion"))))
+                        lineas.UnionWith(new[] { f.Item1, f.Item2 }.OfType<int>());
+            }
+            foreach (var bloque in (idsRegistroCompra ?? []).Distinct().Chunk(200))
+                lineas.UnionWith((await s.ConsultarAsync($"SELECT LineaN43 FROM FacturasCompra WHERE IdRegistro IN ({Lista(bloque)})",
+                    x => x.EnteroNulo("LineaN43"))).OfType<int>());
+        }
+        var asientos = new Dictionary<int, List<int>>();
+        foreach (var bloque in lineas.Chunk(200))
+            foreach (var f in await s.ConsultarAsync(
+                         "SELECT c.IdLineaExtractoBancario, c.IdAsiento FROM ContabilizacionesLineaExtracto AS c INNER JOIN Asientos AS a ON c.IdAsiento = a.IdAsiento " +
+                         $"WHERE c.IdLineaExtractoBancario IN ({Lista(bloque)})",
+                         x => (Linea: x.Entero("IdLineaExtractoBancario"), Asiento: x.Entero("IdAsiento"))))
+            {
+                if (!asientos.TryGetValue(f.Linea, out var l)) asientos[f.Linea] = l = [];
+                if (!l.Contains(f.Asiento)) l.Add(f.Asiento);
+            }
+        return (IReadOnlyList<MovimientoBancoTercero>)lineas.OrderBy(l => l)
+            .Select(l => new MovimientoBancoTercero(l, asientos.GetValueOrDefault(l) ?? [], imputadas.Contains(l))).ToList();
+    });
+
+    public async Task<int> ReimputarAsync(ISesionDatos s, IReadOnlyCollection<int> lineas, int idIdentidadAntigua, int idIdentidadNueva, bool palabrasClave)
+    {
+        if (palabrasClave)
+            await s.EjecutarAsync("UPDATE PalabrasClaveBancarias SET IdIdentidadContable = ? WHERE IdIdentidadContable = ?", idIdentidadNueva, idIdentidadAntigua);
+        var n = 0;
+        foreach (var bloque in lineas.Distinct().Chunk(200))
+            n += await s.EjecutarAsync(
+                "UPDATE ImputacionesLineaExtractoBancario SET IdIdentidadContable = ? WHERE Estado <> 'DESCARTADA' AND IdIdentidadContable = ? " +
+                $"AND IdLineaExtractoBancario IN ({Lista(bloque)})",
+                idIdentidadNueva, idIdentidadAntigua);
+        return n;
+    }
+
+    private static string Lista(IEnumerable<int> ids) => string.Join(",", ids.Select(i => i.ToString(CultureInfo.InvariantCulture)));
+
     /// <summary>
     /// Vuelve a generar los textos de los asientos que la conciliación generó para esas líneas, sociedad a sociedad. Las líneas sin
     /// asiento o con un asiento del ERP no cuentan; las que ya tenían los textos que tocan tampoco (no se graba nada).
