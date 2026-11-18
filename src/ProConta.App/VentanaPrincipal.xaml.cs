@@ -612,6 +612,8 @@ public partial class VentanaPrincipal : Window
         var balancePyG = new ComandoDelegado(() => _ = GenerarBalanceAsync(ProConta.Contabilidad.Balances.TipoBalance.PerdidasYGanancias));
         _gestoria = new ProConta.Inicio.Gestoria.ComposicionInformeGestoria(bd);
         var informeGestoria = new ComandoDelegado(() => _ = GenerarInformeGestoriaAsync());
+        _sumasYSaldos = new ProConta.Contabilidad.Balances.GeneradorSumasYSaldos(bd);
+        var sumasYSaldos = new ComandoDelegado(() => _ = GenerarSumasYSaldosAsync());
         _rutaBd = ubicacion.RutaBaseDatos;
         _operador = sesion.NombreOperador;
         var abrirClaude = new ComandoDelegado(AbrirClaude);
@@ -708,13 +710,17 @@ public partial class VentanaPrincipal : Window
             new OpcionNavegacion("Nóminas", Icono("coin"), true, false,
                 "Nóminas del ejercicio por mes y paga: importar el Excel de la gestoría (o el que llega por correo), resolver trabajadores, contabilizar, deshacer y reemplazar",
                 new ComandoDelegado(() => _nominas.Abrir())),
-            new OpcionNavegacion("Informes", Icono("xls"), true, false, "Informes del ejercicio de trabajo en Excel, con tabla dinámica", balanceSituacion),
+            new OpcionNavegacion("Informes", Icono("xls"), true, false, "Informes del ejercicio de trabajo en Excel y en PDF", balanceSituacion),
             new OpcionNavegacion("Balance de situación", null, true, false,
                 "Genera en Excel el balance de situación del ejercicio de trabajo (PGC Pymes 2008): tabla dinámica por bloque, apartado, título, cuenta y subcuenta, con los meses en columnas y filtros por centro de coste y departamento, y lo abre",
                 balanceSituacion, EsHija: true),
             new OpcionNavegacion("Pérdidas y ganancias", null, true, false,
                 "Genera en Excel la cuenta de pérdidas y ganancias del ejercicio de trabajo (PGC Pymes 2008), sin la regularización ni el cierre: tabla dinámica por apartado, título, cuenta y subcuenta, con los meses en columnas y filtros por centro de coste y departamento, y la abre",
                 balancePyG, EsHija: true),
+            new OpcionNavegacion("Sumas y saldos…", null, true, false,
+                "Genera en PDF o en Excel el balance de sumas y saldos del ejercicio de trabajo entre dos fechas: sumas del Debe y del Haber y saldo deudor o acreedor " +
+                "por grupo, subgrupo, cuenta y subcuenta (eliges los niveles). Lo guarda en la carpeta de documentos de la empresa, vinculado al ejercicio, y lo abre",
+                sumasYSaldos, EsHija: true),
             new OpcionNavegacion("Informe para la gestoría…", null, true, false,
                 "Genera en Excel el informe trimestral para la gestoría del ejercicio de trabajo: liquidación del IVA (303) por trimestres, prorrata y su regularización estimada, " +
                 "controles antes de presentar, pérdidas y ganancias, balance, ratios y facturas emitidas y recibidas. Pregunta el trimestre (por defecto, el último terminado) y lo abre",
@@ -906,6 +912,8 @@ public partial class VentanaPrincipal : Window
     private bool _generandoGestoria;
     private readonly string _razonSocial;
     private bool _generandoBalance;
+    private readonly ProConta.Contabilidad.Balances.GeneradorSumasYSaldos _sumasYSaldos;
+    private bool _generandoSumasYSaldos;
 
     /// <summary>
     /// Genera el balance del ejercicio de trabajo, lo guarda en Documentos\ProContaVF\Informes y lo abre con Excel. En la barra de
@@ -1025,6 +1033,85 @@ public partial class VentanaPrincipal : Window
             return;
         }
         _modelos.Abrir(modelo, periodo);
+    }
+
+    /// <summary>
+    /// Informes › Sumas y saldos… (contabilidad/balances/sumas-y-saldos): pide fechas, niveles y formato, calcula el balance del ejercicio de trabajo,
+    /// lo guarda por el gestor documental (tipo INFORME_CONTABLE, en «&lt;año&gt;\Informes», vinculado al ejercicio) y abre la copia guardada.
+    /// En la barra de estado dice las sumas y los saldos totales.
+    /// </summary>
+    private async Task GenerarSumasYSaldosAsync(ProConta.Contabilidad.Balances.ParametrosSumasYSaldos? repetir = null,
+        ProConta.Contabilidad.UI.Balances.FormatoSumasYSaldos formatoRepetir = default)
+    {
+        if (_generandoSumasYSaldos) { Avisar("Ya estoy generando el balance de sumas y saldos: espera a que se abra."); return; }
+        var ejercicio = _ejercicioTrabajo.Ejercicio;
+        var (parametros, formato) = repetir is not null ? (repetir, formatoRepetir)
+            : ProConta.Contabilidad.UI.Balances.DialogoSumasYSaldos.Pedir(this, ejercicio, _razonSocial, DateTime.Today) is { } elegido ? elegido : default;
+        if (parametros is null) return;
+        var pdf = formato == ProConta.Contabilidad.UI.Balances.FormatoSumasYSaldos.Pdf;
+        _generandoSumasYSaldos = true;
+        Avisar($"Generando el balance de sumas y saldos de {ejercicio} en {(pdf ? "PDF" : "Excel")}…");
+        var anterior = Cursor;
+        Cursor = Cursors.Wait;
+        string? ruta = null;
+        try
+        {
+            var r = await Task.Run(() => _sumasYSaldos.GenerarAsync(_ejercicioTrabajo, _razonSocial, parametros));
+            var nombre = ProConta.Contabilidad.Balances.CalculadoraSumasYSaldos.NombreFichero(r, pdf ? ".pdf" : ".xlsx");
+            var temporales = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "ProContaVF", "Informes");
+            System.IO.Directory.CreateDirectory(temporales);
+            byte[] contenido;
+            if (pdf)
+            {
+                var html = InformeSumasYSaldos.Html(r);
+                contenido = await Task.Run(() => ConversorHtmlPdf.Compartido.Convertir(html, InformeSumasYSaldos.Pagina));
+            }
+            else
+            {
+                var temporal = System.IO.Path.Combine(temporales, nombre);
+                await Task.Run(() => InformeSumasYSaldos.Excel(r, temporal));
+                contenido = await System.IO.File.ReadAllBytesAsync(temporal);
+                try { System.IO.File.Delete(temporal); } catch (System.IO.IOException) { }
+            }
+            // Por el gestor documental (documentos 2026-11-18): «<año>\Informes» de la carpeta de documentos, vinculado al ejercicio.
+            var guardado = await _servicioDocumentos.GuardarAsync(new ProConta.Documentos.SolicitudDocumento(
+                _ejercicioTrabajo.IdSociedad, "INFORME_CONTABLE",
+                $"Sumas y saldos {ejercicio} del {parametros.Desde:dd/MM} al {parametros.Hasta:dd/MM}",
+                System.IO.Path.Combine(ejercicio.ToString(System.Globalization.CultureInfo.InvariantCulture), "Informes"), nombre, r.Generado.Date, ejercicio, "INFORME_CONTABLE",
+                [new ProConta.Documentos.Vinculo(ProConta.Documentos.TiposEntidad.Ejercicio, _ejercicioTrabajo.IdSociedadEjercicio, null, $"Ejercicio {ejercicio}")]),
+                contenido);
+            if (guardado.EsCorrecto) ruta = guardado.Valor.RutaCompleta;
+            else
+            {
+                ruta = System.IO.Path.Combine(temporales, nombre);
+                await System.IO.File.WriteAllBytesAsync(ruta, contenido);
+            }
+            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(ruta) { UseShellExecute = true });
+            var es = System.Globalization.CultureInfo.GetCultureInfo("es-ES");
+            if (!guardado.EsCorrecto)
+                Avisar($"El balance no se ha guardado en la carpeta de documentos ({guardado.Error!.Mensaje}); lo abro desde {ruta}.");
+            else if (r.Filas.Count == 0)
+                Avisar($"Sumas y saldos {ejercicio}: no hay apuntes contabilizados del {parametros.Desde:dd/MM/yyyy} al {parametros.Hasta:dd/MM/yyyy}.");
+            else
+                Avisar($"Sumas y saldos {ejercicio} abierto ({r.NumeroSubcuentas} subcuentas con movimiento): sumas {r.TotalDebe.ToString("N2", es)} € al Debe y " +
+                       $"{r.TotalHaber.ToString("N2", es)} € al Haber · saldos {r.TotalSaldoDeudor.ToString("N2", es)} € deudores y {r.TotalSaldoAcreedor.ToString("N2", es)} € acreedores" +
+                       (r.TotalDebe == r.TotalHaber ? "." : ": el Debe y el Haber no cuadran, revisa los asientos en Contabilidad › Diario."));
+        }
+        catch (Exception ex)
+        {
+            var detalles = new List<string>();
+            if (ex is System.IO.IOException && ruta is not null) detalles.Add($"Fichero: {ruta}");
+            if (ex is not InvalidOperationException and not System.IO.IOException) detalles.Add($"Detalle técnico: {ex.GetType().Name}");
+            var eleccion = ServicioMensajes.Preguntar(this, "No he podido generar el balance de sumas y saldos", ex.Message, detalles,
+                new OpcionMensaje("Reintentar", "Vuelve a generarlo con las mismas fechas, niveles y formato", Principal: true),
+                new OpcionMensaje("Cerrar", "Vuelve a la pantalla anterior", Cancelar: true));
+            if (eleccion == 0) { _generandoSumasYSaldos = false; Cursor = anterior; await GenerarSumasYSaldosAsync(parametros, formato); return; }
+        }
+        finally
+        {
+            Cursor = anterior;
+            _generandoSumasYSaldos = false;
+        }
     }
 
     private async Task GenerarInformeGestoriaAsync(int? trimestre = null)
