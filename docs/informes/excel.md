@@ -9,7 +9,7 @@ threads:
 ---
 ## Summary
 Informes que el usuario analiza en tablas dinámicas de Excel a partir de los datos contables y de facturación.
-Hechos el balance de situación y la cuenta de pérdidas y ganancias (`src/ProConta.Informes/Excel/ExportadorBalanceExcel.cs`, con ClosedXML y sin automatizar Excel): hoja del informe con la tabla dinámica, hoja de datos con un apunte por fila y hoja SinClasificar. Pendientes: pasar el exportador de los balances a un generador genérico sobre el contrato común de informes/reporting (Excel de datos y Excel con tabla dinámica) y, con él, diario y mayor, sumas y saldos, ventas y compras por tercero y mes y libros registro de IVA, en ese orden.
+Hechos el balance de situación y la cuenta de pérdidas y ganancias (`src/ProConta.Informes/Excel/ExportadorBalanceExcel.cs`, con ClosedXML y sin automatizar Excel): hoja del informe con la tabla dinámica, hoja de datos con un apunte por fila y hoja SinClasificar. Pendientes: pasar el exportador de los balances a un generador genérico sobre el contrato común de informes/reporting (Excel de datos y Excel con tabla dinámica) y, con él, diario y mayor, ventas y compras por tercero y mes y libros registro de IVA, en ese orden.
 **Aceptación:** el xlsx abre en Excel con la tabla dinámica lista y cuadra con contabilidad.
 
 ## Decisions
@@ -19,6 +19,7 @@ Hechos el balance de situación y la cuenta de pérdidas y ganancias (`src/ProCo
 - 2026-11-12 15:19 · Las salidas Excel de las extracciones (informes 2026-11-12 15:19) son dos y genéricas: Excel de datos (tabla con tipos, filtros y totales) y Excel con tabla dinámica, a partir de las filas del proveedor y de la definición del informe; `ExportadorBalanceExcel` pasa a ser ese generador genérico, sin cambiar los libros de los balances. Orden: diario y mayor, sumas y saldos, ventas y compras por tercero y mes y libros registro de IVA.
 - 2026-11-15 19:00 · Cumplida la línea «Derived from informes/informe-gestoria» del 2026-11-15 18:10: `ExportadorInformeGestoriaExcel` genera un libro de doce hojas con formato de informe. Las hojas de cálculo llevan fórmulas vivas sobre las tablas de datos mediante un nombre definido por columna (IVA_Base, IVA_Trim…), porque ClosedXML no admite referencias estructuradas en fórmulas; ClosedXML tampoco crea gráficos, así que la portada usa barras de datos. Los estados van con formato condicional.
 - 2026-11-15 19:34 · Cumplida la línea «Derived from informes/informe-gestoria» del 2026-11-15 19:24: el libro del informe para la gestoría pasa a catorce hojas con TDPyG y TDSituación, cada una con su tabla dinámica de ClosedXML sobre la hoja de datos correspondiente (un apunte por fila), con la misma disposición que el libro anterior salvo el nivel de subtítulo.
+- 2026-11-18 20:20 · El balance de sumas y saldos tiene su propio Excel (tabla con filtros y totales, `InformeSumasYSaldos.Excel`; ver contabilidad/balances/sumas-y-saldos 2026-11-18 20:20), así que sale de los pendientes de este nodo.
 
 ## Requirements
 - 2026-10-28 12:28 · From docs/README.md (descripción del propietario): informes en tablas dinámicas Excel
