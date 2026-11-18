@@ -234,6 +234,12 @@ public sealed class GeneradorSumasYSaldos(IBaseDatos bd)
             foreach (var (codigo, nombre) in await s.ConsultarAsync("SELECT Codigo, Nombre FROM CuentasContables WHERE IdSociedadEjercicio = ?",
                          f => ((f.Texto("Codigo") ?? "").Trim(), (f.Texto("Nombre") ?? "").Trim()), contexto.IdSociedadEjercicio))
                 if (codigo.Length > 0) n.TryAdd(codigo, nombre);
+            // Cuentas de hasta 4 dígitos que el plan de este ejercicio no tiene (en 2018 faltan muchas de 3): el nombre del ejercicio más reciente que la tenga.
+            foreach (var (codigo, nombre) in await s.ConsultarAsync(
+                         "SELECT cc.Codigo, cc.Nombre FROM CuentasContables AS cc INNER JOIN SociedadesEjercicios AS se ON cc.IdSociedadEjercicio = se.IdSociedadEjercicio " +
+                         "WHERE se.IdSociedad = ? AND Len(cc.Codigo) <= 4 ORDER BY se.Ejercicio DESC",
+                         f => ((f.Texto("Codigo") ?? "").Trim(), (f.Texto("Nombre") ?? "").Trim()), contexto.IdSociedad))
+                if (codigo.Length > 0 && nombre.Length > 0 && !(n.TryGetValue(codigo, out var actual) && actual.Length > 0)) n[codigo] = nombre;
             return (m, (IReadOnlyDictionary<string, string>)n);
         }, cancelacion);
         return CalculadoraSumasYSaldos.Calcular(razonSocial, contexto.Ejercicio, parametros, movimientos, nombres, DateTime.Now);
