@@ -49,7 +49,10 @@ public abstract class ServicioInformativaIva(IBaseDatos bd, ServicioTgvi tgvi, I
     });
 
     /// <summary>País de cada asiento con registro de IVA (el del proveedor o el del cliente), para los NIF sin prefijo.</summary>
-    protected Task<IReadOnlyDictionary<int, string>> PaisesAsync(ContextoSociedadEjercicio ctx) => bd.EjecutarAsync<IReadOnlyDictionary<int, string>>(async s =>
+    protected Task<IReadOnlyDictionary<int, string>> PaisesAsync(ContextoSociedadEjercicio ctx) =>
+        CacheCalculo.ObtenerAsync<IReadOnlyDictionary<int, string>>($"paises|{bd.Ruta}|{ctx.IdSociedadEjercicio}", () => PaisesSinCacheAsync(ctx));
+
+    private Task<IReadOnlyDictionary<int, string>> PaisesSinCacheAsync(ContextoSociedadEjercicio ctx) => bd.EjecutarAsync<IReadOnlyDictionary<int, string>>(async s =>
     {
         var sop = await s.ConsultarAsync("SELECT IdAsiento, PaisProveedor AS Pais FROM IVASoportado WHERE IdSociedadEjercicio = ?",
             f => (Id: f.Entero("IdAsiento"), Pais: (f.Texto("Pais") ?? "").Trim()), ctx.IdSociedadEjercicio);
@@ -59,7 +62,10 @@ public abstract class ServicioInformativaIva(IBaseDatos bd, ServicioTgvi tgvi, I
     });
 
     /// <summary>País de la UE de cada tercero con NIF comunitario en su ficha, por el número sin el prefijo (y por el NIF completo).</summary>
-    protected Task<IReadOnlyDictionary<string, string>> PaisesTercerosAsync() => bd.EjecutarAsync<IReadOnlyDictionary<string, string>>(async s =>
+    protected Task<IReadOnlyDictionary<string, string>> PaisesTercerosAsync() =>
+        CacheCalculo.ObtenerAsync<IReadOnlyDictionary<string, string>>($"paisesterceros|{bd.Ruta}", () => PaisesTercerosSinCacheAsync());
+
+    private Task<IReadOnlyDictionary<string, string>> PaisesTercerosSinCacheAsync() => bd.EjecutarAsync<IReadOnlyDictionary<string, string>>(async s =>
     {
         var t = await s.ConsultarAsync("SELECT NIF, Pais FROM Terceros WHERE NIF IS NOT NULL", f => (Nif: RegistroInformativo.NormalizarNif(f.Texto("NIF")), Pais: (f.Texto("Pais") ?? "").Trim().ToUpperInvariant()));
         var r = new Dictionary<string, string>(StringComparer.Ordinal);
@@ -73,7 +79,10 @@ public abstract class ServicioInformativaIva(IBaseDatos bd, ServicioTgvi tgvi, I
         return r;
     });
 
-    protected Task<IReadOnlySet<string>> CuentasBienesIntraAsync(ContextoSociedadEjercicio ctx) => bd.EjecutarAsync<IReadOnlySet<string>>(async s =>
+    protected Task<IReadOnlySet<string>> CuentasBienesIntraAsync(ContextoSociedadEjercicio ctx) =>
+        CacheCalculo.ObtenerAsync<IReadOnlySet<string>>($"bienesintra|{bd.Ruta}|{ctx.IdSociedadEjercicio}", () => CuentasBienesIntraSinCacheAsync(ctx));
+
+    private Task<IReadOnlySet<string>> CuentasBienesIntraSinCacheAsync(ContextoSociedadEjercicio ctx) => bd.EjecutarAsync<IReadOnlySet<string>>(async s =>
     {
         var cols = new[] { "CuentaIVAIntracomunitarioSoportadoBienes", "CuentaIVAIntracomunitarioRepercutidoBienes" }.Where(x => s.LeerEsquema().ExisteColumna("SociedadesEjercicios", x)).ToList();
         if (cols.Count == 0) return new HashSet<string>();

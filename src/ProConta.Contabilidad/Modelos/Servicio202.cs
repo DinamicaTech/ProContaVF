@@ -154,7 +154,10 @@ public sealed class Servicio202(IBaseDatos bd, ServicioPresentacionAeat presenta
         s.ConsultarPrimeroAsync("SELECT IdSociedadEjercicio FROM SociedadesEjercicios WHERE IdSociedad = ? AND Ejercicio = ?", f => (int?)f.Entero("IdSociedadEjercicio"), idSociedad, (short)ejercicio);
 
     /// <summary>La base del pago fraccionado con el Impuesto sobre Sociedades de <paramref name="ejercicio"/>; null si no está ni grabado ni contabilizado.</summary>
-    public Task<BasePagoFraccionado?> BaseAsync(string idSociedad, int ejercicio) => bd.EjecutarAsync(async s =>
+    public Task<BasePagoFraccionado?> BaseAsync(string idSociedad, int ejercicio) =>
+        CacheCalculo.ObtenerAsync<BasePagoFraccionado?>($"202base|{bd.Ruta}|{idSociedad}|{ejercicio}", () => BaseSinCacheAsync(idSociedad, ejercicio));
+
+    private Task<BasePagoFraccionado?> BaseSinCacheAsync(string idSociedad, int ejercicio) => bd.EjecutarAsync(async s =>
     {
         var id = await IdEjercicioAsync(s, idSociedad, ejercicio);
         if (id is null) return null;
@@ -209,6 +212,9 @@ public sealed class Servicio202(IBaseDatos bd, ServicioPresentacionAeat presenta
 
     /// <summary>Cargos del ejercicio a las cuentas de pagos fraccionados (lo pagado por el 202).</summary>
     private Task<IReadOnlyList<(DateTime Fecha, decimal Importe)>> CargosPagosFraccionadosAsync(ContextoSociedadEjercicio ctx, int ejercicio) =>
+        CacheCalculo.ObtenerAsync<IReadOnlyList<(DateTime Fecha, decimal Importe)>>($"202cargos|{bd.Ruta}|{ctx.IdSociedad}|{ejercicio}", () => CargosPagosFraccionadosSinCacheAsync(ctx, ejercicio));
+
+    private Task<IReadOnlyList<(DateTime Fecha, decimal Importe)>> CargosPagosFraccionadosSinCacheAsync(ContextoSociedadEjercicio ctx, int ejercicio) =>
         bd.EjecutarAsync<IReadOnlyList<(DateTime Fecha, decimal Importe)>>(async s =>
         {
             var cuentas = (await CuentasPagosFraccionadosAsync(s, ctx.IdSociedadEjercicio, ejercicio)).ToHashSet(StringComparer.Ordinal);
@@ -220,7 +226,10 @@ public sealed class Servicio202(IBaseDatos bd, ServicioPresentacionAeat presenta
         });
 
     /// <summary>Importe neto de la cifra de negocios de un ejercicio (abonos menos cargos de las 70 y la 752); null si el ejercicio no existe.</summary>
-    private Task<decimal?> CifraNegociosAsync(string idSociedad, int ejercicio) => bd.EjecutarAsync(async s =>
+    private Task<decimal?> CifraNegociosAsync(string idSociedad, int ejercicio) =>
+        CacheCalculo.ObtenerAsync<decimal?>($"202cifra|{bd.Ruta}|{idSociedad}|{ejercicio}", () => CifraNegociosSinCacheAsync(idSociedad, ejercicio));
+
+    private Task<decimal?> CifraNegociosSinCacheAsync(string idSociedad, int ejercicio) => bd.EjecutarAsync(async s =>
     {
         var id = await IdEjercicioAsync(s, idSociedad, ejercicio);
         if (id is null) return (decimal?)null;
@@ -231,7 +240,10 @@ public sealed class Servicio202(IBaseDatos bd, ServicioPresentacionAeat presenta
     });
 
     /// <summary>Tipo de gravamen del ejercicio para la cabecera: «tramo/general» de Parámetros y tablas › Ejercicios o, sin él, el general del 25 %.</summary>
-    private Task<string> TipoGravamenAsync(ContextoSociedadEjercicio ctx) => bd.EjecutarAsync(async s =>
+    private Task<string> TipoGravamenAsync(ContextoSociedadEjercicio ctx) =>
+        CacheCalculo.ObtenerAsync<string>($"202tipo|{bd.Ruta}|{ctx.IdSociedadEjercicio}", () => TipoGravamenSinCacheAsync(ctx));
+
+    private Task<string> TipoGravamenSinCacheAsync(ContextoSociedadEjercicio ctx) => bd.EjecutarAsync(async s =>
     {
         if (!s.LeerEsquema().ExisteColumna("SociedadesEjercicios", "TipoImpuestoSociedades")) return "25";
         var f = await s.ConsultarPrimeroAsync("SELECT TipoImpuestoSociedades, TipoTramoReducidoIS FROM SociedadesEjercicios WHERE IdSociedadEjercicio = ?",

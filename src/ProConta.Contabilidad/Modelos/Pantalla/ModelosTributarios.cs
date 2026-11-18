@@ -379,6 +379,22 @@ public sealed class ServicioModelosTributarios
     public IModeloTributario Modelo(string id) => Modelos.First(m => m.Definicion.Id == id);
 
     /// <summary>
+    /// Los periodos de un modelo sin calcular (para enseñar la pantalla al momento): su plazo y lo presentado en el entorno de la BD, marcados
+    /// como «Calculando…». Solo lee PresentacionesAeat.
+    /// </summary>
+    public async Task<IReadOnlyList<PeriodoModelo>> ProvisionalesAsync(ContextoSociedadEjercicio ctx, string modelo, EntornoAeat entorno, CancellationToken c = default)
+    {
+        var todas = (await Presentacion.PresentadasAsync(ctx.IdSociedad, modelo, ctx.Ejercicio, c)).Where(p => p.Entorno == ServiciosAeat.Codigo(entorno)).ToList();
+        return [.. PlazosModelos.Periodos(modelo).Select(periodo =>
+        {
+            var (desde, hasta) = PlazosModelos.Plazo(modelo, ctx.Ejercicio, periodo);
+            var del = todas.Where(p => p.Periodo == periodo).OrderBy(p => p.FechaHora).ThenBy(p => p.Id).ToList();
+            return new PeriodoModelo(modelo, ctx.Ejercicio, periodo, desde, hasta, del.Count > 0 ? Estado303.Presentado : Estado303.SinPresentar, null, null, del.LastOrDefault(), del, [], [],
+                Calculando: true);
+        })];
+    }
+
+    /// <summary>
     /// Los modelos elegidos en «Modelos de la sociedad…» (null si la sociedad aún no ha elegido: entonces salen los que tienen datos o
     /// presentaciones, <see cref="PorDefecto"/>).
     /// </summary>

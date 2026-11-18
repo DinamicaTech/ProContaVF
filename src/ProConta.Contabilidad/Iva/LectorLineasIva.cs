@@ -91,7 +91,10 @@ public sealed class LectorLineasIva(IBaseDatos bd)
             : (decimal?)null, cancelacion);
 
     /// <summary>Las líneas de IVA del ejercicio con su 303 y su prorrata (provisional y definitiva del ejercicio).</summary>
-    public async Task<(IReadOnlyList<LineaIva> Lineas, decimal? Provisional, decimal? Definitiva, IvaEjercicio Iva)> CalcularAsync(ContextoSociedadEjercicio ctx, CancellationToken cancelacion = default)
+    public Task<(IReadOnlyList<LineaIva> Lineas, decimal? Provisional, decimal? Definitiva, IvaEjercicio Iva)> CalcularAsync(ContextoSociedadEjercicio ctx, CancellationToken cancelacion = default) =>
+        CacheCalculo.ObtenerAsync<(IReadOnlyList<LineaIva> Lineas, decimal? Provisional, decimal? Definitiva, IvaEjercicio Iva)>($"iva|{bd.Ruta}|{ctx.IdSociedadEjercicio}", () => CalcularSinCacheAsync(ctx, cancelacion));
+
+    private async Task<(IReadOnlyList<LineaIva> Lineas, decimal? Provisional, decimal? Definitiva, IvaEjercicio Iva)> CalcularSinCacheAsync(ContextoSociedadEjercicio ctx, CancellationToken cancelacion = default)
     {
         var lineas = await LeerAsync(ctx, cancelacion);
         var provisional = await ProrrataProvisionalAsync(ctx, cancelacion);

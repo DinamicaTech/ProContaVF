@@ -162,6 +162,28 @@ public sealed class ModelosTributariosTests
     }
 
     [Fact]
+    public async Task LaMemoriaDeCalculosSoloDuraElAmbito()
+    {
+        var n = 0;
+        Task<int> Calcular() => Task.FromResult(++n);
+        Assert.Equal(1, await CacheCalculo.ObtenerAsync("x", Calcular));
+        Assert.Equal(2, await CacheCalculo.ObtenerAsync("x", Calcular));      // sin ámbito, siempre calcula
+        using (CacheCalculo.Abrir())
+        {
+            Assert.Equal(3, await CacheCalculo.ObtenerAsync("x", Calcular));
+            Assert.Equal(3, await CacheCalculo.ObtenerAsync("x", Calcular));  // dentro, una sola vez
+            Assert.Equal(4, await CacheCalculo.ObtenerAsync("y", Calcular));
+            var leidas = 0;
+            ProConta.Datos.Persistencia.EsquemaFisico Leer() { leidas++; return new([]); }
+            ProConta.Datos.Persistencia.MemoriaEsquema.Obtener("bd", Leer);
+            ProConta.Datos.Persistencia.MemoriaEsquema.Obtener("bd", Leer);
+            Assert.Equal(1, leidas);
+        }
+        Assert.False(CacheCalculo.Activa);
+        Assert.Equal(5, await CacheCalculo.ObtenerAsync("x", Calcular));
+    }
+
+    [Fact]
     public void LosDoceModelosTienenSuDefinicion()
     {
         Assert.Equal(["303", "111", "115", "123", "349", "202", "390", "190", "180", "193", "347", "200"], DefinicionModelo.Todos.Select(d => d.Id));

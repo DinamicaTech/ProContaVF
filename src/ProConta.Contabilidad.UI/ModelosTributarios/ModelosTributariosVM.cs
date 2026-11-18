@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using System.IO;
 using System.Text;
 using System.Windows.Input;
+using ProConta.Contabilidad;
 using ProConta.Contabilidad.Modelos;
 using ProConta.Contabilidad.Presentacion;
 using ProConta.Nucleo.Auditoria;
@@ -240,36 +241,61 @@ public sealed class ModelosTributariosVM : ModeloVista, IPestanaTrabajo
     /// <summary>Carga la pantalla; con <paramref name="modelo"/> y <paramref name="periodo"/>, deja ese periodo elegido y marcado (enlaces desde otras pantallas).</summary>
     public async Task CargarAsync(string? modelo = null, string? periodo = null, bool consultaDelDia = false)
     {
+        var errores = new List<string>();
         try
         {
+            // Durante la carga, la estructura de la BD y los cálculos comunes (líneas de IVA, retenciones…) se leen una sola vez.
+            using var memoria = CacheCalculo.Abrir();
             if (Modelos.Count == 0) Estado = EstadoVista.Cargando;
             Ocupado = true;
+            Calculando = true;
             var entorno = await _ctx.Servicio.Presentacion.EntornoAsync();
             EsPruebas = entorno == EntornoAeat.Pruebas;
             Avisar(nameof(EsPruebas), nameof(AyudaEntorno));
             _puedePresentar = await _ctx.PuedePresentar();
-            var periodos = new Dictionary<string, IReadOnlyList<PeriodoModelo>>();
-            var errores = new List<string>();
-            foreach (var m in _ctx.Servicio.Modelos)
-            {
-                try { periodos[m.Definicion.Id] = await m.PeriodosAsync(_ctx.Trabajo); }
-                catch (Exception ex) when (ex is not OperationCanceledException)
-                {
-                    errores.Add($"{m.Definicion.Id}: {ex.Message}");
-                    periodos[m.Definicion.Id] = [.. PlazosModelos.Periodos(m.Definicion.Id).Select(p =>
-                    {
-                        var (desde, hasta) = PlazosModelos.Plazo(m.Definicion.Id, _ctx.Trabajo.Ejercicio, p);
-                        return new PeriodoModelo(m.Definicion.Id, _ctx.Trabajo.Ejercicio, p, desde, hasta, Estado303.SinPresentar, null, null, null, [], [$"No he podido calcular el {m.Definicion.Id}: {ex.Message}"], [],
-                            $"El programa no ha podido calcularlo ({ex.Message}).");
-                    })];
-                }
-            }
-            _periodos = periodos;
             var elegidos = await _ctx.Servicio.ElegidosAsync(_ctx.Trabajo.IdSociedad);
             _elegidos = elegidos is not null;
-            _visibles = elegidos ?? ServicioModelosTributarios.PorDefecto(periodos);
+
+            // 1. Al momento: el calendario y lo presentado de cada modelo, «Calculando…» (solo lee PresentacionesAeat).
+            var periodos = new Dictionary<string, IReadOnlyList<PeriodoModelo>>();
+            foreach (var m in _ctx.Servicio.Modelos)
+                periodos[m.Definicion.Id] = await _ctx.Servicio.ProvisionalesAsync(_ctx.Trabajo, m.Definicion.Id, entorno);
+            _periodos = periodos;
+            _visibles = elegidos ?? periodos.Where(kv => kv.Key is "303" or "390" || kv.Value.Any(p => p.Presentado)).Select(kv => kv.Key).ToHashSet();
             Pintar(modelo ?? _seleccion?.Id, periodo);
             Estado = EstadoVista.Contenido;
+
+            // 2. Los modelos que se ven, uno a uno y con los cálculos comunes una sola vez (líneas de IVA, retenciones…); sin elegir, también los demás
+            // para saber cuáles tienen datos.
+            {
+                var orden = DefinicionModelo.Todos.Where(d => _visibles.Contains(d.Id)).Concat(_elegidos ? [] : DefinicionModelo.Todos.Where(d => !_visibles.Contains(d.Id)));
+                foreach (var def in orden)
+                {
+                    var m = _ctx.Servicio.Modelo(def.Id);
+                    IReadOnlyList<PeriodoModelo> calculados;
+                    try { calculados = await m.PeriodosAsync(_ctx.Trabajo); }
+                    catch (Exception ex) when (ex is not OperationCanceledException)
+                    {
+                        errores.Add($"{def.Id}: {ex.Message}");
+                        calculados = [.. _periodos[def.Id].Select(p => p with
+                        {
+                            Calculando = false, Bloqueos = [$"No he podido calcular el {def.Id}: {ex.Message}"], SoloConsulta = $"El programa no ha podido calcularlo ({ex.Message}).",
+                        })];
+                    }
+                    var copia = new Dictionary<string, IReadOnlyList<PeriodoModelo>>(_periodos) { [def.Id] = calculados };
+                    _periodos = copia;
+                    if (_visibles.Contains(def.Id)) ActualizarModelo(def.Id);
+                }
+            }
+
+            // 3. Sin elegir, salen los que tienen datos o presentaciones, y esa elección se guarda para las próximas veces (y para Inicio).
+            if (!_elegidos)
+            {
+                _visibles = ServicioModelosTributarios.PorDefecto(_periodos);
+                await _ctx.Servicio.GuardarElegidosAsync(_ctx.Trabajo.IdSociedad, _visibles.ToList());
+                _elegidos = true;
+                Pintar(_seleccion?.Id ?? modelo, periodo);
+            }
             if (errores.Count > 0) _ctx.Avisar("No he podido calcular algún modelo: " + string.Join(" · ", errores));
         }
         catch (Exception ex)
@@ -277,11 +303,48 @@ public sealed class ModelosTributariosVM : ModeloVista, IPestanaTrabajo
             Estado = EstadoVista.Error;
             MensajeEstado = $"No he podido calcular los modelos: {ex.Message} Pulsa Actualizar (F5) para volver a intentarlo.";
         }
-        finally { Ocupado = false; }
+        finally { Calculando = false; Ocupado = false; }
         if (consultaDelDia && Estado == EstadoVista.Contenido && await _ctx.Servicio.TocaConsultaDelDiaAsync(_ctx.Trabajo.IdSociedad))
             await ConsultarAsync(automatica: true);
         else await TextoUltimaConsultaAsync();
     }
+
+    private bool _calculando;
+
+    /// <summary>Mientras se calculan los modelos (la pantalla ya se ve; los periodos aún sin calcular dicen «Calculando…»).</summary>
+    public bool Calculando { get => _calculando; private set { if (Fijar(ref _calculando, value)) Avisar(nameof(TextoCalculando)); } }
+    public string TextoCalculando => _calculando ? "Calculando los modelos…" : "";
+
+    /// <summary>Pone los periodos recién calculados de un modelo sin rehacer la pantalla: su fila de la lista, sus filas de las tablas, la franja y los plazos.</summary>
+    private void ActualizarModelo(string id)
+    {
+        var hoy = Hoy;
+        foreach (var k in _filas.Keys.Where(k => k.StartsWith(id + "|", StringComparison.Ordinal)).ToList())
+        {
+            var marcado = _filas[k].Marcado;
+            _filas.Remove(k);
+            if (marcado) _marcadosPendientes.Add(k);
+        }
+        foreach (var p in _periodos[id])
+        {
+            var f = new FilaPeriodoVM(p, hoy, AlMarcar);
+            if (_marcadosPendientes.Remove(p.Clave)) f.FijarMarca(true);
+            _filas[p.Clave] = f;
+        }
+        var i = Modelos.ToList().FindIndex(m => m.Id == id);
+        if (i >= 0)
+        {
+            var seleccionado = ReferenceEquals(Modelos[i], _seleccion);
+            var nueva = FilaModelo(DefinicionModelo.De(id), _periodos[id], hoy);
+            Modelos[i] = nueva;
+            if (seleccionado) { _seleccion = nueva; Avisar(nameof(Seleccion), nameof(SoloConsultaDetalle), nameof(EsSoloConsultaDetalle)); RellenarDetalle(); }
+        }
+        RellenarAgenda();
+        RellenarPlazos();
+        AlMarcar();
+    }
+
+    private readonly HashSet<string> _marcadosPendientes = [];
 
     private async Task TextoUltimaConsultaAsync()
     {
@@ -301,12 +364,7 @@ public sealed class ModelosTributariosVM : ModeloVista, IPestanaTrabajo
         Modelos.Clear();
         foreach (var def in DefinicionModelo.Todos.Where(d => _visibles.Contains(d.Id) && _periodos.ContainsKey(d.Id)))
         {
-            var lista = _periodos[def.Id];
-            var fichas = lista.Select(p => new FichaPeriodoVM(p.Nombre, "", p.Estado(hoy).ToString().ToUpperInvariant(), $"{p.Nombre}: {p.TextoEstado(hoy)}. {p.AyudaEstado(hoy)}",
-                new ComandoDelegado(() => IrA(p.Modelo, p.Periodo)))).ToList();
-            var siguiente = lista.FirstOrDefault(p => p.Estado(hoy) is EstadoPeriodoModelo.Vencido or EstadoPeriodoModelo.EnPlazo or EstadoPeriodoModelo.AunNoAbre);
-            var proximo = siguiente is null ? "todo presentado" : (siguiente.Estado(hoy) == EstadoPeriodoModelo.Vencido ? "venció el " : "hasta el ") + Formatos.Fecha(siguiente.PlazoHasta);
-            Modelos.Add(new FilaModeloVM(def, fichas, proximo, lista.Select(p => p.SoloConsulta).FirstOrDefault(s => s is not null)));
+            Modelos.Add(FilaModelo(def, _periodos[def.Id], hoy));
         }
         Avisar(nameof(TextoModelos), nameof(SinModelos));
         RellenarAgenda();
@@ -315,6 +373,16 @@ public sealed class ModelosTributariosVM : ModeloVista, IPestanaTrabajo
         Seleccion = elegido;
         RellenarPlazos();
         if (modelo is not null && periodo is not null) IrA(modelo, periodo);
+    }
+
+    private FilaModeloVM FilaModelo(DefinicionModelo def, IReadOnlyList<PeriodoModelo> lista, DateTime hoy)
+    {
+        var fichas = lista.Select(p => new FichaPeriodoVM(p.Nombre, "", p.Estado(hoy).ToString().ToUpperInvariant(), $"{p.Nombre}: {p.TextoEstado(hoy)}. {p.AyudaEstado(hoy)}",
+            new ComandoDelegado(() => IrA(p.Modelo, p.Periodo)))).ToList();
+        var siguiente = lista.FirstOrDefault(p => p.Estado(hoy) is EstadoPeriodoModelo.Vencido or EstadoPeriodoModelo.EnPlazo or EstadoPeriodoModelo.AunNoAbre or EstadoPeriodoModelo.Calculando);
+        var proximo = lista.Any(p => p.Calculando) ? "calculando…"
+            : siguiente is null ? "todo presentado" : (siguiente.Estado(hoy) == EstadoPeriodoModelo.Vencido ? "venció el " : "hasta el ") + Formatos.Fecha(siguiente.PlazoHasta);
+        return new FilaModeloVM(def, fichas, proximo, lista.Select(p => p.SoloConsulta).FirstOrDefault(x => x is not null));
     }
 
     private IEnumerable<FilaPeriodoVM> Visibles => _filas.Values.Where(f => _visibles.Contains(f.Id));

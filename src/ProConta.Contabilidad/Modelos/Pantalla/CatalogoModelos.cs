@@ -175,6 +175,8 @@ public enum EstadoPeriodoModelo
     Desactualizado,
     /// <summary>Sin nada que declarar (cero) en un modelo que entonces no se presenta: ni pendiente ni vencido.</summary>
     SinObligacion,
+    /// <summary>La pantalla aún lo está calculando (carga progresiva): se ve su plazo y lo presentado, todavía no su importe.</summary>
+    Calculando,
 }
 
 /// <summary>
@@ -186,17 +188,18 @@ public enum EstadoPeriodoModelo
 /// <param name="SoloConsulta">Por qué el programa no genera este periodo (diseño del ejercicio no disponible…); null si lo genera.</param>
 public sealed record PeriodoModelo(string Modelo, int Ejercicio, string Periodo, DateTime PlazoDesde, DateTime PlazoHasta, Estado303 EstadoServicio, decimal? Calculado,
     string? TextoCalculado, PresentacionGuardada? Ultima, IReadOnlyList<PresentacionGuardada> Presentaciones, IReadOnlyList<string> Bloqueos, IReadOnlyList<string> Avisos,
-    string? SoloConsulta = null)
+    string? SoloConsulta = null, bool Calculando = false)
 {
     public string Clave => $"{Modelo}|{Ejercicio}|{Periodo}";
     public string Nombre => PlazosModelos.Nombre(Periodo);
     public bool Presentado => Ultima is not null;
-    public bool Generable => SoloConsulta is null;
+    public bool Generable => SoloConsulta is null && !Calculando;
 
     /// <summary>Estado en la pantalla el día <paramref name="hoy"/>.</summary>
     public EstadoPeriodoModelo Estado(DateTime hoy) =>
         Ultima is not null ? (EstadoServicio == Estado303.Desactualizado ? EstadoPeriodoModelo.Desactualizado : EstadoPeriodoModelo.Presentado)
         : hoy.Date < PlazoDesde ? EstadoPeriodoModelo.AunNoAbre
+        : Calculando ? EstadoPeriodoModelo.Calculando
         : Calculado == 0m && SoloConsulta is null && DefinicionModelo.De(Modelo).SinObligacionSiCero ? EstadoPeriodoModelo.SinObligacion
         : hoy.Date <= PlazoHasta ? EstadoPeriodoModelo.EnPlazo
         : EstadoPeriodoModelo.Vencido;
@@ -210,6 +213,7 @@ public sealed record PeriodoModelo(string Modelo, int Ejercicio, string Periodo,
         EstadoPeriodoModelo.Presentado => "Presentado",
         EstadoPeriodoModelo.Desactualizado => "Desactualizado",
         EstadoPeriodoModelo.SinObligacion => "Sin datos · no se presenta",
+        EstadoPeriodoModelo.Calculando => "Calculando…",
         EstadoPeriodoModelo.AunNoAbre => $"Abre el {PlazoDesde:dd/MM}",
         EstadoPeriodoModelo.EnPlazo => DiasRestantes(hoy) switch { 0 => "En plazo · termina hoy", 1 => "En plazo · queda 1 día", var n => $"En plazo · quedan {n} días" },
         _ => "Vencido",
@@ -222,6 +226,7 @@ public sealed record PeriodoModelo(string Modelo, int Ejercicio, string Periodo,
             $", CSV {Ultima.Csv}.",
         EstadoPeriodoModelo.Desactualizado => $"Lo presentado ({Euros(Ultima!.Resultado)}) ya no coincide con lo que el programa calcula ahora ({Euros(Calculado ?? 0m)}). Si procede, presenta una complementaria.",
         EstadoPeriodoModelo.AunNoAbre => $"El plazo va del {PlazoDesde:dd/MM/yyyy} al {PlazoHasta:dd/MM/yyyy}. Hasta entonces el importe es provisional.",
+        EstadoPeriodoModelo.Calculando => "El programa está calculando este periodo: en unos segundos se ve su importe y su estado.",
         EstadoPeriodoModelo.SinObligacion => $"El programa no calcula nada que declarar en este periodo: el {Modelo} no se presenta cuando sale a cero (no hay declaración negativa). " +
             "Si crees que falta algo, revisa los documentos del periodo; si quieres presentarlo igualmente, usa «Presentar…».",
         EstadoPeriodoModelo.EnPlazo => $"El plazo termina el {PlazoHasta:dd/MM/yyyy}.",
@@ -264,7 +269,7 @@ public static class AccionesPeriodos
         }
         var p = marcados[0];
         var def = DefinicionModelo.De(p.Modelo);
-        var noGen = p.SoloConsulta;
+        var noGen = p.Calculando ? "Se está calculando: espera unos segundos" : p.SoloConsulta;
         var abierto = hoy.Date >= p.PlazoDesde;
         var noAbre = abierto ? null : $"El plazo empieza el {p.PlazoDesde:dd/MM/yyyy}";
         var sinPermiso = puedePresentar ? null : "No tienes permiso para presentar modelos (Configuración › Seguridad)";

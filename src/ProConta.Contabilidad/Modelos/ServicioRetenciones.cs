@@ -301,7 +301,10 @@ public sealed class ServicioRetenciones(IBaseDatos bd, ServicioPresentacionAeat 
     });
 
     /// <summary>Nóminas, facturas de compra con retención y apuntes de las 4751 del ejercicio.</summary>
-    public Task<LecturaRetenciones> LeerAsync(ContextoSociedadEjercicio ctx, CancellationToken c = default) => bd.EjecutarAsync(async s =>
+    public Task<LecturaRetenciones> LeerAsync(ContextoSociedadEjercicio ctx, CancellationToken c = default) =>
+        CacheCalculo.ObtenerAsync<LecturaRetenciones>($"ret|{bd.Ruta}|{ctx.IdSociedadEjercicio}", () => LeerSinCacheAsync(ctx, c));
+
+    private Task<LecturaRetenciones> LeerSinCacheAsync(ContextoSociedadEjercicio ctx, CancellationToken c = default) => bd.EjecutarAsync(async s =>
     {
         var esquema = s.LeerEsquema();
         var percepciones = new List<PercepcionRetencion>();

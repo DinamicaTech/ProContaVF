@@ -34,3 +34,29 @@ public sealed record IndiceFisico(string Nombre, bool EsClavePrimaria, bool EsUn
 
 /// <summary>Relación (clave ajena) de esta tabla hacia otra.</summary>
 public sealed record RelacionFisica(string Nombre, IReadOnlyList<string> Columnas, string TablaReferenciada, IReadOnlyList<string> ColumnasReferenciadas, string ReglaBorrado, string ReglaActualizacion);
+
+/// <summary>
+/// Memoria de la estructura de la BD mientras dura un ámbito (contabilidad/modelos-tributarios 2026-11-18): leer la estructura de Access
+/// cuesta unos 0,4 s y la pantalla de modelos tributarios la consultaba unas 80 veces al abrir. Dentro de un ámbito abierto con
+/// <see cref="Abrir"/>, <c>LeerEsquema</c> fuera de transacción la lee una vez por fichero; fuera de un ámbito la lee siempre (así una
+/// migración o una prueba que cambia la estructura la ve al momento).
+/// </summary>
+public static class MemoriaEsquema
+{
+    private static readonly AsyncLocal<System.Collections.Concurrent.ConcurrentDictionary<string, EsquemaFisico>?> Actual = new();
+
+    public static IDisposable Abrir()
+    {
+        var anterior = Actual.Value;
+        Actual.Value = new System.Collections.Concurrent.ConcurrentDictionary<string, EsquemaFisico>(StringComparer.OrdinalIgnoreCase);
+        return new Cierre(anterior);
+    }
+
+    public static EsquemaFisico Obtener(string clave, Func<EsquemaFisico> leer) =>
+        Actual.Value is { } d ? d.GetOrAdd(clave, _ => leer()) : leer();
+
+    private sealed class Cierre(System.Collections.Concurrent.ConcurrentDictionary<string, EsquemaFisico>? anterior) : IDisposable
+    {
+        public void Dispose() => Actual.Value = anterior;
+    }
+}

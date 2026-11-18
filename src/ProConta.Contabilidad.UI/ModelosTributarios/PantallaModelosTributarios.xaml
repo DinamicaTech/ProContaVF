@@ -137,6 +137,7 @@
     <Border DockPanel.Dock="Bottom" Background="White" BorderBrush="{StaticResource Pincel.Linea}" BorderThickness="0,1,0,0" Padding="14,4">
       <DockPanel>
         <TextBlock DockPanel.Dock="Right" Text="{Binding TextoConsulta}" Style="{StaticResource Texto.Apagado}" FontSize="{StaticResource Letra.Pequena}" />
+        <TextBlock DockPanel.Dock="Right" Text="{Binding TextoCalculando}" FontSize="{StaticResource Letra.Pequena}" FontWeight="SemiBold" Foreground="{StaticResource Pincel.Azul}" Margin="0,0,16,0" />
         <TextBlock Text="{Binding TextoMarcados}" Style="{StaticResource Texto.Apagado}" FontSize="{StaticResource Letra.Pequena}" TextTrimming="CharacterEllipsis" />
       </DockPanel>
     </Border>
