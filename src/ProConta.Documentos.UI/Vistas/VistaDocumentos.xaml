@@ -10,6 +10,8 @@
         <ResourceDictionary Source="/ProConta.Documentos.UI;component/Vistas/Recursos.xaml" />
       </ResourceDictionary.MergedDictionaries>
       <ContextMenu x:Key="Menu.Bandeja">
+        <MenuItem Header="Clasificar y archivar…" Command="{Binding ClasificarCommand}" ToolTipService.ShowOnDisabled="True"
+                  ToolTip="Elige el tipo, la fecha y el título del documento marcado y lo archiva en su carpeta (solo con uno marcado)" />
         <MenuItem Header="Archivar" Command="{Binding ArchivarMarcadosCommand}" ToolTipService.ShowOnDisabled="True"
                   ToolTip="Archiva los marcados que tienen tipo, fecha, título y algún vínculo; los demás se quedan aquí y se dice qué les falta" />
         <MenuItem Header="Vincular a…" Command="{Binding VincularCommand}" ToolTipService.ShowOnDisabled="True"
@@ -18,6 +20,8 @@
                   ToolTip="Pone el mismo tipo a todos los marcados (por ejemplo, «Notificación de Hacienda»)" />
         <MenuItem Header="Abrir el fichero" Command="{Binding AbrirCommand}" ToolTipService.ShowOnDisabled="True"
                   ToolTip="Abre el fichero con el programa de Windows (solo con uno marcado). También con doble clic" />
+        <MenuItem Header="Copiar ruta" Command="{Binding CopiarRutaCommand}" ToolTipService.ShowOnDisabled="True"
+                  ToolTip="Copia al portapapeles la ruta completa del fichero (solo con uno marcado)" />
         <Separator />
         <MenuItem Header="Enviar a Facturas recibidas…" Command="{Binding EnviarComprasCommand}" ToolTipService.ShowOnDisabled="True"
                   ToolTip="Para las facturas de compra que se han colado: las copia a la carpeta de facturas del ejercicio para que Compras las registre, y las quita de aquí" />
@@ -29,6 +33,8 @@
                   ToolTip="Abre el documento con el programa de Windows (solo con uno marcado). También con doble clic" />
         <MenuItem Header="Mostrar en la carpeta" Command="{Binding CarpetaCommand}" ToolTipService.ShowOnDisabled="True"
                   ToolTip="Abre el Explorador en la carpeta del documento, con su fichero seleccionado" />
+        <MenuItem Header="Copiar ruta" Command="{Binding CopiarRutaCommand}" ToolTipService.ShowOnDisabled="True"
+                  ToolTip="Copia al portapapeles la ruta completa del fichero (solo con uno marcado)" />
         <Separator />
         <MenuItem Header="Vincular a…" Command="{Binding VincularCommand}" ToolTipService.ShowOnDisabled="True"
                   ToolTip="Con uno marcado, ves y cambias todos sus vínculos; con varios, el vínculo que elijas se añade a todos" />
@@ -194,12 +200,17 @@
                     </DataTemplate>
                   </DataGridTemplateColumn.CellTemplate>
                 </DataGridTemplateColumn>
-                <DataGridTemplateColumn Header="Propuesta" Width="124" SortMemberPath="ClasePropuesta" pc:TablaProConta.Clave="propuesta" pc:TablaProConta.RutaExportar="TextoPropuesta">
+                <DataGridTemplateColumn Header="Propuesta" Width="190" SortMemberPath="ClasePropuesta" pc:TablaProConta.Clave="propuesta" pc:TablaProConta.RutaExportar="TextoPropuesta">
                   <DataGridTemplateColumn.CellTemplate>
                     <DataTemplate>
-                      <Border Style="{StaticResource Pastilla.Propuesta}" ToolTip="{Binding AyudaPropuesta}">
-                        <TextBlock Text="{Binding TextoPropuesta}" FontSize="{StaticResource Letra.Pequena}" FontWeight="SemiBold" Foreground="{StaticResource Pincel.Texto2}" />
-                      </Border>
+                      <StackPanel Orientation="Horizontal">
+                        <Border Style="{StaticResource Pastilla.Propuesta}" ToolTip="{Binding AyudaPropuesta}" VerticalAlignment="Center">
+                          <TextBlock Text="{Binding TextoPropuesta}" FontSize="{StaticResource Letra.Pequena}" FontWeight="SemiBold" Foreground="{StaticResource Pincel.Texto2}" />
+                        </Border>
+                        <Button Content="Archivar" Style="{StaticResource Boton.Pequeno}" Margin="6,0,0,0" Visibility="{Binding Listo, Converter={StaticResource Visible}}"
+                                Command="{Binding DataContext.ArchivarFilaCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}"
+                                ToolTip="Tiene tipo, fecha, título y vínculo: lo archiva ya en su carpeta y sale de «Por clasificar»" />
+                      </StackPanel>
                     </DataTemplate>
                   </DataGridTemplateColumn.CellTemplate>
                 </DataGridTemplateColumn>
@@ -229,6 +240,8 @@
                                     pc:TablaProConta.Ayuda="Fecha del propio documento" />
                 <DataGridTextColumn Header="Tipo" Binding="{Binding NombreTipo}" Width="170" ElementStyle="{StaticResource Texto.Celda}" pc:TablaProConta.Clave="tipo" />
                 <DataGridTextColumn Header="Título" Binding="{Binding Datos.Titulo}" Width="*" MinWidth="220" ElementStyle="{StaticResource Texto.Celda}" pc:TablaProConta.Clave="titulo" />
+                <DataGridTextColumn Header="Ext." Binding="{Binding TipoFichero}" Width="56" ElementStyle="{StaticResource Texto.Celda.Mono}" pc:TablaProConta.Clave="ext"
+                                    pc:TablaProConta.Ayuda="Tipo de fichero (PDF, JPG, XLSX…)" />
                 <DataGridTemplateColumn Header="Vinculado a" Width="320" pc:TablaProConta.Clave="vinculos" pc:TablaProConta.RutaExportar="TextoVinculos" SortMemberPath="TextoVinculos">
                   <DataGridTemplateColumn.CellTemplate>
                     <DataTemplate>

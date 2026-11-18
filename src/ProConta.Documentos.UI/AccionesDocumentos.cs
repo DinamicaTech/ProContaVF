@@ -22,6 +22,42 @@ internal sealed class AccionesDocumentos(ModuloDocumentos modulo)
         Dlg.MostrarEnCarpeta(ruta);
     }
 
+    public void CopiarRuta(FilaDocumentoVM? fila)
+    {
+        if (fila?.Ruta is not { } ruta) return;
+        if (Dlg.Copiar(ruta)) Ctx.Avisar($"Ruta copiada: {ruta}");
+        else Dlg.Error("No se ha copiado", $"No he podido usar el portapapeles. La ruta es {ruta}");
+    }
+
+    /// <summary>
+    /// «Clasificar y archivar…» (propietario 2026-11-18 18:06): pide tipo, fecha y título de un documento pendiente, los guarda y lo archiva en su
+    /// carpeta. Devuelve true si ha quedado archivado.
+    /// </summary>
+    public async Task<bool> ClasificarAsync(FilaDocumentoVM fila, object? origen)
+    {
+        if (!fila.Datos.PorClasificar) return false;
+        if (!await Ctx.Servicio.PuedeAsync()) { modulo.SinPermiso(); return false; }
+        var tipos = (await Ctx.Servicio.TiposAsync()).Where(t => t.Manual).ToList();
+        var explicacion = fila.Datos.Vinculos.Count == 0
+            ? "Elige el tipo y la fecha del documento. Después, vincúlalo a algo con «Vincular a…» para poder archivarlo."
+            : $"Elige el tipo y la fecha: el documento se archiva en su carpeta y sigue vinculado a {string.Join(", ", fila.Datos.Vinculos.Select(v => v.Etiqueta))}.";
+        if (Dlg.Clasificar(tipos, fila.Tipo, fila.Fecha, fila.Datos.Titulo, explicacion) is not { } c) return false;
+        var r = await Ctx.Servicio.ActualizarAsync(fila.Id, c.Tipo, c.Titulo, c.Fecha, fila.Datos.Notas);
+        if (!r.EsCorrecto) { Dlg.Error("No se ha guardado", r.Error!.TextoOperador()); return false; }
+        var a = await Ctx.Servicio.ArchivarAsync([fila.Id]);
+        if (!a.EsCorrecto) { Dlg.Error("No se ha archivado", a.Error!.TextoOperador()); return false; }
+        var problemas = a.Valor.NoListos.Concat(a.Valor.Errores).ToList();
+        if (await Ctx.Servicio.LeerAsync(fila.Id) is { } d) fila.Actualizar(d);
+        modulo.Cambiado(origen);
+        if (a.Valor.Archivados == 0)
+        {
+            Dlg.Error("Guardado, pero no archivado", "He guardado el tipo, la fecha y el título, pero el documento sigue en «Por clasificar»:", problemas);
+            return false;
+        }
+        Ctx.Avisar($"«{c.Titulo}» clasificado y archivado en {fila.Datos.Vigente?.Ruta}.");
+        return true;
+    }
+
     private void NoEsta(FilaDocumentoVM fila, string ruta) => Dlg.Error("No encuentro el fichero",
         $"El fichero de «{fila.Datos.Titulo}» no está en {ruta}. Puede que alguien lo haya movido o borrado fuera del programa, o que la carpeta de documentos no esté " +
         "accesible desde este equipo. Comprueba la carpeta en Parámetros y tablas › Empresas; si lo encuentras, guárdalo como versión nueva con «Nueva versión…».");

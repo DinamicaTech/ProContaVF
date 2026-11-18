@@ -9,8 +9,11 @@
         <ResourceDictionary Source="/ProConta.Documentos.UI;component/Vistas/Recursos.xaml" />
       </ResourceDictionary.MergedDictionaries>
       <ContextMenu x:Key="Menu.Panel">
-        <MenuItem Header="Abrir" Command="{Binding AbrirCommand}" ToolTip="Abre el documento con el programa de Windows. También con doble clic" />
+        <MenuItem Header="Clasificar y archivar…" Command="{Binding ClasificarCommand}" ToolTipService.ShowOnDisabled="True"
+                  ToolTip="Para los que están «Por clasificar»: elige el tipo y la fecha, y el documento se archiva en su carpeta. También con doble clic" />
+        <MenuItem Header="Abrir" Command="{Binding AbrirCommand}" ToolTip="Abre el documento con el programa de Windows. También con doble clic en los archivados" />
         <MenuItem Header="Mostrar en la carpeta" Command="{Binding CarpetaCommand}" ToolTip="Abre el Explorador con el fichero seleccionado" />
+        <MenuItem Header="Copiar ruta" Command="{Binding CopiarRutaCommand}" ToolTip="Copia al portapapeles la ruta completa del fichero" />
         <MenuItem Header="Ver en Documentos" Command="{Binding VerEnDocumentosCommand}" ToolTip="Abre la pantalla Documentos con este documento a la vista" />
         <Separator />
         <MenuItem Header="Vincular a…" Command="{Binding VincularCommand}" ToolTip="Ve y cambia todos sus vínculos (este y otros)" />
@@ -51,6 +54,8 @@
           <DataGridTextColumn Header="Fecha" Binding="{Binding FechaTexto}" SortMemberPath="FechaOrden" Width="96" ElementStyle="{StaticResource Texto.Celda.Mono}" pc:TablaProConta.Clave="fecha" />
           <DataGridTextColumn Header="Tipo" Binding="{Binding NombreTipo}" Width="170" ElementStyle="{StaticResource Texto.Celda}" pc:TablaProConta.Clave="tipo" />
           <DataGridTextColumn Header="Título" Binding="{Binding Datos.Titulo}" Width="*" MinWidth="200" ElementStyle="{StaticResource Texto.Celda}" pc:TablaProConta.Clave="titulo" />
+          <DataGridTextColumn Header="Ext." Binding="{Binding TipoFichero}" Width="56" ElementStyle="{StaticResource Texto.Celda.Mono}" pc:TablaProConta.Clave="ext"
+                              pc:TablaProConta.Ayuda="Tipo de fichero (PDF, JPG, XLSX…)" />
           <DataGridTextColumn Header="También vinculado a" Binding="{Binding TextoOtros}" Width="260" ElementStyle="{StaticResource Texto.Celda}" pc:TablaProConta.Clave="otros"
                               pc:TablaProConta.Ayuda="Otros registros a los que está vinculado el documento" />
           <DataGridTextColumn Header="Estado" Binding="{Binding TextoEstado}" Width="110" ElementStyle="{StaticResource Texto.Celda}" pc:TablaProConta.Clave="estado"

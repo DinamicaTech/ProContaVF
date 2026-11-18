@@ -52,6 +52,9 @@ public sealed class PantallaDocumentosVM : ModeloVista, IPestanaTrabajo
         ArchivarListosCommand = new ComandoDelegado(() => _ = ArchivarAsync(_bandeja.Where(f => f.Listo).ToList()), () => !_ocupado && _bandeja.Any(f => f.Listo));
         AbrirCommand = new ComandoDelegado(p => _acciones.Abrir(Unica(p)), p => Unica(p) is not null);
         CarpetaCommand = new ComandoDelegado(p => _acciones.Carpeta(Unica(p)), p => Unica(p) is not null);
+        CopiarRutaCommand = new ComandoDelegado(p => _acciones.CopiarRuta(Unica(p)), p => Unica(p) is not null);
+        ClasificarCommand = new ComandoDelegado(p => { if (Unica(p) is { } f) _ = ClasificarAsync(f); }, p => !_ocupado && Unica(p) is { Datos.PorClasificar: true, EsCompra: false });
+        ArchivarFilaCommand = new ComandoDelegado(p => { if (p is FilaDocumentoVM f) _ = ArchivarAsync([f]); }, p => !_ocupado && p is FilaDocumentoVM { Listo: true });
         VincularCommand = new ComandoDelegado(_ => _ = _acciones.VincularAsync(Marcadas, this), _ => !_ocupado && Marcadas.Count > 0 && !Marcadas.Any(f => f.EsCompra));
         VincularActualCommand = new ComandoDelegado(_ => { if (_actual is { } a) _ = _acciones.VincularAsync([a], this); }, _ => _actual is { EsCompra: false });
         DesvincularCommand = new ComandoDelegado(p => { if (_actual is { } a && p is VinculoVM v) _ = DesvincularAsync(a, v.Vinculo); });
@@ -86,6 +89,9 @@ public sealed class PantallaDocumentosVM : ModeloVista, IPestanaTrabajo
     public ICommand ArchivarListosCommand { get; }
     public ICommand AbrirCommand { get; }
     public ICommand CarpetaCommand { get; }
+    public ICommand CopiarRutaCommand { get; }
+    public ICommand ClasificarCommand { get; }
+    public ICommand ArchivarFilaCommand { get; }
     public ICommand VincularCommand { get; }
     public ICommand VincularActualCommand { get; }
     public ICommand DesvincularCommand { get; }
@@ -369,6 +375,15 @@ public sealed class PantallaDocumentosVM : ModeloVista, IPestanaTrabajo
     {
         if (_modulo.Contexto.AbrirDestino?.Invoke(v) != true)
             _modulo.Contexto.Avisar($"{TiposEntidad.Nombre(v.TipoEntidad)} {v.Etiqueta}: no tiene pantalla propia que abrir desde aquí.");
+    }
+
+    private async Task ClasificarAsync(FilaDocumentoVM f)
+    {
+        if (await _acciones.ClasificarAsync(f, this))
+        {
+            await CargarAsync();
+            if (_bandeja.Count == 0) VerBandeja = false;
+        }
     }
 
     private async Task VincularFilaAsync(FilaDocumentoVM f)
