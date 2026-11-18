@@ -114,6 +114,52 @@ public sealed class RegistroErroresTests : IDisposable
     }
 
     [Fact]
+    public void Leer_devuelve_las_entradas_de_todos_los_meses_de_la_mas_reciente_a_la_mas_antigua()
+    {
+        var registro = Nuevo();
+        _ahora = new DateTime(2026, 10, 3, 8, 0, 0);
+        registro.Registrar(Lanzada(), "octubre");
+        _ahora = new DateTime(2026, 11, 18, 18, 40, 12);
+        registro.Registrar(Lanzada(), "noviembre 1");
+        _ahora = new DateTime(2026, 11, 18, 19, 0, 0);
+        var ruta = registro.Registrar(Lanzada(), "noviembre 2");
+        File.AppendAllText(Path.Combine(_carpeta, "otro.log"), "==== 2026-11-30 00:00:00 · No es del registro");
+
+        var entradas = registro.Leer(out var ilegibles);
+
+        Assert.Equal(0, ilegibles);
+        Assert.Equal(["noviembre 2", "noviembre 1", "octubre"], entradas.Select(e => e.Donde));
+        var e = entradas[0];
+        Assert.Equal(new DateTime(2026, 11, 18, 19, 0, 0), e.Fecha);
+        Assert.Equal("ProContaVF", e.Programa);
+        Assert.Equal("ProContaVF-main.100+abc", e.Version);
+        Assert.Equal("01 · SOCIEDAD DE PRUEBA SL · ejercicio 2026", e.Sociedad);
+        Assert.Equal("Diario (3 pestañas abiertas)", e.Pantalla);
+        Assert.Equal("InvalidOperationException: Fallo de prueba", e.Error);
+        Assert.Equal(ruta, e.Fichero);
+        Assert.StartsWith("==== 2026-11-18 19:00:00", e.Texto);
+        Assert.Contains("FormatException: Formato raro", e.Texto);
+        Assert.DoesNotContain("noviembre 1", e.Texto);
+    }
+
+    [Fact]
+    public void Leer_sin_carpeta_no_devuelve_nada()
+    {
+        Assert.Empty(Nuevo().Leer(out var ilegibles));
+        Assert.Equal(0, ilegibles);
+    }
+
+    [Fact]
+    public void Interpretar_ignora_texto_suelto_y_cabeceras_sin_fecha()
+    {
+        var texto = "basura inicial\n==== no es fecha · X\nError: a\n==== 2026-11-01 10:00:00 · Conector de Claude Desktop · error inesperado\nError: b\nDetalle técnico:\nError: no cuenta\n";
+        var e = Assert.Single(RegistroErrores.Interpretar(texto, "f"));
+        Assert.Equal("Conector de Claude Desktop", e.Programa);
+        Assert.Equal("b", e.Error);
+        Assert.Null(e.Sociedad);
+    }
+
+    [Fact]
     public void El_resumen_es_el_error_que_lo_causo()
     {
         var envuelto = new AggregateException(new System.Reflection.TargetInvocationException(new InvalidCastException("No es un número")));

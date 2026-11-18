@@ -16,6 +16,21 @@ public sealed record ContextoError(
     string? Sociedad = null,
     string? Pantalla = null);
 
+/// <summary>Una entrada leída del registro de errores, con el texto completo para el detalle.</summary>
+public sealed record EntradaError(
+    DateTime Fecha,
+    string Programa,
+    string? Version,
+    string? Entorno,
+    string? BaseDatos,
+    string? Operador,
+    string? Sociedad,
+    string? Pantalla,
+    string? Donde,
+    string Error,
+    string Texto,
+    string Fichero);
+
 /// <summary>
 /// Fichero de registro de los errores inesperados de ProContaVF y de su conector (docs/plataforma/registro-errores.md):
 /// uno por mes en <c>%LocalAppData%\ProContaVF\errores\errores-AAAA-MM.log</c>, compartido por los dos programas, y se borran
@@ -113,6 +128,53 @@ public sealed class RegistroErrores
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or System.Security.SecurityException) { }
         return borrados;
+    }
+
+    /// <summary>
+    /// Todas las entradas de los ficheros de la carpeta (los de todos los meses que se conservan), de la más reciente a la más
+    /// antigua, para la pantalla «Registro de errores». Lee aunque el otro programa esté escribiendo; un fichero que no se puede
+    /// leer se salta y se cuenta en <paramref name="ilegibles"/>.
+    /// </summary>
+    public IReadOnlyList<EntradaError> Leer(out int ilegibles)
+    {
+        ilegibles = 0;
+        var entradas = new List<EntradaError>();
+        if (!Directory.Exists(Carpeta)) return entradas;
+        foreach (var f in Directory.EnumerateFiles(Carpeta, Prefijo + "*" + Extension))
+        {
+            try
+            {
+                using var s = new FileStream(f, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
+                using var r = new StreamReader(s, Encoding.UTF8);
+                entradas.AddRange(Interpretar(r.ReadToEnd(), f));
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { ilegibles++; }
+        }
+        return entradas.OrderByDescending(e => e.Fecha).ToList();
+    }
+
+    /// <summary>Separa el texto de un fichero en entradas (cada una empieza por «==== »). Lo que no tiene fecha válida se ignora.</summary>
+    public static IEnumerable<EntradaError> Interpretar(string texto, string fichero)
+    {
+        var bloques = texto.Replace("\r\n", "\n").Split("\n==== ");
+        for (var i = 0; i < bloques.Length; i++)
+        {
+            var b = i == 0 ? bloques[0] : "==== " + bloques[i];
+            if (!b.StartsWith("==== ", StringComparison.Ordinal)) continue;
+            var lineas = b.TrimEnd('\n').Split('\n');
+            var cab = lineas[0][5..].Split(" · ");
+            if (!DateTime.TryParseExact(cab[0], "yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture, DateTimeStyles.None, out var fecha)) continue;
+            var campos = new Dictionary<string, string>(StringComparer.Ordinal);
+            foreach (var l in lineas.Skip(1))
+            {
+                if (l.StartsWith("Detalle técnico:", StringComparison.Ordinal)) break;
+                var p = l.IndexOf(": ", StringComparison.Ordinal);
+                if (p > 0) campos.TryAdd(l[..p], l[(p + 2)..]);
+            }
+            string? C(string k) => campos.TryGetValue(k, out var v) ? v : null;
+            yield return new EntradaError(fecha, cab.Length > 1 ? cab[1] : "?", C("Versión"), C("Entorno"), C("BD"), C("Operador"), C("Sociedad"),
+                C("Pantalla"), C("Dónde"), C("Error") ?? "", string.Join(Environment.NewLine, lineas), fichero);
+        }
     }
 
     /// <summary>Una entrada del registro: cabecera con la fecha, los datos de contexto conocidos y el detalle técnico completo.</summary>

@@ -41,6 +41,7 @@ Aplicación principal (UI-PRINCIPAL): cabecera con empresa, ejercicio y operador
 - 2026-11-17 18:12 · La navegación lateral admite un tercer nivel (OpcionNavegacion.EsNieta: sangría de 28 px y el mismo punto que las hijas); lo usa el submenú «Fin de ejercicio» de Contabilidad (contabilidad/procesos 2026-11-17 18:12).
 - 2026-11-18 15:10 · Menú Contabilidad: la opción «Modelo 303» pasa a ser «Modelos tributarios» (contabilidad/modelos-tributarios 2026-11-18 15:10); las casillas del 303 se abren como pestaña de detalle desde esa pantalla.
 - 2026-11-18 18:48 · Errores inesperados (plataforma/registro-errores 2026-11-18 18:48): el arranque instala `ErroresInesperados`, que guarda en el registro de errores cualquier error que ningún código controle, con la sociedad y la pestaña activa de la ventana principal, y enseña el aviso «Algo ha fallado» con la ruta del fichero sin cerrar el programa (antes de abrir la ventana principal, el aviso cierra ProContaVF). Argumento `--provocar-error` para validarlo.
+- 2026-11-18 18:58 · Configuración › «Registro de errores» (plataforma/registro-errores 2026-11-18 18:58): pestaña de solo lectura con los errores guardados en el equipo. De paso se corrigen los estilos de la cabecera de «Importar ContaSol», que pedía como estilo los tamaños de letra (Letra.TituloPantalla, Letra.Secundaria, Letra.Subtitulo) y fallaba al abrirse; ahora usa Texto.TituloPantalla, Texto.Apagado y Texto.Seccion.
 
 ## Requirements
 - 2026-10-28 12:28 · From sources/01_ESPECIFICACION_FUNCIONAL.docx § 6 RF-UI-01, 04, 05, 07: contenedor, avisos técnicos discretos, ciclo de vida de fichas y rendimiento
@@ -67,6 +68,7 @@ Aplicación principal (UI-PRINCIPAL): cabecera con empresa, ejercicio y operador
 - 2026-11-18 16:28 · Derived from documentos: entrada Contabilidad › Documentos en la navegación (pantalla del gestor documental); el contenedor conecta el panel Documentos con la ficha del tercero, la del activo y el menú de los periodos de Modelos tributarios, y abre el registro de cada vínculo.
 - 2026-11-18 18:06 · Derived from documentos: la entrada Documentos pasa de Contabilidad a Datos maestros (Datos maestros › Documentos), y Parámetros y tablas incluye Catálogos › Tipos de documento.
 - 2026-11-18 18:48 · Derived from plataforma/registro-errores: capturar los errores inesperados de las pantallas, guardarlos en el registro de errores con la sociedad y la pantalla activa y decir al operador dónde está el fichero, sin cerrar el programa.
+- 2026-11-18 18:58 · Derived from plataforma/registro-errores: entrada Configuración › «Registro de errores» para consultar el histórico.
 
 ## Hand-over
 - 2026-10-31 19:30 · Hecho: ejecutable con arranque, primer administrador, acceso y ventana principal; revisado renderizando las ventanas fuera de pantalla contra una copia de la maestra en la versión 6. Pendiente (próximas entregas): búsqueda «Ir a», pestañas de pantallas con cambios pendientes, cambio de sociedad o ejercicio sin volver a entrar, franja de iconos por debajo de 150 px y posición del separador guardada por operador, barra de título propia de la maqueta, doble pantalla y el resto del catálogo de atajos.
