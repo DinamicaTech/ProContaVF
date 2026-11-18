@@ -187,7 +187,7 @@ public sealed class Servicio202(IBaseDatos bd, ServicioPresentacionAeat presenta
     /// Subcuentas 473 de pagos fraccionados de un ejercicio: las que se llaman «pago a cuenta» o «pago fraccionado», o cuyos cargos del
     /// ejercicio son todos del banco (57) entre el 1 y el 25 de abril, octubre o diciembre.
     /// </summary>
-    private static async Task<IReadOnlyList<string>> CuentasPagosFraccionadosAsync(ISesionDatos s, int idEjercicio, int ejercicio)
+    internal static async Task<IReadOnlyList<string>> CuentasPagosFraccionadosAsync(ISesionDatos s, int idEjercicio, int ejercicio)
     {
         var cargos = await s.ConsultarAsync(
             "SELECT p.CuentaContable, a.FechaContable, (SELECT COUNT(*) FROM Apuntes AS b WHERE b.IdAsiento = a.IdAsiento AND b.CuentaContable LIKE '57%') AS Banco " +

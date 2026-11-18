@@ -44,7 +44,7 @@ public sealed class Servicio193(IBaseDatos bd)
                         ? n : f.Texto("Nombre") ?? "";
                 var cp = f.Texto("CodigoPostal")?.Trim();
                 return (Id: f.Entero("IdSocio"), Retencion: f.EnteroNulo("IdIdentidadRetencion"),
-                    P: new PerceptorInformativa(Modelo347.Nif(f.Texto("NIF")), nombre.Trim(), cp is { Length: >= 2 } && cp[..2].All(char.IsAsciiDigit) ? cp[..2] : null));
+                    P: new PerceptorInformativa(Modelo347.Nif(f.Texto("NIF")), (nombre ?? "").Trim(), cp is { Length: >= 2 } && cp[..2].All(char.IsAsciiDigit) ? cp[..2] : null));
             }, ctx.IdSociedad);
         var r = new List<Perceptor193>();
         if (esquema.ExisteTabla("RepartosDividendosSocios"))
