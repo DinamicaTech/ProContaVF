@@ -246,6 +246,8 @@ public sealed record AccionPeriodo(AccionModelo Accion, string Texto, string? No
 public enum AccionModelo
 {
     VerBorrador, GenerarFichero, Presentar, PresentarComplementaria, AbrirJustificante, DatosPresentacion, CopiarCsv, AbrirCasillas, AbrirProceso,
+    /// <summary>Documentos del periodo en el gestor documental (documentos 2026-11-18): justificantes antiguos, notificaciones…</summary>
+    Documentos,
 }
 
 /// <summary>Qué se puede hacer con los periodos marcados, y por qué no lo demás (el texto sale en el menú, debajo de la opción).</summary>
@@ -293,6 +295,8 @@ public static class AccionesPeriodos
             new(AccionModelo.AbrirCasillas, def.Informativa ? $"Abrir los registros del {p.Modelo} de {p.Nombre}" : $"Abrir las casillas del {p.Modelo} de {p.Nombre}", noGen),
         };
         if (def.Proceso != ProcesoModelo.Ninguno) lista.Add(new(AccionModelo.AbrirProceso, $"Abrir «{def.TextoProceso}»", null));
+        lista.Add(new(AccionModelo.Documentos, $"Documentos del {p.Modelo} de {p.Nombre}…", null,
+            "Justificantes, notificaciones de Hacienda y demás documentos de este periodo en el gestor documental; arrastra ficheros para vincularlos"));
         return lista;
     }
 }

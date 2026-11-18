@@ -11,6 +11,7 @@ threads:
   - 2026-11-14 23:35 · Implementar la pantalla Diario | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GXVmWMZHhvnUnUECnzoRaJd
   - 2026-11-16 19:15 · Aplicar el resultado y repartir dividendos | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5G4FqmdSmxsRsNmu2gdH41sp
   - 2026-11-18 13:45 · Completar los modelos tributarios y su pantalla | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GWW9gQjRoqJLGy11fuziWXQ
+  - 2026-11-18 17:30 · Diseñar el gestor documental | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GWo8SybrmKimtCP8FKpt7zw
 ---
 ## Summary
 Único dueño del DDL: versiona la maestra, actualiza instalaciones en producción con respaldo y diagnóstico, y publica el diccionario de datos (tablas, campos, tipos, longitudes, índices, relaciones y dueño funcional de cada tabla) que leen los demás nodos. Cada área pide aquí sus cambios de estructura con una línea "Derived from".
@@ -162,6 +163,7 @@ Código: `src/ProConta.Datos.Esquema` (diagnóstico, migraciones idempotentes, a
 - 2026-11-17 19:05 · Derived from contabilidad/procesos/centimos-residuales: esquema 69 con la columna SociedadesEjercicios.UmbralCentimosResiduales y la tabla de subcuentas excluidas.
 - 2026-11-17 20:30 · Derived from contabilidad/procesos/aplicacion-resultado: esquema 70 con la tabla AplicacionesResultado y las columnas SociedadesEjercicios.CuentaReservaLegal y CuentaResultadosNegativos, Sociedades.ValorNominalParticipacion, SociosSociedad.Participaciones, NumeracionParticipaciones y CargoJunta, EmpleadosSociedad.Administrador y CargoAdministrador, y Empleados.Nacionalidad, Profesion y EstadoCivil.
 - 2026-11-17 21:10 · Derived from activos: esquema 71 con la columna IdActivo (opcional, con índice y relación con Activos) en LineasFactura y LineasFacturasProgramadas y su relleno inicial desde la cuenta o el centro de coste de la línea.
+- 2026-11-18 16:28 · Derived from documentos: esquema 74 con las tablas TiposDocumento (con los tipos iniciales), Documentos, DocumentosVersiones y DocumentosVinculos del gestor documental.
 
 ## Hand-over
 - 2026-11-01 09:30 · Hecho: diagnóstico, actualizador con copia verificada, comprobación previa y parámetros, registro de intentos, migraciones idempotentes (catálogo en la versión 7), diccionario en `diccionario/`, copia sin datos y la maestra 0.24 del desarrollo anterior registrada como referencia estructural. Pendiente: «crear la maestra desde cero» se cubre con `copia-estructura` (estructura de la versión 1 sin datos), no con DDL desde cero; script de instalación en el servidor (plataforma/entrega); descripciones de campo que faltan en la maestra actual (se pueden tomar de la referencia 0.24).

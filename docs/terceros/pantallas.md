@@ -6,6 +6,7 @@ threads:
   - 2026-10-29 10:15 · Validar prototipos de pantallas principales | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GGPu88XoVeXWyHsuxbrF2kK
   - 2026-11-01 09:55 · Desarrollar la pantalla de Terceros | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GVR2rh2hJF6h9BMYjKSu8jn
   - 2026-11-16 10:52 · Subcuentas automáticas por rol | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GQBKwGs86wjheCyhHVGxDFn
+  - 2026-11-18 17:30 · Diseñar el gestor documental | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GWo8SybrmKimtCP8FKpt7zw
 ---
 ## Summary
 Buscador multicriterio y ficha de terceros en pestañas del contenedor, con sus diez pestañas en el orden de la maqueta (identidad, contacto, roles, perfiles, notas, historial y los huecos de otras áreas). Primera versión en `src/ProConta.Terceros.UI`, abierta desde «Datos maestros › Terceros»: buscador con filtros y coincidencia, ficha con barra de Guardar/Descartar al pie, errores en el campo y en el resumen, y huecos explícitos para Ventas, Compras y Documentos hasta que lleguen sus áreas. La pestaña Contabilidad muestra el Mayor embebido de las cuentas del tercero (contabilidad/mayor).
@@ -65,6 +66,7 @@ Buscador multicriterio y ficha de terceros en pestañas del contenedor, con sus 
 - 2026-11-13 15:48 · Derived from nominas/pantallas: sección «Empleado en <sociedad>» en la pestaña Roles (Activar/Desactivar, IdEmpleado, «Código en la gestoría» y cuenta 465 con «Crear la siguiente 465 libre»), insignia «Empleado · código» en la cabecera de la ficha e insignia «Emp» y filtro Empleados en el buscador.
 - 2026-11-16 10:37 · Si un tercero tiene rol asignado pero no la subcuenta, un botón al lado de la subcuenta 'Auto' que cree y asigne una automáticamente.
 - 2026-11-16 12:19 · Ok, funciona perfecto. Puedes fusionar.
+- 2026-11-18 16:28 · Derived from documentos: la pestaña Documentos de la ficha del tercero enseña el panel común del gestor documental (documentos vinculados al tercero; soltar ficheros los archiva y vincula); en una ficha nueva, pide guardarla antes.
 
 ## Hand-over
 - 2026-11-01 10:46 · Hecho: buscador, ficha completa con sus diez pestañas, motores y pruebas (147 sin BD y 204 con Access, todas superadas), compilado en `C:\Docs\Codigo\ProContaVF-build` con la BD de prueba `capturas-terceros\prueba-terceros.accdb` (operador «capturas» sin contraseña) y capturas a 2560×1440 en la misma carpeta. Pendiente: validación del propietario (cuadros de mensaje, arrastre de perfiles y foco tras el CP, que solo se comprueban a mano); la BD real está en la versión 1 del esquema y necesita el ActualizadorEsquema (con `--origen-formas-pago`) antes de abrirla con esta versión; Ventas, Compras, Contabilidad y Documentos llegan con sus áreas.

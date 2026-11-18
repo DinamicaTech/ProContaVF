@@ -168,6 +168,7 @@ public sealed class FichaTerceroVM : Observable, IPestanaTrabajo, INotifyDataErr
         Modificado();
         Estado = EstadoVista.Contenido;
         _ = ActualizarNominasAsync();
+        ActualizarDocumentos();
         if (_historialCargado) await CargarHistorialAsync();
     }
 
@@ -209,6 +210,23 @@ public sealed class FichaTerceroVM : Observable, IPestanaTrabajo, INotifyDataErr
         _cuentasMayor = clave;
         _mayor = codigos.Count == 0 ? null : crear(codigos);
         Avisar(nameof(MayorContabilidad), nameof(HayMayor), nameof(TituloSinMayor), nameof(MensajeSinMayor));
+    }
+
+    // ---------- pestaña Documentos (documentos 2026-11-18): el panel común del gestor documental, vinculado a este tercero ----------
+    private object? _documentos;
+    private int _documentosDe;
+
+    /// <summary>Contenido de la pestaña Documentos (lo crea el gestor documental); null en una ficha nueva o sin gestor.</summary>
+    public object? PanelDocumentos => _documentos;
+    public bool HayDocumentos => _documentos is not null;
+
+    private void ActualizarDocumentos()
+    {
+        if (_modulo?.DocumentosEmbebidos is not { } crear || T.EsNuevo || T.IdTercero == _documentosDe) return;
+        _documentosDe = T.IdTercero;
+        try { _documentos = crear(T.IdTercero, string.IsNullOrWhiteSpace(T.NombreCalculado()) ? $"Tercero {T.IdTercero}" : T.NombreCalculado()); }
+        catch { _documentos = null; }
+        Avisar(nameof(PanelDocumentos), nameof(HayDocumentos));
     }
 
     // ---------- pestaña Nóminas (nominas/pantallas): solo si el tercero es empleado de la sociedad activa ----------

@@ -920,10 +920,14 @@
           </StackPanel>
         </TabItem>
 
-        <TabItem ToolTip="Documentos del tercero (llega con el motor documental)">
+        <TabItem ToolTip="Documentos del tercero: contratos, pólizas, certificados y demás ficheros vinculados a él en el gestor documental; arrastra aquí ficheros para archivarlos y vincularlos">
           <TabItem.Header><ContentControl ContentTemplate="{StaticResource CabeceraPestana}" Content="{Binding Cabeceras[9]}" /></TabItem.Header>
-          <pc:VistaEstado Estado="Vacio" Titulo="Documentos llega con el motor documental"
-                          Mensaje="Aquí verás los documentos del tercero: los automáticos (facturas emitidas y recibidas, justificantes de pago) y los ficheros que añadas arrastrándolos, con su tipo y descripción." />
+          <Grid>
+            <ContentControl Content="{Binding PanelDocumentos}" FontWeight="Normal" Margin="12,10" Visibility="{Binding HayDocumentos, Converter={StaticResource Visible}}" />
+            <pc:VistaEstado Estado="Vacio" Titulo="Guarda primero la ficha"
+                            Mensaje="Los documentos se vinculan a un tercero ya guardado. Guarda la ficha y vuelve a esta pestaña para añadirlos."
+                            Visibility="{Binding HayDocumentos, Converter={StaticResource Visible}, ConverterParameter=invertir}" />
+          </Grid>
         </TabItem>
 
         <!-- ===================== Historial ===================== -->

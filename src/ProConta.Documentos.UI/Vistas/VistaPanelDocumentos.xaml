@@ -1,0 +1,69 @@
+<UserControl x:Class="ProConta.Documentos.UI.Vistas.VistaPanelDocumentos"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:pc="urn:proconta-ui"
+             AllowDrop="True" DragOver="AlArrastrar" Drop="AlSoltar" Loaded="AlCargar">
+  <UserControl.Resources>
+    <ResourceDictionary>
+      <ResourceDictionary.MergedDictionaries>
+        <ResourceDictionary Source="/ProConta.Documentos.UI;component/Vistas/Recursos.xaml" />
+      </ResourceDictionary.MergedDictionaries>
+      <ContextMenu x:Key="Menu.Panel">
+        <MenuItem Header="Clasificar y archivar…" Command="{Binding ClasificarCommand}" ToolTipService.ShowOnDisabled="True"
+                  ToolTip="Para los que están «Por clasificar»: elige el tipo y la fecha, y el documento se archiva en su carpeta. También con doble clic" />
+        <MenuItem Header="Abrir" Command="{Binding AbrirCommand}" ToolTip="Abre el documento con el programa de Windows. También con doble clic en los archivados" />
+        <MenuItem Header="Mostrar en la carpeta" Command="{Binding CarpetaCommand}" ToolTip="Abre el Explorador con el fichero seleccionado" />
+        <MenuItem Header="Copiar ruta" Command="{Binding CopiarRutaCommand}" ToolTip="Copia al portapapeles la ruta completa del fichero" />
+        <MenuItem Header="Ver en Documentos" Command="{Binding VerEnDocumentosCommand}" ToolTip="Abre la pantalla Documentos con este documento a la vista" />
+        <Separator />
+        <MenuItem Header="Vincular a…" Command="{Binding VincularCommand}" ToolTip="Ve y cambia todos sus vínculos (este y otros)" />
+        <MenuItem Header="Nueva versión…" Command="{Binding NuevaVersionCommand}" ToolTipService.ShowOnDisabled="True"
+                  ToolTip="Guarda otro fichero como versión nueva; la anterior se conserva intacta" />
+        <Separator />
+        <MenuItem Header="Desvincular de aquí" Command="{Binding DesvincularCommand}"
+                  ToolTip="Quita el vínculo con esta ficha; el documento, su fichero y sus otros vínculos se quedan como están" />
+      </ContextMenu>
+    </ResourceDictionary>
+  </UserControl.Resources>
+
+  <DockPanel Margin="0,4,0,0">
+    <DockPanel DockPanel.Dock="Top" Margin="0,0,0,8">
+      <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+        <Button Content="Añadir…" Style="{StaticResource Boton}" Command="{Binding AnadirCommand}" Margin="0,0,8,0"
+                ToolTip="Elige ficheros: se archivan en la carpeta de documentos y quedan vinculados a esta ficha (si falta el tipo o la fecha, quedan en Documentos › Por clasificar, ya vinculados)" />
+        <Button Content="Vincular uno archivado…" Style="{StaticResource Boton}" Command="{Binding VincularArchivadoCommand}"
+                ToolTip="Busca entre los documentos ya archivados y vincula a esta ficha los que elijas (siguen también en sus otros vínculos)" />
+      </StackPanel>
+      <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+        <TextBlock Text="{Binding Titulo}" Style="{StaticResource Texto.Titulo}" Margin="0,0,10,0" />
+        <TextBlock Text="{Binding Recuento}" Style="{StaticResource Texto.Apagado}" VerticalAlignment="Center" />
+      </StackPanel>
+    </DockPanel>
+
+    <Border DockPanel.Dock="Bottom" Style="{StaticResource Zona.Soltar}" Margin="0,8,0,0" ToolTip="Arrastra aquí ficheros desde el Explorador o desde el correo">
+      <TextBlock Text="{Binding TextoSoltar}" Foreground="{StaticResource Pincel.Apagado}" HorizontalAlignment="Center" TextWrapping="Wrap" />
+    </Border>
+    <TextBlock DockPanel.Dock="Bottom" Text="{Binding Mensaje}" Foreground="{StaticResource Pincel.RojoError}" TextWrapping="Wrap"
+               Visibility="{Binding Mensaje, Converter={StaticResource Visible}}" />
+
+    <Grid>
+      <pc:TablaProConta x:Name="Tabla" ItemsSource="{Binding Filas}" SelectedItem="{Binding Actual}" ClavePreferencias="documentos.panel" TituloExportacion="Documentos"
+                        IsReadOnly="True" SelectionMode="Single" SelectionUnit="FullRow" AutomationProperties.Name="Documentos de la ficha"
+                        HorizontalScrollBarVisibility="Auto" ContextMenu="{StaticResource Menu.Panel}" MouseDoubleClick="Tabla_MouseDoubleClick" MinHeight="120">
+        <pc:TablaProConta.Columns>
+          <DataGridTextColumn Header="Fecha" Binding="{Binding FechaTexto}" SortMemberPath="FechaOrden" Width="96" ElementStyle="{StaticResource Texto.Celda.Mono}" pc:TablaProConta.Clave="fecha" />
+          <DataGridTextColumn Header="Tipo" Binding="{Binding NombreTipo}" Width="170" ElementStyle="{StaticResource Texto.Celda}" pc:TablaProConta.Clave="tipo" />
+          <DataGridTextColumn Header="Título" Binding="{Binding Datos.Titulo}" Width="*" MinWidth="200" ElementStyle="{StaticResource Texto.Celda}" pc:TablaProConta.Clave="titulo" />
+          <DataGridTextColumn Header="Ext." Binding="{Binding TipoFichero}" Width="56" ElementStyle="{StaticResource Texto.Celda.Mono}" pc:TablaProConta.Clave="ext"
+                              pc:TablaProConta.Ayuda="Tipo de fichero (PDF, JPG, XLSX…)" />
+          <DataGridTextColumn Header="También vinculado a" Binding="{Binding TextoOtros}" Width="260" ElementStyle="{StaticResource Texto.Celda}" pc:TablaProConta.Clave="otros"
+                              pc:TablaProConta.Ayuda="Otros registros a los que está vinculado el documento" />
+          <DataGridTextColumn Header="Estado" Binding="{Binding TextoEstado}" Width="110" ElementStyle="{StaticResource Texto.Celda}" pc:TablaProConta.Clave="estado"
+                              pc:TablaProConta.Ayuda="Archivado, o pendiente en Documentos › Por clasificar (falta el tipo o la fecha)" />
+        </pc:TablaProConta.Columns>
+      </pc:TablaProConta>
+      <TextBlock Text="Aún no hay documentos vinculados. Arrástralos aquí o pulsa «Añadir…»." Style="{StaticResource Texto.Apagado}"
+                 HorizontalAlignment="Center" VerticalAlignment="Center" Visibility="{Binding SinDocumentos, Converter={StaticResource Visible}}" />
+    </Grid>
+  </DockPanel>
+</UserControl>

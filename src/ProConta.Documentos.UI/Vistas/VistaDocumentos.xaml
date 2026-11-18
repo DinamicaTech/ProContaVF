@@ -1,0 +1,358 @@
+<UserControl x:Class="ProConta.Documentos.UI.Vistas.VistaDocumentos"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:pc="urn:proconta-ui"
+             xmlns:v="clr-namespace:ProConta.Documentos.UI.Vistas"
+             Background="White" AllowDrop="True" DragOver="AlArrastrar" Drop="AlSoltar">
+  <UserControl.Resources>
+    <ResourceDictionary>
+      <ResourceDictionary.MergedDictionaries>
+        <ResourceDictionary Source="/ProConta.Documentos.UI;component/Vistas/Recursos.xaml" />
+      </ResourceDictionary.MergedDictionaries>
+      <ContextMenu x:Key="Menu.Bandeja">
+        <MenuItem Header="Clasificar y archivar…" Command="{Binding ClasificarCommand}" ToolTipService.ShowOnDisabled="True"
+                  ToolTip="Elige el tipo, la fecha y el título del documento marcado y lo archiva en su carpeta (solo con uno marcado)" />
+        <MenuItem Header="Archivar" Command="{Binding ArchivarMarcadosCommand}" ToolTipService.ShowOnDisabled="True"
+                  ToolTip="Archiva los marcados que tienen tipo, fecha, título y algún vínculo; los demás se quedan aquí y se dice qué les falta" />
+        <MenuItem Header="Vincular a…" Command="{Binding VincularCommand}" ToolTipService.ShowOnDisabled="True"
+                  ToolTip="Busca un modelo, ejercicio, tercero, activo, factura o asiento; con varios marcados, el vínculo se añade a todos" />
+        <MenuItem Header="Poner tipo…" Command="{Binding PonerTipoCommand}" ToolTipService.ShowOnDisabled="True"
+                  ToolTip="Pone el mismo tipo a todos los marcados (por ejemplo, «Notificación de Hacienda»)" />
+        <MenuItem Header="Abrir el fichero" Command="{Binding AbrirCommand}" ToolTipService.ShowOnDisabled="True"
+                  ToolTip="Abre el fichero con el programa de Windows (solo con uno marcado). También con doble clic" />
+        <MenuItem Header="Copiar ruta" Command="{Binding CopiarRutaCommand}" ToolTipService.ShowOnDisabled="True"
+                  ToolTip="Copia al portapapeles la ruta completa del fichero (solo con uno marcado)" />
+        <Separator />
+        <MenuItem Header="Enviar a Facturas recibidas…" Command="{Binding EnviarComprasCommand}" ToolTipService.ShowOnDisabled="True"
+                  ToolTip="Para las facturas de compra que se han colado: las copia a la carpeta de facturas del ejercicio para que Compras las registre, y las quita de aquí" />
+        <MenuItem Header="Quitar de la bandeja…" Command="{Binding EliminarCommand}" ToolTipService.ShowOnDisabled="True"
+                  ToolTip="Quita los marcados de «Por clasificar» y manda su copia a la papelera de Windows" />
+      </ContextMenu>
+      <ContextMenu x:Key="Menu.Archivo">
+        <MenuItem Header="Abrir" Command="{Binding AbrirCommand}" ToolTipService.ShowOnDisabled="True"
+                  ToolTip="Abre el documento con el programa de Windows (solo con uno marcado). También con doble clic" />
+        <MenuItem Header="Mostrar en la carpeta" Command="{Binding CarpetaCommand}" ToolTipService.ShowOnDisabled="True"
+                  ToolTip="Abre el Explorador en la carpeta del documento, con su fichero seleccionado" />
+        <MenuItem Header="Copiar ruta" Command="{Binding CopiarRutaCommand}" ToolTipService.ShowOnDisabled="True"
+                  ToolTip="Copia al portapapeles la ruta completa del fichero (solo con uno marcado)" />
+        <Separator />
+        <MenuItem Header="Vincular a…" Command="{Binding VincularCommand}" ToolTipService.ShowOnDisabled="True"
+                  ToolTip="Con uno marcado, ves y cambias todos sus vínculos; con varios, el vínculo que elijas se añade a todos" />
+        <MenuItem Header="Nueva versión…" Command="{Binding NuevaVersionCommand}" ToolTipService.ShowOnDisabled="True"
+                  ToolTip="Guarda otro fichero como versión nueva (por ejemplo, el firmado); la anterior se conserva intacta" />
+        <Separator />
+        <MenuItem Header="Eliminar…" Command="{Binding EliminarCommand}" ToolTipService.ShowOnDisabled="True"
+                  ToolTip="Elimina los marcados que no tienen vínculos; sus ficheros van a la papelera de Windows" />
+      </ContextMenu>
+      <Style x:Key="Fila" TargetType="DataGridRow" BasedOn="{StaticResource Tabla.Fila}">
+        <Setter Property="ToolTip" Value="{Binding AyudaFila}" />
+        <Style.Triggers>
+          <DataTrigger Binding="{Binding Marcado}" Value="True"><Setter Property="Background" Value="{StaticResource Pincel.Seleccion}" /></DataTrigger>
+        </Style.Triggers>
+      </Style>
+    </ResourceDictionary>
+  </UserControl.Resources>
+  <UserControl.InputBindings>
+    <KeyBinding Key="F5" Command="{Binding RefrescarCommand}" />
+  </UserControl.InputBindings>
+
+  <DockPanel>
+    <!-- Cabecera: título, carpeta y acciones generales -->
+    <Border DockPanel.Dock="Top" BorderBrush="{StaticResource Pincel.Linea}" BorderThickness="0,0,0,1" Padding="14,8">
+      <DockPanel>
+        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+          <Button Content="Añadir documentos…" Style="{StaticResource Boton.Primario}" Command="{Binding AnadirCommand}" Margin="0,0,8,0" VerticalAlignment="Center"
+                  ToolTip="Elige uno o varios ficheros: entran en «Por clasificar» con el tipo, la fecha, el título y el vínculo que propone el programa al leerlos. También puedes arrastrarlos aquí" />
+          <Button Content="Añadir carpeta…" Style="{StaticResource Boton}" Command="{Binding AnadirCarpetaCommand}" Margin="0,0,8,0" VerticalAlignment="Center"
+                  ToolTip="Añade todos los ficheros de una carpeta (y sus subcarpetas) a «Por clasificar»" />
+          <Button Content="{Binding TextoArchivarListos}" Style="{StaticResource Boton}" Command="{Binding ArchivarListosCommand}" Margin="0,0,8,0" VerticalAlignment="Center"
+                  Visibility="{Binding VerBandeja, Converter={StaticResource Visible}}"
+                  ToolTip="Archiva de una vez los de «Por clasificar» que tienen tipo, fecha, título y algún vínculo, en la carpeta de su año y tipo; los demás se quedan aquí" />
+          <Button Content="Actualizar" Style="{StaticResource Boton}" Command="{Binding RefrescarCommand}" VerticalAlignment="Center"
+                  ToolTip="Vuelve a leer los documentos (F5)" />
+        </StackPanel>
+        <StackPanel Orientation="Horizontal">
+          <TextBlock Text="Documentos" Style="{StaticResource Texto.TituloPantalla}" VerticalAlignment="Center" Margin="0,0,12,0" />
+          <TextBlock Text="{Binding Subtitulo}" Style="{StaticResource Texto.Apagado}" VerticalAlignment="Center" ToolTip="{Binding AyudaSubtitulo}" TextTrimming="CharacterEllipsis" MaxWidth="520" />
+        </StackPanel>
+      </DockPanel>
+    </Border>
+
+    <!-- Vista, búsqueda y filtros -->
+    <WrapPanel DockPanel.Dock="Top" Margin="14,10,14,6" Orientation="Horizontal">
+      <Border Style="{StaticResource Segmentado}" Margin="0,0,12,4" VerticalAlignment="Center">
+        <StackPanel Orientation="Horizontal">
+          <RadioButton Style="{StaticResource Segmento}" GroupName="Vista" IsChecked="{Binding VerBandeja}"
+                       ToolTip="Ficheros añadidos que aún no se han archivado: revisa lo propuesto y archívalos">
+            <TextBlock><Run Text="Por clasificar " /><Run Text="{Binding NumeroBandeja, Mode=OneWay}" FontWeight="SemiBold" Foreground="{StaticResource Pincel.Acento3}" /></TextBlock>
+          </RadioButton>
+          <RadioButton Style="{StaticResource Segmento}" Content="Archivados" GroupName="Vista" IsChecked="{Binding VerArchivo}"
+                       ToolTip="Documentos ya archivados en la carpeta de documentos de la empresa" />
+        </StackPanel>
+      </Border>
+      <TextBlock Text="Buscar" VerticalAlignment="Center" Margin="0,0,6,4" Style="{StaticResource Texto.Apagado}" />
+      <TextBox Text="{Binding Busqueda, UpdateSourceTrigger=PropertyChanged, Delay=200}" Width="240" Margin="0,0,12,4" VerticalAlignment="Center"
+               ToolTip="Busca en el título, el nombre del fichero, el tipo y los vínculos («303 2t», «prado»…)" AutomationProperties.Name="Buscar documentos" />
+      <ComboBox ItemsSource="{Binding OpcionesTipo}" SelectedValuePath="Valor" SelectedValue="{Binding FiltroTipo}" Width="200" Margin="0,0,12,4" VerticalAlignment="Center"
+                Visibility="{Binding VerArchivo, Converter={StaticResource Visible}}" ToolTip="Solo los documentos de este tipo, o los que no tienen ningún vínculo" />
+      <ComboBox ItemsSource="{Binding OpcionesAnio}" SelectedValuePath="Valor" SelectedValue="{Binding FiltroAnio}" Width="140" Margin="0,0,12,4" VerticalAlignment="Center"
+                Visibility="{Binding VerArchivo, Converter={StaticResource Visible}}" ToolTip="Solo los documentos de este año (el del modelo vinculado o el de su fecha)" />
+      <CheckBox Content="Mover el original a la papelera al añadir" IsChecked="{Binding MoverOriginal}" VerticalAlignment="Center" Margin="0,0,12,4"
+                ToolTip="Marcado: una vez copiado a la carpeta de documentos, el fichero original va a la papelera de Windows (por ejemplo, para vaciar Descargas). Sin marcar, se queda donde estaba" />
+    </WrapPanel>
+
+    <!-- Pie -->
+    <Border DockPanel.Dock="Bottom" Style="{StaticResource Barra.Pie}">
+      <TextBlock Style="{StaticResource Texto.Apagado}" VerticalAlignment="Center">
+        <Run Text="{Binding Recuento, Mode=OneWay}" /> · Clic: marcar · Doble clic: abrir · Clic derecho: acciones sobre lo marcado · Arrastra ficheros aquí para añadirlos
+      </TextBlock>
+    </Border>
+
+    <pc:VistaEstado Estado="{Binding Estado}" Mensaje="{Binding MensajeEstado}" TextoAccion="Actualizar" ComandoAccion="{Binding RefrescarCommand}">
+      <Grid Margin="14,4,14,8">
+        <Grid.ColumnDefinitions>
+          <ColumnDefinition Width="*" MinWidth="420" />
+          <ColumnDefinition Width="Auto" />
+          <ColumnDefinition Width="350" MinWidth="260" />
+        </Grid.ColumnDefinitions>
+
+        <DockPanel Grid.Column="0">
+          <Border DockPanel.Dock="Top" Style="{StaticResource Zona.Soltar}" Margin="0,0,0,8"
+                  ToolTip="Arrastra aquí ficheros o carpetas desde el Explorador o desde el correo">
+            <TextBlock TextWrapping="Wrap" Foreground="{StaticResource Pincel.Apagado}" HorizontalAlignment="Center">
+              Arrastra aquí ficheros o carpetas, o pulsa <Bold>Añadir documentos…</Bold> · ProContaVF lee cada PDF y propone el tipo, la fecha, el título y a qué vincularlo
+            </TextBlock>
+          </Border>
+          <Grid>
+            <!-- Bandeja «Por clasificar» -->
+            <pc:TablaProConta x:Name="TablaBandeja" ItemsSource="{Binding Filas}" SelectedItem="{Binding Actual}" ClavePreferencias="documentos.bandeja" TituloExportacion="Documentos por clasificar"
+                              IsReadOnly="True" SelectionMode="Single" SelectionUnit="FullRow" AutomationProperties.Name="Documentos por clasificar"
+                              HorizontalScrollBarVisibility="Auto" ContextMenu="{StaticResource Menu.Bandeja}" RowStyle="{StaticResource Fila}"
+                              Visibility="{Binding VerBandeja, Converter={StaticResource Visible}}"
+                              PreviewMouseLeftButtonDown="Tabla_PreviewMouseLeftButtonDown" MouseDoubleClick="Tabla_MouseDoubleClick"
+                              PreviewMouseRightButtonDown="Tabla_PreviewMouseRightButtonDown" PreviewKeyDown="Tabla_PreviewKeyDown">
+              <pc:TablaProConta.Columns>
+                <DataGridTemplateColumn Width="38" pc:TablaProConta.Clave="marca" pc:TablaProConta.SiempreVisible="True" CanUserSort="False">
+                  <DataGridTemplateColumn.Header>
+                    <CheckBox IsChecked="{Binding DataContext.TodosMarcados, RelativeSource={RelativeSource AncestorType=UserControl}, Mode=TwoWay}" ToolTip="Marca o desmarca todos los que se ven" />
+                  </DataGridTemplateColumn.Header>
+                  <DataGridTemplateColumn.CellTemplate>
+                    <DataTemplate>
+                      <CheckBox IsChecked="{Binding Marcado, UpdateSourceTrigger=PropertyChanged}" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                ToolTip="Marcado: el menú contextual actúa sobre él. También se marca con un clic en la fila" />
+                    </DataTemplate>
+                  </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+                <DataGridTextColumn Header="Fichero" Binding="{Binding Fichero}" Width="170" ElementStyle="{StaticResource Texto.Celda.Mono}" pc:TablaProConta.Clave="fichero"
+                                    pc:TablaProConta.Ayuda="Nombre del fichero tal como llegó" />
+                <DataGridTemplateColumn Header="Tipo" Width="175" SortMemberPath="NombreTipo" pc:TablaProConta.Clave="tipo" pc:TablaProConta.RutaExportar="NombreTipo">
+                  <DataGridTemplateColumn.CellTemplate>
+                    <DataTemplate>
+                      <Grid>
+                        <ComboBox ItemsSource="{Binding DataContext.TiposManuales, RelativeSource={RelativeSource AncestorType=UserControl}}" DisplayMemberPath="Nombre" SelectedValuePath="Codigo"
+                                  SelectedValue="{Binding Tipo, UpdateSourceTrigger=PropertyChanged}" Visibility="{Binding EsCompra, Converter={StaticResource Visible}, ConverterParameter=invertir}"
+                                  ToolTip="Tipo del documento: decide la carpeta donde se archiva" />
+                        <TextBlock Text="Factura de compra" Style="{StaticResource Texto.Apagado}" VerticalAlignment="Center" Visibility="{Binding EsCompra, Converter={StaticResource Visible}}" />
+                      </Grid>
+                    </DataTemplate>
+                  </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+                <DataGridTemplateColumn Header="Fecha" Width="140" SortMemberPath="FechaOrden" pc:TablaProConta.Clave="fecha" pc:TablaProConta.RutaExportar="FechaTexto">
+                  <DataGridTemplateColumn.CellTemplate>
+                    <DataTemplate>
+                      <DatePicker SelectedDate="{Binding Fecha, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding EsCompra, Converter={x:Static v:NegarConverter.Instancia}}"
+                                  ToolTip="Fecha del propio documento (presentación, notificación, firma…); decide el año de la carpeta" />
+                    </DataTemplate>
+                  </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+                <DataGridTemplateColumn Header="Título" Width="220" SortMemberPath="Titulo" pc:TablaProConta.Clave="titulo" pc:TablaProConta.RutaExportar="Titulo">
+                  <DataGridTemplateColumn.CellTemplate>
+                    <DataTemplate>
+                      <TextBox Text="{Binding Titulo, UpdateSourceTrigger=LostFocus}" IsEnabled="{Binding EsCompra, Converter={x:Static v:NegarConverter.Instancia}}"
+                               ToolTip="Título del documento: será el nombre del fichero archivado" />
+                    </DataTemplate>
+                  </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+                <DataGridTemplateColumn Header="Vincular a" Width="*" MinWidth="260" pc:TablaProConta.Clave="vinculos" pc:TablaProConta.RutaExportar="TextoVinculos" CanUserSort="False">
+                  <DataGridTemplateColumn.CellTemplate>
+                    <DataTemplate>
+                      <DockPanel LastChildFill="True">
+                        <Button DockPanel.Dock="Right" Margin="6,0,0,0" Style="{StaticResource Boton.Pequeno}" Command="{Binding DataContext.VincularFilaCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                CommandParameter="{Binding}" Visibility="{Binding EsCompra, Converter={StaticResource Visible}, ConverterParameter=invertir}"
+                                ToolTip="Busca un modelo, ejercicio, tercero, activo, factura o asiento y cambia a qué se vincula">
+                          <TextBlock>
+                            <TextBlock.Style>
+                              <Style TargetType="TextBlock">
+                                <Setter Property="Text" Value="Cambiar…" />
+                                <Style.Triggers>
+                                  <DataTrigger Binding="{Binding SinVinculos}" Value="True"><Setter Property="Text" Value="Vincular a…" /></DataTrigger>
+                                </Style.Triggers>
+                              </Style>
+                            </TextBlock.Style>
+                          </TextBlock>
+                        </Button>
+                        <Button DockPanel.Dock="Right" Content="Enviar a Facturas recibidas" Style="{StaticResource Boton.Pequeno}"
+                                Command="{Binding DataContext.EnviarCompraFilaCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}"
+                                Visibility="{Binding EsCompra, Converter={StaticResource Visible}}"
+                                ToolTip="La copia a la carpeta de facturas de compra del ejercicio, donde la recoge Compras › Facturas recibidas, y la quita de aquí" />
+                        <ContentControl Content="{Binding}" ContentTemplate="{StaticResource Vinculos.Lectura}" Focusable="False" ClipToBounds="True" VerticalAlignment="Center" />
+                      </DockPanel>
+                    </DataTemplate>
+                  </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+                <DataGridTemplateColumn Header="Propuesta" Width="190" SortMemberPath="ClasePropuesta" pc:TablaProConta.Clave="propuesta" pc:TablaProConta.RutaExportar="TextoPropuesta">
+                  <DataGridTemplateColumn.CellTemplate>
+                    <DataTemplate>
+                      <StackPanel Orientation="Horizontal">
+                        <Border Style="{StaticResource Pastilla.Propuesta}" ToolTip="{Binding AyudaPropuesta}" VerticalAlignment="Center">
+                          <TextBlock Text="{Binding TextoPropuesta}" FontSize="{StaticResource Letra.Pequena}" FontWeight="SemiBold" Foreground="{StaticResource Pincel.Texto2}" />
+                        </Border>
+                        <Button Content="Archivar" Style="{StaticResource Boton.Pequeno}" Margin="6,0,0,0" Visibility="{Binding Listo, Converter={StaticResource Visible}}"
+                                Command="{Binding DataContext.ArchivarFilaCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}"
+                                ToolTip="Tiene tipo, fecha, título y vínculo: lo archiva ya en su carpeta y sale de «Por clasificar»" />
+                      </StackPanel>
+                    </DataTemplate>
+                  </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+              </pc:TablaProConta.Columns>
+            </pc:TablaProConta>
+
+            <!-- Archivados -->
+            <pc:TablaProConta x:Name="TablaArchivo" ItemsSource="{Binding Filas}" SelectedItem="{Binding Actual}" ClavePreferencias="documentos.archivo" TituloExportacion="Documentos"
+                              IsReadOnly="True" SelectionMode="Single" SelectionUnit="FullRow" AutomationProperties.Name="Documentos archivados"
+                              HorizontalScrollBarVisibility="Auto" ContextMenu="{StaticResource Menu.Archivo}" RowStyle="{StaticResource Fila}"
+                              Visibility="{Binding VerArchivo, Converter={StaticResource Visible}}"
+                              PreviewMouseLeftButtonDown="Tabla_PreviewMouseLeftButtonDown" MouseDoubleClick="Tabla_MouseDoubleClick"
+                              PreviewMouseRightButtonDown="Tabla_PreviewMouseRightButtonDown" PreviewKeyDown="Tabla_PreviewKeyDown">
+              <pc:TablaProConta.Columns>
+                <DataGridTemplateColumn Width="38" pc:TablaProConta.Clave="marca" pc:TablaProConta.SiempreVisible="True" CanUserSort="False">
+                  <DataGridTemplateColumn.Header>
+                    <CheckBox IsChecked="{Binding DataContext.TodosMarcados, RelativeSource={RelativeSource AncestorType=UserControl}, Mode=TwoWay}" ToolTip="Marca o desmarca todos los que se ven" />
+                  </DataGridTemplateColumn.Header>
+                  <DataGridTemplateColumn.CellTemplate>
+                    <DataTemplate>
+                      <CheckBox IsChecked="{Binding Marcado, UpdateSourceTrigger=PropertyChanged}" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                ToolTip="Marcado: el menú contextual actúa sobre él. También se marca con un clic en la fila" />
+                    </DataTemplate>
+                  </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+                <DataGridTextColumn Header="Fecha" Binding="{Binding FechaTexto}" SortMemberPath="FechaOrden" Width="96" ElementStyle="{StaticResource Texto.Celda.Mono}" pc:TablaProConta.Clave="fecha"
+                                    pc:TablaProConta.Ayuda="Fecha del propio documento" />
+                <DataGridTextColumn Header="Tipo" Binding="{Binding NombreTipo}" Width="170" ElementStyle="{StaticResource Texto.Celda}" pc:TablaProConta.Clave="tipo" />
+                <DataGridTextColumn Header="Título" Binding="{Binding Datos.Titulo}" Width="*" MinWidth="220" ElementStyle="{StaticResource Texto.Celda}" pc:TablaProConta.Clave="titulo" />
+                <DataGridTextColumn Header="Ext." Binding="{Binding TipoFichero}" Width="56" ElementStyle="{StaticResource Texto.Celda.Mono}" pc:TablaProConta.Clave="ext"
+                                    pc:TablaProConta.Ayuda="Tipo de fichero (PDF, JPG, XLSX…)" />
+                <DataGridTemplateColumn Header="Vinculado a" Width="320" pc:TablaProConta.Clave="vinculos" pc:TablaProConta.RutaExportar="TextoVinculos" SortMemberPath="TextoVinculos">
+                  <DataGridTemplateColumn.CellTemplate>
+                    <DataTemplate>
+                      <Grid>
+                        <ContentControl Content="{Binding}" ContentTemplate="{StaticResource Vinculos.Lectura}" Focusable="False" />
+                        <TextBlock Text="Sin vincular" Style="{StaticResource Texto.Apagado}" FontStyle="Italic" Visibility="{Binding SinVinculos, Converter={StaticResource Visible}}" />
+                      </Grid>
+                    </DataTemplate>
+                  </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+                <DataGridTextColumn Header="Vers." Binding="{Binding NumeroVersiones}" Width="54" ElementStyle="{StaticResource Texto.Celda.Importe}"
+                                    HeaderStyle="{StaticResource Tabla.Cabecera.Derecha}" pc:TablaProConta.Clave="versiones" pc:TablaProConta.Ayuda="Número de versiones del documento" />
+                <DataGridTextColumn Header="Tamaño" Binding="{Binding Tamano}" Width="80" ElementStyle="{StaticResource Texto.Celda.Importe}" HeaderStyle="{StaticResource Tabla.Cabecera.Derecha}"
+                                    pc:TablaProConta.Clave="tamano" pc:TablaProConta.OcultaDeFabrica="True" />
+              </pc:TablaProConta.Columns>
+            </pc:TablaProConta>
+
+            <TextBlock Text="Ningún documento cumple los filtros. Cambia el tipo o el año, o borra la búsqueda para ver más."
+                       Style="{StaticResource Texto.Apagado}" HorizontalAlignment="Center" VerticalAlignment="Center" TextWrapping="Wrap" MaxWidth="520"
+                       Visibility="{Binding SinResultados, Converter={StaticResource Visible}}" />
+            <TextBlock Text="No hay nada por clasificar. Arrastra ficheros aquí o pulsa «Añadir documentos…»."
+                       Style="{StaticResource Texto.Apagado}" HorizontalAlignment="Center" VerticalAlignment="Center" TextWrapping="Wrap" MaxWidth="520"
+                       Visibility="{Binding BandejaVacia, Converter={StaticResource Visible}}" />
+          </Grid>
+        </DockPanel>
+
+        <GridSplitter Grid.Column="1" Width="8" HorizontalAlignment="Center" VerticalAlignment="Stretch" Background="Transparent"
+                      ToolTip="Arrastra para cambiar el ancho del detalle" />
+
+        <!-- Detalle del documento actual -->
+        <Border Grid.Column="2" Style="{StaticResource Tarjeta}" Padding="12">
+          <Grid>
+            <TextBlock Text="{Binding TextoSinActual}" Style="{StaticResource Texto.Apagado}" TextWrapping="Wrap" HorizontalAlignment="Center" VerticalAlignment="Center"
+                       TextAlignment="Center" Visibility="{Binding NoHayActual, Converter={StaticResource Visible}}" />
+            <ScrollViewer VerticalScrollBarVisibility="Auto" Visibility="{Binding HayActual, Converter={StaticResource Visible}}">
+              <StackPanel DataContext="{Binding Actual}">
+                <TextBlock Text="{Binding Datos.Titulo}" Style="{StaticResource Texto.Titulo}" TextWrapping="Wrap" Margin="0,0,0,8" />
+                <v:VistaPrevia Ruta="{Binding Ruta}" Height="330" Margin="0,0,0,8" />
+                <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                  <Button Content="Abrir" Style="{StaticResource Boton.Pequeno}" Margin="0,0,6,0"
+                          Command="{Binding DataContext.AbrirCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}"
+                          ToolTip="Abre el fichero con el programa de Windows" />
+                  <Button Content="Mostrar en la carpeta" Style="{StaticResource Boton.Pequeno}"
+                          Command="{Binding DataContext.CarpetaCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}"
+                          ToolTip="Abre el Explorador con el fichero seleccionado" />
+                </StackPanel>
+                <Border Background="{StaticResource Pincel.AzulSuave}" CornerRadius="8" Padding="10,8" Margin="0,0,0,10"
+                        Visibility="{Binding Datos.PorClasificar, Converter={StaticResource Visible}}">
+                  <TextBlock Text="{Binding AyudaPropuesta}" TextWrapping="Wrap" Foreground="{StaticResource Pincel.Azul}" />
+                </Border>
+                <Grid Margin="0,0,0,10">
+                  <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                  <Grid.RowDefinitions><RowDefinition /><RowDefinition /><RowDefinition /><RowDefinition /></Grid.RowDefinitions>
+                  <TextBlock Text="Tipo" Style="{StaticResource Texto.Apagado}" Margin="0,0,12,3" />
+                  <TextBlock Grid.Column="1" Text="{Binding NombreTipo}" TextWrapping="Wrap" />
+                  <TextBlock Grid.Row="1" Text="Fecha" Style="{StaticResource Texto.Apagado}" Margin="0,0,12,3" />
+                  <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding FechaTexto}" />
+                  <TextBlock Grid.Row="2" Text="Fichero" Style="{StaticResource Texto.Apagado}" Margin="0,0,12,3" />
+                  <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding Datos.Vigente.Ruta}" Style="{StaticResource Texto.Mono}" TextWrapping="Wrap" ToolTip="{Binding Ruta}" />
+                  <TextBlock Grid.Row="3" Text="Tamaño" Style="{StaticResource Texto.Apagado}" Margin="0,0,12,3" />
+                  <TextBlock Grid.Row="3" Grid.Column="1" Text="{Binding Tamano}" />
+                </Grid>
+
+                <DockPanel Margin="0,4,0,4">
+                  <Button DockPanel.Dock="Right" Content="Vincular a…" Style="{StaticResource Boton.Pequeno}"
+                          Command="{Binding DataContext.VincularActualCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                          ToolTip="Busca y elige a qué se vincula: puedes añadir varios y quitar los que sobran" />
+                  <TextBlock Text="VINCULADO A" Style="{StaticResource Texto.Seccion}" VerticalAlignment="Center" />
+                </DockPanel>
+                <TextBlock Text="Sin vincular" Style="{StaticResource Texto.Apagado}" FontStyle="Italic" Visibility="{Binding SinVinculos, Converter={StaticResource Visible}}" Margin="0,0,0,8" />
+                <ItemsControl ItemsSource="{Binding Vinculos}" Margin="0,0,0,10" Focusable="False">
+                  <ItemsControl.ItemsPanel><ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                      <Border Style="{StaticResource Chip}">
+                        <StackPanel Orientation="Horizontal">
+                          <TextBlock Text="{Binding Tipo}" Style="{StaticResource Chip.Tipo}" />
+                          <Button Style="{StaticResource Boton.Enlace}" Content="{Binding Etiqueta}" ToolTip="{Binding Ayuda}"
+                                  Command="{Binding DataContext.AbrirDestinoCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" />
+                          <Button Style="{StaticResource Boton.Aspa}" Margin="4,0,0,0" ToolTip="Desvincular: el documento y su fichero se quedan como están"
+                                  Command="{Binding DataContext.DesvincularCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" />
+                        </StackPanel>
+                      </Border>
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+
+                <StackPanel Visibility="{Binding Datos.PorClasificar, Converter={StaticResource Visible}, ConverterParameter=invertir}">
+                  <DockPanel Margin="0,4,0,4">
+                    <Button DockPanel.Dock="Right" Content="Nueva versión…" Style="{StaticResource Boton.Pequeno}"
+                            Command="{Binding DataContext.NuevaVersionCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}"
+                            ToolTip="Guarda otro fichero como versión nueva; la anterior se conserva intacta y lo enviado con ella sigue apuntando a ella" />
+                    <TextBlock Text="VERSIONES" Style="{StaticResource Texto.Seccion}" VerticalAlignment="Center" />
+                  </DockPanel>
+                  <ItemsControl ItemsSource="{Binding DataContext.Versiones, RelativeSource={RelativeSource AncestorType=UserControl}}" Focusable="False">
+                    <ItemsControl.ItemTemplate>
+                      <DataTemplate>
+                        <TextBlock Margin="0,1" TextWrapping="Wrap" ToolTip="{Binding RutaCompleta}">
+                          <Run Text="{Binding NumeroVersion, StringFormat='v{0}', Mode=OneWay}" FontWeight="SemiBold" />
+                          <Run Text="{Binding FechaAlta, StringFormat='{}{0:dd/MM/yyyy}', Mode=OneWay}" Foreground="{StaticResource Pincel.Apagado}" />
+                          <Run Text="{Binding Motivo, Mode=OneWay}" />
+                        </TextBlock>
+                      </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                  </ItemsControl>
+                </StackPanel>
+              </StackPanel>
+            </ScrollViewer>
+          </Grid>
+        </Border>
+      </Grid>
+    </pc:VistaEstado>
+  </DockPanel>
+</UserControl>

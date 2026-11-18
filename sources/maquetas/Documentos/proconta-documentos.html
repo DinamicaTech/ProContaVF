@@ -1,0 +1,451 @@
+<title>Gestor documental ProContaVF</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;700&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* Maqueta de ProContaVF: gestor documental (nodo documentos). Datos ficticios.
+   Tokens de sources/maquetas (aspecto único y claro, como la aplicación de escritorio).
+   Composición: pantalla Documentos con la bandeja «Por clasificar» y el archivo; detalle a la derecha; ficha de un modelo con su panel Documentos. */
+:root{
+  --navy:#14213A;--navy2:#22314F;--navy3:#1B2A47;--ink:#16213A;--mut:#646A78;--mut2:#7A8090;--txt2:#3B4252;
+  --or:#F4A259;--or2:#D9622B;--or3:#B4481F;--bg:#F1EEE7;--bg2:#FBFAF7;--card:#FFFFFF;--ln:#ECE8DE;--ln2:#F3F0E9;--ln3:#E1DDD2;
+  --inb:#E4E1D8;--inbg:#FAF9F6;--blue:#1D5C8C;--blueb:#E3ECF6;--green:#1E6B45;--greenb:#E2F0E8;--red:#B42318;--redb:#FDF1EF;
+  --amb:#8A4410;--ambb:#FFEBD6;--pur:#5B3F86;--purb:#ECE6F3;--act:#FFF3E6;--selb:#E8F0F9;--white:#FFFFFF;--onnavy:#C9CED8;--navyln:#3A4A6A;
+  --f-ui:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;--f-mono:"IBM Plex Mono",ui-monospace,Consolas,monospace;
+  --f-disp:"Bricolage Grotesque","IBM Plex Sans",system-ui,sans-serif;
+  color-scheme:light;
+}
+[hidden]{display:none!important}
+html,body{height:100%}
+body{background:var(--bg);color:var(--ink);font:14px/1.45 var(--f-ui);margin:0}
+*{box-sizing:border-box}
+button,input,select{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--or2);outline-offset:1px}
+.demo{background:var(--ink);color:var(--onnavy);display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding-block:8px;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));font-size:13px;border-bottom:2px dashed var(--or)}
+.demo b{background:var(--or);color:var(--ink);font:600 11px var(--f-mono);padding:2px 7px;border-radius:3px;letter-spacing:.06em}
+.demo button{background:var(--navy2);border:1px solid var(--navyln);color:#E6E9EF;border-radius:6px;padding:4px 10px;cursor:pointer}
+.demo button[aria-pressed=true]{background:var(--or);color:var(--ink);border-color:var(--or)}
+.top{background:var(--navy);color:var(--white);display:flex;align-items:center;gap:14px;padding-block:10px;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));flex-wrap:wrap}
+.logo{font:700 17px var(--f-disp);display:flex;gap:8px;align-items:center}
+.logo i{width:20px;height:20px;border-radius:5px;background:var(--or);display:inline-block}
+.ctx{border:1px solid var(--navyln);border-radius:6px;padding:3px 10px;font-size:13px;color:#DCE1EA}
+.top .op{margin-left:auto;font-size:13px;color:var(--onnavy)}
+.tabs{background:var(--navy3);display:flex;gap:2px;padding-top:6px;overflow-x:auto;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.tab{background:transparent;border:0;color:var(--onnavy);padding:7px 14px;border-radius:7px 7px 0 0;cursor:pointer;white-space:nowrap;font-size:13.5px}
+.tab[aria-selected=true]{background:var(--bg);color:var(--ink);font-weight:600}
+main{padding-block:16px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:14px;min-width:0}
+.ph{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.ph h1{font:600 22px var(--f-disp);margin:0}
+.ph .sub{color:var(--mut);font-size:13px}
+.ph .sp{margin-left:auto;display:flex;gap:8px;flex-wrap:wrap}
+.btn{border:1px solid var(--inb);background:var(--card);border-radius:7px;padding:6px 12px;cursor:pointer;font-weight:500;font-size:13.5px}
+.btn.pri{background:var(--navy);color:var(--white);border-color:var(--navy)}
+.btn.sm{padding:3px 9px;font-size:12.5px}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.card{background:var(--card);border:1px solid var(--ln);border-radius:10px;min-width:0}
+.card>header{display:flex;align-items:center;gap:10px;padding:12px 14px;flex-wrap:wrap}
+.card>header h2{font:600 15px var(--f-ui);margin:0}
+.card>header .n{color:var(--mut);font-size:13px}
+.hint{color:var(--mut);font-size:12.5px}
+.seg{display:inline-flex;background:var(--ln2);border-radius:7px;padding:2px}
+.seg button{border:0;background:transparent;padding:4px 10px;border-radius:6px;cursor:pointer;font-size:13px;color:var(--txt2)}
+.seg button[aria-pressed=true]{background:var(--card);box-shadow:0 1px 2px rgba(20,33,58,.12);color:var(--ink);font-weight:500}
+.seg .cnt{font:600 11px var(--f-mono);background:var(--or);color:var(--ink);border-radius:9px;padding:0 6px;margin-left:5px}
+.inp,select.inp{border:1px solid var(--inb);background:var(--inbg);border-radius:7px;padding:5px 9px;font-size:13px}
+.lay{display:grid;grid-template-columns:200px minmax(0,1fr) 330px;gap:12px;align-items:start}
+@media (max-width:1180px){.lay{grid-template-columns:minmax(0,1fr)}.rail{display:flex;flex-wrap:wrap;gap:6px}}
+.rail{display:flex;flex-direction:column;gap:2px}
+.rail h3{font:600 11.5px var(--f-ui);color:var(--mut);text-transform:uppercase;letter-spacing:.06em;margin:10px 8px 4px}
+.rail button{display:flex;justify-content:space-between;gap:8px;border:0;background:transparent;text-align:left;padding:5px 8px;border-radius:6px;cursor:pointer;font-size:13px;color:var(--txt2)}
+.rail button[aria-pressed=true]{background:var(--card);color:var(--ink);font-weight:600;box-shadow:inset 3px 0 0 var(--or2)}
+.rail button span{color:var(--mut2);font-variant-numeric:tabular-nums}
+.tw{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:13px}
+th{font-weight:600;color:var(--mut);text-align:left;padding:7px 10px;border-bottom:1px solid var(--ln);white-space:nowrap;font-size:12px}
+td{padding:7px 10px;border-bottom:1px solid var(--ln2);vertical-align:middle}
+td.nw{white-space:nowrap}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
+td.mono{font-family:var(--f-mono);font-size:12px}
+th.ck,td.ck{width:30px;padding-right:0}
+tbody tr:hover{background:var(--bg2)}
+tbody tr.sel{background:var(--selb)}
+tbody tr.done td{color:var(--mut2)}
+.chip{display:inline-flex;align-items:center;gap:5px;border:1px solid var(--ln3);border-radius:6px;padding:1px 7px;font-size:12px;background:var(--card);white-space:nowrap;margin:1px 3px 1px 0}
+.chip i{font-style:normal;font:500 10.5px var(--f-mono);color:var(--mut);text-transform:uppercase;letter-spacing:.03em}
+.chip.mod i{color:var(--blue)}.chip.ter i{color:var(--pur)}.chip.eje i{color:var(--green)}.chip.emp i{color:var(--or3)}.chip.act i{color:var(--amb)}.chip.fac i{color:var(--blue)}.chip.asi i{color:var(--green)}
+.chip button{border:0;background:transparent;cursor:pointer;color:var(--mut2);padding:0 0 0 2px;font-size:13px;line-height:1}
+.chip.prop{border-style:dashed;border-color:var(--or2);background:var(--act)}
+.none{color:var(--mut2);font-size:12px;font-style:italic}
+.pill{display:inline-flex;align-items:center;gap:5px;border-radius:999px;padding:1px 9px;font-size:12px;font-weight:500;white-space:nowrap}
+.pill::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
+.p-ok{background:var(--greenb);color:var(--green)}
+.p-med{background:var(--blueb);color:var(--blue)}
+.p-no{background:var(--ambb);color:var(--amb)}
+.p-gr{background:var(--ln2);color:var(--mut)}
+.tag{font:500 11.5px var(--f-mono);color:var(--mut);background:var(--ln2);border-radius:4px;padding:1px 6px}
+.drop{border:1.5px dashed var(--ln3);border-radius:8px;padding:12px;color:var(--mut);font-size:13px;text-align:center;margin:0 14px 12px}
+.drop b{color:var(--ink)}
+.foot{display:flex;gap:16px;flex-wrap:wrap;padding:9px 14px;color:var(--mut);font-size:12.5px;border-top:1px solid var(--ln);align-items:center}
+.foot b{color:var(--ink)}
+.foot .sp{margin-left:auto;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+/* detalle */
+.det{display:flex;flex-direction:column;gap:12px;padding:12px 14px}
+.page{background:var(--bg2);border:1px solid var(--ln);border-radius:6px;aspect-ratio:1/1.3;max-width:100%;padding:16px 18px;display:flex;flex-direction:column;gap:7px;overflow:hidden}
+.page .hd{font:600 12px var(--f-ui);color:var(--ink)}
+.page .ln{height:6px;border-radius:3px;background:var(--ln3)}
+.page .mk{background:var(--ambb);border-radius:3px;font:500 10.5px var(--f-mono);color:var(--amb);padding:2px 5px;align-self:flex-start}
+.dl{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;font-size:13px}
+.dl dt{color:var(--mut)}
+.dl dd{margin:0;min-width:0;overflow-wrap:anywhere}
+.det h4{margin:0;font:600 12px var(--f-ui);color:var(--mut);text-transform:uppercase;letter-spacing:.06em;display:flex;align-items:center;gap:8px}
+.det h4 .btn{margin-left:auto;text-transform:none;letter-spacing:0}
+.vers{font-size:12.5px;display:flex;flex-direction:column;gap:4px}
+.vers div{display:flex;gap:8px;flex-wrap:wrap}
+.vers span{color:var(--mut)}
+.empty{padding:28px 14px;text-align:center;color:var(--mut);font-size:13px}
+/* menú contextual */
+.menu{position:fixed;z-index:50;background:var(--card);border:1px solid var(--ln3);border-radius:8px;box-shadow:0 8px 24px rgba(20,33,58,.18);padding:4px;min-width:250px;max-width:calc(100vw - 32px)}
+.menu button{display:flex;width:100%;text-align:left;border:0;background:transparent;padding:6px 10px;border-radius:5px;cursor:pointer;font-size:13px;gap:10px}
+.menu button:hover:not(:disabled){background:var(--act)}
+.menu button:disabled{color:var(--mut2);cursor:not-allowed}
+.menu button small{margin-left:auto;color:var(--mut2);font-size:11.5px;text-align:right}
+.menu hr{border:0;border-top:1px solid var(--ln);margin:4px 0}
+.menu .t{font-size:11.5px;color:var(--mut);padding:4px 10px}
+/* diálogos */
+.scrim{position:fixed;inset:0;background:rgba(20,33,58,.38);z-index:60;display:flex;align-items:center;justify-content:center;padding:16px}
+.dlg{background:var(--card);border-radius:12px;box-shadow:0 18px 50px rgba(20,33,58,.3);width:min(720px,100%);max-height:calc(100% - 32px);display:flex;flex-direction:column}
+.dlg>header{padding:16px 18px 6px}
+.dlg>header h3{margin:0;font:600 18px var(--f-disp)}
+.dlg>header p{margin:4px 0 0;color:var(--mut);font-size:13px}
+.dlg .body{padding:10px 18px;overflow:auto;display:flex;flex-direction:column;gap:10px}
+.dlg>footer{padding:12px 18px;border-top:1px solid var(--ln);display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;align-items:center}
+.dlg>footer .l{margin-right:auto}
+.srch{width:100%;font-size:15px;padding:9px 12px}
+.res{display:flex;flex-direction:column;gap:2px;max-height:330px;overflow:auto}
+.res h5{margin:8px 0 2px;font:600 11.5px var(--f-ui);color:var(--mut);text-transform:uppercase;letter-spacing:.06em}
+.res label{display:flex;gap:10px;align-items:center;padding:6px 8px;border-radius:6px;cursor:pointer;font-size:13.5px}
+.res label:hover{background:var(--bg2)}
+.res label:has(input:checked){background:var(--act)}
+.res label small{color:var(--mut);margin-left:auto;font-size:12px;text-align:right}
+.picked{display:flex;flex-wrap:wrap;gap:4px;min-height:24px}
+.info{background:var(--blueb);color:var(--blue);border-radius:8px;padding:9px 12px;font-size:13px}
+.warn{background:var(--ambb);color:var(--amb);border-radius:8px;padding:9px 12px;font-size:13px}
+/* ficha */
+.crumb{color:var(--mut);font-size:13px}
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px}
+.tile{background:var(--card);border:1px solid var(--ln);border-radius:10px;padding:10px 12px}
+.tile small{color:var(--mut);font-size:12px;display:block}
+.tile b{font:600 18px var(--f-disp);font-variant-numeric:tabular-nums}
+.ftabs{display:flex;gap:2px;border-bottom:1px solid var(--ln3);overflow-x:auto}
+.ftabs button{border:0;background:transparent;padding:8px 12px;cursor:pointer;color:var(--mut);white-space:nowrap;border-bottom:2px solid transparent;font-size:13.5px}
+.ftabs button[aria-selected=true]{color:var(--ink);font-weight:600;border-bottom-color:var(--or2)}
+.notes{background:var(--card);border:1px dashed var(--or2);border-radius:10px;padding:12px 14px;font-size:13px;color:var(--txt2)}
+.notes h3{margin:0 0 6px;font:600 14px var(--f-ui);color:var(--or3)}
+.notes ul{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:3px}
+.toast{position:fixed;bottom:max(16px,env(safe-area-inset-bottom,0px));left:50%;transform:translateX(-50%);background:var(--navy);color:var(--white);padding:8px 14px;border-radius:8px;font-size:13px;z-index:70;max-width:calc(100vw - 32px)}
+@media (max-width:640px){.top .op{display:none}.ph .sp{margin-left:0}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div class="demo" role="region" aria-label="Controles de la maqueta">
+  <b>MAQUETA</b>
+  <button id="d-docs" aria-pressed="true">Pantalla Documentos</button>
+  <button id="d-ficha" aria-pressed="false">Ficha del 303 · 2T 2026</button>
+  <span style="opacity:.6">|</span>
+  <button id="d-drop">Simular: soltar 7 ficheros</button>
+  <button id="d-reset">Volver al inicio</button>
+</div>
+
+<div class="top">
+  <span class="logo"><i></i>ProContaVF</span>
+  <span class="ctx">Ribera Gestión SL · Ejercicio 2026</span>
+  <span class="op">Operador: Ronald</span>
+</div>
+<div class="tabs" role="tablist">
+  <button class="tab" role="tab" aria-selected="false">Inicio</button>
+  <button class="tab" role="tab" aria-selected="false" id="t-mod">Modelos tributarios</button>
+  <button class="tab" role="tab" aria-selected="true" id="t-doc">Documentos</button>
+</div>
+
+<main id="v-docs">
+  <div class="ph">
+    <h1>Documentos</h1>
+    <span class="sub">Carpeta: <span class="tag">D:\ProContaVF\Documentos\Ribera</span></span>
+    <div class="sp">
+      <button class="btn pri" id="b-add" title="Elige uno o varios ficheros (o una carpeta). Entran en «Por clasificar» con el tipo, la fecha y el vínculo propuestos.">Añadir documentos…</button>
+    </div>
+  </div>
+
+  <div class="lay">
+    <nav class="rail card" style="padding:6px" aria-label="Filtros" id="rail"></nav>
+
+    <section class="card" id="lista">
+      <header>
+        <div class="seg" role="group" aria-label="Vista">
+          <button id="s-band" aria-pressed="false" title="Ficheros añadidos que aún no se han archivado">Por clasificar<span class="cnt" id="c-band">0</span></button>
+          <button id="s-arch" aria-pressed="true" title="Documentos ya archivados en la carpeta de documentos">Archivados</button>
+        </div>
+        <input class="inp" id="q" placeholder="Buscar título, fichero o vínculo" style="width:240px;max-width:100%" title="Busca en el título, el nombre del fichero y los vínculos">
+        <span class="hint" id="hint" style="margin-left:auto"></span>
+      </header>
+      <div id="dropzone" class="drop" title="Arrastra aquí ficheros desde el Explorador o desde el correo">Arrastra aquí ficheros o carpetas, o pulsa <b>Añadir documentos…</b> · ProContaVF lee cada PDF y propone tipo, fecha y a qué vincularlo</div>
+      <div class="tw"><table id="tabla"></table></div>
+      <div class="foot" id="foot"></div>
+    </section>
+
+    <aside class="card" id="detalle" aria-label="Detalle"></aside>
+  </div>
+
+  <div class="notes">
+    <h3>Cómo funciona (notas de la maqueta)</h3>
+    <ul>
+      <li><b>Alta:</b> «Añadir documentos…» o arrastrar ficheros. Todo entra en <b>Por clasificar</b>; ProContaVF lee el texto del PDF y propone el tipo, la fecha, el título y el vínculo. Las propuestas seguras salen marcadas y se archivan de una vez con «Archivar los listos».</li>
+      <li><b>Archivar</b> copia el fichero a la carpeta de documentos (<span class="tag">&lt;año&gt;\Modelos</span>, <span class="tag">&lt;año&gt;\Hacienda</span>, <span class="tag">Empresa</span>, <span class="tag">Contratos</span>…) con un nombre limpio, y lo registra en la BD (ruta relativa y huella). Si el mismo fichero ya está archivado, avisa y no lo duplica.</li>
+      <li><b>Vincular:</b> un documento puede ir a varios sitios a la vez (un modelo, un ejercicio, un tercero, un activo, una factura, un asiento o la empresa). El buscador de «Vincular a…» encuentra cualquiera escribiendo, por ejemplo, «303 2t 2026».</li>
+      <li><b>Desde la ficha:</b> soltar un fichero en el panel Documentos de una ficha lo archiva y lo vincula a ella directamente.</li>
+      <li>Las facturas de compra siguen su camino en Compras: si se cuela una, se avisa y se ofrece enviarla a Facturas recibidas. Las carpetas de facturas recibidas de cada año siguen donde están (Ejercicios › Compras y ventas).</li>
+      <li>Desvincular nunca borra el fichero; «Eliminar» solo se permite sin vínculos y lo mueve a la papelera de Windows.</li>
+    </ul>
+  </div>
+</main>
+
+<main id="v-ficha" hidden>
+  <div class="crumb">Modelos tributarios › 303 · Autoliquidación del IVA</div>
+  <div class="ph"><h1>303 · 2T 2026</h1><span class="pill p-ok">Presentado</span></div>
+  <div class="tiles">
+    <div class="tile"><small>Presentado</small><b>20/07/2026</b></div>
+    <div class="tile"><small>Resultado a ingresar</small><b>1.834,27 €</b></div>
+    <div class="tile"><small>Número de justificante</small><b style="font:500 14px var(--f-mono)">3036000123456</b></div>
+  </div>
+  <div class="ftabs" role="tablist"><button role="tab" aria-selected="false">Casillas</button><button role="tab" aria-selected="false">Asiento</button><button role="tab" aria-selected="true">Documentos <span id="c-fd"></span></button></div>
+  <section class="card">
+    <header><h2>Documentos de este 303</h2><span class="hint" style="margin-left:auto">Doble clic: abrir · clic derecho: más acciones</span>
+      <button class="btn sm" id="fb-add" title="Elige ficheros: se archivan y se vinculan a este 303">Añadir…</button>
+      <button class="btn sm" id="fb-link" title="Vincula a este 303 un documento que ya está archivado">Vincular uno archivado…</button></header>
+    <div class="tw"><table id="ftabla"></table></div>
+    <div class="drop" id="fdrop" style="margin-top:12px">Suelta aquí ficheros: se archivan en <span class="tag">2026\Modelos</span> y quedan vinculados a <b>303 · 2T 2026</b> <button class="btn sm" id="fsim" style="margin-left:8px">Simular soltar</button></div>
+  </section>
+  <div class="notes"><h3>Notas de la maqueta</h3><ul>
+    <li>Todas las fichas (factura emitida y recibida, asiento, tercero, activo, ejercicio, empresa y cada modelo presentado) tienen el mismo panel Documentos.</li>
+    <li>Al presentar un modelo desde ProContaVF, el justificante de la AEAT se archiva y se vincula solo; los antiguos se cuelgan a mano.</li>
+  </ul></div>
+</main>
+
+<div id="menu" class="menu" hidden role="menu"></div>
+<div id="scrim" class="scrim" hidden></div>
+<div id="toast" class="toast" hidden></div>
+
+<script>
+const $=s=>document.querySelector(s);
+const TIPOS=['Modelo presentado','Notificación de Hacienda','Escritura','Acta','Contrato','Certificado','Otro'];
+const CARP={'Modelo presentado':'Modelos','Notificación de Hacienda':'Hacienda','Escritura':'Empresa','Acta':'Empresa','Contrato':'Contratos','Certificado':'Empresa','Otro':'Otros'};
+const CLS={Modelo:'mod',Tercero:'ter',Ejercicio:'eje',Empresa:'emp',Activo:'act',Factura:'fac',Asiento:'asi'};
+// Objetos a los que se puede vincular (buscador de «Vincular a…»)
+const OBJ=[
+ ['Modelo','303 · 1T 2026','Presentado 18/04/2026'],['Modelo','303 · 2T 2026','Presentado 20/07/2026'],['Modelo','303 · 3T 2026','Presentado 20/10/2026'],
+ ['Modelo','303 · 4T 2025','Presentado 29/01/2026'],['Modelo','111 · 3T 2026','Presentado 20/10/2026'],['Modelo','202 · 1P 2026','Presentado 20/04/2026'],
+ ['Modelo','390 · 2025','Presentado 29/01/2026'],['Modelo','200 · 2025','Presentado 24/07/2026'],
+ ['Ejercicio','Ejercicio 2025','Cerrado'],['Ejercicio','Ejercicio 2026','Abierto'],['Empresa','Ribera Gestión SL','B00000000'],
+ ['Tercero','Inmobiliaria Prado SL','Proveedor · B11111111'],['Tercero','Seguros Atalaya SA','Proveedor · A22222222'],['Tercero','Agencia Tributaria','Organismo'],
+ ['Activo','Local Calle Mayor 12','Inmueble'],['Activo','Apartamento Playa 3B','Inmueble'],
+ ['Factura','R2026-0412 · Seguros Atalaya','Recibida 10/01/2026 · 612,40 €'],['Factura','F2026-0153 · Booking','Emitida 31/10/2026 · 2.140,00 €'],
+ ['Asiento','Asiento 2026/1288 · Pago IVA 2T','20/07/2026 · 1.834,27 €']
+];
+const L=(t,n)=>({t,n});
+const INI=()=>({
+ docs:[
+  {id:1,f:'2026-07-20',tipo:'Modelo presentado',tit:'303 2T 2026 · justificante',links:[L('Modelo','303 · 2T 2026')],v:[['2026-07-20','Alta']],file:'2026\\Modelos\\303 2T 2026 · justificante.pdf',kb:84},
+  {id:2,f:'2026-04-18',tipo:'Modelo presentado',tit:'303 1T 2026 · justificante',links:[L('Modelo','303 · 1T 2026')],v:[['2026-04-18','Alta']],file:'2026\\Modelos\\303 1T 2026 · justificante.pdf',kb:81},
+  {id:3,f:'2026-05-12',tipo:'Notificación de Hacienda',tit:'Requerimiento IVA 4T 2025',links:[L('Modelo','303 · 4T 2025'),L('Ejercicio','Ejercicio 2025')],v:[['2026-05-12','Alta']],file:'2026\\Hacienda\\Requerimiento IVA 4T 2025.pdf',kb:212},
+  {id:4,f:'2026-06-28',tipo:'Acta',tit:'Acta de la junta ordinaria 2026',links:[L('Ejercicio','Ejercicio 2025'),L('Empresa','Ribera Gestión SL')],v:[['2026-06-28','Alta']],file:'Empresa\\Acta de la junta ordinaria 2026.pdf',kb:156},
+  {id:5,f:'2019-03-04',tipo:'Escritura',tit:'Escritura de constitución',links:[L('Empresa','Ribera Gestión SL')],v:[['2026-11-20','Alta']],file:'Empresa\\Escritura de constitución.pdf',kb:2310},
+  {id:6,f:'2024-09-01',tipo:'Contrato',tit:'Contrato de alquiler · Local Calle Mayor 12',links:[L('Tercero','Inmobiliaria Prado SL'),L('Activo','Local Calle Mayor 12')],v:[['2026-11-20','Alta'],['2026-11-21','Versión 2 · anexo de renovación firmado']],file:'Contratos\\Contrato de alquiler · Local Calle Mayor 12 (v2).pdf',kb:640},
+  {id:7,f:'2026-04-20',tipo:'Modelo presentado',tit:'202 1P 2026 · justificante',links:[L('Modelo','202 · 1P 2026')],v:[['2026-04-20','Alta']],file:'2026\\Modelos\\202 1P 2026 · justificante.pdf',kb:77},
+  {id:8,f:'2026-10-02',tipo:'Certificado',tit:'Certificado de estar al corriente con Hacienda',links:[L('Empresa','Ribera Gestión SL'),L('Tercero','Agencia Tributaria')],v:[['2026-10-02','Alta']],file:'Empresa\\Certificado al corriente AEAT 2026-10.pdf',kb:96}
+ ],
+ band:[], sel:new Set(), vista:'arch', filtro:'Todos', q:'', next:100
+});
+let S=INI();
+const BAND=()=>[
+ {id:S.next++,file:'Justificante_303_3T_2026.pdf',tipo:'Modelo presentado',f:'2026-10-20',tit:'303 3T 2026 · justificante',links:[L('Modelo','303 · 3T 2026')],conf:'alta',why:'El número de justificante 3036000234567 coincide con la presentación grabada del 303 · 3T 2026.',kb:83},
+ {id:S.next++,file:'Justificante_111_3T_2026.pdf',tipo:'Modelo presentado',f:'2026-10-20',tit:'111 3T 2026 · justificante',links:[L('Modelo','111 · 3T 2026')],conf:'alta',why:'El número de justificante coincide con la presentación grabada del 111 · 3T 2026.',kb:79},
+ {id:S.next++,file:'notificacion_AEAT_8812.pdf',tipo:'Notificación de Hacienda',f:'2026-11-03',tit:'Propuesta de liquidación 303 1T 2026',links:[L('Modelo','303 · 1T 2026')],conf:'media',why:'El texto cita «Modelo 303, ejercicio 2026, periodo 1T». Revisa que sea ese modelo.',kb:188},
+ {id:S.next++,file:'Poliza_seguro_local.pdf',tipo:'Contrato',f:'2026-01-10',tit:'Póliza de seguro · Local Calle Mayor 12',links:[L('Tercero','Seguros Atalaya SA')],conf:'alta',why:'El NIF A22222222 del documento es el de Seguros Atalaya SA.',kb:530},
+ {id:S.next++,file:'Escritura_ampliacion_capital.pdf',tipo:'Escritura',f:'2025-12-15',tit:'Escritura de ampliación de capital',links:[L('Empresa','Ribera Gestión SL')],conf:'media',why:'Tipo deducido del texto «ESCRITURA DE AMPLIACIÓN DE CAPITAL». Comprueba la fecha.',kb:1870},
+ {id:S.next++,file:'IMG_2201.jpg',tipo:'',f:'',tit:'IMG_2201',links:[],conf:'no',why:'Imagen sin texto legible: indica el tipo, la fecha y a qué se vincula.',kb:2410},
+ {id:S.next++,file:'FAC-2026-0412.pdf',tipo:'',f:'2026-11-12',tit:'FAC-2026-0412',links:[],conf:'compra',why:'Parece una factura de compra (NIF de proveedor, base, IVA y total). Las facturas de compra se registran en Compras.',kb:120}
+];
+const fd=s=>s?s.split('-').reverse().join('/'):'';
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const chip=(l,rm)=>`<span class="chip ${CLS[l.t]||''}"><i>${l.t}</i>${esc(l.n)}${rm?`<button title="Desvincular (no borra el fichero)" data-unl="${esc(rm)}">×</button>`:''}</span>`;
+const ruta=d=>{const y=(d.f||'2026').slice(0,4);const c=CARP[d.tipo]||'Otros';return (['Empresa','Contratos'].includes(c)?c:y+'\\'+c)+'\\'+d.tit+(d.file&&d.file.endsWith('.jpg')?'.jpg':'.pdf')};
+const listo=d=>d.tipo&&d.f&&d.links.length&&d.conf!=='compra';
+function toast(t){const e=$('#toast');e.textContent=t;e.hidden=false;clearTimeout(e._t);e._t=setTimeout(()=>e.hidden=true,3200)}
+
+function lista(){
+ const src=S.vista==='band'?S.band:S.docs;
+ const q=S.q.toLowerCase();
+ return src.filter(d=>(S.vista==='band'||S.filtro==='Todos'||(S.filtro==='Sin vincular'?!d.links.length:d.tipo===S.filtro))
+   &&(!q||(d.tit+' '+(d.file||'')+' '+d.links.map(l=>l.n).join(' ')).toLowerCase().includes(q)));
+}
+function render(){
+ $('#c-band').textContent=S.band.length;
+ $('#s-band').setAttribute('aria-pressed',S.vista==='band');$('#s-arch').setAttribute('aria-pressed',S.vista==='arch');
+ // filtros
+ const cnt=t=>S.docs.filter(d=>d.tipo===t).length;
+ $('#rail').innerHTML='<h3>Tipo</h3>'+['Todos',...TIPOS,'Sin vincular'].map(t=>`<button aria-pressed="${S.filtro===t}" data-f="${t}" ${S.vista==='band'?'disabled':''}>${t}<span>${t==='Todos'?S.docs.length:t==='Sin vincular'?S.docs.filter(d=>!d.links.length).length:cnt(t)}</span></button>`).join('')
+  +'<h3>Ejercicio</h3><button aria-pressed="false">2026</button><button aria-pressed="false">2025</button><button aria-pressed="false">Sin ejercicio</button>';
+ const rows=lista();
+ const all=rows.length&&rows.every(d=>S.sel.has(d.id));
+ if(S.vista==='band'){
+  $('#hint').textContent='Clic derecho: archivar, cambiar tipo, vincular';
+  $('#tabla').innerHTML=`<thead><tr><th class="ck"><input type="checkbox" id="ckall" ${all?'checked':''} title="Seleccionar todo"></th><th>Fichero</th><th>Tipo</th><th>Fecha</th><th>Título</th><th>Vincular a</th><th>Propuesta</th></tr></thead><tbody>`+
+  (rows.length?rows.map(d=>`<tr data-id="${d.id}" class="${S.sel.has(d.id)?'sel':''}">
+   <td class="ck"><input type="checkbox" ${S.sel.has(d.id)?'checked':''} aria-label="Seleccionar ${esc(d.file)}"></td>
+   <td class="mono nw">${esc(d.file)}</td>
+   <td>${d.conf==='compra'?'<span class="none">Factura de compra</span>':`<select class="inp" data-tipo="${d.id}" style="width:170px"><option value="">Elige…</option>${TIPOS.map(t=>`<option ${t===d.tipo?'selected':''}>${t}</option>`).join('')}</select>`}</td>
+   <td><input class="inp" type="date" value="${d.f}" data-fecha="${d.id}" style="width:140px" ${d.conf==='compra'?'disabled':''}></td>
+   <td><input class="inp" value="${esc(d.tit)}" data-tit="${d.id}" style="width:230px" ${d.conf==='compra'?'disabled':''} title="Será el nombre del fichero archivado"></td>
+   <td>${d.conf==='compra'?`<button class="btn sm" data-compra="${d.id}" title="Abre Compras › Facturas recibidas con este PDF">Enviar a Facturas recibidas</button>`:(d.links.map(l=>chip(l)).join('')+`<button class="btn sm" data-vin="${d.id}" title="Busca un modelo, tercero, ejercicio, factura, asiento o activo">${d.links.length?'Cambiar…':'Vincular a…'}</button>`)}</td>
+   <td title="${esc(d.why)}">${d.conf==='alta'?'<span class="pill p-ok">Segura</span>':d.conf==='media'?'<span class="pill p-med">Revisar</span>':d.conf==='compra'?'<span class="pill p-gr">No es de aquí</span>':'<span class="pill p-no">Falta completar</span>'}</td>
+  </tr>`).join(''):`<tr><td colspan="7"><div class="empty">No hay nada por clasificar. Arrastra ficheros o pulsa «Añadir documentos…».</div></td></tr>`)+'</tbody>';
+  const n=S.band.filter(listo).length;
+  $('#foot').innerHTML=`<span><b>${S.band.length}</b> por clasificar</span><span><b>${n}</b> listos para archivar</span>
+   <span class="sp"><label class="hint"><input type="checkbox" id="mover" checked> Mover el original (si no, se copia)</label>
+   <button class="btn pri" id="b-arch" ${n?'':'disabled'} title="Archiva los que tienen tipo, fecha y vínculo; los demás se quedan aquí">Archivar los ${n} listos</button></span>`;
+ } else {
+  $('#hint').textContent='Doble clic: abrir · clic derecho: más acciones';
+  $('#tabla').innerHTML=`<thead><tr><th class="ck"><input type="checkbox" id="ckall" ${all?'checked':''} title="Seleccionar todo"></th><th>Fecha</th><th>Tipo</th><th>Título</th><th>Vinculado a</th><th class="num">Vers.</th></tr></thead><tbody>`+
+  (rows.length?rows.map(d=>`<tr data-id="${d.id}" class="${S.sel.has(d.id)?'sel':''}">
+   <td class="ck"><input type="checkbox" ${S.sel.has(d.id)?'checked':''} aria-label="Seleccionar ${esc(d.tit)}"></td>
+   <td class="nw">${fd(d.f)}</td><td class="nw">${d.tipo}</td><td>${esc(d.tit)}</td>
+   <td>${d.links.length?d.links.map(l=>chip(l)).join(''):'<span class="none">Sin vincular</span>'}</td>
+   <td class="num">${d.v.length}</td></tr>`).join(''):`<tr><td colspan="6"><div class="empty">Ningún documento con este filtro.</div></td></tr>`)+'</tbody>';
+  $('#foot').innerHTML=`<span><b>${rows.length}</b> documentos</span><span><b>${S.sel.size}</b> seleccionados</span><span>${(S.docs.reduce((a,d)=>a+d.kb,0)/1024).toFixed(1).replace('.',',')} MB en disco</span>`;
+ }
+ renderDet();renderFicha();
+}
+function renderDet(){
+ const src=S.vista==='band'?S.band:S.docs;
+ const sel=src.filter(d=>S.sel.has(d.id));
+ const el=$('#detalle');
+ if(sel.length!==1){el.innerHTML=`<div class="empty">${sel.length?`<b>${sel.length}</b> seleccionados.<br>Clic derecho para actuar sobre todos a la vez (por ejemplo, vincularlos al mismo ejercicio).`:'Selecciona un documento para ver su vista previa, sus vínculos y sus versiones.'}</div>`;return}
+ const d=sel[0];
+ el.innerHTML=`<div class="det">
+  <div class="page" aria-label="Vista previa"><div class="hd">${esc(d.tit)}</div><div class="ln" style="width:70%"></div><div class="ln"></div><div class="ln" style="width:85%"></div>
+   ${d.conf==='alta'||d.conf==='media'?`<span class="mk">${d.conf==='alta'?'Leído: nº justificante / NIF':'Leído: «Modelo 303 … 1T»'}</span>`:''}
+   <div class="ln" style="width:60%"></div><div class="ln"></div><div class="ln" style="width:40%"></div></div>
+  ${S.vista==='band'?`<div class="${d.conf==='alta'?'info':'warn'}">${esc(d.why)}</div>
+   <dl class="dl"><dt>Se guardará en</dt><dd class="mono">${d.conf==='compra'?'—':esc(ruta(d))}</dd><dt>Tamaño</dt><dd>${d.kb} KB</dd></dl>`
+  :`<dl class="dl"><dt>Tipo</dt><dd>${d.tipo}</dd><dt>Fecha</dt><dd>${fd(d.f)}</dd><dt>Fichero</dt><dd class="mono">${esc(d.file)}</dd><dt>Tamaño</dt><dd>${d.kb} KB</dd></dl>
+  <h4>Vinculado a <button class="btn sm" data-vin="${d.id}">Vincular a…</button></h4>
+  <div>${d.links.length?d.links.map(l=>chip(l,d.id+'|'+l.t+'|'+l.n)).join(''):'<span class="none">Sin vincular</span>'}</div>
+  <h4>Versiones <button class="btn sm" data-ver="${d.id}" title="Sube un fichero nuevo; la versión anterior se conserva intacta">Nueva versión…</button></h4>
+  <div class="vers">${d.v.map((x,i)=>`<div><b>v${i+1}</b><span>${fd(x[0])}</span>${esc(x[1])}</div>`).join('')}</div>`}
+ </div>`;
+}
+function renderFicha(){
+ const ds=S.docs.filter(d=>d.links.some(l=>l.n==='303 · 2T 2026'));
+ $('#c-fd').textContent='('+ds.length+')';
+ $('#ftabla').innerHTML=`<thead><tr><th>Fecha</th><th>Tipo</th><th>Título</th><th>También vinculado a</th></tr></thead><tbody>`+ds.map(d=>`<tr data-fid="${d.id}"><td class="nw">${fd(d.f)}</td><td class="nw">${d.tipo}</td><td>${esc(d.tit)}</td><td>${d.links.filter(l=>l.n!=='303 · 2T 2026').map(l=>chip(l)).join('')||'<span class="none">—</span>'}</td></tr>`).join('')+'</tbody>';
+}
+
+// Vincular a…
+function vincular(ids,onDone){
+ const picked=[];
+ const docs=[...S.band,...S.docs].filter(d=>ids.includes(d.id));
+ docs.forEach(d=>d.links.forEach(l=>{if(!picked.some(p=>p.n===l.n))picked.push(l)}));
+ dlg(`<header><h3>Vincular a…</h3><p>${docs.length===1?esc(docs[0].tit||docs[0].file):docs.length+' documentos'} · escribe lo que buscas: «303 2t 2026», «prado», «2025», «local»…</p></header>
+ <div class="body"><input class="inp srch" id="vq" placeholder="Modelo, tercero, ejercicio, factura, asiento o activo" autocomplete="off">
+ <div class="picked" id="vp"></div><div class="res" id="vr"></div></div>
+ <footer><span class="hint l">Un documento puede tener varios vínculos</span><button class="btn" data-close>Cancelar</button><button class="btn pri" id="vok">Vincular</button></footer>`);
+ const draw=()=>{
+  $('#vp').innerHTML=picked.length?picked.map(l=>`<span class="chip ${CLS[l.t]}"><i>${l.t}</i>${esc(l.n)}<button data-rp="${esc(l.n)}" title="Quitar">×</button></span>`).join(''):'<span class="none">Nada elegido todavía</span>';
+  const t=$('#vq').value.toLowerCase().split(/\s+/).filter(Boolean);
+  const hit=OBJ.filter(o=>t.every(w=>(o[0]+' '+o[1]+' '+o[2]).toLowerCase().replace(/·/g,'').includes(w)));
+  const g={};hit.forEach(o=>(g[o[0]]=g[o[0]]||[]).push(o));
+  const nom={Modelo:'Modelos presentados',Ejercicio:'Ejercicios',Empresa:'Empresa',Tercero:'Terceros',Activo:'Activos',Factura:'Facturas',Asiento:'Asientos'};
+  $('#vr').innerHTML=Object.keys(g).map(k=>`<h5>${nom[k]}</h5>`+g[k].map(o=>`<label><input type="checkbox" data-o="${esc(o[0]+'|'+o[1])}" ${picked.some(p=>p.n===o[1])?'checked':''}> ${esc(o[1])}<small>${esc(o[2])}</small></label>`).join('')).join('')||'<div class="empty">Nada coincide.</div>';
+ };
+ $('#vq').oninput=draw;draw();setTimeout(()=>$('#vq').focus(),0);
+ $('#scrim').onchange=e=>{const o=e.target.dataset.o;if(!o)return;const [t,n]=o.split('|');const i=picked.findIndex(p=>p.n===n);if(e.target.checked&&i<0)picked.push(L(t,n));if(!e.target.checked&&i>=0)picked.splice(i,1);draw()};
+ $('#vp').onclick=e=>{const n=e.target.dataset.rp;if(!n)return;picked.splice(picked.findIndex(p=>p.n===n),1);draw()};
+ $('#vok').onclick=()=>{docs.forEach(d=>{d.links=picked.map(p=>L(p.t,p.n));if(d.conf==='no'||d.conf==='media')d.conf=d.tipo&&d.f?'alta':d.conf});close();render();onDone&&onDone();toast(`Vínculos guardados en ${docs.length} documento${docs.length>1?'s':''}.`)};
+}
+function dlg(h){const s=$('#scrim');s.innerHTML=`<div class="dlg" role="dialog" aria-modal="true">${h}</div>`;s.hidden=false;s.onchange=null}
+function close(){$('#scrim').hidden=true;$('#scrim').innerHTML=''}
+$('#scrim').addEventListener('click',e=>{if(e.target.id==='scrim'||e.target.hasAttribute('data-close'))close()});
+
+function archivar(){
+ const ok=S.band.filter(listo);
+ ok.forEach(d=>S.docs.unshift({id:d.id,f:d.f,tipo:d.tipo,tit:d.tit,links:d.links,v:[['2026-11-18','Alta']],file:ruta(d),kb:d.kb}));
+ S.band=S.band.filter(d=>!listo(d));S.sel.clear();
+ toast(`${ok.length} documentos archivados en la carpeta de documentos y vinculados.${S.band.length?` Quedan ${S.band.length} por clasificar.`:''}`);
+ if(!S.band.length)S.vista='arch';render();
+}
+function soltar(){S.band.push(...BAND());S.vista='band';S.sel.clear();show('docs');render();toast('7 ficheros añadidos a «Por clasificar». Revisa las propuestas y archiva.')}
+function show(v){$('#v-docs').hidden=v!=='docs';$('#v-ficha').hidden=v!=='ficha';$('#d-docs').setAttribute('aria-pressed',v==='docs');$('#d-ficha').setAttribute('aria-pressed',v==='ficha');
+ $('#t-doc').setAttribute('aria-selected',v==='docs');$('#t-mod').setAttribute('aria-selected',v==='ficha')}
+
+// eventos
+$('#d-docs').onclick=()=>show('docs');$('#d-ficha').onclick=()=>show('ficha');$('#t-doc').onclick=()=>show('docs');$('#t-mod').onclick=()=>show('ficha');
+$('#d-drop').onclick=soltar;$('#b-add').onclick=soltar;$('#dropzone').onclick=soltar;
+$('#d-reset').onclick=()=>{S=INI();show('docs');render()};
+$('#s-band').onclick=()=>{S.vista='band';S.sel.clear();render()};$('#s-arch').onclick=()=>{S.vista='arch';S.sel.clear();render()};
+$('#q').oninput=e=>{S.q=e.target.value;render()};
+$('#rail').onclick=e=>{const b=e.target.closest('[data-f]');if(!b)return;S.filtro=b.dataset.f;S.sel.clear();render()};
+const T=$('#tabla');
+T.addEventListener('click',e=>{
+ if(e.target.id==='ckall'){const r=lista();if(e.target.checked)r.forEach(d=>S.sel.add(d.id));else S.sel.clear();render();return}
+ const v=e.target.closest('[data-vin]');if(v){vincular([+v.dataset.vin]);return}
+ const c=e.target.closest('[data-compra]');if(c){S.band=S.band.filter(d=>d.id!=+c.dataset.compra);render();toast('Abierto en Compras › Facturas recibidas (en la aplicación real).');return}
+ if(e.target.closest('input,select,button'))
+  {if(e.target.type==='checkbox'){const id=+e.target.closest('tr').dataset.id;e.target.checked?S.sel.add(id):S.sel.delete(id);render()}return}
+ const tr=e.target.closest('tr[data-id]');if(!tr)return;const id=+tr.dataset.id;
+ if(e.ctrlKey||e.metaKey){S.sel.has(id)?S.sel.delete(id):S.sel.add(id)}else{S.sel.clear();S.sel.add(id)}render();
+});
+T.addEventListener('change',e=>{const t=e.target,ds=t.dataset;const d=S.band.find(x=>x.id==(ds.tipo||ds.fecha||ds.tit));if(!d)return;
+ if(ds.tipo)d.tipo=t.value;if(ds.fecha)d.f=t.value;if(ds.tit)d.tit=t.value;if(d.conf==='no'&&d.tipo&&d.f&&d.links.length)d.conf='alta';render()});
+T.addEventListener('dblclick',e=>{if(S.vista==='arch'&&e.target.closest('tr[data-id]'))toast('Se abre el PDF con el visor de Windows.')});
+$('#lista').addEventListener('click',e=>{if(e.target.id==='b-arch')archivar()});
+$('#detalle').addEventListener('click',e=>{
+ const v=e.target.closest('[data-vin]');if(v){vincular([+v.dataset.vin]);return}
+ const u=e.target.closest('[data-unl]');if(u){const [id,t,n]=u.dataset.unl.split('|');const d=S.docs.find(x=>x.id==id);d.links=d.links.filter(l=>l.n!==n);render();toast(`Desvinculado de ${n}. El fichero sigue en la carpeta de documentos.`);return}
+ const r=e.target.closest('[data-ver]');if(r){const d=S.docs.find(x=>x.id==r.dataset.ver);
+  dlg(`<header><h3>Nueva versión</h3><p>${esc(d.tit)} · la versión ${d.v.length} se conserva intacta</p></header><div class="body">
+  <div class="drop" style="margin:0">Fichero: <b>${esc(d.tit)} firmado.pdf</b></div><label>Motivo<br><input class="inp" id="vm" value="Versión firmada" style="width:100%"></label>
+  <div class="info">Los correos y los envíos que ya usaron la versión ${d.v.length} siguen apuntando a ella.</div></div>
+  <footer><button class="btn" data-close>Cancelar</button><button class="btn pri" id="vok2">Guardar versión ${d.v.length+1}</button></footer>`);
+  $('#vok2').onclick=()=>{d.v.push(['2026-11-18','Versión '+(d.v.length+1)+' · '+$('#vm').value]);close();render();toast('Nueva versión guardada.')}}
+});
+
+// menú contextual
+const M=$('#menu');
+function menu(x,y,items){M.innerHTML=items.map(i=>i==='-'?'<hr>':i.t?`<div class="t">${i.t}</div>`:`<button role="menuitem" ${i.dis?'disabled':''} data-k="${i.k}">${i.l}${i.s?`<small>${i.s}</small>`:''}</button>`).join('');
+ M.hidden=false;const r=M.getBoundingClientRect();M.style.left=Math.max(8,Math.min(x,innerWidth-r.width-8))+'px';M.style.top=Math.max(8,Math.min(y,innerHeight-r.height-8))+'px'}
+document.addEventListener('click',e=>{if(!M.contains(e.target))M.hidden=true});
+T.addEventListener('contextmenu',e=>{const tr=e.target.closest('tr[data-id]');if(!tr)return;e.preventDefault();const id=+tr.dataset.id;
+ if(!S.sel.has(id)){S.sel.clear();S.sel.add(id);render()}
+ const n=S.sel.size,one=n===1;
+ if(S.vista==='band')menu(e.clientX,e.clientY,[{t:n+' seleccionado'+(n>1?'s':'')},{k:'arch1',l:'Archivar',s:'los que estén listos'},{k:'vin',l:'Vincular a…',s:n>1?'el mismo vínculo a todos':''},{k:'tipo',l:'Poner tipo…'},'-',{k:'abrir',l:'Abrir el fichero',dis:!one},{k:'quitar',l:'Quitar de la bandeja',s:'no borra el original'}]);
+ else menu(e.clientX,e.clientY,[{t:n+' seleccionado'+(n>1?'s':'')},{k:'abrir',l:'Abrir',dis:!one},{k:'carpeta',l:'Mostrar en la carpeta',dis:!one},'-',{k:'vin',l:'Vincular a…',s:n>1?'añade el vínculo a todos':''},{k:'ver',l:'Nueva versión…',dis:!one},{k:'datos',l:'Cambiar tipo, fecha o título…',dis:!one},'-',{k:'correo',l:'Enviar por correo…',s:'adjunta la versión actual'},{k:'del',l:'Eliminar…',dis:S.docs.some(d=>S.sel.has(d.id)&&d.links.length),s:'solo sin vínculos'}]);
+});
+M.addEventListener('click',e=>{const k=e.target.closest('[data-k]')?.dataset.k;if(!k)return;M.hidden=true;const ids=[...S.sel];
+ if(k==='vin')vincular(ids);
+ else if(k==='arch1'){const keep=S.band.filter(d=>!S.sel.has(d.id)||!listo(d));const save=S.band;S.band=save.filter(d=>S.sel.has(d.id));archivar();S.band=keep;render()}
+ else if(k==='quitar'){S.band=S.band.filter(d=>!S.sel.has(d.id));S.sel.clear();render()}
+ else if(k==='tipo'){dlg(`<header><h3>Poner tipo</h3><p>${ids.length} ficheros</p></header><div class="body"><select class="inp" id="tt">${TIPOS.map(t=>`<option>${t}</option>`).join('')}</select></div><footer><button class="btn" data-close>Cancelar</button><button class="btn pri" id="tok">Aplicar</button></footer>`);
+  $('#tok').onclick=()=>{S.band.filter(d=>S.sel.has(d.id)&&d.conf!=='compra').forEach(d=>d.tipo=$('#tt').value);close();render()}}
+ else if(k==='ver'){const b=document.querySelector(`[data-ver="${ids[0]}"]`);b&&b.click()}
+ else toast({abrir:'Se abre el PDF con el visor de Windows.',carpeta:'Se abre el Explorador con el fichero seleccionado.',datos:'Diálogo con tipo, fecha y título (no maquetado).',correo:'Se abre el compositor de correo con el adjunto.',del:'Se mueve a la papelera de Windows tras confirmar.'}[k]);
+});
+// ficha
+$('#fsim').onclick=$('#fb-add').onclick=()=>{S.docs.unshift({id:S.next++,f:'2026-11-18',tipo:'Notificación de Hacienda',tit:'Comunicación de inicio de comprobación 303 2T 2026',links:[L('Modelo','303 · 2T 2026')],v:[['2026-11-18','Alta']],file:'2026\\Hacienda\\Comunicación de inicio de comprobación 303 2T 2026.pdf',kb:174});render();toast('Archivado en 2026\\Hacienda y vinculado a 303 · 2T 2026. Tipo propuesto por el texto; se puede cambiar.')};
+$('#fb-link').onclick=()=>{const libre=S.docs.find(d=>d.id===3);dlg(`<header><h3>Vincular uno archivado</h3><p>Busca entre los documentos archivados</p></header><div class="body"><input class="inp srch" value="requerimiento" readonly><div class="res"><label><input type="checkbox" checked> ${esc(libre.tit)}<small>${fd(libre.f)} · ${libre.tipo}</small></label></div></div><footer><button class="btn" data-close>Cancelar</button><button class="btn pri" id="flok">Vincular a 303 · 2T 2026</button></footer>`);
+ $('#flok').onclick=()=>{if(!libre.links.some(l=>l.n==='303 · 2T 2026'))libre.links.push(L('Modelo','303 · 2T 2026'));close();render();toast('Vinculado. El documento sigue también en sus otros vínculos.')}};
+$('#ftabla').addEventListener('dblclick',()=>toast('Se abre el PDF con el visor de Windows.'));
+render();
+</script>

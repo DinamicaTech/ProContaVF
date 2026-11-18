@@ -46,6 +46,12 @@ public sealed class ModuloTerceros
     /// </summary>
     public Func<int, Task<object?>>? NominasEmbebidas { get; set; }
 
+    /// <summary>
+    /// Pestaña Documentos (documentos 2026-11-18): crea el panel del gestor documental para un tercero (su Id y su nombre). Lo conecta el
+    /// contenedor; sin él, la pestaña dice que no está disponible.
+    /// </summary>
+    public Func<int, string, object>? DocumentosEmbebidos { get; set; }
+
     public int NumeroFichas => _fichas.Count;
 
     public IReadOnlySet<int> IdsAbiertos() => _fichas.Where(f => f.Clave > 0).Select(f => f.Clave).ToHashSet();

@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Gestor documental: catálogo de documentos, versiones, vínculos y lectura de propuestas (docs/documentos.md). -->
+  <PropertyGroup>
+    <OutputType>Library</OutputType>
+    <RootNamespace>ProConta.Documentos</RootNamespace>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);CS1591;CS1573</NoWarn>
+  </PropertyGroup>
+  <ItemGroup>
+    <!-- Texto de los PDF para proponer tipo, fecha y vínculo (la misma librería que compras/reconocimiento, aprobada el 2026-11-05). -->
+    <PackageReference Include="PdfPig" Version="0.1.11" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\ProConta.Nucleo\ProConta.Nucleo.csproj" />
+    <ProjectReference Include="..\ProConta.Datos.Persistencia\ProConta.Datos.Persistencia.csproj" />
+    <ProjectReference Include="..\ProConta.Mantenimiento\ProConta.Mantenimiento.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="ProConta.Documentos.Tests" />
+  </ItemGroup>
+</Project>

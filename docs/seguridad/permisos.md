@@ -7,6 +7,7 @@ threads:
   - 2026-10-31 18:55 · Desarrollos base | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GPQZwFm28U4vq3sQdopN45C
   - 2026-11-14 20:06 · Contraseña opcional sin complejidad | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GAnsNpR97upaGB6RX2PKgeg
   - 2026-11-18 15:10 · Completar los modelos tributarios y su pantalla | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GWW9gQjRoqJLGy11fuziWXQ
+  - 2026-11-18 17:30 · Diseñar el gestor documental | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GWo8SybrmKimtCP8FKpt7zw
 ---
 ## Summary
 Operadores, grupos (N:M) y permisos por ámbito: ámbito sin configurar permite a todo operador válido; ámbito configurado aplica sus asignaciones. Los servicios comprueban la autorización, no solo la pantalla. Código (src/ProConta.Seguridad/Permisos): `PoliticaAmbito` (regla común), `AutorizadorSociedades` (ámbito AccesoSociedadesGrupo), `ServicioOperadores` (buscar operador, grupos activos, primer administrador, contraseña) y `HashContrasena` (PBKDF2-HMAC-SHA256). La contraseña de los operadores es opcional y sin requisitos de longitud ni complejidad. Acciones con permiso propio: FACTURAS.*, MANTENIMIENTO.EDITAR, TRIMESTRE.CAMBIAR, PROCESOS.LIQUIDACION_IVA, PROCESOS.DIVIDENDOS, PROCESOS.IMPUESTO_SOCIEDADES, PROCESOS.CIERRE_EJERCICIO y PROCESOS.FACTURAS_PENDIENTES.
@@ -55,6 +56,7 @@ Operadores, grupos (N:M) y permisos por ámbito: ámbito sin configurar permite 
 - 2026-11-17 18:50 · Derived from activos: una sola acción nueva para ver y modificar los activos (pantalla Datos maestros › Activos).
 - 2026-11-17 19:05 · Derived from contabilidad/procesos/centimos-residuales: nueva acción PROCESOS.CENTIMOS_RESIDUALES, «Saldar los céntimos residuales», que mientras no tenga grupos sigue a la de liquidar el IVA.
 - 2026-11-18 15:10 · Derived from contabilidad/modelos-tributarios: un permiso para ver la pantalla de modelos tributarios y otro propio para presentar.
+- 2026-11-18 16:28 · Derived from documentos: nueva acción DOCUMENTOS.EDITAR, «Documentos» (añadir, archivar, vincular, versionar y eliminar documentos); sin grupos asignados la tiene cualquier operador, sin respaldo.
 
 ## Hand-over
 - 2026-10-31 19:10 · Hecho: política común, ámbito de sociedades, operadores (búsqueda, grupos activos, primer administrador, cambio de contraseña) y pruebas. Pendiente: mantenimiento completo de operadores y grupos (seguridad/pantallas); ámbitos de reports (las RestriccionesReportsGrupo antiguas son de denegación y necesitan adaptarse, RF-SEG-07) y de procesos que generan asientos o borran datos (requisito 2026-10-29 17:45, sin tabla todavía); regeneración de contraseña temporal por correo.

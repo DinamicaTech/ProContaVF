@@ -82,6 +82,7 @@ public partial class VentanaPrincipal : Window
     private readonly ProConta.Contabilidad.UI.ReinicioCuadre.ModuloReinicioCuadre _reinicioCuadre;
     private readonly ProConta.Contabilidad.UI.Centimos.ModuloCentimos _centimos;
     private readonly ProConta.Activos.UI.ModuloActivos _activos;
+    private readonly ProConta.Documentos.UI.ModuloDocumentos _documentos;
     private readonly ModuloFacturacion _facturacion;
     private readonly ModuloCompras _compras;
     private readonly ModuloCorreo _correo;
@@ -231,6 +232,31 @@ public partial class VentanaPrincipal : Window
             asientosBanco);
         _compras = new ModuloCompras(serviciosCompras, _area, new DialogosCompras(() => this), _terceros.AbrirFicha);
 
+        // Gestor documental (documentos 2026-11-18): pantalla Datos maestros › Documentos, «Vincular a…» y el panel Documentos de las fichas (tercero,
+        // activo y periodo de un modelo). Cada vínculo abre su registro; una factura de compra que se cuela en la bandeja va a la carpeta de Compras.
+        var servicioDocumentos = new ProConta.Documentos.ServicioDocumentos(bd, sesion.NombreOperador, puede: () => autorizador.PuedeAsync(Acciones.Documentos));
+        _documentos = new ProConta.Documentos.UI.ModuloDocumentos(
+            new ProConta.Documentos.UI.ContextoDocumentos(servicioDocumentos, contexto.Contexto.IdSociedad, contexto.RazonSocial, Avisar)
+            {
+                AbrirDestino = AbrirDestinoDocumento,
+                EnviarACompras = async ruta =>
+                {
+                    var carpeta = await facturasCompra.CarpetaComprasAsync(contexto.Contexto);
+                    if (!carpeta.EsCorrecto) return carpeta.Error!.TextoOperador();
+                    try
+                    {
+                        var destino = ProConta.Documentos.RutasDocumentos.RutaLibre(carpeta.Valor, System.IO.Path.GetFileName(ruta));
+                        System.IO.File.Copy(ruta, destino);
+                        _compras.AbrirRecibidas();
+                        return null;
+                    }
+                    catch (Exception ex) when (ex is System.IO.IOException or UnauthorizedAccessException) { return $"{ex.Message} Copia el PDF a mano a {carpeta.Valor}."; }
+                },
+            },
+            _area, new ProConta.Documentos.UI.Vistas.DialogosDocumentos(() => this));
+        _terceros.DocumentosEmbebidos = (id, nombre) => _documentos.CrearPanel(new ProConta.Documentos.Vinculo(ProConta.Documentos.TiposEntidad.Tercero, id, null, nombre));
+        var abrirDocumentos = new ComandoDelegado(() => _documentos.Abrir());
+
         // Correo (correo/envio y correo/pantallas): cola durable procesada mientras la aplicación está abierta, compositor común,
         // lotes con resumen y registro de correo enviado. Facturas y Terceros lo usan sin duplicar transporte ni historial.
         var servicioCorreo = new ServicioCorreo(bd, new TransporteSmtpMailKit());
@@ -301,7 +327,7 @@ public partial class VentanaPrincipal : Window
         var mantenimiento = new ServicioMantenimiento(
             new IProveedorMantenimiento[] { new ProveedorConfiguracionGeneral(bd) }.Concat(proveedoresOrganizacion).Concat(ProveedoresFacturacion.Todos(bd, cuentas)).Concat(ProConta.Facturacion.Ventas.ProveedoresVentas.Todos(bd, ventas, clienteAvaibook))
                 .Concat(ProConta.Compras.Mantenimiento.ProveedoresCompras.Todos(bd)).Concat(ProveedoresCorreo.Todos(bd))
-                .Concat(ProConta.Activos.Mantenimiento.ProveedoresActivos.Todos(bd, cuentas)),
+                .Concat(ProConta.Activos.Mantenimiento.ProveedoresActivos.Todos(bd, cuentas)).Concat(ProConta.Documentos.Mantenimiento.ProveedoresDocumentos.Todos(bd)),
             () => autorizador.PuedeAsync(Acciones.MantenimientoEditar));
         var contextoMantenimiento = new ContextoMantenimiento(contexto.Contexto, contexto.RazonSocial, new Actor(sesion.NombreOperador));
         _crearMantenimiento = () => new PantallaMantenimientoVM(mantenimiento, contextoMantenimiento,
@@ -379,6 +405,7 @@ public partial class VentanaPrincipal : Window
                     catch (Exception ex) when (ex is System.ComponentModel.Win32Exception or InvalidOperationException) { Avisar($"Fichero guardado en {ruta} (no he podido abrirlo: {ex.Message})"); }
                 },
                 Copiar = texto => { try { Clipboard.SetText(texto); } catch (System.Runtime.InteropServices.ExternalException) { Avisar("No he podido copiar al portapapeles: vuelve a intentarlo."); } },
+                AbrirDocumentos = AbrirDocumentosModelo,
                 CarpetaEmpresa = async () => ProConta.Contabilidad.Presentacion.ServicioPresentacionAeat.CarpetaEmpresa(bd.Ruta,
                     await bd.EjecutarAsync(s => s.EscalarAsync("SELECT RutaDocumentos FROM Sociedades WHERE IdSociedad = ?", contexto.Contexto.IdSociedad)) as string),
                 AbrirProceso = (proceso, modelo, periodo) =>
@@ -572,6 +599,7 @@ public partial class VentanaPrincipal : Window
                 AbrirFacturaCompra = id => _compras.AbrirFactura(id),
                 AbrirFacturaVenta = id => _facturacion.AbrirFactura(id),
                 AbrirProgramada = id => _facturacion.AbrirProgramada(id),
+                CrearPanelDocumentos = (id, nombre) => _documentos.CrearPanel(new ProConta.Documentos.Vinculo(ProConta.Documentos.TiposEntidad.Activo, id, null, nombre)),
             },
             _area, new ProConta.Activos.UI.Vistas.DialogosActivos(() => this));
         var abrirActivos = new ComandoDelegado(() => _activos.AbrirListado());
@@ -588,11 +616,15 @@ public partial class VentanaPrincipal : Window
         Navegacion.ItemsSource = new[]
         {
             new OpcionNavegacion("Inicio", Icono("layout"), true, false, "Página de inicio", irAInicio),
-            new OpcionNavegacion("Datos maestros", Icono("user"), true, false, "Terceros (clientes, proveedores, contactos…) y activos de la sociedad (inmuebles, vehículos, instalaciones…)", abrirTerceros),
+            new OpcionNavegacion("Datos maestros", Icono("user"), true, false, "Terceros (clientes, proveedores, contactos…), activos de la sociedad (inmuebles, vehículos, instalaciones…) y documentos", abrirTerceros),
             new OpcionNavegacion("Terceros", null, true, false, "Buscador y fichas de terceros (clientes, proveedores, contactos…)", abrirTerceros, EsHija: true),
             new OpcionNavegacion("Activos", null, true, false,
                 "Inmuebles, vehículos, instalaciones y aplicaciones de la sociedad: listado con sus cifras del año, ficha con su cuenta de resultados, subcuentas y amortización, y alta paso a paso",
                 abrirActivos, EsHija: true),
+            new OpcionNavegacion("Documentos", null, true, false,
+                "Gestor documental de la sociedad: añade ficheros (o arrástralos) a «Por clasificar», revisa lo que el programa propone (tipo, fecha, título y vínculo), " +
+                "archívalos de una vez y vincúlalos a modelos, ejercicios, terceros, activos, facturas o asientos; vista previa, versiones y búsqueda",
+                abrirDocumentos, EsHija: true),
             new OpcionNavegacion("Ventas", Icono("doc"), true, false, "Facturas de venta: emitidas y borradores", abrirFacturas),
             new OpcionNavegacion("Facturas programadas", null, true, false, "Facturas que se generan solas en cada vencimiento: su programación, sus líneas y la generación por lotes", abrirProgramadas, EsHija: true),
             new OpcionNavegacion("Facturas", null, true, false, "Listado de facturas y borradores del ejercicio, con su detalle y acciones", abrirFacturas, EsHija: true),
@@ -946,6 +978,43 @@ public partial class VentanaPrincipal : Window
     private readonly Func<Task<bool>> _puedeVerModelos;
 
     /// <summary>Abre Contabilidad › Modelos tributarios (permiso MODELOS.VER), con un periodo marcado si se da (enlaces de otras pantallas e Inicio).</summary>
+    /// <summary>Abre el registro de un vínculo de un documento (documentos 2026-11-18); false si no tiene pantalla que abrir.</summary>
+    private bool AbrirDestinoDocumento(ProConta.Documentos.Vinculo v)
+    {
+        switch (v.TipoEntidad)
+        {
+            case ProConta.Documentos.TiposEntidad.Tercero when v.IdEntidad is int id: _terceros.AbrirFicha(id, ProConta.Terceros.UI.Logica.PestanaFicha.Documentos); return true;
+            case ProConta.Documentos.TiposEntidad.Activo when v.IdEntidad is int id: _activos.AbrirFicha(id, ProConta.Activos.UI.ApartadoFicha.Documentos); return true;
+            case ProConta.Documentos.TiposEntidad.FacturaVenta when v.IdEntidad is int id: _facturacion.AbrirFactura(id); return true;
+            case ProConta.Documentos.TiposEntidad.FacturaCompra when v.IdEntidad is int id: _compras.AbrirFactura(id); return true;
+            case ProConta.Documentos.TiposEntidad.Asiento when v.IdEntidad is int id: _ = _mayor.VerAsientoAsync(id); return true;
+            case ProConta.Documentos.TiposEntidad.Modelo when v.Clave?.Split('|') is [var modelo, var anio, var periodo]:
+                if (anio != _ejercicioTrabajo.Ejercicio.ToString(System.Globalization.CultureInfo.InvariantCulture))
+                    Avisar($"El {v.Etiqueta} es de otro ejercicio: en Modelos tributarios se ve el de trabajo ({_ejercicioTrabajo.Ejercicio}).");
+                _ = AbrirModelosAsync(modelo, periodo);
+                return true;
+            case ProConta.Documentos.TiposEntidad.Ejercicio:
+                AbrirParametros("ejercicios");
+                return true;
+            case ProConta.Documentos.TiposEntidad.Empresa:
+                AbrirParametros("sociedades");
+                return true;
+            default: return false;
+        }
+    }
+
+    /// <summary>Documentos de un periodo de un modelo: el panel del gestor documental en una ventana (desde el menú de Modelos tributarios).</summary>
+    private void AbrirDocumentosModelo(string modelo, int ejercicio, string periodo)
+    {
+        var destino = ProConta.Documentos.Vinculo.Modelo(modelo, ejercicio, periodo);
+        var d = new DialogoProConta { Title = $"Documentos del {destino.Etiqueta}", Owner = this, Width = 900, Height = 560, Redimensionable = true };
+        d.Content = _documentos.CrearPanel(destino);
+        var cerrar = new System.Windows.Controls.Button { Content = "Cerrar", IsCancel = true, IsDefault = true, ToolTip = "Cierra esta ventana" };
+        cerrar.Click += (_, _) => d.Close();
+        d.Botones = cerrar;
+        d.ShowDialog();
+    }
+
     private async Task AbrirModelosAsync(string? modelo, string? periodo)
     {
         if (!await _puedeVerModelos())

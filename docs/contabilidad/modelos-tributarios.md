@@ -5,6 +5,7 @@ threads:
   - 2026-10-28 12:30 · Carga de requisitos | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GRNMH95h9tnQp4dmEPHmw1w
   - 2026-10-31 16:58 · Cerrar preguntas pendientes del proyecto | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5G7UyrP5eDJV4Ds6CCBozdbu
   - 2026-11-18 13:45 · Completar los modelos tributarios y su pantalla | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GWW9gQjRoqJLGy11fuziWXQ
+  - 2026-11-18 17:30 · Diseñar el gestor documental | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GWo8SybrmKimtCP8FKpt7zw
 ---
 ## Summary
 Cálculo trazable de los modelos tributarios, separado de su presentación. Cada modelo tiene un nodo hijo propio (`modelo-303`, `modelo-390`, `modelo-111`, `modelo-115`, `modelo-123`, `modelo-202`, `modelo-200` y las informativas `modelo-347`, `modelo-349`, `modelo-180`, `modelo-190` y `modelo-193`) que genera su fichero con el diseño de registro de la AEAT; el PDF oficial lo devuelve la AEAT y la presentación se hace desde el programa con la pieza común `presentacion`; `presentados` lista todo lo presentado. Todo ello, después de la Versión Mínima Viable.
@@ -72,3 +73,4 @@ Pantalla Contabilidad › Modelos tributarios (hecha, pendiente de validar por e
 - 2026-11-17 13:50 · draft: Construir la pantalla de modelos presentados de cada sociedad: lista de lo presentado desde el programa y de lo que devuelve la consulta de la AEAT (ConsultaExt), en tabla o en PDF, con CSV, justificante, expediente, fecha, forma de pago e importe, y apertura del PDF justificante, después de la Versión Mínima Viable.
 - 2026-11-18 15:34 · La pantalla de modelos tributarios tarda unos 40 segundos en abrir, mostrando 8 modelos (303, 111, 115, 349, 202, 390, 190 y 347). Qué comprobaciones hace durante este tiempo?
 - 2026-11-18 15:35 · Ok, sí, buena idea.
+- 2026-11-18 16:28 · Derived from documentos: opción «Documentos del <modelo> de <periodo>…» en el menú de cada periodo, que abre el panel del gestor documental de ese periodo (justificantes antiguos, notificaciones…), vinculados por la clave «modelo|ejercicio|periodo».
