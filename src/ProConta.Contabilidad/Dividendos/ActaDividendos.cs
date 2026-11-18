@@ -246,6 +246,25 @@ public sealed class ServicioActaDividendos(IBaseDatos bd, ServicioDividendos div
         return Path.Combine(raiz, d.Fecha.Year.ToString(CultureInfo.InvariantCulture), "Actas", ActaDividendos.NombreFichero(d.Sociedad, d.Fecha));
     }
 
+    /// <summary>
+    /// Guarda el PDF del acta por el gestor documental (documentos 2026-11-18, parte b) en <see cref="RutaAsync"/>, como documento de tipo «Acta»
+    /// vinculado al ejercicio y a la empresa; si ya había un acta con ese nombre (la junta de ese día), la nueva es una versión suya. Devuelve la ruta
+    /// del fichero guardado.
+    /// </summary>
+    public async Task<string> GuardarAsync(ContextoSociedadEjercicio ctx, DatosActa d, byte[] pdf, string operador)
+    {
+        var ruta = await RutaAsync(ctx, d);
+        var anio = ctx.Ejercicio.ToString(CultureInfo.InvariantCulture);
+        var r = await new ProConta.Documentos.ServicioDocumentos(bd, operador).GuardarAsync(new ProConta.Documentos.SolicitudDocumento(
+            ctx.IdSociedad, "ACTA", $"Acta de la junta del reparto de dividendos {d.Fecha:dd-MM-yyyy}", Path.GetDirectoryName(ruta)!, Path.GetFileName(ruta), d.Fecha.Date,
+            ctx.Ejercicio, "DIVIDENDOS",
+            [new ProConta.Documentos.Vinculo(ProConta.Documentos.TiposEntidad.Ejercicio, ctx.IdSociedadEjercicio, null, $"Ejercicio {anio}"),
+             ProConta.Documentos.ServicioDocumentos.Empresa(ctx.IdSociedad, d.Sociedad)],
+            Motivo: "Acta generada", VersionSiMismoNombre: true), pdf);
+        if (!r.EsCorrecto) throw new IOException(r.Error!.TextoOperador());
+        return r.Valor.RutaCompleta;
+    }
+
     /// <summary>De dónde sale el reparto, en el texto del acta: el resultado del ejercicio anterior (129), reservas voluntarias (113) o el nombre de la cuenta.</summary>
     private static async Task<string> OrigenAsync(ISesionDatos s, ContextoSociedadEjercicio ctx, string cuenta)
     {

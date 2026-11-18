@@ -207,10 +207,8 @@ public sealed class ServicioTgvi(IBaseDatos bd, IClienteTgvi cliente, Func<strin
         try
         {
             var pdf = await cliente.DescargarAsync(url, cert, c);
-            var ruta = await RutaAsync(ctx.IdSociedad, d, entorno);
-            Directory.CreateDirectory(Path.GetDirectoryName(ruta)!);
-            await File.WriteAllBytesAsync(ruta, pdf, c);
-            await bd.EjecutarAsync(s => s.EjecutarAsync("UPDATE PresentacionesAeat SET RutaPdf = ? WHERE IdPresentacionAeat = ?", Recortar(ruta, 255), id));
+            var ruta = await JustificantesModelos.ArchivarAsync(bd, actor.ToString(), _reloj, ctx.IdSociedad, d.Modelo, d.Ejercicio, d.Periodo, d.NumeroJustificante, entorno,
+                fecha, id, pdf, c);
             guardada = guardada with { RutaPdf = ruta };
         }
         catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or IOException or UnauthorizedAccessException)
@@ -264,14 +262,6 @@ public sealed class ServicioTgvi(IBaseDatos bd, IClienteTgvi cliente, Func<strin
         await ServicioPresentacionAeat.MarcarOrigenProgramaAsync(s, id);
         return id;
     });
-
-    private async Task<string> RutaAsync(string idSociedad, DeclaracionInformativa d, EntornoAeat entorno)
-    {
-        var ruta = await bd.EjecutarAsync(s => s.EscalarAsync("SELECT RutaDocumentos FROM Sociedades WHERE IdSociedad = ?", idSociedad));
-        var raiz = ServicioPresentacionAeat.CarpetaEmpresa(bd.Ruta, ruta as string);
-        var nombre = $"{(entorno == EntornoAeat.Pruebas ? "PRUEBAS " : "")}{d.Modelo} {d.Ejercicio} {d.Periodo} {d.NumeroJustificante}.pdf";
-        return Path.Combine(raiz, d.Ejercicio.ToString(CultureInfo.InvariantCulture), "Modelos AEAT", d.Modelo, string.Concat(nombre.Split(Path.GetInvalidFileNameChars())));
-    }
 
     private static IReadOnlyList<string> Lineas(string texto) => [.. texto.Split('\n').Select(l => l.TrimEnd('\r')).Where(l => l.Trim().Length > 0)];
 

@@ -843,8 +843,7 @@ public sealed class ImpuestoSociedadesVM : ModeloVista, IPestanaTrabajo
     {
         try
         {
-            var ruta = await _ctx.Servicio.RutaDatosFiscalesAsync(_ctx.Trabajo);
-            _rutaFichero = ruta is not null && System.IO.File.Exists(ruta) ? ruta : null;
+            _rutaFichero = await _ctx.Servicio.RutaVigenteDatosFiscalesAsync(_ctx.Trabajo);
             if (_rutaFichero is not null && _aeat.Count == 0 && await _ctx.Servicio.LeerDatosFiscalesGuardadosAsync(_ctx.Trabajo, datos) is { EsCorrecto: true } r)
                 PonerDatosFiscales(r.Valor);
         }
@@ -1012,7 +1011,7 @@ public sealed class ImpuestoSociedadesVM : ModeloVista, IPestanaTrabajo
             string guardado;
             try
             {
-                var copia = await _ctx.Servicio.GuardarDatosFiscalesAsync(_ctx.Trabajo, contenido);
+                var copia = await _ctx.Servicio.GuardarDatosFiscalesAsync(_ctx.Trabajo, contenido, _ctx.Actor.ToString());
                 _rutaFichero = copia ?? _rutaFichero;
                 guardado = copia is null ? " No se ha guardado copia del fichero: la empresa no tiene carpeta de documentos (Parámetros y tablas › Empresas)." : $" Copia guardada en {copia}.";
             }

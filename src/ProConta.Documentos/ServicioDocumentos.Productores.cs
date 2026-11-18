@@ -19,11 +19,13 @@ public sealed partial class ServicioDocumentos
     /// <summary>Guarda un documento producido por un módulo a partir de su contenido (por ejemplo, el PDF recién generado).</summary>
     public async Task<Resultado<DocumentoGuardado>> GuardarAsync(SolicitudDocumento solicitud, byte[] contenido, CancellationToken cancelacion = default)
     {
-        var raiz = await RaizAsync(solicitud.IdSociedad);
-        if (raiz is null) return Resultado<DocumentoGuardado>.Fallo(SinCarpeta(solicitud.IdSociedad));
+        var raiz = await RaizProductorAsync(solicitud.IdSociedad);
+        var carpeta = Carpeta(raiz, solicitud.Subcarpeta);
+        if (solicitud is { NuevaVersionDe: null, VersionSiMismoNombre: true } &&
+            await DocumentoEnRutaAsync(solicitud.IdSociedad, RutasDocumentos.ParaGuardar(raiz, Path.Combine(carpeta, RutasDocumentos.NombreLimpio(solicitud.NombreFichero)))) is int previo)
+            solicitud = solicitud with { NuevaVersionDe = previo };
         var huella = RutasDocumentos.Huella(contenido);
         if (await MismoContenidoAsync(solicitud, huella, raiz) is { } ya) return Resultado<DocumentoGuardado>.Correcto(ya);
-        var carpeta = Carpeta(raiz, solicitud.Subcarpeta);
         string? destino = null;
         try
         {
@@ -48,8 +50,7 @@ public sealed partial class ServicioDocumentos
     /// </summary>
     public async Task<Resultado<DocumentoGuardado>> RegistrarAsync(SolicitudDocumento solicitud, string rutaExistente, CancellationToken cancelacion = default)
     {
-        var raiz = await RaizAsync(solicitud.IdSociedad);
-        if (raiz is null) return Resultado<DocumentoGuardado>.Fallo(SinCarpeta(solicitud.IdSociedad));
+        var raiz = await RaizProductorAsync(solicitud.IdSociedad);
         if (!File.Exists(rutaExistente))
             return Resultado<DocumentoGuardado>.Fallo(new Error("Documentos.SinFichero", $"No encuentro el fichero {rutaExistente}.", solicitud.Titulo, null,
                 "Comprueba que la carpeta está accesible desde este equipo y vuelve a intentarlo."));
@@ -72,6 +73,29 @@ public sealed partial class ServicioDocumentos
         {
             return Resultado<DocumentoGuardado>.Fallo(NoGuardado(solicitud, ex));
         }
+    }
+
+    /// <summary>
+    /// Carpeta raíz para los productores: la de documentos de la empresa o, si está vacía, la que contiene la BD (lo que ya hacían los módulos
+    /// antes del gestor, para que nada deje de guardarse por no tenerla configurada).
+    /// </summary>
+    private async Task<string> RaizProductorAsync(string idSociedad) =>
+        await RaizAsync(idSociedad) ?? Path.GetDirectoryName(Path.GetFullPath(_bd.Ruta)) ?? Path.GetTempPath();
+
+    /// <summary>Documento de la sociedad que tiene alguna versión en esa ruta (relativa a la raíz, como se guarda); null si no hay.</summary>
+    private Task<int?> DocumentoEnRutaAsync(string idSociedad, string ruta) => _bd.EjecutarAsync(async s =>
+        await s.ConsultarPrimeroAsync<int?>("SELECT TOP 1 v.IdDocumento FROM DocumentosVersiones v INNER JOIN Documentos d ON v.IdDocumento = d.IdDocumento " +
+                                            "WHERE d.IdSociedad = ? AND v.Ruta = ? ORDER BY v.IdVersionDocumento DESC", f => f.Entero("IdDocumento"), idSociedad, ruta));
+
+    /// <summary>
+    /// Fichero vigente (la versión más nueva) del documento que tuvo alguna versión en <paramref name="rutaCompleta"/>: así un productor que
+    /// guardaba siempre en la misma ruta lee la última versión. Null si esa ruta no está en el gestor.
+    /// </summary>
+    public async Task<string?> VigenteDeAsync(string idSociedad, string rutaCompleta)
+    {
+        var raiz = await RaizProductorAsync(idSociedad);
+        if (await DocumentoEnRutaAsync(idSociedad, RutasDocumentos.ParaGuardar(raiz, rutaCompleta)) is not int id) return null;
+        return (await VersionesAsync(id)).FirstOrDefault()?.RutaCompleta;
     }
 
     /// <summary>Vincula un documento ya guardado a más registros (sin comprobar el permiso: lo usan los productores).</summary>

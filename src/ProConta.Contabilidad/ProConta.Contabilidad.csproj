@@ -10,6 +10,7 @@
     <ProjectReference Include="..\ProConta.Nucleo\ProConta.Nucleo.csproj" />
     <ProjectReference Include="..\ProConta.Datos.Persistencia\ProConta.Datos.Persistencia.csproj" />
     <ProjectReference Include="..\ProConta.Organizacion\ProConta.Organizacion.csproj" />
+    <ProjectReference Include="..\ProConta.Documentos\ProConta.Documentos.csproj" />
   </ItemGroup>
   <ItemGroup>
     <InternalsVisibleTo Include="ProConta.Contabilidad.Tests" />

@@ -264,6 +264,19 @@ public sealed class ImpuestoSociedadesAccessTests(ITestOutputHelper salida) : ID
             var leidos = await servicio.LeerDatosFiscalesGuardadosAsync(_ctx, d);
             Assert.True(leidos is { EsCorrecto: true });
             Assert.Equal([500m, 1800m], leidos!.Valor.Retenciones.Select(r => r.Importe));
+
+            // Importar otro distinto: versión nueva del mismo documento, vinculado al ejercicio; se lee la última y la anterior sigue ahí
+            // (documentos 2026-11-18, parte b).
+            var html2 = System.Text.Encoding.Latin1.GetBytes(DatosFiscalesAeatTests.Html(2026, "B12345674", pagos: [("2T", "700,00")],
+                alquileres: [], bases: null, presentado: null));
+            var ruta2 = await servicio.GuardarDatosFiscalesAsync(_ctx, html2);
+            Assert.NotEqual(ruta, ruta2);
+            Assert.True(File.Exists(ruta));
+            Assert.Equal(ruta2, await servicio.RutaVigenteDatosFiscalesAsync(_ctx));
+            Assert.Equal([700m], (await servicio.LeerDatosFiscalesGuardadosAsync(_ctx, d))!.Valor.Retenciones.Select(r => r.Importe));
+            var doc = Assert.Single(await new ProConta.Documentos.ServicioDocumentos(Bd, "x").DeAsync(_ctx.IdSociedad,
+                new ProConta.Documentos.Vinculo(ProConta.Documentos.TiposEntidad.Ejercicio, _ctx.IdSociedadEjercicio, null, "")));
+            Assert.Equal(("DATOS_FISCALES", 2), (doc.Tipo, doc.NumeroVersiones));
         }
         finally
         {
