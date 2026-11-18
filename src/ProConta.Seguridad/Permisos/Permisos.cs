@@ -72,6 +72,10 @@ public static class Acciones
     public const string CentimosResiduales = "PROCESOS.CENTIMOS_RESIDUALES";
     /// <summary>Ver y modificar los activos: listado, ficha, alta y generación de sus subcuentas (activos 2026-11-17 18:50).</summary>
     public const string Activos = "MAESTROS.ACTIVOS";
+    /// <summary>Ver la pantalla Contabilidad › Modelos tributarios, sus borradores, ficheros y justificantes, y consultar a la AEAT (contabilidad/modelos-tributarios 2026-11-18).</summary>
+    public const string ModelosVer = "MODELOS.VER";
+    /// <summary>Presentar modelos a la AEAT, también complementarias (contabilidad/modelos-tributarios 2026-11-18; pendiente desde el 303).</summary>
+    public const string ModelosPresentar = "MODELOS.PRESENTAR";
 
     /// <summary>
     /// Acción que manda mientras una acción nueva no tenga ningún grupo asignado: «Cambiar el trimestre activo» la tienen
@@ -96,6 +100,9 @@ public static class Acciones
         CentimosResiduales => LiquidacionIva,
         // Los activos son datos maestros con sus subcuentas y centros: mientras no tenga grupos, la tienen quienes pueden editar Parámetros y tablas.
         Activos => MantenimientoEditar,
+        // Presentar un modelo lo envía a la AEAT con el certificado de la sociedad: mientras no tenga grupos, lo tienen quienes pueden liquidar el IVA.
+        ModelosPresentar => LiquidacionIva,
+        // Ver los modelos no cambia nada: sin grupos, cualquier operador (sin respaldo).
         _ => null
     };
 }

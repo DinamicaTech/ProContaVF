@@ -12,7 +12,8 @@ public sealed record CambioTipoIva(DateTime Desde, string Que, string TipoNuevo,
 /// <summary>
 /// Fechas fiscales que usa la salud de la contabilidad. Los tipos de IVA de la BD (TiposDeIVA, ReglasVenta) no tienen fechas de
 /// vigencia, así que los cambios de tipo con fecha son un dato único aquí, en un solo sitio (pantalla-de-inicio 2026-11-15 13:58).
-/// Los plazos son los generales de la AEAT; no se corrigen por fines de semana ni festivos.
+/// Los plazos son los de la pantalla de modelos tributarios (<see cref="ProConta.Contabilidad.Modelos.PlazosModelos"/>): el último día
+/// pasa al siguiente hábil si cae en sábado, domingo o festivo nacional (contabilidad/modelos-tributarios 2026-11-18).
 /// </summary>
 public static class CalendarioFiscal
 {
@@ -26,13 +27,13 @@ public static class CalendarioFiscal
     public const int DiasAntesDelPlazo = 90;
 
     /// <summary>Inicio del plazo del 303 de un trimestre: el día 1 del mes siguiente al trimestre.</summary>
-    public static DateTime InicioPlazo303(int anio, int trimestre) => trimestre == 4 ? new DateTime(anio + 1, 1, 1) : new DateTime(anio, trimestre * 3 + 1, 1);
+    public static DateTime InicioPlazo303(int anio, int trimestre) => ProConta.Contabilidad.Modelos.PlazosModelos.Plazo("303", anio, $"{trimestre}T").Desde;
 
-    /// <summary>Fin del plazo del 303: el 20 de abril, julio y octubre; el del 4T, el 30 de enero.</summary>
-    public static DateTime FinPlazo303(int anio, int trimestre) => trimestre == 4 ? new DateTime(anio + 1, 1, 30) : new DateTime(anio, trimestre * 3 + 1, 20);
+    /// <summary>Fin del plazo del 303: el 20 de abril, julio y octubre; el del 4T, el 30 de enero (o el siguiente día hábil).</summary>
+    public static DateTime FinPlazo303(int anio, int trimestre) => ProConta.Contabilidad.Modelos.PlazosModelos.Plazo("303", anio, $"{trimestre}T").Hasta;
 
-    /// <summary>Fin del plazo del resumen anual 390: el 30 de enero del año siguiente.</summary>
-    public static DateTime FinPlazo390(int anio) => new(anio + 1, 1, 30);
+    /// <summary>Fin del plazo del resumen anual 390: el 30 de enero del año siguiente (o el siguiente día hábil).</summary>
+    public static DateTime FinPlazo390(int anio) => ProConta.Contabilidad.Modelos.PlazosModelos.Plazo("390", anio, "0A").Hasta;
 
     private static readonly CultureInfo Es = CultureInfo.GetCultureInfo("es-ES");
 

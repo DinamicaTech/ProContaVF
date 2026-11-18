@@ -55,9 +55,23 @@ public sealed record BorradorAeat(DeclaracionAeat Declaracion, EntornoAeat Entor
 /// <summary>Una presentación guardada en PresentacionesAeat.</summary>
 public sealed record PresentacionGuardada(int Id, string IdSociedad, string Modelo, int Ejercicio, string Periodo, string Entorno, DateTime FechaHora, string Csv,
     string? Expediente, string Justificante, string? ComplementariaDe, string? FormaPago, decimal Importe, decimal Resultado, string? NifPresentador,
-    string? Presentador, string? Operador, string? Avisos, string? UrlPdf, string? RutaPdf)
+    string? Presentador, string? Operador, string? Avisos, string? UrlPdf, string? RutaPdf, string? Origen = null)
 {
+    /// <summary>Origen de una presentación traída por «Consultar a la AEAT» (hecha fuera del programa, por ejemplo por la gestoría).</summary>
+    public const string OrigenAeat = "AEAT";
+    /// <summary>Origen de una presentación hecha desde el programa.</summary>
+    public const string OrigenPrograma = "PROGRAMA";
+
     public bool EsPruebas => Entorno == ServiciosAeat.Codigo(EntornoAeat.Pruebas);
+
+    /// <summary>Presentada fuera del programa: la consulta de la AEAT no da su importe ni su fichero.</summary>
+    public bool EsExterna => Origen == OrigenAeat;
+
+    /// <summary>
+    /// Si lo presentado no coincide con lo que se calcula ahora (estado «Desactualizado»). Una presentada fuera del programa no se compara:
+    /// la consulta de la AEAT no da su importe.
+    /// </summary>
+    public bool DistintoDe(decimal calculado) => !EsExterna && Resultado != calculado;
 }
 
 /// <summary>Resultado de presentar: lo guardado, si el PDF justificante quedó archivado y los avisos (de la AEAT y propios).</summary>
@@ -257,17 +271,71 @@ public sealed class ServicioPresentacionAeat(IBaseDatos bd, IClienteAeat cliente
         }
     }
 
+    // ---------- consulta de lo presentado (pantalla de modelos) ----------
+
+    /// <summary>
+    /// ConsultaExt de un modelo y ejercicio (todos sus periodos) con el certificado de la sociedad, en el entorno de la BD: lo presentado,
+    /// también lo que se presentó fuera del programa. Sin certificado, el error «Presentacion.SinCertificado».
+    /// </summary>
+    public async Task<Resultado<(IReadOnlyList<DeclaracionPresentadaAeat> Presentadas, EntornoAeat Entorno)>> ConsultarPresentadasAsync(string idSociedad, string modelo, int ejercicio,
+        CancellationToken cancelacion = default)
+    {
+        var registro = $"Modelo {modelo} {ejercicio}";
+        var entorno = await EntornoAsync(cancelacion);
+        var (nif, nombre) = await bd.EjecutarAsync(async s => await s.ConsultarPrimeroAsync("SELECT CIF, Nombre FROM Sociedades WHERE IdSociedad = ?",
+            f => ((f.Texto("CIF") ?? "").Trim().ToUpperInvariant(), (f.Texto("Nombre") ?? "").Trim()), idSociedad), cancelacion);
+        using var cert = await CertificadoAsync(idSociedad);
+        if (cert is null)
+            return Resultado<(IReadOnlyList<DeclaracionPresentadaAeat>, EntornoAeat)>.Fallo(new Error("Presentacion.SinCertificado", "La sociedad no tiene certificado en este equipo.", registro, null,
+                "Elígelo en Configuración › Parámetros y tablas › «Certificado de la empresa» (el mismo de VeriFactu)."));
+        try
+        {
+            var r = await cliente.ConsultarAsync(entorno, cert, nif, nombre, modelo, ejercicio.ToString(CultureInfo.InvariantCulture), null, cancelacion);
+            return r.Correcta ? Resultado<(IReadOnlyList<DeclaracionPresentadaAeat>, EntornoAeat)>.Correcto((r.Presentadas, entorno))
+                : Resultado<(IReadOnlyList<DeclaracionPresentadaAeat>, EntornoAeat)>.Fallo(new Error("Presentacion.Consulta", $"La AEAT no ha respondido a la consulta del {modelo}.", registro, r.Error,
+                    "Vuelve a intentarlo más tarde."));
+        }
+        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)
+        {
+            return Resultado<(IReadOnlyList<DeclaracionPresentadaAeat>, EntornoAeat)>.Fallo(new Error("Presentacion.Consulta", $"No he podido consultar a la AEAT el {modelo}.", registro, ex.Message,
+                entorno == EntornoAeat.Pruebas ? "El entorno de pruebas de la AEAT solo funciona los días laborables de 8:00 a 15:00." : "Comprueba la conexión a internet y vuelve a intentarlo."));
+        }
+    }
+
+    /// <summary>
+    /// Guarda una presentación hecha fuera del programa que devuelve la consulta de la AEAT (origen AEAT): sin importe, sin fichero y sin
+    /// firmante, que la consulta no da. Si la AEAT no da la fecha, la de ahora.
+    /// </summary>
+    public async Task<PresentacionGuardada> GuardarExternaAsync(string idSociedad, DeclaracionPresentadaAeat p, EntornoAeat entorno, CancellationToken cancelacion = default)
+    {
+        var ejercicio = int.TryParse(p.Ejercicio, NumberStyles.None, CultureInfo.InvariantCulture, out var e) ? e : _reloj.Ahora.Year;
+        var g = new PresentacionGuardada(0, idSociedad, p.Modelo.Trim(), ejercicio, p.Periodo.Trim().ToUpperInvariant(), ServiciosAeat.Codigo(entorno), p.FechaHora ?? _reloj.Ahora,
+            p.Csv.Trim(), string.IsNullOrWhiteSpace(p.Expediente) ? null : p.Expediente.Trim(), p.Justificante.Trim(), p.JustificanteAnterior, null, 0m, 0m, null, null,
+            "Consulta a la AEAT", "Presentada fuera del programa: la consulta de la AEAT no da su importe ni su fichero.", null, null, PresentacionGuardada.OrigenAeat);
+        var id = await bd.EjecutarAsync(async s =>
+        {
+            await s.EjecutarAsync(
+                "INSERT INTO PresentacionesAeat (IdSociedad, Modelo, Ejercicio, Periodo, Entorno, FechaHora, Csv, Expediente, Justificante, ComplementariaDe, FormaPago, Importe, Resultado, " +
+                "NifPresentador, Presentador, Operador, Fichero, Respuesta, Avisos, UrlPdf, RutaPdf, Origen) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                g.IdSociedad, Recortar(g.Modelo, 3), (short)g.Ejercicio, Recortar(g.Periodo, 2), g.Entorno, g.FechaHora, Recortar(g.Csv, 16), Recortar(g.Expediente, 25), Recortar(g.Justificante, 13),
+                Recortar(g.ComplementariaDe, 13), null, 0m, 0m, null, null, g.Operador, "(presentada fuera del programa)", null, g.Avisos, null, null, PresentacionGuardada.OrigenAeat);
+            return await s.UltimoIdAsync();
+        }, cancelacion);
+        return g with { Id = id };
+    }
+
     // ---------- lecturas y escrituras ----------
 
     public Task<IReadOnlyList<PresentacionGuardada>> PresentadasAsync(string idSociedad, string modelo, int ejercicio, CancellationToken cancelacion = default) =>
         bd.EjecutarAsync(async s => s.LeerEsquema().ExisteTabla("PresentacionesAeat")
             ? await s.ConsultarAsync(
                 "SELECT IdPresentacionAeat, IdSociedad, Modelo, Ejercicio, Periodo, Entorno, FechaHora, Csv, Expediente, Justificante, ComplementariaDe, FormaPago, Importe, Resultado, " +
-                "NifPresentador, Presentador, Operador, Avisos, UrlPdf, RutaPdf FROM PresentacionesAeat WHERE IdSociedad = ? AND Modelo = ? AND Ejercicio = ? ORDER BY FechaHora, IdPresentacionAeat",
+                "NifPresentador, Presentador, Operador, Avisos, UrlPdf, RutaPdf" + (s.LeerEsquema().ExisteColumna("PresentacionesAeat", "Origen") ? ", Origen" : ", Null AS Origen") +
+                " FROM PresentacionesAeat WHERE IdSociedad = ? AND Modelo = ? AND Ejercicio = ? ORDER BY FechaHora, IdPresentacionAeat",
                 f => new PresentacionGuardada(f.Entero("IdPresentacionAeat"), f.Texto("IdSociedad") ?? "", f.Texto("Modelo") ?? "", f.Entero("Ejercicio"), f.Texto("Periodo") ?? "",
                     f.Texto("Entorno") ?? "", f.Fecha("FechaHora"), f.Texto("Csv") ?? "", f.Texto("Expediente"), f.Texto("Justificante") ?? "", f.Texto("ComplementariaDe"),
                     f.Texto("FormaPago"), f.DecimalNulo("Importe") ?? 0m, f.DecimalNulo("Resultado") ?? 0m, f.Texto("NifPresentador"), f.Texto("Presentador"), f.Texto("Operador"),
-                    f.Texto("Avisos"), f.Texto("UrlPdf"), f.Texto("RutaPdf")),
+                    f.Texto("Avisos"), f.Texto("UrlPdf"), f.Texto("RutaPdf"), f.Texto("Origen")),
                 idSociedad, modelo, (short)ejercicio)
             : (IReadOnlyList<PresentacionGuardada>)[], cancelacion);
 
@@ -279,8 +347,17 @@ public sealed class ServicioPresentacionAeat(IBaseDatos bd, IClienteAeat cliente
             p.IdSociedad, p.Modelo, (short)p.Ejercicio, p.Periodo, p.Entorno, p.FechaHora, Recortar(p.Csv, 16), Recortar(p.Expediente, 25), Recortar(p.Justificante, 13),
             Recortar(p.ComplementariaDe, 13), Recortar(p.FormaPago, 1), p.Importe, p.Resultado, Recortar(p.NifPresentador, 9), p.Presentador, p.Operador, fichero, respuesta, p.Avisos,
             Recortar(p.UrlPdf, 255), null);
-        return await s.UltimoIdAsync();
+        var id = await s.UltimoIdAsync();
+        await MarcarOrigenProgramaAsync(s, id);
+        return id;
     });
+
+    /// <summary>Anota que la presentación se hizo desde el programa (esquema 73; sin la columna no hace nada).</summary>
+    internal static async Task MarcarOrigenProgramaAsync(ISesionDatos s, int id)
+    {
+        if (s.LeerEsquema().ExisteColumna("PresentacionesAeat", "Origen"))
+            await s.EjecutarAsync("UPDATE PresentacionesAeat SET Origen = ? WHERE IdPresentacionAeat = ?", PresentacionGuardada.OrigenPrograma, id);
+    }
 
     /// <summary>
     /// Ruta del PDF justificante: carpeta de documentos de la empresa (Sociedades.RutaDocumentos; relativa, junto a la BD) \ ejercicio \
@@ -299,7 +376,7 @@ public sealed class ServicioPresentacionAeat(IBaseDatos bd, IClienteAeat cliente
     }
 
     /// <summary>Carpeta de la empresa: la ruta completa tal cual; una relativa o vacía, junto a la BD.</summary>
-    internal static string CarpetaEmpresa(string rutaBd, string? rutaDocumentos)
+    public static string CarpetaEmpresa(string rutaBd, string? rutaDocumentos)
     {
         var dirBd = Path.GetDirectoryName(Path.GetFullPath(rutaBd)) ?? "";
         if (string.IsNullOrWhiteSpace(rutaDocumentos)) return dirBd;

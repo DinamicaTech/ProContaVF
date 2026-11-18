@@ -142,6 +142,40 @@ public static class MigracionesModelosTributarios
         ],
     };
 
+    /// <summary>
+    /// Pantalla Contabilidad › Modelos tributarios (esquema 73; contabilidad/modelos-tributarios 2026-11-18, tanda 7):
+    /// <list type="bullet">
+    /// <item>PresentacionesAeat.Origen: PROGRAMA (presentada desde el programa; vacío en las de antes) o AEAT (traída por «Consultar a la AEAT»:
+    /// presentada fuera del programa, por ejemplo por la gestoría, sin importe ni fichero).</item>
+    /// <item>ModelosSociedad: qué modelos salen en la pantalla, en los plazos y en los avisos de Inicio de cada sociedad («Modelos de la
+    /// sociedad…»). Sin filas, los que tienen datos o presentaciones.</item>
+    /// <item>Sociedades.UltimaConsultaModelosAeat: cuándo se consultó por última vez a la AEAT lo presentado (la pantalla lo hace sola una vez al día).</item>
+    /// </list>
+    /// </summary>
+    public static Migracion PantallaModelos { get; } = new(
+        "20261118_1500_PANTALLA_MODELOS_TRIBUTARIOS", 261118002,
+        "Pantalla de modelos tributarios: origen de cada presentación (programa o consulta a la AEAT), modelos de cada sociedad y fecha de la última consulta a la AEAT.",
+        "contabilidad/modelos-tributarios",
+        new AnadirColumna("PresentacionesAeat", "Origen", "TEXT(10)"),
+        new AnadirColumna("Sociedades", "UltimaConsultaModelosAeat", "DATETIME"),
+        new CrearTabla("ModelosSociedad",
+            "CREATE TABLE ModelosSociedad (IdModeloSociedad COUNTER CONSTRAINT PK_ModelosSociedad PRIMARY KEY, " +
+            "IdSociedad TEXT(3) NOT NULL, " +
+            "Modelo TEXT(3) NOT NULL, Visible YESNO NOT NULL)"),
+        new CrearIndice("ModelosSociedad", "UX_ModelosSociedad_Modelo", "CREATE UNIQUE INDEX UX_ModelosSociedad_Modelo ON ModelosSociedad (IdSociedad, Modelo)"))
+    {
+        Descripciones =
+        [
+            new("PresentacionesAeat", "Origen", "PROGRAMA: presentada desde el programa (vacío en las anteriores al esquema 73); AEAT: presentada fuera del programa y traída por «Consultar a la AEAT» (sin importe ni fichero)."),
+            new("Sociedades", "UltimaConsultaModelosAeat", "Fecha y hora de la última consulta a la AEAT de lo presentado por la sociedad (pantalla Modelos tributarios)."),
+            new("ModelosSociedad", null, "Modelos que presenta cada sociedad: los que salen en Contabilidad › Modelos tributarios, en sus plazos y en los avisos de Inicio (contabilidad/modelos-tributarios)."),
+            new("ModelosSociedad", "IdModeloSociedad", "Identificador."),
+            new("ModelosSociedad", "IdSociedad", "Sociedad."),
+            new("ModelosSociedad", "Modelo", "Número del modelo (303, 111, 190…)."),
+            new("ModelosSociedad", "Visible", "Si el modelo sale en la pantalla, los plazos y los avisos de esta sociedad."),
+        ],
+    };
+
     /// <summary>Clave de la línea del 200 de un ajuste por su descripción (la regla que usaba el 200 antes del esquema 72).</summary>
     public static string Linea200(string? descripcion) =>
         Regex.IsMatch(descripcion ?? "", @"\bart(\.|[íi]culo)?\s*21\b|exenci[óo]n", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant) ? "EXENCION_ART21" : "OTRAS";

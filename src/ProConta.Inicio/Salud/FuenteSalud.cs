@@ -140,6 +140,9 @@ public interface IFuenteSalud
     /// <summary>Activos de la sociedad amortizables, propios (no ajenos) y sin dar de baja.</summary>
     Task<int> ActivosAmortizablesAsync(string idSociedad, CancellationToken c = default) => Task.FromResult(0);
 
+    /// <summary>Modelos de la sociedad, lo presentado y la última consulta a la AEAT (contabilidad/modelos-tributarios).</summary>
+    Task<ModelosInicio> ModelosAsync(string idSociedad, CancellationToken c = default) => Task.FromResult(ModelosInicio.PorDefecto);
+
     // ---- Incidencias con la gestoría (contabilidad 2026-11-15 21:10): implementación vacía por defecto.
 
     /// <summary>Apuntes contabilizados, sin los de cierre, de las subcuentas que empiezan por alguno de los prefijos, en los ejercicios pedidos.</summary>

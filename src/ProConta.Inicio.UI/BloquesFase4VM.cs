@@ -207,6 +207,7 @@ public sealed class BloquesFase4VM : ModeloVista
     private Action? Accion(DestinoSalud d) => d.Pantalla switch
     {
         PantallaSalud.Programadas => _acciones.AbrirProgramadas,
+        PantallaSalud.ModelosTributarios => _acciones.AbrirModelosTributarios is { } m ? () => m(d.Modelo, d.Periodo) : null,
         PantallaSalud.VentasPorFacturar => _acciones.AbrirVentas,
         PantallaSalud.Ejercicios => _acciones.AbrirParametros is { } p ? () => p("ejercicios") : null,
         _ => null,

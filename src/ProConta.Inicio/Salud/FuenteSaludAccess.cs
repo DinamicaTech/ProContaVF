@@ -19,6 +19,8 @@ public sealed class FuenteSaludAccess(IBaseDatos bd) : IFuenteSalud
 
     public Task<IReadOnlyList<EjercicioSociedad>> EjerciciosAsync(string idSociedad, CancellationToken c = default) => _inicio.EjerciciosAsync(idSociedad, c);
 
+    public Task<ModelosInicio> ModelosAsync(string idSociedad, CancellationToken c = default) => ModelosInicio.LeerAsync(bd, idSociedad, c);
+
     public Task<IReadOnlyList<ActividadInicio>> ActividadesAsync(string idSociedad, CancellationToken c = default) => _inicio.ActividadesAsync(idSociedad, c);
 
     public Task<VentasPendientes> VentasPendientesAsync(string idSociedad, DateTime antesDe, CancellationToken c = default) =>

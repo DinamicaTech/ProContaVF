@@ -23,31 +23,31 @@ public static class CalculoAgenda
     public const int Dias = 90;
     private static readonly CultureInfo Es = CultureInfo.GetCultureInfo("es-ES");
 
-    private static readonly DestinoSalud Modelos = DestinoSalud.SinPantalla("Contabilidad › Modelos tributarios");
     private static readonly DestinoSalud Programadas = new(PantallaSalud.Programadas, "Ventas › Facturas programadas");
 
     public static IReadOnlyList<EntradaAgenda> Calcular(DateTime hoy, IReadOnlySet<int> ejercicios, IReadOnlyList<VencimientoProgramado> programadas,
-        IReadOnlyList<CambioTipoIva>? cambios = null)
+        IReadOnlyList<CambioTipoIva>? cambios = null, ModelosInicio? modelos = null)
     {
+        modelos ??= ModelosInicio.PorDefecto;
         hoy = hoy.Date;
         var hasta = hoy.AddDays(Dias);
         bool Dentro(DateTime d) => d >= hoy && d <= hasta;
         var r = new List<EntradaAgenda>();
         foreach (var anio in new[] { hoy.Year - 1, hoy.Year }.Where(ejercicios.Contains))
         {
-            for (var q = 1; q <= 4; q++)
-            {
-                var fin = FinPlazo303(anio, q);
-                if (!Dentro(fin)) continue;
-                var nombre = q == 4 || anio != hoy.Year ? $"{q}T de {anio}" : $"{q}T";
-                var inicio = InicioPlazo303(anio, q);
-                r.Add(new EntradaAgenda(fin, TipoAgenda.Fiscal, $"Último día del 303 del {nombre}",
-                    $"Plazo de presentación del modelo 303 del {nombre}: del {inicio:dd/MM} al {fin:dd/MM/yyyy}. Si ya está liquidado, Salud lo dice en «Hechas este trimestre».",
-                    null, Modelos));
-            }
-            var fin390 = FinPlazo390(anio);
-            if (Dentro(fin390))
-                r.Add(new EntradaAgenda(fin390, TipoAgenda.Fiscal, $"Último día del resumen anual 390 de {anio}", $"Plazo de presentación del modelo 390 de {anio}: hasta el {fin390:dd/MM/yyyy}.", null, Modelos));
+            foreach (var def in ProConta.Contabilidad.Modelos.DefinicionModelo.Todos.Where(d => modelos.Modelos.Contains(d.Id)))
+                foreach (var periodo in ProConta.Contabilidad.Modelos.PlazosModelos.Periodos(def.Id))
+                {
+                    var (inicio, fin) = ProConta.Contabilidad.Modelos.PlazosModelos.Plazo(def.Id, anio, periodo);
+                    if (!Dentro(fin) || modelos.Presentada(def.Id, anio, periodo) is not null) continue;
+                    var nombre = periodo == "0A" ? $"de {anio}" : periodo is "4T" or "3P" || anio != hoy.Year ? $"del {periodo} de {anio}" : $"del {periodo}";
+                    var texto = def.Id == "390" ? $"Último día del resumen anual 390 de {anio}" : $"Último día del {def.Id} {nombre}";
+                    r.Add(new EntradaAgenda(fin, TipoAgenda.Fiscal, texto,
+                        $"Plazo de presentación del modelo {def.Id} ({def.Nombre}) {nombre}: del {inicio:dd/MM} al {fin:dd/MM/yyyy}" +
+                        (fin != ProConta.Contabilidad.Modelos.PlazosModelos.PlazoLegal(def.Id, anio, periodo).Hasta ? " (el último día pasa al siguiente hábil)" : "") +
+                        ". Doble clic: abre Modelos tributarios en ese periodo.",
+                        null, DestinoSalud.Modelos(def.Id, periodo)));
+                }
         }
         foreach (var c in cambios ?? CambiosTipoIva)
         {

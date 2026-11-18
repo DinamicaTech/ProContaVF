@@ -232,7 +232,7 @@ public sealed class Fase4Tests
         Assert.Equal(363m, dic5.Importe);
         Assert.Contains(agenda, e => e.Tipo == TipoAgenda.Ejercicio && e.Fecha == new DateTime(2026, 12, 31));
         Assert.Contains(agenda, e => e.Texto == "Se emite la factura programada P-0003 (Cliente C)");
-        Assert.Contains(agenda, e => e.Texto == "Último día del 303 del 4T de 2026" && e.Fecha == new DateTime(2027, 1, 30));
+        Assert.Contains(agenda, e => e.Texto == "Último día del 303 del 4T de 2026" && e.Fecha == new DateTime(2027, 2, 1));   // el 30/1 es sábado
         Assert.Contains(agenda, e => e.Texto == "Último día del resumen anual 390 de 2026");
         Assert.DoesNotContain(agenda, e => e.Texto.Contains("P-0005"));
         Assert.Equal(agenda.OrderBy(e => e.Fecha).Select(e => e.Fecha), agenda.Select(e => e.Fecha));

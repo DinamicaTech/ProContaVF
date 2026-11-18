@@ -109,7 +109,7 @@ public sealed class ServicioRetenciones(IBaseDatos bd, ServicioPresentacionAeat 
             // El estado compara el total del trimestre con el total presentado.
             var estado = Hoy <= fin ? Estado303.EnCurso
                 : ultima is null ? Estado303.SinPresentar
-                : ultima.Resultado != d.TotalRetenciones ? Estado303.Desactualizado
+                : ultima.DistintoDe(d.TotalRetenciones) ? Estado303.Desactualizado
                 : ultima.ComplementariaDe is not null ? Estado303.Complementaria
                 : Estado303.Presentado;
             if (estado == Estado303.Desactualizado)

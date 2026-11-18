@@ -41,7 +41,7 @@ public static class DuenosTablas
         Asignar("contabilidad", "contabilidad/procesos/aplicacion-resultado", "RepartosDividendos", "RepartosDividendosSocios", "AplicacionesResultado");
         Asignar("contabilidad", "contabilidad/procesos/impuesto-sociedades", "ImpuestosSociedades", "ImpuestosSociedadesAjustes",
             "ImpuestosSociedadesRetenciones", "ImpuestosSociedadesDatosAeat");
-        Asignar("contabilidad", "contabilidad/modelos-tributarios", "PresentacionesTributarias");
+        Asignar("contabilidad", "contabilidad/modelos-tributarios", "PresentacionesTributarias", "ModelosSociedad");
         Asignar("contabilidad", "contabilidad/mayor", "CuadresCuentas");
         Asignar("contabilidad", "contabilidad/plantillas-asiento", "PlantillasAsiento", "PlantillasAsientoDatos", "PlantillasAsientoLineas");
         Asignar("contabilidad", "contabilidad/balances", "ModelosBalance", "NodosBalance", "ReglasCuentasBalance", "RelacionesCalculoBalance");

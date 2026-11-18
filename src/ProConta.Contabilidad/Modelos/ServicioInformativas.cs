@@ -97,7 +97,7 @@ public abstract class ServicioInformativaIva(IBaseDatos bd, ServicioTgvi tgvi, I
         if (Hoy > hasta && ultima is null) a.Add($"El plazo terminó el {hasta:dd/MM/yyyy}: si no lo presentó la gestoría, preséntalo cuanto antes.");
         var estado = Hoy < desde ? Estado303.EnCurso
             : ultima is null ? Estado303.SinPresentar
-            : ultima.Resultado != total ? Estado303.Desactualizado
+            : ultima.DistintoDe(total) ? Estado303.Desactualizado
             : ultima.ComplementariaDe is not null ? Estado303.Complementaria
             : Estado303.Presentado;
         if (estado == Estado303.Desactualizado)

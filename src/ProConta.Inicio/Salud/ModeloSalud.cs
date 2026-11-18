@@ -16,11 +16,16 @@ public enum PantallaSalud { Ninguna, VentasPorFacturar, Ejercicios, LineasN43, B
     /// <summary>Contabilidad › Procesos contables › Fin de ejercicio › Céntimos residuales (contabilidad/procesos/centimos-residuales).</summary>
     CentimosResiduales,
     /// <summary>No abre una pantalla: compensa las comisiones de las plataformas pendientes (facturacion/reservas/compensacion-comision).</summary>
-    CompensarComisiones }
+    CompensarComisiones,
+    /// <summary>Contabilidad › Modelos tributarios, en el periodo del destino (contabilidad/modelos-tributarios).</summary>
+    ModelosTributarios }
 
 /// <summary>Dónde se resuelve: la pantalla, su nombre en el menú y, para el Mayor, las cuentas con las que se abre.</summary>
-public sealed record DestinoSalud(PantallaSalud Pantalla, string Nombre, IReadOnlyList<string>? Cuentas = null)
+public sealed record DestinoSalud(PantallaSalud Pantalla, string Nombre, IReadOnlyList<string>? Cuentas = null, string? Modelo = null, string? Periodo = null)
 {
+    /// <summary>Contabilidad › Modelos tributarios con el periodo de un modelo marcado («303», «4T»).</summary>
+    public static DestinoSalud Modelos(string modelo, string periodo) => new(PantallaSalud.ModelosTributarios, "Contabilidad › Modelos tributarios", null, modelo, periodo);
+
     public static DestinoSalud SinPantalla(string nombre) => new(PantallaSalud.Ninguna, nombre);
     public static DestinoSalud Mayor(IReadOnlyList<string> cuentas, string detalle) => new(PantallaSalud.Mayor, $"Contabilidad › Mayor ({detalle})", cuentas);
 }
@@ -49,6 +54,40 @@ public sealed record ElementoSalud(
 
 /// <summary>Tarea hecha en el trimestre (solo las que se pueden detectar, como el 303 con su asiento de liquidación).</summary>
 public sealed record HechaSalud(string Clave, string Titulo, string Explicacion, DestinoSalud Destino, string Nodo);
+
+/// <summary>Una presentación guardada de un modelo (desde el programa o traída por «Consultar a la AEAT»).</summary>
+public sealed record PresentacionInicio(string Modelo, int Ejercicio, string Periodo, DateTime FechaHora);
+
+/// <summary>
+/// Lo que Inicio sabe de los modelos tributarios de la sociedad (contabilidad/modelos-tributarios 2026-11-18): los modelos que salen en
+/// los plazos y los avisos («Modelos de la sociedad…»; sin elegir, el 303 y el 390 más los que tienen presentaciones), lo presentado y
+/// cuándo se consultó por última vez a la AEAT.
+/// </summary>
+public sealed record ModelosInicio(IReadOnlySet<string> Modelos, IReadOnlyList<PresentacionInicio> Presentadas, DateTime? UltimaConsulta)
+{
+    public static ModelosInicio PorDefecto { get; } = new(new HashSet<string> { "303", "390" }, [], null);
+
+    public PresentacionInicio? Presentada(string modelo, int ejercicio, string periodo) =>
+        Presentadas.Where(p => p.Modelo == modelo && p.Ejercicio == ejercicio && p.Periodo == periodo).OrderBy(p => p.FechaHora).LastOrDefault();
+
+    /// <summary>Lee los modelos de la sociedad, sus presentaciones y la última consulta (esquema 73; sin él, lo de siempre).</summary>
+    public static async Task<ModelosInicio> LeerAsync(ProConta.Datos.Persistencia.IBaseDatos bd, string idSociedad, CancellationToken c = default)
+    {
+        var modelos = await ProConta.Contabilidad.Modelos.ServicioModelosTributarios.ParaInicioAsync(bd, idSociedad);
+        return await bd.EjecutarAsync(async s =>
+        {
+            var esquema = s.LeerEsquema();
+            IReadOnlyList<PresentacionInicio> presentadas = esquema.ExisteTabla("PresentacionesAeat")
+                ? await s.ConsultarAsync("SELECT Modelo, Ejercicio, Periodo, FechaHora FROM PresentacionesAeat WHERE IdSociedad = ?",
+                    f => new PresentacionInicio((f.Texto("Modelo") ?? "").Trim(), Convert.ToInt32(f.Valor("Ejercicio"), System.Globalization.CultureInfo.InvariantCulture),
+                        (f.Texto("Periodo") ?? "").Trim(), f.Fecha("FechaHora")), idSociedad)
+                : [];
+            var ultima = esquema.ExisteColumna("Sociedades", "UltimaConsultaModelosAeat")
+                ? await s.EscalarAsync("SELECT UltimaConsultaModelosAeat FROM Sociedades WHERE IdSociedad = ?", idSociedad) as DateTime? : null;
+            return new ModelosInicio(modelos, presentadas, ultima);
+        }, c);
+    }
+}
 
 /// <summary>Comprobación que se ha hecho y está bien («Comprobaciones correctas»).</summary>
 public sealed record ComprobacionCorrecta(string Texto, string Nodo);

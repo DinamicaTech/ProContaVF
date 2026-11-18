@@ -82,7 +82,6 @@ public sealed class RevisionPlazosIva : IRevisionSalud
     public string Nodo => "contabilidad/modelos-tributarios";
 
     private static readonly DestinoSalud Liquidacion = new(PantallaSalud.LiquidacionIva, "Contabilidad › Procesos contables › Liquidación de IVA");
-    private static readonly DestinoSalud Modelos = DestinoSalud.SinPantalla("Contabilidad › Modelos tributarios");
 
     public async Task<HallazgosSalud> RevisarAsync(IFuenteSalud fuente, ContextoSalud ctx, CancellationToken c)
     {
@@ -98,7 +97,7 @@ public sealed class RevisionPlazosIva : IRevisionSalud
             var (desde, hasta) = CalculoInicio.Trimestre(anio, q);
             return CalculoInicio.Iva(x.A, desde, hasta < ctx.Hoy ? hasta : ctx.Hoy, actividades, x.E.Prorrata);
         }
-        return Evaluar(ejercicios.Select(e => e.Ejercicio).ToHashSet(), ctx.Ejercicio.Ejercicio, liquidaciones, ctx.Hoy, Estimado);
+        return Evaluar(ejercicios.Select(e => e.Ejercicio).ToHashSet(), ctx.Ejercicio.Ejercicio, liquidaciones, ctx.Hoy, Estimado, await fuente.ModelosAsync(ctx.IdSociedad, c));
     }
 
     /// <summary>Trimestre (año y número) al que se asigna un asiento de liquidación.</summary>
@@ -110,9 +109,10 @@ public sealed class RevisionPlazosIva : IRevisionSalud
     }
 
     public static HallazgosSalud Evaluar(IReadOnlySet<int> ejercicios, int ejercicioTrabajo, IReadOnlyList<LiquidacionIva> liquidaciones, DateTime hoy,
-        Func<int, int, (decimal Rep, decimal Sop)?> estimado)
+        Func<int, int, (decimal Rep, decimal Sop)?> estimado, ModelosInicio? modelos = null)
     {
         hoy = hoy.Date;
+        modelos ??= ModelosInicio.PorDefecto;
         var hechos = new Dictionary<(int, int), DateTime>();
         foreach (var l in liquidaciones.OrderBy(l => l.Fecha))
             hechos.TryAdd(TrimestreLiquidado(l.Fecha.Date), l.Fecha.Date);
@@ -126,6 +126,14 @@ public sealed class RevisionPlazosIva : IRevisionSalud
                 var (desdeQ, _) = CalculoInicio.Trimestre(anio, q);
                 if (desdeQ > hoy) continue;
                 var nombre = anio == hoy.Year ? $"{q}T" : $"{q}T de {anio}";
+                // Lo que consta presentado (desde el programa o por «Consultar a la AEAT») se da por hecho.
+                if (modelos.Modelos.Contains("303") && modelos.Presentada("303", anio, $"{q}T") is { } presentada)
+                {
+                    if (fin >= trimestreHoy.Desde && fin <= trimestreHoy.Hasta)
+                        hechas.Add(new HechaSalud($"303-{anio}-{q}", $"303 del {nombre} presentado", $"Presentado el {Fecha(presentada.FechaHora)}.", DestinoSalud.Modelos("303", $"{q}T"),
+                            "contabilidad/modelos-tributarios"));
+                    continue;
+                }
                 if (hechos.TryGetValue((anio, q), out var fecha))
                 {
                     if (fin >= trimestreHoy.Desde && fin <= trimestreHoy.Hasta)
@@ -138,25 +146,30 @@ public sealed class RevisionPlazosIva : IRevisionSalud
                     ? (rep - sop) >= 0 ? $" {(hoy <= CalculoInicio.Trimestre(anio, q).Hasta ? "Estimado hasta hoy" : "Estimado")}: {Imp(rep - sop)} a ingresar (repercutido {Imp(rep)}, soportado deducible {Imp(sop)})."
                                        : $" {(hoy <= CalculoInicio.Trimestre(anio, q).Hasta ? "Estimado hasta hoy" : "Estimado")}: {Imp(sop - rep)} a compensar o devolver (repercutido {Imp(rep)}, soportado deducible {Imp(sop)})."
                     : "";
-                var plazo = q == 4 ? $"del 1 al 30 de enero de {anio + 1}" : $"del 1 al 20 de {Mes(fin.Month)}";
+                var plazo = $"del {InicioPlazo303(anio, q):dd/MM} al {Fecha(fin)}";
                 var dias = (fin - hoy).Days;
                 elementos.Add(new ElementoSalud($"303-{anio}-{q}", TipoSalud.Tarea, dias < 0 ? GravedadSalud.Grave : dias <= 16 ? GravedadSalud.Atencion : GravedadSalud.Aviso,
-                    $"Liquidar el IVA del {nombre} y presentar el 303", $"Plazo {plazo}." + cifras, fin, Liquidacion, "contabilidad/modelos-tributarios",
+                    $"Liquidar el IVA del {nombre} y presentar el 303", $"Plazo {plazo}." + cifras, fin, DestinoSalud.Modelos("303", $"{q}T"), "contabilidad/modelos-tributarios",
                     $"No hay asiento de liquidación del IVA del {nombre} (un asiento contabilizado que abona la 4750 o carga la 4700, fechado en el trimestre o en su plazo; " +
                     "el pago del 303 contra el banco no cuenta) " +
                     $"y faltan menos de {DiasAntesDelPlazo} días para el fin del plazo, o ya ha pasado. El estimado es el mismo que el del indicador de IVA: repercutido (477) menos soportado deducible (472).",
-                    $"Haz el asiento de liquidación del {nombre} y presenta el 303 en la sede de la AEAT. La pantalla de liquidación de IVA aún no está en ProContaVF: el asiento se hace a mano " +
-                    "(Contabilidad › Asiento manual). La tarea desaparece en cuanto existe el asiento de liquidación."));
+                    $"Liquida el IVA del {nombre} (Contabilidad › Liquidación de IVA) y presenta el 303 desde Contabilidad › Modelos tributarios. La tarea desaparece en cuanto existe el " +
+                    "asiento de liquidación o consta el 303 presentado (desde el programa o traído por «Consultar a la AEAT»)."));
             }
         foreach (var anio in new[] { hoy.Year - 1, hoy.Year }.Where(ejercicios.Contains))
         {
             var fin = FinPlazo390(anio);
-            if (hoy > fin || hoy < fin.AddDays(-DiasAntesDelPlazo)) continue;
+            if (!modelos.Modelos.Contains("390") || hoy > fin || hoy < fin.AddDays(-DiasAntesDelPlazo)) continue;
+            if (modelos.Presentada("390", anio, "0A") is { } presentado)
+            {
+                hechas.Add(new HechaSalud($"390-{anio}", $"390 de {anio} presentado", $"Presentado el {Fecha(presentado.FechaHora)}.", DestinoSalud.Modelos("390", "0A"), "contabilidad/modelos-tributarios"));
+                continue;
+            }
             var dias = (fin - hoy).Days;
             elementos.Add(new ElementoSalud($"390-{anio}", TipoSalud.Tarea, dias <= 16 ? GravedadSalud.Atencion : GravedadSalud.Aviso, $"Presentar el resumen anual 390 de {anio}",
-                $"Plazo hasta el 30 de enero de {anio + 1}.", fin, Modelos, "contabilidad/modelos-tributarios",
-                $"Faltan menos de {DiasAntesDelPlazo} días para el fin del plazo del 390 de {anio}. ProContaVF aún no registra la presentación de los modelos, así que no puede saber si ya está presentado.",
-                "Presenta el 390 en la sede de la AEAT. Hasta que exista la pantalla de modelos tributarios, la tarea desaparece sola al pasar el plazo."));
+                $"Plazo hasta el {Fecha(fin)}.", fin, DestinoSalud.Modelos("390", "0A"), "contabilidad/modelos-tributarios",
+                $"Faltan menos de {DiasAntesDelPlazo} días para el fin del plazo del 390 de {anio} y no consta presentado (ni desde el programa ni por «Consultar a la AEAT»).",
+                "Preséntalo desde Contabilidad › Modelos tributarios. La tarea desaparece en cuanto consta presentado, o al pasar el plazo."));
         }
         return new HallazgosSalud(elementos, hechas, [], [FilaIva(ejercicioTrabajo, hechos, hoy)]);
     }
@@ -177,4 +190,49 @@ public sealed class RevisionPlazosIva : IRevisionSalud
     }
 
     internal static string Mes(int m) => new[] { "enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre" }[m - 1];
+}
+
+/// <summary>
+/// Plazos de los demás modelos de la sociedad (contabilidad/modelos-tributarios 2026-11-18): los marcados en «Modelos de la sociedad…»
+/// salvo el 303 y el 390, que tiene <see cref="RevisionPlazosIva"/>. Un periodo sin presentar sale como tarea en los 16 días anteriores al
+/// fin de su plazo (atención). Vencido, solo si la última «Consultar a la AEAT» es posterior al fin del plazo (si no, pudo presentarlo la
+/// gestoría): entonces es grave durante 60 días. Lo presentado no sale. Abre Modelos tributarios en su periodo.
+/// </summary>
+public sealed class RevisionPlazosModelos : IRevisionSalud
+{
+    public const int DiasAntes = 16;
+    public const int DiasDespues = 60;
+
+    public string Clave => "plazos-modelos";
+    public string Nombre => "Plazos de los demás modelos tributarios";
+    public string Nodo => "contabilidad/modelos-tributarios";
+
+    public async Task<HallazgosSalud> RevisarAsync(IFuenteSalud fuente, ContextoSalud ctx, CancellationToken c) =>
+        Evaluar(ctx.Ejercicios.Select(e => e.Ejercicio).ToHashSet(), await fuente.ModelosAsync(ctx.IdSociedad, c), ctx.Hoy);
+
+    public static HallazgosSalud Evaluar(IReadOnlySet<int> ejercicios, ModelosInicio modelos, DateTime hoy)
+    {
+        hoy = hoy.Date;
+        var elementos = new List<ElementoSalud>();
+        foreach (var anio in new[] { hoy.Year - 1, hoy.Year }.Where(ejercicios.Contains))
+            foreach (var def in ProConta.Contabilidad.Modelos.DefinicionModelo.Todos.Where(d => d.Id is not ("303" or "390") && modelos.Modelos.Contains(d.Id)))
+                foreach (var periodo in ProConta.Contabilidad.Modelos.PlazosModelos.Periodos(def.Id))
+                {
+                    var (desde, fin) = ProConta.Contabilidad.Modelos.PlazosModelos.Plazo(def.Id, anio, periodo);
+                    if (modelos.Presentada(def.Id, anio, periodo) is not null) continue;
+                    var dias = (fin - hoy).Days;
+                    var vencido = dias < 0;
+                    if (!vencido && dias > DiasAntes) continue;
+                    if (vencido && (-dias > DiasDespues || modelos.UltimaConsulta is not DateTime u || u.Date <= fin)) continue;
+                    var nombre = periodo == "0A" ? $"de {anio}" : $"del {periodo} de {anio}";
+                    elementos.Add(new ElementoSalud($"{def.Id}-{anio}-{periodo}", TipoSalud.Tarea, vencido ? GravedadSalud.Grave : GravedadSalud.Atencion,
+                        $"Presentar el {def.Id} {nombre}", $"{def.Nombre}. Plazo del {desde:dd/MM} al {Fecha(fin)}.", fin, DestinoSalud.Modelos(def.Id, periodo),
+                        "contabilidad/modelos-tributarios",
+                        vencido
+                            ? $"El plazo terminó el {Fecha(fin)} y no consta presentado: ni desde el programa ni en la consulta a la AEAT del {modelos.UltimaConsulta:dd/MM/yyyy}."
+                            : $"Faltan menos de {DiasAntes} días para el fin del plazo y no consta presentado (ni desde el programa ni traído por «Consultar a la AEAT»).",
+                        "Preséntalo desde Contabilidad › Modelos tributarios. Si lo presentó la gestoría, pulsa allí «Consultar a la AEAT». Si la sociedad no presenta este modelo, quítalo en «Modelos de la sociedad…»."));
+                }
+        return new HallazgosSalud(elementos, [], [], []);
+    }
 }

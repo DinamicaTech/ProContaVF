@@ -68,7 +68,7 @@ public sealed class Servicio202(IBaseDatos bd, ServicioPresentacionAeat presenta
             var pago = d.Pago;
             var estado = Hoy < desde ? Estado303.EnCurso
                 : ultima is null ? Estado303.SinPresentar
-                : ultima.Resultado != pago ? Estado303.Desactualizado
+                : ultima.DistintoDe(pago) ? Estado303.Desactualizado
                 : ultima.ComplementariaDe is not null ? Estado303.Complementaria
                 : Estado303.Presentado;
             if (estado == Estado303.Desactualizado)

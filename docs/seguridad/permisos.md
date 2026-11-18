@@ -6,6 +6,7 @@ threads:
   - 2026-10-31 16:58 · Cerrar preguntas pendientes del proyecto | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5G7UyrP5eDJV4Ds6CCBozdbu
   - 2026-10-31 18:55 · Desarrollos base | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GPQZwFm28U4vq3sQdopN45C
   - 2026-11-14 20:06 · Contraseña opcional sin complejidad | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GAnsNpR97upaGB6RX2PKgeg
+  - 2026-11-18 15:10 · Completar los modelos tributarios y su pantalla | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GWW9gQjRoqJLGy11fuziWXQ
 ---
 ## Summary
 Operadores, grupos (N:M) y permisos por ámbito: ámbito sin configurar permite a todo operador válido; ámbito configurado aplica sus asignaciones. Los servicios comprueban la autorización, no solo la pantalla. Código (src/ProConta.Seguridad/Permisos): `PoliticaAmbito` (regla común), `AutorizadorSociedades` (ámbito AccesoSociedadesGrupo), `ServicioOperadores` (buscar operador, grupos activos, primer administrador, contraseña) y `HashContrasena` (PBKDF2-HMAC-SHA256). La contraseña de los operadores es opcional y sin requisitos de longitud ni complejidad. Acciones con permiso propio: FACTURAS.*, MANTENIMIENTO.EDITAR, TRIMESTRE.CAMBIAR, PROCESOS.LIQUIDACION_IVA, PROCESOS.DIVIDENDOS, PROCESOS.IMPUESTO_SOCIEDADES, PROCESOS.CIERRE_EJERCICIO y PROCESOS.FACTURAS_PENDIENTES.
@@ -30,6 +31,7 @@ Operadores, grupos (N:M) y permisos por ámbito: ámbito sin configurar permite 
 
 - 2026-11-17 18:12 · Acción PROCESOS.AMORTIZACION («Amortizar los activos»: confirmar y deshacer la amortización de un periodo); mientras no tenga grupos, la tienen quienes pueden liquidar el IVA (contabilidad/procesos/amortizacion-de-activos 2026-11-17 18:12).
 - 2026-11-17 19:15 · Acción PROCESOS.CENTIMOS_RESIDUALES («Saldar los céntimos residuales»: confirmar y deshacer sus asientos del 31/12); mientras no tenga grupos, la tienen quienes pueden liquidar el IVA (contabilidad/procesos/centimos-residuales 2026-11-17 19:15).
+- 2026-11-18 15:10 · Acciones nuevas: MODELOS.VER (ver Contabilidad › Modelos tributarios, borradores, ficheros, justificantes y la consulta a la AEAT; sin grupos, cualquier operador) y MODELOS.PRESENTAR (presentar modelos y complementarias a la AEAT; sin grupos, quienes pueden liquidar el IVA).
 
 ## Requirements
 - 2026-10-28 12:28 · From sources/01_ESPECIFICACION_FUNCIONAL.docx § 5 RF-SEG-03, 04, 07: operadores y grupos, política de ámbitos, puntos pendientes
@@ -52,6 +54,7 @@ Operadores, grupos (N:M) y permisos por ámbito: ámbito sin configurar permite 
 - 2026-11-17 16:40 · Derived from contabilidad/procesos/facturas-pendientes-recibir: nueva acción PROCESOS.FACTURAS_PENDIENTES, «Contabilizar las facturas pendientes de recibir» (confirmar y deshacer); mientras no tenga grupos, la tienen quienes pueden liquidar el IVA.
 - 2026-11-17 18:50 · Derived from activos: una sola acción nueva para ver y modificar los activos (pantalla Datos maestros › Activos).
 - 2026-11-17 19:05 · Derived from contabilidad/procesos/centimos-residuales: nueva acción PROCESOS.CENTIMOS_RESIDUALES, «Saldar los céntimos residuales», que mientras no tenga grupos sigue a la de liquidar el IVA.
+- 2026-11-18 15:10 · Derived from contabilidad/modelos-tributarios: un permiso para ver la pantalla de modelos tributarios y otro propio para presentar.
 
 ## Hand-over
 - 2026-10-31 19:10 · Hecho: política común, ámbito de sociedades, operadores (búsqueda, grupos activos, primer administrador, cambio de contraseña) y pruebas. Pendiente: mantenimiento completo de operadores y grupos (seguridad/pantallas); ámbitos de reports (las RestriccionesReportsGrupo antiguas son de denegación y necesitan adaptarse, RF-SEG-07) y de procesos que generan asientos o borran datos (requisito 2026-10-29 17:45, sin tabla todavía); regeneración de contraseña temporal por correo.

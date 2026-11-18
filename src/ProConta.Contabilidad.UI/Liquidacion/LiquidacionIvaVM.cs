@@ -20,6 +20,11 @@ public sealed record ContextoLiquidacionIva(ServicioLiquidacionIva Servicio, Con
     public Action<IReadOnlyList<string>>? AbrirMayor { get; init; }
     /// <summary>Lo llama la pantalla después de confirmar o deshacer (la barra de estado vuelve a leer el trimestre activo).</summary>
     public Action? Cambiada { get; init; }
+    /// <summary>
+    /// Abre Contabilidad › Modelos tributarios con un periodo marcado (modelo y periodo, «303» y «2T»): al confirmar un trimestre se
+    /// ofrece «Presentar el 303…» y, en el 4T, también el 390 (contabilidad/modelos-tributarios 2026-11-18).
+    /// </summary>
+    public Action<string, string>? AbrirModelo { get; init; }
 }
 
 /// <summary>Diálogos de la pantalla (en pruebas se sustituyen por respuestas fijas).</summary>
@@ -290,6 +295,18 @@ public sealed class LiquidacionIvaVM : ModeloVista, IPestanaTrabajo
         finally { Ocupado = false; }
     }
 
+    /// <summary>Después de liquidar, ofrece presentar el 303 del trimestre (y el 390 con el 4T) en la pantalla de modelos tributarios.</summary>
+    private void OfrecerModelos(int trimestre)
+    {
+        if (_ctx.AbrirModelo is not { } abrir) return;
+        var opciones = new List<OpcionMensaje> { new($"Presentar el 303 del {trimestre}T…", "Abre Modelos tributarios con el 303 de este trimestre marcado", Principal: true) };
+        if (trimestre == 4) opciones.Add(new("Presentar el 390…", "Abre Modelos tributarios con el resumen anual marcado"));
+        opciones.Add(new("Ahora no", "Cierra el mensaje", Cancelar: true));
+        var r = _dialogos.Preguntar("Liquidación grabada", $"El IVA del {trimestre}T está liquidado. ¿Quieres presentar ahora el 303?", null, [.. opciones]);
+        if (r == 0) abrir("303", $"{trimestre}T");
+        else if (trimestre == 4 && r == 1) abrir("390", "0A");
+    }
+
     private async Task ConfirmarAsync()
     {
         if (_propuesta is not { } p || _seleccion is not { } fila) return;
@@ -319,6 +336,7 @@ public sealed class LiquidacionIvaVM : ModeloVista, IPestanaTrabajo
             // Después de confirmar, el siguiente pendiente (o el mismo, si no queda ninguno).
             Ocupado = false;
             await CargarAsync();
+            OfrecerModelos(fila.Trimestre);
             return;
         }
         catch (Exception ex)

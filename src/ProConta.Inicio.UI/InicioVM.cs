@@ -40,6 +40,8 @@ public sealed record AccionesInicio(
     public Action<string>? AbrirParametros { get; init; }
     /// <summary>Ventas › Facturas programadas (agenda, fase 4).</summary>
     public Action? AbrirProgramadas { get; init; }
+    /// <summary>Contabilidad › Modelos tributarios con un periodo marcado (modelo y periodo), desde los plazos de la agenda y de la salud.</summary>
+    public Action<string?, string?>? AbrirModelosTributarios { get; init; }
     /// <summary>
     /// Botón del aviso «Comisiones sin compensar» (facturacion/reservas/compensacion-comision): compensa las pendientes tras confirmarlo;
     /// true si ha hecho algo y hay que volver a revisar la salud.

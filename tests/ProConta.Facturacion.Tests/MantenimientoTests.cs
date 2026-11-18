@@ -115,7 +115,7 @@ public sealed class MantenimientoAccessTests : IDisposable
         var empresa = (await Servicio().Proveedor("sociedades")!.ListarAsync(Ctx)).Single(r => r.Texto("IdSociedad") == "T01");
         Assert.Equal(("1130000", "5700000"), (empresa.Texto("Cuenta113ParaCuadres"), empresa.Texto("Cuenta570Tesoreria")));
         // Solo los campos que quedan en cada tabla (organizacion/sociedades-ejercicios 2026-11-13 20:55).
-        Assert.Equal(["IdSociedad", "Nombre", "CIF", "DireccionFiscal", "CodigoPostalFiscal", "PoblacionFiscal", "ProvinciaFiscal", "Telefono", "IbanDomiciliacion",
+        Assert.Equal(["IdSociedad", "Nombre", "CIF", "DireccionFiscal", "CodigoPostalFiscal", "PoblacionFiscal", "ProvinciaFiscal", "Telefono", "Cnae", "IbanDomiciliacion",
             "ValorNominalParticipacion", "Cuenta113ParaCuadres", "Cuenta570Tesoreria", "RutaDocumentos", "Logo"], Servicio().Proveedor("sociedades")!.Campos.Select(c => c.Clave).ToArray());
         Assert.Equal(new[] { "Ejercicio", "Nombre", "TrimestreActivo", "Activa", "EjercicioCerrado", "FormaPagoDefecto", "TipoIVAGeneral", "PorcentajeProrrataAñoAnterior",
             "CuentaSuplido", "CuentaRetencionServicios", "CuentaRetencionAlquileres", "CuentaIVAIntracomunitarioRepercutidoServicios", "CuentaIVAIntracomunitarioRepercutidoBienes",
@@ -139,7 +139,9 @@ public sealed class MantenimientoAccessTests : IDisposable
             // Umbral de los céntimos residuales (contabilidad/procesos/centimos-residuales, esquema 69).
             "UmbralCentimosResiduales",
             // Aplicación del resultado (contabilidad/procesos/aplicacion-resultado, esquema 70).
-            "CuentaReservaLegal", "CuentaResultadosNegativos" }.Order(),
+            "CuentaReservaLegal", "CuentaResultadosNegativos",
+            // Plantilla media y opción del 0,7 % del 200 (contabilidad/modelos-tributarios, esquema 72).
+            "PersonalFijo", "PersonalNoFijo", "OpcionFinesSociales" }.Order(),
             Servicio().Proveedor("ejercicios")!.Campos.Select(c => c.Clave).Order());
         await Bd.EjecutarAsync(x => x.EjecutarAsync("UPDATE SociedadesEjercicios SET CuentaSuplido = '5550002', PorcentajeProrrataAñoAnterior = 0.14 WHERE IdSociedadEjercicio = 9001"));
         var ejercicio = (await Servicio().Proveedor("ejercicios")!.ListarAsync(Ctx)).Single(r => r.Texto("Ejercicio") == "2026");

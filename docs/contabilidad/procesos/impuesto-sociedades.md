@@ -34,6 +34,7 @@ Proceso de cierre que calcula el Impuesto sobre Sociedades del ejercicio con el 
 - 2026-11-17 17:56 · Validado por el propietario (2026-11-17 17:56): la pantalla por pasos y el proceso quedan como están; el nodo pasa a estable.
 - 2026-11-18 05:30 · Cuentas siempre asignadas (organizacion/sociedades-ejercicios 2026-11-18 05:30): Las cinco cuentas del impuesto (gasto corriente, Hacienda acreedora y deudora, crédito por pérdidas e impuesto diferido) ya no tienen valor fijo cuando están vacías: con alguna vacía, la propuesta se detiene y pide asignarla en la pestaña Impuesto sobre Sociedades de Ejercicios. Hecho, pendiente de validar.
 - 2026-11-18 13:45 · Cada ajuste lleva su línea del 200 (columna «Línea del 200» de la tabla de ajustes; ImpuestosSociedadesAjustes.Linea200, esquema 72): «Exención art. 21» o «Otras correcciones». Al migrar y en los ajustes nuevos se propone con la regla de antes (exención si la descripción habla del art. 21 o de exención) y el operador la cambia si no es así; el 200 la lee de lo grabado en lugar de deducirla del texto.
+- 2026-11-18 15:10 · Al contabilizar el impuesto se ofrece «Abrir el 200…», que abre Modelos tributarios con el 200 del ejercicio marcado (contabilidad/modelos-tributarios 2026-11-18 15:10).
 
 ## Requirements
 - 2026-11-13 12:05 · draft: Proponer la cuota del Impuesto sobre Sociedades con el resultado y el tipo anual, y contabilizar el importe confirmado (6300 contra 4752 y 473) antes de la regularización.
@@ -60,3 +61,4 @@ Proceso de cierre que calcula el Impuesto sobre Sociedades del ejercicio con el 
 - 2026-11-18 05:30 · Derived from organizacion/sociedades-ejercicios: las cinco cuentas del impuesto (gasto corriente, Hacienda acreedora y deudora, crédito por pérdidas e impuesto diferido) ya no tienen valor fijo cuando están vacías: con alguna vacía, la propuesta se detiene y pide asignarla en la pestaña Impuesto sobre Sociedades de Ejercicios.
 - 2026-11-18 10:10 · Derived from contabilidad/modelos-tributarios/modelo-202: la cuota líquida y las retenciones deducidas (con su cuenta) del impuesto de cada ejercicio, y qué 473 son de pagos fraccionados (las del 202 en los datos fiscales importados), para la base del pago fraccionado del art. 40.2 LIS de los ejercicios siguientes.
 - 2026-11-18 13:45 · Derived from contabilidad/modelos-tributarios: la clave de línea del 200 en cada ajuste, con valor inicial según la regla de hoy.
+- 2026-11-18 15:10 · Derived from contabilidad/modelos-tributarios: al contabilizar el impuesto, ofrecer su modelo 200.

@@ -1,0 +1,59 @@
+<UserControl x:Class="ProConta.Contabilidad.UI.ModelosTributarios.PantallaCasillasModelo"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:pc="urn:proconta-ui"
+             Background="White">
+  <UserControl.Resources>
+    <pc:VisibleSiConverter x:Key="Visible" />
+    <Style x:Key="Fila.Total" TargetType="DataGridRow" BasedOn="{StaticResource Tabla.Fila}">
+      <Style.Triggers>
+        <DataTrigger Binding="{Binding Total}" Value="True">
+          <Setter Property="FontWeight" Value="SemiBold" />
+          <Setter Property="Background" Value="{StaticResource Pincel.Fondo}" />
+        </DataTrigger>
+      </Style.Triggers>
+    </Style>
+  </UserControl.Resources>
+  <DockPanel>
+    <Border DockPanel.Dock="Top" BorderBrush="{StaticResource Pincel.Linea}" BorderThickness="0,0,0,1" Padding="14,8">
+      <StackPanel Orientation="Horizontal">
+        <TextBlock Text="{Binding TituloDetalle}" Style="{StaticResource Texto.TituloPantalla}" VerticalAlignment="Center" Margin="0,0,12,0" />
+        <TextBlock Text="{Binding Subtitulo}" Style="{StaticResource Texto.Apagado}" VerticalAlignment="Center" />
+      </StackPanel>
+    </Border>
+    <DockPanel Margin="14,10,14,8">
+      <pc:Nota DockPanel.Dock="Top" Tipo="Error" Margin="0,0,0,8" MaxWidth="1000" HorizontalAlignment="Left" Visibility="{Binding HayBloqueos, Converter={StaticResource Visible}}">
+        <ItemsControl ItemsSource="{Binding Bloqueos}" Focusable="False">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate>
+              <TextBox Text="{Binding Mode=OneWay}" IsReadOnly="True" BorderThickness="0" Background="Transparent" TextWrapping="Wrap" Margin="0,1"
+                       ToolTip="Lo que impide presentar este periodo y cómo resolverlo (se puede seleccionar y copiar)" />
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+      </pc:Nota>
+      <pc:Nota DockPanel.Dock="Top" Tipo="Aviso" Margin="0,0,0,8" MaxWidth="1000" HorizontalAlignment="Left" Visibility="{Binding HayAvisos, Converter={StaticResource Visible}}">
+        <ItemsControl ItemsSource="{Binding Avisos}" Focusable="False">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate>
+              <TextBox Text="{Binding Mode=OneWay}" IsReadOnly="True" BorderThickness="0" Background="Transparent" TextWrapping="Wrap" Margin="0,1"
+                       ToolTip="Aviso para revisar antes de presentar (se puede seleccionar y copiar)" />
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+      </pc:Nota>
+      <TextBox DockPanel.Dock="Top" Text="{Binding Nota, Mode=OneWay}" IsReadOnly="True" BorderThickness="0" Background="Transparent" TextWrapping="Wrap" Margin="0,0,0,8"
+               Foreground="{StaticResource Pincel.Apagado}" Visibility="{Binding HayNota, Converter={StaticResource Visible}}" />
+      <TextBlock DockPanel.Dock="Top" Text="No hay casillas con importe en este periodo." Style="{StaticResource Texto.Apagado}" Visibility="{Binding SinCasillas, Converter={StaticResource Visible}}" />
+      <DataGrid Style="{StaticResource Tabla}" ItemsSource="{Binding Casillas}" IsReadOnly="True" AutoGenerateColumns="False" HeadersVisibility="Column" HorizontalAlignment="Left"
+                RowStyle="{StaticResource Fila.Total}" AutomationProperties.Name="Casillas del modelo"
+                ToolTip="Lo que calcula el programa: son las casillas (o los registros) del PDF de la AEAT">
+        <DataGrid.Columns>
+          <DataGridTextColumn Header="Casilla" Binding="{Binding Codigo}" Width="150" ElementStyle="{StaticResource Texto.Celda.Mono}" />
+          <DataGridTextColumn Header="Concepto" Binding="{Binding Concepto}" Width="560" ElementStyle="{StaticResource Texto.Celda}" />
+          <DataGridTextColumn Header="Importe" Binding="{Binding Importe}" Width="140" ElementStyle="{StaticResource Texto.Celda.Importe}" HeaderStyle="{StaticResource Tabla.Cabecera.Derecha}" />
+        </DataGrid.Columns>
+      </DataGrid>
+    </DockPanel>
+  </DockPanel>
+</UserControl>

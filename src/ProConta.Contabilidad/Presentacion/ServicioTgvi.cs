@@ -260,7 +260,9 @@ public sealed class ServicioTgvi(IBaseDatos bd, IClienteTgvi cliente, Func<strin
             p.IdSociedad, p.Modelo, (short)p.Ejercicio, p.Periodo, p.Entorno, p.FechaHora, Recortar(p.Csv, 16), Recortar(p.Expediente, 25), Recortar(p.Justificante, 13),
             Recortar(p.ComplementariaDe, 13), null, 0m, p.Resultado, Recortar(p.NifPresentador, 9), p.Presentador, p.Operador, fichero,
             $"{{\"idenvio\":\"{b.IdEnvio}\",\"correctos\":{b.Correctos},\"erroneos\":{b.Erroneos},\"presentacion\":{respuesta}}}", p.Avisos, Recortar(p.UrlPdf, 255), null);
-        return await s.UltimoIdAsync();
+        var id = await s.UltimoIdAsync();
+        await ServicioPresentacionAeat.MarcarOrigenProgramaAsync(s, id);
+        return id;
     });
 
     private async Task<string> RutaAsync(string idSociedad, DeclaracionInformativa d, EntornoAeat entorno)
