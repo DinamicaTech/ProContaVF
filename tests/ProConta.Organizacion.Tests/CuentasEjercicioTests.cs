@@ -64,16 +64,23 @@ public class CuentasEjercicioTests
     }
 
     [Fact]
-    public void NuncaCambiaUnaCuentaPuesta()
+    public void NuncaCambiaUnaCuentaPuestaPeroDaDeAltaLaQueNoExiste()
     {
         var p = AsignacionAutomatica.Proponer(Campos, Vacio(("CuentaHaciendaAcreedoraIva", "4750001"), ("CuentaSuplido", "5550000")), Plan);
-        Assert.DoesNotContain(p.Asignadas, a => a.Campo.Clave is "CuentaHaciendaAcreedoraIva" or "CuentaSuplido");
+        // La 5550000 existe: no se toca. La 4750001 no está en el plan: se da de alta con el mismo código (siempre materializadas).
+        Assert.DoesNotContain(p.Asignadas, a => a.Campo.Clave == "CuentaSuplido");
+        var alta = p.Asignadas.Single(a => a.Campo.Clave == "CuentaHaciendaAcreedoraIva");
+        Assert.Equal(("4750001", true, true), (alta.Codigo, alta.Crear, alta.YaPuesta));
         Assert.DoesNotContain(p.SinCandidato, a => a.Campo.Clave is "CuentaHaciendaAcreedoraIva" or "CuentaSuplido");
     }
 
     [Fact]
-    public void ConTodasPuestasNoHayNadaQueHacer() =>
-        Assert.True(AsignacionAutomatica.Proponer(Campos, Vacio([.. Campos.Select(c => (c.Clave, "1000000"))]), Plan).NadaQueHacer);
+    public void ConTodasPuestasYEnElPlanNoHayNadaQueHacer() =>
+        Assert.True(AsignacionAutomatica.Proponer(Campos, Vacio([.. Campos.Select(c => (c.Clave, "1000000"))]), [.. Plan, new("1000000", "Capital social")]).NadaQueHacer);
+
+    [Fact]
+    public void SinPlanLeidoNoProponeAltasDeLasPuestas() =>
+        Assert.True(AsignacionAutomatica.Proponer(Campos, Vacio([.. Campos.Select(c => (c.Clave, "1000000"))]), []).NadaQueHacer);
 
     [Fact]
     public void LasPalabrasNoDistinguenTildesNiMayusculas()

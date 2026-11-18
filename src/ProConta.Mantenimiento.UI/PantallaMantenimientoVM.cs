@@ -161,7 +161,7 @@ public sealed class CampoEdicionVM : ModeloVista, INotifyDataErrorInfo
     /// <summary>Estado de la cuenta en la tabla: Asignada, Sin asignar o No existe.</summary>
     public string EstadoCuenta => SinAsignar ? "Sin asignar" : NoEnPlan ? "No existe" : "Asignada";
     public string AyudaEstadoCuenta => SinAsignar ? "El proceso que usa esta cuenta se detendrá hasta que la asignes. «Auto» propone la habitual."
-        : NoEnPlan ? "El código no está en el plan de cuentas del ejercicio: elige otra o créala con la lupa."
+        : NoEnPlan ? "El código no está en el plan de cuentas del ejercicio: «Auto» la da de alta (o la trae del ejercicio en que ya existe), o elige otra con la lupa."
         : "La cuenta está asignada y existe en el plan del ejercicio.";
     public bool EstadoCorrecto => !SinAsignar && !NoEnPlan;
 
@@ -601,7 +601,7 @@ public sealed class PantallaMantenimientoVM : ModeloVista, IPestanaTrabajo
     public bool HayAuto => Cuentas is not null && Grupos.SelectMany(g => g.Campos).Any(c => c.EsCuenta && c.Definicion.TieneAsignacionAutomatica);
     public bool PuedeAuto => HayAuto && !SoloLectura && ContextoCuentas is not null;
     public string AyudaAuto => ContextoCuentas is null ? "Guarda primero el registro: sus cuentas se asignan en el plan de su ejercicio."
-        : "Asigna las cuentas vacías de todas las pestañas: la habitual de cada proceso (la crea si no existe) o la única subcuenta que encaja. " +
+        : "Asigna las cuentas vacías de todas las pestañas: la habitual de cada proceso (la crea si no existe) o la única subcuenta que encaja; y da de alta las puestas que no existen en el plan. " +
           "Las dudosas se quedan vacías. Antes de hacer nada enseña la propuesta.";
 
     private int _pestana;
@@ -629,20 +629,24 @@ public sealed class PantallaMantenimientoVM : ModeloVista, IPestanaTrabajo
         var propuesta = AsignacionAutomatica.Proponer(campos.Where(c => c.EsCuenta && !c.SoloLectura).Select(c => c.Definicion), _edicion, plan);
         if (propuesta.NadaQueHacer)
         {
-            _preguntar("Auto", "No hay cuentas vacías: «Auto» no tiene nada que hacer.", null, [new OpcionMensaje("Entendido", "Cierra el aviso", Principal: true, Cancelar: true)]);
+            _preguntar("Auto", "Todas las cuentas están asignadas y existen en el plan del ejercicio: «Auto» no tiene nada que hacer.", null, [new OpcionMensaje("Entendido", "Cierra el aviso", Principal: true, Cancelar: true)]);
             return;
         }
         string Ruta(CampoMantenimiento c) => $"{GrupoDe(c)} · {c.Etiqueta}";
         var detalle = new List<string>();
-        detalle.AddRange(propuesta.Asignadas.Where(a => !a.Crear).Select(a => $"{Ruta(a.Campo)} → {a.Codigo} {a.Nombre}"));
-        detalle.AddRange(propuesta.Asignadas.Where(a => a.Crear).Select(a => $"{Ruta(a.Campo)} → {a.Codigo} {a.Nombre} (se crea ahora en el plan)"));
+        // Primero lo que da de alta en el plan y lo que se queda vacío, que es lo que hay que mirar; el aviso solo enseña las primeras líneas.
+        detalle.AddRange(propuesta.Asignadas.Where(a => a.YaPuesta).Select(a => $"{Ruta(a.Campo)}: {a.Codigo} ya estaba puesta pero no existe en el plan; se da de alta"));
+        detalle.AddRange(propuesta.Asignadas.Where(a => a.Crear && !a.YaPuesta).Select(a => $"{Ruta(a.Campo)} → {a.Codigo} {a.Nombre} (se da de alta en el plan)"));
         detalle.AddRange(propuesta.SinCandidato.Select(d => $"{Ruta(d.Campo)}: se queda vacía, {d.Motivo}"));
+        detalle.AddRange(propuesta.Asignadas.Where(a => !a.Crear).Select(a => $"{Ruta(a.Campo)} → {a.Codigo} {a.Nombre}"));
         var crear = propuesta.Asignadas.Count(a => a.Crear);
+        var asignar = propuesta.Asignadas.Count(a => !a.YaPuesta);
         var mensaje = propuesta.Asignadas.Count == 0
             ? $"Ninguna cuenta vacía tiene un único candidato claro: {Formatos.Plural(propuesta.SinCandidato.Count, "se queda", "se quedan")} vacía{(propuesta.SinCandidato.Count == 1 ? "" : "s")}. Elígelas con la lupa."
-            : $"Asigno {Formatos.Plural(propuesta.Asignadas.Count, "cuenta", "cuentas")}" + (crear > 0 ? $" y creo {Formatos.Plural(crear, "subcuenta nueva", "subcuentas nuevas")} en el plan del ejercicio {ctx.Trabajo.Ejercicio}" : "") +
+            : (asignar > 0 ? $"Asigno {Formatos.Plural(asignar, "cuenta", "cuentas")}" + (crear > 0 ? " y " : "") : "") +
+              (crear > 0 ? $"{(asignar > 0 ? "doy" : "Doy")} de alta {Formatos.Plural(crear, "subcuenta", "subcuentas")} en el plan del ejercicio {ctx.Trabajo.Ejercicio} (si el código ya se usó en otro ejercicio, se trae esa misma cuenta)" : "") +
               (propuesta.SinCandidato.Count > 0 ? $"; {Formatos.Plural(propuesta.SinCandidato.Count, "cuenta se queda", "cuentas se quedan")} vacía{(propuesta.SinCandidato.Count == 1 ? "" : "s")} para elegirla a mano" : "") +
-              ". Los campos quedan pendientes de «Guardar».";
+              (asignar > 0 ? ". Los campos quedan pendientes de «Guardar»." : ".");
         if (propuesta.Asignadas.Count == 0)
         {
             _preguntar("Auto", mensaje, detalle, [new OpcionMensaje("Entendido", "Cierra el aviso", Principal: true, Cancelar: true)]);
@@ -658,16 +662,16 @@ public sealed class PantallaMantenimientoVM : ModeloVista, IPestanaTrabajo
             if (a.Crear && plan.All(p => p.Codigo != a.Codigo))
             {
                 var r = await Cuentas!.CrearSubcuentaAsync(ctx, a.Codigo, a.Nombre);
-                if (!r.EsCorrecto) { fallos.Add($"{Ruta(a.Campo)}: no he podido crear la {a.Codigo}. {r.Error!.TextoOperador()}"); continue; }
+                if (!r.EsCorrecto) { fallos.Add($"{Ruta(a.Campo)}: no he podido dar de alta la {a.Codigo}. {r.Error!.TextoOperador()}"); continue; }
                 plan = [.. plan, new CuentaPlan(a.Codigo, a.Nombre)];
             }
-            if (campos.FirstOrDefault(c => c.Definicion == a.Campo) is { } campo) { campo.Texto = a.Codigo; hechas++; }
+            if (!a.YaPuesta && campos.FirstOrDefault(c => c.Definicion == a.Campo) is { } campo) { campo.Texto = a.Codigo; hechas++; }
         }
         await RecargarPlanAsync();
         if (fallos.Count > 0)
-            _preguntar("Auto", $"He asignado {Formatos.Plural(hechas, "cuenta", "cuentas")}, pero {Formatos.Plural(fallos.Count, "una no se ha podido crear", "algunas no se han podido crear")}. Elígelas con la lupa.", fallos,
+            _preguntar("Auto", $"He asignado {Formatos.Plural(hechas, "cuenta", "cuentas")}, pero {(fallos.Count == 1 ? "una no se ha podido dar de alta" : $"{fallos.Count} no se han podido dar de alta")}. Elígelas con la lupa.", fallos,
                 [new OpcionMensaje("Entendido", "Cierra el aviso", Principal: true, Cancelar: true)]);
-        else _avisar($"Hecho: he asignado {Formatos.Plural(hechas, "cuenta", "cuentas")}{(crear > 0 ? $" y creado {Formatos.Plural(crear, "subcuenta", "subcuentas")}" : "")}. Guarda para conservarlas.");
+        else _avisar($"Hecho: he asignado {Formatos.Plural(hechas, "cuenta", "cuentas")}{(crear > 0 ? $" y dado de alta {Formatos.Plural(crear, "subcuenta", "subcuentas")}" : "")}.{(hechas > 0 ? " Guarda para conservarlas." : "")}");
     }
 
     private string GrupoDe(CampoMantenimiento c) => _proveedor?.Grupos.FirstOrDefault(g => g.Clave == c.Grupo)?.Titulo ?? "";

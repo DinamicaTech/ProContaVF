@@ -50,11 +50,15 @@ public class AutoCuentasMantenimientoTests
             new("5550002", "Suplidos con IVA"),
         ];
         public List<(int Ejercicio, string Codigo, string Nombre)> Creadas { get; } = [];
+        public string? Fallar { get; set; }
+        /// <summary>Textos de los avisos que enseña la pantalla.</summary>
+        public List<string> Mensajes { get; } = [];
         public ContextoMantenimiento? Pedido { get; private set; }
         public Task<string?> ElegirAsync(CampoMantenimiento campo, string? texto, ContextoMantenimiento contexto) { Pedido = contexto; return Task.FromResult<string?>(null); }
         public Task<IReadOnlyList<CuentaPlan>> SubcuentasAsync(ContextoMantenimiento contexto) => Task.FromResult<IReadOnlyList<CuentaPlan>>([.. Plan]);
         public Task<Resultado> CrearSubcuentaAsync(ContextoMantenimiento contexto, string codigo, string nombre)
         {
+            if (codigo == Fallar) return Task.FromResult(Resultado.Fallo(new Error("Cuentas.CodigoReservado", "Reservado.", $"Cuenta {codigo}")));
             Creadas.Add((contexto.Trabajo.Ejercicio, codigo, nombre));
             Plan.Add(new(codigo, nombre));
             return Task.FromResult(Resultado.Correcto());
@@ -66,7 +70,7 @@ public class AutoCuentasMantenimientoTests
         var selector = new Selector();
         var detalles = new List<IReadOnlyList<string>?>();
         var pantalla = new PantallaMantenimientoVM(new ServicioMantenimiento([new Proveedor()], () => Task.FromResult(true)), Ctx,
-            (_, _, detalle, _) => { detalles.Add(detalle); return 0; }, _ => { }, _ => new object()) { Cuentas = selector };
+            (_, mensaje, detalle, _) => { selector.Mensajes.Add(mensaje); detalles.Add(detalle); return 0; }, _ => { }, _ => new object()) { Cuentas = selector };
         await pantalla.IniciarAsync();
         await pantalla.RecargarPlanAsync();
         return (pantalla, selector, detalles);
@@ -104,6 +108,17 @@ public class AutoCuentasMantenimientoTests
         Assert.Equal("Hacienda Pública, deudora por IVA", Campo(p, "Deudora").NombreCuenta);
         Assert.True(p.TieneCambios);
         Assert.Equal(1, p.CuentasSinAsignar);
+    }
+
+    [Fact]
+    public async Task LoQueSeDaDeAltaVaPrimeroEnLaPropuestaYUnFalloSeExplicaBien()
+    {
+        var (p, s, detalles) = await AbrirAsync();
+        s.Fallar = "4700000";
+        await p.AutoAsync();
+        Assert.StartsWith("Dos · A compensar → 4700000", detalles[0]![0]);
+        Assert.Contains("pero una no se ha podido dar de alta", s.Mensajes[^1]);
+        Assert.Equal("", Campo(p, "Deudora").Texto);
     }
 
     [Fact]

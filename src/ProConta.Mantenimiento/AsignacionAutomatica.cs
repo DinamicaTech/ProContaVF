@@ -1,12 +1,15 @@
 namespace ProConta.Mantenimiento;
 
-/// <summary>Una cuenta que «Auto» rellena: la subcuenta y si hay que crearla porque aún no está en el plan.</summary>
-public sealed record CuentaAsignada(CampoMantenimiento Campo, string Codigo, string Nombre, bool Crear);
+/// <summary>
+/// Una cuenta que «Auto» rellena: la subcuenta y si hay que darla de alta porque aún no está en el plan. <paramref name="YaPuesta"/>: el campo
+/// ya tenía ese código pero la subcuenta no existe en el plan del ejercicio; «Auto» solo la da de alta, sin cambiar el código.
+/// </summary>
+public sealed record CuentaAsignada(CampoMantenimiento Campo, string Codigo, string Nombre, bool Crear, bool YaPuesta = false);
 
 /// <summary>Una cuenta vacía que «Auto» deja como está porque no tiene un único candidato claro, con el motivo.</summary>
 public sealed record CuentaSinCandidato(CampoMantenimiento Campo, string Motivo);
 
-/// <summary>Lo que hará «Auto» con las cuentas vacías del registro.</summary>
+/// <summary>Lo que hará «Auto» con las cuentas vacías del registro y con las puestas que no existen en el plan.</summary>
 public sealed record PropuestaAsignacion(IReadOnlyList<CuentaAsignada> Asignadas, IReadOnlyList<CuentaSinCandidato> SinCandidato)
 {
     public bool NadaQueHacer => Asignadas.Count == 0 && SinCandidato.Count == 0;
@@ -14,7 +17,8 @@ public sealed record PropuestaAsignacion(IReadOnlyList<CuentaAsignada> Asignadas
 
 /// <summary>
 /// Botón «Auto» de la pantalla de mantenimiento (plataforma/mantenimiento 2026-11-18, propietario 2026-11-18 04:59): asigna las cuentas
-/// vacías del registro y crea la subcuenta si hace falta, pero solo cuando hay un único candidato claro. Nunca cambia una cuenta ya puesta.
+/// vacías del registro y crea la subcuenta si hace falta, pero solo cuando hay un único candidato claro. Nunca cambia una cuenta ya puesta;
+/// si la puesta no existe en el plan del ejercicio, la da de alta con el mismo código (cuentas siempre materializadas, propietario 2026-11-18 05:10).
 /// <list type="bullet">
 /// <item>Con cuenta habitual (<see cref="CampoMantenimiento.CuentaHabitual"/>): es el candidato; si no está en el plan, se crea con su nombre.</item>
 /// <item>Sin ella: la única subcuenta de los grupos del campo cuyo nombre cumple <see cref="CampoMantenimiento.PalabrasCuenta"/>;
@@ -27,8 +31,15 @@ public static class AsignacionAutomatica
     {
         var asignadas = new List<CuentaAsignada>();
         var dudosas = new List<CuentaSinCandidato>();
-        foreach (var c in campos.Where(c => c.TieneAsignacionAutomatica && !c.SoloLectura && registro.Texto(c.Clave) is null))
+        foreach (var c in campos.Where(c => c.TieneAsignacionAutomatica && !c.SoloLectura))
         {
+            if (registro.Texto(c.Clave) is string puesta)
+            {
+                // Con el plan sin leer no se sabe si existe: no se propone nada.
+                if (plan.Count > 0 && plan.All(p => p.Codigo != puesta.Trim()))
+                    asignadas.Add(new CuentaAsignada(c, puesta.Trim(), puesta.Trim() == c.CuentaHabitual ? c.NombreCuentaHabitual ?? c.Etiqueta : c.Etiqueta, true, YaPuesta: true));
+                continue;
+            }
             if (c.CuentaHabitual is string habitual)
             {
                 var existente = plan.FirstOrDefault(p => p.Codigo == habitual);

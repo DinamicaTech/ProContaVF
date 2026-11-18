@@ -60,6 +60,24 @@ public sealed class CuentasAccessTests : IDisposable
     }
 
     [Fact]
+    public async Task AltaOTraerTraeLaCuentaDeOtroEjercicioSiSuCodigoEstaReservado()
+    {
+        // «Auto» de Ejercicios (ensayo del 2026-11-18): la 4009000 de 2025 no se podía dar de alta otra vez en 2026.
+        await PrepararAsync();
+        var catalogo = new CatalogoCuentasAccess(_copia.Bd());
+        await catalogo.AltaAsync(_c2025, new AltaCuenta("400", "Proveedores", EsImputable: false));
+        await catalogo.AltaAsync(_c2026, new AltaCuenta("400", "Proveedores", EsImputable: false));
+        var en2025 = await catalogo.AltaSubcuentaAsync(_c2025, "4009000", "Proveedores, facturas pendientes de recibir");
+        Assert.Equal("Cuentas.CodigoReservado", (await catalogo.AltaSubcuentaAsync(_c2026, "4009000", "Otro nombre")).Error!.Codigo);
+        var traida = await catalogo.AltaOTraerSubcuentaAsync(_c2026, "4009000", "Otro nombre");
+        Assert.True(traida.EsCorrecto, traida.Error?.ToString());
+        Assert.Equal((en2025.Valor.IdIdentidadContable, "Proveedores, facturas pendientes de recibir"), (traida.Valor.IdIdentidadContable, traida.Valor.Nombre));
+        Assert.Equal((await catalogo.ResolverAsync(_c2026, "400")).Valor.IdCuentaContable, (await catalogo.ResolverAsync(_c2026, "4009000")).Valor.IdCuentaPadre);
+        // Un código libre se da de alta con el nombre propuesto.
+        Assert.Equal("Nueva", (await catalogo.AltaOTraerSubcuentaAsync(_c2026, "4009001", "Nueva")).Valor.Nombre);
+    }
+
+    [Fact]
     public async Task LaSubcuentaGuardaSuDescripcionYElSiguienteCodigoSaltaLosReservados()
     {
         await PrepararAsync();

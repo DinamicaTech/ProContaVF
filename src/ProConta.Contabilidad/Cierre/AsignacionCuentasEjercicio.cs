@@ -28,7 +28,8 @@ public sealed class AsignacionCuentasEjercicio(IBaseDatos bd, ICatalogoCuentas c
         var hecho = new List<string>();
         foreach (var a in propuesta.Asignadas)
         {
-            if (a.Crear && !(await cuentas.AltaSubcuentaAsync(ctx, a.Codigo, a.Nombre)).EsCorrecto) continue;
+            if (a.Crear && !(await cuentas.AltaOTraerSubcuentaAsync(ctx, a.Codigo, a.Nombre)).EsCorrecto) continue;
+            if (a.YaPuesta) { hecho.Add($"{CuentasEjercicio.De(a.Campo.Clave).TituloPestana} · {CuentasEjercicio.De(a.Campo.Clave).Etiqueta}: {a.Codigo} dada de alta"); continue; }
             await bd.EjecutarAsync(s => s.EjecutarAsync($"UPDATE SociedadesEjercicios SET {a.Campo.Clave} = ? WHERE IdSociedadEjercicio = ?", a.Codigo, ctx.IdSociedadEjercicio));
             var c = CuentasEjercicio.De(a.Campo.Clave);
             hecho.Add(string.Create(CultureInfo.InvariantCulture, $"{c.TituloPestana} · {c.Etiqueta} → {a.Codigo}{(a.Crear ? " (creada)" : "")}"));

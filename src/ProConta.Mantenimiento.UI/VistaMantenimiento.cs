@@ -346,7 +346,7 @@ public sealed class VistaMantenimiento : UserControl
         TabControl? pestanas = null;
         if (_vm.UsaPestanas)
         {
-            pestanas = new TabControl { Margin = new Thickness(0, 6, 0, 0), BorderThickness = new Thickness(0, 1, 0, 0) };
+            pestanas = new TabControl { Margin = new Thickness(0, 6, 0, 0), BorderThickness = new Thickness(0, 1, 0, 0), Template = PlantillaPestanas() };
             _editor.Children.Add(pestanas);
         }
         foreach (var g in _vm.Grupos)
@@ -370,6 +370,16 @@ public sealed class VistaMantenimiento : UserControl
         }
         if (_vm.CampoEnfocado is string enfocar && _controles.TryGetValue(enfocar, out var ctl)) Dispatcher.BeginInvoke(DispatcherPriority.Input, () => ctl.Focus());
     }
+
+    /// <summary>
+    /// Como la del tema, pero los rótulos pasan a otra fila si no caben: con el contador «(n)» la última pestaña se cortaba en un panel
+    /// estrecho (ensayo del 2026-11-18).
+    /// </summary>
+    private static ControlTemplate PlantillaPestanas() => (ControlTemplate)System.Windows.Markup.XamlReader.Parse(
+        "<ControlTemplate TargetType=\"TabControl\" xmlns=\"http://schemas.microsoft.com/winfx/2006/xaml/presentation\">" +
+        "<DockPanel><Border DockPanel.Dock=\"Top\" BorderBrush=\"{DynamicResource Pincel.Linea}\" BorderThickness=\"0,0,0,1\">" +
+        "<WrapPanel IsItemsHost=\"True\" Margin=\"0\" /></Border>" +
+        "<ContentPresenter ContentSource=\"SelectedContent\" Margin=\"{TemplateBinding Padding}\" /></DockPanel></ControlTemplate>");
 
     private static string RotuloPestana(GrupoEdicion g) => g.CuentasSinAsignar > 0 ? $"{g.Titulo} ({g.CuentasSinAsignar})" : g.Titulo;
     private static string AyudaPestana(GrupoEdicion g) => g.CuentasSinAsignar > 0
@@ -419,10 +429,12 @@ public sealed class VistaMantenimiento : UserControl
     private FrameworkElement TablaCuentas(IReadOnlyList<CampoEdicionVM> cuentas)
     {
         var grid = new Grid { Margin = new Thickness(0, 4, 0, 8) };
-        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto, MinWidth = 200 });
-        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(150) });
-        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star), MinWidth = 160 });
-        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        // Concepto con ancho fijo (igual en todas las pestañas, en dos líneas si hace falta), Estado con el ancho de su pastilla más larga
+        // y Nombre con todo lo que sobra: así el estado nunca se corta en un panel estrecho (ensayo del 2026-11-18).
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(210) });
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(140) });
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star), MinWidth = 60 });
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(92) });
         var fila = 0;
         void Fila(UIElement e, int columna, int span = 1)
         {
@@ -483,7 +495,7 @@ public sealed class VistaMantenimiento : UserControl
     /// <summary>Etiqueta de la cuenta: tooltip con la ayuda y, al hacer clic, la explicación detallada (propietario 2026-11-18 05:13).</summary>
     private FrameworkElement Concepto(CampoEdicionVM c)
     {
-        var texto = new TextBlock { Text = c.Definicion.Etiqueta, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 16, 0), TextWrapping = TextWrapping.Wrap, MaxWidth = 300, DataContext = c };
+        var texto = new TextBlock { Text = c.Definicion.Etiqueta, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 2, 12, 2), TextWrapping = TextWrapping.Wrap, DataContext = c };
         texto.SetBinding(ToolTipProperty, nameof(CampoEdicionVM.AyudaEtiqueta));
         if (c.TieneExplicacion) HacerExplicable(texto, c);
         return texto;
@@ -498,11 +510,16 @@ public sealed class VistaMantenimiento : UserControl
 
     private void MostrarExplicacion(FrameworkElement destino, CampoEdicionVM c)
     {
+        // El Popup no está en el árbol de la ventana: no hereda letra ni color, así que se fijan aquí (ensayo del 2026-11-18).
         var panel = new StackPanel { MaxWidth = 520 };
+        TextElement.SetFontFamily(panel, (FontFamily)FindResource("Fuente.Texto"));
+        TextElement.SetFontSize(panel, (double)FindResource("Letra.Normal"));
+        TextElement.SetFontWeight(panel, FontWeights.Normal);
+        TextElement.SetForeground(panel, (Brush)FindResource("Pincel.Tinta"));
         panel.Children.Add(new TextBlock { Text = c.Definicion.Etiqueta, Style = (Style)FindResource("Texto.Titulo"), TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 0, 0, 6) });
         foreach (var a in c.Explicacion)
         {
-            panel.Children.Add(new TextBlock { Text = a.Titulo, FontWeight = FontWeights.SemiBold, Foreground = (Brush)FindResource("Pincel.Texto2"), Margin = new Thickness(0, 8, 0, 2) });
+            panel.Children.Add(new TextBlock { Text = a.Titulo.ToUpperInvariant(), FontSize = (double)FindResource("Letra.Pequena"), FontWeight = FontWeights.SemiBold, Foreground = (Brush)FindResource("Pincel.Texto2"), Margin = new Thickness(0, 10, 0, 2) });
             panel.Children.Add(new TextBlock { Text = a.Texto, TextWrapping = TextWrapping.Wrap });
         }
         var popup = new System.Windows.Controls.Primitives.Popup
@@ -523,7 +540,7 @@ public sealed class VistaMantenimiento : UserControl
     {
         var t = new TextBlock { FontSize = (double)FindResource("Letra.Pequena"), FontWeight = FontWeights.SemiBold };
         t.SetBinding(TextBlock.TextProperty, nameof(CampoEdicionVM.EstadoCuenta));
-        var b = new Border { CornerRadius = (CornerRadius)FindResource("Radio.Pastilla"), Padding = new Thickness(8, 1, 8, 1), VerticalAlignment = VerticalAlignment.Center, Child = t, DataContext = c };
+        var b = new Border { CornerRadius = (CornerRadius)FindResource("Radio.Pastilla"), Padding = new Thickness(8, 1, 8, 1), VerticalAlignment = VerticalAlignment.Center, HorizontalAlignment = HorizontalAlignment.Left, Child = t, DataContext = c };
         b.SetBinding(ToolTipProperty, nameof(CampoEdicionVM.AyudaEstadoCuenta));
         var estilo = new Style(typeof(Border));
         estilo.Setters.Add(new Setter(Border.BackgroundProperty, FindResource("Pincel.VerdeSuave")));
