@@ -64,6 +64,12 @@ public sealed record OpcionCampo(object? Valor, string Texto);
 
 public sealed record GrupoCampos(string Clave, string Titulo);
 
+/// <summary>
+/// Apartado de la explicación de un campo (plataforma/mantenimiento 2026-11-18): la ventana que se abre al hacer clic en su etiqueta,
+/// más extensa y ordenada que la ayuda del tooltip.
+/// </summary>
+public sealed record ApartadoExplicacion(string Titulo, string Texto);
+
 /// <summary>Metadatos de un campo: cómo se edita, se valida y dónde se coloca.</summary>
 public sealed record CampoMantenimiento(string Clave, string Etiqueta, TipoCampo Tipo = TipoCampo.Texto)
 {
@@ -92,6 +98,32 @@ public sealed record CampoMantenimiento(string Clave, string Etiqueta, TipoCampo
     public bool SoloSubcuentas { get; init; } = true;
     /// <summary>Solo en <see cref="TipoCampo.Referencia"/>: clave del mantenimiento 1:N al que apunta (por ejemplo «formaspago»).</summary>
     public string? Referencia { get; init; }
+
+    /// <summary>
+    /// Rótulo dentro del grupo bajo el que se agrupa el campo (por ejemplo «Liquidación» dentro de «IVA»); en la tabla de cuentas es
+    /// una fila de cabecera (plataforma/mantenimiento 2026-11-18).
+    /// </summary>
+    public string? Subgrupo { get; init; }
+
+    /// <summary>Explicación detallada que se abre al hacer clic en la etiqueta; vacía, la etiqueta solo tiene su tooltip.</summary>
+    public IReadOnlyList<ApartadoExplicacion> Explicacion { get; init; } = [];
+
+    /// <summary>
+    /// Solo en <see cref="TipoCampo.Cuenta"/>: la subcuenta que propone «Auto» (por ejemplo 4750000); si no existe en el plan, «Auto» la
+    /// crea con <see cref="NombreCuentaHabitual"/>. Null: «Auto» busca por <see cref="PalabrasCuenta"/>.
+    /// </summary>
+    public string? CuentaHabitual { get; init; }
+    public string? NombreCuentaHabitual { get; init; }
+
+    /// <summary>
+    /// Solo en <see cref="TipoCampo.Cuenta"/> sin cuenta habitual: lo que debe decir el nombre de la subcuenta para que «Auto» la
+    /// proponga. Cada lista es una condición y basta con una de sus palabras (sin tildes ni mayúsculas); por ejemplo
+    /// [["intracomunitari"], ["servicio"]]. Vacía: «Auto» no propone nada para el campo.
+    /// </summary>
+    public IReadOnlyList<IReadOnlyList<string>> PalabrasCuenta { get; init; } = [];
+
+    /// <summary>«Auto» sabe proponer una subcuenta para este campo.</summary>
+    public bool TieneAsignacionAutomatica => Tipo == TipoCampo.Cuenta && (CuentaHabitual is not null || PalabrasCuenta.Count > 0);
 }
 
 /// <summary>Columna de la lista de registros.</summary>
@@ -123,7 +155,17 @@ public interface ISelectorCuentas
 {
     /// <summary>Abre el buscador (con «Crear subcuenta») y devuelve el código elegido o creado; null si se cancela.</summary>
     Task<string?> ElegirAsync(CampoMantenimiento campo, string? texto, ContextoMantenimiento contexto);
+
+    /// <summary>Subcuentas del ejercicio de <paramref name="contexto"/>, con su nombre (para mostrarlo junto al código y para «Auto»).</summary>
+    Task<IReadOnlyList<CuentaPlan>> SubcuentasAsync(ContextoMantenimiento contexto) => Task.FromResult<IReadOnlyList<CuentaPlan>>([]);
+
+    /// <summary>Da de alta una subcuenta en el ejercicio de <paramref name="contexto"/> (la usa «Auto»).</summary>
+    Task<Resultado> CrearSubcuentaAsync(ContextoMantenimiento contexto, string codigo, string nombre) =>
+        Task.FromResult(Resultado.Fallo(new Error("Mantenimiento.SinAltaCuentas", "Este buscador no da de alta subcuentas.", $"Cuenta {codigo}")));
 }
+
+/// <summary>Subcuenta del plan del ejercicio.</summary>
+public sealed record CuentaPlan(string Codigo, string Nombre);
 
 /// <summary>
 /// Registro que edita la pantalla: valores por clave de campo, más lo que el proveedor bloquea y por qué (por ejemplo,
@@ -229,6 +271,12 @@ public interface IProveedorMantenimiento
 
     string TituloRegistro(RegistroMantenimiento registro);
     string? SubtituloRegistro(RegistroMantenimiento registro);
+
+    /// <summary>
+    /// Ejercicio en cuyo plan se eligen y se crean las cuentas del registro: por defecto el de trabajo; en Ejercicios, el propio
+    /// registro (plataforma/mantenimiento 2026-11-18). Null: el registro aún no tiene plan (nuevo sin guardar).
+    /// </summary>
+    ContextoSociedadEjercicio? EjercicioDeCuentas(RegistroMantenimiento registro, ContextoMantenimiento contexto) => contexto.Trabajo;
 }
 
 /// <summary>Valores por defecto y validación genérica (obligatorio, longitud, número, rango, email).</summary>
@@ -272,6 +320,8 @@ public abstract class ProveedorBase : IProveedorMantenimiento
         r.EsNuevo ? $"Nuevo {NombreRegistro}" : r.Texto(Columnas.FirstOrDefault()?.Clave ?? "") ?? $"{NombreRegistro} {r.Clave}";
 
     public virtual string? SubtituloRegistro(RegistroMantenimiento r) => null;
+
+    public virtual ContextoSociedadEjercicio? EjercicioDeCuentas(RegistroMantenimiento registro, ContextoMantenimiento contexto) => contexto.Trabajo;
 }
 
 public static class ValidacionGenerica

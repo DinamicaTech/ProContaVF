@@ -80,6 +80,14 @@ public interface ICatalogoCuentas
         Task.FromResult(Resultado<CuentaContable>.Fallo(new Error("Cuentas.NoDisponible", "Este catálogo no da de alta subcuentas.", $"Cuenta {codigo}")));
 
     /// <summary>
+    /// Como <see cref="AltaSubcuentaAsync(ContextoSociedadEjercicio, string, string)"/>, pero si el código ya se usó en otro ejercicio de la
+    /// sociedad (está reservado para una cuenta), trae al ejercicio esa misma cuenta con su nombre en lugar de fallar: un código reservado
+    /// es siempre la misma cuenta. Lo usa «Auto» de Parámetros › Ejercicios (plataforma/mantenimiento 2026-11-18).
+    /// </summary>
+    Task<Resultado<CuentaContable>> AltaOTraerSubcuentaAsync(ContextoSociedadEjercicio contexto, string codigo, string nombre) =>
+        AltaSubcuentaAsync(contexto, codigo, nombre);
+
+    /// <summary>
     /// Cambia el código de una cuenta (en todos los ejercicios de su identidad) a <paramref name="nuevoCodigo"/>, solo si
     /// no tiene ningún apunte en ninguno: así una 410 que pasa a 400 antes de su primer asiento no deja una subcuenta sin
     /// usar (propietario 2026-11-07 11:59). Mueve la reserva del código y cuelga la cuenta de su nuevo padre.
@@ -250,6 +258,24 @@ public sealed class CatalogoCuentasAccess(IBaseDatos bd) : ICatalogoCuentas
         var limpio = (codigo ?? "").Trim();
         var padre = limpio.Length == 0 ? null : await bd.EjecutarAsync(s => PadrePorPrefijoAsync(s, contexto.IdSociedadEjercicio, limpio));
         return await AltaAsync(contexto, new AltaCuenta(limpio, nombre, padre));
+    }
+
+    public async Task<Resultado<CuentaContable>> AltaOTraerSubcuentaAsync(ContextoSociedadEjercicio contexto, string codigo, string nombre)
+    {
+        var limpio = (codigo ?? "").Trim();
+        var reservada = limpio.Length == 0 ? null : await bd.EjecutarAsync(s => s.ConsultarPrimeroAsync(
+            "SELECT IdIdentidadContable FROM CodigosContablesReservados WHERE IdSociedad = ? AND Codigo = ?", f => (int?)f.Entero("IdIdentidadContable"), contexto.IdSociedad, limpio));
+        if (reservada is not int identidad) return await AltaSubcuentaAsync(contexto, limpio, nombre);
+        var traida = await AltaEnEjercicioAsync(contexto, identidad, limpio);
+        if (!traida.EsCorrecto) return traida;
+        // Colgada de su cuenta padre del ejercicio, como las que se dan de alta (AltaEnEjercicioAsync la deja sin padre).
+        var padre = await bd.EjecutarAsync(s => PadrePorPrefijoAsync(s, contexto.IdSociedadEjercicio, limpio));
+        if (padre is int idPadre)
+        {
+            await bd.EjecutarAsync(s => s.EjecutarAsync("UPDATE CuentasContables SET IdCuentaPadre = ? WHERE IdCuentaContable = ?", idPadre, traida.Valor.IdCuentaContable));
+            return Resultado<CuentaContable>.Correcto(traida.Valor with { IdCuentaPadre = idPadre });
+        }
+        return traida;
     }
 
     public async Task<Resultado<CuentaContable>> AltaSubcuentaAsync(ContextoSociedadEjercicio contexto, AltaCuenta alta)

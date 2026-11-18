@@ -5,6 +5,7 @@ using ProConta.Datos.Persistencia;
 using ProConta.Nucleo.Auditoria;
 using ProConta.Nucleo.Contexto;
 using ProConta.Nucleo.Resultados;
+using ProConta.Organizacion.Mantenimiento;
 
 namespace ProConta.Contabilidad.Centimos;
 
@@ -98,6 +99,9 @@ public sealed class ServicioCentimos(IBaseDatos bd, IMotorAsientos motor, ICatal
     public async Task<Resultado<ConfirmacionCentimos>> ConfirmarAsync(ContextoSociedadEjercicio ctx, IReadOnlySet<string> excluidas, string? motivo, Actor actor,
         PropuestaCentimos? vista = null)
     {
+        // Sin cuenta por defecto implícita: si falta alguna del ejercicio, el proceso se detiene y dice dónde asignarla (organizacion/sociedades-ejercicios 2026-11-18).
+        if (await bd.EjecutarAsync(s => CuentasEjercicio.FaltanAsync(s, ctx.IdSociedadEjercicio, "CuentaRedondeoGastos", "CuentaRedondeoIngresos")) is { } faltaCuenta)
+            return Resultado<ConfirmacionCentimos>.Fallo(faltaCuenta);
         Resultado<ConfirmacionCentimos> Fallo(Error e) => Resultado<ConfirmacionCentimos>.Fallo(e);
         var registro = CalculoCentimos.Descripcion(ctx.Ejercicio);
         if (puede is not null && !await puede())

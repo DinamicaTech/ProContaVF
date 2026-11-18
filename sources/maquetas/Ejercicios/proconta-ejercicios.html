@@ -1,0 +1,460 @@
+<title>Ficha de Ejercicios</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;700&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* Maqueta de ProContaVF: Parámetros y tablas › Ejercicios (nodos plataforma/mantenimiento y organizacion/sociedades-ejercicios).
+   Datos ficticios. Tokens de las maquetas del Diario y del Cierre.
+   Composición: lista de ejercicios a la izquierda, ficha a la derecha con pestañas por proceso; en cada pestaña, parámetros arriba y cuentas en tabla. */
+:root{
+  --navy:#14213A;--navy2:#22314F;--navy3:#1B2A47;--ink:#16213A;--mut:#646A78;--txt2:#3B4252;
+  --or:#F4A259;--or2:#D9622B;--bg:#F1EEE7;--bg2:#FBFAF7;--card:#FFFFFF;--ln:#ECE8DE;--ln2:#F3F0E9;
+  --inb:#E4E1D8;--inbg:#FAF9F6;--blue:#1D5C8C;--blueb:#E3ECF6;--green:#1E6B45;--greenb:#E2F0E8;--red:#B42318;--redb:#FDF1EF;
+  --amb:#8A4410;--ambb:#FFEBD6;--sel:#FFF4E8;--shadow:rgba(20,33,58,.18);--onnavy:#FFFFFF;--onnavy2:#C9CED8;
+  --f-ui:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;--f-mono:"IBM Plex Mono",ui-monospace,Consolas,monospace;
+  --f-disp:"Bricolage Grotesque","IBM Plex Sans",system-ui,sans-serif;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --navy:#0E1626;--navy2:#1E2B45;--navy3:#141F35;--ink:#E7EAF0;--mut:#9AA2B2;--txt2:#C4CAD6;
+  --bg:#12161F;--bg2:#181D28;--card:#1B212D;--ln:#2A3242;--ln2:#232A38;--inb:#36405A;--inbg:#161B26;
+  --blue:#8DB8E6;--blueb:#1E3150;--green:#7FCBA0;--greenb:#173727;--red:#F2958B;--redb:#3D1D1A;--amb:#F2B77A;--ambb:#3B2A16;--sel:#2C2418;--shadow:rgba(0,0,0,.5);
+  color-scheme:dark}}
+:root[data-theme="dark"]{
+  --navy:#0E1626;--navy2:#1E2B45;--navy3:#141F35;--ink:#E7EAF0;--mut:#9AA2B2;--txt2:#C4CAD6;
+  --bg:#12161F;--bg2:#181D28;--card:#1B212D;--ln:#2A3242;--ln2:#232A38;--inb:#36405A;--inbg:#161B26;
+  --blue:#8DB8E6;--blueb:#1E3150;--green:#7FCBA0;--greenb:#173727;--red:#F2958B;--redb:#3D1D1A;--amb:#F2B77A;--ambb:#3B2A16;--sel:#2C2418;--shadow:rgba(0,0,0,.5);
+  color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font:14px/1.45 var(--f-ui)}
+button,input,select{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--or2);outline-offset:1px}
+.top{background:var(--navy);color:var(--onnavy);display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding-block:10px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.logo{font:700 17px var(--f-disp);display:flex;gap:8px;align-items:center}
+.logo i{width:20px;height:20px;border-radius:5px;background:var(--or);display:inline-block}
+.ctx{border:1px solid var(--navy2);border-radius:6px;padding:3px 10px;font-size:13px;color:var(--onnavy2)}
+.top .op{margin-left:auto;font-size:13px;color:var(--onnavy2)}
+.ctabs{background:var(--navy3);display:flex;gap:2px;overflow-x:auto;padding-top:6px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.ctab{background:transparent;border:0;color:var(--onnavy2);padding:7px 14px;border-radius:7px 7px 0 0;white-space:nowrap;font-size:13.5px}
+.ctab[aria-selected=true]{background:var(--bg);color:var(--ink);font-weight:600}
+main{display:grid;grid-template-columns:220px minmax(0,1fr);gap:12px;align-items:start;max-width:1320px;padding-block:16px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+@media (max-width:820px){main{grid-template-columns:minmax(0,1fr)}}
+.card{background:var(--card);border:1px solid var(--ln);border-radius:10px;min-width:0}
+.list header{padding:10px 12px;border-bottom:1px solid var(--ln);display:flex;align-items:center;gap:8px}
+.list h2{font:600 14px var(--f-ui);margin:0}
+.list ul{list-style:none;margin:0;padding:4px}
+.list li button{width:100%;text-align:left;background:none;border:0;border-radius:7px;padding:8px 10px;cursor:pointer;display:flex;gap:8px;align-items:center}
+.list li button[aria-current=true]{background:var(--sel);font-weight:600}
+.list li .y{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+.list li .pill{margin-left:auto}
+.ed>header{display:flex;align-items:flex-start;gap:12px;padding:12px 16px;border-bottom:1px solid var(--ln);flex-wrap:wrap}
+.ed h1{font:600 19px var(--f-disp);margin:0;text-wrap:balance}
+.ed .sub{color:var(--mut);font-size:13px}
+.ed>header .sp{margin-left:auto}
+.btn{border:1px solid var(--inb);background:var(--card);border-radius:7px;padding:6px 12px;cursor:pointer;font-weight:500;font-size:13.5px;white-space:nowrap}
+.btn.pri{background:var(--navy);color:var(--onnavy);border-color:var(--navy)}
+.btn.auto{border-color:var(--or2);color:var(--or2);font-weight:600}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.icon{border:1px solid transparent;background:none;border-radius:6px;width:28px;height:28px;cursor:pointer;color:var(--mut);display:inline-grid;place-items:center}
+.icon:hover{border-color:var(--inb);color:var(--ink)}
+.icon:disabled{opacity:.3;cursor:not-allowed}
+.tabs{display:flex;gap:4px;padding:8px 12px 0;border-bottom:1px solid var(--ln);overflow-x:auto}
+.tab{border:0;background:none;padding:8px 12px;border-bottom:2px solid transparent;cursor:pointer;white-space:nowrap;color:var(--txt2);display:flex;gap:6px;align-items:center}
+.tab[aria-selected=true]{border-bottom-color:var(--or2);color:var(--ink);font-weight:600}
+.badge{font:600 11px var(--f-mono);background:var(--ambb);color:var(--amb);border-radius:999px;padding:0 6px}
+.panel{padding:14px 16px;display:flex;flex-direction:column;gap:16px}
+.banner{background:var(--blueb);color:var(--blue);border-radius:8px;padding:8px 12px;font-size:13px}
+.sec h3{font:600 12px var(--f-ui);letter-spacing:.04em;color:var(--mut);margin:0 0 8px;text-transform:uppercase}
+.fields{display:flex;flex-wrap:wrap;gap:12px 18px;align-items:flex-end}
+.f{display:flex;flex-direction:column;gap:4px;min-width:0}
+.f label{font-size:12.5px;color:var(--txt2)}
+.f input,.f select,.ref{border:1px solid var(--inb);background:var(--inbg);border-radius:6px;padding:5px 8px;height:32px;min-width:0;max-width:100%}
+.f input.num{text-align:right;font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+.ref{display:flex;align-items:center;gap:6px;cursor:pointer;justify-content:space-between}
+.chk{flex-direction:row;align-items:center;gap:6px;height:32px}
+.w-xs{width:96px}.w-s{width:170px}.w-m{width:280px}.w-l{width:440px}
+.tw{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:13px}
+th{font-weight:600;color:var(--mut);text-align:left;padding:6px 8px;border-bottom:1px solid var(--ln);font-size:12px;white-space:nowrap}
+td{padding:4px 8px;border-bottom:1px solid var(--ln2);vertical-align:middle}
+tr.grp td{background:var(--bg2);font-weight:600;font-size:12.5px;color:var(--txt2);padding:6px 8px}
+td.con{min-width:200px}
+td.con span{border-bottom:1px dotted var(--mut);cursor:help}
+.cta{display:flex;align-items:center;gap:8px;border:1px solid var(--inb);background:var(--inbg);border-radius:6px;padding:3px 4px 3px 8px;min-height:32px;cursor:pointer;min-width:320px}
+.cta:hover{border-color:var(--mut)}
+.cta .c{font:500 12.5px var(--f-mono);font-variant-numeric:tabular-nums;min-width:62px}
+.cta .n{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cta.empty .c,.cta.empty .n{color:var(--mut);font-style:italic}
+.cta.flash{animation:fl 1.2s ease-out}
+@keyframes fl{from{background:var(--ambb)}to{background:var(--inbg)}}
+@media (prefers-reduced-motion:reduce){.cta.flash{animation:none}}
+.pill{display:inline-flex;align-items:center;border-radius:999px;padding:1px 8px;font-size:11.5px;font-weight:600;white-space:nowrap}
+.p-ok{background:var(--greenb);color:var(--green)}.p-new{background:var(--blueb);color:var(--blue)}.p-def{background:var(--ln2);color:var(--mut)}.p-warn{background:var(--ambb);color:var(--amb)}
+.foot{display:flex;gap:8px;align-items:center;padding:10px 16px;border-top:1px solid var(--ln);flex-wrap:wrap;background:var(--bg2);border-radius:0 0 10px 10px}
+.foot .msg{color:var(--mut);font-size:12.5px;flex:1;min-width:160px}
+.notes{grid-column:1/-1;padding:14px 18px;font-size:13.5px}
+.notes h2{font:600 16px var(--f-disp);margin:0 0 6px}
+.notes h3{font:600 14px var(--f-ui);margin:12px 0 4px}
+.notes p,.notes li{max-width:78ch}
+.notes ol,.notes ul{margin:4px 0;padding-left:20px}
+.mono{font-family:var(--f-mono);font-size:12.5px}
+/* diálogos */
+.veil{position:fixed;inset:0;background:rgba(10,14,22,.45);display:grid;place-items:center;z-index:20;padding:max(16px,env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) max(16px,env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
+.dlg{background:var(--card);border-radius:12px;box-shadow:0 12px 40px var(--shadow);width:min(760px,100%);max-height:88vh;display:flex;flex-direction:column;min-width:0}
+.dlg>header{padding:12px 16px;border-bottom:1px solid var(--ln)}
+.dlg h2{font:600 16px var(--f-disp);margin:0}
+.dlg .sub{color:var(--mut);font-size:12.5px}
+.dlg .body{padding:10px 16px;overflow:auto;display:flex;flex-direction:column;gap:10px;min-height:0}
+.dlg footer{padding:10px 16px;border-top:1px solid var(--ln);display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;align-items:center}
+.dlg footer .msg{margin-right:auto;color:var(--mut);font-size:12.5px}
+.tools{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.tools input[type=search]{border:1px solid var(--inb);background:var(--inbg);border-radius:6px;padding:5px 8px;flex:1;min-width:160px}
+.sel tr{cursor:pointer}
+.sel tbody tr:hover td{background:var(--bg2)}
+.sel tr[aria-selected=true] td{background:var(--sel)}
+.sel .fit{color:var(--green);font-size:11.5px;font-weight:600}
+.newrow{display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;background:var(--bg2);border-radius:8px;padding:8px 10px}
+.prop h3{font:600 13px var(--f-ui);margin:4px 0}
+.prop ul{margin:0;padding-left:18px}
+.prop li{margin:2px 0}
+.toast{position:fixed;bottom:calc(16px + env(safe-area-inset-bottom,0px));left:50%;transform:translateX(-50%);background:var(--navy);color:var(--onnavy);padding:8px 14px;border-radius:8px;z-index:30;font-size:13px}
+</style>
+
+<div class="top"><span class="logo"><i></i>ProContaVF</span><span class="ctx" title="Empresa de trabajo: la fija el contenedor">Empresa de ejemplo, SL</span><span class="ctx" title="Ejercicio de trabajo">2026</span><span class="op">Operador: Ronald</span></div>
+<div class="ctabs" role="tablist"><button class="ctab" role="tab" aria-selected="false">Inicio</button><button class="ctab" role="tab" aria-selected="true">Parámetros y tablas</button></div>
+
+<main>
+  <nav class="card list" aria-label="Ejercicios">
+    <header><h2>Ejercicios</h2></header>
+    <ul id="lst"></ul>
+  </nav>
+
+  <section class="card ed">
+    <header>
+      <div><h1 id="tit"></h1><div class="sub" id="sub"></div></div>
+      <div class="sp"><button class="btn" id="sig" title="Crea el ejercicio siguiente copiando parámetros y cuentas de este">Crear el ejercicio siguiente</button></div>
+    </header>
+    <div class="tabs" role="tablist" id="tabs"></div>
+    <div class="panel" id="panel"></div>
+    <div class="foot">
+      <button class="btn auto" id="auto" title="Propone una subcuenta para cada cuenta vacía de todas las pestañas: la de por defecto (creándola si no existe) o la única que encaja. Las dudosas se quedan vacías.">Auto</button>
+      <span class="msg" id="fmsg"></span>
+      <button class="btn" id="cancel" title="Descarta los cambios sin guardar">Cancelar</button>
+      <button class="btn pri" id="save" title="Guarda el ejercicio y crea las subcuentas nuevas (Ctrl+G)">Guardar</button>
+    </div>
+  </section>
+
+  <section class="card notes">
+    <h2>Cómo funciona la maqueta</h2>
+    <p>Los datos son ficticios. Prueba el ejercicio <b>2027</b> (recién creado, todo vacío) para ver los tres resultados del botón «Auto», y el <b>2026</b> para ver la ficha como está hoy.</p>
+    <h3>Reglas del botón «Auto»</h3>
+    <ol>
+      <li>Solo toca las cuentas vacías de todas las pestañas. Nunca cambia una cuenta ya puesta.</li>
+      <li>Si el proceso tiene cuenta habitual (4750000, 1290000…), es el candidato: si existe en el plan se asigna; si no existe, se asigna y se crea al guardar con su nombre del PGC.</li>
+      <li>Las cuentas siempre quedan asignadas: ya no hay «vacía = cuenta por defecto». Crear el ejercicio siguiente las copia, y un proceso con una cuenta vacía se detiene y ofrece asignarla con «Auto».</li>
+      <li>Si no tiene cuenta por defecto (suplidos, retenciones, intracomunitarias, inversión del sujeto pasivo, importación), busca en su grupo las subcuentas cuyo nombre encaja (por ejemplo, 4751 con «alquiler»). Con una sola, la asigna; con ninguna o con varias, la deja vacía y dice por qué.</li>
+      <li>Antes de aplicar muestra la propuesta y solo la aplica si la aceptas. Nada se graba hasta pulsar «Guardar».</li>
+    </ol>
+    <h3>Elegir a mano</h3>
+    <p>La lupa, el clic en la cuenta, Intro o F4 abren el buscador ya filtrado por el grupo de esa cuenta, con las que encajan por nombre arriba. La casilla «Ver todo el plan» quita el filtro, y «Crear subcuenta» propone el siguiente código libre del grupo. Supr o la × vacían la cuenta.</p>
+    <h3>Validado (18/11/2026)</h3>
+    <ol>
+      <li>Cinco pestañas por proceso; la carpeta de facturas de compra pasa a «Compras y ventas».</li>
+      <li>Un único «Auto» en el pie, para todas las pestañas.</li>
+      <li>Cuentas siempre asignadas, sin cuenta por defecto implícita.</li>
+    </ol>
+    <p>Pasa el ratón por un concepto para ver cuándo se usa esa cuenta.</p>
+  </section>
+</main>
+
+<div id="dlgs"></div>
+
+<script>
+(() => {
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const norm = s => String(s).normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase();
+
+const TABS = [
+  {k:'ident', t:'Identificación'},
+  {k:'compras', t:'Compras y ventas'},
+  {k:'iva', t:'IVA'},
+  {k:'is', t:'Impuesto sobre Sociedades'},
+  {k:'fin', t:'Fin de ejercicio'},
+];
+
+// Parámetros (no cuentas)
+const PARAMS = [
+  {k:'Ejercicio', tab:'ident', l:'Ejercicio', w:'xs', ro:true, h:'Cuatro cifras, por ejemplo 2026.'},
+  {k:'Nombre', tab:'ident', l:'Nombre', w:'l', h:'Etiqueta del ejercicio en el selector. No sale en las facturas.'},
+  {k:'Trimestre', tab:'ident', l:'Trimestre activo', w:'xs', num:true, ro:true, h:'Se cambia desde el aviso del trimestre de Compras.'},
+  {k:'Activo', tab:'ident', l:'Activo', chk:true, h:'Se ofrece al elegir el ejercicio de trabajo.'},
+  {k:'Cerrado', tab:'ident', l:'Cerrado', chk:true, ro:true, h:'Lo cambia el cierre del ejercicio.'},
+  {k:'FormaPago', tab:'compras', l:'Forma de pago predeterminada', w:'m', ref:true, h:'Se elige en el selector de formas de pago.'},
+  {k:'Carpeta', tab:'compras', l:'Carpeta de facturas de compra', w:'l', h:'Dentro de la carpeta de documentos de la empresa. Vacía: <año>\\Proveedores.'},
+  {k:'TipoGeneral', tab:'iva', l:'Tipo general (%)', w:'xs', num:true, ph:'21', h:'El de la autorrepercusión y la importación. Vacío: el más alto de los tipos de IVA activos.'},
+  {k:'ProrrataAnt', tab:'iva', l:'Prorrata del año anterior (%)', w:'xs', num:true, h:'Provisional de este ejercicio. La rellena la regularización de la prorrata.'},
+  {k:'ProrrataDef', tab:'iva', l:'Prorrata definitiva (%)', w:'xs', num:true, h:'Se fija en Contabilidad › Prorrata de IVA.'},
+  {k:'TipoIS', tab:'is', l:'Tipo general (%)', w:'xs', num:true, ph:'25', h:'Vacío: 25 %.'},
+  {k:'TramoIS', tab:'is', l:'Base del tramo reducido (€)', w:'s', num:true, h:'Vacía: sin tramo, toda la base al tipo general.'},
+  {k:'TipoTramoIS', tab:'is', l:'Tipo del tramo reducido (%)', w:'xs', num:true, h:'Vacío: sin tramo.'},
+  {k:'BonifIS', tab:'is', l:'Bonificación por alquiler de viviendas (%)', w:'xs', num:true, h:'Vacío: sin bonificación.'},
+  {k:'AjustesIS', tab:'is', l:'Cuentas de posibles ajustes', w:'m', ph:'678, 669, 778, 760, 766, 666', h:'Prefijos separados por comas que se listan como posibles ajustes fiscales.'},
+  {k:'Periodicidad', tab:'fin', l:'Periodicidad de la amortización', w:'s', opts:['Anual (por defecto)','Trimestral','Mensual'], h:'Cada cuánto se genera el asiento de amortización.'},
+  {k:'Umbral', tab:'fin', l:'Umbral de los céntimos residuales (€)', w:'xs', num:true, ph:'1,00', h:'Saldos menores que este importe se tratan como céntimos residuales.'},
+  {k:'RetDiv', tab:'fin', l:'Retención de dividendos (%)', w:'xs', num:true, ph:'19', h:'Vacío: 19 %.'},
+  {k:'IvaPend', tab:'fin', l:'IVA supuesto de las facturas pendientes (%)', w:'xs', num:true, ph:'21', h:'Para sacar la base de un proveedor pagado sin factura. Vacío: 21 %.'},
+];
+
+// Cuentas: g = subgrupo de la tabla; def = cuenta por defecto [código, nombre]; pre = prefijos del filtro; kw = palabras que debe tener el nombre (cada lista, alguna de sus palabras)
+const CTAS = [
+  {k:'Suplido', tab:'compras', g:'Suplidos y retenciones', l:'Suplido', pre:['555'], kw:[['suplido']], h:'Cuenta de los suplidos en las facturas de venta.'},
+  {k:'RetServ', tab:'compras', g:'Suplidos y retenciones', l:'Retención de servicios', pre:['4751'], kw:[['profesional','servicio']], h:'Retención de IRPF practicada a profesionales (modelo 111).'},
+  {k:'RetAlq', tab:'compras', g:'Suplidos y retenciones', l:'Retención de alquileres', pre:['4751'], kw:[['alquiler','arrendamiento']], h:'Retención practicada en los alquileres de locales (modelo 115).'},
+  {k:'IntraRepServ', tab:'compras', g:'IVA intracomunitario e inversión del sujeto pasivo', l:'Intracomunitario repercutido · servicios', pre:['477'], kw:[['intracomunitari'],['servicio']], h:'Autorrepercusión de servicios comprados en la UE.'},
+  {k:'IntraRepBie', tab:'compras', g:'IVA intracomunitario e inversión del sujeto pasivo', l:'Intracomunitario repercutido · bienes', pre:['477'], kw:[['intracomunitari'],['bien']], h:'Autorrepercusión de bienes comprados en la UE.'},
+  {k:'IntraSopServ', tab:'compras', g:'IVA intracomunitario e inversión del sujeto pasivo', l:'Intracomunitario soportado · servicios', pre:['472'], kw:[['intracomunitari'],['servicio']], h:'IVA deducible de servicios comprados en la UE.'},
+  {k:'IntraSopBie', tab:'compras', g:'IVA intracomunitario e inversión del sujeto pasivo', l:'Intracomunitario soportado · bienes', pre:['472'], kw:[['intracomunitari'],['bien']], h:'IVA deducible de bienes comprados en la UE.'},
+  {k:'IspRep', tab:'compras', g:'IVA intracomunitario e inversión del sujeto pasivo', l:'Inversión del sujeto pasivo · repercutido', pre:['477'], kw:[['sujeto pasivo']], h:'Autorrepercusión en las compras con inversión del sujeto pasivo.'},
+  {k:'IspSop', tab:'compras', g:'IVA intracomunitario e inversión del sujeto pasivo', l:'Inversión del sujeto pasivo · soportado', pre:['472'], kw:[['sujeto pasivo']], h:'IVA deducible de las compras con inversión del sujeto pasivo.'},
+  {k:'Importacion', tab:'compras', g:'Importación y redondeo', l:'IVA de importación', pre:['472'], kw:[['importacion']], h:'IVA soportado en importaciones (DUA).'},
+  {k:'RedGas', tab:'compras', g:'Importación y redondeo', l:'Diferencias de redondeo · gastos', def:['6590000','Otras pérdidas en gestión corriente'], pre:['659'], h:'Cuando a un asiento de compra le falta Debe.'},
+  {k:'RedIng', tab:'compras', g:'Importación y redondeo', l:'Diferencias de redondeo · ingresos', def:['7590000','Ingresos por servicios diversos'], pre:['759'], h:'Cuando a un asiento de compra le sobra Debe.'},
+  {k:'LiqIngresar', tab:'iva', g:'Liquidación', l:'A ingresar', def:['4750000','Hacienda Pública, acreedora por IVA'], pre:['4750'], h:'Recibe el resultado a ingresar de cada trimestre.'},
+  {k:'LiqCompensar', tab:'iva', g:'Liquidación', l:'A compensar', def:['4700000','Hacienda Pública, deudora por IVA'], pre:['4700'], h:'Recibe el resultado a compensar o devolver.'},
+  {k:'LiqNoDed', tab:'iva', g:'Liquidación', l:'No deducible y ajustes a pagar más', def:['6341000','Ajustes negativos en IVA de circulante'], pre:['634'], h:'IVA soportado que no se deduce y ajustes cuando se liquida más de lo que dicen las cuentas.'},
+  {k:'LiqMenos', tab:'iva', g:'Liquidación', l:'Ajustes a pagar menos', def:['6391000','Ajustes positivos en IVA de circulante'], pre:['639'], h:'Ajuste cuando se liquida menos de lo que dicen las cuentas.'},
+  {k:'RegProrrata', tab:'iva', g:'Prorrata', l:'Regularización de la prorrata', def:['4729001','H.P. IVA soportado, regularización de la prorrata'], pre:['4729'], h:'Recibe el 31/12 la regularización anual; la liquidación del 4T la salda.'},
+  {k:'IsCorriente', tab:'is', g:'Contabilización del impuesto', l:'Impuesto corriente', def:['6300000','Impuesto corriente'], pre:['6300'], h:'Gasto por el impuesto del ejercicio.'},
+  {k:'IsIngresar', tab:'is', g:'Contabilización del impuesto', l:'A ingresar', def:['4752000','Hacienda Pública, acreedora por Impuesto sobre Sociedades'], pre:['4752'], h:'Lo que queda a pagar tras retenciones y pagos a cuenta.'},
+  {k:'IsDevolver', tab:'is', g:'Contabilización del impuesto', l:'A devolver', def:['4709000','Hacienda Pública, deudora por devolución de impuestos'], pre:['4709'], h:'Lo que Hacienda tiene que devolver.'},
+  {k:'IsCredito', tab:'is', g:'Contabilización del impuesto', l:'Crédito por pérdidas', def:['4745000','Créditos por pérdidas a compensar del ejercicio'], pre:['4745'], h:'Crédito por bases negativas activado.'},
+  {k:'IsDiferido', tab:'is', g:'Contabilización del impuesto', l:'Impuesto diferido', def:['6301000','Impuesto diferido'], pre:['6301'], h:'Gasto que recibe el crédito por pérdidas aplicado.'},
+  {k:'Resultado', tab:'fin', g:'Cierre', l:'Cuenta de resultados', def:['1290000','Resultado del ejercicio'], pre:['129'], h:'El cierre salda contra ella los grupos 6 y 7.'},
+  {k:'ReservaLegal', tab:'fin', g:'Aplicación del resultado y dividendos', l:'Reserva legal', def:['1120000','Reserva legal'], pre:['112'], h:'El 10 % del beneficio hasta llegar al 20 % del capital.'},
+  {k:'ResNegativos', tab:'fin', g:'Aplicación del resultado y dividendos', l:'Resultados negativos', def:['1210000','Resultados negativos de ejercicios anteriores'], pre:['121'], h:'Recibe la pérdida al aplicarla.'},
+  {k:'ReservasVol', tab:'fin', g:'Aplicación del resultado y dividendos', l:'Reservas voluntarias · dividendos y aplicación', def:['1130000','Reservas voluntarias'], pre:['113'], h:'Se carga por el bruto de los dividendos y recibe el resto del beneficio.'},
+  {k:'PendCuenta', tab:'fin', g:'Facturas pendientes de recibir', l:'Cuenta de facturas pendientes', def:['4009000','Proveedores, facturas pendientes de recibir'], pre:['4009'], h:'Recibe a 31/12 el gasto supuesto; se salda el 1/1.'},
+  {k:'PendGasto', tab:'fin', g:'Facturas pendientes de recibir', l:'Gasto por defecto', def:['6299000','Otros servicios'], pre:['6'], h:'Para proveedores sin cuenta de gasto ni facturas.'},
+];
+
+// Plan de cuentas ficticio (subcuentas)
+const PLAN0 = [
+  ['1000000','Capital social'],['1120000','Reserva legal'],['1130000','Reservas voluntarias'],['1290000','Resultado del ejercicio'],
+  ['4000001','Suministros Levante, SL'],['4000002','Papelería Central, SA'],['4100001','Asesoría Ejemplo, SLP'],
+  ['4700000','Hacienda Pública, deudora por IVA'],
+  ['4720010','H.P. IVA soportado 10 %'],['4720021','H.P. IVA soportado 21 %'],['4720121','H.P. IVA soportado intracomunitario bienes'],['4720221','H.P. IVA soportado intracomunitario servicios'],
+  ['4721021','H.P. IVA soportado inversión del sujeto pasivo'],['4724010','H.P. IVA soportado importaciones 10 %'],['4724021','H.P. IVA soportado importaciones 21 %'],['4728021','H.P. IVA soportado alquiler turístico 21 %'],
+  ['4750000','Hacienda Pública, acreedora por IVA'],['4751000','H.P. acreedora por retenciones practicadas'],['4751001','H.P. acreedora por retenciones de alquileres'],
+  ['4751002','H.P. acreedora por retenciones profesionales'],['4751003','H.P. acreedora por retenciones de servicios de agentes'],
+  ['4770021','H.P. IVA repercutido 21 %'],['4770121','H.P. IVA repercutido intracomunitario bienes'],['4770221','H.P. IVA repercutido intracomunitario servicios'],['4771021','H.P. IVA repercutido inversión del sujeto pasivo'],
+  ['5550000','Partidas pendientes de aplicación'],['5550002','Suplidos con IVA'],['5720001','Banco ejemplo, cuenta corriente'],
+  ['6230000','Servicios de profesionales independientes'],['6280000','Suministros'],['6290000','Otros servicios'],
+  ['6300000','Impuesto corriente'],['6341000','Ajustes negativos en IVA de circulante'],['6590000','Otras pérdidas en gestión corriente'],
+  ['7050000','Prestaciones de servicios'],['7590000','Ingresos por servicios diversos'],
+];
+
+const base = {FormaPago:'Transferencia bancaria', Periodicidad:'Anual (por defecto)'};
+const C26 = {Suplido:'5550002',RetServ:'4751000',RetAlq:'4751000',IntraRepServ:'4770221',IntraRepBie:'4770121',IntraSopServ:'4720221',IntraSopBie:'4720121',IspRep:'4771021',IspSop:'4721021',Importacion:'4724021'};
+const EJ = [
+  {id:2027, v:{...base, Ejercicio:'2027', Nombre:'Empresa de ejemplo 2027', Trimestre:'1', Activo:true, Cerrado:false, ProrrataAnt:'15'}, plan:PLAN0.map(r=>[...r])},
+  {id:2026, v:{...base, ...C26, Ejercicio:'2026', Nombre:'Empresa de ejemplo 2026', Trimestre:'3', Activo:true, Cerrado:false, ProrrataAnt:'15'}, plan:PLAN0.map(r=>[...r])},
+  {id:2025, v:{...base, ...C26, Ejercicio:'2025', Nombre:'Empresa de ejemplo 2025', Trimestre:'4', Activo:false, Cerrado:true, ProrrataAnt:'14', ProrrataDef:'15', LiqIngresar:'4750000', LiqCompensar:'4700000', LiqNoDed:'6341000', IsCorriente:'6300000', Resultado:'1290000', ReservasVol:'1130000', ReservaLegal:'1120000', RedGas:'6590000', RedIng:'7590000'}, plan:PLAN0.map(r=>[...r])},
+];
+
+let cur = EJ[1], tab = 'compras', draft = null, nuevas = {}, flash = new Set();
+const ro = () => cur.v.Cerrado;
+function start(e){ cur = e; draft = {...e.v}; nuevas = {}; flash.clear(); render(); }
+const dirty = () => JSON.stringify(draft) !== JSON.stringify(cur.v) || Object.keys(nuevas).length;
+const planOf = () => [...cur.plan, ...Object.entries(nuevas)];
+const nameOf = c => (planOf().find(r => r[0] === c) || [])[1];
+const inPlan = c => cur.plan.some(r => r[0] === c);
+
+function emptyCount(t){ return CTAS.filter(c => c.tab === t && !draft[c.k]).length; }
+
+function render(){
+  $('#lst').innerHTML = EJ.map(e => `<li><button data-e="${e.id}" aria-current="${e===cur}" title="Abrir el ejercicio ${e.id}"><span class="y">${e.id}</span>${e.v.Cerrado?'<span class="pill p-def">Cerrado</span>':e.id===2027?'<span class="pill p-new">Nuevo</span>':''}</button></li>`).join('');
+  $('#tit').textContent = draft.Nombre || `Ejercicio ${cur.id}`;
+  $('#sub').textContent = `Ejercicio ${cur.id}${draft.Cerrado ? ' · cerrado' : ''}`;
+  $('#tabs').innerHTML = TABS.map(t => { const n = emptyCount(t.k); return `<button class="tab" role="tab" data-t="${t.k}" aria-selected="${t.k===tab}" title="${n?`${n} cuentas vacías en esta pestaña`:t.t}">${t.t}${n?`<span class="badge">${n}</span>`:''}</button>`; }).join('');
+  renderPanel();
+  $('#auto').disabled = ro(); $('#save').disabled = ro() || !dirty(); $('#cancel').disabled = !dirty();
+  const nn = Object.keys(nuevas).length;
+  $('#fmsg').textContent = ro() ? 'Ejercicio cerrado: solo consulta.' : dirty() ? `Cambios sin guardar${nn?` · ${nn} subcuenta${nn>1?'s':''} nueva${nn>1?'s':''} se creará${nn>1?'n':''} al guardar`:''}.` : 'Sin cambios.';
+}
+
+function paramHtml(p){
+  const v = draft[p.k] ?? '', dis = (p.ro || ro()) ? 'disabled' : '';
+  if (p.chk) return `<div class="f chk" title="${esc(p.h)}"><input type="checkbox" id="p-${p.k}" data-p="${p.k}" ${v?'checked':''} ${dis}><label for="p-${p.k}">${esc(p.l)}</label></div>`;
+  if (p.opts) return `<div class="f" title="${esc(p.h)}"><label for="p-${p.k}">${esc(p.l)}</label><select id="p-${p.k}" data-p="${p.k}" class="w-${p.w}" ${dis}>${p.opts.map(o=>`<option ${o===v?'selected':''}>${esc(o)}</option>`).join('')}</select></div>`;
+  if (p.ref) return `<div class="f" title="${esc(p.h)}"><label>${esc(p.l)}</label><div class="ref w-${p.w}" tabindex="0"><span>${esc(v)}</span><span aria-hidden="true">⌕</span></div></div>`;
+  return `<div class="f" title="${esc(p.h)}"><label for="p-${p.k}">${esc(p.l)}</label><input id="p-${p.k}" data-p="${p.k}" class="w-${p.w}${p.num?' num':''}" value="${esc(v)}" placeholder="${esc(p.ph||'')}" ${dis}></div>`;
+}
+
+function stateOf(c){
+  const v = draft[c.k];
+  if (v) return nuevas[v] ? ['p-new','Nueva'] : ['p-ok','Asignada'];
+  return ['p-warn','Sin asignar'];
+}
+
+function ctaHtml(c){
+  const v = draft[c.k];
+  let code, name, cls = '';
+  if (v){ code = v; name = nameOf(v) || 'Subcuenta no encontrada en el plan'; }
+  else if (c.def){ cls = 'empty'; code = '—'; name = `«Auto» propondrá ${c.def[0]} ${c.def[1]}${inPlan(c.def[0])?'':' (la creará)'}`; }
+  else { cls = 'empty'; code = '—'; name = 'elígela o usa «Auto»'; }
+  const [pc, pt] = stateOf(c);
+  return `<tr>
+    <td class="con"><span title="${esc(c.h)}">${esc(c.l)}</span></td>
+    <td><div class="cta ${cls}${flash.has(c.k)?' flash':''}" tabindex="0" role="button" data-c="${c.k}" title="${ro()?'Ejercicio cerrado':'Elegir la subcuenta (clic, Intro o F4). Supr la vacía.'}"><span class="c">${esc(code)}</span><span class="n">${esc(name)}</span>
+      <button class="icon" data-pick="${c.k}" title="Abrir el buscador filtrado por ${c.pre.join(', ')}" ${ro()?'disabled':''}>⌕</button>
+      <button class="icon" data-clr="${c.k}" title="Vaciar la cuenta: el proceso que la usa no se podrá ejecutar hasta asignarla" ${(!v||ro())?'disabled':''}>×</button></div></td>
+    <td><span class="pill ${pc}">${pt}</span></td>
+  </tr>`;
+}
+
+function renderPanel(){
+  const ps = PARAMS.filter(p => p.tab === tab), cs = CTAS.filter(c => c.tab === tab);
+  let h = ro() ? '<div class="banner">Ejercicio cerrado: la ficha es de solo consulta. Para cambiarla, reabre el ejercicio en Contabilidad › Cierre del ejercicio.</div>' : '';
+  if (ps.length) h += `<div class="sec"><h3>Parámetros</h3><div class="fields">${ps.map(paramHtml).join('')}</div></div>`;
+  if (cs.length){
+    let rows = '', g = null;
+    for (const c of cs){ if (c.g !== g){ g = c.g; rows += `<tr class="grp"><td colspan="3">${esc(g)}</td></tr>`; } rows += ctaHtml(c); }
+    h += `<div class="sec"><h3>Cuentas</h3><div class="tw"><table><thead><tr><th>Concepto</th><th>Subcuenta</th><th>Estado</th></tr></thead><tbody>${rows}</tbody></table></div></div>`;
+  }
+  $('#panel').innerHTML = h;
+}
+
+// ---------- Auto ----------
+function candidates(c, plan){
+  return plan.filter(([code, name]) => c.pre.some(p => code.startsWith(p)) && (c.kw||[]).every(alts => alts.some(w => norm(name).includes(norm(w)))));
+}
+function proposeAuto(){
+  const asign = [], crear = [], dudas = [];
+  for (const c of CTAS){
+    if (draft[c.k]) continue;
+    const tabT = TABS.find(t => t.k === c.tab).t;
+    if (c.def){
+      if (planOf().some(r => r[0] === c.def[0])) asign.push({c, code:c.def[0], name:nameOf(c.def[0]), tabT});
+      else crear.push({c, code:c.def[0], name:c.def[1], tabT});
+      continue;
+    }
+    const cand = candidates(c, planOf());
+    if (cand.length === 1) asign.push({c, code:cand[0][0], name:cand[0][1], tabT});
+    else dudas.push({c, tabT, why: cand.length ? `${cand.length} subcuentas encajan (${cand.map(r=>r[0]).join(', ')}): elígela a mano.` : `Ninguna subcuenta de ${c.pre.join(', ')} encaja por nombre: elígela o créala a mano.`});
+  }
+  return {asign, crear, dudas};
+}
+function openAuto(){
+  const p = proposeAuto();
+  if (!p.asign.length && !p.crear.length && !p.dudas.length){ toast('No hay cuentas vacías: «Auto» no tiene nada que hacer.'); return; }
+  const li = x => `<li><b>${esc(x.c.l)}</b> <span class="sub">(${esc(x.tabT)})</span> → <span class="mono">${esc(x.code)}</span> ${esc(x.name)}</li>`;
+  const html = `<div class="veil" id="vauto"><div class="dlg prop" role="dialog" aria-modal="true" aria-labelledby="hauto">
+    <header><h2 id="hauto">Asignar subcuentas automáticamente</h2><div class="sub">Propuesta para las cuentas vacías del ejercicio ${cur.id}. Nada se graba hasta pulsar «Guardar».</div></header>
+    <div class="body">
+      ${p.asign.length?`<div><h3><span class="pill p-ok">${p.asign.length}</span> Se asignan subcuentas que ya existen</h3><ul>${p.asign.map(li).join('')}</ul></div>`:''}
+      ${p.crear.length?`<div><h3><span class="pill p-new">${p.crear.length}</span> Se asignan y se crearán al guardar</h3><ul>${p.crear.map(li).join('')}</ul></div>`:''}
+      ${p.dudas.length?`<div><h3><span class="pill p-warn">${p.dudas.length}</span> Se quedan vacías: no hay un único candidato claro</h3><ul>${p.dudas.map(x=>`<li><b>${esc(x.c.l)}</b> <span class="sub">(${esc(x.tabT)})</span>: ${esc(x.why)}</li>`).join('')}</ul></div>`:''}
+    </div>
+    <footer><button class="btn" data-x="1">Cancelar</button><button class="btn pri" id="aplicar" ${p.asign.length+p.crear.length?'':'disabled'} title="Rellena las cuentas propuestas en la ficha">Aplicar ${p.asign.length+p.crear.length} cuentas</button></footer>
+  </div></div>`;
+  $('#dlgs').innerHTML = html;
+  $('#aplicar').onclick = () => {
+    flash.clear();
+    for (const x of p.asign){ draft[x.c.k] = x.code; flash.add(x.c.k); }
+    for (const x of p.crear){ draft[x.c.k] = x.code; nuevas[x.code] = x.name; flash.add(x.c.k); }
+    close(); render();
+    toast(`${p.asign.length+p.crear.length} cuentas asignadas${p.dudas.length?` · ${p.dudas.length} para elegir a mano`:''}.`);
+  };
+  $('#aplicar').focus();
+}
+
+// ---------- Buscador de subcuentas ----------
+function openPicker(k){
+  if (ro()) return;
+  const c = CTAS.find(x => x.k === k);
+  let all = false, q = '', selCode = draft[k] || null, creating = false;
+  $('#dlgs').innerHTML = `<div class="veil" id="vpick"><div class="dlg" role="dialog" aria-modal="true" aria-labelledby="hpick">
+    <header><h2 id="hpick">Elegir subcuenta · ${esc(c.l)}</h2><div class="sub">${esc(c.h)}${c.def?` Por defecto: ${c.def[0]}.`:''}</div></header>
+    <div class="body">
+      <div class="tools"><input type="search" id="q" placeholder="Buscar por código o nombre" aria-label="Buscar subcuenta">
+        <label title="Quita el filtro por grupo y muestra todas las subcuentas del plan"><input type="checkbox" id="all"> Ver todo el plan</label>
+        <button class="btn" id="crear" title="Da de alta una subcuenta nueva en el grupo de esta cuenta">Crear subcuenta</button></div>
+      <div id="newrow"></div>
+      <div class="tw"><table class="sel"><thead><tr><th>Subcuenta</th><th>Nombre</th><th></th></tr></thead><tbody id="rows"></tbody></table></div>
+    </div>
+    <footer><span class="msg" id="pmsg"></span><button class="btn" data-x="1">Cancelar</button><button class="btn pri" id="elegir">Elegir</button></footer>
+  </div></div>`;
+  const fits = code => c.kw ? candidates(c, planOf()).some(r => r[0] === code) : (c.def && code === c.def[0]);
+  function draw(){
+    let rows = planOf().filter(([code,name]) => (all || c.pre.some(p => code.startsWith(p))) && (!q || norm(code+' '+name).includes(norm(q))));
+    rows.sort((a,b) => (fits(b[0])-fits(a[0])) || a[0].localeCompare(b[0]));
+    $('#rows').innerHTML = rows.length ? rows.map(([code,name]) => `<tr data-code="${code}" aria-selected="${code===selCode}"><td class="mono">${code}</td><td>${esc(name)}${nuevas[code]?' <span class="pill p-new">Nueva</span>':''}</td><td>${fits(code)?'<span class="fit">encaja</span>':''}</td></tr>`).join('')
+      : `<tr><td colspan="3" class="sub">No hay subcuentas${all?'':` en ${c.pre.join(', ')}`} con ese texto. Usa «Crear subcuenta» o marca «Ver todo el plan».</td></tr>`;
+    $('#pmsg').textContent = all ? 'Todo el plan.' : `Filtrado por ${c.pre.join(', ')}${c.kw?'; arriba, las que encajan por nombre':''}.`;
+    $('#elegir').disabled = !selCode;
+  }
+  function nextFree(){
+    const p = (c.def ? c.def[0] : c.pre[0]).padEnd(4,'0').slice(0,4);
+    let n = 1; const used = new Set(planOf().map(r=>r[0]));
+    if (c.def && !used.has(c.def[0])) return c.def[0];
+    while (used.has(p + String(n).padStart(3,'0'))) n++;
+    return p + String(n).padStart(3,'0');
+  }
+  $('#q').oninput = e => { q = e.target.value; draw(); };
+  $('#all').onchange = e => { all = e.target.checked; draw(); };
+  $('#crear').onclick = () => {
+    const code = nextFree();
+    $('#newrow').innerHTML = `<div class="newrow"><div class="f"><label for="nc">Código</label><input id="nc" class="w-s num" value="${code}"></div>
+      <div class="f" style="flex:1"><label for="nn">Nombre</label><input id="nn" value="${esc(c.def && code===c.def[0] ? c.def[1] : '')}" placeholder="Nombre de la subcuenta"></div>
+      <button class="btn pri" id="nok" title="Añade la subcuenta; se crea en el plan al guardar el ejercicio">Añadir</button></div>`;
+    $('#nn').focus();
+    $('#nok').onclick = () => {
+      const nc = $('#nc').value.trim(), nn = $('#nn').value.trim();
+      if (!/^\d{7}$/.test(nc)){ $('#pmsg').textContent = 'El código de una subcuenta tiene 7 cifras, por ejemplo ' + code + '.'; return; }
+      if (planOf().some(r=>r[0]===nc)){ $('#pmsg').textContent = `La ${nc} ya existe: elígela en la lista.`; selCode = nc; draw(); return; }
+      if (!nn){ $('#pmsg').textContent = 'Escribe el nombre de la subcuenta.'; $('#nn').focus(); return; }
+      nuevas[nc] = nn; selCode = nc; $('#newrow').innerHTML = ''; draw();
+    };
+  };
+  $('#rows').onclick = e => { const tr = e.target.closest('tr[data-code]'); if (tr){ selCode = tr.dataset.code; draw(); } };
+  $('#rows').ondblclick = e => { const tr = e.target.closest('tr[data-code]'); if (tr){ selCode = tr.dataset.code; pick(); } };
+  $('#elegir').onclick = pick;
+  function pick(){ if (!selCode) return; draft[k] = selCode; flash = new Set([k]); cleanNuevas(); close(); render(); }
+  draw(); $('#q').focus();
+}
+function cleanNuevas(){ const used = new Set(CTAS.map(c=>draft[c.k])); for (const k of Object.keys(nuevas)) if (!used.has(k)) delete nuevas[k]; }
+
+function close(){ $('#dlgs').innerHTML = ''; }
+let tt; function toast(m){ clearTimeout(tt); let t = $('.toast'); if (!t){ t = document.createElement('div'); t.className='toast'; t.setAttribute('role','status'); document.body.append(t); } t.textContent = m; tt = setTimeout(()=>t.remove(), 3200); }
+
+// ---------- eventos ----------
+$('#lst').onclick = e => { const b = e.target.closest('[data-e]'); if (b){ const n = EJ.find(x => x.id == b.dataset.e); if (n !== cur){ if (dirty()) toast('Cambios descartados al cambiar de ejercicio.'); start(n); } } };
+$('#tabs').onclick = e => { const b = e.target.closest('[data-t]'); if (b){ tab = b.dataset.t; flash.clear(); render(); } };
+$('#panel').oninput = e => { const p = e.target.dataset.p; if (p){ draft[p] = e.target.type === 'checkbox' ? e.target.checked : e.target.value; $('#save').disabled = !dirty(); $('#cancel').disabled = !dirty(); $('#fmsg').textContent = 'Cambios sin guardar.'; } };
+$('#panel').onclick = e => {
+  const clr = e.target.closest('[data-clr]'); if (clr){ e.stopPropagation(); draft[clr.dataset.clr] = ''; cleanNuevas(); flash.clear(); render(); return; }
+  const c = e.target.closest('[data-c]'); if (c) openPicker(c.dataset.c);
+};
+$('#panel').onkeydown = e => {
+  const c = e.target.closest('[data-c]'); if (!c || e.target !== c || ro()) return;
+  if (e.key === 'Enter' || e.key === 'F4' || e.key === ' '){ e.preventDefault(); openPicker(c.dataset.c); }
+  if (e.key === 'Delete'){ draft[c.dataset.c] = ''; cleanNuevas(); render(); }
+};
+$('#auto').onclick = openAuto;
+$('#cancel').onclick = () => { start(cur); toast('Cambios descartados.'); };
+$('#save').onclick = () => {
+  const n = Object.keys(nuevas).length;
+  for (const [code,name] of Object.entries(nuevas)) cur.plan.push([code,name]);
+  cur.v = {...draft}; nuevas = {}; flash.clear(); render();
+  toast(`Ejercicio ${cur.id} guardado${n?` · ${n} subcuenta${n>1?'s':''} creada${n>1?'s':''}`:''}.`);
+};
+$('#sig').onclick = () => toast('En la maqueta no se crea: el ejercicio siguiente copia parámetros y cuentas de este.');
+$('#dlgs').onclick = e => { if (e.target.dataset.x || e.target.classList.contains('veil')) close(); };
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && $('#dlgs').innerHTML) close();
+  if (e.ctrlKey && (e.key === 'g' || e.key === 's') && !$('#save').disabled){ e.preventDefault(); $('#save').click(); }
+});
+
+start(cur);
+})();
+</script>

@@ -8,6 +8,7 @@ using ProConta.Datos.Persistencia;
 using ProConta.Nucleo.Auditoria;
 using ProConta.Nucleo.Contexto;
 using ProConta.Nucleo.Resultados;
+using ProConta.Organizacion.Mantenimiento;
 
 namespace ProConta.Contabilidad.Cierre;
 
@@ -346,6 +347,9 @@ public sealed class ServicioCierreEjercicio(IBaseDatos bd, IMotorAsientos motor,
     /// <summary>Propuesta del cierre desde los apuntes contabilizados de ahora, con lo que impide cerrar.</summary>
     public async Task<Resultado<PropuestaCierre>> ProponerAsync(ContextoSociedadEjercicio ctx)
     {
+        // Sin cuenta por defecto implícita: si falta alguna del ejercicio, el proceso se detiene y dice dónde asignarla (organizacion/sociedades-ejercicios 2026-11-18).
+        if (await bd.EjecutarAsync(s => CuentasEjercicio.FaltanAsync(s, ctx.IdSociedadEjercicio, "CuentaResultadoEjercicio")) is { } faltaCuenta)
+            return Resultado<PropuestaCierre>.Fallo(faltaCuenta);
         var situacion = await SituacionAsync(ctx);
         var (cuenta, nombre) = await CuentaResultadoAsync(ctx);
         var saldos = await SaldosAsync(ctx);
