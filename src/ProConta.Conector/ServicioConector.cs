@@ -30,6 +30,19 @@ public sealed class ServicioConector
     /// <summary>Entorno de la BD (plataforma/entorno-pruebas): «Producción» o «Pruebas»; lo dice la herramienta «sociedades».</summary>
     public string Entorno { get; init; } = "Producción";
 
+    /// <summary>Registro de errores inesperados (plataforma/registro-errores); sin él (pruebas), los errores no se guardan en ningún fichero.</summary>
+    public ProConta.Plataforma.Configuracion.RegistroErrores? Registro { get; init; }
+
+    /// <summary><c>--provocar-error</c>: la herramienta «sociedades» falla a propósito para comprobar el registro de errores.</summary>
+    public bool ProvocarError { get; init; }
+
+    /// <summary>Fichero donde se guardaría ahora un error, para decirlo aunque no se haya podido escribir.</summary>
+    public string? RutaRegistroErrores => Registro?.RutaActual;
+
+    /// <summary>Guarda un error inesperado de una herramienta con la sociedad que pidió; devuelve la ruta o null si no se ha guardado.</summary>
+    public string? RegistrarError(Exception error, string donde, string? sociedad) =>
+        Registro?.Registrar(error, donde, sociedad is null ? null : c => c with { Sociedad = sociedad });
+
     public ServicioConector(IBaseDatos bd, string operador, Func<DateTime>? hoy = null)
     {
         _bd = bd;

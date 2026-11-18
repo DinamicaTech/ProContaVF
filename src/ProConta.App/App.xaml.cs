@@ -26,6 +26,7 @@ public partial class App : Application
     protected override async void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);
+        ErroresInesperados.Instalar(this, e.Args);
         try
         {
             var resuelta = ResolverUbicacion(e.Args);
@@ -52,6 +53,8 @@ public partial class App : Application
 
             var bd = new BaseDatosAccess(ubicacion.RutaBaseDatos);
             var entorno = await InfoEntorno.LeerAsync(bd);
+            ErroresInesperados.BaseDatos = ubicacion.RutaBaseDatos;
+            ErroresInesperados.Entorno = entorno.Nombre;
             if (quierePruebas && !entorno.EsPruebas)
             {
                 VentanaAviso.Mostrar("Esta no es la copia de pruebas", new Error("Configuracion.PruebasSinMarca",
@@ -80,6 +83,7 @@ public partial class App : Application
                 return;
             }
             _sesion = acceso.Resultado.Sesion;
+            ErroresInesperados.Operador = _sesion.NombreOperador;
             PreferenciasPuesto.RecordarOperador(almacen, _sesion.NombreOperador);
             // Columnas de las tablas y paneles se guardan por operador (ProConta.UI.Base).
             UI.Base.Preferencias.PreferenciasOperador.Actual = new UI.Base.Preferencias.PreferenciasJson(_sesion.NombreOperador);
@@ -87,7 +91,9 @@ public partial class App : Application
             var principal = new VentanaPrincipal(acceso.Resultado, ubicacion, compatible.VersionBd, bd, entorno);
             principal.Closed += (_, _) => Shutdown(0);
             MainWindow = principal;
+            ErroresInesperados.Principal = principal;
             principal.Show();
+            if (e.Args.Contains("--provocar-error", StringComparer.OrdinalIgnoreCase)) ErroresInesperados.ProvocarDePrueba(principal);
         }
         catch (ExcepcionDatos ex)
         {
