@@ -13,7 +13,7 @@ public sealed class Modelo200Tests
     private static readonly Persona200 Admin = new("00000000T", "PRUEBA SINTETICA, UNO", false, "08");
 
     private static DatosDeclaracion200 Datos(decimal dividendos = 0m) => new("6820", PersonalFijo: 1m, FinesSociales: true, Telefono: "930000000", Dividendos: dividendos,
-        Administradores: [Admin], TitularesReales: [new TitularReal200("00000000T", "PRUEBA SINTETICA, UNO", new DateTime(1970, 1, 1)), new TitularReal200("00000001R", "PRUEBA SINTETICA, DOS")],
+        Administradores: [Admin], TitularesReales: [new TitularReal200("00000000T", "PRUEBA SINTETICA, UNO", new DateTime(1970, 1, 1)), new TitularReal200("00000001R", "PRUEBA SINTETICA, DOS", new DateTime(1971, 2, 2))],
         Secretario: Admin, Representantes: [new Representante200("00000000T", "PRUEBA SINTETICA, UNO", new DateTime(2000, 1, 1), "NOTARIA")]);
 
     private static readonly Persona200[] Socios = [new("00000000T", "PRUEBA SINTETICA, UNO", false, "08", 5000m, 50m), new("00000001R", "PRUEBA SINTETICA, DOS", false, "08", 5000m, 50m)];

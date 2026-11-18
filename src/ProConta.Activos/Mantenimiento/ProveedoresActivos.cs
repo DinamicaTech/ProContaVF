@@ -18,7 +18,7 @@ public static class ProveedoresActivos
     public static IReadOnlyList<IProveedorMantenimiento> Todos(IBaseDatos bd, ICatalogoCuentas cuentas)
     {
         var generador = new GeneradorSubcuentasActivo(bd, cuentas);
-        return [new ProveedorTiposActivo(bd, generador), new ProveedorTiposSubcuentaActivo(bd), new ProveedorPlantillasSubcuentasActivo(bd, generador)];
+        return [new ProveedorTiposActivo(bd, generador), new ProveedorTiposSubcuentaActivo(bd), new ProveedorPlantillasSubcuentasActivo(bd, generador), new ProveedorInmueblesModelos(bd)];
     }
 
     internal const string AccionGenerar = "generar-subcuentas";

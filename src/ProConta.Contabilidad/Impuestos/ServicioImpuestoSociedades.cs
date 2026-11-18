@@ -303,12 +303,18 @@ public sealed class ServicioImpuestoSociedades(IBaseDatos bd, IMotorAsientos mot
                 idImpuesto, i + 1, Recortar(a.Modelo, 10), string.IsNullOrWhiteSpace(a.Nif) ? null : Recortar(a.Nif.Trim(), 20), Recortar(a.Nombre.Trim(), 120), a.Importe,
                 string.IsNullOrWhiteSpace(a.Cuenta) ? null : a.Cuenta.Trim());
         }
+        var conLinea = s.LeerEsquema().ExisteColumna("ImpuestosSociedadesAjustes", "Linea200");
         for (var i = 0; i < e.Ajustes.Count; i++)
         {
             var a = e.Ajustes[i];
-            await s.EjecutarAsync(
-                "INSERT INTO ImpuestosSociedadesAjustes (IdImpuestoSociedades, Orden, Temporal, Aumento, Descripcion, Cuenta, Importe) VALUES (?, ?, ?, ?, ?, ?, ?)",
-                idImpuesto, i + 1, a.Temporal, a.Aumento, Recortar(a.Descripcion.Trim(), 255), string.IsNullOrWhiteSpace(a.Cuenta) ? null : a.Cuenta.Trim(), a.Importe);
+            if (conLinea)
+                await s.EjecutarAsync(
+                    "INSERT INTO ImpuestosSociedadesAjustes (IdImpuestoSociedades, Orden, Temporal, Aumento, Descripcion, Cuenta, Importe, Linea200) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                    idImpuesto, i + 1, a.Temporal, a.Aumento, Recortar(a.Descripcion.Trim(), 255), string.IsNullOrWhiteSpace(a.Cuenta) ? null : a.Cuenta.Trim(), a.Importe, a.LineaDel200);
+            else
+                await s.EjecutarAsync(
+                    "INSERT INTO ImpuestosSociedadesAjustes (IdImpuestoSociedades, Orden, Temporal, Aumento, Descripcion, Cuenta, Importe) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                    idImpuesto, i + 1, a.Temporal, a.Aumento, Recortar(a.Descripcion.Trim(), 255), string.IsNullOrWhiteSpace(a.Cuenta) ? null : a.Cuenta.Trim(), a.Importe);
         }
     }
 
@@ -339,10 +345,11 @@ public sealed class ServicioImpuestoSociedades(IBaseDatos bd, IMotorAsientos mot
             ctx.IdSociedadEjercicio);
         if (filas.Count == 0) return null;
         var g = filas[0];
+        var conLinea = s.LeerEsquema().ExisteColumna("ImpuestosSociedadesAjustes", "Linea200");
         var ajustes = await s.ConsultarAsync(
-            "SELECT Temporal, Aumento, Descripcion, Cuenta, Importe FROM ImpuestosSociedadesAjustes WHERE IdImpuestoSociedades = ? ORDER BY Orden",
+            $"SELECT Temporal, Aumento, Descripcion, Cuenta, Importe{(conLinea ? ", Linea200" : "")} FROM ImpuestosSociedadesAjustes WHERE IdImpuestoSociedades = ? ORDER BY Orden",
             f => new AjusteImpuestoSociedades(f.Logico("Temporal"), f.Logico("Aumento"), (f.Texto("Descripcion") ?? "").Trim(), Dec(f, "Importe"),
-                string.IsNullOrWhiteSpace(f.Texto("Cuenta")) ? null : f.Texto("Cuenta")!.Trim()),
+                string.IsNullOrWhiteSpace(f.Texto("Cuenta")) ? null : f.Texto("Cuenta")!.Trim(), conLinea && !string.IsNullOrWhiteSpace(f.Texto("Linea200")) ? f.Texto("Linea200")!.Trim() : null),
             g.Id);
         var valores = await s.ConsultarAsync(
             "SELECT Clave, Cuenta, Valor, Escrito, Justificacion FROM ImpuestosSociedadesRetenciones WHERE IdImpuestoSociedades = ? " +

@@ -32,10 +32,14 @@ public sealed class Servicio200(IBaseDatos bd, ServicioPresentacionAeat presenta
 
     public ServicioPresentacionAeat Presentacion => presentacion;
 
-    /// <summary>La declaración y su fichero. <paramref name="entrada"/> null: lo grabado en el Impuesto sobre Sociedades del ejercicio.</summary>
-    public async Task<Resultado<(Declaracion200 Declaracion, DeclaracionAeat Aeat)>> DeclaracionAsync(ContextoSociedadEjercicio ctx, DatosDeclaracion200 datos,
-        EntradaImpuestoSociedades? entrada = null, CancellationToken c = default)
+    /// <summary>
+    /// La declaración y su fichero. <paramref name="datos"/> null: los de la BD (<see cref="DatosAsync"/>); <paramref name="entrada"/> null: lo grabado en el
+    /// Impuesto sobre Sociedades del ejercicio.
+    /// </summary>
+    public async Task<Resultado<(Declaracion200 Declaracion, DeclaracionAeat Aeat)>> DeclaracionAsync(ContextoSociedadEjercicio ctx, DatosDeclaracion200? datos = null,
+        EntradaImpuestoSociedades? entrada = null, bool renunciaDevolucion = false, CancellationToken c = default)
     {
+        datos ??= await DatosAsync(ctx) with { RenunciaDevolucion = renunciaDevolucion };
         var registro = $"Modelo 200 {ctx.Ejercicio}";
         if (Fichero200.Diseno(ctx.Ejercicio) is null)
             return Resultado<(Declaracion200, DeclaracionAeat)>.Fallo(new Error("Modelo200.SinDiseno", $"El programa no tiene el diseño del modelo 200 de {ctx.Ejercicio}.", registro,
@@ -46,7 +50,7 @@ public sealed class Servicio200(IBaseDatos bd, ServicioPresentacionAeat presenta
         var p = propuesta.Valor;
         var declarante = await new Servicio303(bd, presentacion).DeclaranteAsync(ctx);
         var (saldos, sinClasificar) = await SaldosAsync(ctx, declarante.RazonSocial, c);
-        var ajustes = p.Entrada.Ajustes.Select(a => new AjusteDeclaracion200(Linea(a.Descripcion), a.Temporal, a.Aumento, a.Importe, a.Descripcion)).ToList();
+        var ajustes = p.Entrada.Ajustes.Select(a => new AjusteDeclaracion200(Linea(a), a.Temporal, a.Aumento, a.Importe, a.Descripcion)).ToList();
         var (capital, arrendamientos, otras, pagos, avisosRetenciones) = await RetencionesAsync(ctx, p);
         var liq = new Liquidacion200(p.ResultadoContable, p.BasesNegativas, p.BaseImponible, p.TipoGeneral, p.LimiteTramo is > 0m ? p.TipoTramo : null, p.CuotaIntegra,
             p.Bonificaciones, p.RentaViviendas > 0m, p.Deducciones, p.CuotaLiquida, capital, arrendamientos, otras, pagos);
@@ -81,10 +85,68 @@ public sealed class Servicio200(IBaseDatos bd, ServicioPresentacionAeat presenta
         return Resultado<(Declaracion200, DeclaracionAeat)>.Correcto((d, aeat));
     }
 
-    /// <summary>Línea del detalle de correcciones de un ajuste del IS, por su descripción.</summary>
-    public static Correccion200 Linea(string descripcion) =>
-        Regex.IsMatch(descripcion, @"\bart(\.|[íi]culo)?\s*21\b|exenci[óo]n", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)
-            ? Correccion200.ExencionTransmisionValoresResidentes : Correccion200.Otras;
+    /// <summary>Línea del detalle de correcciones de un ajuste del IS: la guardada en el ajuste (esquema 72) o, sin ella, la de su descripción.</summary>
+    public static Correccion200 Linea(AjusteImpuestoSociedades a) =>
+        a.LineaDel200 == AjusteImpuestoSociedades.LineaExencionArt21 ? Correccion200.ExencionTransmisionValoresResidentes : Correccion200.Otras;
+
+    /// <summary>Línea por la descripción (la regla anterior al esquema 72; es la propuesta para los ajustes sin línea).</summary>
+    public static Correccion200 Linea(string descripcion) => Linea(new AjusteImpuestoSociedades(false, false, descripcion, 0m));
+
+    /// <summary>
+    /// Los datos del 200 que están en la BD (esquema 72): el CNAE y el teléfono de la empresa (Empresas), la plantilla media y la opción del 0,7 %
+    /// del ejercicio (Ejercicios), lo que se destina a dividendos en la aplicación del resultado del ejercicio y los cargos de la empresa vigentes
+    /// a 31/12 (Cargos de la empresa): administradores, titulares reales, secretario y representantes legales.
+    /// </summary>
+    public Task<DatosDeclaracion200> DatosAsync(ContextoSociedadEjercicio ctx) => bd.EjecutarAsync(async s =>
+    {
+        var esquema = s.LeerEsquema();
+        var sociedad = await s.ConsultarPrimeroAsync(
+            $"SELECT {(esquema.ExisteColumna("Sociedades", "Cnae") ? "Cnae" : "Null AS Cnae")}, {(esquema.ExisteColumna("Sociedades", "Telefono") ? "Telefono" : "Null AS Telefono")} FROM Sociedades WHERE IdSociedad = ?",
+            f => (Cnae: f.Texto("Cnae")?.Trim() ?? "", Telefono: f.Texto("Telefono")?.Trim()), ctx.IdSociedad);
+        var conPlantilla = esquema.ExisteColumna("SociedadesEjercicios", "PersonalFijo");
+        var ejercicio = conPlantilla
+            ? await s.ConsultarPrimeroAsync("SELECT PersonalFijo, PersonalNoFijo, OpcionFinesSociales FROM SociedadesEjercicios WHERE IdSociedadEjercicio = ?",
+                f => (Fijo: Convert.ToDecimal(f.Valor("PersonalFijo") is null or DBNull ? 0 : f.Valor("PersonalFijo"), CultureInfo.InvariantCulture),
+                    NoFijo: Convert.ToDecimal(f.Valor("PersonalNoFijo") is null or DBNull ? 0 : f.Valor("PersonalNoFijo"), CultureInfo.InvariantCulture), Fines: f.Logico("OpcionFinesSociales")),
+                ctx.IdSociedadEjercicio)
+            : default;
+        var dividendos = esquema.ExisteTabla("AplicacionesResultado")
+            ? await s.EscalarAsync("SELECT SUM(a.Dividendos) FROM AplicacionesResultado AS a INNER JOIN SociedadesEjercicios AS se ON a.IdSociedadEjercicio = se.IdSociedadEjercicio " +
+                "WHERE se.IdSociedad = ? AND a.EjercicioResultado = ?", ctx.IdSociedad, (short)ctx.Ejercicio) is { } v and not DBNull ? Convert.ToDecimal(v, CultureInfo.InvariantCulture) : 0m
+            : 0m;
+        var cargos = new List<(string Cargo, Persona200 Persona, DateTime? Nacimiento, string? Nacionalidad, string? Residencia, DateTime? Poder, string? Notaria)>();
+        if (esquema.ExisteTabla("CargosSociedad"))
+        {
+            var fin = new DateTime(ctx.Ejercicio, 12, 31);
+            cargos.AddRange(await s.ConsultarAsync(
+                "SELECT c.Cargo, c.FechaNacimiento, c.Nacionalidad, c.PaisResidencia, c.FechaPoder, c.Notaria, t.NIF, t.TipoPersona, t.RazonSocial, t.Nombre, t.PrimerApellido, " +
+                "t.SegundoApellido, t.NombrePersona, t.CodigoPostal FROM CargosSociedad AS c INNER JOIN Terceros AS t ON c.IdTercero = t.IdTercero " +
+                "WHERE c.IdSociedad = ? AND c.Activo = True AND (c.FechaDesde IS NULL OR c.FechaDesde <= ?) AND (c.FechaHasta IS NULL OR c.FechaHasta >= ?) ORDER BY c.IdCargoSociedad",
+                f => (Cargo: (f.Texto("Cargo") ?? "").Trim(), Persona: Persona(f), Nacimiento: f.FechaNula("FechaNacimiento"), Nacionalidad: f.Texto("Nacionalidad")?.Trim(),
+                    Residencia: f.Texto("PaisResidencia")?.Trim(), Poder: f.FechaNula("FechaPoder"), Notaria: f.Texto("Notaria")?.Trim()),
+                ctx.IdSociedad, fin, fin));
+        }
+        IEnumerable<T> De<T>(string cargo, Func<(string Cargo, Persona200 Persona, DateTime? Nacimiento, string? Nacionalidad, string? Residencia, DateTime? Poder, string? Notaria), T> m) =>
+            cargos.Where(x => x.Cargo == cargo).Select(m);
+        return new DatosDeclaracion200(sociedad.Cnae, ejercicio.Fijo, ejercicio.NoFijo, ejercicio.Fines, sociedad.Telefono, dividendos, false,
+            [.. De("ADMINISTRADOR", x => x.Persona)],
+            [.. De("TITULAR_REAL", x => new TitularReal200(x.Persona.Nif, x.Persona.Nombre, x.Nacimiento, 1, "ES", Pais(x.Residencia), Pais(x.Nacionalidad)))],
+            De("SECRETARIO", x => x.Persona).FirstOrDefault(),
+            [.. De("REPRESENTANTE", x => new Representante200(x.Persona.Nif, x.Persona.Nombre, x.Poder, x.Notaria ?? ""))]);
+    });
+
+    private static string Pais(string? p) => string.IsNullOrWhiteSpace(p) ? "ES" : p.Trim().ToUpperInvariant();
+
+    /// <summary>Persona del 200 desde su ficha de tercero: NIF con letra, «apellidos, nombre» o razón social y provincia del código postal.</summary>
+    internal static Persona200 Persona(IFilaDatos f)
+    {
+        var juridica = string.Equals(f.Texto("TipoPersona")?.Trim(), "JURIDICA", StringComparison.OrdinalIgnoreCase);
+        var apellidos = string.Join(' ', new[] { f.Texto("PrimerApellido"), f.Texto("SegundoApellido") }.Where(x => !string.IsNullOrWhiteSpace(x)).Select(x => x!.Trim()));
+        var nombre = juridica ? f.Texto("RazonSocial") ?? f.Texto("Nombre") ?? ""
+            : apellidos.Length > 0 ? apellidos + (string.IsNullOrWhiteSpace(f.Texto("NombrePersona")) ? "" : ", " + f.Texto("NombrePersona")!.Trim()) : f.Texto("Nombre") ?? "";
+        var cp = f.Texto("CodigoPostal")?.Trim();
+        return new Persona200(Modelo200.Nif(f.Texto("NIF")), nombre.Trim(), juridica, cp is { Length: >= 2 } && cp[..2].All(char.IsAsciiDigit) ? cp[..2] : null);
+    }
 
     /// <summary>Saldos por subcuenta del balance de situación y de la PyG del ejercicio, y las subcuentas que el balance no clasifica.</summary>
     private async Task<(IReadOnlyList<SaldoCuenta200> Saldos, IReadOnlyList<string> SinClasificar)> SaldosAsync(ContextoSociedadEjercicio ctx, string razon, CancellationToken c)
