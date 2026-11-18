@@ -5,6 +5,7 @@ depends_on: [contabilidad/procesos, terceros/roles, norma43/remesas, norma43/pan
 threads:
   - 2026-11-16 17:55 · Aplicar el resultado y repartir dividendos | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5G4FqmdSmxsRsNmu2gdH41sp
   - 2026-11-17 19:20 · Aplicar el resultado del ejercicio | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5G2z5QjabUmxPZweupJ9BVp3
+  - 2026-11-18 18:10 · Diseñar el gestor documental | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GWo8SybrmKimtCP8FKpt7zw
 ---
 ## Summary
 Reparto de dividendos entre los socios, aplicación del resultado del ejercicio (la 129 a la 121, a reservas o a dividendos) y acta del reparto en PDF. Los socios son un rol del tercero con su % de participación, sus participaciones, su cargo en la junta y sus subcuentas 526 (dividendo a pagar) y 4751 (retención). El proceso Contabilidad › Reparto de dividendos parte del neto de cada socio, calcula el bruto y la retención con el % del ejercicio y graba un asiento de reservas a dividendos como lote regenerable; al confirmarlo ofrece generar el acta. En Líneas N43, «Pago de dividendos…» lleva un cargo a la 526 de un socio o lo desglosa entre varios con el mecanismo de explotar remesas.
@@ -55,6 +56,7 @@ Fase 2 hecha, pendiente de validar (esquema 70): Contabilidad › Procesos conta
 - 2026-11-17 19:32 · answer: ¿El mínimo a la 112 y el resto a la 113? → Q2. Sí, correcto. A reserva legal el mínimo y a voluntarias el resto.
 - 2026-11-17 20:08 · Haz los cambios.
 - 2026-11-18 05:30 · Derived from organizacion/sociedades-ejercicios: las cuentas de reserva legal, resultados negativos y reservas voluntarias ya no valen 1120000, 1210000 y 1130000 cuando están vacías: la aplicación del resultado, y el reparto de dividendos cuando no se elige otra cuenta de origen, se detienen y piden asignarlas en la pestaña Fin de ejercicio de Ejercicios.
+- 2026-11-18 18:10 · Derived from documentos: el acta del reparto se guarda por el gestor documental en «<año>\Actas», vinculada al ejercicio y a la empresa; si se genera otra vez para la misma fecha, es una versión nueva del mismo documento.
 
 ## Hand-over
 - 2026-11-17 20:30 · Código y docs hechos y fusionados; falta que el propietario lo pruebe en su equipo (aplicación del resultado en una copia con el ejercicio cerrado, acta de un reparto y los campos nuevos de la ficha). Si hay correcciones, van en una PR nueva de este nodo.

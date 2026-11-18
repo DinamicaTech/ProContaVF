@@ -131,6 +131,11 @@ public sealed class PresentacionAeatAccessTests : IDisposable
         Assert.True(File.Exists(g.RutaPdf));
         Assert.Equal(Path.Combine(_carpeta, "2026", "Modelos AEAT", "303", "PRUEBAS 303 2026 1T 3030000000001.pdf"), g.RutaPdf);
         Assert.Equal(1, await ContarAsync());
+        // El justificante queda en el gestor documental, vinculado al 303 1T 2026 (documentos 2026-11-18, parte b).
+        var docs = await new ProConta.Documentos.ServicioDocumentos(Bd, "x").DeAsync("T01", ProConta.Documentos.Vinculo.Modelo("303", 2026, "1T"));
+        var doc = Assert.Single(docs);
+        Assert.Equal(("MODELO", g.RutaPdf), (doc.Tipo, doc.Vigente!.RutaCompleta));
+        Assert.Equal(doc.IdDocumento, Convert.ToInt32(await Bd.EjecutarAsync(s => s.EscalarAsync("SELECT IdDocumento FROM PresentacionesAeat WHERE IdPresentacionAeat = ?", g.Id))));
 
         // Ya presentado: solo complementaria, con el justificante de la anterior.
         var t = await servicio.TrimestresAsync(_ctx);
