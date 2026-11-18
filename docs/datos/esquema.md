@@ -165,6 +165,7 @@ Código: `src/ProConta.Datos.Esquema` (diagnóstico, migraciones idempotentes, a
 - 2026-11-17 21:10 · Derived from activos: esquema 71 con la columna IdActivo (opcional, con índice y relación con Activos) en LineasFactura y LineasFacturasProgramadas y su relleno inicial desde la cuenta o el centro de coste de la línea.
 - 2026-11-18 16:28 · Derived from documentos: esquema 74 con las tablas TiposDocumento (con los tipos iniciales), Documentos, DocumentosVersiones y DocumentosVinculos del gestor documental.
 - 2026-11-18 18:10 · Derived from documentos: esquema 75 con la columna PresentacionesAeat.IdDocumento (documento del gestor con el PDF justificante).
+- 2026-11-18 20:20 · Derived from contabilidad/balances/sumas-y-saldos: esquema 76 con el tipo de documento INFORME_CONTABLE en TiposDocumento (solo datos, sin tablas nuevas).
 
 ## Hand-over
 - 2026-11-01 09:30 · Hecho: diagnóstico, actualizador con copia verificada, comprobación previa y parámetros, registro de intentos, migraciones idempotentes (catálogo en la versión 7), diccionario en `diccionario/`, copia sin datos y la maestra 0.24 del desarrollo anterior registrada como referencia estructural. Pendiente: «crear la maestra desde cero» se cubre con `copia-estructura` (estructura de la versión 1 sin datos), no con DDL desde cero; script de instalación en el servidor (plataforma/entrega); descripciones de campo que faltan en la maestra actual (se pueden tomar de la referencia 0.24).

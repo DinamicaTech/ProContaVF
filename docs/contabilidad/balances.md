@@ -8,7 +8,7 @@ threads:
 ---
 ## Summary
 Balance de sumas y saldos, de situación, pérdidas y ganancias y comparativos, con trazabilidad al origen; los presenta informes/reporting.
-Hechos el balance de situación y la cuenta de pérdidas y ganancias del ejercicio de trabajo, como en el ProConta anterior: `src/ProConta.Contabilidad/Balances` clasifica cada apunte contabilizado con el modelo PGC Pymes 2008 de ModelosBalance, NodosBalance y ReglasCuentasBalance y los presenta informes/excel en un libro con tabla dinámica (menú Informes). Pendientes: sumas y saldos, comparativos y PyG detallado.
+Hechos el balance de situación y la cuenta de pérdidas y ganancias del ejercicio de trabajo, como en el ProConta anterior: `src/ProConta.Contabilidad/Balances` clasifica cada apunte contabilizado con el modelo PGC Pymes 2008 de ModelosBalance, NodosBalance y ReglasCuentasBalance y los presenta informes/excel en un libro con tabla dinámica (menú Informes). El balance de sumas y saldos, entre fechas y en PDF o Excel, lo lleva su hijo contabilidad/balances/sumas-y-saldos. Pendientes: comparativos y PyG detallado.
 **Aceptación:** cada cifra enlaza a su origen (asiento y orden del apunte en la hoja de datos); el activo cuadra con el patrimonio neto y el pasivo, y el resultado de pérdidas y ganancias con el que la regularización lleva a la 129.
 
 ## Decisions

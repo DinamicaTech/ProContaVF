@@ -121,6 +121,7 @@ public static class CatalogoMigraciones
         MigracionesModelosTributarios.PantallaModelos,
         MigracionesDocumentos.GestorDocumental,
         MigracionesDocumentos.Presentaciones,
+        MigracionesDocumentos.TipoInformeContable,
     ];
 
     /// <summary>Versión del esquema que espera esta versión del programa.</summary>
