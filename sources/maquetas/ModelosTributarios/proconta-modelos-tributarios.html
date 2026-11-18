@@ -1,0 +1,535 @@
+<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>[hidden]{display:none!important}</style>
+<title>Maqueta Modelos tributarios</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* Maqueta de ProContaVF: Contabilidad › Modelos tributarios (nodo contabilidad/modelos-tributarios).
+   Datos ficticios. Tokens copiados de la maqueta del Diario; un solo aspecto (claro), como el programa.
+   Disposición: lista de modelos a la izquierda con su calendario en fichas; a la derecha, los periodos del modelo elegido. */
+:root{
+  --navy:#14213A;--navy2:#22314F;--navy3:#1B2A47;--ink:#16213A;--mut:#646A78;--txt2:#3B4252;
+  --or:#F4A259;--or2:#D9622B;--bg:#F1EEE7;--bg2:#FBFAF7;--card:#FFFFFF;--ln:#ECE8DE;--ln2:#F3F0E9;
+  --inb:#E4E1D8;--inbg:#FAF9F6;--blue:#1D5C8C;--blueb:#E3ECF6;--green:#1E6B45;--greenb:#E2F0E8;--red:#B42318;--redb:#FDF1EF;
+  --amb:#8A4410;--ambb:#FFEBD6;--grey:#5E6470;--greyb:#ECEAE4;--sel:#FFF6EA;
+  --f-ui:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;--f-mono:"IBM Plex Mono",ui-monospace,Consolas,monospace;
+  --f-disp:"Bricolage Grotesque","IBM Plex Sans",system-ui,sans-serif;color-scheme:light;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font:14px/1.45 var(--f-ui);margin:0}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--or2);outline-offset:1px}
+.gut{padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.demo{background:var(--ink);color:#C9CED8;display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding-block:8px;font-size:13px;border-bottom:2px dashed var(--or)}
+.demo b{background:var(--or);color:var(--ink);font:600 11px var(--f-mono);padding:2px 7px;border-radius:3px;letter-spacing:.06em}
+.demo .g{display:inline-flex;gap:4px;align-items:center;flex-wrap:wrap}
+.demo .sep{width:1px;height:18px;background:#3A4A6A}
+.demo button{background:var(--navy2);border:1px solid #3A4A6A;color:#E6E9EF;border-radius:6px;padding:4px 10px;cursor:pointer}
+.demo button[aria-pressed=true]{background:var(--or);color:var(--ink);border-color:var(--or)}
+.top{background:var(--navy);color:#fff;display:flex;align-items:center;gap:14px;padding-block:10px;flex-wrap:wrap}
+.logo{font:700 17px var(--f-disp);display:flex;gap:8px;align-items:center}
+.logo i{width:20px;height:20px;border-radius:5px;background:var(--or);display:inline-block}
+.ctx{border:1px solid #3A4A6A;border-radius:6px;padding:3px 10px;font-size:13px;color:#DCE1EA}
+.prb{background:var(--or);color:var(--ink);font:600 11px var(--f-mono);padding:2px 7px;border-radius:3px;letter-spacing:.06em}
+.top .op{margin-left:auto;font-size:13px;color:#C9CED8}
+.tabs{background:var(--navy3);display:flex;gap:2px;padding-top:6px;overflow-x:auto}
+.tab{color:#C9CED8;padding:7px 14px;border-radius:7px 7px 0 0;white-space:nowrap;font-size:13.5px}
+.tab[aria-selected=true]{background:var(--bg);color:var(--ink);font-weight:600}
+main{padding-block:16px;display:flex;flex-direction:column;gap:12px;max-width:1440px}
+.ph{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.ph h1{font:600 22px var(--f-disp);margin:0}
+.ph .sub{color:var(--mut);font-size:13px}
+.ph .sp{margin-left:auto;display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.btn{font-family:var(--f-ui);border:1px solid var(--inb);background:var(--card);border-radius:7px;padding:6px 12px;cursor:pointer;font-weight:500;font-size:13.5px;white-space:nowrap}
+.btn.pri{background:var(--navy);color:#fff;border-color:var(--navy)}
+.btn.sm{padding:3px 9px;font-size:12.5px}
+.btn.link{border:0;background:none;color:var(--blue);padding:0;text-decoration:underline;cursor:pointer;font-size:13px;font-weight:400;white-space:normal;text-align:left}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.inp{border:1px solid var(--inb);background:var(--inbg);border-radius:7px;padding:5px 9px;font-size:13px}
+.card{background:var(--card);border:1px solid var(--ln);border-radius:10px;min-width:0}
+.card>header{display:flex;align-items:center;gap:10px;padding:11px 14px;flex-wrap:wrap;border-bottom:1px solid var(--ln)}
+.card>header h2{font:600 15px var(--f-ui);margin:0}
+.card>header .n{color:var(--mut);font-size:13px}
+.card>header .sp{margin-left:auto}
+.seg{display:inline-flex;background:var(--greyb);border-radius:7px;padding:2px;flex-wrap:wrap}
+.seg button{border:0;background:transparent;padding:4px 10px;border-radius:6px;cursor:pointer;font-size:13px;color:var(--txt2)}
+.seg button[aria-pressed=true]{background:var(--card);box-shadow:0 1px 2px rgba(20,33,58,.12);color:var(--ink);font-weight:500}
+/* Franja de plazos */
+.agenda{display:flex;flex-wrap:wrap;gap:8px 10px;align-items:center;padding:10px 14px}
+.agenda .lbl{color:var(--mut);font-size:12.5px}
+.ag{display:inline-flex;gap:8px;align-items:baseline;border:1px solid var(--ln);background:var(--bg2);border-radius:8px;padding:5px 10px;cursor:pointer}
+.ag b{font:600 13px var(--f-mono)}
+.ag small{color:var(--mut);font-size:12.5px}
+.ag.bad{border-color:#F0C7C1;background:var(--redb)}.ag.bad b,.ag.bad small{color:var(--red)}
+/* Estados */
+.pill{display:inline-flex;align-items:center;gap:5px;border-radius:999px;padding:1px 9px;font-size:12px;font-weight:600;white-space:nowrap}
+.s-ok{background:var(--greenb);color:var(--green)}.s-des{background:var(--ambb);color:var(--amb)}.s-bad{background:var(--redb);color:var(--red)}
+.s-pl{background:var(--blueb);color:var(--blue)}.s-na{background:var(--greyb);color:var(--grey)}
+/* Dos columnas */
+.grid2{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,9fr);gap:12px;align-items:start}
+@media (max-width:1040px){.grid2{grid-template-columns:minmax(0,1fr)}}
+.mods{list-style:none;margin:0;padding:0}
+.mod{display:grid;grid-template-columns:54px minmax(0,1fr);gap:4px 10px;padding:9px 14px;border-bottom:1px solid var(--ln2);cursor:pointer;border-left:3px solid transparent}
+.mod:last-child{border-bottom:0;border-radius:0 0 10px 10px}
+.mod:hover{background:var(--bg2)}
+.mod[aria-selected=true]{background:var(--sel);border-left-color:var(--or2)}
+.mod .num{font:600 19px var(--f-mono);grid-row:1/3;align-self:start;line-height:1.2}
+.mod .num small{display:block;font:400 11px var(--f-ui);color:var(--mut)}
+.mod .tt{font-weight:600}
+.mod .tt span{font-weight:400;color:var(--mut);font-size:12.5px}
+.mod .dd{color:var(--txt2);font-size:12.5px}
+.chips{display:flex;gap:5px;flex-wrap:wrap;margin-top:5px;align-items:center}
+.chip{border:0;border-radius:5px;padding:1px 7px;font:600 11.5px var(--f-mono);cursor:pointer}
+.chips .nx{color:var(--mut);font-size:12px;margin-left:4px}
+.nob{font:500 11px var(--f-ui);color:var(--grey);background:var(--greyb);border-radius:4px;padding:0 6px;margin-left:6px;white-space:nowrap}
+/* Detalle */
+.dh{padding:12px 14px;border-bottom:1px solid var(--ln);display:flex;flex-direction:column;gap:8px}
+.dh h2{font:600 18px var(--f-disp);margin:0}
+.dh h2 .m{font-family:var(--f-mono)}
+.dh p{margin:0;color:var(--txt2);max-width:70ch}
+.facts{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:6px 18px}
+.facts .k{color:var(--mut);font-size:12px}
+.facts .v{font-size:13px}
+.hint{padding:7px 14px;color:var(--mut);font-size:12.5px;border-bottom:1px solid var(--ln);display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.hint .sp{margin-left:auto}
+.tw{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:13px}
+th{font-weight:600;color:var(--mut);text-align:left;padding:7px 9px;border-bottom:1px solid var(--ln);white-space:nowrap;font-size:12px;background:var(--card)}
+td{padding:6px 9px;border-bottom:1px solid var(--ln2);white-space:nowrap}
+tbody tr{cursor:default}
+tbody tr:hover td{background:var(--bg2)}
+tbody tr.on td{background:var(--sel)}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums;font-family:var(--f-mono);font-size:12.5px}
+td.mono{font-family:var(--f-mono);font-size:12.5px}
+td.mut,.mut{color:var(--mut)}
+td.ck,th.ck{width:30px;padding-right:0}
+td.mm{width:34px;text-align:right;position:sticky;right:0;background:var(--card)}
+.kb{border:1px solid transparent;background:none;border-radius:6px;padding:0 7px;cursor:pointer;font-weight:700;color:var(--txt2);line-height:1.5}
+.kb:hover{border-color:var(--inb);background:var(--card)}
+.org{font-size:11.5px;color:var(--mut);margin-left:6px}
+.empty{padding:26px 14px;color:var(--mut);text-align:center}
+/* Menú contextual */
+.menu{position:fixed;z-index:80;background:var(--card);border:1px solid var(--inb);border-radius:9px;box-shadow:0 12px 34px rgba(20,33,58,.22);padding:5px;min-width:270px;max-width:min(360px,calc(100vw - 24px))}
+.menu h4{margin:0;padding:4px 10px 5px;font:600 11.5px var(--f-ui);color:var(--mut);letter-spacing:.02em}
+.menu button{display:block;width:100%;text-align:left;border:0;background:none;border-radius:6px;padding:6px 10px;cursor:pointer;font-size:13.5px}
+.menu button:hover:not(:disabled){background:var(--sel)}
+.menu button:disabled{color:var(--mut);cursor:not-allowed}
+.menu button small{display:block;color:var(--mut);font-size:11.5px;white-space:normal}
+.menu hr{border:0;border-top:1px solid var(--ln);margin:4px 2px}
+/* Diálogos */
+.scrim{position:fixed;inset:0;background:rgba(20,33,58,.38);z-index:60;display:flex;align-items:center;justify-content:center;padding:16px}
+.dlg{background:var(--card);border-radius:12px;box-shadow:0 18px 50px rgba(20,33,58,.3);width:min(620px,100%);max-height:100%;display:flex;flex-direction:column;overflow:hidden}
+.dlg.wide{width:min(760px,100%)}
+.dlg>header{padding:16px 18px 6px}
+.dlg>header h3{margin:0;font:600 18px var(--f-disp)}
+.dlg>header p{margin:4px 0 0;color:var(--mut);font-size:13px}
+.dlg .body{padding:10px 18px;overflow:auto;display:flex;flex-direction:column;gap:10px;flex:1;min-height:0}
+.dlg>footer{padding:12px 18px;border-top:1px solid var(--ln);display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;align-items:center}
+.dlg>footer .l{margin-right:auto;color:var(--mut);font-size:12.5px}
+.kv{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:6px 16px;margin:0}
+.kv dt{color:var(--mut);font-size:12.5px}
+.kv dd{margin:0;overflow-wrap:anywhere}
+.kv dd.mono{font-family:var(--f-mono);font-size:13px}
+.note{background:var(--blueb);color:var(--blue);border-radius:8px;padding:9px 12px;font-size:13px}
+.warn{background:var(--ambb);color:var(--amb);border-radius:8px;padding:9px 12px;font-size:13px}
+.paper{background:#fff;border:1px solid var(--inb);box-shadow:0 2px 8px rgba(20,33,58,.1);padding:18px 20px;position:relative;overflow:hidden;font-size:12.5px;color:#222}
+.paper .hd{display:flex;gap:12px;align-items:center;border-bottom:2px solid #222;padding-bottom:8px;flex-wrap:wrap}
+.paper .hd .mn{font:700 26px var(--f-mono);border:2px solid #222;padding:0 8px}
+.paper .hd .ag2{font-weight:600}
+.paper .wm{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font:700 34px var(--f-ui);color:rgba(180,35,24,.14);transform:rotate(-24deg);pointer-events:none;text-align:center}
+.paper table{font-size:12.5px;margin-top:10px}
+.paper td{border-bottom:1px dotted #bbb;white-space:normal}
+.paper .csv{margin-top:12px;border:1px solid #222;padding:6px 8px;font-family:var(--f-mono);font-size:12px;overflow-wrap:anywhere}
+.lst{display:flex;flex-direction:column;gap:2px}
+.lst label{display:flex;gap:8px;align-items:baseline;padding:4px 6px;border-radius:6px;cursor:pointer}
+.lst label:hover{background:var(--bg2)}
+.lst small{color:var(--mut)}
+.toast{position:fixed;left:50%;bottom:calc(18px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:#fff;border-radius:8px;padding:9px 14px;z-index:90;font-size:13.5px;max-width:calc(100vw - 32px);box-shadow:0 8px 24px rgba(20,33,58,.3)}
+.qs{background:var(--card);border:1px dashed var(--or2);border-radius:10px;padding:12px 16px;font-size:13.5px}
+.qs h2{font:600 15px var(--f-ui);margin:0 0 6px}
+.qs ol,.qs ul{margin:0;padding-left:20px;max-width:95ch}
+.qs li{margin:4px 0}
+</style>
+</head><body>
+
+<div class="demo gut">
+  <b>MAQUETA</b><span>Datos ficticios.</span>
+  <span class="g">Fecha de hoy:
+    <button data-fecha="2026-11-18" aria-pressed="true" title="Mitad de trimestre: casi todo presentado, el siguiente plazo es el 202 de diciembre">18/11/2026</button>
+    <button data-fecha="2027-01-22" aria-pressed="false" title="Enero: coinciden el 4T y los resúmenes anuales">22/01/2027</button>
+  </span>
+  <span class="sep"></span>
+  <span class="g">El programa genera:
+    <button data-gen="hoy" aria-pressed="true" title="Lo que hay hoy: solo el 303 se genera y presenta desde el programa; del resto se ve el calendario y lo presentado">Solo el 303 (hoy)</button>
+    <button data-gen="todos" aria-pressed="false" title="Cuando estén construidos los diez modelos">Los diez modelos</button>
+  </span>
+</div>
+<div class="top gut">
+  <span class="logo"><i></i>ProConta</span>
+  <span class="ctx" title="Sociedad y ejercicio de trabajo">Ribera Gestión · Ejercicio 2026</span>
+  <span class="prb" title="La BD es una copia de pruebas: todo se envía al entorno de pruebas de la AEAT">PRUEBAS</span>
+  <span class="op">Operador <b>Ronald</b></span>
+</div>
+<div class="tabs gut" role="tablist">
+  <span class="tab" role="tab" aria-selected="false">Inicio</span>
+  <span class="tab" role="tab" aria-selected="false">Diario</span>
+  <span class="tab" role="tab" aria-selected="false">Liquidación de IVA</span>
+  <span class="tab" role="tab" aria-selected="true">Modelos tributarios</span>
+</div>
+
+<main class="gut">
+  <div class="ph">
+    <h1>Modelos tributarios</h1>
+    <span class="sub">Ribera Gestión · 2026</span>
+    <span class="sp">
+      <span class="seg" id="segVista">
+        <button data-v="modelo" aria-pressed="true" title="Los modelos de la sociedad y, del elegido, sus periodos">Por modelo</button>
+        <button data-v="plazo" aria-pressed="false" title="Todos los periodos de todos los modelos, ordenados por la fecha en que termina su plazo">Por plazo</button>
+      </span>
+      <button class="btn" id="bConsulta" title="Pregunta a la AEAT qué se ha presentado de esta sociedad en 2026, también lo que presentó la gestoría, y lo añade sin duplicar lo que ya está">Consultar a la AEAT</button>
+      <button class="btn" id="bSoc" title="Elige qué modelos presenta esta sociedad; los demás no salen en la lista ni en los plazos">Modelos de la sociedad…</button>
+      <button class="btn" id="bAct" title="Vuelve a calcular los modelos con lo contabilizado ahora (F5)">Actualizar</button>
+    </span>
+  </div>
+
+  <section class="card"><div class="agenda" id="agenda"></div></section>
+
+  <div class="grid2" id="vModelo">
+    <section class="card">
+      <header><h2>Modelos de la sociedad</h2><span class="n" id="nMods"></span></header>
+      <ul class="mods" id="mods" role="listbox" aria-label="Modelos"></ul>
+    </section>
+    <section class="card" id="det"></section>
+  </div>
+
+  <section class="card" id="vPlazo" hidden>
+    <header><h2>Calendario de 2026</h2><span class="n" id="nPlz"></span>
+      <span class="sp seg" id="segFil">
+        <button data-f="todos" aria-pressed="true">Todos</button>
+        <button data-f="pend" aria-pressed="false" title="Sin presentar, o presentados con un importe distinto del calculado">Pendientes</button>
+        <button data-f="pres" aria-pressed="false">Presentados</button>
+      </span>
+    </header>
+    <div class="tw"><table>
+      <thead><tr><th class="ck"><input type="checkbox" id="ckAllP" title="Marcar o desmarcar todos"></th><th>Plazo hasta</th><th>Modelo</th><th>Periodo</th><th>Estado</th><th class="num">Calculado</th><th class="num">Presentado</th><th>Fecha</th><th>CSV</th><th></th></tr></thead>
+      <tbody id="tbP"></tbody>
+    </table></div>
+  </section>
+
+  <section class="qs">
+    <h2>También se llega desde</h2>
+    <ul>
+      <li>Liquidación de IVA: al confirmar un trimestre ofrece «Presentar el 303…» y, cuando existan, el 111 y el 115 del mismo trimestre.</li>
+      <li>Fin de ejercicio: la liquidación del 4T ofrece el 303 del 4T y el 390; el Impuesto sobre Sociedades, el 200; el cierre avisa de los resúmenes anuales sin presentar (180, 190, 347).</li>
+      <li>Inicio: cada plazo de la agenda y de la salud abre esta pantalla con su periodo marcado.</li>
+    </ul>
+  </section>
+
+  <section class="qs">
+    <h2>Para validar</h2>
+    <ol>
+      <li>¿Esta pantalla sustituye a la opción de menú «Modelo 303» (Contabilidad › Modelos tributarios) y las casillas del 303 se abren desde aquí, o prefieres mantener las dos entradas?</li>
+      <li>Las acciones de un periodo (ver el borrador, generar el fichero, presentar, justificante, datos de la presentación) van en el menú contextual, con el botón «⋯» de cada fila como atajo. ¿Bien así, o prefieres botones visibles?</li>
+      <li>«Consultar a la AEAT» trae lo presentado fuera del programa (gestoría). ¿Solo con el botón, o también sola al abrir la pantalla una vez al día?</li>
+      <li>«Modelos de la sociedad…» decide qué modelos salen. ¿Te sirve aquí, o lo quieres en Parámetros y tablas › Empresas?</li>
+      <li>¿La vista «Por plazo» hace innecesaria la pantalla aparte de «Modelos presentados» (nodo presentados), o la quieres igualmente?</li>
+    </ol>
+  </section>
+</main>
+
+<div id="layer"></div>
+
+<script>
+const $=id=>document.getElementById(id);
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const eur=n=>{const [e,d]=Math.abs(n).toFixed(2).split('.');return (n<0?'−':'')+e.replace(/\B(?=(\d{3})+(?!\d))/g,'.')+','+d+' €';};
+const dOf=s=>{const [y,m,d]=s.split('-').map(Number);return new Date(y,m-1,d);};
+const dm=s=>{const [y,m,d]=s.split('-');return d+'/'+m+'/'+y;};
+const dias=(a,b)=>Math.round((dOf(b)-dOf(a))/864e5);
+
+// g = presentado por la gestoría (lo devuelve la consulta de la AEAT); p = presentado desde el programa.
+const P=(iso,hora,importe,por,extra)=>Object.assign({iso,hora,importe,por},extra||{});
+const T=(a)=>[['1T','04-01','04-20',0],['2T','07-01','07-20',0],['3T','10-01','10-20',0],['4T','01-01',a,1]];
+const tri=(fin4,vals,pres)=>T(fin4).map(([p,i,f,sig],k)=>({p,ini:(2026+sig)+'-'+i,fin:(2026+sig)+'-'+f,calc:vals[k],pres:pres[k]||null}));
+
+const MODELOS=[
+ {id:'303',nom:'IVA. Autoliquidación',per:'Trimestral',corto:'El IVA repercutido menos el deducible de cada trimestre.',
+  desc:'Autoliquidación trimestral del IVA: lo repercutido en las ventas menos lo deducible de las compras, con la prorrata de las actividades que la aplican. Lo que sale a ingresar se domicilia.',
+  plazo:'Del 1 al 20 del mes siguiente al trimestre; el 4T, del 1 al 30 de enero.',canal:'Presentación directa',pago:'Domiciliación; fuera de su plazo, NRC',origen:'Libros de IVA',
+  proc:'Liquidación de IVA',pant:'Casillas del 303',hecho:true,
+  ps:tri('02-01',[1284.10,2962.95,3412.80,1105.40],[P('2026-04-16','11:20',1284.10,'g'),P('2026-07-15','09:48',2950.35,'g'),P('2026-10-14','10:42',3412.80,'p')])},
+ {id:'111',nom:'Retenciones del trabajo y de profesionales',per:'Trimestral',corto:'Lo retenido en nóminas y en facturas de profesionales.',
+  desc:'Retenciones e ingresos a cuenta del trimestre: las de las nóminas y las de las facturas recibidas de profesionales. Es lo que el aviso de salud S4 compara con las cuentas 4751.',
+  plazo:'Del 1 al 20 del mes siguiente al trimestre.',canal:'Presentación directa',pago:'Domiciliación; fuera de su plazo, NRC',origen:'Nóminas y facturas de compra con retención',
+  proc:'Nóminas',
+  ps:tri('01-20',[2846.30,2910.12,2984.10,3020.55],[P('2026-04-14','12:05',2846.30,'g'),P('2026-07-15','09:51',2910.12,'g'),P('2026-10-13','16:30',2984.10,'g',{oculta:true}),P('2027-01-19','10:02',3020.55,'g')])},
+ {id:'115',nom:'Retenciones de alquileres',per:'Trimestral',corto:'Lo retenido a los arrendadores de locales.',
+  desc:'Retenciones de los arrendamientos de inmuebles urbanos: las de las facturas de alquiler recibidas en el trimestre.',
+  plazo:'Del 1 al 20 del mes siguiente al trimestre.',canal:'Presentación directa',pago:'Domiciliación; fuera de su plazo, NRC',origen:'Facturas de compra de alquiler con retención',
+  ps:tri('01-20',[2280,2280,2280,2280],[P('2026-04-14','12:09',2280,'g'),P('2026-07-15','09:55',2280,'g'),P('2026-10-13','16:34',2280,'g',{oculta:true})])},
+ {id:'349',nom:'Operaciones intracomunitarias',per:'Trimestral',corto:'Compras y servicios con operadores de la UE (Airbnb, Booking).',info:true,
+  desc:'Declaración recapitulativa de las operaciones con operadores de otros países de la Unión Europea, por operador y con su NIF-IVA. Cuadra con las casillas intracomunitarias del 303.',
+  plazo:'Del 1 al 20 del mes siguiente al trimestre; el 4T, del 1 al 30 de enero.',canal:'TGVI Online (informativa)',pago:'Sin pago',origen:'Libros de IVA',
+  ps:tri('02-01',[1940.22,4310.80,6120.45,2015.00],[P('2026-04-17','13:12',1940.22,'g'),P('2026-07-16','10:20',4310.80,'g'),P('2026-10-15','11:03',6120.45,'g')])},
+ {id:'202',nom:'Pago fraccionado del Impuesto sobre Sociedades',per:'Abril, octubre y diciembre',corto:'Los tres pagos a cuenta del impuesto del año.',
+  desc:'Pagos fraccionados del Impuesto sobre Sociedades. Los presentados son los pagos a cuenta que después descuenta la liquidación del impuesto.',
+  plazo:'Del 1 al 20 de abril, de octubre y de diciembre.',canal:'Presentación directa',pago:'Domiciliación; fuera de su plazo, NRC',origen:'Última declaración del impuesto',
+  proc:'Impuesto sobre Sociedades',
+  ps:[{p:'1P',ini:'2026-04-01',fin:'2026-04-20',calc:2085.52,pres:P('2026-04-15','09:30',2085.52,'g')},
+      {p:'2P',ini:'2026-10-01',fin:'2026-10-20',calc:2085.52,pres:P('2026-10-14','10:55',2085.52,'g')},
+      {p:'3P',ini:'2026-12-01',fin:'2026-12-21',calc:2085.52,pres:P('2026-12-15','09:12',2085.52,'g')}]},
+ {id:'390',nom:'IVA. Resumen anual',per:'Anual',corto:'El resumen de los cuatro 303 del año.',info:true,
+  desc:'Declaración resumen anual del IVA: las casillas del año a partir de los cuatro 303 y de la regularización de la prorrata.',
+  plazo:'Del 1 al 30 de enero del año siguiente.',canal:'Presentación directa',pago:'Sin pago',origen:'Los cuatro 303 del año',proc:'Prorrata de IVA',
+  ps:[{p:'Año',ini:'2027-01-01',fin:'2027-02-01',calc:8765.25,pres:null}]},
+ {id:'190',nom:'Resumen anual de retenciones del trabajo',per:'Anual',corto:'Un registro por empleado y profesional; cuadra con los 111.',info:true,
+  desc:'Resumen anual de las retenciones del trabajo y de profesionales: un registro por perceptor con lo percibido y lo retenido en el año. Su total coincide con la suma de los cuatro 111.',
+  plazo:'Del 1 al 31 de enero del año siguiente.',canal:'TGVI Online (informativa)',pago:'Sin pago',origen:'Nóminas y facturas de compra con retención',
+  ps:[{p:'Año',ini:'2027-01-01',fin:'2027-02-01',calc:11761.07,pres:null}]},
+ {id:'180',nom:'Resumen anual de retenciones de alquileres',per:'Anual',corto:'Un registro por arrendador; cuadra con los 115.',info:true,
+  desc:'Resumen anual de las retenciones de alquileres: un registro por arrendador con su inmueble. Su total coincide con la suma de los cuatro 115.',
+  plazo:'Del 1 al 31 de enero del año siguiente.',canal:'TGVI Online (informativa)',pago:'Sin pago',origen:'Facturas de compra de alquiler con retención',
+  ps:[{p:'Año',ini:'2027-01-01',fin:'2027-02-01',calc:9120,pres:null}]},
+ {id:'347',nom:'Operaciones con terceros',per:'Anual',corto:'Clientes y proveedores con más de 3.005,06 € en el año.',info:true,
+  desc:'Declaración anual de operaciones con terceras personas: clientes y proveedores con los que se superan 3.005,06 € en el año, con el importe por trimestre.',
+  plazo:'Febrero del año siguiente.',canal:'TGVI Online (informativa)',pago:'Sin pago',origen:'Libros de IVA',
+  ps:[{p:'Año',ini:'2027-02-01',fin:'2027-03-01',calc:'14 terceros',pres:null}]},
+ {id:'200',nom:'Impuesto sobre Sociedades',per:'Anual',corto:'La declaración anual del impuesto.',
+  desc:'Declaración anual del Impuesto sobre Sociedades, a partir del balance, la cuenta de pérdidas y ganancias y el cálculo del impuesto. El fichero también se puede importar en Sociedades WEB.',
+  plazo:'Del 1 al 25 de julio del año siguiente.',canal:'Presentación directa',pago:'Domiciliación; fuera de su plazo, NRC',origen:'Balance, pérdidas y ganancias y cálculo del impuesto',
+  proc:'Impuesto sobre Sociedades',
+  ps:[{p:'Año',ini:'2027-07-01',fin:'2027-07-26',calc:7240.18,pres:null}]},
+];
+// Firma ficticia de cada presentación
+let seed=7;const rnd=()=>{seed=(seed*16807)%2147483647;return seed/2147483647;};
+const csvNew=()=>Array.from({length:16},()=>'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'[Math.floor(rnd()*32)]).join('');
+MODELOS.forEach(m=>m.ps.forEach(p=>{if(p.pres){p.pres.csv=csvNew();p.pres.just=m.id+String(Math.floor(rnd()*1e10)).padStart(10,'0');p.pres.exp='2026'+m.id+String(Math.floor(rnd()*1e8)).padStart(8,'0')+'K';}}));
+
+const S={hoy:'2026-11-18',gen:'hoy',vista:'modelo',fil:'todos',sel:'303',marc:new Set(),consultado:false,fuera:new Set()};
+const hecho=m=>S.gen==='todos'||!!m.hecho;
+const visibles=()=>MODELOS.filter(m=>!S.fuera.has(m.id));
+const presDe=p=>p.pres&&p.pres.iso<=S.hoy&&!(p.pres.oculta&&!S.consultado)?p.pres:null;
+const key=(m,p)=>m.id+'|'+p.p;
+function estado(m,p){
+  const pr=presDe(p);
+  if(pr){
+    if(hecho(m)&&typeof p.calc==='number'&&Math.abs(p.calc-pr.importe)>0.005)
+      return {k:'des',t:'Desactualizado',tip:'Lo presentado ('+eur(pr.importe)+') ya no coincide con lo que el programa calcula ahora ('+eur(p.calc)+'). Si procede, presenta una complementaria.'};
+    return {k:'ok',t:'Presentado',tip:'Presentado el '+dm(pr.iso)+(pr.por==='g'?' fuera del programa (lo devuelve la consulta de la AEAT)':' desde el programa')};
+  }
+  if(S.hoy<p.ini) return {k:'na',t:'Abre el '+dm(p.ini).slice(0,5),tip:'El plazo va del '+dm(p.ini)+' al '+dm(p.fin)+'. Hasta entonces el importe es provisional.'};
+  if(S.hoy<=p.fin){const n=dias(S.hoy,p.fin);return {k:'pl',t:'En plazo · '+(n===0?'termina hoy':n===1?'queda 1 día':'quedan '+n+' días'),tip:'El plazo termina el '+dm(p.fin)};}
+  return {k:'bad',t:'Vencido',tip:'El plazo terminó el '+dm(p.fin)+' y no consta ninguna presentación. Pulsa «Consultar a la AEAT» por si se presentó fuera del programa.'};
+}
+const calcTxt=(m,p)=>!hecho(m)?'<span class="mut" title="El programa todavía no calcula este modelo">—</span>':typeof p.calc==='number'?eur(p.calc):esc(p.calc);
+const todos=()=>visibles().flatMap(m=>m.ps.map(p=>({m,p,e:estado(m,p)})));
+
+function agenda(){
+  const t=todos();
+  const venc=t.filter(x=>x.e.k==='bad'),pend=t.filter(x=>x.e.k==='pl'||x.e.k==='na').sort((a,b)=>a.p.fin.localeCompare(b.p.fin)),des=t.filter(x=>x.e.k==='des');
+  let h='';
+  if(venc.length) h+='<span class="lbl">Vencidos sin presentación:</span>'+venc.map(x=>ag(x,'bad','venció el '+dm(x.p.fin))).join('');
+  if(des.length) h+='<span class="lbl">Desactualizados:</span>'+des.map(x=>ag(x,'','presentado '+eur(presDe(x.p).importe))).join('');
+  h+='<span class="lbl">Próximos plazos:</span>'+(pend.slice(0,4).map(x=>ag(x,'',(x.e.k==='pl'?'hasta el ':'del '+dm(x.p.ini).slice(0,5)+' al ')+dm(x.p.fin))).join('')||'<span class="mut">ninguno pendiente en este ejercicio</span>');
+  if(pend.length>4) h+='<span class="mut">y '+(pend.length-4)+' más</span>';
+  $('agenda').innerHTML=h;
+}
+const ag=(x,c,txt)=>'<button class="ag '+c+'" data-go="'+key(x.m,x.p)+'" title="Ir a este periodo"><b>'+x.m.id+' '+x.p.p+'</b><small>'+txt+'</small></button>';
+
+function lista(){
+  const ms=visibles();
+  $('nMods').textContent=ms.length+' de '+MODELOS.length;
+  $('mods').innerHTML=ms.map(m=>{
+    const es=m.ps.map(p=>({p,e:estado(m,p)}));
+    const nx=es.find(x=>x.e.k==='pl'||x.e.k==='na'||x.e.k==='bad');
+    return '<li class="mod" role="option" tabindex="0" aria-selected="'+(S.sel===m.id)+'" data-m="'+m.id+'">'+
+      '<div class="num">'+m.id+'</div>'+
+      '<div><div class="tt">'+esc(m.nom)+' <span>· '+esc(m.per)+'</span>'+(hecho(m)?'':'<span class="nob" title="El programa todavía no genera este modelo: se ve su calendario y lo que la AEAT dice que está presentado">solo consulta</span>')+'</div>'+
+      '<div class="dd">'+esc(m.corto)+'</div>'+
+      '<div class="chips">'+es.map(x=>'<button class="chip s-'+x.e.k+'" data-go="'+key(m,x.p)+'" title="'+esc(x.p.p+': '+x.e.t+'. '+x.e.tip)+'">'+x.p.p+'</button>').join('')+
+      (nx?'<span class="nx">'+(nx.e.k==='bad'?'venció el ':'hasta el ')+dm(nx.p.fin)+'</span>':'<span class="nx">todo presentado</span>')+'</div></div></li>';
+  }).join('');
+}
+function fila(m,p,porPlazo){
+  const e=estado(m,p),pr=presDe(p),k=key(m,p),on=S.marc.has(k);
+  const ck='<td class="ck"><input type="checkbox" data-ck="'+k+'" '+(on?'checked':'')+' aria-label="Marcar '+m.id+' '+p.p+'"></td>';
+  const est='<td><span class="pill s-'+e.k+'" title="'+esc(e.tip)+'">'+esc(e.t)+'</span>'+(pr?'<span class="org" title="'+(pr.por==='g'?'Presentado fuera del programa; lo devuelve la consulta de la AEAT':'Presentado desde el programa')+'">'+(pr.por==='g'?'gestoría':'programa')+'</span>':'')+'</td>';
+  const cols='<td class="num'+(S.hoy<p.ini?' mut':'')+'"'+(S.hoy<p.ini?' title="Provisional: el periodo no ha terminado o su plazo no ha empezado"':'')+'>'+calcTxt(m,p)+'</td>'+
+    '<td class="num">'+(pr?(typeof p.calc==='number'?eur(pr.importe):esc(p.calc)):'')+'</td><td>'+(pr?dm(pr.iso):'')+'</td><td class="mono">'+(pr?pr.csv:'')+'</td>'+
+    '<td class="mm"><button class="kb" data-kb="'+k+'" title="Acciones de este periodo (las mismas del clic derecho)" aria-label="Acciones de '+m.id+' '+p.p+'">⋯</button></td>';
+  return '<tr data-k="'+k+'" class="'+(on?'on':'')+'">'+ck+(porPlazo?'<td>'+dm(p.fin)+'</td><td><b class="mono">'+m.id+'</b> <span class="mut">'+esc(m.nom)+'</span></td><td>'+p.p+'</td>':'<td><b>'+p.p+'</b></td><td>'+dm(p.ini).slice(0,5)+' – '+dm(p.fin)+'</td>')+est+cols+'</tr>';
+}
+function detalle(){
+  const m=MODELOS.find(x=>x.id===S.sel&&!S.fuera.has(x.id))||visibles()[0];
+  if(!m){$('det').innerHTML='<div class="empty">La sociedad no tiene ningún modelo marcado. Elígelos en «Modelos de la sociedad…».</div>';return;}
+  S.sel=m.id;
+  const f=(k,v)=>'<div><div class="k">'+k+'</div><div class="v">'+v+'</div></div>';
+  $('det').innerHTML='<div class="dh"><h2><span class="m">'+m.id+'</span> · '+esc(m.nom)+'</h2><p>'+esc(m.desc)+'</p>'+
+    (hecho(m)?'':'<div class="warn">El programa todavía no genera este modelo. Puedes ver su calendario, lo que consta presentado en la AEAT y sus justificantes; generar y presentar llegarán con su desarrollo.</div>')+
+    '<div class="facts">'+f('Periodicidad',esc(m.per))+f('Plazo',esc(m.plazo)+' <span class="mut">Si acaba en día inhábil, pasa al siguiente hábil.</span>')+f('Se presenta por',esc(m.canal))+f('Pago',esc(m.pago))+f('Sale de',esc(m.origen))+
+    (m.proc?f('Proceso relacionado','<button class="btn link" data-abrir="'+esc(m.proc)+'" title="Abre la pantalla de este proceso en otra pestaña">'+esc(m.proc)+'</button>'):'')+
+    (m.pant&&hecho(m)?f('Detalle','<button class="btn link" data-abrir="'+esc(m.pant)+'" title="Abre las casillas del modelo, lo que impide presentar y sus avisos">'+esc(m.pant)+'</button>'):'')+'</div></div>'+
+    '<div class="hint"><span>Marca uno o varios periodos y usa el clic derecho (o «⋯») para ver el borrador, generar el fichero, presentar o abrir el justificante.</span></div>'+
+    '<div class="tw"><table><thead><tr><th class="ck"><input type="checkbox" id="ckAllM" title="Marcar o desmarcar todos" '+(m.ps.every(p=>S.marc.has(key(m,p)))?'checked':'')+'></th><th>Periodo</th><th>Plazo</th><th>Estado</th><th class="num">Calculado</th><th class="num">Presentado</th><th>Fecha</th><th>CSV</th><th></th></tr></thead><tbody>'+
+    m.ps.map(p=>fila(m,p,false)).join('')+'</tbody></table></div>';
+}
+function plazos(){
+  let t=todos().sort((a,b)=>a.p.fin.localeCompare(b.p.fin)||a.m.id.localeCompare(b.m.id));
+  if(S.fil==='pend') t=t.filter(x=>x.e.k!=='ok'); if(S.fil==='pres') t=t.filter(x=>x.e.k==='ok'||x.e.k==='des');
+  $('nPlz').textContent=t.length+' periodos';
+  $('tbP').innerHTML=t.map(x=>fila(x.m,x.p,true)).join('')||'<tr><td colspan="10" class="empty">Nada que mostrar con este filtro.</td></tr>';
+  $('ckAllP').checked=t.length>0&&t.every(x=>S.marc.has(key(x.m,x.p)));
+}
+function pinta(){
+  // Lo marcado que ya no se ve se desmarca
+  const vis=new Set(todos().map(x=>key(x.m,x.p)));[...S.marc].forEach(k=>{if(!vis.has(k))S.marc.delete(k);});
+  agenda();
+  $('vModelo').hidden=S.vista!=='modelo';$('vPlazo').hidden=S.vista!=='plazo';
+  if(S.vista==='modelo'){lista();detalle();}else plazos();
+}
+const busca=k=>{const [id,p]=k.split('|');const m=MODELOS.find(x=>x.id===id);return {m,p:m.ps.find(x=>x.p===p)};};
+
+// ---------- Menú contextual ----------
+function acciones(ks){
+  const sel=ks.map(busca);
+  if(sel.length===1){
+    const {m,p}=sel[0],pr=presDe(p),h=hecho(m),k=ks[0];
+    const noH=h?'':'El programa todavía no genera el '+m.id;
+    const a=[
+      {t:'Ver el borrador (PDF de la AEAT)',f:()=>pdf(k,false),no:noH,d:'Valida el fichero con la AEAT y enseña su PDF; no presenta nada'},
+      {t:'Generar el fichero…',f:()=>toast('Fichero '+m.id+' 2026 '+p.p+'.txt guardado en Documentos › 2026 › Modelos AEAT › '+m.id),no:noH,d:'Guarda el fichero con el diseño de registro, para la gestoría o para importarlo en la Sede'},
+      {t:'Presentar…',f:()=>presentar(k,false),no:noH||(pr?'Ya está presentado; solo admite una complementaria':S.hoy<p.ini?'El plazo empieza el '+dm(p.ini):'')},
+      {t:'Presentar complementaria…',f:()=>presentar(k,true),no:noH||(pr?'':'Todavía no hay nada presentado de este periodo')},
+      '-',
+      {t:'Abrir el justificante (PDF)',f:()=>pdf(k,true),no:pr?'':'No consta ninguna presentación'},
+      {t:'Datos de la presentación…',f:()=>datos(k),no:pr?'':'No consta ninguna presentación',d:pr?'CSV, justificante, expediente y quién lo firmó':''},
+      {t:'Copiar el CSV',f:()=>{copia(pr.csv);toast('CSV copiado: '+pr.csv);},no:pr?'':'No consta ninguna presentación'},
+    ];
+    if((m.pant&&h)||m.proc){a.push('-');
+      if(m.pant&&h)a.push({t:'Abrir «'+m.pant+'» de '+p.p,f:()=>abrir(m.pant+' · '+p.p)});
+      if(m.proc)a.push({t:'Abrir «'+m.proc+'»'+(m.id==='303'?' de '+p.p:''),f:()=>abrir(m.proc)});}
+    return {tit:m.id+' · '+p.p+' de 2026',a};
+  }
+  const gen=sel.filter(x=>hecho(x.m)),pre=sel.filter(x=>presDe(x.p));
+  return {tit:sel.length+' periodos marcados',a:[
+    {t:'Ver los borradores ('+gen.length+')',f:()=>toast('Se abrirían '+gen.length+' PDF de borrador, uno por periodo'),no:gen.length?'':'El programa todavía no genera ninguno de los marcados'},
+    {t:'Generar los ficheros… ('+gen.length+')',f:()=>toast(gen.length+' ficheros guardados en Documentos › 2026 › Modelos AEAT'),no:gen.length?'':'El programa todavía no genera ninguno de los marcados'},
+    {t:'Abrir los justificantes ('+pre.length+')',f:()=>toast('Se abrirían '+pre.length+' justificantes en PDF'),no:pre.length?'':'Ninguno de los marcados está presentado'},
+    {t:'Presentar…',no:'Se presenta de uno en uno, para revisar cada PDF antes de dar la conformidad'},
+  ]};
+}
+function menu(ks,x,y){
+  cierraMenu();
+  const {tit,a}=acciones(ks);
+  const el=document.createElement('div');el.className='menu';el.id='menu';el.setAttribute('role','menu');
+  el.innerHTML='<h4>'+esc(tit)+'</h4>'+a.map((it,i)=>it==='-'?'<hr>':'<button role="menuitem" data-i="'+i+'" '+(it.no?'disabled':'')+'>'+esc(it.t)+(it.no?'<small>'+esc(it.no)+'</small>':it.d?'<small>'+esc(it.d)+'</small>':'')+'</button>').join('');
+  document.body.appendChild(el);
+  const r=el.getBoundingClientRect();
+  el.style.left=Math.max(8,Math.min(x,innerWidth-r.width-8))+'px';el.style.top=Math.max(8,Math.min(y,innerHeight-r.height-8))+'px';
+  el.addEventListener('click',ev=>{const b=ev.target.closest('button[data-i]');if(!b||b.disabled)return;const it=a[+b.dataset.i];cierraMenu();it.f&&it.f();});
+}
+const cierraMenu=()=>{const m=$('menu');if(m)m.remove();};
+function menuDe(k,x,y){ if(!S.marc.has(k)){S.marc.clear();S.marc.add(k);pinta();} menu([...S.marc],x,y); }
+
+// ---------- Diálogos ----------
+function dlg(html,wide){$('layer').innerHTML='<div class="scrim" id="scrim"><div class="dlg'+(wide?' wide':'')+'" role="dialog" aria-modal="true">'+html+'</div></div>';const b=$('layer').querySelector('[data-foco]')||$('layer').querySelector('button');b&&b.focus();}
+const cierra=()=>{$('layer').innerHTML='';};
+let tT;function toast(t){document.querySelectorAll('.toast').forEach(e=>e.remove());const e=document.createElement('div');e.className='toast';e.setAttribute('role','status');e.textContent=t;document.body.appendChild(e);clearTimeout(tT);tT=setTimeout(()=>e.remove(),4200);}
+function copia(t){try{navigator.clipboard.writeText(t).catch(()=>{});}catch(e){}}
+const abrir=t=>toast('Se abriría la pestaña «'+t+'»');
+function papel(m,p,pr,compl){
+  const filas=typeof p.calc==='number'?[['Declarante','B00000000 RIBERA GESTIÓN, S.L.'],['Ejercicio y periodo','2026 · '+p.p],[m.info?'Importe declarado':'Resultado',eur(pr?pr.importe:p.calc)],['Forma de pago',m.pago==='Sin pago'?'Sin pago (informativa)':'Domiciliación']]:[['Declarante','B00000000 RIBERA GESTIÓN, S.L.'],['Ejercicio','2026'],['Registros declarados',p.calc]];
+  return '<div class="paper"><div class="hd"><span class="mn">'+m.id+'</span><div><div class="ag2">Agencia Tributaria</div><div>'+esc(m.nom)+'</div></div></div>'+
+    (pr?'':'<div class="wm">BORRADOR<br>NO VÁLIDO PARA PRESENTAR</div>')+
+    '<table>'+filas.map(r=>'<tr><td>'+r[0]+'</td><td class="num">'+esc(r[1])+'</td></tr>').join('')+'</table>'+
+    '<div class="mut" style="margin-top:8px">… resto de casillas del modelo oficial …</div>'+
+    (pr?'<div class="csv">Presentación realizada el '+dm(pr.iso)+' a las '+pr.hora+' · Justificante '+pr.just+'<br>Código Seguro de Verificación: '+pr.csv+'</div>':'')+'</div>';
+}
+function pdf(k,just){
+  const {m,p}=busca(k),pr=just?presDe(p):null;
+  dlg('<header><h3>'+(just?'Justificante':'Borrador')+' del '+m.id+' · '+p.p+' de 2026</h3><p>'+(just?'El PDF que devolvió la AEAT al presentar, archivado en Documentos › 2026 › Modelos AEAT › '+m.id+'.':'El PDF que devuelve la AEAT al validar el fichero. Verlo no presenta nada.')+'</p></header>'+
+    '<div class="body">'+papel(m,p,pr)+(just||!presDe(p)?'':'<div class="note">Este periodo ya está presentado. El borrador muestra lo que el programa calcula ahora.</div>')+'</div>'+
+    '<footer>'+(just?'<button class="btn" data-do="datos" data-k="'+k+'">Datos de la presentación…</button>':(!presDe(p)&&S.hoy>=p.ini?'<button class="btn" data-do="pres" data-k="'+k+'">Presentar…</button>':''))+'<button class="btn pri" data-close data-foco>Cerrar</button></footer>',true);
+}
+function datos(k){
+  const {m,p}=busca(k),pr=presDe(p),g=pr.por==='g';
+  const cp=v=>' <button class="btn sm" data-copy="'+v+'" title="Copia este dato">Copiar</button>';
+  dlg('<header><h3>Presentación del '+m.id+' · '+p.p+' de 2026</h3><p>'+(g?'Presentado fuera del programa. Estos datos los devuelve la consulta de la AEAT.':'Presentado desde el programa. Se guarda todo lo que respondió la AEAT.')+'</p></header>'+
+    '<div class="body"><dl class="kv">'+
+    '<dt>CSV</dt><dd class="mono" title="Código Seguro de Verificación: con él se coteja el documento en la Sede de la AEAT">'+pr.csv+cp(pr.csv)+'</dd>'+
+    '<dt>Justificante</dt><dd class="mono">'+pr.just+cp(pr.just)+'</dd>'+
+    '<dt>Expediente</dt><dd class="mono">'+pr.exp+'</dd>'+
+    '<dt>Fecha y hora</dt><dd>'+dm(pr.iso)+' '+pr.hora+'</dd>'+
+    '<dt>'+(m.info?'Importe declarado':'Importe')+'</dt><dd>'+(typeof p.calc==='number'?eur(pr.importe):esc(p.calc))+'</dd>'+
+    '<dt>Forma de pago</dt><dd>'+(m.pago==='Sin pago'?'Sin pago (informativa)':'Domiciliación en ES•• 2100 •••• •••• 4417')+'</dd>'+
+    '<dt>Firmado por</dt><dd>'+(g?'<span class="mut">La consulta de la AEAT no dice quién lo presentó</span>':'B00000000 RIBERA GESTIÓN, S.L. (certificado de la sociedad)')+'</dd>'+
+    '<dt>Operador</dt><dd>'+(g?'<span class="mut">Fuera del programa</span>':'Ronald')+'</dd>'+
+    '<dt>Entorno</dt><dd>'+(g?'Producción':'PRUEBAS')+'</dd>'+
+    '<dt>Fichero enviado</dt><dd>'+(g?'<span class="mut">No lo hay: no se presentó desde el programa</span>':'<button class="btn link" data-toast="Se abriría el fichero enviado, tal como salió">Ver el fichero</button> · <button class="btn link" data-toast="Se abriría la respuesta completa de la AEAT, con sus avisos">Ver la respuesta de la AEAT</button>')+'</dd>'+
+    '</dl></div>'+
+    '<footer><button class="btn" data-do="just" data-k="'+k+'">Abrir el justificante (PDF)</button><button class="btn pri" data-close data-foco>Cerrar</button></footer>');
+}
+function presentar(k,compl){
+  const {m,p}=busca(k),pr=presDe(p);
+  const limDom=new Date(dOf(p.fin)-5*864e5),fuera=dOf(S.hoy)>limDom,conPago=m.pago!=='Sin pago'&&typeof p.calc==='number'&&p.calc>0;
+  const imp=typeof p.calc==='number'?(compl&&pr?p.calc-pr.importe:p.calc):null;
+  dlg('<header><h3>Presentar '+(compl?'la complementaria del ':'el ')+m.id+' · '+p.p+' de 2026</h3><p>Revisa el PDF y da tu conformidad. Una declaración presentada no se puede anular.</p></header>'+
+    '<div class="body">'+papel(m,p,null)+
+    '<dl class="kv"><dt>Declarante</dt><dd>B00000000 RIBERA GESTIÓN, S.L. <span class="mut">(coincide con el fichero)</span></dd>'+
+    '<dt>'+(m.info?'Importe declarado':compl?'Diferencia a ingresar':'Resultado')+'</dt><dd><b>'+(imp===null?esc(p.calc):eur(imp))+'</b>'+(compl&&pr?' <span class="mut">(presentado antes: '+eur(pr.importe)+')</span>':'')+'</dd>'+
+    (conPago?'<dt>Forma de pago</dt><dd>'+(fuera?'Ya no se puede domiciliar (el plazo de domiciliación terminó el '+dm(limDom.toISOString().slice(0,10))+'). Paga en el banco o en la Sede y escribe aquí el NRC: <input class="inp" id="nrc" placeholder="NRC de 22 caracteres" size="24">':'Domiciliación en ES•• 2100 •••• •••• 4417')+'</dd>':'')+
+    '<dt>Firma</dt><dd>Certificado de la sociedad (Parámetros › Certificado de la empresa)</dd>'+
+    '<dt>Se envía a</dt><dd>Entorno de <b>PRUEBAS</b> de la AEAT, por '+esc(m.canal.toLowerCase())+'</dd></dl>'+
+    '<label style="display:flex;gap:8px;align-items:baseline"><input type="checkbox" id="conf"> <span>Conforme: he revisado el PDF y quiero presentarlo</span></label></div>'+
+    '<footer><button class="btn" data-close>Cancelar</button><button class="btn pri" id="bPres" data-k="'+k+'" data-compl="'+(compl?1:0)+'" disabled title="Marca «Conforme» para poder presentar">Presentar a la AEAT</button></footer>',true);
+}
+function hazPresentar(k){
+  const {m,p}=busca(k);
+  p.pres=P(S.hoy,'10:15',typeof p.calc==='number'?p.calc:0,'p');p.pres.csv=csvNew();p.pres.just=m.id+String(Math.floor(rnd()*1e10)).padStart(10,'0');p.pres.exp='2026'+m.id+String(Math.floor(rnd()*1e8)).padStart(8,'0')+'K';
+  cierra();pinta();toast('Presentado. CSV '+p.pres.csv+'. El justificante queda archivado.');
+}
+function sociedad(){
+  dlg('<header><h3>Modelos de la sociedad</h3><p>Solo los marcados salen en la lista, en los plazos y en los avisos de Inicio.</p></header>'+
+    '<div class="body"><div class="lst">'+MODELOS.map(m=>'<label><input type="checkbox" data-soc="'+m.id+'" '+(S.fuera.has(m.id)?'':'checked')+'> <b class="mono">'+m.id+'</b> <span>'+esc(m.nom)+' <small>· '+esc(m.per)+'</small></span></label>').join('')+'</div></div>'+
+    '<footer><button class="btn" data-close>Cancelar</button><button class="btn pri" id="bSocOk">Guardar</button></footer>');
+}
+
+// ---------- Eventos ----------
+document.addEventListener('click',ev=>{
+  const t=ev.target;
+  if($('menu')&&!t.closest('#menu')&&!t.closest('[data-kb]'))cierraMenu();
+  let b;
+  if((b=t.closest('[data-fecha]'))){S.hoy=b.dataset.fecha;document.querySelectorAll('[data-fecha]').forEach(x=>x.setAttribute('aria-pressed',x===b));pinta();return;}
+  if((b=t.closest('[data-gen]'))){S.gen=b.dataset.gen;document.querySelectorAll('[data-gen]').forEach(x=>x.setAttribute('aria-pressed',x===b));pinta();return;}
+  if((b=t.closest('[data-v]'))){S.vista=b.dataset.v;document.querySelectorAll('[data-v]').forEach(x=>x.setAttribute('aria-pressed',x===b));pinta();return;}
+  if((b=t.closest('[data-f]'))){S.fil=b.dataset.f;document.querySelectorAll('[data-f]').forEach(x=>x.setAttribute('aria-pressed',x===b));pinta();return;}
+  if((b=t.closest('[data-kb]'))){ev.stopPropagation();const r=b.getBoundingClientRect();menuDe(b.dataset.kb,r.right-270,r.bottom+4);return;}
+  if((b=t.closest('[data-go]'))){ev.stopPropagation();const k=b.dataset.go;S.sel=k.split('|')[0];S.marc.clear();S.marc.add(k);if(S.vista==='plazo'&&S.fil!=='todos'){S.fil='todos';document.querySelectorAll('[data-f]').forEach(x=>x.setAttribute('aria-pressed',x.dataset.f==='todos'));}pinta();const tr=document.querySelector('tr[data-k="'+k+'"]');tr&&tr.scrollIntoView({block:'nearest'});return;}
+  if(t.matches('[data-ck]')){t.checked?S.marc.add(t.dataset.ck):S.marc.delete(t.dataset.ck);pinta();return;}
+  if(t.id==='ckAllM'){const m=MODELOS.find(x=>x.id===S.sel);m.ps.forEach(p=>t.checked?S.marc.add(key(m,p)):S.marc.delete(key(m,p)));pinta();return;}
+  if(t.id==='ckAllP'){document.querySelectorAll('#tbP tr[data-k]').forEach(r=>t.checked?S.marc.add(r.dataset.k):S.marc.delete(r.dataset.k));pinta();return;}
+  if((b=t.closest('tr[data-k]'))&&!t.closest('button')){const k=b.dataset.k;S.marc.has(k)?S.marc.delete(k):S.marc.add(k);pinta();return;}
+  if((b=t.closest('.mod'))){S.sel=b.dataset.m;S.marc.clear();pinta();return;}
+  if((b=t.closest('[data-abrir]'))){abrir(b.dataset.abrir);return;}
+  if((b=t.closest('[data-toast]'))){toast(b.dataset.toast);return;}
+  if((b=t.closest('[data-copy]'))){copia(b.dataset.copy);toast('Copiado: '+b.dataset.copy);return;}
+  if((b=t.closest('[data-do]'))){const k=b.dataset.k;({datos:()=>datos(k),just:()=>pdf(k,true),pres:()=>presentar(k,false)})[b.dataset.do]();return;}
+  if(t.closest('[data-close]')||t.id==='scrim'){cierra();return;}
+  if(t.id==='conf'){$('bPres').disabled=!t.checked;return;}
+  if(t.id==='bPres'){const n=$('nrc');if(n&&n.value.trim().length<22){toast('Falta el NRC del pago: tiene 22 caracteres y te lo da el banco o la Sede al pagar.');n.focus();return;}hazPresentar(t.dataset.k);return;}
+  if(t.id==='bSoc'){sociedad();return;}
+  if(t.id==='bSocOk'){S.fuera=new Set([...document.querySelectorAll('[data-soc]')].filter(c=>!c.checked).map(c=>c.dataset.soc));cierra();pinta();return;}
+  if(t.id==='bAct'){pinta();toast('Modelos recalculados con lo contabilizado ahora');return;}
+  if(t.id==='bConsulta'){
+    const antes=todos().filter(x=>presDe(x.p)).length;S.consultado=true;const n=todos().filter(x=>presDe(x.p)).length-antes;pinta();
+    toast(n?'La AEAT devuelve '+n+' presentaciones que no estaban en el programa (111 y 115 del 3T). Añadidas.':'La AEAT no devuelve nada nuevo: todo lo presentado ya estaba aquí.');return;}
+});
+document.addEventListener('contextmenu',ev=>{const tr=ev.target.closest('tr[data-k]');if(!tr)return;ev.preventDefault();menuDe(tr.dataset.k,ev.clientX,ev.clientY);});
+document.addEventListener('keydown',ev=>{
+  if(ev.key==='Escape'){if($('menu'))cierraMenu();else cierra();}
+  if((ev.key==='Enter'||ev.key===' ')&&ev.target.classList.contains('mod')){ev.preventDefault();S.sel=ev.target.dataset.m;S.marc.clear();pinta();const el=document.querySelector('.mod[data-m="'+S.sel+'"]');el&&el.focus();}
+});
+addEventListener('wheel',cierraMenu,{passive:true});addEventListener('resize',cierraMenu);
+pinta();
+</script>
+</body></html>
