@@ -173,14 +173,14 @@ public sealed class Servicio303(IBaseDatos bd, ServicioPresentacionAeat presenta
         anterior is null ? null : new Rectificativa303(anterior.Justificante, anterior.FormaPago is "U" or "I" ? anterior.Importe : 0m);
 
     /// <summary>Casilla 110: crédito de la 4700 el último día del trimestre, sin la liquidación del propio trimestre.</summary>
-    private async Task<decimal> PendienteCompensarAsync(ContextoSociedadEjercicio ctx, int trimestre)
+    internal async Task<decimal> PendienteCompensarAsync(ContextoSociedadEjercicio ctx, int trimestre)
     {
         var saldos = await new ServicioLiquidacionIva(bd, null!, null!).SaldosAsync(ctx, CalculoLiquidacionIva.FinTrimestre(ctx.Ejercicio, trimestre),
             ServicioLiquidacionIva.Lote(ctx.Ejercicio, trimestre));
         return saldos.Where(s => s.Cuenta.StartsWith(CalculoLiquidacionIva.PrefijoCredito, StringComparison.Ordinal) && s.Saldo > 0m).Sum(s => s.Saldo);
     }
 
-    private Task<Declarante303> DeclaranteAsync(ContextoSociedadEjercicio ctx) => bd.EjecutarAsync(async s =>
+    internal Task<Declarante303> DeclaranteAsync(ContextoSociedadEjercicio ctx) => bd.EjecutarAsync(async s =>
     {
         var conIban = s.LeerEsquema().ExisteColumna("Sociedades", "IbanDomiciliacion");
         return await s.ConsultarPrimeroAsync($"SELECT Nombre, CIF{(conIban ? ", IbanDomiciliacion" : "")} FROM Sociedades WHERE IdSociedad = ?",
@@ -189,7 +189,7 @@ public sealed class Servicio303(IBaseDatos bd, ServicioPresentacionAeat presenta
     });
 
     /// <summary>Facturas del trimestre con asiento contabilizado y sin registro en el libro de IVA: el 303 no las tendría.</summary>
-    private Task<IReadOnlyList<string>> SinRegistroAsync(ContextoSociedadEjercicio ctx, int trimestre) => bd.EjecutarAsync<IReadOnlyList<string>>(async s =>
+    internal Task<IReadOnlyList<string>> SinRegistroAsync(ContextoSociedadEjercicio ctx, int trimestre) => bd.EjecutarAsync<IReadOnlyList<string>>(async s =>
     {
         var desde = new DateTime(ctx.Ejercicio, 3 * trimestre - 2, 1);
         var hasta = CalculoLiquidacionIva.FinTrimestre(ctx.Ejercicio, trimestre);
