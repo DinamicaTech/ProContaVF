@@ -37,7 +37,7 @@ public sealed class CotizacionesTests
         """;
 
     /// <summary>Gráfico de Yahoo con cierres del 17 al 21/11/2026 (lunes a viernes) a 100, 101, … en la moneda dada.</summary>
-    private static string Grafico(string simbolo, string moneda, decimal? ultimo = null)
+    private static string Grafico(string simbolo, string moneda, decimal? ultimo = null, string? nombre = null)
     {
         var dias = Enumerable.Range(0, 5).Select(i => new DateTime(2026, 11, 17).AddDays(i)).ToList();
         // Las sesiones empiezan a las 8:00 UTC; con gmtoffset 3600 siguen siendo ese día.
@@ -45,7 +45,7 @@ public sealed class CotizacionesTests
         var cierres = string.Join(",", dias.Select((_, i) => (100 + i).ToString(System.Globalization.CultureInfo.InvariantCulture) + ".5"));
         var precio = ultimo is decimal u ? $"\"regularMarketPrice\":{u.ToString(System.Globalization.CultureInfo.InvariantCulture)},\"regularMarketTime\":{Unix(Hoy.AddHours(10))}," : "";
         return "{\"chart\":{\"result\":[{\"meta\":{\"currency\":\"" + moneda + "\",\"symbol\":\"" + simbolo + "\",\"exchangeName\":\"AMS\",\"fullExchangeName\":\"Amsterdam\"," +
-               precio + "\"gmtoffset\":3600,\"instrumentType\":\"ETF\"},\"timestamp\":[" + ts + "],\"indicators\":{\"quote\":[{\"close\":[" + cierres + ",null]}]}}],\"error\":null}}";
+               (nombre is null ? "" : "\"longName\":\"" + nombre + "\",") + precio + "\"gmtoffset\":3600,\"instrumentType\":\"ETF\"},\"timestamp\":[" + ts + "],\"indicators\":{\"quote\":[{\"close\":[" + cierres + ",null]}]}}],\"error\":null}}";
     }
 
     private static ServicioCotizaciones Servicio(HttpFijo http, string? clave = null) =>
@@ -123,6 +123,25 @@ public sealed class CotizacionesTests
         Assert.Equal("IWDA.AS", r.Valor.Propuesta.TickerEodhd);
         Assert.Equal("SWDA.LSE", r.Valor.Cotizaciones[1].TickerEodhd);
         Assert.DoesNotContain(http.Pedidas, u => u.Contains("eodhd.com")); // con Yahoo basta: no gasta consultas de EODHD
+    }
+
+    /// <summary>Respuesta real de Yahoo del 23/11/2026 para IE00B4L5Y983: solo la bolsa de Londres, en dólares.</summary>
+    [Fact]
+    public async Task SiYahooSoloDaOtraMonedaPruebaElSimboloEnBolsasEnEuros()
+    {
+        const string soloLondres = """
+            {"explains":[],"count":1,"quotes":[{"exchange":"LSE","shortname":"ISHARES III PLC ISHRS CORE MSCI","quoteType":"ETF","symbol":"IWDA.L","index":"quotes","score":20482.0,"typeDisp":"ETF","longname":"iShares Core MSCI World UCITS ETF USD (Acc)","exchDisp":"London","isYahooFinance":true}],"news":[]}
+            """;
+        const string nombre = "iShares Core MSCI World UCITS ETF USD (Acc)";
+        var http = new HttpFijo(url => url.Contains("/search?") ? (HttpStatusCode.OK, soloLondres)
+            : url.Contains("chart/IWDA.L?") ? (HttpStatusCode.OK, Grafico("IWDA.L", "USD", nombre: nombre))
+            : url.Contains("chart/IWDA.AS?") ? (HttpStatusCode.OK, Grafico("IWDA.AS", "EUR", nombre: nombre))
+            : url.Contains("chart/IWDA.MI?") ? (HttpStatusCode.OK, Grafico("IWDA.MI", "EUR", nombre: "Otro instrumento con el mismo símbolo"))
+            : null);
+        var r = await Servicio(http).BuscarPorIsinAsync("IE00B4L5Y983");
+        Assert.Equal(["IWDA.AS", "IWDA.L"], r.Valor.Cotizaciones.Select(c => c.TickerYahoo));
+        Assert.Equal("IWDA.AS", r.Valor.Propuesta!.TickerYahoo);
+        Assert.Equal(nombre, r.Valor.Propuesta.Nombre);
     }
 
     [Fact]

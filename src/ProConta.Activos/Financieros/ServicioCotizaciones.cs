@@ -40,6 +40,18 @@ public sealed class ServicioCotizaciones(ClienteYahooFinance yahoo, ClienteEodhd
                 deYahoo.Add(new CotizacionIsin(isin, y.Nombre, y.Simbolo, TickerEodhdDesdeYahoo(y.Simbolo, isin, y.Tipo), y.Bolsa.Length > 0 ? y.Bolsa : g.Valor.Bolsa,
                     g.Valor.Moneda, y.Tipo, FuenteCotizacion.Yahoo));
             }
+        // La búsqueda de Yahoo a veces da solo la bolsa de Londres (IWDA.L en dólares): se prueba el mismo símbolo en bolsas en euros y se
+        // acepta si el gráfico da el mismo nombre de instrumento.
+        if (deYahoo.Count > 0 && !deYahoo.Any(c => c.EnEuros))
+            foreach (var (baseSimbolo, nombre, tipo) in deYahoo.Select(c => (Base: c.TickerYahoo!.Split('.')[0], c.Nombre, c.TipoInstrumento)).DistinctBy(x => x.Base).ToList())
+                foreach (var sufijo in SufijosEuro)
+                {
+                    var simbolo = baseSimbolo + sufijo;
+                    if (deYahoo.Any(c => string.Equals(c.TickerYahoo, simbolo, StringComparison.OrdinalIgnoreCase))) continue;
+                    var g = await yahoo.GraficoAsync(simbolo, Hoy.AddDays(-7), Hoy, cancelacion);
+                    if (!g.EsCorrecto || !string.Equals(g.Valor.Moneda, "EUR", StringComparison.OrdinalIgnoreCase) || !MismoNombre(g.Valor.Nombre, nombre)) continue;
+                    deYahoo.Add(new CotizacionIsin(isin, nombre, simbolo, TickerEodhdDesdeYahoo(simbolo, isin, tipo), g.Valor.Bolsa, "EUR", tipo, FuenteCotizacion.Yahoo));
+                }
         if (deYahoo.Count > 0) return Resultado<BusquedaIsin>.Correcto(new BusquedaIsin(isin, Ordenar(deYahoo), FuenteCotizacion.Yahoo, null));
 
         // 2. EODHD, si hay clave.
@@ -61,6 +73,15 @@ public sealed class ServicioCotizaciones(ClienteYahooFinance yahoo, ClienteEodhd
         return Resultado<BusquedaIsin>.Correcto(new BusquedaIsin(isin, Ordenar(deEodhd), FuenteCotizacion.Eodhd,
             $"{porQueYahoo}, pero EODHD sí. Las cotizaciones del día se pedirán a EODHD (20 consultas al día en el plan gratuito) y no habrá respaldo de Yahoo. " +
             "Si lo encuentras en Yahoo con el navegador, escribe su símbolo de Yahoo para tener los dos."));
+    }
+
+    /// <summary>Bolsas en euros donde se prueba el símbolo de Yahoo cuando la búsqueda no da ninguna: Ámsterdam, Xetra, Milán y París.</summary>
+    private static readonly string[] SufijosEuro = [".AS", ".DE", ".MI", ".PA"];
+
+    internal static bool MismoNombre(string? a, string? b)
+    {
+        static string N(string? t) => new((t ?? "").Where(char.IsLetterOrDigit).Select(char.ToUpperInvariant).ToArray());
+        return N(a).Length > 0 && N(a) == N(b);
     }
 
     public async Task<Resultado<PrecioEnEuros>> PrecioEnEurosAsync(ReferenciaCotizacion referencia, DateTime fecha, CancellationToken cancelacion = default)
