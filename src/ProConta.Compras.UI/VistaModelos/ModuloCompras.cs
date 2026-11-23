@@ -12,7 +12,8 @@ namespace ProConta.Compras.UI.VistaModelos;
 /// de IVA 1 a 4 del ejercicio (organizacion/sociedades-ejercicios), para el desplegable de la ficha. <c>FormasPago</c>: el
 /// catálogo de formas de pago (organizacion/formas-pago). <c>TiposRetencion</c>: los tipos de retención vigentes.
 /// <c>TextosClave</c>: los textos clave de compras de la empresa. <c>AltaProveedor</c>: el alta de proveedor desde la factura.
-/// <c>Contabilizador</c>: exportar, re-exportar y deshacer la exportación, como <c>Operador</c>.
+/// <c>Contabilizador</c>: exportar, re-exportar y deshacer la exportación, como <c>Operador</c>. <c>Recurrentes</c>: Facturas recurrentes pendientes
+/// (compras/facturas-recurrentes-pendientes).
 /// </summary>
 public sealed record ServiciosCompras(
     ServicioFacturasCompra Facturas,
@@ -29,7 +30,8 @@ public sealed record ServiciosCompras(
     ContabilizadorCompras? Contabilizador = null,
     ProConta.Nucleo.Auditoria.Actor? Operador = null,
     Func<Task>? ComprobarTrimestre = null,
-    ProConta.Contabilidad.Asientos.IAsientosBancoEnlazados? AsientosBanco = null);
+    ProConta.Contabilidad.Asientos.IAsientosBancoEnlazados? AsientosBanco = null,
+    ProConta.Compras.Recurrentes.ServicioFacturasRecurrentes? Recurrentes = null);
 
 /// <summary>Diálogos de compras (en la vista, para que los modelos de vista se prueben sin ventanas).</summary>
 public interface IDialogosCompras
@@ -82,6 +84,7 @@ public interface IDialogosCompras
 public sealed class ModuloCompras(ServiciosCompras servicios, IAnfitrionPestanas anfitrion, IDialogosCompras dialogos, Action<int> abrirFichaTercero)
 {
     private FacturasRecibidasVM? _recibidas;
+    private RecurrentesPendientesVM? _recurrentes;
 
     internal ServiciosCompras Servicios => servicios;
     internal IDialogosCompras Dialogos => dialogos;
@@ -119,6 +122,32 @@ public sealed class ModuloCompras(ServiciosCompras servicios, IAnfitrionPestanas
     {
         await recibidas.IniciarAsync();
         recibidas.Mostrar(idRegistro);
+    }
+
+    /// <summary>
+    /// Abre (o activa y actualiza) Compras › Facturas recurrentes pendientes (compras/facturas-recurrentes-pendientes). Sin el servicio, avisa.
+    /// </summary>
+    public void AbrirRecurrentes()
+    {
+        if (_recurrentes is not null)
+        {
+            anfitrion.Activar(_recurrentes);
+            _ = _recurrentes.CargarAsync();
+            return;
+        }
+        if (servicios.Recurrentes is not { } servicio)
+        {
+            anfitrion.Avisar("Facturas recurrentes pendientes no está disponible en este puesto.");
+            return;
+        }
+        _recurrentes = new RecurrentesPendientesVM(this, servicio);
+        anfitrion.Abrir(_recurrentes);
+        _ = _recurrentes.CargarAsync();
+    }
+
+    internal void Cerrada(RecurrentesPendientesVM pestana)
+    {
+        if (ReferenceEquals(pestana, _recurrentes)) _recurrentes = null;
     }
 
     internal void Cerrada(FacturasRecibidasVM pestana)

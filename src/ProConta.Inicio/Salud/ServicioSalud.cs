@@ -29,6 +29,8 @@ public sealed class ServicioSalud(IFuenteSalud fuente, IReadOnlyList<IRevisionSa
         new RevisionSeguridadSocial(), new RevisionComprasDuplicadas(),
         // Compensación de la comisión de las plataformas (facturacion/reservas/compensacion-comision 2026-11-16).
         new RevisionComisionesSinCompensar(),
+        // Facturas recurrentes de proveedores sin recibir (compras/facturas-recurrentes-pendientes 2026-11-23 18:55).
+        new RevisionFacturasRecurrentes(),
     ];
 
     public const int LecturasSimultaneas = 4;
@@ -142,6 +144,8 @@ internal sealed class FuenteSaludCompartida(IFuenteSalud f) : IFuenteSalud
     public Task<IReadOnlyList<ApunteCartera>> CarteraAsync(EjercicioSociedad ejercicio, CancellationToken c = default) => f.CarteraAsync(ejercicio, c);
     public Task<IReadOnlyList<ProConta.Compras.Facturas.FilaFacturaCompra>> FacturasCompraAsync(string idSociedad, EjercicioSociedad ejercicio, CancellationToken c = default) =>
         f.FacturasCompraAsync(idSociedad, ejercicio, c);
+    public Task<IReadOnlyList<ProConta.Compras.Recurrentes.FacturaRecurrentePendiente>> FacturasRecurrentesPendientesAsync(string idSociedad, DateTime hoy, CancellationToken c = default) =>
+        f.FacturasRecurrentesPendientesAsync(idSociedad, hoy, c);
 
     // Las subcuentas cuadradas las leen varias revisiones (saldos justificados): una lectura por pasada.
     private readonly ConcurrentDictionary<int, Lazy<Task<IReadOnlyDictionary<string, decimal?>>>> _cuadradas = new();
