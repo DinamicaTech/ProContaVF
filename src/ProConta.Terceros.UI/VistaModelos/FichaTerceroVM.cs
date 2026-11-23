@@ -861,6 +861,27 @@ public sealed class FichaTerceroVM : Observable, IPestanaTrabajo, INotifyDataErr
         }
     }
     public string? NotasProveedor { get => T.Roles.Proveedor?.Notas; set { if (T.Roles.Proveedor is { } p && value != p.Notas) { p.Notas = value; Avisar(); CambiadoAqui(nameof(NotasProveedor)); } } }
+
+    /// <summary>Opciones de «Facturas periódicas» del rol Proveedor (compras/facturas-recurrentes-pendientes 2026-11-23 18:55): "" es Automática.</summary>
+    public static IReadOnlyList<Opcion> PeriodicidadesFacturas { get; } =
+    [
+        new("", "Automática"), new("1", "Mensual"), new("2", "Bimestral"), new("3", "Trimestral"), new("0", "No controlar"),
+    ];
+
+    /// <summary>«Facturas periódicas» del proveedor: "" automática, "0" no controlar, "1" a "3" mensual, bimestral o trimestral.</summary>
+    public string PeriodicidadFacturas
+    {
+        get => T.Roles.Proveedor?.PeriodicidadFacturas is { } p ? ((byte)p).ToString(System.Globalization.CultureInfo.InvariantCulture) : "";
+        set
+        {
+            if (T.Roles.Proveedor is not { } p) return;
+            global::ProConta.Terceros.Roles.PeriodicidadFacturas? nuevo = byte.TryParse(value, out var b) && Enum.IsDefined(typeof(global::ProConta.Terceros.Roles.PeriodicidadFacturas), b) ? (global::ProConta.Terceros.Roles.PeriodicidadFacturas)b : null;
+            if (nuevo == p.PeriodicidadFacturas) return;
+            p.PeriodicidadFacturas = nuevo;
+            Avisar();
+            CambiadoAqui(nameof(PeriodicidadFacturas));
+        }
+    }
     public string? Cargo { get => T.Roles.Contacto?.Cargo; set { if (T.Roles.Contacto is { } c && value != c.Cargo) { c.Cargo = value; Avisar(); CambiadoAqui(nameof(Cargo)); } } }
     public string? Departamento { get => T.Roles.Contacto?.Departamento; set { if (T.Roles.Contacto is { } c && value != c.Departamento) { c.Departamento = value; Avisar(); CambiadoAqui(nameof(Departamento)); } } }
     public string? NotasContacto { get => T.Roles.Contacto?.Notas; set { if (T.Roles.Contacto is { } c && value != c.Notas) { c.Notas = value; Avisar(); CambiadoAqui(nameof(NotasContacto)); } } }
@@ -913,7 +934,7 @@ public sealed class FichaTerceroVM : Observable, IPestanaTrabajo, INotifyDataErr
     private void AvisarRoles()
     {
         Avisar(nameof(ClienteActivo), nameof(ProveedorActivo), nameof(ContactoActivo), nameof(IdCliente), nameof(IdProveedor), nameof(IdContacto),
-            nameof(EstadoCliente), nameof(EstadoProveedor), nameof(EstadoContacto), nameof(NotasCliente), nameof(IbanCliente), nameof(NotasProveedor), nameof(Cargo), nameof(Departamento),
+            nameof(EstadoCliente), nameof(EstadoProveedor), nameof(EstadoContacto), nameof(NotasCliente), nameof(IbanCliente), nameof(NotasProveedor), nameof(PeriodicidadFacturas), nameof(Cargo), nameof(Departamento),
             nameof(NotasContacto), nameof(Insignias), nameof(EmpleadoActivo), nameof(IdEmpleado), nameof(EstadoEmpleado), nameof(CodigoTrabajador),
             nameof(SocioActivo), nameof(IdSocio), nameof(EstadoSocio), nameof(ParticipacionSocio), nameof(AdministradorEmpleado), nameof(CargoAdministrador),
             nameof(NacionalidadEmpleado), nameof(ProfesionEmpleado), nameof(EstadoCivilEmpleado), nameof(ParticipacionesSocio), nameof(NumeracionParticipacionesSocio),

@@ -208,19 +208,24 @@ public sealed class RepositorioTercerosAccess(IBaseDatos bd, IReloj? reloj = nul
         }
         if (t.Roles.Proveedor is { } proveedor)
         {
-            var db = await s.ConsultarPrimeroAsync("SELECT IdProveedor, Activo, NotasProveedor FROM Proveedores WHERE IdTercero = ?",
-                f => new FilaRol(f.Entero("IdProveedor"), f.Logico("Activo"), f.Texto("NotasProveedor")), t.IdTercero);
+            var db = await s.ConsultarPrimeroAsync("SELECT IdProveedor, Activo, NotasProveedor, PeriodicidadFacturas FROM Proveedores WHERE IdTercero = ?",
+                f => new FilaRol(f.Entero("IdProveedor"), f.Logico("Activo"), f.Texto("NotasProveedor"), Periodicidad: Periodicidad(f, "PeriodicidadFacturas")), t.IdTercero);
+            object? periodicidad = proveedor.PeriodicidadFacturas is { } p ? (byte)p : null;
             if (db is null && proveedor.Activo)
             {
                 proveedor.IdProveedor = await ServicioRoles.AsegurarProveedorAsync(s, t.IdTercero);
                 if (Vacio(proveedor.Notas) is { } n) await s.EjecutarAsync("UPDATE Proveedores SET NotasProveedor = ? WHERE IdProveedor = ?", n, proveedor.IdProveedor);
+                if (proveedor.PeriodicidadFacturas is not null)
+                    await s.EjecutarAsync("UPDATE Proveedores SET PeriodicidadFacturas = ? WHERE IdProveedor = ?", periodicidad, proveedor.IdProveedor);
                 await h.Anotar("Proveedor", proveedor.IdProveedor.Value, "ALTA", "IdProveedor", null, proveedor.IdProveedor.ToString());
             }
             else if (db is not null)
             {
                 proveedor.IdProveedor = db.Id;
-                await s.EjecutarAsync("UPDATE Proveedores SET Activo = ?, NotasProveedor = ? WHERE IdProveedor = ?", proveedor.Activo, Vacio(proveedor.Notas), db.Id);
-                await AnotarRolAsync(h, "Proveedor", db, proveedor.Activo, ("Notas", db.Notas, proveedor.Notas));
+                await s.EjecutarAsync("UPDATE Proveedores SET Activo = ?, NotasProveedor = ?, PeriodicidadFacturas = ? WHERE IdProveedor = ?",
+                    proveedor.Activo, Vacio(proveedor.Notas), periodicidad, db.Id);
+                await AnotarRolAsync(h, "Proveedor", db, proveedor.Activo, ("Notas", db.Notas, proveedor.Notas),
+                    ("PeriodicidadFacturas", TextoPeriodicidad(db.Periodicidad), TextoPeriodicidad(proveedor.PeriodicidadFacturas)));
             }
         }
         if (t.Roles.Contacto is { } contacto)
@@ -244,7 +249,20 @@ public sealed class RepositorioTercerosAccess(IBaseDatos bd, IReloj? reloj = nul
         }
     }
 
-    private sealed record FilaRol(int Id, bool Activo, string? Notas, string? Cargo = null, string? Departamento = null, string? Iban = null);
+    private sealed record FilaRol(int Id, bool Activo, string? Notas, string? Cargo = null, string? Departamento = null, string? Iban = null,
+        PeriodicidadFacturas? Periodicidad = null);
+
+    /// <summary>Proveedores.PeriodicidadFacturas leída (null, automática; un valor desconocido también cuenta como automática).</summary>
+    internal static PeriodicidadFacturas? Periodicidad(IFilaDatos f, string campo) =>
+        f.EnteroNulo(campo) is int v && Enum.IsDefined(typeof(PeriodicidadFacturas), (byte)v) ? (PeriodicidadFacturas)(byte)v : null;
+
+    /// <summary>Texto de la periodicidad en el historial de la ficha: el que se ve en el desplegable.</summary>
+    internal static string TextoPeriodicidad(PeriodicidadFacturas? p) => p switch
+    {
+        null => "Automática",
+        PeriodicidadFacturas.NoControlar => "No controlar",
+        _ => p.Value.ToString(),
+    };
 
     /// <summary>
     /// Rol Empleado en su sociedad (nominas 2026-11-13): darlo crea Empleados y EmpleadosSociedad; quitarlo deja la fila de la sociedad
@@ -589,8 +607,9 @@ public sealed class RepositorioTercerosAccess(IBaseDatos bd, IReloj? reloj = nul
 
         t.Roles.Cliente = await s.ConsultarPrimeroAsync("SELECT IdCliente, Activo, Notas, IBAN FROM Clientes WHERE IdTercero = ?",
             f => new RolCliente { IdCliente = f.Entero("IdCliente"), Activo = f.Logico("Activo"), Notas = f.Texto("Notas"), Iban = f.Texto("IBAN") }, idTercero);
-        t.Roles.Proveedor = await s.ConsultarPrimeroAsync("SELECT IdProveedor, Activo, NotasProveedor FROM Proveedores WHERE IdTercero = ?",
-            f => new RolProveedor { IdProveedor = f.Entero("IdProveedor"), Activo = f.Logico("Activo"), Notas = f.Texto("NotasProveedor") }, idTercero);
+        t.Roles.Proveedor = await s.ConsultarPrimeroAsync("SELECT IdProveedor, Activo, NotasProveedor, PeriodicidadFacturas FROM Proveedores WHERE IdTercero = ?",
+            f => new RolProveedor { IdProveedor = f.Entero("IdProveedor"), Activo = f.Logico("Activo"), Notas = f.Texto("NotasProveedor"),
+                PeriodicidadFacturas = Periodicidad(f, "PeriodicidadFacturas") }, idTercero);
         t.Roles.Contacto = await s.ConsultarPrimeroAsync("SELECT IdContacto, Activo, Cargo, Departamento, NotasContacto FROM Contactos WHERE IdTercero = ?",
             f => new RolContacto { IdContacto = f.Entero("IdContacto"), Activo = f.Logico("Activo"), Cargo = f.Texto("Cargo"), Departamento = f.Texto("Departamento"), Notas = f.Texto("NotasContacto") }, idTercero);
 

@@ -256,6 +256,25 @@ public sealed class SaludIncidenciasTests
         Assert.Contains("comisiones-sin-compensar", ServicioSalud.Todas.Select(r => r.Clave));
     }
 
+    [Fact]
+    public void FacturasRecurrentes_AvisaConElNumeroYElImporteEstimadoSinLasDescartadas()
+    {
+        Assert.Empty(RevisionFacturasRecurrentes.Evaluar([]).Elementos);
+        static ProConta.Compras.Recurrentes.FacturaRecurrentePendiente P(int prov, string nombre, int mes, decimal importe, bool descartada = false) =>
+            new(prov, 100 + prov, nombre, ProConta.Terceros.Roles.PeriodicidadFacturas.Mensual, false, new(2026, mes, 1), new(2026, mes, 5), importe,
+                new(2026, 8, 5), 1000 + prov, descartada);
+        var e = Unico(RevisionFacturasRecurrentes.Evaluar([P(1, "Luz", 10, 80m), P(1, "Luz", 11, 80m), P(2, "Gestoría", 11, 121m), P(2, "Gestoría", 10, 121m, descartada: true)]));
+        Assert.Equal(GravedadSalud.Atencion, e.Gravedad);
+        Assert.Equal(3, e.Cantidad);
+        Assert.Equal(281m, e.Importe);
+        Assert.Equal("3 facturas recurrentes sin recibir", e.Titulo);
+        Assert.Equal(PantallaSalud.FacturasRecurrentes, e.Destino.Pantalla);
+        Assert.Equal("compras/facturas-recurrentes-pendientes", e.Nodo);
+        Assert.Contains("Luz (2)", e.Explicacion, StringComparison.Ordinal);
+        Assert.Empty(RevisionFacturasRecurrentes.Evaluar([P(2, "Gestoría", 10, 121m, descartada: true)]).Elementos);
+        Assert.Contains("facturas-recurrentes", ServicioSalud.Todas.Select(r => r.Clave));
+    }
+
     // ---------------- registro y saldo justificado en los avisos que ya existían
 
     [Fact]

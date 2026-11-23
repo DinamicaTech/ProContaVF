@@ -34,6 +34,7 @@ public static class DuenosTablas
         Asignar("contabilidad", "contabilidad/procesos/liquidacion-iva", "LiquidacionesIva");
         Asignar("contabilidad", "contabilidad/procesos/facturas-pendientes-recibir", "FacturasPendientesAjustes");
         Asignar("contabilidad", "contabilidad/procesos/amortizacion-de-activos", "AmortizacionExclusiones");
+        Asignar("contabilidad", "contabilidad/procesos/cuentas-anuales", "CuentasAnualesMemoria");
         Asignar("contabilidad", "contabilidad/procesos/centimos-residuales", "CentimosResidualesExclusiones");
         Asignar("contabilidad", "contabilidad/modelos-tributarios/presentacion", "PresentacionesAeat");
         Asignar("organizacion", "organizacion/sociedades-ejercicios", "CargosSociedad");
@@ -54,6 +55,7 @@ public static class DuenosTablas
         Asignar("facturacion", "facturacion/verifactu", "VeriFactuConfiguracion", "VeriFactuEnvios", "VeriFactuLotesEnvio", "VeriFactuRespuestas");
         Asignar("compras", "compras/factura-compra", "FacturasCompra", "DesglosesFacturaCompra", "TextosClaveCompra");
         Asignar("compras", "compras/reconocimiento", "ConfiguracionReconocimientoFacturasCompra", "PlantillasReconocimientoCompra");
+        Asignar("compras", "compras/facturas-recurrentes-pendientes", "FacturasRecurrentesDescartadas");
         Asignar("norma43", "norma43", "Bancos", "EntidadesFinancieras", "CuentasBancarias", "ExtractosBancarios", "LineasExtractoBancario",
             "ComplementosLineaExtractoBancario", "ContabilizacionesLineaExtracto", "ImputacionesLineaExtractoBancario",
             "IncidenciasImportacionBancaria", "LotesImportacionBancaria", "PalabrasClaveBancarias");

@@ -170,6 +170,7 @@ public partial class VentanaPrincipal : Window
                 AbrirVentas = () => _facturacion!.AbrirVentas(),
                 AbrirLineasN43 = () => _lineasN43!.Abrir(),
                 AbrirFacturasCompra = () => _compras!.AbrirRecibidas(),
+                AbrirFacturasRecurrentes = () => _compras!.AbrirRecurrentes(),
                 AbrirDiario = () => _diario!.Abrir(),
                 AbrirLiquidacionIva = () => _liquidacionIva!.Abrir(),
                 AbrirAmortizacion = () => _amortizacion!.Abrir(),
@@ -264,7 +265,9 @@ public partial class VentanaPrincipal : Window
             contabilizadorCompras,
             new Actor(sesion.NombreOperador),
             ComprobarTrimestreAlEntrarAsync,
-            asientosBanco);
+            asientosBanco,
+            // Compras › Facturas recurrentes pendientes (compras/facturas-recurrentes-pendientes).
+            new ProConta.Compras.Recurrentes.ServicioFacturasRecurrentes(bd));
         _compras = new ModuloCompras(serviciosCompras, _area, new DialogosCompras(() => this), _terceros.AbrirFicha);
 
         // Gestor documental (documentos 2026-11-18): pantalla Datos maestros › Documentos, «Vincular a…» y el panel Documentos de las fichas (tercero,
@@ -385,6 +388,7 @@ public partial class VentanaPrincipal : Window
         var abrirVentas = new ComandoDelegado(_facturacion.AbrirVentas);
         var abrirParametros = new ComandoDelegado(() => AbrirParametros());
         var abrirRecibidas = new ComandoDelegado(_compras.AbrirRecibidas);
+        var abrirRecurrentes = new ComandoDelegado(_compras.AbrirRecurrentes);
         var abrirContaSol = new ComandoDelegado(AbrirImportacionContaSol);
         var abrirCorreo = new ComandoDelegado(() => _correo.AbrirRegistro());
         var abrirMayor = new ComandoDelegado(() => _mayor.Abrir());
@@ -701,6 +705,9 @@ public partial class VentanaPrincipal : Window
             new OpcionNavegacion("Ventas por facturar", null, true, false, "Reservas de Avaibook y otras ventas registradas antes de facturarlas: importación, ficha y «Facturar ventas…» por mes, cliente y activo", abrirVentas, EsHija: true),
             new OpcionNavegacion("Compras", Icono("scan"), true, false, "Facturas de compra: los PDF de la carpeta de proveedores, su revisión y el modo prueba del reconocimiento", abrirRecibidas),
             new OpcionNavegacion("Facturas recibidas", null, true, false, "Facturas de compra del ejercicio reconocidas de sus PDF: revisión, corrección y registro (y el modo prueba, en el menú contextual)", abrirRecibidas, EsHija: true),
+            new OpcionNavegacion("Facturas recurrentes pendientes", null, true, false,
+                "Facturas de proveedores mensuales, bimestrales o trimestrales que deberían haber llegado y no están registradas, con el importe de la última; «No llegará» las descarta. Solo para revisar: no genera asientos",
+                abrirRecurrentes, EsHija: true),
             new OpcionNavegacion("Correo", Icono("mail"), true, false, "Correo enviado por ProContaVF: estado de cada mensaje, contenido, adjuntos e intentos", abrirCorreo),
             new OpcionNavegacion("Correo enviado", null, true, false, "Registro común del correo enviado (facturas y demás), con reintentos y reenvíos en el menú contextual", abrirCorreo, EsHija: true),
             new OpcionNavegacion("Correo recibido", null, true, false, "Correo que llega a la cuenta del ejercicio: facturas de compra importadas, documentos en espera y remitentes no autorizados", new ComandoDelegado(() => _correo.AbrirRecibido()), EsHija: true),

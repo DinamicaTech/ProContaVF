@@ -169,6 +169,12 @@ public interface IFuenteSalud
     Task<IReadOnlyList<ProConta.Compras.Facturas.FilaFacturaCompra>> FacturasCompraAsync(string idSociedad, EjercicioSociedad ejercicio, CancellationToken c = default) =>
         Task.FromResult<IReadOnlyList<ProConta.Compras.Facturas.FilaFacturaCompra>>([]);
 
+    /// <summary>
+    /// Facturas recurrentes de proveedores pendientes de recibir hasta <paramref name="hoy"/>, sin las descartadas (compras/facturas-recurrentes-pendientes).
+    /// </summary>
+    Task<IReadOnlyList<ProConta.Compras.Recurrentes.FacturaRecurrentePendiente>> FacturasRecurrentesPendientesAsync(string idSociedad, DateTime hoy, CancellationToken c = default) =>
+        Task.FromResult<IReadOnlyList<ProConta.Compras.Recurrentes.FacturaRecurrentePendiente>>([]);
+
     /// <summary>Facturas de comisión de las plataformas del ejercicio exportadas y sin compensar (facturacion/reservas/compensacion-comision).</summary>
     Task<IReadOnlyList<ProConta.Compras.Facturas.ComisionPendiente>> ComisionesSinCompensarAsync(string idSociedad, EjercicioSociedad ejercicio, CancellationToken c = default) =>
         Task.FromResult<IReadOnlyList<ProConta.Compras.Facturas.ComisionPendiente>>([]);

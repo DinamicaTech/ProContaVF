@@ -238,3 +238,37 @@ public sealed class RevisionPartidasPendientes : IRevisionSalud
             "Abre el Mayor de esas subcuentas y traspasa cada partida a su cuenta definitiva. El aviso desaparece cuando quedan a cero.") { Cantidad = conSaldo.Count, Importe = conSaldo.Sum(s => s.Value) });
     }
 }
+
+/// <summary>
+/// «Facturas recurrentes sin recibir» (compras/facturas-recurrentes-pendientes 2026-11-23 18:55): facturas de proveedores mensuales, bimestrales o
+/// trimestrales cuya fecha esperada (la de su última factura más su periodo) ya ha pasado sin que esté registrada, sin las descartadas con
+/// «No llegará». Atención; abre Compras › Facturas recurrentes pendientes.
+/// </summary>
+public sealed class RevisionFacturasRecurrentes : IRevisionSalud
+{
+    public string Clave => "facturas-recurrentes";
+    public string Nombre => "Facturas recurrentes de proveedores recibidas";
+    public string Nodo => "compras/facturas-recurrentes-pendientes";
+
+    public async Task<HallazgosSalud> RevisarAsync(IFuenteSalud fuente, ContextoSalud ctx, CancellationToken c) =>
+        Evaluar(await fuente.FacturasRecurrentesPendientesAsync(ctx.IdSociedad, ctx.Hoy, c));
+
+    public static HallazgosSalud Evaluar(IReadOnlyList<ProConta.Compras.Recurrentes.FacturaRecurrentePendiente> pendientes)
+    {
+        var vivas = pendientes.Where(p => !p.Descartada).ToList();
+        if (vivas.Count == 0) return HallazgosSalud.Nada;
+        var importe = vivas.Sum(p => p.ImporteEstimado);
+        var proveedores = vivas.GroupBy(p => p.IdProveedor).Select(g => $"{g.First().Proveedor} ({g.Count()})").ToList();
+        var detalle = string.Join(", ", proveedores.Take(3)) + (proveedores.Count > 3 ? $" y {N(proveedores.Count - 3, "proveedor más", "proveedores más")}" : "");
+        return HallazgosSalud.De(new ElementoSalud("facturas-recurrentes", TipoSalud.Aviso, GravedadSalud.Atencion,
+            $"{N(vivas.Count, "factura recurrente sin recibir", "facturas recurrentes sin recibir")}",
+            $"{detalle}. Importe estimado {Imp(importe)} (el de la última factura de cada proveedor).",
+            null, new DestinoSalud(PantallaSalud.FacturasRecurrentes, "Compras › Facturas recurrentes pendientes"), "compras/facturas-recurrentes-pendientes",
+            "Un proveedor con al menos 3 facturas seguidas cada 1, 2 o 3 meses en los últimos 12 meses (o con esa periodicidad fijada en su ficha) no tiene " +
+            "registrada la factura que tocaba: la fecha de su última factura más su periodo ya ha pasado. No cuentan los periodos marcados «No llegará» ni los " +
+            "proveedores con «No controlar» en su ficha.",
+            "Cuando llegue el PDF, regístralo en Compras › Facturas recibidas y el periodo desaparece. Si esa factura no va a llegar, márcala «No llegará» en " +
+            "Compras › Facturas recurrentes pendientes; si el proveedor no factura con regularidad, pon «No controlar» en su ficha (Roles › Proveedor › Facturas periódicas).")
+        { Cantidad = vivas.Count, Importe = importe });
+    }
+}
