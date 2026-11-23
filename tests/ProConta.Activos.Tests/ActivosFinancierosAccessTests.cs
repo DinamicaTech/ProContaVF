@@ -141,4 +141,58 @@ public sealed class ActivosFinancierosAccessTests : IDisposable
         Assert.Equal(2, await ContarAsync("SELECT COUNT(*) FROM CambiosDivisa"));
         Assert.Equal((new DateTime(2026, 11, 21), 1m), (await cambios.CambioAsync("EUR", new DateTime(2026, 11, 21))).Valor);
     }
+
+    private static long Unix(DateTime d) => new DateTimeOffset(d, TimeSpan.Zero).ToUnixTimeSeconds();
+
+    [Fact]
+    public async Task La_cartera_completa_el_historico_y_toma_el_precio_del_dia_de_eodhd_la_primera_vez()
+    {
+        await PrepararAsync();
+        var hoy = new DateTime(2026, 11, 23); // lunes
+        var compra = new DateTime(2026, 11, 17);
+        var alta = await Servicio.AltaAsync(_ctx, new AltaActivo(Etf(compra, 1000m), null, Msci, new CompraInversion(compra, 10m, 100m, "EUR", 1m, 1000m, Cotizacion(compra, 100m))));
+        Assert.True(alta.EsCorrecto, alta.Error?.ToString());
+        var idInstrumento = Convert.ToInt32(await Bd.EjecutarAsync(s => s.EscalarAsync("SELECT IdInstrumentoFinanciero FROM InstrumentosFinancieros")), CultureInfo.InvariantCulture);
+        // Un precio del momento del viernes que el cierre real debe sustituir.
+        await Bd.EjecutarAsync(s => s.EjecutarAsync("INSERT INTO CotizacionesInstrumentoFinanciero (IdInstrumentoFinanciero, FechaCotizacion, Precio, Moneda, Origen, FechaHoraImportacion) " +
+            "VALUES (?, ?, ?, ?, ?, ?)", idInstrumento, new DateTime(2026, 11, 20), 103m, "EUR", "EODHD · del momento", DateTime.Now));
+
+        DateTime[] dias = [new(2026, 11, 17), new(2026, 11, 18), new(2026, 11, 19), new(2026, 11, 20), hoy];
+        decimal[] cierres = [100.5m, 101.5m, 102.5m, 103.5m, 105m];
+        var grafico = "{\"chart\":{\"result\":[{\"meta\":{\"currency\":\"EUR\",\"symbol\":\"IWDA.AS\",\"exchangeName\":\"AMS\",\"regularMarketPrice\":105.2,\"regularMarketTime\":" +
+            Unix(hoy.AddHours(10)) + ",\"gmtoffset\":3600},\"timestamp\":[" + string.Join(",", dias.Select(d => Unix(d.AddHours(8)))) + "],\"indicators\":{\"quote\":[{\"close\":[" +
+            string.Join(",", cierres.Select(c => c.ToString(CultureInfo.InvariantCulture))) + "]}]}}],\"error\":null}}";
+        var http = new HttpFijo(url =>
+            url.Contains("finance/chart/IWDA.AS") ? (HttpStatusCode.OK, grafico)
+            : url.Contains("eodhd.com/api/real-time/IWDA.AS") ? (HttpStatusCode.OK, "{\"timestamp\":" + Unix(hoy.AddHours(11)) + ",\"close\":105.1}")
+            : null);
+        var yahoo = new ClienteYahooFinance(new HttpClient(http));
+        var cambios = new ServicioCambiosDivisa(Bd, new ClienteBce(new HttpClient(http)));
+        var cotizaciones = new ServicioCotizaciones(yahoo, new ClienteEodhd(new HttpClient(http)), cambios, () => Task.FromResult<string?>("clave"), () => hoy);
+        var cartera = new ServicioCarteraFinanciera(Bd, Servicio, cotizaciones, yahoo, cambios, () => hoy);
+
+        // Primera apertura del día: el histórico se completa (18 y 19 nuevos, el 20 sustituido, hoy no) y el precio de hoy sale de EODHD y se guarda.
+        var r = await cartera.CargarAsync("T01", conRed: true);
+        Assert.Empty(r.Avisos);
+        var p = Assert.Single(r.Activos).Posicion;
+        Assert.Equal((105.1m, "EODHD · del momento", 1051m), (p.Precio!.Value, p.OrigenPrecio, p.Valor));
+        Assert.Equal(5, await ContarAsync("SELECT COUNT(*) FROM CotizacionesInstrumentoFinanciero"));
+        Assert.Equal(1, await ContarAsync("SELECT COUNT(*) FROM CotizacionesInstrumentoFinanciero WHERE FechaCotizacion = ? AND Precio = 103.5 AND Origen = 'Yahoo Finance · cierre'", new DateTime(2026, 11, 20)));
+        Assert.Equal(1, await ContarAsync("SELECT COUNT(*) FROM CotizacionesInstrumentoFinanciero WHERE FechaCotizacion = ? AND Precio = 100", compra));
+        Assert.Equal(1, await ContarAsync("SELECT COUNT(*) FROM CotizacionesInstrumentoFinanciero WHERE FechaCotizacion = ? AND Precio = 105.1", hoy));
+        Assert.Equal(1, http.Pedidas.Count(u => u.Contains("real-time")));
+
+        // Siguientes aperturas: el precio del momento es el de Yahoo y no se vuelve a gastar una consulta de EODHD.
+        p = Assert.Single((await cartera.CargarAsync("T01", conRed: true)).Activos).Posicion;
+        Assert.Equal((105.2m, "Yahoo Finance · del momento"), (p.Precio!.Value, p.OrigenPrecio));
+        Assert.Equal(1, http.Pedidas.Count(u => u.Contains("real-time")));
+        Assert.Equal(5, await ContarAsync("SELECT COUNT(*) FROM CotizacionesInstrumentoFinanciero"));
+
+        // Sin red: lo guardado, con el precio de EODHD de esta mañana.
+        p = Assert.Single((await cartera.CargarAsync("T01", conRed: false)).Activos).Posicion;
+        Assert.Equal(105.1m, p.Precio);
+        Assert.Contains("guardada", p.OrigenPrecio);
+        Assert.Equal(5, p.Historico.Count);
+        Assert.Equal(0, await ContarAsync("SELECT COUNT(*) FROM Asientos"));
+    }
 }

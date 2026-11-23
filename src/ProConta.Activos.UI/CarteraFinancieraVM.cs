@@ -344,7 +344,7 @@ public sealed class CarteraFinancieraVM : ModeloVista, IPestanaTrabajo
         var rEj = _cartera.Activos.Sum(a => a.Posicion.ResultadoVentasEjercicio(ejercicio));
         var rTot = _cartera.Activos.Sum(a => a.Posicion.ResultadoVentas);
         var flujos = _cartera.Activos.SelectMany(a => a.Posicion.Flujos).ToList();
-        var tir = vivos.All(p => p.TieneCotizacion) ? Tir.Calcular(flujos) : null;
+        var tir = Tir.Calcular(flujos);
         var fechas = vivos.Where(p => p.FechaPrecio is not null).Select(p => p.FechaPrecio!.Value).ToList();
         var notaValor = fechas.Count == 0 ? "sin cotizaciones" : fechas.Min() == fechas.Max() ? $"cotizaciones del {Formatos.Fecha(fechas.Max())}" : $"cotizaciones del {Formatos.Fecha(fechas.Min())} al {Formatos.Fecha(fechas.Max())}";
         Cifras =
