@@ -119,7 +119,7 @@ tr.tot td{font-weight:600;border-top:1px solid var(--ln3);background:var(--bg2)}
 .preg em{font-style:normal;background:var(--greenb);color:var(--green);border-radius:4px;padding:0 5px;font-size:12px}
 </style>
 
-<div class="demo pad"><b>MAQUETA</b><span>Datos ficticios. Marca activos con la casilla para ver solo esos en el gráfico; clic en un nombre para abrir su ficha; clic derecho para el menú.</span><span class="ver">v2 · 23/11/2026</span></div>
+<div class="demo pad"><b>MAQUETA</b><span>Datos ficticios. Marca activos con la casilla para ver solo esos en el gráfico; clic en un nombre para abrir su ficha; clic derecho para el menú.</span><span class="ver">v3 · 23/11/2026</span></div>
 <div class="top pad"><span class="logo">ProContaVF</span><span class="ctx">Inversiones Ejemplo, S.L.</span><span class="ctx">Ejercicio 2026</span><span class="op">Operador: Ronald</span></div>
 
 <main class="pad">
@@ -142,8 +142,9 @@ tr.tot td{font-weight:600;border-top:1px solid var(--ln3);background:var(--bg2)}
     </div>
 
     <div class="card">
+      <div class="tabs" role="tablist" id="gTabs" style="border-top:0"></div>
+      <div id="gpRev">
       <div class="gcab">
-        <h2>Revalorización de la cartera</h2>
         <span class="hint" id="gAlcance"></span>
         <span class="sp"></span>
         <div class="seg" id="gModo" title="Euros: cuánto vale la cartera frente a lo que costó. Porcentaje: la plusvalía sobre lo invertido en cada momento"></div>
@@ -152,11 +153,9 @@ tr.tot td{font-weight:600;border-top:1px solid var(--ln3);background:var(--bg2)}
       <div class="leyenda" id="gLey"></div>
       <div class="graf" id="gCartera"></div>
       <p class="nota">Cada compra suma al capital invertido el día en que se hizo, y cada venta resta el coste de lo vendido. Así la plusvalía de cada día compara solo lo que había en cartera ese día con lo que costó. La parte sombreada es la plusvalía latente.</p>
-    </div>
-
-    <div class="card">
+      </div>
+      <div id="gpComp" hidden>
       <div class="gcab">
-        <h2>Comparativa de los activos</h2>
         <span class="hint">Variación acumulada de la cotización desde el primer día del periodo</span>
         <span class="sp"></span>
         <div class="seg" id="cPer" title="Periodo que se compara. Todos los activos empiezan en 0 % el primer día"></div>
@@ -164,6 +163,7 @@ tr.tot td{font-weight:600;border-top:1px solid var(--ln3);background:var(--bg2)}
       <div class="leyenda" id="cLey"></div>
       <div class="graf" id="gComp"></div>
       <p class="nota">Compara cómo se ha movido el mercado de cada activo, tanto si había participaciones como si no. Como los precios son muy distintos (de 50 a 640 €), cada línea muestra cuánto ha subido o bajado en porcentaje desde el primer día del periodo. Pasa el ratón por la leyenda para resaltar un activo. Se ven los activos marcados en la tabla.</p>
+      </div>
     </div>
 
     <div class="card">
@@ -311,7 +311,7 @@ INS.forEach(x=>{
 const COL=['#2a78d6','#eb6834','#1baf7a','#eda100','#e87ba4','#008300'];
 INS.forEach((x,i)=>{x.col=COL[i]||'#8A8F9C'});
 const CORTO={VWCE:'VWCE',EUNL:'EUNL',SXR8:'SXR8',XMME:'XMME',VGSI:'Vanguard Global Stock (fondo)',VEGB:'Vanguard Euro Gov. Bond (fondo)'};
-const st={cper:'3M',vista:'cartera',sel:new Set(INS.filter(x=>!x.sinCot).map(x=>x.id)),abiertos:new Set(['VWCE']),tipo:'Todos',vendidos:false,modo:'eur',per:'Máx.',
+const st={gtab:'Revalorización de la cartera',cper:'3M',vista:'cartera',sel:new Set(INS.filter(x=>!x.sinCot).map(x=>x.id)),abiertos:new Set(['VWCE']),tipo:'Todos',vendidos:false,modo:'eur',per:'Máx.',
   ficha:null,tab:'Cotización',fper:'3A'};
 const visibles=()=>INS.filter(x=>(st.vendidos||x.vivo)&&(st.tipo==='Todos'||x.tipo===st.tipo||(st.tipo==='Fondos'&&x.tipo==='Fondo')||(st.tipo==='ETF'&&x.tipo==='ETF')||(st.tipo==='Participaciones'&&x.tipo==='Participación')));
 
@@ -404,6 +404,12 @@ function pintaCartera(){
   }
 }
 
+/* ---------- pestañas de gráficos ---------- */
+function pintaGTabs(){
+  const T2=[['Revalorización de la cartera','Valor de mercado frente a lo invertido, sumando todos los lotes desde su fecha de compra'],['Comparativa de los activos','Variación en porcentaje de la cotización de cada activo, para compararlos entre sí']];
+  $('#gTabs').innerHTML=T2.map(([t,ti])=>`<button class="tab" role="tab" title="${ti}" aria-selected="${t===st.gtab}">${t}</button>`).join('');
+  $('#gpRev').hidden=st.gtab!==T2[0][0]; $('#gpComp').hidden=st.gtab!==T2[1][0];
+}
 /* ---------- comparativa (variación relativa) ---------- */
 function pintaComparativa(){
   const PER=[['1M',30],['3M',91],['6M',182],['Año','ytd'],['1A',365],['3A',3*365],['5A',5*365]];
@@ -519,7 +525,7 @@ function pintaFicha(){
 function pinta(){
   $('#vCartera').hidden=st.vista!=='cartera'; $('#vFicha').hidden=st.vista!=='ficha';
   $('#vCartera').style.display=st.vista==='cartera'?'contents':'none'; $('#vFicha').style.display=st.vista==='ficha'?'contents':'none';
-  if(st.vista==='cartera'){pintaKpis();pintaCartera();pintaComparativa();pintaTabla()} else pintaFicha();
+  if(st.vista==='cartera'){pintaKpis();pintaGTabs();pintaCartera();pintaComparativa();pintaTabla()} else pintaFicha();
 }
 function toast(t){const d=document.createElement('div');d.className='toast';d.textContent=t;document.body.appendChild(d);setTimeout(()=>d.remove(),3200)}
 function cierraMenu(){$('#capa').innerHTML=''}
@@ -530,6 +536,7 @@ document.addEventListener('click',e=>{
   const b=e.target.closest('button');
   if(e.target.closest('#gModo button')){st.modo=b.dataset.k;pintaCartera()}
   else if(e.target.closest('#gPer button')){st.per=b.dataset.k;pintaCartera()}
+  else if(e.target.closest('#gTabs .tab')){st.gtab=b.textContent.trim();pintaGTabs()}
   else if(e.target.closest('#cPer button')){st.cper=b.dataset.k;pintaComparativa()}
   else if(e.target.closest('#fTipo button')){st.tipo=b.dataset.k;pintaTabla()}
   else if(e.target.closest('#fPer button')){st.fper=b.dataset.k;pintaFicha()}
