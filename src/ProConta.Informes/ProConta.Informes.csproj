@@ -13,6 +13,8 @@
     <!-- PDF con texto real: FastReport exporta a HTML y WebView2 lo imprime a PDF (informes/reporting, 2026-11-12 15:19). -->
     <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.4191.47" />
     <PackageReference Include="ClosedXML" Version="0.105.0" />
+    <!-- Unir los PDF de cada libro de la legalización y numerar sus folios (contabilidad/procesos/legalizacion-libros); ya la usan compras y documentos. -->
+    <PackageReference Include="PdfPig" Version="0.1.11" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\ProConta.Contabilidad\ProConta.Contabilidad.csproj" />

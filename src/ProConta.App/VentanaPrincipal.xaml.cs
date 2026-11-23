@@ -77,6 +77,7 @@ public partial class VentanaPrincipal : Window
     private readonly ProConta.Contabilidad.UI.ImpuestoSociedades.ModuloImpuestoSociedades _impuestoSociedades;
     private readonly ProConta.Contabilidad.UI.Cierre.ModuloCierreEjercicio _cierreEjercicio;
     private readonly ProConta.Contabilidad.UI.CuentasAnuales.ModuloCuentasAnuales _cuentasAnuales;
+    private readonly ProConta.Contabilidad.UI.Legalizacion.ModuloLegalizacion _legalizacion;
     private readonly ProConta.Contabilidad.UI.FacturasPendientes.ModuloFacturasPendientes _facturasPendientes;
     private readonly ProConta.Contabilidad.UI.Amortizacion.ModuloAmortizacion _amortizacion;
     private readonly ProConta.Contabilidad.UI.Saldos.ModuloRecalcularSaldos _recalcularSaldos;
@@ -552,6 +553,23 @@ public partial class VentanaPrincipal : Window
             },
             _area);
         var abrirCuentasAnuales = new ComandoDelegado(() => _cuentasAnuales.Abrir());
+        // Legalización de libros (contabilidad/procesos/legalizacion-libros): DIARIO_001.pdf e INV_CUEN_001.pdf del ejercicio cerrado para el Registro
+        // Mercantil, con sus huellas e instrucciones; toma el Diario, sumas y saldos y las cuentas anuales sin recalcular. Solo lee.
+        _legalizacion = new ProConta.Contabilidad.UI.Legalizacion.ModuloLegalizacion(
+            new ProConta.Contabilidad.UI.Legalizacion.ContextoLegalizacion(
+                new ProConta.Contabilidad.Legalizacion.ServicioLegalizacion(bd, async ctx =>
+                    (await new ProConta.Activos.Gestion.ServicioActivos(bd, cuentas).ListarAsync(ctx))
+                        .Where(a => !a.EsAjeno && (a.FechaBaja is null || a.FechaBaja.Value.Year >= ctx.Ejercicio))
+                        .Select(a => new ProConta.Contabilidad.Legalizacion.ActivoInventario(a.Codigo, a.Nombre, a.Tipo, a.FechaCompra, a.Coste, a.Amortizado)).ToList()),
+                contexto.Contexto, contexto.RazonSocial, Avisar)
+            {
+                Generar = GenerarLibrosLegalizacionAsync,
+                Abrir = ruta => System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(ruta) { UseShellExecute = true }),
+                AbrirCierre = () => _cierreEjercicio.Abrir(),
+                AbrirCuentasAnuales = () => _cuentasAnuales.Abrir(),
+            },
+            _area);
+        var abrirLegalizacion = new ComandoDelegado(() => _legalizacion.Abrir());
         // Facturas pendientes de recibir (contabilidad/procesos/facturas-pendientes-recibir): gasto supuesto de los proveedores cuadrados con saldo deudor contra la
         // 4009 a 31/12 y su reversión el 1/1 del siguiente, como dos lotes propios; el cierre solo mira su estado.
         _facturasPendientes = new ProConta.Contabilidad.UI.FacturasPendientes.ModuloFacturasPendientes(
@@ -687,7 +705,7 @@ public partial class VentanaPrincipal : Window
                 "y quita la casilla a las demás; enseña antes lo que cambia, conserva las notas y no hace asientos",
                 abrirReinicioCuadre, EsHija: true),
             new OpcionNavegacion("Fin de ejercicio", null, true, false,
-                "Procesos contables que se hacen al terminar el año, en este orden: amortización, facturas pendientes de recibir, céntimos residuales, prorrata, liquidación del IVA del 4T, Impuesto sobre Sociedades y cierre; y, en el ejercicio siguiente, la aplicación del resultado. " +
+                "Procesos contables que se hacen al terminar el año, en este orden: amortización, facturas pendientes de recibir, céntimos residuales, prorrata, liquidación del IVA del 4T, Impuesto sobre Sociedades y cierre; y, en el ejercicio siguiente, la aplicación del resultado, las cuentas anuales y la legalización de los libros. " +
                 "Pulsar aquí abre el Cierre del ejercicio, cuya comprobación previa dice qué falta de cada paso",
                 abrirCierreEjercicio, EsHija: true),
             new OpcionNavegacion("Amortización de activos", null, true, false,
@@ -722,6 +740,10 @@ public partial class VentanaPrincipal : Window
                 "Procesos contables › Fin de ejercicio › Cuentas anuales: balance y pérdidas y ganancias del modelo pymes del Registro Mercantil, con el ejercicio anterior y la clave oficial de cada partida, " +
                 "las comprobaciones del Registro (activo igual a patrimonio neto y pasivo, mismo resultado, subcuentas sin partida), las subcuentas de cada partida y el PDF de las páginas del modelo",
                 abrirCuentasAnuales, EsNieta: true),
+            new OpcionNavegacion("Legalización de libros", null, true, false,
+                "Procesos contables › Fin de ejercicio › Legalización de libros: genera DIARIO_001.pdf (libro Diario con suma y sigue) e INV_CUEN_001.pdf (balance inicial, sumas y saldos " +
+                "trimestrales, inventario de cierre y cuentas anuales) del ejercicio cerrado, con sus huellas SHA-256, y explica cómo presentarlos en el Registro Mercantil antes del 30 de abril",
+                abrirLegalizacion, EsNieta: true),
             new OpcionNavegacion("Recalcular saldos", null, true, false,
                 "Procesos contables › Recalcular saldos: compara el saldo y el número de apuntes guardados de cada cuenta del ejercicio con sus apuntes, lista las diferencias " +
                 "y los códigos con apuntes que no están en el plan, y «Recalcular» los rehace. No crea ni cambia asientos",
@@ -1198,6 +1220,62 @@ public partial class VentanaPrincipal : Window
             if (ex is not InvalidOperationException and not System.IO.IOException) detalles.Add($"Detalle técnico: {ex.GetType().Name}");
             ServicioMensajes.Preguntar(this, "No he podido generar el PDF de las cuentas anuales", ex.Message, detalles,
                 new OpcionMensaje("Cerrar", "Vuelve a la pantalla; pulsa otra vez «Generar PDF…» para reintentarlo", Principal: true, Cancelar: true));
+        }
+        finally
+        {
+            Cursor = anterior;
+        }
+    }
+
+    /// <summary>
+    /// Los dos libros de la legalización (contabilidad/procesos/legalizacion-libros): DIARIO_001.pdf e INV_CUEN_001.pdf, guardados por el gestor
+    /// documental en «&lt;año&gt;\Legalización\&lt;fecha-hora&gt;» (una carpeta por generación, para que los nombres oficiales no cambien),
+    /// vinculados al ejercicio. Devuelve dónde han quedado; null si no se han podido generar (ya lo ha explicado).
+    /// </summary>
+    private async Task<IReadOnlyList<ProConta.Contabilidad.UI.Legalizacion.FicheroGuardado>?> GenerarLibrosLegalizacionAsync(ProConta.Contabilidad.Legalizacion.DatosLegalizacion d)
+    {
+        var anterior = Cursor;
+        Cursor = Cursors.Wait;
+        try
+        {
+            Avisar($"Generando los libros de {d.Ejercicio} para legalizar (el Diario tiene {d.Diario.NumeroApuntes:N0} apuntes: tarda unos segundos)…");
+            var diario = await Task.Run(() => ProConta.Informes.InformeLegalizacion.Diario(d.Diario, d.Generado, ConversorHtmlPdf.Compartido.Convertir));
+            var inventarios = await Task.Run(() => ProConta.Informes.InformeLegalizacion.Inventarios(d, ConversorHtmlPdf.Compartido.Convertir));
+            var anio = d.Ejercicio.ToString(System.Globalization.CultureInfo.InvariantCulture);
+            var carpeta = System.IO.Path.Combine(anio, "Legalización", DateTime.Now.ToString("yyyyMMdd-HHmm", System.Globalization.CultureInfo.InvariantCulture));
+            var vinculo = new ProConta.Documentos.Vinculo(ProConta.Documentos.TiposEntidad.Ejercicio, d.IdSociedadEjercicio, null, $"Ejercicio {d.Ejercicio}");
+            var guardados = new List<ProConta.Contabilidad.UI.Legalizacion.FicheroGuardado>();
+            var borrador = d.TieneErrores ? " (borrador con errores)" : "";
+            foreach (var f in new[] { diario, inventarios })
+            {
+                var g = await _servicioDocumentos.GuardarAsync(new ProConta.Documentos.SolicitudDocumento(_ejercicioTrabajo.IdSociedad, "INFORME_CONTABLE",
+                    $"{f.Libro} {d.Ejercicio} para legalizar{borrador}", carpeta, f.Nombre, DateTime.Today, d.Ejercicio, "INFORME_CONTABLE", [vinculo]), f.Contenido);
+                string ruta;
+                if (g.EsCorrecto) ruta = g.Valor.RutaCompleta;
+                else
+                {
+                    // Sin carpeta de documentos: a una carpeta temporal propia, con el nombre oficial intacto.
+                    var temporal = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "ProContaVF", "Legalizacion", anio, DateTime.Now.ToString("yyyyMMdd-HHmmss", System.Globalization.CultureInfo.InvariantCulture));
+                    System.IO.Directory.CreateDirectory(temporal);
+                    ruta = System.IO.Path.Combine(temporal, f.Nombre);
+                    await System.IO.File.WriteAllBytesAsync(ruta, f.Contenido);
+                    Avisar($"{f.Nombre} no se ha guardado en la carpeta de documentos ({g.Error!.Mensaje}); está en {ruta}.");
+                }
+                if (!string.Equals(System.IO.Path.GetFileName(ruta), f.Nombre, StringComparison.OrdinalIgnoreCase))
+                    Avisar($"Ojo: el fichero ha quedado como {System.IO.Path.GetFileName(ruta)}; para presentarlo tiene que llamarse {f.Nombre}.");
+                guardados.Add(new(f, ruta));
+            }
+            if (guardados.All(x => string.Equals(System.IO.Path.GetFileName(x.Ruta), x.Fichero.Nombre, StringComparison.OrdinalIgnoreCase)))
+                Avisar($"Libros de {d.Ejercicio} generados{borrador}: Diario {diario.Paginas} páginas e Inventarios y Cuentas Anuales {inventarios.Paginas} folios, en {System.IO.Path.GetDirectoryName(guardados[0].Ruta)}.");
+            return guardados;
+        }
+        catch (Exception ex)
+        {
+            var detalles = new List<string>();
+            if (ex is not InvalidOperationException and not System.IO.IOException and not ErrorMotorPdf) detalles.Add($"Detalle técnico: {ex.GetType().Name}");
+            ServicioMensajes.Preguntar(this, "No he podido generar los libros para legalizar", ex.Message, detalles,
+                new OpcionMensaje("Cerrar", "Vuelve a la pantalla; pulsa otra vez «Generar los libros» para reintentarlo", Principal: true, Cancelar: true));
+            return null;
         }
         finally
         {

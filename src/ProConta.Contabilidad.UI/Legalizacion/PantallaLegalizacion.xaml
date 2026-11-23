@@ -1,0 +1,119 @@
+<UserControl x:Class="ProConta.Contabilidad.UI.Legalizacion.PantallaLegalizacion"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:pc="urn:proconta-ui"
+             Background="White">
+  <UserControl.Resources>
+    <pc:VisibleSiConverter x:Key="Visible" />
+    <ContextMenu x:Key="Menu.Fichero">
+      <MenuItem Header="Abrir el fichero" Command="{Binding AbrirFicheroCommand}" ToolTipService.ShowOnDisabled="True"
+                ToolTip="Abre el PDF elegido con el visor de PDF de Windows para revisarlo (no lo guardes desde el visor: cambiaría su huella)" />
+      <MenuItem Header="Copiar la huella (base64)" Command="{Binding CopiarHuellaCommand}" ToolTipService.ShowOnDisabled="True"
+                ToolTip="Copia la huella SHA-256 del fichero en base64, como la pide la Instrucción de la DGRN, para pegarla en la solicitud" />
+      <MenuItem Header="Copiar la huella (hexadecimal)" Command="{Binding CopiarHuellaHexCommand}" ToolTipService.ShowOnDisabled="True"
+                ToolTip="Copia la misma huella SHA-256 escrita en hexadecimal (64 caracteres), por si el programa de presentación la pide así" />
+    </ContextMenu>
+  </UserControl.Resources>
+  <UserControl.InputBindings>
+    <KeyBinding Key="F5" Command="{Binding RefrescarCommand}" />
+  </UserControl.InputBindings>
+
+  <DockPanel>
+    <!-- Cabecera: ejercicio y acciones generales -->
+    <Border DockPanel.Dock="Top" BorderBrush="{StaticResource Pincel.Linea}" BorderThickness="0,0,0,1" Padding="14,8">
+      <DockPanel>
+        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+          <Button Content="Cierre del ejercicio" Style="{StaticResource Boton}" Command="{Binding CierreCommand}" Margin="0,0,8,0" VerticalAlignment="Center"
+                  ToolTip="Abre Fin de ejercicio › Cierre del ejercicio: los libros se legalizan con el ejercicio cerrado" />
+          <Button Content="Cuentas anuales" Style="{StaticResource Boton}" Command="{Binding CuentasCommand}" Margin="0,0,8,0" VerticalAlignment="Center"
+                  ToolTip="Abre Fin de ejercicio › Cuentas anuales, para revisar el balance, la cuenta de pérdidas y ganancias y la memoria que van en el libro de Inventarios" />
+          <Button Content="Abrir la web del Registro" Style="{StaticResource Boton}" Command="{Binding WebCommand}" Margin="0,0,8,0" VerticalAlignment="Center"
+                  ToolTip="Abre en el navegador la web del Colegio de Registradores (registradores.org), donde se presentan los libros para legalizar" />
+          <Button Content="Generar los libros" Style="{StaticResource Boton.Primario}" Command="{Binding GenerarCommand}" Margin="0,0,8,0" VerticalAlignment="Center"
+                  ToolTip="{Binding TextoGenerar}" ToolTipService.ShowOnDisabled="True" />
+          <Button Content="Actualizar" Style="{StaticResource Boton}" Command="{Binding RefrescarCommand}" VerticalAlignment="Center"
+                  ToolTip="Vuelve a leer la contabilidad del ejercicio y a hacer las comprobaciones (F5)" />
+        </StackPanel>
+        <StackPanel Orientation="Horizontal">
+          <TextBlock Text="Legalización de libros" Style="{StaticResource Texto.TituloPantalla}" VerticalAlignment="Center" Margin="0,0,12,0" />
+          <ComboBox ItemsSource="{Binding Ejercicios}" SelectedItem="{Binding Ejercicio}" DisplayMemberPath="Texto" Width="120" VerticalAlignment="Center" Margin="0,0,12,0"
+                    AutomationProperties.Name="Ejercicio de los libros"
+                    ToolTip="Ejercicio de los libros. Por defecto, el último cerrado que aún está en plazo: los libros de un año se presentan hasta el 30 de abril del siguiente" />
+          <TextBlock Text="{Binding Subtitulo}" Style="{StaticResource Texto.Apagado}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+        </StackPanel>
+      </DockPanel>
+    </Border>
+
+    <pc:VistaEstado Estado="{Binding Estado}" Mensaje="{Binding MensajeEstado}" TextoAccion="Actualizar" ComandoAccion="{Binding RefrescarCommand}">
+      <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+        <StackPanel Margin="14,10,14,10" MaxWidth="1100" HorizontalAlignment="Left">
+          <!-- Comprobaciones -->
+          <TextBlock Text="{Binding Resumen}" FontWeight="SemiBold" TextWrapping="Wrap" Margin="0,0,0,6" />
+          <pc:Nota Tipo="Info" Margin="0,0,0,12">
+            <ItemsControl ItemsSource="{Binding Comprobaciones}" Focusable="False">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                  <DockPanel Margin="0,1,0,3">
+                    <TextBlock DockPanel.Dock="Left" Text="{Binding Icono}" Width="18" FontWeight="SemiBold" />
+                    <StackPanel>
+                      <TextBox Text="{Binding Titulo, Mode=OneWay}" Style="{x:Null}" IsReadOnly="True" BorderThickness="0" Background="Transparent" FontWeight="SemiBold" TextWrapping="Wrap" Padding="0" />
+                      <TextBox Text="{Binding Detalle, Mode=OneWay}" Style="{x:Null}" IsReadOnly="True" BorderThickness="0" Background="Transparent" TextWrapping="Wrap" Padding="0" />
+                    </StackPanel>
+                  </DockPanel>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </pc:Nota>
+
+          <!-- Qué contiene cada libro -->
+          <TextBlock Text="Qué se genera" Style="{StaticResource Texto.Seccion}" Margin="0,0,0,4" />
+          <TextBlock TextWrapping="Wrap" Margin="0,0,0,12">
+            <Run FontWeight="SemiBold" Text="DIARIO_001.pdf" /><Run Text=" · libro Diario: todos los asientos del ejercicio por fecha, con su número de orden en el libro y su número en el programa, y «Suma anterior» y «Suma y sigue» en cada página." />
+            <LineBreak />
+            <Run FontWeight="SemiBold" Text="INV_CUEN_001.pdf" /><Run Text=" · libro de Inventarios y Cuentas Anuales: balance inicial (la apertura), balances de sumas y saldos al final de cada trimestre, inventario de cierre (saldos del balance y activos) y cuentas anuales con su memoria." />
+            <LineBreak />
+            <Run Text="Los dos llevan al pie la sociedad, el libro y el folio de cada página." Foreground="{StaticResource Pincel.Apagado}" />
+          </TextBlock>
+
+          <!-- Ficheros generados -->
+          <DockPanel Margin="0,0,0,4">
+            <Button DockPanel.Dock="Right" Content="Abrir la carpeta" Style="{StaticResource Boton}" Command="{Binding CarpetaCommand}" ToolTipService.ShowOnDisabled="True"
+                    ToolTip="Abre la carpeta de documentos donde se han guardado los dos libros, para subirlos desde ahí" />
+            <TextBlock Text="{Binding TituloFicheros}" Style="{StaticResource Texto.Seccion}" TextWrapping="Wrap" VerticalAlignment="Center" />
+          </DockPanel>
+          <DataGrid Style="{StaticResource Tabla}" ItemsSource="{Binding Ficheros}" SelectedItem="{Binding Seleccionado}" IsReadOnly="True" AutoGenerateColumns="False"
+                    HeadersVisibility="Column" RowStyle="{StaticResource Tabla.Fila}" SelectionMode="Single" ContextMenu="{StaticResource Menu.Fichero}"
+                    Visibility="{Binding HayFicheros, Converter={StaticResource Visible}}" Margin="0,0,0,12" AutomationProperties.Name="Ficheros generados"
+                    ToolTip="Los dos libros generados con su huella. Doble clic o clic derecho: abrir el fichero o copiar su huella">
+            <DataGrid.InputBindings>
+              <MouseBinding Gesture="LeftDoubleClick" Command="{Binding AbrirFicheroCommand}" />
+            </DataGrid.InputBindings>
+            <DataGrid.Columns>
+              <DataGridTextColumn Header="Fichero" Binding="{Binding Nombre}" Width="150" ElementStyle="{StaticResource Texto.Celda.Mono}" />
+              <DataGridTextColumn Header="Libro" Binding="{Binding Libro}" Width="250" ElementStyle="{StaticResource Texto.Celda}" />
+              <DataGridTextColumn Header="Páginas" Binding="{Binding Paginas}" Width="70" ElementStyle="{StaticResource Texto.Celda.Importe}" HeaderStyle="{StaticResource Tabla.Cabecera.Derecha}" />
+              <DataGridTextColumn Header="Tamaño" Binding="{Binding Tamano}" Width="80" ElementStyle="{StaticResource Texto.Celda.Importe}" HeaderStyle="{StaticResource Tabla.Cabecera.Derecha}" />
+              <DataGridTextColumn Header="Huella SHA-256 (base64)" Binding="{Binding Huella}" Width="*" ElementStyle="{StaticResource Texto.Celda.Mono}" />
+            </DataGrid.Columns>
+          </DataGrid>
+
+          <!-- Cómo presentarlos -->
+          <TextBlock Text="Cómo presentarlos en el Registro Mercantil" Style="{StaticResource Texto.Seccion}" Margin="0,0,0,4" />
+          <TextBlock TextWrapping="Wrap" Margin="0,0,0,6">
+            <Run Text="Se presentan por internet en la web del Colegio de Registradores: " />
+            <Hyperlink NavigateUri="https://www.registradores.org/" Command="{Binding WebCommand}" ToolTip="Abre registradores.org en el navegador">
+              <Run Text="{Binding Url, Mode=OneWay}" />
+            </Hyperlink>
+          </TextBlock>
+          <ItemsControl ItemsSource="{Binding Pasos}" Focusable="False">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate>
+                <TextBox Text="{Binding Mode=OneWay}" Style="{x:Null}" IsReadOnly="True" BorderThickness="0" Background="Transparent" TextWrapping="Wrap" Padding="0" Margin="0,2,0,4" />
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </StackPanel>
+      </ScrollViewer>
+    </pc:VistaEstado>
+  </DockPanel>
+</UserControl>
