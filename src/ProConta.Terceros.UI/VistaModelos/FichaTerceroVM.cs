@@ -192,25 +192,38 @@ public sealed class FichaTerceroVM : Observable, IPestanaTrabajo, INotifyDataErr
     private object? _mayor;
     private string? _cuentasMayor;
 
-    /// <summary>Mayor de las cuentas del tercero (cliente, proveedor y acreedor): el mismo control que Contabilidad › Mayor, sin recientes.</summary>
+    /// <summary>
+    /// Mayor de las subcuentas del tercero (las de todos sus roles: cliente y su retención, proveedor, acreedor, empleado, dividendos y
+    /// retención de dividendos): el mismo control que Contabilidad › Mayor, con esas subcuentas en el panel de la izquierda.
+    /// </summary>
     public object? MayorContabilidad => _mayor;
     public bool HayMayor => _mayor is not null;
     public string TituloSinMayor => _modulo?.MayorEmbebido is null ? "El Mayor no está disponible aquí" : "Este tercero no tiene cuentas contables";
     public string MensajeSinMayor => _modulo?.MayorEmbebido is null
         ? "Abre la ficha desde el programa para ver el Mayor de sus cuentas."
-        : "Asígnale su cuenta de cliente, proveedor o acreedor en la pestaña Roles y guarda la ficha: aquí verás su mayor, todas juntas o una a una.";
+        : "Asígnale sus subcuentas en la pestaña Roles (cliente, proveedor, acreedor, empleado o socio) y guarda la ficha: aquí verás su mayor, una a una o varias fusionadas.";
 
     /// <summary>Crea (o rehace si cambian sus cuentas) el Mayor embebido; sus datos se leen al abrir la pestaña.</summary>
     private void ActualizarMayor()
     {
         if (_modulo?.MayorEmbebido is not { } crear) return;
-        var codigos = new[] { CuentaCliente, CuentaProveedor, CuentaAcreedor }.Select(c => c.Codigo).Where(c => c.Length > 0).Distinct().ToList();
-        var clave = string.Join("|", codigos);
+        var cuentas = SubcuentasMayor();
+        var clave = string.Join("|", cuentas.Select(c => c.Codigo + ":" + c.Papel));
         if (clave == _cuentasMayor) return;
         _cuentasMayor = clave;
-        _mayor = codigos.Count == 0 ? null : crear(codigos);
+        _mayor = cuentas.Count == 0 ? null : crear(cuentas);
         Avisar(nameof(MayorContabilidad), nameof(HayMayor), nameof(TituloSinMayor), nameof(MensajeSinMayor));
     }
+
+    /// <summary>Subcuentas asignadas a los roles del tercero, en el orden de la pestaña Roles y con su papel (terceros/pantallas 2026-11-23).</summary>
+    public IReadOnlyList<(string Codigo, string Papel)> SubcuentasMayor() =>
+    [
+        .. new (CuentaRolVM Cuenta, string Papel)[]
+        {
+            (CuentaCliente, "Cliente"), (CuentaRetencion, "Retención del cliente"), (CuentaProveedor, "Proveedor"), (CuentaAcreedor, "Acreedor"),
+            (CuentaEmpleado, "Empleado"), (CuentaDividendos, "Dividendos"), (CuentaRetencionDividendos, "Retención dividendos"),
+        }.Where(x => x.Cuenta.Codigo.Length > 0).Select(x => (x.Cuenta.Codigo, x.Papel)),
+    ];
 
     // ---------- pestaña Documentos (documentos 2026-11-18): el panel común del gestor documental, vinculado a este tercero ----------
     private object? _documentos;

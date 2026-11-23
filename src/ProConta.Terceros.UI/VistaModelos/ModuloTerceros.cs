@@ -35,10 +35,10 @@ public sealed class ModuloTerceros
     public Func<string, int, string, Task>? EnviarEmail { get; set; }
 
     /// <summary>
-    /// Mayor embebido de la pestaña Contabilidad (contabilidad/mayor): crea el control con las cuentas del tercero. Lo conecta el
-    /// contenedor; null, la pestaña explica que el Mayor no está disponible.
+    /// Mayor embebido de la pestaña Contabilidad (contabilidad/mayor): crea el control con las subcuentas del tercero, cada una con su
+    /// papel («Cliente», «Acreedor»…). Lo conecta el contenedor; null, la pestaña explica que el Mayor no está disponible.
     /// </summary>
-    public Func<IReadOnlyList<string>, object>? MayorEmbebido { get; set; }
+    public Func<IReadOnlyList<(string Codigo, string Papel)>, object>? MayorEmbebido { get; set; }
 
     /// <summary>
     /// Pestaña Nóminas (nominas/pantallas): crea su contenido para el tercero si es empleado de la sociedad activa, o null (la
