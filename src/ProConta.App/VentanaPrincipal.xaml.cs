@@ -639,6 +639,8 @@ public partial class VentanaPrincipal : Window
         var informeGestoria = new ComandoDelegado(() => _ = GenerarInformeGestoriaAsync());
         _sumasYSaldos = new ProConta.Contabilidad.Balances.GeneradorSumasYSaldos(bd);
         var sumasYSaldos = new ComandoDelegado(() => _ = GenerarSumasYSaldosAsync());
+        _librosIva = new ProConta.Contabilidad.Iva.GeneradorLibrosIva(bd);
+        var librosIva = new ComandoDelegado(() => _ = GenerarLibrosIvaAsync());
         _rutaBd = ubicacion.RutaBaseDatos;
         _operador = sesion.NombreOperador;
         var abrirClaude = new ComandoDelegado(AbrirClaude);
@@ -750,6 +752,10 @@ public partial class VentanaPrincipal : Window
                 "Genera en PDF o en Excel el balance de sumas y saldos del ejercicio de trabajo entre dos fechas: sumas del Debe y del Haber y saldo deudor o acreedor " +
                 "por grupo, subgrupo, cuenta y subcuenta (eliges los niveles). Lo guarda en la carpeta de documentos de la empresa, vinculado al ejercicio, y lo abre",
                 sumasYSaldos, EsHija: true),
+            new OpcionNavegacion("Libros registro de IVA…", null, true, false,
+                "Genera en PDF o en Excel los libros registro de facturas expedidas y de facturas recibidas de un trimestre, un mes o entre fechas del ejercicio de trabajo, " +
+                "con los totales por tipo y el cuadre con el 303 del periodo. Lo guarda en la carpeta de documentos de la empresa, vinculado al ejercicio, y lo abre",
+                librosIva, EsHija: true),
             new OpcionNavegacion("Informe para la gestoría…", null, true, false,
                 "Genera en Excel el informe trimestral para la gestoría del ejercicio de trabajo: liquidación del IVA (303) por trimestres, prorrata y su regularización estimada, " +
                 "controles antes de presentar, pérdidas y ganancias, balance, ratios y facturas emitidas y recibidas. Pregunta el trimestre (por defecto, el último terminado) y lo abre",
@@ -947,6 +953,8 @@ public partial class VentanaPrincipal : Window
     private bool _generandoBalance;
     private readonly ProConta.Contabilidad.Balances.GeneradorSumasYSaldos _sumasYSaldos;
     private bool _generandoSumasYSaldos;
+    private readonly ProConta.Contabilidad.Iva.GeneradorLibrosIva _librosIva;
+    private bool _generandoLibrosIva;
 
     /// <summary>
     /// Genera el balance del ejercicio de trabajo, lo guarda en Documentos\ProContaVF\Informes y lo abre con Excel. En la barra de
@@ -1250,6 +1258,81 @@ public partial class VentanaPrincipal : Window
         finally
         {
             Cursor = anterior;
+        }
+    }
+
+    /// <summary>
+    /// Informes › Libros registro de IVA… (informes/excel/libros-registro-iva): pide periodo, libros y formato, calcula los libros del ejercicio de trabajo
+    /// desde las líneas de IVA del 303, los guarda por el gestor documental (INFORME_CONTABLE, en «&lt;año&gt;\Informes», vinculado al ejercicio) y abre la copia.
+    /// </summary>
+    private async Task GenerarLibrosIvaAsync(ProConta.Contabilidad.Iva.ParametrosLibrosIva? repetir = null,
+        ProConta.Contabilidad.UI.Iva.FormatoLibrosIva formatoRepetir = default)
+    {
+        if (_generandoLibrosIva) { Avisar("Ya estoy generando los libros registro de IVA: espera a que se abran."); return; }
+        var ejercicio = _ejercicioTrabajo.Ejercicio;
+        var (parametros, formato) = repetir is not null ? (repetir, formatoRepetir)
+            : ProConta.Contabilidad.UI.Iva.DialogoLibrosIva.Pedir(this, ejercicio, _razonSocial, DateTime.Today) is { } elegido ? elegido : default;
+        if (parametros is null) return;
+        var pdf = formato == ProConta.Contabilidad.UI.Iva.FormatoLibrosIva.Pdf;
+        _generandoLibrosIva = true;
+        Avisar($"Generando los libros registro de IVA ({parametros.Periodo}) en {(pdf ? "PDF" : "Excel")}…");
+        var anterior = Cursor;
+        Cursor = Cursors.Wait;
+        string? ruta = null;
+        try
+        {
+            var r = await Task.Run(() => _librosIva.GenerarAsync(_ejercicioTrabajo, _razonSocial, parametros));
+            var nombre = ProConta.Contabilidad.Iva.CalculadoraLibrosIva.NombreFichero(r, pdf ? ".pdf" : ".xlsx");
+            var temporales = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "ProContaVF", "Informes");
+            System.IO.Directory.CreateDirectory(temporales);
+            byte[] contenido;
+            if (pdf)
+            {
+                var html = InformeLibrosIva.Html(r);
+                contenido = await Task.Run(() => ConversorHtmlPdf.Compartido.Convertir(html, InformeLibrosIva.Pagina));
+            }
+            else
+            {
+                var temporal = System.IO.Path.Combine(temporales, nombre);
+                await Task.Run(() => InformeLibrosIva.Excel(r, temporal));
+                contenido = await System.IO.File.ReadAllBytesAsync(temporal);
+                try { System.IO.File.Delete(temporal); } catch (System.IO.IOException) { }
+            }
+            var guardado = await _servicioDocumentos.GuardarAsync(new ProConta.Documentos.SolicitudDocumento(
+                _ejercicioTrabajo.IdSociedad, "INFORME_CONTABLE", $"{InformeLibrosIva.Titulo(r)} {parametros.Periodo}",
+                System.IO.Path.Combine(ejercicio.ToString(System.Globalization.CultureInfo.InvariantCulture), "Informes"), nombre, r.Generado.Date, ejercicio, "INFORME_CONTABLE",
+                [new ProConta.Documentos.Vinculo(ProConta.Documentos.TiposEntidad.Ejercicio, _ejercicioTrabajo.IdSociedadEjercicio, null, $"Ejercicio {ejercicio}")]),
+                contenido);
+            if (guardado.EsCorrecto) ruta = guardado.Valor.RutaCompleta;
+            else
+            {
+                ruta = System.IO.Path.Combine(temporales, nombre);
+                await System.IO.File.WriteAllBytesAsync(ruta, contenido);
+            }
+            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(ruta) { UseShellExecute = true });
+            var es = System.Globalization.CultureInfo.GetCultureInfo("es-ES");
+            var partes = new List<string>();
+            if (parametros.Expedidas) partes.Add($"{r.FacturasExpedidas} facturas expedidas ({r.Expedidas.Sum(f => f.Cuota).ToString("N2", es)} € de cuota)");
+            if (parametros.Recibidas) partes.Add($"{r.FacturasRecibidas} recibidas ({r.Recibidas.Sum(f => f.Cuota).ToString("N2", es)} € de cuota)");
+            if (!guardado.EsCorrecto)
+                Avisar($"Los libros no se han guardado en la carpeta de documentos ({guardado.Error!.Mensaje}); los abro desde {ruta}.");
+            else
+                Avisar($"Libros registro de IVA {parametros.Periodo} abiertos: {string.Join(" y ", partes)} · resultado del 303 del periodo {r.Cuadre303.Resultado(0).ToString("N2", es)} €.");
+        }
+        catch (Exception ex)
+        {
+            var detalles = new List<string>();
+            if (ex is System.IO.IOException && ruta is not null) detalles.Add($"Fichero: {ruta}");
+            if (ex is not InvalidOperationException and not System.IO.IOException) detalles.Add($"Detalle técnico: {ex.GetType().Name}");
+            var eleccion = ServicioMensajes.Preguntar(this, "No he podido generar los libros registro de IVA", ex.Message, detalles,
+                new OpcionMensaje("Reintentar", "Vuelve a generarlos con el mismo periodo, libros y formato", Principal: true),
+                new OpcionMensaje("Cerrar", "Vuelve a la pantalla anterior", Cancelar: true));
+            if (eleccion == 0) { _generandoLibrosIva = false; Cursor = anterior; await GenerarLibrosIvaAsync(parametros, formato); return; }
+        }
+        finally
+        {
+            Cursor = anterior;
+            _generandoLibrosIva = false;
         }
     }
 
