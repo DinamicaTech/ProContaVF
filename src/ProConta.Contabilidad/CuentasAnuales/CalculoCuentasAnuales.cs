@@ -18,6 +18,9 @@ public sealed record ImportePartida(string Clave, decimal Importe, IReadOnlyList
 public sealed record SubcuentaSinPartida(string Cuenta, string Nombre, decimal SaldoDeudor, bool EsPyG);
 
 /// <summary>Las cifras de un ejercicio: el balance y la cuenta de pérdidas y ganancias por clave, y lo que no se ha podido clasificar.</summary>
+/// <summary>Subcuenta con el saldo al revés que se presenta en otra partida: de <paramref name="Desde"/> a <paramref name="Hacia"/>, por su importe.</summary>
+public sealed record SubcuentaReclasificada(string Cuenta, string Nombre, string Desde, string Hacia, decimal Importe);
+
 /// <summary>Movimiento de una subcuenta en el ejercicio para la memoria: saldo de la apertura (Debe − Haber) y sumas del resto de asientos ordinarios.</summary>
 public sealed record MovimientoSubcuenta(string Cuenta, decimal Apertura, decimal Debe, decimal Haber)
 {
@@ -26,6 +29,9 @@ public sealed record MovimientoSubcuenta(string Cuenta, decimal Apertura, decima
 
 public sealed record CifrasEjercicio(int Ejercicio, IReadOnlyDictionary<string, ImportePartida> Partidas, IReadOnlyList<SubcuentaSinPartida> SinPartida, bool Regularizado)
 {
+    /// <summary>Subcuentas con el saldo al revés que se presentan en la partida del otro lado del balance.</summary>
+    public IReadOnlyList<SubcuentaReclasificada> Reclasificadas { get; init; } = [];
+
     /// <summary>Movimientos por subcuenta (apertura y asientos ordinarios), para las tablas de la memoria.</summary>
     public IReadOnlyDictionary<string, MovimientoSubcuenta> Movimientos { get; init; } = new Dictionary<string, MovimientoSubcuenta>();
 
@@ -94,6 +100,7 @@ public static class CalculoCuentasAnuales
     {
         var cuentas = new Dictionary<string, List<CuentaEnPartida>>(StringComparer.Ordinal);
         var sin = new List<SubcuentaSinPartida>();
+        var reclasificadas = new List<SubcuentaReclasificada>();
 
         foreach (var s in balance)
         {
@@ -105,9 +112,16 @@ public static class CalculoCuentasAnuales
                 sin.Add(new SubcuentaSinPartida(s.Cuenta, s.Nombre, saldo, false));
                 continue;
             }
-            var partida = ModeloPymes.PorClave[regla.Clave];
+            var clave = regla.Clave;
+            var reclasificada = Reclasificacion(clave, s.Cuenta, saldo);
+            if (reclasificada is not null)
+            {
+                reclasificadas.Add(new SubcuentaReclasificada(s.Cuenta, s.Nombre, clave, reclasificada, Math.Abs(saldo)));
+                clave = reclasificada;
+            }
+            var partida = ModeloPymes.PorClave[clave];
             var importe = partida.Estado == EstadoCuentas.Activo ? saldo : -saldo;
-            Anadir(cuentas, regla.Clave, new CuentaEnPartida(s.Cuenta, s.Nombre, importe));
+            Anadir(cuentas, clave, new CuentaEnPartida(s.Cuenta, s.Nombre, importe));
         }
         foreach (var s in perdidasYGanancias)
         {
@@ -133,7 +147,39 @@ public static class CalculoCuentasAnuales
             p => new ImportePartida(p.Clave, Math.Round(importes.GetValueOrDefault(p.Clave), 2, MidpointRounding.AwayFromZero),
                 cuentas.TryGetValue(p.Clave, out var l) ? l.OrderBy(c => c.Cuenta, StringComparer.Ordinal).ToList() : []),
             StringComparer.Ordinal);
-        return new CifrasEjercicio(ejercicio, partidas, sin.OrderBy(x => x.Cuenta, StringComparer.Ordinal).ToList(), regularizado);
+        return new CifrasEjercicio(ejercicio, partidas, sin.OrderBy(x => x.Cuenta, StringComparer.Ordinal).ToList(), regularizado)
+        {
+            Reclasificadas = reclasificadas.OrderBy(x => x.Cuenta, StringComparer.Ordinal).ToList(),
+        };
+    }
+
+    /// <summary>
+    /// Saldos al revés de deudores y acreedores (cuentas de los grupos 4 y 5, sin las correctoras): una subcuenta que la correspondencia lleva al
+    /// activo con saldo acreedor se presenta en el pasivo, y una del pasivo con saldo deudor, en el activo, como pide el PGC (un cliente con
+    /// anticipo es un acreedor; un banco en descubierto, una deuda con entidades de crédito). Así ninguna partida de la taxonomía del ICAC que
+    /// solo admite importes positivos queda en negativo. Devuelve la partida de destino, o null si se queda donde está.
+    /// </summary>
+    public static string? Reclasificacion(string clave, string cuenta, decimal saldoDeudor)
+    {
+        if (cuenta.Length == 0 || cuenta[0] is not ('4' or '5') || saldoDeudor == 0m) return null;
+        if (cuenta.StartsWith("437", StringComparison.Ordinal) || cuenta.StartsWith("49", StringComparison.Ordinal) || cuenta.StartsWith("59", StringComparison.Ordinal))
+            return null;
+        var activo = ModeloPymes.PorClave[clave].Estado == EstadoCuentas.Activo;
+        if (activo && saldoDeudor < 0m)
+            return clave switch
+            {
+                "12700" => "32320",
+                "12400" or "12500" => "32390",
+                _ => "32590",
+            };
+        if (!activo && saldoDeudor > 0m && !AmbosSignos.Contains(clave) && !SiempreNegativas.Contains(clave))
+            return clave switch
+            {
+                "32320" or "32330" or "32390" or "32400" or "32700" => "12500",
+                "21800" => null,
+                _ => "12390",
+            };
+        return null;
     }
 
     private static decimal Total(PartidaModelo p, Dictionary<string, decimal> importes)
@@ -212,7 +258,8 @@ public static class CalculoCuentasAnuales
             c.Add(new(GravedadComprobacion.Error, $"{anio}: la subcuenta {s.Cuenta} no tiene partida en el modelo",
                 $"{s.Cuenta} {s.Nombre} tiene un saldo {(s.SaldoDeudor >= 0 ? "deudor" : "acreedor")} de {Euros(Math.Abs(s.SaldoDeudor))} y la correspondencia oficial del PGC de Pymes no la lleva a ninguna partida.",
                 "Traspasa su saldo a una cuenta del PGC de Pymes con un asiento manual (o corrige sus apuntes) y vuelve a generar las cuentas."));
-        // Signos: cada partida del balance tiene su signo; uno al revés suele ser un saldo que va en el otro lado (p. ej. un banco en descubierto).
+        // Signos: la taxonomía del ICAC solo admite importes positivos (o negativos, las partidas entre paréntesis) en cada partida del balance que no
+        // sea un resultado o un total de patrimonio neto. Los saldos al revés de deudores y acreedores ya se presentan en el otro lado (Reclasificacion).
         foreach (var p in ModeloPymes.Activo.Concat(ModeloPymes.PatrimonioNetoYPasivo).Where(p => !p.EsTotal && !AmbosSignos.Contains(p.Clave)))
         {
             var v = e[p.Clave];
@@ -220,11 +267,14 @@ public static class CalculoCuentasAnuales
             if (!mal) continue;
             var culpables = e.Partidas[p.Clave].Cuentas.Where(x => SiempreNegativas.Contains(p.Clave) ? x.Importe > 0m : x.Importe < 0m).Take(5)
                 .Select(x => $"{x.Cuenta} {x.Nombre} ({Euros(x.Importe)})");
-            c.Add(new(GravedadComprobacion.Aviso, $"{anio}: «{p.Texto}» sale {(v < 0m ? "en negativo" : "en positivo")}",
-                $"{Euros(v)}. Subcuentas: {string.Join("; ", culpables)}.",
-                p.Clave == "12700"
-                    ? "Un banco con saldo acreedor (en descubierto) es una deuda con entidades de crédito: traspásalo a una 5201 al 31/12 si quieres que salga en el pasivo."
-                    : "Revisa esas subcuentas: un saldo al revés suele ir en otra partida o ser un error de apunte. El Registro lo admite, pero conviene explicarlo en la memoria."));
+            c.Add(new(GravedadComprobacion.Error, $"{anio}: «{p.Texto}» sale {(v < 0m ? "en negativo" : "en positivo")}",
+                $"{Euros(v)}. Subcuentas: {string.Join("; ", culpables)}. El programa D2 del Registro no admite esta partida con ese signo.",
+                "Revisa esas subcuentas: suele ser un error de apunte o una corrección de valor mayor que el bien que corrige. Corrige los apuntes y vuelve a generar las cuentas."));
         }
+        if (e.Reclasificadas.Count > 0)
+            c.Add(new(GravedadComprobacion.Aviso, $"{anio}: {e.Reclasificadas.Count} {(e.Reclasificadas.Count == 1 ? "subcuenta con el saldo al revés se presenta" : "subcuentas con el saldo al revés se presentan")} en el otro lado del balance",
+                string.Join("; ", e.Reclasificadas.Take(8).Select(r => $"{r.Cuenta} {r.Nombre} ({Euros(r.Importe)}): de «{ModeloPymes.PorClave[r.Desde].Texto}» a «{ModeloPymes.PorClave[r.Hacia].Texto}»")) +
+                (e.Reclasificadas.Count > 8 ? $" y {e.Reclasificadas.Count - 8} más." : "."),
+                "Es lo que pide el PGC (un cliente con anticipo es un acreedor; un socio que debe dinero, un deudor). Si alguna es un error de apunte, corrígelo; si no, no hay que hacer nada."));
     }
 }

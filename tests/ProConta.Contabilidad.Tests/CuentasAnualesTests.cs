@@ -157,12 +157,61 @@ public sealed class CuentasAnualesTests
     }
 
     [Fact]
-    public void Un_banco_en_descubierto_avisa_y_no_impide()
+    public void Los_saldos_al_reves_de_deudores_y_acreedores_se_presentan_en_el_otro_lado()
     {
-        var c = ServicioCuentasAnuales.Cifras(2025, [A("5720002", 0, 500m), A("1000000", 500m, 0)], Nombres);
-        Assert.Equal(-500m, c["12700"]);
+        // Banco en descubierto (500), cliente con anticipo (300 acreedor), socio con dividendo pagado de más (200 deudor en la 526) y proveedor con saldo deudor (100).
+        var c = ServicioCuentasAnuales.Cifras(2025,
+        [
+            A("5720002", 0, 500m), A("4300002", 0, 300m), A("5260001", 200m, 0), A("4000001", 100m, 0),
+            A("4300001", 1500m, 0), A("1000000", 0, 1000m),
+        ], Nombres);
+        Assert.Equal(0m, c["12700"]);
+        Assert.Equal(500m, c["32320"]);
+        Assert.Equal(300m, c["32590"]);
+        Assert.Equal(1500m, c["12382"]);
+        Assert.Equal(100m, c["12390"]);
+        Assert.Equal(200m, c["12500"]);
+        Assert.Equal(0m, c["32390"]);
+        Assert.Equal(c.TotalActivo, c.TotalPatrimonioNetoYPasivo);
+        Assert.Equal(4, c.Reclasificadas.Count);
         var r = CalculoCuentasAnuales.Componer("S", "B0", c, c with { Ejercicio = 2024 }, cerrado: true);
-        Assert.Contains(r.Comprobaciones, x => x.Gravedad == GravedadComprobacion.Aviso && x.Titulo.Contains("Efectivo") && x.QueHacer!.Contains("5201"));
+        Assert.False(r.TieneErrores, string.Join(" | ", r.Comprobaciones.Where(x => x.Gravedad == GravedadComprobacion.Error).Select(x => x.Titulo)));
+        Assert.Contains(r.Comprobaciones, x => x.Gravedad == GravedadComprobacion.Aviso && x.Titulo.Contains("saldo al revés"));
+        // Las correctoras no se mueven: la amortización acumulada resta en su partida.
+        Assert.Null(CalculoCuentasAnuales.Reclasificacion("11200", "2811000", -10m));
+        Assert.Null(CalculoCuentasAnuales.Reclasificacion("12382", "4900000", -10m));
+    }
+
+    [Fact]
+    public void Una_partida_en_negativo_que_no_se_puede_reclasificar_es_un_error()
+    {
+        var c = ServicioCuentasAnuales.Cifras(2025, [A("2811000", 0, 500m), A("1000000", 500m, 0)], Nombres);
+        Assert.Equal(-500m, c["11200"]);
+        var r = CalculoCuentasAnuales.Componer("S", "B0", c, c with { Ejercicio = 2024 }, cerrado: true);
+        Assert.Contains(r.Comprobaciones, x => x.Gravedad == GravedadComprobacion.Error && x.Titulo.Contains("Inmovilizado material"));
+        Assert.Throws<InvalidOperationException>(() => XbrlCuentasAnuales.Generar(r));
+    }
+
+    [Fact]
+    public void El_XBRL_lleva_cada_partida_de_los_dos_ejercicios_con_su_elemento_de_la_taxonomia()
+    {
+        var r = CalculoCuentasAnuales.Componer("Sociedad de prueba SL", "B00000000", Cifras(true, 2025), Cifras(true, 2024), cerrado: true);
+        var xml = System.Xml.Linq.XDocument.Parse(System.Text.Encoding.UTF8.GetString(XbrlCuentasAnuales.Generar(r)));
+        System.Xml.Linq.XNamespace xbrli = "http://www.xbrl.org/2003/instance";
+        Assert.Equal(4, xml.Root!.Elements(xbrli + "context").Count());
+        var hechos = xml.Root.Elements().Where(e => e.Name.NamespaceName.StartsWith("http://www.icac", StringComparison.Ordinal)).ToList();
+        Assert.Equal(2 * XbrlCuentasAnuales.Elementos.Count, hechos.Count);
+        string Valor(string clave, int anio)
+        {
+            var (pre, el) = XbrlCuentasAnuales.Elementos[clave];
+            return hechos.Single(h => h.Name == XbrlCuentasAnuales.Prefijos[pre] + el && ((string)h.Attribute("contextRef")!).StartsWith($"Y{anio}_", StringComparison.Ordinal)).Value;
+        }
+        Assert.Equal("172500.00", Valor("10000", 2025));
+        Assert.Equal("172500.00", Valor("30000", 2025));
+        Assert.Equal("-6000.00", Valor("40800", 2025));
+        Assert.Equal("21750.00", Valor("49500", 2024));
+        // Cada clave del modelo tiene su elemento, salvo la reserva de capitalización (la taxonomía v1.7.1 no la tiene).
+        Assert.Equal(["21350"], ModeloPymes.PorClave.Keys.Where(k => !XbrlCuentasAnuales.Elementos.ContainsKey(k)));
     }
 
     [Fact]

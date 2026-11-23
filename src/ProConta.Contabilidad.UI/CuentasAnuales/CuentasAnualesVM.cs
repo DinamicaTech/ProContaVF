@@ -15,6 +15,8 @@ public sealed record ContextoCuentasAnuales(ServicioCuentasAnuales Servicio, Con
 {
     /// <summary>Genera el PDF de las cuentas con su memoria (y el IdSociedadEjercicio de su ejercicio, para vincularlo), lo guarda en la carpeta de documentos y lo abre.</summary>
     public Func<CuentasAnualesPymes, IReadOnlyList<ApartadoMemoria>, int, Task>? GenerarPdf { get; init; }
+    /// <summary>Genera los ficheros del depósito para el programa D2 (DEPOSITO.XBRL y MEMORIA.PDF), los guarda y abre su carpeta.</summary>
+    public Func<CuentasAnualesPymes, IReadOnlyList<ApartadoMemoria>, int, Task>? ExportarD2 { get; init; }
     /// <summary>Abre el Mayor de unas subcuentas en un ejercicio.</summary>
     public Action<IReadOnlyList<string>, int>? AbrirMayor { get; init; }
     /// <summary>Abre el Cierre del ejercicio.</summary>
@@ -108,6 +110,7 @@ public sealed class CuentasAnualesVM : ModeloVista, IPestanaTrabajo
         _alCerrar = alCerrar;
         RefrescarCommand = new ComandoDelegado(() => _ = CargarAsync());
         PdfCommand = new ComandoDelegado(() => _ = PdfAsync(), () => !_ocupado && _cuentas is not null && _ctx.GenerarPdf is not null);
+        D2Command = new ComandoDelegado(() => _ = D2Async(), () => !_ocupado && _cuentas is { TieneErrores: false } && _ctx.ExportarD2 is not null);
         MayorCommand = new ComandoDelegado(AbrirMayor, () => _ctx.AbrirMayor is not null && _seleccionada is { EsTotal: false } s && SubcuentasDe(s).Count > 0);
         CierreCommand = new ComandoDelegado(() => _ctx.AbrirCierre?.Invoke(), () => _ctx.AbrirCierre is not null);
         GuardarApartadoCommand = new ComandoDelegado(() => _ = GuardarApartadoAsync(), () => !_ocupado && _apartado is { TieneCambios: true });
@@ -139,6 +142,7 @@ public sealed class CuentasAnualesVM : ModeloVista, IPestanaTrabajo
     // ---------- comandos ----------
     public ICommand RefrescarCommand { get; }
     public ICommand PdfCommand { get; }
+    public ICommand D2Command { get; }
     public ICommand MayorCommand { get; }
     public ICommand CierreCommand { get; }
     public ICommand GuardarApartadoCommand { get; }
@@ -348,13 +352,37 @@ public sealed class CuentasAnualesVM : ModeloVista, IPestanaTrabajo
         PerdidasYGanancias = cuentas.PerdidasYGanancias.Select(f => new FilaPartidaVM(f)).ToList();
         Comprobaciones = cuentas.Comprobaciones.Select(c => new ComprobacionVM(c)).ToList();
         Avisar(nameof(Cuentas), nameof(Activo), nameof(PatrimonioNetoYPasivo), nameof(PerdidasYGanancias), nameof(Comprobaciones), nameof(Incidencias), nameof(HayIncidencias),
-            nameof(ResumenComprobaciones), nameof(ClaseResumen), nameof(Subtitulo), nameof(ColumnaActual), nameof(ColumnaAnterior), nameof(TextoPdf));
+            nameof(ResumenComprobaciones), nameof(ClaseResumen), nameof(Subtitulo), nameof(ColumnaActual), nameof(ColumnaAnterior), nameof(TextoPdf), nameof(TextoD2));
         CommandManager.InvalidateRequerySuggested();
     }
 
     public string TextoPdf => _cuentas?.TieneErrores == true
         ? "Genera el PDF igualmente, como borrador para revisar: con errores, el Registro no admitiría estas cuentas"
         : "Genera en PDF las páginas del modelo oficial (balance BP1 y BP2 y pérdidas y ganancias PP) con las dos columnas y la memoria (guarda antes los textos sin guardar), lo guarda en la carpeta de documentos del ejercicio y lo abre";
+
+    public string TextoD2 => _cuentas?.TieneErrores == true
+        ? "No se puede: las cuentas tienen errores que el Registro no admitiría (se explican arriba). Corrígelos y vuelve a calcularlas"
+        : "Genera los ficheros para importar en el programa D2 del Registro: DEPOSITO.XBRL (balance y pérdidas y ganancias de los dos ejercicios) y MEMORIA.PDF; " +
+          "los guarda en la carpeta de documentos del ejercicio y la abre. La hoja de identificación, la aplicación del resultado y la firma se completan en D2";
+
+    private async Task D2Async()
+    {
+        if (_cuentas is null || _ejercicio is null || _ctx.ExportarD2 is null) return;
+        if (TieneCambios && !await GuardarAsync()) return;
+        Ocupado = true;
+        try
+        {
+            await _ctx.ExportarD2(_cuentas, _memoria.Select(a => a.Apartado).ToList(), _ejercicio.IdSociedadEjercicio);
+        }
+        catch (Exception ex)
+        {
+            _ctx.Avisar($"No he podido generar los ficheros para D2: {ex.Message}");
+        }
+        finally
+        {
+            Ocupado = false;
+        }
+    }
 
     private async Task PdfAsync()
     {

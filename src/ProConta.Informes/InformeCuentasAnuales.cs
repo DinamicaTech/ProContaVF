@@ -23,9 +23,11 @@ public static class InformeCuentasAnuales
     public static string NombreFichero(CuentasAnualesPymes c) => $"Cuentas anuales {c.Ejercicio}.pdf";
 
     /// <param name="memoria">Los apartados de la memoria (contabilidad/procesos/cuentas-anuales); null o vacía, el PDF lleva solo los estados.</param>
+    /// <param name="estados">false: solo la memoria (el MEMORIA.PDF del depósito para D2).</param>
     /// <param name="notas">Número de la nota de la memoria de cada clave (columna «Notas de la memoria»); null, la columna vacía.</param>
     /// <param name="formuladas">Fecha de formulación que se escribe junto a las firmas; null, en blanco.</param>
-    public static string Html(CuentasAnualesPymes c, IReadOnlyList<ApartadoMemoria>? memoria = null, IReadOnlyDictionary<string, string>? notas = null, DateTime? formuladas = null)
+    public static string Html(CuentasAnualesPymes c, IReadOnlyList<ApartadoMemoria>? memoria = null, IReadOnlyDictionary<string, string>? notas = null, DateTime? formuladas = null,
+        bool estados = true)
     {
         static string E(string? t) => (t ?? "").Replace("&", "&amp;").Replace("<", "&lt;").Replace(">", "&gt;").Replace("\"", "&quot;");
         var sb = new StringBuilder();
@@ -43,9 +45,12 @@ public static class InformeCuentasAnuales
           .Append(".mem h2{font-size:10.5pt;margin:12pt 0 4pt}.mem p{margin:0 0 5pt;text-align:justify;line-height:1.35}.mem table{width:auto;min-width:60%;margin:4pt 0 8pt}")
           .Append(".mem td.n{width:auto;min-width:80pt}.mem caption{text-align:left;font-weight:600;padding:2pt 0}.mem tr.t td{font-weight:700}")
           .Append("</style></head><body>");
-        Hoja(sb, c, "BALANCE DE PYMES", "BP1", "ACTIVO", c.Activo, notas, formuladas, E);
-        Hoja(sb, c, "BALANCE DE PYMES", "BP2", "PATRIMONIO NETO Y PASIVO", c.PatrimonioNetoYPasivo, notas, formuladas, E);
-        Hoja(sb, c, "CUENTA DE PÉRDIDAS Y GANANCIAS DE PYMES", "PP", "(DEBE) / HABER", c.PerdidasYGanancias, notas, formuladas, E);
+        if (estados)
+        {
+            Hoja(sb, c, "BALANCE DE PYMES", "BP1", "ACTIVO", c.Activo, notas, formuladas, E);
+            Hoja(sb, c, "BALANCE DE PYMES", "BP2", "PATRIMONIO NETO Y PASIVO", c.PatrimonioNetoYPasivo, notas, formuladas, E);
+            Hoja(sb, c, "CUENTA DE PÉRDIDAS Y GANANCIAS DE PYMES", "PP", "(DEBE) / HABER", c.PerdidasYGanancias, notas, formuladas, E);
+        }
         if (memoria is { Count: > 0 }) Memoria(sb, c, memoria, formuladas, E);
         sb.Append("</body></html>");
         return sb.ToString();

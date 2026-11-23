@@ -546,6 +546,7 @@ public partial class VentanaPrincipal : Window
                 new ProConta.Contabilidad.CuentasAnuales.ServicioCuentasAnuales(bd), contexto.Contexto, contexto.RazonSocial, sesion.NombreOperador, Avisar)
             {
                 GenerarPdf = GenerarCuentasAnualesPdfAsync,
+                ExportarD2 = GenerarDepositoD2Async,
                 AbrirMayor = (cuentasMayor, anio) => _mayor.Abrir(cuentasMayor, [anio]),
                 AbrirCierre = () => _cierreEjercicio.Abrir(),
             },
@@ -1189,6 +1190,62 @@ public partial class VentanaPrincipal : Window
             if (ex is not InvalidOperationException and not System.IO.IOException) detalles.Add($"Detalle técnico: {ex.GetType().Name}");
             ServicioMensajes.Preguntar(this, "No he podido generar el PDF de las cuentas anuales", ex.Message, detalles,
                 new OpcionMensaje("Cerrar", "Vuelve a la pantalla; pulsa otra vez «Generar PDF…» para reintentarlo", Principal: true, Cancelar: true));
+        }
+        finally
+        {
+            Cursor = anterior;
+        }
+    }
+
+    /// <summary>
+    /// Ficheros del depósito de las cuentas anuales para el programa D2 (contabilidad/procesos/cuentas-anuales): DEPOSITO.XBRL y MEMORIA.PDF,
+    /// guardados por el gestor documental en «&lt;año&gt;\Cuentas anuales\D2» vinculados al ejercicio; abre su carpeta.
+    /// </summary>
+    private async Task GenerarDepositoD2Async(ProConta.Contabilidad.CuentasAnuales.CuentasAnualesPymes c,
+        IReadOnlyList<ProConta.Contabilidad.CuentasAnuales.ApartadoMemoria> memoria, int idEjercicio)
+    {
+        var anterior = Cursor;
+        Cursor = Cursors.Wait;
+        try
+        {
+            Avisar($"Generando los ficheros para D2 de las cuentas anuales de {c.Ejercicio}…");
+            var xbrl = ProConta.Contabilidad.CuentasAnuales.XbrlCuentasAnuales.Generar(c);
+            var pdf = await Task.Run(() => ConversorHtmlPdf.Compartido.Convertir(ProConta.Informes.InformeCuentasAnuales.Html(c, memoria, estados: false),
+                ProConta.Informes.InformeCuentasAnuales.Pagina));
+            var anio = c.Ejercicio.ToString(System.Globalization.CultureInfo.InvariantCulture);
+            var carpeta = System.IO.Path.Combine(anio, "Cuentas anuales", "D2");
+            var vinculo = new ProConta.Documentos.Vinculo(ProConta.Documentos.TiposEntidad.Ejercicio, idEjercicio, null, $"Ejercicio {c.Ejercicio}");
+            string? ruta = null;
+            var errores = new List<string>();
+            foreach (var (nombre, titulo, contenido) in new[]
+                     {
+                         (ProConta.Contabilidad.CuentasAnuales.XbrlCuentasAnuales.NombreFichero, $"Cuentas anuales {c.Ejercicio} · DEPOSITO.XBRL para D2", xbrl),
+                         ("MEMORIA.PDF", $"Cuentas anuales {c.Ejercicio} · memoria para D2", pdf),
+                     })
+            {
+                var g = await _servicioDocumentos.GuardarAsync(new ProConta.Documentos.SolicitudDocumento(_ejercicioTrabajo.IdSociedad, "INFORME_CONTABLE", titulo,
+                    carpeta, nombre, DateTime.Today, c.Ejercicio, "INFORME_CONTABLE", [vinculo]), contenido);
+                if (g.EsCorrecto) ruta = g.Valor.RutaCompleta;
+                else
+                {
+                    var temporales = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "ProContaVF", "D2", anio);
+                    System.IO.Directory.CreateDirectory(temporales);
+                    ruta = System.IO.Path.Combine(temporales, nombre);
+                    await System.IO.File.WriteAllBytesAsync(ruta, contenido);
+                    errores.Add($"{nombre}: {g.Error!.Mensaje}");
+                }
+            }
+            if (ruta is not null) System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo("explorer.exe", "/select,\"" + ruta + "\"") { UseShellExecute = true });
+            Avisar(errores.Count > 0
+                ? $"Ficheros para D2 generados, pero no se han guardado en la carpeta de documentos ({string.Join("; ", errores)}); te abro la carpeta donde están."
+                : $"Ficheros para D2 de {c.Ejercicio} guardados: en D2, importa el DEPOSITO.XBRL y adjunta MEMORIA.PDF como memoria. Te abro su carpeta.");
+        }
+        catch (Exception ex)
+        {
+            var detalles = new List<string>();
+            if (ex is not InvalidOperationException and not System.IO.IOException) detalles.Add($"Detalle técnico: {ex.GetType().Name}");
+            ServicioMensajes.Preguntar(this, "No he podido generar los ficheros para D2", ex.Message, detalles,
+                new OpcionMensaje("Cerrar", "Vuelve a la pantalla; pulsa otra vez «Ficheros para D2…» para reintentarlo", Principal: true, Cancelar: true));
         }
         finally
         {

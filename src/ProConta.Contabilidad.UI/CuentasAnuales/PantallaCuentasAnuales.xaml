@@ -52,6 +52,8 @@
         <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
           <Button Content="Cierre del ejercicio" Style="{StaticResource Boton}" Command="{Binding CierreCommand}" Margin="0,0,8,0" VerticalAlignment="Center"
                   ToolTip="Abre Fin de ejercicio › Cierre del ejercicio: las cuentas anuales se formulan con el ejercicio cerrado" />
+          <Button Content="Ficheros para D2…" Style="{StaticResource Boton}" Command="{Binding D2Command}" Margin="0,0,8,0" VerticalAlignment="Center"
+                  ToolTip="{Binding TextoD2}" ToolTipService.ShowOnDisabled="True" />
           <Button Content="Generar PDF…" Style="{StaticResource Boton.Primario}" Command="{Binding PdfCommand}" Margin="0,0,8,0" VerticalAlignment="Center"
                   ToolTip="{Binding TextoPdf}" ToolTipService.ShowOnDisabled="True" />
           <Button Content="Actualizar" Style="{StaticResource Boton}" Command="{Binding RefrescarCommand}" VerticalAlignment="Center"
