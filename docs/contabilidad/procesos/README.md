@@ -1,6 +1,5 @@
 ---
 title: Procesos contables
-status: draft
 depends_on: [contabilidad/asientos, organizacion/sociedades-ejercicios, activos, creative-lab/asistentes-plantillas-asiento]
 threads:
   - 2026-10-28 12:30 · Carga de requisitos | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GRNMH95h9tnQp4dmEPHmw1w
@@ -33,6 +32,7 @@ Marco común de los procesos contables y pantalla «Procesos contables» con el 
 - 2026-11-17 19:20 · Menú: «Reiniciar el cuadre del Mayor» (contabilidad/procesos/reiniciar-cuadre) va en Contabilidad como hija, tras el Reparto de dividendos y antes de «Fin de ejercicio», porque no es un paso del cierre sino un proceso que se usa en cualquier momento del año.
 - 2026-11-17 20:30 · Fin de ejercicio incluye «Aplicación del resultado» (contabilidad/procesos/aplicacion-resultado), tras «Cierre del ejercicio»: aplica en el ejercicio de trabajo el resultado del anterior.
 - 2026-11-23 17:30 · Fin de ejercicio incluye «Legalización de libros» (contabilidad/procesos/legalizacion-libros), tras «Cuentas anuales»: genera los libros Diario y de Inventarios y Cuentas Anuales del ejercicio cerrado para el Registro Mercantil. No graba asientos.
+- 2026-11-23 18:55 · Validado por el propietario (2026-11-23 18:51): el nodo deja de ser borrador. Lo que queda pendiente de cada proceso sigue en su nodo hijo.
 
 ## Requirements
 - 2026-10-28 12:28 · From sources/01_ESPECIFICACION_FUNCIONAL.docx § 16 RF-GES-01..05: procesos, propuestas, IVA, Sociedades, cierre y reapertura
@@ -54,3 +54,4 @@ Marco común de los procesos contables y pantalla «Procesos contables» con el 
 - 2026-11-17 18:00 · Ok
 - 2026-11-17 20:30 · Derived from contabilidad/procesos/aplicacion-resultado: entrada «Aplicación del resultado» en Procesos contables › Fin de ejercicio, tras «Cierre del ejercicio».
 - 2026-11-23 17:30 · Derived from contabilidad/procesos/legalizacion-libros: entrada «Legalización de libros» en Procesos contables › Fin de ejercicio, tras «Cuentas anuales».
+- 2026-11-23 18:51 · Este nodo ya está resuelto, no debería estar en draft.
