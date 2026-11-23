@@ -86,7 +86,7 @@
           <ItemsControl x:Name="Navegacion" Margin="8,10" Focusable="False">
             <ItemsControl.ItemTemplate>
               <DataTemplate>
-                <Button Command="{Binding Comando}" ToolTip="{Binding Ayuda}" Cursor="Hand" ToolTipService.ShowOnDisabled="True" AutomationProperties.Name="{Binding Titulo}">
+                <Button Command="{Binding Comando}" ToolTip="{Binding TextoAyuda}" Visibility="{Binding Visible, Converter={StaticResource Visible}}" Cursor="Hand" ToolTipService.ShowOnDisabled="True" AutomationProperties.Name="{Binding Titulo}">
                   <Button.Template>
                     <ControlTemplate TargetType="Button">
                       <Border x:Name="Fila" CornerRadius="6" Padding="10,7" Margin="0,1" Background="Transparent">
@@ -100,13 +100,14 @@
                       </ControlTemplate.Triggers>
                     </ControlTemplate>
                   </Button.Template>
-                  <StackPanel Orientation="Horizontal" Margin="{Binding Sangria}">
+                  <DockPanel Margin="{Binding Sangria}" LastChildFill="False">
+                    <TextBlock DockPanel.Dock="Right" Text="{Binding Flecha}" Foreground="#C9D1E0" FontSize="13" Margin="6,0,0,0" VerticalAlignment="Center" />
                     <Path Style="{StaticResource Icono.Trazo}" Data="{Binding Icono}" Stroke="#C9D1E0" Width="24" Height="24" Visibility="{Binding Icono, Converter={StaticResource Visible}}">
                       <Path.LayoutTransform><ScaleTransform ScaleX="0.75" ScaleY="0.75" /></Path.LayoutTransform>
                     </Path>
                     <Ellipse Width="5" Height="5" Fill="{StaticResource Pincel.Acento}" Margin="4,0,0,0" VerticalAlignment="Center" Visibility="{Binding ConPunto, Converter={StaticResource Visible}}" />
                     <TextBlock Text="{Binding Titulo}" Foreground="#E6EAF2" Margin="10,0,0,0" VerticalAlignment="Center" FontWeight="{Binding Peso}" />
-                  </StackPanel>
+                  </DockPanel>
                 </Button>
               </DataTemplate>
             </ItemsControl.ItemTemplate>

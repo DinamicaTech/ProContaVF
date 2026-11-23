@@ -47,12 +47,33 @@ using ProConta.UI.Base.Controles;
 
 namespace ProConta.App;
 
-/// <summary>Opción de la navegación lateral (un área o, sangrada, una de sus pantallas).</summary>
-public sealed record OpcionNavegacion(string Titulo, Geometry? Icono, bool Disponible, bool Activa, string Ayuda, ICommand? Comando = null, bool EsHija = false, bool EsNieta = false)
+/// <summary>
+/// Opción de la navegación lateral (un área o, sangrada, una de sus pantallas). Los grupos con más de tres opciones
+/// empiezan plegados y su título los despliega o pliega en lugar de abrir una pantalla (MenuPlegable).
+/// </summary>
+public sealed class OpcionNavegacion(string titulo, Geometry? icono, bool disponible, bool activa, string ayuda, ICommand? comando = null, bool EsHija = false, bool EsNieta = false)
+    : ProConta.UI.Base.Navegacion.OpcionPlegable
 {
+    private ICommand? _plegar;
+
+    public string Titulo { get; } = titulo;
+    public Geometry? Icono { get; } = icono;
+    public bool Disponible { get; } = disponible;
+    public bool Activa { get; } = activa;
+    public override string Ayuda { get; } = ayuda;
+    public bool EsHija { get; } = EsHija;
     /// <summary>Tercer nivel del menú: una opción dentro de un submenú (p. ej. Contabilidad › Fin de ejercicio › Amortización de activos).</summary>
+    public bool EsNieta { get; } = EsNieta;
+    public override int Nivel => EsNieta ? 2 : EsHija ? 1 : 0;
+
+    /// <summary>En un grupo plegable, despliega o pliega; en los demás, abre su pantalla.</summary>
+    public ICommand? Comando => EsPlegable ? _plegar : comando;
+
+    /// <summary>Conecta el título de un grupo plegable con el menú al que pertenece.</summary>
+    public void ConectarPlegado(Action alternar) => _plegar = new ComandoDelegado(alternar);
+
     public Thickness Sangria => EsNieta ? new Thickness(28, 0, 0, 0) : EsHija ? new Thickness(14, 0, 0, 0) : new Thickness(0);
-    public FontWeight Peso => EsHija || EsNieta ? FontWeights.Normal : FontWeights.SemiBold;
+    public FontWeight Peso => EsHija && !EsPlegable || EsNieta ? FontWeights.Normal : FontWeights.SemiBold;
     public bool ConPunto => EsHija || EsNieta;
 }
 
@@ -662,7 +683,7 @@ public partial class VentanaPrincipal : Window
         _rutaBd = ubicacion.RutaBaseDatos;
         _operador = sesion.NombreOperador;
         var abrirClaude = new ComandoDelegado(AbrirClaude);
-        Navegacion.ItemsSource = new[]
+        var opciones = new[]
         {
             new OpcionNavegacion("Inicio", Icono("layout"), true, false, "Página de inicio", irAInicio),
             new OpcionNavegacion("Datos maestros", Icono("user"), true, false, "Terceros (clientes, proveedores, contactos…), activos de la sociedad (inmuebles, vehículos, instalaciones…) y documentos", abrirTerceros),
@@ -683,7 +704,7 @@ public partial class VentanaPrincipal : Window
             new OpcionNavegacion("Correo", Icono("mail"), true, false, "Correo enviado por ProContaVF: estado de cada mensaje, contenido, adjuntos e intentos", abrirCorreo),
             new OpcionNavegacion("Correo enviado", null, true, false, "Registro común del correo enviado (facturas y demás), con reintentos y reenvíos en el menú contextual", abrirCorreo, EsHija: true),
             new OpcionNavegacion("Correo recibido", null, true, false, "Correo que llega a la cuenta del ejercicio: facturas de compra importadas, documentos en espera y remitentes no autorizados", new ComandoDelegado(() => _correo.AbrirRecibido()), EsHija: true),
-            new OpcionNavegacion("Contabilidad", Icono("book"), true, false, "Contabilidad: el Mayor de cualquier cuenta, con varios ejercicios, vistas y filtros", abrirMayor),
+            new OpcionNavegacion("Contabilidad", Icono("book"), true, false, "Contabilidad: Mayor, Diario, liquidación de IVA, modelos tributarios, procesos contables, fin de ejercicio y asientos manuales", abrirMayor),
             new OpcionNavegacion("Mayor", null, true, false,
                 "Mayor de una o varias cuentas (o de un código corto) en los ejercicios que elijas: vistas Normal, Compacto, Solo pendientes y Agrupar 700, filtros, asiento e historial de cada apunte",
                 abrirMayor, EsHija: true),
@@ -706,7 +727,7 @@ public partial class VentanaPrincipal : Window
                 abrirReinicioCuadre, EsHija: true),
             new OpcionNavegacion("Fin de ejercicio", null, true, false,
                 "Procesos contables que se hacen al terminar el año, en este orden: amortización, facturas pendientes de recibir, céntimos residuales, prorrata, liquidación del IVA del 4T, Impuesto sobre Sociedades y cierre; y, en el ejercicio siguiente, la aplicación del resultado, las cuentas anuales y la legalización de los libros. " +
-                "Pulsar aquí abre el Cierre del ejercicio, cuya comprobación previa dice qué falta de cada paso",
+                "El Cierre del ejercicio tiene una comprobación previa que dice qué falta de cada paso",
                 abrirCierreEjercicio, EsHija: true),
             new OpcionNavegacion("Amortización de activos", null, true, false,
                 "Procesos contables › Fin de ejercicio › Amortización de activos: cuota de cada activo según su plan (días reales, tope en lo pendiente, descontando lo ya contabilizado), " +
@@ -801,6 +822,11 @@ public partial class VentanaPrincipal : Window
                 "Sustituye la copia de pruebas por una imagen de producción tal como está ahora (la BD y sus carpetas), con el correo desviado y sin VeriFactu. En producción no cambia nada",
                 new ComandoDelegado(() => _ = ActualizarCopiaPruebasAsync()), EsHija: true),
         }).ToArray();
+        // Grupos con más de tres opciones: plegados al entrar, se despliegan con un clic en su título (2026-11-23).
+        ProConta.UI.Base.Navegacion.MenuPlegable.Organizar(opciones);
+        foreach (var o in opciones.Where(o => o.EsPlegable))
+            o.ConectarPlegado(() => ProConta.UI.Base.Navegacion.MenuPlegable.Alternar(opciones, o));
+        Navegacion.ItemsSource = opciones;
         RefrescarEstado();
     }
 
