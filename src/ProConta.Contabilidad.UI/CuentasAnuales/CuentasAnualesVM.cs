@@ -74,7 +74,7 @@ public sealed class ApartadoMemoriaVM(ApartadoMemoria apartado) : ModeloVista
 /// <summary>Una comprobación en pantalla.</summary>
 public sealed record ComprobacionVM(ComprobacionCuentas C)
 {
-    public string Icono => C.Gravedad switch { GravedadComprobacion.Error => "✖", GravedadComprobacion.Aviso => "▲", _ => "✔" };
+    public string Icono => C.Gravedad switch { GravedadComprobacion.Error => "✖", GravedadComprobacion.Aviso => "•", _ => "✔" };
     public string Gravedad => C.Gravedad.ToString().ToUpperInvariant();
     public string Titulo => C.Titulo;
     public string Detalle => C.QueHacer is { Length: > 0 } q ? $"{C.Detalle} {q}" : C.Detalle;

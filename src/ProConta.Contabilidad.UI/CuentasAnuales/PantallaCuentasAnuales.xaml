@@ -125,7 +125,7 @@
           </TabItem>
           <TabItem Header="Memoria" ToolTip="Los apartados de la memoria del modelo pymes: el texto propuesto se corrige y se guarda por ejercicio; las tablas salen de la contabilidad">
             <DockPanel Margin="0,6,0,0">
-              <ListBox DockPanel.Dock="Left" Width="300" ItemsSource="{Binding Memoria}" SelectedItem="{Binding Apartado}" DisplayMemberPath="Encabezado"
+              <ListBox DockPanel.Dock="Left" Width="370" ItemsSource="{Binding Memoria}" SelectedItem="{Binding Apartado}" DisplayMemberPath="Encabezado"
                        AutomationProperties.Name="Apartados de la memoria"
                        ToolTip="Apartados de la memoria. «(propuesto)»: aún tiene el texto que propone el programa; «*»: tiene cambios sin guardar" />
               <DockPanel Margin="12,0,0,0" DataContext="{Binding Apartado}">
@@ -138,10 +138,12 @@
                           Command="{Binding DataContext.PropuestoCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" ToolTipService.ShowOnDisabled="True"
                           ToolTip="Borra el texto guardado y vuelve al que propone el programa con las cifras de ahora" />
                 </StackPanel>
-                <TextBox DockPanel.Dock="Bottom" Text="{Binding Tablas, Mode=OneWay}" IsReadOnly="True" FontFamily="Consolas" FontSize="11" MaxHeight="230"
+                <TextBox DockPanel.Dock="Bottom" Text="{Binding Tablas, Mode=OneWay}" IsReadOnly="True" FontFamily="Consolas" FontSize="11" Height="250" MinHeight="0" MaxHeight="250"
+                         VerticalContentAlignment="Top" Padding="6"
                          VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto" Margin="0,8,0,0" Visibility="{Binding HayTablas, Converter={StaticResource Visible}}"
                          AutomationProperties.Name="Tablas del apartado" ToolTip="Tablas que calcula el programa desde la contabilidad; salen así en el PDF y no se editan" />
                 <TextBox Text="{Binding Texto, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource Campo}" AcceptsReturn="True" TextWrapping="Wrap"
+                         Height="NaN" MinHeight="120" MaxHeight="10000" VerticalAlignment="Stretch" Padding="6"
                          VerticalScrollBarVisibility="Auto" VerticalContentAlignment="Top" AutomationProperties.Name="Texto del apartado"
                          ToolTip="Texto del apartado. Completa lo que va entre corchetes [ ]; se guarda con «Guardar el apartado»" />
               </DockPanel>
