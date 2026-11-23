@@ -8,8 +8,9 @@ Orden de domiciliación de adeudo directo SEPA Core que firma el cliente, en PDF
 
 ## Decisions
 - 2026-11-23 10:45 · Creado desde terceros/pantallas a petición del propietario.
-- 2026-11-23 10:45 · [Pendiente de validar] Contenido (propietario 2026-11-23 10:28): sin SWIFT; referencia de la orden = código de cliente (IdCliente), a revisar cuando se envíen remesas al banco; identificador del acreedor SEPA (AT-02) calculado del NIF de la sociedad con el sufijo 000: ES + dígitos de control ISO 7064 MOD 97-10 + 000 + NIF; pago periódico marcado; localidad de firma = población fiscal de la sociedad; fecha = día de emisión. Texto propio inspirado en la plantilla del propietario, con la nota de derechos de reembolso del deudor (ocho semanas). La plantilla original no entra en el repositorio porque tiene datos reales.
-- 2026-11-23 10:45 · [Pendiente de validar] Se genera con los datos guardados: con cambios pendientes o en una ficha nueva, el botón ofrece «Guardar y generar». HTML › PDF con el motor de informes (`ConversorHtmlPdf`, A4 con márgenes de 18 mm, marca «PRUEBAS» en la copia de pruebas). No se archiva en el gestor documental: el firmado se puede soltar en la pestaña Documentos del tercero.
+- 2026-11-23 10:45 · Contenido (propietario 2026-11-23 10:28): sin SWIFT; referencia de la orden = código de cliente (IdCliente), a revisar cuando se envíen remesas al banco; identificador del acreedor SEPA (AT-02) calculado del NIF de la sociedad con el sufijo 000: ES + dígitos de control ISO 7064 MOD 97-10 + 000 + NIF; pago periódico marcado; localidad de firma = población fiscal de la sociedad; fecha = día de emisión. Texto propio inspirado en la plantilla del propietario, con la nota de derechos de reembolso del deudor (ocho semanas). La plantilla original no entra en el repositorio porque tiene datos reales.
+- 2026-11-23 10:45 · Se genera con los datos guardados: con cambios pendientes o en una ficha nueva, el botón ofrece «Guardar y generar». HTML › PDF con el motor de informes (`ConversorHtmlPdf`, A4 con márgenes de 18 mm, marca «PRUEBAS» en la copia de pruebas). No se archiva en el gestor documental: el firmado se puede soltar en la pestaña Documentos del tercero.
+- 2026-11-23 11:45 · Validado por el propietario (PR #133).
 
 ## Requirements
 - 2026-11-23 10:23 · También necesito un botón para imprimir un mandato SEPA al lado del IBAN para que lo firme el cliente.
@@ -22,3 +23,4 @@ Orden de domiciliación de adeudo directo SEPA Core que firma el cliente, en PDF
 - 2026-11-23 10:28 · 2. Ok, el código de cliente. Aún no enviamos remesas al banco por lo que lo ajustaremos.
 - 2026-11-23 10:28 · 3. Ok
 - 2026-11-23 10:28 · 4. Ok a periódico. Localidad la de la sociedad.
+- 2026-11-23 11:44 · Ok, está perfecto. Ya puedes fusionar.
