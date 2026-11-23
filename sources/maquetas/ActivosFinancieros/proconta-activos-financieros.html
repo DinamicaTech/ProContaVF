@@ -1,0 +1,594 @@
+<meta name="claude:viewport-fit-sides" content="cover">
+<title>ProConta Activos financieros</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* Maqueta de ProContaVF: Datos maestros › Activos › Financieros. Resumen de cartera arriba (cifras y gráfico de revalorización),
+   tabla por activo con sus lotes debajo; la ficha de cada activo se abre encima con su cotización histórica.
+   Mismos tokens que la maqueta de Activos (sources/maquetas/Activos). Aspecto único y claro, como la aplicación de escritorio. Datos ficticios. */
+:root{
+  --navy:#14213A;--navy2:#22314F;--ink:#16213A;--mut:#646A78;--txt2:#3B4252;
+  --or:#F4A259;--or2:#D9622B;--bg:#F1EEE7;--bg2:#FBFAF7;--card:#FFFFFF;--ln:#ECE8DE;--ln2:#F3F0E9;--ln3:#E1DDD2;
+  --inb:#E4E1D8;--inbg:#FAF9F6;--blue:#1D5C8C;--blueb:#E3ECF6;--green:#1E6B45;--greenb:#E2F0E8;--red:#B42318;--redb:#FDF1EF;
+  --amb:#8A4410;--ambb:#FFEBD6;--selb:#E8F0F9;--gris:#EEF0F3;
+  --s1:#2a78d6;--s2:#eb6834;--s0:#8A8F9C;--grid:#ECE8DE;
+  --f-ui:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;--f-mono:"IBM Plex Mono",ui-monospace,Consolas,monospace;
+  --f-disp:"Bricolage Grotesque","IBM Plex Sans",system-ui,sans-serif;
+  color-scheme:light;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{background:var(--bg);color:var(--ink);font:14px/1.45 var(--f-ui);margin:0}
+button,input,select{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--or2);outline-offset:1px}
+.pad{padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.demo{background:var(--ink);color:#C9CED8;display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding-block:8px;font-size:13px;border-bottom:2px dashed var(--or)}
+.demo b{background:var(--or);color:var(--ink);font:600 11px var(--f-mono);padding:2px 7px;border-radius:3px;letter-spacing:.06em}
+.demo .ver{margin-left:auto;font:500 12px var(--f-mono);color:#E6E9EF}
+.top{background:var(--navy);color:#fff;display:flex;align-items:center;gap:14px;padding-block:10px;flex-wrap:wrap}
+.logo{font:700 17px var(--f-disp)}
+.ctx{border:1px solid #3A4A6A;border-radius:6px;padding:3px 10px;font-size:13px;color:#DCE1EA}
+.top .op{margin-left:auto;font-size:13px;color:#C9CED8}
+main{padding-block:16px;display:flex;flex-direction:column;gap:14px;min-width:0}
+.miga{color:var(--mut);font-size:12.5px}
+.miga button{border:0;background:none;color:var(--blue);cursor:pointer;padding:0;text-decoration:underline}
+.ph{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.ph h1{font:600 22px var(--f-disp);margin:0;text-wrap:balance}
+.sp{margin-left:auto}
+.btn{border:1px solid var(--inb);background:var(--card);border-radius:7px;padding:6px 12px;cursor:pointer;font-weight:500;font-size:13.5px;white-space:nowrap}
+.btn:hover{background:var(--bg2)}
+.btn.pri{background:var(--navy);color:#fff;border-color:var(--navy)}
+.btn[disabled]{opacity:.45;cursor:default}
+.seg{display:inline-flex;background:var(--ln2);border-radius:7px;padding:2px;flex-wrap:wrap}
+.seg button{border:0;background:transparent;padding:4px 10px;border-radius:6px;cursor:pointer;font-size:13px;color:var(--txt2)}
+.seg button[aria-pressed=true]{background:var(--card);box-shadow:0 1px 2px rgba(20,33,58,.12);color:var(--ink);font-weight:500}
+.seg button[disabled]{opacity:.5;cursor:default}
+label.l{display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--txt2)}
+.card{background:var(--card);border:1px solid var(--ln);border-radius:10px;min-width:0}
+.filtros{display:flex;gap:12px;align-items:center;flex-wrap:wrap;padding:10px 14px}
+.hint{color:var(--mut);font-size:12.5px}
+.tw{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:13.5px}
+th{font-weight:600;font-size:12px;color:var(--mut);text-align:left;padding:7px 10px;border-bottom:1px solid var(--ln3);white-space:nowrap;background:var(--bg2)}
+td{padding:7px 10px;border-bottom:1px solid var(--ln2);white-space:nowrap;vertical-align:top}
+td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
+.c{font-family:var(--f-mono);font-size:12px;color:var(--mut)}
+td small{display:block;color:var(--mut);font-size:11.5px}
+tbody tr.fila:hover{background:var(--bg2)}
+tbody tr.sel{background:var(--selb)}
+tbody tr.lote td{background:var(--bg2);font-size:12.5px;color:var(--txt2);border-bottom-color:var(--ln)}
+tbody tr.lote td:first-child{border-left:3px solid var(--ln3)}
+tr.tot td{font-weight:600;border-top:1px solid var(--ln3);background:var(--bg2)}
+.pos{color:var(--green)}.neg{color:var(--red)}
+.pill{display:inline-block;border-radius:20px;padding:1px 8px;font-size:11.5px;font-weight:500;white-space:nowrap}
+.pill.vivo{background:var(--greenb);color:var(--green)}.pill.vl{background:var(--blueb);color:var(--blue)}
+.pill.sin{background:var(--gris);color:var(--mut)}.pill.av{background:var(--ambb);color:var(--amb)}
+.pill.tipo{background:var(--ln2);color:var(--txt2)}
+.desp{border:0;background:none;cursor:pointer;width:20px;color:var(--mut);padding:0;font-size:12px}
+.nom{border:0;background:none;padding:0;cursor:pointer;color:var(--ink);font-weight:500;text-align:left}
+.nom:hover{text-decoration:underline}
+/* cifras */
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr))}
+.kpi{padding:12px 16px;border-right:1px solid var(--ln2);border-bottom:1px solid var(--ln2);min-width:0}
+.kpi .t{font-size:12px;color:var(--mut)}
+.kpi .v{font:600 21px var(--f-disp);font-variant-numeric:tabular-nums}
+.kpi .s{font-size:12px;color:var(--mut)}
+/* gráficos */
+.gcab{display:flex;gap:10px 14px;align-items:center;flex-wrap:wrap;padding:12px 16px 4px}
+.gcab h2{font:600 16px var(--f-disp);margin:0}
+.leyenda{display:flex;gap:14px;font-size:12.5px;color:var(--txt2);align-items:center;flex-wrap:wrap;padding:0 16px}
+.leyenda i{display:inline-block;width:14px;height:3px;border-radius:2px;margin-right:6px;vertical-align:middle}
+.leyenda i.area{height:10px;opacity:.35}
+.leyenda i.punt{background:none!important;border-top:2px dashed var(--s0);height:0}
+.leyenda .mk{display:inline-block;width:0;height:0;border-left:6px solid transparent;border-right:6px solid transparent;border-bottom:9px solid var(--navy);margin-right:6px;vertical-align:middle}
+.leyenda .mk.v{border-bottom:0;border-top:9px solid var(--or2)}
+.graf{position:relative;padding:4px 8px 10px}
+.graf svg{display:block;width:100%;height:auto}
+.graf text{font:11px var(--f-ui);fill:var(--mut)}
+.tip{position:absolute;pointer-events:none;background:var(--ink);color:#fff;border-radius:6px;padding:7px 10px;font-size:12px;line-height:1.55;white-space:nowrap;z-index:5;font-variant-numeric:tabular-nums}
+.tip b{font-weight:600}
+.nota{padding:0 16px 12px;color:var(--mut);font-size:12.5px;max-width:95ch}
+/* ficha */
+.cab{padding:14px 16px;display:flex;gap:10px 18px;flex-wrap:wrap;align-items:flex-start;border-bottom:1px solid var(--ln)}
+.cab h1{font:600 21px var(--f-disp);margin:0 0 4px;text-wrap:balance}
+.cab .meta{display:flex;gap:8px;flex-wrap:wrap;align-items:center;color:var(--mut);font-size:13px}
+.tabs{display:flex;gap:2px;border-bottom:1px solid var(--ln3);padding:0 12px;overflow-x:auto;border-top:1px solid var(--ln)}
+.tab{border:0;background:none;padding:9px 14px;cursor:pointer;font-size:14px;color:var(--txt2);border-bottom:3px solid transparent;white-space:nowrap}
+.tab[aria-selected=true]{color:var(--ink);font-weight:600;border-bottom-color:var(--or2)}
+.panel{padding:14px 16px;display:flex;flex-direction:column;gap:14px;min-width:0}
+.aviso{background:var(--blueb);color:var(--blue);border-radius:8px;padding:9px 12px;font-size:13px}
+.aviso.amb{background:var(--ambb);color:var(--amb)}
+.senales{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:10px}
+.senal{border:1px solid var(--ln);border-radius:8px;padding:10px 12px;display:flex;flex-direction:column;gap:4px;min-width:0}
+.senal .t{font-size:12px;color:var(--mut)}
+.senal .f{font-weight:600}
+.senal p{margin:0;font-size:13px;color:var(--txt2)}
+.esc{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px}
+.esc>div{border-radius:8px;padding:10px 12px;background:var(--bg2);border:1px solid var(--ln);min-width:0}
+.esc .t{font-size:12px;color:var(--mut)}
+.esc .v{font:600 19px var(--f-disp);font-variant-numeric:tabular-nums}
+.esc .s{font-size:12px;color:var(--mut)}
+.menu{position:fixed;background:var(--card);border:1px solid var(--ln3);border-radius:8px;box-shadow:0 8px 24px rgba(20,33,58,.18);padding:4px;z-index:30;min-width:250px}
+.menu button{display:block;width:100%;text-align:left;border:0;background:none;padding:7px 10px;border-radius:5px;cursor:pointer;font-size:13.5px}
+.menu button:hover{background:var(--selb)}
+.menu button[disabled]{color:var(--mut);cursor:default;background:none}
+.menu hr{border:0;border-top:1px solid var(--ln2);margin:4px 0}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(20px + env(safe-area-inset-bottom,0px));background:var(--ink);color:#fff;border-radius:8px;padding:9px 14px;font-size:13.5px;z-index:60;max-width:calc(100% - 32px);box-shadow:0 6px 20px rgba(0,0,0,.25)}
+.preg{padding:14px 16px}
+.preg h2{font:600 16px var(--f-disp);margin:0 0 6px}
+.preg ol{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:8px;max-width:80ch}
+/* escritorio: la vista de cartera ocupa la ventana y solo la tabla tiene scroll */
+@media (min-width:900px) and (min-height:600px){
+  body.fija{height:100vh;display:flex;flex-direction:column;overflow:hidden}
+  body.fija main{flex:1;min-height:0;padding-block:12px;gap:10px}
+  body.fija main>section>*{flex:none}
+  body.fija #cTabla{flex:1 1 auto;min-height:0;display:flex;flex-direction:column}
+  body.fija #cTabla .tw{flex:1;min-height:0;overflow:auto}
+  body.fija #cTabla thead th{position:sticky;top:0;z-index:2}
+  body.fija #cTabla tfoot td{position:sticky;bottom:0;z-index:2}
+  body.fija .kpi{padding:8px 16px}
+  body.fija .kpi .v{font-size:19px}
+}
+.demo button{background:var(--navy2);border:1px solid #3A4A6A;color:#E6E9EF;border-radius:6px;padding:3px 10px;cursor:pointer;font-size:12.5px}
+.velo{position:fixed;inset:0;background:rgba(20,33,58,.45);display:flex;justify-content:flex-end;z-index:40}
+.velo .preg{background:var(--card);width:min(640px,100%);height:100%;overflow:auto;padding:16px max(16px,env(safe-area-inset-right,0px)) 16px 18px;box-shadow:-8px 0 24px rgba(20,33,58,.2)}
+.ico{display:inline-flex;width:17px;height:17px;border-radius:50%;border:1px solid var(--ln3);color:var(--mut);font-size:11px;align-items:center;justify-content:center;cursor:help;font-weight:600}
+.preg em{font-style:normal;background:var(--greenb);color:var(--green);border-radius:4px;padding:0 5px;font-size:12px}
+</style>
+
+<div class="demo pad"><b>MAQUETA</b><span>Datos ficticios. Marca activos con la casilla para ver solo esos en el gráfico; clic en un nombre para abrir su ficha; clic derecho para el menú.</span><button id="bPreg" title="Abre las decisiones pendientes sobre esta maqueta">Preguntas de la maqueta</button><span class="ver">v4 · 23/11/2026</span></div>
+<div class="top pad"><span class="logo">ProContaVF</span><span class="ctx">Inversiones Ejemplo, S.L.</span><span class="ctx">Ejercicio 2026</span><span class="op">Operador: Ronald</span></div>
+
+<main class="pad">
+  <!-- CARTERA -->
+  <section id="vCartera" style="display:contents">
+    <div class="miga">Datos maestros › Activos</div>
+    <div class="ph">
+      <h1>Activos</h1>
+      <div class="seg" title="Los activos materiales (inmuebles, vehículos…) y los financieros se ven en la misma pantalla, cada grupo con su vista">
+        <button aria-pressed="false" title="Inmuebles, vehículos, instalaciones y demás bienes amortizables (maqueta ya validada)" id="bMat">Materiales</button>
+        <button aria-pressed="true" title="ETFs, fondos y participaciones">Financieros</button>
+      </div>
+      <span class="sp"></span>
+      <button class="btn" id="bActualizar" title="Pide al proveedor la última cotización de los ETF y el último valor liquidativo de los fondos. Se hace solo al abrir la pantalla">Actualizar cotizaciones</button>
+      <button class="btn" disabled title="Fase siguiente: registrar una compra o una venta con su asiento (pendiente de diseñar)">Nueva operación…</button>
+    </div>
+
+    <div class="card">
+      <div class="kpis" id="kpis"></div>
+    </div>
+
+    <div class="card">
+      <div class="tabs" role="tablist" id="gTabs" style="border-top:0"></div>
+      <div id="gpRev">
+      <div class="gcab">
+        <span class="ico" title="Cada compra suma al capital invertido el día en que se hizo, y cada venta resta el coste de lo vendido. Así la plusvalía de cada día compara solo lo que había en cartera ese día con lo que costó. La parte sombreada es la plusvalía latente.">i</span><span class="hint" id="gAlcance"></span>
+        <span class="sp"></span>
+        <div class="seg" id="gModo" title="Euros: cuánto vale la cartera frente a lo que costó. Porcentaje: la plusvalía sobre lo invertido en cada momento"></div>
+        <div class="seg" id="gPer" title="Periodo que se ve en el gráfico"></div>
+      </div>
+      <div class="leyenda" id="gLey"></div>
+      <div class="graf" id="gCartera"></div>
+      </div>
+      <div id="gpComp" hidden>
+      <div class="gcab">
+        <span class="ico" title="Compara cómo se ha movido el mercado de cada activo, tanto si había participaciones como si no. Como los precios son muy distintos, cada línea muestra cuánto ha subido o bajado en porcentaje desde el primer día del periodo. Pasa el ratón por la leyenda para resaltar un activo. Se ven los activos marcados en la tabla.">i</span><span class="hint">Variación acumulada de la cotización desde el primer día del periodo</span>
+        <span class="sp"></span>
+        <div class="seg" id="cPer" title="Periodo que se compara. Todos los activos empiezan en 0 % el primer día"></div>
+      </div>
+      <div class="leyenda" id="cLey"></div>
+      <div class="graf" id="gComp"></div>
+      </div>
+    </div>
+
+    <div class="card" id="cTabla">
+      <div class="filtros">
+        <h2 style="font:600 16px var(--f-disp);margin:0">Rentabilidad por activo</h2>
+        <div class="seg" id="fTipo" title="Filtra por clase de activo financiero"></div>
+        <label class="l" title="Muestra también los activos que ya se vendieron del todo, con su resultado"><input type="checkbox" id="fVendidos"> Ver vendidos</label>
+        <span class="sp hint">Varios lotes del mismo activo se suman en una fila · ▸ muestra sus lotes</span>
+      </div>
+      <div class="tw"><table id="tAct">
+        <thead><tr>
+          <th style="width:30px"><input type="checkbox" id="selTodos" title="Marcar o desmarcar todos. Los marcados son los que se ven en el gráfico de arriba"></th><th style="width:22px"></th>
+          <th>Activo</th><th>Tipo</th><th class="n" title="Número de compras que siguen vivas, total o parcialmente">Lotes</th>
+          <th class="n">Participaciones</th><th class="n" title="Coste medio por participación de lo que queda en cartera, comisiones incluidas">Precio medio</th>
+          <th class="n" title="Lo que costó lo que queda en cartera">Coste</th><th class="n">Cotización</th><th class="n">Valor</th>
+          <th class="n" title="Valor menos coste de lo que queda en cartera">Plusvalía</th><th class="n" title="Plusvalía sobre el coste">%</th>
+          <th class="n" title="Rentabilidad media por año, teniendo en cuenta cuándo entró y salió cada euro (TIR)">Anual</th><th class="n" title="Parte del valor de la cartera">Peso</th>
+        </tr></thead>
+        <tbody></tbody><tfoot></tfoot>
+      </table></div>
+    </div>
+
+  </section>
+
+  <!-- FICHA -->
+  <section id="vFicha" hidden style="display:contents">
+    <div class="miga"><button id="volver" title="Vuelve a la cartera">Datos maestros › Activos › Financieros</button> › <span id="migaN"></span></div>
+    <div class="card">
+      <div class="cab">
+        <div style="min-width:0;flex:1 1 320px"><h1 id="fNombre"></h1><div class="meta" id="fMeta"></div></div>
+        <button class="btn" id="bMayor" title="Abre el Mayor de la subcuenta del activo">Ver el Mayor</button>
+      </div>
+      <div class="kpis" id="fKpis"></div>
+      <div class="tabs" role="tablist" id="fTabs"></div>
+      <div class="panel" id="fPanel"></div>
+    </div>
+  </section>
+</main>
+<div id="capa"></div>
+<div class="velo" id="vPreg" hidden>
+    <div class="preg" role="dialog" aria-label="Preguntas de la maqueta">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px"><h2 style="margin:0">Para decidir sobre esta maqueta</h2><span class="sp"></span><button class="btn" id="bCerrarPreg" title="Cierra el panel">Cerrar</button></div>
+      <ol>
+        <li><b>Proveedor de cotizaciones</b> (pregunta abierta del nodo). Ninguno de estos ETF cotiza en EE. UU., así que Alpaca no los cubre. Propongo un proveedor con bolsas europeas y fondos por ISIN (EOD Historical Data, Twelve Data o Financial Modeling Prep, plan básico de pago), configurado en Integraciones. La cotización de los ETF llega con unos 15 minutos de retraso; la de los fondos es el valor liquidativo del día anterior y siempre se enseña con su fecha. <em>recomendado</em></li>
+        <li><b>Proyección</b> (pregunta abierta del nodo). En la ficha de cada activo, pestaña «Proyección», está dibujada la opción recomendada: señales del análisis técnico traducidas a frases y un rango prudente, medio y optimista con la rentabilidad histórica, siempre rotulado como estimación. <em>recomendado</em></li>
+        <li><b>Revalorización sumada.</b> El gráfico compara el valor de mercado con el coste de lo que había en cartera cada día. La alternativa sería indexar todo a base 100 (rentabilidad «por tiempo»), que es más exacta para comparar con un índice pero menos intuitiva. Propongo la primera. <em>recomendado</em></li>
+        <li><b>Lotes.</b> Las ventas consumen primero los lotes más antiguos (FIFO), que es el criterio fiscal. El precio medio y la plusvalía de la fila suman los lotes vivos. <em>recomendado</em></li>
+        <li><b>Participaciones sin cotización</b> (sociedades no cotizadas): se valoran a coste y no entran en el gráfico de revalorización. <em>recomendado</em></li>
+        <li><b>Resultado realizado.</b> Las ventas llevan su resultado a 766/666. La cifra de arriba suma el del ejercicio y el de todos los años; propongo que el gráfico no lo incluya y se vea solo en las cifras y en la ficha.</li>
+      </ol>
+    </div>
+</div>
+
+<script>
+(function(){
+const $=(s,r=document)=>r.querySelector(s), $$=(s,r=document)=>[...r.querySelectorAll(s)];
+const num=(v,d=2)=>v==null||isNaN(v)?'':v.toLocaleString('es-ES',{minimumFractionDigits:d,maximumFractionDigits:d,useGrouping:'always'});
+const eur=(v,d=2)=>num(v,d)+' €';
+const sig=(v,d=2)=>(v>0?'+':'')+num(v,d);
+const pct=(v,d=1)=>v==null||!isFinite(v)?'—':sig(v*100,d)+' %';
+const cls=v=>v>0.0001?'pos':v<-0.0001?'neg':'';
+const fecha=s=>s?s.slice(8,10)+'/'+s.slice(5,7)+'/'+s.slice(0,4):'';
+const MES=['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+const HOY='2026-11-23', HORA='17:35', VL_FECHA='2026-11-20';
+const DAY=864e5, T=s=>Date.parse(s+'T00:00:00Z'), S=t=>new Date(t).toISOString().slice(0,10);
+
+/* ---------- instrumentos (públicos) y cotizaciones sintéticas ---------- */
+const INS=[
+ {id:'VWCE',n:'Vanguard FTSE All-World UCITS ETF (Acc)',isin:'IE00BK5BQT80',tk:'VWCE · Xetra',tipo:'ETF',cta:'2500001',vol:.15,
+  a:[['2020-01-02',82],['2020-03-23',60],['2021-12-31',104],['2022-10-12',88],['2023-12-29',107],['2024-12-31',133],['2025-04-08',115],['2026-11-23',148.36]]},
+ {id:'EUNL',n:'iShares Core MSCI World UCITS ETF (Acc)',isin:'IE00B4L5Y983',tk:'EUNL · Xetra',tipo:'ETF',cta:'2500002',vol:.15,
+  a:[['2020-01-02',58],['2020-03-23',42],['2021-12-31',80],['2022-10-12',67],['2023-12-29',83],['2024-12-31',105],['2025-04-08',90],['2026-11-23',116.12]]},
+ {id:'SXR8',n:'iShares Core S&P 500 UCITS ETF (Acc)',isin:'IE00B5BMR087',tk:'SXR8 · Xetra',tipo:'ETF',cta:'2500003',vol:.17,
+  a:[['2020-01-02',290],['2020-03-23',210],['2021-12-31',420],['2022-10-12',360],['2023-12-29',440],['2024-12-31',590],['2025-04-07',480],['2026-11-23',641.80]]},
+ {id:'XMME',n:'Xtrackers MSCI Emerging Markets UCITS ETF 1C',isin:'IE00BTJRMP35',tk:'XMME · Xetra',tipo:'ETF',cta:'2500004',vol:.18,
+  a:[['2020-01-02',50],['2020-03-23',37],['2021-02-17',58],['2022-10-12',41],['2023-12-29',45],['2024-12-31',50],['2025-04-08',44],['2026-11-23',54.07]]},
+ {id:'VGSI',n:'Vanguard Global Stock Index Fund EUR Acc',isin:'IE00B03HCZ61',tk:'Fondo · gestora Vanguard',tipo:'Fondo',cta:'2500005',vol:.14,
+  a:[['2020-01-02',32],['2020-03-23',24],['2021-12-31',42],['2022-10-12',36],['2023-12-29',43],['2024-12-31',53],['2025-04-08',46],['2026-11-20',58.214]]},
+ {id:'VEGB',n:'Vanguard Euro Government Bond Index Fund EUR Acc',isin:'IE0007472990',tk:'Fondo · gestora Vanguard',tipo:'Fondo',cta:'2500006',vol:.05,
+  a:[['2020-01-02',230],['2021-12-31',228],['2022-10-21',190],['2023-12-29',205],['2024-12-31',208],['2026-11-20',211.47]]},
+ {id:'PEJT',n:'Participaciones Ejemplo Tech, S.L.',isin:'',tk:'Sociedad no cotizada · 3 % del capital',tipo:'Participación',cta:'2500010',sinCot:true}
+];
+// generador determinista (mulberry32)
+function rng(seed){return function(){seed|=0;seed=seed+0x6D2B79F5|0;let t=Math.imul(seed^seed>>>15,1|seed);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+function gauss(r){let u=0,v=0;while(!u)u=r();while(!v)v=r();return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v)}
+function serie(ins,k){ // días hábiles; puentes brownianos entre anclas (en logaritmos)
+  const r=rng(1234+k*977), out=[];
+  for(let i=0;i<ins.a.length-1;i++){
+    const [d0,p0]=ins.a[i],[d1,p1]=ins.a[i+1], days=[];
+    for(let t=T(d0);t<T(d1)+(i===ins.a.length-2?1:0);t+=DAY){const w=new Date(t).getUTCDay();if(w&&w<6)days.push(t)}
+    const n=days.length, sd=ins.vol/Math.sqrt(252); let w=0; const W=[0];
+    for(let j=1;j<n;j++){w+=gauss(r)*sd;W.push(w)}
+    days.forEach((t,j)=>{const f=n>1?j/(n-1):0;const lg=Math.log(p0)*(1-f)+Math.log(p1)*f+(W[j]-f*W[n-1]);out.push([t,Math.exp(lg)])});
+  }
+  return out;
+}
+INS.forEach((x,k)=>{if(!x.sinCot){x.s=serie(x,k);x.ult=x.s[x.s.length-1];x.fUlt=S(x.ult[0])}});
+function precio(ins,t){ // último precio conocido en t
+  const s=ins.s; if(!s||t<s[0][0])return null; let lo=0,hi=s.length-1;
+  while(lo<hi){const m=(lo+hi+1)>>1; if(s[m][0]<=t)lo=m; else hi=m-1} return s[lo][1];
+}
+
+/* ---------- operaciones (inventadas) ---------- */
+const OPS=[
+ ['VWCE','C','2021-03-10',150],['VWCE','C','2022-10-14',120],['VWCE','C','2024-08-06',80],
+ ['EUNL','C','2020-06-15',200],['EUNL','C','2023-03-20',100],['EUNL','V','2025-02-18',120],
+ ['SXR8','C','2022-06-16',20],['SXR8','C','2025-04-08',15],
+ ['XMME','C','2021-02-17',300],['XMME','C','2024-01-17',150],
+ ['VGSI','C','2023-11-02',400],['VGSI','C','2026-03-12',200],
+ ['VEGB','C','2022-09-28',60],['VEGB','V','2026-06-15',60],
+ ['PEJT','C','2024-05-02',1,12000]
+].map(([id,tp,f,u,imp],i)=>{const ins=INS.find(x=>x.id===id);const p=imp?imp:precio(ins,T(f));const bruto=u*p;const com=imp?0:Math.max(5,Math.round(bruto*.001*100)/100);
+  return {i,id,tp,f,t:T(f),u,p,bruto,com,imp:tp==='C'?bruto+com:bruto-com,asi:'A-'+f.slice(0,4)+'/'+String(140+i*37).padStart(4,'0')}});
+
+// lotes FIFO por activo
+INS.forEach(x=>{
+  x.ops=OPS.filter(o=>o.id===x.id); x.lotes=[]; x.real=[];
+  x.ops.forEach(o=>{
+    if(o.tp==='C') x.lotes.push({f:o.f,t:o.t,u0:o.u,u:o.u,pu:o.imp/o.u,cons:[]});
+    else{ let q=o.u, coste=0; for(const l of x.lotes){ if(!q)break; const c=Math.min(q,l.u); if(!c)continue; l.u-=c; q-=c; coste+=c*l.pu; l.cons.push({t:o.t,u:c}); }
+      o.coste=coste; o.res=o.imp-coste; x.real.push(o); }
+  });
+});
+const unidadesLote=(l,t)=>t<l.t?0:l.u0-l.cons.filter(c=>c.t<=t).reduce((a,c)=>a+c.u,0);
+function valorEn(x,t){ // {inv, val}
+  let inv=0,val=0; const p=x.sinCot?null:precio(x,t);
+  for(const l of x.lotes){const u=unidadesLote(l,t); if(!u)continue; inv+=u*l.pu; val+=u*(x.sinCot?l.pu:(p??l.pu));}
+  return {inv,val};
+}
+function xirr(fl){ // [[t, importe]] ; Newton con respaldo de bisección
+  const t0=fl[0][0], f=r=>fl.reduce((a,[t,v])=>a+v/Math.pow(1+r,(t-t0)/(365*DAY)),0);
+  let lo=-.95,hi=5; if(f(lo)*f(hi)>0)return null;
+  for(let k=0;k<200;k++){const m=(lo+hi)/2; if(f(lo)*f(m)<=0)hi=m; else lo=m} return (lo+hi)/2;
+}
+const TH=T(HOY);
+INS.forEach(x=>{
+  const v=valorEn(x,TH); x.coste=v.inv; x.valor=v.val; x.uds=x.lotes.reduce((a,l)=>a+l.u,0);
+  x.pm=x.uds?x.coste/x.uds:0; x.plus=x.valor-x.coste; x.pct=x.coste?x.plus/x.coste:null;
+  x.nLotes=x.lotes.filter(l=>l.u>0).length; x.vivo=x.uds>0;
+  x.realTot=x.real.reduce((a,o)=>a+o.res,0); x.real26=x.real.filter(o=>o.f>='2026-01-01').reduce((a,o)=>a+o.res,0);
+  const fl=x.ops.map(o=>[o.t,o.tp==='C'?-o.imp:o.imp]); if(x.valor)fl.push([TH,x.valor]); x.tir=x.sinCot?null:xirr(fl);
+  x.lotes.forEach(l=>{if(!l.u)return; const p=x.sinCot?l.pu:x.ult[1]; l.val=l.u*p; l.coste=l.u*l.pu; l.plus=l.val-l.coste; l.pct=l.plus/l.coste;
+    l.tir=x.sinCot?null:xirr([[l.t,-l.coste],[TH,l.val]]); l.dias=Math.round((TH-l.t)/DAY)});
+});
+
+/* ---------- estado ---------- */
+const COL=['#2a78d6','#eb6834','#1baf7a','#eda100','#e87ba4','#008300'];
+INS.forEach((x,i)=>{x.col=COL[i]||'#8A8F9C'});
+const CORTO={VWCE:'VWCE',EUNL:'EUNL',SXR8:'SXR8',XMME:'XMME',VGSI:'Vanguard Global Stock (fondo)',VEGB:'Vanguard Euro Gov. Bond (fondo)'};
+const st={gtab:'Revalorización de la cartera',cper:'3M',vista:'cartera',sel:new Set(INS.filter(x=>!x.sinCot).map(x=>x.id)),abiertos:new Set(),tipo:'Todos',vendidos:false,modo:'eur',per:'Máx.',
+  ficha:null,tab:'Cotización',fper:'3A'};
+const visibles=()=>INS.filter(x=>(st.vendidos||x.vivo)&&(st.tipo==='Todos'||x.tipo===st.tipo||(st.tipo==='Fondos'&&x.tipo==='Fondo')||(st.tipo==='ETF'&&x.tipo==='ETF')||(st.tipo==='Participaciones'&&x.tipo==='Participación')));
+
+function cotTxt(x){
+  if(x.sinCot) return `<span class="pill sin" title="No cotiza: se valora a su coste">sin cotización</span>`;
+  if(x.tipo==='Fondo') return `${num(x.ult[1],3)} €<small><span class="pill vl" title="Los fondos publican un valor liquidativo al día; llega con un día de retraso">VL ${fecha(x.fUlt).slice(0,5)}</span></small>`;
+  return `${num(x.ult[1],2)} €<small><span class="pill vivo" title="Cotización en bolsa (Xetra), con unos 15 minutos de retraso">${HORA} · bolsa</span></small>`;
+}
+
+/* ---------- cifras de la cartera ---------- */
+function pintaKpis(){
+  const viv=INS.filter(x=>x.vivo), coste=viv.reduce((a,x)=>a+x.coste,0), val=viv.reduce((a,x)=>a+x.valor,0);
+  const r26=INS.reduce((a,x)=>a+x.real26,0), rT=INS.reduce((a,x)=>a+x.realTot,0);
+  const fl=OPS.map(o=>[o.t,o.tp==='C'?-o.imp:o.imp]).sort((a,b)=>a[0]-b[0]); fl.push([TH,val]); const tir=xirr(fl);
+  const ini=T('2026-01-01')-DAY; const v0=INS.reduce((a,x)=>{const q=valorEn(x,ini);return {i:a.i+q.inv,v:a.v+q.val}},{i:0,v:0});
+  $('#kpis').innerHTML=[
+    ['Coste de la cartera',eur(coste),`${viv.length} activos · ${INS.reduce((a,x)=>a+x.nLotes,0)} lotes vivos`,'Lo que costó lo que hay hoy en cartera, comisiones incluidas'],
+    ['Valor de mercado',eur(val),`ETF a ${fecha(HOY)} ${HORA} · fondos VL ${fecha(VL_FECHA)}`,'Participaciones por su última cotización. Las no cotizadas, a coste'],
+    ['Plusvalía latente',`<span class="${cls(val-coste)}">${sig(val-coste)} €</span>`,`<span class="${cls(val-coste)}">${pct((val-coste)/coste)}</span> sobre el coste`,'Lo que se ganaría si se vendiera todo hoy, antes de impuestos y comisiones de venta'],
+    ['Resultado de ventas',`<span class="${cls(r26)}">${sig(r26)} €</span>`,`en 2026 · desde el inicio <span class="${cls(rT)}">${sig(rT)} €</span>`,'Beneficio o pérdida ya contabilizado en 766 / 666 al vender'],
+    ['Rentabilidad anual',`<span class="${cls(tir)}">${pct(tir)}</span>`,'media desde la primera compra (TIR)','Lo que ha rendido cada año, de media, el dinero invertido, teniendo en cuenta cuándo entró y salió cada euro']
+  ].map(([t,v,s,ti])=>`<div class="kpi" title="${ti}"><div class="t">${t}</div><div class="v">${v}</div><div class="s">${s}</div></div>`).join('');
+}
+
+/* ---------- gráfico genérico de líneas ---------- */
+const altoG=()=>innerWidth>=900&&innerHeight>=600?Math.max(140,Math.min(320,Math.round(innerHeight*.32-90))):240;
+function grafico(cont,{series,area,marcas=[],yfmt,tipF,alto=altoG(),cero=false}){
+  const W=Math.max(320,Math.round((cont.clientWidth||cont.closest('.card').clientWidth)-16)),H=alto,ml=64,mr=16,mt=12,mb=30, todas=series.flatMap(s=>s.pts);
+  if(!todas.length){cont.innerHTML='<p class="hint" style="padding:20px">Marca algún activo en la tabla para verlo aquí.</p>';return}
+  const x0=Math.min(...todas.map(p=>p[0])),x1=Math.max(...todas.map(p=>p[0]));
+  let y0=Math.min(...todas.map(p=>p[1])),y1=Math.max(...todas.map(p=>p[1])); if(cero){y0=Math.min(0,y0);y1=Math.max(0,y1)}
+  const pad=(y1-y0)*.08||1; y0-=pad; y1+=pad; if(!cero&&y0<0&&Math.min(...todas.map(p=>p[1]))>=0)y0=0;
+  const X=t=>ml+(t-x0)/(x1-x0||1)*(W-ml-mr), Y=v=>mt+(1-(v-y0)/(y1-y0))*(H-mt-mb);
+  const paso=(()=>{const r=(y1-y0)/6,m=Math.pow(10,Math.floor(Math.log10(r)));return [1,2,2.5,5,10].map(k=>k*m).find(k=>k>=r)})();
+  let g=''; for(let v=Math.ceil(y0/paso)*paso;v<=y1;v+=paso){g+=`<line x1="${ml}" x2="${W-mr}" y1="${Y(v)}" y2="${Y(v)}" stroke="${Math.abs(v)<1e-9&&cero?'#B9B4A8':'var(--grid)'}" stroke-width="1"/><text x="${ml-8}" y="${Y(v)+4}" text-anchor="end">${yfmt(Math.abs(v)<paso*1e-6?0:v,true)}</text>`}
+  const anos=(x1-x0)/(365*DAY), d0=new Date(x0);
+  for(let d=new Date(Date.UTC(d0.getUTCFullYear(),d0.getUTCMonth()+1,1));d.getTime()<=x1;d.setUTCMonth(d.getUTCMonth()+1)){
+    const m=d.getUTCMonth(); const ok=anos>2.5?m===0:anos>1.2?m%3===0:true; if(!ok)continue;
+    const lab=m===0?String(d.getUTCFullYear()):MES[m]+(anos<=1.2?'':' '+String(d.getUTCFullYear()).slice(2));
+    g+=`<line x1="${X(d.getTime())}" x2="${X(d.getTime())}" y1="${H-mb}" y2="${H-mb+4}" stroke="#B9B4A8"/><text x="${X(d.getTime())}" y="${H-mb+17}" text-anchor="middle">${lab}</text>`}
+  g+=`<line x1="${ml}" x2="${W-mr}" y1="${H-mb}" y2="${H-mb}" stroke="#B9B4A8"/>`;
+  if(area){const [a,b]=area; const top=a.pts.map(p=>`${X(p[0])},${Y(p[1])}`), bot=b.pts.slice().reverse().map(p=>`${X(p[0])},${Y(p[1])}`);
+    g+=`<polygon points="${top.concat(bot).join(' ')}" fill="${a.color}" opacity=".12"/>`}
+  for(const s of series){ const tramos=s.tramos||[{pts:s.pts,dash:s.dash,w:s.w||2,op:1}];
+    for(const tr of tramos){ if(tr.pts.length<2)continue; const d=tr.pts.map((p,i)=>(i?'L':'M')+X(p[0]).toFixed(1)+','+Y(p[1]).toFixed(1)).join('');
+      g+=`<path d="${d}" fill="none" stroke="${s.color}" stroke-width="${tr.w}" ${tr.dash?`stroke-dasharray="${tr.dash}"`:''} opacity="${tr.op??1}" stroke-linejoin="round" stroke-linecap="round"/>`}
+    const u=s.pts[s.pts.length-1]; if(s.fin) g+=`<circle cx="${X(u[0])}" cy="${Y(u[1])}" r="4" fill="${s.color}" stroke="#fff" stroke-width="2"/>`;
+  }
+  for(const m of marcas){const cx=X(m.t), cy=m.v!=null?Y(m.v):H-mb-2;
+    g+=m.k==='V'?`<path d="M${cx-6},${cy-12}L${cx+6},${cy-12}L${cx},${cy-3}Z" fill="var(--or2)" stroke="#fff" stroke-width="1.5"/>`
+               :`<path d="M${cx-6},${cy+12}L${cx+6},${cy+12}L${cx},${cy+3}Z" fill="var(--navy)" stroke="#fff" stroke-width="1.5"/>`}
+  g+=`<line id="cx" x1="0" x2="0" y1="${mt}" y2="${H-mb}" stroke="#8A8F9C" stroke-dasharray="3 3" visibility="hidden"/><g id="cpts"></g>`;
+  g+=`<rect x="${ml}" y="${mt}" width="${W-ml-mr}" height="${H-mt-mb}" fill="transparent" id="hit"/>`;
+  cont.innerHTML=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Gráfico">${g}</svg><div class="tip" hidden></div>`;
+  const svg=$('svg',cont),tip=$('.tip',cont),cx=$('#cx',cont),cp=$('#cpts',cont),base=series[0].pts;
+  const mover=ev=>{const r=svg.getBoundingClientRect(),sx=(ev.clientX-r.left)/r.width*W; const t=x0+(sx-ml)/(W-ml-mr)*(x1-x0);
+    let lo=0,hi=base.length-1; while(lo<hi){const m=(lo+hi)>>1; if(base[m][0]<t)lo=m+1; else hi=m} if(lo>0&&t-base[lo-1][0]<base[lo][0]-t)lo--;
+    const tt=base[lo][0], px=X(tt); cx.setAttribute('x1',px);cx.setAttribute('x2',px);cx.setAttribute('visibility','visible');
+    cp.innerHTML=series.filter(s=>!s.sinPunto).map(s=>{const p=s.pts.find(q=>q[0]===tt);return p?`<circle cx="${px}" cy="${Y(p[1])}" r="4" fill="${s.color}" stroke="#fff" stroke-width="2"/>`:''}).join('');
+    const mk=marcas.filter(m=>Math.abs(X(m.t)-px)<6);
+    tip.innerHTML=tipF(tt,mk); tip.hidden=false;
+    const cw=cont.clientWidth, left=px/W*r.width+8+ (r.left-cont.getBoundingClientRect().left);
+    tip.style.left=Math.min(left,cw-tip.offsetWidth-8)+'px'; tip.style.top='14px'; if(left>cw-tip.offsetWidth-8)tip.style.left=Math.max(8,left-tip.offsetWidth-24)+'px';};
+  svg.addEventListener('pointermove',mover); svg.addEventListener('pointerleave',()=>{tip.hidden=true;cx.setAttribute('visibility','hidden');cp.innerHTML=''});
+}
+const fechaLarga=t=>{const d=new Date(t);return d.getUTCDate()+' '+MES[d.getUTCMonth()]+' '+d.getUTCFullYear()};
+const kfmt=(v,eje)=>eje?(Math.abs(v)>=1000?num(v/1000,0)+' mil':num(v,0)):eur(v);
+
+/* ---------- gráfico de la cartera ---------- */
+function desdePer(per,primera){const h=TH;return per==='1A'?h-365*DAY:per==='3A'?h-3*365*DAY:per==='5A'?h-5*365*DAY:primera}
+function pintaCartera(){
+  const act=INS.filter(x=>st.sel.has(x.id)&&!x.sinCot);
+  $('#gAlcance').textContent=act.length===INS.filter(x=>!x.sinCot).length?'Todos los activos cotizados, también los ya vendidos mientras se tuvieron':`${act.length} activo${act.length===1?'':'s'} marcado${act.length===1?'':'s'}`;
+  $('#gModo').innerHTML=[['eur','Euros'],['pct','% sobre lo invertido']].map(([k,t])=>`<button data-k="${k}" aria-pressed="${st.modo===k}">${t}</button>`).join('');
+  $('#gPer').innerHTML=['1A','3A','5A','Máx.'].map(k=>`<button data-k="${k}" aria-pressed="${st.per===k}" title="${k==='Máx.'?'Desde la primera compra':'Último'+(k==='1A'?' año':'s '+k[0]+' años')}">${k}</button>`).join('');
+  if(!act.length){grafico($('#gCartera'),{series:[{pts:[]}]});$('#gLey').innerHTML='';return}
+  const primera=Math.min(...act.flatMap(x=>x.ops.map(o=>o.t))), desde=Math.max(desdePer(st.per,primera),primera);
+  const dias=INS[0].s.filter(p=>p[0]>=desde).map(p=>p[0]).filter((t,i,a)=>i%3===0||i===a.length-1);
+  const inv=[],val=[],plus=[];
+  for(const t of dias){let i=0,v=0; for(const x of act){const q=valorEn(x,t);i+=q.inv;v+=q.val} inv.push([t,i]);val.push([t,v]);plus.push([t,i?(v-i)/i*100:0])}
+  const marcas=OPS.filter(o=>st.sel.has(o.id)&&o.t>=desde&&!INS.find(x=>x.id===o.id).sinCot).map(o=>({t:o.t,k:o.tp,o}));
+  const tipMk=mk=>mk.map(m=>`<br>${m.k==='C'?'▲ Compra':'▼ Venta'} ${m.o.id}: ${num(m.o.u,0)} part. · ${eur(m.o.imp)}`).join('');
+  if(st.modo==='eur'){
+    $('#gLey').innerHTML=`<span><i style="background:var(--s1)"></i>Valor de mercado</span><span><i style="background:var(--s0)"></i>Capital invertido (coste de lo que había)</span><span><i class="area" style="background:var(--s1)"></i>Plusvalía latente</span><span><span class="mk"></span>Compra</span><span><span class="mk v"></span>Venta</span>`;
+    grafico($('#gCartera'),{series:[{pts:val,color:'var(--s1)',fin:1},{pts:inv,color:'var(--s0)',w:2}],area:[{pts:val,color:'var(--s1)'},{pts:inv}],marcas,yfmt:kfmt,
+      tipF:(t,mk)=>{const a=inv.find(p=>p[0]===t)[1],b=val.find(p=>p[0]===t)[1];return `<b>${fechaLarga(t)}</b><br>Valor ${eur(b)}<br>Invertido ${eur(a)}<br>Plusvalía ${sig(b-a)} € (${pct((b-a)/a)})${tipMk(mk)}`}});
+  }else{
+    $('#gLey').innerHTML=`<span><i style="background:var(--s1)"></i>Plusvalía sobre lo invertido ese día</span><span><span class="mk"></span>Compra</span><span><span class="mk v"></span>Venta</span>`;
+    grafico($('#gCartera'),{series:[{pts:plus,color:'var(--s1)',fin:1}],marcas,cero:true,yfmt:(v,e)=>num(v,e?0:1)+' %',
+      tipF:(t,mk)=>{const a=inv.find(p=>p[0]===t)[1],b=val.find(p=>p[0]===t)[1];return `<b>${fechaLarga(t)}</b><br>Plusvalía ${pct((b-a)/a)}<br>${sig(b-a)} € sobre ${eur(a)}${tipMk(mk)}`}});
+  }
+}
+
+/* ---------- pestañas de gráficos ---------- */
+function pintaGTabs(){
+  const T2=[['Revalorización de la cartera','Valor de mercado frente a lo invertido, sumando todos los lotes desde su fecha de compra'],['Comparativa de los activos','Variación en porcentaje de la cotización de cada activo, para compararlos entre sí']];
+  $('#gTabs').innerHTML=T2.map(([t,ti])=>`<button class="tab" role="tab" title="${ti}" aria-selected="${t===st.gtab}">${t}</button>`).join('');
+  $('#gpRev').hidden=st.gtab!==T2[0][0]; $('#gpComp').hidden=st.gtab!==T2[1][0];
+}
+/* ---------- comparativa (variación relativa) ---------- */
+function pintaComparativa(){
+  const PER=[['1M',30],['3M',91],['6M',182],['Año','ytd'],['1A',365],['3A',3*365],['5A',5*365]];
+  const TIT={'1M':'Último mes','3M':'Últimos 3 meses','6M':'Últimos 6 meses','Año':'Desde el 1 de enero','1A':'Último año','3A':'Últimos 3 años','5A':'Últimos 5 años'};
+  $('#cPer').innerHTML=PER.map(([k])=>`<button data-k="${k}" aria-pressed="${st.cper===k}" title="${TIT[k]}">${k}</button>`).join('');
+  const act=INS.filter(x=>st.sel.has(x.id)&&!x.sinCot);
+  if(!act.length){grafico($('#gComp'),{series:[{pts:[]}]});$('#cLey').innerHTML='';return}
+  const d=PER.find(p=>p[0]===st.cper)[1], desde=d==='ytd'?T('2026-01-01'):TH-d*DAY;
+  const dias=INS[0].s.filter(p=>p[0]>=desde).map(p=>p[0]);
+  const ser=act.map(x=>{const p0=precio(x,dias[0]);return {x,color:x.col,w:2,pts:dias.map(t=>[t,(precio(x,t)/p0-1)*100])}});
+  const fin=s=>s.pts[s.pts.length-1][1];
+  $('#cLey').innerHTML=ser.slice().sort((a,b)=>fin(b)-fin(a)).map(s=>`<span data-id="${s.x.id}" style="cursor:default" title="${s.x.n}"><i style="background:${s.color}"></i>${CORTO[s.x.id]} <b class="${cls(fin(s))}" style="font-weight:600">${pct(fin(s)/100)}</b></span>`).join('');
+  grafico($('#gComp'),{series:ser.map(s=>({...s,fin:1})),cero:true,yfmt:(v,e)=>e?num(v,Math.abs(v)<10&&Math.abs(v%1)>1e-9?1:0)+' %':pct(v/100,2),
+    tipF:t=>`<b>${fechaLarga(t)}</b>`+ser.map(s=>[s,s.pts.find(p=>p[0]===t)[1]]).sort((a,b)=>b[1]-a[1]).map(([s,v])=>`<br><span style="color:${s.color}">■</span> ${CORTO[s.x.id]} ${pct(v/100,2)}`).join('')});
+  const paths=$$('#gComp svg path[stroke]');
+  $$('#cLey span[data-id]').forEach(sp=>{const c=ser.find(s=>s.x.id===sp.dataset.id).color;
+    sp.addEventListener('pointerenter',()=>paths.forEach(p=>{p.style.opacity=p.getAttribute('stroke')===c?1:.15}));
+    sp.addEventListener('pointerleave',()=>paths.forEach(p=>p.style.opacity=''))});
+}
+
+/* ---------- tabla por activo ---------- */
+function pintaTabla(){
+  $('#fTipo').innerHTML=['Todos','ETF','Fondos','Participaciones'].map(k=>`<button data-k="${k}" aria-pressed="${st.tipo===k}">${k}</button>`).join('');
+  const v=visibles(), tot=v.filter(x=>x.vivo).reduce((a,x)=>a+x.valor,0);
+  $('#tAct tbody').innerHTML=v.map(x=>{
+    const abierto=st.abiertos.has(x.id)&&x.nLotes>1;
+    let h=`<tr class="fila${st.sel.has(x.id)?' sel':''}" data-id="${x.id}">
+      <td><input type="checkbox" style="accent-color:${x.col}" ${st.sel.has(x.id)?'checked':''} ${x.sinCot?'disabled title="No cotiza: no entra en el gráfico"':'title="Ver este activo en el gráfico de arriba'+(x.vivo?'':', durante el tiempo en que se tuvo')+'"'}></td>
+      <td>${x.nLotes>1?`<button class="desp" title="${abierto?'Ocultar':'Ver'} sus ${x.nLotes} lotes">${abierto?'▾':'▸'}</button>`:''}</td>
+      <td><button class="nom" title="Abrir la ficha: cotización histórica, lotes, operaciones y proyección">${x.n}</button><small class="c">${x.isin||'—'} · ${x.tk}</small></td>
+      <td><span class="pill tipo">${x.tipo}</span></td>`;
+    if(!x.vivo) h+=`<td class="n">0</td><td class="n">0</td><td class="n"></td><td class="n"></td><td class="n">${cotTxt(x)}</td><td class="n"></td><td class="n" colspan="3"><span class="pill sin">vendido</span> resultado <span class="${cls(x.realTot)}">${sig(x.realTot)} €</span></td><td class="n"></td></tr>`;
+    else h+=`<td class="n">${x.nLotes}</td><td class="n">${num(x.uds,0)}</td><td class="n">${num(x.pm,x.sinCot?2:3)}</td><td class="n">${num(x.coste)}</td>
+      <td class="n">${cotTxt(x)}</td><td class="n">${num(x.valor)}</td><td class="n ${cls(x.plus)}">${sig(x.plus)}</td><td class="n ${cls(x.plus)}">${pct(x.pct)}</td>
+      <td class="n ${cls(x.tir)}">${x.tir==null?'—':pct(x.tir)}</td><td class="n">${num(x.valor/tot*100,1)} %</td></tr>`;
+    if(abierto) h+=x.lotes.filter(l=>l.u>0).map((l,i)=>`<tr class="lote"><td></td><td></td><td>Lote ${i+1} · comprado el ${fecha(l.f)}${l.u<l.u0?` <span class="pill av" title="Parte de este lote se vendió (se venden primero los lotes más antiguos)">quedan ${num(l.u,0)} de ${num(l.u0,0)}</span>`:''}<small>${Math.floor(l.dias/365)} años y ${Math.round(l.dias%365/30.4)} meses en cartera</small></td><td></td><td></td>
+      <td class="n">${num(l.u,0)}</td><td class="n">${num(l.pu,3)}</td><td class="n">${num(l.coste)}</td><td></td><td class="n">${num(l.val)}</td><td class="n ${cls(l.plus)}">${sig(l.plus)}</td><td class="n ${cls(l.plus)}">${pct(l.pct)}</td><td class="n ${cls(l.tir)}">${pct(l.tir)}</td><td></td></tr>`).join('');
+    return h;
+  }).join('');
+  const viv=v.filter(x=>x.vivo), c=viv.reduce((a,x)=>a+x.coste,0), va=viv.reduce((a,x)=>a+x.valor,0);
+  $('#tAct tfoot').innerHTML=`<tr class="tot"><td></td><td></td><td>Total ${viv.length} activos</td><td></td><td class="n">${viv.reduce((a,x)=>a+x.nLotes,0)}</td><td></td><td></td><td class="n">${num(c)}</td><td></td><td class="n">${num(va)}</td><td class="n ${cls(va-c)}">${sig(va-c)}</td><td class="n ${cls(va-c)}">${pct((va-c)/c)}</td><td></td><td class="n">100,0 %</td></tr>`;
+  const marc=v.filter(x=>!x.sinCot); $('#selTodos').checked=marc.length&&marc.every(x=>st.sel.has(x.id));
+}
+
+/* ---------- ficha ---------- */
+function abrirFicha(id){st.ficha=id;st.tab='Cotización';st.vista='ficha';pinta();scrollTo(0,0)}
+function pintaFicha(){
+  const x=INS.find(i=>i.id===st.ficha);
+  $('#migaN').textContent=x.n; $('#fNombre').textContent=x.n;
+  $('#fMeta').innerHTML=`<span class="pill tipo">${x.tipo}</span>${x.isin?`<span class="c">ISIN ${x.isin}</span>`:''}<span>${x.tk}</span><span>Intermediario Renta 4</span><span class="c" title="Subcuenta del activo; el resultado de las ventas va a 766 / 666">Subcuenta ${x.cta}</span>`;
+  const k=[
+    ['Participaciones',num(x.uds,0),`${x.nLotes} lote${x.nLotes===1?'':'s'} vivo${x.nLotes===1?'':'s'}`],
+    ['Coste',eur(x.coste),`precio medio ${num(x.pm,3)} €`],
+    ['Valor',eur(x.valor),x.sinCot?'a coste: no cotiza':x.tipo==='Fondo'?`VL del ${fecha(x.fUlt)}`:`${fecha(HOY)} ${HORA}, con 15 min de retraso`],
+    ['Plusvalía latente',`<span class="${cls(x.plus)}">${sig(x.plus)} €</span>`,`<span class="${cls(x.plus)}">${pct(x.pct)}</span>`],
+    ['Rentabilidad anual',`<span class="${cls(x.tir)}">${x.tir==null?'—':pct(x.tir)}</span>`,'TIR desde la primera compra'],
+    ['Resultado de ventas',`<span class="${cls(x.realTot)}">${sig(x.realTot)} €</span>`,x.real.length?`${x.real.length} venta${x.real.length>1?'s':''} · 766 / 666`:'sin ventas']
+  ]; $('#fKpis').innerHTML=k.map(([t,v,s])=>`<div class="kpi"><div class="t">${t}</div><div class="v">${v}</div><div class="s">${s}</div></div>`).join('');
+  const tabs=x.sinCot?['Lotes','Operaciones']:['Cotización','Lotes','Operaciones','Proyección']; if(!tabs.includes(st.tab))st.tab=tabs[0];
+  $('#fTabs').innerHTML=tabs.map(t=>`<button class="tab" role="tab" aria-selected="${t===st.tab}">${t}${t==='Proyección'?' <span class="pill av">por decidir</span>':''}</button>`).join('');
+  const P=$('#fPanel');
+  if(st.tab==='Cotización'){
+    P.innerHTML=`<div class="ctl" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><span class="hint">${x.tipo==='Fondo'?'Valor liquidativo diario':'Cierre diario en bolsa'} · la línea fina punteada es el periodo en que no había participaciones</span><span class="sp"></span><div class="seg" id="fPer"></div></div>
+      <div class="leyenda" style="padding:0"><span><i style="background:var(--s1)"></i>${x.tipo==='Fondo'?'Valor liquidativo':'Cotización'}</span><span><i class="punt"></i>Sin participaciones</span><span><i style="background:var(--s2)"></i>Precio medio de compra</span><span><span class="mk"></span>Compra</span><span><span class="mk v"></span>Venta</span></div>
+      <div class="graf" id="gFicha" style="padding:0"></div>
+      <div class="aviso">Origen: proveedor de cotizaciones por ISIN (pendiente de elegir). ${x.tipo==='Fondo'?`Los fondos publican un único valor al día: el último es el del ${fecha(x.fUlt)}.`:`Última cotización ${fecha(HOY)} a las ${HORA}, con unos 15 minutos de retraso.`} Se guarda el cierre de cada día para dibujar el histórico.</div>`;
+    $('#fPer').innerHTML=['6M','1A','3A','5A','Máx.'].map(k=>`<button data-k="${k}" aria-pressed="${st.fper===k}">${k}</button>`).join('');
+    const desde=st.fper==='6M'?TH-182*DAY:st.fper==='Máx.'?x.s[0][0]:desdePer(st.fper);
+    const pts=x.s.filter(p=>p[0]>=desde);
+    const tenia=t=>x.lotes.some(l=>unidadesLote(l,t)>0);
+    const tramos=[];let cur=null; for(const p of pts){const on=tenia(p[0]); if(!cur||cur.on!==on){const nuevo={on,pts:cur?[cur.pts[cur.pts.length-1]]:[],w:on?2.2:1.2,dash:on?null:'4 4',op:on?1:.7};tramos.push(nuevo);cur=nuevo} cur.pts.push(p)}
+    const pm=pts.map(p=>{let u=0,c=0;for(const l of x.lotes){const q=unidadesLote(l,p[0]);u+=q;c+=q*l.pu}return [p[0],u?c/u:null]});
+    const pmTr=[];let c2=null; for(const p of pm){if(p[1]==null){c2=null;continue} if(!c2){c2={pts:[],w:1.5,dash:'6 4'};pmTr.push(c2)} c2.pts.push(p)}
+    const marcas=x.ops.filter(o=>o.t>=desde).map(o=>({t:o.t,k:o.tp,v:precio(x,o.t),o}));
+    grafico($('#gFicha'),{series:[{pts,color:'var(--s1)',tramos,fin:1},{pts:pm.filter(p=>p[1]!=null),color:'var(--s2)',tramos:pmTr,sinPunto:0}],marcas,alto:320,
+      yfmt:(v,e)=>e?num(v,v<20?1:0):eur(v),
+      tipF:(t,mk)=>{const p=pts.find(q=>q[0]===t)[1],m=pm.find(q=>q[0]===t)[1];return `<b>${fechaLarga(t)}</b><br>${x.tipo==='Fondo'?'VL':'Cierre'} ${num(p,x.tipo==='Fondo'?3:2)} €${m?`<br>Precio medio ${num(m,3)} € · ${pct(p/m-1)}`:'<br>Sin participaciones'}${mk.map(q=>`<br>${q.k==='C'?'▲ Compra':'▼ Venta'} ${num(q.o.u,0)} part. a ${num(q.o.p,3)} €`).join('')}`}});
+  }else if(st.tab==='Lotes'){
+    P.innerHTML=`<p class="hint" style="margin:0">Cada compra es un lote. Al vender se consumen primero los lotes más antiguos (FIFO), que es el criterio fiscal.</p><div class="tw"><table><thead><tr><th>Comprado</th><th class="n">Compradas</th><th class="n">Quedan</th><th class="n">Precio (con comisión)</th><th class="n">Coste</th><th class="n">Valor hoy</th><th class="n">Plusvalía</th><th class="n">%</th><th class="n">Anual</th><th>Tiempo en cartera</th></tr></thead><tbody>${
+      x.lotes.map(l=>l.u?`<tr><td>${fecha(l.f)}</td><td class="n">${num(l.u0,0)}</td><td class="n">${num(l.u,0)}</td><td class="n">${num(l.pu,3)}</td><td class="n">${num(l.coste)}</td><td class="n">${num(l.val)}</td><td class="n ${cls(l.plus)}">${sig(l.plus)}</td><td class="n ${cls(l.plus)}">${pct(l.pct)}</td><td class="n ${cls(l.tir)}">${l.tir==null?'—':pct(l.tir)}</td><td>${Math.floor(l.dias/365)} a ${Math.round(l.dias%365/30.4)} m</td></tr>`
+        :`<tr style="color:var(--mut)"><td>${fecha(l.f)}</td><td class="n">${num(l.u0,0)}</td><td class="n">0</td><td class="n">${num(l.pu,3)}</td><td colspan="6"><span class="pill sin">vendido entero</span></td></tr>`).join('')}</tbody></table></div>`;
+  }else if(st.tab==='Operaciones'){
+    P.innerHTML=`<div class="tw"><table><thead><tr><th>Fecha</th><th>Operación</th><th class="n">Participaciones</th><th class="n">Precio</th><th class="n">Comisión</th><th class="n">Importe</th><th class="n">Coste vendido</th><th class="n">Resultado</th><th>Asiento</th></tr></thead><tbody>${
+      x.ops.map(o=>`<tr><td>${fecha(o.f)}</td><td>${o.tp==='C'?'Compra':'Venta'}</td><td class="n">${num(o.u,0)}</td><td class="n">${num(o.p,3)}</td><td class="n">${num(o.com)}</td><td class="n">${num(o.imp)}</td><td class="n">${o.tp==='V'?num(o.coste):''}</td><td class="n ${o.tp==='V'?cls(o.res):''}">${o.tp==='V'?sig(o.res)+(o.res>=0?' · 766':' · 666'):''}</td><td class="c">${o.asi}</td></tr>`).join('')}</tbody></table></div>
+      <p class="hint" style="margin:0">Registrar compras y ventas con su asiento es la fase siguiente; aquí solo se consultan.</p>`;
+  }else{ // Proyección (opción a)
+    const s=x.s, p=x.ult[1], at=n=>s[Math.max(0,s.length-1-n)][1];
+    const mm200=s.slice(-200).reduce((a,q)=>a+q[1],0)/Math.min(200,s.length), max52=Math.max(...s.slice(-252).map(q=>q[1])), min3m=Math.min(...s.slice(-63).map(q=>q[1]));
+    let g=0,l=0; for(let i=s.length-14;i<s.length;i++){const d=s[i][1]-s[i-1][1]; if(d>0)g+=d; else l-=d} const rsi=100-100/(1+(g/(l||1e-9)));
+    const n5=Math.min(s.length-1,5*252), anual=Math.pow(p/at(n5),252/n5)-1;
+    const rets=[];for(let i=s.length-n5;i<s.length;i++)rets.push(Math.log(s[i][1]/s[i-1][1])); const m=rets.reduce((a,b)=>a+b,0)/rets.length;
+    const sdA=Math.sqrt(rets.reduce((a,b)=>a+(b-m)**2,0)/rets.length*252);
+    const esc=[['Prudente',-1],['Medio',0],['Optimista',1]];
+    const tend=p>mm200*1.02?['Tendencia al alza','El precio está por encima de su media de los últimos diez meses: lleva tiempo subiendo.','pos']:p<mm200*.98?['Tendencia a la baja','El precio está por debajo de su media de los últimos diez meses: lleva tiempo bajando.','neg']:['Sin tendencia clara','El precio está cerca de su media de los últimos diez meses.',''];
+    const dist=p/max52-1;
+    const rsiTxt=rsi>70?['Ha subido deprisa','En las últimas tres semanas ha subido mucho; es habitual que después se tome un respiro.']:rsi<30?['Ha bajado deprisa','En las últimas tres semanas ha bajado mucho; a veces rebota después.']:['Ritmo normal','En las últimas tres semanas no ha subido ni bajado de forma exagerada.'];
+    const valor=x.valor;
+    P.innerHTML=`<div class="aviso amb"><b>Opción recomendada, pendiente de decidir.</b> Las señales imitan los indicadores del script technical-scanner, traducidos a frases. La proyección es una estimación con lo que ha rendido el activo en el pasado; no es una previsión ni una garantía.</div>
+      <div class="blq"><h3 style="font:600 14px var(--f-ui);margin:0 0 8px">Cómo está hoy</h3><div class="senales">
+        <div class="senal" title="Media móvil de 200 sesiones"><span class="t">Tendencia</span><span class="f ${tend[2]}">${tend[0]}</span><p>${tend[1]}</p></div>
+        <div class="senal" title="Distancia al máximo de las últimas 52 semanas"><span class="t">Frente a su máximo del último año</span><span class="f">${dist>-.01?'En máximos':num(dist*100,1)+' %'}</span><p>${dist>-.01?'Cotiza en el precio más alto del último año.':`Está un ${num(-dist*100,1)} % por debajo del precio más alto del último año (${num(max52,2)} €).`}</p></div>
+        <div class="senal" title="Mínimo de los últimos tres meses"><span class="t">Suelo reciente</span><span class="f">${num(min3m,2)} €</span><p>Es el precio más bajo de los últimos tres meses. Si bajara de ahí, sería una señal de debilidad.</p></div>
+        <div class="senal" title="RSI de 14 sesiones: ${num(rsi,0)}"><span class="t">Ritmo de las últimas semanas</span><span class="f">${rsiTxt[0]}</span><p>${rsiTxt[1]}</p></div>
+      </div></div>
+      <div class="blq"><h3 style="font:600 14px var(--f-ui);margin:0 0 4px">Qué podría valer la posición (estimación)</h3><p class="hint" style="margin:0 0 8px">En los últimos ${Math.round(n5/252)} años ha rendido de media un ${num(anual*100,1)} % al año, con altibajos de unos ${num(sdA*100,0)} puntos arriba o abajo. Con eso salen tres escenarios sobre el valor de hoy (${eur(valor)}):</p>
+        <div class="tw"><table><thead><tr><th>Escenario</th><th class="n">En 1 año</th><th class="n">En 3 años</th><th class="n">En 5 años</th></tr></thead><tbody>${
+          esc.map(([n,k])=>`<tr><td>${n}</td>${[1,3,5].map(h=>{const v=valor*Math.pow(1+anual,h)*Math.exp(k*sdA*Math.sqrt(h)), eq=Math.pow(v/valor,1/h)-1;return `<td class="n">${num(v,0)} €<small class="${cls(v-valor)}">${sig(v-valor,0)} € · ${pct(eq)} al año</small></td>`}).join('')}</tr>`).join('')}</tbody></table></div>
+        <p class="hint" style="margin:8px 0 0">El prudente es lo que saldría con una racha mala de las habituales; el optimista, con una buena. Cuanto más largo es el plazo, más se compensan los años buenos con los malos, por eso el rango anual se estrecha. Puede salir peor o mejor que los dos.</p></div>`;
+  }
+}
+
+/* ---------- pintar ---------- */
+function pinta(){
+  $('#vCartera').hidden=st.vista!=='cartera'; $('#vFicha').hidden=st.vista!=='ficha';
+  $('#vCartera').style.display=st.vista==='cartera'?'contents':'none'; $('#vFicha').style.display=st.vista==='ficha'?'contents':'none';
+  document.body.classList.toggle('fija',st.vista==='cartera');
+  if(st.vista==='cartera'){pintaKpis();pintaGTabs();pintaCartera();pintaComparativa();pintaTabla()} else pintaFicha();
+}
+function toast(t){const d=document.createElement('div');d.className='toast';d.textContent=t;document.body.appendChild(d);setTimeout(()=>d.remove(),3200)}
+function cierraMenu(){$('#capa').innerHTML=''}
+
+/* ---------- eventos ---------- */
+document.addEventListener('click',e=>{
+  if(!e.target.closest('.menu'))cierraMenu();
+  const b=e.target.closest('button');
+  if(e.target.closest('#gModo button')){st.modo=b.dataset.k;pintaCartera()}
+  else if(e.target.closest('#gPer button')){st.per=b.dataset.k;pintaCartera()}
+  else if(e.target.closest('#gTabs .tab')){st.gtab=b.textContent.trim();pintaGTabs();pintaCartera();pintaComparativa()}
+  else if(b&&b.id==='bPreg'){$('#vPreg').hidden=false}
+  else if(b&&b.id==='bCerrarPreg'||e.target.id==='vPreg'){$('#vPreg').hidden=true}
+  else if(e.target.closest('#cPer button')){st.cper=b.dataset.k;pintaComparativa()}
+  else if(e.target.closest('#fTipo button')){st.tipo=b.dataset.k;pintaTabla()}
+  else if(e.target.closest('#fPer button')){st.fper=b.dataset.k;pintaFicha()}
+  else if(e.target.closest('#fTabs .tab')){st.tab=b.textContent.replace('por decidir','').trim();pintaFicha()}
+  else if(e.target.closest('.desp')){const id=b.closest('tr').dataset.id;st.abiertos.has(id)?st.abiertos.delete(id):st.abiertos.add(id);pintaTabla()}
+  else if(e.target.closest('.nom')){abrirFicha(b.closest('tr').dataset.id)}
+  else if(e.target.closest('#volver')){st.vista='cartera';pinta()}
+  else if(b&&b.id==='bActualizar'){toast(`Cotizaciones al día: 4 ETF a las ${HORA} y 2 fondos con el VL del ${fecha(VL_FECHA)}`)}
+  else if(b&&b.id==='bMat'){toast('Vista de activos materiales: es la maqueta ya validada (Datos maestros › Activos)')}
+  else if(b&&b.id==='bMayor'){toast('Abriría el Mayor de la subcuenta '+INS.find(x=>x.id===st.ficha).cta)}
+  else if(e.target.closest('.menu button[data-a]')){const a=b.dataset.a;cierraMenu();
+    if(a==='ficha')abrirFicha(st.menuId);
+    else if(a==='solo'){st.sel=new Set([...st.marcados]);pinta();toast('El gráfico muestra solo los marcados')}
+    else if(a==='todos'){st.sel=new Set(INS.filter(x=>!x.sinCot).map(x=>x.id));pinta()}
+    else toast('Abriría el Mayor de las subcuentas marcadas')}
+});
+document.addEventListener('change',e=>{
+  if(e.target.id==='selTodos'){const v=visibles().filter(x=>!x.sinCot);v.forEach(x=>e.target.checked?st.sel.add(x.id):st.sel.delete(x.id));pintaTabla();pintaCartera();pintaComparativa()}
+  else if(e.target.id==='fVendidos'){st.vendidos=e.target.checked;pintaTabla()}
+  else if(e.target.closest('#tAct tbody input')){const id=e.target.closest('tr').dataset.id;e.target.checked?st.sel.add(id):st.sel.delete(id);pintaTabla();pintaCartera();pintaComparativa()}
+});
+$('#tAct').addEventListener('contextmenu',e=>{const tr=e.target.closest('tr.fila');if(!tr)return;e.preventDefault();
+  const id=tr.dataset.id; st.menuId=id; const x=INS.find(i=>i.id===id); st.marcados=st.sel.has(id)?[...st.sel]:[id]; const n=st.marcados.length;
+  $('#capa').innerHTML=`<div class="menu" style="left:${Math.min(e.clientX,innerWidth-270)}px;top:${Math.min(e.clientY,innerHeight-170)}px">
+    <button data-a="ficha" ${n>1?'disabled title="Solo con un activo marcado"':''}>Abrir la ficha</button>
+    <button data-a="solo" ${x.sinCot?'disabled':''}>Ver solo ${n>1?'estos '+n+' activos':'este activo'} en el gráfico</button>
+    <button data-a="todos">Ver todos en el gráfico</button><hr>
+    <button data-a="mayor">Ver el Mayor de ${n>1?'sus subcuentas':'su subcuenta'}</button>
+    <button disabled title="Fase siguiente">Registrar una venta…</button></div>`});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){cierraMenu();$('#vPreg').hidden=true}});
+let rz;addEventListener('resize',()=>{clearTimeout(rz);rz=setTimeout(pinta,150)});
+pinta();
+})();
+</script>
