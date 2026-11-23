@@ -122,6 +122,7 @@ public static class CatalogoMigraciones
         MigracionesDocumentos.GestorDocumental,
         MigracionesDocumentos.Presentaciones,
         MigracionesDocumentos.TipoInformeContable,
+        MigracionesContabilidad.CuentasAnualesMemoria,
     ];
 
     /// <summary>Versión del esquema que espera esta versión del programa.</summary>

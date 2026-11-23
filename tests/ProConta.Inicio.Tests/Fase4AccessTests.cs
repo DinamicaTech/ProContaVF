@@ -160,4 +160,17 @@ public sealed class Fase4AccessTests : IDisposable
         Assert.Equal(7, p.Comparado!.Ocupadas[6]);
         Assert.NotEmpty(await servicio.AgendaAsync("T01"));
     }
+
+    // ------------------------------------------------------------ certificado de la empresa (aviso-certificado)
+
+    [Fact]
+    public async Task ElCertificadoSinElegirOQueNoEstaEnElEquipoSeDistingue()
+    {
+        await SociedadAsync();
+        Assert.Equal(DatosCertificado.SinElegir, await EstadoCertificado.LeerAsync(Bd, "T01"));
+        // Una huella que no es de ningún certificado instalado: elegido, pero no está en este equipo.
+        await Bd.EjecutarAsync(s => s.EjecutarAsync("INSERT INTO VeriFactuConfiguracion (IdVeriFactuConfiguracion, IdSociedad, CertificateThumbprint) VALUES (1, 'T01', '0000000000000000000000000000000000000000')"));
+        Assert.Equal(DatosCertificado.NoInstalado, await EstadoCertificado.LeerAsync(Bd, "T01"));
+        Assert.Equal(DatosCertificado.SinElegir, await EstadoCertificado.LeerAsync(Bd, "T02"));
+    }
 }
