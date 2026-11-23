@@ -1,5 +1,6 @@
-using System.Globalization;
+﻿using System.Globalization;
 using System.Windows.Input;
+using ProConta.Activos.Financieros;
 using ProConta.Activos.Gestion;
 using ProConta.UI.Base.Comandos;
 using ProConta.UI.Base.Formato;
@@ -16,6 +17,7 @@ public sealed record OpcionTipoAlta(TipoActivo Tipo)
         TiposActivoPgc.Vehiculo => "218 · 2818 · 681",
         TiposActivoPgc.Instalacion => "212 · 2812 · 681",
         TiposActivoPgc.Aplicacion => "206 · 2806 · 680",
+        TiposActivoPgc.Inversion => "Por ISIN · sin amortización",
         _ => "221 · 282 · 682",
     };
 }
@@ -24,6 +26,9 @@ public sealed record OpcionTipoAlta(TipoActivo Tipo)
 /// «Nuevo activo…» en cuatro pasos con lenguaje llano (activos 2026-11-17 18:50): qué es, la compra (con el catastro si es un inmueble y el centro de
 /// coste, elegido a mano: uno que existe o uno nuevo bajo un padre), la amortización y un repaso de lo que se va a crear. Al confirmar se graba todo en
 /// una transacción; las subcuentas se generan después con su propuesta. No se graba ningún asiento.
+/// Un activo de tipo «Inversión financiera» (activos/activos-financieros 2026-11-23 20:32) pide en el paso 2 el ISIN, busca su nombre, símbolo, bolsa y
+/// moneda (Yahoo y, si no, EODHD; si ninguno lo encuentra, se puede seguir a mano) y la primera compra (fecha, participaciones, precio en euros y coste del
+/// lote); no se amortiza. La fecha de compra se propone con la de hoy en cualquier tipo.
 /// </summary>
 public sealed class AltaActivoVM : ModeloVista
 {
@@ -45,6 +50,10 @@ public sealed class AltaActivoVM : ModeloVista
     {
         _ctx = ctx;
         _dialogos = dialogos;
+        _fecha = Formatos.Fecha(DateTime.Today);
+        Compra = new FormularioCompraVM(ctx.Cotizaciones);
+        BuscarIsinCommand = new ComandoDelegado(() => _ = BuscarIsinAsync(), () => !_buscando && !_ocupado && ctx.Cotizaciones is not null);
+        AbrirYahooCommand = new ComandoDelegado(() => _dialogos.AbrirEnNavegador(UrlsCotizaciones.BusquedaYahoo(Isin.Normalizar(_isin))), () => Isin.EsValido(_isin));
         SiguienteCommand = new ComandoDelegado(() => _ = SiguienteAsync(), () => !_ocupado);
         AtrasCommand = new ComandoDelegado(() => Paso--, () => _paso > 1 && !_ocupado);
         ElegirCentroCommand = new ComandoDelegado(() => ElegirCentro(nuevo: false));
@@ -71,6 +80,8 @@ public sealed class AltaActivoVM : ModeloVista
     public ICommand AtrasCommand { get; }
     public ICommand ElegirCentroCommand { get; }
     public ICommand ElegirPadreCommand { get; }
+    public ICommand BuscarIsinCommand { get; }
+    public ICommand AbrirYahooCommand { get; }
 
     public int Paso
     {
@@ -108,13 +119,124 @@ public sealed class AltaActivoVM : ModeloVista
                 _pctAnual = (value.Tipo.PorcentajeHabitual * 100m).ToString("0.##", Es);
                 _seAmortiza = value.Tipo.AmortizablePredeterminado || value.Tipo.PorcentajeHabitual > 0m;
             }
-            Avisar(nameof(EsInmueble), nameof(PorcentajeAnual), nameof(SeAmortiza), nameof(TextoHabitual), nameof(TextoBase));
+            Avisar(nameof(EsInmueble), nameof(EsInversion), nameof(NoEsInversion), nameof(PropioNoInversion), nameof(PorcentajeAnual), nameof(SeAmortiza), nameof(TextoHabitual), nameof(TextoBase));
             ProponerBase();
         }
     }
-    public bool EsAjeno { get => _esAjeno; set { if (Fijar(ref _esAjeno, value)) Avisar(nameof(Propio)); } }
+    public bool EsAjeno { get => _esAjeno; set { if (Fijar(ref _esAjeno, value)) Avisar(nameof(Propio), nameof(PropioNoInversion)); } }
     public bool Propio => !_esAjeno;
     public bool EsInmueble => _tipo?.Tipo.EsInmueble == true;
+    public bool EsInversion => _tipo?.Tipo.EsInversion == true;
+    public bool NoEsInversion => !EsInversion;
+    public bool PropioNoInversion => Propio && !EsInversion;
+
+    // ---------- paso 2 de un activo financiero: ISIN y compra ----------
+    private string _isin = "", _tickerYahoo = "", _aviso = "";
+    private BusquedaIsin? _busqueda;
+    private CotizacionIsin? _elegida;
+    private bool _buscando;
+
+    /// <summary>La compra (fecha, participaciones, precio y coste del lote).</summary>
+    public FormularioCompraVM Compra { get; }
+
+    public string IsinTexto
+    {
+        get => _isin;
+        set
+        {
+            if (!Fijar(ref _isin, value)) return;
+            if (_busqueda is not null && _busqueda.Isin != Isin.Normalizar(value)) { _busqueda = null; Elegida = null; Aviso = ""; Avisar(nameof(Cotizaciones), nameof(BusquedaHecha), nameof(HayVariasCotizaciones)); }
+            CommandManager.InvalidateRequerySuggested();
+        }
+    }
+
+    public bool Buscando { get => _buscando; private set { if (Fijar(ref _buscando, value)) CommandManager.InvalidateRequerySuggested(); } }
+    public bool BusquedaHecha => _busqueda is not null;
+    public IReadOnlyList<CotizacionIsin> Cotizaciones => _busqueda?.Cotizaciones ?? [];
+    public bool HayVariasCotizaciones => Cotizaciones.Count > 1;
+
+    /// <summary>La bolsa y moneda elegida: pone nombre, símbolo y moneda y pide el precio de la fecha de compra.</summary>
+    public CotizacionIsin? Elegida
+    {
+        get => _elegida;
+        set
+        {
+            if (!Fijar(ref _elegida, value) || value is null) return;
+            Nombre = value.Nombre;
+            if (_nombreCorto.Trim().Length == 0 || _nombreCortoPropuesto) { NombreCorto = NombreCortoDe(value); _nombreCortoPropuesto = true; }
+            _tickerYahoo = value.TickerYahoo ?? "";
+            Avisar(nameof(TickerYahoo), nameof(TextoElegida));
+            Compra.Referencia = new ReferenciaCotizacion(value.TickerYahoo, value.TickerEodhd, value.Moneda);
+            _ = Compra.ConsultarPrecioAsync();
+        }
+    }
+    private bool _nombreCortoPropuesto;
+
+    public string TextoElegida => _elegida is null ? "" : $"{_elegida.TipoInstrumento} · {_elegida.Bolsa} · cotiza en {_elegida.Moneda}" +
+        (_elegida.TickerEodhd is { } e ? $" · EODHD: {e}" : "");
+
+    /// <summary>Símbolo de Yahoo: lo pone la búsqueda; si ningún proveedor lo encuentra, lo escribe el operador.</summary>
+    public string TickerYahoo
+    {
+        get => _tickerYahoo;
+        set
+        {
+            if (!Fijar(ref _tickerYahoo, value)) return;
+            var t = value.Trim().ToUpperInvariant();
+            Compra.Referencia = new ReferenciaCotizacion(t.Length > 0 ? t : null, _elegida?.TickerEodhd, _elegida?.Moneda ?? "");
+        }
+    }
+
+    public string Aviso { get => _aviso; private set { if (Fijar(ref _aviso, value)) Avisar(nameof(HayAviso), nameof(AvisoGrave), nameof(AvisoLeve)); } }
+    public bool HayAviso => _aviso.Length > 0;
+    public bool AvisoGrave => HayAviso && _busqueda is { AvisoGrave: true };
+    public bool AvisoLeve => HayAviso && !AvisoGrave;
+
+    /// <summary>Busca el ISIN (Yahoo y, si no, EODHD) y propone la cotización en euros.</summary>
+    public async Task BuscarIsinAsync()
+    {
+        if (_ctx.Cotizaciones is null) return;
+        if (Isin.Error(_isin) is { } error) { Errores = "· " + error; return; }
+        var isin = Isin.Normalizar(_isin);
+        if (await _ctx.Servicio.ActivoConIsinAsync(_ctx.Trabajo.IdSociedad, isin) is { } otro)
+        {
+            Errores = $"· El ISIN {isin} ya es el del activo {otro.Codigo}. Para sumarle participaciones, cierra el alta y usa «Nueva compra…» en el menú contextual de ese activo.";
+            return;
+        }
+        Buscando = true;
+        Errores = "";
+        try
+        {
+            var r = await _ctx.Cotizaciones.BuscarPorIsinAsync(isin);
+            if (!r.EsCorrecto) { Errores = string.Join(Environment.NewLine, r.Errores.Select(e => "· " + e.TextoOperador())); return; }
+            _isin = isin;
+            _busqueda = r.Valor;
+            Avisar(nameof(IsinTexto), nameof(Cotizaciones), nameof(BusquedaHecha), nameof(HayVariasCotizaciones));
+            Aviso = r.Valor.Aviso ?? "";
+            Elegida = r.Valor.Propuesta;
+            if (r.Valor.Propuesta is null) { Compra.Referencia = null; Avisar(nameof(TextoElegida)); }
+        }
+        catch (Exception ex) { Errores = $"· No he podido buscar el ISIN: {ex.Message} Vuelve a pulsar «Buscar»."; }
+        finally { Buscando = false; }
+    }
+
+    private static string NombreCortoDe(CotizacionIsin c)
+    {
+        var t = c.TickerYahoo ?? c.TickerEodhd ?? c.Isin;
+        var punto = t.IndexOf('.');
+        return punto > 0 && !t.StartsWith("0P", StringComparison.OrdinalIgnoreCase) && !t.StartsWith(c.Isin, StringComparison.OrdinalIgnoreCase) ? t[..punto] : c.Nombre.Length <= 40 ? c.Nombre : c.Nombre[..40];
+    }
+
+    /// <summary>El instrumento que se guarda: el elegido (con el símbolo de Yahoo que haya quedado) o, sin ninguno, el escrito a mano.</summary>
+    public DatosInstrumento? Instrumento()
+    {
+        if (!EsInversion) return null;
+        var ticker = _tickerYahoo.Trim().ToUpperInvariant();
+        var moneda = Compra.Moneda;
+        return _elegida is { } e
+            ? DatosInstrumento.De(e) with { Nombre = _nombre.Trim(), TickerYahoo = ticker.Length > 0 ? ticker : null, Moneda = moneda }
+            : new DatosInstrumento(Isin.Normalizar(_isin), _nombre.Trim(), ticker.Length > 0 ? ticker : null, null, null, moneda, "OTRO", FuenteCotizacion.Manual);
+    }
 
     // ---------- paso 2 ----------
     public string Nombre { get => _nombre; set => Fijar(ref _nombre, value); }
@@ -124,6 +246,7 @@ public sealed class AltaActivoVM : ModeloVista
         set
         {
             if (!Fijar(ref _nombreCorto, value)) return;
+            _nombreCortoPropuesto = false;
             if (!_codigoEscrito) { _codigo = CodigoDe(value); Avisar(nameof(Codigo)); }
         }
     }
@@ -196,12 +319,20 @@ public sealed class AltaActivoVM : ModeloVista
                 r.Add(_centroNuevo ? $"Crear su centro de coste «{ReglasFichaActivo.CodigoCentro(d.Codigo)} {NombreCortoONombre}» dentro de «{_padre?.Texto}», del que hereda la actividad de IVA."
                     : $"Usar el centro de coste «{_centro?.Texto}».");
                 if (d.EsInmueble) r.Add("Guardar sus datos de inmueble (catastro y % de construcción).");
+                if (Instrumento() is { } i && Compra.Construir() is { } c)
+                {
+                    r.Add($"Guardar su instrumento: ISIN {i.Isin}, {(i.TickerYahoo is { } t ? $"símbolo de Yahoo {t}" : "sin símbolo de Yahoo")}, cotiza en {i.Moneda}" +
+                          (i.Origen == FuenteCotizacion.Manual ? " (datos escritos a mano)." : $" (datos de {(i.Origen == FuenteCotizacion.Yahoo ? "Yahoo Finance" : "EODHD")})."));
+                    r.Add($"Anotar la compra del {Formatos.Fecha(c.Fecha)}: {c.Participaciones.ToString("#,##0.######", Es)} participaciones por {Formatos.Importe(c.ImporteTotalEur)}. " +
+                          "Podrás corregir el coste del lote en la ficha (apartado Operaciones) cuando el bróker te confirme el importe.");
+                }
                 r.Add(d.SeAmortiza ? $"Dejar preparado su plan de amortización: {(d.PorcentajeAnual * 100m).ToString("0.##", Es)} % anual sobre {Formatos.Importe(d.BaseAmortizable)} desde el {Formatos.Fecha(d.InicioAmortizacion ?? DateTime.Today)}."
                     : "No se amortiza: no se le prepara plan de amortización.");
                 r.Add(_lineasPlantilla > 0 ? $"Después, proponerte sus {_lineasPlantilla} subcuentas según la plantilla de su tipo: las verás antes de confirmarlas."
                     : "Su tipo no tiene plantilla de subcuentas: no se le creará ninguna (puedes añadirla en Parámetros y tablas › Plantillas de subcuentas).");
             }
-            r.Add("No se graba ningún asiento: el alta contable de la compra sigue viniendo de la factura de compra.");
+            r.Add(EsInversion ? "No se graba ningún asiento: el de la compra (572 contra la cuenta de la inversión) sale del movimiento del banco."
+                : "No se graba ningún asiento: el alta contable de la compra sigue viniendo de la factura de compra.");
             return r;
         }
     }
@@ -224,7 +355,8 @@ public sealed class AltaActivoVM : ModeloVista
         Ocupado = true;
         try
         {
-            var r = await _ctx.Servicio.AltaAsync(_ctx.Trabajo, new AltaActivo(Construir(), !_esAjeno && _centroNuevo ? _padre?.IdCentroCoste : null));
+            var r = await _ctx.Servicio.AltaAsync(_ctx.Trabajo, new AltaActivo(Construir(), !_esAjeno && _centroNuevo ? _padre?.IdCentroCoste : null,
+                Instrumento(), EsInversion ? Compra.Construir() : null));
             if (!r.EsCorrecto) { Errores = string.Join(Environment.NewLine, r.Errores.Select(e => "· " + e.TextoOperador())); return; }
             IdCreado = r.Valor;
             Creado?.Invoke(this, EventArgs.Empty);
@@ -242,6 +374,16 @@ public sealed class AltaActivoVM : ModeloVista
             case 1:
                 if (_tipo is null) e.Add("Elige qué clase de activo es.");
                 break;
+            case 2 when EsInversion:
+                if (Isin.Error(_isin) is { } errorIsin) e.Add(errorIsin);
+                else if (!BusquedaHecha || _busqueda!.Isin != Isin.Normalizar(_isin)) e.Add("Pulsa «Buscar» para traer los datos del ISIN (o para ver el aviso y seguir a mano).");
+                if (_esAjeno) e.Add("Un activo financiero no puede ser ajeno: vuelve al paso 1 y desmarca «No es de la sociedad».");
+                e.AddRange(Compra.Errores());
+                if (_centroNuevo && _padre is null) e.Add("Elige dentro de qué centro se crea su centro nuevo («Elegir…»), por ejemplo «INVERSIONES ETFS».");
+                if (!_centroNuevo && _centro is null) e.Add("Elige el centro de coste que ya existe («Elegir…»).");
+                if (e.Count == 0)
+                    e.AddRange(ReglasFichaActivo.Validar(Construir() with { IdCentroCoste = -1 }).Where(x => x.Campo is not nameof(DatosActivo.IdCentroCoste)).Select(x => x.Texto));
+                break;
             case 2:
                 if (_fecha.Trim().Length > 0 && FichaActivoVM.Fecha(_fecha) is null) e.Add("Escribe la fecha de compra como dd/mm/aaaa (por ejemplo 13/02/2023).");
                 if (_coste.Trim().Length > 0 && FichaActivoVM.Importe(_coste) is null) e.Add("Escribe el coste como un importe (por ejemplo 125.000,00).");
@@ -255,7 +397,7 @@ public sealed class AltaActivoVM : ModeloVista
                     .Where(x => x.Campo is not nameof(DatosActivo.IdCentroCoste)).Select(x => x.Texto));
                 break;
             case 3:
-                if (_esAjeno || !_seAmortiza) break;
+                if (_esAjeno || !_seAmortiza || EsInversion) break;
                 if (FichaActivoVM.Porcentaje(_pctAnual) is null) e.Add("Escribe el % anual entre 0 y 100 (por ejemplo 3).");
                 if (FichaActivoVM.Importe(_base) is null) e.Add("Escribe la base que se amortiza como un importe.");
                 if (_residual.Trim().Length > 0 && FichaActivoVM.Importe(_residual) is null) e.Add("Escribe el valor residual como un importe (lo normal es 0).");
@@ -275,13 +417,14 @@ public sealed class AltaActivoVM : ModeloVista
             ? new DatosInmueble(_referencia.Trim().Length > 0 ? _referencia.Trim() : null, FichaActivoVM.Importe(_suelo), FichaActivoVM.Importe(_construccion),
                 FichaActivoVM.Porcentaje(_pctConstruccion))
             : null;
-        var fecha = FichaActivoVM.Fecha(_fecha);
+        var compra = EsInversion ? Compra.Construir() : null;
+        var fecha = EsInversion ? compra?.Fecha : FichaActivoVM.Fecha(_fecha);
         return new DatosActivo
         {
             Codigo = _codigo.Trim(), Nombre = _nombre.Trim(), NombreCorto = _nombreCorto.Trim().Length > 0 ? _nombreCorto.Trim() : null,
             IdTipoActivo = _tipo?.Tipo.IdTipoActivo ?? 0, CodigoTipo = _tipo?.Tipo.Codigo ?? "", EsAjeno = _esAjeno,
-            FechaCompra = fecha, Coste = FichaActivoVM.Importe(_coste) ?? 0m, IdCentroCoste = _esAjeno || _centroNuevo ? null : _centro?.IdCentroCoste, Inmueble = inmueble,
-            SeAmortiza = _seAmortiza && !_esAjeno, InicioAmortizacion = fecha, BaseAmortizable = FichaActivoVM.Importe(_base) ?? 0m,
+            FechaCompra = fecha, Coste = EsInversion ? compra?.ImporteTotalEur ?? 0m : FichaActivoVM.Importe(_coste) ?? 0m, IdCentroCoste = _esAjeno || _centroNuevo ? null : _centro?.IdCentroCoste, Inmueble = inmueble,
+            SeAmortiza = _seAmortiza && !_esAjeno && !EsInversion, InicioAmortizacion = fecha, BaseAmortizable = FichaActivoVM.Importe(_base) ?? 0m,
             ValorResidual = FichaActivoVM.Importe(_residual) ?? 0m, PorcentajeAnual = FichaActivoVM.Porcentaje(_pctAnual) ?? 0m,
         };
     }

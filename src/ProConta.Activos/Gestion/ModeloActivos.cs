@@ -1,4 +1,4 @@
-using ProConta.Activos.Subcuentas;
+﻿using ProConta.Activos.Subcuentas;
 using ProConta.Contabilidad.Amortizacion;
 
 namespace ProConta.Activos.Gestion;
@@ -7,6 +7,7 @@ namespace ProConta.Activos.Gestion;
 public sealed record TipoActivo(int IdTipoActivo, string Codigo, string Nombre, bool AmortizablePredeterminado)
 {
     public bool EsInmueble => TiposActivoPgc.EsInmueble(Codigo);
+    public bool EsInversion => TiposActivoPgc.EsInversion(Codigo);
     public string Clase => ReglasFichaActivo.Clase(Codigo);
 
     /// <summary>% anual habitual del tipo, en tanto por uno, para proponerlo en el alta (tabla de coeficientes simplificada).</summary>
@@ -15,6 +16,7 @@ public sealed record TipoActivo(int IdTipoActivo, string Codigo, string Nombre, 
         TiposActivoPgc.Vehiculo => 0.16m,
         TiposActivoPgc.Instalacion => 0.10m,
         TiposActivoPgc.Aplicacion => 0.33m,
+        TiposActivoPgc.Inversion => 0m,
         _ => 0.03m,
     };
 }
@@ -75,8 +77,11 @@ public sealed record ResultadosDeActivo(CuentaResultados Actual, CuentaResultado
 /// <summary>Los gastos generales que se han repartido: total de la sociedad, sus ingresos ordinarios y la parte del activo.</summary>
 public sealed record GastosGeneralesAnual(decimal GastosGenerales, decimal IngresosOrdinariosSociedad, decimal IngresosOrdinariosActivo, decimal Parte);
 
-/// <summary>Alta paso a paso: los datos y el centro (uno que existe, o uno nuevo bajo un padre con el nombre corto del activo).</summary>
-public sealed record AltaActivo(DatosActivo Datos, int? IdCentroPadreNuevo = null);
+/// <summary>
+/// Alta paso a paso: los datos y el centro (uno que existe, o uno nuevo bajo un padre con el nombre corto del activo). Un activo financiero lleva además
+/// su instrumento (por ISIN) y su primera compra (activos/activos-financieros 2026-11-23 20:32).
+/// </summary>
+public sealed record AltaActivo(DatosActivo Datos, int? IdCentroPadreNuevo = null, Financieros.DatosInstrumento? Instrumento = null, Financieros.CompraInversion? Compra = null);
 
 /// <summary>Activos de un centro de coste, para abrir la pantalla desde el Impuesto sobre Sociedades.</summary>
 public sealed record ActivosDeCentro(int? IdCentroCoste, string TextoCentro, IReadOnlyList<ActivoListado> Activos);

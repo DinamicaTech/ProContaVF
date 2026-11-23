@@ -242,6 +242,11 @@ public partial class VentanaPrincipal : Window
         // Ventas por facturar (facturacion/reservas): reservas de Avaibook y altas manuales que se facturan por mes, cliente y activo.
         var ventas = new ProConta.Facturacion.Ventas.ServicioVentas(bd, sociedades, facturas, serviciosFacturacion.Conceptos, autorizador);
         var clienteAvaibook = new ProConta.Facturacion.Ventas.ClienteAvaibookHttp(Http);
+        // Cotizaciones de los activos financieros (activos/activos-financieros 2026-11-23): Yahoo Finance, EODHD con la clave de Integraciones y cambio del BCE.
+        var clienteEodhd = new ProConta.Activos.Financieros.ClienteEodhd(Http);
+        var cotizaciones = new ProConta.Activos.Financieros.ServicioCotizaciones(new ProConta.Activos.Financieros.ClienteYahooFinance(Http), clienteEodhd,
+            new ProConta.Activos.Financieros.ServicioCambiosDivisa(bd, new ProConta.Activos.Financieros.ClienteBce(Http)),
+            () => ProConta.Activos.Mantenimiento.ProveedorConexionCotizaciones.ClaveAsync(bd, contexto.Contexto.IdSociedad));
         _facturacion.Ventas = ventas;
         _facturacion.Avaibook = new ProConta.Facturacion.Ventas.ImportadorAvaibook(bd, ventas, clienteAvaibook, autorizador);
         _facturacion.AbrirParametros = clave => AbrirParametros(clave);
@@ -366,7 +371,7 @@ public partial class VentanaPrincipal : Window
         var mantenimiento = new ServicioMantenimiento(
             new IProveedorMantenimiento[] { new ProveedorConfiguracionGeneral(bd) }.Concat(proveedoresOrganizacion).Concat(ProveedoresFacturacion.Todos(bd, cuentas)).Concat(ProConta.Facturacion.Ventas.ProveedoresVentas.Todos(bd, ventas, clienteAvaibook))
                 .Concat(ProConta.Compras.Mantenimiento.ProveedoresCompras.Todos(bd)).Concat(ProveedoresCorreo.Todos(bd))
-                .Concat(ProConta.Activos.Mantenimiento.ProveedoresActivos.Todos(bd, cuentas)).Concat(ProConta.Documentos.Mantenimiento.ProveedoresDocumentos.Todos(bd)),
+                .Concat(ProConta.Activos.Mantenimiento.ProveedoresActivos.Todos(bd, cuentas, clienteEodhd)).Concat(ProConta.Documentos.Mantenimiento.ProveedoresDocumentos.Todos(bd)),
             () => autorizador.PuedeAsync(Acciones.MantenimientoEditar));
         var contextoMantenimiento = new ContextoMantenimiento(contexto.Contexto, contexto.RazonSocial, new Actor(sesion.NombreOperador));
         _crearMantenimiento = () => new PantallaMantenimientoVM(mantenimiento, contextoMantenimiento,
@@ -670,6 +675,7 @@ public partial class VentanaPrincipal : Window
                 AbrirFacturaVenta = id => _facturacion.AbrirFactura(id),
                 AbrirProgramada = id => _facturacion.AbrirProgramada(id),
                 CrearPanelDocumentos = (id, nombre) => _documentos.CrearPanel(new ProConta.Documentos.Vinculo(ProConta.Documentos.TiposEntidad.Activo, id, null, nombre)),
+                Cotizaciones = cotizaciones,
             },
             _area, new ProConta.Activos.UI.Vistas.DialogosActivos(() => this));
         var abrirActivos = new ComandoDelegado(() => _activos.AbrirListado());

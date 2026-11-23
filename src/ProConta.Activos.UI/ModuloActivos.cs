@@ -1,4 +1,4 @@
-using ProConta.Activos.Gestion;
+﻿using ProConta.Activos.Gestion;
 using ProConta.Activos.Subcuentas;
 using ProConta.Nucleo.Contexto;
 using ProConta.UI.Base.Contenedor;
@@ -26,10 +26,14 @@ public sealed record ContextoActivos(ServicioActivos Servicio, ContextoSociedadE
 
     /// <summary>Panel del gestor documental para un activo (su Id y su nombre): apartado Documentos de la ficha (documentos 2026-11-18).</summary>
     public Func<int, string, object>? CrearPanelDocumentos { get; init; }
+
+    /// <summary>Cotizaciones por ISIN y precio en euros de los activos financieros (activos/activos-financieros); null sin conexión configurada.</summary>
+    public Financieros.ICotizaciones? Cotizaciones { get; init; }
 }
 
 /// <summary>Apartado de la ficha.</summary>
-public enum ApartadoFicha { Datos, CuentaResultados, Facturas, Ventas, Subcuentas, Amortizacion, Documentos }
+/// <remarks>El índice de cada valor es el de su pestaña en la ficha: Operaciones (activos financieros) va al final.</remarks>
+public enum ApartadoFicha { Datos, CuentaResultados, Facturas, Ventas, Subcuentas, Amortizacion, Documentos, Operaciones }
 
 /// <summary>Diálogos de la pantalla de activos (en pruebas se sustituyen por respuestas fijas).</summary>
 public interface IDialogosActivos
@@ -50,6 +54,15 @@ public interface IDialogosActivos
 
     /// <summary>Abre un fichero con el programa del sistema.</summary>
     void AbrirFichero(string ruta);
+
+    /// <summary>Abre una dirección web en el navegador predeterminado.</summary>
+    void AbrirEnNavegador(string url);
+
+    /// <summary>Muestra «Nueva compra…» de un activo financiero; true si se ha guardado.</summary>
+    bool NuevaCompra(NuevaCompraVM compra);
+
+    /// <summary>Pide un importe en euros con una explicación; null si se cancela.</summary>
+    decimal? PedirImporte(string titulo, string explicacion, decimal actual);
 }
 
 /// <summary>
@@ -202,6 +215,30 @@ public sealed class ModuloActivos(ContextoActivos contexto, IAnfitrionPestanas a
             dialogos.Error("No se han generado las subcuentas", $"{ex.Message} Lo hecho hasta el fallo se conserva; pulsa «Generar las que falten…» otra vez para terminar.");
             return true;
         }
+    }
+
+    /// <summary>
+    /// «Nueva compra…» de un activo financiero (activos/activos-financieros 2026-11-23 20:32): fecha y participaciones, con el precio del día; al guardar
+    /// se refrescan el listado y su ficha si está abierta.
+    /// </summary>
+    internal async Task NuevaCompraAsync(int idActivo, string codigo)
+    {
+        if (!await contexto.Servicio.PuedeAsync()) { SinPermiso(); return; }
+        Financieros.InversionDeActivo? inversion;
+        try { inversion = await contexto.Servicio.InversionAsync(idActivo); }
+        catch (Exception ex) { dialogos.Error("No he podido leer el activo", $"{ex.Message} Pulsa Actualizar (F5) y vuelve a intentarlo."); return; }
+        if (inversion is null)
+        {
+            dialogos.Error("No es un activo financiero", $"El activo {codigo} no tiene ISIN, así que no se le pueden anotar compras de participaciones. " +
+                "Las compras de los demás activos entran por su factura de compra.");
+            return;
+        }
+        var vm = new NuevaCompraVM(contexto, idActivo, codigo, inversion);
+        _ = vm.CargarAsync();
+        if (!dialogos.NuevaCompra(vm)) return;
+        contexto.Avisar($"Compra anotada en {codigo}.");
+        Cambiado();
+        if (_fichas.FirstOrDefault(f => f.IdActivo == idActivo) is { } ficha) _ = ficha.RecargarTrasCompraAsync();
     }
 
     internal void SinPermiso() => dialogos.Error("Sin permiso para los activos",

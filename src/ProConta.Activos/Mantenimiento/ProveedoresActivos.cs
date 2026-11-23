@@ -1,4 +1,4 @@
-using System.Globalization;
+﻿using System.Globalization;
 using ProConta.Activos.Subcuentas;
 using ProConta.Contabilidad.Cuentas;
 using ProConta.Datos.Persistencia;
@@ -15,10 +15,12 @@ public static class ProveedoresActivos
 {
     public const string Categoria = "Activos";
 
-    public static IReadOnlyList<IProveedorMantenimiento> Todos(IBaseDatos bd, ICatalogoCuentas cuentas)
+    /// <param name="eodhd">Cliente de EODHD para «Probar la clave» de Integraciones › «Cotizaciones · EODHD» (activos/activos-financieros).</param>
+    public static IReadOnlyList<IProveedorMantenimiento> Todos(IBaseDatos bd, ICatalogoCuentas cuentas, Financieros.ClienteEodhd? eodhd = null)
     {
         var generador = new GeneradorSubcuentasActivo(bd, cuentas);
-        return [new ProveedorTiposActivo(bd, generador), new ProveedorTiposSubcuentaActivo(bd), new ProveedorPlantillasSubcuentasActivo(bd, generador), new ProveedorInmueblesModelos(bd)];
+        return [new ProveedorTiposActivo(bd, generador), new ProveedorTiposSubcuentaActivo(bd), new ProveedorPlantillasSubcuentasActivo(bd, generador), new ProveedorInmueblesModelos(bd),
+            new ProveedorConexionCotizaciones(bd, eodhd)];
     }
 
     internal const string AccionGenerar = "generar-subcuentas";

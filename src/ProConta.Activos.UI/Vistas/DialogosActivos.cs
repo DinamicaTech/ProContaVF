@@ -1,4 +1,4 @@
-using System.Windows;
+﻿using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using Microsoft.Win32;
@@ -30,6 +30,74 @@ public sealed class DialogosActivos(Func<Window?> propietario) : IDialogosActivo
         {
             Error("Excel guardado", $"Lo he guardado en {ruta}, pero no he podido abrirlo: {ex.Message} Ábrelo desde el Explorador.");
         }
+    }
+
+    public void AbrirEnNavegador(string url)
+    {
+        try { System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(url) { UseShellExecute = true })?.Dispose(); }
+        catch (Exception ex) when (ex is System.ComponentModel.Win32Exception or InvalidOperationException)
+        {
+            Error("No he podido abrir el navegador", $"{ex.Message} Copia esta dirección en el navegador: {url}");
+        }
+    }
+
+    /// <summary>«Nueva compra…» de un activo financiero: Cancelar y «Guardar la compra».</summary>
+    public bool NuevaCompra(NuevaCompraVM compra)
+    {
+        var d = new DialogoProConta { Title = compra.Titulo, Owner = propietario(), SizeToContent = SizeToContent.WidthAndHeight };
+        var panel = new StackPanel { Width = 720 };
+        panel.Children.Add(new TextBlock { Text = compra.Cabecera, FontWeight = FontWeights.SemiBold, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 0, 0, 4) });
+        panel.Children.Add(new TextBlock { Text = compra.Situacion, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 0, 0, 10) });
+        if (compra.SinSimbolo)
+            panel.Children.Add(new TextBlock
+            {
+                Text = "Este activo no tiene símbolo de Yahoo ni de EODHD, así que el precio no se puede consultar: escríbelo a mano.",
+                TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 0, 0, 10),
+            });
+        panel.Children.Add(new VistaFormularioCompra { DataContext = compra.Compra });
+        var errores = new TextBox { IsReadOnly = true, TextWrapping = TextWrapping.Wrap, BorderThickness = new Thickness(0), Background = System.Windows.Media.Brushes.Transparent,
+            Margin = new Thickness(0, 10, 0, 0), ToolTip = "Lo que falta o está mal escrito. Puedes seleccionarlo y copiarlo" };
+        errores.SetBinding(TextBox.TextProperty, new System.Windows.Data.Binding(nameof(NuevaCompraVM.Errores)) { Source = compra, Mode = System.Windows.Data.BindingMode.OneWay });
+        errores.SetBinding(UIElement.VisibilityProperty, new System.Windows.Data.Binding(nameof(NuevaCompraVM.HayErrores))
+            { Source = compra, Converter = new ProConta.UI.Base.Formato.VisibleSiConverter() });
+        errores.Foreground = (System.Windows.Media.Brush)d.FindResource("Pincel.RojoSaldo");
+        panel.Children.Add(errores);
+        d.Content = panel;
+        var guardar = new Button { Content = "Guardar la compra", Style = (Style)d.FindResource("Boton.Primario"), IsDefault = true, Margin = new Thickness(8, 0, 0, 0),
+            Command = compra.GuardarCommand, ToolTip = "Anota la compra en el activo: suma sus participaciones y su coste. No graba ningún asiento" };
+        var cancelar = new Button { Content = "Cancelar", IsCancel = true, ToolTip = "Cierra sin anotar nada" };
+        cancelar.Click += (_, _) => d.DialogResult = false;
+        d.Botones = new StackPanel { Orientation = Orientation.Horizontal, Children = { cancelar, guardar } };
+        compra.Guardada += (_, _) => d.DialogResult = true;
+        return d.ShowDialog() == true;
+    }
+
+    /// <summary>Un importe en euros con su explicación; Aceptar solo si se lee como importe mayor que cero.</summary>
+    public decimal? PedirImporte(string titulo, string explicacion, decimal actual)
+    {
+        var d = new DialogoProConta { Title = titulo, Owner = propietario(), SizeToContent = SizeToContent.WidthAndHeight };
+        var panel = new StackPanel { Width = 480 };
+        panel.Children.Add(new TextBlock { Text = explicacion, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 0, 0, 10) });
+        var caja = new TextBox { Text = ProConta.UI.Base.Formato.Formatos.Numero(actual), Width = 140, TextAlignment = TextAlignment.Right, HorizontalAlignment = HorizontalAlignment.Left,
+            ToolTip = "Importe total en euros, con dos decimales (por ejemplo 1.250,40)" };
+        panel.Children.Add(caja);
+        var error = new TextBlock { TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 8, 0, 0), Visibility = Visibility.Collapsed,
+            Foreground = (System.Windows.Media.Brush)d.FindResource("Pincel.RojoSaldo") };
+        panel.Children.Add(error);
+        d.Content = panel;
+        decimal? valor = null;
+        var aceptar = new Button { Content = "Guardar", Style = (Style)d.FindResource("Boton.Primario"), IsDefault = true, Margin = new Thickness(8, 0, 0, 0), ToolTip = "Guarda este importe" };
+        var cancelar = new Button { Content = "Cancelar", IsCancel = true, ToolTip = "Cierra sin cambiar nada" };
+        aceptar.Click += (_, _) =>
+        {
+            if (ProConta.UI.Base.Formato.Formatos.LeerImporte(caja.Text, out var v) && v > 0m) { valor = v; d.DialogResult = true; return; }
+            error.Text = "Escribe un importe mayor que cero, por ejemplo 1.250,40.";
+            error.Visibility = Visibility.Visible;
+        };
+        cancelar.Click += (_, _) => d.DialogResult = false;
+        d.Botones = new StackPanel { Orientation = Orientation.Horizontal, Children = { cancelar, aceptar } };
+        d.Loaded += (_, _) => { caja.Focus(); caja.SelectAll(); };
+        return d.ShowDialog() == true ? valor : null;
     }
 
     /// <summary>Lista de centros con buscador, sangrados por nivel; doble clic o Intro eligen.</summary>

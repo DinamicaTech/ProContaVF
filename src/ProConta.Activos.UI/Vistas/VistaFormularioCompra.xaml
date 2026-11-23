@@ -1,0 +1,57 @@
+<UserControl x:Class="ProConta.Activos.UI.Vistas.VistaFormularioCompra"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:pc="urn:proconta-ui">
+  <!-- La compra de participaciones de un activo financiero (activos/activos-financieros 2026-11-23 20:32): DataContext = FormularioCompraVM -->
+  <UserControl.Resources>
+    <pc:VisibleSiConverter x:Key="Visible" />
+    <Style x:Key="Rotulo" TargetType="TextBlock">
+      <Setter Property="FontSize" Value="{StaticResource Letra.Pequena}" />
+      <Setter Property="Foreground" Value="{StaticResource Pincel.Apagado}" />
+      <Setter Property="Margin" Value="0,0,0,3" />
+    </Style>
+    <Style x:Key="Campo.Bloque" TargetType="StackPanel">
+      <Setter Property="Margin" Value="0,0,14,10" />
+    </Style>
+  </UserControl.Resources>
+  <StackPanel>
+    <WrapPanel>
+      <StackPanel Style="{StaticResource Campo.Bloque}">
+        <TextBlock Text="Fecha de compra" Style="{StaticResource Rotulo}" />
+        <TextBox Text="{Binding Fecha, UpdateSourceTrigger=LostFocus}" Width="110"
+                 ToolTip="dd/mm/aaaa. Hoy por defecto; al cambiarla se consulta el precio de cierre de ese día (o del último día con cotización)" />
+      </StackPanel>
+      <StackPanel Style="{StaticResource Campo.Bloque}">
+        <TextBlock Text="Participaciones" Style="{StaticResource Rotulo}" />
+        <TextBox Text="{Binding Participaciones, UpdateSourceTrigger=PropertyChanged}" Width="120" TextAlignment="Right"
+                 ToolTip="Cuántas participaciones has comprado; pueden llevar hasta seis decimales (por ejemplo 12,345678)" />
+      </StackPanel>
+      <StackPanel Style="{StaticResource Campo.Bloque}">
+        <TextBlock Text="{Binding RotuloPrecio}" Style="{StaticResource Rotulo}" />
+        <StackPanel Orientation="Horizontal">
+          <TextBox Text="{Binding Precio, UpdateSourceTrigger=PropertyChanged}" Width="120" TextAlignment="Right"
+                   ToolTip="Precio de una participación en la moneda en que cotiza. Se rellena con el del proveedor; puedes escribirlo a mano" />
+          <Button Content="Consultar precio" Style="{StaticResource Boton.Pequeno}" Command="{Binding ConsultarPrecioCommand}" Margin="6,0,0,0" VerticalAlignment="Center"
+                  ToolTipService.ShowOnDisabled="True" ToolTip="Vuelve a pedir al proveedor el precio de la fecha de compra (hace falta el símbolo de Yahoo o de EODHD)" />
+        </StackPanel>
+      </StackPanel>
+      <StackPanel Style="{StaticResource Campo.Bloque}" Visibility="{Binding EnOtraMoneda, Converter={StaticResource Visible}}">
+        <TextBlock Text="Cambio (por 1 €)" Style="{StaticResource Rotulo}" />
+        <TextBox Text="{Binding Cambio, UpdateSourceTrigger=PropertyChanged}" Width="90" TextAlignment="Right" ToolTip="{Binding AyudaCambio}" />
+      </StackPanel>
+      <StackPanel Style="{StaticResource Campo.Bloque}">
+        <TextBlock Text="Precio en euros" Style="{StaticResource Rotulo}" />
+        <TextBox Text="{Binding PrecioEuros, Mode=OneWay}" IsReadOnly="True" Width="120" TextAlignment="Right" ToolTip="Precio / cambio: lo que vale una participación en euros" />
+      </StackPanel>
+      <StackPanel Style="{StaticResource Campo.Bloque}">
+        <TextBlock Text="Coste total del lote (€)" Style="{StaticResource Rotulo}" />
+        <TextBox Text="{Binding CosteTotal, UpdateSourceTrigger=PropertyChanged}" Width="130" TextAlignment="Right"
+                 ToolTip="Participaciones × precio en euros, a céntimos. Si ya sabes el importe que te cobró el bróker (con comisiones), escríbelo; si no, lo podrás corregir después en la ficha" />
+      </StackPanel>
+    </WrapPanel>
+    <TextBlock Text="{Binding Origen}" Style="{StaticResource Texto.Apagado}" TextWrapping="Wrap" MaxWidth="680" HorizontalAlignment="Left" />
+    <pc:Nota Tipo="Aviso" Margin="0,6,0,0" Visibility="{Binding HayErrorPrecio, Converter={StaticResource Visible}}">
+      <TextBlock Text="{Binding ErrorPrecio}" TextWrapping="Wrap" />
+    </pc:Nota>
+  </StackPanel>
+</UserControl>

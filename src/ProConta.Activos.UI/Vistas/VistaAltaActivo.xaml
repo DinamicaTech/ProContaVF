@@ -1,7 +1,8 @@
-<UserControl x:Class="ProConta.Activos.UI.Vistas.VistaAltaActivo"
+﻿<UserControl x:Class="ProConta.Activos.UI.Vistas.VistaAltaActivo"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:pc="urn:proconta-ui"
+             xmlns:v="clr-namespace:ProConta.Activos.UI.Vistas"
              Width="720">
   <UserControl.Resources>
     <pc:VisibleSiConverter x:Key="Visible" />
@@ -38,7 +39,53 @@
 
     <!-- Paso 2: la compra -->
     <StackPanel Visibility="{Binding EnPaso2, Converter={StaticResource Visible}}">
-      <TextBlock TextWrapping="Wrap" Margin="0,0,0,8" Text="Datos de la compra. Si es un inmueble, también los del catastro: con ellos se calcula qué parte es construcción." />
+      <TextBlock TextWrapping="Wrap" Margin="0,0,0,8" Text="Datos de la compra. Si es un inmueble, también los del catastro: con ellos se calcula qué parte es construcción."
+                 Visibility="{Binding NoEsInversion, Converter={StaticResource Visible}}" />
+
+      <!-- Activo financiero (activos/activos-financieros 2026-11-23 20:32): ISIN, búsqueda en Yahoo y, si no, en EODHD -->
+      <StackPanel Visibility="{Binding EsInversion, Converter={StaticResource Visible}}">
+        <TextBlock TextWrapping="Wrap" Margin="0,0,0,8"
+                   Text="Escribe el ISIN y pulsa «Buscar»: el programa trae su nombre, su símbolo y la moneda en que cotiza, y el precio del día de compra en euros." />
+        <WrapPanel>
+          <StackPanel Style="{StaticResource Campo.Bloque}">
+            <TextBlock Text="ISIN" Style="{StaticResource Rotulo}" />
+            <StackPanel Orientation="Horizontal">
+              <TextBox Text="{Binding IsinTexto, UpdateSourceTrigger=PropertyChanged}" Width="150" MaxLength="14" Style="{StaticResource Campo.Mono}"
+                       ToolTip="Los 12 caracteres del ISIN (por ejemplo IE00B4L5Y983): está en el extracto del bróker o en la ficha del fondo" />
+              <Button Content="Buscar" Style="{StaticResource Boton.Pequeno}" Command="{Binding BuscarIsinCommand}" Margin="6,0,0,0" VerticalAlignment="Center" IsDefault="False"
+                      ToolTipService.ShowOnDisabled="True" ToolTip="Busca el ISIN en Yahoo Finance y, si no está, en EODHD; comprueba antes que el ISIN está bien escrito" />
+              <TextBlock Text="Buscando…" Style="{StaticResource Texto.Apagado}" Margin="8,0,0,0" VerticalAlignment="Center"
+                         Visibility="{Binding Buscando, Converter={StaticResource Visible}}" />
+            </StackPanel>
+          </StackPanel>
+          <StackPanel Style="{StaticResource Campo.Bloque}" Visibility="{Binding HayVariasCotizaciones, Converter={StaticResource Visible}}">
+            <TextBlock Text="Bolsa y moneda" Style="{StaticResource Rotulo}" />
+            <ComboBox ItemsSource="{Binding Cotizaciones}" SelectedItem="{Binding Elegida}" DisplayMemberPath="Texto" Width="300"
+                      ToolTip="Este ISIN cotiza en varias bolsas: se propone la que cotiza en euros. Su cotización es la que se seguirá" />
+          </StackPanel>
+          <StackPanel Style="{StaticResource Campo.Bloque}" Visibility="{Binding BusquedaHecha, Converter={StaticResource Visible}}">
+            <TextBlock Text="Símbolo en Yahoo" Style="{StaticResource Rotulo}" />
+            <TextBox Text="{Binding TickerYahoo, UpdateSourceTrigger=LostFocus}" Width="130" MaxLength="30" Style="{StaticResource Campo.Mono}"
+                     ToolTip="Símbolo con que Yahoo Finance sigue su cotización (por ejemplo IWDA.AS). Lo pone la búsqueda; si Yahoo no lo encuentra, búscalo en el navegador y escríbelo" />
+          </StackPanel>
+        </WrapPanel>
+        <TextBlock Text="{Binding TextoElegida}" Style="{StaticResource Texto.Apagado}" Margin="0,0,0,6" />
+        <pc:Nota Tipo="Error" Margin="0,0,0,10" Visibility="{Binding AvisoGrave, Converter={StaticResource Visible}}">
+          <StackPanel>
+            <TextBlock Text="{Binding Aviso}" TextWrapping="Wrap" />
+            <Button Content="Buscar en Yahoo con el navegador" Style="{StaticResource Boton.Pequeno}" Command="{Binding AbrirYahooCommand}" HorizontalAlignment="Left" Margin="0,6,0,0"
+                    ToolTip="Abre finance.yahoo.com con este ISIN en el navegador predeterminado, para ver con qué símbolo cotiza" />
+          </StackPanel>
+        </pc:Nota>
+        <pc:Nota Tipo="Aviso" Margin="0,0,0,10" Visibility="{Binding AvisoLeve, Converter={StaticResource Visible}}">
+          <StackPanel>
+            <TextBlock Text="{Binding Aviso}" TextWrapping="Wrap" />
+            <Button Content="Buscar en Yahoo con el navegador" Style="{StaticResource Boton.Pequeno}" Command="{Binding AbrirYahooCommand}" HorizontalAlignment="Left" Margin="0,6,0,0"
+                    ToolTip="Abre finance.yahoo.com con este ISIN en el navegador predeterminado, para ver con qué símbolo cotiza" />
+          </StackPanel>
+        </pc:Nota>
+      </StackPanel>
+
       <WrapPanel>
         <StackPanel Style="{StaticResource Campo.Bloque}">
           <TextBlock Text="Nombre" Style="{StaticResource Rotulo}" />
@@ -52,15 +99,21 @@
           <TextBlock Text="Código" Style="{StaticResource Rotulo}" />
           <TextBox Text="{Binding Codigo, UpdateSourceTrigger=PropertyChanged}" Width="180" MaxLength="40" ToolTip="Código corto y único en la sociedad; se propone a partir del nombre corto" />
         </StackPanel>
-        <StackPanel Style="{StaticResource Campo.Bloque}">
+        <StackPanel Style="{StaticResource Campo.Bloque}" Visibility="{Binding NoEsInversion, Converter={StaticResource Visible}}">
           <TextBlock Text="Fecha de compra" Style="{StaticResource Rotulo}" />
-          <TextBox Text="{Binding FechaCompra, UpdateSourceTrigger=PropertyChanged}" Width="110" ToolTip="dd/mm/aaaa. Desde este día empieza a amortizarse" />
+          <TextBox Text="{Binding FechaCompra, UpdateSourceTrigger=PropertyChanged}" Width="110" ToolTip="dd/mm/aaaa. Hoy por defecto. Desde este día empieza a amortizarse" />
         </StackPanel>
-        <StackPanel Style="{StaticResource Campo.Bloque}" Visibility="{Binding Propio, Converter={StaticResource Visible}}">
+        <StackPanel Style="{StaticResource Campo.Bloque}" Visibility="{Binding PropioNoInversion, Converter={StaticResource Visible}}">
           <TextBlock Text="Coste de compra (€)" Style="{StaticResource Rotulo}" />
           <TextBox Text="{Binding Coste, UpdateSourceTrigger=PropertyChanged}" Width="140" TextAlignment="Right" ToolTip="Precio más gastos de compra (notaría, registro, impuestos)" />
         </StackPanel>
       </WrapPanel>
+      <Border Visibility="{Binding EsInversion, Converter={StaticResource Visible}}" BorderBrush="{StaticResource Pincel.Linea}" BorderThickness="0,1,0,0" Padding="0,8,0,0" Margin="0,0,0,6">
+        <StackPanel>
+          <TextBlock Text="La compra" Style="{StaticResource Texto.Seccion}" Margin="0,0,0,6" />
+          <v:VistaFormularioCompra DataContext="{Binding Compra}" />
+        </StackPanel>
+      </Border>
       <WrapPanel Visibility="{Binding EsInmueble, Converter={StaticResource Visible}}">
         <StackPanel Style="{StaticResource Campo.Bloque}">
           <TextBlock Text="Referencia catastral" Style="{StaticResource Rotulo}" />
@@ -103,7 +156,9 @@
     <!-- Paso 3: la amortización -->
     <StackPanel Visibility="{Binding EnPaso3, Converter={StaticResource Visible}}">
       <TextBlock Text="Un activo ajeno no se amortiza: no hay nada que rellenar en este paso." TextWrapping="Wrap" Visibility="{Binding EsAjeno, Converter={StaticResource Visible}}" />
-      <StackPanel Visibility="{Binding Propio, Converter={StaticResource Visible}}">
+      <TextBlock Text="Las inversiones financieras no se amortizan: no hay nada que rellenar en este paso. Su valor se sigue con la cotización." TextWrapping="Wrap"
+                 Visibility="{Binding EsInversion, Converter={StaticResource Visible}}" />
+      <StackPanel Visibility="{Binding PropioNoInversion, Converter={StaticResource Visible}}">
         <TextBlock Text="{Binding TextoHabitual}" TextWrapping="Wrap" Margin="0,0,0,8" />
         <CheckBox Content="Se amortiza cada año" IsChecked="{Binding SeAmortiza}" Margin="0,0,0,10" ToolTip="Desmárcalo si no se amortiza (por ejemplo, un terreno)" />
         <WrapPanel Visibility="{Binding SeAmortiza, Converter={StaticResource Visible}}">

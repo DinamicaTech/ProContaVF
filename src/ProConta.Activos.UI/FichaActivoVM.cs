@@ -1,4 +1,4 @@
-using System.Collections;
+﻿using System.Collections;
 using System.ComponentModel;
 using System.Globalization;
 using System.Windows.Input;
@@ -133,6 +133,7 @@ public sealed partial class FichaActivoVM : ModeloVista, IPestanaTrabajo, INotif
         set
         {
             if (_ficha is { Datos.EsAjeno: true } && value != ApartadoFicha.Documentos) value = ApartadoFicha.Datos;
+            if (_ficha is not null && value == ApartadoFicha.Operaciones && !EsFinanciero) value = ApartadoFicha.Datos;
             if (!Fijar(ref _apartado, value)) return;
             Avisar(nameof(IndiceApartado), nameof(EnDatos));
             _ = CargarApartadoAsync();
@@ -140,7 +141,7 @@ public sealed partial class FichaActivoVM : ModeloVista, IPestanaTrabajo, INotif
     }
 
     /// <summary>Índice de la pestaña del apartado (para el TabControl).</summary>
-    public int IndiceApartado { get => (int)_apartado; set => Apartado = (ApartadoFicha)Math.Clamp(value, 0, 6); }
+    public int IndiceApartado { get => (int)_apartado; set => Apartado = (ApartadoFicha)Math.Clamp(value, 0, (int)ApartadoFicha.Operaciones); }
 
     // ---------- apartado Documentos (documentos 2026-11-18): el panel común del gestor documental ----------
     private object? _documentos;
@@ -202,7 +203,7 @@ public sealed partial class FichaActivoVM : ModeloVista, IPestanaTrabajo, INotif
         if (TieneCambios && _modulo.Dialogos.Preguntar("Cambios sin guardar", "Actualizar vuelve a leer el activo y perderías los cambios que no has guardado.", null,
                 new OpcionMensaje("Descartar y actualizar", "Pierde los cambios y lee el activo de nuevo"), new OpcionMensaje("Seguir editando", "No hace nada", Principal: true, Cancelar: true)) != 0)
             return;
-        _cuenta = null; _subcuentas = null; _amortizacion = null; _compras = null; _ventas = null;
+        _cuenta = null; _subcuentas = null; _amortizacion = null; _compras = null; _ventas = null; _operacionesLeidas = false;
         await CargarAsync();
     }
 
@@ -217,7 +218,8 @@ public sealed partial class FichaActivoVM : ModeloVista, IPestanaTrabajo, INotif
         _intentoGuardar = false;
         Revalidar();
         Avisar(nameof(Nombre), nameof(Codigo), nameof(TipoTexto), nameof(EstadoTexto), nameof(ClaseEstado), nameof(Propio), nameof(CentroTexto), nameof(ActividadTexto),
-            nameof(Titulo), nameof(Ayuda), nameof(MotivoBloqueo), nameof(TipoEditable), nameof(AvisoAjeno), nameof(Tipos));
+            nameof(Titulo), nameof(Ayuda), nameof(MotivoBloqueo), nameof(TipoEditable), nameof(AvisoAjeno), nameof(Tipos), nameof(EsFinanciero), nameof(VerAmortizacion),
+            nameof(TipoCambiable));
         Cambio();
     }
 
@@ -253,6 +255,7 @@ public sealed partial class FichaActivoVM : ModeloVista, IPestanaTrabajo, INotif
                 case ApartadoFicha.Ventas when _ventas is null: await CargarVentasAsync(); break;
                 case ApartadoFicha.Subcuentas when _subcuentas is null: await CargarSubcuentasAsync(); break;
                 case ApartadoFicha.Amortizacion when _amortizacion is null: await CargarAmortizacionAsync(); break;
+                case ApartadoFicha.Operaciones when !_operacionesLeidas: await CargarOperacionesAsync(); break;
                 case ApartadoFicha.Documentos when _documentos is null && _modulo.Contexto.CrearPanelDocumentos is { } crear:
                     _documentos = crear(IdActivo, Nombre.Length > 0 ? Nombre : $"Activo {IdActivo}");
                     Avisar(nameof(PanelDocumentos));
@@ -314,7 +317,10 @@ public sealed partial class FichaActivoVM : ModeloVista, IPestanaTrabajo, INotif
     public bool EsInmueble => _tipo?.EsInmueble == true;
     public bool VerInmueble => EsInmueble;
     public bool VerCompraPropia => !_esAjeno;
-    public bool VerAmortizacion => !_esAjeno;
+    public bool VerAmortizacion => !_esAjeno && !EsFinanciero;
+
+    /// <summary>El tipo y la marca de ajeno no se cambian en un activo financiero (su instrumento y sus compras van con él) ni si lo impide la regla de bloqueo.</summary>
+    public bool TipoCambiable => TipoEditable && !EsFinanciero;
     public bool VerPlan => _seAmortiza && !_esAjeno;
     public string CuotaAnual => Construir().CuotaAnual is var c && c > 0m ? Formatos.Importe(c) : "";
     public string PieDatos => _errores.Count > 0 && _intentoGuardar ? $"Revisa {Formatos.Plural(_errores.Count, "dato", "datos")} marcados en rojo: el aviso de cada uno dice cómo arreglarlo."
