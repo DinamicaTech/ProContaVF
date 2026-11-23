@@ -83,7 +83,8 @@ public sealed record ServiciosTerceros(
     Actor Actor,
     SubcuentasRoles? Subcuentas = null,
     ProConta.Contabilidad.Asientos.IAsientosBancoEnlazados? AsientosBanco = null,
-    CambioSubcuentaTercero? CambioSubcuenta = null);
+    CambioSubcuentaTercero? CambioSubcuenta = null,
+    LectorAcreedorSepa? AcreedorSepa = null);
 
 /// <summary>Diálogos que piden una decisión al operador (en pruebas se sustituyen por respuestas fijas).</summary>
 public interface IDialogos

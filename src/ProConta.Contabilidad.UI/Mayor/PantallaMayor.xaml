@@ -45,6 +45,29 @@
       </ListBox>
     </pc:PanelPlegable>
 
+    <!-- Embebido (ficha de terceros): las subcuentas del tercero, con el mismo aspecto que Recientes y sin aspa (terceros/pantallas 2026-11-23) -->
+    <pc:PanelPlegable DockPanel.Dock="Left" Titulo="Subcuentas del tercero" ClavePreferencias="terceros.subcuentas" AnchoFabrica="252"
+                      Visibility="{Binding Embebido, Converter={StaticResource Visible}}">
+      <pc:PanelPlegable.Pie>
+        <TextBlock Margin="10,6" Style="{StaticResource Texto.Apagado}" FontSize="{StaticResource Letra.Mini}" TextWrapping="Wrap"
+                   Text="Clic: ver solo esa subcuenta · Ctrl o Mayús+clic: elegir varias para el mayor fusionado" />
+      </pc:PanelPlegable.Pie>
+      <ListBox x:Name="ListaCuentasTercero" ItemsSource="{Binding CuentasFijas}" SelectionMode="Extended" AutomationProperties.Name="Subcuentas del tercero"
+               PreviewMouseLeftButtonUp="CuentasTercero_Clic" KeyDown="CuentasTercero_Tecla" BorderThickness="0" HorizontalContentAlignment="Stretch">
+        <ListBox.ItemTemplate>
+          <DataTemplate>
+            <StackPanel ToolTip="{Binding Ayuda}" Background="Transparent">
+              <DockPanel>
+                <TextBlock DockPanel.Dock="Right" Text="{Binding Papel}" FontSize="{StaticResource Letra.Pequena}" Foreground="{StaticResource Pincel.Apagado}" Margin="8,0,0,0" VerticalAlignment="Center" />
+                <TextBlock Text="{Binding Codigo}" Style="{StaticResource Texto.Mono}" />
+              </DockPanel>
+              <TextBlock Text="{Binding Nombre}" FontSize="{StaticResource Letra.Pequena}" Foreground="{StaticResource Pincel.Apagado}" TextTrimming="CharacterEllipsis" />
+            </StackPanel>
+          </DataTemplate>
+        </ListBox.ItemTemplate>
+      </ListBox>
+    </pc:PanelPlegable>
+
     <Border Style="{StaticResource Tarjeta}" Margin="4,0,0,0">
       <DockPanel>
         <!-- Cabecera: cuenta (◀ selector ▶), añadir, ejercicios; o, embebido, las cuentas del tercero -->
@@ -90,23 +113,11 @@
                       ToolTip="Añade otra cuenta a esta vista: mayor combinado, en orden de fecha" ToolTipService.ShowOnDisabled="True" />
             </WrapPanel>
 
-            <!-- Embebido: las cuentas del tercero -->
+            <!-- Embebido: qué cuentas se ven (las del tercero o una contrapartida navegada) y salir al Mayor completo -->
             <WrapPanel Visibility="{Binding Embebido, Converter={StaticResource Visible}}">
-              <TextBlock Text="Mayor del tercero" Style="{StaticResource Texto.Seccion}" VerticalAlignment="Center" Margin="0,0,12,0" />
-              <Button Content="Todas sus cuentas" Style="{StaticResource Boton.Pequeno}" Command="{Binding VerCuentaFijaCommand}" Margin="0,0,6,0" VerticalAlignment="Center"
-                      ToolTip="Mayor combinado de todas las cuentas del tercero (cliente, proveedor y acreedor)" />
-              <ItemsControl ItemsSource="{Binding CuentasFijas}" VerticalAlignment="Center">
-                <ItemsControl.ItemsPanel><ItemsPanelTemplate><StackPanel Orientation="Horizontal" /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
-                <ItemsControl.ItemTemplate>
-                  <DataTemplate>
-                    <Button Content="{Binding Codigo}" Style="{StaticResource Boton.Pequeno}" Margin="0,0,6,0" FontFamily="{StaticResource Fuente.Mono}"
-                            Command="{Binding DataContext.VerCuentaFijaCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding Codigo}"
-                            ToolTip="{Binding Nombre, StringFormat='Solo esta cuenta: {0}'}" />
-                  </DataTemplate>
-                </ItemsControl.ItemTemplate>
-              </ItemsControl>
+              <TextBlock Text="{Binding TextoCuenta}" ToolTip="{Binding AyudaCuenta}" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,12,0" MaxWidth="560" TextTrimming="CharacterEllipsis" />
               <Button Content="Abrir en el Mayor" Style="{StaticResource Boton.Pequeno}" pc:Iconos.Icono="{StaticResource Icono.go}" Command="{Binding AbrirEnMayorCommand}"
-                      Margin="6,0,0,0" VerticalAlignment="Center" ToolTip="Abre estas cuentas en la pestaña Contabilidad › Mayor, con sus recientes y el selector de cuentas" />
+                      VerticalAlignment="Center" ToolTip="Abre las cuentas de esta vista en la pestaña Contabilidad › Mayor, con sus recientes y el selector de cuentas" />
             </WrapPanel>
           </DockPanel>
 

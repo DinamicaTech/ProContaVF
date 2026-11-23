@@ -44,6 +44,7 @@ public partial class PantallaMayor : UserControl
     {
         if (e.PropertyName == nameof(MayorVM.Filas)) PonerFilas();
         else if (e.PropertyName == nameof(MayorVM.Titulo) && _vm is not null) Tabla.TituloExportacion = _vm.Titulo;
+        else if (e.PropertyName == nameof(MayorVM.CuentasVista)) MarcarCuentasTercero();
     }
 
     /// <summary>
@@ -327,6 +328,31 @@ public partial class PantallaMayor : UserControl
             _ = _vm.VerRecientesAsync(ListaRecientes.SelectedItems.OfType<CuentaReciente>().ToList());
             e.Handled = true;
         }
+    }
+
+    // ---------- subcuentas del tercero (embebido) ----------
+
+    private void CuentasTercero_Clic(object sender, MouseButtonEventArgs e)
+    {
+        if (_vm is null) return;
+        _ = _vm.VerCuentasTerceroAsync(ListaCuentasTercero.SelectedItems.OfType<CuentaTercero>().ToList());
+    }
+
+    private void CuentasTercero_Tecla(object sender, KeyEventArgs e)
+    {
+        if (_vm is null || e.Key != Key.Enter) return;
+        _ = _vm.VerCuentasTerceroAsync(ListaCuentasTercero.SelectedItems.OfType<CuentaTercero>().ToList());
+        e.Handled = true;
+    }
+
+    /// <summary>El panel marca las subcuentas que forman la vista: todas al abrir, ninguna al navegar a una contrapartida que no es del tercero.</summary>
+    private void MarcarCuentasTercero()
+    {
+        if (_vm is null || !_vm.Embebido) return;
+        var vista = _vm.CuentasVista;
+        if (ListaCuentasTercero.SelectedItems.OfType<CuentaTercero>().Select(c => c.Codigo).SequenceEqual(vista)) return;
+        ListaCuentasTercero.SelectedItems.Clear();
+        foreach (var c in _vm.CuentasFijas.Where(c => vista.Contains(c.Codigo))) ListaCuentasTercero.SelectedItems.Add(c);
     }
 
     // ---------- ejercicios ----------

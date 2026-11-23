@@ -120,10 +120,14 @@ public sealed class ModuloMayor(ContextoMayor contexto, IAnfitrionPestanas anfit
         await vm.BuscarFacturasAsync(documentos);
     }
 
-    /// <summary>Mayor embebido de unas cuentas (sin recientes): el mismo control y la misma sesión que el completo.</summary>
-    public FrameworkElement CrearEmbebido(IReadOnlyList<string> cuentas)
+    /// <summary>
+    /// Mayor embebido de las subcuentas de un tercero, cada una con su papel (Cliente, Acreedor…): el mismo control y la misma sesión que
+    /// el completo, con el panel de esas subcuentas en lugar de las recientes.
+    /// </summary>
+    public FrameworkElement CrearEmbebido(IReadOnlyList<(string Codigo, string Papel)> cuentas)
     {
-        var vm = new MayorVM(contexto, dialogos, anfitrion.Avisar, cuentas)
+        var papeles = cuentas.GroupBy(c => c.Codigo).ToDictionary(g => g.Key, g => string.Join(" y ", g.Select(c => c.Papel).Distinct()));
+        var vm = new MayorVM(contexto, dialogos, anfitrion.Avisar, cuentas.Select(c => c.Codigo).Distinct().ToList(), papeles: papeles)
         {
             AbrirEnMayor = c => Abrir(c),
             BuscarEnMayor = BuscarFacturas,

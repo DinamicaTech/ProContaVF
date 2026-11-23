@@ -35,10 +35,19 @@ public sealed class ModuloTerceros
     public Func<string, int, string, Task>? EnviarEmail { get; set; }
 
     /// <summary>
-    /// Mayor embebido de la pestaña Contabilidad (contabilidad/mayor): crea el control con las cuentas del tercero. Lo conecta el
-    /// contenedor; null, la pestaña explica que el Mayor no está disponible.
+    /// Mayor embebido de la pestaña Contabilidad (contabilidad/mayor): crea el control con las subcuentas del tercero, cada una con su
+    /// papel («Cliente», «Acreedor»…). Lo conecta el contenedor; null, la pestaña explica que el Mayor no está disponible.
     /// </summary>
-    public Func<IReadOnlyList<string>, object>? MayorEmbebido { get; set; }
+    public Func<IReadOnlyList<(string Codigo, string Papel)>, object>? MayorEmbebido { get; set; }
+
+    /// <summary>
+    /// Convierte a PDF el HTML de una página A4 (mandato SEPA, terceros/roles/mandato-sepa): lo conecta el contenedor con el motor de
+    /// informes; null, el botón «Mandato SEPA…» no está disponible.
+    /// </summary>
+    public Func<string, byte[]>? HtmlAPdf { get; set; }
+
+    /// <summary>Abre un fichero generado (el PDF del mandato) con la aplicación del equipo.</summary>
+    public Action<string>? AbrirFichero { get; set; }
 
     /// <summary>
     /// Pestaña Nóminas (nominas/pantallas): crea su contenido para el tercero si es empleado de la sociedad activa, o null (la

@@ -1,3 +1,4 @@
+using System.IO;
 using System.Collections;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
@@ -57,6 +58,8 @@ public sealed class FichaTerceroVM : Observable, IPestanaTrabajo, INotifyDataErr
         ElegirTipoCommand = new ComandoDelegado(p => TipoPersonaTexto = p as string ?? "");
         AnadirDomicilioCommand = new ComandoDelegado(AnadirDomicilio);
         AnadirEmailCommand = new ComandoDelegado(() => AnadirDato(TipoDatoContacto.Email));
+        MandatoSepaCommand = new ComandoDelegado(() => _ = MandatoSepaAsync(),
+            () => _modulo?.HtmlAPdf is not null && Servicios.AcreedorSepa is not null && ClienteActivo && !string.IsNullOrWhiteSpace(T.Roles.Cliente?.Iban));
         EnviarEmailCommand = new ComandoDelegado(p => { if (p is DatoContactoVM d) _ = EnviarEmailAsync(d); },
             p => _modulo?.EnviarEmail is not null && p is DatoContactoVM { EsEmail: true } d && d.Valor.Trim() is { Length: > 2 } v && v.Contains('@') && !v.Contains(' '));
         AnadirTelefonoCommand = new ComandoDelegado(() => AnadirDato(TipoDatoContacto.Telefono));
@@ -192,25 +195,38 @@ public sealed class FichaTerceroVM : Observable, IPestanaTrabajo, INotifyDataErr
     private object? _mayor;
     private string? _cuentasMayor;
 
-    /// <summary>Mayor de las cuentas del tercero (cliente, proveedor y acreedor): el mismo control que Contabilidad › Mayor, sin recientes.</summary>
+    /// <summary>
+    /// Mayor de las subcuentas del tercero (las de todos sus roles: cliente y su retención, proveedor, acreedor, empleado, dividendos y
+    /// retención de dividendos): el mismo control que Contabilidad › Mayor, con esas subcuentas en el panel de la izquierda.
+    /// </summary>
     public object? MayorContabilidad => _mayor;
     public bool HayMayor => _mayor is not null;
     public string TituloSinMayor => _modulo?.MayorEmbebido is null ? "El Mayor no está disponible aquí" : "Este tercero no tiene cuentas contables";
     public string MensajeSinMayor => _modulo?.MayorEmbebido is null
         ? "Abre la ficha desde el programa para ver el Mayor de sus cuentas."
-        : "Asígnale su cuenta de cliente, proveedor o acreedor en la pestaña Roles y guarda la ficha: aquí verás su mayor, todas juntas o una a una.";
+        : "Asígnale sus subcuentas en la pestaña Roles (cliente, proveedor, acreedor, empleado o socio) y guarda la ficha: aquí verás su mayor, una a una o varias fusionadas.";
 
     /// <summary>Crea (o rehace si cambian sus cuentas) el Mayor embebido; sus datos se leen al abrir la pestaña.</summary>
     private void ActualizarMayor()
     {
         if (_modulo?.MayorEmbebido is not { } crear) return;
-        var codigos = new[] { CuentaCliente, CuentaProveedor, CuentaAcreedor }.Select(c => c.Codigo).Where(c => c.Length > 0).Distinct().ToList();
-        var clave = string.Join("|", codigos);
+        var cuentas = SubcuentasMayor();
+        var clave = string.Join("|", cuentas.Select(c => c.Codigo + ":" + c.Papel));
         if (clave == _cuentasMayor) return;
         _cuentasMayor = clave;
-        _mayor = codigos.Count == 0 ? null : crear(codigos);
+        _mayor = cuentas.Count == 0 ? null : crear(cuentas);
         Avisar(nameof(MayorContabilidad), nameof(HayMayor), nameof(TituloSinMayor), nameof(MensajeSinMayor));
     }
+
+    /// <summary>Subcuentas asignadas a los roles del tercero, en el orden de la pestaña Roles y con su papel (terceros/pantallas 2026-11-23).</summary>
+    public IReadOnlyList<(string Codigo, string Papel)> SubcuentasMayor() =>
+    [
+        .. new (CuentaRolVM Cuenta, string Papel)[]
+        {
+            (CuentaCliente, "Cliente"), (CuentaRetencion, "Retención del cliente"), (CuentaProveedor, "Proveedor"), (CuentaAcreedor, "Acreedor"),
+            (CuentaEmpleado, "Empleado"), (CuentaDividendos, "Dividendos"), (CuentaRetencionDividendos, "Retención dividendos"),
+        }.Where(x => x.Cuenta.Codigo.Length > 0).Select(x => (x.Cuenta.Codigo, x.Papel)),
+    ];
 
     // ---------- pestaña Documentos (documentos 2026-11-18): el panel común del gestor documental, vinculado a este tercero ----------
     private object? _documentos;
@@ -565,6 +581,59 @@ public sealed class FichaTerceroVM : Observable, IPestanaTrabajo, INotifyDataErr
         OpcionesGrupo.Add(OpcionGrupo.General);
         foreach (var g in Grupos) OpcionesGrupo.Add(new OpcionGrupo(g));
         foreach (var d in Emails.Concat(Telefonos)) d.RefrescarGrupo();
+    }
+
+    // ---------- mandato SEPA (terceros/roles/mandato-sepa 2026-11-23) ----------
+
+    /// <summary>Botón «Mandato SEPA…» junto al IBAN del cliente: genera la orden de domiciliación en PDF para que la firme.</summary>
+    public ICommand MandatoSepaCommand { get; }
+
+    public string AyudaMandatoSepa => _modulo?.HtmlAPdf is null || Servicios.AcreedorSepa is null
+        ? "El mandato SEPA no está disponible en esta pantalla."
+        : "Genera en PDF la orden de domiciliación SEPA (pago periódico) con los datos guardados del cliente y los de la sociedad, para que la firme. Necesita el IBAN.";
+
+    private async Task MandatoSepaAsync()
+    {
+        if (_modulo?.HtmlAPdf is not { } aPdf || Servicios.AcreedorSepa is not { } lector) return;
+        if (T.EsNuevo || TieneCambios || T.Roles.Cliente?.IdCliente is null)
+        {
+            var opcion = Dialogos.Preguntar("Guarda la ficha antes",
+                "El mandato se hace con los datos guardados del cliente (nombre, domicilio, IBAN y su código, que es la referencia de la orden). Guarda la ficha y lo genero.",
+                null,
+                new OpcionMensaje("Guardar y generar", "Guarda los cambios de la ficha y genera el mandato", Principal: true),
+                new OpcionMensaje("Cancelar", "Vuelve a la ficha sin guardar", Cancelar: true));
+            if (opcion != 0 || !await GuardarAsync() || T.Roles.Cliente?.IdCliente is null) return;
+        }
+        try
+        {
+            var acreedor = await lector.LeerAsync(Servicios.Contexto.IdSociedad);
+            var faltan = acreedor is null ? ["el nombre", "el NIF", "el domicilio fiscal", "la población fiscal"]
+                : new[] { (acreedor.Nombre, "el nombre"), (acreedor.Nif, "el NIF"), (acreedor.Domicilio.Direccion, "el domicilio fiscal"), (acreedor.Domicilio.Poblacion, "la población fiscal") }
+                    .Where(x => x.Item1.Length == 0).Select(x => x.Item2).ToArray();
+            if (faltan.Length > 0)
+            {
+                Dialogos.Preguntar("Faltan datos de la sociedad",
+                    $"Para el mandato falta {string.Join(", ", faltan)} de la sociedad {NombreSociedad}. Complétalos en Parámetros y tablas › Empresas y ejercicios › Empresas y vuelve a pulsar «Mandato SEPA…».",
+                    null, new OpcionMensaje("Entendido", "Cierra este mensaje", Principal: true, Cancelar: true));
+                return;
+            }
+            var datos = new DatosMandatoSepa(T.Roles.Cliente!.IdCliente!.Value.ToString(System.Globalization.CultureInfo.InvariantCulture), NombreCabecera,
+                new DomicilioSepa(T.Direccion?.Trim() ?? "", T.CodigoPostal?.Trim() ?? "", T.Poblacion?.Trim() ?? "", T.Provincia?.Trim() ?? "",
+                    Paises.EsEspana(T.Pais) ? "España" : Paises.Nombre(T.Pais)),
+                T.Roles.Cliente.Iban!, acreedor!, DateTime.Today);
+            var pdf = await Task.Run(() => aPdf(MandatoSepa.Html(datos)));
+            var carpeta = Path.Combine(Path.GetTempPath(), "ProContaVF", "Mandatos SEPA");
+            Directory.CreateDirectory(carpeta);
+            var ruta = Path.Combine(carpeta, MandatoSepa.NombreFichero(datos));
+            await File.WriteAllBytesAsync(ruta, pdf);
+            if (_modulo.AbrirFichero is { } abrir) abrir(ruta); else _modulo.Avisar($"Mandato SEPA guardado en {ruta}");
+        }
+        catch (Exception ex)
+        {
+            Dialogos.Preguntar("No he podido generar el mandato",
+                $"{ex.Message} La ficha no ha cambiado: vuelve a pulsar «Mandato SEPA…» cuando lo hayas resuelto.",
+                null, new OpcionMensaje("Entendido", "Cierra este mensaje", Principal: true, Cancelar: true));
+        }
     }
 
     public string AyudaEnviarEmail => _modulo?.EnviarEmail is null

@@ -40,6 +40,12 @@ public sealed record CuentaReciente(string Codigo, string Nombre)
     public string Ayuda => $"{Codigo} {Nombre} · clic: ver solo esta · Ctrl+clic: añadirla o quitarla del mayor combinado · Supr: quitarla de las recientes";
 }
 
+/// <summary>Subcuenta del tercero en el panel del Mayor embebido, con su papel (Cliente, Acreedor, Retención dividendos…).</summary>
+public sealed record CuentaTercero(string Codigo, string Nombre, string Papel)
+{
+    public string Ayuda => $"{Codigo} {Nombre} · {Papel} · clic: ver solo esta · Ctrl o Mayús+clic: elegir varias para el mayor fusionado";
+}
+
 /// <summary>Un ejercicio del selector de ejercicios (selección múltiple).</summary>
 public sealed class OpcionEjercicioVM(EjercicioMayor e, bool marcado) : ModeloVista
 {
@@ -74,6 +80,7 @@ public sealed class MayorVM : ModeloVista
     private readonly SesionMayor _sesion;
     private readonly IPreferenciasOperador _prefs;
     private readonly IReadOnlyList<string>? _cuentasFijas;
+    private readonly IReadOnlyDictionary<string, string> _papeles;
     private bool _iniciado;
     private EstadoVista _estado = EstadoVista.Vacio;
     private string _tituloEstado = "Elige una cuenta";
@@ -86,8 +93,10 @@ public sealed class MayorVM : ModeloVista
     private FiltroCuentasMayor _filtroSelector = new();
     private bool _ocupado;
 
-    public MayorVM(ContextoMayor contexto, IDialogosMayor dialogos, Action<string> avisar, IReadOnlyList<string>? cuentasFijas = null, IPreferenciasOperador? preferencias = null)
+    public MayorVM(ContextoMayor contexto, IDialogosMayor dialogos, Action<string> avisar, IReadOnlyList<string>? cuentasFijas = null, IPreferenciasOperador? preferencias = null,
+        IReadOnlyDictionary<string, string>? papeles = null)
     {
+        _papeles = papeles ?? new Dictionary<string, string>();
         _ctx = contexto;
         _dialogos = dialogos;
         _avisar = avisar;
@@ -111,7 +120,10 @@ public sealed class MayorVM : ModeloVista
         if (!Embebido) CargarRecientes();
     }
 
-    /// <summary>Embebido en otra pantalla (ficha de terceros): sin recientes ni selector; lo que sale de sus cuentas va a la pestaña del Mayor.</summary>
+    /// <summary>
+    /// Embebido en otra pantalla (ficha de terceros): en lugar de recientes, el panel con las subcuentas del tercero; sin selector. La
+    /// contrapartida se navega dentro del embebido, sin añadirla al panel; «Abrir en el Mayor» lleva la vista a la pestaña del Mayor.
+    /// </summary>
     public bool Embebido => _cuentasFijas is not null;
     public bool MostrarRecientes => !Embebido;
 
@@ -171,8 +183,11 @@ public sealed class MayorVM : ModeloVista
     public ObservableCollection<OpcionEjercicioVM> Ejercicios { get; } = [];
     public ObservableCollection<EtiquetaVM> Etiquetas { get; } = [];
 
-    /// <summary>Cuentas del tercero en el Mayor embebido, para verlas juntas o una a una.</summary>
-    public IReadOnlyList<CuentaReciente> CuentasFijas => _cuentasFijas?.Select(c => new CuentaReciente(c, _sesion.Nombre(c))).ToList() ?? [];
+    /// <summary>Subcuentas del tercero en el panel del Mayor embebido (se rellena al iniciar, con su nombre del catálogo y su papel).</summary>
+    public ObservableCollection<CuentaTercero> CuentasFijas { get; } = [];
+
+    /// <summary>Cuentas de la vista actual (el panel del embebido marca las que están en ella).</summary>
+    public IReadOnlyList<string> CuentasVista => _sesion.Cuentas;
 
     public IReadOnlyList<FilaMayorVM> Filas { get => _filas; private set => Fijar(ref _filas, value); }
 
@@ -271,7 +286,9 @@ public sealed class MayorVM : ModeloVista
             if (iniciales is { Count: > 0 }) await _sesion.VerCuentasAsync(iniciales);
         });
         if (cuentas is { Count: > 0 } && !Embebido) foreach (var c in cuentas) RecordarReciente(c);
-        Avisar(nameof(CuentasFijas));
+        CuentasFijas.Clear();
+        foreach (var c in _cuentasFijas ?? []) CuentasFijas.Add(new CuentaTercero(c, _sesion.Nombre(c), _papeles.TryGetValue(c, out var p) ? p : ""));
+        Avisar(nameof(CuentasVista));
     }
 
     public Task VerCuentasAsync(IReadOnlyList<string> cuentas)
@@ -409,7 +426,7 @@ public sealed class MayorVM : ModeloVista
             Estado = EstadoVista.Vacio;
             TituloEstado = Embebido ? "Este tercero no tiene cuentas contables" : "Elige una cuenta";
             MensajeEstado = Embebido
-                ? "Asígnale su cuenta de cliente, proveedor o acreedor en la pestaña Roles y aquí verás su mayor."
+                ? "Asígnale sus subcuentas en la pestaña Roles (cliente, proveedor, acreedor, empleado, socio…) y aquí verás su mayor."
                 : "Escribe un código o parte del nombre en el selector de cuentas (Ctrl+F), o elige una de tus recientes. Un código corto, como 572, muestra todas sus subcuentas juntas.";
             AccionEstado = Embebido ? null : "Elegir cuenta…";
             ComandoEstado = ElegirCuentaCommand;
@@ -438,7 +455,7 @@ public sealed class MayorVM : ModeloVista
         TextoSeleccion = "";
         Avisar(nameof(Titulo), nameof(TextoCuenta), nameof(AyudaCuenta), nameof(TextoEjercicios), nameof(TextoCerrados), nameof(HayCerrados),
             nameof(Vista), nameof(EsNormal), nameof(EsCompacto), nameof(EsSoloPendientes), nameof(EsAgrupar700), nameof(HayFiltros), nameof(AvisoParcial),
-            nameof(TextoRecuento), nameof(TotalDebe), nameof(TotalHaber), nameof(Saldo), nameof(TotalSaldo), nameof(GrupoSaldo), nameof(AyudaSaldo), nameof(CuentasFijas),
+            nameof(TextoRecuento), nameof(TotalDebe), nameof(TotalHaber), nameof(Saldo), nameof(TotalSaldo), nameof(GrupoSaldo), nameof(AyudaSaldo), nameof(CuentasVista),
             nameof(TextoCuadre), nameof(AyudaCuadre), nameof(ColorCuadre), nameof(PuedeEditarCuadre), nameof(SoloNoPunteados));
         CommandManager.InvalidateRequerySuggested();
     }
@@ -491,16 +508,11 @@ public sealed class MayorVM : ModeloVista
         await VerCuentasAsync([lista[destino].Codigo]);
     }
 
-    /// <summary>Ir a una cuenta (contrapartida): en el completo se carga aquí; en el embebido, si no es del tercero, en una pestaña del Mayor.</summary>
-    public Task IrACuentaAsync(string cuenta)
-    {
-        if (Embebido && !(_cuentasFijas?.Contains(cuenta) ?? false))
-        {
-            AbrirEnMayor?.Invoke([cuenta]);
-            return Task.CompletedTask;
-        }
-        return VerCuentasAsync([cuenta]);
-    }
+    /// <summary>
+    /// Ir a una cuenta (contrapartida): se carga en esta misma vista, también en el embebido (se navega entre mayores sin salir de la
+    /// ficha del tercero; la cuenta no entra en su panel).
+    /// </summary>
+    public Task IrACuentaAsync(string cuenta) => VerCuentasAsync([cuenta]);
 
     // ---------- recientes ----------
 
@@ -527,10 +539,14 @@ public sealed class MayorVM : ModeloVista
     }
 
     /// <summary>Clic en recientes: las seleccionadas forman la vista (una, o varias = mayor combinado).</summary>
-    public Task VerRecientesAsync(IReadOnlyList<CuentaReciente> seleccionadas)
+    public Task VerRecientesAsync(IReadOnlyList<CuentaReciente> seleccionadas) => VerSeleccionAsync(seleccionadas.Select(r => r.Codigo).ToList());
+
+    /// <summary>Clic en el panel de subcuentas del tercero (embebido): las seleccionadas forman la vista (varias = mayor fusionado).</summary>
+    public Task VerCuentasTerceroAsync(IReadOnlyList<CuentaTercero> seleccionadas) => VerSeleccionAsync(seleccionadas.Select(r => r.Codigo).ToList());
+
+    private Task VerSeleccionAsync(List<string> codigos)
     {
-        if (seleccionadas.Count == 0) return Task.CompletedTask;
-        var codigos = seleccionadas.Select(r => r.Codigo).ToList();
+        if (codigos.Count == 0) return Task.CompletedTask;
         if (codigos.SequenceEqual(_sesion.Cuentas)) return Task.CompletedTask;
         _texto = null;
         Avisar(nameof(Texto));
