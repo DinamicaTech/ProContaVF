@@ -119,7 +119,7 @@ tr.tot td{font-weight:600;border-top:1px solid var(--ln3);background:var(--bg2)}
 .preg em{font-style:normal;background:var(--greenb);color:var(--green);border-radius:4px;padding:0 5px;font-size:12px}
 </style>
 
-<div class="demo pad"><b>MAQUETA</b><span>Datos ficticios. Marca activos con la casilla para ver solo esos en el gráfico; clic en un nombre para abrir su ficha; clic derecho para el menú.</span><span class="ver">v1 · 23/11/2026</span></div>
+<div class="demo pad"><b>MAQUETA</b><span>Datos ficticios. Marca activos con la casilla para ver solo esos en el gráfico; clic en un nombre para abrir su ficha; clic derecho para el menú.</span><span class="ver">v2 · 23/11/2026</span></div>
 <div class="top pad"><span class="logo">ProContaVF</span><span class="ctx">Inversiones Ejemplo, S.L.</span><span class="ctx">Ejercicio 2026</span><span class="op">Operador: Ronald</span></div>
 
 <main class="pad">
@@ -152,6 +152,18 @@ tr.tot td{font-weight:600;border-top:1px solid var(--ln3);background:var(--bg2)}
       <div class="leyenda" id="gLey"></div>
       <div class="graf" id="gCartera"></div>
       <p class="nota">Cada compra suma al capital invertido el día en que se hizo, y cada venta resta el coste de lo vendido. Así la plusvalía de cada día compara solo lo que había en cartera ese día con lo que costó. La parte sombreada es la plusvalía latente.</p>
+    </div>
+
+    <div class="card">
+      <div class="gcab">
+        <h2>Comparativa de los activos</h2>
+        <span class="hint">Variación acumulada de la cotización desde el primer día del periodo</span>
+        <span class="sp"></span>
+        <div class="seg" id="cPer" title="Periodo que se compara. Todos los activos empiezan en 0 % el primer día"></div>
+      </div>
+      <div class="leyenda" id="cLey"></div>
+      <div class="graf" id="gComp"></div>
+      <p class="nota">Compara cómo se ha movido el mercado de cada activo, tanto si había participaciones como si no. Como los precios son muy distintos (de 50 a 640 €), cada línea muestra cuánto ha subido o bajado en porcentaje desde el primer día del periodo. Pasa el ratón por la leyenda para resaltar un activo. Se ven los activos marcados en la tabla.</p>
     </div>
 
     <div class="card">
@@ -296,7 +308,10 @@ INS.forEach(x=>{
 });
 
 /* ---------- estado ---------- */
-const st={vista:'cartera',sel:new Set(INS.filter(x=>!x.sinCot).map(x=>x.id)),abiertos:new Set(['VWCE']),tipo:'Todos',vendidos:false,modo:'eur',per:'Máx.',
+const COL=['#2a78d6','#eb6834','#1baf7a','#eda100','#e87ba4','#008300'];
+INS.forEach((x,i)=>{x.col=COL[i]||'#8A8F9C'});
+const CORTO={VWCE:'VWCE',EUNL:'EUNL',SXR8:'SXR8',XMME:'XMME',VGSI:'Vanguard Global Stock (fondo)',VEGB:'Vanguard Euro Gov. Bond (fondo)'};
+const st={cper:'3M',vista:'cartera',sel:new Set(INS.filter(x=>!x.sinCot).map(x=>x.id)),abiertos:new Set(['VWCE']),tipo:'Todos',vendidos:false,modo:'eur',per:'Máx.',
   ficha:null,tab:'Cotización',fper:'3A'};
 const visibles=()=>INS.filter(x=>(st.vendidos||x.vivo)&&(st.tipo==='Todos'||x.tipo===st.tipo||(st.tipo==='Fondos'&&x.tipo==='Fondo')||(st.tipo==='ETF'&&x.tipo==='ETF')||(st.tipo==='Participaciones'&&x.tipo==='Participación')));
 
@@ -329,8 +344,8 @@ function grafico(cont,{series,area,marcas=[],yfmt,tipF,alto=300,cero=false}){
   let y0=Math.min(...todas.map(p=>p[1])),y1=Math.max(...todas.map(p=>p[1])); if(cero){y0=Math.min(0,y0);y1=Math.max(0,y1)}
   const pad=(y1-y0)*.08||1; y0-=pad; y1+=pad; if(!cero&&y0<0&&Math.min(...todas.map(p=>p[1]))>=0)y0=0;
   const X=t=>ml+(t-x0)/(x1-x0||1)*(W-ml-mr), Y=v=>mt+(1-(v-y0)/(y1-y0))*(H-mt-mb);
-  const paso=(()=>{const r=(y1-y0)/5,m=Math.pow(10,Math.floor(Math.log10(r)));return [1,2,2.5,5,10].map(k=>k*m).find(k=>k>=r)})();
-  let g=''; for(let v=Math.ceil(y0/paso)*paso;v<=y1;v+=paso){g+=`<line x1="${ml}" x2="${W-mr}" y1="${Y(v)}" y2="${Y(v)}" stroke="${Math.abs(v)<1e-9&&cero?'#B9B4A8':'var(--grid)'}" stroke-width="1"/><text x="${ml-8}" y="${Y(v)+4}" text-anchor="end">${yfmt(v,true)}</text>`}
+  const paso=(()=>{const r=(y1-y0)/6,m=Math.pow(10,Math.floor(Math.log10(r)));return [1,2,2.5,5,10].map(k=>k*m).find(k=>k>=r)})();
+  let g=''; for(let v=Math.ceil(y0/paso)*paso;v<=y1;v+=paso){g+=`<line x1="${ml}" x2="${W-mr}" y1="${Y(v)}" y2="${Y(v)}" stroke="${Math.abs(v)<1e-9&&cero?'#B9B4A8':'var(--grid)'}" stroke-width="1"/><text x="${ml-8}" y="${Y(v)+4}" text-anchor="end">${yfmt(Math.abs(v)<paso*1e-6?0:v,true)}</text>`}
   const anos=(x1-x0)/(365*DAY), d0=new Date(x0);
   for(let d=new Date(Date.UTC(d0.getUTCFullYear(),d0.getUTCMonth()+1,1));d.getTime()<=x1;d.setUTCMonth(d.getUTCMonth()+1)){
     const m=d.getUTCMonth(); const ok=anos>2.5?m===0:anos>1.2?m%3===0:true; if(!ok)continue;
@@ -389,6 +404,26 @@ function pintaCartera(){
   }
 }
 
+/* ---------- comparativa (variación relativa) ---------- */
+function pintaComparativa(){
+  const PER=[['1M',30],['3M',91],['6M',182],['Año','ytd'],['1A',365],['3A',3*365],['5A',5*365]];
+  const TIT={'1M':'Último mes','3M':'Últimos 3 meses','6M':'Últimos 6 meses','Año':'Desde el 1 de enero','1A':'Último año','3A':'Últimos 3 años','5A':'Últimos 5 años'};
+  $('#cPer').innerHTML=PER.map(([k])=>`<button data-k="${k}" aria-pressed="${st.cper===k}" title="${TIT[k]}">${k}</button>`).join('');
+  const act=INS.filter(x=>st.sel.has(x.id)&&!x.sinCot);
+  if(!act.length){grafico($('#gComp'),{series:[{pts:[]}]});$('#cLey').innerHTML='';return}
+  const d=PER.find(p=>p[0]===st.cper)[1], desde=d==='ytd'?T('2026-01-01'):TH-d*DAY;
+  const dias=INS[0].s.filter(p=>p[0]>=desde).map(p=>p[0]);
+  const ser=act.map(x=>{const p0=precio(x,dias[0]);return {x,color:x.col,w:2,pts:dias.map(t=>[t,(precio(x,t)/p0-1)*100])}});
+  const fin=s=>s.pts[s.pts.length-1][1];
+  $('#cLey').innerHTML=ser.slice().sort((a,b)=>fin(b)-fin(a)).map(s=>`<span data-id="${s.x.id}" style="cursor:default" title="${s.x.n}"><i style="background:${s.color}"></i>${CORTO[s.x.id]} <b class="${cls(fin(s))}" style="font-weight:600">${pct(fin(s)/100)}</b></span>`).join('');
+  grafico($('#gComp'),{series:ser.map(s=>({...s,fin:1})),cero:true,alto:320,yfmt:(v,e)=>e?num(v,Math.abs(v)<10&&Math.abs(v%1)>1e-9?1:0)+' %':pct(v/100,2),
+    tipF:t=>`<b>${fechaLarga(t)}</b>`+ser.map(s=>[s,s.pts.find(p=>p[0]===t)[1]]).sort((a,b)=>b[1]-a[1]).map(([s,v])=>`<br><span style="color:${s.color}">■</span> ${CORTO[s.x.id]} ${pct(v/100,2)}`).join('')});
+  const paths=$$('#gComp svg path[stroke]');
+  $$('#cLey span[data-id]').forEach(sp=>{const c=ser.find(s=>s.x.id===sp.dataset.id).color;
+    sp.addEventListener('pointerenter',()=>paths.forEach(p=>{p.style.opacity=p.getAttribute('stroke')===c?1:.15}));
+    sp.addEventListener('pointerleave',()=>paths.forEach(p=>p.style.opacity=''))});
+}
+
 /* ---------- tabla por activo ---------- */
 function pintaTabla(){
   $('#fTipo').innerHTML=['Todos','ETF','Fondos','Participaciones'].map(k=>`<button data-k="${k}" aria-pressed="${st.tipo===k}">${k}</button>`).join('');
@@ -396,7 +431,7 @@ function pintaTabla(){
   $('#tAct tbody').innerHTML=v.map(x=>{
     const abierto=st.abiertos.has(x.id)&&x.nLotes>1;
     let h=`<tr class="fila${st.sel.has(x.id)?' sel':''}" data-id="${x.id}">
-      <td><input type="checkbox" ${st.sel.has(x.id)?'checked':''} ${x.sinCot?'disabled title="No cotiza: no entra en el gráfico"':'title="Ver este activo en el gráfico de arriba'+(x.vivo?'':', durante el tiempo en que se tuvo')+'"'}></td>
+      <td><input type="checkbox" style="accent-color:${x.col}" ${st.sel.has(x.id)?'checked':''} ${x.sinCot?'disabled title="No cotiza: no entra en el gráfico"':'title="Ver este activo en el gráfico de arriba'+(x.vivo?'':', durante el tiempo en que se tuvo')+'"'}></td>
       <td>${x.nLotes>1?`<button class="desp" title="${abierto?'Ocultar':'Ver'} sus ${x.nLotes} lotes">${abierto?'▾':'▸'}</button>`:''}</td>
       <td><button class="nom" title="Abrir la ficha: cotización histórica, lotes, operaciones y proyección">${x.n}</button><small class="c">${x.isin||'—'} · ${x.tk}</small></td>
       <td><span class="pill tipo">${x.tipo}</span></td>`;
@@ -484,7 +519,7 @@ function pintaFicha(){
 function pinta(){
   $('#vCartera').hidden=st.vista!=='cartera'; $('#vFicha').hidden=st.vista!=='ficha';
   $('#vCartera').style.display=st.vista==='cartera'?'contents':'none'; $('#vFicha').style.display=st.vista==='ficha'?'contents':'none';
-  if(st.vista==='cartera'){pintaKpis();pintaCartera();pintaTabla()} else pintaFicha();
+  if(st.vista==='cartera'){pintaKpis();pintaCartera();pintaComparativa();pintaTabla()} else pintaFicha();
 }
 function toast(t){const d=document.createElement('div');d.className='toast';d.textContent=t;document.body.appendChild(d);setTimeout(()=>d.remove(),3200)}
 function cierraMenu(){$('#capa').innerHTML=''}
@@ -495,6 +530,7 @@ document.addEventListener('click',e=>{
   const b=e.target.closest('button');
   if(e.target.closest('#gModo button')){st.modo=b.dataset.k;pintaCartera()}
   else if(e.target.closest('#gPer button')){st.per=b.dataset.k;pintaCartera()}
+  else if(e.target.closest('#cPer button')){st.cper=b.dataset.k;pintaComparativa()}
   else if(e.target.closest('#fTipo button')){st.tipo=b.dataset.k;pintaTabla()}
   else if(e.target.closest('#fPer button')){st.fper=b.dataset.k;pintaFicha()}
   else if(e.target.closest('#fTabs .tab')){st.tab=b.textContent.replace('por decidir','').trim();pintaFicha()}
@@ -511,9 +547,9 @@ document.addEventListener('click',e=>{
     else toast('Abriría el Mayor de las subcuentas marcadas')}
 });
 document.addEventListener('change',e=>{
-  if(e.target.id==='selTodos'){const v=visibles().filter(x=>!x.sinCot);v.forEach(x=>e.target.checked?st.sel.add(x.id):st.sel.delete(x.id));pintaTabla();pintaCartera()}
+  if(e.target.id==='selTodos'){const v=visibles().filter(x=>!x.sinCot);v.forEach(x=>e.target.checked?st.sel.add(x.id):st.sel.delete(x.id));pintaTabla();pintaCartera();pintaComparativa()}
   else if(e.target.id==='fVendidos'){st.vendidos=e.target.checked;pintaTabla()}
-  else if(e.target.closest('#tAct tbody input')){const id=e.target.closest('tr').dataset.id;e.target.checked?st.sel.add(id):st.sel.delete(id);pintaTabla();pintaCartera()}
+  else if(e.target.closest('#tAct tbody input')){const id=e.target.closest('tr').dataset.id;e.target.checked?st.sel.add(id):st.sel.delete(id);pintaTabla();pintaCartera();pintaComparativa()}
 });
 $('#tAct').addEventListener('contextmenu',e=>{const tr=e.target.closest('tr.fila');if(!tr)return;e.preventDefault();
   const id=tr.dataset.id; st.menuId=id; const x=INS.find(i=>i.id===id); st.marcados=st.sel.has(id)?[...st.sel]:[id]; const n=st.marcados.length;
