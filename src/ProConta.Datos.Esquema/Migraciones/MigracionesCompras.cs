@@ -218,6 +218,38 @@ public static class MigracionesCompras
         new AnadirColumna("Proveedores", "EstadoVies", "TEXT(10)"),
         new AnadirColumna("Proveedores", "FechaVies", "DATETIME"));
 
+    /// <summary>
+    /// Facturas recurrentes pendientes (compras/facturas-recurrentes-pendientes 2026-11-23 18:55): la periodicidad de las facturas del proveedor
+    /// fijada en su ficha (Proveedores.PeriodicidadFacturas; nula, automática; vale para todas las sociedades) y los periodos que el operador
+    /// descarta con «No llegará» (FacturasRecurrentesDescartadas), uno por sociedad, proveedor y mes esperado. Solo estructura, sin datos. Sin relación
+    /// con Sociedades: esa tabla ya tiene el máximo de índices de Access.
+    /// </summary>
+    public static Migracion FacturasRecurrentes { get; } = new(
+        "20261123_1900_FACTURAS_RECURRENTES", 261123190,
+        "Periodicidad de las facturas del proveedor y periodos descartados de las facturas recurrentes pendientes.",
+        "compras/facturas-recurrentes-pendientes",
+        new AnadirColumna("Proveedores", "PeriodicidadFacturas", "BYTE"),
+        new CrearTabla("FacturasRecurrentesDescartadas",
+            "CREATE TABLE FacturasRecurrentesDescartadas (IdFacturaRecurrenteDescartada COUNTER CONSTRAINT PK_FacturasRecurrentesDescartadas PRIMARY KEY, " +
+            "IdSociedad TEXT(3) NOT NULL, " +
+            "IdProveedor LONG NOT NULL CONSTRAINT FK_FRD_Proveedor REFERENCES Proveedores (IdProveedor), " +
+            "Periodo DATETIME NOT NULL, FechaHora DATETIME NOT NULL, Operador TEXT(100))"),
+        new CrearIndice("FacturasRecurrentesDescartadas", "UX_FacturasRecurrentesDescartadas_Periodo",
+            "CREATE UNIQUE INDEX UX_FacturasRecurrentesDescartadas_Periodo ON FacturasRecurrentesDescartadas (IdSociedad, IdProveedor, Periodo)"))
+    {
+        Descripciones =
+        [
+            new("Proveedores", "PeriodicidadFacturas", "Periodicidad de sus facturas para Compras › Facturas recurrentes pendientes: nula, automática (se deduce de sus facturas); 0, no se controla; 1 mensual; 2 bimestral; 3 trimestral. Igual en todas las sociedades."),
+            new("FacturasRecurrentesDescartadas", null, "Periodos de facturas recurrentes de un proveedor que el operador ha descartado con «No llegará» (compras/facturas-recurrentes-pendientes); «Volver a esperarla» borra la fila."),
+            new("FacturasRecurrentesDescartadas", "IdFacturaRecurrenteDescartada", "Identificador del descarte."),
+            new("FacturasRecurrentesDescartadas", "IdSociedad", "Sociedad de trabajo en la que se descartó."),
+            new("FacturasRecurrentesDescartadas", "IdProveedor", "Proveedor cuya factura no llegará."),
+            new("FacturasRecurrentesDescartadas", "Periodo", "Primer día del mes en que se esperaba la factura."),
+            new("FacturasRecurrentesDescartadas", "FechaHora", "Fecha y hora en que se descartó."),
+            new("FacturasRecurrentesDescartadas", "Operador", "Operador que la descartó."),
+        ],
+    };
+
     private static PasoPersonalizado Relacion(string tabla, string columna, string nombre)
     {
         var sql = $"ALTER TABLE {tabla} ADD CONSTRAINT {nombre} FOREIGN KEY ({columna}) REFERENCES FormasPago (Id)";

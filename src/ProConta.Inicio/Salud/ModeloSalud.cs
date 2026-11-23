@@ -18,7 +18,9 @@ public enum PantallaSalud { Ninguna, VentasPorFacturar, Ejercicios, LineasN43, B
     /// <summary>No abre una pantalla: compensa las comisiones de las plataformas pendientes (facturacion/reservas/compensacion-comision).</summary>
     CompensarComisiones,
     /// <summary>Contabilidad › Modelos tributarios, en el periodo del destino (contabilidad/modelos-tributarios).</summary>
-    ModelosTributarios }
+    ModelosTributarios,
+    /// <summary>Compras › Facturas recurrentes pendientes (compras/facturas-recurrentes-pendientes).</summary>
+    FacturasRecurrentes }
 
 /// <summary>Dónde se resuelve: la pantalla, su nombre en el menú y, para el Mayor, las cuentas con las que se abre.</summary>
 public sealed record DestinoSalud(PantallaSalud Pantalla, string Nombre, IReadOnlyList<string>? Cuentas = null, string? Modelo = null, string? Periodo = null)

@@ -123,6 +123,7 @@ public static class CatalogoMigraciones
         MigracionesDocumentos.Presentaciones,
         MigracionesDocumentos.TipoInformeContable,
         MigracionesContabilidad.CuentasAnualesMemoria,
+        MigracionesCompras.FacturasRecurrentes,
     ];
 
     /// <summary>Versión del esquema que espera esta versión del programa.</summary>

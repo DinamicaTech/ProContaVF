@@ -24,12 +24,28 @@ public sealed class RolCliente
     internal RolCliente Clonar() => (RolCliente)MemberwiseClone();
 }
 
+/// <summary>
+/// Periodicidad de las facturas de un proveedor (Proveedores.PeriodicidadFacturas, compras/facturas-recurrentes-pendientes 2026-11-23 18:55).
+/// Sin valor (null) es «Automática»: Compras la deduce de sus facturas.
+/// </summary>
+public enum PeriodicidadFacturas : byte
+{
+    /// <summary>No se controla: el proveedor nunca sale en Facturas recurrentes pendientes.</summary>
+    NoControlar = 0,
+    Mensual = 1,
+    Bimestral = 2,
+    Trimestral = 3,
+}
+
 /// <summary>Rol Proveedor en la ficha (tabla Proveedores).</summary>
 public sealed class RolProveedor
 {
     public int? IdProveedor { get; internal set; }
     public bool Activo { get; set; } = true;
     public string? Notas { get; set; }
+
+    /// <summary>«Facturas periódicas» de la ficha: null, automática; vale igual para todas las sociedades.</summary>
+    public PeriodicidadFacturas? PeriodicidadFacturas { get; set; }
     internal RolProveedor Clonar() => (RolProveedor)MemberwiseClone();
 }
 

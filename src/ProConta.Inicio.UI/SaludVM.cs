@@ -273,6 +273,7 @@ public sealed class SaludVM : ModeloVista
         PantallaSalud.LineasN43 => _acciones.AbrirLineasN43,
         PantallaSalud.Bancos => _acciones.AbrirBancos,
         PantallaSalud.FacturasCompra => _acciones.AbrirFacturasCompra,
+        PantallaSalud.FacturasRecurrentes => _acciones.AbrirFacturasRecurrentes,
         PantallaSalud.FacturasVenta => _acciones.AbrirFacturas,
         PantallaSalud.Mayor => _acciones.AbrirMayor is { } m && d.Cuentas is { Count: > 0 } c ? () => m(c) : null,
         PantallaSalud.Diario => _acciones.AbrirDiario,

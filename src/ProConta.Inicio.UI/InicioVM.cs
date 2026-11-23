@@ -27,6 +27,8 @@ public sealed record AccionesInicio(
     public Action? AbrirVentas { get; init; }
     public Action? AbrirLineasN43 { get; init; }
     public Action? AbrirFacturasCompra { get; init; }
+    /// <summary>Compras › Facturas recurrentes pendientes (compras/facturas-recurrentes-pendientes).</summary>
+    public Action? AbrirFacturasRecurrentes { get; init; }
     public Action? AbrirDiario { get; init; }
     /// <summary>Contabilidad › Procesos contables › Liquidación de IVA (contabilidad/procesos/liquidacion-iva).</summary>
     public Action? AbrirLiquidacionIva { get; init; }

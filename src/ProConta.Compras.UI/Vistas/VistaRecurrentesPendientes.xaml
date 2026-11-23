@@ -1,0 +1,113 @@
+<UserControl x:Class="ProConta.Compras.UI.Vistas.VistaRecurrentesPendientes"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:pc="urn:proconta-ui"
+             Background="White">
+  <UserControl.Resources>
+    <pc:VisibleSiConverter x:Key="Visible" />
+    <ContextMenu x:Key="Menu.Recurrentes">
+      <MenuItem Header="Abrir el PDF de la última factura" Command="{Binding AbrirPdfCommand}" ToolTipService.ShowOnDisabled="True"
+                ToolTip="Abre con el visor de Windows el PDF de la última factura registrada de ese proveedor, para ver qué factura y qué importe se esperan (solo con una marcada). También con doble clic" />
+      <MenuItem Header="Ver en Facturas recibidas" Command="{Binding VerFacturaCommand}" ToolTipService.ShowOnDisabled="True"
+                ToolTip="Abre Compras › Facturas recibidas con la última factura del proveedor a la vista (solo con una marcada; si es de otro ejercicio, te dice cómo verla)" />
+      <MenuItem Header="Abrir la ficha del proveedor" Command="{Binding AbrirFichaCommand}" ToolTipService.ShowOnDisabled="True"
+                ToolTip="Abre la ficha del proveedor (solo con una marcada). En Roles › Proveedor › «Facturas periódicas» puedes fijar su periodicidad o dejarlo fuera del control" />
+      <Separator />
+      <MenuItem Header="No llegará" Command="{Binding NoLlegaraCommand}" ToolTipService.ShowOnDisabled="True"
+                ToolTip="Descarta los periodos marcados de esos proveedores: dejan de salir aquí y en Inicio, con tu nombre y la hora. Se puede deshacer con «Volver a esperarla»" />
+      <MenuItem Header="Volver a esperarla" Command="{Binding VolverAEsperarCommand}" ToolTipService.ShowOnDisabled="True"
+                ToolTip="Quita el descarte de los periodos marcados que dijiste que no llegarían: vuelven a salir como pendientes (marca «Mostrar descartadas» para verlos)" />
+    </ContextMenu>
+    <Style x:Key="Fila" TargetType="DataGridRow" BasedOn="{StaticResource Tabla.Fila}">
+      <Setter Property="ToolTip" Value="{Binding AyudaFila}" />
+      <Style.Triggers>
+        <DataTrigger Binding="{Binding Descartada}" Value="True">
+          <Setter Property="Foreground" Value="{StaticResource Pincel.Texto2}" />
+          <Setter Property="FontStyle" Value="Italic" />
+        </DataTrigger>
+        <DataTrigger Binding="{Binding Marcado}" Value="True"><Setter Property="Background" Value="{StaticResource Pincel.Seleccion}" /></DataTrigger>
+      </Style.Triggers>
+    </Style>
+  </UserControl.Resources>
+  <UserControl.InputBindings>
+    <KeyBinding Key="F5" Command="{Binding RefrescarCommand}" />
+  </UserControl.InputBindings>
+
+  <DockPanel>
+    <!-- Cabecera: título y acciones generales -->
+    <Border DockPanel.Dock="Top" BorderBrush="{StaticResource Pincel.Linea}" BorderThickness="0,0,0,1" Padding="14,8">
+      <DockPanel>
+        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+          <CheckBox Content="Mostrar descartadas" IsChecked="{Binding MostrarDescartadas}" VerticalAlignment="Center" Margin="0,0,14,0"
+                    ToolTip="Incluye, en cursiva, los periodos que marcaste «No llegará», para poder volver a esperarlos" />
+          <Button Content="Exportar a Excel" Style="{StaticResource Boton}" Command="{Binding ExportarExcelCommand, ElementName=Tabla}" Margin="0,0,8,0" VerticalAlignment="Center"
+                  ToolTip="Guarda en Excel las filas que se ven, con las mismas columnas, para revisarlas o enviarlas" />
+          <Button Content="Actualizar" Style="{StaticResource Boton}" Command="{Binding RefrescarCommand}" VerticalAlignment="Center"
+                  ToolTip="Vuelve a leer las facturas de compra de los últimos 12 meses y recalcula las pendientes (F5)" />
+        </StackPanel>
+        <StackPanel Orientation="Horizontal">
+          <TextBlock Text="Facturas recurrentes pendientes" Style="{StaticResource Texto.TituloPantalla}" VerticalAlignment="Center" Margin="0,0,12,0" />
+          <TextBlock Text="{Binding Subtitulo}" Style="{StaticResource Texto.Apagado}" VerticalAlignment="Center" />
+        </StackPanel>
+      </DockPanel>
+    </Border>
+
+    <!-- Pie: recuento y total estimado -->
+    <Border DockPanel.Dock="Bottom" Style="{StaticResource Barra.Pie}">
+      <DockPanel>
+        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Visibility="{Binding HayTotal, Converter={StaticResource Visible}}"
+                    ToolTip="Suma del importe estimado de las facturas pendientes que se ven (sin las descartadas): el total de la última factura de cada proveedor por cada periodo que falta">
+          <TextBlock Text="Importe estimado " Style="{StaticResource Texto.Apagado}" VerticalAlignment="Center" />
+          <TextBlock Text="{Binding TotalEstimado}" Style="{StaticResource Texto.Importe}" FontWeight="SemiBold" VerticalAlignment="Center" />
+        </StackPanel>
+        <TextBlock Style="{StaticResource Texto.Apagado}" VerticalAlignment="Center">
+          <Run Text="{Binding Recuento, Mode=OneWay}" /> · Clic: marcar · Doble clic: abrir el PDF de la última · Clic derecho: acciones sobre lo marcado
+        </TextBlock>
+      </DockPanel>
+    </Border>
+
+    <pc:VistaEstado Estado="{Binding Estado}" Mensaje="{Binding MensajeEstado}" TextoAccion="Actualizar" ComandoAccion="{Binding RefrescarCommand}">
+      <Grid Margin="14,8,14,8">
+        <pc:TablaProConta x:Name="Tabla" ItemsSource="{Binding Filas}" ClavePreferencias="compras.recurrentes" TituloExportacion="Facturas recurrentes pendientes"
+                          IsReadOnly="True" SelectionMode="Single" SelectionUnit="FullRow" AutomationProperties.Name="Facturas recurrentes pendientes"
+                          HorizontalScrollBarVisibility="Auto" ContextMenu="{StaticResource Menu.Recurrentes}" RowStyle="{StaticResource Fila}"
+                          PreviewMouseLeftButtonDown="Tabla_PreviewMouseLeftButtonDown" MouseDoubleClick="Tabla_MouseDoubleClick"
+                          PreviewMouseRightButtonDown="Tabla_PreviewMouseRightButtonDown" PreviewKeyDown="Tabla_PreviewKeyDown">
+          <pc:TablaProConta.Columns>
+            <DataGridTemplateColumn Width="34" pc:TablaProConta.Clave="marca" pc:TablaProConta.SiempreVisible="True" CanUserSort="False">
+              <DataGridTemplateColumn.Header>
+                <CheckBox IsChecked="{Binding DataContext.TodosMarcados, RelativeSource={RelativeSource AncestorType=UserControl}, Mode=TwoWay}"
+                          ToolTip="Marca o desmarca todas las filas que se ven" />
+              </DataGridTemplateColumn.Header>
+              <DataGridTemplateColumn.CellTemplate>
+                <DataTemplate>
+                  <CheckBox IsChecked="{Binding Marcado, UpdateSourceTrigger=PropertyChanged}" HorizontalAlignment="Center" VerticalAlignment="Center"
+                            ToolTip="Marcada: el menú contextual actúa sobre ella. También se marca con un clic en la fila" />
+                </DataTemplate>
+              </DataGridTemplateColumn.CellTemplate>
+            </DataGridTemplateColumn>
+            <DataGridTextColumn Header="Proveedor" Binding="{Binding Proveedor}" Width="*" MinWidth="240" ElementStyle="{StaticResource Texto.Celda}" pc:TablaProConta.Clave="proveedor"
+                                pc:TablaProConta.Ayuda="Proveedor, con el nombre que se ve en Facturas recibidas" />
+            <DataGridTemplateColumn Header="Periodicidad" Width="130" SortMemberPath="Periodicidad" pc:TablaProConta.Clave="periodicidad" pc:TablaProConta.RutaExportar="Periodicidad"
+                                    pc:TablaProConta.Ayuda="Mensual, bimestral o trimestral: deducida de sus facturas o, con «(ficha)», fijada en la ficha del proveedor">
+              <DataGridTemplateColumn.CellTemplate>
+                <DataTemplate>
+                  <TextBlock Text="{Binding Periodicidad}" ToolTip="{Binding AyudaPeriodicidad}" Style="{StaticResource Texto.Celda}" />
+                </DataTemplate>
+              </DataGridTemplateColumn.CellTemplate>
+            </DataGridTemplateColumn>
+            <DataGridTextColumn Header="Periodo esperado" Binding="{Binding Periodo}" SortMemberPath="PeriodoOrden" Width="140" ElementStyle="{StaticResource Texto.Celda}"
+                                pc:TablaProConta.Clave="periodo" pc:TablaProConta.Ayuda="Mes en que debería haber llegado la factura (la fecha de la última más su periodicidad)" />
+            <DataGridTextColumn Header="Importe estimado" Binding="{Binding Importe}" SortMemberPath="ImporteOrden" Width="130" ElementStyle="{StaticResource Texto.Celda.Importe}"
+                                HeaderStyle="{StaticResource Tabla.Cabecera.Derecha}" pc:TablaProConta.Clave="importe" pc:TablaProConta.RutaExportar="ImporteOrden"
+                                pc:TablaProConta.Ayuda="Total de la última factura del proveedor: solo orientativo" />
+            <DataGridTextColumn Header="Última factura" Binding="{Binding Ultima}" SortMemberPath="UltimaOrden" Width="110" ElementStyle="{StaticResource Texto.Celda.Mono}"
+                                pc:TablaProConta.Clave="ultima" pc:TablaProConta.RutaExportar="UltimaOrden" pc:TablaProConta.Ayuda="Fecha de la última factura registrada del proveedor" />
+            <DataGridTextColumn Header="Estado" Binding="{Binding Estado}" Width="100" ElementStyle="{StaticResource Texto.Celda}" pc:TablaProConta.Clave="estado"
+                                pc:TablaProConta.OcultaDeFabrica="True" pc:TablaProConta.Ayuda="Pendiente, o «No llegará» si la descartaste" />
+          </pc:TablaProConta.Columns>
+        </pc:TablaProConta>
+      </Grid>
+    </pc:VistaEstado>
+  </DockPanel>
+</UserControl>
