@@ -1,4 +1,5 @@
 using ProConta.Activos.Financieros;
+using ProConta.Activos.Gestion;
 
 namespace ProConta.Activos.Tests;
 
@@ -232,5 +233,56 @@ public sealed class CarteraFinancieraTests
         Assert.NotEmpty(b.Senales);
         Assert.Null(b.Senales.Single(s => s.Clave == "TENDENCIA").Puntuacion); // sin 200 sesiones
         Assert.False(b.TieneProyeccion);                                       // sin un año
+    }
+
+    // ---------- histórico de cotizaciones ----------
+
+    [Fact]
+    public void Historico_en_dolares_se_pasa_a_euros_con_el_cambio_del_dia_o_el_anterior()
+    {
+        var g = new List<CotizacionGuardada>
+        {
+            new(new(2026, 11, 2), 110m, "USD", "Yahoo Finance · cierre"),
+            new(new(2026, 11, 3), 121m, "USD", "Yahoo Finance · cierre"),     // sin cambio ese día: vale el del 2
+            new(new(2026, 11, 3), 0m, "EUR", null),
+        };
+        var cambios = new Dictionary<string, IReadOnlyList<(DateTime, decimal)>> { ["USD"] = [(new DateTime(2026, 11, 2), 1.1m)] };
+        var s = ServicioCarteraFinanciera.HistoricoEnEuros(g, cambios);
+        Assert.Equal(100m, s.En(new(2026, 11, 2)));
+        Assert.Equal(110m, s.En(new(2026, 11, 3)));
+    }
+
+    [Fact]
+    public void Historico_sin_cambio_publicado_deja_el_dia_fuera()
+    {
+        var g = new List<CotizacionGuardada> { new(new(2026, 11, 20), 50m, "GBP", null) };
+        var cambios = new Dictionary<string, IReadOnlyList<(DateTime, decimal)>> { ["GBP"] = [(new DateTime(2026, 10, 1), 0.85m)] };
+        Assert.Equal(0, ServicioCarteraFinanciera.HistoricoEnEuros(g, cambios).Count);
+    }
+
+    [Fact]
+    public void Cierres_a_guardar_no_incluyen_hoy_y_sustituyen_los_del_momento()
+    {
+        var guardadas = new List<CotizacionGuardada>
+        {
+            new(new(2026, 11, 19), 10m, "EUR", "Yahoo Finance · cierre"),
+            new(new(2026, 11, 20), 11m, "EUR", "EODHD · del momento"),
+        };
+        var (nuevos, sustituyen) = ServicioCarteraFinanciera.CierresAGuardar(guardadas,
+            [(new DateTime(2026, 11, 19), 10.5m), (new DateTime(2026, 11, 20), 11.2m), (new DateTime(2026, 11, 21), 11.4m), (Hoy, 12m)], Hoy);
+        Assert.Equal([(new DateTime(2026, 11, 21), 11.4m)], nuevos);
+        Assert.Equal([(new DateTime(2026, 11, 20), 11.2m)], sustituyen);
+    }
+
+    [Fact]
+    public void Desde_que_pedir_el_historico()
+    {
+        var desde = new DateTime(2021, 11, 13);
+        Assert.Equal(desde, ServicioCarteraFinanciera.DesdeQuePedir([], desde));
+        Assert.Equal(desde, ServicioCarteraFinanciera.DesdeQuePedir([new(new(2026, 1, 2), 1m, "EUR", null)], desde));
+        var completo = new List<CotizacionGuardada> { new(desde, 1m, "EUR", null), new(new(2026, 11, 20), 1m, "EUR", "Yahoo Finance · cierre"), new(Hoy, 1m, "EUR", "EODHD · del momento") };
+        Assert.Equal(new DateTime(2026, 11, 10), ServicioCarteraFinanciera.DesdeQuePedir(completo, desde));
+        Assert.Equal(new DateTime(2026, 11, 20), ServicioCarteraFinanciera.UltimoDiaHabil(new(2026, 11, 22)));
+        Assert.Equal(Hoy, ServicioCarteraFinanciera.UltimoDiaHabil(Hoy));
     }
 }
