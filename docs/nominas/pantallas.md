@@ -1,6 +1,5 @@
 ---
 title: Pantallas de nóminas
-status: draft
 depends_on: [nominas, plataforma/contenedor, terceros/pantallas, correo/recepcion]
 threads:
   - 2026-10-28 12:30 · Carga de requisitos | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GRNMH95h9tnQp4dmEPHmw1w
@@ -21,6 +20,7 @@ Importación, mapeo de columnas, resolución de empleados y revisión de la cont
 - 2026-11-13 15:37 · Sin «Abrir el fichero original» de la maqueta: la importación guarda el nombre del fichero, no su ruta (el que llega por correo se abre desde Correo recibido). El código del trabajador y la 465 aún no se cambian en Roles (la Roles de la ficha no muestra el rol Empleado): se asignan al resolver el trabajador; queda pendiente para cuando el propietario lo pida.
 - 2026-11-13 15:47 · Ok, añade el rol empleado, que supongo que afecta a terceros
 - 2026-11-13 15:48 · Rol Empleado en la pestaña Roles de la ficha (acordado con «Ok, adelante»): una sección «Empleado en <sociedad>» con Activar/Desactivar, «Código en la gestoría» (único entre los trabajadores de la sociedad) y la cuenta 465 (una existente o «Crear la siguiente 465 libre» con el nombre del tercero); se guarda con la ficha y queda en el Historial; insignia «Empleado · código» en la cabecera y filtro Empleados en el buscador. Cambiar el código vale para los próximos Excel y cambiar la 465 para los asientos nuevos: lo contabilizado no se toca (para moverlo, deshacer y volver a contabilizar). Desactivar = de baja en la sociedad: se conservan sus nóminas y la pestaña, se le sigue reconociendo por su código (finiquitos, atrasos) y la importación avisa. Va en la PR 3, sin cambio de esquema.
+- 2026-11-23 10:30 · Deja de ser borrador: el propietario validó la pantalla Nóminas, la pestaña Nóminas y el rol Empleado de la ficha en el hilo «Importar y contabilizar nóminas» (2026-11-13, «Ok, probado rol de empleado en terceros y pestaña de nóminas. Es ok») antes de fusionar la PR #63. Lo confirma el propietario el 2026-11-23.
 
 ## Requirements
 - 2026-10-28 12:28 · From sources/01_ESPECIFICACION_FUNCIONAL.docx § 18 RF-NOM-01: mapeo y resolución con selección manual
@@ -29,5 +29,5 @@ Importación, mapeo de columnas, resolución de empleados y revisión de la cont
 - 2026-11-13 10:07 · Puedes preparar las maquetas de la pantalla de gestión de nóminas y la de nómina de un tercero para validarlas ?
 
 ## Hand-over
-- 2026-11-13 15:37 · Hecho (PR 3, pendiente de validar por el propietario): pantalla Nóminas, pestaña Nóminas de la ficha del tercero y Excel recibidos por correo (correo/recepcion). Pruebas: tests/ProConta.Nominas.Tests/PantallasNominasAccessTests.cs (Access: periodos, versiones, pestaña del empleado y correo), tests/ProConta.Nominas.UI.Tests (sin BD: cambios entre versiones, filas y pestaña del empleado) y el reparto al módulo en tests/ProConta.Correo.Tests/RecepcionAccessTests.cs. Pendiente: cambiar el código y la 465 en Roles.
+- 2026-11-13 15:37 · Hecho (PR 3, validada por el propietario y fusionada, PR #63): pantalla Nóminas, pestaña Nóminas de la ficha del tercero y Excel recibidos por correo (correo/recepcion). Pruebas: tests/ProConta.Nominas.Tests/PantallasNominasAccessTests.cs (Access: periodos, versiones, pestaña del empleado y correo), tests/ProConta.Nominas.UI.Tests (sin BD: cambios entre versiones, filas y pestaña del empleado) y el reparto al módulo en tests/ProConta.Correo.Tests/RecepcionAccessTests.cs. Pendiente: cambiar el código y la 465 en Roles.
 - 2026-11-13 16:40 · Hecho (en la PR 3): rol Empleado en Roles según la decisión 15:48; la pestaña Nóminas de la ficha remite a Roles y la importación avisa de los trabajadores de baja. Pruebas: FichaAccessTests.ElRolEmpleadoSeGuardaConLaFichaConSuCodigoYSu465 (Access), LogicaFichaTests.ElRolEmpleadoSuCodigoYSu465SeCuentanEnRoles (sin BD) y el aviso de baja en ImportacionNominasAccessTests.

@@ -1,6 +1,5 @@
 ---
 title: Ratios
-status: draft
 depends_on: [contabilidad/balances]
 threads:
   - 2026-10-28 12:30 · Carga de requisitos | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GRNMH95h9tnQp4dmEPHmw1w
@@ -23,6 +22,7 @@ Hechos y validados por el propietario (2026-11-15 13:56) los 12 ratios de la pan
 - 2026-11-15 13:56 · El propietario valida los 12 ratios (fase 2 de pantalla-de-inicio).
 - 2026-11-15 16:34 · El propietario decide que la exportación «Ratios» del menú antiguo sobre la plantilla indicadores.xlsx (requisito del 2026-10-29 17:45) ya no se hace en este nodo: la gestiona por otro nodo. Este nodo se queda con los 12 ratios de la pantalla de inicio.
 - 2026-11-15 19:00 · Cumplida la línea «Derived from informes/informe-gestoria» del 2026-11-15 18:10: la hoja Ratios del informe para la gestoría sale de `CalculoRatios` a fin del trimestre, con sus definiciones y rangos, como valores fijos.
+- 2026-11-23 10:30 · Deja de ser borrador: los 12 ratios están hechos y validados (2026-11-15 13:56, «Pruebas ok», en el hilo «Construir la pantalla de inicio») y la exportación «Ratios» salió de este nodo (2026-11-15 16:34). No queda tarea pendiente.
 
 ## Requirements
 - 2026-10-28 12:28 · From docs/README.md (descripción del propietario): ratios
