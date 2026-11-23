@@ -72,6 +72,17 @@ public sealed class BloquesFase4VM : ModeloVista
     private bool _cargandoAgenda = true;
     public bool CargandoAgenda { get => _cargandoAgenda; private set => Fijar(ref _cargandoAgenda, value); }
 
+    // ------------------------------------------------------------ certificado de la empresa
+
+    private EstadoCertificado? _certificado;
+    /// <summary>Etiqueta fija de la cabecera con el certificado de la empresa y su caducidad (contabilidad/modelos-tributarios/presentacion/aviso-certificado).</summary>
+    public EstadoCertificado? Certificado { get => _certificado; private set { if (Fijar(ref _certificado, value)) Avisar(nameof(HayCertificado)); } }
+    public bool HayCertificado => Certificado is not null;
+
+    /// <summary>Abre Configuración › Parámetros y tablas › «Certificado de la empresa».</summary>
+    public ICommand AbrirCertificadoCommand => _abrirCertificado ??= new ComandoDelegado(() => _acciones.AbrirParametros?.Invoke("certificadoempresa"), () => _acciones.AbrirParametros is not null);
+    private ICommand? _abrirCertificado;
+
     // ------------------------------------------------------------ carga
 
     /// <summary>Carga los dos bloques (al abrir Inicio y con «Actualizar», que antes olvida lo leído).</summary>
@@ -80,8 +91,10 @@ public sealed class BloquesFase4VM : ModeloVista
         var mia = ++_carga;
         if (releer) _servicio.Olvidar();
         var ocupacion = OcupacionAsync(comparado, mia);
+        var certificado = CertificadoAsync(mia);
         await AgendaAsync(mia);
         await ocupacion;
+        await certificado;
     }
 
     /// <summary>Cambia el ejercicio comparado de la ocupación (no vuelve a leer la BD).</summary>
@@ -122,6 +135,20 @@ public sealed class BloquesFase4VM : ModeloVista
         finally
         {
             if (mia == _carga) CargandoAgenda = false;
+        }
+    }
+
+    private async Task CertificadoAsync(int mia)
+    {
+        try
+        {
+            var e = await Task.Run(() => _servicio.CertificadoAsync(_ctx.IdSociedad));
+            if (mia == _carga) Certificado = e;
+        }
+        catch (Exception ex) when (mia == _carga)
+        {
+            Certificado = new EstadoCertificado(SemaforoCertificado.Gris, "Certificado: no se ha podido leer",
+                $"No he podido leer el certificado de la empresa: {ex.Message}. Pulsa «Actualizar» para reintentarlo, o clic para abrir Configuración › Parámetros y tablas › «Certificado de la empresa».", null);
         }
     }
 

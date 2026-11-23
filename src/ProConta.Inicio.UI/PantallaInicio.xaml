@@ -289,6 +289,45 @@
         <!-- Cabecera: título, contexto y acciones generales -->
         <DockPanel Margin="0,0,0,14" LastChildFill="True">
           <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+            <!-- Certificado de la empresa: etiqueta fija con su caducidad (contabilidad/modelos-tributarios/presentacion/aviso-certificado) -->
+            <Button x:Name="EtiquetaCertificado" DataContext="{Binding Fase4}" Command="{Binding AbrirCertificadoCommand}" Cursor="Hand" Margin="0,0,14,0" Padding="9,4"
+                    Visibility="{Binding HayCertificado, Converter={StaticResource Visible}, FallbackValue=Collapsed}" ToolTip="{Binding Certificado.Ayuda}"
+                    MaxWidth="460" AutomationProperties.Name="Certificado de la empresa">
+              <Button.Template>
+                <ControlTemplate TargetType="Button">
+                  <Border x:Name="Fondo" Background="{StaticResource Pincel.Fondo}" BorderBrush="{StaticResource Pincel.Linea}" BorderThickness="1" CornerRadius="12" Padding="{TemplateBinding Padding}">
+                    <StackPanel Orientation="Horizontal">
+                      <TextBlock x:Name="Icono" Text="●" Margin="0,0,6,0" VerticalAlignment="Center" Foreground="{StaticResource Pincel.Apagado}" />
+                      <TextBlock Text="Certificado:" FontWeight="SemiBold" Margin="0,0,5,0" VerticalAlignment="Center" />
+                      <TextBlock x:Name="Texto" Text="{Binding Certificado.Texto}" FontWeight="Normal" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+                    </StackPanel>
+                  </Border>
+                  <ControlTemplate.Triggers>
+                    <DataTrigger Binding="{Binding Certificado.Semaforo}" Value="Verde">
+                      <Setter TargetName="Fondo" Property="Background" Value="{StaticResource Pincel.VerdeSuave}" />
+                      <Setter TargetName="Fondo" Property="BorderBrush" Value="{StaticResource Pincel.VerdeBorde}" />
+                      <Setter TargetName="Icono" Property="Foreground" Value="{StaticResource Pincel.Verde}" />
+                      <Setter TargetName="Icono" Property="Text" Value="✓" />
+                    </DataTrigger>
+                    <DataTrigger Binding="{Binding Certificado.Semaforo}" Value="Amarillo">
+                      <Setter TargetName="Fondo" Property="Background" Value="{StaticResource Pincel.AvisoSuave}" />
+                      <Setter TargetName="Fondo" Property="BorderBrush" Value="{StaticResource Pincel.AvisoBorde}" />
+                      <Setter TargetName="Icono" Property="Foreground" Value="{StaticResource Pincel.Ambar}" />
+                      <Setter TargetName="Icono" Property="Text" Value="!" />
+                    </DataTrigger>
+                    <DataTrigger Binding="{Binding Certificado.Semaforo}" Value="Rojo">
+                      <Setter TargetName="Fondo" Property="Background" Value="{StaticResource Pincel.RojoSuave}" />
+                      <Setter TargetName="Fondo" Property="BorderBrush" Value="{StaticResource Pincel.RojoBorde}" />
+                      <Setter TargetName="Icono" Property="Foreground" Value="{StaticResource Pincel.Rojo}" />
+                      <Setter TargetName="Icono" Property="Text" Value="✕" />
+                    </DataTrigger>
+                    <Trigger Property="IsMouseOver" Value="True">
+                      <Setter TargetName="Texto" Property="TextDecorations" Value="Underline" />
+                    </Trigger>
+                  </ControlTemplate.Triggers>
+                </ControlTemplate>
+              </Button.Template>
+            </Button>
             <TextBlock Text="Comparar con" Style="{StaticResource Texto.Apagado}" VerticalAlignment="Center" Margin="0,0,6,0" ToolTip="{Binding AyudaComparar}" />
             <ComboBox ItemsSource="{Binding Comparables}" SelectedItem="{Binding Comparar}" DisplayMemberPath="Texto" Width="130" Margin="0,0,10,0"
                       ToolTip="{Binding AyudaComparar}" AutomationProperties.Name="Comparar con" />
