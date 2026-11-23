@@ -14,6 +14,9 @@ public interface IFuenteBloques
 
     /// <summary>Modelos de la sociedad y lo presentado, para los plazos de la agenda (contabilidad/modelos-tributarios).</summary>
     Task<ProConta.Inicio.Salud.ModelosInicio> ModelosAsync(string idSociedad, CancellationToken c = default) => Task.FromResult(ProConta.Inicio.Salud.ModelosInicio.PorDefecto);
+
+    /// <summary>El certificado de la empresa, para la etiqueta de la cabecera (contabilidad/modelos-tributarios/presentacion/aviso-certificado).</summary>
+    Task<DatosCertificado> CertificadoAsync(string idSociedad, CancellationToken c = default) => Task.FromResult(DatosCertificado.SinElegir);
 }
 
 /// <summary>Lecturas de los bloques de la fase 4 en Access.</summary>
@@ -43,6 +46,8 @@ public sealed class FuenteBloquesAccess(IBaseDatos bd) : IFuenteBloques
         AgendaProgramadas.VencimientosAsync(bd, idSociedad, hasta, c);
 
     public Task<ProConta.Inicio.Salud.ModelosInicio> ModelosAsync(string idSociedad, CancellationToken c = default) => ProConta.Inicio.Salud.ModelosInicio.LeerAsync(bd, idSociedad, c);
+
+    public Task<DatosCertificado> CertificadoAsync(string idSociedad, CancellationToken c = default) => EstadoCertificado.LeerAsync(bd, idSociedad, c);
 }
 
 /// <summary>
@@ -80,4 +85,8 @@ public sealed class ServicioBloques(IFuenteBloques fuente, Func<DateTime>? hoy =
         var modelos = await fuente.ModelosAsync(idSociedad, c).ConfigureAwait(false);
         return CalculoAgenda.Calcular(dia, ejercicios, programadas, null, modelos);
     }
+
+    /// <summary>La etiqueta del certificado de la empresa (se lee siempre de nuevo: es una consulta y una búsqueda en el almacén de Windows).</summary>
+    public async Task<EstadoCertificado> CertificadoAsync(string idSociedad, CancellationToken c = default) =>
+        EstadoCertificado.Calcular(await fuente.CertificadoAsync(idSociedad, c).ConfigureAwait(false), Hoy);
 }
