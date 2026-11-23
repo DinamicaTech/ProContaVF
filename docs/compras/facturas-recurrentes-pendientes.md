@@ -1,6 +1,5 @@
 ---
 title: Facturas recurrentes de proveedores pendientes de recibir
-status: draft
 depends_on: [compras/factura-compra, terceros/tercero, pantalla-de-inicio]
 threads:
   - 2026-11-17 10:35 · Proyectar facturas de proveedores pendientes | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GLgEfj973aef2DkS5nYqTVW
@@ -21,6 +20,7 @@ Pantalla informativa de Compras que lista las facturas de proveedores recurrente
 - 2026-11-23 18:55 · Pantalla Compras › «Facturas recurrentes pendientes»: columnas proveedor, periodicidad, periodo esperado, importe estimado y fecha de la última factura; selección múltiple con casilla. Cabecera: Refrescar y Exportar a Excel. Menú contextual: «Abrir el PDF de la última factura», «Ver en Facturas recibidas», «Abrir la ficha del proveedor», «No llegará» (descarta ese periodo de forma persistente) y «Volver a esperarla». No hay acción para registrar la factura: se espera a su PDF (propietario 2026-11-23 18:49, P2).
 - 2026-11-23 18:55 · Ficha del proveedor (terceros/tercero): en el rol Proveedor, desplegable «Facturas periódicas»: Automática (por defecto), Mensual, Bimestral, Trimestral o No controlar; vale igual para todas las sociedades (propietario 2026-11-23 18:49, P1). Esquema: campo nuevo en Proveedores y tabla nueva de periodos descartados (sociedad, proveedor, periodo, fecha y operador).
 - 2026-11-23 19:15 · Hecho, pendiente de validar: esquema 78 (`MigracionesCompras.FacturasRecurrentes`, 20261123_1900_FACTURAS_RECURRENTES): Proveedores.PeriodicidadFacturas (BYTE; nula = Automática, 0 No controlar, 1 Mensual, 2 Bimestral, 3 Trimestral) y tabla FacturasRecurrentesDescartadas (sociedad, proveedor, periodo = día 1 del mes esperado, fecha y hora, operador; única por sociedad, proveedor y periodo), sin relación con Sociedades porque Access no admite más índices en esa tabla. Detector puro `DetectorFacturasRecurrentes` y servicio `ServicioFacturasRecurrentes` (src/ProConta.Compras/Recurrentes): facturas de la sociedad con fecha en los 12 meses que acaban hoy (Europe/Madrid), de cualquier ejercicio (las del ERP por su sociedad), sin duplicadas, rectificativas (con factura rectificada o importe negativo) ni sin proveedor; con la periodicidad fijada en la ficha basta una factura en esos 12 meses; varias en un mes cuentan como una para la racha y la última es la de fecha más reciente; el día esperado todavía no cuenta (sale al día siguiente). Pantalla `RecurrentesPendientesVM` y `VistaRecurrentesPendientes` (Compras › «Facturas recurrentes pendientes», hija de Compras junto a Facturas recibidas): casillas, pie con el número y el importe estimado, doble clic abre el PDF de la última factura y, si no se encuentra, ofrece verla en Facturas recibidas; la columna Estado (oculta de fábrica) dice «No llegará» en las descartadas, que salen en cursiva. «Ver en Facturas recibidas» de una factura de otro ejercicio da el aviso que ya tenía esa pantalla (cambiar de ejercicio). Pruebas: `FacturasRecurrentesTests` (14, sin BD), `FacturasRecurrentesAccessTests` y la del aviso en `SaludIncidenciasTests`.
+- 2026-11-23 20:10 · Validado por el propietario (PR #144); el nodo pasa a estable.
 
 ## Requirements
 - 2026-11-16 19:15 · El ERP actual tiene un proceso que muestra facturas recurrentes (normalmente mensuales) no recibidas. Está en el formulario frmFacturasPendientes. ¿Puedes analizarlo?
@@ -40,3 +40,4 @@ Pantalla informativa de Compras que lista las facturas de proveedores recurrente
 - 2026-11-23 18:49 · answer: ¿«Abrir la carpeta del proveedor» en lugar de «Registrar la factura»? → no: ninguna acción de registro, se espera al PDF
 - 2026-11-23 18:49 · P3. Ok
 - 2026-11-23 18:49 · answer: ¿sale como pendiente en cuanto pasa la fecha esperada? → sí
+- 2026-11-23 20:09 · Ok, validada. Puedes fusionar y cerrar hilo (ya no es draft)
