@@ -73,8 +73,8 @@ public static class DuenosTablas
         Asignar("activos", "activos", "Activos", "TiposActivo", "TiposSubcuentaActivo", "PlantillasSubcuentasActivo", "SubcuentasActivo",
             "ActivosInmuebles", "PlanesAmortizacionActivo", "LotesAmortizacionActivo", "DetallesLoteAmortizacionActivo",
             "PlantillasCuentasActivo", "CuentasActivo", "Inmuebles");
-        Asignar("creative-lab", "creative-lab/inversiones-financieras", "ActivosInversiones", "CotizacionesInstrumentoFinanciero",
-            "ImportacionesActivos", "InstrumentosFinancieros", "OperacionesInversion");
+        Asignar("activos", "activos/activos-financieros", "ActivosInversiones", "CotizacionesInstrumentoFinanciero",
+            "ImportacionesActivos", "InstrumentosFinancieros", "OperacionesInversion", "CambiosDivisa", "ConexionesCotizaciones");
         Asignar("creative-lab", "creative-lab/asistente-ia", "ConversacionesIA", "MensajesConversacionIA");
         Asignar("inicio", "pantalla-de-inicio", "HistoricoSalud");
         Asignar("documentos", "documentos", "TiposDocumento", "Documentos", "DocumentosVersiones", "DocumentosVinculos");

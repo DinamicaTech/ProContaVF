@@ -1,4 +1,4 @@
-using ProConta.Contabilidad.Amortizacion;
+﻿using ProConta.Contabilidad.Amortizacion;
 
 namespace ProConta.Activos.Gestion;
 
@@ -64,8 +64,9 @@ public static class ReglasFichaActivo
     /// <summary>Años que mira la regla de bloqueo: el ejercicio de trabajo y los cuatro anteriores (propietario 2026-11-17 18:43, C).</summary>
     public const int EjerciciosBloqueo = 5;
 
-    /// <summary>Clase del listado: Inmuebles, Vehículos u Otros.</summary>
-    public static string Clase(string codigoTipo) => TiposActivoPgc.EsInmueble(codigoTipo) ? "Inmuebles" : codigoTipo == TiposActivoPgc.Vehiculo ? "Vehículos" : "Otros";
+    /// <summary>Clase del listado: Inmuebles, Vehículos, Financieros u Otros.</summary>
+    public static string Clase(string codigoTipo) => TiposActivoPgc.EsInmueble(codigoTipo) ? "Inmuebles" : codigoTipo == TiposActivoPgc.Vehiculo ? "Vehículos"
+        : TiposActivoPgc.EsInversion(codigoTipo) ? "Financieros" : "Otros";
 
     /// <summary>% de construcción a partir de los valores catastrales (construcción / (suelo + construcción)), a cuatro decimales; null sin valores.</summary>
     public static decimal? PorcentajeConstruccion(decimal? suelo, decimal? construccion)

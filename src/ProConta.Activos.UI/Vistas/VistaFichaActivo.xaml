@@ -1,4 +1,4 @@
-<UserControl x:Class="ProConta.Activos.UI.Vistas.VistaFichaActivo"
+﻿<UserControl x:Class="ProConta.Activos.UI.Vistas.VistaFichaActivo"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:pc="urn:proconta-ui"
@@ -167,11 +167,11 @@
                     <StackPanel Style="{StaticResource Campo.Bloque}">
                       <TextBlock Text="Tipo" Style="{StaticResource Rotulo}" />
                       <ComboBox ItemsSource="{Binding Tipos}" SelectedItem="{Binding Tipo, ValidatesOnNotifyDataErrors=True}" DisplayMemberPath="Nombre" Width="200"
-                                IsEnabled="{Binding TipoEditable}" ToolTipService.ShowOnDisabled="True"
+                                IsEnabled="{Binding TipoCambiable}" ToolTipService.ShowOnDisabled="True"
                                 ToolTip="El tipo decide la plantilla de subcuentas y las cuentas del plan contable que usa. Solo se puede cambiar si sus subcuentas no tienen apuntes en los últimos cinco ejercicios" />
                     </StackPanel>
                     <StackPanel Style="{StaticResource Campo.Bloque}" VerticalAlignment="Bottom">
-                      <CheckBox Content="Es ajeno a la sociedad" IsChecked="{Binding EsAjeno}" IsEnabled="{Binding TipoEditable}" Margin="0,0,0,6" ToolTipService.ShowOnDisabled="True"
+                      <CheckBox Content="Es ajeno a la sociedad" IsChecked="{Binding EsAjeno}" IsEnabled="{Binding TipoCambiable}" Margin="0,0,0,6" ToolTipService.ShowOnDisabled="True"
                                 ToolTip="Márcalo si el activo no es de la sociedad y solo quieres guardar su información (por ejemplo, el piso particular): no tendrá subcuentas, centro ni amortización" />
                     </StackPanel>
                   </WrapPanel>
@@ -189,15 +189,19 @@
               <Border Style="{StaticResource Bloque}">
                 <StackPanel>
                   <TextBlock Text="Compra" Style="{StaticResource Texto.Seccion}" Margin="0,0,0,8" />
+                  <pc:Nota Tipo="Info" Margin="0,0,0,10" Visibility="{Binding EsFinanciero, Converter={StaticResource Visible}}">
+                    <TextBlock TextWrapping="Wrap" Text="En un activo financiero, la fecha de compra es la del primer lote y el coste es la suma del coste de sus lotes: se cambian en el apartado Operaciones." />
+                  </pc:Nota>
                   <WrapPanel>
                     <StackPanel Style="{StaticResource Campo.Bloque}">
                       <TextBlock Text="Fecha de compra" Style="{StaticResource Rotulo}" />
-                      <TextBox Text="{Binding FechaCompra, UpdateSourceTrigger=PropertyChanged, ValidatesOnNotifyDataErrors=True}" Width="110" ToolTip="dd/mm/aaaa. Normalmente desde este día se amortiza" />
+                      <TextBox Text="{Binding FechaCompra, UpdateSourceTrigger=PropertyChanged, ValidatesOnNotifyDataErrors=True}" Width="110" IsReadOnly="{Binding EsFinanciero}"
+                               ToolTip="dd/mm/aaaa. Normalmente desde este día se amortiza (en un activo financiero, la del primer lote)" />
                     </StackPanel>
                     <StackPanel Style="{StaticResource Campo.Bloque}" Visibility="{Binding VerCompraPropia, Converter={StaticResource Visible}}">
                       <TextBlock Text="Coste de compra (€)" Style="{StaticResource Rotulo}" />
-                      <TextBox Text="{Binding Coste, UpdateSourceTrigger=PropertyChanged, ValidatesOnNotifyDataErrors=True}" Width="140" TextAlignment="Right"
-                               ToolTip="Precio más gastos de compra (notaría, registro, impuestos). Es el importe de alta del activo" />
+                      <TextBox Text="{Binding Coste, UpdateSourceTrigger=PropertyChanged, ValidatesOnNotifyDataErrors=True}" Width="140" TextAlignment="Right" IsReadOnly="{Binding EsFinanciero}"
+                               ToolTip="Precio más gastos de compra (notaría, registro, impuestos). Es el importe de alta del activo (en un activo financiero, la suma de sus lotes)" />
                     </StackPanel>
                     <StackPanel Style="{StaticResource Campo.Bloque}" Visibility="{Binding VerCompraPropia, Converter={StaticResource Visible}}">
                       <TextBlock Text="Centro de coste" Style="{StaticResource Rotulo}" />
@@ -525,6 +529,43 @@
         <TabItem Header="Documentos" Visibility="{Binding HayDocumentos, Converter={StaticResource Visible}}"
                  ToolTip="Documentos del activo en el gestor documental (escrituras, contratos de alquiler, pólizas…); arrastra aquí ficheros para archivarlos y vincularlos">
           <ContentControl Content="{Binding PanelDocumentos}" Margin="0,10,0,0" />
+        </TabItem>
+
+        <!-- Operaciones (activos/activos-financieros 2026-11-23 20:32): el instrumento y las compras de un activo financiero -->
+        <TabItem Header="Operaciones" Visibility="{Binding EsFinanciero, Converter={StaticResource Visible}}"
+                 ToolTip="El ISIN y los símbolos del activo financiero y sus compras de participaciones, con el coste de cada lote">
+          <DockPanel Margin="0,10,0,0">
+            <DockPanel DockPanel.Dock="Top" Margin="0,0,0,8">
+              <Button DockPanel.Dock="Right" Content="Nueva compra…" Style="{StaticResource Boton.Primario}" Command="{Binding NuevaCompraCommand}" VerticalAlignment="Top"
+                      ToolTipService.ShowOnDisabled="True" ToolTip="Anota otra compra de participaciones: fecha (hoy por defecto) y participaciones; el precio del día se consulta solo" />
+              <TextBlock Text="{Binding TextoInstrumento}" TextWrapping="Wrap" VerticalAlignment="Center" Margin="0,0,14,0" />
+            </DockPanel>
+            <TextBlock DockPanel.Dock="Bottom" Text="{Binding TotalOperaciones}" FontWeight="SemiBold" Margin="0,8,0,0" />
+            <TextBlock DockPanel.Dock="Bottom" Style="{StaticResource Texto.Apagado}" TextWrapping="Wrap" Margin="0,6,0,0"
+                       Text="El precio es el de cierre que dio el proveedor (orientativo). Cuando el bróker te confirme el importe de una compra, cambia el coste del lote con doble clic o con el menú contextual. No se graba ningún asiento: el de la compra sale del movimiento del banco." />
+            <DataGrid Style="{StaticResource Tabla}" ItemsSource="{Binding FilasOperaciones}" SelectedItem="{Binding OperacionElegida}" AutoGenerateColumns="False" IsReadOnly="True"
+                      HeadersVisibility="Column" SelectionMode="Single" HorizontalAlignment="Left" MouseDoubleClick="Abrible_MouseDoubleClick" AutomationProperties.Name="Operaciones del activo financiero">
+              <DataGrid.ContextMenu>
+                <ContextMenu>
+                  <MenuItem Header="Cambiar el coste del lote…" Command="{Binding CambiarCosteCommand}" ToolTipService.ShowOnDisabled="True"
+                            ToolTip="Pone el importe total que te ha confirmado el bróker para la compra marcada; el coste del activo se recalcula" />
+                </ContextMenu>
+              </DataGrid.ContextMenu>
+              <DataGrid.RowStyle>
+                <Style TargetType="DataGridRow" BasedOn="{StaticResource Tabla.Fila}"><Setter Property="ToolTip" Value="{Binding Ayuda}" /></Style>
+              </DataGrid.RowStyle>
+              <DataGrid.Columns>
+                <DataGridTextColumn Header="Fecha" Binding="{Binding Fecha}" Width="86" ElementStyle="{StaticResource Texto.Celda}" />
+                <DataGridTextColumn Header="Operación" Binding="{Binding Tipo}" Width="80" ElementStyle="{StaticResource Texto.Celda}" />
+                <DataGridTextColumn Header="Participaciones" Binding="{Binding Participaciones}" Width="120" ElementStyle="{StaticResource Texto.Celda.Importe}" HeaderStyle="{StaticResource Tabla.Cabecera.Derecha}" />
+                <DataGridTextColumn Header="Precio" Binding="{Binding Precio}" Width="120" ElementStyle="{StaticResource Texto.Celda.Importe}" HeaderStyle="{StaticResource Tabla.Cabecera.Derecha}" />
+                <DataGridTextColumn Header="Cambio" Binding="{Binding Cambio}" Width="80" ElementStyle="{StaticResource Texto.Celda.Importe}" HeaderStyle="{StaticResource Tabla.Cabecera.Derecha}" />
+                <DataGridTextColumn Header="Precio real (€)" Binding="{Binding PrecioEur}" Width="120" ElementStyle="{StaticResource Texto.Celda.Importe}" HeaderStyle="{StaticResource Tabla.Cabecera.Derecha}" />
+                <DataGridTextColumn Header="Coste del lote" Binding="{Binding Coste}" Width="120" ElementStyle="{StaticResource Texto.Celda.Importe}" HeaderStyle="{StaticResource Tabla.Cabecera.Derecha}" />
+                <DataGridTextColumn Header="Origen del precio" Binding="{Binding Notas}" Width="340" ElementStyle="{StaticResource Texto.Celda}" />
+              </DataGrid.Columns>
+            </DataGrid>
+          </DockPanel>
         </TabItem>
       </TabControl>
     </pc:VistaEstado>

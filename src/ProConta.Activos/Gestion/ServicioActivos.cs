@@ -1,4 +1,4 @@
-using System.Globalization;
+﻿using System.Globalization;
 using ProConta.Activos.Subcuentas;
 using ProConta.Contabilidad.Amortizacion;
 using ProConta.Contabilidad.Asientos;
@@ -411,6 +411,7 @@ public sealed partial class ServicioActivos
         var repetido = await CodigoRepetidoAsync(ctx.IdSociedad, d.Codigo, 0);
         if (ReglasFichaActivo.Validar(paraValidar, repetido) is { Count: > 0 } errores)
             return Resultado<int>.Fallo(errores.Select(e => new Error("Activos.DatoNoValido", e.Texto, registro, null, null, e.Campo)));
+        if (await ValidarAltaInversionAsync(ctx, alta, d, registro) is { } errorInversion) return Resultado<int>.Fallo(errorInversion);
         try
         {
             return await _bd.EnTransaccionAsync(async s =>
@@ -434,6 +435,7 @@ public sealed partial class ServicioActivos
                 var guardado = d with { IdActivo = id, IdCentroCoste = centro };
                 await GuardarInmuebleAsync(s, guardado);
                 if (guardado.SeAmortiza && !guardado.EsAjeno) await GuardarPlanAsync(s, guardado);
+                if (alta.Instrumento is { } instrumento && alta.Compra is { } compra) await AltaInversionAsync(s, id, instrumento, compra);
                 return Resultado<int>.Correcto(id);
             });
         }

@@ -1,4 +1,4 @@
-using System.Windows.Input;
+﻿using System.Windows.Input;
 using ProConta.Activos.Gestion;
 using ProConta.UI.Base.Comandos;
 using ProConta.UI.Base.Contenedor;
@@ -57,7 +57,7 @@ public sealed class FilaActivoVM(ActivoListado datos, Action alMarcar) : ModeloV
 /// </summary>
 public sealed class ListadoActivosVM : ModeloVista, IPestanaTrabajo
 {
-    public static readonly IReadOnlyList<string> Clases = ["Todos", "Inmuebles", "Vehículos", "Otros"];
+    public static readonly IReadOnlyList<string> Clases = ["Todos", "Inmuebles", "Vehículos", "Financieros", "Otros"];
     public static readonly IReadOnlyList<string> Estados = ["En uso", "De baja", "Todos"];
 
     private readonly ModuloActivos _modulo;
@@ -87,6 +87,8 @@ public sealed class ListadoActivosVM : ModeloVista, IPestanaTrabajo
         MayorCommand = new ComandoDelegado(_ => _ = MayorAsync(), _ => _modulo.Contexto.AbrirMayor is not null && Marcadas.Count > 0 && Marcadas.All(f => f.Propio));
         GenerarMarcadosCommand = new ComandoDelegado(_ => _ = GenerarAsync(Marcadas, Marcadas.Count == 1 ? $"Subcuentas de {Marcadas[0].Codigo}" : $"Subcuentas de {Marcadas.Count} activos"),
             _ => !_ocupado && Marcadas.Count > 0 && Marcadas.All(f => f.Propio && !f.Datos.DeBaja));
+        NuevaCompraCommand = new ComandoDelegado(p => { if (Unico(p) is { } f) _ = _modulo.NuevaCompraAsync(f.Id, f.Codigo); },
+            p => !_ocupado && Unico(p) is { Propio: true, Datos.DeBaja: false } f && TiposActivoPgc.EsInversion(f.Datos.CodigoTipo));
         QuitarCentroCommand = new ComandoDelegado(() => FiltrarCentro(null, null));
         MarcarTodosCommand = new ComandoDelegado(() => MarcarTodos(!TodosMarcados));
     }
@@ -111,6 +113,7 @@ public sealed class ListadoActivosVM : ModeloVista, IPestanaTrabajo
     public ICommand CuentaResultadosCommand { get; }
     public ICommand MayorCommand { get; }
     public ICommand GenerarMarcadosCommand { get; }
+    public ICommand NuevaCompraCommand { get; }
     public ICommand QuitarCentroCommand { get; }
     public ICommand MarcarTodosCommand { get; }
 

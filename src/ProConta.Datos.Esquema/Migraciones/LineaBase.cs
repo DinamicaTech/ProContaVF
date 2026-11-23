@@ -124,6 +124,7 @@ public static class CatalogoMigraciones
         MigracionesDocumentos.TipoInformeContable,
         MigracionesContabilidad.CuentasAnualesMemoria,
         MigracionesCompras.FacturasRecurrentes,
+        MigracionesActivosFinancieros.AltaPorIsin,
     ];
 
     /// <summary>Versión del esquema que espera esta versión del programa.</summary>
