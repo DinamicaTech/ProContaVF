@@ -174,7 +174,9 @@ public partial class VentanaPrincipal : Window
             () => new FuenteGeografiaAccess(bd).CargarAsync(), contexto.Contexto, contexto.RazonSocial, new Actor(sesion.NombreOperador),
             new SubcuentasRoles(bd, cuentas), asientosBanco,
             // Al cambiar la subcuenta de un rol se ofrece pasar sus apuntes (terceros/roles/cambio-subcuenta).
-            new CambioSubcuentaTercero(bd, cuentas, new MotorAsientosAccess(bd), asientosBanco));
+            new CambioSubcuentaTercero(bd, cuentas, new MotorAsientosAccess(bd), asientosBanco),
+            // Mandato SEPA del cliente: el acreedor es la sociedad activa (terceros/roles/mandato-sepa).
+            new ProConta.Terceros.Roles.LectorAcreedorSepa(bd));
         _terceros = new ModuloTerceros(servicios, _area, new DialogosTerceros(servicios));
 
         // Mayor (contabilidad/mayor): pestaña Contabilidad › Mayor y el mismo control embebido en la ficha de terceros.
@@ -183,6 +185,13 @@ public partial class VentanaPrincipal : Window
                 new MotorAsientosAccess(bd), new Actor(sesion.NombreOperador)),
             _area, new ProConta.Contabilidad.UI.Mayor.DialogosMayor(() => this));
         _terceros.MayorEmbebido = cuentas => _mayor.CrearEmbebido(cuentas);
+        // Mandato SEPA (terceros/roles/mandato-sepa): HTML › PDF con el motor de informes, A4 vertical, y se abre para imprimirlo.
+        _terceros.HtmlAPdf = html => ConversorHtmlPdf.Compartido.Convertir(html, new PaginaPdf(210, 297, 18, 18, 18, 18));
+        _terceros.AbrirFichero = ruta =>
+        {
+            try { System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(ruta) { UseShellExecute = true })?.Dispose(); }
+            catch (Exception ex) when (ex is System.ComponentModel.Win32Exception or InvalidOperationException) { Avisar($"Mandato guardado en {ruta} (no he podido abrirlo: {ex.Message})"); }
+        };
         // Asiento manual (contabilidad/pantallas y contabilidad/plantillas-asiento): nuevo, asistente de corrección y modificar, desde el menú y el Mayor.
         _asientos = new ProConta.Contabilidad.UI.Asientos.ModuloAsientos(
             () => new ProConta.Contabilidad.UI.Asientos.FuenteAsientoManualAccess(bd, contexto.Contexto, new Actor(sesion.NombreOperador)), _area,

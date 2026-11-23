@@ -41,6 +41,15 @@ public sealed class ModuloTerceros
     public Func<IReadOnlyList<(string Codigo, string Papel)>, object>? MayorEmbebido { get; set; }
 
     /// <summary>
+    /// Convierte a PDF el HTML de una página A4 (mandato SEPA, terceros/roles/mandato-sepa): lo conecta el contenedor con el motor de
+    /// informes; null, el botón «Mandato SEPA…» no está disponible.
+    /// </summary>
+    public Func<string, byte[]>? HtmlAPdf { get; set; }
+
+    /// <summary>Abre un fichero generado (el PDF del mandato) con la aplicación del equipo.</summary>
+    public Action<string>? AbrirFichero { get; set; }
+
+    /// <summary>
     /// Pestaña Nóminas (nominas/pantallas): crea su contenido para el tercero si es empleado de la sociedad activa, o null (la
     /// pestaña no se ve). Lo conecta el contenedor.
     /// </summary>

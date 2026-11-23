@@ -1,3 +1,4 @@
+using System.IO;
 using System.Collections;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
@@ -57,6 +58,8 @@ public sealed class FichaTerceroVM : Observable, IPestanaTrabajo, INotifyDataErr
         ElegirTipoCommand = new ComandoDelegado(p => TipoPersonaTexto = p as string ?? "");
         AnadirDomicilioCommand = new ComandoDelegado(AnadirDomicilio);
         AnadirEmailCommand = new ComandoDelegado(() => AnadirDato(TipoDatoContacto.Email));
+        MandatoSepaCommand = new ComandoDelegado(() => _ = MandatoSepaAsync(),
+            () => _modulo?.HtmlAPdf is not null && Servicios.AcreedorSepa is not null && ClienteActivo && !string.IsNullOrWhiteSpace(T.Roles.Cliente?.Iban));
         EnviarEmailCommand = new ComandoDelegado(p => { if (p is DatoContactoVM d) _ = EnviarEmailAsync(d); },
             p => _modulo?.EnviarEmail is not null && p is DatoContactoVM { EsEmail: true } d && d.Valor.Trim() is { Length: > 2 } v && v.Contains('@') && !v.Contains(' '));
         AnadirTelefonoCommand = new ComandoDelegado(() => AnadirDato(TipoDatoContacto.Telefono));
@@ -578,6 +581,59 @@ public sealed class FichaTerceroVM : Observable, IPestanaTrabajo, INotifyDataErr
         OpcionesGrupo.Add(OpcionGrupo.General);
         foreach (var g in Grupos) OpcionesGrupo.Add(new OpcionGrupo(g));
         foreach (var d in Emails.Concat(Telefonos)) d.RefrescarGrupo();
+    }
+
+    // ---------- mandato SEPA (terceros/roles/mandato-sepa 2026-11-23) ----------
+
+    /// <summary>Botón «Mandato SEPA…» junto al IBAN del cliente: genera la orden de domiciliación en PDF para que la firme.</summary>
+    public ICommand MandatoSepaCommand { get; }
+
+    public string AyudaMandatoSepa => _modulo?.HtmlAPdf is null || Servicios.AcreedorSepa is null
+        ? "El mandato SEPA no está disponible en esta pantalla."
+        : "Genera en PDF la orden de domiciliación SEPA (pago periódico) con los datos guardados del cliente y los de la sociedad, para que la firme. Necesita el IBAN.";
+
+    private async Task MandatoSepaAsync()
+    {
+        if (_modulo?.HtmlAPdf is not { } aPdf || Servicios.AcreedorSepa is not { } lector) return;
+        if (T.EsNuevo || TieneCambios || T.Roles.Cliente?.IdCliente is null)
+        {
+            var opcion = Dialogos.Preguntar("Guarda la ficha antes",
+                "El mandato se hace con los datos guardados del cliente (nombre, domicilio, IBAN y su código, que es la referencia de la orden). Guarda la ficha y lo genero.",
+                null,
+                new OpcionMensaje("Guardar y generar", "Guarda los cambios de la ficha y genera el mandato", Principal: true),
+                new OpcionMensaje("Cancelar", "Vuelve a la ficha sin guardar", Cancelar: true));
+            if (opcion != 0 || !await GuardarAsync() || T.Roles.Cliente?.IdCliente is null) return;
+        }
+        try
+        {
+            var acreedor = await lector.LeerAsync(Servicios.Contexto.IdSociedad);
+            var faltan = acreedor is null ? ["el nombre", "el NIF", "el domicilio fiscal", "la población fiscal"]
+                : new[] { (acreedor.Nombre, "el nombre"), (acreedor.Nif, "el NIF"), (acreedor.Domicilio.Direccion, "el domicilio fiscal"), (acreedor.Domicilio.Poblacion, "la población fiscal") }
+                    .Where(x => x.Item1.Length == 0).Select(x => x.Item2).ToArray();
+            if (faltan.Length > 0)
+            {
+                Dialogos.Preguntar("Faltan datos de la sociedad",
+                    $"Para el mandato falta {string.Join(", ", faltan)} de la sociedad {NombreSociedad}. Complétalos en Parámetros y tablas › Empresas y ejercicios › Empresas y vuelve a pulsar «Mandato SEPA…».",
+                    null, new OpcionMensaje("Entendido", "Cierra este mensaje", Principal: true, Cancelar: true));
+                return;
+            }
+            var datos = new DatosMandatoSepa(T.Roles.Cliente!.IdCliente!.Value.ToString(System.Globalization.CultureInfo.InvariantCulture), NombreCabecera,
+                new DomicilioSepa(T.Direccion?.Trim() ?? "", T.CodigoPostal?.Trim() ?? "", T.Poblacion?.Trim() ?? "", T.Provincia?.Trim() ?? "",
+                    Paises.EsEspana(T.Pais) ? "España" : Paises.Nombre(T.Pais)),
+                T.Roles.Cliente.Iban!, acreedor!, DateTime.Today);
+            var pdf = await Task.Run(() => aPdf(MandatoSepa.Html(datos)));
+            var carpeta = Path.Combine(Path.GetTempPath(), "ProContaVF", "Mandatos SEPA");
+            Directory.CreateDirectory(carpeta);
+            var ruta = Path.Combine(carpeta, MandatoSepa.NombreFichero(datos));
+            await File.WriteAllBytesAsync(ruta, pdf);
+            if (_modulo.AbrirFichero is { } abrir) abrir(ruta); else _modulo.Avisar($"Mandato SEPA guardado en {ruta}");
+        }
+        catch (Exception ex)
+        {
+            Dialogos.Preguntar("No he podido generar el mandato",
+                $"{ex.Message} La ficha no ha cambiado: vuelve a pulsar «Mandato SEPA…» cuando lo hayas resuelto.",
+                null, new OpcionMensaje("Entendido", "Cierra este mensaje", Principal: true, Cancelar: true));
+        }
     }
 
     public string AyudaEnviarEmail => _modulo?.EnviarEmail is null
