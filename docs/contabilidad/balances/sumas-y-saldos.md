@@ -24,6 +24,7 @@ Hecho y validado por el propietario (2026-11-18 20:15): Informes › «Sumas y s
 - 2026-11-18 12:18 · draft: Balance de sumas y saldos del ejercicio de trabajo, por cuenta y subcuenta, entre fechas, en Excel y en PDF desde el menú Informes.
 - 2026-11-18 19:44 · Opción B, aunque no sé si cambia el esquema, solo sería un TipoDocumento más, no ?
 - 2026-11-18 20:15 · Ok, perfecto. Puedes fusionar.
+- 2026-11-23 17:30 · Derived from contabilidad/procesos/legalizacion-libros: el balance de sumas y saldos de un ejercicio cerrado (no solo el de trabajo) entre fechas, sin pantalla (`GeneradorSumasYSaldos.GenerarAsync` con el contexto de ese ejercicio) y su HTML para PDF (`InformeSumasYSaldos.Html`), para los balances trimestrales del libro de Inventarios y Cuentas Anuales.
 
 ## Hand-over
 - 2026-11-18 20:20 · Construido en la rama claude/sumas-y-saldos (clon C:\Docs\Codigo\ProContaVF-sumas-saldos), con las pruebas en verde. Validado por el propietario el 2026-11-18 20:15 y fusionado (PR #130).
