@@ -30,8 +30,8 @@ public sealed class ClienteYahooFinance(HttpClient http)
     /// <summary>Gráfico diario de un símbolo entre dos fechas (ambas incluidas).</summary>
     public async Task<Resultado<GraficoYahoo>> GraficoAsync(string simbolo, DateTime desde, DateTime hasta, CancellationToken cancelacion = default)
     {
-        var p1 = new DateTimeOffset(desde.Date, TimeSpan.Zero).ToUnixTimeSeconds();
-        var p2 = new DateTimeOffset(hasta.Date.AddDays(1), TimeSpan.Zero).ToUnixTimeSeconds();
+        var p1 = new DateTimeOffset(DateTime.SpecifyKind(desde.Date, DateTimeKind.Utc)).ToUnixTimeSeconds();
+        var p2 = new DateTimeOffset(DateTime.SpecifyKind(hasta.Date.AddDays(1), DateTimeKind.Utc)).ToUnixTimeSeconds();
         var r = await GetAsync($"{Direccion}v8/finance/chart/{Uri.EscapeDataString(simbolo)}?period1={p1}&period2={p2}&interval=1d&events=history", cancelacion);
         if (!r.EsCorrecto) return Resultado<GraficoYahoo>.Fallo(r.Errores);
         return LeerGrafico(simbolo, r.Valor) is { } g ? Resultado<GraficoYahoo>.Correcto(g)

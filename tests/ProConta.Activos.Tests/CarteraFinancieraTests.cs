@@ -285,4 +285,15 @@ public sealed class CarteraFinancieraTests
         Assert.Equal(new DateTime(2026, 11, 20), ServicioCarteraFinanciera.UltimoDiaHabil(new(2026, 11, 22)));
         Assert.Equal(Hoy, ServicioCarteraFinanciera.UltimoDiaHabil(Hoy));
     }
+
+    [Fact]
+    public async Task El_grafico_de_yahoo_acepta_fechas_locales()
+    {
+        // DateTime.Today es de tipo Local: en un equipo con UTC+1 no debe fallar al pasarlo a segundos Unix.
+        var http = new HttpFijo(_ => (System.Net.HttpStatusCode.OK, "{}"));
+        var hoy = DateTime.SpecifyKind(new DateTime(2026, 11, 23), DateTimeKind.Local);
+        var r = await new ClienteYahooFinance(new HttpClient(http)).GraficoAsync("IWDA.AS", hoy.AddDays(-10), hoy);
+        Assert.False(r.EsCorrecto); // sin datos, pero sin excepción
+        Assert.Contains($"period1={new DateTimeOffset(new DateTime(2026, 11, 13), TimeSpan.Zero).ToUnixTimeSeconds()}", http.Pedidas[0]);
+    }
 }
