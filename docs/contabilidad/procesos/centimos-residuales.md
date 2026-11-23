@@ -1,13 +1,12 @@
 ---
 title: Céntimos residuales
-status: draft
 depends_on: [contabilidad/procesos, organizacion/sociedades-ejercicios, contabilidad/procesos/cierre-ejercicio, pantalla-de-inicio, datos/esquema, seguridad/permisos, contabilidad/mayor]
 threads:
   - 2026-11-17 19:15 · Ajustar los céntimos residuales | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GCyHQic1UajQccvjRgPHVJG
 ---
 ## Summary
 Proceso de cierre que lleva a las cuentas de redondeo del ejercicio los céntimos que quedan en el saldo de las subcuentas (por ejemplo, la 430 de un cliente con 0,01 € tras cobrar 120,99 € de una factura de 121,00 €), con fecha 31/12. Sustituye a «Mata centimillos» del sistema antiguo, sin sus defectos: calcula desde los apuntes y no duplica al repetirse.
-Pantalla Contabilidad › Procesos contables › Fin de ejercicio › Céntimos residuales (`src/ProConta.Contabilidad.UI/Centimos`; cálculo y servicio en `src/ProConta.Contabilidad/Centimos`). Entran las subcuentas de los grupos 1 a 5, salvo 47 y 57, con un saldo a 31/12 distinto de cero y menor que el umbral del ejercicio (vacío, 1,00 €); un asiento por subcuenta, las deudoras contra la cuenta de redondeo de gastos (6590000) y las acreedoras contra la de ingresos (7590000), como lote propio regenerable con casilla para excluir. Esquema 69 y permiso PROCESOS.CENTIMOS_RESIDUALES. Hecho, pendiente de probar contra Access en el equipo del propietario y de validar.
+Pantalla Contabilidad › Procesos contables › Fin de ejercicio › Céntimos residuales (`src/ProConta.Contabilidad.UI/Centimos`; cálculo y servicio en `src/ProConta.Contabilidad/Centimos`). Entran las subcuentas de los grupos 1 a 5, salvo 47 y 57, con un saldo a 31/12 distinto de cero y menor que el umbral del ejercicio (vacío, 1,00 €); un asiento por subcuenta, las deudoras contra la cuenta de redondeo de gastos (6590000) y las acreedoras contra la de ingresos (7590000), como lote propio regenerable con casilla para excluir. Esquema 69 y permiso PROCESOS.CENTIMOS_RESIDUALES. Hecho y validado por el propietario (PR #109).
 **Aceptación:** las subcuentas con saldo distinto de cero dentro del umbral quedan a cero contra las cuentas de redondeo del ejercicio; repetirlo no genera asientos nuevos ni duplica el lote; el aviso de Inicio desaparece al saldarlas.
 
 ## Decisions
@@ -18,6 +17,7 @@ Pantalla Contabilidad › Procesos contables › Fin de ejercicio › Céntimos 
 - 2026-11-17 19:15 · Saldo a 31/12 = Debe − Haber de los apuntes contabilizados del ejercicio, con la apertura y sin la regularización (TipoAsiento 2), el cierre (3) ni los lotes de este proceso: por eso repetirlo da la misma propuesta y no duplica. Los asientos van en el lote del motor `contabilidad/procesos/centimos-residuales`, proceso CENTIMOS, clave el año; confirmar vuelve a calcular y solo graba si la propuesta es la que se ve; las cuentas de redondeo que falten se crean al confirmar (con la identidad de la de otro ejercicio si existe). Estado: pendiente (sin asientos y algo que saldar, o en curso si el ejercicio no ha terminado), hecho (lo grabado coincide con lo propuesto, o nada que saldar) o desactualizado.
 - 2026-11-17 19:15 · Hecho, pendiente de validar. Código: `CalculoCentimos` (sin BD) y `ServicioCentimos` en `src/ProConta.Contabilidad/Centimos`, pantalla `CentimosVM`/`PantallaCentimos` en `src/ProConta.Contabilidad.UI/Centimos` (menú Fin de ejercicio, tras Facturas pendientes de recibir; cabecera con «Umbral y cuentas…», «Ver los asientos», «Deshacer…» y «Actualizar»; menú contextual de una subcuenta: su Mayor), comprobación «Céntimos residuales» del cierre, aviso de Inicio con el umbral del ejercicio que abre esta pantalla. Pruebas: `CentimosTests` (sin BD) y `CentimosAccessTests` (contra Access).
 - 2026-11-18 05:30 · Cuentas siempre asignadas (organizacion/sociedades-ejercicios 2026-11-18 05:30): Las cuentas de redondeo (gastos e ingresos) ya no tienen valor fijo cuando están vacías: con alguna vacía, confirmar se detiene y pide asignarla en la pestaña Compras y ventas de Ejercicios. Hecho, pendiente de validar.
+- 2026-11-23 18:50 · Validado por el propietario («Ok, está validado. El nodo ya no debería estar en draft.», 2026-11-23 18:47) tras probarlo en su equipo: pasa a estable.
 
 ## Requirements
 - 2026-11-13 12:00 · 4. Tienes razón, estaba pensando en centimillos de un asiento, no del saldo de una subcuenta. Sí, lo seguimos necesitando
@@ -31,7 +31,9 @@ Pantalla Contabilidad › Procesos contables › Fin de ejercicio › Céntimos 
 - 2026-11-17 19:05 · 6- Ok
 - 2026-11-17 19:05 · 7- Ok
 - 2026-11-18 05:30 · Derived from organizacion/sociedades-ejercicios: las cuentas de redondeo (gastos e ingresos) ya no tienen valor fijo cuando están vacías: con alguna vacía, confirmar se detiene y pide asignarla en la pestaña Compras y ventas de Ejercicios.
+- 2026-11-23 18:47 · Ok, está validado. El nodo ya no debería estar en draft.
 
 ## Hand-over
 - 2026-11-17 19:15 · Hecho en la rama claude/project-thread-fhgf80: código, esquema 69, permiso, menú, comprobación del cierre, aviso de Inicio, pruebas sin BD (pasan en la nube) y docs.
 - 2026-11-17 20:05 · El propietario pidió fusionar sin hacer las pruebas en su equipo (2026-11-17 19:56: las hará junto con las de otros hilos); la solución compila con main al día. Falta: pruebas contra Access (CentimosAccessTests, Fase4Tests, MantenimientoTests, SeguridadTests), ensayo en una copia de C:\Docs\ProContaVF-validacion y la validación del propietario; después, quitar `status: draft`.
+- 2026-11-23 18:50 · Validado por el propietario: nodo estable. No queda nada pendiente.
