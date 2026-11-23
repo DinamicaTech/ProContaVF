@@ -18,8 +18,17 @@ public sealed record ImportePartida(string Clave, decimal Importe, IReadOnlyList
 public sealed record SubcuentaSinPartida(string Cuenta, string Nombre, decimal SaldoDeudor, bool EsPyG);
 
 /// <summary>Las cifras de un ejercicio: el balance y la cuenta de pérdidas y ganancias por clave, y lo que no se ha podido clasificar.</summary>
+/// <summary>Movimiento de una subcuenta en el ejercicio para la memoria: saldo de la apertura (Debe − Haber) y sumas del resto de asientos ordinarios.</summary>
+public sealed record MovimientoSubcuenta(string Cuenta, decimal Apertura, decimal Debe, decimal Haber)
+{
+    public decimal Final => Apertura + Debe - Haber;
+}
+
 public sealed record CifrasEjercicio(int Ejercicio, IReadOnlyDictionary<string, ImportePartida> Partidas, IReadOnlyList<SubcuentaSinPartida> SinPartida, bool Regularizado)
 {
+    /// <summary>Movimientos por subcuenta (apertura y asientos ordinarios), para las tablas de la memoria.</summary>
+    public IReadOnlyDictionary<string, MovimientoSubcuenta> Movimientos { get; init; } = new Dictionary<string, MovimientoSubcuenta>();
+
     public decimal this[string clave] => Partidas.TryGetValue(clave, out var p) ? p.Importe : 0m;
 
     public decimal TotalActivo => this["10000"];
@@ -172,6 +181,10 @@ public static class CalculoCuentasAnuales
         return new CuentasAnualesPymes(razonSocial, nif, actual, anterior, c);
     }
 
+    /// <summary>Saldo acreedor de la 129 en la apertura (el resultado del ejercicio anterior aún no aplicado); null si no hay movimientos.</summary>
+    private static decimal? SinAplicar(CifrasEjercicio e) =>
+        e.Movimientos.Count == 0 ? null : -e.Movimientos.Values.Where(m => m.Cuenta.StartsWith("129", StringComparison.Ordinal)).Sum(m => m.Apertura + m.Debe);
+
     private static void Comprobar(List<ComprobacionCuentas> c, CifrasEjercicio e)
     {
         var anio = e.Ejercicio;
@@ -188,7 +201,9 @@ public static class CalculoCuentasAnuales
         if (e["21700"] != e.Resultado)
             c.Add(new(GravedadComprobacion.Error, $"{anio}: el resultado de pérdidas y ganancias no es el del balance",
                 $"Pérdidas y ganancias {Euros(e.Resultado)}; balance, VII. Resultado del ejercicio {Euros(e["21700"])}.",
-                e.Regularizado
+                SinAplicar(e) is decimal sa && sa != 0m && sa == e["21700"] - e.Resultado
+                    ? $"El resultado de {anio - 1} ({Euros(sa)}) sigue en la 129 desde la apertura, sin aplicar: aplícalo en {anio} › Fin de ejercicio › Aplicación del resultado y vuelve a generar las cuentas."
+                    : e.Regularizado
                     ? "La regularización no lleva a la 129 el saldo de todas las cuentas 6 y 7: rehaz el cierre del ejercicio (reabrir y cerrar) en Fin de ejercicio › Cierre del ejercicio."
                     : "Hay subcuentas de los grupos 6 o 7 sin clasificar: se listan aquí."));
         else

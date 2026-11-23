@@ -543,7 +543,7 @@ public partial class VentanaPrincipal : Window
         // anterior, sus comprobaciones y el PDF de las páginas del modelo. Solo lee.
         _cuentasAnuales = new ProConta.Contabilidad.UI.CuentasAnuales.ModuloCuentasAnuales(
             new ProConta.Contabilidad.UI.CuentasAnuales.ContextoCuentasAnuales(
-                new ProConta.Contabilidad.CuentasAnuales.ServicioCuentasAnuales(bd), contexto.Contexto, contexto.RazonSocial, Avisar)
+                new ProConta.Contabilidad.CuentasAnuales.ServicioCuentasAnuales(bd), contexto.Contexto, contexto.RazonSocial, sesion.NombreOperador, Avisar)
             {
                 GenerarPdf = GenerarCuentasAnualesPdfAsync,
                 AbrirMayor = (cuentasMayor, anio) => _mayor.Abrir(cuentasMayor, [anio]),
@@ -1150,7 +1150,8 @@ public partial class VentanaPrincipal : Window
     /// PDF de las cuentas anuales (contabilidad/procesos/cuentas-anuales): las páginas del modelo pymes, guardado por el gestor documental en
     /// «&lt;año&gt;\Cuentas anuales» de la carpeta de documentos, vinculado al ejercicio de las cuentas, y abierto.
     /// </summary>
-    private async Task GenerarCuentasAnualesPdfAsync(ProConta.Contabilidad.CuentasAnuales.CuentasAnualesPymes c, int idEjercicio)
+    private async Task GenerarCuentasAnualesPdfAsync(ProConta.Contabilidad.CuentasAnuales.CuentasAnualesPymes c,
+        IReadOnlyList<ProConta.Contabilidad.CuentasAnuales.ApartadoMemoria> memoria, int idEjercicio)
     {
         var anterior = Cursor;
         Cursor = Cursors.Wait;
@@ -1158,7 +1159,7 @@ public partial class VentanaPrincipal : Window
         try
         {
             Avisar($"Generando el PDF de las cuentas anuales de {c.Ejercicio}…");
-            var html = ProConta.Informes.InformeCuentasAnuales.Html(c);
+            var html = ProConta.Informes.InformeCuentasAnuales.Html(c, memoria);
             var contenido = await Task.Run(() => ConversorHtmlPdf.Compartido.Convertir(html, ProConta.Informes.InformeCuentasAnuales.Pagina));
             var nombre = ProConta.Informes.InformeCuentasAnuales.NombreFichero(c);
             var guardado = await _servicioDocumentos.GuardarAsync(new ProConta.Documentos.SolicitudDocumento(

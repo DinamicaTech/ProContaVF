@@ -724,4 +724,28 @@ public static class MigracionesContabilidad
             new("CentimosResidualesExclusiones", "FechaHora", "Fecha y hora de la exclusión."),
         ],
     };
+
+    /// <summary>Textos de la memoria de las cuentas anuales (contabilidad/procesos/cuentas-anuales): uno por ejercicio y apartado.</summary>
+    public static Migracion CuentasAnualesMemoria { get; } = new(
+        "20261123_1500_CUENTAS_ANUALES_MEMORIA", 261123151,
+        "Textos de la memoria de las cuentas anuales que escribe el operador, por ejercicio y apartado.",
+        "contabilidad/procesos/cuentas-anuales",
+        new CrearTabla("CuentasAnualesMemoria",
+            "CREATE TABLE CuentasAnualesMemoria (IdCuentasAnualesMemoria COUNTER CONSTRAINT PK_CuentasAnualesMemoria PRIMARY KEY, " +
+            "IdSociedadEjercicio LONG NOT NULL CONSTRAINT FK_CuentasAnualesMemoria_Ejercicio REFERENCES SociedadesEjercicios (IdSociedadEjercicio), " +
+            "Apartado TEXT(10) NOT NULL, Texto MEMO NOT NULL, Operador TEXT(100), FechaHora DATETIME NOT NULL)"),
+        new CrearIndice("CuentasAnualesMemoria", "UX_CuentasAnualesMemoria_Apartado",
+            "CREATE UNIQUE INDEX UX_CuentasAnualesMemoria_Apartado ON CuentasAnualesMemoria (IdSociedadEjercicio, Apartado)"))
+    {
+        Descripciones =
+        [
+            new("CuentasAnualesMemoria", null, "Texto de un apartado de la memoria de las cuentas anuales de un ejercicio, escrito o corregido por el operador (sin fila: el texto que propone el programa)."),
+            new("CuentasAnualesMemoria", "IdCuentasAnualesMemoria", "Identificador del texto."),
+            new("CuentasAnualesMemoria", "IdSociedadEjercicio", "Ejercicio de las cuentas anuales."),
+            new("CuentasAnualesMemoria", "Apartado", "Número del apartado de la memoria del modelo pymes (1 a 11)."),
+            new("CuentasAnualesMemoria", "Texto", "Texto del apartado."),
+            new("CuentasAnualesMemoria", "Operador", "Operador que lo guardó por última vez."),
+            new("CuentasAnualesMemoria", "FechaHora", "Fecha y hora en que se guardó por última vez."),
+        ],
+    };
 }

@@ -44,6 +44,52 @@ public sealed class ServicioCuentasAnuales(IBaseDatos bd)
         return CalculoCuentasAnuales.Componer(razon, nif, actual, anterior, cerrado, resultadoBalances);
     }
 
+    /// <summary>
+    /// La memoria de unas cuentas ya calculadas: los textos guardados del ejercicio (o los propuestos) y las tablas, con los datos de la sociedad,
+    /// los dividendos repartidos en el ejercicio y la aplicación de su resultado si ya se grabó en el siguiente.
+    /// </summary>
+    public async Task<IReadOnlyList<ApartadoMemoria>> MemoriaAsync(string idSociedad, int idSociedadEjercicio, CuentasAnualesPymes cuentas, CancellationToken cancelacion = default)
+    {
+        var (datos, textos) = await bd.EjecutarAsync(async s =>
+        {
+            var soc = await s.ConsultarPrimeroAsync(
+                "SELECT DireccionFiscal, CodigoPostalFiscal, PoblacionFiscal, ProvinciaFiscal, ValorNominalParticipacion FROM Sociedades WHERE IdSociedad = ?",
+                f => (Domicilio: string.Join(", ", new[] { f.Texto("DireccionFiscal"), string.Join(" ", new[] { f.Texto("CodigoPostalFiscal"), f.Texto("PoblacionFiscal") }
+                        .Where(x => !string.IsNullOrWhiteSpace(x)).Select(x => x!.Trim())), f.Texto("ProvinciaFiscal") }
+                        .Where(x => !string.IsNullOrWhiteSpace(x)).Select(x => x!.Trim())),
+                    Nominal: f.DecimalNulo("ValorNominalParticipacion")), idSociedad);
+            var participaciones = await s.ConsultarPrimeroAsync(
+                "SELECT SUM(Participaciones) AS Total FROM SociosSociedad WHERE IdSociedad = ? AND Activo = True",
+                f => f.DecimalNulo("Total"), idSociedad);
+            var dividendos = await s.ConsultarAsync(
+                "SELECT t.Nombre, r.Fecha, rs.Bruto, rs.Retencion FROM ((RepartosDividendos AS r INNER JOIN RepartosDividendosSocios AS rs ON r.IdRepartoDividendos = rs.IdRepartoDividendos) " +
+                "INNER JOIN Socios AS so ON rs.IdSocio = so.IdSocio) INNER JOIN Terceros AS t ON so.IdTercero = t.IdTercero WHERE r.IdSociedadEjercicio = ? ORDER BY r.Fecha, t.Nombre",
+                f => new DividendoSocio((f.Texto("Nombre") ?? "").Trim(), f.Fecha("Fecha"), f.DecimalNulo("Bruto") ?? 0m, f.DecimalNulo("Retencion") ?? 0m), idSociedadEjercicio);
+            var aplicacion = await s.ConsultarPrimeroAsync(
+                "SELECT a.Resultado, a.Compensacion, a.ReservaLegal, a.Dividendos, a.Voluntarias FROM AplicacionesResultado AS a " +
+                "INNER JOIN SociedadesEjercicios AS se ON a.IdSociedadEjercicio = se.IdSociedadEjercicio WHERE se.IdSociedad = ? AND a.EjercicioResultado = ?",
+                f => new AplicacionMemoria(f.DecimalNulo("Resultado") ?? 0m, f.DecimalNulo("Compensacion") ?? 0m, f.DecimalNulo("ReservaLegal") ?? 0m,
+                    f.DecimalNulo("Dividendos") ?? 0m, f.DecimalNulo("Voluntarias") ?? 0m), idSociedad, cuentas.Ejercicio);
+            var t = await s.ConsultarAsync("SELECT Apartado, Texto FROM CuentasAnualesMemoria WHERE IdSociedadEjercicio = ?",
+                f => ((f.Texto("Apartado") ?? "").Trim(), f.Texto("Texto") ?? ""), idSociedadEjercicio);
+            var datos = new DatosMemoria(soc.Domicilio is { Length: > 0 } dom ? dom : null,
+                participaciones is decimal p && p > 0m ? (long)p : null, soc.Nominal is decimal v && v > 0m ? v : null, dividendos, aplicacion);
+            return (datos, (IReadOnlyDictionary<string, string>)t.ToDictionary(x => x.Item1, x => x.Item2, StringComparer.Ordinal));
+        }, cancelacion);
+        return MemoriaPymes.Componer(cuentas, datos, textos);
+    }
+
+    /// <summary>Guarda el texto de un apartado de la memoria; vacío lo borra y el apartado vuelve al texto propuesto.</summary>
+    public Task GuardarTextoMemoriaAsync(int idSociedadEjercicio, string apartado, string? texto, string operador, CancellationToken cancelacion = default) =>
+        bd.EnTransaccionAsync(async s =>
+        {
+            await s.EjecutarAsync("DELETE FROM CuentasAnualesMemoria WHERE IdSociedadEjercicio = ? AND Apartado = ?", idSociedadEjercicio, apartado);
+            if (!string.IsNullOrWhiteSpace(texto))
+                await s.EjecutarAsync("INSERT INTO CuentasAnualesMemoria (IdSociedadEjercicio, Apartado, Texto, Operador, FechaHora) VALUES (?, ?, ?, ?, ?)",
+                    idSociedadEjercicio, apartado, texto.Trim(), operador, DateTime.Now);
+            return true;
+        }, cancelacion);
+
     /// <summary>Los ejercicios de la sociedad, del más reciente al más antiguo, con su marca de cerrado.</summary>
     public async Task<IReadOnlyList<EjercicioCuentas>> EjerciciosAsync(string idSociedad, CancellationToken cancelacion = default)
     {
@@ -88,16 +134,25 @@ public sealed class ServicioCuentasAnuales(IBaseDatos bd)
         var balance = new Dictionary<string, (decimal D, decimal H)>(StringComparer.Ordinal);
         var pyg = new Dictionary<string, (decimal D, decimal H)>(StringComparer.Ordinal);
         var regularizado = false;
+        var movimientos = new Dictionary<string, MovimientoSubcuenta>(StringComparer.Ordinal);
         foreach (var (cuenta, tipo, debe, haber) in sumas)
         {
             if (cuenta.Length == 0 || tipo == Clasificador.TipoCierre) continue;
+            if (tipo != Clasificador.TipoRegularizacion)
+            {
+                var m = movimientos.GetValueOrDefault(cuenta) ?? new MovimientoSubcuenta(cuenta, 0m, 0m, 0m);
+                movimientos[cuenta] = tipo == TipoApertura ? m with { Apertura = m.Apertura + debe - haber } : m with { Debe = m.Debe + debe, Haber = m.Haber + haber };
+            }
             if (tipo == Clasificador.TipoRegularizacion) regularizado = true;
             Sumar(balance, cuenta, debe, haber);
             if (tipo != Clasificador.TipoRegularizacion && cuenta[0] is '6' or '7') Sumar(pyg, cuenta, debe, haber);
         }
         SaldoSubcuenta S(KeyValuePair<string, (decimal D, decimal H)> kv) => new(kv.Key, nombres.GetValueOrDefault(kv.Key, ""), kv.Value.D, kv.Value.H);
-        return CalculoCuentasAnuales.Cifras(ejercicio, balance.Select(S), pyg.Select(S), regularizado);
+        return CalculoCuentasAnuales.Cifras(ejercicio, balance.Select(S), pyg.Select(S), regularizado) with { Movimientos = movimientos };
     }
+
+    /// <summary>TipoAsiento de la apertura.</summary>
+    public const byte TipoApertura = 1;
 
     private static void Sumar(Dictionary<string, (decimal D, decimal H)> d, string cuenta, decimal debe, decimal haber)
     {

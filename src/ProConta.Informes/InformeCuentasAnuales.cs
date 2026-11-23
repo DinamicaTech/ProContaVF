@@ -22,9 +22,10 @@ public static class InformeCuentasAnuales
 
     public static string NombreFichero(CuentasAnualesPymes c) => $"Cuentas anuales {c.Ejercicio}.pdf";
 
+    /// <param name="memoria">Los apartados de la memoria (contabilidad/procesos/cuentas-anuales); null o vacía, el PDF lleva solo los estados.</param>
     /// <param name="notas">Número de la nota de la memoria de cada clave (columna «Notas de la memoria»); null, la columna vacía.</param>
     /// <param name="formuladas">Fecha de formulación que se escribe junto a las firmas; null, en blanco.</param>
-    public static string Html(CuentasAnualesPymes c, IReadOnlyDictionary<string, string>? notas = null, DateTime? formuladas = null)
+    public static string Html(CuentasAnualesPymes c, IReadOnlyList<ApartadoMemoria>? memoria = null, IReadOnlyDictionary<string, string>? notas = null, DateTime? formuladas = null)
     {
         static string E(string? t) => (t ?? "").Replace("&", "&amp;").Replace("<", "&lt;").Replace(">", "&gt;").Replace("\"", "&quot;");
         var sb = new StringBuilder();
@@ -39,12 +40,44 @@ public static class InformeCuentasAnuales
           .Append("td.t{border-right:none}td.o{width:30pt;border-right:none;border-left:.6pt solid #111}")
           .Append("tr.l0 td,tr.l1 td{font-weight:700}tr.l2 td.t{font-weight:600}tr.l4 td.t{font-style:italic}")
           .Append("p.pie{font-size:7.5pt;margin:4pt 0 0}")
+          .Append(".mem h2{font-size:10.5pt;margin:12pt 0 4pt}.mem p{margin:0 0 5pt;text-align:justify;line-height:1.35}.mem table{width:auto;min-width:60%;margin:4pt 0 8pt}")
+          .Append(".mem td.n{width:auto;min-width:80pt}.mem caption{text-align:left;font-weight:600;padding:2pt 0}.mem tr.t td{font-weight:700}")
           .Append("</style></head><body>");
         Hoja(sb, c, "BALANCE DE PYMES", "BP1", "ACTIVO", c.Activo, notas, formuladas, E);
         Hoja(sb, c, "BALANCE DE PYMES", "BP2", "PATRIMONIO NETO Y PASIVO", c.PatrimonioNetoYPasivo, notas, formuladas, E);
         Hoja(sb, c, "CUENTA DE PÉRDIDAS Y GANANCIAS DE PYMES", "PP", "(DEBE) / HABER", c.PerdidasYGanancias, notas, formuladas, E);
+        if (memoria is { Count: > 0 }) Memoria(sb, c, memoria, formuladas, E);
         sb.Append("</body></html>");
         return sb.ToString();
+    }
+
+    /// <summary>La memoria: una cabecera con NIF, denominación y espacio para las firmas, y los apartados con su texto y sus tablas.</summary>
+    private static void Memoria(StringBuilder sb, CuentasAnualesPymes c, IReadOnlyList<ApartadoMemoria> memoria, DateTime? formuladas, Func<string?, string> E)
+    {
+        sb.Append("<div class=\"pag mem\"><h1>MEMORIA DE PYMES · EJERCICIO ").Append(c.Ejercicio).Append("<span>MP</span></h1>")
+          .Append("<div class=\"cab\"><div class=\"id\"><b>NIF:</b> ").Append(E(c.Nif)).Append("<br><br>DENOMINACIÓN SOCIAL:<br><b>").Append(E(c.RazonSocial)).Append("</b></div>")
+          .Append("<div class=\"fi\"><small>Espacio destinado para las firmas de los administradores")
+          .Append(formuladas is DateTime fecha ? $" · Formuladas el {fecha:dd/MM/yyyy}" : "").Append("</small></div></div>");
+        foreach (var a in memoria)
+        {
+            sb.Append("<h2>").Append(E(a.Encabezado.ToUpper(Es))).Append("</h2>");
+            foreach (var parrafo in a.Texto.Replace("\r\n", "\n").Split("\n\n", StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+                sb.Append("<p>").Append(E(parrafo).Replace("\n", "<br>")).Append("</p>");
+            foreach (var tabla in a.Tablas)
+            {
+                sb.Append("<table><caption>").Append(E(tabla.Titulo)).Append("</caption><thead><tr><th></th>");
+                foreach (var col in tabla.Columnas) sb.Append("<th>").Append(E(col)).Append("</th>");
+                sb.Append("</tr></thead><tbody>");
+                foreach (var f in tabla.Filas)
+                {
+                    sb.Append(f.EsTotal ? "<tr class=\"t\">" : "<tr>").Append("<td class=\"t\">").Append(E(f.Concepto)).Append("</td>");
+                    foreach (var i in f.Importes) sb.Append("<td class=\"n\">").Append(i is decimal v ? Importe(v) : "").Append("</td>");
+                    sb.Append("</tr>");
+                }
+                sb.Append("</tbody></table>");
+            }
+        }
+        sb.Append("</div>");
     }
 
     private static void Hoja(StringBuilder sb, CuentasAnualesPymes c, string titulo, string codigo, string columna, IReadOnlyList<FilaCuentasAnuales> filas,

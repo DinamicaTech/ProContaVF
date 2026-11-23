@@ -171,4 +171,38 @@ public sealed class CuentasAnualesTests
         var r = CalculoCuentasAnuales.Componer("S", "B0", Cifras(), Cifras(anio: 2024), cerrado: true, resultadoBalances: 1m);
         Assert.Contains(r.Comprobaciones, x => x.Gravedad == GravedadComprobacion.Aviso && x.Titulo.Contains("Balances"));
     }
+
+    [Fact]
+    public void Memoria_con_las_tablas_calculadas_y_los_textos_guardados()
+    {
+        var c = CalculoCuentasAnuales.Componer("Sociedad de prueba SL", "B00000000", Cifras(true, 2025), Cifras(true, 2024), cerrado: true);
+        var d = new DatosMemoria("Calle Inventada 1, 08000 Barcelona", 3000, 1m,
+            [new DividendoSocio("Socio Uno", new DateTime(2025, 6, 30), 1000m, 190m)], new AplicacionMemoria(21750m, 0m, 600m, 0m, 21150m));
+        var m = MemoriaPymes.Componer(c, d, new Dictionary<string, string> { ["2"] = "Texto escrito." });
+        Assert.Equal(MemoriaPymes.Apartados.Count, m.Count);
+        Assert.Contains("Calle Inventada 1", m[0].Texto);
+        Assert.True(m[1].Guardado);
+        Assert.Equal("Texto escrito.", m[1].Texto);
+        Assert.False(m[0].Guardado);
+
+        // Inmovilizado material: 150.000 brutos sin movimiento; amortización 30.000 + 6.000.
+        var inm = Assert.Single(m.Single(a => a.Numero == "4").Tablas);
+        decimal? Celda(string concepto, int col) => inm.Filas.Single(f => f.Concepto.StartsWith(concepto)).Importes[col];
+        Assert.Equal(150000m, Celda("A)", 1));
+        Assert.Equal(150000m, Celda("B)", 1));
+        Assert.Equal(30000m, Celda("C)", 1));
+        Assert.Equal(6000m, Celda("(+) Dotación", 1));
+        Assert.Equal(36000m, Celda("D)", 1));
+        Assert.Equal(114000m, Celda("Valor neto", 1));
+        Assert.Equal(c.Actual["11200"], Celda("Valor neto", 1));
+
+        Assert.Contains("3.000 participaciones", m.Single(a => a.Numero == "7").Texto);
+        Assert.Equal(1000m, m.Single(a => a.Numero == "9").Tablas.Single().Filas[^1].Importes[0]);
+        var ap = m.Single(a => a.Numero == "11").Tablas.Single();
+        Assert.Equal(ap.Filas[0].Importes[0], ap.Filas[^1].Importes[0]);
+        // Las tablas de pasivos solo llevan las partidas con importe y su total cuadra con el balance.
+        var pas = m.Single(a => a.Numero == "6").Tablas.Single();
+        Assert.Equal(c.Actual["31200"] + c.Actual["32300"] + c.Actual["32500"], pas.Filas[^1].Importes[0]);
+        Assert.DoesNotContain(pas.Filas, f => f.Concepto.Contains("Proveedores"));
+    }
 }

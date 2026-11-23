@@ -90,7 +90,7 @@
         </pc:Nota>
 
         <!-- Subcuentas de la partida elegida -->
-        <DockPanel DockPanel.Dock="Bottom" Height="190" Margin="0,8,0,0">
+        <DockPanel DockPanel.Dock="Bottom" Height="190" Margin="0,8,0,0" Visibility="{Binding VerSubcuentas, Converter={StaticResource Visible}}">
           <TextBlock DockPanel.Dock="Top" Text="{Binding TituloSubcuentas}" Style="{StaticResource Texto.Seccion}" Margin="0,0,0,4" TextTrimming="CharacterEllipsis" />
           <DataGrid Style="{StaticResource Tabla}" ItemsSource="{Binding Subcuentas}" IsReadOnly="True" AutoGenerateColumns="False" HeadersVisibility="Column"
                     RowStyle="{StaticResource Tabla.Fila}" ContextMenu="{StaticResource Menu.Partida}" AutomationProperties.Name="Subcuentas de la partida"
@@ -113,7 +113,7 @@
         </DockPanel>
 
         <!-- Los tres estados del modelo -->
-        <TabControl>
+        <TabControl SelectedIndex="{Binding Pestana}">
           <TabItem Header="Balance: activo" ToolTip="Página BP1 del modelo: activo no corriente y corriente con las claves oficiales">
             <ContentControl Content="{Binding Activo}" ContentTemplate="{StaticResource Plantilla.Tabla}" Focusable="False" />
           </TabItem>
@@ -122,6 +122,30 @@
           </TabItem>
           <TabItem Header="Pérdidas y ganancias" ToolTip="Página PP del modelo: (Debe) en negativo y Haber en positivo, sin la regularización ni el cierre">
             <ContentControl Content="{Binding PerdidasYGanancias}" ContentTemplate="{StaticResource Plantilla.Tabla}" Focusable="False" />
+          </TabItem>
+          <TabItem Header="Memoria" ToolTip="Los apartados de la memoria del modelo pymes: el texto propuesto se corrige y se guarda por ejercicio; las tablas salen de la contabilidad">
+            <DockPanel Margin="0,6,0,0">
+              <ListBox DockPanel.Dock="Left" Width="300" ItemsSource="{Binding Memoria}" SelectedItem="{Binding Apartado}" DisplayMemberPath="Encabezado"
+                       AutomationProperties.Name="Apartados de la memoria"
+                       ToolTip="Apartados de la memoria. «(propuesto)»: aún tiene el texto que propone el programa; «*»: tiene cambios sin guardar" />
+              <DockPanel Margin="12,0,0,0" DataContext="{Binding Apartado}">
+                <TextBlock DockPanel.Dock="Top" Text="{Binding Apartado.Encabezado}" Style="{StaticResource Texto.Seccion}" Margin="0,0,0,6" />
+                <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" Margin="0,6,0,0">
+                  <Button Content="Guardar el apartado" Style="{StaticResource Boton.Primario}" Margin="0,0,8,0"
+                          Command="{Binding DataContext.GuardarApartadoCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" ToolTipService.ShowOnDisabled="True"
+                          ToolTip="Guarda el texto de este apartado para este ejercicio (sale en el PDF de las cuentas)" />
+                  <Button Content="Volver al texto propuesto" Style="{StaticResource Boton}"
+                          Command="{Binding DataContext.PropuestoCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" ToolTipService.ShowOnDisabled="True"
+                          ToolTip="Borra el texto guardado y vuelve al que propone el programa con las cifras de ahora" />
+                </StackPanel>
+                <TextBox DockPanel.Dock="Bottom" Text="{Binding Tablas, Mode=OneWay}" IsReadOnly="True" FontFamily="Consolas" FontSize="11" MaxHeight="230"
+                         VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto" Margin="0,8,0,0" Visibility="{Binding HayTablas, Converter={StaticResource Visible}}"
+                         AutomationProperties.Name="Tablas del apartado" ToolTip="Tablas que calcula el programa desde la contabilidad; salen así en el PDF y no se editan" />
+                <TextBox Text="{Binding Texto, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource Campo}" AcceptsReturn="True" TextWrapping="Wrap"
+                         VerticalScrollBarVisibility="Auto" VerticalContentAlignment="Top" AutomationProperties.Name="Texto del apartado"
+                         ToolTip="Texto del apartado. Completa lo que va entre corchetes [ ]; se guarda con «Guardar el apartado»" />
+              </DockPanel>
+            </DockPanel>
           </TabItem>
         </TabControl>
       </DockPanel>

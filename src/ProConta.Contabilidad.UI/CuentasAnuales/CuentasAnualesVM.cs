@@ -11,10 +11,10 @@ using ProConta.UI.Base.Modelos;
 namespace ProConta.Contabilidad.UI.CuentasAnuales;
 
 /// <summary>Contexto de la pantalla Cuentas anuales y lo que hace fuera de ella (el PDF lo genera la ventana principal con el motor de informes).</summary>
-public sealed record ContextoCuentasAnuales(ServicioCuentasAnuales Servicio, ContextoSociedadEjercicio Trabajo, string RazonSocial, Action<string> Avisar)
+public sealed record ContextoCuentasAnuales(ServicioCuentasAnuales Servicio, ContextoSociedadEjercicio Trabajo, string RazonSocial, string Operador, Action<string> Avisar)
 {
-    /// <summary>Genera el PDF de las cuentas (con el IdSociedadEjercicio de su ejercicio, para vincularlo), lo guarda en la carpeta de documentos y lo abre.</summary>
-    public Func<CuentasAnualesPymes, int, Task>? GenerarPdf { get; init; }
+    /// <summary>Genera el PDF de las cuentas con su memoria (y el IdSociedadEjercicio de su ejercicio, para vincularlo), lo guarda en la carpeta de documentos y lo abre.</summary>
+    public Func<CuentasAnualesPymes, IReadOnlyList<ApartadoMemoria>, int, Task>? GenerarPdf { get; init; }
     /// <summary>Abre el Mayor de unas subcuentas en un ejercicio.</summary>
     public Action<IReadOnlyList<string>, int>? AbrirMayor { get; init; }
     /// <summary>Abre el Cierre del ejercicio.</summary>
@@ -37,6 +37,39 @@ public sealed record FilaPartidaVM(FilaCuentasAnuales Fila)
 
 /// <summary>Una subcuenta de la partida elegida, con lo que aporta en cada ejercicio.</summary>
 public sealed record FilaSubcuentaVM(string Cuenta, string Nombre, string Actual, string Anterior);
+
+/// <summary>Un apartado de la memoria en pantalla: el texto se edita y se guarda; las tablas se ven como texto.</summary>
+public sealed class ApartadoMemoriaVM(ApartadoMemoria apartado) : ModeloVista
+{
+    private string _texto = apartado.Texto;
+
+    public ApartadoMemoria Apartado { get; private set; } = apartado;
+    public string Encabezado => Apartado.Encabezado + (TieneCambios ? " *" : Apartado.Guardado ? "" : " (propuesto)");
+    public string Texto { get => _texto; set { if (Fijar(ref _texto, value)) Avisar(nameof(TieneCambios), nameof(Encabezado)); } }
+    public bool TieneCambios => _texto != Apartado.Texto;
+    public string Tablas => string.Join(Environment.NewLine + Environment.NewLine, Apartado.Tablas.Select(TextoTabla));
+    public bool HayTablas => Apartado.Tablas.Count > 0;
+
+    public void Guardado(ApartadoMemoria nuevo)
+    {
+        Apartado = nuevo;
+        _texto = nuevo.Texto;
+        Avisar(nameof(Apartado), nameof(Texto), nameof(TieneCambios), nameof(Encabezado), nameof(Tablas));
+    }
+
+    /// <summary>La tabla en columnas de ancho fijo, para la vista previa.</summary>
+    public static string TextoTabla(TablaMemoria t)
+    {
+        var ancho = Math.Max(12, t.Filas.Select(f => f.Concepto.Length).DefaultIfEmpty(0).Max());
+        var col = Math.Max(16, t.Columnas.Select(c => c.Length).DefaultIfEmpty(0).Max() + 2);
+        var sb = new System.Text.StringBuilder();
+        sb.AppendLine(t.Titulo);
+        sb.Append(new string(' ', ancho)).AppendLine(string.Concat(t.Columnas.Select(c => c.PadLeft(col))));
+        foreach (var f in t.Filas)
+            sb.Append(f.Concepto.PadRight(ancho)).AppendLine(string.Concat(f.Importes.Select(i => (i is decimal v ? Formatos.Numero(v) : "").PadLeft(col))));
+        return sb.ToString().TrimEnd();
+    }
+}
 
 /// <summary>Una comprobación en pantalla.</summary>
 public sealed record ComprobacionVM(ComprobacionCuentas C)
@@ -66,6 +99,8 @@ public sealed class CuentasAnualesVM : ModeloVista, IPestanaTrabajo
     private CuentasAnualesPymes? _cuentas;
     private FilaPartidaVM? _seleccionada;
     private bool _cargandoEjercicios;
+    private IReadOnlyList<ApartadoMemoriaVM> _memoria = [];
+    private ApartadoMemoriaVM? _apartado;
 
     public CuentasAnualesVM(ContextoCuentasAnuales ctx, Action? alCerrar = null)
     {
@@ -75,18 +110,30 @@ public sealed class CuentasAnualesVM : ModeloVista, IPestanaTrabajo
         PdfCommand = new ComandoDelegado(() => _ = PdfAsync(), () => !_ocupado && _cuentas is not null && _ctx.GenerarPdf is not null);
         MayorCommand = new ComandoDelegado(AbrirMayor, () => _ctx.AbrirMayor is not null && _seleccionada is { EsTotal: false } s && SubcuentasDe(s).Count > 0);
         CierreCommand = new ComandoDelegado(() => _ctx.AbrirCierre?.Invoke(), () => _ctx.AbrirCierre is not null);
+        GuardarApartadoCommand = new ComandoDelegado(() => _ = GuardarApartadoAsync(), () => !_ocupado && _apartado is { TieneCambios: true });
+        PropuestoCommand = new ComandoDelegado(() => _ = VolverAlPropuestoAsync(), () => !_ocupado && _apartado is not null && (_apartado.Apartado.Guardado || _apartado.TieneCambios));
     }
 
     // ---------- pestaña ----------
     public string Titulo => "Cuentas anuales";
     public string Ayuda => $"Cuentas anuales (modelo pymes del Registro Mercantil) de {_ctx.RazonSocial}";
     public string Icono => "book";
-    public bool TieneCambios => false;
+    public bool TieneCambios => _memoria.Any(a => a.TieneCambios);
     public bool GuardadoFallido => false;
     public object Vista => _vista ??= new PantallaCuentasAnuales { DataContext = this };
-    public IReadOnlyList<string> DescribirCambios() => [];
-    public Task<bool> GuardarAsync() => Task.FromResult(true);
-    public void Descartar() { }
+    public IReadOnlyList<string> DescribirCambios() => _memoria.Where(a => a.TieneCambios).Select(a => $"Memoria: texto del apartado {a.Apartado.Encabezado} sin guardar").ToList();
+
+    public async Task<bool> GuardarAsync()
+    {
+        foreach (var a in _memoria.Where(a => a.TieneCambios).ToList())
+            if (!await GuardarAsync(a, a.Texto)) return false;
+        return true;
+    }
+
+    public void Descartar()
+    {
+        foreach (var a in _memoria) a.Texto = a.Apartado.Texto;
+    }
     public void AlCerrar() => _alCerrar?.Invoke();
 
     // ---------- comandos ----------
@@ -94,6 +141,60 @@ public sealed class CuentasAnualesVM : ModeloVista, IPestanaTrabajo
     public ICommand PdfCommand { get; }
     public ICommand MayorCommand { get; }
     public ICommand CierreCommand { get; }
+    public ICommand GuardarApartadoCommand { get; }
+    public ICommand PropuestoCommand { get; }
+
+    private int _pestana;
+
+    /// <summary>Pestaña elegida (0 activo, 1 patrimonio neto y pasivo, 2 pérdidas y ganancias, 3 memoria); las subcuentas solo salen en los estados.</summary>
+    public int Pestana { get => _pestana; set { if (Fijar(ref _pestana, value)) Avisar(nameof(VerSubcuentas)); } }
+
+    public bool VerSubcuentas => _pestana != 3;
+
+    // ---------- memoria ----------
+    public IReadOnlyList<ApartadoMemoriaVM> Memoria { get => _memoria; private set => Fijar(ref _memoria, value); }
+
+    /// <summary>El apartado de la memoria que se está editando.</summary>
+    public ApartadoMemoriaVM? Apartado
+    {
+        get => _apartado;
+        set { if (Fijar(ref _apartado, value)) CommandManager.InvalidateRequerySuggested(); }
+    }
+
+    private async Task GuardarApartadoAsync()
+    {
+        if (_apartado is { } a) await GuardarAsync(a, a.Texto);
+    }
+
+    private async Task VolverAlPropuestoAsync()
+    {
+        if (_apartado is { } a) await GuardarAsync(a, null);
+    }
+
+    /// <summary>Guarda el texto de un apartado (null o igual al propuesto: vuelve al propuesto) y lo refresca.</summary>
+    private async Task<bool> GuardarAsync(ApartadoMemoriaVM a, string? texto)
+    {
+        if (_ejercicio is not { } e) return false;
+        if (texto is not null && texto.Trim() == a.Apartado.TextoPropuesto.Trim()) texto = null;
+        Ocupado = true;
+        try
+        {
+            await _ctx.Servicio.GuardarTextoMemoriaAsync(e.IdSociedadEjercicio, a.Apartado.Numero, texto, _ctx.Operador);
+            a.Guardado(a.Apartado with { Texto = texto ?? a.Apartado.TextoPropuesto, Guardado = texto is not null });
+            Avisar(nameof(TieneCambios));
+            _ctx.Avisar(texto is null ? $"Memoria {e.Ejercicio}: el apartado {a.Apartado.Encabezado} vuelve al texto propuesto." : $"Memoria {e.Ejercicio}: guardado el apartado {a.Apartado.Encabezado}.");
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _ctx.Avisar($"No he podido guardar el apartado {a.Apartado.Encabezado} de la memoria: {ex.Message} El texto sigue en pantalla: vuelve a pulsar «Guardar el apartado».");
+            return false;
+        }
+        finally
+        {
+            Ocupado = false;
+        }
+    }
 
     // ---------- estado ----------
     public EstadoVista Estado { get => _estado; private set => Fijar(ref _estado, value); }
@@ -212,7 +313,8 @@ public sealed class CuentasAnualesVM : ModeloVista, IPestanaTrabajo
         {
             var clave = _seleccionada?.Clave;
             var cuentas = await Task.Run(() => _ctx.Servicio.GenerarAsync(new ContextoSociedadEjercicio(_ctx.Trabajo.IdSociedad, e.IdSociedadEjercicio, e.Ejercicio)));
-            Mostrar(cuentas);
+            var memoria = await Task.Run(() => _ctx.Servicio.MemoriaAsync(_ctx.Trabajo.IdSociedad, e.IdSociedadEjercicio, cuentas));
+            Mostrar(cuentas, memoria);
             Seleccionada = clave is null ? null : Activo.Concat(PatrimonioNetoYPasivo).Concat(PerdidasYGanancias).FirstOrDefault(f => f.Clave == clave);
             Estado = EstadoVista.Contenido;
         }
@@ -228,9 +330,19 @@ public sealed class CuentasAnualesVM : ModeloVista, IPestanaTrabajo
     }
 
     /// <summary>Pone en pantalla unas cuentas ya calculadas (también lo usan las pruebas).</summary>
-    public void Mostrar(CuentasAnualesPymes cuentas)
+    public void Mostrar(CuentasAnualesPymes cuentas, IReadOnlyList<ApartadoMemoria>? memoria = null)
     {
         _cuentas = cuentas;
+        var numero = _apartado?.Apartado.Numero;
+        Memoria = (memoria ?? []).Select(a => new ApartadoMemoriaVM(a)).ToList();
+        foreach (var a in _memoria)
+            a.PropertyChanged += (_, ev) =>
+            {
+                if (ev.PropertyName != nameof(ApartadoMemoriaVM.TieneCambios)) return;
+                Avisar(nameof(TieneCambios));
+                CommandManager.InvalidateRequerySuggested();
+            };
+        Apartado = _memoria.FirstOrDefault(a => a.Apartado.Numero == numero) ?? _memoria.FirstOrDefault();
         Activo = cuentas.Activo.Select(f => new FilaPartidaVM(f)).ToList();
         PatrimonioNetoYPasivo = cuentas.PatrimonioNetoYPasivo.Select(f => new FilaPartidaVM(f)).ToList();
         PerdidasYGanancias = cuentas.PerdidasYGanancias.Select(f => new FilaPartidaVM(f)).ToList();
@@ -242,15 +354,16 @@ public sealed class CuentasAnualesVM : ModeloVista, IPestanaTrabajo
 
     public string TextoPdf => _cuentas?.TieneErrores == true
         ? "Genera el PDF igualmente, como borrador para revisar: con errores, el Registro no admitiría estas cuentas"
-        : "Genera en PDF las páginas del modelo oficial (balance BP1 y BP2 y pérdidas y ganancias PP) con las dos columnas, lo guarda en la carpeta de documentos del ejercicio y lo abre";
+        : "Genera en PDF las páginas del modelo oficial (balance BP1 y BP2 y pérdidas y ganancias PP) con las dos columnas y la memoria (guarda antes los textos sin guardar), lo guarda en la carpeta de documentos del ejercicio y lo abre";
 
     private async Task PdfAsync()
     {
         if (_cuentas is null || _ejercicio is null || _ctx.GenerarPdf is null) return;
+        if (TieneCambios && !await GuardarAsync()) return;
         Ocupado = true;
         try
         {
-            await _ctx.GenerarPdf(_cuentas, _ejercicio.IdSociedadEjercicio);
+            await _ctx.GenerarPdf(_cuentas, _memoria.Select(a => a.Apartado).ToList(), _ejercicio.IdSociedadEjercicio);
         }
         catch (Exception ex)
         {
