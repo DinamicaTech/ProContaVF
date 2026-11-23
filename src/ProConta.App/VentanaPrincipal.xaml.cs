@@ -1,4 +1,4 @@
-using ProConta.UI.Base.Preferencias;
+﻿using ProConta.UI.Base.Preferencias;
 using System.ComponentModel;
 using System.Windows;
 using System.Windows.Input;
@@ -76,6 +76,7 @@ public partial class VentanaPrincipal : Window
     private readonly ProConta.Contabilidad.UI.Prorrata.ModuloRegularizacionProrrata _prorrata;
     private readonly ProConta.Contabilidad.UI.ImpuestoSociedades.ModuloImpuestoSociedades _impuestoSociedades;
     private readonly ProConta.Contabilidad.UI.Cierre.ModuloCierreEjercicio _cierreEjercicio;
+    private readonly ProConta.Contabilidad.UI.CuentasAnuales.ModuloCuentasAnuales _cuentasAnuales;
     private readonly ProConta.Contabilidad.UI.FacturasPendientes.ModuloFacturasPendientes _facturasPendientes;
     private readonly ProConta.Contabilidad.UI.Amortizacion.ModuloAmortizacion _amortizacion;
     private readonly ProConta.Contabilidad.UI.Saldos.ModuloRecalcularSaldos _recalcularSaldos;
@@ -538,6 +539,18 @@ public partial class VentanaPrincipal : Window
             },
             _area, new ProConta.Contabilidad.UI.Liquidacion.DialogosLiquidacionIva(() => this));
         var abrirCierreEjercicio = new ComandoDelegado(() => _cierreEjercicio.Abrir());
+        // Cuentas anuales (contabilidad/procesos/cuentas-anuales): balance y pérdidas y ganancias del modelo pymes del Registro Mercantil con el ejercicio
+        // anterior, sus comprobaciones y el PDF de las páginas del modelo. Solo lee.
+        _cuentasAnuales = new ProConta.Contabilidad.UI.CuentasAnuales.ModuloCuentasAnuales(
+            new ProConta.Contabilidad.UI.CuentasAnuales.ContextoCuentasAnuales(
+                new ProConta.Contabilidad.CuentasAnuales.ServicioCuentasAnuales(bd), contexto.Contexto, contexto.RazonSocial, Avisar)
+            {
+                GenerarPdf = GenerarCuentasAnualesPdfAsync,
+                AbrirMayor = (cuentasMayor, anio) => _mayor.Abrir(cuentasMayor, [anio]),
+                AbrirCierre = () => _cierreEjercicio.Abrir(),
+            },
+            _area);
+        var abrirCuentasAnuales = new ComandoDelegado(() => _cuentasAnuales.Abrir());
         // Facturas pendientes de recibir (contabilidad/procesos/facturas-pendientes-recibir): gasto supuesto de los proveedores cuadrados con saldo deudor contra la
         // 4009 a 31/12 y su reversión el 1/1 del siguiente, como dos lotes propios; el cierre solo mira su estado.
         _facturasPendientes = new ProConta.Contabilidad.UI.FacturasPendientes.ModuloFacturasPendientes(
@@ -702,6 +715,10 @@ public partial class VentanaPrincipal : Window
                 "Procesos contables › Fin de ejercicio › Aplicación del resultado: en el ejercicio siguiente al cerrado, el resultado que la apertura deja en la 129 " +
                 "a la 121 si es pérdida o, si es beneficio, a compensar pérdidas, a reserva legal (el mínimo de la ley), a dividendos (un reparto con cargo a la 129) y el resto a voluntarias; repetir o deshacer con motivo",
                 abrirAplicacion, EsNieta: true),
+            new OpcionNavegacion("Cuentas anuales", null, true, false,
+                "Procesos contables › Fin de ejercicio › Cuentas anuales: balance y pérdidas y ganancias del modelo pymes del Registro Mercantil, con el ejercicio anterior y la clave oficial de cada partida, " +
+                "las comprobaciones del Registro (activo igual a patrimonio neto y pasivo, mismo resultado, subcuentas sin partida), las subcuentas de cada partida y el PDF de las páginas del modelo",
+                abrirCuentasAnuales, EsNieta: true),
             new OpcionNavegacion("Recalcular saldos", null, true, false,
                 "Procesos contables › Recalcular saldos: compara el saldo y el número de apuntes guardados de cada cuenta del ejercicio con sus apuntes, lista las diferencias " +
                 "y los códigos con apuntes que no están en el plan, y «Recalcular» los rehace. No crea ni cambia asientos",
@@ -1126,6 +1143,55 @@ public partial class VentanaPrincipal : Window
         {
             Cursor = anterior;
             _generandoSumasYSaldos = false;
+        }
+    }
+
+    /// <summary>
+    /// PDF de las cuentas anuales (contabilidad/procesos/cuentas-anuales): las páginas del modelo pymes, guardado por el gestor documental en
+    /// «&lt;año&gt;\Cuentas anuales» de la carpeta de documentos, vinculado al ejercicio de las cuentas, y abierto.
+    /// </summary>
+    private async Task GenerarCuentasAnualesPdfAsync(ProConta.Contabilidad.CuentasAnuales.CuentasAnualesPymes c, int idEjercicio)
+    {
+        var anterior = Cursor;
+        Cursor = Cursors.Wait;
+        string? ruta = null;
+        try
+        {
+            Avisar($"Generando el PDF de las cuentas anuales de {c.Ejercicio}…");
+            var html = ProConta.Informes.InformeCuentasAnuales.Html(c);
+            var contenido = await Task.Run(() => ConversorHtmlPdf.Compartido.Convertir(html, ProConta.Informes.InformeCuentasAnuales.Pagina));
+            var nombre = ProConta.Informes.InformeCuentasAnuales.NombreFichero(c);
+            var guardado = await _servicioDocumentos.GuardarAsync(new ProConta.Documentos.SolicitudDocumento(
+                _ejercicioTrabajo.IdSociedad, "INFORME_CONTABLE", $"Cuentas anuales {c.Ejercicio}" + (c.TieneErrores ? " (borrador con errores)" : ""),
+                System.IO.Path.Combine(c.Ejercicio.ToString(System.Globalization.CultureInfo.InvariantCulture), "Cuentas anuales"), nombre, DateTime.Today, c.Ejercicio, "INFORME_CONTABLE",
+                [new ProConta.Documentos.Vinculo(ProConta.Documentos.TiposEntidad.Ejercicio, idEjercicio, null, $"Ejercicio {c.Ejercicio}")]),
+                contenido);
+            if (guardado.EsCorrecto) ruta = guardado.Valor.RutaCompleta;
+            else
+            {
+                var temporales = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "ProContaVF", "Informes");
+                System.IO.Directory.CreateDirectory(temporales);
+                ruta = System.IO.Path.Combine(temporales, nombre);
+                await System.IO.File.WriteAllBytesAsync(ruta, contenido);
+            }
+            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(ruta) { UseShellExecute = true });
+            Avisar(!guardado.EsCorrecto
+                ? $"Las cuentas anuales no se han guardado en la carpeta de documentos ({guardado.Error!.Mensaje}); las abro desde {ruta}."
+                : c.TieneErrores
+                    ? $"Cuentas anuales {c.Ejercicio} abiertas como borrador: tienen errores que el Registro no admitiría (se explican en la pantalla)."
+                    : $"Cuentas anuales {c.Ejercicio} abiertas y guardadas en {ruta}.");
+        }
+        catch (Exception ex)
+        {
+            var detalles = new List<string>();
+            if (ex is System.IO.IOException && ruta is not null) detalles.Add($"Fichero: {ruta}");
+            if (ex is not InvalidOperationException and not System.IO.IOException) detalles.Add($"Detalle técnico: {ex.GetType().Name}");
+            ServicioMensajes.Preguntar(this, "No he podido generar el PDF de las cuentas anuales", ex.Message, detalles,
+                new OpcionMensaje("Cerrar", "Vuelve a la pantalla; pulsa otra vez «Generar PDF…» para reintentarlo", Principal: true, Cancelar: true));
+        }
+        finally
+        {
+            Cursor = anterior;
         }
     }
 

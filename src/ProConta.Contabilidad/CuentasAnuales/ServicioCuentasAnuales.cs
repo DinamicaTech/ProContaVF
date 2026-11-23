@@ -5,6 +5,12 @@ using ProConta.Nucleo.Contexto;
 
 namespace ProConta.Contabilidad.CuentasAnuales;
 
+/// <summary>Un ejercicio de la sociedad para elegir de cuál se generan las cuentas.</summary>
+public sealed record EjercicioCuentas(int IdSociedadEjercicio, int Ejercicio, bool Cerrado)
+{
+    public string Texto => Cerrado ? $"{Ejercicio} (cerrado)" : $"{Ejercicio}";
+}
+
 /// <summary>
 /// Cuentas anuales del modelo pymes (contabilidad/procesos/cuentas-anuales): lee de la BD las sumas por subcuenta del ejercicio y del anterior
 /// y las compone con <see cref="CalculoCuentasAnuales"/>. Es el único sitio que calcula las cuentas anuales: la legalización de libros
@@ -37,6 +43,24 @@ public sealed class ServicioCuentasAnuales(IBaseDatos bd)
         }
         return CalculoCuentasAnuales.Componer(razon, nif, actual, anterior, cerrado, resultadoBalances);
     }
+
+    /// <summary>Los ejercicios de la sociedad, del más reciente al más antiguo, con su marca de cerrado.</summary>
+    public async Task<IReadOnlyList<EjercicioCuentas>> EjerciciosAsync(string idSociedad, CancellationToken cancelacion = default)
+    {
+        var filas = await bd.EjecutarAsync(s => s.ConsultarAsync(
+            "SELECT IdSociedadEjercicio, Ejercicio, EjercicioCerrado FROM SociedadesEjercicios WHERE IdSociedad = ?",
+            f => (Id: f.Entero("IdSociedadEjercicio"), Anio: (f.Texto("Ejercicio") ?? "").Trim(), Cerrado: f.Logico("EjercicioCerrado")), idSociedad), cancelacion);
+        return filas.Where(f => int.TryParse(f.Anio, NumberStyles.Integer, CultureInfo.InvariantCulture, out _))
+            .Select(f => new EjercicioCuentas(f.Id, int.Parse(f.Anio, CultureInfo.InvariantCulture), f.Cerrado))
+            .OrderByDescending(e => e.Ejercicio).ToList();
+    }
+
+    /// <summary>
+    /// El ejercicio que se propone al abrir la pantalla: el anterior al de trabajo si existe (las cuentas de un año se formulan en el
+    /// siguiente); si no, el de trabajo.
+    /// </summary>
+    public static int EjercicioPropuesto(IReadOnlyList<EjercicioCuentas> ejercicios, int trabajo) =>
+        ejercicios.Any(e => e.Ejercicio == trabajo - 1) ? trabajo - 1 : trabajo;
 
     /// <summary>Las cifras de un ejercicio desde sus apuntes contabilizados (EstadoAsiento 1), sin la caché de saldos.</summary>
     internal static async Task<CifrasEjercicio> CifrasAsync(ISesionDatos s, int idSociedadEjercicio, int ejercicio)
