@@ -5,17 +5,20 @@ status: draft
 threads:
   - 2026-11-12 10:30 · Rediseñar la gestión de activos | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GBPSVp1txTh8sF2PtB3XvMR
   - 2026-11-17 17:50 · Gestionar los activos financieros | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5G1fjUTF52Bn5taQ2WjqJKWu
+  - 2026-11-23 19:40 · Maquetar el análisis de activos financieros | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GQN2CH7eXQyHYSFmW1atReP
 ---
 ## Summary
 Segunda fase de activos: los activos financieros de la sociedad (ETFs, fondos y participaciones) como posiciones con sus compras y ventas, que se ven en la misma pantalla de Activos con su cotización (de un proveedor externo), su rentabilidad acumulada y una proyección de revalorización explicada para quien no es experto.
 Al vender, el resultado va a 766/666 y la posición queda a cero; los rendimientos llegan al Impuesto sobre Sociedades (contabilidad/procesos/impuesto-sociedades): retenciones de Renta 4 (193) y plusvalías y minusvalías (760, 766, 666).
 Parte del diseño heredado: `sources/traspaso-2026-10-03/referencias/Activos/docs/MODELO_ACTIVOS.md` (instrumento, posición y operaciones, cotizaciones, asistente de compra y gráficos) y § 3.10 «Liquida ETFs» de `sources/proconta-antiguo/menu-principal/ANALISIS-FUNCIONAL.md`. Las tablas heredadas (ActivosInversiones, InstrumentosFinancieros, OperacionesInversion, CotizacionesInstrumentoFinanciero, ImportacionesActivos) son de este nodo; la migración del ERP no carga todavía los 18 activos de tipo 6.
-Borrador sin programar: quedan abiertas la fuente de cotizaciones y el método de la proyección (Requirements).
+Borrador sin programar. Primer paso en curso: maqueta v1 de análisis (revalorización de la cartera por lotes, rentabilidad por activo, cotización histórica y proyección), pendiente de validar; siguen abiertas la fuente de cotizaciones y el método de la proyección (Requirements).
 
 ## Decisions
 - 2026-11-12 10:30 · Creado como idea creative-lab/inversiones-financieras al sacar las inversiones financieras del alcance de activos (propietario 2026-11-11 18:20: «importamos todo excepto ETFs, que quedan en Creative Lab para una segunda fase»; ruta aceptada el 2026-11-12 10:19).
 - 2026-11-15 21:10 · Recibe de contabilidad (revisión de las incidencias con la gestoría) un criterio para cuando se debata la idea.
 - 2026-11-17 17:50 · Leaves the lab: draft. La idea creative-lab/inversiones-financieras pasa a ser el borrador activos/activos-financieros, hijo de activos (propietario 2026-11-17 17:32 y 17:41): los activos financieros amplían la pantalla de Activos. El código aún nombra la ruta antigua (DuenosTablas en src/ProConta.Datos.Esquema/Diccionario, el diccionario generado y los comentarios de la migración del ERP en EjecucionErp.Activos.cs): la primera fase que se programe la cambia a `activos/activos-financieros` y regenera el diccionario.
+
+- 2026-11-23 19:40 · Maqueta v1 (2026-11-23) de la vista «Financieros» de Activos: https://claude.ai/artifact/QJhm149dodFYoTsnrYwoUh, fuente en sources/maquetas/ActivosFinancieros/proconta-activos-financieros.html. Cifras de cartera, gráfico de revalorización (valor de mercado frente al coste de lo que había en cartera cada día, con las compras y ventas marcadas), tabla por activo con sus lotes sumados (FIFO) y ficha con cotización histórica, lotes, operaciones y la proyección de la opción (a) dibujada como propuesta. Pendiente de validar.
 
 ## Requirements
 - 2026-11-11 18:20 · Q1. Ok, importamos todo excepto ETFs, que quedan en Creative Lab para una segunda fase
@@ -28,6 +31,7 @@ Borrador sin programar: quedan abiertas la fuente de cotizaciones y el método d
 - 2026-11-17 17:41 · Para la proyección había pensado utilizar un script de análisis: https://www.agensi.io/skills/technical-scanner, lo único que habría que 'digerir' un poco la información que ofrece para hacerla más clara para neófitos.
 - 2026-11-17 17:50 · question: Proveedor de cotizaciones. (a) comprobar primero con las posiciones reales qué cubre Alpaca (solo cotiza valores de bolsas de EE. UU., así que los ETF UCITS europeos y los fondos probablemente no) y completar con un proveedor que cubra bolsas europeas y fondos por ISIN (EOD Historical Data, Twelve Data o Financial Modeling Prep, de pago con plan básico), con la configuración en Integraciones ✅ recomendada (b) solo Alpaca (c) Yahoo Finance o Investing sin API oficial (gratis, pero pueden dejar de funcionar sin aviso). Los fondos solo publican un valor liquidativo diario: se muestra con su fecha, nunca como cotización en tiempo real.
 - 2026-11-17 17:50 · question: Proyección de revalorización. (a) revisar el script technical-scanner y usar sus indicadores como señal orientativa (tendencia, soportes), traducida a frases sencillas, y para la proyección en euros un rango sencillo con la rentabilidad histórica del instrumento (escenario prudente, medio y optimista), siempre rotulado como estimación ✅ recomendada (b) solo los indicadores del script, explicados (c) solo el rango con la rentabilidad histórica. El script es una dependencia externa: se decide con el propietario antes de añadirla.
+- 2026-11-23 19:40 · El primer paso es preparar una maqueta donde se puedan analizar los activos financieros, su cotización histórica, la revalorización histórica sumarizada de todos los activos (teniendo en cuenta la fecha de adquisición de cada lote de activos) y la rentabilidad actual por activo (si varios lotes de activos son del mismo fondo, mostrarlos sumarizados).
 
 ## Acceptance criteria
 - La pantalla de Activos lista los activos financieros con su posición (participaciones, coste, valor actual con fecha y origen de la cotización), rentabilidad acumulada y proyección, y su saldo contable cuadra con la cartera del intermediario.
