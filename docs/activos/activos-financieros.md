@@ -11,7 +11,7 @@ threads:
 Segunda fase de activos: los activos financieros de la sociedad (ETFs, fondos y participaciones) como posiciones con sus compras y ventas, que se ven en la misma pantalla de Activos con su cotización (de un proveedor externo), su rentabilidad acumulada y una proyección de revalorización explicada para quien no es experto.
 Al vender, el resultado va a 766/666 y la posición queda a cero; los rendimientos llegan al Impuesto sobre Sociedades (contabilidad/procesos/impuesto-sociedades): retenciones de Renta 4 (193) y plusvalías y minusvalías (760, 766, 666).
 Parte del diseño heredado: `sources/traspaso-2026-10-03/referencias/Activos/docs/MODELO_ACTIVOS.md` (instrumento, posición y operaciones, cotizaciones, asistente de compra y gráficos) y § 3.10 «Liquida ETFs» de `sources/proconta-antiguo/menu-principal/ANALISIS-FUNCIONAL.md`. Las tablas heredadas (ActivosInversiones, InstrumentosFinancieros, OperacionesInversion, CotizacionesInstrumentoFinanciero, ImportacionesActivos) son de este nodo; la migración del ERP no carga todavía los 18 activos de tipo 6.
-Borrador sin programar. Primer paso en curso: maqueta v4 de análisis (revalorización de la cartera por lotes, rentabilidad por activo, comparativa de la variación relativa, cotización histórica y proyección), pendiente de validar; siguen abiertas la fuente de cotizaciones y el método de la proyección (Requirements).
+Borrador sin programar. Maqueta v4 de análisis validada (revalorización de la cartera por lotes, rentabilidad por activo, comparativa de la variación relativa, cotización histórica y proyección); cotizaciones con EODHD gratuito al abrir y Yahoo Finance después. Sigue abierto el método de la proyección (Requirements) y falta programarlo por fases.
 
 ## Decisions
 - 2026-11-12 10:30 · Creado como idea creative-lab/inversiones-financieras al sacar las inversiones financieras del alcance de activos (propietario 2026-11-11 18:20: «importamos todo excepto ETFs, que quedan en Creative Lab para una segunda fase»; ruta aceptada el 2026-11-12 10:19).
@@ -22,6 +22,8 @@ Borrador sin programar. Primer paso en curso: maqueta v4 de análisis (revaloriz
 - 2026-11-23 20:05 · Maqueta v2 (2026-11-23, mismo artifact): añade la «Comparativa de los activos», un gráfico con la variación acumulada en porcentaje de la cotización de cada activo desde el primer día del periodo (1M, 3M, 6M, año en curso, 1A, 3A, 5A), un color fijo por activo y leyenda ordenada por variación, porque en valor absoluto los precios no son comparables.
 - 2026-11-23 20:10 · Maqueta v3 (2026-11-23, mismo artifact): los dos gráficos de la cartera (revalorización y comparativa) van en dos pestañas del mismo recuadro, para no cargar la pantalla.
 - 2026-11-23 20:15 · Maqueta v4 (2026-11-23, mismo artifact): la tabla de activos se abre con los lotes plegados; en escritorio la vista de cartera cabe en la ventana sin scroll (el gráfico se ajusta a la altura) y solo la tabla tiene scroll, con cabecera y total fijos; las preguntas de la maqueta pasan a un panel.
+- 2026-11-23 20:11 · Maqueta v4 validada por el propietario (https://claude.ai/artifact/QJhm149dodFYoTsnrYwoUh). Es el diseño de la vista de análisis; el nodo sigue en borrador hasta programarlo.
+- 2026-11-23 20:11 · Cotizaciones: se usa el plan gratuito de EOD Historical Data con la primera apertura de la pantalla en el día (una consulta por activo, para no pasar de las 20 diarias del plan), y las siguientes actualizaciones se piden a Yahoo Finance; si Yahoo falla, se sigue mostrando la cotización de EODHD con su fecha y hora. Los fondos muestran siempre su valor liquidativo con su fecha. Pendiente de comprobar con los ISIN reales qué cubre el plan gratuito y si da la cotización del momento o solo el cierre anterior.
 
 ## Requirements
 - 2026-11-11 18:20 · Q1. Ok, importamos todo excepto ETFs, que quedan en Creative Lab para una segunda fase
@@ -42,6 +44,10 @@ Borrador sin programar. Primer paso en curso: maqueta v4 de análisis (revaloriz
 - 2026-11-23 20:03 · Bien, pero mejor separar las gráficas en dos pestañas para no cargar demasiado la pantalla
 - 2026-11-23 20:06 · En la grid de activos, por defecto todos colapsados (no detalllar lotes)
 - 2026-11-23 20:06 · Ajustar el tamaño del gráfico y cantidad de líneas en la grid para que la pantalla no necesite scroll (solo lo necesitará la grid de activos)
+- 2026-11-23 20:07 · Uf, 250€ al año es complicado de amortizar. No hay ningún servicio gratuito? (aunque sea consultando la cotización solo al principio del día)
+- 2026-11-23 20:11 · La maqueta está ok.
+- 2026-11-23 20:11 · Lo que podemos hacer es usar EODHD al abrir la pantalla (tendríamos la cotización en ese momento) y siguientes consultas a través de Yahoo Finance. Si esta falla, al menos tendremos una cotización 'buena' del momento que se abrió la pantalla.
+- 2026-11-23 20:11 · answer: proveedor de cotizaciones (precisión de la respuesta de las 20:02) → EODHD plan gratuito al abrir la pantalla y Yahoo Finance en las consultas siguientes; si Yahoo falla, queda la cotización de EODHD.
 
 ## Acceptance criteria
 - La pantalla de Activos lista los activos financieros con su posición (participaciones, coste, valor actual con fecha y origen de la cotización), rentabilidad acumulada y proyección, y su saldo contable cuadra con la cartera del intermediario.
