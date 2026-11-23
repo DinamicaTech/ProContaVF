@@ -17,6 +17,7 @@
   color-scheme:light;
 }
 *{box-sizing:border-box}
+[hidden]{display:none!important}
 body{background:var(--bg);color:var(--ink);font:14px/1.45 var(--f-ui);margin:0}
 button,input,select{font:inherit;color:inherit}
 :focus-visible{outline:2px solid var(--or2);outline-offset:1px}
@@ -116,10 +117,26 @@ tr.tot td{font-weight:600;border-top:1px solid var(--ln3);background:var(--bg2)}
 .preg{padding:14px 16px}
 .preg h2{font:600 16px var(--f-disp);margin:0 0 6px}
 .preg ol{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:8px;max-width:80ch}
+/* escritorio: la vista de cartera ocupa la ventana y solo la tabla tiene scroll */
+@media (min-width:900px) and (min-height:600px){
+  body.fija{height:100vh;display:flex;flex-direction:column;overflow:hidden}
+  body.fija main{flex:1;min-height:0;padding-block:12px;gap:10px}
+  body.fija main>section>*{flex:none}
+  body.fija #cTabla{flex:1 1 auto;min-height:0;display:flex;flex-direction:column}
+  body.fija #cTabla .tw{flex:1;min-height:0;overflow:auto}
+  body.fija #cTabla thead th{position:sticky;top:0;z-index:2}
+  body.fija #cTabla tfoot td{position:sticky;bottom:0;z-index:2}
+  body.fija .kpi{padding:8px 16px}
+  body.fija .kpi .v{font-size:19px}
+}
+.demo button{background:var(--navy2);border:1px solid #3A4A6A;color:#E6E9EF;border-radius:6px;padding:3px 10px;cursor:pointer;font-size:12.5px}
+.velo{position:fixed;inset:0;background:rgba(20,33,58,.45);display:flex;justify-content:flex-end;z-index:40}
+.velo .preg{background:var(--card);width:min(640px,100%);height:100%;overflow:auto;padding:16px max(16px,env(safe-area-inset-right,0px)) 16px 18px;box-shadow:-8px 0 24px rgba(20,33,58,.2)}
+.ico{display:inline-flex;width:17px;height:17px;border-radius:50%;border:1px solid var(--ln3);color:var(--mut);font-size:11px;align-items:center;justify-content:center;cursor:help;font-weight:600}
 .preg em{font-style:normal;background:var(--greenb);color:var(--green);border-radius:4px;padding:0 5px;font-size:12px}
 </style>
 
-<div class="demo pad"><b>MAQUETA</b><span>Datos ficticios. Marca activos con la casilla para ver solo esos en el gráfico; clic en un nombre para abrir su ficha; clic derecho para el menú.</span><span class="ver">v3 · 23/11/2026</span></div>
+<div class="demo pad"><b>MAQUETA</b><span>Datos ficticios. Marca activos con la casilla para ver solo esos en el gráfico; clic en un nombre para abrir su ficha; clic derecho para el menú.</span><button id="bPreg" title="Abre las decisiones pendientes sobre esta maqueta">Preguntas de la maqueta</button><span class="ver">v4 · 23/11/2026</span></div>
 <div class="top pad"><span class="logo">ProContaVF</span><span class="ctx">Inversiones Ejemplo, S.L.</span><span class="ctx">Ejercicio 2026</span><span class="op">Operador: Ronald</span></div>
 
 <main class="pad">
@@ -145,28 +162,26 @@ tr.tot td{font-weight:600;border-top:1px solid var(--ln3);background:var(--bg2)}
       <div class="tabs" role="tablist" id="gTabs" style="border-top:0"></div>
       <div id="gpRev">
       <div class="gcab">
-        <span class="hint" id="gAlcance"></span>
+        <span class="ico" title="Cada compra suma al capital invertido el día en que se hizo, y cada venta resta el coste de lo vendido. Así la plusvalía de cada día compara solo lo que había en cartera ese día con lo que costó. La parte sombreada es la plusvalía latente.">i</span><span class="hint" id="gAlcance"></span>
         <span class="sp"></span>
         <div class="seg" id="gModo" title="Euros: cuánto vale la cartera frente a lo que costó. Porcentaje: la plusvalía sobre lo invertido en cada momento"></div>
         <div class="seg" id="gPer" title="Periodo que se ve en el gráfico"></div>
       </div>
       <div class="leyenda" id="gLey"></div>
       <div class="graf" id="gCartera"></div>
-      <p class="nota">Cada compra suma al capital invertido el día en que se hizo, y cada venta resta el coste de lo vendido. Así la plusvalía de cada día compara solo lo que había en cartera ese día con lo que costó. La parte sombreada es la plusvalía latente.</p>
       </div>
       <div id="gpComp" hidden>
       <div class="gcab">
-        <span class="hint">Variación acumulada de la cotización desde el primer día del periodo</span>
+        <span class="ico" title="Compara cómo se ha movido el mercado de cada activo, tanto si había participaciones como si no. Como los precios son muy distintos, cada línea muestra cuánto ha subido o bajado en porcentaje desde el primer día del periodo. Pasa el ratón por la leyenda para resaltar un activo. Se ven los activos marcados en la tabla.">i</span><span class="hint">Variación acumulada de la cotización desde el primer día del periodo</span>
         <span class="sp"></span>
         <div class="seg" id="cPer" title="Periodo que se compara. Todos los activos empiezan en 0 % el primer día"></div>
       </div>
       <div class="leyenda" id="cLey"></div>
       <div class="graf" id="gComp"></div>
-      <p class="nota">Compara cómo se ha movido el mercado de cada activo, tanto si había participaciones como si no. Como los precios son muy distintos (de 50 a 640 €), cada línea muestra cuánto ha subido o bajado en porcentaje desde el primer día del periodo. Pasa el ratón por la leyenda para resaltar un activo. Se ven los activos marcados en la tabla.</p>
       </div>
     </div>
 
-    <div class="card">
+    <div class="card" id="cTabla">
       <div class="filtros">
         <h2 style="font:600 16px var(--f-disp);margin:0">Rentabilidad por activo</h2>
         <div class="seg" id="fTipo" title="Filtra por clase de activo financiero"></div>
@@ -186,17 +201,6 @@ tr.tot td{font-weight:600;border-top:1px solid var(--ln3);background:var(--bg2)}
       </table></div>
     </div>
 
-    <div class="card preg">
-      <h2>Para decidir sobre esta maqueta</h2>
-      <ol>
-        <li><b>Proveedor de cotizaciones</b> (pregunta abierta del nodo). Ninguno de estos ETF cotiza en EE. UU., así que Alpaca no los cubre. Propongo un proveedor con bolsas europeas y fondos por ISIN (EOD Historical Data, Twelve Data o Financial Modeling Prep, plan básico de pago), configurado en Integraciones. La cotización de los ETF llega con unos 15 minutos de retraso; la de los fondos es el valor liquidativo del día anterior y siempre se enseña con su fecha. <em>recomendado</em></li>
-        <li><b>Proyección</b> (pregunta abierta del nodo). En la ficha de cada activo, pestaña «Proyección», está dibujada la opción recomendada: señales del análisis técnico traducidas a frases y un rango prudente, medio y optimista con la rentabilidad histórica, siempre rotulado como estimación. <em>recomendado</em></li>
-        <li><b>Revalorización sumada.</b> El gráfico compara el valor de mercado con el coste de lo que había en cartera cada día. La alternativa sería indexar todo a base 100 (rentabilidad «por tiempo»), que es más exacta para comparar con un índice pero menos intuitiva. Propongo la primera. <em>recomendado</em></li>
-        <li><b>Lotes.</b> Las ventas consumen primero los lotes más antiguos (FIFO), que es el criterio fiscal. El precio medio y la plusvalía de la fila suman los lotes vivos. <em>recomendado</em></li>
-        <li><b>Participaciones sin cotización</b> (sociedades no cotizadas): se valoran a coste y no entran en el gráfico de revalorización. <em>recomendado</em></li>
-        <li><b>Resultado realizado.</b> Las ventas llevan su resultado a 766/666. La cifra de arriba suma el del ejercicio y el de todos los años; propongo que el gráfico no lo incluya y se vea solo en las cifras y en la ficha.</li>
-      </ol>
-    </div>
   </section>
 
   <!-- FICHA -->
@@ -214,6 +218,19 @@ tr.tot td{font-weight:600;border-top:1px solid var(--ln3);background:var(--bg2)}
   </section>
 </main>
 <div id="capa"></div>
+<div class="velo" id="vPreg" hidden>
+    <div class="preg" role="dialog" aria-label="Preguntas de la maqueta">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px"><h2 style="margin:0">Para decidir sobre esta maqueta</h2><span class="sp"></span><button class="btn" id="bCerrarPreg" title="Cierra el panel">Cerrar</button></div>
+      <ol>
+        <li><b>Proveedor de cotizaciones</b> (pregunta abierta del nodo). Ninguno de estos ETF cotiza en EE. UU., así que Alpaca no los cubre. Propongo un proveedor con bolsas europeas y fondos por ISIN (EOD Historical Data, Twelve Data o Financial Modeling Prep, plan básico de pago), configurado en Integraciones. La cotización de los ETF llega con unos 15 minutos de retraso; la de los fondos es el valor liquidativo del día anterior y siempre se enseña con su fecha. <em>recomendado</em></li>
+        <li><b>Proyección</b> (pregunta abierta del nodo). En la ficha de cada activo, pestaña «Proyección», está dibujada la opción recomendada: señales del análisis técnico traducidas a frases y un rango prudente, medio y optimista con la rentabilidad histórica, siempre rotulado como estimación. <em>recomendado</em></li>
+        <li><b>Revalorización sumada.</b> El gráfico compara el valor de mercado con el coste de lo que había en cartera cada día. La alternativa sería indexar todo a base 100 (rentabilidad «por tiempo»), que es más exacta para comparar con un índice pero menos intuitiva. Propongo la primera. <em>recomendado</em></li>
+        <li><b>Lotes.</b> Las ventas consumen primero los lotes más antiguos (FIFO), que es el criterio fiscal. El precio medio y la plusvalía de la fila suman los lotes vivos. <em>recomendado</em></li>
+        <li><b>Participaciones sin cotización</b> (sociedades no cotizadas): se valoran a coste y no entran en el gráfico de revalorización. <em>recomendado</em></li>
+        <li><b>Resultado realizado.</b> Las ventas llevan su resultado a 766/666. La cifra de arriba suma el del ejercicio y el de todos los años; propongo que el gráfico no lo incluya y se vea solo en las cifras y en la ficha.</li>
+      </ol>
+    </div>
+</div>
 
 <script>
 (function(){
@@ -311,7 +328,7 @@ INS.forEach(x=>{
 const COL=['#2a78d6','#eb6834','#1baf7a','#eda100','#e87ba4','#008300'];
 INS.forEach((x,i)=>{x.col=COL[i]||'#8A8F9C'});
 const CORTO={VWCE:'VWCE',EUNL:'EUNL',SXR8:'SXR8',XMME:'XMME',VGSI:'Vanguard Global Stock (fondo)',VEGB:'Vanguard Euro Gov. Bond (fondo)'};
-const st={gtab:'Revalorización de la cartera',cper:'3M',vista:'cartera',sel:new Set(INS.filter(x=>!x.sinCot).map(x=>x.id)),abiertos:new Set(['VWCE']),tipo:'Todos',vendidos:false,modo:'eur',per:'Máx.',
+const st={gtab:'Revalorización de la cartera',cper:'3M',vista:'cartera',sel:new Set(INS.filter(x=>!x.sinCot).map(x=>x.id)),abiertos:new Set(),tipo:'Todos',vendidos:false,modo:'eur',per:'Máx.',
   ficha:null,tab:'Cotización',fper:'3A'};
 const visibles=()=>INS.filter(x=>(st.vendidos||x.vivo)&&(st.tipo==='Todos'||x.tipo===st.tipo||(st.tipo==='Fondos'&&x.tipo==='Fondo')||(st.tipo==='ETF'&&x.tipo==='ETF')||(st.tipo==='Participaciones'&&x.tipo==='Participación')));
 
@@ -337,8 +354,9 @@ function pintaKpis(){
 }
 
 /* ---------- gráfico genérico de líneas ---------- */
-function grafico(cont,{series,area,marcas=[],yfmt,tipF,alto=300,cero=false}){
-  const W=900,H=alto,ml=64,mr=16,mt=12,mb=30, todas=series.flatMap(s=>s.pts);
+const altoG=()=>innerWidth>=900&&innerHeight>=600?Math.max(140,Math.min(320,Math.round(innerHeight*.32-90))):240;
+function grafico(cont,{series,area,marcas=[],yfmt,tipF,alto=altoG(),cero=false}){
+  const W=Math.max(320,Math.round((cont.clientWidth||cont.closest('.card').clientWidth)-16)),H=alto,ml=64,mr=16,mt=12,mb=30, todas=series.flatMap(s=>s.pts);
   if(!todas.length){cont.innerHTML='<p class="hint" style="padding:20px">Marca algún activo en la tabla para verlo aquí.</p>';return}
   const x0=Math.min(...todas.map(p=>p[0])),x1=Math.max(...todas.map(p=>p[0]));
   let y0=Math.min(...todas.map(p=>p[1])),y1=Math.max(...todas.map(p=>p[1])); if(cero){y0=Math.min(0,y0);y1=Math.max(0,y1)}
@@ -422,7 +440,7 @@ function pintaComparativa(){
   const ser=act.map(x=>{const p0=precio(x,dias[0]);return {x,color:x.col,w:2,pts:dias.map(t=>[t,(precio(x,t)/p0-1)*100])}});
   const fin=s=>s.pts[s.pts.length-1][1];
   $('#cLey').innerHTML=ser.slice().sort((a,b)=>fin(b)-fin(a)).map(s=>`<span data-id="${s.x.id}" style="cursor:default" title="${s.x.n}"><i style="background:${s.color}"></i>${CORTO[s.x.id]} <b class="${cls(fin(s))}" style="font-weight:600">${pct(fin(s)/100)}</b></span>`).join('');
-  grafico($('#gComp'),{series:ser.map(s=>({...s,fin:1})),cero:true,alto:320,yfmt:(v,e)=>e?num(v,Math.abs(v)<10&&Math.abs(v%1)>1e-9?1:0)+' %':pct(v/100,2),
+  grafico($('#gComp'),{series:ser.map(s=>({...s,fin:1})),cero:true,yfmt:(v,e)=>e?num(v,Math.abs(v)<10&&Math.abs(v%1)>1e-9?1:0)+' %':pct(v/100,2),
     tipF:t=>`<b>${fechaLarga(t)}</b>`+ser.map(s=>[s,s.pts.find(p=>p[0]===t)[1]]).sort((a,b)=>b[1]-a[1]).map(([s,v])=>`<br><span style="color:${s.color}">■</span> ${CORTO[s.x.id]} ${pct(v/100,2)}`).join('')});
   const paths=$$('#gComp svg path[stroke]');
   $$('#cLey span[data-id]').forEach(sp=>{const c=ser.find(s=>s.x.id===sp.dataset.id).color;
@@ -525,6 +543,7 @@ function pintaFicha(){
 function pinta(){
   $('#vCartera').hidden=st.vista!=='cartera'; $('#vFicha').hidden=st.vista!=='ficha';
   $('#vCartera').style.display=st.vista==='cartera'?'contents':'none'; $('#vFicha').style.display=st.vista==='ficha'?'contents':'none';
+  document.body.classList.toggle('fija',st.vista==='cartera');
   if(st.vista==='cartera'){pintaKpis();pintaGTabs();pintaCartera();pintaComparativa();pintaTabla()} else pintaFicha();
 }
 function toast(t){const d=document.createElement('div');d.className='toast';d.textContent=t;document.body.appendChild(d);setTimeout(()=>d.remove(),3200)}
@@ -536,7 +555,9 @@ document.addEventListener('click',e=>{
   const b=e.target.closest('button');
   if(e.target.closest('#gModo button')){st.modo=b.dataset.k;pintaCartera()}
   else if(e.target.closest('#gPer button')){st.per=b.dataset.k;pintaCartera()}
-  else if(e.target.closest('#gTabs .tab')){st.gtab=b.textContent.trim();pintaGTabs()}
+  else if(e.target.closest('#gTabs .tab')){st.gtab=b.textContent.trim();pintaGTabs();pintaCartera();pintaComparativa()}
+  else if(b&&b.id==='bPreg'){$('#vPreg').hidden=false}
+  else if(b&&b.id==='bCerrarPreg'||e.target.id==='vPreg'){$('#vPreg').hidden=true}
   else if(e.target.closest('#cPer button')){st.cper=b.dataset.k;pintaComparativa()}
   else if(e.target.closest('#fTipo button')){st.tipo=b.dataset.k;pintaTabla()}
   else if(e.target.closest('#fPer button')){st.fper=b.dataset.k;pintaFicha()}
@@ -566,7 +587,8 @@ $('#tAct').addEventListener('contextmenu',e=>{const tr=e.target.closest('tr.fila
     <button data-a="todos">Ver todos en el gráfico</button><hr>
     <button data-a="mayor">Ver el Mayor de ${n>1?'sus subcuentas':'su subcuenta'}</button>
     <button disabled title="Fase siguiente">Registrar una venta…</button></div>`});
-document.addEventListener('keydown',e=>{if(e.key==='Escape')cierraMenu()});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){cierraMenu();$('#vPreg').hidden=true}});
+let rz;addEventListener('resize',()=>{clearTimeout(rz);rz=setTimeout(pinta,150)});
 pinta();
 })();
 </script>
