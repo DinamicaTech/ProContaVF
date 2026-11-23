@@ -1,6 +1,5 @@
 ---
 title: Pantallas de contabilidad
-status: draft
 depends_on: [contabilidad/asientos, contabilidad/mayor, plataforma/contenedor]
 threads:
   - 2026-10-28 12:30 · Carga de requisitos | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GRNMH95h9tnQp4dmEPHmw1w
@@ -17,6 +16,8 @@ Editor y visor común de asientos (también para propuestas de procesos), consul
 - 2026-11-13 08:15 · Pantalla de asiento manual validada por el propietario (contabilidad/plantillas-asiento, PR #53).
 - 2026-11-14 23:35 · Corrección de un asiento automático (contabilidad/diario 2026-11-14 21:50): «Modificar el asiento…» del Diario y del Mayor abre un automático para cambiarlo, en vez de en solo lectura. Una nota dice qué se puede cambiar y que regenerar su origen deshace el cambio; el motivo es obligatorio y no se ofrecen plantillas. Las líneas de la 572 no cambian de cuenta ni de importe, ni se borran, duplican o invierten; su ayuda dice por qué. Si el asiento es de una factura (lleva libro de IVA), además no cambian la fecha ni los importes, no se añaden ni quitan líneas y las líneas de IVA y retención no cambian de cuenta. Guarda por `CorregirAutomaticoAsync` del motor, que vuelve a comprobarlo. «Abrir el asiento» (doble clic) sigue abriendo un automático en solo lectura.
 - 2026-11-14 23:35 · «Usar como base de un asiento nuevo» (Diario) abre un asiento nuevo con las cuentas, conceptos, documentos, importes y centros de otro, con la fecha propuesta de hoy y sin grabar nada hasta Guardar. Al modificar un asiento se conservan el vencimiento de cada apunte y, si su cuenta no cambia, su cliente o proveedor, que la rejilla no enseña (antes se perdían). Un asiento del ejercicio anterior se abre con las cuentas de su ejercicio y se modifica si ese ejercicio no está cerrado (contabilidad/diario 2026-11-14 21:31).
+- 2026-11-23 10:30 · Deja de ser borrador: lo que pedía su tarea está hecho y validado en sus nodos. La pantalla de asiento manual (2026-11-13 08:15, PR #53), la consulta del Mayor (contabilidad/mayor, validado, PR #43), la pantalla Diario con el buscador de asientos (contabilidad/diario, validado, PR #71) y los balances (contabilidad/balances).
+
 ## Requirements
 - 2026-10-28 12:28 · From sources/01_ESPECIFICACION_FUNCIONAL.docx § 16 RF-GES-02: editor/visor común, modal y con pestañas
 - 2026-10-28 12:28 · draft: Construir el editor de asientos y la consulta del mayor.
