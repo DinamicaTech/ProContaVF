@@ -17,14 +17,14 @@
   <StackPanel>
     <WrapPanel>
       <StackPanel Style="{StaticResource Campo.Bloque}">
-        <TextBlock Text="Fecha de compra" Style="{StaticResource Rotulo}" />
+        <TextBlock Text="{Binding RotuloFecha}" Style="{StaticResource Rotulo}" />
         <TextBox Text="{Binding Fecha, UpdateSourceTrigger=LostFocus}" Width="110"
                  ToolTip="dd/mm/aaaa. Hoy por defecto; al cambiarla se consulta el precio de cierre de ese día (o del último día con cotización)" />
       </StackPanel>
       <StackPanel Style="{StaticResource Campo.Bloque}">
         <TextBlock Text="Participaciones" Style="{StaticResource Rotulo}" />
         <TextBox Text="{Binding Participaciones, UpdateSourceTrigger=PropertyChanged}" Width="120" TextAlignment="Right"
-                 ToolTip="Cuántas participaciones has comprado; pueden llevar hasta seis decimales (por ejemplo 12,345678)" />
+                 ToolTip="{Binding AyudaParticipaciones}" />
       </StackPanel>
       <StackPanel Style="{StaticResource Campo.Bloque}">
         <TextBlock Text="{Binding RotuloPrecio}" Style="{StaticResource Rotulo}" />
@@ -32,7 +32,7 @@
           <TextBox Text="{Binding Precio, UpdateSourceTrigger=PropertyChanged}" Width="120" TextAlignment="Right"
                    ToolTip="Precio de una participación en la moneda en que cotiza. Se rellena con el del proveedor; puedes escribirlo a mano" />
           <Button Content="Consultar precio" Style="{StaticResource Boton.Pequeno}" Command="{Binding ConsultarPrecioCommand}" Margin="6,0,0,0" VerticalAlignment="Center"
-                  ToolTipService.ShowOnDisabled="True" ToolTip="Vuelve a pedir al proveedor el precio de la fecha de compra (hace falta el símbolo de Yahoo o de EODHD)" />
+                  ToolTipService.ShowOnDisabled="True" ToolTip="Vuelve a pedir al proveedor el precio de la fecha escrita (hace falta el símbolo de Yahoo o de EODHD)" />
         </StackPanel>
       </StackPanel>
       <StackPanel Style="{StaticResource Campo.Bloque}" Visibility="{Binding EnOtraMoneda, Converter={StaticResource Visible}}">
@@ -44,9 +44,9 @@
         <TextBox Text="{Binding PrecioEuros, Mode=OneWay}" IsReadOnly="True" Width="120" TextAlignment="Right" ToolTip="Precio / cambio: lo que vale una participación en euros" />
       </StackPanel>
       <StackPanel Style="{StaticResource Campo.Bloque}">
-        <TextBlock Text="Coste total del lote (€)" Style="{StaticResource Rotulo}" />
+        <TextBlock Text="{Binding RotuloImporte}" Style="{StaticResource Rotulo}" />
         <TextBox Text="{Binding CosteTotal, UpdateSourceTrigger=PropertyChanged}" Width="130" TextAlignment="Right"
-                 ToolTip="Participaciones × precio en euros, a céntimos. Si ya sabes el importe que te cobró el bróker (con comisiones), escríbelo; si no, lo podrás corregir después en la ficha" />
+                 ToolTip="{Binding AyudaImporte}" />
       </StackPanel>
     </WrapPanel>
     <TextBlock Text="{Binding Origen}" Style="{StaticResource Texto.Apagado}" TextWrapping="Wrap" MaxWidth="680" HorizontalAlignment="Left" />

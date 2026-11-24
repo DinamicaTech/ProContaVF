@@ -39,7 +39,7 @@ public sealed class FilaActivoVM(ActivoListado datos, Action alMarcar) : ModeloV
     public string ClaseEstado => Datos.EsAjeno ? "AJENO" : Datos.DeBaja ? "BAJA" : Datos.SubcuentasQueFaltan > 0 ? "FALTA" : "EN_USO";
 
     public string AyudaEstado => Datos.EsAjeno ? "No es de la sociedad: solo se guarda su información (sin subcuentas, centro ni amortización)."
-        : Datos.DeBaja ? $"Dado de baja el {Formatos.Fecha(Datos.FechaBaja!.Value)}."
+        : Datos.DeBaja ? $"Inactivo desde el {Formatos.Fecha(Datos.FechaBaja!.Value)}: se conserva su información y su documentación."
         : Datos.SubcuentasQueFaltan > 0 ? $"Le {(Datos.SubcuentasQueFaltan == 1 ? "falta 1 subcuenta" : $"faltan {Datos.SubcuentasQueFaltan} subcuentas")} de la plantilla de su tipo en el ejercicio de trabajo. Clic derecho › «Generar las subcuentas que le falten…»."
         : "En uso: tiene todas las subcuentas de su plantilla.";
 
@@ -58,7 +58,7 @@ public sealed class FilaActivoVM(ActivoListado datos, Action alMarcar) : ModeloV
 public sealed class ListadoActivosVM : ModeloVista, IPestanaTrabajo
 {
     public static readonly IReadOnlyList<string> Clases = ["Todos", "Inmuebles", "Vehículos", "Financieros", "Otros"];
-    public static readonly IReadOnlyList<string> Estados = ["En uso", "De baja", "Todos"];
+    public static readonly IReadOnlyList<string> Estados = ["Activos", "Inactivos", "Todos"];
 
     private readonly ModuloActivos _modulo;
     private object? _vista;
@@ -68,7 +68,7 @@ public sealed class ListadoActivosVM : ModeloVista, IPestanaTrabajo
     private string _mensajeEstado = "";
     private string _busqueda = "";
     private string _clase = "Todos";
-    private string _filtroEstado = "En uso";
+    private string _filtroEstado = "Activos";
     private bool _ajenos;
     private int? _centro;
     private string? _textoCentro;
@@ -88,6 +88,8 @@ public sealed class ListadoActivosVM : ModeloVista, IPestanaTrabajo
         GenerarMarcadosCommand = new ComandoDelegado(_ => _ = GenerarAsync(Marcadas, Marcadas.Count == 1 ? $"Subcuentas de {Marcadas[0].Codigo}" : $"Subcuentas de {Marcadas.Count} activos"),
             _ => !_ocupado && Marcadas.Count > 0 && Marcadas.All(f => f.Propio && !f.Datos.DeBaja));
         NuevaCompraCommand = new ComandoDelegado(p => { if (Unico(p) is { } f) _ = _modulo.NuevaCompraAsync(f.Id, f.Codigo); },
+            p => !_ocupado && Unico(p) is { Propio: true, Datos.DeBaja: false } f && TiposActivoPgc.EsInversion(f.Datos.CodigoTipo));
+        VenderCommand = new ComandoDelegado(p => { if (Unico(p) is { } f) _ = _modulo.VenderAsync(f.Id, f.Codigo); },
             p => !_ocupado && Unico(p) is { Propio: true, Datos.DeBaja: false } f && TiposActivoPgc.EsInversion(f.Datos.CodigoTipo));
         QuitarCentroCommand = new ComandoDelegado(() => FiltrarCentro(null, null));
         MarcarTodosCommand = new ComandoDelegado(() => MarcarTodos(!TodosMarcados));
@@ -114,6 +116,7 @@ public sealed class ListadoActivosVM : ModeloVista, IPestanaTrabajo
     public ICommand MayorCommand { get; }
     public ICommand GenerarMarcadosCommand { get; }
     public ICommand NuevaCompraCommand { get; }
+    public ICommand VenderCommand { get; }
     public ICommand QuitarCentroCommand { get; }
     public ICommand MarcarTodosCommand { get; }
 
@@ -127,7 +130,7 @@ public sealed class ListadoActivosVM : ModeloVista, IPestanaTrabajo
     // ---------- filtros ----------
     public string Busqueda { get => _busqueda; set { if (Fijar(ref _busqueda, value)) Filtrar(); } }
     public string Clase { get => _clase; set { if (Fijar(ref _clase, value ?? "Todos")) Filtrar(); } }
-    public string FiltroEstado { get => _filtroEstado; set { if (Fijar(ref _filtroEstado, value ?? "En uso")) Filtrar(); } }
+    public string FiltroEstado { get => _filtroEstado; set { if (Fijar(ref _filtroEstado, value ?? "Activos")) Filtrar(); } }
     public bool MostrarAjenos { get => _ajenos; set { if (Fijar(ref _ajenos, value)) Filtrar(); } }
     public bool HayFiltroCentro => _centro is not null;
     public string TextoFiltroCentro => _textoCentro is null ? "" : $"Centro: {_textoCentro}";
@@ -186,7 +189,7 @@ public sealed class ListadoActivosVM : ModeloVista, IPestanaTrabajo
         var q = (_busqueda ?? "").Trim();
         Filas = _todas.Where(f =>
                 (_clase == "Todos" || f.Datos.Clase == _clase)
-                && (_filtroEstado == "Todos" || (_filtroEstado == "De baja") == f.Datos.DeBaja)
+                && (_filtroEstado == "Todos" || (_filtroEstado == "Inactivos") == f.Datos.DeBaja)
                 && (_ajenos || f.Propio)
                 && (_centro is null || f.Datos.IdCentroCoste == _centro)
                 && (q.Length == 0 || $"{f.Codigo} {f.Nombre} {f.Datos.NombreCorto} {f.Datos.Centro}".Contains(q, StringComparison.CurrentCultureIgnoreCase)))

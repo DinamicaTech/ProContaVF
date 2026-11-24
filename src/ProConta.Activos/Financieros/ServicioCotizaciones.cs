@@ -28,30 +28,30 @@ public sealed class ServicioCotizaciones(ClienteYahooFinance yahoo, ClienteEodhd
         isin = Isin.Normalizar(isin);
         if (Isin.Error(isin) is { } error) return Resultado<BusquedaIsin>.Fallo(new Error("Isin.NoValido", error));
 
-        // 1. Yahoo: la búsqueda da símbolo, nombre y bolsa; la moneda sale del gráfico de cada símbolo.
+        // 1. Yahoo. Por ISIN solo da uno o dos listados (a veces uno regional sin precios), así que se vuelve a buscar por el nombre largo que
+        //    devuelve y se añaden los listados con exactamente ese nombre (la clase de distribución, con otro nombre, no entra). La moneda sale del
+        //    gráfico de cada símbolo, y los que no tienen cierres en el último mes se descartan (activos/activos-financieros 2026-11-24 09:14).
         var busqueda = await yahoo.BuscarAsync(isin, cancelacion);
         var errorYahoo = busqueda.EsCorrecto ? null : busqueda.Error;
         var deYahoo = new List<CotizacionIsin>();
         if (busqueda.EsCorrecto)
-            foreach (var y in busqueda.Valor.Take(6))
+        {
+            var candidatos = busqueda.Valor.ToList();
+            foreach (var nombre in busqueda.Valor.Where(y => y.NombreLargo).Select(y => y.Nombre).DistinctBy(Normalizado).Take(2).ToList())
             {
-                var g = await yahoo.GraficoAsync(y.Simbolo, Hoy.AddDays(-7), Hoy, cancelacion);
-                if (!g.EsCorrecto) continue;
-                deYahoo.Add(new CotizacionIsin(isin, y.Nombre, y.Simbolo, TickerEodhdDesdeYahoo(y.Simbolo, isin, y.Tipo), y.Bolsa.Length > 0 ? y.Bolsa : g.Valor.Bolsa,
-                    g.Valor.Moneda, y.Tipo, FuenteCotizacion.Yahoo));
+                var porNombre = await yahoo.BuscarAsync(nombre, cancelacion);
+                if (porNombre.EsCorrecto) candidatos.AddRange(porNombre.Valor.Where(y => y.NombreLargo && MismoNombre(y.Nombre, nombre)));
             }
-        // La búsqueda de Yahoo a veces da solo la bolsa de Londres (IWDA.L en dólares): se prueba el mismo símbolo en bolsas en euros y se
-        // acepta si el gráfico da el mismo nombre de instrumento.
-        if (deYahoo.Count > 0 && !deYahoo.Any(c => c.EnEuros))
-            foreach (var (baseSimbolo, nombre, tipo) in deYahoo.Select(c => (Base: c.TickerYahoo!.Split('.')[0], c.Nombre, c.TipoInstrumento)).DistinctBy(x => x.Base).ToList())
-                foreach (var sufijo in SufijosEuro)
-                {
-                    var simbolo = baseSimbolo + sufijo;
-                    if (deYahoo.Any(c => string.Equals(c.TickerYahoo, simbolo, StringComparison.OrdinalIgnoreCase))) continue;
-                    var g = await yahoo.GraficoAsync(simbolo, Hoy.AddDays(-7), Hoy, cancelacion);
-                    if (!g.EsCorrecto || !string.Equals(g.Valor.Moneda, "EUR", StringComparison.OrdinalIgnoreCase) || !MismoNombre(g.Valor.Nombre, nombre)) continue;
-                    deYahoo.Add(new CotizacionIsin(isin, nombre, simbolo, TickerEodhdDesdeYahoo(simbolo, isin, tipo), g.Valor.Bolsa, "EUR", tipo, FuenteCotizacion.Yahoo));
-                }
+            var nombreIsin = busqueda.Valor.FirstOrDefault(y => y.NombreLargo)?.Nombre;
+            foreach (var y in candidatos.DistinctBy(y => y.Simbolo.ToUpperInvariant()).Take(MaximoListados))
+            {
+                var g = await yahoo.GraficoAsync(y.Simbolo, Hoy.AddDays(-DiasListadoVivo), Hoy, cancelacion);
+                if (!g.EsCorrecto || g.Valor.Cierres.Count == 0) continue;
+                var tipo = y.Tipo == "OTRO" && g.Valor.Tipo is { } t ? t : y.Tipo;
+                deYahoo.Add(new CotizacionIsin(isin, y.NombreLargo ? y.Nombre : nombreIsin ?? g.Valor.Nombre ?? y.Nombre, y.Simbolo, TickerEodhdDesdeYahoo(y.Simbolo, isin, tipo),
+                    y.Bolsa.Length > 0 ? y.Bolsa : g.Valor.Bolsa, g.Valor.Moneda, tipo, FuenteCotizacion.Yahoo));
+            }
+        }
         if (deYahoo.Count > 0) return Resultado<BusquedaIsin>.Correcto(new BusquedaIsin(isin, Ordenar(deYahoo), FuenteCotizacion.Yahoo, null));
 
         // 2. EODHD, si hay clave.
@@ -75,14 +75,18 @@ public sealed class ServicioCotizaciones(ClienteYahooFinance yahoo, ClienteEodhd
             "Si lo encuentras en Yahoo con el navegador, escribe su símbolo de Yahoo para tener los dos."));
     }
 
-    /// <summary>Bolsas en euros donde se prueba el símbolo de Yahoo cuando la búsqueda no da ninguna: Ámsterdam, Xetra, Milán y París.</summary>
-    private static readonly string[] SufijosEuro = [".AS", ".DE", ".MI", ".PA"];
+    /// <summary>Listados de Yahoo que se comprueban como mucho (un gráfico por cada uno).</summary>
+    private const int MaximoListados = 10;
 
-    internal static bool MismoNombre(string? a, string? b)
-    {
-        static string N(string? t) => new((t ?? "").Where(char.IsLetterOrDigit).Select(char.ToUpperInvariant).ToArray());
-        return N(a).Length > 0 && N(a) == N(b);
-    }
+    /// <summary>Un listado sin ningún cierre en estos días no se ofrece (los regionales alemanes por ISIN, como IE00BK5BQT80.SG).</summary>
+    private const int DiasListadoVivo = 31;
+
+    /// <summary>Orden de las bolsas en euros al proponer un listado: Xetra, Ámsterdam, Milán y París; el resto después.</summary>
+    private static readonly string[] SufijosPreferidos = ["DE", "AS", "MI", "PA"];
+
+    private static string Normalizado(string? t) => new((t ?? "").Where(char.IsLetterOrDigit).Select(char.ToUpperInvariant).ToArray());
+
+    internal static bool MismoNombre(string? a, string? b) => Normalizado(a).Length > 0 && Normalizado(a) == Normalizado(b);
 
     public async Task<Resultado<PrecioEnEuros>> PrecioEnEurosAsync(ReferenciaCotizacion referencia, DateTime fecha, CancellationToken cancelacion = default)
     {
@@ -160,7 +164,15 @@ public sealed class ServicioCotizaciones(ClienteYahooFinance yahoo, ClienteEodhd
         moneda is "GBp" or "GBX" or "GBx" ? (precio / 100m, "GBP") : (precio, moneda.Trim().ToUpperInvariant());
 
     /// <summary>Primero los que cotizan en euros; dentro, el orden del proveedor.</summary>
-    private static IReadOnlyList<CotizacionIsin> Ordenar(List<CotizacionIsin> c) => c.Select((x, i) => (x, i)).OrderBy(t => t.x.EnEuros ? 0 : 1).ThenBy(t => t.i).Select(t => t.x).ToList();
+    private static IReadOnlyList<CotizacionIsin> Ordenar(List<CotizacionIsin> c) => c.Select((x, i) => (x, i)).OrderBy(t => t.x.EnEuros ? 0 : 1)
+        .ThenBy(t => PrioridadBolsa(t.x.TickerYahoo)).ThenBy(t => t.i).Select(t => t.x).ToList();
+
+    private static int PrioridadBolsa(string? simbolo)
+    {
+        var punto = simbolo?.LastIndexOf('.') ?? -1;
+        var i = punto < 0 ? -1 : Array.IndexOf(SufijosPreferidos, simbolo![(punto + 1)..].ToUpperInvariant());
+        return i < 0 ? SufijosPreferidos.Length : i;
+    }
 
     /// <summary>Sufijo de bolsa de Yahoo → bolsa de EODHD.</summary>
     private static readonly IReadOnlyDictionary<string, string> BolsasEodhd = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)

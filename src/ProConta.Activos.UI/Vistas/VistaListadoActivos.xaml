@@ -17,6 +17,8 @@
       <Separator />
       <MenuItem Header="Nueva compra…" Command="{Binding NuevaCompraCommand}" ToolTipService.ShowOnDisabled="True"
                 ToolTip="Anota otra compra de participaciones del activo financiero marcado: fecha (hoy por defecto) y participaciones; el precio del día se consulta solo (solo con un activo financiero marcado)" />
+      <MenuItem Header="Vender…" Command="{Binding VenderCommand}" ToolTipService.ShowOnDisabled="True"
+                ToolTip="Anota una venta de participaciones del activo financiero marcado: participaciones, fecha (hoy por defecto) e importe total (opcional; si no, con el precio del día). Si no le quedan, pasa a inactivo" />
       <Separator />
       <MenuItem Header="Generar las subcuentas que les falten…" Command="{Binding GenerarMarcadosCommand}" ToolTipService.ShowOnDisabled="True"
                 ToolTip="Propone las subcuentas de la plantilla de su tipo que les faltan (o con otro nombre) y las crea al confirmar. No vale para ajenos ni activos de baja" />
@@ -82,11 +84,11 @@
           <RadioButton Style="{StaticResource Segmento}" Content="Otros" GroupName="Clase" IsChecked="{Binding Clase, Converter={StaticResource Igual}, ConverterParameter=Otros}" ToolTip="Instalaciones técnicas y aplicaciones informáticas" />
         </StackPanel>
       </Border>
-      <Border Style="{StaticResource Segmentado}" Margin="0,0,12,4" VerticalAlignment="Center" ToolTip="Activos en uso, dados de baja o todos">
+      <Border Style="{StaticResource Segmentado}" Margin="0,0,12,4" VerticalAlignment="Center" ToolTip="Activos, inactivos (con fecha de baja: vendidos o retirados, con su información) o todos">
         <StackPanel Orientation="Horizontal">
-          <RadioButton Style="{StaticResource Segmento}" Content="En uso" GroupName="Estado" IsChecked="{Binding FiltroEstado, Converter={StaticResource Igual}, ConverterParameter='En uso'}" ToolTip="Los que no están de baja" />
-          <RadioButton Style="{StaticResource Segmento}" Content="De baja" GroupName="Estado" IsChecked="{Binding FiltroEstado, Converter={StaticResource Igual}, ConverterParameter='De baja'}" ToolTip="Solo los dados de baja o vendidos" />
-          <RadioButton Style="{StaticResource Segmento}" Content="Todos" GroupName="Estado" IsChecked="{Binding FiltroEstado, Converter={StaticResource Igual}, ConverterParameter=Todos}" ToolTip="En uso y de baja" />
+          <RadioButton Style="{StaticResource Segmento}" Content="Activos" GroupName="Estado" IsChecked="{Binding FiltroEstado, Converter={StaticResource Igual}, ConverterParameter=Activos}" ToolTip="Los que no tienen fecha de baja" />
+          <RadioButton Style="{StaticResource Segmento}" Content="Inactivos" GroupName="Estado" IsChecked="{Binding FiltroEstado, Converter={StaticResource Igual}, ConverterParameter=Inactivos}" ToolTip="Solo los inactivos: vendidos o retirados, con su información y su documentación" />
+          <RadioButton Style="{StaticResource Segmento}" Content="Todos" GroupName="Estado" IsChecked="{Binding FiltroEstado, Converter={StaticResource Igual}, ConverterParameter=Todos}" ToolTip="Activos e inactivos" />
         </StackPanel>
       </Border>
       <CheckBox Content="Mostrar ajenos" IsChecked="{Binding MostrarAjenos}" VerticalAlignment="Center" Margin="0,0,12,4"

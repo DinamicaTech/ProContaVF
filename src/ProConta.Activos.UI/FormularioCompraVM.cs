@@ -33,6 +33,24 @@ public sealed class FormularioCompraVM : ModeloVista
 
     public ICommand ConsultarPrecioCommand { get; }
 
+    /// <summary>
+    /// Si es una venta («Vender…», activos/activos-financieros 2026-11-24 09:14): cambian los rótulos y el importe total es opcional (si no se escribe,
+    /// participaciones × precio en euros).
+    /// </summary>
+    public bool EsVenta { get; init; }
+
+    public string RotuloFecha => EsVenta ? "Fecha de venta" : "Fecha de compra";
+    public string RotuloImporte => EsVenta ? "Importe total de la venta (€)" : "Coste total del lote (€)";
+    public string AyudaParticipaciones => EsVenta
+        ? "Cuántas participaciones has vendido (como mucho las que tenías ese día); pueden llevar hasta seis decimales"
+        : "Cuántas participaciones has comprado; pueden llevar hasta seis decimales (por ejemplo 12,345678)";
+    public string AyudaImporte => EsVenta
+        ? "Opcional: lo que te ha pagado el bróker por la venta. Si no lo escribes, se estima con participaciones × precio en euros; al conciliar la venta con el banco se pone el importe del banco"
+        : "Participaciones × precio en euros, a céntimos. Si ya sabes el importe que te cobró el bróker (con comisiones), escríbelo; si no, lo podrás corregir después en la ficha";
+
+    /// <summary>Si el importe total lo ha escrito el operador (si no, es el propuesto con el precio).</summary>
+    public bool ImporteEscrito => _costeEscrito;
+
     /// <summary>Con qué se pide el precio; al cambiar se vuelve a consultar.</summary>
     public ReferenciaCotizacion? Referencia
     {
@@ -76,7 +94,7 @@ public sealed class FormularioCompraVM : ModeloVista
     public async Task ConsultarPrecioAsync()
     {
         if (_cotizaciones is null || _referencia is not { } r) return;
-        if (LeerFecha(_fecha) is not DateTime fecha) { ErrorPrecio = "Escribe la fecha de compra como dd/mm/aaaa para consultar su precio."; return; }
+        if (LeerFecha(_fecha) is not DateTime fecha) { ErrorPrecio = $"Escribe la fecha de {(EsVenta ? "venta" : "compra")} como dd/mm/aaaa para consultar su precio."; return; }
         var peticion = ++_peticion;
         Consultando = true;
         Origen = "Consultando el precio…";
@@ -112,7 +130,9 @@ public sealed class FormularioCompraVM : ModeloVista
             ErrorPrecio = "";
             Origen = $"{p.Origen} del {Formatos.Fecha(p.FechaCotizacion)}" +
                      (p.FechaCotizacion != LeerFecha(_fecha) ? " (último día con cotización)" : "") +
-                     (EnOtraMoneda ? $"; cambio del BCE del {Formatos.Fecha(p.FechaCambio)}" : "") + ". Es un coste orientativo: corrige el coste total cuando el bróker te confirme el importe.";
+                     (EnOtraMoneda ? $"; cambio del BCE del {Formatos.Fecha(p.FechaCambio)}" : "") +
+                     (EsVenta ? ". Es un importe orientativo: al conciliar la venta con el banco se pone el que cobraste."
+                              : ". Es un coste orientativo: corrige el coste total cuando el bróker te confirme el importe.");
         }
         finally { _poniendo = false; }
         Recalcular();
@@ -141,12 +161,13 @@ public sealed class FormularioCompraVM : ModeloVista
     public IReadOnlyList<string> Errores()
     {
         var e = new List<string>();
-        if (LeerFecha(_fecha) is null) e.Add("Escribe la fecha de compra como dd/mm/aaaa (por ejemplo 20/11/2026).");
+        if (LeerFecha(_fecha) is null) e.Add($"Escribe la fecha de {(EsVenta ? "venta" : "compra")} como dd/mm/aaaa (por ejemplo 20/11/2026).");
         if (_participaciones.Trim().Length > 0 && LeerNumero(_participaciones) is null) e.Add("Escribe las participaciones como un número (por ejemplo 12,345).");
         if (_precio.Trim().Length > 0 && LeerNumero(_precio) is null) e.Add("Escribe el precio como un número (por ejemplo 98,4512).");
         if (EnOtraMoneda && LeerNumero(_cambio) is null) e.Add($"Escribe el cambio como un número: cuántos {_moneda} vale un euro (por ejemplo 1,0532).");
-        if (_coste.Trim().Length > 0 && FichaActivoVM.Importe(_coste) is null) e.Add("Escribe el coste total del lote como un importe (por ejemplo 1.250,40).");
-        if (e.Count == 0 && Construir() is { } c) e.AddRange(c.Validar(_hoy()));
+        if (_coste.Trim().Length > 0 && FichaActivoVM.Importe(_coste) is null)
+            e.Add(EsVenta ? "Escribe el importe total de la venta como un importe (por ejemplo 1.250,40)." : "Escribe el coste total del lote como un importe (por ejemplo 1.250,40).");
+        if (e.Count == 0 && Construir() is { } c) e.AddRange(c.Validar(_hoy(), EsVenta));
         return e;
     }
 
