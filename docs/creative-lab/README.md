@@ -17,3 +17,4 @@ Sale del laboratorio cuando el propietario lo decide: se convierte en borrador o
 - 2026-11-16 09:40 · La idea creative-lab/asistente-ia se amplía a «Asistente IA»: prompts a Claude que consultan la BD y proponen correcciones, mediante un conector local de Claude Desktop.
 - 2026-11-16 09:58 · El conector de la idea «Asistente IA» sale del laboratorio ejecutado: ahora es plataforma/conector-claude. Las ampliaciones (subcuentas, avisos de salud, facturas, documentos) siguen en creative-lab/asistente-ia.
 - 2026-11-17 17:50 · La idea «Inversiones financieras» (creative-lab/inversiones-financieras) sale del laboratorio como borrador: ahora es activos/activos-financieros.
+- 2026-11-24 10:01 · El laboratorio pasa a ser una carpeta (creative-lab/README.md); la ruta del nodo no cambia. Nueva idea creative-lab/integracion-con-whatsapp: recibir documentos y enviar avisos con plantillas a los clientes por WhatsApp, con un número por sociedad.
