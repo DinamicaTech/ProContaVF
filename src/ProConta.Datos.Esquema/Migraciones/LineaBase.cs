@@ -128,6 +128,7 @@ public static class CatalogoMigraciones
         MigracionesActivosFinancieros.VentaYConciliacion,
         MigracionesSeguridad.OperadoresTerceros,
         MigracionesPlataforma.ConexionAws,
+        MigracionesIntegridad.RelacionesPendientes,
     ];
 
     /// <summary>Versión del esquema que espera esta versión del programa.</summary>

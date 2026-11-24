@@ -21,6 +21,7 @@ Catálogo de conceptos facturables por sociedad (tipos, precio, IVA, cuenta de v
 - 2026-11-04 17:57 · Validado por el propietario (facturación de venta, PR #14).
 - 2026-11-15 14:05 · Un concepto sin cuenta de venta la puede recibir desde el editor de factura: al elegir en el buscador la cuenta de una línea de ese concepto, se ofrece guardarla como su cuenta por defecto (facturacion/pantallas 2026-11-15 14:05). Se guarda con las reglas de siempre (identidad contable de la cuenta en el ejercicio de trabajo) y no toca las líneas ya escritas.
 - 2026-11-15 15:18 · Validado por el propietario (cuenta de venta desde el editor de factura, PR #74).
+- 2026-11-24 19:10 · Desde el esquema 83 (datos/esquema), ReglasVenta.IdConcepto y VentasPorFacturar.IdConcepto tienen relación con Conceptos: borrar un concepto que usa una regla de venta o una venta por facturar da el error «Conceptos.EnUso» (desactivarlo o cambiar antes el concepto de la regla), no el de Access.
 
 ## Requirements
 - 2026-10-28 12:28 · From sources/01_ESPECIFICACION_FUNCIONAL.docx § 9 RF-CAT-01, 02: catálogo de conceptos
@@ -35,6 +36,7 @@ Catálogo de conceptos facturables por sociedad (tipos, precio, IVA, cuenta de v
 - 2026-11-04 17:50 · Opción 2 ya que la BD actual (ProContaEstructura) la volveré a generar cuando hagamos la migración y se perderán todos los cambios que se hayan hecho en esa BD.
 - 2026-11-04 17:57 · Ok, validado
 - 2026-11-15 14:05 · Derived from facturacion/pantallas: guardar en el concepto la cuenta de venta elegida en una línea de factura cuando el concepto no tiene ninguna.
+- 2026-11-24 19:10 · Derived from datos/esquema: el borrado de un concepto explica que no se puede borrar cuando lo usa una regla de venta o una venta por facturar (relaciones del esquema 83).
 
 ## Hand-over
 - 2026-11-01 18:15 · Pendiente en el equipo del propietario: contar con `MigracionesFacturacion.ConceptosRepetidosAsync` los conceptos con el mismo nombre en una sociedad (venían de ejercicios distintos) para decidir si se unen.
