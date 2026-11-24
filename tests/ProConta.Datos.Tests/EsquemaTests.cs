@@ -228,6 +228,53 @@ public sealed class EsquemaAccessTests : IDisposable
     }
 
     [Fact]
+    public async Task LosOperadoresPasanASusTercerosYPierdenNombreYCorreo()
+    {
+        // La copia ya está en la versión del programa: se devuelve OperadoresSeguridad a como estaba antes del esquema 82
+        // (sin IdTercero, con Nombre y Email) y se aplican los pasos de la migración, como haría el actualizador.
+        var bd = _copia.Bd();
+        await bd.EjecutarAsync(async s =>
+        {
+            await s.EjecutarAsync("ALTER TABLE OperadoresSeguridad DROP CONSTRAINT FK_OperadoresSeguridad_Tercero");
+            await s.EjecutarAsync("DROP INDEX UX_OperadoresSeguridad_IdTercero ON OperadoresSeguridad");
+            await s.EjecutarAsync("ALTER TABLE OperadoresSeguridad DROP COLUMN IdTercero");
+            await s.EjecutarAsync("ALTER TABLE OperadoresSeguridad ADD COLUMN Nombre TEXT(100)");
+            await s.EjecutarAsync("ALTER TABLE OperadoresSeguridad ADD COLUMN Email TEXT(254)");
+            async Task Tercero(string tipo, string nombre, string? pila) =>
+                await s.EjecutarAsync("INSERT INTO Terceros (TipoPersona, Nombre, NombrePersona, Activo, Version) VALUES (?, ?, ?, ?, ?)", tipo, nombre, (object?)pila ?? DBNull.Value, true, 1);
+            await Tercero("FISICA", "Ana Sintética", "Ana");      // única con ese nombre de pila: se vincula
+            await Tercero("FISICA", "Pepa Uno", "Pepa");          // dos «Pepa»: no se elige ninguna
+            await Tercero("FISICA", "Pepa Dos", "Pepa");
+            await Tercero("JURIDICA", "Luis", null);              // no es persona física
+            foreach (var (nombre, email) in new[] { ("ana", (string?)null), ("Luis", "luis@sintetico.example"), ("Pepa", null) })
+                await s.EjecutarAsync("INSERT INTO OperadoresSeguridad (Nombre, Email, Activo, PasswordTemporal) VALUES (?, ?, ?, ?)", nombre, (object?)email ?? DBNull.Value, true, false);
+            return true;
+        });
+        await bd.EjecutarAsync(async s =>
+        {
+            foreach (var paso in MigracionesSeguridad.OperadoresTerceros.Pasos)
+                if (!await paso.YaAplicadoAsync(s, s.LeerEsquema())) await paso.AplicarAsync(s, ContextoMigracion.Vacio);
+            foreach (var paso in MigracionesSeguridad.OperadoresTerceros.Pasos)
+                Assert.True(await paso.YaAplicadoAsync(s, s.LeerEsquema()), paso.Descripcion);
+            return true;
+        });
+
+        var esquema = await bd.EjecutarAsync(s => Task.FromResult(s.LeerEsquema()));
+        var tabla = esquema.Tabla("OperadoresSeguridad")!;
+        Assert.Null(tabla.Columna("Nombre"));
+        Assert.Null(tabla.Columna("Email"));
+        Assert.False(tabla.Columna("IdTercero")!.AdmiteNulos);
+        Assert.Contains(tabla.Relaciones, x => x.Nombre == "FK_OperadoresSeguridad_Tercero");
+        var filas = await bd.EjecutarAsync(s => s.ConsultarAsync(
+            "SELECT o.IdOperador, t.Nombre, t.TipoPersona, t.NombrePersona, t.Email FROM OperadoresSeguridad AS o INNER JOIN Terceros AS t ON o.IdTercero = t.IdTercero ORDER BY o.IdOperador",
+            f => (Nombre: f.Texto("Nombre"), Tipo: f.Texto("TipoPersona"), Pila: f.Texto("NombrePersona"), Email: f.Texto("Email"))));
+        Assert.Equal(("Ana Sintética", "FISICA", "Ana", (string?)null), filas[0]);
+        Assert.Equal(("Luis", "FISICA", "Luis", "luis@sintetico.example"), filas[1]); // tercero nuevo con su correo
+        Assert.Equal(("Pepa", "FISICA", "Pepa", (string?)null), filas[2]);            // tercero nuevo: había dos «Pepa»
+        Assert.Equal(6, Convert.ToInt32(await bd.EjecutarAsync(s => s.EscalarAsync("SELECT COUNT(*) FROM Terceros"))));
+    }
+
+    [Fact]
     public async Task FormasPagoPasaATablaPropiaConservandoCodigosYEjercicioCerradoSeAnade()
     {
         using var version1 = BdPruebas.NuevaVersion1();

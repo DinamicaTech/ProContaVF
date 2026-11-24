@@ -192,4 +192,18 @@ public sealed class BusquedaAccessTests : IDisposable
         Assert.Contains(fila.Coincidencias, c => c.Fuente == "Persona de contacto");
         Assert.Contains(fila.Roles, r => r.Rol == RolBusqueda.Cliente && r.Id == idCliente);
     }
+
+    [Fact]
+    public async Task ElBuscadorFiltraPorElRolOperador()
+    {
+        var bd = _copia.Bd();
+        var (idOperador, idTercero) = await DatosSinteticos.OperadorConTerceroAsync(bd, "Marta", primerApellido: "Sintética");
+        await DatosSinteticos.OperadorConTerceroAsync(bd, "Baja", activo: false);
+        await DatosSinteticos.TerceroPersonaAsync(bd, "Sin rol");
+        var r = await new BuscadorTerceros(bd).BuscarAsync(new FiltroTerceros(Roles: new HashSet<RolBusqueda> { RolBusqueda.Operador }));
+        Assert.Equal(1, r.Recuentos.Operadores);
+        var fila = Assert.Single(r.Filas);
+        Assert.Equal(idTercero, fila.IdTercero);
+        Assert.Contains(fila.Roles, x => x.Rol == RolBusqueda.Operador && x.Id == idOperador && x.Abreviatura == "Op");
+    }
 }

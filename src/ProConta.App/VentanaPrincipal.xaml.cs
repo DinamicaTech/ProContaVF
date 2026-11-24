@@ -209,6 +209,8 @@ public partial class VentanaPrincipal : Window
                 new MotorAsientosAccess(bd), new Actor(sesion.NombreOperador)),
             _area, new ProConta.Contabilidad.UI.Mayor.DialogosMayor(() => this));
         _terceros.MayorEmbebido = cuentas => _mayor.CrearEmbebido(cuentas);
+        // Rol «Operador ProConta» en la ficha del tercero (seguridad/pantallas): lo gestionan los administradores.
+        _terceros.Operadores = new OperadoresFichaTercero(new ServicioOperadores(bd), sesion.IdOperador, new Actor(sesion.NombreOperador), () => this);
         // Mandato SEPA (terceros/roles/mandato-sepa): HTML › PDF con el motor de informes, A4 vertical, y se abre para imprimirlo.
         _terceros.HtmlAPdf = html => ConversorHtmlPdf.Compartido.Convertir(html, new PaginaPdf(210, 297, 18, 18, 18, 18));
         _terceros.AbrirFichero = ruta =>
