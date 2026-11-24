@@ -14,18 +14,19 @@ No construye nada propio: usa el script de instalación de plataforma/entrega, e
 - 2026-11-16 09:45 · Creado como hijo de implantacion. El padre sigue en `docs/implantacion.md`, sin moverlo a `docs/implantacion/README.md`, como el resto de nodos con hijos (acordado con el propietario).
 - 2026-11-16 09:45 · Reparto: el procedimiento y sus listas de comprobación viven aquí; la copia de ejecutables la hace el script de instalación de plataforma/entrega (línea «Derived from» allí); la BD y el esquema, datos/esquema (`copia-estructura` y `actualizar`), sin cambios; las importaciones, implantacion/importador-contasol e implantacion/migracion-erp tal como están; sus pendientes se revisan en el paso D.
 - 2026-11-18 16:21 · La lista «Modelos tributarios · Qué rellenar en producción antes de presentar» (datos-a-rellenar-en-produccion.md, del hilo de modelos tributarios, PR #123, esquema 73) se integra en el plan y no como md aparte, porque en docs cada md es un nodo: la corrección del NIF y los códigos postales de los socios va en el ERP antes de migrar (paso D); el resto es el paso J, después del arranque y antes de presentar cada modelo (acordado con el propietario).
+- 2026-11-24 12:15 · Activado por el propietario. Claude tiene acceso total a `C:\Docs\ProConta` y subcarpetas. El ERP y ContaSol no tienen cambios desde hace una semana: sus copias en la carpeta del repositorio son el origen de la importación. Los pendientes conocidos de la migración del ERP (paso D) no bloquean el arranque y se revisan después.
 
 ## Plan (borrador, a revisar al activar el nodo)
 Cada paso se marca con la fecha en que se hace y cómo se comprobó.
 
 **A. Congelar la versión**
-- [ ] Decidir qué entra en el arranque: liquidación de IVA (esquema 56), conciliación N43 (PR #56), conector de Claude Desktop; lo que no entre queda para después.
-- [ ] Fusionar en main todo lo que entra y hacer los cambios de esquema antes del arranque.
-- [ ] Ejecutar `probar.cmd` (con y sin BD de pruebas) sobre main y compilar con `compilar.cmd`.
+- [x] Decidir qué entra en el arranque: liquidación de IVA (esquema 56), conciliación N43 (PR #56), conector de Claude Desktop; lo que no entre queda para después. — 2026-11-24: entra todo lo fusionado; main en el esquema 82, sin PR abiertas.
+- [x] Fusionar en main todo lo que entra y hacer los cambios de esquema antes del arranque. — 2026-11-24: hecho por el propietario.
+- [x] Ejecutar `probar.cmd` (con y sin BD de pruebas) sobre main y compilar con `compilar.cmd`. — 2026-11-24: compila; en paralelo fallaron 5 pruebas contra Access por bloqueos («Demasiados usuarios activos»), que pasan repetidas una a una; `ProgramadasAccessTests.DosLotesALaVezNoDuplicanFacturas` (tres lotes a la vez) solo falla con la máquina cargada: no afecta con un usuario.
 
 **B. Instalar ejecutables y librerías**
 - [ ] ACE x64 instalado en el equipo.
-- [ ] Copiar la versión compilada a `C:\Docs\ProConta` con el script de plataforma/entrega (respaldo previo de la versión anterior si la hay).
+- [ ] Copiar la versión compilada a `C:\Docs\ProConta` con `instalar.cmd` de plataforma/entrega (respaldo previo de la versión anterior en `versiones`).
 - [ ] Acceso directo o `ejecutar.cmd` con `--bd "C:\Docs\ProConta\datos\<BD>.accdb"`; la versión de main se ve en la barra de estado.
 
 **C. Base de datos maestra**
@@ -108,3 +109,7 @@ Lista del hilo de modelos tributarios (pantalla fusionada en la PR #123, esquema
 - 2026-11-16 09:45 · draft: Ejecutar el plan de paso a producción de este nodo, paso a paso y con sus validaciones, cuando el propietario lo active tras acabar los últimos desarrollos.
 - 2026-11-16 14:05 · Derived from plataforma/entorno-pruebas: después de las importaciones (paso D), crear la copia de pruebas con «Actualizar la copia de pruebas…», y validar la operativa (paso G) primero en pruebas.
 - 2026-11-18 16:20 · Añade este md dentro del proceso de paso a producción
+- 2026-11-24 12:01 · Venga, arrancamos el proceso de paso a producción
+- 2026-11-24 12:15 · Tienes acceso total a c:\docs\ProConta y subcarpetas
+- 2026-11-24 12:15 · answer: pendientes de la migración del ERP → no bloquean el arranque; se revisan después
+- 2026-11-24 12:15 · answer: corte del ERP y ContaSol → sin cambios desde hace una semana; las copias de la carpeta del repositorio son las más actuales
