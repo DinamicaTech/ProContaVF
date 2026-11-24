@@ -70,6 +70,22 @@ public static class MigracionesActivosFinancieros
     };
 
     /// <summary>
+    /// Líneas de la plantilla del tipo «Inversión financiera» (la del ERP, propietario 2026-11-24 09:31): nombre del tipo de subcuenta, descripción, rol y
+    /// prefijo. «PÉRDIDA POR VENA» del ERP se corrige a «PÉRDIDA POR VENTA».
+    /// </summary>
+    public static IReadOnlyList<(string Nombre, string Descripcion, string Rol, string Prefijo)> PlantillaInversion { get; } =
+    [
+        ("INVERSIÓN FINANCIERA [TOKEN]", "Inversión en fondos de inversión", "ACTIVO", "54001"),
+        ("GASTOS FINANCIEROS [TOKEN]", "Gastos derivados por la compra y gestión de fondos de inversión", "LIBRE", "66901"),
+        ("DIVIDENDOS INVERSION [TOKEN]", "Ingresos obtenidos por dividendos de una inversión financiera", "LIBRE", "76001"),
+        ("INCREMENTO VALOR [TOKEN]", "Beneficio de cartera de negociación", "LIBRE", "76301"),
+        ("DECREMENTO VALOR [TOKEN]", "Pérdida valor de cartera de negociación", "LIBRE", "66301"),
+        ("RETENCION [TOKEN]", "Retenciones practicadas", "LIBRE", "47301"),
+        ("BENEFICIOS POR VENTA [TOKEN]", "Beneficios recogidos al amortizar una inversión en bolsa", "LIBRE", "76600"),
+        ("PÉRDIDA POR VENTA [TOKEN]", "Pérdidas generadas al amortizar una inversión en bolsa", "LIBRE", "66600"),
+    ];
+
+    /// <summary>
     /// Venta de activos financieros y su conciliación con el banco (activos/activos-financieros 2026-11-24 09:14 y 09:24):
     /// <list type="bullet">
     /// <item>OperacionesInversion.LineaN43: el movimiento bancario con que se concilió la compra o la venta («Compra de activo…» y «Venta de activo…» en
@@ -121,20 +137,4 @@ public static class MigracionesActivosFinancieros
             new("OperacionesInversion", "ImporteAntesConciliar", "Importe que tenía la operación antes de ponerle el del banco al conciliarla; se recupera al deshacer el asiento de la línea."),
         ],
     };
-
-    /// <summary>
-    /// Líneas de la plantilla del tipo «Inversión financiera» (la del ERP, propietario 2026-11-24 09:31): nombre del tipo de subcuenta, descripción, rol y
-    /// prefijo. «PÉRDIDA POR VENA» del ERP se corrige a «PÉRDIDA POR VENTA».
-    /// </summary>
-    public static IReadOnlyList<(string Nombre, string Descripcion, string Rol, string Prefijo)> PlantillaInversion { get; } =
-    [
-        ("INVERSIÓN FINANCIERA [TOKEN]", "Inversión en fondos de inversión", "ACTIVO", "54001"),
-        ("GASTOS FINANCIEROS [TOKEN]", "Gastos derivados por la compra y gestión de fondos de inversión", "LIBRE", "66901"),
-        ("DIVIDENDOS INVERSION [TOKEN]", "Ingresos obtenidos por dividendos de una inversión financiera", "LIBRE", "76001"),
-        ("INCREMENTO VALOR [TOKEN]", "Beneficio de cartera de negociación", "LIBRE", "76301"),
-        ("DECREMENTO VALOR [TOKEN]", "Pérdida valor de cartera de negociación", "LIBRE", "66301"),
-        ("RETENCION [TOKEN]", "Retenciones practicadas", "LIBRE", "47301"),
-        ("BENEFICIOS POR VENTA [TOKEN]", "Beneficios recogidos al amortizar una inversión en bolsa", "LIBRE", "76600"),
-        ("PÉRDIDA POR VENTA [TOKEN]", "Pérdidas generadas al amortizar una inversión en bolsa", "LIBRE", "66600"),
-    ];
 }
