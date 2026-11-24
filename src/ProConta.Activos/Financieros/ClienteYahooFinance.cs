@@ -5,7 +5,8 @@ using ProConta.Nucleo.Resultados;
 namespace ProConta.Activos.Financieros;
 
 /// <summary>Un resultado de la búsqueda de Yahoo: símbolo, nombre, bolsa y tipo (la moneda sale del gráfico).</summary>
-public sealed record ResultadoBusquedaYahoo(string Simbolo, string Nombre, string Bolsa, string Tipo);
+/// <param name="NombreLargo">Si Yahoo da su nombre largo (longname); los listados regionales sin datos no lo traen.</param>
+public sealed record ResultadoBusquedaYahoo(string Simbolo, string Nombre, string Bolsa, string Tipo, bool NombreLargo = false);
 
 /// <summary>Datos del gráfico de Yahoo de un símbolo: moneda, bolsa, último precio y cierres diarios.</summary>
 /// <param name="Cierres">Cierre de cada día de cotización, por fecha local de la bolsa.</param>
@@ -21,9 +22,9 @@ public sealed class ClienteYahooFinance(HttpClient http)
     public const string Direccion = "https://query2.finance.yahoo.com/";
 
     /// <summary>Símbolos de Yahoo para un ISIN (vacío si no lo encuentra).</summary>
-    public async Task<Resultado<IReadOnlyList<ResultadoBusquedaYahoo>>> BuscarAsync(string isin, CancellationToken cancelacion = default)
+    public async Task<Resultado<IReadOnlyList<ResultadoBusquedaYahoo>>> BuscarAsync(string texto, CancellationToken cancelacion = default)
     {
-        var r = await GetAsync($"{Direccion}v1/finance/search?q={Uri.EscapeDataString(isin)}&quotesCount=10&newsCount=0&listsCount=0", cancelacion);
+        var r = await GetAsync($"{Direccion}v1/finance/search?q={Uri.EscapeDataString(texto)}&quotesCount=20&newsCount=0&listsCount=0", cancelacion);
         return r.EsCorrecto ? Resultado<IReadOnlyList<ResultadoBusquedaYahoo>>.Correcto(LeerBusqueda(r.Valor)) : Resultado<IReadOnlyList<ResultadoBusquedaYahoo>>.Fallo(r.Errores);
     }
 
@@ -75,7 +76,8 @@ public sealed class ClienteYahooFinance(HttpClient http)
             if (string.IsNullOrWhiteSpace(simbolo)) continue;
             var tipo = Cadena(q, "quoteType") ?? "";
             if (tipo is "OPTION" or "FUTURE" or "CURRENCY" or "CRYPTOCURRENCY" or "INDEX") continue;
-            r.Add(new(simbolo, Cadena(q, "longname") ?? Cadena(q, "shortname") ?? simbolo, Cadena(q, "exchDisp") ?? Cadena(q, "exchange") ?? "", TipoInstrumento(tipo)));
+            var largo = Cadena(q, "longname");
+            r.Add(new(simbolo, largo ?? Cadena(q, "shortname") ?? simbolo, Cadena(q, "exchDisp") ?? Cadena(q, "exchange") ?? "", TipoInstrumento(tipo), !string.IsNullOrWhiteSpace(largo)));
         }
         return r;
     }

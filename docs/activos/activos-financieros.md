@@ -30,6 +30,7 @@ Alta por ISIN, «Nueva compra…» y cambio del coste del lote programados (esqu
 - 2026-11-23 20:57 · «Nueva compra…» va en el menú contextual del listado y en la cabecera del nuevo apartado «Operaciones» de la ficha: solo fecha y participaciones (el instrumento ya está guardado). El apartado lista el instrumento y sus compras (precio del proveedor, cambio, precio en euros y coste); doble clic o menú contextual «Cambiar el coste del lote…» pone el importe que confirma el bróker y recalcula el coste del activo.
 - 2026-11-23 20:57 · Esquema 79 (`MigracionesActivosFinancieros.AltaPorIsin`, 20261123_2045_ACTIVOS_FINANCIEROS_ISIN): tabla CambiosDivisa (caché de los cambios diarios del BCE, única por moneda y fecha), tabla ConexionesCotizaciones (clave de EODHD cifrada por sociedad, en Integraciones › «Cotizaciones · EODHD» con «Probar la clave»), InstrumentosFinancieros.TickerEodhd, Bolsa y OrigenDatos, y el tipo de activo INVERSION activo y no amortizable. Las tablas heredadas pasan de creative-lab/inversiones-financieras a este nodo en DuenosTablas. El servicio de cotizaciones (`ICotizaciones`, `ServicioCotizaciones`, `ServicioCambiosDivisa` en src/ProConta.Activos/Financieros) es el que reutilizará la vista de análisis.
 - 2026-11-23 21:26 · El asiento de la compra de un activo financiero (572 contra 540) no se automatiza: el operador lo crea a mano desde las líneas bancarias (propietario 2026-11-23 21:26). Fusionado con el OK del propietario sin probarlo en pantalla: el nodo sigue en borrador.
+- 2026-11-24 09:16 · Búsqueda de listados en Yahoo (propietario 2026-11-24 08:35 y 09:14): por ISIN Yahoo solo devuelve uno o dos listados (IE00BK5BQT80 → VWRA.L y un IE00BK5BQT80.SG sin precios; IE00B5BMR087 → solo CSSPX.MI). Ahora se vuelve a buscar por el nombre largo que devuelve y se añaden los listados con exactamente ese nombre (otra clase del mismo fondo, con otro nombre, no entra); se descartan los que no tienen ningún cierre en el último mes, y se propone el primero en euros con este orden de bolsas: Xetra, Ámsterdam, Milán, París y el resto. Sustituye a probar el mismo símbolo en bolsas en euros. Los activos ya dados de alta conservan su símbolo.
 
 ## Requirements
 - 2026-11-11 18:20 · Q1. Ok, importamos todo excepto ETFs, que quedan en Creative Lab para una segunda fase
@@ -65,6 +66,7 @@ Alta por ISIN, «Nueva compra…» y cambio del coste del lote programados (esqu
 - 2026-11-23 20:32 · Si el operador igualmente prefiere seguir, que pueda introducir descripción y ticker a mano)
 - 2026-11-23 20:38 · Tienes razón, hay que crear un asiento de la 572 a una 540. Se creará desde líneas bancarias. Al crear una activo financiero no crearemos asientos.
 - 2026-11-23 21:26 · No hace falta, ya crearé el asiento manualmente desde líneas bancarias.
+- 2026-11-24 08:35 · Sí, apunta el tema de fallo por alta de ISIN, que hay que solucionarlo.
 
 ## Acceptance criteria
 - La pantalla de Activos lista los activos financieros con su posición (participaciones, coste, valor actual con fecha y origen de la cotización), rentabilidad acumulada y proyección, y su saldo contable cuadra con la cartera del intermediario.

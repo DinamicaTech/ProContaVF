@@ -125,23 +125,56 @@ public sealed class CotizacionesTests
         Assert.DoesNotContain(http.Pedidas, u => u.Contains("eodhd.com")); // con Yahoo basta: no gasta consultas de EODHD
     }
 
-    /// <summary>Respuesta real de Yahoo del 23/11/2026 para IE00B4L5Y983: solo la bolsa de Londres, en dólares.</summary>
+    /// <summary>
+    /// Respuestas reales de Yahoo del 24/11/2026 para IE00BK5BQT80: por ISIN solo salen VWRA.L (dólares) y un listado de Stuttgart sin nombre ni
+    /// precios; por el nombre salen todos, también la clase de distribución (VWRL), que tiene otro nombre y no entra. Se propone VWCE.DE (Xetra).
+    /// </summary>
     [Fact]
-    public async Task SiYahooSoloDaOtraMonedaPruebaElSimboloEnBolsasEnEuros()
+    public async Task BuscaPorElNombreLosListadosQueNoDaElIsinYProponeXetra()
     {
-        const string soloLondres = """
-            {"explains":[],"count":1,"quotes":[{"exchange":"LSE","shortname":"ISHARES III PLC ISHRS CORE MSCI","quoteType":"ETF","symbol":"IWDA.L","index":"quotes","score":20482.0,"typeDisp":"ETF","longname":"iShares Core MSCI World UCITS ETF USD (Acc)","exchDisp":"London","isYahooFinance":true}],"news":[]}
+        const string porIsin = """
+            {"quotes":[{"exchange":"LSE","quoteType":"ETF","symbol":"VWRA.L","longname":"Vanguard FTSE All-World UCITS ETF USD Accumulation","exchDisp":"London"},
+              {"exchange":"STU","quoteType":"MUTUALFUND","symbol":"IE00BK5BQT80.SG","exchDisp":"Stuttgart"}],"news":[]}
             """;
-        const string nombre = "iShares Core MSCI World UCITS ETF USD (Acc)";
-        var http = new HttpFijo(url => url.Contains("/search?") ? (HttpStatusCode.OK, soloLondres)
-            : url.Contains("chart/IWDA.L?") ? (HttpStatusCode.OK, Grafico("IWDA.L", "USD", nombre: nombre))
-            : url.Contains("chart/IWDA.AS?") ? (HttpStatusCode.OK, Grafico("IWDA.AS", "EUR", nombre: nombre))
-            : url.Contains("chart/IWDA.MI?") ? (HttpStatusCode.OK, Grafico("IWDA.MI", "EUR", nombre: "Otro instrumento con el mismo símbolo"))
-            : null);
-        var r = await Servicio(http).BuscarPorIsinAsync("IE00B4L5Y983");
-        Assert.Equal(["IWDA.AS", "IWDA.L"], r.Valor.Cotizaciones.Select(c => c.TickerYahoo));
-        Assert.Equal("IWDA.AS", r.Valor.Propuesta!.TickerYahoo);
-        Assert.Equal(nombre, r.Valor.Propuesta.Nombre);
+        const string porNombre = """
+            {"quotes":[{"exchange":"GER","quoteType":"ETF","symbol":"VWCE.DE","longname":"Vanguard FTSE All-World UCITS ETF USD Accumulation","exchDisp":"XETRA"},
+              {"exchange":"LSE","quoteType":"ETF","symbol":"VWRA.L","longname":"Vanguard FTSE All-World UCITS ETF USD Accumulation","exchDisp":"London"},
+              {"exchange":"AMS","quoteType":"ETF","symbol":"VWRL.AS","longname":"Vanguard FTSE All-World UCITS ETF","exchDisp":"Amsterdam"},
+              {"exchange":"MIL","quoteType":"ETF","symbol":"VWCE.MI","longname":"Vanguard FTSE All-World UCITS ETF USD Accumulation","exchDisp":"Milan"},
+              {"exchange":"AMS","quoteType":"ETF","symbol":"VWCE.AS","longname":"Vanguard FTSE All-World UCITS ETF USD Accumulation","exchDisp":"Amsterdam"}],"news":[]}
+            """;
+        const string sinCierres = """{"chart":{"result":[{"meta":{"currency":"EUR","symbol":"IE00BK5BQT80.SG","fullExchangeName":"Stuttgart","gmtoffset":3600},"timestamp":[],"indicators":{"quote":[{"close":[]}]}}],"error":null}}""";
+        var http = new HttpFijo(url => url.Contains("/search?q=IE00BK5BQT80") ? (HttpStatusCode.OK, porIsin)
+            : url.Contains("/search?q=Vanguard") ? (HttpStatusCode.OK, porNombre)
+            : url.Contains("chart/IE00BK5BQT80.SG?") ? (HttpStatusCode.OK, sinCierres)
+            : url.Contains("chart/VWRA.L?") ? (HttpStatusCode.OK, Grafico("VWRA.L", "USD"))
+            : url.Contains("chart/VWCE.") ? (HttpStatusCode.OK, Grafico("VWCE", "EUR"))
+            : url.Contains("chart/VWRL.AS?") ? (HttpStatusCode.OK, Grafico("VWRL.AS", "EUR")) : null);
+        var r = await Servicio(http).BuscarPorIsinAsync("IE00BK5BQT80");
+        Assert.Equal(["VWCE.DE", "VWCE.AS", "VWCE.MI", "VWRA.L"], r.Valor.Cotizaciones.Select(c => c.TickerYahoo));
+        Assert.Equal("VWCE.DE", r.Valor.Propuesta!.TickerYahoo);
+        Assert.Equal("VWCE.XETRA", r.Valor.Propuesta.TickerEodhd);
+        Assert.Equal("Vanguard FTSE All-World UCITS ETF USD Accumulation", r.Valor.Propuesta.Nombre);
+        Assert.DoesNotContain(http.Pedidas, u => u.Contains("chart/VWRL.AS")); // otra clase: ni se consulta
+    }
+
+    /// <summary>IE00B5BMR087: por ISIN solo sale CSSPX.MI; por el nombre, SXR8.DE (Xetra), que pasa a ser la propuesta.</summary>
+    [Fact]
+    public async Task AunqueElIsinDeUnListadoEnEurosPrefiereXetra()
+    {
+        const string nombre = "iShares Core S&P 500 UCITS ETF USD (Acc)";
+        const string porIsin = """{"quotes":[{"exchange":"MIL","quoteType":"ETF","symbol":"CSSPX.MI","longname":"iShares Core S&P 500 UCITS ETF USD (Acc)","exchDisp":"Milan"}]}""";
+        const string porNombre = """
+            {"quotes":[{"exchange":"GER","quoteType":"ETF","symbol":"SXR8.DE","longname":"iShares Core S&P 500 UCITS ETF USD (Acc)","exchDisp":"XETRA"},
+              {"exchange":"LSE","quoteType":"ETF","symbol":"CSPX.L","longname":"iShares Core S&P 500 UCITS ETF USD (Acc)","exchDisp":"London"},
+              {"exchange":"GER","quoteType":"ETF","symbol":"IUSA.DE","longname":"iShares S&P 500 UCITS ETF (Dist)","exchDisp":"XETRA"}]}
+            """;
+        var http = new HttpFijo(url => url.Contains("/search?q=IE00B5BMR087") ? (HttpStatusCode.OK, porIsin)
+            : url.Contains("/search?q=iShares") ? (HttpStatusCode.OK, porNombre)
+            : url.Contains("chart/CSPX.L?") ? (HttpStatusCode.OK, Grafico("CSPX.L", "USD", nombre: nombre))
+            : url.Contains("chart/") ? (HttpStatusCode.OK, Grafico("X", "EUR", nombre: nombre)) : null);
+        var r = await Servicio(http).BuscarPorIsinAsync("IE00B5BMR087");
+        Assert.Equal(["SXR8.DE", "CSSPX.MI", "CSPX.L"], r.Valor.Cotizaciones.Select(c => c.TickerYahoo));
     }
 
     [Fact]
