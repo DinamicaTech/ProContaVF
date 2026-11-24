@@ -46,8 +46,8 @@ public sealed record ActivoListado(int IdActivo, string Codigo, string Nombre, s
     /// <summary>Lo amortizado sobre lo amortizable, en tanto por uno; null sin plan.</summary>
     public decimal? PorcentajeAmortizado => Amortizable > 0m ? Math.Min(1m, Math.Max(0m, Amortizado / Amortizable)) : null;
 
-    /// <summary>En uso, De baja, Ajeno o Falta alguna subcuenta.</summary>
-    public string Estado => EsAjeno ? "Ajeno" : DeBaja ? "De baja" : SubcuentasQueFaltan > 0 ? "Falta alguna subcuenta" : "En uso";
+    /// <summary>En uso, Inactivo (con fecha de baja; activos 2026-11-24 09:27), Ajeno o Falta alguna subcuenta.</summary>
+    public string Estado => EsAjeno ? "Ajeno" : DeBaja ? "Inactivo" : SubcuentasQueFaltan > 0 ? "Falta alguna subcuenta" : "En uso";
 }
 
 /// <summary>La ficha del activo: sus datos editables y lo que se enseña de solo lectura.</summary>
@@ -56,7 +56,7 @@ public sealed record FichaActivo(DatosActivo Datos, int Version, string Tipo, st
     decimal Amortizable, decimal Amortizado, IReadOnlyList<SubcuentaDelActivo> Subcuentas)
 {
     public bool DeBaja => FechaBaja is not null;
-    public string Estado => Datos.EsAjeno ? "Ajeno" : DeBaja ? "De baja" : "En uso";
+    public string Estado => Datos.EsAjeno ? "Ajeno" : DeBaja ? "Inactivo" : "En uso";
 }
 
 /// <summary>Una subcuenta del activo en el apartado Subcuentas: código en el ejercicio de trabajo, nombre, papel (texto del rol) y saldo.</summary>

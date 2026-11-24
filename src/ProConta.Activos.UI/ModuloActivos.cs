@@ -243,7 +243,12 @@ public sealed class ModuloActivos(ContextoActivos contexto, IAnfitrionPestanas a
     /// «Nueva compra…» de un activo financiero (activos/activos-financieros 2026-11-23 20:32): fecha y participaciones, con el precio del día; al guardar
     /// se refrescan el listado y su ficha si está abierta.
     /// </summary>
-    internal async Task NuevaCompraAsync(int idActivo, string codigo)
+    internal Task NuevaCompraAsync(int idActivo, string codigo) => OperacionAsync(idActivo, codigo, esVenta: false);
+
+    /// <summary>«Vender…» de un activo financiero (2026-11-24 09:14): participaciones, fecha e importe total opcional, con el precio del día.</summary>
+    internal Task VenderAsync(int idActivo, string codigo) => OperacionAsync(idActivo, codigo, esVenta: true);
+
+    private async Task OperacionAsync(int idActivo, string codigo, bool esVenta)
     {
         if (!await contexto.Servicio.PuedeAsync()) { SinPermiso(); return; }
         Financieros.InversionDeActivo? inversion;
@@ -251,14 +256,19 @@ public sealed class ModuloActivos(ContextoActivos contexto, IAnfitrionPestanas a
         catch (Exception ex) { dialogos.Error("No he podido leer el activo", $"{ex.Message} Pulsa Actualizar (F5) y vuelve a intentarlo."); return; }
         if (inversion is null)
         {
-            dialogos.Error("No es un activo financiero", $"El activo {codigo} no tiene ISIN, así que no se le pueden anotar compras de participaciones. " +
-                "Las compras de los demás activos entran por su factura de compra.");
+            dialogos.Error("No es un activo financiero", $"El activo {codigo} no tiene ISIN, así que no se le pueden anotar {(esVenta ? "ventas" : "compras")} de participaciones. " +
+                (esVenta ? "La venta de los demás activos aún no está disponible." : "Las compras de los demás activos entran por su factura de compra."));
             return;
         }
-        var vm = new NuevaCompraVM(contexto, idActivo, codigo, inversion);
+        if (esVenta && inversion.Participaciones <= 0m)
+        {
+            dialogos.Error("No le quedan participaciones", $"El activo {codigo} no tiene participaciones que vender.");
+            return;
+        }
+        var vm = new NuevaCompraVM(contexto, idActivo, codigo, inversion, esVenta);
         _ = vm.CargarAsync();
         if (!dialogos.NuevaCompra(vm)) return;
-        contexto.Avisar($"Compra anotada en {codigo}.");
+        contexto.Avisar(esVenta ? $"Venta anotada en {codigo}." : $"Compra anotada en {codigo}.");
         Cambiado();
         if (_fichas.FirstOrDefault(f => f.IdActivo == idActivo) is { } ficha) _ = ficha.RecargarTrasCompraAsync();
     }

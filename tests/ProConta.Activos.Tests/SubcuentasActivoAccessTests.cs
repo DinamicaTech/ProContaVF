@@ -71,6 +71,9 @@ public sealed class SubcuentasActivoAccessTests : IDisposable
         return g.Valor;
     }
 
+    /// <summary>Líneas de la plantilla de la vivienda de la prueba (la migración ya trae las de «Inversión financiera»).</summary>
+    private bool DeVivienda(RegistroMantenimiento r) => Convert.ToInt32(r["IdTipoActivo"], CultureInfo.InvariantCulture) == _vivienda;
+
     private Task<int> ContarAsync(string sql, params object?[] p) =>
         Bd.EjecutarAsync(async s => Convert.ToInt32(await s.EscalarAsync(sql, p), CultureInfo.InvariantCulture));
 
@@ -151,7 +154,7 @@ public sealed class SubcuentasActivoAccessTests : IDisposable
         var linea = await LineaAsync("Seguro [TOKEN]", "2210");
         await Generador.GenerarAsync(_ctx, [_vivienda]);
         var p = Plantillas;
-        linea = (await p.ListarAsync(Contexto(_ctx))).Single();
+        linea = (await p.ListarAsync(Contexto(_ctx))).Single(x => DeVivienda(x));
         Assert.Equal("Plantillas.ConSubcuentas", (await p.EliminarAsync(linea, Contexto(_ctx))).Error!.Codigo);
         Assert.Equal("Plantillas.LineaActiva", (await p.ProponerAsync("borrar-sin-apuntes", linea, Contexto(_ctx))).Error!.Codigo);
 
@@ -182,7 +185,7 @@ public sealed class SubcuentasActivoAccessTests : IDisposable
         await Generador.GenerarAsync(_ctx, [_vivienda]);
         var identidad = (await Cuentas.ResolverAsync(_ctx, "2210001")).Valor.IdIdentidadContable;
         await Bd.EjecutarAsync(s => s.EjecutarAsync("UPDATE CuentasContables SET SaldoInicial = 100 WHERE Codigo = '2210001'"));
-        Assert.Empty(await Generador.SinApuntesAsync(_ctx, (await Plantillas.ListarAsync(Contexto(_ctx))).Select(x => Convert.ToInt32(x.Clave, CultureInfo.InvariantCulture)).Single()));
+        Assert.Empty(await Generador.SinApuntesAsync(_ctx, (await Plantillas.ListarAsync(Contexto(_ctx))).Where(DeVivienda).Select(x => Convert.ToInt32(x.Clave, CultureInfo.InvariantCulture)).Single()));
         Assert.Equal("Cuentas.ConApuntes", (await Cuentas.EliminarSinApuntesAsync(_ctx, identidad)).Error!.Codigo);
     }
 }

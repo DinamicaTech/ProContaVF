@@ -101,6 +101,39 @@ public sealed class ActivosFinancierosAccessTests : IDisposable
     }
 
     [Fact]
+    public async Task Vender_lleva_el_coste_medio_no_deja_vender_de_mas_y_vender_todo_lo_deja_inactivo()
+    {
+        await PrepararAsync();
+        var dia = new DateTime(2026, 3, 2);
+        var r = await Servicio.AltaAsync(_ctx, new AltaActivo(Etf(dia, 1000m), null, Msci, new CompraInversion(dia, 10m, 100m, "EUR", 1m, 1000m, null)));
+        Assert.True(r.EsCorrecto, r.Error?.ToString());
+        var id = r.Valor;
+        Assert.True((await Servicio.NuevaCompraAsync(_ctx, id, new CompraInversion(new DateTime(2026, 4, 1), 5m, 130m, "EUR", 1m, 650m, null))).EsCorrecto);
+
+        // Vender más de lo que hay ese día no se puede.
+        var deMas = await Servicio.VenderAsync(_ctx, id, new CompraInversion(new DateTime(2026, 3, 15), 12m, 120m, "EUR", 1m, 1440m, null), importeEscrito: false);
+        Assert.False(deMas.EsCorrecto);
+
+        // 3 de 15 a coste medio de 110 €: 330 € de coste vendido; quedan 12 y 1.320 €.
+        var v = await Servicio.VenderAsync(_ctx, id, new CompraInversion(new DateTime(2026, 5, 4), 3m, 150m, "EUR", 1m, 450m, null), importeEscrito: false);
+        Assert.True(v.EsCorrecto, v.Error?.ToString());
+        var inv = (await Servicio.InversionAsync(id))!;
+        Assert.Equal((12m, 1320m), (inv.Participaciones, inv.Coste));
+        var venta = Assert.Single(inv.Operaciones, o => o.EsVenta);
+        Assert.Equal((330m, 120m, false), (venta.CosteVendido, venta.Resultado, venta.Conciliada));
+        Assert.Contains("estimado", venta.Notas);
+        Assert.Equal(1, await ContarAsync("SELECT COUNT(*) FROM Activos WHERE IdActivo = ? AND FechaBaja IS NULL AND CosteAdquisicionActual = 1320", id));
+
+        // Vender lo que queda: el activo pasa a inactivo con la fecha de la venta, y ya no admite compras ni ventas.
+        var todo = await Servicio.VenderAsync(_ctx, id, new CompraInversion(new DateTime(2026, 6, 1), 12m, 140m, "EUR", 1m, 1700m, null), importeEscrito: true);
+        Assert.True(todo.EsCorrecto, todo.Error?.ToString());
+        Assert.Equal(1, await ContarAsync("SELECT COUNT(*) FROM Activos WHERE IdActivo = ? AND FechaBaja = ? AND CosteAdquisicionActual = 0", id, new DateTime(2026, 6, 1)));
+        Assert.False((await Servicio.VenderAsync(_ctx, id, new CompraInversion(new DateTime(2026, 6, 2), 1m, 140m, "EUR", 1m, 140m, null), importeEscrito: true)).EsCorrecto);
+        Assert.False((await Servicio.NuevaCompraAsync(_ctx, id, new CompraInversion(new DateTime(2026, 6, 2), 1m, 140m, "EUR", 1m, 140m, null))).EsCorrecto);
+        Assert.Equal(0, await ContarAsync("SELECT COUNT(*) FROM Asientos"));
+    }
+
+    [Fact]
     public async Task Un_activo_que_no_es_financiero_no_lleva_isin_ni_compras()
     {
         await PrepararAsync();
