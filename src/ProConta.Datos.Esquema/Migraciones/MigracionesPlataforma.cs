@@ -30,7 +30,7 @@ public static class MigracionesPlataforma
     /// y lo que use AWS después. Copia las claves guardadas (el secreto, tal cual, ya cifrado) y quita las columnas antiguas.
     /// </summary>
     public static Migracion ConexionAws { get; } = new(
-        "20261124_1100_CONEXION_AWS", 261124110,
+        "20261124_1300_CONEXION_AWS", 261124130,
         "Conexión de AWS por sociedad en Integraciones: tabla ConexionesAws con las claves que estaban en la configuración del reconocimiento de compras.",
         "plataforma/mantenimiento/conexion-aws",
         // Sin relación con Sociedades: Access no admite más índices en esa tabla (como ModelosSociedad o ConexionesAvaibook).

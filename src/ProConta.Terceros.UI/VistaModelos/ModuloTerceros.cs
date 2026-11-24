@@ -61,6 +61,12 @@ public sealed class ModuloTerceros
     /// </summary>
     public Func<int, string, object>? DocumentosEmbebidos { get; set; }
 
+    /// <summary>
+    /// Rol «Operador ProConta» de la ficha (seguridad/pantallas 2026-11-24): lo conecta el contenedor con el servicio de operadores y el
+    /// operador de la sesión; null, la ficha no muestra el rol.
+    /// </summary>
+    public IOperadoresFicha? Operadores { get; set; }
+
     public int NumeroFichas => _fichas.Count;
 
     public IReadOnlySet<int> IdsAbiertos() => _fichas.Where(f => f.Clave > 0).Select(f => f.Clave).ToHashSet();

@@ -23,7 +23,7 @@ namespace ProConta.Terceros.UI.VistaModelos;
 /// Identidad, Contacto, Roles, Perfiles, Ventas, Compras, Contabilidad, Notas, Documentos e Historial; barra al pie con
 /// Guardar, Descartar y los cambios pendientes. Todo se guarda junto, en una transacción, con el repositorio del ente.
 /// </summary>
-public sealed class FichaTerceroVM : Observable, IPestanaTrabajo, INotifyDataErrorInfo
+public sealed partial class FichaTerceroVM : Observable, IPestanaTrabajo, INotifyDataErrorInfo
 {
     private readonly ModuloTerceros? _modulo;
     private Tercero _original;
@@ -117,6 +117,7 @@ public sealed class FichaTerceroVM : Observable, IPestanaTrabajo, INotifyDataErr
             t.CuentasRoles = await Servicios.Roles.IdentidadesAsync(idTercero, Servicios.Contexto.IdSociedad);
             t.Roles.Empleado = await Servicios.Roles.EmpleadoAsync(idTercero, Servicios.Contexto.IdSociedad);
             t.Roles.Socio = await Servicios.Roles.SocioAsync(idTercero, Servicios.Contexto.IdSociedad);
+            await CargarOperadorAsync(idTercero);
             await MostrarAsync(t);
         }
         catch (ExcepcionDatos ex)
@@ -147,6 +148,7 @@ public sealed class FichaTerceroVM : Observable, IPestanaTrabajo, INotifyDataErr
             case "proveedor": t.Roles.Proveedor = new RolProveedor(); break;
             case "contacto": t.Roles.Contacto = new RolContacto(); break;
         }
+        await CargarOperadorAsync(null);
         T = t;
         Reconstruir();
         await ResolverCuentasAsync();
@@ -320,6 +322,7 @@ public sealed class FichaTerceroVM : Observable, IPestanaTrabajo, INotifyDataErr
     public void Descartar()
     {
         T = _original.Clonar();
+        RestaurarOperador();
         _tocados.Clear();
         _intentoGuardar = false;
         GuardadoFallido = false;
@@ -362,6 +365,7 @@ public sealed class FichaTerceroVM : Observable, IPestanaTrabajo, INotifyDataErr
             $"Empleado en {NombreSociedad}, con su código en la gestoría. Pulsa para ir al rol en la pestaña Roles") : null,
         T.Roles.EsSocio ? new InsigniaRol("socio", "Socio", T.Roles.Socio!.Participacion is decimal p ? $"{p.ToString("0.##", Formatos.Cultura)} %" : "sin %",
             $"Socio de {NombreSociedad}, con su participación en el capital. Pulsa para ir al rol en la pestaña Roles") : null,
+        InsigniaOperador(),
     }.OfType<InsigniaRol>().ToList();
 
     /// <summary>Se ha pulsado una insignia: la vista lleva el foco al rol.</summary>
@@ -901,6 +905,11 @@ public sealed class FichaTerceroVM : Observable, IPestanaTrabajo, INotifyDataErr
 
     private void CambiarRol(string? rol, bool activo)
     {
+        if (rol == "operador")
+        {
+            CambiarOperador(activo);
+            return;
+        }
         switch (rol)
         {
             case "cliente":
@@ -1185,14 +1194,14 @@ public sealed class FichaTerceroVM : Observable, IPestanaTrabajo, INotifyDataErr
     internal void Modificado()
     {
         if (_cargando) return;
-        Cambios = CambiosFicha.Comparar(_original, T);
+        Cambios = [.. CambiosFicha.Comparar(_original, T), .. CambiosOperador()];
         if (!TieneCambios) VerCambios = false;
         EstadoDestinatarios = DestinatariosFicha.Calcular(T.DatosContacto);
         foreach (var e in Emails) e.RefrescarImplicitos();
         RecalcularErrores();
         Avisar(nameof(AvisoFacturas), nameof(AvisoAdministrativos), nameof(MostrarEmailAntiguo), nameof(MostrarTelefonoAntiguo), nameof(TelefonoAntiguoValido), nameof(MostrarFichaAntigua), nameof(HayGrupos), nameof(HayRelaciones), nameof(MostrarNotaFacturas));
         Avisar(nameof(TieneCambios), nameof(TextoCambios), nameof(Marcas), nameof(Titulo), nameof(Ayuda), nameof(NombreCabecera), nameof(InicialesCabecera), nameof(TipoTexto),
-            nameof(LineaDatos), nameof(Insignias));
+            nameof(LineaDatos), nameof(Insignias), nameof(PuedeActivarOperador), nameof(AyudaActivarOperador), nameof(NombreAccesoOperador), nameof(PuedePasarOperador));
     }
 
     private void CambiadoAqui(string campo)
@@ -1313,6 +1322,17 @@ public sealed class FichaTerceroVM : Observable, IPestanaTrabajo, INotifyDataErr
             return false;
         }
 
+        // El rol de operador se comprueba antes de guardar nada (permiso, persona física, administradores).
+        var operador = await ComprobarOperadorAsync();
+        if (!operador.EsCorrecto)
+        {
+            _erroresGuardado = operador.Errores.Select(ErrorDeGuardado).ToList();
+            RecalcularErrores();
+            GuardadoFallido = true;
+            Avisar(nameof(HayResumen));
+            return false;
+        }
+
         var antes = _original;
         // Otra subcuenta en un rol: se pregunta antes de guardar si se pasan también sus apuntes (terceros/roles/cambio-subcuenta).
         var traslados = await PreguntarCambiosSubcuentaAsync(antes);
@@ -1344,6 +1364,7 @@ public sealed class FichaTerceroVM : Observable, IPestanaTrabajo, INotifyDataErr
                 }
             }
             _rolNuevo = null;
+            if (await GuardarOperadorAsync(r.Valor.IdTercero) is { } avisoOperador) subcuentas.Add(avisoOperador);
             subcuentas.AddRange(await TrasladarSubcuentasAsync(traslados, nombre));
             if (antes is not null) subcuentas.AddRange(await EliminarSubcuentasQuitadasAsync(antes, r.Valor));
             await MostrarAsync(r.Valor);
@@ -1399,7 +1420,8 @@ public sealed class FichaTerceroVM : Observable, IPestanaTrabajo, INotifyDataErr
             var c when c.StartsWith("NIF.", StringComparison.Ordinal) => new(PestanaFicha.Identidad, T, nameof(Nif), texto),
             var c when c.StartsWith("Contactos.", StringComparison.Ordinal) || c.StartsWith("Relaciones.", StringComparison.Ordinal) => new(PestanaFicha.Contacto, new object(), "", texto),
             var c when c.StartsWith("Perfiles.", StringComparison.Ordinal) => new(PestanaFicha.Perfiles, new object(), "", texto),
-            var c when c.StartsWith("Roles.", StringComparison.Ordinal) || c.StartsWith("Cuentas.", StringComparison.Ordinal) => new(PestanaFicha.Roles, new object(), "", texto),
+            var c when c.StartsWith("Roles.", StringComparison.Ordinal) || c.StartsWith("Cuentas.", StringComparison.Ordinal) || c.StartsWith("Seguridad.", StringComparison.Ordinal)
+                => new(PestanaFicha.Roles, new object(), "", texto),
             _ => new(PestanaFicha.Identidad, new object(), "", texto),
         };
     }

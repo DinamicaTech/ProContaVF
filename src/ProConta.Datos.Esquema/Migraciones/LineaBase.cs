@@ -126,6 +126,7 @@ public static class CatalogoMigraciones
         MigracionesCompras.FacturasRecurrentes,
         MigracionesActivosFinancieros.AltaPorIsin,
         MigracionesActivosFinancieros.VentaYConciliacion,
+        MigracionesSeguridad.OperadoresTerceros,
         MigracionesPlataforma.ConexionAws,
     ];
 

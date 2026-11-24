@@ -29,6 +29,9 @@ public sealed record ContextoActivos(ServicioActivos Servicio, ContextoSociedadE
 
     /// <summary>Cotizaciones por ISIN y precio en euros de los activos financieros (activos/activos-financieros); null sin conexión configurada.</summary>
     public Financieros.ICotizaciones? Cotizaciones { get; init; }
+
+    /// <summary>Cartera financiera con sus cotizaciones al día, para la pantalla de análisis (activos/activos-financieros); null si no está disponible.</summary>
+    public ServicioCarteraFinanciera? Cartera { get; init; }
 }
 
 /// <summary>Apartado de la ficha.</summary>
@@ -74,6 +77,7 @@ public sealed class ModuloActivos(ContextoActivos contexto, IAnfitrionPestanas a
     public const int MaximoFichas = 5;
     private readonly List<FichaActivoVM> _fichas = [];
     private ListadoActivosVM? _listado;
+    private CarteraFinancieraVM? _cartera;
     private long _orden;
 
     internal ContextoActivos Contexto => contexto;
@@ -93,6 +97,23 @@ public sealed class ModuloActivos(ContextoActivos contexto, IAnfitrionPestanas a
     }
 
     internal void ListadoCerrado() => _listado = null;
+
+    /// <summary>
+    /// Abre (o activa) el análisis de los activos financieros (activos/activos-financieros, maqueta v4): enseña lo guardado y después actualiza las
+    /// cotizaciones.
+    /// </summary>
+    public void AbrirCartera()
+    {
+        if (_cartera is null)
+        {
+            _cartera = new CarteraFinancieraVM(this);
+            anfitrion.Abrir(_cartera);
+            _ = _cartera.CargarAsync();
+        }
+        else anfitrion.Activar(_cartera);
+    }
+
+    internal void CarteraCerrada() => _cartera = null;
 
     /// <summary>Abre (o activa) la ficha de un activo en un apartado.</summary>
     public void AbrirFicha(int idActivo, ApartadoFicha apartado = ApartadoFicha.Datos)
@@ -130,6 +151,7 @@ public sealed class ModuloActivos(ContextoActivos contexto, IAnfitrionPestanas a
     internal void Cambiado()
     {
         if (_listado is not null) _ = _listado.CargarAsync();
+        _cartera?.Cambiado();
     }
 
     /// <summary>«Nuevo activo…»: el alta paso a paso; al crear, se generan sus subcuentas con propuesta y se abre la ficha.</summary>
