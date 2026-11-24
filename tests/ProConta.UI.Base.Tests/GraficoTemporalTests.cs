@@ -138,7 +138,7 @@ public class GraficoTemporalTests
         var plano = new PlanoTemporal(new ScottPlot.Plot());
         plano.Dibujar(Datos(100, false), -1, null, 300);
         var completo = plano.Plot.Axes.GetLimits();
-        Assert.Equal(new DateTime(2026, 1, 1).ToOADate(), completo.Left, 6);
+        Assert.True(completo.Left < new DateTime(2026, 1, 1).ToOADate(), "holgura a la izquierda para la primera compra");
         Assert.True(completo.Top >= 199);
         // Zoom a los 20 primeros días: valores de 100 a 120 (y el coste de 110).
         plano.Dibujar(Datos(100, false), -1, null, 300, plano.Xs[0], plano.Xs[19]);

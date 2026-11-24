@@ -29,8 +29,19 @@ public sealed class PlanoTemporal(Plot plot)
     /// <summary>Fechas en días OLE, una por fecha de los datos.</summary>
     public double[] Xs { get; private set; } = [];
 
-    /// <summary>Periodo completo de los datos (null sin datos).</summary>
-    public CoordinateRange? Completo => Xs.Length >= 2 ? new CoordinateRange(Xs[0], Xs[^1]) : null;
+    /// <summary>Fracción del periodo que se deja a cada lado, para que la marca de una compra en la primera fecha no quede cortada.</summary>
+    public const double Holgura = 0.012;
+
+    /// <summary>Periodo completo de los datos, con una pequeña holgura a cada lado (null sin datos).</summary>
+    public CoordinateRange? Completo
+    {
+        get
+        {
+            if (Xs.Length < 2) return null;
+            var h = (Xs[^1] - Xs[0]) * Holgura;
+            return new CoordinateRange(Xs[0] - h, Xs[^1] + h);
+        }
+    }
 
     /// <summary>Hay datos suficientes para dibujar líneas.</summary>
     public bool ConDatos => _datos is not null && Xs.Length >= 2;
@@ -81,12 +92,9 @@ public sealed class PlanoTemporal(Plot plot)
                 _marcas.Add(mk);
             }
 
-        Plot.Axes.SetLimitsX(desde ?? Xs[0], hasta ?? Xs[^1]);
-        if (desde is not null || hasta is not null)
-        {
-            var (a, b) = ZoomHorizontal.Recortar(desde ?? Xs[0], hasta ?? Xs[^1], Xs[0], Xs[^1], 7);
-            Plot.Axes.SetLimitsX(a, b);
-        }
+        var completo = Completo!.Value;
+        var (a, b) = ZoomHorizontal.Recortar(desde ?? completo.Min, hasta ?? completo.Max, completo.Min, completo.Max, 7);
+        Plot.Axes.SetLimitsX(a, b);
         AjustarY();
     }
 
