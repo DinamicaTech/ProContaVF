@@ -55,7 +55,36 @@ public sealed record OpcionesEntorno(UbicacionDatos Produccion, UbicacionDatos? 
 {
     /// <summary>La ubicación con la que se entra cuando no hay que preguntar.</summary>
     public UbicacionDatos Elegida => Eleccion == EleccionEntorno.Pruebas && Pruebas is not null ? Pruebas : Produccion;
+
+    /// <summary>
+    /// Los entornos que se ofrecen en la ventana de elegir entorno, en orden: producción primero (la opción por defecto) y después
+    /// la copia de pruebas si la hay. La ventana pinta tantas tarjetas como entradas, así que admite más entornos sin cambiarla.
+    /// </summary>
+    /// <param name="pruebas">La marca leída de la copia de pruebas, para enseñar de cuándo es; null si no se pudo leer.</param>
+    public IReadOnlyList<EntradaEntorno> Entradas(InfoEntorno? pruebas)
+    {
+        var lista = new List<EntradaEntorno>
+        {
+            new("Producción", "Contabilidad real", "La base de datos de verdad: facturas, asientos y modelos que se presentan.",
+                Produccion, TonoEntorno.Produccion),
+        };
+        if (Pruebas is not null)
+            lista.Add(new("Pruebas", pruebas?.CopiaFecha is DateTime f ? $"Copia del {f:dd/MM HH:mm}" : "Copia de producción",
+                "Copia de producción para probar sin miedo. El correo va desviado y VeriFactu está apagado.", Pruebas, TonoEntorno.Pruebas));
+        return lista;
+    }
 }
+
+/// <summary>Color con el que se distingue un entorno en la ventana de elegir entorno (y, en pruebas, en la franja de la ventana principal).</summary>
+public enum TonoEntorno
+{
+    Produccion,
+    Pruebas,
+}
+
+/// <summary>Una tarjeta de la ventana de elegir entorno.</summary>
+/// <param name="Etiqueta">Texto corto junto al nombre: «Contabilidad real» o de cuándo es la copia.</param>
+public sealed record EntradaEntorno(string Nombre, string Etiqueta, string Descripcion, UbicacionDatos Ubicacion, TonoEntorno Tono);
 
 /// <summary>
 /// Paso previo al acceso (plataforma/entorno-pruebas): si este puesto tiene una copia de pruebas de la BD resuelta, se elige
