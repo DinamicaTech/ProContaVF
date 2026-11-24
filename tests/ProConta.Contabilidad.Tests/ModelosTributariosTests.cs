@@ -88,6 +88,24 @@ public sealed class ModelosTributariosTests
     }
 
     [Fact]
+    public void Las_informativas_se_pueden_registrar_como_presentadas_fuera_del_programa()
+    {
+        // Propietario 2026-11-24 21:22: la AEAT no deja consultar las informativas de TGVI; se registran a mano.
+        var hoy = new DateTime(2026, 11, 24);
+        AccionPeriodo? R(PeriodoModelo p) => AccionesPeriodos.De([p], hoy, true).SingleOrDefault(x => x.Accion == AccionModelo.RegistrarExterna);
+        Assert.True(R(Periodo("349", "2T"))!.Disponible);
+        Assert.Equal("Ya consta presentado", R(Periodo("349", "2T", Estado303.Presentado, 100m, Presentada("349", "2T", 0m, PresentacionGuardada.OrigenAeat)))!.NoSePuede);
+        Assert.Equal("El plazo empieza el 01/01/2027", R(Periodo("349", "4T"))!.NoSePuede);
+        Assert.Null(R(Periodo("303", "3T")));   // el 303 se trae con «Consultar a la AEAT»
+
+        Assert.Null(ServicioModelosTributarios.ErrorPresentacionExterna(new DateTime(2026, 7, 15), "3492602000001", "abcd1234efgh5678", hoy));
+        Assert.Contains("fecha", ServicioModelosTributarios.ErrorPresentacionExterna(null, "3492602000001", "ABCD1234EFGH5678", hoy));
+        Assert.Contains("posterior", ServicioModelosTributarios.ErrorPresentacionExterna(hoy.AddDays(1), "3492602000001", "ABCD1234EFGH5678", hoy));
+        Assert.Contains("13 cifras", ServicioModelosTributarios.ErrorPresentacionExterna(hoy, "34926", "ABCD1234EFGH5678", hoy));
+        Assert.Contains("16 letras", ServicioModelosTributarios.ErrorPresentacionExterna(hoy, "3492602000001", "ABC", hoy));
+    }
+
+    [Fact]
     public void ElMenuSeAdaptaAlEstadoDelPeriodo()
     {
         var hoy = new DateTime(2026, 11, 18);

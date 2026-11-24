@@ -379,6 +379,44 @@ public sealed class ServicioModelosTributarios
     public IModeloTributario Modelo(string id) => Modelos.First(m => m.Definicion.Id == id);
 
     /// <summary>
+    /// Qué falla en los datos de una presentación hecha fuera del programa (<see cref="AccionModelo.RegistrarExterna"/>), o null si valen:
+    /// fecha no futura, justificante de 13 cifras y CSV de 16 letras o cifras.
+    /// </summary>
+    public static string? ErrorPresentacionExterna(DateTime? fecha, string? justificante, string? csv, DateTime hoy)
+    {
+        var j = (justificante ?? "").Trim();
+        var v = (csv ?? "").Trim().ToUpperInvariant();
+        if (fecha is not DateTime f) return "Escribe la fecha de la presentación (dd/mm/aaaa).";
+        if (f.Date > hoy.Date) return "La fecha de la presentación no puede ser posterior a hoy.";
+        if (j.Length != 13 || !j.All(char.IsAsciiDigit)) return "El número de justificante tiene 13 cifras (está en la primera página del justificante de la AEAT).";
+        if (v.Length != 16 || !v.All(char.IsAsciiLetterOrDigit)) return "El CSV (código seguro de verificación) tiene 16 letras o cifras.";
+        return null;
+    }
+
+    /// <summary>
+    /// Registra como presentada una informativa de TGVI Online que se presentó fuera del programa (propietario 2026-11-24 21:22): la AEAT no
+    /// deja consultarlas, así que se guarda como las traídas por «Consultar a la AEAT» (origen AEAT, sin importe ni fichero), en el entorno de TGVI.
+    /// </summary>
+    public async Task<Resultado<PresentacionGuardada>> RegistrarExternaAsync(ContextoSociedadEjercicio ctx, string modelo, string periodo, DateTime fecha,
+        string justificante, string csv, string operador, CancellationToken c = default)
+    {
+        var registro = $"Modelo {modelo} {periodo} {ctx.Ejercicio}";
+        if (!DefinicionModelo.De(modelo).Informativa)
+            return Resultado<PresentacionGuardada>.Fallo(new Error("Modelos.NoInformativa", $"El {modelo} se consulta a la AEAT: usa «Consultar a la AEAT».", registro));
+        if (ErrorPresentacionExterna(fecha, justificante, csv, Hoy) is { } e)
+            return Resultado<PresentacionGuardada>.Fallo(new Error("Modelos.DatosPresentacion", e, registro, null, "Corrige el dato y vuelve a intentarlo."));
+        var j = justificante.Trim();
+        var ya = await Presentacion.PresentadasAsync(ctx.IdSociedad, modelo, ctx.Ejercicio, c);
+        if (ya.Any(p => p.Justificante == j))
+            return Resultado<PresentacionGuardada>.Fallo(new Error("Modelos.JustificanteRepetido", $"El justificante {j} ya está registrado.", registro, null, "Comprueba el número."));
+        var p = new DeclaracionPresentadaAeat(ctx.Ejercicio.ToString(System.Globalization.CultureInfo.InvariantCulture), modelo, periodo, "", csv.Trim().ToUpperInvariant(),
+            "", j, null, fecha.Date);
+        var g = await Presentacion.GuardarExternaAsync(ctx.IdSociedad, p, await Tgvi.EntornoAsync(c), c, operador,
+            "Presentada fuera del programa y registrada a mano (las informativas de TGVI no se pueden consultar a la AEAT).");
+        return Resultado<PresentacionGuardada>.Correcto(g);
+    }
+
+    /// <summary>
     /// Los periodos de un modelo sin calcular (para enseñar la pantalla al momento): su plazo y lo presentado en el entorno de la BD, marcados
     /// como «Calculando…». Solo lee PresentacionesAeat.
     /// </summary>

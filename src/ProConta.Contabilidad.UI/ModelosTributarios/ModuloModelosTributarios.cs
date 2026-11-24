@@ -203,6 +203,42 @@ public sealed class DialogosModelosTributarios(Func<Window?> propietario) : IDia
         return dlg.ShowDialog() == true ? nrc : null;
     }
 
+    public (DateTime Fecha, string Justificante, string Csv)? PedirPresentacionExterna(string titulo, string explicacion, Func<DateTime?, string, string, string?> validar)
+    {
+        var dlg = new DialogoProConta { Title = titulo, Owner = propietario(), Width = 620, SizeToContent = SizeToContent.Height };
+        var cuerpo = new StackPanel();
+        cuerpo.Children.Add(new TextBox { Text = explicacion, IsReadOnly = true, BorderThickness = new Thickness(0), Background = Brushes.Transparent, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 0, 0, 10) });
+        TextBox Campo(string etiqueta, int largo, double ancho, string ayuda)
+        {
+            cuerpo.Children.Add(new TextBlock { Text = etiqueta, Margin = new Thickness(0, 6, 0, 2) });
+            var t = new TextBox { MaxLength = largo, Width = ancho, HorizontalAlignment = HorizontalAlignment.Left, FontFamily = new FontFamily("Consolas"), ToolTip = ayuda };
+            cuerpo.Children.Add(t);
+            return t;
+        }
+        var fecha = Campo("Fecha de presentación", 10, 110, "Día en que se presentó, como dd/mm/aaaa");
+        var justificante = Campo("Número de justificante", 13, 150, "Las 13 cifras del número de justificante, en la primera página del justificante de la AEAT");
+        var csv = Campo("CSV", 16, 190, "Código seguro de verificación: 16 letras o cifras, en el justificante de la AEAT");
+        var error = new TextBlock { Foreground = (Brush)dlg.FindResource("Pincel.RojoError"), TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 8, 0, 0) };
+        cuerpo.Children.Add(error);
+        dlg.Content = cuerpo;
+        (DateTime, string, string)? resultado = null;
+        var aceptar = new Button { Content = "Registrar", Style = (Style)dlg.FindResource("Boton.Primario"), Margin = new Thickness(8, 0, 0, 0), IsDefault = true,
+            ToolTip = "Lo deja como presentado con estos datos" };
+        var cancelar = new Button { Content = "Cancelar", IsCancel = true, ToolTip = "No registra nada" };
+        aceptar.Click += (_, _) =>
+        {
+            DateTime? f = DateTime.TryParseExact(fecha.Text.Trim(), ["dd/MM/yyyy", "d/M/yyyy"], System.Globalization.CultureInfo.GetCultureInfo("es-ES"),
+                System.Globalization.DateTimeStyles.None, out var v) ? v : null;
+            if (validar(f, justificante.Text, csv.Text) is { } e) { error.Text = e; return; }
+            resultado = (f!.Value, justificante.Text.Trim(), csv.Text.Trim().ToUpperInvariant());
+            dlg.DialogResult = true;
+        };
+        cancelar.Click += (_, _) => dlg.DialogResult = false;
+        dlg.Botones = new StackPanel { Orientation = Orientation.Horizontal, Children = { cancelar, aceptar } };
+        dlg.Loaded += (_, _) => fecha.Focus();
+        return dlg.ShowDialog() == true ? resultado : null;
+    }
+
     public IReadOnlyCollection<string>? ElegirModelos(IReadOnlyList<(DefinicionModelo Modelo, bool Marcado)> modelos)
     {
         var dlg = new DialogoProConta { Title = "Modelos de la sociedad", Owner = propietario(), Width = 660, SizeToContent = SizeToContent.Height };

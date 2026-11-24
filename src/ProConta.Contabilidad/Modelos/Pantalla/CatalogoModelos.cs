@@ -248,6 +248,11 @@ public enum AccionModelo
     VerBorrador, GenerarFichero, Presentar, PresentarComplementaria, AbrirJustificante, DatosPresentacion, CopiarCsv, AbrirCasillas, AbrirProceso,
     /// <summary>Documentos del periodo en el gestor documental (documentos 2026-11-18): justificantes antiguos, notificaciones…</summary>
     Documentos,
+    /// <summary>
+    /// Informativas de TGVI Online (349, 347, 190, 180, 193): registrar una presentación hecha fuera del programa, por ejemplo por la gestoría,
+    /// con su fecha, justificante y CSV, porque la AEAT no deja consultarlas (propietario 2026-11-24 21:22).
+    /// </summary>
+    RegistrarExterna,
 }
 
 /// <summary>Qué se puede hacer con los periodos marcados, y por qué no lo demás (el texto sale en el menú, debajo de la opción).</summary>
@@ -294,6 +299,10 @@ public static class AccionesPeriodos
             new(AccionModelo.CopiarCsv, "Copiar el CSV", sinPres),
             new(AccionModelo.AbrirCasillas, def.Informativa ? $"Abrir los registros del {p.Modelo} de {p.Nombre}" : $"Abrir las casillas del {p.Modelo} de {p.Nombre}", noGen),
         };
+        if (def.Informativa)
+            lista.Add(new(AccionModelo.RegistrarExterna, "Registrar presentado fuera del programa…",
+                (p.Presentado ? "Ya consta presentado" : null) ?? noAbre ?? sinPermiso,
+                "Si lo presentó la gestoría: escribe su fecha, justificante y CSV. Las informativas de TGVI no se pueden consultar a la AEAT."));
         if (def.Proceso != ProcesoModelo.Ninguno) lista.Add(new(AccionModelo.AbrirProceso, $"Abrir «{def.TextoProceso}»", null));
         lista.Add(new(AccionModelo.Documentos, $"Documentos del {p.Modelo} de {p.Nombre}…", null,
             "Justificantes, notificaciones de Hacienda y demás documentos de este periodo en el gestor documental; arrastra ficheros para vincularlos"));

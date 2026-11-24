@@ -142,4 +142,22 @@ public sealed class ModelosTributariosAccessTests : IDisposable
         Assert.Equal(EstadoPeriodoModelo.Presentado, t3.Estado(Hoy));
         Assert.Contains("gestoría", AccionesPeriodos.De([t3], Hoy, true).Single(a => a.Accion == AccionModelo.PresentarComplementaria).NoSePuede);
     }
+
+    [Fact]
+    public async Task Una_informativa_presentada_fuera_se_registra_a_mano_y_sale_presentada()
+    {
+        // Propietario 2026-11-24 21:22: las informativas de TGVI no se consultan a la AEAT; se registran con su justificante y CSV.
+        await SociedadAsync();
+        var s = Servicio(new ClienteSimulado());
+        var r = await s.RegistrarExternaAsync(_ctx, "349", "2T", new DateTime(2026, 7, 15), "3492602000001", "abcd1234efgh5678", "ronald");
+        Assert.True(r.EsCorrecto, r.Error?.ToString());
+        Assert.True(r.Valor.EsExterna);
+        Assert.Equal("ABCD1234EFGH5678", r.Valor.Csv);
+        var t2 = (await s.Modelo("349").PeriodosAsync(_ctx)).Single(p => p.Periodo == "2T");
+        Assert.Equal(EstadoPeriodoModelo.Presentado, t2.Estado(Hoy));
+        Assert.Equal("Ya consta presentado", AccionesPeriodos.De([t2], Hoy, true).Single(a => a.Accion == AccionModelo.RegistrarExterna).NoSePuede);
+
+        Assert.False((await s.RegistrarExternaAsync(_ctx, "349", "3T", new DateTime(2026, 10, 15), "3492602000001", "ABCD1234EFGH5678", "ronald")).EsCorrecto); // justificante repetido
+        Assert.False((await s.RegistrarExternaAsync(_ctx, "303", "3T", new DateTime(2026, 10, 15), "3030000000009", "ABCD1234EFGH5679", "ronald")).EsCorrecto); // el 303 se consulta
+    }
 }
