@@ -19,8 +19,25 @@ public static class TiposActivoPgc
 
     public static IReadOnlyList<string> Todos { get; } = [Vivienda, Local, Parking, Turistico, Vehiculo, Instalacion, Aplicacion];
 
-    /// <summary>Tipos de las inversiones financieras.</summary>
-    public static bool EsInversion(string codigo) => codigo == Inversion;
+    /// <summary>Categoría de los tipos que son inversiones financieras (TiposActivo.Categoria).</summary>
+    public const string CategoriaInversion = "INVERSION";
+
+    private static volatile HashSet<string> _inversiones = new(StringComparer.OrdinalIgnoreCase) { Inversion };
+
+    /// <summary>
+    /// Tipos de las inversiones financieras: INVERSION y cualquier otro de categoría «Inversión financiera», como un tipo para los fondos
+    /// de capital riesgo con su propia plantilla (propietario 2026-11-24 19:12). Los demás tipos los conoce después de <see cref="RegistrarCategorias"/>.
+    /// </summary>
+    public static bool EsInversion(string codigo) => _inversiones.Contains(codigo ?? "");
+
+    /// <summary>Apunta qué tipos son de categoría «Inversión financiera» (lo llama el servicio de activos al leer los tipos).</summary>
+    public static void RegistrarCategorias(IEnumerable<(string Codigo, string? Categoria)> tipos)
+    {
+        var nuevos = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { Inversion };
+        foreach (var (codigo, categoria) in tipos)
+            if (string.Equals(categoria?.Trim(), CategoriaInversion, StringComparison.OrdinalIgnoreCase)) nuevos.Add(codigo.Trim());
+        _inversiones = nuevos;
+    }
 
     /// <summary>Tipos con ficha de inmueble (ActivosInmuebles).</summary>
     public static bool EsInmueble(string codigo) => codigo is Vivienda or Local or Parking or Turistico;
