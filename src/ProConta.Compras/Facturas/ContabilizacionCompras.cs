@@ -245,9 +245,9 @@ public sealed class ContabilizadorCompras(IBaseDatos bd, IMotorAsientos motor, I
                 errores.Add(new Error("Exportar.SinTipoGeneral", "El ejercicio no tiene tipo de IVA general ni tipos de IVA.", registro, null,
                     "Configura el tipo general en Parámetros y tablas › Ejercicios."));
         }
-        // Actividad del centro de coste (contabilidad/procesos 2026-11-08): su serie de 472 sustituye a la general y, si no
-        // deduce el IVA, el IVA va al gasto y no hacen falta cuentas de IVA soportado. La deducción es la vigente en la fecha de la
-        // factura (contabilidad/procesos/cambio-deduccion-actividad 2026-11-15 19:43): el turístico deduce desde el 1/12/2026.
+        // Actividad del centro de coste (contabilidad/procesos 2026-11-08): su serie de 472 sustituye a la general. El IVA soportado va
+        // siempre a su 472, también si la actividad no lo deduce (propietario 2026-11-24 18:27): el libro lo marca como no deducible con la
+        // deducción vigente en la fecha de la factura y la liquidación del trimestre lo lleva a la 6341 (contabilidad/procesos/liquidacion-iva).
         var actividad = f.IdCentroCoste is int idCentro ? (await new LectorActividadesIva(bd).PorCentroAsync(ctx.IdSociedad)).GetValueOrDefault(idCentro) : null;
         var noDeducible = actividad is not null && actividad.DeducibleEn(f.Fecha!.Value) == 0;
         string? Serie(string? cuenta, string sufijo) => actividad?.Serie is { } serie && cuenta is not null ? serie + sufijo : cuenta;
@@ -257,18 +257,18 @@ public sealed class ContabilizadorCompras(IBaseDatos bd, IMotorAsientos motor, I
         string QueActividad(string que) => actividad?.Serie is null ? que : $"{que} de {actividad.Nombre}";
         if (f.Operacion == OperacionCompra.Importacion)
         {
-            if (!noDeducible) importacion = await Cuenta(Serie(config.Importacion, "4" + ((int)(tipoGeneral ?? 0m)).ToString("00", CultureInfo.InvariantCulture)), QueActividad("cuenta de IVA de importación"));
+            importacion = await Cuenta(Serie(config.Importacion, "4" + ((int)(tipoGeneral ?? 0m)).ToString("00", CultureInfo.InvariantCulture)), QueActividad("cuenta de IVA de importación"));
         }
         else if (f.InversionSujetoPasivo)
         {
-            if (!noDeducible) autoS = await Cuenta(Serie(config.IspSoportado, "3" + Cola(config.IspSoportado, 2)), QueActividad("cuenta de IVA soportado por inversión del sujeto pasivo"));
+            autoS = await Cuenta(Serie(config.IspSoportado, "3" + Cola(config.IspSoportado, 2)), QueActividad("cuenta de IVA soportado por inversión del sujeto pasivo"));
             autoR = await Cuenta(Serie477(config.IspRepercutido, "3" + Cola(config.IspRepercutido, 2)), QueActividad("cuenta de IVA repercutido por inversión del sujeto pasivo"));
         }
         else if (f.Operacion == OperacionCompra.Intracomunitaria)
         {
             var servicios = f.Producto == ProductoCompra.Servicios;
             var intra = servicios ? config.IntraSoportadoServicios : config.IntraSoportadoBienes;
-            if (!noDeducible) autoS = await Cuenta(Serie(intra, Cola(intra)), QueActividad($"cuenta de IVA intracomunitario soportado de {(servicios ? "servicios" : "bienes")}"));
+            autoS = await Cuenta(Serie(intra, Cola(intra)), QueActividad($"cuenta de IVA intracomunitario soportado de {(servicios ? "servicios" : "bienes")}"));
             var intraR = servicios ? config.IntraRepercutidoServicios : config.IntraRepercutidoBienes;
             autoR = await Cuenta(Serie477(intraR, Cola(intraR)), QueActividad($"cuenta de IVA intracomunitario repercutido de {(servicios ? "servicios" : "bienes")}"));
         }
@@ -283,7 +283,6 @@ public sealed class ContabilizadorCompras(IBaseDatos bd, IMotorAsientos motor, I
                         "Añade el desglose por tipo en la ficha."));
                     continue;
                 }
-                if (noDeducible) continue;
                 // Cuenta calculada (2026-11-13 20:55): serie de la actividad (o 4720) más el porcentaje con tres cifras.
                 if (CuentasIva.Soportado(tipo, actividad?.Serie) is not { } calculada)
                 {

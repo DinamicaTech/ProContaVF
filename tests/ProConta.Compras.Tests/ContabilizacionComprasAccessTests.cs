@@ -178,7 +178,7 @@ public sealed class ContabilizacionComprasAccessTests : IDisposable
     }
 
     [Fact]
-    public async Task Con_una_actividad_sin_iva_deducible_el_iva_va_al_gasto()
+    public async Task Con_una_actividad_sin_iva_deducible_el_iva_va_a_su_472_y_el_libro_no_lo_deduce()
     {
         await EmpresaAsync();
         var (_, hijo) = await CentrosConActividadAsync("4726", 0);
@@ -187,8 +187,8 @@ public sealed class ContabilizacionComprasAccessTests : IDisposable
         var r = await Servicio().ExportarAsync(f, _actor, new OpcionesExportacion(EsProveedor: false));
         Assert.True(r.EsCorrecto, r.Error?.ToString());
         var asiento = (await new MotorAsientosAccess(Bd).ObtenerAsync(r.Valor.IdAsiento!.Value))!;
-        Assert.DoesNotContain(asiento.Apuntes, a => a.CodigoCuenta.StartsWith("472", StringComparison.Ordinal));
-        Assert.Equal(176m, asiento.Apuntes.Where(a => a.CodigoCuenta == "6290000").Sum(a => a.Debe.Valor));
+        Assert.Contains(asiento.Apuntes, a => a.CodigoCuenta == "4726021" && a.Debe.Valor == 21m);
+        Assert.Equal(150m, asiento.Apuntes.Where(a => a.CodigoCuenta == "6290000").Sum(a => a.Debe.Valor));
         Assert.Equal(0m, Convert.ToDecimal(await Bd.EjecutarAsync(s => s.EscalarAsync("SELECT CuotaDeducibleTotal FROM IVASoportado WHERE IdAsiento = ?", r.Valor.IdAsiento))));
         Assert.Equal(26m, Convert.ToDecimal(await Bd.EjecutarAsync(s => s.EscalarAsync("SELECT CuotaSoportadaTotal FROM IVASoportado WHERE IdAsiento = ?", r.Valor.IdAsiento))));
     }
@@ -212,8 +212,9 @@ public sealed class ContabilizacionComprasAccessTests : IDisposable
         var r = await Servicio().ExportarAsync(f, _actor, new OpcionesExportacion(EsProveedor: false));
         Assert.True(r.EsCorrecto, r.Error?.ToString());
         var asiento = (await new MotorAsientosAccess(Bd).ObtenerAsync(r.Valor.IdAsiento!.Value))!;
-        Assert.Equal(deduce, asiento.Apuntes.Any(a => a.CodigoCuenta == "4726021" && a.Debe.Valor == 21m));
-        Assert.Equal(deduce ? 150m : 176m, asiento.Apuntes.Where(a => a.CodigoCuenta == "6290000").Sum(a => a.Debe.Valor));
+        // El asiento es el mismo (IVA en su 472); el cambio de deducción solo decide si el libro lo deduce.
+        Assert.Contains(asiento.Apuntes, a => a.CodigoCuenta == "4726021" && a.Debe.Valor == 21m);
+        Assert.Equal(150m, asiento.Apuntes.Where(a => a.CodigoCuenta == "6290000").Sum(a => a.Debe.Valor));
         Assert.Equal(deduce ? 26m : 0m, Convert.ToDecimal(await Bd.EjecutarAsync(s => s.EscalarAsync("SELECT CuotaDeducibleTotal FROM IVASoportado WHERE IdAsiento = ?", r.Valor.IdAsiento))));
     }
 

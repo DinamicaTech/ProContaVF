@@ -60,23 +60,24 @@ public sealed class AsientoCompraTests
     }
 
     [Fact]
-    public void Actividad_sin_IVA_deducible_lleva_la_cuota_al_gasto_y_al_libro_sin_deducir()
+    public void Actividad_sin_IVA_deducible_lleva_la_cuota_a_la_472_y_al_libro_sin_deducir()
     {
+        // Propietario 2026-11-24 18:27: el IVA se contabiliza siempre en su 472; la liquidación lleva lo no deducible a la 6341.
         var f = Factura(121m, (21m, 100m, 21m));
         var p = AsientoCompra.Construir(f, Ctx, Cuentas with { IvaNoDeducible = true }, Hoy)!;
-        Assert.Equal([("4100001", 0m, 121m), ("6290000", 121m, 0m)], Lineas(p.Asiento));
+        Assert.Equal([("4100001", 0m, 121m), ("6290000", 100m, 0m), ("4720021", 21m, 0m)], Lineas(p.Asiento));
         Assert.Equal((100m, 21m, 0m), (p.Libro.Base, p.Libro.CuotaSoportada, p.Libro.CuotaDeducible));
         Assert.Equal(0m, Assert.Single(p.Libro.Tramos).PorcentajeDeducible);
         Assert.True(ReglasAsiento.ValidarYCuadrar(p.Asiento, PoliticaCuadre.Estricta).EsCorrecto);
     }
 
     [Fact]
-    public void Inversion_del_sujeto_pasivo_sin_IVA_deducible_autorrepercute_contra_el_gasto()
+    public void Inversion_del_sujeto_pasivo_sin_IVA_deducible_autorrepercute_contra_la_472()
     {
         var f = Factura(1000m, (0m, 1000m, 0m));
         f.InversionSujetoPasivo = true;
-        var p = AsientoCompra.Construir(f, Ctx, Cuentas with { AutoRepercutido = "4771021", IvaNoDeducible = true }, Hoy)!;
-        Assert.Equal([("4100001", 0m, 1000m), ("6290000", 1000m, 0m), ("6290000", 210m, 0m), ("4771021", 0m, 210m)], Lineas(p.Asiento));
+        var p = AsientoCompra.Construir(f, Ctx, Cuentas with { AutoSoportado = "4721021", AutoRepercutido = "4771021", IvaNoDeducible = true }, Hoy)!;
+        Assert.Equal([("4100001", 0m, 1000m), ("6290000", 1000m, 0m), ("4721021", 210m, 0m), ("4771021", 0m, 210m)], Lineas(p.Asiento));
         Assert.Equal((210m, 0m), (p.Libro.CuotaAutorrepercutida, p.Libro.CuotaDeducible));
     }
 
