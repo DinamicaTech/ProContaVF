@@ -56,13 +56,17 @@ public sealed partial class ServicioActivos
             idActivo);
         if (i.Datos is null) return null;
         var ops = await s.ConsultarAsync(
-            "SELECT IdOperacionInversion, Tipo, FechaOperacion, Participaciones, PrecioUnitario, Moneda, TipoCambioEuro, ImporteTotalEur, Notas FROM OperacionesInversion " +
+            "SELECT IdOperacionInversion, Tipo, FechaOperacion, Participaciones, PrecioUnitario, Moneda, TipoCambioEuro, ImporteTotalEur, Notas, LineaN43 FROM OperacionesInversion " +
             "WHERE IdActivo = ? ORDER BY FechaOperacion, IdOperacionInversion",
             f => new OperacionDeInversion(f.Entero("IdOperacionInversion"), Convert.ToInt32(f.Valor("Tipo"), CultureInfo.InvariantCulture), f.Fecha("FechaOperacion").Date,
                 f.Decimal("Participaciones"), f.Decimal("PrecioUnitario"), (f.Texto("Moneda") ?? "EUR").Trim(), f.Decimal("TipoCambioEuro"), f.Decimal("ImporteTotalEur"),
-                Vacio(f.Texto("Notas"))), idActivo);
-        return new InversionDeActivo(idActivo, i.Id, i.Datos, i.Participaciones, ops);
+                Vacio(f.Texto("Notas")), f.EnteroNulo("LineaN43")), idActivo);
+        var coste = CosteMedioInversion.Calcular(ops.Select(Movimiento));
+        return new InversionDeActivo(idActivo, i.Id, i.Datos, i.Participaciones,
+            ops.Select(o => o.EsVenta ? o with { CosteVendido = coste.CosteVendido.GetValueOrDefault(o.IdOperacion) } : o).ToList());
     }
+
+    private static MovimientoCoste Movimiento(OperacionDeInversion o) => new(o.IdOperacion, o.Tipo, o.Fecha, o.Participaciones, o.ImporteTotalEur);
 
     private static FuenteCotizacion Origen(string? texto) => (texto ?? "").Trim().ToUpperInvariant() switch
     {
@@ -138,29 +142,81 @@ public sealed partial class ServicioActivos
         var registro = $"Operación {idOperacion}";
         if (!await PuedeAsync()) return Resultado<bool>.Fallo(SinPermiso(registro));
         if (importeTotalEur <= 0m)
-            return Resultado<bool>.Fallo(new Error("Inversiones.CosteNoValido", "El coste total del lote debe ser mayor que cero.", registro, null, "Escribe el importe que te ha confirmado el bróker."));
+            return Resultado<bool>.Fallo(new Error("Inversiones.CosteNoValido", "El importe total debe ser mayor que cero.", registro, null, "Escribe el importe que te ha confirmado el bróker."));
         if (decimal.Round(importeTotalEur, 2) != importeTotalEur)
-            return Resultado<bool>.Fallo(new Error("Inversiones.CosteNoValido", "El coste total del lote va en euros con dos decimales como mucho.", registro));
+            return Resultado<bool>.Fallo(new Error("Inversiones.CosteNoValido", "El importe total va en euros con dos decimales como mucho.", registro));
         return await _bd.EnTransaccionAsync(async s =>
         {
-            var idActivo = await s.EscalarAsync("SELECT o.IdActivo FROM OperacionesInversion AS o INNER JOIN Activos AS a ON o.IdActivo = a.IdActivo " +
-                "WHERE o.IdOperacionInversion = ? AND a.IdSociedad = ?", idOperacion, ctx.IdSociedad);
-            if (idActivo is null or DBNull)
-                return Resultado<bool>.Fallo(new Error("Inversiones.NoExiste", "Esa compra ya no existe.", registro, null, "Pulsa Actualizar (F5) en la ficha."));
+            var op = await s.ConsultarPrimeroAsync("SELECT o.IdActivo, o.Tipo, o.LineaN43 FROM OperacionesInversion AS o INNER JOIN Activos AS a ON o.IdActivo = a.IdActivo " +
+                "WHERE o.IdOperacionInversion = ? AND a.IdSociedad = ?",
+                f => (Activo: (int?)f.Entero("IdActivo"), Tipo: Convert.ToInt32(f.Valor("Tipo"), CultureInfo.InvariantCulture), Linea: f.EnteroNulo("LineaN43")), idOperacion, ctx.IdSociedad);
+            if (op.Activo is not int idActivo)
+                return Resultado<bool>.Fallo(new Error("Inversiones.NoExiste", "Esa operación ya no existe.", registro, null, "Pulsa Actualizar (F5) en la ficha."));
+            if (op.Linea is not null)
+                return Resultado<bool>.Fallo(new Error("Inversiones.Conciliada", "Esta operación ya está conciliada con el banco: su importe es el del movimiento bancario.", registro,
+                    "El asiento del banco se generó con ese importe.", "Si el importe está mal, deshaz el asiento de la línea en Líneas N43 y vuelve a conciliarla."));
             await s.EjecutarAsync("UPDATE OperacionesInversion SET ImporteTotalEur = ? WHERE IdOperacionInversion = ?", importeTotalEur, idOperacion);
-            await RecalcularInversionAsync(s, Convert.ToInt32(idActivo, CultureInfo.InvariantCulture), cambiarVersion: true);
+            await RecalcularInversionAsync(s, idActivo, cambiarVersion: true);
             return Resultado<bool>.Correcto(true);
         });
     }
 
-    private static async Task<int> InsertarCompraAsync(ISesionDatos s, int idActivo, int idInstrumento, CompraInversion c)
+    /// <summary>
+    /// «Vender…» de un activo financiero (activos/activos-financieros 2026-11-24 09:14): participaciones (como mucho las que había en esa fecha), fecha
+    /// e importe total (si no se escribe, participaciones × precio del día en euros). Las participaciones y el coste bajan a coste medio ponderado y, si
+    /// no queda ninguna, el activo pasa a inactivo con la fecha de la venta (2026-11-24 09:27). No graba asientos: el de la venta sale de su línea
+    /// bancaria con «Venta de activo…» en Líneas N43.
+    /// </summary>
+    /// <param name="importeEscrito">Si el importe total lo escribió el operador (si no, es el estimado con el precio del día).</param>
+    public async Task<Resultado<int>> VenderAsync(ContextoSociedadEjercicio ctx, int idActivo, CompraInversion venta, bool importeEscrito)
+    {
+        var registro = $"Activo {idActivo}";
+        if (!await PuedeAsync()) return Resultado<int>.Fallo(SinPermiso(registro));
+        if (venta.Validar(DateTime.Today, esVenta: true) is { Count: > 0 } errores)
+            return Resultado<int>.Fallo(errores.Select(e => new Error("Inversiones.DatoNoValido", e, registro)));
+        return await _bd.EnTransaccionAsync(async s =>
+        {
+            var activo = await s.ConsultarPrimeroAsync("SELECT a.Codigo, a.FechaBaja, ai.IdInstrumentoFinanciero FROM Activos AS a INNER JOIN ActivosInversiones AS ai ON a.IdActivo = ai.IdActivo " +
+                "WHERE a.IdActivo = ? AND a.IdSociedad = ?", f => (Codigo: (f.Texto("Codigo") ?? "").Trim(), Baja: f.FechaNula("FechaBaja"), Instrumento: f.Entero("IdInstrumentoFinanciero")),
+                idActivo, ctx.IdSociedad);
+            if (activo.Codigo is null)
+                return Resultado<int>.Fallo(new Error("Inversiones.NoEsFinanciero", "Este activo no es un activo financiero (no tiene ISIN): no se le pueden anotar ventas de participaciones.",
+                    registro, null, "Elige un activo de tipo «Inversión financiera»."));
+            if (activo.Baja is not null)
+                return Resultado<int>.Fallo(new Error("Inversiones.Inactivo", $"El activo {activo.Codigo} está inactivo desde el {activo.Baja:dd/MM/yyyy}: ya no tiene participaciones que vender.",
+                    $"Activo {activo.Codigo}"));
+            var ops = await MovimientosAsync(s, idActivo);
+            var antes = CosteMedioInversion.Calcular(ops.Where(o => o.Fecha.Date <= venta.Fecha.Date)).Participaciones;
+            var despues = CosteMedioInversion.Calcular([.. ops, new MovimientoCoste(int.MaxValue, OperacionDeInversion.TipoVenta, venta.Fecha, venta.Participaciones, venta.ImporteTotalEur)]);
+            if (venta.Participaciones > antes || despues.Descubierto)
+                return Resultado<int>.Fallo(new Error("Inversiones.SinParticipaciones",
+                    $"El {venta.Fecha:dd/MM/yyyy} el activo {activo.Codigo} tenía {antes.ToString("#,##0.######", CultureInfo.GetCultureInfo("es-ES"))} participaciones: no se pueden vender " +
+                    $"{venta.Participaciones.ToString("#,##0.######", CultureInfo.GetCultureInfo("es-ES"))}.", $"Activo {activo.Codigo}",
+                    despues.Descubierto && venta.Participaciones <= antes ? "Una venta posterior ya cuenta con esas participaciones." : null,
+                    "Corrige las participaciones o la fecha de la venta."));
+            var id = await InsertarOperacionAsync(s, idActivo, activo.Instrumento, venta, OperacionDeInversion.TipoVenta, importeEscrito);
+            await RecalcularInversionAsync(s, idActivo, cambiarVersion: true);
+            return Resultado<int>.Correcto(id);
+        });
+    }
+
+    private static async Task<IReadOnlyList<MovimientoCoste>> MovimientosAsync(ISesionDatos s, int idActivo) =>
+        await s.ConsultarAsync("SELECT IdOperacionInversion, Tipo, FechaOperacion, Participaciones, ImporteTotalEur FROM OperacionesInversion WHERE IdActivo = ?",
+            f => new MovimientoCoste(f.Entero("IdOperacionInversion"), Convert.ToInt32(f.Valor("Tipo"), CultureInfo.InvariantCulture), f.Fecha("FechaOperacion").Date,
+                f.Decimal("Participaciones"), f.Decimal("ImporteTotalEur")), idActivo);
+
+    private static Task<int> InsertarCompraAsync(ISesionDatos s, int idActivo, int idInstrumento, CompraInversion c) =>
+        InsertarOperacionAsync(s, idActivo, idInstrumento, c, OperacionDeInversion.TipoCompra, importeEscrito: false);
+
+    private static async Task<int> InsertarOperacionAsync(ISesionDatos s, int idActivo, int idInstrumento, CompraInversion c, int tipo, bool importeEscrito)
     {
         var notas = c.Cotizacion is { } p
             ? $"Precio de {p.Origen} del {p.FechaCotizacion:dd/MM/yyyy}" + (p.Moneda == "EUR" ? "" : $"; cambio del BCE del {p.FechaCambio:dd/MM/yyyy}") + "."
             : "Precio escrito a mano.";
+        if (tipo == OperacionDeInversion.TipoVenta) notas += importeEscrito ? " Importe de la venta escrito a mano." : " Importe de la venta estimado con el precio del día.";
         await s.EjecutarAsync("INSERT INTO OperacionesInversion (IdActivo, Tipo, FechaOperacion, Participaciones, PrecioUnitario, Moneda, TipoCambioEuro, GastosEur, ImporteTotalEur, Notas) " +
             "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-            idActivo, (byte)OperacionDeInversion.TipoCompra, c.Fecha.Date, c.Participaciones, c.PrecioUnitario, Moneda(c.Moneda), c.UnidadesPorEuro, 0m, c.ImporteTotalEur, notas);
+            idActivo, (byte)tipo, c.Fecha.Date, c.Participaciones, c.PrecioUnitario, Moneda(c.Moneda), c.UnidadesPorEuro, 0m, c.ImporteTotalEur, notas);
         var id = await s.UltimoIdAsync();
         if (c.Cotizacion is { } q) await GuardarCotizacionAsync(s, idInstrumento, q);
         return id;
@@ -177,21 +233,24 @@ public sealed partial class ServicioActivos
     }
 
     /// <summary>
-    /// Participaciones = compras − ventas; coste del activo = suma del coste de las compras (también su valor contable) y fecha de compra = la de la
-    /// primera. Con <paramref name="cambiarVersion"/>, sube la versión del activo para que una ficha abierta sepa que ha cambiado.
+    /// Participaciones y coste del activo a coste medio ponderado (<see cref="CosteMedioInversion"/>): el coste de lo que queda es también su valor
+    /// contable, y la fecha de compra la de la primera. Si ya no le quedan participaciones tras una venta, pasa a inactivo con la fecha de la última
+    /// venta (activos/activos-financieros 2026-11-24 09:27). Con <paramref name="cambiarVersion"/>, sube la versión del activo para que una ficha abierta
+    /// sepa que ha cambiado.
     /// </summary>
-    private static async Task RecalcularInversionAsync(ISesionDatos s, int idActivo, bool cambiarVersion)
+    public static async Task RecalcularInversionAsync(ISesionDatos s, int idActivo, bool cambiarVersion)
     {
-        var ops = await s.ConsultarAsync("SELECT Tipo, FechaOperacion, Participaciones, ImporteTotalEur FROM OperacionesInversion WHERE IdActivo = ?",
-            f => (Tipo: Convert.ToInt32(f.Valor("Tipo"), CultureInfo.InvariantCulture), Fecha: f.Fecha("FechaOperacion").Date, Participaciones: f.Decimal("Participaciones"),
-                Importe: f.Decimal("ImporteTotalEur")), idActivo);
+        ArgumentNullException.ThrowIfNull(s);
+        var ops = await MovimientosAsync(s, idActivo);
+        var coste = CosteMedioInversion.Calcular(ops);
         var compras = ops.Where(o => o.Tipo == OperacionDeInversion.TipoCompra).ToList();
-        var participaciones = compras.Sum(o => o.Participaciones) - ops.Where(o => o.Tipo == OperacionDeInversion.TipoVenta).Sum(o => o.Participaciones);
-        var coste = compras.Sum(o => o.Importe);
         DateTime? primera = compras.Count == 0 ? null : compras.Min(o => o.Fecha);
-        await s.EjecutarAsync("UPDATE ActivosInversiones SET ParticipacionesActuales = ? WHERE IdActivo = ?", participaciones, idActivo);
+        await s.EjecutarAsync("UPDATE ActivosInversiones SET ParticipacionesActuales = ? WHERE IdActivo = ?", coste.Participaciones, idActivo);
         await s.EjecutarAsync("UPDATE Activos SET CosteAdquisicionActual = ?, ValorContable = ?, FechaAdquisicion = ?" + (cambiarVersion ? ", Version = Version + 1" : "") +
-            " WHERE IdActivo = ?", coste, coste, primera, idActivo);
+            " WHERE IdActivo = ?", coste.Coste, coste.Coste, primera, idActivo);
+        var ventas = ops.Where(o => o.Tipo == OperacionDeInversion.TipoVenta).ToList();
+        if (coste.Participaciones <= 0m && ventas.Count > 0)
+            await s.EjecutarAsync("UPDATE Activos SET FechaBaja = ? WHERE IdActivo = ? AND FechaBaja IS NULL", ventas.Max(o => o.Fecha), idActivo);
     }
 
     private static string Moneda(string moneda) => ServicioCotizaciones.AMonedaIso(0m, moneda).Moneda is { Length: 3 } m ? m : moneda.Trim().ToUpperInvariant()[..Math.Min(3, moneda.Trim().Length)];

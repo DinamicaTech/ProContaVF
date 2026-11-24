@@ -125,6 +125,7 @@ public static class CatalogoMigraciones
         MigracionesContabilidad.CuentasAnualesMemoria,
         MigracionesCompras.FacturasRecurrentes,
         MigracionesActivosFinancieros.AltaPorIsin,
+        MigracionesActivosFinancieros.VentaYConciliacion,
     ];
 
     /// <summary>Versión del esquema que espera esta versión del programa.</summary>

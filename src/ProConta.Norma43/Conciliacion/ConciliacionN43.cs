@@ -602,6 +602,9 @@ public sealed class ServicioConciliacionN43(IBaseDatos bd, IMotorAsientos motor,
                 Despues: async (s, _) =>
                 {
                     await s.EjecutarAsync("DELETE FROM ContabilizacionesLineaExtracto WHERE IdLineaExtractoBancario = ?", id);
+                    // Una compra o venta de activo conciliada con la línea vuelve a estar pendiente, con su importe anterior (activos/activos-financieros
+                    // 2026-11-24 09:14).
+                    await ProConta.Activos.Financieros.ConciliacionOperacionesInversion.DesmarcarLineaAsync(s, id);
                     return Resultado.Correcto();
                 }));
             if (r.EsCorrecto) hechas[id] = actual;
