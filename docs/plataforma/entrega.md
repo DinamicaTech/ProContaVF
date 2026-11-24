@@ -9,8 +9,8 @@ threads:
 ---
 ## Summary
 Solución .NET, compilación x64, pruebas automáticas ejecutadas en local (sin BD por cada hilo antes de su PR; contra Access en el equipo del propietario antes de validar), versionado de entregas visible (InformationalVersion), esquema de pruebas separado de producción y copias de seguridad coherentes de BD y documentos.
-En la raíz del repositorio: `compilar.cmd` compila `ProContaVF.slnx` en Release x64; `probar.cmd` compila y ejecuta todas las pruebas, y `probar.cmd sinbd` solo las que no tocan Access (las pruebas contra Access llevan `[Trait("Categoria","Access")]`). `Directory.Build.targets` pone a cada binario la versión `ProContaVF-<rama>.<número de commits>+<sha corto>`.
-**Aceptación:** un comando local compila la solución x64 y ejecuta las pruebas, con y sin BD de pruebas; la entrega muestra su versión.
+En la raíz del repositorio: `compilar.cmd` compila `ProContaVF.slnx` en Release x64; `probar.cmd` compila y ejecuta todas las pruebas, y `probar.cmd sinbd` solo las que no tocan Access (las pruebas contra Access llevan `[Trait("Categoria","Access")]`). `Directory.Build.targets` pone a cada binario la versión `ProContaVF-<rama>.<número de commits>+<sha corto>`. `instalar.cmd [carpeta]` compila e instala en producción (por defecto `C:\Docs\ProConta`): guarda antes en `versiones\<fecha hora>` los ficheros que va a sustituir y copia el programa, con su carpeta `Conector`, y el ActualizadorEsquema en `herramientas\ActualizadorEsquema`; no toca las carpetas de datos ni actualiza el esquema (lo ofrece el programa al abrir la BD).
+**Aceptación:** un comando local compila la solución x64 y ejecuta las pruebas, con y sin BD de pruebas; la entrega muestra su versión; `instalar.cmd` instala una versión y, en la siguiente, conserva la anterior en `versiones`.
 
 ## Decisions
 - 2026-10-28 13:30 · Creado en la carga inicial de requisitos.
@@ -21,7 +21,8 @@ En la raíz del repositorio: `compilar.cmd` compila `ProContaVF.slnx` en Release
 2026-10-31 18:02 · Las pruebas que tocan Access llevan `[Trait("Categoria","Access")]` y trabajan siempre sobre una copia de la BD en una carpeta temporal, nunca sobre el original.
 - 2026-10-31 19:30 · `ejecutar.cmd` en la raíz abre ProContaVF.exe sin necesidad de compilar antes (si no está compilado, lo compila; las entregas se dejan ya compiladas en la carpeta) y pasa sus argumentos, por ejemplo `--bd "<ruta del accdb>"`. La versión de entrega se ve en la pantalla de acceso y en la barra de estado de la ventana principal.
 - 2026-11-01 09:31 · Validado por el propietario (desarrollos base).
-- 2026-11-16 09:45 · Instalación en el equipo del propietario (README 2026-11-14 14:02), no en el Windows Server: carpeta versionada copiada con un script a C:\Docs\ProConta (con respaldo previo de la versión anterior y actualización del esquema) y ACE x64 instalado aparte una sola vez; sin instalador MSI. El script lo usa el paso B de implantacion/proceso-de-paso-a-produccion.
+- 2026-11-16 09:45 · [replaced by 2026-11-24 13:25] Instalación en el equipo del propietario (README 2026-11-14 14:02), no en el Windows Server: carpeta versionada copiada con un script a C:\Docs\ProConta (con respaldo previo de la versión anterior y actualización del esquema) y ACE x64 instalado aparte una sola vez; sin instalador MSI. El script lo usa el paso B de implantacion/proceso-de-paso-a-produccion.
+- 2026-11-24 13:25 · Instalación en el equipo del propietario con `instalar.cmd` (script `instalar.ps1`), aceptado por el propietario el 2026-11-24 12:15: compila Release x64; se para si ProContaVF, el conector o el ActualizadorEsquema están abiertos desde la carpeta destino; guarda en `<destino>\versiones\<fecha hora>` solo los ficheros y carpetas que la versión nueva va a sustituir; copia el programa en `<destino>` (por defecto `C:\Docs\ProConta`, con el conector en `Conector\`, donde lo busca «IA › Abrir Claude») y el ActualizadorEsquema en `<destino>\herramientas\ActualizadorEsquema`. No toca las carpetas de datos. El esquema no lo actualiza el script: lo ofrece el programa al abrir la BD («Actualizar ahora», con copia previa; plataforma/entorno-pruebas). ACE x64 se instala aparte una sola vez; sin instalador MSI.
 
 ## Requirements
 - 2026-10-28 12:28 · From sources/01_ESPECIFICACION_FUNCIONAL.docx § 27 RF-TEC-04..07: pruebas sin efectos externos, backups con ensayo de restauración, entregas versionadas, compilación completa
@@ -36,3 +37,4 @@ En la raíz del repositorio: `compilar.cmd` compila `ProContaVF.slnx` en Release
 
 ## Hand-over
 - 2026-10-31 19:30 · Hecho: `compilar.cmd`, `probar.cmd [sinbd]`, `ejecutar.cmd` y la versión desde git, visible en la aplicación. Pendiente: el script de instalación en C:\Docs\ProConta del equipo del propietario (antes el Windows Server) con respaldo previo y actualización del esquema (P-14) y el ensayo de restauración de copias (RF-TEC-05).
+- 2026-11-24 13:25 · Hecho: `instalar.cmd` (paso B de implantacion/proceso-de-paso-a-produccion), probado en una carpeta temporal dos veces (la segunda guardó la anterior en `versiones`). Pendiente: el ensayo de restauración de copias (RF-TEC-05).
