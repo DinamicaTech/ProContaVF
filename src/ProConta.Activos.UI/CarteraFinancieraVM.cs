@@ -132,7 +132,7 @@ public sealed class FilaCarteraVM : ModeloVista
     public string Peso { get; }
     public string Tono => TextosCartera.Tono(PlusvaliaNum);
     public string TonoAnual => TextosCartera.Tono(AnualNum);
-    public string AyudaFila => EsLote ? "Lote: cada compra es un lote; al vender se consumen primero los más antiguos (FIFO)"
+    public string AyudaFila => EsLote ? "Lote: cada compra es un lote; cada venta reduce todos los lotes en la misma proporción (coste medio ponderado)"
         : $"{Nombre}. Clic: marcar o desmarcar para los gráficos · Doble clic: ver su análisis (cotización, lotes, operaciones y proyección)";
 }
 
@@ -146,6 +146,7 @@ public sealed class CarteraFinancieraVM : ModeloVista, IPestanaTrabajo
     public static readonly IReadOnlyList<string> PeriodosRevalorizacion = ["1A", "3A", "5A", "Máx."];
     public static readonly IReadOnlyList<string> PeriodosComparativa = ["1M", "3M", "6M", "Año", "1A", "3A", "5A"];
     public static readonly IReadOnlyList<string> Tipos = ["Todos", "ETF", "Fondos", "Otros"];
+    public static readonly IReadOnlyList<string> Estados = ["Activos", "Inactivos", "Todos"];
 
     private readonly ModuloActivos _modulo;
     private object? _vista;
@@ -163,7 +164,8 @@ public sealed class CarteraFinancieraVM : ModeloVista, IPestanaTrabajo
     private string _periodo = "Máx.";
     private string _periodoComparativa = "1A";
     private string _tipo = "Todos";
-    private bool _verVendidos;
+    private string _filtroEstado = "Activos";
+    private DatosTemporales? _datosInvertido;
     private DatosTemporales? _datosRevalorizacion;
     private DatosTemporales? _datosComparativa;
     private IReadOnlyList<LeyendaComparativa> _leyenda = [];
@@ -233,20 +235,23 @@ public sealed class CarteraFinancieraVM : ModeloVista, IPestanaTrabajo
     public int PestanaGrafico { get => _pestanaGrafico; set { if (Fijar(ref _pestanaGrafico, value)) PintarGraficos(); } }
     public bool ModoPorcentaje { get => _modoPorcentaje; set { if (Fijar(ref _modoPorcentaje, value)) { Avisar(nameof(ModoEuros), nameof(FormatoEjeRevalorizacion)); PintarRevalorizacion(); } } }
     public bool ModoEuros { get => !_modoPorcentaje; set => ModoPorcentaje = !value; }
-    public string Periodo { get => _periodo; set { if (Fijar(ref _periodo, value ?? "Máx.")) PintarRevalorizacion(); } }
+    public string Periodo { get => _periodo; set { if (Fijar(ref _periodo, value ?? "Máx.")) PintarGraficos(); } }
     public string PeriodoComparativa { get => _periodoComparativa; set { if (Fijar(ref _periodoComparativa, value ?? "1A")) PintarComparativa(); } }
     public DatosTemporales? DatosRevalorizacion { get => _datosRevalorizacion; private set => Fijar(ref _datosRevalorizacion, value); }
     public DatosTemporales? DatosComparativa { get => _datosComparativa; private set => Fijar(ref _datosComparativa, value); }
+    public DatosTemporales? DatosInvertido { get => _datosInvertido; private set => Fijar(ref _datosInvertido, value); }
     public IReadOnlyList<LeyendaComparativa> Leyenda { get => _leyenda; private set => Fijar(ref _leyenda, value); }
     public int SerieResaltada { get => _serieResaltada; set => Fijar(ref _serieResaltada, value); }
     public string Alcance { get => _alcance; private set => Fijar(ref _alcance, value); }
     public Func<double, string> FormatoEjeRevalorizacion => _modoPorcentaje ? v => TextosCartera.Num((decimal)v, Math.Abs(v) < 10 && v % 1 != 0 ? 1 : 0) + " %" : EjeEuros;
     public Func<double, string> FormatoEjeComparativa { get; } = v => TextosCartera.Num((decimal)v, Math.Abs(v) < 10 && Math.Abs(v % 1) > 1e-9 ? 1 : 0) + " %";
+    public Func<double, string> FormatoEjeInvertido { get; } = EjeEuros;
     private static string EjeEuros(double v) => FormatoGrafico.Compacto(v) + " €";
 
     // ---------- tabla ----------
     public string Tipo { get => _tipo; set { if (Fijar(ref _tipo, value ?? "Todos")) Filtrar(); } }
-    public bool VerVendidos { get => _verVendidos; set { if (Fijar(ref _verVendidos, value)) Filtrar(); } }
+    /// <summary>Activos (sin fecha de baja, por defecto), Inactivos (vendidos del todo o dados de baja) o Todos.</summary>
+    public string FiltroEstado { get => _filtroEstado; set { if (Fijar(ref _filtroEstado, value ?? "Activos")) Filtrar(); } }
     public IReadOnlyList<FilaCarteraVM> Filas { get => _filas; private set { _filas = value; Avisar(nameof(Filas)); } }
     private IEnumerable<FilaCarteraVM> Visibles => _filas.Where(f => f.EsActivo);
     public bool TodosMarcados { get => Visibles.Where(f => f.PuedeMarcarse).All(f => f.Marcado); set => MarcarTodos(value); }
@@ -355,7 +360,7 @@ public sealed class CarteraFinancieraVM : ModeloVista, IPestanaTrabajo
             new("Plusvalía latente", TextosCartera.Signo(plus), $"{TextosCartera.Pct(coste > 0m ? plus / coste : null)} sobre el coste",
                 "Lo que se ganaría si se vendiera todo hoy, antes de impuestos y comisiones de venta", TextosCartera.Tono(plus)),
             new("Resultado de ventas", TextosCartera.Signo(rEj), $"en {ejercicio} · desde el inicio {TextosCartera.Signo(rTot)}",
-                "Beneficio o pérdida de lo vendido: importe cobrado menos el coste de lo vendido (FIFO). Al contabilizarlo va a 766 o 666", TextosCartera.Tono(rEj)),
+                "Beneficio o pérdida de lo vendido: importe cobrado menos el coste medio ponderado de lo vendido. Al conciliar la venta con el banco va a 766 o 666", TextosCartera.Tono(rEj)),
             new("Rentabilidad anual", TextosCartera.Pct(tir), tir is null ? "con menos de un año o sin cotización no se calcula" : "media desde la primera compra (TIR)",
                 "Lo que ha rendido cada año, de media, el dinero invertido, teniendo en cuenta cuándo entró y salió cada euro", TextosCartera.Tono(tir)),
         ];
@@ -365,7 +370,7 @@ public sealed class CarteraFinancieraVM : ModeloVista, IPestanaTrabajo
     {
         var abiertos = _activos.Where(f => f.Abierto).ToHashSet();
         var filas = new List<FilaCarteraVM>();
-        foreach (var f in _activos.Where(f => (_verVendidos || !f.Vendido) && (_tipo == "Todos" || f.Clase == _tipo.TrimEnd('s') || (_tipo == "Otros" && f.Clase is not ("ETF" or "Fondo")))))
+        foreach (var f in _activos.Where(f => (_filtroEstado == "Todos" || (_filtroEstado == "Inactivos") == (f.Activo.FechaBaja is not null)) && (_tipo == "Todos" || f.Clase == _tipo.TrimEnd('s') || (_tipo == "Otros" && f.Clase is not ("ETF" or "Fondo")))))
         {
             filas.Add(f);
             if (abiertos.Contains(f))
@@ -400,7 +405,12 @@ public sealed class CarteraFinancieraVM : ModeloVista, IPestanaTrabajo
 
     private void PintarGraficos()
     {
-        if (_pestanaGrafico == 0) PintarRevalorizacion(); else PintarComparativa();
+        switch (_pestanaGrafico)
+        {
+            case 0: PintarRevalorizacion(); break;
+            case 1: PintarComparativa(); break;
+            default: PintarInvertido(); break;
+        }
     }
 
     private static DateTime Restar(DateTime hoy, string periodo) => periodo switch
@@ -415,19 +425,20 @@ public sealed class CarteraFinancieraVM : ModeloVista, IPestanaTrabajo
         _ => DateTime.MinValue,
     };
 
-    private void PintarRevalorizacion()
+    /// <summary>Días, puntos y compras y ventas del periodo elegido para los activos marcados (null si no hay nada que dibujar).</summary>
+    private (IReadOnlyList<DateTime> Dias, IReadOnlyList<PuntoCartera> Puntos, Func<int, ContenidoTooltip> Tip, IReadOnlyList<MarcaTemporal> Marcas)? SerieCartera()
     {
-        if (_cartera is null || _pestanaGrafico != 0) return;
+        if (_cartera is null) return null;
         var filas = EnGrafico;
         var cotizables = Visibles.Count(f => f.PuedeMarcarse);
         Alcance = filas.Count == 0 ? "Marca algún activo en la tabla para verlo aquí"
-            : filas.Count == cotizables ? "Todos los activos cotizados, también los vendidos mientras se tuvieron"
+            : filas.Count == cotizables ? "Todos los activos cotizados que se ven en la tabla, mientras se tuvieron"
             : $"{Formatos.Plural(filas.Count, "activo marcado", "activos marcados")}";
-        if (filas.Count == 0) { DatosRevalorizacion = null; return; }
+        if (filas.Count == 0) return null;
         var hoy = _cartera.Hoy;
         var posiciones = filas.Select(f => f.Activo.Posicion).ToList();
-        var ops = posiciones.SelectMany(p => p.Inversion.Operaciones.Select(o => (p, o))).ToList();
-        if (ops.Count == 0) { DatosRevalorizacion = null; return; }
+        var ops = posiciones.SelectMany(p => p.Inversion.Operaciones.Where(o => o.EsCompra || o.EsVenta).Select(o => (p, o))).ToList();
+        if (ops.Count == 0) return null;
         var primera = ops.Min(x => x.o.Fecha);
         var desde = Restar(hoy, _periodo) is var r && r > primera ? r : primera;
         var dias = SeriesCartera.Dias(desde, hoy, SeriesCartera.Paso(desde, hoy));
@@ -448,16 +459,34 @@ public sealed class CarteraFinancieraVM : ModeloVista, IPestanaTrabajo
                     $"{TextosCartera.Participaciones(m.o.Participaciones)} part. · {Formatos.Importe(m.o.ImporteTotalEur)}"));
             return new ContenidoTooltip(p.Fecha.ToString("d 'de' MMMM 'de' yyyy", Formatos.Cultura), filasT);
         }
-        var marcasG = marcas.Select(m => new MarcaTemporal(m.Indice, m.o.EsCompra)).ToList();
-        if (_modoPorcentaje)
-            DatosRevalorizacion = new DatosTemporales(dias, [new SerieTemporal("Plusvalía sobre lo invertido", PaletaGraficos.Serie1,
-                    puntos.Select(p => p.PlusvaliaPorcentaje is decimal x ? (double?)(double)(x * 100m) : null).ToList())],
-                Tip, Marcas: marcasG, IncluirCero: true, LineaCero: true, Descripcion: "Plusvalía de la cartera en porcentaje sobre lo invertido cada día");
-        else
-            DatosRevalorizacion = new DatosTemporales(dias,
-                [new SerieTemporal("Valor de mercado", PaletaGraficos.Serie1, puntos.Select(p => (double?)(double)p.Valor).ToList()),
-                 new SerieTemporal("Capital invertido", PaletaGraficos.Apagado, puntos.Select(p => (double?)(double)p.Invertido).ToList())],
-                Tip, AreaEntre: (0, 1), Marcas: marcasG, Descripcion: "Valor de mercado de la cartera frente al capital invertido cada día");
+        return (dias, puntos, Tip, marcas.Select(m => new MarcaTemporal(m.Indice, m.o.EsCompra)).ToList());
+    }
+
+    /// <summary>
+    /// Revalorización: en euros, solo el valor de mercado (sin la línea del capital invertido, que salta con cada compra; activos/activos-financieros
+    /// 2026-11-24 09:14); en porcentaje, la plusvalía sobre lo invertido cada día.
+    /// </summary>
+    private void PintarRevalorizacion()
+    {
+        if (_pestanaGrafico != 0) return;
+        if (SerieCartera() is not { } c) { DatosRevalorizacion = null; return; }
+        DatosRevalorizacion = _modoPorcentaje
+            ? new DatosTemporales(c.Dias, [new SerieTemporal("Plusvalía sobre lo invertido", PaletaGraficos.Serie1,
+                    c.Puntos.Select(p => p.PlusvaliaPorcentaje is decimal x ? (double?)(double)(x * 100m) : null).ToList())],
+                c.Tip, Marcas: c.Marcas, IncluirCero: true, LineaCero: true, Descripcion: "Plusvalía de la cartera en porcentaje sobre lo invertido cada día")
+            : new DatosTemporales(c.Dias, [new SerieTemporal("Valor de mercado", PaletaGraficos.Serie1, c.Puntos.Select(p => (double?)(double)p.Valor).ToList())],
+                c.Tip, Marcas: c.Marcas, Descripcion: "Valor de mercado de la cartera cada día");
+    }
+
+    /// <summary>Invertido y valor: el capital invertido en escalones frente al valor total (invertido más plusvalía), con la plusvalía sombreada.</summary>
+    private void PintarInvertido()
+    {
+        if (_pestanaGrafico != 2) return;
+        if (SerieCartera() is not { } c) { DatosInvertido = null; return; }
+        DatosInvertido = new DatosTemporales(c.Dias,
+            [new SerieTemporal("Valor total", PaletaGraficos.Serie1, c.Puntos.Select(p => (double?)(double)p.Valor).ToList()),
+             new SerieTemporal("Total invertido", PaletaGraficos.Apagado, c.Puntos.Select(p => (double?)(double)p.Invertido).ToList(), Escalon: true)],
+            c.Tip, AreaEntre: (0, 1), Marcas: c.Marcas, IncluirCero: true, Descripcion: "Total invertido frente al valor total de la cartera cada día");
     }
 
     private static int IndiceDe(IReadOnlyList<DateTime> dias, DateTime fecha)
@@ -474,8 +503,10 @@ public sealed class CarteraFinancieraVM : ModeloVista, IPestanaTrabajo
         var hoy = _cartera.Hoy;
         var desde = Restar(hoy, _periodoComparativa);
         var dias = SeriesCartera.Dias(desde, hoy, SeriesCartera.Paso(desde, hoy));
+        // Los días sin participaciones, la línea va punteada y tenue (activos/activos-financieros 2026-11-24 09:14).
         var series = filas.Select(f => new SerieTemporal(f.Codigo, f.Color,
-            SeriesCartera.Variacion(f.Activo.Posicion.Historico, dias).Select(v => v is decimal d ? (double?)(double)(d * 100m) : null).ToList())).ToList();
+            SeriesCartera.Variacion(f.Activo.Posicion.Historico, dias).Select(v => v is decimal d ? (double?)(double)(d * 100m) : null).ToList(),
+            Sutil: dias.Select(d => f.Activo.Posicion.ParticipacionesEn(d) <= 0m).ToList())).ToList();
         decimal? Final(SerieTemporal s) => s.Valores.LastOrDefault(v => v is not null) is double d ? (decimal)d / 100m : null;
         Leyenda = series.Select((s, i) => new LeyendaComparativa(i, s.Nombre, filas[i].Nombre, s.Color, TextosCartera.Pct(Final(s)), TextosCartera.Tono(Final(s))))
             .OrderByDescending(l => Final(series[l.Serie]) ?? decimal.MinValue).ToList();

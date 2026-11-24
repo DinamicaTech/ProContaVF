@@ -125,11 +125,11 @@
           <!-- Gráficos en dos pestañas -->
           <Border Grid.Row="1" Style="{StaticResource Tarjeta.Cartera}" Padding="10,4,10,8">
             <TabControl SelectedIndex="{Binding PestanaGrafico}" BorderThickness="0" Padding="0,6,0,0">
-              <TabItem Header="Revalorización de la cartera" ToolTip="Valor de mercado frente a lo invertido, sumando todos los lotes desde su fecha de compra">
+              <TabItem Header="Revalorización de la cartera" ToolTip="Valor de mercado de la cartera, sumando cada lote desde su fecha de compra">
                 <DockPanel>
                   <DockPanel DockPanel.Dock="Top" Margin="0,0,0,4">
                     <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
-                      <Border Style="{StaticResource Segmentado}" Margin="0,0,10,0" ToolTip="Euros: cuánto vale la cartera frente a lo que costó. Porcentaje: la plusvalía sobre lo invertido en cada momento">
+                      <Border Style="{StaticResource Segmentado}" Margin="0,0,10,0" ToolTip="Euros: cuánto vale la cartera cada día. Porcentaje: la plusvalía sobre lo invertido en cada momento">
                         <StackPanel Orientation="Horizontal">
                           <RadioButton Style="{StaticResource Segmento}" Content="Euros" GroupName="Modo" IsChecked="{Binding ModoEuros}" />
                           <RadioButton Style="{StaticResource Segmento}" Content="% sobre lo invertido" GroupName="Modo" IsChecked="{Binding ModoPorcentaje}" />
@@ -146,7 +146,7 @@
                     </StackPanel>
                     <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                       <Border Width="17" Height="17" CornerRadius="9" BorderThickness="1" BorderBrush="{StaticResource Pincel.Linea3}" Margin="0,0,8,0" Cursor="Help"
-                              ToolTip="Cada compra suma al capital invertido el día en que se hizo, y cada venta resta el coste de lo vendido. Así la plusvalía de cada día compara solo lo que había en cartera ese día con lo que costó. La parte sombreada es la plusvalía latente (verde) o la minusvalía (rojo). Solo entran los activos que cotizan.">
+                              ToolTip="Cada lote cuenta desde el día en que se compró y deja de contar al venderse. En porcentaje, la plusvalía de cada día compara lo que había en cartera ese día con lo que costó. Lo invertido frente al valor está en la pestaña «Invertido y valor». Solo entran los activos que cotizan. Rueda del ratón: acercar o alejar; arrastrar: ampliar una zona; doble clic: ver todo.">
                         <TextBlock Text="i" FontSize="11" FontWeight="SemiBold" Foreground="{StaticResource Pincel.Apagado}" HorizontalAlignment="Center" VerticalAlignment="Center" />
                       </Border>
                       <TextBlock Text="{Binding Alcance}" Style="{StaticResource Texto.Apagado}" VerticalAlignment="Center" />
@@ -154,8 +154,6 @@
                   </DockPanel>
                   <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,2" Visibility="{Binding ModoEuros, Converter={StaticResource Visible}}">
                     <Border Style="{StaticResource Muestra}" Background="#2a78d6" /><TextBlock Text="Valor de mercado" Style="{StaticResource Texto.Apagado}" Margin="0,0,14,0" />
-                    <Border Style="{StaticResource Muestra}" Background="#7A8090" /><TextBlock Text="Capital invertido (coste de lo que había)" Style="{StaticResource Texto.Apagado}" Margin="0,0,14,0" />
-                    <Border Style="{StaticResource Muestra}" Background="#331E8E5A" Height="10" /><TextBlock Text="Plusvalía latente" Style="{StaticResource Texto.Apagado}" Margin="0,0,14,0" />
                     <TextBlock Text="▲ Compra   ▼ Venta" Style="{StaticResource Texto.Apagado}" />
                   </StackPanel>
                   <pc:GraficoTemporal Datos="{Binding DatosRevalorizacion}" FormatoEje="{Binding FormatoEjeRevalorizacion}" MinHeight="140" />
@@ -177,7 +175,7 @@
                     </Border>
                     <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                       <Border Width="17" Height="17" CornerRadius="9" BorderThickness="1" BorderBrush="{StaticResource Pincel.Linea3}" Margin="0,0,8,0" Cursor="Help"
-                              ToolTip="Compara cómo se ha movido el mercado de cada activo, tanto si había participaciones como si no. Como los precios son muy distintos, cada línea muestra cuánto ha subido o bajado en porcentaje desde el primer día del periodo. Pasa el ratón por la leyenda para resaltar un activo. Se ven los activos marcados en la tabla.">
+                              ToolTip="Compara cómo se ha movido el mercado de cada activo, tanto si había participaciones como si no: los días sin participaciones, su línea va punteada y tenue. Como los precios son muy distintos, cada línea muestra cuánto ha subido o bajado en porcentaje desde el primer día del periodo. Pasa el ratón por la leyenda para resaltar un activo. Se ven los activos marcados en la tabla. Rueda del ratón: acercar o alejar; arrastrar: ampliar una zona; doble clic: ver todo.">
                         <TextBlock Text="i" FontSize="11" FontWeight="SemiBold" Foreground="{StaticResource Pincel.Apagado}" HorizontalAlignment="Center" VerticalAlignment="Center" />
                       </Border>
                       <TextBlock Text="Variación acumulada de la cotización desde el primer día del periodo" Style="{StaticResource Texto.Apagado}" VerticalAlignment="Center" />
@@ -199,6 +197,34 @@
                   <pc:GraficoTemporal Datos="{Binding DatosComparativa}" SerieResaltada="{Binding SerieResaltada}" FormatoEje="{Binding FormatoEjeComparativa}" MinHeight="140" />
                 </DockPanel>
               </TabItem>
+              <TabItem Header="Invertido y valor" ToolTip="Histórico del total invertido frente al valor total de la cartera (invertido más plusvalía)">
+                <DockPanel>
+                  <DockPanel DockPanel.Dock="Top" Margin="0,0,0,4">
+                    <Border DockPanel.Dock="Right" Style="{StaticResource Segmentado}" ToolTip="Periodo que se ve en el gráfico">
+                      <StackPanel Orientation="Horizontal">
+                        <RadioButton Style="{StaticResource Segmento}" Content="1A" GroupName="IPer" IsChecked="{Binding Periodo, Converter={StaticResource Igual}, ConverterParameter=1A}" ToolTip="Último año" />
+                        <RadioButton Style="{StaticResource Segmento}" Content="3A" GroupName="IPer" IsChecked="{Binding Periodo, Converter={StaticResource Igual}, ConverterParameter=3A}" ToolTip="Últimos 3 años" />
+                        <RadioButton Style="{StaticResource Segmento}" Content="5A" GroupName="IPer" IsChecked="{Binding Periodo, Converter={StaticResource Igual}, ConverterParameter=5A}" ToolTip="Últimos 5 años" />
+                        <RadioButton Style="{StaticResource Segmento}" Content="Máx." GroupName="IPer" IsChecked="{Binding Periodo, Converter={StaticResource Igual}, ConverterParameter=Máx.}" ToolTip="Desde la primera compra" />
+                      </StackPanel>
+                    </Border>
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                      <Border Width="17" Height="17" CornerRadius="9" BorderThickness="1" BorderBrush="{StaticResource Pincel.Linea3}" Margin="0,0,8,0" Cursor="Help"
+                              ToolTip="El total invertido sube con cada compra y baja con cada venta (por el coste medio de lo vendido): por eso va en escalones. El valor total es lo que valía ese día lo que había en cartera, es decir, lo invertido más la plusvalía. La parte sombreada es la plusvalía latente (verde) o la minusvalía (rojo). Solo entran los activos que cotizan. Rueda del ratón: acercar o alejar; arrastrar: ampliar una zona; doble clic: ver todo.">
+                        <TextBlock Text="i" FontSize="11" FontWeight="SemiBold" Foreground="{StaticResource Pincel.Apagado}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                      </Border>
+                      <TextBlock Text="{Binding Alcance}" Style="{StaticResource Texto.Apagado}" VerticalAlignment="Center" />
+                    </StackPanel>
+                  </DockPanel>
+                  <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,2">
+                    <Border Style="{StaticResource Muestra}" Background="#2a78d6" /><TextBlock Text="Valor total (invertido + plusvalía)" Style="{StaticResource Texto.Apagado}" Margin="0,0,14,0" />
+                    <Border Style="{StaticResource Muestra}" Background="#7A8090" /><TextBlock Text="Total invertido" Style="{StaticResource Texto.Apagado}" Margin="0,0,14,0" />
+                    <Border Style="{StaticResource Muestra}" Background="#331E8E5A" Height="10" /><TextBlock Text="Plusvalía latente" Style="{StaticResource Texto.Apagado}" Margin="0,0,14,0" />
+                    <TextBlock Text="▲ Compra   ▼ Venta" Style="{StaticResource Texto.Apagado}" />
+                  </StackPanel>
+                  <pc:GraficoTemporal Datos="{Binding DatosInvertido}" FormatoEje="{Binding FormatoEjeInvertido}" MinHeight="140" />
+                </DockPanel>
+              </TabItem>
             </TabControl>
           </Border>
 
@@ -215,8 +241,13 @@
                     <RadioButton Style="{StaticResource Segmento}" Content="Otros" GroupName="Tipo" IsChecked="{Binding Tipo, Converter={StaticResource Igual}, ConverterParameter=Otros}" ToolTip="Acciones y participaciones que no cotizan" />
                   </StackPanel>
                 </Border>
-                <CheckBox Content="Ver vendidos" IsChecked="{Binding VerVendidos}" VerticalAlignment="Center" Margin="0,0,12,0"
-                          ToolTip="Muestra también los activos que ya se vendieron del todo, con su resultado" />
+                <Border Style="{StaticResource Segmentado}" Margin="0,0,12,0" VerticalAlignment="Center" ToolTip="Filtra por estado del activo">
+                  <StackPanel Orientation="Horizontal">
+                    <RadioButton Style="{StaticResource Segmento}" Content="Activos" GroupName="EstadoCartera" IsChecked="{Binding FiltroEstado, Converter={StaticResource Igual}, ConverterParameter=Activos}" ToolTip="Los que no tienen fecha de baja" />
+                    <RadioButton Style="{StaticResource Segmento}" Content="Inactivos" GroupName="EstadoCartera" IsChecked="{Binding FiltroEstado, Converter={StaticResource Igual}, ConverterParameter=Inactivos}" ToolTip="Los vendidos del todo o dados de baja, con su resultado" />
+                    <RadioButton Style="{StaticResource Segmento}" Content="Todos" GroupName="EstadoCartera" IsChecked="{Binding FiltroEstado, Converter={StaticResource Igual}, ConverterParameter=Todos}" ToolTip="Activos e inactivos" />
+                  </StackPanel>
+                </Border>
                 <TextBlock Text="Varios lotes del mismo activo se suman en una fila · ▸ muestra sus lotes" Style="{StaticResource Texto.Apagado}" VerticalAlignment="Center" />
               </WrapPanel>
               <Border DockPanel.Dock="Bottom" Style="{StaticResource Barra.Pie}" CornerRadius="0,0,6,6">
@@ -245,7 +276,7 @@
               <Grid>
                 <pc:TablaProConta x:Name="Tabla" ItemsSource="{Binding Filas}" ClavePreferencias="activos.financieros" TituloExportacion="Activos financieros"
                                   IsReadOnly="True" SelectionMode="Single" SelectionUnit="FullRow" CanUserSortColumns="False" AutomationProperties.Name="Rentabilidad por activo"
-                                  HorizontalScrollBarVisibility="Auto" ContextMenu="{StaticResource Menu.Cartera}" RowStyle="{StaticResource Fila.Cartera}" BorderThickness="0"
+                                  HorizontalScrollBarVisibility="Auto" ContextMenu="{StaticResource Menu.Cartera}" RowStyle="{StaticResource Fila.Cartera}" BorderThickness="0" RowHeight="42"
                                   PreviewMouseLeftButtonDown="Tabla_PreviewMouseLeftButtonDown" MouseDoubleClick="Tabla_MouseDoubleClick" PreviewKeyDown="Tabla_PreviewKeyDown">
                   <pc:TablaProConta.Columns>
                     <DataGridTemplateColumn Width="34" pc:TablaProConta.Clave="marca" pc:TablaProConta.SiempreVisible="True">
@@ -265,7 +296,7 @@
                     <DataGridTemplateColumn Width="26" pc:TablaProConta.Clave="lotes_desplegar" pc:TablaProConta.SiempreVisible="True">
                       <DataGridTemplateColumn.CellTemplate>
                         <DataTemplate>
-                          <Button Content="{Binding Flecha}" Style="{StaticResource Boton.Fantasma}" Padding="2,0" Click="Desplegar_Click" ToolTip="{Binding AyudaFlecha}"
+                          <Button Content="{Binding Flecha}" Style="{StaticResource Boton.Fantasma}" Padding="2,0" FontSize="17" MinWidth="22" Click="Desplegar_Click" ToolTip="{Binding AyudaFlecha}"
                                   Visibility="{Binding Desplegable, Converter={StaticResource Visible}}" />
                         </DataTemplate>
                       </DataGridTemplateColumn.CellTemplate>
@@ -318,7 +349,7 @@
                                         pc:TablaProConta.Clave="peso" pc:TablaProConta.Ayuda="Parte del valor de la cartera" />
                   </pc:TablaProConta.Columns>
                 </pc:TablaProConta>
-                <TextBlock Text="Ningún activo cumple los filtros. Cambia el tipo o marca «Ver vendidos»." Style="{StaticResource Texto.Apagado}"
+                <TextBlock Text="Ningún activo cumple los filtros. Cambia el tipo o el estado (Activos, Inactivos, Todos)." Style="{StaticResource Texto.Apagado}"
                            HorizontalAlignment="Center" VerticalAlignment="Center" Visibility="{Binding SinResultados, Converter={StaticResource Visible}}" />
               </Grid>
             </DockPanel>
@@ -376,9 +407,9 @@
                 </DockPanel>
               </TabItem>
               <!-- Lotes -->
-              <TabItem Header="Lotes" ToolTip="Cada compra es un lote; al vender se consumen primero los más antiguos (FIFO)">
+              <TabItem Header="Lotes" ToolTip="Cada compra es un lote; cada venta reduce todos los lotes en la misma proporción (coste medio ponderado)">
                 <DockPanel>
-                  <TextBlock DockPanel.Dock="Top" Text="Cada compra es un lote. Al vender se consumen primero los lotes más antiguos (FIFO), que es el criterio fiscal." Style="{StaticResource Texto.Apagado}" Margin="0,0,0,6" />
+                  <TextBlock DockPanel.Dock="Top" Text="Cada compra es un lote. Al vender, el coste de lo vendido es el coste medio ponderado (el de la contabilidad): cada venta reduce todos los lotes en la misma proporción." Style="{StaticResource Texto.Apagado}" Margin="0,0,0,6" />
                   <pc:TablaProConta ItemsSource="{Binding Lotes}" ClavePreferencias="activos.financieros.lotes" TituloExportacion="Lotes" IsReadOnly="True" AutomationProperties.Name="Lotes del activo">
                     <pc:TablaProConta.Columns>
                       <DataGridTextColumn Header="Comprado" Binding="{Binding Comprado}" Width="96" ElementStyle="{StaticResource Texto.Celda.Mono}" pc:TablaProConta.Clave="comprado" />
@@ -398,7 +429,7 @@
                 </DockPanel>
               </TabItem>
               <!-- Operaciones -->
-              <TabItem Header="Operaciones" ToolTip="Compras y ventas del activo, con el coste FIFO y el resultado de cada venta">
+              <TabItem Header="Operaciones" ToolTip="Compras y ventas del activo, con el coste medio de lo vendido y el resultado de cada venta">
                 <DockPanel>
                   <TextBlock DockPanel.Dock="Bottom" Style="{StaticResource Texto.Apagado}" Margin="0,6,0,0" TextWrapping="Wrap"
                              Text="Aquí solo se consultan. Las compras se anotan con «Nueva compra…» (clic derecho en la tabla o en el listado de activos) y su asiento se hace desde las líneas bancarias." />
@@ -411,7 +442,7 @@
                                           pc:TablaProConta.Ayuda="Importe entre participaciones, en euros (con comisiones)" />
                       <DataGridTextColumn Header="Importe" Binding="{Binding Importe}" Width="110" ElementStyle="{StaticResource Texto.Celda.Importe}" HeaderStyle="{StaticResource Tabla.Cabecera.Derecha}" pc:TablaProConta.Clave="importe" />
                       <DataGridTextColumn Header="Coste vendido" Binding="{Binding CosteVendido}" Width="110" ElementStyle="{StaticResource Texto.Celda.Importe}" HeaderStyle="{StaticResource Tabla.Cabecera.Derecha}" pc:TablaProConta.Clave="coste_vendido"
-                                          pc:TablaProConta.Ayuda="Coste FIFO de las participaciones vendidas" />
+                                          pc:TablaProConta.Ayuda="Coste medio ponderado de las participaciones vendidas" />
                       <DataGridTextColumn Header="Resultado" Binding="{Binding Resultado}" Width="140" ElementStyle="{StaticResource Celda.Tono}" HeaderStyle="{StaticResource Tabla.Cabecera.Derecha}" pc:TablaProConta.Clave="resultado"
                                           pc:TablaProConta.Ayuda="Importe menos coste vendido: a 766 si gana, a 666 si pierde" />
                       <DataGridTextColumn Header="Notas" Binding="{Binding Notas}" Width="*" MinWidth="160" ElementStyle="{StaticResource Texto.Celda}" pc:TablaProConta.Clave="notas" />

@@ -30,7 +30,7 @@ public sealed record NivelPivote(string Nombre, string Precio, string Ayuda, boo
 
 /// <summary>
 /// Análisis de un activo financiero dentro de la pantalla de cartera (maqueta v4): cifras, cotización histórica con el precio medio de compra y las
-/// operaciones, lotes FIFO, operaciones y proyección (señales técnicas en frases y escenarios), todo de solo lectura.
+/// operaciones, lotes a coste medio ponderado, operaciones y proyección (señales técnicas en frases y escenarios), todo de solo lectura.
 /// </summary>
 public sealed class AnalisisActivoVM : ModeloVista
 {
@@ -93,7 +93,7 @@ public sealed class AnalisisActivoVM : ModeloVista
             new("Rentabilidad anual", TextosCartera.Pct(P.RentabilidadAnual), P.RentabilidadAnual is null ? "con menos de un año no se calcula" : "TIR desde la primera compra",
                 "Rentabilidad media por año, teniendo en cuenta cuándo entró y salió cada euro", TextosCartera.Tono(P.RentabilidadAnual)),
             new("Resultado de ventas", TextosCartera.Signo(P.ResultadoVentas), ventas == 0 ? "sin ventas" : $"{ventas} {(ventas == 1 ? "venta" : "ventas")} · 766 / 666",
-                "Importe cobrado menos el coste FIFO de lo vendido", TextosCartera.Tono(P.ResultadoVentas)),
+                "Importe cobrado menos el coste medio ponderado de lo vendido", TextosCartera.Tono(P.ResultadoVentas)),
         ];
     }
 

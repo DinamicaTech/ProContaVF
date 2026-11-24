@@ -1,14 +1,14 @@
 namespace ProConta.Activos.Financieros;
 
 /// <summary>
-/// Un lote de un activo financiero: cada compra es un lote; las ventas consumen primero los lotes más antiguos (FIFO, el criterio fiscal;
-/// activos/activos-financieros, maqueta validada 2026-11-23 20:11).
+/// Un lote de un activo financiero: cada compra es un lote. Al vender, todos los lotes vivos se reducen en la misma proporción, porque el coste de lo
+/// vendido es el coste medio ponderado (activos 2026-11-11 18:21, Q5 a; activos/activos-financieros 2026-11-24 09:27).
 /// </summary>
 /// <param name="Numero">1, 2… por orden de compra.</param>
 /// <param name="Compradas">Participaciones compradas en el lote.</param>
-/// <param name="Vivas">Las que quedan hoy después de las ventas.</param>
-/// <param name="CosteUnitario">Coste de una participación en euros, con comisiones: coste del lote / participaciones (sin redondear).</param>
-/// <param name="Consumos">Ventas que han consumido participaciones de este lote: fecha y cuántas.</param>
+/// <param name="Vivas">Las que quedan hoy después de las ventas (pueden tener decimales: cada venta se reparte entre los lotes).</param>
+/// <param name="CosteUnitario">Coste de una participación del lote en euros, con comisiones: coste del lote / participaciones (sin redondear).</param>
+/// <param name="Consumos">Parte de cada venta que sale de este lote: fecha y participaciones.</param>
 public sealed record LoteInversion(int Numero, DateTime Fecha, decimal Compradas, decimal Vivas, decimal CosteUnitario, IReadOnlyList<(DateTime Fecha, decimal Participaciones)> Consumos)
 {
     /// <summary>Coste de lo que queda del lote, a céntimos.</summary>
@@ -19,47 +19,49 @@ public sealed record LoteInversion(int Numero, DateTime Fecha, decimal Compradas
         fecha.Date < Fecha.Date ? 0m : Compradas - Consumos.Where(c => c.Fecha.Date <= fecha.Date).Sum(c => c.Participaciones);
 }
 
-/// <summary>Una venta con el coste de lo vendido según FIFO y su resultado (a 766 si gana, a 666 si pierde).</summary>
+/// <summary>Una venta con el coste medio de lo vendido y su resultado (a 766 si gana, a 666 si pierde).</summary>
 /// <param name="Importe">Lo cobrado en euros (el importe total de la operación).</param>
-/// <param name="CosteVendido">Coste FIFO de las participaciones vendidas, a céntimos.</param>
+/// <param name="CosteVendido">Coste medio ponderado de las participaciones vendidas, a céntimos (<see cref="CosteMedioInversion"/>).</param>
 public sealed record VentaInversion(DateTime Fecha, decimal Participaciones, decimal Importe, decimal CosteVendido)
 {
     public decimal Resultado => Importe - CosteVendido;
 }
 
-/// <summary>Cálculo de lotes FIFO a partir de las operaciones (compras y ventas) de un activo financiero.</summary>
-public static class LotesFifo
+/// <summary>Lotes de un activo financiero a coste medio ponderado, a partir de sus operaciones (compras y ventas).</summary>
+public static class LotesCosteMedio
 {
     /// <summary>
-    /// Lotes (uno por compra) y ventas con su coste FIFO. Las operaciones se recorren por fecha y, el mismo día, las compras antes que las ventas.
-    /// Una venta de más participaciones de las que hay consume lo que haya (la diferencia no tiene coste).
+    /// Lotes (uno por compra) y ventas con su coste. Las operaciones se recorren como en <see cref="CosteMedioInversion"/>: por fecha y, el mismo día,
+    /// las compras antes que las ventas. Cada venta reduce todos los lotes vivos en la proporción vendida (vender todo los deja a cero) y su coste es
+    /// el de <see cref="CosteMedioInversion"/>, el mismo que usan la venta y su asiento. Una venta de más participaciones de las que hay las vacía.
     /// </summary>
     public static (IReadOnlyList<LoteInversion> Lotes, IReadOnlyList<VentaInversion> Ventas) Calcular(IEnumerable<OperacionDeInversion> operaciones)
     {
+        var ops = operaciones.Where(o => o.Participaciones > 0m && (o.EsCompra || o.EsVenta))
+            .OrderBy(o => o.Fecha.Date).ThenBy(o => o.Tipo).ThenBy(o => o.IdOperacion).ToList();
+        var coste = CosteMedioInversion.Calcular(ops.Select(o => new MovimientoCoste(o.IdOperacion, o.Tipo, o.Fecha, o.Participaciones, o.ImporteTotalEur)));
         var lotes = new List<(DateTime Fecha, decimal Compradas, decimal Coste, List<(DateTime, decimal)> Consumos)>();
         var ventas = new List<VentaInversion>();
-        foreach (var o in operaciones.OrderBy(o => o.Fecha).ThenBy(o => o.EsCompra ? 0 : 1).ThenBy(o => o.IdOperacion))
+        foreach (var o in ops)
         {
-            if (o.Participaciones <= 0m) continue;
             if (o.EsCompra)
             {
                 lotes.Add((o.Fecha.Date, o.Participaciones, o.ImporteTotalEur, []));
                 continue;
             }
-            if (o.Tipo != OperacionDeInversion.TipoVenta) continue;
-            var pendiente = o.Participaciones;
-            var coste = 0m;
-            foreach (var l in lotes)
+            var vivas = lotes.Select(l => l.Compradas - l.Consumos.Sum(c => c.Item2)).ToList();
+            var total = vivas.Sum();
+            if (total > 0m)
             {
-                if (pendiente <= 0m) break;
-                var vivas = l.Compradas - l.Consumos.Sum(c => c.Item2);
-                if (vivas <= 0m) continue;
-                var c = Math.Min(vivas, pendiente);
-                l.Consumos.Add((o.Fecha.Date, c));
-                coste += c * l.Coste / l.Compradas;
-                pendiente -= c;
+                var todo = o.Participaciones >= total;
+                for (var i = 0; i < lotes.Count; i++)
+                {
+                    if (vivas[i] <= 0m) continue;
+                    var sale = todo ? vivas[i] : vivas[i] * o.Participaciones / total;
+                    lotes[i].Consumos.Add((o.Fecha.Date, sale));
+                }
             }
-            ventas.Add(new VentaInversion(o.Fecha.Date, o.Participaciones, o.ImporteTotalEur, Math.Round(coste, 2, MidpointRounding.AwayFromZero)));
+            ventas.Add(new VentaInversion(o.Fecha.Date, o.Participaciones, o.ImporteTotalEur, coste.CosteVendido.GetValueOrDefault(o.IdOperacion)));
         }
         var r = lotes.Select((l, i) => new LoteInversion(i + 1, l.Fecha, l.Compradas, l.Compradas - l.Consumos.Sum(c => c.Item2),
             l.Compradas == 0m ? 0m : l.Coste / l.Compradas, l.Consumos)).ToList();
@@ -151,8 +153,8 @@ public sealed record PosicionFinanciera(int IdActivo, string Codigo, InversionDe
     public bool Viva => Participaciones > 0m;
     public int LotesVivos => Lotes.Count(l => l.Vivas > 0m);
 
-    /// <summary>Coste de lo que queda en cartera, a céntimos (suma del coste vivo de cada lote).</summary>
-    public decimal Coste => Lotes.Sum(l => l.CosteVivo);
+    /// <summary>Coste de lo que queda en cartera a coste medio ponderado, a céntimos (el de la ficha y la contabilidad).</summary>
+    public decimal Coste => Inversion.Coste;
 
     /// <summary>Coste medio por participación de lo que queda (con comisiones).</summary>
     public decimal? PrecioMedio => Participaciones > 0m ? Coste / Participaciones : null;
@@ -211,7 +213,7 @@ public sealed record PosicionFinanciera(int IdActivo, string Codigo, InversionDe
     /// <summary>Crea la posición a partir de sus operaciones, el histórico de precios en euros y el precio de hoy.</summary>
     public static PosicionFinanciera Crear(int idActivo, string codigo, InversionDeActivo inversion, SeriePrecios historico, PrecioEnEuros? hoy, DateTime fechaHoy)
     {
-        var (lotes, ventas) = LotesFifo.Calcular(inversion.Operaciones);
+        var (lotes, ventas) = LotesCosteMedio.Calcular(inversion.Operaciones);
         decimal? precio = hoy?.PrecioEur;
         DateTime? fecha = hoy?.FechaCotizacion;
         var origen = hoy?.Origen;

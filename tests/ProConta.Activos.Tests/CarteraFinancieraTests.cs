@@ -5,7 +5,7 @@ namespace ProConta.Activos.Tests;
 
 /// <summary>
 /// Cálculos de la vista de análisis de activos financieros sin base de datos (activos/activos-financieros, maqueta v4 validada 2026-11-23 20:11):
-/// lotes FIFO, coste de lo vendido, TIR, revalorización por lotes según su fecha de compra, variación relativa e indicadores de la proyección.
+/// lotes a coste medio ponderado, coste de lo vendido, TIR, revalorización por lotes según su fecha de compra, variación relativa e indicadores de la proyección.
 /// </summary>
 public sealed class CarteraFinancieraTests
 {
@@ -18,28 +18,37 @@ public sealed class CarteraFinancieraTests
     private static InversionDeActivo Inversion(params OperacionDeInversion[] ops) => new(1, 1, Fondo, 0m, ops);
 
     [Fact]
-    public void Fifo_la_venta_consume_primero_el_lote_mas_antiguo()
+    public void Coste_medio_la_venta_reduce_todos_los_lotes_en_proporcion()
     {
-        var (lotes, ventas) = LotesFifo.Calcular([
+        var (lotes, ventas) = LotesCosteMedio.Calcular([
             Compra(2, new(2024, 3, 1), 10m, 1200m),
             Compra(1, new(2023, 1, 10), 10m, 1000m),
             Venta(3, new(2025, 6, 2), 15m, 1950m)]);
 
         Assert.Equal(2, lotes.Count);
         Assert.Equal(new DateTime(2023, 1, 10), lotes[0].Fecha);
-        Assert.Equal(0m, lotes[0].Vivas);
-        Assert.Equal(5m, lotes[1].Vivas);
-        Assert.Equal(600m, lotes[1].CosteVivo);
+        Assert.Equal(2.5m, lotes[0].Vivas);       // se venden 15 de 20: queda una cuarta parte de cada lote
+        Assert.Equal(2.5m, lotes[1].Vivas);
+        Assert.Equal(250m, lotes[0].CosteVivo);
+        Assert.Equal(300m, lotes[1].CosteVivo);
         var v = Assert.Single(ventas);
-        Assert.Equal(1600m, v.CosteVendido); // 10 × 100 + 5 × 120
-        Assert.Equal(350m, v.Resultado);
+        Assert.Equal(1650m, v.CosteVendido); // 15 × 110 de coste medio
+        Assert.Equal(300m, v.Resultado);
     }
 
     [Fact]
-    public void Fifo_compra_y_venta_el_mismo_dia_cuenta_primero_la_compra()
+    public void Coste_medio_vender_todo_deja_los_lotes_a_cero()
+    {
+        var (lotes, ventas) = LotesCosteMedio.Calcular([Compra(1, new(2025, 1, 2), 3m, 100m), Compra(2, new(2025, 1, 3), 4m, 150m), Venta(3, new(2025, 2, 3), 7m, 300m)]);
+        Assert.All(lotes, l => Assert.Equal(0m, l.Vivas));
+        Assert.Equal(250m, ventas[0].CosteVendido);
+    }
+
+    [Fact]
+    public void Compra_y_venta_el_mismo_dia_cuenta_primero_la_compra()
     {
         var d = new DateTime(2025, 1, 2);
-        var (lotes, ventas) = LotesFifo.Calcular([Venta(1, d, 4m, 500m), Compra(2, d, 4m, 400m)]);
+        var (lotes, ventas) = LotesCosteMedio.Calcular([Venta(1, d, 4m, 500m), Compra(2, d, 4m, 400m)]);
         Assert.Equal(0m, lotes[0].Vivas);
         Assert.Equal(400m, ventas[0].CosteVendido);
     }
@@ -47,14 +56,14 @@ public sealed class CarteraFinancieraTests
     [Fact]
     public void Coste_de_lo_vendido_se_redondea_a_centimos()
     {
-        var (_, ventas) = LotesFifo.Calcular([Compra(1, new(2025, 1, 2), 3m, 100m), Venta(2, new(2025, 2, 3), 1m, 40m)]);
+        var (_, ventas) = LotesCosteMedio.Calcular([Compra(1, new(2025, 1, 2), 3m, 100m), Venta(2, new(2025, 2, 3), 1m, 40m)]);
         Assert.Equal(33.33m, ventas[0].CosteVendido);
     }
 
     [Fact]
     public void Participaciones_de_un_lote_en_cada_fecha()
     {
-        var (lotes, _) = LotesFifo.Calcular([Compra(1, new(2025, 1, 2), 10m, 1000m), Venta(2, new(2025, 3, 3), 4m, 500m)]);
+        var (lotes, _) = LotesCosteMedio.Calcular([Compra(1, new(2025, 1, 2), 10m, 1000m), Venta(2, new(2025, 3, 3), 4m, 500m)]);
         var l = lotes[0];
         Assert.Equal(0m, l.ParticipacionesEn(new(2025, 1, 1)));
         Assert.Equal(10m, l.ParticipacionesEn(new(2025, 1, 2)));
@@ -129,7 +138,7 @@ public sealed class CarteraFinancieraTests
 
         Assert.Equal((1000m, 1000m), (r[0].Invertido, r[0].Valor));     // solo el primer lote, a 100
         Assert.Equal((2100m, 2200m), (r[1].Invertido, r[1].Valor));     // los dos lotes, a 110
-        Assert.Equal((1600m, 1800m), (r[2].Invertido, r[2].Valor));     // FIFO: quedan 5 del primero (500) y 10 del segundo (1100), a 120
+        Assert.Equal((1575m, 1800m), (r[2].Invertido, r[2].Valor));     // coste medio: se vende 1/4 de cada lote; quedan 7,5 + 7,5 (750 + 825), a 120
     }
 
     [Fact]
