@@ -1,0 +1,51 @@
+# Descripciones de tablas y campos del área «seguridad». Formato en datos.txt.
+
+AccesoSociedadesGrupo: Sociedades a las que puede entrar cada grupo de operadores. Un operador ve las sociedades de sus grupos activos.
+AccesoSociedadesGrupo.IdGrupoOperadores: Grupo de operadores al que se da acceso.
+AccesoSociedadesGrupo.IdSociedad: Sociedad a la que puede entrar el grupo (todas sus ejercicios).
+
+AuditoriaSeguridad: Registro de los eventos de seguridad: entradas, salidas, intentos fallidos, cambios de contraseña y de operadores. Nunca guarda contraseñas.
+AuditoriaSeguridad.IdAuditoriaSeguridad: Identificador autonumérico del evento.
+AuditoriaSeguridad.FechaHora: Fecha y hora local del evento.
+AuditoriaSeguridad.TipoEvento: Qué pasó: LOGIN_CORRECTO, LOGIN_FALLIDO, LOGOUT, CONTEXTO_SELECCIONADO, PRIMER_ADMINISTRADOR, CONTRASENA_QUITADA, OPERADOR_MOVIDO…
+AuditoriaSeguridad.CodigoOperador: Operador afectado por el evento, como texto (se conserva aunque el operador cambie o desaparezca).
+AuditoriaSeguridad.Actor: Operador o proceso que provocó el evento, si no es el mismo afectado.
+AuditoriaSeguridad.Resultado: Resultado del evento (p. ej. CORRECTO o el motivo del rechazo).
+AuditoriaSeguridad.Detalle: Información adicional del evento, como la sociedad y el ejercicio elegidos.
+
+GruposOperadores: Grupos de operadores. Los permisos de acciones y el acceso a sociedades se dan a grupos, no a operadores sueltos.
+GruposOperadores.IdGrupoOperadores: Identificador autonumérico del grupo.
+GruposOperadores.Codigo: Código estable del grupo (p. ej. ADMINISTRADORES); el programa lo usa para reconocer los grupos técnicos.
+GruposOperadores.Nombre: Nombre del grupo que ve el operador.
+GruposOperadores.Descripcion: Para qué sirve el grupo.
+GruposOperadores.Activo: No: el grupo no da ningún permiso ni acceso a sus miembros.
+
+OperadoresGrupos: Grupos a los que pertenece cada operador.
+OperadoresGrupos.IdOperador: Operador miembro del grupo.
+OperadoresGrupos.IdGrupoOperadores: Grupo al que pertenece.
+
+OperadoresSeguridad.IdOperador: Identificador autonumérico del operador.
+OperadoresSeguridad.Activo: No: el operador no puede entrar en el programa.
+OperadoresSeguridad.HashPassword: Resumen PBKDF2-SHA256 de la contraseña. Vacío: el operador no tiene contraseña y entra con ella en blanco.
+OperadoresSeguridad.SaltPassword: Sal aleatoria propia del operador para calcular el resumen de la contraseña.
+OperadoresSeguridad.IteracionesPassword: Iteraciones de PBKDF2 con que se calculó el resumen de la contraseña.
+OperadoresSeguridad.PasswordTemporal: Sí: la contraseña es provisional y el operador debe cambiarla al entrar.
+OperadoresSeguridad.FechaHoraPassword: Fecha y hora en que se puso o cambió la contraseña por última vez.
+
+PermisosAccionesGrupo: Grupos autorizados para cada acción protegida (p. ej. FACTURAS.VALIDAR). Una acción sin filas la puede hacer cualquier operador; con alguna, solo los grupos que la tienen.
+PermisosAccionesGrupo.IdPermisoAccion: Identificador autonumérico del permiso.
+PermisosAccionesGrupo.CodigoAccion: Código de la acción protegida (FACTURAS.EDITAR, FACTURAS.VALIDAR, MANTENIMIENTO.EDITAR, SEGURIDAD.OPERADORES…).
+PermisosAccionesGrupo.IdGrupoOperadores: Grupo que puede hacer la acción.
+
+PreferenciasAccesoEjercicio: Último ejercicio que eligió cada operador en cada sociedad, para proponerlo al volver a entrar. No da permisos.
+PreferenciasAccesoEjercicio.IdOperador: Operador al que pertenece la preferencia.
+PreferenciasAccesoEjercicio.IdSociedad: Sociedad a la que se refiere.
+PreferenciasAccesoEjercicio.IdSociedadEjercicio: Último ejercicio elegido; al recuperarlo se vuelve a comprobar que el operador tiene acceso.
+
+PreferenciasAccesoOperador: Última sociedad en la que entró cada operador, para proponerla al volver a entrar. No da permisos.
+PreferenciasAccesoOperador.IdOperador: Operador al que pertenece la preferencia.
+PreferenciasAccesoOperador.IdSociedad: Última sociedad elegida por el operador.
+
+?RestriccionesReportsGrupo: Informes que un grupo no puede sacar (restricción por denegación heredada del ProConta anterior). El programa actual todavía no la usa.
+?RestriccionesReportsGrupo.IdGrupoOperadores: Grupo al que se le niega el informe.
+?RestriccionesReportsGrupo.CodigoReport: Código del informe denegado.

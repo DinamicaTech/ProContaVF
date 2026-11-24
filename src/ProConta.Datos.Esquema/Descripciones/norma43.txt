@@ -1,0 +1,154 @@
+# Descripciones de tablas y campos del área «norma43». Formato en datos.txt.
+
+?Bancos: Bancos de cada empresa tal como venían de ContaSol, con su cuenta contable e IBAN. Heredada; las cuentas que usa el programa están en CuentasBancarias. Hoy está vacía.
+?Bancos.IdBanco: Identificador autonumérico del banco.
+?Bancos.IdSociedad: Empresa a la que pertenece el banco.
+?Bancos.CodigoContaSol: Código del banco en ContaSol.
+?Bancos.Nombre: Nombre del banco.
+?Bancos.IdCuentaContable: Subcuenta 572 del banco.
+?Bancos.Iban: IBAN de la cuenta.
+?Bancos.Bic: BIC (SWIFT) de la entidad.
+?Bancos.Activo: No: el banco ya no se usa.
+
+ComplementosLineaExtractoBancario: Registros complementarios (tipo 23 y 24) de cada movimiento del fichero N43: conceptos adicionales y equivalencia en divisa.
+ComplementosLineaExtractoBancario.IdComplementoLineaExtracto: Identificador autonumérico del complemento.
+ComplementosLineaExtractoBancario.IdLineaExtractoBancario: Movimiento al que complementa.
+ComplementosLineaExtractoBancario.OrdinalComplemento: Orden del complemento dentro del movimiento.
+ComplementosLineaExtractoBancario.NumeroLineaFisica: Número de línea en el fichero N43.
+ComplementosLineaExtractoBancario.TipoRegistro: Tipo de registro de la norma 43: 23 (concepto complementario) o 24 (equivalencia de divisa).
+ComplementosLineaExtractoBancario.CodigoDato: Código de dato del registro complementario (01 a 05).
+ComplementosLineaExtractoBancario.Concepto1: Primer bloque de texto del concepto complementario.
+ComplementosLineaExtractoBancario.Concepto2: Segundo bloque de texto del concepto complementario.
+ComplementosLineaExtractoBancario.Divisa: Moneda original, en los registros de equivalencia de divisa.
+ComplementosLineaExtractoBancario.Importe: Importe en la moneda original, en los registros de equivalencia de divisa.
+ComplementosLineaExtractoBancario.TextoOriginal: Línea del fichero tal como venía.
+
+ConceptosN43.IdConceptoN43: Identificador autonumérico del concepto.
+ContabilizacionesLineaExtracto.IdContabilizacionLineaExtracto: Identificador autonumérico de la contabilización.
+
+CuentasBancarias: Cuentas bancarias de cada empresa (las de sus extractos N43 y las de cobro de las formas de pago); valen para todos los ejercicios.
+CuentasBancarias.IdCuentaBancaria: Identificador autonumérico de la cuenta bancaria.
+CuentasBancarias.IdSociedad: Empresa titular de la cuenta.
+CuentasBancarias.IdEntidadFinanciera: Entidad financiera de la cuenta.
+CuentasBancarias.EntidadOriginal: Código de entidad (cuatro cifras) tal como viene en el fichero N43.
+CuentasBancarias.Oficina: Código de oficina (cuatro cifras).
+CuentasBancarias.Cuenta: Número de cuenta de diez cifras de la norma 43 (no es una cuenta contable).
+CuentasBancarias.Iban: IBAN de la cuenta.
+CuentasBancarias.Divisa: Moneda de la cuenta (código ISO).
+CuentasBancarias.Nombre: Nombre de la cuenta para reconocerla en listas.
+CuentasBancarias.Activa: No: la cuenta no se ofrece al importar ni en las formas de pago.
+
+EntidadesFinancieras: Entidades financieras (bancos y cajas) por su código de cuatro cifras.
+EntidadesFinancieras.IdEntidadFinanciera: Identificador autonumérico de la entidad.
+EntidadesFinancieras.Codigo: Código de la entidad (cuatro cifras, el del IBAN y la norma 43).
+EntidadesFinancieras.Nombre: Nombre de la entidad.
+EntidadesFinancieras.Activa: No: la entidad no se ofrece.
+
+ExtractosBancarios: Cada extracto (cuenta y periodo) de un fichero N43 importado, con los saldos y totales que declara el banco y los calculados.
+ExtractosBancarios.IdExtractoBancario: Identificador autonumérico del extracto.
+ExtractosBancarios.IdLoteImportacionBancaria: Fichero (lote de importación) del que viene.
+ExtractosBancarios.OrdinalExtracto: Orden del extracto dentro del fichero.
+ExtractosBancarios.IdCuentaBancaria: Cuenta bancaria del extracto.
+ExtractosBancarios.Entidad: Código de entidad de la cabecera del extracto.
+ExtractosBancarios.Oficina: Código de oficina de la cabecera del extracto.
+ExtractosBancarios.Cuenta: Número de cuenta (diez cifras) de la cabecera del extracto.
+ExtractosBancarios.Divisa: Moneda del extracto.
+ExtractosBancarios.FechaInicio: Primer día del periodo del extracto.
+ExtractosBancarios.FechaFin: Último día del periodo del extracto.
+ExtractosBancarios.SentidoSaldoInicial: Signo del saldo inicial: H acreedor (a favor de la empresa) o D deudor.
+ExtractosBancarios.SaldoInicial: Saldo al inicio del periodo, en valor absoluto.
+ExtractosBancarios.Modalidad: Modalidad de información de la norma 43 (1, 2 o 3).
+ExtractosBancarios.Nombre: Nombre abreviado del titular de la cuenta en la cabecera.
+ExtractosBancarios.NumeroApuntesDebeDeclarado: Número de cargos que declara el registro final del extracto.
+ExtractosBancarios.TotalDebeDeclarado: Total de cargos que declara el registro final.
+ExtractosBancarios.NumeroApuntesHaberDeclarado: Número de abonos que declara el registro final.
+ExtractosBancarios.TotalHaberDeclarado: Total de abonos que declara el registro final.
+ExtractosBancarios.NumeroApuntesDebeCalculado: Número de cargos contados al leer los movimientos.
+ExtractosBancarios.TotalDebeCalculado: Total de cargos sumado al leer los movimientos.
+ExtractosBancarios.NumeroApuntesHaberCalculado: Número de abonos contados al leer los movimientos.
+ExtractosBancarios.TotalHaberCalculado: Total de abonos sumado al leer los movimientos.
+ExtractosBancarios.CodigoSeguridad: Código de seguridad del registro final, si lo trae.
+ExtractosBancarios.SaldoFinal: Saldo final que declara el banco.
+ExtractosBancarios.EstadoCuadre: CUADRADO si lo declarado coincide con lo calculado; si no, DESCUADRADO.
+ExtractosBancarios.TextoCabeceraOriginal: Registro de cabecera (11) tal como venía en el fichero.
+ExtractosBancarios.TextoCierreOriginal: Registro final (33) tal como venía en el fichero.
+
+ImputacionesLineaExtractoBancario: Cuenta contrapartida asignada a cada movimiento del extracto (por palabra clave, a mano o del ERP), con su importe y estado.
+ImputacionesLineaExtractoBancario.IdImputacionLineaExtractoBancario: Identificador autonumérico de la imputación.
+ImputacionesLineaExtractoBancario.IdLineaExtractoBancario: Movimiento al que se asigna la cuenta.
+ImputacionesLineaExtractoBancario.IdIdentidadContable: Cuenta contrapartida (identidad contable); el asiento usa su código del ejercicio.
+ImputacionesLineaExtractoBancario.Rol: Papel de la cuenta en el movimiento: CONTRAPARTIDA.
+ImputacionesLineaExtractoBancario.ImporteFirmado: Importe imputado con signo (positivo abono, negativo cargo).
+ImputacionesLineaExtractoBancario.Origen: Cómo se asignó: PALABRA_CLAVE, MANUAL o ERP (migrada).
+ImputacionesLineaExtractoBancario.Confianza: Confianza de la asignación automática (0 a 1).
+ImputacionesLineaExtractoBancario.Estado: Estado de la asignación: CONFIRMADA u otra pendiente de revisar.
+ImputacionesLineaExtractoBancario.Concepto: Concepto del apunte que se generará.
+ImputacionesLineaExtractoBancario.IdCentroCoste: Centro de coste del apunte; de la misma empresa que el extracto.
+ImputacionesLineaExtractoBancario.IdPalabraClaveBancaria: Palabra clave que asignó la cuenta, si fue automática.
+
+IncidenciasImportacionBancaria: Avisos y errores al leer un fichero N43: línea, gravedad y explicación.
+IncidenciasImportacionBancaria.IdIncidenciaImportacionBancaria: Identificador autonumérico de la incidencia.
+IncidenciasImportacionBancaria.IdLoteImportacionBancaria: Fichero en el que surgió.
+IncidenciasImportacionBancaria.NumeroLineaFisica: Línea del fichero afectada.
+IncidenciasImportacionBancaria.Codigo: Código del tipo de incidencia.
+IncidenciasImportacionBancaria.Severidad: Gravedad: INFORMATIVA, ADVERTENCIA o ERROR.
+IncidenciasImportacionBancaria.Mensaje: Qué pasó y qué hacer.
+IncidenciasImportacionBancaria.RegistroOriginal: Línea del fichero tal como venía.
+IncidenciasImportacionBancaria.EstadoResolucion: PENDIENTE de revisar o RESUELTA.
+
+LineasExtractoBancario: Movimientos (registro 22) de cada extracto N43: fechas, conceptos, importe y referencias.
+LineasExtractoBancario.IdLineaExtractoBancario: Identificador autonumérico del movimiento.
+LineasExtractoBancario.IdExtractoBancario: Extracto al que pertenece.
+LineasExtractoBancario.OrdinalMovimiento: Orden del movimiento dentro del extracto.
+LineasExtractoBancario.NumeroLineaFisica: Número de línea en el fichero N43.
+LineasExtractoBancario.OficinaOrigen: Oficina en la que se originó el movimiento.
+LineasExtractoBancario.FechaOperacion: Fecha de la operación.
+LineasExtractoBancario.FechaValor: Fecha valor del movimiento.
+LineasExtractoBancario.ConceptoComun: Concepto común de la norma 43 (dos cifras: 01 talones, 02 abonarés, 04 transferencias…).
+LineasExtractoBancario.ConceptoPropio: Concepto propio de la entidad (tres cifras).
+LineasExtractoBancario.Sentido: D cargo (sale dinero) o H abono (entra dinero).
+LineasExtractoBancario.Importe: Importe del movimiento, en valor absoluto.
+LineasExtractoBancario.Documento: Número de documento del movimiento.
+LineasExtractoBancario.Referencia1: Primera referencia del movimiento.
+LineasExtractoBancario.Referencia2: Segunda referencia del movimiento.
+LineasExtractoBancario.ConceptoCompleto: Concepto entero, con los textos de los registros complementarios.
+LineasExtractoBancario.EntidadOficinaDestino: Entidad y oficina de destino, si las trae.
+LineasExtractoBancario.TextoOriginal: Registro 22 tal como venía en el fichero.
+
+LotesImportacionBancaria: Cada fichero bancario importado (o migrado del ERP): contenido, recuentos, estado y, si se deshizo, cuándo y por qué.
+LotesImportacionBancaria.IdLoteImportacionBancaria: Identificador autonumérico del lote.
+LotesImportacionBancaria.IdSociedad: Empresa del fichero; un extracto puede abarcar más de un ejercicio.
+LotesImportacionBancaria.Formato: Formato del fichero: NORMA43.
+LotesImportacionBancaria.VersionEsquema: Variante del formato leída (ERP en los migrados).
+LotesImportacionBancaria.NombreFichero: Nombre del fichero importado.
+LotesImportacionBancaria.RutaOrigen: Ruta completa del fichero importado.
+LotesImportacionBancaria.HashSha256Contenido: Huella SHA-256 del contenido; detecta el mismo fichero importado dos veces.
+LotesImportacionBancaria.TamanoBytes: Tamaño del fichero en bytes.
+LotesImportacionBancaria.Codificacion: Codificación de caracteres del fichero.
+LotesImportacionBancaria.Estado: IMPORTADO o REVERTIDO (deshecho).
+LotesImportacionBancaria.FechaHoraInicio: Fecha y hora en que empezó la importación.
+LotesImportacionBancaria.FechaHoraFin: Fecha y hora en que terminó.
+LotesImportacionBancaria.NumeroRegistrosDeclarado: Número de registros que declara el fichero en su registro final.
+LotesImportacionBancaria.NumeroRegistrosLeido: Número de registros leídos.
+LotesImportacionBancaria.NumeroExtractos: Extractos que trae el fichero.
+LotesImportacionBancaria.NumeroMovimientos: Movimientos que trae el fichero.
+LotesImportacionBancaria.NumeroErrores: Incidencias de tipo error.
+LotesImportacionBancaria.NumeroAdvertencias: Incidencias de tipo advertencia.
+LotesImportacionBancaria.FechaHoraReversion: Fecha y hora en que se deshizo; vacía si no se ha deshecho.
+LotesImportacionBancaria.OperadorReversion: Operador que lo deshizo.
+LotesImportacionBancaria.MotivoReversion: Por qué se deshizo.
+
+PalabrasClaveBancarias: Palabras que, si aparecen en el concepto de un movimiento del banco, deciden su cuenta contrapartida (por empresa, entidad y sentido).
+PalabrasClaveBancarias.IdPalabraClaveBancaria: Identificador autonumérico de la palabra clave.
+PalabrasClaveBancarias.IdSociedad: Empresa a la que pertenece.
+PalabrasClaveBancarias.Entidad: Código de la entidad financiera a la que se limita; vacío: cualquiera.
+PalabrasClaveBancarias.Sentido: Movimientos a los que se aplica: D cargos, H abonos; vacío: ambos.
+PalabrasClaveBancarias.PalabraClave: Texto que tiene que aparecer en el concepto del movimiento.
+PalabrasClaveBancarias.PalabraClave2: Segundo texto que también tiene que aparecer; vacío si basta el primero.
+PalabrasClaveBancarias.IdIdentidadContable: Cuenta contrapartida que se asigna al movimiento.
+PalabrasClaveBancarias.Especial: Tratamiento especial: 5 remesa de recibos que se explota después; vacío o 0, ninguno.
+PalabrasClaveBancarias.Activa: No: la palabra clave no se aplica.
+
+ReintentosSEPA: Nuevos intentos de cobro por recibo SEPA de una factura después de una devolución; el primer cobro está en Facturas.LineaN43.
+ReintentosSEPA.IdReintentoSEPA: Identificador autonumérico del reintento.
+ReintentosSEPA.IdFactura: Factura cuyo cobro se vuelve a intentar.

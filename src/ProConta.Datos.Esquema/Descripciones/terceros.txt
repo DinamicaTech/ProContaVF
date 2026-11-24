@@ -1,0 +1,28 @@
+# Descripciones de tablas y campos del área «terceros». Formato en datos.txt.
+
+CuentasClientesSociedad: Cuentas de un cliente en cada empresa: su subcuenta 430 (clase CLIENTE) y, si se le retiene, la de retención (clase RETENCION), como identidades contables que valen para todos los ejercicios.
+CuentasClientesSociedad.IdCuentaClienteSociedad: Identificador autonumérico de la fila.
+CuentasClientesSociedad.IdCliente: Cliente (rol del tercero) al que pertenece la cuenta.
+CuentasClientesSociedad.IdSociedad: Empresa en la que el cliente usa esta cuenta.
+CuentasClientesSociedad.IdIdentidadContable: Identidad contable de la subcuenta; su código en cada ejercicio está en CuentasContables.
+CuentasClientesSociedad.Clase: Para qué es la cuenta: CLIENTE (la 430 del cliente) o RETENCION (la de las retenciones que practica el cliente).
+
+CuentasProveedoresSociedad: Cuentas y valores por defecto de un proveedor o acreedor en cada empresa: su subcuenta 400/410 y lo que se propone en sus facturas de compra.
+CuentasProveedoresSociedad.IdCuentaProveedorSociedad: Identificador autonumérico de la fila.
+CuentasProveedoresSociedad.IdProveedor: Proveedor (rol del tercero) al que pertenece la cuenta.
+CuentasProveedoresSociedad.IdSociedad: Empresa en la que el proveedor usa esta cuenta.
+CuentasProveedoresSociedad.Clase: PROVEEDOR (subcuenta 400, compras de existencias) o ACREEDOR (subcuenta 410, servicios y gastos).
+CuentasProveedoresSociedad.IdIdentidadContable: Identidad contable de la subcuenta del proveedor; su código en cada ejercicio está en CuentasContables.
+CuentasProveedoresSociedad.IdFormaPagoDefecto: Forma de pago que se propone en sus facturas de compra nuevas.
+CuentasProveedoresSociedad.TipoProductoDefecto: Tipo de producto que se propone en sus facturas: 1 servicios, 2 bienes. Lo recuerda la última factura grabada.
+CuentasProveedoresSociedad.IdIdentidadGastoDefecto: Cuenta de gasto (identidad contable) que se propone en sus facturas de compra.
+CuentasProveedoresSociedad.IdCentroCosteDefecto: Centro de coste que se propone en sus facturas de compra.
+CuentasProveedoresSociedad.ConceptoAbreviadoDefecto: Concepto abreviado que se propone en sus facturas de compra (el texto corto del asiento).
+
+Proveedores: Rol de proveedor o acreedor de un tercero. Sus cuentas por empresa están en CuentasProveedoresSociedad.
+Proveedores.IdProveedor: Identificador autonumérico del rol de proveedor.
+Proveedores.Activo: No: el proveedor no se ofrece en las facturas de compra nuevas.
+Proveedores.EstadoVies: Resultado de comprobar su NIF comunitario en el VIES: «VIES» (inscrito), «NO VIES» (no inscrito) o vacío (sin comprobar).
+Proveedores.FechaVies: Fecha y hora de la última comprobación en el VIES.
+
+Terceros.Version: Número de versión de la ficha; sube en cada cambio y evita que dos personas se pisen al guardar a la vez.

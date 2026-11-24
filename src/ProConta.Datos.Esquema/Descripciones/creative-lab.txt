@@ -1,0 +1,17 @@
+# Descripciones de tablas y campos del área «creative-lab». Formato en datos.txt.
+
+?ConversacionesIA: Conversaciones con el asistente de IA dentro del programa, por empresa. Heredada del ProConta anterior; el programa actual no la usa (el asistente va por el conector de Claude Desktop).
+?ConversacionesIA.IdConversacion: Identificador autonumérico de la conversación.
+?ConversacionesIA.IdSociedad: Empresa de la conversación; no depende del ejercicio.
+?ConversacionesIA.Titulo: Título de la conversación.
+?ConversacionesIA.FechaCreacion: Fecha y hora en que empezó.
+?ConversacionesIA.FechaActualizacion: Fecha y hora del último mensaje.
+?ConversacionesIA.EstaActiva: No: la conversación está archivada.
+
+?MensajesConversacionIA: Mensajes de cada conversación con el asistente de IA. Heredada del ProConta anterior; el programa actual no la usa.
+?MensajesConversacionIA.IdMensaje: Identificador autonumérico del mensaje.
+?MensajesConversacionIA.IdConversacion: Conversación a la que pertenece.
+?MensajesConversacionIA.OrdenMensaje: Posición del mensaje en la conversación.
+?MensajesConversacionIA.Rol: Quién escribe el mensaje (operador o asistente).
+?MensajesConversacionIA.Contenido: Texto del mensaje.
+?MensajesConversacionIA.FechaHora: Fecha y hora del mensaje.

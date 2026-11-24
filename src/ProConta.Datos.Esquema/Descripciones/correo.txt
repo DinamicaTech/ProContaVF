@@ -1,0 +1,221 @@
+# Descripciones de tablas y campos del área «correo». Formato en datos.txt.
+# Las tablas «MailDispatcher» son del buzón receptor del ProConta anterior; el programa actual usa CuentasCorreo,
+# MensajesCorreo y MensajesRecibidosCorreo.
+
+?AdjuntosMailDispatcher: Adjuntos de los mensajes que leía el buzón receptor del ProConta anterior (Mail Dispatcher). El programa actual no la usa.
+?AdjuntosMailDispatcher.IdAdjuntoMail: Identificador autonumérico del adjunto.
+?AdjuntosMailDispatcher.IdProcesamientoMail: Mensaje procesado al que pertenece.
+?AdjuntosMailDispatcher.Ordinal: Orden del adjunto en el mensaje.
+?AdjuntosMailDispatcher.NombreOriginal: Nombre del fichero adjunto tal como venía.
+?AdjuntosMailDispatcher.HashContenido: Huella SHA-256 del contenido del adjunto.
+?AdjuntosMailDispatcher.TipoDetectado: Tipo de documento reconocido en el adjunto.
+?AdjuntosMailDispatcher.Estado: Estado del procesamiento del adjunto.
+?AdjuntosMailDispatcher.RutaMaterializada: Ruta en la que se guardó el adjunto.
+?AdjuntosMailDispatcher.Detalle: Detalle del resultado o del error.
+
+AdjuntosMensajeCorreo: Adjuntos de cada correo enviado: copia inmutable del fichero, con su huella, guardada en la carpeta de documentos de la empresa.
+AdjuntosMensajeCorreo.IdAdjuntoMensaje: Identificador autonumérico del adjunto.
+AdjuntosMensajeCorreo.IdMensajeCorreo: Mensaje al que pertenece.
+AdjuntosMensajeCorreo.Ordinal: Orden del adjunto en el mensaje.
+AdjuntosMensajeCorreo.Nombre: Nombre del fichero tal como lo ve el destinatario.
+AdjuntosMensajeCorreo.TipoContenido: Tipo MIME del adjunto (p. ej. application/pdf).
+AdjuntosMensajeCorreo.TamanoBytes: Tamaño en bytes.
+AdjuntosMensajeCorreo.Huella: Huella SHA-256 del contenido; prueba que lo enviado es lo que se guardó.
+AdjuntosMensajeCorreo.RutaRelativa: Ruta de la copia del adjunto, relativa a la carpeta de documentos de la empresa.
+
+AdjuntosRecibidosCorreo: Adjuntos de cada correo recibido: tipo reconocido, estado y lo que generaron (factura de compra, asiento).
+AdjuntosRecibidosCorreo.IdAdjuntoRecibido: Identificador autonumérico del adjunto.
+AdjuntosRecibidosCorreo.IdMensajeRecibido: Mensaje recibido al que pertenece.
+AdjuntosRecibidosCorreo.Ordinal: Orden del adjunto en el mensaje.
+AdjuntosRecibidosCorreo.Nombre: Nombre del fichero tal como venía.
+AdjuntosRecibidosCorreo.TamanoBytes: Tamaño en bytes.
+AdjuntosRecibidosCorreo.Huella: Huella SHA-256 del contenido.
+AdjuntosRecibidosCorreo.RutaRelativa: Ruta de la copia guardada, relativa a la carpeta de documentos de la empresa.
+AdjuntosRecibidosCorreo.Tipo: Tipo reconocido: FacturaCompra, Norma43, Nomina o NoReconocido.
+AdjuntosRecibidosCorreo.Estado: Pendiente, Procesado, Revisar, MotorPendiente (aún no hay proceso para ese tipo), NoReconocido o Error.
+AdjuntosRecibidosCorreo.IdFacturaCompra: Factura de compra que se registró con el adjunto.
+AdjuntosRecibidosCorreo.IdAsiento: Asiento que generó el adjunto.
+AdjuntosRecibidosCorreo.Detalle: Detalle del resultado o del error.
+
+?ConfiguracionMailDispatcher: Buzón receptor del ProConta anterior (Mail Dispatcher) por ejercicio: servidores, límites y frecuencia. El programa actual no la usa; la cuenta de correo está en CuentasCorreo.
+?ConfiguracionMailDispatcher.IdConfiguracionMail: Identificador autonumérico de la configuración.
+?ConfiguracionMailDispatcher.IdSociedadEjercicio: Empresa y ejercicio del buzón.
+?ConfiguracionMailDispatcher.Activo: No: el buzón no se lee.
+?ConfiguracionMailDispatcher.DireccionReceptora: Dirección del buzón que recibe los documentos.
+?ConfiguracionMailDispatcher.NombreVisible: Nombre que acompaña a la dirección.
+?ConfiguracionMailDispatcher.ServidorPop3: Servidor POP3 del buzón.
+?ConfiguracionMailDispatcher.PuertoPop3: Puerto POP3.
+?ConfiguracionMailDispatcher.TlsPop3: Cifrado de la conexión POP3.
+?ConfiguracionMailDispatcher.UsuarioPop3: Usuario del buzón POP3.
+?ConfiguracionMailDispatcher.ServidorSmtp: Servidor SMTP para responder.
+?ConfiguracionMailDispatcher.PuertoSmtp: Puerto SMTP.
+?ConfiguracionMailDispatcher.TlsSmtp: Cifrado de la conexión SMTP.
+?ConfiguracionMailDispatcher.AutenticarSmtp: Sí: el servidor SMTP pide usuario y contraseña.
+?ConfiguracionMailDispatcher.UsuarioSmtp: Usuario del servidor SMTP.
+?ConfiguracionMailDispatcher.ReferenciaSecreto: Referencia a la contraseña guardada fuera de la BD; la BD no contiene la contraseña.
+?ConfiguracionMailDispatcher.DireccionRemitente: Dirección desde la que se responde.
+?ConfiguracionMailDispatcher.DireccionRespuesta: Dirección a la que se piden las respuestas.
+?ConfiguracionMailDispatcher.IntervaloMinutos: Cada cuántos minutos se lee el buzón.
+?ConfiguracionMailDispatcher.EliminarTrasProcesar: Sí: borra del servidor los mensajes procesados.
+?ConfiguracionMailDispatcher.TiempoEsperaSegundos: Segundos de espera máxima de las conexiones.
+?ConfiguracionMailDispatcher.TamanoMaximoMensajeBytes: Tamaño máximo de un mensaje que se procesa.
+?ConfiguracionMailDispatcher.NumeroMaximoAdjuntos: Número máximo de adjuntos que se procesan por mensaje.
+?ConfiguracionMailDispatcher.TamanoMaximoAdjuntoBytes: Tamaño máximo de un adjunto que se procesa.
+
+CuentasCorreo: Cuenta de correo de cada empresa y ejercicio: envía por SMTP y recibe por POP3, con la contraseña cifrada.
+CuentasCorreo.IdCuentaCorreo: Identificador autonumérico de la cuenta.
+CuentasCorreo.IdSociedadEjercicio: Empresa y ejercicio de la cuenta.
+CuentasCorreo.Activa: No: no se envía ni se recibe nada con esta cuenta; los correos pendientes esperan.
+CuentasCorreo.Direccion: Dirección de correo de la cuenta; es el remitente de los mensajes.
+CuentasCorreo.NombreVisible: Nombre que ve el destinatario junto a la dirección.
+CuentasCorreo.Usuario: Usuario para iniciar sesión en los servidores; vacío: la propia dirección.
+CuentasCorreo.SecretoProtegido: Contraseña cifrada con la protección de datos de Windows; no se puede leer fuera de este equipo y usuario.
+CuentasCorreo.ResponderA: Dirección a la que se piden las respuestas; vacía: la de la cuenta.
+CuentasCorreo.ServidorSmtp: Servidor de correo saliente.
+CuentasCorreo.PuertoSmtp: Puerto SMTP (587 con STARTTLS, 465 con TLS).
+CuentasCorreo.SeguridadSmtp: Cifrado de la conexión SMTP: StartTls o Tls. Nunca sin cifrar.
+CuentasCorreo.ServidorPop3: Servidor de correo entrante; vacío: la cuenta no recibe.
+CuentasCorreo.PuertoPop3: Puerto POP3 (110 con STARTTLS, 995 con TLS).
+CuentasCorreo.SeguridadPop3: Cifrado de la conexión POP3: StartTls o Tls. Nunca sin cifrar.
+CuentasCorreo.EliminarTrasProcesar: Sí: borra del servidor los mensajes recibidos ya procesados.
+CuentasCorreo.IntervaloRecepcionMinutos: Cada cuántos minutos se lee el buzón.
+CuentasCorreo.TiempoEsperaSegundos: Segundos de espera máxima de las conexiones con los servidores.
+CuentasCorreo.Version: Número de versión de la cuenta; sube en cada cambio y evita que dos personas se pisen al guardar a la vez.
+CuentasCorreo.FechaModificacion: Fecha y hora del último cambio.
+CuentasCorreo.OperadorModificacion: Operador que hizo el último cambio.
+
+DestinatariosMensajeCorreo: Destinatarios de cada correo enviado, con el campo en que van y lo que respondió el servidor.
+DestinatariosMensajeCorreo.IdDestinatarioMensaje: Identificador autonumérico del destinatario.
+DestinatariosMensajeCorreo.IdMensajeCorreo: Mensaje al que pertenece.
+DestinatariosMensajeCorreo.Tipo: Campo en que va: Para, Cc o Cco.
+DestinatariosMensajeCorreo.Direccion: Dirección del destinatario (la real, aunque el correo se desvíe en pruebas).
+DestinatariosMensajeCorreo.Nombre: Nombre del destinatario.
+DestinatariosMensajeCorreo.Resultado: Resultado en el último intento: SinResultado, Aceptado o Rechazado.
+DestinatariosMensajeCorreo.RespuestaServidor: Respuesta del servidor SMTP para este destinatario.
+
+IntentosMensajeCorreo: Cada intento de enviar un correo: cuándo, hasta qué fase llegó y qué respondió el servidor.
+IntentosMensajeCorreo.IdIntentoMensaje: Identificador autonumérico del intento.
+IntentosMensajeCorreo.IdMensajeCorreo: Mensaje que se intentó enviar.
+IntentosMensajeCorreo.Numero: Número del intento (1 el primero).
+IntentosMensajeCorreo.Inicio: Fecha y hora en que empezó.
+IntentosMensajeCorreo.Fin: Fecha y hora en que terminó; vacía si se cortó.
+IntentosMensajeCorreo.Resultado: Resultado del intento: EnCurso, Aceptado, AceptadoEnParte, Fallido o Incierto.
+IntentosMensajeCorreo.Fase: Fase a la que llegó: Preparación, conexión, autenticación, envío…
+IntentosMensajeCorreo.RespuestaServidor: Última respuesta del servidor SMTP.
+IntentosMensajeCorreo.Detalle: Detalle técnico del resultado o del error.
+IntentosMensajeCorreo.Operador: Operador de la sesión que hizo el intento.
+
+LotesCorreo: Envíos de varios correos de una vez (p. ej. las facturas de un mes), para ver su resumen conjunto.
+LotesCorreo.IdLoteCorreo: Identificador autonumérico del lote.
+LotesCorreo.IdSociedadEjercicio: Empresa y ejercicio del lote.
+LotesCorreo.Descripcion: Qué se envió en el lote.
+LotesCorreo.Origen: Proceso que creó el lote (p. ej. el envío de facturas).
+LotesCorreo.FechaCreacion: Fecha y hora en que se creó.
+LotesCorreo.Operador: Operador que lo lanzó.
+
+MensajesCorreo: Cola y registro de los correos enviados por el programa: remitente, asunto, cuerpo, origen (factura, tercero…) y estado del envío.
+MensajesCorreo.IdMensajeCorreo: Identificador autonumérico del mensaje.
+MensajesCorreo.IdSociedadEjercicio: Empresa y ejercicio desde los que se envía; no cambia aunque luego se cambie de empresa activa.
+MensajesCorreo.IdCuentaCorreo: Cuenta de correo que lo envía.
+MensajesCorreo.IdLoteCorreo: Lote al que pertenece; vacío si se envió solo.
+MensajesCorreo.TipoCorreo: Tipo de correo (TiposCorreo): FACTURA, OTRO…
+MensajesCorreo.TipoOrigen: Qué lo originó («Factura», «Tercero»…), para abrirlo desde el registro.
+MensajesCorreo.IdOrigen: Identificador del registro que lo originó.
+MensajesCorreo.ReferenciaOrigen: Texto con que se reconoce el origen (número de factura, nombre del tercero).
+MensajesCorreo.MessageId: Identificador Message-ID del mensaje en internet.
+MensajesCorreo.Remitente: Dirección del remitente.
+MensajesCorreo.NombreRemitente: Nombre del remitente.
+MensajesCorreo.ResponderA: Dirección a la que se piden las respuestas.
+MensajesCorreo.Asunto: Asunto del mensaje.
+MensajesCorreo.CuerpoHtml: Cuerpo del mensaje en HTML.
+MensajesCorreo.CuerpoTexto: Cuerpo del mensaje en texto plano.
+MensajesCorreo.Estado: Estado del envío (no de la entrega en el buzón): Pendiente, EnProceso, Aceptado, AceptadoEnParte, Fallido, Incierto o Cancelado.
+MensajesCorreo.NumeroIntentos: Intentos de envío hechos.
+MensajesCorreo.ProximoIntento: Cuándo se volverá a intentar, si está pendiente de reintento.
+MensajesCorreo.FechaCreacion: Fecha y hora en que se puso en la cola.
+MensajesCorreo.FechaAceptacion: Fecha y hora en que el servidor SMTP lo aceptó.
+MensajesCorreo.Operador: Operador que lo envió.
+MensajesCorreo.IdMensajeOriginal: Mensaje del que es reenvío o respuesta.
+MensajesCorreo.DesviadoA: Dirección a la que se desvió en pruebas (Configuracion.CorreoDesviarA); vacía si salió a sus destinatarios.
+MensajesCorreo.UltimoError: Último error de envío.
+MensajesCorreo.ResueltoPor: Operador que dio por resuelto un envío fallido o incierto.
+MensajesCorreo.FechaResolucion: Fecha y hora en que se dio por resuelto.
+MensajesCorreo.MotivoResolucion: Por qué se dio por resuelto.
+MensajesCorreo.Version: Número de versión del mensaje; evita que dos sesiones lo procesen a la vez.
+
+MensajesRecibidosCorreo: Correos recibidos en el buzón POP3 de cada cuenta, con su copia .eml y sus hitos (procesado, respondido, borrado del servidor).
+MensajesRecibidosCorreo.IdMensajeRecibido: Identificador autonumérico del mensaje recibido.
+MensajesRecibidosCorreo.IdCuentaCorreo: Cuenta que lo recibió.
+MensajesRecibidosCorreo.IdSociedadEjercicio: Empresa y ejercicio de la cuenta.
+MensajesRecibidosCorreo.Uidl: Identificador del mensaje en el servidor POP3; con la cuenta evita descargarlo dos veces.
+MensajesRecibidosCorreo.MessageId: Identificador Message-ID del mensaje.
+MensajesRecibidosCorreo.Remitente: Dirección del remitente.
+MensajesRecibidosCorreo.NombreRemitente: Nombre del remitente.
+MensajesRecibidosCorreo.Asunto: Asunto del mensaje.
+MensajesRecibidosCorreo.FechaMensaje: Fecha que lleva el mensaje.
+MensajesRecibidosCorreo.FechaRecepcion: Fecha y hora en que se descargó.
+MensajesRecibidosCorreo.TamanoBytes: Tamaño del mensaje en bytes.
+MensajesRecibidosCorreo.Huella: Huella SHA-256 del mensaje.
+MensajesRecibidosCorreo.RutaEml: Ruta de la copia .eml, relativa a la carpeta de documentos de la empresa.
+MensajesRecibidosCorreo.Estado: Descargado, Procesado, EnEspera, ConIncidencia, NoAutorizado (remitente no autorizado) o Ignorado.
+MensajesRecibidosCorreo.Resumen: Resumen de lo que se hizo con el mensaje.
+MensajesRecibidosCorreo.IdMensajeRespuesta: Correo de respuesta enviado al remitente.
+MensajesRecibidosCorreo.EliminadoServidor: Sí: ya se borró del servidor POP3.
+MensajesRecibidosCorreo.FechaEliminacion: Fecha y hora en que se borró del servidor.
+MensajesRecibidosCorreo.FechaProceso: Fecha y hora en que se procesó.
+MensajesRecibidosCorreo.Version: Número de versión del mensaje; evita que dos sesiones lo procesen a la vez.
+
+?ProcesamientosMailDispatcher: Mensajes procesados por el buzón receptor del ProConta anterior (Mail Dispatcher). El programa actual no la usa.
+?ProcesamientosMailDispatcher.IdProcesamientoMail: Identificador autonumérico del procesamiento.
+?ProcesamientosMailDispatcher.ClaveIdempotencia: Clave única para reanudar un mensaje sin procesarlo dos veces.
+?ProcesamientosMailDispatcher.UidlPop3: Identificador del mensaje en el servidor POP3.
+?ProcesamientosMailDispatcher.MessageId: Identificador Message-ID del mensaje.
+?ProcesamientosMailDispatcher.HashContenido: Huella SHA-256 del mensaje.
+?ProcesamientosMailDispatcher.IdConfiguracionMail: Buzón que lo recibió.
+?ProcesamientosMailDispatcher.Estado: Estado del procesamiento.
+?ProcesamientosMailDispatcher.EsErrorTransitorio: Sí: el error puede resolverse reintentando.
+?ProcesamientosMailDispatcher.FechaHoraInicio: Fecha y hora en que empezó a procesarse.
+?ProcesamientosMailDispatcher.FechaHoraFin: Fecha y hora en que terminó.
+?ProcesamientosMailDispatcher.Remitente: Dirección del remitente.
+?ProcesamientosMailDispatcher.Asunto: Asunto del mensaje.
+?ProcesamientosMailDispatcher.Detalle: Detalle del resultado o del error.
+
+RemitentesAutorizadosCorreo: Remitentes de los que se aceptan correos en cada ejercicio, con permisos separados para importar documentos y para pedir informes.
+RemitentesAutorizadosCorreo.IdRemitenteAutorizado: Identificador autonumérico del remitente.
+RemitentesAutorizadosCorreo.IdSociedadEjercicio: Empresa y ejercicio en el que está autorizado.
+RemitentesAutorizadosCorreo.Direccion: Dirección de correo autorizada.
+RemitentesAutorizadosCorreo.Nombre: Nombre del remitente.
+RemitentesAutorizadosCorreo.PuedeImportar: Sí: sus adjuntos se procesan (facturas, extractos…).
+RemitentesAutorizadosCorreo.PuedePedirInformes: Sí: puede pedir informes por correo.
+RemitentesAutorizadosCorreo.Activo: No: sus correos se tratan como de un remitente no autorizado.
+
+TurnosCorreo: Turno que impide que dos sesiones procesen a la vez la cola de salida o la de entrada del correo.
+TurnosCorreo.Clave: Cola a la que se refiere: COLA_SALIDA o COLA_ENTRADA.
+TurnosCorreo.Propietario: Sesión (equipo y proceso) que tiene el turno.
+TurnosCorreo.CaducaEn: Hasta cuándo vale el turno; pasada esa hora, otra sesión puede quedárselo.
+
+# Descripciones que ya estaban en la BD con los acentos mal codificados (p. ej. «ConfiguraciÃ³n»): se reescriben bien.
+ConfiguracionCorreo: Configuración del motor de envío de correo para cada empresa.
+ConfiguracionCorreo.IdConfiguracionCorreo: Identificador autonumérico interno de la configuración de correo.
+ConfiguracionCorreo.IdSociedad: Empresa a la que pertenece la cuenta remitente. Solo puede existir una configuración por empresa.
+ConfiguracionCorreo.Activo: Indica si el envío de correo está habilitado para esta empresa.
+ConfiguracionCorreo.ServidorSMTP: Nombre DNS o dirección del servidor SMTP.
+ConfiguracionCorreo.TipoAutenticacion: Autenticación SMTP: ANONIMA, BASICA o NTLM.
+ConfiguracionCorreo.PasswordProtegida: Contraseña SMTP cifrada mediante DPAPI. Nunca debe contener texto claro.
+ConfiguracionCorreo.Remitente: Dirección de correo utilizada en el encabezado From.
+ConfiguracionCorreo.NombreRemitente: Nombre visible asociado a la dirección remitente.
+ConfiguracionCorreo.ResponderA: Dirección Reply-To opcional.
+ConfiguracionCorreo.TimeoutSegundos: Tiempo máximo de espera de la operación SMTP, en segundos.
+ConfiguracionCorreo.FechaModificacion: Fecha y hora de la última modificación.
+ConfiguracionCorreo.OperadorModificacion: Usuario u operador que realizó la última modificación.
+EnviosCorreo: Historial general de intentos de envío de correo realizados por ProConta.
+EnviosCorreo.IdEnvioCorreo: Identificador autonumérico del intento de envío.
+EnviosCorreo.IdFactura: Factura relacionada cuando TipoCorreo=FACTURA; puede quedar vacío para otros mensajes.
+EnviosCorreo.NumeroIntento: Número correlativo de intento para la factura o comunicación.
+EnviosCorreo.FechaHoraPreparacion: Fecha y hora en que se preparó el mensaje.
+EnviosCorreo.FechaHoraEnvio: Fecha y hora en que el motor confirmó el envío al servidor SMTP.
+EnviosCorreo.Remitente: Dirección remitente congelada para este intento.
+EnviosCorreo.ArchivoAdjunto: Ruta del archivo adjunto principal utilizado en el envío.
+EnviosCorreo.MotorCorreo: Motor que realizó el intento, inicialmente CDO.
+EnviosCorreo.DescripcionError: Detalle completo del error producido durante la preparación o el envío.
+EnviosCorreo.Operador: Usuario u operador que inició el envío.

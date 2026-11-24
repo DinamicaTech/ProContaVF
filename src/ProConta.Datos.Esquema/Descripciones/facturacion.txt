@@ -1,0 +1,125 @@
+# Descripciones de tablas y campos del área «facturacion». Formato en datos.txt.
+
+Conceptos.IdSociedad: Empresa a la que pertenece el concepto; vale para todos sus ejercicios.
+Conceptos.IdIdentidadContable: Cuenta de venta del concepto (identidad contable); su código en cada ejercicio está en CuentasContables.
+
+DesglosesIVARepercutido: Desglose por tipo de IVA de cada registro del libro de IVA repercutido (IVARepercutido), con las claves de VeriFactu y del SII.
+DesglosesIVARepercutido.IdDesgloseIVARepercutido: Identificador autonumérico del desglose.
+DesglosesIVARepercutido.IdIVARepercutido: Registro del libro de IVA repercutido al que pertenece.
+DesglosesIVARepercutido.Orden: Orden del desglose dentro del registro.
+DesglosesIVARepercutido.ClaveRegimen: Clave de régimen de la operación según la AEAT (01 régimen general…).
+DesglosesIVARepercutido.CalificacionOperacion: Calificación de la operación según la AEAT: S1 sujeta y no exenta, S2 con inversión del sujeto pasivo, E1–E6 exenta, N1–N2 no sujeta.
+DesglosesIVARepercutido.CausaExencion: Causa de exención (E1 a E6) cuando la operación está exenta; vacía si no.
+DesglosesIVARepercutido.BaseImponible: Base imponible de este tipo de IVA, en euros.
+DesglosesIVARepercutido.TipoIVA: Tipo de IVA aplicado, en porcentaje (21 = 21 %).
+DesglosesIVARepercutido.CuotaRepercutida: Cuota de IVA repercutida, en euros.
+DesglosesIVARepercutido.TipoRecargoEquivalencia: Tipo del recargo de equivalencia, en porcentaje; vacío si no lleva.
+DesglosesIVARepercutido.CuotaRecargoEquivalencia: Cuota del recargo de equivalencia, en euros; vacía si no lleva.
+DesglosesIVARepercutido.IdCuentaIVARepercutido: Subcuenta 477 de este desglose; debe ser del mismo ejercicio que el registro.
+
+EstadosFactura: Estados por los que pasa una factura de venta (borrador, validada, rectificada…).
+EstadosFactura.IdEstado: Código del estado: 0 pendiente de validar, 1 validada, 2 rectificada, 3 borrador, 4 rectificación pendiente.
+EstadosFactura.Nombre: Nombre del estado que se ve en la lista de facturas.
+EstadosFactura.Descripcion: Qué significa el estado.
+EstadosFactura.EsModificable: Sí: la factura en este estado se puede editar.
+EstadosFactura.EsTerminal: Sí: es un estado final, del que la factura ya no sale.
+
+Facturas.DireccionCliente: Domicilio fiscal del cliente congelado al validar; los cambios posteriores en su ficha no alteran la factura.
+Facturas.CodigoPostalCliente: Código postal del cliente congelado al validar.
+Facturas.PoblacionCliente: Población del cliente congelada al validar.
+Facturas.ProvinciaCliente: Provincia del cliente congelada al validar.
+Facturas.EmailCliente: Correo del cliente congelado al validar o al enviar la factura.
+Facturas.SinVeriFactu: Sí: la factura se validó con VeriFactu desactivado; no se comunica a la AEAT ni lleva QR, tampoco después.
+Facturas.Version: Número de versión de la factura; sube en cada cambio y evita que dos personas se pisen al guardar a la vez.
+Facturas.MotivoRectificacion: Motivo de la rectificación, en las facturas rectificativas.
+Facturas.DireccionEmisor: Domicilio fiscal de la empresa emisora congelado al validar.
+Facturas.CodigoPostalEmisor: Código postal de la empresa emisora congelado al validar.
+Facturas.PoblacionEmisor: Población de la empresa emisora congelada al validar.
+Facturas.ProvinciaEmisor: Provincia de la empresa emisora congelada al validar.
+Facturas.IdAsientoAnulado: Contra-asiento que anuló su asiento al deshacer la exportación contable; vacío si no se ha deshecho.
+Facturas.GeneracionExportacion: Número de la exportación contable (lote) en la que se contabilizó la factura; permite deshacer el lote entero.
+
+FacturasProgramadas.PeriodoDesde: Primer día del periodo que factura la próxima factura; avanza con cada una generada.
+FacturasProgramadas.PeriodoHasta: Último día del periodo que factura la próxima factura.
+FacturasProgramadas.NumeroRepeticiones: Cuántas facturas se generan en total, como final alternativo a la fecha de fin. Vacío: sin límite.
+FacturasProgramadas.FacturasGeneradas: Cuántas facturas se han generado ya.
+FacturasProgramadas.AlGenerar: Qué se genera: BORRADOR (factura para revisar) o VALIDAR (factura ya validada).
+FacturasProgramadas.Version: Número de versión de la programación; sube en cada cambio y evita que dos personas se pisen al guardar a la vez.
+FacturasProgramadas.Periodicidad: Cada cuánto se factura: MENSUAL, BIMESTRAL, TRIMESTRAL, CUATRIMESTRAL, SEMESTRAL, ANUAL o PUNTUAL.
+
+TiposDeIVA: Tipos de IVA que se ofrecen en facturas y conceptos (21 %, 10 %, 4 %, 0 %…), con su vigencia.
+
+?TiposOperacion: Tipos de operación de IVA (soportado nacional, intracomunitario, importación; repercutido general) con su equivalencia en ContaSol.
+?TiposOperacion.IdTipoOperacion: Identificador autonumérico del tipo de operación.
+?TiposOperacion.Codigo: Código del tipo (p. ej. SOPORTADO_1): libro y código de ContaSol.
+?TiposOperacion.Nombre: Nombre del tipo de operación.
+?TiposOperacion.Libro: Libro de IVA al que pertenece: Soportado o Repercutido.
+?TiposOperacion.CodigoContaSol: Código del tipo de operación en ContaSol (0 nacional, 1 intracomunitaria, 2 importación).
+?TiposOperacion.EstaActivo: No: el tipo no se ofrece.
+
+VeriFactuConfiguracion.IdSociedad: Empresa a la que pertenece esta configuración de VeriFactu; vale para todos sus ejercicios.
+
+# Descripciones que ya estaban en la BD con los acentos mal codificados (p. ej. «ConfiguraciÃ³n»): se reescriben bien.
+Conceptos: Catálogo de conceptos facturables y su imputación contable predeterminada por sociedad y ejercicio.
+Conceptos.IdConcepto: Identificador manual y único del concepto; permite conservar los identificadores migrados del ERP.
+Conceptos.IdTipoConcepto: Clasificación opcional del concepto. Relacionado con TiposConcepto.IdTipoConcepto.
+Conceptos.Nombre: Descripción abreviada que aparece como encabezado de la línea en la factura.
+Conceptos.Descripcion: Descripción extensa y multilínea que aparece debajo del nombre en la factura.
+Conceptos.CuentaContable: Cuenta contable de venta predeterminada, con hasta 7 caracteres, utilizada en la exportación contable.
+Conceptos.IdDepartamento: Departamento analítico predeterminado. Corresponde a F_DEP.CODDEP.
+Contratos.IdSociedad: Empresa permanente propietaria del contrato. Relación con Empresas.IdEmpresa; no depende del ejercicio contable.
+Facturas.EstadoFactura: Estado del ciclo fiscal: 0=PendienteValidar; 1=Validada; 2=Rectificada; 3=Borrador; 4=RectificacionPendiente. Los estados distintos de Borrador no permiten edición directa.
+Facturas.PDFFactura: Ruta del único documento PDF generado para la factura. El archivo no se incrusta en la base de datos.
+Facturas.Historial: Registro cronológico interno en texto, con una línea por evento de la factura: fecha, hora, operador y acción.
+FacturasProgramadas.EnviarPorEmail: Indica si, después de validar y generar el PDF, el proceso automático debe enviarlo al cliente. False significa que no se espera ningún envío y no constituye una incidencia.
+LineasContrato: Líneas periódicas o puntuales que un contrato genera en las facturas.
+LineasContrato.IdLineaContrato: Identificador autonumérico interno de la línea de contrato.
+LineasContrato.IdContrato: Contrato al que pertenece la línea. Relacionado con Contratos.IdContrato.
+LineasContrato.NumeroLinea: Orden de la línea dentro del contrato. Es único para cada contrato.
+LineasContrato.IdConcepto: Concepto facturable utilizado para generar la línea de factura.
+LineasContrato.Descripcion: Texto extenso opcional que sustituye la descripción predeterminada del concepto al generar la factura.
+LineasContrato.Importe: Importe unitario que se aplicará al generar la línea de factura.
+LineasContrato.Periodicidad: Frecuencia de facturación: MENSUAL, TRIMESTRAL, ANUAL o PUNTUAL.
+LineasContrato.MesFacturacion: Mes de facturación (1 a 12). En periodicidad trimestral indica el primer mes del ciclo; en anual, el mes de emisión.
+LineasContrato.FechaInicio: Primera fecha desde la que puede generarse esta línea. Si está vacía se utiliza la fecha de inicio del contrato.
+LineasContrato.FechaFin: Última fecha hasta la que puede generarse esta línea. Si está vacía se utiliza la fecha de fin del contrato.
+LineasContrato.Activo: Indica si la línea debe incluirse al generar nuevas facturas del contrato.
+LineasFactura.Nombre: Descripción abreviada y visible que encabeza la línea de factura; se copia del concepto y queda congelada.
+LineasFactura.CuentaContable: Cuenta contable de venta copiada del concepto y congelada para la exportación contable.
+LineasFactura.IdDepartamento: Departamento analítico copiado del concepto y congelado para la exportación contable.
+LineasFactura.IdCentroCoste: Centro de coste copiado del concepto y congelado para la exportación contable.
+SeriesFacturacion.EsPredeterminada: Serie normal seleccionada automáticamente al crear una factura manual. Debe existir una sola por sociedad.
+TiposConcepto: Clasificación funcional de los conceptos facturables.
+VeriFactuConfiguracion: Configuración de la integración VeriFactu para cada sociedad y ejercicio.
+VeriFactuConfiguracion.IdVeriFactuConfiguracion: Identificador autonumérico interno de la configuración VeriFactu.
+VeriFactuConfiguracion.Activo: Indica si la emisión y remisión VeriFactu está habilitada para esta sociedad.
+VeriFactuConfiguracion.Entorno: Entorno de comunicación: PRUEBAS o PRODUCCION.
+VeriFactuConfiguracion.CertificateThumbprint: Huella digital del certificado instalado en el almacén de certificados de Windows. Método recomendado.
+VeriFactuConfiguracion.CertificateSerial: Número de serie del certificado instalado; alternativa a CertificateThumbprint.
+VeriFactuConfiguracion.CertificatePasswordProtegida: Contraseña cifrada del certificado PFX. Nunca debe almacenarse aquí en texto claro.
+VeriFactuConfiguracion.IDVersion: Versión del esquema VeriFactu utilizada para generar los registros. Actualmente 1.0.
+VeriFactuConfiguracion.VeriFactuEndPointPrefix: Endpoint AEAT para enviar registros de alta y anulación. Debe corresponder con el entorno seleccionado.
+VeriFactuConfiguracion.VeriFactuEndPointValidatePrefix: Endpoint AEAT para validar el código QR. Debe corresponder con el entorno seleccionado.
+VeriFactuConfiguracion.VeriFactuHashAlgorithm: Tipo de huella: 01=SHA-256, único valor actualmente admitido.
+VeriFactuConfiguracion.VeriFactuHashInputEncoding: Codificación del texto de entrada empleado para calcular la huella. Valor habitual: UTF-8.
+VeriFactuConfiguracion.SkipNifAeatValidation: Sí=omite la validación en línea del NIF con la AEAT; No=realiza la validación.
+VeriFactuConfiguracion.SkipViesVatNumberValidation: Sí=omite la validación VIES de NIF-IVA intracomunitarios; No=realiza la validación.
+VeriFactuConfiguracion.LoggingEnabled: Indica si la librería debe generar su registro de mensajes.
+VeriFactuConfiguracion.FechaModificacion: Fecha y hora de la última modificación de esta configuración.
+VeriFactuConfiguracion.OperadorModificacion: Usuario u operador que realizó la última modificación.
+VeriFactuConfiguracion.ProductorNIF: NIF de la persona o entidad productora del sistema informático.
+VeriFactuConfiguracion.ProductorNombre: Nombre o razón social de la persona o entidad productora del sistema informático.
+VeriFactuConfiguracion.NombreSistemaInformatico: Nombre declarado del sistema informático de facturación. Valor habitual: ProConta.
+VeriFactuConfiguracion.IdSistemaInformatico: Identificador de dos caracteres declarado para el sistema informático.
+VeriFactuConfiguracion.VersionSistemaInformatico: Versión instalada del sistema informático que genera el registro.
+VeriFactuConfiguracion.NumeroInstalacion: Identificador estable y único de esta instalación de ProConta.
+VeriFactuConfiguracion.IndicadorMultiplesOT: S/N. Indica si esta instalación gestiona varios obligados tributarios.
+VeriFactuEnvios.EstadoEnvio: Resultado técnico del intento: ACEPTADO, ACEPTADO_DUPLICADO, RECHAZADO, ERROR_PREVIO_ENVIO o COMUNICACION_DUDOSA. Los errores legados pueden conservar el valor ERROR.
+VeriFactuEnvios.IdLoteEnvio: Lote o petición AEAT que contiene este intento de envío. Relacionado con VeriFactuLotesEnvio.IdLoteEnvio.
+VeriFactuLotesEnvio: Peticiones o lotes remitidos a la AEAT, cada uno con uno o varios intentos de envío de facturas.
+VeriFactuLotesEnvio.IdLoteEnvio: Identificador autonumérico de la petición o lote VeriFactu.
+VeriFactuLotesEnvio.FechaHoraGeneracion: Fecha y hora en que se construyó el XML completo del lote.
+VeriFactuLotesEnvio.FechaHoraEnvio: Fecha y hora en que se remitió el lote a la AEAT.
+VeriFactuLotesEnvio.Operador: Usuario u operador que inició el envío.
+VeriFactuLotesEnvio.IdSociedadEjercicio: Sociedad y obligado tributario al que pertenece la petición AEAT. Un lote no puede mezclar emisores.
+VeriFactuRespuestas.EsDuplicado: Indica que la AEAT rechazó el reenvío como duplicado y proporcionó el estado del registro almacenado previamente.

@@ -76,7 +76,7 @@ public sealed class ActualizadorEsquema
             if (error is not null) return Resultado<InformeActualizacion>.Fallo(error);
         }
 
-        var copia = HacerCopia(exclusiva.Ruta, carpetaCopias, diagnostico.VersionBd);
+        var copia = HacerCopia(exclusiva.Ruta, carpetaCopias, $"pre-esquema-v{diagnostico.VersionBd}");
         if (!copia.EsCorrecto) return Resultado<InformeActualizacion>.Fallo(copia.Errores);
 
         var aplicadas = new List<string>();
@@ -91,9 +91,94 @@ public sealed class ActualizadorEsquema
                 avisos.Add($"{migracion.Id}: no he podido escribir las descripciones de sus tablas y campos ({motivo}). La estructura está bien; solo faltan en el diccionario.");
         }
 
+        // Y las del catálogo de descripciones (tablas y campos heredados que no las traen de su migración).
+        if (EscritorDescripciones.Completar(exclusiva.Ruta, CatalogoDescripciones.Todas.Select(d => d.ComoEsquema)) is { Motivo: { } motivoCatalogo })
+            avisos.Add($"No he podido escribir las descripciones del catálogo ({motivoCatalogo}). La estructura está bien; solo faltan en el diccionario.");
+
         var final = await DiagnosticadorEsquema.DiagnosticarAsync(exclusiva, _catalogo);
         if (!final.EsCompatible) return Resultado<InformeActualizacion>.Fallo(final.ComoError()!);
         return Resultado<InformeActualizacion>.Correcto(new(exclusiva.Ruta, diagnostico.VersionBd, final.VersionBd, aplicadas, copia.Valor, avisos));
+    }
+
+    /// <summary>
+    /// Escribe en una BD ya actualizada las descripciones del catálogo que le faltan o tiene distintas (comando «descripciones»).
+    /// Como actualizar, abre la BD en exclusiva y hace antes una copia verificada; no cambia la estructura ni los datos.
+    /// </summary>
+    /// <returns>Cuántas descripciones ha escrito y la copia previa (null si no había nada que escribir).</returns>
+    public async Task<Resultado<(int Escritas, string? CopiaSeguridad)>> CompletarDescripcionesAsync(string rutaBd, string carpetaCopias)
+    {
+        var exclusiva = new BaseDatosAccess(rutaBd, ModoApertura.Exclusivo);
+        DiagnosticoEsquema diagnostico;
+        try
+        {
+            diagnostico = await DiagnosticadorEsquema.DiagnosticarAsync(exclusiva, _catalogo);
+        }
+        catch (BloqueoException ex)
+        {
+            return Resultado<(int, string?)>.Fallo(ex.Error with
+            {
+                Mensaje = "No puedo escribir las descripciones porque hay alguien usando la base de datos.",
+                AccionCorrectora = "Pide que cierren ProContaVF en las demás ventanas o sesiones que la usan, cierra también Claude Desktop si su conector trabaja con esta BD, y vuelve a intentarlo."
+            });
+        }
+        catch (ExcepcionDatos ex)
+        {
+            return Resultado<(int, string?)>.Fallo(ex.Error);
+        }
+        if (diagnostico.Estado != EstadoEsquema.Actualizada)
+            return Resultado<(int, string?)>.Fallo(new Error("Esquema.DescripcionesSinActualizar",
+                "La BD no está en la versión del programa, así que no escribo las descripciones.", exclusiva.Ruta,
+                $"La BD está en la versión {diagnostico.VersionBd} y el programa espera la {CatalogoMigraciones.VersionPrograma}.",
+                "Actualízala primero con «ActualizadorEsquema actualizar»: al terminar escribe también las descripciones."));
+
+        var pendientes = Pendientes(exclusiva.Ruta);
+        if (pendientes is { Motivo: { } motivoLectura })
+            return Resultado<(int, string?)>.Fallo(new Error("Esquema.DescripcionesSinDao", "No he podido leer las descripciones de la BD.", exclusiva.Ruta,
+                motivoLectura, "Comprueba que está instalado el motor de Access de 64 bits y vuelve a intentarlo."));
+        if (pendientes.Cuantas == 0) return Resultado<(int, string?)>.Correcto((0, null));
+
+        var copia = HacerCopia(exclusiva.Ruta, carpetaCopias, $"pre-descripciones-v{diagnostico.VersionBd}");
+        if (!copia.EsCorrecto) return Resultado<(int, string?)>.Fallo(copia.Errores);
+        var (escritas, motivo) = EscritorDescripciones.Completar(exclusiva.Ruta, CatalogoDescripciones.Todas.Select(d => d.ComoEsquema));
+        if (motivo is not null)
+            return Resultado<(int, string?)>.Fallo(new Error("Esquema.DescripcionesAMedias",
+                $"He escrito {escritas} descripciones y me he parado.", exclusiva.Ruta, motivo,
+                $"La estructura y los datos no han cambiado. Vuelve a ejecutar el comando; si se repite, restaura la copia {copia.Valor}."));
+        return Resultado<(int, string?)>.Correcto((escritas, copia.Valor));
+    }
+
+    /// <summary>Cuántas descripciones del catálogo faltan o son distintas en la BD, sin escribir nada (lectura con DAO).</summary>
+    private static (int Cuantas, string? Motivo) Pendientes(string rutaBd)
+    {
+        var tipo = Type.GetTypeFromProgID("DAO.DBEngine.120");
+        if (tipo is null) return (0, "No está DAO (DAO.DBEngine.120) del motor de Access en este equipo.");
+        dynamic? motor = null;
+        dynamic? bd = null;
+        try
+        {
+            motor = Activator.CreateInstance(tipo)!;
+            bd = motor.OpenDatabase(rutaBd, false, true);
+            var actuales = new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase);
+            foreach (dynamic t in bd.TableDefs)
+            {
+                actuales[(string)t.Name] = EscritorDescripciones.Leer(t);
+                foreach (dynamic f in t.Fields) actuales[$"{t.Name}.{f.Name}"] = EscritorDescripciones.Leer(f);
+            }
+            var cuantas = CatalogoDescripciones.Todas.Count(d =>
+                actuales.TryGetValue(d.Columna is null ? d.Tabla : $"{d.Tabla}.{d.Columna}", out var actual)
+                && !string.Equals(actual, d.Texto.Length <= 255 ? d.Texto : d.Texto[..255], StringComparison.Ordinal));
+            return (cuantas, null);
+        }
+        catch (Exception ex) when (ex is System.Runtime.InteropServices.COMException or Microsoft.CSharp.RuntimeBinder.RuntimeBinderException)
+        {
+            return (0, ex.Message);
+        }
+        finally
+        {
+            try { bd?.Close(); } catch (System.Runtime.InteropServices.COMException) { /* ya cerrada */ }
+            if (bd is not null) System.Runtime.InteropServices.Marshal.FinalReleaseComObject(bd);
+            if (motor is not null) System.Runtime.InteropServices.Marshal.FinalReleaseComObject(motor);
+        }
     }
 
     private async Task<Resultado> AplicarAsync(IBaseDatos bd, Migracion migracion, string copia)
@@ -151,12 +236,12 @@ public sealed class ActualizadorEsquema
         }
     }
 
-    private Resultado<string> HacerCopia(string rutaBd, string carpetaCopias, int version)
+    private Resultado<string> HacerCopia(string rutaBd, string carpetaCopias, string etiqueta)
     {
         try
         {
             Directory.CreateDirectory(carpetaCopias);
-            var nombre = $"{Path.GetFileNameWithoutExtension(rutaBd)}.pre-esquema-v{version}-{_reloj.Ahora:yyyyMMdd-HHmmss}{Path.GetExtension(rutaBd)}";
+            var nombre = $"{Path.GetFileNameWithoutExtension(rutaBd)}.{etiqueta}-{_reloj.Ahora:yyyyMMdd-HHmmss}{Path.GetExtension(rutaBd)}";
             var destino = Path.Combine(carpetaCopias, nombre);
             File.Copy(rutaBd, destino, overwrite: false);
             if (!string.Equals(Sha256(rutaBd), Sha256(destino), StringComparison.Ordinal))

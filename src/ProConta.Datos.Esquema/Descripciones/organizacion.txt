@@ -1,0 +1,52 @@
+# Descripciones de tablas y campos del área «organizacion». Formato en datos.txt.
+
+FormasPago: Formas de pago y cobro (transferencia, recibo domiciliado, metálico…), comunes a todas las empresas. Los códigos son los del ERP.
+FormasPago.Id: Código de la forma de pago (el del ERP).
+FormasPago.Descripcion: Nombre de la forma de pago que se ve en facturas y listas.
+FormasPago.SEPA: Sí: se cobra por recibo domiciliado (remesa SEPA) en la cuenta del cliente.
+
+FormasPagoSociedad: Subcuenta y cuenta bancaria de cada forma de pago en cada empresa: dónde se contabilizan los cobros y pagos hechos con ella.
+FormasPagoSociedad.IdFormaPagoSociedad: Identificador autonumérico de la fila.
+FormasPagoSociedad.IdFormaPago: Forma de pago.
+FormasPagoSociedad.IdSociedad: Empresa.
+FormasPagoSociedad.IdIdentidadContable: Subcuenta (identidad contable) en la que se contabilizan los cobros y pagos de esta forma de pago en la empresa.
+
+Sociedades.DireccionFiscal: Domicilio fiscal de la empresa; sale en sus facturas como domicilio del emisor y es obligatorio para validarlas.
+Sociedades.CodigoPostalFiscal: Código postal del domicilio fiscal de la empresa.
+Sociedades.PoblacionFiscal: Población del domicilio fiscal de la empresa.
+Sociedades.ProvinciaFiscal: Provincia del domicilio fiscal de la empresa.
+Sociedades.RutaDocumentos: Carpeta base de los documentos de la empresa: PDF de facturas de venta y compra, logo y gestor documental.
+
+SociedadesEjercicios: Ejercicios de cada empresa con su configuración: forma de pago por defecto, IVA, prorrata, cuentas de los procesos, carpeta de compras e Impuesto sobre Sociedades.
+SociedadesEjercicios.IdSociedadEjercicio: Identificador autonumérico del ejercicio de la empresa.
+SociedadesEjercicios.IdSociedad: Empresa a la que pertenece el ejercicio.
+SociedadesEjercicios.Ejercicio: Año del ejercicio, cuatro cifras (p. ej. 2026).
+SociedadesEjercicios.Nombre: Etiqueta del ejercicio en el selector (p. ej. «DINAMICA 2026»). No sale en las facturas.
+SociedadesEjercicios.FormaPagoDefecto: Forma de pago que se propone en las facturas nuevas del ejercicio.
+SociedadesEjercicios.TrimestreActivo: Trimestre de trabajo de compras (1 a 4); se cambia desde el aviso del trimestre en Compras.
+SociedadesEjercicios.Activa: Sí: el ejercicio se ofrece al elegir el de trabajo. No indica si está cerrado.
+SociedadesEjercicios.CuentaSuplido: Cuenta de los importes suplidos (gastos pagados en nombre del cliente que se le repercuten sin IVA), grupo 55.
+SociedadesEjercicios.CuentaIVAIntracomunitarioRepercutidoServicios: Cuenta 477 del IVA autorrepercutido en las compras de servicios a otro país de la UE.
+SociedadesEjercicios.CuentaIVAIntracomunitarioRepercutidoBienes: Cuenta 477 del IVA autorrepercutido en las adquisiciones intracomunitarias de bienes.
+SociedadesEjercicios.CuentaIVAIntracomunitarioSoportadoServicios: Cuenta 472 del IVA soportado deducible de las compras de servicios a otro país de la UE.
+SociedadesEjercicios.CuentaIVAIntracomunitarioSoportadoBienes: Cuenta 472 del IVA soportado deducible de las adquisiciones intracomunitarias de bienes.
+SociedadesEjercicios.CuentaIVAInversionSujetoPasivoRepercutido: Cuenta 477 del IVA autorrepercutido en las compras con inversión del sujeto pasivo.
+SociedadesEjercicios.CuentaIVAInversionSujetoPasivoSoportado: Cuenta 472 del IVA soportado deducible de las compras con inversión del sujeto pasivo.
+SociedadesEjercicios.CuentaRetencionServicios: Cuenta 4751 de las retenciones de IRPF practicadas a profesionales y actividades (modelo 111).
+SociedadesEjercicios.CuentaRetencionAlquileres: Cuenta 4751 de las retenciones de IRPF practicadas en alquileres de locales (modelo 115).
+SociedadesEjercicios.PorcentajeProrrataAñoAnterior: Prorrata definitiva del año anterior, que se aplica como provisional en este ejercicio (14 = 14 %). La rellena la regularización de la prorrata.
+SociedadesEjercicios.EjercicioCerrado: Sí: el ejercicio está cerrado y no admite operaciones contables nuevas. Lo cambia el cierre de contabilidad.
+SociedadesEjercicios.TipoIVAGeneral: Tipo general de IVA del ejercicio (%), el de la autorrepercusión y la importación en compras. Vacío: el más alto de los tipos de IVA activos.
+SociedadesEjercicios.CuentaIVAImportacion: Cuenta 472 del IVA soportado en las importaciones (el del DUA).
+SociedadesEjercicios.CuentaRedondeoGastos: Cuenta de gasto (p. ej. 659) que recoge los céntimos que faltan al Debe para cuadrar un asiento.
+SociedadesEjercicios.CuentaRedondeoIngresos: Cuenta de ingreso (p. ej. 759) que recoge los céntimos que sobran al Debe para cuadrar un asiento.
+SociedadesEjercicios.CarpetaFacturasCompra: Carpeta de los PDF de compra del ejercicio, relativa a la carpeta de documentos de la empresa (p. ej. 2026\Proveedores).
+
+TiposRetencion: Porcentajes de retención de IRPF que se ofrecen en las facturas recibidas, con su clase y vigencia.
+TiposRetencion.IdTipoRetencion: Identificador autonumérico del tipo de retención.
+TiposRetencion.Porcentaje: Porcentaje de retención (15 = 15 %).
+TiposRetencion.Descripcion: Texto que sale junto al porcentaje en el desplegable de la factura.
+TiposRetencion.Clase: Modelo en el que se declara: 1 actividades y profesionales (111), 2 arrendamientos (115).
+TiposRetencion.VigenteDesde: Primer día en que se aplica. Vacía: sin límite.
+TiposRetencion.VigenteHasta: Último día en que se aplica. Vacía: sin límite.
+TiposRetencion.Activo: No: no se ofrece en las facturas aunque esté vigente.

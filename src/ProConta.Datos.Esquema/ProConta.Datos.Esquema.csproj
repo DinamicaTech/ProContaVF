@@ -13,6 +13,7 @@
   <ItemGroup>
     <EmbeddedResource Include="Semillas\*.tsv" LogicalName="ProConta.Datos.Esquema.Semillas.%(Filename).tsv" />
     <EmbeddedResource Include="Semillas\*.json" LogicalName="ProConta.Datos.Esquema.Semillas.%(Filename).json" />
+    <EmbeddedResource Include="Descripciones\*.txt" LogicalName="ProConta.Datos.Esquema.Descripciones.%(Filename).txt" />
   </ItemGroup>
   <ItemGroup>
     <InternalsVisibleTo Include="ProConta.Datos.Tests" />

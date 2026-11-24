@@ -1,0 +1,166 @@
+# Descripciones de tablas y campos del área «activos». Formato en datos.txt.
+
+Activos: Activos de cada empresa (inmuebles, vehículos, instalaciones, aplicaciones e inversiones financieras), cada uno con su centro de coste y sus subcuentas.
+Activos.IdActivo: Identificador autonumérico del activo.
+Activos.IdSociedad: Empresa a la que pertenece el activo.
+Activos.IdTipoActivo: Tipo de activo (TiposActivo): decide sus subcuentas y si se amortiza.
+Activos.Codigo: Código del activo, único en la empresa.
+Activos.Nombre: Nombre del activo.
+Activos.AliasActivo: Nombre corto del activo; es el [TOKEN] que da nombre a sus subcuentas.
+Activos.Descripcion: Notas del activo.
+Activos.FechaAdquisicion: Fecha de compra del activo.
+Activos.FechaAlta: Fecha en que se dio de alta en el programa (o en el ERP).
+Activos.FechaBaja: Fecha de baja (venta o retiro); vacía mientras está en uso.
+?Activos.Estado: Estado heredado del ProConta anterior (1 en todos); el programa calcula el estado (en uso, inactivo, ajeno) a partir de la fecha de baja y de EsAjeno.
+Activos.EsAmortizable: Sí: el activo se amortiza y tiene plan de amortización.
+?Activos.DeterioroAcumulado: Deterioro de valor acumulado (heredado del ProConta anterior; hoy a 0 en todos).
+?Activos.ValorActual: Valor actual del activo (heredado del ProConta anterior; sin uso).
+?Activos.ResultadoNoRealizado: Plusvalía o minusvalía no realizada de una inversión (heredado del ProConta anterior; sin uso).
+?Activos.FechaUltimaValoracion: Fecha de la última valoración (heredado del ProConta anterior; sin uso).
+?Activos.FechaHoraUltimoCalculo: Fecha y hora del último cálculo de valores (heredado del ProConta anterior; sin uso).
+?Activos.EstadoCalculo: Estado del último cálculo de valores (heredado del ProConta anterior; sin uso).
+Activos.IdDepartamento: Departamento del ERP (heredado); el centro de coste está en IdCentroCoste.
+Activos.IdSubDepartamento: Subdepartamento del ERP (heredado); el centro de coste está en IdCentroCoste.
+Activos.IdFacturaCompra: Factura de compra con la que se adquirió el activo.
+Activos.ReferenciaMigracion: Identificador del registro de origen (ERP), para no duplicarlo al volver a migrar.
+Activos.IdCentroCoste: Centro de coste hoja propio del activo, al que van sus ingresos y gastos.
+Activos.EsAjeno: Sí: el activo no es de la empresa (p. ej. de un socio): no tiene subcuentas ni se amortiza, solo su centro de coste.
+
+ActivosInmuebles: Datos de inmueble de los activos que lo son: catastro, valores de compra y alquiler. Una fila por activo.
+ActivosInmuebles.IdActivo: Activo al que pertenecen estos datos (uno por activo).
+ActivosInmuebles.ReferenciaCatastral: Referencia catastral del inmueble (no es única: puede repetirse en varios activos).
+ActivosInmuebles.ValorCatastralSuelo: Valor catastral del suelo, según el recibo del IBI.
+ActivosInmuebles.ValorCatastralConstruccion: Valor catastral de la construcción, según el recibo del IBI.
+ActivosInmuebles.ValorCatastralTotal: Valor catastral total declarado; puede no coincidir con la suma de suelo y construcción.
+ActivosInmuebles.PorcentajeConstruccion: Parte del valor que corresponde a la construcción (%); reparte la compra entre terreno (no amortizable) y edificio.
+ActivosInmuebles.ValorCompra: Precio de compra del inmueble.
+ActivosInmuebles.CosteCompra: Gastos de la compra (notaría, registro, impuestos…) que suman al coste.
+ActivosInmuebles.PrecioAlquiler: Renta mensual del alquiler vigente.
+ActivosInmuebles.FechaInicioAlquiler: Fecha de inicio del alquiler vigente.
+ActivosInmuebles.TributoMetropolitano: Importe anual del tributo metropolitano del inmueble.
+
+ActivosInversiones: Datos de inversión de los activos financieros: qué instrumento son y cuántas participaciones hay ahora. Una fila por activo.
+ActivosInversiones.IdActivo: Activo al que pertenecen estos datos (uno por activo).
+ActivosInversiones.IdInstrumentoFinanciero: Instrumento financiero (fondo, ETF, acción…) de la inversión.
+ActivosInversiones.ParticipacionesActuales: Participaciones que se tienen ahora (compras menos ventas).
+
+CambiosDivisa.IdCambioDivisa: Identificador autonumérico del tipo de cambio.
+
+CotizacionesInstrumentoFinanciero: Precios de cada instrumento financiero por fecha, descargados de Yahoo Finance o EODHD.
+CotizacionesInstrumentoFinanciero.IdCotizacionInstrumento: Identificador autonumérico de la cotización.
+CotizacionesInstrumentoFinanciero.IdInstrumentoFinanciero: Instrumento cotizado.
+CotizacionesInstrumentoFinanciero.FechaCotizacion: Fecha del precio.
+CotizacionesInstrumentoFinanciero.Precio: Precio de una participación en esa fecha.
+CotizacionesInstrumentoFinanciero.Moneda: Moneda del precio (código ISO).
+CotizacionesInstrumentoFinanciero.Origen: De dónde salió: «Yahoo Finance · cierre», «Yahoo Finance · del momento» o «EODHD · del momento».
+CotizacionesInstrumentoFinanciero.FechaHoraImportacion: Fecha y hora en que se descargó.
+
+?CuentasActivo: Subcuentas de cada activo creadas por las plantillas de cuentas del ProConta anterior. Sustituida por SubcuentasActivo.
+?CuentasActivo.IdCuentaActivo: Identificador autonumérico de la fila.
+?CuentasActivo.IdActivo: Activo al que pertenece la subcuenta.
+?CuentasActivo.IdPlantillaCuentaActivo: Plantilla que la creó.
+?CuentasActivo.IdIdentidadContable: Subcuenta (identidad contable); su código en cada ejercicio está en CuentasContables.
+?CuentasActivo.FechaHoraCreacion: Fecha y hora en que se creó.
+
+?DetallesLoteAmortizacionActivo: Importe de amortización de cada activo en un lote de amortización del ProConta anterior. El programa actual amortiza desde Contabilidad y no la usa.
+?DetallesLoteAmortizacionActivo.IdDetalleLoteAmortizacion: Identificador autonumérico del detalle.
+?DetallesLoteAmortizacionActivo.IdLoteAmortizacion: Lote al que pertenece.
+?DetallesLoteAmortizacionActivo.IdActivo: Activo amortizado.
+?DetallesLoteAmortizacionActivo.Importe: Importe de la amortización.
+?DetallesLoteAmortizacionActivo.IdAsiento: Asiento que la contabilizó.
+?DetallesLoteAmortizacionActivo.Estado: Estado del detalle.
+?DetallesLoteAmortizacionActivo.Incidencia: Problema que impidió contabilizarlo.
+
+?ImportacionesActivos: Importaciones de activos desde ficheros externos (ProConta anterior). Hoy está vacía.
+?ImportacionesActivos.IdImportacionActivo: Identificador autonumérico de la importación.
+?ImportacionesActivos.TipoOrigen: Tipo de fichero importado.
+?ImportacionesActivos.RutaOrigen: Ruta del fichero importado.
+?ImportacionesActivos.IdSociedad: Empresa de los activos importados.
+?ImportacionesActivos.FechaHora: Fecha y hora de la importación.
+?ImportacionesActivos.HuellaOrigen: Huella SHA-256 del fichero, para no importarlo dos veces.
+?ImportacionesActivos.RegistrosLeidos: Registros leídos.
+?ImportacionesActivos.RegistrosCreados: Activos creados.
+?ImportacionesActivos.RegistrosOmitidos: Registros no importados.
+?ImportacionesActivos.Observaciones: Notas de la importación.
+
+InstrumentosFinancieros: Instrumentos financieros (ETF, fondos, acciones…) en los que se invierte, identificados por su ISIN.
+InstrumentosFinancieros.IdInstrumentoFinanciero: Identificador autonumérico del instrumento.
+InstrumentosFinancieros.Nombre: Nombre del instrumento.
+InstrumentosFinancieros.Isin: Código ISIN (12 caracteres).
+InstrumentosFinancieros.TipoInstrumento: Tipo: ETF, FONDO, ACCION, BONO u OTRO.
+InstrumentosFinancieros.MonedaCotizacion: Moneda en la que cotiza (código ISO).
+?InstrumentosFinancieros.RolCartera: Papel del instrumento en la cartera (heredado; hoy vacío).
+InstrumentosFinancieros.EstaActivo: No: el instrumento no se ofrece en las altas nuevas.
+
+?LotesAmortizacionActivo: Lotes de amortización por periodo del ProConta anterior. El programa actual amortiza desde Contabilidad y no la usa.
+?LotesAmortizacionActivo.IdLoteAmortizacion: Identificador autonumérico del lote.
+?LotesAmortizacionActivo.IdSociedad: Empresa del lote.
+?LotesAmortizacionActivo.FechaDesde: Primer día del periodo amortizado.
+?LotesAmortizacionActivo.FechaHasta: Último día del periodo amortizado.
+?LotesAmortizacionActivo.Estado: Estado del lote.
+?LotesAmortizacionActivo.IdLoteProceso: Identificador del proceso que lo generó.
+?LotesAmortizacionActivo.FechaHoraCreacion: Fecha y hora en que se creó.
+
+OperacionesInversion: Compras y ventas de participaciones de cada activo financiero, con su precio, cambio y gastos.
+OperacionesInversion.IdOperacionInversion: Identificador autonumérico de la operación.
+OperacionesInversion.IdActivo: Activo financiero de la operación.
+OperacionesInversion.Tipo: 1 compra, 2 venta.
+OperacionesInversion.FechaOperacion: Fecha de la operación.
+OperacionesInversion.Participaciones: Participaciones compradas o vendidas.
+OperacionesInversion.PrecioUnitario: Precio de cada participación, en la moneda de la operación.
+OperacionesInversion.Moneda: Moneda de la operación (código ISO).
+OperacionesInversion.TipoCambioEuro: Euros por unidad de la moneda de la operación.
+OperacionesInversion.GastosEur: Comisiones y gastos de la operación, en euros.
+OperacionesInversion.ImporteTotalEur: Importe total de la operación en euros, con los gastos.
+OperacionesInversion.ReferenciaExterna: Referencia de la operación en el banco o el bróker.
+OperacionesInversion.Notas: Notas de la operación.
+
+PlanesAmortizacionActivo: Plan de amortización de cada activo amortizable: desde cuándo, sobre qué base, a qué ritmo y con qué método.
+PlanesAmortizacionActivo.IdPlanAmortizacion: Identificador autonumérico del plan.
+PlanesAmortizacionActivo.IdActivo: Activo que se amortiza.
+PlanesAmortizacionActivo.FechaInicio: Fecha desde la que se amortiza.
+PlanesAmortizacionActivo.BaseAmortizable: Importe que se amortiza (sin el terreno).
+PlanesAmortizacionActivo.ValorResidual: Valor que queda al final de la vida útil sin amortizar.
+PlanesAmortizacionActivo.VidaUtilMeses: Vida útil en meses.
+PlanesAmortizacionActivo.Metodo: Método de amortización: LINEAL.
+PlanesAmortizacionActivo.EstaActivo: No: el plan ya no se aplica (sustituido o terminado).
+PlanesAmortizacionActivo.PorcentajeAnual: Porcentaje que se amortiza cada año (3 = 3 %).
+
+?PlantillasCuentasActivo: Cuentas que el ProConta anterior creaba para cada tipo de activo. Sustituida por PlantillasSubcuentasActivo.
+?PlantillasCuentasActivo.IdPlantillaCuentaActivo: Identificador autonumérico de la plantilla.
+?PlantillasCuentasActivo.IdTipoActivo: Tipo de activo al que se aplica.
+?PlantillasCuentasActivo.PrefijoCuenta: Prefijo del plan contable de la cuenta que se crea.
+?PlantillasCuentasActivo.PlantillaNombre: Nombre de la cuenta que se crea, con el nombre del activo.
+?PlantillasCuentasActivo.Orden: Orden de la cuenta en la plantilla.
+?PlantillasCuentasActivo.EsObligatoria: Sí: el activo tiene que tener esta cuenta.
+?PlantillasCuentasActivo.EstaActiva: No: la plantilla no se aplica.
+
+PlantillasSubcuentasActivo: Subcuentas que se crean para cada tipo de activo: qué tipo de subcuenta y con qué prefijo.
+PlantillasSubcuentasActivo.IdPlantillaSubcuentaActivo: Identificador autonumérico de la línea de plantilla.
+PlantillasSubcuentasActivo.IdTipoActivo: Tipo de activo al que se aplica.
+PlantillasSubcuentasActivo.IdTipoSubcuentaActivo: Tipo de subcuenta que se crea (nombre y rol).
+PlantillasSubcuentasActivo.Prefijo: Prefijo del plan contable de la subcuenta (p. ej. 2110000).
+PlantillasSubcuentasActivo.Orden: Orden de la línea en la plantilla.
+PlantillasSubcuentasActivo.EstaActiva: No: la línea no se aplica a los activos nuevos.
+
+SubcuentasActivo: Subcuentas de cada activo, creadas por las plantillas de su tipo.
+SubcuentasActivo.IdSubcuentaActivo: Identificador autonumérico de la fila.
+SubcuentasActivo.IdActivo: Activo al que pertenece la subcuenta.
+SubcuentasActivo.IdPlantillaSubcuentaActivo: Línea de plantilla que la creó (da su rol).
+SubcuentasActivo.IdIdentidadContable: Subcuenta (identidad contable); su código en cada ejercicio está en CuentasContables.
+SubcuentasActivo.FechaHoraCreacion: Fecha y hora en que se creó.
+
+TiposActivo: Tipos de activo (vivienda, local, vehículo, inversión financiera…) con su categoría y si se amortizan por defecto.
+TiposActivo.IdTipoActivo: Identificador autonumérico del tipo.
+TiposActivo.Codigo: Código del tipo, único y estable.
+TiposActivo.Nombre: Nombre del tipo que se ve al dar de alta un activo.
+TiposActivo.Categoria: Familia del tipo (inmueble, vehículo, financiero…).
+TiposActivo.EsAmortizablePredeterminado: Valor que se propone en «Se amortiza» al crear un activo del tipo.
+TiposActivo.EstaActivo: No: el tipo no se ofrece en las altas nuevas.
+
+TiposSubcuentaActivo: Tipos de subcuenta de los activos: nombre con [TOKEN] (se sustituye por el nombre corto del activo), descripción y rol.
+TiposSubcuentaActivo.IdTipoSubcuentaActivo: Identificador autonumérico del tipo de subcuenta.
+TiposSubcuentaActivo.Nombre: Nombre de la subcuenta con [TOKEN], que se sustituye por el nombre corto del activo (p. ej. «IBI [TOKEN]»).
+TiposSubcuentaActivo.Descripcion: Para qué sirve la subcuenta.
+TiposSubcuentaActivo.Rol: Papel en los procesos: ACTIVO, TERRENO, AMORTIZACION_ACUMULADA, GASTO_AMORTIZACION, INGRESO_ALQUILER o LIBRE.
+TiposSubcuentaActivo.EstaActivo: No: el tipo no se usa en las plantillas nuevas.

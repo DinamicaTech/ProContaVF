@@ -9,6 +9,7 @@ using ProConta.Nucleo.Auditoria;
 //   ActualizadorEsquema actualizar <bd> <carpeta de copias>
 //   ActualizadorEsquema diccionario <bd> <carpeta de salida>
 //   ActualizadorEsquema copia-estructura <bd origen> <bd destino>
+//   ActualizadorEsquema descripciones <bd> <carpeta de copias>
 
 Console.OutputEncoding = System.Text.Encoding.UTF8;
 
@@ -26,6 +27,9 @@ if (args.Length < 2)
               una carpeta temporal, la actualiza allí si hace falta y lee la copia.
           ActualizadorEsquema copia-estructura <bd origen> <bd destino>
               Crea una BD con la misma estructura y sin datos de negocio (para pruebas o maestra vacía).
+          ActualizadorEsquema descripciones <bd> <carpeta de copias>
+              Escribe las descripciones de tablas y campos del catálogo que le faltan a una BD ya actualizada
+              (hace antes una copia; todos deben cerrar ProContaVF). No cambia la estructura ni los datos.
         """);
     return 2;
 }
@@ -92,6 +96,20 @@ try
             await CopiaEstructura.CrearAsync(args[1], args[2]);
             Console.WriteLine($"Copia sin datos de negocio creada en {Path.GetFullPath(args[2])}.");
             return 0;
+        case "descripciones" when args.Length >= 3:
+        {
+            var resultado = await new ActualizadorEsquema(new Actor(Environment.UserName)).CompletarDescripcionesAsync(args[1], args[2]);
+            if (!resultado.EsCorrecto)
+            {
+                foreach (var error in resultado.Errores) Console.Error.WriteLine(error.TextoOperador());
+                return 1;
+            }
+            var (escritas, copia) = resultado.Valor;
+            Console.WriteLine(escritas == 0
+                ? "La BD ya tenía todas las descripciones del catálogo. No he cambiado nada."
+                : $"He escrito {escritas} descripciones de tablas y campos. Copia previa: {copia}");
+            return 0;
+        }
         default:
             Console.Error.WriteLine("Comando o argumentos no reconocidos. Ejecuta el programa sin argumentos para ver el uso.");
             return 2;

@@ -128,9 +128,9 @@ public sealed class BdPruebas : IDisposable
     private static string CrearPlantillaActual()
     {
         var version1 = _plantillaVersion1.Value;
-        // La plantilla actual se rehace cuando cambia el catálogo de migraciones.
+        // La plantilla actual se rehace cuando cambia el catálogo de migraciones o el de descripciones.
         var catalogo = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(
-            string.Join("|", CatalogoMigraciones.Todas.Select(m => m.Hash)))))[..12];
+            string.Join("|", CatalogoMigraciones.Todas.Select(m => m.Hash)) + "|" + CatalogoDescripciones.Huella)))[..12];
         var plantilla = Path.Combine(Carpeta, $"{Path.GetFileNameWithoutExtension(version1)}-v{CatalogoMigraciones.VersionPrograma}-{catalogo}.accdb");
         ConExclusion(Path.GetFileNameWithoutExtension(plantilla), () =>
         {
