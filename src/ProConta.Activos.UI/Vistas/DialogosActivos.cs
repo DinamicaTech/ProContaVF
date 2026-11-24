@@ -41,7 +41,7 @@ public sealed class DialogosActivos(Func<Window?> propietario) : IDialogosActivo
         }
     }
 
-    /// <summary>«Nueva compra…» de un activo financiero: Cancelar y «Guardar la compra».</summary>
+    /// <summary>«Nueva compra…» o «Vender…» de un activo financiero: Cancelar y «Guardar la compra» (o la venta).</summary>
     public bool NuevaCompra(NuevaCompraVM compra)
     {
         var d = new DialogoProConta { Title = compra.Titulo, Owner = propietario(), SizeToContent = SizeToContent.WidthAndHeight };
@@ -63,8 +63,10 @@ public sealed class DialogosActivos(Func<Window?> propietario) : IDialogosActivo
         errores.Foreground = (System.Windows.Media.Brush)d.FindResource("Pincel.RojoSaldo");
         panel.Children.Add(errores);
         d.Content = panel;
-        var guardar = new Button { Content = "Guardar la compra", Style = (Style)d.FindResource("Boton.Primario"), IsDefault = true, Margin = new Thickness(8, 0, 0, 0),
-            Command = compra.GuardarCommand, ToolTip = "Anota la compra en el activo: suma sus participaciones y su coste. No graba ningún asiento" };
+        var guardar = new Button { Content = compra.TextoGuardar, Style = (Style)d.FindResource("Boton.Primario"), IsDefault = true, Margin = new Thickness(8, 0, 0, 0),
+            Command = compra.GuardarCommand, ToolTip = compra.EsVenta
+                ? "Anota la venta en el activo: resta sus participaciones y su coste medio; si no le quedan, pasa a inactivo. No graba ningún asiento (sale del movimiento del banco)"
+                : "Anota la compra en el activo: suma sus participaciones y su coste. No graba ningún asiento" };
         var cancelar = new Button { Content = "Cancelar", IsCancel = true, ToolTip = "Cierra sin anotar nada" };
         cancelar.Click += (_, _) => d.DialogResult = false;
         d.Botones = new StackPanel { Orientation = Orientation.Horizontal, Children = { cancelar, guardar } };

@@ -328,8 +328,9 @@ public partial class VentanaPrincipal : Window
             new ProConta.Norma43.UI.VistaModelos.ContextoBancos(contexto.Contexto, contexto.RazonSocial, new Actor(sesion.NombreOperador), Avisar), _area,
             new ProConta.Norma43.UI.Vistas.DialogosBancos(() => this));
         // Líneas N43 (norma43/pantallas): rejilla de movimientos con su cuenta, asiento y palabras clave; abre el Mayor y el asiento.
+        var conciliacionN43 = new ProConta.Norma43.Conciliacion.ServicioConciliacionN43(bd);
         _lineasN43 = new ProConta.Norma43.UI.VistaModelos.ModuloLineasN43(new ProConta.Norma43.Lineas.ConsultaLineasN43(bd), new ProConta.Norma43.Lineas.ServicioLineasN43(bd),
-            new ProConta.Norma43.Conciliacion.ServicioConciliacionN43(bd), new ProConta.Norma43.Asignacion.AsignadorCuentasN43(bd),
+            conciliacionN43, new ProConta.Norma43.Asignacion.AsignadorCuentasN43(bd),
             new ProConta.Norma43.UI.VistaModelos.ContextoLineasN43(contexto.Contexto, contexto.RazonSocial, new Actor(sesion.NombreOperador), Avisar)
             {
                 AbrirMayor = (cuentasMayor, anios) => _mayor.Abrir(cuentasMayor, anios),
@@ -340,7 +341,7 @@ public partial class VentanaPrincipal : Window
             _area, new ProConta.Norma43.UI.Vistas.DialogosLineasN43(cuentas, () => this), new ProConta.Norma43.Busqueda.BusquedaPorImporteN43(bd),
             new ProConta.Norma43.Remesas.ServicioRemesasN43(bd),
             new AjustesRemesaFacturacion(new AjustesCobroFacturas(facturas, serviciosFacturacion.Programadas), bd),
-            new ProConta.Norma43.Similares.ConsultaSimilaresN43(bd));
+            new ProConta.Norma43.Similares.ConsultaSimilaresN43(bd), new ProConta.Norma43.Conciliacion.ServicioActivosN43(bd, conciliacionN43));
         // Nóminas (nominas y nominas/pantallas): pantalla por periodo, pestaña Nóminas de la ficha del empleado y Excel recibidos por correo.
         var importacionNominas = new ProConta.Nominas.Importacion.ServicioImportacionNominas(bd);
         var contabilizacionNominas = new ProConta.Nominas.Contabilizacion.ServicioContabilizacionNominas(bd);

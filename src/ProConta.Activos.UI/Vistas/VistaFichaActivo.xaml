@@ -81,7 +81,7 @@
           <WrapPanel Margin="0,4,0,0">
             <TextBlock Text="{Binding Codigo}" Style="{StaticResource Texto.Mono}" VerticalAlignment="Center" Margin="0,0,10,0" ToolTip="Código del activo" />
             <TextBlock Text="{Binding TipoTexto}" Style="{StaticResource Texto.Apagado}" VerticalAlignment="Center" Margin="0,0,10,0" ToolTip="Tipo de activo" />
-            <Border Style="{StaticResource Pastilla}" VerticalAlignment="Center" Margin="0,0,10,0" ToolTip="En uso, de baja o ajeno a la sociedad">
+            <Border Style="{StaticResource Pastilla}" VerticalAlignment="Center" Margin="0,0,10,0" ToolTip="En uso, inactivo (con fecha de baja) o ajeno a la sociedad">
               <TextBlock Text="{Binding EstadoTexto}" FontSize="{StaticResource Letra.Pequena}" FontWeight="SemiBold" Foreground="{StaticResource Pincel.Texto2}" />
             </Border>
             <TextBlock Style="{StaticResource Texto.Apagado}" VerticalAlignment="Center" Margin="0,0,10,0" Visibility="{Binding Propio, Converter={StaticResource Visible}}"
@@ -536,19 +536,21 @@
                  ToolTip="El ISIN y los símbolos del activo financiero y sus compras de participaciones, con el coste de cada lote">
           <DockPanel Margin="0,10,0,0">
             <DockPanel DockPanel.Dock="Top" Margin="0,0,0,8">
+              <Button DockPanel.Dock="Right" Content="Vender…" Command="{Binding VenderCommand}" VerticalAlignment="Top" Margin="8,0,0,0"
+                      ToolTipService.ShowOnDisabled="True" ToolTip="Anota una venta de participaciones: participaciones, fecha (hoy por defecto) e importe total (opcional; si no, con el precio del día). Si no le quedan, el activo pasa a inactivo" />
               <Button DockPanel.Dock="Right" Content="Nueva compra…" Style="{StaticResource Boton.Primario}" Command="{Binding NuevaCompraCommand}" VerticalAlignment="Top"
                       ToolTipService.ShowOnDisabled="True" ToolTip="Anota otra compra de participaciones: fecha (hoy por defecto) y participaciones; el precio del día se consulta solo" />
               <TextBlock Text="{Binding TextoInstrumento}" TextWrapping="Wrap" VerticalAlignment="Center" Margin="0,0,14,0" />
             </DockPanel>
             <TextBlock DockPanel.Dock="Bottom" Text="{Binding TotalOperaciones}" FontWeight="SemiBold" Margin="0,8,0,0" />
             <TextBlock DockPanel.Dock="Bottom" Style="{StaticResource Texto.Apagado}" TextWrapping="Wrap" Margin="0,6,0,0"
-                       Text="El precio es el de cierre que dio el proveedor (orientativo). Cuando el bróker te confirme el importe de una compra, cambia el coste del lote con doble clic o con el menú contextual. No se graba ningún asiento: el de la compra sale del movimiento del banco." />
+                       Text="El precio es el de cierre que dio el proveedor (orientativo). Cuando el bróker te confirme el importe, cámbialo con doble clic o con el menú contextual. No se graba ningún asiento: el de la compra o la venta se genera desde su movimiento en Líneas N43 («Compra de activo…» o «Venta de activo…»), que pone el importe del banco y la deja conciliada. Las ventas se llevan el coste medio de lo vendido." />
             <DataGrid Style="{StaticResource Tabla}" ItemsSource="{Binding FilasOperaciones}" SelectedItem="{Binding OperacionElegida}" AutoGenerateColumns="False" IsReadOnly="True"
                       HeadersVisibility="Column" SelectionMode="Single" HorizontalAlignment="Left" MouseDoubleClick="Abrible_MouseDoubleClick" AutomationProperties.Name="Operaciones del activo financiero">
               <DataGrid.ContextMenu>
                 <ContextMenu>
-                  <MenuItem Header="Cambiar el coste del lote…" Command="{Binding CambiarCosteCommand}" ToolTipService.ShowOnDisabled="True"
-                            ToolTip="Pone el importe total que te ha confirmado el bróker para la compra marcada; el coste del activo se recalcula" />
+                  <MenuItem Header="Cambiar el importe…" Command="{Binding CambiarCosteCommand}" ToolTipService.ShowOnDisabled="True"
+                            ToolTip="Pone el importe total que te ha confirmado el bróker para la compra o venta marcada; el coste del activo se recalcula (no en las ya conciliadas con el banco)" />
                 </ContextMenu>
               </DataGrid.ContextMenu>
               <DataGrid.RowStyle>
@@ -561,7 +563,9 @@
                 <DataGridTextColumn Header="Precio" Binding="{Binding Precio}" Width="120" ElementStyle="{StaticResource Texto.Celda.Importe}" HeaderStyle="{StaticResource Tabla.Cabecera.Derecha}" />
                 <DataGridTextColumn Header="Cambio" Binding="{Binding Cambio}" Width="80" ElementStyle="{StaticResource Texto.Celda.Importe}" HeaderStyle="{StaticResource Tabla.Cabecera.Derecha}" />
                 <DataGridTextColumn Header="Precio real (€)" Binding="{Binding PrecioEur}" Width="120" ElementStyle="{StaticResource Texto.Celda.Importe}" HeaderStyle="{StaticResource Tabla.Cabecera.Derecha}" />
-                <DataGridTextColumn Header="Coste del lote" Binding="{Binding Coste}" Width="120" ElementStyle="{StaticResource Texto.Celda.Importe}" HeaderStyle="{StaticResource Tabla.Cabecera.Derecha}" />
+                <DataGridTextColumn Header="Importe" Binding="{Binding Coste}" Width="110" ElementStyle="{StaticResource Texto.Celda.Importe}" HeaderStyle="{StaticResource Tabla.Cabecera.Derecha}" />
+                <DataGridTextColumn Header="Resultado" Binding="{Binding Resultado}" Width="110" ElementStyle="{StaticResource Texto.Celda.Importe}" HeaderStyle="{StaticResource Tabla.Cabecera.Derecha}" />
+                <DataGridTextColumn Header="Banco" Binding="{Binding Banco}" Width="100" ElementStyle="{StaticResource Texto.Celda}" />
                 <DataGridTextColumn Header="Origen del precio" Binding="{Binding Notas}" Width="340" ElementStyle="{StaticResource Texto.Celda}" />
               </DataGrid.Columns>
             </DataGrid>

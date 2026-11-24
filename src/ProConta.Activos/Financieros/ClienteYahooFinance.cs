@@ -5,7 +5,8 @@ using ProConta.Nucleo.Resultados;
 namespace ProConta.Activos.Financieros;
 
 /// <summary>Un resultado de la búsqueda de Yahoo: símbolo, nombre, bolsa y tipo (la moneda sale del gráfico).</summary>
-public sealed record ResultadoBusquedaYahoo(string Simbolo, string Nombre, string Bolsa, string Tipo);
+/// <param name="NombreLargo">Si Yahoo da su nombre largo (longname); los listados regionales sin datos no lo traen.</param>
+public sealed record ResultadoBusquedaYahoo(string Simbolo, string Nombre, string Bolsa, string Tipo, bool NombreLargo = false);
 
 /// <summary>Datos del gráfico de Yahoo de un símbolo: moneda, bolsa, último precio y cierres diarios.</summary>
 /// <param name="Cierres">Cierre de cada día de cotización, por fecha local de la bolsa.</param>
@@ -21,17 +22,17 @@ public sealed class ClienteYahooFinance(HttpClient http)
     public const string Direccion = "https://query2.finance.yahoo.com/";
 
     /// <summary>Símbolos de Yahoo para un ISIN (vacío si no lo encuentra).</summary>
-    public async Task<Resultado<IReadOnlyList<ResultadoBusquedaYahoo>>> BuscarAsync(string isin, CancellationToken cancelacion = default)
+    public async Task<Resultado<IReadOnlyList<ResultadoBusquedaYahoo>>> BuscarAsync(string texto, CancellationToken cancelacion = default)
     {
-        var r = await GetAsync($"{Direccion}v1/finance/search?q={Uri.EscapeDataString(isin)}&quotesCount=10&newsCount=0&listsCount=0", cancelacion);
+        var r = await GetAsync($"{Direccion}v1/finance/search?q={Uri.EscapeDataString(texto)}&quotesCount=20&newsCount=0&listsCount=0", cancelacion);
         return r.EsCorrecto ? Resultado<IReadOnlyList<ResultadoBusquedaYahoo>>.Correcto(LeerBusqueda(r.Valor)) : Resultado<IReadOnlyList<ResultadoBusquedaYahoo>>.Fallo(r.Errores);
     }
 
     /// <summary>Gráfico diario de un símbolo entre dos fechas (ambas incluidas).</summary>
     public async Task<Resultado<GraficoYahoo>> GraficoAsync(string simbolo, DateTime desde, DateTime hasta, CancellationToken cancelacion = default)
     {
-        var p1 = new DateTimeOffset(desde.Date, TimeSpan.Zero).ToUnixTimeSeconds();
-        var p2 = new DateTimeOffset(hasta.Date.AddDays(1), TimeSpan.Zero).ToUnixTimeSeconds();
+        var p1 = SegundosUnix(desde);
+        var p2 = SegundosUnix(hasta.AddDays(1));
         var r = await GetAsync($"{Direccion}v8/finance/chart/{Uri.EscapeDataString(simbolo)}?period1={p1}&period2={p2}&interval=1d&events=history", cancelacion);
         if (!r.EsCorrecto) return Resultado<GraficoYahoo>.Fallo(r.Errores);
         return LeerGrafico(simbolo, r.Valor) is { } g ? Resultado<GraficoYahoo>.Correcto(g)
@@ -63,6 +64,12 @@ public sealed class ClienteYahooFinance(HttpClient http)
         }
     }
 
+    /// <summary>
+    /// Medianoche UTC del día dado en segundos Unix. Se construye con año, mes y día porque DateTime.Today es de tipo Local y un DateTimeOffset con
+    /// desfase cero a partir de él lanza una excepción en cualquier zona que no sea UTC (en España, siempre).
+    /// </summary>
+    internal static long SegundosUnix(DateTime dia) => new DateTimeOffset(dia.Year, dia.Month, dia.Day, 0, 0, 0, TimeSpan.Zero).ToUnixTimeSeconds();
+
     /// <summary>Lee la respuesta de la búsqueda: solo instrumentos con símbolo (ETF, fondos, acciones…), sin noticias.</summary>
     public static IReadOnlyList<ResultadoBusquedaYahoo> LeerBusqueda(string json)
     {
@@ -75,7 +82,8 @@ public sealed class ClienteYahooFinance(HttpClient http)
             if (string.IsNullOrWhiteSpace(simbolo)) continue;
             var tipo = Cadena(q, "quoteType") ?? "";
             if (tipo is "OPTION" or "FUTURE" or "CURRENCY" or "CRYPTOCURRENCY" or "INDEX") continue;
-            r.Add(new(simbolo, Cadena(q, "longname") ?? Cadena(q, "shortname") ?? simbolo, Cadena(q, "exchDisp") ?? Cadena(q, "exchange") ?? "", TipoInstrumento(tipo)));
+            var largo = Cadena(q, "longname");
+            r.Add(new(simbolo, largo ?? Cadena(q, "shortname") ?? simbolo, Cadena(q, "exchDisp") ?? Cadena(q, "exchange") ?? "", TipoInstrumento(tipo), !string.IsNullOrWhiteSpace(largo)));
         }
         return r;
     }
@@ -101,15 +109,24 @@ public sealed class ClienteYahooFinance(HttpClient http)
             var n = Math.Min(ts.GetArrayLength(), close.GetArrayLength());
             for (var i = 0; i < n; i++)
                 if (ts[i].ValueKind == JsonValueKind.Number && close[i].ValueKind == JsonValueKind.Number && close[i].TryGetDecimal(out var c) && c > 0m)
-                    cierres.Add((Dia(ts[i].GetInt64()), c));
+                    cierres.Add((Dia(ts[i].GetInt64()), Redondear(c)));
         }
         // Un mismo día puede venir dos veces (la sesión en curso): se queda el último valor.
         var porDia = cierres.GroupBy(x => x.Item1).Select(x => x.Last()).OrderBy(x => x.Item1).ToList();
-        decimal? ultimo = meta.TryGetProperty("regularMarketPrice", out var p) && p.ValueKind == JsonValueKind.Number && p.TryGetDecimal(out var pv) && pv > 0m ? pv : null;
+        decimal? ultimo = meta.TryGetProperty("regularMarketPrice", out var p) && p.ValueKind == JsonValueKind.Number && p.TryGetDecimal(out var pv) && pv > 0m ? Redondear(pv) : null;
         DateTime? fechaUltimo = meta.TryGetProperty("regularMarketTime", out var t) && t.ValueKind == JsonValueKind.Number ? Dia(t.GetInt64()) : null;
         return new GraficoYahoo(Cadena(meta, "symbol") ?? simbolo, moneda, Cadena(meta, "fullExchangeName") ?? Cadena(meta, "exchangeName") ?? "",
             Cadena(meta, "longName") ?? Cadena(meta, "shortName"), Cadena(meta, "instrumentType") is { } it ? TipoInstrumento(it) : null, ultimo, fechaUltimo, porDia);
     }
+
+    /// <summary>Decimales con que se guardan los precios de Yahoo.</summary>
+    public const int DecimalesPrecio = 4;
+
+    /// <summary>
+    /// Yahoo da los cierres en coma flotante de precisión simple (159.33999633789062 por 159,34): se redondean a <see cref="DecimalesPrecio"/> decimales,
+    /// que cubren los precios con más decimales que publica, para que el precio en euros y el coste del lote no arrastren ese error.
+    /// </summary>
+    public static decimal Redondear(decimal precio) => Math.Round(precio, DecimalesPrecio, MidpointRounding.AwayFromZero);
 
     /// <summary>ETF, FONDO, ACCION o el tipo de Yahoo tal cual.</summary>
     public static string TipoInstrumento(string tipoYahoo) => tipoYahoo.ToUpperInvariant() switch

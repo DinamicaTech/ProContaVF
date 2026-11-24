@@ -6,6 +6,8 @@ using ProConta.UI.Base.Modelos;
 namespace ProConta.Activos.UI;
 
 /// <summary>
+/// «Nueva compra…» y «Vender…» de un activo financiero (la venta, activos/activos-financieros 2026-11-24 09:14: participaciones, fecha e importe total
+/// opcional).
 /// «Nueva compra…» de un activo financiero (activos/activos-financieros 2026-11-23 20:32): sin ISIN ni búsqueda, solo la fecha (hoy por defecto) y las
 /// participaciones; el precio del día se pide solo y el coste del lote se puede corregir. No graba asientos.
 /// </summary>
@@ -16,13 +18,14 @@ public sealed class NuevaCompraVM : ModeloVista
     private string _errores = "";
     private bool _ocupado;
 
-    public NuevaCompraVM(ContextoActivos ctx, int idActivo, string codigo, InversionDeActivo inversion)
+    public NuevaCompraVM(ContextoActivos ctx, int idActivo, string codigo, InversionDeActivo inversion, bool esVenta = false)
     {
         _ctx = ctx;
         _idActivo = idActivo;
         Codigo = codigo;
         Inversion = inversion;
-        Compra = new FormularioCompraVM(ctx.Cotizaciones) { Referencia = inversion.Instrumento.Referencia };
+        EsVenta = esVenta;
+        Compra = new FormularioCompraVM(ctx.Cotizaciones) { Referencia = inversion.Instrumento.Referencia, EsVenta = esVenta };
         GuardarCommand = new ComandoDelegado(() => _ = GuardarAsync(), () => !_ocupado);
     }
 
@@ -31,7 +34,9 @@ public sealed class NuevaCompraVM : ModeloVista
     public FormularioCompraVM Compra { get; }
     public ICommand GuardarCommand { get; }
 
-    public string Titulo => $"Nueva compra de {Codigo}";
+    public bool EsVenta { get; }
+    public string Titulo => EsVenta ? $"Venta de {Codigo}" : $"Nueva compra de {Codigo}";
+    public string TextoGuardar => EsVenta ? "Guardar la venta" : "Guardar la compra";
     public string Cabecera => $"{Inversion.Instrumento.Nombre} · ISIN {Inversion.Instrumento.Isin}" +
                               (Inversion.Instrumento.TickerYahoo is { } t ? $" · {t}" : "") + $" · cotiza en {Inversion.Instrumento.Moneda}";
     public string Situacion => $"Ahora tiene {Inversion.Participaciones.ToString("#,##0.######", ProConta.UI.Base.Formato.Formatos.Cultura)} participaciones " +
@@ -57,12 +62,13 @@ public sealed class NuevaCompraVM : ModeloVista
         Ocupado = true;
         try
         {
-            var r = await _ctx.Servicio.NuevaCompraAsync(_ctx.Trabajo, _idActivo, compra);
+            var r = EsVenta ? await _ctx.Servicio.VenderAsync(_ctx.Trabajo, _idActivo, compra, Compra.ImporteEscrito)
+                : await _ctx.Servicio.NuevaCompraAsync(_ctx.Trabajo, _idActivo, compra);
             if (!r.EsCorrecto) { Errores = string.Join(Environment.NewLine, r.Errores.Select(e => "· " + e.TextoOperador())); return; }
             IdOperacion = r.Valor;
             Guardada?.Invoke(this, EventArgs.Empty);
         }
-        catch (Exception ex) { Errores = $"· No se ha guardado la compra: {ex.Message} No se ha grabado nada; vuelve a pulsar «Guardar la compra»."; }
+        catch (Exception ex) { Errores = $"· No se ha guardado la {(EsVenta ? "venta" : "compra")}: {ex.Message} No se ha grabado nada; vuelve a pulsar «{TextoGuardar}»."; }
         finally { Ocupado = false; }
     }
 }

@@ -60,6 +60,8 @@ public interface IDialogosLineasN43
     bool AjustarImportes(AjustesRemesaN43VM vm) => false;
     /// <summary>Diálogo «Movimientos similares» (modal): lo que se elige al cerrarlo (vm.Eleccion), o null.</summary>
     EleccionSimilarN43? MovimientosSimilares(MovimientosSimilaresN43VM vm) => null;
+    /// <summary>Diálogo «Compra de activo» / «Venta de activo» (modal): true si se pulsa «Conciliar» con una operación elegida.</summary>
+    bool ConciliarActivo(ActivoN43VM vm) => false;
 }
 
 /// <summary>Una acción del menú contextual: su texto, si se puede y, si no, por qué (en el tooltip).</summary>
@@ -155,6 +157,7 @@ public sealed class FilaLineaN43VM(LineaN43 datos) : ModeloVista
         ServicioRemesasN43.OrigenRemesa => "la del cliente del recibo (remesa explotada)",
         ServicioRemesasN43.OrigenDevolucion => "la del cliente del recibo devuelto",
         ServicioRemesasN43.OrigenDividendos => "pago de dividendos (la 526 del socio, o la 555 si se desglosó entre varios)",
+        ServicioActivosN43.OrigenActivo => "compra o venta de un activo financiero conciliada",
         _ => $"origen {d.Origen.ToLowerInvariant()} (migración del ERP)",
     };
 }
@@ -195,6 +198,7 @@ public sealed class LineasN43VM : ModeloVista, IPestanaTrabajo
     private readonly ServicioRemesasN43? _remesas;
     private readonly IAjustesRemesaN43? _ajustes;
     private readonly ConsultaSimilaresN43? _similares;
+    private readonly ServicioActivosN43? _activos;
     /// <summary>Candidatos de «Movimientos similares» por rango de ejercicios: se leen una vez y se olvidan al volver a leer o tras una acción.</summary>
     private readonly Dictionary<(int Desde, int Hasta), IReadOnlyList<CandidatoSimilarN43>> _candidatos = [];
     private IReadOnlyList<AvanceSimilarN43VM> _avance = [];
@@ -223,9 +227,10 @@ public sealed class LineasN43VM : ModeloVista, IPestanaTrabajo
 
     public LineasN43VM(ConsultaLineasN43 consulta, ServicioLineasN43 servicio, ServicioConciliacionN43 conciliacion, AsignadorCuentasN43 asignador,
         IDialogosLineasN43 dialogos, ContextoLineasN43 contexto, Action? alCerrar = null, BusquedaPorImporteN43? busqueda = null, ServicioRemesasN43? remesas = null,
-        IAjustesRemesaN43? ajustes = null, ConsultaSimilaresN43? similares = null)
+        IAjustesRemesaN43? ajustes = null, ConsultaSimilaresN43? similares = null, ServicioActivosN43? activos = null)
     {
         _similares = similares;
+        _activos = activos;
         _busqueda = busqueda;
         _remesas = remesas;
         _ajustes = ajustes;
@@ -264,6 +269,7 @@ public sealed class LineasN43VM : ModeloVista, IPestanaTrabajo
         AccionConciliarDevueltas = new("Conciliar facturas devueltas…", "Elige los recibos devueltos de la remesa anterior que suman el cargo: vuelven a la cuenta de su cliente y las facturas quedan pendientes de cobro", () => _ = ConciliarDevueltasAsync());
         AccionDeshacerExplosion = new("Deshacer explosión", "Quita el desglose en recibos de la remesa o la devolución (o en pagos de dividendos) y deja sus facturas como estaban (no si alguna línea del desglose ya tiene asiento)", () => _ = DeshacerExplosionAsync());
         AccionPagoDividendos = new("Pago de dividendos…", "Lleva el cargo a la 526 del socio que cobra o, si son varios, lo desglosa en una línea por socio con su importe y su 526", () => _ = PagoDividendosAsync());
+        AccionActivo = new("Compra de activo…", "Concilia el movimiento con una compra (cargo) o venta (abono) de un activo financiero sin conciliar: genera su asiento y la deja conciliada", () => _ = ConciliarActivoAsync());
         ExplotarPendientesCommand = new ComandoDelegado(() => _ = ExplotarPendientesAsync(), () => _remesas is not null && !Ocupado && AniosMarcados.Count > 0);
         ActualizarAcciones();
     }
@@ -390,6 +396,8 @@ public sealed class LineasN43VM : ModeloVista, IPestanaTrabajo
     public AccionLineasVM AccionConciliarDevueltas { get; }
     public AccionLineasVM AccionDeshacerExplosion { get; }
     public AccionLineasVM AccionPagoDividendos { get; }
+    /// <summary>«Compra de activo…» en un cargo, «Venta de activo…» en un abono (activos/activos-financieros).</summary>
+    public AccionLineasVM AccionActivo { get; }
     /// <summary>Botón de cabecera: explota las remesas pendientes de los ejercicios marcados que cuadran solas (acción general, no de la selección).</summary>
     public ICommand ExplotarPendientesCommand { get; }
     public bool HayRemesas => _remesas is not null;
@@ -565,8 +573,15 @@ public sealed class LineasN43VM : ModeloVista, IPestanaTrabajo
         AccionConciliarDevueltas.Fijar("Conciliar facturas devueltas…", a.ConciliarDevueltas ?? sinRemesas ?? Ocupada());
         AccionDeshacerExplosion.Fijar("Deshacer explosión", a.DeshacerExplosion ?? sinRemesas ?? Ocupada());
         AccionPagoDividendos.Fijar("Pago de dividendos…", a.PagoDividendos ?? (_remesas is null ? "Los pagos de dividendos no están disponibles en esta pantalla." : null) ?? Ocupada());
+        AccionActivo.Fijar(Seleccion is [{ EsCargo: false }] ? "Venta de activo…" : "Compra de activo…", MotivoActivo() ?? Ocupada());
         Avisar(nameof(Resumen), nameof(Acciones));
     }
+
+    private string? MotivoActivo() =>
+        _activos is null ? "La conciliación con activos no está disponible en esta pantalla."
+        : Seleccion is not [var f] ? "Selecciona un solo movimiento del banco."
+        : ServicioActivosN43.Bloqueo(f.Datos) is { } e ? e.Mensaje
+        : null;
 
     private string? Ocupada() => _ocupado ? "Espera a que termine la acción en curso." : null;
 
@@ -896,6 +911,25 @@ public sealed class LineasN43VM : ModeloVista, IPestanaTrabajo
         var r = await _remesas.PagarDividendosAsync(_contexto.Trabajo.IdSociedad, fila.Id, vm.Pagos(), _contexto.Actor);
         await TrasRemesaAsync(r, "No se ha grabado el pago de dividendos");
     }, "pagar los dividendos");
+
+    /// <summary>
+    /// «Compra de activo…» / «Venta de activo…» (activos/activos-financieros 2026-11-24 09:14): elige la compra o venta sin conciliar, genera el asiento de
+    /// la línea con el importe del banco y deja la operación conciliada.
+    /// </summary>
+    public Task ConciliarActivoAsync() => Ejecutar(async () =>
+    {
+        if (Seleccion is not [var fila] || _activos is null || MotivoActivo() is not null) return;
+        var p = await _activos.ProponerAsync(_contexto.Trabajo.IdSociedad, fila.Id);
+        if (p is null) return;
+        var que = fila.EsCargo ? "No se puede conciliar con una compra" : "No se puede conciliar con una venta";
+        if (p.Bloqueo is { } b) { Informar(que, b); return; }
+        var vm = new ActivoN43VM(p);
+        if (!_dialogos.ConciliarActivo(vm) || vm.IdOperacion is not { } idOp) return;
+        var r = await _activos.ConciliarAsync(_contexto.Trabajo.IdSociedad, fila.Id, idOp, _contexto.Actor);
+        await RefrescarLineasAsync([fila.Id]);
+        if (!r.EsCorrecto) { Informar(fila.EsCargo ? "No se ha conciliado la compra" : "No se ha conciliado la venta", r.Errores[0]); return; }
+        _contexto.Avisar(r.Texto);
+    }, "conciliar el activo");
 
     /// <summary>Botón de cabecera: explota todas las remesas pendientes de los ejercicios marcados cuyas facturas cuadran solas.</summary>
     public Task ExplotarPendientesAsync() => Ejecutar(async () =>
