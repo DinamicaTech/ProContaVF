@@ -33,9 +33,10 @@ public static class MigracionesPlataforma
         "20261124_1100_CONEXION_AWS", 261124110,
         "Conexión de AWS por sociedad en Integraciones: tabla ConexionesAws con las claves que estaban en la configuración del reconocimiento de compras.",
         "plataforma/mantenimiento/conexion-aws",
+        // Sin relación con Sociedades: Access no admite más índices en esa tabla (como ModelosSociedad o ConexionesAvaibook).
         new CrearTabla("ConexionesAws",
-            "CREATE TABLE ConexionesAws (IdSociedad TEXT(3) NOT NULL CONSTRAINT PK_ConexionesAws PRIMARY KEY " +
-            "CONSTRAINT FK_ConexionesAws_Sociedad REFERENCES Sociedades (IdSociedad), Region TEXT(30), ClaveAcceso TEXT(128), SecretoProtegido LONGTEXT)"),
+            "CREATE TABLE ConexionesAws (IdSociedad TEXT(3) NOT NULL CONSTRAINT PK_ConexionesAws PRIMARY KEY, " +
+            "Region TEXT(30), ClaveAcceso TEXT(128), SecretoProtegido LONGTEXT)"),
         new PasoPersonalizado(
             "Copiar a ConexionesAws las claves de AWS guardadas en la configuración del reconocimiento de compras",
             "INSERT INTO ConexionesAws (IdSociedad, Region, ClaveAcceso, SecretoProtegido) SELECT IdSociedad, RegionAWS, ClaveAccesoAWS, SecretoAWSProtegido " +

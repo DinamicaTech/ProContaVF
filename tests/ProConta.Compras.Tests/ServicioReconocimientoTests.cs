@@ -80,7 +80,7 @@ public sealed class ServicioReconocimientoTests : IDisposable
     {
         var ctx = new ContextoProcesamiento { Configuracion = new ConfiguracionReconocimiento { UsarOcr = true }, Reconocimiento = Contexto() };
         var r = await new ServicioReconocimientoFacturaCompra(new ExtractorFijo(Texto(" ")), motivoSinOcr: "No encuentro el perfil").ReconocerAsync(_pdf, ctx);
-        Assert.Contains(r.Lectura.Advertencias, a => a.Contains("Reconocimiento de facturas de compra") && a.Contains("No encuentro el perfil"));
+        Assert.Contains(r.Lectura.Advertencias, a => a.Contains("Integraciones › «AWS · Conexión»") && a.Contains("No encuentro el perfil"));
     }
 
     [Fact]
