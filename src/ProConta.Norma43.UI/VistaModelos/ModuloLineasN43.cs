@@ -10,7 +10,7 @@ namespace ProConta.Norma43.UI.VistaModelos;
 public sealed class ModuloLineasN43(ConsultaLineasN43 consulta, ServicioLineasN43 servicio, ServicioConciliacionN43 conciliacion, AsignadorCuentasN43 asignador,
     ContextoLineasN43 contexto, IAnfitrionPestanas anfitrion, IDialogosLineasN43 dialogos, BusquedaPorImporteN43? busqueda = null,
     Remesas.ServicioRemesasN43? remesas = null, Remesas.IAjustesRemesaN43? ajustes = null,
-    Similares.ConsultaSimilaresN43? similares = null)
+    Similares.ConsultaSimilaresN43? similares = null, ServicioActivosN43? activos = null)
 {
     private LineasN43VM? _lineas;
 
@@ -22,7 +22,7 @@ public sealed class ModuloLineasN43(ConsultaLineasN43 consulta, ServicioLineasN4
             _ = _lineas.CargarAsync();
             return;
         }
-        _lineas = new LineasN43VM(consulta, servicio, conciliacion, asignador, dialogos, contexto, () => _lineas = null, busqueda, remesas, ajustes, similares);
+        _lineas = new LineasN43VM(consulta, servicio, conciliacion, asignador, dialogos, contexto, () => _lineas = null, busqueda, remesas, ajustes, similares, activos);
         anfitrion.Abrir(_lineas);
         _ = _lineas.IniciarAsync();
     }
