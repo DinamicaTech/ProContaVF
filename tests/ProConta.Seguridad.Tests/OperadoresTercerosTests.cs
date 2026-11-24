@@ -156,4 +156,26 @@ public sealed class OperadoresTercerosTests : IDisposable
         Assert.True((await Operadores().GuardarRolAsync(marta, true, [grupo], admin, _actor, soloComprobar: true)).EsCorrecto);
         Assert.Null(await Operadores().RolDeTerceroAsync(marta));
     }
+
+    [Fact]
+    public async Task UnOperadorPasaAOtraFichaConSuNumeroYSusGrupos()
+    {
+        var (admin, grupo) = await AdministradorAsync();
+        var (luis, fichaVieja) = await DatosSinteticos.OperadorConTerceroAsync(_copia.Bd(), "Luis");
+        await DatosSinteticos.MiembroAsync(_copia.Bd(), luis, grupo);
+        var fichaBuena = await DatosSinteticos.TerceroPersonaAsync(_copia.Bd(), "Luis", "Sintético");
+        var empresa = await DatosSinteticos.TerceroPersonaAsync(_copia.Bd(), "Empresa Sintética SL", tipo: "JURIDICA");
+
+        Assert.Equal("Seguridad.SinPermisoOperadores", (await Operadores().PasarATerceroAsync(admin, fichaBuena, luis + 1000, _actor)).Error!.Codigo);
+        Assert.Equal("Seguridad.OperadorNoPersona", (await Operadores().PasarATerceroAsync(luis, empresa, admin, _actor)).Error!.Codigo);
+        var idTerceroAdmin = (await Operadores().ObtenerAsync(admin))!.IdTercero;
+        Assert.Equal("Seguridad.TerceroYaOperador", (await Operadores().PasarATerceroAsync(luis, idTerceroAdmin, admin, _actor)).Error!.Codigo);
+
+        Assert.True((await Operadores().PasarATerceroAsync(luis, fichaBuena, admin, _actor)).EsCorrecto);
+        Assert.Null(await Operadores().RolDeTerceroAsync(fichaVieja));
+        var rol = await Operadores().RolDeTerceroAsync(fichaBuena);
+        Assert.Equal(luis, rol!.IdOperador);
+        Assert.Equal([grupo], rol.Grupos);
+        Assert.Contains(await Operadores().ListarConTerceroAsync(), x => x.Operador.IdOperador == luis && x.NombreTercero == "Luis Sintético");
+    }
 }

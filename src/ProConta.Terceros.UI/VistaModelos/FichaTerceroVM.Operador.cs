@@ -80,6 +80,34 @@ public sealed partial class FichaTerceroVM
     public ICommand CambiarContrasenaOperadorCommand => _cambiarContrasenaOperador ??= new ComandoDelegado(
         () => _ = CambiarContrasenaOperadorAsync(), () => _operador is { Activo: true } && _operadorActivo && !Guardando);
 
+    private ICommand? _pasarOperador;
+
+    /// <summary>Pasa aquí un operador que está en otra ficha (p. ej. una ficha duplicada que creó la migración). Al momento.</summary>
+    public ICommand PasarOperadorCommand => _pasarOperador ??= new ComandoDelegado(
+        () => _ = PasarOperadorAsync(), () => PuedePasarOperador && !Guardando);
+
+    /// <summary>Ficha guardada de una persona física que nunca ha sido operador y sin cambios pendientes en el rol.</summary>
+    public bool PuedePasarOperador => _operador is null && !_operadorActivo && !T.EsNuevo && T.TipoPersona == TipoPersona.Fisica;
+
+    private async Task PasarOperadorAsync()
+    {
+        if (_modulo?.Operadores is not { } operadores) return;
+        try
+        {
+            if (await operadores.PasarOperadorAsync(T.IdTercero, NombreCabecera) is not { } aviso) return;
+            _operador = await operadores.ObtenerAsync(T.IdTercero);
+            _operadorActivo = _operador?.Activo ?? false;
+            foreach (var g in GruposOperador) g.Poner(_operador?.Grupos.Contains(g.IdGrupo) ?? false);
+            AvisarOperador();
+            Modificado();
+            AvisoEstado(aviso);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            AvisoEstado($"No he podido pasar el operador a esta ficha ({ex.Message}). Vuelve a intentarlo.");
+        }
+    }
+
     private InsigniaRol? InsigniaOperador() => MostrarOperador && _operadorActivo
         ? new InsigniaRol("operador", "Operador", _operador?.NombreAcceso ?? "nuevo", "Entra en ProContaVF con este nombre. Pulsa para ir al rol en la pestaña Roles")
         : null;
@@ -135,7 +163,7 @@ public sealed partial class FichaTerceroVM
 
     private void AvisarOperador() =>
         Avisar(nameof(MostrarOperador), nameof(OperadorActivo), nameof(IdOperador), nameof(NombreAccesoOperador), nameof(EstadoOperador),
-            nameof(TextoContrasenaOperador), nameof(PuedeActivarOperador), nameof(AyudaActivarOperador), nameof(Insignias));
+            nameof(TextoContrasenaOperador), nameof(PuedeActivarOperador), nameof(AyudaActivarOperador), nameof(PuedePasarOperador), nameof(Insignias));
 
     private HashSet<int> GruposMarcados() => GruposOperador.Where(g => g.Marcado).Select(g => g.IdGrupo).ToHashSet();
 

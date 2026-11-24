@@ -825,6 +825,9 @@
                         <Button Style="{StaticResource Boton.Enlace}" Content="Desactivar" Command="{Binding DesactivarRolCommand}" CommandParameter="operador" VerticalAlignment="Center"
                                 ToolTip="Al guardar, deja de poder entrar en ProContaVF. No se borra: su historial de accesos se conserva y se puede volver a activar" />
                       </StackPanel>
+                      <Button Style="{StaticResource Boton.Enlace}" Content="Pasar aquí un operador…" Command="{Binding PasarOperadorCommand}" VerticalAlignment="Center" Margin="0,0,10,0"
+                              Visibility="{Binding PuedePasarOperador, Converter={StaticResource Visible}}"
+                              ToolTip="Si esta persona ya entra en ProContaVF desde otra ficha (por ejemplo, una ficha repetida que creó la migración), pasa aquí ese operador al momento, con su nombre de entrada, su contraseña y sus grupos" />
                       <Button Content="Activar" Command="{Binding ActivarRolCommand}" CommandParameter="operador" Style="{StaticResource Boton.Pequeno}"
                               IsEnabled="{Binding PuedeActivarOperador}" ToolTipService.ShowOnDisabled="True" ToolTip="{Binding AyudaActivarOperador}"
                               Visibility="{Binding OperadorActivo, Converter={StaticResource Visible}, ConverterParameter=invertir}" />

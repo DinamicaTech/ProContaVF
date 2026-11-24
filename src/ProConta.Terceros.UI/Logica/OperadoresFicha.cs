@@ -29,6 +29,12 @@ public interface IOperadoresFicha
     /// </summary>
     Task<Resultado> GuardarAsync(int idTercero, bool activo, IReadOnlyCollection<int> grupos, bool soloComprobar);
 
+    /// <summary>
+    /// Elige un operador existente y lo pasa a este tercero (persona física guardada que nunca ha sido operador), con su número, contraseña
+    /// y grupos. Devuelve el aviso que se muestra, o null si se cancela.
+    /// </summary>
+    Task<string?> PasarOperadorAsync(int idTercero, string nombreTercero);
+
     /// <summary>Pide la contraseña nueva del operador y la guarda; devuelve el aviso que se muestra, o null si se cancela.</summary>
     Task<string?> CambiarContrasenaAsync(int idOperador, string nombreAcceso);
 }

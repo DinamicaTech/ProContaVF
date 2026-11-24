@@ -266,6 +266,44 @@ public sealed class ServicioOperadores(IBaseDatos bd, IReloj? reloj = null)
             return Resultado.Correcto();
         });
 
+    /// <summary>Todos los operadores, activos o no, con el nombre completo de su tercero, por nombre de acceso.</summary>
+    public Task<IReadOnlyList<(Operador Operador, string NombreTercero)>> ListarConTerceroAsync() =>
+        bd.EjecutarAsync<IReadOnlyList<(Operador, string)>>(async s =>
+        {
+            var nombres = (await s.ConsultarAsync("SELECT t.IdTercero, t.Nombre FROM Terceros AS t INNER JOIN OperadoresSeguridad AS o ON t.IdTercero = o.IdTercero",
+                f => (Id: f.Entero("IdTercero"), Nombre: f.Texto("Nombre") ?? ""))).ToDictionary(x => x.Id, x => x.Nombre);
+            return (await TodosAsync(s)).OrderBy(o => o.Nombre, StringComparer.Create(System.Globalization.CultureInfo.GetCultureInfo("es-ES"), true))
+                .Select(o => (o, nombres.GetValueOrDefault(o.IdTercero, ""))).ToList();
+        });
+
+    /// <summary>
+    /// Pasa un operador a otro tercero (por ejemplo, cuando la migración le dio una ficha nueva y la persona ya tenía la suya): conserva su
+    /// número, su contraseña, sus grupos y su historial. El tercero de destino tiene que ser una persona física con nombre que nunca haya
+    /// sido operador. Lo hace quien puede gestionar operadores; la ficha que deja no se toca.
+    /// </summary>
+    public Task<Resultado> PasarATerceroAsync(int idOperador, int idTerceroDestino, int idOperadorActor, Actor actor) =>
+        bd.EnTransaccionAsync(async s =>
+        {
+            if (!await PuedeGestionarAsync(s, idOperadorActor)) return Resultado.Fallo(SinPermiso());
+            var origen = await s.ConsultarPrimeroAsync("SELECT IdTercero FROM OperadoresSeguridad WHERE IdOperador = ?", f => (int?)f.Entero("IdTercero"), idOperador);
+            if (origen is null)
+                return Resultado.Fallo(new Error("Seguridad.OperadorInexistente", "El operador ya no existe.", $"Operador {idOperador}", null, "Vuelve a abrir la ficha."));
+            if (origen == idTerceroDestino) return Resultado.Correcto();
+            var ocupado = await s.ConsultarPrimeroAsync("SELECT IdOperador FROM OperadoresSeguridad WHERE IdTercero = ?", f => (int?)f.Entero("IdOperador"), idTerceroDestino);
+            if (ocupado is not null)
+                return Resultado.Fallo(new Error("Seguridad.TerceroYaOperador", "Esta persona ya tiene (o tuvo) su propio rol de operador.", $"Tercero {idTerceroDestino}",
+                    "Cada persona solo puede ser un operador.", "Reactiva su rol con «Activar» en vez de pasarle otro operador."));
+            var tercero = await s.ConsultarPrimeroAsync("SELECT TipoPersona, NombrePersona, Nombre FROM Terceros WHERE IdTercero = ?",
+                f => (Tipo: f.Texto("TipoPersona"), Pila: f.Texto("NombrePersona"), Nombre: f.Texto("Nombre")), idTerceroDestino);
+            if (tercero.Nombre is null || !string.Equals(tercero.Tipo?.Trim(), "FISICA", StringComparison.OrdinalIgnoreCase) || string.IsNullOrWhiteSpace(tercero.Pila))
+                return Resultado.Fallo(new Error("Seguridad.OperadorNoPersona", "Solo una persona física con nombre puede ser operador de ProContaVF.", tercero.Nombre,
+                    "El nombre con el que se entra sale del nombre de pila de la persona.", "Pon el tipo «Persona física» y su nombre en la pestaña Identidad y guarda la ficha antes."));
+            await s.EjecutarAsync("UPDATE OperadoresSeguridad SET IdTercero = ? WHERE IdOperador = ?", idTerceroDestino, idOperador);
+            await AuditoriaSeguridad.RegistrarAsync(s, _reloj, "OPERADOR_MOVIDO", idOperador.ToString(), actor.Nombre, "CORRECTO",
+                $"Del tercero {origen} al {idTerceroDestino} ({tercero.Nombre})");
+            return Resultado.Correcto();
+        });
+
     /// <summary>
     /// Crea el primer administrador cuando no hay ningún operador (la maestra no trae operadores por defecto): da de alta su tercero
     /// persona física con el nombre y los apellidos, le da el rol de operador y lo pone en el grupo ADMINISTRADORES (lo crea si falta).

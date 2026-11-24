@@ -1201,7 +1201,7 @@ public sealed partial class FichaTerceroVM : Observable, IPestanaTrabajo, INotif
         RecalcularErrores();
         Avisar(nameof(AvisoFacturas), nameof(AvisoAdministrativos), nameof(MostrarEmailAntiguo), nameof(MostrarTelefonoAntiguo), nameof(TelefonoAntiguoValido), nameof(MostrarFichaAntigua), nameof(HayGrupos), nameof(HayRelaciones), nameof(MostrarNotaFacturas));
         Avisar(nameof(TieneCambios), nameof(TextoCambios), nameof(Marcas), nameof(Titulo), nameof(Ayuda), nameof(NombreCabecera), nameof(InicialesCabecera), nameof(TipoTexto),
-            nameof(LineaDatos), nameof(Insignias), nameof(PuedeActivarOperador), nameof(AyudaActivarOperador), nameof(NombreAccesoOperador));
+            nameof(LineaDatos), nameof(Insignias), nameof(PuedeActivarOperador), nameof(AyudaActivarOperador), nameof(NombreAccesoOperador), nameof(PuedePasarOperador));
     }
 
     private void CambiadoAqui(string campo)
