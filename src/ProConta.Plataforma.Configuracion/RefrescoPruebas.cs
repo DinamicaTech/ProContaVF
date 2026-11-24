@@ -166,6 +166,13 @@ public sealed class RefrescoPruebas(Func<DateTime>? ahora = null)
             foreach (var c in plan.Carpetas)
             {
                 cancelacion.ThrowIfCancellationRequested();
+                // Las carpetas de documentos de fuera de la de la BD (un NAS de solo lectura, que puede tener cientos de GB) no se copian
+                // (propietario 2026-11-24): la copia escribe en su carpeta de pruebas, vacía, y no toca la de producción (EntornoFicheros).
+                if (!string.Equals(c.Destino, plan.CarpetaPruebas, StringComparison.OrdinalIgnoreCase))
+                {
+                    Directory.CreateDirectory(c.Destino);
+                    continue;
+                }
                 progreso?.Report($"Copiando {c.Origen}…");
                 var (cop, bor) = Replicar(c, plan, nueva);
                 copiados += cop;

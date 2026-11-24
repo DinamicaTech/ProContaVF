@@ -65,6 +65,8 @@ public partial class App : Application
                 return;
             }
             Informes.ConversorHtmlPdf.MarcaDeAgua = entorno.EsPruebas ? "PRUEBAS" : null;
+            // En pruebas nada se escribe, mueve ni sobrescribe fuera de la carpeta de pruebas (plataforma/entorno-pruebas 2026-11-24).
+            ProConta.Nucleo.Ficheros.EntornoFicheros.Configurar(entorno.EsPruebas ? System.IO.Path.GetDirectoryName(System.IO.Path.GetFullPath(ubicacion.RutaBaseDatos)) : null);
             var sociedades = new ServicioSociedadesAccess(bd);
             _acceso = new ServicioAcceso(bd, sociedades);
 

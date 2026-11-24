@@ -19,12 +19,18 @@ $actualizador = Join-Path $raiz 'src\ProConta.Datos.Esquema.Consola\bin\Release\
 if (-not (Test-Path (Join-Path $programa 'ProContaVF.exe'))) { throw "No encuentro ProContaVF.exe en $programa después de compilar." }
 if (-not (Test-Path (Join-Path $programa 'Conector\ProContaConector.exe'))) { throw "No encuentro el conector de Claude en $programa\Conector después de compilar." }
 
-$abiertos = Get-Process -Name ProContaVF, ProContaConector, ActualizadorEsquema -ErrorAction SilentlyContinue |
+$abiertos = Get-Process -Name ProContaVF, ActualizadorEsquema -ErrorAction SilentlyContinue |
     Where-Object { $_.Path -and $_.Path.StartsWith($Destino, [StringComparison]::OrdinalIgnoreCase) }
 if ($abiertos) {
     $lista = ($abiertos | ForEach-Object { "$($_.ProcessName) ($($_.Path))" }) -join ', '
-    throw "Hay programas abiertos desde $Destino ($lista). Ciérralos (también Claude Desktop, que usa el conector) y vuelve a ejecutar instalar.cmd; no se ha copiado nada."
+    throw "Hay programas abiertos desde $Destino ($lista). Ciérralos y vuelve a ejecutar instalar.cmd; no se ha copiado nada."
 }
+# El conector lo tiene abierto Claude Desktop mientras está en marcha: si es así, se instala todo menos la carpeta Conector, que sigue
+# con la versión anterior hasta la próxima instalación con Claude Desktop cerrado.
+$conectorEnUso = [bool](Get-Process -Name ProContaConector -ErrorAction SilentlyContinue |
+    Where-Object { $_.Path -and $_.Path.StartsWith($Destino, [StringComparison]::OrdinalIgnoreCase) })
+$excluir = if ($conectorEnUso) { @('Conector') } else { @() }
+if ($conectorEnUso) { Write-Host "AVISO: Claude Desktop está usando el conector, así que la carpeta Conector no se actualiza. Para actualizarla, cierra Claude Desktop del todo y vuelve a ejecutar instalar.cmd." }
 
 New-Item -ItemType Directory -Force -Path $Destino | Out-Null
 $sello = Get-Date -Format 'yyyyMMdd-HHmmss'
@@ -35,6 +41,7 @@ $origenes = @(@{ Desde = $programa; Hacia = $Destino }, @{ Desde = $actualizador
 $guardados = 0
 foreach ($o in $origenes) {
     foreach ($item in Get-ChildItem -LiteralPath $o.Desde) {
+        if ($o.Hacia -eq $Destino -and $excluir -contains $item.Name) { continue }
         $existente = Join-Path $o.Hacia $item.Name
         if (Test-Path -LiteralPath $existente) {
             $relativo = $existente.Substring($Destino.TrimEnd('\').Length).TrimStart('\')
@@ -49,7 +56,10 @@ if ($guardados -gt 0) { Write-Host "Versión anterior guardada en $respaldo ($gu
 
 foreach ($o in $origenes) {
     New-Item -ItemType Directory -Force -Path $o.Hacia | Out-Null
-    Copy-Item -Path (Join-Path $o.Desde '*') -Destination $o.Hacia -Recurse -Force
+    foreach ($item in Get-ChildItem -LiteralPath $o.Desde) {
+        if ($o.Hacia -eq $Destino -and $excluir -contains $item.Name) { continue }
+        Copy-Item -LiteralPath $item.FullName -Destination $o.Hacia -Recurse -Force
+    }
 }
 
 $version = (Get-Item (Join-Path $Destino 'ProContaVF.exe')).VersionInfo.ProductVersion

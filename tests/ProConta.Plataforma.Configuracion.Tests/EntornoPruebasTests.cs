@@ -192,7 +192,9 @@ public sealed class RefrescoPruebasAccessTests : IDisposable
         Assert.True(informe.RutasCambiadas >= 2);
 
         Assert.True(File.Exists(Path.Combine(_carpetaPruebas, "Nominas", "octubre.xlsx")));
-        Assert.True(File.Exists(Path.Combine(_carpetaPruebas, RefrescoPruebas.CarpetaExternas, "Dinamica", "2026", "F-1.pdf")));
+        // La carpeta de documentos de fuera (un NAS) no se copia: queda vacía en pruebas (propietario 2026-11-24).
+        Assert.True(Directory.Exists(Path.Combine(_carpetaPruebas, RefrescoPruebas.CarpetaExternas, "Dinamica")));
+        Assert.False(File.Exists(Path.Combine(_carpetaPruebas, RefrescoPruebas.CarpetaExternas, "Dinamica", "2026", "F-1.pdf")));
         Assert.False(File.Exists(Path.Combine(_carpetaPruebas, ComprobadorArranque.CarpetaCopiasEsquema, "vieja.accdb")));
         Assert.False(File.Exists(Path.Combine(_carpetaPruebas, "ProConta.nueva.accdb")));
 

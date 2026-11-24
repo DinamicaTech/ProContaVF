@@ -292,7 +292,9 @@ public partial class VentanaPrincipal : Window
                     if (!carpeta.EsCorrecto) return carpeta.Error!.TextoOperador();
                     try
                     {
-                        var destino = ProConta.Documentos.RutasDocumentos.RutaLibre(carpeta.Valor, System.IO.Path.GetFileName(ruta));
+                        var destino = ProConta.Nucleo.Ficheros.EntornoFicheros.ParaEscribir(
+                            ProConta.Documentos.RutasDocumentos.RutaLibre(carpeta.Valor, System.IO.Path.GetFileName(ruta)));
+                        System.IO.Directory.CreateDirectory(System.IO.Path.GetDirectoryName(destino)!);
                         System.IO.File.Copy(ruta, destino);
                         _compras.AbrirRecibidas();
                         return null;
