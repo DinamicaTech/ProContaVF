@@ -69,6 +69,7 @@ Cada paso se marca con la fecha en que se hace y cómo se comprobó.
 
 **I. Después del arranque**
 - [ ] 1/12/2026: IVA de venta del turístico al 10 % y, después, generar las programadas de diciembre.
+- [ ] Pasar los apuntes de la 4724001 a la 4724021 (IVA de importación al 21 %, la cuenta del ejercicio 2026 según el propietario, 2026-11-24 13:25), revisando antes cuántos hay por ejercicio y que no se descuadren los libros de IVA.
 
 **J. Datos para los modelos tributarios**
 Lista del hilo de modelos tributarios (pantalla fusionada en la PR #123, esquema 73). Va después del arranque, antes de presentar cada modelo: el 390 y los informativos 190, 180 y 347 en enero de 2027, el 202 en abril y el 200 en julio. Todo se rellena en Configuración › Parámetros y tablas (salvo donde se indica). Si falta un dato obligatorio, el modelo no se genera y dice qué ficha completar.
@@ -114,6 +115,8 @@ Lista del hilo de modelos tributarios (pantalla fusionada en la PR #123, esquema
 - 2026-11-24 12:01 · Venga, arrancamos el proceso de paso a producción
 - 2026-11-24 12:15 · Tienes acceso total a c:\docs\ProConta y subcarpetas
 - 2026-11-24 12:15 · answer: pendientes de la migración del ERP → no bloquean el arranque; se revisan después
+- 2026-11-24 13:25 · Bueno, la correcta es 4724021 ya que el IVA de importación es 21%.
+- 2026-11-24 13:25 · Prefiero cambiar luego todas los apuntes con 4724001 a 4724021
 - 2026-11-24 12:15 · answer: corte del ERP y ContaSol → sin cambios desde hace una semana; las copias de la carpeta del repositorio son las más actuales
 
 ## Hand-over
