@@ -71,6 +71,11 @@ Cada paso se marca con la fecha en que se hace y cómo se comprobó.
 - [ ] 1/12/2026: IVA de venta del turístico al 10 % y, después, generar las programadas de diciembre.
 - [ ] Pasar a la 4724021 los apuntes de la 4724001 del ejercicio 2026, solo de ese ejercicio (IVA de importación al 21 %; propietario 2026-11-24 13:25 y 13:26), sin descuadrar el libro de IVA.
 
+**Mejoras anotadas durante el arranque (después)**
+- [ ] Activos financieros: poder corregir la fecha de compra después del alta (propietario 2026-11-24 17:45: la corrigió a mano en la BD en dos activos).
+- [ ] Activos financieros: un campo descripción en el centro de coste (subdepartamento), como en el ERP, con el nombre del fondo en Renta 4, para cuadrar los ETF por nombre (propietario 2026-11-24 17:47).
+- [ ] Activos financieros: el alta no reutiliza las subcuentas que ya existen en la contabilidad para el centro; se enlazaron a mano con `datos\implantacion\enlazar-subcuentas-activos-financieros.ps1` (el propietario no quiere cambiar el programa por ahora, 2026-11-24 17:09).
+
 **J. Datos para los modelos tributarios**
 Lista del hilo de modelos tributarios (pantalla fusionada en la PR #123, esquema 73). Va después del arranque, antes de presentar cada modelo: el 390 y los informativos 190, 180 y 347 en enero de 2027, el 202 en abril y el 200 en julio. Todo se rellena en Configuración › Parámetros y tablas (salvo donde se indica). Si falta un dato obligatorio, el modelo no se genera y dice qué ficha completar.
 
