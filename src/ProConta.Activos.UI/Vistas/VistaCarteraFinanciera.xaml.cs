@@ -31,6 +31,13 @@ public partial class VistaCarteraFinanciera : UserControl
 
     private void Tabla_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
     {
+        // El triángulo de los lotes se atiende aquí: la tabla se queda el primer clic de la celda para seleccionar la fila.
+        if (e.ClickCount == 1 && DentroDe<ButtonBase>(e.OriginalSource) && FilaDe(e.OriginalSource) is { Desplegable: true } desplegable)
+        {
+            desplegable.Abierto = !desplegable.Abierto;
+            e.Handled = true;
+            return;
+        }
         if (e.ClickCount > 1 || DentroDe<CheckBox>(e.OriginalSource) || DentroDe<ButtonBase>(e.OriginalSource) || DentroDe<DataGridColumnHeader>(e.OriginalSource)
             || DentroDe<Thumb>(e.OriginalSource)) return;
         if (FilaDe(e.OriginalSource) is { PuedeMarcarse: true } fila) fila.Marcado = !fila.Marcado;
@@ -53,7 +60,8 @@ public partial class VistaCarteraFinanciera : UserControl
 
     private void Desplegar_Click(object sender, RoutedEventArgs e)
     {
-        if ((sender as FrameworkElement)?.DataContext is FilaCarteraVM f) f.Abierto = !f.Abierto;
+        // Con el ratón lo atiende Tabla_PreviewMouseLeftButtonDown; aquí llega con el teclado (Espacio sobre el botón).
+        if (e.OriginalSource is ButtonBase { IsKeyboardFocused: true } && (sender as FrameworkElement)?.DataContext is FilaCarteraVM f) f.Abierto = !f.Abierto;
     }
 
     private void Leyenda_MouseEnter(object sender, MouseEventArgs e)

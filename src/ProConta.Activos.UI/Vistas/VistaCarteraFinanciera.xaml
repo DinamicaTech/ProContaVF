@@ -295,10 +295,10 @@
                         </DataTemplate>
                       </DataGridTemplateColumn.CellTemplate>
                     </DataGridTemplateColumn>
-                    <DataGridTemplateColumn Width="26" pc:TablaProConta.Clave="lotes_desplegar" pc:TablaProConta.SiempreVisible="True">
+                    <DataGridTemplateColumn Width="34" pc:TablaProConta.Clave="lotes_desplegar" pc:TablaProConta.SiempreVisible="True">
                       <DataGridTemplateColumn.CellTemplate>
                         <DataTemplate>
-                          <Button Style="{StaticResource Boton.Fantasma}" Padding="4" MinWidth="22" MinHeight="22" Click="Desplegar_Click" ToolTip="{Binding AyudaFlecha}"
+                          <Button Style="{StaticResource Boton.Fantasma}" Padding="0" BorderThickness="0" Width="24" Height="24" MinWidth="0" MinHeight="0" HorizontalAlignment="Center" Click="Desplegar_Click" ToolTip="{Binding AyudaFlecha}"
                                   Visibility="{Binding Desplegable, Converter={StaticResource Visible}}" AutomationProperties.Name="{Binding AyudaFlecha}">
                             <!-- Triángulo dibujado (no un carácter de la fuente): apunta a la derecha cerrado y hacia abajo abierto. -->
                             <Path Data="M0,0 L6,5 L0,10 Z" Fill="{StaticResource Pincel.Texto2}" Width="6" Height="10" Stretch="None" RenderTransformOrigin="0.5,0.5">
