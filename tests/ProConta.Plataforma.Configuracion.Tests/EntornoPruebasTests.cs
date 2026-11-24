@@ -37,6 +37,26 @@ public sealed class SelectorEntornoTests : IDisposable
     }
 
     [Fact]
+    public void La_ventana_ofrece_produccion_primero_y_despues_pruebas_con_la_fecha_de_la_copia()
+    {
+        var opciones = SelectorEntorno.Resolver(Prod, [], ConPruebas).Valor;
+        var e = opciones.Entradas(new InfoEntorno(true, new DateTime(2026, 11, 24, 19, 40, 0)));
+        Assert.Equal(["Producción", "Pruebas"], e.Select(x => x.Nombre));
+        Assert.Equal(_produccion, e[0].Ubicacion.RutaBaseDatos);
+        Assert.Equal(TonoEntorno.Produccion, e[0].Tono);
+        Assert.Equal(_pruebas, e[1].Ubicacion.RutaBaseDatos);
+        Assert.Equal("Copia del 24/11 19:40", e[1].Etiqueta);
+        Assert.Equal("Copia de producción", opciones.Entradas(null)[1].Etiqueta);
+    }
+
+    [Fact]
+    public void Sin_copia_de_pruebas_la_ventana_solo_tendria_produccion()
+    {
+        var opciones = SelectorEntorno.Resolver(Prod, [], new ConfiguracionLocal { RutaBaseDatos = _produccion }).Valor;
+        Assert.Equal("Producción", Assert.Single(opciones.Entradas(null)).Nombre);
+    }
+
+    [Fact]
     public void Con_copia_de_pruebas_pregunta_y_por_defecto_es_produccion()
     {
         var r = SelectorEntorno.Resolver(Prod, [], ConPruebas).Valor;
