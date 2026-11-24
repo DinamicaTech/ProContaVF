@@ -46,12 +46,34 @@ public static class DatosSinteticos
             return await s.UltimoIdAsync();
         });
 
-    public static async Task<int> OperadorSinContrasenaAsync(IBaseDatos bd, string nombre, bool activo = true) =>
+    /// <summary>
+    /// Operador sin contraseña: un tercero persona física con ese nombre de pila (y los apellidos que se den) con el rol de operador
+    /// (seguridad/pantallas 2026-11-24). Devuelve el IdOperador.
+    /// </summary>
+    public static async Task<int> OperadorSinContrasenaAsync(IBaseDatos bd, string nombre, bool activo = true, string? primerApellido = null, string? segundoApellido = null) =>
+        (await OperadorConTerceroAsync(bd, nombre, activo, primerApellido, segundoApellido)).IdOperador;
+
+    /// <summary>Como <see cref="OperadorSinContrasenaAsync"/>, devolviendo también el IdTercero.</summary>
+    public static async Task<(int IdOperador, int IdTercero)> OperadorConTerceroAsync(IBaseDatos bd, string nombre, bool activo = true, string? primerApellido = null, string? segundoApellido = null) =>
         await bd.EjecutarAsync(async s =>
         {
-            await s.EjecutarAsync("INSERT INTO OperadoresSeguridad (Nombre, Activo, PasswordTemporal) VALUES (?, ?, ?)", nombre, activo, false);
-            return await s.UltimoIdAsync();
+            var idTercero = await TerceroPersonaAsync(s, nombre, primerApellido, segundoApellido);
+            await s.EjecutarAsync("INSERT INTO OperadoresSeguridad (IdTercero, Activo, PasswordTemporal) VALUES (?, ?, ?)", idTercero, activo, false);
+            return (await s.UltimoIdAsync(), idTercero);
         });
+
+    /// <summary>Tercero persona física activo con nombre y apellidos sintéticos.</summary>
+    public static Task<int> TerceroPersonaAsync(IBaseDatos bd, string nombre, string? primerApellido = null, string? segundoApellido = null, string tipo = "FISICA") =>
+        bd.EjecutarAsync(s => TerceroPersonaAsync(s, nombre, primerApellido, segundoApellido, tipo));
+
+    private static async Task<int> TerceroPersonaAsync(ISesionDatos s, string nombre, string? primerApellido, string? segundoApellido, string tipo = "FISICA")
+    {
+        var completo = string.Join(' ', new[] { nombre, primerApellido, segundoApellido }.Where(x => !string.IsNullOrWhiteSpace(x)));
+        await s.EjecutarAsync("INSERT INTO Terceros (TipoPersona, Nombre, NombrePersona, PrimerApellido, SegundoApellido, RazonSocial, Activo, FechaAlta, Version) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            tipo, completo, tipo == "FISICA" ? (object)nombre : DBNull.Value, (object?)primerApellido ?? DBNull.Value, (object?)segundoApellido ?? DBNull.Value,
+            tipo == "FISICA" ? DBNull.Value : (object)completo, true, new DateTime(2026, 1, 1), 1);
+        return await s.UltimoIdAsync();
+    }
 
     public static Task MiembroAsync(IBaseDatos bd, int idOperador, int idGrupo) =>
         bd.EjecutarAsync(s => s.EjecutarAsync("INSERT INTO OperadoresGrupos (IdOperador, IdGrupoOperadores) VALUES (?, ?)", idOperador, idGrupo));

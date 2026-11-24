@@ -34,6 +34,10 @@
         <Setter Property="CornerRadius" Value="{StaticResource Radio.Campo}" />
         <Setter Property="Padding" Value="7,2" />
       </Style>
+      <Style x:Key="Insignia.Ficha.Operador" TargetType="Border" BasedOn="{StaticResource Insignia.Operador}">
+        <Setter Property="CornerRadius" Value="{StaticResource Radio.Campo}" />
+        <Setter Property="Padding" Value="7,2" />
+      </Style>
 
       <!-- Resumen de errores de validación, con enlace a cada campo (arriba de cada pestaña). -->
       <DataTemplate x:Key="ResumenErrores">
@@ -185,6 +189,7 @@
                   <DataTrigger Binding="{Binding Rol}" Value="contacto"><Setter TargetName="Pastilla" Property="Style" Value="{StaticResource Insignia.Ficha.Contacto}" /></DataTrigger>
                   <DataTrigger Binding="{Binding Rol}" Value="empleado"><Setter TargetName="Pastilla" Property="Style" Value="{StaticResource Insignia.Ficha.Empleado}" /></DataTrigger>
                   <DataTrigger Binding="{Binding Rol}" Value="socio"><Setter TargetName="Pastilla" Property="Style" Value="{StaticResource Insignia.Ficha.Socio}" /></DataTrigger>
+                  <DataTrigger Binding="{Binding Rol}" Value="operador"><Setter TargetName="Pastilla" Property="Style" Value="{StaticResource Insignia.Ficha.Operador}" /></DataTrigger>
                 </DataTemplate.Triggers>
               </DataTemplate>
             </ItemsControl.ItemTemplate>
@@ -579,7 +584,7 @@
         </TabItem>
 
         <!-- ===================== Roles ===================== -->
-        <TabItem ToolTip="Roles Cliente, Proveedor, Contacto, Empleado y Socio: activarlos o desactivarlos, sus Ids, cuentas, código de la gestoría, participación y notas">
+        <TabItem ToolTip="Roles Cliente, Proveedor, Contacto, Empleado, Socio y Operador ProConta: activarlos o desactivarlos, sus Ids, cuentas, código de la gestoría, participación, grupos y notas">
           <TabItem.Header><ContentControl ContentTemplate="{StaticResource CabeceraPestana}" Content="{Binding Cabeceras[2]}" /></TabItem.Header>
           <ScrollViewer VerticalScrollBarVisibility="Auto">
             <StackPanel Margin="18,16" HorizontalAlignment="Left" Width="1240">
@@ -804,6 +809,61 @@
                     <ContentControl Content="{Binding CuentaRetencionDividendos}" ContentTemplate="{StaticResource FilaCuentaSocio}" />
                     <TextBlock Style="{StaticResource Texto.Apagado}" TextWrapping="Wrap" Width="760" HorizontalAlignment="Left"
                                Text="Elígelas con «Buscar…» (o clic en el código). Si las dejas vacías, al guardar se crean las siguientes subcuentas libres de la 526 y la 4751 con el nombre del socio. Los repartos de dividendos (Contabilidad › Reparto de dividendos) y los pagos (Líneas N43 › Pago de dividendos…) usan estas subcuentas y este porcentaje." />
+                  </StackPanel>
+                </StackPanel>
+              </Border>
+
+              <!-- Operador ProConta (seguridad/pantallas 2026-11-24): solo lo ven quienes pueden gestionar operadores -->
+              <Border Style="{StaticResource Tarjeta}" Margin="0,0,0,14" Tag="rol:operador" Visibility="{Binding MostrarOperador, Converter={StaticResource Visible}}">
+                <StackPanel>
+                  <DockPanel Margin="14,10">
+                    <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                      <TextBlock Text="{Binding EstadoOperador}" Style="{StaticResource Texto.Apagado}" VerticalAlignment="Center" Margin="0,0,10,0" TextWrapping="Wrap" MaxWidth="620" />
+                      <StackPanel Orientation="Horizontal" Visibility="{Binding OperadorActivo, Converter={StaticResource Visible}}">
+                        <TextBlock Text="IdOperador" Style="{StaticResource Etiqueta.Campo}" VerticalAlignment="Center" Margin="0,0,8,0" />
+                        <TextBox Text="{Binding IdOperador, Mode=OneWay}" IsReadOnly="True" Width="100" Style="{StaticResource Campo.Mono}" Margin="0,0,10,0" ToolTip="Número de operador; uno nuevo lo recibe al guardar" />
+                        <Button Style="{StaticResource Boton.Enlace}" Content="Desactivar" Command="{Binding DesactivarRolCommand}" CommandParameter="operador" VerticalAlignment="Center"
+                                ToolTip="Al guardar, deja de poder entrar en ProContaVF. No se borra: su historial de accesos se conserva y se puede volver a activar" />
+                      </StackPanel>
+                      <Button Content="Activar" Command="{Binding ActivarRolCommand}" CommandParameter="operador" Style="{StaticResource Boton.Pequeno}"
+                              IsEnabled="{Binding PuedeActivarOperador}" ToolTipService.ShowOnDisabled="True" ToolTip="{Binding AyudaActivarOperador}"
+                              Visibility="{Binding OperadorActivo, Converter={StaticResource Visible}, ConverterParameter=invertir}" />
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal">
+                      <Border Style="{StaticResource Insignia.Ficha.Operador}"><TextBlock Text="Op" Style="{StaticResource Texto.Insignia}" /></Border>
+                      <TextBlock Text="Operador ProConta" Style="{StaticResource Seccion.Ficha}" Margin="6,0,0,0" />
+                    </StackPanel>
+                  </DockPanel>
+                  <StackPanel Margin="14,0,14,12" Visibility="{Binding OperadorActivo, Converter={StaticResource Visible}}">
+                    <WrapPanel Margin="0,0,0,10">
+                      <StackPanel Margin="0,0,14,0">
+                        <TextBlock Text="Nombre de operador" Style="{StaticResource Etiqueta.Campo}" />
+                        <TextBox Text="{Binding NombreAccesoOperador, Mode=OneWay}" IsReadOnly="True" Width="220" Style="{StaticResource Campo}"
+                                 ToolTip="Con este nombre entra en ProContaVF: su nombre de pila de la pestaña Identidad, con los apellidos si otro operador se llama igual. Se cambia cambiando el nombre" />
+                      </StackPanel>
+                      <StackPanel>
+                        <TextBlock Text="Contraseña" Style="{StaticResource Etiqueta.Campo}" />
+                        <StackPanel Orientation="Horizontal">
+                          <Button Content="Contraseña…" Command="{Binding CambiarContrasenaOperadorCommand}" Style="{StaticResource Boton.Pequeno}" VerticalAlignment="Center"
+                                  ToolTipService.ShowOnDisabled="True"
+                                  ToolTip="Pone, cambia o quita su contraseña al momento (vacía: entra sin contraseña). Disponible cuando el operador ya está guardado y activo" />
+                          <TextBlock Text="{Binding TextoContrasenaOperador}" Style="{StaticResource Texto.Apagado}" VerticalAlignment="Center" Margin="10,0,0,0" TextWrapping="Wrap" MaxWidth="520" />
+                        </StackPanel>
+                      </StackPanel>
+                    </WrapPanel>
+                    <TextBlock Text="Grupos" Style="{StaticResource Etiqueta.Campo}" />
+                    <ItemsControl ItemsSource="{Binding GruposOperador}" Margin="0,2,0,8">
+                      <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate>
+                      </ItemsControl.ItemsPanel>
+                      <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                          <CheckBox Content="{Binding Nombre}" IsChecked="{Binding Marcado}" ToolTip="{Binding Ayuda}" Margin="0,0,18,4" />
+                        </DataTemplate>
+                      </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                    <TextBlock Style="{StaticResource Texto.Apagado}" TextWrapping="Wrap" Width="760" HorizontalAlignment="Left"
+                               Text="Su correo es el de la pestaña Contacto. El rol y los grupos se guardan con la ficha; la contraseña, al momento. Nadie puede quitarse a sí mismo el rol ni el grupo de administradores, ni dejar ProContaVF sin ningún administrador activo." />
                   </StackPanel>
                 </StackPanel>
               </Border>

@@ -126,10 +126,11 @@ public sealed class BuscadorTercerosVM : Observable, IPestanaTrabajo
         set { if (Fijar(ref _tipo, value)) { foreach (var t in Tipos) t.Refrescar(); Avisar(nameof(HayFiltros)); _ = BuscarAsync(); } }
     }
 
-    private bool _clientes, _proveedores, _contactos, _empleados, _socios, _inactivos;
+    private bool _clientes, _proveedores, _contactos, _empleados, _socios, _operadores, _inactivos;
     public bool Clientes { get => _clientes; set { if (Fijar(ref _clientes, value)) FiltroCambiado(); } }
     public bool Empleados { get => _empleados; set { if (Fijar(ref _empleados, value)) FiltroCambiado(); } }
     public bool Socios { get => _socios; set { if (Fijar(ref _socios, value)) FiltroCambiado(); } }
+    public bool Operadores { get => _operadores; set { if (Fijar(ref _operadores, value)) FiltroCambiado(); } }
     public bool Proveedores { get => _proveedores; set { if (Fijar(ref _proveedores, value)) FiltroCambiado(); } }
     public bool Contactos { get => _contactos; set { if (Fijar(ref _contactos, value)) FiltroCambiado(); } }
     public bool IncluirInactivos { get => _inactivos; set { if (Fijar(ref _inactivos, value)) FiltroCambiado(); } }
@@ -141,14 +142,15 @@ public sealed class BuscadorTercerosVM : Observable, IPestanaTrabajo
     private OpcionPerfil? _perfil;
     public OpcionPerfil PerfilElegido { get => _perfil ?? TodosLosPerfiles; set { if (Fijar(ref _perfil, value?.Perfil is null ? null : value)) FiltroCambiado(); } }
 
-    private int _recClientes, _recProveedores, _recContactos, _recEmpleados, _recSocios;
+    private int _recClientes, _recProveedores, _recContactos, _recEmpleados, _recSocios, _recOperadores;
     public int RecuentoClientes { get => _recClientes; private set => Fijar(ref _recClientes, value); }
     public int RecuentoEmpleados { get => _recEmpleados; private set => Fijar(ref _recEmpleados, value); }
     public int RecuentoSocios { get => _recSocios; private set => Fijar(ref _recSocios, value); }
+    public int RecuentoOperadores { get => _recOperadores; private set => Fijar(ref _recOperadores, value); }
     public int RecuentoProveedores { get => _recProveedores; private set => Fijar(ref _recProveedores, value); }
     public int RecuentoContactos { get => _recContactos; private set => Fijar(ref _recContactos, value); }
 
-    public bool HayFiltros => _texto.Trim().Length > 0 || _tipo != "todos" || _clientes || _proveedores || _contactos || _empleados || _socios || _inactivos || _perfil is not null;
+    public bool HayFiltros => _texto.Trim().Length > 0 || _tipo != "todos" || _clientes || _proveedores || _contactos || _empleados || _socios || _operadores || _inactivos || _perfil is not null;
 
     private void FiltroCambiado()
     {
@@ -158,8 +160,8 @@ public sealed class BuscadorTercerosVM : Observable, IPestanaTrabajo
 
     private void QuitarFiltros()
     {
-        _texto = ""; _tipo = "todos"; _clientes = _proveedores = _contactos = _empleados = _socios = _inactivos = false; _perfil = null;
-        Avisar(nameof(Texto), nameof(Clientes), nameof(Proveedores), nameof(Contactos), nameof(Empleados), nameof(Socios), nameof(IncluirInactivos), nameof(PerfilElegido), nameof(HayFiltros));
+        _texto = ""; _tipo = "todos"; _clientes = _proveedores = _contactos = _empleados = _socios = _operadores = _inactivos = false; _perfil = null;
+        Avisar(nameof(Texto), nameof(Clientes), nameof(Proveedores), nameof(Contactos), nameof(Empleados), nameof(Socios), nameof(Operadores), nameof(IncluirInactivos), nameof(PerfilElegido), nameof(HayFiltros));
         foreach (var t in Tipos) t.Refrescar();
         _ = BuscarAsync();
     }
@@ -170,7 +172,7 @@ public sealed class BuscadorTercerosVM : Observable, IPestanaTrabajo
         false,
         new HashSet<RolBusqueda>((_clientes ? [RolBusqueda.Cliente] : Array.Empty<RolBusqueda>())
             .Concat(_proveedores ? [RolBusqueda.Proveedor] : []).Concat(_contactos ? [RolBusqueda.Contacto] : []).Concat(_empleados ? [RolBusqueda.Empleado] : [])
-            .Concat(_socios ? [RolBusqueda.Socio] : [])),
+            .Concat(_socios ? [RolBusqueda.Socio] : []).Concat(_operadores ? [RolBusqueda.Operador] : [])),
         _perfil?.Perfil?.IdPerfil,
         _inactivos);
 
@@ -256,6 +258,7 @@ public sealed class BuscadorTercerosVM : Observable, IPestanaTrabajo
         RecuentoContactos = r.Recuentos.Contactos;
         RecuentoEmpleados = r.Recuentos.Empleados;
         RecuentoSocios = r.Recuentos.Socios;
+        RecuentoOperadores = r.Recuentos.Operadores;
         FichasAbiertas = _modulo is null ? "" : $"{_modulo.NumeroFichas} de {GestorFichas.Maximo} fichas abiertas";
 
         if (r.Filas.Count == 0)

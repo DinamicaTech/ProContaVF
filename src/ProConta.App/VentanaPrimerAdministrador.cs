@@ -8,7 +8,9 @@ namespace ProConta.App;
 internal sealed class VentanaPrimerAdministrador : Window
 {
     private readonly ServicioOperadores _operadores;
-    private readonly TextBox _nombre = new() { Width = 280, ToolTip = "Nombre con el que entrará el administrador" };
+    private readonly TextBox _nombre = new() { Width = 280, MaxLength = 150, ToolTip = "Nombre de pila del administrador: con él entrará en ProContaVF" };
+    private readonly TextBox _apellido1 = new() { Width = 280, MaxLength = 100, ToolTip = "Opcional. Se añade al nombre para entrar solo si otro operador se llama igual" };
+    private readonly TextBox _apellido2 = new() { Width = 280, MaxLength = 100, ToolTip = "Opcional. Se añade si otro operador tiene el mismo nombre y primer apellido" };
     private readonly PasswordBox _clave = new() { Width = 280, ToolTip = "Opcional: déjala vacía para entrar sin contraseña. Cualquier contraseña vale" };
     private readonly PasswordBox _repetida = new() { Width = 280, ToolTip = "Escribe otra vez la misma contraseña (vacía si no pones ninguna)" };
     private readonly TextBlock _error = new() { Foreground = (System.Windows.Media.Brush)Application.Current.FindResource("Pincel.RojoError"), TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 12, 0, 0) };
@@ -24,8 +26,10 @@ internal sealed class VentanaPrimerAdministrador : Window
 
         var panel = new StackPanel { Margin = new Thickness(28) };
         panel.Children.Add(new TextBlock { Text = "Crea el primer administrador", Style = (Style)FindResource("Texto.Titulo") });
-        panel.Children.Add(new TextBlock { Text = "La base de datos no tiene ningún operador. El que crees ahora podrá dar de alta a los demás.", TextWrapping = TextWrapping.Wrap, MaxWidth = 380, Margin = new Thickness(0, 8, 0, 16), Foreground = (System.Windows.Media.Brush)FindResource("Pincel.Apagado") });
+        panel.Children.Add(new TextBlock { Text = "La base de datos no tiene ningún operador. Se da de alta como tercero (persona física) con el rol Operador ProConta, y podrá dar ese rol a los demás desde su ficha.", TextWrapping = TextWrapping.Wrap, MaxWidth = 380, Margin = new Thickness(0, 8, 0, 16), Foreground = (System.Windows.Media.Brush)FindResource("Pincel.Apagado") });
         Campo(panel, "Nombre", _nombre);
+        Campo(panel, "Primer apellido (opcional)", _apellido1);
+        Campo(panel, "Segundo apellido (opcional)", _apellido2);
         Campo(panel, "Contraseña (opcional)", _clave);
         Campo(panel, "Repite la contraseña", _repetida);
         panel.Children.Add(_error);
@@ -37,7 +41,7 @@ internal sealed class VentanaPrimerAdministrador : Window
         {
             if (_clave.Password != _repetida.Password) { _error.Text = "Las dos contraseñas no coinciden. Escríbelas otra vez."; return; }
             crear.IsEnabled = false;
-            var r = await _operadores.CrearPrimerAdministradorAsync(_nombre.Text, _clave.Password);
+            var r = await _operadores.CrearPrimerAdministradorAsync(_nombre.Text, _apellido1.Text, _apellido2.Text, _clave.Password);
             crear.IsEnabled = true;
             if (r.EsCorrecto) DialogResult = true;
             else _error.Text = App.Explicar(r.Error!);

@@ -81,6 +81,11 @@ public static class Acciones
     /// sin grupos asignados, cualquier operador (sin respaldo).
     /// </summary>
     public const string Documentos = "DOCUMENTOS.EDITAR";
+    /// <summary>
+    /// Dar o quitar el rol «Operador ProConta» de un tercero, sus grupos y su contraseña (seguridad/pantallas 2026-11-24). Sin grupos
+    /// asignados, solo los miembros del grupo ADMINISTRADORES (no cualquier operador): ver <see cref="ServicioOperadores.PuedeGestionarAsync"/>.
+    /// </summary>
+    public const string Operadores = "SEGURIDAD.OPERADORES";
 
     /// <summary>
     /// Acción que manda mientras una acción nueva no tenga ningún grupo asignado: «Cambiar el trimestre activo» la tienen
@@ -122,6 +127,8 @@ public sealed class AutorizadorAccionesAccess(IBaseDatos bd, ServicioOperadores 
         var asignaciones = await bd.EjecutarAsync(s => s.ConsultarAsync(
             "SELECT IdGrupoOperadores, CodigoAccion FROM PermisosAccionesGrupo WHERE CodigoAccion = ?",
             f => (Grupo: f.Entero("IdGrupoOperadores"), Recurso: f.Texto("CodigoAccion") ?? ""), codigoAccion));
+        if (asignaciones.Count == 0 && string.Equals(codigoAccion, Acciones.Operadores, StringComparison.OrdinalIgnoreCase))
+            return await operadores.EsAdministradorAsync(idOperador);
         if (asignaciones.Count == 0) return Acciones.Respaldo(codigoAccion) is not { } respaldo || await PuedeAsync(respaldo);
         _grupos ??= await operadores.GruposActivosAsync(idOperador);
         return PoliticaAmbito.Permite(asignaciones, _grupos, codigoAccion, StringComparer.OrdinalIgnoreCase);

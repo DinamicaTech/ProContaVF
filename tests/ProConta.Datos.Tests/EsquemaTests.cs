@@ -228,6 +228,43 @@ public sealed class EsquemaAccessTests : IDisposable
     }
 
     [Fact]
+    public async Task LosOperadoresPasanASusTercerosYPierdenNombreYCorreo()
+    {
+        using var version1 = BdPruebas.NuevaVersion1();
+        var bd = version1.Bd();
+        await bd.EjecutarAsync(async s =>
+        {
+            async Task Tercero(string tipo, string nombre, string? pila) =>
+                await s.EjecutarAsync("INSERT INTO Terceros (TipoPersona, Nombre, NombrePersona, Activo) VALUES (?, ?, ?, ?)", tipo, nombre, (object?)pila ?? DBNull.Value, true);
+            await Tercero("FISICA", "Ana Sintética", "Ana");      // única con ese nombre de pila: se vincula
+            await Tercero("FISICA", "Pepa Uno", "Pepa");          // dos «Pepa»: no se elige ninguna
+            await Tercero("FISICA", "Pepa Dos", "Pepa");
+            await Tercero("JURIDICA", "Luis", null);              // no es persona física
+            foreach (var (nombre, email) in new[] { ("ana", (string?)null), ("Luis", "luis@sintetico.example"), ("Pepa", null) })
+                await s.EjecutarAsync("INSERT INTO OperadoresSeguridad (Nombre, Email, Activo, PasswordTemporal) VALUES (?, ?, ?, ?)", nombre, (object?)email ?? DBNull.Value, true, false);
+            return true;
+        });
+        var carpeta = BdPruebas.CarpetaTemporal();
+        var parametros = new Dictionary<string, string> { [MigracionesOrganizacion.ParametroOrigenFormasPago] = BdPruebas.CrearOrigenFormasPago(carpeta) };
+        var r = await new ActualizadorEsquema(_actor, parametros: parametros).ActualizarAsync(version1.Ruta, Path.Combine(carpeta, "copias"));
+        Assert.True(r.EsCorrecto, r.Error?.ToString());
+
+        var esquema = await bd.EjecutarAsync(s => Task.FromResult(s.LeerEsquema()));
+        var tabla = esquema.Tabla("OperadoresSeguridad")!;
+        Assert.Null(tabla.Columna("Nombre"));
+        Assert.Null(tabla.Columna("Email"));
+        Assert.False(tabla.Columna("IdTercero")!.AdmiteNulos);
+        Assert.Contains(tabla.Relaciones, x => x.Nombre == "FK_OperadoresSeguridad_Tercero");
+        var filas = await bd.EjecutarAsync(s => s.ConsultarAsync(
+            "SELECT o.IdOperador, t.Nombre, t.TipoPersona, t.NombrePersona, t.Email FROM OperadoresSeguridad AS o INNER JOIN Terceros AS t ON o.IdTercero = t.IdTercero ORDER BY o.IdOperador",
+            f => (Nombre: f.Texto("Nombre"), Tipo: f.Texto("TipoPersona"), Pila: f.Texto("NombrePersona"), Email: f.Texto("Email"))));
+        Assert.Equal(("Ana Sintética", "FISICA", "Ana", (string?)null), filas[0]);
+        Assert.Equal(("Luis", "FISICA", "Luis", "luis@sintetico.example"), filas[1]); // tercero nuevo con su correo
+        Assert.Equal(("Pepa", "FISICA", "Pepa", (string?)null), filas[2]);            // tercero nuevo: había dos «Pepa»
+        Assert.Equal(6, Convert.ToInt32(await bd.EjecutarAsync(s => s.EscalarAsync("SELECT COUNT(*) FROM Terceros"))));
+    }
+
+    [Fact]
     public async Task FormasPagoPasaATablaPropiaConservandoCodigosYEjercicioCerradoSeAnade()
     {
         using var version1 = BdPruebas.NuevaVersion1();
