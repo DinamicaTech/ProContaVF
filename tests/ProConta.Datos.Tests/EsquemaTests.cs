@@ -230,12 +230,18 @@ public sealed class EsquemaAccessTests : IDisposable
     [Fact]
     public async Task LosOperadoresPasanASusTercerosYPierdenNombreYCorreo()
     {
-        using var version1 = BdPruebas.NuevaVersion1();
-        var bd = version1.Bd();
+        // La copia ya está en la versión del programa: se devuelve OperadoresSeguridad a como estaba antes del esquema 82
+        // (sin IdTercero, con Nombre y Email) y se aplican los pasos de la migración, como haría el actualizador.
+        var bd = _copia.Bd();
         await bd.EjecutarAsync(async s =>
         {
+            await s.EjecutarAsync("ALTER TABLE OperadoresSeguridad DROP CONSTRAINT FK_OperadoresSeguridad_Tercero");
+            await s.EjecutarAsync("DROP INDEX UX_OperadoresSeguridad_IdTercero ON OperadoresSeguridad");
+            await s.EjecutarAsync("ALTER TABLE OperadoresSeguridad DROP COLUMN IdTercero");
+            await s.EjecutarAsync("ALTER TABLE OperadoresSeguridad ADD COLUMN Nombre TEXT(100)");
+            await s.EjecutarAsync("ALTER TABLE OperadoresSeguridad ADD COLUMN Email TEXT(254)");
             async Task Tercero(string tipo, string nombre, string? pila) =>
-                await s.EjecutarAsync("INSERT INTO Terceros (TipoPersona, Nombre, NombrePersona, Activo) VALUES (?, ?, ?, ?)", tipo, nombre, (object?)pila ?? DBNull.Value, true);
+                await s.EjecutarAsync("INSERT INTO Terceros (TipoPersona, Nombre, NombrePersona, Activo, Version) VALUES (?, ?, ?, ?, ?)", tipo, nombre, (object?)pila ?? DBNull.Value, true, 1);
             await Tercero("FISICA", "Ana Sintética", "Ana");      // única con ese nombre de pila: se vincula
             await Tercero("FISICA", "Pepa Uno", "Pepa");          // dos «Pepa»: no se elige ninguna
             await Tercero("FISICA", "Pepa Dos", "Pepa");
@@ -244,10 +250,14 @@ public sealed class EsquemaAccessTests : IDisposable
                 await s.EjecutarAsync("INSERT INTO OperadoresSeguridad (Nombre, Email, Activo, PasswordTemporal) VALUES (?, ?, ?, ?)", nombre, (object?)email ?? DBNull.Value, true, false);
             return true;
         });
-        var carpeta = BdPruebas.CarpetaTemporal();
-        var parametros = new Dictionary<string, string> { [MigracionesOrganizacion.ParametroOrigenFormasPago] = BdPruebas.CrearOrigenFormasPago(carpeta) };
-        var r = await new ActualizadorEsquema(_actor, parametros: parametros).ActualizarAsync(version1.Ruta, Path.Combine(carpeta, "copias"));
-        Assert.True(r.EsCorrecto, r.Error?.ToString());
+        await bd.EjecutarAsync(async s =>
+        {
+            foreach (var paso in MigracionesSeguridad.OperadoresTerceros.Pasos)
+                if (!await paso.YaAplicadoAsync(s, s.LeerEsquema())) await paso.AplicarAsync(s, ContextoMigracion.Vacio);
+            foreach (var paso in MigracionesSeguridad.OperadoresTerceros.Pasos)
+                Assert.True(await paso.YaAplicadoAsync(s, s.LeerEsquema()), paso.Descripcion);
+            return true;
+        });
 
         var esquema = await bd.EjecutarAsync(s => Task.FromResult(s.LeerEsquema()));
         var tabla = esquema.Tabla("OperadoresSeguridad")!;
