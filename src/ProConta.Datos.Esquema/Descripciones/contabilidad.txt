@@ -1,0 +1,292 @@
+# Descripciones de tablas y campos del área «contabilidad». Formato en datos.txt.
+
+Actividades: Actividades de IVA de cada empresa (general, viviendas, locales, turístico…): su deducción y la serie de subcuentas de IVA soportado. Los centros de coste se asignan a una actividad.
+Actividades.IdActividad: Identificador autonumérico de la actividad.
+Actividades.IdSociedad: Empresa a la que pertenece.
+Actividades.Codigo: Código de la actividad, único en la empresa (p. ej. GENERAL, VIVIENDAS).
+Actividades.Nombre: Nombre de la actividad (p. ej. «Alquileres turísticos»).
+Actividades.Deducible: Deducción del IVA soportado antes de cualquier cambio por fecha: 0 no deducible, 1 por prorrata, 2 deducible al 100 %.
+Actividades.SerieCuentaIva: Prefijo de las subcuentas de IVA soportado de la actividad (p. ej. 4720, 4725).
+Actividades.Activa: No: la actividad no se aplica y sus centros usan las cuentas generales.
+
+Apuntes: Líneas (apuntes) de cada asiento: cuenta, Debe, Haber y descripción.
+Apuntes.IdApunte: Identificador autonumérico del apunte.
+Apuntes.IdAsiento: Asiento al que pertenece.
+Apuntes.Orden: Orden del apunte dentro del asiento.
+Apuntes.CuentaContable: Código de la subcuenta tal como era al contabilizar.
+Apuntes.Descripcion: Concepto del apunte.
+Apuntes.NumeroDocumento: Número del documento que justifica el apunte (factura, recibo…).
+?Apuntes.Documento: Documento adjunto o su referencia (heredado del ProConta anterior; sin uso).
+?Apuntes.IdCliente: Cliente del apunte (heredado del ProConta anterior; sin uso).
+?Apuntes.IdProveedor: Proveedor del apunte (heredado del ProConta anterior; sin uso).
+?Apuntes.FechaVencimiento: Vencimiento del apunte (heredado del ProConta anterior; sin uso).
+Apuntes.GeneradoAutomaticamente: Sí: el apunte lo añadió un proceso (p. ej. el ajuste de redondeo), no el operador.
+Apuntes.MotivoGeneracion: Por qué el proceso añadió el apunte.
+Apuntes.Punteado: Sí: el apunte está punteado (comprobado contra su documento o su contrapartida).
+
+Asientos: Cabeceras de los asientos contables de cada ejercicio: fecha, descripción, tipo, estado, quién los hizo y qué proceso los generó.
+Asientos.IdAsiento: Identificador autonumérico del asiento; es también su número.
+Asientos.IdSociedadEjercicio: Empresa y ejercicio del asiento.
+Asientos.Descripcion: Descripción del asiento.
+Asientos.TipoAsiento: Tipo: 0 ordinario, 1 apertura, 2 regularización, 3 cierre, 4 rectificación.
+?Asientos.TipoAsientoManual: Subtipo de asiento manual (heredado del ProConta anterior; vacío en todos).
+Asientos.Notas: Notas del asiento.
+Asientos.EstadoAsiento: Estado: 0 borrador, 1 contabilizado, 2 anulado. Los informes solo suman los contabilizados.
+Asientos.OperadorCreacion: Operador o proceso que lo creó.
+Asientos.FechaHoraCreacion: Fecha y hora en que se creó.
+Asientos.OperadorModificacion: Operador que lo cambió por última vez.
+Asientos.FechaHoraModificacion: Fecha y hora del último cambio.
+Asientos.OperadorContabilizacion: Operador que lo contabilizó.
+Asientos.FechaHoraContabilizacion: Fecha y hora en que se contabilizó.
+?Asientos.IdLoteProceso: Lote del proceso que lo generó (heredado; sin uso).
+Asientos.EsAutomatico: Sí: lo generó un proceso; no se edita a mano, se corrige rehaciendo el proceso.
+Asientos.MotorPropietario: Proceso dueño del asiento (p. ej. implantacion/importador-contasol), el único que puede rehacerlo.
+Asientos.CodigoProceso: Paso concreto del proceso que lo generó.
+Asientos.ClaveEjecucion: Clave de la ejecución del proceso, para no generar el mismo asiento dos veces.
+
+CentrosCoste: Árbol de centros de coste de cada empresa (departamentos y subdepartamentos): reparten ingresos y gastos, y deciden la actividad de IVA.
+CentrosCoste.IdCentroCoste: Identificador autonumérico del centro.
+CentrosCoste.IdSociedad: Empresa a la que pertenece.
+CentrosCoste.Codigo: Código del centro (no es una cuenta contable).
+CentrosCoste.Nombre: Nombre del centro.
+CentrosCoste.Descripcion: Para qué sirve el centro.
+CentrosCoste.EstaActivo: No: el centro no se ofrece en apuntes ni facturas nuevas.
+CentrosCoste.Orden: Orden del centro entre sus hermanos.
+CentrosCoste.IdCentroCosteRaiz: Centro raíz del árbol al que pertenece (de la misma empresa).
+CentrosCoste.IdActividad: Actividad de IVA del centro; vacía: la hereda del centro padre o la general.
+
+CodigosContablesReservados: Códigos de subcuenta que ya se usaron en una empresa: no pueden darse nunca a otra cuenta distinta, aunque la original se borre.
+CodigosContablesReservados.IdCodigoContableReservado: Identificador autonumérico de la reserva.
+CodigosContablesReservados.IdSociedad: Empresa a la que pertenece.
+CodigosContablesReservados.IdIdentidadContable: Cuenta (identidad contable) a la que pertenece el código.
+CodigosContablesReservados.FechaPrimeraAsignacion: Fecha en que se usó el código por primera vez.
+
+ConfiguracionesContables: Política contable de cada empresa: tolerancia y cuentas del ajuste de redondeo y cómo se pueden modificar los asientos.
+ConfiguracionesContables.IdSociedad: Empresa a la que pertenece la política.
+ConfiguracionesContables.PermitirAjusteAutomatico: Sí: un asiento descuadrado dentro de la tolerancia se cuadra solo con un apunte de redondeo.
+
+?ConfiguracionesContablesCuentaBancaria: Cuentas contables de cada cuenta bancaria por periodo (banco, puente, reparto y gastos de divisa). Heredada del ProConta anterior; el programa actual no la usa.
+?ConfiguracionesContablesCuentaBancaria.IdConfiguracionCuentaBancaria: Identificador autonumérico de la configuración.
+?ConfiguracionesContablesCuentaBancaria.IdCuentaBancaria: Cuenta bancaria configurada.
+?ConfiguracionesContablesCuentaBancaria.IdIdentidadContableBanco: Subcuenta 572 del banco.
+?ConfiguracionesContablesCuentaBancaria.IdIdentidadCuentaPuente: Cuenta puente para movimientos pendientes de imputar.
+?ConfiguracionesContablesCuentaBancaria.IdIdentidadSplit: Cuenta para repartir un movimiento entre varias contrapartidas.
+?ConfiguracionesContablesCuentaBancaria.IdIdentidadGastosDivisa: Cuenta de las diferencias y gastos de cambio de divisa.
+?ConfiguracionesContablesCuentaBancaria.FechaDesde: Primer día en que vale esta configuración.
+?ConfiguracionesContablesCuentaBancaria.FechaHasta: Último día en que vale; vacía: sin límite.
+
+CuadresCuentas: Marca de «Cuadrada» de cada subcuenta en el Mayor por ejercicio, con el saldo que tenía y las notas que la justifican.
+CuadresCuentas.IdCuadreCuenta: Identificador autonumérico del cuadre.
+CuadresCuentas.IdSociedadEjercicio: Empresa y ejercicio.
+CuadresCuentas.CuentaContable: Código de la subcuenta.
+CuadresCuentas.Cuadrada: Sí: el saldo está comprobado y justificado.
+CuadresCuentas.Saldo: Saldo de la subcuenta cuando se marcó; si cambia, el cuadre deja de valer.
+CuadresCuentas.Notas: Notas que justifican el saldo (se heredan del ejercicio anterior).
+CuadresCuentas.Operador: Operador que hizo el último cambio.
+CuadresCuentas.FechaHora: Fecha y hora del último cambio.
+
+CuentasContables: Subcuentas de cada ejercicio, ligadas a su identidad contable permanente. Un mismo código en ejercicios distintos son filas distintas.
+CuentasContables.IdCuentaContable: Identificador autonumérico de la cuenta del ejercicio.
+CuentasContables.IdIdentidadContable: Identidad contable que da continuidad a la cuenta entre ejercicios.
+CuentasContables.IdSociedadEjercicio: Empresa y ejercicio en que está vigente.
+CuentasContables.Nombre: Nombre de la subcuenta.
+CuentasContables.Descripcion: Notas sobre la subcuenta.
+CuentasContables.EstaActiva: No: la subcuenta no se ofrece en apuntes nuevos.
+CuentasContables.EstaBloqueada: Sí: no admite apuntes nuevos (la usa solo un proceso o está cerrada).
+CuentasContables.EsImputable: Sí: es subcuenta y admite apuntes; no: es una cuenta de agrupación.
+CuentasContables.IdCentroCostePredeterminado: Centro de coste que se propone en los apuntes de esta subcuenta.
+
+CuentasContablesLegacy: Códigos de cuenta del plan contable antiguo, como referencia. Hoy está vacía.
+CuentasContablesLegacy.Codigo: Código de la cuenta antigua.
+CuentasContablesLegacy.Descripcion: Nombre de la cuenta antigua.
+
+CuentasPlanContable: Cuentas del plan contable de referencia (PGC): código, nombre, naturaleza y jerarquía.
+CuentasPlanContable.IdCuentaPlanContable: Identificador autonumérico de la cuenta del plan.
+CuentasPlanContable.IdPlanContable: Plan contable al que pertenece.
+CuentasPlanContable.IdCuentaPadre: Cuenta superior en el mismo plan.
+CuentasPlanContable.IdTipoCuentaContable: Tipo de cuenta (cliente, proveedor, banco…), si lo tiene.
+CuentasPlanContable.Codigo: Código de la cuenta en el plan.
+CuentasPlanContable.Nombre: Nombre de la cuenta en el plan.
+CuentasPlanContable.Descripcion: Definición y movimiento de la cuenta según el plan.
+CuentasPlanContable.Naturaleza: Saldo normal de la cuenta: 0 sin definir, 1 deudora, 2 acreedora.
+CuentasPlanContable.EsImputable: Sí: admite apuntes directamente.
+
+DesglosesIVASoportado: Desglose por tipo de IVA de cada registro del libro de IVA soportado (IVASoportado): base, cuota y parte deducible.
+DesglosesIVASoportado.IdDesgloseIVASoportado: Identificador autonumérico del desglose.
+DesglosesIVASoportado.IdIVASoportado: Registro del libro de IVA soportado al que pertenece.
+DesglosesIVASoportado.Orden: Orden del desglose dentro del registro.
+DesglosesIVASoportado.ClaveRegimen: Clave de régimen de la operación según la AEAT (01 régimen general…).
+DesglosesIVASoportado.CalificacionOperacion: Calificación de la operación según la AEAT (S1 sujeta y no exenta, S2 inversión del sujeto pasivo…).
+DesglosesIVASoportado.CausaExencion: Causa de exención (E1 a E6) si la operación está exenta.
+DesglosesIVASoportado.BaseImponible: Base imponible a este tipo, en euros.
+DesglosesIVASoportado.TipoIVA: Tipo de IVA, en porcentaje (21 = 21 %).
+DesglosesIVASoportado.CuotaSoportada: Cuota de IVA soportada, en euros.
+DesglosesIVASoportado.CuotaDevengadaAutorrepercutida: Cuota autorrepercutida (intracomunitarias e inversión del sujeto pasivo), en euros.
+DesglosesIVASoportado.PorcentajeDeducible: Parte deducible de la cuota (%): 100, 0 o la prorrata de la actividad.
+DesglosesIVASoportado.CuotaDeducible: Cuota que se deduce, en euros.
+DesglosesIVASoportado.IdCuentaIVASoportado: Subcuenta 472 del desglose; del mismo ejercicio que el registro.
+DesglosesIVASoportado.IdCuentaIVARepercutido: Subcuenta 477 de la autorrepercusión, si la hay; del mismo ejercicio que el registro.
+
+IdentidadesContables: Identidad permanente de cada cuenta de una empresa: la que da continuidad a la subcuenta entre ejercicios aunque cambie su código.
+IdentidadesContables.IdSociedad: Empresa a la que pertenece.
+IdentidadesContables.IdTipoCuentaContable: Tipo de cuenta (cliente, proveedor, banco, gasto, ingreso o manual).
+IdentidadesContables.Naturaleza: Saldo normal: 0 sin definir, 1 deudora, 2 acreedora.
+IdentidadesContables.FechaAlta: Fecha en que se creó la cuenta.
+IdentidadesContables.FechaBaja: Fecha en que se dio de baja; vacía si sigue vigente.
+
+IVARepercutido: Libro registro de IVA repercutido (facturas emitidas): una fila por factura con sus totales; el desglose por tipo está en DesglosesIVARepercutido.
+IVARepercutido.IdIVARepercutido: Identificador autonumérico del registro.
+IVARepercutido.IdSociedadEjercicio: Empresa y ejercicio del libro.
+IVARepercutido.IdCliente: Cliente de la factura.
+IVARepercutido.IdAsiento: Asiento de la factura.
+IVARepercutido.FechaExpedicion: Fecha de expedición de la factura.
+IVARepercutido.FechaOperacion: Fecha de la operación, si es distinta de la de expedición.
+IVARepercutido.FechaHoraRegistroContable: Fecha y hora en que se anotó en el libro.
+IVARepercutido.IdPeriodoIVA: Periodo de IVA (trimestre) en que se declara; del mismo ejercicio.
+IVARepercutido.NumeroFactura: Número de la factura.
+IVARepercutido.NombreCliente: Nombre o razón social del cliente en la factura.
+IVARepercutido.IdentificacionFiscalCliente: NIF o identificación fiscal del cliente.
+IVARepercutido.PaisCliente: País del cliente (código ISO).
+IVARepercutido.IdTipoOperacion: Tipo de operación (TiposOperacion).
+IVARepercutido.ImporteTotalFactura: Total de la factura.
+IVARepercutido.BaseImponibleTotal: Suma de las bases imponibles.
+IVARepercutido.CuotaRepercutidaTotal: Suma de las cuotas de IVA.
+IVARepercutido.RecargoEquivalenciaTotal: Suma de las cuotas de recargo de equivalencia.
+IVARepercutido.IncluidoModelo347: Sí: cuenta para la declaración de operaciones con terceros (347).
+IVARepercutido.Estado: Estado del registro: REGISTRADO.
+IVARepercutido.Descripcion: Descripción de la operación.
+IVARepercutido.OperadorCreacion: Operador o proceso que creó el registro.
+IVARepercutido.FechaHoraCreacion: Fecha y hora en que se creó.
+IVARepercutido.IdFactura: Factura de venta del programa; vacía en las importadas de ContaSol.
+
+IVASoportado: Libro registro de IVA soportado (facturas recibidas): una fila por factura con sus totales; el desglose por tipo está en DesglosesIVASoportado.
+IVASoportado.IdIVASoportado: Identificador autonumérico del registro.
+IVASoportado.IdSociedadEjercicio: Empresa y ejercicio del libro.
+IVASoportado.IdProveedor: Proveedor de la factura.
+IVASoportado.IdAsiento: Asiento de la factura.
+IVASoportado.FechaExpedicion: Fecha de expedición de la factura.
+IVASoportado.FechaOperacion: Fecha de la operación, si es distinta.
+IVASoportado.FechaHoraRegistroContable: Fecha y hora en que se anotó en el libro.
+IVASoportado.IdPeriodoIVA: Periodo de IVA (trimestre) en que se declara; del mismo ejercicio.
+IVASoportado.NumeroFactura: Número de la factura del proveedor.
+IVASoportado.NombreProveedor: Nombre o razón social del proveedor.
+IVASoportado.IdentificacionFiscalProveedor: NIF o identificación fiscal del proveedor.
+IVASoportado.PaisProveedor: País del proveedor (código ISO).
+IVASoportado.IdTipoOperacion: Tipo de operación (TiposOperacion): nacional, intracomunitaria o importación.
+IVASoportado.TipoBienServicio: Si se compran bienes o servicios.
+IVASoportado.InversionSujetoPasivo: Sí: con inversión del sujeto pasivo (el IVA se autorrepercute).
+IVASoportado.ImporteTotalFactura: Total de la factura.
+IVASoportado.BaseImponibleTotal: Suma de las bases imponibles.
+IVASoportado.CuotaSoportadaTotal: Suma de las cuotas de IVA soportadas.
+IVASoportado.CuotaDevengadaAutorrepercutidaTotal: Suma de las cuotas autorrepercutidas.
+IVASoportado.CuotaDeducibleTotal: Suma de las cuotas deducibles.
+IVASoportado.IncluidoModelo347: Sí: cuenta para la declaración de operaciones con terceros (347).
+IVASoportado.Estado: Estado del registro: REGISTRADO.
+IVASoportado.Descripcion: Descripción de la operación.
+IVASoportado.OperadorCreacion: Operador o proceso que creó el registro.
+IVASoportado.FechaHoraCreacion: Fecha y hora en que se creó.
+IVASoportado.BienInversion: Sí: es un bien de inversión (cuenta del grupo 2); va aparte en el libro y en la prorrata.
+
+ModelosBalance: Modelos de los estados financieros (balance de situación y pérdidas y ganancias del PGC de pymes) con su vigencia.
+ModelosBalance.IdModeloBalance: Identificador autonumérico del modelo.
+ModelosBalance.Nombre: Nombre del modelo.
+ModelosBalance.VersionNormativa: Norma de la que sale (p. ej. PGC Pymes 2008).
+ModelosBalance.FechaVigenciaDesde: Primer día en que vale el modelo.
+ModelosBalance.FechaVigenciaHasta: Último día en que vale; vacío: vigente.
+ModelosBalance.FuenteNormativa: Referencia de la norma publicada.
+ModelosBalance.EstaActivo: No: el modelo no se ofrece.
+
+NodosBalance: Partidas de cada modelo de balance (bloques, apartados y líneas) en su orden oficial de presentación.
+NodosBalance.IdNodoBalance: Identificador autonumérico de la partida.
+NodosBalance.IdModeloBalance: Modelo al que pertenece.
+NodosBalance.Codigo: Código de la partida en el modelo oficial (p. ej. A.I.1).
+NodosBalance.Nombre: Nombre de la partida.
+?NodosBalance.TipoNodo: Nivel de la partida en el modelo: 0 raíz, 1 bloque, 2 apartado, 3 línea.
+NodosBalance.Nivel: Profundidad de la partida en el árbol.
+NodosBalance.Multiplicador: Signo con que la partida suma a su superior: 1 o -1.
+NodosBalance.MostrarSiEsCero: Sí: la partida sale aunque su importe sea cero.
+NodosBalance.EstaActivo: No: la partida no sale.
+
+PeriodosIVA: Periodos de declaración del IVA (trimestres) de cada ejercicio.
+PeriodosIVA.IdPeriodoIVA: Identificador autonumérico del periodo.
+PeriodosIVA.IdSociedadEjercicio: Empresa y ejercicio del periodo.
+PeriodosIVA.Numero: Número del periodo en el ejercicio (1 a 4 los trimestres).
+PeriodosIVA.FechaInicio: Primer día del periodo.
+PeriodosIVA.FechaFin: Último día del periodo.
+PeriodosIVA.Estado: Estado del periodo: ABIERTO o CERRADO (ya declarado).
+
+PlanesContables: Planes contables de referencia (PGC general, de pymes…). Hoy está vacía.
+PlanesContables.IdPlanContable: Identificador autonumérico del plan.
+PlanesContables.Codigo: Código del plan (no es un número de cuenta).
+PlanesContables.Nombre: Nombre del plan.
+PlanesContables.VersionPlan: Versión del plan (p. ej. 2008).
+PlanesContables.EstaActivo: No: el plan no se ofrece.
+
+PresentacionesTributarias: Presentaciones de modelos tributarios de cada ejercicio: periodo, estado, justificante y rectificaciones.
+PresentacionesTributarias.IdPresentacionTributaria: Identificador autonumérico de la presentación.
+PresentacionesTributarias.IdSociedadEjercicio: Empresa y ejercicio de la obligación presentada.
+PresentacionesTributarias.Periodicidad: Periodicidad del modelo (trimestral, mensual, anual).
+PresentacionesTributarias.EstadoPresentacion: Estado de la presentación (preparada, presentada, rectificada…).
+PresentacionesTributarias.NumeroJustificante: Número de justificante que da la AEAT.
+PresentacionesTributarias.FechaHoraPresentacion: Fecha y hora de la presentación.
+PresentacionesTributarias.Operador: Operador que la presentó.
+PresentacionesTributarias.IdPresentacionRectificada: Presentación anterior a la que corrige (complementaria o sustitutiva).
+PresentacionesTributarias.Observaciones: Notas de la presentación.
+
+RegistroCambiosApuntes: Historial de cambios de los apuntes, campo a campo: qué cambió, de qué valor a cuál, quién y por qué.
+RegistroCambiosApuntes.IdCambioApunte: Identificador autonumérico del cambio.
+RegistroCambiosApuntes.IdLote: Identificador común de los cambios hechos a la vez.
+RegistroCambiosApuntes.FechaHora: Fecha y hora del cambio.
+RegistroCambiosApuntes.Operador: Operador o proceso que lo hizo.
+RegistroCambiosApuntes.Motivo: Por qué se hizo.
+RegistroCambiosApuntes.IdAsiento: Asiento afectado.
+RegistroCambiosApuntes.IdApunte: Apunte afectado.
+RegistroCambiosApuntes.Orden: Orden del apunte en el asiento.
+RegistroCambiosApuntes.Operacion: Qué se hizo con el apunte: ALTA, CAMBIO o BAJA.
+RegistroCambiosApuntes.Campo: Campo que cambió (vacío en altas y bajas).
+RegistroCambiosApuntes.ValorAntiguo: Valor antes del cambio.
+RegistroCambiosApuntes.ValorNuevo: Valor después del cambio.
+
+ReglasCuentasBalance: Qué cuentas van a cada partida del balance, por prefijo de cuenta, con su signo y prioridad.
+ReglasCuentasBalance.IdReglaCuentaBalance: Identificador autonumérico de la regla.
+ReglasCuentasBalance.IdNodoBalance: Partida del balance a la que suman las cuentas.
+?ReglasCuentasBalance.TipoCoincidencia: Cómo se comparan las cuentas: por prefijo (2) o por rango (CuentaDesde a CuentaHasta).
+ReglasCuentasBalance.CuentaDesde: Primera cuenta del rango, si la regla es por rango.
+ReglasCuentasBalance.CuentaHasta: Última cuenta del rango, si la regla es por rango.
+ReglasCuentasBalance.EsInclusion: Sí: las cuentas suman a la partida; no: se excluyen de ella.
+ReglasCuentasBalance.Descripcion: Explicación de la regla.
+
+RelacionesAsientos: Relaciones entre asientos (p. ej. un asiento de corrección y el asiento que corrige).
+RelacionesAsientos.IdRelacionAsiento: Identificador autonumérico de la relación.
+RelacionesAsientos.IdAsientoOrigen: Asiento de origen (el corregido).
+RelacionesAsientos.IdAsientoDestino: Asiento relacionado (el que corrige).
+RelacionesAsientos.TipoRelacion: Tipo de relación: CORRECCION…
+RelacionesAsientos.Motivo: Por qué se relacionan.
+
+RelacionesCalculoBalance: Partidas del balance que se calculan sumando otras (p. ej. el resultado del ejercicio), con su signo y orden.
+RelacionesCalculoBalance.IdRelacionCalculoBalance: Identificador autonumérico de la relación.
+RelacionesCalculoBalance.IdNodoResultado: Partida calculada.
+RelacionesCalculoBalance.IdNodoComponente: Partida que suma a la calculada.
+RelacionesCalculoBalance.Multiplicador: Signo con que suma: 1 o -1.
+RelacionesCalculoBalance.Orden: Orden del componente en el cálculo.
+
+RevisionesAsientos: Historial de cada asiento: alta, modificación, baja o generación por lote, con el contenido antes y después.
+RevisionesAsientos.IdRevisionAsiento: Identificador autonumérico de la revisión.
+RevisionesAsientos.IdAsiento: Asiento revisado.
+RevisionesAsientos.NumeroRevision: Número de la revisión del asiento (1 la primera).
+RevisionesAsientos.TipoOperacion: Qué se hizo: 0 alta, 1 modificación, 2 baja, 3 generado por un lote de un proceso.
+RevisionesAsientos.Motivo: Por qué se hizo.
+RevisionesAsientos.Operador: Operador o proceso que lo hizo.
+RevisionesAsientos.FechaHora: Fecha y hora de la revisión.
+?RevisionesAsientos.IdLoteProceso: Lote del proceso que lo generó (heredado; sin uso).
+RevisionesAsientos.AdvertenciasAceptadas: Advertencias que el operador aceptó al guardar.
+
+TiposCuentaContable: Tipos de cuenta (proveedor, acreedor, cliente, banco, gasto, ingreso, manual) con su prefijo, longitud y naturaleza por defecto.
+TiposCuentaContable.IdTipoCuentaContable: Identificador autonumérico del tipo.
+TiposCuentaContable.Codigo: Código del tipo (PROVEEDOR, ACREEDOR, CLIENTE, BANCO, GASTO, INGRESO, MANUAL).
+TiposCuentaContable.Nombre: Nombre del tipo.
+TiposCuentaContable.Prefijo: Prefijo que se propone al crear una cuenta del tipo (p. ej. 430).
+TiposCuentaContable.LongitudPredeterminada: Número de dígitos de las subcuentas del tipo (7).
+TiposCuentaContable.Naturaleza: Saldo normal: 0 sin definir, 1 deudora, 2 acreedora.
+TiposCuentaContable.EsImputable: Sí: las cuentas del tipo admiten apuntes.
+TiposCuentaContable.EstaActivo: No: el tipo no se ofrece.

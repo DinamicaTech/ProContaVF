@@ -1,0 +1,124 @@
+# Descripciones de tablas y campos del área «compras». Formato en datos.txt.
+
+ConfiguracionReconocimientoFacturasCompra: Cómo se leen los PDF de las facturas de compra en cada empresa: si se usa el reconocimiento, el OCR de Textract y los umbrales de confianza.
+ConfiguracionReconocimientoFacturasCompra.IdConfiguracion: Identificador autonumérico de la configuración.
+ConfiguracionReconocimientoFacturasCompra.IdSociedad: Empresa a la que pertenece la configuración.
+ConfiguracionReconocimientoFacturasCompra.Activo: Sí: se reconocen los datos de los PDF nuevos. Empieza desactivado hasta configurar la empresa.
+ConfiguracionReconocimientoFacturasCompra.SociedadTieneVies: Sí: la empresa está inscrita en el VIES y puede hacer operaciones intracomunitarias.
+ConfiguracionReconocimientoFacturasCompra.UsarTextract: Sí: los PDF escaneados (sin texto) se leen con el OCR de AWS Textract.
+ConfiguracionReconocimientoFacturasCompra.UmbralAceptacion: Confianza mínima (0 a 1) para dar por bueno un dato reconocido sin pedir revisión.
+ConfiguracionReconocimientoFacturasCompra.UmbralDiscrepanciaImporte: Diferencia máxima en euros entre el total leído y la suma de bases, cuotas y retención para no pedir revisión.
+ConfiguracionReconocimientoFacturasCompra.Version: Número de versión de la configuración; sube en cada cambio y evita que dos personas se pisen al guardar a la vez.
+
+DesglosesFacturaCompra: Desglose por tipo de IVA de cada factura de compra: base y cuota de cada tipo.
+DesglosesFacturaCompra.IdDesgloseFacturaCompra: Identificador autonumérico del desglose.
+DesglosesFacturaCompra.IdRegistro: Factura de compra a la que pertenece.
+DesglosesFacturaCompra.Orden: Orden del desglose dentro de la factura.
+DesglosesFacturaCompra.TipoIVA: Tipo de IVA, en porcentaje (21 = 21 %; 0 para lo exento).
+DesglosesFacturaCompra.BaseImponible: Base imponible a este tipo, en euros.
+DesglosesFacturaCompra.CuotaIVA: Cuota de IVA a este tipo, en euros.
+DesglosesFacturaCompra.Confianza: Confianza del reconocimiento en este desglose (0 a 1); vacía si se escribió a mano.
+DesglosesFacturaCompra.Evidencia: Texto del PDF del que se sacó el desglose.
+
+FacturasCompra: Facturas recibidas (de compra y de gastos): PDF, proveedor, importes, retención, divisa, contabilización y reconocimiento. Hereda columnas del ERP; las que solo tiene el ERP quedan vacías en las nuevas.
+FacturasCompra.IdRegistro: Identificador autonumérico de la factura de compra.
+?FacturasCompra.IdSociedad: Columna heredada del ERP (su empresa numérica); no se migra ni se usa. La empresa y el ejercicio están en IdSociedadEjercicio.
+FacturasCompra.Sociedad: Código de la empresa (heredado del ERP); el bueno es IdSociedadEjercicio.
+FacturasCompra.Ejercicio: Año del ejercicio (heredado del ERP); el bueno es IdSociedadEjercicio.
+FacturasCompra.CuentaContableProveedor: Código de la subcuenta del proveedor en el ejercicio de la factura.
+FacturasCompra.NumeroFactura: Número de la factura del proveedor, limpio (solo letras y dígitos).
+FacturasCompra.Fecha: Fecha de expedición de la factura.
+FacturasCompra.Concepto: Concepto de la factura que se ve en la lista.
+FacturasCompra.ConceptoGasto: Código de la cuenta de gasto (grupo 6, o 2, 406, 407 o 480) a la que va la base.
+FacturasCompra.CuentaFormaPago: Cuenta de la forma de pago grabada por el ERP (dato heredado; la de ProContaVF es IdFormaPago).
+FacturasCompra.FechaVencimiento: Vencimiento tal como venía del ERP, como texto (puede tener varios vencimientos); no se convierte a fecha.
+?FacturasCompra.Pagada: Sí: la factura está pagada (dato heredado del ERP).
+FacturasCompra.Archivo: Ruta del PDF guardada por el ERP; se usa si falta ArchivoOriginal.
+FacturasCompra.MD5: Huella MD5 de los bytes del PDF, en hexadecimal; identifica el PDF para no registrarlo dos veces.
+FacturasCompra.ImporteBI: Base imponible total de la factura, en euros.
+FacturasCompra.ImporteIVA: Cuota de IVA total de la factura, en euros.
+FacturasCompra.ImporteTotal: Total de la factura en euros (si viene en otra moneda, ya convertido).
+FacturasCompra.ImporteBI0: Base exenta (heredada del ERP; ahora va en DesglosesFacturaCompra).
+FacturasCompra.ImporteBI1: Base del primer tipo de IVA (heredada del ERP; ahora va en DesglosesFacturaCompra).
+FacturasCompra.ImporteBI2: Base del segundo tipo de IVA (heredada del ERP; ahora va en DesglosesFacturaCompra).
+FacturasCompra.ImporteBI3: Base del tercer tipo de IVA (heredada del ERP; ahora va en DesglosesFacturaCompra).
+FacturasCompra.ImporteBI4: Base del cuarto tipo de IVA (heredada del ERP; ahora va en DesglosesFacturaCompra).
+FacturasCompra.TipoIVA1: Primer tipo de IVA (heredado del ERP; ahora va en DesglosesFacturaCompra).
+FacturasCompra.TipoIVA2: Segundo tipo de IVA (heredado del ERP; ahora va en DesglosesFacturaCompra).
+FacturasCompra.TipoIVA3: Tercer tipo de IVA (heredado del ERP; ahora va en DesglosesFacturaCompra).
+FacturasCompra.TipoIVA4: Cuarto tipo de IVA (heredado del ERP; ahora va en DesglosesFacturaCompra).
+FacturasCompra.Exportada: Sí: la factura está contabilizada, aquí o en el ERP.
+FacturasCompra.DIAAPU: Diario del asiento en ContaSol (heredado del ERP); con ASIAPU identifica el asiento importado.
+FacturasCompra.FECAPU: Fecha del asiento en ContaSol (heredada del ERP).
+FacturasCompra.ASIAPU: Número del asiento en ContaSol (heredado del ERP); la migración lo traduce a IdAsientoContable.
+FacturasCompra.FechaHoraExportacion: Fecha y hora en que se contabilizó.
+FacturasCompra.ArchivoOriginal: Ruta completa del PDF de la factura.
+FacturasCompra.FechaHoraRegistro: Fecha y hora en que se registró la factura en el programa.
+FacturasCompra.Duplicada: Sí: el ERP la marcó como duplicada de otra.
+FacturasCompra.Carpeta: Carpeta del proveedor en la que está el PDF (primer nivel bajo la carpeta de compras); sirve para reconocer al proveedor.
+FacturasCompra.NombreFichero: Nombre del fichero PDF, sin la carpeta.
+FacturasCompra.TipoOperacion: Tipo de operación: 0 nacional, 1 intracomunitaria, 2 importación.
+FacturasCompra.TipoProducto: Tipo de producto: 1 servicios, 2 bienes.
+?FacturasCompra.IVASuplido: IVA de un suplido (heredado del ERP; no se migra).
+?FacturasCompra.IdRegistroFacturaImportacionSuplido: Factura de importación a la que se refiere el suplido (heredado del ERP; no se migra).
+?FacturasCompra.IdRegistroFacturaTransporte: Factura de transporte relacionada (heredado del ERP; no se migra).
+FacturasCompra.NotasFactura: Notas internas de la factura; no afectan al asiento.
+?FacturasCompra.TextoAsiento: Texto del asiento en el ERP (heredado; no se migra).
+FacturasCompra.ImporteDolares: Importe en dólares de la factura (heredado del ERP); la migración lo pasa a Divisa = USD e ImporteTotalDivisa.
+FacturasCompra.NIF: NIF del proveedor tal como venía en la factura.
+FacturasCompra.PorcentajeRetencion: Porcentaje de retención de IRPF (15 = 15 %).
+FacturasCompra.TipoRetencion: Clase de la retención: 1 actividades y profesionales (111), 2 arrendamientos (115).
+FacturasCompra.IdRegistroIVA: Registro del libro de IVA soportado (IVASoportado) de la factura.
+FacturasCompra.InversionSujetoPasivo: Sí: la factura lleva inversión del sujeto pasivo y el IVA se autorrepercute.
+FacturasCompra.LineaN43: Línea del extracto bancario (N43) con la que está conciliado el pago; vacía si no está conciliada.
+?FacturasCompra.ASIAPURectificativa: Asiento de ContaSol de la rectificativa (heredado del ERP; no se migra).
+?FacturasCompra.IdRegistroIVARectificativa: Registro de IVA de la rectificativa (heredado del ERP; no se migra).
+FacturasCompra.Suplido: Importe suplido: gasto que el proveedor paga por cuenta nuestra, sin IVA, que suma al total.
+FacturasCompra.IdDepartamento: Departamento del ERP (heredado); con IdSubDepartamento da el centro de coste, que ahora está en IdCentroCoste.
+FacturasCompra.IdSubDepartamento: Subdepartamento del ERP (heredado); la migración lo traduce a IdCentroCoste.
+FacturasCompra.IdSociedadEjercicio: Empresa y ejercicio de la factura.
+FacturasCompra.IdProveedor: Proveedor de la factura; puede faltar en las históricas del ERP.
+FacturasCompra.ImporteRetencion: Importe de la retención de IRPF, en euros.
+FacturasCompra.Divisa: Moneda de la factura, código ISO (EUR si es en euros).
+FacturasCompra.ImporteTotalDivisa: Total en la moneda original de la factura.
+FacturasCompra.TipoCambioAplicado: Euros por unidad de la moneda original con que se convirtió el total.
+FacturasCompra.FechaTipoCambio: Fecha del tipo de cambio aplicado.
+FacturasCompra.IdRegistroFacturaRectificada: Factura del mismo proveedor a la que rectifica (en rectificativas y abonos).
+FacturasCompra.NombreProveedorAeat: Razón social del proveedor según la AEAT o el VIES al comprobar su NIF.
+FacturasCompra.ConfianzaImportacion: Confianza global del reconocimiento del PDF (0 a 1); no sustituye la revisión fiscal.
+FacturasCompra.RequiereRevisionImportacion: Sí: alguien tiene que revisar los datos reconocidos antes de contabilizar.
+FacturasCompra.FuenteImportacion: De dónde salen los datos: ERP (migrados) o pdf-local (leídos del PDF en el programa).
+FacturasCompra.LOGImportacion: Traza técnica del reconocimiento del PDF.
+FacturasCompra.Version: Número de versión de la factura; sube en cada cambio y evita que dos personas se pisen al guardar a la vez.
+FacturasCompra.IdCentroCoste: Centro de coste de la factura (lo usa también la prorrata del IVA).
+FacturasCompra.IdFormaPago: Forma de pago de la factura; su subcuenta en la empresa sale de FormasPagoSociedad.
+FacturasCompra.IdAsientoContable: Asiento vigente de la factura si la contabilizó ProContaVF; vacío si no está contabilizada o lo hizo el ERP.
+FacturasCompra.IdAsientoAnulado: Contra-asiento que anuló su asiento anterior al deshacer la exportación o re-exportar.
+FacturasCompra.GeneracionExportacion: Número de la exportación contable (lote) en la que se contabilizó; permite deshacer el lote entero.
+FacturasCompra.OrigenDocumento: De dónde llegó el PDF: «carpeta» (la del proveedor), «raiz» (la carpeta raíz) o «email».
+FacturasCompra.ConceptoFactura: Concepto leído de la factura (qué se compra), entero.
+FacturasCompra.ConceptoAbreviado: Concepto abreviado (unos 40 caracteres) que va en las descripciones de los apuntes.
+
+PlantillasReconocimientoCompra: Dónde está cada dato (NIF, número, fecha, total, concepto) en las facturas de un proveedor; se aprende al guardar una factura revisada y se aplica a las siguientes.
+PlantillasReconocimientoCompra.IdPlantilla: Identificador autonumérico de la plantilla.
+PlantillasReconocimientoCompra.IdSociedad: Empresa a la que pertenece.
+PlantillasReconocimientoCompra.Carpeta: Carpeta del proveedor (o su NIF si no hay carpeta) a cuyas facturas se aplica.
+PlantillasReconocimientoCompra.Campo: Dato que localiza: nif, numero, fecha, total o concepto.
+PlantillasReconocimientoCompra.Pagina: Página del PDF en la que está el dato.
+PlantillasReconocimientoCompra.Ancla: Rótulo que precede al valor en el PDF (p. ej. «Nº factura»).
+PlantillasReconocimientoCompra.Posicion: Dónde está el valor respecto al rótulo: «derecha» (en la misma línea) o «debajo» (en la línea de abajo).
+PlantillasReconocimientoCompra.Palabras: Cuántas palabras ocupa el valor.
+PlantillasReconocimientoCompra.X: Posición horizontal del rótulo en la página.
+PlantillasReconocimientoCompra.Y: Posición vertical del rótulo en la página.
+PlantillasReconocimientoCompra.DesplazamientoX: Distancia horizontal entre el rótulo y el valor.
+PlantillasReconocimientoCompra.Aciertos: Veces que la plantilla ha encontrado el valor.
+PlantillasReconocimientoCompra.FechaAlta: Fecha y hora en que se aprendió.
+PlantillasReconocimientoCompra.FechaUso: Fecha y hora de la última vez que se aplicó.
+PlantillasReconocimientoCompra.NIF: NIF del proveedor al que pertenece la plantilla.
+
+TextosClaveCompra: Textos que, si aparecen en una factura de compra, deciden su cuenta de gasto o su centro de coste (por empresa).
+TextosClaveCompra.IdTextoClave: Identificador autonumérico del texto clave.
+TextosClaveCompra.IdSociedad: Empresa a la que pertenece.
+TextosClaveCompra.Texto: Texto que se busca en la factura; único por empresa.
+TextosClaveCompra.IdIdentidadContable: Cuenta de gasto que se propone si aparece el texto; vacía si solo decide el centro.
+TextosClaveCompra.IdCentroCoste: Centro de coste que se propone si aparece el texto; vacío si solo decide la cuenta.

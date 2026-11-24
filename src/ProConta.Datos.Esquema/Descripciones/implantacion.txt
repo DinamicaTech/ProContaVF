@@ -1,0 +1,79 @@
+# Descripciones de tablas y campos del área «implantacion». Formato en datos.txt.
+
+FasesImportacionContaSol: Fases de cada importación de ContaSol (cuentas, centros, terceros, asientos, iva, conciliación) con su resultado y recuentos.
+FasesImportacionContaSol.IdFaseImportacionContaSol: Identificador autonumérico de la fase.
+FasesImportacionContaSol.IdImportacionContaSol: Importación a la que pertenece la fase.
+FasesImportacionContaSol.CodigoFase: Qué importa la fase: cuentas, centros, terceros, asientos, iva o conciliacion.
+FasesImportacionContaSol.Estado: Estado de la fase: INICIADA, COMPLETADA o ERROR.
+FasesImportacionContaSol.FechaHoraInicio: Fecha y hora en que empezó la fase.
+FasesImportacionContaSol.FechaHoraFin: Fecha y hora en que terminó la fase.
+FasesImportacionContaSol.FilasLeidas: Filas leídas de ContaSol en esta fase.
+FasesImportacionContaSol.FilasCreadas: Filas creadas en ProContaVF en esta fase.
+FasesImportacionContaSol.FilasOmitidas: Filas leídas que no se crearon (ya existían o no aplicaban); el motivo va en las incidencias.
+
+ImportacionesContaSol: Cada importación de un ejercicio de ContaSol: origen, quién y cuándo la hizo y cómo acabó.
+ImportacionesContaSol.IdImportacionContaSol: Identificador autonumérico de la importación.
+ImportacionesContaSol.IdSociedad: Empresa en la que se importó.
+ImportacionesContaSol.IdSociedadEjercicio: Ejercicio importado; tiene que ser de la misma empresa.
+ImportacionesContaSol.RutaOrigen: Carpeta o fichero de ContaSol del que se leyó.
+ImportacionesContaSol.HuellaOrigen: Huella SHA-256 del origen, para saber qué datos exactos se importaron.
+ImportacionesContaSol.VersionImportador: Versión del importador que hizo la importación.
+ImportacionesContaSol.FechaHoraInicio: Fecha y hora en que empezó la importación.
+ImportacionesContaSol.FechaHoraFin: Fecha y hora en que terminó.
+ImportacionesContaSol.Operador: Operador o usuario que lanzó la importación.
+ImportacionesContaSol.Estado: Estado de la importación: INICIADA, COMPLETADA o ERROR.
+ImportacionesContaSol.Resumen: Resumen de lo importado y de las incidencias.
+
+IncidenciasImportacionContaSol: Avisos de la importación de ContaSol: datos que no se pudieron traer tal cual, con el valor original y su explicación.
+IncidenciasImportacionContaSol.IdIncidenciaImportacionContaSol: Identificador autonumérico de la incidencia.
+IncidenciasImportacionContaSol.IdImportacionContaSol: Importación en la que surgió.
+IncidenciasImportacionContaSol.Fase: Fase en la que surgió (cuentas, terceros, asientos…).
+IncidenciasImportacionContaSol.TablaOrigen: Tabla de ContaSol de la que viene el dato.
+IncidenciasImportacionContaSol.ClaveOrigen: Clave del registro en ContaSol.
+IncidenciasImportacionContaSol.CampoOrigen: Campo de ContaSol afectado.
+IncidenciasImportacionContaSol.Codigo: Código del tipo de incidencia.
+IncidenciasImportacionContaSol.Severidad: Gravedad: INFORMATIVA, ADVERTENCIA o ERROR.
+IncidenciasImportacionContaSol.Explicacion: Qué pasó y qué se hizo con el dato.
+IncidenciasImportacionContaSol.ValorOriginal: Valor tal como estaba en ContaSol.
+IncidenciasImportacionContaSol.Estado: PENDIENTE de revisar o REVISADA.
+
+IncidenciasMigracionERP: Avisos de la migración desde el ERP: datos que no se pudieron traer tal cual, con el valor original y su explicación.
+IncidenciasMigracionERP.IdIncidenciaMigracionERP: Identificador autonumérico de la incidencia.
+IncidenciasMigracionERP.IdMigracionERP: Migración en la que surgió.
+IncidenciasMigracionERP.Fase: Fase en la que surgió (terceros, facturas, compras, N43…).
+IncidenciasMigracionERP.TablaOrigen: Tabla del ERP de la que viene el dato.
+IncidenciasMigracionERP.ClaveOrigen: Clave del registro en el ERP.
+IncidenciasMigracionERP.CampoOrigen: Campo del ERP afectado.
+IncidenciasMigracionERP.Codigo: Código del tipo de incidencia.
+IncidenciasMigracionERP.Severidad: Gravedad: INFORMATIVA, ADVERTENCIA o ERROR.
+IncidenciasMigracionERP.Explicacion: Qué pasó y qué se hizo con el dato.
+IncidenciasMigracionERP.ValorOriginal: Valor tal como estaba en el ERP.
+IncidenciasMigracionERP.Estado: PENDIENTE de revisar o REVISADA.
+
+MapasIdentidadContaSol: Equivalencia entre cada registro de ContaSol y el que se creó en ProContaVF; evita duplicar al repetir una importación.
+MapasIdentidadContaSol.IdMapaIdentidadContaSol: Identificador autonumérico de la equivalencia.
+MapasIdentidadContaSol.IdImportacionContaSol: Importación que creó el registro.
+MapasIdentidadContaSol.TipoEntidad: Qué es el registro: CUENTA, CENTRO, CLIENTE, PROVEEDOR, ASIENTO, IVA_REPERCUTIDO o IVA_SOPORTADO.
+MapasIdentidadContaSol.ClaveOrigen: Clave del registro en ContaSol, única por tipo e importación.
+MapasIdentidadContaSol.IdDestino: Identificador del registro creado en ProContaVF.
+
+MapasIdentidadERP: Equivalencia entre cada registro del ERP y el que se creó en ProContaVF; evita duplicar al repetir la migración.
+MapasIdentidadERP.IdMapaIdentidadERP: Identificador autonumérico de la equivalencia.
+MapasIdentidadERP.IdMigracionERP: Migración que creó el registro.
+MapasIdentidadERP.TipoEntidad: Qué es el registro: PERSONA, CLIENTE, FACTURA, COMPRA, ACTIVO, LINEA_N43, SERIE, CONCEPTO…
+MapasIdentidadERP.ClaveOrigen: Clave del registro en el ERP.
+MapasIdentidadERP.IdDestino: Identificador del registro creado en ProContaVF.
+
+MigracionesERP: Cada migración de datos desde el ERP (ProcontaEstructura): origen, quién y cuándo la hizo y cómo acabó.
+MigracionesERP.IdMigracionERP: Identificador autonumérico de la migración.
+MigracionesERP.IdSociedad: Empresa a la que se migraron los datos.
+MigracionesERP.RutaOrigen: BD del ERP de la que se leyó.
+MigracionesERP.HuellaOrigen: Huella SHA-256 de la BD del ERP, para saber qué datos exactos se migraron.
+MigracionesERP.RutaDirecciones: Fichero CSV de direcciones que completó los domicilios de los terceros.
+MigracionesERP.HuellaDirecciones: Huella SHA-256 del fichero de direcciones.
+MigracionesERP.VersionMigrador: Versión del migrador que hizo la migración.
+MigracionesERP.FechaHoraInicio: Fecha y hora en que empezó la migración.
+MigracionesERP.FechaHoraFin: Fecha y hora en que terminó.
+MigracionesERP.Operador: Operador o usuario que lanzó la migración.
+MigracionesERP.Estado: Estado de la migración: INICIADA, COMPLETADA o ERROR.
+MigracionesERP.Resumen: Resumen de lo migrado y de las incidencias.

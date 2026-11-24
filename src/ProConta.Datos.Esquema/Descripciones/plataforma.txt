@@ -1,0 +1,27 @@
+# Descripciones de tablas y campos del área «plataforma». Formato en datos.txt.
+
+?AliasCamposConfiguracion: Sinónimos para encontrar un campo de la configuración en el buscador del mantenimiento. Heredada del ProConta anterior; el programa actual lleva los sinónimos en el código.
+?AliasCamposConfiguracion.IdAlias: Identificador autonumérico del sinónimo.
+?AliasCamposConfiguracion.Alias: Palabra o expresión que escribe el operador al buscar.
+?AliasCamposConfiguracion.GrupoFuncional: Grupo del mantenimiento al que apunta el sinónimo.
+?AliasCamposConfiguracion.Campo: Campo de la configuración que encuentra el sinónimo.
+
+Configuracion.OcultarListaOperadoresAcceso: Sí: la ventana de entrada no muestra la lista de operadores y cada uno escribe su nombre. Por defecto no.
+Configuracion.VeriFactuActivo: Sí: las facturas validadas se comunican a la AEAT por VeriFactu y llevan QR. No (por defecto): se validan sin comunicarse y no se envían después.
+Configuracion.CorreoDesviarA: Dirección a la que se desvía todo el correo que envía el programa (pruebas). Vacía: cada mensaje va a sus destinatarios reales.
+Configuracion.UmbralCuadreMayor: Saldo máximo, positivo o negativo, con el que «Reiniciar el cuadre del Mayor» da una subcuenta por cuadrada. Vacío: 0,05 €.
+
+# Descripciones que ya estaban en la BD con los acentos mal codificados (p. ej. «ConfiguraciÃ³n»): se reescriben bien.
+Configuracion: Configuración general de la aplicación. Debe contener una única fila con IdConfiguracion=1.
+Configuracion.IdConfiguracion: Identificador fijo de la configuración general. Único valor permitido: 1.
+Configuracion.RutaDatosVeriFactu: Carpeta raíz de datos VeriFactu. De ella se derivan Inbox, Outbox, Blockchains, Invoices y Log.
+Configuracion.SistemaInformaticoNombreRazon: Nombre o razón social del productor del sistema informático de facturación. Máximo 120 caracteres.
+Configuracion.SistemaInformaticoNIF: NIF del productor del sistema informático de facturación. Máximo 9 caracteres.
+Configuracion.SistemaInformaticoNombre: Nombre dado por el productor al sistema informático de facturación. Máximo 30 caracteres.
+Configuracion.SistemaId: Código identificador del sistema informático de facturación. Máximo 2 caracteres.
+Configuracion.SistemaInformaticoVersion: Versión instalada del sistema informático de facturación. Máximo 50 caracteres.
+Configuracion.SistemaInformaticoNumeroInstalacion: Identificador estable y único de esta instalación del sistema. No debe regenerarse ni reutilizarse en otra instalación.
+Configuracion.SistemaInformaticoTipoUsoPosibleSoloVerifactu: S=el sistema solo puede funcionar como VeriFactu; N=admite también modalidad no VeriFactu.
+Configuracion.FechaModificacion: Fecha y hora de la última modificación de la configuración general.
+Configuracion.OperadorModificacion: Usuario u operador que realizó la última modificación.
+Configuracion.EmailIncidencias: Dirección que recibe resúmenes de incidencias de procesos desacoplados. Si está vacía, no se intentan enviar avisos automáticos.

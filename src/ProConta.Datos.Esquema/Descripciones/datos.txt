@@ -1,0 +1,27 @@
+# Descripciones de tablas y campos del área «datos» (docs/datos/esquema/descripciones-campos.md).
+# Formato: «Tabla: texto» describe la tabla y «Tabla.Campo: texto» el campo. Un «?» delante marca una
+# descripción pendiente de confirmar por el propietario; se escribe igual en la BD, sin el «?».
+
+LogMigracionesEsquema: Registro de cada intento de aplicar una migración del esquema, termine bien o no. Sirve para saber qué falló y qué copia restaurar.
+LogMigracionesEsquema.IdEjecucion: Identificador autonumérico del intento.
+LogMigracionesEsquema.IdMigracion: Migración que se intentó aplicar (el Id del catálogo, p. ej. 20261124_1800_RELACIONES_PENDIENTES).
+LogMigracionesEsquema.FechaHoraInicio: Fecha y hora local en que empezó el intento.
+LogMigracionesEsquema.FechaHoraFin: Fecha y hora local en que terminó el intento; vacía si se cortó.
+LogMigracionesEsquema.Estado: Estado del intento: INICIADA, COMPLETADA o ERROR.
+LogMigracionesEsquema.PasoActual: Último paso de la migración que se estaba aplicando (el que falló, si acabó en ERROR).
+LogMigracionesEsquema.DescripcionError: Resumen del error que impidió completar la migración.
+LogMigracionesEsquema.DetalleTecnico: Detalle técnico del error para diagnosticar y recuperar.
+LogMigracionesEsquema.VersionAplicacion: Versión del programa que hizo el intento.
+LogMigracionesEsquema.Equipo: Nombre del equipo desde el que se hizo el intento.
+LogMigracionesEsquema.Operador: Operador o usuario de Windows que lanzó la actualización.
+LogMigracionesEsquema.CopiaSeguridad: Ruta de la copia hecha antes de actualizar, la que hay que restaurar si el intento falla.
+
+VersionesEsquema: Migraciones del esquema aplicadas a esta BD, una fila por migración terminada. Su número de filas propias da la versión del esquema.
+VersionesEsquema.IdMigracion: Identificador inmutable de la migración aplicada (fecha, hora y nombre).
+VersionesEsquema.OrdenMigracion: Posición de la migración en el catálogo; la mayor es la versión del esquema de la BD.
+VersionesEsquema.Descripcion: Para qué sirve la migración, en palabras (informativo).
+VersionesEsquema.FechaHoraAplicacion: Fecha y hora local en que terminó de aplicarse.
+VersionesEsquema.VersionAplicacion: Versión del programa que la aplicó.
+VersionesEsquema.HashMigracion: SHA-256 de la definición de la migración; si el programa trae otra con el mismo Id y otro hash, la BD no es compatible.
+VersionesEsquema.DuracionMilisegundos: Tiempo que tardó en aplicarse, en milisegundos.
+VersionesEsquema.CopiaSeguridad: Ruta de la copia de la BD hecha justo antes de aplicarla.
