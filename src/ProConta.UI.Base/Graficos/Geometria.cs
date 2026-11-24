@@ -148,3 +148,20 @@ public static class GeometriaGrafico
         return (desde, hasta, valor is decimal a ? P(a) : null, referencia is decimal r ? P(r) : null);
     }
 }
+
+/// <summary>Geometría pura del minigráfico (para probarla sin WPF).</summary>
+public static class MinigraficoGeometria
+{
+    /// <summary>Un punto por valor (null en los huecos), repartidos a lo ancho; el mínimo abajo y el máximo arriba, con 3 px de margen.</summary>
+    public static IReadOnlyList<Punto?> Puntos(IReadOnlyList<decimal?> valores, double ancho, double alto)
+    {
+        var con = valores.Where(v => v is not null).Select(v => v!.Value).ToList();
+        if (con.Count == 0) return valores.Select(_ => (Punto?)null).ToList();
+        var min = con.Min();
+        var max = con.Max();
+        var n = valores.Count;
+        return valores.Select((v, i) => v is not decimal d ? (Punto?)null : new Punto(
+            n == 1 ? ancho / 2 : 3 + i * (ancho - 6) / (n - 1),
+            alto - 3 - (max == min ? 0.5 : (double)((d - min) / (max - min))) * (alto - 8))).ToList();
+    }
+}

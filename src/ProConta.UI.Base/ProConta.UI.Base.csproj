@@ -10,11 +10,15 @@
   <ItemGroup>
     <!-- Exportar a Excel (licencia MIT), aprobada por el propietario el 31/10/2026. -->
     <PackageReference Include="ClosedXML" Version="0.105.0" />
+    <!-- Motor de gráficos (licencia MIT), aprobado por el propietario el 24/11/2026 (informes/graficos). -->
+    <PackageReference Include="ScottPlot.WPF" Version="5.1.59" />
   </ItemGroup>
   <ItemGroup>
     <!-- Fuentes de las maquetas (licencia OFL), incluidas en el programa. -->
     <Resource Include="Fonts\*.ttf" />
     <None Include="Fonts\OFL-*.txt" CopyToOutputDirectory="PreserveNewest" />
+    <!-- La fuente de los gráficos se carga desde fichero (ScottPlot dibuja con SkiaSharp, no con WPF). -->
+    <None Include="Fonts\IBMPlexSans-Regular.ttf;Fonts\IBMPlexSans-SemiBold.ttf" Link="Fonts\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
   <ItemGroup>
     <InternalsVisibleTo Include="ProConta.UI.Base.Tests" />

@@ -84,6 +84,50 @@ public static class GeometriaTemporal
     }
 
     /// <summary>
+    /// Tramos de una serie partidos por estilo: cada tramo son índices consecutivos con valor, y es «sutil» cuando todos sus segmentos unen dos
+    /// fechas sutiles. Dos tramos seguidos comparten el índice del cambio, para que la línea no se corte. Un nulo corta la línea.
+    /// </summary>
+    public static IReadOnlyList<(IReadOnlyList<int> Indices, bool Sutil)> TramosConEstilo(IReadOnlyList<double?> valores, IReadOnlyList<bool>? sutil)
+    {
+        var r = new List<(IReadOnlyList<int>, bool)>();
+        bool EsSutil(int i) => sutil is not null && i < sutil.Count && sutil[i];
+        foreach (var tramo in GeometriaGrafico.Tramos(valores))
+        {
+            if (tramo.Count == 1) { r.Add((tramo, EsSutil(tramo[0]))); continue; }
+            var actual = new List<int> { tramo[0] };
+            bool? estilo = null;
+            for (var k = 1; k < tramo.Count; k++)
+            {
+                var s = EsSutil(tramo[k - 1]) && EsSutil(tramo[k]);
+                if (estilo is bool e && e != s)
+                {
+                    r.Add((actual, e));
+                    actual = [tramo[k - 1]];
+                }
+                estilo = s;
+                actual.Add(tramo[k]);
+            }
+            r.Add((actual, estilo ?? false));
+        }
+        return r;
+    }
+
+    /// <summary>Índice de la fecha (en días OLE, ordenadas) más cercana a <paramref name="x"/>; −1 si no hay fechas.</summary>
+    public static int IndiceMasCercano(IReadOnlyList<double> xs, double x)
+    {
+        if (xs.Count == 0 || double.IsNaN(x)) return -1;
+        int lo = 0, hi = xs.Count - 1;
+        if (x <= xs[0]) return 0;
+        if (x >= xs[hi]) return hi;
+        while (hi - lo > 1)
+        {
+            var m = (lo + hi) / 2;
+            if (xs[m] <= x) lo = m; else hi = m;
+        }
+        return x - xs[lo] <= xs[hi] - x ? lo : hi;
+    }
+
+    /// <summary>
     /// Polígonos del sombreado entre la serie A y la serie B: los tramos donde A ≥ B (positivos) y donde A &lt; B (negativos), cortando en el punto donde
     /// se cruzan. Un hueco en cualquiera de las dos corta el sombreado.
     /// </summary>
