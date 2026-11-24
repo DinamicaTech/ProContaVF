@@ -31,6 +31,9 @@ public sealed class ProcesadorFacturasCompraCorreo(IBaseDatos bd, ServicioFactur
             if (!carpeta.EsCorrecto)
                 return new ResultadoFacturaRecibida(EstadoAdjuntoRecibido.Error, null, null, carpeta.Error!.Mensaje + " " + carpeta.Error.AccionCorrectora, []);
             var destino = Path.Combine(carpeta.Valor, NombreLibre(carpeta.Valor, nombre));
+            // En pruebas, la carpeta de compras de producción (el NAS) no se toca: el PDF va a datospruebas\externas.
+            destino = ProConta.Nucleo.Ficheros.EntornoFicheros.ParaEscribir(destino);
+            Directory.CreateDirectory(Path.GetDirectoryName(destino)!);
             File.Copy(rutaPdf, destino);
             File.SetAttributes(destino, FileAttributes.Normal);
             FacturaCompra leida;

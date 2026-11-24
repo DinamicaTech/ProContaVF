@@ -342,7 +342,9 @@ public sealed partial class ServicioDocumentos
             {
                 Directory.CreateDirectory(carpeta);
                 destino = RutasDocumentos.RutaLibre(carpeta, d.Titulo + Path.GetExtension(origen));
-                File.Move(origen, destino);
+                // En pruebas, un fichero de una carpeta de producción (el NAS) se copia y el original se queda donde estaba.
+                ProConta.Nucleo.Ficheros.EntornoFicheros.Mover(origen, destino);
+                destino = ProConta.Nucleo.Ficheros.EntornoFicheros.ParaEscribir(destino);
                 var ruta = RutasDocumentos.ParaGuardar(raiz, destino);
                 await _bd.EnTransaccionAsync(async s =>
                 {
@@ -356,6 +358,7 @@ public sealed partial class ServicioDocumentos
             catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or System.Data.Common.DbException or InvalidOperationException)
             {
                 if (destino is not null && File.Exists(destino) && !File.Exists(origen)) try { File.Move(destino, origen); } catch (IOException) { }
+                else if (destino is not null && File.Exists(destino) && ProConta.Nucleo.Ficheros.EntornoFicheros.Protegida(origen)) try { File.Delete(destino); } catch (IOException) { }
                 errores.Add($"«{d.Titulo}» no se ha archivado: {ex.Message} Comprueba que el fichero no está abierto y vuelve a intentarlo.");
             }
         }

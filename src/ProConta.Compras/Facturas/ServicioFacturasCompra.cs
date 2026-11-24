@@ -128,13 +128,16 @@ public sealed class ServicioFacturasCompra(
         var carpeta = await bd.EjecutarAsync(s => RepositorioFacturasCompra.CarpetaProveedorAsync(s, f.Ejercicio.IdSociedad, prov), cancelacion);
         if (carpeta is null) return false;
         var origen = f.RutaPdf;
-        var destino = Path.Combine(Path.GetDirectoryName(origen)!, carpeta, Path.GetFileName(origen));
+        // En pruebas, si el PDF está en la carpeta de producción (el NAS), no se mueve: se copia a datospruebas\externas (EntornoFicheros).
+        var protegido = ProConta.Nucleo.Ficheros.EntornoFicheros.Protegida(origen);
+        var destino = ProConta.Nucleo.Ficheros.EntornoFicheros.ParaEscribir(Path.Combine(Path.GetDirectoryName(origen)!, carpeta, Path.GetFileName(origen)));
         try
         {
             Directory.CreateDirectory(Path.GetDirectoryName(destino)!);
             for (var n = 2; File.Exists(destino); n++)
                 destino = Path.Combine(Path.GetDirectoryName(destino)!, $"{Path.GetFileNameWithoutExtension(origen)} ({n}){Path.GetExtension(origen)}");
-            File.Move(origen, destino);
+            if (protegido) { File.Copy(origen, destino); File.SetAttributes(destino, FileAttributes.Normal); }
+            else File.Move(origen, destino);
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
@@ -146,8 +149,9 @@ public sealed class ServicioFacturasCompra(
         }
         catch
         {
-            // Sin la ruta grabada, el PDF vuelve a la raíz para que la factura no lo pierda.
-            File.Move(destino, origen);
+            // Sin la ruta grabada, el PDF vuelve a la raíz para que la factura no lo pierda (en pruebas, el original no se movió).
+            if (protegido) File.Delete(destino);
+            else File.Move(destino, origen);
             throw;
         }
         f.RutaPdf = destino;
@@ -485,6 +489,13 @@ public sealed class ServicioFacturasCompra(
         if (factura.Contabilizada) return Fallo("Compras.SepararContabilizada", "La factura está contabilizada y no se separa desde aquí.", "Deshaz antes su contabilización.");
         var ruta = factura.RutaPdf;
         if (!File.Exists(ruta)) return Fallo("Compras.PdfNoEncontrado", $"No encuentro el PDF. Ruta intentada: {ruta}.");
+        // En pruebas, un PDF de la carpeta de producción (el NAS) se separa sobre su copia en datospruebas\externas, que pasa a ser su ruta.
+        var editable = ProConta.Nucleo.Ficheros.EntornoFicheros.CopiaEditable(ruta);
+        if (!string.Equals(editable, ruta, StringComparison.OrdinalIgnoreCase))
+        {
+            await bd.EnTransaccionAsync(async s => { await RepositorioFacturasCompra.ReubicarPdfAsync(s, factura.IdRegistro, editable, factura.Carpeta); return Resultado.Correcto(); }, cancelacion);
+            factura.RutaPdf = ruta = editable;
+        }
         var nombre = (nombreSegunda ?? "").Trim();
         if (!nombre.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase)) nombre += ".pdf";
         if (nombre.Length <= 4 || nombre.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0 || nombre.Contains('\\') || nombre.Contains('/'))
