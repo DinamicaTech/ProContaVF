@@ -94,6 +94,18 @@ public sealed class RecepcionAccessTests : IDisposable
         DatosSinteticos.SociedadAsync(_bd, "R01", "Recepcion Demo SL").GetAwaiter().GetResult();
         DatosSinteticos.EjercicioAsync(_bd, Ejercicio, "R01", 2026).GetAwaiter().GetResult();
         _bd.EjecutarAsync(s => s.EjecutarAsync("UPDATE Sociedades SET RutaDocumentos = ? WHERE IdSociedad = 'R01'", _documentos)).GetAwaiter().GetResult();
+        // La factura 501 y los asientos 9001 y 9002 que devuelven los procesadores falsos existen: AdjuntosRecibidosCorreo tiene relación con los dos (esquema 83).
+        _bd.EjecutarAsync(async s =>
+        {
+            await s.EjecutarAsync("INSERT INTO FacturasCompra (IdRegistro, Duplicada, Exportada, InversionSujetoPasivo, Pagada) VALUES (501, False, False, False, False)");
+            await s.EjecutarAsync("INSERT INTO Asientos (IdAsiento, IdSociedadEjercicio, FechaContable, Descripcion, EstadoAsiento, TipoAsiento, TotalDebe, TotalHaber, " +
+                "FechaHoraCreacion, OperadorCreacion, Version) VALUES (9001, ?, ?, 'Factura F1', 1, 1, 0, 0, ?, 'Prueba', 1)",
+                Ejercicio, new DateTime(2026, 11, 24), new DateTime(2026, 11, 24));
+            await s.EjecutarAsync("INSERT INTO Asientos (IdAsiento, IdSociedadEjercicio, FechaContable, Descripcion, EstadoAsiento, TipoAsiento, TotalDebe, TotalHaber, " +
+                "FechaHoraCreacion, OperadorCreacion, Version) VALUES (9002, ?, ?, 'Nóminas', 1, 1, 0, 0, ?, 'Prueba', 1)",
+                Ejercicio, new DateTime(2026, 11, 24), new DateTime(2026, 11, 24));
+            return true;
+        }).GetAwaiter().GetResult();
         _correo = new ServicioCorreo(_bd, _smtp);
         _recepcion = new ServicioRecepcionCorreo(_bd, _buzon, _correo, _facturas);
         PrepararAsync().GetAwaiter().GetResult();

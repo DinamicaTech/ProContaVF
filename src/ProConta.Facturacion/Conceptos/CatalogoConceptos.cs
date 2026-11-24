@@ -175,7 +175,16 @@ public sealed class CatalogoConceptos(IBaseDatos bd, ICatalogoCuentas cuentas)
         if (uso.EnUso)
             return Resultado.Fallo(new Error("Conceptos.EnUso", $"No se puede borrar: el concepto se usa en {string.Join(", ", uso.Frases())}.", $"Concepto {idConcepto}",
                 "Las líneas ya hechas siguen apuntando a él.", "Desactívalo para que no se ofrezca en facturas nuevas."));
-        await bd.EjecutarAsync(s => s.EjecutarAsync("DELETE FROM Conceptos WHERE IdConcepto = ? AND IdSociedad = ?", idConcepto, contexto.IdSociedad));
+        try
+        {
+            await bd.EjecutarAsync(s => s.EjecutarAsync("DELETE FROM Conceptos WHERE IdConcepto = ? AND IdSociedad = ?", idConcepto, contexto.IdSociedad));
+        }
+        catch (IntegridadReferencialException e)
+        {
+            // Las reglas de venta y las ventas por facturar también apuntan al concepto (relaciones del esquema 83).
+            return Resultado.Fallo(new Error("Conceptos.EnUso", "No se puede borrar: el concepto lo usa una regla de venta o una venta por facturar.", $"Concepto {idConcepto}",
+                e.Error.Mensaje, "Desactívalo para que no se ofrezca en facturas nuevas, o cambia antes el concepto de esa regla."));
+        }
         return Resultado.Correcto();
     }
 
