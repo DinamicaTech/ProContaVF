@@ -1,6 +1,7 @@
 using ProConta.Nucleo.Seguridad;
 using ProConta.Compras.Facturas;
 using ProConta.Compras.Integraciones;
+using ProConta.Compras.Mantenimiento;
 
 namespace ProConta.Compras.Tests;
 
@@ -28,9 +29,9 @@ public sealed class SecretoProtegidoTests
     public void Las_claves_guardadas_valen_solo_completas()
     {
         var bueno = SecretoProtegido.Proteger("s3cr3t");
-        Assert.Equal(("eu-west-1", "AKIA1", "s3cr3t"), RepositorioFacturasCompra.Credenciales(" eu-west-1 ", "AKIA1", bueno).Credenciales is { } c ? (c.Region, c.ClaveAcceso, c.Secreto) : default);
-        Assert.Equal((null, null), RepositorioFacturasCompra.Credenciales(null, null, null));
-        Assert.Contains("región", RepositorioFacturasCompra.Credenciales(null, "AKIA1", bueno).Motivo);
-        Assert.Contains("descifrar", RepositorioFacturasCompra.Credenciales("eu-west-1", "AKIA1", "pcv1:roto").Motivo);
+        Assert.Equal(("eu-west-1", "AKIA1", "s3cr3t"), ProveedorConexionAws.Credenciales(" eu-west-1 ", "AKIA1", bueno).Credenciales is { } c ? (c.Region, c.ClaveAcceso, c.Secreto) : default);
+        Assert.Equal((null, null), ProveedorConexionAws.Credenciales(null, null, null));
+        Assert.Contains("región", ProveedorConexionAws.Credenciales(null, "AKIA1", bueno).Motivo);
+        Assert.Contains("descifrar", ProveedorConexionAws.Credenciales("eu-west-1", "AKIA1", "pcv1:roto").Motivo);
     }
 }
