@@ -1,6 +1,5 @@
 ---
 title: Pantallas de seguridad
-status: draft
 depends_on: [seguridad/acceso, plataforma/ui-base, seguridad/permisos, terceros/roles, terceros/pantallas, datos/esquema]
 threads:
   - 2026-10-28 12:30 · Carga de requisitos | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GRNMH95h9tnQp4dmEPHmw1w
@@ -22,6 +21,7 @@ Pantalla de acceso compacta en cuatro fases y mantenimiento de operadores y grup
 - 2026-11-24 11:20 · Asistente del primer administrador: pide nombre, primer y segundo apellido (opcionales) y contraseña (opcional); crea el tercero persona física, le da el rol de operador y lo pone en ADMINISTRADORES, en una transacción.
 - 2026-11-24 11:20 · Nombre de acceso (seguridad/acceso): el nombre de pila del tercero; si otro operador, activo o no, se llama igual (sin distinguir mayúsculas), se añade el primer apellido y, si siguen coincidiendo, el segundo; si aún coinciden, el número del tercero entre paréntesis. Se compara con todos los operadores para que el nombre de uno no cambie al activar o desactivar a otro.
 - 2026-11-24 12:05 · «Pasar aquí un operador…» en la tarjeta del rol de una persona física guardada que nunca ha sido operador: elige un operador de otra ficha y lo pasa a esta al momento, con su número, contraseña, grupos e historial (`ServicioOperadores.PasarATerceroAsync`, auditoría OPERADOR_MOVIDO; solo quien gestiona operadores). Motivo: en la copia de pruebas había dos fichas «Ronald» (117 y 546) y la migración creó una tercera (550) para el operador; con esto se pasa a la buena y la repetida se desactiva. La ficha que deja no se toca.
+- 2026-11-24 11:50 · Validado por el propietario (mantenimiento de operadores como rol de terceros, PR #152); pidió quitar el borrador. Queda pendiente el icono por fase del acceso, anotado en el Summary.
 
 ## Requirements
 - 2026-10-28 12:28 · From sources/01_ESPECIFICACION_FUNCIONAL.docx § 5 RF-ACC-01: login compacto sin marco, movible, opción Salir, icono por fase
