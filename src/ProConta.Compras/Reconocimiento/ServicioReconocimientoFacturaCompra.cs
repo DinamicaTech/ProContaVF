@@ -123,7 +123,7 @@ public sealed class ServicioReconocimientoFacturaCompra(
                 advertencias = [.. elegido.Advertencias, "Leído con OCR porque el PDF no tiene texto nativo."];
             }
             else advertencias.Add(contexto.Configuracion.Activo && contexto.Configuracion.UsarOcr && ocr is null
-                ? $"El PDF no tiene texto y el OCR no tiene claves de AWS{MotivoSinOcr(contexto.Configuracion)}: guárdalas en Mantenimientos › Reconocimiento de facturas de compra o rellena los campos a mano."
+                ? $"El PDF no tiene texto y el OCR no tiene claves de AWS{MotivoSinOcr(contexto.Configuracion)}: guárdalas en Parámetros y tablas › Integraciones › «AWS · Conexión» o rellena los campos a mano."
                 : "El OCR no está activo para esta sociedad: rellena los campos a mano.");
         }
 
